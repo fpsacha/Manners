@@ -55,18 +55,29 @@ jobs:
 
       - run: pip install Pillow
 
-      # The icon is pure geometry with no text in it, so it renders identically
-      # everywhere and can be checked byte for byte. If this fails, either the
-      # generator changed without the committed icon being refreshed, or the
-      # icon was edited by hand and the generator no longer produces it.
-      - name: The committed icon is what the generator produces
+      # This used to assert the committed icon was byte-identical to what the
+      # generator produces here, on the reasoning that the icon is pure
+      # geometry with no text and therefore renders identically everywhere.
+      # That was wrong, and it failed the first time it ran against a real
+      # release: Pillow's resampling and PNG encoding differ between versions
+      # and platforms, so the same code produces a 143,665-byte file on the
+      # author's Windows machine and a 146,524-byte one here.
+      #
+      # Byte equality across platforms was never available. What is checked is
+      # that the generator runs and produces images of the right size -- and
+      # drift is caught where it can be: running the generator locally and
+      # finding `git status` dirty, which tools/README.md documents.
+      - name: The icon generator still runs
         run: |
           python tools/make-icon.py
-          if ! git diff --quiet -- .github/media/icon-512.png .github/media/icon-64.png; then
-            echo "::error::.github/media icon files differ from what tools/make-icon.py generates"
-            git diff --stat -- .github/media
-            exit 1
-          fi
+          python - <<'EOF'
+          from PIL import Image
+          for name, want in (("icon-512.png", 512), ("icon-64.png", 64)):
+              im = Image.open(".github/media/" + name)
+              assert im.size == (want, want), (name, im.size)
+              print("ok", name, im.size)
+          EOF
+          git checkout -- .github/media
 
       # The screenshots draw text, and the faces they were designed against are
       # Segoe UI, which is not installed here and is not ours to install. On
