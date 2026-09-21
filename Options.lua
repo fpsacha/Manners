@@ -720,7 +720,7 @@ local function BuildOptions()
 					format = {
 						type = "input",
 						name = "First line",
-						desc = "Tokens: {name} {reason} {count} {class} {buff}",
+						desc = "Tokens: {name} {reason} {count} {class} {buff} {time}",
 						order = 31,
 						width = "full",
 						get = pGet,
@@ -740,6 +740,7 @@ local function BuildOptions()
 						order = 33,
 						name = "|cff888888{name}|r who   |cff888888{reason}|r why   |cff888888{count}|r how many more   "
 							.. "|cff888888{class}|r their class   |cff888888{buff}|r the spell\n"
+							.. "|cff888888{time}|r what theirs has left, on a top-up and nowhere else\n"
 							.. "The second line always shows the reason.",
 					},
 					reasonTarget = {
@@ -754,6 +755,16 @@ local function BuildOptions()
 					reasonOwed = { type = "input", name = "Wording: buffed you", order = 34, get = pGet, set = pSet },
 					reasonGroup = { type = "input", name = "Wording: in your group", order = 35, get = pGet, set = pSet },
 					reasonNearby = { type = "input", name = "Wording: nearby", order = 36, get = pGet, set = pSet },
+					reasonRefresh = {
+						type = "input",
+						name = "Wording: topping one up",
+						desc = "Used instead of the four above when they already have the buff and"
+							.. " it is about to run out, which only the refresh mode offers."
+							.. " |cffffd100{time}|r is how long theirs has left.",
+						order = 36.5,
+						get = pGet,
+						set = pSet,
+					},
 					reasonUnknown = {
 						type = "input",
 						name = "Wording: state unknown",

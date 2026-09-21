@@ -64,6 +64,18 @@ local current, testMode, testExpiry, lastTop, appliedKey, lastClickAt, lastPreCl
 -- happens on presses none of those are counting.
 local lastStaleAt
 
+-- What the macro currently sitting on the button is aimed at:
+-- { targeted = "full" | "first" | nil, selfCast = boolean }, or nil when there
+-- is no macro of ours on it at all. PostClick copies this onto the pending
+-- click so the settle handler can judge the press by what actually went out.
+--
+-- Written here rather than worked out again over there, because the two answers
+-- would not agree: a settle arrives a few hundred milliseconds later, and the
+-- first-name flag it would have to read may have been written in between. It is
+-- set beside appliedKey, so the early return that skips a rebuild skips this
+-- too -- correct, because the macro it describes did not change either.
+local armed
+
 -- Amber for a favour returned, because that is the case worth noticing.
 -- The others stay quiet so the prompt does not shout at you constantly.
 local REASON_COLOR = {
@@ -333,7 +345,16 @@ function Prompt:Create()
 		local db = ns.db and ns.db.profile
 		if not db or not db.enabled or not db.prompt.locked or testMode then
 			local now = GetTime()
-			if db and db.verbose and InCombatLockdown() and self:GetAttribute("macrotext1")
+			-- Only a press that could have cast gets the warning. type2 to
+			-- type5 are "none", so the secure handler matches nothing for the
+			-- right button however stale the macro sitting on the attributes
+			-- is -- and this guard is above the right-button branch, so it was
+			-- telling somebody who pressed to skip that a buff may have gone
+			-- out when provably none did. A keybinding arrives with no button
+			-- at all and is treated as a left press, which is the same reading
+			-- the cast path below takes.
+			local couldCast = mouseButton == nil or mouseButton == "LeftButton"
+			if couldCast and db and db.verbose and InCombatLockdown() and self:GetAttribute("macrotext1")
 				and not (lastStaleAt and (now - lastStaleAt) < 0.25) then
 				lastStaleAt = now
 				ns.addon:Print("|cffff8080that may still have cast|r -- the prompt cannot be"
@@ -388,13 +409,29 @@ function Prompt:Create()
 		-- hundred milliseconds later whether anything was actually cast, and
 		-- clearing here meant a cast blocked by range or line of sight counted
 		-- as a favour returned.
+		--
+		-- What the macro was aimed at rides along, and so does the rotation
+		-- pointer as it stood before this press moved it. The settle handler
+		-- reads both: the first so a name is only ever judged on a /target that
+		-- was really there, the second so a cast that went nowhere can put the
+		-- pointer back instead of walking this person off their own buff list.
+		-- gave is read here, above the write below, which is the only place it
+		-- is still the old value.
 		ns.pendingClick = { name = current.name, at = GetTime(),
-			buffKey = current.buff and current.buff.key }
+			buffKey = current.buff and current.buff.key,
+			selfCast = armed ~= nil and armed.selfCast == true,
+			targeted = armed and armed.targeted,
+			gave = ns.lastGave[current.name] }
 		-- Per buff, so casting Fortitude does not stop the walk reaching
 		-- Divine Spirit on the next click.
 		if current.buff then
 			ns.MarkAttempted(current.name, current.buff.key)
-			ns.lastGave[current.name] = current.buff.key
+			-- Only where the walk will read it back. A paladin's blessings
+			-- overwrite one another, so PickBuffFor deliberately never rotates
+			-- them -- and a pointer written for a walk that will not happen is
+			-- a record of nothing, which is exactly how this one came to be
+			-- believed as a feature.
+			if ns.RotatesBuffs() then ns.lastGave[current.name] = current.buff.key end
 		end
 		Prompt:StopAttention()
 	end)
@@ -405,16 +442,26 @@ function Prompt:Create()
 		GameTooltip:AddLine("Manners")
 		GameTooltip:AddDoubleLine(current.short or current.name, ns.BuffName(current.buff),
 			1, 1, 1, 0.8, 0.8, 0.8)
-		local why = current.reason == "owed" and "Buffed you -- return the favour."
-			or current.reason == "group" and "In your group and missing it."
-			or current.reason == "target" and "Your target, and missing it."
-			or "Nearby and missing it."
-		GameTooltip:AddLine(why, 0.7, 0.7, 0.7, true)
 		-- The refresh mode is the only thing that offers somebody a buff they
-		-- already hold, so without this the tooltip says "missing it" about a
-		-- person who is not. What they are carrying and how long it has left is
-		-- the whole reason they are on the prompt.
+		-- already hold, and for those people "missing it" is simply untrue --
+		-- the countdown line below used to sit under it saying so, one line
+		-- apart. Naming the contradiction is not the same as removing it, so
+		-- the reason itself changes: a top-up is a different offer and reads
+		-- like one, and the countdown then says how urgent it is.
 		local left = RemainingText(current.remaining)
+		local why
+		if current.reason == "owed" then
+			why = "Buffed you -- return the favour."
+		elseif left then
+			why = current.reason == "group" and "In your group, and theirs is running out."
+				or current.reason == "target" and "Your target, and theirs is running out."
+				or "Nearby, and theirs is running out."
+		else
+			why = current.reason == "group" and "In your group and missing it."
+				or current.reason == "target" and "Your target, and missing it."
+				or "Nearby and missing it."
+		end
+		GameTooltip:AddLine(why, 0.7, 0.7, 0.7, true)
 		if left then
 			GameTooltip:AddLine(("Theirs expires in %s."):format(left), 0.7, 0.7, 0.7, true)
 		end
@@ -769,13 +816,29 @@ local function Substitute(template, entry, extra)
 	out = out:gsub("{count}", tostring(extra or 0))
 	out = out:gsub("{class}", entry.class or "")
 	out = out:gsub("{buff}", entry.buff and ns.BuffName(entry.buff) or "")
+	-- Empty for everybody who is simply missing the buff: only a top-up has a
+	-- timer to quote, and the queue sets `remaining` for nobody else.
+	out = out:gsub("{time}", RemainingText(entry.remaining) or "")
 	return out
 end
 
 function Prompt:ReasonText(entry)
 	local p = ns.db.profile.prompt
 	local template = p[REASON_KEY[entry.reason] or "reasonNearby"] or ""
-	if entry.checked and entry.known == nil and entry.reason ~= "owed" then
+	-- The sub-line is what somebody reads without hovering, so it has to be the
+	-- true one. In refresh mode the person on the prompt is holding the buff,
+	-- and "needs {buff}" says the opposite of the countdown the tooltip prints
+	-- underneath it. A top-up is a different offer and gets its own wording --
+	-- swapped in whole, not suffixed, because the four reason lines belong to
+	-- the user and may say anything at all by the time this runs.
+	--
+	-- The two swaps cannot both apply: a top-up is read off an aura we did read
+	-- and were given a timer for, so `known` is true and the unverified branch
+	-- is unreachable for it. Written as one chain anyway, so a later change to
+	-- either condition cannot end up applying both.
+	if RemainingText(entry.remaining) then
+		template = p.reasonRefresh or template
+	elseif entry.checked and entry.known == nil and entry.reason ~= "owed" then
 		template = p.reasonUnknown or template
 	end
 	return Substitute(template, entry, 0)
@@ -830,9 +893,13 @@ local function CastLines(entry)
 	local lines = {}
 	local spell = ns.BuffName(entry.buff)
 
+	-- No /target, and there is no version of this that has one: the spell lands
+	-- on you and reaches the party from there. The third return says so, and
+	-- the settle path needs to be told rather than left to work it out -- that
+	-- it was left to work it out is why a warrior could never repay anybody.
 	if entry.buff and entry.buff.selfCast then
 		lines[#lines + 1] = "/cast " .. spell
-		return lines, false
+		return lines, false, nil
 	end
 
 	-- One /target line, carrying the full name. A second line is what
@@ -843,16 +910,26 @@ local function CastLines(entry)
 	-- that is not a rare shape, and it is felt on every single click.
 	--
 	-- The full name is the one that names exactly one person. Where it will not
-	-- resolve the /target is a no-op and the cast goes to whoever you already
-	-- had, which SettlePendingClick notices and files against that person; from
-	-- their next offer on they get the bare first name instead. Rarer, and paid
-	-- for once by the people it happens to rather than by everybody at once.
-	local name = entry.name or ""
-	if ns.firstNameOnly[name] then name = ns.FirstName(name) or name end
+	-- resolve the /target is a no-op, and the cast then goes to whoever you
+	-- already had or nowhere at all; SettlePendingClick counts those, and after
+	-- a run of them this person's offers switch to the bare first name. Rarer,
+	-- and paid for once by the people it happens to rather than by everybody at
+	-- once.
+	--
+	-- Which spelling this macro ends up carrying is handed back with it. The
+	-- fallback can be on for a name and still not be what goes out -- a
+	-- one-word name has no first name to fall back to -- so "flag is set" and
+	-- "the bare first name was aimed" are two different facts, and the settle
+	-- path needs the second one.
+	local name, spelling = entry.name or "", "full"
+	if ns.firstNameOnly[name] then
+		local first = ns.FirstName(name)
+		if first then name, spelling = first, "first" end
+	end
 	lines[#lines + 1] = "/target " .. name
 	lines[#lines + 1] = "/cast " .. spell
 
-	return lines, ns.db.profile.filters.restoreTarget == true
+	return lines, ns.db.profile.filters.restoreTarget == true, spelling
 end
 
 -- How many characters a spoken line has left, for this person with these
@@ -904,6 +981,10 @@ function Prompt:ApplyTarget(entry)
 			button:SetAttribute(attribute, nil)
 		end
 		appliedKey = nil
+		-- Nothing on the button, so nothing for a settle to be judged against.
+		-- Left standing, it would describe the last person's macro to the next
+		-- press that arrives from somewhere this path cannot see.
+		armed = nil
 		return
 	end
 
@@ -950,10 +1031,16 @@ function Prompt:ApplyTarget(entry)
 		SilenceOtherButtons()
 		ns.lastMacro = "[try] " .. text
 		appliedKey = key
+		-- Whatever this text does, none of it is a /target this addon wrote, so
+		-- it is evidence about nobody's name. A template that casts nothing at
+		-- all -- "/target {name}" on its own, which is exactly the shape you
+		-- reach for while working out what resolves -- used to park a click
+		-- that never settled and then blame the next spell cast by hand for it.
+		armed = nil
 		return
 	end
 
-	local lines, restore = CastLines(entry)
+	local lines, restore, spelling = CastLines(entry)
 
 	-- Measured, not assumed. This used to be a constant 120 with a second,
 	-- correct length check immediately below it -- two rules for one question,
@@ -975,6 +1062,11 @@ function Prompt:ApplyTarget(entry)
 
 	ns.lastMacro = macro
 	appliedKey = key
+	-- Recorded from what was built, not re-derived later. spelling is nil for a
+	-- selfCast buff, which is the same nil the try path writes and means the
+	-- same thing: no /target of ours went out, so nothing here is evidence
+	-- about a name.
+	armed = { targeted = spelling, selfCast = entry.buff.selfCast == true }
 end
 
 function Prompt:InvalidateMacro()
@@ -1064,6 +1156,16 @@ function Prompt:Refresh()
 	end
 
 	if testMode then
+		-- Preview is a disarm like the other two, and it was the only one that
+		-- never healed. ToggleTest asks for it once, and a preview started in
+		-- combat cannot have it: ApplyTarget can only clear `current` there,
+		-- because the attributes are frozen. The disabled and unlocked branches
+		-- below re-ask on every pass, so their first pass out of combat clears
+		-- the macro for real -- this branch returned before reaching any of
+		-- them, so the fight ended with a mock-up on screen and a real person's
+		-- macro still armed under it, aimed at somebody `current` no longer
+		-- even names.
+		self:ApplyTarget(nil)
 		if not button:IsShown() then
 			button:Show()
 			if art.intro then art.intro:Play() end

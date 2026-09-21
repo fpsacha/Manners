@@ -21,6 +21,18 @@ function Mock.reset()
 	Mock.noAuras = false
 	Mock.extraAura = false
 	Mock.auraIdBase = 0
+	-- How many auras the player is carrying, in slots 1..n. Two is what every
+	-- scenario written before this knob assumed, so that is the default.
+	Mock.auraCount = 2
+	-- Slot indices the client refuses individually, e.g. { [4] = true }, which
+	-- is a refusal with readable auras still behind it rather than a blackout.
+	Mock.auraHidden = nil
+	-- The shape a refusal arrives in. Nothing in the addon may depend on which
+	-- one a scenario picks: "secret" is a value you are not allowed to look at,
+	-- "nil" is silence indistinguishable from an empty slot. Both are the
+	-- client refusing, no evidence says which this client uses, and a suite that
+	-- only ever models one of them agrees with the code by construction.
+	Mock.refuseWith = "secret"
 	Mock.inRange = true
 	Mock.unitClass = "PRIEST"
 	Mock.iconDb = nil
@@ -52,6 +64,15 @@ Mock.SECRET = SECRET
 local function maybeSecret(value)
 	if Mock.allSecret then return SECRET end
 	return value
+end
+
+-- The client declining to answer, in whichever shape the scenario asked for.
+-- A withheld value and a plain nil are the same refusal wearing different
+-- clothes, and the addon is not allowed to tell them apart -- a plain nil is
+-- also exactly what an empty slot looks like, which is the whole difficulty.
+local function refuseAura()
+	if Mock.refuseWith == "nil" then return nil end
+	return SECRET
 end
 
 local frameMethods = {
@@ -322,27 +343,35 @@ setmetatable(_G, { __index = function(_, key)
 			end,
 			GetAuraDataByIndex = function(_, i)
 				-- A loading screen hands back a list that is not readable yet,
-				-- which is not the same as an empty one -- so it answers the
-				-- way this client refuses anything, with a value you are not
-				-- allowed to look at. Returning nil here made the two states
-				-- literally identical, and the addon was then asked to tell
-				-- them apart on a difference the mock did not model.
-				if Mock.auraBlackout then return SECRET end
-				-- A buff that has just landed, so a scenario can produce a
-				-- favour without renumbering the two that were already there.
-				if i == 3 then
-					if not Mock.extraAura then return nil end
-					return { auraInstanceID = Mock.extraAura == true and 3003 or Mock.extraAura,
-						spellId = 1459,
-						sourceUnit = maybeSecret("nameplate1"), expirationTime = 2000 }
-				end
-				if i > 2 then return nil end
+				-- which is not the same as an empty one. Whether this client
+				-- says so with a value you are not allowed to look at or with
+				-- plain silence is established nowhere, so the shape is a knob
+				-- and both are modelled: picking one and writing the addon
+				-- against it is how the suite came to agree with the code by
+				-- construction rather than by evidence.
+				if Mock.auraBlackout then return refuseAura() end
+				-- A refusal with readable auras still behind it: the
+				-- transitional scan rather than the blackout.
+				if Mock.auraHidden and Mock.auraHidden[i] then return refuseAura() end
+				local count = Mock.auraCount or 2
 				-- A character carrying nothing at all: every slot answers, and
 				-- answers "there is nothing here". The opposite of a blackout,
 				-- and the case a scan that reads nothing must not be mistaken
 				-- for.
-				if Mock.noAuras then return nil end
-				-- auraIdBase renumbers the same two auras, which is what a zone
+				if Mock.noAuras then count = 0 end
+				-- A buff that has just landed, so a scenario can produce a
+				-- favour without renumbering the ones already there. It takes
+				-- the first free slot rather than a fixed one: the client hands
+				-- this list over packed from slot one, and a mock that left a
+				-- gap in front of the new aura was modelling a list no client
+				-- produces -- and asking the addon to treat it as ordinary.
+				if Mock.extraAura and i == count + 1 then
+					return { auraInstanceID = Mock.extraAura == true and 3003 or Mock.extraAura,
+						spellId = 1459,
+						sourceUnit = maybeSecret("nameplate1"), expirationTime = 2000 }
+				end
+				if i > count then return nil end
+				-- auraIdBase renumbers the same auras, which is what a zone
 				-- change does to instance ids.
 				return { auraInstanceID = i + Mock.auraIdBase, spellId = 1459,
 					sourceUnit = maybeSecret("nameplate1"), expirationTime = 2000 }

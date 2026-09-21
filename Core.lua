@@ -173,6 +173,13 @@ local defaults = {
 			reasonOwed = "buffed you",
 			reasonGroup = "needs {buff}",
 			reasonNearby = "needs {buff}",
+			-- A top-up is a different offer from a missing buff, and the four
+			-- lines above are the user's to rewrite -- "needs {buff}" is only
+			-- what they start with, so qualifying it here would throw away
+			-- whatever they typed. The refresh case gets a line of its own
+			-- instead, the same way the unverified one does. {time} is what
+			-- the aura they are already carrying has left to run.
+			reasonRefresh = "expires in {time}",
 			reasonUnknown = "unverified",
 			classColor = true,
 		},
@@ -338,19 +345,44 @@ function ns.PickBuffFor(candidates, opts, has)
 		candidates = { buff }
 	end
 
-	local function eligible(buff)
+	-- Split in two because the exclusive branch below needs the halves apart:
+	-- "this spell is wrong for this person" is permanent for the scan, while
+	-- "we tried it on them a moment ago" is a cooldown, and that branch has to
+	-- read the auras of a blessing it may not offer.
+	local function castable(buff)
 		if opts.relevantOnly and buff.manaOnly and opts.hasMana == false then return false end
 		if buff.partyOnly and not opts.inGroup then return false end
-		if opts.blocked and opts.blocked(buff) then return false end
 		return true
+	end
+
+	local function blocked(buff)
+		if not opts.blocked then return false end
+		return opts.blocked(buff) == true
+	end
+
+	local function eligible(buff)
+		return castable(buff) and not blocked(buff)
 	end
 
 	-- Blessings overwrite each other, so holding any one of yours counts as
 	-- covered. Walking would replace what they already have.
+	--
+	-- Which is also the answer to "why does this branch never consult
+	-- ns.lastGave": rotating is a cure for a list that cannot be read, and here
+	-- it would be worse than the disease. Give Might, rotate to Wisdom on the
+	-- next click, and that click has taken the Might away again -- on a client
+	-- that cannot show us auras, with no way to notice. The same blessing
+	-- offered twice merely refreshes it. So this class is handed the first
+	-- eligible blessing and keeps being handed it, deliberately, and
+	-- ns.RotatesBuffs says so to the writers of that table.
 	if ns.EXCLUSIVE_BUFFS[playerClass] then
-		local pick, allRead = nil, true
+		local pick, allRead, onCooldown = nil, true, false
 		for _, buff in ipairs(candidates) do
-			if eligible(buff) then
+			-- castable rather than eligible: a blessing we tried moments ago is
+			-- exactly the one they are most likely to be carrying, and skipping
+			-- the read of it was how a blessing that had just landed stayed
+			-- invisible -- so the next one down was offered over the top of it.
+			if castable(buff) then
 				local held = has(buff)
 				if held == true then return nil, true end
 				-- "They are carrying none of mine" is established only once
@@ -360,9 +392,25 @@ function ns.PickBuffFor(candidates, opts, has)
 				-- exactly this reason, and suppresses the unverified wording on
 				-- the prompt. For this class that was every single pick.
 				if held ~= false then allRead = false end
-				if not pick then pick = buff end
+				if blocked(buff) then
+					onCooldown = true
+				elseif not pick then
+					pick = buff
+				end
 			end
 		end
+		-- The rotation again, arriving by the other door. The per-buff cooldown
+		-- is there so a priest's walk can reach Divine Spirit while Fortitude
+		-- settles; for a class whose buffs overwrite each other it did the one
+		-- thing the comment above forbids -- click Wisdom, be offered Might
+		-- four tenths of a second later, and take the Wisdom away. A blessing
+		-- on cooldown means this person was just offered one, so the answer is
+		-- to leave them alone until it lifts.
+		--
+		-- Unless every blessing read back a definite no, which is the client
+		-- saying outright that nothing landed -- that is evidence, not a guess,
+		-- and it is the one case where reaching for another is right.
+		if onCooldown and not allRead then return nil, nil end
 		-- Spelled out rather than collapsed: `allRead and false or nil` is nil
 		-- either way, because false loses the and-branch to the or -- and the
 		-- whole subject here is the difference between false and nil.
@@ -775,12 +823,41 @@ local tried = {}
 
 ns.lastGave = {} -- [name] = buffKey, for rotating when auras cannot be read
 
--- [name] = true once a cast aimed at somebody's full name landed on somebody
--- else, which is what a /target the game could not resolve looks like from
--- here. The macro carries one /target line, so there is no room to offer both
--- spellings at once -- this is how the other one gets its turn, for the people
--- who turn out to need it. Session-scoped and never pruned, like ns.lastGave:
--- one flag per person met, and a name does not change back.
+-- Whether the buff walk will ever read ns.lastGave back for this character.
+--
+-- It will not for a paladin, and that is a decision rather than an oversight.
+-- The rotation exists so that a person whose auras the client will not show
+-- gets the next thing on the list instead of the same one forever -- which is
+-- only an improvement where the buffs stack. Blessings overwrite one another,
+-- so rotating them takes away what the last click gave: offer Might, offer
+-- Wisdom eight seconds later, and the second click removes the Might rather
+-- than adding to it. Repeating one blessing at worst refreshes it. So for an
+-- exclusive class the right move is to keep offering the same one, and
+-- PickBuffFor does.
+--
+-- Nothing may write ns.lastGave for those classes either. A table written and
+-- never read is what sent somebody looking for a rotation that was not there.
+function ns.RotatesBuffs()
+	return not ns.EXCLUSIVE_BUFFS[playerClass]
+end
+
+-- What is known about one person's name, which is never much. Three states,
+-- and the third is why this is not a set of flags:
+--
+--   nil    nothing learned; the macro aims the full name
+--   true   aim the bare first name instead
+--   false  the first name was tried and watched landing on somebody else, so
+--          it is withdrawn and not offered again this session
+--
+-- false is falsy, so every reader that asks "first name?" gets the right answer
+-- from a plain truth test and only the settle path has to know about the third
+-- state at all.
+--
+-- A hint, not a fact, and worth saying so here: nothing in this addon can ask
+-- the client whether a name resolves, so true is inferred from a run of casts
+-- that went nowhere and either the run or the inference can be wrong. It is
+-- held for the session only and never written to disk. The settle path below
+-- owns every write; nothing else may set it.
 ns.firstNameOnly = {}
 ns.owed, ns.tried = owed, tried
 
@@ -862,14 +939,31 @@ local function BlockSeconds(seconds)
 	return (db and db.timing.retryCooldown) or 12
 end
 
-function ns.MarkAttempted(name, buffKey, seconds)
-	if not name or not buffKey then return end
-	tried[name .. "\0" .. buffKey] = GetTime() + BlockSeconds(seconds)
+-- One writer under both, so the rule below cannot be applied to one key shape
+-- and quietly forgotten on the other -- which is exactly how the two copies of
+-- the key convention drifted.
+--
+-- keepLonger is for a block written speculatively over ground somebody else may
+-- already hold: it extends, never shortens. A right-press is a deliberate
+-- refusal recorded at the full retry cooldown, and without this the two-second
+-- rewind of a cast that went nowhere overwrote it -- so a stale pending click
+-- from an earlier press cancelled the skip, and the person who had just been
+-- declined was offered again two seconds later.
+local function Block(key, seconds, keepLonger)
+	local expiry = GetTime() + BlockSeconds(seconds)
+	local standing = tried[key]
+	if keepLonger and standing and standing > expiry then return end
+	tried[key] = expiry
 end
 
-function ns.BlockPerson(name, seconds)
+function ns.MarkAttempted(name, buffKey, seconds, keepLonger)
+	if not name or not buffKey then return end
+	Block(name .. "\0" .. buffKey, seconds, keepLonger)
+end
+
+function ns.BlockPerson(name, seconds, keepLonger)
 	if not name then return end
-	tried[name .. "\0*"] = GetTime() + BlockSeconds(seconds)
+	Block(name .. "\0*", seconds, keepLonger)
 end
 
 -- Whether this person, or this one buff for this person, is inside a block.
@@ -1110,6 +1204,17 @@ function ns.BuildQueue()
 				-- One buff per favour: the per-buff block rejects the whole
 				-- entry rather than moving the walk along, because nothing here
 				-- can verify that the first one ever landed.
+				--
+				-- selfCast stays excluded, and now for a sharper reason than
+				-- when it was written. The settle path judges a selfCast click
+				-- on nothing but "our spell went out", because that is all
+				-- there is to judge it on -- which is right on the main path,
+				-- where the person was seen through a unit token and is
+				-- therefore standing inside the shout. Here there is no token
+				-- and no evidence they are anywhere near, so the press would
+				-- mark the debt repaid to somebody who may be a zone away and
+				-- heard none of it. The main path's exclusion was the one that
+				-- had to go; this one had to stay.
 				if buff and not buff.selfCast and not ns.IsBlocked(full, buff.key, now) then
 					queue[#queue + 1] = {
 						name = full,
@@ -1157,6 +1262,12 @@ end
 
 local knownAuras = {}
 local auraScanPrimed = false
+-- What the last scan of your own buffs made of itself, for /manners debug. The
+-- gate in ScanOwnBuffs can switch this whole source off without a word -- no
+-- error, no print, just a prompt that never mentions anybody again -- and a
+-- silent stop is the one failure this addon has no way to notice on its own.
+-- One reused table: this runs on every UNIT_AURA.
+ns.auraScan = { read = 0, held = 0 }
 -- Reused rather than rebuilt: this runs on every UNIT_AURA for the player, and
 -- a fresh forty-slot table per event is pure churn. Wiped at the top of the
 -- scan, never at the bottom, so a re-entrant call -- NoteFavour prints, and
@@ -1208,81 +1319,163 @@ local function NoteFavour(aura)
 	SaveDebts()
 end
 
--- One slot of your own aura list, and whether the answer can be believed.
+-- One slot of your own aura list: the aura, and whether the client can be shown
+-- to have refused this slot.
 --
--- safecall collapses three different answers into nil -- the slot is empty, the
--- client withheld it, and the call threw -- and the first of those is honest
--- while the other two are the client refusing to say. Everything that has to
--- tell "you are carrying nothing" from "the list is not readable yet" turns on
--- that difference, so it is drawn here rather than guessed at from a count.
+-- Three different answers arrive as nothing -- the slot is empty, the client
+-- withheld it, and the call threw. Two of those are a refusal, and only two of
+-- them say so: a throw is a refusal outright, and so is a value we are not
+-- allowed to look at. A plain nil says nothing at all. It is what an empty slot
+-- looks like, and it is also what a refusal looks like on a client that refuses
+-- that way, and nothing in this addon can tell those two apart from one slot.
+--
+-- So this reports proof of a refusal and never claims the opposite: the second
+-- return is "the client said no", not "the client answered honestly". Which
+-- shape this client actually uses has never been established, so the scan below
+-- reads the walk as a whole rather than resting on any one slot's silence.
 local function ReadAuraSlot(index)
 	local ok, value = pcall(C_UnitAuras.GetAuraDataByIndex, "player", index, "HELPFUL")
-	if not ok then return nil, false end
-	-- The end of the list, or a gap in it. Nothing was refused.
-	if value == nil then return nil, true end
+	if not ok then return nil, true end
+	-- The end of the list, a gap in it, or a refusal wearing either's clothes.
+	if value == nil then return nil, false end
 	local aura = plain(value)
-	if type(aura) ~= "table" then return nil, false end
-	return aura, true
+	if type(aura) ~= "table" then return nil, true end
+	return aura, false
 end
 
 function ns.ScanOwnBuffs()
 	wipe(present)
 	if not (C_UnitAuras and C_UnitAuras.GetAuraDataByIndex) then return end
 
-	-- Do not stop at the first slot that will not read: an aura the client
-	-- withheld looks exactly like the end of the list, and breaking on it hid
-	-- every favour behind it -- which then re-fired as new on the following
-	-- scan, forever.
-	local misses = 0
+	-- What the baseline held a moment ago, counted before anything touches it.
+	-- This is the one thing the scan knows that did not come from the client,
+	-- and it is the only thing that tells a list reading empty because you are
+	-- carrying nothing from one reading empty because you are not being shown it.
+	local held = 0
+	for _ in pairs(knownAuras) do held = held + 1 end
+
+	-- Read before the walk: whether a new aura is a favour or part of the first
+	-- baseline is a fact about the scan that came before this one, and the flag
+	-- is set at the bottom of this one.
+	local primed = auraScanPrimed
+
 	local read = 0
-	-- Whether any slot was refused rather than simply empty.
-	local refused = false
+	local refused = false  -- a slot said outright that it would not answer
+	local silence = false  -- a slot handed back nothing, with the walk still going
+	local hole = false     -- ...and an aura was found behind it
+	-- Auras the baseline has not seen. Collected and judged after the walk,
+	-- because whether this scan may be believed at all is not known until it
+	-- ends. Built fresh each time rather than reused like `present`: it is
+	-- walked after the fact, and NoteFavour prints -- another addon can hook
+	-- chat -- so a re-entrant scan would otherwise wipe it under that walk. The
+	-- allocation only happens on a scan that actually found something new.
+	local fresh
+
+	-- Every slot, every time, and no early exit on a run of slots that will not
+	-- read. Stopping was the bug: the end of the list and a hole punched in the
+	-- middle of one look exactly alike from the first silent slot, and stopping
+	-- there picks whichever of them suits it. Walking to the end costs forty
+	-- calls on a UNIT_AURA and buys the only refusal evidence that does not
+	-- depend on how this client says no: an aura sitting behind the silence.
 	for i = 1, 40 do
-		local aura, legible = ReadAuraSlot(i)
-		if not legible then refused = true end
+		local aura, slotRefused = ReadAuraSlot(i)
+		if slotRefused then refused = true end
 		if not aura then
-			misses = misses + 1
-			if misses >= 3 then break end
+			silence = true
 		else
-			misses = 0
+			-- The list is handed over packed from slot one, so silence with an
+			-- aura behind it was never the end of anything.
+			if silence then hole = true end
 			read = read + 1
 
 			local instanceId = plain(aura.auraInstanceID)
-			local spellId = plain(aura.spellId)
 			if instanceId then
 				present[instanceId] = true
 				if not knownAuras[instanceId] then
-					knownAuras[instanceId] = true
-					-- Everything already on you at login is not a favour. The
-					-- class-buff filter is a setting, and was previously
-					-- hardcoded here -- the toggle read nothing at all.
-					local db = addon.db and addon.db.profile
-					local classOnly = not db or db.sources.owedClassBuffsOnly ~= false
-					if auraScanPrimed and spellId
-						and (not classOnly or ns.ALL_BUFF_IDS[spellId]) then
-						NoteFavour(aura)
-					end
+					fresh = fresh or {}
+					fresh[#fresh + 1] = aura
 				end
 			end
 		end
 	end
 
-	-- A scan the client refused is not evidence that you are carrying nothing,
-	-- so it may neither empty the baseline nor stand in for one: everything
-	-- already on you would arrive looking like a favour, which prints a line and
-	-- pulses an amber priority-1 prompt at a bystander.
+	-- A scan may only rewrite the baseline when it has no reason to doubt
+	-- itself, and both halves of the rewrite run the same way: an aura dropped
+	-- from the baseline is announced as a brand-new favour the moment it reads
+	-- back -- printed at you, pulsed at a bystander as an amber priority-1
+	-- prompt, and written through to SavedVariables. A partly refused scan that
+	-- pruned what it could not read invented five of those.
 	--
-	-- A list that read back cleanly and held nothing is the opposite case and
-	-- has to prime. Counting what was read cannot tell the two apart, and
-	-- refusing to prime on an empty one cost a character who logs in with no
-	-- buffs the very first favour they are given -- the one moment this whole
-	-- section exists for.
-	if read > 0 or not refused then
-		for instanceId in pairs(knownAuras) do
-			if not present[instanceId] then knownAuras[instanceId] = nil end
-		end
-		auraScanPrimed = true
+	-- Three reasons to doubt, and not one of them asks what shape a refusal
+	-- takes here. That is deliberate: nothing establishes whether this client
+	-- refuses with a value you may not look at, with a throw, or with a plain
+	-- nil, and a fix that holds for only one of those is a fix by coincidence.
+	--   * refused -- it said so outright.
+	--   * hole -- an aura was found behind silence, so the list was not handed
+	--     over whole. This is what catches a plain nil, whatever it is hiding.
+	--   * nothing read at all while the baseline held something a moment ago.
+	--     Buffs do not all leave between two frames; this is the only thing
+	--     that catches a plain nil taking the whole list.
+	--
+	-- Reading nothing with nothing in the baseline is the opposite case and has
+	-- to prime. A character who logs in carrying no buffs is otherwise never
+	-- primed at all, and the first favour they are given -- the one moment this
+	-- whole section exists for -- is filed as a baseline instead of announced.
+	--
+	-- The cost is one narrow blind spot, taken on purpose: everything you were
+	-- carrying going at once -- the last buff on a character who had one, or
+	-- dying, which drops the lot -- reads exactly like the client withholding
+	-- the list. Those entries sit in the baseline until a scan reads something,
+	-- and the next buff to arrive is that scan: it prunes them and is announced
+	-- itself, unless it happens to arrive under a number one of them had. A
+	-- favour noticed late is still a favour; an invented one is a lie told
+	-- about somebody standing next to you.
+	local doubt
+	if refused then doubt = "refused"
+	elseif hole then doubt = "hole"
+	elseif read == 0 and held > 0 then doubt = "empty" end
+
+	-- Recorded either way, including the clear: the three reasons mean
+	-- different things about the client, and a scan that stops being believed
+	-- for good is otherwise indistinguishable from nobody buffing you.
+	local scan = ns.auraScan
+	scan.read, scan.held, scan.doubt = read, held, doubt
+	if doubt then return end
+
+	-- An aura that really did run out has to leave, or it is still "known" when
+	-- it is cast at you again and the second favour is swallowed. Instance ids
+	-- are not unique for all time here -- a zone renumbers them -- so a buff that
+	-- fell off can come back under the number the old one had. Refusing to prune
+	-- is only safe because the doubt above never outlives the scan that had it.
+	for instanceId in pairs(knownAuras) do
+		if not present[instanceId] then knownAuras[instanceId] = nil end
 	end
+
+	if fresh then
+		local db = addon.db and addon.db.profile
+		-- The class-buff filter is a setting, and was previously hardcoded
+		-- here -- the toggle read nothing at all.
+		local classOnly = not db or db.sources.owedClassBuffsOnly ~= false
+		for i = 1, #fresh do
+			local aura = fresh[i]
+			local instanceId = plain(aura.auraInstanceID)
+			if instanceId then
+				knownAuras[instanceId] = true
+				local spellId = plain(aura.spellId)
+				-- Everything already on you at login is not a favour. NoteFavour
+				-- drops the rest: an aura whose caster cannot be read is nobody's
+				-- favour, which is also the last line of defence here, since an
+				-- aura that has been sitting on you since before a refusal rarely
+				-- still has a unit token behind it.
+				if primed and spellId
+					and (not classOnly or ns.ALL_BUFF_IDS[spellId]) then
+					NoteFavour(aura)
+				end
+			end
+		end
+	end
+
+	auraScanPrimed = true
 end
 
 function addon:UNIT_AURA(_, unit)
@@ -1354,8 +1547,101 @@ end
 -- prompt offered that person their *next* buff, which failed the same way, and
 -- so on until they had been walked off the list entirely.
 local function RewindClick(pending)
-	ns.BlockPerson(pending.name, 2)
+	-- Extends only. This is the one writer of a whole-person block that is not
+	-- a deliberate refusal, and a right-press skip written moments earlier at
+	-- the full retry cooldown has to outlive it: a pending click still sitting
+	-- there from a left press before the skip used to settle as failed, cut the
+	-- block back to two seconds, and hand the person straight back to the
+	-- prompt -- undoing, from behind, the one instruction the user gave
+	-- explicitly.
+	ns.BlockPerson(pending.name, 2, true)
+	-- Not extend-only: the per-buff block being cut back is the twelve seconds
+	-- this same click wrote a moment ago on the assumption it landed, and
+	-- cutting it is the entire point. Nothing else ever writes that key.
 	ns.MarkAttempted(pending.name, pending.buffKey, 2)
+	-- PostClick moved the rotation pointer alongside those two blocks, and on a
+	-- client that will not show auras that pointer is what walks somebody down
+	-- their buff list -- so leaving it forward does by a second route the exact
+	-- thing the comment above says this function exists to prevent. The two
+	-- blocks were rewound and this was not, which is why a refused cast still
+	-- cost an unreadable person their place. Put back what the click found;
+	-- nil for a first one, and nil is what belongs there.
+	--
+	-- Through the same gate the click went through. On a class that does not
+	-- rotate, both sides of this are nil and the write would be invisible --
+	-- but "never written for that class" is meant to be true of the table
+	-- rather than true by luck of what it was restoring.
+	if ns.RotatesBuffs() then ns.lastGave[pending.name] = pending.gave end
+end
+
+-- The run: consecutive settles for this person where a full-name /target did
+-- not reach them. Working-out rather than an answer, which is why it does not
+-- live on ns.firstNameOnly -- that table is read on every repaint and holds one
+-- meaning per person. This is thrown away the moment it either proves something
+-- or is contradicted.
+local nameFails = {}
+
+-- What the game did with the /target line we armed, filed against the name that
+-- line was carrying.
+--
+-- Both of these do nothing at all unless the macro really did carry a /target
+-- of ours. That used to be inferred from the outcome instead, and the inference
+-- was wrong in both directions: a selfCast buff has no /target by construction,
+-- and a /manners try macro carries whatever the user typed -- so neither says
+-- anything about whether a name resolves, yet both were filed as evidence about
+-- one. ns.pendingClick now records what was actually armed.
+local function NameReached(pending)
+	if not pending.targeted then return end
+	nameFails[pending.name] = nil
+end
+
+-- wentElsewhere: the game named a recipient who is not the person we offered,
+-- which is what an unresolved /target looks like from here -- your existing
+-- target kept the spell. Otherwise nothing was cast at all.
+--
+-- Both shapes are the same line failing, and both count. Which one you get
+-- depends only on whether you happened to be holding a friendly target at that
+-- moment, and counting just the first left the commonest case -- no target, so
+-- the /cast has nothing to aim at and the game simply refuses -- unable to
+-- teach this anything. Those people stayed unbuffable for the session.
+local function NameMissed(pending, wentElsewhere)
+	local spelling, name = pending.targeted, pending.name
+	if not spelling then return end
+
+	if spelling == "first" then
+		-- The fallback was the thing in play, and the spell went to somebody
+		-- who is not the person we offered: there is a second player answering
+		-- to that first name standing right there. That is precisely the harm
+		-- the fallback exists to avoid, so it is withdrawn -- recorded as
+		-- false rather than cleared to nil, because the neighbour does not
+		-- stop sharing the name and a fresh run of failures must not talk this
+		-- back into it. Before, the flag was re-confirmed on the one event
+		-- that disproves it, and the person stayed aimed at the wrong player
+		-- for as long as the session lasted.
+		if wentElsewhere then
+			ns.firstNameOnly[name] = false
+			nameFails[name] = nil
+		end
+		return
+	end
+
+	-- Anything other than nil is a settled answer for this name -- true, so the
+	-- fallback is already on, or false, so it has been tried and withdrawn.
+	-- Neither wants another run counted against it.
+	if ns.firstNameOnly[name] ~= nil then return end
+	local fails = (nameFails[name] or 0) + 1
+	nameFails[name] = fails
+	-- Two in a row, not one event. A single failure is far more often somebody
+	-- stepping out of range -- /target only reaches who you can see -- than a
+	-- name this client cannot resolve, and acting on one would put most of a
+	-- roster onto first names that can match two people standing together. The
+	-- game's own error text would tell those two apart, but the strings are
+	-- localised and this client's are unverified, so the count is what is
+	-- trusted instead.
+	if fails >= 2 then
+		ns.firstNameOnly[name] = true
+		nameFails[name] = nil
+	end
 end
 
 local function SettlePendingClick(settled, landedOn, spellId)
@@ -1366,6 +1652,30 @@ local function SettlePendingClick(settled, landedOn, spellId)
 		return
 	end
 
+	-- Asked once, because three of the branches below want the answer.
+	local ours = SpellIsOurs(spellId, pending.buffKey)
+
+	-- why is the reason this favour is still owed, and nil means it is not. The
+	-- branches are in the order they can be decided: what the macro was is
+	-- known for certain, who the spell reached is usually known, and which
+	-- spell it was is known last of all.
+	local why
+	if pending.selfCast then
+		-- A selfCast buff's macro has no /target line and cannot have one: the
+		-- spell lands on the caster and reaches the party from there. So "did
+		-- it go to the person we offered" has no true answer for this click,
+		-- and asking it anyway meant the debt was never once settled -- the
+		-- same person came back on the prompt every two seconds, the line
+		-- announced they were still owed in the moment they had just been
+		-- buffed, and their name was blamed for a /target that was never in
+		-- the macro. Battle Shout is the whole of what a warrior has to give,
+		-- so this was every repayment a warrior can make.
+		--
+		-- Whether our own spell went out is the only thing left to check, and
+		-- the only thing that needs checking.
+		if settled and not ours then
+			why = ("|cffffffff%s|r went out instead"):format(tostring(spellId))
+		end
 	-- A /target for a name the game cannot resolve is a no-op: it leaves your
 	-- existing target in place, so the cast goes to whoever that was. Settling
 	-- on "something was cast" alone marked the favour repaid to a stranger who
@@ -1375,26 +1685,34 @@ local function SettlePendingClick(settled, landedOn, spellId)
 	-- the macro aims at one of them, and the game reports whichever the client
 	-- holds -- the bare first name, or the full one, without any cross-realm
 	-- suffix.
-	local why
-	if settled and landedOn and landedOn ~= pending.name
+	elseif settled and landedOn and landedOn ~= pending.name
 		and landedOn ~= (ns.FirstName and ns.FirstName(pending.name))
 		and landedOn ~= (ns.ShortName and ns.ShortName(pending.name)) then
 		why = ("it went to |cffffffff%s|r"):format(tostring(landedOn))
 		-- Somebody else entirely got it, which means our own /target did
-		-- nothing and the spell went to whoever was already targeted. Their
-		-- full name is the only thing in that line, so it is the full name that
-		-- would not resolve: remember it, and the next offer aims the bare
-		-- first name at them instead.
+		-- nothing and the spell went to whoever was already targeted.
 		--
-		-- Only on this branch. A cast that never went out at all is refused for
-		-- range or line of sight far more often than for a name, and flagging
-		-- everybody who ever walked out of range would put the whole roster on
-		-- a first name that can match two people standing together.
-		ns.firstNameOnly[pending.name] = true
-	elseif settled and not SpellIsOurs(spellId, pending.buffKey) then
+		-- Only our own spell says anything about our own /target line, though.
+		-- Something else going out to somebody else is the player casting, and
+		-- reading that as evidence about this person's name is how a click
+		-- that armed nothing castable -- a /manners try template, say -- ended
+		-- up blaming the next thing pressed on the bar.
+		if ours then NameMissed(pending, true) end
+	elseif settled and not ours then
 		-- Right person, wrong spell: anything else on a bar can beat the
-		-- macro's own /cast to the click.
+		-- macro's own /cast to the click. The /target did reach them, so it is
+		-- not the name that is in question here.
 		why = ("|cffffffff%s|r went out instead"):format(tostring(spellId))
+		NameReached(pending)
+	elseif settled then
+		-- Our spell, and nothing contradicting who it went to. That includes
+		-- the client refusing to name a recipient at all: if we are willing to
+		-- call the favour repaid on that, we are willing to call the name
+		-- resolved on it, and both errors fall the same way -- towards not
+		-- flagging anybody.
+		NameReached(pending)
+	else
+		NameMissed(pending, false)
 	end
 
 	if why then
@@ -2027,6 +2345,16 @@ function addon:HandleSlash(rawInput)
 			end
 		end
 		if pending == 0 then self:Print("  nobody has buffed you recently.") end
+
+		-- And whether that is because nobody has, or because the last look at
+		-- your own buffs was not one this addon was willing to believe.
+		local scan = ns.auraScan
+		if scan.doubt then
+			self:Print(("  |cffff8080own buffs: last scan not believed (%s)|r --"
+				.. " %d read, baseline %d"):format(scan.doubt, scan.read, scan.held))
+		else
+			self:Print(("  own buffs: %d read, baseline %d"):format(scan.read, scan.held))
+		end
 
 		if not db.prompt.locked then
 			self:Print("|cffff8080prompt is UNLOCKED -- it will not buff anyone until you /manners lock|r")
