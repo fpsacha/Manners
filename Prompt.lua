@@ -170,6 +170,22 @@ local function HideQueue()
 	queueHair:Hide()
 end
 
+-- Show and Hide are protected on the secure button, and the client refuses both
+-- for the length of a fight without throwing, without returning anything and
+-- without changing the frame. Four branches of Refresh called one of them
+-- straight and returned above the branch that knows lockdown exists, so the
+-- lockdown was never consulted at all: they walked away believing the panel had
+-- gone up or come down when it had done neither, and whatever was last painted
+-- stood for the rest of the fight.
+--
+-- `false` back means the panel is exactly where the fight found it, and the
+-- caller then owes the user a sentence about the rectangle that did not move.
+local function SetPanelShown(want)
+	if InCombatLockdown() then return false end
+	if want then button:Show() else button:Hide() end
+	return true
+end
+
 -- Below the panel normally, above it when the prompt is sitting in the bottom
 -- third of the screen -- which is where the default position now puts it, and
 -- where five rows hanging underneath run off the bottom edge entirely.
@@ -186,15 +202,17 @@ local function QueueGoesAbove()
 end
 
 -- What the macro currently sitting on the button is aimed at:
--- { targeted = "full" | "first" | nil, selfCast = boolean }, or nil when there
--- is no macro of ours on it at all. PostClick copies this onto the pending
--- click so the settle handler can judge the press by what actually went out.
+-- { targeted = boolean, selfCast = boolean }, or nil when there is no macro of
+-- ours on it at all. PostClick copies this onto the pending click so the settle
+-- handler can judge the press by what actually went out -- a /target of ours
+-- aimed at this person is the one thread tying a press to a person on a client
+-- that will not name a recipient.
 --
--- Written here rather than worked out again over there, because the two answers
--- would not agree: a settle arrives a few hundred milliseconds later, and the
--- first-name flag it would have to read may have been written in between. It is
--- set beside appliedKey, so the early return that skips a rebuild skips this
--- too -- correct, because the macro it describes did not change either.
+-- Written here rather than worked out again over there, because a settle
+-- arriving a few hundred milliseconds later would be re-deriving it from a
+-- queue that has been rebuilt half a dozen times since. It is set beside
+-- appliedKey, so the early return that skips a rebuild skips this too --
+-- correct, because the macro it describes did not change either.
 local armed
 
 -- Amber for a favour returned, because that is the case worth noticing.
@@ -1217,39 +1235,21 @@ local function CastLines(entry)
 	-- it was left to work it out is why a warrior could never repay anybody.
 	if entry.buff and entry.buff.selfCast then
 		lines[#lines + 1] = "/cast " .. spell
-		return lines, false, nil
+		return lines, false, false
 	end
 
-	-- One /target line, carrying the full name. A second line is what
-	-- /targetlasttarget costs: it hands you back your PREVIOUS target, and with
-	-- two /target lines in front of it that is whoever the first one resolved
-	-- -- so restoring your target gave you the wrong player whenever two people
-	-- nearby share a first name. Most names on this client are two words, so
-	-- that is not a rare shape, and it is felt on every single click.
-	--
-	-- The full name is the one that names exactly one person. Where it will not
-	-- resolve the /target is a no-op, and the cast then goes to whoever you
-	-- already had or nowhere at all. Both are counted, by the two paths in Core
-	-- that can honestly tell them apart -- our spell reported landing on
-	-- somebody else, and a parked click whose clock ran out with no cast event
-	-- at all -- and after a run of them this person's offers switch to the bare
-	-- first name. Rarer, and paid for once by the people it happens to rather
-	-- than by everybody at once.
-	--
-	-- Which spelling this macro ends up carrying is handed back with it. The
-	-- fallback can be on for a name and still not be what goes out -- a
-	-- one-word name has no first name to fall back to -- so "flag is set" and
-	-- "the bare first name was aimed" are two different facts, and the settle
-	-- path needs the second one.
-	local name, spelling = entry.name or "", "full"
-	if ns.firstNameOnly[name] then
-		local first = ns.FirstName(name)
-		if first then name, spelling = first, "first" end
-	end
-	lines[#lines + 1] = "/target " .. name
+	-- One /target line, carrying the full name, which is the one spelling that
+	-- names exactly one person. Two lines offering both spellings, and the
+	-- fallback that replaced them, were both tried and both are gone; the
+	-- account is in Core, where the counting used to live.
+	lines[#lines + 1] = "/target " .. (entry.name or "")
 	lines[#lines + 1] = "/cast " .. spell
 
-	return lines, ns.db.profile.filters.restoreTarget == true, spelling
+	-- The third return says this macro carries a /target of ours aimed at the
+	-- person on the panel, which is what the settle path has instead of a
+	-- recipient. false above for a selfCast buff, and the try path arms nothing
+	-- of ours at all.
+	return lines, ns.db.profile.filters.restoreTarget == true, true
 end
 
 -- How many characters a spoken line has left, for this person with these
@@ -1293,12 +1293,10 @@ function Prompt:ClickSummary(entry)
 		out[#out + 1] = ("Casts |cffffffff%s|r on you; it reaches your party from there.")
 			:format(spell)
 	else
-		-- The name the /target line will actually carry, which is not always
-		-- the one on the panel: a person whose full name kept resolving to
-		-- nobody is aimed at by their first name instead.
-		local aimed = entry.name or who
-		if ns.firstNameOnly[aimed] then aimed = ns.FirstName(aimed) or aimed end
-		out[#out + 1] = ("Targets |cffffffff%s|r, casts |cffffffff%s|r."):format(aimed, spell)
+		-- The name the /target line will actually carry, which is the full one
+		-- rather than the shortened one the panel shows.
+		out[#out + 1] = ("Targets |cffffffff%s|r, casts |cffffffff%s|r.")
+			:format(entry.name or who, spell)
 		if ns.db.profile.filters.restoreTarget then
 			out[#out + 1] = "Hands your own target back afterwards."
 		else
@@ -1386,11 +1384,9 @@ function Prompt:ApplyTarget(entry)
 	-- Everything the macro interpolates is in the key, the unit token included:
 	-- a /manners try template can say {unit}, so the same person reached
 	-- through a nameplate one tick and through party2 the next expands to a
-	-- different macro, and the memo would have shown and armed the old one. The
-	-- first-name fallback is in it for exactly the same reason.
+	-- different macro, and the memo would have shown and armed the old one.
 	local key = table.concat({ entry.name, tostring(entry.unit), entry.buff.key,
-		tostring(entry.reason), tostring(ns.firstNameOnly[entry.name]),
-		tostring(ns.tryMacro) }, "\1")
+		tostring(entry.reason), tostring(ns.tryMacro) }, "\1")
 	if key == appliedKey then return end
 
 	-- /manners try: arbitrary macro text, expanded against the current
@@ -1414,7 +1410,7 @@ function Prompt:ApplyTarget(entry)
 		return
 	end
 
-	local lines, restore, spelling = CastLines(entry)
+	local lines, restore, targeted = CastLines(entry)
 
 	-- Rolled once per candidate rather than once per repaint and again on the
 	-- press. PickPhrase draws at random out of the pool, so asking it twice for
@@ -1450,11 +1446,10 @@ function Prompt:ApplyTarget(entry)
 
 	ns.lastMacro = macro
 	appliedKey = key
-	-- Recorded from what was built, not re-derived later. spelling is nil for a
-	-- selfCast buff, which is the same nil the try path writes and means the
-	-- same thing: no /target of ours went out, so nothing here is evidence
-	-- about a name.
-	armed = { targeted = spelling, selfCast = entry.buff.selfCast == true }
+	-- Recorded from what was built, not re-derived later. targeted is false for
+	-- a selfCast buff, which has no /target by construction; the try path writes
+	-- no record at all, because whatever that text does, none of it is ours.
+	armed = { targeted = targeted, selfCast = entry.buff.selfCast == true }
 end
 
 function Prompt:InvalidateMacro()
@@ -1616,6 +1611,39 @@ function Prompt:SetCombatHold(on)
 	art:SetAlpha(on and 0.55 or 1)
 end
 
+-- What a branch says when it wanted the prompt gone and the fight would not let
+-- it go. Four are in that position -- switched off, unlocked, nothing this
+-- character can cast, and the held panel with nobody on it -- and all four have
+-- the same two problems: a panel that cannot be taken down and nobody to put on
+-- it. One sentence, then, with `why` the only part that differs.
+--
+-- The name line has two shapes because the state genuinely has two. The
+-- attributes were either emptied by the clear path before the fight started -- a
+-- click that blocked the last candidate, much the commonest way in -- or frozen
+-- by a disarm that arrived during it, which can clear the name and cannot clear
+-- the macro. The first is inert; the second still casts on a press, which is
+-- what PostClick warns about off this same attribute, so the panel and the
+-- warning cannot come apart.
+function Prompt:PaintHeldInert(why)
+	local frozen = button:GetAttribute("macrotext1")
+	nameText:SetText(frozen and "|cffff8080still armed by the fight|r"
+		or "|cff909098nothing to buff|r")
+	if subText:IsShown() then
+		subText:SetText(("|cffb0b0b0%s -- %s|r"):format(why,
+			frozen and "a press still casts what the fight froze"
+			or "nothing armed, and the panel cannot go"))
+	end
+	-- Every other claim on the panel goes with the name: a count of a queue that
+	-- is not being offered, and the wash of colour from a click that is over.
+	countChip:Hide()
+	countText:SetText("")
+	resultFill:Hide()
+	self:PaintAccent("nearby")
+	-- The same statement the held panel makes, for the same reason: nothing here
+	-- can be pointed at anybody until the fight ends.
+	self:SetCombatHold(true)
+end
+
 -- The list of who is next, and the panel behind it. One place, because the
 -- preview draws it too and a preview whose list has no background is a preview
 -- of a prompt that does not exist.
@@ -1688,11 +1716,16 @@ function Prompt:Refresh()
 	if not InCombatLockdown() then self:SetCombatHold(false) end
 
 	if not ns.caps.anyKnown and not testMode then
-		button:Hide()
 		self:StopAttention()
 		HideQueue()
 		lastTop = nil
 		ClearHold()
+		-- This can become true in the middle of a fight -- SPELLS_CHANGED lands
+		-- whenever the client finally answers -- and the panel cannot come down
+		-- for it any more than for anything else.
+		if not SetPanelShown(false) then
+			self:PaintHeldInert("nothing this character can cast")
+		end
 		return
 	end
 
@@ -1732,8 +1765,12 @@ function Prompt:Refresh()
 		-- macro still armed under it, aimed at somebody `current` no longer
 		-- even names.
 		self:ApplyTarget(nil)
-		if not button:IsShown() then
-			button:Show()
+		-- A preview started in a fight paints onto whatever the fight left on
+		-- screen: if the panel was down, this cannot put it up, and the mock-up
+		-- is drawn on a hidden frame until the fight ends. Everything below is
+		-- art and runs either way, which is what keeps the dim, the mock rows and
+		-- the styling itself working the moment the panel is up at all.
+		if not button:IsShown() and SetPanelShown(true) then
 			if art.intro then art.intro:Play() end
 		end
 		self:Paint(TestEntry(), 2)
@@ -1754,45 +1791,59 @@ function Prompt:Refresh()
 	-- sitting on screen after the user was told the addon is off.
 	if not db.enabled then
 		self:ApplyTarget(nil)
-		button:Hide()
 		self:StopAttention()
 		HideQueue()
 		lastTop = nil
 		ClearHold()
+		-- ApplyTarget above cleared the name and, in a fight, could not clear the
+		-- macro under it. Saying so is the whole of what is left to do: the user
+		-- was told the addon is off, and a panel still standing there naming the
+		-- last candidate is the addon disagreeing with its own chat line.
+		if not SetPanelShown(false) then self:PaintHeldInert("switched off") end
 		return
 	end
 
 	if not p.locked then
 		self:ApplyTarget(nil)
 		self:StopAttention()
-		button:Show()
-		nameText:SetText("|cffffd100Drag to move|r")
-		if subText:IsShown() then subText:SetText("|cffff8080not buffing while unlocked|r") end
-		countChip:Hide()
-		countText:SetText("")
-		resultFill:Hide()
-		self:PaintAccent("owed")
 		HideQueue()
 		ClearHold()
+		if SetPanelShown(true) then
+			nameText:SetText("|cffffd100Drag to move|r")
+			if subText:IsShown() then subText:SetText("|cffff8080not buffing while unlocked|r") end
+			countChip:Hide()
+			countText:SetText("")
+			resultFill:Hide()
+			self:PaintAccent("owed")
+		else
+			-- "Drag to move" is an instruction, and in a fight it is one the
+			-- client refuses as flatly as it refused the Show above it:
+			-- OnDragStart gives up on lockdown too. So an unlocked prompt caught
+			-- by a fight says what it is rather than inviting the one thing that
+			-- cannot be done to it.
+			self:PaintHeldInert("unlocked")
+		end
 		return
 	end
 
 	if InCombatLockdown() then
-		-- Attributes are frozen, so the list cannot be trusted. Either hide, or
-		-- keep showing the frozen target so a click still works.
+		-- Attributes are frozen, so the list cannot be trusted, and the panel
+		-- cannot be taken off the screen either: a fight that starts with it up
+		-- keeps it up, and hideInCombat takes effect at the next scan after the
+		-- fight ends. There used to be a `if p.hideInCombat or not current then
+		-- button:Hide() end` here; this branch only ever runs in combat, so that
+		-- call was refused every single time it was made, and it is deleted
+		-- rather than guarded because a guard on it would be just as dead.
 		--
-		-- "Hide" is optimistic. It is protected exactly as Show is, so a fight
-		-- that starts with the panel up keeps it up until the fight ends, and
-		-- the setting takes effect at the next scan after that. It is left
-		-- standing because there is no honest substitute: the button keeps its
-		-- size, its place and its armed macro whatever the art does, so
-		-- blanking the art would leave an invisible thing that still takes a
-		-- click and still casts -- which is worse than a visible panel saying
-		-- it is held. Doing it properly wants a secure visibility driver, and a
-		-- driver is driven by macro conditionals; conditionals are the one
-		-- thing this client is known not to resolve, so that is not something
-		-- to build a disappearing button on.
-		if p.hideInCombat or not current then button:Hide() end
+		-- Nothing honest goes in its place. The button keeps its size, its place
+		-- and its armed macro whatever the art does, so blanking the art would
+		-- leave an invisible thing that still takes a click and still casts --
+		-- worse than a visible panel saying it is held. Doing it properly wants a
+		-- secure visibility driver, and a driver is driven by macro conditionals;
+		-- conditionals are the one thing this client is known not to resolve. So
+		-- what is left is to say true things on art, which is the rest of this
+		-- branch.
+
 		-- The pulse is a claim that somebody is still owed. The debt can expire
 		-- or be settled in the middle of a fight, and nothing else down here can
 		-- notice, so the claim would outlive it until the fight ended.
@@ -1845,14 +1896,26 @@ function Prompt:Refresh()
 				if subText:IsShown() then
 					subText:SetText("|cffb0b0b0held -- in combat|r")
 				end
+				-- Nobody, rather than the number the fight started with. The
+				-- count is a claim about a queue this branch has just blanked for
+				-- being unaimable, so it goes with the list and the line rather
+				-- than outliving both of them on its own -- and the panel then
+				-- looks the same whether or not a flash has been over it.
+				countChip:Hide()
+				countText:SetText("")
+			else
+				-- And the commonest way into this branch at all, which had no
+				-- repaint of any kind: a click blocks the person it was for, the
+				-- queue empties, and the empty-queue branch disarms the button and
+				-- clears `current` on its way past -- so a fight starting in the
+				-- second after a click arrives here with nobody on the panel. The
+				-- name line above is guarded on `current` and nothing was written
+				-- for the other side of it, so the confirmation the click had just
+				-- painted -- a green past-tense headline about somebody no longer
+				-- anywhere near the queue -- stood as the panel's title for the
+				-- whole fight, over a button holding no macro at all.
+				self:PaintHeldInert("held")
 			end
-			-- Nobody, rather than the number the fight started with. The count
-			-- is a claim about a queue this branch has just blanked for being
-			-- unaimable, so it goes with the list and the line rather than
-			-- outliving both of them on its own -- and the panel then looks the
-			-- same whether or not a flash has been over it.
-			countChip:Hide()
-			countText:SetText("")
 		end
 		return
 	end
@@ -2016,6 +2079,13 @@ function Prompt:Regions()
 		-- indistinguishable from one that applies something, from the outside,
 		-- which is how the dropdown came to offer a border the addon never drew.
 		edges = edges,
+		-- The two carriers of the reason colour. Both are switched off from
+		-- somewhere other than the dropdown that asks for them -- the stripe by
+		-- the framed look, the ring by hiding or rounding the icon -- and from
+		-- outside, a prompt that shows the colour nowhere looks exactly like one
+		-- that was never asked to.
+		iconBack = iconBack,
+		accentTop = accentTop,
 		queueBack = queueBack,
 		queueHair = queueHair,
 		rows = queueRows,

@@ -248,6 +248,45 @@ local function OnlyReachesGroup()
 	return true
 end
 
+-- Whether nothing this character can offer takes a target at all -- a warrior,
+-- whose Battle Shout is cast on himself and heard by the party.
+--
+-- CastLines builds no /target line for a selfCast buff and returns restore =
+-- false with it, so for these classes the whole Targeting section is about a
+-- line the macro will never contain: a toggle that does nothing and a note
+-- explaining a /target that is not there. Computed the same way
+-- OnlyReachesGroup is, and for the same reason -- it follows the per-spell
+-- switches and a pin, so a warrior who learns something targetable gets the
+-- control back on its own.
+local function NeverTargets()
+	local castable = ns.CastableBuffs()
+	if #castable == 0 then return false end
+	for _, buff in ipairs(castable) do
+		if not buff.selfCast then return false end
+	end
+	return true
+end
+
+-- Which of the two things that can carry the reason colour is actually on
+-- screen, given every setting that silently takes one away.
+--
+-- Both are switched off somewhere other than the dropdown that asks for them,
+-- and neither says so: ApplyStyle refuses the stripe on the framed look, and
+-- the ring is a texture *behind* the icon, so hiding the icon takes it -- and so
+-- does rounding the icon off, which swaps that texture for a mask. Pick the
+-- ring, round the icon, and the setting above reads "Ring around the icon" over
+-- a prompt with no reason colour anywhere on it.
+--
+-- Returns two booleans rather than one, because the interesting answer is which
+-- one is left, not merely whether any is.
+local function AccentCarriers()
+	local p = P()
+	local mode = p.accentMode or "icon"
+	local ring = (mode == "icon" or mode == "both") and p.showIcon and not p.roundIcon
+	local stripe = (mode == "stripe" or mode == "both") and p.style ~= "framed"
+	return ring == true, stripe == true
+end
+
 -- Whether the copy-for-a-bug-report box is open.
 --
 -- A file local rather than a setting: it is a state of the window rather than
@@ -391,8 +430,12 @@ local function BuildOptions()
 			strangers = {
 				type = "toggle",
 				name = "Nearby players not in my group",
+				-- Four tokens are walked, not three: IterateUnits asks target,
+				-- mouseover and focus before it touches a single nameplate.
+				-- Leaving focus out made a genuine way of reaching somebody
+				-- look like it was not one.
 				desc = "Offer passers-by who are missing the buff. "
-					.. "Seen through nameplates, your target and your mouseover.",
+					.. "Seen through nameplates, your target, your focus and your mouseover.",
 				order = 14,
 				width = "full",
 				-- Hidden, not disabled: a disabled control is one you could
@@ -473,7 +516,16 @@ local function BuildOptions()
 				-- number stopped putting it.
 				type = "range",
 				name = "Let them go after (seconds)",
-				desc = "How long a favour stays offerable once we can no longer see the player.",
+				-- It said "once we can no longer see the player", which is not the
+				-- clock this runs on. BuildQueue measures from the moment they
+				-- buffed you -- that moment is the whole of the evidence, because
+				-- it is the one instant they were provably in casting range -- and
+				-- nothing anywhere notices a player walking off. Somebody who
+				-- buffed you two minutes ago and has not moved is let go on exactly
+				-- the same schedule as somebody who left at once.
+				desc = "How long after somebody buffs you that counts as proof they were in"
+					.. " range. It runs from their buff, not from the moment they walk off:"
+					.. " nothing here can see them go.",
 				order = 23.5,
 				min = 10,
 				max = 180,
@@ -598,11 +650,22 @@ local function BuildOptions()
 					chatHeader = { type = "header", name = "Chat", order = 30 },
 					verbose = {
 						type = "toggle",
-						name = "Print a line in my chat when someone buffs me",
-						desc = "Only you see it -- nothing is ever said to anybody else from here. "
-							.. "Use it to tell 'the buff was never noticed' apart from 'it was "
-							.. "noticed but they could not be reached' -- two very different "
-							.. "problems.",
+						-- It said "when someone buffs me", which is one of seven
+						-- things this switch prints. The others are the ones worth
+						-- having: a debt that survived a click, a cast counted as
+						-- repaid, a cast the game refused, a person skipped, a
+						-- sound that would not play, and a press that may have cast
+						-- from a macro the fight would not let us disarm. Somebody
+						-- reading the old label had no reason to switch it on to
+						-- find out why a buff went nowhere, which is the question
+						-- it answers best.
+						name = "Tell me in chat what the addon is doing",
+						desc = "A line when somebody buffs you, and a line for what each click turned"
+							.. " into -- cast, refused, skipped, or still owed.\n\n"
+							.. "Only you see any of it; nothing is ever said to anybody else from"
+							.. " here. Use it to tell 'the buff was never noticed' apart from 'it was"
+							.. " noticed but they could not be reached' -- two very different"
+							.. " problems.",
 						order = 31,
 						width = "full",
 						get = function() return ns.db.profile.verbose end,
@@ -698,11 +761,33 @@ local function BuildOptions()
 							ns.addon:SaveDebts()
 						end,
 					},
+					-- It read "Wait before re-offering", over "how long before the
+					-- same player can come back up" -- a promise about the person,
+					-- from a click that blocks one spell. For a class with two
+					-- buffs the setting did not do what it said.
+					--
+					-- The label follows the code rather than the other way round,
+					-- because the code is right. The walk is the headline feature,
+					-- and PickBuffFor is built on this block being per spell: it is
+					-- what moves a priest off Fortitude and onto Divine Spirit on
+					-- the very next scan. Making the setting mean what it said
+					-- would have put twelve seconds between the two halves of the
+					-- one thing the addon is for.
+					--
+					-- Both readings are true of something, which is the other half
+					-- of why this went unnoticed: the same number is what a
+					-- right-press blocks the whole person for. That is now said
+					-- here rather than left to be discovered.
 					retryCooldown = {
 						type = "range",
-						name = "Wait before re-offering (seconds)",
-						desc = "After you click, how long before the same player can come back up. "
-							.. "Covers casts that failed out of sight.",
+						name = "Wait before offering the same spell again (seconds)",
+						desc = "After you click, how long before that spell is offered to that"
+							.. " player again. Covers casts that failed out of sight.\n\n"
+							.. "|cff888888Per spell, not per person: cast Fortitude and the next"
+							.. " scan can still offer them Divine Spirit, which is how the walk"
+							.. " down your buffs works at all. Right-click the prompt to skip"
+							.. " somebody and the same number applies to the whole person --"
+							.. " nothing is offered to them until it lifts.|r",
 						order = 12,
 						min = 3,
 						max = 60,
@@ -743,12 +828,26 @@ local function BuildOptions()
 							.. "immediately after the cast.",
 						order = 2,
 						width = "full",
+						-- Hidden, not disabled, for the same reason the strangers
+						-- toggle is: a disabled control is one you could have if
+						-- something else were different, and nothing on this page
+						-- would ever put a /target in a Battle Shout macro.
+						hidden = NeverTargets,
 						get = fGetMacro,
 						set = fSetMacro,
+					},
+					noTargetNote = {
+						type = "description",
+						order = 2.5,
+						hidden = function() return not NeverTargets() end,
+						name = "|cff888888Everything you can offer is cast on yourself and heard by"
+							.. " your party, so the prompt never takes your target and has none to"
+							.. " hand back.|r\n",
 					},
 					targetingNote = {
 						type = "description",
 						order = 3,
+						hidden = NeverTargets,
 						name = "|cff888888The prompt runs |cffffd100/target|r, then the cast, then"
 							.. " |cffffd100/targetlasttarget|r. Conditional forms -- [@name], [@focus],"
 							.. " [@mouseover] -- do not resolve on this client at all, which is why the"
@@ -911,8 +1010,15 @@ local function BuildOptions()
 						name = function()
 							return ns.Prompt:InTest() and "Stop preview" or "Preview"
 						end,
+						-- What happens after the window is shut was missing, and it
+						-- is the half somebody meets by surprise: the preview is
+						-- not still running when they go back to the game. Both
+						-- exits are held off while this window is open -- see
+						-- Refresh, where the expiry is pushed forward rather than
+						-- read -- so the sentence order here is the rule.
 						desc = "Show a sample entry so you can style the prompt without waiting"
-							.. " for one. It stays for as long as this window is open.",
+							.. " for one. It stays for as long as this window is open; once you"
+							.. " close it, twenty seconds more, or until somebody real turns up.",
 						order = 1,
 						func = function() ns.Prompt:ToggleTest() end,
 					},
@@ -979,11 +1085,59 @@ local function BuildOptions()
 						-- above.
 						type = "toggle",
 						name = "Colour it by reason",
-						desc = "Amber when returning a favour, blue for your group, grey for passers-by.",
+						-- There are four reasons and this named three, leaving out
+						-- the one most people see most often: green is what a
+						-- target you picked yourself gets, and that priority is on
+						-- by default. Listed in the order the queue ranks them, so
+						-- the list doubles as the ordering.
+						--
+						-- Green is the only one with a condition on it, because
+						-- "target" is the only reason BuildQueue will not write
+						-- unless a switch is on -- and the switch is on another tab.
+						desc = "Green for somebody you targeted yourself, amber when returning a"
+							.. " favour, blue for your group, grey for passers-by. That is also"
+							.. " the order they are offered in.\n\n"
+							.. "|cff888888The first of those only ever appears while |cffffd100Whoever"
+							.. " I have targeted comes first|r is on, under Who to buff.|r",
 						order = 12,
 						width = "full",
 						get = pGet,
 						set = pSet,
+					},
+					-- Shown only when the colour above has nowhere left to go. "Off"
+					-- is excluded: that is somebody asking for no accent, and a
+					-- warning about getting what you asked for is noise.
+					accentDead = {
+						type = "description",
+						order = 12.5,
+						hidden = function()
+							if (P().accentMode or "icon") == "off" then return true end
+							local ring, stripe = AccentCarriers()
+							return ring or stripe
+						end,
+						-- Every carrier the mode asked for and did not get, not just
+						-- the first: "Both" on a framed prompt with a rounded icon
+						-- loses two, and naming one of them sends somebody to undo
+						-- the wrong setting.
+						name = function()
+							local p = P()
+							local mode = p.accentMode or "icon"
+							local why = {}
+							if mode == "icon" or mode == "both" then
+								if not p.showIcon then
+									why[#why + 1] = "the ring is drawn behind the icon, which is"
+										.. " switched off"
+								elseif p.roundIcon then
+									why[#why + 1] = "rounding the icon off replaces the ring with"
+										.. " a mask"
+								end
+							end
+							if (mode == "stripe" or mode == "both") and p.style == "framed" then
+								why[#why + 1] = "the framed look has no stripe"
+							end
+							return ("|cffffd100There is nothing left to colour: %s.|r"):format(
+								table.concat(why, ", and "))
+						end,
 					},
 					accentColor = {
 						type = "color",
@@ -1146,11 +1300,30 @@ local function BuildOptions()
 					},
 					scale = { type = "range", name = "Scale", order = 36, min = 0.5, max = 3, step = 0.05, get = pGet, set = pSet },
 					alpha = { type = "range", name = "Opacity", order = 37, min = 0.1, max = 1, step = 0.05, isPercent = true, get = pGet, set = pSet },
+					-- It was called "Hide in combat" and it hides nothing. The one
+					-- call that ever acted on it -- a button:Hide() inside the
+					-- combat branch -- was a protected method on a protected frame,
+					-- so Blizzard refused it every single time it was made, and it
+					-- has since been deleted rather than guarded. There is no
+					-- version of this that hides the panel: a secure visibility
+					-- driver needs macro conditionals, and this client does not
+					-- resolve them.
+					--
+					-- What is left is real and worth a switch, so the switch stays
+					-- and the label moves to it. In a fight the panel is frozen at
+					-- whoever it was holding, and a click still casts that frozen
+					-- macro -- so the confirmation flash for that click is the one
+					-- thing on the panel that still changes. This decides whether
+					-- it does.
 					hideInCombat = {
 						type = "toggle",
-						name = "Hide in combat",
-						desc = "The prompt cannot retarget in combat anyway, since Blizzard freezes secure "
-							.. "frames. Leave this off to keep the last target clickable.",
+						name = "Stay quiet in combat",
+						desc = "A click still casts in combat, and the prompt still flashes green or red"
+							.. " to say what happened. With this on it does not -- the panel simply"
+							.. " sits there dimmed for the length of the fight.\n\n"
+							.. "|cff888888It cannot be hidden. Blizzard freezes secure frames, so a"
+							.. " prompt the fight finds on screen stays on screen until it ends,"
+							.. " whatever this says.|r",
 						order = 38,
 						width = "full",
 						get = pGet,
@@ -1252,9 +1425,29 @@ local function BuildOptions()
 						get = pGet,
 						set = function(info, value)
 							pSet(info, value)
+							-- The bound, applied. It lives in ClampSettings because
+							-- it cannot live on the control (see above) -- and this
+							-- setter never called it, so dragging the slider to 64
+							-- on a 44-high prompt left the icon exactly there,
+							-- overhanging both hairlines and pushing the text off
+							-- the right-hand edge, until something unrelated
+							-- happened to clamp. The notice below said "the icon is
+							-- held at 64 to fit a prompt 44 high" while it was held
+							-- at nothing. Written the same way the height slider
+							-- writes it, which is the other half of the same rule.
+							ns.ClampSettings()
+							restyle()
 							-- Re-read it: ClampSettings may have just cut it down,
 							-- and the slider should show what was actually kept.
-							AceConfigRegistry:NotifyChange(ADDON)
+							--
+							-- Through the guarded wrapper, not the library handle.
+							-- AceConfigRegistry is asked for with the silent flag on
+							-- purpose -- a missing library must not take the options
+							-- screen with it -- and every other reader checks it, so
+							-- a raw call here was the one place the absence it is
+							-- fetched for would have thrown, from inside a setter,
+							-- with somebody's finger on the slider.
+							ns.RefreshOptionsDisplay()
 						end,
 					},
 					iconSizeCapped = {
@@ -1276,8 +1469,16 @@ local function BuildOptions()
 					roundIcon = {
 						type = "toggle",
 						name = "Round the icon off",
+						-- The second sentence is the one that was missing. The ring
+						-- is a texture sitting behind a square icon, and the mask
+						-- that rounds the icon is put there instead of it -- so
+						-- this quietly switches off "Ring around the icon" above,
+						-- which is the default place the reason colour goes.
 						desc = "Masks the icon into a circle. Reads more like a portrait than a spell, "
-							.. "so it is off by default.",
+							.. "so it is off by default.\n\n"
+							.. "|cff888888The mask goes where the ring was, so a rounded icon has no"
+							.. " ring to colour -- move the reason colour to the stripe if you want"
+							.. " both.|r",
 						order = 63,
 						width = "full",
 						disabled = function() return not P().showIcon end,

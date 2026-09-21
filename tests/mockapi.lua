@@ -12,6 +12,11 @@ function Mock.reset()
 	Mock.allSecret = false
 	Mock.stripped = false
 	Mock.unitName = { "Petra", "Stonewell" }
+	-- Per-token overrides, e.g. { focus = { "Iris", "Quill" } }. Every unit the
+	-- scan walks answered with the same name until this existed, so `seen`
+	-- collapsed them all into one person and no scenario could tell a token
+	-- IterateUnits really visits from one it does not.
+	Mock.unitNames = nil
 	Mock.nameplates = { "nameplate1", "nameplate2" }
 	Mock.now = 1000
 	Mock.groupSize = 0
@@ -85,6 +90,13 @@ function Mock.reset()
 	-- secure while the fight was on. In the game each of these is a refusal
 	-- nothing reports; here they are a list.
 	Mock.protectedCalls = {}
+	-- Libraries LibStub is to behave as though the user does not have, keyed by
+	-- name. One of ours is fetched with the silent flag precisely because it may
+	-- be absent, and until this existed every scenario ran with all of them
+	-- present -- so the absence the flag is there for was never once modelled,
+	-- and the readers that forgot to check could not be told from the ones that
+	-- remembered.
+	Mock.missingLibs = nil
 end
 Mock.reset()
 
@@ -239,7 +251,15 @@ function CreateFrame() return newFrame() end
 function GameTooltip_Hide() end
 
 local libs = {}
-function LibStub(name)
+function LibStub(name, silent)
+	-- Ahead of the cache, so a scenario can withhold a library an earlier one
+	-- already built. The real LibStub throws for a library that is not there
+	-- unless the caller passes the silent flag, and that difference is the whole
+	-- contract: a caller who passed it has promised to cope with nil.
+	if Mock.missingLibs and Mock.missingLibs[name] then
+		if silent then return nil end
+		error("Cannot find a library instance of " .. tostring(name) .. ".", 2)
+	end
 	if libs[name] then return libs[name] end
 	local lib = {}
 	if name == "AceAddon-3.0" then
@@ -368,6 +388,8 @@ function date() return "12:00:00" end
 
 function UnitName(u)
 	if u == "player" then return "Mort", "Defrette" end
+	local named = Mock.unitNames and Mock.unitNames[u]
+	if named then return maybeSecret(named[1]), maybeSecret(named[2]) end
 	return maybeSecret(Mock.unitName[1]), maybeSecret(Mock.unitName[2])
 end
 function GetUnitName() return "Petra Stonewell" end

@@ -278,29 +278,35 @@ mutate("Prompt.lua",
        expect="a second press does not bury the first",
        script="runscenarios.py")
 
-# 16. the regression: any error the game raises settling our click, and now
-#     filing name evidence with it. Two unrelated errors and that person is on
-#     bare first-name targeting for the session -- and the cast that really did
-#     go out has nothing left to settle.
+# 16. the regression: any error the game raises settling our click outright.
+#     The record is thrown away, so the cast that really did go out a frame
+#     later has nothing left to settle and the favour stays owed.
 mutate("Core.lua",
-       """	if GetTime() - pending.at > SETTLE_SECONDS then
-		ExpirePendingClick(pending)
-		return nil
-	end
-	RewindClick(pending)
+       """	RewindClick(pending)
 	return pending.name
 end""",
-       """	if GetTime() - pending.at > SETTLE_SECONDS then
-		ExpirePendingClick(pending)
-		return nil
-	end
-	RewindClick(pending)
-	NameMissed(pending, false)
+       """	RewindClick(pending)
 	ns.pendingClick = nil
 	return pending.name
 end""",
-       "an unrelated error blamed on a name",
-       expect="an unrelated error is not evidence about a name",
+       "a parked record dropped by an error",
+       expect="an unrelated error does not throw the record away",
+       script="runscenarios.py")
+
+# 16b. and the other half of the same decision: the error takes the per-buff
+#      cooldown and the rotation pointer back on a doubt, and deliberately
+#      leaves the record parked. When the cast turns up anyway, nothing put
+#      either back -- so a buff that was delivered was offered again two
+#      seconds later.
+mutate("Core.lua",
+       """	ns.MarkAttempted(pending.name, pending.buffKey)
+	if pending.buffKey and ns.RotatesBuffs() then
+		ns.lastGave[pending.name] = pending.buffKey
+	end
+""",
+       "",
+       "a rewind outliving the doubt behind it",
+       expect="an unrelated error does not throw the record away",
        script="runscenarios.py")
 
 # 17. a recipient the client would not name, read as "nothing contradicting who
@@ -787,17 +793,14 @@ mutate("Core.lua",
 #     and clearing the slot is what guarantees nobody ever does it.
 mutate("Core.lua",
        """	if GetTime() - pending.at > SETTLE_SECONDS then
-		ExpirePendingClick(pending)
+		ExpirePendingClick(pending,
+			"the game never answered that press, and this cast came too late to be its answer")
 		return
-	end
-
-	-- Asked once, because three of the branches below want the answer.""",
+	end""",
        """	if GetTime() - pending.at > SETTLE_SECONDS then
 		ns.pendingClick = nil
 		return
-	end
-
-	-- Asked once, because three of the branches below want the answer.""",
+	end""",
        "a dead record dropped by the settle",
        expect="a later cast event: the twelve-second cooldown stood over a press that cast nothing",
        script="runscenarios.py")
@@ -818,7 +821,11 @@ mutate("Core.lua",
 #     its first line: no red flash, no chat line, and a tick left standing over
 #     a cast that was thrown away.
 mutate("Core.lua",
-       "\tif not hadPending then failed = UnsettleLateRefusal() end\n",
+       """	if not ns.pendingClick then
+		local late = UnsettleLateRefusal(spellId)
+		if late then ShowOutcome("failed", late, "the game refused the cast") end
+	end
+""",
        "",
        "a refusal arriving after the send",
        expect="a cast the server refused stayed filed as a favour repaid",
@@ -830,10 +837,78 @@ mutate("Core.lua",
 #     second -- and without it a confirmed buff is undone by somebody else's
 #     miss.
 mutate("Core.lua",
-       "\tif not SpellIsOurs(spellId, settled.buffKey) then return nil end\n",
+       "\tif not SpellIsCertainlyOurs(spellId, settled.buffKey) then return nil end\n",
        "",
        "a refusal credited to the wrong spell",
        expect="an unrelated spell failing undid a confirmed cast",
+       script="runscenarios.py")
+
+# 57b. the same check read the permissive way round. SpellIsOurs treats a
+#      missing id as ours on purpose, because everywhere else a withheld number
+#      must not make a favour permanent -- but this is the one direction where
+#      no evidence has to mean no action, and borrowing that leniency reopens a
+#      repaid debt on every failure the client will not name.
+mutate("Core.lua",
+       "	if not SpellIsCertainlyOurs(spellId, settled.buffKey) then return nil end\n",
+       "	if not SpellIsOurs(spellId, settled.buffKey) then return nil end\n",
+       "an unnamed failure treated as ours",
+       expect="a failure the client would not put a spell id on undid a confirmed cast",
+       script="runscenarios.py")
+
+# UI_ERROR_MESSAGE used to drive UnsettleLateRefusal as well, and that is what
+# made the permissive check above catastrophic rather than merely wrong: an
+# event with no spell id on it, handed to a test that reads a missing id as
+# ours. It is unwired now, and there is deliberately no mutation for putting it
+# back, because with 57b's check in place it cannot do any harm -- it is dead
+# code, not a live fault, and a mutation that cannot go red would report CAUGHT
+# for the rest of time. The scenario still presses on the symptom itself: an
+# error inside the window leaves a confirmed settle alone.
+
+# 57c. one slot with no identity on it. Two settles inside one window and the
+#      second overwrote the first, so a refusal owed to the first press was
+#      applied to the second: the wrong person's repayment undone, and a line
+#      in the log about a cast that was never refused.
+mutate("Core.lua",
+       """	local previous = lastSettleAt
+	lastSettleAt = record.at
+	if previous and record.at - previous <= SETTLE_SECONDS then
+		settledClick = nil
+		return
+	end
+	settledClick = record""",
+       "\tsettledClick = record",
+       "two settled casts kept in one slot",
+       expect="one refusal was applied to one of two casts it cannot be told apart from",
+       script="runscenarios.py")
+
+# 57d. and the version that tracks only the record, which is the shape this
+#      started as: two settles clear the slot and the third refills it, while
+#      the second cast is still unanswered and can refuse into it.
+mutate("Core.lua",
+       """	local previous = lastSettleAt
+	lastSettleAt = record.at
+	if previous and record.at - previous <= SETTLE_SECONDS then""",
+       """	local previous = settledClick and settledClick.at
+	lastSettleAt = record.at
+	if previous and record.at - previous <= SETTLE_SECONDS then""",
+       "the cleared slot refilled by the next settle",
+       expect="a run of settles cleared the slot and then refilled it",
+       script="runscenarios.py")
+
+# 57e. a debt raised, written to disk and announced with the addon switched
+#      off. NoteFavour refuses to do exactly that at the other end of the same
+#      write, calling it the same lie told louder.
+mutate("Core.lua",
+       """	local db = addon.db and addon.db.profile
+	if not db or not db.enabled or not db.sources.owed then
+		settledClick = nil
+		return nil
+	end
+
+""",
+       "",
+       "a switched-off addon raising a debt",
+       expect="a switched-off addon raised a debt it has no way of repaying",
        script="runscenarios.py")
 
 # 58. the click outcome painted into the name line of a panel frozen for a
@@ -937,6 +1012,208 @@ mutate("Core.lua",
        "\t\t\t\t\t\tand remaining <= (opts.refreshUnder or 5) * 6000 then",
        "a top-up for a blessing with an hour left",
        expect="a blessing with an hour left was answered",
+       script="runscenarios.py")
+
+# 68. the other side of the combat branch's repaint, which was never written at
+#     all. 58 above covers the guarded half; this is the `else` that did not
+#     exist, so a fight that began with nobody on the panel kept the click's
+#     green headline for its whole length over a button holding no macro.
+mutate("Prompt.lua",
+       '\t\t\t\tself:PaintHeldInert("held")\n',
+       "",
+       "a held panel that names nobody at all",
+       expect="stops quoting the last click",
+       script="runscenarios.py")
+
+# 69. and the half that decides which of the two held states it is. An emptied
+#     button and one the fight froze still armed read identically without it,
+#     and only one of them casts on a press.
+mutate("Prompt.lua",
+       '\tlocal frozen = button:GetAttribute("macrotext1")',
+       "\tlocal frozen = true",
+       "a disarmed panel warning about a cast",
+       expect="does not say the button is empty",
+       script="runscenarios.py")
+
+# 70. Hide called straight from a branch that returns above the combat branch,
+#     which is where all four of these sat: refused, silently, on every tick of
+#     every fight, with the branch walking away believing the panel had gone.
+mutate("Prompt.lua",
+       '\t\tif not SetPanelShown(false) then self:PaintHeldInert("switched off") end',
+       "\t\tbutton:Hide()",
+       "a switched-off addon hiding in combat",
+       expect="/manners off in combat called",
+       script="runscenarios.py")
+
+# 71. the same call in the branch that has nothing to cast, which can become
+#     true mid-fight the moment the client answers SPELLS_CHANGED.
+mutate("Prompt.lua",
+       """		if not SetPanelShown(false) then
+			self:PaintHeldInert("nothing this character can cast")
+		end""",
+       "\t\tbutton:Hide()",
+       "a client with nothing to cast hiding in combat",
+       expect="a client with nothing to cast in combat called",
+       script="runscenarios.py")
+
+# 72. and the preview's Show, which is the one call that would make a mock-up
+#     appear over a panel the fight found hidden -- so a refusal here is the
+#     whole feature not happening rather than an invisible no-op.
+mutate("Prompt.lua",
+       "\t\tif not button:IsShown() and SetPanelShown(true) then",
+       "\t\tif not button:IsShown() and (button:Show() or true) then",
+       "a preview calling Show during a fight",
+       expect="the fight found hidden called",
+       script="runscenarios.py")
+
+# 73. the unlocked branch, caught from the other direction. Guarding the Show
+#     and then painting the same line anyway leaves the panel telling the user
+#     to drag a frame OnDragStart refuses for exactly as long as Show does.
+mutate("Prompt.lua",
+       "\t\tif SetPanelShown(true) then",
+       "\t\tif true then",
+       "an unlocked prompt inviting a drag in combat",
+       expect="told the user to drag it during a fight",
+       script="runscenarios.py")
+
+# 74. the Hide that lived inside the combat branch itself. It only ever ran in
+#     combat, so it was refused every single time it was made -- deleted rather
+#     than guarded, because a guard on it would be just as dead.
+mutate("Prompt.lua",
+       "\t\tlocal debt = current and current.name and ns.owed[current.name]",
+       """		if p.hideInCombat or not current then button:Hide() end
+		local debt = current and current.name and ns.owed[current.name]""",
+       "the combat branch's own refused Hide",
+       expect="repainting the held panel called",
+       script="runscenarios.py")
+
+# 75. the label that promised a per-player wait over a click that blocks one
+#     spell. The wording is the bug here, so the wording is what goes back.
+mutate("Options.lua",
+       '''desc = "After you click, how long before that spell is offered to that"
+							.. " player again. Covers casts that failed out of sight.\\n\\n"''',
+       '''desc = "After you click, how long before the same player can come back up."
+							.. " Covers casts that failed out of sight.\\n\\n"''',
+       "a per-spell wait sold as a per-player one",
+       expect="the same player can come back up",
+       script="runscenarios.py")
+
+# 76. and the same disagreement arriving from the other side: the label left
+#     alone and the click made to block the person, which is what the old
+#     wording described and what would stop the buff walk dead.
+mutate("Prompt.lua",
+       "\t\t\tns.MarkAttempted(current.name, current.buff.key)",
+       "\t\t\tns.BlockPerson(current.name)",
+       "a click blocking the person the label denies",
+       expect="blocks the whole person while the page says",
+       script="runscenarios.py")
+
+# 77. the one place the number really is per person, taken back off the page.
+mutate("Options.lua",
+       '.. " down your buffs works at all. Right-click the prompt to skip"',
+       '.. " down your buffs works at all. There is another way to skip"',
+       "the per-person half left unmentioned",
+       expect="is nowhere on the page",
+       script="runscenarios.py")
+
+# 78. AceConfigRegistry called straight from a setter. It is fetched with the
+#     silent flag precisely because it may be absent, and this was the one
+#     reader that did not check -- so the absence it is fetched for threw, from
+#     inside a set, with somebody's finger on the slider.
+mutate("Options.lua",
+       "\t\t\t\t\t\t\tns.RefreshOptionsDisplay()\n\t\t\t\t\t\tend,",
+       "\t\t\t\t\t\t\tAceConfigRegistry:NotifyChange(ADDON)\n\t\t\t\t\t\tend,",
+       "a setter calling a library that may be absent",
+       expect="moving the icon slider threw",
+       script="runscenarios.py")
+
+# 79. the clamp the icon slider never ran. The bound cannot live on the control
+#     -- AceConfig rejects the whole table for a function where it wants a
+#     number -- so the setter is the only place left to apply it, and it did
+#     not, under a notice claiming the icon was being held.
+mutate("Options.lua",
+       # Anchored on the comment that follows it: the height slider's setter is
+       # the same three lines, sits earlier in the file, and would otherwise be
+       # the one this replaced -- which is a mutation of a different check.
+       "\t\t\t\t\t\t\tns.ClampSettings()\n\t\t\t\t\t\t\trestyle()\n\t\t\t\t\t\t\t-- Re-read it",
+       "\t\t\t\t\t\t\t-- Re-read it",
+       "an icon slider that outgrows its panel",
+       expect="dragging the icon slider left an icon taller",
+       script="runscenarios.py")
+
+# 80. the description that named three reason colours out of four, leaving out
+#     the one most people see most often.
+mutate("Options.lua",
+       'desc = "Green for somebody you targeted yourself, amber when returning a"',
+       'desc = "Amber when returning a"',
+       "a reason colour the page never names",
+       expect="reason colours and the description names",
+       script="runscenarios.py")
+
+# 81. and the setting that silently takes the ring away. Rounding the icon puts
+#     a mask where the ring was, so "Ring around the icon" -- the default --
+#     ends up over a prompt with no reason colour anywhere on it.
+mutate("Options.lua",
+       'local ring = (mode == "icon" or mode == "both") and p.showIcon and not p.roundIcon',
+       'local ring = (mode == "icon" or mode == "both") and p.showIcon',
+       "a ring the page believes in after it is gone",
+       expect="rounded icon leaves the reason colour with nowhere to go",
+       script="runscenarios.py")
+
+# 82. the targeting switch offered to a class whose macro never takes a target.
+mutate("Options.lua",
+       "\t\t\t\t\t\thidden = NeverTargets,\n\t\t\t\t\t\tget = fGetMacro,",
+       "\t\t\t\t\t\tget = fGetMacro,",
+       "handing back a target that is never taken",
+       expect="hand back a target the macro never takes",
+       script="runscenarios.py")
+
+# 83. "Hide in combat" over a panel that cannot be hidden. The call that read
+#     it was protected and refused every time it ran, and it is gone.
+mutate("Options.lua",
+       'name = "Stay quiet in combat",',
+       'name = "Hide in combat",',
+       "a switch named for something it cannot do",
+       expect="is still called",
+       script="runscenarios.py")
+
+# 84. and the thing it does do, taken away -- which would leave a switch that
+#     is now genuinely wired to nothing at all.
+mutate("Prompt.lua",
+       "\t\tif self:OutcomeLive() and not p.hideInCombat then",
+       "\t\tif self:OutcomeLive() then",
+       "a combat switch wired to nothing",
+       expect="still flashed the click's outcome",
+       script="runscenarios.py")
+
+# 85. the source list that named three of the four unit tokens the scan walks.
+mutate("Options.lua",
+       '.. "Seen through nameplates, your target, your focus and your mouseover.",',
+       '.. "Seen through nameplates, your target and your mouseover.",',
+       "a way of reaching somebody left off the page",
+       expect="does not mention it",
+       script="runscenarios.py")
+
+# 86. and the chat switch described as one line when it prints seven kinds --
+#     the useful ones being what each click turned into.
+mutate("Options.lua",
+       '''desc = "A line when somebody buffs you, and a line for what each click turned"
+							.. " into -- cast, refused, skipped, or still owed.\\n\\n"''',
+       '''desc = "A line when somebody buffs you.\\n\\n"''',
+       "a chat switch narrower on the page than in the code",
+       expect="still describes it as a line for when somebody buffs you",
+       script="runscenarios.py")
+
+# 87. the grace window described as running from the moment we lose sight of
+#     somebody, which is a thing nothing in the addon can notice. It runs from
+#     their buff -- the one instant they were provably in range.
+mutate("Options.lua",
+       '''desc = "How long after somebody buffs you that counts as proof they were in"
+					.. " range. It runs from their buff, not from the moment they walk off:"
+					.. " nothing here can see them go.",''',
+       'desc = "How long a favour stays offerable once we can no longer see them.",',
+       "a window timed from an event nothing sees",
+       expect="the page does not say so",
        script="runscenarios.py")
 
 print()

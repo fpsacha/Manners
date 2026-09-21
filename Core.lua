@@ -194,6 +194,13 @@ local defaults = {
 			height = 44,
 			scale = 1,
 			alpha = 1,
+			-- Named for what it used to attempt rather than what it does. The
+			-- panel cannot be hidden in a fight at all -- Blizzard refuses
+			-- Hide() on a protected frame -- so the only thing left reading
+			-- this is the combat branch in Prompt:Refresh, where it suppresses
+			-- the click-outcome flash. The key keeps the old spelling because
+			-- renaming it is a silent settings reset for everybody who has
+			-- touched it; the label on the options page says the true thing.
 			hideInCombat = false,
 
 			style = "glass",
@@ -987,24 +994,6 @@ function ns.RotatesBuffs()
 	return not ns.EXCLUSIVE_BUFFS[playerClass]
 end
 
--- What is known about one person's name, which is never much. Three states,
--- and the third is why this is not a set of flags:
---
---   nil    nothing learned; the macro aims the full name
---   true   aim the bare first name instead
---   false  the first name was tried and watched landing on somebody else, so
---          it is withdrawn and not offered again this session
---
--- false is falsy, so every reader that asks "first name?" gets the right answer
--- from a plain truth test and only the settle path has to know about the third
--- state at all.
---
--- A hint, not a fact, and worth saying so here: nothing in this addon can ask
--- the client whether a name resolves, so true is inferred from a run of casts
--- that went nowhere and either the run or the inference can be wrong. It is
--- held for the session only and never written to disk. The settle path below
--- owns every write; nothing else may set it.
-ns.firstNameOnly = {}
 ns.owed, ns.tried = owed, tried
 
 -- SavedVariables outlive the client, GetTime() does not: it restarts near zero
@@ -2113,83 +2102,23 @@ local function RewindClick(pending)
 	if ns.RotatesBuffs() then ns.lastGave[pending.name] = pending.gave end
 end
 
--- The run: consecutive settles for this person where a full-name /target did
--- not reach them. Working-out rather than an answer, which is why it does not
--- live on ns.firstNameOnly -- that table is read on every repaint and holds one
--- meaning per person. This is thrown away the moment it either proves something
--- or is contradicted.
-local nameFails = {}
+-- There was a first-name fallback here, and it is gone on purpose. It counted
+-- casts that reached nobody and, after a run of them, switched that person's
+-- macro to `/target <first name>` on the theory that this client resolves a
+-- bare first name where it will not resolve a full one. Nothing ever showed
+-- that it does: the addon was confirmed working in game at a point when the
+-- macro emitted only the full name, so the full name resolves and the failure
+-- the fallback existed for was never once observed. What it did produce was a
+-- defect in three consecutive rounds -- unreachable when it mattered, set by
+-- casts that were not ours, set for macros with no /target in them, never
+-- cleared -- and its failure mode is the worst one on offer here: a cast and a
+-- spoken line aimed at a different player who happens to share a first name.
+-- A cast that does not land is now noticed and reported, so the case it was
+-- built for degrades to a visible "that did not work" instead of a silent one.
+-- The CHANGELOG line for 1.3.0 that asks for both spellings is the only thing
+-- that ever argued for it; do not rebuild it from there.
 
--- What the game did with the /target line we armed, filed against the name that
--- line was carrying.
---
--- Both of these do nothing at all unless the macro really did carry a /target
--- of ours. That used to be inferred from the outcome instead, and the inference
--- was wrong in both directions: a selfCast buff has no /target by construction,
--- and a /manners try macro carries whatever the user typed -- so neither says
--- anything about whether a name resolves, yet both were filed as evidence about
--- one. ns.pendingClick now records what was actually armed.
-local function NameReached(pending)
-	if not pending.targeted then return end
-	nameFails[pending.name] = nil
-end
-
--- wentElsewhere: the game named a recipient who is not the person we offered,
--- which is what an unresolved /target looks like from here -- your existing
--- target kept the spell. Otherwise nothing was cast at all.
---
--- Both shapes are the same line failing, and both count. Which one you get
--- depends only on whether you happened to be holding a friendly target at that
--- moment, and counting just the first left the commonest case -- no target, so
--- the /cast has nothing to aim at and the game simply refuses -- unable to
--- teach this anything. Those people stayed unbuffable for the session.
-local function NameMissed(pending, wentElsewhere)
-	local spelling, name = pending.targeted, pending.name
-	if not spelling then return end
-
-	if spelling == "first" then
-		-- The fallback was the thing in play, and the spell went to somebody
-		-- who is not the person we offered: there is a second player answering
-		-- to that first name standing right there. That is precisely the harm
-		-- the fallback exists to avoid, so it is withdrawn -- recorded as
-		-- false rather than cleared to nil, because the neighbour does not
-		-- stop sharing the name and a fresh run of failures must not talk this
-		-- back into it. Before, the flag was re-confirmed on the one event
-		-- that disproves it, and the person stayed aimed at the wrong player
-		-- for as long as the session lasted.
-		if wentElsewhere then
-			ns.firstNameOnly[name] = false
-			nameFails[name] = nil
-		end
-		return
-	end
-
-	-- Anything other than nil is a settled answer for this name -- true, so the
-	-- fallback is already on, or false, so it has been tried and withdrawn.
-	-- Neither wants another run counted against it.
-	if ns.firstNameOnly[name] ~= nil then return end
-	local fails = (nameFails[name] or 0) + 1
-	nameFails[name] = fails
-	-- Two in a row, not one event. A single failure is far more often somebody
-	-- stepping out of range -- /target only reaches who you can see -- than a
-	-- name this client cannot resolve, and acting on one would put most of a
-	-- roster onto first names that can match two people standing together. The
-	-- game's own error text would tell those two apart, but the strings are
-	-- localised and this client's are unverified, so the count is what is
-	-- trusted instead.
-	if fails >= 2 then
-		ns.firstNameOnly[name] = true
-		nameFails[name] = nil
-	end
-end
-
--- The window running out on a record, wherever that is noticed.
---
--- It is one outcome, not four, so it is worked out in one place. A cast the
--- client accepted reports in the same frame, so a record that sat here for the
--- whole window saw no cast event -- and that, with our own spell landing on
--- somebody else, is the whole of what the /target line can honestly be judged
--- on.
+-- Retiring a record whose window has run out, wherever that is noticed.
 --
 -- Three callers used to answer this state by clearing the slot and returning,
 -- each on a comment saying the sweep had it or would get it. It could not: the
@@ -2201,16 +2130,22 @@ end
 -- file works to is that a record is never discarded silently, and one owner for
 -- the discard is the only way that can be true.
 --
+-- What the user is told is the caller's, because the four of them do not know
+-- the same thing. Three arrive at a record that simply ran out and the default
+-- says so. The settle path arrives holding a cast event, which is an answer to
+-- *something* -- it is only too late to be an answer to this press -- so
+-- letting it borrow "nothing at all was cast" filed the one event that proves a
+-- spell went out as proof that none did.
+--
 -- The panel is not written from here: see SweepPendingClick, which is the only
 -- caller that is watching the window run out rather than finding it long run
 -- out.
-local function ExpirePendingClick(pending)
+local function ExpirePendingClick(pending, why)
 	ns.pendingClick = nil
-	NameMissed(pending, false)
 	-- Idempotent, and it needs to be: an error inside the window may have
 	-- rewound this record already.
 	RewindClick(pending)
-	SayStillOwed(pending.name, "the game answered that press with nothing at all")
+	SayStillOwed(pending.name, why or "the game answered that press with nothing at all")
 end
 
 -- A second press while the first is still waiting for the game.
@@ -2218,15 +2153,15 @@ end
 -- There is one slot and nothing on it says which press it belongs to, so the
 -- next cast event is judged against the newest record whichever press produced
 -- it -- and then every consequence lands on the wrong person: the block rewind,
--- the rotation rewind, the name evidence and the settle itself. PostClick's
--- quarter-second debounce is no help; two presses three tenths of a second
--- apart are two full records, and the first was simply overwritten.
+-- the rotation rewind and the settle itself. PostClick's quarter-second
+-- debounce is no help; two presses three tenths of a second apart are two full
+-- records, and the first was simply overwritten.
 --
 -- Discarding it silently is the part that cannot stand. What that press did is
 -- genuinely unknown, and unknown is not the same as failed: so what it wrote on
--- the assumption of success is put back, nothing is filed about the name, and
--- the debt stays standing. Wrong in that direction costs one extra offer;
--- wrong in the other loses the favour outright.
+-- the assumption of success is put back and the debt stays standing. Wrong in
+-- that direction costs one extra offer; wrong in the other loses the favour
+-- outright.
 local function AbandonPendingClick()
 	local pending = ns.pendingClick
 	if not pending then return end
@@ -2254,26 +2189,10 @@ ns.AbandonPendingClick = AbandonPendingClick
 -- failure warrants and no more, which is to take back what the click wrote on
 -- the assumption the buff landed.
 --
--- What it must not do is file evidence about a name, which is what it had grown
--- into: two unrelated errors inside two clicks and that person was switched to
--- bare first-name targeting permanently -- the one setting on this client that
--- can hand somebody else's buff to the wrong player, decided by errors that
--- were never about us.
---
 -- The record stays parked rather than being cleared. If the cast went out after
 -- all -- an inventory error a frame before it -- UNIT_SPELLCAST_SENT still
--- settles it normally. If it did not, the sweep runs the clock out and files
--- the name evidence there, where "no cast event at all" has been established
--- instead of assumed. That is what keeps the no-target case reachable: the
--- /target resolves nobody, the /cast has nothing to aim at, the game raises an
--- error and sends nothing -- and nothing is exactly what the sweep measures.
---
--- The rewind is worth one admission: where the error really was unrelated and
--- the cast went out a frame later, the settle clears the debt but the rotation
--- pointer has already been put back, so an unreadable person may be offered the
--- same buff again next time instead of the next one along. One redundant offer
--- against the alternative, which is trusting a click on the strength of an
--- error message about somebody's bags.
+-- settles it normally, and that settle puts back the writes taken away here. If
+-- it did not, the sweep runs the clock out on it.
 --
 -- Returns the name it rewound, so the caller can put the game's own words on
 -- the panel. Nothing is returned for an error that arrived with no click parked
@@ -2298,8 +2217,8 @@ end
 
 -- The clock running out on a parked click. The game answers a cast it accepted
 -- in the same frame, so a record that has sat here for the whole window saw no
--- cast event -- and that, with our own spell landing on somebody else, is the
--- whole of what the /target line can honestly be judged on.
+-- cast event at all -- which is the one statement this file can make that
+-- nothing went out.
 --
 -- Swept on the tick rather than noticed on the next event, because for the case
 -- this exists for there is no next event.
@@ -2345,6 +2264,38 @@ local SETTLE_INFERENCE = {
 
 -- The click that just settled, kept rather than dropped. See UnsettleLateRefusal.
 local settledClick
+-- When the last one settled, held whether or not a record was kept. See below.
+local lastSettleAt
+
+-- One slot, and it holds a record only while exactly one settled cast can still
+-- be refused.
+--
+-- There is nothing on a record that says which press it belongs to, and the
+-- refusal that may follow carries a spell id and nothing else -- so with two
+-- settles inside one window, and both presses normally carrying the same buff,
+-- no event the game sends can say which cast a refusal answers. It used to
+-- overwrite, which meant a refusal belonging to the first press was applied to
+-- the second: the wrong person's repayment undone, their blocks rewound, and a
+-- line in the log about a cast that was never refused.
+--
+-- So a settle that lands on top of a live one keeps neither. The time is
+-- remembered separately from the record precisely because the record is the
+-- thing being thrown away: with only the record to go on, two settles a second
+-- apart cleared the slot and a third a second after that filled it again --
+-- while the second cast, still unanswered, could refuse into it.
+--
+-- The cost is a genuine refusal going unnoticed after a double press, which
+-- leaves a favour wrongly marked repaid; the alternative is unmarking somebody
+-- else's, which is the same damage plus a false sentence about them.
+local function RememberSettled(record)
+	local previous = lastSettleAt
+	lastSettleAt = record.at
+	if previous and record.at - previous <= SETTLE_SECONDS then
+		settledClick = nil
+		return
+	end
+	settledClick = record
+end
 
 local function SettlePendingClick(landedOn, spellId)
 	local pending = ns.pendingClick
@@ -2355,8 +2306,14 @@ local function SettlePendingClick(landedOn, spellId)
 	-- running out establishes is still owed and is filed here. What must not
 	-- happen is this cast being judged against a press it has nothing to do
 	-- with, which is why the record is retired rather than settled.
+	--
+	-- The sentence is spelled out rather than left to the default, which says
+	-- nothing at all was cast. Something was: this event. It is only too late to
+	-- be an answer to this press, and filing the one event that proves a spell
+	-- went out as proof none did is a plain untruth in the user's chat.
 	if GetTime() - pending.at > SETTLE_SECONDS then
-		ExpirePendingClick(pending)
+		ExpirePendingClick(pending,
+			"the game never answered that press, and this cast came too late to be its answer")
 		return
 	end
 
@@ -2404,33 +2361,26 @@ local function SettlePendingClick(landedOn, spellId)
 	-- on "something was cast" alone marked the favour repaid to a stranger who
 	-- never received anything.
 	--
-	-- Three spellings are accepted because three can legitimately come back:
-	-- the macro aims at one of them, and the game reports whichever the client
-	-- holds -- the bare first name, or the full one, without any cross-realm
-	-- suffix.
+	-- Three spellings are accepted because three can legitimately come back.
+	-- The macro always aims the full name; the game reports whichever spelling
+	-- the client happens to hold -- the bare first name, or the full one, or one
+	-- without a cross-realm suffix -- and none of those is somebody else.
 	elseif landedOn and landedOn ~= pending.name
 		and landedOn ~= (ns.FirstName and ns.FirstName(pending.name))
 		and landedOn ~= (ns.ShortName and ns.ShortName(pending.name)) then
-		why = ("it went to |cffffffff%s|r"):format(tostring(landedOn))
 		-- Somebody else entirely got it, which means our own /target did
 		-- nothing and the spell went to whoever was already targeted.
-		--
-		-- Only our own spell says anything about our own /target line, though.
-		-- Something else going out to somebody else is the player casting, and
-		-- reading that as evidence about this person's name is how a click
-		-- that armed nothing castable -- a /manners try template, say -- ended
-		-- up blaming the next thing pressed on the bar.
-		if ours then NameMissed(pending, true) end
+		why = ("it went to |cffffffff%s|r"):format(tostring(landedOn))
 	elseif not ours then
 		-- Right person, wrong spell: anything else on a bar can beat the
-		-- macro's own /cast to the click. The /target did reach them, so it is
-		-- not the name that is in question here.
+		-- macro's own /cast to the click.
 		why = ("|cffffffff%s|r went out instead"):format(tostring(spellId))
-		NameReached(pending)
 	elseif landedOn then
 		-- Our spell, and the client named the person we aimed at. The only
-		-- branch here where the favour is confirmed rather than inferred.
-		NameReached(pending)
+		-- branch here where the favour is confirmed rather than inferred, which
+		-- is why it is empty and has to stay: leaving `why` and `inferred` both
+		-- nil is the settle, and folding it into the branch below would put a
+		-- "this client would not confirm who to" on the one press where it did.
 	elseif pending.targeted then
 		-- Our spell, and the client would not say who received it -- which on
 		-- this client is the ordinary answer rather than the exception.
@@ -2442,7 +2392,6 @@ local function SettlePendingClick(landedOn, spellId)
 		-- at now. That is not proof the spell reached them, and the verbose
 		-- line below says so instead of implying otherwise.
 		inferred = "targeted"
-		NameReached(pending)
 	else
 		-- Our spell went out, the client will not say to whom, and the macro
 		-- carried nothing aimed at this person -- a /manners try template is
@@ -2488,12 +2437,40 @@ local function SettlePendingClick(landedOn, spellId)
 	local how = inferred and SETTLE_INFERENCE[inferred]
 	ShowOutcome(how and "sent" or "cast", pending.name, how and how.sub)
 
+	-- Put back what PostClick wrote, because something may have taken it away.
+	-- An error inside the window rewinds the per-buff cooldown to two seconds
+	-- and the rotation pointer to where the press found it, and then leaves the
+	-- record parked on purpose so a cast arriving after it can still settle.
+	-- This is that cast. Nothing restored either write, so a buff that really
+	-- did go out came back onto the prompt two seconds later -- the rewind
+	-- outliving the doubt that justified it.
+	--
+	-- Written unconditionally rather than only after a rewind: these are the two
+	-- values a landed cast is supposed to leave behind, and asserting them here
+	-- costs one table write against remembering which of four paths got here.
+	ns.MarkAttempted(pending.name, pending.buffKey)
+	if pending.buffKey and ns.RotatesBuffs() then
+		ns.lastGave[pending.name] = pending.buffKey
+	end
+
 	ns.SettleFavour(pending.name)
 	-- The client sent the cast; the server has not answered yet. Keep the
 	-- record so a refusal arriving a moment from now has something to be about.
-	settledClick = { name = pending.name, buffKey = pending.buffKey,
-		gave = pending.gave, at = GetTime(), owed = wasOwed }
+	RememberSettled({ name = pending.name, buffKey = pending.buffKey,
+		gave = pending.gave, at = GetTime(), owed = wasOwed })
 	ns.pendingClick = nil
+end
+
+-- SpellIsOurs read the other way round, for the one direction where it has to
+-- be. Everywhere else an unreadable id must settle, or one withheld number
+-- makes a favour permanent. Here the same leniency undoes a confirmation:
+-- SpellIsOurs(nil) is true by design, so a failure the client would not name
+-- reopened a repaid debt, rewound the click and printed a sentence asserting
+-- the cast was refused. No evidence has to mean no action on this side.
+local function SpellIsCertainlyOurs(spellId, buffKey)
+	if spellId == nil or not buffKey then return false end
+	local buff = ns.FindBuff(caps.class, buffKey)
+	return buff ~= nil and ns.BUFF_BY_ID[spellId] == buff
 end
 
 -- A refusal that arrives after the settle has already let the record go.
@@ -2513,13 +2490,15 @@ end
 -- it is dead, and a fourth reader with its own idea is a record judged twice or
 -- not at all.
 --
--- What this cannot do is prove the refusal is about our cast. Neither can
--- FailPendingClick, and the admission it makes holds here unchanged: an
--- unrelated error inside the window costs one redundant offer, and the other
--- way round loses the favour outright. Where the event does carry a spell id it
--- is checked, which is more than the error path can do.
+-- It runs from UNIT_SPELLCAST_FAILED alone. UI_ERROR_MESSAGE drove it too for
+-- one round and could not: that event carries no spell id, so there was nothing
+-- to check and any complaint the game made inside the window undid the settle.
+-- What it still cannot do either way is repeat the game's own words -- out of
+-- range, line of sight, not enough mana -- because those arrive only on the
+-- error, with nothing but the clock connecting one to the other. The panel says
+-- the cast was refused and stops there.
 --
--- Returns the name, so the caller can put the game's own words on the panel.
+-- Returns the name, so the caller can flash the panel for it.
 local function UnsettleLateRefusal(spellId)
 	local settled = settledClick
 	if not settled then return nil end
@@ -2527,16 +2506,27 @@ local function UnsettleLateRefusal(spellId)
 		settledClick = nil
 		return nil
 	end
-	-- Somebody else's spell failing. A nil or secret id says nothing either way
-	-- and passes, the same way every other unreadable value in this file does --
-	-- one withheld number must not be able to make a confirmation permanent.
-	if not SpellIsOurs(spellId, settled.buffKey) then return nil end
+	-- Somebody else's spell failing, or one the client would not name. Neither
+	-- is evidence about this cast, and this is the direction where "no evidence"
+	-- has to mean "do nothing".
+	if not SpellIsCertainlyOurs(spellId, settled.buffKey) then return nil end
+
+	-- A switched-off addon is the same lie told louder, which is the rule
+	-- NoteFavour keeps at the other end of this same write: with the prompt
+	-- hidden and the owed source off there is nothing a restored debt can reach,
+	-- so all this would do is put it back on disk and say so out loud. The
+	-- record goes with it -- nothing is coming back for it.
+	local db = addon.db and addon.db.profile
+	if not db or not db.enabled or not db.sources.owed then
+		settledClick = nil
+		return nil
+	end
 
 	-- Consumed here, before anything is undone with it. A refusal is one event
 	-- about one cast, and a record left lying here would let the next unrelated
-	-- error paint red over whatever the panel has since moved on to. The
-	-- rejections above deliberately leave it: a spell of somebody else's
-	-- failing is not this record's answer, and the real one may still arrive.
+	-- failure paint red over whatever the panel has since moved on to. The
+	-- rejection above deliberately leaves it: a spell of somebody else's failing
+	-- is not this record's answer, and the real one may still arrive.
 	settledClick = nil
 
 	-- Out through the same door SettleFavour went: it wrote the clearing to
@@ -2577,9 +2567,10 @@ function addon:UNIT_SPELLCAST_FAILED(_, unit, _, spellId)
 	-- outcome is the shape that left one of them never running in the first
 	-- place.
 	--
-	-- Of the two events that carry a refusal this is the better witness and the
-	-- only one that can be checked at all: it names the spell, so our own cast
-	-- being refused is told apart from anything else on the bar failing.
+	-- Of the two events that carry a refusal this is the only one that can be
+	-- checked at all: it names the spell, so our own cast being refused is told
+	-- apart from anything else on the bar failing. That is why it is the only
+	-- one allowed to undo a settle.
 	if not ns.pendingClick then
 		local late = UnsettleLateRefusal(spellId)
 		if late then ShowOutcome("failed", late, "the game refused the cast") end
@@ -2597,19 +2588,12 @@ function addon:UI_ERROR_MESSAGE(_, _, message)
 	message = plain(message)
 	-- An error in the moment after a click is a reason to doubt the cast, so
 	-- whoever we owed is still owed and what the click wrote comes back out.
-	-- It is not a reason to conclude anything about the person's name: see
-	-- FailPendingClick, which deliberately does less than it used to.
 	--
-	-- Read before the call, because the call empties the slot either way and
-	-- "was there a record" is the question that decides whether the line below
-	-- may look further back.
-	local hadPending = ns.pendingClick ~= nil
+	-- A record still parked is the only thing this event may be read against:
+	-- that is a click the game has not answered, and doubt is all this can add
+	-- to it. It used to reach past that into a settle that had already happened
+	-- and undo it, on an event carrying no spell id -- see UnsettleLateRefusal.
 	local failed = FailPendingClick()
-	-- Nothing was parked, so this error may be the server's answer to a cast
-	-- that has already settled -- the case that used to fall off the end of
-	-- this function entirely. Only where nothing was parked: a record that was
-	-- there has just been answered, and an error cannot be about two casts.
-	if not hadPending then failed = UnsettleLateRefusal() end
 	-- Only where a click was actually parked, so the panel flashes for an error
 	-- that arrived inside our own window and stays quiet for the rest of what
 	-- this event carries. The game's own words go on the sub-line: they are
@@ -3277,8 +3261,14 @@ function addon:HandleSlash(rawInput)
 		-- "Announce" read as though it talks to other players, which is the one
 		-- thing this addon never does without a click. It prints to your own
 		-- chat frame and nowhere else.
+		--
+		-- And it is not only the favour line. Six other places print through
+		-- this switch -- what a click turned into, above all -- so saying only
+		-- the first of them here left the option's best use unadvertised in
+		-- both of the two places that describe it.
 		self:Print("verbose: " .. (db.verbose
-			and "|cff00ff00on|r -- a line in your own chat whenever somebody buffs you"
+			and "|cff00ff00on|r -- a line in your own chat when somebody buffs you,"
+				.. " and for what each click turned into"
 			or "|cffff0000off|r"))
 	elseif input == "on" then
 		db.enabled = true
