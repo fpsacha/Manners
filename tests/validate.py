@@ -143,6 +143,32 @@ elif not declared:
     print("  could not read any library out of .pkgmeta")
     fail += 1
 
+print("\n== AceConfig schema ==")
+# AceConfigRegistry validates the WHOLE options table and rejects all of it if
+# any one key has the wrong type -- not the offending control, the entire table,
+# so the options page cannot be drawn at all. Most keys accept a function, which
+# makes it natural to reach for one on the few that do not.
+#
+# These are the number-only keys, read out of the bundled
+# AceConfigRegistry-3.0 (`optnumber` = nil or number, no funcref). A function
+# here is silent everywhere except in front of a user opening the panel.
+NUMBER_ONLY = ["min", "softMin", "max", "softMax", "step", "bigStep",
+               "relWidth", "imageHeight", "imageWidth"]
+
+opts = open(os.path.join(ROOT, "Options.lua"), encoding="utf-8").read()
+bad = 0
+for key in NUMBER_ONLY:
+    for m in re.finditer(r"(?<![\w.])" + key + r"\s*=\s*function\b", opts):
+        line = opts.count("\n", 0, m.start()) + 1
+        print("  Options.lua:%d  %s takes a number, not a function -- this "
+              "fails ValidateOptionsTable and the whole page stops drawing"
+              % (line, key))
+        bad += 1
+        fail += 1
+if not bad:
+    print("  ok  no function given where AceConfig wants a number (%d keys checked)"
+          % len(NUMBER_ONLY))
+
 print("\n== distribution files ==")
 for f in ["LICENSE", "README.md", "CHANGELOG.md", "THIRD-PARTY-NOTICES.md",
           ".pkgmeta", "RELEASING.md"]:

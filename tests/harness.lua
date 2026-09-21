@@ -35,6 +35,11 @@ local function newFrame()
   f.IsPlaying = function() return false end
   f.IsOwned = function() return false end
   f.GetPoint = function() return "CENTER", nil, "CENTER", 0, 0 end
+  -- The prompt asks where it is on screen to decide which side of itself the
+  -- queue list hangs off. Present here so that path runs rather than being
+  -- skipped by its own guard.
+  f.GetCenter = function() return 400, 500 end
+  f.GetHeight = function() return 1000 end
   f.GetHighlightTexture = function() return newFrame() end
   f.CreateTexture = function() return newFrame() end
   f.CreateFontString = function() return newFrame() end
@@ -109,8 +114,20 @@ function LibStub(name, silent)
   elseif name == "AceConfig-3.0" then
     lib.RegisterOptionsTable = function() end
   elseif name == "AceConfigDialog-3.0" then
-    lib.AddToBlizOptions = function() return newFrame() end
+    -- Shut, like the real panel is on login. Every other mock frame answers
+    -- "shown", and one that did so here would tell the prompt somebody is
+    -- styling it for the whole of the run.
+    lib.AddToBlizOptions = function()
+      local f = newFrame()
+      f.IsShown = function() return false end
+      return f
+    end
     lib.Open = function() end
+    lib.OpenFrames = {}
+  elseif name == "AceConfigRegistry-3.0" then
+    -- Present so the load-time path that repaints the page is exercised here
+    -- too; the harness only cares that calling it does not throw.
+    lib.NotifyChange = function() end
   elseif name == "AceDBOptions-3.0" then
     lib.GetOptionsTable = function() return { type = "group", name = "p", args = {} } end
   elseif name == "LibSharedMedia-3.0" then
@@ -261,6 +278,12 @@ else
     -- Every profile switch, copy and reset comes back through here, so a hop
     -- it makes into a library that is not there is a load-time failure.
     { "RefreshConfig", function() addon:RefreshConfig() end },
+    -- Both ends of a fight. The prompt is held and released here, and the
+    -- options page is asked to redraw itself so the notice over the frozen
+    -- controls comes up and goes away again -- a hop into a library that may
+    -- not be there, which is exactly the class of failure this file exists for.
+    { "PLAYER_REGEN_DISABLED", function() addon:PLAYER_REGEN_DISABLED() end },
+    { "PLAYER_REGEN_ENABLED", function() addon:PLAYER_REGEN_ENABLED() end },
     { "slash debug", function() addon:HandleSlash("debug") end },
     { "slash help", function() addon:HandleSlash("") end },
   }

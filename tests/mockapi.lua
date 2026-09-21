@@ -33,11 +33,29 @@ function Mock.reset()
 	-- client refusing, no evidence says which this client uses, and a suite that
 	-- only ever models one of them agrees with the code by construction.
 	Mock.refuseWith = "secret"
+	-- C_UnitAuras present, and the one function inside it the whole favour
+	-- source is built on missing. The scan gives up, silently, for good -- the
+	-- failure the aura line in /manners debug exists to name.
+	Mock.noAuraScanner = false
 	Mock.inRange = true
 	Mock.unitClass = "PRIEST"
 	Mock.iconDb = nil
 	Mock.sounds = {}
 	Mock.printed = {}
+	-- Every line the tooltip put up since it was last owned. The tooltip is the
+	-- most detailed thing the prompt says and none of it was testable.
+	Mock.tooltip = {}
+	-- Whether the options window is on screen, which is what decides whether
+	-- the preview is allowed to time out. `true` is the standalone AceConfig
+	-- dialog and "blizzard" is the interface-options panel; both routes in.
+	Mock.optionsOpen = false
+	-- How many times the options page has been asked to redraw itself.
+	Mock.optionsRepaints = 0
+	-- The screen, and where on it the prompt is sitting. The queue list flips
+	-- to the other side of the panel when the prompt is low enough that the
+	-- rows would hang off the bottom edge.
+	Mock.screenHeight = 1000
+	Mock.promptCentreY = 500
 	-- The wall clock. GetTime() restarts near zero every login and the epoch
 	-- does not, which is the whole difficulty with storing a debt.
 	Mock.epoch = 1700000000
@@ -102,8 +120,28 @@ Mock.KNOWN_EVENTS = KNOWN_EVENTS
 Mock.badEvents = {}
 
 local function newFrame()
-	local f = { scripts = {}, attributes = {} }
+	local f = { scripts = {}, attributes = {}, points = {} }
 	for _, name in ipairs(frameMethods) do f[name] = function(self) return self end end
+
+	-- Recorded rather than dropped, and defined after the loop above so they
+	-- replace the no-ops in it. Several guarantees here are about what ends up
+	-- on the panel -- a tick over an unconfirmed cast, a queue row with no
+	-- background, a prompt that looks live while it is frozen -- and against a
+	-- no-op setter the only thing a scenario can prove is that nothing threw.
+	f.SetText = function(self, text) self._text = text return self end
+	f.GetText = function(self) return self._text end
+	f.SetAlpha = function(self, alpha) self._alpha = alpha return self end
+	f.GetAlpha = function(self) return self._alpha or 1 end
+	f.SetVertexColor = function(self, r, g, b, a) self._color = { r, g, b, a } return self end
+	f.SetShown = function(self, shown) self._shown = shown and true or false return self end
+	-- Kept as the raw argument list: SetPoint is called with three arguments in
+	-- some places and five in others, and which anchor a queue row hangs from
+	-- is the whole of what the flip test reads.
+	f.SetPoint = function(self, ...) self.points[#self.points + 1] = { ... } return self end
+	f.ClearAllPoints = function(self) self.points = {} return self end
+	f.GetCenter = function() return 400, Mock.promptCentreY end
+	f.GetHeight = function() return Mock.screenHeight end
+
 	f.SetScript = function(self, which, fn) self.scripts[which] = fn return self end
 	f.GetScript = function(self, which) return self.scripts[which] end
 	f.SetAttribute = function(self, k, v) self.attributes[k] = v return self end
@@ -129,9 +167,16 @@ Mock.newFrame = newFrame
 
 UIParent = newFrame()
 GameTooltip = newFrame()
-GameTooltip.AddLine = function() end
-GameTooltip.AddDoubleLine = function() end
-GameTooltip.SetOwner = function() end
+-- Recorded so a scenario can read what the tooltip said, and cleared by
+-- SetOwner the way the real one is -- otherwise a second hover reads back the
+-- first one's lines and every assertion about the tooltip is about history.
+GameTooltip.AddLine = function(_, text)
+	Mock.tooltip[#Mock.tooltip + 1] = tostring(text)
+end
+GameTooltip.AddDoubleLine = function(_, left, right)
+	Mock.tooltip[#Mock.tooltip + 1] = tostring(left) .. "\t" .. tostring(right)
+end
+GameTooltip.SetOwner = function() Mock.tooltip = {} end
 GameTooltip.IsOwned = function() return false end
 DEFAULT_CHAT_FRAME = { AddMessage = function() end }
 
@@ -187,8 +232,32 @@ function LibStub(name)
 		end
 	elseif name == "AceConfig-3.0" then lib.RegisterOptionsTable = function() end
 	elseif name == "AceConfigDialog-3.0" then
-		lib.AddToBlizOptions = function() return newFrame() end
+		lib.AddToBlizOptions = function()
+			local f = newFrame()
+			-- The Blizzard panel starts shut. Every other mock frame answers
+			-- "shown" by default, and one that did so here would make the
+			-- preview immortal for a reason that has nothing to do with the
+			-- rule being tested.
+			f.IsShown = function() return Mock.optionsOpen == "blizzard" end
+			return f
+		end
 		lib.Open = function() end
+		-- The real library keeps the frames it has open in here, keyed by addon
+		-- name, and that table is how the addon asks whether somebody is
+		-- looking at the options right now.
+		lib.OpenFrames = setmetatable({}, { __index = function(_, key)
+			if key == "Manners" and Mock.optionsOpen == true then return {} end
+			return nil
+		end })
+	elseif name == "AceConfigRegistry-3.0" then
+		-- What the page calls to make an already-open window redraw itself.
+		-- Counted rather than ignored: three things on that page are answers to
+		-- questions with a current answer -- are we in combat, what has broken,
+		-- is the report box open -- and AceConfig only asks them while it is
+		-- drawing, so the call is the whole of the guarantee.
+		lib.NotifyChange = function()
+			Mock.optionsRepaints = (Mock.optionsRepaints or 0) + 1
+		end
 	elseif name == "AceDBOptions-3.0" then
 		lib.GetOptionsTable = function() return { type = "group", name = "p", args = {} } end
 	elseif name == "LibSharedMedia-3.0" then
@@ -319,10 +388,35 @@ C_Timer = { After = function() end, NewTicker = function() return {} end }
 -- Namespaces are rebuilt on each access so `stripped` can remove them.
 local function ns_or_nil(t) if Mock.stripped then return nil end return t end
 
+-- One name per spell rather than one name for every spell in the game.
+--
+-- The probe asks for the first rank's name and every rank shares it, so this
+-- only needs the top of each list. It used to answer "Arcane Intellect" to
+-- everything, which was harmless while nothing displayed more than one buff at
+-- a time -- and useless the moment the options page started listing a class's
+-- whole walk, because a page naming three spells and a page naming one spell
+-- three times read identically.
+local SPELL_NAMES = {
+	[10157] = "Arcane Intellect",
+	[10938] = "Power Word: Fortitude",
+	[27841] = "Divine Spirit",
+	[10958] = "Shadow Protection",
+	[9885] = "Mark of the Wild",
+	[9910] = "Thorns",
+	[25290] = "Blessing of Wisdom",
+	[25291] = "Blessing of Might",
+	[20217] = "Blessing of Kings",
+	[1038] = "Blessing of Salvation",
+	[19979] = "Blessing of Light",
+	[20914] = "Blessing of Sanctuary",
+	[5697] = "Unending Breath",
+	[25289] = "Battle Shout",
+}
+
 setmetatable(_G, { __index = function(_, key)
 	if key == "C_Spell" then
 		return ns_or_nil({
-			GetSpellName = function() return "Arcane Intellect" end,
+			GetSpellName = function(id) return SPELL_NAMES[id] or "Arcane Intellect" end,
 			GetSpellTexture = function() return 135932 end,
 			GetSpellInfo = function() return { name = "Arcane Intellect" } end,
 			IsSpellInRange = function()
@@ -331,7 +425,7 @@ setmetatable(_G, { __index = function(_, key)
 			end,
 		})
 	elseif key == "C_UnitAuras" then
-		return ns_or_nil({
+		local api = {
 			-- Mock.held is a set of spell ids the unit is carrying, so a
 			-- scenario can put somebody halfway through a buff set.
 			GetUnitAuraBySpellID = function(_, spellId)
@@ -376,7 +470,11 @@ setmetatable(_G, { __index = function(_, key)
 				return { auraInstanceID = i + Mock.auraIdBase, spellId = 1459,
 					sourceUnit = maybeSecret("nameplate1"), expirationTime = 2000 }
 			end,
-		})
+		}
+		-- Removed rather than made to fail: this is the namespace being there
+		-- and the function not, which is what the scan's own gate tests for.
+		if Mock.noAuraScanner then api.GetAuraDataByIndex = nil end
+		return ns_or_nil(api)
 	elseif key == "C_Secrets" then
 		return ns_or_nil({
 			ShouldAurasBeSecret = function() return Mock.allSecret end,
