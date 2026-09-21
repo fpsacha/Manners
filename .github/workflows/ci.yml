@@ -1,0 +1,82 @@
+name: CI
+
+# The test suites used to run only when a version tag was pushed, which meant a
+# commit could break the addon and nothing would say so until release day --
+# and by then the fix and the release are the same commit. This runs them on
+# every push instead.
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install the Lua runtime the tests need
+        run: pip install lupa
+
+      # Structure, syntax, and that the three files claiming a version agree.
+      - name: Structure and syntax
+        run: python tests/validate.py
+
+      - name: Load the addon against a mock client
+        run: python tests/runharness.py
+
+      - name: Adversarial scenarios
+        run: python tests/runscenarios.py
+
+      # A suite that cannot go red proves nothing. This reintroduces each fault
+      # class it is supposed to catch and fails the build if any goes unnoticed.
+      - name: Confirm the suites can still fail
+        run: |
+          python tests/selftest.py | tee selftest.out
+          if grep -q "MISSED\|ANCHOR GONE" selftest.out; then
+            echo "::error::a check no longer detects the fault it exists for"
+            exit 1
+          fi
+
+  images:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - run: pip install Pillow
+
+      # The icon is pure geometry with no text in it, so it renders identically
+      # everywhere and can be checked byte for byte. If this fails, either the
+      # generator changed without the committed icon being refreshed, or the
+      # icon was edited by hand and the generator no longer produces it.
+      - name: The committed icon is what the generator produces
+        run: |
+          python tools/make-icon.py
+          if ! git diff --quiet -- .github/media/icon-512.png .github/media/icon-64.png; then
+            echo "::error::.github/media icon files differ from what tools/make-icon.py generates"
+            git diff --stat -- .github/media
+            exit 1
+          fi
+
+      # The screenshots draw text, and the faces they were designed against are
+      # Segoe UI, which is not installed here and is not ours to install. On
+      # this runner fonts.py falls back to DejaVu and the output is legitimately
+      # different, so byte equality is not a check that could ever pass. What is
+      # still worth knowing is that the generator runs at all -- it reads
+      # Core.lua's defaults, so a renamed or restructured setting breaks it.
+      - name: The screenshot generator still runs against current defaults
+        run: |
+          python tools/make-screenshots.py
+          test -s .github/media/screenshot-prompt.png
+          test -s .github/media/screenshot-reasons.png
+          git checkout -- .github/media
