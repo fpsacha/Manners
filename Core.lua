@@ -152,13 +152,9 @@ local defaults = {
 			enabled = false,
 			channel = "SAY",
 			onlyWhenReturning = true,
-			phrases = table.concat({
-				"Thanks for the buff, {name}!",
-				"Returning the favour, {name}.",
-				"Have some {buff}, {name}.",
-				"Cheers, {name}!",
-				"One good buff deserves another, {name}.",
-			}, "\n"),
+			-- Filled in at load from the Roleplay set, so the defaults live in
+			-- one place rather than being duplicated here.
+			phrases = "",
 		},
 
 		sound = { enabled = false, file = "None" },
@@ -451,6 +447,63 @@ end
 -- secure button runs is not subject to that: the macro fires from your click,
 -- so the game counts it as you talking rather than the addon.
 ---------------------------------------------------------------------------
+
+-- Ready-made phrase sets, loadable from the options. Kept faction-neutral
+-- where possible so they do not read oddly on the wrong side, and short
+-- enough to leave room in a 255-character macro.
+ns.PHRASE_SETS = {
+	roleplay = {
+		label = "Roleplay",
+		lines = {
+			"May the Light watch over you, {name}.",
+			"The arcane favours you, {name}.",
+			"Strength to your arm, {name}.",
+			"A boon for the road, {name}.",
+			"Safe travels, {name}. The roads are not kind.",
+			"Winds at your back, {name}.",
+			"May your blade stay keen, {name}.",
+			"Fortune favour you, {name}.",
+			"Go well, {name}. You will need it.",
+			"Take this with you, {name}.",
+			"A gift, freely given.",
+			"Stay sharp out there, {name}.",
+		},
+	},
+	polite = {
+		label = "Polite",
+		lines = {
+			"Thanks for the buff, {name}!",
+			"Returning the favour, {name}.",
+			"Have some {buff}, {name}.",
+			"Cheers, {name}!",
+			"One good buff deserves another, {name}.",
+			"Least I could do, {name}.",
+		},
+	},
+	cheeky = {
+		label = "Cheeky",
+		lines = {
+			"You dropped this, {name}.",
+			"Buffed. You're welcome, {name}.",
+			"{name}, you look like you need this.",
+			"Consider us even, {name}.",
+			"Don't spend it all at once, {name}.",
+			"This one's on me, {name}.",
+		},
+	},
+	quiet = {
+		label = "Just their name",
+		lines = { "{name}.", "For you, {name}.", "{name} \\o" },
+	},
+}
+
+ns.PHRASE_SET_ORDER = { "roleplay", "polite", "cheeky", "quiet" }
+
+function ns.PhraseSetText(key)
+	local set = ns.PHRASE_SETS[key]
+	if not set then return nil end
+	return table.concat(set.lines, "\n")
+end
 
 ns.CHANNEL_COMMANDS = {
 	SAY = "say",
@@ -1125,6 +1178,12 @@ function addon:OnInitialize()
 	self.db.RegisterCallback(self, "OnProfileChanged", "RefreshConfig")
 	self.db.RegisterCallback(self, "OnProfileCopied", "RefreshConfig")
 	self.db.RegisterCallback(self, "OnProfileReset", "RefreshConfig")
+
+	-- A profile that has never had phrases set gets the default set.
+	local speech = self.db.profile.speech
+	if type(speech.phrases) ~= "string" or speech.phrases:match("^%s*$") then
+		speech.phrases = ns.PhraseSetText("roleplay")
+	end
 
 	ns.ClampSettings()
 	ns.Guard("ProbeCapabilities", ns.ProbeCapabilities)

@@ -1,7 +1,11 @@
 # Manners
 
-**Return the favour.** A priest buffs you in passing; Manners notices, works out
-what you should give back, and puts one button on your screen. You click it.
+**One click to buff back whoever just buffed you** — and nearby players missing
+yours.
+
+A priest buffs you in passing. By the time you have found them among a dozen
+nameplates they are gone. Manners reads who it was, works out what you owe
+them, and puts a single button on screen.
 
 It also offers nearby players who are missing your buff — not to optimise a
 raid, just so you can be the person who buffs strangers.
@@ -123,6 +127,8 @@ somebody with no nameplate who is not your target cannot be identified at all.
 Nothing can be done about that from an addon.
 
 ## Building a release
+
+Full checklist in [RELEASING.md](RELEASING.md).
 
 `Libs/` is deliberately not in the repository: `.pkgmeta` declares all 13
 libraries as build-time externals, so the packager fetches current upstream

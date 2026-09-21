@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.9.1
+
+### Added
+
+- **Phrase sets.** Four of them, loadable from the Speech tab in one click:
+  Roleplay (now the default), Polite, Cheeky, and Just their name. They are a
+  starting point, not a cage -- the list stays editable afterwards.
+
+### Changed
+
+- The listing copy leads with what the addon does rather than telling a story
+  about it. The toc, README and CurseForge summary all match.
+- New project icon, built to sit beside real spell icons: bevelled gold frame,
+  arcane interior, two streams of light winding into a core.
+
 ## 0.9.0
 
 Renumbered down from 1.6.0 before any release. One class has cast in game;

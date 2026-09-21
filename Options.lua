@@ -475,6 +475,29 @@ local function BuildOptions()
 					},
 
 					phrasesHeader = { type = "header", name = "Phrases", order = 10 },
+					preset = {
+						type = "select",
+						name = "Load a set",
+						desc = "Replaces the lines below. Edit them afterwards as much as you like.",
+						order = 10.5,
+						disabled = function() return not SP().enabled end,
+						values = function()
+							local out = {}
+							for _, key in ipairs(ns.PHRASE_SET_ORDER) do
+								out[key] = ns.PHRASE_SETS[key].label
+							end
+							return out
+						end,
+						sorting = function() return ns.PHRASE_SET_ORDER end,
+						get = function() return SP().presetChoice or "roleplay" end,
+						set = function(_, value)
+							SP().presetChoice = value
+							SP().phrases = ns.PhraseSetText(value) or SP().phrases
+							ns.Prompt:InvalidateMacro()
+							ns.addon:Print(("loaded the %s lines."):format(
+								ns.PHRASE_SETS[value] and ns.PHRASE_SETS[value].label or value))
+						end,
+					},
 					phrasesHelp = {
 						type = "description",
 						order = 11,

@@ -1,13 +1,18 @@
 ## Interface: 16001
 ## Title: Manners
-## Notes: Return the favour. One click to buff whoever just buffed you, or a nearby player who is missing yours.|n|cffffd100Mage is tested in game; other classes are implemented but unverified.|r
+## Notes: One click to buff back whoever just buffed you, and nearby players missing yours.|n|cffffd100Mage is tested in game; other classes are implemented but unverified.|r
 ## Author: Sacha
-## Version: 0.9.0
+## Version: 0.9.1
 ## SavedVariables: MannersDB
 ## X-Compatible-With: forever
 ## X-License: MIT
 ## X-Category: Buffs & Debuffs
 ## X-Website: https://github.com/fpsacha/Manners
+
+# Uncomment and fill in once the CurseForge project exists -- the packager
+# needs the numeric project id to know where to upload. It is on the project's
+# page, right-hand column.
+# ## X-Curse-Project-ID: 000000
 ## IconTexture: Interface\Icons\Spell_Holy_MagicalSentry
 
 embeds.xml
