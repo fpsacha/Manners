@@ -36,8 +36,11 @@ externals:
   # needs. Fetched with the rest, and optional at run time: Core.lua asks
   # LibStub for it with the silent flag and drops to CheckInteractDistance, and
   # then to offering everybody in casting range, if it is not there.
+  # Not on CurseForge's SVN -- that path 404s, the same way LibDataBroker's
+  # did. This is its canonical home, and the copy on this machine that is
+  # known to load on this client came from the same library.
   Libs/LibRangeCheck-3.0:
-    url: https://repos.curseforge.com/wow/librangecheck-3-0/trunk/LibRangeCheck-3.0
+    url: https://github.com/WeakAuras/LibRangeCheck-3.0
 
 ignore:
   - .github
