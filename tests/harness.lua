@@ -204,7 +204,14 @@ function CreateMacro() return 1 end
 function EditMacro() end
 function PlaySoundFile() end
 function CombatLogGetCurrentEventInfo()
-  return 1, "SPELL_AURA_APPLIED", false, "src", "Petra", 0x512, 0, "Player-1-ABC", "Mort", 0, 0, 1459, "AI", 1, "BUFF"
+  return 1, "SPELL_AURA_APPLIED", false, "Player-1-PETRA", "Petra", 0x512, 0, "Player-1-ABC", "Mort", 0, 0, 21562, "PWF", 1, "BUFF", 0
+end
+-- A name and a class out of a GUID with no unit token. The combat log favour
+-- source is built entirely on this call, so the harness has to have it or the
+-- path it drives below returns before reaching anything.
+function GetPlayerInfoByGUID(guid)
+  if guid ~= "Player-1-PETRA" then return nil end
+  return "Priest", "PRIEST", "Human", "Human", "2", "Petra", ""
 end
 function GameTooltip_Hide() end
 COMBATLOG_OBJECT_TYPE_PLAYER = 0x400
@@ -247,7 +254,7 @@ BackdropTemplateMixin = {}
 local ADDON, ns = "Manners", {}
 local dir = ...
 
-for _, file in ipairs({ "Buffs.lua", "Core.lua", "Prompt.lua", "Options.lua" }) do
+for _, file in ipairs({ "Flavour.lua", "Buffs.lua", "Core.lua", "Prompt.lua", "Options.lua" }) do
   local chunk, err = loadfile(dir .. "/" .. file)
   if not chunk then
     note("LOAD " .. file .. ": " .. tostring(err))
@@ -270,6 +277,10 @@ else
     { "BuildQueue", function() return ns.BuildQueue() end },
     { "Tick", function() addon:Tick() end },
     { "UNIT_AURA player", function() addon:UNIT_AURA(nil, "player") end },
+    -- Driven whether or not this client would have registered it. The handler
+    -- is reachable code either way, and a call into a name that does not exist
+    -- is exactly what this file is for.
+    { "COMBAT_LOG_EVENT_UNFILTERED", function() addon:COMBAT_LOG_EVENT_UNFILTERED() end },
     { "ScanOwnBuffs", function() ns.ScanOwnBuffs() end },
     { "Prompt:ApplyStyle", function() ns.Prompt:ApplyStyle() end },
     { "Prompt:Refresh", function() ns.Prompt:Refresh() end },

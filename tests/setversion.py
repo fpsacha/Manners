@@ -3,16 +3,23 @@ mirrored.
 
     python tests/setversion.py 0.9.5
 
-The version lives in three files that must agree: Manners.toc (what the game
-and CurseForge read), ns.BUILD in Prompt.lua (what every click line reports),
-and the top heading of CHANGELOG.md. Editing them by hand has now produced a
+The version lives in three places that must agree: the tocs (what the game and
+CurseForge read), ns.BUILD in Prompt.lua (what every click line reports), and
+the top heading of CHANGELOG.md. Editing them by hand has now produced a
 mismatch twice, each time by search-and-replacing a value that was already
-wrong. This sets all three from one argument and does not care what they said
+wrong. This sets all of them from one argument and does not care what they said
 before.
+
+"The toc" is six files since the per-flavour split: Manners.toc and the five
+Manners_<Flavour>.toc generated from it. Writing the source and regenerating is
+what keeps them equal -- editing six Version lines with six substitutions would
+be the same hand-maintenance this script exists to replace, one file deeper.
 """
 import os, re, sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(ROOT, "tools"))
+import maketocs
 
 if len(sys.argv) != 2 or not re.match(r"^\d+\.\d+\.\d+$", sys.argv[1]):
     print(__doc__)
@@ -21,12 +28,17 @@ if len(sys.argv) != 2 or not re.match(r"^\d+\.\d+\.\d+$", sys.argv[1]):
 
 version = sys.argv[1]
 
-# --- the toc ----------------------------------------------------------
-p = os.path.join(ROOT, "Manners.toc")
+# --- the tocs ---------------------------------------------------------
+p = os.path.join(ROOT, maketocs.SOURCE)
 s = open(p, encoding="utf-8").read()
 s, n = re.subn(r"^## Version:.*$", "## Version: " + version, s, count=1, flags=re.M)
-assert n == 1, "no Version line in the toc"
+assert n == 1, "no Version line in " + maketocs.SOURCE
 open(p, "w", encoding="utf-8", newline="\n").write(s)
+# And the five that are copies of it. count=1 above is still right -- there is
+# one Version line in the source -- but it stopped being the whole job the day
+# there were six tocs, and a bump that reached one of them and not the others
+# would ship five builds naming a version that was never released.
+maketocs.main(check=False)
 
 # --- the build stamp --------------------------------------------------
 p = os.path.join(ROOT, "Prompt.lua")
@@ -44,5 +56,6 @@ if current and current.group(1) != version:
     open(p, "w", encoding="utf-8", newline="\n").write(s)
     print("changelog heading %s -> %s" % (current.group(1), version))
 
-print("version set to %s in the toc, ns.BUILD and the changelog" % version)
+print("version set to %s in all %d tocs, ns.BUILD and the changelog"
+      % (version, 1 + len(maketocs.FLAVOURS)))
 print("verify with: python tests/validate.py")

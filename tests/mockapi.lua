@@ -5,6 +5,103 @@
 Mock = Mock or {}
 Mock.now = 1000
 
+-- Forever reports retail's project id -- it is a fork of Midnight, not a
+-- project of its own -- so WOW_PROJECT_MAINLINE is what both of them answer.
+-- Anything that tries to tell those two apart this way is wrong, and now
+-- provably so.
+--
+-- Declared up here rather than beside the other API stand-ins because
+-- Mock.setFlavour assigns one of them, and Mock.reset calls that before this
+-- file has finished loading.
+WOW_PROJECT_MAINLINE = 1
+WOW_PROJECT_CLASSIC = 2
+WOW_PROJECT_BURNING_CRUSADE_CLASSIC = 5
+WOW_PROJECT_MISTS_CLASSIC = 19
+
+-- The five live clients, and the things about each that no other knob can fake.
+--
+-- A scenario says which one it is standing in for with Mock.setFlavour("mists").
+-- Every field is a real difference between the clients rather than a
+-- convenience: the number GetBuildInfo reports, the project id sitting beside
+-- it, whether COMBAT_LOG_EVENT_UNFILTERED may be registered, whether UnitName's
+-- second return is a surname or a realm, whether UnitBuff still exists, and
+-- whether a macro conditional naming a player resolves.
+--
+-- Camelot is the default, applied at the bottom of Mock.reset, because it is the
+-- client every scenario written before this existed was implicitly about and the
+-- only one anybody here can test. None of them may move.
+local FLAVOURS = {
+	camelot = {
+		build = "1.60.1", interface = 16001, project = WOW_PROJECT_MAINLINE,
+		combatLog = false, surnames = true, unitBuff = false,
+		-- The assumption Core.lua states and this mirrors: Camelot keeps the
+		-- /target route, which is the only shape ever verified in game here.
+		conditionalTargeting = false,
+	},
+	mainline = {
+		build = "12.1.5", interface = 120100, project = WOW_PROJECT_MAINLINE,
+		combatLog = false, surnames = false, unitBuff = false,
+		conditionalTargeting = true,
+	},
+	mists = {
+		build = "5.5.0", interface = 50504, project = WOW_PROJECT_MISTS_CLASSIC,
+		combatLog = true, surnames = false, unitBuff = true,
+		conditionalTargeting = true,
+	},
+	tbc = {
+		build = "2.5.6", interface = 20506,
+		project = WOW_PROJECT_BURNING_CRUSADE_CLASSIC,
+		combatLog = true, surnames = false, unitBuff = true,
+		conditionalTargeting = true,
+	},
+	vanilla = {
+		build = "1.15.9", interface = 11509, project = WOW_PROJECT_CLASSIC,
+		combatLog = true, surnames = false, unitBuff = true,
+		conditionalTargeting = true,
+	},
+}
+Mock.FLAVOURS = FLAVOURS
+
+-- UnitBuff and UnitAura, which retail and Forever removed and the three Classic
+-- flavours still have.
+--
+-- Nothing in this addon may call either of them: C_UnitAuras is on all five
+-- clients, so a fallback to these would be a second scanner that only ever runs
+-- where it is not needed and rots where it does. The only way to prove it is not
+-- called is to put a working one where the addon could reach it and count the
+-- times it did -- an absent function proves nothing, because not calling a
+-- function that is not there is not a choice.
+local function mockUnitBuff(unit, index)
+	Mock.counts.unitBuff = Mock.counts.unitBuff + 1
+	local byIndex = C_UnitAuras and C_UnitAuras.GetAuraDataByIndex
+	local aura = byIndex and byIndex(unit, index)
+	if type(aura) ~= "table" then return nil end
+	-- Near enough to the shape Classic returns that a fallback built on it would
+	-- appear to work, which is what makes the count worth taking.
+	return "Arcane Intellect", 135932, 1, nil, 3600, aura.expirationTime,
+		aura.sourceUnit, false, false, aura.spellId
+end
+
+-- Become one of the five. Every knob it sets remains a knob: a scenario that
+-- wants a client which is one flavour in all respects but one says so
+-- afterwards, and a scenario that never calls this is a Camelot client exactly
+-- as it always was.
+function Mock.setFlavour(name)
+	local client = FLAVOURS[name]
+	if not client then
+		error("Mock.setFlavour: no such client: " .. tostring(name), 2)
+	end
+	Mock.flavour = name
+	Mock.build = client.build
+	Mock.interface = client.interface
+	Mock.combatLog = client.combatLog
+	Mock.surnames = client.surnames
+	Mock.conditionalTargeting = client.conditionalTargeting
+	WOW_PROJECT_ID = client.project
+	_G.UnitBuff = client.unitBuff and mockUnitBuff or nil
+	_G.UnitAura = client.unitBuff and mockUnitBuff or nil
+end
+
 function Mock.reset()
 	Mock.class = "MAGE"
 	Mock.dead = false
@@ -52,6 +149,59 @@ function Mock.reset()
 	-- source is built on missing. The scan gives up, silently, for good -- the
 	-- failure the aura line in /manners debug exists to name.
 	Mock.noAuraScanner = false
+	-- Whether this client lets an addon register the combat log. False is
+	-- Forever and retail 12.0+, where RegisterEvent throws outright rather than
+	-- accepting the registration and never firing -- the difference matters,
+	-- because trying it is how the capability probe finds out. True models the
+	-- three Classic flavours, which still have it.
+	--
+	-- Set by Mock.setFlavour along with everything else that differs between the
+	-- clients, and still settable on its own: "a Mists client that refuses the
+	-- log anyway" is a real bug report and has to be expressible.
+	Mock.combatLog = false
+	-- The line CombatLogGetCurrentEventInfo is to hand back next, as a table of
+	-- the fields this addon reads. nil is the default below, which is a priest
+	-- called Petra casting Fortitude on you -- the shape every assertion about
+	-- the log is written against.
+	--
+	-- A scenario sets this to be a different line: a debuff, somebody else's
+	-- buff, a proc, your own cast, an NPC. The payload is the addon's only
+	-- evidence about any of them, so a mock that can only produce one line can
+	-- only test the case that was already working.
+	Mock.cleu = nil
+	-- Players the client can name from a GUID alone, guid -> { class, name,
+	-- realm }. This is the whole of what the combat log source has over the aura
+	-- scan, so it has to be possible for a scenario to be a client that cannot
+	-- answer -- an unknown GUID gets nothing back, exactly as the real call does
+	-- for an NPC, a pet or a totem.
+	Mock.guids = nil
+	-- Every event the addon asked the Ace object to register, so a scenario can
+	-- assert an event was never asked for rather than only that nothing threw.
+	Mock.registeredEvents = {}
+	-- Whether a player from another realm is standing in front of us.
+	--
+	-- Only meaningful off Camelot, where UnitName's second return is the realm
+	-- and the client gives it for a player from another one and for nobody else.
+	-- Same-realm is the ordinary case, so it is the default: a mock that handed
+	-- back a realm for everybody would make "Mort-Ravencrest" the normal spelling
+	-- and hide every bug in the same-realm path, which is nearly every player.
+	--
+	-- Ignored where the second return is a surname, because there every player
+	-- has one.
+	Mock.crossRealm = false
+	-- Who is in the player's party or raid, by name, e.g. { Petra = true }.
+	--
+	-- A macro conditional naming a player resolves for group members and for
+	-- nobody else, on every one of the five clients, so this is what decides
+	-- whether [@Petra,help] finds anybody. Empty by default: the person this
+	-- addon exists for is a stranger.
+	Mock.groupNames = nil
+	-- What C_Secrets.HasSecretRestrictions answers. Separate from the namespace
+	-- existing, because those are different questions: C_Secrets is present on
+	-- clients where nothing is being withheld at the moment, and an addon that
+	-- reads the table's presence as "I am being kept out of things" is asking
+	-- the wrong one.
+	Mock.secretRestrictions = true
 	Mock.inRange = true
 	Mock.unitClass = "PRIEST"
 	Mock.iconDb = nil
@@ -85,11 +235,18 @@ function Mock.reset()
 	Mock.timers = {}
 	-- How often the addon actually asked the client something. Caching and
 	-- deduplication are invisible to every other kind of assertion.
-	Mock.counts = { range = 0, auraRead = 0 }
+	Mock.counts = { range = 0, auraRead = 0, unitBuff = 0 }
 	-- Every protected method the addon called on a frame a scenario marked
 	-- secure while the fight was on. In the game each of these is a refusal
 	-- nothing reports; here they are a list.
 	Mock.protectedCalls = {}
+	-- Spell ids this client has never heard of, e.g. { [462854] = true }. A
+	-- name that will not resolve is the only evidence an addon has that its own
+	-- data is wrong for the client it is running on, and four of the five
+	-- clients cannot be tested by anybody here -- so the mock has to be able to
+	-- be a client that does not have a spell. nil is every id resolving, which
+	-- is what every scenario written before this assumed.
+	Mock.unknownSpells = nil
 	-- Libraries LibStub is to behave as though the user does not have, keyed by
 	-- name. One of ours is fetched with the silent flag precisely because it may
 	-- be absent, and until this existed every scenario ran with all of them
@@ -97,8 +254,18 @@ function Mock.reset()
 	-- and the readers that forgot to check could not be told from the ones that
 	-- remembered.
 	Mock.missingLibs = nil
+
+	-- Last, because it writes several of the knobs above. Camelot is what every
+	-- scenario written before this existed assumed, so resetting to it is what
+	-- keeps all of them behaving exactly as they did.
+	Mock.setFlavour("camelot")
 end
 Mock.reset()
+
+-- "There is genuinely nothing here", said in a table whose absent fields mean
+-- "leave the default alone". Without it a scenario cannot ask for a combat log
+-- line with no source GUID, which is one of the shapes the addon has to survive.
+Mock.NONE = setmetatable({}, { __tostring = function() return "<none>" end })
 
 local SECRET = setmetatable({}, { __tostring = function() return "<secret>" end })
 -- Exposed so a scenario can withhold one value rather than all of them. Turning
@@ -215,7 +382,16 @@ local function newFrame()
 	f.CreateMaskTexture = function() return newFrame() end
 	f.RegisterEvent = function(self, event)
 		if not KNOWN_EVENTS[event] then Mock.badEvents[#Mock.badEvents + 1] = event end
+		-- Forever and retail 12.0+ refuse the combat log by throwing here,
+		-- rather than by accepting the registration and staying quiet. Modelled
+		-- because the capability probe's whole method is to try it and see: a
+		-- mock that accepts it answers "the log is available" for the one
+		-- client this addon is actually verified on.
+		if event == "COMBAT_LOG_EVENT_UNFILTERED" and not Mock.combatLog then
+			error("COMBAT_LOG_EVENT_UNFILTERED is not available to addons", 0)
+		end
 	end
+	f.UnregisterEvent = function() end
 
 	-- Last, so it wraps whatever the two loops above left behind rather than
 	-- being overwritten by them.
@@ -269,6 +445,17 @@ function LibStub(name, silent)
 				if not KNOWN_EVENTS[event] then
 					error("registered unknown event: " .. tostring(event), 0)
 				end
+				-- The same refusal the frame's RegisterEvent models, on the
+				-- other route into it. One of the two accepting the combat log
+				-- would let the addon come to depend on it by the back door.
+				if event == "COMBAT_LOG_EVENT_UNFILTERED" and not Mock.combatLog then
+					error("COMBAT_LOG_EVENT_UNFILTERED is not available to addons", 0)
+				end
+				-- Written down, so "this event was never asked for" can be told
+				-- from "it was asked for and the client refused". Those are the
+				-- same silence from outside, and only one of them is the addon's
+				-- doing.
+				Mock.registeredEvents[event] = true
 			end
 			a.UnregisterEvent = function() end
 			a.RegisterChatCommand = function() end
@@ -386,11 +573,25 @@ end
 function wipe(t) for k in pairs(t) do t[k] = nil end return t end
 function date() return "12:00:00" end
 
+-- Who has a second return at all, which is the whole of the difference between
+-- the clients here.
+--
+-- The value itself gives nothing away: a surname and a realm are both plain
+-- strings and neither says which it is. What differs is who gets one. Every
+-- Camelot player has a surname; off Camelot the realm is handed over only for a
+-- player from another one, and everybody else's second return is empty. A mock
+-- that always answered both would make the cross-realm spelling the normal one
+-- and hide every bug in the path nearly every player takes.
+local function secondName(second)
+	if Mock.surnames or Mock.crossRealm then return second end
+	return nil
+end
+
 function UnitName(u)
-	if u == "player" then return "Mort", "Defrette" end
+	if u == "player" then return "Mort", secondName("Defrette") end
 	local named = Mock.unitNames and Mock.unitNames[u]
-	if named then return maybeSecret(named[1]), maybeSecret(named[2]) end
-	return maybeSecret(Mock.unitName[1]), maybeSecret(Mock.unitName[2])
+	if named then return maybeSecret(named[1]), maybeSecret(secondName(named[2])) end
+	return maybeSecret(Mock.unitName[1]), maybeSecret(secondName(Mock.unitName[2]))
 end
 function GetUnitName() return "Petra Stonewell" end
 function UnitClass(u)
@@ -413,9 +614,14 @@ function UnitOnTaxi() return false end
 function UnitLevel() return maybeSecret(12) end
 -- Classes without a mana bar really do report zero, and the mock claiming
 -- otherwise is what let a bug through that offered warriors nobody at all.
+--
+-- The four classes below the vanilla seven are the ones only the later flavours
+-- have. A monk and an evoker have a mana bar; a death knight runs on runic power
+-- and a demon hunter on fury, so both are absent here and really do report zero.
 local MANA_CLASSES = {
 	MAGE = true, PRIEST = true, WARLOCK = true,
 	DRUID = true, PALADIN = true, HUNTER = true, SHAMAN = true,
+	MONK = true, EVOKER = true,
 }
 
 function UnitPowerMax(unit)
@@ -440,8 +646,55 @@ function IsSpellInRange()
 	Mock.counts.range = Mock.counts.range + 1
 	return Mock.inRange and 1 or 0
 end
-function GetSpellInfo() return "Arcane Intellect" end
-function GetBuildInfo() return "1.60.1", "69893", "d", 16001 end
+function GetSpellInfo(id)
+	if Mock.unknownSpells and Mock.unknownSpells[id] then return nil end
+	return "Arcane Intellect"
+end
+function GetBuildInfo()
+	return Mock.build or "1.60.1", "69893", "d", Mock.interface or 16001
+end
+
+-- The project constants live at the top of this file, because Mock.setFlavour
+-- assigns WOW_PROJECT_ID and Mock.reset calls it while this file is still
+-- loading.
+
+-- The client's own macro-conditional parser, and the two targeting commands.
+-- Not APIs an addon may call for its own purposes -- they are here so a
+-- capability probe can find out whether the client understands the syntax the
+-- armed macro is written in.
+--
+-- It answers for real rather than echoing its argument, because the reason this
+-- addon ships one targeting strategy rests entirely on what a conditional does
+-- NOT resolve to, and an echo agrees with every claim anybody makes about it.
+-- Two rules, both established and both universal:
+--
+--   * [@PlayerName] resolves only for a player in your party or raid. A
+--     stranger -- the person this addon exists for -- never resolves, on any of
+--     the five.
+--   * a client that does not resolve unit conditionals at all resolves nobody,
+--     group member or not.
+--
+-- A clause that resolves to nothing is handed back as nothing, which is exactly
+-- the silent failure that keeps the conditional route out of the macro: it
+-- casts nothing and says nothing.
+function SecureCmdOptionParse(msg)
+	local text = tostring(msg)
+	local conditional, rest = text:match("^%s*%[([^%]]*)%]%s*(.*)$")
+	if not conditional then return text end
+
+	local who = conditional:match("@([^,%]]+)")
+	-- No unit named, so this is an ordinary conditional and not our question.
+	if not who then return rest end
+
+	if Mock.conditionalTargeting == false then return nil end
+	if Mock.groupNames and Mock.groupNames[who] then return rest end
+	return nil
+end
+SecureCmdList = {
+	TARGET = function() end,
+	TARGET_EXACT = function() end,
+}
+SLASH_TARGET_EXACT1 = "/targetexact"
 function GetNumMacros() return 0, 0 end
 function GetMacroIndexByName() return 0 end
 function CreateMacro() return 1 end
@@ -449,9 +702,62 @@ function EditMacro() end
 -- Recorded rather than dropped: "the toggle is on and nothing is audible" is
 -- only testable if the test can see what was handed to the client.
 function PlaySoundFile(file) Mock.sounds[#Mock.sounds + 1] = file end
+-- One combat log line, in the order every flavour that has a log reports it.
+--
+-- The default is the case the whole source exists for: somebody else putting a
+-- real class buff on you. A scenario overrides whichever fields it is about and
+-- the rest stay as they are, so a test for "a debuff is not a favour" says
+-- auraType and nothing else, and cannot accidentally pass because it changed
+-- something it did not mention.
+local CLEU_DEFAULT = {
+	subevent = "SPELL_AURA_APPLIED",
+	sourceGUID = "Player-1-PETRA",
+	sourceName = "Petra",
+	sourceFlags = 0x400,
+	destGUID = "Player-1-player",
+	destName = "Mort",
+	-- The raid-wide Fortitude, which is the one id in every one of the three
+	-- buff sets: a default that only existed on the vanilla tables would make
+	-- every assertion here about the flavour rather than about the log.
+	spellId = 21562,
+	spellName = "Power Word: Fortitude",
+	auraType = "BUFF",
+}
+
 function CombatLogGetCurrentEventInfo()
-	return 1, "SPELL_AURA_APPLIED", false, "src", "Petra", 0x400, 0,
-		"Player-1-player", "Mort", 0, 0, 1459, "AI", 1, "BUFF"
+	local e = Mock.cleu or {}
+	local function field(name)
+		local value = e[name]
+		if value == nil then return CLEU_DEFAULT[name] end
+		-- A scenario saying "there is no source GUID at all" needs a way to say
+		-- it that is not the same as saying nothing, since nothing means the
+		-- default. Mock.NONE is that way.
+		if value == Mock.NONE then return nil end
+		return value
+	end
+	return 1, field("subevent"), false, field("sourceGUID"), field("sourceName"),
+		field("sourceFlags"), 0, field("destGUID"), field("destName"), 0, 0,
+		field("spellId"), field("spellName"), 1, field("auraType"), 0
+end
+
+-- Who the client can name from a GUID alone, with no unit token anywhere. This
+-- is the entire reason the combat log is worth registering, so the mock answers
+-- it the way the real call does: seven returns, and nothing at all for a GUID
+-- that does not belong to a player it knows.
+local GUIDS_DEFAULT = {
+	["Player-1-PETRA"] = { class = "PRIEST", name = "Petra", realm = "" },
+	["Player-1-IRIS"] = { class = "DRUID", name = "Iris", realm = "Ravencrest" },
+}
+
+function GetPlayerInfoByGUID(guid)
+	local who = (Mock.guids or GUIDS_DEFAULT)[guid]
+	if not who then return nil end
+	-- The first return is the localized class and the second is the English
+	-- one, and they are deliberately different strings here. Everything in this
+	-- addon keys on the English one, so a reader that took the first would be
+	-- indistinguishable from a correct one if the mock answered both the same.
+	local localized = who.class:sub(1, 1) .. who.class:sub(2):lower()
+	return localized, who.class, "Human", "Human", "2", who.name, who.realm
 end
 
 COMBATLOG_OBJECT_TYPE_PLAYER = 0x400
@@ -504,6 +810,12 @@ local function ns_or_nil(t) if Mock.stripped then return nil end return t end
 -- a time -- and useless the moment the options page started listing a class's
 -- whole walk, because a page naming three spells and a page naming one spell
 -- three times read identically.
+--
+-- The lists below the vanilla ones are the other flavours' spells. A mock that
+-- named every id "Arcane Intellect" could not tell a Mists monk's two Legacies
+-- apart, and -- now that a name which does not resolve is how the addon finds
+-- out its data is wrong for this client -- one that names an id no client has
+-- would hide exactly the failure that check exists for.
 local SPELL_NAMES = {
 	[10157] = "Arcane Intellect",
 	[10938] = "Power Word: Fortitude",
@@ -519,12 +831,32 @@ local SPELL_NAMES = {
 	[20914] = "Blessing of Sanctuary",
 	[5697] = "Unending Breath",
 	[25289] = "Battle Shout",
+
+	-- Mists of Pandaria
+	[61316] = "Dalaran Brilliance",
+	[19740] = "Blessing of Might",
+	[115921] = "Legacy of the Emperor",
+	[116781] = "Legacy of the White Tiger",
+	[109773] = "Dark Intent",
+	[6673] = "Battle Shout",
+	[57330] = "Horn of Winter",
+
+	-- Retail
+	[1459] = "Arcane Intellect",
+	[21562] = "Power Word: Fortitude",
+	[1126] = "Mark of the Wild",
+	[462854] = "Skyfury",
+	[364342] = "Blessing of the Bronze",
+	[369459] = "Source of Magic",
 }
 
 setmetatable(_G, { __index = function(_, key)
 	if key == "C_Spell" then
 		return ns_or_nil({
-			GetSpellName = function(id) return SPELL_NAMES[id] or "Arcane Intellect" end,
+			GetSpellName = function(id)
+				if Mock.unknownSpells and Mock.unknownSpells[id] then return nil end
+				return SPELL_NAMES[id] or "Arcane Intellect"
+			end,
 			GetSpellTexture = function() return 135932 end,
 			GetSpellInfo = function() return { name = "Arcane Intellect" } end,
 			IsSpellInRange = function()
@@ -590,7 +922,7 @@ setmetatable(_G, { __index = function(_, key)
 			ShouldAurasBeSecret = function() return Mock.allSecret end,
 			ShouldSpellAuraBeSecret = function() return Mock.allSecret end,
 			GetSpellAuraSecrecy = function() return 0 end,
-			HasSecretRestrictions = function() return true end,
+			HasSecretRestrictions = function() return Mock.secretRestrictions end,
 		})
 	elseif key == "C_NamePlate" then
 		return ns_or_nil({ GetNamePlates = function() return {} end })

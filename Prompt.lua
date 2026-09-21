@@ -646,6 +646,11 @@ function Prompt:Create()
 			buffKey = current.buff and current.buff.key,
 			selfCast = armed ~= nil and armed.selfCast == true,
 			targeted = armed and armed.targeted,
+			-- The spelling the macro aimed at, straight from the builder. The
+			-- settle path compares it against whoever the client says was hit,
+			-- and taking it from here is what stops that comparison being a
+			-- second opinion about text the builder already had in hand.
+			aimedAt = armed and armed.aimedAt,
 			gave = ns.lastGave[current.name] }
 		-- Per buff, so casting Fortitude does not stop the walk reaching
 		-- Divine Spirit on the next click.
@@ -1245,35 +1250,99 @@ local function SilenceOtherButtons()
 	end
 end
 
--- The cast half of the macro, in the order the client needs it, plus whether a
--- /targetlasttarget belongs on the end. Handed back as a list rather than a
--- string so the room left for a spoken line can be measured against what these
--- actually take.
+-- Which targeting command to write. /targetexact matches the whole name;
+-- /target matches a prefix, so "/target Mort" will happily find Mortimer
+-- standing beside Mort and buff -- and speak at -- the wrong player. Probed
+-- rather than assumed, because its absence is a fallback and not a failure.
+local function TargetCommand()
+	return (ns.caps and ns.caps.targetExact) and "/targetexact" or "/target"
+end
+-- Published so the options page can name the command the macro really uses
+-- rather than a second, hand-maintained opinion about it.
+ns.TargetCommand = TargetCommand
+
+-- The shape of the macro for this person. One place, and deliberately a name
+-- rather than a condition inside the builder, so a second strategy is a new
+-- entry in STRATEGIES plus a line here instead of a branch threaded through
+-- everything that assembles a line.
+--
+-- There is exactly one targeting strategy, and the absence of a second one is a
+-- decision rather than an oversight. The obvious candidate is
+-- /cast [@Playername,help,nodead] <Spell> for somebody in your group on a
+-- non-Camelot client: a named conditional resolves for party and raid members
+-- everywhere, and it would never touch the player's own target, so there would
+-- be no /targetlasttarget and nothing to restore. It is not built, for three
+-- reasons:
+--
+--   * It has to be right about something nobody who works on this addon can
+--     test. Conditional targeting is believed to work on Classic Era, TBC and
+--     Mists; every source says so and nobody has run it. Worse, the restriction
+--     that rules it out on Camelot arrived in retail 12.0, so it may well fail
+--     on retail Midnight too.
+--   * Its failure mode is silent. A guarded clause that resolves to nothing
+--     casts nothing and says nothing, so a user on an untested client would get
+--     an addon that quietly never works and no symptom to report.
+--   * It buys convenience only. Not taking the player's target is nicer; being
+--     cast at all is the feature.
+--
+-- The targeting route below is the only way to buff an ungrouped stranger on any
+-- client -- [@name] resolves only for group members, and [@nameplateN] resolves
+-- nowhere -- and a stranger is the whole reason this addon exists. It also works
+-- perfectly well for somebody in your group. So it ships everywhere.
+local function StrategyFor(entry)
+	if entry.buff and entry.buff.selfCast then return "selfcast" end
+	return "target"
+end
+
+-- Each returns three things: the lines, whether a /targetlasttarget belongs on
+-- the end, and a record of what the macro does.
+--
+-- That record is what the settle path judges a press by, several hundred
+-- milliseconds later. Nothing over there reads the macro text back to work it
+-- out, and nothing over there re-derives it from the queue entry, because by
+-- then the queue has been rebuilt a dozen times. So a strategy added later
+-- cannot mislead it by omission: filling the record in is part of being a
+-- strategy.
+--
+--   targeted  the macro carries a targeting line of ours, aimed at this person
+--   selfCast  the spell lands on the caster and reaches the party from there
+--   aimedAt   the exact spelling that went onto the targeting line
+local STRATEGIES = {}
+
+-- No targeting line, and there is no version of this that has one: the spell
+-- lands on you and reaches the party from there. Saying so in the record is what
+-- lets the settle path judge the press at all -- that it was left to work this
+-- out for itself is why a warrior could never once repay anybody.
+STRATEGIES.selfcast = function(entry, spell)
+	return { "/cast " .. spell }, false,
+		{ targeted = false, selfCast = true, aimedAt = nil }
+end
+
+-- Target them, cast, and optionally hand the player's own target back.
+--
+-- One targeting line, carrying one spelling. Two lines offering both spellings,
+-- and the fallback that replaced them, were both tried and both are gone: with
+-- two, /targetlasttarget hands back whatever the first line found rather than
+-- the player's target, and two players sharing a first name is all that takes.
+-- The account is in Core, where the counting used to live.
+STRATEGIES.target = function(entry, spell)
+	-- targetName is the spelling, entry.name is the identity. They differ only
+	-- for a cross-realm player off Camelot; the fallback is for the handful of
+	-- made-up entries -- the preview, the phrase roller -- whose names have no
+	-- realm in them either way.
+	local who = entry.targetName or entry.name or ""
+	return {
+		TargetCommand() .. " " .. who,
+		"/cast " .. spell,
+	}, ns.db.profile.filters.restoreTarget == true,
+		{ targeted = true, selfCast = false, aimedAt = who }
+end
+
+-- The cast half of the macro, in the order the client needs it. Handed back as
+-- a list rather than a string so the room left for a spoken line can be measured
+-- against what these actually take.
 local function CastLines(entry)
-	local lines = {}
-	local spell = ns.BuffName(entry.buff)
-
-	-- No /target, and there is no version of this that has one: the spell lands
-	-- on you and reaches the party from there. The third return says so, and
-	-- the settle path needs to be told rather than left to work it out -- that
-	-- it was left to work it out is why a warrior could never repay anybody.
-	if entry.buff and entry.buff.selfCast then
-		lines[#lines + 1] = "/cast " .. spell
-		return lines, false, false
-	end
-
-	-- One /target line, carrying the full name, which is the one spelling that
-	-- names exactly one person. Two lines offering both spellings, and the
-	-- fallback that replaced them, were both tried and both are gone; the
-	-- account is in Core, where the counting used to live.
-	lines[#lines + 1] = "/target " .. (entry.name or "")
-	lines[#lines + 1] = "/cast " .. spell
-
-	-- The third return says this macro carries a /target of ours aimed at the
-	-- person on the panel, which is what the settle path has instead of a
-	-- recipient. false above for a selfCast buff, and the try path arms nothing
-	-- of ours at all.
-	return lines, ns.db.profile.filters.restoreTarget == true, true
+	return STRATEGIES[StrategyFor(entry)](entry, ns.BuffName(entry.buff))
 end
 
 -- How many characters a spoken line has left, for this person with these
@@ -1317,10 +1386,12 @@ function Prompt:ClickSummary(entry)
 		out[#out + 1] = ("Casts |cffffffff%s|r on you; it reaches your party from there.")
 			:format(spell)
 	else
-		-- The name the /target line will actually carry, which is the full one
-		-- rather than the shortened one the panel shows.
+		-- The spelling the targeting line will actually carry, rather than the
+		-- name the person is filed under or the shortened one the panel shows.
+		-- Those are the same string on Camelot and diverge for a cross-realm
+		-- player anywhere else, and this sentence claims to describe the macro.
 		out[#out + 1] = ("Targets |cffffffff%s|r, casts |cffffffff%s|r.")
-			:format(entry.name or who, spell)
+			:format(entry.targetName or entry.name or who, spell)
 		if ns.db.profile.filters.restoreTarget then
 			out[#out + 1] = "Hands your own target back afterwards."
 		else
@@ -1434,7 +1505,7 @@ function Prompt:ApplyTarget(entry)
 		return
 	end
 
-	local lines, restore, targeted = CastLines(entry)
+	local lines, restore, record = CastLines(entry)
 
 	-- Rolled once per candidate rather than once per repaint and again on the
 	-- press. PickPhrase draws at random out of the pool, so asking it twice for
@@ -1470,10 +1541,13 @@ function Prompt:ApplyTarget(entry)
 
 	ns.lastMacro = macro
 	appliedKey = key
-	-- Recorded from what was built, not re-derived later. targeted is false for
-	-- a selfCast buff, which has no /target by construction; the try path writes
-	-- no record at all, because whatever that text does, none of it is ours.
-	armed = { targeted = targeted, selfCast = entry.buff.selfCast == true }
+	-- Taken whole from the strategy that built the macro, rather than assembled
+	-- here out of what the entry says and what the text looks like. selfCast
+	-- used to be read back off the buff and `targeted` off whether a line had
+	-- been added, which is two opinions about one macro -- and the try path
+	-- writes no record at all, because whatever that text does, none of it is
+	-- ours.
+	armed = record
 end
 
 function Prompt:InvalidateMacro()

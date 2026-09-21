@@ -8,7 +8,14 @@ import os, re, sys, xml.etree.ElementTree as ET
 import lupa
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-OURS = ["Buffs.lua", "Core.lua", "Prompt.lua", "Options.lua"]
+sys.path.insert(0, os.path.join(ROOT, "tools"))
+import maketocs
+
+OURS = ["Flavour.lua", "Buffs.lua", "Core.lua", "Prompt.lua", "Options.lua"]
+
+# Manners.toc is the hand-edited source and the fallback for a client that does
+# not honour a suffixed name; the other five are generated from it.
+TOCS = [maketocs.SOURCE] + sorted(maketocs.expected())
 
 L = lupa.LuaRuntime()
 check = L.eval("function(s) local f, err = load(s) return err end")
@@ -93,21 +100,51 @@ else:
           % (macro_body.group(1) if macro_body else None))
     fail += 1
 
+print("\n== the five per-flavour tocs are what the generator would write ==")
+# The one line that differs between them is the interface number, and five
+# hand-maintained copies of the same file list is a drift waiting to happen.
+# Re-rendering here is exact: a hand edit to a generated toc -- or an edit to
+# Manners.toc that nobody regenerated after -- fails this and nothing else.
+for name, want in sorted(maketocs.expected().items()):
+    path = os.path.join(ROOT, name)
+    if not os.path.exists(path):
+        print("  MISSING %s -- run python tools/maketocs.py" % name)
+        fail += 1
+    elif open(path, encoding="utf-8").read() != want:
+        print("  STALE   %s -- run python tools/maketocs.py" % name)
+        fail += 1
+    else:
+        print("  ok  %-22s interface %s" % (
+            name, re.search(r"^## Interface:\s*(.+)$", want, re.M).group(1)))
+
+tocs = {name: open(os.path.join(ROOT, name), encoding="utf-8").read()
+        for name in TOCS if os.path.exists(os.path.join(ROOT, name))}
+toc = tocs.get(maketocs.SOURCE, "")
+
 print("\n== file references ==")
+# A file list with a typo in it is the other way to ship an addon that is
+# simply dead: the client loads what it can find, the missing file's chunk
+# never runs, and every symbol it was meant to define is nil. There is no error
+# message and nothing on screen, so it looks exactly like not having installed
+# it. Every toc is walked, not just the source one, because after a per-flavour
+# split they will not list the same files.
 refs = re.findall(r'file="([^"]+)"', open(os.path.join(ROOT, "embeds.xml"), encoding="utf-8").read())
-toc = open(os.path.join(ROOT, "Manners.toc"), encoding="utf-8").read()
-refs += [l.strip() for l in toc.splitlines() if l.strip() and not l.startswith("#")]
+for name, text in sorted(tocs.items()):
+    refs += [(name, l.strip()) for l in text.splitlines()
+             if l.strip() and not l.startswith("#")]
+refs = [r if isinstance(r, tuple) else ("embeds.xml", r) for r in refs]
 
 missing = []
-for r in refs:
+for where, r in refs:
     p = os.path.join(ROOT, r.replace("\\", os.sep))
     # embeds.xml points into Libs/, which a checkout does not have
     if not os.path.exists(p) and not r.replace("\\", "/").startswith("Libs/"):
-        missing.append(r)
-for m in missing:
-    print("  MISS %s" % m)
+        missing.append((where, r))
+for where, m in missing:
+    print("  MISS %s names %s, which does not exist" % (where, m))
     fail += 1
-print("  %d references checked, %d missing outside Libs/" % (len(refs), len(missing)))
+print("  %d references checked across %d tocs and embeds.xml, %d missing outside Libs/"
+      % (len(refs), len(tocs), len(missing)))
 
 print("\n== libraries: declared, fetched and loaded ==")
 # .pkgmeta says what the packager fetches; embeds.xml says what the game loads.
@@ -178,7 +215,11 @@ for f in ["LICENSE", "README.md", "CHANGELOG.md", "THIRD-PARTY-NOTICES.md",
         fail += 1
 
 print("\n== version consistency ==")
-toc_version = re.search(r"^## Version:\s*(\S+)", toc, re.M)
+# Six tocs now carry a Version line, and setversion.py used to write exactly
+# one. A bump that reaches the source and leaves the other five on the old
+# number is the same mismatch setversion.py was written to prevent, arriving
+# from a direction it did not know about -- and CurseForge would publish the
+# flavour builds under a version that never existed.
 build = re.search(r'ns\.BUILD = "([^"]+)"',
                   open(os.path.join(ROOT, "Prompt.lua"), encoding="utf-8").read())
 # A top heading of "Unreleased" is work sitting in the log ahead of a bump, and
@@ -193,12 +234,14 @@ pending = bool(headings) and headings[0].lower() == "unreleased"
 released = next((h for h in headings if h.lower() != "unreleased"), None)
 
 versions = {
-    "toc": toc_version.group(1) if toc_version else None,
     "ns.BUILD": build.group(1) if build else None,
     "changelog": released,
 }
+for name, text in sorted(tocs.items()):
+    found = re.search(r"^## Version:\s*(\S+)", text, re.M)
+    versions[name] = found.group(1) if found else None
 for k, v in versions.items():
-    print("  %-10s %s" % (k, v))
+    print("  %-20s %s" % (k, v))
 if pending:
     print("  (changelog has an Unreleased section above it -- nothing tagged yet)")
 if len(set(versions.values())) != 1:

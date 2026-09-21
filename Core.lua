@@ -268,6 +268,16 @@ ns.caps = caps
 
 local playerClass
 
+-- The client's own name for a spell id, or nil if it has never heard of it.
+--
+-- Both routes, because they are different generations of the same call and no
+-- client this addon supports has only one of them. A nil from both is the
+-- answer that matters: it means this id does not exist here.
+local function SpellNameFor(id)
+	return safecall(C_Spell and C_Spell.GetSpellName, id)
+		or safecall(_G.GetSpellInfo, id)
+end
+
 local function ProbeBuff(buff)
 	local info = { key = buff.key, buff = buff }
 
@@ -285,9 +295,32 @@ local function ProbeBuff(buff)
 
 	-- The name resolves whether or not we know the rank, and every rank shares
 	-- it, so the macro can cast by name and let the game pick the best one.
-	info.name = safecall(C_Spell and C_Spell.GetSpellName, buff.ranks[1])
-		or safecall(_G.GetSpellInfo, buff.ranks[1])
+	info.name = SpellNameFor(buff.ranks[1])
 	info.icon = safecall(C_Spell and C_Spell.GetSpellTexture, buff.ranks[1])
+
+	-- Ids this client has never heard of.
+	--
+	-- A wrong spell id has no symptom. The buff is never offered, nothing
+	-- throws, and the addon simply goes quiet about one spell -- which reads
+	-- exactly like a class that does not have it. Four of the five clients this
+	-- addon ships for cannot be tested by anybody who works on it, so the data
+	-- is checked against the client it is actually running on and the mismatch
+	-- is said out loud in /manners debug and on the Diagnostics page.
+	--
+	-- Every id rather than the first, because a group id that does not resolve
+	-- is the more likely mistake and the more invisible one: casting still
+	-- works and only the "are they already carrying it" check is dead.
+	--
+	-- A client that has not finished loading its spell data answers nil for
+	-- everything, which would be a false accusation -- that is why the probe
+	-- re-runs on SPELLS_CHANGED and why this is a line in a diagnostic rather
+	-- than a popup at load.
+	info.unresolved = {}
+	for _, id in ipairs(buff.auraIds) do
+		if not SpellNameFor(id) then
+			info.unresolved[#info.unresolved + 1] = id
+		end
+	end
 
 	-- Secrecy is decided per spell. Long-duration class buffs are the most
 	-- likely to stay readable, which is what the "who is missing it" feature
@@ -313,6 +346,47 @@ local function ProbeBuff(buff)
 	return info
 end
 
+-- Does this client still hand addons the combat log?
+--
+-- Asked by trying it. Where the log is gone the client throws on registration
+-- rather than accepting it and staying quiet, so one pcall'd RegisterEvent
+-- answers it now instead of waiting for an event that may never arrive. A frame
+-- of our own rather than the addon object, because Ace's registry would keep
+-- the subscription and the handler list afterwards.
+--
+-- The frame is made once and reused: ProbeCapabilities runs again on every
+-- SPELLS_CHANGED, and a client that leaks one frame per talent change is a
+-- worse bug than the one this answers.
+local probeFrame
+local function ProbeCombatLog()
+	if type(_G.CreateFrame) ~= "function" then return nil end
+	if not probeFrame then
+		local made, frame = pcall(_G.CreateFrame, "Frame")
+		if not made then return nil end
+		probeFrame = frame
+	end
+	if type(probeFrame) ~= "table" or type(probeFrame.RegisterEvent) ~= "function" then
+		return nil
+	end
+
+	local ok = pcall(probeFrame.RegisterEvent, probeFrame, "COMBAT_LOG_EVENT_UNFILTERED")
+	if ok then
+		pcall(probeFrame.UnregisterEvent, probeFrame, "COMBAT_LOG_EVENT_UNFILTERED")
+	end
+	return ok
+end
+
+-- Whether UnitName's second return is a surname here rather than a realm.
+--
+-- Asked from the aura scan and from the queue, both of which can run before the
+-- first capability probe has finished, so it reads ns.Flavour -- settled at load
+-- and never re-decided -- rather than caps. caps.unitNameIsSurname is this same
+-- answer, copied there for the bug report and set from this function so the two
+-- cannot come apart.
+local function SurnameClient()
+	return (ns.Flavour and ns.Flavour.flavour) == "camelot"
+end
+
 function ns.ProbeCapabilities()
 	wipe(caps)
 	caps.buffs = {}
@@ -328,13 +402,98 @@ function ns.ProbeCapabilities()
 		caps.aurasSecretNow = safecall(C_Secrets.ShouldAurasBeSecret)
 	end
 
+	---------------------------------------------------------------------
+	-- what this client is, and what follows from that
+	---------------------------------------------------------------------
+
+	-- Flavour.lua decided all of this at load; it is copied onto caps so that
+	-- one table answers "what am I allowed to do here", and so /manners debug
+	-- and the saved probe read it from the same place.
+	local flavour = ns.Flavour or {}
+	caps.flavour = flavour.flavour
+	caps.family = flavour.family
+	caps.interface = flavour.interface
+
+	-- Are secret values actually being enforced, as opposed to the namespace
+	-- merely existing?
+	--
+	-- Probed, because those are different questions and this addon has already
+	-- answered the wrong one. C_Secrets is present on clients where nothing is
+	-- restricted at the moment -- the namespace was backported ahead of the
+	-- restrictions -- so caps.hasSecrets says only that the client knows the
+	-- word. This says whether anything is being kept from us.
+	caps.secretRestrictions = safecall(C_Secrets and C_Secrets.HasSecretRestrictions)
+
+	-- The combat log, which is what "family" means.
+	--
+	-- The family answers it for the four flavours that can be named, and the
+	-- probe only decides a client nobody here has seen. That is the right way
+	-- round: the probe can prove the log is *gone*, because registration
+	-- throws, but it cannot prove it is there -- a client that accepts the
+	-- registration and then never fires the event is exactly how this addon's
+	-- own notes described Forever until this round, and it reads as a yes.
+	caps.combatLogProbe = ProbeCombatLog()
+	if flavour.recognised then
+		caps.combatLog = caps.family == "classic"
+	else
+		caps.combatLog = caps.combatLogProbe == true
+	end
+
+	-- Does the client understand a macro conditional at all -- [@party1,help]?
+	--
+	-- SecureCmdOptionParse is the client's own parser for that syntax, and
+	-- every macro conditional in the game goes through it, so its presence is
+	-- as close to a direct answer as this gets. It says nothing about whether a
+	-- *name* resolves inside one; that is the next question and it has no probe.
+	caps.unitConditionals = type(_G.SecureCmdOptionParse) == "function"
+
+	-- Whether a macro may name a player in a conditional --
+	-- /cast [@Playername,help,nodead] -- instead of targeting them with
+	-- /target, casting, and putting the old target back.
+	--
+	-- ASSUMPTION, and deliberately not dressed up as anything else. Nothing in
+	-- the API answers it: the only way to find out is to arm a macro and watch
+	-- what it casts, which is precisely the mistake this addon exists to stop
+	-- somebody making on a stranger. It rests on one finding -- [@PlayerName]
+	-- resolves only for party and raid members, on every client -- plus the
+	-- fact that the /target route is the only shape ever verified in game here,
+	-- and that was on Camelot. So Camelot keeps the route that is known to
+	-- work and nothing reads this yet; it exists so the flavours nobody can
+	-- test can be told apart when something does.
+	caps.conditionalTargeting = flavour.flavour ~= "camelot"
+
+	-- /targetexact matches the whole name where /target matches a prefix, so
+	-- "/target Mort" will happily find Mortimer standing next to Mort and buff
+	-- the wrong person. Probed rather than assumed: it is a client-side command
+	-- and its absence is a fallback, not a failure.
+	local secureCommands = _G.SecureCmdList
+	caps.targetExact = (type(secureCommands) == "table"
+			and type(secureCommands.TARGET_EXACT) == "function")
+		or type(_G.SLASH_TARGET_EXACT1) == "string"
+
+	-- What the second return of UnitName means here.
+	--
+	-- A realm on every client but Camelot, where it is a surname. The two want
+	-- opposite handling -- a surname is joined to the first name with a space,
+	-- a realm is appended with a dash or dropped -- so getting it wrong turns
+	-- "Mort Defrette" into a name no /target will ever find, or shows somebody
+	-- "Mort Ravencrest" as though the realm were part of who they are.
+	-- Surnames are Camelot's alone, so this is a flavour branch and cannot be
+	-- anything else: both returns are strings and neither says which it is.
+	caps.unitNameIsSurname = SurnameClient()
+
 	caps.anyKnown = false
 	caps.anyReadable = false
+	-- How many of this class's buffs carry an id this client does not have, so
+	-- the readers of caps do not each have to walk the list to find out whether
+	-- there is anything to complain about.
+	caps.unresolvedBuffs = 0
 	for _, buff in ipairs(ns.GetClassBuffs(playerClass) or {}) do
 		local info = ProbeBuff(buff)
 		caps.buffs[buff.key] = info
 		if info.known then caps.anyKnown = true end
 		if info.readable then caps.anyReadable = true end
+		if #info.unresolved > 0 then caps.unresolvedBuffs = caps.unresolvedBuffs + 1 end
 	end
 
 	caps.hasClassBuffs = ns.GetClassBuffs(playerClass) ~= nil
@@ -360,19 +519,30 @@ end
 -- which buff for which person
 ---------------------------------------------------------------------------
 
+-- Only ever reached in Automatic -- ResolveBuff answers a pin above it -- so a
+-- neverAuto buff is skipped here without an exception for the pinned one.
 local function FirstKnownBuff()
 	for _, buff in ipairs(ns.GetClassBuffs(playerClass) or {}) do
-		if ns.IsBuffKnown(buff) then return buff end
+		if ns.IsBuffKnown(buff) and not buff.neverAuto then return buff end
 	end
 end
 
 -- Everything of this class the player can actually cast, in list order.
 -- Resolved once per scan rather than once per unit.
+--
+-- A neverAuto buff is left out unless it is the pinned one. Unending Breath is
+-- the only one so far: a warlock in a city has it and nobody wants it, so it
+-- must never be what the walk hands a passer-by -- but somebody who deliberately
+-- pinned it has asked for it, and PickBuffFor gives up before it ever reads the
+-- pin if this list comes back empty.
 function ns.CastableBuffs()
 	local db = addon.db and addon.db.profile
+	local pinned = db and db.buff.choice
 	local out = {}
 	for _, buff in ipairs(ns.GetClassBuffs(playerClass) or {}) do
-		if ns.IsBuffKnown(buff) and not (db and db.buff.skip and db.buff.skip[buff.key]) then
+		if ns.IsBuffKnown(buff)
+			and not (db and db.buff.skip and db.buff.skip[buff.key])
+			and (not buff.neverAuto or pinned == buff.key) then
 			out[#out + 1] = buff
 		end
 	end
@@ -819,26 +989,78 @@ local function SafeForMacro(name)
 	return true
 end
 
--- The one spelling of a player's name, for everything that needs one.
+-- The one spelling of a player's name that this addon files them under.
 --
--- plain() collapses to a single value, so both of UnitName's returns have to be
--- taken before either is inspected or the second is silently lost. And that
--- second return is documented as the realm but carries a surname here -- six
--- players standing together came back with six different values -- so it joins
--- with a space. A hyphen invented names that no targeting call could resolve.
+-- This is the identity, not the spelling: it is the key for debts (which are on
+-- disk and survive a reload), for the tried table and for the rotation pointer.
+-- What goes on a /target line is a separate question with a separate answer --
+-- ns.TargetName below -- because on four of the five clients they are not the
+-- same string.
+--
+-- The name somebody is filed under, given the two halves however they were come
+-- by.
+--
+-- What the second half means is the whole of the branch. On Camelot it is a
+-- surname -- six players standing together came back with six different values
+-- -- and joining with a space is the form verified in game there. Everywhere
+-- else it is the realm, and it is present only for a player from another realm;
+-- a space would produce "Mort Ravencrest", which names nobody. "Mort-Ravencrest"
+-- is the form the game itself uses for a cross-realm player, so that is what
+-- they are filed under, and a same-realm player has no second half and is just
+-- "Mort".
 --
 -- nil for a name the client withheld, and nil for one that could not go into
--- macro text. Both callers want exactly those two rejections, and keeping them
+-- macro text. Every caller wants exactly those two rejections, and keeping them
 -- apart is how the two copies of this drifted in the first place.
-function ns.UnitFullName(unit)
-	local rawName, rawSecond = UnitName(unit)
-	local name, second = plain(rawName), plain(rawSecond)
+--
+-- Split out from UnitFullName because there are now two ways to arrive here. The
+-- aura scan has a unit token; the combat log has a GUID, which
+-- GetPlayerInfoByGUID answers with a name and a realm and no token at all. Both
+-- file debts under this key and both hand it to BuildQueue, so one of them
+-- spelling the same person differently would make them two people -- and the
+-- debt one source wrote would be unpayable by the other.
+local function JoinName(name, second)
 	if not name then return nil end
 
 	local full = name
-	if second and second ~= "" then full = name .. " " .. second end
+	if second and second ~= "" then
+		full = name .. (SurnameClient() and " " or "-") .. second
+	end
 	if not SafeForMacro(full) then return nil end
 	return full
+end
+
+-- plain() collapses to a single value, so both of UnitName's returns have to be
+-- taken before either is inspected or the second is silently lost.
+function ns.UnitFullName(unit)
+	local rawName, rawSecond = UnitName(unit)
+	return JoinName(plain(rawName), plain(rawSecond))
+end
+
+-- The spelling that goes on the /target line, given the name they are filed
+-- under.
+--
+-- Taken from the key rather than from a unit token on purpose: the tokenless
+-- fallback in BuildQueue offers people the scan can no longer see, and it has
+-- nothing but the key. Two functions answering this from two different sources
+-- is exactly the drift the comment above UnitFullName is about.
+--
+-- On Camelot the answer is the key, unchanged and untouched. That is deliberate
+-- and it is not a shortcut: nobody has documented what UnitName's second return
+-- is there for a player from another realm, so the join UnitFullName already
+-- makes is the only thing known to be right, and nothing here may generalise it
+-- on a guess.
+--
+-- Everywhere else the realm comes off. /target is a name search over units the
+-- client has drawn in, not a lookup of a unit id, and a realm is not part of
+-- what it searches -- so "Mort" is what finds the cross-realm player standing in
+-- front of you and "Mort-Ravencrest" finds nobody. That is reasoning about how
+-- /target works rather than behaviour anybody has cited; one live test on retail
+-- with a cross-realm player in reach would settle it either way.
+function ns.TargetName(name)
+	if type(name) ~= "string" then return nil end
+	if SurnameClient() then return name end
+	return ShortName(name)
 end
 
 ---------------------------------------------------------------------------
@@ -1320,6 +1542,10 @@ function ns.BuildQueue()
 		queue[#queue + 1] = {
 			name = full,
 			short = ShortName(full),
+			-- The spelling the macro's /target line carries, which is not always
+			-- the name they are filed under: off Camelot a cross-realm player is
+			-- keyed "Mort-Ravencrest" and targeted as "Mort".
+			targetName = ns.TargetName(full),
 			unit = unit,
 			class = plain(select(2, UnitClass(unit))),
 			buff = buff,
@@ -1398,6 +1624,10 @@ function ns.BuildQueue()
 					queue[#queue + 1] = {
 						name = full,
 						short = ShortName(full),
+						-- From the key, because this path has no unit token to
+						-- ask -- which is the reason ns.TargetName takes a name
+						-- rather than a unit.
+						targetName = ns.TargetName(full),
 						class = entry.class,
 						buff = buff,
 						reason = "owed",
@@ -1622,6 +1852,67 @@ local function NoteFavour(seen)
 	-- enough to afford it, and correctness then does not depend on a callback
 	-- firing at all.
 	SaveDebts()
+end
+
+-- Whether the combat log is actually running as a second favour source.
+--
+-- Not the same question as caps.combatLog, which is what this client is believed
+-- to allow. This is what happened when it was asked, and the two come apart on a
+-- client nobody here has ever started. Everything that behaves differently for
+-- having two sources reads this one.
+local combatLogArmed = false
+
+-- One buff landing, seen by two sources that cannot see each other.
+--
+-- The aura scan's own guard against announcing the same aura twice is `filed` on
+-- the sighting, keyed by instance id -- and a combat log line has no instance id
+-- to key anything on. So the two sources agree on the only thing both of them
+-- know: who cast it, and what.
+--
+-- A mark is claimed by whichever source gets there first and CONSUMED by the
+-- other, rather than left standing until it times out. That is the whole reason
+-- this is not a suppression window: once the second source has taken the mark
+-- away, a genuine recast by the same person -- which really is a second favour
+-- -- finds nothing and is announced. A window would have swallowed it.
+--
+-- The lifetime is only for the mark nobody comes to consume, and that is the
+-- ordinary case rather than the exception: the log's whole reason for existing
+-- is the stranger with no nameplate, and the aura scan can never see that person
+-- at all. Ten seconds is far longer than the gap between a landing and the scan
+-- that reads it, and far shorter than any interval a person recasts an hour-long
+-- buff over.
+local NOTE_MEMORY = 10
+local notedFavours = {}
+
+local function ClaimFavour(name, spellKey)
+	-- One source running, so there is nothing to deduplicate and the sighting's
+	-- own `filed` flag is the whole guard. Said as a gate rather than left to
+	-- fall out of the arithmetic: with one source a mark is set and never
+	-- consumed, so it would suppress a genuine recast inside the window -- a
+	-- behaviour change on the one client anybody here can test, for a problem
+	-- that does not exist there.
+	if not combatLogArmed then return true end
+	if type(name) ~= "string" then return true end
+
+	local now = GetTime()
+	local key = name .. "\0" .. tostring(spellKey)
+	local claimed = notedFavours[key]
+
+	-- Swept from here rather than on a timer of its own: there is one entry per
+	-- favour and a favour is rare, so the walk costs nothing where it happens
+	-- and there is no second clock to keep in step with this one. Read above the
+	-- sweep, so an entry this call is about to judge cannot be swept out from
+	-- under it.
+	for k, at in pairs(notedFavours) do
+		if now - at > NOTE_MEMORY then notedFavours[k] = nil end
+	end
+
+	if claimed and now - claimed <= NOTE_MEMORY then
+		notedFavours[key] = nil
+		return false
+	end
+	notedFavours[key] = now
+	return true
 end
 
 -- One slot of your own aura list: the aura, and whether the client can be shown
@@ -1902,9 +2193,14 @@ function ns.ScanOwnBuffs()
 					-- cannot be the guard, because an aura that ran out and
 					-- came back under its own number is in the baseline
 					-- already and is exactly what this loop is here for.
+					--
+					-- The claim is the other half of that guard, and it covers
+					-- the thing `filed` cannot see: where the client has a
+					-- combat log, the same landing has already been through
+					-- here once under a different number -- none at all.
 					if seen and seen.key == key and seen.name and not seen.filed then
 						seen.filed = true
-						NoteFavour(seen)
+						if ClaimFavour(seen.name, key) then NoteFavour(seen) end
 					end
 				end
 			end
@@ -1965,6 +2261,100 @@ function ns.ScanOwnBuffs()
 	-- refusal it recognises cannot corroborate itself however long it lasts.
 	-- That narrows the residue to the shapes nothing can see. It does not close
 	-- it, and nothing can.
+end
+
+---------------------------------------------------------------------------
+-- the combat log, on the clients that still have one
+--
+-- Classic Era, TBC and Mists hand addons COMBAT_LOG_EVENT_UNFILTERED. Retail
+-- 12.0+ and Forever do not -- registering it there is refused outright, which is
+-- the same class of failure that once stopped the scanner from ever starting --
+-- so none of this runs unless OnEnable got the registration through.
+--
+-- It is an addition and never a replacement. The aura scan is the spine: it is
+-- the only source on Forever and on retail, it runs on all five clients, and it
+-- is the one that has been tested. What the log adds is the one thing the scan
+-- cannot do on any flavour. aura.sourceUnit is a unit token everywhere, so a
+-- stranger the client holds no token for reads as nobody; SPELL_AURA_APPLIED
+-- carries the caster's GUID instead, and GetPlayerInfoByGUID turns a GUID into a
+-- name and a class with no token at all. So somebody who buffs you from behind,
+-- with no nameplate up, can be thanked.
+--
+-- A log line is an event and not a poll, so none of the corroboration the scan
+-- is wrapped in belongs here: there is no second reading to wait for and no
+-- doubt to settle. Those exist because a scan can misread its own list. The
+-- policy gates are a different thing and are not skipped -- a switched-off addon
+-- and a switched-off source mean exactly what they mean to the scan, and both
+-- are asked in NoteFavour, which every favour still goes through.
+---------------------------------------------------------------------------
+
+-- What this source has made of itself, for /manners debug, and for the reason
+-- ns.auraScan exists: a source that quietly stops saying anything is otherwise
+-- indistinguishable from nobody having buffed you.
+ns.logScan = { armed = false, applied = 0, noted = 0 }
+
+local function ReadCombatLogFavour()
+	local _, subevent, _, sourceGUID, _, _, _, destGUID, _, _, _,
+		spellId, _, _, auraType = CombatLogGetCurrentEventInfo()
+
+	-- Cheapest question first, then in order of how much each one throws away.
+	-- Every swing, tick and proc within fifty yards arrives here, so what this
+	-- costs for the overwhelming majority of them is two string compares.
+	if plain(subevent) ~= "SPELL_AURA_APPLIED" then return end
+	if plain(auraType) ~= "BUFF" then return end
+
+	-- Landed on us, and not by our own hand. A buff we cast on ourselves is not
+	-- a favour, and neither is one we cast on somebody else.
+	destGUID, sourceGUID = plain(destGUID), plain(sourceGUID)
+	if destGUID == nil or destGUID ~= playerGUID then return end
+	if sourceGUID == nil or sourceGUID == playerGUID then return end
+
+	-- Asked before the identity lookup rather than left to NoteFavour, which
+	-- asks the same two questions at the other end. Here it is what stops a
+	-- switched-off source doing per-event work for an answer nobody will use;
+	-- there it is the gate, because the setting can be changed in between.
+	local db = addon.db and addon.db.profile
+	if not db or not db.enabled or not db.sources.owed then return end
+
+	spellId = plain(spellId)
+	if spellId == nil then return end
+	-- The same filter the aura scan applies to a slot, from the same setting: a
+	-- shield, a heal-over-time or a trinket proc is not a favour owed. It is
+	-- every class's buffs and not this character's -- the buff a stranger puts
+	-- on you is one of theirs.
+	if db.sources.owedClassBuffsOnly ~= false and not ns.ALL_BUFF_IDS[spellId] then
+		return
+	end
+
+	ns.logScan.applied = ns.logScan.applied + 1
+
+	-- The one thing this source has that the aura scan does not, and the whole
+	-- reason it is worth having: a name and a class out of a GUID, with no unit
+	-- token anywhere in it.
+	--
+	-- It doubles as the check that the caster was a player at all. The object
+	-- flags carry that too, but reading them means bit.band over a value the
+	-- client may withhold, and this answers nothing for an NPC, a pet or a
+	-- totem -- the same question, asked of the call that has to be made anyway.
+	if type(GetPlayerInfoByGUID) ~= "function" then return end
+	local _, class, _, _, _, name, realm = GetPlayerInfoByGUID(sourceGUID)
+	-- Through the same join the aura scan's names go through, so the two sources
+	-- file one person under one key.
+	local full = JoinName(plain(name), plain(realm))
+	if not full then return end
+
+	if not ClaimFavour(full, spellId) then return end
+	ns.logScan.noted = ns.logScan.noted + 1
+	-- The shape Sight produces, so NoteFavour has one kind of record to file
+	-- rather than one per source.
+	NoteFavour({ key = spellId, name = full, guid = sourceGUID, class = plain(class) })
+end
+
+function addon:COMBAT_LOG_EVENT_UNFILTERED()
+	-- Guarded like everything else, and the pcall is the whole of what it costs
+	-- on the path that returns two compares later. A handler that throws is
+	-- removed by nothing and reported by nothing; it simply stops being a source.
+	ns.Guard("combat log", ReadCombatLogFavour)
 end
 
 function addon:UNIT_AURA(_, unit)
@@ -2389,11 +2779,15 @@ local function SettlePendingClick(landedOn, spellId, castGUID)
 	-- on "something was cast" alone marked the favour repaid to a stranger who
 	-- never received anything.
 	--
-	-- Three spellings are accepted because three can legitimately come back.
-	-- The macro always aims the full name; the game reports whichever spelling
-	-- the client happens to hold -- the bare first name, or the full one, or one
-	-- without a cross-realm suffix -- and none of those is somebody else.
-	elseif landedOn and landedOn ~= pending.name
+	-- Four spellings are accepted because four can legitimately come back. The
+	-- first is the one the macro actually aimed at, handed over by the builder
+	-- rather than reconstructed here -- it is the same string as the key on
+	-- Camelot and drops the realm off a cross-realm name anywhere else. The
+	-- other three are what the client may hold instead: the name it is filed
+	-- under, the bare first name, and one without a cross-realm suffix. None of
+	-- those is somebody else.
+	elseif landedOn and landedOn ~= pending.aimedAt
+		and landedOn ~= pending.name
 		and landedOn ~= (ns.FirstName and ns.FirstName(pending.name))
 		and landedOn ~= (ns.ShortName and ns.ShortName(pending.name)) then
 		-- Somebody else entirely got it, which means our own /target did
@@ -2687,6 +3081,31 @@ function ns.WriteProbe()
 		at = date("%Y-%m-%d %H:%M:%S"),
 		version = (GetBuildInfo()),
 		toc = select(4, GetBuildInfo()),
+		-- The same identity /manners debug prints, written where it can be read
+		-- off disk. A bug report that arrives as a copy of SavedVariables and
+		-- not as a transcript is the common case, and it used to carry the
+		-- interface number without anything saying what this addon made of it.
+		flavour = caps.flavour,
+		family = caps.family,
+		-- Which spell tables the flavour was turned into, which is a separate
+		-- question: several flavours share a set, and an unrecognised client
+		-- gets one by guess.
+		buffData = ns.BUFFS_SOURCE,
+		buffDataMissing = ns.BUFFS_MISSING,
+		combatLog = caps.combatLog,
+		combatLogProbe = caps.combatLogProbe,
+		-- What the second source actually did, beside what the client was
+		-- thought to allow. A report saying "it never notices anybody" is
+		-- answered by these three and the aura line together: the log armed and
+		-- silent is a different bug from the log never arming.
+		combatLogArmed = ns.logScan.armed,
+		combatLogSeen = ns.logScan.applied,
+		combatLogFiled = ns.logScan.noted,
+		secretRestrictions = caps.secretRestrictions,
+		conditionalTargeting = caps.conditionalTargeting,
+		unitConditionals = caps.unitConditionals,
+		targetExact = caps.targetExact,
+		unitNameIsSurname = caps.unitNameIsSurname,
 		class = caps.class,
 		getUnitAuraBySpellID = caps.getUnitAuraBySpellID,
 		hasSecrets = caps.hasSecrets,
@@ -2704,6 +3123,10 @@ function ns.WriteProbe()
 			topRank = info.topRank,
 			readable = info.readable,
 			secrecy = info.secrecy,
+			-- The ids this client does not have. Written down rather than
+			-- counted: the numbers are the whole of what makes the report
+			-- actionable, since fixing it means editing exactly those.
+			unresolved = info.unresolved,
 		}
 	end
 	MannersDB.probe = dump
@@ -2866,6 +3289,12 @@ function ns.ExpandTokens(text)
 	-- a string replacement as a template in which % is an escape.
 	text = ns.Swap(text, "{unit}", (entry and entry.unit) or "target")
 	text = ns.Swap(text, "{name}", (entry and entry.name) or "target")
+	-- The spelling a targeting line wants, which off Camelot is the name with
+	-- the realm taken off. {name} stays the identity, because that is what a
+	-- debt is filed under and what a conditional would be handed -- and telling
+	-- those two apart on a client nobody here can start is the console's whole
+	-- job, so it must not have to guess which one {name} meant today.
+	text = ns.Swap(text, "{aim}", (entry and (entry.targetName or entry.name)) or "target")
 	text = ns.Swap(text, "{first}", (entry and ns.FirstName(entry.name)) or "target")
 	text = ns.Swap(text, "{spell}", buff and ns.BuffName(buff))
 	text = ns.Swap(text, "{id}", tostring(info and info.topRank or ""))
@@ -3117,6 +3546,29 @@ function addon:OnEnable()
 		ns.Guard("RegisterEvent " .. event, function() self:RegisterEvent(event) end)
 	end
 
+	-- The combat log is asked for separately, and only where the client is
+	-- believed to have one.
+	--
+	-- On Forever and on retail 12.0+ this registration is forbidden. Put in the
+	-- list above it would be caught like the rest and cost nothing but a red
+	-- line -- but it would be a red line on every login on two of the five
+	-- clients, for a capability the addon already knows it does not have and
+	-- does not need. The probe asked once, at load, and that is the one time
+	-- anything should be asking.
+	--
+	-- Armed from inside the guard and after the call, so the flag says the
+	-- registration went through rather than that it was attempted. Everything
+	-- that behaves differently for having a second source reads the flag and not
+	-- caps.combatLog, because a client that refuses here is a client with one
+	-- source however it was classified.
+	if caps.combatLog then
+		ns.Guard("RegisterEvent COMBAT_LOG_EVENT_UNFILTERED", function()
+			self:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+			combatLogArmed = true
+			ns.logScan.armed = true
+		end)
+	end
+
 	ns.Guard("StartScanner", function() self:StartScanner() end)
 	ns.Guard("ApplyStyle", function() ns.Prompt:ApplyStyle() end)
 
@@ -3227,10 +3679,17 @@ function addon:HandleSlash(rawInput)
 		self:Print("|cffffd100Targeting forms, for /manners try:|r")
 		self:Print("  /manners try /cast [@{unit}] {spell}")
 		self:Print("  /manners try /cast [@{name}] {spell}")
-		self:Print("  /manners try /target {name}\\n/cast {spell}")
+		-- {aim} rather than {name} on the targeting line, and the command the
+		-- addon itself would write. This list is read by somebody working out
+		-- what resolves on a client nobody here can start, and an example that
+		-- is wrong for their client wastes the one experiment they will run.
+		self:Print(("  /manners try %s {aim}\\n/cast {spell}"):format(
+			(ns.TargetCommand and ns.TargetCommand()) or "/target"))
 		self:Print("  /manners try /cast {spell}                 (on yourself)")
 		self:Print("  /manners try /cast [@party1] {spell}")
-		self:Print("Tokens: |cffffd100{unit} {name} {first} {spell} {id}|r. Use \\n for a new line.")
+		self:Print("Tokens: |cffffd100{unit} {name} {aim} {first} {spell} {id}|r."
+			.. " {name} is what a debt is filed under, {aim} is what a targeting"
+			.. " line wants. Use \\n for a new line.")
 		return
 	end
 
@@ -3306,6 +3765,53 @@ function addon:HandleSlash(rawInput)
 				tostring(e.at), tostring(e.where), tostring(e.err)))
 		end
 	elseif input == "debug" then
+		-- The client first, and above the early return below.
+		--
+		-- Four of the five clients this addon claims to support cannot be
+		-- tested by anybody who works on it, so one user running one command
+		-- is the cheapest evidence available -- and it is only evidence if it
+		-- says which client it came from. A class with nothing to cast is
+		-- exactly the report that used to arrive without that line.
+		--
+		-- Guarded because the failure this line is most needed for is the one
+		-- where Flavour.lua did not load at all -- a toc that lost it from its
+		-- file list -- and a debug command that throws on the way to saying so
+		-- takes the last diagnostic with it.
+		self:Print("client: |cffffffff"
+			.. (ns.FlavourSummary and ns.FlavourSummary()
+				or "|cffff4040Flavour.lua did not load -- check the toc's file list|r")
+			.. "|r")
+		self:Print(("  targeting: conditional=%s @unit=%s /targetexact=%s"):format(
+			tostring(caps.conditionalTargeting), tostring(caps.unitConditionals),
+			tostring(caps.targetExact)))
+		self:Print(("  combat log=%s (probe %s) | secret restrictions=%s"
+			.. " | UnitName 2nd=%s"):format(
+			tostring(caps.combatLog), tostring(caps.combatLogProbe),
+			tostring(caps.secretRestrictions),
+			caps.unitNameIsSurname and "surname" or "realm"))
+		-- Whether the second favour source is actually running, which is not the
+		-- same question as whether the client has a log: the registration is
+		-- guarded, and a client that refused it has one source and no red line
+		-- to say so. Absent entirely where there is no log, because "0 filed"
+		-- about a source that cannot exist here is a question the reader then
+		-- has to go and answer.
+		if caps.combatLog then
+			self:Print(("  combat log favours: armed=%s, %d seen, %d filed"):format(
+				tostring(ns.logScan.armed), ns.logScan.applied, ns.logScan.noted))
+		end
+		-- Which set of spells this client was handed, and whether that was a
+		-- match or a guess. A report saying "my priest is never offered Divine
+		-- Spirit" is answered by this line alone on four of the five clients,
+		-- where the spell does not exist any more.
+		self:Print(("  buff data: |cffffffff%s|r"):format(tostring(ns.BUFFS_SOURCE)))
+
+		-- A buff table that never arrived says so before anything else, since
+		-- every line under it would then be describing an empty list and
+		-- reading as "this class has nothing", which is a different bug.
+		if ns.BUFFS_MISSING then
+			self:Print("|cffff4040" .. ns.BUFFS_MISSING .. "|r")
+		end
+
 		self:Print("class: |cffffffff" .. tostring(caps.class) .. "|r")
 		if not caps.hasClassBuffs then
 			self:Print("this class has no buffs to cast on other players.")
@@ -3321,6 +3827,16 @@ function addon:HandleSlash(rawInput)
 				tostring(info and info.name),
 				info and tostring(info.known) or "?",
 				info and tostring(info.readable) or "?"))
+			-- The one failure in this file with no other symptom: an id that
+			-- does not exist here is a buff that is silently never offered and
+			-- never noticed. Saying it here is the whole of the noticing.
+			if info and info.unresolved and #info.unresolved > 0 then
+				self:Print(("    |cffff4040this client has never heard of %s|r"
+					.. " -- Manners has the wrong spell ids for %s on %s."
+					.. " Please report this line."):format(
+					table.concat(info.unresolved, ", "), buff.key,
+					tostring(ns.BUFFS_SOURCE)))
+			end
 		end
 		-- Separating "we never saw the buff" from "we saw it but cannot reach
 		-- them" is the difference between a detection bug and a targeting one.

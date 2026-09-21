@@ -8,8 +8,9 @@ the version in the toc still reads 0.9.6 and nothing has been tagged.
 ## Done
 
 The addon works end to end: it finds nearby players missing your buff, notices
-who buffed you on a client with no combat log, and casts. Published to GitHub
-and CurseForge, with releases automated on a git tag.
+who buffed you — by watching your own buffs appear, which is the only way on a
+client with no combat log — and casts. Published to GitHub and CurseForge, with
+releases automated on a git tag.
 
 Since 0.9.6 it has been through six rounds of review, each one fixing what the
 round before it found. The parts that have gone quiet — no defect found in the
@@ -32,6 +33,15 @@ Worth knowing about, because they are decisions rather than code:
 - **A favour names who was there when the aura landed**, not who holds that
   nameplate token when it is noticed. A sighting nobody could name is never
   announced.
+- **The combat log is an addition, never a replacement.** It is registered only
+  on Classic Era, Burning Crusade and Mists — Forever and retail refuse it — and
+  it exists for the one thing the aura scan cannot do anywhere: name a stranger
+  with no unit token, from `SPELL_AURA_APPLIED`'s GUID via
+  `GetPlayerInfoByGUID`. It goes through the same `NoteFavour`, not a queue of
+  its own, and none of the aura scan's corroboration applies to it: a log line
+  is an event, not a reading that might be wrong. Where both sources run they
+  agree through one claimed-and-consumed mark, so a landing both of them see is
+  announced once and a genuine recast still counts.
 
 ## Open
 

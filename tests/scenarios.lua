@@ -14,7 +14,7 @@ dofile(dir .. "/tests/mockapi.lua")
 
 local function load(scenario)
 	local ns = {}
-	for _, file in ipairs({ "Buffs.lua", "Core.lua", "Prompt.lua", "Options.lua" }) do
+	for _, file in ipairs({ "Flavour.lua", "Buffs.lua", "Core.lua", "Prompt.lua", "Options.lua" }) do
 		local chunk, err = loadfile(dir .. "/" .. file)
 		if not chunk then
 			fail(scenario, "load " .. file .. ": " .. tostring(err))
@@ -242,23 +242,24 @@ if ns then
 			end
 		end
 
-		-- Exactly one /target line, whatever shape the name is, and the full
-		-- name is what goes in it. Offering the bare first name underneath it
-		-- as well reads as belt and braces, but /targetlasttarget hands you
-		-- back the target the line before last set -- so a second /target line
+		-- Exactly one targeting line, whatever shape the name is, and the full
+		-- name is what goes in it -- this client joins a surname with a space
+		-- and nothing comes off it. Offering the bare first name underneath as
+		-- well reads as belt and braces, but /targetlasttarget hands you back
+		-- the target the line before last set -- so a second targeting line
 		-- makes "restore my target" mean "whoever the first name found", and
-		-- two people with the same first name is all that takes. Where the full
-		-- name will not resolve, scenario 55 covers what replaces it.
+		-- two people sharing a first name is all that takes.
 		if macro and entry and entry.buff and not entry.buff.selfCast then
+			local cmd = ns.TargetCommand()
 			local targets = {}
 			for line in macro:gmatch("[^\r\n]+") do
-				if line:find("^/target ") then targets[#targets + 1] = line end
+				if line:find("^" .. cmd .. " ") then targets[#targets + 1] = line end
 			end
 			local label = tostring(pair[1]) .. "/" .. tostring(pair[2])
 			local full = pair[1] .. ((pair[2] and pair[2] ~= "") and (" " .. pair[2]) or "")
 			if #targets ~= 1 then
-				fail("odd names", label .. ": " .. #targets .. " /target lines, not 1")
-			elseif targets[1] ~= "/target " .. full then
+				fail("odd names", label .. ": " .. #targets .. " " .. cmd .. " lines, not 1")
+			elseif targets[1] ~= cmd .. " " .. full then
 				fail("odd names", label .. ": the target line is '" .. targets[1] .. "'")
 			end
 		end
@@ -408,7 +409,7 @@ if ns then
 		"/target {name}" .. string.char(10) .. "/cast {spell}",
 		"/cast {spell}",
 		"/cast [@party1] {spell}",
-		"{name}{unit}{first}{spell}{id}",
+		"{name}{unit}{aim}{first}{spell}{id}",
 		"",
 	}
 	for _, text in ipairs(cases) do
@@ -499,6 +500,10 @@ for class, keys in pairs(CLASS_BUFFS) do
 					if type(macro) ~= "string" or macro == "" then
 						fail(label, "no macro was built")
 					else
+						-- Whichever command the client's probe settled on, so this
+						-- reads the macro the addon builds rather than the one
+						-- this scenario was written against.
+						local cmd = cns.TargetCommand()
 						local lineCount, castLine, targetLine = 0, false, false
 						local targets = {}
 						for line in macro:gmatch("[^\r\n]+") do
@@ -507,7 +512,7 @@ for class, keys in pairs(CLASS_BUFFS) do
 								fail(label, "not a command: '" .. line .. "'")
 							end
 							if line:find("^/cast ") then castLine = true end
-							if line:find("^/target ") then
+							if line:find("^" .. cmd .. " ") then
 								targetLine = true
 								targets[#targets + 1] = line
 							end
@@ -520,26 +525,29 @@ for class, keys in pairs(CLASS_BUFFS) do
 						-- Battle Shout reaches the party from you; targeting
 						-- somebody would be wrong, not merely unnecessary.
 						if target.selfCast then
-							if targetLine then fail(label, "selfCast buff still built a /target line") end
+							if targetLine then fail(label, "selfCast buff still built a targeting line") end
 							if lineCount ~= 1 then
 								fail(label, "selfCast macro should be one line, got " .. lineCount)
 							end
 						else
-							if not targetLine then fail(label, "no /target line for a targeted buff") end
-							-- Exactly one, carrying the full name. A second
-							-- spelling offered alongside it is what
-							-- /targetlasttarget costs: it hands back your
-							-- PREVIOUS target, which with two /target lines in
+							if not targetLine then
+								fail(label, "no targeting line for a targeted buff")
+							end
+							-- Exactly one, carrying the spelling the entry says it
+							-- aims at. A second spelling offered alongside it is
+							-- what /targetlasttarget costs: it hands back your
+							-- PREVIOUS target, which with two targeting lines in
 							-- front of it is whoever the first one resolved. And
 							-- a bare first name names the wrong player whenever
 							-- somebody standing there shares it. Both were tried
 							-- and both are gone; this is the check that says so.
+							local aim = entry.targetName or entry.name
 							if #targets > 1 then
-								fail(label, "more than one /target line: "
+								fail(label, "more than one targeting line: "
 									.. table.concat(targets, " | "))
-							elseif targets[1] and targets[1] ~= "/target " .. entry.name then
-								fail(label, ("the /target line does not carry the full name: %s"
-									.. " for %s"):format(targets[1], entry.name))
+							elseif targets[1] and targets[1] ~= cmd .. " " .. aim then
+								fail(label, ("the targeting line does not carry the name it aims"
+									.. " at: %s for %s"):format(targets[1], aim))
 							end
 						end
 					end
@@ -2042,7 +2050,7 @@ if ns then
 			local fake = { short = "Somebody", name = "Somebody", reason = "owed",
 				buff = entry.buff }
 			if ns.PhraseBudget(fake) ~= ns.MACRO_LIMIT
-				- #("/target Somebody\n/cast " .. ns.BuffName(entry.buff))
+				- #(ns.TargetCommand() .. " Somebody\n/cast " .. ns.BuffName(entry.buff))
 				- 1 - #"/targetlasttarget" - 1 then
 				fail("the spoken line is measured, not assumed",
 					"the preview budget is not the cast path's: " .. tostring(ns.PhraseBudget(fake)))
@@ -4422,6 +4430,11 @@ if ns then
 			local e = {}
 			for k, v in pairs(template) do e[k] = v end
 			e.name, e.short, e.reason, e.priority = name, name, reason, priority
+			-- Both spellings move together. An entry whose identity says one
+			-- person and whose targeting spelling says another is a shape
+			-- BuildQueue cannot produce, and a fixture in that shape tests the
+			-- fixture.
+			e.targetName = ns.TargetName(name)
 			return e
 		end
 		local queue = { cand("Ana Field", "nearby", 3) }
@@ -4509,6 +4522,7 @@ if ns then
 		local ana = {}
 		for k, v in pairs(template) do ana[k] = v end
 		ana.name, ana.short, ana.reason, ana.priority = "Ana Field", "Ana Field", "nearby", 3
+		ana.targetName = ns.TargetName(ana.name)
 
 		local queue = { ana }
 		ns.BuildQueue = function() return queue end
@@ -4594,6 +4608,7 @@ if ns then
 			local e = {}
 			for k, v in pairs(template) do e[k] = v end
 			e.name, e.short, e.reason, e.priority = name, name, "nearby", 3
+			e.targetName = ns.TargetName(name)
 			return e
 		end
 		local queue = { cand("Ana Field") }
@@ -4753,6 +4768,11 @@ if ns then
 			local e = {}
 			for k, v in pairs(template) do e[k] = v end
 			e.name, e.short, e.reason, e.priority = name, name, reason, priority
+			-- Both spellings move together. An entry whose identity says one
+			-- person and whose targeting spelling says another is a shape
+			-- BuildQueue cannot produce, and a fixture in that shape tests the
+			-- fixture.
+			e.targetName = ns.TargetName(name)
 			return e
 		end
 		ns.BuildQueue = function()
@@ -4830,6 +4850,7 @@ if ns then
 		local ana = {}
 		for k, v in pairs(template) do ana[k] = v end
 		ana.name, ana.short, ana.reason, ana.priority = "Ana Field", "Ana Field", "owed", 1
+		ana.targetName = ns.TargetName(ana.name)
 		ns.BuildQueue = function() return { ana } end
 
 		local db = ns.db.profile
@@ -4925,6 +4946,11 @@ if ns then
 			local e = {}
 			for k, v in pairs(template) do e[k] = v end
 			e.name, e.short, e.reason, e.priority = name, name, reason, priority
+			-- Both spellings move together. An entry whose identity says one
+			-- person and whose targeting spelling says another is a shape
+			-- BuildQueue cannot produce, and a fixture in that shape tests the
+			-- fixture.
+			e.targetName = ns.TargetName(name)
 			return e
 		end
 		ns.BuildQueue = function()
@@ -5397,6 +5423,11 @@ if ns then
 			local e = {}
 			for k, v in pairs(template) do e[k] = v end
 			e.name, e.short, e.reason, e.priority = name, name, reason, priority
+			-- Both spellings move together. An entry whose identity says one
+			-- person and whose targeting spelling says another is a shape
+			-- BuildQueue cannot produce, and a fixture in that shape tests the
+			-- fixture.
+			e.targetName = ns.TargetName(name)
 			return e
 		end
 		local queue = { cand("Ana Field", "nearby", 3) }
@@ -6197,7 +6228,7 @@ if ns then
 
 		-- The client hands that number straight back to a different spell.
 		Mock.extraAura = 3600
-		Mock.extraAuraSpell = 10938
+		Mock.extraAuraSpell = 21562
 		ns.addon:UNIT_AURA(nil, "player")
 		if not next(ns.owed) then
 			fail(scenario, "a different spell arriving under a recycled number was matched"
@@ -6685,6 +6716,7 @@ if ns then
 			local e = {}
 			for k, v in pairs(template) do e[k] = v end
 			e.name, e.short, e.reason, e.priority = who, who, "owed", 1
+			e.targetName = ns.TargetName(who)
 			return e
 		end
 		local pressed, after = cand("Ana Field"), cand("Bo Stone")
@@ -7092,6 +7124,7 @@ if ns then
 		for k, v in pairs(template) do pressed[k] = v end
 		pressed.name, pressed.short, pressed.reason, pressed.priority =
 			"Ana Field", "Ana", "owed", 1
+		pressed.targetName = ns.TargetName(pressed.name)
 
 		local db = ns.db.profile
 		db.prompt.hideInCombat = false
@@ -7192,6 +7225,7 @@ if ns then
 		local entry = {}
 		for k, v in pairs(template) do entry[k] = v end
 		entry.name, entry.short, entry.reason, entry.priority = "Ana Field", "Ana", "owed", 1
+		entry.targetName = ns.TargetName(entry.name)
 
 		local db = ns.db.profile
 		local button = ns.Prompt:GetButton()
@@ -7618,7 +7652,7 @@ for _, case in ipairs({
 			ns.Prompt:InvalidateMacro()
 			ns.Prompt:ApplyTarget(entry)
 			local macro = tostring(ns.lastMacro or "")
-			local targets = macro:find("/target ", 1, true) ~= nil
+			local targets = macro:find(ns.TargetCommand() .. " ", 1, true) ~= nil
 			if targets ~= case.targets then
 				fail(label, "SKIPPED -- this class's macro was expected "
 					.. (case.targets and "to target" or "not to target")
@@ -7635,8 +7669,8 @@ for _, case in ipairs({
 				-- of the two describes the other class.
 				local explained = explain.hidden and explain.hidden() and true or false
 				if explained ~= hidden then
-					fail(label, "the /target note and the switch it explains disagree about"
-						.. " whether this class targets anybody")
+					fail(label, "the targeting note and the switch it explains disagree"
+						.. " about whether this class targets anybody")
 				end
 				local saidWhy = note.hidden and note.hidden() and true or false
 				if saidWhy == not targets then
@@ -7683,6 +7717,7 @@ if ns then
 		local entry = {}
 		for k, v in pairs(template) do entry[k] = v end
 		entry.name, entry.short, entry.reason, entry.priority = "Ana Field", "Ana", "owed", 1
+		entry.targetName = ns.TargetName(entry.name)
 
 		local button = ns.Prompt:GetButton()
 		Mock.protect(button)
@@ -8023,6 +8058,2246 @@ if ns then
 		end
 	end
 end
+
+-- ------------------------------------------------------------------ 120
+-- Which client this is, read off the interface number.
+--
+-- The band trap gets its own assertion because it is the one that would never
+-- be reported: Forever says 16001 and Classic Era says 11509, both five digits
+-- beginning with a 1. A matcher working on a prefix -- or on how many digits
+-- there are -- calls Forever vanilla, and vanilla content is exactly what
+-- Forever runs, so the addon would half-work forever and nobody would have a
+-- symptom to describe.
+local FLAVOURS = {
+	{ interface = 120100, flavour = "mainline", family = "modern" },
+	{ interface = 16001, flavour = "camelot", family = "modern" },
+	{ interface = 50504, flavour = "mists", family = "classic" },
+	{ interface = 20506, flavour = "tbc", family = "classic" },
+	{ interface = 11509, flavour = "vanilla", family = "classic" },
+}
+for _, want in ipairs(FLAVOURS) do
+	local scenario = "interface " .. want.interface .. " is " .. want.flavour
+	Mock.reset()
+	Mock.interface = want.interface
+	-- The three Classic flavours still have the combat log; the two modern ones
+	-- refuse the registration. Set here so the probe is answered by a client
+	-- that behaves like the one the number claims to be.
+	Mock.combatLog = (want.family == "classic")
+	ns = load(scenario)
+	if ns then
+		drive(scenario, ns)
+		local f = ns.Flavour or {}
+		if f.flavour ~= want.flavour then
+			fail(scenario, "called it " .. tostring(f.flavour))
+		end
+		if f.family ~= want.family then
+			fail(scenario, "put it in the " .. tostring(f.family) .. " family")
+		end
+		if f.interface ~= want.interface then
+			fail(scenario, "recorded the interface as " .. tostring(f.interface))
+		end
+		if f.recognised ~= true then
+			fail(scenario, "did not recognise a number it has a band for")
+		end
+		-- The one line a bug report from this client would carry.
+		local summary = ns.FlavourSummary()
+		if not summary:find(want.flavour, 1, true)
+			or not summary:find(tostring(want.interface), 1, true) then
+			fail(scenario, "the pasteable summary says: " .. summary)
+		end
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 121
+-- An interface number nobody here has seen.
+--
+-- Classified, never rejected. A client this addon does not recognise still has
+-- somebody sitting in front of it, and an addon that refuses to load is a worse
+-- answer than one that carries on with the family it can infer. 40400 is
+-- Cataclysm Classic, which is retired -- a number that was live a year ago is
+-- exactly the shape the next one will arrive in.
+Mock.reset()
+Mock.interface = 40400
+ns = load("an interface number with no band")
+if ns then
+	local scenario = "an interface number with no band"
+	drive(scenario, ns)
+	local f = ns.Flavour or {}
+	if f.flavour ~= "unknown" then
+		fail(scenario, "claimed to recognise 40400 as " .. tostring(f.flavour))
+	end
+	if f.family ~= "modern" and f.family ~= "classic" then
+		fail(scenario, "left the family as " .. tostring(f.family)
+			.. ", so nothing downstream has anything to branch on")
+	end
+	if f.recognised ~= false then
+		fail(scenario, "reported an unknown number as recognised")
+	end
+	-- Read and written down even though it matched no band. A client nobody
+	-- here has seen is precisely the one whose number has to survive into the
+	-- bug report, and a detector that gives up on an unknown number loses it.
+	if f.interface ~= 40400 then
+		fail(scenario, "lost the interface number it could not classify: "
+			.. tostring(f.interface))
+	end
+	if f.err ~= nil then
+		fail(scenario, "treated an unrecognised number as a failure: " .. tostring(f.err))
+	end
+	-- drive() ends with a click, which puts the candidate in the retry
+	-- cooldown; the clock has to move before the queue refills.
+	Mock.advance(60)
+	ns.Guard("probe", ns.ProbeCapabilities)
+	if #ns.BuildQueue() == 0 then
+		fail(scenario, "an unrecognised client was left with nobody to offer")
+	end
+end
+
+-- ------------------------------------------------------------------ 122
+-- The nil == nil trap, which is the reason the project id is never compared
+-- against a constant directly.
+--
+-- On a client with none of these globals, `WOW_PROJECT_ID == WOW_PROJECT_CLASSIC`
+-- is nil == nil, so every one of those tests passes at once and the first one
+-- written wins. Here that would be Mists: a modern client would be handed the
+-- Classic family, told the combat log is available, and the registration that
+-- follows throws.
+Mock.reset()
+Mock.interface = 40400
+local savedProjects = {
+	WOW_PROJECT_ID, WOW_PROJECT_MAINLINE, WOW_PROJECT_CLASSIC,
+	WOW_PROJECT_BURNING_CRUSADE_CLASSIC, WOW_PROJECT_MISTS_CLASSIC,
+}
+WOW_PROJECT_ID, WOW_PROJECT_MAINLINE, WOW_PROJECT_CLASSIC = nil, nil, nil
+WOW_PROJECT_BURNING_CRUSADE_CLASSIC, WOW_PROJECT_MISTS_CLASSIC = nil, nil
+ns = load("a client with no project constants at all")
+WOW_PROJECT_ID, WOW_PROJECT_MAINLINE, WOW_PROJECT_CLASSIC =
+	savedProjects[1], savedProjects[2], savedProjects[3]
+WOW_PROJECT_BURNING_CRUSADE_CLASSIC, WOW_PROJECT_MISTS_CLASSIC =
+	savedProjects[4], savedProjects[5]
+if ns then
+	local scenario = "a client with no project constants at all"
+	drive(scenario, ns)
+	local f = ns.Flavour or {}
+	if f.flavour ~= "unknown" then
+		fail(scenario, "nil == nil decided this client is " .. tostring(f.flavour))
+	end
+	if f.family == "classic" then
+		fail(scenario, "nil == nil put a client with no constants in the classic"
+			.. " family, which is where the combat log is assumed to work")
+	end
+	if f.project ~= nil then
+		fail(scenario, "invented a project id of " .. tostring(f.project))
+	end
+end
+
+-- ------------------------------------------------------------------ 123
+-- A client with no GetBuildInfo at all.
+--
+-- Flavour.lua is the first file the toc names, so anything it throws takes the
+-- whole addon with it before there is a slash command to ask what went wrong.
+Mock.reset()
+local realGetBuildInfo = GetBuildInfo
+GetBuildInfo = nil
+ns = load("a client with no GetBuildInfo")
+GetBuildInfo = realGetBuildInfo
+if ns then
+	local scenario = "a client with no GetBuildInfo"
+	drive(scenario, ns)
+	local f = ns.Flavour or {}
+	if f.flavour ~= "unknown" then
+		fail(scenario, "decided on " .. tostring(f.flavour) .. " with nothing to read")
+	end
+	if f.family ~= "modern" then
+		fail(scenario, "guessed the " .. tostring(f.family)
+			.. " family when there was nothing to go on")
+	end
+	if not ns.FlavourSummary():find("GetBuildInfo", 1, true) then
+		fail(scenario, "said nothing about why it could not tell: "
+			.. ns.FlavourSummary())
+	end
+	Mock.advance(60)
+	ns.Guard("probe", ns.ProbeCapabilities)
+	if #ns.BuildQueue() == 0 then
+		fail(scenario, "a client that will not say what it is was left with"
+			.. " nobody to offer")
+	end
+end
+
+-- ------------------------------------------------------------------ 124
+-- What the probe makes of WoW Forever, which is the client that must not move.
+Mock.reset()
+ns = load("capabilities on Forever")
+if ns then
+	local scenario = "capabilities on Forever"
+	drive(scenario, ns)
+	Mock.advance(60)
+	ns.Guard("probe", ns.ProbeCapabilities)
+	local caps = ns.caps
+
+	if caps.flavour ~= "camelot" or caps.family ~= "modern" then
+		fail(scenario, "the probe carried " .. tostring(caps.flavour)
+			.. "/" .. tostring(caps.family))
+	end
+	-- Registration throws here, and the probe has to find that out by trying.
+	if caps.combatLogProbe ~= false then
+		fail(scenario, "the probe accepted a combat log registration this"
+			.. " client refuses: " .. tostring(caps.combatLogProbe))
+	end
+	if caps.combatLog ~= false then
+		fail(scenario, "believed the combat log is available here")
+	end
+	-- The assumption, stated: Forever keeps /target + /targetlasttarget.
+	if caps.conditionalTargeting ~= false then
+		fail(scenario, "offered conditional targeting on the one client whose"
+			.. " behaviour is not allowed to change")
+	end
+	if caps.unitNameIsSurname ~= true then
+		fail(scenario, "read UnitName's second return as a realm here, where it"
+			.. " is a surname")
+	end
+	if caps.targetExact ~= true or caps.unitConditionals ~= true then
+		fail(scenario, ("missed a command this client has: /targetexact=%s @unit=%s")
+			:format(tostring(caps.targetExact), tostring(caps.unitConditionals)))
+	end
+end
+
+-- ------------------------------------------------------------------ 125
+-- And of a Classic client, where the same questions have the other answers.
+Mock.reset()
+Mock.interface = 11509
+Mock.combatLog = true
+ns = load("capabilities on Classic Era")
+if ns then
+	local scenario = "capabilities on Classic Era"
+	drive(scenario, ns)
+	Mock.advance(60)
+	ns.Guard("probe", ns.ProbeCapabilities)
+	local caps = ns.caps
+
+	if caps.combatLog ~= true then
+		fail(scenario, "gave up the combat log on a client that still has it")
+	end
+	if caps.combatLogProbe ~= true then
+		fail(scenario, "a registration this client accepts was read as a refusal")
+	end
+	if caps.conditionalTargeting ~= true then
+		fail(scenario, "withheld conditional targeting from a client that has it")
+	end
+	if caps.unitNameIsSurname ~= false then
+		fail(scenario, "read UnitName's second return as a surname off Camelot,"
+			.. " which turns a realm into part of somebody's name")
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 126
+-- Secret restrictions are probed, not inferred from C_Secrets being there.
+--
+-- The namespace was backported to clients that are not withholding anything, so
+-- "the table exists" and "I am being kept out of something" are two questions.
+-- This addon has already answered the wrong one once.
+Mock.reset()
+Mock.secretRestrictions = false
+ns = load("C_Secrets present and nothing actually restricted")
+if ns then
+	local scenario = "C_Secrets present and nothing actually restricted"
+	drive(scenario, ns)
+	Mock.advance(60)
+	ns.Guard("probe", ns.ProbeCapabilities)
+	if ns.caps.hasSecrets ~= true then
+		fail(scenario, "SKIPPED -- C_Secrets was not there, so this proves nothing")
+	elseif ns.caps.secretRestrictions ~= false then
+		fail(scenario, "read the namespace being present as restrictions being"
+			.. " applied: secretRestrictions=" .. tostring(ns.caps.secretRestrictions))
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 127
+-- A client without /targetexact falls back rather than reporting one it has not
+-- got. /target matches a name prefix, so believing in a command that is not
+-- there is how "/target Mort" ends up buffing Mortimer.
+Mock.reset()
+local savedSecureCmdList, savedSlashExact = SecureCmdList, SLASH_TARGET_EXACT1
+SecureCmdList, SLASH_TARGET_EXACT1 = { TARGET = function() end }, nil
+ns = load("a client without /targetexact")
+if ns then
+	local scenario = "a client without /targetexact"
+	drive(scenario, ns)
+	Mock.advance(60)
+	ns.Guard("probe", ns.ProbeCapabilities)
+	if ns.caps.targetExact ~= false then
+		fail(scenario, "claimed /targetexact on a client that does not have it")
+	end
+end
+SecureCmdList, SLASH_TARGET_EXACT1 = savedSecureCmdList, savedSlashExact
+
+-- ------------------------------------------------------------------ 128
+-- /manners debug names the client, and names it for a class with nothing to
+-- cast.
+--
+-- Four of the five clients cannot be tested by anybody who works on this addon,
+-- so one user running one command is the whole of the evidence -- and it is
+-- only evidence if it says which client it came from. The rogue is the case
+-- that matters: the command returns early for a class with no buffs, and that
+-- early return used to be above every line describing the build.
+Mock.reset()
+Mock.class = "ROGUE"
+ns = load("debug names the client for a class with nothing to cast")
+if ns then
+	local scenario = "debug names the client for a class with nothing to cast"
+	drive(scenario, ns)
+
+	Mock.printed = {}
+	ns.addon:HandleSlash("debug")
+	local said = table.concat(Mock.printed, "\n")
+	if not said:find("camelot", 1, true) then
+		fail(scenario, "never named the flavour: " .. said)
+	end
+	if not said:find("interface=16001", 1, true) then
+		fail(scenario, "never named the interface number: " .. said)
+	end
+	if not said:find("conditional=", 1, true) then
+		fail(scenario, "never said whether conditional targeting is available: " .. said)
+	end
+	if not said:find("@unit=", 1, true) then
+		fail(scenario, "never said whether the @unit form is available: " .. said)
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 129
+-- No buff table at all.
+--
+-- ipairs over nil throws, and a file that throws while loading does not leave a
+-- broken addon behind -- it leaves no addon at all: no frame, no slash command,
+-- and no error for anybody who has not turned script errors on. From the user's
+-- side that is exactly what not having installed it looks like. Nothing can
+-- produce it today; the per-flavour split of the buff data is what will, the
+-- first time a flavour has no branch.
+Mock.reset()
+ns = load("no buff table for this client")
+if ns then
+	local scenario = "no buff table for this client"
+	drive(scenario, ns)
+
+	local realPrint = print
+	local said = {}
+	print = function(...)
+		local parts = {}
+		for i = 1, select("#", ...) do parts[i] = tostring((select(i, ...))) end
+		said[#said + 1] = table.concat(parts, " ")
+	end
+	ns.BUFFS = nil
+	local ok, err = pcall(ns.BuildBuffLookups)
+	print = realPrint
+
+	if not ok then
+		fail(scenario, "building the lookups with no table threw, which during"
+			.. " load means the addon does not exist: " .. tostring(err))
+	end
+	if not ns.BUFFS_MISSING then
+		fail(scenario, "no table, and nothing recorded to say so")
+	elseif not tostring(ns.BUFFS_MISSING):find("camelot", 1, true) then
+		fail(scenario, "said the table was missing without saying on which"
+			.. " client: " .. tostring(ns.BUFFS_MISSING))
+	end
+	if #said == 0 then
+		fail(scenario, "said nothing out loud, so the user sees an addon that"
+			.. " is installed and silent")
+	end
+
+	-- Leaving an empty table behind is half the guard's job: every reader of
+	-- ns.BUFFS downstream indexes it without asking, so a nil here throws from
+	-- somewhere else entirely -- the first slash command, in the middle of a
+	-- handler nothing wraps -- and the report is about that place instead.
+	if type(ns.BUFFS) ~= "table" then
+		fail(scenario, "left ns.BUFFS as " .. type(ns.BUFFS)
+			.. ", so the next reader of it throws somewhere unrelated")
+	end
+
+	-- And /manners debug repeats it, for the report that arrives later.
+	Mock.printed = {}
+	local spoke = pcall(ns.addon.HandleSlash, ns.addon, "debug")
+	if not spoke then
+		fail(scenario, "/manners debug threw with no buff table, so the one"
+			.. " command that could explain the silence is gone too")
+	elseif not table.concat(Mock.printed, "\n"):find("no buff data", 1, true) then
+		fail(scenario, "debug did not mention that there is no buff data at all")
+	end
+
+	-- The mirror: a real table leaves no complaint behind and rebuilds the
+	-- lookups, so deleting the guard's `else` path cannot pass by doing nothing.
+	ns.BUFFS = { MAGE = { { key = "intellect", ranks = { 1459 } } } }
+	ns.BuildBuffLookups()
+	if ns.BUFFS_MISSING then
+		fail(scenario, "a table that is there was still reported missing")
+	end
+	if not ns.ALL_BUFF_IDS[1459] or ns.BUFF_BY_ID[1459] == nil then
+		fail(scenario, "the lookups were not rebuilt from a table that is there")
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 130
+-- A toc whose file list has a typo in it.
+--
+-- The same dead-addon failure as the one above, arriving from the other
+-- direction: the client loads the files it can find, the missing one's chunk
+-- never runs, and every symbol it was meant to define is nil. Nothing is said
+-- and nothing appears, so it looks exactly like not having installed it.
+-- tests/validate.py is what stops a typo reaching a release; this is what keeps
+-- the diagnostic alive if one ever does, because /manners debug is then the
+-- only thing left that can name the missing file.
+--
+-- Loaded by hand rather than through load(), since the whole point is a file
+-- list that is missing an entry.
+Mock.reset()
+do
+	local scenario = "a toc that lost Flavour.lua from its file list"
+	local short = {}
+	local loaded = true
+	for _, file in ipairs({ "Buffs.lua", "Core.lua", "Prompt.lua", "Options.lua" }) do
+		local chunk, err = loadfile(dir .. "/" .. file)
+		if not chunk then
+			fail(scenario, "load " .. file .. ": " .. tostring(err))
+			loaded = false
+			break
+		end
+		local ok, runErr = pcall(chunk, "Manners", short)
+		if not ok then
+			fail(scenario, "run " .. file .. ": " .. tostring(runErr))
+			loaded = false
+			break
+		end
+	end
+
+	if loaded then
+		drive(scenario, short)
+
+		Mock.printed = {}
+		local spoke = pcall(short.addon.HandleSlash, short.addon, "debug")
+		if not spoke then
+			fail(scenario, "/manners debug threw with Flavour.lua missing, so"
+				.. " the one command that could name the missing file is gone")
+		elseif not table.concat(Mock.printed, "\n")
+			:find("Flavour.lua did not load", 1, true) then
+			fail(scenario, "debug never said which file failed to load: "
+				.. table.concat(Mock.printed, "\n"))
+		end
+
+		-- And the second consequence, which arrived with the per-flavour split:
+		-- the buff tables are chosen from ns.Flavour, so a client that never
+		-- loaded it has no spells either. That is the "installed and silent"
+		-- failure exactly, so it has to be said as well -- an addon that quietly
+		-- fell back to one flavour's data here would be guessing which client
+		-- this is, which is the thing Flavour.lua exists to stop.
+		if short.BUFFS_MISSING == nil then
+			fail(scenario, "no flavour, and the buff data it selects was reported"
+				.. " as present anyway")
+		end
+		if type(short.BUFFS) ~= "table" or type(short.CLASSES_WITHOUT_BUFFS) ~= "table"
+			or type(short.EXCLUSIVE_BUFFS) ~= "table" or type(short.CLASS_AUTO) ~= "table" then
+			fail(scenario, "left one of the four buff tables as something other"
+				.. " than a table, so the next reader of it throws somewhere"
+				.. " unrelated")
+		end
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 131
+-- Each client is handed its own spells.
+--
+-- A wrong table here has no symptom worth the name: the spells still cast, the
+-- prompt still appears, and one class is quietly never offered anything because
+-- the id it was given belongs to a spell this client deleted six expansions
+-- ago. The three vanilla-content flavours share one set on purpose -- Forever
+-- runs vanilla content and those tables are the only ones verified in game --
+-- and the assertions below say so, so that sharing cannot be undone by accident.
+local BUFF_SETS = {
+	{
+		interface = 11509, flavour = "vanilla", set = "vanilla", classic = true,
+		has = { PALADIN = "wisdom", PRIEST = "spirit", DRUID = "thorns", WARLOCK = "breath" },
+		absent = { "MONK", "EVOKER", "DEATHKNIGHT" },
+		without = { "HUNTER", "ROGUE", "SHAMAN" },
+		exclusive = { PALADIN = true },
+	},
+	{
+		interface = 20506, flavour = "tbc", set = "vanilla", classic = true,
+		has = { PALADIN = "wisdom", PRIEST = "spirit", DRUID = "thorns" },
+		absent = { "MONK", "EVOKER", "DEATHKNIGHT" },
+		without = { "HUNTER", "ROGUE", "SHAMAN" },
+		exclusive = { PALADIN = true },
+	},
+	{
+		interface = 16001, flavour = "camelot", set = "vanilla",
+		has = { PALADIN = "wisdom", PRIEST = "spirit", DRUID = "thorns" },
+		absent = { "MONK", "EVOKER", "DEATHKNIGHT" },
+		without = { "HUNTER", "ROGUE", "SHAMAN" },
+		exclusive = { PALADIN = true },
+	},
+	{
+		interface = 50504, flavour = "mists", set = "mists", classic = true,
+		has = { PALADIN = "kings", MONK = "whitetiger", WARLOCK = "darkintent",
+			DEATHKNIGHT = "hornofwinter" },
+		-- Removed from the game by 5.5, and every one of them a spell this
+		-- addon offered on the flavour above.
+		gone = { PALADIN = "wisdom", PRIEST = "spirit", DRUID = "thorns" },
+		absent = { "EVOKER" },
+		without = { "HUNTER", "ROGUE", "SHAMAN" },
+		exclusive = { PALADIN = true },
+	},
+	{
+		interface = 120100, flavour = "mainline", set = "mainline",
+		has = { SHAMAN = "skyfury", EVOKER = "bronze", MAGE = "intellect",
+			PRIEST = "fortitude" },
+		absent = { "PALADIN", "DEATHKNIGHT", "MONK", "WARLOCK" },
+		-- Three classes that used to be the backbone of this addon, and the
+		-- shaman moving the other way: totems on vanilla, Skyfury on retail.
+		without = { "PALADIN", "DEATHKNIGHT", "HUNTER", "ROGUE", "WARLOCK", "MONK" },
+		exclusive = {},
+	},
+}
+for _, want in ipairs(BUFF_SETS) do
+	local scenario = want.flavour .. " gets the " .. want.set .. " spells"
+	Mock.reset()
+	Mock.interface = want.interface
+	-- The client behaves like the one its number claims to be: the three
+	-- Classic flavours still hand addons the combat log, the two modern ones
+	-- throw on the registration.
+	Mock.combatLog = want.classic == true
+	ns = load(scenario)
+	if ns then
+		drive(scenario, ns)
+
+		if not tostring(ns.BUFFS_SOURCE):find(want.set, 1, true) then
+			fail(scenario, "says its buff data came from "
+				.. tostring(ns.BUFFS_SOURCE))
+		end
+		if ns.BUFFS_MISSING then
+			fail(scenario, "a flavour with a set of its own reported none: "
+				.. tostring(ns.BUFFS_MISSING))
+		end
+
+		for class, key in pairs(want.has) do
+			if not ns.FindBuff(class, key) then
+				fail(scenario, ("%s has no %s, which is one of this client's"):format(class, key))
+			end
+		end
+		for class, key in pairs(want.gone or {}) do
+			if ns.FindBuff(class, key) then
+				fail(scenario, ("%s is still offered %s, which this client does not have")
+					:format(class, key))
+			end
+		end
+		for _, class in ipairs(want.absent) do
+			if ns.BUFFS[class] then
+				fail(scenario, class .. " was given spells on a client where it has none")
+			end
+		end
+		for _, class in ipairs(want.without) do
+			if ns.CLASSES_WITHOUT_BUFFS[class] ~= true then
+				fail(scenario, class .. " has nothing to give here and the options"
+					.. " page is not allowed to say so")
+			end
+		end
+		for class in pairs(want.exclusive) do
+			if ns.EXCLUSIVE_BUFFS[class] ~= true then
+				fail(scenario, class .. "'s buffs replace one another here, so the"
+					.. " walk would take away what the last click gave")
+			end
+		end
+
+		-- The contradiction, which is the mistake a hand-maintained pair of
+		-- lists actually makes: a class in both is told it has nothing while
+		-- holding a list of spells, and which of the two the user is shown
+		-- depends on which screen they opened.
+		for class in pairs(ns.BUFFS) do
+			if ns.CLASSES_WITHOUT_BUFFS[class] then
+				fail(scenario, class .. " is in the buff tables and in the list of"
+					.. " classes with nothing to offer")
+			end
+		end
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 132
+-- A retail paladin, which is the class this round deletes.
+--
+-- Kings, Might and Wisdom went in 7.0.3 and Blessing of the Seasons in 12.0.0,
+-- so a paladin on Midnight has nothing to put on a passer-by. "Nothing" has to
+-- arrive as the honest sentence a rogue already gets, not as an empty prompt, a
+-- silent addon, or an error -- the class is listed in the tables above it on
+-- every other client, so every path here is one that used to find spells.
+Mock.reset()
+Mock.interface = 120100
+Mock.class = "PALADIN"
+ns = load("a retail paladin is told so plainly")
+if ns then
+	local scenario = "a retail paladin is told so plainly"
+	drive(scenario, ns)
+	Mock.advance(60)
+	ns.Guard("probe", ns.ProbeCapabilities)
+
+	if ns.caps.hasClassBuffs ~= false then
+		fail(scenario, "found buffs for a class that has none on this client")
+	end
+	if #ns.BuildQueue() ~= 0 then
+		fail(scenario, "offered somebody a spell this class no longer has")
+	end
+
+	Mock.printed = {}
+	local spoke = pcall(ns.addon.HandleSlash, ns.addon, "debug")
+	local said = table.concat(Mock.printed, "\n")
+	if not spoke then
+		fail(scenario, "/manners debug threw for a class with nothing to cast")
+	elseif not said:find("no buffs to cast on other players", 1, true) then
+		fail(scenario, "debug did not say the class has nothing: " .. said)
+	end
+	-- Above the early return, as ever: the report that matters most from a
+	-- client nobody here can run is the one that says nothing is happening.
+	if not said:find("mainline", 1, true) then
+		fail(scenario, "debug never named the client or its buff data: " .. said)
+	end
+
+	local page = ns.optionsTable and ns.optionsTable.args.general
+		and ns.optionsTable.args.general.args.noBuffs
+	if not page then
+		fail(scenario, "SKIPPED -- the page has nothing to say about a class with nothing")
+	else
+		local text = page.name()
+		if not text:find("no buffs it can cast", 1, true) then
+			fail(scenario, "the page gave the vague answer -- 'could not work out"
+				.. " what you can cast' -- for a class we know has nothing: " .. text)
+		end
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 133
+-- One cast, thirteen auras.
+--
+-- Blessing of the Bronze is cast as 364342 and lands as one of thirteen
+-- per-class auras, none of which share an id with it. Matching only the cast id
+-- means the buff is never seen on anybody: the person you just blessed reads as
+-- missing it, so every evoker in the game rebuffs the same passer-by forever,
+-- and a stranger who blessed you is never recognised as having done you a
+-- favour. The `group` list is what carries these -- the same field, and the same
+-- matching, as the raid-wide vanilla buffs.
+Mock.reset()
+Mock.interface = 120100
+Mock.class = "EVOKER"
+ns = load("one cast that lands as thirteen different auras")
+if ns then
+	local scenario = "one cast that lands as thirteen different auras"
+	local bronze = ns.FindBuff("EVOKER", "bronze")
+	if not bronze then
+		fail(scenario, "SKIPPED -- retail evokers have no Blessing of the Bronze")
+	else
+		local realKnown = IsSpellKnown
+		IsSpellKnown = function(id) return id == bronze.ranks[1] end
+		IsPlayerSpell = IsSpellKnown
+
+		drive(scenario, ns)
+		Mock.advance(60)
+		ns.Guard("probe", ns.ProbeCapabilities)
+
+		-- A stranger's Blessing arrives as one of the thirteen and nothing else,
+		-- so this is the whole of "did somebody just do me a favour".
+		for _, id in ipairs({ 381732, 381746, 381758 }) do
+			if not ns.ALL_BUFF_IDS[id] then
+				fail(scenario, id .. " is not recognised as a class buff at all,"
+					.. " so being blessed with it is not a favour anybody owes back")
+			elseif ns.BUFF_BY_ID[id] ~= bronze then
+				fail(scenario, id .. " does not point back at the Blessing")
+			end
+		end
+
+		local before = ns.BuildQueue()
+		if #before == 0 then
+			fail(scenario, "SKIPPED -- nobody was offered the Blessing to begin with")
+		else
+			-- The same person, now carrying one of the thirteen. The default is
+			-- to leave somebody alone once they have it, so the queue emptying
+			-- is the proof that the aura was recognised as ours.
+			-- Past the three-second aura cache, which would otherwise answer
+			-- this from the read taken before the buff landed.
+			Mock.held = { [381732] = true }
+			Mock.advance(10)
+			local after = ns.BuildQueue()
+			for _, entry in ipairs(after) do
+				if entry.name == before[1].name and entry.buff == bronze then
+					fail(scenario, "offered the Blessing to somebody already carrying"
+						.. " it, because the aura it lands as is not matched")
+				end
+			end
+			Mock.held = nil
+		end
+
+		IsSpellKnown = realKnown
+		IsPlayerSpell = realKnown
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 134
+-- The one spell Automatic must never reach for.
+--
+-- Unending Breath is a real warlock buff and it is in the tables so that
+-- somebody who wants it can pin it. What it is not is a courtesy: handing water
+-- breathing to a stranger standing in a city is the sort of thing that gets an
+-- addon uninstalled. Automatic walks the class list, so without a way to say
+-- "offerable, never automatic" the walk finds it the moment Dark Intent is on
+-- cooldown, unknown, or switched off.
+Mock.reset()
+Mock.interface = 50504
+Mock.combatLog = true
+Mock.class = "WARLOCK"
+ns = load("Automatic never hands over Unending Breath")
+if ns then
+	local scenario = "Automatic never hands over Unending Breath"
+	local dark, breath = ns.FindBuff("WARLOCK", "darkintent"), ns.FindBuff("WARLOCK", "breath")
+	if not (dark and breath) then
+		fail(scenario, "SKIPPED -- a Mists warlock has no Dark Intent or no Unending Breath")
+	else
+		local known = { [dark.ranks[1]] = true, [breath.ranks[1]] = true }
+		local realKnown = IsSpellKnown
+		IsSpellKnown = function(id) return known[id] == true end
+		IsPlayerSpell = IsSpellKnown
+
+		drive(scenario, ns)
+		Mock.advance(60)
+		ns.Guard("probe", ns.ProbeCapabilities)
+
+		local keys = {}
+		for _, buff in ipairs(ns.CastableBuffs()) do keys[#keys + 1] = buff.key end
+		local list = table.concat(keys, ",")
+		if not list:find("darkintent", 1, true) then
+			fail(scenario, "Dark Intent is not offered at all: " .. list)
+		end
+		if list:find("breath", 1, true) then
+			fail(scenario, "Unending Breath is on the Automatic walk: " .. list)
+		end
+		if ns.ResolveBuff(true) ~= dark then
+			fail(scenario, "Automatic resolved to "
+				.. tostring(ns.ResolveBuff(true) and ns.ResolveBuff(true).key))
+		end
+
+		-- And with Dark Intent unlearned there is nothing to fall back to, which
+		-- is the point: nobody is offered anything rather than being offered
+		-- water breathing.
+		known[dark.ranks[1]] = nil
+		ns.Guard("probe", ns.ProbeCapabilities)
+		if #ns.CastableBuffs() ~= 0 then
+			fail(scenario, "fell back to Unending Breath when Dark Intent was"
+				.. " unlearned")
+		end
+		if ns.ResolveBuff(true) ~= nil then
+			fail(scenario, "Automatic resolved to something with only Unending"
+				.. " Breath learned")
+		end
+
+		-- And the page says which of the four reasons this is. "Every spell is
+		-- switched off" and "you have not learned any" are both false here, and
+		-- both send somebody looking at controls that are already right.
+		local note = ns.optionsTable and ns.optionsTable.args.who
+			and ns.optionsTable.args.who.args.autoNote
+		if not note then
+			fail(scenario, "SKIPPED -- the page has no explanation of Automatic")
+		else
+			local text = note.name()
+			if text:find("switched off", 1, true) or text:find("not learned any", 1, true) then
+				fail(scenario, "the page blamed the switches or the spellbook for a"
+					.. " spell Automatic is refusing on purpose: " .. text)
+			end
+			if not text:find("Unending Breath", 1, true) then
+				fail(scenario, "the page does not name the spell it is holding back: "
+					.. text)
+			end
+		end
+
+		-- Pinned, it works like any other spell. "Never automatic" is not "never".
+		known[breath.ranks[1]] = true
+		ns.db.profile.buff.choice = "breath"
+		ns.Guard("probe", ns.ProbeCapabilities)
+		local pinned = ns.CastableBuffs()
+		if #pinned ~= 1 or pinned[1] ~= breath then
+			fail(scenario, "pinning Unending Breath left " .. #pinned
+				.. " spells castable, so a pin that PickBuffFor never reads is a"
+				.. " silent switch-off")
+		end
+		ns.db.profile.buff.choice = "auto"
+
+		IsSpellKnown = realKnown
+		IsPlayerSpell = realKnown
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 135
+-- A spell id that does not exist on the client Manners is actually running on.
+--
+-- This is the failure with no symptom. A wrong id means the buff is never
+-- offered and nothing is ever said: the spell probe reports "not learned", which
+-- is indistinguishable from a character who has not learned it, and the bug
+-- report is "my shaman does nothing" from a client nobody here can start. Four
+-- of the five clients are in that position, so the addon checks its own data
+-- against the client and complains where somebody will see it.
+Mock.reset()
+Mock.interface = 120100
+Mock.class = "SHAMAN"
+Mock.unknownSpells = { [462854] = true }
+ns = load("a spell id this client has never heard of")
+if ns then
+	local scenario = "a spell id this client has never heard of"
+	drive(scenario, ns)
+	Mock.advance(60)
+	ns.Guard("probe", ns.ProbeCapabilities)
+
+	local info = ns.caps.buffs.skyfury
+	if not info then
+		fail(scenario, "SKIPPED -- retail shamans have no Skyfury to get wrong")
+	else
+		if not info.unresolved or #info.unresolved == 0 then
+			fail(scenario, "an id the client does not have was recorded as fine")
+		end
+		if ns.caps.unresolvedBuffs ~= 1 then
+			fail(scenario, "counted " .. tostring(ns.caps.unresolvedBuffs)
+				.. " buffs with ids this client does not have")
+		end
+
+		Mock.printed = {}
+		local spoke = pcall(ns.addon.HandleSlash, ns.addon, "debug")
+		local said = table.concat(Mock.printed, "\n")
+		if not spoke then
+			fail(scenario, "/manners debug threw on a buff whose ids do not resolve")
+		elseif not said:find("462854", 1, true) then
+			fail(scenario, "debug never named the id this client does not have: " .. said)
+		end
+
+		-- And on the page, for the far larger number of people who will never
+		-- type a slash command.
+		local diag = ns.optionsTable and ns.optionsTable.args.diagnostics
+			and ns.optionsTable.args.diagnostics.args.diag
+		if not diag then
+			fail(scenario, "SKIPPED -- there is no diagnostics text to read")
+		elseif not diag.name():find("462854", 1, true) then
+			fail(scenario, "the diagnostics page says nothing about a spell this"
+				.. " client does not have: " .. diag.name())
+		end
+	end
+
+	-- The mirror. Every id resolving must leave no complaint behind, or the
+	-- warning is decoration and the next real one is ignored.
+	Mock.unknownSpells = nil
+	ns.Guard("probe", ns.ProbeCapabilities)
+	if ns.caps.unresolvedBuffs ~= 0 then
+		fail(scenario, "complained about ids the client answered for")
+	end
+	Mock.printed = {}
+	pcall(ns.addon.HandleSlash, ns.addon, "debug")
+	if table.concat(Mock.printed, "\n"):find("never heard of", 1, true) then
+		fail(scenario, "debug still reports a spell the client knows about")
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 136
+-- What UnitName's second return means, which is a different thing on Camelot
+-- from everywhere else.
+--
+-- A surname joins with a space, and that is the form verified in game on
+-- Camelot. A realm does not: "Mort Ravencrest" names nobody, and a realm is
+-- present at all only for a player from another one. The form the game itself
+-- writes is "Mort-Ravencrest", and a same-realm player gets nil back and is
+-- simply "Mort".
+--
+-- This is the identity -- the key debts are filed under, on disk -- so the
+-- assertion is about the key, and the spelling the macro aims at gets its own
+-- scenario below.
+for _, want in ipairs({
+	{ interface = 16001, classic = false, flavour = "camelot",
+		joined = "Mort Defrette", aimed = "Mort Defrette" },
+	{ interface = 11509, classic = true, flavour = "vanilla",
+		joined = "Mort-Defrette", aimed = "Mort" },
+	{ interface = 120100, classic = false, flavour = "mainline",
+		joined = "Mort-Defrette", aimed = "Mort" },
+}) do
+	local scenario = "UnitName's second return on " .. want.flavour
+	Mock.reset()
+	Mock.interface = want.interface
+	Mock.combatLog = want.classic
+	ns = load(scenario)
+	if ns then
+		drive(scenario, ns)
+		local realName = UnitName
+
+		UnitName = function() return "Mort", "Defrette" end
+		local key = ns.UnitFullName("target")
+		if key ~= want.joined then
+			fail(scenario, "filed them under '" .. tostring(key) .. "', not '"
+				.. want.joined .. "'")
+		end
+		if ns.TargetName(key) ~= want.aimed then
+			fail(scenario, "would aim at '" .. tostring(ns.TargetName(key))
+				.. "', not '" .. want.aimed .. "'")
+		end
+
+		-- On Camelot nothing at all comes off the key, and that is the rule
+		-- rather than an accident of the names it happens to produce. Nobody
+		-- has documented what the second return is there for a player from
+		-- another realm, so the join UnitFullName already makes is the only
+		-- thing known to be right and no rule written for realms may reach it.
+		-- Off Camelot the same string is a realm and the realm comes off.
+		local odd = "Mort Defrette-Ravencrest"
+		local kept = want.flavour == "camelot" and odd or "Mort Defrette"
+		if ns.TargetName(odd) ~= kept then
+			fail(scenario, "'" .. odd .. "' would be aimed at as '"
+				.. tostring(ns.TargetName(odd)) .. "', not '" .. kept .. "'")
+		end
+
+		-- Nobody from another realm, which off Camelot is nearly everybody:
+		-- one name, no separator, and above all no trailing one.
+		UnitName = function() return "Mort", nil end
+		if ns.UnitFullName("target") ~= "Mort" then
+			fail(scenario, "a player with no second return came back as '"
+				.. tostring(ns.UnitFullName("target")) .. "'")
+		end
+		UnitName = function() return "Mort", "" end
+		if ns.UnitFullName("target") ~= "Mort" then
+			fail(scenario, "an empty second return left '"
+				.. tostring(ns.UnitFullName("target")) .. "'")
+		end
+
+		UnitName = realName
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 137
+-- The identity and the spelling are two different strings, and each has to go
+-- to the right place.
+--
+-- Off Camelot a cross-realm player is filed as "Vann-Ravencrest" -- that is the
+-- key for debts, which are written to disk and read back after a reload, so it
+-- must not move. But /target is a name search over the units the client has
+-- drawn in, not a lookup of a unit id, and the realm is not part of what it
+-- searches: the macro has to say "Vann".
+--
+-- Both halves of the queue are checked, because they get the answer from
+-- different places: the main path has a unit token and the owed fallback has
+-- nothing but the key.
+Mock.reset()
+Mock.interface = 11509
+Mock.combatLog = true
+Mock.unitName = { "Vann", "Ravencrest" }
+ns = load("the key keeps the realm and the macro drops it")
+if ns then
+	local scenario = "the key keeps the realm and the macro drops it"
+	drive(scenario, ns)
+	Mock.advance(60)
+	wipe(ns.tried)
+	wipe(ns.owed)
+
+	local entry = ns.BuildQueue()[1]
+	if not entry or not entry.buff then
+		fail(scenario, "SKIPPED -- nobody to build a macro for")
+	else
+		if entry.name ~= "Vann-Ravencrest" then
+			fail(scenario, "filed a cross-realm player as " .. tostring(entry.name))
+		end
+		if entry.targetName ~= "Vann" then
+			fail(scenario, "would aim the macro at " .. tostring(entry.targetName))
+		end
+
+		ns.Prompt:InvalidateMacro()
+		ns.Prompt:ApplyTarget(entry)
+		local macro = tostring(ns.lastMacro or "")
+		local aimed
+		for line in macro:gmatch("[^\r\n]+") do
+			if line:find("^" .. ns.TargetCommand() .. " ") then aimed = line end
+		end
+		if aimed ~= ns.TargetCommand() .. " Vann" then
+			fail(scenario, "the targeting line is '" .. tostring(aimed) .. "'")
+		end
+
+		-- And the console keeps the two apart, because working out what
+		-- resolves on a client nobody here can start is the whole of what it is
+		-- for. A single token that sometimes means one and sometimes the other
+		-- would make every experiment run on it ambiguous.
+		local expanded = ns.ExpandTokens("{name}|{aim}")
+		if expanded ~= "Vann-Ravencrest|Vann" then
+			fail(scenario, "/manners try expands {name}|{aim} to '" .. tostring(expanded) .. "'")
+		end
+
+		-- And the debt, which is what the key exists for: the game names the
+		-- person the spell reached by the spelling the macro used, and that is
+		-- not the string the debt is filed under. Judging the two against each
+		-- other by eye is what this record avoids.
+		ns.pendingClick = nil
+		ns.owed[entry.name] = { expires = GetTime() + 100, at = GetTime() }
+		local button = ns.Prompt:GetButton()
+		local post = button.scripts.PostClick
+		if post then pcall(post, button, "LeftButton", true) end
+		if not ns.pendingClick then
+			fail(scenario, "SKIPPED -- the press left nothing to settle")
+		else
+			if ns.pendingClick.aimedAt ~= "Vann" then
+				fail(scenario, "the press recorded aiming at "
+					.. tostring(ns.pendingClick.aimedAt))
+			end
+			ns.addon:UNIT_SPELLCAST_SENT(nil, "player", "Vann", nil,
+				entry.buff.ranks[1])
+			if ns.owed[entry.name] then
+				fail(scenario, "the buff reached them under the name the macro used and"
+					.. " the favour was still counted unpaid")
+			end
+		end
+	end
+
+	-- The tokenless half. Somebody who buffed you and walked off is offered from
+	-- the debt alone, so the spelling has to come out of the key -- there is no
+	-- unit left to ask.
+	wipe(ns.tried)
+	wipe(ns.owed)
+	ns.pendingClick = nil
+	ns.owed["Iris-Ravencrest"] = { expires = GetTime() + 100, at = GetTime(),
+		class = "PRIEST" }
+	local gone
+	for _, candidate in ipairs(ns.BuildQueue()) do
+		if candidate.name == "Iris-Ravencrest" then gone = candidate end
+	end
+	if not gone then
+		fail(scenario, "SKIPPED -- the tokenless fallback offered nobody")
+	elseif gone.targetName ~= "Iris" then
+		fail(scenario, "the fallback would aim at " .. tostring(gone.targetName))
+	end
+	wipe(ns.owed)
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 138
+-- The targeting command follows the probe, in the macro and not merely in caps.
+--
+-- /target matches a name prefix, so "/target Mort" finds Mortimer standing
+-- beside Mort and buffs -- and speaks at -- the wrong player. /targetexact
+-- cannot. It is a client-side command, so its absence is a fallback rather than
+-- a failure, and the fallback has to be the working one.
+for _, want in ipairs({
+	{ label = "a client with /targetexact", exact = true, command = "/targetexact" },
+	{ label = "a client without /targetexact", exact = false, command = "/target" },
+}) do
+	Mock.reset()
+	local savedList, savedSlash = SecureCmdList, SLASH_TARGET_EXACT1
+	if not want.exact then
+		SecureCmdList, SLASH_TARGET_EXACT1 = { TARGET = function() end }, nil
+	end
+	local scenario = want.label .. " builds " .. want.command
+	ns = load(scenario)
+	if ns then
+		drive(scenario, ns)
+		Mock.advance(60)
+		ns.Guard("probe", ns.ProbeCapabilities)
+
+		if ns.caps.targetExact ~= want.exact then
+			fail(scenario, "the probe said targetExact=" .. tostring(ns.caps.targetExact))
+		end
+		if ns.TargetCommand() ~= want.command then
+			fail(scenario, "would write " .. tostring(ns.TargetCommand()))
+		end
+
+		wipe(ns.tried)
+		local entry = ns.BuildQueue()[1]
+		if not entry or not entry.buff or entry.buff.selfCast then
+			fail(scenario, "SKIPPED -- nobody to build a targeting line for")
+		else
+			ns.Prompt:InvalidateMacro()
+			ns.Prompt:ApplyTarget(entry)
+			local macro = tostring(ns.lastMacro or "")
+			local first = macro:match("^([^\r\n]+)")
+			if first ~= want.command .. " " .. tostring(entry.targetName) then
+				fail(scenario, "the macro opens with '" .. tostring(first) .. "'")
+			end
+		end
+	end
+	SecureCmdList, SLASH_TARGET_EXACT1 = savedList, savedSlash
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 139
+-- The spoken line's budget is measured against the lines actually built, and
+-- /targetexact is five characters longer than /target. A budget that did not
+-- follow the command would promise a line the macro then silently dropped --
+-- which is the bug the measured budget was written to end.
+Mock.reset()
+ns = load("the budget follows the targeting command")
+if ns then
+	local scenario = "the budget follows the targeting command"
+	drive(scenario, ns)
+	Mock.advance(60)
+	ns.Guard("probe", ns.ProbeCapabilities)
+
+	wipe(ns.tried)
+	local entry = ns.BuildQueue()[1]
+	if not entry or not entry.buff or entry.buff.selfCast then
+		fail(scenario, "SKIPPED -- nobody to measure a budget against")
+	else
+		local spell = ns.BuffName(entry.buff)
+		local want = ns.MACRO_LIMIT
+			- #(ns.TargetCommand() .. " " .. tostring(entry.targetName)
+				.. "\n/cast " .. spell)
+			- 1 - #"/targetlasttarget" - 1
+		if ns.PhraseBudget(entry) ~= want then
+			fail(scenario, ("the budget is %s, and the lines it has to fit beside come to %s")
+				:format(tostring(ns.PhraseBudget(entry)), tostring(ns.MACRO_LIMIT - want)))
+		end
+		-- The whole macro still fits, which is the limit that actually matters.
+		ns.db.profile.speech.enabled = true
+		ns.db.profile.speech.onlyWhenReturning = false
+		ns.db.profile.speech.phrases = string.rep("x", ns.PhraseBudget(entry) - #"/say ")
+		ns.Prompt:InvalidateMacro()
+		ns.Prompt:ApplyTarget(entry)
+		local macro = tostring(ns.lastMacro or "")
+		if not macro:find("\n/say ", 1, true) then
+			fail(scenario, "a line measured to fit exactly was dropped")
+		end
+		if #macro > ns.MACRO_LIMIT then
+			fail(scenario, "the macro came out at " .. #macro .. " characters")
+		end
+		ns.db.profile.speech.enabled = false
+		ns.db.profile.speech.onlyWhenReturning = true
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 140
+-- The settle path is told what the macro aimed at; it does not work it out.
+--
+-- Today's only strategy aims at a spelling the settle path could reconstruct
+-- from the key on its own -- the bare first name and the name without a
+-- cross-realm suffix are both accepted, and they happen to cover it. That is
+-- what makes this worth pinning: the reconstruction agrees by luck, and a
+-- second targeting strategy added later would break the agreement silently, with
+-- every favour reported as having gone to a stranger and never settling.
+--
+-- So this drives the contract directly, with a record whose aimed-at spelling
+-- none of the fallback rules can reach. The pairing is deliberately one no
+-- current strategy produces; it is the future one's shape.
+Mock.reset()
+ns = load("the settle path is told what the macro aimed at")
+if ns then
+	local scenario = "the settle path is told what the macro aimed at"
+	drive(scenario, ns)
+	Mock.advance(60)
+
+	local buff = ns.FindBuff("MAGE", "intellect")
+	if not buff then
+		fail(scenario, "SKIPPED -- no buff to settle a cast of")
+	else
+		local key, aimed = "Vann Locke", "Locke of Ravencrest"
+		local function park()
+			Mock.advance(1)
+			wipe(ns.tried)
+			ns.owed[key] = { expires = GetTime() + 100, at = GetTime() }
+			ns.pendingClick = { name = key, at = GetTime(), buffKey = buff.key,
+				selfCast = false, targeted = true, aimedAt = aimed }
+		end
+
+		-- The client names the person the macro aimed at. That is the favour
+		-- returned, whatever the key looks like.
+		park()
+		ns.addon:UNIT_SPELLCAST_SENT(nil, "player", aimed, nil, buff.ranks[1])
+		if ns.owed[key] then
+			fail(scenario, "the buff reached the name the macro itself wrote and the"
+				.. " favour was still counted unpaid")
+		end
+
+		-- And the mirror, or "accept the builder's word" would quietly become
+		-- "accept anything": somebody the macro did not aim at is still a
+		-- stranger who got your buff, and the debt stands.
+		park()
+		ns.addon:UNIT_SPELLCAST_SENT(nil, "player", "Mortimer Vale", nil, buff.ranks[1])
+		if not ns.owed[key] then
+			fail(scenario, "a cast that landed on somebody else counted as the favour"
+				.. " returned")
+		end
+		wipe(ns.owed)
+		ns.pendingClick = nil
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 141
+-- The combat log is asked for only where the client has one.
+--
+-- Registering COMBAT_LOG_EVENT_UNFILTERED is refused outright on Forever and on
+-- retail 12.0+, and a refused registration inside OnEnable is the exact class of
+-- failure that once stopped the aura scanner from ever starting. So it is asked
+-- for on the three classic flavours and nowhere else.
+for _, want in ipairs({
+	{ flavour = "camelot", interface = 16001, log = false },
+	{ flavour = "vanilla", interface = 11509, log = true },
+	{ flavour = "tbc", interface = 20506, log = true },
+	{ flavour = "mists", interface = 50504, log = true },
+	{ flavour = "mainline", interface = 120100, log = false },
+}) do
+	local scenario = "the combat log on " .. want.flavour
+	Mock.reset()
+	Mock.interface = want.interface
+	Mock.combatLog = want.log
+	ns = load(scenario)
+	if ns then
+		drive(scenario, ns)
+		local asked = Mock.registeredEvents["COMBAT_LOG_EVENT_UNFILTERED"] == true
+		if asked ~= want.log then
+			fail(scenario, "the event was " .. (asked and "asked for" or "never asked for"))
+		end
+		if ns.logScan.armed ~= want.log then
+			fail(scenario, "armed=" .. tostring(ns.logScan.armed))
+		end
+	end
+end
+
+-- ...and a client that is classified as having a log and then refuses is one
+-- source, not a broken addon. The refusal is caught and said out loud, the flag
+-- stays down, and everything after it in OnEnable still runs -- which is the
+-- whole reason this registration is not inside the loop with the others.
+Mock.reset()
+Mock.interface = 50504
+Mock.combatLog = false
+ns = load("a classic client that refuses the combat log")
+if ns then
+	local scenario = "a classic client that refuses the combat log"
+	local ok, err = pcall(function()
+		ns.addon:OnInitialize()
+		ns.addon:OnEnable()
+	end)
+	if not ok then
+		fail(scenario, "the refusal took OnEnable down: " .. tostring(err))
+	end
+	if ns.logScan.armed ~= false then
+		fail(scenario, "armed the log after the client refused it")
+	end
+	if not ns.addon.scanTimer then
+		fail(scenario, "the refusal took the aura scanner with it")
+	end
+	local said
+	for _, e in ipairs(ns.errors or {}) do
+		if tostring(e.where):find("COMBAT_LOG_EVENT_UNFILTERED", 1, true) then said = true end
+	end
+	if not said then fail(scenario, "the refusal was swallowed without a word") end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 142
+-- The one thing the combat log does that the aura scan cannot do on any client.
+--
+-- aura.sourceUnit is a unit token everywhere, so a stranger the client holds no
+-- token for -- not your target, not your mouseover, no nameplate, standing
+-- behind you -- reads as nil and cannot be identified at all. SPELL_AURA_APPLIED
+-- carries their GUID, and GetPlayerInfoByGUID turns a GUID into a name and a
+-- class with no token anywhere in it. On the three flavours with a log, that
+-- person can be thanked.
+Mock.reset()
+Mock.interface = 50504
+Mock.combatLog = true
+Mock.guids = { ["Player-1-PETRA"] = { class = "PRIEST", name = "Petra", realm = "" } }
+ns = load("a stranger with no nameplate")
+if ns then
+	local scenario = "a stranger with no nameplate"
+	drive(scenario, ns)
+	Mock.advance(60)
+	wipe(ns.owed)
+	wipe(ns.tried)
+
+	ns.db.profile.verbose = true
+	Mock.printed = {}
+	ns.addon:COMBAT_LOG_EVENT_UNFILTERED()
+
+	-- Through NoteFavour and not past it. The chat line, the debt and the write
+	-- to disk are one act, and a source that files the debt by hand gets a
+	-- prompt that works and a user who is never told why -- which is the whole
+	-- of what "feed the existing machinery" means here.
+	local said
+	for _, line in ipairs(Mock.printed) do
+		if line:find("Petra buffed you", 1, true) then said = true end
+	end
+	if not said then
+		fail(scenario, "the favour was filed without going through NoteFavour"
+			.. " -- nothing was said")
+	end
+
+	local debt = ns.owed["Petra"]
+	if not debt then
+		fail(scenario, "the log watched a buff land on us and filed nobody")
+	else
+		-- The class is the half of this the aura scan could not have supplied
+		-- either, and the tokenless fallback in BuildQueue has nothing else to
+		-- judge what to offer them with.
+		if debt.class ~= "PRIEST" then
+			fail(scenario, "filed their class as " .. tostring(debt.class))
+		end
+		if debt.guid ~= "Player-1-PETRA" then
+			fail(scenario, "filed their guid as " .. tostring(debt.guid))
+		end
+	end
+
+	-- And it reaches the prompt, which is the only thing that ever returns a
+	-- favour. A debt nothing offers is a debt nobody repays.
+	local offered
+	for _, entry in ipairs(ns.BuildQueue()) do
+		if entry.name == "Petra" then offered = entry end
+	end
+	if not offered then
+		fail(scenario, "the favour was recorded and never offered")
+	elseif offered.reason ~= "owed" then
+		fail(scenario, "offered them for " .. tostring(offered.reason))
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 143
+-- One buff landing, two sources that cannot see each other, one favour.
+--
+-- Where the client has a log, the ordinary case is that both sources see the
+-- same cast: the log line arrives, and the aura scan then reads the same aura
+-- off a nameplate. Announcing it twice would say "Petra buffed you" twice and
+-- write the debt through twice for one courtesy.
+--
+-- Both orders, because nothing decides which source gets there first.
+for _, order in ipairs({ "log first", "aura scan first" }) do
+	local scenario = "one landing seen twice, " .. order
+	Mock.reset()
+	Mock.interface = 50504
+	Mock.combatLog = true
+	-- The two sources have to spell the same person the same way or the
+	-- duplicate is invisible: two keys are two people, and each would be filed
+	-- and offered on its own.
+	Mock.unitName = { "Petra", "Stonewell" }
+	Mock.guids = { ["Player-1-PETRA"] = { class = "PRIEST", name = "Petra", realm = "Stonewell" } }
+	Mock.extraAuraSpell = 21562
+	Mock.extraAuraSource = "nameplate1"
+	Mock.extraAuraUntil = 5000
+	ns = load(scenario)
+	if ns then
+		drive(scenario, ns)
+		Mock.advance(60)
+		wipe(ns.owed)
+		wipe(ns.tried)
+		ns.db.profile.verbose = true
+
+		local function announced()
+			local n = 0
+			for _, line in ipairs(Mock.printed) do
+				if line:find("buffed you", 1, true) then n = n + 1 end
+			end
+			return n
+		end
+
+		local function fromTheLog() ns.addon:COMBAT_LOG_EVENT_UNFILTERED() end
+		local function fromTheScan()
+			-- A new aura in the list, which is what the scan has to read to
+			-- notice anything at all.
+			Mock.extraAura = 3003
+			ns.ScanOwnBuffs()
+		end
+
+		Mock.printed = {}
+		if order == "log first" then
+			fromTheLog()
+			fromTheScan()
+		else
+			fromTheScan()
+			fromTheLog()
+		end
+
+		if announced() ~= 1 then
+			fail(scenario, "one courtesy was announced " .. announced() .. " times")
+		end
+		if not ns.owed["Petra-Stonewell"] then
+			fail(scenario, "neither source filed the favour at all")
+		end
+		local people = 0
+		for _ in pairs(ns.owed) do people = people + 1 end
+		if people ~= 1 then
+			fail(scenario, "one person who buffed us was filed as " .. people .. " debts")
+		end
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 144
+-- The mark the two sources agree on is CONSUMED, not left to time out.
+--
+-- That difference is the whole of it. A suppression window would swallow the
+-- next cast of the same buff by the same person, which really is a second
+-- favour; consuming the mark means the second source takes it away and the
+-- landing after that starts again from nothing.
+Mock.reset()
+Mock.interface = 50504
+Mock.combatLog = true
+Mock.unitName = { "Petra", "Stonewell" }
+Mock.guids = { ["Player-1-PETRA"] = { class = "PRIEST", name = "Petra", realm = "Stonewell" } }
+Mock.extraAuraSpell = 21562
+Mock.extraAuraSource = "nameplate1"
+Mock.extraAuraUntil = 5000
+ns = load("the mark is consumed rather than timed out")
+if ns then
+	local scenario = "the mark is consumed rather than timed out"
+	drive(scenario, ns)
+	Mock.advance(60)
+	wipe(ns.owed)
+	wipe(ns.tried)
+	ns.db.profile.verbose = true
+
+	local function announced()
+		local n = 0
+		for _, line in ipairs(Mock.printed) do
+			if line:find("buffed you", 1, true) then n = n + 1 end
+		end
+		return n
+	end
+
+	-- The log sees it, the scan reads the same aura, one favour. The scan has
+	-- taken the mark away on its way past.
+	Mock.printed = {}
+	ns.addon:COMBAT_LOG_EVENT_UNFILTERED()
+	Mock.extraAura = 3003
+	ns.ScanOwnBuffs()
+	if announced() ~= 1 then
+		fail(scenario, "the pair was announced " .. announced() .. " times")
+	end
+
+	-- Now the same person casts the same buff again, with no clock moved at
+	-- all. Nothing is left to suppress it, so it is a favour and is said.
+	wipe(ns.owed)
+	Mock.printed = {}
+	ns.addon:COMBAT_LOG_EVENT_UNFILTERED()
+	if announced() ~= 1 then
+		fail(scenario, "a second cast inside the window was announced "
+			.. announced() .. " times -- the mark was a timer, not a claim")
+	end
+	if not ns.owed["Petra-Stonewell"] then
+		fail(scenario, "a second favour from the same person was not filed")
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 145
+-- What the log is allowed to skip, and what it is not.
+--
+-- The corroboration and the settled baseline exist because a scan of your own
+-- aura list can misread it. A log line is an event and there is nothing to
+-- doubt, so none of that applies -- a favour arrives whether or not the aura
+-- scan has ever produced a reading it believes. The switches are a different
+-- thing entirely: they are the user saying no, and they mean here exactly what
+-- they mean to the scan.
+Mock.reset()
+Mock.interface = 50504
+Mock.combatLog = true
+Mock.guids = { ["Player-1-PETRA"] = { class = "PRIEST", name = "Petra", realm = "" } }
+-- The client will not show the aura list at all, so the baseline never settles
+-- and the scan is doubted for the whole session. On Forever that is the end of
+-- the matter; here it is not.
+Mock.auraBlackout = true
+ns = load("the log does not wait for the aura scan")
+if ns then
+	local scenario = "the log does not wait for the aura scan"
+	drive(scenario, ns)
+	Mock.advance(60)
+	wipe(ns.owed)
+
+	if ns.auraScan.primed then
+		fail(scenario, "SKIPPED -- the baseline settled and the case is not modelled")
+	else
+		ns.addon:COMBAT_LOG_EVENT_UNFILTERED()
+		if not ns.owed["Petra"] then
+			fail(scenario, "a log line was held back by machinery built for the aura scan")
+		end
+	end
+end
+Mock.reset()
+
+for _, want in ipairs({
+	{ label = "the addon switched off", apply = function(db) db.enabled = false end },
+	{ label = "the owed source switched off", apply = function(db) db.sources.owed = false end },
+}) do
+	local scenario = "the log obeys " .. want.label
+	Mock.reset()
+	Mock.interface = 50504
+	Mock.combatLog = true
+	Mock.guids = { ["Player-1-PETRA"] = { class = "PRIEST", name = "Petra", realm = "" } }
+	ns = load(scenario)
+	if ns then
+		drive(scenario, ns)
+		Mock.advance(60)
+		wipe(ns.owed)
+		want.apply(ns.db.profile)
+
+		ns.addon:COMBAT_LOG_EVENT_UNFILTERED()
+		if ns.owed["Petra"] then
+			fail(scenario, "a favour was filed with " .. want.label)
+		end
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 146
+-- What comes off the log before anything is looked up.
+--
+-- Everything within fifty yards arrives here, so each of these is both a
+-- correctness rule and the reason the handler is cheap. Each case changes one
+-- field of the line and nothing else, so a test cannot pass by accident for
+-- having moved something it does not mention.
+for _, case in ipairs({
+	{ label = "a subevent that is not an aura landing",
+		cleu = { subevent = "SPELL_DAMAGE" } },
+	{ label = "a debuff", cleu = { auraType = "DEBUFF" } },
+	{ label = "a buff that landed on somebody else",
+		cleu = { destGUID = "Player-1-VANN" } },
+	{ label = "our own buff on ourselves",
+		cleu = { sourceGUID = "Player-1-player" } },
+	{ label = "a caster the log would not name",
+		cleu = { sourceGUID = Mock.NONE } },
+	{ label = "a spell the log would not name", cleu = { spellId = Mock.NONE } },
+	{ label = "a heal-over-time rather than a class buff", cleu = { spellId = 774 } },
+	{ label = "an NPC", cleu = { sourceGUID = "Creature-1-FLAMEWAKER" } },
+}) do
+	local scenario = "the log ignores " .. case.label
+	Mock.reset()
+	Mock.interface = 50504
+	Mock.combatLog = true
+	Mock.guids = {
+		["Player-1-PETRA"] = { class = "PRIEST", name = "Petra", realm = "" },
+		-- Ourselves, nameable from our own GUID the way the client really does
+		-- name us. Without this the "our own buff" case below would file nobody
+		-- because the log could not name the caster, which is a different rule
+		-- from the one it is about -- and it passed for that reason with the
+		-- rule it is about deleted.
+		["Player-1-player"] = { class = "MAGE", name = "Mort", realm = "" },
+	}
+	ns = load(scenario)
+	if ns then
+		drive(scenario, ns)
+		Mock.advance(60)
+		wipe(ns.owed)
+
+		-- The control first: the line as it stands is a favour, so a case that
+		-- files nothing is doing it for the field it changed and not because
+		-- this whole setup files nothing.
+		ns.addon:COMBAT_LOG_EVENT_UNFILTERED()
+		if not ns.owed["Petra"] then
+			fail(scenario, "SKIPPED -- the unaltered line was not a favour either")
+		end
+		wipe(ns.owed)
+		-- Far enough on that the control's claim has gone stale.
+		--
+		-- Most of these cases leave the caster and the spell alone, so the mark
+		-- the control left behind is the mark the case would claim -- and the
+		-- case would then file nothing because the mark was consumed rather
+		-- than because the field it changed was filtered. Every one of these
+		-- passed for that reason before the clock was moved, and four of them
+		-- went on passing with the filter they are about deleted.
+		Mock.advance(30)
+
+		Mock.cleu = case.cleu
+		-- Ignored, not thrown on. A handler that dies on a line it cannot use
+		-- stops being a source, and the log carries every shape of line there
+		-- is -- so "we filed nobody" is only half the guarantee.
+		local before = #ns.errors
+		ns.addon:COMBAT_LOG_EVENT_UNFILTERED()
+		local filed
+		for name in pairs(ns.owed) do filed = name end
+		if filed then
+			fail(scenario, "filed " .. tostring(filed) .. " as owing a favour")
+		end
+		if #ns.errors > before then
+			fail(scenario, "threw on it: " .. tostring(ns.errors[#ns.errors].err))
+		end
+		Mock.cleu = nil
+	end
+end
+Mock.reset()
+
+-- ...and the class-buff filter is the setting it says it is, on this source as
+-- much as on the scan. Somebody who has turned it off has asked for every aura
+-- that lands to count.
+Mock.reset()
+Mock.interface = 50504
+Mock.combatLog = true
+Mock.guids = { ["Player-1-PETRA"] = { class = "PRIEST", name = "Petra", realm = "" } }
+Mock.cleu = { spellId = 774 }
+ns = load("every incoming aura counts when the filter is off")
+if ns then
+	local scenario = "every incoming aura counts when the filter is off"
+	drive(scenario, ns)
+	Mock.advance(60)
+	wipe(ns.owed)
+	ns.db.profile.sources.owedClassBuffsOnly = false
+
+	ns.addon:COMBAT_LOG_EVENT_UNFILTERED()
+	if not ns.owed["Petra"] then
+		fail(scenario, "the filter was switched off and a stray aura still did not count")
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 147
+-- Both sources spell the same person the same way, because the key is what
+-- debts are filed under and the two would otherwise be two people.
+--
+-- The aura scan joins UnitName's two returns; the log joins the name and realm
+-- GetPlayerInfoByGUID gives back. One function makes the join for both, and this
+-- is the proof it is reached from the log as well -- a cross-realm player keeps
+-- the realm in the key and loses it on the /target line, and a same-realm player
+-- whose realm comes back empty must not be left with a trailing separator.
+Mock.reset()
+Mock.interface = 50504
+Mock.combatLog = true
+Mock.cleu = { sourceGUID = "Player-1-IRIS", sourceName = "Iris-Ravencrest" }
+ns = load("a cross-realm favour off the log")
+if ns then
+	local scenario = "a cross-realm favour off the log"
+	drive(scenario, ns)
+	Mock.advance(60)
+	wipe(ns.owed)
+	wipe(ns.tried)
+
+	ns.addon:COMBAT_LOG_EVENT_UNFILTERED()
+	if not ns.owed["Iris-Ravencrest"] then
+		local filed
+		for name in pairs(ns.owed) do filed = name end
+		fail(scenario, "filed them as " .. tostring(filed) .. ", not Iris-Ravencrest")
+	elseif ns.owed["Iris-Ravencrest"].class ~= "DRUID" then
+		fail(scenario, "filed their class as "
+			.. tostring(ns.owed["Iris-Ravencrest"].class))
+	else
+		local offered
+		for _, entry in ipairs(ns.BuildQueue()) do
+			if entry.name == "Iris-Ravencrest" then offered = entry end
+		end
+		if not offered then
+			fail(scenario, "a cross-realm favour was filed and never offered")
+		elseif offered.targetName ~= "Iris" then
+			fail(scenario, "would aim the macro at " .. tostring(offered.targetName))
+		end
+	end
+end
+Mock.reset()
+
+Mock.interface = 50504
+Mock.combatLog = true
+Mock.guids = { ["Player-1-PETRA"] = { class = "PRIEST", name = "Petra", realm = "" } }
+ns = load("a same-realm favour off the log")
+if ns then
+	local scenario = "a same-realm favour off the log"
+	drive(scenario, ns)
+	Mock.advance(60)
+	wipe(ns.owed)
+
+	ns.addon:COMBAT_LOG_EVENT_UNFILTERED()
+	local filed
+	for name in pairs(ns.owed) do filed = name end
+	if filed ~= "Petra" then
+		fail(scenario, "an empty realm left them filed as " .. tostring(filed))
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 148
+-- The mock can be any of the five clients, and it and the addon agree about
+-- which one it is.
+--
+-- Four of the five cannot be started by anybody working on this addon, so every
+-- claim made about them below is really a claim about the mock. Setting the
+-- interface number, the project id, the combat log, UnitName and UnitBuff by
+-- hand in each scenario lets a test be a client that does not exist -- Forever
+-- with a combat log, retail with surnames -- and such a test agrees with
+-- whatever the code happens to do. Mock.setFlavour is the one place those five
+-- facts are kept together, and this is the check that they are the right five.
+--
+-- The band trap is asserted from here as well as from 120 because this is the
+-- route everything below takes. 16001 and 11509 are both five digits beginning
+-- with a 1, and Camelot is handed the vanilla spells on purpose, so a detector
+-- that called Camelot vanilla would be wrong in a way that very nearly works.
+local CLIENTS = {
+	{ flavour = "camelot", family = "modern", interface = 16001,
+		project = WOW_PROJECT_MAINLINE, set = "vanilla", surname = true },
+	{ flavour = "mainline", family = "modern", interface = 120100,
+		project = WOW_PROJECT_MAINLINE, set = "mainline", surname = false },
+	{ flavour = "mists", family = "classic", interface = 50504,
+		project = WOW_PROJECT_MISTS_CLASSIC, set = "mists", surname = false },
+	{ flavour = "tbc", family = "classic", interface = 20506,
+		project = WOW_PROJECT_BURNING_CRUSADE_CLASSIC, set = "vanilla", surname = false },
+	{ flavour = "vanilla", family = "classic", interface = 11509,
+		project = WOW_PROJECT_CLASSIC, set = "vanilla", surname = false },
+}
+for _, want in ipairs(CLIENTS) do
+	local scenario = "the mock as " .. want.flavour
+	Mock.reset()
+	Mock.setFlavour(want.flavour)
+	ns = load(scenario)
+	if ns then
+		drive(scenario, ns)
+		Mock.advance(60)
+		ns.Guard("probe", ns.ProbeCapabilities)
+
+		-- What the client says about itself, before the addon reads any of it.
+		-- A mock that set the flavour name and left GetBuildInfo alone would make
+		-- every detection assertion below a tautology.
+		if select(4, GetBuildInfo()) ~= want.interface then
+			fail(scenario, "GetBuildInfo reports interface "
+				.. tostring(select(4, GetBuildInfo())))
+		end
+		if WOW_PROJECT_ID ~= want.project then
+			fail(scenario, "reports project id " .. tostring(WOW_PROJECT_ID))
+		end
+
+		-- And what the addon made of it.
+		local f = ns.Flavour or {}
+		if f.flavour ~= want.flavour or f.family ~= want.family then
+			fail(scenario, "was read as " .. tostring(f.flavour) .. "/" .. tostring(f.family))
+		end
+		if f.recognised ~= true then
+			fail(scenario, "did not recognise a client it has a band for")
+		end
+		-- The interface number and the project id tell the same story here, and
+		-- the disagreement line in a bug report means nothing if it is on
+		-- permanently.
+		if f.agrees == false then
+			fail(scenario, "the two say different things: " .. ns.FlavourSummary())
+		end
+		if not tostring(ns.BUFFS_SOURCE):find(want.set, 1, true) then
+			fail(scenario, "was handed the " .. tostring(ns.BUFFS_SOURCE) .. " spells")
+		end
+
+		-- The four differences that have no probe and no second opinion.
+		if ns.caps.combatLog ~= (want.family == "classic") then
+			fail(scenario, "combatLog=" .. tostring(ns.caps.combatLog))
+		end
+		if ns.caps.unitNameIsSurname ~= want.surname then
+			fail(scenario, "unitNameIsSurname=" .. tostring(ns.caps.unitNameIsSurname))
+		end
+		if (type(_G.UnitBuff) == "function") ~= (want.family == "classic") then
+			fail(scenario, "UnitBuff is " .. (_G.UnitBuff and "present" or "absent")
+				.. " on a client where it is not")
+		end
+		if ns.caps.conditionalTargeting ~= Mock.conditionalTargeting then
+			fail(scenario, ("the addon believes conditional targeting is %s and the"
+				.. " client behaves as though it is %s"):format(
+				tostring(ns.caps.conditionalTargeting), tostring(Mock.conditionalTargeting)))
+		end
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 149
+-- The project id cannot name a flavour on its own, from either direction.
+--
+-- Two failures, and the mock can now produce both. Camelot and retail report the
+-- same project id, so anything that reads it to tell them apart gets whichever
+-- one it tested against. And on a client where the constants are missing
+-- altogether, `WOW_PROJECT_ID == WOW_PROJECT_CLASSIC` is nil == nil and every
+-- such test is true at once -- which would hand a modern client the classic
+-- family, the combat log with it, and a registration that throws.
+Mock.reset()
+Mock.setFlavour("camelot")
+local camelotProject = WOW_PROJECT_ID
+Mock.setFlavour("mainline")
+if WOW_PROJECT_ID ~= camelotProject then
+	fail("the project id cannot tell Camelot from retail",
+		"the two clients report different project ids -- " .. tostring(camelotProject)
+			.. " and " .. tostring(WOW_PROJECT_ID) .. " -- so this suite is no longer"
+			.. " modelling the thing that makes the interface number load-bearing")
+end
+Mock.reset()
+
+-- Each flavour in turn, with the project constants taken away. The interface
+-- number is the one thing left, and it has to be enough -- on every one of them,
+-- not just on the one whose number happened to be tried first.
+for _, want in ipairs(CLIENTS) do
+	local scenario = "no project constants on " .. want.flavour
+	Mock.reset()
+	Mock.setFlavour(want.flavour)
+	local saved = {
+		WOW_PROJECT_ID, WOW_PROJECT_MAINLINE, WOW_PROJECT_CLASSIC,
+		WOW_PROJECT_BURNING_CRUSADE_CLASSIC, WOW_PROJECT_MISTS_CLASSIC,
+	}
+	WOW_PROJECT_ID, WOW_PROJECT_MAINLINE, WOW_PROJECT_CLASSIC = nil, nil, nil
+	WOW_PROJECT_BURNING_CRUSADE_CLASSIC, WOW_PROJECT_MISTS_CLASSIC = nil, nil
+	ns = load(scenario)
+	WOW_PROJECT_ID, WOW_PROJECT_MAINLINE, WOW_PROJECT_CLASSIC = saved[1], saved[2], saved[3]
+	WOW_PROJECT_BURNING_CRUSADE_CLASSIC, WOW_PROJECT_MISTS_CLASSIC = saved[4], saved[5]
+	if ns then
+		drive(scenario, ns)
+		local f = ns.Flavour or {}
+		if f.flavour ~= want.flavour or f.family ~= want.family then
+			fail(scenario, "with nothing but the interface number it decided "
+				.. tostring(f.flavour) .. "/" .. tostring(f.family))
+		end
+		-- nil == nil comparing true would have left a project entry standing, and
+		-- the disagreement line would then be on for every user of this client.
+		if f.agrees ~= nil then
+			fail(scenario, "compared the interface number against a project id that"
+				.. " is not there, and got " .. tostring(f.agrees))
+		end
+		if f.project ~= nil then
+			fail(scenario, "invented a project id of " .. tostring(f.project))
+		end
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 150
+-- The macro, on every client, for a stranger and for somebody in the group.
+--
+-- There is one targeting strategy in this version and it ships everywhere:
+-- /target them, cast, hand the target back. [@nameplateN] is invalid on every
+-- client and [@PlayerName] resolves only for party and raid members, so the
+-- /target route is the only way to reach an ungrouped stranger anywhere -- and a
+-- stranger is the whole reason this addon exists. It works perfectly well for a
+-- group member too, so there is no second shape.
+--
+-- Asserted on all five because the cost of being wrong is silent: a conditional
+-- that resolves to nothing casts nothing and says nothing, so an addon that
+-- quietly never worked would look exactly like an addon nobody had buffed.
+for _, want in ipairs(CLIENTS) do
+	for _, who in ipairs({ "a stranger", "a group member" }) do
+		local scenario = who .. " on " .. want.flavour .. " gets the /target macro"
+		Mock.reset()
+		Mock.setFlavour(want.flavour)
+		-- A mage on every client: Arcane Intellect is in all three buff sets and
+		-- carries id 1459 in each, which is the one spell the mock's IsSpellKnown
+		-- answers for. Anything else would test the buff tables rather than the
+		-- macro.
+		Mock.class = "MAGE"
+		-- Off Camelot a same-realm player has no second return, and nearly
+		-- everybody is same-realm; on Camelot every player has a surname.
+		local aimedAt = want.surname and "Petra Stonewell" or "Petra"
+		if who == "a group member" then
+			Mock.groupSize = 3
+			Mock.unitNames = { party1 = { "Rell" } }
+			-- In the group by name as well as by count, so the conditional the
+			-- next scenario tries would genuinely resolve for them. A group
+			-- member who is not in the group is not a test of anything.
+			Mock.groupNames = { Rell = true }
+			aimedAt = "Rell"
+		end
+		ns = load(scenario)
+		if ns then
+			drive(scenario, ns)
+			Mock.advance(60)
+			wipe(ns.tried)
+
+			local entry
+			for _, candidate in ipairs(ns.BuildQueue()) do
+				if candidate.name == aimedAt then entry = candidate end
+			end
+			if not entry then
+				fail(scenario, "nobody called " .. aimedAt .. " was offered")
+			else
+				ns.Prompt:InvalidateMacro()
+				ns.Prompt:ApplyTarget(entry)
+				local macro = tostring(ns.lastMacro or "")
+				local lines = {}
+				for line in macro:gmatch("[^\r\n]+") do lines[#lines + 1] = line end
+
+				if #lines ~= 3 then
+					fail(scenario, "armed " .. #lines .. " lines: " .. macro:gsub("\n", " | "))
+				end
+				if lines[1] ~= ns.TargetCommand() .. " " .. aimedAt then
+					fail(scenario, "the targeting line is '" .. tostring(lines[1]) .. "'")
+				end
+				if lines[2] ~= "/cast Arcane Intellect" then
+					fail(scenario, "the cast line is '" .. tostring(lines[2]) .. "'")
+				end
+				if lines[3] ~= "/targetlasttarget" then
+					fail(scenario, "the last line is '" .. tostring(lines[3])
+						.. "', so the player's own target is not handed back")
+				end
+
+				-- The strategy that is deliberately not built. A conditional here
+				-- would be untested on four clients and silent when it failed, and
+				-- a bare trailing clause -- the shape somebody reaches for next --
+				-- always matches and casts on whatever is currently targeted,
+				-- which is the exact bug this addon exists to avoid.
+				if macro:find("[@", 1, true) then
+					fail(scenario, "took the conditional route: " .. macro:gsub("\n", " | "))
+				end
+				if #macro > ns.MACRO_LIMIT then
+					fail(scenario, "the macro came out at " .. #macro .. " characters")
+				end
+			end
+		end
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 151
+-- The identity and the spelling, on every client.
+--
+-- The key is what debts are filed under, and it is written to disk and read back
+-- after a reload, so it must be the same string on both sides of a login. The
+-- /target line is a name search over the units the client has drawn in, and the
+-- realm is not part of what it searches. Off Camelot those are two different
+-- strings for the same person and each has to go to its own place.
+--
+-- Camelot is in the loop for the opposite reason: nothing at all comes off the
+-- key there, and that is a rule rather than an accident of the names the mock
+-- happens to produce. Nobody has documented what the second return is on Camelot
+-- for a player from another realm, so the join that is verified in game is the
+-- only thing known to be right and no rule written for realms may reach it.
+for _, want in ipairs(CLIENTS) do
+	local scenario = "a player from another realm on " .. want.flavour
+	Mock.reset()
+	Mock.setFlavour(want.flavour)
+	Mock.crossRealm = true
+	Mock.unitName = { "Vann", "Ravencrest" }
+	ns = load(scenario)
+	if ns then
+		drive(scenario, ns)
+		Mock.advance(60)
+		wipe(ns.tried)
+		wipe(ns.owed)
+
+		local key = want.surname and "Vann Ravencrest" or "Vann-Ravencrest"
+		local aim = want.surname and "Vann Ravencrest" or "Vann"
+
+		local entry
+		for _, candidate in ipairs(ns.BuildQueue()) do
+			if candidate.name == key then entry = candidate end
+		end
+		if not entry then
+			fail(scenario, "filed them under something other than '" .. key .. "'")
+		else
+			if entry.targetName ~= aim then
+				fail(scenario, "would aim the macro at " .. tostring(entry.targetName))
+			end
+
+			ns.Prompt:InvalidateMacro()
+			ns.Prompt:ApplyTarget(entry)
+			local first = tostring(ns.lastMacro or ""):match("^([^\r\n]+)")
+			if first ~= ns.TargetCommand() .. " " .. aim then
+				fail(scenario, "the targeting line is '" .. tostring(first) .. "'")
+			end
+
+			-- And the debt, which is the whole reason the two are kept apart. The
+			-- game names the person the spell reached by the spelling the macro
+			-- used, and off Camelot that is not the string the debt is filed
+			-- under; a settle path that compared them by eye would leave every
+			-- cross-realm favour unpaid for ever.
+			ns.pendingClick = nil
+			ns.owed[key] = { expires = GetTime() + 100, at = GetTime() }
+			local button = ns.Prompt:GetButton()
+			local post = button.scripts.PostClick
+			if post then pcall(post, button, "LeftButton", true) end
+			if not ns.pendingClick then
+				fail(scenario, "SKIPPED -- the press left nothing to settle")
+			else
+				if ns.pendingClick.aimedAt ~= aim then
+					fail(scenario, "the press recorded aiming at "
+						.. tostring(ns.pendingClick.aimedAt))
+				end
+				ns.addon:UNIT_SPELLCAST_SENT(nil, "player", aim, nil, entry.buff.ranks[1])
+				if ns.owed[key] then
+					fail(scenario, "the buff reached them under the name the macro"
+						.. " itself wrote and the favour was still counted unpaid")
+				end
+			end
+			wipe(ns.owed)
+			ns.pendingClick = nil
+		end
+	end
+end
+Mock.reset()
+
+-- ...and the ordinary case off Camelot, which is nearly every player: no realm
+-- at all. A join that always ran would leave a trailing separator on a name the
+-- client will never find, and it would do it for everybody rather than for the
+-- handful of people the case above is about.
+for _, want in ipairs(CLIENTS) do
+	if not want.surname then
+		local scenario = "a same-realm player on " .. want.flavour
+		Mock.reset()
+		Mock.setFlavour(want.flavour)
+		Mock.unitName = { "Vann", "Ravencrest" }
+		ns = load(scenario)
+		if ns then
+			drive(scenario, ns)
+			local realName = UnitName
+			local key = ns.UnitFullName("target")
+			UnitName = realName
+			if key ~= "Vann" then
+				fail(scenario, "a player with no realm was filed as '" .. tostring(key) .. "'")
+			end
+			if ns.TargetName(key) ~= "Vann" then
+				fail(scenario, "would aim at '" .. tostring(ns.TargetName(key)) .. "'")
+			end
+		end
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 152
+-- The classes retail left with nothing at all.
+--
+-- The Blessings died in 7.0.3 and Blessing of the Seasons in 12.0.0; Horn of
+-- Winter went in 11.2.0. A paladin and a death knight on Midnight have nothing
+-- to put on a passer-by, and "nothing" has to arrive as the plain sentence a
+-- rogue already gets rather than as an empty prompt, a silent addon or an error.
+--
+-- Both classes hold spells on another client, which is what makes this worth
+-- asserting rather than assuming: every path here is one that finds something on
+-- the flavour below, so the emptiness is a fact about retail and not about the
+-- addon having stopped looking.
+for _, want in ipairs({
+	{ class = "PALADIN", elsewhere = { flavour = "mists", key = "kings" } },
+	{ class = "DEATHKNIGHT", elsewhere = { flavour = "mists", key = "hornofwinter" } },
+}) do
+	-- Deliberately not the name scenario 132 uses. selftest matches a mutation
+	-- against the failing line by substring, and two scenarios whose names are
+	-- one word apart make every attribution between them a coin toss.
+	local scenario = "a retail " .. want.class:lower() .. " has nothing to offer"
+	Mock.reset()
+	Mock.setFlavour("mainline")
+	Mock.class = want.class
+	ns = load(scenario)
+	if ns then
+		drive(scenario, ns)
+		Mock.advance(60)
+		ns.Guard("probe", ns.ProbeCapabilities)
+
+		if ns.caps.hasClassBuffs ~= false then
+			fail(scenario, "found buffs for a class that has none on this client")
+		end
+		if #ns.BuildQueue() ~= 0 then
+			fail(scenario, "offered somebody a spell this class no longer has")
+		end
+		-- Named, so the honest sentence is reachable. A class that is simply
+		-- absent from the tables gets the vague one -- "could not work out what
+		-- you can cast" -- which reads as a broken addon.
+		if ns.CLASSES_WITHOUT_BUFFS[want.class] ~= true then
+			fail(scenario, "has nothing to give here and is not listed as such, so"
+				.. " the page cannot say so plainly")
+		end
+
+		Mock.printed = {}
+		local spoke = pcall(ns.addon.HandleSlash, ns.addon, "debug")
+		local said = table.concat(Mock.printed, "\n")
+		if not spoke then
+			fail(scenario, "/manners debug threw for a class with nothing to cast")
+		elseif not said:find("no buffs to cast on other players", 1, true) then
+			fail(scenario, "debug did not say the class has nothing: " .. said)
+		elseif not said:find("mainline", 1, true) then
+			fail(scenario, "debug never named the client, which is the one thing a"
+				.. " report from a client nobody here can run has to carry: " .. said)
+		end
+
+		local page = ns.optionsTable and ns.optionsTable.args.general
+			and ns.optionsTable.args.general.args.noBuffs
+		if not page then
+			fail(scenario, "SKIPPED -- the page has nothing to say about a class with nothing")
+		elseif not page.name():find("no buffs it can cast", 1, true) then
+			fail(scenario, "the page gave the vague answer for a class we know has"
+				.. " nothing: " .. page.name())
+		end
+	end
+
+	-- The same class, on a client where it has something. Without this the
+	-- assertions above pass just as well for a class the addon has forgotten how
+	-- to look up at all.
+	local other = "a " .. want.elsewhere.flavour .. " " .. want.class:lower()
+		.. " still has something"
+	Mock.reset()
+	Mock.setFlavour(want.elsewhere.flavour)
+	Mock.class = want.class
+	ns = load(other)
+	if ns then
+		drive(other, ns)
+		if not ns.FindBuff(want.class, want.elsewhere.key) then
+			fail(other, "lost " .. want.elsewhere.key .. " on a client that has it")
+		end
+		if ns.CLASSES_WITHOUT_BUFFS[want.class] then
+			fail(other, "is listed as having nothing while holding a list of spells")
+		end
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 153
+-- UnitBuff is never called, on the clients that still have it.
+--
+-- UnitBuff and UnitAura were removed from retail and from Forever and are alive
+-- on the three Classic flavours. C_UnitAuras is on all five, so there is no
+-- client where a fallback to the old pair would be reached by anybody who needs
+-- it -- it would be a second scanner that only ever runs where it is not wanted,
+-- and it would rot unnoticed because the client that has it is not the client
+-- anybody tests on.
+--
+-- An absent function proves nothing: not calling something that is not there is
+-- not a choice. So the mock puts a working UnitBuff where the addon could reach
+-- it and counts the times it did.
+for _, want in ipairs(CLIENTS) do
+	local scenario = "the aura scan on " .. want.flavour .. " does not use UnitBuff"
+	Mock.reset()
+	Mock.setFlavour(want.flavour)
+	ns = load(scenario)
+	if ns then
+		drive(scenario, ns)
+		Mock.advance(60)
+		ns.ScanOwnBuffs()
+
+		if Mock.counts.unitBuff ~= 0 then
+			fail(scenario, "called UnitBuff " .. Mock.counts.unitBuff .. " times")
+		end
+		-- And it read the auras some other way, or the count above is zero
+		-- because nothing scanned at all.
+		if Mock.counts.auraRead == 0 then
+			fail(scenario, "read no auras through C_UnitAuras either, so nothing"
+				.. " was scanning and the count above proves nothing")
+		end
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 154
+-- Why the /target route ships on every client, stated as the clients' own
+-- behaviour rather than as a comment.
+--
+-- [@PlayerName] resolves for a player in your party or raid and for nobody else,
+-- on all five. The person this addon exists for -- somebody who buffed you in
+-- passing and is not in your group -- therefore resolves nowhere, and a
+-- conditional aimed at them casts nothing and says nothing.
+for _, want in ipairs(CLIENTS) do
+	local scenario = "a conditional aimed at a stranger on " .. want.flavour
+	Mock.reset()
+	Mock.setFlavour(want.flavour)
+	Mock.groupNames = { Rell = true }
+
+	local stranger = SecureCmdOptionParse("[@Petra,help,nodead] Arcane Intellect")
+	if stranger ~= nil then
+		fail(scenario, "resolved to '" .. tostring(stranger) .. "' for somebody who"
+			.. " is not in the group")
+	end
+
+	-- And a group member, where the two modern-engine clients part company: the
+	-- restriction that rules this out on Camelot is the reason Camelot keeps the
+	-- route verified in game there.
+	local member = SecureCmdOptionParse("[@Rell,help,nodead] Arcane Intellect")
+	local reaches = member ~= nil
+	if reaches ~= (want.flavour ~= "camelot") then
+		fail(scenario, "a conditional naming a group member " ..
+			(reaches and "resolved" or "resolved to nothing")
+			.. ", which is not what this client does")
+	end
+
+	-- An ordinary conditional with no unit in it is not this question and must
+	-- still come back, or the probe above is measuring the parser being broken.
+	if SecureCmdOptionParse("[nocombat] Arcane Intellect") ~= "Arcane Intellect" then
+		fail(scenario, "a conditional naming nobody resolved to '"
+			.. tostring(SecureCmdOptionParse("[nocombat] Arcane Intellect")) .. "'")
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 155
+-- The combat log, on each client in turn and through the one knob that decides
+-- which client this is.
+--
+-- Registering COMBAT_LOG_EVENT_UNFILTERED is refused outright on Forever and on
+-- retail 12.0+, and a refused registration inside OnEnable is the exact failure
+-- that once stopped the aura scanner from ever starting. So it is asked for on
+-- the three Classic flavours and nowhere else.
+for _, want in ipairs(CLIENTS) do
+	local classic = want.family == "classic"
+	-- Not the name 141 uses, for the reason given above scenario 152: this asks
+	-- the same question of a client that is this flavour in every respect rather
+	-- than in two, and the two checks have to be tellable apart when one fires.
+	local scenario = "the combat log on a whole " .. want.flavour .. " client"
+	Mock.reset()
+	Mock.setFlavour(want.flavour)
+	ns = load(scenario)
+	if ns then
+		drive(scenario, ns)
+		local asked = Mock.registeredEvents["COMBAT_LOG_EVENT_UNFILTERED"] == true
+		if asked ~= classic then
+			fail(scenario, "the event was " .. (asked and "asked for" or "never asked for"))
+		end
+		if ns.logScan.armed ~= classic then
+			fail(scenario, "armed=" .. tostring(ns.logScan.armed))
+		end
+	end
+end
+Mock.reset()
+
+-- The one thing the log does that no aura scan can do on any client: name
+-- somebody the client holds no unit token for.
+--
+-- aura.sourceUnit is a unit token everywhere, so a stranger who is not your
+-- target, not your mouseover and has no nameplate reads as nil and cannot be
+-- identified at all. SPELL_AURA_APPLIED carries their GUID, and
+-- GetPlayerInfoByGUID turns a GUID into a name and a class with no token
+-- anywhere in it. Asserted on each of the three flavours that have a log, not
+-- just the one it was first written against: the buff sets differ between them,
+-- and a filter that consults the buff tables is the obvious way for this to work
+-- on one client and silently stop on another.
+for _, want in ipairs(CLIENTS) do
+	if want.family == "classic" then
+		local scenario = "a stranger with no nameplate on " .. want.flavour
+		Mock.reset()
+		Mock.setFlavour(want.flavour)
+		-- Nobody the aura scan could have seen, so nothing but the log can
+		-- possibly account for the name below.
+		Mock.extraAuraSource = nil
+		Mock.guids = { ["Player-1-PETRA"] = { class = "PRIEST", name = "Petra", realm = "" } }
+		ns = load(scenario)
+		if ns then
+			drive(scenario, ns)
+			Mock.advance(60)
+			wipe(ns.owed)
+			wipe(ns.tried)
+			ns.db.profile.verbose = true
+			Mock.printed = {}
+
+			ns.addon:COMBAT_LOG_EVENT_UNFILTERED()
+
+			-- Through NoteFavour and not past it: the chat line, the debt and the
+			-- write to disk are one act, and a source that files the debt by hand
+			-- gets a prompt that works and a user who is never told why.
+			local said
+			for _, line in ipairs(Mock.printed) do
+				if line:find("Petra buffed you", 1, true) then said = true end
+			end
+			if not said then
+				fail(scenario, "the favour was filed without going through"
+					.. " NoteFavour -- nothing was said")
+			end
+
+			local debt = ns.owed["Petra"]
+			if not debt then
+				fail(scenario, "the log watched a buff land on us and filed nobody")
+			elseif debt.class ~= "PRIEST" then
+				-- The half the aura scan could not have supplied either, and the
+				-- only thing the tokenless fallback has to judge what to offer.
+				fail(scenario, "filed their class as " .. tostring(debt.class))
+			end
+
+			local offered
+			for _, entry in ipairs(ns.BuildQueue()) do
+				if entry.name == "Petra" then offered = entry end
+			end
+			if not offered then
+				fail(scenario, "the favour was recorded and never offered")
+			elseif offered.reason ~= "owed" then
+				fail(scenario, "offered them for " .. tostring(offered.reason))
+			end
+		end
+	end
+end
+Mock.reset()
 
 -- ------------------------------------------------------------------ report
 print("=== scenarios ===")

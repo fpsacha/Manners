@@ -1,13 +1,39 @@
 # tools
 
-The generators for the images on the CurseForge listing and in the README.
+The generators for the addon's five per-flavour `.toc` files, and for the images
+on the CurseForge listing and in the README.
 Nothing in here ships: `.pkgmeta` ignores this folder, and the game never loads it.
 
 They live in the repository rather than on somebody's desktop so the listing can
 be rebuilt when the addon changes. The first versions were one-off scripts, which
 meant the published images could only ever drift away from the addon.
 
-## Running them
+## maketocs.py
+
+Writes `Manners_Mainline.toc`, `Manners_Camelot.toc`, `Manners_Mists.toc`,
+`Manners_TBC.toc` and `Manners_Vanilla.toc` from `Manners.toc`.
+
+```
+python tools/maketocs.py           # write them
+python tools/maketocs.py --check   # say whether they are up to date
+```
+
+Needs nothing but the standard library, unlike the image tools below.
+
+`Manners.toc` is the only one anybody edits, and it stays in the tree as the
+fallback for a client that does not honour a suffixed name. The five copies
+differ from it in exactly one line — the interface number — which is why they
+are generated: five hand-maintained copies of the same file list drift, and a
+toc that has lost a line from its file list produces an addon that loads four
+files instead of five, defines nothing, says nothing, and looks precisely like
+not having been installed.
+
+`tests/validate.py` re-runs the render in memory and fails if what is on disk
+differs, so a hand edit to a generated file cannot survive a test run unnoticed.
+`tests/setversion.py` writes the version into `Manners.toc` and then re-runs
+this, which is what keeps all six agreeing.
+
+## Running the image tools
 
 Both need [Pillow](https://pypi.org/project/Pillow/):
 

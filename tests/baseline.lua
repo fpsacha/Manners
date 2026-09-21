@@ -21,7 +21,7 @@ dofile(dir .. "/tests/mockapi.lua")
 
 local function load()
 	local ns = {}
-	for _, file in ipairs({ "Buffs.lua", "Core.lua", "Prompt.lua", "Options.lua" }) do
+	for _, file in ipairs({ "Flavour.lua", "Buffs.lua", "Core.lua", "Prompt.lua", "Options.lua" }) do
 		local chunk, err = loadfile(dir .. "/" .. file)
 		if not chunk then return nil, "load " .. file .. ": " .. tostring(err) end
 		local ok, runErr = pcall(chunk, "Manners", ns)
@@ -48,6 +48,25 @@ end
 local CLASSES = { "MAGE", "PRIEST", "DRUID", "PALADIN", "WARLOCK", "WARRIOR",
 	"HUNTER", "ROGUE", "SHAMAN" }
 
+-- The classes the later clients added, appended to the nine rather than merged
+-- into them so that Camelot's section keeps the order it has always had.
+--
+-- A class with nothing whatever to give is printed too, and deliberately: the
+-- honest sentence for one is the output that matters most on retail, where three
+-- classes that were the backbone of this addon now have nothing at all. A
+-- fingerprint that skipped them would go on matching after the sentence broke.
+local EXTRA_CLASSES = {
+	mists = { "MONK", "DEATHKNIGHT" },
+	mainline = { "MONK", "DEATHKNIGHT", "DEMONHUNTER", "EVOKER" },
+}
+
+local function classesFor(flavour)
+	local out = {}
+	for _, class in ipairs(CLASSES) do out[#out + 1] = class end
+	for _, class in ipairs(EXTRA_CLASSES[flavour] or {}) do out[#out + 1] = class end
+	return out
+end
+
 print("== Manners behaviour fingerprint ==")
 
 -- Solo and grouped. A party-only buff -- which is the whole of what a warrior
@@ -59,9 +78,11 @@ local SETUPS = {
 	{ name = "in a group of 3", groupSize = 3 },
 }
 
-for _, class in ipairs(CLASSES) do
+local function fingerprint(flavour)
+for _, class in ipairs(classesFor(flavour)) do
 for _, setup in ipairs(SETUPS) do
 	Mock.reset()
+	Mock.setFlavour(flavour)
 	Mock.class = class
 	Mock.groupSize = setup.groupSize
 
@@ -145,6 +166,30 @@ for _, setup in ipairs(SETUPS) do
 		end
 	end
 end
+end
+end
+
+-- Camelot first, and with no heading of its own.
+--
+-- That asymmetry is the point rather than an oversight. This file's whole job is
+-- to prove that a change made for one of the other four did not move Forever,
+-- and a capture taken before those four existed is only comparable if Forever's
+-- section is still the first thing in the file, in the same order, down to the
+-- byte. A heading inserted above it would show up in every diff for the rest of
+-- time, on the one client whose output is not allowed to move.
+fingerprint("camelot")
+
+-- The four nobody working on this addon can start. Their sections are additions
+-- below Forever's, so a diff against an older capture reads as pure insertion.
+--
+-- They are worth printing for the opposite reason: with no way to run them in
+-- game, a diff of what the addon decides is the only evidence a change to one of
+-- them did what it was meant to -- and the only warning that a change meant for
+-- one reached another.
+for _, flavour in ipairs({ "mainline", "mists", "tbc", "vanilla" }) do
+	print(("\n== %s, interface %s =="):format(
+		flavour, tostring(Mock.FLAVOURS[flavour].interface)))
+	fingerprint(flavour)
 end
 
 print("\n== end ==")

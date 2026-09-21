@@ -130,6 +130,19 @@ local function AutoExplanation()
 			return "|cffff8080You have not learned any of these yet, so nobody will be"
 				.. " offered anything.|r"
 		end
+		-- A fourth way, which arrived with the per-flavour tables: everything
+		-- learned and switched on, and the only thing learned is one Automatic
+		-- deliberately never reaches for -- a Mists warlock with Unending Breath
+		-- and no Dark Intent yet. Both answers above would be false, and the one
+		-- below would send somebody hunting for a switch that is already on.
+		for _, buff in ipairs(ns.GetClassBuffs(ns.caps.class) or {}) do
+			if buff.neverAuto and ns.IsBuffKnown(buff) and not B().skip[buff.key] then
+				return ("|cffff8080Automatic never offers %s -- nobody standing in a"
+					.. " city wants it -- so nobody will be offered anything.|r\n\nPin it"
+					.. " in the dropdown above if you want it given out anyway.")
+					:format(ns.BuffName(buff))
+			end
+		end
 		return "|cffff8080Every spell below is switched off, so the prompt will never"
 			.. " appear.|r"
 	end
@@ -312,6 +325,11 @@ local function BugReport()
 	lines[#lines + 1] = ("class %s | secrets %s | auras secret now %s | nameplates %s")
 		:format(tostring(caps.class), tostring(caps.hasSecrets),
 			tostring(caps.aurasSecretNow), tostring(caps.namePlates))
+	-- Which spell tables this client was handed. Without it, a report about a
+	-- spell that is never offered cannot be told from a report about a spell
+	-- that no longer exists on the reporter's client.
+	lines[#lines + 1] = ("buff data %s%s"):format(tostring(ns.BUFFS_SOURCE),
+		ns.BUFFS_MISSING and (" -- " .. tostring(ns.BUFFS_MISSING)) or "")
 
 	for _, buff in ipairs(ns.GetClassBuffs(caps.class) or {}) do
 		local info = ns.BuffInfo(buff)
@@ -320,6 +338,10 @@ local function BugReport()
 			tostring(info and info.known),
 			tostring(info and info.readable),
 			tostring(B().skip[buff.key] == true))
+		if info and info.unresolved and #info.unresolved > 0 then
+			lines[#lines + 1] = ("    no such spell on this client: %s"):format(
+				table.concat(info.unresolved, ", "))
+		end
 	end
 
 	-- The settings that change what it does, rather than how it looks. A report
@@ -335,6 +357,16 @@ local function BugReport()
 	local scan = ns.auraScan
 	lines[#lines + 1] = ("own buffs: %s read, baseline %s, primed=%s, doubt=%s"):format(
 		tostring(scan.read), tostring(scan.held), tostring(scan.primed), tostring(scan.doubt))
+
+	-- The second favour source, where the client has one. Left out entirely
+	-- rather than reported as zeroes on a client with no combat log: a line
+	-- about a source that cannot exist there is a question the person reading
+	-- the report has to go and answer before they can ignore it.
+	if caps.combatLog then
+		local log = ns.logScan
+		lines[#lines + 1] = ("combat log: armed=%s, %s seen, %s filed"):format(
+			tostring(log.armed), tostring(log.applied), tostring(log.noted))
+	end
 
 	if #ns.errors == 0 then
 		lines[#lines + 1] = "errors: none this session"
@@ -823,9 +855,9 @@ local function BuildOptions()
 					restoreTarget = {
 						type = "toggle",
 						name = "Hand my target back afterwards",
-						desc = "Buffing somebody means targeting them first -- conditional targeting does "
-							.. "not work on this client. With this on, your previous target is restored "
-							.. "immediately after the cast.",
+						desc = "Buffing somebody means targeting them first -- a named conditional only "
+							.. "reaches your own party or raid, and this prompt is mostly for passers-by. "
+							.. "With this on, your previous target is restored immediately after the cast.",
 						order = 2,
 						width = "full",
 						-- Hidden, not disabled, for the same reason the strangers
@@ -848,10 +880,19 @@ local function BuildOptions()
 						type = "description",
 						order = 3,
 						hidden = NeverTargets,
-						name = "|cff888888The prompt runs |cffffd100/target|r, then the cast, then"
-							.. " |cffffd100/targetlasttarget|r. Conditional forms -- [@name], [@focus],"
-							.. " [@mouseover] -- do not resolve on this client at all, which is why the"
-							.. " macro takes your target rather than aiming past it.|r\n",
+						-- A function, so it names the command the macro is really
+						-- built with. /targetexact is probed for and is absent on
+						-- some clients; a fixed string here would be a second
+						-- opinion about the macro, wrong wherever the probe says
+						-- no.
+						name = function()
+							local cmd = (ns.TargetCommand and ns.TargetCommand()) or "/target"
+							return ("|cff888888The prompt runs |cffffd100%s|r, then the cast, then"
+								.. " |cffffd100/targetlasttarget|r. A conditional -- [@name] -- resolves"
+								.. " only for somebody already in your party or raid, and this prompt is"
+								.. " mostly for passers-by, so the macro takes your target rather than"
+								.. " aiming past it.|r\n"):format(cmd)
+						end,
 					},
 
 					speechHeader = { type = "header", name = "Speech", order = 10 },
@@ -1538,6 +1579,18 @@ local function BuildOptions()
 									(info and info.name) or buff.key,
 									(info and info.known) and "|cff00ff00yes|r" or "|cff808080no|r",
 									(info and info.readable) and "|cff00ff00works|r" or "|cffff8080blocked|r")
+								-- Manners being wrong about the game, rather
+								-- than the game withholding something. The two
+								-- read identically from the line above -- both
+								-- are a spell that is never offered -- and only
+								-- one of them is fixable by the people reading
+								-- this page's bug reports.
+								if info and info.unresolved and #info.unresolved > 0 then
+									lines[#lines + 1] = ("|cffff4040    this client has never heard of"
+										.. " spell %s, so Manners will never offer this one."
+										.. " That is a mistake in Manners -- please report it.|r")
+										:format(table.concat(info.unresolved, ", "))
+								end
 							end
 							lines[#lines + 1] = "\n|cff888888Where the missing-check is blocked, the game will "
 								.. "not let addons read that aura. Players are still offered, but some may "

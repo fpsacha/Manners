@@ -1,7 +1,7 @@
 import re, os
 
 D = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-FILES = ["Buffs.lua", "Core.lua", "Prompt.lua", "Options.lua"]
+FILES = ["Flavour.lua", "Buffs.lua", "Core.lua", "Prompt.lua", "Options.lua"]
 src = {f: open(os.path.join(D, f), encoding="utf-8").read() for f in FILES}
 
 findings = []
@@ -35,6 +35,12 @@ for f in FILES:
     own_names = set()
     for grp in own:
         own_names |= {x.strip() for x in grp.split(",")}
+    # `local function plain(v)` reads as the two words "function plain" to the
+    # pattern above, so a file that declares its own copy of a Core.lua local
+    # this way was reported as calling Core's. Flavour.lua does exactly that --
+    # it loads first and has no ns.plain to borrow yet -- and would otherwise
+    # arrive with seven findings that are all the same non-bug.
+    own_names |= set(re.findall(r"local function (\w+)", src[f]))
     for i, line in lines(f):
         for call in re.findall(r"(?<![\w.:])(\w+)\(", line):
             if call in core_locals and call not in own_names:

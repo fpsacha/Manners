@@ -18,10 +18,13 @@ Built for WoW Forever (Interface 16001).
   owed, but only when the game will confirm they are missing it. A guess does
   not get to jump the queue.
 - **Someone buffs you** → they go to the top of the queue, tagged as a favour
-  owed. This client has no combat log, so it is spotted by watching your own
-  buffs appear and reading who cast them — which works on strangers, but only
-  while they are someone the game will still name for you. The debt is stored
-  per character and survives a reload or a disconnect.
+  owed. It is spotted by watching your own buffs appear and reading who cast
+  them, which works on strangers, but only while they are someone the game will
+  still name for you. On Classic Era, Burning Crusade and Mists the combat log
+  is read as well, and that one can name somebody who has no nameplate at all —
+  Forever and retail do not hand addons a combat log, so there the buff watch is
+  all there is. The debt is stored per character and survives a reload or a
+  disconnect.
 - **Your party or raid** → anyone missing your buff.
 - **Passers-by** → nearby players missing your buff, seen through nameplates,
   your target and your mouseover.
@@ -35,6 +38,11 @@ their timer drops below a threshold you set, or always offer regardless.
 
 ## Supported classes
 
+Which spells exist depends on the client, so the tables do too. `/manners debug`
+prints the set it chose, and the Diagnostics tab lists what your class has.
+
+**Vanilla content** — Classic Era, Burning Crusade Classic, WoW Forever:
+
 | Class | Buffs offered |
 |---|---|
 | Mage | Arcane Intellect |
@@ -42,6 +50,32 @@ their timer drops below a threshold you set, or always offer regardless.
 | Druid | Mark of the Wild, Thorns |
 | Paladin | Wisdom, Might, Kings, Salvation, Light, Sanctuary |
 | Warlock | Unending Breath |
+| Warrior | Battle Shout (party only) |
+
+**Mists of Pandaria Classic** — 5.0.4 deleted the duplicates within each class
+and folded the raid-wide versions in, so every class has one or two:
+
+| Class | Buffs offered |
+|---|---|
+| Mage | Arcane Brilliance |
+| Priest | Power Word: Fortitude |
+| Druid | Mark of the Wild |
+| Paladin | Kings, Might |
+| Monk | Legacy of the Emperor, Legacy of the White Tiger |
+| Warlock | Dark Intent (Unending Breath is offered only if you pin it) |
+| Warrior | Battle Shout (party only) |
+| Death Knight | Horn of Winter (party only) |
+
+**Retail** — Midnight. Five class buffs are left in the game, and paladins,
+death knights, monks and warlocks have nothing they can put on a passer-by:
+
+| Class | Buffs offered |
+|---|---|
+| Mage | Arcane Intellect |
+| Priest | Power Word: Fortitude |
+| Druid | Mark of the Wild |
+| Shaman | Skyfury |
+| Evoker | Blessing of the Bronze, Source of Magic (if talented) |
 | Warrior | Battle Shout (party only) |
 
 Where a class has more than one, the prompt offers whichever they are actually
@@ -62,8 +96,9 @@ is offered nobody. That is deliberate rather than a fault.
 
 | | |
 |---|---|
-| **Mage** | cast in game, repeatedly, against real players |
-| Priest, Druid, Paladin, Warlock, Warrior | spell data corroborated against other addons on this client, and every cast path exercised in the test suite -- but never cast in game |
+| **Mage, on WoW Forever** | cast in game, repeatedly, against real players |
+| Priest, Druid, Paladin, Warlock, Warrior, on WoW Forever | spell data corroborated against other addons on this client, and every cast path exercised in the test suite -- but never cast in game |
+| Every class on the other four clients | spell data taken from the patch notes and the wiki, and every cast path exercised in the test suite -- but nobody working on this addon can start those clients. If a buff is never offered, run `/manners debug`: it names any spell id the client does not have. |
 
 The cast path took ten attempts to get right for Mage, on a client that
 documents none of its restrictions. The other classes use the same path and
@@ -120,9 +155,15 @@ anywhere, and each one took a live test to find.
 
 **Conditional targeting does not work.** `[@unit]`, `[@Name]`, `[@focus]`,
 `[@mouseover]` and the secure `unit` attribute all fail, silently or with "You
-have no target". Buffing somebody therefore means `/target <name>` then
-`/cast`, and handing the target back afterwards. A bare `/cast` with no target
-works fine, so this is specifically about naming another unit.
+have no target". A bare `/cast` with no target works fine, so this is
+specifically about naming another unit. Two of those would not have worked
+anywhere: `[@Name]` resolves only for somebody already in your party or raid on
+every flavour, and `[@nameplateN]` resolves on none of them. Which is why the
+macro is the same everywhere — targeting the person by name, casting, and
+handing your target back is the only shape that reaches a passing stranger on
+any client. The addon writes `/targetexact` where the client has it, because
+`/target` matches a name *prefix* and would find Mortimer standing next to
+Mort; it falls back to `/target` where it does not.
 
 **Secure buttons must register for mouse down.** Registering up only leaves the
 click arriving and the attributes correct while the game casts nothing and
@@ -133,17 +174,27 @@ person have mana" cannot be read directly. Class is used instead, which is
 accurate for every vanilla class.
 
 **`UnitName` returns a surname, not a realm**, in its second value. Joining
-them with a hyphen produces names that no targeting call resolves.
+them with a hyphen produces names that no targeting call resolves. Surnames are
+this client's alone: on the other four that second value is the realm, present
+only for a cross-realm player, and there the two join with a hyphen — a space
+would make a name nothing can find. The addon branches on the flavour for this,
+because both values are plain strings and neither says which it is.
 
 **Nameplate unit tokens are secret** when read off the frame via
 `C_NamePlate.GetNamePlates()`. The token passed to `NAME_PLATE_UNIT_ADDED` is
 not, so that is what to track.
 
-**There is no combat log.** `COMBAT_LOG_EVENT_UNFILTERED` never fires; Blizzard
-ships `C_DamageMeter` instead. A favour is therefore spotted by watching your
-own buffs appear and reading `aura.sourceUnit` — which is a unit token, so
-somebody with no nameplate who is not your target cannot be identified at all.
-Nothing can be done about that from an addon.
+**There is no combat log.** Registering `COMBAT_LOG_EVENT_UNFILTERED` is
+refused here; Blizzard ships `C_DamageMeter` instead. That is not a Forever
+quirk — retail 12.0+ refuses it too, and only Classic Era, Burning Crusade and
+Mists still have one. So a favour is spotted by watching your own buffs appear
+and reading `aura.sourceUnit`, which is a unit token: somebody with no
+nameplate who is not your target cannot be identified at all. Nothing can be
+done about that from an addon here. Where there *is* a log, Manners registers
+it as a second source and that person can be named after all —
+`SPELL_AURA_APPLIED` carries their GUID, and `GetPlayerInfoByGUID` turns a GUID
+into a name and a class with no unit token. The aura scan stays the spine
+either way; the log only ever adds.
 
 ## Building a release
 

@@ -554,8 +554,11 @@ mutate("Prompt.lua",
 #     list, and the only way to say "not that one" used to be pinning a single
 #     spell -- which switches the walk off altogether.
 mutate("Core.lua",
-       "		if ns.IsBuffKnown(buff) and not (db and db.buff.skip and db.buff.skip[buff.key]) then",
-       "		if ns.IsBuffKnown(buff) then",
+       """		if ns.IsBuffKnown(buff)
+			and not (db and db.buff.skip and db.buff.skip[buff.key])
+			and (not buff.neverAuto or pinned == buff.key) then""",
+       """		if ns.IsBuffKnown(buff)
+			and (not buff.neverAuto or pinned == buff.key) then""",
        "a spell switched off and offered anyway",
        expect="the owed fallback obeys the same filters",
        script="runscenarios.py")
@@ -1215,6 +1218,600 @@ mutate("Core.lua",
 \t\telseif SpellIsCertainlyOurs(spellId, record.buffKey) then""",
        "the cast guid ignored, the way both handlers used to",
        expect="a refusal is matched to the press it answers",
+       script="runscenarios.py")
+
+# --- which client this is ---------------------------------------------
+#
+# Every mutation below is a bug that produces an addon which looks installed and
+# does nothing, or one that quietly hands a client the wrong answer about itself.
+# Neither has a symptom anybody can describe, which is why they are here.
+
+# The band trap: a matcher that works on "five digits beginning with a 1" puts
+# Forever in the vanilla band, and vanilla content is exactly what Forever runs,
+# so it half-works and nobody ever files anything.
+mutate("Flavour.lua",
+       '\t{ flavour = "camelot", family = "modern", min = 16000, max = 16999 },',
+       '\t{ flavour = "vanilla", family = "classic", min = 11000, max = 19999 },',
+       "the band trap (Forever read as vanilla)",
+       expect="interface 16001 is camelot",
+       script="runscenarios.py")
+
+# nil == nil. Drop the type check and every project-id comparison passes at once
+# on a client that has none of the constants, so the first entry in the list
+# wins -- a modern client told it is Mists, and that the combat log is there.
+mutate("Flavour.lua",
+       '\tif type(id) ~= "number" or type(want) ~= "number" then return false end',
+       "\tif false then return false end",
+       "project id compared without checking both sides are numbers",
+       expect="a client with no project constants at all",
+       script="runscenarios.py")
+
+# Flavour.lua is the first file the toc names. Anything it throws takes the whole
+# addon down before there is a slash command left to ask what happened.
+mutate("Flavour.lua",
+       "local ok, decided = pcall(Decide)",
+       "local ok, decided = true, Decide()",
+       "flavour detection not wrapped (no GetBuildInfo kills the addon)",
+       expect="a client with no GetBuildInfo",
+       script="runscenarios.py")
+
+# An unrecognised number rejected rather than classified. The client still has
+# somebody sitting in front of it, and the number is the one thing their bug
+# report needs to carry.
+mutate("Flavour.lua",
+       "\tlocal band = out.interface and BandFor(out.interface)",
+       '\tlocal band = assert(out.interface and BandFor(out.interface), "unknown client")',
+       "an unknown interface number treated as a failure",
+       expect="an interface number with no band",
+       script="runscenarios.py")
+
+# --- what follows from it ---------------------------------------------
+
+# The combat log answered by assertion instead of by trying it. The probe's
+# whole value is that it can be wrong out loud on a client nobody here can run.
+mutate("Core.lua",
+       '\tlocal ok = pcall(probeFrame.RegisterEvent, probeFrame, "COMBAT_LOG_EVENT_UNFILTERED")',
+       "\tlocal ok = true",
+       "the combat log probe that never actually registers",
+       expect="capabilities on Forever",
+       script="runscenarios.py")
+
+# Conditional targeting turned on for Camelot -- the one client whose behaviour
+# is not allowed to move, and the only one this addon is verified on.
+mutate("Core.lua",
+       '\tcaps.conditionalTargeting = flavour.flavour ~= "camelot"',
+       "\tcaps.conditionalTargeting = true",
+       "conditional targeting assumed on Camelot",
+       expect="capabilities on Forever",
+       script="runscenarios.py")
+
+# UnitName's second return read as a realm on the one client where it is a
+# surname, which turns "Mort Defrette" into "Mort-Defrette" -- a name no
+# targeting call will ever find, and a key no debt on disk is filed under.
+mutate("Core.lua",
+       '\treturn (ns.Flavour and ns.Flavour.flavour) == "camelot"',
+       "\treturn false",
+       "a surname read as a realm on Camelot",
+       expect="capabilities on Forever",
+       script="runscenarios.py")
+
+# And the mirror: a realm read as a surname, which is what the code did on every
+# client until this round. "Mort Ravencrest" resolves to nobody, so the macro
+# targets whoever you already had and buffs them instead.
+mutate("Core.lua",
+       '\t\tfull = name .. (SurnameClient() and " " or "-") .. second',
+       '\t\tfull = name .. " " .. second',
+       "a realm joined to a name with a space",
+       expect="UnitName's second return on vanilla",
+       script="runscenarios.py")
+
+# The realm left on the targeting line. /target is a name search over drawn-in
+# units and the realm is not part of what it searches, so this is a macro that
+# finds nobody -- and finding nobody means the cast lands on whoever you already
+# had targeted.
+mutate("Core.lua",
+       "\tif SurnameClient() then return name end\n\treturn ShortName(name)",
+       "\treturn name",
+       "the realm left on the targeting line",
+       expect="the key keeps the realm and the macro drops it",
+       script="runscenarios.py")
+
+# Identity and spelling collapsed back into one string: the queue stops carrying
+# the spelling and the builder falls back to the key, which is the shape this
+# whole split exists to prevent.
+mutate("Core.lua",
+       "\t\t\ttargetName = ns.TargetName(full),\n\t\t\tunit = unit,",
+       "\t\t\tunit = unit,",
+       "the queue stops carrying the spelling to aim at",
+       expect="the key keeps the realm and the macro drops it",
+       script="runscenarios.py")
+
+# The settle path re-deriving the spellings it will accept instead of being told
+# what the macro aimed at. Off Camelot the game names the person by the spelling
+# the macro used, which is not the key -- so every cross-realm favour is reported
+# as having gone to a stranger and never settles.
+mutate("Core.lua",
+       "\telseif landedOn and landedOn ~= pending.aimedAt\n\t\tand landedOn ~= pending.name",
+       "\telseif landedOn and landedOn ~= pending.name",
+       "the settle path guesses at what the macro aimed at",
+       expect="the settle path is told what the macro aimed at",
+       script="runscenarios.py")
+
+# The record a strategy hands the settle path, filled in wrong. A self-cast
+# shout has no recipient in the cast event and no targeting line to tie it to
+# anybody, so calling it a targeted cast makes the settle look for a name that
+# was never in the macro -- and a warrior's only way of repaying anybody stops
+# working, which is the exact bug the record was introduced to end.
+mutate("Prompt.lua",
+       "\t\t{ targeted = false, selfCast = true, aimedAt = nil }",
+       "\t\t{ targeted = true, selfCast = false, aimedAt = nil }",
+       "a self-cast macro recorded as a targeted one",
+       expect="a warrior can repay a favour",
+       script="runscenarios.py")
+
+# The console's two name tokens collapsed back into one. It is the tool for
+# working out what resolves on a client nobody here can start, so a token that
+# sometimes means the key and sometimes the spelling makes every experiment run
+# on it ambiguous -- and the answer would be reported back as fact.
+mutate("Core.lua",
+       '\ttext = ns.Swap(text, "{aim}", (entry and (entry.targetName or entry.name)) or "target")',
+       '\ttext = ns.Swap(text, "{aim}", (entry and entry.name) or "target")',
+       "the console's {aim} token handing back the key",
+       expect="the key keeps the realm and the macro drops it",
+       script="runscenarios.py")
+
+# /targetexact probed for and then not used. /target matches a name prefix, so
+# this is how the prompt buffs -- and speaks at -- Mortimer standing next to
+# Mort.
+mutate("Prompt.lua",
+       '\treturn (ns.caps and ns.caps.targetExact) and "/targetexact" or "/target"',
+       '\treturn "/target"',
+       "/targetexact probed for and never written",
+       expect="a client with /targetexact builds /targetexact",
+       script="runscenarios.py")
+
+# And the other way: a command written into the macro on a client that does not
+# have it. An unknown slash command is not an error the user sees -- the line is
+# simply dropped, the cast goes to whoever was already targeted, and the addon
+# says a favour was returned.
+mutate("Prompt.lua",
+       '\treturn (ns.caps and ns.caps.targetExact) and "/targetexact" or "/target"',
+       '\treturn "/targetexact"',
+       "/targetexact written on a client without it",
+       expect="a client without /targetexact builds /target",
+       script="runscenarios.py")
+
+# Secret restrictions inferred from the namespace existing, which is the wrong
+# question: C_Secrets is present on clients that are withholding nothing.
+mutate("Core.lua",
+       "\tcaps.secretRestrictions = safecall(C_Secrets and C_Secrets.HasSecretRestrictions)",
+       '\tcaps.secretRestrictions = type(C_Secrets) == "table"',
+       "secret restrictions inferred from C_Secrets being there",
+       expect="C_Secrets present and nothing actually restricted",
+       script="runscenarios.py")
+
+# A command believed in rather than probed. /target matches a name prefix, so
+# this is how "/target Mort" ends up buffing Mortimer.
+mutate("Core.lua",
+       """\tcaps.targetExact = (type(secureCommands) == "table"
+\t\t\tand type(secureCommands.TARGET_EXACT) == "function")
+\t\tor type(_G.SLASH_TARGET_EXACT1) == "string\"""",
+       "\tcaps.targetExact = true",
+       "/targetexact assumed rather than probed",
+       expect="a client without /targetexact",
+       script="runscenarios.py")
+
+# The early return back above the lines that name the build, which is where it
+# was: a class with nothing to cast filed a report that never said which client
+# it came from.
+mutate("Core.lua",
+       '\t\tself:Print("client: |cffffffff"',
+       """\t\tif not caps.hasClassBuffs then return end
+\t\tself:Print("client: |cffffffff\"""",
+       "debug returns early before naming the client",
+       expect="debug names the client for a class with nothing to cast",
+       script="runscenarios.py")
+
+# The file list trap from the other side: Flavour.lua missing from a toc leaves
+# ns.FlavourSummary nil, and an unguarded call to it takes down the one command
+# that could have said which file never loaded.
+mutate("Core.lua",
+       """\t\t\t.. (ns.FlavourSummary and ns.FlavourSummary()
+\t\t\t\tor "|cffff4040Flavour.lua did not load -- check the toc's file list|r")""",
+       "\t\t\t.. ns.FlavourSummary()",
+       "debug throws when Flavour.lua never loaded",
+       expect="a toc that lost Flavour.lua from its file list",
+       script="runscenarios.py")
+
+# No buff table, and nothing to catch it. ipairs over nil throws during load,
+# and a file that throws during load leaves no addon at all -- which from the
+# user's side is indistinguishable from never having installed it.
+mutate("Buffs.lua",
+       '\tif type(ns.BUFFS) ~= "table" then',
+       "\tif false then",
+       "a missing buff table left to throw during load",
+       expect="no buff table for this client",
+       script="runscenarios.py")
+
+# --- which spells this client has ------------------------------------
+#
+# Every mutation below hands a client somebody else's spell list. None of them
+# throws, none of them looks wrong on screen, and each one ends as a class that
+# is quietly never offered anything on a client nobody here can start.
+
+# A flavour pointed at the wrong set. Two of them, in both directions, because
+# the map is the whole of the mechanism and one line in it is one client.
+#
+# Camelot's own row is deliberately not mutated here: every scenario in the file
+# but a handful is a Forever scenario, so changing that line takes the suite down
+# outright rather than failing one named check, and there is nothing to attribute
+# it to. tests/baseline.py is what guards that row -- it prints what Forever
+# decides for every class, and it is run before and after every change.
+mutate("Buffs.lua",
+       "\tmists = MISTS_SET,",
+       "\tmists = VANILLA_SET,",
+       "a flavour handed the previous expansion's spells",
+       expect="mists gets the mists spells",
+       script="runscenarios.py")
+
+mutate("Buffs.lua",
+       "\tvanilla = VANILLA_SET,",
+       "\tvanilla = MAINLINE_SET,",
+       "a flavour handed retail's five spells",
+       expect="vanilla gets the vanilla spells",
+       script="runscenarios.py")
+
+# A class that exists on one client and not another. Monks were added to this
+# file for Mists and have never been in it before, so dropping them is the shape
+# the next flavour's mistake will take.
+mutate("Buffs.lua",
+       "\tMONK = {",
+       "\tNOTAMONK = {",
+       "a class that only one flavour has, missing from it",
+       expect="mists gets the mists spells",
+       script="runscenarios.py")
+
+# The contradiction: a class with a spell list, also listed as having nothing.
+# Which of the two the user is shown depends on which screen they open, and the
+# shaman is exactly the class that moved -- totems on vanilla, Skyfury on retail.
+mutate("Buffs.lua",
+       "\t\tPALADIN = true,      -- Kings, Might and Wisdom died in 7.0.3",
+       "\t\tSHAMAN = true,\n\t\tPALADIN = true,      -- Kings, Might and Wisdom died in 7.0.3",
+       "a class both given spells and listed as having none",
+       expect="mainline gets the mainline spells",
+       script="runscenarios.py")
+
+# The other half of it: a class that really does have nothing, left off the list
+# that lets the options page say so. The page then falls back to "could not work
+# out what you can cast", which sends somebody looking for a broken spell probe.
+mutate("Buffs.lua",
+       "\t\tPALADIN = true,      -- Kings, Might and Wisdom died in 7.0.3",
+       "",
+       "a class with nothing left to say it has nothing",
+       expect="a retail paladin is told so plainly",
+       script="runscenarios.py")
+
+# An unrecognised client left with no spells at all. Flavour.lua refuses to
+# reject a client it cannot name, and this is the same promise one file along.
+mutate("Buffs.lua",
+       "local BY_FAMILY = { classic = VANILLA_SET, modern = MAINLINE_SET }",
+       "local BY_FAMILY = {}",
+       "an unrecognised client given no spells at all",
+       expect="an interface number with no band",
+       script="runscenarios.py")
+
+# Aura ids that are not the cast id, dropped. Blessing of the Bronze is cast as
+# one id and lands as thirteen others, so this is a buff that can never be seen
+# on anybody: the person just blessed reads as missing it.
+mutate("Buffs.lua",
+       """\t\t\tfor _, id in ipairs(buff.group or {}) do
+\t\t\t\tbuff.auraIds[#buff.auraIds + 1] = id
+\t\t\tend""",
+       "",
+       "the aura ids that are not the cast id, dropped",
+       expect="one cast that lands as thirteen different auras",
+       script="runscenarios.py")
+
+# A spell that is offerable but must never be automatic, offered automatically.
+# Unending Breath handed to a stranger in a city is how an addon gets
+# uninstalled, and the walk finds it the moment Dark Intent is not available.
+mutate("Core.lua",
+       "\t\t\tand (not buff.neverAuto or pinned == buff.key) then",
+       "\t\t\tand true then",
+       "Automatic walking onto a spell marked never-automatic",
+       expect="Automatic never hands over Unending Breath",
+       script="runscenarios.py")
+
+# The same rule on the other path into it -- the one that answers when the walk
+# has nothing left.
+mutate("Core.lua",
+       "\t\tif ns.IsBuffKnown(buff) and not buff.neverAuto then return buff end",
+       "\t\tif ns.IsBuffKnown(buff) then return buff end",
+       "the never-automatic rule missing from the fallback pick",
+       expect="Automatic never hands over Unending Breath",
+       script="runscenarios.py")
+
+# The page then blames the switches -- "every spell below is switched off" --
+# for a spell Automatic is holding back on purpose, which sends somebody to a
+# control that is already set the way they want it.
+mutate("Options.lua",
+       "\t\t\tif buff.neverAuto and ns.IsBuffKnown(buff) and not B().skip[buff.key] then",
+       "\t\t\tif false then",
+       "the page blaming the switches for a never-automatic spell",
+       expect="Automatic never hands over Unending Breath",
+       script="runscenarios.py")
+
+# The failure with no symptom: an id this client does not have. The probe
+# reports "not learned", which is what an unlearned spell reports, so the buff
+# is never offered and nothing anywhere says why.
+mutate("Core.lua",
+       "\t\tif not SpellNameFor(id) then",
+       "\t\tif false then",
+       "a spell id the client does not have, absorbed in silence",
+       expect="a spell id this client has never heard of",
+       script="runscenarios.py")
+
+# And the same finding kept off the options page, where far more people will see
+# it than will ever type a slash command.
+mutate("Options.lua",
+       """\t\t\t\t\t\t\t\tif info and info.unresolved and #info.unresolved > 0 then
+\t\t\t\t\t\t\t\t\tlines[#lines + 1] = ("|cffff4040    this client has never heard of\"""",
+       """\t\t\t\t\t\t\t\tif false then
+\t\t\t\t\t\t\t\t\tlines[#lines + 1] = ("|cffff4040    this client has never heard of\"""",
+       "wrong spell data reported to the console and nowhere else",
+       expect="a spell id this client has never heard of",
+       script="runscenarios.py")
+
+# ---------------------------------------------------------------- combat log
+# The log is an additional favour source on the three classic flavours, and a
+# forbidden registration on the other two. Every mutation below is a way that
+# has already gone wrong somewhere in this addon: an event registered on a
+# client that does not have it, a capability believed rather than confirmed, a
+# second source that files what the first one already filed, and a filter that
+# lets the whole log through.
+
+# Asked for everywhere. On Forever and on retail this registration is refused,
+# and a refusal inside OnEnable is the failure that once stopped the scanner.
+mutate("Core.lua",
+       """\tif caps.combatLog then
+\t\tns.Guard("RegisterEvent COMBAT_LOG_EVENT_UNFILTERED", function()""",
+       """\tif true then
+\t\tns.Guard("RegisterEvent COMBAT_LOG_EVENT_UNFILTERED", function()""",
+       "the combat log registered on every client",
+       expect="the combat log on camelot",
+       script="runscenarios.py")
+
+# The flag set for having tried rather than for having succeeded. A client that
+# refuses then has one source and an addon that believes it has two.
+mutate("Core.lua",
+       """\t\tns.Guard("RegisterEvent COMBAT_LOG_EVENT_UNFILTERED", function()
+\t\t\tself:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+\t\t\tcombatLogArmed = true
+\t\t\tns.logScan.armed = true
+\t\tend)""",
+       """\t\tcombatLogArmed = true
+\t\tns.logScan.armed = true
+\t\tns.Guard("RegisterEvent COMBAT_LOG_EVENT_UNFILTERED", function()
+\t\t\tself:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+\t\tend)""",
+       "the log armed whether or not it registered",
+       expect="a classic client that refuses the combat log",
+       script="runscenarios.py")
+
+# No agreement between the two sources at all: one cast, two announcements.
+mutate("Core.lua",
+       "\tif not combatLogArmed then return true end",
+       "\tif true then return true end",
+       "two sources announcing one landing",
+       expect="one landing seen twice",
+       script="runscenarios.py")
+
+# The mark left standing instead of consumed, which turns the agreement into a
+# suppression window and swallows the next real favour inside it.
+mutate("Core.lua",
+       """\tif claimed and now - claimed <= NOTE_MEMORY then
+\t\tnotedFavours[key] = nil
+\t\treturn false
+\tend""",
+       """\tif claimed and now - claimed <= NOTE_MEMORY then
+\t\treturn false
+\tend""",
+       "a suppression window instead of a claim",
+       expect="the mark was a timer, not a claim",
+       script="runscenarios.py")
+
+# The aura scan going round the agreement, which is the same duplicate arriving
+# from the other side.
+mutate("Core.lua",
+       "\t\t\t\t\t\tif ClaimFavour(seen.name, key) then NoteFavour(seen) end",
+       "\t\t\t\t\t\tNoteFavour(seen)",
+       "the aura scan filing past the claim",
+       expect="one landing seen twice, log first",
+       script="runscenarios.py")
+
+# A debt filed by hand rather than through NoteFavour -- a prompt that works and
+# a user who is never told why, plus nothing written to disk.
+mutate("Core.lua",
+       "\tNoteFavour({ key = spellId, name = full, guid = sourceGUID, class = plain(class) })",
+       """\tns.owed[full] = { expires = GetTime() + 120, at = GetTime(),
+\t\tguid = sourceGUID, class = plain(class) }""",
+       "the log keeping its own debts",
+       expect="a stranger with no nameplate",
+       script="runscenarios.py")
+
+# Spelled by a rule of its own rather than by the join both sources share, so
+# the same person is filed under two keys and each debt is unpayable by the
+# other source.
+mutate("Core.lua",
+       "\tlocal full = JoinName(plain(name), plain(realm))",
+       '\tlocal full = tostring(plain(name)) .. "-" .. tostring(plain(realm))',
+       "the log spelling a name its own way",
+       expect="a same-realm favour off the log",
+       script="runscenarios.py")
+
+# A line the log cannot name a player for, carried on into the machinery.
+mutate("Core.lua",
+       "\tif not full then return end\n\n\tif not ClaimFavour(full, spellId) then return end",
+       "\tif not ClaimFavour(full, spellId) then return end",
+       "an unnameable caster carried on into the queue",
+       expect="the log ignores an NPC",
+       script="runscenarios.py")
+
+# The class taken from the localized return instead of the English one. The two
+# are the same word on an English client and the mock is deliberately not, since
+# the tokenless fallback branches on the English one.
+mutate("Core.lua",
+       "\tlocal _, class, _, _, _, name, realm = GetPlayerInfoByGUID(sourceGUID)",
+       "\tlocal class, _, _, _, _, name, realm = GetPlayerInfoByGUID(sourceGUID)",
+       "the localized class read as the English one",
+       expect="a stranger with no nameplate",
+       script="runscenarios.py")
+
+# Routed through the aura scan's settled baseline. The corroboration exists
+# because a scan can misread its own list; a log line has nothing to doubt, and
+# a client that never shows the aura list would otherwise silence both sources.
+mutate("Core.lua",
+       "\tns.logScan.applied = ns.logScan.applied + 1",
+       "\tif not ns.auraScan.primed then return end\n\tns.logScan.applied = ns.logScan.applied + 1",
+       "the log waiting on the aura baseline",
+       expect="a log line was held back by machinery built for the aura scan",
+       script="runscenarios.py")
+
+# The four filters, each dropped on its own. The log carries every event within
+# fifty yards, so each of these is the difference between a favour and noise.
+mutate("Core.lua",
+       '\tif plain(subevent) ~= "SPELL_AURA_APPLIED" then return end',
+       "\tif false then return end",
+       "every subevent treated as an aura landing",
+       expect="the log ignores a subevent that is not an aura landing",
+       script="runscenarios.py")
+
+mutate("Core.lua",
+       '\tif plain(auraType) ~= "BUFF" then return end',
+       "\tif false then return end",
+       "a debuff counted as a favour",
+       expect="the log ignores a debuff",
+       script="runscenarios.py")
+
+mutate("Core.lua",
+       "\tif destGUID == nil or destGUID ~= playerGUID then return end",
+       "\tif destGUID == nil then return end",
+       "somebody else's buff counted as ours",
+       expect="the log ignores a buff that landed on somebody else",
+       script="runscenarios.py")
+
+mutate("Core.lua",
+       "\tif sourceGUID == nil or sourceGUID == playerGUID then return end",
+       "\tif sourceGUID == nil then return end",
+       "our own buff counted as a favour owed",
+       expect="the log ignores our own buff on ourselves",
+       script="runscenarios.py")
+
+mutate("Core.lua",
+       """\tif db.sources.owedClassBuffsOnly ~= false and not ns.ALL_BUFF_IDS[spellId] then
+\t\treturn
+\tend""",
+       """\tif false then
+\t\treturn
+\tend""",
+       "every incoming aura counted as a class buff",
+       expect="the log ignores a heal-over-time",
+       script="runscenarios.py")
+
+# ---------------------------------------------------------------- the mock as
+# any of the five clients
+#
+# Three of the mutations below are in tests/mockapi.lua rather than in the addon,
+# and that is deliberate. Four of the five clients cannot be started by anybody
+# working on this addon, so every claim made about them is really a claim about
+# the mock -- and a mock that quietly stops modelling a difference turns the
+# scenarios resting on it green for ever. A mock that lies is a fault class here
+# in exactly the way a wrong branch in Core.lua is.
+
+mutate("Flavour.lua",
+       'local BANDS = {\n\t{ flavour = "camelot", family = "modern", min = 16000, max = 16999 },',
+       'local BANDS = {\n\t{ flavour = "vanilla", family = "classic", min = 11000, max = 16999 },'
+       '\n\t{ flavour = "camelot", family = "modern", min = 16000, max = 16999 },',
+       "the band trap (Forever read as vanilla)",
+       expect="the mock as camelot",
+       script="runscenarios.py")
+
+mutate("Flavour.lua",
+       '\tif type(id) ~= "number" or type(want) ~= "number" then return false end',
+       "\tif false then return false end",
+       "nil == nil naming a flavour",
+       expect="no project constants on",
+       script="runscenarios.py")
+
+mutate("Prompt.lua",
+       '\treturn {\n\t\tTargetCommand() .. " " .. who,\n\t\t"/cast " .. spell,\n'
+       "\t}, ns.db.profile.filters.restoreTarget == true,",
+       '\treturn {\n\t\t"/cast [@" .. who .. ",help,nodead] " .. spell,\n\t}, false,',
+       "the conditional route built after all",
+       expect="gets the /target macro",
+       script="runscenarios.py")
+
+mutate("Core.lua",
+       "\tif SurnameClient() then return name end\n\treturn ShortName(name)",
+       "\tif SurnameClient() then return name end\n\treturn name",
+       "the realm left on the /target line",
+       expect="a player from another realm on",
+       script="runscenarios.py")
+
+mutate("Buffs.lua",
+       "\t\tDEATHKNIGHT = true,  -- Horn of Winter removed in 11.2.0\n",
+       "",
+       "a class with nothing, not listed as such",
+       expect="a retail deathknight has nothing to offer",
+       script="runscenarios.py")
+
+mutate("Core.lua",
+       '\tlocal ok, value = pcall(C_UnitAuras.GetAuraDataByIndex, "player", index, "HELPFUL")\n'
+       "\tif not ok then return nil, true end",
+       '\tlocal ok, value = pcall(C_UnitAuras.GetAuraDataByIndex, "player", index, "HELPFUL")\n'
+       '\tif _G.UnitBuff then pcall(_G.UnitBuff, "player", index) end\n'
+       "\tif not ok then return nil, true end",
+       "a UnitBuff fallback nobody needs",
+       expect="does not use UnitBuff",
+       script="runscenarios.py")
+
+mutate("Core.lua",
+       "\tif caps.combatLog then\n"
+       '\t\tns.Guard("RegisterEvent COMBAT_LOG_EVENT_UNFILTERED", function()',
+       "\tif true then\n"
+       '\t\tns.Guard("RegisterEvent COMBAT_LOG_EVENT_UNFILTERED", function()',
+       "the combat log registered everywhere",
+       expect="the combat log on a whole camelot client",
+       script="runscenarios.py")
+
+# The mock forgetting that only a player from another realm has a second return,
+# which would make "Mort-Ravencrest" the ordinary spelling and hide every bug in
+# the path nearly every player takes.
+mutate("tests/mockapi.lua",
+       "\tif Mock.surnames or Mock.crossRealm then return second end\n\treturn nil",
+       "\treturn second",
+       "the mock giving everybody a realm",
+       expect="a same-realm player on",
+       script="runscenarios.py")
+
+# The mock resolving a conditional for somebody who is not in the group, which is
+# the one finding that rules the conditional route out for a stranger. A mock
+# that got this wrong would make the strategy this addon does not ship look
+# perfectly safe.
+mutate("tests/mockapi.lua",
+       "\tif Mock.groupNames and Mock.groupNames[who] then return rest end\n\treturn nil",
+       "\treturn rest",
+       "the mock resolving a stranger's conditional",
+       expect="a conditional aimed at a stranger on",
+       script="runscenarios.py")
+
+# The mock losing UnitBuff on the clients that have it, which would leave the
+# "never called" guarantee resting on a function that is not there to call.
+mutate("tests/mockapi.lua",
+       "\t_G.UnitBuff = client.unitBuff and mockUnitBuff or nil",
+       "\t_G.UnitBuff = nil",
+       "the mock dropping UnitBuff",
+       expect="the mock as mists",
        script="runscenarios.py")
 
 print()
