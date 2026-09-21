@@ -2262,42 +2262,70 @@ local SETTLE_INFERENCE = {
 	},
 }
 
--- The click that just settled, kept rather than dropped. See UnsettleLateRefusal.
-local settledClick
--- When the last one settled, held whether or not a record was kept. See below.
-local lastSettleAt
+-- Settled casts still inside the window in which the server may refuse them,
+-- oldest first. See UnsettleLateRefusal.
+local settledRecent = {}
 
--- One slot, and it holds a record only while exactly one settled cast can still
--- be refused.
+-- This was one slot and a timestamp, and the timestamp was standing in for a
+-- question it could not answer: not "did something settle recently" but "which
+-- press is this refusal about". With two settles inside one window it threw
+-- both records away, which is the buff walk working as designed -- press, next
+-- buff, press -- being treated as a stutter.
 --
--- There is nothing on a record that says which press it belongs to, and the
--- refusal that may follow carries a spell id and nothing else -- so with two
--- settles inside one window, and both presses normally carrying the same buff,
--- no event the game sends can say which cast a refusal answers. It used to
--- overwrite, which meant a refusal belonging to the first press was applied to
--- the second: the wrong person's repayment undone, their blocks rewound, and a
--- line in the log about a cast that was never refused.
+-- The identity was there the whole time. The client hands a cast guid to both
+-- events: UNIT_SPELLCAST_SENT carries it third, UNIT_SPELLCAST_FAILED second,
+-- and both handlers discarded it into an underscore. Carried through, a refusal
+-- is matched to the cast it answers and two presses in a second cost nothing.
 --
--- So a settle that lands on top of a live one keeps neither. The time is
--- remembered separately from the record precisely because the record is the
--- thing being thrown away: with only the record to go on, two settles a second
--- apart cleared the slot and a third a second after that filled it again --
--- while the second cast, still unanswered, could refuse into it.
---
--- The cost is a genuine refusal going unnoticed after a double press, which
--- leaves a favour wrongly marked repaid; the alternative is unmarking somebody
--- else's, which is the same damage plus a false sentence about them.
-local function RememberSettled(record)
-	local previous = lastSettleAt
-	lastSettleAt = record.at
-	if previous and record.at - previous <= SETTLE_SECONDS then
-		settledClick = nil
-		return
-	end
-	settledClick = record
+-- It is not assumed, though. Nothing here has established that this client
+-- fills the guid in -- it withholds a great deal else -- so a refusal with no
+-- guid to go on is matched only when exactly one record could possibly be
+-- meant. Two candidates and it abstains: undoing the wrong person's repayment
+-- is the same damage as missing the refusal, plus a false sentence about
+-- somebody who was in fact buffed.
+-- SpellIsOurs read the other way round, for the one direction where it has to
+-- be. Everywhere else an unreadable id must settle, or one withheld number
+-- makes a favour permanent. Here the same leniency undoes a confirmation:
+-- SpellIsOurs(nil) is true by design, so a failure the client would not name
+-- reopened a repaid debt, rewound the click and printed a sentence asserting
+-- the cast was refused. No evidence has to mean no action on this side.
+local function SpellIsCertainlyOurs(spellId, buffKey)
+	if spellId == nil or not buffKey then return false end
+	local buff = ns.FindBuff(caps.class, buffKey)
+	return buff ~= nil and ns.BUFF_BY_ID[spellId] == buff
 end
 
-local function SettlePendingClick(landedOn, spellId)
+local function PruneSettled(now)
+	now = now or GetTime()
+	for i = #settledRecent, 1, -1 do
+		if now - settledRecent[i].at > SETTLE_SECONDS then
+			table.remove(settledRecent, i)
+		end
+	end
+end
+
+local function RememberSettled(record)
+	PruneSettled(record.at)
+	settledRecent[#settledRecent + 1] = record
+end
+
+-- Which record a refusal answers, or nil for "nothing here says".
+local function MatchSettled(spellId, castGUID)
+	local match, ambiguous
+	for i, record in ipairs(settledRecent) do
+		if castGUID ~= nil and record.castGUID ~= nil then
+			-- Both sides named the cast. That is an answer, not a guess, and a
+			-- guid naming none of ours means the failure was not ours at all.
+			if record.castGUID == castGUID then return i end
+		elseif SpellIsCertainlyOurs(spellId, record.buffKey) then
+			if match then ambiguous = true else match = i end
+		end
+	end
+	if ambiguous then return nil end
+	return match
+end
+
+local function SettlePendingClick(landedOn, spellId, castGUID)
 	local pending = ns.pendingClick
 	if not pending then return end
 	-- This cast belongs to something else: the client answers one it accepted
@@ -2457,20 +2485,8 @@ local function SettlePendingClick(landedOn, spellId)
 	-- The client sent the cast; the server has not answered yet. Keep the
 	-- record so a refusal arriving a moment from now has something to be about.
 	RememberSettled({ name = pending.name, buffKey = pending.buffKey,
-		gave = pending.gave, at = GetTime(), owed = wasOwed })
+		gave = pending.gave, at = GetTime(), owed = wasOwed, castGUID = castGUID })
 	ns.pendingClick = nil
-end
-
--- SpellIsOurs read the other way round, for the one direction where it has to
--- be. Everywhere else an unreadable id must settle, or one withheld number
--- makes a favour permanent. Here the same leniency undoes a confirmation:
--- SpellIsOurs(nil) is true by design, so a failure the client would not name
--- reopened a repaid debt, rewound the click and printed a sentence asserting
--- the cast was refused. No evidence has to mean no action on this side.
-local function SpellIsCertainlyOurs(spellId, buffKey)
-	if spellId == nil or not buffKey then return false end
-	local buff = ns.FindBuff(caps.class, buffKey)
-	return buff ~= nil and ns.BUFF_BY_ID[spellId] == buff
 end
 
 -- A refusal that arrives after the settle has already let the record go.
@@ -2499,35 +2515,31 @@ end
 -- the cast was refused and stops there.
 --
 -- Returns the name, so the caller can flash the panel for it.
-local function UnsettleLateRefusal(spellId)
-	local settled = settledClick
-	if not settled then return nil end
-	if GetTime() - settled.at > SETTLE_SECONDS then
-		settledClick = nil
-		return nil
-	end
-	-- Somebody else's spell failing, or one the client would not name. Neither
-	-- is evidence about this cast, and this is the direction where "no evidence"
-	-- has to mean "do nothing".
-	if not SpellIsCertainlyOurs(spellId, settled.buffKey) then return nil end
+local function UnsettleLateRefusal(spellId, castGUID)
+	PruneSettled()
+	-- Somebody else's spell failing, one the client would not name, or two
+	-- records that could equally be meant. None of those is evidence about a
+	-- particular cast, and this is the direction where no evidence has to mean
+	-- do nothing.
+	local index = MatchSettled(spellId, castGUID)
+	if not index then return nil end
+
+	-- Consumed before anything is undone with it. A refusal is one event about
+	-- one cast, and a record left lying here would let the next unrelated
+	-- failure paint red over whatever the panel has since moved on to. The
+	-- rejections above deliberately leave every record alone: a spell of
+	-- somebody else's failing is nobody's answer, and the real one may still
+	-- arrive.
+	local settled = table.remove(settledRecent, index)
 
 	-- A switched-off addon is the same lie told louder, which is the rule
-	-- NoteFavour keeps at the other end of this same write: with the prompt
-	-- hidden and the owed source off there is nothing a restored debt can reach,
-	-- so all this would do is put it back on disk and say so out loud. The
-	-- record goes with it -- nothing is coming back for it.
+	-- NoteFavour keeps at the other end of this same write. Only `enabled`,
+	-- though: gating this on the owed source as well threw the whole refusal
+	-- away -- the red flash and the rewound blocks with it -- when all that
+	-- source decides is whether a debt existed to put back, and NoteFavour has
+	-- already declined to record one, so `settled.owed` is nil anyway.
 	local db = addon.db and addon.db.profile
-	if not db or not db.enabled or not db.sources.owed then
-		settledClick = nil
-		return nil
-	end
-
-	-- Consumed here, before anything is undone with it. A refusal is one event
-	-- about one cast, and a record left lying here would let the next unrelated
-	-- failure paint red over whatever the panel has since moved on to. The
-	-- rejection above deliberately leaves it: a spell of somebody else's failing
-	-- is not this record's answer, and the real one may still arrive.
-	settledClick = nil
+	if not db or not db.enabled then return nil end
 
 	-- Out through the same door SettleFavour went: it wrote the clearing to
 	-- disk, so putting the debt back in memory alone would restore the favour
@@ -2543,9 +2555,9 @@ local function UnsettleLateRefusal(spellId)
 	return settled.name
 end
 
-function addon:UNIT_SPELLCAST_SENT(_, unit, target, _, spellId)
+function addon:UNIT_SPELLCAST_SENT(_, unit, target, castGUID, spellId)
 	if unit ~= "player" then return end
-	SettlePendingClick(plain(target), plain(spellId))
+	SettlePendingClick(plain(target), plain(spellId), plain(castGUID))
 	if not self.db.profile.debugClicks then return end
 	self:Print(("|cff80ff80CAST SENT %s -> %s|r"):format(
 		tostring(plain(spellId)), tostring(plain(target))))
@@ -2558,9 +2570,10 @@ function addon:UNIT_SPELLCAST_SUCCEEDED(_, unit, _, spellId)
 	end
 end
 
-function addon:UNIT_SPELLCAST_FAILED(_, unit, _, spellId)
+function addon:UNIT_SPELLCAST_FAILED(_, unit, castGUID, spellId)
 	if unit ~= "player" then return end
 	spellId = plain(spellId)
+	castGUID = plain(castGUID)
 	-- The server refusing a cast the client already reported sending. Only when
 	-- no record is parked: one that is has not settled yet, is inside its
 	-- window, and is UI_ERROR_MESSAGE's to answer -- two rewinders for one
@@ -2572,7 +2585,7 @@ function addon:UNIT_SPELLCAST_FAILED(_, unit, _, spellId)
 	-- apart from anything else on the bar failing. That is why it is the only
 	-- one allowed to undo a settle.
 	if not ns.pendingClick then
-		local late = UnsettleLateRefusal(spellId)
+		local late = UnsettleLateRefusal(spellId, castGUID)
 		if late then ShowOutcome("failed", late, "the game refused the cast") end
 	end
 	if self.db.profile.verbose and ns.lastClickTime and (GetTime() - ns.lastClickTime) <= 1 then

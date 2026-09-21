@@ -7870,6 +7870,108 @@ if ns then
 	wipe(ns.tried)
 end
 
+-- ------------------------------------------------------------------ 106
+-- Matching a late refusal to the press it answers.
+--
+-- This was a timestamp standing in for a question it could not answer. Two
+-- settles inside one window threw both records away -- which is the buff walk
+-- working as designed, press, next buff, press -- and a record already consumed
+-- by a refusal went on suppressing the next press for the rest of the window.
+--
+-- The client hands both cast events a guid and both handlers discarded it.
+Mock.reset()
+ns = load("a refusal is matched to the press it answers")
+if ns then
+	local scenario = "a refusal is matched to the press it answers"
+	drive(scenario, ns)
+	Mock.advance(60)
+	ns.Guard("probe", ns.ProbeCapabilities)
+
+	local buff = ns.CastableBuffs()[1]
+	if not buff then
+		fail(scenario, "SKIPPED -- nothing castable to press with")
+	else
+		local spell = buff.ranks[1]
+
+		-- Straight at the settle path: what is under test is which record a
+		-- refusal is read against, not how the button arms.
+		local function press(who, guid)
+			ns.owed[who] = { expires = GetTime() + 100, at = GetTime() }
+			ns.pendingClick = { name = who, at = GetTime(), buffKey = buff.key,
+				selfCast = false, targeted = true }
+			ns.addon:UNIT_SPELLCAST_SENT(nil, "player", who, guid, spell)
+			if ns.owed[who] then
+				fail(scenario, "SKIPPED -- the send never settled for " .. who)
+				return false
+			end
+			return true
+		end
+
+		-- (a) A record the refusal already consumed must stop suppressing the
+		--     next press. This is the one that needed no guid to go wrong.
+		wipe(ns.owed)
+		if press("Elara Brightmoor", nil) then
+			ns.addon:UNIT_SPELLCAST_FAILED(nil, "player", nil, spell)
+			if not ns.owed["Elara Brightmoor"] then
+				fail(scenario, "SKIPPED -- the first refusal did not land")
+			else
+				wipe(ns.owed)
+				Mock.advance(0.4)
+				if press("Corvin Ashgrove", nil) then
+					ns.addon:UNIT_SPELLCAST_FAILED(nil, "player", nil, spell)
+					if not ns.owed["Corvin Ashgrove"] then
+						fail(scenario, "a press was ignored because an earlier one had"
+							.. " already been answered")
+					end
+				end
+			end
+		end
+
+		-- (b) Two presses inside one window, told apart by the guid the client
+		--     sends. Only the refused one is undone.
+		Mock.advance(5)
+		wipe(ns.owed)
+		if press("Elara Brightmoor", "Cast-1") and (Mock.advance(0.5) or true)
+			and press("Corvin Ashgrove", "Cast-2") then
+			ns.addon:UNIT_SPELLCAST_FAILED(nil, "player", "Cast-2", spell)
+			if not ns.owed["Corvin Ashgrove"] then
+				fail(scenario, "the refusal named a cast and the press it belonged to"
+					.. " was still filed as repaid")
+			end
+			if ns.owed["Elara Brightmoor"] then
+				fail(scenario, "a refusal undid somebody else's repayment")
+			end
+		end
+
+		-- (c) The same pair with nothing to tell them apart. Abstaining is the
+		--     right answer: undoing the wrong person's repayment is the same
+		--     damage plus a false sentence about somebody who was buffed.
+		Mock.advance(5)
+		wipe(ns.owed)
+		if press("Elara Brightmoor", nil) and (Mock.advance(0.5) or true)
+			and press("Corvin Ashgrove", nil) then
+			ns.addon:UNIT_SPELLCAST_FAILED(nil, "player", nil, spell)
+			if ns.owed["Elara Brightmoor"] or ns.owed["Corvin Ashgrove"] then
+				fail(scenario, "two records could equally have been meant and one was"
+					.. " picked anyway")
+			end
+		end
+
+		-- (d) A guid naming none of our casts is somebody else's spell failing.
+		Mock.advance(5)
+		wipe(ns.owed)
+		if press("Petra Stonewell", "Cast-9") then
+			ns.addon:UNIT_SPELLCAST_FAILED(nil, "player", "Cast-nothing-of-ours", spell)
+			if ns.owed["Petra Stonewell"] then
+				fail(scenario, "a failure that named a different cast undid ours")
+			end
+		end
+
+		wipe(ns.owed)
+		ns.pendingClick = nil
+	end
+end
+
 -- ------------------------------------------------------------------ report
 print("=== scenarios ===")
 if #failures == 0 then

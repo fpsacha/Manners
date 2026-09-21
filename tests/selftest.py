@@ -822,7 +822,7 @@ mutate("Core.lua",
 #     a cast that was thrown away.
 mutate("Core.lua",
        """	if not ns.pendingClick then
-		local late = UnsettleLateRefusal(spellId)
+		local late = UnsettleLateRefusal(spellId, castGUID)
 		if late then ShowOutcome("failed", late, "the game refused the cast") end
 	end
 """,
@@ -837,8 +837,8 @@ mutate("Core.lua",
 #     second -- and without it a confirmed buff is undone by somebody else's
 #     miss.
 mutate("Core.lua",
-       "\tif not SpellIsCertainlyOurs(spellId, settled.buffKey) then return nil end\n",
-       "",
+       "\t\telseif SpellIsCertainlyOurs(spellId, record.buffKey) then",
+       "\t\telseif true then",
        "a refusal credited to the wrong spell",
        expect="an unrelated spell failing undid a confirmed cast",
        script="runscenarios.py")
@@ -849,8 +849,8 @@ mutate("Core.lua",
 #      no evidence has to mean no action, and borrowing that leniency reopens a
 #      repaid debt on every failure the client will not name.
 mutate("Core.lua",
-       "	if not SpellIsCertainlyOurs(spellId, settled.buffKey) then return nil end\n",
-       "	if not SpellIsOurs(spellId, settled.buffKey) then return nil end\n",
+       "\t\telseif SpellIsCertainlyOurs(spellId, record.buffKey) then",
+       "\t\telseif SpellIsOurs(spellId, record.buffKey) then",
        "an unnamed failure treated as ours",
        expect="a failure the client would not put a spell id on undid a confirmed cast",
        script="runscenarios.py")
@@ -864,47 +864,12 @@ mutate("Core.lua",
 # for the rest of time. The scenario still presses on the symptom itself: an
 # error inside the window leaves a confirmed settle alone.
 
-# 57c. one slot with no identity on it. Two settles inside one window and the
-#      second overwrote the first, so a refusal owed to the first press was
-#      applied to the second: the wrong person's repayment undone, and a line
-#      in the log about a cast that was never refused.
-mutate("Core.lua",
-       """	local previous = lastSettleAt
-	lastSettleAt = record.at
-	if previous and record.at - previous <= SETTLE_SECONDS then
-		settledClick = nil
-		return
-	end
-	settledClick = record""",
-       "\tsettledClick = record",
-       "two settled casts kept in one slot",
-       expect="one refusal was applied to one of two casts it cannot be told apart from",
-       script="runscenarios.py")
-
-# 57d. and the version that tracks only the record, which is the shape this
-#      started as: two settles clear the slot and the third refills it, while
-#      the second cast is still unanswered and can refuse into it.
-mutate("Core.lua",
-       """	local previous = lastSettleAt
-	lastSettleAt = record.at
-	if previous and record.at - previous <= SETTLE_SECONDS then""",
-       """	local previous = settledClick and settledClick.at
-	lastSettleAt = record.at
-	if previous and record.at - previous <= SETTLE_SECONDS then""",
-       "the cleared slot refilled by the next settle",
-       expect="a run of settles cleared the slot and then refilled it",
-       script="runscenarios.py")
-
 # 57e. a debt raised, written to disk and announced with the addon switched
 #      off. NoteFavour refuses to do exactly that at the other end of the same
 #      write, calling it the same lie told louder.
 mutate("Core.lua",
        """	local db = addon.db and addon.db.profile
-	if not db or not db.enabled or not db.sources.owed then
-		settledClick = nil
-		return nil
-	end
-
+	if not db or not db.enabled then return nil end
 """,
        "",
        "a switched-off addon raising a debt",
@@ -1214,6 +1179,42 @@ mutate("Options.lua",
        'desc = "How long a favour stays offerable once we can no longer see them.",',
        "a window timed from an event nothing sees",
        expect="the page does not say so",
+       script="runscenarios.py")
+
+# The settle record held one slot and a timestamp kept outside it, so a record
+# a refusal had already consumed went on suppressing the next press for the
+# rest of the window -- and two presses inside it, which is the buff walk
+# working as designed, threw both records away.
+mutate("Core.lua",
+       """local function RememberSettled(record)
+\tPruneSettled(record.at)
+\tsettledRecent[#settledRecent + 1] = record
+end""",
+       """local lastSettleAt
+local function RememberSettled(record)
+\tlocal previous = lastSettleAt
+\tlastSettleAt = record.at
+\twipe(settledRecent)
+\tif previous and record.at - previous <= SETTLE_SECONDS then return end
+\tsettledRecent[1] = record
+end""",
+       "a settle record that outlives the refusal that answered it",
+       expect="a refusal is matched to the press it answers",
+       script="runscenarios.py")
+
+# Both cast events carry a guid naming the cast, and both handlers discarded it
+# into an underscore -- which is the identity the timestamp above was trying to
+# reconstruct from the clock.
+mutate("Core.lua",
+       """\t\tif castGUID ~= nil and record.castGUID ~= nil then
+\t\t\t-- Both sides named the cast. That is an answer, not a guess, and a
+\t\t\t-- guid naming none of ours means the failure was not ours at all.
+\t\t\tif record.castGUID == castGUID then return i end
+\t\telseif SpellIsCertainlyOurs(spellId, record.buffKey) then""",
+       """\t\tif false then
+\t\telseif SpellIsCertainlyOurs(spellId, record.buffKey) then""",
+       "the cast guid ignored, the way both handlers used to",
+       expect="a refusal is matched to the press it answers",
        script="runscenarios.py")
 
 print()
