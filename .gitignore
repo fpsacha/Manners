@@ -1,0 +1,12 @@
+# Libraries are pulled at build time by .pkgmeta rather than committed, so the
+# published package always ships their current upstream copies under their own
+# licences. They stay on disk locally because the game needs them to run.
+#
+# CONSEQUENCE: a zip built from a clone of this repository has no libraries and
+# the addon will not load. Build releases with .github/workflows/release.yml,
+# which runs the packager and fetches them. See README, "Building a release".
+Libs/
+
+# Packager output
+.release/
+*.zip

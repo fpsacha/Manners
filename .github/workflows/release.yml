@@ -1,0 +1,69 @@
+name: Release
+
+# Tag a version and this builds and publishes it:
+#
+#   git tag v0.9.0 && git push origin v0.9.0
+#
+# The packager reads .pkgmeta, fetches the 13 libraries listed there as
+# externals, and assembles the zip. That is why Libs/ is gitignored: the
+# repository deliberately does not carry them, so a release built any other way
+# ships an addon that cannot load. Build releases through this workflow.
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install the Lua runtime the tests need
+        run: pip install lupa
+
+      - name: Structure and syntax
+        run: python tests/validate.py
+
+      - name: Load the addon against a mock client
+        run: python tests/runharness.py
+
+      - name: Adversarial scenarios
+        run: python tests/runscenarios.py
+
+      # A suite that cannot go red proves nothing. This reintroduces each fault
+      # class it is supposed to catch and fails the build if any goes unnoticed.
+      - name: Confirm the suites can still fail
+        run: |
+          python tests/selftest.py | tee selftest.out
+          if grep -q "MISSED\|ANCHOR GONE" selftest.out; then
+            echo "::error::a check no longer detects the fault it exists for"
+            exit 1
+          fi
+
+  release:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Package and publish
+        uses: BigWigsMods/packager@master
+        env:
+          GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
+          # Add these in the repository's secrets to publish beyond GitHub.
+          # Without them the packager simply skips that destination.
+          CF_API_KEY: ${{ secrets.CF_API_KEY }}
+          WOWI_API_TOKEN: ${{ secrets.WOWI_API_TOKEN }}
+          WAGO_API_TOKEN: ${{ secrets.WAGO_API_TOKEN }}

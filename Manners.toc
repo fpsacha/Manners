@@ -1,0 +1,18 @@
+## Interface: 16001
+## Title: Manners
+## Notes: Return the favour. One click to buff whoever just buffed you, or a nearby player who is missing yours.|n|cffffd100Mage is tested in game; other classes are implemented but unverified.|r
+## Author: Sacha
+## Version: 0.9.0
+## SavedVariables: MannersDB
+## X-Compatible-With: forever
+## X-License: MIT
+## X-Category: Buffs & Debuffs
+## X-Website: https://github.com/fpsacha/Manners
+## IconTexture: Interface\Icons\Spell_Holy_MagicalSentry
+
+embeds.xml
+
+Buffs.lua
+Core.lua
+Prompt.lua
+Options.lua

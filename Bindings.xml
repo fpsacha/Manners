@@ -1,0 +1,6 @@
+<Bindings>
+	<Binding name="MANNERS_CAST" header="MANNERS" category="ADDONS">
+		local prompt = MannersPrompt
+		if prompt and prompt:IsShown() then prompt:Click() end
+	</Binding>
+</Bindings>
