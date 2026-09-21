@@ -1,0 +1,57 @@
+# tools
+
+The generators for the images on the CurseForge listing and in the README.
+Nothing in here ships: `.pkgmeta` ignores this folder, and the game never loads it.
+
+They live in the repository rather than on somebody's desktop so the listing can
+be rebuilt when the addon changes. The first versions were one-off scripts, which
+meant the published images could only ever drift away from the addon.
+
+## Running them
+
+Both need [Pillow](https://pypi.org/project/Pillow/):
+
+```
+python -m pip install Pillow
+python tools/make-screenshots.py
+python tools/make-icon.py
+```
+
+Output lands in `.github/media/`. Both are deterministic: running them without
+changing anything rewrites the same bytes, so `git status` staying clean is the
+check that nothing drifted.
+
+## make-screenshots.py
+
+`screenshot-reasons.png` and `screenshot-prompt.png`.
+
+These are **renders of the prompt, not captures from the game**. The panel
+geometry is read out of `Core.lua`'s defaults at run time — width, height, icon
+size, font size — so the images cannot claim a layout the addon does not draw.
+When a default changes, re-run this and commit the result.
+
+What it does not read is the colours and the drawing itself, which are restated
+here. If `Prompt.lua` changes how the panel is painted, this has to be updated by
+hand to match, or the images become a nice picture of something that no longer
+exists.
+
+Every player name in the output is invented. Real names from a live session
+ended up in an earlier draft; they belong to real people and were scrubbed.
+Keep it that way.
+
+## make-icon.py
+
+`icon-512.png` (the CurseForge avatar), `icon-64.png`, and `icon-check.png`,
+which is just the two sizes side by side so the small one can be judged at the
+size it is actually seen.
+
+Drawn to sit next to real WoW spell icons: bevelled gold frame lit from the
+top-left, dark saturated interior, one glowing subject, plenty of bloom.
+
+## fonts.py
+
+Resolves a weight to whatever face is installed, preferring the Segoe UI the
+images were designed against and falling back through DejaVu and Arial. It says
+so on stderr when it falls back, because an image that silently rendered in the
+bitmap default would look broken for a reason nobody could guess from looking
+at it.

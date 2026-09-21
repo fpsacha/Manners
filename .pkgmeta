@@ -35,6 +35,7 @@ externals:
 ignore:
   - .github
   - tests
+  - tools
   - STATUS.md
   - README.md
   - CHANGELOG.md
