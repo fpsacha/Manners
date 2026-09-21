@@ -60,6 +60,9 @@ local nameText, subText, countChip, countText, queueRows
 ns.BUILD = "0.9.6"
 
 local current, testMode, testExpiry, lastTop, appliedKey, lastClickAt, lastPreClickAt, lastSkipAt
+-- Its own stamp rather than one of the three above: the refusal it rate-limits
+-- happens on presses none of those are counting.
+local lastStaleAt
 
 -- Amber for a favour returned, because that is the case worth noticing.
 -- The others stay quiet so the prompt does not shout at you constantly.
@@ -74,6 +77,15 @@ local REASON_COLOR = {
 
 local REASON_KEY = { target = "reasonTarget", owed = "reasonOwed",
 	group = "reasonGroup", nearby = "reasonNearby" }
+
+-- Whole minutes, because the refresh threshold is set in minutes and a countdown
+-- ticking under the cursor reads as urgency the prompt does not mean. Under a
+-- minute is the one case where seconds say something a "0m" cannot.
+local function RemainingText(seconds)
+	if type(seconds) ~= "number" or seconds <= 0 then return nil end
+	if seconds < 60 then return ("%ds"):format(math.floor(seconds)) end
+	return ("%dm"):format(math.floor(seconds / 60))
+end
 
 ---------------------------------------------------------------------------
 -- capability-checked drawing helpers
@@ -305,6 +317,31 @@ function Prompt:Create()
 	end)
 
 	button:SetScript("PostClick", function(self, mouseButton, down)
+		-- Nothing below casts anything -- the secure handler has already had its
+		-- turn -- but all of it is bookkeeping about a cast this addon asked for,
+		-- and switched off, unlocked or previewing it asked for none. Hiding the
+		-- button was never a guard: a CLICK binding is delivered to a hidden
+		-- frame, so a disabled addon went on settling debts and blocking people
+		-- for every press of the key.
+		--
+		-- In combat the macro cannot be disarmed, so the press may genuinely have
+		-- cast from an attribute armed before the addon was switched off.
+		-- Refusing the bookkeeping is the honest answer to that -- the debt stays
+		-- standing, because none of what we meant to do happened -- and the line
+		-- says so rather than leaving somebody to wonder why a buff went out. Its
+		-- own stamp, because down and up both land here.
+		local db = ns.db and ns.db.profile
+		if not db or not db.enabled or not db.prompt.locked or testMode then
+			local now = GetTime()
+			if db and db.verbose and InCombatLockdown() and self:GetAttribute("macrotext1")
+				and not (lastStaleAt and (now - lastStaleAt) < 0.25) then
+				lastStaleAt = now
+				ns.addon:Print("|cffff8080that may still have cast|r -- the prompt cannot be"
+					.. " disarmed in combat, and nothing was recorded for it.")
+			end
+			return
+		end
+
 		-- A right-press says "not this one", which is not a repayment: the debt
 		-- stands, nothing is cast, and only the offer is postponed. The block is
 		-- on the person rather than the buff, because declining is about who is
@@ -373,6 +410,14 @@ function Prompt:Create()
 			or current.reason == "target" and "Your target, and missing it."
 			or "Nearby and missing it."
 		GameTooltip:AddLine(why, 0.7, 0.7, 0.7, true)
+		-- The refresh mode is the only thing that offers somebody a buff they
+		-- already hold, so without this the tooltip says "missing it" about a
+		-- person who is not. What they are carrying and how long it has left is
+		-- the whole reason they are on the prompt.
+		local left = RemainingText(current.remaining)
+		if left then
+			GameTooltip:AddLine(("Theirs expires in %s."):format(left), 0.7, 0.7, 0.7, true)
+		end
 		if current.checked and current.known == nil then
 			GameTooltip:AddLine("Buff state unreadable on this build -- they may already have it.",
 				1, 0.5, 0.5, true)
@@ -790,14 +835,21 @@ local function CastLines(entry)
 		return lines, false
 	end
 
-	-- Both forms, in this order. A /target that resolves nothing is a no-op and
-	-- leaves whoever you already had standing, so the full name runs last and
-	-- wins wherever it resolves, with the bare first name beneath it for the
-	-- clients that want that instead. FirstName is nil for a one-word name,
-	-- which needs no fallback of its own.
-	local first = ns.FirstName(entry.name)
-	if first then lines[#lines + 1] = "/target " .. first end
-	lines[#lines + 1] = "/target " .. (entry.name or "")
+	-- One /target line, carrying the full name. A second line is what
+	-- /targetlasttarget costs: it hands you back your PREVIOUS target, and with
+	-- two /target lines in front of it that is whoever the first one resolved
+	-- -- so restoring your target gave you the wrong player whenever two people
+	-- nearby share a first name. Most names on this client are two words, so
+	-- that is not a rare shape, and it is felt on every single click.
+	--
+	-- The full name is the one that names exactly one person. Where it will not
+	-- resolve the /target is a no-op and the cast goes to whoever you already
+	-- had, which SettlePendingClick notices and files against that person; from
+	-- their next offer on they get the bare first name instead. Rarer, and paid
+	-- for once by the people it happens to rather than by everybody at once.
+	local name = entry.name or ""
+	if ns.firstNameOnly[name] then name = ns.FirstName(name) or name end
+	lines[#lines + 1] = "/target " .. name
 	lines[#lines + 1] = "/cast " .. spell
 
 	return lines, ns.db.profile.filters.restoreTarget == true
@@ -816,7 +868,27 @@ function ns.PhraseBudget(entry)
 end
 
 function Prompt:ApplyTarget(entry)
-	if InCombatLockdown() then return end
+	if InCombatLockdown() then
+		-- The attributes are frozen until the fight ends, so the macro on the
+		-- button cannot follow an entry in here. Everything that is not secure
+		-- can, and has to: `current` is what PostClick files its bookkeeping
+		-- under, what the tooltip describes and what the pulse claims. Giving
+		-- up above it made every disarm a no-op in combat -- /manners off,
+		-- /manners unlock and leaving preview all arrive here with nil -- so
+		-- the prompt went on naming somebody it had been told to forget, and a
+		-- CLICK binding still reaches the handlers on a hidden button.
+		--
+		-- Only the clearing direction is taken. Pointing `current` at somebody
+		-- new while the armed macro still names the last person swaps one lie
+		-- for another, and the bookkeeping would then be filed under a name
+		-- nothing was cast at.
+		--
+		-- appliedKey is left alone on purpose: it says what is on the button,
+		-- and what is on the button did not change. The clear path below is
+		-- unconditional, so the first pass after the fight disarms it for real.
+		if not entry then current = nil end
+		return
+	end
 
 	current = entry
 
@@ -855,7 +927,14 @@ function Prompt:ApplyTarget(entry)
 	-- guarding it was the 1.4.1 bug, because PreClick nils the key immediately
 	-- before calling here, so the guard was always false on a click and an
 	-- emptied queue left the last person's macro armed.
-	local key = table.concat({ entry.name, entry.buff.key, tostring(entry.reason),
+	--
+	-- Everything the macro interpolates is in the key, the unit token included:
+	-- a /manners try template can say {unit}, so the same person reached
+	-- through a nameplate one tick and through party2 the next expands to a
+	-- different macro, and the memo would have shown and armed the old one. The
+	-- first-name fallback is in it for exactly the same reason.
+	local key = table.concat({ entry.name, tostring(entry.unit), entry.buff.key,
+		tostring(entry.reason), tostring(ns.firstNameOnly[entry.name]),
 		tostring(ns.tryMacro) }, "\1")
 	if key == appliedKey then return end
 

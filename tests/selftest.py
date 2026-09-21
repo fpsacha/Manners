@@ -10,10 +10,20 @@ DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TESTS = os.path.join(DIR, "tests")
 
 
+SUITES = ("runharness.py", "runscenarios.py")
+
+
 def run(script):
     r = subprocess.run([sys.executable, os.path.join(TESTS, script)],
                        capture_output=True, text=True)
     return r.stdout
+
+
+def tally(script):
+    """The suite's own verdict line, and whether it is a clean one."""
+    lines = [l for l in run(script).split("\n") if l.startswith(("errors:", "failures:"))]
+    line = lines[0] if lines else "?"
+    return line, line in ("errors: 0", "failures: 0")
 
 
 dead_anchors = []
@@ -49,9 +59,21 @@ def mutate(filename, old, new, label, script="runharness.py"):
 
 
 print("baseline:")
-for script in ("runharness.py", "runscenarios.py"):
-    line = [l for l in run(script).split("\n") if l.startswith(("errors:", "failures:"))]
-    print("  %-20s %s" % (script, line[0] if line else "?"))
+# Every mutation below is judged by the suite going red. Against a tree that is
+# already red they all report CAUGHT without proving a thing, and this file then
+# signs off on checks it never exercised -- the same failure as a dead anchor,
+# arriving from the other direction. So the baseline is a gate, not a note.
+dirty = []
+for script in SUITES:
+    line, clean = tally(script)
+    print("  %-20s %s" % (script, line))
+    if not clean:
+        dirty.append(script)
+if dirty:
+    print()
+    print("RESULT: the tree is already failing (" + ", ".join(dirty) + "),"
+          " so no mutation below would mean anything")
+    sys.exit(1)
 print()
 
 # 1. a name local to another file, called from this one -- the `plain` bug
@@ -115,18 +137,44 @@ mutate("Core.lua",
        "debts saved on a clock that restarts",
        script="runscenarios.py")
 
+# 8. the aura baseline reused without being emptied. The reuse is a deliberate
+#    optimisation -- this runs on every UNIT_AURA -- and the wipe is the only
+#    thing that keeps it from becoming a list of everything you have ever held.
+mutate("Core.lua",
+       "function ns.ScanOwnBuffs()\n\twipe(present)\n",
+       "function ns.ScanOwnBuffs()\n",
+       "an aura baseline that never forgets",
+       script="runscenarios.py")
+
+# 9. the one line that puts the console in SavedVariables. The file says in two
+#    places that a session can be read off disk afterwards; without this it
+#    cannot, and nothing about that is visible in game.
+mutate("Core.lua",
+       "\tMannersDB.console = ns.console\n",
+       "",
+       "the console never reaching the disk",
+       script="runscenarios.py")
+
 print()
 print("after restore:")
-for script in ("runharness.py", "runscenarios.py"):
-    line = [l for l in run(script).split("\n") if l.startswith(("errors:", "failures:"))]
-    print("  %-20s %s" % (script, line[0] if line else "?"))
+# This file edits the addon in place. A restore that did not happen leaves a
+# mutation in the working tree and every later run measuring it, so the check
+# that the files came back is as load-bearing as the mutations themselves.
+not_restored = []
+for script in SUITES:
+    line, clean = tally(script)
+    print("  %-20s %s" % (script, line))
+    if not clean:
+        not_restored.append(script)
 
-if dead_anchors or missed:
+if dead_anchors or missed or not_restored:
     print()
     for label in dead_anchors:
         print("ANCHOR GONE: " + label)
     for label in missed:
         print("MISSED: " + label)
+    for script in not_restored:
+        print("NOT RESTORED: " + script + " is red on a tree that started green")
     # The four suites are the project's only gate. One of them reporting a
     # check that is switched off as success is how the stale-macro guarantee
     # stayed dead through three releases.

@@ -596,7 +596,18 @@ local function BuildOptions()
 						desc = "Unlock to drag the prompt. It will not cast while unlocked.",
 						order = 1,
 						get = pGet,
-						set = pSet,
+						-- Its own setter rather than the shared one, for the same
+						-- reason /manners unlock has its own line: the prompt is
+						-- hidden by `enabled` before `locked` is ever read, so
+						-- unlocking while the addon is off leaves nothing on
+						-- screen to drag and no clue as to why.
+						set = function(info, value)
+							pSet(info, value)
+							if not value and not ns.db.profile.enabled then
+								ns.addon:Print("unlocked, but the addon is |cffff8080off|r so there"
+									.. " is no prompt to drag -- switch it on first.")
+							end
+						end,
 					},
 					test = {
 						type = "execute",

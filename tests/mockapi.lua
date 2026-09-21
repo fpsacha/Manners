@@ -18,6 +18,7 @@ function Mock.reset()
 	Mock.held = nil
 	Mock.heldFor = nil
 	Mock.auraBlackout = false
+	Mock.noAuras = false
 	Mock.extraAura = false
 	Mock.auraIdBase = 0
 	Mock.inRange = true
@@ -41,6 +42,10 @@ end
 Mock.reset()
 
 local SECRET = setmetatable({}, { __tostring = function() return "<secret>" end })
+-- Exposed so a scenario can withhold one value rather than all of them. Turning
+-- Mock.allSecret on to hide a single answer hides UnitExists with it, and the
+-- unit is then rejected before the code under test is ever reached.
+Mock.SECRET = SECRET
 
 -- A secret value is returned in place of the real one; the addon is expected
 -- to route everything it branches on through its own plain() first.
@@ -317,8 +322,12 @@ setmetatable(_G, { __index = function(_, key)
 			end,
 			GetAuraDataByIndex = function(_, i)
 				-- A loading screen hands back a list that is not readable yet,
-				-- which is not the same as an empty one.
-				if Mock.auraBlackout then return nil end
+				-- which is not the same as an empty one -- so it answers the
+				-- way this client refuses anything, with a value you are not
+				-- allowed to look at. Returning nil here made the two states
+				-- literally identical, and the addon was then asked to tell
+				-- them apart on a difference the mock did not model.
+				if Mock.auraBlackout then return SECRET end
 				-- A buff that has just landed, so a scenario can produce a
 				-- favour without renumbering the two that were already there.
 				if i == 3 then
@@ -328,6 +337,11 @@ setmetatable(_G, { __index = function(_, key)
 						sourceUnit = maybeSecret("nameplate1"), expirationTime = 2000 }
 				end
 				if i > 2 then return nil end
+				-- A character carrying nothing at all: every slot answers, and
+				-- answers "there is nothing here". The opposite of a blackout,
+				-- and the case a scan that reads nothing must not be mistaken
+				-- for.
+				if Mock.noAuras then return nil end
 				-- auraIdBase renumbers the same two auras, which is what a zone
 				-- change does to instance ids.
 				return { auraInstanceID = i + Mock.auraIdBase, spellId = 1459,

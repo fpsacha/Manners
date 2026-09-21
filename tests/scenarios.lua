@@ -242,31 +242,24 @@ if ns then
 			end
 		end
 
-		-- Whether the game wants "Petra" or "Petra Stonewell" is not something
-		-- an addon can find out, so the macro offers both: first name first,
-		-- full name last, because a /target that resolves nothing is a no-op
-		-- and the more specific form has to be the one that wins.
+		-- Exactly one /target line, whatever shape the name is, and the full
+		-- name is what goes in it. Offering the bare first name underneath it
+		-- as well reads as belt and braces, but /targetlasttarget hands you
+		-- back the target the line before last set -- so a second /target line
+		-- makes "restore my target" mean "whoever the first name found", and
+		-- two people with the same first name is all that takes. Where the full
+		-- name will not resolve, scenario 55 covers what replaces it.
 		if macro and entry and entry.buff and not entry.buff.selfCast then
 			local targets = {}
 			for line in macro:gmatch("[^\r\n]+") do
 				if line:find("^/target ") then targets[#targets + 1] = line end
 			end
 			local label = tostring(pair[1]) .. "/" .. tostring(pair[2])
-			if pair[2] and pair[2] ~= "" then
-				if #targets ~= 2 then
-					fail("odd names", label .. ": " .. #targets .. " /target lines, not 2")
-				else
-					if targets[1] ~= "/target " .. pair[1] then
-						fail("odd names", label .. ": first target line is '" .. targets[1] .. "'")
-					end
-					if targets[2] ~= "/target " .. pair[1] .. " " .. pair[2] then
-						fail("odd names", label .. ": second target line is '" .. targets[2] .. "'")
-					end
-				end
-			elseif #targets ~= 1 then
-				-- One word, nothing to fall back to: a duplicate line here is
-				-- wasted macro budget and a second chance to target somebody else.
-				fail("odd names", label .. ": " .. #targets .. " /target lines for a one-word name")
+			local full = pair[1] .. ((pair[2] and pair[2] ~= "") and (" " .. pair[2]) or "")
+			if #targets ~= 1 then
+				fail("odd names", label .. ": " .. #targets .. " /target lines, not 1")
+			elseif targets[1] ~= "/target " .. full then
+				fail("odd names", label .. ": the target line is '" .. targets[1] .. "'")
 			end
 		end
 	end
@@ -2163,6 +2156,825 @@ if ns then
 	end
 
 	ns.Prompt.ApplyStyle = real
+end
+
+-- ------------------------------------------------------------------ 46
+-- A click writes a twelve-second cooldown on the buff it assumes went out. When
+-- the game refuses the cast outright -- out of range, no line of sight -- that
+-- assumption was only unwound on one of the two paths that settle a click. On
+-- the other the person was blocked for two seconds and the buff for twelve, so
+-- three seconds later the prompt offered them the next buff down the list,
+-- which failed the same way, and so on until they had been walked off it.
+Mock.reset()
+Mock.class = "PRIEST"
+ns = load("a refused cast costs one block, not the whole list")
+if ns then
+	local scenario = "a refused cast costs one block, not the whole list"
+	local known = {}
+	for _, key in ipairs({ "fortitude", "spirit" }) do
+		for _, id in ipairs(ns.FindBuff("PRIEST", key).ranks) do known[id] = true end
+	end
+	local realKnown = IsSpellKnown
+	IsSpellKnown = function(id) return known[id] == true end
+	IsPlayerSpell = function(id) return known[id] == true end
+
+	drive(scenario, ns)
+	Mock.advance(60)
+	ns.Guard("probe", ns.ProbeCapabilities)
+
+	local queue = ns.BuildQueue()
+	if #queue == 0 or queue[1].buff.key ~= "fortitude" then
+		fail(scenario, "SKIPPED -- fortitude was not the first offer")
+	else
+		local person = queue[1].name
+		local button = ns.Prompt:GetButton()
+		ns.Prompt:ApplyTarget(queue[1])
+		Mock.advance(1)
+		local post = button.scripts.PostClick
+		if post then pcall(post, button, "LeftButton", true) end
+
+		if not ns.pendingClick then
+			fail(scenario, "SKIPPED -- the press left nothing to settle")
+		else
+			-- The game says no. Nothing was cast at all.
+			ns.addon:UI_ERROR_MESSAGE(nil, nil, "Out of range.")
+
+			local perBuff = ns.tried[person .. "\0fortitude"]
+			if not perBuff or perBuff > GetTime() + 3 then
+				fail(scenario, ("fortitude stayed blocked for %s seconds after a cast that never went out")
+					:format(tostring(perBuff and math.floor(perBuff - GetTime()))))
+			end
+
+			-- Which is the whole point of unwinding it: once the short block on
+			-- the person is up they come back with the same buff, rather than
+			-- with the next one on a list that is being burned down for them.
+			Mock.advance(3)
+			local after
+			for _, entry in ipairs(ns.BuildQueue()) do
+				if entry.name == person then after = entry end
+			end
+			if not after then
+				fail(scenario, "a refused cast took the person off the prompt entirely")
+			elseif after.buff.key ~= "fortitude" then
+				fail(scenario, ("the refusal walked them on to %s, which fails the same way")
+					:format(tostring(after.buff.key)))
+			end
+		end
+	end
+
+	IsSpellKnown = realKnown
+	IsPlayerSpell = realKnown
+end
+
+-- ------------------------------------------------------------------ 47
+-- Refusing to take a baseline from a scan that read nothing protects against a
+-- loading screen, but "nothing was readable" and "there is nothing to read" are
+-- different states: a character holding no buffs at all logs in, stays unprimed
+-- because the count was zero, and the first person to buff them -- the one
+-- moment any of this exists for -- is silently written to the baseline instead.
+Mock.reset()
+ns = load("a character with no buffs still sees their first favour")
+if ns then
+	local scenario = "a character with no buffs still sees their first favour"
+	drive(scenario, ns)
+	wipe(ns.owed)
+
+	-- Nothing on you, and every slot said so plainly.
+	Mock.noAuras = true
+	ns.addon:PLAYER_ENTERING_WORLD()
+	-- And then somebody buffs you.
+	Mock.extraAura = true
+	ns.addon:UNIT_AURA(nil, "player")
+	if not next(ns.owed) then
+		fail(scenario, "the first buff to reach an unbuffed character was taken for a baseline")
+	end
+	Mock.extraAura = false
+	Mock.noAuras = false
+
+	-- None of which may cost the protection that gate was reaching for: a list
+	-- the client will not show is still not an empty one.
+	wipe(ns.owed)
+	Mock.auraBlackout = true
+	ns.addon:PLAYER_ENTERING_WORLD()
+	Mock.auraBlackout = false
+	ns.addon:UNIT_AURA(nil, "player")
+	if next(ns.owed) then
+		fail(scenario, "an unreadable aura list invented a favour from " .. tostring(next(ns.owed)))
+	end
+end
+
+-- ------------------------------------------------------------------ 48
+-- Blessings overwrite each other, so the walk stops at the first one and the
+-- answer is "are they carrying any of mine". Saying no to that on an aura
+-- nobody could read is a guess wearing a verdict's clothes -- and the queue
+-- promotes a verified gap on your own target above every debt you owe, so for
+-- a paladin that guess outranked somebody who really had buffed you.
+Mock.reset()
+Mock.class = "PALADIN"
+ns = load("a guess never outranks a debt")
+if ns then
+	local scenario = "a guess never outranks a debt"
+	local known = {}
+	for _, key in ipairs({ "wisdom", "might" }) do
+		for _, id in ipairs(ns.FindBuff("PALADIN", key).ranks) do known[id] = true end
+	end
+	local realKnown = IsSpellKnown
+	IsSpellKnown = function(id) return known[id] == true end
+	IsPlayerSpell = function(id) return known[id] == true end
+
+	drive(scenario, ns)
+	Mock.advance(60)
+
+	-- The mirror first, and it is not a formality: a read that really did come
+	-- back empty has to say false, and `allRead and false or nil` -- the obvious
+	-- way to write that -- is nil either way, which would quietly take the
+	-- promotion away from every paladin instead of only the guesses.
+	ns.owed["Ysolde Marrow"] = { expires = GetTime() + 100, at = GetTime(), class = "PRIEST" }
+	local readPick, readHas = ns.PickBuffFor(ns.CastableBuffs(), { name = "Somebody" },
+		function() return false end)
+	if not readPick then
+		fail(scenario, "SKIPPED -- no blessing was castable at all")
+	elseif readHas ~= false then
+		fail(scenario, "an aura that read back empty came back as " .. tostring(readHas))
+	end
+	local verified = ns.BuildQueue()
+	if #verified < 2 then
+		fail(scenario, "SKIPPED -- " .. #verified .. " on the queue, so nothing is being ordered")
+	elseif verified[1].reason ~= "target" then
+		fail(scenario, ("a verified gap on your own target came in as %s, behind the debt")
+			:format(tostring(verified[1].reason)))
+	end
+
+	-- Auras withheld, people not. Readability is decided once, by the probe, so
+	-- making everything secret for the length of it models this client's usual
+	-- state without also hiding whoever is standing in front of you.
+	Mock.allSecret = true
+	ns.Guard("probe", ns.ProbeCapabilities)
+	Mock.allSecret = false
+
+	local pick, has = ns.PickBuffFor(ns.CastableBuffs(), { name = "Somebody" },
+		function() return nil end)
+	if not pick then
+		fail(scenario, "SKIPPED -- no blessing was castable at all")
+	elseif has ~= nil then
+		fail(scenario, "an aura nobody could read came back as " .. tostring(has))
+	end
+
+	-- And what claiming otherwise costs, which is the reason it matters.
+	local queue = ns.BuildQueue()
+	if #queue < 2 then
+		fail(scenario, "SKIPPED -- " .. #queue .. " on the queue, so nothing is being ordered")
+	elseif queue[1].name ~= "Ysolde Marrow" then
+		fail(scenario, ("a guess at %s outranked the debt owed to Ysolde Marrow")
+			:format(tostring(queue[1].name)))
+	end
+	wipe(ns.owed)
+
+	IsSpellKnown = realKnown
+	IsPlayerSpell = realKnown
+end
+
+-- ------------------------------------------------------------------ 49
+-- When the client will not show a person's auras there is no truth to go on, so
+-- the walk rotates past whatever it gave them last. That rotation sat below a
+-- loop that returned on anything which was not a hard true, so it could not be
+-- reached from it: ns.lastGave was written on every click and read by nothing,
+-- and an unreadable class offered the top of its list forever.
+Mock.reset()
+Mock.class = "PRIEST"
+ns = load("an unreadable class is walked through its list")
+if ns then
+	local scenario = "an unreadable class is walked through its list"
+	local known = {}
+	for _, key in ipairs({ "fortitude", "spirit" }) do
+		for _, id in ipairs(ns.FindBuff("PRIEST", key).ranks) do known[id] = true end
+	end
+	local realKnown = IsSpellKnown
+	IsSpellKnown = function(id) return known[id] == true end
+	IsPlayerSpell = function(id) return known[id] == true end
+
+	drive(scenario, ns)
+	Mock.allSecret = true
+	ns.Guard("probe", ns.ProbeCapabilities)
+	Mock.allSecret = false
+	Mock.advance(60)
+
+	local keys = {}
+	for _, buff in ipairs(ns.CastableBuffs()) do keys[#keys + 1] = buff.key end
+	local queue = ns.BuildQueue()
+	if #queue == 0 or #keys < 2 then
+		fail(scenario, "SKIPPED -- " .. #keys .. " buffs and " .. #queue .. " on the queue")
+	else
+		local person = queue[1].name
+
+		local function offeredNow()
+			for _, entry in ipairs(ns.BuildQueue()) do
+				if entry.name == person then return entry.buff.key end
+			end
+		end
+
+		ns.lastGave[person] = keys[1]
+		local next1 = offeredNow()
+		if next1 == keys[1] then
+			fail(scenario, ("%s was offered again straight after being given"):format(tostring(keys[1])))
+		end
+
+		-- Round the end of the list rather than off it.
+		ns.lastGave[person] = keys[#keys]
+		local wrapped = offeredNow()
+		if wrapped ~= keys[1] then
+			fail(scenario, ("the last buff on the list rotated to %s, not back to %s")
+				:format(tostring(wrapped), tostring(keys[1])))
+		end
+
+		-- The other half of "no truth to go on" is the mode that says not to
+		-- look at all. Auras readable again, so the rotation here can only be
+		-- coming from the mode -- and that half was just as unreachable.
+		ns.Guard("probe", ns.ProbeCapabilities)
+		Mock.advance(5)
+		ns.db.profile.filters.whenBuffed = "always"
+		ns.lastGave[person] = keys[1]
+		local anyway = offeredNow()
+		if anyway == keys[1] then
+			fail(scenario, ("offer-anyway handed back %s straight after giving it")
+				:format(tostring(keys[1])))
+		end
+		ns.db.profile.filters.whenBuffed = "skip"
+		ns.lastGave[person] = nil
+	end
+
+	IsSpellKnown = realKnown
+	IsPlayerSpell = realKnown
+end
+
+-- ------------------------------------------------------------------ 50
+-- A unit turned down is remembered, so the tokenless fallback cannot re-add
+-- somebody the main path has just judged. Only a judgement about the person
+-- counts -- and a value the client withheld is not one. plain() collapses a
+-- secret to nil, so testing "not true" filed somebody standing right there
+-- under rejected and the grace window then honoured it.
+Mock.reset()
+ns = load("a withheld answer is not a judgement")
+if ns then
+	local scenario = "a withheld answer is not a judgement"
+	drive(scenario, ns)
+	Mock.advance(60)
+	wipe(ns.owed)
+
+	local person = ns.UnitFullName("target")
+	local realCanAssist = UnitCanAssist
+	if not person then
+		fail(scenario, "SKIPPED -- the target has no usable name")
+	else
+		-- They buffed you moments ago, so they were demonstrably within reach.
+		ns.owed[person] = { expires = GetTime() + 100, at = GetTime(), class = "PRIEST" }
+
+		local function offered()
+			for _, entry in ipairs(ns.BuildQueue()) do
+				if entry.name == person then return entry end
+			end
+		end
+
+		UnitCanAssist = function() return Mock.SECRET end
+		local withheld = offered()
+		UnitCanAssist = realCanAssist
+		if not withheld then
+			fail(scenario, "a value the client would not show took somebody off the prompt"
+				.. " that the grace window exists to reach")
+		end
+
+		-- The mirror, or the flag could simply be deleted: a definite no really
+		-- is a judgement, and still has to keep them out of the fallback.
+		UnitCanAssist = function() return false end
+		local refused = offered()
+		UnitCanAssist = realCanAssist
+		if refused then
+			fail(scenario, "somebody we definitely cannot assist came back through the fallback")
+		end
+	end
+	wipe(ns.owed)
+end
+
+-- ------------------------------------------------------------------ 51
+-- The favour recorder is gated on the source being on, because nothing it
+-- writes can reach a prompt that will not offer it. A switched-off addon is the
+-- same statement made louder -- Refresh hides the button outright -- and this
+-- still wrote the debt to the saved file and said returning it was on a prompt
+-- that is not there.
+Mock.reset()
+ns = load("a switched-off addon records nothing")
+if ns then
+	local scenario = "a switched-off addon records nothing"
+	drive(scenario, ns)
+	wipe(ns.owed)
+
+	ns.db.profile.enabled = false
+	ns.db.profile.sources.owed = true
+	ns.db.profile.verbose = true
+	Mock.printed = {}
+	Mock.extraAura = 3005
+	ns.addon:UNIT_AURA(nil, "player")
+
+	if next(ns.owed) then
+		fail(scenario, "recorded a debt while switched off, and wrote it to the saved file")
+	end
+	for _, line in ipairs(Mock.printed) do
+		if line:find("buffed you", 1, true) then
+			fail(scenario, "promised a prompt that is not there: " .. line)
+		end
+	end
+
+	Mock.extraAura = false
+	ns.db.profile.enabled = true
+end
+
+-- ------------------------------------------------------------------ 52
+-- The refresh mode is the only thing that offers somebody a buff they already
+-- have, so the tooltip's "missing it" is wrong for exactly those people. How
+-- long theirs has left is the answer, and it was read out of the aura, assigned
+-- to an upvalue nobody looked at, and returned to a call site that dropped it.
+Mock.reset()
+ns = load("a top-up says how long is left")
+if ns then
+	local scenario = "a top-up says how long is left"
+	drive(scenario, ns)
+	Mock.advance(60)
+
+	local db = ns.db.profile
+	db.filters.whenBuffed = "refresh"
+	db.filters.refreshUnder = 5
+	-- Carrying it with two minutes to run, which is what puts them on the
+	-- prompt in this mode and nothing else would.
+	Mock.held = { [1459] = true }
+	Mock.heldFor = 120
+
+	local queue = ns.BuildQueue()
+	local entry = queue[1]
+	if not entry or not entry.buff then
+		fail(scenario, "SKIPPED -- nobody was offered a top-up")
+	elseif type(entry.remaining) ~= "number" then
+		fail(scenario, "the queue entry carries " .. type(entry.remaining)
+			.. " where the time left should be")
+	elseif math.abs(entry.remaining - 120) > 1 then
+		fail(scenario, "the time left came back as " .. tostring(entry.remaining))
+	else
+		-- And it reaches the player, which is the only reason to carry it.
+		local lines = {}
+		local realAdd = GameTooltip.AddLine
+		GameTooltip.AddLine = function(_, text) lines[#lines + 1] = tostring(text) end
+		ns.Prompt:ApplyTarget(entry)
+		local onEnter = ns.Prompt:GetButton().scripts.OnEnter
+		if onEnter then pcall(onEnter, ns.Prompt:GetButton()) end
+		GameTooltip.AddLine = realAdd
+
+		local said = false
+		for _, line in ipairs(lines) do
+			if line:find("expires in 2m", 1, true) then said = true end
+		end
+		if not said then
+			fail(scenario, "the time left never reached the tooltip")
+		end
+	end
+
+	Mock.held = nil
+	Mock.heldFor = nil
+	db.filters.whenBuffed = "skip"
+end
+
+-- ------------------------------------------------------------------ 53
+-- Every way of disarming the prompt -- /manners off, /manners unlock, leaving
+-- preview -- comes through ApplyTarget with nil, and it gave up on the first
+-- line of a fight. So none of them cleared anything: the button was hidden and
+-- went on naming the last person, a CLICK binding still reaches a hidden frame,
+-- and the press that followed was filed as a favour returned.
+Mock.reset()
+ns = load("a disarm in combat is not a no-op")
+if ns then
+	local scenario = "a disarm in combat is not a no-op"
+	drive(scenario, ns)
+	Mock.advance(60)
+	local button = ns.Prompt:GetButton()
+	local queue = ns.BuildQueue()
+	local entry = queue[1]
+	if not entry or not entry.buff then
+		fail(scenario, "SKIPPED -- nobody to arm against")
+	else
+		local name, buffKey = entry.name, entry.buff.key
+		ns.Prompt:ApplyTarget(entry)
+
+		-- The tooltip is the one window onto who the prompt thinks it is
+		-- offering: it describes that person and nobody else, and says nothing
+		-- at all when there is no one.
+		local function describes()
+			local lines = {}
+			local realAdd, realDouble = GameTooltip.AddLine, GameTooltip.AddDoubleLine
+			GameTooltip.AddLine = function(_, text) lines[#lines + 1] = tostring(text) end
+			GameTooltip.AddDoubleLine = function(_, a) lines[#lines + 1] = tostring(a) end
+			local onEnter = button.scripts.OnEnter
+			if onEnter then pcall(onEnter, button) end
+			GameTooltip.AddLine, GameTooltip.AddDoubleLine = realAdd, realDouble
+			return #lines > 0
+		end
+
+		if not describes() then
+			fail(scenario, "SKIPPED -- the prompt was not offering anybody to begin with")
+		else
+			Mock.inCombat = true
+			ns.db.profile.verbose = true
+			ns.addon:HandleSlash("off")
+
+			if describes() then
+				fail(scenario, "a switched-off prompt still named the person it was told to forget")
+			end
+
+			-- The half that cannot be fixed, and the reason the other half
+			-- matters: secure attributes are frozen, so the macro stays armed
+			-- and a keybinding can still fire it.
+			if not button:GetAttribute("macrotext1") then
+				fail(scenario, "the macro was cleared in combat, which the client does not allow")
+			end
+
+			Mock.advance(1)
+			ns.pendingClick = nil
+			ns.lastGave[name] = nil
+			ns.tried[name .. "\0" .. buffKey] = nil
+			ns.owed[name] = { expires = GetTime() + 100, at = GetTime() }
+			Mock.printed = {}
+			local post = button.scripts.PostClick
+			if post then pcall(post, button, "LeftButton", true) end
+
+			if ns.pendingClick or ns.lastGave[name] or ns.tried[name .. "\0" .. buffKey] then
+				fail(scenario, "a switched-off addon recorded a cast it never asked for")
+			end
+			local said = table.concat(Mock.printed, "\n")
+			if not said:find("combat", 1, true) then
+				fail(scenario, "a buff went out and nothing explained it: " .. said)
+			end
+
+			-- And the moment the attributes are writable again, the disarm that
+			-- was asked for in the fight actually happens.
+			Mock.inCombat = false
+			ns.Prompt:Refresh()
+			if button:GetAttribute("macrotext1") then
+				fail(scenario, "the fight ended and the macro was still armed: "
+					.. tostring(button:GetAttribute("macrotext1")))
+			end
+		end
+	end
+	ns.db.profile.enabled = true
+	Mock.inCombat = false
+	wipe(ns.owed)
+end
+
+-- ------------------------------------------------------------------ 54
+-- PostClick had no guard of any kind. Hiding the button was treated as one,
+-- and it never was: a CLICK binding is delivered to a hidden frame. /manners
+-- unlock does not repaint either, so the gap between unlocking and the next
+-- tick is a real four tenths of a second in which the old macro is armed and
+-- the key still settles debts.
+Mock.reset()
+ns = load("a press on a prompt that is not offering records nothing")
+if ns then
+	local scenario = "a press on a prompt that is not offering records nothing"
+	drive(scenario, ns)
+	Mock.advance(60)
+	local button = ns.Prompt:GetButton()
+	local queue = ns.BuildQueue()
+	local entry = queue[1]
+	if not entry or not entry.buff then
+		fail(scenario, "SKIPPED -- nobody to arm against")
+	else
+		local name, buffKey = entry.name, entry.buff.key
+		local ours = ns.FindBuff(ns.caps.class, buffKey).ranks[1]
+		local db = ns.db.profile
+
+		-- The last tick armed the button and named them; then the setting
+		-- changed, and the key was pressed before the next tick repainted.
+		local function press()
+			Mock.advance(1)
+			ns.pendingClick = nil
+			ns.lastGave[name] = nil
+			ns.tried[name .. "\0*"] = nil
+			ns.tried[name .. "\0" .. buffKey] = nil
+			ns.owed[name] = { expires = GetTime() + 100, at = GetTime() }
+			ns.Prompt:ApplyTarget(entry)
+			local post = button.scripts.PostClick
+			if post then pcall(post, button, "LeftButton", true) end
+			-- The game answers whatever the macro did. With nothing parked to
+			-- settle, that answer has to reach nobody.
+			ns.addon:UNIT_SPELLCAST_SENT(nil, "player", name, nil, ours)
+		end
+
+		local function recorded()
+			return ns.pendingClick ~= nil or ns.lastGave[name] ~= nil
+				or ns.tried[name .. "\0" .. buffKey] ~= nil or ns.owed[name] == nil
+		end
+
+		db.enabled, db.prompt.locked = true, false
+		press()
+		if recorded() then
+			fail(scenario, "an unlocked prompt settled a debt through the keybinding")
+		end
+
+		db.enabled, db.prompt.locked = false, true
+		press()
+		if recorded() then
+			fail(scenario, "a switched-off addon settled a debt through the keybinding")
+		end
+
+		-- The mirror, or the guard could be a bare return: a working prompt
+		-- still has to do all of it.
+		db.enabled, db.prompt.locked = true, true
+		press()
+		if ns.owed[name] then
+			fail(scenario, "a press on a working prompt left the debt standing")
+		end
+		if ns.lastGave[name] ~= buffKey then
+			fail(scenario, "a press on a working prompt recorded nothing")
+		end
+	end
+	wipe(ns.owed)
+end
+
+-- ------------------------------------------------------------------ 55
+-- One /target line means the full name has to carry it, and a full name that
+-- will not resolve is a no-op: the cast goes to whoever you already had. That
+-- is visible -- the settle path is already watching who it landed on -- so it
+-- is remembered per person and the bare first name gets the next offer. The
+-- alternative, a second /target line for everybody, breaks the restore on
+-- every click instead.
+Mock.reset()
+ns = load("a full name that will not resolve is learned")
+if ns then
+	local scenario = "a full name that will not resolve is learned"
+	drive(scenario, ns)
+	Mock.advance(60)
+	local queue = ns.BuildQueue()
+	local entry = queue[1]
+	local first = entry and ns.FirstName(entry.name)
+	if not entry or not entry.buff or not first then
+		fail(scenario, "SKIPPED -- nobody with a two-word name to aim at")
+	else
+		local name, buffKey = entry.name, entry.buff.key
+		local ours = ns.FindBuff(ns.caps.class, buffKey).ranks[1]
+
+		local function targets()
+			local lines = {}
+			for line in (ns.lastMacro or ""):gmatch("[^\r\n]+") do
+				if line:find("^/target ") then lines[#lines + 1] = line end
+			end
+			return lines, table.concat(lines, " | ")
+		end
+
+		ns.firstNameOnly[name] = nil
+		ns.Prompt:InvalidateMacro()
+		ns.Prompt:ApplyTarget(entry)
+		local lines, shown = targets()
+		if #lines ~= 1 or lines[1] ~= "/target " .. name then
+			fail(scenario, "the first offer did not aim the full name: " .. shown)
+		end
+
+		ns.pendingClick = { name = name, at = GetTime(), buffKey = buffKey }
+		ns.addon:UNIT_SPELLCAST_SENT(nil, "player", "Someone Else", nil, ours)
+		if not ns.firstNameOnly[name] then
+			fail(scenario, "a cast that landed on a stranger taught it nothing about the name")
+		end
+
+		-- No InvalidateMacro here on purpose: the memo has to carry the
+		-- fallback, or the button keeps a spelling we have just watched fail.
+		ns.Prompt:ApplyTarget(entry)
+		lines, shown = targets()
+		if #lines ~= 1 or lines[1] ~= "/target " .. first then
+			fail(scenario, "the next offer still aimed a name that does not resolve: " .. shown)
+		end
+
+		-- The mirror, and why this is not set on every failure: a cast that
+		-- never went out is refused for range or line of sight far more often
+		-- than for a name, and putting the whole roster on bare first names is
+		-- how two people who share one get each other's buffs.
+		ns.firstNameOnly[name] = nil
+		ns.pendingClick = { name = name, at = GetTime(), buffKey = buffKey }
+		ns.addon:UI_ERROR_MESSAGE(nil, nil, "Out of range.")
+		if ns.firstNameOnly[name] then
+			fail(scenario, "a cast that never went out at all was blamed on the name")
+		end
+		ns.Prompt:InvalidateMacro()
+		ns.Prompt:ApplyTarget(entry)
+		lines, shown = targets()
+		if #lines ~= 1 or lines[1] ~= "/target " .. name then
+			fail(scenario, "the full name never came back: " .. shown)
+		end
+	end
+end
+
+-- ------------------------------------------------------------------ 56
+-- Refresh reads `enabled` before `locked`, which is right -- an unlocked prompt
+-- must not outlive /manners off -- but it made unlocking a switched-off addon a
+-- silent no-op, while the reply still sent you off to drag something that is
+-- not on the screen. Both routes to the setting had the same silence.
+Mock.reset()
+ns = load("unlocking a switched-off prompt says so")
+if ns then
+	local scenario = "unlocking a switched-off prompt says so"
+	drive(scenario, ns)
+	local db = ns.db.profile
+
+	local function unlocking(fn)
+		db.prompt.locked = true
+		Mock.printed = {}
+		fn()
+		return table.concat(Mock.printed, "\n")
+	end
+
+	db.enabled = false
+	local said = unlocking(function() ns.addon:HandleSlash("unlock") end)
+	if said:find("drag the prompt", 1, true) then
+		fail(scenario, "sent you to drag a prompt that `enabled` keeps off the screen: " .. said)
+	end
+	if not said:find("/manners on", 1, true) then
+		fail(scenario, "said nothing about why nothing happened: " .. said)
+	end
+	-- The other way out of this was to switch the addon on for you. /manners
+	-- off is a decision, and a command about where the prompt sits must not
+	-- quietly undo it.
+	if db.enabled then
+		fail(scenario, "unlocking switched the addon on, which nobody asked it to do")
+	end
+	if db.prompt.locked then
+		fail(scenario, "the unlock itself did not happen")
+	end
+
+	-- The mirror: the working case still has to say what to do next.
+	db.enabled = true
+	said = unlocking(function() ns.addon:HandleSlash("unlock") end)
+	if not said:find("drag the prompt", 1, true) then
+		fail(scenario, "the working case stopped telling you what to do: " .. said)
+	end
+
+	local function findOption(node, key)
+		if type(node) ~= "table" or type(node.args) ~= "table" then return nil end
+		for k, v in pairs(node.args) do
+			if k == key then return v end
+			local found = findOption(v, key)
+			if found then return found end
+		end
+	end
+
+	local option = findOption(ns.optionsTable, "locked")
+	if not (option and option.set) then
+		fail(scenario, "SKIPPED -- no locked option in the panel")
+	else
+		db.enabled = false
+		said = unlocking(function() option.set({ "locked" }, false) end)
+		if said == "" then
+			fail(scenario, "the panel unlocked a prompt that cannot appear and said nothing")
+		end
+		db.enabled = true
+		said = unlocking(function() option.set({ "locked" }, false) end)
+		if said ~= "" then
+			fail(scenario, "the panel explains itself when there is nothing to explain: " .. said)
+		end
+	end
+
+	db.enabled, db.prompt.locked = true, true
+end
+
+-- ------------------------------------------------------------------ 57
+-- The macro is armed once per candidate, and the memo that decides "same
+-- candidate" has to name everything the macro interpolates. A /manners try
+-- template can say {unit}, and the token a person is reached through changes
+-- under them -- nameplate one tick, party member the next -- so the memo showed
+-- and armed an expansion for a token that is no longer theirs.
+Mock.reset()
+ns = load("the armed macro follows the unit token")
+if ns then
+	local scenario = "the armed macro follows the unit token"
+	drive(scenario, ns)
+	Mock.advance(60)
+	local button = ns.Prompt:GetButton()
+	local queue = ns.BuildQueue()
+	local entry = queue[1]
+	if not entry or not entry.buff then
+		fail(scenario, "SKIPPED -- nobody to arm against")
+	else
+		ns.addon:HandleSlash("try /cast [@{unit}] {spell}")
+		entry.unit = "target"
+		ns.Prompt:ApplyTarget(entry)
+		local armed = button:GetAttribute("macrotext1")
+		if not armed or not armed:find("@target", 1, true) then
+			fail(scenario, "the try template never expanded the unit: " .. tostring(armed))
+		else
+			-- The same person a moment later, reached through a different
+			-- token. Nothing else about them changed, so the unit is the only
+			-- thing that can tell the memo the macro is out of date.
+			entry.unit = "party2"
+			ns.Prompt:ApplyTarget(entry)
+			local second = button:GetAttribute("macrotext1")
+			if second == armed then
+				fail(scenario, "a stale expansion stayed armed: " .. tostring(second))
+			elseif not second or not second:find("@party2", 1, true) then
+				fail(scenario, "the re-arm did not carry the new token: " .. tostring(second))
+			end
+		end
+		ns.addon:HandleSlash("try")
+	end
+end
+
+-- ------------------------------------------------------------------ 58
+-- The baseline of your own buffs is reused between scans rather than rebuilt,
+-- which is the right shape for something that runs on every UNIT_AURA -- but it
+-- only stays honest because it is emptied at the top of each scan. Without that
+-- it is a record of everything you have ever carried, and the prune below it
+-- never removes anything again. Instance ids are recycled -- a zone renumbers
+-- them, so they are not unique for all time -- so a buff that fell off and was
+-- cast at you again then arrives under a number the list still calls known, and
+-- the second favour is silently swallowed.
+Mock.reset()
+ns = load("the aura baseline forgets what fell off")
+if ns then
+	local scenario = "the aura baseline forgets what fell off"
+	drive(scenario, ns)
+	wipe(ns.owed)
+
+	-- Cast at you once. The mirror for everything below: a mock that notices
+	-- nothing would pass the real case without proving anything.
+	Mock.extraAura = 3100
+	ns.addon:UNIT_AURA(nil, "player")
+	if not next(ns.owed) then
+		fail(scenario, "SKIPPED -- the first cast of it was never noticed")
+	else
+		-- It runs out. Nothing is owed for a buff ending.
+		wipe(ns.owed)
+		Mock.extraAura = false
+		ns.addon:UNIT_AURA(nil, "player")
+		if next(ns.owed) then
+			fail(scenario, "a buff falling off was recorded as a favour from "
+				.. tostring(next(ns.owed)))
+		end
+
+		-- And they cast it again, under the id the first one had.
+		wipe(ns.owed)
+		Mock.extraAura = 3100
+		ns.addon:UNIT_AURA(nil, "player")
+		if not next(ns.owed) then
+			fail(scenario, "a second cast was taken for the one already held")
+		end
+	end
+
+	Mock.extraAura = false
+end
+
+-- ------------------------------------------------------------------ 59
+-- The console says, in the file, that whatever it prints also lands in
+-- SavedVariables -- which is the only way a session on this client gets read
+-- afterwards without somebody transcribing chat out of a screenshot. One line
+-- in WriteProbe is the whole of that promise, and nothing has ever checked it
+-- was still there.
+Mock.reset()
+ns = load("what the console printed is on disk")
+if ns then
+	local scenario = "what the console printed is on disk"
+	drive(scenario, ns)
+
+	-- drive() already ran /manners debug, so start from nothing and watch this
+	-- one line make the trip.
+	MannersDB = nil
+	ns.Say("probe line %d", 58)
+	local held = false
+	for _, line in ipairs(ns.console or {}) do
+		if line:find("probe line 58", 1, true) then held = true end
+	end
+	if not held then
+		fail(scenario, "SKIPPED -- the console did not record its own line")
+	else
+		ns.Guard("WriteProbe", ns.WriteProbe)
+		if type(MannersDB) ~= "table" then
+			fail(scenario, "the probe wrote nothing at all: " .. tostring(MannersDB))
+		elseif not MannersDB.probe then
+			fail(scenario, "the capability dump did not reach SavedVariables")
+		else
+			local saved = false
+			for _, line in ipairs(MannersDB.console or {}) do
+				if line:find("probe line 58", 1, true) then saved = true end
+			end
+			if not saved then
+				fail(scenario, "the console never reached SavedVariables, so the file"
+					.. " promises a log that is not written")
+			end
+		end
+	end
+
+	-- The list is shared rather than copied, on purpose: the file is serialised
+	-- at logout, so anything said after the probe ran has to be in it too.
+	ns.Say("probe line %d", 59)
+	local late = false
+	for _, line in ipairs((MannersDB or {}).console or {}) do
+		if line:find("probe line 59", 1, true) then late = true end
+	end
+	if not late then
+		fail(scenario, "only what was printed before the probe is kept, so the last"
+			.. " thing said before a crash is the thing that is lost")
+	end
 end
 
 -- ------------------------------------------------------------------ report
