@@ -15,8 +15,9 @@ Built for WoW Forever (Interface 16001).
 ## What it does
 
 - **Someone buffs you** → they go to the top of the queue, tagged as a favour
-  owed. Read from the combat log, so it works on strangers who are not grouped
-  with you.
+  owed. This client has no combat log, so it is spotted by watching your own
+  buffs appear and reading who cast them — which works on strangers, but only
+  while they are someone the game will still name for you.
 - **Your party or raid** → anyone missing your buff.
 - **Passers-by** → nearby players missing your buff, seen through nameplates,
   your target and your mouseover.
@@ -150,12 +151,20 @@ are skipped.
 ## Tests
 
 ```
+python tests/validate.py       structure, syntax, and version consistency
 python tests/runharness.py     load the addon against a mock client
 python tests/runscenarios.py   adversarial scenarios
 python tests/selftest.py       confirm the suites can still go red
 ```
 
-See `tests/README.md`.
+All four run on every push via `.github/workflows/ci.yml`, and again as a gate
+before any release. See `tests/README.md`.
+
+## Listing images
+
+The CurseForge icon and the screenshots are generated, not captured — see
+`tools/README.md`. They read the prompt's real defaults out of `Core.lua`, so
+they cannot advertise a layout the addon does not draw.
 
 ## Licence
 
