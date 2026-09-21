@@ -515,6 +515,11 @@ ns.CHANNEL_COMMANDS = {
 
 ns.MACRO_LIMIT = 255
 
+-- What a single spoken line may occupy, once the /say and the cast lines have
+-- taken their share. Shared so the options preview cannot promise a line the
+-- cast path would silently drop.
+ns.PHRASE_BUDGET = 120
+
 local function SanitizePhrase(text)
 	if type(text) ~= "string" then return nil end
 	text = text:gsub("[\r\n]", " "):gsub("%s+", " "):match("^%s*(.-)%s*$")
@@ -613,10 +618,15 @@ function ns.BuildQueue()
 	local seen, queue = {}, {}
 	local f = db.filters
 
-	-- Mana is readable for the player even where it is secret for others.
-	-- Offering a buff that cannot be paid for is just a button that fails.
-	local myMana = plain(UnitPower("player", MANA))
-	if myMana ~= nil and myMana <= 0 then return {} end
+	-- Offering a buff that cannot be paid for is a button that fails -- but
+	-- only classes with a mana bar can run out of it. A warrior's current mana
+	-- is a readable, permanent 0, so an unconditional check here meant every
+	-- warrior was offered nobody, ever.
+	local myMax = plain(UnitPowerMax("player", MANA))
+	if myMax and myMax > 0 then
+		local myMana = plain(UnitPower("player", MANA))
+		if myMana ~= nil and myMana <= 0 then return {} end
+	end
 
 	IterateUnits(function(unit)
 		if not IsBuffableUnit(unit, f) then return end
@@ -788,20 +798,35 @@ end
 function ns.ScanOwnBuffs()
 	if not (C_UnitAuras and C_UnitAuras.GetAuraDataByIndex) then return end
 
+	-- Do not stop at the first slot that will not read. safecall returns nil
+	-- both for a genuine end-of-list and for an aura the client withheld as a
+	-- secret, and breaking on the latter hid every favour behind it -- which
+	-- then re-fired as new on the following scan, forever.
 	local present = {}
+	local misses = 0
 	for i = 1, 40 do
 		local aura = safecall(C_UnitAuras.GetAuraDataByIndex, "player", i, "HELPFUL")
-		if type(aura) ~= "table" then break end
+		if type(aura) ~= "table" then
+			misses = misses + 1
+			if misses >= 3 then break end
+		else
+			misses = 0
 
-		local instanceId = plain(aura.auraInstanceID)
-		local spellId = plain(aura.spellId)
-		if instanceId then
-			present[instanceId] = true
-			if not knownAuras[instanceId] then
-				knownAuras[instanceId] = true
-				-- Everything already on you at login is not a favour.
-				if auraScanPrimed and spellId and ns.ALL_BUFF_IDS[spellId] then
-					NoteFavour(aura)
+			local instanceId = plain(aura.auraInstanceID)
+			local spellId = plain(aura.spellId)
+			if instanceId then
+				present[instanceId] = true
+				if not knownAuras[instanceId] then
+					knownAuras[instanceId] = true
+					-- Everything already on you at login is not a favour. The
+					-- class-buff filter is a setting, and was previously
+					-- hardcoded here -- the toggle read nothing at all.
+					local db = addon.db and addon.db.profile
+					local classOnly = not db or db.sources.owedClassBuffsOnly ~= false
+					if auraScanPrimed and spellId
+						and (not classOnly or ns.ALL_BUFF_IDS[spellId]) then
+						NoteFavour(aura)
+					end
 				end
 			end
 		end
@@ -849,8 +874,29 @@ end
 -- The game reports on casts directly. UNIT_SPELLCAST_SENT firing at all means
 -- the macro resolved a target and tried; its absence means no clause matched.
 -- UI_ERROR_MESSAGE carries the reason when it tried and was refused.
+-- A click parks its debt in ns.pendingClick rather than clearing it; these
+-- resolve it from what the game actually did. Something went out, so the
+-- favour is settled.
+local function SettlePendingClick(settled)
+	local pending = ns.pendingClick
+	if not pending then return end
+	if GetTime() - pending.at > 2 then
+		ns.pendingClick = nil
+		return
+	end
+	if settled then
+		ns.owed[pending.name] = nil
+	else
+		-- Nothing was cast, so they are still owed. Offer them again shortly
+		-- rather than making them sit out the full retry cooldown.
+		ns.tried[pending.name] = GetTime() + 2
+	end
+	ns.pendingClick = nil
+end
+
 function addon:UNIT_SPELLCAST_SENT(_, unit, target, _, spellId)
 	if unit ~= "player" then return end
+	SettlePendingClick(true)
 	if not self.db.profile.debugClicks then return end
 	self:Print(("|cff80ff80CAST SENT %s -> %s|r"):format(
 		tostring(plain(spellId)), tostring(plain(target))))
@@ -875,6 +921,9 @@ end
 -- errors, action-in-progress, rest state -- none of which is ours, and all of
 -- which is noise in somebody's chat.
 function addon:UI_ERROR_MESSAGE(_, _, message)
+	-- An error in the moment after a click means the cast did not happen, so
+	-- whoever we owed is still owed.
+	SettlePendingClick(false)
 	if not self.db.profile.debugClicks then return end
 	if not ns.lastClickTime or (GetTime() - ns.lastClickTime) > 1 then return end
 	message = plain(message)
@@ -1149,8 +1198,10 @@ function ns.ClampSettings()
 
 	-- A pinned buff that this class cannot cast leaves the dropdown blank and
 	-- ResolveBuff falling back every scan.
+	-- Only discard a pinned buff when we actually know the class and it is not
+	-- one of theirs. A failed probe must not silently rewrite the setting.
 	local choice = profile.buff.choice
-	if choice ~= "auto" and not ns.FindBuff(caps.class, choice) then
+	if choice ~= "auto" and caps.class and not ns.FindBuff(caps.class, choice) then
 		profile.buff.choice = "auto"
 	end
 
@@ -1185,8 +1236,11 @@ function addon:OnInitialize()
 		speech.phrases = ns.PhraseSetText("roleplay")
 	end
 
-	ns.ClampSettings()
+	-- Probe first: ClampSettings validates the pinned buff against caps.class,
+	-- which the probe is what sets. The other way round, caps.class was always
+	-- nil and every pinned choice was silently reset to Automatic on login.
 	ns.Guard("ProbeCapabilities", ns.ProbeCapabilities)
+	ns.ClampSettings()
 	ns.Guard("SetupOptions", ns.SetupOptions)
 	ns.Guard("Prompt:Create", function() ns.Prompt:Create() end)
 
@@ -1314,6 +1368,11 @@ function addon:HandleSlash(rawInput)
 		ns.Prompt:ToggleTest()
 	elseif input == "macro" then
 		ns.CreateClickMacro()
+	elseif input == "restore" then
+		db.filters.restoreTarget = not db.filters.restoreTarget
+		ns.Prompt:InvalidateMacro()
+		self:Print("hand your target back after buffing: "
+			.. (db.filters.restoreTarget and "|cff00ff00on|r" or "|cffff0000off|r"))
 	elseif input == "clicks" then
 		db.debugClicks = not db.debugClicks
 		self:Print("click logging: " .. (db.debugClicks and "|cff00ff00on|r" or "|cffff0000off|r"))

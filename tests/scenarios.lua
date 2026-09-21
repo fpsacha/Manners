@@ -561,6 +561,101 @@ if ns then
 	IsPlayerSpell = realKnown
 end
 
+-- ------------------------------------------------------------------ 17
+-- A class with no mana bar must still be offered people. Guarding the whole
+-- queue on the player's current mana looked like sensible hardening and meant
+-- every warrior was offered nobody, ever -- a whole class silently dead.
+Mock.reset()
+Mock.class = "WARRIOR"
+Mock.groupSize = 3
+ns = load("no mana bar still works")
+if ns then
+	local known = {}
+	for _, id in ipairs(ns.FindBuff("WARRIOR", "battleshout").ranks) do known[id] = true end
+	local realKnown = IsSpellKnown
+	IsSpellKnown = function(id) return known[id] == true end
+	IsPlayerSpell = function(id) return known[id] == true end
+
+	drive("no mana bar still works", ns)
+	Mock.advance(60)
+	ns.Guard("probe", ns.ProbeCapabilities)
+
+	if UnitPowerMax("player") ~= 0 then
+		fail("no mana bar still works", "the mock is not simulating a mana-less class")
+	end
+	if #ns.BuildQueue() == 0 then
+		fail("no mana bar still works", "offered nobody despite having a buff to give")
+	end
+
+	IsSpellKnown = realKnown
+	IsPlayerSpell = realKnown
+end
+
+-- ------------------------------------------------------------------ 18
+-- A pinned buff has to survive a login. ClampSettings validates it against
+-- caps.class, so running it before the probe reset every pinned choice.
+Mock.reset()
+ns = load("pinned buff survives login")
+if ns then
+	drive("pinned buff survives login", ns)
+	ns.db.profile.buff.choice = "intellect"
+
+	-- The order OnInitialize uses: probe, then clamp.
+	ns.Guard("probe", ns.ProbeCapabilities)
+	ns.ClampSettings()
+	if ns.db.profile.buff.choice ~= "intellect" then
+		fail("pinned buff survives login",
+			"reset to " .. tostring(ns.db.profile.buff.choice))
+	end
+
+	-- And the fail-safe: if the probe has not run, or failed, caps.class is
+	-- nil and nothing is known about which buffs are valid. Clamping must
+	-- leave the stored choice alone rather than quietly rewriting it, which
+	-- is what happened on every login when the order was the other way round.
+	ns.db.profile.buff.choice = "intellect"
+	local realClass = ns.caps.class
+	ns.caps.class = nil
+	ns.ClampSettings()
+	ns.caps.class = realClass
+	if ns.db.profile.buff.choice ~= "intellect" then
+		fail("pinned buff survives login",
+			"an unknown class discarded the pinned buff")
+	end
+end
+
+-- ------------------------------------------------------------------ 19
+-- Only the left button casts. AnyDown registration sends every button through
+-- the click handlers, and a right-press to turn the camera used to burn the
+-- candidate without casting anything.
+Mock.reset()
+ns = load("only the left button casts")
+if ns then
+	drive("only the left button casts", ns)
+	Mock.advance(60)
+	local button = ns.Prompt:GetButton()
+	local queue = ns.BuildQueue()
+	if #queue == 0 then
+		fail("only the left button casts", "SKIPPED -- nobody to offer")
+	else
+		ns.Prompt:ApplyTarget(queue[1])
+		local name = queue[1].name
+
+		-- drive() already clicked once, which left this name in `tried`.
+		-- Clear it so the check below measures the right-press and nothing else.
+		ns.tried[name] = nil
+		ns.owed[name] = { expires = GetTime() + 100, at = GetTime() }
+
+		local post = button.scripts.PostClick
+		if post then pcall(post, button, "RightButton", true) end
+		if ns.tried[name] then
+			fail("only the left button casts", "a right-press burned the candidate")
+		end
+		if not ns.owed[name] then
+			fail("only the left button casts", "a right-press cleared the favour")
+		end
+	end
+end
+
 -- ------------------------------------------------------------------ report
 print("=== scenarios ===")
 if #failures == 0 then

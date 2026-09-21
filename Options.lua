@@ -502,7 +502,9 @@ local function BuildOptions()
 						type = "description",
 						order = 11,
 						name = "One per line -- a random one is picked each time the prompt changes target. "
-							.. "Tokens: |cff888888{name}|r the player, |cff888888{buff}|r the spell.",
+							.. "Tokens: |cff888888{name}|r the player, |cff888888{buff}|r the spell.\n"
+							.. "|cff888888Each line has to fit in 120 characters once the name is filled "
+							.. "in; longer ones are dropped rather than cut off.|r",
 					},
 					phrases = {
 						type = "input",
@@ -528,7 +530,7 @@ local function BuildOptions()
 								buff = ns.ResolveBuff(true),
 							}
 							for _ = 1, 3 do
-								ns.addon:Print(ns.PickPhrase(fake, 200)
+								ns.addon:Print(ns.PickPhrase(fake, ns.PHRASE_BUDGET)
 									or "|cffff8080(nothing -- speech off, or no usable lines)|r")
 							end
 						end,

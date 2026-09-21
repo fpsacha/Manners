@@ -1,5 +1,45 @@
 # Changelog
 
+## 0.9.5
+
+From a 103-finding audit across UX, code, performance and bugs.
+
+### Fixed
+
+- **Warriors were offered nobody, ever.** A guard meant as hardening bailed out
+  of the whole queue when the player's current mana was zero -- which for a
+  warrior is a readable, permanent zero. A whole class was silently dead. The
+  check now only applies to classes that have a mana bar at all.
+- **A pinned buff was reset to Automatic on every login.** `ClampSettings` ran
+  before `ProbeCapabilities`, so it validated the choice against a class it did
+  not yet know. Order swapped, and an unknown class now leaves the setting
+  alone instead of rewriting it.
+- **The "Only count real class buffs" toggle did nothing.** It had a default
+  and a full-width control with a paragraph of explanation, and nothing read
+  it; the filter was hardcoded. It works now.
+- **`/manners restore` was in the help text but not implemented.**
+- **The aura scan stopped at the first slot the client withheld**, hiding every
+  favour behind it -- which then re-fired as new on the next scan, forever. It
+  tolerates gaps now.
+- **Any mouse button burned the candidate.** `RegisterForClicks("AnyDown")` is
+  what makes casting work here, but it routes every button through the click
+  handlers -- so a right-press to turn the camera set the retry cooldown and
+  cleared the favour without casting anything. Only the left button acts.
+- **A cast that never happened counted as a favour returned.** Clicking cleared
+  the debt outright; if the cast was blocked by range or line of sight, they
+  were marked repaid. The debt is now held until the game says what happened,
+  and a failure re-offers them in two seconds.
+- **The phrase preview promised 200 characters and the cast path allowed 120**,
+  so anything in between rolled happily in the options and was silently never
+  spoken. One shared constant, and the help says the real number.
+
+### Tests
+
+- The mock gave warriors mana, which is exactly why that bug got through. It
+  reports honestly now.
+- Three regression scenarios, each mutation-tested: reintroducing the bug makes
+  its scenario fail.
+
 ## 0.9.3
 
 ### Fixed

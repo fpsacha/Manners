@@ -236,7 +236,12 @@ function Prompt:Create()
 	-- reads the attributes, and out of combat it may still change them. So the
 	-- target is re-resolved at the last possible moment, and a nameplate token
 	-- that has since been handed to somebody else can never be cast at.
-	button:SetScript("PreClick", function()
+	-- RegisterForClicks("AnyDown") is what makes the secure handler act at all
+	-- on this client, but it means every mouse button reaches these handlers.
+	-- Only the left button casts; a right-press to turn the camera used to
+	-- burn the candidate: retry cooldown set, favour cleared, nothing cast.
+	button:SetScript("PreClick", function(self, mouseButton)
+		if mouseButton and mouseButton ~= "LeftButton" then return end
 		if InCombatLockdown() then return end
 
 		-- Down and up both land here; one rebuild per press is enough.
@@ -258,7 +263,9 @@ function Prompt:Create()
 		Prompt:ApplyTarget(Prompt:PickTop(queue, queue[1]))
 	end)
 
-	button:SetScript("PostClick", function(self, _, down)
+	button:SetScript("PostClick", function(self, mouseButton, down)
+		if mouseButton and mouseButton ~= "LeftButton" then return end
+
 		-- One press delivers both a down and an up; count and settle once.
 		local now = GetTime()
 		if lastClickAt and (now - lastClickAt) < 0.25 then return end
@@ -278,10 +285,13 @@ function Prompt:Create()
 				tostring(button:GetAttribute("macrotext1") or "nil"):gsub("%s+", " ")))
 		end
 		if not (current and current.name) then return end
+
+		-- Hold the debt rather than clearing it outright. The game says a few
+		-- hundred milliseconds later whether anything was actually cast, and
+		-- clearing here meant a cast blocked by range or line of sight counted
+		-- as a favour returned.
+		ns.pendingClick = { name = current.name, at = GetTime() }
 		ns.tried[current.name] = GetTime() + ns.db.profile.timing.retryCooldown
-		-- Clicking settles the debt whether or not the cast lands; otherwise a
-		-- cast blocked by line of sight leaves them owed forever.
-		ns.owed[current.name] = nil
 		Prompt:StopAttention()
 	end)
 
@@ -734,7 +744,7 @@ function Prompt:ApplyTarget(entry)
 		lines[#lines + 1] = "/cast " .. spell
 	end
 
-	local phrase = ns.PickPhrase(entry, 120)
+	local phrase = ns.PickPhrase(entry, ns.PHRASE_BUDGET)
 	if phrase then lines[#lines + 1] = phrase end
 
 	if not entry.buff.selfCast and ns.db.profile.filters.restoreTarget then

@@ -174,8 +174,22 @@ function UnitIsCharmed() return false end
 function UnitInVehicle() return false end
 function UnitOnTaxi() return false end
 function UnitLevel() return maybeSecret(12) end
-function UnitPowerMax() return maybeSecret(1000) end
-function UnitPower() return maybeSecret(500) end
+-- Classes without a mana bar really do report zero, and the mock claiming
+-- otherwise is what let a bug through that offered warriors nobody at all.
+local MANA_CLASSES = {
+	MAGE = true, PRIEST = true, WARLOCK = true,
+	DRUID = true, PALADIN = true, HUNTER = true, SHAMAN = true,
+}
+
+function UnitPowerMax(unit)
+	if unit == "player" and not MANA_CLASSES[Mock.class] then return 0 end
+	return maybeSecret(1000)
+end
+
+function UnitPower(unit)
+	if unit == "player" and not MANA_CLASSES[Mock.class] then return 0 end
+	return maybeSecret(500)
+end
 -- Party membership drives the partyOnly buffs -- Battle Shout reaches your
 -- party and nobody else, so a solo warrior legitimately has nothing to offer.
 function UnitInParty() return maybeSecret(Mock.groupSize > 0) end
