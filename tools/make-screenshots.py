@@ -42,9 +42,29 @@ H = int(default("height", 44))
 ICON = int(default("iconSize", 30))
 FONT = int(default("fontSize", 13))
 
-AMBER = (255, 199, 77)
-BLUE = (97, 173, 255)
-GREY = (133, 138, 158)
+prompt_lua = open(os.path.join(ROOT, "Prompt.lua"), encoding="utf-8").read()
+
+
+def reason_colour(key, fallback):
+    """Read a reason colour out of Prompt.lua's REASON_COLOR table.
+
+    The geometry was already read from the addon so these images could not
+    advertise a layout it does not draw. The colours were not, and a fourth
+    reason was added without them -- so now they are too.
+    """
+    m = re.search(r"^\t" + key + r" = \{ ([0-9.]+), ([0-9.]+), ([0-9.]+) \}",
+                  prompt_lua, re.M)
+    if not m:
+        print("could not find REASON_COLOR.%s in Prompt.lua; using %s"
+              % (key, fallback), file=sys.stderr)
+        return fallback
+    return tuple(round(float(m.group(i)) * 255) for i in (1, 2, 3))
+
+
+GREEN = reason_colour("target", (140, 235, 153))
+AMBER = reason_colour("owed", (255, 199, 77))
+BLUE = reason_colour("group", (97, 173, 255))
+GREY = reason_colour("nearby", (133, 138, 158))
 PANEL = (10, 10, 15)
 SS = 3  # supersample, so the downscale does the antialiasing
 
@@ -140,28 +160,30 @@ def caption(img, lines):
     return img
 
 
-# ---- 1. the three reasons, side by side ------------------------------
-one = backdrop(880, 460)
+# ---- 1. the four reasons, side by side --------------------------------
+one = backdrop(880, 540)
 rows = [
-    ("Elara Brightmoor", "buffed you", AMBER, 2, False),
-    ("Corvin Ashgrove", "needs Arcane Intellect", BLUE, None, False),
-    ("Petra Stonewell", "needs Arcane Intellect", GREY, 4, False),
+    ("Brannock Vale", "your target", GREEN, None, "you picked them yourself"),
+    ("Elara Brightmoor", "buffed you", AMBER, 2, "someone who buffed you"),
+    ("Corvin Ashgrove", "needs Arcane Intellect", BLUE, None, "in your group"),
+    ("Petra Stonewell", "needs Arcane Intellect", GREY, 4, "a passer-by"),
 ]
-for i, (n, r, a, c, u) in enumerate(rows):
-    p = prompt(n, r, a, c, u)
-    one.paste(p, (90, 62 + i * 104), p)
+for i, (n, r, a, c, _) in enumerate(rows):
+    p = prompt(n, r, a, c)
+    one.paste(p, (90, 52 + i * 104), p)
 d = ImageDraw.Draw(one)
 fb = face("bold", 14)
-for i, label in enumerate(["someone who buffed you", "in your group", "a passer-by"]):
-    d.text((470, 92 + i * 104), label, font=fb, fill=(190, 196, 212))
+for i, row in enumerate(rows):
+    d.text((470, 82 + i * 104), row[4], font=fb, fill=(190, 196, 212))
 caption(one, ["The colour tells you why they are on the prompt.",
-              "Amber is a favour to return, blue is your group, grey is somebody passing through."])
+              "Green is somebody you targeted yourself, amber is a favour to return,",
+              "blue is your group, grey is somebody passing through."])
 one.save(os.path.join(OUT, "screenshot-reasons.png"))
 
 # ---- 2. one prompt, in place -----------------------------------------
 two = backdrop(880, 460)
 p = prompt("Elara Brightmoor", "buffed you", AMBER, 3)
-two.paste(p, ((880 - p.width) // 2, 150), p)
+two.paste(p, ((880 - p.width) // 2, 160), p)
 caption(two, ["One click and they get their buff.",
               "Your previous target is handed straight back."])
 two.save(os.path.join(OUT, "screenshot-prompt.png"))
