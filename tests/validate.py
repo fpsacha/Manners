@@ -180,6 +180,44 @@ elif not declared:
     print("  could not read any library out of .pkgmeta")
     fail += 1
 
+print("\n== the two lists of flavours agree ==")
+# Two places say which clients this addon claims, and they are read by
+# different things. tools/maketocs.py's table decides which per-flavour toc
+# files exist; Manners.toc's comma-delimited Interface line is what the
+# packager reads to tag the build's game versions.
+#
+# They drifted the first time a flavour was dropped: the _TBC.toc was deleted
+# because there are no Burning Crusade spell ids in this addon, and 20506 was
+# left in the comma list, so the build went on advertising Burning Crusade
+# support that had just been withdrawn. Nothing noticed until the packager was
+# run by hand and its "Game version:" line was read.
+sys.path.insert(0, os.path.join(ROOT, "tools"))
+try:
+    import maketocs
+except Exception as e:          # noqa: BLE001 - reported, not raised
+    print("  could not import tools/maketocs.py: %s" % e)
+    fail += 1
+else:
+    generated = {iface for _, iface in maketocs.FLAVOURS}
+    base = open(os.path.join(ROOT, "Manners.toc"), encoding="utf-8").read()
+    m = re.search(r"^## Interface:\s*(.+)$", base, re.M)
+    declared = set()
+    if m:
+        for part in m.group(1).split(","):
+            part = part.strip()
+            if part.isdigit():
+                declared.add(int(part))
+    print("  %d generated tocs, %d interfaces declared in Manners.toc"
+          % (len(generated), len(declared)))
+    for iface in sorted(generated - declared):
+        print("  %d has a toc but is not in Manners.toc's Interface line" % iface)
+        fail += 1
+    for iface in sorted(declared - generated):
+        print("  %d is claimed by Manners.toc but has no toc and no data" % iface)
+        fail += 1
+    if generated and generated == declared:
+        print("  ok  the same %d clients either way" % len(generated))
+
 print("\n== AceConfig schema ==")
 # AceConfigRegistry validates the WHOLE options table and rejects all of it if
 # any one key has the wrong type -- not the offending control, the entire table,

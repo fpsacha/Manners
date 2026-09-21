@@ -8,7 +8,7 @@
 # that only reads the first number gets 16001, which is what shipped and is
 # known to work on WoW Forever. Forever is the one client anybody here can test,
 # so it is the one that must not be the experiment.
-## Interface: 16001, 120100, 50504, 20506, 11509
+## Interface: 16001, 120100, 50504, 11509
 ## Title: Manners
 ## Notes: One click to buff back whoever just buffed you, and nearby players missing yours.|n|cffffd100Mage is tested in game; other classes are implemented but unverified.|r
 ## Author: Sacha

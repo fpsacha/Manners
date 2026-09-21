@@ -37,6 +37,7 @@ ignore:
   - tests
   - tools
   - STATUS.md
+  - RELEASING.md
   - README.md
   - CHANGELOG.md
 
