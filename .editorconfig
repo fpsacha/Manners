@@ -1,0 +1,29 @@
+# The Lua in this project is tab-indented and the Python is not. An editor that
+# silently converts one to the other produces a diff touching every line of a
+# file for a change that touched one, which is the kind of thing that only gets
+# noticed after it has been committed.
+
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{lua,xml,toc}]
+indent_style = tab
+indent_size = 4
+
+[*.py]
+indent_style = space
+indent_size = 4
+
+[*.{md,yml,yaml}]
+indent_style = space
+indent_size = 2
+
+# Markdown uses two trailing spaces as a line break, so stripping them there
+# silently reflows the file.
+[*.md]
+trim_trailing_whitespace = false
