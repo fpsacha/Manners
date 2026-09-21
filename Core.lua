@@ -534,9 +534,19 @@ end
 
 -- Only ever reached in Automatic -- ResolveBuff answers a pin above it -- so a
 -- neverAuto buff is skipped here without an exception for the pinned one.
+-- Honours the per-spell switches, which it did not, while CastableBuffs did.
+-- So everything that names "the spell you are about to cast" -- the login
+-- line, the preview panel, the phrase roller that promises to show what would
+-- really go out -- named one that had been switched off and would never be
+-- offered to anybody.
 local function FirstKnownBuff()
+	local db = addon.db and addon.db.profile
+	local skip = db and db.buff and db.buff.skip
 	for _, buff in ipairs(ns.GetClassBuffs(playerClass) or {}) do
-		if ns.IsBuffKnown(buff) and not buff.neverAuto then return buff end
+		if ns.IsBuffKnown(buff) and not buff.neverAuto
+			and not (skip and skip[buff.key]) then
+			return buff
+		end
 	end
 end
 
@@ -3286,8 +3296,14 @@ function ns.InspectUnit(unit)
 	if buff then
 		local info = ns.BuffInfo(buff)
 		local id = info and info.topRank
+		-- Taken before the `and` can collapse them: raw() returns ok plus the
+		-- value, and `id and raw(...)` keeps only the first, so this line
+		-- reported nil however the client answered -- in the one command whose
+		-- entire job is reporting what the client answered.
+		local okById, byId
+		if id then okById, byId = raw(C_Spell and C_Spell.IsSpellInRange, id, unit) end
 		say("  %s  %s",
-			show("inRangeById", id and raw(C_Spell and C_Spell.IsSpellInRange, id, unit)),
+			show("inRangeById", okById, byId),
 			show("inRangeByName", raw(C_Spell and C_Spell.IsSpellInRange, ns.BuffName(buff), unit)))
 		if C_UnitAuras and C_UnitAuras.GetUnitAuraBySpellID then
 			local found
@@ -3420,7 +3436,28 @@ function ns.ClampSettings()
 	end
 
 	local p = profile.prompt
-	if type(p.format) ~= "string" or p.format == "" then p.format = "{name}" end
+	-- Every wording that goes through the same substitution, not just the
+	-- first line. A number in any of these throws inside the swap on every
+	-- repaint -- which in game is a caught error every 0.4s and a prompt frozen
+	-- on its last paint, for a value the options page can produce.
+	for _, key in ipairs({ "format", "reasonTarget", "reasonOwed", "reasonGroup",
+		"reasonNearby", "reasonRefresh", "reasonUnknown" }) do
+		if type(p[key]) ~= "string" or p[key] == "" then
+			p[key] = ns.defaults.profile.prompt[key]
+		end
+	end
+
+	-- skipIfBuffed became a three-way choice, and this keeps whatever somebody
+	-- already had. It used to live in OnInitialize, which meant it ran once, on
+	-- whichever profile happened to be active at login -- so a second profile
+	-- kept the stale key, and it fired the next time that profile was the one
+	-- loaded, overwriting a choice made in between. It belongs here with the
+	-- other carry-overs for the reason the phrase repair above already gives.
+	local filters = profile.filters
+	if filters and filters.skipIfBuffed ~= nil then
+		if filters.skipIfBuffed == false then filters.whenBuffed = "always" end
+		filters.skipIfBuffed = nil
+	end
 
 	-- The icon is bound to the panel, not to a constant. The slider's own range
 	-- ran to 64 against a height that runs down to 20, so an icon could be set
@@ -3428,7 +3465,12 @@ function ns.ClampSettings()
 	-- hairlines, pushes the text off the right-hand edge, and there is nothing
 	-- on the page to say why. Clamped here as well as in the slider because a
 	-- profile written under a taller prompt survives the height being lowered.
-	local iconMax = math.max(12, (p.height or ns.defaults.profile.prompt.height) - 8)
+	-- Bound by both dimensions. Height alone left a wide icon on a narrow panel
+	-- pushing the name's LEFT inset past the panel's right edge, where LEFT and
+	-- RIGHT cross and the name has nowhere to draw.
+	local iconMax = math.max(12, math.min(
+		(p.height or ns.defaults.profile.prompt.height) - 8,
+		(p.width or ns.defaults.profile.prompt.width) - 60))
 	if p.iconSize > iconMax then p.iconSize = iconMax end
 	if not ns.CHANNEL_COMMANDS[profile.speech.channel] then profile.speech.channel = "SAY" end
 
@@ -3526,12 +3568,6 @@ function addon:OnInitialize()
 	self.db = LibStub("AceDB-3.0"):New("MannersDB", defaults, true)
 	ns.db = self.db
 
-	-- skipIfBuffed became a three-way choice; keep whatever people already had.
-	local f = self.db.profile.filters
-	if f.skipIfBuffed ~= nil then
-		if f.skipIfBuffed == false then f.whenBuffed = "always" end
-		f.skipIfBuffed = nil
-	end
 
 	self.db.RegisterCallback(self, "OnProfileChanged", "RefreshConfig")
 	self.db.RegisterCallback(self, "OnProfileCopied", "RefreshConfig")

@@ -68,6 +68,7 @@ local resultFill
 -- it is white text on the world. queueBars are the reason stripes down the
 -- left of each row.
 local queueBack, queueHair, queueBars
+local queueTextX = 0
 -- Goes into every click line. A log that does not say which build produced it
 -- can be diagnosed for an hour before anyone notices the game never loaded the
 -- file being read.
@@ -871,9 +872,16 @@ function Prompt:StartAttention(isNew)
 			if glowFrame.anim then glowFrame.anim:Stop() end
 			glowFrame.pulse:Play()
 		end
-	elseif isNew and glowFrame.anim then
-		glowFrame.anim:Stop()
-		glowFrame.anim:Play()
+	else
+		-- Unconditionally, and before anything else plays: the looping pulse is
+		-- only ever stopped inside the branch above, so changing Flash style
+		-- away from Pulse left it running and the one-shot flash played on top
+		-- of a glow that never went out.
+		if glowFrame.pulse then glowFrame.pulse:Stop() end
+		if isNew and glowFrame.anim then
+			glowFrame.anim:Stop()
+			glowFrame.anim:Play()
+		end
 	end
 end
 
@@ -1014,7 +1022,11 @@ function Prompt:ApplyStyle()
 	local countRoom = p.showCount and 28 or 10
 
 	-- text
-	local twoLine = p.showSub and p.height >= 34
+	-- The arithmetic the constant 34 stood in for. Two lines need both fonts
+	-- plus the insets, and at the top of the font slider 34 is not close --
+	-- so the sub-line silently vanished at sizes the page happily offers.
+	local subSize = math.max(7, p.fontSize - 3)
+	local twoLine = p.showSub and p.height >= 16 + p.fontSize + subSize
 
 	nameText:ClearAllPoints()
 	subText:ClearAllPoints()
@@ -1047,6 +1059,9 @@ function Prompt:ApplyStyle()
 	-- the only three things that move the prompt -- a drag, a position preset,
 	-- a profile switch -- all come back through ApplyStyle.
 	queueAbove = QueueGoesAbove()
+	-- Kept for PaintQueue, which re-places the rows when the list hangs above
+	-- and therefore needs the same inset this loop uses.
+	queueTextX = textX
 	local rowHeight = p.fontSize + 4
 	local rowCount = math.max(1, p.queueRows or 1)
 	for i, fs in ipairs(queueRows) do
@@ -1798,6 +1813,27 @@ function Prompt:PaintQueue(rows)
 	-- addon lost them.
 	local back = shown > 0 and p.style ~= "minimal"
 	if back then queueBack:SetHeight(6 + shown * (p.fontSize + 4)) end
+
+	-- When the list hangs ABOVE the panel the rows have to be placed here and
+	-- not in ApplyStyle, because where the top of the list falls depends on how
+	-- many rows have somebody in them -- and that is only known now.
+	--
+	-- ApplyStyle counted down from a block sized by the slider, while the
+	-- background above is sized to the rows actually filled, so with the slider
+	-- at four and two people waiting the names floated two rows clear of the
+	-- panel they belong to, over a background drawn somewhere else entirely.
+	-- Hanging downward has no such problem: the first row starts at the panel's
+	-- bottom edge and the rest follow, whatever the count.
+	if queueAbove then
+		local rowHeight = p.fontSize + 4
+		for i, fs in ipairs(queueRows) do
+			if i <= shown then
+				fs:ClearAllPoints()
+				fs:SetPoint("BOTTOMLEFT", art, "TOPLEFT",
+					queueTextX, 4 + (shown - i) * rowHeight)
+			end
+		end
+	end
 	queueBack:SetShown(back)
 	queueHair:SetShown(back)
 end

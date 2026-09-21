@@ -425,7 +425,13 @@ local function BuildOptions()
 				order = 10.5,
 				hidden = function()
 					local s = S()
-					return s.owed or s.group or s.strangers
+					-- A source this class cannot use does not count as switched
+					-- on. A warrior's Battle Shout reaches the group and nobody
+					-- else, so the page hides "passers-by" -- and this used to
+					-- read the hidden toggle's leftover true and stay silent,
+					-- in exactly the case where the prompt really was dead and
+					-- no visible control could explain it.
+					return s.owed or s.group or (s.strangers and not OnlyReachesGroup())
 				end,
 				name = "|cffff8080Nothing below is switched on, so the prompt will never"
 					.. " appear.|r",

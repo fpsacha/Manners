@@ -16,7 +16,13 @@
 --   retail "Midnight" 12.1   interface 120100+   Manners_Mainline.toc
 --   WoW Forever 1.60.1       interface 16001     Manners_Camelot.toc
 --   Mists of Pandaria        interface 50504     Manners_Mists.toc
---   BC Classic Anniversary   interface 20506     Manners_TBC.toc
+--   BC Classic Anniversary   interface 20506     (none -- see below)
+--
+-- There is no Manners_TBC.toc on purpose. A 2.5 client applies Burning
+-- Crusade spell ranks, whose ids are in none of the tables here, so the
+-- addon would load and offer nobody anything. The band stays recognised so
+-- such a client is named rather than guessed at, and it falls back to
+-- Manners.toc. Add the ids before adding the toc.
 --   Classic Era 1.15.9       interface 11509     Manners_Vanilla.toc
 
 local ADDON, ns = ...
