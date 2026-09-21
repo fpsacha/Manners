@@ -58,6 +58,16 @@ jobs:
         with:
           fetch-depth: 0
 
+      # A missing secret makes the packager quietly skip CurseForge, which looks
+      # identical to a successful upload in the log. Say which destinations are
+      # actually configured before building.
+      - name: Report which destinations are configured
+        run: |
+          echo "CurseForge: ${{ secrets.CF_API_KEY != '' && 'configured' || 'NO CF_API_KEY -- upload will be skipped' }}"
+          echo "WoWInterface: ${{ secrets.WOWI_API_TOKEN != '' && 'configured' || 'not configured' }}"
+          echo "Wago: ${{ secrets.WAGO_API_TOKEN != '' && 'configured' || 'not configured' }}"
+          grep -q '^## X-Curse-Project-ID:' Manners.toc             && echo "Project id: $(grep '^## X-Curse-Project-ID:' Manners.toc)"             || echo "::warning::no X-Curse-Project-ID in the toc; CurseForge upload cannot target a project"
+
       - name: Package and publish
         uses: BigWigsMods/packager@master
         env:

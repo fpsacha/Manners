@@ -9,10 +9,7 @@
 ## X-Category: Buffs & Debuffs
 ## X-Website: https://github.com/fpsacha/Manners
 
-# Uncomment and fill in once the CurseForge project exists -- the packager
-# needs the numeric project id to know where to upload. It is on the project's
-# page, right-hand column.
-# ## X-Curse-Project-ID: 000000
+## X-Curse-Project-ID: 1705364
 ## IconTexture: Interface\Icons\Spell_Holy_MagicalSentry
 
 embeds.xml
