@@ -1250,12 +1250,29 @@ local function SilenceOtherButtons()
 	end
 end
 
--- Which targeting command to write. /targetexact matches the whole name;
--- /target matches a prefix, so "/target Mort" will happily find Mortimer
--- standing beside Mort and buff -- and speak at -- the wrong player. Probed
--- rather than assumed, because its absence is a fallback and not a failure.
+-- Which targeting command to write.
+--
+-- /targetexact matches the whole name, /target matches a prefix -- so
+-- "/target Mort" will happily find Mortimer standing beside Mort and buff, and
+-- speak at, the wrong player. On that alone /targetexact is the better command
+-- and this returned it.
+--
+-- It is not used, and the reason is worth keeping. The name this addon writes
+-- is assembled from UnitName's two returns, and what the second one means is
+-- exactly what this client does differently from every other: a surname here,
+-- a realm everywhere else, and undocumented here for a player from another
+-- realm. /target tolerates a name that is slightly wrong, because a prefix
+-- still finds them. /targetexact does not: a name one character out finds
+-- nobody, casts nothing, and the addon appears broken on the only client
+-- anybody has ever run it on.
+--
+-- So the prefix risk is accepted for now. It casts on the wrong person, which
+-- is worse in kind but rarer, and the settle path already notices a cast that
+-- landed on somebody other than the person offered. Switching this on wants
+-- one live test of what the assembled name actually looks like -- caps
+-- .targetExact is probed and reported by /manners debug for exactly that.
 local function TargetCommand()
-	return (ns.caps and ns.caps.targetExact) and "/targetexact" or "/target"
+	return "/target"
 end
 -- Published so the options page can name the command the macro really uses
 -- rather than a second, hand-maintained opinion about it.

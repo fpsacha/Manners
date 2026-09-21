@@ -32,7 +32,11 @@ FLAVOURS = [
     ("Mainline", 120100),   # retail "Midnight" 12.1
     ("Camelot", 16001),     # WoW Forever 1.60.1
     ("Mists", 50504),       # Mists of Pandaria Classic
-    ("TBC", 20506),         # Burning Crusade Classic Anniversary
+    # No _TBC.toc, deliberately. A 2.5 client applies Burning Crusade spell
+    # ranks, whose ids are in none of the tables here -- the addon would load,
+    # resolve nothing, and offer nobody anything, which reads to a user as
+    # broken rather than as unsupported. Claiming a client is a promise about
+    # its data. Add the ids first, then add the toc back.
     ("Vanilla", 11509),     # Classic Era 1.15.9
 ]
 

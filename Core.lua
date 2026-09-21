@@ -432,7 +432,16 @@ function ns.ProbeCapabilities()
 	-- throws, but it cannot prove it is there -- a client that accepts the
 	-- registration and then never fires the event is exactly how this addon's
 	-- own notes described Forever until this round, and it reads as a yes.
-	caps.combatLogProbe = ProbeCombatLog()
+	-- Only asked where the answer is not already known, and never on a modern
+	-- client. Registering COMBAT_LOG_EVENT_UNFILTERED there is the forbidden
+	-- action itself: pcall catches a throw, but if the client answers by raising
+	-- ADDON_ACTION_FORBIDDEN instead, the user gets a popup naming this addon
+	-- for a question it did not need to ask. The family already knows.
+	if caps.family == "modern" then
+		caps.combatLogProbe = nil
+	else
+		caps.combatLogProbe = ProbeCombatLog()
+	end
 	if flavour.recognised then
 		caps.combatLog = caps.family == "classic"
 	else
@@ -1881,7 +1890,21 @@ local combatLogArmed = false
 -- at all. Ten seconds is far longer than the gap between a landing and the scan
 -- that reads it, and far shorter than any interval a person recasts an hour-long
 -- buff over.
-local NOTE_MEMORY = 10
+-- How long after one source reports a favour the other one may still be
+-- reporting the SAME landing.
+--
+-- It is not a "remember this person" window. A mark the second source never
+-- consumes -- which is the normal case for the stranger with no unit token,
+-- the one the combat log was added for -- sits here until it expires, and for
+-- that whole time a genuine re-buff from the same person reads as the
+-- duplicate and is dropped. So the window has to be long enough to cover the
+-- slowest honest disagreement between the two sources and no longer.
+--
+-- The aura scan is the slow one: when its baseline is unsettled it defers a
+-- landing by up to SETTLE_INTERVAL * SETTLE_TRIES. This is that, plus a tick.
+-- It was ten seconds, which is more than twice the worst case and swallowed
+-- real recasts to buy nothing.
+local NOTE_MEMORY = (SETTLE_INTERVAL * SETTLE_TRIES) + 1
 local notedFavours = {}
 
 local function ClaimFavour(name, spellKey)

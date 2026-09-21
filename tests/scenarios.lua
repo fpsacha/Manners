@@ -8239,10 +8239,15 @@ if ns then
 		fail(scenario, "the probe carried " .. tostring(caps.flavour)
 			.. "/" .. tostring(caps.family))
 	end
-	-- Registration throws here, and the probe has to find that out by trying.
-	if caps.combatLogProbe ~= false then
-		fail(scenario, "the probe accepted a combat log registration this"
-			.. " client refuses: " .. tostring(caps.combatLogProbe))
+	-- The probe deliberately does NOT run here. Registering the combat log on a
+	-- modern client is the forbidden action itself: a pcall catches a throw, but
+	-- a client that answers by raising ADDON_ACTION_FORBIDDEN instead puts a
+	-- popup with this addon's name on it in front of the user, for a question
+	-- the flavour had already answered. nil means "not asked", which is the
+	-- whole point, and is distinct from the false an unrecognised client gets.
+	if caps.combatLogProbe ~= nil then
+		fail(scenario, "asked the client a question that is itself forbidden here: "
+			.. tostring(caps.combatLogProbe))
 	end
 	if caps.combatLog ~= false then
 		fail(scenario, "believed the combat log is available here")
@@ -9080,14 +9085,24 @@ end
 Mock.reset()
 
 -- ------------------------------------------------------------------ 138
--- The targeting command follows the probe, in the macro and not merely in caps.
+-- The macro writes /target even where the client offers /targetexact.
 --
--- /target matches a name prefix, so "/target Mort" finds Mortimer standing
--- beside Mort and buffs -- and speaks at -- the wrong player. /targetexact
--- cannot. It is a client-side command, so its absence is a fallback rather than
--- a failure, and the fallback has to be the working one.
+-- That is the opposite of what it looks like it should do, so it is pinned
+-- here. /target matches a name prefix, so "/target Mort" finds Mortimer
+-- standing beside Mort and buffs -- and speaks at -- the wrong player, which
+-- /targetexact cannot do. But the name being written is assembled from
+-- UnitName's second return, and what that return MEANS is the single thing
+-- this client does differently from the rest: a surname here, a realm
+-- everywhere else, undocumented here for somebody from another realm. /target
+-- survives a name that is slightly wrong; /targetexact finds nobody, casts
+-- nothing, and looks like a broken addon.
+--
+-- So both clients must build /target. The probe still runs and is still
+-- reported, because one live look at an assembled name is all that is needed
+-- to change this, and scenario 137 is what will catch it if it changes by
+-- accident instead.
 for _, want in ipairs({
-	{ label = "a client with /targetexact", exact = true, command = "/targetexact" },
+	{ label = "a client with /targetexact", exact = true, command = "/target" },
 	{ label = "a client without /targetexact", exact = false, command = "/target" },
 }) do
 	Mock.reset()
