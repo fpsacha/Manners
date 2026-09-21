@@ -1,0 +1,15 @@
+# Everything in this repository is LF on disk, but Windows git defaults to
+# core.autocrlf=true, which would rewrite every text file on the next checkout
+# and hand the next person a diff covering the whole project before they had
+# changed anything. Pin it so the working copy matches what is committed.
+* text=auto eol=lf
+
+# The .toc is read by the game's own parser. Several addon packagers have been
+# fussy about stray carriage returns in it, so it is never worth finding out.
+*.toc text eol=lf
+*.lua text eol=lf
+*.xml text eol=lf
+
+# Listing images are compared byte for byte against what tools/ regenerates.
+# Any newline translation at all would break that check.
+*.png binary
