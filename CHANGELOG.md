@@ -326,6 +326,13 @@ route does not exist as an alternative.
   `Petra Stonewell` depends on whether the second word is a surname or part of the
   character name, which an addon cannot find out -- so both are offered now and
   the game picks whichever resolves.
+
+  **Since retired.** That mechanism was removed: the full name does resolve
+  on this client, so the failure it guarded against was never once observed,
+  and offering two spellings aimed casts -- and spoken lines -- at whoever
+  else shared a first name. See the note in `Core.lua` above
+  `ExpirePendingClick`. Do not restore it from this entry.
+
 - **"Buff state unreadable on this build" was shown when nothing had been
   read.** Setting *always offer* skips the aura check entirely, which left the
   state nil -- and nil rendered as the client refusing us. Choosing not to look
