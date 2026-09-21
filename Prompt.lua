@@ -543,6 +543,19 @@ function Prompt:Create()
 			return
 		end
 
+		-- Nor may a press during the global cooldown. Disarming here is what
+		-- stops it reaching the server: a cast sent inside that second and a
+		-- half is refused, and the refusal used to be filed against the person
+		-- it was aimed at -- so they were marked tried and dropped, and the
+		-- one thing the user actually wanted never happened. Nothing is cast,
+		-- nothing is recorded, and the panel says why.
+		local ready, left = ns.CastReady()
+		if not ready then
+			Prompt:ApplyTarget(nil)
+			Prompt:SayWaiting(left)
+			return
+		end
+
 		local queue = ns.BuildQueue()
 		local top = Prompt:PickTop(queue, queue[1])
 		-- An empty queue while the fuse is still burning is the panel showing
@@ -2216,6 +2229,19 @@ function Prompt:Refresh()
 	else
 		resultFill:Hide()
 	end
+end
+
+-- Says, on the panel itself, that the pause is the game's and not the addon's.
+-- Written to the sub-line only: the name stays, because the person is still
+-- the one being offered and replacing their name with a countdown would read
+-- as having lost them.
+function Prompt:SayWaiting(left)
+	if not button or not subText then return end
+	if InCombatLockdown() then return end
+	ns.Guard("waiting line", function()
+		subText:SetText(("ready in %.1fs"):format(math.max(0, left or 0)))
+		subText:SetTextColor(0.72, 0.72, 0.78, 1)
+	end)
 end
 
 function Prompt:GetButton()

@@ -10314,6 +10314,97 @@ for _, want in ipairs(CLIENTS) do
 end
 Mock.reset()
 
+-- ------------------------------------------------------------------ 144
+-- A press during the global cooldown must not reach the server.
+--
+-- Found by playing it, not by testing it, and no test here could have found it:
+-- the addon never asked about a cooldown, so the mock never had one. Click,
+-- cast, and the prompt offered the next person immediately -- so a second press
+-- inside the next second and a half hit a server that could not possibly accept
+-- it. The cast was refused, the refusal was filed against the person it was
+-- aimed at, and they were marked tried and dropped. The chat log filled with
+-- "could not cast" and the people being offered a courtesy went unbuffed.
+Mock.reset()
+ns = load("a press during the global cooldown casts nothing")
+if ns then
+	local scenario = "a press during the global cooldown casts nothing"
+	drive(scenario, ns)
+	Mock.advance(60)
+	ns.Guard("probe", ns.ProbeCapabilities)
+
+	local entry = ns.BuildQueue()[1]
+	local button = ns.Prompt:GetButton()
+	if not entry or not entry.buff or not button then
+		fail(scenario, "SKIPPED -- nobody to press against")
+	else
+		local spell = entry.buff.ranks[1]
+
+		-- Nothing has been cast, so a press is free to go.
+		local ready = ns.CastReady()
+		if ready ~= true then
+			fail(scenario, "blocked a press before anything had been cast")
+		end
+
+		-- The game reports a cast going out. That starts the cooldown whoever
+		-- it was aimed at -- a spell cast by hand blocks the prompt exactly as
+		-- it blocks the action bars.
+		ns.addon:UNIT_SPELLCAST_SENT(nil, "player", "Somebody", nil, spell)
+
+		local blocked, left = ns.CastReady()
+		if blocked ~= false then
+			fail(scenario, "a cast went out and the next press was still allowed")
+		end
+		if type(left) ~= "number" or left <= 0 or left > 3 then
+			fail(scenario, "nonsense time remaining: " .. tostring(left))
+		end
+
+		-- And the press itself: armed beforehand, disarmed by PreClick, with
+		-- nothing recorded against the person it would have gone to.
+		--
+		-- Through Refresh rather than ApplyTarget alone, because PreClick's
+		-- first act is to check the button is shown and say "nobody to buff
+		-- right now" if it is not -- which an earlier draft of this scenario
+		-- tripped, so it passed whether the guard was there or not.
+		-- Shown explicitly rather than through Refresh. PreClick's first act is
+		-- to check the button is up and say "nobody to buff right now" if it is
+		-- not, and an earlier draft tripped exactly that, so it passed whether
+		-- the guard was there or not. What is under test is the guard, not the
+		-- visibility rules, so the press is given a prompt that is up.
+		ns.Prompt:ApplyTarget(entry)
+		button:Show()
+		if not button.attributes["macrotext1"] then
+			fail(scenario, "SKIPPED -- the arm did not take, so losing it proves nothing")
+		else
+			ns.pendingClick = nil
+			wipe(ns.tried)
+			local pre = button.scripts.PreClick
+			if pre then pcall(pre, button, "LeftButton", true) end
+
+			if button.attributes["macrotext1"] then
+				fail(scenario, "a macro stayed armed during the global cooldown, so the"
+					.. " press reached a server that would refuse it")
+			end
+			local post = button.scripts.PostClick
+			if post then pcall(post, button, "LeftButton", true) end
+			if ns.pendingClick then
+				fail(scenario, "filed a press that could not have cast, against "
+					.. tostring(ns.pendingClick.name))
+			end
+			if next(ns.tried) ~= nil then
+				fail(scenario, "blamed somebody for a cooldown that had nothing to"
+					.. " do with them")
+			end
+		end
+
+		-- Once it has run out, the prompt works again. A guard that never lets
+		-- go is worse than the bug.
+		Mock.advance(3)
+		if ns.CastReady() ~= true then
+			fail(scenario, "the cooldown never expired, so the prompt is now inert")
+		end
+	end
+end
+
 -- ------------------------------------------------------------------ report
 print("=== scenarios ===")
 if #failures == 0 then

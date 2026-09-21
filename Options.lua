@@ -1787,10 +1787,25 @@ function ns.OptionsOpen()
 end
 
 function ns.OpenOptions()
-	-- The standalone dialog is the dependable path. Blizzard's own panel moved
-	-- between Settings APIs, so we only try it when the handle looks usable.
+	-- The standalone dialog, first and by default.
+	--
+	-- This used to try Settings.OpenToCategory first and fall back to here, on
+	-- the reasoning that the game's own panel is the more familiar home. It
+	-- cannot work that way round: OpenToCategory does not raise when it fails
+	-- to find the category, it opens the Settings window at whatever page it
+	-- was last on and returns cleanly -- so the pcall reports success and this
+	-- function returns, having shown somebody the Controls page. On the client
+	-- this addon is actually used on, that is what clicking the minimap button
+	-- did.
+	--
+	-- A pcall cannot tell the difference, and there is nothing else to ask, so
+	-- the route that either works or errors goes first.
+	local ok = pcall(AceConfigDialog.Open, AceConfigDialog, ADDON)
+	if ok then return end
+
+	-- Only if that is somehow unavailable, and only as a last resort, since it
+	-- may well land on the wrong page.
 	if Settings and Settings.OpenToCategory and blizCategory and blizCategory.GetID then
-		if pcall(Settings.OpenToCategory, blizCategory:GetID()) then return end
+		pcall(Settings.OpenToCategory, blizCategory:GetID())
 	end
-	AceConfigDialog:Open(ADDON)
 end

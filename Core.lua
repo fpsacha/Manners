@@ -2995,8 +2995,54 @@ local function UnsettleLateRefusal(spellId, castGUID)
 	return settled.name
 end
 
+-- The global cooldown, tracked rather than read.
+--
+-- Reading it means naming a spell whose cooldown IS the global one, and which
+-- spell that is differs by class and by client -- on a client that withholds
+-- half of what it is asked, that is a question with no reliable answer. What
+-- is reliable is that a cast went out, because the game says so.
+--
+-- So: the moment a cast is sent, nothing else can be cast for about a second
+-- and a half. Ask the client for the real figure where it will answer, and
+-- fall back to the value that has been 1.5 seconds since the game shipped.
+local GCD_FALLBACK = 1.5
+local castBlockedUntil = 0
+
+local function NoteCastWentOut(spellId)
+	local now = GetTime()
+	local seconds = GCD_FALLBACK
+
+	-- C_Spell.GetSpellCooldown answers with a table on a modern client. Its
+	-- duration for an instant buff IS the global cooldown, which is the number
+	-- wanted here -- but only when it is readable and sane, because a secret
+	-- or a zero would unblock the button immediately and put the column of
+	-- refusals straight back.
+	local get = C_Spell and C_Spell.GetSpellCooldown
+	if get and spellId then
+		local ok, info = pcall(get, spellId)
+		if ok and type(info) == "table" then
+			local duration = plain(info.duration)
+			if type(duration) == "number" and duration > 0 and duration <= 3 then
+				seconds = duration
+			end
+		end
+	end
+
+	castBlockedUntil = now + seconds
+end
+
+-- Whether a press right now could reach the server at all, and how long until
+-- it could. Published because the prompt has to say so rather than let
+-- somebody click into silence.
+function ns.CastReady()
+	local left = castBlockedUntil - GetTime()
+	if left <= 0 then return true, 0 end
+	return false, left
+end
+
 function addon:UNIT_SPELLCAST_SENT(_, unit, target, castGUID, spellId)
 	if unit ~= "player" then return end
+	NoteCastWentOut(plain(spellId))
 	SettlePendingClick(plain(target), plain(spellId), plain(castGUID))
 	if not self.db.profile.debugClicks then return end
 	self:Print(("|cff80ff80CAST SENT %s -> %s|r"):format(
