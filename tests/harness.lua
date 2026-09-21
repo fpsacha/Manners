@@ -206,7 +206,7 @@ local ADDON, ns = "Manners", {}
 local dir = ...
 
 for _, file in ipairs({ "Buffs.lua", "Core.lua", "Prompt.lua", "Options.lua" }) do
-  local chunk, err = loadfile(dir .. "\\" .. file)
+  local chunk, err = loadfile(dir .. "/" .. file)
   if not chunk then
     note("LOAD " .. file .. ": " .. tostring(err))
   else

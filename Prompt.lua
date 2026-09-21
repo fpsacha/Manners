@@ -29,7 +29,7 @@ local nameText, subText, countChip, countText, queueRows
 -- Goes into every click line. A log that does not say which build produced it
 -- can be diagnosed for an hour before anyone notices the game never loaded the
 -- file being read.
-ns.BUILD = "0.9.1"
+ns.BUILD = "0.9.2"
 
 local current, testMode, testExpiry, lastTop, appliedKey, lastClickAt, lastPreClickAt
 

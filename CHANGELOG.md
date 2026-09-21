@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.9.2
+
+### Fixed
+
+- **The test suites could only run on one machine.** `validate.py` and
+  `runharness.py` carried absolute Windows paths from where they were first
+  written, and the Lua harnesses joined paths with a backslash. Everything is
+  resolved relative to the test file now, and CI runs them for real.
+- `validate.py` treated an absent `Libs/` as a failure. A checkout legitimately
+  has none -- they are build-time externals -- so it now says so and carries on,
+  while still checking them when present.
+- It also checks that the toc, `ns.BUILD` and the changelog agree on the
+  version, because a log naming the wrong build has already cost an hour once.
+
 ## 0.9.1
 
 ### Added

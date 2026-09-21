@@ -1,6 +1,6 @@
 import re, os
 
-D = r"D:\Projects\WOW_Addons\Manners"
+D = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FILES = ["Buffs.lua", "Core.lua", "Prompt.lua", "Options.lua"]
 src = {f: open(os.path.join(D, f), encoding="utf-8").read() for f in FILES}
 

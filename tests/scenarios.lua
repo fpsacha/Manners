@@ -10,12 +10,12 @@ local dir = ...
 local failures = {}
 local function fail(scenario, msg) failures[#failures + 1] = scenario .. ": " .. msg end
 
-dofile(dir .. "\\tests\\mockapi.lua")
+dofile(dir .. "/tests/mockapi.lua")
 
 local function load(scenario)
 	local ns = {}
 	for _, file in ipairs({ "Buffs.lua", "Core.lua", "Prompt.lua", "Options.lua" }) do
-		local chunk, err = loadfile(dir .. "\\" .. file)
+		local chunk, err = loadfile(dir .. "/" .. file)
 		if not chunk then
 			fail(scenario, "load " .. file .. ": " .. tostring(err))
 			return nil
