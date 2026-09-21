@@ -7972,6 +7972,58 @@ if ns then
 	end
 end
 
+-- ------------------------------------------------------------------ 107
+-- An end-to-end assertion, deliberately about the outcome and not the layer
+-- that provides it: a character the client says can cast nothing must end up
+-- with nothing armed and no press on file.
+--
+-- Today BuildQueue is what guarantees it -- it returns nothing once
+-- caps.anyKnown is false, so no candidate ever reaches the button -- which
+-- means removing the matching clause from the click path's own predicate does
+-- NOT turn this red. That is recorded here rather than left to be discovered:
+-- this scenario pins the behaviour, not the mechanism, and if the queue ever
+-- stops being the thing that stops it, this is what will notice.
+Mock.reset()
+ns = load("nothing castable means nothing is armed and no press is recorded")
+if ns then
+	local scenario = "nothing castable means nothing is armed and no press is recorded"
+	drive(scenario, ns)
+	Mock.advance(60)
+	ns.Guard("probe", ns.ProbeCapabilities)
+
+	local entry = ns.BuildQueue()[1]
+	local button = ns.Prompt:GetButton()
+	if not entry or not entry.buff or not button then
+		fail(scenario, "SKIPPED -- nobody to arm against")
+	else
+		ns.Prompt:ApplyTarget(entry)
+		if not button.attributes["macrotext1"] then
+			fail(scenario, "SKIPPED -- the arm did not take, so losing it proves nothing")
+		else
+			-- The client comes back and says this character knows none of them.
+			ns.caps.anyKnown = false
+			ns.pendingClick = nil
+			wipe(ns.tried)
+
+			local pre = button.scripts.PreClick
+			if pre then pcall(pre, button, "LeftButton", true) end
+			if button.attributes["macrotext1"] then
+				fail(scenario, "a macro stayed armed for a character with nothing to cast")
+			end
+
+			local post = button.scripts.PostClick
+			if post then pcall(post, button, "LeftButton", true) end
+			if ns.pendingClick then
+				fail(scenario, "a press was filed against "
+					.. tostring(ns.pendingClick.name)
+					.. " by a character that cannot cast anything")
+			end
+
+			ns.caps.anyKnown = true
+		end
+	end
+end
+
 -- ------------------------------------------------------------------ report
 print("=== scenarios ===")
 if #failures == 0 then

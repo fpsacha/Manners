@@ -275,6 +275,31 @@ end
 -- construction
 ---------------------------------------------------------------------------
 
+-- The one question the click path asks, in one place.
+--
+-- It was written out by hand at each site with a different set of members, and
+-- ns.caps.anyKnown was in none of them: a character with nothing it can cast
+-- still armed a macro and still filed a press against somebody, while Refresh
+-- one function away had already taken the panel down for exactly that reason.
+--
+-- Deliberately NOT the same question as Core's "is the addon switched on".
+-- That one governs bookkeeping -- whether a favour is recorded at all -- and
+-- says nothing about whether the button in front of somebody should fire.
+local function PromptIsLive()
+	local db = ns.db and ns.db.profile
+	if not db or not db.enabled then return false end
+	-- Unlocked is drag mode, and a prompt being dragged must not cast.
+	if not db.prompt.locked then return false end
+	if testMode then return false end
+	-- Belt and braces rather than a live fix, and worth saying so: BuildQueue
+	-- already returns nothing when this is false, so no candidate reaches the
+	-- button and no mutation of this line can be made to go red. It is here so
+	-- the click path states the same condition the panel does instead of
+	-- relying on a caller two files away to have got there first.
+	if not ns.caps.anyKnown then return false end
+	return true
+end
+
 function Prompt:Create()
 	if button then return end
 
@@ -501,8 +526,7 @@ function Prompt:Create()
 		-- An unlocked or disabled prompt must not cast, and PreClick is the
 		-- last chance to make sure of it: it runs after Refresh has decided
 		-- what to show but before the secure handler reads the attributes.
-		local db = ns.db and ns.db.profile
-		if not db or not db.enabled or not db.prompt.locked or testMode then
+		if not PromptIsLive() then
 			Prompt:ApplyTarget(nil)
 			return
 		end
@@ -535,7 +559,7 @@ function Prompt:Create()
 		-- says so rather than leaving somebody to wonder why a buff went out. Its
 		-- own stamp, because down and up both land here.
 		local db = ns.db and ns.db.profile
-		if not db or not db.enabled or not db.prompt.locked or testMode then
+		if not PromptIsLive() then
 			local now = GetTime()
 			-- Only a press that could have cast gets the warning. type2 to
 			-- type5 are "none", so the secure handler matches nothing for the
