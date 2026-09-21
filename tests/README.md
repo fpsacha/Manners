@@ -4,14 +4,17 @@ No part of this can talk to a running client, so these check the things that
 can be checked from outside it. Between them they catch every fault class that
 actually cost time building this addon — none of which a syntax check can see.
 
-Run from anywhere; paths are absolute.
+Run them from the project root. Every path is resolved relative to the test
+file rather than named outright — hardcoded ones passed here and failed the
+first time CI ran them on a machine that was not this one.
 
 ## `runharness.py` — load the addon for real
 
 Loads `harness.lua`, a mock WoW API, then loads all four addon files and drives
 the main paths: `OnInitialize`, `OnEnable`, `PLAYER_ENTERING_WORLD`,
-`BuildQueue`, `Tick`, the combat log handler, `ScanOwnBuffs`, `ApplyStyle`,
-`Refresh`, and the slash commands.
+`BuildQueue`, `Tick`, the aura handler that stands in for the combat log this
+client does not have, `ScanOwnBuffs`, `ApplyStyle`, `Refresh`, and the slash
+commands.
 
 Catches:
 
