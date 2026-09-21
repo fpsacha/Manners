@@ -104,6 +104,13 @@ ns.BUFFS = {
 	},
 }
 
+-- Classes whose buffs overwrite one another, so a target can only ever carry
+-- one of yours. Walking the list for these would mean replacing a blessing
+-- somebody already has, which is worse than doing nothing.
+ns.EXCLUSIVE_BUFFS = {
+	PALADIN = true,
+}
+
 -- Which buff "auto" should reach for. Paladins are the only class where the
 -- right answer depends on who is standing there.
 ns.CLASS_AUTO = {

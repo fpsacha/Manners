@@ -290,8 +290,15 @@ function Prompt:Create()
 		-- hundred milliseconds later whether anything was actually cast, and
 		-- clearing here meant a cast blocked by range or line of sight counted
 		-- as a favour returned.
-		ns.pendingClick = { name = current.name, at = GetTime() }
-		ns.tried[current.name] = GetTime() + ns.db.profile.timing.retryCooldown
+		ns.pendingClick = { name = current.name, at = GetTime(),
+			buffKey = current.buff and current.buff.key }
+		-- Per buff, so casting Fortitude does not stop the walk reaching
+		-- Divine Spirit on the next click.
+		if current.buff then
+			ns.tried[current.name .. "\0" .. current.buff.key] =
+				GetTime() + ns.db.profile.timing.retryCooldown
+			ns.lastGave[current.name] = current.buff.key
+		end
 		Prompt:StopAttention()
 	end)
 

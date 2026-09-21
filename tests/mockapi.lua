@@ -15,6 +15,8 @@ function Mock.reset()
 	Mock.nameplates = { "nameplate1", "nameplate2" }
 	Mock.now = 1000
 	Mock.groupSize = 0
+	Mock.held = nil
+	Mock.heldFor = nil
 end
 Mock.reset()
 
@@ -233,7 +235,14 @@ setmetatable(_G, { __index = function(_, key)
 		})
 	elseif key == "C_UnitAuras" then
 		return ns_or_nil({
-			GetUnitAuraBySpellID = function() return nil end,
+			-- Mock.held is a set of spell ids the unit is carrying, so a
+			-- scenario can put somebody halfway through a buff set.
+			GetUnitAuraBySpellID = function(_, spellId)
+				if Mock.held and Mock.held[spellId] then
+					return { spellId = spellId, expirationTime = Mock.now + (Mock.heldFor or 3600) }
+				end
+				return nil
+			end,
 			GetAuraDataByIndex = function(_, i)
 				if i > 2 then return nil end
 				return { auraInstanceID = i, spellId = 1459,

@@ -270,6 +270,95 @@ local function FirstKnownBuff()
 	end
 end
 
+-- Everything of this class the player can actually cast, in list order.
+-- Resolved once per scan rather than once per unit.
+function ns.CastableBuffs()
+	local db = addon.db and addon.db.profile
+	local out = {}
+	for _, buff in ipairs(ns.GetClassBuffs(playerClass) or {}) do
+		if ns.IsBuffKnown(buff) and not (db and db.buff.skip and db.buff.skip[buff.key]) then
+			out[#out + 1] = buff
+		end
+	end
+	return out
+end
+
+-- Which of their buffs this person should be offered, or nil for none.
+--
+-- The addon used to resolve exactly one buff per class and check only that
+-- one, which meant a priest never offered Divine Spirit or Shadow Protection
+-- and a druid never offered Thorns. Worse, the default "leave them alone if
+-- they have it" then dropped the person from the queue entirely the moment
+-- they held the first buff in the list -- so being partly buffed made you
+-- invisible to the addon.
+--
+-- `candidates` comes from CastableBuffs. `has(buff)` answers the aura question
+-- and returns has, remaining.
+function ns.PickBuffFor(candidates, opts, has)
+	local db = addon.db and addon.db.profile
+	if not db or #candidates == 0 then return nil end
+
+	-- A pin means "only ever this one". No walk.
+	if db.buff.choice and db.buff.choice ~= "auto" then
+		local buff = ns.FindBuff(playerClass, db.buff.choice)
+		if not buff or not ns.IsBuffKnown(buff) then return nil end
+		candidates = { buff }
+	end
+
+	local function eligible(buff)
+		if opts.relevantOnly and buff.manaOnly and opts.hasMana == false then return false end
+		if buff.partyOnly and not opts.inGroup then return false end
+		if opts.blocked and opts.blocked(buff) then return false end
+		return true
+	end
+
+	-- Blessings overwrite each other, so holding any one of yours counts as
+	-- covered. Walking would replace what they already have.
+	if ns.EXCLUSIVE_BUFFS[playerClass] then
+		local pick
+		for _, buff in ipairs(candidates) do
+			if eligible(buff) then
+				local held = has(buff)
+				if held == true then return nil, true end
+				if not pick then pick = buff end
+			end
+		end
+		return pick, false
+	end
+
+	-- Two passes: something they lack outright always beats something merely
+	-- running low.
+	local expiring, expiringRemaining
+	for _, buff in ipairs(candidates) do
+		if eligible(buff) then
+			local held, remaining = has(buff)
+			if held ~= true then return buff, held end
+			if opts.whenBuffed == "refresh" and remaining
+				and remaining <= (opts.refreshUnder or 5) * 60 and not expiring then
+				expiring, expiringRemaining = buff, remaining
+			end
+		end
+	end
+	if expiring then return expiring, true, expiringRemaining end
+
+	-- Nothing missing and nothing expiring. When the client will not let us
+	-- read auras at all there is no truth to go on, so rotate past whatever
+	-- was given last rather than offering the same buff forever.
+	if opts.whenBuffed == "always" or opts.unreadable then
+		local last = ns.lastGave and ns.lastGave[opts.name]
+		local startAt = 1
+		for i, buff in ipairs(candidates) do
+			if buff.key == last then startAt = i + 1 break end
+		end
+		for i = 0, #candidates - 1 do
+			local buff = candidates[((startAt - 1 + i) % #candidates) + 1]
+			if eligible(buff) then return buff, nil end
+		end
+	end
+
+	return nil, true
+end
+
 -- hasMana is passed in rather than read here so the caller can reuse it.
 function ns.ResolveBuff(hasMana)
 	local db = addon.db and addon.db.profile
@@ -558,7 +647,16 @@ end
 ---------------------------------------------------------------------------
 
 local owed = {} -- [name] = expiry, people who buffed us
-local tried = {} -- [name] = expiry, people we just attempted
+
+-- [name .. "\0" .. buffKey] = expiry for a buff we just tried on them, and
+-- [name .. "\0*"] = expiry for the whole person, set only when the game says
+-- nothing was cast at all. Keyed per buff because casting Fortitude must not
+-- stop the walk reaching Divine Spirit; keyed whole-person as well because
+-- somebody behind a pillar should not make the prompt march down the entire
+-- list failing at each one.
+local tried = {}
+
+ns.lastGave = {} -- [name] = buffKey, for rotating when auras cannot be read
 ns.owed, ns.tried = owed, tried
 
 local PRIORITY = { owed = 1, group = 2, nearby = 3 }
@@ -618,6 +716,10 @@ function ns.BuildQueue()
 	local seen, queue = {}, {}
 	local f = db.filters
 
+	-- Once per scan. This used to run for every unit examined.
+	local candidates = ns.CastableBuffs()
+	if #candidates == 0 then return {} end
+
 	-- Offering a buff that cannot be paid for is a button that fails -- but
 	-- only classes with a mana bar can run out of it. A warrior's current mana
 	-- is a readable, permanent 0, so an unconditional check here meant every
@@ -646,49 +748,56 @@ function ns.BuildQueue()
 
 		if not SafeForMacro(full) then return end
 		if seen[full] then return end
-		if tried[full] and tried[full] > now then return end
-
-		local hasMana = UnitHasMana(unit)
-
-		local buff = ns.ResolveBuff(hasMana ~= false)
-		if not buff then return end
-
-		-- A mana-only buff does nothing for a warrior or a rogue.
-		if f.relevantOnly and buff.manaOnly and hasMana == false then
-			return
-		end
+		-- The whole-person block: set only when the game said nothing was cast
+		-- at all, so we do not march down the list failing at each buff.
+		if tried[full .. "\0*"] and tried[full .. "\0*"] > now then return end
 
 		local inGroup = plain(UnitInParty and UnitInParty(unit)) or plain(UnitInRaid and UnitInRaid(unit))
-		if buff.partyOnly and not inGroup then return end
-
-		local guid = plain(UnitGUID(unit))
-		-- Not `a and b or nil`: UnitHasBuff returning false would collapse to
-		-- nil through that, turning a definite "they do not have it" into
-		-- "cannot tell" and marking every valid target unverified.
-		local whenBuffed = f.whenBuffed or "skip"
-		local has, remaining
-		local checked = whenBuffed ~= "always"
-		if checked then has, remaining = UnitHasBuff(unit, buff, guid) end
 		local isOwed = db.sources.owed and owed[full] and owed[full].expires > now
 
-		-- Somebody who already has it is worth offering when we owe them a
-		-- favour, or when their timer is nearly out and a top-up is wanted.
-		if has == true and not isOwed then
-			if whenBuffed == "skip" then
-				return
-			elseif whenBuffed == "refresh" then
-				local threshold = (f.refreshUnder or 5) * 60
-				if remaining == nil then
-					return
-				elseif remaining > threshold then
-					return
-				end
-			end
-		end
-
+		-- Decide whether we would offer this person at all before reading any
+		-- auras, which is the expensive part.
 		local reason = isOwed and "owed" or (inGroup and "group" or "nearby")
 		if reason == "group" and not db.sources.group then return end
 		if reason == "nearby" and not db.sources.strangers then return end
+
+		local hasMana = UnitHasMana(unit)
+		local guid = plain(UnitGUID(unit))
+		local whenBuffed = f.whenBuffed or "skip"
+		local checked = whenBuffed ~= "always"
+
+		-- Owing somebody a favour means offering them even if they are covered:
+		-- the point is to give something back.
+		local lastRemaining
+		local function auraState(buff)
+			if not checked or isOwed then return false end
+			local held, remaining = UnitHasBuff(unit, buff, guid)
+			lastRemaining = remaining
+			return held, remaining
+		end
+
+		local unreadable = true
+		for _, candidate in ipairs(candidates) do
+			local info = ns.BuffInfo(candidate)
+			if info and info.readable then unreadable = false break end
+		end
+
+		local buff, has = ns.PickBuffFor(candidates, {
+			hasMana = hasMana,
+			inGroup = inGroup,
+			relevantOnly = f.relevantOnly,
+			whenBuffed = whenBuffed,
+			refreshUnder = f.refreshUnder,
+			unreadable = unreadable,
+			name = full,
+			blocked = function(candidate)
+				local key = full .. "\0" .. candidate.key
+				return tried[key] ~= nil and tried[key] > now
+			end,
+		}, auraState)
+
+		if not buff then return end
+		if not checked then has = nil end
 
 		local ranged = InRange(unit, buff)
 		if f.requireInRange and ranged == false then return end
@@ -726,7 +835,9 @@ function ns.BuildQueue()
 			local fresh = not db.filters.reachableOnly or (now - entry.at) <= grace
 			if entry.expires > now and fresh and not seen[full] and SafeForMacro(full) and fallback
 				and not fallback.selfCast
-				and not (tried[full] and tried[full] > now) then
+				and not (tried[full .. "\0*"] and tried[full .. "\0*"] > now)
+				and not (tried[full .. "\0" .. fallback.key]
+					and tried[full .. "\0" .. fallback.key] > now) then
 				queue[#queue + 1] = {
 					name = full,
 					short = ShortName(full),
@@ -892,7 +1003,7 @@ local function SettlePendingClick(settled, landedOn)
 	if settled and landedOn and landedOn ~= pending.name then
 		local first = ns.FirstName and ns.FirstName(pending.name)
 		if landedOn ~= first then
-			ns.tried[pending.name] = GetTime() + 2
+			ns.tried[pending.name .. "\0*"] = GetTime() + 2
 			ns.pendingClick = nil
 			return
 		end
@@ -901,9 +1012,9 @@ local function SettlePendingClick(settled, landedOn)
 	if settled then
 		ns.owed[pending.name] = nil
 	else
-		-- Nothing was cast, so they are still owed. Offer them again shortly
-		-- rather than making them sit out the full retry cooldown.
-		ns.tried[pending.name] = GetTime() + 2
+		-- Nothing was cast at all, so block the whole person briefly rather
+		-- than letting the walk try every remaining buff in turn.
+		ns.tried[pending.name .. "\0*"] = GetTime() + 2
 	end
 	ns.pendingClick = nil
 end
@@ -1312,8 +1423,8 @@ function addon:TickBody()
 	for name, entry in pairs(owed) do
 		if entry.expires <= now then owed[name] = nil end
 	end
-	for name, expiry in pairs(tried) do
-		if expiry <= now then tried[name] = nil end
+	for key, expiry in pairs(tried) do
+		if expiry <= now then tried[key] = nil end
 	end
 	ns.Prompt:Refresh()
 end

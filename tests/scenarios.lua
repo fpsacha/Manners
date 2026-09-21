@@ -685,6 +685,143 @@ if ns then
 	end
 end
 
+-- ------------------------------------------------------------------ 21
+-- A priest has three buffs to give and used to offer only the first. Worse,
+-- the default "leave them alone if they have it" then dropped the person
+-- entirely once they held that one -- so being partly buffed made you
+-- invisible to the addon.
+Mock.reset()
+Mock.class = "PRIEST"
+ns = load("priest walks its buff list")
+if ns then
+	local known = {}
+	for _, key in ipairs({ "fortitude", "spirit", "shadow" }) do
+		for _, id in ipairs(ns.FindBuff("PRIEST", key).ranks) do known[id] = true end
+	end
+	local realKnown = IsSpellKnown
+	IsSpellKnown = function(id) return known[id] == true end
+	IsPlayerSpell = function(id) return known[id] == true end
+
+	drive("priest walks its buff list", ns)
+	Mock.advance(60)
+	ns.Guard("probe", ns.ProbeCapabilities)
+
+	local function offered()
+		local q = ns.BuildQueue()
+		return q[1] and q[1].buff and q[1].buff.key or nil
+	end
+
+	-- nothing held: the first in list order
+	if offered() ~= "fortitude" then
+		fail("priest walks its buff list", "first offer was " .. tostring(offered()))
+	end
+
+	-- holding Fortitude must NOT make them invisible; Spirit is next
+	Mock.held = {}
+    for _, id in ipairs(ns.FindBuff("PRIEST", "fortitude").ranks) do Mock.held[id] = true end
+	Mock.advance(10)
+	local second = offered()
+	if second == nil then
+		fail("priest walks its buff list", "a partly buffed player was dropped entirely")
+	elseif second ~= "spirit" then
+		fail("priest walks its buff list", "expected spirit, got " .. tostring(second))
+	end
+
+	-- holding two: the third
+	for _, id in ipairs(ns.FindBuff("PRIEST", "spirit").ranks) do Mock.held[id] = true end
+	Mock.advance(10)
+	if offered() ~= "shadow" then
+		fail("priest walks its buff list", "expected shadow, got " .. tostring(offered()))
+	end
+
+	-- holding all three: nothing left to give
+	for _, id in ipairs(ns.FindBuff("PRIEST", "shadow").ranks) do Mock.held[id] = true end
+	Mock.advance(10)
+	if offered() ~= nil then
+		fail("priest walks its buff list",
+			"offered " .. tostring(offered()) .. " to somebody fully buffed")
+	end
+
+	Mock.held = nil
+	IsSpellKnown = realKnown
+	IsPlayerSpell = realKnown
+end
+
+-- ------------------------------------------------------------------ 22
+-- Blessings overwrite each other, so a paladin must never walk: holding any
+-- one of yours means covered. Offering a second would replace the first.
+Mock.reset()
+Mock.class = "PALADIN"
+ns = load("paladin does not walk")
+if ns then
+	local known = {}
+	for _, key in ipairs({ "wisdom", "might", "kings" }) do
+		for _, id in ipairs(ns.FindBuff("PALADIN", key).ranks) do known[id] = true end
+	end
+	local realKnown = IsSpellKnown
+	IsSpellKnown = function(id) return known[id] == true end
+	IsPlayerSpell = function(id) return known[id] == true end
+
+	drive("paladin does not walk", ns)
+	Mock.advance(60)
+	ns.Guard("probe", ns.ProbeCapabilities)
+
+	if #ns.BuildQueue() == 0 then
+		fail("paladin does not walk", "offered nobody with three blessings available")
+	end
+
+	-- holding Wisdom means covered: a second blessing would replace it
+	Mock.held = {}
+	for _, id in ipairs(ns.FindBuff("PALADIN", "wisdom").ranks) do Mock.held[id] = true end
+	Mock.advance(10)
+	if #ns.BuildQueue() > 0 then
+		fail("paladin does not walk",
+			"offered a second blessing to somebody already holding one")
+	end
+
+	Mock.held = nil
+	IsSpellKnown = realKnown
+	IsPlayerSpell = realKnown
+end
+
+-- ------------------------------------------------------------------ 23
+-- A pin means "only ever this one", so it must not walk either.
+Mock.reset()
+Mock.class = "PRIEST"
+ns = load("a pinned buff does not walk")
+if ns then
+	local known = {}
+	for _, key in ipairs({ "fortitude", "spirit" }) do
+		for _, id in ipairs(ns.FindBuff("PRIEST", key).ranks) do known[id] = true end
+	end
+	local realKnown = IsSpellKnown
+	IsSpellKnown = function(id) return known[id] == true end
+	IsPlayerSpell = function(id) return known[id] == true end
+
+	drive("a pinned buff does not walk", ns)
+	Mock.advance(60)
+	ns.Guard("probe", ns.ProbeCapabilities)
+	ns.db.profile.buff.choice = "spirit"
+
+	local q = ns.BuildQueue()
+	if not q[1] or q[1].buff.key ~= "spirit" then
+		fail("a pinned buff does not walk",
+			"pinned spirit, offered " .. tostring(q[1] and q[1].buff.key))
+	end
+
+	-- holding the pinned buff means nothing to offer, not "try another"
+	Mock.held = {}
+	for _, id in ipairs(ns.FindBuff("PRIEST", "spirit").ranks) do Mock.held[id] = true end
+	Mock.advance(10)
+	if #ns.BuildQueue() > 0 then
+		fail("a pinned buff does not walk", "fell through to another buff")
+	end
+
+	Mock.held = nil
+	IsSpellKnown = realKnown
+	IsPlayerSpell = realKnown
+end
+
 -- ------------------------------------------------------------------ report
 print("=== scenarios ===")
 if #failures == 0 then
