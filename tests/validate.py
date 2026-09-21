@@ -181,17 +181,31 @@ print("\n== version consistency ==")
 toc_version = re.search(r"^## Version:\s*(\S+)", toc, re.M)
 build = re.search(r'ns\.BUILD = "([^"]+)"',
                   open(os.path.join(ROOT, "Prompt.lua"), encoding="utf-8").read())
-changelog = re.search(r"^## (\S+)", open(os.path.join(ROOT, "CHANGELOG.md"),
+# A top heading of "Unreleased" is work sitting in the log ahead of a bump, and
+# is the one case where the three are meant to disagree: the toc still names
+# what shipped. Compare against the newest heading that names a version, and
+# say that is what is happening rather than reporting a mismatch nobody should
+# act on. setversion.py renames whatever the top heading says, so a bump turns
+# this back into the ordinary case by itself.
+headings = re.findall(r"^## (\S+)", open(os.path.join(ROOT, "CHANGELOG.md"),
                                           encoding="utf-8").read(), re.M)
+pending = bool(headings) and headings[0].lower() == "unreleased"
+released = next((h for h in headings if h.lower() != "unreleased"), None)
+
 versions = {
     "toc": toc_version.group(1) if toc_version else None,
     "ns.BUILD": build.group(1) if build else None,
-    "changelog": changelog.group(1) if changelog else None,
+    "changelog": released,
 }
 for k, v in versions.items():
     print("  %-10s %s" % (k, v))
+if pending:
+    print("  (changelog has an Unreleased section above it -- nothing tagged yet)")
 if len(set(versions.values())) != 1:
     print("  MISMATCH -- a log that names the wrong build wastes an hour")
+    fail += 1
+if not headings:
+    print("  the changelog has no version heading at all")
     fail += 1
 
 # Something put on the shared namespace and never read back is either a
