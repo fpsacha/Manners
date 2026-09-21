@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.9.3
+
+### Fixed
+
+- **LibDataBroker was fetched from a URL that does not exist.** The packager
+  pulled the other twelve libraries and then failed on this one:
+  `repos.curseforge.com/wow/libdatabroker-1-1/trunk` returns 404. It is sourced
+  from `github.com/tekkub/libdatabroker-1-1` now, which is where it actually
+  lives.
+
 ## 0.9.2
 
 ### Fixed
