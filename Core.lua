@@ -877,13 +877,27 @@ end
 -- A click parks its debt in ns.pendingClick rather than clearing it; these
 -- resolve it from what the game actually did. Something went out, so the
 -- favour is settled.
-local function SettlePendingClick(settled)
+local function SettlePendingClick(settled, landedOn)
 	local pending = ns.pendingClick
 	if not pending then return end
 	if GetTime() - pending.at > 2 then
 		ns.pendingClick = nil
 		return
 	end
+
+	-- A /target for a name the game cannot resolve is a no-op: it leaves your
+	-- existing target in place, so the cast goes to whoever that was. Settling
+	-- on "something was cast" alone marked the favour repaid to a stranger who
+	-- never received anything.
+	if settled and landedOn and landedOn ~= pending.name then
+		local first = ns.FirstName and ns.FirstName(pending.name)
+		if landedOn ~= first then
+			ns.tried[pending.name] = GetTime() + 2
+			ns.pendingClick = nil
+			return
+		end
+	end
+
 	if settled then
 		ns.owed[pending.name] = nil
 	else
@@ -896,7 +910,7 @@ end
 
 function addon:UNIT_SPELLCAST_SENT(_, unit, target, _, spellId)
 	if unit ~= "player" then return end
-	SettlePendingClick(true)
+	SettlePendingClick(true, plain(target))
 	if not self.db.profile.debugClicks then return end
 	self:Print(("|cff80ff80CAST SENT %s -> %s|r"):format(
 		tostring(plain(spellId)), tostring(plain(target))))

@@ -656,6 +656,35 @@ if ns then
 	end
 end
 
+-- ------------------------------------------------------------------ 20
+-- Arming the button must leave every other mouse button inert. The unsuffixed
+-- type/macrotext are the fallback for all of them, so without this a
+-- right-press to turn the camera fires the buff with none of the bookkeeping.
+Mock.reset()
+ns = load("other mouse buttons are inert")
+if ns then
+	drive("other mouse buttons are inert", ns)
+	Mock.advance(60)
+	local queue = ns.BuildQueue()
+	if #queue == 0 then
+		fail("other mouse buttons are inert", "SKIPPED -- nobody to arm against")
+	else
+		ns.Prompt:InvalidateMacro()
+		ns.Prompt:ApplyTarget(queue[1])
+		local button = ns.Prompt:GetButton()
+		if button:GetAttribute("type1") ~= "macro" then
+			fail("other mouse buttons are inert", "the left button was not armed")
+		end
+		for index = 2, 5 do
+			if button:GetAttribute("type" .. index) ~= "none" then
+				fail("other mouse buttons are inert",
+					"button " .. index .. " is " ..
+					tostring(button:GetAttribute("type" .. index)) .. ", not none")
+			end
+		end
+	end
+end
+
 -- ------------------------------------------------------------------ report
 print("=== scenarios ===")
 if #failures == 0 then

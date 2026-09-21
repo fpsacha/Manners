@@ -696,6 +696,17 @@ function Prompt:PickTop(queue, fallback)
 	return top
 end
 
+-- Buttons 2 to 5 get a type the secure handler does not recognise, so they
+-- match nothing and do nothing. Without this the unsuffixed type/macrotext --
+-- which must stay, being the form that provably works on this client -- act as
+-- the fallback for every button, and a right-press to turn the camera over the
+-- panel fired the buff with none of the bookkeeping.
+local function SilenceOtherButtons()
+	for index = 2, 5 do
+		button:SetAttribute("type" .. index, "none")
+	end
+end
+
 function Prompt:ApplyTarget(entry)
 	if InCombatLockdown() then return end
 
@@ -708,7 +719,8 @@ function Prompt:ApplyTarget(entry)
 		-- clear never ran. An emptied queue therefore left the previous
 		-- person's macro armed, and clicking cast at them instead of nobody.
 		for _, attribute in ipairs({ "type1", "macrotext1", "spell1", "unit1",
-			"type", "macrotext", "spell", "unit" }) do
+			"type", "macrotext", "spell", "unit",
+			"type2", "type3", "type4", "type5" }) do
 			button:SetAttribute(attribute, nil)
 		end
 		appliedKey = nil
@@ -730,6 +742,7 @@ function Prompt:ApplyTarget(entry)
 		button:SetAttribute("macrotext1", text)
 		button:SetAttribute("type", "macro")
 		button:SetAttribute("macrotext", text)
+		SilenceOtherButtons()
 		ns.lastMacro = "[try] " .. text
 		appliedKey = nil
 		return
@@ -766,6 +779,7 @@ function Prompt:ApplyTarget(entry)
 	button:SetAttribute("macrotext1", macro)
 	button:SetAttribute("type", "macro")
 	button:SetAttribute("macrotext", macro)
+	SilenceOtherButtons()
 
 	ns.lastMacro = macro
 end
