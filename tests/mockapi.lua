@@ -203,8 +203,35 @@ function Mock.reset()
 	-- the wrong one.
 	Mock.secretRestrictions = true
 	Mock.inRange = true
+	-- How far away everybody is, and the exceptions by unit token. Five yards
+	-- is close enough for every proximity setting, so a scenario that says
+	-- nothing about distance is a scenario where nobody is dropped for it --
+	-- which is how every scenario written before this behaved.
+	Mock.yardsDefault = 5
+	Mock.yards = nil
+	-- Whether CheckInteractDistance answers about a stranger. Guarded because
+	-- Mock.setInteract is declared further down this file, beside the function
+	-- it switches, and reset runs once while the file is still loading.
+	if Mock.setInteract then Mock.setInteract("on") end
+	-- LibRangeCheck, which the user may simply not have: nil is a client with
+	-- no such library, and a table is one that does.
+	--
+	--   { buckets = { 30, 28, 8 } }   the checker ranges this class and client
+	--                                 happen to have, largest first
+	--   { buckets = ..., throws = true }
+	--                                 the library is there and its estimate
+	--                                 blows up -- the shape a secret unit GUID
+	--                                 takes on this client, where the library
+	--                                 builds a cache key by concatenating one
+	--   { partial = true }            loaded, but not the methods we need
+	Mock.rangeCheck = nil
 	Mock.unitClass = "PRIEST"
 	Mock.iconDb = nil
+	-- The launcher's data object, once SetupOptions has made one. Everything
+	-- the addon puts on a broker display -- its text, its click handler, its
+	-- tooltip -- lives on this table and nowhere else, so without a handle on
+	-- it none of that was reachable from a test.
+	Mock.broker = nil
 	Mock.sounds = {}
 	Mock.printed = {}
 	-- Every line the tooltip put up since it was last owned. The tooltip is the
@@ -229,13 +256,18 @@ function Mock.reset()
 	-- file on disk. Cleared here so one scenario's debts cannot leak into the
 	-- next; a scenario that models a reload simply does not reset in between.
 	Mock.sv = {}
+	-- Who is logged in, as far as the saved file is concerned. Only a key:
+	-- nothing else in the mock reads it. It exists so a scenario can log an alt
+	-- in on the same account, which is the only way to tell a thing stored per
+	-- character from a thing stored in the one shared profile.
+	Mock.character = "Mort Defrette"
 	Mock.dbCallbacks = {}
 	-- Everything parked on C_Timer.After and not yet run. Cleared here so one
 	-- scenario's timers cannot fire inside the next one.
 	Mock.timers = {}
 	-- How often the addon actually asked the client something. Caching and
 	-- deduplication are invisible to every other kind of assertion.
-	Mock.counts = { range = 0, auraRead = 0, unitBuff = 0 }
+	Mock.counts = { range = 0, auraRead = 0, unitBuff = 0, interact = 0, proximity = 0 }
 	-- Every protected method the addon called on a frame a scenario marked
 	-- secure while the fight was on. In the game each of these is a refusal
 	-- nothing reports; here they are a list.
@@ -355,6 +387,17 @@ local function newFrame()
 	f.SetAlpha = function(self, alpha) self._alpha = alpha return self end
 	f.GetAlpha = function(self) return self._alpha or 1 end
 	f.SetVertexColor = function(self, r, g, b, a) self._color = { r, g, b, a } return self end
+	-- Size and font, for the same reason the colour above is kept. Several
+	-- pieces of the panel are sized from the font slider and have to stay in
+	-- step with the text inside them; against a no-op setter, a box drawn
+	-- smaller than its own digits is indistinguishable from one drawn right.
+	f.SetSize = function(self, w, h) self._width, self._height = w, h return self end
+	f.SetWidth = function(self, w) self._width = w return self end
+	f.SetHeight = function(self, h) self._height = h return self end
+	f.SetFont = function(self, path, size, flags)
+		self._font = { path = path, size = size, flags = flags }
+		return self
+	end
 	f.SetShown = function(self, shown) self._shown = shown and true or false return self end
 	-- Kept as the raw argument list: SetPoint is called with three arguments in
 	-- some places and five in others, and which anchor a queue row hangs from
@@ -436,6 +479,48 @@ function LibStub(name, silent)
 		if silent then return nil end
 		error("Cannot find a library instance of " .. tostring(name) .. ".", 2)
 	end
+
+	-- Ahead of the cache as well, and not cached itself, because what this
+	-- library is differs per scenario: absent, present and working, present and
+	-- throwing, present with the methods we want missing. A library built once
+	-- and kept would be whichever of those the first scenario asked for.
+	--
+	-- Absent is the default and it is modelled the way the real LibStub models
+	-- it -- nil to a caller who passed the silent flag -- rather than by the
+	-- empty table every other unknown name gets here. An empty table is not
+	-- what a missing library looks like, and a reader that tested the table
+	-- rather than the method would pass against one.
+	if name == "LibRangeCheck-3.0" then
+		local want = Mock.rangeCheck
+		if not want then
+			if silent then return nil end
+			error("Cannot find a library instance of " .. tostring(name) .. ".", 2)
+		end
+		local rc = { initialized = false }
+		rc.init = function(self) self.initialized = true end
+		if want.partial then return rc end
+
+		local buckets = want.buckets or { 30, 28, 8 }
+		-- The tightest checker at or under what was asked for, which is what
+		-- decides the distance the addon really ends up filtering on.
+		rc.GetFriendMaxChecker = function(_, range)
+			for i = 1, #buckets do
+				if buckets[i] <= range then
+					return function(unit) return Mock.yardsFor(unit) <= buckets[i] end,
+						buckets[i]
+				end
+			end
+		end
+		rc.GetRange = function(_, unit)
+			Mock.counts.proximity = Mock.counts.proximity + 1
+			if want.throws then
+				error("attempt to concatenate a secret value", 0)
+			end
+			return Mock.rangeBuckets(Mock.yardsFor(unit), buckets)
+		end
+		return rc
+	end
+
 	if libs[name] then return libs[name] end
 	local lib = {}
 	if name == "AceAddon-3.0" then
@@ -479,11 +564,35 @@ function LibStub(name, silent)
 				for k, v in pairs(t) do out[k] = type(v) == "table" and deepcopy(v) or v end
 				return out
 			end
-			local db = { profile = deepcopy(defaults.profile) }
+			-- One profile for the whole account, kept in the saved file.
+			--
+			-- Not a simplification of AceDB but a copy of what this addon asks
+			-- it for: OnInitialize passes `true` as the third argument, which
+			-- is the library's "every character starts on the profile named
+			-- Default". And backed by Mock.sv, because without that a setting
+			-- kept in the profile and a setting kept per character behave
+			-- identically across a reload -- so the difference between them,
+			-- which this addon has now had to decide twice, was untestable.
+			Mock.sv.profile = Mock.sv.profile or deepcopy(defaults.profile)
+
 			-- AceDB's per-character section, created on first access and kept
-			-- in the one saved file. Backed by Mock.sv so it survives a load().
-			Mock.sv.char = Mock.sv.char or {}
-			db.char = Mock.sv.char
+			-- in the same one file. Keyed by who is logged in, so an alt is a
+			-- different table out of the same file -- and Mock.sv.char stays
+			-- pointed at whoever that is, which is what every scenario written
+			-- before alts existed reads.
+			Mock.sv.chars = Mock.sv.chars or {}
+			-- A scenario that wrote Mock.sv.char before the first load is
+			-- describing the file this character left behind last session, so
+			-- it is adopted as theirs. Only before the first load: after that
+			-- the field is a pointer and adopting it would hand an alt the
+			-- previous character's file.
+			if next(Mock.sv.chars) == nil and type(Mock.sv.char) == "table" then
+				Mock.sv.chars[Mock.character] = Mock.sv.char
+			end
+			Mock.sv.chars[Mock.character] = Mock.sv.chars[Mock.character] or {}
+			Mock.sv.char = Mock.sv.chars[Mock.character]
+
+			local db = { profile = Mock.sv.profile, char = Mock.sv.char }
 			-- Recorded rather than dropped: OnDatabaseShutdown is the only hook
 			-- the logout flush hangs on, and a scenario has to be able to fire
 			-- it the way the real library does.
@@ -542,7 +651,20 @@ function LibStub(name, silent)
 			return t[key] or (not noDefault and t[self.defaults[kind]]) or nil
 		end
 		lib.HashTable = function(self, kind) return self.media[kind] or {} end
-	elseif name == "LibDataBroker-1.1" then lib.NewDataObject = function() return {} end
+	elseif name == "LibDataBroker-1.1" then
+		-- The real library keeps the table it is handed and hands that same
+		-- table back, with a metatable that files every field away and fires a
+		-- callback at each display when one is assigned. Only the first half is
+		-- modelled -- what a display does with the callback is not this addon's
+		-- code -- but the first half is the half that was missing: returning a
+		-- fresh empty table threw the addon's own object away, so the text, the
+		-- click handler and the tooltip all went into a table nothing could
+		-- reach, and a launcher that says which state it is in was
+		-- indistinguishable from one that says nothing at all.
+		lib.NewDataObject = function(_, _, obj)
+			Mock.broker = obj
+			return obj
+		end
 	elseif name == "LibDBIcon-1.0" then
 		-- Records which table the button is bound to. The real library keeps
 		-- the one it was handed and never re-reads it, which is the whole bug.
@@ -645,6 +767,74 @@ function IsPlayerSpell(id) return id == 1459 end
 function IsSpellInRange()
 	Mock.counts.range = Mock.counts.range + 1
 	return Mock.inRange and 1 or 0
+end
+
+---------------------------------------------------------------------------
+-- how far away people are
+--
+-- No client API answers this. Every proximity signal the addon has is an
+-- approximation of it with its own blind spot, so the mock keeps the truth in
+-- one place -- Mock.yardsFor -- and lets each signal approximate it the way the
+-- real one does. A mock that let a scenario feed an answer straight to the
+-- addon would agree with whatever the addon did with it.
+---------------------------------------------------------------------------
+
+-- How far away a unit is, in yards.
+function Mock.yardsFor(unit)
+	return (Mock.yards and Mock.yards[unit]) or Mock.yardsDefault
+end
+
+-- The interact prompts, which are the only fixed distance thresholds an addon
+-- can ask about without a library. The numbers are the ones measured by the
+-- people who maintain LibRangeCheck; this addon only reaches for index 3.
+local INTERACT_YARDS = { [1] = 28, [2] = 11, [3] = 10, [4] = 28 }
+
+-- Present by default, because every client this addon supports has the
+-- function. What differs between them is whether it answers about a player who
+-- is not in your group, and that is Mock.interact:
+--
+--   "on"         -- answers, which is the Classic flavours and the optimistic
+--                   reading of Forever
+--   "restricted" -- the function is there and returns nothing for a stranger,
+--                   which is what modern clients do and the reason the addon
+--                   may not simply trust it
+--   "secret"     -- it answers with a value we are not allowed to look at,
+--                   which is the same refusal in this client's own clothes
+--   "gone"       -- no such function
+local function mockInteract(unit, index)
+	Mock.counts.interact = Mock.counts.interact + 1
+	if Mock.interact == "restricted" then return nil end
+	if Mock.interact == "secret" then return SECRET end
+	local limit = INTERACT_YARDS[index]
+	if not limit then return nil end
+	return Mock.yardsFor(unit) <= limit
+end
+
+-- "gone" has to take the global away rather than answer nothing, because the
+-- addon tests for the function before it ever calls it, and a mock that only
+-- ever returned nil would leave that test unexercised.
+function Mock.setInteract(mode)
+	Mock.interact = mode
+	_G.CheckInteractDistance = (mode ~= "gone") and mockInteract or nil
+end
+Mock.setInteract("on")
+
+-- LibRangeCheck's estimate, from the checker list a scenario gives it.
+--
+-- The buckets are the whole of what makes this library worth having and the
+-- whole of its weakness: it answers "between eight and twenty-eight yards",
+-- never "nineteen". The arithmetic below is the library's own -- the number of
+-- checkers that say yes decides which pair of edges comes back -- so a scenario
+-- can hand it the edges a real client would have and find out what the addon
+-- makes of them.
+function Mock.rangeBuckets(dist, buckets)
+	local said = 0
+	for i = 1, #buckets do
+		if dist <= buckets[i] then said = said + 1 else break end
+	end
+	if said == #buckets then return 0, buckets[#buckets] end
+	if said == 0 then return buckets[1], nil end
+	return buckets[said + 1], buckets[said]
 end
 function GetSpellInfo(id)
 	if Mock.unknownSpells and Mock.unknownSpells[id] then return nil end

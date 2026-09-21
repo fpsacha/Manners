@@ -131,6 +131,7 @@ if ns then
 		p.prompt.format = ""
 		p.prompt.queueRows = 99
 		p.filters.whenBuffed = "nonsense"
+		p.filters.proximity = "arm's length"
 		p.filters.refreshUnder = -1
 		p.speech.channel = "NOWHERE"
 		p.buff.choice = "does-not-exist"
@@ -164,6 +165,12 @@ if ns then
 	if type(p.prompt.height) ~= "number" then fail("garbage profile", "height not restored") end
 	if p.prompt.format == "" then fail("garbage profile", "empty format not replaced") end
 	if p.filters.whenBuffed ~= "skip" then fail("garbage profile", "whenBuffed not reset") end
+	-- A distance nothing implements falls through every branch that reads it,
+	-- and the one it lands in is "measure nothing" -- so an unrepaired profile
+	-- is the noisy queue back again with a setting that says otherwise.
+	if p.filters.proximity ~= "near" then
+		fail("garbage profile", "proximity not reset, it is " .. tostring(p.filters.proximity))
+	end
 	if not ns.CHANNEL_COMMANDS[p.speech.channel] then fail("garbage profile", "channel not reset") end
 	if p.buff.choice ~= "auto" then fail("garbage profile", "unknown buff choice kept") end
 	if p.prompt.style ~= "glass" then fail("garbage profile", "style not reset") end
@@ -10404,6 +10411,1166 @@ if ns then
 		end
 	end
 end
+
+-- ------------------------------------------------------------------ 156
+-- A passer-by has to be near, not merely in casting range.
+--
+-- Found by playing it, and no test here could have found it: every assertion
+-- about who is offered was about whether the client would allow the cast, which
+-- is the question the addon was asking and answering correctly. Arcane
+-- Intellect reaches thirty yards, the author was standing in a city with
+-- twenty-odd nameplates up, and every one of them got a card. "/manners look"
+-- on the person who prompted the complaint printed inRangeById=true.
+--
+-- What follows is the only thing that was wrong: "in range" is a far weaker
+-- idea of "near me" than a person's.
+local function inQueue(ns)
+	local names = {}
+	for _, entry in ipairs(ns.BuildQueue()) do names[entry.name] = entry end
+	return names
+end
+
+-- Everything a scenario below needs before it can judge a distance: the debts
+-- and blocks that driving the lifecycle leaves behind cleared away, two
+-- nameplates the queue will actually walk, and a fresh capability probe, which
+-- is what decides which signal measures.
+local function settle(ns)
+	Mock.advance(60)
+	wipe(ns.owed)
+	wipe(ns.tried)
+	ns.nameplateUnits["nameplate1"] = true
+	ns.nameplateUnits["nameplate2"] = true
+	ns.Guard("probe", ns.ProbeCapabilities)
+end
+
+Mock.reset()
+Mock.unitNames = {
+	nameplate1 = { "Close", "By" },
+	nameplate2 = { "Far", "Away" },
+}
+-- Both well inside Arcane Intellect's thirty yards, which is the whole point:
+-- the old filter has nothing to say about either of them.
+Mock.yards = { nameplate1 = 4, nameplate2 = 20 }
+ns = load("a passer-by in range but not near")
+if ns then
+	local scenario = "a passer-by in range but not near"
+	drive(scenario, ns)
+	settle(ns)
+
+	ns.db.profile.filters.proximity = "near"
+	local near = inQueue(ns)
+	if not near["Close By"] then
+		fail(scenario, "SKIPPED -- the passer-by four yards away was not offered"
+			.. " either, so nothing below is about distance")
+	else
+		if near["Far Away"] then
+			fail(scenario, "a passer-by twenty yards off was offered under \"nearby\"")
+		end
+
+		-- Measured, rather than dropped for some other reason that happens to
+		-- coincide. A drop with nothing behind it would pass the line above.
+		if ns.proximity.source ~= "CheckInteractDistance" then
+			fail(scenario, "measured with " .. tostring(ns.proximity.source)
+				.. ", and this client has nothing else to measure with")
+		end
+		if ns.proximity.answered == 0 then
+			fail(scenario, ("the signal was put %d questions and answered none,"
+				.. " so the drop above was not a measurement"):format(ns.proximity.asked))
+		end
+
+		-- The loosest step is the old behaviour, exactly. A filter that cannot
+		-- be switched off is not a setting, and somebody who wants the whole
+		-- square has to be able to have it.
+		ns.db.profile.filters.proximity = "cast"
+		if not inQueue(ns)["Far Away"] then
+			fail(scenario, "\"anywhere I can cast\" dropped somebody the game"
+				.. " would have cast on")
+		end
+
+		-- And a client that cannot measure at all offers everybody it could
+		-- cast on, as it always did. Silently offering nobody would be far
+		-- worse than the noise this fixes, so the fallback is asserted rather
+		-- than assumed.
+		ns.db.profile.filters.proximity = "near"
+		Mock.setInteract("gone")
+		ns.Guard("probe", ns.ProbeCapabilities)
+		if not inQueue(ns)["Far Away"] then
+			fail(scenario, "a client with no way to measure distance offered"
+				.. " nobody past four yards")
+		end
+		if ns.proximity.source ~= nil then
+			fail(scenario, "claimed to be measuring with "
+				.. tostring(ns.proximity.source) .. " on a client that has no such thing")
+		end
+		local said = tostring(ns.ProximitySummary()):lower()
+		if not said:find("no signal", 1, true) then
+			fail(scenario, "nothing in the diagnostic says the distance is not"
+				.. " being measured: " .. said)
+		end
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 157
+-- Who the distance is not applied to, which is the whole reason it is applied
+-- to passers-by.
+--
+-- Each of the three carries its own evidence of nearness and none of them is
+-- what filled the queue. Measuring them again would throw that evidence away
+-- for a reading that is coarser than it.
+Mock.reset()
+-- Nobody is near. Every offer that survives below survives on something other
+-- than a measurement.
+Mock.yardsDefault = 25
+Mock.unitNames = {
+	target = { "Tara", "Aimed" },
+	focus = { "Fen", "Fixed" },
+	mouseover = { "Mo", "Passing" },
+	nameplate1 = { "Nora", "Plate" },
+	nameplate2 = { "Nils", "Plate" },
+}
+ns = load("who the proximity setting does not apply to")
+if ns then
+	local scenario = "who the proximity setting does not apply to"
+	drive(scenario, ns)
+	settle(ns)
+	ns.db.profile.filters.proximity = "near"
+
+	local out = inQueue(ns)
+	if out["Nora Plate"] then
+		fail(scenario, "SKIPPED -- the passer-by twenty-five yards away was not"
+			.. " dropped either, so the exemptions below prove nothing")
+	else
+		if not out["Tara Aimed"] then
+			fail(scenario, "dropped the player you have targeted, which is the"
+				.. " plainest statement of intent there is")
+		end
+		if not out["Fen Fixed"] then
+			fail(scenario, "dropped the player you have set as your focus")
+		end
+		-- Mouseover is deliberately not one of the three. It is wherever the
+		-- cursor happens to be this tenth of a second, and at a scan every four
+		-- tenths a distant stranger brushed on the way across the screen would
+		-- flash onto the prompt -- which is the noise, not an exemption from it.
+		if out["Mo Passing"] then
+			fail(scenario, "a stranger the cursor happened to cross was offered"
+				.. " from twenty-five yards")
+		end
+	end
+
+	-- Somebody who buffed you was inside casting range the instant they did it.
+	-- That instant is the evidence, and it is better than any reading taken now.
+	ns.owed["Nora Plate"] = { expires = GetTime() + 100, at = GetTime(), class = "PRIEST" }
+	if not inQueue(ns)["Nora Plate"] then
+		fail(scenario, "a favour owed was dropped for being too far away, against"
+			.. " proof that they were close enough to buff you")
+	end
+	wipe(ns.owed)
+
+	-- And your group is your group wherever they are standing.
+	Mock.groupSize = 3
+	if not inQueue(ns)["Nora Plate"] then
+		fail(scenario, "a party member was dropped for distance")
+	end
+	Mock.groupSize = 0
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 158
+-- Which signal is measuring, what it really measures, and what happens when it
+-- turns out to measure nothing.
+--
+-- The setting names a feeling and every signal underneath it is an
+-- approximation with its own blind spot, so the one thing that must never
+-- happen is a filter that has quietly stopped working: from the prompt that is
+-- indistinguishable from a quiet evening, and from a crowded one it is the
+-- complaint all over again.
+
+-- The library, when it is there and working. Its estimate arrives in buckets
+-- whose edges are whatever checkers this class and client happen to have, so
+-- "within ten yards" really means "inside the largest edge at or below ten".
+Mock.reset()
+Mock.rangeCheck = { buckets = { 30, 28, 8 } }
+Mock.unitNames = {
+	nameplate1 = { "Close", "By" },
+	nameplate2 = { "Far", "Away" },
+}
+Mock.yards = { nameplate1 = 4, nameplate2 = 20 }
+ns = load("the library measures, and owns up to what it measured")
+if ns then
+	local scenario = "the library measures, and owns up to what it measured"
+	drive(scenario, ns)
+	settle(ns)
+	ns.db.profile.filters.proximity = "near"
+
+	Mock.counts.proximity = 0
+	local out = inQueue(ns)
+	if ns.proximity.source ~= "LibRangeCheck-3.0" then
+		fail(scenario, "the library was there and " .. tostring(ns.proximity.source)
+			.. " was used instead")
+	end
+	-- Named as the signal and actually consulted are different claims, and only
+	-- the second one filters anybody.
+	if Mock.counts.proximity == 0 then
+		fail(scenario, "named the library as the signal and never once asked it")
+	end
+	if ns.proximity.yards ~= 8 then
+		fail(scenario, "claims to be measuring at " .. tostring(ns.proximity.yards)
+			.. " yards, and the tightest edge this client has under ten is eight")
+	end
+	if not out["Close By"] then
+		fail(scenario, "dropped somebody four yards away, who is inside every"
+			.. " bucket this client has")
+	end
+	-- Twenty yards lands in the eight-to-twenty-eight bucket, which holds both
+	-- a person beside you and a person across the square. "Certainly within
+	-- ten" is the only half of that the estimate can honour, so they go.
+	if out["Far Away"] then
+		fail(scenario, "kept somebody whose estimate tops out at twenty-eight"
+			.. " yards under a ten-yard setting")
+	end
+	local said = tostring(ns.ProximitySummary())
+	if not said:find("8yd", 1, true) then
+		fail(scenario, "the label promises about ten yards, the client is really"
+			.. " filtering at eight, and the diagnostic does not say so: " .. said)
+	end
+end
+
+-- A client whose only friendly checker under ten yards is melee. Two yards
+-- standing in for "nearby" would drop the square, so the library is declined
+-- and the plain client call gets it -- but for "right beside me" two yards is
+-- exactly what was asked for, and it is taken.
+Mock.reset()
+Mock.rangeCheck = { buckets = { 30, 2 } }
+Mock.unitNames = { nameplate1 = { "Close", "By" }, nameplate2 = { "Far", "Away" } }
+Mock.yards = { nameplate1 = 1, nameplate2 = 20 }
+ns = load("a checker too tight for the step it would stand in for")
+if ns then
+	local scenario = "a checker too tight for the step it would stand in for"
+	drive(scenario, ns)
+	settle(ns)
+
+	ns.db.profile.filters.proximity = "near"
+	inQueue(ns)
+	if ns.proximity.source ~= "CheckInteractDistance" then
+		fail(scenario, "a two-yard checker was kept for a ten-yard setting: "
+			.. tostring(ns.proximity.source) .. " at " .. tostring(ns.proximity.yards)
+			.. " yards")
+	end
+
+	ns.db.profile.filters.proximity = "beside"
+	ns.Guard("probe", ns.ProbeCapabilities)
+	inQueue(ns)
+	if ns.proximity.source ~= "LibRangeCheck-3.0" or ns.proximity.yards ~= 2 then
+		fail(scenario, "\"right beside me\" turned down a two-yard checker in"
+			.. " favour of " .. tostring(ns.proximity.source) .. " at "
+			.. tostring(ns.proximity.yards) .. " yards")
+	end
+end
+
+-- The library is there, resolves, and then every estimate it is asked for blows
+-- up. On this client that is not hypothetical: the library builds its cache key
+-- by concatenating a unit GUID, and a GUID here can be a secret value, which
+-- throws on concatenation.
+--
+-- Every throw reads as "cannot tell", which offers the person -- so the queue
+-- is exactly as crowded as it was, under a setting that says otherwise. A run
+-- of silence that long is the only evidence available that a signal is not one.
+Mock.reset()
+Mock.rangeCheck = { buckets = { 30, 28, 8 }, throws = true }
+Mock.unitNames = { nameplate1 = { "Close", "By" }, nameplate2 = { "Far", "Away" } }
+Mock.yards = { nameplate1 = 4, nameplate2 = 20 }
+ns = load("a signal that resolves and then answers nobody")
+if ns then
+	local scenario = "a signal that resolves and then answers nobody"
+	drive(scenario, ns)
+	settle(ns)
+	ns.db.profile.filters.proximity = "near"
+
+	inQueue(ns)
+	if ns.proximity.source ~= "LibRangeCheck-3.0" then
+		fail(scenario, "SKIPPED -- the library was not picked up, so there is"
+			.. " nothing here to demote")
+	elseif not inQueue(ns)["Far Away"] then
+		fail(scenario, "SKIPPED -- somebody was dropped on an estimate that threw,"
+			.. " so the demotion below is not what is being measured")
+	else
+		-- Scans, not one long one: the count is about a source that never
+		-- answers, and it must not be reset by a scan boundary.
+		for _ = 1, 60 do ns.BuildQueue() end
+
+		if ns.proximity.source ~= "CheckInteractDistance" then
+			fail(scenario, "still measuring with " .. tostring(ns.proximity.source)
+				.. " after sixty scans of it answering nothing")
+		end
+		if not tostring(ns.proximity.note or ""):find("answered for nobody", 1, true) then
+			fail(scenario, "nothing says why the signal changed: "
+				.. tostring(ns.proximity.note))
+		end
+		if inQueue(ns)["Far Away"] then
+			fail(scenario, "the rung underneath was picked up and still offered"
+				.. " somebody twenty yards away")
+		end
+	end
+end
+
+-- Nobody is measured in a fight.
+--
+-- Every signal is restricted there: the interact prompts refuse outright for a
+-- friendly unit, and the library falls back to a spell-only checker list whose
+-- every bucket is wider than any step this setting offers. Measuring anyway
+-- would drop the whole square on a reading nobody took -- and the prompt cannot
+-- rearm during a fight in any case.
+Mock.reset()
+Mock.inCombat = true
+Mock.yardsDefault = 25
+Mock.unitNames = { nameplate1 = { "Close", "By" }, nameplate2 = { "Far", "Away" } }
+ns = load("nobody is measured in a fight")
+if ns then
+	local scenario = "nobody is measured in a fight"
+	drive(scenario, ns)
+	settle(ns)
+	ns.db.profile.filters.proximity = "beside"
+
+	Mock.counts.interact = 0
+	if not inQueue(ns)["Far Away"] then
+		fail(scenario, "dropped somebody during a fight, on a distance the client"
+			.. " will not answer during one")
+	end
+	if Mock.counts.interact > 0 then
+		fail(scenario, ("asked the client how far away somebody was %d times"
+			.. " during a fight"):format(Mock.counts.interact))
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 159
+-- The first login.
+--
+-- Installing this addon used to do nothing you could see: no line in chat, no
+-- indication it had loaded, and no prompt until -- at some unpredictable later
+-- moment -- a stranger buffed you and a panel appeared somewhere on screen.
+--
+-- Two things make or break the fix and neither is the wording. It has to
+-- happen at all, and it has to happen once: a greeting that comes back on
+-- every /reload, on the client that makes you reload for every settings
+-- change, is worse than the silence it replaced.
+
+-- Nobody targeted and no nameplates up: what coming off a loading screen
+-- actually looks like.
+--
+-- The mock answers yes to UnitExists for every token there is, "target"
+-- included, so a bare session in it always has somebody on the prompt already.
+-- That is the crowded case, and the greeting is deliberately different for it
+-- -- scenario 163 is where it belongs. Without this, the three scenarios below
+-- would be testing that case while claiming to test the empty one.
+local function withEmptyPrompt(fn)
+	local real = UnitExists
+	UnitExists = function(unit) return unit == "player" end
+	local ok, err = pcall(fn)
+	UnitExists = real
+	if not ok then error(err, 0) end
+end
+
+-- A login, up to and including the delay the greeting hangs off. Returns
+-- everything said from the moment the world was ready, or nil if the session
+-- would not start at all -- which is a different failure and says so.
+local function firstLogin(ns)
+	if not pcall(function() ns.addon:OnInitialize() end) then return nil end
+	if not pcall(function() ns.addon:OnEnable() end) then return nil end
+	Mock.printed = {}
+	-- Nothing has been said yet: the greeting is parked on the same two-second
+	-- delay as the build line, because anything printed before the default
+	-- chat frame exists is printed to nobody.
+	if not pcall(function() withEmptyPrompt(function() Mock.runTimers(2) end) end) then
+		return nil
+	end
+	return table.concat(Mock.printed, "\n")
+end
+
+Mock.reset()
+Mock.sv = {}
+ns = load("the first login says what this is, once")
+if ns then
+	local scenario = "the first login says what this is, once"
+	local said = firstLogin(ns)
+	if not said then
+		fail(scenario, "the first session would not start at all")
+	else
+		if not said:find("Manners", 1, true) then
+			fail(scenario, "a fresh install said nothing whatever: " .. said)
+		end
+
+		-- The one thing that is not automatic, named both ways it can be done.
+		-- An explanation that leaves out the part the person has to do is the
+		-- tour without the point of it: the prompt sits there and nothing ever
+		-- presses it.
+		if not said:find("/manners macro", 1, true) then
+			fail(scenario, "never named the command that makes the macro: " .. said)
+		end
+		if not said:find("Create the macro", 1, true) then
+			fail(scenario, "never named the button on the options page that does"
+				.. " the same thing: " .. said)
+		end
+		if not said:find("Key Bindings", 1, true) then
+			fail(scenario, "never mentioned the keybinding: " .. said)
+		end
+
+		-- And it is shown, not only described. Where the prompt sits is the
+		-- half of this that words cannot do.
+		if not ns.Prompt:InTest() then
+			fail(scenario, "never put the prompt on screen, so nobody knows what it"
+				.. " looks like or where it is")
+		end
+		if not (ns.db.char and ns.db.char.welcomed) then
+			fail(scenario, "nothing was written down, so this happens again every login")
+		end
+	end
+
+	-- /reload: the same saved file, a fresh namespace.
+	ns.Prompt:ExitTest()
+	local again = load("the first login says what this is, once")
+	if not again then
+		fail(scenario, "the second session would not load")
+	else
+		local saidAgain = firstLogin(again)
+		if not saidAgain then
+			fail(scenario, "the second session would not start")
+		elseif saidAgain:find("not automatic", 1, true) then
+			fail(scenario, "greeted all over again after a reload: " .. saidAgain)
+		elseif again.Prompt:InTest() then
+			fail(scenario, "put a preview up again after a reload")
+		end
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 160
+-- A class that can never fill the prompt gets the sentence it already had, and
+-- none of the rest.
+--
+-- There is no point previewing a panel that will never have anybody on it, and
+-- less than none in telling somebody to put it on a bar. The honest line
+-- already exists -- /manners debug has printed it for as long as it has
+-- existed -- so it is the same line, from the same string.
+Mock.reset()
+Mock.sv = {}
+Mock.class = "ROGUE"
+ns = load("a rogue is told the truth, not sold a macro")
+if ns then
+	local scenario = "a rogue is told the truth, not sold a macro"
+	local said = firstLogin(ns) or ""
+	if not said:find(tostring(ns.NO_CLASS_BUFFS), 1, true) then
+		fail(scenario, "did not say the one honest thing there is to say here: " .. said)
+	end
+	if said:find("/manners macro", 1, true) then
+		fail(scenario, "told a class with nothing to cast to put it on a bar: " .. said)
+	end
+	if ns.Prompt:InTest() then
+		fail(scenario, "previewed a prompt that can never have anybody on it")
+	end
+	-- Once, like the rest of it. A line about a permanent state, repeated on
+	-- every login, is nagging.
+	if not (ns.db.char and ns.db.char.welcomed) then
+		fail(scenario, "did not write it down, so the rogue hears this every login")
+	end
+end
+Mock.reset()
+
+-- The same character, logging straight into a pull. Every other greeting waits
+-- for the fight to end because half of it is a panel that cannot be shown
+-- during one; this one is two lines of words, and made to wait it would arrive
+-- at the end of the pull attached to nothing.
+Mock.reset()
+Mock.sv = {}
+Mock.class = "ROGUE"
+Mock.inCombat = true
+ns = load("a rogue is told the truth, not sold a macro")
+if ns then
+	local scenario = "a rogue is told the truth, not sold a macro"
+	local said = firstLogin(ns) or ""
+	if not said:find(tostring(ns.NO_CLASS_BUFFS), 1, true) then
+		fail(scenario, "made a words-only greeting wait for a fight to end: " .. said)
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 161
+-- A class the buff data has never heard of is not told it has nothing.
+--
+-- hasClassBuffs is false for this character exactly as it is for the rogue
+-- above, and the two deserve opposite treatment: one is a fact recorded in the
+-- tables, the other is an unrecognised client's guessed set coming up empty.
+-- Stating the guess as a fact -- on the one screenful somebody reads before
+-- deciding whether to keep the addon -- is the failure this guards.
+Mock.reset()
+Mock.sv = {}
+Mock.class = "EVOKER"
+ns = load("an unknown class is not told it has nothing")
+if ns then
+	local scenario = "an unknown class is not told it has nothing"
+	local said = firstLogin(ns) or ""
+	if said:find(tostring(ns.NO_CLASS_BUFFS), 1, true) then
+		fail(scenario, "told a class it has never heard of that it has nothing to"
+			.. " give, which it does not know: " .. said)
+	end
+	if said:find("/manners macro", 1, true) then
+		fail(scenario, "greeted a character it could work nothing out about: " .. said)
+	end
+	-- And left the slate clean, so a build with the right data for this client
+	-- still gets its one chance to say hello.
+	if ns.db.char and ns.db.char.welcomed then
+		fail(scenario, "used up the one greeting there is on a character it could"
+			.. " not read")
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 162
+-- Logging straight into a pull.
+--
+-- The panel is a protected frame: it cannot be shown during lockdown at all.
+-- Firing here would spend the one greeting this character ever gets on a
+-- picture nobody sees, so it stands down and the end of the fight comes back
+-- for it.
+Mock.reset()
+Mock.sv = {}
+Mock.inCombat = true
+ns = load("the greeting waits for the fight to end")
+if ns then
+	local scenario = "the greeting waits for the fight to end"
+	local said = firstLogin(ns) or ""
+	if said:find("not automatic", 1, true) then
+		fail(scenario, "greeted in the middle of a fight, where the prompt cannot be"
+			.. " put on screen at all: " .. said)
+	end
+	if ns.db.char and ns.db.char.welcomed then
+		fail(scenario, "wrote the greeting off without anybody having seen it")
+	end
+
+	-- Asked for outright, it says why nothing happened rather than printing
+	-- three lines about a panel that is not going to appear.
+	Mock.printed = {}
+	ns.addon:HandleSlash("welcome")
+	local forced = table.concat(Mock.printed, "\n")
+	if not forced:find("not during a fight", 1, true) then
+		fail(scenario, "/manners welcome in a fight said nothing about why nothing"
+			.. " happened: " .. forced)
+	end
+
+	Mock.inCombat = false
+	Mock.printed = {}
+	withEmptyPrompt(function() ns.addon:PLAYER_REGEN_ENABLED() end)
+	local after = table.concat(Mock.printed, "\n")
+	if not after:find("not automatic", 1, true) then
+		fail(scenario, "never came back for it once the fight ended: " .. after)
+	end
+	if not ns.Prompt:InTest() then
+		fail(scenario, "came back with the words and not the picture")
+	end
+	ns.Prompt:ExitTest()
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 163
+-- A crowded city, which is where this addon is actually used.
+--
+-- Refresh drops a mock-up the moment a real person is waiting, and rightly so.
+-- That means a greeting that starts a preview regardless would print "preview
+-- on", have it taken away on the next scan, and leave three lines in chat
+-- pointing at a panel it did not put there and cannot explain.
+Mock.reset()
+Mock.sv = {}
+Mock.unitNames = { nameplate1 = { "Close", "By" } }
+ns = load("the greeting does not cover somebody real")
+if ns then
+	local scenario = "the greeting does not cover somebody real"
+	drive(scenario, ns)
+	settle(ns)
+	if #ns.BuildQueue() == 0 then
+		fail(scenario, "SKIPPED -- nobody was on the prompt, so nothing below is"
+			.. " about a crowded city")
+	else
+		ns.Prompt:ExitTest()
+		Mock.printed = {}
+		ns.Welcome(true)
+		local said = table.concat(Mock.printed, "\n")
+
+		-- Asserted on what was said, not on whether the preview is still up.
+		-- Starting one here does not leave one running: ToggleTest refreshes
+		-- on its way out, the refresh sees a real person waiting and drops the
+		-- mock-up inside the same call. So InTest() is false either way, and a
+		-- scenario resting on it would have measured nothing. What is left
+		-- behind is three contradictory lines in chat -- "preview on", "preview
+		-- off -- somebody real turned up", and a greeting claiming the panel
+		-- has a pretend name on it -- and that is the damage.
+		if said:find("preview on", 1, true) then
+			fail(scenario, "started a preview in front of a real person who is"
+				.. " waiting, and had it taken away in the same breath: " .. said)
+		end
+		if said:find("pretend name", 1, true) then
+			fail(scenario, "told somebody the panel has a mock-up on it while a real"
+				.. " person is standing on it: " .. said)
+		end
+		if not said:find("somebody real on it already", 1, true) then
+			fail(scenario, "did not point at the panel that is actually on screen: " .. said)
+		end
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 164
+-- Somebody will want to see it again -- after moving the prompt, or to show a
+-- guildmate what it looks like. So there is a command, and it plays for
+-- somebody who has already been greeted.
+--
+-- The trap is that the preview is a toggle. A command that says "here is the
+-- prompt" and takes the prompt off the screen is the whole feature undoing
+-- itself, and it is one keypress away: type it twice.
+Mock.reset()
+Mock.sv = {}
+ns = load("welcome can be asked for again without undoing itself")
+if ns then
+	local scenario = "welcome can be asked for again without undoing itself"
+	drive(scenario, ns)
+	ns.db.char.welcomed = true
+	ns.Prompt:ExitTest()
+
+	Mock.printed = {}
+	withEmptyPrompt(function() ns.addon:HandleSlash("welcome") end)
+	local said = table.concat(Mock.printed, "\n")
+	if not said:find("not automatic", 1, true) then
+		fail(scenario, "would not play for somebody who has seen it before: " .. said)
+	end
+	if not ns.Prompt:InTest() then
+		fail(scenario, "said here is the prompt and put nothing on screen")
+	end
+
+	Mock.printed = {}
+	withEmptyPrompt(function() ns.addon:HandleSlash("welcome") end)
+	if not ns.Prompt:InTest() then
+		fail(scenario, "a second /manners welcome took the preview back down again")
+	end
+	ns.Prompt:ExitTest()
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 165
+-- The second character on the account, which is the whole of why the flag is
+-- kept in db.char.
+--
+-- OnInitialize builds the AceDB with `true` for its third argument: every
+-- character on the account starts on the one profile named "Default". A flag
+-- kept there would greet whoever logged in first and no other character, ever
+-- -- which is exactly the silence this feature exists to end. And what the
+-- greeting asks for is per character anyway: a macro dragged onto this
+-- character's bars, or a key bound for it.
+Mock.reset()
+Mock.sv = {}
+ns = load("an alt on the same account is greeted too")
+if ns then
+	local scenario = "an alt on the same account is greeted too"
+	local first = firstLogin(ns) or ""
+	if not first:find("not automatic", 1, true) then
+		fail(scenario, "SKIPPED -- the first character was not greeted, so nothing"
+			.. " below is about the second: " .. first)
+	else
+		ns.Prompt:ExitTest()
+
+		-- Log out, log in as somebody else: the same saved file, the same
+		-- shared profile, a different character.
+		Mock.character = "Perrin Stonewell"
+		local alt = load("an alt on the same account is greeted too")
+		if not alt then
+			fail(scenario, "the alt's session would not load")
+		else
+			local said = firstLogin(alt) or ""
+			if alt.db.profile ~= ns.db.profile then
+				fail(scenario, "SKIPPED -- the alt was handed a profile of its own, so"
+					.. " nothing here says where the flag is kept")
+			elseif not said:find("not automatic", 1, true) then
+				fail(scenario, "an alt sharing the account's one profile was never"
+					.. " greeted at all: " .. said)
+			end
+			alt.Prompt:ExitTest()
+		end
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 166
+-- Greeted on an alt of somebody who switched the addon off.
+--
+-- The profile is shared across the account, so /manners off taken on one
+-- character is /manners off on every character made afterwards. The greeting
+-- would otherwise describe a prompt that is never going to appear, which reads
+-- as an addon that does not work rather than as a setting.
+Mock.reset()
+Mock.sv = {}
+ns = load("a greeting on a switched-off profile says so")
+if ns then
+	local scenario = "a greeting on a switched-off profile says so"
+	drive(scenario, ns)
+	ns.db.profile.enabled = false
+	ns.Prompt:ExitTest()
+
+	Mock.printed = {}
+	withEmptyPrompt(function() ns.addon:HandleSlash("welcome") end)
+	local said = table.concat(Mock.printed, "\n")
+	if not said:find("switched off", 1, true) then
+		fail(scenario, "explained a prompt that `enabled` keeps off the screen,"
+			.. " without saying so: " .. said)
+	end
+	if not said:find("/manners on", 1, true) then
+		fail(scenario, "said it was off without saying how to turn it on: " .. said)
+	end
+	ns.Prompt:ExitTest()
+	ns.db.profile.enabled = true
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 167
+-- A setting changed from somewhere that is not the control for it.
+--
+-- AceConfig asks a control for its value, its name and its `hidden` only while
+-- it is drawing, so an options page left open goes on showing whatever was true
+-- when it was last painted. /manners off is the one anybody meets: the addon
+-- switches off, the prompt vanishes, and the page still has Enable ticked with
+-- the red notice written for exactly that moment still hidden -- which reads as
+-- a command that did not take.
+--
+-- The list below is retyped rather than derived, because the addon's own list
+-- is a file local and there is nothing on the namespace to walk. That is a real
+-- gap and worth naming: a command added later that writes a setting, and not
+-- added to the repaint list, is not covered by anything here.
+Mock.reset()
+ns = load("a setting changed from outside the page repaints it")
+if ns then
+	local scenario = "a setting changed from outside the page repaints it"
+	drive(scenario, ns)
+	ns.Prompt:ExitTest()
+
+	local function repaintsFor(word)
+		Mock.optionsRepaints = 0
+		ns.addon:HandleSlash(word)
+		return Mock.optionsRepaints
+	end
+
+	for _, word in ipairs({ "on", "off", "verbose", "clicks", "restore", "lock", "unlock" }) do
+		if repaintsFor(word) == 0 then
+			fail(scenario, ("/manners %s wrote a setting and left an open page drawing"
+				.. " the value it had before"):format(word))
+		end
+	end
+	-- Put back what the walk above left changed: it ended on `unlock`, and an
+	-- unlocked prompt never casts.
+	ns.addon:HandleSlash("on")
+	ns.addon:HandleSlash("lock")
+
+	-- And why the repaint is worth making. A count of NotifyChange calls says
+	-- only that something was asked to redraw; these two say the page has
+	-- something different to draw -- a box whose answer has flipped, and a
+	-- notice that has become the one thing on the tab worth reading.
+	local general = ns.optionsTable and ns.optionsTable.args.general
+	local enable = general and general.args.enabled
+	local notice = general and general.args.offNotice
+	if not (enable and enable.get and notice and notice.hidden) then
+		fail(scenario, "SKIPPED -- no Enable box and no switched-off notice to read,"
+			.. " so the repaints counted above are not shown to matter")
+	else
+		ns.addon:HandleSlash("off")
+		if enable.get({ "enabled" }) ~= false then
+			fail(scenario, "the Enable box still answers `ticked` after /manners off")
+		end
+		if notice.hidden() then
+			fail(scenario, "the red switched-off notice stayed hidden through the one"
+				.. " moment it was written for")
+		end
+		ns.addon:HandleSlash("on")
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 168
+-- What a broker display actually shows.
+--
+-- The launcher's text was the constant "Manners" -- the addon's name, written
+-- beside the addon's icon -- and its tooltip said "Right click: enable or
+-- disable", which is true of every press and says nothing about this one. So on
+-- a broker bar the only way to learn whether Manners was on was to click it and
+-- read chat, and clicking changes the answer.
+--
+-- Off is the state that needs carrying, because off is invisible from outside:
+-- the prompt simply never appears, which is indistinguishable from the addon
+-- being broken. Somebody who ran /manners off last week is the case.
+Mock.reset()
+ns = load("the launcher says whether the addon is on")
+if ns then
+	local scenario = "the launcher says whether the addon is on"
+	drive(scenario, ns)
+	ns.Prompt:ExitTest()
+
+	local broker = Mock.broker
+	if not (broker and broker.OnTooltipShow) then
+		fail(scenario, "SKIPPED -- no data object was registered, so there is no launcher"
+			.. " to read")
+	else
+		local function tooltipSays()
+			local lines = {}
+			local tt = { AddLine = function(_, text) lines[#lines + 1] = tostring(text) end }
+			local ok, err = pcall(broker.OnTooltipShow, tt)
+			if not ok then
+				fail(scenario, "the launcher tooltip threw -> " .. tostring(err))
+				return ""
+			end
+			return table.concat(lines, "\n"):lower()
+		end
+
+		ns.addon:HandleSlash("on")
+		local onText, onTip = tostring(broker.text), tooltipSays()
+		ns.addon:HandleSlash("off")
+		local offText, offTip = tostring(broker.text), tooltipSays()
+
+		if onText == offText then
+			fail(scenario, ("the launcher reads the same on as off (%q), so the only way"
+				.. " to ask a broker bar what state this is in is to click it --"
+				.. " which changes the answer"):format(onText))
+		end
+		if not offText:lower():find("off", 1, true) then
+			fail(scenario, "the launcher's text does not say it is off: " .. offText)
+		end
+		if onText:lower():find("off", 1, true) then
+			fail(scenario, "the launcher says off while it is on: " .. onText)
+		end
+
+		-- The tooltip as well as the text, because a broker display is free to
+		-- show the icon on its own -- and on the minimap that is the only shape
+		-- it has. Then the tooltip is the last place left that can say why no
+		-- prompt has appeared all evening.
+		if not offTip:find("switched off", 1, true) then
+			fail(scenario, "the tooltip never names the state, which on a minimap button"
+				.. " is the only place it can be named: " .. offTip)
+		end
+		if onTip:find("switched off", 1, true) then
+			fail(scenario, "the tooltip says switched off while it is on: " .. onTip)
+		end
+
+		-- And the click that flips it puts both back in step, since that click is
+		-- itself one of the ways the state changes behind an open page.
+		Mock.optionsRepaints = 0
+		local ok, err = pcall(broker.OnClick, broker, "RightButton")
+		if not ok then
+			fail(scenario, "right-clicking the launcher threw -> " .. tostring(err))
+		else
+			if tostring(broker.text) ~= onText then
+				fail(scenario, "right-clicking switched it back on and left the launcher"
+					.. " still reading " .. tostring(broker.text))
+			end
+			if Mock.optionsRepaints == 0 then
+				fail(scenario, "the minimap button flipped the switch and left an open"
+					.. " options page drawing the old value")
+			end
+		end
+		if not ns.db.profile.enabled then ns.addon:HandleSlash("on") end
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 169
+-- "Show minimap button" on a client where LibDBIcon never loaded.
+--
+-- The button takes both libraries and SetupOptions only registers one when it
+-- has both -- but the checkbox was drawn unconditionally. Ticking it wrote a
+-- setting nothing reads and called Show on a button that was never registered:
+-- a control that saves, reports success and does nothing at all, which from the
+-- outside is the addon being broken rather than a library being absent.
+--
+-- Not a hypothetical. Both libraries are fetched with LibStub's silent flag
+-- precisely because they are embedded copies, and an embedded copy is the kind
+-- of thing a packaging mistake drops.
+Mock.reset()
+Mock.missingLibs = { ["LibDBIcon-1.0"] = true }
+ns = load("no LibDBIcon, no minimap checkbox")
+if ns then
+	local scenario = "no LibDBIcon, no minimap checkbox"
+	drive(scenario, ns)
+	ns.Prompt:ExitTest()
+
+	local general = ns.optionsTable and ns.optionsTable.args.general
+	local toggle = general and general.args.minimap
+	local header = general and general.args.miscHeader
+	if not toggle then
+		fail(scenario, "SKIPPED -- there is no minimap control to look for")
+	else
+		if not (toggle.hidden and toggle.hidden()) then
+			fail(scenario, "the minimap checkbox is on the page with no library behind it,"
+				.. " so ticking it writes a setting nothing reads and shows a button"
+				.. " that was never registered")
+		end
+		if header and not (header.hidden and header.hidden()) then
+			fail(scenario, "the Minimap header is drawn over nothing at all")
+		end
+		-- Whatever the page shows, the setter has to survive being reached: a
+		-- profile carried over from a client that had the library arrives with
+		-- the setting already in it, and AceDB restores it without asking.
+		if toggle.set then
+			local ok, err = pcall(toggle.set, { "minimap" }, true)
+			if not ok then
+				fail(scenario, "the minimap setter threw without the library -> " .. tostring(err))
+			end
+		end
+	end
+end
+Mock.missingLibs = nil
+Mock.reset()
+
+-- The other half, and the half that keeps the check above honest: with the
+-- libraries there the control is on the page. Hiding it always would satisfy
+-- everything above and quietly take the minimap button off everybody's page.
+ns = load("the minimap checkbox is there when the library is")
+if ns then
+	local scenario = "the minimap checkbox is there when the library is"
+	drive(scenario, ns)
+	ns.Prompt:ExitTest()
+
+	local general = ns.optionsTable and ns.optionsTable.args.general
+	local toggle = general and general.args.minimap
+	if not toggle then
+		fail(scenario, "SKIPPED -- there is no minimap control to look for")
+	elseif toggle.hidden and toggle.hidden() then
+		fail(scenario, "the minimap checkbox is hidden on a client that has both"
+			.. " libraries, so the button can never be turned back on")
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 170
+-- /manners try, measured against the same budget as every other macro here.
+--
+-- What goes on the button is the expansion, and the client truncates a macro
+-- body over the limit without a word -- so the expansion this command echoes to
+-- chat was presented as what will run while the button held a cut-off version
+-- of it. On a console whose entire purpose is one experiment per reload, that
+-- is the experiment quietly answering a different question.
+Mock.reset()
+ns = load("the console measures the macro it arms")
+if ns then
+	local scenario = "the console measures the macro it arms"
+	drive(scenario, ns)
+	ns.Prompt:ExitTest()
+
+	local function arming(text)
+		Mock.printed = {}
+		ns.addon:HandleSlash("try " .. text)
+		return table.concat(Mock.printed, "\n"):lower()
+	end
+
+	-- Well inside the budget. A warning here would be noise on every experiment
+	-- anybody ever runs, which is how a warning stops being read.
+	local short = arming("/cast {spell}")
+	if short:find("over the", 1, true) then
+		fail(scenario, "a macro comfortably inside the budget was reported as too long: "
+			.. short)
+	end
+
+	local long = arming("/cast " .. string.rep("x", ns.MACRO_LIMIT + 40))
+	if not long:find("over the", 1, true) then
+		fail(scenario, "macro text longer than a macro body was armed and echoed to chat"
+			.. " as though that is what will run: " .. long)
+	end
+	if not long:find(tostring(ns.MACRO_LIMIT), 1, true) then
+		fail(scenario, "the warning never names the budget it measured against, so there"
+			.. " is nothing to cut the macro down to: " .. long)
+	end
+	-- Still armed. Refusing the one experiment somebody is running is the worse
+	-- half of the choice; telling them it will be cut is the whole point.
+	if not ns.tryMacro then
+		fail(scenario, "a macro over the limit was refused outright rather than armed"
+			.. " and reported")
+	end
+	ns.addon:HandleSlash("try")
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 171
+-- The framed look on a panel colour that is not the default dark one.
+--
+-- The border is derived from the panel rather than fixed, and the comment above
+-- it says why: a light panel with a hardcoded pale border has no border at all.
+-- The derivation was brightening towards white, which is that same failure
+-- reached from the other side -- the lighter the panel, the less room there is
+-- above it, so the edge converges on the panel exactly as the panel goes pale,
+-- and on a white panel the two are the same colour.
+Mock.reset()
+ns = load("the framed border does not converge on a pale panel")
+if ns then
+	local scenario = "the framed border does not converge on a pale panel"
+	drive(scenario, ns)
+	ns.Prompt:ExitTest()
+
+	local p = ns.db.profile.prompt
+	p.style = "framed"
+
+	-- How far the border sits from the panel it is drawn on, in the channel that
+	-- carries most of the apparent brightness. Zero is a frame nobody can see.
+	local function edgeGap(r, g, b)
+		p.bgColor = { r, g, b, 1 }
+		ns.Prompt:ApplyStyle()
+		local edges = ns.Prompt:Regions().edges
+		local c = edges and edges[1] and edges[1]._color
+		if not c then return nil end
+		return math.abs(c[2] - g)
+	end
+
+	local dark = edgeGap(0.04, 0.04, 0.06)
+	local pale = edgeGap(0.95, 0.96, 0.98)
+	local white = edgeGap(1, 1, 1)
+	if not (dark and pale and white) then
+		fail(scenario, "SKIPPED -- the framed look painted no edge to measure")
+	else
+		if white < 0.20 then
+			fail(scenario, ("a white panel got a border %0.3f away from it: the framed look"
+				.. " has no frame, which is the one thing the comment above the"
+				.. " derivation says it exists to prevent"):format(white))
+		end
+		if pale < dark * 0.5 then
+			fail(scenario, ("the border closes on the panel as the panel gets lighter --"
+				.. " %0.3f of separation on a dark panel, %0.3f on a pale one")
+				:format(dark, pale))
+		end
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 172
+-- The count chip, at the top of the font slider.
+--
+-- It was a fixed 20x14 box with a fixed 28px reserved beside it, holding a
+-- number drawn at fontSize - 3. The slider goes to 32, where those digits are
+-- twice the height of the box they sit in and wider than the gap left for it:
+-- the chip reads as a smudge behind a number lying across the name. Nothing
+-- throws and nothing looks broken from inside the code.
+Mock.reset()
+ns = load("the count chip is sized from the font inside it")
+if ns then
+	local scenario = "the count chip is sized from the font inside it"
+	drive(scenario, ns)
+	ns.Prompt:ExitTest()
+
+	local p = ns.db.profile.prompt
+	p.showCount = true
+
+	local function chipAt(fontSize)
+		p.fontSize = fontSize
+		ns.Prompt:ApplyStyle()
+		local r = ns.Prompt:Regions()
+		local inset
+		for _, point in ipairs(r.name and r.name.points or {}) do
+			if point[1] == "RIGHT" then inset = point[2] end
+		end
+		return r.chip and r.chip._width, r.chip and r.chip._height,
+			r.count and r.count._font and r.count._font.size, inset
+	end
+
+	local w, h, size, inset = chipAt(32)
+	if not (w and h and size) then
+		fail(scenario, "SKIPPED -- nothing recorded the chip's size or the font in it")
+	else
+		-- A digit is roughly as tall as the font's size and about half of it
+		-- across. A box shorter than one digit, or narrower than two, is a
+		-- number drawn outside its own background.
+		if h < size then
+			fail(scenario, ("the chip is %d high around a %d font, so the digits stand out"
+				.. " of the top and bottom of it"):format(h, size))
+		end
+		if w < size then
+			fail(scenario, ("the chip is %d wide around a %d font, so two digits run out"
+				.. " of both ends of it"):format(w, size))
+		end
+		-- And the room the name is told to leave has to move with the chip, or
+		-- the number sits on top of the name whatever size the box is.
+		if not inset then
+			fail(scenario, "SKIPPED -- the name has no right-hand anchor to read")
+		elseif math.abs(inset) < w then
+			fail(scenario, ("the name may run to %d of the right edge while the chip is %d"
+				.. " wide, so the two overlap"):format(math.abs(inset), w))
+		end
+	end
+
+	-- Same font at both ends of the slider would mean it is not sized from the
+	-- font at all, whatever the numbers above happen to be.
+	local small = chipAt(8)
+	local large = chipAt(32)
+	if small and large and small == large then
+		fail(scenario, "the chip is the same width at font 8 and font 32, so nothing"
+			.. " about it comes from the font")
+	end
+	p.fontSize = 13
+	ns.Prompt:ApplyStyle()
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 173
+-- How many things have broken, as opposed to how many are still in the list.
+--
+-- The list is a ring thirty deep, so its length stopped being the answer the
+-- moment the thirty-first thing broke -- and "the last 5 of 30" printed whether
+-- thirty things had gone wrong or thirty thousand had. Those want opposite
+-- responses: one is a bug worth sending in, the other is a handler throwing on
+-- every frame, which is this addon grinding a client to a halt and wants a
+-- /reload now.
+Mock.reset()
+ns = load("errors says how much broke, not how much was kept")
+if ns then
+	local scenario = "errors says how much broke, not how much was kept"
+	drive(scenario, ns)
+	ns.Prompt:ExitTest()
+
+	-- Guard wraps the tick, so a failure that repeats does so two and a half
+	-- times a second: this is a couple of minutes of one broken handler, not a
+	-- pathological case.
+	local BROKEN = 400
+	for _ = 1, BROKEN do
+		ns.Guard("a scenario breaking something", function() error("boom", 0) end)
+	end
+	local kept = #ns.errors
+	if kept >= BROKEN then
+		fail(scenario, "SKIPPED -- nothing was dropped, so the two numbers are the same"
+			.. " and nothing below distinguishes them")
+	else
+		Mock.printed = {}
+		ns.addon:HandleSlash("errors")
+		local said = table.concat(Mock.printed, "\n")
+		if not said:find(tostring(BROKEN), 1, true) then
+			fail(scenario, ("/manners errors gave the size of the ring as the number of"
+				.. " failures: %d things broke and it said %d -- %s")
+				:format(BROKEN, kept, said))
+		end
+		if not said:find(tostring(kept) .. " kept", 1, true) then
+			fail(scenario, "the header names a number far larger than the list under it"
+				.. " without saying how many were kept: " .. said)
+		end
+
+		-- The same two numbers in the block somebody pastes into a bug report,
+		-- where whoever reads it cannot ask a follow-up question.
+		local diagnostics = ns.optionsTable and ns.optionsTable.args.diagnostics
+		local report = diagnostics and diagnostics.args.report
+		if not (report and report.get) then
+			fail(scenario, "SKIPPED -- no bug-report box to read")
+		else
+			local text = tostring(report.get({ "report" }))
+			if not text:find("errors: " .. BROKEN, 1, true) then
+				fail(scenario, "the bug report gives the ring's size as the session's"
+					.. " failure count: " .. (text:match("errors:[^\n]*") or text))
+			end
+			if not text:find("(" .. kept .. " kept)", 1, true) then
+				fail(scenario, "the bug report never says how many of them are listed"
+					.. " below it: " .. (text:match("errors:[^\n]*") or text))
+			end
+		end
+	end
+end
+Mock.reset()
 
 -- ------------------------------------------------------------------ report
 print("=== scenarios ===")

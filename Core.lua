@@ -77,6 +77,14 @@ end
 
 ns.errors = {}
 
+-- How many failures there have ever been, as opposed to how many are still in
+-- the list above. The list is a ring thirty deep, so its length stops being the
+-- answer to "how much has broken" the moment the thirty-first thing breaks --
+-- and the two readings want opposite responses. Thirty failures in a session is
+-- a bug to report; thirty thousand is a handler firing on every frame, which is
+-- the shape of the problem that made a cap necessary in the first place.
+ns.errorCount = 0
+
 -- Which labels have already said something out loud. One flag for the whole
 -- session meant the first failure was the only one anybody ever heard about,
 -- and something unrelated breaking an hour later was silent.
@@ -95,6 +103,7 @@ function ns.Guard(label, fn, ...)
 	-- never be the thing that throws.
 	label = tostring(label)
 	err = tostring(err)
+	ns.errorCount = (ns.errorCount or 0) + 1
 	ns.errors[#ns.errors + 1] = { at = date("%H:%M:%S"), where = label, err = err }
 	while #ns.errors > ERROR_LIMIT do table.remove(ns.errors, 1) end
 
@@ -106,6 +115,37 @@ function ns.Guard(label, fn, ...)
 		end
 	end
 	return false
+end
+
+---------------------------------------------------------------------------
+-- telling the settings UI that something changed under it
+--
+-- Two things on screen are drawn from the profile and never re-read it on
+-- their own. AceConfig asks a control for its value, its name and its `hidden`
+-- only while it is drawing, so an open options page goes on showing whatever
+-- was true when it was last painted; and the broker launcher's text is a
+-- string somebody assigned once.
+--
+-- Everything that changes a setting from somewhere other than the control for
+-- it comes through here: the slash commands, the minimap button's right-click,
+-- and the two ends of a fight (which change no setting but do change what the
+-- Prompt tab is allowed to say). Without it, /manners off leaves the Enable
+-- box ticked and the red "Manners is switched off" notice -- written for
+-- exactly that moment -- hidden.
+--
+-- Both halves are optional and both are guarded. Options.lua may not have
+-- loaded at all, the libraries behind it are fetched with the silent flag, and
+-- failing to repaint a window must never be the thing that takes down the
+-- handler that changed the setting.
+---------------------------------------------------------------------------
+
+function ns.RepaintOptions()
+	if ns.RefreshOptionsDisplay then
+		ns.Guard("options repaint", ns.RefreshOptionsDisplay)
+	end
+	if ns.RefreshBrokerText then
+		ns.Guard("broker text", ns.RefreshBrokerText)
+	end
 end
 
 ---------------------------------------------------------------------------
@@ -158,6 +198,13 @@ local defaults = {
 		filters = {
 			relevantOnly = true, -- skip people the buff does nothing for
 			requireInRange = true,
+			-- How near a passer-by has to be, as opposed to merely castable on.
+			-- cast | near | beside, and "near" rather than "cast" because the
+			-- old behaviour is the one that produced the complaint: Arcane
+			-- Intellect reaches thirty yards, a city square holds twenty-odd
+			-- nameplates, and everybody the game would let you cast on got a
+			-- card. "In range" is a far weaker idea of near me than a person's.
+			proximity = "near",
 			reachableOnly = true, -- hide people we cannot actually reach
 			restoreTarget = true, -- hand your target back after buffing
 			whenBuffed = "skip", -- skip | refresh | always
@@ -394,6 +441,13 @@ end
 function ns.ProbeCapabilities()
 	wipe(caps)
 	caps.buffs = {}
+
+	-- What measures nearness is decided from the spellbook, the bags and the
+	-- libraries present, and this is the one place that runs when any of those
+	-- may have changed -- it is what SPELLS_CHANGED calls. A bucket edge worked
+	-- out before a spell was learned is a measurement of a different spellbook,
+	-- and a source written off an hour ago has had no chance to come back.
+	ns.ForgetProximity()
 
 	playerClass = plain(select(2, UnitClass("player")))
 	caps.class = playerClass
@@ -992,6 +1046,306 @@ local function InRange(unit, buff)
 	return (r == true or r == 1)
 end
 
+---------------------------------------------------------------------------
+-- how near is near
+--
+-- Spell range is not nearness. Arcane Intellect reaches thirty yards, a city
+-- square holds twenty-odd nameplates, and offering everybody the game would
+-- let you cast on is what the author, standing in one, called noise. So the
+-- passer-by scan gets a second, tighter distance of its own.
+--
+-- Only the passer-by scan. Somebody who buffed you was demonstrably close
+-- enough moments ago, your group is your group, and a unit you are pointing at
+-- you chose on purpose -- all three carry their own evidence of nearness, and
+-- none of them is what filled the queue.
+--
+-- Nothing in the client answers "how many yards away is this player" directly,
+-- so every signal below is an approximation with its own failure mode, and the
+-- ladder is ordered by how good the approximation is. Which rung is in use is
+-- said out loud in /manners debug, because a filter that has quietly stopped
+-- measuring looks exactly like a quiet evening.
+---------------------------------------------------------------------------
+
+-- The three named distances, loosest first.
+--
+-- Named for what a player perceives rather than in yards: nobody can judge ten
+-- yards from inside the game, and everybody can judge "right beside me". The
+-- numbers exist only to be handed to whichever signal is measuring, and the
+-- options page is where the yardage is admitted to.
+--
+-- "cast" is today's behaviour said out loud rather than an absence. A setting
+-- whose loosest position is the old one is a setting somebody can undo.
+local PROXIMITY = {
+	{ key = "cast", yards = nil, name = "Anywhere I can cast", about = "about 30 yards" },
+	{ key = "near", yards = 10, name = "Nearby", about = "about 10 yards" },
+	{ key = "beside", yards = 5, name = "Right beside me", about = "about 5 yards" },
+}
+ns.PROXIMITY = PROXIMITY
+
+local PROXIMITY_BY_KEY = {}
+for _, tier in ipairs(PROXIMITY) do PROXIMITY_BY_KEY[tier.key] = tier end
+
+-- The duel prompt, which is about ten yards on every client this addon runs on.
+--
+-- Index 2 is the trade prompt at about eleven and index 1 and 4 are about
+-- twenty-eight -- no tighter than the spell this would be filtering, so they
+-- are no use here. LibRangeCheck's own interact table dropped 2 and kept 3, on
+-- a modern client, which is the only evidence available about which of them
+-- still answers; this follows it rather than guessing differently.
+local INTERACT_DUEL, INTERACT_DUEL_YARDS = 3, 10
+
+-- A checker that resolved and then answered for nobody at all is worse than no
+-- checker: every unit falls through to "cannot tell", the setting looks as
+-- though it is working, and the queue is exactly as long as it was. So a run of
+-- silence this long demotes the source and the next rung is tried. Generous on
+-- purpose -- a quiet corner of the world with two people in it must not demote
+-- anything -- and reset by the capability probe, so a source is never written
+-- off for the session.
+local PROX_BLIND_LIMIT = 40
+
+-- How long to wait before looking again for a signal that was not there. The
+-- scan runs two and a half times a second and LibStub misses cost a pcall each.
+local PROX_RETRY = 5
+
+-- What is doing the measuring, how well it is going, and why. Read by
+-- /manners debug, by /manners look and by the options page, which is the whole
+-- of the promise that this never fails silently.
+local prox = {
+	source = nil, -- the rung in use, nil when nothing is measuring
+	yards = nil, -- what that rung really tests, which is not always what was asked
+	asked = 0, -- units put to it during the last scan
+	answered = 0, -- how many of those it had an answer for
+	blind = 0, -- units since the last answer, across scans
+	note = nil, -- why the last source was dropped, if one was
+}
+ns.proximity = prox
+
+-- Sources written off for now, by name. Cleared by ProbeCapabilities.
+local proxDead = {}
+
+-- The resolved checker, what it was resolved for, and when. `checker` nil with
+-- a matching `want` is "looked and found nothing", which is why the clock is
+-- kept separately rather than inferred from the absence.
+local proxState = { want = nil, checker = nil, at = -1 }
+
+-- The ladder, best first. Each builds a function answering "is this unit within
+-- `want` yards" as true, false, or nil for cannot tell, plus the distance it
+-- really tests. Returning nil means this rung is not available here.
+-- Above this, a step is loose enough that a much tighter bucket standing in
+-- for it would visibly drop people. At or below it, the step is already asking
+-- for melee and a melee bucket is the answer, not a substitute.
+local PROX_LOOSE_FROM = 6
+
+local PROX_SOURCES = {
+	{
+		name = "LibRangeCheck-3.0",
+		build = function(want)
+			-- Optional, and fetched with the silent flag, which is the promise
+			-- that nil is handled. The test harness hands back a table with
+			-- nothing in it for every library it has not been taught, so what
+			-- is tested is the method rather than the table.
+			local lib = safecall(_G.LibStub, "LibRangeCheck-3.0", true)
+			if type(lib) ~= "table" then return nil end
+			if type(lib.GetRange) ~= "function" then return nil end
+			if type(lib.GetFriendMaxChecker) ~= "function" then return nil end
+
+			-- The library builds its checker lists on its own events and has
+			-- none before that has happened. Asking again costs nothing if it
+			-- already has.
+			safecall(lib.init, lib)
+
+			-- What the answer can actually land on.
+			--
+			-- GetRange answers in buckets whose edges are the range checkers
+			-- this class and this client happen to have, so "within ten yards"
+			-- really means "inside the largest bucket edge at or below ten".
+			-- If the only edge under ten is two, the setting would drop
+			-- everybody not in your pocket -- which is the failure worth more
+			-- than the noise it fixes. Found here, before anybody is dropped,
+			-- rather than discovered by the user.
+			local checker, edge = safecall(lib.GetFriendMaxChecker, lib, want)
+			if type(checker) ~= "function" or type(edge) ~= "number" then return nil end
+			-- Two yards is melee, the tightest distance the game has a word
+			-- for, and nothing below it is a distance at all.
+			--
+			-- Above that the test is relative, and it only applies to the
+			-- looser steps. "Nearby, about ten yards" honoured by a four-yard
+			-- bucket drops most of a square somebody was told would be
+			-- included -- that is a different setting wearing this one's name.
+			-- But the tightest step is ASKING for melee, so a two-yard bucket
+			-- is that step working rather than failing, and refusing it would
+			-- leave the one setting most in need of a signal without one.
+			if edge < 2 then return nil end
+			if want > PROX_LOOSE_FROM and edge * 2 < want then return nil end
+
+			return function(unit)
+				-- minRange, maxRange in yards, or nothing at all. The bucket is
+				-- the whole answer: "at most maxRange away" is the only half of
+				-- it that can say yes, because a bucket that straddles the line
+				-- -- eight to twenty-eight, against a wanted ten -- contains
+				-- both a person beside you and a person across the square.
+				--
+				-- So the promise is "certainly within", and it is kept tighter
+				-- than the label rather than looser. The label says about ten;
+				-- the debug line says which edge that turned out to be.
+				local minRange, maxRange = safecall(lib.GetRange, lib, unit)
+				if type(minRange) ~= "number" then return nil end
+				return type(maxRange) == "number" and maxRange <= want
+			end, edge
+		end,
+	},
+	{
+		name = "CheckInteractDistance",
+		build = function(want)
+			-- Restricted for non-party units on some modern clients, where it
+			-- answers nothing at all rather than refusing loudly. There is no
+			-- probe for that which is not simply asking about somebody, so this
+			-- rung is built whenever the function exists and demoted by its own
+			-- silence if it turns out to answer for nobody.
+			--
+			-- This rung has exactly one threshold and no way to tighten it, so
+			-- it can only answer a setting at least as loose as the duel
+			-- prompt. It used to answer every setting and report ten yards
+			-- whatever was asked, which made "right beside me" identical to
+			-- "nearby" -- the tightest choice on the page doing nothing the
+			-- one above it did not. A setting that silently means something
+			-- else is worse than a setting with no signal, because the second
+			-- one says so.
+			if type(want) ~= "number" or INTERACT_DUEL_YARDS > want then return nil end
+			if type(_G.CheckInteractDistance) ~= "function" then return nil end
+			return function(unit)
+				local r = safecall(_G.CheckInteractDistance, unit, INTERACT_DUEL)
+				if r == nil then return nil end
+				return r == true or r == 1
+			end, INTERACT_DUEL_YARDS
+		end,
+	},
+}
+
+local function ProxChecker(want)
+	local now = GetTime()
+	-- A rung that is not here must not be hunted for two and a half times a
+	-- second, and one that is must not be rebuilt at all.
+	if proxState.want == want
+		and (proxState.checker or now < proxState.at + PROX_RETRY) then
+		return proxState.checker
+	end
+
+	proxState.want, proxState.at, proxState.checker = want, now, nil
+	-- `note` is pointedly not cleared here. The thing most worth saying is
+	-- "the good signal was dropped because it answered for nobody", and the
+	-- very next act after dropping one is to resolve the next -- so clearing
+	-- it here threw away the explanation one line before anybody could read
+	-- it. Only ForgetProximity, which is a fresh start by definition, clears it.
+	prox.source, prox.yards = nil, nil
+
+	for _, source in ipairs(PROX_SOURCES) do
+		if not proxDead[source.name] then
+			local check, yards = safecall(source.build, want)
+			if type(check) == "function" then
+				proxState.checker = check
+				prox.source, prox.yards = source.name, yards
+				break
+			end
+		end
+	end
+
+	return proxState.checker
+end
+
+-- Forget what was resolved and give every demoted source another go. Called
+-- from the capability probe, which is also what runs on SPELLS_CHANGED: a spell
+-- learned or a talent changed rebuilds LibRangeCheck's checker lists, and a
+-- bucket edge captured before that is a measurement of something else.
+function ns.ForgetProximity()
+	wipe(proxDead)
+	proxState.want, proxState.checker, proxState.at = nil, nil, -1
+	prox.source, prox.yards, prox.note = nil, nil, nil
+	prox.asked, prox.answered, prox.blind = 0, 0, 0
+end
+
+-- true, false, or nil for "cannot tell". nil is worth offering rather than
+-- silently dropping somebody who is probably standing next to you -- the same
+-- rule InRange uses, and for the same reason.
+function ns.NearEnough(unit)
+	local db = addon.db and addon.db.profile
+	local tier = db and db.filters and PROXIMITY_BY_KEY[db.filters.proximity]
+	-- No tier, or the loosest one: nothing to measure, and the queue is what it
+	-- always was.
+	if not tier or not tier.yards then return nil end
+
+	-- Nobody is measured in a fight.
+	--
+	-- Every signal below is restricted there: the interact prompts refuse
+	-- outright for a friendly unit, and LibRangeCheck falls back to a
+	-- spell-only checker list whose every bucket is wider than any setting
+	-- here -- so measuring in combat would drop the whole square on the
+	-- strength of a measurement nobody took. The prompt cannot rearm in a
+	-- fight anyway, so there is nothing to be gained by trying.
+	if InCombatLockdown() then return nil end
+
+	local check = ProxChecker(tier.yards)
+	if not check then return nil end
+
+	prox.asked = prox.asked + 1
+	local near = safecall(check, unit)
+	if near == nil then
+		prox.blind = prox.blind + 1
+		if prox.blind > PROX_BLIND_LIMIT and prox.source then
+			-- It is here and it is saying nothing. Drop to the next rung rather
+			-- than carrying on with a filter that filters nobody.
+			prox.note = prox.source .. " answered for nobody, so it was dropped"
+			proxDead[prox.source] = true
+			proxState.want, proxState.checker, proxState.at = nil, nil, -1
+			prox.blind = 0
+		end
+		return nil
+	end
+	prox.blind = 0
+	prox.answered = prox.answered + 1
+	return near == true
+end
+
+-- One line saying what is measuring nearness and how it is getting on, for
+-- /manners debug and for the options page. Built here rather than at either
+-- call site so the two cannot come to disagree about what the same state means.
+function ns.ProximitySummary()
+	local db = addon.db and addon.db.profile
+	local tier = db and db.filters and PROXIMITY_BY_KEY[db.filters.proximity]
+	if not tier then return "unset" end
+	if not tier.yards then return tier.name .. " -- nothing is measured" end
+
+	local out = ("%s (%s)"):format(tier.name, tier.about)
+
+	-- Said first, because it is the state the line is most often read in and
+	-- it overrides everything after it. Nothing is measured during a fight --
+	-- every signal is restricted there -- so the passer-by queue is whatever
+	-- it would have been with no filter at all, and a summary that went on to
+	-- describe a working source was describing one that is not consulted.
+	if InCombatLockdown() then
+		out = out .. " |cffffd100-- stood down while in combat, so distance is"
+			.. " not being measured|r"
+	end
+
+	if prox.source then
+		-- Floored rather than printed raw: the edge arrives from a library that
+		-- rounds its own way, and "really 8.0yd" reads as a number somebody
+		-- calculated rather than a bucket the client happens to have.
+		out = out .. (" via %s, really %dyd"):format(
+			prox.source, math.floor(prox.yards or 0))
+		-- The number that says whether it is working. A source that is present
+		-- and answering for nobody offers the whole square exactly as before,
+		-- and from the prompt that is indistinguishable from a quiet evening.
+		out = out .. (" -- answered for %d of %d last scan"):format(
+			prox.answered, prox.asked)
+	else
+		out = out .. " -- |cffff8080no signal, so everybody in casting range is"
+			.. " offered|r"
+	end
+	if prox.note then out = out .. " |cff808080(" .. prox.note .. ")|r" end
+	return out
+end
+
 -- Strips a cross-realm suffix, keeping any surname: "Petra Stonewell-Realm" gives
 -- "Petra Stonewell". This is the display name.
 local function ShortName(name)
@@ -1396,10 +1750,28 @@ end
 
 local PRIORITY = { target = 0, owed = 1, group = 2, nearby = 3 }
 
+-- fn(unit, pointed). `pointed` is the second argument because one caller has to
+-- tell a unit the player deliberately picked out from one the world happened to
+-- put a nameplate on, and the list of which tokens are which belongs here,
+-- beside the list itself, rather than being spelled out again at the call site.
+--
+-- Target and focus only. Both are a deliberate, standing act of pointing at
+-- somebody, and both survive until the player changes them. Mouseover is not:
+-- it is wherever the cursor happens to be this tenth of a second, and at a scan
+-- every four tenths a distant stranger brushed on the way across the screen
+-- would flash onto the prompt. That is the same argument that keeps mouseover
+-- out of the target promotion below, and it applies with more force here --
+-- the whole point of a proximity setting is that far-away people stop
+-- appearing.
+--
+-- Which is also why focus moved above mouseover. One verdict is reached per
+-- person per scan, on whichever token reaches them first, so with mouseover
+-- going first the moment your cursor crossed your own focus they were judged
+-- as a passer-by and the focus visit was deduplicated away.
 local function IterateUnits(fn)
-	fn("target")
+	fn("target", true)
+	fn("focus", true)
 	fn("mouseover")
-	fn("focus")
 
 	local n = plain(GetNumGroupMembers and GetNumGroupMembers()) or 0
 	if n > 0 then
@@ -1456,6 +1828,13 @@ function ns.BuildQueue()
 	local rejected = {}
 	local f = db.filters
 
+	-- Per scan, so /manners debug and the options page report the crowd that is
+	-- actually in front of the player rather than a total since login. The
+	-- run-of-silence count that demotes a source is deliberately not reset here:
+	-- it is about a source that never answers, and forty units spread over ten
+	-- scans is the same evidence as forty in one.
+	prox.asked, prox.answered = 0, 0
+
 	-- Once per scan. This used to run for every unit examined.
 	local candidates = ns.CastableBuffs()
 	if #candidates == 0 then return {} end
@@ -1470,7 +1849,7 @@ function ns.BuildQueue()
 		if myMana ~= nil and myMana <= 0 then return {} end
 	end
 
-	IterateUnits(function(unit)
+	IterateUnits(function(unit, pointed)
 		local ok, person = IsBuffableUnit(unit, f)
 		if not ok then
 			-- Someone we hold a token for and have just turned down must not
@@ -1504,6 +1883,29 @@ function ns.BuildQueue()
 		local reason = isOwed and "owed" or (inGroup and "group" or "nearby")
 		if reason == "group" and not db.sources.group then return end
 		if reason == "nearby" and not db.sources.strangers then return end
+
+		-- A passer-by has to be near, not merely castable on.
+		--
+		-- This reason and no other. The three that are left all carry their own
+		-- evidence of nearness and none of them filled the queue: somebody who
+		-- buffed you was close enough moments ago, your group is your group, and
+		-- a unit you are pointing at you chose on purpose -- which is what
+		-- `pointed` says, and why a targeted or focused stranger is exempt even
+		-- though the reason on their card still reads as a passer-by.
+		--
+		-- Above the aura read on purpose. The expensive half of a scan is
+		-- reading everybody's buffs, and in the crowd this exists for that is
+		-- most of the work: dropping somebody here costs one distance check
+		-- instead of a walk down their aura list.
+		--
+		-- Written into `rejected` for the same reason every other refusal here
+		-- is -- one verdict per person per scan -- and safe to write because
+		-- nobody reaching this line is owed anything: an outstanding debt would
+		-- have made the reason "owed" three lines up.
+		if reason == "nearby" and not pointed and ns.NearEnough(unit) == false then
+			rejected[full] = true
+			return
+		end
 
 		local hasMana = UnitHasMana(unit)
 		local guid = plain(UnitGUID(unit))
@@ -3134,9 +3536,7 @@ function addon:PLAYER_REGEN_DISABLED()
 	-- secure frame, and ApplyStyle gives up and returns for the length of the
 	-- fight. The tab says so, but only while it is being drawn -- so the page
 	-- has to be asked to draw itself again at both ends of the fight.
-	if ns.RefreshOptionsDisplay then
-		ns.Guard("options repaint", ns.RefreshOptionsDisplay)
-	end
+	ns.RepaintOptions()
 end
 
 function addon:PLAYER_REGEN_ENABLED()
@@ -3159,9 +3559,14 @@ function addon:PLAYER_REGEN_ENABLED()
 	-- And the notice on the Prompt tab comes off. Without this it stands over
 	-- controls that work again, which is the same lie as the one it was added
 	-- to stop, told the other way round.
-	if ns.RefreshOptionsDisplay then
-		ns.Guard("options repaint", ns.RefreshOptionsDisplay)
-	end
+	ns.RepaintOptions()
+
+	-- The one place a first greeting that could not go out gets another go.
+	-- Logging straight into a pull is the case: the prompt cannot be put on
+	-- screen during lockdown, so the greeting stood down rather than spend
+	-- itself on a panel nobody would see. Free on every other fight in the
+	-- character's life -- the flag is read first and this returns at once.
+	ns.Guard("Welcome", ns.Welcome)
 end
 
 -- Kept in SavedVariables so the probe -- and whatever the console has printed
@@ -3274,6 +3679,156 @@ function ns.CreateClickMacro()
 end
 
 ---------------------------------------------------------------------------
+-- first run
+--
+-- Installing this addon used to do nothing you could see. No line saying what
+-- it was for, nothing on screen, and no prompt until -- at some unpredictable
+-- later moment -- a stranger buffed you and a panel appeared somewhere. From
+-- the user's side that is the same experience as an addon that does not work,
+-- and it is why people uninstall.
+--
+-- Three things, once: what it does, what it looks like and where, and the one
+-- thing it cannot do for you.
+--
+-- Stored in db.char rather than the profile, and that is not a coin toss.
+-- OnInitialize builds the AceDB with a shared default profile -- the `true`
+-- third argument -- so every character on the account starts life on the one
+-- profile named "Default". A flag kept there would greet whichever character
+-- logged in first and no other, ever, which is the exact silence this is here
+-- to fix. And what it asks for is per character anyway: a macro dragged onto
+-- this character's bars, or a key bound for it. AceDB partitions db.char
+-- inside the one saved file, so there is no second SavedVariables line to add
+-- and it survives a /reload the same way the stored debts do.
+---------------------------------------------------------------------------
+
+-- The honest sentence for a character that will never have anything to offer,
+-- named once. /manners debug has printed it for as long as it has existed and
+-- the greeting owes the same person the same words; two copies of it drift.
+ns.NO_CLASS_BUFFS = "this class has no buffs to cast on other players."
+
+-- Returns true once it has said its piece, false while it is still waiting.
+--
+-- Every reason to wait below is a state that ends -- a probe with no answer
+-- yet, a fight -- so nothing is written down in those cases and the next
+-- attempt tries again. `force` is /manners welcome: somebody asked for it, so
+-- it plays whatever the flag says.
+function ns.Welcome(force)
+	local store = addon.db and addon.db.char
+	if type(store) ~= "table" then return false end
+	if store.welcomed and not force then return true end
+
+	-- The probe's verdict on this character, which is both of the things that
+	-- decide the greeting: which one it is, and whether there is one yet.
+	--
+	-- Indexed off caps.class rather than asked separately, so a class the probe
+	-- has not read at all -- nil, which on this client is one secret value away
+	-- -- comes out as "not on the list" and lands in the gate below with
+	-- everything else that is not an answer.
+	local nothingToGive = caps.class ~= nil and ns.CLASSES_WITHOUT_BUFFS ~= nil
+		and ns.CLASSES_WITHOUT_BUFFS[caps.class] == true
+
+	-- Not until the probe has produced an answer -- one gate, because the
+	-- states that arrive here without one are not distinguishable and all get
+	-- the same treatment.
+	--
+	-- hasClassBuffs is false for three different characters: a rogue, a mage
+	-- whose class the client would not name, and a class the buff data has
+	-- never heard of -- which is what an unrecognised client's guessed table
+	-- produces. Only the first of those has been told anything. Greeting the
+	-- other two with "this class has no buffs to cast on other players" would
+	-- be stating a guess as a fact, on the one screenful somebody reads before
+	-- deciding whether to keep the addon. So nothing is said and nothing is
+	-- written down, and the next login asks again; ns.BUFFS_MISSING already
+	-- shouts at load when the data is the problem, and /manners debug says
+	-- which of the three this is.
+	if not (caps.hasClassBuffs or nothingToGive) then return false end
+
+	-- Not in the middle of a fight. Half of this is putting the real prompt on
+	-- screen, and a protected frame cannot be shown during lockdown at all --
+	-- so firing here would spend the one time this ever happens on a greeting
+	-- pointing at nothing. PLAYER_REGEN_ENABLED comes back for it.
+	--
+	-- Except for the class that gets no picture: that greeting is two lines of
+	-- words, and words work in a fight. Made to wait, it would arrive at the
+	-- end of the pull instead, attached to nothing.
+	if InCombatLockdown() and not nothingToGive then
+		if force then
+			addon:Print("|cffff8080not during a fight|r -- the prompt cannot be put on"
+				.. " screen while one is on. Try again when it ends.")
+		end
+		return false
+	end
+
+	-- Written down before a word is printed, not after. If one of the lines
+	-- below throws, this order costs a greeting that came out short; the other
+	-- order costs a greeting that comes out short on every login this
+	-- character ever has.
+	store.welcomed = true
+
+	if nothingToGive then
+		-- No preview and no macro for a class that can never fill the prompt:
+		-- that would be a tour of something that is not going to happen.
+		addon:Print("|cffffd100Manners|r is installed, but " .. ns.NO_CLASS_BUFFS)
+		addon:Print("It is still worth keeping for an alt that does -- it will say"
+			.. " hello again there.")
+		return true
+	end
+
+	addon:Print("|cffffd100Manners|r puts anybody who buffs you -- and any stranger"
+		.. " nearby who is missing one of yours -- on a small prompt. Clicking the"
+		.. " prompt buffs them.")
+	addon:Print("The one thing that is not automatic: |cffffd100/manners macro|r makes"
+		.. " a macro to drag onto a bar -- the |cffffd100Create the macro|r button on"
+		.. " the options page does the same -- or bind a key under Game Menu > Key"
+		.. " Bindings > Manners.")
+
+	-- Switched off, and this character never touched the switch: the profile
+	-- is shared, so an alt of somebody who turned the addon off is greeted by
+	-- an explanation of something that is not going to happen. The prompt will
+	-- not appear, and the reason is a setting rather than a fault -- so name
+	-- the setting, the same way /manners unlock does.
+	if addon.db.profile and not addon.db.profile.enabled then
+		addon:Print("|cffff8080It is switched off on this profile|r, so no prompt will"
+			.. " appear -- |cffffd100/manners on|r when you want it.")
+	end
+
+	-- In a city the prompt may already have somebody real on it. Refresh drops
+	-- a mock-up the moment an actual person is waiting, and rightly so -- but
+	-- that means starting a preview here would print "preview on", then
+	-- "preview off -- somebody real turned up" a tick later, and leave the
+	-- greeting pointing at a panel it did not put there. So look first, and
+	-- point at whichever one is going to be on screen.
+	local queued = 0
+	local ok, list = pcall(ns.BuildQueue)
+	if ok and type(list) == "table" then queued = #list end
+
+	if queued > 0 then
+		addon:Print("The prompt is on screen now, with somebody real on it already."
+			.. " |cffffd100/manners welcome|r brings this back.")
+	else
+		-- The existing preview rather than a second path to the same picture:
+		-- it is the real panel in its real place, and it already knows how to
+		-- time itself out and how to stand aside for a real person.
+		--
+		-- Asked whether one is already running first, because ToggleTest is a
+		-- toggle and this wants the preview *on*. /manners welcome typed while
+		-- a preview is up would otherwise take the picture away in the same
+		-- breath as the line promising it -- and so would the combat retry,
+		-- landing on a preview that was started during the fight.
+		--
+		-- The nil test is inside the guard, not outside it: ns.Prompt is nil
+		-- when Prompt.lua did not load, and indexing it for the method would
+		-- throw before Guard ever saw the call.
+		ns.Guard("welcome preview", function()
+			if ns.Prompt and not ns.Prompt:InTest() then ns.Prompt:ToggleTest() end
+		end)
+		addon:Print("That is the prompt, with a pretend name on it."
+			.. " |cffffd100/manners welcome|r brings this back.")
+	end
+	return true
+end
+
+---------------------------------------------------------------------------
 -- test console
 --
 -- Everything here exists because iterating on this client means one guess per
@@ -3374,6 +3929,14 @@ function ns.InspectUnit(unit)
 	end
 
 	say("  %s", show("isNameplate", true, ns.nameplateUnits[unit] and true or false))
+
+	-- Both halves, because they answer different complaints. `nearEnough` is
+	-- the verdict on this one person; the summary is what took it and how often
+	-- it manages to. This command is what the author ran on the player who
+	-- prompted the whole setting, and it printed inRangeById=true with nothing
+	-- to say about whether that was anywhere near.
+	say("  %s", show("nearEnough", true, ns.NearEnough(unit)))
+	say("  proximity: %s", tostring(ns.ProximitySummary()))
 end
 
 -- Tokens so a test can name the current candidate without typing its name.
@@ -3563,6 +4126,12 @@ function ns.ClampSettings()
 	end
 
 	oneOf(profile.filters, "whenBuffed", { skip = true, refresh = true, always = true }, "skip")
+	-- Built from the tier list rather than written out again, so adding a
+	-- fourth distance cannot leave the repair rejecting it as nonsense and
+	-- quietly handing the user back the default.
+	local proximities = {}
+	for _, tier in ipairs(PROXIMITY) do proximities[tier.key] = true end
+	oneOf(profile.filters, "proximity", proximities, "near")
 	boolean(profile.filters, "restoreTarget", true)
 	boolean(profile.sound, "owedOnly", true)
 	boolean(profile.timing, "keepDebts", true)
@@ -3702,6 +4271,12 @@ function addon:OnEnable()
 		local buff = ns.ResolveBuff(true)
 		self:Print(("build |cffffd100%s|r watching for buffs. Ready to cast |cffffd100%s|r."):format(
 			tostring(ns.BUILD), buff and ns.BuffName(buff) or "nothing -- no buff learned"))
+		-- And, on this character's very first login, what the thing is for.
+		-- Hung off the same delay as the line above and for the same reason:
+		-- anything printed before the default chat frame exists is printed to
+		-- nobody. Guarded because a greeting that throws must not take the
+		-- build line -- the only other evidence the addon loaded -- with it.
+		ns.Guard("Welcome", ns.Welcome)
 	end)
 end
 
@@ -3753,6 +4328,7 @@ end
 -- is what the scenario walks to prove none of them falls through to the help.
 ns.COMMANDS = {
 	{ word = "options", help = "open the options window" },
+	{ word = "welcome", help = "what this addon does, and the one thing it needs from you" },
 	{ word = "unlock", help = "unlock the prompt so it can be dragged" },
 	{ word = "lock", help = "lock it again -- an unlocked prompt never casts" },
 	{ word = "test", help = "preview the prompt with a mock candidate" },
@@ -3767,6 +4343,22 @@ ns.COMMANDS = {
 	{ word = "forms", help = "example macros to try" },
 	{ word = "debug", help = "what your class and this build allow" },
 	{ word = "errors", help = "the last few things that broke" },
+}
+
+-- Commands that write a setting the options page has a control for.
+--
+-- A list rather than a call in each branch, so it can be read against the page
+-- in one go: every word here has a checkbox or a toggle somewhere in
+-- Options.lua, and a control drawn from a value the command has just changed is
+-- a control showing the wrong thing until somebody closes the window and opens
+-- it again. /manners off with the page open was the visible one -- Enable
+-- still ticked, and the red notice written for that exact moment still hidden.
+--
+-- `try`, `look`, `forms`, `welcome`, `macro`, `test`, `debug` and `errors` are
+-- deliberately absent: they change nothing the page draws.
+local REPAINT_AFTER = {
+	on = true, off = true, verbose = true, clicks = true,
+	restore = true, lock = true, unlock = true,
 }
 
 function addon:HandleSlash(rawInput)
@@ -3789,7 +4381,30 @@ function addon:HandleSlash(rawInput)
 			ns.tryMacro = rest:gsub("\\n", "\n")
 			ns.Prompt:InvalidateMacro()
 			ns.Say("try armed: |cff80ff80%s|r", (ns.tryMacro:gsub("\n", " | ")))
-			ns.Say("  expands to: |cffffffff%s|r", (ns.ExpandTokens(ns.tryMacro):gsub("\n", " | ")))
+			local expanded = ns.ExpandTokens(ns.tryMacro)
+			ns.Say("  expands to: |cffffffff%s|r", (expanded:gsub("\n", " | ")))
+
+			-- Measured against the same budget every other macro in this addon
+			-- is measured against. What goes on the button is the expansion, and
+			-- the client truncates a macro body over the limit without saying a
+			-- word -- so the line printed above was presented as what will run
+			-- while the button quietly held a cut-off version of it. On a
+			-- console whose entire purpose is one experiment per reload, that is
+			-- the experiment silently answering a different question.
+			--
+			-- Said, not refused. /manners try is the only way anybody probes
+			-- this client, and a console that declines to arm what it was handed
+			-- is worse than one that arms it and says it will be cut.
+			--
+			-- The length is for the candidate on the prompt right now, because
+			-- that is whose name the tokens just expanded to. A longer name
+			-- later moves it, which is why this quotes the number rather than
+			-- promising it fits.
+			if #expanded > ns.MACRO_LIMIT then
+				ns.Say("  |cffff4040%d characters -- %d over the %d a macro body holds."
+					.. " The client will cut it, and what runs is not what is printed"
+					.. " above.|r", #expanded, #expanded - ns.MACRO_LIMIT, ns.MACRO_LIMIT)
+			end
 			self:Print("Click the prompt to run it. |cffffd100/manners try|r with nothing clears it.")
 		end
 		return
@@ -3821,6 +4436,11 @@ function addon:HandleSlash(rawInput)
 
 	if input == "" or input == "config" or input == "options" then
 		ns.OpenOptions()
+	elseif input == "welcome" then
+		-- Forced, so it plays for somebody who has already seen it -- which is
+		-- the whole reason the command exists. Somebody will want to find the
+		-- prompt again after moving it, or show a guildmate what it looks like.
+		ns.Guard("welcome", ns.Welcome, true)
 	elseif input == "unlock" then
 		db.prompt.locked = false
 		ns.Prompt:ApplyStyle()
@@ -3882,8 +4502,20 @@ function addon:HandleSlash(rawInput)
 			self:Print("nothing has broken this session.")
 			return
 		end
-		local from = math.max(1, #ns.errors - 4)
-		self:Print(("|cffffd100the last %d of %d|r:"):format(#ns.errors - from + 1, #ns.errors))
+		-- Two different numbers, and this used to print the wrong one for both.
+		-- `#ns.errors` is how many are still in the ring, which stops at thirty;
+		-- `ns.errorCount` is how many there have ever been. "The last 5 of 30"
+		-- read identically whether thirty things had broken or thirty thousand
+		-- had -- and those are not the same report. One is a bug worth sending
+		-- in; the other is a handler throwing on every frame, which is a client
+		-- being ground to a halt by this addon and wants a /reload, not a note.
+		local kept = #ns.errors
+		local total = ns.errorCount or kept
+		local from = math.max(1, kept - 4)
+		-- The size of the ring is only worth a reader's attention once it has
+		-- started dropping things; until then it is the same number twice.
+		local capped = total > kept and (" |cff808080(%d kept)|r"):format(kept) or ""
+		self:Print(("|cffffd100the last %d of %d|r%s:"):format(kept - from + 1, total, capped))
 		for i = from, #ns.errors do
 			local e = ns.errors[i]
 			self:Print(("  |cff808080%s|r %s -- |cffff8080%s|r"):format(
@@ -3939,12 +4571,20 @@ function addon:HandleSlash(rawInput)
 
 		self:Print("class: |cffffffff" .. tostring(caps.class) .. "|r")
 		if not caps.hasClassBuffs then
-			self:Print("this class has no buffs to cast on other players.")
+			self:Print(ns.NO_CLASS_BUFFS)
 			return
 		end
 		self:Print("C_Secrets: " .. tostring(caps.hasSecrets)
 			.. " | auras secret now: " .. tostring(caps.aurasSecretNow)
 			.. " | nameplates: " .. tostring(caps.namePlates))
+		-- What is measuring nearness, and whether it is answering.
+		--
+		-- The one line without which this feature cannot be debugged from the
+		-- outside: a proximity filter that has silently stopped measuring
+		-- offers the whole square exactly as it did before, and a proximity
+		-- filter measuring something far tighter than its label offers nobody.
+		-- Both look from the prompt like an ordinary evening.
+		self:Print("  proximity: " .. tostring(ns.ProximitySummary()))
 		for _, buff in ipairs(ns.GetClassBuffs(caps.class) or {}) do
 			local info = caps.buffs[buff.key]
 			self:Print(string.format("  %-14s %-22s known=%s readable=%s",
@@ -4012,4 +4652,9 @@ function addon:HandleSlash(rawInput)
 				command.word, command.args or "", command.help))
 		end
 	end
+
+	-- After the chain rather than inside seven branches of it: whatever the one
+	-- that ran wrote, the page and the launcher are both still drawn from the
+	-- value it had before.
+	if REPAINT_AFTER[input] then ns.RepaintOptions() end
 end

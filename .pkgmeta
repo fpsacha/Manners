@@ -31,6 +31,13 @@ externals:
     url: https://github.com/tekkub/libdatabroker-1-1
   Libs/LibDBIcon-1.0:
     url: https://repos.curseforge.com/wow/libdbicon-1-0/trunk/LibDBIcon-1.0
+  # The only thing on any of these clients that answers "how far away is this
+  # player" in steps rather than yes or no, which is what a proximity setting
+  # needs. Fetched with the rest, and optional at run time: Core.lua asks
+  # LibStub for it with the silent flag and drops to CheckInteractDistance, and
+  # then to offering everybody in casting range, if it is not there.
+  Libs/LibRangeCheck-3.0:
+    url: https://repos.curseforge.com/wow/librangecheck-3-0/trunk/LibRangeCheck-3.0
 
 ignore:
   - .github

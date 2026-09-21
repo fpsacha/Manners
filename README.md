@@ -27,11 +27,25 @@ Built for WoW Forever (Interface 16001).
   disconnect.
 - **Your party or raid** → anyone missing your buff.
 - **Passers-by** → nearby players missing your buff, seen through nameplates,
-  your target and your mouseover.
+  your target, your focus and your mouseover.
 
 Skips the dead, the out-of-range, anyone you just tried, and anyone the buff
 does nothing for — Arcane Intellect is wasted on a rogue. Right-click the
 prompt to skip somebody without marking their favour repaid.
+
+**How near a passer-by has to be** is its own setting, because being in range
+is not the same as being near: Arcane Intellect reaches about thirty yards,
+which in a city is everybody on the screen. Choose *anywhere I can cast*
+(thirty yards, as it was), *nearby* (about ten, the default) or *right beside
+me* (about five). It applies to passers-by only — somebody who buffed you was
+close enough a moment ago, your group is your group, and whoever you have
+targeted or focused you picked on purpose.
+
+The game will not say how far away a player is, so this is measured with
+whatever the client offers — LibRangeCheck if it is there, the client's own
+interact distance otherwise — and lands on the nearest step that has. Where
+nothing can measure at all, everybody in casting range is offered as before.
+`/manners debug` says which of those is in use and how often it answers.
 
 **If they already have it**, you choose: leave them alone, offer a top-up once
 their timer drops below a threshold you set, or always offer regardless.
@@ -135,11 +149,18 @@ favour.
 
 ```
 /manners           options
+/manners welcome   what it does and the one thing it needs from you
 /manners unlock    drag the prompt, then /manners lock
 /manners test      preview, for styling without waiting for a real entry
 /manners debug     what your class and this build allow
 /manners errors    the last few things that broke, if any did
 ```
+
+The first login on a character says all of that by itself, once, and puts the
+prompt on screen so you can see where it is. It is kept per character rather
+than per profile: every character starts on the one shared profile, so a flag
+there would greet whoever logged in first and nobody else — and what it asks
+for (a macro on this character's bars, or a key bound) is per character too.
 
 `/manners` with anything it does not recognise lists the rest.
 

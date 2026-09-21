@@ -678,9 +678,7 @@ mutate("Core.lua",
        """	-- And the notice on the Prompt tab comes off. Without this it stands over
 	-- controls that work again, which is the same lie as the one it was added
 	-- to stop, told the other way round.
-	if ns.RefreshOptionsDisplay then
-		ns.Guard("options repaint", ns.RefreshOptionsDisplay)
-	end
+	ns.RepaintOptions()
 """,
        "",
        "a combat notice that never comes down",
@@ -1780,6 +1778,76 @@ mutate("Core.lua",
        expect="the combat log on a whole camelot client",
        script="runscenarios.py")
 
+# The bug the author reported from a city square: everybody the game would let
+# him cast on got a card. Reintroduced as the plainest version of itself -- the
+# distance is measured and the answer thrown away.
+mutate("Core.lua",
+       '\t\tif reason == "nearby" and not pointed and ns.NearEnough(unit) == false then',
+       "\t\tif false then",
+       "a passer-by offered on spell range alone",
+       expect="a passer-by in range but not near",
+       script="runscenarios.py")
+
+# The same filter applied to the three who carry their own evidence of being
+# near. This is the failure worth more than the bug: a deliberate target
+# vanishing off the prompt because a coarse distance estimate disagreed.
+mutate("Core.lua",
+       "and not pointed and ns.NearEnough(unit) == false",
+       "and ns.NearEnough(unit) == false",
+       "distance applied to a deliberate target",
+       expect="who the proximity setting does not apply to",
+       script="runscenarios.py")
+
+# Accepting whatever bucket edge the library offers. A two-yard checker standing
+# in for "nearby" is the other way to empty the queue, and it reports itself as
+# working the whole time.
+mutate("Core.lua",
+       "if want > PROX_LOOSE_FROM and edge * 2 < want then return nil end",
+       "if false then return nil end",
+       "a bucket edge far tighter than the setting",
+       expect="a checker too tight for the step it would stand in for",
+       script="runscenarios.py")
+
+# A signal that resolves and then answers nothing, kept forever. The queue is
+# exactly as crowded as it was and the setting says otherwise.
+mutate("Core.lua",
+       "if prox.blind > PROX_BLIND_LIMIT and prox.source then",
+       "if false and prox.source then",
+       "a signal that never answers, never dropped",
+       expect="a signal that resolves and then answers nobody",
+       script="runscenarios.py")
+# There is deliberately no mutation for the in-combat stand-down.
+#
+# Two were tried. Removing the stand-down itself changes nothing observable:
+# under the mock no proximity signal is built during a fight anyway, so the
+# filter measures nobody either way. Removing the line that SAYS so does not
+# go red either, because the scenario asserts on who ends up in the queue and
+# not on the text of the summary.
+#
+# The behaviour is still covered -- "nobody is measured in a fight" pins the
+# queue -- and a mutation that cannot go red is a check that does not exist.
+# Recorded here rather than left as a passing entry implying coverage.
+
+
+# A named distance a later version stopped implementing, left in a profile. It
+# falls through every branch that reads it into "measure nothing", which is the
+# noisy queue back with a setting that denies it.
+mutate("Core.lua",
+       '\toneOf(profile.filters, "proximity", proximities, "near")',
+       "",
+       "an unrecognised distance left in a profile",
+       expect="garbage profile",
+       script="runscenarios.py")
+
+# The mock's interact prompt answering yes to everybody, which would make every
+# assertion about who is too far away an assertion about nothing.
+mutate("tests/mockapi.lua",
+       "\treturn Mock.yardsFor(unit) <= limit",
+       "\treturn true",
+       "the mock calling everybody near",
+       expect="a passer-by in range but not near",
+       script="runscenarios.py")
+
 # The mock forgetting that only a player from another realm has a second return,
 # which would make "Mort-Ravencrest" the ordinary spelling and hide every bug in
 # the path nearly every player takes.
@@ -1808,6 +1876,290 @@ mutate("tests/mockapi.lua",
        "\t_G.UnitBuff = nil",
        "the mock dropping UnitBuff",
        expect="the mock as mists",
+       script="runscenarios.py")
+
+# --- the first-run greeting -------------------------------------------------
+# Installing the addon used to do nothing you could see. Every mutation below
+# is one of the ways that silence comes back, or one of the ways a greeting
+# becomes the thing people uninstall addons over: repeating itself, lying to a
+# class it knows nothing about, or covering a real person with a mock-up.
+
+# Never wired into the login at all -- the state the addon shipped in.
+mutate("Core.lua",
+       "\t\tns.Guard(\"Welcome\", ns.Welcome)",
+       "",
+       "the greeting not wired into the login",
+       expect="the first login says what this is",
+       script="runscenarios.py")
+
+# It fires, and forgets. The flag is the whole of "once", and this client makes
+# you /reload for every settings change.
+mutate("Core.lua",
+       "\tstore.welcomed = true\n",
+       "\tlocal welcomed = true\n",
+       "a greeting that is never written down",
+       expect="the first login says what this is",
+       script="runscenarios.py")
+
+# Written down, and never read back.
+mutate("Core.lua",
+       "\tif store.welcomed and not force then return true end\n",
+       "",
+       "a greeting that never checks whether it has run",
+       expect="the first login says what this is",
+       script="runscenarios.py")
+
+# Kept in the profile instead of on the character. Every character on the
+# account shares one profile here, so this greets whoever logs in first and
+# nobody else -- and it is invisible to a reload test, which is why there is a
+# scenario with an alt in it.
+mutate("Core.lua",
+       "function ns.Welcome(force)\n\tlocal store = addon.db and addon.db.char",
+       "function ns.Welcome(force)\n\tlocal store = addon.db and addon.db.profile",
+       "the flag kept in the shared profile",
+       expect="an alt on the same account",
+       script="runscenarios.py")
+
+# The mock handing every session its own profile, which would make the alt
+# scenario above prove nothing about where the flag lives.
+mutate("tests/mockapi.lua",
+       "\t\t\tMock.sv.profile = Mock.sv.profile or deepcopy(defaults.profile)",
+       "\t\t\tMock.sv.profile = deepcopy(defaults.profile)",
+       "the mock giving every session its own profile",
+       expect="an alt on the same account",
+       script="runscenarios.py")
+
+# Greeting a class the buff data has never heard of. hasClassBuffs is false for
+# it exactly as it is for a rogue, and only one of the two has been told
+# anything -- so this states a guess as a fact on the one screenful somebody
+# reads before deciding whether to keep the addon.
+mutate("Core.lua",
+       "\tif not (caps.hasClassBuffs or nothingToGive) then return false end",
+       "\tif false then return false end",
+       "greeting a character it could not read",
+       expect="an unknown class is not told it has nothing",
+       script="runscenarios.py")
+
+# Selling a macro to a class that can never have anybody on the prompt.
+mutate("Core.lua",
+       "\tif nothingToGive then\n",
+       "\tif false then\n",
+       "a tour for a class with nothing to cast",
+       expect="a rogue is told the truth",
+       script="runscenarios.py")
+
+# Greeting during a fight, where a protected frame cannot be shown at all: the
+# one greeting this character ever gets, spent on a picture nobody sees.
+mutate("Core.lua",
+       "\tif InCombatLockdown() and not nothingToGive then\n\t\tif force then",
+       "\tif false then\n\t\tif force then",
+       "a greeting spent on a fight",
+       expect="the greeting waits for the fight to end",
+       script="runscenarios.py")
+
+# The words-only greeting made to wait for a fight as well, which would attach
+# it to the end of a pull instead of to the login it belongs to. There is no
+# picture in that one, and nothing about words needs the lockdown to lift.
+mutate("Core.lua",
+       "\tif InCombatLockdown() and not nothingToGive then",
+       "\tif InCombatLockdown() then",
+       "words made to wait for a picture",
+       expect="a rogue is told the truth",
+       script="runscenarios.py")
+
+# And never coming back for it once the fight ends.
+mutate("Core.lua",
+       "\t-- character's life -- the flag is read first and this returns at once.\n"
+       "\tns.Guard(\"Welcome\", ns.Welcome)\n",
+       "",
+       "no second chance after the fight",
+       expect="the greeting waits for the fight to end",
+       script="runscenarios.py")
+
+# A mock-up put in front of a real person who is waiting. Refresh takes it
+# straight back down again, so the greeting ends up pointing at a panel it did
+# not put there -- in a city, which is where this addon is used.
+mutate("Core.lua",
+       "\tif queued > 0 then",
+       "\tif false then",
+       "a mock-up over somebody real",
+       expect="the greeting does not cover somebody real",
+       script="runscenarios.py")
+
+# Explaining the prompt to an alt of somebody who switched the addon off. The
+# profile is shared across the account, so that alt never touched the switch and
+# has no way to know a setting is why nothing appears.
+mutate("Core.lua",
+       "\tif addon.db.profile and not addon.db.profile.enabled then",
+       "\tif false then",
+       "a greeting that hides the off switch",
+       expect="a greeting on a switched-off profile",
+       script="runscenarios.py")
+
+# The preview treated as a toggle rather than as a thing to switch on. Typing
+# the command twice then takes the picture away in the same breath as the line
+# promising it.
+mutate("Core.lua",
+       "\t\t\tif ns.Prompt and not ns.Prompt:InTest() then ns.Prompt:ToggleTest() end",
+       "\t\t\tif ns.Prompt then ns.Prompt:ToggleTest() end",
+       "the command undoing its own preview",
+       expect="welcome can be asked for again",
+       script="runscenarios.py")
+
+# A setting written from a slash command, with the options page open behind it.
+# AceConfig only reads a control while it is drawing, so without this /manners
+# off leaves Enable ticked and the red notice written for that moment hidden.
+mutate("Core.lua",
+       "\tif REPAINT_AFTER[input] then ns.RepaintOptions() end\n",
+       "",
+       "a command that changes a page it leaves stale",
+       expect="left an open page drawing the value it had before",
+       script="runscenarios.py")
+
+# The launcher's text back to a constant. On a broker bar that is the addon's
+# name written next to the addon's icon, and the only way left to ask what state
+# it is in is to click it -- which changes the answer.
+mutate("Options.lua",
+       '\treturn Enabled() and "Manners" or "Manners |cffff8080off|r"',
+       '\treturn "Manners"',
+       "a launcher that never says which state it is in",
+       expect="reads the same on as off",
+       script="runscenarios.py")
+
+# And the other way it goes stale: the text is right when it is made and never
+# put back in step afterwards, so it describes whatever was true at login.
+mutate("Options.lua",
+       "\tif broker.text ~= text then broker.text = text end",
+       "\tlocal _ = text",
+       "launcher text that is only ever right at login",
+       expect="reads the same on as off",
+       script="runscenarios.py")
+
+# The state taken back out of the tooltip. A broker display is free to show the
+# icon alone -- on the minimap that is the only shape it has -- and then the
+# tooltip is the last place that can say why no prompt has appeared all evening.
+mutate("Options.lua",
+       """				if Enabled() then
+					tooltip:AddLine("Watching for people to buff.", 0.4, 0.9, 0.4)
+				else
+					tooltip:AddLine("Switched off -- no prompt will appear.", 1, 0.5, 0.5)
+				end
+""",
+       "",
+       "a tooltip that never names the state",
+       expect="the tooltip never names the state",
+       script="runscenarios.py")
+
+# The minimap button's own click, which is the other way the switch is thrown
+# from outside the page it has a checkbox on.
+mutate("Options.lua",
+       "\t\t\t\t\tns.RepaintOptions()\n\t\t\t\telse",
+       "\t\t\t\telse",
+       "the minimap click leaving the page stale",
+       expect="options page drawing the old value",
+       script="runscenarios.py")
+
+# "Show minimap button" drawn on a client with no LibDBIcon. It writes a setting
+# nothing reads and calls Show on a button that was never registered: a control
+# that ticks, saves, and does nothing whatever.
+mutate("Options.lua",
+       """					-- a disabled control would be telling anybody.
+						hidden = function() return not HasMinimapButton() end,
+""",
+       "					-- a disabled control would be telling anybody.\n",
+       "a checkbox for a button that does not exist",
+       expect="on the page with no library behind it",
+       script="runscenarios.py")
+
+# The header over it, which would otherwise be a heading with nothing under it.
+mutate("Options.lua",
+       """					miscHeader = {
+						type = "header", name = "Minimap", order = 20,
+						hidden = function() return not HasMinimapButton() end,
+					},""",
+       """					miscHeader = { type = "header", name = "Minimap", order = 20 },""",
+       "a Minimap header over an empty space",
+       expect="drawn over nothing at all",
+       script="runscenarios.py")
+
+# And the same control hidden always, which satisfies everything the absence
+# scenario asks for while quietly taking the minimap button off everybody's page.
+mutate("Options.lua",
+       """					-- a disabled control would be telling anybody.
+						hidden = function() return not HasMinimapButton() end,""",
+       """					-- a disabled control would be telling anybody.
+						hidden = function() return true end,""",
+       "the minimap control hidden from everybody",
+       expect="hidden on a client that has both",
+       script="runscenarios.py")
+
+# /manners try arming macro text nobody measured. The client truncates a body
+# over the limit in silence, so the expansion echoed to chat a line earlier is
+# not what the button holds -- and this command exists to run one experiment.
+mutate("Core.lua",
+       """			if #expanded > ns.MACRO_LIMIT then
+				ns.Say("  |cffff4040%d characters -- %d over the %d a macro body holds."
+					.. " The client will cut it, and what runs is not what is printed"
+					.. " above.|r", #expanded, #expanded - ns.MACRO_LIMIT, ns.MACRO_LIMIT)
+			end
+""",
+       "",
+       "arbitrary macro text armed unmeasured",
+       expect="armed and echoed to chat",
+       script="runscenarios.py")
+
+# The framed border brightened towards white again. It converges on the panel
+# exactly as the panel goes pale -- the failure the comment above it names.
+mutate("Prompt.lua",
+       "\tlocal lighten = (0.299 * br + 0.587 * bg + 0.114 * bb) <= 0.5",
+       "\tlocal lighten = true",
+       "a border that vanishes into a pale panel",
+       expect="has no frame",
+       script="runscenarios.py")
+
+# The count chip back to a fixed width around a number drawn from the font
+# slider. At 32 the digits are wider than the box behind them.
+mutate("Prompt.lua",
+       "\tlocal chipWidth = countSize * 2",
+       "\tlocal chipWidth = 20",
+       "a count chip narrower than its own digits",
+       expect="run out of both ends",
+       script="runscenarios.py")
+
+# The same, in the other dimension.
+mutate("Prompt.lua",
+       "\tlocal chipHeight = math.min(countSize + 4, math.max(8, p.height - 6))",
+       "\tlocal chipHeight = math.min(14, math.max(8, p.height - 6))",
+       "a count chip shorter than its own digits",
+       expect="stand out of the top and bottom",
+       script="runscenarios.py")
+
+# And the room reserved beside it, which was the other fixed number: a chip that
+# grows under a name that was never told to move over.
+mutate("Prompt.lua",
+       "\tlocal countRoom = p.showCount and (chipWidth + 8) or 10",
+       "\tlocal countRoom = p.showCount and 28 or 10",
+       "a name that runs under the count chip",
+       expect="so the two overlap",
+       script="runscenarios.py")
+
+# The ring's length reported as the session's failure count. "The last 5 of 30"
+# reads the same whether thirty things broke or thirty thousand did, and those
+# want opposite responses.
+mutate("Core.lua",
+       "\t\tlocal total = ns.errorCount or kept",
+       "\t\tlocal total = kept",
+       "the ring's size printed as the failure count",
+       expect="gave the size of the ring as the number of failures",
+       script="runscenarios.py")
+
+# The same wording in the block somebody pastes into a bug report, where the
+# person reading it cannot ask which of the two numbers it is.
+mutate("Options.lua",
+       "\t\t\t:format(ns.errorCount or #ns.errors, #ns.errors)",
+       "\t\t\t:format(#ns.errors, #ns.errors)",
+       "a bug report counting what survived the ring",
+       expect="the bug report gives the ring's size",
        script="runscenarios.py")
 
 print()

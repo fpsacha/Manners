@@ -22,6 +22,7 @@ from this project.
 | LibSharedMedia-3.0 | Elkano | **LGPL v2.1** |
 | LibDataBroker-1.1 | tekkub | BSD |
 | LibDBIcon-1.0 | Rabbit | BSD-style |
+| LibRangeCheck-3.0 | mitch0, WoW UI Dev Community | MIT |
 
 ## LibSharedMedia-3.0 — LGPL v2.1
 

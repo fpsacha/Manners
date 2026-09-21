@@ -15,6 +15,38 @@ local LDBIcon = LibStub("LibDBIcon-1.0", true)
 
 local ICON = "Interface\\Icons\\Spell_Holy_MagicalSentry"
 
+-- Whether there is a minimap button at all.
+--
+-- It takes both libraries and SetupOptions only registers one when it has both:
+-- LibDataBroker makes the data object, LibDBIcon is what puts it on the
+-- minimap. Either missing and there is nothing on the minimap to show or hide.
+local function HasMinimapButton()
+	return LDB ~= nil and LDBIcon ~= nil
+end
+
+-- The launcher, once it exists. Kept at file scope so its text can be put back
+-- in step from outside SetupOptions, which runs once and then never again.
+local broker
+
+-- Asked with a net under it: the tooltip and the launcher text are read by
+-- other addons' display frames, on their own schedule, and one of them asking
+-- before AceDB has handed us a profile must not throw inside somebody else's
+-- layout pass.
+local function Enabled()
+	return ns.db ~= nil and ns.db.profile ~= nil and ns.db.profile.enabled == true
+end
+
+-- What the launcher says it is.
+--
+-- It used to say "Manners" and nothing else, which on a broker display is the
+-- addon's name written next to the addon's icon -- so the only way to find out
+-- whether it was switched on was to right-click it and read chat, and that
+-- changes the answer. Off is the state worth carrying: the prompt simply never
+-- appears, and from the outside that is exactly what a broken addon looks like.
+local function BrokerText()
+	return Enabled() and "Manners" or "Manners |cffff8080off|r"
+end
+
 ---------------------------------------------------------------------------
 -- get/set helpers
 --
@@ -91,6 +123,32 @@ local function BuffChoices()
 		values[buff.key] = label
 	end
 	return values
+end
+
+-- The named distances, read off the list Core.lua measures with.
+--
+-- Both built from the one table rather than written out here as well: a
+-- dropdown that has its own copy of the choices is a dropdown that can offer a
+-- setting nothing implements, and an ordering with its own copy is one that
+-- silently drops a new entry off the end.
+local function ProximityChoices()
+	local values = {}
+	for _, tier in ipairs(ns.PROXIMITY) do
+		values[tier.key] = tier.name
+	end
+	return values
+end
+
+-- AceConfig sorts a select's values by their labels unless it is given an
+-- order, and alphabetically these read "Anywhere I can cast", "Nearby", "Right
+-- beside me" -- which is loosest to tightest by luck rather than by design. One
+-- rename would scramble them.
+local function ProximityOrder()
+	local keys = {}
+	for _, tier in ipairs(ns.PROXIMITY) do
+		keys[#keys + 1] = tier.key
+	end
+	return keys
 end
 
 -- The spell's name, with the one thing about it that changes who it is offered
@@ -371,7 +429,13 @@ local function BugReport()
 	if #ns.errors == 0 then
 		lines[#lines + 1] = "errors: none this session"
 	else
-		lines[#lines + 1] = ("errors: %d this session, last five:"):format(#ns.errors)
+		-- How many have happened, then how many are still here to read. The ring
+		-- holds thirty, so its length was never the count this line claimed to
+		-- print: "errors: 30 this session" is what a handler throwing on every
+		-- frame looks like and what three unrelated bugs look like, and the
+		-- person receiving this report cannot ask which.
+		lines[#lines + 1] = ("errors: %d this session (%d kept), last five:")
+			:format(ns.errorCount or #ns.errors, #ns.errors)
 		for i = math.max(1, #ns.errors - 4), #ns.errors do
 			local e = ns.errors[i]
 			lines[#lines + 1] = ("  %s %s -- %s"):format(
@@ -535,6 +599,55 @@ local function BuildOptions()
 				get = fGet,
 				set = fSet,
 			},
+			proximity = {
+				type = "select",
+				name = "How near a passer-by has to be",
+				-- The yardage is here rather than in the choices themselves:
+				-- what somebody picks is a feeling, and nobody can judge ten
+				-- yards from inside the game -- but they will want to know
+				-- roughly what they just asked for.
+				desc = "Being in range is not the same as being near. Arcane Intellect and"
+					.. " its like reach about thirty yards, which in a city is everybody on"
+					.. " the screen.\n\n"
+					.. "|cffffd100Anywhere I can cast|r -- about thirty yards, as it was.\n"
+					.. "|cffffd100Nearby|r -- about ten yards.\n"
+					.. "|cffffd100Right beside me|r -- about five yards.\n\n"
+					.. "This only applies to passers-by. Somebody who buffed you was close"
+					.. " enough a moment ago, your group is your group, and whoever you have"
+					.. " targeted or focused you picked on purpose -- none of them are"
+					.. " measured.\n\n"
+					.. "|cff888888The game will not say how far away somebody is, so this is"
+					.. " measured with whatever this client offers and lands on the nearest"
+					.. " step it has. When it cannot measure at all, everybody in casting"
+					.. " range is offered, as before.|r",
+				order = 22.5,
+				width = "full",
+				values = ProximityChoices,
+				sorting = ProximityOrder,
+				-- The setting is about passers-by and nothing else, so it is
+				-- hidden exactly where the passer-by toggle is and switched off
+				-- exactly when that toggle is.
+				hidden = OnlyReachesGroup,
+				disabled = function() return not S().strangers end,
+				get = fGet,
+				set = fSet,
+			},
+			proximityNote = {
+				type = "description",
+				order = 22.6,
+				hidden = function()
+					return OnlyReachesGroup() or F().proximity == "cast"
+				end,
+				-- Where the promise is kept. A distance filter that has quietly
+				-- stopped measuring offers the same crowded queue it always
+				-- did, and a user who has just turned it on has no way to tell
+				-- that from nobody being nearby -- so the page says which
+				-- signal is doing the work and how often it answers, in the
+				-- one place they are already looking.
+				name = function()
+					return "|cff888888" .. tostring(ns.ProximitySummary()) .. "|r"
+				end,
+			},
 			reachableOnly = {
 				type = "toggle",
 				name = "Drop people who are probably gone",
@@ -610,6 +723,14 @@ local function BuildOptions()
 						set = function(_, v)
 							ns.db.profile.enabled = v
 							ns.Prompt:Refresh()
+							-- The launcher's text carries this switch too, and it
+							-- is the one reader of it that is not on the page
+							-- AceConfig is about to redraw by itself. Through the
+							-- shared call rather than straight at the data object:
+							-- that one is guarded, and what runs on the far side of
+							-- the assignment is a display frame belonging to some
+							-- other addon.
+							ns.RepaintOptions()
 						end,
 					},
 					-- Switched off, every other page still reads as a working
@@ -667,11 +788,23 @@ local function BuildOptions()
 						func = function() ns.CreateClickMacro() end,
 					},
 
-					miscHeader = { type = "header", name = "Minimap", order = 20 },
+					miscHeader = {
+						type = "header", name = "Minimap", order = 20,
+						hidden = function() return not HasMinimapButton() end,
+					},
 					minimap = {
 						type = "toggle",
 						name = "Show minimap button",
 						order = 21,
+						-- Gone entirely where the libraries are not, rather than
+						-- greyed out. Without this the checkbox writes a setting
+						-- nothing reads and calls Show or Hide on a button that
+						-- was never registered -- a control that ticks, saves,
+						-- and does nothing at all, which is indistinguishable
+						-- from the addon being broken. There is no minimap
+						-- button to explain the absence of, so there is nothing
+						-- a disabled control would be telling anybody.
+						hidden = function() return not HasMinimapButton() end,
 						get = function() return not ns.db.profile.minimap.hide end,
 						set = function(_, v)
 							ns.db.profile.minimap.hide = not v
@@ -1709,29 +1842,68 @@ function ns.SetupOptions()
 	blizCategory = AceConfigDialog:AddToBlizOptions(ADDON, "Manners")
 
 	if LDB then
-		local dataObject = LDB:NewDataObject(ADDON, {
+		broker = LDB:NewDataObject(ADDON, {
 			type = "launcher",
-			text = "Manners",
+			text = BrokerText(),
 			icon = ICON,
 			OnClick = function(_, mouseButton)
 				if mouseButton == "RightButton" then
 					ns.db.profile.enabled = not ns.db.profile.enabled
 					ns.Prompt:Refresh()
 					ns.addon:Print(ns.db.profile.enabled and "enabled." or "disabled.")
+					-- The switch this click just threw has a checkbox on the
+					-- options page and a word in the launcher's own text, and
+					-- neither re-reads the profile on its own. Without this,
+					-- right-clicking with the window open leaves Enable ticked
+					-- over an addon that is off.
+					ns.RepaintOptions()
 				else
 					ns.OpenOptions()
 				end
 			end,
 			OnTooltipShow = function(tooltip)
 				tooltip:AddLine("Manners")
+				-- The state, said here as well as in the text, because a broker
+				-- display is free to show the icon on its own -- and then this
+				-- tooltip is the only place left that can say why no prompt has
+				-- appeared all evening.
+				if Enabled() then
+					tooltip:AddLine("Watching for people to buff.", 0.4, 0.9, 0.4)
+				else
+					tooltip:AddLine("Switched off -- no prompt will appear.", 1, 0.5, 0.5)
+				end
 				tooltip:AddLine("Left click: options", 0.8, 0.8, 0.8)
-				tooltip:AddLine("Right click: enable or disable", 0.8, 0.8, 0.8)
+				-- What the click will do, not what the button is for. "Enable or
+				-- disable" is true of every press and tells you nothing about
+				-- the one you are about to make.
+				tooltip:AddLine(Enabled() and "Right click: switch it off"
+					or "Right click: switch it on", 0.8, 0.8, 0.8)
 			end,
 		})
-		if LDBIcon and dataObject then
-			LDBIcon:Register(ADDON, dataObject, ns.db.profile.minimap)
+		if LDBIcon and broker then
+			LDBIcon:Register(ADDON, broker, ns.db.profile.minimap)
 		end
 	end
+end
+
+-- Put the current state back into the launcher's text.
+--
+-- LibDataBroker fires its own change callback when a field on a data object is
+-- assigned, so every display showing this launcher repaints from one line here.
+-- Called through ns.RepaintOptions, alongside the options page, because the two
+-- are stale for the same reason and at the same moments.
+--
+-- Everything is checked: the library is optional, the object is only built when
+-- it is there, and a launcher whose text is a release behind is not worth
+-- taking down the command that changed the setting.
+function ns.RefreshBrokerText()
+	if not broker then return end
+	local text = BrokerText()
+	-- Only when it has actually changed. Assigning to a data object wakes every
+	-- display showing it, and this is reached at both ends of every fight --
+	-- so writing the same string back would be a call into somebody else's
+	-- layout code on every pull, in a city, for nothing.
+	if broker.text ~= text then broker.text = text end
 end
 
 -- Repaint whatever is on screen from the values as they stand now.

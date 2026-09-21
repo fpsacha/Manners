@@ -956,8 +956,31 @@ function Prompt:ApplyStyle()
 	-- rather than fixed, because the panel colour is the user's: a light panel
 	-- with a hardcoded pale border has no border, and finding that out means
 	-- opening the colour picker and wondering whether the setting works.
+	--
+	-- Pushed away from the panel, not towards white. Brightening towards white
+	-- is the same failure the paragraph above describes, arrived at from the
+	-- other side: the lighter the panel, the less room there is above it, so the
+	-- edge converges on the panel exactly as the panel gets pale, and at white
+	-- the two are the same colour. So the direction is chosen from the panel's
+	-- own luminance -- a dark panel gets a lighter edge, a light one a darker
+	-- edge -- and the distance is a fraction of the room available in whichever
+	-- direction was picked, which is the same separation either way.
 	local framed = style == "framed"
-	local er, eg, eb = br + (1 - br) * 0.50, bg + (1 - bg) * 0.50, bb + (1 - bb) * 0.55
+	-- Rec. 601 weights rather than a flat average. Green carries most of the
+	-- apparent brightness, so an average calls a saturated blue panel mid-grey
+	-- and lands the edge on top of it -- the one case this is here to prevent.
+	local lighten = (0.299 * br + 0.587 * bg + 0.114 * bb) <= 0.5
+	local function edgeOf(c, amount)
+		if lighten then return c + (1 - c) * amount end
+		return c * (1 - amount)
+	end
+	-- Blue travels a little further towards light and a little less far towards
+	-- dark, so the edge lands slightly cooler than the panel in both directions.
+	-- That is the tint the framed look already had, and it is worth keeping: a
+	-- dead-neutral border on a tinted panel reads as grey dirt rather than as a
+	-- frame. The two numbers are the same 0.05 of bias, mirrored.
+	local er, eg, eb = edgeOf(br, 0.50), edgeOf(bg, 0.50),
+		edgeOf(bb, lighten and 0.55 or 0.45)
 	for _, edge in ipairs(edges) do
 		edge:SetShown(framed)
 		edge:SetVertexColor(er, eg, eb, math.min(1, ba + 0.10))
@@ -1026,13 +1049,34 @@ function Prompt:ApplyStyle()
 	end
 
 	-- count chip
+	--
+	-- Sized from the font, like everything else on the panel. It was a fixed
+	-- 20x14 box with a fixed 28px reserved beside it, holding a number drawn at
+	-- fontSize - 3 -- and the font slider goes to 32, where those digits are
+	-- taller than the box they sit in and wider than the gap left for it. The
+	-- chip then read as a smudge behind a number spilling over the name.
+	--
+	-- The arithmetic is pinned so it reproduces the old constants exactly at the
+	-- default font of 13, where they were chosen and where they looked right:
+	-- 20 wide, 14 high, 28 reserved. Nobody who never touched the slider sees
+	-- anything move.
+	local countSize = math.max(8, p.fontSize - 3)
+	-- A digit is about half the font's size across, so this is room for four of
+	-- them. The queue never gets near that; the width is what keeps the chip a
+	-- chip rather than a square around one number.
+	local chipWidth = countSize * 2
+	-- Kept inside the panel at the top of the slider, where a chip grown from
+	-- the font would otherwise stand taller than the prompt it is drawn on.
+	local chipHeight = math.min(countSize + 4, math.max(8, p.height - 6))
 	countChip:ClearAllPoints()
 	countChip:SetPoint("RIGHT", -7, 0)
-	countChip:SetSize(20, 14)
+	countChip:SetSize(chipWidth, chipHeight)
 	countChip:SetShown(false)
 	Gradient(countChip, "VERTICAL", 1, 1, 1, 0.03, 1, 1, 1, 0.09)
 
-	local countRoom = p.showCount and 28 or 10
+	-- What the name and sub-line have to keep clear: the chip itself, the 7px it
+	-- is inset from the right edge, and a point of gap so the two do not touch.
+	local countRoom = p.showCount and (chipWidth + 8) or 10
 
 	-- text
 	-- The arithmetic the constant 34 stood in for. Two lines need both fonts
@@ -1062,7 +1106,9 @@ function Prompt:ApplyStyle()
 
 	countText:ClearAllPoints()
 	countText:SetPoint("CENTER", countChip, "CENTER", 0, 0)
-	countText:SetFont(fontPath, math.max(8, p.fontSize - 3), outline)
+	-- The same number the chip was just sized from. Two expressions of one size
+	-- is how they came apart in the first place.
+	countText:SetFont(fontPath, countSize, outline)
 	countText:SetTextColor(0.72, 0.73, 0.80, 1)
 
 	-- Anchoring a row by both TOPLEFT and RIGHT fights over its vertical
@@ -2262,6 +2308,12 @@ function Prompt:Regions()
 		name = nameText,
 		sub = subText,
 		count = countText,
+		-- The box the count is drawn in, beside the number itself. The two are
+		-- sized from the same font and there is nothing outside this file that
+		-- can tell they have come apart: a chip smaller than its own digits
+		-- draws perfectly, throws nothing, and reads as a smudge under a number
+		-- lying across the name.
+		chip = countChip,
 		fill = resultFill,
 		-- The four edges of the framed look. A look that applies nothing is
 		-- indistinguishable from one that applies something, from the outside,
