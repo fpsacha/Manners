@@ -251,6 +251,18 @@ icon.resize((64, 64), Image.LANCZOS).convert("RGB").save(os.path.join(OUT, "icon
 
 # The two sizes side by side, so the small one can be judged at the size it is
 # actually seen rather than inferred from the large one.
+# The game cannot load a PNG. Everything above is for the CurseForge listing;
+# this is the one the addon itself uses, for the minimap button and the addon
+# list, and it has to be an uncompressed 32-bit TGA at a power-of-two size.
+# Without it the toc points at a Blizzard icon and the project ships a logo
+# that only exists on a web page.
+import os as _os
+tex = _os.path.join(ROOT, "Textures")
+_os.makedirs(tex, exist_ok=True)
+icon.resize((64, 64), Image.LANCZOS).convert("RGBA").save(
+    _os.path.join(tex, "Manners64.tga"), "TGA", compression=None)
+print("wrote Textures/Manners64.tga")
+
 check = Image.new("RGB", (S + 32 + 64, S), (26, 26, 30))
 check.paste(icon.convert("RGB"), (0, 0))
 check.paste(icon.resize((64, 64), Image.LANCZOS).convert("RGB"), (S + 32, S // 2 - 32))
