@@ -227,7 +227,11 @@ local defaults = {
 			-- on top of "needs {buff}", and the icon already names the spell.
 			reasonTarget = "your target",
 			reasonOwed = "buffed you",
-			reasonGroup = "needs {buff}",
+			-- Group and passer-by used to carry the same sentence, which left
+			-- the colour of the ring as the only thing separating them -- no
+			-- use to somebody who cannot see that difference, and no use to
+			-- anybody reading the queue rows at a glance. They say which now.
+			reasonGroup = "in your group",
 			reasonNearby = "needs {buff}",
 			-- A top-up is a different offer from a missing buff, and the four
 			-- lines above are the user's to rewrite -- "needs {buff}" is only
@@ -3427,6 +3431,13 @@ function ns.ClampSettings()
 	local iconMax = math.max(12, (p.height or ns.defaults.profile.prompt.height) - 8)
 	if p.iconSize > iconMax then p.iconSize = iconMax end
 	if not ns.CHANNEL_COMMANDS[profile.speech.channel] then profile.speech.channel = "SAY" end
+
+	-- Group and passer-by shipped the same wording once, so colour was the only
+	-- thing telling them apart. Move a profile that still carries that exact
+	-- string, and nothing else: a wording somebody chose is theirs.
+	if p.reasonGroup == "needs {buff}" then
+		p.reasonGroup = ns.defaults.profile.prompt.reasonGroup
+	end
 
 	-- The same class of repair as the two above, and it cannot live in
 	-- OnInitialize: a new, copied or reset profile only comes back through

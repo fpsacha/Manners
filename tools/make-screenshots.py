@@ -165,7 +165,7 @@ one = backdrop(880, 540)
 rows = [
     ("Brannock Vale", "your target", GREEN, None, "you picked them yourself"),
     ("Elara Brightmoor", "buffed you", AMBER, 2, "someone who buffed you"),
-    ("Corvin Ashgrove", "needs Arcane Intellect", BLUE, None, "in your group"),
+    ("Corvin Ashgrove", "in your group", BLUE, None, "in your group"),
     ("Petra Stonewell", "needs Arcane Intellect", GREY, 4, "a passer-by"),
 ]
 for i, (n, r, a, c, _) in enumerate(rows):
@@ -175,9 +175,9 @@ d = ImageDraw.Draw(one)
 fb = face("bold", 14)
 for i, row in enumerate(rows):
     d.text((470, 82 + i * 104), row[4], font=fb, fill=(190, 196, 212))
-caption(one, ["The colour tells you why they are on the prompt.",
-              "Green is somebody you targeted yourself, amber is a favour to return,",
-              "blue is your group, grey is somebody passing through."])
+caption(one, ["Every prompt says why that person is on it.",
+              "The line under the name tells you, and the ring repeats it in colour --",
+              "so it still reads if those four colours are not four colours to you."])
 one.save(os.path.join(OUT, "screenshot-reasons.png"))
 
 # ---- 2. one prompt, in place -----------------------------------------

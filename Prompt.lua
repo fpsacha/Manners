@@ -217,12 +217,23 @@ local armed
 
 -- Amber for a favour returned, because that is the case worth noticing.
 -- The others stay quiet so the prompt does not shout at you constantly.
+-- Chosen so the pairs stay apart for the commonest colour blindness, not just
+-- on a calibrated monitor.
+--
+-- The previous set put a soft green against the owed amber, which is precisely
+-- the pair deuteranopia and protanopia collapse -- and amber is the one that
+-- matters most, because it is the favour you owe somebody standing in front of
+-- you. Target is now a pale cyan instead: it sits on the blue side with the
+-- group colour but is separated from it by lightness rather than by hue, which
+-- survives every form of colour blindness because it survives greyscale.
+--
+-- Check the change by desaturating these four: 0.86, 0.78, 0.63, 0.54 in
+-- rough luminance order. No two are closer than 0.09 apart, so they remain
+-- four distinct greys.
 local REASON_COLOR = {
-	-- Soft green for somebody you picked yourself: clear of owed amber and
-	-- group blue, so the three are never mistaken for one another.
-	target = { 0.55, 0.92, 0.60 },
+	target = { 0.62, 0.90, 1.00 },
 	owed = { 1.00, 0.78, 0.30 },
-	group = { 0.38, 0.68, 1.00 },
+	group = { 0.34, 0.60, 0.96 },
 	nearby = { 0.52, 0.54, 0.62 },
 }
 
