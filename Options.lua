@@ -959,8 +959,9 @@ local function BuildOptions()
 						name = "Where the reason colour goes",
 						desc = "A ring around the icon reads better than a stripe at the panel edge, "
 							.. "which ends up competing with the icon rather than framing it.\n\n"
-							.. "|cff888888The Blizzard look has no stripe at all, so on it the stripe "
-							.. "settings do nothing.|r",
+							.. "|cff888888The framed look has no stripe at all -- it would run down "
+							.. "the inside of its border -- so on it the stripe settings do "
+							.. "nothing.|r",
 						order = 11,
 						values = {
 							icon = "Ring around the icon",
@@ -999,9 +1000,18 @@ local function BuildOptions()
 						type = "select",
 						name = "Look",
 						order = 14,
+						-- The middle one used to read "Blizzard -- default UI
+						-- border" and no part of the addon has ever applied a
+						-- backdrop, a border or an atlas: picking it took the
+						-- shadow, the bevel and the stripe off and left a bare
+						-- rectangle, which is the one thing the hairlines exist
+						-- to prevent. It draws its own border now, out of the
+						-- same white texture as the rest of the panel, and says
+						-- so. Profiles holding the old name are carried across
+						-- in ClampSettings.
 						values = {
-							glass = "Glass -- dark panel, accent stripe",
-							blizzard = "Blizzard -- default UI border",
+							glass = "Glass -- dark panel, soft shadow",
+							framed = "Framed -- flat panel, thin border",
 							minimal = "Minimal -- text only, no panel",
 						},
 						get = pGet,

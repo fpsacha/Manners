@@ -20,6 +20,16 @@ function Mock.reset()
 	Mock.auraBlackout = false
 	Mock.noAuras = false
 	Mock.extraAura = false
+	-- What the extra aura is, beyond its instance id. Separate knobs because
+	-- the addon is not allowed to identify an aura by its number alone: the
+	-- client recycles numbers, so a scenario has to be able to hand the same
+	-- number to a different spell, or to the same spell as a later cast.
+	Mock.extraAuraSpell = nil   -- defaults to the same 1459 the rest carry
+	Mock.extraAuraUntil = nil   -- defaults to the same 2000 the rest carry
+	-- The unit token the extra aura names as its caster. `nil` is the client
+	-- naming nobody, which is a stranger with no nameplate -- unidentifiable,
+	-- and a hard limit rather than an oversight.
+	Mock.extraAuraSource = "nameplate1"
 	Mock.auraIdBase = 0
 	-- How many auras the player is carrying, in slots 1..n. Two is what every
 	-- scenario written before this knob assumed, so that is the default.
@@ -65,9 +75,16 @@ function Mock.reset()
 	-- next; a scenario that models a reload simply does not reset in between.
 	Mock.sv = {}
 	Mock.dbCallbacks = {}
+	-- Everything parked on C_Timer.After and not yet run. Cleared here so one
+	-- scenario's timers cannot fire inside the next one.
+	Mock.timers = {}
 	-- How often the addon actually asked the client something. Caching and
 	-- deduplication are invisible to every other kind of assertion.
 	Mock.counts = { range = 0, auraRead = 0 }
+	-- Every protected method the addon called on a frame a scenario marked
+	-- secure while the fight was on. In the game each of these is a refusal
+	-- nothing reports; here they are a list.
+	Mock.protectedCalls = {}
 end
 Mock.reset()
 
@@ -119,6 +136,32 @@ for _, e in ipairs({
 Mock.KNOWN_EVENTS = KNOWN_EVENTS
 Mock.badEvents = {}
 
+-- The methods Blizzard refuses on a protected frame while the player is in
+-- combat. Nothing about a refused call is visible from Lua -- it does not
+-- throw, it does not return anything, the frame simply does not change -- so a
+-- mock that performs them all regardless is a client that never locks down, and
+-- the addon's rule for combat (paint art, never touch the button) cannot be
+-- tested against it at all.
+--
+-- The call is still performed, and also written down. Recording rather than
+-- refusing leaves every scenario written before this behaving exactly as it
+-- did; what is new is that a scenario can ask what the addon tried to do to a
+-- secure frame while the lockdown was on. SetAlpha is deliberately absent: it
+-- is allowed in combat, which is the whole reason the panel dims instead of
+-- hiding.
+local PROTECTED_METHODS = {
+	"Show", "Hide", "SetShown", "SetAttribute", "SetPoint", "ClearAllPoints",
+	"SetAllPoints", "SetSize", "SetWidth", "SetHeight", "SetScale", "SetParent",
+	"EnableMouse", "SetFrameStrata", "RegisterForClicks",
+}
+
+-- Which frame is the secure one is the addon's business, not the mock's, so a
+-- scenario says: Mock.protect(ns.Prompt:GetButton()).
+function Mock.protect(frame)
+	frame._protected = true
+	return frame
+end
+
 local function newFrame()
 	local f = { scripts = {}, attributes = {}, points = {} }
 	for _, name in ipairs(frameMethods) do f[name] = function(self) return self end end
@@ -160,6 +203,18 @@ local function newFrame()
 	f.CreateMaskTexture = function() return newFrame() end
 	f.RegisterEvent = function(self, event)
 		if not KNOWN_EVENTS[event] then Mock.badEvents[#Mock.badEvents + 1] = event end
+	end
+
+	-- Last, so it wraps whatever the two loops above left behind rather than
+	-- being overwritten by them.
+	for _, name in ipairs(PROTECTED_METHODS) do
+		local inner = f[name]
+		f[name] = function(self, ...)
+			if Mock.inCombat and self._protected then
+				Mock.protectedCalls[#Mock.protectedCalls + 1] = name
+			end
+			return inner(self, ...)
+		end
 	end
 	return f
 end
@@ -383,7 +438,38 @@ RAID_CLASS_COLORS = { MAGE = { colorStr = "ff40c7eb" }, PRIEST = { colorStr = "f
 bit = { band = function() return 0x400 end }
 CreateColor = function(r, g, b, a) return { r = r, g = g, b = b, a = a } end
 
-C_Timer = { After = function() end, NewTicker = function() return {} end }
+-- Callbacks the addon has parked on the clock, and a way to let the clock
+-- reach them. A no-op C_Timer.After made anything scheduled untestable, which
+-- is how a baseline that settles on a timer rather than on the next event would
+-- have gone unchecked.
+--
+-- Nothing fires on its own: Mock.advance moves the clock without running these,
+-- so every scenario written before this one behaves exactly as it did. A
+-- scenario that wants the callbacks asks for them.
+C_Timer = {
+	After = function(delay, fn)
+		Mock.timers[#Mock.timers + 1] = { at = Mock.now + (tonumber(delay) or 0), fn = fn }
+	end,
+	NewTicker = function() return {} end,
+}
+
+-- Advance the clock and run whatever falls due, including anything the
+-- callbacks schedule on their way past -- which is the whole point here, since
+-- a settling baseline asks for its next reading from inside the last one. The
+-- cap is a runaway guard: a chain that never stops is a bug in the addon, and
+-- the scenario should fail rather than hang.
+function Mock.runTimers(seconds)
+	if seconds then Mock.advance(seconds) end
+	for _ = 1, 200 do
+		local due
+		for i = 1, #Mock.timers do
+			if Mock.timers[i].at <= Mock.now then due = i break end
+		end
+		if not due then return true end
+		table.remove(Mock.timers, due).fn()
+	end
+	return false
+end
 
 -- Namespaces are rebuilt on each access so `stripped` can remove them.
 local function ns_or_nil(t) if Mock.stripped then return nil end return t end
@@ -461,8 +547,10 @@ setmetatable(_G, { __index = function(_, key)
 				-- produces -- and asking the addon to treat it as ordinary.
 				if Mock.extraAura and i == count + 1 then
 					return { auraInstanceID = Mock.extraAura == true and 3003 or Mock.extraAura,
-						spellId = 1459,
-						sourceUnit = maybeSecret("nameplate1"), expirationTime = 2000 }
+						spellId = Mock.extraAuraSpell or 1459,
+						sourceUnit = Mock.extraAuraSource
+							and maybeSecret(Mock.extraAuraSource) or nil,
+						expirationTime = Mock.extraAuraUntil or 2000 }
 				end
 				if i > count then return nil end
 				-- auraIdBase renumbers the same auras, which is what a zone

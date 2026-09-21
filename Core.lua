@@ -449,7 +449,11 @@ function ns.PickBuffFor(candidates, opts, has)
 			-- the read of it was how a blessing that had just landed stayed
 			-- invisible -- so the next one down was offered over the top of it.
 			if castable(buff) then
-				local held = has(buff)
+				-- Both returns. The second one was dropped here and read
+				-- everywhere else, which is how the refresh mode came to be
+				-- switched on, described in the options, and dead for the one
+				-- class it is safest on -- see the top-up below.
+				local held, remaining = has(buff)
 				if held == true then
 					-- Covered, and for this class that is the end of it:
 					-- anything else offered replaces what they are carrying.
@@ -466,8 +470,33 @@ function ns.PickBuffFor(candidates, opts, has)
 					-- Except when we have just offered it. A blessing on
 					-- cooldown means this person was offered one moments ago,
 					-- and the answer to that is to wait, not to reach for a
-					-- different one.
-					if not opts.offerAnyway or blocked(buff) then return nil, true end
+					-- different one. First, because it outranks both of the
+					-- reasons below for offering somebody a buff they hold.
+					if blocked(buff) then return nil, true end
+
+					-- The top-up, which this branch managed to miss twice over:
+					-- the timer was thrown away with the second return, and
+					-- whenBuffed was never consulted at all -- so "offer a
+					-- top-up when it is running out" did nothing whatever for a
+					-- paladin. It is the one class where topping up is the
+					-- safest thing the addon can do: recasting the blessing
+					-- somebody already holds replaces it with itself, where
+					-- every other offer this branch could make replaces it with
+					-- a different one.
+					--
+					-- Ahead of the debt below, which is how the ordinary path
+					-- orders the same two answers: `expiring` is returned there
+					-- before `offerAnyway and firstHeld`. A timer running out is
+					-- the more urgent thing to say, and it is the only one of
+					-- the two the queue can say at all -- `remaining` is what
+					-- puts the top-up wording on the prompt, and a favour is
+					-- already named by its own reason line.
+					if opts.whenBuffed == "refresh" and remaining
+						and remaining <= (opts.refreshUnder or 5) * 60 then
+						return buff, true, remaining
+					end
+
+					if not opts.offerAnyway then return nil, true end
 					return buff, true
 				end
 				-- "They are carrying none of mine" is established only once
@@ -1386,6 +1415,22 @@ function ns.BuildQueue()
 						priority = PRIORITY.owed,
 						ranged = nil,
 						known = nil,
+						-- Left out entirely, which read as false -- and false
+						-- here means one specific thing: "we chose not to look,
+						-- and you are the one who chose". So the tooltip told
+						-- somebody whose options say to check that the addon
+						-- was not checking, on their instruction. Nothing was
+						-- checked on this path, but not for that reason: there
+						-- is no unit token to read, which is the client's
+						-- doing and not theirs. That is `checked` with a `known`
+						-- of nil, and the tooltip already has the honest line
+						-- for it.
+						--
+						-- The user's own answer is still the one that decides
+						-- it, exactly as on the main path: somebody who has
+						-- turned checking off is being told the truth by the
+						-- other branch.
+						checked = (f.whenBuffed or "skip") ~= "always",
 					}
 				end
 			end
@@ -1421,7 +1466,20 @@ end
 -- cannot be identified at all; that is a hard limit, not an oversight.
 ---------------------------------------------------------------------------
 
+-- What the baseline is holding: instance id -> the spell sitting under that
+-- number, or `true` where the spell could not be read.
+--
+-- The number on its own is not an identity. This file already says instance ids
+-- are recycled here, and the prune below deliberately leaves an expired entry
+-- in place for a second reading, so there is a whole scan in which a different
+-- aura can arrive under a dead number. Keyed on the number alone it was matched
+-- against the corpse and the favour was never seen.
 local knownAuras = {}
+-- When each filed cast was due to end, where the client would say so. Read in
+-- exactly one place -- IsNew -- and for exactly one question; see the comment
+-- there, because it is the only thing that separates two readings that are
+-- otherwise identical.
+local knownUntil = {}
 local auraScanPrimed = false
 -- What the last scan of your own buffs made of itself, for /manners debug. The
 -- gate in ScanOwnBuffs can switch this whole source off without a word -- no
@@ -1439,10 +1497,59 @@ ns.auraScan = { read = 0, held = 0, doubt = "never scanned", primed = false }
 -- scan, never at the bottom, so a re-entrant call -- NoteFavour prints, and
 -- another addon can hook chat -- sees a clean table rather than a half-built one.
 local present = {}
+-- ...and when each of them was due to end, alongside it rather than inside it
+-- so neither table has to allocate a record per slot.
+local presentUntil = {}
 -- What the scan before this one read, and whether there was one at all. Nothing
 -- in the baseline moves on a single reading; see ScanOwnBuffs for why.
 local lastPresent = {}
 local haveLastScan = false
+
+-- Who cast each aura that has been read but not yet filed, resolved at the
+-- moment the slot was read.
+--
+-- aura.sourceUnit is a unit token, and nameplate tokens are recycled: the token
+-- that meant one player when the buff landed can mean a different one a scan
+-- later. So the caster is not a question that can be asked late. A scan that
+-- throws itself away for doubting its own reading hands the aura to the next
+-- scan to notice it, and that scan asks the client who "nameplate3" is now --
+-- which is how the debt, the chat line, the amber prompt and the /say the click
+-- speaks could all be filed against somebody standing nearby who did nothing.
+-- The /say is the one output of this addon another human reads.
+--
+-- Keyed by instance id and holding the identity it was read under, so a
+-- recycled number cannot inherit the previous aura's caster either.
+local sighted = {}
+
+-- Settling a baseline takes two readings that agree, and the second one used to
+-- be whatever UNIT_AURA the client happened to send next. On a character
+-- standing still that is minutes away, and everything landing in between is
+-- filed as something the player was already carrying. The length of that gap is
+-- the length of the hole, so the second reading is asked for rather than waited
+-- for.
+--
+-- The interval is the hole. The count bounds what a client that never settles
+-- costs: past it the baseline goes back to waiting for an event, which is where
+-- it was before this existed. Both are reset by a zone change, which is the only
+-- thing that unprimes a baseline.
+local SETTLE_INTERVAL = 0.2
+local SETTLE_TRIES = 20
+local settleTries = 0
+local settlePending = false
+
+local function ScheduleSettle()
+	if settlePending or settleTries >= SETTLE_TRIES then return end
+	if not (C_Timer and C_Timer.After) then return end
+	settleTries = settleTries + 1
+	settlePending = true
+	C_Timer.After(SETTLE_INTERVAL, function()
+		settlePending = false
+		-- Guarded: a scan that throws inside a timer callback takes nothing
+		-- with it that anybody would ever see, and the baseline would then sit
+		-- unsettled for the rest of the session without a word.
+		ns.Guard("settle aura baseline", ns.ScanOwnBuffs)
+	end)
+end
 
 -- A loading screen can hand back an aura list that is not readable yet. A
 -- baseline taken from that is an empty baseline, and everything already on
@@ -1450,28 +1557,39 @@ local haveLastScan = false
 --
 -- The previous reading is dropped with it. It was taken before the zone
 -- renumbered every instance id, so a scan agreeing with it would be agreeing
--- about nothing.
+-- about nothing. The sightings go for the same reason twice over: the numbers
+-- they are filed under mean nothing now, and neither do the unit tokens they
+-- were read from.
 function ns.ResetAuraBaseline()
 	wipe(knownAuras)
+	wipe(knownUntil)
 	wipe(lastPresent)
+	wipe(sighted)
 	haveLastScan = false
 	auraScanPrimed = false
+	settleTries = 0
 end
 
-local function NoteFavour(aura)
-	local db = addon.db and addon.db.profile
-	if not db then return end
+-- Read the caster off a slot at the moment the slot is read, and keep it under
+-- the aura it belongs to.
+--
+-- The class is captured with the name because neither can be recovered later:
+-- the whole point of this record is the person who walked off without leaving a
+-- unit token behind, and the fallback queue has to decide what to offer them.
+--
+-- A sighting with nobody in it is still a sighting, and that is the point. It
+-- records that this aura was looked at and no name could be read off it, so a
+-- later scan does not go back to the token and take whoever is behind it by
+-- then. An aura whose caster could not be read is nobody's favour: a nameless
+-- favour is not better than none, and a favour spoken at the wrong player is
+-- considerably worse.
+local function Sight(instanceId, key, aura)
+	local seen = sighted[instanceId]
+	-- A different aura under the same number is a different sighting.
+	if seen and seen.key == key then return end
 
-	-- The prompt is the only thing that ever pays a favour back, and with this
-	-- source switched off nothing written here can reach it: BuildQueue's owed
-	-- lookup and the grace-window fallback are both gated on the same setting.
-	-- Returning here also saves the unit reads below on every noticed aura.
-	--
-	-- A switched-off addon is the same lie told louder: Refresh hides the
-	-- button and clears the target, so there is no prompt at all -- and this
-	-- still wrote the debt to SavedVariables and said out loud that returning
-	-- the favour was on it.
-	if not db.enabled or not db.sources.owed then return end
+	seen = { key = key }
+	sighted[instanceId] = seen
 
 	local source = plain(aura.sourceUnit)
 	if not source or source == "player" then return end
@@ -1481,13 +1599,35 @@ local function NoteFavour(aura)
 	local full = ns.UnitFullName(source)
 	if not full then return end
 
-	-- The class is captured now because it cannot be recovered later: the whole
-	-- point of this record is the person who walked off without leaving a unit
-	-- token behind, and the fallback queue has to decide what to offer them.
-	owed[full] = { expires = GetTime() + db.timing.reciprocateWindow, at = GetTime(),
-		guid = plain(UnitGUID(source)), class = plain(select(2, UnitClass(source))) }
+	seen.name = full
+	seen.guid = plain(UnitGUID(source))
+	seen.class = plain(select(2, UnitClass(source)))
+end
+
+-- One favour, filed against the person who was holding the token when the aura
+-- was read. `seen` comes from Sight and nothing is re-derived from the aura
+-- here: by now the token may mean somebody else.
+local function NoteFavour(seen)
+	local db = addon.db and addon.db.profile
+	if not db then return end
+
+	-- The prompt is the only thing that ever pays a favour back, and with this
+	-- source switched off nothing written here can reach it: BuildQueue's owed
+	-- lookup and the grace-window fallback are both gated on the same setting.
+	-- The scan asks the same question before it reads a caster at all, so this
+	-- is the second gate on one decision rather than the only one: it stays
+	-- because the setting can be switched off between the sighting and here.
+	--
+	-- A switched-off addon is the same lie told louder: Refresh hides the
+	-- button and clears the target, so there is no prompt at all -- and this
+	-- still wrote the debt to SavedVariables and said out loud that returning
+	-- the favour was on it.
+	if not db.enabled or not db.sources.owed then return end
+
+	owed[seen.name] = { expires = GetTime() + db.timing.reciprocateWindow, at = GetTime(),
+		guid = seen.guid, class = seen.class }
 	if db.verbose then
-		addon:Print(("|cff80ff80%s buffed you|r -- returning the favour is on the prompt"):format(full))
+		addon:Print(("|cff80ff80%s buffed you|r -- returning the favour is on the prompt"):format(seen.name))
 	end
 	-- Written through rather than left to the logout hook: a favour is rare
 	-- enough to afford it, and correctness then does not depend on a callback
@@ -1521,15 +1661,47 @@ end
 
 -- Do two readings of the aura list name the same auras? Membership both ways
 -- rather than a count: two scans can read the same number of slots and still
--- not be reading the same list.
+-- not be reading the same list. The spell is compared with the number, so a
+-- number handed to a different aura between two readings is a disagreement and
+-- not a match.
 local function SameAuraSet(a, b)
-	for id in pairs(a) do if not b[id] then return false end end
-	for id in pairs(b) do if not a[id] then return false end end
+	for id, key in pairs(a) do if b[id] ~= key then return false end end
+	for id, key in pairs(b) do if a[id] ~= key then return false end end
 	return true
+end
+
+-- Is the aura in this slot one the baseline has not filed?
+--
+-- The number cannot answer that on its own, because the number is reused. Two
+-- things are carried beside it:
+--
+--   * the spell. A different spell under a recycled number is a different aura
+--     outright, and there is nothing to weigh up.
+--   * when the cast we filed was due to end -- consulted only for an entry the
+--     previous reading did not show, which is the single scan of grace the
+--     prune gives a vanished aura and nothing else.
+--
+-- That grace scan is the whole difficulty. An aura absent from one reading and
+-- back in the next is either a cast that ran out and was replaced under its own
+-- number, or one the client declined to report and has now handed back -- and
+-- those two readings are identical, slot for slot. Announcing on the shape of
+-- the absence is exactly the mistake that invented favours out of a refusal of
+-- the trailing slots. The one place the client does tell them apart is the
+-- clock: a cast that replaced another ends later than the one it replaced, and
+-- a refusal hands back the same aura with the same ending. So that, and nothing
+-- else, is asked -- and an ending that is missing or unreadable at either end
+-- claims nothing at all and leaves the aura filed.
+local function IsNew(instanceId, key, expires)
+	local known = knownAuras[instanceId]
+	if known == nil or known ~= key then return true end
+	if lastPresent[instanceId] == key then return false end
+	local was = knownUntil[instanceId]
+	return (was ~= nil and expires ~= nil and expires > was) or false
 end
 
 function ns.ScanOwnBuffs()
 	wipe(present)
+	wipe(presentUntil)
 
 	-- What the baseline held a moment ago, counted before anything touches it.
 	-- This is the one thing the scan knows that did not come from the client.
@@ -1555,16 +1727,30 @@ function ns.ScanOwnBuffs()
 	-- scan may set the flag itself further down.
 	local primed = auraScanPrimed
 
+	local db = addon.db and addon.db.profile
+	-- The class-buff filter is a setting, and was previously hardcoded at the
+	-- announcement -- the toggle read nothing at all.
+	local classOnly = not db or db.sources.owedClassBuffsOnly ~= false
+	-- Whether anything read in this scan could become a favour at all. Nothing
+	-- is announced off an unsettled baseline and nothing is announced with the
+	-- source switched off, so reading a caster in either case is four unit
+	-- lookups per slot, on every UNIT_AURA, for a name nobody will ever use.
+	local watching = primed and db and db.enabled and db.sources.owed and true or false
+
 	local read = 0
 	local refused = false  -- a slot said outright that it would not answer
 	local silence = false  -- a slot handed back nothing, with the walk still going
 	local hole = false     -- ...and an aura was found behind it
-	-- Auras the baseline has not seen. Collected and judged after the walk,
+	-- The instance ids the baseline has not filed. Judged after the walk,
 	-- because whether this scan may be believed at all is not known until it
 	-- ends. Built fresh each time rather than reused like `present`: it is
 	-- walked after the fact, and NoteFavour prints -- another addon can hook
 	-- chat -- so a re-entrant scan would otherwise wipe it under that walk. The
 	-- allocation only happens on a scan that actually found something new.
+	--
+	-- Numbers rather than the aura tables: everything the announcement needs is
+	-- already filed under the number, in `present` and in `sighted`, and this
+	-- runs on every UNIT_AURA.
 	local fresh
 
 	-- Every slot, every time, and no early exit on a run of slots that will not
@@ -1588,10 +1774,25 @@ function ns.ScanOwnBuffs()
 
 			local instanceId = plain(aura.auraInstanceID)
 			if instanceId then
-				present[instanceId] = true
-				if not knownAuras[instanceId] then
+				-- The spell is read here rather than at the announcement
+				-- because it is half of the aura's identity and not merely a
+				-- filter on it.
+				local spellId = plain(aura.spellId)
+				local key = spellId or true
+				local expires = plain(aura.expirationTime)
+				present[instanceId] = key
+				presentUntil[instanceId] = expires
+				if IsNew(instanceId, key, expires) then
 					fresh = fresh or {}
-					fresh[#fresh + 1] = aura
+					fresh[#fresh + 1] = instanceId
+					-- Who cast it, read now, while the token still means what
+					-- it meant when this slot was read. Only for an aura that
+					-- could ever be announced: everything else is unit lookups
+					-- spent on a name that is thrown away below.
+					if watching and spellId
+						and (not classOnly or ns.ALL_BUFF_IDS[spellId]) then
+						Sight(instanceId, key, aura)
+					end
 				end
 			end
 		end
@@ -1622,7 +1823,14 @@ function ns.ScanOwnBuffs()
 	-- for good is otherwise indistinguishable from nobody buffing you.
 	scan.read, scan.held, scan.doubt = read, held, doubt
 	scan.primed = auraScanPrimed
-	if doubt then return end
+	if doubt then
+		-- A doubted reading is not one of the two and settles nothing, so an
+		-- unsettled baseline asks for another reading from here as well. Left
+		-- to the client, a blackout that outlasts the next UNIT_AURA leaves the
+		-- baseline unsettled for as long as the client stays quiet afterwards.
+		if not primed then ScheduleSettle() end
+		return
+	end
 
 	-- Everything below turns on one question, and it is not "was that a
 	-- refusal" -- it is "has a second scan said the same thing". A reading on
@@ -1643,9 +1851,17 @@ function ns.ScanOwnBuffs()
 		-- and primes on the second scan -- which is the case the old count gate
 		-- was reaching for and got wrong, since it could only ask about one.
 		if agrees then
-			for instanceId in pairs(present) do knownAuras[instanceId] = true end
+			for instanceId, key in pairs(present) do
+				knownAuras[instanceId] = key
+				knownUntil[instanceId] = presentUntil[instanceId]
+			end
 			auraScanPrimed = true
 			scan.primed = true
+		else
+			-- And the reading that has to agree is asked for on the clock. The
+			-- gap between these two is the whole of the loss below, so it is
+			-- ours to keep short rather than the client's to choose.
+			ScheduleSettle()
 		end
 	else
 		-- An aura that really did run out has to leave, or it is still "known"
@@ -1658,45 +1874,70 @@ function ns.ScanOwnBuffs()
 		-- one reading dropped precisely the auras the scan had failed to read --
 		-- then announced every one of them as a favour when they read back. So
 		-- an entry leaves only once two scans running have failed to find it.
-		for instanceId in pairs(knownAuras) do
-			if not present[instanceId] and not lastPresent[instanceId] then
+		--
+		-- "Find it" is the aura and not the number. A reading that shows a
+		-- different spell under that number has not found this aura either, and
+		-- said so from the client rather than by silence.
+		for instanceId, key in pairs(knownAuras) do
+			if present[instanceId] ~= key and lastPresent[instanceId] ~= key then
 				knownAuras[instanceId] = nil
+				knownUntil[instanceId] = nil
 			end
 		end
 
-		-- Which is also what makes the announcement safe, with no second rule of
-		-- its own: an aura can only be missing from the baseline here if two
-		-- consecutive scans agreed it was gone, so "not in the baseline" already
-		-- means "absent from the last two readings". A buff that genuinely just
-		-- landed was in neither and is still announced on the scan it arrives in.
+		-- Which is most of what makes the announcement safe, and it needs no
+		-- second rule of its own: an entry can only be missing from the baseline
+		-- here if two consecutive scans agreed it was gone, so "not filed"
+		-- already means "absent from the last two readings". A buff that
+		-- genuinely just landed was in neither and is announced on the scan it
+		-- arrives in. The rest of it is IsNew, which covers the one thing that
+		-- rule cannot see -- something arriving under a number the baseline is
+		-- still holding for an aura that has died.
 		if fresh then
-			local db = addon.db and addon.db.profile
-			-- The class-buff filter is a setting, and was previously hardcoded
-			-- here -- the toggle read nothing at all.
-			local classOnly = not db or db.sources.owedClassBuffsOnly ~= false
 			for i = 1, #fresh do
-				local aura = fresh[i]
-				local instanceId = plain(aura.auraInstanceID)
-				if instanceId then
-					knownAuras[instanceId] = true
-					local spellId = plain(aura.spellId)
-					-- NoteFavour drops the rest: an aura whose caster cannot be
-					-- read is nobody's favour, which is also the last line of
-					-- defence here, since an aura that has been sitting on you
-					-- since before a refusal rarely still has a unit token
-					-- behind it.
-					if spellId and (not classOnly or ns.ALL_BUFF_IDS[spellId]) then
-						NoteFavour(aura)
+				local instanceId = fresh[i]
+				local key = present[instanceId]
+				if key ~= nil then
+					knownAuras[instanceId] = key
+					knownUntil[instanceId] = presentUntil[instanceId]
+					local seen = sighted[instanceId]
+					-- The name is the one read when the slot was read, and it
+					-- is the only name there will be. A sighting that could
+					-- not read anybody -- no token, a token that is not a
+					-- player, a name the client would not spell -- ends here
+					-- rather than being asked again of a token that may since
+					-- have been handed to somebody else.
+					--
+					-- `filed` is the guard against one aura being announced
+					-- twice, and it has to live on the sighting: the baseline
+					-- cannot be the guard, because an aura that ran out and
+					-- came back under its own number is in the baseline
+					-- already and is exactly what this loop is here for.
+					if seen and seen.key == key and seen.name and not seen.filed then
+						seen.filed = true
+						NoteFavour(seen)
 					end
 				end
 			end
 		end
 	end
 
+	-- Sightings belong to auras the baseline has not filed yet. One goes when
+	-- the baseline takes the aura over, and when the aura stops being read at
+	-- all -- otherwise the table grows for the session, and the next aura handed
+	-- that instance id inherits a caster who had nothing to do with it. Here
+	-- rather than above the doubt check: a reading that is not believed is not
+	-- evidence that an aura has gone.
+	for instanceId, seen in pairs(sighted) do
+		if present[instanceId] ~= seen.key or knownAuras[instanceId] == seen.key then
+			sighted[instanceId] = nil
+		end
+	end
+
 	-- This scan becomes the reading the next one has to agree with. A doubted
 	-- scan returned above and never gets here, so it is never one of the two.
 	wipe(lastPresent)
-	for instanceId in pairs(present) do lastPresent[instanceId] = true end
+	for instanceId, key in pairs(present) do lastPresent[instanceId] = key end
 	haveLastScan = true
 
 	-- What this costs, stated plainly, because it is the price of never asking
@@ -1705,10 +1946,29 @@ function ns.ScanOwnBuffs()
 	-- its own repetition and is indistinguishable from the truth: two scans
 	-- agreeing you hold nothing is exactly what a character holding nothing
 	-- looks like. There is no reading of the client that separates them, so the
-	-- residue is left where it is rather than guessed at. Everything that lasts
-	-- one scan -- which is what a loading screen and a half-handed list actually
-	-- do -- is caught, and the bill is one extra UNIT_AURA before the first
-	-- favour after a zone change.
+	-- residue is left where it is rather than guessed at.
+	--
+	-- Settling the baseline costs the same kind of thing, and it is worth saying
+	-- plainly rather than leaving somebody to find it. A buff that lands between
+	-- the first reading that shows the real list and the reading that
+	-- corroborates it is in both of them, so it is filed as something the player
+	-- was already carrying and is never announced. Nothing here can tell that
+	-- from the truth: "you were already holding this" and "somebody buffed you
+	-- while the screen was black" produce the same pair of readings, and the only
+	-- thing that would separate them is a guess about the shape of a refusal --
+	-- which is the guess this whole scan exists to stop making. A favour nobody
+	-- hears about is much better than one filed against a bystander, so it stays
+	-- unheard.
+	--
+	-- What is not left to the client is how long that lasts. The corroborating
+	-- reading is asked for on a timer rather than waited for, so the gap is
+	-- SETTLE_INTERVAL -- a fifth of a second -- and not "however long until the
+	-- client next sends a UNIT_AURA", which on a character standing still is
+	-- minutes. That is a statement about the interval, which is ours. It is
+	-- deliberately not a statement about how long a loading screen on this client
+	-- takes, or about what one "actually does" to the aura list: nothing in this
+	-- tree establishes either, and the sentence that used to stand here claimed
+	-- both.
 	--
 	-- Which is the remaining use of the evidence above, and why it short-
 	-- circuits rather than just being recorded: a scan it can see through never
@@ -1923,6 +2183,36 @@ local function NameMissed(pending, wentElsewhere)
 	end
 end
 
+-- The window running out on a record, wherever that is noticed.
+--
+-- It is one outcome, not four, so it is worked out in one place. A cast the
+-- client accepted reports in the same frame, so a record that sat here for the
+-- whole window saw no cast event -- and that, with our own spell landing on
+-- somebody else, is the whole of what the /target line can honestly be judged
+-- on.
+--
+-- Three callers used to answer this state by clearing the slot and returning,
+-- each on a comment saying the sweep had it or would get it. It could not: the
+-- sweep reads ns.pendingClick, so nilling the slot is precisely what stops it
+-- from ever running. What the click wrote on the assumption it landed -- the
+-- twelve-second per-buff cooldown, the rotation pointer -- then stood at its
+-- full length over a cast that never happened, and the person was walked down
+-- their own buff list by presses that cast nothing. The rule the rest of this
+-- file works to is that a record is never discarded silently, and one owner for
+-- the discard is the only way that can be true.
+--
+-- The panel is not written from here: see SweepPendingClick, which is the only
+-- caller that is watching the window run out rather than finding it long run
+-- out.
+local function ExpirePendingClick(pending)
+	ns.pendingClick = nil
+	NameMissed(pending, false)
+	-- Idempotent, and it needs to be: an error inside the window may have
+	-- rewound this record already.
+	RewindClick(pending)
+	SayStillOwed(pending.name, "the game answered that press with nothing at all")
+end
+
 -- A second press while the first is still waiting for the game.
 --
 -- There is one slot and nothing on it says which press it belongs to, so the
@@ -1940,11 +2230,16 @@ end
 local function AbandonPendingClick()
 	local pending = ns.pendingClick
 	if not pending then return end
+	-- Past its window this is not an unknown outcome at all, it is the known
+	-- one, and the only reason it has not been acted on is that the tick has
+	-- not come round: at a two-second scan interval a record can outlive its
+	-- window by another two before the sweep looks. The slot is about to be
+	-- reused, and after that nothing can put back what that press wrote.
+	if GetTime() - pending.at > SETTLE_SECONDS then
+		ExpirePendingClick(pending)
+		return
+	end
 	ns.pendingClick = nil
-	-- Past its window it is already dead: the sweep has taken it, or will, and
-	-- running its rewind again here would block that person on the strength of
-	-- a press the game answered -- or refused to answer -- long ago.
-	if GetTime() - pending.at > SETTLE_SECONDS then return end
 	SayStillOwed(pending.name, "another press arrived before the game answered that one")
 	RewindClick(pending)
 end
@@ -1988,8 +2283,13 @@ ns.AbandonPendingClick = AbandonPendingClick
 local function FailPendingClick()
 	local pending = ns.pendingClick
 	if not pending then return nil end
+	-- Past its window this error cannot be about that click -- but the record
+	-- is still parked, which means the tick has not swept it, and dropping it
+	-- here leaves nothing that ever will. So it is retired properly, and nil
+	-- still comes back: the panel must not put the game's words about somebody
+	-- else's bags over a press that was already dead when they arrived.
 	if GetTime() - pending.at > SETTLE_SECONDS then
-		ns.pendingClick = nil
+		ExpirePendingClick(pending)
 		return nil
 	end
 	RewindClick(pending)
@@ -2007,33 +2307,70 @@ local function SweepPendingClick(now)
 	local pending = ns.pendingClick
 	if not pending then return end
 	if now - pending.at <= SETTLE_SECONDS then return end
-	ns.pendingClick = nil
-	NameMissed(pending, false)
-	-- Idempotent, and it needs to be: an error inside the window may have
-	-- rewound this record already.
-	RewindClick(pending)
-	-- The one case with no event behind it at all, and the one the user is
-	-- likeliest to be confused by: the prompt was clicked, the game said
-	-- nothing, and until now the panel said nothing either.
+	ExpirePendingClick(pending)
+	-- The panel, and only from here. This is the one path that notices the
+	-- window running out at the moment it runs out, so it is the one that can
+	-- honestly flash half a second of red about it -- and it is the case with
+	-- no event behind it at all, the one the user is likeliest to be confused
+	-- by: the prompt was clicked, the game said nothing, and until this existed
+	-- the panel said nothing either.
+	--
+	-- The other three callers find the record already dead. By then the panel
+	-- has moved on to whatever came after, and flashing there would be red over
+	-- a press the user has stopped thinking about -- or, from inside PostClick,
+	-- a repaint in the middle of arming the next one. What those three owe is
+	-- the rewind, which is what they were not doing.
 	ShowOutcome("failed", pending.name, "nothing was cast")
 end
+
+-- What an inferred settle is inferring, said once and read by both the chat
+-- line and the panel, so the two cannot end up making different claims about
+-- the same press. `said` finishes "X counted as repaid -- "; `sub` goes under
+-- the name on the prompt, where there is room for a clause and not a sentence.
+--
+-- There is no entry for a confirmed settle on purpose: that one is the client
+-- naming the person we aimed at, and it has nothing to qualify.
+local SETTLE_INFERENCE = {
+	targeted = {
+		said = "our spell went out and the macro aimed at them, but this client would"
+			.. " not say who received it",
+		sub = "cast -- this client will not confirm who to",
+	},
+	selfcast = {
+		said = "our spell went out, but a selfCast buff has no target at all -- whether"
+			.. " it reached them depends on where they were standing",
+		sub = "cast -- it has no target, so nothing says it reached them",
+	},
+}
+
+-- The click that just settled, kept rather than dropped. See UnsettleLateRefusal.
+local settledClick
 
 local function SettlePendingClick(landedOn, spellId)
 	local pending = ns.pendingClick
 	if not pending then return end
+	-- This cast belongs to something else: the client answers one it accepted
+	-- in the same frame, and that frame is long gone. The record is still
+	-- parked only because the tick has not swept it, so the outcome the window
+	-- running out establishes is still owed and is filed here. What must not
+	-- happen is this cast being judged against a press it has nothing to do
+	-- with, which is why the record is retired rather than settled.
 	if GetTime() - pending.at > SETTLE_SECONDS then
-		ns.pendingClick = nil
+		ExpirePendingClick(pending)
 		return
 	end
 
 	-- Asked once, because three of the branches below want the answer.
 	local ours = SpellIsOurs(spellId, pending.buffKey)
 
-	-- why is the reason this favour is still owed, and nil means it is not. The
-	-- branches are in the order they can be decided: what the macro was is
-	-- known for certain, who the spell reached is usually known, and which
-	-- spell it was is known last of all.
-	local why, unconfirmed
+	-- why is the reason this favour is still owed, and nil means it is not.
+	-- inferred is nil where the client itself named the person and otherwise
+	-- names which inference is carrying the settle, because the two are not the
+	-- same claim and the panel and the chat line both have to say which one
+	-- they are making. The branches are in the order they can be decided: what
+	-- the macro was is known for certain, who the spell reached is usually
+	-- known, and which spell it was is known last of all.
+	local why, inferred
 	if pending.selfCast then
 		-- A selfCast buff's macro has no /target line and cannot have one: the
 		-- spell lands on the caster and reaches the party from there. So "did
@@ -2049,6 +2386,18 @@ local function SettlePendingClick(landedOn, spellId)
 		-- the only thing that needs checking.
 		if not ours then
 			why = ("|cffffffff%s|r went out instead"):format(tostring(spellId))
+		else
+			-- Settled, and inferred -- which this used to skip, taking the
+			-- confirmed tick instead. That was the strongest claim the panel
+			-- can make sitting on the weakest evidence in this function: the
+			-- targeted branch below at least has a /target of ours aimed at
+			-- this person, recorded at press time. Here there is no /target by
+			-- construction, no recipient in the cast event, and nothing
+			-- anywhere tying the spell to the person named -- Battle Shout
+			-- going out says a shout happened, and that it reached the person
+			-- we offered it to is an assumption about where they were
+			-- standing. Strictly less evidence cannot mean a stronger claim.
+			inferred = "selfcast"
 		end
 	-- A /target for a name the game cannot resolve is a no-op: it leaves your
 	-- existing target in place, so the cast goes to whoever that was. Settling
@@ -2092,7 +2441,7 @@ local function SettlePendingClick(landedOn, spellId)
 		-- it, aimed at this person, recorded at press time rather than guessed
 		-- at now. That is not proof the spell reached them, and the verbose
 		-- line below says so instead of implying otherwise.
-		unconfirmed = true
+		inferred = "targeted"
 		NameReached(pending)
 	else
 		-- Our spell went out, the client will not say to whom, and the macro
@@ -2114,28 +2463,94 @@ local function SettlePendingClick(landedOn, spellId)
 		return
 	end
 
+	-- Read before SettleFavour clears it, because the undo below has to put back
+	-- the entry that stood rather than a fresh one: it carries when the favour
+	-- was done as well as when it expires, and the grace window reads that.
+	local wasOwed = owed[pending.name]
+
 	-- Only where there was a favour to repay, and only when asked for: a click
 	-- on somebody who simply looked short of a buff owes nothing and settles
 	-- nothing, so saying "counted as repaid" about them would be its own small
 	-- untruth.
-	if unconfirmed and owed[pending.name] then
+	if inferred and wasOwed then
 		local db = addon.db and addon.db.profile
 		if db and db.verbose then
-			addon:Print(("|cffffd100%s counted as repaid|r -- our spell went out and the"
-				.. " macro aimed at them, but this client would not say who received it.")
-				:format(pending.name))
+			addon:Print(("|cffffd100%s counted as repaid|r -- %s."):format(
+				pending.name, SETTLE_INFERENCE[inferred].said))
 		end
 	end
 
 	-- Confirmed and inferred are kept apart here for the same reason the verbose
-	-- wording above distinguishes them. "cast" means the client named the person
-	-- we aimed at -- or the buff was a selfCast one, where the spell going out
-	-- *is* the delivery and there is no recipient to name. "sent" is the
-	-- inference: our spell, our /target, and a client that would not say.
-	ShowOutcome(unconfirmed and "sent" or "cast", pending.name)
+	-- wording above distinguishes them. "cast" is the client naming the person
+	-- we aimed at, and it is the only thing in this function that is not an
+	-- inference. "sent" is everything that is: our spell went out and something
+	-- other than the client's word connects it to the person named.
+	local how = inferred and SETTLE_INFERENCE[inferred]
+	ShowOutcome(how and "sent" or "cast", pending.name, how and how.sub)
 
 	ns.SettleFavour(pending.name)
+	-- The client sent the cast; the server has not answered yet. Keep the
+	-- record so a refusal arriving a moment from now has something to be about.
+	settledClick = { name = pending.name, buffKey = pending.buffKey,
+		gave = pending.gave, at = GetTime(), owed = wasOwed }
 	ns.pendingClick = nil
+end
+
+-- A refusal that arrives after the settle has already let the record go.
+--
+-- UNIT_SPELLCAST_SENT is the client saying it sent the cast, not the server
+-- saying it took it. The refusal -- out of range, line of sight, they moved,
+-- they died -- comes back a moment later, and by then the slot is empty and the
+-- failure handler returns on its first line. So the whole of it was dropped:
+-- no red flash, no chat line, a tick left standing over a cast the server threw
+-- away, the debt cleared, and the twelve-second block holding -- which is to
+-- say the one press the user made was filed as a favour repaid and that person
+-- was not offered again for the rest of the window.
+--
+-- The record is kept for exactly as long as a parked one would have lived.
+-- That number is deliberately not a new one: the reason SETTLE_SECONDS is a
+-- single constant is that everything judging a record has to agree about when
+-- it is dead, and a fourth reader with its own idea is a record judged twice or
+-- not at all.
+--
+-- What this cannot do is prove the refusal is about our cast. Neither can
+-- FailPendingClick, and the admission it makes holds here unchanged: an
+-- unrelated error inside the window costs one redundant offer, and the other
+-- way round loses the favour outright. Where the event does carry a spell id it
+-- is checked, which is more than the error path can do.
+--
+-- Returns the name, so the caller can put the game's own words on the panel.
+local function UnsettleLateRefusal(spellId)
+	local settled = settledClick
+	if not settled then return nil end
+	if GetTime() - settled.at > SETTLE_SECONDS then
+		settledClick = nil
+		return nil
+	end
+	-- Somebody else's spell failing. A nil or secret id says nothing either way
+	-- and passes, the same way every other unreadable value in this file does --
+	-- one withheld number must not be able to make a confirmation permanent.
+	if not SpellIsOurs(spellId, settled.buffKey) then return nil end
+
+	-- Consumed here, before anything is undone with it. A refusal is one event
+	-- about one cast, and a record left lying here would let the next unrelated
+	-- error paint red over whatever the panel has since moved on to. The
+	-- rejections above deliberately leave it: a spell of somebody else's
+	-- failing is not this record's answer, and the real one may still arrive.
+	settledClick = nil
+
+	-- Out through the same door SettleFavour went: it wrote the clearing to
+	-- disk, so putting the debt back in memory alone would restore the favour
+	-- for this session and lose it again at the next login.
+	if settled.owed then
+		owed[settled.name] = settled.owed
+		SaveDebts()
+	end
+	-- And the blocks and the rotation pointer the click wrote on the assumption
+	-- it landed, which the settle deliberately let stand.
+	RewindClick(settled)
+	SayStillOwed(settled.name, "the game refused the cast after sending it")
+	return settled.name
 end
 
 function addon:UNIT_SPELLCAST_SENT(_, unit, target, _, spellId)
@@ -2155,8 +2570,22 @@ end
 
 function addon:UNIT_SPELLCAST_FAILED(_, unit, _, spellId)
 	if unit ~= "player" then return end
+	spellId = plain(spellId)
+	-- The server refusing a cast the client already reported sending. Only when
+	-- no record is parked: one that is has not settled yet, is inside its
+	-- window, and is UI_ERROR_MESSAGE's to answer -- two rewinders for one
+	-- outcome is the shape that left one of them never running in the first
+	-- place.
+	--
+	-- Of the two events that carry a refusal this is the better witness and the
+	-- only one that can be checked at all: it names the spell, so our own cast
+	-- being refused is told apart from anything else on the bar failing.
+	if not ns.pendingClick then
+		local late = UnsettleLateRefusal(spellId)
+		if late then ShowOutcome("failed", late, "the game refused the cast") end
+	end
 	if self.db.profile.verbose and ns.lastClickTime and (GetTime() - ns.lastClickTime) <= 1 then
-		self:Print("|cffff8080could not cast|r " .. tostring(plain(spellId)))
+		self:Print("|cffff8080could not cast|r " .. tostring(spellId))
 	end
 end
 
@@ -2170,7 +2599,17 @@ function addon:UI_ERROR_MESSAGE(_, _, message)
 	-- whoever we owed is still owed and what the click wrote comes back out.
 	-- It is not a reason to conclude anything about the person's name: see
 	-- FailPendingClick, which deliberately does less than it used to.
+	--
+	-- Read before the call, because the call empties the slot either way and
+	-- "was there a record" is the question that decides whether the line below
+	-- may look further back.
+	local hadPending = ns.pendingClick ~= nil
 	local failed = FailPendingClick()
+	-- Nothing was parked, so this error may be the server's answer to a cast
+	-- that has already settled -- the case that used to fall off the end of
+	-- this function entirely. Only where nothing was parked: a record that was
+	-- there has just been answered, and an error cannot be about two casts.
+	if not hadPending then failed = UnsettleLateRefusal() end
 	-- Only where a click was actually parked, so the panel flashes for an error
 	-- that arrived inside our own window and stays quiet for the rest of what
 	-- this event carries. The game's own words go on the sub-line: they are
@@ -2579,7 +3018,15 @@ function ns.ClampSettings()
 	-- The set of switched-off spells. Indexed on every scan by CastableBuffs,
 	-- and a non-table there would take the whole queue down with it.
 	if type(profile.buff.skip) ~= "table" then profile.buff.skip = {} end
-	oneOf(p, "style", { glass = true, blizzard = true, minimal = true }, "glass")
+	-- A look called "blizzard" that never applied a backdrop, a border or an
+	-- atlas: it was the flat panel with the bevel and the shadow taken off, and
+	-- the dropdown named it after the one thing in it that did not exist. It
+	-- has a border now and is called what it is -- and this carries anybody
+	-- holding the old name across to it, because the oneOf below would
+	-- otherwise read it as nonsense and hand them the default look instead of
+	-- the one they picked.
+	if p.style == "blizzard" then p.style = "framed" end
+	oneOf(p, "style", { glass = true, framed = true, minimal = true }, "glass")
 	oneOf(p, "accentMode", { icon = true, stripe = true, both = true, off = true }, "icon")
 	oneOf(p, "flashStyle", { pulse = true, once = true, off = true }, "pulse")
 	oneOf(p, "point", VALID_ANCHORS, "CENTER")

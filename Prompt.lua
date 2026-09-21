@@ -51,6 +51,12 @@ local WHITE = "Interface\\Buttons\\WHITE8X8"
 
 local button, art, textLayer
 local shadowOuter, shadowInner, panel, hairTop, hairBottom
+-- The four edges of the framed look, drawn from the same white texture as
+-- everything else here. A backdrop needs BackdropTemplate and a border needs an
+-- art file or an atlas, and both of those are things this client may not have
+-- -- which is how the look that promised one went three releases applying
+-- nothing at all. Four one-pixel rectangles cannot fail.
+local edges
 local accentTop, accentBottom, sweep, sweepFrame
 local iconBack, icon, iconGlow, glowFrame, iconMask
 local nameText, subText, countChip, countText, queueRows
@@ -306,6 +312,27 @@ function Prompt:Create()
 	hairBottom:SetPoint("BOTTOMLEFT")
 	hairBottom:SetPoint("BOTTOMRIGHT")
 	hairBottom:SetVertexColor(0, 0, 0, 0.55)
+
+	-- A line all the way round, for the framed look. Above the bevel and the
+	-- stripe, because it replaces both: the bevel is two edges of a box that
+	-- this draws all four of, and the stripe would sit on top of the left one.
+	--
+	-- Anchored corner to corner rather than sized, so it follows the panel
+	-- through a width or height change without ApplyStyle having to measure it.
+	edges = {}
+	for _, at in ipairs({
+		{ "TOPLEFT", "TOPRIGHT", height = 1 },
+		{ "BOTTOMLEFT", "BOTTOMRIGHT", height = 1 },
+		{ "TOPLEFT", "BOTTOMLEFT", width = 1 },
+		{ "TOPRIGHT", "BOTTOMRIGHT", width = 1 },
+	}) do
+		local edge = Solid(art, "BORDER", 3)
+		if at.height then edge:SetHeight(at.height) else edge:SetWidth(at.width) end
+		edge:SetPoint(at[1])
+		edge:SetPoint(at[2])
+		edge:Hide()
+		edges[#edges + 1] = edge
+	end
 
 	-- The accent stripe is two textures so it can fade out towards both ends
 	-- instead of stopping dead. A gradient only has two stops.
@@ -846,8 +873,23 @@ function Prompt:ApplyStyle()
 		hairBottom:SetShown(glass)
 	end
 
+	-- The border, and the one look that has it. Derived from the panel colour
+	-- rather than fixed, because the panel colour is the user's: a light panel
+	-- with a hardcoded pale border has no border, and finding that out means
+	-- opening the colour picker and wondering whether the setting works.
+	local framed = style == "framed"
+	local er, eg, eb = br + (1 - br) * 0.50, bg + (1 - bg) * 0.50, bb + (1 - bb) * 0.55
+	for _, edge in ipairs(edges) do
+		edge:SetShown(framed)
+		edge:SetVertexColor(er, eg, eb, math.min(1, ba + 0.10))
+	end
+
 	local mode = p.accentMode or "icon"
-	local showAccent = style ~= "blizzard" and (mode == "stripe" or mode == "both")
+	-- Not on the framed look: the stripe would run down the inside of the left
+	-- edge, a second line a pixel from the first, which reads as a drawing
+	-- mistake rather than as a reason colour. The ring around the icon is still
+	-- there, and it is the better carrier of the two anyway.
+	local showAccent = not framed and (mode == "stripe" or mode == "both")
 	accentTop:SetShown(showAccent)
 	accentBottom:SetShown(showAccent)
 	accentTop:SetHeight(p.height / 2)
@@ -1536,12 +1578,17 @@ function Prompt:PaintOutcome()
 		lead = ("|cffff8080could not buff|r |cffffffff%s|r"):format(who)
 		sub = outcomeDetail
 	elseif outcomeKind == "sent" then
-		-- Deliberately not a tick. Our spell went out and the macro was aimed
-		-- at them, but this client would not say who received it, and the
-		-- settle path only infers the favour was repaid. The panel says the
-		-- same thing at the same strength.
+		-- Deliberately not a tick. Our spell went out, but what connects it to
+		-- this person is an inference and not the client's word, and the settle
+		-- path only infers the favour was repaid. The panel says the same thing
+		-- at the same strength.
+		--
+		-- Which inference varies -- a /target of ours the client would not
+		-- confirm, or a selfCast buff with no target at all -- so the settle
+		-- sends the clause rather than this file guessing at it. The fallback
+		-- is the commoner of the two, for a caller that sends none.
 		lead = ("|cffe8e0a0sent to|r |cffffffff%s|r"):format(who)
-		sub = "cast -- this client will not confirm who to"
+		sub = outcomeDetail or "cast -- this client will not confirm who to"
 	else
 		lead = ("|cff8ce88cbuffed|r |cffffffff%s|r"):format(who)
 		sub = "the game confirmed it"
@@ -1626,6 +1673,19 @@ function Prompt:Refresh()
 	local p = db.prompt
 
 	local now = GetTime()
+
+	-- The dim goes on in the combat branch far below and used to come off on
+	-- the one path that reaches past it. Every branch in between returns before
+	-- it: preview, /manners off, an unlocked prompt, a client with nothing to
+	-- cast. Preview is the one that never heals -- it stays alive for as long
+	-- as the options window is open, so a preview started mid-fight sat at 0.55
+	-- alpha for the whole of a styling session, long after the fight ended.
+	--
+	-- One writer per direction, and this one answers the only question that
+	-- decides it. The dim means "the button cannot be pointed at anybody new",
+	-- which is true exactly while the lockdown is -- so it is read here, above
+	-- everything that returns, rather than at the far end of the function.
+	if not InCombatLockdown() then self:SetCombatHold(false) end
 
 	if not ns.caps.anyKnown and not testMode then
 		button:Hide()
@@ -1720,6 +1780,18 @@ function Prompt:Refresh()
 	if InCombatLockdown() then
 		-- Attributes are frozen, so the list cannot be trusted. Either hide, or
 		-- keep showing the frozen target so a click still works.
+		--
+		-- "Hide" is optimistic. It is protected exactly as Show is, so a fight
+		-- that starts with the panel up keeps it up until the fight ends, and
+		-- the setting takes effect at the next scan after that. It is left
+		-- standing because there is no honest substitute: the button keeps its
+		-- size, its place and its armed macro whatever the art does, so
+		-- blanking the art would leave an invisible thing that still takes a
+		-- click and still casts -- which is worse than a visible panel saying
+		-- it is held. Doing it properly wants a secure visibility driver, and a
+		-- driver is driven by macro conditionals; conditionals are the one
+		-- thing this client is known not to resolve, so that is not something
+		-- to build a disappearing button on.
 		if p.hideInCombat or not current then button:Hide() end
 		-- The pulse is a claim that somebody is still owed. The debt can expire
 		-- or be settled in the middle of a fight, and nothing else down here can
@@ -1746,15 +1818,44 @@ function Prompt:Refresh()
 		end
 		-- A click still works in combat -- the frozen macro is a real macro --
 		-- so its outcome is still worth showing, and it wins over the held line.
+		--
+		-- Art, and nothing else. This used to call button:Show() first, which
+		-- is a protected method on a protected frame: Blizzard refuses it for
+		-- the length of the fight, and it was the one call that would have made
+		-- the confirmation appear. Everything the flash is actually made of --
+		-- the wash of colour, the headline, the sub-line -- lives on art, which
+		-- stays ours in combat. A panel the fight found hidden stays hidden,
+		-- and there is nothing honest to be done about that until it ends.
 		if self:OutcomeLive() and not p.hideInCombat then
-			button:Show()
 			self:PaintOutcome()
-		elseif current and subText:IsShown() then
-			subText:SetText("|cffb0b0b0held -- in combat|r")
+		else
+			-- Repainted from `current`, not left where the flash put it.
+			-- PaintOutcome writes the click's past-tense headline into the name
+			-- line, and this branch only ever rewrote the sub-line underneath
+			-- it -- so a click whose half-second outcome window ran out during
+			-- a fight left "buffed <whoever you pressed>" as the panel's title
+			-- for the rest of that fight, over a frozen macro armed at, and
+			-- about to cast on, the next person in the queue.
+			--
+			-- The name line is the one thing that has to agree with the macro,
+			-- and `current` is the macro's identity: in combat ApplyTarget can
+			-- only clear it, never point it at somebody new.
+			if current then
+				nameText:SetText(self:RenderPrimary(current, 0))
+				if subText:IsShown() then
+					subText:SetText("|cffb0b0b0held -- in combat|r")
+				end
+			end
+			-- Nobody, rather than the number the fight started with. The count
+			-- is a claim about a queue this branch has just blanked for being
+			-- unaimable, so it goes with the list and the line rather than
+			-- outliving both of them on its own -- and the panel then looks the
+			-- same whether or not a flash has been over it.
+			countChip:Hide()
+			countText:SetText("")
 		end
 		return
 	end
-	self:SetCombatHold(false)
 
 	local queue = ns.BuildQueue()
 	local top = self:PickTop(queue, queue[1])
@@ -1911,6 +2012,10 @@ function Prompt:Regions()
 		sub = subText,
 		count = countText,
 		fill = resultFill,
+		-- The four edges of the framed look. A look that applies nothing is
+		-- indistinguishable from one that applies something, from the outside,
+		-- which is how the dropdown came to offer a border the addon never drew.
+		edges = edges,
 		queueBack = queueBack,
 		queueHair = queueHair,
 		rows = queueRows,

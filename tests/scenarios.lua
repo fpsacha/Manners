@@ -1719,6 +1719,13 @@ if ns then
 		local button = ns.Prompt:GetButton()
 		ns.Prompt:ApplyTarget(queue[1])
 		Mock.advance(1)
+		-- drive() presses the button itself and leaves that record parked; no
+		-- tick has run since, so it is still sitting there a minute later. The
+		-- press below would then be abandoning a record as well as making one,
+		-- and abandoning one costs the person a two-second block -- which is
+		-- correct, and is scenario 46's subject, and is not this one's. One
+		-- click, cleanly.
+		ns.pendingClick = nil
 		local post = button.scripts.PostClick
 		if post then pcall(post, button, "LeftButton", true) end
 
@@ -6144,6 +6151,986 @@ if ns then
 		fail(scenario, "moving the prompt back to where it started still asks for confirmation,"
 			.. " while overwriting hand-written text did not")
 	end
+end
+
+-- ------------------------------------------------------------------ 99
+-- Speaking at the wrong player, which is the one output of this addon another
+-- human reads.
+--
+-- aura.sourceUnit is a unit token, and nameplate tokens are recycled here: the
+-- token that meant one player when a buff landed can mean a different one a
+-- moment later. The caster was read at the announcement rather than when the
+-- aura was seen, and a scan that throws its own reading away for doubting it
+-- hands the aura to the next scan to notice -- which asks the client who that
+-- token is now. The debt, the chat line, the amber prompt and the /say the
+-- click speaks all come off that name.
+Mock.reset()
+ns = load("the favour names who was there, not who is there now")
+if ns then
+	local scenario = "the favour names who was there, not who is there now"
+	drive(scenario, ns)
+	wipe(ns.owed)
+
+	-- The buff lands while the client is refusing one of the other slots, so
+	-- the scan that sees it is not believed and announces nothing.
+	Mock.extraAura = 3400
+	Mock.auraHidden = { [1] = true }
+	ns.addon:UNIT_AURA(nil, "player")
+	if ns.auraScan.doubt ~= "refused" then
+		fail(scenario, "SKIPPED -- the refused slot was not recognised at all: "
+			.. tostring(ns.auraScan.doubt))
+	elseif next(ns.owed) then
+		fail(scenario, "a scan that doubted itself announced a favour from "
+			.. tostring(next(ns.owed)))
+	else
+		-- And the nameplate goes to somebody else, which takes no time at all.
+		Mock.unitName = { "Brannoc", "Grimsby" }
+		Mock.auraHidden = nil
+		ns.addon:UNIT_AURA(nil, "player")
+
+		if ns.owed["Brannoc Grimsby"] then
+			fail(scenario, "the favour was filed against whoever was holding the token"
+				.. " when it was announced, not against the caster")
+		end
+		if not ns.owed["Petra Stonewell"] then
+			fail(scenario, "the favour went missing with the scan that first saw it")
+		end
+	end
+
+	Mock.extraAura = false
+	Mock.auraHidden = nil
+	wipe(ns.owed)
+end
+
+-- ------------------------------------------------------------------ 100
+-- The other half of the same rule. A stranger with no nameplate cannot be
+-- identified at all -- a hard limit, not an oversight -- and an aura that named
+-- nobody when it was seen must not be given a name by a later scan reading
+-- whoever is behind that token by then. A nameless favour is not better than
+-- none; one spoken at a bystander is considerably worse.
+Mock.reset()
+ns = load("a favour nobody could name is not given one later")
+if ns then
+	local scenario = "a favour nobody could name is not given one later"
+	drive(scenario, ns)
+	wipe(ns.owed)
+
+	Mock.extraAura = 3450
+	Mock.extraAuraSource = nil
+	Mock.auraHidden = { [1] = true }
+	ns.addon:UNIT_AURA(nil, "player")
+	if ns.auraScan.doubt ~= "refused" then
+		fail(scenario, "SKIPPED -- the refused slot was not recognised at all: "
+			.. tostring(ns.auraScan.doubt))
+	else
+		-- A token turns up on the aura afterwards. It is a different question
+		-- wearing the same spelling.
+		Mock.extraAuraSource = "nameplate1"
+		Mock.auraHidden = nil
+		ns.addon:UNIT_AURA(nil, "player")
+		if next(ns.owed) then
+			fail(scenario, "an aura that named nobody when it was seen was filed against "
+				.. tostring(next(ns.owed)))
+		end
+
+		-- The mirror. The rule is about the sighting, not about going quiet for
+		-- good after a scan the client spoiled.
+		wipe(ns.owed)
+		Mock.extraAura = 3451
+		ns.addon:UNIT_AURA(nil, "player")
+		if not next(ns.owed) then
+			fail(scenario, "SKIPPED -- a favour with a readable caster went unnoticed too")
+		end
+	end
+
+	Mock.extraAura = false
+	Mock.auraHidden = nil
+	wipe(ns.owed)
+end
+
+-- ------------------------------------------------------------------ 101
+-- Settling the baseline needs two readings that agree, and the second one used
+-- to be whatever UNIT_AURA the client sent next. A character who zones in and
+-- stands still gets none for minutes, and every one of those minutes is a hole:
+-- anything landing inside it is in both readings and is filed as something they
+-- were already carrying. The loss itself cannot be separated from the truth and
+-- stays; its length can, and is asked for on the clock instead.
+Mock.reset()
+Mock.auraCount = 8
+ns = load("the baseline settles on the clock, not on the next event")
+if ns then
+	local scenario = "the baseline settles on the clock, not on the next event"
+	drive(scenario, ns)
+	wipe(ns.owed)
+
+	-- Into the zone. The list is not readable yet, so the scan taken on the way
+	-- in has nothing to agree with.
+	Mock.auraBlackout = true
+	ns.addon:PLAYER_ENTERING_WORLD()
+	Mock.auraBlackout = false
+	if ns.auraScan.primed then
+		fail(scenario, "SKIPPED -- the baseline settled off the loading screen itself")
+	else
+		-- Not one UNIT_AURA from here on, which is the point.
+		local settled = false
+		for _ = 1, 5 do
+			Mock.runTimers(0.2)
+			if ns.auraScan.primed then
+				settled = true
+				break
+			end
+		end
+		if not settled then
+			fail(scenario, "the baseline never settled without an event, so the hole after"
+				.. " a zone change lasts until the client next says something")
+		else
+			-- And it is a delay rather than a stop: a favour after it is still a
+			-- favour. Never noticing anything again would pass everything above.
+			Mock.extraAura = 3500
+			ns.addon:UNIT_AURA(nil, "player")
+			if not next(ns.owed) then
+				fail(scenario, "SKIPPED -- a real favour after the baseline settled"
+					.. " went unnoticed")
+			end
+		end
+	end
+
+	-- And the chain stops. A client that never answers must not leave a scan
+	-- running every fifth of a second for the rest of the session: past the
+	-- count the baseline goes back to waiting for an event, which is where it
+	-- was before any of this existed.
+	Mock.extraAura = false
+	Mock.auraBlackout = true
+	ns.addon:PLAYER_ENTERING_WORLD()
+	local finished = true
+	for _ = 1, 40 do
+		if not Mock.runTimers(0.2) then
+			finished = false
+			break
+		end
+	end
+	Mock.auraBlackout = false
+	if not finished then
+		fail(scenario, "the settling chain never stopped scheduling itself")
+	elseif #Mock.timers > 0 then
+		fail(scenario, "a client that never settles is still being scanned on a timer: "
+			.. #Mock.timers .. " left parked")
+	end
+
+	wipe(ns.owed)
+end
+
+-- ------------------------------------------------------------------ 102
+-- Instance ids are recycled here, and the prune deliberately leaves an expired
+-- entry in the baseline for one more reading -- because a single absence is
+-- also exactly what a refused slot looks like. That grace scan is a window in
+-- which something arriving under a dead number was matched against the corpse
+-- and never seen at all, so the prune widened the very gap it exists to close.
+Mock.reset()
+ns = load("a recycled instance id is not the aura it replaced")
+if ns then
+	local scenario = "a recycled instance id is not the aura it replaced"
+	drive(scenario, ns)
+	wipe(ns.owed)
+
+	Mock.extraAura = 3600
+	ns.addon:UNIT_AURA(nil, "player")
+	if not next(ns.owed) then
+		fail(scenario, "SKIPPED -- the first cast of it was never noticed")
+	else
+		-- It runs out, and one reading fails to find it. The entry is still in
+		-- the baseline for this scan and only this scan.
+		wipe(ns.owed)
+		Mock.extraAura = false
+		ns.addon:UNIT_AURA(nil, "player")
+
+		-- The client hands that number straight back to a different spell.
+		Mock.extraAura = 3600
+		Mock.extraAuraSpell = 10938
+		ns.addon:UNIT_AURA(nil, "player")
+		if not next(ns.owed) then
+			fail(scenario, "a different spell arriving under a recycled number was matched"
+				.. " against the dead entry and never seen")
+		end
+
+		-- The ordinary re-buff, where the number and the spell both match the
+		-- entry that died. The only thing that separates the two readings is
+		-- that a cast which replaced another ends later than the one it
+		-- replaced, so that is the only thing asked.
+		wipe(ns.owed)
+		Mock.extraAuraSpell = nil
+		Mock.extraAura = 3700
+		ns.addon:UNIT_AURA(nil, "player")
+		wipe(ns.owed)
+		Mock.extraAura = false
+		ns.addon:UNIT_AURA(nil, "player")
+		Mock.extraAura = 3700
+		Mock.extraAuraUntil = 2600
+		ns.addon:UNIT_AURA(nil, "player")
+		if not next(ns.owed) then
+			fail(scenario, "a re-buff arriving under its own predecessor's number was"
+				.. " matched against the dead entry and never seen")
+		end
+
+		-- And the restraint that has to come with it. A client that declines one
+		-- slot for one reading and hands the same aura back is the other half of
+		-- this shape, and it must stay silent -- announcing on the absence is
+		-- what invented favours out of a refusal of the trailing slots. The
+		-- ending is unchanged here, and that is what says so.
+		wipe(ns.owed)
+		Mock.refuseWith = "nil"
+		Mock.auraHidden = { [3] = true }
+		ns.addon:UNIT_AURA(nil, "player")
+		if ns.auraScan.doubt then
+			fail(scenario, "SKIPPED -- the silently refused slot was recognised as a"
+				.. " refusal, so nothing below is being tested: "
+				.. tostring(ns.auraScan.doubt))
+		end
+		Mock.auraHidden = nil
+		ns.addon:UNIT_AURA(nil, "player")
+		if next(ns.owed) then
+			fail(scenario, "an aura the client withheld for one reading came back as an"
+				.. " invented favour from " .. tostring(next(ns.owed)))
+		end
+	end
+
+	Mock.extraAura = false
+	Mock.extraAuraSpell = nil
+	Mock.extraAuraUntil = nil
+	Mock.auraHidden = nil
+	wipe(ns.owed)
+end
+
+-- ------------------------------------------------------------------ 103
+-- A click writes two things on the assumption it landed -- a twelve-second
+-- cooldown on that buff, and the rotation pointer -- and parks a record so
+-- they can be taken back when the game says otherwise. Every path that lets go
+-- of that record has to take them back first, and one did not: the abandon
+-- cleared the slot above its own staleness test and returned on a comment
+-- saying the sweep would deal with it. The sweep reads that slot, so nilling it
+-- is exactly what stops the sweep ever running, and both writes stood at full
+-- length over a press that cast nothing.
+--
+-- Reachable because the sweep runs on the tick: at a slow scan interval a
+-- record outlives its window by seconds before anything looks at it, and a
+-- second press inside that gap used to swallow it whole.
+Mock.reset()
+Mock.class = "PRIEST"
+ns = load("an abandoned press still gets its writes back")
+if ns then
+	local scenario = "an abandoned press still gets its writes back"
+	local known = {}
+	for _, key in ipairs({ "fortitude", "spirit" }) do
+		for _, id in ipairs(ns.FindBuff("PRIEST", key).ranks) do known[id] = true end
+	end
+	local realKnown = IsSpellKnown
+	IsSpellKnown = function(id) return known[id] == true end
+	IsPlayerSpell = function(id) return known[id] == true end
+
+	drive(scenario, ns)
+	Mock.advance(60)
+	ns.Guard("probe", ns.ProbeCapabilities)
+
+	local entry = ns.BuildQueue()[1]
+	if not entry or not entry.buff then
+		fail(scenario, "SKIPPED -- nobody to arm against")
+	else
+		local name, buffKey = entry.name, entry.buff.key
+		local ours = ns.FindBuff(ns.caps.class, buffKey).ranks[1]
+		local button = ns.Prompt:GetButton()
+		local post = button.scripts.PostClick
+
+		-- One press, from nothing: no leftover record, no leftover blocks, and
+		-- no pointer, so what is read back afterwards can only have come from
+		-- this press and its undoing. Then three seconds with no tick -- a
+		-- two-second scan interval, a loading screen, a lag spike -- which is
+		-- how a record comes to be past its window and still in the slot.
+		local function pressAndStale()
+			ns.pendingClick = nil
+			wipe(ns.tried)
+			ns.lastGave[name] = nil
+			Mock.advance(1)
+			ns.Prompt:InvalidateMacro()
+			ns.Prompt:ApplyTarget(entry)
+			if post then pcall(post, button, "LeftButton", true) end
+			local blocked = ns.tried[name .. "\0" .. buffKey]
+			if not ns.pendingClick then
+				fail(scenario, "SKIPPED -- the press left nothing to abandon")
+				return false
+			end
+			if not blocked or blocked < GetTime() + 5 then
+				fail(scenario, "SKIPPED -- the press wrote no per-buff cooldown to rewind")
+				return false
+			end
+			Mock.advance(3)
+			return true
+		end
+
+		local function check(how)
+			if ns.pendingClick then
+				fail(scenario, how .. ": the record is still parked, so the next cast"
+					.. " event will be judged against a dead press")
+			end
+			local after = ns.tried[name .. "\0" .. buffKey]
+			if after and after > GetTime() + 3 then
+				fail(scenario, ("%s: the twelve-second cooldown stood over a press that"
+					.. " cast nothing, %s seconds left"):format(how,
+					tostring(math.floor(after - GetTime()))))
+			end
+			if ns.lastGave[name] ~= nil then
+				fail(scenario, how .. ": the rotation pointer stayed forward, so an"
+					.. " unreadable person is walked on to the next buff by a press that"
+					.. " cast nothing -- " .. tostring(ns.lastGave[name]))
+			end
+		end
+
+		-- All three ways a dead record can be found by something other than the
+		-- sweep. Each one used to clear the slot and return, and each one left
+		-- both writes standing.
+		if pressAndStale() then
+			ns.AbandonPendingClick()
+			check("a second press")
+		end
+		if pressAndStale() then
+			ns.addon:UI_ERROR_MESSAGE(nil, nil, "Your bags are full.")
+			check("an error")
+		end
+		if pressAndStale() then
+			-- A cast event this late belongs to something the player did, not
+			-- to that press -- but the press is still owed its undoing.
+			ns.addon:UNIT_SPELLCAST_SENT(nil, "player", name, nil, ours)
+			check("a later cast event")
+		end
+	end
+
+	ns.pendingClick = nil
+	wipe(ns.tried)
+	IsSpellKnown = realKnown
+	IsPlayerSpell = realKnown
+end
+
+-- ------------------------------------------------------------------ 104
+-- A selfCast buff took the confirmed tick -- the strongest thing the panel can
+-- say -- on the weakest evidence in the settle path. The targeted branch, which
+-- deliberately stops at "sent", at least has a /target of ours aimed at this
+-- person and recorded at press time. Battle Shout has none: no /target by
+-- construction, no recipient in the cast event, and nothing anywhere tying the
+-- spell to the person named. That it reached them is an assumption about where
+-- they were standing.
+Mock.reset()
+Mock.class = "WARRIOR"
+Mock.groupSize = 3
+ns = load("a selfCast buff is sent, not confirmed")
+if ns then
+	local scenario = "a selfCast buff is sent, not confirmed"
+	local known = {}
+	for _, id in ipairs(ns.FindBuff("WARRIOR", "battleshout").ranks) do known[id] = true end
+	local realKnown = IsSpellKnown
+	IsSpellKnown = function(id) return known[id] == true end
+	IsPlayerSpell = function(id) return known[id] == true end
+
+	drive(scenario, ns)
+	Mock.advance(60)
+	ns.Guard("probe", ns.ProbeCapabilities)
+
+	local entry = ns.BuildQueue()[1]
+	if not entry or not entry.buff or not entry.buff.selfCast then
+		fail(scenario, "SKIPPED -- the offer was not a selfCast buff")
+	else
+		local name = entry.name
+		local ours = ns.FindBuff("WARRIOR", entry.buff.key).ranks[1]
+		local button = ns.Prompt:GetButton()
+		local post = button.scripts.PostClick
+		local regions = ns.Prompt:Regions()
+
+		ns.db.profile.verbose = true
+		ns.pendingClick = nil
+		wipe(ns.tried)
+		ns.owed[name] = { expires = GetTime() + 100, at = GetTime() }
+		Mock.advance(1)
+		ns.Prompt:InvalidateMacro()
+		ns.Prompt:ApplyTarget(entry)
+		if post then pcall(post, button, "LeftButton", true) end
+
+		if not ns.pendingClick then
+			fail(scenario, "SKIPPED -- the press left nothing to settle")
+		elseif not ns.pendingClick.selfCast then
+			fail(scenario, "SKIPPED -- the record does not know the macro was selfCast")
+		else
+			local before = #Mock.printed
+			-- The shout goes out. There is no recipient to report and the
+			-- client reports none.
+			ns.addon:UNIT_SPELLCAST_SENT(nil, "player", nil, nil, ours)
+
+			-- It still settles. Refusing to would make every debt a warrior is
+			-- owed permanent, which is the bug this branch was written for.
+			if ns.owed[name] then
+				fail(scenario, "the selfCast settle stopped clearing the debt, so a warrior"
+					.. " repays the same person forever")
+			end
+
+			local line = tostring(regions.name:GetText() or "")
+			if line:find("buffed", 1, true) then
+				fail(scenario, "the panel confirmed a buff that nothing ties to the person"
+					.. " named: " .. line)
+			end
+			if not line:find("sent", 1, true) then
+				fail(scenario, "the selfCast settle said nothing on the panel at all: " .. line)
+			end
+
+			-- And the claim underneath it is about this macro rather than the
+			-- targeted one's. There is no /target here to not be confirmed.
+			local sub = tostring(regions.sub:GetText() or "")
+			if sub:find("who to", 1, true) then
+				fail(scenario, "the panel blamed a client that would not name a recipient,"
+					.. " for a cast that has no recipient to name: " .. sub)
+			end
+
+			local said
+			for i = before + 1, #Mock.printed do
+				if Mock.printed[i]:find("counted as repaid", 1, true) then
+					said = Mock.printed[i]
+				end
+			end
+			if said and said:find("macro aimed at them", 1, true) then
+				fail(scenario, "the chat line credited a /target the selfCast macro cannot"
+					.. " contain: " .. said)
+			end
+		end
+	end
+
+	ns.pendingClick = nil
+	wipe(ns.tried)
+	wipe(ns.owed)
+	IsSpellKnown = realKnown
+	IsPlayerSpell = realKnown
+end
+
+-- ------------------------------------------------------------------ 105
+-- UNIT_SPELLCAST_SENT is the client saying it sent the cast, not the server
+-- saying it took it. The refusal arrives a moment later -- out of range, line
+-- of sight, they moved -- and by then the settle had cleared the record, so the
+-- failure handler returned on its first line and the whole thing was dropped:
+-- no red flash, no chat line, a tick left standing over a cast that was thrown
+-- away, and the debt marked repaid.
+Mock.reset()
+Mock.class = "PRIEST"
+ns = load("a refusal after the send undoes the confirmation")
+if ns then
+	local scenario = "a refusal after the send undoes the confirmation"
+	local known = {}
+	for _, key in ipairs({ "fortitude", "spirit" }) do
+		for _, id in ipairs(ns.FindBuff("PRIEST", key).ranks) do known[id] = true end
+	end
+	local realKnown = IsSpellKnown
+	IsSpellKnown = function(id) return known[id] == true end
+	IsPlayerSpell = function(id) return known[id] == true end
+
+	drive(scenario, ns)
+	Mock.advance(60)
+	ns.Guard("probe", ns.ProbeCapabilities)
+
+	local entry = ns.BuildQueue()[1]
+	if not entry or not entry.buff then
+		fail(scenario, "SKIPPED -- nobody to arm against")
+	else
+		local name, buffKey = entry.name, entry.buff.key
+		local ours = ns.FindBuff(ns.caps.class, buffKey).ranks[1]
+		local button = ns.Prompt:GetButton()
+		local post = button.scripts.PostClick
+		local regions = ns.Prompt:Regions()
+
+		-- Press, and let the client report the send with the person named --
+		-- the one branch that takes the confirmed tick.
+		local function sendAndConfirm()
+			Mock.advance(1)
+			ns.pendingClick = nil
+			wipe(ns.tried)
+			ns.owed[name] = { expires = GetTime() + 100, at = GetTime() }
+			ns.Prompt:InvalidateMacro()
+			ns.Prompt:ApplyTarget(entry)
+			if post then pcall(post, button, "LeftButton", true) end
+			if not ns.pendingClick then
+				fail(scenario, "SKIPPED -- the press left nothing to settle")
+				return false
+			end
+			ns.addon:UNIT_SPELLCAST_SENT(nil, "player", name, nil, ours)
+			if ns.owed[name] then
+				fail(scenario, "SKIPPED -- the send never settled, so there is no"
+					.. " confirmation to undo")
+				return false
+			end
+			return true
+		end
+
+		if sendAndConfirm() then
+			-- The server's answer, one frame later.
+			ns.addon:UI_ERROR_MESSAGE(nil, nil, "Target not in line of sight.")
+
+			if not ns.owed[name] then
+				fail(scenario, "a cast the server refused stayed filed as a favour repaid")
+			end
+			local line = tostring(regions.name:GetText() or "")
+			local sub = tostring(regions.sub:GetText() or "")
+			if line:find("buffed", 1, true) then
+				fail(scenario, "the tick stayed up over a refused cast: " .. line)
+			end
+			if not line:find("could not buff", 1, true) then
+				fail(scenario, "a refusal arriving after the send said nothing at all: " .. line)
+			end
+			if not sub:find("line of sight", 1, true) then
+				fail(scenario, "the game said why and the panel did not repeat it: " .. sub)
+			end
+			local held = ns.tried[name .. "\0" .. buffKey]
+			if held and held > GetTime() + 3 then
+				fail(scenario, ("the twelve-second cooldown stood over a refused cast:"
+					.. " %s seconds left"):format(tostring(math.floor(held - GetTime()))))
+			end
+		end
+
+		-- The event that names the spell is the better witness, and the only
+		-- one that can be checked: somebody else's cast failing in the same
+		-- moment must not take a good confirmation down with it.
+		if sendAndConfirm() then
+			ns.addon:UNIT_SPELLCAST_FAILED(nil, "player", nil, 999999)
+			if ns.owed[name] then
+				fail(scenario, "an unrelated spell failing undid a confirmed cast")
+			end
+		end
+		if sendAndConfirm() then
+			ns.addon:UNIT_SPELLCAST_FAILED(nil, "player", nil, ours)
+			if not ns.owed[name] then
+				fail(scenario, "the game refusing our own spell by name left the favour"
+					.. " counted as repaid")
+			end
+		end
+
+		-- And it is a window, not a memory. An error minutes later is about
+		-- somebody's bags, and undoing a settled favour on the strength of one
+		-- would be its own way of never repaying anybody.
+		if sendAndConfirm() then
+			Mock.advance(30)
+			ns.addon:UI_ERROR_MESSAGE(nil, nil, "Your bags are full.")
+			if ns.owed[name] then
+				fail(scenario, "an unrelated error half a minute later raised a settled"
+					.. " favour from the dead")
+			end
+		end
+	end
+
+	ns.pendingClick = nil
+	wipe(ns.tried)
+	wipe(ns.owed)
+	IsSpellKnown = realKnown
+	IsPlayerSpell = realKnown
+end
+
+-- ------------------------------------------------------------------ 106
+-- The panel held for a fight has one duty: to name whoever the frozen macro
+-- will cast on. A click's confirmation is written straight over the name line,
+-- and when its half-second ran out inside a fight the combat branch rewrote
+-- only the line underneath it -- so "buffed <whoever you pressed>" stood as the
+-- panel's title for the rest of that fight while the macro under it was armed
+-- at, and would cast on, the next person in the queue.
+--
+-- The flash itself is the other half. It used to call Show on the secure button
+-- first, which Blizzard refuses for the length of the fight: a refused Hide is
+-- invisible, but a refused Show is the confirmation not appearing, which is the
+-- entire feature. Everything it is made of lives on art, and art is ours.
+Mock.reset()
+ns = load("the held panel names who the macro is aimed at")
+if ns then
+	local scenario = "the held panel names who the macro is aimed at"
+	drive(scenario, ns)
+	Mock.advance(60)
+
+	local template = ns.BuildQueue()[1]
+	if not template or not template.buff then
+		fail(scenario, "SKIPPED -- nobody to build a candidate from")
+	else
+		local function cand(who)
+			local e = {}
+			for k, v in pairs(template) do e[k] = v end
+			e.name, e.short, e.reason, e.priority = who, who, "owed", 1
+			return e
+		end
+		local pressed, after = cand("Ana Field"), cand("Bo Stone")
+		-- The press is what takes the person pressed off the queue, so by the
+		-- time their confirmation lands the panel has already moved on. That is
+		-- the ordinary case, not a contrived one.
+		ns.BuildQueue = function() return { after } end
+
+		local db = ns.db.profile
+		db.prompt.hideInCombat = false
+		local button = ns.Prompt:GetButton()
+		-- The client refuses Show, Hide and SetAttribute on this frame for the
+		-- length of a fight and says nothing about refusing them. The mock
+		-- writes them down instead, which is the only way a scenario can tell a
+		-- panel painted on art from one painted through a call that never ran.
+		Mock.protect(button)
+		local post = button.scripts.PostClick
+		local regions = ns.Prompt:Regions()
+		local ours = ns.FindBuff(ns.caps.class, pressed.buff.key).ranks[1]
+
+		wipe(ns.tried)
+		ns.pendingClick = nil
+		ns.owed[pressed.name] = { expires = GetTime() + 100, at = GetTime() }
+		ns.Prompt:InvalidateMacro()
+		ns.Prompt:ApplyTarget(pressed)
+		if post then pcall(post, button, "LeftButton", true) end
+
+		if not ns.pendingClick then
+			fail(scenario, "SKIPPED -- the press left nothing to settle")
+		else
+			ns.addon:UNIT_SPELLCAST_SENT(nil, "player", pressed.name, nil, ours)
+			local macro = tostring(button:GetAttribute("macrotext1") or "")
+			local flash = tostring(regions.name:GetText() or "")
+			if not macro:find(after.name, 1, true) then
+				fail(scenario, "SKIPPED -- the queue did not move on, so there is nothing for"
+					.. " the panel to disagree with: " .. macro)
+			elseif not flash:find("Ana", 1, true) then
+				fail(scenario, "SKIPPED -- the press was never confirmed on the panel: " .. flash)
+			else
+				-- The fight starts inside the outcome's half second.
+				Mock.inCombat = true
+				Mock.protectedCalls = {}
+				ns.addon:PLAYER_REGEN_DISABLED()
+
+				local held = tostring(regions.name:GetText() or "")
+				if not held:find("Ana", 1, true) then
+					fail(scenario, "the confirmation vanished the moment the fight started,"
+						.. " which is when a click is least likely to be watched: " .. held)
+				end
+				if #Mock.protectedCalls > 0 then
+					fail(scenario, "the flash called " .. table.concat(Mock.protectedCalls, ", ")
+						.. " on the secure button in combat, where the client refuses it -- so"
+						.. " the one thing that makes the confirmation appear is the one thing"
+						.. " that does not happen")
+				end
+
+				-- And half a second later, with the fight still on.
+				Mock.advance(2)
+				Mock.protectedCalls = {}
+				ns.Prompt:Refresh()
+				local title = tostring(regions.name:GetText() or "")
+				if title:find("Ana", 1, true) then
+					fail(scenario, "the confirmation for the press on Ana Field became the"
+						.. " panel's title for the rest of the fight, over a macro armed at"
+						.. " somebody else: " .. title)
+				end
+				if not title:find("Bo", 1, true) then
+					fail(scenario, "the held panel names nobody at all while the macro under it"
+						.. " is armed at Bo Stone: " .. title)
+				end
+				if #Mock.protectedCalls > 0 then
+					fail(scenario, "repainting the held panel called "
+						.. table.concat(Mock.protectedCalls, ", ") .. " on the secure button,"
+						.. " which the client refuses in combat")
+				end
+				if not tostring(regions.sub:GetText() or ""):find("held", 1, true) then
+					fail(scenario, "the panel stopped saying it was held: "
+						.. tostring(regions.sub:GetText()))
+				end
+			end
+		end
+	end
+	Mock.inCombat = false
+	ns.pendingClick = nil
+	wipe(ns.owed)
+end
+
+-- ------------------------------------------------------------------ 107
+-- The combat dim was put on in the branch that knows about lockdown and taken
+-- off at the far end of Refresh, which four branches return before reaching.
+-- Preview is the one that never heals: it stays alive for as long as the
+-- options window is open, so a preview started during a fight sat at 0.55 alpha
+-- indefinitely -- a mock-up that looks held, being used to judge a size and a
+-- position, long after the fight it borrowed the dim from.
+Mock.reset()
+ns = load("a preview does not keep the dim of a fight that has ended")
+if ns then
+	local scenario = "a preview does not keep the dim of a fight that has ended"
+	drive(scenario, ns)
+	local regions = ns.Prompt:Regions()
+
+	-- The window is open, which is the one place a preview is of any use and
+	-- the reason it can outlive the fight it was started in.
+	Mock.optionsOpen = true
+	Mock.inCombat = true
+	ns.addon:PLAYER_REGEN_DISABLED()
+
+	if regions.art:GetAlpha() >= 1 then
+		fail(scenario, "SKIPPED -- the panel never dimmed for the fight")
+	else
+		if not ns.Prompt:InTest() then ns.Prompt:ToggleTest() end
+		if not ns.Prompt:InTest() then
+			fail(scenario, "SKIPPED -- the preview would not start")
+		else
+			ns.Prompt:Refresh()
+			if regions.art:GetAlpha() >= 1 then
+				fail(scenario, "the preview took the dim off in the middle of a fight, so the"
+					.. " prompt looks live while its macro cannot be pointed anywhere")
+			end
+
+			Mock.inCombat = false
+			ns.addon:PLAYER_REGEN_ENABLED()
+			if not ns.Prompt:InTest() then
+				fail(scenario, "SKIPPED -- the preview ended with the fight")
+			elseif regions.art:GetAlpha() < 1 then
+				fail(scenario, ("the fight ended and the preview stayed dimmed at %s: the"
+					.. " release is at the bottom of Refresh and preview returns above it")
+					:format(tostring(regions.art:GetAlpha())))
+			end
+		end
+	end
+
+	if ns.Prompt:InTest() then ns.Prompt:ToggleTest() end
+	Mock.optionsOpen = false
+	Mock.inCombat = false
+end
+
+-- ------------------------------------------------------------------ 108
+-- The tooltip has two lines for "we do not know whether they have it", and they
+-- blame different people: one says the client would not say, the other says the
+-- user switched the checking off. The grace-window fallback built its entry
+-- without the field that tells them apart, and a missing field reads as the
+-- second -- so somebody whose options say to check was told, on their own
+-- instruction, that nothing was being checked.
+Mock.reset()
+Mock.class = "PRIEST"
+ns = load("a tokenless favour does not blame the user for what it could not read")
+if ns then
+	local scenario = "a tokenless favour does not blame the user for what it could not read"
+	local known = {}
+	for _, id in ipairs(ns.FindBuff("PRIEST", "fortitude").ranks) do known[id] = true end
+	local realKnown = IsSpellKnown
+	IsSpellKnown = function(id) return known[id] == true end
+	IsPlayerSpell = function(id) return known[id] == true end
+
+	drive(scenario, ns)
+	Mock.advance(60)
+	ns.Guard("probe", ns.ProbeCapabilities)
+
+	local db = ns.db.profile
+	-- A name no unit token carries, so only the fallback can queue it.
+	ns.owed["Vann Locke"] = { expires = GetTime() + 100, at = GetTime(), class = "PRIEST" }
+
+	local function offered()
+		for _, entry in ipairs(ns.BuildQueue()) do
+			if entry.name == "Vann Locke" then return entry end
+		end
+	end
+
+	local function tooltipFor(entry)
+		ns.Prompt:ApplyTarget(entry)
+		Mock.tooltip = {}
+		local onEnter = ns.Prompt:GetButton().scripts.OnEnter
+		if onEnter then pcall(onEnter, ns.Prompt:GetButton()) end
+		return table.concat(Mock.tooltip, "\n")
+	end
+
+	db.filters.whenBuffed = "skip"
+	local entry = offered()
+	if not entry then
+		fail(scenario, "SKIPPED -- the tokenless favour was not offered at all")
+	else
+		if entry.checked ~= true then
+			fail(scenario, "the entry says checking was switched off ("
+				.. tostring(entry.checked) .. ") while the options say to check")
+		end
+		local said = tooltipFor(entry)
+		if said:find("set by your options", 1, true) then
+			fail(scenario, "the tooltip blamed the user's options for a reading nobody could"
+				.. " have taken -- there is no unit token on this path at all")
+		end
+		if not said:find("unreadable", 1, true) then
+			fail(scenario, "the tooltip says nothing at all about not knowing: " .. said)
+		end
+
+		-- And the other way round, because the line is true for somebody who
+		-- did switch it off and has to keep being told so.
+		db.filters.whenBuffed = "always"
+		local off = offered()
+		if not off then
+			fail(scenario, "SKIPPED -- the favour stopped being offered with checking off")
+		elseif off.checked ~= false then
+			fail(scenario, "checking is switched off and the entry does not say so: "
+				.. tostring(off.checked))
+		elseif not tooltipFor(off):find("set by your options", 1, true) then
+			fail(scenario, "the user switched the checking off and the tooltip stopped saying"
+				.. " so, which is the same untruth told the other way round")
+		end
+	end
+
+	db.filters.whenBuffed = "skip"
+	wipe(ns.owed)
+	IsSpellKnown = realKnown
+	IsPlayerSpell = realKnown
+end
+
+-- ------------------------------------------------------------------ 109
+-- The Look dropdown offered "Blizzard -- default UI border" and no part of this
+-- addon has ever applied a backdrop, a border or an atlas: picking it took the
+-- shadow, the bevel and the stripe off and drew nothing in their place. A
+-- dropdown entry that names a thing the addon does not do is worse than a
+-- missing feature, because the user reads the label as the answer.
+Mock.reset()
+ns = load("the look dropdown offers nothing the addon does not draw")
+if ns then
+	local scenario = "the look dropdown offers nothing the addon does not draw"
+	drive(scenario, ns)
+
+	local db = ns.db.profile
+	local regions = ns.Prompt:Regions()
+	local appearance = ns.optionsTable and ns.optionsTable.args.appearance
+	local look = appearance and appearance.args.style
+	if not (look and look.values) then
+		fail(scenario, "SKIPPED -- there is no Look dropdown to read")
+	else
+		-- Every value it offers has to be one the addon recognises. An entry
+		-- ClampSettings does not accept is a look you can pick and never get,
+		-- silently, at the next login.
+		for value in pairs(look.values) do
+			db.prompt.style = value
+			ns.ClampSettings()
+			if db.prompt.style ~= value then
+				fail(scenario, ("the dropdown offers %q and the profile repair turns it into %q")
+					:format(tostring(value), tostring(db.prompt.style)))
+			end
+		end
+
+		if look.values.blizzard then
+			fail(scenario, "the dropdown still offers a name the addon draws nothing for")
+		end
+
+		if not look.values.framed then
+			fail(scenario, "SKIPPED -- there is no framed look to check")
+		else
+			db.prompt.style = "framed"
+			ns.Prompt:ApplyStyle()
+			local drawn = 0
+			for _, edge in ipairs(regions.edges or {}) do
+				if edge:IsShown() then drawn = drawn + 1 end
+			end
+			if drawn < 4 then
+				fail(scenario, ("the look offered as %q draws %d of its four edges")
+					:format(tostring(look.values.framed), drawn))
+			end
+
+			-- And it is the thing that tells the two looks apart, so it must
+			-- not be on the other one.
+			db.prompt.style = "glass"
+			ns.Prompt:ApplyStyle()
+			for _, edge in ipairs(regions.edges or {}) do
+				if edge:IsShown() then
+					fail(scenario, "the border is drawn on the glass look as well, so the two"
+						.. " entries in the dropdown are the same panel")
+					break
+				end
+			end
+		end
+
+		-- Anybody whose profile holds the old name keeps the look they picked,
+		-- rather than being quietly handed the default.
+		db.prompt.style = "blizzard"
+		ns.ClampSettings()
+		if db.prompt.style ~= "framed" then
+			fail(scenario, "a profile written under the old name came back as "
+				.. tostring(db.prompt.style) .. " instead of the look it asked for")
+		end
+	end
+
+	db.prompt.style = "glass"
+	ns.Prompt:ApplyStyle()
+end
+
+-- ------------------------------------------------------------------ 110
+-- "Offer a top-up when it is running out" did nothing whatever for a paladin.
+-- The exclusive branch read the aura and dropped the second return on the
+-- floor, and never looked at the mode at all -- so the one class where topping
+-- up is safest was the one class it was switched off for. Recasting the
+-- blessing somebody already holds replaces it with itself; every other offer
+-- this branch could make replaces it with a different one.
+Mock.reset()
+Mock.class = "PALADIN"
+ns = load("a paladin is offered the blessing that is running out")
+if ns then
+	local scenario = "a paladin is offered the blessing that is running out"
+	local known = {}
+	for _, key in ipairs({ "wisdom", "might" }) do
+		for _, id in ipairs(ns.FindBuff("PALADIN", key).ranks) do known[id] = true end
+	end
+	local realKnown = IsSpellKnown
+	IsSpellKnown = function(id) return known[id] == true end
+	IsPlayerSpell = function(id) return known[id] == true end
+
+	drive(scenario, ns)
+	wipe(ns.owed)
+	wipe(ns.tried)
+	Mock.advance(60)
+	ns.Guard("probe", ns.ProbeCapabilities)
+
+	local db = ns.db.profile
+	db.filters.whenBuffed = "refresh"
+	db.filters.refreshUnder = 5
+
+	-- Carrying might with two minutes left and none of the others. Wisdom is
+	-- first in the list and definitely absent, so the walk reaches the blessing
+	-- they hold only by refusing to stop at the one they do not.
+	Mock.held = {}
+	for _, id in ipairs(ns.FindBuff("PALADIN", "might").auraIds) do Mock.held[id] = true end
+	Mock.heldFor = 120
+
+	local function offered()
+		for _, entry in ipairs(ns.BuildQueue()) do
+			if entry.buff then return entry end
+		end
+	end
+
+	local entry = offered()
+	if not entry then
+		fail(scenario, "a blessing two minutes from expiring was offered no top-up at all,"
+			.. " which is the whole of the refresh mode for this class")
+	else
+		if entry.buff.key ~= "might" then
+			fail(scenario, "the top-up offered " .. tostring(entry.buff.key) .. ", which"
+				.. " replaces the might they are carrying rather than renewing it")
+		end
+		if type(entry.remaining) ~= "number" then
+			fail(scenario, "the offer carries " .. type(entry.remaining) .. " where the time"
+				.. " left should be, so nothing on the prompt says it is a top-up")
+		elseif math.abs(entry.remaining - 120) > 2 then
+			fail(scenario, "the time left came back as " .. tostring(entry.remaining))
+		end
+	end
+
+	-- The restraint, twice. A blessing with an hour to run is not running out,
+	-- and the mode being off means the same thing it means for everybody else.
+	-- Past the three-second aura cache each time, or the second reading is the
+	-- first one again.
+	Mock.heldFor = 3600
+	Mock.advance(5)
+	local comfortable = offered()
+	if comfortable then
+		fail(scenario, "a blessing with an hour left was answered with an offer of "
+			.. tostring(comfortable.buff.key) .. ", so every covered paladin target is now"
+			.. " permanently on the prompt")
+	end
+
+	db.filters.whenBuffed = "skip"
+	Mock.heldFor = 120
+	Mock.advance(5)
+	local switchedOff = offered()
+	if switchedOff then
+		fail(scenario, "the top-up mode is switched off and a covered person was still"
+			.. " offered " .. tostring(switchedOff.buff.key))
+	end
+
+	Mock.held = nil
+	Mock.heldFor = nil
+	db.filters.whenBuffed = "skip"
+	IsSpellKnown = realKnown
+	IsPlayerSpell = realKnown
 end
 
 -- ------------------------------------------------------------------ report
