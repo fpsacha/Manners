@@ -11,13 +11,14 @@ local ADDON, ns = ...
 local AceAddon = LibStub("AceAddon-3.0")
 local addon = AceAddon:NewAddon(ADDON, "AceEvent-3.0", "AceConsole-3.0", "AceTimer-3.0")
 ns.addon = addon
-ns.ADDON = ADDON
 
 local MANA = (Enum and Enum.PowerType and Enum.PowerType.Mana) or 0
 
 -- Names for the entries Bindings.xml adds to Game Menu > Key Bindings.
 BINDING_HEADER_MANNERS = "Manners"
-BINDING_NAME_MANNERS_CAST = "Buff the prompted player"
+-- The binding is the client's own CLICK form, so its name is not a Lua
+-- identifier and the label has to be set through _G.
+_G["BINDING_NAME_CLICK MannersPrompt:LeftButton"] = "Buff the prompted player"
 
 ---------------------------------------------------------------------------
 -- secret-safe access
@@ -42,7 +43,6 @@ local function safecall(fn, ...)
 	if not ok then return nil end
 	return plain(a), plain(b), plain(c)
 end
-ns.safecall = safecall
 
 ---------------------------------------------------------------------------
 -- failure handling
@@ -56,16 +56,32 @@ ns.safecall = safecall
 
 ns.errors = {}
 
+-- Which labels have already said something out loud. One flag for the whole
+-- session meant the first failure was the only one anybody ever heard about,
+-- and something unrelated breaking an hour later was silent.
+ns.shouted = {}
+
+-- Guard wraps the tick, so a failure that repeats does so two and a half times
+-- a second. Capped like ns.console is, and for the same reason: an unbounded
+-- list of the same line is not a better diagnostic than thirty of them.
+local ERROR_LIMIT = 30
+
 function ns.Guard(label, fn, ...)
 	local ok, err = pcall(fn, ...)
 	if ok then return true end
 
+	-- This function is the thing that stops a failure being silent, so it must
+	-- never be the thing that throws.
+	label = tostring(label)
 	err = tostring(err)
 	ns.errors[#ns.errors + 1] = { at = date("%H:%M:%S"), where = label, err = err }
-	if not ns.shouted then
-		ns.shouted = true
+	while #ns.errors > ERROR_LIMIT do table.remove(ns.errors, 1) end
+
+	if not ns.shouted[label] then
+		ns.shouted[label] = true
 		if ns.addon and ns.addon.Print then
-			ns.addon:Print("|cffff4040something broke in " .. label .. "|r -- " .. err)
+			ns.addon:Print("|cffff4040something broke in " .. label .. "|r -- " .. err
+				.. " |cff808080(/manners errors for the rest)|r")
 		end
 	end
 	return false
@@ -74,6 +90,16 @@ end
 ---------------------------------------------------------------------------
 -- defaults
 ---------------------------------------------------------------------------
+
+-- LibSharedMedia's sound table ships with one entry, "None", whose value is
+-- the number 1: PlaySoundFile accepts it and plays nothing. With no media
+-- addon installed there is nothing to default to, so register one of our own
+-- (Prompt.lua does the registering, next to the only code that plays it). A
+-- file id rather than a path -- Register only validates strings, and paths
+-- under Sound\ are rejected outright. Prefixed with the addon name so it is
+-- obvious where it came from in everyone else's sound dropdown.
+ns.SOUND_KEY = "Manners alert"
+ns.SOUND_FILE = 567458
 
 local defaults = {
 	profile = {
@@ -141,6 +167,9 @@ local defaults = {
 
 			format = "{name}",
 			showSub = true,
+			-- Short on purpose: the 220px default width will not take a qualifier
+			-- on top of "needs {buff}", and the icon already names the spell.
+			reasonTarget = "your target",
 			reasonOwed = "buffed you",
 			reasonGroup = "needs {buff}",
 			reasonNearby = "needs {buff}",
@@ -157,7 +186,7 @@ local defaults = {
 			phrases = "",
 		},
 
-		sound = { enabled = false, file = "None" },
+		sound = { enabled = false, file = ns.SOUND_KEY },
 		minimap = { hide = false },
 	},
 }
@@ -394,18 +423,45 @@ ns.nameplateUnits = {}
 -- unit inspection
 ---------------------------------------------------------------------------
 
--- [guid .. buffKey] = { at, has, expires }. Swept periodically: a city can
--- put hundreds of players through here in a session and nothing else would
+-- auraCache[guid][buffKey] = { at, has, expires }. Swept periodically: a city
+-- can put hundreds of players through here in a session and nothing else would
 -- ever remove them.
+--
+-- Two levels rather than one composed string key, because invalidation is the
+-- hot path: UNIT_AURA fires constantly and used to build one key per class buff
+-- every time -- six concatenations for a paladin -- where a whole player now
+-- goes in a single assignment. The count is of players, and is kept honest in
+-- both directions; the flat version only ever counted upwards, so deletions
+-- dragged it to the sweep threshold as readily as new people did.
 local auraCache = {}
 local auraCacheCount = 0
 
+local function ForgetUnitAuras(guid)
+	if not guid or not auraCache[guid] then return end
+	auraCache[guid] = nil
+	auraCacheCount = auraCacheCount - 1
+end
+
+local lastSweep = 0
+
 local function SweepAuraCache(now)
 	if auraCacheCount < 400 then return end
-	for key, entry in pairs(auraCache) do
-		if (now - entry.at) > 10 then auraCache[key] = nil end
+	-- The count is a floor, not a trigger: once the table is big it stays big
+	-- in a city, and the old version reset the count to zero after each sweep
+	-- to avoid walking it every tick. The count is honest now, so the rate has
+	-- to be limited here instead.
+	if (now - lastSweep) < 10 then return end
+	lastSweep = now
+
+	for guid, perUnit in pairs(auraCache) do
+		local newest
+		for _, entry in pairs(perUnit) do
+			if not newest or entry.at > newest then newest = entry.at end
+		end
+		-- A whole player at a time: their buffs are read together and go stale
+		-- together, so there is nothing to gain from keeping half of one.
+		if not newest or (now - newest) > 10 then ForgetUnitAuras(guid) end
 	end
-	auraCacheCount = 0
 end
 
 -- Returns has, secondsRemaining. `has` is nil when the client will not let us
@@ -416,8 +472,8 @@ local function UnitHasBuff(unit, buff, guid)
 	if not info or not info.readable then return nil, nil end
 
 	local now = GetTime()
-	local cacheKey = guid and (guid .. buff.key)
-	local cached = cacheKey and auraCache[cacheKey]
+	local perUnit = guid and auraCache[guid]
+	local cached = perUnit and perUnit[buff.key]
 	if cached and (now - cached.at) < 3 then
 		return cached.has, cached.expires and (cached.expires - now) or nil
 	end
@@ -435,9 +491,15 @@ local function UnitHasBuff(unit, buff, guid)
 		end
 	end
 
-	if cacheKey then
-		if auraCache[cacheKey] == nil then auraCacheCount = auraCacheCount + 1 end
-		auraCache[cacheKey] = { at = now, has = has, expires = expires }
+	-- A negative answer is cached too, or the walk re-reads every buff for every
+	-- person on every tick -- which is the whole reason this table exists.
+	if guid then
+		if not perUnit then
+			perUnit = {}
+			auraCache[guid] = perUnit
+			auraCacheCount = auraCacheCount + 1
+		end
+		perUnit[buff.key] = { at = now, has = has, expires = expires }
 	end
 	return has, expires and (expires - now) or nil
 end
@@ -465,17 +527,22 @@ local function UnitHasMana(unit)
 	return nil
 end
 
+-- Returns ok and, when ok is false, whether the rejection was about the person
+-- rather than the token: dead, hostile, offline or too low is a judgement the
+-- tokenless owed fallback has to honour too, while "no such unit" or "that is
+-- you" says nothing about anybody. Only the first return may be tested for
+-- truth; the second is advisory.
 local function IsBuffableUnit(unit, f)
 	if not unit or not plain(UnitExists(unit)) then return false end
 	if plain(UnitIsUnit(unit, "player")) then return false end
 	if plain(UnitIsPlayer(unit)) ~= true then return false end
-	if plain(UnitIsDeadOrGhost(unit)) == true then return false end
-	if plain(UnitCanAssist("player", unit)) ~= true then return false end
-	if plain(UnitIsConnected(unit)) == false then return false end
+	if plain(UnitIsDeadOrGhost(unit)) == true then return false, true end
+	if plain(UnitCanAssist("player", unit)) ~= true then return false, true end
+	if plain(UnitIsConnected(unit)) == false then return false, true end
 
 	if f.minLevel and f.minLevel > 1 then
 		local lvl = plain(UnitLevel(unit))
-		if lvl and lvl > 0 and lvl < f.minLevel then return false end
+		if lvl and lvl > 0 and lvl < f.minLevel then return false, true end
 	end
 
 	return true
@@ -526,6 +593,28 @@ local function SafeForMacro(name)
 	if #name > 48 then return false end
 	if name:find("[%[%]\n\r;|]") then return false end
 	return true
+end
+
+-- The one spelling of a player's name, for everything that needs one.
+--
+-- plain() collapses to a single value, so both of UnitName's returns have to be
+-- taken before either is inspected or the second is silently lost. And that
+-- second return is documented as the realm but carries a surname here -- six
+-- players standing together came back with six different values -- so it joins
+-- with a space. A hyphen invented names that no targeting call could resolve.
+--
+-- nil for a name the client withheld, and nil for one that could not go into
+-- macro text. Both callers want exactly those two rejections, and keeping them
+-- apart is how the two copies of this drifted in the first place.
+function ns.UnitFullName(unit)
+	local rawName, rawSecond = UnitName(unit)
+	local name, second = plain(rawName), plain(rawSecond)
+	if not name then return nil end
+
+	local full = name
+	if second and second ~= "" then full = name .. " " .. second end
+	if not SafeForMacro(full) then return nil end
+	return full
 end
 
 ---------------------------------------------------------------------------
@@ -604,10 +693,10 @@ ns.CHANNEL_COMMANDS = {
 
 ns.MACRO_LIMIT = 255
 
--- What a single spoken line may occupy, once the /say and the cast lines have
--- taken their share. Shared so the options preview cannot promise a line the
--- cast path would silently drop.
-ns.PHRASE_BUDGET = 120
+-- What a spoken line may occupy is not a constant: it is whatever the cast
+-- lines leave, and they changed the day the macro grew a second /target line.
+-- ns.PhraseBudget, in Prompt.lua beside the code that assembles them, answers
+-- it for a given person; the options preview asks the same function.
 
 local function SanitizePhrase(text)
 	if type(text) ~= "string" then return nil end
@@ -659,7 +748,116 @@ local tried = {}
 ns.lastGave = {} -- [name] = buffKey, for rotating when auras cannot be read
 ns.owed, ns.tried = owed, tried
 
-local PRIORITY = { owed = 1, group = 2, nearby = 3 }
+-- SavedVariables outlive the client, GetTime() does not: it restarts near zero
+-- every login, so a debt stored GetTime()-relative comes back either already
+-- expired or an hour long. Everything goes out on the wall clock and is rebased
+-- on the way back in -- including `at`, which is what the grace window reads.
+--
+-- db.char, not the profile: a debt is owed to a character, and profiles are
+-- shared. AceDB partitions it inside the one saved file already, so there is no
+-- second SavedVariables line to add.
+local function SaveDebts()
+	local store = addon.db and addon.db.char
+	local wall = plain(time and time())
+	if not store or type(wall) ~= "number" then return end
+
+	local now, out = GetTime(), nil
+	for name, entry in pairs(owed) do
+		if entry.expires > now then
+			out = out or {}
+			-- The class is worth carrying: it is all the tokenless fallback has
+			-- to judge what to offer. The guid is not -- nothing reads it back,
+			-- and whether it means the same person after a reload has never been
+			-- measured on this client.
+			out[name] = {
+				expires = wall + (entry.expires - now),
+				at = wall - (now - entry.at),
+				class = entry.class,
+			}
+		end
+	end
+	store.debts = out -- nil when empty, so AceDB prunes the section on logout
+end
+
+local function RestoreDebts()
+	local store = addon.db and addon.db.char
+	local saved = store and store.debts
+	local wall = plain(time and time())
+	if type(saved) ~= "table" or type(wall) ~= "number" then return end
+
+	local now = GetTime()
+	local window = (addon.db and addon.db.profile.timing.reciprocateWindow) or 120
+	for name, entry in pairs(saved) do
+		if type(entry) == "table" and type(entry.expires) == "number"
+			and type(entry.at) == "number" and SafeForMacro(name) then
+			-- Clamped to the window as it stands now, so lowering the slider
+			-- cannot be out-waited by a file written under a longer one.
+			local left = entry.expires - wall
+			if left > window then left = window end
+			if left > 0 then
+				-- `at` rebases negative just after login, while GetTime() is
+				-- still small. That is correct rather than a bug: now - at is
+				-- then the real age of the debt, which is what the grace window
+				-- and the debug listing both want.
+				owed[name] = {
+					expires = now + left,
+					at = now - (wall - entry.at),
+					class = type(entry.class) == "string" and entry.class or nil,
+				}
+			end
+		end
+	end
+end
+
+-- AceDB fires this from its own PLAYER_LOGOUT handler, before it strips the
+-- defaults out of the table -- so writing here is safe, and there is no event
+-- to register that both test mocks would have to be taught about.
+function addon:SaveDebts()
+	ns.Guard("SaveDebts", SaveDebts)
+end
+
+-- One owner for each of the two key shapes. Prompt.lua and the settle handler
+-- both used to compose them by hand, which meant the convention above was
+-- written out in three files and only explained in one -- and re-keying it per
+-- buff quietly left one of the three behind.
+local function BlockSeconds(seconds)
+	if seconds then return seconds end
+	local db = addon.db and addon.db.profile
+	return (db and db.timing.retryCooldown) or 12
+end
+
+function ns.MarkAttempted(name, buffKey, seconds)
+	if not name or not buffKey then return end
+	tried[name .. "\0" .. buffKey] = GetTime() + BlockSeconds(seconds)
+end
+
+function ns.BlockPerson(name, seconds)
+	if not name then return end
+	tried[name .. "\0*"] = GetTime() + BlockSeconds(seconds)
+end
+
+-- Whether this person, or this one buff for this person, is inside a block.
+-- The whole-person key is always consulted: it exists precisely to stop the
+-- walk marching down the list when nothing reached them at all.
+function ns.IsBlocked(name, buffKey, now)
+	if not name then return false end
+	now = now or GetTime()
+	local person = tried[name .. "\0*"]
+	if person and person > now then return true end
+	if not buffKey then return false end
+	local one = tried[name .. "\0" .. buffKey]
+	return one ~= nil and one > now
+end
+
+-- The debt is paid. Written through, because the only thing worse than losing
+-- a debt across a reload is raising one that was already settled.
+function ns.SettleFavour(name)
+	if not name then return end
+	owed[name] = nil
+	SaveDebts()
+end
+
+local PRIORITY = { target = 0, owed = 1, group = 2, nearby = 3 }
 
 local function IterateUnits(fn)
 	fn("target")
@@ -714,11 +912,24 @@ function ns.BuildQueue()
 
 	local now = GetTime()
 	local seen, queue = {}, {}
+	-- Anybody the main path looked at and turned down. The owed fallback below
+	-- holds no unit token and so cannot repeat those judgements for itself;
+	-- without this it re-adds the person at priority 1 moments after the main
+	-- path decided against them.
+	local rejected = {}
 	local f = db.filters
 
 	-- Once per scan. This used to run for every unit examined.
 	local candidates = ns.CastableBuffs()
 	if #candidates == 0 then return {} end
+
+	-- Likewise: whether any of this class's buffs can be read at all depends on
+	-- the probe and the list, never on who is standing there.
+	local unreadable = true
+	for _, candidate in ipairs(candidates) do
+		local info = ns.BuffInfo(candidate)
+		if info and info.readable then unreadable = false break end
+	end
 
 	-- Offering a buff that cannot be paid for is a button that fails -- but
 	-- only classes with a mana bar can run out of it. A warrior's current mana
@@ -731,26 +942,30 @@ function ns.BuildQueue()
 	end
 
 	IterateUnits(function(unit)
-		if not IsBuffableUnit(unit, f) then return end
+		local ok, person = IsBuffableUnit(unit, f)
+		if not ok then
+			-- Someone we hold a token for and have just turned down must not
+			-- walk back in through the fallback, which cannot check any of
+			-- this. The name costs a call, so only pay for it when there is a
+			-- debt outstanding that could resurface.
+			if person and next(owed) then
+				local bad = ns.UnitFullName(unit)
+				if bad then rejected[bad] = true end
+			end
+			return
+		end
 
-		-- plain() collapses to a single value, so the two returns of UnitName
-		-- have to be taken first or the realm is silently lost.
-		local rawName, rawSecond = UnitName(unit)
-		local name, second = plain(rawName), plain(rawSecond)
-		if not name then return end
-
-		-- UnitName's second return is documented as the realm, but on this
-		-- client it carries a surname: six players standing together came back
-		-- with six different values. Gluing it on with a hyphen invented names
-		-- that no targeting call could resolve.
-		local full = name
-		if second and second ~= "" then full = name .. " " .. second end
-
-		if not SafeForMacro(full) then return end
-		if seen[full] then return end
+		local full = ns.UnitFullName(unit)
+		if not full then return end
+		-- One verdict per person per scan, whichever way it went. Somebody
+		-- standing in front of you is commonly both your target and a
+		-- nameplate, and only the queued half used to be deduplicated -- so a
+		-- person who was turned down had every rejection, including the range
+		-- check and its three API calls, paid for twice.
+		if seen[full] or rejected[full] then return end
 		-- The whole-person block: set only when the game said nothing was cast
 		-- at all, so we do not march down the list failing at each buff.
-		if tried[full .. "\0*"] and tried[full .. "\0*"] > now then return end
+		if ns.IsBlocked(full, nil, now) then return end
 
 		local inGroup = plain(UnitInParty and UnitInParty(unit)) or plain(UnitInRaid and UnitInRaid(unit))
 		local isOwed = db.sources.owed and owed[full] and owed[full].expires > now
@@ -776,12 +991,6 @@ function ns.BuildQueue()
 			return held, remaining
 		end
 
-		local unreadable = true
-		for _, candidate in ipairs(candidates) do
-			local info = ns.BuffInfo(candidate)
-			if info and info.readable then unreadable = false break end
-		end
-
 		local buff, has = ns.PickBuffFor(candidates, {
 			hasMana = hasMana,
 			inGroup = inGroup,
@@ -790,17 +999,24 @@ function ns.BuildQueue()
 			refreshUnder = f.refreshUnder,
 			unreadable = unreadable,
 			name = full,
-			blocked = function(candidate)
-				local key = full .. "\0" .. candidate.key
-				return tried[key] ~= nil and tried[key] > now
-			end,
+			blocked = function(candidate) return ns.IsBlocked(full, candidate.key, now) end,
 		}, auraState)
 
-		if not buff then return end
+		if not buff then rejected[full] = true return end
 		if not checked then has = nil end
 
 		local ranged = InRange(unit, buff)
-		if f.requireInRange and ranged == false then return end
+		if f.requireInRange and ranged == false then rejected[full] = true return end
+
+		-- A deliberate target is the plainest statement of intent there is, so
+		-- it outranks a debt -- but only once we have read their auras and found
+		-- the buff genuinely missing. Promoting a guess would put somebody who
+		-- already has it above a person who really did buff you. Mouseover is
+		-- left out on purpose: at a 0.4 s scan the prompt would flicker as the
+		-- cursor crossed the screen.
+		if unit == "target" and not isOwed and checked and has == false then
+			reason = "target"
+		end
 
 		seen[full] = true
 		queue[#queue + 1] = {
@@ -829,24 +1045,48 @@ function ns.BuildQueue()
 	-- casting range the moment they buffed you, so that moment is the evidence
 	-- we use instead: offer them for a short grace window, then let them go.
 	if db.sources.owed then
-		local fallback = ns.ResolveBuff(true)
 		local grace = db.timing.graceSeconds or 45
 		for full, entry in pairs(owed) do
 			local fresh = not db.filters.reachableOnly or (now - entry.at) <= grace
-			if entry.expires > now and fresh and not seen[full] and SafeForMacro(full) and fallback
-				and not fallback.selfCast
-				and not (tried[full .. "\0*"] and tried[full .. "\0*"] > now)
-				and not (tried[full .. "\0" .. fallback.key]
-					and tried[full .. "\0" .. fallback.key] > now) then
-				queue[#queue + 1] = {
+			if entry.expires > now and fresh and not seen[full] and not rejected[full]
+				and SafeForMacro(full) and not ns.IsBlocked(full, nil, now) then
+				-- Resolved per person, like the main path, rather than once for
+				-- everybody: a single resolve with mana assumed offered the
+				-- warrior a mana buff and ignored the buffs the user switched
+				-- off, because it never consulted the filters at all. Class is
+				-- all this path has -- a genuinely tokenless entry can never be
+				-- level- or death-checked, which is the price of having no
+				-- unit rather than something left out.
+				local hasMana
+				if entry.class then hasMana = MANA_CLASSES[entry.class] == true end
+
+				local buff = ns.PickBuffFor(candidates, {
+					hasMana = hasMana,
+					-- No token, so there is no telling whether they are in the
+					-- group; a party-only buff would be a button that fails.
+					inGroup = false,
+					relevantOnly = f.relevantOnly,
+					-- No aura truth either, so never rotate past what they may
+					-- already be carrying.
+					whenBuffed = "skip",
 					name = full,
-					short = ShortName(full),
-					buff = fallback,
-					reason = "owed",
-					priority = PRIORITY.owed,
-					ranged = nil,
-					known = nil,
-				}
+				}, function() return false end)
+
+				-- One buff per favour: the per-buff block rejects the whole
+				-- entry rather than moving the walk along, because nothing here
+				-- can verify that the first one ever landed.
+				if buff and not buff.selfCast and not ns.IsBlocked(full, buff.key, now) then
+					queue[#queue + 1] = {
+						name = full,
+						short = ShortName(full),
+						class = entry.class,
+						buff = buff,
+						reason = "owed",
+						priority = PRIORITY.owed,
+						ranged = nil,
+						known = nil,
+					}
+				end
 			end
 		end
 	end
@@ -882,39 +1122,62 @@ end
 
 local knownAuras = {}
 local auraScanPrimed = false
+-- Reused rather than rebuilt: this runs on every UNIT_AURA for the player, and
+-- a fresh forty-slot table per event is pure churn. Wiped at the top of the
+-- scan, never at the bottom, so a re-entrant call -- NoteFavour prints, and
+-- another addon can hook chat -- sees a clean table rather than a half-built one.
+local present = {}
+
+-- A loading screen can hand back an aura list that is not readable yet. A
+-- baseline taken from that is an empty baseline, and everything already on
+-- you then arrives looking like a favour.
+function ns.ResetAuraBaseline()
+	wipe(knownAuras)
+	auraScanPrimed = false
+end
 
 local function NoteFavour(aura)
 	local db = addon.db and addon.db.profile
 	if not db then return end
+
+	-- The prompt is the only thing that ever pays a favour back, and with this
+	-- source switched off nothing written here can reach it: BuildQueue's owed
+	-- lookup and the grace-window fallback are both gated on the same setting.
+	-- Returning here also saves the unit reads below on every noticed aura.
+	if not db.sources.owed then return end
 
 	local source = plain(aura.sourceUnit)
 	if not source or source == "player" then return end
 	if plain(UnitIsUnit(source, "player")) then return end
 	if plain(UnitIsPlayer(source)) ~= true then return end
 
-	local rawName, rawSecond = UnitName(source)
-	local name, second = plain(rawName), plain(rawSecond)
-	if not name then return end
-	local full = name
-	if second and second ~= "" then full = name .. " " .. second end
-	if not SafeForMacro(full) then return end
+	local full = ns.UnitFullName(source)
+	if not full then return end
 
+	-- The class is captured now because it cannot be recovered later: the whole
+	-- point of this record is the person who walked off without leaving a unit
+	-- token behind, and the fallback queue has to decide what to offer them.
 	owed[full] = { expires = GetTime() + db.timing.reciprocateWindow, at = GetTime(),
-		guid = plain(UnitGUID(source)) }
+		guid = plain(UnitGUID(source)), class = plain(select(2, UnitClass(source))) }
 	if db.verbose then
 		addon:Print(("|cff80ff80%s buffed you|r -- returning the favour is on the prompt"):format(full))
 	end
+	-- Written through rather than left to the logout hook: a favour is rare
+	-- enough to afford it, and correctness then does not depend on a callback
+	-- firing at all.
+	SaveDebts()
 end
 
 function ns.ScanOwnBuffs()
+	wipe(present)
 	if not (C_UnitAuras and C_UnitAuras.GetAuraDataByIndex) then return end
 
 	-- Do not stop at the first slot that will not read. safecall returns nil
 	-- both for a genuine end-of-list and for an aura the client withheld as a
 	-- secret, and breaking on the latter hid every favour behind it -- which
 	-- then re-fired as new on the following scan, forever.
-	local present = {}
 	local misses = 0
+	local read = 0
 	for i = 1, 40 do
 		local aura = safecall(C_UnitAuras.GetAuraDataByIndex, "player", i, "HELPFUL")
 		if type(aura) ~= "table" then
@@ -922,6 +1185,7 @@ function ns.ScanOwnBuffs()
 			if misses >= 3 then break end
 		else
 			misses = 0
+			read = read + 1
 
 			local instanceId = plain(aura.auraInstanceID)
 			local spellId = plain(aura.spellId)
@@ -943,20 +1207,27 @@ function ns.ScanOwnBuffs()
 		end
 	end
 
-	for instanceId in pairs(knownAuras) do
-		if not present[instanceId] then knownAuras[instanceId] = nil end
+	-- A scan that read nothing at all is not evidence that you are carrying
+	-- nothing, so it may neither empty the baseline nor stand in for one. The
+	-- trade is that somebody who genuinely holds no buffs stays unprimed until
+	-- their first aura arrives, and that aura becomes the baseline instead of
+	-- being announced: a missed favour is invisible, while an invented one
+	-- prints a line and pulses an amber priority-1 prompt at a bystander.
+	if read > 0 then
+		for instanceId in pairs(knownAuras) do
+			if not present[instanceId] then knownAuras[instanceId] = nil end
+		end
+		auraScanPrimed = true
 	end
-	auraScanPrimed = true
 end
 
 function addon:UNIT_AURA(_, unit)
 	if unit == "player" then ns.Guard("ScanOwnBuffs", ns.ScanOwnBuffs) end
 
-	local guid = plain(UnitGUID(unit))
-	if not guid then return end
-	for key in pairs(caps.buffs) do
-		auraCache[guid .. key] = nil
-	end
+	-- One assignment, and only for somebody already cached. The key is the guid
+	-- and never the unit token: a nameplate token gets recycled to a different
+	-- player, and a cache keyed on one would hand you their auras.
+	ForgetUnitAuras(plain(UnitGUID(unit)))
 end
 
 function addon:PLAYER_ENTERING_WORLD()
@@ -965,7 +1236,13 @@ function addon:PLAYER_ENTERING_WORLD()
 	ns.Guard("ProbeCapabilities", ns.ProbeCapabilities)
 	-- Take a baseline of your own buffs now. Waiting for the next UNIT_AURA
 	-- means whatever arrives first gets mistaken for something you already had.
-	ns.Guard("prime aura baseline", ns.ScanOwnBuffs)
+	-- The old baseline is dropped first: aura instance ids are renumbered
+	-- across a zone, so keeping it would make everything you still hold look
+	-- new the moment the next scan runs.
+	ns.Guard("prime aura baseline", function()
+		ns.ResetAuraBaseline()
+		ns.ScanOwnBuffs()
+	end)
 	ns.Guard("WriteProbe", ns.WriteProbe)
 	ns.Guard("ApplyStyle on login", function()
 		if ns.Prompt then ns.Prompt:ApplyStyle() end
@@ -988,7 +1265,22 @@ end
 -- A click parks its debt in ns.pendingClick rather than clearing it; these
 -- resolve it from what the game actually did. Something went out, so the
 -- favour is settled.
-local function SettlePendingClick(settled, landedOn)
+
+-- Did the id the game reported belong to the buff we armed? Every rank counts,
+-- and so does the raid-wide version: casting that by hand still leaves them
+-- holding the buff, so it is the same favour. nil means the client would not
+-- say, which has to settle -- unverifiable must never mean "never clear the
+-- debt", or one secret value makes every favour permanent.
+local function SpellIsOurs(spellId, buffKey)
+	if spellId == nil or not buffKey then return true end
+	local buff = ns.FindBuff(caps.class, buffKey)
+	if not buff then return true end
+	-- Every rank and the raid-wide version map to the same entry, so this is
+	-- the same question as "is that id one of this buff's" without the walk.
+	return ns.BUFF_BY_ID[spellId] == buff
+end
+
+local function SettlePendingClick(settled, landedOn, spellId)
 	local pending = ns.pendingClick
 	if not pending then return end
 	if GetTime() - pending.at > 2 then
@@ -1000,28 +1292,49 @@ local function SettlePendingClick(settled, landedOn)
 	-- existing target in place, so the cast goes to whoever that was. Settling
 	-- on "something was cast" alone marked the favour repaid to a stranger who
 	-- never received anything.
-	if settled and landedOn and landedOn ~= pending.name then
-		local first = ns.FirstName and ns.FirstName(pending.name)
-		if landedOn ~= first then
-			ns.tried[pending.name .. "\0*"] = GetTime() + 2
-			ns.pendingClick = nil
-			return
+	--
+	-- Three spellings are accepted because three can legitimately come back:
+	-- the macro offers the bare first name and the full one, and the game
+	-- reports whichever resolved, without any cross-realm suffix.
+	local why
+	if settled and landedOn and landedOn ~= pending.name
+		and landedOn ~= (ns.FirstName and ns.FirstName(pending.name))
+		and landedOn ~= (ns.ShortName and ns.ShortName(pending.name)) then
+		why = ("it went to |cffffffff%s|r"):format(tostring(landedOn))
+	elseif settled and not SpellIsOurs(spellId, pending.buffKey) then
+		-- Right person, wrong spell: anything else on a bar can beat the
+		-- macro's own /cast to the click.
+		why = ("|cffffffff%s|r went out instead"):format(tostring(spellId))
+	end
+
+	if why then
+		local db = addon.db and addon.db.profile
+		if db and db.verbose then
+			addon:Print(("|cffff8080%s is still owed|r -- %s."):format(pending.name, why))
 		end
+		-- Nothing reached them, so neither block may stand. The whole person
+		-- for two seconds, so the prompt does not immediately march down the
+		-- rest of the list -- and the per-buff cooldown PostClick optimistically
+		-- wrote for a buff that was never delivered, cut to the same two.
+		ns.BlockPerson(pending.name, 2)
+		ns.MarkAttempted(pending.name, pending.buffKey, 2)
+		ns.pendingClick = nil
+		return
 	end
 
 	if settled then
-		ns.owed[pending.name] = nil
+		ns.SettleFavour(pending.name)
 	else
 		-- Nothing was cast at all, so block the whole person briefly rather
 		-- than letting the walk try every remaining buff in turn.
-		ns.tried[pending.name .. "\0*"] = GetTime() + 2
+		ns.BlockPerson(pending.name, 2)
 	end
 	ns.pendingClick = nil
 end
 
 function addon:UNIT_SPELLCAST_SENT(_, unit, target, _, spellId)
 	if unit ~= "player" then return end
-	SettlePendingClick(true, plain(target))
+	SettlePendingClick(true, plain(target), plain(spellId))
 	if not self.db.profile.debugClicks then return end
 	self:Print(("|cff80ff80CAST SENT %s -> %s|r"):format(
 		tostring(plain(spellId)), tostring(plain(target))))
@@ -1070,13 +1383,18 @@ function addon:PLAYER_UNGHOST() if ns.Prompt then ns.Prompt:Refresh() end end
 
 function addon:PLAYER_REGEN_ENABLED()
 	-- Secure frames cannot be restyled or retargeted in combat, so anything
-	-- deferred while locked down gets flushed here.
-	if ns.Prompt then ns.Prompt:ApplyStyle() end
+	-- deferred while locked down gets flushed here -- and only then. ApplyStyle
+	-- sets the flag itself when it has to give up, and it walks every texture
+	-- and font on the panel; doing all of that because a fight ended, rather
+	-- than because something was actually put off, is work for nothing.
+	if ns.Prompt and ns.Prompt.pendingStyle then ns.Prompt:ApplyStyle() end
 end
 
--- Kept in SavedVariables so the probe can be read off disk without logging in.
+-- Kept in SavedVariables so the probe -- and whatever the console has printed
+-- since -- can be read off disk without logging in or transcribing chat.
 function ns.WriteProbe()
 	MannersDB = MannersDB or {}
+	MannersDB.console = ns.console
 	local dump = {
 		at = date("%Y-%m-%d %H:%M:%S"),
 		version = (GetBuildInfo()),
@@ -1106,14 +1424,19 @@ end
 ---------------------------------------------------------------------------
 -- click macro
 --
--- A macro containing /click is the most dependable way to bind the prompt: the
--- macro system delivers a real click to the secure button, which the keybinding
--- route can in principle have taint trouble with. CreateMacro and EditMacro are
--- both protected during combat.
+-- A macro containing /click is the route the options page leads with: the
+-- macro system delivers the click itself, the same way the native CLICK
+-- binding does, and a macro can be dragged between bars without asking the
+-- player to find the key bindings window. CreateMacro and EditMacro are both
+-- protected during combat.
 ---------------------------------------------------------------------------
 
 local MACRO_NAME = "Manners"
-local MACRO_BODY = "/click MannersPrompt"
+-- Button name and down flag, both required. /click with neither delivers an up
+-- click, and the secure button only acts on the way down -- so the macro read
+-- correctly, clicked, and cast nothing. This is the form the buttons that do
+-- work on this client are driven with.
+local MACRO_BODY = "/click MannersPrompt LeftButton 1"
 
 function ns.CreateClickMacro()
 	if InCombatLockdown() then
@@ -1305,6 +1628,16 @@ function ns.ClampSettings()
 	if type(p.format) ~= "string" or p.format == "" then p.format = "{name}" end
 	if not ns.CHANNEL_COMMANDS[profile.speech.channel] then profile.speech.channel = "SAY" end
 
+	-- The same class of repair as the two above, and it cannot live in
+	-- OnInitialize: a new, copied or reset profile only comes back through
+	-- RefreshConfig, so the box stayed empty while the dropdown still named a
+	-- set. Refilled from that dropdown rather than a hardcoded set so the two
+	-- agree; PhraseSetText returns nil for a set that no longer exists.
+	local speech = profile.speech
+	if type(speech.phrases) ~= "string" or speech.phrases:match("^%s*$") then
+		speech.phrases = ns.PhraseSetText(speech.presetChoice) or ns.PhraseSetText("roleplay")
+	end
+
 	-- Everything with a fixed set of values, checked against that set. A
 	-- profile can outlive the version that wrote it, and an unrecognised value
 	-- falls through every branch that handles it into whatever the last else
@@ -1320,6 +1653,17 @@ function ns.ClampSettings()
 	oneOf(p, "flashStyle", { pulse = true, once = true, off = true }, "pulse")
 	oneOf(p, "point", VALID_ANCHORS, "CENTER")
 	oneOf(p, "relPoint", VALID_ANCHORS, "CENTER")
+
+	-- A sound from an addon that has since been uninstalled is not in the
+	-- table any more, and Fetch would quietly fall back to "None" -- which is
+	-- the number 1 and plays nothing. SoundExists lives in Prompt.lua, beside
+	-- the only LSM handle; it answers true when it cannot tell.
+	local snd = profile.sound
+	if type(snd.file) ~= "string" then
+		snd.file = ns.SOUND_KEY
+	elseif snd.file ~= "None" and ns.SoundExists and not ns.SoundExists(snd.file) then
+		snd.file = ns.SOUND_KEY
+	end
 
 	-- A pinned buff that this class cannot cast leaves the dropdown blank and
 	-- ResolveBuff falling back every scan.
@@ -1354,18 +1698,18 @@ function addon:OnInitialize()
 	self.db.RegisterCallback(self, "OnProfileChanged", "RefreshConfig")
 	self.db.RegisterCallback(self, "OnProfileCopied", "RefreshConfig")
 	self.db.RegisterCallback(self, "OnProfileReset", "RefreshConfig")
-
-	-- A profile that has never had phrases set gets the default set.
-	local speech = self.db.profile.speech
-	if type(speech.phrases) ~= "string" or speech.phrases:match("^%s*$") then
-		speech.phrases = ns.PhraseSetText("roleplay")
-	end
+	self.db.RegisterCallback(self, "OnDatabaseShutdown", "SaveDebts")
 
 	-- Probe first: ClampSettings validates the pinned buff against caps.class,
 	-- which the probe is what sets. The other way round, caps.class was always
 	-- nil and every pinned choice was silently reset to Automatic on login.
 	ns.Guard("ProbeCapabilities", ns.ProbeCapabilities)
 	ns.ClampSettings()
+	-- After the clamp, so a stored debt is measured against a reciprocate
+	-- window that has already been validated. Once per session and not from
+	-- PLAYER_ENTERING_WORLD: that fires on every zone and instance door, and
+	-- would resurrect debts this session had already settled.
+	ns.Guard("RestoreDebts", RestoreDebts)
 	ns.Guard("SetupOptions", ns.SetupOptions)
 	ns.Guard("Prompt:Create", function() ns.Prompt:Create() end)
 
@@ -1433,12 +1777,38 @@ function addon:RefreshConfig()
 	ns.ClampSettings()
 	ns.Prompt:ApplyStyle()
 	ns.Prompt:InvalidateMacro()
+	-- Guarded: the function is nil if Options.lua failed to load, and a throw
+	-- here would take StartScanner with it -- the one call that makes the
+	-- prompt appear at all.
+	ns.Guard("RefreshMinimapButton", ns.RefreshMinimapButton)
 	self:StartScanner()
 end
 
 ---------------------------------------------------------------------------
 -- slash
 ---------------------------------------------------------------------------
+
+-- Every command, in the order the help prints them. One list rather than a
+-- help block and an if/elseif chain that have to be kept in step by hand: that
+-- is how "restore" came to be advertised for a release without existing, and it
+-- is what the scenario walks to prove none of them falls through to the help.
+ns.COMMANDS = {
+	{ word = "options", help = "open the options window" },
+	{ word = "unlock", help = "unlock the prompt so it can be dragged" },
+	{ word = "lock", help = "lock it again -- an unlocked prompt never casts" },
+	{ word = "test", help = "preview the prompt with a mock candidate" },
+	{ word = "macro", help = "make a /click macro for your action bar" },
+	{ word = "on", help = "turn the addon on" },
+	{ word = "off", help = "turn it off" },
+	{ word = "restore", help = "hand your target back after buffing" },
+	{ word = "verbose", help = "announce every buff it notices" },
+	{ word = "clicks", help = "log what the button does when clicked" },
+	{ word = "try", args = " <macro>", help = "run any macro text from the prompt" },
+	{ word = "look", args = " [unit]", help = "dump every API answer for a unit" },
+	{ word = "forms", help = "example macros to try" },
+	{ word = "debug", help = "what your class and this build allow" },
+	{ word = "errors", help = "the last few things that broke" },
+}
 
 function addon:HandleSlash(rawInput)
 	rawInput = (rawInput or ""):match("^%s*(.-)%s*$")
@@ -1466,6 +1836,10 @@ function addon:HandleSlash(rawInput)
 		return
 	elseif input == "look" then
 		ns.Guard("InspectUnit", ns.InspectUnit, rest ~= "" and rest or nil)
+		-- Flushed to SavedVariables straight away, so a session spent hunting
+		-- one of this client's secrets can be read off disk afterwards rather
+		-- than copied out of the chat frame by hand.
+		ns.Guard("WriteProbe", ns.WriteProbe)
 		return
 	elseif input == "forms" then
 		self:Print("|cffffd100Targeting forms, for /manners try:|r")
@@ -1512,6 +1886,21 @@ function addon:HandleSlash(rawInput)
 		db.enabled = false
 		ns.Prompt:Refresh()
 		self:Print("disabled.")
+	elseif input == "errors" then
+		-- Guard names every failure it catches but only says each one out loud
+		-- once. This is the rest of them, and the only way to see a failure
+		-- that happened before anyone was looking at chat.
+		if #ns.errors == 0 then
+			self:Print("nothing has broken this session.")
+			return
+		end
+		local from = math.max(1, #ns.errors - 4)
+		self:Print(("|cffffd100the last %d of %d|r:"):format(#ns.errors - from + 1, #ns.errors))
+		for i = from, #ns.errors do
+			local e = ns.errors[i]
+			self:Print(("  |cff808080%s|r %s -- |cffff8080%s|r"):format(
+				tostring(e.at), tostring(e.where), tostring(e.err)))
+		end
 	elseif input == "debug" then
 		self:Print("class: |cffffffff" .. tostring(caps.class) .. "|r")
 		if not caps.hasClassBuffs then
@@ -1551,14 +1940,14 @@ function addon:HandleSlash(rawInput)
 				(ns.tryMacro:gsub("%s+", " "))))
 		end
 		self:Print("queue now: " .. #ns.BuildQueue())
+		ns.Guard("WriteProbe", ns.WriteProbe)
 	else
-		self:Print("|cffffd100/manners|r options  |cffffd100/manners unlock|r move  |cffffd100/manners test|r preview")
-		self:Print("|cffffd100/manners macro|r make a /click macro for your action bar")
-		self:Print("|cffffd100/manners clicks|r log what the button does when clicked")
-		self:Print("|cffffd100/manners restore|r hand your target back after buffing")
-		self:Print("|cffffd100/manners try <macro>|r run any macro text from the prompt")
-		self:Print("|cffffd100/manners look [unit]|r dump every API answer for a unit")
-		self:Print("|cffffd100/manners forms|r example macros to try")
-		self:Print("|cffffd100/manners debug|r what your class and this build allow")
+		-- The header is the marker the scenario looks for: falling through to
+		-- here is the one outcome an advertised command must never have.
+		self:Print("|cffffd100Manners commands:|r")
+		for _, command in ipairs(ns.COMMANDS) do
+			self:Print(("  |cffffd100/manners %s%s|r  %s"):format(
+				command.word, command.args or "", command.help))
+		end
 	end
 end

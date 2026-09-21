@@ -16,6 +16,34 @@ local LSM = LibStub("LibSharedMedia-3.0")
 local InCombatLockdown = _G.InCombatLockdown
 local GetTime = _G.GetTime
 
+-- Guarded because a library that changed its Register signature must not stop
+-- the prompt being built; the addon is then silent, not broken.
+ns.Guard("register sound", function()
+	LSM:Register("sound", ns.SOUND_KEY, ns.SOUND_FILE)
+end)
+
+function ns.PlayPromptSound(file)
+	if not file or file == "None" then return end
+	-- noDefault: without it an entry whose addon has been uninstalled resolves
+	-- to "None", which is the number 1 and plays nothing -- silence that reads
+	-- as a broken addon, which is the bug this fixes.
+	local data = LSM:Fetch("sound", file, true)
+	if not data then return end
+	local willPlay = ns.plain(PlaySoundFile(data, "Master"))
+	-- The client can refuse a file outright. A toggle that is on and silent is
+	-- the whole complaint, so say which sound it was rather than nothing.
+	if willPlay == false and ns.db and ns.db.profile.verbose then
+		ns.addon:Print(("|cffff8080%s did not play.|r Pick another sound."):format(tostring(file)))
+	end
+end
+
+-- Tolerant on purpose: an older embedded library without IsValid must not let
+-- ClampSettings rewrite a setting it cannot actually judge.
+function ns.SoundExists(key)
+	if not (LSM and LSM.IsValid) then return true end
+	return LSM:IsValid("sound", key)
+end
+
 local Prompt = {}
 ns.Prompt = Prompt
 
@@ -31,17 +59,21 @@ local nameText, subText, countChip, countText, queueRows
 -- file being read.
 ns.BUILD = "0.9.6"
 
-local current, testMode, testExpiry, lastTop, appliedKey, lastClickAt, lastPreClickAt
+local current, testMode, testExpiry, lastTop, appliedKey, lastClickAt, lastPreClickAt, lastSkipAt
 
 -- Amber for a favour returned, because that is the case worth noticing.
 -- The others stay quiet so the prompt does not shout at you constantly.
 local REASON_COLOR = {
+	-- Soft green for somebody you picked yourself: clear of owed amber and
+	-- group blue, so the three are never mistaken for one another.
+	target = { 0.55, 0.92, 0.60 },
 	owed = { 1.00, 0.78, 0.30 },
 	group = { 0.38, 0.68, 1.00 },
 	nearby = { 0.52, 0.54, 0.62 },
 }
 
-local REASON_KEY = { owed = "reasonOwed", group = "reasonGroup", nearby = "reasonNearby" }
+local REASON_KEY = { target = "reasonTarget", owed = "reasonOwed",
+	group = "reasonGroup", nearby = "reasonNearby" }
 
 ---------------------------------------------------------------------------
 -- capability-checked drawing helpers
@@ -249,6 +281,15 @@ function Prompt:Create()
 		if lastPreClickAt and (now - lastPreClickAt) < 0.25 then return end
 		lastPreClickAt = now
 
+		-- A keypress with an empty prompt is otherwise indistinguishable from a
+		-- binding that does not work, which is what this one was. Says it here
+		-- rather than in Bindings.xml because the macro route lands here too.
+		if not self:IsShown() then
+			ns.addon:Print("nobody to buff right now.")
+			Prompt:ApplyTarget(nil)
+			return
+		end
+
 		-- An unlocked or disabled prompt must not cast, and PreClick is the
 		-- last chance to make sure of it: it runs after Refresh has decided
 		-- what to show but before the secure handler reads the attributes.
@@ -264,6 +305,27 @@ function Prompt:Create()
 	end)
 
 	button:SetScript("PostClick", function(self, mouseButton, down)
+		-- A right-press says "not this one", which is not a repayment: the debt
+		-- stands, nothing is cast, and only the offer is postponed. The block is
+		-- on the person rather than the buff, because declining is about who is
+		-- being offered, not which spell they would have got.
+		if mouseButton == "RightButton" then
+			-- Its own stamp: sharing the cast path's would let a right-press
+			-- swallow a real left click landing just after it.
+			local now = GetTime()
+			if lastSkipAt and (now - lastSkipAt) < 0.25 then return end
+			lastSkipAt = now
+			if not (current and current.name) then return end
+			local db = ns.db and ns.db.profile
+			-- The retry cooldown, not the two seconds a failed cast writes:
+			-- that would put them straight back on the prompt.
+			ns.BlockPerson(current.name)
+			Prompt:StopAttention()
+			if db and db.verbose then
+				ns.addon:Print(("skipping |cffffffff%s|r for now."):format(current.short or current.name))
+			end
+			return
+		end
 		if mouseButton and mouseButton ~= "LeftButton" then return end
 
 		-- One press delivers both a down and an up; count and settle once.
@@ -271,7 +333,6 @@ function Prompt:Create()
 		if lastClickAt and (now - lastClickAt) < 0.25 then return end
 		lastClickAt = now
 
-		ns.clicks = (ns.clicks or 0) + 1
 		-- Lets the error and cast handlers tell our own outcome apart from
 		-- everything else the game is shouting about.
 		ns.lastClickTime = now
@@ -295,8 +356,7 @@ function Prompt:Create()
 		-- Per buff, so casting Fortitude does not stop the walk reaching
 		-- Divine Spirit on the next click.
 		if current.buff then
-			ns.tried[current.name .. "\0" .. current.buff.key] =
-				GetTime() + ns.db.profile.timing.retryCooldown
+			ns.MarkAttempted(current.name, current.buff.key)
 			ns.lastGave[current.name] = current.buff.key
 		end
 		Prompt:StopAttention()
@@ -310,6 +370,7 @@ function Prompt:Create()
 			1, 1, 1, 0.8, 0.8, 0.8)
 		local why = current.reason == "owed" and "Buffed you -- return the favour."
 			or current.reason == "group" and "In your group and missing it."
+			or current.reason == "target" and "Your target, and missing it."
 			or "Nearby and missing it."
 		GameTooltip:AddLine(why, 0.7, 0.7, 0.7, true)
 		if current.checked and current.known == nil then
@@ -328,6 +389,8 @@ function Prompt:Create()
 			GameTooltip:AddLine(" ")
 		end
 		GameTooltip:AddLine("Click to cast. |cffffd100/manners|r for options.", 0.5, 0.5, 0.5)
+		-- A gesture nobody can discover is not a feature.
+		GameTooltip:AddLine("Right-click to skip this one.", 0.5, 0.5, 0.5)
 		GameTooltip:Show()
 	end)
 	button:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -714,6 +777,44 @@ local function SilenceOtherButtons()
 	end
 end
 
+-- The cast half of the macro, in the order the client needs it, plus whether a
+-- /targetlasttarget belongs on the end. Handed back as a list rather than a
+-- string so the room left for a spoken line can be measured against what these
+-- actually take.
+local function CastLines(entry)
+	local lines = {}
+	local spell = ns.BuffName(entry.buff)
+
+	if entry.buff and entry.buff.selfCast then
+		lines[#lines + 1] = "/cast " .. spell
+		return lines, false
+	end
+
+	-- Both forms, in this order. A /target that resolves nothing is a no-op and
+	-- leaves whoever you already had standing, so the full name runs last and
+	-- wins wherever it resolves, with the bare first name beneath it for the
+	-- clients that want that instead. FirstName is nil for a one-word name,
+	-- which needs no fallback of its own.
+	local first = ns.FirstName(entry.name)
+	if first then lines[#lines + 1] = "/target " .. first end
+	lines[#lines + 1] = "/target " .. (entry.name or "")
+	lines[#lines + 1] = "/cast " .. spell
+
+	return lines, ns.db.profile.filters.restoreTarget == true
+end
+
+-- How many characters a spoken line has left, for this person with these
+-- settings. One answer, asked by the cast path and by the options preview, so
+-- the preview can no longer promise a line the cast would silently drop.
+function ns.PhraseBudget(entry)
+	local lines, restore = CastLines(entry)
+	-- The newline the spoken line itself would add, and the restore that
+	-- follows it with a newline of its own.
+	local used = #table.concat(lines, "\n") + 1
+	if restore then used = used + #"/targetlasttarget" + 1 end
+	return ns.MACRO_LIMIT - used
+end
+
 function Prompt:ApplyTarget(entry)
 	if InCombatLockdown() then return end
 
@@ -735,10 +836,28 @@ function Prompt:ApplyTarget(entry)
 	end
 
 	-- The console expands {unit}/{name}/{spell} against whoever is offered.
+	-- Above the early return below, because the token a person is reached
+	-- through can change while the macro that would go out does not.
 	ns.lastTopEntry = entry
 	ns.lastTopUnit = entry.unit
 
-	local spell = ns.BuffName(entry.buff)
+	-- Everything the macro is built out of. The same person, the same buff and
+	-- the same reason produce the same macro, so rebuilding it two and a half
+	-- times a second -- eight SetAttribute calls each time -- buys nothing.
+	-- Every other input comes through InvalidateMacro: the restore setting, the
+	-- speech options, /manners try. PreClick clears it outright, so a press
+	-- always re-arms against a queue built in that moment.
+	--
+	-- It also settles the spoken line per candidate instead of re-rolling it on
+	-- every tick, which is what makes the tooltip's "Will run:" worth reading.
+	--
+	-- The clear path above stays unconditional. That asymmetry is deliberate:
+	-- guarding it was the 1.4.1 bug, because PreClick nils the key immediately
+	-- before calling here, so the guard was always false on a click and an
+	-- emptied queue left the last person's macro armed.
+	local key = table.concat({ entry.name, entry.buff.key, tostring(entry.reason),
+		tostring(ns.tryMacro) }, "\1")
+	if key == appliedKey then return end
 
 	-- /manners try: arbitrary macro text, expanded against the current
 	-- candidate. Iterating on this client otherwise means one guess per
@@ -751,36 +870,23 @@ function Prompt:ApplyTarget(entry)
 		button:SetAttribute("macrotext", text)
 		SilenceOtherButtons()
 		ns.lastMacro = "[try] " .. text
-		appliedKey = nil
+		appliedKey = key
 		return
 	end
 
-	local lines = {}
+	local lines, restore = CastLines(entry)
 
-	if entry.buff.selfCast then
-		lines[#lines + 1] = "/cast " .. spell
-	else
-		lines[#lines + 1] = "/target " .. entry.name
-		lines[#lines + 1] = "/cast " .. spell
-	end
-
-	local phrase = ns.PickPhrase(entry, ns.PHRASE_BUDGET)
+	-- Measured, not assumed. This used to be a constant 120 with a second,
+	-- correct length check immediately below it -- two rules for one question,
+	-- and the constant was the one the options preview quoted at people.
+	local phrase = ns.PickPhrase(entry, ns.PhraseBudget(entry))
 	if phrase then lines[#lines + 1] = phrase end
 
-	if not entry.buff.selfCast and ns.db.profile.filters.restoreTarget then
-		lines[#lines + 1] = "/targetlasttarget"
-	end
+	-- Last, always: it is what hands your target back, and the client reads the
+	-- macro top to bottom.
+	if restore then lines[#lines + 1] = "/targetlasttarget" end
 
 	local macro = table.concat(lines, "\n")
-
-	-- Drop the courtesy line rather than the restore if it will not all fit.
-	if #macro > ns.MACRO_LIMIT and phrase then
-		local without = {}
-		for _, line in ipairs(lines) do
-			if line ~= phrase then without[#without + 1] = line end
-		end
-		macro = table.concat(without, "\n")
-	end
 
 	button:SetAttribute("type1", "macro")
 	button:SetAttribute("macrotext1", macro)
@@ -789,6 +895,7 @@ function Prompt:ApplyTarget(entry)
 	SilenceOtherButtons()
 
 	ns.lastMacro = macro
+	appliedKey = key
 end
 
 function Prompt:InvalidateMacro()
@@ -890,6 +997,17 @@ function Prompt:Refresh()
 		return
 	end
 
+	-- Ahead of the unlocked branch, which used to return before this was ever
+	-- read: an unlocked prompt that ignores /manners off is a button still
+	-- sitting on screen after the user was told the addon is off.
+	if not db.enabled then
+		self:ApplyTarget(nil)
+		button:Hide()
+		self:StopAttention()
+		lastTop = nil
+		return
+	end
+
 	if not p.locked then
 		self:ApplyTarget(nil)
 		self:StopAttention()
@@ -903,17 +1021,17 @@ function Prompt:Refresh()
 		return
 	end
 
-	if not db.enabled then
-		button:Hide()
-		self:StopAttention()
-		lastTop = nil
-		return
-	end
-
 	if InCombatLockdown() then
 		-- Attributes are frozen, so the list cannot be trusted. Either hide, or
 		-- keep showing the frozen target so a click still works.
 		if p.hideInCombat or not current then button:Hide() end
+		-- The pulse is a claim that somebody is still owed. The debt can expire
+		-- or be settled in the middle of a fight, and nothing else down here can
+		-- notice, so the claim would outlive it until the fight ended.
+		local debt = current and current.name and ns.owed[current.name]
+		if not current or current.reason ~= "owed" or not debt or debt.expires <= GetTime() then
+			self:StopAttention()
+		end
 		return
 	end
 
@@ -944,9 +1062,8 @@ function Prompt:Refresh()
 		textLayer.swap:Play()
 	end
 
-	if isNew and db.sound.enabled and db.sound.file and db.sound.file ~= "None" then
-		local sound = LSM:Fetch("sound", db.sound.file)
-		if sound then PlaySoundFile(sound, "Master") end
+	if isNew and db.sound.enabled then
+		ns.Guard("prompt sound", ns.PlayPromptSound, db.sound.file)
 	end
 
 	if top.reason == "owed" then

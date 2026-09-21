@@ -17,6 +17,26 @@ function Mock.reset()
 	Mock.groupSize = 0
 	Mock.held = nil
 	Mock.heldFor = nil
+	Mock.auraBlackout = false
+	Mock.extraAura = false
+	Mock.auraIdBase = 0
+	Mock.inRange = true
+	Mock.unitClass = "PRIEST"
+	Mock.iconDb = nil
+	Mock.sounds = {}
+	Mock.printed = {}
+	-- The wall clock. GetTime() restarts near zero every login and the epoch
+	-- does not, which is the whole difficulty with storing a debt.
+	Mock.epoch = 1700000000
+	-- Stands in for the SavedVariables file: handed to every AceDB the mock
+	-- builds, so two successive load()s share it the way two sessions share a
+	-- file on disk. Cleared here so one scenario's debts cannot leak into the
+	-- next; a scenario that models a reload simply does not reset in between.
+	Mock.sv = {}
+	Mock.dbCallbacks = {}
+	-- How often the addon actually asked the client something. Caching and
+	-- deduplication are invisible to every other kind of assertion.
+	Mock.counts = { range = 0, auraRead = 0 }
 end
 Mock.reset()
 
@@ -106,7 +126,14 @@ function LibStub(name)
 			end
 			a.UnregisterEvent = function() end
 			a.RegisterChatCommand = function() end
-			a.Print = function() end
+			-- Several guarantees are about what the addon says, not what it
+			-- does: a prompt with nobody on it has to be told apart from a
+			-- keybinding that never worked.
+			a.Print = function(_, ...)
+				local parts = {}
+				for i = 1, select("#", ...) do parts[i] = tostring((select(i, ...))) end
+				Mock.printed[#Mock.printed + 1] = table.concat(parts, " ")
+			end
 			a.ScheduleRepeatingTimer = function() return {} end
 			a.CancelTimer = function() end
 			a.ScheduleTimer = function() return {} end
@@ -120,7 +147,16 @@ function LibStub(name)
 				return out
 			end
 			local db = { profile = deepcopy(defaults.profile) }
-			db.RegisterCallback = function() end
+			-- AceDB's per-character section, created on first access and kept
+			-- in the one saved file. Backed by Mock.sv so it survives a load().
+			Mock.sv.char = Mock.sv.char or {}
+			db.char = Mock.sv.char
+			-- Recorded rather than dropped: OnDatabaseShutdown is the only hook
+			-- the logout flush hangs on, and a scenario has to be able to fire
+			-- it the way the real library does.
+			db.RegisterCallback = function(target, event, method)
+				Mock.dbCallbacks[event] = { target = target, method = method }
+			end
 			return db
 		end
 	elseif name == "AceConfig-3.0" then lib.RegisterOptionsTable = function() end
@@ -130,11 +166,32 @@ function LibStub(name)
 	elseif name == "AceDBOptions-3.0" then
 		lib.GetOptionsTable = function() return { type = "group", name = "p", args = {} } end
 	elseif name == "LibSharedMedia-3.0" then
-		lib.Fetch = function() return "font.ttf" end
-		lib.HashTable = function() return {} end
+		-- Real enough to tell a registered sound from a missing one. The
+		-- shipped library has exactly one sound, "None", whose value is the
+		-- number 1, so the mock starts where a bare client does.
+		lib.media = { sound = { None = 1 }, font = { ["font.ttf"] = "font.ttf" } }
+		lib.defaults = { sound = "None", font = "font.ttf" }
+		lib.Register = function(self, kind, key, data)
+			self.media[kind] = self.media[kind] or {}
+			self.media[kind][key] = data
+			return true
+		end
+		lib.IsValid = function(self, kind, key) return (self.media[kind] or {})[key] ~= nil end
+		lib.Fetch = function(self, kind, key, noDefault)
+			local t = self.media[kind] or {}
+			-- The fallback is the trap, not a convenience: a key whose addon
+			-- is gone resolves to the type's default, and for sound that is
+			-- "None" -- the number 1, which plays nothing.
+			return t[key] or (not noDefault and t[self.defaults[kind]]) or nil
+		end
+		lib.HashTable = function(self, kind) return self.media[kind] or {} end
 	elseif name == "LibDataBroker-1.1" then lib.NewDataObject = function() return {} end
 	elseif name == "LibDBIcon-1.0" then
-		lib.Register = function() end
+		-- Records which table the button is bound to. The real library keeps
+		-- the one it was handed and never re-reads it, which is the whole bug.
+		lib.Register = function(_, _, _, db) Mock.iconDb = db end
+		lib.Refresh = function(_, _, db) if db then Mock.iconDb = db end end
+		lib.IsRegistered = function() return true end
 		lib.Show = function() end
 		lib.Hide = function() end
 	end
@@ -149,7 +206,13 @@ function InCombatLockdown() return Mock.inCombat end
 -- expires, so every later BuildQueue came back empty and the assertions that
 -- depended on it skipped while reporting green.
 function GetTime() return Mock.now end
-function Mock.advance(seconds) Mock.now = Mock.now + seconds end
+-- Seconds since the epoch, which is what SavedVariables have to be written in:
+-- it is the only clock that means the same thing after a reload.
+function time() return Mock.epoch end
+function Mock.advance(seconds)
+	Mock.now = Mock.now + seconds
+	Mock.epoch = Mock.epoch + seconds
+end
 function wipe(t) for k in pairs(t) do t[k] = nil end return t end
 function date() return "12:00:00" end
 
@@ -160,7 +223,7 @@ end
 function GetUnitName() return "Petra Stonewell" end
 function UnitClass(u)
 	if u == "player" then return "Mage", Mock.class end
-	return "Priest", maybeSecret("PRIEST")
+	return "Priest", maybeSecret(Mock.unitClass)
 end
 function UnitGUID(u) return maybeSecret("Player-1-" .. tostring(u)) end
 function UnitExists() return maybeSecret(true) end
@@ -201,14 +264,19 @@ function GetNumGroupMembers() return Mock.groupSize end
 function IsInRaid() return false end
 function IsSpellKnown(id) return id == 1459 end
 function IsPlayerSpell(id) return id == 1459 end
-function IsSpellInRange() return 1 end
+function IsSpellInRange()
+	Mock.counts.range = Mock.counts.range + 1
+	return Mock.inRange and 1 or 0
+end
 function GetSpellInfo() return "Arcane Intellect" end
 function GetBuildInfo() return "1.60.1", "69893", "d", 16001 end
 function GetNumMacros() return 0, 0 end
 function GetMacroIndexByName() return 0 end
 function CreateMacro() return 1 end
 function EditMacro() end
-function PlaySoundFile() end
+-- Recorded rather than dropped: "the toggle is on and nothing is audible" is
+-- only testable if the test can see what was handed to the client.
+function PlaySoundFile(file) Mock.sounds[#Mock.sounds + 1] = file end
 function CombatLogGetCurrentEventInfo()
 	return 1, "SPELL_AURA_APPLIED", false, "src", "Petra", 0x400, 0,
 		"Player-1-player", "Mort", 0, 0, 1459, "AI", 1, "BUFF"
@@ -231,21 +299,38 @@ setmetatable(_G, { __index = function(_, key)
 			GetSpellName = function() return "Arcane Intellect" end,
 			GetSpellTexture = function() return 135932 end,
 			GetSpellInfo = function() return { name = "Arcane Intellect" } end,
-			IsSpellInRange = function() return true end,
+			IsSpellInRange = function()
+				Mock.counts.range = Mock.counts.range + 1
+				return Mock.inRange
+			end,
 		})
 	elseif key == "C_UnitAuras" then
 		return ns_or_nil({
 			-- Mock.held is a set of spell ids the unit is carrying, so a
 			-- scenario can put somebody halfway through a buff set.
 			GetUnitAuraBySpellID = function(_, spellId)
+				Mock.counts.auraRead = Mock.counts.auraRead + 1
 				if Mock.held and Mock.held[spellId] then
 					return { spellId = spellId, expirationTime = Mock.now + (Mock.heldFor or 3600) }
 				end
 				return nil
 			end,
 			GetAuraDataByIndex = function(_, i)
+				-- A loading screen hands back a list that is not readable yet,
+				-- which is not the same as an empty one.
+				if Mock.auraBlackout then return nil end
+				-- A buff that has just landed, so a scenario can produce a
+				-- favour without renumbering the two that were already there.
+				if i == 3 then
+					if not Mock.extraAura then return nil end
+					return { auraInstanceID = Mock.extraAura == true and 3003 or Mock.extraAura,
+						spellId = 1459,
+						sourceUnit = maybeSecret("nameplate1"), expirationTime = 2000 }
+				end
 				if i > 2 then return nil end
-				return { auraInstanceID = i, spellId = 1459,
+				-- auraIdBase renumbers the same two auras, which is what a zone
+				-- change does to instance ids.
+				return { auraInstanceID = i + Mock.auraIdBase, spellId = 1459,
 					sourceUnit = maybeSecret("nameplate1"), expirationTime = 2000 }
 			end,
 		})

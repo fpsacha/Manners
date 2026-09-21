@@ -90,10 +90,15 @@ favour.
 /manners unlock    drag the prompt, then /manners lock
 /manners test      preview, for styling without waiting for a real entry
 /manners debug     what your class and this build allow
+/manners errors    the last few things that broke, if any did
 ```
 
-Keybind under **Game Menu → Key Bindings → Manners**, or with a macro
-containing `/click MannersPrompt`.
+`/manners` with anything it does not recognise lists the rest.
+
+Put it on a bar with a macro containing `/click MannersPrompt LeftButton 1`
+(`/manners macro` makes one), or keybind under
+**Game Menu → Key Bindings → Manners**. The trailing `1` is the down flag: the
+secure button only casts on the way down.
 
 ## Notes on WoW Forever
 

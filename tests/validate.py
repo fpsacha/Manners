@@ -62,6 +62,37 @@ for f in ["embeds.xml", "Bindings.xml"]:
         print("  XML ERROR %s: %s" % (f, e))
         fail += 1
 
+# The secure button only acts on a down click, so every advertised route has to
+# deliver one. Neither route can be proven from here -- this only catches the
+# two shapes that are known not to cast.
+print("\n== the prompt is clicked on the way down ==")
+for b in ET.parse(os.path.join(ROOT, "Bindings.xml")).getroot().iter("Binding"):
+    name = b.get("name", "")
+    body = (b.text or "").strip()
+    bad = False
+    # A CLICK binding is delivered by the client itself and honours
+    # RegisterForClicks("AnyDown"); anything else needs a body to do the work.
+    if not name.startswith("CLICK ") and not body:
+        print("  BINDING %s: no body, and not a CLICK binding" % name)
+        fail += 1
+        bad = True
+    # Click() with no arguments is Click("LeftButton", false) -- an up click.
+    if re.search(r":Click\(\s*\)", body):
+        print("  BINDING %s: Click() with no down flag is an up click" % name)
+        fail += 1
+        bad = True
+    if not bad:
+        print("  ok  <Binding name=\"%s\">" % name)
+
+core_src = open(os.path.join(ROOT, "Core.lua"), encoding="utf-8").read()
+macro_body = re.search(r'MACRO_BODY\s*=\s*"([^"]*)"', core_src)
+if macro_body and re.match(r"/click\s+MannersPrompt\s+LeftButton\s+1\s*$", macro_body.group(1)):
+    print("  ok  MACRO_BODY %s" % macro_body.group(1))
+else:
+    print("  MACRO_BODY is %r -- wants /click MannersPrompt LeftButton 1"
+          % (macro_body.group(1) if macro_body else None))
+    fail += 1
+
 print("\n== file references ==")
 refs = re.findall(r'file="([^"]+)"', open(os.path.join(ROOT, "embeds.xml"), encoding="utf-8").read())
 toc = open(os.path.join(ROOT, "Manners.toc"), encoding="utf-8").read()
@@ -102,6 +133,54 @@ for k, v in versions.items():
 if len(set(versions.values())) != 1:
     print("  MISMATCH -- a log that names the wrong build wastes an hour")
     fail += 1
+
+# Something put on the shared namespace and never read back is either a
+# half-finished feature or the remains of a finished one, and both read as
+# working code. ns.clicks survived three releases as a counter nobody printed.
+print("\n== namespace symbols nothing reads ==")
+READERS = OURS + [os.path.join("tests", f) for f in
+                  ("scenarios.lua", "harness.lua", "mockapi.lua")]
+reader_src = "\n".join(open(os.path.join(ROOT, f), encoding="utf-8").read()
+                       for f in READERS if os.path.exists(os.path.join(ROOT, f)))
+declared = set()
+for f in OURS:
+    s = open(os.path.join(ROOT, f), encoding="utf-8").read()
+    declared |= set(re.findall(r"\bns\.([A-Za-z_]\w*)\s*=", s))
+    declared |= set(re.findall(r"\bfunction\s+ns\.([A-Za-z_]\w*)", s))
+
+reader_lines = reader_src.splitlines()
+
+
+def writes_only(line, name):
+    """True when this line assigns ns.<name> and does nothing else with it.
+
+    A read-modify-write -- ns.clicks = (ns.clicks or 0) + 1 -- is not somebody
+    reading the value, so the whole line goes, right-hand side included."""
+    # The first genuine assignment, so ~= < = > = and == are not mistaken for one.
+    assign = re.search(r"(?<![=~<>])=(?!=)", line)
+    if not assign:
+        return False
+    return re.search(r"\bns\." + name + r"\b", line[:assign.start()]) is not None
+
+
+unread = []
+for name in sorted(declared):
+    pattern = re.compile(r"\bns\." + name + r"\b")
+    definition = re.compile(r"\bfunction\s+ns\." + name + r"\b")
+    read = False
+    for line in reader_lines:
+        if not pattern.search(line) or definition.search(line):
+            continue
+        if writes_only(line, name):
+            continue
+        read = True
+        break
+    if not read:
+        unread.append(name)
+for name in unread:
+    print("  WRITE-ONLY ns.%s -- delete it, or use it" % name)
+    fail += 1
+print("  %d namespace symbols, %d nothing reads" % (len(declared), len(unread)))
 
 print("\n== stale names ==")
 allsrc = "\n".join(open(os.path.join(ROOT, f), encoding="utf-8").read() for f in OURS) + toc

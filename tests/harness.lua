@@ -99,6 +99,10 @@ function LibStub(name, silent)
         return out
       end
       db.profile = deepcopy(defaults.profile)
+      -- AceDB's per-character section, created on first access. Present here so
+      -- a write to it during load is a load-time finding rather than a throw
+      -- only the scenarios would ever see.
+      db.char = {}
       db.RegisterCallback = function() end
       return db
     end
@@ -110,12 +114,30 @@ function LibStub(name, silent)
   elseif name == "AceDBOptions-3.0" then
     lib.GetOptionsTable = function() return { type = "group", name = "p", args = {} } end
   elseif name == "LibSharedMedia-3.0" then
-    lib.Fetch = function() return "font.ttf" end
-    lib.HashTable = function() return {} end
+    -- Register and IsValid have to exist here or the sound registration and
+    -- the clamp throw into ns.errors, which the harness reports as a finding.
+    lib.media = { sound = { None = 1 }, font = { ["font.ttf"] = "font.ttf" } }
+    lib.defaults = { sound = "None", font = "font.ttf" }
+    lib.Register = function(self, kind, key, data)
+      self.media[kind] = self.media[kind] or {}
+      self.media[kind][key] = data
+      return true
+    end
+    lib.IsValid = function(self, kind, key) return (self.media[kind] or {})[key] ~= nil end
+    lib.Fetch = function(self, kind, key, noDefault)
+      local t = self.media[kind] or {}
+      -- Unknown keys fall back to the type's default, as the real library
+      -- does; for sound that default is "None", which plays nothing.
+      return t[key] or (not noDefault and t[self.defaults[kind]]) or nil
+    end
+    lib.HashTable = function(self, kind) return self.media[kind] or {} end
   elseif name == "LibDataBroker-1.1" then
     lib.NewDataObject = function() return {} end
   elseif name == "LibDBIcon-1.0" then
-    lib.Register = function() end
+    lib.iconDb = nil
+    lib.Register = function(self, _, _, db) self.iconDb = db end
+    lib.Refresh = function(self, _, db) if db then self.iconDb = db end end
+    lib.IsRegistered = function() return true end
     lib.Show = function() end
     lib.Hide = function() end
   end
@@ -127,6 +149,9 @@ end
 function issecretvalue() return false end
 function InCombatLockdown() return false end
 function GetTime() return 1000 end
+-- The wall clock. GetTime() restarts every login and this does not, so anything
+-- written to SavedVariables has to go out in these units.
+function time() return 1700000000 end
 function wipe(t) for k in pairs(t) do t[k] = nil end return t end
 function date(fmt) return "12:00:00" end
 function UnitName(u) if u == "player" then return "Mort", "Defrette" end return "Petra", "Stonewell" end
@@ -233,6 +258,9 @@ else
     { "Prompt:Refresh", function() ns.Prompt:Refresh() end },
     { "ResolveBuff", function() return ns.ResolveBuff(true) end },
     { "ClampSettings", function() ns.ClampSettings() end },
+    -- Every profile switch, copy and reset comes back through here, so a hop
+    -- it makes into a library that is not there is a load-time failure.
+    { "RefreshConfig", function() addon:RefreshConfig() end },
     { "slash debug", function() addon:HandleSlash("debug") end },
     { "slash help", function() addon:HandleSlash("") end },
   }

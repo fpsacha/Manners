@@ -54,6 +54,10 @@ local function B() return ns.db.profile.buff end
 local pGet, pSet, pGetColor, pSetColor = bind(P, restyle)
 local sGet, sSet = bind(S)
 local fGet, fSet = bind(F)
+-- The armed macro is only rebuilt when the candidate changes, so a filter that
+-- alters what the macro says -- rather than who is on the prompt -- has to say
+-- so. restoreTarget is the only one.
+local fGetMacro, fSetMacro = bind(F, remacro)
 local tGet, tSet = bind(T, rescan)
 local sndGet, sndSet = bind(SND)
 local spGet, spSet = bind(SP, remacro)
@@ -122,9 +126,21 @@ local function BuildOptions()
 						order = 2,
 						fontSize = "medium",
 						hidden = HasClassBuffs,
-						name = "\n|cffff8080Your class has no buffs it can cast on another player.|r\n\n"
-							.. "Manners has nothing to offer here. It is still worth keeping installed on "
-							.. "an alt that does.\n",
+						-- "Your class has none" and "we could not work out what
+						-- you can cast" look identical from hasClassBuffs alone,
+						-- and telling those two apart is most of the work on
+						-- this client. The list of classes that genuinely have
+						-- nothing to give exists precisely so this can say which.
+						name = function()
+							if ns.caps.class and ns.CLASSES_WITHOUT_BUFFS[ns.caps.class] then
+								return "\n|cffff8080Your class has no buffs it can cast on another "
+									.. "player.|r\n\nManners has nothing to offer here. It is still "
+									.. "worth keeping installed on an alt that does.\n"
+							end
+							return "\n|cffff8080Manners could not work out what you can cast.|r\n\n"
+								.. "Either your class has nothing for other players, or the spell "
+								.. "probe came back empty -- |cffffd100/manners debug|r says which.\n"
+						end,
 					},
 					howItWorks = {
 						type = "description",
@@ -135,14 +151,14 @@ local function BuildOptions()
 							.. "Blizzard does not let an addon cast a spell by itself, so this one does "
 							.. "everything except the keypress: it works out who deserves a buff and puts "
 							.. "them on the prompt. Click the prompt and it casts.\n\n"
-							.. "|cffffd100Keybinding|r\n"
-							.. "Bind a key under Game Menu > Key Bindings > Manners, or make the macro "
-							.. "below and put it on your bars.\n",
+							.. "|cffffd100Putting it on a key|r\n"
+							.. "Make the macro below and drag it onto a bar, or bind a key under "
+							.. "Game Menu > Key Bindings > Manners.\n",
 					},
 					makeMacro = {
 						type = "execute",
 						name = "Create the macro",
-						desc = "Adds a macro called Manners containing /click MannersPrompt. "
+						desc = "Adds a macro called Manners containing /click MannersPrompt LeftButton 1. "
 							.. "Drag it onto an action bar and it fires the prompt.",
 						order = 4,
 						hidden = function() return not HasClassBuffs() end,
@@ -163,9 +179,27 @@ local function BuildOptions()
 						name = "Sound",
 						order = 12,
 						disabled = function() return not SND().enabled end,
-						values = function() return LSM:HashTable("sound") end,
+						-- HashTable maps key -> file, and AceConfig shows the
+						-- value as the label, so this listed one entry whose
+						-- name was "1".
+						values = function()
+							local list = {}
+							for key in pairs(LSM:HashTable("sound")) do list[key] = key end
+							return list
+						end,
 						get = sndGet,
-						set = sndSet,
+						set = function(info, value)
+							SND()[info[#info]] = value
+							-- Picking a sound you cannot hear is how the
+							-- silent default went unnoticed for so long.
+							ns.Guard("sound preview", ns.PlayPromptSound, value)
+						end,
+					},
+					noSound = {
+						type = "description",
+						order = 12.5,
+						hidden = function() return not SND().enabled or SND().file ~= "None" end,
+						name = "|cffff8080None is silent. Pick a sound above.|r",
 					},
 
 					miscHeader = { type = "header", name = "Minimap", order = 20 },
@@ -318,8 +352,8 @@ local function BuildOptions()
 							.. "immediately after the cast.",
 						order = 22.5,
 						width = "full",
-						get = fGet,
-						set = fSet,
+						get = fGetMacro,
+						set = fSetMacro,
 					},
 					reachableOnly = {
 						type = "toggle",
@@ -503,8 +537,10 @@ local function BuildOptions()
 						order = 11,
 						name = "One per line -- a random one is picked each time the prompt changes target. "
 							.. "Tokens: |cff888888{name}|r the player, |cff888888{buff}|r the spell.\n"
-							.. "|cff888888Each line has to fit in 120 characters once the name is filled "
-							.. "in; longer ones are dropped rather than cut off.|r",
+							.. "|cff888888The whole macro cannot exceed 255 characters, so how long a line "
+							.. "may be depends on the name and on whether your target is handed back. "
+							.. "One that will not fit is dropped rather than cut off -- "
+							.. "|cffffd100Roll a few|r shows what would really go out.|r",
 					},
 					phrases = {
 						type = "input",
@@ -530,7 +566,10 @@ local function BuildOptions()
 								buff = ns.ResolveBuff(true),
 							}
 							for _ = 1, 3 do
-								ns.addon:Print(ns.PickPhrase(fake, ns.PHRASE_BUDGET)
+								-- The same budget the cast path measures, for a
+								-- representative name, rather than a constant
+								-- that promised lines the macro then dropped.
+								ns.addon:Print(ns.PickPhrase(fake, ns.PhraseBudget(fake))
 									or "|cffff8080(nothing -- speech off, or no usable lines)|r")
 							end
 						end,
@@ -692,6 +731,15 @@ local function BuildOptions()
 							.. "|cff888888{class}|r their class   |cff888888{buff}|r the spell\n"
 							.. "The second line always shows the reason.",
 					},
+					reasonTarget = {
+						type = "input",
+						name = "Wording: your target",
+						desc = "Somebody you targeted yourself outranks everyone else, including a "
+							.. "favour owed -- but only when the game lets us see they are missing it.",
+						order = 33.5,
+						get = pGet,
+						set = pSet,
+					},
 					reasonOwed = { type = "input", name = "Wording: buffed you", order = 34, get = pGet, set = pSet },
 					reasonGroup = { type = "input", name = "Wording: in your group", order = 35, get = pGet, set = pSet },
 					reasonNearby = { type = "input", name = "Wording: nearby", order = 36, get = pGet, set = pSet },
@@ -768,6 +816,10 @@ function ns.SetupOptions()
 	local options = BuildOptions()
 	options.args.profiles = AceDBOptions:GetOptionsTable(ns.db)
 	options.args.profiles.order = 90
+	-- Kept so a control can be read back afterwards. A dropdown that lists the
+	-- right entries under the wrong labels renders perfectly and is invisible
+	-- to every other check we have.
+	ns.optionsTable = options
 
 	AceConfig:RegisterOptionsTable(ADDON, options)
 	blizCategory = AceConfigDialog:AddToBlizOptions(ADDON, "Manners")
@@ -796,6 +848,16 @@ function ns.SetupOptions()
 			LDBIcon:Register(ADDON, dataObject, ns.db.profile.minimap)
 		end
 	end
+end
+
+-- LibDBIcon keeps the table it was handed at Register, and AceDB hands out a
+-- different one per profile -- so after a switch the checkbox and the button
+-- read different tables, and a drag saves the position into the old one.
+-- Refresh does the whole job: re-points the table, repositions from the new
+-- minimapPos, and shows or hides to match the new hide.
+function ns.RefreshMinimapButton()
+	if not (LDBIcon and LDBIcon.Refresh and LDBIcon:IsRegistered(ADDON)) then return end
+	LDBIcon:Refresh(ADDON, ns.db.profile.minimap)
 end
 
 function ns.OpenOptions()
