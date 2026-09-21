@@ -14,16 +14,21 @@ Built for WoW Forever (Interface 16001).
 
 ## What it does
 
+- **Somebody you targeted yourself** → outranks everyone, including a favour
+  owed, but only when the game will confirm they are missing it. A guess does
+  not get to jump the queue.
 - **Someone buffs you** → they go to the top of the queue, tagged as a favour
   owed. This client has no combat log, so it is spotted by watching your own
   buffs appear and reading who cast them — which works on strangers, but only
-  while they are someone the game will still name for you.
+  while they are someone the game will still name for you. The debt is stored
+  per character and survives a reload or a disconnect.
 - **Your party or raid** → anyone missing your buff.
 - **Passers-by** → nearby players missing your buff, seen through nameplates,
   your target and your mouseover.
 
 Skips the dead, the out-of-range, anyone you just tried, and anyone the buff
-does nothing for — Arcane Intellect is wasted on a rogue.
+does nothing for — Arcane Intellect is wasted on a rogue. Right-click the
+prompt to skip somebody without marking their favour repaid.
 
 **If they already have it**, you choose: leave them alone, offer a top-up once
 their timer drops below a threshold you set, or always offer regardless.
@@ -39,8 +44,16 @@ their timer drops below a threshold you set, or always offer regardless.
 | Warlock | Unending Breath |
 | Warrior | Battle Shout (party only) |
 
-Paladins get a sensible automatic pick: Wisdom for anyone with a mana bar,
-Might for everyone else. Any class can pin one specific buff instead.
+Where a class has more than one, the prompt offers whichever they are actually
+missing, in list order: a priest walks Fortitude, then Divine Spirit, then
+Shadow Protection. Somebody holding the first is still offered the second
+rather than dropping off the list. Individual buffs can be switched off, or one
+pinned so that is the only thing ever cast.
+
+Paladins are the exception. Blessings overwrite one another, so holding any one
+of yours counts as covered and walking the list would mean replacing a blessing
+somebody already has. The automatic pick is Wisdom for anyone with a mana bar
+and Might for everyone else.
 
 Battle Shout reaches your party and nobody else, so a warrior outside a group
 is offered nobody. That is deliberate rather than a fault.

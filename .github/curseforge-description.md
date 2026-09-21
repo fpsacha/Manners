@@ -14,14 +14,19 @@ names.
 
 ### What it does
 
-- **Someone buffs you** → they go to the top of the queue and the prompt pulses
-  until you have returned it. Works on strangers who are not in your group.
+- **Somebody you targeted yourself** → outranks everyone, including a favour
+  owed — but only when the game will confirm they are actually missing it. A
+  guess does not get to jump the queue.
+- **Someone buffs you** → they go to the top and the prompt pulses until you
+  have returned it. Works on strangers who are not in your group, and the debt
+  survives a reload or a disconnect.
 - **Your party or raid** → anyone missing your buff.
 - **Passers-by** → nearby players missing it, seen through nameplates, your
   target and your mouseover.
 
 It skips the dead, the out of range, anyone you just tried, and anyone the buff
-does nothing for — Arcane Intellect is wasted on a rogue.
+does nothing for — Arcane Intellect is wasted on a rogue. Right-click the
+prompt to skip somebody without marking their favour repaid.
 
 **If they already have it**, you choose: leave them alone, offer a top-up once
 their timer runs low, or always offer.
@@ -49,8 +54,15 @@ Roleplay, Polite, Cheeky, or just their name.
 | Warlock | Unending Breath |
 | Warrior | Battle Shout (party only) |
 
-Paladins get an automatic pick — Wisdom for anyone with a mana bar, Might for
-everyone else. Any class can pin one buff instead.
+Where a class has several, the prompt offers whichever one they are actually
+missing — a priest walks Fortitude, then Divine Spirit, then Shadow Protection,
+and somebody who already has the first is still offered the second rather than
+disappearing off the list. You can switch individual buffs off, or pin one and
+only ever cast that.
+
+Paladins are the exception, because blessings overwrite one another: holding
+any one of yours counts as covered, and the automatic pick is Wisdom for
+anyone with a mana bar and Might for everyone else.
 
 ### How much of this has been tested
 
@@ -82,6 +94,7 @@ put it on your bars.
 /manners unlock    drag the prompt — it re-locks when you let go
 /manners test      preview, for styling
 /manners debug     what your class and this build allow
+/manners errors    anything the addon caught and carried on from
 ```
 
 Three looks, full colour and font control, LibSharedMedia support, profiles,
