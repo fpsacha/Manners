@@ -109,6 +109,40 @@ for m in missing:
     fail += 1
 print("  %d references checked, %d missing outside Libs/" % (len(refs), len(missing)))
 
+print("\n== libraries: declared, fetched and loaded ==")
+# .pkgmeta says what the packager fetches; embeds.xml says what the game loads.
+# Nothing has ever compared the two, and they fail in opposite directions: a
+# library in .pkgmeta but not embeds.xml is downloaded into the zip and never
+# loaded, so the addon throws the first time it reaches for it; one in
+# embeds.xml but not .pkgmeta loads from a developer's own disk and is simply
+# absent from the release. Both package cleanly. Both are only ever heard about
+# from a user.
+pkgmeta = open(os.path.join(ROOT, ".pkgmeta"), encoding="utf-8").read()
+declared = set(re.findall(r"^\s+Libs/([^:\s]+):", pkgmeta, re.M))
+# embeds.xml writes Windows paths: file="Libs\AceGUI-3.0\AceGUI-3.0.xml".
+# Split on the separator rather than trying to spell it inside a regex, where
+# one backslash too few silently matches nothing and reports every library
+# missing.
+loaded = set()
+for ref in re.findall(r'file="([^"]+)"', open(
+        os.path.join(ROOT, "embeds.xml"), encoding="utf-8").read()):
+    parts = ref.replace("\\", "/").split("/")
+    if len(parts) > 1 and parts[0] == "Libs":
+        loaded.add(parts[1])
+
+print("  %d declared in .pkgmeta, %d loaded by embeds.xml" % (len(declared), len(loaded)))
+for name in sorted(declared - loaded):
+    print("  FETCHED BUT NEVER LOADED  %s" % name)
+    fail += 1
+for name in sorted(loaded - declared):
+    print("  LOADED BUT NEVER FETCHED  %s" % name)
+    fail += 1
+if declared and declared == loaded:
+    print("  ok  the two lists agree")
+elif not declared:
+    print("  could not read any library out of .pkgmeta")
+    fail += 1
+
 print("\n== distribution files ==")
 for f in ["LICENSE", "README.md", "CHANGELOG.md", "THIRD-PARTY-NOTICES.md",
           ".pkgmeta", "RELEASING.md"]:
