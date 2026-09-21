@@ -1,5 +1,119 @@
 # Changelog
 
+## Unreleased
+
+Six rounds of review on top of 0.9.6, each one fixing what the round before it
+found. The version has not been bumped and nothing has been tagged.
+
+### Added
+
+- **The prompt offers the buff they are actually missing.** A priest walks
+  Fortitude, then Divine Spirit, then Shadow Protection; a druid offers Thorns
+  as well as Mark of the Wild. Before this one buff per class was resolved and
+  only that one checked, so the rest were never offered at all -- and worse,
+  the default "leave them alone if they have it" then dropped the person from
+  the queue the moment they held the first one, so being *partly* buffed made
+  you invisible. Individual buffs can be switched off, or one pinned. Paladins
+  are excluded on purpose: blessings overwrite one another, so walking would
+  replace what the last click gave.
+- **Somebody you targeted yourself outranks everyone**, including a favour
+  owed -- but only when the game will confirm they are missing it. A guess does
+  not jump the queue.
+- **Debts survive a reload.** Stored per character on the wall clock and
+  rebased on the way back in, because everything held in memory is relative to
+  a clock that restarts at login. Clamped to the window as it currently stands,
+  so shortening the slider cannot be out-waited by a file written under a
+  longer one.
+- **Right-click the prompt to skip somebody** without marking their favour
+  repaid.
+- **`/manners errors`**, and the panel no longer goes silent after the first
+  thing it catches -- failures are kept per label, so a broken scanner after a
+  broken style pass is visible instead of swallowed.
+- Issue templates that require `/manners debug` and `/manners errors`, and a
+  second one for reporting whether a class cast, since five of the six have
+  never been used in game and "it worked" is the report nobody files unasked.
+
+### Fixed
+
+- **Every loading screen could invent favours.** This was the worst of them.
+  The aura baseline was wiped and re-scanned in the same breath, so there was
+  nothing to disagree with; the scan primed off a list the client had not
+  actually shown it; and when the list read back, every buff you were carrying
+  was announced as a fresh favour -- printed, pulsed at a bystander, and
+  written to your saved variables. The scan no longer tries to recognise a
+  refusal, which it cannot do because the shape one arrives in is unknown.
+  Nothing primes, prunes or announces on the strength of a single reading.
+- **A favour could name the wrong person.** The caster was resolved when the
+  aura was *noticed*, not when it landed, and nameplate tokens are recycled in
+  between -- so the debt, the chat line, the amber prompt and the spoken line
+  could all be aimed at somebody who had done nothing. The caster is now read
+  during the slot walk and carried forward, and a sighting nobody could name is
+  never announced rather than announced to whoever is standing there later.
+- **A warrior could never repay a favour.** Battle Shout is self-cast, so its
+  macro has no `/target` by construction, and the settle path judged every
+  click by "did it land on the person we offered?" -- which it never can.
+- **A refused cast walked the person down their whole buff list.** Out of range
+  or out of sight left standing the per-buff cooldown the click had written
+  optimistically, so the prompt offered them the next buff, which failed the
+  same way, until they were dropped entirely.
+- **Every disarm was a no-op in combat.** Switching the addon off, unlocking
+  the prompt or entering preview left it armed and still naming somebody, and
+  the click handler had no guard at all -- so a switched-off addon still cast
+  through the keybinding and still marked the favour repaid.
+- **A cast that landed on the wrong player still counted**, and a late refusal
+  arriving after the game had confirmed a send was dropped entirely, leaving a
+  tick standing over a cast the server threw away.
+- **The grace-window path ignored every filter the main path applies**, so a
+  warrior who Battle Shouted you came back holding Arcane Intellect at the top
+  of the queue, and a level-5 priest came back after being rejected for it.
+- **The keybinding was an up-click on a button that only casts on the way
+  down** -- and it is the first route the options panel recommends. It is now
+  the native `CLICK` binding form.
+- **Speech died silently on any new, copied or reset profile**, and stayed
+  broken until a reload while the dropdown still claimed a set was loaded.
+- **"Play a sound" played nothing** (the default was "None"), and the sound
+  list was showing file paths as names.
+- **The minimap button stayed attached to whichever profile loaded first**, so
+  after a switch the checkbox and the button disagreed and a drag saved the
+  position to neither.
+- The prompt stayed on screen unlocked after being switched off, kept pulsing
+  in combat after the debt was settled, and announced favours from a source
+  that was switched off -- a line about something that could never reach it.
+
+### Changed
+
+- **The prompt stops churning.** It holds a candidate for a moment before
+  swapping to an equal one, fades instead of vanishing, keeps a floor between
+  sounds, says when it is held in combat rather than showing a stale name while
+  looking live, and confirms a click landed instead of throwing every
+  ingredient away unless a debug flag was on. It no longer starts life in the
+  middle of the play area.
+- **The options page stops describing things the addon does not do**: a Look
+  mode that applied no border, an accent explanation a colour short, a re-offer
+  delay that promised a per-player wait while writing a per-spell one, sliders
+  with no units that silently mixed seconds with minutes, and a filter whose
+  own description contradicted its label.
+- **The first-name fallback is gone.** 1.3.0 added it so the game could pick
+  whichever spelling resolved; the full name does resolve on this client, so
+  the failure it guarded against was never observed, and offering two spellings
+  could aim a cast -- and a spoken line -- at whoever else shared a first name.
+  See the note above `ExpirePendingClick`. Do not restore it.
+
+### Testing and tooling
+
+- Tests run on every push, not only on a release tag.
+- `validate.py` now catches a function given where AceConfig wants a number,
+  which rejects the *entire* options table and stops the page drawing at all;
+  and it compares `.pkgmeta` against `embeds.xml`, which fail in opposite
+  directions and both package cleanly.
+- `selftest.py` requires each mutation to be caught by the check that exists
+  for it. It used to infer "caught" from the whole run going red, which a
+  mutation guarantees -- so a bug reintroduced in one place and noticed
+  somewhere else read as a pass.
+- 120 scenarios, 96 mutations. The listing images are generated by scripts in
+  `tools/` that read the prompt's real defaults out of the addon, so they
+  cannot advertise a layout it does not draw.
+
 ## 0.9.6
 
 Two live bugs found by the audit, both cases of the addon doing the wrong
