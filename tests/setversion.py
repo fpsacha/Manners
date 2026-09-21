@@ -21,9 +21,15 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "tools"))
 import maketocs
 
-if len(sys.argv) != 2 or not re.match(r"^\d+\.\d+\.\d+$", sys.argv[1]):
+# A pre-release suffix is allowed, because the honest version of this addon
+# for some time will be "1.0.0-beta.N": the code is ready, one class on one
+# client has actually been played, and saying 1.0.0 flat claims the rest. The
+# packager reads alpha/beta out of the tag name to set the release type, so the
+# two agree when the tag matches the version.
+if len(sys.argv) != 2 or not re.match(
+        r"^\d+\.\d+\.\d+(-(alpha|beta|rc)\.\d+)?$", sys.argv[1]):
     print(__doc__)
-    print("usage: python tests/setversion.py X.Y.Z")
+    print("usage: python tests/setversion.py X.Y.Z[-beta.N]")
     sys.exit(2)
 
 version = sys.argv[1]

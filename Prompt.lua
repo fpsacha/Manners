@@ -72,7 +72,7 @@ local queueTextX = 0
 -- Goes into every click line. A log that does not say which build produced it
 -- can be diagnosed for an hour before anyone notices the game never loaded the
 -- file being read.
-ns.BUILD = "1.0.0"
+ns.BUILD = "1.0.0-beta.1"
 
 local current, testMode, testExpiry, lastTop, appliedKey, lastClickAt, lastPreClickAt, lastSkipAt
 -- Its own stamp rather than one of the three above: the refusal it rate-limits

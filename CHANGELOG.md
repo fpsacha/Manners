@@ -1,8 +1,11 @@
 # Changelog
 
-## 1.0.0
+## 1.0.0-beta.1
 
-The first release that claims to work.
+A beta on purpose. The code is finished and the suites are green, but one class
+on one client has actually been played -- and "the tests pass" is not "somebody
+used it". Calling this 1.0.0 would claim the other five classes, and they have
+never cast a spell in a real game.
 
 It runs on **WoW Forever** and nothing else. Retail, Mists Classic and Classic
 Era are implemented and tested against a mock client, but nobody has launched
