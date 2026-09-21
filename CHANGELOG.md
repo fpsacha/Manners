@@ -159,9 +159,9 @@ taken out. 371 lines removed.
 It casts. Confirmed in game against four different players in ten seconds,
 with the build stamp and form label proving which code ran:
 
-    CLICK build=1.4.1 form=live  macro=/target Dunstan Mirren /cast Arcane Intellect /targetlasttarget
-    CAST SENT 1459 -> Dunstan Mirren    CAST OK 1459
-    CAST SENT 1459 -> Elara Rowena  CAST OK 1459
+    CLICK build=1.4.1 form=live  macro=/target Elara Brightmoor /cast Arcane Intellect /targetlasttarget
+    CAST SENT 1459 -> Elara Brightmoor    CAST OK 1459
+    CAST SENT 1459 -> Corvin Ashgrove  CAST OK 1459
 
 `target=` on each line showed the original target already restored, so
 /targetlasttarget works too.
@@ -240,7 +240,7 @@ conditional resolves to nothing, and the cast has nowhere to go:
 
     [@nameplate4]            UI ERROR: You have no target
     [@nameplate4,help]       UI ERROR: You have no target
-    [@Papa Brannock]            UI ERROR: You have no target
+    [@Corvin Ashgrove]            UI ERROR: You have no target
     [@Papa]                  UI ERROR: You have no target
     [@focus] after /focus    UI ERROR: You have no target
     [@mouseover]             UI ERROR: You have no target
@@ -248,9 +248,9 @@ conditional resolves to nothing, and the cast has nowhere to go:
 
 What works is hard targeting:
 
-    /target Petra Alric
+    /target Elara Brightmoor
     /cast Arcane Intellect
-    -> CAST SENT 1459 -> Petra Alric   [target then cast]
+    -> CAST SENT 1459 -> Elara Brightmoor   [target then cast]
     -> CAST OK 1459
 
 So that is what it does now, including the space in the name. Your previous
@@ -296,8 +296,8 @@ route does not exist as an alternative.
 ### Fixed
 
 - **The macro never tried the bare first name.** `ShortName` splits on `-`, so
-  with a surname it returned the whole thing. Whether the game wants `Vann` or
-  `Vann Lock` depends on whether the second word is a surname or part of the
+  with a surname it returned the whole thing. Whether the game wants `Petra` or
+  `Petra Stonewell` depends on whether the second word is a surname or part of the
   character name, which an addon cannot find out -- so both are offered now and
   the game picks whichever resolves.
 - **"Buff state unreadable on this build" was shown when nothing had been
@@ -362,7 +362,7 @@ Now registers `"AnyUp", "AnyDown"` with `pressAndHoldAction = false`.
 - **Names were invented.** `UnitName`'s second return is documented as the realm
   but carries a **surname** here — six players standing together came back with
   six different values. Joining them with a hyphen produced names like
-  `Corvin-Ysolde` that no targeting call could resolve.
+  `Petra-Stonewell` that no targeting call could resolve.
 - Speech rolled its phrase twice, so the line that chose the code path was not
   the line that got used.
 - An unlocked or disabled prompt could still arm itself through `PreClick`.

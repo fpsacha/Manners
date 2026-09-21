@@ -129,8 +129,8 @@ function InCombatLockdown() return false end
 function GetTime() return 1000 end
 function wipe(t) for k in pairs(t) do t[k] = nil end return t end
 function date(fmt) return "12:00:00" end
-function UnitName(u) if u == "player" then return "Mort", "Defrette" end return "Vann", "Lock" end
-function GetUnitName(u) return "Vann Lock" end
+function UnitName(u) if u == "player" then return "Mort", "Defrette" end return "Petra", "Stonewell" end
+function GetUnitName(u) return "Petra Stonewell" end
 function UnitClass() return "Mage", "MAGE" end
 function UnitGUID() return "Player-1-ABC" end
 function UnitExists() return true end
@@ -162,7 +162,7 @@ function CreateMacro() return 1 end
 function EditMacro() end
 function PlaySoundFile() end
 function CombatLogGetCurrentEventInfo()
-  return 1, "SPELL_AURA_APPLIED", false, "src", "Vann", 0x512, 0, "Player-1-ABC", "Mort", 0, 0, 1459, "AI", 1, "BUFF"
+  return 1, "SPELL_AURA_APPLIED", false, "src", "Petra", 0x512, 0, "Player-1-ABC", "Mort", 0, 0, 1459, "AI", 1, "BUFF"
 end
 function GameTooltip_Hide() end
 COMBATLOG_OBJECT_TYPE_PLAYER = 0x400

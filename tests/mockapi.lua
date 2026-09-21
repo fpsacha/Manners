@@ -11,7 +11,7 @@ function Mock.reset()
 	Mock.inCombat = false
 	Mock.allSecret = false
 	Mock.stripped = false
-	Mock.unitName = { "Vann", "Lock" }
+	Mock.unitName = { "Petra", "Stonewell" }
 	Mock.nameplates = { "nameplate1", "nameplate2" }
 	Mock.now = 1000
 	Mock.groupSize = 0
@@ -155,7 +155,7 @@ function UnitName(u)
 	if u == "player" then return "Mort", "Defrette" end
 	return maybeSecret(Mock.unitName[1]), maybeSecret(Mock.unitName[2])
 end
-function GetUnitName() return "Vann Lock" end
+function GetUnitName() return "Petra Stonewell" end
 function UnitClass(u)
 	if u == "player" then return "Mage", Mock.class end
 	return "Priest", maybeSecret("PRIEST")
@@ -208,7 +208,7 @@ function CreateMacro() return 1 end
 function EditMacro() end
 function PlaySoundFile() end
 function CombatLogGetCurrentEventInfo()
-	return 1, "SPELL_AURA_APPLIED", false, "src", "Vann", 0x400, 0,
+	return 1, "SPELL_AURA_APPLIED", false, "src", "Petra", 0x400, 0,
 		"Player-1-player", "Mort", 0, 0, 1459, "AI", 1, "BUFF"
 end
 

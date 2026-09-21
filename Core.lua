@@ -410,15 +410,15 @@ local function InRange(unit, buff)
 	return (r == true or r == 1)
 end
 
--- Strips a cross-realm suffix, keeping any surname: "Vann Lock-Realm" gives
--- "Vann Lock". This is the display name.
+-- Strips a cross-realm suffix, keeping any surname: "Petra Stonewell-Realm" gives
+-- "Petra Stonewell". This is the display name.
 local function ShortName(name)
 	if type(name) ~= "string" then return nil end
 	return name:match("^([^%-]+)") or name
 end
 ns.ShortName = ShortName
 
--- Just the first word. Whether the game wants "Vann" or "Vann Lock" as a
+-- Just the first word. Whether the game wants "Petra" or "Petra Stonewell" as a
 -- target depends on whether the second part is a surname or part of the
 -- character name, and that is not something an addon can find out -- so the
 -- macro offers both and lets the game pick whichever resolves.

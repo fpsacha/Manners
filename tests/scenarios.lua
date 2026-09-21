@@ -204,7 +204,7 @@ if ns then
 	drive("odd names", ns)
 	Mock.advance(60)
 	for _, pair in ipairs({
-		{ "Vann", "Lock" }, { "Vann", "" }, { "Vann", nil },
+		{ "Petra", "Stonewell" }, { "Petra", "" }, { "Petra", nil },
 		{ "Ûmlaut", "Nàme" }, { "A", "B" },
 		{ "Nameof", "Averylongsurnamethatgoesonandonandon" },
 	}) do
@@ -240,7 +240,7 @@ if ns then
 			end
 		end
 	end
-	Mock.unitName = { "Vann", "Lock" }
+	Mock.unitName = { "Petra", "Stonewell" }
 end
 
 -- ------------------------------------------------------------------ 8
@@ -285,7 +285,7 @@ if ns then
 		"   ",
 		"good {name} line",
 	}, "\n")
-	local entry = { short = "Vann Lock", name = "Vann Lock", reason = "owed",
+	local entry = { short = "Petra Stonewell", name = "Petra Stonewell", reason = "owed",
 		buff = ns.FindBuff("MAGE", "intellect") }
 	for _ = 1, 60 do
 		local ok, phrase = pcall(ns.PickPhrase, entry, 180)
@@ -303,7 +303,7 @@ end
 -- ------------------------------------------------------------------ 10
 -- A name with a space, which is what this client actually produces.
 Mock.reset()
-Mock.unitName = { "Vann", "Lock" }
+Mock.unitName = { "Petra", "Stonewell" }
 ns = load("surnames")
 if ns then
 	drive("surnames", ns)
@@ -312,7 +312,7 @@ if ns then
 	if #queue == 0 then fail("surnames", "SKIPPED -- no candidates to name") end
 	if #queue > 0 then
 		local got = queue[1].name
-		if got ~= "Vann Lock" then fail("surnames", "built name '" .. tostring(got) .. "'") end
+		if got ~= "Petra Stonewell" then fail("surnames", "built name '" .. tostring(got) .. "'") end
 	end
 end
 
