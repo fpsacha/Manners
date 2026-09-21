@@ -417,6 +417,10 @@ function ns.ProbeCapabilities()
 	caps.flavour = flavour.flavour
 	caps.family = flavour.family
 	caps.interface = flavour.interface
+	-- Carried across because two things need it: the combat-log probe below
+	-- asks only where the client cannot be named, and a bug report from a
+	-- client nobody here has seen is worth marking as exactly that.
+	caps.recognised = flavour.recognised == true
 
 	-- Are secret values actually being enforced, as opposed to the namespace
 	-- merely existing?
@@ -436,12 +440,17 @@ function ns.ProbeCapabilities()
 	-- throws, but it cannot prove it is there -- a client that accepts the
 	-- registration and then never fires the event is exactly how this addon's
 	-- own notes described Forever until this round, and it reads as a yes.
-	-- Only asked where the answer is not already known, and never on a modern
-	-- client. Registering COMBAT_LOG_EVENT_UNFILTERED there is the forbidden
-	-- action itself: pcall catches a throw, but if the client answers by raising
-	-- ADDON_ACTION_FORBIDDEN instead, the user gets a popup naming this addon
-	-- for a question it did not need to ask. The family already knows.
-	if caps.family == "modern" then
+	-- Asked only where the answer is not already known. On a client we can
+	-- NAME as modern, registering COMBAT_LOG_EVENT_UNFILTERED is the forbidden
+	-- action itself: pcall catches a throw, but a client that answers by
+	-- raising ADDON_ACTION_FORBIDDEN instead puts a popup carrying this addon's
+	-- name in front of the user, for a question the flavour had already
+	-- answered.
+	--
+	-- An UNRECOGNISED client is the opposite case and must still be asked --
+	-- it is the only thing deciding there, and refusing to ask would leave the
+	-- probe unreachable everywhere, which is a check that cannot fire.
+	if caps.recognised and caps.family == "modern" then
 		caps.combatLogProbe = nil
 	else
 		caps.combatLogProbe = ProbeCombatLog()

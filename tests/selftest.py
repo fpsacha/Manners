@@ -473,8 +473,7 @@ mutate("Prompt.lua",
 # 29. an icon larger than the panel it sits in. The slider ran to 64 against a
 #     height that runs down to 20.
 mutate("Core.lua",
-       """	local iconMax = math.max(12, (p.height or ns.defaults.profile.prompt.height) - 8)
-	if p.iconSize > iconMax then p.iconSize = iconMax end""",
+       "	if p.iconSize > iconMax then p.iconSize = iconMax end",
        "",
        "an icon taller than the prompt",
        expect="the icon cannot be bigger than the panel",
@@ -578,11 +577,8 @@ mutate("Options.lua",
 # 38. three sources switched off, which is a prompt that can never appear and
 #     is indistinguishable from a broken addon.
 mutate("Options.lua",
-       """				hidden = function()
-					local s = S()
-					return s.owed or s.group or s.strangers
-				end,""",
-       "				hidden = function() return true end,",
+       "					return s.owed or s.group or (s.strangers and not OnlyReachesGroup())",
+       "					return true",
        "no warning for a queue that can never fill",
        expect="all three sources are off and the page says nothing",
        script="runscenarios.py")
@@ -1273,7 +1269,11 @@ mutate("Core.lua",
        '\tlocal ok = pcall(probeFrame.RegisterEvent, probeFrame, "COMBAT_LOG_EVENT_UNFILTERED")',
        "\tlocal ok = true",
        "the combat log probe that never actually registers",
-       expect="capabilities on Forever",
+       # Caught by an unrecognised client, not by Forever. Forever is NAMED as
+       # modern, so the probe is deliberately not run there -- asking is itself
+       # the forbidden action. A client nobody can name is the only place the
+       # probe decides anything, which is exactly where it has to be honest.
+       expect="a client with no GetBuildInfo",
        script="runscenarios.py")
 
 # Conditional targeting turned on for Camelot -- the one client whose behaviour
@@ -1359,25 +1359,20 @@ mutate("Core.lua",
        "the console's {aim} token handing back the key",
        expect="the key keeps the realm and the macro drops it",
        script="runscenarios.py")
+# There is deliberately no second mutation of TargetCommand here. It used to
+# carry one for "probed for and never written", which was the opposite fault
+# from the one above -- but the probe no longer reaches the macro at all, by
+# decision, so both directions collapse into the single check above.
 
-# /targetexact probed for and then not used. /target matches a name prefix, so
-# this is how the prompt buffs -- and speaks at -- Mortimer standing next to
-# Mort.
-mutate("Prompt.lua",
-       '\treturn (ns.caps and ns.caps.targetExact) and "/targetexact" or "/target"',
-       '\treturn "/target"',
-       "/targetexact probed for and never written",
-       expect="a client with /targetexact builds /targetexact",
-       script="runscenarios.py")
 
 # And the other way: a command written into the macro on a client that does not
 # have it. An unknown slash command is not an error the user sees -- the line is
 # simply dropped, the cast goes to whoever was already targeted, and the addon
 # says a favour was returned.
 mutate("Prompt.lua",
-       '\treturn (ns.caps and ns.caps.targetExact) and "/targetexact" or "/target"',
-       '\treturn "/targetexact"',
-       "/targetexact written on a client without it",
+       '\treturn "/target"\nend',
+       '\treturn "/targetexact"\nend',
+       "/targetexact written after it was deliberately withdrawn",
        expect="a client without /targetexact builds /target",
        script="runscenarios.py")
 
@@ -1525,8 +1520,9 @@ mutate("Core.lua",
 # The same rule on the other path into it -- the one that answers when the walk
 # has nothing left.
 mutate("Core.lua",
-       "\t\tif ns.IsBuffKnown(buff) and not buff.neverAuto then return buff end",
-       "\t\tif ns.IsBuffKnown(buff) then return buff end",
+       """\t\tif ns.IsBuffKnown(buff) and not buff.neverAuto
+\t\t\tand not (skip and skip[buff.key]) then""",
+       "\t\tif ns.IsBuffKnown(buff) then",
        "the never-automatic rule missing from the fallback pick",
        expect="Automatic never hands over Unending Breath",
        script="runscenarios.py")
