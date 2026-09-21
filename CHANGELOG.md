@@ -1,6 +1,32 @@
 # Changelog
 
-## 0.9.5
+## 0.9.6
+
+Two live bugs found by the audit, both cases of the addon doing the wrong
+thing rather than nothing.
+
+### Fixed
+
+- **The right mouse button still cast.** 0.9.5 stopped a right-press running
+  the bookkeeping but not the cast: the unsuffixed `type`/`macrotext` are the
+  fallback for every button, and `AnyDown` delivers all of them. So turning the
+  camera with the cursor over the panel fired the buff, skipping PreClick's
+  re-resolve entirely -- no retry cooldown, no debt settled, the same person
+  offered again immediately. Buttons 2-5 are now given a type the secure
+  handler does not recognise. The unsuffixed pair stays, because it is the form
+  copied from the buttons that provably work on this client.
+- **A cast that landed on the wrong player counted as the favour returned.**
+  `/target <name>` for a name the game cannot resolve is a no-op -- it leaves
+  your existing target in place -- so the cast went to whoever that was, and
+  the debt was cleared for somebody who never got anything. The spell-sent
+  event carries the name it actually reached, and it now has to match.
+
+### Added
+
+- `.github/AUDIT.md`, the full output of a 37-agent audit: 103 findings, 20
+  bugs confirmed after adversarial verification, and a ranked feature plan.
+  Kept because it is a work queue, not a report.
+
 
 From a 103-finding audit across UX, code, performance and bugs.
 
