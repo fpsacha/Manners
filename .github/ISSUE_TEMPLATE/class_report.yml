@@ -1,0 +1,58 @@
+name: A class cast, or did not
+description: Report whether the buffs worked for a class nobody has tried yet
+labels: [class-report]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Only Mage has been used in game. Every other class is implemented, its
+        spell data is corroborated against other addons running on this client,
+        and its cast path is exercised by the test suite — but the suite runs
+        against a mock, and "the tests pass" is not the same as "somebody used
+        it". Getting one spell to cast here took ten attempts.
+
+        A report either way is worth having. **It worked** is as useful as
+        **it did not**, because it is what moves a class off the unverified
+        list.
+
+  - type: dropdown
+    id: class
+    attributes:
+      label: Class
+      options: [Priest, Druid, Paladin, Warlock, Warrior, Mage, Other]
+    validations:
+      required: true
+
+  - type: dropdown
+    id: outcome
+    attributes:
+      label: Did the buff go out
+      options:
+        - Yes, every buff I tried
+        - Some of them — details below
+        - No, nothing cast
+    validations:
+      required: true
+
+  - type: textarea
+    id: which
+    attributes:
+      label: Which buffs you tried
+      description: >
+        Naming them matters. Several classes have more than one and the prompt
+        walks the list, so "Fortitude worked, Shadow Protection did not" is a
+        different problem from "nothing worked".
+      placeholder: |
+        Fortitude — cast fine, on a stranger and on a party member
+        Divine Spirit — offered, clicked, nothing happened
+        Shadow Protection — never offered at all
+    validations:
+      required: true
+
+  - type: textarea
+    id: debug
+    attributes:
+      label: Output of /manners debug
+      render: text
+    validations:
+      required: true
