@@ -1,9 +1,25 @@
 # Changelog
 
-## Unreleased
+## 1.0.0
 
-Six rounds of review on top of 0.9.6, each one fixing what the round before it
-found. The version has not been bumped and nothing has been tagged.
+The first release that claims to work.
+
+It runs on **WoW Forever** and nothing else. Retail, Mists Classic and Classic
+Era are implemented and tested against a mock client, but nobody has launched
+those games -- and a toc is a promise. They arrive in 1.1 on the first report
+that one of them works; the issue templates exist to collect exactly that.
+
+The same honesty applies to classes. **Mage has been played**, at length, by
+the author. The other five are implemented, their spell data is corroborated
+against other addons running on this client, and every cast path is exercised
+by 160-odd scenarios -- but "the tests pass" is not "somebody used it". Warrior
+is the one to try first: Battle Shout is self-cast, so its macro has no
+`/target` line at all and it is the only class that takes that branch.
+
+### Since 0.9.6
+
+Six rounds of review, a port to five clients that ships as one, and two bugs
+found in ten minutes of actually playing it that no test here could reach.
 
 ### Added
 
