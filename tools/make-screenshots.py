@@ -66,7 +66,9 @@ AMBER = reason_colour("owed", (255, 199, 77))
 BLUE = reason_colour("group", (97, 173, 255))
 GREY = reason_colour("nearby", (133, 138, 158))
 PANEL = (10, 10, 15)
-SS = 3  # supersample, so the downscale does the antialiasing
+SS = 3      # supersample, so the downscale does the antialiasing
+SHOW = 2    # the panel is 220x44 on screen, which is unreadable in a
+            # listing thumbnail; these are shown at twice that
 
 f_name = face("bold", FONT * SS)
 f_sub = face("regular", int((FONT - 3) * SS))
@@ -127,65 +129,123 @@ def prompt(name, reason, accent, count=None, unverified=False):
         [8 * SS, 8 * SS, 8 * SS + w, 8 * SS + h], fill=(0, 0, 0, 150))
     shadow = shadow.filter(ImageFilter.GaussianBlur(5 * SS))
     shadow.alpha_composite(img, (8 * SS, 8 * SS))
-    return shadow.resize((shadow.width // SS, shadow.height // SS), Image.LANCZOS)
+    out = shadow.resize((shadow.width // SS, shadow.height // SS), Image.LANCZOS)
+    return out.resize((out.width * SHOW, out.height * SHOW), Image.LANCZOS)
 
 
-def backdrop(w, h):
-    """A muted field, so the panel is judged on contrast rather than on art."""
+def backdrop(w, h, glow=None):
+    """A dark studio field with one soft light behind the subject.
+
+    This used to be a blurred green wash meant to suggest grass. It suggested
+    nothing, and a small panel adrift in it read as a placeholder rather than
+    as the thing being shown. These are renders and the README says so, so the
+    honest presentation is a product shot: dark, neutral, lit from behind the
+    panel, with nothing else competing.
+
+    `glow` is where the light sits, as a fraction of the canvas -- put it where
+    the panel will be and the panel sits in its own pool of light.
+    """
+    top, bottom = (22, 24, 33), (10, 11, 16)
     img = Image.new("RGB", (w, h))
     d = ImageDraw.Draw(img)
     for y in range(h):
         f = y / h
         d.line([(0, y), (w, y)],
-               fill=(int(46 + 26 * f), int(58 + 30 * f), int(38 + 18 * f)))
-    for i in range(160):
-        x = (i * 8081) % w
-        y = (i * 5077) % h
-        r = 6 + (i % 17)
-        d.ellipse([x, y, x + r, y + r * 0.6], fill=(
-            int(46 + 26 * (y / h)) + (i % 11) - 5,
-            int(58 + 30 * (y / h)) + (i % 13) - 6,
-            int(38 + 18 * (y / h)) + (i % 7) - 3))
-    return img.filter(ImageFilter.GaussianBlur(1.6))
+               fill=tuple(round(top[i] + (bottom[i] - top[i]) * f) for i in range(3)))
 
+    if glow:
+        gx, gy = int(w * glow[0]), int(h * glow[1])
+        r = int(max(w, h) * 0.42)
+        light = Image.new("L", (w, h), 0)
+        ld = ImageDraw.Draw(light)
+        # Drawn as rings rather than one ellipse so the falloff is smooth
+        # before the blur rather than relying on it.
+        for i in range(28):
+            f = i / 28
+            rr = int(r * (1 - f))
+            ld.ellipse([gx - rr, gy - rr * 0.72, gx + rr, gy + rr * 0.72],
+                       fill=int(64 * f * f))
+        light = light.filter(ImageFilter.GaussianBlur(r * 0.22))
+        img = Image.composite(Image.new("RGB", (w, h), (74, 82, 120)), img, light)
 
-def caption(img, lines):
+    # A few motes, well under the noise floor: enough that the field is not a
+    # flat gradient, not enough to be looked at.
     d = ImageDraw.Draw(img)
-    f = face("regular", 15)
-    fb = face("bold", 15)
-    y = img.height - 24 * len(lines) - 14
-    for i, line in enumerate(lines):
-        d.text((22, y + i * 24), line, font=(fb if i == 0 else f),
-               fill=(235, 238, 245) if i == 0 else (176, 182, 198))
+    for i in range(70):
+        x, y = (i * 8081) % w, (i * 5077) % h
+        v = 30 + (i % 14)
+        d.ellipse([x, y, x + 2, y + 2], fill=(v, v + 2, v + 8))
+    return img.filter(ImageFilter.GaussianBlur(0.6))
+
+
+def caption(img, lines, x=40):
+    """A heading and its supporting lines, with room to breathe.
+
+    Was 15px hard against the bottom-left corner, which is where text goes when
+    nobody has decided where it should go.
+    """
+    d = ImageDraw.Draw(img)
+    fb = face("bold", 21)
+    f = face("regular", 16)
+    lead = 25
+    y = img.height - (lead * (len(lines) - 1)) - 34 - 30
+    d.text((x, y), lines[0], font=fb, fill=(240, 242, 248))
+    for i, line in enumerate(lines[1:], 1):
+        d.text((x, y + 34 + (i - 1) * lead), line, font=f, fill=(150, 157, 176))
     return img
 
 
-# ---- 1. the four reasons, side by side --------------------------------
-one = backdrop(880, 540)
+# ---- 1. the four reasons, stacked ------------------------------------
+#
+# Laid out around the panels rather than the panels dropped into a canvas
+# chosen first: they are the subject, so the margins are measured from them.
 rows = [
     ("Brannock Vale", "your target", GREEN, None, "you picked them yourself"),
     ("Elara Brightmoor", "buffed you", AMBER, 2, "someone who buffed you"),
     ("Corvin Ashgrove", "in your group", BLUE, None, "in your group"),
     ("Petra Stonewell", "needs Arcane Intellect", GREY, 4, "a passer-by"),
 ]
-for i, (n, r, a, c, _) in enumerate(rows):
-    p = prompt(n, r, a, c)
-    one.paste(p, (90, 52 + i * 104), p)
+
+panels = [prompt(n, r, a, c) for n, r, a, c, _ in rows]
+pw, ph = panels[0].width, panels[0].height
+gap = 26
+left = 56
+label_x = left + pw + 46
+
+# Measured, not guessed. Guessing clipped "you picked them yourself" by three
+# characters, which is exactly the kind of thing nobody notices until it is
+# the first image on a listing page.
+_fb = face("bold", 17)
+_probe = ImageDraw.Draw(Image.new("RGB", (1, 1)))
+label_w = max(_probe.textbbox((0, 0), row[4], font=_fb)[2] for row in rows)
+canvas_w = label_x + label_w + 56
+# The tail has to clear the caption, which is measured up from the
+# bottom: three lines plus its own leading, plus air.
+canvas_h = 60 + len(panels) * ph + (len(panels) - 1) * gap + 175
+
+one = backdrop(canvas_w, canvas_h, glow=(0.34, 0.42))
 d = ImageDraw.Draw(one)
-fb = face("bold", 14)
-for i, row in enumerate(rows):
-    d.text((470, 82 + i * 104), row[4], font=fb, fill=(190, 196, 212))
+fb = face("bold", 17)
+for i, (panel, row) in enumerate(zip(panels, rows)):
+    y = 60 + i * (ph + gap)
+    one.paste(panel, (left, y), panel)
+    # Centred against the panel, not against its shadow.
+    d.text((label_x, y + ph // 2 - 9), row[4], font=fb, fill=(176, 183, 203))
+
 caption(one, ["Every prompt says why that person is on it.",
-              "The line under the name tells you, and the ring repeats it in colour --",
-              "so it still reads if those four colours are not four colours to you."])
+              "The line under the name tells you and the ring repeats it in colour,",
+              "so it still reads if those four are not four colours to you."], x=left)
 one.save(os.path.join(OUT, "screenshot-reasons.png"))
 
-# ---- 2. one prompt, in place -----------------------------------------
-two = backdrop(880, 460)
-p = prompt("Elara Brightmoor", "buffed you", AMBER, 3)
-two.paste(p, ((880 - p.width) // 2, 160), p)
+# ---- 2. one prompt, on its own ---------------------------------------
+solo = prompt("Elara Brightmoor", "buffed you", AMBER, 3)
+canvas_w = solo.width + 180
+canvas_h = solo.height + 230
+two = backdrop(canvas_w, canvas_h, glow=(0.5, 0.42))
+two.paste(solo, ((canvas_w - solo.width) // 2, 78), solo)
 caption(two, ["One click and they get their buff.",
-              "Your previous target is handed straight back."])
+              "Your own target is handed straight back."],
+        x=(canvas_w - solo.width) // 2)
 two.save(os.path.join(OUT, "screenshot-prompt.png"))
 
 print("wrote:")
