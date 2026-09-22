@@ -63,10 +63,23 @@ jobs:
       # actually configured before building.
       - name: Report which destinations are configured
         run: |
-          echo "CurseForge: ${{ secrets.CF_API_KEY != '' && 'configured' || 'NO CF_API_KEY -- upload will be skipped' }}"
-          echo "WoWInterface: ${{ secrets.WOWI_API_TOKEN != '' && 'configured' || 'not configured' }}"
-          echo "Wago: ${{ secrets.WAGO_API_TOKEN != '' && 'configured' || 'not configured' }}"
-          grep -q '^## X-Curse-Project-ID:' Manners.toc             && echo "Project id: $(grep '^## X-Curse-Project-ID:' Manners.toc)"             || echo "::warning::no X-Curse-Project-ID in the toc; CurseForge upload cannot target a project"
+          say() {
+            # $1 destination, $2 token set?, $3 toc directive it needs
+            local id
+            id=$(grep -m1 "^## $3:" Manners.toc | cut -d: -f2- | xargs)
+            if [ -z "$2" ] && [ -z "$id" ]; then
+              echo "::warning::$1: no token and no $3 -- skipped"
+            elif [ -z "$2" ]; then
+              echo "::warning::$1: id $id, but no token -- skipped"
+            elif [ -z "$id" ]; then
+              echo "::warning::$1: token set, but no $3 in the toc -- nothing to upload to"
+            else
+              echo "$1: id $id, token set"
+            fi
+          }
+          say CurseForge   "${{ secrets.CF_API_KEY }}"       X-Curse-Project-ID
+          say Wago         "${{ secrets.WAGO_API_TOKEN }}"   X-Wago-ID
+          say WoWInterface "${{ secrets.WOWI_API_TOKEN }}"   X-WoWI-ID
 
       - name: Package and publish
         uses: BigWigsMods/packager@master
