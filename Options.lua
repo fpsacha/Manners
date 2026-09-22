@@ -287,8 +287,9 @@ local function AddBuffToggles(args)
 			order = 4 + index / 10,
 			width = "full",
 			-- A pinned spell is the only one considered, so these would be
-			-- switches over something that is not consulted.
-			hidden = function() return B().choice ~= "auto" end,
+			-- switches over something that is not consulted. Only a pin of this
+			-- class's counts: another class's is Automatic here.
+			hidden = function() return ns.PinnedBuff() ~= nil end,
 			disabled = function() return not ns.IsBuffKnown(buff) end,
 			get = function() return not B().skip[buff.key] end,
 			set = function(_, value)
@@ -302,21 +303,12 @@ local function AddBuffToggles(args)
 end
 
 -- Whether everything this character could offer reaches its party and nobody
--- else -- a warrior's Battle Shout, which is cast on yourself and heard by the
--- group.
---
--- BuildQueue rejects a party-only buff for anybody outside the group before the
--- strangers toggle is ever consulted, so for these classes that toggle is a
--- switch with nothing behind it. Computed rather than listed by class: it
--- follows the per-spell switches and a pin, so a warrior who learns something
--- else gets the control back on its own.
+-- else -- a warrior's Battle Shout. For these classes the strangers toggle is a
+-- switch with nothing behind it. Core's answer, which the greeting and the
+-- favour line read as well; a copy here is how the three would come to
+-- disagree.
 local function OnlyReachesGroup()
-	local castable = ns.CastableBuffs()
-	if #castable == 0 then return false end
-	for _, buff in ipairs(castable) do
-		if not buff.partyOnly then return false end
-	end
-	return true
+	return ns.OnlyReachesGroup()
 end
 
 -- Whether nothing this character can offer takes a target at all -- a warrior,
@@ -463,13 +455,19 @@ local function BuildOptions()
 				name = "Buff to cast",
 				order = 2,
 				values = BuffChoices,
-				get = bGet,
+				-- What the walk is honouring, rather than what is stored. The
+				-- profile is shared, so a pin can be another class's, and read
+				-- raw the dropdown was blank over a walk that was Automatic.
+				get = function()
+					local pin = ns.PinnedBuff()
+					return pin and pin.key or "auto"
+				end,
 				set = bSet,
 			},
 			autoNote = {
 				type = "description",
 				order = 3,
-				hidden = function() return B().choice ~= "auto" end,
+				hidden = function() return ns.PinnedBuff() ~= nil end,
 				name = function() return AutoExplanation() end,
 			},
 			-- Below the per-spell switches, because when it is red the thing it
@@ -478,7 +476,7 @@ local function BuildOptions()
 				type = "description",
 				order = 5,
 				fontSize = "medium",
-				hidden = function() return B().choice == "auto" end,
+				hidden = function() return ns.PinnedBuff() == nil end,
 				name = function() return PinExplanation() end,
 			},
 			sourcesHeader = { type = "header", name = "Sources", order = 10 },
@@ -1098,7 +1096,16 @@ local function BuildOptions()
 							return out
 						end,
 						sorting = function() return ns.PHRASE_SET_ORDER end,
-						get = function() return SP().presetChoice or "roleplay" end,
+						-- Blank once the box has been edited. AceGUI's dropdown only
+						-- fires when the item clicked becomes checked, so showing the
+						-- last set loaded over lines that are no longer it made that
+						-- one set the only one that could not be picked -- somebody
+						-- wanting the Roleplay lines back got nothing at all.
+						get = function()
+							local choice = SP().presetChoice or "roleplay"
+							if SP().phrases == ns.PhraseSetText(choice) then return choice end
+							return nil
+						end,
 						set = function(_, value)
 							SP().presetChoice = value
 							SP().phrases = ns.PhraseSetText(value) or SP().phrases
@@ -1266,17 +1273,24 @@ local function BuildOptions()
 						type = "toggle",
 						name = "Colour it by reason",
 						-- There are four reasons and this named three, leaving out
-						-- the one most people see most often: green is what a
+						-- the one most people see most often: pale blue is what a
 						-- target you picked yourself gets, and that priority is on
 						-- by default. Listed in the order the queue ranks them, so
 						-- the list doubles as the ordering.
 						--
-						-- Green is the only one with a condition on it, because
-						-- "target" is the only reason BuildQueue will not write
-						-- unless a switch is on -- and the switch is on another tab.
-						desc = "Green for somebody you targeted yourself, amber when returning a"
-							.. " favour, blue for your group, grey for passers-by. That is also"
-							.. " the order they are offered in.\n\n"
+						-- Pale blue, not green: the target colour moved to a pale
+						-- cyan so it survives colour blindness beside the amber,
+						-- and this went on promising a green ring nobody would ever
+						-- see. It sits beside the group's deeper blue and is told
+						-- from it by lightness, which is why both are qualified.
+						--
+						-- The target is the only one with a condition on it,
+						-- because "target" is the only reason BuildQueue will not
+						-- write unless a switch is on -- and the switch is on
+						-- another tab.
+						desc = "Pale blue for somebody you targeted yourself, amber when returning a"
+							.. " favour, deeper blue for your group, grey for passers-by. That is"
+							.. " also the order they are offered in.\n\n"
 							.. "|cff888888The first of those only ever appears while |cffffd100Whoever"
 							.. " I have targeted comes first|r is on, under Who to buff.|r",
 						order = 12,
@@ -1369,8 +1383,18 @@ local function BuildOptions()
 						type = "select",
 						name = "When someone buffs you",
 						desc = "Pulse keeps breathing until you have returned the favour or they are gone. "
-							.. "Flash once is easy to miss if you were looking elsewhere.",
+							.. "Flash once is easy to miss if you were looking elsewhere.\n\n"
+							.. "|cff888888It lights up the spell icon and sweeps the stripe, so with the"
+							.. " icon hidden and no stripe showing there is nothing for it to do.|r",
 						order = 21,
+						-- A setting with nothing to act on reads as one that is
+						-- broken, which is what accentDead exists to prevent for
+						-- the colour. The glow lives on the icon and the sweep on
+						-- the stripe, and with neither on screen this did nothing.
+						disabled = function()
+							local _, stripe = AccentCarriers()
+							return not P().showIcon and not stripe
+						end,
 						values = {
 							pulse = "Pulse until dealt with",
 							once = "Flash once",
@@ -1398,6 +1422,14 @@ local function BuildOptions()
 						values = function()
 							local list = {}
 							for key in pairs(LSM:HashTable("sound")) do list[key] = key end
+							-- The chosen sound, even when its pack has not
+							-- registered it, so the box still says what was
+							-- picked rather than going blank. It plays ours
+							-- until the pack is there.
+							local chosen = SND().file
+							if type(chosen) == "string" and not list[chosen] then
+								list[chosen] = chosen .. " |cff808080(not loaded)|r"
+							end
 							return list
 						end,
 						get = function() return SND().file end,
@@ -1458,7 +1490,25 @@ local function BuildOptions()
 					},
 					x = { type = "range", name = "X offset", order = 32, min = -2000, max = 2000, step = 1, get = pGet, set = pSet },
 					y = { type = "range", name = "Y offset", order = 33, min = -2000, max = 2000, step = 1, get = pGet, set = pSet },
-					width = { type = "range", name = "Width", order = 34, min = 80, max = 500, step = 1, get = pGet, set = pSet },
+					width = {
+						type = "range",
+						name = "Width",
+						order = 34,
+						min = 80,
+						max = 500,
+						step = 1,
+						get = pGet,
+						-- The same setter the height has, for the same reason: the
+						-- icon is bound by the width as well. Narrowing the prompt
+						-- left a big icon in place, and the name, inset past the
+						-- icon on the left and short of the edge on the right, had
+						-- nowhere left to draw.
+						set = function(info, value)
+							pSet(info, value)
+							ns.ClampSettings()
+							restyle()
+						end,
+					},
 					height = {
 						type = "range",
 						name = "Height",
@@ -1518,12 +1568,28 @@ local function BuildOptions()
 						order = 41,
 						width = "full",
 						get = pGet,
-						set = pSet,
+						-- An empty first line is a prompt that names nobody. The
+						-- box took one for the session and the load-time repair
+						-- put the default back at the next login; it snaps back
+						-- here instead, so what the box shows is what is kept.
+						set = function(info, value)
+							if not ns.UsableFormat(value) then
+								value = ns.defaults.profile.prompt.format
+							end
+							pSet(info, value)
+						end,
 					},
 					showSub = {
 						type = "toggle",
 						name = "Show a second line",
-						desc = "Needs a prompt at least 34 pixels tall.",
+						-- Worked out from the font, by the same function ApplyStyle
+						-- decides it with. It said 34 after the prompt stopped using
+						-- 34, so at 34 to 38 pixels the page said there was room and
+						-- the line was silently missing.
+						desc = function()
+							return ("Needs a prompt at least %d pixels tall at this font size.")
+								:format(ns.TwoLineHeight(P().fontSize))
+						end,
 						order = 42,
 						width = "full",
 						get = pGet,
@@ -1572,7 +1638,15 @@ local function BuildOptions()
 						type = "select",
 						name = "Font",
 						order = 50,
-						values = function() return LSM:HashTable("font") end,
+						-- Keys, not files. HashTable maps key -> file and AceConfig
+						-- shows the value as the label, so this listed font paths,
+						-- sorted by path: the bug the sound list below had fixed,
+						-- left in this one.
+						values = function()
+							local list = {}
+							for key in pairs(LSM:HashTable("font")) do list[key] = key end
+							return list
+						end,
 						get = pGet,
 						set = pSet,
 					},
@@ -1596,7 +1670,7 @@ local function BuildOptions()
 						-- whole table, so the page cannot be drawn at all. It is
 						-- enforced in ClampSettings instead, which is where every
 						-- other cross-setting repair already lives.
-						desc = "Kept inside the prompt's height -- raise that first for a bigger icon.",
+						desc = "Kept inside the prompt -- make it taller or wider first for a bigger icon.",
 						order = 62,
 						min = 12,
 						max = 64,
@@ -1617,17 +1691,16 @@ local function BuildOptions()
 							-- writes it, which is the other half of the same rule.
 							ns.ClampSettings()
 							restyle()
-							-- Re-read it: ClampSettings may have just cut it down,
-							-- and the slider should show what was actually kept.
-							--
-							-- Through the guarded wrapper, not the library handle.
-							-- AceConfigRegistry is asked for with the silent flag on
-							-- purpose -- a missing library must not take the options
-							-- screen with it -- and every other reader checks it, so
-							-- a raw call here was the one place the absence it is
-							-- fetched for would have thrown, from inside a setter,
-							-- with somebody's finger on the slider.
-							ns.RefreshOptionsDisplay()
+							-- Repainted only when the clamp actually moved it. The
+							-- dialog redraws when a drag is let go, but a mouse
+							-- wheel never lets go of anything, so a wheel tick past
+							-- the limit left the slider showing a value the prompt
+							-- was not using. Asking every time rebuilt the slider
+							-- under a dragging finger; asking only when the kept
+							-- value differs from the one set does neither.
+							if P().iconSize ~= value and ns.RefreshOptionsDisplay then
+								ns.Guard("icon repaint", ns.RefreshOptionsDisplay)
+							end
 						end,
 					},
 					iconSizeCapped = {
@@ -1635,15 +1708,21 @@ local function BuildOptions()
 						order = 62.5,
 						hidden = function()
 							local p = P()
-							-- Shown only when the icon is sitting on the ceiling
-							-- the height imposes, which is the case where the
-							-- slider will not go any further and nothing else on
-							-- the page explains why.
-							return not p.showIcon or p.iconSize < p.height - 8
+							-- Shown only when the icon is sitting on the ceiling,
+							-- which is the case where the slider will not go any
+							-- further and nothing else on the page explains why.
+							-- The same ceiling ClampSettings enforces: it is bound
+							-- by the width as well as the height, and a notice that
+							-- only knew the height stayed hidden, or named the
+							-- wrong one, whenever the width was the limit.
+							return not p.showIcon or p.iconSize < ns.IconCeiling(p)
 						end,
 						name = function()
-							return ("|cffffd100The icon is held at %d to fit a prompt %d high.|r")
-								:format(P().iconSize, P().height)
+							local p = P()
+							local byWidth = (p.width - 60) < (p.height - 8)
+							return ("|cffffd100The icon is held at %d to fit a prompt %d %s.|r")
+								:format(p.iconSize, byWidth and p.width or p.height,
+									byWidth and "wide" or "high")
 						end,
 					},
 					roundIcon = {
@@ -1763,9 +1842,16 @@ local function BuildOptions()
 								lines[#lines + 1] = ("|cff808080%s|r %s -- |cffff8080%s|r"):format(
 									tostring(e.at), tostring(e.where), tostring(e.err))
 							end
+							-- The count, not the ring's length. The ring holds thirty,
+							-- so this said thirty whether thirty things had broken or
+							-- thirty thousand -- the reading /manners errors and the
+							-- bug report were both corrected away from.
 							if #ns.errors > 5 then
-								lines[#lines + 1] = ("|cff888888(%d in all this session --"
-									.. " |cffffd100/manners errors|r)|r"):format(#ns.errors)
+								local total = ns.errorCount or #ns.errors
+								local kept = total > #ns.errors
+									and (", %d kept"):format(#ns.errors) or ""
+								lines[#lines + 1] = ("|cff888888(%d in all this session%s --"
+									.. " |cffffd100/manners errors|r)|r"):format(total, kept)
 							end
 							return table.concat(lines, "\n")
 						end,

@@ -354,8 +354,8 @@ mutate("Prompt.lua",
 #      disarms it -- so the click does nothing and says nothing, which is the
 #      silent failure the fuse was added to avoid, arriving by the other door.
 mutate("Prompt.lua",
-       "		if not top and FuseStillBurning(now) then return end\n",
-       "",
+       "		if not top and FuseStillBurning(now) and not Retired(current, now) then\n",
+       "		if false then\n",
        "a press that disarms a visible prompt",
        expect="a press while the prompt was still naming Ana disarmed it",
        script="runscenarios.py")
@@ -588,7 +588,7 @@ mutate("Options.lua",
 #     is deliberately not reset for you, because a failed spell probe must not
 #     rewrite a setting.
 mutate("Options.lua",
-       'hidden = function() return B().choice == "auto" end,',
+       'hidden = function() return ns.PinnedBuff() == nil end,',
        "hidden = function() return true end,",
        "no warning for a pin that stops everything",
        expect="a pinned spell you have not learned stops everything",
@@ -1078,15 +1078,18 @@ mutate("Options.lua",
        expect="is nowhere on the page",
        script="runscenarios.py")
 
-# 78. AceConfigRegistry called straight from a setter. It is fetched with the
-#     silent flag precisely because it may be absent, and this was the one
-#     reader that did not check -- so the absence it is fetched for threw, from
-#     inside a set, with somebody's finger on the slider.
+# 78. AceConfigRegistry called straight from a control. It is fetched with the
+#     silent flag precisely because it may be absent, and the icon slider's
+#     setter was once the one reader that did not check -- so the absence it is
+#     fetched for threw, from inside a set, with somebody's finger on the
+#     slider. That setter no longer asks for a repaint at all -- the dialog
+#     redraws itself when the slider is let go -- so the check now sits on the
+#     one control that still repaints the page from a press: the bug report.
 mutate("Options.lua",
-       "\t\t\t\t\t\t\tns.RefreshOptionsDisplay()\n\t\t\t\t\t\tend,",
-       "\t\t\t\t\t\t\tAceConfigRegistry:NotifyChange(ADDON)\n\t\t\t\t\t\tend,",
-       "a setter calling a library that may be absent",
-       expect="moving the icon slider threw",
+       "\t\t\t\t\t\t\treportOpen = not reportOpen\n\t\t\t\t\t\t\tns.RefreshOptionsDisplay()",
+       "\t\t\t\t\t\t\treportOpen = not reportOpen\n\t\t\t\t\t\t\tAceConfigRegistry:NotifyChange(ADDON)",
+       "a control calling a library that may be absent",
+       expect="opening the bug-report box threw",
        script="runscenarios.py")
 
 # 79. the clamp the icon slider never ran. The bound cannot live on the control
@@ -1097,8 +1100,8 @@ mutate("Options.lua",
        # Anchored on the comment that follows it: the height slider's setter is
        # the same three lines, sits earlier in the file, and would otherwise be
        # the one this replaced -- which is a mutation of a different check.
-       "\t\t\t\t\t\t\tns.ClampSettings()\n\t\t\t\t\t\t\trestyle()\n\t\t\t\t\t\t\t-- Re-read it",
-       "\t\t\t\t\t\t\t-- Re-read it",
+       "\t\t\t\t\t\t\tns.ClampSettings()\n\t\t\t\t\t\t\trestyle()\n\t\t\t\t\t\t\t-- Repainted only",
+       "\t\t\t\t\t\t\t-- Repainted only",
        "an icon slider that outgrows its panel",
        expect="dragging the icon slider left an icon taller",
        script="runscenarios.py")
@@ -1106,7 +1109,7 @@ mutate("Options.lua",
 # 80. the description that named three reason colours out of four, leaving out
 #     the one most people see most often.
 mutate("Options.lua",
-       'desc = "Green for somebody you targeted yourself, amber when returning a"',
+       'desc = "Pale blue for somebody you targeted yourself, amber when returning a"',
        'desc = "Amber when returning a"',
        "a reason colour the page never names",
        expect="reason colours and the description names",
@@ -1811,8 +1814,8 @@ mutate("Core.lua",
 # A signal that resolves and then answers nothing, kept forever. The queue is
 # exactly as crowded as it was and the setting says otherwise.
 mutate("Core.lua",
-       "if prox.blind > PROX_BLIND_LIMIT and prox.source then",
-       "if false and prox.source then",
+       "if silent > PROX_BLIND_LIMIT then",
+       "if false then",
        "a signal that never answers, never dropped",
        expect="a signal that resolves and then answers nobody",
        script="runscenarios.py")
@@ -2160,6 +2163,98 @@ mutate("Options.lua",
        "\t\t\t:format(#ns.errors, #ns.errors)",
        "a bug report counting what survived the ring",
        expect="the bug report gives the ring's size",
+       script="runscenarios.py")
+
+# The second half of a press let through whatever was on the button. An error
+# between the halves re-arms the prompt at the next person, and the debounced
+# press fired their macro with nothing filed -- so the refused press's parked
+# record was settled by somebody else's cast.
+mutate("Prompt.lua",
+       "\t\t\telseif appliedKey ~= pressKey then\n\t\t\t\tPrompt:ApplyTarget(nil)\n",
+       "\t\t\telseif false then\n\t\t\t\tPrompt:ApplyTarget(nil)\n",
+       "a debounced press firing what it never armed",
+       expect="the second half of a press fires only what the first half armed",
+       script="runscenarios.py")
+
+# A cast event a second after a refused press read as that press landing. On a
+# client that names no recipient, a hand-cast on somebody else repaid the debt.
+mutate("Core.lua",
+       "\tif GetTime() - pending.at > SENT_SECONDS then return end\n",
+       "",
+       "a late cast event settling a refused press",
+       expect="a cast a second after a refused press is not its answer",
+       script="runscenarios.py")
+
+# The cooldown asked after the fight is: in combat the macro cannot be disarmed,
+# and a press inside the cooldown was filed against the frozen person.
+mutate("Prompt.lua",
+       "\t\tcooldownPressAt = (not ready) and now or nil\n\t\tif InCombatLockdown() then return end\n",
+       "\t\tif InCombatLockdown() then cooldownPressAt = nil return end\n\t\tcooldownPressAt = (not ready) and now or nil\n",
+       "a press in the cooldown filed during a fight",
+       expect="in a fight, a press inside the cooldown is not filed",
+       script="runscenarios.py")
+
+# A press the cooldown turned away kept its PreClick stamp, and the press after
+# it -- the cooldown ends mid-click as often as not -- was swallowed.
+mutate("Prompt.lua",
+       "\t\t\tlastPreClickAt = nil\n\t\t\tguardedEntry = current\n",
+       "\t\t\tguardedEntry = current\n",
+       "a guarded press swallowing the next one",
+       expect="a press the cooldown turned away does not swallow the next one",
+       script="runscenarios.py")
+
+# The library's edge read through GetRange, which turns a client that will not
+# answer about a stranger into "everybody is outside".
+mutate("Core.lua",
+       "\t\t\tlocal direct = DirectCheck(lib, edge)\n",
+       "\t\t\tlocal direct = nil\n",
+       "a refusal read through the library as outside",
+       expect="a refusal read through the library is still a refusal",
+       script="runscenarios.py")
+
+# A rung that cannot tell about somebody offering them outright, with a working
+# rung underneath that could have measured them.
+mutate("Core.lua",
+       "\t\tif near ~= nil then\n\t\t\tverdict = near\n\t\t\tbreak\n\t\tend\n",
+       "\t\tverdict = near\n\t\tbreak\n",
+       "a rung's silence letting a passer-by through",
+       expect="a rung that cannot tell hands the person down",
+       script="runscenarios.py")
+
+# A pin belonging to another class wiped from the profile every character
+# shares, by whichever alt logged in.
+mutate("Core.lua",
+       "\tif choice ~= \"auto\" and not ns.AnyClassHasBuff(choice) then\n",
+       "\tif choice ~= \"auto\" and caps.class and not ns.FindBuff(caps.class, choice) then\n",
+       "another class's pin reset for everybody",
+       expect="wiped the mage's pin",
+       script="runscenarios.py")
+
+# An error answered the press, and the window running out answered it again:
+# a second rewind, a second red flash, and "nothing at all" in chat.
+mutate("Core.lua",
+       "\t-- over a button long since armed at somebody else.\n\tif pending.answered then return end\n",
+       "\t-- over a button long since armed at somebody else.\n",
+       "a refused press flashed twice",
+       expect="an error answers a press once",
+       script="runscenarios.py")
+
+# A combat press in the spell-queue window goes out when the cooldown ends,
+# and dropping its bookkeeping left the person owed for a buff that landed.
+mutate("Prompt.lua",
+       "left <= ns.SpellQueueWindow() then\n\t\t\tready = true\n",
+       "left <= ns.SpellQueueWindow() then\n",
+       "a queued combat press treated as refused",
+       expect="a press the client queues was treated as refused",
+       script="runscenarios.py")
+
+# The player's own queue window ignored: a press too early to be queued was
+# filed against whoever the frozen macro named.
+mutate("Core.lua",
+       "\t\tif value and value >= 0 and value <= 1000 then return value / 1000 end\n",
+       "",
+       "the player's queue window ignored",
+       expect="a press too early to be queued was filed",
        script="runscenarios.py")
 
 print()

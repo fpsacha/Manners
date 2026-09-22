@@ -223,7 +223,13 @@ function Mock.reset()
 	--                                 blows up -- the shape a secret unit GUID
 	--                                 takes on this client, where the library
 	--                                 builds a cache key by concatenating one
+	--   { buckets = ..., silentFor = { nameplate2 = true } }
+	--                                 the estimate comes back empty for those
+	--                                 units and works for the rest
 	--   { partial = true }            loaded, but not the methods we need
+	--
+	-- An edge equal to the duel or follow prompt is answered through
+	-- CheckInteractDistance, as the real library answers it; see LibStub.
 	Mock.rangeCheck = nil
 	Mock.unitClass = "PRIEST"
 	Mock.iconDb = nil
@@ -286,6 +292,16 @@ function Mock.reset()
 	-- and the readers that forgot to check could not be told from the ones that
 	-- remembered.
 	Mock.missingLibs = nil
+	-- A cast with a cast time the player is part-way through, as
+	-- { spellId, startsAt, endsAt } on the GetTime() clock. nil is standing
+	-- still, which is what every scenario written before this assumed. The
+	-- global cooldown was the only lockout the mock knew, so a press made
+	-- half-way through a three-second conjure could not be told from a free one.
+	Mock.casting = nil
+	-- What C_Spell.GetSpellCooldown reports as the duration for a spell, by id.
+	-- nil is the function answering nothing, which leaves the addon on its own
+	-- one-and-a-half-second fallback exactly as before this existed.
+	Mock.spellCooldowns = nil
 
 	-- Last, because it writes several of the knobs above. Camelot is what every
 	-- scenario written before this existed assumed, so resetting to it is what
@@ -387,6 +403,9 @@ local function newFrame()
 	f.SetAlpha = function(self, alpha) self._alpha = alpha return self end
 	f.GetAlpha = function(self) return self._alpha or 1 end
 	f.SetVertexColor = function(self, r, g, b, a) self._color = { r, g, b, a } return self end
+	-- The text colour too. A line recoloured for one message and never put back
+	-- reads the same to every assertion as one that was, against a no-op.
+	f.SetTextColor = function(self, r, g, b, a) self._textColor = { r, g, b, a } return self end
 	-- Size and font, for the same reason the colour above is kept. Several
 	-- pieces of the panel are sized from the font slider and have to stay in
 	-- step with the text inside them; against a no-op setter, a box drawn
@@ -501,22 +520,58 @@ function LibStub(name, silent)
 		if want.partial then return rc end
 
 		local buckets = want.buckets or { 30, 28, 8 }
+		-- The checker list, largest first, kept where the library keeps it and
+		-- labelled the way it labels it. The two edges the library fills from
+		-- the interact prompts -- the duel prompt and follow -- ask
+		-- CheckInteractDistance exactly as it does, `and true or false`, so a
+		-- client that refuses a stranger reads as "outside" and a value it
+		-- withholds reads as "inside". Everything else stands in for a spell
+		-- that answers. This mock used to measure every edge straight off
+		-- Mock.yardsFor, which made the library immune to Mock.interact and hid
+		-- the one way it gets a stranger wrong.
+		local interact = Mock.interactYards or {}
+		local list = {}
+		for i, range in ipairs(buckets) do
+			local index = (range == interact[3] and 3) or (range == interact[4] and 4) or nil
+			local entry = { range = range }
+			if index then
+				entry.info = "interact:" .. index
+				entry.checker = function(unit)
+					local check = _G.CheckInteractDistance
+					return (check and check(unit, index)) and true or false
+				end
+			else
+				entry.info = "spell:0:mock"
+				entry.checker = function(unit) return Mock.yardsFor(unit) <= range end
+			end
+			list[i] = entry
+		end
+		rc.friendRC = list
 		-- The tightest checker at or under what was asked for, which is what
 		-- decides the distance the addon really ends up filtering on.
 		rc.GetFriendMaxChecker = function(_, range)
-			for i = 1, #buckets do
-				if buckets[i] <= range then
-					return function(unit) return Mock.yardsFor(unit) <= buckets[i] end,
-						buckets[i]
-				end
+			for _, entry in ipairs(list) do
+				if entry.range <= range then return entry.checker, entry.range end
 			end
 		end
+		-- The library's own search over that list: the number of checkers that
+		-- say yes decides which pair of edges comes back, and one that says
+		-- nothing counts as a no.
 		rc.GetRange = function(_, unit)
 			Mock.counts.proximity = Mock.counts.proximity + 1
 			if want.throws then
 				error("attempt to concatenate a secret value", 0)
 			end
-			return Mock.rangeBuckets(Mock.yardsFor(unit), buckets)
+			if want.silentFor and want.silentFor[unit] then return nil end
+			local lo, hi = 1, #list
+			while lo <= hi do
+				local mid = math.floor((lo + hi) / 2)
+				if list[mid].checker(unit) then lo = mid + 1 else hi = mid - 1 end
+			end
+			if #list == 0 then return nil end
+			if lo > #list then return 0, list[#list].range end
+			if lo <= 1 then return list[1].range, nil end
+			return list[lo].range, list[lo - 1].range
 		end
 		return rc
 	end
@@ -769,6 +824,18 @@ function IsSpellInRange()
 	return Mock.inRange and 1 or 0
 end
 
+-- The player's own cast, from Mock.casting. The real call hands back nine
+-- values with the two times in milliseconds on the GetTime() clock, and nothing
+-- at all once the cast is over -- which is the shape modelled here, so a reader
+-- that took the wrong return, or forgot the milliseconds, is wrong against it.
+function UnitCastingInfo(unit)
+	local c = Mock.casting
+	if unit ~= "player" or not c then return nil end
+	if Mock.now >= c.endsAt then return nil end
+	return "Conjure Water", "", 132793, c.startsAt * 1000, c.endsAt * 1000,
+		false, "Cast-mock", false, c.spellId
+end
+
 ---------------------------------------------------------------------------
 -- how far away people are
 --
@@ -786,8 +853,14 @@ end
 
 -- The interact prompts, which are the only fixed distance thresholds an addon
 -- can ask about without a library. The numbers are the ones measured by the
--- people who maintain LibRangeCheck; this addon only reaches for index 3.
-local INTERACT_YARDS = { [1] = 28, [2] = 11, [3] = 10, [4] = 28 }
+-- people who maintain LibRangeCheck -- its DefaultInteractList, with the two it
+-- comments out -- and this addon only reaches for index 3. They said ten and
+-- eleven here while claiming that source, which says eight and nine, and the
+-- addon then reported one client call at two different distances.
+local INTERACT_YARDS = { [1] = 28, [2] = 9, [3] = 8, [4] = 28 }
+-- Read by the mock LibRangeCheck, which is built further up this file than the
+-- local above is declared.
+Mock.interactYards = INTERACT_YARDS
 
 -- Present by default, because every client this addon supports has the
 -- function. What differs between them is whether it answers about a player who
@@ -819,23 +892,12 @@ function Mock.setInteract(mode)
 end
 Mock.setInteract("on")
 
--- LibRangeCheck's estimate, from the checker list a scenario gives it.
---
--- The buckets are the whole of what makes this library worth having and the
--- whole of its weakness: it answers "between eight and twenty-eight yards",
--- never "nineteen". The arithmetic below is the library's own -- the number of
--- checkers that say yes decides which pair of edges comes back -- so a scenario
--- can hand it the edges a real client would have and find out what the addon
--- makes of them.
-function Mock.rangeBuckets(dist, buckets)
-	local said = 0
-	for i = 1, #buckets do
-		if dist <= buckets[i] then said = said + 1 else break end
-	end
-	if said == #buckets then return 0, buckets[#buckets] end
-	if said == 0 then return buckets[1], nil end
-	return buckets[said + 1], buckets[said]
-end
+-- LibRangeCheck's estimate lives with the rest of the mock library, in LibStub:
+-- it is the library's own search over its checker list now, rather than
+-- arithmetic on the true distance, so it goes wrong in the ways the real one
+-- does. The buckets are the whole of what makes this library worth having and
+-- the whole of its weakness: it answers "between eight and twenty-eight yards",
+-- never "nineteen".
 function GetSpellInfo(id)
 	if Mock.unknownSpells and Mock.unknownSpells[id] then return nil end
 	return "Arcane Intellect"
@@ -1038,6 +1100,12 @@ local SPELL_NAMES = {
 	[462854] = "Skyfury",
 	[364342] = "Blessing of the Bronze",
 	[369459] = "Source of Magic",
+
+	-- Not buffs: what a mage casts by hand between presses. Named because a
+	-- line that has to say which spell went out instead needs the mock to
+	-- know one that is not Arcane Intellect.
+	[116] = "Frostbolt",
+	[5504] = "Conjure Water",
 }
 
 setmetatable(_G, { __index = function(_, key)
@@ -1052,6 +1120,11 @@ setmetatable(_G, { __index = function(_, key)
 			IsSpellInRange = function()
 				Mock.counts.range = Mock.counts.range + 1
 				return Mock.inRange
+			end,
+			GetSpellCooldown = function(id)
+				local duration = Mock.spellCooldowns and Mock.spellCooldowns[id]
+				if not duration then return nil end
+				return { startTime = Mock.now, duration = duration, isEnabled = true, modRate = 1 }
 			end,
 		})
 	elseif key == "C_UnitAuras" then

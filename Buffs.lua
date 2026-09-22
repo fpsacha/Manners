@@ -463,3 +463,13 @@ function ns.FindBuff(class, key)
 		if buff.key == key then return buff end
 	end
 end
+
+-- Whether any class on this client has a buff by that key. A pin lives in the
+-- profile every character shares, so one this character cannot cast is still
+-- somebody's -- and only a key nobody has is nonsense.
+function ns.AnyClassHasBuff(key)
+	for class in pairs(ns.BUFFS) do
+		if ns.FindBuff(class, key) then return true end
+	end
+	return false
+end

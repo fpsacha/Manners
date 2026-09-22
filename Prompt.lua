@@ -27,7 +27,11 @@ function ns.PlayPromptSound(file)
 	-- noDefault: without it an entry whose addon has been uninstalled resolves
 	-- to "None", which is the number 1 and plays nothing -- silence that reads
 	-- as a broken addon, which is the bug this fixes.
-	local data = LSM:Fetch("sound", file, true)
+	--
+	-- A key that is not there falls back to our own sound, here and not in the
+	-- saved setting. Rewriting the setting at load is what reset a sound from
+	-- any pack that loads after this addon: it had not registered yet.
+	local data = LSM:Fetch("sound", file, true) or LSM:Fetch("sound", ns.SOUND_KEY, true)
 	if not data then return end
 	local willPlay = ns.plain(PlaySoundFile(data, "Master"))
 	-- The client can refuse a file outright. A toggle that is on and silent is
@@ -35,13 +39,6 @@ function ns.PlayPromptSound(file)
 	if willPlay == false and ns.db and ns.db.profile.verbose then
 		ns.addon:Print(("|cffff8080%s did not play.|r Pick another sound."):format(tostring(file)))
 	end
-end
-
--- Tolerant on purpose: an older embedded library without IsValid must not let
--- ClampSettings rewrite a setting it cannot actually judge.
-function ns.SoundExists(key)
-	if not (LSM and LSM.IsValid) then return true end
-	return LSM:IsValid("sound", key)
 end
 
 local Prompt = {}
@@ -78,6 +75,26 @@ local current, testMode, testExpiry, lastTop, appliedKey, lastClickAt, lastPreCl
 -- Its own stamp rather than one of the three above: the refusal it rate-limits
 -- happens on presses none of those are counting.
 local lastStaleAt
+
+-- What the last resolved press left on the button, as appliedKey stood when
+-- PreClick finished with it. The debounce below lets the second half of a press
+-- through without re-resolving, and that is only safe while the button still
+-- holds what the resolved half armed: an error in between repaints the prompt
+-- onto the next person, and a debounced press then fired their macro with no
+-- record behind it -- so the parked record from the refused press was settled
+-- by the other person's cast, and the one who got the buff stayed owed.
+local pressKey
+
+-- The moment of a press the cooldown turned away, stamped in PreClick and
+-- consumed by PostClick of the same press. Both run in the one frame, so the
+-- clock agrees. Stamped ahead of the combat return, because in a fight the
+-- macro cannot be disarmed and the bookkeeping is the only thing left to refuse.
+local cooldownPressAt
+-- ...and what the button was holding when the guard disarmed it, so PostClick
+-- can put it back once the secure handler has had its turn and found nothing.
+-- Left disarmed, a fight starting before the next scan froze the prompt empty
+-- for its whole length.
+local guardedEntry
 
 ---------------------------------------------------------------------------
 -- hysteresis
@@ -157,6 +174,16 @@ end
 -- either a prompt that is gone or one that tries and fails.
 local function FuseStillBurning(now)
 	return emptyAt ~= nil and (now - emptyAt) < EMPTY_FUSE_SECONDS
+end
+
+-- Whether this entry was deliberately retired: a block is either the retry
+-- cooldown a click wrote or the refusal a right-press wrote, and in both cases
+-- "they are gone" is the answer that was just asked for. Asked by the repaint
+-- and by the press, which have to agree about it: a press inside the fuse used
+-- to keep the person a right-click had just declined, and cast at them.
+local function Retired(entry, now)
+	return entry ~= nil and entry.name ~= nil
+		and ns.IsBlocked(entry.name, entry.buff and entry.buff.key, now)
 end
 
 -- The list and its background live outside the panel, so hiding the button
@@ -504,6 +531,11 @@ function Prompt:Create()
 		-- to nudge it further.
 		p.locked = true
 		Prompt:ApplyStyle()
+		-- The page is usually open for this -- its Locked box is how the prompt
+		-- was unlocked -- and it went on showing the box unticked over a prompt
+		-- that had just locked itself, with the sliders and the position
+		-- dropdown still describing where it used to be.
+		ns.RepaintOptions()
 		ns.addon:Print("moved and locked.")
 	end)
 
@@ -519,12 +551,47 @@ function Prompt:Create()
 	-- burn the candidate: retry cooldown set, favour cleared, nothing cast.
 	button:SetScript("PreClick", function(self, mouseButton)
 		if mouseButton and mouseButton ~= "LeftButton" then return end
+		local now = GetTime()
+
+		-- Asked before the fight is, because the fight does not stop the global
+		-- cooldown mattering. In combat the macro is frozen and nothing here can
+		-- disarm it, so a press inside the cooldown still goes out and is still
+		-- refused -- and PostClick used to file it against the frozen person,
+		-- which is the very blame the guard below was written to stop. The
+		-- bookkeeping can still be refused where the macro cannot.
+		local ready, left = ns.CastReady()
+		-- In combat the frozen macro goes out whatever this decides, and one
+		-- pressed in the last stretch of the cooldown is not refused: the client
+		-- queues it and casts it when the cooldown ends. Treating that as turned
+		-- away dropped the bookkeeping for a buff that actually landed, so the
+		-- person stayed owed and was offered -- and cast at -- again. Only a
+		-- press too early to be queued is one the game refuses.
+		--
+		-- Out of combat the whole cooldown is still held back: there the macro
+		-- CAN be disarmed, and a queued /cast would fire after /targetlasttarget
+		-- has already handed the old target back.
+		if InCombatLockdown() and not ready and left <= ns.SpellQueueWindow() then
+			ready = true
+		end
+		cooldownPressAt = (not ready) and now or nil
 		if InCombatLockdown() then return end
 
-		-- Down and up both land here; one rebuild per press is enough.
-		local now = GetTime()
-		if lastPreClickAt and (now - lastPreClickAt) < 0.25 then return end
+		-- Down and up both land here; one rebuild per press is enough -- but only
+		-- while the button still holds what that rebuild armed. Between the two
+		-- halves an error can repaint the prompt onto somebody else, and a cast
+		-- can start the cooldown, and in either case what is sitting on the
+		-- button is not something this press resolved.
+		if lastPreClickAt and (now - lastPreClickAt) < 0.25 then
+			if not ready then
+				guardedEntry = current
+				Prompt:ApplyTarget(nil)
+			elseif appliedKey ~= pressKey then
+				Prompt:ApplyTarget(nil)
+			end
+			return
+		end
 		lastPreClickAt = now
+		pressKey = nil
 
 		-- A keypress with an empty prompt is otherwise indistinguishable from a
 		-- binding that does not work, which is what this one was. Says it here
@@ -549,8 +616,15 @@ function Prompt:Create()
 		-- it was aimed at -- so they were marked tried and dropped, and the
 		-- one thing the user actually wanted never happened. Nothing is cast,
 		-- nothing is recorded, and the panel says why.
-		local ready, left = ns.CastReady()
+		--
+		-- And it does not count as a press. Its stamp is taken back, so a press
+		-- a moment later -- the cooldown ends mid-click as often as not -- is
+		-- resolved properly rather than swallowed by the debounce above, which
+		-- either did nothing or fired whatever a scan had re-armed with no
+		-- record filed for it.
 		if not ready then
+			lastPreClickAt = nil
+			guardedEntry = current
 			Prompt:ApplyTarget(nil)
 			Prompt:SayWaiting(left)
 			return
@@ -564,9 +638,38 @@ function Prompt:Create()
 		-- that is visible and naming a person, so the click would do nothing at
 		-- all and say nothing about it -- the silent failure the fuse was added
 		-- to avoid, arriving by the other door.
-		if not top and FuseStillBurning(now) then return end
+		--
+		-- Unless that person was retired: a right-click skip leaves them named
+		-- on the panel until the repaint, and the fuse must not keep them armed
+		-- for a left press to cast at, and speak at, somebody just declined.
+		if not top and FuseStillBurning(now) and not Retired(current, now) then
+			pressKey = appliedKey
+			return
+		end
+
+		-- And the press goes to whoever the panel is naming, not to whoever the
+		-- queue has just promoted. PickTop hands the panel to somebody strictly
+		-- better at once, which is right for the next repaint and wrong for a
+		-- press made on this one: a target picked up a tenth of a second ago
+		-- was cast at, and spoken to, under a panel still naming somebody else.
+		-- The same goes for a red flash about a refused press, which sits over a
+		-- button the refusal has already re-armed at the next person.
+		local named = Prompt:PanelName()
+		if top and named and top.name ~= named then
+			local fresh
+			for _, candidate in ipairs(queue) do
+				if candidate.name == named then fresh = candidate break end
+			end
+			if not fresh then
+				Prompt:MovedOn(top)
+				return
+			end
+			top = fresh
+		end
+
 		appliedKey = nil
 		Prompt:ApplyTarget(top)
+		pressKey = appliedKey
 	end)
 
 	button:SetScript("PostClick", function(self, mouseButton, down)
@@ -623,12 +726,34 @@ function Prompt:Create()
 			if db and db.verbose then
 				ns.addon:Print(("skipping |cffffffff%s|r for now."):format(current.short or current.name))
 			end
+			-- And the panel moves on now rather than at the next scan. Until it
+			-- did, the declined person stayed named and armed for up to a scan --
+			-- longer with the fuse burning -- and a left press in that time cast
+			-- at them. Refresh knows about the fight and about an empty queue.
+			ns.Guard("skip repaint", Prompt.Refresh, Prompt)
 			return
 		end
 		if mouseButton and mouseButton ~= "LeftButton" then return end
 
-		-- One press delivers both a down and an up; count and settle once.
 		local now = GetTime()
+		-- A press the cooldown turned away is not a press: nothing reached the
+		-- server, so nothing is filed, and it takes no stamp that would swallow
+		-- the next one. Out of combat PreClick disarmed it and this puts back
+		-- what it found, so a fight starting now finds the prompt armed. In
+		-- combat the frozen macro went out and was refused, and refusing the
+		-- bookkeeping is the whole of what is left to do.
+		if cooldownPressAt == now then
+			cooldownPressAt = nil
+			local found = guardedEntry
+			guardedEntry = nil
+			if found and not InCombatLockdown() then Prompt:ApplyTarget(found) end
+			if ns.db and ns.db.profile.debugClicks then
+				ns.addon:Print("|cffffd100CLICK|r held back -- the cooldown was still running")
+			end
+			return
+		end
+
+		-- One press delivers both a down and an up; count and settle once.
 		if lastClickAt and (now - lastClickAt) < 0.25 then return end
 		lastClickAt = now
 
@@ -869,15 +994,25 @@ end
 function Prompt:StartAttention(isNew)
 	local p = ns.db.profile.prompt
 	local mode = p.flashStyle or "pulse"
-	if mode == "off" or not p.showIcon then
+	if mode == "off" then
 		self:StopAttention()
 		return
 	end
 
+	-- The stripe's sweep first, and whatever the icon is doing. It has nothing
+	-- to do with the icon, and returning on a hidden icon above it silenced
+	-- both flash styles outright -- the setting stayed on the page, enabled,
+	-- and did nothing at all with the accent on the stripe.
 	if isNew and sweepFrame.anim and sweepFrame:IsShown() then
 		sweepFrame.anim:Stop()
 		sweepFrame.anim.move:SetOffset(0, -(p.height - 14))
 		sweepFrame.anim:Play()
+	end
+
+	-- The glow is drawn around the icon, so it goes with it.
+	if not p.showIcon then
+		self:StopAttention()
+		return
 	end
 
 	if mode == "pulse" then
@@ -912,6 +1047,13 @@ function Prompt:AccentColor(reason)
 	if not p.accentByReason then return unpackColor(p.accentColor, { 0.45, 0.4, 0.9, 1 }) end
 	local c = REASON_COLOR[reason or "nearby"] or REASON_COLOR.nearby
 	return c[1], c[2], c[3], 1
+end
+
+-- How tall the prompt has to be for a second line at this font size: both
+-- fonts plus the insets. Published because the options page states it, and a
+-- page with its own figure is how "at least 34 pixels" outlived the 34.
+function ns.TwoLineHeight(fontSize)
+	return 16 + fontSize + math.max(7, fontSize - 3)
 end
 
 function Prompt:ApplyStyle()
@@ -1082,8 +1224,7 @@ function Prompt:ApplyStyle()
 	-- The arithmetic the constant 34 stood in for. Two lines need both fonts
 	-- plus the insets, and at the top of the font slider 34 is not close --
 	-- so the sub-line silently vanished at sizes the page happily offers.
-	local subSize = math.max(7, p.fontSize - 3)
-	local twoLine = p.showSub and p.height >= 16 + p.fontSize + subSize
+	local twoLine = p.showSub and p.height >= ns.TwoLineHeight(p.fontSize)
 
 	nameText:ClearAllPoints()
 	subText:ClearAllPoints()
@@ -1710,6 +1851,17 @@ function Prompt:ToggleTest()
 	testExpiry = GetTime() + TEST_SECONDS
 	self:ApplyTarget(nil)
 	self:Refresh()
+	-- Refresh stands a mock-up aside the moment somebody real is waiting, and
+	-- says so. "Preview on" printed after that described a preview that was no
+	-- longer running, and "/manners test to stop" invited a second toggle that
+	-- did exactly the same thing again. The options window holds a preview up
+	-- over a real person, which is where one is any use.
+	if not testMode then
+		ns.addon:Print("somebody real is on the prompt, so there is nothing to preview"
+			.. " -- open |cffffd100/manners|r to style it; a preview holds while that"
+			.. " window is open.")
+		return
+	end
 	ns.addon:Print(("preview on -- it stays while the options window is open, then %ds"
 		.. " longer, or |cffffd100/manners test|r to stop."):format(TEST_SECONDS))
 end
@@ -1751,6 +1903,27 @@ function Prompt:OutcomeLive()
 	outcomeKind, outcomeAt, outcomeName, outcomeDetail = nil, nil, nil, nil
 	if resultFill then resultFill:Hide() end
 	return false
+end
+
+-- Who the panel is naming as far as a press is concerned: the person a live
+-- outcome is about, since it is written over the name line, and otherwise the
+-- entry last painted. nil when it is naming nobody the queue could hold.
+function Prompt:PanelName()
+	if self:OutcomeLive() then return outcomeName end
+	return heldEntry and heldEntry.name
+end
+
+-- A press that would have gone to somebody the panel is not naming. Nothing is
+-- cast: the panel is brought up to date first -- the flash taken off and the
+-- new person painted -- and then disarmed, so this press is empty and the next
+-- one, made on a panel that says who it is for, casts at them.
+function Prompt:MovedOn(top)
+	outcomeKind, outcomeAt, outcomeName, outcomeDetail = nil, nil, nil, nil
+	if resultFill then resultFill:Hide() end
+	ns.Guard("prompt moved on", Prompt.Refresh, self)
+	self:ApplyTarget(nil)
+	ns.addon:Print(("the prompt has moved on to |cffffffff%s|r -- press again to buff them.")
+		:format(tostring(top.short or top.name)))
 end
 
 -- Written over whatever Paint has already put on the panel. The outcome is
@@ -2159,8 +2332,7 @@ function Prompt:Refresh()
 		-- Somebody deliberately retired gets no fuse at all. A block is either
 		-- the cooldown a click wrote or the refusal a right-press wrote, and in
 		-- both cases "they are gone" is the answer that was just asked for.
-		local retired = current and current.name
-			and ns.IsBlocked(current.name, current.buff and current.buff.key, now)
+		local retired = Retired(current, now)
 
 		if self:OutcomeLive() then
 			-- The click is what empties the queue, so this is where the
@@ -2284,9 +2456,15 @@ end
 function Prompt:SayWaiting(left)
 	if not button or not subText then return end
 	if InCombatLockdown() then return end
+	-- The colour rides in the string rather than on the font string. Set on the
+	-- font string it stayed there -- Paint only ever sets text, and only
+	-- ApplyStyle sets the colour -- so one press inside the cooldown left the
+	-- reason line in this lighter grey for the rest of the session.
+	-- Rounded up: "ready in 0.0s" over a press that was just refused for not
+	-- being ready reads as the addon contradicting itself.
 	ns.Guard("waiting line", function()
-		subText:SetText(("ready in %.1fs"):format(math.max(0, left or 0)))
-		subText:SetTextColor(0.72, 0.72, 0.78, 1)
+		subText:SetText(("|cffb8b8c7ready in %.1fs|r"):format(
+			math.max(0.1, math.ceil((left or 0) * 10) / 10)))
 	end)
 end
 
@@ -2326,6 +2504,12 @@ function Prompt:Regions()
 		-- that was never asked to.
 		iconBack = iconBack,
 		accentTop = accentTop,
+		-- The two things "When someone buffs you" animates: the sweep down the
+		-- stripe and the glow round the icon. Each is a frame carrying its own
+		-- animation, and whether one played is the only evidence the setting
+		-- does anything -- a flash style that plays nothing throws nothing.
+		sweep = sweepFrame,
+		glow = glowFrame,
 		queueBack = queueBack,
 		queueHair = queueHair,
 		rows = queueRows,

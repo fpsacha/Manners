@@ -113,6 +113,13 @@ function ns.Guard(label, fn, ...)
 			ns.addon:Print("|cffff4040something broke in " .. label .. "|r -- " .. err
 				.. " |cff808080(/manners errors for the rest)|r")
 		end
+		-- And the page, once per new failure rather than on every repeat of a
+		-- tick that keeps throwing. Diagnostics went on reading "Nothing has
+		-- broken this session" over a failure that had just happened. Not for
+		-- a failure of the repaint itself, which would only ask it to fail again.
+		if ns.RepaintOptions and label ~= "options repaint" and label ~= "broker text" then
+			ns.RepaintOptions()
+		end
 	end
 	return false
 end
@@ -309,6 +316,14 @@ local defaults = {
 	},
 }
 ns.defaults = defaults
+
+-- Whether a first line says anything at all. The prompt's name line is drawn
+-- from it, and an empty or blank one is a prompt that names nobody -- asked by
+-- the repair at load and by the box's own setter, so the two cannot disagree
+-- about what an empty line is.
+function ns.UsableFormat(text)
+	return type(text) == "string" and text:find("%S") ~= nil
+end
 
 ---------------------------------------------------------------------------
 -- capability probe
@@ -635,6 +650,37 @@ function ns.CastableBuffs()
 	return out
 end
 
+-- Whether everything this character could offer reaches its party and nobody
+-- else -- a warrior's Battle Shout, which is cast on yourself and heard by the
+-- group.
+--
+-- BuildQueue rejects a party-only buff for anybody outside the group before the
+-- strangers toggle is ever consulted, so for these classes "passers-by" is a
+-- promise with nothing behind it. Computed rather than listed by class: it
+-- follows the per-spell switches and a pin, so a warrior who learns something
+-- else is back to offering strangers on their own. Here rather than on the
+-- options page, where it started, because the greeting and the favour line say
+-- the same thing and have to agree with the page about it.
+function ns.OnlyReachesGroup()
+	local castable = ns.CastableBuffs()
+	if #castable == 0 then return false end
+	for _, buff in ipairs(castable) do
+		if not buff.partyOnly then return false end
+	end
+	return true
+end
+
+-- The spell pinned for this character, or nil for Automatic -- which is also
+-- what a pin belonging to another class means here. One answer, asked by the
+-- walk and by the options page, so the page cannot describe a pin the walk is
+-- not honouring.
+function ns.PinnedBuff()
+	local db = addon.db and addon.db.profile
+	local choice = db and db.buff and db.buff.choice
+	if not choice or choice == "auto" then return nil end
+	return ns.FindBuff(playerClass, choice)
+end
+
 -- Which of their buffs this person should be offered, or nil for none.
 --
 -- The addon used to resolve exactly one buff per class and check only that
@@ -668,10 +714,16 @@ function ns.PickBuffFor(candidates, opts, has)
 	if not db or #candidates == 0 then return nil end
 
 	-- A pin means "only ever this one". No walk.
-	if db.buff.choice and db.buff.choice ~= "auto" then
-		local buff = ns.FindBuff(playerClass, db.buff.choice)
-		if not buff or not ns.IsBuffKnown(buff) then return nil end
-		candidates = { buff }
+	--
+	-- Unless it is not one of this class's at all, which on a profile every
+	-- character shares means it is somebody else's: a priest's Divine Spirit,
+	-- read by the mage alt. That reads as Automatic here. It used to read as
+	-- "offer nothing", which is why the pin was reset on login -- for every
+	-- character, the priest who set it included.
+	local pinned = ns.PinnedBuff()
+	if pinned then
+		if not ns.IsBuffKnown(pinned) then return nil end
+		candidates = { pinned }
 	end
 
 	-- Split in two because the exclusive branch below needs the halves apart:
@@ -978,11 +1030,19 @@ local function UnitHasBuff(unit, buff, guid)
 	return has, expires and (expires - now) or nil
 end
 
--- Vanilla-era classes that have a mana bar at all. Used when the client will
--- not tell us a unit's power directly.
+-- Classes that have a mana bar at all. Used when the client will not tell us a
+-- unit's power directly -- which for the tokenless owed fallback is always, since
+-- it has the class and nothing else.
+--
+-- The two below the vanilla seven are the later flavours'. A monk and an evoker
+-- have a mana bar; left off, a Mists monk who buffed you was judged manaless
+-- the moment their nameplate went, and dropped for Arcane Brilliance by the
+-- same fallback that offered them a second earlier. A death knight and a demon
+-- hunter really have none, and stay out.
 local MANA_CLASSES = {
 	MAGE = true, PRIEST = true, WARLOCK = true,
 	DRUID = true, PALADIN = true, HUNTER = true, SHAMAN = true,
+	MONK = true, EVOKER = true,
 }
 
 -- Returns true, false, or nil for "cannot tell".
@@ -1085,56 +1145,121 @@ ns.PROXIMITY = PROXIMITY
 local PROXIMITY_BY_KEY = {}
 for _, tier in ipairs(PROXIMITY) do PROXIMITY_BY_KEY[tier.key] = tier end
 
--- The duel prompt, which is about ten yards on every client this addon runs on.
+-- The duel prompt, CheckInteractDistance index 3.
 --
--- Index 2 is the trade prompt at about eleven and index 1 and 4 are about
+-- Eight yards, and one number for it. This used to say ten while the
+-- LibRangeCheck shipped beside it -- the only measurement of the prompt
+-- anywhere in the tree -- says eight (six for a tauren, seven for the undead),
+-- so the same client call was reported as "really 10yd" through one rung and
+-- "really 8yd" through the other, and at least one of them was wrong. Older
+-- clients put it nearer ten, which is why the page says "about".
+--
+-- Index 2 is the trade prompt at about nine and index 1 and 4 are about
 -- twenty-eight -- no tighter than the spell this would be filtering, so they
 -- are no use here. LibRangeCheck's own interact table dropped 2 and kept 3, on
 -- a modern client, which is the only evidence available about which of them
 -- still answers; this follows it rather than guessing differently.
-local INTERACT_DUEL, INTERACT_DUEL_YARDS = 3, 10
+local INTERACT_DUEL, INTERACT_DUEL_YARDS = 3, 8
 
--- A checker that resolved and then answered for nobody at all is worse than no
--- checker: every unit falls through to "cannot tell", the setting looks as
--- though it is working, and the queue is exactly as long as it was. So a run of
--- silence this long demotes the source and the next rung is tried. Generous on
--- purpose -- a quiet corner of the world with two people in it must not demote
--- anything -- and reset by the capability probe, so a source is never written
--- off for the session.
+-- A rung that resolved and then answered for nobody at all costs a call per
+-- person and adds nothing, so a run of silence this long drops it from the
+-- ladder for a while. It no longer lets anybody through while it lasts: a
+-- rung that cannot tell hands the person to the one below it, so this saves
+-- work rather than keeping the filter honest. Generous on purpose -- a quiet
+-- corner of the world with two people in it must not drop anything.
 local PROX_BLIND_LIMIT = 40
 
--- How long to wait before looking again for a signal that was not there. The
--- scan runs two and a half times a second and LibStub misses cost a pcall each.
+-- How long a dropped rung stays dropped before it is tried again. Not reset by
+-- the capability probe: that runs on every SPELLS_CHANGED, and a talent change
+-- moves a bucket edge -- it does not make a withheld GUID readable -- so
+-- clearing the list there put a rung that had just been dropped for answering
+-- nobody straight back, several times a minute.
+local PROX_DEAD_RETRY = 60
+
+-- How often the ladder is resolved again. The scan runs two and a half times a
+-- second, LibStub misses cost a pcall each, and an edge can move under it when
+-- the library finishes building its lists or a spell is learned.
 local PROX_RETRY = 5
 
 -- What is doing the measuring, how well it is going, and why. Read by
 -- /manners debug, by /manners look and by the options page, which is the whole
 -- of the promise that this never fails silently.
 local prox = {
-	source = nil, -- the rung in use, nil when nothing is measuring
+	source = nil, -- the first rung asked, nil when nothing is measuring
 	yards = nil, -- what that rung really tests, which is not always what was asked
-	asked = 0, -- units put to it during the last scan
-	answered = 0, -- how many of those it had an answer for
-	blind = 0, -- units since the last answer, across scans
-	note = nil, -- why the last source was dropped, if one was
+	-- "within" for a rung that answers both ways, "beyond" for one looser than
+	-- the step, which can rule people out and cannot rule anybody in
+	mode = nil,
+	backup = nil, -- the rung asked when the first cannot tell, if there is one
+	asked = 0, -- people put to the ladder during the last scan
+	answered = 0, -- how many of those some rung had an answer for
+	note = nil, -- why a rung was dropped, while it is
 }
 ns.proximity = prox
 
--- Sources written off for now, by name. Cleared by ProbeCapabilities.
+-- Rungs dropped for answering nobody, by name, and when.
 local proxDead = {}
+-- People in a row each rung has had nothing to say about, by name. Kept apart
+-- from the ladder, which is rebuilt every few seconds, so a rebuild cannot wipe
+-- the evidence that one of its rungs is deaf.
+local proxBlind = {}
 
--- The resolved checker, what it was resolved for, and when. `checker` nil with
--- a matching `want` is "looked and found nothing", which is why the clock is
--- kept separately rather than inferred from the absence.
-local proxState = { want = nil, checker = nil, at = -1 }
+-- The ladder resolved for one distance, and when.
+local proxState = { want = nil, ladder = {}, at = -1 }
 
 -- The ladder, best first. Each builds a function answering "is this unit within
--- `want` yards" as true, false, or nil for cannot tell, plus the distance it
--- really tests. Returning nil means this rung is not available here.
+-- `want` yards" as true, false, or nil for cannot tell -- and, second, whether
+-- the client call under it answered at all, which is what the silence above is
+-- counted on. Plus the distance it really tests, and its mode. Returning nil
+-- means this rung is not available here.
 -- Above this, a step is loose enough that a much tighter bucket standing in
 -- for it would visibly drop people. At or below it, the step is already asking
 -- for melee and a melee bucket is the answer, not a substitute.
 local PROX_LOOSE_FROM = 6
+
+-- Asks the client call a LibRangeCheck edge stands for, directly.
+--
+-- The library's own checkers flatten the one answer that matters here. Its
+-- interact checker is `CheckInteractDistance(...) and true or false` and its
+-- item checker is `IsItemInRange(...) or nil`, and GetRange's search reads a
+-- nil as "further out" -- so on a client that will not answer about a stranger
+-- everybody came back as twenty-eight to forty yards, a person standing a yard
+-- away included, and "Nearby" dropped the whole square while reporting that it
+-- had answered for all of them. A value the client withheld reads as true
+-- through `and true or false`, which flipped it the other way. Asked here, a
+-- refusal stays a refusal. One call a person, too, where GetRange makes up to
+-- five.
+--
+-- nil for an edge backed by a spell, whose checker answers true or nothing and
+-- for which GetRange is all there is.
+local function DirectCheck(lib, edge)
+	local list = lib.friendRC
+	if type(list) ~= "table" then return nil end
+	for _, rc in ipairs(list) do
+		if type(rc) == "table" and rc.range == edge then
+			local info = tostring(rc.info or "")
+			local index = tonumber(info:match("^interact:(%d+)$"))
+			if index then
+				return function(unit)
+					local r = safecall(_G.CheckInteractDistance, unit, index)
+					if r == nil then return nil end
+					return r == true or r == 1
+				end
+			end
+			local item = tonumber(info:match("^item:(%d+)$"))
+			local inRange = (C_Item and C_Item.IsItemInRange) or _G.IsItemInRange
+			if item and type(inRange) == "function" then
+				return function(unit)
+					local r = safecall(inRange, item, unit)
+					if r == nil then return nil end
+					return r == true or r == 1
+				end
+			end
+			return nil
+		end
+	end
+	return nil
+end
 
 local PROX_SOURCES = {
 	{
@@ -1156,7 +1281,7 @@ local PROX_SOURCES = {
 
 			-- What the answer can actually land on.
 			--
-			-- GetRange answers in buckets whose edges are the range checkers
+			-- The library answers in buckets whose edges are the range checkers
 			-- this class and this client happen to have, so "within ten yards"
 			-- really means "inside the largest bucket edge at or below ten".
 			-- If the only edge under ten is two, the setting would drop
@@ -1178,6 +1303,14 @@ local PROX_SOURCES = {
 			if edge < 2 then return nil end
 			if want > PROX_LOOSE_FROM and edge * 2 < want then return nil end
 
+			local direct = DirectCheck(lib, edge)
+			if direct then
+				return function(unit)
+					local near = direct(unit)
+					return near, near ~= nil
+				end, edge, "within"
+			end
+
 			return function(unit)
 				-- minRange, maxRange in yards, or nothing at all. The bucket is
 				-- the whole answer: "at most maxRange away" is the only half of
@@ -1189,9 +1322,9 @@ local PROX_SOURCES = {
 				-- than the label rather than looser. The label says about ten;
 				-- the debug line says which edge that turned out to be.
 				local minRange, maxRange = safecall(lib.GetRange, lib, unit)
-				if type(minRange) ~= "number" then return nil end
-				return type(maxRange) == "number" and maxRange <= want
-			end, edge
+				if type(minRange) ~= "number" then return nil, false end
+				return type(maxRange) == "number" and maxRange <= want, true
+			end, edge, "within"
 		end,
 	},
 	{
@@ -1200,74 +1333,121 @@ local PROX_SOURCES = {
 			-- Restricted for non-party units on some modern clients, where it
 			-- answers nothing at all rather than refusing loudly. There is no
 			-- probe for that which is not simply asking about somebody, so this
-			-- rung is built whenever the function exists and demoted by its own
+			-- rung is built whenever the function exists and dropped by its own
 			-- silence if it turns out to answer for nobody.
-			--
-			-- This rung has exactly one threshold and no way to tighten it, so
-			-- it can only answer a setting at least as loose as the duel
-			-- prompt. It used to answer every setting and report ten yards
-			-- whatever was asked, which made "right beside me" identical to
-			-- "nearby" -- the tightest choice on the page doing nothing the
-			-- one above it did not. A setting that silently means something
-			-- else is worse than a setting with no signal, because the second
-			-- one says so.
-			if type(want) ~= "number" or INTERACT_DUEL_YARDS > want then return nil end
+			if type(want) ~= "number" then return nil end
 			if type(_G.CheckInteractDistance) ~= "function" then return nil end
-			return function(unit)
+			local function read(unit)
 				local r = safecall(_G.CheckInteractDistance, unit, INTERACT_DUEL)
 				if r == nil then return nil end
 				return r == true or r == 1
-			end, INTERACT_DUEL_YARDS
+			end
+
+			if INTERACT_DUEL_YARDS <= want then
+				return function(unit)
+					local near = read(unit)
+					return near, near ~= nil
+				end, INTERACT_DUEL_YARDS, "within"
+			end
+
+			-- A step tighter than the prompt. It cannot say anybody is inside
+			-- five yards, but anybody it puts past eight is past five as well,
+			-- so it answers its "no" and passes on its "yes". Declining the
+			-- step outright left "Right beside me" with no signal on every
+			-- client that has no library -- so the tightest step on the page
+			-- offered everybody in casting range, twice as many as the step
+			-- above it.
+			--
+			-- This is not the older mistake of answering every step as though
+			-- the prompt measured it, which reported ten yards for "right beside
+			-- me" and said nothing more. The mode rides along, and the summary
+			-- says this step is only being ruled out past the prompt's distance.
+			return function(unit)
+				local near = read(unit)
+				if near == nil then return nil, false end
+				if near then return nil, true end
+				return false, true
+			end, INTERACT_DUEL_YARDS, "beyond"
 		end,
 	},
 }
 
-local function ProxChecker(want)
+-- Why the rungs that are missing are missing, all of them. Naming only the last
+-- one dropped left the reader to wonder where the better one had gone.
+local function DroppedNote()
+	local names = {}
+	for _, source in ipairs(PROX_SOURCES) do
+		if proxDead[source.name] then names[#names + 1] = source.name end
+	end
+	if #names == 0 then return nil end
+	if #names == 1 then return names[1] .. " answered for nobody, so it was dropped" end
+	return table.concat(names, " and ") .. " answered for nobody, so they were dropped"
+end
+
+-- Every rung that can measure `want`, best first, resolved at most every
+-- PROX_RETRY seconds. What /manners debug and the page describe is the first of
+-- them, set here -- so asking for the ladder is also how a summary brings itself
+-- up to date with the step that is selected now.
+local function ProxLadder(want)
 	local now = GetTime()
-	-- A rung that is not here must not be hunted for two and a half times a
-	-- second, and one that is must not be rebuilt at all.
-	if proxState.want == want
-		and (proxState.checker or now < proxState.at + PROX_RETRY) then
-		return proxState.checker
+	if proxState.want == want and now < proxState.at + PROX_RETRY then
+		return proxState.ladder
 	end
 
-	proxState.want, proxState.at, proxState.checker = want, now, nil
-	-- `note` is pointedly not cleared here. The thing most worth saying is
-	-- "the good signal was dropped because it answered for nobody", and the
-	-- very next act after dropping one is to resolve the next -- so clearing
-	-- it here threw away the explanation one line before anybody could read
-	-- it. Only ForgetProximity, which is a fresh start by definition, clears it.
-	prox.source, prox.yards = nil, nil
+	-- A count taken for one step is not a count for another. Left alone, the
+	-- line under the page's dropdown described the previous step's measurement
+	-- under the new step's name until the next scan came round.
+	if proxState.want ~= want then prox.asked, prox.answered = 0, 0 end
+	proxState.want, proxState.at = want, now
 
+	local ladder = {}
 	for _, source in ipairs(PROX_SOURCES) do
-		if not proxDead[source.name] then
-			local check, yards = safecall(source.build, want)
-			if type(check) == "function" then
-				proxState.checker = check
-				prox.source, prox.yards = source.name, yards
-				break
+		local droppedAt = proxDead[source.name]
+		if droppedAt and now - droppedAt >= PROX_DEAD_RETRY then
+			proxDead[source.name], proxBlind[source.name] = nil, 0
+			droppedAt = nil
+		end
+		if not droppedAt then
+			local ask, yards, mode = safecall(source.build, want)
+			if type(ask) == "function" then
+				ladder[#ladder + 1] = { name = source.name, ask = ask, yards = yards, mode = mode }
 			end
 		end
 	end
+	proxState.ladder = ladder
 
-	return proxState.checker
+	local first, second = ladder[1], ladder[2]
+	prox.source, prox.yards = first and first.name, first and first.yards
+	prox.mode, prox.backup = first and first.mode, second and second.name
+	prox.note = DroppedNote()
+	return ladder
 end
 
--- Forget what was resolved and give every demoted source another go. Called
--- from the capability probe, which is also what runs on SPELLS_CHANGED: a spell
+-- Forget what was resolved, so the next question resolves it again. Called from
+-- the capability probe, which is also what runs on SPELLS_CHANGED: a spell
 -- learned or a talent changed rebuilds LibRangeCheck's checker lists, and a
--- bucket edge captured before that is a measurement of something else.
+-- bucket edge captured before that is a measurement of something else. Dropped
+-- rungs stay dropped -- see PROX_DEAD_RETRY.
 function ns.ForgetProximity()
-	wipe(proxDead)
-	proxState.want, proxState.checker, proxState.at = nil, nil, -1
-	prox.source, prox.yards, prox.note = nil, nil, nil
-	prox.asked, prox.answered, prox.blind = 0, 0, 0
+	proxState.want, proxState.ladder, proxState.at = nil, {}, -1
+	prox.source, prox.yards, prox.mode, prox.backup = nil, nil, nil, nil
+	prox.asked, prox.answered = 0, 0
 end
 
 -- true, false, or nil for "cannot tell". nil is worth offering rather than
 -- silently dropping somebody who is probably standing next to you -- the same
 -- rule InRange uses, and for the same reason.
-function ns.NearEnough(unit)
+--
+-- Walked per person: a rung that cannot tell about somebody hands them to the
+-- next rung down rather than letting them through. One that answers for some
+-- people and not others -- a library whose estimate fails for half the square
+-- -- offered the other half unmeasured, from thirty yards, while a working rung
+-- sat underneath it.
+--
+-- `quiet` asks without counting, for /manners look: one person looked at by
+-- hand is not part of the last scan, and adding them made "answered for 25 of
+-- 25" out of a scan of twenty-four.
+function ns.NearEnough(unit, quiet)
 	local db = addon.db and addon.db.profile
 	local tier = db and db.filters and PROXIMITY_BY_KEY[db.filters.proximity]
 	-- No tier, or the loosest one: nothing to measure, and the queue is what it
@@ -1284,31 +1464,45 @@ function ns.NearEnough(unit)
 	-- fight anyway, so there is nothing to be gained by trying.
 	if InCombatLockdown() then return nil end
 
-	local check = ProxChecker(tier.yards)
-	if not check then return nil end
+	local ladder = ProxLadder(tier.yards)
+	if #ladder == 0 then return nil end
 
-	prox.asked = prox.asked + 1
-	local near = safecall(check, unit)
-	if near == nil then
-		prox.blind = prox.blind + 1
-		if prox.blind > PROX_BLIND_LIMIT and prox.source then
-			-- It is here and it is saying nothing. Drop to the next rung rather
-			-- than carrying on with a filter that filters nobody.
-			prox.note = prox.source .. " answered for nobody, so it was dropped"
-			proxDead[prox.source] = true
-			proxState.want, proxState.checker, proxState.at = nil, nil, -1
-			prox.blind = 0
+	if not quiet then prox.asked = prox.asked + 1 end
+	local verdict, heard = nil, false
+	for _, rung in ipairs(ladder) do
+		local near, answered = safecall(rung.ask, unit)
+		if answered == true then
+			heard = true
+			if not quiet then proxBlind[rung.name] = 0 end
+		elseif not quiet then
+			local silent = (proxBlind[rung.name] or 0) + 1
+			proxBlind[rung.name] = silent
+			if silent > PROX_BLIND_LIMIT then
+				-- It is here and it is saying nothing. Asking it costs a call a
+				-- person for no answer, so it sits out for a while.
+				proxDead[rung.name], proxBlind[rung.name] = GetTime(), 0
+				prox.note = DroppedNote()
+				proxState.at = -1
+			end
 		end
-		return nil
+		if near ~= nil then
+			verdict = near
+			break
+		end
 	end
-	prox.blind = 0
-	prox.answered = prox.answered + 1
-	return near == true
+	if heard and not quiet then prox.answered = prox.answered + 1 end
+	return verdict
 end
 
 -- One line saying what is measuring nearness and how it is getting on, for
 -- /manners debug and for the options page. Built here rather than at either
 -- call site so the two cannot come to disagree about what the same state means.
+--
+-- About the step selected now. It described whatever the last scan left behind,
+-- and AceConfig redraws the page straight after the dropdown's setter, before
+-- any scan -- so choosing "Right beside me" put the previous step's rung and
+-- counts under the new step's name, and they stayed there until something else
+-- repainted the page. Asking for the ladder first brings it up to date.
 function ns.ProximitySummary()
 	local db = addon.db and addon.db.profile
 	local tier = db and db.filters and PROXIMITY_BY_KEY[db.filters.proximity]
@@ -1317,27 +1511,47 @@ function ns.ProximitySummary()
 
 	local out = ("%s (%s)"):format(tier.name, tier.about)
 
+	-- The setting is about passers-by and nothing else, and with them switched
+	-- off it measures nobody. Saying "no signal, so everybody is offered" under
+	-- a queue that offers no passer-by at all was the line contradicting itself.
+	if db.sources and db.sources.strangers == false then
+		return out .. " -- passers-by are switched off, so nobody is measured"
+	end
+
 	-- Said first, because it is the state the line is most often read in and
 	-- it overrides everything after it. Nothing is measured during a fight --
 	-- every signal is restricted there -- so the passer-by queue is whatever
 	-- it would have been with no filter at all, and a summary that went on to
 	-- describe a working source was describing one that is not consulted.
 	if InCombatLockdown() then
-		out = out .. " |cffffd100-- stood down while in combat, so distance is"
+		return out .. " |cffffd100-- stood down while in combat, so distance is"
 			.. " not being measured|r"
 	end
 
+	ProxLadder(tier.yards)
 	if prox.source then
 		-- Floored rather than printed raw: the edge arrives from a library that
 		-- rounds its own way, and "really 8.0yd" reads as a number somebody
 		-- calculated rather than a bucket the client happens to have.
-		out = out .. (" via %s, really %dyd"):format(
-			prox.source, math.floor(prox.yards or 0))
+		if prox.mode == "beyond" then
+			out = out .. (" via %s, which only rules out people past %dyd"):format(
+				prox.source, math.floor(prox.yards or 0))
+		else
+			out = out .. (" via %s, really %dyd"):format(
+				prox.source, math.floor(prox.yards or 0))
+		end
+		if prox.backup then
+			out = out .. (", then %s"):format(prox.backup)
+		end
 		-- The number that says whether it is working. A source that is present
 		-- and answering for nobody offers the whole square exactly as before,
 		-- and from the prompt that is indistinguishable from a quiet evening.
-		out = out .. (" -- answered for %d of %d last scan"):format(
-			prox.answered, prox.asked)
+		if prox.asked > 0 then
+			out = out .. (" -- answered for %d of %d last scan"):format(
+				prox.answered, prox.asked)
+		else
+			out = out .. " -- nobody measured yet"
+		end
 	else
 		out = out .. " -- |cffff8080no signal, so everybody in casting range is"
 			.. " offered|r"
@@ -2277,10 +2491,27 @@ local function NoteFavour(seen)
 	-- the favour was on it.
 	if not db.enabled or not db.sources.owed then return end
 
+	-- And a character with nothing it can cast is the same lie again: no
+	-- prompt will ever offer this person anything, and it was written to disk
+	-- and announced as "on the prompt" all the same -- a rogue, a class that
+	-- has not learned its buff yet.
+	if not caps.anyKnown then return end
+
 	owed[seen.name] = { expires = GetTime() + db.timing.reciprocateWindow, at = GetTime(),
 		guid = seen.guid, class = seen.class }
 	if db.verbose then
-		addon:Print(("|cff80ff80%s buffed you|r -- returning the favour is on the prompt"):format(seen.name))
+		-- A warrior's shout reaches the party and nobody else, so a stranger who
+		-- buffed one is kept -- they may yet join the group -- but is not on the
+		-- prompt, and the line says which.
+		local reachable = not ns.OnlyReachesGroup()
+			or safecall(_G.UnitInParty, seen.name) == true
+			-- An index into the raid, not true. Somebody outside it comes back
+			-- as nil or false depending on the client, so a number is the
+			-- only answer that means they are in it.
+			or type(safecall(_G.UnitInRaid, seen.name)) == "number"
+		addon:Print(("|cff80ff80%s buffed you|r -- %s"):format(seen.name, reachable
+			and "returning the favour is on the prompt"
+			or "what you cast reaches your group only, so they are offered if they join it"))
 	end
 	-- Written through rather than left to the logout hook: a favour is rare
 	-- enough to afford it, and correctness then does not depend on a callback
@@ -2861,12 +3092,31 @@ end
 -- is a record judged twice or not at all.
 local SETTLE_SECONDS = 2
 
--- Said the same way wherever a favour survives a click, so the user is not
+-- How late a cast event can still be this press's own answer. The client
+-- reports a cast it accepted in the same frame, and a queued one inside the
+-- spell-queue window at most -- four tenths of a second -- so anything later is
+-- somebody's hand on the action bar. On this client that event names nobody, so
+-- judged against the press it settled the favour on the bare fact that the
+-- spell matched: a refused press followed a second later by a hand-cast
+-- Arcane Intellect on somebody else was counted as repaid. Not a replacement
+-- for SETTLE_SECONDS, which still decides when a record is dead.
+local SENT_SECONDS = 0.5
+
+-- Said the same way wherever a click comes to nothing, so the user is not
 -- reading three different sentences for one outcome.
+--
+-- "Still owed" only about somebody who is: every one of these paths used to
+-- say it of whoever the press was aimed at, so a stranger, a target or a
+-- party member who never buffed you was announced as owed a favour -- the
+-- mirror of the untruth the settle path takes care never to tell.
 local function SayStillOwed(name, why)
 	local db = addon.db and addon.db.profile
-	if db and db.verbose then
+	if not (db and db.verbose) then return end
+	local debt = owed[name]
+	if debt and debt.expires > GetTime() then
 		addon:Print(("|cffff8080%s is still owed|r -- %s."):format(name, why))
+	else
+		addon:Print(("|cffff8080%s was not buffed|r -- %s."):format(name, why))
 	end
 end
 
@@ -2901,6 +3151,13 @@ local function SpellIsOurs(spellId, buffKey)
 	-- Every rank and the raid-wide version map to the same entry, so this is
 	-- the same question as "is that id one of this buff's" without the walk.
 	return ns.BUFF_BY_ID[spellId] == buff
+end
+
+-- A spell id as somebody reads it. The chat line and the panel both said "116
+-- went out instead", which is a number only the client knows the meaning of;
+-- the id stays as the fallback for a client that will not name it.
+local function SpellLabel(spellId)
+	return SpellNameFor(spellId) or tostring(spellId)
 end
 
 -- Nothing reached them, so neither of the blocks a click optimistically wrote
@@ -2980,8 +3237,12 @@ end
 -- out.
 local function ExpirePendingClick(pending, why)
 	ns.pendingClick = nil
-	-- Idempotent, and it needs to be: an error inside the window may have
-	-- rewound this record already.
+	-- An error inside the window has already rewound this record and already
+	-- said so, on the panel and in chat, in the game's own words. RewindClick
+	-- writes its blocks from now, so running it again was not a no-op: one
+	-- out-of-range press blocked the person for four seconds instead of two,
+	-- and the chat line claimed the game had answered with nothing at all.
+	if pending.answered then return end
 	RewindClick(pending)
 	SayStillOwed(pending.name, why or "the game answered that press with nothing at all")
 end
@@ -3003,6 +3264,12 @@ end
 local function AbandonPendingClick()
 	local pending = ns.pendingClick
 	if not pending then return end
+	-- Answered already, by an error that rewound it and said so. There is
+	-- nothing unknown about it left to put back.
+	if pending.answered then
+		ns.pendingClick = nil
+		return
+	end
 	-- Past its window this is not an unknown outcome at all, it is the known
 	-- one, and the only reason it has not been acted on is that the tick has
 	-- not come round: at a two-second scan interval a record can outlive its
@@ -3030,14 +3297,17 @@ ns.AbandonPendingClick = AbandonPendingClick
 -- The record stays parked rather than being cleared. If the cast went out after
 -- all -- an inventory error a frame before it -- UNIT_SPELLCAST_SENT still
 -- settles it normally, and that settle puts back the writes taken away here. If
--- it did not, the sweep runs the clock out on it.
+-- it did not, the sweep runs the clock out on it -- quietly, because this is
+-- where the press was answered, and the answer is said here once, in the
+-- game's words, rather than again two seconds later as "nothing at all".
 --
 -- Returns the name it rewound, so the caller can put the game's own words on
 -- the panel. Nothing is returned for an error that arrived with no click parked
 -- or with a dead one: the great majority of what this event carries is not
 -- ours, and flashing the prompt red for somebody's full bags would be a worse
--- lie than the silence it replaces.
-local function FailPendingClick()
+-- lie than the silence it replaces. Nor for a second error about the same
+-- press: it has had its rewind and its flash.
+local function FailPendingClick(message)
 	local pending = ns.pendingClick
 	if not pending then return nil end
 	-- Past its window this error cannot be about that click -- but the record
@@ -3049,6 +3319,11 @@ local function FailPendingClick()
 		ExpirePendingClick(pending)
 		return nil
 	end
+	if pending.answered then return nil end
+	pending.answered = true
+	-- The game's sentence brings its own full stop, and this line adds one.
+	SayStillOwed(pending.name, type(message) == "string"
+		and ("the game said: " .. message:gsub("%.$", "")) or "the game refused it")
 	RewindClick(pending)
 	return pending.name
 end
@@ -3065,6 +3340,10 @@ local function SweepPendingClick(now)
 	if not pending then return end
 	if now - pending.at <= SETTLE_SECONDS then return end
 	ExpirePendingClick(pending)
+	-- An error answered this press inside its window, and the panel flashed
+	-- the game's own words then. A second flash now said "nothing was cast"
+	-- over a button long since armed at somebody else.
+	if pending.answered then return end
 	-- The panel, and only from here. This is the one path that notices the
 	-- window running out at the moment it runs out, so it is the one that can
 	-- honestly flash half a second of red about it -- and it is the case with
@@ -3183,6 +3462,11 @@ local function SettlePendingClick(landedOn, spellId, castGUID)
 		return
 	end
 
+	-- Inside the window, and still too late to be this press's answer: see
+	-- SENT_SECONDS. It is not evidence either way, so the record is left
+	-- exactly as it is and the sweep still owns it.
+	if GetTime() - pending.at > SENT_SECONDS then return end
+
 	-- Asked once, because three of the branches below want the answer.
 	local ours = SpellIsOurs(spellId, pending.buffKey)
 
@@ -3208,7 +3492,7 @@ local function SettlePendingClick(landedOn, spellId, castGUID)
 		-- Whether our own spell went out is the only thing left to check, and
 		-- the only thing that needs checking.
 		if not ours then
-			why = ("|cffffffff%s|r went out instead"):format(tostring(spellId))
+			why = ("|cffffffff%s|r went out instead"):format(SpellLabel(spellId))
 		else
 			-- Settled, and inferred -- which this used to skip, taking the
 			-- confirmed tick instead. That was the strongest claim the panel
@@ -3244,7 +3528,7 @@ local function SettlePendingClick(landedOn, spellId, castGUID)
 	elseif not ours then
 		-- Right person, wrong spell: anything else on a bar can beat the
 		-- macro's own /cast to the click.
-		why = ("|cffffffff%s|r went out instead"):format(tostring(spellId))
+		why = ("|cffffffff%s|r went out instead"):format(SpellLabel(spellId))
 	elseif landedOn then
 		-- Our spell, and the client named the person we aimed at. The only
 		-- branch here where the favour is confirmed rather than inferred, which
@@ -3430,14 +3714,51 @@ local function NoteCastWentOut(spellId)
 		end
 	end
 
-	castBlockedUntil = now + seconds
+	-- Extended, never shortened. A second cast event inside a running cooldown
+	-- can report a smaller figure of its own -- an off-cooldown spell's -- and
+	-- overwriting reopened the button under a cooldown that was still running.
+	if now + seconds > castBlockedUntil then castBlockedUntil = now + seconds end
 end
 
 -- Whether a press right now could reach the server at all, and how long until
 -- it could. Published because the prompt has to say so rather than let
 -- somebody click into silence.
+--
+-- The global cooldown is not the only thing a press can land in. A spell with a
+-- cast time -- Conjure Water, Conjure Food, a Hearthstone -- goes on after it,
+-- and the client refuses a /cast for as long as it does: from a second and a
+-- half into a three-second conjure the guard reported ready, and the refusal
+-- was filed against the person offered exactly as it was before the guard
+-- existed. So the player's own cast is read as well, where the client will say.
+-- Channels are left alone: a new cast interrupts one rather than being refused.
+-- How long before the global cooldown ends the client will accept a /cast and
+-- hold it, rather than refuse it. It then casts on its own the moment the
+-- cooldown runs out -- so a press in that window is a press that lands, not
+-- one that is turned away.
+--
+-- Read from the client's own setting where it will say, because players tune
+-- it; 400 ms is the default on the retail line this client descends from.
+function ns.SpellQueueWindow()
+	local get = _G.GetCVar
+	if type(get) == "function" then
+		local ok, value = pcall(get, "SpellQueueWindow")
+		value = ok and tonumber(plain(value)) or nil
+		if value and value >= 0 and value <= 1000 then return value / 1000 end
+	end
+	return 0.4
+end
+
 function ns.CastReady()
-	local left = castBlockedUntil - GetTime()
+	local now = GetTime()
+	local left = castBlockedUntil - now
+	local casting = _G.UnitCastingInfo
+	if type(casting) == "function" then
+		local ok, _, _, _, _, endMS = pcall(casting, "player")
+		if ok then endMS = plain(endMS) else endMS = nil end
+		if type(endMS) == "number" and endMS / 1000 - now > left then
+			left = endMS / 1000 - now
+		end
+	end
 	if left <= 0 then return true, 0 end
 	return false, left
 end
@@ -3477,7 +3798,7 @@ function addon:UNIT_SPELLCAST_FAILED(_, unit, castGUID, spellId)
 		if late then ShowOutcome("failed", late, "the game refused the cast") end
 	end
 	if self.db.profile.verbose and ns.lastClickTime and (GetTime() - ns.lastClickTime) <= 1 then
-		self:Print("|cffff8080could not cast|r " .. tostring(spellId))
+		self:Print("|cffff8080could not cast|r " .. SpellLabel(spellId))
 	end
 end
 
@@ -3494,7 +3815,7 @@ function addon:UI_ERROR_MESSAGE(_, _, message)
 	-- that is a click the game has not answered, and doubt is all this can add
 	-- to it. It used to reach past that into a settle that had already happened
 	-- and undo it, on an event carrying no spell id -- see UnsettleLateRefusal.
-	local failed = FailPendingClick()
+	local failed = FailPendingClick(message)
 	-- Only where a click was actually parked, so the panel flashes for an error
 	-- that arrived inside our own window and stays quiet for the rest of what
 	-- this event carries. The game's own words go on the sub-line: they are
@@ -3511,9 +3832,27 @@ end
 
 -- SPELLS_CHANGED fires often, so the probe is rate-limited rather than run on
 -- every single one.
+--
+-- With a trailing edge. A burst -- spells bought from a trainer one after
+-- another, a talent change landing on the heels of another spell event -- used
+-- to lose everything after its first event: nothing came back for the rest, so
+-- a buff learned in the middle of it stayed unknown, never offered and greyed
+-- out on the options page, until some unrelated event or a loading screen.
+local probeQueued = false
 function addon:SPELLS_CHANGED()
-	if GetTime() - lastProbe < 5 then return end
-	lastProbe = GetTime()
+	local now = GetTime()
+	if now - lastProbe < 5 then
+		if not probeQueued and C_Timer and C_Timer.After then
+			probeQueued = true
+			C_Timer.After(5 - (now - lastProbe), function()
+				probeQueued = false
+				lastProbe = GetTime()
+				ns.Guard("ProbeCapabilities", ns.ProbeCapabilities)
+			end)
+		end
+		return
+	end
+	lastProbe = now
 	ns.Guard("ProbeCapabilities", ns.ProbeCapabilities)
 end
 
@@ -3567,6 +3906,8 @@ function addon:PLAYER_REGEN_ENABLED()
 	-- itself on a panel nobody would see. Free on every other fight in the
 	-- character's life -- the flag is read first and this returns at once.
 	ns.Guard("Welcome", ns.Welcome)
+	-- And the old macro, for the same reason: it cannot be edited in a fight.
+	if ns.SettleOldMacro then ns.SettleOldMacro() end
 end
 
 -- Kept in SavedVariables so the probe -- and whatever the console has printed
@@ -3678,6 +4019,40 @@ function ns.CreateClickMacro()
 	end
 end
 
+-- What 0.9.x's /manners macro wrote: an up click, which the button no longer
+-- acts on. The macro is already on somebody's bar and only /manners macro ever
+-- rewrote it, so an upgrade left a key that pressed nothing -- the same
+-- silence as a binding that does not work, with nothing to say why.
+local OLD_MACRO_BODY = "/click MannersPrompt"
+
+-- Once a login, out of combat: EditMacro is protected in a fight. Only that
+-- exact body is touched, so a macro somebody has edited is theirs. Returns true
+-- once there is nothing left to do, false to be asked again after a fight.
+function ns.RepairOldMacro()
+	if InCombatLockdown() then return false end
+	local index = safecall(_G.GetMacroIndexByName, MACRO_NAME)
+	if type(index) ~= "number" or index <= 0 then return true end
+	local body = safecall(_G.GetMacroBody, index)
+	if type(body) ~= "string" or body:match("^%s*(.-)%s*$") ~= OLD_MACRO_BODY then return true end
+	if type(_G.EditMacro) ~= "function" then return true end
+	if pcall(_G.EditMacro, index, MACRO_NAME, nil, MACRO_BODY) then
+		addon:Print("your |cffffd100" .. MACRO_NAME .. "|r macro was updated -- the one an older"
+			.. " version made no longer pressed the prompt.")
+	end
+	return true
+end
+
+-- Asked from the login line and again at the end of every fight until it has
+-- had its one look. A repair that throws is not asked again: it would throw
+-- after every pull for the rest of the session.
+local macroSettled = false
+function ns.SettleOldMacro()
+	if macroSettled then return end
+	if not ns.Guard("macro repair", function() macroSettled = ns.RepairOldMacro() end) then
+		macroSettled = true
+	end
+end
+
 ---------------------------------------------------------------------------
 -- first run
 --
@@ -3774,9 +4149,20 @@ function ns.Welcome(force)
 		return true
 	end
 
-	addon:Print("|cffffd100Manners|r puts anybody who buffs you -- and any stranger"
-		.. " nearby who is missing one of yours -- on a small prompt. Clicking the"
-		.. " prompt buffs them.")
+	-- A class whose buffs reach the party and nobody else has no passer-by to
+	-- offer anything to, and the page this points at says so; telling a warrior
+	-- about "any stranger nearby" was a promise the queue refuses on its first
+	-- line.
+	if ns.OnlyReachesGroup() then
+		local buff = ns.ResolveBuff(true)
+		addon:Print(("|cffffd100Manners|r puts anybody in your group who is missing your"
+			.. " |cffffd100%s|r -- or who has just buffed you -- on a small prompt. Clicking"
+			.. " the prompt casts it."):format(buff and ns.BuffName(buff) or "buff"))
+	else
+		addon:Print("|cffffd100Manners|r puts anybody who buffs you -- and any stranger"
+			.. " nearby who is missing one of yours -- on a small prompt. Clicking the"
+			.. " prompt buffs them.")
+	end
 	addon:Print("The one thing that is not automatic: |cffffd100/manners macro|r makes"
 		.. " a macro to drag onto a bar -- the |cffffd100Create the macro|r button on"
 		.. " the options page does the same -- or bind a key under Game Menu > Key"
@@ -3798,9 +4184,19 @@ function ns.Welcome(force)
 	-- "preview off -- somebody real turned up" a tick later, and leave the
 	-- greeting pointing at a panel it did not put there. So look first, and
 	-- point at whichever one is going to be on screen.
+	--
+	-- Only somebody who can actually be on the panel counts. The queue does not
+	-- know about the switch or the lock, so on a profile that is switched off,
+	-- or unlocked, a crowd produced "the prompt is on screen now, with somebody
+	-- real on it" straight after "no prompt will appear" -- over a hidden
+	-- button, or one reading "Drag to move". The preview is what those two
+	-- states can show, and the preview runs in both.
 	local queued = 0
-	local ok, list = pcall(ns.BuildQueue)
-	if ok and type(list) == "table" then queued = #list end
+	local profile = addon.db.profile
+	if profile and profile.enabled and profile.prompt.locked then
+		local ok, list = pcall(ns.BuildQueue)
+		if ok and type(list) == "table" then queued = #list end
+	end
 
 	if queued > 0 then
 		addon:Print("The prompt is on screen now, with somebody real on it already."
@@ -3935,7 +4331,7 @@ function ns.InspectUnit(unit)
 	-- it manages to. This command is what the author ran on the player who
 	-- prompted the whole setting, and it printed inRangeById=true with nothing
 	-- to say about whether that was anywhere near.
-	say("  %s", show("nearEnough", true, ns.NearEnough(unit)))
+	say("  %s", show("nearEnough", true, ns.NearEnough(unit, true)))
 	say("  proximity: %s", tostring(ns.ProximitySummary()))
 end
 
@@ -4038,6 +4434,17 @@ local LIMITS = {
 	{ "prompt", "queueRows", 1, 5 },
 }
 
+-- The largest icon a prompt of this size can hold: eight pixels shorter than
+-- the panel and sixty narrower, never under the slider's own floor. One
+-- answer, asked by the clamp below and by the notice on the options page that
+-- explains it -- the notice used to work it out from the height alone.
+function ns.IconCeiling(p)
+	local d = ns.defaults.profile.prompt
+	local height = type(p.height) == "number" and p.height or d.height
+	local width = type(p.width) == "number" and p.width or d.width
+	return math.max(12, math.min(height - 8, width - 60))
+end
+
 function ns.ClampSettings()
 	local profile = addon.db and addon.db.profile
 	if not profile then return end
@@ -4058,9 +4465,15 @@ function ns.ClampSettings()
 	-- first line. A number in any of these throws inside the swap on every
 	-- repaint -- which in game is a caught error every 0.4s and a prompt frozen
 	-- on its last paint, for a value the options page can produce.
-	for _, key in ipairs({ "format", "reasonTarget", "reasonOwed", "reasonGroup",
+	--
+	-- Only the first line has to say something: a prompt whose name line is
+	-- empty names nobody, and its setter snaps back the same way. An empty
+	-- reason line is a wish -- no second line for passers-by -- and it used to
+	-- be granted for the session and quietly taken back at the next login.
+	if not ns.UsableFormat(p.format) then p.format = ns.defaults.profile.prompt.format end
+	for _, key in ipairs({ "reasonTarget", "reasonOwed", "reasonGroup",
 		"reasonNearby", "reasonRefresh", "reasonUnknown" }) do
-		if type(p[key]) ~= "string" or p[key] == "" then
+		if type(p[key]) ~= "string" then
 			p[key] = ns.defaults.profile.prompt[key]
 		end
 	end
@@ -4086,18 +4499,16 @@ function ns.ClampSettings()
 	-- Bound by both dimensions. Height alone left a wide icon on a narrow panel
 	-- pushing the name's LEFT inset past the panel's right edge, where LEFT and
 	-- RIGHT cross and the name has nowhere to draw.
-	local iconMax = math.max(12, math.min(
-		(p.height or ns.defaults.profile.prompt.height) - 8,
-		(p.width or ns.defaults.profile.prompt.width) - 60))
+	local iconMax = ns.IconCeiling(p)
 	if p.iconSize > iconMax then p.iconSize = iconMax end
 	if not ns.CHANNEL_COMMANDS[profile.speech.channel] then profile.speech.channel = "SAY" end
 
-	-- Group and passer-by shipped the same wording once, so colour was the only
-	-- thing telling them apart. Move a profile that still carries that exact
-	-- string, and nothing else: a wording somebody chose is theirs.
-	if p.reasonGroup == "needs {buff}" then
-		p.reasonGroup = ns.defaults.profile.prompt.reasonGroup
-	end
+	-- There was a carry-over here for group and passer-by having shipped the
+	-- same wording, "needs {buff}". It could never match a profile that version
+	-- wrote: that string was the default then, and AceDB strips a value equal to
+	-- its default at logout. The only way it is ever stored is somebody typing
+	-- it -- often to get the old shared wording back -- and that is exactly the
+	-- case it overwrote, on every login and every nudge of the height slider.
 
 	-- The same class of repair as the two above, and it cannot live in
 	-- OnInitialize: a new, copied or reset profile only comes back through
@@ -4155,26 +4566,46 @@ function ns.ClampSettings()
 	oneOf(p, "style", { glass = true, framed = true, minimal = true }, "glass")
 	oneOf(p, "accentMode", { icon = true, stripe = true, both = true, off = true }, "icon")
 	oneOf(p, "flashStyle", { pulse = true, once = true, off = true }, "pulse")
+
+	-- 0.9.x anchored the prompt to the middle of the screen and beta.1 moved
+	-- the default anchor to the bottom edge without carrying anybody across.
+	-- AceDB strips a value equal to its default at logout, so a 0.9.x prompt
+	-- dragged somewhere whose nearest anchor was the middle had only its two
+	-- offsets on disk -- and read against the new anchor, a prompt dropped below
+	-- the middle of the screen landed below the bottom edge, where clamping
+	-- pinned it over the action bars and the position dropdown showed nothing.
+	--
+	-- A negative offset from the bottom edge can only be that: the prompt is
+	-- clamped to the screen, so no drag produces one. A positive one cannot be
+	-- told from a drag made since, and is left alone. Once per profile, stamped
+	-- in a key with no default so AceDB never strips the stamp -- a copied or
+	-- reset profile comes back through here and gets the same treatment.
+	if p.anchorCarried ~= true then
+		if p.point == "BOTTOM" and p.relPoint == "BOTTOM"
+			and type(p.y) == "number" and p.y < 0 then
+			p.point, p.relPoint = "CENTER", "CENTER"
+		end
+		p.anchorCarried = true
+	end
 	oneOf(p, "point", VALID_ANCHORS, "CENTER")
 	oneOf(p, "relPoint", VALID_ANCHORS, "CENTER")
 
-	-- A sound from an addon that has since been uninstalled is not in the
-	-- table any more, and Fetch would quietly fall back to "None" -- which is
-	-- the number 1 and plays nothing. SoundExists lives in Prompt.lua, beside
-	-- the only LSM handle; it answers true when it cannot tell.
+	-- Only a sound key that is not a string is repaired. One that is not
+	-- registered is left alone: a sound pack that sorts after this addon --
+	-- SharedMedia, WeakAuras -- has not registered anything when this runs at
+	-- load, so a sound chosen from it was rewritten to ours on every login, and
+	-- stripped from disk as the default. PlayPromptSound falls back to ours when
+	-- the key is not there by the time a sound is wanted.
 	local snd = profile.sound
-	if type(snd.file) ~= "string" then
-		snd.file = ns.SOUND_KEY
-	elseif snd.file ~= "None" and ns.SoundExists and not ns.SoundExists(snd.file) then
-		snd.file = ns.SOUND_KEY
-	end
+	if type(snd.file) ~= "string" then snd.file = ns.SOUND_KEY end
 
-	-- A pinned buff that this class cannot cast leaves the dropdown blank and
-	-- ResolveBuff falling back every scan.
-	-- Only discard a pinned buff when we actually know the class and it is not
-	-- one of theirs. A failed probe must not silently rewrite the setting.
+	-- A pin nobody's class has is nonsense and goes. One belonging to another
+	-- class stays: the profile is shared by every character on the account, and
+	-- an alt logging in used to reset the pin for everybody, so the character
+	-- who set it came back to Automatic. PickBuffFor reads a pin this class
+	-- does not have as Automatic, which is what the reset was standing in for.
 	local choice = profile.buff.choice
-	if choice ~= "auto" and caps.class and not ns.FindBuff(caps.class, choice) then
+	if choice ~= "auto" and not ns.AnyClassHasBuff(choice) then
 		profile.buff.choice = "auto"
 	end
 
@@ -4269,8 +4700,19 @@ function addon:OnEnable()
 	-- Say so out loud. Silence has been indistinguishable from failure.
 	C_Timer.After(2, function()
 		local buff = ns.ResolveBuff(true)
-		self:Print(("build |cffffd100%s|r watching for buffs. Ready to cast |cffffd100%s|r."):format(
-			tostring(ns.BUILD), buff and ns.BuffName(buff) or "nothing -- no buff learned"))
+		-- A class with nothing to cast gets the sentence the greeting and
+		-- /manners debug already give it. "No buff learned" suggested there
+		-- was one to learn, on every login, to a rogue.
+		local nothingToGive = caps.class ~= nil and ns.CLASSES_WITHOUT_BUFFS ~= nil
+			and ns.CLASSES_WITHOUT_BUFFS[caps.class] == true
+		if not buff and nothingToGive then
+			self:Print(("build |cffffd100%s|r -- %s"):format(tostring(ns.BUILD), ns.NO_CLASS_BUFFS))
+		else
+			self:Print(("build |cffffd100%s|r watching for buffs. Ready to cast |cffffd100%s|r."):format(
+				tostring(ns.BUILD), buff and ns.BuffName(buff) or "nothing -- no buff learned"))
+		end
+		-- The macro an older version made, while nothing else is going on.
+		ns.SettleOldMacro()
 		-- And, on this character's very first login, what the thing is for.
 		-- Hung off the same delay as the line above and for the same reason:
 		-- anything printed before the default chat frame exists is printed to
@@ -4316,6 +4758,11 @@ function addon:RefreshConfig()
 	-- prompt appear at all.
 	ns.Guard("RefreshMinimapButton", ns.RefreshMinimapButton)
 	self:StartScanner()
+	-- A switch, copy or reset changes every setting at once, the on switch
+	-- among them, and the launcher's text is only ever put back from here. It
+	-- went on saying "Manners off" over a profile that was on, or the reverse,
+	-- until the next fight or /manners on.
+	ns.RepaintOptions()
 end
 
 ---------------------------------------------------------------------------
