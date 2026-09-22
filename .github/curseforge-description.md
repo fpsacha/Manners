@@ -88,6 +88,13 @@ Paladins are the exception, because blessings overwrite one another: holding
 any one of yours counts as covered, and the automatic pick is Wisdom for
 anyone with a mana bar and Might for everyone else.
 
+### Where to get it
+
+On **CurseForge**, and on **[Wago](https://addons.wago.io/addons/rNkgzlNa)** —
+which is the one **WowUp** reads, since it dropped CurseForge support when
+Overwolf cut off third-party clients. Both carry the same build from the same
+tag.
+
 ### Which client
 
 Built for **WoW Forever** (Interface 16001) and shipped for that alone.

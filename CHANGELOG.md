@@ -1,6 +1,11 @@
 # Changelog
 
-## 1.0.0-beta.2
+## 1.0.0-beta.3
+
+Documentation only. The README said it could be installed "through any client
+that reads CurseForge — WowUp", which is not true: WowUp dropped CurseForge
+when Overwolf cut off third-party clients. Wago is the one it reads, and that
+is now what both the README and the listing say.
 
 Also published to Wago from this release on. WowUp dropped CurseForge when
 Overwolf cut off third-party clients, so an addon on CurseForge alone never

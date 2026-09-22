@@ -5,6 +5,7 @@ yours.
 
 [![CI](https://github.com/fpsacha/Manners/actions/workflows/ci.yml/badge.svg)](https://github.com/fpsacha/Manners/actions/workflows/ci.yml)
 [![CurseForge](https://img.shields.io/badge/CurseForge-Manners-f16436)](https://wow.curseforge.com/projects/1705364)
+[![Wago](https://img.shields.io/badge/Wago-Manners-c1272d)](https://addons.wago.io/addons/rNkgzlNa)
 [![Licence: MIT](https://img.shields.io/badge/licence-MIT-blue)](LICENSE)
 
 <img src=".github/media/screenshot-prompt.png" alt="The prompt: a small panel naming a player, the buff they are missing, and why they are on it" width="640">
@@ -21,8 +22,16 @@ minute of squinting at names.
 
 ## Installing
 
-**[Get it on CurseForge](https://wow.curseforge.com/projects/1705364)**, or
-through any client that reads CurseForge — WowUp, CurseForge's own app.
+**[Wago](https://addons.wago.io/addons/rNkgzlNa)** — and through **WowUp**,
+which reads Wago. Search *Manners* and install.
+
+**[CurseForge](https://wow.curseforge.com/projects/1705364)** — and the
+CurseForge app.
+
+Both get the same build from the same tag. Wago is the one to use if you manage
+addons with WowUp: it dropped CurseForge support when Overwolf cut off
+third-party clients, so an addon published only to CurseForge never appears
+there.
 
 To install by hand, take a release zip from
 [Releases](https://github.com/fpsacha/Manners/releases) and unzip it into
@@ -265,14 +274,18 @@ copies under their own licences.
 a version and let the workflow build it:
 
 ```
-git tag v0.9.0 && git push origin v0.9.0
+git tag v1.0.0-beta.3 && git push origin v1.0.0-beta.3
 ```
 
 `.github/workflows/release.yml` runs the test suites, fails the build if any
 check has stopped being able to detect the fault it exists for, then packages
-and publishes. Add `CF_API_KEY`, `WOWI_API_TOKEN` or `WAGO_API_TOKEN` to the
-repository secrets to publish beyond GitHub; without them those destinations
-are skipped.
+and publishes to **CurseForge and Wago** from the one tag.
+
+A destination needs both a token in the repository secrets (`CF_API_KEY`,
+`WAGO_API_TOKEN`, `WOWI_API_TOKEN`) and a project id in the toc
+(`X-Curse-Project-ID`, `X-Wago-ID`, `X-WoWI-ID`). Missing either skips that
+upload in a way that reads exactly like success, so the build log names which
+half is absent.
 
 ## Tests
 
