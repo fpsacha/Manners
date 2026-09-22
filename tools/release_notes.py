@@ -48,7 +48,9 @@ def main(argv):
         return 1
     # The version is in the title CurseForge and Wago already show, so the
     # heading is not repeated; the body is what the page is for.
-    sys.stdout.write(body + "\n")
+    # As UTF-8 bytes, whatever the console's encoding: on Windows stdout is
+    # cp1252, and the first arrow or ellipsis in the notes stopped the build.
+    sys.stdout.buffer.write((body + "\n").encode("utf-8"))
     return 0
 
 

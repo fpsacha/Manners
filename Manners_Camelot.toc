@@ -4,7 +4,7 @@
 ## Title: Manners
 ## Notes: One click to buff back whoever just buffed you, and nearby players missing yours.|n|cffffd100Mage is tested in game; other classes are implemented but unverified.|r
 ## Author: Sacha
-## Version: 1.0.0-beta.3
+## Version: 1.0.0-beta.4
 ## SavedVariables: MannersDB
 ## X-Compatible-With: forever
 ## X-License: MIT

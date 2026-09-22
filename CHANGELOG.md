@@ -1,5 +1,81 @@
 # Changelog
 
+## 1.0.0-beta.4
+
+A bug-fix release. Every part of the addon that had never been through a
+review has now had one, and each fix below comes with a test that fails
+without it.
+
+### Pressing the prompt
+
+- A press always goes to the person the prompt is showing. If the prompt has
+  just moved on (after a refused press, say), the press does nothing and chat
+  tells you who it moved on to.
+- Pressing twice quickly after the game refused a buff no longer buffs the
+  next person and counts the first one as repaid.
+- Right-click to skip moves the prompt on at once, so a left-click just after
+  cannot buff the person you skipped.
+- In combat, a press during the global cooldown no longer blames the person on
+  the prompt. A press in the last moment of the cooldown counts: the game
+  queues it and the buff lands. That moment follows your own Spell Queue
+  Window setting.
+- A press held back by the cooldown no longer swallows the one you make a
+  moment later, and one made just before a fight no longer leaves the prompt
+  empty for the whole fight.
+- The prompt waits out spells with a cast time (Conjure Water, Hearthstone)
+  instead of trying to buff mid-cast.
+- A spell you cast by hand a second after a refused press no longer counts as
+  that press landing.
+- An out-of-range press is reported once, in the game's words. No second red
+  flash, and the person comes back after two seconds instead of four.
+
+### Who gets offered
+
+- **Changed since 1.0.0-beta.1, not announced at the time:** passers-by are
+  only offered when they are close, "Nearby" (about ten yards) by default.
+  The setting is under *Who to buff* → *How near a passer-by has to be*.
+  Pick *Anywhere I can cast* for the old behaviour.
+- On a client that will not measure distance to strangers, "Nearby" no longer
+  quietly drops everyone. It says plainly that it has no signal.
+- If one way of measuring cannot tell about someone, the next is asked
+  instead of offering them from thirty yards away. "Right beside me" can no
+  longer offer more people than "Nearby".
+- Warriors, and any class whose buffs reach only their group, are no longer
+  told the prompt offers buffs to strangers.
+- A class with nothing to cast (a rogue, say) no longer records favours.
+- A buff learned in a burst at a trainer is picked up within seconds, not at
+  the next loading screen.
+
+### Settings
+
+- A sound from a sound pack (SharedMedia, WeakAuras) is no longer reset to
+  "Manners alert" at every login.
+- A pinned buff is no longer wiped when another class logs in on the same
+  profile.
+- Switching, copying or resetting a profile updates the minimap text at once.
+- A prompt moved under 0.9 no longer comes back stuck over your action bars,
+  and the old `/click MannersPrompt` macro is updated for you. Macros you
+  edited are left alone.
+- A reason line you empty on purpose stays empty after a reload.
+- The Font list shows names, not file paths.
+- Narrowing the prompt keeps the icon inside it. The icon slider no longer
+  fights you while you drag it, and a mouse wheel past the limit shows the
+  size actually kept.
+- "Load a set" can reload a set you have edited. The Locked box updates after
+  you drag the prompt. The Diagnostics tab shows the real error count.
+- Several settings descriptions were wrong (your target is pale blue, not
+  green; the height a second line needs) and now match what they do.
+
+### Messages
+
+- Chat no longer says someone "is still owed" when they never buffed you.
+- "Could not cast" names the spell instead of printing its number.
+- "Ready in …" no longer leaves the reason line the wrong colour, and never
+  says "ready in 0.0s".
+- `/manners test` no longer says "preview on" when someone real is on the
+  prompt. The first-run greeting no longer promises a prompt when the addon is
+  switched off on that profile.
+
 ## 1.0.0-beta.3
 
 Documentation only. The README said it could be installed "through any client
