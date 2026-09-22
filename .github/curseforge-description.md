@@ -1,6 +1,13 @@
 **One click to buff back whoever just buffed you — and nearby players missing
 yours.**
 
+> **This is a beta, and here is the honest reason.** The code is finished and
+> its test suite is green, but **one class on one client has actually been
+> played**. Everything else is exercised against a mock client, and a mock
+> agrees with whoever wrote it. If you try a class other than Mage, please say
+> how it went — **"it worked" is the more useful report**, because that is what
+> moves a class off the untested list.
+
 A priest buffs you in passing. By the time you have picked them out of a dozen
 nameplates, they are gone.
 
@@ -22,11 +29,28 @@ names.
   survives a reload or a disconnect.
 - **Your party or raid** → anyone missing your buff.
 - **Passers-by** → nearby players missing it, seen through nameplates, your
-  target and your mouseover.
+  target, your focus and your mouseover.
 
 It skips the dead, the out of range, anyone you just tried, and anyone the buff
 does nothing for — Arcane Intellect is wasted on a rogue. Right-click the
 prompt to skip somebody without marking their favour repaid.
+
+### How near is near
+
+Being in range is not the same as being near. Arcane Intellect reaches about
+thirty yards, which in a capital city is everybody on your screen — so there
+is a setting for how close a passer-by has to be: **anywhere I can cast**,
+**nearby** (about ten yards, the default), or **right beside me**.
+
+It applies to passers-by only. Somebody who buffed you was close enough a
+moment ago, your group is your group, and whoever you targeted you picked on
+purpose.
+
+The game will not tell an addon how far away a player is, so this is measured
+with whatever the client offers and lands on the nearest step it can honestly
+reach. Where nothing can measure, everybody in casting range is offered exactly
+as before — and `/manners debug` says which of those is happening rather than
+leaving you to wonder.
 
 **If they already have it**, you choose: leave them alone, offer a top-up once
 their timer runs low, or always offer.
@@ -64,6 +88,16 @@ Paladins are the exception, because blessings overwrite one another: holding
 any one of yours counts as covered, and the automatic pick is Wisdom for
 anyone with a mana bar and Might for everyone else.
 
+### Which client
+
+Built for **WoW Forever** (Interface 16001) and shipped for that alone.
+
+Retail, Mists Classic and Classic Era are implemented — their spell tables are
+researched and every path through them is exercised by the suite — but nobody
+working on this can launch those clients, and shipping a file for a game you
+have never run is a promise you cannot keep. They arrive as soon as somebody
+reports one working.
+
 ### How much of this has been tested
 
 **Mage has been used in game, repeatedly, against real players.**
@@ -71,7 +105,12 @@ anyone with a mana bar and Might for everyone else.
 The other five classes are implemented, their spell data is corroborated
 against other addons running on this client, and every cast path is exercised
 by an automated test suite — but nobody has cast with them yet. Treat them as
-unproven and please report anything that misbehaves.
+unproven, and please say how it went either way: **"it worked" is the report
+that actually helps**, because it is what moves a class off this list. Nobody
+ever files one unless asked, so: asking.
+
+Warrior first, if you have one. Battle Shout is self-cast, so its macro has no
+targeting line at all — it is the only class that takes that path.
 
 Saying so because getting a single spell to cast on this client took ten
 attempts. The same path is used everywhere, but "the tests pass" is not the
@@ -87,13 +126,20 @@ buff, and the game casts when you click. Bind a key under **Game Menu → Key
 Bindings → Manners**, or use the **Create the macro** button in the options to
 put it on your bars.
 
+### The first time you log in
+
+It tells you what it does, shows you the prompt once so you know its shape, and
+names the one thing it needs from you — a key bound, or a macro on your bars.
+Once per character, and `/manners welcome` brings it back.
+
 ### Usage
 
 ```
 /manners           options
+/manners welcome   what it does, and the one thing it needs from you
 /manners unlock    drag the prompt — it re-locks when you let go
 /manners test      preview, for styling
-/manners debug     what your class and this build allow
+/manners debug     which client, which spells, and what it can measure
 /manners errors    anything the addon caught and carried on from
 ```
 
