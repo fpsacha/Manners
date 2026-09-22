@@ -2,6 +2,15 @@ package-as: Manners
 
 enable-nolib-creation: no
 
+# This release's section of CHANGELOG.md, written by the release workflow via
+# tools/release_notes.py just before packaging. Without it the packager writes
+# its own from the git log, and CurseForge and Wago get a stack of commit
+# messages instead of notes written for players. It also ships in the zip, as
+# the changelog somebody finds in their AddOns folder.
+manual-changelog:
+  filename: RELEASE_NOTES.md
+  markup-type: markdown
+
 externals:
   Libs/LibStub:
     url: https://repos.curseforge.com/wow/ace3/trunk/LibStub

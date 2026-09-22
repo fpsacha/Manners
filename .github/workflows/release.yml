@@ -81,6 +81,15 @@ jobs:
           say Wago         "${{ secrets.WAGO_API_TOKEN }}"   X-Wago-ID
           say WoWInterface "${{ secrets.WOWI_API_TOKEN }}"   X-WoWI-ID
 
+      # One section of CHANGELOG.md, for this tag only. Fails the release if
+      # the section is missing or empty, so notes cannot be forgotten -- the
+      # packager would otherwise fall back to dumping the git log.
+      - name: Release notes for this tag
+        run: |
+          python tools/release_notes.py "${GITHUB_REF_NAME}" > RELEASE_NOTES.md
+          echo "---- RELEASE_NOTES.md ----"
+          cat RELEASE_NOTES.md
+
       - name: Package and publish
         uses: BigWigsMods/packager@master
         env:

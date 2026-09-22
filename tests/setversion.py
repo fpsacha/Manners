@@ -53,14 +53,35 @@ s, n = re.subn(r'ns\.BUILD = "[^"]*"', 'ns.BUILD = "%s"' % version, s, count=1)
 assert n == 1, "no ns.BUILD in Prompt.lua"
 open(p, "w", encoding="utf-8", newline="\n").write(s)
 
-# --- the changelog heading, only if it is not already this version ----
+# --- the changelog ----------------------------------------------------
+#
+# Only an "Unreleased" heading is renamed. Any other heading names a version
+# that has already shipped, and renaming it is how three releases came to sit
+# under one heading: beta.2's notes landed on top of beta.1's and beta.3's on
+# top of both, and the packager -- which now uploads exactly one section per
+# release -- would have handed CurseForge and Wago all three as one.
+#
+# So a new version gets a new section, with nothing under it. That is on
+# purpose: tools/release_notes.py refuses to build a release whose section is
+# empty, so the notes have to be written before the tag can ship.
 p = os.path.join(ROOT, "CHANGELOG.md")
 s = open(p, encoding="utf-8").read()
 current = re.search(r"^## (\S+)", s, re.M)
-if current and current.group(1) != version:
+if current is None:
+    raise SystemExit("CHANGELOG.md has no ## heading to work from")
+if current.group(1) == version:
+    pass
+elif current.group(1).lower() == "unreleased":
     s = s.replace("## " + current.group(1), "## " + version, 1)
     open(p, "w", encoding="utf-8", newline="\n").write(s)
-    print("changelog heading %s -> %s" % (current.group(1), version))
+    print("changelog: Unreleased -> %s" % version)
+else:
+    at = current.start()
+    s = s[:at] + "## " + version + "\n\n" + s[at:]
+    open(p, "w", encoding="utf-8", newline="\n").write(s)
+    print("changelog: new empty section for %s above %s -- write the notes"
+          " before tagging, or the release refuses to build"
+          % (version, current.group(1)))
 
 print("version set to %s in all %d tocs, ns.BUILD and the changelog"
       % (version, 1 + len(maketocs.FLAVOURS)))

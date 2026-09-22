@@ -218,6 +218,26 @@ else:
     if generated and generated == declared:
         print("  ok  the same %d clients either way" % len(generated))
 
+print("\n== release notes for the current version ==")
+# The release workflow uploads exactly this section to CurseForge and Wago, and
+# refuses to ship if it is empty. Checked here too so the first time anybody
+# hears about a missing note is not the moment a tag is pushed.
+try:
+    import release_notes
+except Exception as e:          # noqa: BLE001 - reported, not raised
+    print("  could not import tools/release_notes.py: %s" % e)
+    fail += 1
+else:
+    _toc = open(os.path.join(ROOT, "Manners.toc"), encoding="utf-8").read()
+    _v = re.search(r"^## Version:\s*(\S+)", _toc, re.M)
+    _body = release_notes.section(_v.group(1)) if _v else None
+    if _body is None:
+        print("  no notes under '## %s' in CHANGELOG.md -- the release would"
+              " refuse to build" % (_v.group(1) if _v else "?"))
+        fail += 1
+    else:
+        print("  ok  %s has %d lines of notes" % (_v.group(1), _body.count("\n") + 1))
+
 print("\n== AceConfig schema ==")
 # AceConfigRegistry validates the WHOLE options table and rejects all of it if
 # any one key has the wrong type -- not the offending control, the entire table,

@@ -7,11 +7,15 @@ that reads CurseForge — WowUp", which is not true: WowUp dropped CurseForge
 when Overwolf cut off third-party clients. Wago is the one it reads, and that
 is now what both the README and the listing say.
 
+## 1.0.0-beta.2
+
 Also published to Wago from this release on. WowUp dropped CurseForge when
 Overwolf cut off third-party clients, so an addon on CurseForge alone never
 appears there — and Wago already has a game type for WoW Forever.
 
 Otherwise identical to beta.1.
+
+## 1.0.0-beta.1
 
 A beta on purpose. The code is finished and the suites are green, but one class
 on one client has actually been played -- and "the tests pass" is not "somebody

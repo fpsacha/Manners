@@ -18,3 +18,6 @@ Libs/
 # nothing it is already tracking.)
 __pycache__/
 *.pyc
+
+# Built by the release workflow from CHANGELOG.md; never committed.
+RELEASE_NOTES.md
