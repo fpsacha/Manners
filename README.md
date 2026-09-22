@@ -3,14 +3,61 @@
 **One click to buff back whoever just buffed you** — and nearby players missing
 yours.
 
-A priest buffs you in passing. By the time you have found them among a dozen
-nameplates they are gone. Manners reads who it was, works out what you owe
-them, and puts a single button on screen.
+[![CI](https://github.com/fpsacha/Manners/actions/workflows/ci.yml/badge.svg)](https://github.com/fpsacha/Manners/actions/workflows/ci.yml)
+[![CurseForge](https://img.shields.io/badge/CurseForge-Manners-f16436)](https://wow.curseforge.com/projects/1705364)
+[![Licence: MIT](https://img.shields.io/badge/licence-MIT-blue)](LICENSE)
 
-It also offers nearby players who are missing your buff — not to optimise a
-raid, just so you can be the person who buffs strangers.
+<img src=".github/media/screenshot-prompt.png" alt="The prompt: a small panel naming a player, the buff they are missing, and why they are on it" width="640">
 
-Built for WoW Forever (Interface 16001).
+A priest buffs you in passing. By the time you have picked them out of a dozen
+nameplates, they are gone.
+
+Manners notices, works out what you owe them, and puts one button on screen.
+Click it, they get their buff, and your own target is handed straight back.
+
+It also offers nearby players who are missing yours — not to optimise a raid,
+just so being the person who buffs strangers costs one click instead of a
+minute of squinting at names.
+
+## Installing
+
+**[Get it on CurseForge](https://wow.curseforge.com/projects/1705364)**, or
+through any client that reads CurseForge — WowUp, CurseForge's own app.
+
+To install by hand, take a release zip from
+[Releases](https://github.com/fpsacha/Manners/releases) and unzip it into
+`Interface/AddOns`.
+
+> **Do not install from a clone of this repository.** `Libs/` is deliberately
+> not committed — the 14 libraries are fetched at build time — so a zip
+> made from a checkout has none of them and will not load. Use a release.
+
+## Which client, and how sure
+
+This is a **beta**, and the reason is worth a sentence before you rely on it:
+the code is finished and the suites are green, but **one class on one client
+has actually been played**. Everything else is tested against a mock, and a
+mock agrees with whoever wrote it.
+
+| | How far it has been taken |
+|---|---|
+| **Mage, on WoW Forever** | cast in game, repeatedly, against real players |
+| Priest, Druid, Paladin, Warlock, Warrior — WoW Forever | spell data corroborated against other addons running on this client, every cast path exercised by the suite, never cast in game |
+| Retail, Mists Classic, Classic Era — every class | implemented and exercised by the suite, spell data from the patch notes and the wiki — but nobody involved can launch those clients, so **they are not shipped yet** |
+
+Getting one spell to cast here took ten attempts, on a client that documents
+none of its restrictions. Every class uses that same path and their macros are
+checked automatically — but "the tests pass" is not "somebody used it". Treat
+anything but Mage as unproven, and please
+[say so either way](https://github.com/fpsacha/Manners/issues/new/choose):
+**it worked** is the more useful report, because it is what moves a class off
+this list.
+
+If a buff is never offered, `/manners debug` names any spell id the client does
+not actually have, and reports which client it decided it is on.
+
+Hunters and rogues have nothing to cast on another player, and Manners says so
+plainly rather than sitting there looking broken.
 
 ## What it does
 
@@ -50,7 +97,10 @@ nothing can measure at all, everybody in casting range is offered as before.
 **If they already have it**, you choose: leave them alone, offer a top-up once
 their timer drops below a threshold you set, or always offer regardless.
 
-## Supported classes
+<img src=".github/media/screenshot-reasons.png" alt="Four prompts, each a different colour, showing the four reasons somebody appears" width="640">
+
+<details>
+<summary><strong>Which buffs each class offers, per client</strong></summary>
 
 Which spells exist depends on the client, so the tables do too. `/manners debug`
 prints the set it chose, and the Diagnostics tab lists what your class has.
@@ -106,21 +156,7 @@ and Might for everyone else.
 Battle Shout reaches your party and nobody else, so a warrior outside a group
 is offered nobody. That is deliberate rather than a fault.
 
-### How far each class has been tested
-
-| | |
-|---|---|
-| **Mage, on WoW Forever** | cast in game, repeatedly, against real players |
-| Priest, Druid, Paladin, Warlock, Warrior, on WoW Forever | spell data corroborated against other addons on this client, and every cast path exercised in the test suite -- but never cast in game |
-| Every class on the other four clients | spell data taken from the patch notes and the wiki, and every cast path exercised in the test suite -- but nobody working on this addon can start those clients. If a buff is never offered, run `/manners debug`: it names any spell id the client does not have. |
-
-The cast path took ten attempts to get right for Mage, on a client that
-documents none of its restrictions. The other classes use the same path and
-their macros are checked automatically, but treat them as unproven until
-somebody reports otherwise.
-
-Hunters, rogues and shamans have nothing to cast on another player, so Manners
-says so plainly rather than looking broken.
+</details>
 
 ## Why a button and not automatic
 
@@ -221,7 +257,7 @@ either way; the log only ever adds.
 
 Full checklist in [RELEASING.md](RELEASING.md).
 
-`Libs/` is deliberately not in the repository: `.pkgmeta` declares all 13
+`Libs/` is deliberately not in the repository: `.pkgmeta` declares all 14
 libraries as build-time externals, so the packager fetches current upstream
 copies under their own licences.
 
