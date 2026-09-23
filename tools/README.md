@@ -1,7 +1,7 @@
 # tools
 
-The generators for the addon's five per-flavour `.toc` files, and for the images
-on the CurseForge listing and in the README.
+The generators for the addon's per-flavour `.toc` files, for the images on the
+CurseForge listing and in the README, and for the addon's own icon.
 Nothing in here ships: `.pkgmeta` ignores this folder, and the game never loads it.
 
 They live in the repository rather than on somebody's desktop so the listing can
@@ -10,8 +10,11 @@ meant the published images could only ever drift away from the addon.
 
 ## maketocs.py
 
-Writes `Manners_Mainline.toc`, `Manners_Camelot.toc`, `Manners_Mists.toc`,
-`Manners_TBC.toc` and `Manners_Vanilla.toc` from `Manners.toc`.
+Writes one `Manners_<Flavour>.toc` from `Manners.toc` for each entry in its
+`FLAVOURS` table. 1.0 ships for WoW Forever alone, so that is one file today,
+`Manners_Camelot.toc`. `Mainline`, `Mists` and `Vanilla` are commented out until
+somebody runs the addon on those clients; there will be no `Manners_TBC.toc`
+until the Burning Crusade spell ids are in the tables.
 
 ```
 python tools/maketocs.py           # write them
@@ -21,9 +24,9 @@ python tools/maketocs.py --check   # say whether they are up to date
 Needs nothing but the standard library, unlike the image tools below.
 
 `Manners.toc` is the only one anybody edits, and it stays in the tree as the
-fallback for a client that does not honour a suffixed name. The five copies
-differ from it in exactly one line — the interface number — which is why they
-are generated: five hand-maintained copies of the same file list drift, and a
+fallback for a client that does not honour a suffixed name. The generated
+copies differ from it in exactly one line — the interface number — which is why
+they are generated: hand-maintained copies of the same file list drift, and a
 toc that has lost a line from its file list produces an addon that loads four
 files instead of five, defines nothing, says nothing, and looks precisely like
 not having been installed.
@@ -31,7 +34,7 @@ not having been installed.
 `tests/validate.py` re-runs the render in memory and fails if what is on disk
 differs, so a hand edit to a generated file cannot survive a test run unnoticed.
 `tests/setversion.py` writes the version into `Manners.toc` and then re-runs
-this, which is what keeps all six agreeing.
+this, which is what keeps them all agreeing.
 
 ## Running the image tools
 
@@ -70,6 +73,11 @@ Keep it that way.
 `icon-512.png` (the CurseForge avatar), `icon-64.png`, and `icon-check.png`,
 which is just the two sizes side by side so the small one can be judged at the
 size it is actually seen.
+
+It also writes `Textures/Manners64.tga`, which lives outside this folder because
+it is the one thing these tools make that ships in the zip: the
+game cannot load a PNG, and this is the icon in the addon list (`IconTexture` in
+`Manners.toc`) and on the minimap button (`ICON` in `Options.lua`).
 
 Drawn to sit next to real WoW spell icons: bevelled gold frame lit from the
 top-left, dark saturated interior, one glowing subject, plenty of bloom.

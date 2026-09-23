@@ -13,7 +13,11 @@ local LSM = LibStub("LibSharedMedia-3.0")
 local LDB = LibStub("LibDataBroker-1.1", true)
 local LDBIcon = LibStub("LibDBIcon-1.0", true)
 
-local ICON = "Interface\\Icons\\Spell_Holy_MagicalSentry"
+-- The logo tools/make-icon.py draws, and the same file the toc's IconTexture
+-- names, so the minimap button and the addon list show one picture. It was a
+-- Blizzard spell icon while the TGA shipped in every zip with nothing pointing
+-- at it. No extension: the client finds the .tga itself.
+local ICON = "Interface\\AddOns\\Manners\\Textures\\Manners64"
 
 -- Whether there is a minimap button at all.
 --
@@ -851,7 +855,7 @@ local function BuildOptions()
 							.. "them on the prompt. Click the prompt and it casts.\n\n"
 							.. "|cffffd100Putting it on a key|r\n"
 							.. "Make the macro below and drag it onto a bar, or bind a key under "
-							.. "Game Menu > Key Bindings > Manners.\n",
+							.. "Options > Keybindings > Manners.\n",
 					},
 
 					startHeader = { type = "header", name = "Getting started", order = 10 },
@@ -1142,10 +1146,11 @@ local function BuildOptions()
 						order = 3,
 						hidden = NeverTargets,
 						-- A function, so it names the command the macro is really
-						-- built with. /targetexact is probed for and is absent on
-						-- some clients; a fixed string here would be a second
-						-- opinion about the macro, wrong wherever the probe says
-						-- no.
+						-- built with, asked of the builder itself. That is /target
+						-- today on every client -- /targetexact is probed for but
+						-- deliberately not used, see TargetCommand -- and a fixed
+						-- string here would be a second opinion about the macro,
+						-- wrong the day the builder changes its mind.
 						--
 						-- For the same reason it reads the switch directly above
 						-- it. It used to name /targetlasttarget whatever that

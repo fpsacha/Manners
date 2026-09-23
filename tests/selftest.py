@@ -3230,6 +3230,64 @@ mutate("Options.lua",
        expect="the switch promises a green flash the prompt never paints",
        script="runscenarios.py")
 
+# The greeting sending the player to a Game Menu entry this client lacks.
+mutate("Core.lua",
+       "\t\t.. \" the options page does the same -- or bind a key under Options >\"\n"
+       "\t\t.. \" Keybindings > Manners.\")\n",
+       "\t\t.. \" the options page does the same -- or bind a key under Game Menu > Key\"\n"
+       "\t\t.. \" Bindings > Manners.\")\n",
+       "greeting names the Game Menu key bindings",
+       expect="the key binding is where the greeting says",
+       script="runscenarios.py")
+
+# The same path on the General tab.
+mutate("Options.lua",
+       "\"Options > Keybindings > Manners.\\n\",",
+       "\"Game Menu > Key Bindings > Manners.\\n\",",
+       "How this works names the Game Menu key bindings",
+       expect="the key binding is where the greeting says",
+       script="runscenarios.py")
+
+# The binding filed among everybody else's, so no section is called Manners.
+mutate("Bindings.xml",
+       'category="Manners"',
+       'category="ADDONS"',
+       "binding filed under the shared AddOns section",
+       expect="the key binding is where the greeting says",
+       script="runscenarios.py")
+
+# The minimap button back on a Blizzard icon while the logo ships unused.
+mutate("Options.lua",
+       "local ICON = \"Interface\\\\AddOns\\\\Manners\\\\Textures\\\\Manners64\"",
+       "local ICON = \"Interface\\\\Icons\\\\Spell_Holy_MagicalSentry\"",
+       "minimap button on a Blizzard icon",
+       expect="the addon wears its own icon",
+       script="runscenarios.py")
+
+# The addon list back on a Blizzard icon.
+mutate("Manners.toc",
+       "## IconTexture: Interface\\AddOns\\Manners\\Textures\\Manners64",
+       "## IconTexture: Interface\\Icons\\Spell_Holy_MagicalSentry",
+       "addon list on a Blizzard icon",
+       expect="the addon wears its own icon",
+       script="runscenarios.py")
+
+# A version heading renamed in place, leaving its notes inside the next one.
+mutate("CHANGELOG.md",
+       "## 0.9.5\n\n",
+       "",
+       "0.9.5's notes filed under 0.9.6",
+       expect="a version heading has gone missing",
+       script="validate.py")
+
+# A heredoc eating the backslash out of `\n`.
+mutate("CHANGELOG.md",
+       "`\\n` gives a new line.",
+       "`\n` gives a new line.",
+       "the new-line token eaten out of the changelog",
+       expect="broken code span",
+       script="validate.py")
+
 print()
 print("after restore:")
 # This file edits the addon in place. A restore that did not happen leaves a

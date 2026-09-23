@@ -42,7 +42,11 @@ https://www.wowace.com/projects/ace3
 
 ## Game assets
 
-Icons and atlas artwork referenced by this addon (for example
-`Interface\Icons\Spell_Holy_MagicalSentry` and `Adventures-Spell-Border`) are
-Blizzard Entertainment's, used from the client's own files through the public
-addon API. None are redistributed with this package.
+Spell icons and other textures the addon shows from the game (the icon of the
+buff on the prompt, for example) are Blizzard Entertainment's, used from the
+client's own files through the public addon API. None are redistributed with
+this package.
+
+The Manners logo, `Textures\Manners64.tga`, is this project's own: it is drawn
+by `tools/make-icon.py` and shipped under the addon's MIT licence. It is the
+icon in the addon list and on the minimap button.

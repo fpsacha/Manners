@@ -301,8 +301,9 @@ function Mock.reset()
 	-- Off by default, so everything written against the hand-set centre above
 	-- goes on reading it. See GetCenter.
 	Mock.geometry = nil
-	-- The wall clock. GetTime() restarts near zero every login and the epoch
-	-- does not, which is the whole difficulty with storing a debt.
+	-- The wall clock. GetTime() is the machine's uptime, so it starts again
+	-- near zero after a reboot and the epoch does not, which is the whole
+	-- difficulty with storing a debt.
 	Mock.epoch = 1700000000
 	-- Stands in for the SavedVariables file: handed to every AceDB the mock
 	-- builds, so two successive load()s share it the way two sessions share a

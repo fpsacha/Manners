@@ -13,7 +13,7 @@
 
 ## X-Curse-Project-ID: 1705364
 ## X-Wago-ID: rNkgzlNa
-## IconTexture: Interface\Icons\Spell_Holy_MagicalSentry
+## IconTexture: Interface\AddOns\Manners\Textures\Manners64
 
 embeds.xml
 

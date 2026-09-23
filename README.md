@@ -214,7 +214,7 @@ for (a macro on this character's bars, or a key bound) is per character too.
 
 Put it on a bar with a macro containing `/click MannersPrompt LeftButton 1`
 (`/manners macro` makes one), or keybind under
-**Game Menu → Key Bindings → Manners**. The trailing `1` is the down flag: the
+**Options → Keybindings → Manners** ("Buff the prompted player"). The trailing `1` is the down flag: the
 secure button only casts on the way down.
 
 ## Notes on WoW Forever
@@ -230,9 +230,12 @@ anywhere: `[@Name]` resolves only for somebody already in your party or raid on
 every flavour, and `[@nameplateN]` resolves on none of them. Which is why the
 macro is the same everywhere — targeting the person by name, casting, and
 handing your target back is the only shape that reaches a passing stranger on
-any client. The addon writes `/targetexact` where the client has it, because
-`/target` matches a name *prefix* and would find Mortimer standing next to
-Mort; it falls back to `/target` where it does not.
+any client. The macro uses `/target`, which matches a name *prefix*, so
+offering Mort could find Mortimer standing next to him; when that happens the
+addon notices the cast landed on somebody else and says so. `/targetexact` is
+detected (`/manners debug` reports it) but not used yet: it finds nobody at all
+if the name is one character out, and the surname spelling the addon assembles
+has not been checked against it in game.
 
 **Secure buttons must register for mouse down.** Registering up only leaves the
 click arriving and the attributes correct while the game casts nothing and

@@ -131,7 +131,7 @@ found in ten minutes of actually playing it that no test here could reach.
   not jump the queue.
 - **Debts survive a reload.** Stored per character on the wall clock and
   rebased on the way back in, because everything held in memory is relative to
-  a clock that restarts at login. Clamped to the window as it currently stands,
+  a clock that counts from when the computer booted. Clamped to the window as it currently stands,
   so shortening the slider cannot be out-waited by a file written under a
   longer one.
 - **Right-click the prompt to skip somebody** without marking their favour
@@ -251,6 +251,10 @@ thing rather than nothing.
   bugs confirmed after adversarial verification, and a ranked feature plan.
   Kept because it is a work queue, not a report.
 
+## 0.9.5
+
+*Never released on its own: the `v0.9.5` tag points at the same commit as
+`v0.9.4`, and these fixes first shipped in 1.0.0-beta.1.*
 
 From a 103-finding audit across UX, code, performance and bugs.
 
@@ -423,9 +427,8 @@ one guess per click.
 
 - **`/manners try <macro text>`** -- arms any macro text on the prompt.
   Tokens `{unit}` `{name}` `{first}` `{spell}` `{id}` expand against whoever is
-  currently offered; `
-` gives a new line. Bare `/manners try` clears it. The
-  command word is matched case-insensitively but the macro text is kept
+  currently offered; `\n` gives a new line. Bare `/manners try` clears it.
+  The command word is matched case-insensitively but the macro text is kept
   verbatim, because it is case- and punctuation-sensitive.
 - **`/manners look [unit]`** -- every API answer for a unit, and crucially
   whether each one came back as a **secret value** rather than a real one.

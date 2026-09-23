@@ -130,8 +130,8 @@ Blizzard does not let an addon cast a spell on its own. That has been true
 since patch 2.0 and no addon gets around it.
 
 So Manners does everything except the keypress: it decides who deserves the
-buff, and the game casts when you click. Bind a key under **Game Menu → Key
-Bindings → Manners**, or use the **Create the macro** button in the options to
+buff, and the game casts when you click. Bind a key under **Options →
+Keybindings → Manners**, or use the **Create the macro** button in the options to
 put it on your bars.
 
 ### The first time you log in

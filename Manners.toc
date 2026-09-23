@@ -1,13 +1,11 @@
-# The source the five per-flavour tocs are generated from, and the fallback the
-# game reads on any client that does not honour a suffixed name. Edit this one;
-# run `python tools/maketocs.py` and the other five follow. tests/validate.py
-# fails if they have drifted.
+# The source the per-flavour tocs are generated from -- one today,
+# Manners_Camelot.toc -- and the fallback the game reads on any client that does
+# not honour a suffixed name. Edit this one; run `python tools/maketocs.py` and
+# the generated toc follows. tests/validate.py fails if they have drifted.
 #
-# The interface list is ordered with Camelot first on purpose. A client that
-# understands a comma-delimited list gets the right answer either way; a parser
-# that only reads the first number gets 16001, which is what shipped and is
-# known to work on WoW Forever. Forever is the one client anybody here can test,
-# so it is the one that must not be the experiment.
+# The interface is a single number, 16001, because 1.0 ships for WoW Forever
+# alone. It is the one client anybody here can test, and the number is the one
+# that shipped and is known to work there.
 ## Interface: 16001
 ## Title: Manners
 ## Notes: One click to buff back whoever just buffed you, and nearby players missing yours.|n|cffffd100Mage is tested in game; other classes are implemented but unverified.|r
@@ -21,7 +19,7 @@
 
 ## X-Curse-Project-ID: 1705364
 ## X-Wago-ID: rNkgzlNa
-## IconTexture: Interface\Icons\Spell_Holy_MagicalSentry
+## IconTexture: Interface\AddOns\Manners\Textures\Manners64
 
 embeds.xml
 

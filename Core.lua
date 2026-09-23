@@ -14,8 +14,10 @@ ns.addon = addon
 
 local MANA = (Enum and Enum.PowerType and Enum.PowerType.Mana) or 0
 
--- Names for the entries Bindings.xml adds to Game Menu > Key Bindings.
-BINDING_HEADER_MANNERS = "Manners"
+-- The label for the entry Bindings.xml adds to Options > Keybindings, in a
+-- section of its own called Manners. This client's game menu has no Key
+-- Bindings entry; the Keybindings page of Options is the only way there.
+--
 -- The binding is the client's own CLICK form, so its name is not a Lua
 -- identifier and the label has to be set through _G.
 _G["BINDING_NAME_CLICK MannersPrompt:LeftButton"] = "Buff the prompted player"
@@ -1763,10 +1765,16 @@ local function ShortName(name)
 end
 ns.ShortName = ShortName
 
--- Just the first word. Whether the game wants "Petra" or "Petra Stonewell" as a
--- target depends on whether the second part is a surname or part of the
--- character name, and that is not something an addon can find out -- so the
--- macro offers both and lets the game pick whichever resolves.
+-- Just the first word: "Petra" out of "Petra Stonewell", nil for a name that is
+-- one word already.
+--
+-- It never goes on a /target line. The macro sends the full name and nothing
+-- else -- a second, first-name-only line was tried and removed on purpose, and
+-- the note above ExpirePendingClick says why it must not come back. What this
+-- feeds is the {first} token of /manners try, and the settle path's check
+-- that a cast which landed on the bare first name landed on the person it was
+-- aimed at, since the game may report either spelling for somebody with a
+-- surname.
 local function FirstName(name)
 	if type(name) ~= "string" then return nil end
 	local first = name:match("^([^%s%-]+)")
@@ -1935,8 +1943,8 @@ ns.CHANNEL_COMMANDS = {
 ns.MACRO_LIMIT = 255
 
 -- What a spoken line may occupy is not a constant: it is whatever the cast
--- lines leave, and they changed the day the macro grew a second /target line.
--- ns.PhraseBudget, in Prompt.lua beside the code that assembles them, answers
+-- lines leave, and those carry the person's name and the spell's, so they are
+-- a different length for everybody. ns.PhraseBudget, in Prompt.lua beside the code that assembles them, answers
 -- it for a given person; the options preview asks the same function.
 
 local function SanitizePhrase(text)
@@ -1981,11 +1989,14 @@ end
 -- candidate queue
 ---------------------------------------------------------------------------
 
-local owed = {} -- [name] = expiry, people who buffed us
+-- People who buffed us: [name] = { expires, at, guid?, class? }. `at` is when
+-- the favour was noticed, which the grace window and LiveExpiry count from.
+local owed = {}
 
 -- [name .. "\0" .. buffKey] = expiry for a buff we just tried on them, and
--- [name .. "\0*"] = expiry for the whole person, set only when the game says
--- nothing was cast at all. Keyed per buff because casting Fortitude must not
+-- [name .. "\0*"] = expiry for the whole person, written by a right-press skip
+-- (at the full retry cooldown) or by a press that reached nobody (RewindClick,
+-- for two seconds). Keyed per buff because casting Fortitude must not
 -- stop the walk reaching Divine Spirit; keyed whole-person as well because
 -- somebody behind a pillar should not make the prompt march down the entire
 -- list failing at each one.
@@ -2030,10 +2041,12 @@ local function LiveExpiry(entry)
 end
 ns.DebtExpiry = LiveExpiry
 
--- SavedVariables outlive the client, GetTime() does not: it restarts near zero
--- every login, so a debt stored GetTime()-relative comes back either already
--- expired or an hour long. Everything goes out on the wall clock and is rebased
--- on the way back in -- including `at`, which is what the grace window reads.
+-- SavedVariables outlive the machine, GetTime() does not: it is the time since
+-- the computer booted, so it survives a /reload and a relog but starts again
+-- near zero after a reboot, and it is a different number on another computer.
+-- A debt stored GetTime()-relative would come back from either already expired
+-- or hours long. Everything goes out on the wall clock and is rebased on the
+-- way back in -- including `at`, which is what the grace window reads.
 --
 -- db.char, not the profile: a debt is owed to a character, and profiles are
 -- shared. AceDB partitions it inside the one saved file already, so there is no
@@ -2098,8 +2111,9 @@ local function RestoreDebts()
 			-- older than the window came back with all of it to run.
 			local left = math.min(entry.expires, entry.at + window) - wall
 			if left > 0 then
-				-- `at` rebases negative just after login, while GetTime() is
-				-- still small. That is correct rather than a bug: now - at is
+				-- `at` rebases negative when the debt is older than the
+				-- machine's uptime, which is to say just after a reboot. That
+				-- is correct rather than a bug: now - at is
 				-- then the real age of the debt, which is what the grace window
 				-- and the debug listing both want.
 				owed[name] = {
@@ -2306,8 +2320,8 @@ function ns.BuildQueue()
 		-- person who was turned down had every rejection, including the range
 		-- check and its three API calls, paid for twice.
 		if seen[full] or rejected[full] then return end
-		-- The whole-person block: set only when the game said nothing was cast
-		-- at all, so we do not march down the list failing at each buff.
+		-- The whole-person block: a right-press skip, or a press that reached
+		-- nobody, so we do not march down the list failing at each buff.
 		if ns.IsBlocked(full, nil, now) then return end
 
 		local inGroup = plain(UnitInParty and UnitInParty(unit)) or plain(UnitInRaid and UnitInRaid(unit))
@@ -2445,8 +2459,9 @@ function ns.BuildQueue()
 
 	-- Someone who buffed you and is not currently a unit we hold a token for is
 	-- the ordinary case, not the exception: a passing stranger is rarely your
-	-- target, your mouseover or showing a nameplate. @name targeting still
-	-- reaches them.
+	-- target, your mouseover or showing a nameplate. The macro's /target line
+	-- still reaches them; an [@Name] clause would not, since that resolves only
+	-- for members of your group.
 	--
 	-- Requiring a token here is what "only people I can reach" used to mean,
 	-- and it silently threw away the main case. They were demonstrably within
@@ -4552,8 +4567,8 @@ function ns.Welcome(force, offSaid)
 	end
 	addon:Print("The one thing that is not automatic: |cffffd100/manners macro|r makes"
 		.. " a macro to drag onto a bar -- the |cffffd100Create the macro|r button on"
-		.. " the options page does the same -- or bind a key under Game Menu > Key"
-		.. " Bindings > Manners.")
+		.. " the options page does the same -- or bind a key under Options >"
+		.. " Keybindings > Manners.")
 
 	-- Switched off, and this character never touched the switch: the profile
 	-- is shared, so an alt of somebody who turned the addon off is greeted by

@@ -4,7 +4,7 @@ name: Release
 #
 #   git tag v0.9.0 && git push origin v0.9.0
 #
-# The packager reads .pkgmeta, fetches the 13 libraries listed there as
+# The packager reads .pkgmeta, fetches the libraries listed there as
 # externals, and assembles the zip. That is why Libs/ is gitignored: the
 # repository deliberately does not carry them, so a release built any other way
 # ships an addon that cannot load. Build releases through this workflow.

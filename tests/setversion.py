@@ -10,10 +10,12 @@ mismatch twice, each time by search-and-replacing a value that was already
 wrong. This sets all of them from one argument and does not care what they said
 before.
 
-"The toc" is six files since the per-flavour split: Manners.toc and the five
-Manners_<Flavour>.toc generated from it. Writing the source and regenerating is
-what keeps them equal -- editing six Version lines with six substitutions would
-be the same hand-maintenance this script exists to replace, one file deeper.
+"The toc" is more than one file since the per-flavour split: Manners.toc and
+every Manners_<Flavour>.toc generated from it (one today, Manners_Camelot.toc;
+tools/maketocs.py's FLAVOURS is the list). Writing the source and regenerating
+is what keeps them equal -- editing each Version line with its own substitution
+would be the same hand-maintenance this script exists to replace, one file
+deeper.
 """
 import os, re, sys
 
@@ -40,10 +42,10 @@ s = open(p, encoding="utf-8").read()
 s, n = re.subn(r"^## Version:.*$", "## Version: " + version, s, count=1, flags=re.M)
 assert n == 1, "no Version line in " + maketocs.SOURCE
 open(p, "w", encoding="utf-8", newline="\n").write(s)
-# And the five that are copies of it. count=1 above is still right -- there is
-# one Version line in the source -- but it stopped being the whole job the day
-# there were six tocs, and a bump that reached one of them and not the others
-# would ship five builds naming a version that was never released.
+# And the generated ones that are copies of it. count=1 above is still right --
+# there is one Version line in the source -- but it stopped being the whole job
+# the day there was more than one toc, and a bump that reached the source and
+# not the copies would ship builds naming a version that was never released.
 maketocs.main(check=False)
 
 # --- the build stamp --------------------------------------------------

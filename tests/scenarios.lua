@@ -1514,8 +1514,9 @@ end
 -- ------------------------------------------------------------------ 36
 -- A favour used to live only in memory, so a /reload -- the thing this client
 -- makes you do constantly -- wiped every debt. The trap is the clock: GetTime()
--- restarts near zero on every login, so a debt stored in those units comes back
--- either already expired or an hour long.
+-- is the machine's uptime, so it starts again near zero after a reboot and a
+-- debt stored in those units comes back either already expired or hours long.
+-- This models the reboot, the worst case; a plain /reload keeps the uptime.
 Mock.reset()
 Mock.sv = {}
 local a = load("debts survive a reload")
@@ -1541,7 +1542,7 @@ if a then
 		if not ok then fail("debts survive a reload", "the logout flush threw") end
 	end
 
-	-- Thirty seconds pass on both clocks, then the client restarts: the wall
+	-- Thirty seconds pass on both clocks, then the computer reboots: the wall
 	-- clock carries on and GetTime() begins again near zero.
 	Mock.advance(30)
 	Mock.now = 5
@@ -10949,7 +10950,7 @@ if ns then
 			fail(scenario, "never named the button on the options page that does"
 				.. " the same thing: " .. said)
 		end
-		if not said:find("Key Bindings", 1, true) then
+		if not said:find("Keybindings", 1, true) then
 			fail(scenario, "never mentioned the keybinding: " .. said)
 		end
 
@@ -17088,6 +17089,87 @@ if ns then
 		elseif not desc:find("%f[%a]red%f[%A]") then
 			fail(scenario, "the switch no longer says a failure flashes red: " .. desc)
 		end
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 266
+-- The key binding is where the greeting says it is.
+--
+-- The first-run greeting and the General tab both sent the player to "Game
+-- Menu > Key Bindings > Manners". This client's game menu has no Key Bindings
+-- entry: bindings are the Keybindings page of Options. And Bindings.xml filed
+-- the binding under the shared ADDONS category, so there was no section called
+-- Manners to find either -- the one line sat among everybody else's addons,
+-- labelled "Buff the prompted player". The path is read against the category
+-- Bindings.xml really declares, so the two cannot drift apart again.
+Mock.reset()
+Mock.sv = {}
+ns = load("the key binding is where the greeting says")
+if ns then
+	local scenario = "the key binding is where the greeting says"
+	local file = io.open(dir .. "/Bindings.xml", "r")
+	local xml = file and file:read("a") or ""
+	if file then file:close() end
+	local category = xml:match('category="([^"]*)"')
+	local said = firstLogin(ns)
+	local how = ns.optionsTable and ns.optionsTable.args.general.args.howItWorks
+	if not said then
+		fail(scenario, "the first session would not start at all")
+	elseif not how then
+		fail(scenario, "SKIPPED -- the How this works text is not on the page")
+	elseif category ~= "Manners" then
+		fail(scenario, "Bindings.xml files the binding under " .. tostring(category)
+			.. ", so the Keybindings page has no section called Manners")
+	else
+		local texts = { greeting = said, ["How this works"] = optionText(how.name) }
+		for where, text in pairs(texts) do
+			if text:find("Game Menu", 1, true) then
+				fail(scenario, "the " .. where .. " sends the player to a Game Menu entry"
+					.. " this client does not have: " .. text)
+			elseif not text:find("Keybindings > " .. category, 1, true) then
+				fail(scenario, "the " .. where .. " does not name the Keybindings section"
+					.. " the binding is in: " .. text)
+			end
+		end
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 267
+-- The addon wears its own icon.
+--
+-- tools/make-icon.py writes Textures/Manners64.tga and ships it in every zip,
+-- saying it is the icon for the minimap button and the addon list. Nothing
+-- pointed at it: both tocs and the launcher named a Blizzard spell icon, so the
+-- logo only ever existed on the download page. Every place that names an icon
+-- has to name a file the package really carries.
+Mock.reset()
+ns = load("the addon wears its own icon")
+if ns then
+	local scenario = "the addon wears its own icon"
+	drive(scenario, ns)
+	local function onDisk(path)
+		local rel = type(path) == "string" and path:match("^Interface\\AddOns\\Manners\\(.+)$")
+		if not rel then return false end
+		local f = io.open(dir .. "/" .. rel:gsub("\\", "/") .. ".tga", "rb")
+		if f then f:close() return true end
+		return false
+	end
+	for _, toc in ipairs({ "Manners.toc", "Manners_Camelot.toc" }) do
+		local file = io.open(dir .. "/" .. toc, "r")
+		local text = file and file:read("a") or ""
+		if file then file:close() end
+		local icon = text:match("\n## IconTexture:%s*([^\r\n]+)")
+		if not onDisk(icon) then
+			fail(scenario, toc .. " shows " .. tostring(icon) .. " in the addon list,"
+				.. " not the logo the package ships")
+		end
+	end
+	local icon = Mock.broker and Mock.broker.icon
+	if not onDisk(icon) then
+		fail(scenario, "the minimap button shows " .. tostring(icon)
+			.. ", not the logo the package ships")
 	end
 end
 Mock.reset()

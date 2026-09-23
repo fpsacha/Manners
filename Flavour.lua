@@ -11,19 +11,25 @@
 -- publish and Core.lua decides what it is allowed to do, and both need this
 -- before they run.
 --
--- The five, as of September 2026:
+-- The five, as of September 2026, and the toc each would load:
 --
---   retail "Midnight" 12.1   interface 120100+   Manners_Mainline.toc
+--   retail "Midnight" 12.1   interface 120100+   Manners_Mainline.toc (not shipped)
 --   WoW Forever 1.60.1       interface 16001     Manners_Camelot.toc
---   Mists of Pandaria        interface 50504     Manners_Mists.toc
+--   Mists of Pandaria        interface 50504     Manners_Mists.toc (not shipped)
 --   BC Classic Anniversary   interface 20506     (none -- see below)
+--   Classic Era 1.15.9       interface 11509     Manners_Vanilla.toc (not shipped)
 --
--- There is no Manners_TBC.toc on purpose. A 2.5 client applies Burning
--- Crusade spell ranks, whose ids are in none of the tables here, so the
--- addon would load and offer nobody anything. The band stays recognised so
--- such a client is named rather than guessed at, and it falls back to
--- Manners.toc. Add the ids before adding the toc.
---   Classic Era 1.15.9       interface 11509     Manners_Vanilla.toc
+-- 1.0 ships for WoW Forever alone: Manners_Camelot.toc and Manners.toc, whose
+-- interface number is 16001 too, are the only tocs in the package. The other
+-- three are recognised here and implemented throughout, but nobody has run the
+-- addon on them, so their tocs are commented out in tools/maketocs.py until
+-- somebody does.
+--
+-- There is no Manners_TBC.toc on purpose, and there would not be even then. A
+-- 2.5 client applies Burning Crusade spell ranks, whose ids are in none of the
+-- tables here, so the addon would load and offer nobody anything. The band
+-- stays recognised so such a client is named rather than guessed at. Add the
+-- ids before adding the toc.
 
 local ADDON, ns = ...
 
@@ -84,15 +90,17 @@ end
 -- the project id, as a cross-check only
 ---------------------------------------------------------------------------
 
--- WOW_PROJECT_ID == WOW_PROJECT_CATACLYSM_CLASSIC is true on retail.
+-- WOW_PROJECT_ID == WOW_PROJECT_CATACLYSM_CLASSIC is true wherever both names
+-- are nil.
 --
--- Not because retail is Cataclysm, but because both names are nil there: the
--- Classic-only constants do not exist on a modern client, and neither does
--- WOW_PROJECT_ID on a client old enough to predate it, so the comparison is
--- nil == nil and every such test passes at once. It is the reason this addon
--- does not trust the project id for anything on its own, and the reason both
--- sides are required to be numbers before the comparison is allowed to mean
--- anything.
+-- A client old enough to predate WOW_PROJECT_ID, asked about a constant it
+-- never had either, compares nil with nil, and every such test passes at once.
+-- On retail and on Forever WOW_PROJECT_ID is 1, so a missing constant there
+-- makes the comparison false -- the right answer, but only by luck, since it
+-- says nothing about whether the constant was ever meant to be asked. That is
+-- the reason this addon does not trust the project id for anything on its own,
+-- and the reason both sides are required to be numbers before the comparison
+-- is allowed to mean anything.
 --
 -- The constant is looked up by name rather than written as an identifier so
 -- that a typo reads as "this client does not have it" instead of quietly

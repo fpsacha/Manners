@@ -14,7 +14,8 @@ import maketocs
 OURS = ["Flavour.lua", "Buffs.lua", "Core.lua", "Prompt.lua", "Options.lua"]
 
 # Manners.toc is the hand-edited source and the fallback for a client that does
-# not honour a suffixed name; the other five are generated from it.
+# not honour a suffixed name; every per-flavour toc (tools/maketocs.py's
+# FLAVOURS, one today) is generated from it.
 TOCS = [maketocs.SOURCE] + sorted(maketocs.expected())
 
 L = lupa.LuaRuntime()
@@ -100,9 +101,10 @@ else:
           % (macro_body.group(1) if macro_body else None))
     fail += 1
 
-print("\n== the five per-flavour tocs are what the generator would write ==")
-# The one line that differs between them is the interface number, and five
-# hand-maintained copies of the same file list is a drift waiting to happen.
+print("\n== the %d generated toc(s) are what the generator would write =="
+      % len(maketocs.FLAVOURS))
+# The one line that differs from the source is the interface number, and
+# hand-maintained copies of the same file list are a drift waiting to happen.
 # Re-rendering here is exact: a hand edit to a generated toc -- or an edit to
 # Manners.toc that nobody regenerated after -- fails this and nothing else.
 for name, want in sorted(maketocs.expected().items()):
@@ -257,13 +259,15 @@ if not layout_bad:
 print("\n== the two lists of flavours agree ==")
 # Two places say which clients this addon claims, and they are read by
 # different things. tools/maketocs.py's table decides which per-flavour toc
-# files exist; Manners.toc's comma-delimited Interface line is what the
-# packager reads to tag the build's game versions.
+# files exist; Manners.toc's Interface line is what the packager reads to tag
+# the build's game versions. That line is a single number today, 16001, but a
+# client that understands one takes a comma-delimited list there, so it is
+# still read as one.
 #
 # They drifted the first time a flavour was dropped: the _TBC.toc was deleted
 # because there are no Burning Crusade spell ids in this addon, and 20506 was
-# left in the comma list, so the build went on advertising Burning Crusade
-# support that had just been withdrawn. Nothing noticed until the packager was
+# left in what was then a comma list, so the build went on advertising
+# Burning Crusade support that had just been withdrawn. Nothing noticed until the packager was
 # run by hand and its "Game version:" line was read.
 sys.path.insert(0, os.path.join(ROOT, "tools"))
 try:
@@ -312,6 +316,31 @@ else:
     else:
         print("  ok  %s has %d lines of notes" % (_v.group(1), _body.count("\n") + 1))
 
+print("\n== the changelog's sections are whole ==")
+# Two ways the log has been damaged without anybody reading it. A version
+# heading renamed in place (the old setversion did this to 0.9.5) leaves that
+# version's notes inside the next one, which then has two "### Fixed" blocks --
+# and release_notes.py hands CurseForge the wrong release's fixes under the
+# right number. And a heredoc that eats a backslash turns `\n` into a backtick,
+# a raw line break and a backtick: an empty code span where the text named the
+# token, which is how 1.5.0 said nothing about how to get a new line.
+_log = open(os.path.join(ROOT, "CHANGELOG.md"), encoding="utf-8").read()
+_log_bad = 0
+for _part in re.split(r"^(?=## )", _log, flags=re.M):
+    _head = _part.split("\n", 1)[0]
+    _subs = re.findall(r"^### (.+?)\s*$", _part, re.M)
+    for _sub in sorted(set(s for s in _subs if _subs.count(s) > 1)):
+        print("  TWICE  '### %s' under '%s' -- a version heading has gone missing"
+              " above the second" % (_sub, _head))
+        _log_bad += 1
+for _m in re.finditer(r"(?<!`)`\n`(?!`)", _log):
+    print("  BROKEN CODE SPAN at line %d -- a backslash escape was eaten"
+          % (_log.count("\n", 0, _m.start()) + 1))
+    _log_bad += 1
+fail += _log_bad
+if not _log_bad:
+    print("  ok  every version keeps its own notes")
+
 print("\n== AceConfig schema ==")
 # AceConfigRegistry validates the WHOLE options table and rejects all of it if
 # any one key has the wrong type -- not the offending control, the entire table,
@@ -347,9 +376,9 @@ for f in ["LICENSE", "README.md", "CHANGELOG.md", "THIRD-PARTY-NOTICES.md",
         fail += 1
 
 print("\n== version consistency ==")
-# Six tocs now carry a Version line, and setversion.py used to write exactly
-# one. A bump that reaches the source and leaves the other five on the old
-# number is the same mismatch setversion.py was written to prevent, arriving
+# Every toc carries a Version line -- the source and each generated one -- and
+# setversion.py used to write exactly one. A bump that reaches the source and
+# leaves the generated ones on the old number is the same mismatch setversion.py was written to prevent, arriving
 # from a direction it did not know about -- and CurseForge would publish the
 # flavour builds under a version that never existed.
 build = re.search(r'ns\.BUILD = "([^"]+)"',

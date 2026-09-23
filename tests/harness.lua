@@ -175,7 +175,8 @@ function LibStub:IterateLibraries() return pairs(libs) end
 function issecretvalue() return false end
 function InCombatLockdown() return false end
 function GetTime() return 1000 end
--- The wall clock. GetTime() restarts every login and this does not, so anything
+-- The wall clock. GetTime() is the machine's uptime and starts again after a
+-- reboot, and this does not, so anything
 -- written to SavedVariables has to go out in these units.
 function time() return 1700000000 end
 function wipe(t) for k in pairs(t) do t[k] = nil end return t end

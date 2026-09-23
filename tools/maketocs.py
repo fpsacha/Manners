@@ -1,14 +1,17 @@
-"""Write the five per-flavour .toc files from Manners.toc.
+"""Write the per-flavour .toc files from Manners.toc.
 
     python tools/maketocs.py           # write them
     python tools/maketocs.py --check   # say whether they are up to date
 
 The game reads Manners_<Flavour>.toc in preference to Manners.toc, so shipping
 real per-flavour files is what lets one addon declare the right interface number
-on each of the five live clients. They differ in exactly one line, which is why
-they are generated: five hand-maintained copies of the same file list drift, and
-the way a toc drift shows up is that one client silently loads four files
-instead of five and the addon is dead there with no message.
+on each client it supports. 1.0 supports one, so FLAVOURS below has one entry
+and this writes one file, Manners_Camelot.toc; the others are commented out
+until somebody runs the addon on them. Each generated toc differs from the
+source in exactly one line, which is why they are generated: hand-maintained
+copies of the same file list drift, and the way a toc drift shows up is that a
+client silently loads four files instead of five and the addon is dead there
+with no message.
 
 Manners.toc stays in the tree as the one file anybody edits, and as the fallback
 for a client that does not honour a suffixed name. tests/validate.py re-runs the
