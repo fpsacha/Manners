@@ -231,8 +231,10 @@ every flavour, and `[@nameplateN]` resolves on none of them. Which is why the
 macro is the same everywhere — targeting the person by name, casting, and
 handing your target back is the only shape that reaches a passing stranger on
 any client. The macro uses `/target`, which matches a name *prefix*, so
-offering Mort could find Mortimer standing next to him; when that happens the
-addon notices the cast landed on somebody else and says so. `/targetexact` is
+offering Mort could find Mortimer standing next to him. Where the client names
+who received the spell, the addon notices the cast landed on somebody else and
+says so; this client usually doesn't, and then the favour is counted as repaid
+on the strength of the `/target` line alone. `/targetexact` is
 detected (`/manners debug` reports it) but not used yet: it finds nobody at all
 if the name is one character out, and the surname spelling the addon assembles
 has not been checked against it in game.

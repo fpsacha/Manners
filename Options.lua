@@ -570,11 +570,17 @@ local function BuildOptions()
 				-- a stranger who buffed him is turned down until they join --
 				-- which is what the favour line in chat says, and what the
 				-- strangers note a few lines down says too.
+				--
+				-- In a raid on the older flavours that group is the warrior's
+				-- own subgroup, and saying "group" there told somebody already in
+				-- the raid to join it.
 				desc = function()
 					if OnlyReachesGroup() then
 						return "Watch for buffs cast on you and offer to return them. What you"
-							.. " cast reaches your group only, so somebody outside it is offered"
-							.. " once they join."
+							.. (ns.PARTY_IS_SUBGROUP and " cast reaches only your own party --"
+								.. " in a raid, your own subgroup --"
+								or " cast reaches your group only,")
+							.. " so somebody outside it is offered once they join."
 					end
 					return "Watch for buffs cast on you and offer to return them. "
 						.. "Works on strangers who are not in your group."
@@ -1156,13 +1162,17 @@ local function BuildOptions()
 						-- it. It used to name /targetlasttarget whatever that
 						-- switch said, and the strategy drops the line when it is
 						-- off -- and for somebody who is already your target, who
-						-- has nobody before them worth handing back.
+						-- has nobody before them worth handing back. Except in a
+						-- fight, where the macro armed at the pull keeps the line
+						-- for everybody: the player may target the mob afterwards,
+						-- and nothing can rebuild the macro to follow them.
 						name = function()
 							local cmd = (ns.TargetCommand and ns.TargetCommand()) or "/target"
 							local after
 							if F().restoreTarget then
-								after = ", then |cffffd100/targetlasttarget|r -- except for"
-									.. " somebody who is already your target, who stays targeted."
+								after = ", then |cffffd100/targetlasttarget|r -- except, outside a"
+									.. " fight, for somebody who is already your target, who stays"
+									.. " targeted."
 							else
 								after = ", and leaves them targeted."
 							end

@@ -16,7 +16,11 @@ DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TESTS = os.path.join(DIR, "tests")
 
 
-SUITES = ("runharness.py", "runscenarios.py")
+# Every suite a mutation below is judged by. validate.py judges some of them,
+# so it has to be green before they run and green again after the restore --
+# left out, a tree already red there reported every one of those as CAUGHT on
+# the strength of the failure that was already there.
+SUITES = ("validate.py", "runharness.py", "runscenarios.py")
 
 
 def run(script):
@@ -451,7 +455,7 @@ mutate("Prompt.lua",
 #     quoted in the tooltip was never the line that went out. The cache looks
 #     like an optimisation and is the only thing making the quote true.
 mutate("Prompt.lua",
-       "	if phraseKey ~= phraseIdentity then\n",
+       "	if phraseKey ~= phraseIdentity or (phraseText and #phraseText > budget) then\n",
        "	if true then\n",
        "the tooltip quoting a line it will not cast",
        expect="the tooltip quotes the line that will actually run",
@@ -2815,7 +2819,8 @@ mutate("Prompt.lua",
 
 # Your own target handed back to whoever came before them.
 mutate("Prompt.lua",
-       '\tlocal restore = ns.db.profile.filters.restoreTarget == true and entry.unit ~= "target"\n',
+       '\tlocal restore = ns.db.profile.filters.restoreTarget == true\n'
+       '\t\tand (entry.unit ~= "target" or Prompt.armedForFight == true)\n',
        "\tlocal restore = ns.db.profile.filters.restoreTarget == true\n",
        "your own target switched away after the buff",
        expect="hands the target to whoever came before",
@@ -2875,7 +2880,8 @@ mutate("Prompt.lua",
 # The roll keyed on the macro, unit token and all, so the same person seen
 # through another token was somebody new to it.
 mutate("Prompt.lua",
-       "\tif phraseKey ~= phraseIdentity then\n\t\tphraseKey, phraseText = phraseIdentity,",
+       "\tif phraseKey ~= phraseIdentity or (phraseText and #phraseText > budget) then\n"
+       "\t\tphraseKey, phraseText = phraseIdentity,",
        "\tif phraseKey ~= key then\n\t\tphraseKey, phraseText = key,",
        "the spoken line re-rolled on a unit token",
        expect="a press with the cursor on her said",
@@ -3294,7 +3300,7 @@ mutate(".github/workflows/ci.yml",
        "        shell: bash\n",
        "",
        "CI's selftest gate without pipefail",
-       expect="exit status is lost in the pipe",
+       expect="ci.yml: selftest's exit status is lost in the pipe",
        script="validate.py")
 
 # The same on the release, which then publishes past it.
@@ -3302,7 +3308,7 @@ mutate(".github/workflows/release.yml",
        "        shell: bash\n",
        "",
        "the release's selftest gate without pipefail",
-       expect="exit status is lost in the pipe",
+       expect="release.yml: selftest's exit status is lost in the pipe",
        script="validate.py")
 
 # The gate's grep back to knowing two of selftest's four failure words.
@@ -3330,8 +3336,13 @@ mutate("tests/setversion.py",
        script="validate.py")
 
 # The checklist pushing the tag with master, before CI has said anything.
+# Anchored on the commit line above it, which only the "Each release" block
+# has: the three push lines alone appear again in the failed-tag recovery, and
+# the mutation hit the block validate.py reads only because it comes first.
 mutate("RELEASING.md",
+       "git commit -am \"Manners X.Y.Z-beta.N\"\n"
        "git push origin master\ngit tag vX.Y.Z-beta.N\ngit push origin vX.Y.Z-beta.N\n",
+       "git commit -am \"Manners X.Y.Z-beta.N\"\n"
        "git tag vX.Y.Z-beta.N\ngit push origin master --tags\n",
        "release checklist pushes master and tag together",
        expect="pushes the tag with master",
@@ -3376,6 +3387,111 @@ mutate("tools/make-screenshots.py",
        "stale target colour in the screenshots",
        expect="fallback for target",
        script="validate.py")
+
+# Your own target's macro frozen for a fight without the hand-back, so tabbing
+# to the mob and pressing leaves you on the friend.
+mutate("Prompt.lua",
+       "\t\tand (entry.unit ~= \"target\" or Prompt.armedForFight == true)",
+       "\t\tand entry.unit ~= \"target\"",
+       "fight macro for your target drops the hand-back",
+       expect="the macro frozen for the fight cannot hand back",
+       script="runscenarios.py")
+
+# The fight's macro kept after it, so your own target is handed away again.
+mutate("Core.lua",
+       "\tif ns.Prompt then ns.Prompt.armedForFight = false end\n",
+       "",
+       "fight macro outlives the fight",
+       expect="after the fight the macro for your own target still hands it",
+       script="runscenarios.py")
+
+# The Targeting note promising your own target stays targeted in a fight too.
+mutate("Options.lua",
+       "|r -- except, outside a\"\n"
+       "\t\t\t\t\t\t\t\t\t.. \" fight, for somebody who is already your target, who stays\"",
+       "|r -- except for\"\n"
+       "\t\t\t\t\t\t\t\t\t.. \" somebody who is already your target, who stays\"",
+       "Targeting note forgets the fight",
+       expect="the Targeting note says your own target stays targeted",
+       script="runscenarios.py")
+
+# A settled line kept after the room it was rolled for has gone.
+mutate("Prompt.lua",
+       "\tif phraseKey ~= phraseIdentity or (phraseText and #phraseText > budget) then",
+       "\tif phraseKey ~= phraseIdentity then",
+       "kept spoken line not measured again",
+       expect="cuts the hand-back off the end",
+       script="runscenarios.py")
+
+# The follow prompt asked about a party member in a fight.
+mutate("Core.lua",
+       "\tif not InCombatLockdown() then\n"
+       "\t\tlocal follow = safecall(_G.CheckInteractDistance, unit, INTERACT_FOLLOW)",
+       "\tif true then\n"
+       "\t\tlocal follow = safecall(_G.CheckInteractDistance, unit, INTERACT_FOLLOW)",
+       "shout reach asked in combat",
+       expect="which the game blocks",
+       script="runscenarios.py")
+
+# Scenario 118 judging the chat switch by the error a nil call prints.
+mutate("tests/scenarios.lua",
+       "\t\tns.pendingClick = { name = \"Ana Field\", at = GetTime() - 30, buffKey = \"intellect\" }\n"
+       "\t\tns.addon:Tick()\n",
+       "\t\tns.pendingClick = { name = \"Ana Field\", at = GetTime() - 30, buffKey = \"intellect\" }\n"
+       "\t\tns.Guard(\"expire\", ns.ExpirePendingClick)\n",
+       "chat switch judged by a Lua error",
+       expect="threw instead of printing",
+       script="runscenarios.py")
+
+# The README promising the wrong Mort is always noticed.
+mutate("README.md",
+       "says so; this client usually doesn't, and then the favour is counted as repaid\n"
+       "on the strength of the `/target` line alone.",
+       "says so.",
+       "README overpromises the prefix-match check",
+       expect="promises the wrong Mort is noticed",
+       script="runscenarios.py")
+
+# A raider in another subgroup told to join a group they are in.
+mutate("Core.lua",
+       "or ns.PARTY_IS_SUBGROUP and \"what you cast reaches only your own party -- in a\"",
+       "or false and \"what you cast reaches only your own party -- in a\"",
+       "favour line says group, not subgroup",
+       expect="a raider already in the group was told to join it",
+       script="runscenarios.py")
+
+# The warrior's owed toggle saying the same.
+mutate("Options.lua",
+       "(ns.PARTY_IS_SUBGROUP and \" cast reaches only your own party --\"",
+       "(false and \" cast reaches only your own party --\"",
+       "owed toggle says group, not subgroup",
+       expect="the warrior's owed toggle says the shout reaches the group",
+       script="runscenarios.py")
+
+# A shout measured out of earshot reported as one nothing measured.
+mutate("Core.lua",
+       "\tif unheard and wasOwed and pending.outOfShout then",
+       "\tif false then",
+       "out-of-earshot shout said to be unmeasured",
+       expect="the follow prompt said they were too far away",
+       script="runscenarios.py")
+
+# An owed person wearing every blessing we know from another paladin, offered
+# nothing at all.
+mutate("Core.lua",
+       "\t\tif not pick and opts.offerAnyway and theirs then return theirs, true end\n",
+       "",
+       "debt left unoffered behind other paladins' blessings",
+       expect="offered nothing at all by a paladin who knows only might",
+       script="runscenarios.py")
+
+# The carried-anchor line telling a rescued player to undo the rescue.
+mutate("Core.lua",
+       "\" If you had put it at the bottom edge on purpose, drag it back or pick a place\"",
+       "\" If it used to sit on the bottom edge, drag it back or pick a place\"",
+       "carried-anchor advice keyed on where it sat",
+       expect="the players it rescued included",
+       script="runscenarios.py")
 
 print()
 print("after restore:")

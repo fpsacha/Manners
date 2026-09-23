@@ -932,6 +932,11 @@ function Prompt:Create()
 			-- press has nothing else tying it to the person named, so the
 			-- settle clears a debt on it only where this is true.
 			withinShout = current.ranged == true,
+			-- And whether it measured them outside it, which is a different
+			-- reason for the same kept debt: with "Hide players known to be out
+			-- of range" off they are still offered, and the line has to say the
+			-- answer was no rather than that nothing answered.
+			outOfShout = current.ranged == false,
 			gave = ns.lastGave[current.name] }
 		-- Per buff, so casting Fortitude does not stop the walk reaching
 		-- Divine Spirit on the next click.
@@ -1746,7 +1751,15 @@ STRATEGIES.target = function(entry, spell)
 	-- last-target slot still holds whoever came before them -- a mob, as often
 	-- as not -- which /targetlasttarget would then switch to. The unit is in
 	-- the macro's key, so this is rebuilt the moment the target changes.
-	local restore = ns.db.profile.filters.restoreTarget == true and entry.unit ~= "target"
+	--
+	-- Except in a fight, where nothing is rebuilt at all: the macro armed at
+	-- the pull is the one every press runs until it ends. The player tabs to
+	-- the mob, presses, and a macro without the hand-back leaves them
+	-- targeting the friend with the mob lost. So the macro armed for the
+	-- fight keeps it -- a press with the friend still targeted then switches
+	-- to whoever came before them, which is the smaller of the two losses.
+	local restore = ns.db.profile.filters.restoreTarget == true
+		and (entry.unit ~= "target" or Prompt.armedForFight == true)
 	return {
 		TargetCommand() .. " " .. who,
 		"/cast " .. spell,
@@ -1908,8 +1921,10 @@ function Prompt:ApplyTarget(entry)
 	-- a /manners try template can say {unit}, so the same person reached
 	-- through a nameplate one tick and through party2 the next expands to a
 	-- different macro, and the memo would have shown and armed the old one.
+	-- And whether it is being armed for a fight, which decides the hand-back
+	-- for your own target: see STRATEGIES.target.
 	local key = table.concat({ entry.name, tostring(entry.unit), entry.buff.key,
-		tostring(entry.reason), tostring(ns.tryMacro) }, "\1")
+		tostring(entry.reason), tostring(ns.tryMacro), tostring(Prompt.armedForFight) }, "\1")
 	if key == appliedKey then return end
 
 	-- /manners try: arbitrary macro text, expanded against the current
@@ -1968,10 +1983,19 @@ function Prompt:ApplyTarget(entry)
 	-- Measured, not assumed. The budget used to be a constant 120 with a
 	-- second, correct length check immediately below it -- two rules for one
 	-- question, and the constant was the one the options preview quoted.
+	--
+	-- The room is not part of the identity, though, and it can change under a
+	-- settled line: your own target's macro has no hand-back and leaves the
+	-- line eighteen characters more than the same person's macro off a
+	-- nameplate. A line rolled into that room and kept took the macro past
+	-- the client's limit, which cuts off the last line -- the hand-back. So a
+	-- kept line is measured again, and rolled afresh only when it no longer
+	-- fits.
 	local phraseIdentity = table.concat({ entry.name, entry.buff.key, tostring(entry.reason),
 		tostring(ns.tryMacro) }, "\1")
-	if phraseKey ~= phraseIdentity then
-		phraseKey, phraseText = phraseIdentity, ns.PickPhrase(entry, ns.PhraseBudget(entry))
+	local budget = ns.PhraseBudget(entry)
+	if phraseKey ~= phraseIdentity or (phraseText and #phraseText > budget) then
+		phraseKey, phraseText = phraseIdentity, ns.PickPhrase(entry, budget)
 	end
 	local phrase = phraseText
 	if phrase then lines[#lines + 1] = phrase end

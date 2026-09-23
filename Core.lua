@@ -781,6 +781,9 @@ function ns.PickBuffFor(candidates, opts, has)
 	-- ns.RotatesBuffs says so to the writers of that table.
 	if ns.EXCLUSIVE_BUFFS[playerClass] then
 		local pick, allRead, onCooldown = nil, true, false
+		-- The first blessing they carry from another paladin, kept for a debt
+		-- with nothing else left to give: see the end of this branch.
+		local theirs
 		for _, buff in ipairs(candidates) do
 			-- castable rather than eligible: a blessing we tried moments ago is
 			-- exactly the one they are most likely to be carrying, and skipping
@@ -798,7 +801,11 @@ function ns.PickBuffFor(candidates, opts, has)
 					-- So the walk moves on to a kind they lack -- unless we
 					-- offered this one moments ago, which is the cooldown rule
 					-- below and still means "wait".
-					if blocked(buff) then onCooldown = true end
+					if blocked(buff) then
+						onCooldown = true
+					elseif not theirs then
+						theirs = buff
+					end
 				elseif held == true then
 					-- Covered, and for this class that is the end of it:
 					-- anything else offered replaces what they are carrying.
@@ -845,7 +852,8 @@ function ns.PickBuffFor(candidates, opts, has)
 					-- which the branch above has already walked past: recasting
 					-- that would replace their blessing, not refresh ours. A debt
 					-- owed to somebody wearing only other paladins' blessings is
-					-- repaid with the first kind they lack, below.
+					-- repaid with the first kind they lack, below -- or, with none
+					-- left, with the first of theirs, at the end of the branch.
 					if not opts.offerAnyway then return nil, true end
 					return buff, true
 				else
@@ -883,6 +891,14 @@ function ns.PickBuffFor(candidates, opts, has)
 		-- the click. Acting on it walks the paladin off the blessing just given
 		-- by the one door still open.
 		if onCooldown then return nil, nil end
+		-- A debt, and every blessing we could give is already on them from
+		-- another paladin: a young paladin who knows only Might, owing somebody
+		-- who wears somebody else's. The walk above found no kind they lack, and
+		-- ending there offered nobody anything while chat had said the favour
+		-- was on the prompt. The policy for a debt is to offer anyway, even
+		-- what they already have, and ours of the same kind only replaces
+		-- theirs -- which is what that policy means for every other class.
+		if not pick and opts.offerAnyway and theirs then return theirs, true end
 		-- Spelled out rather than collapsed: `allRead and false or nil` is nil
 		-- either way, because false loses the and-branch to the or -- and the
 		-- whole subject here is the difference between false and nil.
@@ -1259,9 +1275,17 @@ local INTERACT_FOLLOW = 4
 -- check that would not answer as "further out" -- see DirectCheck -- so its "far"
 -- can be a refusal in disguise, and turning somebody away on that would drop a
 -- party member standing beside you. Its "within" has no such doubt about it.
+--
+-- Not the follow prompt in a fight. It is restricted there for a friendly unit
+-- -- the game blocks the call and names the addon for it, which no pcall
+-- catches -- and the scan never builds the queue in a fight, but /manners debug
+-- does. LibRangeCheck is still asked: it switches to its in-combat checkers by
+-- itself.
 local function ShoutReach(unit)
-	local follow = safecall(_G.CheckInteractDistance, unit, INTERACT_FOLLOW)
-	if follow ~= nil then return follow == true or follow == 1 end
+	if not InCombatLockdown() then
+		local follow = safecall(_G.CheckInteractDistance, unit, INTERACT_FOLLOW)
+		if follow ~= nil then return follow == true or follow == 1 end
+	end
 
 	local stub = _G.LibStub
 	local lib = type(stub) == "table" and type(stub.GetLibrary) == "function"
@@ -2804,9 +2828,15 @@ local function NoteFavour(seen)
 		-- prompt, and the line says which. In a raid "the party" is the
 		-- warrior's own subgroup, which is why this asks SameParty and not
 		-- whether they are in the raid at all.
+		--
+		-- And the line names the subgroup where that is the limit. A raider
+		-- from another subgroup is in the group already, and "offered if they
+		-- join it" gave the player nothing to act on.
 		local reachable = ns.CouldOffer(hasMana, inParty) ~= nil
 		addon:Print(("|cff80ff80%s buffed you|r -- %s"):format(seen.name, reachable
 			and "returning the favour is on the prompt"
+			or ns.PARTY_IS_SUBGROUP and "what you cast reaches only your own party -- in a"
+				.. " raid, your own subgroup -- so they are offered if they join it"
 			or "what you cast reaches your group only, so they are offered if they join it"))
 	end
 	-- Written through rather than left to the logout hook: a favour is rare
@@ -3891,7 +3921,9 @@ local function SettlePendingClick(landedOn, spellId, castGUID)
 	-- on somebody who simply looked short of a buff owes nothing and settles
 	-- nothing, so saying "counted as repaid" about them would be its own small
 	-- untruth.
-	if unheard and wasOwed then
+	if unheard and wasOwed and pending.outOfShout then
+		SayStillOwed(pending.name, "the shout went out, but they were too far away to hear it")
+	elseif unheard and wasOwed then
 		SayStillOwed(pending.name, "the shout went out, but nothing could tell whether they"
 			.. " were close enough to hear it")
 	elseif inferred and wasOwed then
@@ -4254,6 +4286,10 @@ function addon:PLAYER_REGEN_DISABLED()
 	-- First, while the button can still be touched: a drag held into the pull
 	-- is let go of and its position kept, rather than released in the fight.
 	if ns.Prompt then ns.Guard("drag at fight start", ns.Prompt.FinishDragForFight, ns.Prompt) end
+	-- The macro this Refresh arms is the one every press in the fight runs,
+	-- whatever the player targets meanwhile, so it is built to hand the target
+	-- back even for somebody who is the target now. See STRATEGIES.target.
+	if ns.Prompt then ns.Prompt.armedForFight = true end
 	if ns.Prompt then ns.Guard("combat hold", ns.Prompt.Refresh, ns.Prompt) end
 	C_Timer.After(0, function()
 		if ns.Prompt then ns.Guard("combat hold", ns.Prompt.Refresh, ns.Prompt) end
@@ -4276,6 +4312,11 @@ function addon:PLAYER_REGEN_ENABLED()
 	-- something was deferred the hold comes off with it; when nothing was, the
 	-- panel would sit dimmed and reading "held -- in combat" until the next
 	-- scan tick noticed the fight was over.
+	--
+	-- The macro can follow the target again, so it stops being built for a
+	-- fight -- first, so the Refresh below rebuilds it without the hand-back
+	-- for somebody who is already the target.
+	if ns.Prompt then ns.Prompt.armedForFight = false end
 	if ns.Prompt and ns.Prompt.pendingStyle then
 		ns.Prompt:ApplyStyle()
 	elseif ns.Prompt then
@@ -5093,12 +5134,16 @@ end
 -- chat frame exists, and anything printed then is printed to nobody: at login
 -- it waits for the build line, and on a profile switch it is said straight
 -- after the clamp. Once, whichever gets there first.
+--
+-- The advice turns on what the player meant, not on where the prompt sat: the
+-- prompts this rescues sat on the bottom edge too, pinned over the action bars
+-- by accident, and "if it used to sit on the bottom edge" told them to undo it.
 function ns.SayAnchorCarried()
 	if not ns.anchorCarriedNote then return end
 	ns.anchorCarriedNote = nil
 	addon:Print("the prompt was moved onto its new anchor, the middle of the screen."
-		.. " If it used to sit on the bottom edge, drag it back or pick a place under"
-		.. " |cffffd100Put it|r on the options page.")
+		.. " If you had put it at the bottom edge on purpose, drag it back or pick a place"
+		.. " under |cffffd100Put it|r on the options page.")
 end
 
 function addon:OnInitialize()

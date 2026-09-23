@@ -7943,14 +7943,21 @@ if ns then
 		ns.db.profile.verbose = true
 		Mock.printed = {}
 		-- A press the game never answered. Nobody buffed anybody here, so
-		-- anything printed is by definition not the favour line.
+		-- anything printed is by definition not the favour line. Run out by
+		-- the tick, the way the addon itself notices it: the function that
+		-- does the expiring is local to Core, and asking ns for it called nil.
 		ns.pendingClick = { name = "Ana Field", at = GetTime() - 30, buffKey = "intellect" }
-		ns.Guard("expire", ns.ExpirePendingClick)
+		ns.addon:Tick()
 		local said = table.concat(Mock.printed, " | ")
 		local text = ((type(verbose.name) == "function" and verbose.name() or verbose.name)
 			.. " " .. (type(verbose.desc) == "function" and verbose.desc() or verbose.desc)):lower()
 
-		if said == "" then
+		-- What was printed has to be the addon's line about the press, not a
+		-- Lua error caught on the way to it -- which reads as "something was
+		-- printed" just as well, and judged the switch by an error string.
+		if said:find("something broke", 1, true) then
+			fail(scenario, "SKIPPED -- the unanswered press threw instead of printing: " .. said)
+		elseif said == "" then
 			fail(scenario, "SKIPPED -- nothing was printed for a click that went nowhere, so"
 				.. " the switch has only the one job the old label gave it")
 		elseif not (text:find("click", 1, true) or text:find("cast", 1, true)) then
@@ -17170,6 +17177,399 @@ if ns then
 	if not onDisk(icon) then
 		fail(scenario, "the minimap button shows " .. tostring(icon)
 			.. ", not the logo the package ships")
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 268
+-- A macro armed for a fight hands your target back.
+--
+-- Scenario 237 took /targetlasttarget off the macro for somebody reached
+-- through the target token, on the grounds that the macro is rebuilt the moment
+-- the target changes. In a fight it is not: the attributes are frozen at the
+-- pull. So a player with a friendly stranger targeted when a mob pulled, who
+-- then tabbed to the mob and pressed the prompt, ran /target on the stranger,
+-- the cast, and nothing else -- and was left targeting the stranger mid-fight,
+-- the mob lost, with "hand my target back" on.
+Mock.reset()
+local seen268 = { target = { "Anna", "Aim" } }
+restoreUnits = strangers(seen268)
+ns = load("a macro armed for a fight hands your target back")
+if ns then
+	local scenario = "a macro armed for a fight hands your target back"
+	freshPrompt(ns, scenario)
+	ns.db.profile.filters.restoreTarget = true
+	ns.Prompt:InvalidateMacro()
+	ns.addon:Tick()
+	local button = ns.Prompt:GetButton()
+	local before = tostring(button:GetAttribute("macrotext1") or "")
+	if not before:find("Anna Aim", 1, true) or before:find("/targetlasttarget", 1, true) then
+		fail(scenario, "SKIPPED -- Anna was not armed through the target token without a"
+			.. " hand-back: " .. (before:gsub("\n", " / ")))
+	else
+		-- The pull, as the client delivers it: the event just before lockdown,
+		-- then lockdown itself.
+		ns.addon:PLAYER_REGEN_DISABLED()
+		Mock.inCombat = true
+		Mock.runTimers(0.1)
+		local frozen = tostring(button:GetAttribute("macrotext1") or "")
+		if not frozen:find("/targetlasttarget", 1, true) then
+			fail(scenario, "the macro frozen for the fight cannot hand back a target changed"
+				.. " during it: " .. (frozen:gsub("\n", " / ")))
+		end
+		-- The Targeting note promised your own target stays targeted, with no
+		-- word about the fight where it does not.
+		local note = ns.optionsTable and ns.optionsTable.args.click.args.targetingNote
+		local says = note and tostring(type(note.name) == "function" and note.name() or note.name)
+		if not says then
+			fail(scenario, "SKIPPED -- the Targeting note is not on the page")
+		elseif says:find("stays targeted", 1, true) and not says:find("fight", 1, true) then
+			fail(scenario, "the Targeting note says your own target stays targeted, and in a"
+				.. " fight the macro hands it back: " .. says)
+		end
+
+		-- And out of the fight the target keeps its own macro again.
+		Mock.inCombat = false
+		ns.addon:PLAYER_REGEN_ENABLED()
+		local after = tostring(button:GetAttribute("macrotext1") or "")
+		if after:find("/targetlasttarget", 1, true) then
+			fail(scenario, "after the fight the macro for your own target still hands it to"
+				.. " whoever came before: " .. (after:gsub("\n", " / ")))
+		end
+	end
+	Mock.inCombat = false
+end
+restoreUnits()
+Mock.reset()
+
+-- ------------------------------------------------------------------ 269
+-- A spoken line rolled for your target still fits once they are not.
+--
+-- The line is rolled once per person, buff and reason, and kept when the same
+-- person is reached another way -- somebody who buffed you is "owed" through
+-- every token. The room it was rolled for is not kept with
+-- it: your own target's macro has no hand-back, so it leaves eighteen more
+-- characters for the line. A line that used them, kept when the same person
+-- turned up off a nameplate and the hand-back came back, took the macro past
+-- the client's limit -- and what the client cuts off is the last line, the
+-- /targetlasttarget that hands your target back.
+Mock.reset()
+local seen269 = { target = { "Anna", "Aim" } }
+restoreUnits = strangers(seen269)
+ns = load("a line rolled for your target still fits once they are not")
+if ns then
+	local scenario = "a line rolled for your target still fits once they are not"
+	freshPrompt(ns, scenario)
+	local db = ns.db.profile
+	db.filters.restoreTarget = true
+	db.speech.enabled = true
+	db.speech.channel = "SAY"
+	db.speech.onlyWhenReturning = false
+	owe(ns, "Anna Aim")
+	ns.addon:Tick()
+	local top = ns.BuildQueue()[1]
+	if not (top and top.unit == "target" and top.reason == "owed") then
+		fail(scenario, "SKIPPED -- Anna was not offered as owed through the target token")
+	else
+		-- A line that uses every character your own target's macro leaves.
+		db.speech.phrases = string.rep("x", ns.PhraseBudget(top) - #"/say ")
+		ns.Prompt:InvalidateMacro()
+		ns.addon:Tick()
+		local button = ns.Prompt:GetButton()
+		local asTarget = tostring(button:GetAttribute("macrotext1") or "")
+		if not asTarget:find("\n/say x", 1, true) then
+			fail(scenario, "SKIPPED -- the line was not armed for the target: "
+				.. (asTarget:gsub("\n", " / ")))
+		else
+			seen269.target = nil
+			seen269.nameplate1 = { "Anna", "Aim" }
+			ns.nameplateUnits["nameplate1"] = true
+			ns.addon:Tick()
+			local armed = tostring(button:GetAttribute("macrotext1") or "")
+			if not armed:find("Anna Aim", 1, true) then
+				fail(scenario, "SKIPPED -- Anna was not armed off the nameplate: "
+					.. (armed:gsub("\n", " / ")))
+			elseif #armed > ns.MACRO_LIMIT then
+				fail(scenario, ("the macro off the nameplate is %d characters, and the client"
+					.. " cuts the hand-back off the end of it"):format(#armed))
+			elseif not armed:find("/targetlasttarget", 1, true) then
+				fail(scenario, "the hand-back is missing off the nameplate: "
+					.. (armed:gsub("\n", " / ")))
+			end
+		end
+	end
+end
+restoreUnits()
+Mock.reset()
+
+-- ------------------------------------------------------------------ 270
+-- A warrior's queue built in a fight does not ask the follow prompt.
+--
+-- Whether a shout reaches somebody is asked of CheckInteractDistance, and that
+-- call is restricted for a friendly unit during lockdown: the game blocks it
+-- and blames the addon. The scan does not build the queue in a fight, but
+-- /manners debug does, so a warrior typing it mid-pull had the addon ask about
+-- every party member in the one state where asking is refused. The distance
+-- filter already stands down in a fight for this very reason.
+Mock.reset()
+Mock.class = "WARRIOR"
+Mock.groupSize = 3
+Mock.unitNames = { party1 = { "Near", "Ally" }, party2 = { "Far", "Ally" } }
+local realKnown270, realPlayer270 = IsSpellKnown, IsPlayerSpell
+ns = load("a warrior's queue built in a fight does not ask the follow prompt")
+if ns then
+	local scenario = "a warrior's queue built in a fight does not ask the follow prompt"
+	knowShout(ns)
+	Mock.rangeless = {}
+	for _, id in ipairs(ns.FindBuff("WARRIOR", "battleshout").ranks) do
+		Mock.rangeless[id] = true
+	end
+	drive(scenario, ns)
+	Mock.advance(60)
+	wipe(ns.owed)
+	wipe(ns.tried)
+	ns.Guard("probe", ns.ProbeCapabilities)
+	local realInteract = CheckInteractDistance
+	local asked, inFight = 0, {}
+	CheckInteractDistance = function(unit, index)
+		asked = asked + 1
+		if Mock.inCombat then inFight[#inFight + 1] = tostring(unit) .. ":" .. tostring(index) end
+		return realInteract(unit, index)
+	end
+	ns.BuildQueue()
+	if asked == 0 then
+		fail(scenario, "SKIPPED -- the follow prompt was not asked even out of a fight")
+	else
+		Mock.inCombat = true
+		ns.addon:HandleSlash("debug")
+		Mock.inCombat = false
+		if #inFight > 0 then
+			fail(scenario, "asked CheckInteractDistance about a friendly unit in a fight,"
+				.. " which the game blocks: " .. table.concat(inFight, ", "))
+		end
+	end
+	CheckInteractDistance = realInteract
+end
+IsSpellKnown, IsPlayerSpell = realKnown270, realPlayer270
+Mock.reset()
+
+-- ------------------------------------------------------------------ 271
+-- The README says what happens when /target finds the wrong Mort.
+--
+-- It said the addon notices the cast landed on somebody else and says so. That
+-- takes the client naming who received the spell, and this one usually does
+-- not: the settle then rests on the /target line alone and counts the favour
+-- as repaid, saying nothing about anybody else. Judged against the settle
+-- itself, so the sentence is held to what a press with no recipient does.
+Mock.reset()
+local seen271 = { nameplate1 = { "Mort", "Tall" } }
+restoreUnits = strangers(seen271)
+ns = load("the README says what a press with no named recipient does")
+if ns then
+	local scenario = "the README says what a press with no named recipient does"
+	freshPrompt(ns, scenario)
+	owe(ns, "Mort Tall")
+	local entry
+	for _, row in ipairs(ns.BuildQueue()) do
+		if row.name == "Mort Tall" then entry = row end
+	end
+	local spell = entry and entry.buff and ns.FindBuff(ns.caps.class, entry.buff.key)
+	if not (entry and spell) or not pressAndSend(ns, entry, spell.ranks[1]) then
+		fail(scenario, "SKIPPED -- no press on Mort could be made")
+	else
+		local said = table.concat(Mock.printed, "\n")
+		local file = io.open(dir .. "/README.md", "r")
+		local text = file and file:read("a") or ""
+		if file then file:close() end
+		local para = ""
+		for block in (text .. "\n\n"):gmatch("(.-)\n\n") do
+			if block:find("Mortimer", 1, true) then para = block:gsub("%s+", " ") end
+		end
+		if ns.owed["Mort Tall"] or not said:find("counted as repaid", 1, true) then
+			fail(scenario, "SKIPPED -- a press with no named recipient was not counted as"
+				.. " repaid: " .. said)
+		elseif para == "" then
+			fail(scenario, "SKIPPED -- the README no longer mentions Mortimer")
+		elseif not para:find("counted as repaid", 1, true) then
+			fail(scenario, "the README promises the wrong Mort is noticed, and a press the"
+				.. " client names nobody for is counted as repaid: " .. para)
+		end
+	end
+end
+restoreUnits()
+Mock.reset()
+
+-- ------------------------------------------------------------------ 272
+-- A warrior in a raid is told the shout reaches his subgroup, not his group.
+--
+-- A raider from another subgroup who buffed a warrior was announced with "what
+-- you cast reaches your group only, so they are offered if they join it". They
+-- are in his group already -- the raid -- and joining it is not what would get
+-- them offered; being in his subgroup is. The warrior's description of "People
+-- who buffed me" said the same.
+Mock.reset()
+Mock.class = "WARRIOR"
+Mock.raid = { size = 40, player = 1 }
+Mock.unitNames = {}
+for i = 1, 40 do Mock.unitNames["raid" .. i] = { "Raider" .. i, "Stone" } end
+local realKnown272, realPlayer272 = IsSpellKnown, IsPlayerSpell
+ns = load("a warrior in a raid is told the shout reaches his subgroup")
+if ns then
+	local scenario = "a warrior in a raid is told the shout reaches his subgroup"
+	knowShout(ns)
+	drive(scenario, ns)
+	Mock.advance(60)
+	wipe(ns.owed)
+	wipe(ns.tried)
+	ns.db.profile.verbose = true
+	primeAuras(ns)
+	local said = favourFrom(ns, "raid30", 25289)
+	if not said:find("buffed you", 1, true) or said:find("on the prompt", 1, true) then
+		fail(scenario, "SKIPPED -- the favour from another subgroup was not noticed as out"
+			.. " of reach: " .. said)
+	elseif not said:find("subgroup", 1, true) then
+		fail(scenario, "a raider already in the group was told to join it: " .. said)
+	end
+	local owed = ns.optionsTable and ns.optionsTable.args.who.args.owed
+	local desc = owed and tostring(type(owed.desc) == "function" and owed.desc() or owed.desc)
+	if not desc then
+		fail(scenario, "SKIPPED -- the owed toggle has no description to read")
+	elseif not desc:find("subgroup", 1, true) then
+		fail(scenario, "the warrior's owed toggle says the shout reaches the group, and in a"
+			.. " raid it reaches the subgroup: " .. desc)
+	end
+end
+IsSpellKnown, IsPlayerSpell = realKnown272, realPlayer272
+Mock.reset()
+
+-- ------------------------------------------------------------------ 273
+-- A shout at somebody measured too far away says they were too far away.
+--
+-- With "Hide players known to be out of range" off, a party member the follow
+-- prompt reported as out of earshot is still offered the shout. Pressing it
+-- kept the debt, rightly, and said "nothing could tell whether they were close
+-- enough to hear it" -- when something had told, and the answer was no.
+Mock.reset()
+Mock.class = "WARRIOR"
+Mock.groupSize = 3
+Mock.unitNames = { party1 = { "Near", "Ally" }, party2 = { "Far", "Ally" } }
+Mock.yards = { party1 = 5, party2 = 60 }
+local realKnown273, realPlayer273 = IsSpellKnown, IsPlayerSpell
+ns = load("a shout at somebody measured too far away says so")
+if ns then
+	local scenario = "a shout at somebody measured too far away says so"
+	knowShout(ns)
+	Mock.rangeless = {}
+	for _, id in ipairs(ns.FindBuff("WARRIOR", "battleshout").ranks) do
+		Mock.rangeless[id] = true
+	end
+	drive(scenario, ns)
+	Mock.advance(60)
+	wipe(ns.owed)
+	wipe(ns.tried)
+	ns.Guard("probe", ns.ProbeCapabilities)
+	ns.db.profile.verbose = true
+	ns.db.profile.filters.requireInRange = false
+
+	ns.owed["Far Ally"] = { expires = GetTime() + 100, at = GetTime() }
+	local far
+	for _, entry in ipairs(ns.BuildQueue()) do
+		if entry.name == "Far Ally" then far = entry end
+	end
+	local shout = ns.FindBuff("WARRIOR", "battleshout").ranks[1]
+	if not (far and far.ranged == false) then
+		fail(scenario, "SKIPPED -- the far party member was not offered as measured out of"
+			.. " earshot")
+	elseif not pressAndSend(ns, far, shout) then
+		fail(scenario, "SKIPPED -- the press on them was not recorded")
+	else
+		local said = table.concat(Mock.printed, "\n")
+		if not ns.owed["Far Ally"] then
+			fail(scenario, "SKIPPED -- a shout at somebody out of earshot cleared the debt")
+		elseif said:find("nothing could tell", 1, true) then
+			fail(scenario, "the follow prompt said they were too far away, and the line says"
+				.. " nothing could tell: " .. said)
+		elseif not said:find("too far away", 1, true) then
+			fail(scenario, "the kept debt does not say they were too far away: " .. said)
+		end
+	end
+end
+IsSpellKnown, IsPlayerSpell = realKnown273, realPlayer273
+Mock.reset()
+
+-- ------------------------------------------------------------------ 274
+-- Somebody who buffed a paladin is offered the favour back even when every
+-- blessing the paladin knows is already on them from another paladin.
+--
+-- Scenario 216 walks an owed person past another paladin's blessing to a kind
+-- they lack. With no kind left -- a young paladin who knows only Might, owing
+-- somebody who wears another paladin's Might -- the walk ended with nothing,
+-- and nobody was offered anything. Chat had said "returning the favour is on the
+-- prompt", and the options promise that somebody who buffed you is offered the
+-- favour back even if they already have it.
+Mock.reset()
+Mock.class = "PALADIN"
+Mock.unitClass = "PALADIN"
+local realKnown274, realPlayer274 = IsSpellKnown, IsPlayerSpell
+ns = load("an owed person wearing every blessing you know is still offered one")
+if ns then
+	local scenario = "an owed person wearing every blessing you know is still offered one"
+	local known = {}
+	for _, id in ipairs(ns.FindBuff("PALADIN", "might").ranks) do known[id] = true end
+	IsSpellKnown = function(id) return known[id] == true end
+	IsPlayerSpell = IsSpellKnown
+	drive(scenario, ns)
+	Mock.advance(60)
+	wipe(ns.owed)
+	wipe(ns.tried)
+	ns.Guard("probe", ns.ProbeCapabilities)
+	local might = ns.FindBuff("PALADIN", "might").ranks[1]
+	Mock.held = { [might] = true }
+	Mock.heldSource = { [might] = "nameplate2" }
+	local before = inQueue(ns)["Petra Stonewell"]
+	ns.owed["Petra Stonewell"] = { expires = GetTime() + 100, at = GetTime() }
+	Mock.advance(1)
+	local petra = inQueue(ns)["Petra Stonewell"]
+	if before then
+		fail(scenario, "SKIPPED -- somebody wearing another paladin's Might was offered"
+			.. " it before they were owed anything")
+	elseif not petra then
+		fail(scenario, "somebody who buffed you, wearing another paladin's Might, was"
+			.. " offered nothing at all by a paladin who knows only Might")
+	elseif petra.buff.key ~= "might" then
+		fail(scenario, "offered " .. tostring(petra.buff.key) .. ", which is not learned")
+	end
+	wipe(ns.owed)
+	Mock.held, Mock.heldSource = nil, nil
+end
+IsSpellKnown, IsPlayerSpell = realKnown274, realPlayer274
+Mock.reset()
+
+-- ------------------------------------------------------------------ 275
+-- The carried-anchor line does not tell a rescued player to undo the rescue.
+--
+-- The carry-over exists for 0.9.x prompts that beta.1 to beta.3 pinned onto
+-- the bottom edge over the action bars by accident, and it cannot tell them
+-- from a prompt put there on purpose with the Y slider. The line said "If it
+-- used to sit on the bottom edge, drag it back" -- which both of them did, so
+-- the player it rescued was told to put the prompt back over their bars. What
+-- tells the two apart is only what the player meant, so that is what it asks.
+Mock.reset()
+ns = load("the carried-anchor line asks what the player meant")
+if ns then
+	local scenario = "the carried-anchor line asks what the player meant"
+	drive(scenario, ns)
+	local p = ns.db.profile.prompt
+	p.point, p.relPoint, p.y = "BOTTOM", "BOTTOM", -40
+	p.anchorCarried = nil
+	Mock.printed = {}
+	ns.addon:RefreshConfig()
+	local said = table.concat(Mock.printed, "\n")
+	if p.point ~= "CENTER" or not said:find("Put it", 1, true) then
+		fail(scenario, "SKIPPED -- the carry-over did not fire or was not announced: " .. said)
+	elseif not said:find("on purpose", 1, true) then
+		fail(scenario, "the line tells everybody whose prompt sat on the bottom edge to put"
+			.. " it back, the players it rescued included: " .. said)
 	end
 end
 Mock.reset()
