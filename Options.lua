@@ -1236,6 +1236,14 @@ local function BuildOptions()
 							.. " for one. It stays for as long as this window is open; once you"
 							.. " close it, twenty seconds more, or until somebody real turns up.",
 						order = 1,
+						-- Greyed out in a fight, where ToggleTest refuses to start
+						-- one: a preview there is painted on a panel the fight may
+						-- have hidden, or over a macro it froze at somebody real.
+						-- One already running can still be stopped. The page is
+						-- repainted at both ends of a fight, so this follows it.
+						disabled = function()
+							return InCombatLockdown() and not ns.Prompt:InTest()
+						end,
 						func = function() ns.Prompt:ToggleTest() end,
 					},
 					locked = {

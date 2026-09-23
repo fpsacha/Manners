@@ -95,6 +95,11 @@ local cooldownPressAt
 -- Left disarmed, a fight starting before the next scan froze the prompt empty
 -- for its whole length.
 local guardedEntry
+-- ...and the spoken line it was carrying. The disarm wipes the roll along with
+-- the macro, as every disarm must, and putting the same person back rolled a
+-- fresh line -- so the tooltip, which had not changed its mind about who, went
+-- on quoting the old one while the next press said another.
+local guardedPhraseKey, guardedPhraseText
 
 ---------------------------------------------------------------------------
 -- hysteresis
@@ -166,10 +171,10 @@ local outcomePainted
 local outcomeGen = 0
 
 -- The spoken line settled for the candidate currently on the button, and the
--- macro identity it was settled against. Both exist so the tooltip can quote a
--- line that is still the one that will run: PickPhrase rolls a random entry out
--- of the pool, and PreClick rebuilds the macro at press time -- so the line
--- being read and the line being cast were never the same roll.
+-- person, buff and reason it was settled against. Both exist so the tooltip
+-- can quote a line that is still the one that will run: PickPhrase rolls a
+-- random entry out of the pool, and PreClick rebuilds the macro at press time
+-- -- so the line being read and the line being cast were never the same roll.
 local phraseKey, phraseText
 
 -- Which side of the panel the queue list hangs off. Decided in ApplyStyle,
@@ -628,6 +633,7 @@ function Prompt:Create()
 		if lastPreClickAt and (now - lastPreClickAt) < 0.25 then
 			if not ready then
 				guardedEntry = current
+				guardedPhraseKey, guardedPhraseText = phraseKey, phraseText
 				Prompt:ApplyTarget(nil)
 			elseif appliedKey ~= pressKey then
 				Prompt:ApplyTarget(nil)
@@ -687,6 +693,7 @@ function Prompt:Create()
 		if not ready then
 			lastPreClickAt = nil
 			guardedEntry = current
+			guardedPhraseKey, guardedPhraseText = phraseKey, phraseText
 			Prompt:ApplyTarget(nil)
 			Prompt:SayWaiting(left)
 			return
@@ -830,7 +837,14 @@ function Prompt:Create()
 			cooldownPressAt = nil
 			local found = guardedEntry
 			guardedEntry = nil
-			if found and not InCombatLockdown() then Prompt:ApplyTarget(found) end
+			if found and not InCombatLockdown() then
+				-- The line it was carrying goes back with it, so the macro is
+				-- rebuilt around the roll the tooltip has been quoting rather than
+				-- a new one.
+				phraseKey, phraseText = guardedPhraseKey, guardedPhraseText
+				Prompt:ApplyTarget(found)
+			end
+			guardedPhraseKey, guardedPhraseText = nil, nil
 			if ns.db and ns.db.profile.debugClicks then
 				ns.addon:Print("|cffffd100CLICK|r held back -- the cooldown was still running")
 			end
@@ -905,7 +919,13 @@ function Prompt:Create()
 	end)
 
 	button:SetScript("OnEnter", function(self)
-		if not current or not current.buff then return end
+		-- Nothing armed is nothing to describe, and a tooltip already up from
+		-- the last person goes with it: "Click to cast" over a press that does
+		-- nothing is the tooltip describing a button that is no longer there.
+		if not current or not current.buff then
+			if GameTooltip:IsOwned(self) then GameTooltip:Hide() end
+			return
+		end
 		-- Every line below describes the macro sitting on the button, and in
 		-- combat that macro is frozen at whoever was on it when the fight
 		-- started -- Blizzard will not let an addon retarget a secure frame.
@@ -916,12 +936,19 @@ function Prompt:Create()
 		GameTooltip:AddLine("Manners")
 		GameTooltip:AddDoubleLine(current.short or current.name, ns.BuffName(current.buff),
 			1, 1, 1, 0.8, 0.8, 0.8)
-		-- The refresh mode is the only thing that offers somebody a buff they
-		-- already hold, and for those people "missing it" is simply untrue --
+		-- The refresh mode offers somebody a buff it has read them as already
+		-- holding, and for those people "missing it" is simply untrue --
 		-- the countdown line below used to sit under it saying so, one line
 		-- apart. Naming the contradiction is not the same as removing it, so
 		-- the reason itself changes: a top-up is a different offer and reads
 		-- like one, and the countdown then says how urgent it is.
+		--
+		-- And "missing it" only where it was read as missing. "Always offer"
+		-- does not look at all, and a client that hides auras cannot, so both
+		-- used to read "missing it" with the line underneath saying nothing was
+		-- checked -- about somebody who may well have been wearing it. Those two
+		-- get the plain reason, and the line below says why nothing more is
+		-- known.
 		local left = RemainingText(current.remaining)
 		local why
 		if current.reason == "owed" then
@@ -930,10 +957,14 @@ function Prompt:Create()
 			why = current.reason == "group" and "In your group, and theirs is running out."
 				or current.reason == "target" and "Your target, and theirs is running out."
 				or "Nearby, and theirs is running out."
-		else
+		elseif current.known == false then
 			why = current.reason == "group" and "In your group and missing it."
 				or current.reason == "target" and "Your target, and missing it."
 				or "Nearby and missing it."
+		else
+			why = current.reason == "group" and "In your group."
+				or current.reason == "target" and "Your target."
+				or "Nearby."
 		end
 		GameTooltip:AddLine(why, 0.7, 0.7, 0.7, true)
 		if left then
@@ -979,8 +1010,21 @@ function Prompt:Create()
 		if self.sinceCheck < 0.2 then return end
 		self.sinceCheck = 0
 		if not GameTooltip:IsOwned(self) then return end
-		if self.tooltipFor ~= (current and current.name) then
-			self.tooltipFor = current and current.name
+		if not (current and current.buff) then
+			self.tooltipFor = nil
+			GameTooltip:Hide()
+			return
+		end
+		-- Keyed on everything the tooltip says, not on the name alone. The same
+		-- person moves from one buff to the next as a priest's walk settles, a
+		-- passer-by becomes somebody you owe, and the spoken line is re-rolled
+		-- when the macro is -- and keyed on the name, the tooltip went on naming
+		-- the old buff, the old reason and the old line over a button that would
+		-- cast and say the new ones.
+		local shown = table.concat({ current.name, current.buff.key, tostring(current.reason),
+			tostring(phraseText), tostring(appliedKey) }, "\1")
+		if self.tooltipFor ~= shown then
+			self.tooltipFor = shown
 			local onEnter = self:GetScript("OnEnter")
 			if onEnter then onEnter(self) end
 		end
@@ -1875,8 +1919,12 @@ function Prompt:ApplyTarget(entry)
 	-- press. PickPhrase draws at random out of the pool, so asking it twice for
 	-- the same person gives two different lines -- and PreClick clears
 	-- appliedKey and comes straight back through here, so the line the tooltip
-	-- quoted was reliably not the line that went out. Keyed on the macro's own
-	-- identity, so the roll lives exactly as long as the macro it belongs to.
+	-- quoted was reliably not the line that went out. Keyed on who, which buff
+	-- and why, and not on the macro's own key: that one carries the unit token,
+	-- which only /manners try reads -- and try returns above here. Keyed on the
+	-- macro, the same person seen through a nameplate on one scan and under
+	-- the cursor on the next was somebody new to the roll, and the line changed
+	-- under a tooltip still quoting the last one.
 	--
 	-- Deliberately not cleared by PreClick, which sets appliedKey to nil
 	-- directly; InvalidateMacro clears both, and that is the split that makes
@@ -1885,8 +1933,10 @@ function Prompt:ApplyTarget(entry)
 	-- Measured, not assumed. The budget used to be a constant 120 with a
 	-- second, correct length check immediately below it -- two rules for one
 	-- question, and the constant was the one the options preview quoted.
-	if phraseKey ~= key then
-		phraseKey, phraseText = key, ns.PickPhrase(entry, ns.PhraseBudget(entry))
+	local phraseIdentity = table.concat({ entry.name, entry.buff.key, tostring(entry.reason),
+		tostring(ns.tryMacro) }, "\1")
+	if phraseKey ~= phraseIdentity then
+		phraseKey, phraseText = phraseIdentity, ns.PickPhrase(entry, ns.PhraseBudget(entry))
 	end
 	local phrase = phraseText
 	if phrase then lines[#lines + 1] = phrase end
@@ -1946,6 +1996,12 @@ function Prompt:ExitTest(why)
 	testMode, testExpiry = false, nil
 	self:ApplyTarget(nil)
 	ns.addon:Print("preview off" .. (why and (" -- " .. why) or "") .. ".")
+	-- The options page labels its button from InTest, and AceConfig only asks
+	-- while it is drawing. Every way a preview ends comes through here -- the
+	-- slash command, the page's own button, the clock, somebody real -- so
+	-- this is the one place the open page can be told its button now reads
+	-- "Preview" again. Does nothing with the window shut.
+	if ns.RepaintOptions then ns.RepaintOptions() end
 end
 
 -- Read by the options page, which used to offer a button labelled "Preview"
@@ -1968,21 +2024,47 @@ function Prompt:ToggleTest()
 	-- place the preview is of any use -- see Refresh. So the number quoted here
 	-- is what is left after the window is shut, and the line says that rather
 	-- than starting a countdown the user will watch expire mid-slider.
-	testMode = true
-	testExpiry = GetTime() + TEST_SECONDS
-	self:ApplyTarget(nil)
-	self:Refresh()
+	--
+	-- Not in a fight, for the reason the greeting gives. A panel the fight
+	-- found hidden cannot be put up, so the mock-up was painted on a frame
+	-- nobody could see while chat said "preview on" and, twenty seconds
+	-- later, "timed out". And a panel armed at somebody real keeps that macro
+	-- -- the fight froze it -- so the preview painted "PREVIEW" over a button
+	-- that still cast at them. Stopping one is above this and still works.
+	if InCombatLockdown() then
+		ns.addon:Print("|cffff8080not during a fight|r -- the preview can be shown once it"
+			.. " ends.")
+		return
+	end
 	-- Refresh stands a mock-up aside the moment somebody real is waiting, and
 	-- says so. "Preview on" printed after that described a preview that was no
 	-- longer running, and "/manners test to stop" invited a second toggle that
 	-- did exactly the same thing again. The options window holds a preview up
 	-- over a real person, which is where one is any use.
-	if not testMode then
+	--
+	-- Asked before the preview is started rather than after, the way the
+	-- greeting asks: started first, Refresh took it down again with "preview
+	-- off -- somebody real turned up", and this then said the same thing a
+	-- second time in other words, about a preview that never appeared. The
+	-- test is Refresh's own, word for word, so the two cannot disagree about
+	-- whether a preview would survive its first pass.
+	local db = ns.db and ns.db.profile
+	if db and db.enabled and db.prompt.locked and not InCombatLockdown()
+		and not (ns.OptionsOpen and ns.OptionsOpen()) and #ns.BuildQueue() > 0 then
 		ns.addon:Print("somebody real is on the prompt, so there is nothing to preview"
 			.. " -- open |cffffd100/manners|r to style it; a preview holds while that"
 			.. " window is open.")
 		return
 	end
+	testMode = true
+	testExpiry = GetTime() + TEST_SECONDS
+	self:ApplyTarget(nil)
+	self:Refresh()
+	-- Should Refresh stand it aside after all, it has said so itself, and
+	-- repainted on the way out.
+	if not testMode then return end
+	-- The options page's button now has to read "Stop preview"; see ExitTest.
+	if ns.RepaintOptions then ns.RepaintOptions() end
 	ns.addon:Print(("preview on -- it stays while the options window is open, then %ds"
 		.. " longer, or |cffffd100/manners test|r to stop."):format(TEST_SECONDS))
 end

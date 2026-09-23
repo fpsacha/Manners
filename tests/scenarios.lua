@@ -6891,6 +6891,9 @@ end
 -- options window is open, so a preview started during a fight sat at 0.55 alpha
 -- indefinitely -- a mock-up that looks held, being used to judge a size and a
 -- position, long after the fight it borrowed the dim from.
+--
+-- Starting one in a fight is refused now, so the dim is met the other way in:
+-- a preview started as the fight ends, ahead of the event that says it has.
 Mock.reset()
 ns = load("a preview does not keep the dim of a fight that has ended")
 if ns then
@@ -6907,26 +6910,21 @@ if ns then
 	if regions.art:GetAlpha() >= 1 then
 		fail(scenario, "SKIPPED -- the panel never dimmed for the fight")
 	else
+		-- A preview is no longer started in a fight (scenario 243), so the one
+		-- that can still find the dim on is one started the moment the lockdown
+		-- lifts, before PLAYER_REGEN_ENABLED has reached this addon and
+		-- repainted. Its own Refresh is then the first pass out of the fight,
+		-- and preview returns above the far end of Refresh.
+		Mock.inCombat = false
 		if not ns.Prompt:InTest() then ns.Prompt:ToggleTest() end
 		if not ns.Prompt:InTest() then
 			fail(scenario, "SKIPPED -- the preview would not start")
-		else
-			ns.Prompt:Refresh()
-			if regions.art:GetAlpha() >= 1 then
-				fail(scenario, "the preview took the dim off in the middle of a fight, so the"
-					.. " prompt looks live while its macro cannot be pointed anywhere")
-			end
-
-			Mock.inCombat = false
-			ns.addon:PLAYER_REGEN_ENABLED()
-			if not ns.Prompt:InTest() then
-				fail(scenario, "SKIPPED -- the preview ended with the fight")
-			elseif regions.art:GetAlpha() < 1 then
-				fail(scenario, ("the fight ended and the preview stayed dimmed at %s: the"
-					.. " release is at the bottom of Refresh and preview returns above it")
-					:format(tostring(regions.art:GetAlpha())))
-			end
+		elseif regions.art:GetAlpha() < 1 then
+			fail(scenario, ("the fight ended and the preview stayed dimmed at %s: the"
+				.. " release is at the bottom of Refresh and preview returns above it")
+				:format(tostring(regions.art:GetAlpha())))
 		end
+		ns.addon:PLAYER_REGEN_ENABLED()
 	end
 
 	if ns.Prompt:InTest() then ns.Prompt:ToggleTest() end
@@ -7372,27 +7370,40 @@ if ns then
 			-- Preview is the odd one out: everything it draws is art, so all of
 			-- it is allowed in a fight, and the Show is the only part that is
 			-- not. It gets the protected half of the check and not the spoken
-			-- half, because a mock-up has nothing true to say about a fight.
+			-- half.
 			--
-			-- The panel is put down first, by the scenario rather than by the
-			-- addon. A Show is only reached at all when the fight found the
-			-- prompt hidden, so a preview started over a panel that is already up
-			-- never touches the protected half and proves nothing about it.
+			-- This used to say the spoken half was skipped because a mock-up has
+			-- nothing true to say about a fight, and that was wrong: a preview
+			-- started in a fight painted "PREVIEW" over the macro the fight had
+			-- frozen, and a press under it cast at a real person. So a preview
+			-- is no longer started in a fight at all (scenario 243). One started
+			-- before the fight -- the options window holds it up -- is the one
+			-- left, and it was started out of combat, where its disarm is real,
+			-- so there is no frozen macro under it to own up to.
+			--
+			-- The panel is put down, by the scenario rather than by the addon. A
+			-- Show is only reached at all when the fight finds the prompt hidden,
+			-- so a preview over a panel that is already up never touches the
+			-- protected half and proves nothing about it.
+			Mock.inCombat = false
+			Mock.optionsOpen = true
+			if not ns.Prompt:InTest() then ns.Prompt:ToggleTest() end
+			Mock.inCombat = true
 			button:Hide()
 			Mock.protectedCalls = {}
-			if not ns.Prompt:InTest() then ns.Prompt:ToggleTest() end
 			if not ns.Prompt:InTest() then
 				fail(scenario, "SKIPPED -- the preview would not start")
 			else
 				ns.Prompt:Refresh()
 				if #Mock.protectedCalls > 0 then
-					fail(scenario, "a preview started over a panel the fight found hidden called "
+					fail(scenario, "a preview over a panel the fight found hidden called "
 						.. table.concat(Mock.protectedCalls, ", ") .. " on the secure button,"
 						.. " which is the one call that would have made it appear and the one"
 						.. " the client refuses")
 				end
 				ns.Prompt:ToggleTest()
 			end
+			Mock.optionsOpen = false
 		end
 	end
 	Mock.inCombat = false
@@ -15507,6 +15518,475 @@ if ns then
 	if p.x == 999 or not p.locked
 		or not table.concat(Mock.printed, "\n"):find("moved and locked", 1, true) then
 		fail(scenario, "SKIPPED -- an ordinary drag no longer saves, locks and says so")
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 239
+-- The open tooltip follows what it describes, not only who.
+--
+-- A tooltip left open is kept honest by a check a few times a second, and the
+-- check only asked whether the name had changed. So the same person moving on
+-- to a different buff -- a priest's walk from Fortitude to Divine Spirit once
+-- the first one settles -- left it naming Fortitude over a button that would
+-- cast Spirit, and a passer-by who then buffed you stayed "nearby and missing
+-- it" rather than "buffed you". And when the button was disarmed altogether the
+-- tooltip stayed up saying "Click to cast" over a press that would do nothing.
+--
+-- The mock tooltip forgets who owns it, so it is taught to remember here: the
+-- whole defect lives in the question "is this tooltip mine?".
+Mock.reset()
+ns = load("the open tooltip follows the buff and the reason, and goes when disarmed")
+if ns then
+	local scenario = "the open tooltip follows the buff and the reason, and goes when disarmed"
+	drive(scenario, ns)
+	ns.Prompt:ExitTest()
+	Mock.advance(60)
+
+	local template = ns.BuildQueue()[1]
+	local spirit = ns.FindBuff("PRIEST", "spirit")
+	if not (template and template.buff and spirit and spirit.key ~= template.buff.key) then
+		fail(scenario, "SKIPPED -- no candidate, or no second buff to walk on to")
+	else
+		local owner
+		local realSetOwner, realIsOwned, realHide = GameTooltip.SetOwner, GameTooltip.IsOwned,
+			GameTooltip.Hide
+		GameTooltip.SetOwner = function(_, frame) owner = frame Mock.tooltip = {} end
+		GameTooltip.IsOwned = function(_, frame) return owner ~= nil and owner == frame end
+		GameTooltip.Hide = function() owner = nil end
+
+		local function anna(edit)
+			local entry = {}
+			for k, v in pairs(template) do entry[k] = v end
+			entry.name, entry.short, entry.reason, entry.priority = "Anna Aim", "Anna Aim", "nearby", 5
+			entry.targetName = ns.TargetName(entry.name)
+			entry.unit = "nameplate1"
+			entry.known, entry.checked, entry.remaining = false, true, nil
+			if edit then edit(entry) end
+			return entry
+		end
+		local queue = { anna() }
+		ns.BuildQueue = function() return queue end
+		wipe(ns.tried)
+		ns.Prompt:InvalidateMacro()
+		ns.Prompt:Refresh()
+
+		local button = ns.Prompt:GetButton()
+		local function tip() return table.concat(Mock.tooltip, "\n") end
+		local function tick() button.scripts.OnUpdate(button, 0.3) end
+		button.scripts.OnEnter(button)
+		tick()
+		if not tip():find(ns.BuffName(template.buff), 1, true) then
+			fail(scenario, "SKIPPED -- the tooltip never described Anna's first buff: "
+				.. (tip():gsub("\n", " / ")))
+		else
+			-- A: the walk moves on to the next buff for the same person.
+			queue = { anna(function(e) e.buff = spirit end) }
+			ns.Prompt:Refresh()
+			tick()
+			local line = "Anna Aim\t" .. ns.BuffName(spirit)
+			if not tip():find(line, 1, true) then
+				fail(scenario, "the walk moved Anna on to " .. ns.BuffName(spirit) .. " and the open"
+					.. " tooltip went on describing the buff before it: " .. (tip():gsub("\n", " / ")))
+			end
+
+			-- B: the passer-by turns out to have buffed you.
+			owe(ns, "Anna Aim")
+			queue = { anna(function(e) e.buff = spirit e.reason = "owed" e.priority = 1 end) }
+			ns.Prompt:Refresh()
+			tick()
+			if not tip():find("Buffed you", 1, true) then
+				fail(scenario, "Anna became somebody you owe and the open tooltip still gave the"
+					.. " passer-by's reason: " .. (tip():gsub("\n", " / ")))
+			end
+
+			-- C: nothing armed, and the panel still up.
+			ns.Prompt:ApplyTarget(nil)
+			button:Show()
+			tick()
+			if GameTooltip:IsOwned(button) then
+				fail(scenario, "the button was disarmed and its tooltip stayed up saying"
+					.. " \"Click to cast\"")
+			end
+		end
+		GameTooltip.SetOwner, GameTooltip.IsOwned, GameTooltip.Hide = realSetOwner, realIsOwned,
+			realHide
+	end
+	wipe(ns.owed)
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 240
+-- A press the global cooldown turns away does not re-roll the spoken line.
+--
+-- The press is disarmed while the cooldown runs, and the disarm wiped the roll
+-- along with the macro. The same press then put the person back on the button,
+-- and putting them back rolled a fresh line out of the pool -- so the tooltip,
+-- which had not changed its mind about who, went on quoting the old line, and
+-- the next press sent a different one. With a pool of four that was most
+-- presses made a moment too early.
+--
+-- math.random is a counter here, as in scenario 84, so the two lines differ
+-- every time rather than three times in four.
+Mock.reset()
+ns = load("a press turned away by the cooldown keeps the quoted line")
+if ns then
+	local scenario = "a press turned away by the cooldown keeps the quoted line"
+	drive(scenario, ns)
+	ns.Prompt:ExitTest()
+	Mock.advance(60)
+
+	local template = ns.BuildQueue()[1]
+	if not template or not template.buff then
+		fail(scenario, "SKIPPED -- nobody to build a candidate from")
+	else
+		local ana = {}
+		for k, v in pairs(template) do ana[k] = v end
+		ana.name, ana.short, ana.reason, ana.priority = "Ana Field", "Ana Field", "owed", 1
+		ana.targetName = ns.TargetName(ana.name)
+		ana.unit = "nameplate1"
+		ns.BuildQueue = function() return { ana } end
+
+		local db = ns.db.profile
+		db.speech.enabled = true
+		db.speech.onlyWhenReturning = false
+		db.speech.channel = "SAY"
+		db.speech.phrases = "alpha\nbravo\ncharlie\ndelta"
+
+		local realRandom, realReady = math.random, ns.CastReady
+		local rolls = 0
+		math.random = function(n) rolls = rolls + 1 return ((rolls - 1) % n) + 1 end
+
+		local button = ns.Prompt:GetButton()
+		wipe(ns.tried)
+		ns.Prompt:InvalidateMacro()
+		ns.Prompt:Refresh()
+		button.scripts.OnEnter(button)
+		local quoted
+		for _, line in ipairs(Mock.tooltip) do
+			quoted = line:match("^Says: |cffffffff(.-)|r$") or quoted
+		end
+
+		-- Pressed a moment too early: turned away, and put back.
+		Mock.advance(1)
+		ns.CastReady = function() return false, 1 end
+		pressButton(ns)
+		ns.CastReady = realReady
+
+		-- And pressed again once it is ready.
+		Mock.advance(1)
+		local ran = pressButton(ns)
+		local said = tostring(ran or ""):match("/say ([^\n]+)")
+		if not (quoted and said) then
+			fail(scenario, "SKIPPED -- no spoken line to compare (" .. tostring(quoted)
+				.. " / " .. tostring(said) .. ")")
+		elseif quoted ~= said then
+			fail(scenario, "the tooltip quoted |" .. quoted .. "|, a press inside the cooldown"
+				.. " was turned away, and the next press said |" .. said .. "|")
+		end
+		math.random = realRandom
+	end
+	wipe(ns.owed)
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 241
+-- The spoken line does not change when the same person is seen another way.
+--
+-- The roll was kept under the same key as the macro, and that key carries the
+-- unit token -- which only /manners try can use. So Anna seen through a
+-- nameplate on one scan and under the cursor on the next was, as far as the
+-- roll knew, somebody new: a fresh line went on the button while the tooltip
+-- still quoted the old one, and a key pressed with the cursor on her sent a
+-- line nobody had read.
+Mock.reset()
+ns = load("the spoken line survives a change of unit token")
+if ns then
+	local scenario = "the spoken line survives a change of unit token"
+	drive(scenario, ns)
+	ns.Prompt:ExitTest()
+	Mock.advance(60)
+
+	local template = ns.BuildQueue()[1]
+	if not template or not template.buff then
+		fail(scenario, "SKIPPED -- nobody to build a candidate from")
+	else
+		local function anna(unit)
+			local entry = {}
+			for k, v in pairs(template) do entry[k] = v end
+			entry.name, entry.short, entry.reason, entry.priority = "Anna Aim", "Anna Aim", "owed", 1
+			entry.targetName = ns.TargetName(entry.name)
+			entry.unit = unit
+			return entry
+		end
+		local seenAs = anna("nameplate1")
+		ns.BuildQueue = function() return { seenAs } end
+
+		local db = ns.db.profile
+		db.speech.enabled = true
+		db.speech.onlyWhenReturning = false
+		db.speech.channel = "SAY"
+		db.speech.phrases = "alpha\nbravo\ncharlie\ndelta"
+
+		local realRandom = math.random
+		local rolls = 0
+		math.random = function(n) rolls = rolls + 1 return ((rolls - 1) % n) + 1 end
+
+		local button = ns.Prompt:GetButton()
+		wipe(ns.tried)
+		ns.Prompt:InvalidateMacro()
+		ns.Prompt:Refresh()
+		button.scripts.OnEnter(button)
+		local quoted
+		for _, line in ipairs(Mock.tooltip) do
+			quoted = line:match("^Says: |cffffffff(.-)|r$") or quoted
+		end
+
+		-- The next scan finds her under the cursor instead, and the key is
+		-- pressed with it there.
+		seenAs = anna("mouseover")
+		Mock.advance(0.4)
+		ns.Prompt:Refresh()
+		Mock.advance(0.4)
+		local ran = pressButton(ns)
+		local said = tostring(ran or ""):match("/say ([^\n]+)")
+		if not (quoted and said) then
+			fail(scenario, "SKIPPED -- no spoken line to compare (" .. tostring(quoted)
+				.. " / " .. tostring(said) .. ")")
+		elseif quoted ~= said then
+			fail(scenario, "the tooltip quoted |" .. quoted .. "| for Anna off a nameplate, and a"
+				.. " press with the cursor on her said |" .. said .. "|")
+		end
+		math.random = realRandom
+	end
+	wipe(ns.owed)
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 242
+-- The tooltip does not say "missing it" beside a line saying it did not look.
+--
+-- The reason line took the "missing it" wording whenever there was no time
+-- left to quote, whatever had actually been read. With "Always offer" nothing
+-- is read at all, and on a client that hides auras nothing can be -- so the
+-- tooltip said "Nearby and missing it." and, one line down, "Not checking
+-- whether they have it" or "Buff state unreadable", about somebody who may
+-- well have been wearing it.
+Mock.reset()
+ns = load("the tooltip says missing only when it read missing")
+if ns then
+	local scenario = "the tooltip says missing only when it read missing"
+	drive(scenario, ns)
+	ns.Prompt:ExitTest()
+	Mock.advance(60)
+
+	local template = ns.BuildQueue()[1]
+	if not template or not template.buff then
+		fail(scenario, "SKIPPED -- nobody to build a candidate from")
+	else
+		local button = ns.Prompt:GetButton()
+		local function hover(case, reason, known, checked)
+			local entry = {}
+			for k, v in pairs(template) do entry[k] = v end
+			entry.name, entry.short, entry.reason = case, case, reason
+			entry.priority = reason == "owed" and 1 or reason == "group" and 3 or 5
+			entry.targetName = ns.TargetName(entry.name)
+			entry.unit = "nameplate1"
+			entry.known, entry.checked, entry.remaining = known, checked, nil
+			-- Straight onto the button rather than through a repaint: four
+			-- people of equal standing in a row would otherwise be held behind
+			-- the first, which is the hold doing its job and not the subject.
+			ns.Prompt:ApplyTarget(nil)
+			ns.Prompt:ApplyTarget(entry)
+			button:Show()
+			button.scripts.OnEnter(button)
+			return table.concat(Mock.tooltip, "\n")
+		end
+
+		for _, case in ipairs({
+			{ "Always Nearby", "nearby", nil, false },
+			{ "Always Group", "group", nil, false },
+			{ "Unread Nearby", "nearby", nil, true },
+		}) do
+			local tip = hover(case[1], case[2], case[3], case[4])
+			if not tip:find(case[1], 1, true) then
+				fail(scenario, "SKIPPED -- the tooltip was not about " .. case[1] .. ": "
+					.. (tip:gsub("\n", " / ")))
+			elseif tip:find("missing it", 1, true) then
+				fail(scenario, ("the tooltip for %s said \"missing it\" about somebody nothing was"
+					.. " read for: %s"):format(case[1], (tip:gsub("\n", " / "))))
+			end
+		end
+
+		-- And the wording is still there for somebody read and found without it.
+		local tip = hover("Read Missing", "nearby", false, true)
+		if not tip:find("missing it", 1, true) then
+			fail(scenario, "somebody read and found without the buff is no longer said to be"
+				.. " missing it: " .. (tip:gsub("\n", " / ")))
+		end
+		tip = hover("Owed Always", "owed", nil, false)
+		if not tip:find("Buffed you", 1, true) then
+			fail(scenario, "somebody owed is no longer said to have buffed you: "
+				.. (tip:gsub("\n", " / ")))
+		end
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 243
+-- /manners test in a fight is refused, not announced.
+--
+-- Nothing asked about the fight. A panel the fight found hidden cannot be put
+-- up, so the preview was painted on a frame nobody could see, while chat said
+-- "preview on" and, twenty seconds later, "preview off -- timed out". Worse, a
+-- panel armed at a real person kept its macro -- the fight froze it -- and the
+-- preview painted "PREVIEW" and a pulse over it, so a press cast at Petra from
+-- under a mock-up. The greeting already refuses a fight for the same reason.
+Mock.reset()
+restoreUnits = strangers({ nameplate1 = { "Petra", "Stonewell" } })
+ns = load("the preview is refused in a fight")
+if ns then
+	local scenario = "the preview is refused in a fight"
+	freshPrompt(ns, scenario)
+	local button = ns.Prompt:GetButton()
+
+	-- A panel the fight found hidden.
+	button:Hide()
+	Mock.inCombat = true
+	Mock.printed = {}
+	ns.addon:HandleSlash("test")
+	local said = table.concat(Mock.printed, "\n")
+	if ns.Prompt:InTest() or said:find("preview on", 1, true) then
+		fail(scenario, "a preview was started in a fight over a panel that cannot be shown: "
+			.. said)
+	end
+	if not said:find("not during a fight", 1, true) then
+		fail(scenario, "/manners test in a fight never said why nothing appeared: " .. said)
+	end
+	Mock.advance(24)
+	Mock.printed = {}
+	ns.Prompt:Refresh()
+	if table.concat(Mock.printed, "\n"):find("timed out", 1, true) then
+		fail(scenario, "a preview nobody could see timed out in chat")
+	end
+	if ns.Prompt:InTest() then ns.Prompt:ToggleTest() end
+	Mock.inCombat = false
+
+	-- A panel armed at Petra when the fight starts.
+	ns.addon:Tick()
+	if not tostring(button:GetAttribute("macrotext1") or ""):find("Petra", 1, true) then
+		fail(scenario, "SKIPPED -- Petra was not armed before the fight")
+	else
+		Mock.inCombat = true
+		ns.addon:HandleSlash("test")
+		if ns.Prompt:InTest() then
+			fail(scenario, "a preview was painted over a macro the fight froze at Petra, which a"
+				.. " press still casts")
+			ns.Prompt:ToggleTest()
+		end
+		if not tostring(ns.Prompt:PanelName()):find("Petra", 1, true) then
+			fail(scenario, "the panel stopped naming Petra over a macro still armed at her: "
+				.. tostring(ns.Prompt:PanelName()))
+		end
+		-- The options page's button is the same command by another door.
+		local test = ns.optionsTable and ns.optionsTable.args.appearance.args.test
+		if not (test and type(test.disabled) == "function" and test.disabled()) then
+			fail(scenario, "the options page still offers Preview in the middle of a fight")
+		end
+		Mock.inCombat = false
+		if test and type(test.disabled) == "function" and test.disabled() then
+			fail(scenario, "the options page's Preview stayed greyed out after the fight")
+		end
+	end
+end
+Mock.inCombat = false
+restoreUnits()
+Mock.reset()
+
+-- ------------------------------------------------------------------ 244
+-- /manners test with somebody real on the prompt says so once.
+--
+-- The refresh inside the command stood the preview aside and said "preview off
+-- -- somebody real turned up", and the command then explained the same thing a
+-- second time in other words, about a preview that had never been on screen.
+Mock.reset()
+Mock.unitNames = { nameplate1 = { "Close", "By" } }
+ns = load("/manners test with somebody real says so once")
+if ns then
+	local scenario = "/manners test with somebody real says so once"
+	drive(scenario, ns)
+	settle(ns)
+	ns.Prompt:ExitTest()
+	ns.addon:Tick()
+	Mock.optionsOpen = false
+	if #ns.BuildQueue() == 0 then
+		fail(scenario, "SKIPPED -- nobody real on the prompt")
+	else
+		Mock.printed = {}
+		ns.addon:HandleSlash("test")
+		local said = table.concat(Mock.printed, "\n")
+		if #Mock.printed ~= 1 or said:find("preview off", 1, true)
+			or not said:find("nothing to preview", 1, true) then
+			fail(scenario, ("/manners test said %d lines about a preview that never started: %s")
+				:format(#Mock.printed, (said:gsub("\n", " | "))))
+		end
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 245
+-- /manners test and /manners welcome redraw the Preview button.
+--
+-- The options page's button reads "Preview" or "Stop preview" from whether one
+-- is running, and AceConfig only asks while it is drawing. The slash commands
+-- that start and stop one never asked it to draw, so with the window open the
+-- button went on offering "Preview" over a running preview -- and pressing it
+-- stopped the preview.
+Mock.reset()
+ns = load("the preview button follows the slash commands")
+if ns then
+	local scenario = "the preview button follows the slash commands"
+	drive(scenario, ns)
+	ns.Prompt:ExitTest()
+	Mock.advance(60)
+	local test = ns.optionsTable and ns.optionsTable.args.appearance.args.test
+	local registry = LibStub("AceConfigRegistry-3.0")
+	if not (test and type(test.name) == "function" and registry and registry.NotifyChange) then
+		fail(scenario, "SKIPPED -- no Preview button or no repaint to watch")
+	else
+		-- What the page last drew: the label as it stood at the last repaint.
+		local drawn = test.name()
+		local realNotify = registry.NotifyChange
+		registry.NotifyChange = function(...)
+			drawn = test.name()
+			return realNotify(...)
+		end
+		Mock.optionsOpen = true
+		local function check(what)
+			local want = ns.Prompt:InTest() and "Stop preview" or "Preview"
+			if drawn ~= want then
+				fail(scenario, ("after %s the open page's button reads %q with the preview %s")
+					:format(what, drawn, ns.Prompt:InTest() and "running" or "stopped"))
+			end
+		end
+		withEmptyPrompt(function()
+			ns.addon:HandleSlash("test")
+			if not ns.Prompt:InTest() then
+				fail(scenario, "SKIPPED -- /manners test did not start a preview")
+			end
+			check("/manners test")
+			ns.addon:HandleSlash("test")
+			check("/manners test again")
+			ns.addon:HandleSlash("welcome")
+			if not ns.Prompt:InTest() then
+				fail(scenario, "SKIPPED -- /manners welcome did not start a preview")
+			end
+			check("/manners welcome")
+			if ns.Prompt:InTest() then ns.Prompt:ToggleTest() end
+			check("stopping the preview")
+		end)
+		registry.NotifyChange = realNotify
+		Mock.optionsOpen = false
 	end
 end
 Mock.reset()

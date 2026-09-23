@@ -5270,8 +5270,12 @@ ns.COMMANDS = {
 -- it again. /manners off with the page open was the visible one -- Enable
 -- still ticked, and the red notice written for that exact moment still hidden.
 --
--- `try`, `look`, `forms`, `welcome`, `macro`, `test`, `debug` and `errors` are
--- deliberately absent: they change nothing the page draws.
+-- `try`, `look`, `forms`, `macro`, `debug` and `errors` are deliberately absent:
+-- they change nothing the page draws. `test` and `welcome` do -- the Preview
+-- button is labelled from whether one is running -- but they are absent too,
+-- because the preview repaints the page itself whenever it starts or stops
+-- (ToggleTest and ExitTest), which also covers the clock and the page's own
+-- button.
 local REPAINT_AFTER = {
 	on = true, off = true, verbose = true, clicks = true,
 	restore = true, lock = true, unlock = true,

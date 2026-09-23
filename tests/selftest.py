@@ -451,7 +451,7 @@ mutate("Prompt.lua",
 #     quoted in the tooltip was never the line that went out. The cache looks
 #     like an optimisation and is the only thing making the quote true.
 mutate("Prompt.lua",
-       "	if phraseKey ~= key then\n",
+       "	if phraseKey ~= phraseIdentity then\n",
        "	if true then\n",
        "the tooltip quoting a line it will not cast",
        expect="the tooltip quotes the line that will actually run",
@@ -2845,6 +2845,95 @@ mutate("Core.lua",
        "",
        "a drag held into a pull",
        expect="never had its position saved",
+       script="runscenarios.py")
+
+# The open tooltip re-rendered only when the name changed, so the same person's
+# next buff, or their turning out to be owed, went undescribed.
+mutate("Prompt.lua",
+       "\t\tlocal shown = table.concat({ current.name, current.buff.key, tostring(current.reason),\n"
+       "\t\t\ttostring(phraseText), tostring(appliedKey) }, \"\\1\")\n",
+       "\t\tlocal shown = current.name\n",
+       "an open tooltip keyed on the name alone",
+       expect="went on describing the buff before it",
+       script="runscenarios.py")
+
+# And left standing over a button with nothing armed on it.
+mutate("Prompt.lua",
+       "\t\t\tself.tooltipFor = nil\n\t\t\tGameTooltip:Hide()\n\t\t\treturn\n",
+       "\t\t\tself.tooltipFor = nil\n\t\t\treturn\n",
+       "a tooltip left up over a disarmed button",
+       expect="its tooltip stayed up saying",
+       script="runscenarios.py")
+
+# The roll wiped by the cooldown guard's disarm and rolled again on the re-arm,
+# so the press after it said a line the tooltip never quoted.
+mutate("Prompt.lua",
+       "\t\t\t\tphraseKey, phraseText = guardedPhraseKey, guardedPhraseText\n",
+       "",
+       "a guarded press re-rolling the spoken line",
+       expect="was turned away, and the next press said",
+       script="runscenarios.py")
+
+# The roll keyed on the macro, unit token and all, so the same person seen
+# through another token was somebody new to it.
+mutate("Prompt.lua",
+       "\tif phraseKey ~= phraseIdentity then\n\t\tphraseKey, phraseText = phraseIdentity,",
+       "\tif phraseKey ~= key then\n\t\tphraseKey, phraseText = key,",
+       "the spoken line re-rolled on a unit token",
+       expect="a press with the cursor on her said",
+       script="runscenarios.py")
+
+# "Missing it" for anybody without a countdown, read or not.
+mutate("Prompt.lua",
+       "\t\telseif current.known == false then\n",
+       "\t\telseif true then\n",
+       "a tooltip saying missing about an unread aura",
+       expect="about somebody nothing was read for",
+       script="runscenarios.py")
+
+# A preview started in a fight: painted on a hidden panel, or over a macro the
+# fight froze at somebody real.
+mutate("Prompt.lua",
+       "\tif InCombatLockdown() then\n\t\tns.addon:Print(\"|cffff8080not during a fight|r -- the preview",
+       "\tif false then\n\t\tns.addon:Print(\"|cffff8080not during a fight|r -- the preview",
+       "a preview started in a fight",
+       expect="a preview was started in a fight over a panel",
+       script="runscenarios.py")
+
+# The options page's button still offering it.
+mutate("Options.lua",
+       "\t\t\t\t\t\t\treturn InCombatLockdown() and not ns.Prompt:InTest()\n",
+       "\t\t\t\t\t\t\treturn false\n",
+       "the page offering Preview in a fight",
+       expect="still offers Preview in the middle of a fight",
+       script="runscenarios.py")
+
+# /manners test started the preview and let Refresh take it down again, so a
+# preview that never appeared was announced off and then explained.
+mutate("Prompt.lua",
+       "\tif db and db.enabled and db.prompt.locked and not InCombatLockdown()\n",
+       "\tif false and db and db.enabled and db.prompt.locked and not InCombatLockdown()\n",
+       "a preview announced off before it was on",
+       expect="lines about a preview that never started",
+       script="runscenarios.py")
+
+# The preview starting without telling an open options page, whose button then
+# reads "Preview" over a running one.
+mutate("Prompt.lua",
+       "\t-- The options page's button now has to read \"Stop preview\"; see ExitTest.\n"
+       "\tif ns.RepaintOptions then ns.RepaintOptions() end\n",
+       "",
+       "a preview started under a stale options page",
+       expect="after /manners test the open page's button reads",
+       script="runscenarios.py")
+
+# ...and ending without telling it.
+mutate("Prompt.lua",
+       "\t-- \"Preview\" again. Does nothing with the window shut.\n"
+       "\tif ns.RepaintOptions then ns.RepaintOptions() end\n",
+       "",
+       "a preview stopped under a stale options page",
+       expect="after /manners test again the open page's button reads",
        script="runscenarios.py")
 
 print()
