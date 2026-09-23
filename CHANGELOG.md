@@ -1,5 +1,96 @@
 # Changelog
 
+## 1.0.0-beta.5
+
+A second full bug-fix pass: 73 fixes, most with a test that fails without them.
+
+### The big ones
+
+- **The distance filter never worked in a released build.** The range-check
+  library that ships with Manners was never loaded, so "Nearby" fell back to
+  the 8-yard duel check and "Right beside me" offered the same people as
+  "Nearby". It now loads and is used.
+- **The key binding has its own "Manners" section** under Options >
+  Keybindings. The addon used to send you to "Game Menu > Key Bindings", which
+  this client doesn't have. A key you already bound stays bound.
+- **Manners has its own icon** in the addon list and on the minimap button.
+
+### Pressing the prompt
+
+- A potion, healthstone, trinket or any spell off the global cooldown no
+  longer holds the prompt for a second and a half.
+- A second press the game refuses, or an action-bar cast of the same buff,
+  no longer marks a buff that already landed as refused.
+- After a refused buff, pressing again while the red line is up no longer
+  buffs the next person without saying so. The prompt says who it moved on
+  to, and the red line comes off on time.
+- Right-click skip on a refused buff skips the person the red line names.
+- Buffing the player you already have targeted keeps them targeted. (In a
+  fight the prompt is frozen, so there it always hands your target back.)
+- A press just after someone steps out of range goes to them instead of
+  being silently ignored.
+- If full bags or another unrelated error pops up just before your buff goes
+  out, chat now says the buff went out after all.
+- Pressing twice quickly no longer says the first person "was not buffed"
+  when the game simply hadn't answered yet.
+- The prompt dims the moment a fight starts, not up to a scan later.
+- A slight drag on a locked prompt no longer prints "moved and locked", and
+  holding a drag as a fight starts no longer causes a blocked-action error.
+- Pressing the key while Manners is switched off says so.
+
+### Warriors and paladins
+
+- Battle Shout is offered only to your own party subgroup in a raid, and not
+  to group members too far away to hear it. A shout no longer counts as
+  repaying people it didn't reach.
+- Warriors are no longer told strangers are measured or offered buffs, and
+  the "counted as repaid" line names Battle Shout.
+- Paladins: another paladin's blessing no longer stops you offering one of
+  yours that stacks with it, and a paladin you owe gets a blessing they don't
+  already have.
+
+### Who gets offered
+
+- When nothing you can cast is any use to someone who buffed you, Manners
+  says why instead of saying the favour is on the prompt.
+- When the game won't say whether someone has your buff, the prompt says it
+  couldn't check, instead of putting them ahead of someone who buffed you.
+- Lowering "Remember a buff for", or switching to a profile with a shorter
+  time, applies at once to people who already buffed you.
+- A pinned spell is offered even if its own switch under Automatic is off.
+- The login line, preview and minimap tooltip no longer name a spell you
+  switched off or haven't learned, and say so when everything is off.
+
+### The prompt and the preview
+
+- Changing Scale no longer moves the prompt, and the position presets put it
+  in the same place at any scale. The "who's next" list stays on screen at
+  large and small scales.
+- The tooltip updates while open when the buff or reason changes, and the
+  line it says you'll speak is the one you actually say.
+- The preview can't be started in a fight, and one started from Options >
+  AddOns ends when you close that window.
+- A damaged colour setting no longer turns the prompt white after a profile
+  switch.
+- Emptying the phrase box shows the set it falls back to straight away.
+- If an update moves your prompt, chat tells you how to put it back.
+
+### Chat, commands and option text
+
+- The login line and `/manners debug` say when Manners is switched off, or
+  "People who buffed me" is unticked, instead of "nobody has buffed you".
+- `/manners look` says when the game withheld the buff check, instead of
+  reporting "false".
+- Changing `/manners try`, `/manners restore` or "When you click" in a fight
+  says the change applies once the fight ends. `/manners unlock` in a fight
+  says the same.
+- `/manners try`: `{first}` works for one-word names, and `{unit}` no longer
+  turns into your current target.
+- About twenty option descriptions and tooltips that said something untrue
+  now match what the addon does, among them "Stay quiet in combat", "Tell me
+  in chat what the addon is doing", "If they already have the buff", the
+  Targeting note, the Diagnostics tab and the minimap tooltip.
+
 ## 1.0.0-beta.4
 
 A bug-fix release. Every part of the addon that had never been through a
