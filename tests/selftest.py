@@ -26,10 +26,15 @@ def run(script):
 
 
 def verdict(out):
-    """The suite's own verdict line, and whether it is a clean one."""
-    lines = [l for l in out.split("\n") if l.startswith(("errors:", "failures:"))]
+    """The suite's own verdict line, and whether it is a clean one.
+
+    validate.py says it differently from the two Lua suites, and a mutation
+    aimed at it has to be able to come back clean -- otherwise its "caught"
+    would rest on a verdict line this could not read at all."""
+    lines = [l for l in out.split("\n")
+             if l.startswith(("errors:", "failures:", "RESULT:"))]
     line = lines[0] if lines else "?"
-    return line, line in ("errors: 0", "failures: 0")
+    return line, line in ("errors: 0", "failures: 0", "RESULT: all checks passed")
 
 
 def tally(script):
@@ -2255,6 +2260,55 @@ mutate("Core.lua",
        "",
        "the player's queue window ignored",
        expect="a press too early to be queued was filed",
+       script="runscenarios.py")
+
+# The range library loaded from one folder too shallow: the packager checks out
+# its whole repository, the file is a folder further down, and the client skips
+# a missing file without a word.
+mutate("embeds.xml",
+       'file="Libs\\LibRangeCheck-3.0\\LibRangeCheck-3.0\\LibRangeCheck-3.0.lua"',
+       'file="Libs\\LibRangeCheck-3.0\\LibRangeCheck-3.0.lua"',
+       "the range library loaded from a flat path",
+       expect="the packaged LibRangeCheck-3.0 has it at",
+       script="validate.py")
+
+# LibStub called through safecall, which refuses the callable table the real
+# LibStub is -- so the library rung was never built in the game.
+mutate("Core.lua",
+       "\t\t\tlocal stub = _G.LibStub\n"
+       "\t\t\tlocal lib = type(stub) == \"table\" and type(stub.GetLibrary) == \"function\"\n"
+       "\t\t\t\tand safecall(stub.GetLibrary, stub, \"LibRangeCheck-3.0\", true) or nil\n",
+       "\t\t\tlocal lib = safecall(_G.LibStub, \"LibRangeCheck-3.0\", true)\n",
+       "the range library fetched through safecall",
+       expect="the range library is found through a LibStub shaped like the game's",
+       script="runscenarios.py")
+
+# The duel prompt reported at eight yards whatever the race, where a tauren's is
+# six and an undead's seven.
+mutate("Core.lua",
+       "\treturn INTERACT_DUEL_RACE[race] or 8\n",
+       "\treturn 8\n",
+       "the duel prompt at eight yards for every race",
+       expect="the duel prompt's distance follows the player's race",
+       script="runscenarios.py")
+
+# A warrior's scan measuring strangers it can never offer anything, which fed
+# the counts and dropped a silent rung.
+mutate("Core.lua",
+       "\t\tif reason == \"nearby\" and groupOnly then return end\n",
+       "",
+       "a warrior's scan measuring strangers",
+       expect="strangers a warrior can never offer were measured",
+       script="runscenarios.py")
+
+# The summary describing a stranger filter to a class that never reaches one.
+mutate("Core.lua",
+       "\tif ns.OnlyReachesGroup() then\n"
+       "\t\treturn out .. \" -- your buffs reach only your group, so nobody is measured\"\n"
+       "\tend\n",
+       "",
+       "a warrior told strangers are measured",
+       expect="the line does not say a warrior's buffs reach only the group",
        script="runscenarios.py")
 
 print()

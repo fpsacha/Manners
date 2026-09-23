@@ -12,10 +12,15 @@
 	<Include file="Libs\LibSharedMedia-3.0\lib.xml"/>
 	<Script file="Libs\LibDataBroker-1.1\LibDataBroker-1.1.lua"/>
 	<Include file="Libs\LibDBIcon-1.0\lib.xml"/>
-	<!-- Last, and a bare Script rather than a lib.xml: the library is one file,
-	     and the copy known to load on this client is loaded exactly this way by
-	     the addon it came from. Nothing here depends on it having loaded, since
-	     Core.lua asks LibStub with the silent flag, so a client that skips this
-	     line loses the tighter distances and keeps everything else. -->
-	<Script file="Libs\LibRangeCheck-3.0\LibRangeCheck-3.0.lua"/>
+	<!-- Last, and a bare Script rather than a lib.xml: the library is one file.
+	     Two folders deep, because .pkgmeta checks out the library's whole
+	     repository into Libs\LibRangeCheck-3.0 and the repository keeps the
+	     file in a folder of the same name, beside its own tocs. One folder
+	     shallower, which is the layout of the flat copy other addons carry,
+	     names a file the packaged zip does not have, and the client skips a
+	     missing file without a word. Nothing here depends on it having
+	     loaded, since Core.lua asks LibStub with the silent flag, so a client
+	     that skips this line loses the tighter distances and keeps everything
+	     else. -->
+	<Script file="Libs\LibRangeCheck-3.0\LibRangeCheck-3.0\LibRangeCheck-3.0.lua"/>
 </Ui>

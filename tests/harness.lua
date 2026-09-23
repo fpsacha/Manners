@@ -74,7 +74,7 @@ for _, e in ipairs({
 
 -- Ace3 stand-ins
 local libs = {}
-function LibStub(name, silent)
+local function getLibrary(name, silent)
   if libs[name] then return libs[name] end
   local lib = {}
   if name == "AceAddon-3.0" then
@@ -161,6 +161,15 @@ function LibStub(name, silent)
   libs[name] = lib
   return lib
 end
+
+-- A table with a __call metamethod and a GetLibrary method, which is what the
+-- real LibStub is. A plain function here let a caller that only accepts
+-- functions pass in the harness and fail in the game.
+LibStub = setmetatable({ libs = libs, minors = {}, minor = 2 }, {
+  __call = function(_, name, silent) return getLibrary(name, silent) end,
+})
+function LibStub:GetLibrary(name, silent) return getLibrary(name, silent) end
+function LibStub:IterateLibraries() return pairs(libs) end
 
 -- WoW globals the addon touches
 function issecretvalue() return false end

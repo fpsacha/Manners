@@ -1147,19 +1147,31 @@ for _, tier in ipairs(PROXIMITY) do PROXIMITY_BY_KEY[tier.key] = tier end
 
 -- The duel prompt, CheckInteractDistance index 3.
 --
--- Eight yards, and one number for it. This used to say ten while the
--- LibRangeCheck shipped beside it -- the only measurement of the prompt
--- anywhere in the tree -- says eight (six for a tauren, seven for the undead),
--- so the same client call was reported as "really 10yd" through one rung and
--- "really 8yd" through the other, and at least one of them was wrong. Older
--- clients put it nearer ten, which is why the page says "about".
+-- Eight yards for most races, six for a tauren and seven for the undead: the
+-- prompt is measured from the player, and those two stand further off. The
+-- figures are LibRangeCheck's -- its DefaultInteractList and InteractLists,
+-- the only measurement of the prompt anywhere in the tree. This used to say
+-- ten, and then a flat eight, while that library said otherwise, so the same
+-- client call was reported as "really 8yd" through one rung and "really 6yd"
+-- through the other, and a tauren's "Nearby" dropped people between six and
+-- eight yards while claiming eight. Older clients put it nearer ten, which is
+-- why the page says "about".
 --
 -- Index 2 is the trade prompt at about nine and index 1 and 4 are about
 -- twenty-eight -- no tighter than the spell this would be filtering, so they
 -- are no use here. LibRangeCheck's own interact table dropped 2 and kept 3, on
 -- a modern client, which is the only evidence available about which of them
 -- still answers; this follows it rather than guessing differently.
-local INTERACT_DUEL, INTERACT_DUEL_YARDS = 3, 8
+local INTERACT_DUEL = 3
+local INTERACT_DUEL_RACE = { Tauren = 6, Scourge = 7 }
+
+-- Keyed on UnitRace's second return, the file name, which is the one the
+-- library keys on too: the first is translated, and the undead are "Scourge"
+-- there and "Undead" on screen.
+local function InteractDuelYards()
+	local _, race = safecall(_G.UnitRace, "player")
+	return INTERACT_DUEL_RACE[race] or 8
+end
 
 -- A rung that resolved and then answered for nobody at all costs a call per
 -- person and adds nothing, so a run of silence this long drops it from the
@@ -1269,7 +1281,17 @@ local PROX_SOURCES = {
 			-- that nil is handled. The test harness hands back a table with
 			-- nothing in it for every library it has not been taught, so what
 			-- is tested is the method rather than the table.
-			local lib = safecall(_G.LibStub, "LibRangeCheck-3.0", true)
+			--
+			-- Through GetLibrary, not by calling LibStub itself. LibStub is a
+			-- table made callable by a metatable, and safecall refuses
+			-- anything that is not a function -- so handing it LibStub came
+			-- back nil every time, and in the game this rung was never built:
+			-- "Nearby" cut at the duel prompt and "Right beside me" offered the
+			-- same people as "Nearby". The mocks were plain functions, which
+			-- is how nobody saw it.
+			local stub = _G.LibStub
+			local lib = type(stub) == "table" and type(stub.GetLibrary) == "function"
+				and safecall(stub.GetLibrary, stub, "LibRangeCheck-3.0", true) or nil
 			if type(lib) ~= "table" then return nil end
 			if type(lib.GetRange) ~= "function" then return nil end
 			if type(lib.GetFriendMaxChecker) ~= "function" then return nil end
@@ -1343,20 +1365,21 @@ local PROX_SOURCES = {
 				return r == true or r == 1
 			end
 
-			if INTERACT_DUEL_YARDS <= want then
+			local yards = InteractDuelYards()
+			if yards <= want then
 				return function(unit)
 					local near = read(unit)
 					return near, near ~= nil
-				end, INTERACT_DUEL_YARDS, "within"
+				end, yards, "within"
 			end
 
 			-- A step tighter than the prompt. It cannot say anybody is inside
-			-- five yards, but anybody it puts past eight is past five as well,
-			-- so it answers its "no" and passes on its "yes". Declining the
-			-- step outright left "Right beside me" with no signal on every
-			-- client that has no library -- so the tightest step on the page
-			-- offered everybody in casting range, twice as many as the step
-			-- above it.
+			-- five yards, but anybody it puts past the prompt's six to eight is
+			-- past five as well, so it answers its "no" and passes on its
+			-- "yes". Declining the step outright left "Right beside me" with
+			-- no signal on every client that has no library -- so the tightest
+			-- step on the page offered everybody in casting range, twice as
+			-- many as the step above it.
 			--
 			-- This is not the older mistake of answering every step as though
 			-- the prompt measured it, which reported ten yards for "right beside
@@ -1367,7 +1390,7 @@ local PROX_SOURCES = {
 				if near == nil then return nil, false end
 				if near then return nil, true end
 				return false, true
-			end, INTERACT_DUEL_YARDS, "beyond"
+			end, yards, "beyond"
 		end,
 	},
 }
@@ -1516,6 +1539,13 @@ function ns.ProximitySummary()
 	-- a queue that offers no passer-by at all was the line contradicting itself.
 	if db.sources and db.sources.strangers == false then
 		return out .. " -- passers-by are switched off, so nobody is measured"
+	end
+	-- The same for a class whose every buff is heard by its group alone -- a
+	-- warrior's shout. Strangers are never offered anything, so BuildQueue does
+	-- not measure them, and a line about how the measuring is going would be
+	-- about a filter nobody reaches.
+	if ns.OnlyReachesGroup() then
+		return out .. " -- your buffs reach only your group, so nobody is measured"
 	end
 
 	-- Said first, because it is the state the line is most often read in and
@@ -2052,6 +2082,12 @@ function ns.BuildQueue()
 	-- Once per scan. This used to run for every unit examined.
 	local candidates = ns.CastableBuffs()
 	if #candidates == 0 then return {} end
+	-- Once per scan as well. A warrior's shout reaches the group and nobody
+	-- else, so PickBuffFor turns every passer-by down -- but only after the
+	-- distance check below had measured them, which filled the proximity counts
+	-- with strangers who can never be offered anything and, on a client whose
+	-- duel prompt says nothing about strangers, dropped that rung for silence.
+	local groupOnly = ns.OnlyReachesGroup()
 
 	-- Offering a buff that cannot be paid for is a button that fails -- but
 	-- only classes with a mana bar can run out of it. A warrior's current mana
@@ -2097,6 +2133,7 @@ function ns.BuildQueue()
 		local reason = isOwed and "owed" or (inGroup and "group" or "nearby")
 		if reason == "group" and not db.sources.group then return end
 		if reason == "nearby" and not db.sources.strangers then return end
+		if reason == "nearby" and groupOnly then return end
 
 		-- A passer-by has to be near, not merely castable on.
 		--

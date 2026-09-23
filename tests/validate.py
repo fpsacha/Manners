@@ -137,14 +137,19 @@ refs = [r if isinstance(r, tuple) else ("embeds.xml", r) for r in refs]
 missing = []
 for where, r in refs:
     p = os.path.join(ROOT, r.replace("\\", os.sep))
-    # embeds.xml points into Libs/, which a checkout does not have
-    if not os.path.exists(p) and not r.replace("\\", "/").startswith("Libs/"):
+    # embeds.xml points into Libs/, which a checkout does not have. When there
+    # is one it is checked like everything else: skipping Libs/ unconditionally
+    # is how a path one folder too shallow went out in a release, with a copy
+    # right here that would have shown it missing.
+    if (not os.path.exists(p) and not (r.replace("\\", "/").startswith("Libs/")
+                                       and not os.path.isdir(libs))):
         missing.append((where, r))
 for where, m in missing:
     print("  MISS %s names %s, which does not exist" % (where, m))
     fail += 1
-print("  %d references checked across %d tocs and embeds.xml, %d missing outside Libs/"
-      % (len(refs), len(tocs), len(missing)))
+print("  %d references checked across %d tocs and embeds.xml, %d missing%s"
+      % (len(refs), len(tocs), len(missing),
+         "" if os.path.isdir(libs) else " outside Libs/"))
 
 print("\n== libraries: declared, fetched and loaded ==")
 # .pkgmeta says what the packager fetches; embeds.xml says what the game loads.
@@ -179,6 +184,75 @@ if declared and declared == loaded:
 elif not declared:
     print("  could not read any library out of .pkgmeta")
     fail += 1
+
+print("\n== libraries: loaded from where the packager puts them ==")
+# Agreeing on the folder name is not agreeing on the file. The packager checks
+# each url out into Libs/<folder>, and where the entry file lands inside that
+# depends on the layout of whatever the url points at: an SVN url into Ace3's
+# trunk is the library's own folder, a git url is the whole repository. When
+# LibRangeCheck's url moved from CurseForge's inner folder to the repository
+# root, its file moved one folder down and embeds.xml did not follow. The zip
+# built cleanly, the client skipped the missing file without a word, and the
+# check above passed because it only ever compared folder names.
+#
+# So each entry path is written down here beside the url it was read from. A
+# url that changes fails until somebody looks where the file lives in the new
+# checkout; an embeds.xml line that disagrees with the path fails outright.
+UPSTREAM = {
+    "LibStub": ("https://repos.curseforge.com/wow/ace3/trunk/LibStub",
+                "LibStub.lua"),
+    "CallbackHandler-1.0": ("https://repos.curseforge.com/wow/ace3/trunk/CallbackHandler-1.0",
+                            "CallbackHandler-1.0.xml"),
+    "AceAddon-3.0": ("https://repos.curseforge.com/wow/ace3/trunk/AceAddon-3.0",
+                     "AceAddon-3.0.xml"),
+    "AceEvent-3.0": ("https://repos.curseforge.com/wow/ace3/trunk/AceEvent-3.0",
+                     "AceEvent-3.0.xml"),
+    "AceTimer-3.0": ("https://repos.curseforge.com/wow/ace3/trunk/AceTimer-3.0",
+                     "AceTimer-3.0.xml"),
+    "AceConsole-3.0": ("https://repos.curseforge.com/wow/ace3/trunk/AceConsole-3.0",
+                       "AceConsole-3.0.xml"),
+    "AceDB-3.0": ("https://repos.curseforge.com/wow/ace3/trunk/AceDB-3.0",
+                  "AceDB-3.0.xml"),
+    "AceDBOptions-3.0": ("https://repos.curseforge.com/wow/ace3/trunk/AceDBOptions-3.0",
+                         "AceDBOptions-3.0.xml"),
+    "AceGUI-3.0": ("https://repos.curseforge.com/wow/ace3/trunk/AceGUI-3.0",
+                   "AceGUI-3.0.xml"),
+    "AceConfig-3.0": ("https://repos.curseforge.com/wow/ace3/trunk/AceConfig-3.0",
+                      "AceConfig-3.0.xml"),
+    "LibSharedMedia-3.0": ("https://repos.curseforge.com/wow/libsharedmedia-3-0/trunk/LibSharedMedia-3.0",
+                           "lib.xml"),
+    "LibDataBroker-1.1": ("https://github.com/tekkub/libdatabroker-1-1",
+                          "LibDataBroker-1.1.lua"),
+    "LibDBIcon-1.0": ("https://repos.curseforge.com/wow/libdbicon-1-0/trunk/LibDBIcon-1.0",
+                      "lib.xml"),
+    "LibRangeCheck-3.0": ("https://github.com/WeakAuras/LibRangeCheck-3.0",
+                          "LibRangeCheck-3.0/LibRangeCheck-3.0.lua"),
+}
+urls = dict(re.findall(r"^\s+Libs/([^:\s]+):\s*\n\s+url:\s*(\S+)", pkgmeta, re.M))
+layout_bad = 0
+for name in sorted(declared):
+    if name not in UPSTREAM:
+        print("  NO LAYOUT  %s -- write down where its entry file sits in what"
+              " %s checks out" % (name, urls.get(name, "its url")))
+        layout_bad += 1
+    elif urls.get(name) != UPSTREAM[name][0]:
+        print("  URL MOVED  %s now comes from %s; its entry path was read from %s --"
+              " look where the file lives in the new checkout"
+              % (name, urls.get(name), UPSTREAM[name][0]))
+        layout_bad += 1
+for ref in re.findall(r'file="([^"]+)"', open(
+        os.path.join(ROOT, "embeds.xml"), encoding="utf-8").read()):
+    parts = ref.replace("\\", "/").split("/")
+    if len(parts) < 3 or parts[0] != "Libs" or parts[1] not in UPSTREAM:
+        continue
+    want = UPSTREAM[parts[1]][1]
+    if "/".join(parts[2:]) != want:
+        print("  WRONG PATH embeds.xml loads %s, and the packaged %s has it at"
+              " Libs/%s/%s" % (ref, parts[1], parts[1], want))
+        layout_bad += 1
+fail += layout_bad
+if not layout_bad:
+    print("  ok  every library is loaded from where its checkout puts it")
 
 print("\n== the two lists of flavours agree ==")
 # Two places say which clients this addon claims, and they are read by

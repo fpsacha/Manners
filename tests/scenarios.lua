@@ -13107,6 +13107,167 @@ if ns then
 end
 Mock.reset()
 
+-- ------------------------------------------------------------------ 206
+-- The range library is found through a LibStub shaped like the game's.
+--
+-- LibStub is a table made callable by a metatable, not a function, and the
+-- library was fetched through a helper that refuses anything that is not a
+-- function. So in the game the library rung was never built: "Nearby" cut at
+-- the eight-yard duel prompt instead of the library's ten-yard edge, dropping
+-- somebody nine yards away, and "Right beside me" could only rule people out
+-- past eight, so it kept somebody seven yards away that the library's five-yard
+-- edge would have dropped. Every scenario passed, because the mock LibStub was
+-- a plain function.
+Mock.reset()
+Mock.rangeCheck = { buckets = { 30, 28, 10, 5, 2 } }
+Mock.unitNames = { nameplate1 = { "Seven", "Yards" }, nameplate2 = { "Nine", "Yards" } }
+Mock.yards = { nameplate1 = 7, nameplate2 = 9 }
+ns = load("the range library is found through a LibStub shaped like the game's")
+if ns then
+	local scenario = "the range library is found through a LibStub shaped like the game's"
+	drive(scenario, ns)
+	settle(ns)
+	if type(LibStub) ~= "table" or type(LibStub.GetLibrary) ~= "function" then
+		fail(scenario, "SKIPPED -- the mock LibStub is a " .. type(LibStub)
+			.. ", not the callable table the game has")
+	else
+		ns.db.profile.filters.proximity = "near"
+		ns.Guard("probe", ns.ProbeCapabilities)
+		local near = inQueue(ns)
+		local nearSource, nearYards = ns.proximity.source, ns.proximity.yards
+
+		ns.db.profile.filters.proximity = "beside"
+		ns.Guard("probe", ns.ProbeCapabilities)
+		local beside = inQueue(ns)
+		local besideSource, besideYards = ns.proximity.source, ns.proximity.yards
+
+		if nearSource ~= "LibRangeCheck-3.0" or besideSource ~= "LibRangeCheck-3.0" then
+			fail(scenario, ("the library was loaded and never used: Nearby measured with"
+				.. " %s at %s yards, Right beside me with %s at %s yards"):format(
+				tostring(nearSource), tostring(nearYards),
+				tostring(besideSource), tostring(besideYards)))
+		end
+		if not near["Nine Yards"] then
+			fail(scenario, "\"Nearby\" dropped somebody nine yards away, inside the"
+				.. " library's ten-yard edge")
+		end
+		if beside["Seven Yards"] then
+			fail(scenario, "\"Right beside me\" kept somebody seven yards away, outside"
+				.. " the library's five-yard edge")
+		end
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 207
+-- The duel prompt's distance follows the player's race.
+--
+-- It is six yards for a tauren and seven for the undead, by the same library
+-- measurement that says eight for everybody else. The prompt rung reported a
+-- flat eight, so for a tauren one client call was "really 6yd" through the
+-- library and "really 8yd" asked directly, and "Nearby" dropped somebody seven
+-- yards away while saying it filtered at eight. "Right beside me" likewise
+-- claimed to rule out only people past eight.
+for _, case in ipairs({
+	{ race = "Human", yards = 8, follow = 28 },
+	{ race = "Tauren", yards = 6, follow = 25 },
+	{ race = "Scourge", yards = 7, follow = 27 },
+}) do
+	Mock.reset()
+	Mock.playerRace = case.race
+	Mock.unitNames = { nameplate1 = { "Close", "By" }, nameplate2 = { "In", "Between" } }
+	Mock.yards = { nameplate1 = 4, nameplate2 = 7.5 }
+	local scenario = "the duel prompt's distance follows the player's race ("
+		.. case.race .. ")"
+	ns = load(scenario)
+	if ns then
+		drive(scenario, ns)
+		settle(ns)
+
+		ns.db.profile.filters.proximity = "beside"
+		ns.Guard("probe", ns.ProbeCapabilities)
+		inQueue(ns)
+		local besideSaid = tostring(ns.ProximitySummary())
+
+		ns.db.profile.filters.proximity = "near"
+		ns.Guard("probe", ns.ProbeCapabilities)
+		inQueue(ns)
+		local direct = ns.proximity.yards
+		local nearSaid = tostring(ns.ProximitySummary())
+
+		Mock.rangeCheck = { buckets = { 30, case.follow, case.yards } }
+		ns.Guard("probe", ns.ProbeCapabilities)
+		inQueue(ns)
+		local viaLibrary = ns.proximity.yards
+
+		if direct ~= case.yards then
+			fail(scenario, ("the duel prompt was reported at %s yards asked directly, and"
+				.. " it is %d for this race"):format(tostring(direct), case.yards))
+		end
+		if ns.proximity.source ~= "LibRangeCheck-3.0" then
+			fail(scenario, "SKIPPED -- the library was not picked up")
+		elseif direct ~= viaLibrary then
+			fail(scenario, ("one client call, %s yards asked directly and %s through the"
+				.. " library"):format(tostring(direct), tostring(viaLibrary)))
+		end
+		if not nearSaid:find(("really %dyd"):format(case.yards), 1, true) then
+			fail(scenario, "Nearby does not name this race's distance: " .. nearSaid)
+		end
+		if not besideSaid:find(("past %dyd"):format(case.yards), 1, true) then
+			fail(scenario, "Right beside me does not name this race's distance: "
+				.. besideSaid)
+		end
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 208
+-- A warrior is not told that strangers are measured or offered.
+--
+-- Battle Shout reaches the party and nobody else, so a warrior never offers a
+-- passer-by. But the scan still put every stranger to the distance check before
+-- the shout was turned down, which fed the counts and, on a client whose duel
+-- prompt says nothing about strangers, dropped that rung after forty silences.
+-- The summary then told the warrior in red that everybody in casting range was
+-- offered, or that the check "answered for" strangers who can never be offered
+-- anything. The beta.4 notes promised warriors would no longer be told that.
+for _, mode in ipairs({ "restricted", "on" }) do
+	Mock.reset()
+	Mock.class = "WARRIOR"
+	Mock.groupSize = 0
+	Mock.setInteract(mode)
+	Mock.unitNames = { nameplate1 = { "Close", "By" }, nameplate2 = { "Far", "Away" } }
+	Mock.yards = { nameplate1 = 4, nameplate2 = 20 }
+	local realKnown, realPlayer = IsSpellKnown, IsPlayerSpell
+	local scenario = "a warrior is not told that strangers are measured (interact "
+		.. mode .. ")"
+	ns = load(scenario)
+	if ns then
+		local known = {}
+		for _, id in ipairs(ns.FindBuff("WARRIOR", "battleshout").ranks) do known[id] = true end
+		IsSpellKnown = function(id) return known[id] == true end
+		IsPlayerSpell = IsSpellKnown
+		drive(scenario, ns)
+		settle(ns)
+		ns.db.profile.filters.proximity = "near"
+		for _ = 1, 60 do ns.BuildQueue() end
+		if ns.proximity.asked ~= 0 or ns.proximity.note then
+			fail(scenario, ("strangers a warrior can never offer were measured: %d asked"
+				.. " last scan, note %s"):format(ns.proximity.asked,
+				tostring(ns.proximity.note)))
+		end
+		local said = tostring(ns.ProximitySummary())
+		if said:find("everybody in casting range is offered", 1, true)
+			or said:find("answered for", 1, true)
+			or not said:find("only your group", 1, true) then
+			fail(scenario, "the line does not say a warrior's buffs reach only the group: "
+				.. said)
+		end
+	end
+	IsSpellKnown, IsPlayerSpell = realKnown, realPlayer
+end
+Mock.reset()
+
 -- ------------------------------------------------------------------ report
 print("=== scenarios ===")
 if #failures == 0 then

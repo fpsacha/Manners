@@ -232,6 +232,10 @@ function Mock.reset()
 	-- CheckInteractDistance, as the real library answers it; see LibStub.
 	Mock.rangeCheck = nil
 	Mock.unitClass = "PRIEST"
+	-- The player's race, by the file name UnitRace hands back second. It moves
+	-- the duel prompt: six yards for a tauren, seven for the undead, eight for
+	-- everybody else. Human is what every scenario written before this assumed.
+	Mock.playerRace = "Human"
 	Mock.iconDb = nil
 	-- The launcher's data object, once SetupOptions has made one. Everything
 	-- the addon puts on a broker display -- its text, its click handler, its
@@ -489,7 +493,7 @@ function CreateFrame() return newFrame() end
 function GameTooltip_Hide() end
 
 local libs = {}
-function LibStub(name, silent)
+local function getLibrary(name, silent)
 	-- Ahead of the cache, so a scenario can withhold a library an earlier one
 	-- already built. The real LibStub throws for a library that is not there
 	-- unless the caller passes the silent flag, and that difference is the whole
@@ -529,7 +533,7 @@ function LibStub(name, silent)
 		-- that answers. This mock used to measure every edge straight off
 		-- Mock.yardsFor, which made the library immune to Mock.interact and hid
 		-- the one way it gets a stranger wrong.
-		local interact = Mock.interactYards or {}
+		local interact = Mock.interactYards and Mock.interactYards() or {}
 		local list = {}
 		for i, range in ipairs(buckets) do
 			local index = (range == interact[3] and 3) or (range == interact[4] and 4) or nil
@@ -733,6 +737,18 @@ function LibStub(name, silent)
 	return lib
 end
 
+-- LibStub in the shape the real one has: a table, made callable by a __call
+-- metamethod, with GetLibrary as a method on it. This was a plain function, and
+-- the difference is not cosmetic -- type(LibStub) is "table" in the game and
+-- "function" was all this mock ever showed. Core.lua fetched LibRangeCheck
+-- through a helper that refuses anything that is not a function, so in the game
+-- the library was never once consulted while every scenario here consulted it.
+LibStub = setmetatable({ libs = libs, minors = {}, minor = 2 }, {
+	__call = function(_, name, silent) return getLibrary(name, silent) end,
+})
+function LibStub:GetLibrary(name, silent) return getLibrary(name, silent) end
+function LibStub:IterateLibraries() return pairs(libs) end
+
 function issecretvalue(v) return v == SECRET end
 function InCombatLockdown() return Mock.inCombat end
 -- A frozen clock silently broke several scenarios: PostClick puts a candidate
@@ -774,6 +790,15 @@ function GetUnitName() return "Petra Stonewell" end
 function UnitClass(u)
 	if u == "player" then return "Mage", Mock.class end
 	return "Priest", maybeSecret(Mock.unitClass)
+end
+-- The player's race, as the display name and the file name the client keys its
+-- tables on. Only the player's is modelled: the interact prompts measure from
+-- the player, and it is the player's race that moves them.
+local RACE_NAMES = { Scourge = "Undead" }
+function UnitRace(u)
+	if u ~= "player" then return nil end
+	local race = Mock.playerRace or "Human"
+	return RACE_NAMES[race] or race, race, 1
 end
 function UnitGUID(u) return maybeSecret("Player-1-" .. tostring(u)) end
 function UnitExists() return maybeSecret(true) end
@@ -858,9 +883,25 @@ end
 -- eleven here while claiming that source, which says eight and nine, and the
 -- addon then reported one client call at two different distances.
 local INTERACT_YARDS = { [1] = 28, [2] = 9, [3] = 8, [4] = 28 }
--- Read by the mock LibRangeCheck, which is built further up this file than the
--- local above is declared.
-Mock.interactYards = INTERACT_YARDS
+-- The same library's InteractLists: two races stand at a different distance
+-- from the duel and follow prompts. The library swaps its whole list for these;
+-- the client still answers the other two indexes, so here they are laid over
+-- the default rather than replacing it.
+local INTERACT_RACE = {
+	Tauren = { [3] = 6, [4] = 25 },
+	Scourge = { [3] = 7, [4] = 27 },
+}
+
+-- The prompts' distances for the race being played. Read by the mock
+-- LibRangeCheck, which is built further up this file than the locals above are
+-- declared, and by the client call below, so the two cannot disagree.
+function Mock.interactYards()
+	local over = INTERACT_RACE[Mock.playerRace or "Human"]
+	if not over then return INTERACT_YARDS end
+	local out = {}
+	for index, yards in pairs(INTERACT_YARDS) do out[index] = over[index] or yards end
+	return out
+end
 
 -- Present by default, because every client this addon supports has the
 -- function. What differs between them is whether it answers about a player who
@@ -878,7 +919,7 @@ local function mockInteract(unit, index)
 	Mock.counts.interact = Mock.counts.interact + 1
 	if Mock.interact == "restricted" then return nil end
 	if Mock.interact == "secret" then return SECRET end
-	local limit = INTERACT_YARDS[index]
+	local limit = Mock.interactYards()[index]
 	if not limit then return nil end
 	return Mock.yardsFor(unit) <= limit
 end
