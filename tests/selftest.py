@@ -669,9 +669,13 @@ mutate("Options.lua",
 # 45. the combat notice. Every control on the Prompt tab is a secure attribute
 #     or a texture on a secure frame, and ApplyStyle returns without doing
 #     anything for the length of a fight.
+#     Anchored with the notice's own wording: the When you click tab has one
+#     of these as well now, and it comes first in the file.
 mutate("Options.lua",
-       "hidden = function() return not InCombatLockdown() end,",
-       "hidden = function() return true end,",
+       "hidden = function() return not InCombatLockdown() end,\n"
+       "\t\t\t\t\t\tname = \"|cffffd100In combat.|r Blizzard freezes secure frames",
+       "hidden = function() return true end,\n"
+       "\t\t\t\t\t\tname = \"|cffffd100In combat.|r Blizzard freezes secure frames",
        "a frozen tab that looks like a working one",
        expect="in combat, and the tab reads as though everything on it works",
        script="runscenarios.py")
@@ -2578,6 +2582,115 @@ mutate("Core.lua",
        "\tns.Prompt:ApplyStyle()\n",
        "a carried anchor on a switch moved in silence",
        expect="a profile switch moved the prompt onto a new anchor",
+       script="runscenarios.py")
+
+# /manners debug saying "nobody has buffed you" while switched off...
+mutate("Core.lua",
+       "\t\t\tif not db.enabled then\n\t\t\t\tself:Print(\"  not watching for favours",
+       "\t\t\tif false then\n\t\t\t\tself:Print(\"  not watching for favours",
+       "debug claiming nobody buffed you while off",
+       expect="(switched off): debug said nobody has buffed you",
+       script="runscenarios.py")
+
+# ...and while the favour source is unticked...
+mutate("Core.lua",
+       "\t\t\telseif not db.sources.owed then\n",
+       "\t\t\telseif false then\n",
+       "debug claiming nobody buffed you, source off",
+       expect="(favours not watched): debug said nobody has buffed you",
+       script="runscenarios.py")
+
+# ...and never naming the off switch at all.
+mutate("Core.lua",
+       "\t\tif not db.enabled then\n\t\t\tself:Print(\"|cffff8080switched OFF",
+       "\t\tif false then\n\t\t\tself:Print(\"|cffff8080switched OFF",
+       "debug silent about the off switch",
+       expect="debug never said the addon is switched off",
+       script="runscenarios.py")
+
+# /manners try guessing "target" for a {unit} the person has not got...
+mutate("Core.lua",
+       "\tif entry and not entry.unit and text:find(\"{unit}\", 1, true) then\n",
+       "\tif false then\n",
+       "try {unit} falling back to your target",
+       expect="a macro was armed with {unit} guessed at",
+       script="runscenarios.py")
+
+# ...and {first} for a name that is one word already.
+mutate("Core.lua",
+       "(ns.FirstName(entry.name) or entry.targetName or entry.name) or \"target\")",
+       "(ns.FirstName(entry.name)) or \"target\")",
+       "try {first} falling back to your target",
+       expect="(a one-word name): a token became your own target",
+       script="runscenarios.py")
+
+# The tooltip promising a run the button was left empty for.
+mutate("Prompt.lua",
+       "\t\tif not text then\n\t\t\tout[#out + 1] = (\"|cffffcc66Does nothing:|r",
+       "\t\tif false then\n\t\t\tout[#out + 1] = (\"|cffffcc66Does nothing:|r",
+       "try tooltip promising an empty button",
+       expect="the tooltip promised a run the button was left empty for",
+       script="runscenarios.py")
+
+# /manners look printing a withheld aura check as a readable no.
+mutate("Core.lua",
+       "\t\t\tif not found and (unreadable or #withheld > 0) then\n",
+       "\t\t\tif false then\n",
+       "look printing a withheld check as false",
+       expect="a check the client withheld was printed as a readable no",
+       script="runscenarios.py")
+
+# The help describing a switch that starts on as the thing it does.
+mutate("Core.lua",
+       "help = \"switch handing your target back after buffing on or off\"",
+       "help = \"hand your target back after buffing\"",
+       "help describing restore as an action",
+       expect="the help describes restore as an action",
+       script="runscenarios.py")
+
+# /manners restore in a fight, silent about the frozen macro...
+mutate("Core.lua",
+       "\t\t\t.. (InCombatLockdown() and (\" -- \" .. FROZEN_UNTIL_FIGHT_ENDS) or \"\"))\n",
+       ")\n",
+       "restore in a fight silent about the freeze",
+       expect="/manners restore in a fight never said",
+       script="runscenarios.py")
+
+# ...and /manners try sending a press to it.
+mutate("Core.lua",
+       "\t\t\tif InCombatLockdown() then\n\t\t\t\tself:Print(\"It \" .. FROZEN_UNTIL_FIGHT_ENDS",
+       "\t\t\tif false then\n\t\t\t\tself:Print(\"It \" .. FROZEN_UNTIL_FIGHT_ENDS",
+       "try in a fight sending a press to the old macro",
+       expect="/manners try /cast Frost Nova sent a press to a frozen macro",
+       script="runscenarios.py")
+
+# The When you click tab saying nothing in a fight.
+mutate("Options.lua",
+       "\t\t\t\t\t\thidden = function() return not InCombatLockdown() end,\n"
+       "\t\t\t\t\t\tname = \"|cffffd100In combat.|r Blizzard freezes the macro",
+       "\t\t\t\t\t\thidden = function() return true end,\n"
+       "\t\t\t\t\t\tname = \"|cffffd100In combat.|r Blizzard freezes the macro",
+       "click tab silent in a fight",
+       expect="the When you click tab says nothing about the fight",
+       script="runscenarios.py")
+
+# /manners unlock in a fight sending you to drag.
+mutate("Core.lua",
+       "\t\tif db.enabled and InCombatLockdown() then\n",
+       "\t\tif false then\n",
+       "unlock in a fight saying drag",
+       expect="sent you to drag a prompt the client will not move in a fight",
+       script="runscenarios.py")
+
+# The combat hold painted only by the handler's own Refresh, which runs before
+# lockdown and so never paints it.
+mutate("Core.lua",
+       "\tC_Timer.After(0, function()\n"
+       "\t\tif ns.Prompt then ns.Guard(\"combat hold\", ns.Prompt.Refresh, ns.Prompt) end\n"
+       "\tend)\n",
+       "",
+       "combat hold waiting for the next scan",
+       expect="the prompt admits it is frozen in combat: the panel kept full brightness",
        script="runscenarios.py")
 
 print()

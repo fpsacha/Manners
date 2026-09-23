@@ -4831,8 +4831,14 @@ if ns then
 		if (regions.rows[1]:GetText() or "") == "" then
 			fail(scenario, "SKIPPED -- the queue list was empty before combat")
 		else
-			Mock.inCombat = true
+			-- In the client's order: the event arrives while lockdown is still
+			-- off, and lockdown is on by the next frame. The other way round,
+			-- which is how this was first written, the handler's own Refresh
+			-- saw lockdown and painted the hold -- something it never sees in
+			-- game, where the hold waited for the next scan.
 			ns.addon:PLAYER_REGEN_DISABLED()
+			Mock.inCombat = true
+			Mock.runTimers(0)
 
 			if regions.art:GetAlpha() >= 1 then
 				fail(scenario, "the panel kept full brightness over a frozen target, so nothing"
@@ -14414,6 +14420,309 @@ if ns then
 		fail(scenario, "a profile switch moved the prompt onto a new anchor and chat said"
 			.. " nothing: " .. said)
 	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 222
+-- /manners debug says when nothing is being watched.
+--
+-- With the addon switched off, or "People who buffed me" unticked, a favour is
+-- never filed -- the scan does not even read who cast it. The command never
+-- looked at either switch, so straight after somebody buffed you it printed
+-- "nobody has buffed you recently", a healthy aura line and a queue count over
+-- a prompt that was never going to appear. It is the output the bug-report
+-- template asks players to paste, and it pointed at a detection bug that was a
+-- switch.
+for _, case in ipairs({
+	{ label = "switched off", off = true },
+	{ label = "favours not watched", owedOff = true },
+	{ label = "both on", control = true },
+}) do
+	Mock.reset()
+	local scenario = "debug says when favours are not being watched (" .. case.label .. ")"
+	ns = load(scenario)
+	if ns then
+		drive(scenario, ns)
+		wipe(ns.owed)
+		local db = ns.db.profile
+		if case.off then db.enabled = false end
+		if case.owedOff then db.sources.owed = false end
+		primeAuras(ns)
+		favourFrom(ns, "nameplate1", 10938)
+		Mock.printed = {}
+		ns.addon:HandleSlash("debug")
+		local said = table.concat(Mock.printed, "\n")
+		if case.control then
+			if not said:find("owes returning: |cffffffffPetra Stonewell", 1, true) then
+				fail(scenario, "SKIPPED -- the control favour is not listed: " .. said)
+			end
+		else
+			if said:find("nobody has buffed you recently", 1, true) then
+				fail(scenario, "debug said nobody has buffed you, straight after somebody"
+					.. " did, while nothing was watching")
+			end
+			if case.off and not said:find("switched OFF", 1, true) then
+				fail(scenario, "debug never said the addon is switched off: " .. said)
+			end
+			if case.off and said:find("queue now:", 1, true) then
+				fail(scenario, "debug gave a live queue count for a switched-off prompt")
+			end
+			if case.owedOff and not said:find("People who buffed me", 1, true) then
+				fail(scenario, "debug never said favours are not being watched: " .. said)
+			end
+		end
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 223
+-- /manners try fills {first} and {unit} from the person, or not at all.
+--
+-- Both tokens fell back to the literal word "target" whenever the candidate
+-- lacked them. FirstName has no answer for a name that is one word already --
+-- a same-realm player off Camelot, a Camelot character with no surname -- so
+-- "/target {first}" became "/target target", which keeps whatever you have
+-- targeted. And a person who buffed you is ordinarily reached with no unit
+-- token at all, so "[@{unit}]" became "[@target]". Either way the cast went to
+-- somebody else while the tooltip named them.
+local function tryAgainst(ns, entry, template)
+	ns.addon:HandleSlash("try")
+	ns.Prompt:ApplyTarget(entry)
+	Mock.printed = {}
+	ns.addon:HandleSlash("try " .. template)
+	local said = table.concat(Mock.printed, "\n")
+	ns.Prompt:InvalidateMacro()
+	ns.Prompt:ApplyTarget(entry)
+	return said, ns.Prompt:GetButton():GetAttribute("macrotext1")
+end
+
+for _, case in ipairs({
+	{ label = "a one-word name", name = "Petra", unit = "nameplate1",
+		template = "/target {first}\\n/cast {spell}", want = "/target Petra\n" },
+	{ label = "a name with a surname", name = "Petra Stonewell", unit = "nameplate1",
+		template = "/target {first}\\n/cast {spell}", want = "/target Petra\n" },
+	{ label = "{first} with no unit token", name = "Mort",
+		template = "/target {first}\\n/cast {spell}", want = "/target Mort\n" },
+	{ label = "{unit} with no unit token", name = "Mort",
+		template = "/target {unit}\\n/cast {spell}", unfilled = true },
+}) do
+	Mock.reset()
+	local scenario = "try tokens come from the person, never from your target (" .. case.label .. ")"
+	ns = load(scenario)
+	if ns then
+		drive(scenario, ns)
+		ns.Prompt:ExitTest()
+		Mock.advance(60)
+		local template = ns.BuildQueue()[1]
+		if not template or not template.buff then
+			fail(scenario, "SKIPPED -- nobody to build a candidate from")
+		else
+			local entry = {}
+			for k, v in pairs(template) do entry[k] = v end
+			entry.name, entry.short, entry.targetName = case.name, case.name, case.name
+			entry.unit, entry.reason = case.unit, "owed"
+			local said, armed = tryAgainst(ns, entry, case.template)
+			if said:find("/target target", 1, true) or (armed or ""):find("/target target", 1, true) then
+				fail(scenario, "a token became your own target: " .. tostring(armed))
+			end
+			if case.unfilled then
+				if armed ~= nil then
+					fail(scenario, "a macro was armed with {unit} guessed at: " .. tostring(armed))
+				end
+				if not said:find("cannot be filled", 1, true) then
+					fail(scenario, "the echo did not say {unit} cannot be filled: " .. said)
+				end
+				if said:find("Click the prompt to run it", 1, true) then
+					fail(scenario, "sent you to click a prompt with nothing on it")
+				end
+				local summary = table.concat(ns.Prompt:ClickSummary(entry), "\n")
+				if summary:find("Runs your", 1, true) or not summary:find("cannot be filled", 1, true) then
+					fail(scenario, "the tooltip promised a run the button was left empty for: "
+						.. summary)
+				end
+			elseif not (armed or ""):find(case.want, 1, true) then
+				fail(scenario, "armed " .. tostring(armed) .. " rather than " .. case.want)
+			end
+			ns.addon:HandleSlash("try")
+		end
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 224
+-- /manners look tells a withheld buff check from a readable "not carrying it".
+--
+-- The aura loop skipped a read that threw or came back secret and then printed
+-- hasBuff=false, in the same white as a readable no. That is the one question
+-- the command exists to answer on this client, and it answered it wrongly in
+-- exactly the case it was written for.
+for _, case in ipairs({
+	{ label = "a read that throws", refuse = "throw" },
+	{ label = "a read that comes back secret", refuse = "secret" },
+	{ label = "an id declared secret", secret = true },
+	{ label = "readable and not carrying it", control = "absent" },
+	{ label = "readable and carrying it", control = "held" },
+}) do
+	Mock.reset()
+	local scenario = "look tells a withheld buff check from a no (" .. case.label .. ")"
+	ns = load(scenario)
+	if ns then
+		drive(scenario, ns)
+		local buff = ns.ResolveBuff(true)
+		if not buff then
+			fail(scenario, "SKIPPED -- no buff to look for")
+		else
+			if case.refuse then
+				Mock.auraReadRefuse = {}
+				for _, id in ipairs(buff.auraIds) do Mock.auraReadRefuse[id] = case.refuse end
+			end
+			if case.secret then
+				Mock.secretAuraIds = {}
+				for _, id in ipairs(buff.auraIds) do Mock.secretAuraIds[id] = true end
+				ns.Guard("probe", ns.ProbeCapabilities)
+			end
+			if case.control == "held" then Mock.held = { [buff.auraIds[1]] = true } end
+			Mock.printed = {}
+			ns.addon:HandleSlash("look target")
+			local line = table.concat(Mock.printed, "\n"):match("hasBuff=[^\n]*") or ""
+			if line == "" then
+				fail(scenario, "SKIPPED -- look printed no hasBuff line")
+			elseif case.control == "absent" then
+				if not line:find("hasBuff=|cfffffffffalse", 1, true) then
+					fail(scenario, "a readable no is no longer printed as false: " .. line)
+				end
+			elseif case.control == "held" then
+				if not line:find(tostring(buff.auraIds[1]), 1, true) then
+					fail(scenario, "a buff being carried is not printed by its id: " .. line)
+				end
+			elseif line:find("false", 1, true) then
+				fail(scenario, "a check the client withheld was printed as a readable no: " .. line)
+			end
+		end
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 225
+-- The help calls restore and verbose what they are: switches.
+--
+-- Both flip a setting that starts on, and the help described each as the
+-- thing it does -- "hand your target back after buffing" -- so somebody who
+-- typed one on a fresh profile to get that switched it off.
+Mock.reset()
+ns = load("the help says restore and verbose switch something on or off")
+if ns then
+	local scenario = "the help says restore and verbose switch something on or off"
+	drive(scenario, ns)
+	Mock.printed = {}
+	ns.addon:HandleSlash("help")
+	local said = table.concat(Mock.printed, "\n")
+	for _, word in ipairs({ "restore", "verbose" }) do
+		local line = said:match("/manners " .. word .. "|r[^\n]*")
+		if not line then
+			fail(scenario, "SKIPPED -- the help has no line for " .. word)
+		elseif not line:find("on or off", 1, true) then
+			fail(scenario, "the help describes " .. word .. " as an action, not a switch: " .. line)
+		end
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 226
+-- A change to what a press does, made in a fight, says it waits for the end.
+--
+-- /manners try, /manners restore and the controls under "When you click" only
+-- ask for the macro to be rebuilt, and the rebuild cannot happen while the
+-- fight has the button's attributes frozen. Chat said "Click the prompt to run
+-- it" or "on" regardless, and a press then ran the macro armed when the fight
+-- began -- a /yell somebody had just switched off among them. The rebuild when
+-- the fight ends already works; what was missing was saying so.
+Mock.reset()
+ns = load("a click setting changed in a fight says it waits for the end")
+if ns then
+	local scenario = "a click setting changed in a fight says it waits for the end"
+	drive(scenario, ns)
+	ns.Prompt:ExitTest()
+	Mock.advance(60)
+	ns.Prompt:Refresh()
+	local button = ns.Prompt:GetButton()
+	if not button:GetAttribute("macrotext1") then
+		fail(scenario, "SKIPPED -- nothing was armed before the fight")
+	else
+		Mock.inCombat = true
+		local click = findOption(ns.optionsTable, "click")
+		local notice = click and click.args and click.args.combatNotice
+		if not notice or notice.hidden() then
+			fail(scenario, "the When you click tab says nothing about the fight")
+		end
+
+		for _, command in ipairs({ "restore", "try /cast Frost Nova", "try" }) do
+			Mock.printed = {}
+			ns.addon:HandleSlash(command)
+			local said = table.concat(Mock.printed, "\n")
+			if said:find("Click the prompt to run it", 1, true) then
+				fail(scenario, "/manners " .. command .. " sent a press to a frozen macro")
+			end
+			if not said:find("fight ends", 1, true) then
+				fail(scenario, "/manners " .. command .. " in a fight never said it waits for"
+					.. " the end of it: " .. said)
+			end
+		end
+
+		-- Armed again, so the end of the fight has something to put on.
+		ns.addon:HandleSlash("try /cast Frost Nova")
+		Mock.inCombat = false
+		ns.addon:PLAYER_REGEN_ENABLED()
+		if button:GetAttribute("macrotext1") ~= "/cast Frost Nova" then
+			fail(scenario, "SKIPPED -- the end of the fight did not put the new macro on: "
+				.. tostring(button:GetAttribute("macrotext1")))
+		end
+		if notice and not notice.hidden() then
+			fail(scenario, "the fight notice outlived the fight")
+		end
+		ns.addon:HandleSlash("try")
+		ns.addon:HandleSlash("restore")
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 227
+-- /manners unlock in a fight does not send you to drag the prompt.
+--
+-- The client refuses to move a secure frame in combat and OnDragStart gives up
+-- there, and the panel says as much. The chat line said "drag the prompt"
+-- regardless, sometimes over a prompt that was not on the screen at all.
+Mock.reset()
+ns = load("unlocking in a fight does not say drag")
+if ns then
+	local scenario = "unlocking in a fight does not say drag"
+	drive(scenario, ns)
+	ns.Prompt:ExitTest()
+	local button = ns.Prompt:GetButton()
+	local moves = 0
+	button.StartMoving = function() moves = moves + 1 end
+	ns.db.profile.prompt.locked = true
+	Mock.inCombat = true
+	Mock.printed = {}
+	ns.addon:HandleSlash("unlock")
+	local said = table.concat(Mock.printed, "\n")
+	if said:find("drag the prompt", 1, true) then
+		fail(scenario, "sent you to drag a prompt the client will not move in a fight: " .. said)
+	end
+	if not said:find("fight ends", 1, true) then
+		fail(scenario, "never said when the prompt can be moved: " .. said)
+	end
+	button.scripts.OnDragStart(button)
+	if moves ~= 0 then
+		fail(scenario, "SKIPPED -- a drag started in combat")
+	end
+	Mock.inCombat = false
+	ns.addon:PLAYER_REGEN_ENABLED()
+	button.scripts.OnDragStart(button)
+	if moves ~= 1 then
+		fail(scenario, "SKIPPED -- the drag did not start once the fight was over")
+	end
+	ns.db.profile.prompt.locked = true
 end
 Mock.reset()
 

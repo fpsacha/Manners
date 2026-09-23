@@ -1624,6 +1624,13 @@ function Prompt:ClickSummary(entry)
 	-- /manners try replaces the whole macro with whatever was typed, and none
 	-- of the sentences below are true of it.
 	if ns.tryMacro then
+		-- Asked the same question the button was, so this cannot promise a run
+		-- the button was left empty for.
+		local text, unfilled = ns.ExpandTokens(ns.tryMacro)
+		if not text then
+			out[#out + 1] = ("|cffffcc66Does nothing:|r %s."):format(unfilled)
+			return out
+		end
 		out[#out + 1] = ("Runs your |cffffd100/manners try|r macro against |cffffffff%s|r.")
 			:format(who)
 		return out
@@ -1735,7 +1742,22 @@ function Prompt:ApplyTarget(entry)
 	-- candidate. Iterating on this client otherwise means one guess per
 	-- /reload; this makes it one guess per click.
 	if ns.tryMacro then
-		local text = ns.ExpandTokens(ns.tryMacro)
+		local text, unfilled = ns.ExpandTokens(ns.tryMacro)
+		if not text then
+			-- A template that asks for a unit token this person has not got.
+			-- Nothing goes on the button rather than a guess at one: the guess
+			-- was "target", which casts at whoever you happen to have targeted.
+			-- The key is still taken, and it carries the unit, so the first
+			-- repaint that reaches them through a token arms it after all.
+			for _, attribute in ipairs({ "type1", "macrotext1", "spell1", "unit1",
+				"type", "macrotext", "spell", "unit" }) do
+				button:SetAttribute(attribute, nil)
+			end
+			ns.lastMacro = "[try, not armed] " .. tostring(unfilled)
+			appliedKey = key
+			armed = nil
+			return
+		end
 		button:SetAttribute("type1", "macro")
 		button:SetAttribute("macrotext1", text)
 		button:SetAttribute("type", "macro")

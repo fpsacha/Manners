@@ -988,6 +988,21 @@ local function BuildOptions()
 				order = 4,
 				hidden = function() return not HasClassBuffs() end,
 				args = {
+					-- Everything on this tab is a line in the macro, and the macro
+					-- is a secure attribute the fight has frozen. The settings are
+					-- kept and the macro rebuilt when the fight ends, but until then
+					-- a press runs the old one -- a /yell you have just switched
+					-- off among them -- and the Prompt tab's own notice is scoped
+					-- to that tab, so nothing here said so.
+					combatNotice = {
+						type = "description",
+						order = 0.5,
+						fontSize = "medium",
+						hidden = function() return not InCombatLockdown() end,
+						name = "|cffffd100In combat.|r Blizzard freezes the macro on the prompt"
+							.. " for the length of a fight, so these settings apply once it ends."
+							.. " Until then a press runs the macro already on the button.\n",
+					},
 					targetingHeader = { type = "header", name = "Targeting", order = 1 },
 					restoreTarget = {
 						type = "toggle",

@@ -4162,9 +4162,18 @@ function addon:PLAYER_UNGHOST() if ns.Prompt then ns.Prompt:Refresh() end end
 -- state where everything it says is stale and nothing about it looks stale.
 --
 -- Refresh does the whole job -- it is the function that knows about lockdown --
--- so this only has to make it run now rather than on the next scan.
+-- but not from inside this handler. The client fires it just before lockdown
+-- begins, so InCombatLockdown() is still false here: other addons on this
+-- client call protected methods from this very event. A Refresh run now takes
+-- the out-of-combat path, which is worth having -- it re-aims the macro while
+-- attributes can still be written -- and paints no hold at all. The hold is
+-- painted by a second Refresh on the next frame, once lockdown is on, rather
+-- than waiting up to two seconds for the next scan.
 function addon:PLAYER_REGEN_DISABLED()
 	if ns.Prompt then ns.Guard("combat hold", ns.Prompt.Refresh, ns.Prompt) end
+	C_Timer.After(0, function()
+		if ns.Prompt then ns.Guard("combat hold", ns.Prompt.Refresh, ns.Prompt) end
+	end)
 	-- Every control on the Prompt tab is a secure attribute or a texture on a
 	-- secure frame, and ApplyStyle gives up and returns for the length of the
 	-- fight. The tab says so, but only while it is being drawn -- so the page
@@ -4622,15 +4631,30 @@ function ns.InspectUnit(unit)
 			show("inRangeById", okById, byId),
 			show("inRangeByName", raw(C_Spell and C_Spell.IsSpellInRange, ns.BuffName(buff), unit)))
 		if C_UnitAuras and C_UnitAuras.GetUnitAuraBySpellID then
+			-- Refusals kept apart from absence, the way UnitHasBuff keeps them.
+			-- A read that threw or came back secret, or an id the client
+			-- declared secret, used to fall through to the same white "false" as
+			-- a readable "not carrying it" -- in the command that exists to tell
+			-- those two apart.
 			local found
+			local withheld = {}
+			local unreadable = info and info.readable == false
 			for _, auraId in ipairs(buff.auraIds) do
 				local ok, aura = raw(C_UnitAuras.GetUnitAuraBySpellID, unit, auraId)
 				if ok and aura ~= nil and not (issecretvalue and issecretvalue(aura)) then
 					found = auraId
 					break
+				elseif not ok or (issecretvalue and issecretvalue(aura))
+					or (info and info.secrecy and info.secrecy[auraId] == true) then
+					withheld[#withheld + 1] = tostring(auraId)
 				end
 			end
-			say("  %s", show("hasBuff", true, found or false))
+			if not found and (unreadable or #withheld > 0) then
+				say("  %s  |cff808080withheld: %s|r", show("hasBuff", false),
+					#withheld > 0 and table.concat(withheld, ", ") or "this buff is not readable here")
+			else
+				say("  %s", show("hasBuff", true, found or false))
+			end
 		end
 	end
 
@@ -4646,10 +4670,24 @@ function ns.InspectUnit(unit)
 end
 
 -- Tokens so a test can name the current candidate without typing its name.
+--
+-- "target" stands in only when there is no candidate at all. With one, falling
+-- back to it wrote "/target target" -- which keeps whatever you have targeted
+-- -- for anybody whose name has no second word to take {first} from, and
+-- "[@target]" for anybody reached without a unit token, which BuildQueue calls
+-- the ordinary case for somebody who buffed you. Either way the cast went to
+-- the wrong person while the tooltip named the right one. A {unit} that cannot
+-- be filled is not guessed at: this hands back nil and the reason, and the
+-- prompt leaves the button empty and says why.
 function ns.ExpandTokens(text)
 	local entry = ns.lastTopEntry
 	local buff = entry and entry.buff or ns.ResolveBuff(true)
 	local info = buff and ns.BuffInfo(buff)
+
+	if entry and not entry.unit and text:find("{unit}", 1, true) then
+		return nil, ("%s has no unit token right now, so {unit} cannot be filled"):format(
+			tostring(entry.targetName or entry.name))
+	end
 
 	-- Through Swap, like every other substitution in the addon: what goes into
 	-- the replacement is a name or a spell name from the client, and gsub reads
@@ -4662,7 +4700,11 @@ function ns.ExpandTokens(text)
 	-- those two apart on a client nobody here can start is the console's whole
 	-- job, so it must not have to guess which one {name} meant today.
 	text = ns.Swap(text, "{aim}", (entry and (entry.targetName or entry.name)) or "target")
-	text = ns.Swap(text, "{first}", (entry and ns.FirstName(entry.name)) or "target")
+	-- FirstName answers nil for a name that is one word already, which is the
+	-- whole name then: a same-realm player off Camelot, or a Camelot character
+	-- with no surname.
+	text = ns.Swap(text, "{first}", entry
+		and (ns.FirstName(entry.name) or entry.targetName or entry.name) or "target")
 	text = ns.Swap(text, "{spell}", buff and ns.BuffName(buff))
 	text = ns.Swap(text, "{id}", tostring(info and info.topRank or ""))
 	return text
@@ -4994,7 +5036,8 @@ function addon:OnEnable()
 		"PLAYER_ENTERING_WORLD",
 		"PLAYER_REGEN_ENABLED",
 		-- The prompt freezes when a fight starts and goes on looking live, so
-		-- it has to be told the moment it does rather than up to a scan later.
+		-- it has to be told when it does rather than up to a scan later -- a
+		-- frame later, in fact, since the event arrives just before lockdown.
 		"PLAYER_REGEN_DISABLED",
 		"SPELLS_CHANGED",
 		"NAME_PLATE_UNIT_ADDED",
@@ -5136,8 +5179,11 @@ ns.COMMANDS = {
 	{ word = "macro", help = "make a /click macro for your action bar" },
 	{ word = "on", help = "turn the addon on" },
 	{ word = "off", help = "turn it off" },
-	{ word = "restore", help = "hand your target back after buffing" },
-	{ word = "verbose", help = "print a line in your own chat when somebody buffs you" },
+	-- Both of these flip a setting that starts on. Written as actions, the way
+	-- they were, somebody who typed one to get what it described on a fresh
+	-- profile switched that very thing off.
+	{ word = "restore", help = "switch handing your target back after buffing on or off" },
+	{ word = "verbose", help = "switch the chat lines about who buffed you on or off" },
 	{ word = "clicks", help = "log what the button does when clicked" },
 	{ word = "try", args = " <macro>", help = "run any macro text from the prompt" },
 	{ word = "look", args = " [unit]", help = "dump every API answer for a unit" },
@@ -5162,6 +5208,13 @@ local REPAINT_AFTER = {
 	restore = true, lock = true, unlock = true,
 }
 
+-- Said by every command that changes what a press does. The macro on the
+-- button is a secure attribute, frozen for the length of a fight, so a change
+-- made in one is kept and applied when it ends -- and until then the press
+-- runs whatever the fight froze, which chat used to say nothing about.
+local FROZEN_UNTIL_FIGHT_ENDS = "takes effect when this fight ends; until then a press"
+	.. " runs the macro already on the button."
+
 function addon:HandleSlash(rawInput)
 	rawInput = (rawInput or ""):match("^%s*(.-)%s*$")
 
@@ -5177,13 +5230,24 @@ function addon:HandleSlash(rawInput)
 		if rest == "" then
 			ns.tryMacro = nil
 			ns.Prompt:InvalidateMacro()
-			self:Print("try cleared -- back to the normal cast.")
+			if InCombatLockdown() then
+				self:Print("try cleared -- the normal cast " .. FROZEN_UNTIL_FIGHT_ENDS)
+			else
+				self:Print("try cleared -- back to the normal cast.")
+			end
 		else
 			ns.tryMacro = rest:gsub("\\n", "\n")
 			ns.Prompt:InvalidateMacro()
 			ns.Say("try armed: |cff80ff80%s|r", (ns.tryMacro:gsub("\n", " | ")))
-			local expanded = ns.ExpandTokens(ns.tryMacro)
-			ns.Say("  expands to: |cffffffff%s|r", (expanded:gsub("\n", " | ")))
+			local expanded, unfilled = ns.ExpandTokens(ns.tryMacro)
+			-- The same answer the button gets, so the line quoted here cannot be
+			-- one the button was left empty instead of running.
+			if not expanded then
+				ns.Say("  |cffff8080not armed for now:|r %s.", unfilled)
+				expanded = ""
+			else
+				ns.Say("  expands to: |cffffffff%s|r", (expanded:gsub("\n", " | ")))
+			end
 
 			-- Measured against the same budget every other macro in this addon
 			-- is measured against. What goes on the button is the expansion, and
@@ -5206,7 +5270,18 @@ function addon:HandleSlash(rawInput)
 					.. " The client will cut it, and what runs is not what is printed"
 					.. " above.|r", #expanded, #expanded - ns.MACRO_LIMIT, ns.MACRO_LIMIT)
 			end
-			self:Print("Click the prompt to run it. |cffffd100/manners try|r with nothing clears it.")
+			-- Attributes are frozen for the fight, so the button still holds the
+			-- macro it was armed with when the fight began. "Click the prompt to
+			-- run it" sent a press to that one instead -- which may /yell.
+			if InCombatLockdown() then
+				self:Print("It " .. FROZEN_UNTIL_FIGHT_ENDS
+					.. " |cffffd100/manners try|r with nothing clears it.")
+			elseif unfilled then
+				self:Print("The prompt arms it once they have one."
+					.. " |cffffd100/manners try|r with nothing clears it.")
+			else
+				self:Print("Click the prompt to run it. |cffffd100/manners try|r with nothing clears it.")
+			end
 		end
 		return
 	elseif input == "look" then
@@ -5252,7 +5327,15 @@ function addon:HandleSlash(rawInput)
 		-- drag something that is not there. Switching the addon on for you would
 		-- be the worse half of the choice: /manners off is a decision, and a
 		-- command about where the prompt sits must not quietly undo it.
-		if db.enabled then
+		--
+		-- In a fight there is nothing to drag either: the prompt is a secure
+		-- frame, the client refuses to move it until the fight ends, and the
+		-- panel says "a press still casts what the fight froze" rather than
+		-- "Drag to move" for exactly that reason. Chat has to agree with it.
+		if db.enabled and InCombatLockdown() then
+			self:Print("unlocked -- it can be dragged once this fight ends; until then a press"
+				.. " still casts what the fight froze. Then |cffffd100/manners lock|r.")
+		elseif db.enabled then
 			self:Print("unlocked -- drag the prompt, then |cffffd100/manners lock|r.")
 		else
 			self:Print("unlocked, but the addon is |cffff8080off|r so there is no prompt to"
@@ -5270,7 +5353,8 @@ function addon:HandleSlash(rawInput)
 		db.filters.restoreTarget = not db.filters.restoreTarget
 		ns.Prompt:InvalidateMacro()
 		self:Print("hand your target back after buffing: "
-			.. (db.filters.restoreTarget and "|cff00ff00on|r" or "|cffff0000off|r"))
+			.. (db.filters.restoreTarget and "|cff00ff00on|r" or "|cffff0000off|r")
+			.. (InCombatLockdown() and (" -- " .. FROZEN_UNTIL_FIGHT_ENDS) or ""))
 	elseif input == "clicks" then
 		db.debugClicks = not db.debugClicks
 		self:Print("click logging: " .. (db.debugClicks and "|cff00ff00on|r" or "|cffff0000off|r"))
@@ -5416,7 +5500,20 @@ function addon:HandleSlash(rawInput)
 					name, math.floor(expires - now), math.floor(now - entry.at)))
 			end
 		end
-		if pending == 0 then self:Print("  nobody has buffed you recently.") end
+		-- Only a claim about the world while something is looking. With the
+		-- addon or the favour source switched off nothing is ever filed, so
+		-- "nobody has buffed you" was printed straight after somebody had --
+		-- in the output the bug-report template asks players to paste.
+		if pending == 0 then
+			if not db.enabled then
+				self:Print("  not watching for favours -- Manners is switched off.")
+			elseif not db.sources.owed then
+				self:Print("  not watching for favours -- |cffffd100People who buffed me|r"
+					.. " is switched off.")
+			else
+				self:Print("  nobody has buffed you recently.")
+			end
+		end
 
 		-- And whether that is because nobody has, or because the last look at
 		-- your own buffs was not one this addon was willing to believe.
@@ -5435,6 +5532,14 @@ function addon:HandleSlash(rawInput)
 			self:Print(("  own buffs: %d read, baseline %d"):format(scan.read, scan.held))
 		end
 
+		-- Beside the unlocked line and for the same reason: a switch that stops
+		-- the prompt appearing, which the rest of this output does not show.
+		-- BuildQueue does not read it, so the count below went on reading like
+		-- a healthy queue behind a prompt that was never going to be drawn.
+		if not db.enabled then
+			self:Print("|cffff8080switched OFF on this profile -- nothing is recorded or offered;"
+				.. " /manners on|r")
+		end
 		if not db.prompt.locked then
 			self:Print("|cffff8080prompt is UNLOCKED -- it will not buff anyone until you /manners lock|r")
 		end
@@ -5443,7 +5548,7 @@ function addon:HandleSlash(rawInput)
 			self:Print(("  |cffff8080/manners try is armed:|r %s -- clear it with a bare /manners try"):format(
 				(ns.tryMacro:gsub("%s+", " "))))
 		end
-		self:Print("queue now: " .. #ns.BuildQueue())
+		self:Print((db.enabled and "queue now: " or "queue if switched on: ") .. #ns.BuildQueue())
 		ns.Guard("WriteProbe", ns.WriteProbe)
 	else
 		-- The header is the marker the scenario looks for: falling through to
