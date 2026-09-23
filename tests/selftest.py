@@ -2995,6 +2995,65 @@ mutate("Prompt.lua",
        expect="the comment gives grey",
        script="runscenarios.py")
 
+# The Settings page asked whether it is shown rather than visible, so it reads
+# as open after the window is shut and a preview started there never ends.
+mutate("Options.lua",
+       "\t\tlocal ok, visible = pcall(function() return blizCategory:IsVisible() end)\n",
+       "\t\tlocal ok, visible = pcall(function() return blizCategory:IsShown() end)\n",
+       "Settings page asked IsShown",
+       expect="with the Settings window shut, the page still reads as open",
+       script="runscenarios.py")
+
+# The Settings fallback asking for the canvas frame's own ID, which is 0.
+mutate("Options.lua",
+       "\t\tpcall(Settings.OpenToCategory, blizCategoryID)\n",
+       "\t\tpcall(Settings.OpenToCategory, blizCategory:GetID())\n",
+       "Settings fallback by the frame's ID",
+       expect="the Settings window was asked for category 0",
+       script="runscenarios.py")
+
+# The report box left open when the standalone window is opened again...
+mutate("Options.lua",
+       "\tif not ns.OptionsOpen() then reportOpen = false end\n",
+       "",
+       "report box survives reopening the window",
+       expect="reopening the window with /manners, the report box is still open",
+       script="runscenarios.py")
+
+# ...and when the Settings page is.
+mutate("Options.lua",
+       "\t\tblizCategory:HookScript(\"OnHide\", function() reportOpen = false end)\n",
+       "",
+       "report box survives the Settings page",
+       expect="reopening the Settings window on the page, the report box is still open",
+       script="runscenarios.py")
+
+# Height shrinking the icon without asking for a repaint...
+mutate("Options.lua",
+       "\t\t\t\t\t\t\tif P().iconSize ~= icon then RepaintSoon() end\n"
+       "\t\t\t\t\t\tend,\n\t\t\t\t\t},\n\t\t\t\t\tscale = {",
+       "\t\t\t\t\t\tend,\n\t\t\t\t\t},\n\t\t\t\t\tscale = {",
+       "height never repaints the icon slider",
+       expect="wheeling Height to 30 held the icon at 22",
+       script="runscenarios.py")
+
+# ...and Width the same.
+mutate("Options.lua",
+       "\t\t\t\t\t\t\tif P().iconSize ~= icon then RepaintSoon() end\n"
+       "\t\t\t\t\t\tend,\n\t\t\t\t\t},\n\t\t\t\t\theight = {",
+       "\t\t\t\t\t\tend,\n\t\t\t\t\t},\n\t\t\t\t\theight = {",
+       "width never repaints the icon slider",
+       expect="wheeling Width to 80 held the icon at 20",
+       script="runscenarios.py")
+
+# ...or asking for one on every tick of a drag.
+mutate("Options.lua",
+       "\t\tif mine == repaintToken and ns.RefreshOptionsDisplay then\n",
+       "\t\tif ns.RefreshOptionsDisplay then\n",
+       "width and height repaint on every tick",
+       expect="a drag from 44 to 30 redrew the page",
+       script="runscenarios.py")
+
 print()
 print("after restore:")
 # This file edits the addon in place. A restore that did not happen leaves a

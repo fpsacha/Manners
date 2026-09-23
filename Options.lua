@@ -85,6 +85,27 @@ local function restyleAndMacro()
 	ns.Prompt:ApplyStyle()
 end
 
+-- Redraw the page once a run of slider ticks has stopped.
+--
+-- For the Width and Height sliders, which shrink the icon to fit and so change
+-- what another slider on the page should be showing. The dialog redraws a
+-- slider when a drag is let go, but a mouse wheel never lets go of anything, so
+-- without this a wheel left the Icon size slider showing a value the prompt was
+-- no longer using. Held back rather than immediate because a redraw rebuilds
+-- the slider being dragged under the pointer; each call replaces the one
+-- before, so a wheel or a drag ends with a single redraw. C_Timer.After cannot
+-- be cancelled, hence the token.
+local repaintToken = 0
+local function RepaintSoon()
+	repaintToken = repaintToken + 1
+	local mine = repaintToken
+	C_Timer.After(0.3, function()
+		if mine == repaintToken and ns.RefreshOptionsDisplay then
+			ns.Guard("icon repaint", ns.RefreshOptionsDisplay)
+		end
+	end)
+end
+
 local function P() return ns.db.profile.prompt end
 local function S() return ns.db.profile.sources end
 local function F() return ns.db.profile.filters end
@@ -354,6 +375,7 @@ end
 --
 -- A file local rather than a setting: it is a state of the window rather than
 -- of the profile, and one that has no business surviving the window being shut.
+-- Put back in OpenOptions and when the Settings page hides; see there.
 local reportOpen = false
 
 -- Everything somebody would otherwise be asked for twice, in one block that can
@@ -1541,9 +1563,11 @@ local function BuildOptions()
 						-- icon on the left and short of the edge on the right, had
 						-- nowhere left to draw.
 						set = function(info, value)
+							local icon = P().iconSize
 							pSet(info, value)
 							ns.ClampSettings()
 							restyle()
+							if P().iconSize ~= icon then RepaintSoon() end
 						end,
 					},
 					height = {
@@ -1558,11 +1582,14 @@ local function BuildOptions()
 						-- this. Lowering the height under an icon already larger
 						-- than it would otherwise leave the icon overhanging both
 						-- hairlines and the slider showing a number it would no
-						-- longer accept.
+						-- longer accept. Repainted when that happens; see
+						-- RepaintSoon.
 						set = function(info, value)
+							local icon = P().iconSize
 							pSet(info, value)
 							ns.ClampSettings()
 							restyle()
+							if P().iconSize ~= icon then RepaintSoon() end
 						end,
 					},
 					scale = { type = "range", name = "Scale", order = 36, min = 0.5, max = 3, step = 0.05, get = pGet, set = pSet },
@@ -1950,7 +1977,11 @@ end
 -- registration
 ---------------------------------------------------------------------------
 
-local blizCategory
+-- The canvas frame AddToBlizOptions made for the game's Settings window, and
+-- the category ID it hands back beside it. Two values because they are two
+-- things: the frame is what can be asked whether the page is on screen, and
+-- only the ID is something Settings.OpenToCategory can find the page by.
+local blizCategory, blizCategoryID
 
 function ns.SetupOptions()
 	local options = BuildOptions()
@@ -1962,7 +1993,15 @@ function ns.SetupOptions()
 	ns.optionsTable = options
 
 	AceConfig:RegisterOptionsTable(ADDON, options)
-	blizCategory = AceConfigDialog:AddToBlizOptions(ADDON, "Manners")
+	blizCategory, blizCategoryID = AceConfigDialog:AddToBlizOptions(ADDON, "Manners")
+	-- The bug-report box shuts with the page. The standalone window is only
+	-- ever opened through OpenOptions, which shuts it there; this is the other
+	-- route in. OnHide rather than a check inside the box's own `hidden`,
+	-- because that is only asked while the page is being drawn -- which is
+	-- exactly when the page is open.
+	if blizCategory and blizCategory.HookScript then
+		blizCategory:HookScript("OnHide", function() reportOpen = false end)
+	end
 
 	if LDB then
 		broker = LDB:NewDataObject(ADDON, {
@@ -2065,23 +2104,38 @@ end
 -- went missing.
 --
 -- Everything is checked for existence and every answer defaults to "no": a
--- library version without the table, or a Blizzard panel handle that is a
--- category object rather than a frame, has to mean the preview times out as it
--- always did rather than throwing inside the scan.
+-- library version without the table, or a Blizzard panel handle without the
+-- method, has to mean the preview times out as it always did rather than
+-- throwing inside the scan.
 function ns.OptionsOpen()
 	local frames = AceConfigDialog and AceConfigDialog.OpenFrames
 	if type(frames) == "table" and frames[ADDON] ~= nil then return true end
 
-	-- The other route in. AddToBlizOptions hands back a frame on some clients
-	-- and a category object on others, so this is asked with a net under it.
+	-- The other route in: the canvas frame AddToBlizOptions made for the game's
+	-- Settings window. Asked whether it is visible, not whether it is shown.
+	-- Shutting the Settings window hides the window, not the canvas inside it,
+	-- and the client only clears the canvas's own shown flag when another page
+	-- takes its place -- so IsShown went on answering yes after the window was
+	-- shut, and a preview started from that page pushed its clock forward and
+	-- stood in front of real people until the window was next opened.
+	-- AceConfigDialog asks its own Settings pages the same way, for the same
+	-- reason.
 	if blizCategory then
-		local ok, shown = pcall(function() return blizCategory:IsShown() end)
-		if ok and shown then return true end
+		local ok, visible = pcall(function() return blizCategory:IsVisible() end)
+		if ok and visible then return true end
 	end
 	return false
 end
 
 function ns.OpenOptions()
+	-- The bug-report box starts shut. Only its own button ever changed it, so
+	-- shutting the window and opening it again found the fourteen-line box
+	-- still open and the button reading "Hide the report". Left alone when the
+	-- window is already up, where this is a click on the minimap button rather
+	-- than an opening, and shutting the box under somebody copying it would be
+	-- the surprise.
+	if not ns.OptionsOpen() then reportOpen = false end
+
 	-- The standalone dialog, first and by default.
 	--
 	-- This used to try Settings.OpenToCategory first and fall back to here, on
@@ -2100,7 +2154,12 @@ function ns.OpenOptions()
 
 	-- Only if that is somehow unavailable, and only as a last resort, since it
 	-- may well land on the wrong page.
-	if Settings and Settings.OpenToCategory and blizCategory and blizCategory.GetID then
-		pcall(Settings.OpenToCategory, blizCategory:GetID())
+	--
+	-- By the ID AddToBlizOptions returned, not the canvas frame's own GetID.
+	-- Nothing sets a frame ID on that canvas, so it answered 0, which is no
+	-- category at all, and the Settings window came up on whatever page it was
+	-- last on every time this ran.
+	if Settings and Settings.OpenToCategory and blizCategoryID ~= nil then
+		pcall(Settings.OpenToCategory, blizCategoryID)
 	end
 end

@@ -279,8 +279,18 @@ function Mock.reset()
 	Mock.tooltip = {}
 	-- Whether the options window is on screen, which is what decides whether
 	-- the preview is allowed to time out. `true` is the standalone AceConfig
-	-- dialog and "blizzard" is the interface-options panel; both routes in.
+	-- dialog. The other route in, the game's own Settings window, is
+	-- Mock.openSettings and Mock.closeSettings below.
 	Mock.optionsOpen = false
+	-- Whether the game's Settings window is up, and the canvas AddToBlizOptions
+	-- made for Manners inside it. Kept apart because the client keeps them
+	-- apart: shutting the window hides the window, and the canvas keeps its own
+	-- shown flag until another page replaces it.
+	Mock.settingsPanelShown = false
+	Mock.blizCanvas = nil
+	-- The category ID AddToBlizOptions hands back as its second value, which is
+	-- the only thing Settings.OpenToCategory can find the page by.
+	Mock.blizCategoryID = 17
 	-- How many times the options page has been asked to redraw itself.
 	Mock.optionsRepaints = 0
 	-- The screen, and where on it the prompt is sitting. The queue list flips
@@ -526,6 +536,12 @@ local function newFrame()
 
 	f.SetScript = function(self, which, fn) self.scripts[which] = fn return self end
 	f.GetScript = function(self, which) return self.scripts[which] end
+	-- Runs after whatever script is already there, as the client's does.
+	f.HookScript = function(self, which, fn)
+		local prior = self.scripts[which]
+		self.scripts[which] = prior and function(...) prior(...) return fn(...) end or fn
+		return self
+	end
 	f.SetAttribute = function(self, k, v) self.attributes[k] = v return self end
 	f.GetAttribute = function(self, k) return self.attributes[k] end
 	f.IsShown = function(self) return self._shown ~= false end
@@ -816,8 +832,20 @@ local function getLibrary(name, silent)
 			-- "shown" by default, and one that did so here would make the
 			-- preview immortal for a reason that has nothing to do with the
 			-- rule being tested.
-			f.IsShown = function() return Mock.optionsOpen == "blizzard" end
-			return f
+			f._shown = false
+			-- Two answers, as the client gives them. IsShown is the canvas's
+			-- own flag, which the Settings window sets when it shows the page
+			-- and only clears when another page takes its place -- so it stays
+			-- set after the window is shut. IsVisible is the one that also
+			-- asks the window.
+			f.IsShown = function(self) return self._shown == true end
+			f.IsVisible = function(self) return self._shown == true and Mock.settingsPanelShown == true end
+			-- A plain frame's ID, which nobody sets on this one: it is not the
+			-- category's.
+			f.GetID = function() return 0 end
+			Mock.blizCanvas = f
+			-- The library returns the frame and the category ID, in that order.
+			return f, Mock.blizCategoryID
 		end
 		lib.Open = function() end
 		-- The real library keeps the frames it has open in here, keyed by addon
@@ -1301,6 +1329,28 @@ function Mock.runTimers(seconds)
 		table.remove(Mock.timers, due).fn()
 	end
 	return false
+end
+
+-- The game's Settings window, opened on Manners' page and shut again.
+--
+-- OnShow and OnHide fire on the canvas when it starts and stops being visible,
+-- whichever of it or the window did the moving -- which is how AceConfigDialog
+-- knows to draw and clear the page. Shutting the window leaves the canvas's own
+-- shown flag set, as the client does.
+function Mock.openSettings()
+	local canvas = Mock.blizCanvas
+	local was = canvas and canvas:IsVisible()
+	Mock.settingsPanelShown = true
+	if canvas then
+		canvas._shown = true
+		if not was and canvas.scripts.OnShow then canvas.scripts.OnShow(canvas) end
+	end
+end
+function Mock.closeSettings()
+	local canvas = Mock.blizCanvas
+	local was = canvas and canvas:IsVisible()
+	Mock.settingsPanelShown = false
+	if was and canvas.scripts.OnHide then canvas.scripts.OnHide(canvas) end
 end
 
 -- Namespaces are rebuilt on each access so `stripped` can remove them.

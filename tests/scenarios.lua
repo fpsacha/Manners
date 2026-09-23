@@ -16230,6 +16230,254 @@ if ns then
 end
 Mock.reset()
 
+-- ------------------------------------------------------------------ 249
+-- A preview started from the game's Settings window ends once it is shut.
+--
+-- Whether the page was open was asked of the canvas AddToBlizOptions made, with
+-- IsShown -- the canvas's own flag. Shutting the Settings window hides the
+-- window and leaves that flag set, because the client only clears it when
+-- another page takes the canvas's place. So after one visit the page read as
+-- open until the next: the preview's clock was pushed forward on every pass,
+-- "somebody real turned up" never fired, and the prompt went on showing a
+-- mock-up and casting nothing over the people who had buffed you.
+Mock.reset()
+ns = load("a preview from the Settings window ends when it is shut")
+if ns then
+	local scenario = "a preview from the Settings window ends when it is shut"
+	drive(scenario, ns)
+	ns.Prompt:ExitTest()
+	Mock.advance(60)
+	withEmptyPrompt(function()
+		Mock.openSettings()
+		if not ns.OptionsOpen() then
+			fail(scenario, "SKIPPED -- the Settings page does not read as open while it is")
+		end
+		ns.Prompt:ToggleTest()
+		if not ns.Prompt:InTest() then
+			fail(scenario, "SKIPPED -- the page's Preview button did not start a preview")
+		else
+			Mock.closeSettings()
+			if ns.OptionsOpen() then
+				fail(scenario, "with the Settings window shut, the page still reads as open")
+			end
+			Mock.advance(30)
+			ns.Prompt:Refresh()
+			if ns.Prompt:InTest() then
+				fail(scenario, "the preview outlived the Settings window it was started from")
+				ns.Prompt:ExitTest()
+			end
+		end
+
+		-- And a later /manners test, with the window long shut, times out as
+		-- any other does.
+		ns.addon:HandleSlash("test")
+		if not ns.Prompt:InTest() then
+			fail(scenario, "SKIPPED -- /manners test did not start a preview")
+		else
+			Mock.advance(30)
+			ns.Prompt:Refresh()
+			if ns.Prompt:InTest() then
+				fail(scenario, "a /manners test after a visit to the Settings page never timed out")
+				ns.Prompt:ExitTest()
+			end
+		end
+	end)
+
+	-- Somebody real waiting ends it the moment the window is shut.
+	local template = ns.BuildQueue()[1]
+	if not template then
+		fail(scenario, "SKIPPED -- nobody to stand in for somebody real")
+	else
+		local realBuild = ns.BuildQueue
+		ns.BuildQueue = function() return {} end
+		Mock.openSettings()
+		ns.Prompt:ToggleTest()
+		ns.BuildQueue = function() return { template } end
+		if not ns.Prompt:InTest() then
+			fail(scenario, "SKIPPED -- the second preview did not start")
+		else
+			Mock.closeSettings()
+			Mock.printed = {}
+			ns.Prompt:Refresh()
+			if ns.Prompt:InTest()
+				or not table.concat(Mock.printed, "\n"):find("somebody real turned up", 1, true) then
+				fail(scenario, "somebody real was waiting and the preview stood in front of them"
+					.. " after the Settings window was shut")
+			end
+		end
+		ns.BuildQueue = realBuild
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 250
+-- The Settings fallback opens on Manners' page.
+--
+-- If the standalone dialog cannot open, OpenOptions falls back to the game's
+-- Settings window and asks for the category by ID. It asked the canvas frame
+-- for that ID, and a plain frame's ID is 0, which is no category at all -- so
+-- the window came up on whatever page it was last on. AddToBlizOptions hands
+-- the real ID back as its second value, in the number form this client uses or
+-- the name form older ones do.
+for _, id in ipairs({ 17, "Manners" }) do
+	Mock.reset()
+	Mock.blizCategoryID = id
+	local scenario = "the Settings fallback opens on Manners (" .. type(id) .. " ID)"
+	ns = load(scenario)
+	if ns then
+		drive(scenario, ns)
+		local dialog = LibStub("AceConfigDialog-3.0")
+		local realOpen, realSettings = dialog.Open, Settings
+		local asked = {}
+		Settings = { OpenToCategory = function(which) asked[#asked + 1] = which end }
+		dialog.Open = function()
+			error("AceConfigRegistry:ValidateOptionsTable(): Manners.args: expected a table", 0)
+		end
+		ns.addon:HandleSlash("options")
+		if Mock.broker and Mock.broker.OnClick then
+			Mock.broker.OnClick(nil, "LeftButton")
+		end
+		dialog.Open, Settings = realOpen, realSettings
+		if #asked == 0 then
+			fail(scenario, "with the dialog broken, nothing opened the Settings window at all")
+		end
+		for _, which in ipairs(asked) do
+			if which ~= id then
+				fail(scenario, ("the Settings window was asked for category %s, not Manners' %s")
+					:format(tostring(which), tostring(id)))
+			end
+		end
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 251
+-- The bug-report box starts shut each time the window opens.
+--
+-- Whether it was open was a file local that only its own button ever changed,
+-- so shutting the window and opening it again found the fourteen-line box still
+-- open and the button reading "Hide the report" -- the state its own comment
+-- says has no business surviving the window being shut. Both routes in.
+Mock.reset()
+ns = load("the bug-report box starts shut")
+if ns then
+	local scenario = "the bug-report box starts shut"
+	drive(scenario, ns)
+	local diag = ns.optionsTable and ns.optionsTable.args.diagnostics
+	local report = diag and diag.args.report
+	local button = diag and diag.args.copyReport
+	if not (report and button and button.func and type(button.name) == "function") then
+		fail(scenario, "SKIPPED -- no bug-report box on the page")
+	else
+		local function check(route)
+			if not report.hidden() or button.name() ~= "Copy for a bug report" then
+				fail(scenario, ("%s the report box is %s and the button reads %q")
+					:format(route, report.hidden() and "shut" or "still open", button.name()))
+			end
+		end
+
+		-- The standalone window, shut and opened again with /manners.
+		ns.addon:HandleSlash("")
+		Mock.optionsOpen = true
+		button.func()
+		if report.hidden() then
+			fail(scenario, "SKIPPED -- the button did not open the box")
+		end
+		Mock.optionsOpen = false
+		ns.addon:HandleSlash("")
+		Mock.optionsOpen = true
+		check("reopening the window with /manners,")
+		Mock.optionsOpen = false
+
+		-- The game's Settings window, shut and opened again on the page.
+		-- From shut, whatever the first half left behind.
+		Mock.openSettings()
+		if not report.hidden() then button.func() end
+		button.func()
+		if report.hidden() then
+			fail(scenario, "SKIPPED -- the button did not open the box on the Settings page")
+		end
+		Mock.closeSettings()
+		Mock.openSettings()
+		check("reopening the Settings window on the page,")
+		Mock.closeSettings()
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 252
+-- Wheeling Width or Height repaints the Icon size slider it shrank.
+--
+-- Both setters clamp the icon to fit, and neither asked the page to redraw. The
+-- dialog redraws a slider when a drag is let go, and a mouse wheel lets go of
+-- nothing, so wheeling Height from 44 down to 30 left the icon at 22 while its
+-- slider showed 30 and the notice that says why stayed hidden. The repaint is
+-- held back until the ticks stop, because a redraw rebuilds the slider under
+-- a dragging pointer.
+Mock.reset()
+ns = load("wheeling the width or height repaints the icon slider")
+if ns then
+	local scenario = "wheeling the width or height repaints the icon slider"
+	drive(scenario, ns)
+	ns.Prompt:ExitTest()
+	Mock.runTimers(10)
+	local app = ns.optionsTable and ns.optionsTable.args.appearance.args
+	local registry = LibStub("AceConfigRegistry-3.0")
+	if not (app and app.width and app.height and app.iconSize and app.iconSizeCapped
+		and registry and registry.NotifyChange) then
+		fail(scenario, "SKIPPED -- no Width, Height or Icon size slider, or no repaint to watch")
+	else
+		local p = ns.db.profile.prompt
+		-- What the page last drew.
+		local painted = { icon = p.iconSize, notice = not app.iconSizeCapped.hidden(), count = 0 }
+		local realNotify = registry.NotifyChange
+		registry.NotifyChange = function(...)
+			painted.icon = app.iconSize.get({ "iconSize" })
+			painted.notice = not app.iconSizeCapped.hidden()
+			painted.count = painted.count + 1
+			return realNotify(...)
+		end
+		local function wheel(key, from, to)
+			for value = from, to, from > to and -1 or 1 do
+				app[key].set({ key }, value)
+				Mock.runTimers(0.05)
+			end
+			Mock.runTimers(1)
+		end
+
+		p.width, p.height, p.iconSize = 220, 44, 30
+		wheel("height", 44, 30)
+		if p.iconSize ~= 22 then
+			fail(scenario, "SKIPPED -- a height of 30 did not clamp the icon to 22")
+		elseif painted.icon ~= 22 or not painted.notice then
+			fail(scenario, ("wheeling Height to 30 held the icon at 22 and the page still shows"
+				.. " %s, with the notice %s"):format(tostring(painted.icon),
+				painted.notice and "up" or "hidden"))
+		end
+
+		p.width, p.height, p.iconSize = 220, 44, 30
+		wheel("width", 220, 80)
+		if p.iconSize ~= 20 then
+			fail(scenario, "SKIPPED -- a width of 80 did not clamp the icon to 20")
+		elseif painted.icon ~= 20 then
+			fail(scenario, ("wheeling Width to 80 held the icon at 20 and the page still shows %s")
+				:format(tostring(painted.icon)))
+		end
+
+		-- A drag is the same run of ticks, and it asks for one redraw at the end
+		-- rather than one per tick under the pointer.
+		p.width, p.height, p.iconSize = 220, 44, 30
+		painted.count = 0
+		wheel("height", 44, 30)
+		if painted.count > 1 then
+			fail(scenario, ("a drag from 44 to 30 redrew the page %d times under the pointer")
+				:format(painted.count))
+		end
+		registry.NotifyChange = realNotify
+	end
+end
+Mock.reset()
+
 -- ------------------------------------------------------------------ report
 print("=== scenarios ===")
 if #failures == 0 then
