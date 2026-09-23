@@ -730,9 +730,11 @@ function ns.PickBuffFor(candidates, opts, has)
 	-- "this spell is wrong for this person" is permanent for the scan, while
 	-- "we tried it on them a moment ago" is a cooldown, and that branch has to
 	-- read the auras of a blessing it may not offer.
+	-- inParty rather than inGroup: in a raid "in the group" is all forty and the
+	-- shout reaches the caster's subgroup of five. See SameParty.
 	local function castable(buff)
 		if opts.relevantOnly and buff.manaOnly and opts.hasMana == false then return false end
-		if buff.partyOnly and not opts.inGroup then return false end
+		if buff.partyOnly and not opts.inParty then return false end
 		return true
 	end
 
@@ -1104,6 +1106,73 @@ local function InRange(unit, buff)
 	if r == nil then r = safecall(_G.IsSpellInRange, name, unit) end
 	if r == nil then return nil end
 	return (r == true or r == 1)
+end
+
+-- Whether a partyOnly buff the player casts reaches this unit.
+--
+-- Not the question "are they in my group", which is what used to be asked. In a
+-- raid UnitInRaid answers with an index for every member of it, and vanilla's
+-- Battle Shout reaches the caster's own subgroup and nobody else -- so a warrior
+-- in a forty-man raid was offered thirty-five people the shout cannot reach,
+-- every twelve seconds, and a press counted as repaying whichever of them was
+-- owed. UnitInSubgroup is what the Camelot class-buff reminder asks for its
+-- shouts; where the client has not got it, the raid roster says which subgroup
+-- each member is in.
+--
+-- Only where the buff set says so. The later flavours made their shouts
+-- raid-wide, and there everybody in the raid is inside one.
+local function SameParty(unit)
+	if not unit then return false end
+	if plain(IsInRaid and IsInRaid()) ~= true then
+		return plain(UnitInParty and UnitInParty(unit)) == true
+	end
+	if not ns.PARTY_IS_SUBGROUP then
+		return type(plain(UnitInRaid and UnitInRaid(unit))) == "number"
+	end
+	if type(_G.UnitInSubgroup) == "function" then
+		return safecall(_G.UnitInSubgroup, unit) == true
+	end
+	local index = plain(UnitInRaid and UnitInRaid(unit))
+	local mine = plain(UnitInRaid and UnitInRaid("player"))
+	if type(index) ~= "number" or type(mine) ~= "number" then return false end
+	local _, _, theirs = safecall(_G.GetRaidRosterInfo, index)
+	local _, _, ours = safecall(_G.GetRaidRosterInfo, mine)
+	return theirs ~= nil and theirs == ours
+end
+
+-- How far a shout carries: twenty yards, and thirty with all of Booming Voice.
+local SHOUT_YARDS = 30
+-- The follow prompt, CheckInteractDistance index 4: about twenty-eight yards,
+-- the nearest thing to a shout's reach the client will answer about. Looser than
+-- an untalented shout, so somebody twenty-five yards off can pass it; what it
+-- cannot do is pass somebody sixty yards off, which is the failure it is for.
+local INTERACT_FOLLOW = 4
+
+-- Whether a shout would reach this unit: true, false, or nil for nothing could
+-- tell.
+--
+-- InRange cannot answer it. A shout is cast on yourself and has no range to
+-- anybody, and the client answers nil -- "could not tell", which the queue lets
+-- through -- so a party member sixty yards away, or in another zone, was
+-- offered Battle Shout and counted as repaid by it.
+--
+-- The follow prompt first, because it is asked directly and a refusal stays a
+-- refusal. LibRangeCheck only after it, and only to say yes: its search reads a
+-- check that would not answer as "further out" -- see DirectCheck -- so its "far"
+-- can be a refusal in disguise, and turning somebody away on that would drop a
+-- party member standing beside you. Its "within" has no such doubt about it.
+local function ShoutReach(unit)
+	local follow = safecall(_G.CheckInteractDistance, unit, INTERACT_FOLLOW)
+	if follow ~= nil then return follow == true or follow == 1 end
+
+	local stub = _G.LibStub
+	local lib = type(stub) == "table" and type(stub.GetLibrary) == "function"
+		and safecall(stub.GetLibrary, stub, "LibRangeCheck-3.0", true) or nil
+	if type(lib) == "table" and type(lib.GetRange) == "function" then
+		local _, maxRange = safecall(lib.GetRange, lib, unit)
+		if type(maxRange) == "number" and maxRange <= SHOUT_YARDS then return true end
+	end
+	return nil
 end
 
 ---------------------------------------------------------------------------
@@ -1848,6 +1917,23 @@ end
 
 ns.owed, ns.tried = owed, tried
 
+-- When a debt really runs out: the stamp it was filed with, or its age against
+-- the window as it stands now, whichever comes first.
+--
+-- The stamp alone was read everywhere, and it was taken once, when the favour
+-- was noticed -- so lowering "Remember a buff for" from ten minutes to thirty
+-- seconds, or switching to a profile with a shorter one, left a minute-old debt
+-- owed for nine minutes more, at the top of the queue. A /reload clamped it,
+-- which is the only place the setting was being honoured. Every reader asks
+-- this instead.
+local function LiveExpiry(entry)
+	local db = addon.db and addon.db.profile
+	local window = db and db.timing and db.timing.reciprocateWindow
+	if type(entry.at) ~= "number" or type(window) ~= "number" then return entry.expires end
+	return math.min(entry.expires, entry.at + window)
+end
+ns.DebtExpiry = LiveExpiry
+
 -- SavedVariables outlive the client, GetTime() does not: it restarts near zero
 -- every login, so a debt stored GetTime()-relative comes back either already
 -- expired or an hour long. Everything goes out on the wall clock and is rebased
@@ -1872,14 +1958,15 @@ local function SaveDebts()
 
 	local now, out = GetTime(), nil
 	for name, entry in pairs(owed) do
-		if entry.expires > now then
+		local expires = LiveExpiry(entry)
+		if expires > now then
 			out = out or {}
 			-- The class is worth carrying: it is all the tokenless fallback has
 			-- to judge what to offer. The guid is not -- nothing reads it back,
 			-- and whether it means the same person after a reload has never been
 			-- measured on this client.
 			out[name] = {
-				expires = wall + (entry.expires - now),
+				expires = wall + (expires - now),
 				at = wall - (now - entry.at),
 				class = entry.class,
 			}
@@ -1909,9 +1996,11 @@ local function RestoreDebts()
 		if type(entry) == "table" and type(entry.expires) == "number"
 			and type(entry.at) == "number" and SafeForMacro(name) then
 			-- Clamped to the window as it stands now, so lowering the slider
-			-- cannot be out-waited by a file written under a longer one.
-			local left = entry.expires - wall
-			if left > window then left = window end
+			-- cannot be out-waited by a file written under a longer one --
+			-- counted from the favour, as LiveExpiry counts it in play. It used
+			-- to restart the whole window from the login, so a debt already
+			-- older than the window came back with all of it to run.
+			local left = math.min(entry.expires, entry.at + window) - wall
 			if left > 0 then
 				-- `at` rebases negative just after login, while GetTime() is
 				-- still small. That is correct rather than a bug: now - at is
@@ -2126,7 +2215,7 @@ function ns.BuildQueue()
 		if ns.IsBlocked(full, nil, now) then return end
 
 		local inGroup = plain(UnitInParty and UnitInParty(unit)) or plain(UnitInRaid and UnitInRaid(unit))
-		local isOwed = db.sources.owed and owed[full] and owed[full].expires > now
+		local isOwed = db.sources.owed and owed[full] and LiveExpiry(owed[full]) > now
 
 		-- Decide whether we would offer this person at all before reading any
 		-- auras, which is the expensive part.
@@ -2182,6 +2271,9 @@ function ns.BuildQueue()
 		local buff, has, remaining = ns.PickBuffFor(candidates, {
 			hasMana = hasMana,
 			inGroup = inGroup,
+			-- Who a shout reaches, which in a raid is not the group: see
+			-- SameParty. inGroup stays the reason on the card.
+			inParty = SameParty(unit),
 			relevantOnly = f.relevantOnly,
 			whenBuffed = whenBuffed,
 			refreshUnder = f.refreshUnder,
@@ -2197,6 +2289,12 @@ function ns.BuildQueue()
 		if not checked then has = nil end
 
 		local ranged = InRange(unit, buff)
+		-- A shout has no range for InRange to measure, so the client says
+		-- nothing about it and nil let everybody through. Where anything can
+		-- say how far off they are, that is asked instead -- and the answer
+		-- rides on the entry to the press, because a shout nothing measured is
+		-- not taken as repaying anybody.
+		if ranged == nil and buff.selfCast then ranged = ShoutReach(unit) end
 		if f.requireInRange and ranged == false then rejected[full] = true return end
 
 		-- A deliberate target is the plainest statement of intent there is, so
@@ -2262,7 +2360,7 @@ function ns.BuildQueue()
 		local grace = db.timing.graceSeconds or 45
 		for full, entry in pairs(owed) do
 			local fresh = not db.filters.reachableOnly or (now - entry.at) <= grace
-			if entry.expires > now and fresh and not seen[full] and not rejected[full]
+			if LiveExpiry(entry) > now and fresh and not seen[full] and not rejected[full]
 				and SafeForMacro(full) and not ns.IsBlocked(full, nil, now) then
 				-- Resolved per person, like the main path, rather than once for
 				-- everybody: a single resolve with mana assumed offered the
@@ -2279,6 +2377,7 @@ function ns.BuildQueue()
 					-- No token, so there is no telling whether they are in the
 					-- group; a party-only buff would be a button that fails.
 					inGroup = false,
+					inParty = false,
 					relevantOnly = f.relevantOnly,
 					-- No aura truth either, so never rotate past what they may
 					-- already be carrying.
@@ -2297,14 +2396,15 @@ function ns.BuildQueue()
 				--
 				-- selfCast stays excluded, and now for a sharper reason than
 				-- when it was written. The settle path judges a selfCast click
-				-- on nothing but "our spell went out", because that is all
-				-- there is to judge it on -- which is right on the main path,
-				-- where the person was seen through a unit token and is
-				-- therefore standing inside the shout. Here there is no token
-				-- and no evidence they are anywhere near, so the press would
-				-- mark the debt repaid to somebody who may be a zone away and
-				-- heard none of it. The main path's exclusion was the one that
-				-- had to go; this one had to stay.
+				-- on "our spell went out" and on whether the main path measured
+				-- the person inside the shout's reach when it was pressed --
+				-- being seen through a unit token was once taken for that on
+				-- its own, and it is not: a raider in another subgroup, or a
+				-- party member sixty yards off, has a token too. Here there is
+				-- no token and nothing to measure, so the press would mark the
+				-- debt repaid to somebody who may be a zone away and heard none
+				-- of it. The main path's exclusion was the one that had to go;
+				-- this one had to stay.
 				if buff and not buff.selfCast and not ns.IsBlocked(full, buff.key, now) then
 					queue[#queue + 1] = {
 						name = full,
@@ -2506,6 +2606,31 @@ local function Sight(instanceId, key, aura)
 	seen.name = full
 	seen.guid = plain(UnitGUID(source))
 	seen.class = plain(select(2, UnitClass(source)))
+	-- Asked of the token while it still means them, for the same reason as the
+	-- name: what NoteFavour promises depends on whether a shout reaches them and
+	-- whether a mana buff is any use to them, and by then the token may be
+	-- somebody else's.
+	seen.sameParty = SameParty(source)
+	seen.hasMana = UnitHasMana(source)
+end
+
+-- What the queue would offer somebody -- nil for nothing -- asked with nothing
+-- but what NoteFavour knows about them: whether they have mana, and whether a
+-- shout reaches them. Everything else is set the way the queue sets it for a
+-- debt, so this and the queue cannot disagree about whether a favour can be
+-- returned: offered even when covered, no rotation, no aura reading.
+function ns.CouldOffer(hasMana, inParty)
+	local db = addon.db and addon.db.profile
+	if not db then return nil end
+	return ns.PickBuffFor(ns.CastableBuffs(), {
+		hasMana = hasMana,
+		inGroup = inParty,
+		inParty = inParty,
+		relevantOnly = db.filters.relevantOnly,
+		whenBuffed = "always",
+		offerAnyway = true,
+		rotate = false,
+	}, function() return nil end)
 end
 
 -- One favour, filed against the person who was holding the token when the aura
@@ -2528,24 +2653,47 @@ local function NoteFavour(seen)
 	-- the favour was on it.
 	if not db.enabled or not db.sources.owed then return end
 
-	-- And a character with nothing it can cast is the same lie again: no
-	-- prompt will ever offer this person anything, and it was written to disk
-	-- and announced as "on the prompt" all the same -- a rogue, a class that
-	-- has not learned its buff yet.
-	if not caps.anyKnown then return end
+	-- And a character with nothing it can offer anybody is the same lie again:
+	-- no prompt will ever offer this person anything, and it was written to
+	-- disk and announced as "on the prompt" all the same -- a rogue, a class
+	-- that has not learned its buff yet. Asked the way the queue asks it, not
+	-- as "knows some spell": every spell switched off, or a pin on one not
+	-- learned, leaves the queue with nothing for anybody while the character
+	-- knows plenty.
+	if #ns.CastableBuffs() == 0 then return end
+	local pinned = ns.PinnedBuff()
+	if pinned and not ns.IsBuffKnown(pinned) then return end
+
+	-- Then the same question about this person. Neither half can be asked of a
+	-- token now -- see Sight -- so it is what was read off one when the aura
+	-- was, and for the combat log, which never had a token, the class and the
+	-- name.
+	local hasMana = seen.hasMana
+	if hasMana == nil and seen.class then hasMana = MANA_CLASSES[seen.class] == true end
+	local inParty = seen.sameParty
+	if inParty == nil then inParty = SameParty(seen.name) end
+
+	-- Nothing we cast is any use to them, and the queue will say so on every
+	-- scan for as long as the debt lasts: a warrior's shout, to a mage whose
+	-- only buff is intellect. Recording that was a pulsing prompt the queue
+	-- could never fill and a line promising it would.
+	if not ns.CouldOffer(hasMana, true) then
+		if db.verbose then
+			addon:Print(("|cff80ff80%s buffed you|r -- nothing you cast is any use to them"
+				.. " (\"Skip players the buff does nothing for\" is on)"):format(seen.name))
+		end
+		return
+	end
 
 	owed[seen.name] = { expires = GetTime() + db.timing.reciprocateWindow, at = GetTime(),
 		guid = seen.guid, class = seen.class }
 	if db.verbose then
 		-- A warrior's shout reaches the party and nobody else, so a stranger who
 		-- buffed one is kept -- they may yet join the group -- but is not on the
-		-- prompt, and the line says which.
-		local reachable = not ns.OnlyReachesGroup()
-			or safecall(_G.UnitInParty, seen.name) == true
-			-- An index into the raid, not true. Somebody outside it comes back
-			-- as nil or false depending on the client, so a number is the
-			-- only answer that means they are in it.
-			or type(safecall(_G.UnitInRaid, seen.name)) == "number"
+		-- prompt, and the line says which. In a raid "the party" is the
+		-- warrior's own subgroup, which is why this asks SameParty and not
+		-- whether they are in the raid at all.
+		local reachable = ns.CouldOffer(hasMana, inParty) ~= nil
 		addon:Print(("|cff80ff80%s buffed you|r -- %s"):format(seen.name, reachable
 			and "returning the favour is on the prompt"
 			or "what you cast reaches your group only, so they are offered if they join it"))
@@ -3150,7 +3298,7 @@ local function SayStillOwed(name, why)
 	local db = addon.db and addon.db.profile
 	if not (db and db.verbose) then return end
 	local debt = owed[name]
-	if debt and debt.expires > GetTime() then
+	if debt and LiveExpiry(debt) > GetTime() then
 		addon:Print(("|cffff8080%s is still owed|r -- %s."):format(name, why))
 	else
 		addon:Print(("|cffff8080%s was not buffed|r -- %s."):format(name, why))
@@ -3515,6 +3663,9 @@ local function SettlePendingClick(landedOn, spellId, castGUID)
 	-- the macro was is known for certain, who the spell reached is usually
 	-- known, and which spell it was is known last of all.
 	local why, inferred
+	-- Set where our shout went out and nothing measured the person inside its
+	-- reach when the prompt was pressed. See below.
+	local unheard = false
 	if pending.selfCast then
 		-- A selfCast buff's macro has no /target line and cannot have one: the
 		-- spell lands on the caster and reaches the party from there. So "did
@@ -3542,6 +3693,13 @@ local function SettlePendingClick(landedOn, spellId, castGUID)
 			-- we offered it to is an assumption about where they were
 			-- standing. Strictly less evidence cannot mean a stronger claim.
 			inferred = "selfcast"
+			-- And where they were standing is something the scan may have
+			-- measured. Where it did not -- no signal on this client answered
+			-- about them -- the shout going out says nothing about whether they
+			-- heard it, and a debt cleared on it is cleared for somebody who may
+			-- be a zone away. The press still counts as a press; the favour is
+			-- kept.
+			unheard = not pending.withinShout
 		end
 	-- A /target for a name the game cannot resolve is a no-op: it leaves your
 	-- existing target in place, so the cast goes to whoever that was. Settling
@@ -3612,7 +3770,10 @@ local function SettlePendingClick(landedOn, spellId, castGUID)
 	-- on somebody who simply looked short of a buff owes nothing and settles
 	-- nothing, so saying "counted as repaid" about them would be its own small
 	-- untruth.
-	if inferred and wasOwed then
+	if unheard and wasOwed then
+		SayStillOwed(pending.name, "the shout went out, but nothing could tell whether they"
+			.. " were close enough to hear it")
+	elseif inferred and wasOwed then
 		local db = addon.db and addon.db.profile
 		if db and db.verbose then
 			addon:Print(("|cffffd100%s counted as repaid|r -- %s."):format(
@@ -3644,7 +3805,7 @@ local function SettlePendingClick(landedOn, spellId, castGUID)
 		ns.lastGave[pending.name] = pending.buffKey
 	end
 
-	ns.SettleFavour(pending.name)
+	if not unheard then ns.SettleFavour(pending.name) end
 	-- The client sent the cast; the server has not answered yet. Keep the
 	-- record so a refusal arriving a moment from now has something to be about.
 	RememberSettled({ name = pending.name, buffKey = pending.buffKey,
@@ -4778,7 +4939,7 @@ function addon:TickBody()
 	-- /cast with nothing to aim at, and the game says nothing to anybody.
 	SweepPendingClick(now)
 	for name, entry in pairs(owed) do
-		if entry.expires <= now then owed[name] = nil end
+		if LiveExpiry(entry) <= now then owed[name] = nil end
 	end
 	for key, expiry in pairs(tried) do
 		if expiry <= now then tried[key] = nil end
@@ -5092,10 +5253,11 @@ function addon:HandleSlash(rawInput)
 		local now = GetTime()
 		local pending = 0
 		for name, entry in pairs(owed) do
-			if entry.expires > now then
+			local expires = LiveExpiry(entry)
+			if expires > now then
 				pending = pending + 1
 				self:Print(string.format("  owes returning: |cffffffff%s|r (%ds left, buffed you %ds ago)",
-					name, math.floor(entry.expires - now), math.floor(now - entry.at)))
+					name, math.floor(expires - now), math.floor(now - entry.at)))
 			end
 		end
 		if pending == 0 then self:Print("  nobody has buffed you recently.") end

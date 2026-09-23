@@ -2311,6 +2311,117 @@ mutate("Core.lua",
        expect="the line does not say a warrior's buffs reach only the group",
        script="runscenarios.py")
 
+# A partyOnly buff judged on "in the group", which in a raid is all forty:
+# Battle Shout offered to thirty-five raiders it cannot reach.
+mutate("Core.lua",
+       "\t\tif buff.partyOnly and not opts.inParty then return false end\n",
+       "\t\tif buff.partyOnly and not opts.inGroup then return false end\n",
+       "a shout offered to the whole raid",
+       expect="Battle Shout in a raid reaches the warrior's own subgroup",
+       script="runscenarios.py")
+
+# The roster fallback taking everybody in the raid for the player's subgroup,
+# on a client without UnitInSubgroup.
+mutate("Core.lua",
+       "\treturn theirs ~= nil and theirs == ours\n",
+       "\treturn true\n",
+       "the raid roster read as one subgroup",
+       expect="reaches the warrior's own subgroup (the raid roster)",
+       script="runscenarios.py")
+
+# The vanilla subgroup rule carried onto a set whose shouts reach the raid.
+mutate("Core.lua",
+       "\tif not ns.PARTY_IS_SUBGROUP then\n",
+       "\tif false then\n",
+       "a raid-wide shout held to one subgroup",
+       expect="a raid-wide shout reaches the whole raid",
+       script="runscenarios.py")
+
+# The favour line asking whether they are in the raid rather than whether the
+# shout reaches them.
+mutate("Core.lua",
+       "\tlocal inParty = seen.sameParty\n"
+       "\tif inParty == nil then inParty = SameParty(seen.name) end\n",
+       "\tlocal inParty = type(safecall(_G.UnitInRaid, seen.name)) == \"number\"\n",
+       "a raider in another subgroup promised the prompt",
+       expect="a favour from another subgroup was announced as on the prompt",
+       script="runscenarios.py")
+
+# A shout's reach left to IsSpellInRange, which has nothing to say about a spell
+# with no target: a party member sixty yards off is offered it.
+mutate("Core.lua",
+       "\t\tif ranged == nil and buff.selfCast then ranged = ShoutReach(unit) end\n",
+       "",
+       "a shout offered at any distance",
+       expect="a party member sixty yards away was offered Battle Shout",
+       script="runscenarios.py")
+
+# A shout nothing measured taken as repaying the person named.
+mutate("Core.lua",
+       "\tif not unheard then ns.SettleFavour(pending.name) end\n",
+       "\tns.SettleFavour(pending.name)\n",
+       "an unmeasured shout counted as repaid",
+       expect="a shout nothing could say reached them counted as repaying",
+       script="runscenarios.py")
+
+# A favour recorded and promised when nothing we cast is any use to them.
+mutate("Core.lua",
+       "\tif not ns.CouldOffer(hasMana, true) then\n",
+       "\tif false then\n",
+       "a useless favour recorded",
+       expect="a favour nothing can repay was recorded",
+       script="runscenarios.py")
+
+# A favour announced by a character with every spell switched off.
+mutate("Core.lua",
+       "\tif #ns.CastableBuffs() == 0 then return end\n",
+       "",
+       "a favour noted with every spell off",
+       expect="(every spell switched off): a favour was announced with nothing to offer",
+       script="runscenarios.py")
+
+# A favour announced by a character whose pinned spell is not learned.
+mutate("Core.lua",
+       "\tlocal pinned = ns.PinnedBuff()\n"
+       "\tif pinned and not ns.IsBuffKnown(pinned) then return end\n",
+       "",
+       "a favour noted under an unlearned pin",
+       expect="(the pinned spell not learned): a favour was announced with nothing",
+       script="runscenarios.py")
+
+# A debt read on the stamp it was filed with, so a shorter window changes
+# nothing until a reload.
+mutate("Core.lua",
+       "\treturn math.min(entry.expires, entry.at + window)\n",
+       "\treturn entry.expires\n",
+       "a shorter window ignored by live debts",
+       expect="a minute-old debt outlived a thirty-second window",
+       script="runscenarios.py")
+
+# One reader going back to the stamp: the queue.
+mutate("Core.lua",
+       "owed[full] and LiveExpiry(owed[full]) > now",
+       "owed[full] and owed[full].expires > now",
+       "the queue reading a debt's first stamp",
+       expect="a debt older than the window was still offered as owed",
+       script="runscenarios.py")
+
+# And /manners debug.
+mutate("Core.lua",
+       "\t\t\tlocal expires = LiveExpiry(entry)\n\t\t\tif expires > now then\n\t\t\t\tpending",
+       "\t\t\tlocal expires = entry.expires\n\t\t\tif expires > now then\n\t\t\t\tpending",
+       "the debug listing reading a debt's first stamp",
+       expect="/manners debug still lists a debt older than the window",
+       script="runscenarios.py")
+
+# A reload restarting the window from the login rather than the favour.
+mutate("Core.lua",
+       "\t\t\tlocal left = math.min(entry.expires, entry.at + window) - wall\n",
+       "\t\t\tlocal left = math.min(entry.expires - wall, window)\n",
+       "a reload restarting the window",
+       expect="a debt older than the window does not survive a reload",
+       script="runscenarios.py")
+
 print()
 print("after restore:")
 # This file edits the addon in place. A restore that did not happen leaves a

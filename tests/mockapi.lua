@@ -202,6 +202,23 @@ function Mock.reset()
 	-- reads the table's presence as "I am being kept out of things" is asking
 	-- the wrong one.
 	Mock.secretRestrictions = true
+	-- A raid, as { size = 40, player = 1 }: how many are in it and which raid
+	-- index is the player. nil is not being in one, which is what every
+	-- scenario written before this assumed. Five to a subgroup in index order,
+	-- unless `subgroups` says otherwise by index.
+	--
+	-- Modelled because the difference between the raid and your party within
+	-- it is the whole of what a shout reaches. UnitInRaid answers with an index
+	-- for every member of the raid; UnitInParty and UnitInSubgroup answer only
+	-- for your own subgroup. A mock with one idea of "the group" made a warrior
+	-- in a forty-man raid look exactly like one in a party of five.
+	Mock.raid = nil
+	-- Spell ids IsSpellInRange has nothing to say about, e.g. { [6673] = true },
+	-- asked by id or by the name the id resolves to. A shout is cast on
+	-- yourself and has no range to anybody, and the client answers nil for it;
+	-- the mock answering 1 for every spell is what hid a warrior being offered
+	-- people sixty yards away.
+	Mock.rangeless = nil
 	Mock.inRange = true
 	-- How far away everybody is, and the exceptions by unit token. Five yards
 	-- is close enough for every proximity setting, so a scenario that says
@@ -803,7 +820,14 @@ end
 function UnitGUID(u) return maybeSecret("Player-1-" .. tostring(u)) end
 function UnitExists() return maybeSecret(true) end
 function UnitIsPlayer() return maybeSecret(true) end
-function UnitIsUnit(a, b) return a == b end
+-- In a raid the player is one of the raid tokens as well, and the scan walks
+-- all of them -- so "is raid1 me" has to come back yes for the right one, or the
+-- player is offered their own buff.
+local function canonicalUnit(u)
+	if Mock.raid and u == "raid" .. tostring(Mock.raid.player or 1) then return "player" end
+	return u
+end
+function UnitIsUnit(a, b) return canonicalUnit(a) == canonicalUnit(b) end
 function UnitIsDeadOrGhost(u)
 	if u == "player" then return Mock.dead end
 	return maybeSecret(false)
@@ -837,15 +861,71 @@ function UnitPower(unit)
 end
 -- Party membership drives the partyOnly buffs -- Battle Shout reaches your
 -- party and nobody else, so a solo warrior legitimately has nothing to offer.
-function UnitInParty() return maybeSecret(Mock.groupSize > 0) end
-function UnitInRaid() return maybeSecret(false) end
+--
+-- In a raid, see Mock.raid: the raid tokens are its members, and a name finds
+-- whichever of them Mock.unitNames gives it to.
+local function raidIndex(unit)
+	local raid = Mock.raid
+	if not raid or type(unit) ~= "string" then return nil end
+	if unit == "player" then return raid.player or 1 end
+	local n = tonumber(unit:match("^raid(%d+)$"))
+	if n then
+		if n >= 1 and n <= raid.size then return n end
+		return nil
+	end
+	for i = 1, raid.size do
+		local named = Mock.unitNames and Mock.unitNames["raid" .. i]
+		if named and (unit == named[1] or unit == named[1] .. " " .. tostring(named[2])) then
+			return i
+		end
+	end
+	return nil
+end
+
+function Mock.subgroupOf(index)
+	local raid = Mock.raid
+	return (raid.subgroups and raid.subgroups[index]) or math.ceil(index / 5)
+end
+
+local function inOwnSubgroup(unit)
+	local index = raidIndex(unit)
+	if not index then return false end
+	return Mock.subgroupOf(index) == Mock.subgroupOf(Mock.raid.player or 1)
+end
+
+function UnitInParty(unit)
+	if Mock.raid then return maybeSecret(inOwnSubgroup(unit)) end
+	return maybeSecret(Mock.groupSize > 0)
+end
+-- An index for every member of the raid, which is the trap: it is a true
+-- answer to "are they in my raid" and no answer at all to "does my shout reach
+-- them".
+function UnitInRaid(unit)
+	if Mock.raid then return maybeSecret(raidIndex(unit)) end
+	return maybeSecret(false)
+end
+function UnitInSubgroup(unit)
+	if Mock.raid then return maybeSecret(inOwnSubgroup(unit)) end
+	return maybeSecret(Mock.groupSize > 0)
+end
+-- name, rank, subgroup, and the rest nobody here reads.
+function GetRaidRosterInfo(index)
+	local raid = Mock.raid
+	if not raid or type(index) ~= "number" or index < 1 or index > raid.size then return nil end
+	local named = Mock.unitNames and Mock.unitNames["raid" .. index]
+	return named and named[1] or ("Raider" .. index), 0, Mock.subgroupOf(index)
+end
 function UnitPowerType() return 0, "MANA" end
-function GetNumGroupMembers() return Mock.groupSize end
-function IsInRaid() return false end
+function GetNumGroupMembers()
+	if Mock.raid then return Mock.raid.size end
+	return Mock.groupSize
+end
+function IsInRaid() return Mock.raid ~= nil end
 function IsSpellKnown(id) return id == 1459 end
 function IsPlayerSpell(id) return id == 1459 end
-function IsSpellInRange()
+function IsSpellInRange(spell)
 	Mock.counts.range = Mock.counts.range + 1
+	if Mock.isRangeless(spell) then return nil end
 	return Mock.inRange and 1 or 0
 end
 
@@ -1149,6 +1229,20 @@ local SPELL_NAMES = {
 	[5504] = "Conjure Water",
 }
 
+-- Whether IsSpellInRange has nothing to say about this spell, asked by id or by
+-- the name one of the listed ids resolves to: the addon asks both ways.
+function Mock.isRangeless(spell)
+	local list = Mock.rangeless
+	if not list then return false end
+	if list[spell] then return true end
+	if type(spell) == "string" then
+		for id in pairs(list) do
+			if SPELL_NAMES[id] == spell then return true end
+		end
+	end
+	return false
+end
+
 setmetatable(_G, { __index = function(_, key)
 	if key == "C_Spell" then
 		return ns_or_nil({
@@ -1158,8 +1252,9 @@ setmetatable(_G, { __index = function(_, key)
 			end,
 			GetSpellTexture = function() return 135932 end,
 			GetSpellInfo = function() return { name = "Arcane Intellect" } end,
-			IsSpellInRange = function()
+			IsSpellInRange = function(spell)
 				Mock.counts.range = Mock.counts.range + 1
+				if Mock.isRangeless(spell) then return nil end
 				return Mock.inRange
 			end,
 			GetSpellCooldown = function(id)

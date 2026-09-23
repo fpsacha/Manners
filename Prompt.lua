@@ -801,6 +801,10 @@ function Prompt:Create()
 			-- and taking it from here is what stops that comparison being a
 			-- second opinion about text the builder already had in hand.
 			aimedAt = armed and armed.aimedAt,
+			-- Whether the scan measured them inside a shout's reach. A selfCast
+			-- press has nothing else tying it to the person named, so the
+			-- settle clears a debt on it only where this is true.
+			withinShout = current.ranged == true,
 			gave = ns.lastGave[current.name] }
 		-- Per buff, so casting Fortitude does not stop the walk reaching
 		-- Divine Spirit on the next click.
@@ -2242,7 +2246,7 @@ function Prompt:Refresh()
 		-- or be settled in the middle of a fight, and nothing else down here can
 		-- notice, so the claim would outlive it until the fight ended.
 		local debt = current and current.name and ns.owed[current.name]
-		if not current or current.reason ~= "owed" or not debt or debt.expires <= now then
+		if not current or current.reason ~= "owed" or not debt or ns.DebtExpiry(debt) <= now then
 			self:StopAttention()
 		end
 

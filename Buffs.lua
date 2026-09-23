@@ -150,6 +150,10 @@ local VANILLA_SET = {
 		ROGUE = true,
 		SHAMAN = true, -- totems are placed, not cast on a person
 	},
+	-- A partyOnly buff reaches the caster's own subgroup of a raid and nobody
+	-- else in it. Vanilla's Battle Shout is party-wide in a raid, not raid-wide;
+	-- the later sets made their shouts reach the whole raid, and leave this out.
+	partyIsSubgroup = true,
 }
 
 ---------------------------------------------------------------------------
@@ -381,6 +385,7 @@ if chosen then
 	ns.EXCLUSIVE_BUFFS = chosen.exclusive
 	ns.CLASS_AUTO = chosen.auto
 	ns.CLASSES_WITHOUT_BUFFS = chosen.without
+	ns.PARTY_IS_SUBGROUP = chosen.partyIsSubgroup == true
 end
 
 ---------------------------------------------------------------------------

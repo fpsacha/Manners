@@ -1522,7 +1522,7 @@ if a then
 	-- One that was already old when it was written, and whose remaining time is
 	-- longer than the window allows -- so both halves of the rebasing have to be
 	-- real arithmetic rather than a stamp taken at save time.
-	a.owed["Mira Tallow"] = { expires = GetTime() + 300, at = GetTime() - 100 }
+	a.owed["Mira Tallow"] = { expires = GetTime() + 300, at = GetTime() - 50 }
 
 	-- Fired the way AceDB fires it, so the wiring is under test and not just
 	-- the two functions behind it.
@@ -1583,17 +1583,20 @@ if a then
 			fail("debts survive a reload", "the older debt did not survive at all")
 		else
 			-- Clamped to the window as it stands now, so a file written under a
-			-- longer one cannot be used to out-wait the current setting.
+			-- longer one cannot be used to out-wait the current setting -- and
+			-- counted from the favour, not from the login: eighty seconds old
+			-- against a window of 120 is forty left. It used to come back with
+			-- the whole 120, which is the window restarted by a reload.
 			local left = old.expires - GetTime()
-			if left < 115 or left > 125 then
+			if left < 35 or left > 45 then
 				fail("debts survive a reload",
-					("an over-long debt came back with %s seconds left, not the 120 the window allows")
+					("an over-long debt came back with %s seconds left, not the 40 the window allows")
 						:format(tostring(math.floor(left))))
 			end
 			local age = GetTime() - old.at
-			if age < 125 or age > 135 then
+			if age < 75 or age > 85 then
 				fail("debts survive a reload",
-					("a debt that was already 100 seconds old came back %s seconds old, not about 130")
+					("a debt that was already 50 seconds old came back %s seconds old, not about 80")
 						:format(tostring(math.floor(age))))
 			end
 		end
@@ -13265,6 +13268,425 @@ for _, mode in ipairs({ "restricted", "on" }) do
 		end
 	end
 	IsSpellKnown, IsPlayerSpell = realKnown, realPlayer
+end
+Mock.reset()
+
+-- Shared by the warrior scenarios below: the shout learned in every rank, and
+-- the aura baseline settled so the next buff to land is noticed as a favour.
+local function knowShout(ns)
+	local known = {}
+	for _, id in ipairs(ns.FindBuff("WARRIOR", "battleshout").ranks) do known[id] = true end
+	IsSpellKnown = function(id) return known[id] == true end
+	IsPlayerSpell = IsSpellKnown
+end
+
+local function primeAuras(ns)
+	Mock.advance(10)
+	for _ = 1, 3 do
+		ns.ScanOwnBuffs()
+		Mock.runTimers(0.3)
+	end
+end
+
+-- A buff landing on the player from `source`, and everything said about it.
+local function favourFrom(ns, source, spellId, instanceId)
+	Mock.printed = {}
+	Mock.extraAura = instanceId or 4001
+	Mock.extraAuraSpell = spellId
+	Mock.extraAuraSource = source
+	ns.addon:UNIT_AURA(nil, "player")
+	return table.concat(Mock.printed, "\n")
+end
+
+-- The prompt armed at `entry` and pressed, and the game reporting `spellId`
+-- going out on the player. What a shout looks like from the settle path.
+local function pressAndSend(ns, entry, spellId)
+	local button = ns.Prompt:GetButton()
+	Mock.advance(1)
+	ns.pendingClick = nil
+	ns.Prompt:InvalidateMacro()
+	ns.Prompt:ApplyTarget(entry)
+	local post = button.scripts.PostClick
+	if post then pcall(post, button, "LeftButton", true) end
+	if not ns.pendingClick then return false end
+	ns.addon:UNIT_SPELLCAST_SENT(nil, "player", nil, nil, spellId)
+	return true
+end
+
+-- ------------------------------------------------------------------ 209
+-- In a raid, Battle Shout is offered to the warrior's own subgroup and nobody
+-- else in it.
+--
+-- The shout reaches the caster's party, and in a raid that is the caster's
+-- subgroup of five. The scan asked whether somebody was in the group at all --
+-- UnitInParty or UnitInRaid -- and UnitInRaid answers with an index for every
+-- member of the raid. So a warrior in a forty-man raid was offered the
+-- thirty-five people in other subgroups the shout cannot reach, back every
+-- twelve seconds; pressing the prompt for one of them who was owed counted as
+-- repaying them; and a favour from one of them was announced as "on the
+-- prompt". Both ways of asking are covered: UnitInSubgroup where the client has
+-- it, and the raid roster's subgroup numbers where it does not.
+for _, case in ipairs({ { api = "UnitInSubgroup" }, { api = "the raid roster" } }) do
+	Mock.reset()
+	Mock.class = "WARRIOR"
+	Mock.raid = { size = 40, player = 1 }
+	Mock.unitNames = {}
+	for i = 1, 40 do Mock.unitNames["raid" .. i] = { "Raider" .. i, "Stone" } end
+	local realKnown, realPlayer, realSubgroup = IsSpellKnown, IsPlayerSpell, UnitInSubgroup
+	if case.api ~= "UnitInSubgroup" then UnitInSubgroup = nil end
+	local scenario = "Battle Shout in a raid reaches the warrior's own subgroup ("
+		.. case.api .. ")"
+	ns = load(scenario)
+	if ns then
+		knowShout(ns)
+		drive(scenario, ns)
+		Mock.advance(60)
+		wipe(ns.owed)
+		wipe(ns.tried)
+		ns.Guard("probe", ns.ProbeCapabilities)
+
+		local offered = inQueue(ns)
+		local own, outside = 0, 0
+		for i = 2, 40 do
+			if offered["Raider" .. i .. " Stone"] then
+				if i <= 5 then own = own + 1 else outside = outside + 1 end
+			end
+		end
+		if own ~= 4 then
+			fail(scenario, ("SKIPPED -- %d of the warrior's own four subgroup mates were"
+				.. " offered the shout"):format(own))
+		elseif outside > 0 then
+			fail(scenario, ("offered Battle Shout to %d raid members in other subgroups,"
+				.. " whom it cannot reach"):format(outside))
+		end
+
+		-- Raider20 is in subgroup four and buffed the warrior. Owed, and still
+		-- out of earshot of the shout.
+		ns.owed["Raider20 Stone"] = { expires = GetTime() + 100, at = GetTime() }
+		local queue = ns.BuildQueue()
+		for _, entry in ipairs(queue) do
+			if entry.name == "Raider20 Stone" then
+				fail(scenario, "an owed raider in another subgroup was offered a shout that"
+					.. " cannot reach them")
+			end
+		end
+		local shout = ns.FindBuff("WARRIOR", "battleshout").ranks[1]
+		if queue[1] and pressAndSend(ns, queue[1], shout) then
+			if not ns.owed["Raider20 Stone"] then
+				fail(scenario, "a shout that cannot reach another subgroup counted as"
+					.. " repaying somebody in it")
+			end
+		end
+
+		wipe(ns.owed)
+		primeAuras(ns)
+		local said = favourFrom(ns, "raid30", 25289)
+		if not said:find("buffed you", 1, true) then
+			fail(scenario, "SKIPPED -- the favour from raid30 was not noticed: " .. said)
+		elseif said:find("on the prompt", 1, true) then
+			fail(scenario, "a favour from another subgroup was announced as on the prompt: "
+				.. said)
+		end
+	end
+	IsSpellKnown, IsPlayerSpell, UnitInSubgroup = realKnown, realPlayer, realSubgroup
+end
+Mock.reset()
+
+-- The later flavours made the shouts raid-wide, and there the subgroup is not
+-- the limit: the same raid, on Mists, offers the shout to everybody in it.
+-- Passes against the unfixed code, which offered everybody everywhere; it is
+-- here for the fix, which must not carry the vanilla rule onto a set where it is
+-- false.
+Mock.reset()
+Mock.setFlavour("mists")
+Mock.class = "WARRIOR"
+Mock.raid = { size = 40, player = 1 }
+Mock.unitNames = {}
+for i = 1, 40 do Mock.unitNames["raid" .. i] = { "Raider" .. i, "Stone" } end
+local realKnown209, realPlayer209 = IsSpellKnown, IsPlayerSpell
+ns = load("a raid-wide shout reaches the whole raid")
+if ns then
+	local scenario = "a raid-wide shout reaches the whole raid"
+	knowShout(ns)
+	drive(scenario, ns)
+	Mock.advance(60)
+	wipe(ns.owed)
+	wipe(ns.tried)
+	ns.Guard("probe", ns.ProbeCapabilities)
+	-- No surnames off Camelot, so the second half of each name is not said.
+	local offered = inQueue(ns)
+	if not offered["Raider2"] then
+		fail(scenario, "SKIPPED -- the warrior's own subgroup was not offered the shout")
+	elseif not offered["Raider20"] then
+		fail(scenario, "on a flavour whose shout reaches the raid, a raider in another"
+			.. " subgroup was not offered it")
+	end
+end
+IsSpellKnown, IsPlayerSpell = realKnown209, realPlayer209
+Mock.reset()
+
+-- ------------------------------------------------------------------ 210
+-- Battle Shout is offered only to group members close enough to hear it.
+--
+-- The queue's range test asks IsSpellInRange, and a shout has no range to
+-- anybody: it is cast on yourself, and the client answers nil. Nil is "could
+-- not tell" and is let through, and nothing else measured a group member at all
+-- -- so a party member sixty yards off, or in another zone, was offered the
+-- shout, and pressing it counted as repaying them. Where nothing can measure,
+-- they are still offered, but a shout is not taken as repaying them.
+for _, case in ipairs({
+	{ label = "sixty yards", yards = 60, interact = "on", offered = false, repaid = false },
+	{ label = "ten yards", yards = 10, interact = "on", offered = true, repaid = true },
+	{ label = "nothing measures", yards = 60, interact = "restricted", offered = true,
+		repaid = false },
+}) do
+	Mock.reset()
+	Mock.class = "WARRIOR"
+	Mock.groupSize = 3
+	Mock.unitNames = { party1 = { "Near", "Ally" }, party2 = { "Far", "Ally" } }
+	Mock.yards = { party1 = 5, party2 = case.yards }
+	Mock.setInteract(case.interact)
+	local realKnown, realPlayer = IsSpellKnown, IsPlayerSpell
+	local scenario = "Battle Shout reaches only who can hear it (" .. case.label .. ")"
+	ns = load(scenario)
+	if ns then
+		knowShout(ns)
+		Mock.rangeless = {}
+		for _, id in ipairs(ns.FindBuff("WARRIOR", "battleshout").ranks) do
+			Mock.rangeless[id] = true
+		end
+		drive(scenario, ns)
+		Mock.advance(60)
+		wipe(ns.owed)
+		wipe(ns.tried)
+		ns.Guard("probe", ns.ProbeCapabilities)
+		ns.db.profile.verbose = true
+
+		ns.owed["Far Ally"] = { expires = GetTime() + 100, at = GetTime() }
+		local queue = ns.BuildQueue()
+		local far
+		for _, entry in ipairs(queue) do
+			if entry.name == "Far Ally" then far = entry end
+		end
+		if case.offered and not far then
+			fail(scenario, "SKIPPED -- the party member was not offered the shout at all")
+		elseif not case.offered and far then
+			fail(scenario, "a party member sixty yards away was offered Battle Shout")
+		end
+
+		local shout = ns.FindBuff("WARRIOR", "battleshout").ranks[1]
+		if queue[1] and pressAndSend(ns, far or queue[1], shout) then
+			local said = table.concat(Mock.printed, "\n")
+			if case.repaid and ns.owed["Far Ally"] then
+				fail(scenario, "a shout that reached them did not clear the debt")
+			elseif not case.repaid and not ns.owed["Far Ally"] then
+				fail(scenario, "a shout nothing could say reached them counted as repaying"
+					.. " them")
+			elseif far and not case.repaid and not said:find("Far Ally is still owed", 1, true) then
+				fail(scenario, "the debt was kept and the line did not say so: " .. said)
+			end
+		end
+	end
+	IsSpellKnown, IsPlayerSpell = realKnown, realPlayer
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 211
+-- A favour the prompt can never return is neither recorded nor announced as on
+-- it.
+--
+-- NoteFavour asked only whether this character knew some spell or other, and
+-- the queue asks a good deal more. A mage in a party with a warrior, with "Skip
+-- players the buff does nothing for" on as it is by default: every Battle Shout
+-- was announced as "returning the favour is on the prompt" and written to the
+-- saved variables, while the queue turned the warrior down for Arcane Intellect
+-- on every scan. The same lie for a priest with every spell switched off, and
+-- for one whose pinned spell is not learned.
+for _, case in ipairs({
+	{ label = "a warrior, skipping the useless", class = "WARRIOR", mana = 0,
+		spell = 25289, relevant = true, recorded = false, useless = true },
+	{ label = "a warrior, offering everybody", class = "WARRIOR", mana = 0,
+		spell = 25289, relevant = false, recorded = true },
+	{ label = "a priest", class = "PRIEST", mana = 1000, spell = 10938, relevant = true,
+		recorded = true },
+}) do
+	Mock.reset()
+	Mock.groupSize = 3
+	Mock.unitClass = case.class
+	Mock.unitNames = { party1 = { "Grom", "Hale" } }
+	local realPowerMax = UnitPowerMax
+	UnitPowerMax = function(unit, ...)
+		if unit ~= "player" then return case.mana end
+		return realPowerMax(unit, ...)
+	end
+	local scenario = "a favour the prompt cannot return is not promised (" .. case.label .. ")"
+	ns = load(scenario)
+	if ns then
+		drive(scenario, ns)
+		wipe(ns.owed)
+		ns.addon:SaveDebts()
+		ns.db.profile.filters.relevantOnly = case.relevant
+		primeAuras(ns)
+		local said = favourFrom(ns, "party1", case.spell)
+		local saved = ns.db.char.debts and ns.db.char.debts["Grom Hale"]
+		if not said:find("Grom Hale", 1, true) then
+			fail(scenario, "SKIPPED -- the buff from party1 was not noticed: " .. said)
+		elseif case.recorded then
+			if not ns.owed["Grom Hale"] then
+				fail(scenario, "a favour the prompt can return was not recorded: " .. said)
+			else
+				local offered = inQueue(ns)["Grom Hale"]
+				if not offered then
+					fail(scenario, "SKIPPED -- recorded, and not offered by the queue")
+				elseif not said:find("on the prompt", 1, true) then
+					fail(scenario, "a favour the prompt returns was not said to be on it: "
+						.. said)
+				end
+			end
+		else
+			if said:find("on the prompt", 1, true) then
+				fail(scenario, "a warrior's shout was announced as on the prompt for a"
+					.. " mage who can give them nothing: " .. said)
+			end
+			if ns.owed["Grom Hale"] or saved then
+				fail(scenario, "a favour nothing can repay was recorded")
+			end
+			if case.useless and not said:find("nothing you cast is any use", 1, true) then
+				fail(scenario, "the line does not say why nothing will be offered: " .. said)
+			end
+		end
+	end
+	UnitPowerMax = realPowerMax
+end
+Mock.reset()
+
+for _, case in ipairs({
+	{ label = "every spell switched off", skip = true, recorded = false },
+	{ label = "the pinned spell not learned", choice = "spirit", recorded = false },
+	{ label = "nothing in the way", recorded = true },
+}) do
+	Mock.reset()
+	Mock.class = "PRIEST"
+	local realKnown, realPlayer = IsSpellKnown, IsPlayerSpell
+	local scenario = "a favour the prompt cannot return is not promised (" .. case.label .. ")"
+	ns = load(scenario)
+	if ns then
+		local known = {}
+		for _, id in ipairs(ns.FindBuff("PRIEST", "fortitude").ranks) do known[id] = true end
+		IsSpellKnown = function(id) return known[id] == true end
+		IsPlayerSpell = IsSpellKnown
+		drive(scenario, ns)
+		ns.Guard("probe", ns.ProbeCapabilities)
+		wipe(ns.owed)
+		if case.skip then
+			ns.db.profile.buff.skip = { fortitude = true, spirit = true, shadow = true }
+		end
+		if case.choice then ns.db.profile.buff.choice = case.choice end
+		primeAuras(ns)
+		local said = favourFrom(ns, "nameplate1", 10938)
+		if case.recorded then
+			if not ns.owed["Petra Stonewell"] or not said:find("on the prompt", 1, true) then
+				fail(scenario, "SKIPPED -- the control favour was not recorded: " .. said)
+			end
+		else
+			if ns.owed["Petra Stonewell"] then
+				fail(scenario, "a favour was recorded that no prompt will ever offer back")
+			end
+			if said:find("on the prompt", 1, true) then
+				fail(scenario, "announced as on the prompt with nothing to offer: " .. said)
+			elseif said:find("buffed you", 1, true) then
+				-- Said at all, which is the same silence a rogue gets. The line
+				-- for a buff that is no use to somebody blames a setting that
+				-- has nothing to do with this.
+				fail(scenario, "a favour was announced with nothing to offer anybody: " .. said)
+			end
+		end
+	end
+	IsSpellKnown, IsPlayerSpell = realKnown, realPlayer
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 212
+-- Lowering "Remember a buff for" applies to the people who already buffed you.
+--
+-- A debt was stamped with its expiry once, when it was filed, and everything
+-- that read it compared that stamp alone. Setting the window from ten minutes
+-- to thirty seconds left a minute-old debt owed for nine minutes more, at the
+-- top of the queue -- while a /reload clamped it to the new window, which is
+-- what the reload's own comment promised the slider did. A profile switch to a
+-- shorter window was the same.
+for _, case in ipairs({ { how = "the slider" }, { how = "a profile switch" } }) do
+	Mock.reset()
+	local scenario = "a shorter window applies to live debts (" .. case.how .. ")"
+	ns = load(scenario)
+	if ns then
+		drive(scenario, ns)
+		wipe(ns.owed)
+		ns.db.profile.timing.reciprocateWindow = 600
+		primeAuras(ns)
+		favourFrom(ns, "nameplate1", 10938)
+		if not ns.owed["Petra Stonewell"] then
+			fail(scenario, "SKIPPED -- no favour was filed")
+		else
+			if case.how == "the slider" then
+				ns.db.profile.timing.reciprocateWindow = 30
+			else
+				local timing = {}
+				for k, v in pairs(ns.db.profile.timing) do timing[k] = v end
+				timing.reciprocateWindow = 30
+				ns.db.profile.timing = timing
+				local changed = Mock.dbCallbacks["OnProfileChanged"]
+				if changed then changed.target[changed.method](changed.target) end
+			end
+			Mock.advance(60)
+
+			for _, entry in ipairs(ns.BuildQueue()) do
+				if entry.reason == "owed" then
+					fail(scenario, "a debt older than the window was still offered as owed")
+				end
+			end
+			Mock.printed = {}
+			ns.addon:HandleSlash("debug")
+			local said = table.concat(Mock.printed, "\n")
+			if said:find("owes returning", 1, true) then
+				fail(scenario, "/manners debug still lists a debt older than the window: "
+					.. said:match("owes returning[^\n]*"))
+			end
+			ns.addon:Tick()
+			if ns.owed["Petra Stonewell"] then
+				fail(scenario, "a minute-old debt outlived a thirty-second window")
+			end
+		end
+	end
+end
+Mock.reset()
+
+-- And across a reload: the window counts from the favour, not from the login.
+-- A debt written under a ten-minute window and read back under a two-minute one
+-- it is already older than is not given the whole two minutes again.
+Mock.reset()
+Mock.sv = {}
+local a212 = load("a debt older than the window does not survive a reload")
+if a212 then
+	local scenario = "a debt older than the window does not survive a reload"
+	drive(scenario, a212)
+	wipe(a212.owed)
+	a212.db.profile.timing.reciprocateWindow = 600
+	a212.owed["Mira Tallow"] = { expires = GetTime() + 300, at = GetTime() - 100 }
+	a212.addon:SaveDebts()
+	a212.db.profile.timing.reciprocateWindow = 120
+	Mock.advance(30)
+	Mock.now = 5
+	local b212 = load(scenario)
+	if b212 then
+		if not pcall(function() b212.addon:OnInitialize() end) then
+			fail(scenario, "SKIPPED -- the second session would not initialise")
+		elseif b212.owed["Mira Tallow"] then
+			fail(scenario, ("a debt 130 seconds old came back with %d seconds left of a"
+				.. " 120-second window"):format(
+				math.floor(b212.owed["Mira Tallow"].expires - GetTime())))
+		end
+	end
 end
 Mock.reset()
 
