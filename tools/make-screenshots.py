@@ -9,22 +9,26 @@ a backdrop.
 Every player name here is invented. Earlier drafts used names taken from a live
 session; those belong to real people and do not belong on a public page.
 
-    python tools/make-screenshots.py
+    python tools/make-screenshots.py [--strict]
+
+A value that cannot be found falls back to the one restated here, with a note
+on stderr, so a local run still draws something. --strict, which CI passes,
+refuses to draw at all instead: a fallback that exits 0 is how a renamed
+setting went unnoticed by the one check that exists to notice it.
 """
 import os
 import re
 import sys
 
-from PIL import Image, ImageDraw, ImageFilter
-
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from fonts import face  # noqa: E402
-
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, ".github", "media")
-os.makedirs(OUT, exist_ok=True)
+STRICT = "--strict" in sys.argv[1:]
 
 core = open(os.path.join(ROOT, "Core.lua"), encoding="utf-8").read()
+
+# Every value that was not read from the addon, so the run can say so -- and,
+# under --strict, stop before drawing a layout the addon may not draw.
+fallbacks = []
 
 
 def default(key, fallback):
@@ -33,6 +37,7 @@ def default(key, fallback):
     if not m:
         print("could not find prompt.%s in Core.lua; using %s" % (key, fallback),
               file=sys.stderr)
+        fallbacks.append("prompt." + key)
         return float(fallback)
     return float(m.group(1))
 
@@ -57,14 +62,35 @@ def reason_colour(key, fallback):
     if not m:
         print("could not find REASON_COLOR.%s in Prompt.lua; using %s"
               % (key, fallback), file=sys.stderr)
+        fallbacks.append("REASON_COLOR." + key)
         return fallback
     return tuple(round(float(m.group(i)) * 255) for i in (1, 2, 3))
 
 
-GREEN = reason_colour("target", (140, 235, 153))
-AMBER = reason_colour("owed", (255, 199, 77))
-BLUE = reason_colour("group", (97, 173, 255))
+# The fallbacks are what Prompt.lua draws today. The one for "your target" was
+# still the green it used to be after the addon had moved to cyan, so a local
+# run with that key missing drew the wrong colour and said nothing wrong.
+# tests/validate.py now compares every fallback here with the addon's value.
+GREEN = reason_colour("target", (158, 230, 255))
+AMBER = reason_colour("owed", (255, 199, 76))
+BLUE = reason_colour("group", (87, 153, 245))
 GREY = reason_colour("nearby", (133, 138, 158))
+
+if fallbacks and STRICT:
+    print("refusing to draw: %s not found in the addon -- a renamed or"
+          " restructured setting; update the pattern here to match"
+          % ", ".join(fallbacks), file=sys.stderr)
+    sys.exit(1)
+
+# Pillow is imported only now, so the check above runs -- and fails -- on a
+# machine that has no Pillow, which is how tests/validate.py exercises it.
+from PIL import Image, ImageDraw, ImageFilter  # noqa: E402
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from fonts import face  # noqa: E402
+
+os.makedirs(OUT, exist_ok=True)
+
 PANEL = (10, 10, 15)
 SS = 3      # supersample, so the downscale does the antialiasing
 SHOW = 2    # the panel is 220x44 on screen, which is unreadable in a
@@ -251,4 +277,11 @@ two.save(os.path.join(OUT, "screenshot-prompt.png"))
 print("wrote:")
 for f in ("screenshot-reasons.png", "screenshot-prompt.png"):
     print("  %s" % os.path.join(OUT, f))
-print("\ngeometry read from Core.lua: %dx%d, icon %d, font %d" % (W, H, ICON, FONT))
+# This line used to claim everything had been read from Core.lua even when
+# every value was a fallback, which made the stderr note underneath it look
+# like noise. It says "read" only when that is true.
+if fallbacks:
+    print("\ngeometry %dx%d, icon %d, font %d -- NOT all read from the addon;"
+          " restated in this script: %s" % (W, H, ICON, FONT, ", ".join(fallbacks)))
+else:
+    print("\ngeometry read from Core.lua: %dx%d, icon %d, font %d" % (W, H, ICON, FONT))

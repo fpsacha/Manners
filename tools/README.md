@@ -56,12 +56,17 @@ check that nothing drifted.
 
 These are **renders of the prompt, not captures from the game**. The panel
 geometry is read out of `Core.lua`'s defaults at run time — width, height, icon
-size, font size — so the images cannot claim a layout the addon does not draw.
-When a default changes, re-run this and commit the result.
+size, font size — and the four reason colours out of `Prompt.lua`'s
+`REASON_COLOR`. When a default changes, re-run this and commit the result.
 
-What it does not read is the colours and the drawing itself, which are restated
-here. If `Prompt.lua` changes how the panel is painted, this has to be updated by
-hand to match, or the images become a nice picture of something that no longer
+A value it cannot find falls back to the one restated in the script, with a
+note on stderr, and the last line says which were not read. `--strict` refuses
+to draw instead; CI runs it that way, so a renamed setting fails the build
+rather than producing images of a layout the addon no longer has.
+
+What it does not read is the drawing itself, which is restated here. If
+`Prompt.lua` changes how the panel is painted, this has to be updated by hand
+to match, or the images become a nice picture of something that no longer
 exists.
 
 Every player name in the output is invented. Real names from a live session

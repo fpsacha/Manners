@@ -3288,6 +3288,95 @@ mutate("CHANGELOG.md",
        expect="broken code span",
        script="validate.py")
 
+# The selftest gate back on the default shell, where the pipe hands the step
+# tee's exit status and a WRONG CHECK run goes green.
+mutate(".github/workflows/ci.yml",
+       "        shell: bash\n",
+       "",
+       "CI's selftest gate without pipefail",
+       expect="exit status is lost in the pipe",
+       script="validate.py")
+
+# The same on the release, which then publishes past it.
+mutate(".github/workflows/release.yml",
+       "        shell: bash\n",
+       "",
+       "the release's selftest gate without pipefail",
+       expect="exit status is lost in the pipe",
+       script="validate.py")
+
+# The gate's grep back to knowing two of selftest's four failure words.
+mutate(".github/workflows/ci.yml",
+       "\"^\\(MISSED\\|ANCHOR GONE\\|WRONG CHECK\\|NOT RESTORED\\): \"",
+       "\"^\\(MISSED\\|ANCHOR GONE\\): \"",
+       "selftest gate's grep knows two failure words",
+       expect="does not know",
+       script="validate.py")
+
+# The grep unanchored, so a clean run whose labels use those words fails.
+mutate(".github/workflows/release.yml",
+       "grep -q \"^\\(MISSED\\|ANCHOR GONE\\|WRONG CHECK\\|NOT RESTORED\\): \"",
+       "grep -q \"MISSED\\|ANCHOR GONE\\|WRONG CHECK\\|NOT RESTORED\"",
+       "selftest gate's grep unanchored",
+       expect="not anchored",
+       script="validate.py")
+
+# setversion taking -rc.N again, which the packager ships as a full release.
+mutate("tests/setversion.py",
+       r'r"^\d+\.\d+\.\d+(-(alpha|beta)\.\d+)?$"',
+       r'r"^\d+\.\d+\.\d+(-(alpha|beta|rc)\.\d+)?$"',
+       "setversion accepts a release candidate",
+       expect="publishes as a stable release",
+       script="validate.py")
+
+# The checklist pushing the tag with master, before CI has said anything.
+mutate("RELEASING.md",
+       "git push origin master\ngit tag vX.Y.Z-beta.N\ngit push origin vX.Y.Z-beta.N\n",
+       "git tag vX.Y.Z-beta.N\ngit push origin master --tags\n",
+       "release checklist pushes master and tag together",
+       expect="pushes the tag with master",
+       script="validate.py")
+
+# No way to take a failed tag back off origin.
+mutate("RELEASING.md",
+       "git push origin :refs/tags/vX.Y.Z-beta.N\n",
+       "",
+       "release checklist without tag recovery",
+       expect="no way back from a failed tag",
+       script="validate.py")
+
+# The library count gone stale again.
+mutate("RELEASING.md",
+       "declares all 14 libraries",
+       "declares all thirteen libraries",
+       "RELEASING.md miscounts the libraries",
+       expect=".pkgmeta has",
+       script="validate.py")
+
+# The README's example tagging a version that has already shipped.
+mutate("README.md",
+       "git tag vX.Y.Z-beta.N && git push origin vX.Y.Z-beta.N",
+       "git tag v1.0.0-beta.3 && git push origin v1.0.0-beta.3",
+       "README example tags a released version",
+       expect="already released",
+       script="validate.py")
+
+# The screenshot generator drawing from fallbacks under --strict and exiting 0.
+mutate("tools/make-screenshots.py",
+       "if fallbacks and STRICT:",
+       "if False:",
+       "screenshots drawn from fallbacks in CI",
+       expect="drew with prompt.width missing",
+       script="validate.py")
+
+# The target colour's fallback back to the green the addon no longer draws.
+mutate("tools/make-screenshots.py",
+       "reason_colour(\"target\", (158, 230, 255))",
+       "reason_colour(\"target\", (140, 235, 153))",
+       "stale target colour in the screenshots",
+       expect="fallback for target",
+       script="validate.py")
+
 print()
 print("after restore:")
 # This file edits the addon in place. A restore that did not happen leaves a

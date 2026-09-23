@@ -42,10 +42,20 @@ jobs:
 
       # A suite that cannot go red proves nothing. This reintroduces each fault
       # class it is supposed to catch and fails the build if any goes unnoticed.
+      #
+      # `shell: bash` is not decoration. A step with no shell runs under
+      # `bash -e` without pipefail, so the pipe's exit status is tee's, which is
+      # always 0 -- and a WRONG CHECK, a NOT RESTORED or a traceback went green.
+      # Spelled out, GitHub runs it with -eo pipefail and selftest's own status
+      # fails the step. The grep is only there to put a readable line in the
+      # summary, so it names every failure selftest.py prints -- anchored to the
+      # start of its summary lines, because a mutation's label or a caught
+      # check's message may use the same words on a run that passed.
       - name: Confirm the suites can still fail
+        shell: bash
         run: |
           python tests/selftest.py | tee selftest.out
-          if grep -q "MISSED\|ANCHOR GONE" selftest.out; then
+          if grep -q "^\(MISSED\|ANCHOR GONE\|WRONG CHECK\|NOT RESTORED\): " selftest.out; then
             echo "::error::a check no longer detects the fault it exists for"
             exit 1
           fi

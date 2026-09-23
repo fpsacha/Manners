@@ -36,10 +36,20 @@ jobs:
 
       # A suite that cannot go red proves nothing. This reintroduces each fault
       # class it is supposed to catch and fails the build if any goes unnoticed.
+      #
+      # `shell: bash` is not decoration. A step with no shell runs under
+      # `bash -e` without pipefail, so the pipe's exit status is tee's, which is
+      # always 0 -- and a WRONG CHECK, a NOT RESTORED or a traceback went green.
+      # Spelled out, GitHub runs it with -eo pipefail and selftest's own status
+      # fails the step. The grep is only there to put a readable line in the
+      # summary, so it names every failure selftest.py prints -- anchored to the
+      # start of its summary lines, because a mutation's label or a caught
+      # check's message may use the same words on a run that passed.
       - name: Confirm the suites can still fail
+        shell: bash
         run: |
           python tests/selftest.py | tee selftest.out
-          if grep -q "MISSED\|ANCHOR GONE" selftest.out; then
+          if grep -q "^\(MISSED\|ANCHOR GONE\|WRONG CHECK\|NOT RESTORED\): " selftest.out; then
             echo "::error::a check no longer detects the fault it exists for"
             exit 1
           fi
@@ -83,11 +93,13 @@ jobs:
       # Segoe UI, which is not installed here and is not ours to install. On
       # this runner fonts.py falls back to DejaVu and the output is legitimately
       # different, so byte equality is not a check that could ever pass. What is
-      # still worth knowing is that the generator runs at all -- it reads
-      # Core.lua's defaults, so a renamed or restructured setting breaks it.
+      # still worth knowing is that the generator runs at all against Core.lua's
+      # defaults and Prompt.lua's colours. Without --strict a value it cannot
+      # find falls back quietly and the run still exits 0, so a renamed or
+      # restructured setting would pass here; with it, that fails the step.
       - name: The screenshot generator still runs against current defaults
         run: |
-          python tools/make-screenshots.py
+          python tools/make-screenshots.py --strict
           test -s .github/media/screenshot-prompt.png
           test -s .github/media/screenshot-reasons.png
           git checkout -- .github/media

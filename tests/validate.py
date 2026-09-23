@@ -375,6 +375,201 @@ for f in ["LICENSE", "README.md", "CHANGELOG.md", "THIRD-PARTY-NOTICES.md",
     if not ok:
         fail += 1
 
+print("\n== the release gates fail when selftest does ==")
+# The step pipes selftest.py through tee so the log can be grepped, and a step
+# with no `shell:` runs under `bash -e` without pipefail -- so the pipe's status
+# is tee's, which is always 0. The grep then decided alone, and it only knew two
+# of the four ways selftest reports failure: a WRONG CHECK, a NOT RESTORED or a
+# traceback went green and the release published. `shell: bash` is the
+# spelling GitHub runs with -eo pipefail, which hands selftest's own exit
+# status to the step; the grep stays only to print a readable error, so it has
+# to know every summary word selftest.py prints.
+_st_words = sorted(set(re.findall(r'print\("([A-Z][A-Z ]+): "',
+                                  open(os.path.join(ROOT, "tests", "selftest.py"),
+                                       encoding="utf-8").read())))
+_gate_bad = 0
+for _wf in ("ci.yml", "release.yml"):
+    _text = open(os.path.join(ROOT, ".github", "workflows", _wf),
+                 encoding="utf-8").read()
+    _steps = [s for s in re.split(r"^\s*- (?=name:|uses:|run:)", _text, flags=re.M)
+              if "tests/selftest.py" in s]
+    if not _steps:
+        print("  %s has no step running tests/selftest.py -- the gate is gone" % _wf)
+        _gate_bad += 1
+        continue
+    for _step in _steps:
+        if "|" in _step and not re.search(r"^\s+shell:\s*bash\s*$", _step, re.M):
+            print("  %s: selftest's exit status is lost in the pipe -- without"
+                  " `shell: bash` a WRONG CHECK or a crash goes green" % _wf)
+            _gate_bad += 1
+        for _word in _st_words:
+            if _word not in _step:
+                print("  %s: the selftest step's grep does not know %r, so its"
+                      " error line never names that failure" % (_wf, _word))
+                _gate_bad += 1
+        # Unanchored, the grep matched a mutation label that happened to
+        # contain one of those words, and a run where every mutation was caught
+        # failed the build. Only selftest's summary lines start with them.
+        if not re.search(r'grep -q "\^', _step):
+            print("  %s: the selftest step's grep is not anchored to the start of"
+                  " a line, so a passing run whose labels use those words fails"
+                  % _wf)
+            _gate_bad += 1
+fail += _gate_bad
+if not _gate_bad:
+    print("  ok  both workflows fail on selftest's own status (%s)"
+          % ", ".join(_st_words))
+
+print("\n== setversion only takes versions the packager files the same way ==")
+# The packager reads the release type out of the tag: "alpha" in it makes an
+# alpha, "beta" a beta, and anything else a full release -- CurseForge
+# "release", Wago "stable", GitHub not a prerelease. A suffix setversion.py
+# accepts without one of those words is therefore published as 1.0.0 flat,
+# which is exactly the claim the pre-release suffix exists to avoid. -rc.N was
+# accepted, and would have done it.
+_sv = open(os.path.join(ROOT, "tests", "setversion.py"), encoding="utf-8").read()
+_sv_re = re.search(r're\.match\(\s*r"([^"]+)"', _sv)
+_sv_bad = 0
+if not _sv_re:
+    print("  could not find setversion.py's version pattern")
+    _sv_bad += 1
+else:
+    for _v in ("1.0.0", "1.0.0-beta.5", "1.0.0-alpha.1"):
+        if not re.match(_sv_re.group(1), _v):
+            print("  setversion.py refuses %s, which it should take" % _v)
+            _sv_bad += 1
+    for _v in ("1.0.0-rc.1", "1.0.0-RC.1", "1.0.0-pre.1", "1.0.0-preview.1"):
+        if re.match(_sv_re.group(1), _v) and not re.search(r"alpha|beta", _v, re.I):
+            print("  setversion.py accepts %s, which the packager publishes as a"
+                  " stable release" % _v)
+            _sv_bad += 1
+fail += _sv_bad
+if not _sv_bad:
+    print("  ok  only alpha and beta suffixes, which the packager marks as such")
+
+print("\n== the release checklist can be followed ==")
+# RELEASING.md's steps used to set the version, commit, tag, and push master
+# and the tag together. setversion.py adds an empty changelog section unless
+# the notes were already under "## Unreleased", so the tag's build refused to
+# ship -- with the tag already on origin, where pushing it again only says it
+# exists. Followed to the letter, the page produced a failed release every time.
+_rel = open(os.path.join(ROOT, "RELEASING.md"), encoding="utf-8").read()
+_readme = open(os.path.join(ROOT, "README.md"), encoding="utf-8").read()
+_rl_bad = 0
+_each = re.search(r"^## Each release\n(.*?)(?=^## )", _rel, re.M | re.S)
+_cmds = []
+if _each:
+    for _block in re.findall(r"^```\n(.*?)^```", _each.group(1), re.M | re.S):
+        _cmds += [l.strip() for l in _block.split("\n") if l.strip()]
+
+
+def _first(prefix):
+    return next((i for i, c in enumerate(_cmds) if c.startswith(prefix)), None)
+
+
+_sv_at, _commit_at = _first("python tests/setversion.py"), _first("git commit")
+_master_at, _tag_at = _first("git push origin master"), _first("git tag")
+if None in (_sv_at, _commit_at, _master_at, _tag_at):
+    print("  RELEASING.md's 'Each release' block is missing setversion, commit,"
+          " the master push or the tag")
+    _rl_bad += 1
+else:
+    if not _sv_at < _commit_at < _master_at < _tag_at:
+        print("  RELEASING.md tags before master is pushed -- the tag is on origin"
+              " before CI has said anything")
+        _rl_bad += 1
+    if any(c.startswith("git push") and ("--tags" in c or
+           ("master" in c and re.search(r"\bv\d", c))) for c in _cmds):
+        print("  RELEASING.md pushes the tag with master -- a failed build leaves"
+              " a tag on origin")
+        _rl_bad += 1
+if not _each or "## Unreleased" not in _each.group(1):
+    print("  RELEASING.md never says to write the notes under '## Unreleased'"
+          " -- setversion then adds an empty section and the release refuses")
+    _rl_bad += 1
+if "git push origin :refs/tags/" not in _rel:
+    print("  RELEASING.md has no way back from a failed tag")
+    _rl_bad += 1
+# Counted from .pkgmeta, which is what the packager fetches.
+_libs = len(re.findall(r"^  Libs/", open(os.path.join(ROOT, ".pkgmeta"),
+                                          encoding="utf-8").read(), re.M))
+_numbers = {"twelve": 12, "thirteen": 13, "fourteen": 14, "fifteen": 15}
+for _name, _doc in (("RELEASING.md", _rel), ("README.md", _readme)):
+    for _m in re.finditer(r"declares all (\w+)\s+libraries", _doc):
+        _n = int(_m.group(1)) if _m.group(1).isdigit() else _numbers.get(_m.group(1))
+        if _n != _libs:
+            print("  %s says %s libraries; .pkgmeta has %d" % (_name, _m.group(1), _libs))
+            _rl_bad += 1
+    # An example tag naming a version that already shipped is one nobody can
+    # push: copied as it stands, it fails on "already exists".
+    for _m in re.finditer(r"git tag v(\d[\w.-]*)", _doc):
+        if re.search(r"^## " + re.escape(_m.group(1)) + r"\s*$", _log, re.M):
+            print("  %s's example tags v%s, which is already released"
+                  % (_name, _m.group(1)))
+            _rl_bad += 1
+fail += _rl_bad
+if not _rl_bad:
+    print("  ok  notes, version, suites, commit, master, then the tag (%d libraries)"
+          % _libs)
+
+print("\n== the screenshot generator refuses to guess ==")
+# tools/make-screenshots.py reads the prompt's geometry out of Core.lua and its
+# colours out of Prompt.lua. A value it cannot find used to fall back to a
+# number restated in the script -- one of them already wrong, green where the
+# addon draws cyan -- with a note on stderr and exit status 0, so the CI step
+# that exists to notice a renamed setting could not. --strict, which CI passes,
+# makes a fallback a failure; that is run here against a Core.lua with the
+# width renamed, which it must refuse before drawing anything. And the
+# fallbacks themselves must still be the addon's values, so a local run
+# without --strict draws the right thing too.
+import shutil, subprocess, tempfile
+_ss_src = open(os.path.join(ROOT, "tools", "make-screenshots.py"), encoding="utf-8").read()
+_core_src = open(os.path.join(ROOT, "Core.lua"), encoding="utf-8").read()
+_prompt_src = open(os.path.join(ROOT, "Prompt.lua"), encoding="utf-8").read()
+_ss_bad = 0
+for _key, _fb in re.findall(r'\bdefault\("(\w+)", ([0-9.]+)\)', _ss_src):
+    _m = re.search(r"^\t{3}" + _key + r" = ([0-9.]+),", _core_src, re.M)
+    if not _m:
+        print("  make-screenshots.py cannot find prompt.%s in Core.lua" % _key)
+        _ss_bad += 1
+    elif float(_m.group(1)) != float(_fb):
+        print("  make-screenshots.py's fallback for %s is %s; Core.lua says %s"
+              % (_key, _fb, _m.group(1)))
+        _ss_bad += 1
+for _key, _fb in re.findall(r'\breason_colour\("(\w+)", \(([0-9, ]+)\)\)', _ss_src):
+    _m = re.search(r"^\t" + _key + r" = \{ ([0-9.]+), ([0-9.]+), ([0-9.]+) \}",
+                   _prompt_src, re.M)
+    _want = tuple(round(float(_m.group(i)) * 255) for i in (1, 2, 3)) if _m else None
+    _have = tuple(int(x) for x in _fb.split(","))
+    if _want is None:
+        print("  make-screenshots.py cannot find REASON_COLOR.%s in Prompt.lua" % _key)
+        _ss_bad += 1
+    elif _want != _have:
+        print("  make-screenshots.py's fallback for %s is %s; Prompt.lua draws %s"
+              % (_key, _have, _want))
+        _ss_bad += 1
+_tmp = tempfile.mkdtemp()
+try:
+    os.makedirs(os.path.join(_tmp, "tools"))
+    shutil.copy(os.path.join(ROOT, "tools", "make-screenshots.py"),
+                os.path.join(_tmp, "tools"))
+    shutil.copy(os.path.join(ROOT, "Prompt.lua"), _tmp)
+    with open(os.path.join(_tmp, "Core.lua"), "w", encoding="utf-8") as _f:
+        _f.write(re.sub(r"^(\t{3})width = ", r"\1panelWidth = ", _core_src,
+                        count=1, flags=re.M))
+    _r = subprocess.run([sys.executable, os.path.join(_tmp, "tools",
+                                                      "make-screenshots.py"), "--strict"],
+                        capture_output=True, text=True)
+    if _r.returncode == 0 or "refusing to draw" not in _r.stderr:
+        print("  make-screenshots.py --strict drew with prompt.width missing from"
+              " Core.lua (exit %d) -- CI cannot see a renamed setting" % _r.returncode)
+        _ss_bad += 1
+finally:
+    shutil.rmtree(_tmp, ignore_errors=True)
+fail += _ss_bad
+if not _ss_bad:
+    print("  ok  a missing value fails --strict, and every fallback is the addon's own")
+
 print("\n== version consistency ==")
 # Every toc carries a Version line -- the source and each generated one -- and
 # setversion.py used to write exactly one. A bump that reaches the source and

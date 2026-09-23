@@ -276,16 +276,25 @@ Full checklist in [RELEASING.md](RELEASING.md).
 libraries as build-time externals, so the packager fetches current upstream
 copies under their own licences.
 
-**A zip built from a clone therefore has no libraries and will not load.** Tag
-a version and let the workflow build it:
+**A zip built from a clone therefore has no libraries and will not load.**
+Write the notes under `## Unreleased` in `CHANGELOG.md`, set the version, push
+master, and once CI is green tag it and let the workflow build it:
 
 ```
-git tag v1.0.0-beta.3 && git push origin v1.0.0-beta.3
+python tests/setversion.py X.Y.Z-beta.N
+git commit -am "Manners X.Y.Z-beta.N"
+git push origin master
+git tag vX.Y.Z-beta.N && git push origin vX.Y.Z-beta.N
 ```
+
+A tag pushed without notes, or pushed together with master before CI has
+passed, fails its build and stays on origin; RELEASING.md says how to take it
+off.
 
 `.github/workflows/release.yml` runs the test suites, fails the build if any
 check has stopped being able to detect the fault it exists for, then packages
-and publishes to **CurseForge and Wago** from the one tag.
+and publishes a GitHub release and uploads to **CurseForge and Wago** from the
+one tag.
 
 A destination needs both a token in the repository secrets (`CF_API_KEY`,
 `WAGO_API_TOKEN`, `WOWI_API_TOKEN`) and a project id in the toc
@@ -308,8 +317,9 @@ before any release. See `tests/README.md`.
 ## Listing images
 
 The CurseForge icon and the screenshots are generated, not captured — see
-`tools/README.md`. They read the prompt's real defaults out of `Core.lua`, so
-they cannot advertise a layout the addon does not draw.
+`tools/README.md`. They read the prompt's real defaults out of `Core.lua` and
+its colours out of `Prompt.lua`, and CI fails if any of those can no longer be
+found, so they cannot advertise a layout the addon does not draw.
 
 ## Licence
 

@@ -28,10 +28,15 @@ import maketocs
 # client has actually been played, and saying 1.0.0 flat claims the rest. The
 # packager reads alpha/beta out of the tag name to set the release type, so the
 # two agree when the tag matches the version.
+#
+# Those two words are all it reads. Anything else in the tag -- "rc" included,
+# which this used to accept -- makes a full release: CurseForge "release", Wago
+# "stable", GitHub not a prerelease, which is 1.0.0 flat by another spelling. A
+# release candidate is spelled as the next beta.
 if len(sys.argv) != 2 or not re.match(
-        r"^\d+\.\d+\.\d+(-(alpha|beta|rc)\.\d+)?$", sys.argv[1]):
+        r"^\d+\.\d+\.\d+(-(alpha|beta)\.\d+)?$", sys.argv[1]):
     print(__doc__)
-    print("usage: python tests/setversion.py X.Y.Z[-beta.N]")
+    print("usage: python tests/setversion.py X.Y.Z[-alpha.N|-beta.N]")
     sys.exit(2)
 
 version = sys.argv[1]
