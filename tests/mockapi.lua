@@ -288,6 +288,9 @@ function Mock.reset()
 	-- rows would hang off the bottom edge.
 	Mock.screenHeight = 1000
 	Mock.promptCentreY = 500
+	-- Off by default, so everything written against the hand-set centre above
+	-- goes on reading it. See GetCenter.
+	Mock.geometry = nil
 	-- The wall clock. GetTime() restarts near zero every login and the epoch
 	-- does not, which is the whole difficulty with storing a debt.
 	Mock.epoch = 1700000000
@@ -432,6 +435,34 @@ function Mock.protect(frame)
 	return frame
 end
 
+-- Where on the screen a frame anchored to UIParent sits, in UIParent's units:
+-- left, bottom, right, top. Only answered with Mock.geometry set. The client's
+-- rules, as far as the prompt needs them: the anchor's offsets are in the
+-- frame's own scaled units, so they are multiplied by its scale, and a frame
+-- clamped to the screen is pushed back inside it whole.
+local function fraction(anchor)
+	local fx, fy = 0.5, 0.5
+	if anchor:find("LEFT", 1, true) then fx = 0 elseif anchor:find("RIGHT", 1, true) then fx = 1 end
+	if anchor:find("BOTTOM", 1, true) then fy = 0 elseif anchor:find("TOP", 1, true) then fy = 1 end
+	return fx, fy
+end
+
+function Mock.rectUI(frame)
+	local g = Mock.geometry
+	local anchor = frame.points[1]
+	local s = frame._scale or 1
+	local w, h = (frame._width or 0) * s, (frame._height or 0) * s
+	local rx, ry = fraction(anchor[3] or anchor[1])
+	local px, py = fraction(anchor[1])
+	local left = rx * g.width + (anchor[4] or 0) * s - px * w
+	local bottom = ry * g.height + (anchor[5] or 0) * s - py * h
+	if frame._clamped then
+		left = math.max(0, math.min(left, g.width - w))
+		bottom = math.max(0, math.min(bottom, g.height - h))
+	end
+	return left, bottom, left + w, bottom + h
+end
+
 local function newFrame()
 	local f = { scripts = {}, attributes = {}, points = {} }
 	for _, name in ipairs(frameMethods) do f[name] = function(self) return self end end
@@ -466,8 +497,32 @@ local function newFrame()
 	-- is the whole of what the flip test reads.
 	f.SetPoint = function(self, ...) self.points[#self.points + 1] = { ... } return self end
 	f.ClearAllPoints = function(self) self.points = {} return self end
-	f.GetCenter = function() return 400, Mock.promptCentreY end
-	f.GetHeight = function() return Mock.screenHeight end
+	-- The scale too, because the client reads a frame's SetPoint offsets in the
+	-- frame's own scaled units. A no-op here made every scale the same scale,
+	-- and a prompt placed at twice the distance it was asked for looked right.
+	f.SetScale = function(self, s) self._scale = s return self end
+	f.GetScale = function(self) return self._scale or 1 end
+	-- Every frame here hangs straight off UIParent, whose own scale is 1, so a
+	-- frame's effective scale is its own.
+	f.GetEffectiveScale = function(self) return self._scale or 1 end
+	f.SetClampedToScreen = function(self, clamped) self._clamped = clamped and true or false return self end
+	-- Two ways to answer where a frame is. By default, a centre the scenario
+	-- sets by hand in the frame's own units, as it always was. With
+	-- Mock.geometry set to a screen ({ width =, height = }), the answer is
+	-- worked out from the frame's anchor, size, scale and clamping the way
+	-- the client does, so a scenario can ask where a prompt actually landed.
+	f.GetCenter = function(self)
+		if Mock.geometry and self.points[1] and type(self.points[1][2]) == "table" then
+			local left, bottom, right, top = Mock.rectUI(self)
+			local s = self._scale or 1
+			return (left + right) / 2 / s, (bottom + top) / 2 / s
+		end
+		return 400, Mock.promptCentreY
+	end
+	f.GetHeight = function(self)
+		if Mock.geometry and self == UIParent then return Mock.geometry.height end
+		return Mock.screenHeight
+	end
 
 	f.SetScript = function(self, which, fn) self.scripts[which] = fn return self end
 	f.GetScript = function(self, which) return self.scripts[which] end
@@ -478,7 +533,14 @@ local function newFrame()
 	f.Hide = function(self) self._shown = false return self end
 	f.IsPlaying = function() return false end
 	f.IsOwned = function() return false end
-	f.GetPoint = function() return "CENTER", nil, "CENTER", 0, 0 end
+	-- With a screen modelled, the anchor the frame was last given, which is
+	-- what the client hands back after a drag: offsets in the frame's own
+	-- scaled units. A scenario models the drag by writing the anchor the
+	-- client would have left behind.
+	f.GetPoint = function(self)
+		if Mock.geometry and self.points[1] then return table.unpack(self.points[1], 1, 5) end
+		return "CENTER", nil, "CENTER", 0, 0
+	end
 	f.GetHighlightTexture = function() return newFrame() end
 	f.CreateTexture = function() return newFrame() end
 	f.CreateFontString = function() return newFrame() end

@@ -250,7 +250,16 @@ local function FinishDrag()
 	button:StopMovingOrSizing()
 	local point, _, relPoint, x, y = button:GetPoint()
 	local p = ns.db.profile.prompt
-	p.point, p.relPoint, p.x, p.y = point, relPoint, math.floor(x + 0.5), math.floor(y + 0.5)
+	-- The client hands the offsets back in the frame's own scaled units, and
+	-- the profile keeps UIParent's -- the units the presets, Reset position
+	-- and the X and Y sliders all mean. Saved as they came, a prompt dropped
+	-- at Scale 2 moved when the scale went back to 1. The frame's own scale
+	-- is the one it was moved at; the profile's can be ahead of it by a slider
+	-- moved in a fight, whose restyle is still waiting for the fight to end.
+	local okScale, s = pcall(button.GetScale, button)
+	if not okScale or type(s) ~= "number" or s <= 0 then s = p.scale end
+	p.point, p.relPoint = point, relPoint
+	p.x, p.y = math.floor(x * s + 0.5), math.floor(y * s + 0.5)
 
 	-- Lock straight after a drag. An unlocked prompt cannot cast, and
 	-- leaving it that way looks identical to a working one that simply has
@@ -273,12 +282,28 @@ end
 -- Every call is guarded rather than checked, because neither of these methods
 -- is one the addon can assume: a frame that has never been positioned has no
 -- centre, and both test harnesses have neither.
+--
+-- The centre comes back in the prompt's own scaled units and the height in
+-- UIParent's, so the centre is converted before the two are compared. Held
+-- against each other raw, the line was drawn at the scale times a third of the
+-- screen: at Scale 2.5 a prompt four fifths of the way up hung its list above
+-- itself and off the top edge. The ratio of the two effective scales is the
+-- conversion; where either is missing the prompt's own scale stands in for it,
+-- which is the same number while UIParent is the prompt's parent.
 local function QueueGoesAbove()
 	local okCentre, _, y = pcall(button.GetCenter, button)
 	if not okCentre or type(y) ~= "number" then return false end
 	local okHeight, screenHeight = pcall(UIParent.GetHeight, UIParent)
 	if not okHeight or type(screenHeight) ~= "number" or screenHeight <= 0 then return false end
-	return y < screenHeight / 3
+	local ratio = ns.db.profile.prompt.scale
+	local okOwn, own = pcall(button.GetEffectiveScale, button)
+	local okParent, parent = pcall(UIParent.GetEffectiveScale, UIParent)
+	if okOwn and okParent and type(own) == "number" and type(parent) == "number"
+		and parent > 0 then
+		ratio = own / parent
+	end
+	if type(ratio) ~= "number" or ratio <= 0 then ratio = 1 end
+	return y * ratio < screenHeight / 3
 end
 
 -- What the macro currently sitting on the button is aimed at:
@@ -307,9 +332,13 @@ local armed
 -- group colour but is separated from it by lightness rather than by hue, which
 -- survives every form of colour blindness because it survives greyscale.
 --
--- Check the change by desaturating these four: 0.86, 0.78, 0.63, 0.54 in
--- rough luminance order. No two are closer than 0.09 apart, so they remain
--- four distinct greys.
+-- Desaturated with the weights ApplyStyle uses for the border (Rec.601), the
+-- four come out at 0.83, 0.79, 0.56 and 0.54 -- target, owed, group, nearby.
+-- So they are not four distinct greys. Target and group are apart by
+-- lightness, 0.27, which is the pair the cyan was chosen for. Group and nearby
+-- are 0.02 apart and told apart by hue and saturation alone, and target and
+-- owed, 0.04 apart, by blue against amber -- the one opposition red-green
+-- colour blindness leaves intact.
 local REASON_COLOR = {
 	target = { 0.62, 0.90, 1.00 },
 	owed = { 1.00, 0.78, 0.30 },
@@ -1204,7 +1233,13 @@ function Prompt:ApplyStyle()
 	button:SetScale(p.scale)
 	button:SetAlpha(p.alpha)
 	button:ClearAllPoints()
-	button:SetPoint(p.point, UIParent, p.relPoint, p.x, p.y)
+	-- The stored offsets are in UIParent's units, and the client reads
+	-- SetPoint's in the frame's own scaled ones, so they are divided by the
+	-- scale on the way in. Passed straight through, every offset was
+	-- multiplied by it: at Scale 2 "Above the action bars" sat 600 up instead
+	-- of 300, and moving the slider moved the prompt. FinishDrag converts the
+	-- other way.
+	button:SetPoint(p.point, UIParent, p.relPoint, p.x / p.scale, p.y / p.scale)
 
 	local br, bg, bb, ba = unpackColor(p.bgColor, { 0.04, 0.04, 0.06, 0.88 })
 

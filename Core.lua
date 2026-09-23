@@ -5016,6 +5016,23 @@ function ns.ClampSettings()
 		end
 		p.anchorCarried = true
 	end
+
+	-- Up to beta.4 the offsets were handed to SetPoint after the scale was
+	-- set, so the client read them in scaled units and a drag saved them the
+	-- same way. They are UIParent's units now (ApplyStyle, FinishDrag), which
+	-- means a prompt dragged at any scale but 1 has to have its offsets
+	-- multiplied by that scale once, or it jumps on the first login after.
+	-- One sitting on a preset is left there: the dropdown has named that
+	-- preset all along, and the preset is where it now goes. Stamped in a key
+	-- with no default, like the carry-over above, so the conversion is never
+	-- applied to offsets it has already converted.
+	if p.offsetsUnscaled ~= true then
+		if p.scale ~= 1 and not ns.CurrentPositionPreset()
+			and type(p.x) == "number" and type(p.y) == "number" then
+			p.x, p.y = math.floor(p.x * p.scale + 0.5), math.floor(p.y * p.scale + 0.5)
+		end
+		p.offsetsUnscaled = true
+	end
 	oneOf(p, "point", VALID_ANCHORS, "CENTER")
 	oneOf(p, "relPoint", VALID_ANCHORS, "CENTER")
 

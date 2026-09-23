@@ -15991,6 +15991,245 @@ if ns then
 end
 Mock.reset()
 
+-- ------------------------------------------------------------------ 246
+-- The Scale slider does not move the prompt, and a place means one place.
+--
+-- The client reads SetPoint's offsets in the frame's own scaled units, and the
+-- prompt was placed with its scale already set and the stored offsets passed
+-- straight through. So every offset was multiplied by the scale: at Scale 2,
+-- "Above the action bars" put the prompt's bottom edge 600 up instead of 300,
+-- at Scale 3 "Under the minimap" ended up most of the way down the screen, and
+-- Reset position did the same -- while the dropdown went on naming the preset,
+-- because the numbers were right. A prompt dragged at Scale 2 moved when the
+-- scale went back to 1, because the drag saved offsets in those same scaled
+-- units.
+Mock.reset()
+ns = load("the scale does not move the prompt")
+if ns then
+	local scenario = "the scale does not move the prompt"
+	drive(scenario, ns)
+	ns.Prompt:ExitTest()
+	Mock.geometry = { width = 1366, height = 768 }
+	local button = ns.Prompt:GetButton()
+	local p = ns.db.profile.prompt
+	local app = ns.optionsTable and ns.optionsTable.args.appearance.args
+	local function round(v) return math.floor(v + 0.5) end
+	local function bottomEdge()
+		local _, bottom = Mock.rectUI(button)
+		return round(bottom)
+	end
+
+	for _, scale in ipairs({ 1, 1.5, 2, 2.5 }) do
+		p.scale = scale
+		ns.ApplyPositionPreset("bars")
+		if bottomEdge() ~= 300 then
+			fail(scenario, ("at Scale %s \"Above the action bars\" put the bottom edge at %d,"
+				.. " not 300"):format(scale, bottomEdge()))
+		end
+	end
+
+	p.scale = 3
+	ns.ApplyPositionPreset("minimap")
+	local _, _, right, top = Mock.rectUI(button)
+	if round(right) ~= 1346 or round(top) ~= 548 then
+		fail(scenario, ("at Scale 3 \"Under the minimap\" put the top-right corner at %d,%d,"
+			.. " not 1346,548"):format(round(right), round(top)))
+	end
+
+	if not (app and app.reset and app.scale) then
+		fail(scenario, "SKIPPED -- no Reset position button or Scale slider on the page")
+	else
+		p.scale = 2
+		ns.ApplyPositionPreset("centre")
+		app.reset.func()
+		if bottomEdge() ~= 300 then
+			fail(scenario, ("at Scale 2 Reset position put the bottom edge at %d, not 300")
+				:format(bottomEdge()))
+		end
+
+		-- Moved with the slider, from where the default puts it.
+		app.scale.set({ "scale" }, 1.5)
+		if bottomEdge() ~= 300 then
+			fail(scenario, ("moving the Scale slider moved the prompt: its bottom edge went"
+				.. " from 300 to %d"):format(bottomEdge()))
+		end
+
+		-- A drag at Scale 2 to a bottom edge of 300. The client leaves the frame
+		-- anchored with offsets in its own scaled units, which is half that.
+		app.scale.set({ "scale" }, 2)
+		p.locked = false
+		ns.Prompt:Refresh()
+		button.scripts.OnDragStart(button)
+		button.points = { { "BOTTOM", UIParent, "BOTTOM", 0, 150 } }
+		button.scripts.OnDragStop(button)
+		if bottomEdge() ~= 300 then
+			fail(scenario, ("SKIPPED -- the drop itself left the bottom edge at %d")
+				:format(bottomEdge()))
+		end
+		app.scale.set({ "scale" }, 1)
+		if bottomEdge() ~= 300 then
+			fail(scenario, ("a prompt dragged at Scale 2 moved when the scale went back to 1:"
+				.. " its bottom edge went from 300 to %d"):format(bottomEdge()))
+		end
+	end
+end
+Mock.reset()
+
+-- And the prompts already on disk. Their offsets were saved in scaled units,
+-- so a prompt dragged at any scale but 1 has to have them converted once or
+-- it jumps on the first login after the fix. One sitting on a preset is left
+-- on it: the dropdown has been naming that preset all along, and the preset
+-- is where it now goes. The stamp is what stops a second login converting
+-- the converted offsets again.
+for _, case in ipairs({
+	{ label = "dragged", y = 150, x = 40, want = { 80, 300 } },
+	{ label = "on a preset", y = 300, x = 0, want = { 0, 300 } },
+	{ label = "already converted", y = 150, x = 40, stamped = true, want = { 40, 150 } },
+}) do
+	Mock.reset()
+	Mock.sv = {}
+	local scenario = "a prompt saved at Scale 2 stays put (" .. case.label .. ")"
+	local saved = savedProfile(scenario, function(profile)
+		profile.prompt.point, profile.prompt.relPoint = "BOTTOM", "BOTTOM"
+		profile.prompt.scale = 2
+		profile.prompt.x, profile.prompt.y = case.x, case.y
+		profile.prompt.offsetsUnscaled = case.stamped or nil
+	end)
+	ns = saved and load(scenario)
+	local said = ns and firstLogin(ns)
+	if not said then
+		fail(scenario, "SKIPPED -- the session would not start")
+	else
+		local p = ns.db.profile.prompt
+		if p.x ~= case.want[1] or p.y ~= case.want[2] then
+			fail(scenario, ("offsets %d,%d saved at Scale 2 came back as %s,%s, not %d,%d")
+				:format(case.x, case.y, tostring(p.x), tostring(p.y), case.want[1], case.want[2]))
+		end
+		-- And a second login leaves them alone.
+		ns.ClampSettings()
+		if p.x ~= case.want[1] or p.y ~= case.want[2] then
+			fail(scenario, ("a second pass converted the offsets again, to %s,%s")
+				:format(tostring(p.x), tostring(p.y)))
+		end
+		ns.Prompt:ExitTest()
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 247
+-- The list of who is next hangs on the side with room at any scale.
+--
+-- The list flips above the panel when the prompt sits in the bottom third of
+-- the screen. The test took the prompt's centre, which the client gives in the
+-- prompt's own scaled units, and held it against the height of the screen in
+-- UIParent's. So the real line was drawn at the scale times a third of the
+-- screen: at Scale 2.5 a prompt four fifths of the way up hung its list above
+-- itself and off the top edge, at Scale 2 one in the middle did the same, and
+-- at Scale 0.5 one low on the screen hung its list off the bottom.
+Mock.reset()
+ns = load("the queue hangs on the side with room at any scale")
+if ns then
+	local scenario = "the queue hangs on the side with room at any scale"
+	drive(scenario, ns)
+	ns.Prompt:ExitTest()
+	Mock.geometry = { width = 1366, height = 768 }
+	local button = ns.Prompt:GetButton()
+	local regions = ns.Prompt:Regions()
+	local p = ns.db.profile.prompt
+	p.showQueue = true
+	p.queueRows = 3
+	p.point, p.relPoint, p.x = "BOTTOM", "BOTTOM", 0
+	for _, case in ipairs({
+		{ scale = 1, centre = 614 },
+		{ scale = 1, centre = 154 },
+		{ scale = 2.5, centre = 614 },
+		{ scale = 2, centre = 384 },
+		{ scale = 0.5, centre = 200 },
+	}) do
+		p.scale = case.scale
+		-- Offsets are UIParent's units, so this is where the centre lands.
+		p.y = case.centre - p.height * case.scale / 2
+		ns.Prompt:ApplyStyle()
+		local _, bottom, _, top = Mock.rectUI(button)
+		local centre = (bottom + top) / 2
+		local anchor = regions.rows[1].points[1]
+		local above = anchor and anchor[1] == "BOTTOMLEFT"
+		local want = centre < 768 / 3
+		if above and not want then
+			fail(scenario, ("at Scale %s a prompt centred %d up a 768 screen hung its list"
+				.. " above itself, towards the top edge, from above the bottom third")
+				:format(case.scale, math.floor(centre + 0.5)))
+		elseif want and not above then
+			fail(scenario, ("at Scale %s a prompt centred %d up a 768 screen hung its list"
+				.. " below itself, towards the bottom edge, from inside the bottom third")
+				:format(case.scale, math.floor(centre + 0.5)))
+		end
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 248
+-- The reason colours are what their comment says they are in greyscale.
+--
+-- The comment over the four reason colours is the record of why they were
+-- picked, and the check it tells the next person to make. It gave their greys
+-- as 0.86, 0.78, 0.63 and 0.54, "no two closer than 0.09" -- figures no common
+-- desaturation produces. With the weights the addon itself uses, group and
+-- nearby are 0.02 apart, so anybody trusting the comment would leave a pair
+-- only hue tells apart believing lightness did. Read from the source: the
+-- first four figures in the comment, in the table's order, against the
+-- colours the prompt actually paints, and any "no two closer than" claim
+-- against the real gaps.
+Mock.reset()
+ns = load("the reason colours match their comment")
+if ns then
+	local scenario = "the reason colours match their comment"
+	drive(scenario, ns)
+	ns.Prompt:ExitTest()
+	local file = io.open(dir .. "/Prompt.lua", "r")
+	local source = file and file:read("a") or ""
+	if file then file:close() end
+	-- The unbroken run of comment lines straight above the table.
+	local before = source:match("(.-)\nlocal REASON_COLOR = {")
+	local lines = {}
+	for line in ((before or "") .. "\n"):gmatch("([^\n]*)\n") do lines[#lines + 1] = line end
+	local first = #lines + 1
+	while first > 1 and lines[first - 1]:match("^%-%-") do first = first - 1 end
+	local block = first <= #lines and table.concat(lines, "\n", first) or nil
+	if not block then
+		fail(scenario, "SKIPPED -- no comment found over REASON_COLOR")
+	else
+		ns.db.profile.prompt.accentByReason = true
+		local greys = {}
+		for i, reason in ipairs({ "target", "owed", "group", "nearby" }) do
+			local r, g, b = ns.Prompt:AccentColor(reason)
+			greys[i] = 0.299 * r + 0.587 * g + 0.114 * b
+		end
+		local stated = {}
+		for figure in block:gmatch("%f[%d]0%.%d%d%f[%D]") do
+			stated[#stated + 1] = tonumber(figure)
+		end
+		for i, grey in ipairs(greys) do
+			if not stated[i] or math.abs(stated[i] - grey) > 0.006 then
+				fail(scenario, ("the comment gives grey %d as %s; the colour desaturates to %.3f")
+					:format(i, tostring(stated[i]), grey))
+			end
+		end
+		local claim = tonumber(block:match("closer than (0%.%d+)"))
+		if claim then
+			for i = 1, #greys do
+				for j = i + 1, #greys do
+					if math.abs(greys[i] - greys[j]) < claim then
+						fail(scenario, ("the comment says no two greys are closer than %s, and"
+							.. " two are %.3f apart"):format(claim, math.abs(greys[i] - greys[j])))
+					end
+				end
+			end
+		end
+	end
+end
+Mock.reset()
+
 -- ------------------------------------------------------------------ report
 print("=== scenarios ===")
 if #failures == 0 then

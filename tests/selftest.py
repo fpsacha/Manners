@@ -2936,6 +2936,65 @@ mutate("Prompt.lua",
        expect="after /manners test again the open page's button reads",
        script="runscenarios.py")
 
+# The stored offsets handed to SetPoint after the scale, which multiplies
+# them by it: the presets and Reset position land somewhere else at every
+# scale but 1.
+mutate("Prompt.lua",
+       "\tbutton:SetPoint(p.point, UIParent, p.relPoint, p.x / p.scale, p.y / p.scale)\n",
+       "\tbutton:SetPoint(p.point, UIParent, p.relPoint, p.x, p.y)\n",
+       "offsets multiplied by the prompt's scale",
+       expect="\"Above the action bars\" put the bottom edge at",
+       script="runscenarios.py")
+
+# A drop saved in the frame's scaled units, which moves when the scale does.
+mutate("Prompt.lua",
+       "\tp.x, p.y = math.floor(x * s + 0.5), math.floor(y * s + 0.5)\n",
+       "\tp.x, p.y = math.floor(x + 0.5), math.floor(y + 0.5)\n",
+       "a drop saved in scaled units",
+       expect="a prompt dragged at Scale 2 moved when the scale went back to 1",
+       script="runscenarios.py")
+
+# The profiles already on disk not converted, so a prompt dragged at Scale 2
+# jumps on the first login after the fix...
+mutate("Core.lua",
+       "\t\t\tp.x, p.y = math.floor(p.x * p.scale + 0.5), math.floor(p.y * p.scale + 0.5)\n",
+       "",
+       "saved scaled offsets never converted",
+       expect="stays put (dragged): offsets 40,150 saved at Scale 2",
+       script="runscenarios.py")
+
+# ...converted again on every pass for want of the stamp...
+mutate("Core.lua",
+       "\t\tp.offsetsUnscaled = true\n",
+       "",
+       "saved scaled offsets converted twice",
+       expect="a second pass converted the offsets again",
+       script="runscenarios.py")
+
+# ...and a prompt on a preset carried off it.
+mutate("Core.lua",
+       "\t\tif p.scale ~= 1 and not ns.CurrentPositionPreset()\n",
+       "\t\tif p.scale ~= 1\n",
+       "a saved preset converted off the preset",
+       expect="stays put (on a preset)",
+       script="runscenarios.py")
+
+# The queue's side decided from a scaled centre against an unscaled screen.
+mutate("Prompt.lua",
+       "\treturn y * ratio < screenHeight / 3\n",
+       "\treturn y < screenHeight / 3\n",
+       "queue side ignoring the prompt's scale",
+       expect="the queue hangs on the side with room at any scale",
+       script="runscenarios.py")
+
+# The reason colours' comment going back to greys they do not have.
+mutate("Prompt.lua",
+       "-- four come out at 0.83, 0.79, 0.56 and 0.54 -- target, owed, group, nearby.\n",
+       "-- four come out at 0.86, 0.78, 0.63 and 0.54 -- target, owed, group, nearby.\n",
+       "reason colour greys misstated",
+       expect="the comment gives grey",
+       script="runscenarios.py")
+
 print()
 print("after restore:")
 # This file edits the addon in place. A restore that did not happen leaves a
