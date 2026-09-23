@@ -175,9 +175,16 @@ end
 -- The spell's name, with the one thing about it that changes who it is offered
 -- to. A priest reading "Divine Spirit" has no way to know from the page that a
 -- warrior will never see it.
+--
+-- Unless "Skip players the buff does nothing for" is off, which is the only
+-- thing that holds a mana-only spell back from a warrior. With it off the
+-- warrior is offered Divine Spirit, and the qualifier was a promise about a
+-- filter that was not running.
 local function BuffLabel(buff)
 	local label = ns.BuffName(buff)
-	if buff.manaOnly then label = label .. " |cff808080(mana users only)|r" end
+	if buff.manaOnly and F().relevantOnly then
+		label = label .. " |cff808080(mana users only)|r"
+	end
 	if buff.partyOnly then label = label .. " |cff808080(your group only)|r" end
 	return label
 end
@@ -220,6 +227,17 @@ local function AutoExplanation()
 					.. " city wants it -- so nobody will be offered anything.|r\n\nPin it"
 					.. " in the dropdown above if you want it given out anyway.")
 					:format(ns.BuffName(buff))
+			end
+		end
+		-- Everything learned is switched off -- but the spells not learned yet
+		-- are still ticked below, and learning one of them brings the prompt
+		-- back without anybody touching a switch. "Every spell" and "never" are
+		-- only both true once those are unticked as well. A neverAuto spell is
+		-- left out: learning it would bring nothing back.
+		for _, buff in ipairs(ns.GetClassBuffs(ns.caps.class) or {}) do
+			if not buff.neverAuto and not ns.IsBuffKnown(buff) and not B().skip[buff.key] then
+				return "|cffff8080Every spell you have learned is switched off, so nothing is"
+					.. " offered until you switch one back on or learn one of the others.|r"
 			end
 		end
 		return "|cffff8080Every spell below is switched off, so the prompt will never"
@@ -523,8 +541,20 @@ local function BuildOptions()
 			owed = {
 				type = "toggle",
 				name = "People who buffed me",
-				desc = "Watch for buffs cast on you and offer to return them. "
-					.. "Works on strangers who are not in your group.",
+				-- A function, because the second sentence is not true of every
+				-- class. A warrior's shout reaches the group and nobody else, so
+				-- a stranger who buffed him is turned down until they join --
+				-- which is what the favour line in chat says, and what the
+				-- strangers note a few lines down says too.
+				desc = function()
+					if OnlyReachesGroup() then
+						return "Watch for buffs cast on you and offer to return them. What you"
+							.. " cast reaches your group only, so somebody outside it is offered"
+							.. " once they join."
+					end
+					return "Watch for buffs cast on you and offer to return them. "
+						.. "Works on strangers who are not in your group."
+				end,
 				order = 11,
 				width = "full",
 				get = sGet,
@@ -582,10 +612,17 @@ local function BuildOptions()
 			target = {
 				type = "toggle",
 				name = "Whoever I have targeted comes first",
+				-- The second condition is the same one as the first, arriving
+				-- from the When tab: Always offer means nobody's buffs are read,
+				-- so there is never a reading to promote a target on. The
+				-- switch stayed ticked and did nothing, and nothing said why.
 				desc = "Targeting somebody is the plainest way of saying you mean them, so they"
 					.. " outrank a favour owed -- but only when the game lets us read that they"
 					.. " are genuinely missing the buff. Switched off, a target is ranked by why"
 					.. " they are on the list like anybody else.\n\n"
+					.. "Not while |cffffd100If they already have the buff|r is set to Always"
+					.. " offer, under When: nothing is read then, so your target is ranked by"
+					.. " why they are on the list like anybody else.\n\n"
 					.. "|cff888888Mouseover is deliberately left out: at a scan every four tenths"
 					.. " of a second the prompt would flicker as the cursor crossed the"
 					.. " screen.|r",
@@ -882,12 +919,20 @@ local function BuildOptions()
 					whenBuffed = {
 						type = "select",
 						name = "If they already have the buff",
+						-- The favour exception is said here and on the choice
+						-- itself because it is a policy none of the three choices
+						-- touches: BuildQueue offers a debt regardless, and what it
+						-- offers is the buff they already hold, which is a refresh
+						-- and takes nothing away. Left unsaid, the one person the
+						-- prompt did offer under "Leave them alone" read as a bug.
 						desc = "Reading whether somebody has a buff needs the game's permission. See "
-							.. "the Diagnostics tab for which of your buffs qualify.",
+							.. "the Diagnostics tab for which of your buffs qualify.\n\n"
+							.. "Somebody who buffed you is offered the favour back whichever you"
+							.. " choose, even if they already have it.",
 						order = 2,
 						width = "full",
 						values = {
-							skip = "Leave them alone",
+							skip = "Leave them alone (unless they buffed you)",
 							refresh = "Offer a top-up when it is running out",
 							always = "Always offer, whatever they have",
 						},
@@ -898,7 +943,9 @@ local function BuildOptions()
 						type = "range",
 						name = "Top up when under (minutes) are left",
 						desc = "Only offer a refresh once their remaining time drops below this. "
-							.. "Somebody whose buff timer cannot be read is left alone.",
+							.. "Somebody whose buff timer cannot be read is left alone -- unless"
+							.. " they buffed you, in which case they are offered the favour back"
+							.. " anyway.",
 						order = 3,
 						min = 1,
 						max = 60,
@@ -911,8 +958,14 @@ local function BuildOptions()
 						type = "description",
 						order = 4,
 						hidden = function() return F().whenBuffed ~= "always" end,
+						-- The second sentence is a setting on another tab going
+						-- quiet. A target is promoted only on a reading that they
+						-- lack the buff, and this mode takes no readings.
 						name = "|cffff8080Everyone nearby will be offered constantly, including people "
-							.. "whose buff has barely ticked down. Expect to be spending mana.|r",
+							.. "whose buff has barely ticked down. Expect to be spending mana.|r\n\n"
+							.. "|cff888888Nothing is read in this mode, so |cffffd100Whoever I have"
+							.. " targeted comes first|r has nothing to go on: your target is ranked by"
+							.. " why they are on the list like anybody else.|r",
 					},
 
 					timingHeader = { type = "header", name = "Timing", order = 10 },
@@ -923,7 +976,16 @@ local function BuildOptions()
 					reciprocateWindow = {
 						type = "range",
 						name = "Remember a buff for (seconds)",
-						desc = "How long after somebody buffs you they stay on the prompt.",
+						-- It said this was how long somebody stays on the prompt,
+						-- and for the ordinary favour -- a passer-by with no
+						-- nameplate -- it is not: BuildQueue lets them go once the
+						-- grace on the Who to buff tab runs out, forty-five seconds
+						-- against this one's hundred and twenty at the defaults.
+						desc = "How long a favour is remembered. Somebody the game can still see"
+							.. " stays on the prompt this long. Somebody it cannot see is let go"
+							.. " sooner if |cffffd100Let them go after|r is shorter, while"
+							.. " |cffffd100Drop people who are probably gone|r is on, under Who to"
+							.. " buff.",
 						order = 11,
 						min = 15,
 						max = 600,
@@ -1059,13 +1121,26 @@ local function BuildOptions()
 						-- some clients; a fixed string here would be a second
 						-- opinion about the macro, wrong wherever the probe says
 						-- no.
+						--
+						-- For the same reason it reads the switch directly above
+						-- it. It used to name /targetlasttarget whatever that
+						-- switch said, and the strategy drops the line when it is
+						-- off -- and for somebody who is already your target, who
+						-- has nobody before them worth handing back.
 						name = function()
 							local cmd = (ns.TargetCommand and ns.TargetCommand()) or "/target"
-							return ("|cff888888The prompt runs |cffffd100%s|r, then the cast, then"
-								.. " |cffffd100/targetlasttarget|r. A conditional -- [@name] -- resolves"
-								.. " only for somebody already in your party or raid, and this prompt is"
-								.. " mostly for passers-by, so the macro takes your target rather than"
-								.. " aiming past it.|r\n"):format(cmd)
+							local after
+							if F().restoreTarget then
+								after = ", then |cffffd100/targetlasttarget|r -- except for"
+									.. " somebody who is already your target, who stays targeted."
+							else
+								after = ", and leaves them targeted."
+							end
+							return ("|cff888888The prompt runs |cffffd100%s|r, then the cast%s A"
+								.. " conditional -- [@name] -- resolves only for somebody already in"
+								.. " your party or raid, and this prompt is mostly for passers-by, so"
+								.. " the macro takes your target rather than aiming past it.|r\n")
+								:format(cmd, after)
 						end,
 					},
 
@@ -1346,12 +1421,16 @@ local function BuildOptions()
 						-- The target is the only one with a condition on it,
 						-- because "target" is the only reason BuildQueue will not
 						-- write unless a switch is on -- and the switch is on
-						-- another tab.
+						-- another tab. And the switch has a condition of its own,
+						-- on a third: with Always offer nothing is read, so no
+						-- target is ever promoted and the pale blue never shows.
 						desc = "Pale blue for somebody you targeted yourself, amber when returning a"
 							.. " favour, deeper blue for your group, grey for passers-by. That is"
 							.. " also the order they are offered in.\n\n"
 							.. "|cff888888The first of those only ever appears while |cffffd100Whoever"
-							.. " I have targeted comes first|r is on, under Who to buff.|r",
+							.. " I have targeted comes first|r is on, under Who to buff, and never"
+							.. " while |cffffd100If they already have the buff|r is set to Always"
+							.. " offer, under When.|r",
 						order = 12,
 						width = "full",
 						get = pGet,

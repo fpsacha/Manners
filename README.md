@@ -72,7 +72,8 @@ plainly rather than sitting there looking broken.
 
 - **Somebody you targeted yourself** → outranks everyone, including a favour
   owed, but only when the game will confirm they are missing it. A guess does
-  not get to jump the queue.
+  not get to jump the queue, and with *always offer* chosen nothing is checked,
+  so your target waits their turn like anybody else.
 - **Someone buffs you** → they go to the top of the queue, tagged as a favour
   owed. It is spotted by watching your own buffs appear and reading who cast
   them, which works on strangers, but only while they are someone the game will
@@ -105,6 +106,8 @@ nothing can measure at all, everybody in casting range is offered as before.
 
 **If they already have it**, you choose: leave them alone, offer a top-up once
 their timer drops below a threshold you set, or always offer regardless.
+Somebody who buffed you is offered the favour back either way, even if they
+already have it — recasting it only refreshes it.
 
 <img src=".github/media/screenshot-reasons.png" alt="Four prompts, each a different colour, showing the four reasons somebody appears" width="640">
 

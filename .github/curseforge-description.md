@@ -53,7 +53,8 @@ as before — and `/manners debug` says which of those is happening rather than
 leaving you to wonder.
 
 **If they already have it**, you choose: leave them alone, offer a top-up once
-their timer runs low, or always offer.
+their timer runs low, or always offer. Somebody who buffed you is offered the
+favour back either way, even if they already have it.
 
 ### Say something
 

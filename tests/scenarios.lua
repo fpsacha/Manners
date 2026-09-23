@@ -16478,6 +16478,310 @@ if ns then
 end
 Mock.reset()
 
+-- An option's text, whether AceConfig was handed a string or a function.
+local function optionText(value)
+	if type(value) == "function" then return tostring(value({}) or "") end
+	return tostring(value or "")
+end
+
+-- ------------------------------------------------------------------ 253
+-- The targeting note follows "Hand my target back afterwards".
+--
+-- The note on the When you click tab always said the prompt runs the target
+-- line, then the cast, then /targetlasttarget. It hid itself only for a class
+-- that never targets anybody and never read the switch directly above it, so
+-- with that switch off it described a line the macro no longer carried -- in
+-- the one place its own comment says must not be a second opinion about the
+-- macro.
+Mock.reset()
+ns = load("the targeting note follows the hand-back switch")
+if ns then
+	local scenario = "the targeting note follows the hand-back switch"
+	drive(scenario, ns)
+	Mock.advance(60)
+	local click = ns.optionsTable and ns.optionsTable.args.click
+	local toggle = click and click.args.restoreTarget
+	local note = click and click.args.targetingNote
+	-- Somebody reached through a nameplate: your own target is never handed
+	-- back, whatever the switch says, so they would prove nothing. Every mock
+	-- unit is the same person and the target token is walked first, so the
+	-- first entry is moved onto a nameplate.
+	local first = ns.BuildQueue()[1]
+	local entry
+	if first and first.buff then
+		entry = {}
+		for k, v in pairs(first) do entry[k] = v end
+		entry.unit = "nameplate1"
+	end
+	if not (toggle and toggle.set and note and entry) then
+		fail(scenario, "SKIPPED -- no targeting switch, no note, or nobody to build a macro for")
+	else
+		for _, on in ipairs({ true, false }) do
+			toggle.set({ "restoreTarget" }, on)
+			ns.Prompt:InvalidateMacro()
+			ns.Prompt:ApplyTarget(entry)
+			local restores = tostring(ns.lastMacro or ""):find("/targetlasttarget", 1, true) ~= nil
+			local says = optionText(note.name):find("/targetlasttarget", 1, true) ~= nil
+			if restores ~= on then
+				fail(scenario, ("SKIPPED -- with the switch %s the macro %s /targetlasttarget")
+					:format(on and "on" or "off", restores and "carries" or "lacks"))
+			elseif says ~= restores then
+				fail(scenario, ("with the switch %s the note %s /targetlasttarget and the macro %s")
+					:format(on and "on" or "off", says and "promises" or "leaves out",
+						restores and "carries it" or "has none"))
+			end
+		end
+		toggle.set({ "restoreTarget" }, true)
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 254
+-- "Always offer" is said to stop your target coming first.
+--
+-- BuildQueue promotes a target only once their auras have been read and found
+-- missing the buff, and "Always offer, whatever they have" means nothing is
+-- read -- so with it chosen, "Whoever I have targeted comes first" stayed ticked
+-- and did nothing. The ranking is deliberate; the page just never said so. The
+-- switch named only the game as its condition, the pale-blue colour named only
+-- the switch, and the red note under Always offer named neither.
+Mock.reset()
+ns = load("always offer says it stops the target coming first")
+if ns then
+	local scenario = "always offer says it stops the target coming first"
+	drive(scenario, ns)
+	local target = ns.optionsTable and ns.optionsTable.args.who.args.target
+	local always = ns.optionsTable and ns.optionsTable.args.when.args.alwaysNote
+	local accent = ns.optionsTable and ns.optionsTable.args.appearance.args.accentByReason
+	if not (target and always and accent) then
+		fail(scenario, "SKIPPED -- the target switch, the Always note or the colour switch is missing")
+	else
+		ns.db.profile.filters.whenBuffed = "always"
+		local texts = {
+			{ "the target switch's description", optionText(target.desc), "Always offer" },
+			{ "the colour switch's description", optionText(accent.desc), "Always offer" },
+			{ "the note under Always offer", optionText(always.name), "target" },
+		}
+		for _, t in ipairs(texts) do
+			if not t[2]:find(t[3], 1, true) then
+				fail(scenario, ("%s does not say that Always offer stops your target coming"
+					.. " first: %s"):format(t[1], t[2]))
+			end
+		end
+		ns.db.profile.filters.whenBuffed = "skip"
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 255
+-- "Remember a buff for" points at the setting that lets people go sooner.
+--
+-- It said this was how long somebody who buffed you stays on the prompt. With
+-- "Drop people who are probably gone" on, which is the default, somebody the
+-- game has no unit for is let go after the grace on the Who to buff tab --
+-- forty-five seconds against this setting's hundred and twenty -- and that is
+-- the ordinary case for a passer-by. Nothing on this tab said so.
+Mock.reset()
+ns = load("remember a buff for names the grace that ends it sooner")
+if ns then
+	local scenario = "remember a buff for names the grace that ends it sooner"
+	drive(scenario, ns)
+	local window = ns.optionsTable and ns.optionsTable.args.when.args.reciprocateWindow
+	if not window then
+		fail(scenario, "SKIPPED -- no Remember a buff for slider")
+	elseif not optionText(window.desc):find("Drop people who are probably gone", 1, true) then
+		fail(scenario, "the slider says people stay on the prompt this long and never mentions"
+			.. " the setting that lets them go sooner: " .. optionText(window.desc))
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 256
+-- "People who buffed me" does not promise a warrior strangers.
+--
+-- Its description was one fixed string ending "Works on strangers who are not
+-- in your group." A warrior's Battle Shout reaches the group and nobody else,
+-- so everybody outside it is turned down before the favour is looked at --
+-- while the same page hides the passer-by switch and says in grey that there is
+-- nothing to give a passer-by. The mage keeps the sentence, because for the
+-- mage it is true.
+for _, case in ipairs({
+	{ class = "WARRIOR", key = "battleshout", strangers = false },
+	{ class = "MAGE", key = "intellect", strangers = true },
+}) do
+	Mock.reset()
+	Mock.class = case.class
+	local scenario = "people who buffed me promises strangers only where they are reached ("
+		.. case.class .. ")"
+	ns = load(scenario)
+	if ns then
+		local known = {}
+		for _, id in ipairs(ns.FindBuff(case.class, case.key).ranks) do known[id] = true end
+		local realKnown = IsSpellKnown
+		IsSpellKnown = function(id) return known[id] == true end
+		IsPlayerSpell = function(id) return known[id] == true end
+
+		drive(scenario, ns)
+		ns.Guard("probe", ns.ProbeCapabilities)
+
+		local owed = ns.optionsTable and ns.optionsTable.args.who.args.owed
+		if not owed then
+			fail(scenario, "SKIPPED -- no People who buffed me switch")
+		elseif ns.OnlyReachesGroup() == case.strangers then
+			fail(scenario, "SKIPPED -- this class was expected to reach "
+				.. (case.strangers and "strangers" or "its group only") .. " and does not")
+		else
+			local promises = optionText(owed.desc):find("Works on strangers", 1, true) ~= nil
+			if promises and not case.strangers then
+				fail(scenario, "a class whose spells reach its group only is told the favour"
+					.. " switch works on strangers: " .. optionText(owed.desc))
+			elseif not promises and case.strangers then
+				fail(scenario, "a class that can buff anybody lost the sentence saying the favour"
+					.. " switch works on strangers")
+			end
+		end
+
+		IsSpellKnown = realKnown
+		IsPlayerSpell = realKnown
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 257
+-- "(mana users only)" follows the switch that makes it true.
+--
+-- The label was added whenever a spell was marked mana-only. The spell is only
+-- held back from a warrior while "Skip players the buff does nothing for" is
+-- on; switched off, the warrior is offered Divine Spirit while the Automatic
+-- note and the per-spell switches go on saying it is for mana users only.
+Mock.reset()
+Mock.class = "PRIEST"
+ns = load("mana users only follows its switch")
+if ns then
+	local scenario = "mana users only follows its switch"
+	local known = {}
+	for _, key in ipairs({ "fortitude", "spirit" }) do
+		for _, id in ipairs(ns.FindBuff("PRIEST", key).ranks) do known[id] = true end
+	end
+	local realKnown = IsSpellKnown
+	IsSpellKnown = function(id) return known[id] == true end
+	IsPlayerSpell = function(id) return known[id] == true end
+
+	drive(scenario, ns)
+	ns.Guard("probe", ns.ProbeCapabilities)
+
+	local who = ns.optionsTable and ns.optionsTable.args.who
+	local note = who and who.args.autoNote
+	local toggle = who and who.args.offer_spirit
+	local skip = who and who.args.relevantOnly
+	if not (note and toggle and skip and skip.set) then
+		fail(scenario, "SKIPPED -- no Automatic note, Divine Spirit switch or relevance switch")
+	elseif not ns.FindBuff("PRIEST", "spirit").manaOnly then
+		fail(scenario, "SKIPPED -- Divine Spirit is not marked mana-only on this client")
+	else
+		local QUALIFIER = "(mana users only)"
+		skip.set({ "relevantOnly" }, false)
+		for what, text in pairs({ ["the Automatic note"] = optionText(note.name),
+			["the Divine Spirit switch"] = optionText(toggle.name) }) do
+			if text:find(QUALIFIER, 1, true) then
+				fail(scenario, what .. " says mana users only with the switch that makes it"
+					.. " true turned off: " .. text)
+			end
+		end
+		skip.set({ "relevantOnly" }, true)
+		if not optionText(toggle.name):find(QUALIFIER, 1, true) then
+			fail(scenario, "with the relevance switch on, the Divine Spirit switch no longer says"
+				.. " it is for mana users only")
+		end
+	end
+
+	IsSpellKnown = realKnown
+	IsPlayerSpell = realKnown
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 258
+-- "Every spell below is switched off" is said only when every one is.
+--
+-- The note said so as soon as every spell the character had learned was
+-- switched off. The ones not learned yet stay ticked below it, greyed and
+-- marked "(not learned)", and learning one brings the prompt back without
+-- touching anything -- so both "every spell" and "never" were false for a
+-- low-level priest who switched Fortitude off.
+Mock.reset()
+Mock.class = "PRIEST"
+ns = load("every spell switched off means every one")
+if ns then
+	local scenario = "every spell switched off means every one"
+	local known = {}
+	for _, id in ipairs(ns.FindBuff("PRIEST", "fortitude").ranks) do known[id] = true end
+	local realKnown = IsSpellKnown
+	IsSpellKnown = function(id) return known[id] == true end
+	IsPlayerSpell = function(id) return known[id] == true end
+
+	drive(scenario, ns)
+	ns.Guard("probe", ns.ProbeCapabilities)
+
+	local note = ns.optionsTable and ns.optionsTable.args.who.args.autoNote
+	local skip = ns.db.profile.buff.skip
+	local ALL_OFF = "Every spell below is switched off"
+	if not note then
+		fail(scenario, "SKIPPED -- no Automatic note")
+	else
+		skip.fortitude = true
+		local text = optionText(note.name)
+		if #ns.CastableBuffs() > 0 then
+			fail(scenario, "SKIPPED -- switching Fortitude off left something to offer")
+		elseif text:find(ALL_OFF, 1, true) then
+			fail(scenario, "with Divine Spirit and Shadow Protection still ticked below, the note"
+				.. " says every spell is switched off: " .. text)
+		elseif not text:find("learned", 1, true) then
+			fail(scenario, "the note does not say it is the learned spells that are off: " .. text)
+		end
+
+		skip.spirit, skip.shadow = true, true
+		text = optionText(note.name)
+		if not text:find(ALL_OFF, 1, true) then
+			fail(scenario, "with every spell unticked the note no longer says so: " .. text)
+		end
+		skip.fortitude, skip.spirit, skip.shadow = nil, nil, nil
+	end
+
+	IsSpellKnown = realKnown
+	IsPlayerSpell = realKnown
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 259
+-- "Leave them alone" says who it does not leave alone.
+--
+-- Somebody who buffed you is offered the favour back even when they already
+-- hold the buff -- a refresh, which takes nothing away, and a deliberate
+-- policy. The dropdown offered "Leave them alone" with nothing qualifying it,
+-- and the top-up slider said somebody whose timer cannot be read "is left
+-- alone", so the one person the prompt did offer looked like a bug.
+Mock.reset()
+ns = load("leave them alone names the favour exception")
+if ns then
+	local scenario = "leave them alone names the favour exception"
+	drive(scenario, ns)
+	local when = ns.optionsTable and ns.optionsTable.args.when
+	local choice = when and when.args.whenBuffed
+	local refresh = when and when.args.refreshUnder
+	if not (choice and refresh) then
+		fail(scenario, "SKIPPED -- no If they already have the buff dropdown or top-up slider")
+	else
+		for what, text in pairs({ ["the dropdown's description"] = optionText(choice.desc),
+			["the top-up slider's description"] = optionText(refresh.desc) }) do
+			if not text:find("buffed you", 1, true) then
+				fail(scenario, what .. " never says somebody who buffed you is offered the buff"
+					.. " anyway: " .. text)
+			end
+		end
+	end
+end
+Mock.reset()
+
 -- ------------------------------------------------------------------ report
 print("=== scenarios ===")
 if #failures == 0 then

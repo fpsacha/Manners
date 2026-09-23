@@ -3054,6 +3054,103 @@ mutate("Options.lua",
        expect="a drag from 44 to 30 redrew the page",
        script="runscenarios.py")
 
+# The targeting note naming /targetlasttarget whatever the switch above says.
+mutate("Options.lua",
+       "\t\t\t\t\t\t\tif F().restoreTarget then\n"
+       "\t\t\t\t\t\t\t\tafter = \", then |cffffd100/targetlasttarget|r",
+       "\t\t\t\t\t\t\tif true then\n"
+       "\t\t\t\t\t\t\t\tafter = \", then |cffffd100/targetlasttarget|r",
+       "targeting note ignores the hand-back switch",
+       expect="with the switch off the note promises /targetlasttarget",
+       script="runscenarios.py")
+
+# The target switch silent about Always offer...
+mutate("Options.lua",
+       "\t\t\t\t\t.. \"Not while |cffffd100If they already have the buff|r is set to Always\"\n"
+       "\t\t\t\t\t.. \" offer, under When: nothing is read then, so your target is ranked by\"\n"
+       "\t\t\t\t\t.. \" why they are on the list like anybody else.\\n\\n\"\n",
+       "",
+       "target switch silent about Always offer",
+       expect="the target switch's description does not say that Always offer",
+       script="runscenarios.py")
+
+# ...the pale-blue colour the same...
+mutate("Options.lua",
+       "\t\t\t\t\t\t\t.. \" I have targeted comes first|r is on, under Who to buff, and never\"\n"
+       "\t\t\t\t\t\t\t.. \" while |cffffd100If they already have the buff|r is set to Always\"\n"
+       "\t\t\t\t\t\t\t.. \" offer, under When.|r\",\n",
+       "\t\t\t\t\t\t\t.. \" I have targeted comes first|r is on, under Who to buff.|r\",\n",
+       "reason colour silent about Always offer",
+       expect="the colour switch's description does not say that Always offer",
+       script="runscenarios.py")
+
+# ...and the note under Always offer itself.
+mutate("Options.lua",
+       "Expect to be spending mana.|r\\n\\n\"\n"
+       "\t\t\t\t\t\t\t.. \"|cff888888Nothing is read in this mode, so |cffffd100Whoever I have\"\n"
+       "\t\t\t\t\t\t\t.. \" targeted comes first|r has nothing to go on: your target is ranked by\"\n"
+       "\t\t\t\t\t\t\t.. \" why they are on the list like anybody else.|r\",\n",
+       "Expect to be spending mana.|r\",\n",
+       "Always note silent about the target",
+       expect="the note under Always offer does not say that Always offer",
+       script="runscenarios.py")
+
+# "Remember a buff for" saying nothing of the grace that ends it sooner.
+mutate("Options.lua",
+       "\t\t\t\t\t\t\t.. \" sooner if |cffffd100Let them go after|r is shorter, while\"\n"
+       "\t\t\t\t\t\t\t.. \" |cffffd100Drop people who are probably gone|r is on, under Who to\"\n"
+       "\t\t\t\t\t\t\t.. \" buff.\",\n",
+       "\t\t\t\t\t\t\t.. \" sooner.\",\n",
+       "remember window silent about the grace",
+       expect="the slider says people stay on the prompt this long",
+       script="runscenarios.py")
+
+# "People who buffed me" promising a warrior strangers.
+mutate("Options.lua",
+       "\t\t\t\t\tif OnlyReachesGroup() then\n"
+       "\t\t\t\t\t\treturn \"Watch for buffs cast on you and offer to return them. What you\"\n",
+       "\t\t\t\t\tif false then\n"
+       "\t\t\t\t\t\treturn \"Watch for buffs cast on you and offer to return them. What you\"\n",
+       "favour switch promises a warrior strangers",
+       expect="a class whose spells reach its group only is told the favour switch works on strangers",
+       script="runscenarios.py")
+
+# "(mana users only)" with the filter that makes it true switched off.
+mutate("Options.lua",
+       "\tif buff.manaOnly and F().relevantOnly then\n",
+       "\tif buff.manaOnly then\n",
+       "mana users only ignores its filter",
+       expect="the Divine Spirit switch says mana users only with the switch that makes it true",
+       script="runscenarios.py")
+
+# "Every spell below is switched off" over unlearned spells still ticked.
+mutate("Options.lua",
+       "\t\t\tif not buff.neverAuto and not ns.IsBuffKnown(buff) and not B().skip[buff.key] then\n",
+       "\t\t\tif false then\n",
+       "every spell off over ticked unlearned ones",
+       expect="with Divine Spirit and Shadow Protection still ticked below, the note says every",
+       script="runscenarios.py")
+
+# "If they already have the buff" silent about the favour exception...
+mutate("Options.lua",
+       "qualify.\\n\\n\"\n"
+       "\t\t\t\t\t\t\t.. \"Somebody who buffed you is offered the favour back whichever you\"\n"
+       "\t\t\t\t\t\t\t.. \" choose, even if they already have it.\",\n",
+       "qualify.\",\n",
+       "already-buffed dropdown hides the favour exception",
+       expect="the dropdown's description never says somebody who buffed you",
+       script="runscenarios.py")
+
+# ...and the top-up slider the same.
+mutate("Options.lua",
+       "is left alone -- unless\"\n"
+       "\t\t\t\t\t\t\t.. \" they buffed you, in which case they are offered the favour back\"\n"
+       "\t\t\t\t\t\t\t.. \" anyway.\",\n",
+       "is left alone.\",\n",
+       "top-up slider hides the favour exception",
+       expect="the top-up slider's description never says somebody who buffed you",
+       script="runscenarios.py")
+
 print()
 print("after restore:")
 # This file edits the addon in place. A restore that did not happen leaves a
