@@ -610,13 +610,16 @@ end
 -- which buff for which person
 ---------------------------------------------------------------------------
 
--- Only ever reached in Automatic -- ResolveBuff answers a pin above it -- so a
--- neverAuto buff is skipped here without an exception for the pinned one.
+-- Only ever reached in Automatic -- ResolveBuff answers every pin of this
+-- class's above it, the unlearned ones with nil -- so a neverAuto buff is
+-- skipped here without an exception for the pinned one.
 -- Honours the per-spell switches, which it did not, while CastableBuffs did.
 -- So everything that names "the spell you are about to cast" -- the login
 -- line, the preview panel, the phrase roller that promises to show what would
 -- really go out -- named one that had been switched off and would never be
--- offered to anybody.
+-- offered to anybody. That was only half of it: the paladin's pick in
+-- ResolveBuff, above this, went on naming a switched-off Wisdom until it was
+-- taught the same rule.
 local function FirstKnownBuff()
 	local db = addon.db and addon.db.profile
 	local skip = db and db.buff and db.buff.skip
@@ -636,13 +639,19 @@ end
 -- must never be what the walk hands a passer-by -- but somebody who deliberately
 -- pinned it has asked for it, and PickBuffFor gives up before it ever reads the
 -- pin if this list comes back empty.
+--
+-- The per-spell switches are passed over by a pin for the same reason, and the
+-- same trap was waiting there: the options page hides the switches while a
+-- spell is pinned and says they are left alone, so a priest who switched every
+-- spell off and then pinned Fortitude had nothing left on this list -- and was
+-- offered nothing, by anybody, with the page promising Fortitude to everybody.
 function ns.CastableBuffs()
 	local db = addon.db and addon.db.profile
 	local pinned = db and db.buff.choice
 	local out = {}
 	for _, buff in ipairs(ns.GetClassBuffs(playerClass) or {}) do
 		if ns.IsBuffKnown(buff)
-			and not (db and db.buff.skip and db.buff.skip[buff.key])
+			and (pinned == buff.key or not (db and db.buff.skip and db.buff.skip[buff.key]))
 			and (not buff.neverAuto or pinned == buff.key) then
 			out[#out + 1] = buff
 		end
@@ -691,9 +700,10 @@ end
 -- invisible to the addon.
 --
 -- `candidates` comes from CastableBuffs. `has(buff)` answers the aura question
--- and returns has, remaining. It answers only that question: whatever the
--- caller's policy is about who deserves an offer, it does not belong in a
--- reading of somebody's auras.
+-- and returns has, remaining, mine -- the last one whether what they hold is
+-- the player's own cast, nil where nothing says. It answers only that
+-- question: whatever the caller's policy is about who deserves an offer, it
+-- does not belong in a reading of somebody's auras.
 --
 -- Two of the options say so out loud, because both used to arrive disguised as
 -- a reading instead:
@@ -750,6 +760,15 @@ function ns.PickBuffFor(candidates, opts, has)
 	-- Blessings overwrite each other, so holding any one of yours counts as
 	-- covered. Walking would replace what they already have.
 	--
+	-- One of *yours*: blessings from different paladins stack, so another
+	-- paladin's Kings covers nothing of ours -- it only means Kings is not
+	-- ours to give. It used to count as covered, because the aura read never
+	-- asked who had cast what it found: a warrior wearing somebody else's Kings
+	-- was never offered Might, and a paladin we owed, wearing a third paladin's
+	-- Kings, was "repaid" with Kings instead of the Wisdom they lacked. An aura
+	-- that names nobody we can read is still taken as covered -- guessing "not
+	-- mine" there is how our own blessing would be walked over.
+	--
 	-- Which is also the answer to "why does this branch never consult
 	-- ns.lastGave": rotating is a cure for a list that cannot be read, and here
 	-- it would be worse than the disease. Give Might, rotate to Wisdom on the
@@ -770,8 +789,15 @@ function ns.PickBuffFor(candidates, opts, has)
 				-- everywhere else, which is how the refresh mode came to be
 				-- switched on, described in the options, and dead for the one
 				-- class it is safest on -- see the top-up below.
-				local held, remaining = has(buff)
-				if held == true then
+				local held, remaining, mine = has(buff)
+				if held == true and mine == false then
+					-- Another paladin's. Not covered, and not ours to offer
+					-- either: ours of the same kind would only replace theirs.
+					-- So the walk moves on to a kind they lack -- unless we
+					-- offered this one moments ago, which is the cooldown rule
+					-- below and still means "wait".
+					if blocked(buff) then onCooldown = true end
+				elseif held == true then
 					-- Covered, and for this class that is the end of it:
 					-- anything else offered replaces what they are carrying.
 					--
@@ -813,20 +839,27 @@ function ns.PickBuffFor(candidates, opts, has)
 						return buff, true, remaining
 					end
 
+					-- Ours, or nobody's we can name -- never another paladin's,
+					-- which the branch above has already walked past: recasting
+					-- that would replace their blessing, not refresh ours. A debt
+					-- owed to somebody wearing only other paladins' blessings is
+					-- repaid with the first kind they lack, below.
 					if not opts.offerAnyway then return nil, true end
 					return buff, true
-				end
-				-- "They are carrying none of mine" is established only once
-				-- every one of them has read back a definite no. Claiming it on
-				-- an answer that never came promotes a guess over a real debt in
-				-- BuildQueue, which gates that promotion on has == false for
-				-- exactly this reason, and suppresses the unverified wording on
-				-- the prompt. For this class that was every single pick.
-				if held ~= false then allRead = false end
-				if blocked(buff) then
-					onCooldown = true
-				elseif not pick then
-					pick = buff
+				else
+					-- "They are carrying none of mine" is established only once
+					-- every one of them has read back a definite no. Claiming it
+					-- on an answer that never came promotes a guess over a real
+					-- debt in BuildQueue, which gates that promotion on has ==
+					-- false for exactly this reason, and suppresses the
+					-- unverified wording on the prompt. For this class that was
+					-- every single pick.
+					if held ~= false then allRead = false end
+					if blocked(buff) then
+						onCooldown = true
+					elseif not pick then
+						pick = buff
+					end
 				end
 			end
 		end
@@ -917,24 +950,61 @@ function ns.PickBuffFor(candidates, opts, has)
 end
 
 -- hasMana is passed in rather than read here so the caller can reuse it.
+--
+-- The one spell named as "the spell you are about to cast" -- by the login
+-- line, the preview, Roll a few, {spell} and /manners look -- so it has to be
+-- a spell the queue would really offer, or nil when it would offer none.
 function ns.ResolveBuff(hasMana)
 	local db = addon.db and addon.db.profile
 	if not db then return nil end
 
-	local choice = db.buff.choice
-	if choice and choice ~= "auto" then
-		local buff = ns.FindBuff(playerClass, choice)
-		if buff and ns.IsBuffKnown(buff) then return buff end
-	end
+	-- A pin of this class's is the only spell the walk ever considers, learned
+	-- or not. An unlearned one used to fall through to Automatic here, so a
+	-- low-level alt on a profile whose priest had pinned Divine Spirit was told
+	-- "Ready to cast Power Word: Fortitude" and shown a preview of it -- while
+	-- PickBuffFor, reading the same pin, offered nobody anything. Asked through
+	-- PinnedBuff so a pin that belongs to another class still reads as
+	-- Automatic, as it does in the walk.
+	local pinned = ns.PinnedBuff()
+	if pinned then return ns.IsBuffKnown(pinned) and pinned or nil end
 
+	-- The switches and the never-automatic rule apply to this pick as they do
+	-- to the walk. Without them a paladin with Wisdom switched off was told at
+	-- every login that Wisdom was what would be cast, while the queue offered
+	-- Might.
 	local auto = ns.CLASS_AUTO[playerClass]
 	if auto then
 		local key = hasMana and auto.mana or auto.other
 		local buff = ns.FindBuff(playerClass, key)
-		if buff and ns.IsBuffKnown(buff) then return buff end
+		if buff and ns.IsBuffKnown(buff) and not buff.neverAuto
+			and not (db.buff.skip and db.buff.skip[key]) then
+			return buff
+		end
 	end
 
 	return FirstKnownBuff()
+end
+
+-- Why ResolveBuff has nothing to name, said as the setting that decides it.
+-- Four characters get nil there and "no buff learned" was said to all four --
+-- to a priest with all three spells learned and every one switched off, who
+-- would go looking for a trainer rather than for the switches.
+function ns.NothingToCast()
+	local pinned = ns.PinnedBuff()
+	if pinned and not ns.IsBuffKnown(pinned) then
+		return ("%s is pinned and not learned on this character"):format(ns.BuffName(pinned))
+	end
+	if not caps.anyKnown then return "no buff learned" end
+	local db = addon.db and addon.db.profile
+	local skip = db and db.buff and db.buff.skip
+	for _, buff in ipairs(ns.GetClassBuffs(playerClass) or {}) do
+		-- Learned, switched on and still not chosen: a spell Automatic never
+		-- reaches for, which is not a switch anybody can find turned off.
+		if ns.IsBuffKnown(buff) and not (skip and skip[buff.key]) then
+			return ("Automatic never offers %s"):format(ns.BuffName(buff))
+		end
+	end
+	return "every spell you know is switched off under Who to buff"
 end
 
 ---------------------------------------------------------------------------
@@ -951,9 +1021,9 @@ ns.nameplateUnits = {}
 -- unit inspection
 ---------------------------------------------------------------------------
 
--- auraCache[guid][buffKey] = { at, has, expires }. Swept periodically: a city
--- can put hundreds of players through here in a session and nothing else would
--- ever remove them.
+-- auraCache[guid][buffKey] = { at, has, expires, mine }. Swept periodically: a
+-- city can put hundreds of players through here in a session and nothing else
+-- would ever remove them.
 --
 -- Two levels rather than one composed string key, because invalidation is the
 -- hot path: UNIT_AURA fires constantly and used to build one key per class buff
@@ -992,9 +1062,12 @@ local function SweepAuraCache(now)
 	end
 end
 
--- Returns has, secondsRemaining. `has` is nil when the client will not let us
--- look; `secondsRemaining` is nil when the buff is there but its timer is not
--- readable, which is a different thing from "about to expire".
+-- Returns has, secondsRemaining, mine. `has` is nil when the client will not
+-- let us look -- at any one of the buff's ids, since the one it hid may be the
+-- one they are wearing; `secondsRemaining` is nil when the buff is there but
+-- its timer is not readable, which is a different thing from "about to
+-- expire". `mine` says whether what was found is the player's own cast: true,
+-- false, or nil when the aura names nobody we can read.
 local function UnitHasBuff(unit, buff, guid)
 	local info = ns.BuffInfo(buff)
 	if not info or not info.readable then return nil, nil end
@@ -1003,33 +1076,56 @@ local function UnitHasBuff(unit, buff, guid)
 	local perUnit = guid and auraCache[guid]
 	local cached = perUnit and perUnit[buff.key]
 	if cached and (now - cached.at) < 3 then
-		return cached.has, cached.expires and (cached.expires - now) or nil
+		return cached.has, cached.expires and (cached.expires - now) or nil, cached.mine
 	end
 
-	local has, expires = false, nil
+	-- Refusals are counted rather than read as absence. This started at false
+	-- and stayed there both for an id passed over because the client declared
+	-- it secret and for a read that threw or came back secret, which safecall
+	-- and plain turn into the same nil an empty slot is -- so somebody wearing
+	-- Arcane Brilliance, on a client hiding that one id, was "definitely not
+	-- carrying Arcane Intellect". BuildQueue promotes a target over a debt on
+	-- exactly that definite no, and the prompt drops the wording that says the
+	-- reading could not be taken.
+	local has, expires, mine, refused = false, nil, nil, false
 	for _, id in ipairs(buff.auraIds) do
-		if info.secrecy[id] ~= true then
-			local aura = safecall(C_UnitAuras.GetUnitAuraBySpellID, unit, id)
-			if type(aura) == "table" then
+		if info.secrecy[id] == true then
+			refused = true
+		else
+			local ok, aura = pcall(C_UnitAuras.GetUnitAuraBySpellID, unit, id)
+			if not ok or (issecretvalue and issecretvalue(aura)) then
+				refused = true
+			elseif type(aura) == "table" then
 				has = true
 				local expiration = plain(aura.expirationTime)
 				if type(expiration) == "number" and expiration > 0 then expires = expiration end
+				-- Whose it is, for the one class that needs to know: a paladin's
+				-- blessings overwrite each other, another paladin's do not. Only
+				-- a token we can read answers, and isFromPlayerOrPlayerPet would
+				-- not -- it is true for any player's aura, not for ours.
+				local source = plain(aura.sourceUnit)
+				if type(source) == "string" then
+					local same = safecall(UnitIsUnit, source, "player")
+					if same ~= nil then mine = same == true end
+				end
 				break
 			end
 		end
 	end
+	if not has and refused then has = nil end
 
 	-- A negative answer is cached too, or the walk re-reads every buff for every
-	-- person on every tick -- which is the whole reason this table exists.
+	-- person on every tick -- which is the whole reason this table exists. A
+	-- refusal is cached as the nil it is, never as the false it used to become.
 	if guid then
 		if not perUnit then
 			perUnit = {}
 			auraCache[guid] = perUnit
 			auraCacheCount = auraCacheCount + 1
 		end
-		perUnit[buff.key] = { at = now, has = has, expires = expires }
+		perUnit[buff.key] = { at = now, has = has, expires = expires, mine = mine }
 	end
-	return has, expires and (expires - now) or nil
+	return has, expires and (expires - now) or nil, mine
 end
 
 -- Classes that have a mana bar at all. Used when the client will not tell us a
@@ -4284,8 +4380,9 @@ ns.NO_CLASS_BUFFS = "this class has no buffs to cast on other players."
 -- Every reason to wait below is a state that ends -- a probe with no answer
 -- yet, a fight -- so nothing is written down in those cases and the next
 -- attempt tries again. `force` is /manners welcome: somebody asked for it, so
--- it plays whatever the flag says.
-function ns.Welcome(force)
+-- it plays whatever the flag says. `offSaid` is the login line having just
+-- said the profile is switched off, one line above.
+function ns.Welcome(force, offSaid)
 	local store = addon.db and addon.db.char
 	if type(store) ~= "table" then return false end
 	if store.welcomed and not force then return true end
@@ -4347,6 +4444,20 @@ function ns.Welcome(force)
 		return true
 	end
 
+	-- Spells learned, and nothing any prompt will ever offer: every one of them
+	-- switched off, or a pin on one this character has not learned. The tour
+	-- below promised "a small prompt" and put up a preview of one that was
+	-- never going to appear, so this names the setting in the way instead. Not
+	-- for a character with nothing learned yet: that one is worth the tour, and
+	-- learns its first spell in a level or two.
+	if caps.anyKnown and not ns.ResolveBuff(true) then
+		addon:Print(("|cffffd100Manners|r is installed, but nothing will be offered to"
+			.. " anybody: %s."):format(ns.NothingToCast()))
+		addon:Print("|cffffd100/manners welcome|r brings the rest of this back once"
+			.. " that changes.")
+		return true
+	end
+
 	-- A class whose buffs reach the party and nobody else has no passer-by to
 	-- offer anything to, and the page this points at says so; telling a warrior
 	-- about "any stranger nearby" was a promise the queue refuses on its first
@@ -4370,8 +4481,9 @@ function ns.Welcome(force)
 	-- is shared, so an alt of somebody who turned the addon off is greeted by
 	-- an explanation of something that is not going to happen. The prompt will
 	-- not appear, and the reason is a setting rather than a fault -- so name
-	-- the setting, the same way /manners unlock does.
-	if addon.db.profile and not addon.db.profile.enabled then
+	-- the setting, the same way /manners unlock does. Unless the login line
+	-- said exactly that one line above.
+	if addon.db.profile and not addon.db.profile.enabled and not offSaid then
 		addon:Print("|cffff8080It is switched off on this profile|r, so no prompt will"
 			.. " appear -- |cffffd100/manners on|r when you want it.")
 	end
@@ -4903,11 +5015,19 @@ function addon:OnEnable()
 		-- was one to learn, on every login, to a rogue.
 		local nothingToGive = caps.class ~= nil and ns.CLASSES_WITHOUT_BUFFS ~= nil
 			and ns.CLASSES_WITHOUT_BUFFS[caps.class] == true
+		-- The profile is shared, so /manners off on one character is off on
+		-- every alt -- and this line said "watching for buffs" to all of them
+		-- at every login, while nothing was being watched and no prompt would
+		-- ever appear.
+		local off = not self.db.profile.enabled
 		if not buff and nothingToGive then
 			self:Print(("build |cffffd100%s|r -- %s"):format(tostring(ns.BUILD), ns.NO_CLASS_BUFFS))
+		elseif off then
+			self:Print(("build |cffffd100%s|r -- |cffff8080switched off on this profile|r;"
+				.. " |cffffd100/manners on|r to start."):format(tostring(ns.BUILD)))
 		else
 			self:Print(("build |cffffd100%s|r watching for buffs. Ready to cast |cffffd100%s|r."):format(
-				tostring(ns.BUILD), buff and ns.BuffName(buff) or "nothing -- no buff learned"))
+				tostring(ns.BUILD), buff and ns.BuffName(buff) or ("nothing -- " .. ns.NothingToCast())))
 		end
 		-- The macro an older version made, while nothing else is going on.
 		ns.SettleOldMacro()
@@ -4916,7 +5036,9 @@ function addon:OnEnable()
 		-- anything printed before the default chat frame exists is printed to
 		-- nobody. Guarded because a greeting that throws must not take the
 		-- build line -- the only other evidence the addon loaded -- with it.
-		ns.Guard("Welcome", ns.Welcome)
+		-- Told whether that line has just said the profile is switched off, so
+		-- the greeting does not say it again directly underneath.
+		ns.Guard("Welcome", ns.Welcome, false, off)
 	end)
 end
 

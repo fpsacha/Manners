@@ -119,6 +119,19 @@ function Mock.reset()
 	Mock.groupSize = 0
 	Mock.held = nil
 	Mock.heldFor = nil
+	-- Who cast what Mock.held says a unit is carrying, per spell id, as the unit
+	-- token the aura names -- e.g. { [20217] = "nameplate2" } for another
+	-- paladin's Kings. Absent is the client naming nobody, which is also what
+	-- every scenario written before this knob gets.
+	Mock.heldSource = nil
+	-- Spell ids whose auras the client declares secret, e.g. { [23028] = true }:
+	-- one id refused while the rest of the buff stays readable, rather than
+	-- Mock.allSecret taking everything with it.
+	Mock.secretAuraIds = nil
+	-- Spell ids the aura read itself refuses, and how: { [23028] = "throw" } or
+	-- { [23028] = "secret" }. A refusal at the moment of reading, where
+	-- secretAuraIds is one the probe was told about in advance.
+	Mock.auraReadRefuse = nil
 	Mock.auraBlackout = false
 	Mock.noAuras = false
 	Mock.extraAura = false
@@ -1269,8 +1282,12 @@ setmetatable(_G, { __index = function(_, key)
 			-- scenario can put somebody halfway through a buff set.
 			GetUnitAuraBySpellID = function(_, spellId)
 				Mock.counts.auraRead = Mock.counts.auraRead + 1
+				local refuse = Mock.auraReadRefuse and Mock.auraReadRefuse[spellId]
+				if refuse == "throw" then error("aura read refused for " .. tostring(spellId)) end
+				if refuse == "secret" then return SECRET end
 				if Mock.held and Mock.held[spellId] then
-					return { spellId = spellId, expirationTime = Mock.now + (Mock.heldFor or 3600) }
+					return { spellId = spellId, expirationTime = Mock.now + (Mock.heldFor or 3600),
+						sourceUnit = Mock.heldSource and Mock.heldSource[spellId] or nil }
 				end
 				return nil
 			end,
@@ -1319,7 +1336,10 @@ setmetatable(_G, { __index = function(_, key)
 	elseif key == "C_Secrets" then
 		return ns_or_nil({
 			ShouldAurasBeSecret = function() return Mock.allSecret end,
-			ShouldSpellAuraBeSecret = function() return Mock.allSecret end,
+			ShouldSpellAuraBeSecret = function(spellId)
+				if Mock.allSecret then return true end
+				return (Mock.secretAuraIds and Mock.secretAuraIds[spellId]) == true
+			end,
 			GetSpellAuraSecrecy = function() return 0 end,
 			HasSecretRestrictions = function() return Mock.secretRestrictions end,
 		})

@@ -559,7 +559,7 @@ mutate("Prompt.lua",
 #     spell -- which switches the walk off altogether.
 mutate("Core.lua",
        """		if ns.IsBuffKnown(buff)
-			and not (db and db.buff.skip and db.buff.skip[buff.key])
+			and (pinned == buff.key or not (db and db.buff.skip and db.buff.skip[buff.key]))
 			and (not buff.neverAuto or pinned == buff.key) then""",
        """		if ns.IsBuffKnown(buff)
 			and (not buff.neverAuto or pinned == buff.key) then""",
@@ -955,9 +955,9 @@ mutate("Core.lua",
 #     and dead for the one class it is safest on.
 mutate("Core.lua",
        """				-- class it is safest on -- see the top-up below.
-				local held, remaining = has(buff)""",
+				local held, remaining, mine = has(buff)""",
        """				-- class it is safest on -- see the top-up below.
-				local held = has(buff)""",
+				local held, _, mine = has(buff)""",
        "a top-up with the timer thrown away",
        expect="was offered no top-up at all",
        script="runscenarios.py")
@@ -1894,7 +1894,7 @@ mutate("tests/mockapi.lua",
 
 # Never wired into the login at all -- the state the addon shipped in.
 mutate("Core.lua",
-       "\t\tns.Guard(\"Welcome\", ns.Welcome)",
+       "\t\tns.Guard(\"Welcome\", ns.Welcome, false, off)",
        "",
        "the greeting not wired into the login",
        expect="the first login says what this is",
@@ -1922,8 +1922,8 @@ mutate("Core.lua",
 # nobody else -- and it is invisible to a reload test, which is why there is a
 # scenario with an alt in it.
 mutate("Core.lua",
-       "function ns.Welcome(force)\n\tlocal store = addon.db and addon.db.char",
-       "function ns.Welcome(force)\n\tlocal store = addon.db and addon.db.profile",
+       "function ns.Welcome(force, offSaid)\n\tlocal store = addon.db and addon.db.char",
+       "function ns.Welcome(force, offSaid)\n\tlocal store = addon.db and addon.db.profile",
        "the flag kept in the shared profile",
        expect="an alt on the same account",
        script="runscenarios.py")
@@ -1998,7 +1998,7 @@ mutate("Core.lua",
 # profile is shared across the account, so that alt never touched the switch and
 # has no way to know a setting is why nothing appears.
 mutate("Core.lua",
-       "\tif addon.db.profile and not addon.db.profile.enabled then",
+       "\tif addon.db.profile and not addon.db.profile.enabled and not offSaid then",
        "\tif false then",
        "a greeting that hides the off switch",
        expect="a greeting on a switched-off profile",
@@ -2420,6 +2420,131 @@ mutate("Core.lua",
        "\t\t\tlocal left = math.min(entry.expires - wall, window)\n",
        "a reload restarting the window",
        expect="a debt older than the window does not survive a reload",
+       script="runscenarios.py")
+
+# A pinned spell dropped by its own switch, which the page hides while it is
+# pinned: everything off and Fortitude pinned offered nobody anything.
+mutate("Core.lua",
+       "\t\t\tand (pinned == buff.key or not (db and db.buff.skip and db.buff.skip[buff.key]))\n",
+       "\t\t\tand not (db and db.buff.skip and db.buff.skip[buff.key])\n",
+       "a pinned spell silenced by its own switch",
+       expect="(everything off, Fortitude pinned): the pinned spell is not among the castable",
+       script="runscenarios.py")
+
+# The paladin's automatic pick naming a blessing that is switched off, at login
+# and everywhere else "the spell you are about to cast" is said.
+mutate("Core.lua",
+       "\t\tif buff and ns.IsBuffKnown(buff) and not buff.neverAuto\n"
+       "\t\t\tand not (db.buff.skip and db.buff.skip[key]) then\n",
+       "\t\tif buff and ns.IsBuffKnown(buff) then\n",
+       "a switched-off blessing named at login",
+       expect="(Wisdom switched off): the login line names a spell that is switched off",
+       script="runscenarios.py")
+
+# Every spell switched off, reported as none learned.
+mutate("Core.lua",
+       '("nothing -- " .. ns.NothingToCast())',
+       '"nothing -- no buff learned"',
+       "switched-off spells reported as unlearned",
+       expect="three learned spells, all switched off, reported as none learned",
+       script="runscenarios.py")
+
+# And greeted with a tour of a prompt that will never appear.
+mutate("Core.lua",
+       "\tif caps.anyKnown and not ns.ResolveBuff(true) then\n",
+       "\tif false then\n",
+       "a greeting promising a prompt nothing fills",
+       expect="the greeting promised a prompt nothing will ever fill",
+       script="runscenarios.py")
+
+# An unlearned pin falling through to Automatic, so the login line names a
+# spell the pin keeps from ever being cast.
+mutate("Core.lua",
+       "\tif pinned then return ns.IsBuffKnown(pinned) and pinned or nil end\n",
+       "\tif pinned and ns.IsBuffKnown(pinned) then return pinned end\n",
+       "an unlearned pin replaced by Automatic",
+       expect="(Divine Spirit pinned, not learned): the login line names a spell the pin",
+       script="runscenarios.py")
+
+# The same pin, named nowhere: the line then blames something else.
+mutate("Core.lua",
+       "\tif pinned and not ns.IsBuffKnown(pinned) then\n"
+       "\t\treturn (\"%s is pinned and not learned on this character\"):format(ns.BuffName(pinned))\n"
+       "\tend\n",
+       "",
+       "an unlearned pin not named at login",
+       expect="(Divine Spirit pinned, not learned): the login line",
+       script="runscenarios.py")
+
+# Another paladin's blessing counted as one of ours: Might never offered to a
+# warrior wearing somebody else's Kings.
+mutate("Core.lua",
+       "\t\t\t\tif held == true and mine == false then\n",
+       "\t\t\t\tif false then\n",
+       "another paladin's blessing taken as ours",
+       expect="(a warrior with another paladin's Kings): read: offered false, expected might",
+       script="runscenarios.py")
+
+# The same, three seconds later: the cache remembering that there was a
+# blessing and forgetting whose it was.
+mutate("Core.lua",
+       "\t\treturn cached.has, cached.expires and (cached.expires - now) or nil, cached.mine\n",
+       "\t\treturn cached.has, cached.expires and (cached.expires - now) or nil\n",
+       "the aura cache forgetting whose blessing it was",
+       expect="(a warrior with another paladin's Kings): cached: offered false",
+       script="runscenarios.py")
+
+# An aura that names nobody taken as somebody else's, which is how our own
+# blessing would be walked over on a client that will not say.
+mutate("Core.lua",
+       "\t\t\t\tlocal source = plain(aura.sourceUnit)\n"
+       "\t\t\t\tif type(source) == \"string\" then\n",
+       "\t\t\t\tlocal source = plain(aura.sourceUnit)\n"
+       "\t\t\t\tmine = false\n"
+       "\t\t\t\tif type(source) == \"string\" then\n",
+       "a blessing from nobody named taken as another's",
+       expect="(a warrior with Kings from nobody named)",
+       script="runscenarios.py")
+
+# A refused aura read reported as a definite no, which promotes a target over
+# somebody who buffed you.
+mutate("Core.lua",
+       "\tif not has and refused then has = nil end\n",
+       "",
+       "a refused aura read taken as a no",
+       expect="(an id declared secret): a reading the client refused came back as false",
+       script="runscenarios.py")
+
+# The two halves of "refused" on their own: an id the client declared secret...
+mutate("Core.lua",
+       "\t\tif info.secrecy[id] == true then\n\t\t\trefused = true\n\t\telse\n",
+       "\t\tif info.secrecy[id] == true then\n\t\telse\n",
+       "a secret aura id passed over as absent",
+       expect="(an id declared secret): a reading the client refused came back as false",
+       script="runscenarios.py")
+
+# ...and a read that throws.
+mutate("Core.lua",
+       "\t\t\tif not ok or (issecretvalue and issecretvalue(aura)) then\n",
+       "\t\t\tif false then\n",
+       "an aura read that throws taken as absent",
+       expect="(a read that throws): a reading the client refused came back as false",
+       script="runscenarios.py")
+
+# The login line saying "watching for buffs" on a profile that is switched off.
+mutate("Core.lua",
+       "\t\telseif off then\n",
+       "\t\telseif false then\n",
+       "the login line watching while switched off",
+       expect="said it is watching for buffs while switched off",
+       script="runscenarios.py")
+
+# And the greeting saying it again, one line under the login line.
+mutate("Core.lua",
+       "\tif addon.db.profile and not addon.db.profile.enabled and not offSaid then",
+       "\tif addon.db.profile and not addon.db.profile.enabled then",
+       "switched off said twice at a first login",
+       expect="said it is switched off 2 times",
        script="runscenarios.py")
 
 print()

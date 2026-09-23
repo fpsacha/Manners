@@ -5610,7 +5610,9 @@ if ns then
 		end
 
 		-- A pin means "only ever this one", so the switches are over something
-		-- that is no longer consulted.
+		-- that is no longer consulted. That was not quite so until scenario
+		-- 213: the pinned spell's own switch was still read, and switched off
+		-- it silenced the pin. It is so now, which is what hiding them rests on.
 		ns.db.profile.buff.choice = "fortitude"
 		if toggle.hidden and not toggle.hidden() then
 			fail(scenario, "the per-spell switches are still shown while one spell is pinned,"
@@ -13685,6 +13687,526 @@ if a212 then
 			fail(scenario, ("a debt 130 seconds old came back with %d seconds left of a"
 				.. " 120-second window"):format(
 				math.floor(b212.owed["Mira Tallow"].expires - GetTime())))
+		end
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 213
+-- A pinned spell is offered whatever its own switch under Automatic says.
+--
+-- The page hides the per-spell switches the moment a spell is pinned, and the
+-- note beside the pin says they "are left alone while one spell is pinned" --
+-- but CastableBuffs went on dropping a switched-off spell even when it was the
+-- pinned one. Only the never-automatic rule had been taught to let a pin
+-- through. So a priest who switched everything off, changed their mind and
+-- pinned Fortitude was offered nothing, to anybody, while the page promised
+-- Fortitude to everybody; and a low-level priest whose one spell had been
+-- switched off got the same silence from pinning it. The same pin worked the
+-- moment any other spell was still switched on, which is the control.
+for _, case in ipairs({
+	{ label = "everything off, Fortitude pinned", pin = "fortitude",
+		know = { "fortitude", "spirit", "shadow" }, skip = { "fortitude", "spirit", "shadow" } },
+	{ label = "everything off, Divine Spirit pinned", pin = "spirit",
+		know = { "fortitude", "spirit", "shadow" }, skip = { "fortitude", "spirit", "shadow" } },
+	{ label = "the only spell learned, off and pinned", pin = "fortitude",
+		know = { "fortitude" }, skip = { "fortitude" } },
+	{ label = "one off and pinned, the rest on", pin = "spirit",
+		know = { "fortitude", "spirit", "shadow" }, skip = { "spirit" } },
+}) do
+	Mock.reset()
+	Mock.class = "PRIEST"
+	local realKnown, realPlayer = IsSpellKnown, IsPlayerSpell
+	local scenario = "a pinned spell is offered with its switch off (" .. case.label .. ")"
+	ns = load(scenario)
+	if ns then
+		local known = {}
+		for _, key in ipairs(case.know) do
+			for _, id in ipairs(ns.FindBuff("PRIEST", key).ranks) do known[id] = true end
+		end
+		IsSpellKnown = function(id) return known[id] == true end
+		IsPlayerSpell = IsSpellKnown
+		drive(scenario, ns)
+		Mock.advance(60)
+		wipe(ns.owed)
+		wipe(ns.tried)
+		ns.Guard("probe", ns.ProbeCapabilities)
+		ns.db.profile.buff.skip = {}
+		for _, key in ipairs(case.skip) do ns.db.profile.buff.skip[key] = true end
+		ns.db.profile.buff.choice = case.pin
+		local pinned = ns.FindBuff("PRIEST", case.pin)
+
+		local listed = false
+		for _, buff in ipairs(ns.CastableBuffs()) do
+			if buff.key == case.pin then listed = true end
+		end
+		if not listed then
+			fail(scenario, "the pinned spell is not among the castable ones, so the walk"
+				.. " gives up before it ever reads the pin")
+		end
+
+		-- A stranger in front of the player, and a favour with no token behind
+		-- it: the two paths into the queue.
+		ns.owed["Vann Locke"] = { expires = GetTime() + 100, at = GetTime(), class = "PRIEST" }
+		local stranger, favour
+		for _, entry in ipairs(ns.BuildQueue()) do
+			if entry.name == "Petra Stonewell" then stranger = entry end
+			if entry.name == "Vann Locke" then favour = entry end
+		end
+		if not stranger then
+			fail(scenario, "the stranger was offered nothing with a learned spell pinned")
+		elseif stranger.buff.key ~= case.pin then
+			fail(scenario, "the stranger was offered " .. tostring(stranger.buff.key)
+				.. " with " .. case.pin .. " pinned")
+		end
+		if not favour then
+			fail(scenario, "the favour was offered nothing with a learned spell pinned")
+		elseif favour.buff.key ~= case.pin then
+			fail(scenario, "the favour was offered " .. tostring(favour.buff.key))
+		end
+
+		-- And the prompt arms for it.
+		ns.addon:Tick()
+		local macro = ns.Prompt:GetButton():GetAttribute("macrotext1") or ""
+		if not macro:find(ns.BuffName(pinned), 1, true) then
+			fail(scenario, "the prompt armed nothing for the pinned spell: " .. macro)
+		end
+		wipe(ns.owed)
+	end
+	IsSpellKnown, IsPlayerSpell = realKnown, realPlayer
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 214
+-- The spell the login line, the preview and the phrase samples name is one the
+-- queue would actually offer.
+--
+-- A paladin's Automatic reaches for Wisdom for anybody with mana, and
+-- ResolveBuff returned that choice the moment it was learned without asking
+-- whether it had been switched off. The walk skipped it and offered Might; the
+-- login line said "Ready to cast Blessing of Wisdom", and so did the preview,
+-- Roll a few and {spell}. And a priest with all three spells learned and all
+-- three switched off was told "no buff learned" -- and greeted with a promise
+-- of a prompt and a preview of one that would never appear.
+local function findOption(node, key)
+	if type(node) ~= "table" or type(node.args) ~= "table" then return nil end
+	if node.args[key] then return node.args[key] end
+	for _, child in pairs(node.args) do
+		local found = findOption(child, key)
+		if found then return found end
+	end
+end
+
+-- What the addon says it is about to cast everywhere but the queue: {spell} in
+-- the test console, and a line from Roll a few.
+local function namedSpell(ns)
+	ns.lastTopEntry = nil
+	local token = ns.ExpandTokens("{spell}")
+	ns.db.profile.speech.enabled = true
+	ns.db.profile.speech.phrases = "Here is {buff} for the road."
+	local roll = findOption(ns.optionsTable, "roll")
+	Mock.printed = {}
+	if roll and roll.func then pcall(roll.func) end
+	return token, table.concat(Mock.printed, "\n")
+end
+
+-- A profile written in an earlier session, so the login below reads it back
+-- through ClampSettings the way a real one would be.
+local function savedProfile(scenario, edit)
+	local first = load(scenario)
+	if not first then return false end
+	if not pcall(function() first.addon:OnInitialize() end) then return false end
+	edit(Mock.sv.profile)
+	return true
+end
+
+for _, case in ipairs({
+	{ label = "Wisdom switched off", skip = { "wisdom" }, want = "Blessing of Might" },
+	{ label = "Wisdom and Might switched off", skip = { "wisdom", "might" },
+		want = "Blessing of Kings" },
+}) do
+	Mock.reset()
+	Mock.sv = {}
+	Mock.class = "PALADIN"
+	local realKnown, realPlayer = IsSpellKnown, IsPlayerSpell
+	local scenario = "the spell named is one that is switched on (" .. case.label .. ")"
+	ns = load(scenario)
+	if ns then
+		local known = {}
+		for _, key in ipairs({ "wisdom", "might", "kings" }) do
+			for _, id in ipairs(ns.FindBuff("PALADIN", key).ranks) do known[id] = true end
+		end
+		IsSpellKnown = function(id) return known[id] == true end
+		IsPlayerSpell = IsSpellKnown
+		local saved = savedProfile(scenario, function(profile)
+			for _, key in ipairs(case.skip) do profile.buff.skip[key] = true end
+		end)
+		ns = saved and load(scenario)
+		local said = ns and firstLogin(ns)
+		if not said then
+			fail(scenario, "SKIPPED -- the session would not start")
+		else
+			local ready = said:match("Ready to cast[^\n]*") or said
+			if not ready:find(case.want, 1, true) then
+				fail(scenario, "the login line names a spell that is switched off: " .. ready)
+			end
+			local resolved = ns.ResolveBuff(true)
+			if not resolved or ns.BuffName(resolved) ~= case.want then
+				fail(scenario, "the preview is handed "
+					.. tostring(resolved and ns.BuffName(resolved)) .. ", not " .. case.want)
+			end
+			local token, rolled = namedSpell(ns)
+			if token ~= case.want then
+				fail(scenario, "{spell} names " .. tostring(token) .. ", not " .. case.want)
+			end
+			if not rolled:find(case.want, 1, true) then
+				fail(scenario, "Roll a few samples a spell that is switched off: " .. rolled)
+			end
+			ns.Prompt:ExitTest()
+		end
+	end
+	IsSpellKnown, IsPlayerSpell = realKnown, realPlayer
+end
+Mock.reset()
+
+Mock.reset()
+Mock.sv = {}
+Mock.class = "PRIEST"
+do
+	local realKnown, realPlayer = IsSpellKnown, IsPlayerSpell
+	local scenario = "every spell switched off is not 'no buff learned'"
+	ns = load(scenario)
+	if ns then
+		local known = {}
+		for _, key in ipairs({ "fortitude", "spirit", "shadow" }) do
+			for _, id in ipairs(ns.FindBuff("PRIEST", key).ranks) do known[id] = true end
+		end
+		IsSpellKnown = function(id) return known[id] == true end
+		IsPlayerSpell = IsSpellKnown
+		local saved = savedProfile(scenario, function(profile)
+			profile.buff.skip = { fortitude = true, spirit = true, shadow = true }
+		end)
+		ns = saved and load(scenario)
+		local said = ns and firstLogin(ns)
+		if not said then
+			fail(scenario, "SKIPPED -- the session would not start")
+		else
+			local line = said:match("build[^\n]*") or said
+			if line:find("no buff learned", 1, true) then
+				fail(scenario, "three learned spells, all switched off, reported as none"
+					.. " learned: " .. line)
+			elseif not line:find("switched off", 1, true) then
+				fail(scenario, "the login line does not say the spells are switched off: "
+					.. line)
+			end
+			if said:find("small prompt", 1, true) then
+				fail(scenario, "the greeting promised a prompt nothing will ever fill: " .. said)
+			end
+			if ns.Prompt:InTest() then
+				fail(scenario, "the greeting put up a preview of a prompt that will never"
+					.. " appear")
+				ns.Prompt:ExitTest()
+			end
+			local greeting = said:gsub("^[^\n]*\n?", "")
+			if not greeting:find("switched off", 1, true) then
+				fail(scenario, "the greeting does not say why nothing will be offered: " .. said)
+			end
+		end
+	end
+	IsSpellKnown, IsPlayerSpell = realKnown, realPlayer
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 215
+-- A pinned spell this character has not learned is named as such, not swapped
+-- for the Automatic one.
+--
+-- On a profile every character shares, a level-60 priest pins Divine Spirit and
+-- a low-level alt without it logs in. The queue offers nobody anything, which
+-- is deliberate and what the pin's own note says. ResolveBuff fell through to
+-- Automatic instead, so the login line said "Ready to cast Power Word:
+-- Fortitude", and the greeting's preview, Roll a few and {spell} all named a
+-- spell that would never be cast.
+for _, case in ipairs({
+	{ label = "Divine Spirit pinned, not learned", pin = "spirit" },
+	{ label = "Automatic", pin = "auto", want = "Power Word: Fortitude" },
+}) do
+	Mock.reset()
+	Mock.sv = {}
+	Mock.class = "PRIEST"
+	local realKnown, realPlayer = IsSpellKnown, IsPlayerSpell
+	local scenario = "an unlearned pin is named, not replaced (" .. case.label .. ")"
+	ns = load(scenario)
+	if ns then
+		local known = {}
+		for _, id in ipairs(ns.FindBuff("PRIEST", "fortitude").ranks) do known[id] = true end
+		IsSpellKnown = function(id) return known[id] == true end
+		IsPlayerSpell = IsSpellKnown
+		local saved = savedProfile(scenario, function(profile)
+			profile.buff.choice = case.pin
+		end)
+		ns = saved and load(scenario)
+		local said = ns and firstLogin(ns)
+		if not said then
+			fail(scenario, "SKIPPED -- the session would not start")
+		elseif ns.db.profile.buff.choice ~= case.pin then
+			fail(scenario, "SKIPPED -- the pin did not survive the login")
+		else
+			local line = said:match("build[^\n]*") or said
+			local token, rolled = namedSpell(ns)
+			if case.want then
+				if not line:find(case.want, 1, true) then
+					fail(scenario, "the Automatic control names the wrong spell: " .. line)
+				end
+				if token ~= case.want then
+					fail(scenario, "the Automatic control's {spell} is " .. tostring(token))
+				end
+			else
+				if line:find("Fortitude", 1, true) then
+					fail(scenario, "the login line names a spell the pin keeps from ever being"
+						.. " cast: " .. line)
+				elseif not (line:find("Divine Spirit", 1, true)
+					and line:find("not learned", 1, true)) then
+					fail(scenario, "the login line does not say the pinned spell is not"
+						.. " learned: " .. line)
+				end
+				if ns.ResolveBuff(true) then
+					fail(scenario, "the preview is handed "
+						.. ns.BuffName(ns.ResolveBuff(true)) .. " under a pin on an unlearned"
+						.. " spell")
+				end
+				if ns.Prompt:InTest() then
+					fail(scenario, "the greeting put up a preview of a prompt that will never"
+						.. " appear")
+				end
+				if token:find("Fortitude", 1, true) then
+					fail(scenario, "{spell} names " .. token .. " under an unlearned pin")
+				end
+				if rolled:find("Fortitude", 1, true) then
+					fail(scenario, "Roll a few samples Fortitude under an unlearned pin: "
+						.. rolled)
+				end
+				Mock.advance(60)
+				wipe(ns.tried)
+				if #ns.BuildQueue() > 0 then
+					fail(scenario, "SKIPPED -- the queue offers something under the pin, so"
+						.. " none of the above is about a silent pin")
+				end
+			end
+			ns.Prompt:ExitTest()
+		end
+	end
+	IsSpellKnown, IsPlayerSpell = realKnown, realPlayer
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 216
+-- Another paladin's blessing is not one of yours.
+--
+-- Blessings from one paladin overwrite each other, which is why holding any
+-- one of yours counts as covered -- but the aura read never asked who had cast
+-- what it found. A warrior wearing another paladin's Kings was taken as covered
+-- and never offered Might, which stacks with it; and a paladin we owed, wearing
+-- a third paladin's Kings, was "repaid" with Kings -- replacing somebody else's
+-- blessing with the same one -- rather than handed the Wisdom they lacked.
+--
+-- An aura nobody is named on stays covered, as before: that is every aura on
+-- a client that will not say, and guessing "not mine" there is how a paladin's
+-- own blessing gets walked over.
+for _, case in ipairs({
+	{ label = "a warrior with another paladin's Kings", warrior = true,
+		held = 20217, source = "nameplate2", want = "might" },
+	{ label = "a warrior with another paladin's Might", warrior = true,
+		held = 25291, source = "nameplate2", want = "kings" },
+	{ label = "a warrior with another paladin's Greater Kings", warrior = true,
+		held = 25898, source = "nameplate2", want = "might" },
+	{ label = "a bare warrior", warrior = true, want = "might" },
+	{ label = "a warrior with our own Kings", warrior = true,
+		held = 20217, source = "player", want = false },
+	{ label = "a warrior with Kings from nobody named", warrior = true,
+		held = 20217, want = false },
+	{ label = "an owed paladin with a third paladin's Kings", owed = true,
+		held = 20217, source = "nameplate2", want = "wisdom" },
+	{ label = "an owed paladin with our own Kings", owed = true,
+		held = 20217, source = "player", want = "kings" },
+}) do
+	Mock.reset()
+	Mock.class = "PALADIN"
+	Mock.unitClass = case.warrior and "WARRIOR" or "PALADIN"
+	local realKnown, realPlayer = IsSpellKnown, IsPlayerSpell
+	local realPowerMax = UnitPowerMax
+	if case.warrior then
+		UnitPowerMax = function(unit, ...)
+			if unit ~= "player" then return 0 end
+			return realPowerMax(unit, ...)
+		end
+	end
+	local scenario = "another paladin's blessing is not one of yours (" .. case.label .. ")"
+	ns = load(scenario)
+	if ns then
+		local known = {}
+		for _, key in ipairs({ "wisdom", "might", "kings" }) do
+			for _, id in ipairs(ns.FindBuff("PALADIN", key).ranks) do known[id] = true end
+		end
+		IsSpellKnown = function(id) return known[id] == true end
+		IsPlayerSpell = IsSpellKnown
+		drive(scenario, ns)
+		Mock.advance(60)
+		wipe(ns.owed)
+		wipe(ns.tried)
+		ns.Guard("probe", ns.ProbeCapabilities)
+		ns.db.profile.filters.relevantOnly = true
+		if case.held then
+			Mock.held = { [case.held] = true }
+			Mock.heldSource = case.source and { [case.held] = case.source } or nil
+		end
+		if case.owed then
+			ns.owed["Petra Stonewell"] = { expires = GetTime() + 100, at = GetTime() }
+		end
+
+		-- Twice, the second read from the aura cache, which has to remember
+		-- whose the blessing was as well as that it was there.
+		for _, pass in ipairs({ "read", "cached" }) do
+			local petra = inQueue(ns)["Petra Stonewell"]
+			local got = petra and petra.buff.key or false
+			if got ~= case.want then
+				fail(scenario, ("%s: offered %s, expected %s"):format(pass, tostring(got),
+					tostring(case.want)))
+			end
+			Mock.advance(1)
+		end
+		wipe(ns.owed)
+	end
+	Mock.held, Mock.heldSource = nil, nil
+	IsSpellKnown, IsPlayerSpell = realKnown, realPlayer
+	UnitPowerMax = realPowerMax
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 217
+-- An aura the client would not let us read is "could not tell", not "not
+-- carrying it".
+--
+-- The aura read started from "not carrying it" and stayed there when an id was
+-- passed over because the client declared it secret, or when the read itself
+-- threw or came back secret. So somebody wearing Arcane Brilliance on a client
+-- that hides that one id was read as definitely missing Arcane Intellect:
+-- promoted over a person who had buffed you, because "your target, and missing
+-- it" rests on exactly that definite no, and shown without the wording that
+-- says the reading could not be taken.
+for _, case in ipairs({
+	{ label = "an id declared secret", secret = true },
+	{ label = "a read that throws", refuse = "throw" },
+	{ label = "a read that comes back secret", refuse = "secret" },
+	{ label = "everything readable", control = true },
+}) do
+	Mock.reset()
+	local scenario = "a refused aura read is not a definite no (" .. case.label .. ")"
+	local realName = UnitName
+	UnitName = function(u)
+		if u == "player" then return "Mort", "Defrette" end
+		if u == "target" then return "Petra", "Stonewell" end
+		return "Yorick", "Vane"
+	end
+	ns = load(scenario)
+	if ns then
+		drive(scenario, ns)
+		Mock.advance(60)
+		wipe(ns.owed)
+		wipe(ns.tried)
+		if not case.control then Mock.held = { [23028] = true } end
+		if case.secret then Mock.secretAuraIds = { [23028] = true } end
+		if case.refuse then Mock.auraReadRefuse = { [23028] = case.refuse } end
+		ns.Guard("probe", ns.ProbeCapabilities)
+		ns.owed["Yorick Vane"] = { expires = GetTime() + 120, at = GetTime() }
+
+		local q = ns.BuildQueue()
+		local petra
+		for _, entry in ipairs(q) do
+			if entry.name == "Petra Stonewell" then petra = entry end
+		end
+		if not petra then
+			fail(scenario, "SKIPPED -- the target was not offered at all")
+		elseif case.control then
+			if petra.known ~= false or petra.reason ~= "target" then
+				fail(scenario, "the readable control was not promoted as a definite no: "
+					.. tostring(petra.known) .. " / " .. tostring(petra.reason))
+			end
+		else
+			if petra.known ~= nil then
+				fail(scenario, "a reading the client refused came back as "
+					.. tostring(petra.known))
+			end
+			if petra.reason == "target" or not (q[1] and q[1].name == "Yorick Vane") then
+				fail(scenario, "an unreadable target was promoted over somebody who buffed"
+					.. " you: " .. tostring(q[1] and q[1].name))
+			end
+			local definite = {}
+			for k, v in pairs(petra) do definite[k] = v end
+			definite.known = false
+			if ns.Prompt:ReasonText(petra) == ns.Prompt:ReasonText(definite) then
+				fail(scenario, "the prompt does not say the reading could not be taken")
+			end
+		end
+		wipe(ns.owed)
+	end
+	UnitName = realName
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 218
+-- The login line does not say "watching for buffs" on a profile that is
+-- switched off.
+--
+-- The profile is shared, so /manners off on one character is off on every
+-- alt. The line printed at every login never asked, and an alt got "watching
+-- for buffs. Ready to cast Arcane Intellect" -- with, on a first login, the
+-- greeting saying "It is switched off on this profile" directly underneath.
+Mock.reset()
+Mock.sv = {}
+ns = load("the login line on a switched-off profile says so")
+if ns then
+	local scenario = "the login line on a switched-off profile says so"
+	local first = firstLogin(ns)
+	ns.Prompt:ExitTest()
+	ns.addon:HandleSlash("off")
+	if not first or ns.db.profile.enabled ~= false then
+		fail(scenario, "SKIPPED -- the first character could not switch the addon off")
+	else
+		local function count(text, needle)
+			local n, from = 0, 1
+			while true do
+				local at = text:find(needle, from, true)
+				if not at then return n end
+				n, from = n + 1, at + 1
+			end
+		end
+		Mock.character = "Perrin Stonewell"
+		for _, session in ipairs({ "the alt's first login", "a reload" }) do
+			local alt = load(scenario)
+			local said = alt and firstLogin(alt)
+			if not said then
+				fail(scenario, session .. ": the session would not start")
+			else
+				if said:find("watching for buffs", 1, true) then
+					fail(scenario, session .. ": said it is watching for buffs while switched"
+						.. " off: " .. said)
+				end
+				if count(said, "switched off on this profile") ~= 1 then
+					fail(scenario, session .. ": said it is switched off "
+						.. count(said, "switched off on this profile") .. " times: " .. said)
+				end
+				alt.Prompt:ExitTest()
+			end
+		end
+
+		-- And switched back on, the ordinary line.
+		Mock.sv.profile.enabled = true
+		local back = load(scenario)
+		local said = back and firstLogin(back) or ""
+		if not said:find("watching for buffs", 1, true) then
+			fail(scenario, "SKIPPED -- switched back on, the ordinary line is gone too: "
+				.. said)
 		end
 	end
 end
