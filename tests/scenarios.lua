@@ -6584,7 +6584,13 @@ if ns then
 		-- the settle before it, which matters: two settles inside one window
 		-- cannot be told apart by a refusal and the addon keeps neither, so every
 		-- check below that has to have a record kept leaves a clear gap first.
-		local function settleAfter(gap)
+		--
+		-- Each send carries a cast guid of its own, kept in `lastGuid`, and a
+		-- refusal that is to be the answer to it has to name it: a guid is the
+		-- only thing allowed to tie a refusal to a cast that settled. With
+		-- `anonymous` the client withholds it, and nothing ever can.
+		local sent, lastGuid = 0, nil
+		local function settleAfter(gap, anonymous)
 			Mock.advance(gap)
 			ns.pendingClick = nil
 			wipe(ns.tried)
@@ -6596,7 +6602,9 @@ if ns then
 				fail(scenario, "SKIPPED -- the press left nothing to settle")
 				return false
 			end
-			ns.addon:UNIT_SPELLCAST_SENT(nil, "player", name, nil, ours)
+			sent = sent + 1
+			lastGuid = not anonymous and ("Cast-" .. sent) or nil
+			ns.addon:UNIT_SPELLCAST_SENT(nil, "player", name, lastGuid, ours)
 			if ns.owed[name] then
 				fail(scenario, "SKIPPED -- the send never settled, so there is no"
 					.. " confirmation to undo")
@@ -6605,12 +6613,12 @@ if ns then
 			return true
 		end
 
-		local function sendAndConfirm() return settleAfter(3) end
+		local function sendAndConfirm(anonymous) return settleAfter(3, anonymous) end
 
 		-- The server's answer, one frame later, on the one event that names the
-		-- spell it is refusing.
+		-- cast it is refusing.
 		if sendAndConfirm() then
-			ns.addon:UNIT_SPELLCAST_FAILED(nil, "player", nil, ours)
+			ns.addon:UNIT_SPELLCAST_FAILED(nil, "player", lastGuid, ours)
 
 			if not ns.owed[name] then
 				fail(scenario, "a cast the server refused stayed filed as a favour repaid")
@@ -6634,19 +6642,21 @@ if ns then
 		end
 
 		-- Somebody else's cast failing in the same moment must not take a good
-		-- confirmation down with it.
+		-- confirmation down with it. It has a guid of its own.
 		if sendAndConfirm() then
-			ns.addon:UNIT_SPELLCAST_FAILED(nil, "player", nil, 999999)
+			ns.addon:UNIT_SPELLCAST_FAILED(nil, "player", "Cast-somebody-else", 999999)
 			if ns.owed[name] then
 				fail(scenario, "an unrelated spell failing undid a confirmed cast")
 			end
 		end
 
-		-- Nor a failure the client would not name. Everywhere else in this addon
-		-- an unreadable value has to settle, because one withheld number must not
+		-- Nor a failure the client would not name, on a client that named
+		-- nothing on the send either. Everywhere else in this addon an
+		-- unreadable value has to settle, because one withheld number must not
 		-- make a favour permanent -- but here the same leniency reopens a repaid
 		-- debt on no evidence whatever, so it is refused in this direction only.
-		if sendAndConfirm() then
+		-- Two withheld guids are not a match.
+		if sendAndConfirm(true) then
 			ns.addon:UNIT_SPELLCAST_FAILED(nil, "player", nil, nil)
 			if ns.owed[name] then
 				fail(scenario, "a failure the client would not put a spell id on undid a"
@@ -6701,7 +6711,7 @@ if ns then
 		-- would be its own way of never repaying anybody.
 		if sendAndConfirm() then
 			Mock.advance(30)
-			ns.addon:UNIT_SPELLCAST_FAILED(nil, "player", nil, ours)
+			ns.addon:UNIT_SPELLCAST_FAILED(nil, "player", lastGuid, ours)
 			if ns.owed[name] then
 				fail(scenario, "a refusal half a minute later raised a settled favour from"
 					.. " the dead")
@@ -6716,7 +6726,7 @@ if ns then
 			ns.db.profile.verbose = true
 			ns.db.profile.enabled = false
 			local before = #Mock.printed
-			ns.addon:UNIT_SPELLCAST_FAILED(nil, "player", nil, ours)
+			ns.addon:UNIT_SPELLCAST_FAILED(nil, "player", lastGuid, ours)
 			if ns.owed[name] then
 				fail(scenario, "a switched-off addon raised a debt it has no way of repaying")
 			end
@@ -8008,17 +8018,19 @@ if ns then
 		end
 
 		-- (a) A record the refusal already consumed must stop suppressing the
-		--     next press. This is the one that needed no guid to go wrong.
+		--     next press. This is the one that needed no guid to go wrong; each
+		--     refusal names its own cast now only because nothing else may
+		--     undo a settle at all.
 		wipe(ns.owed)
-		if press("Elara Brightmoor", nil) then
-			ns.addon:UNIT_SPELLCAST_FAILED(nil, "player", nil, spell)
+		if press("Elara Brightmoor", "Cast-a1") then
+			ns.addon:UNIT_SPELLCAST_FAILED(nil, "player", "Cast-a1", spell)
 			if not ns.owed["Elara Brightmoor"] then
 				fail(scenario, "SKIPPED -- the first refusal did not land")
 			else
 				wipe(ns.owed)
 				Mock.advance(0.4)
-				if press("Corvin Ashgrove", nil) then
-					ns.addon:UNIT_SPELLCAST_FAILED(nil, "player", nil, spell)
+				if press("Corvin Ashgrove", "Cast-a2") then
+					ns.addon:UNIT_SPELLCAST_FAILED(nil, "player", "Cast-a2", spell)
 					if not ns.owed["Corvin Ashgrove"] then
 						fail(scenario, "a press was ignored because an earlier one had"
 							.. " already been answered")
@@ -8045,7 +8057,8 @@ if ns then
 
 		-- (c) The same pair with nothing to tell them apart. Abstaining is the
 		--     right answer: undoing the wrong person's repayment is the same
-		--     damage plus a false sentence about somebody who was buffed.
+		--     damage plus a false sentence about somebody who was buffed. (With
+		--     one record it is still the answer -- see 228.)
 		Mock.advance(5)
 		wipe(ns.owed)
 		if press("Elara Brightmoor", nil) and (Mock.advance(0.5) or true)
@@ -14723,6 +14736,393 @@ if ns then
 		fail(scenario, "SKIPPED -- the drag did not start once the fight was over")
 	end
 	ns.db.profile.prompt.locked = true
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 228
+-- A refusal with no cast guid to go on undoes nothing.
+--
+-- A late refusal was matched by guid only when both sides had one. Otherwise it
+-- went to the one settle still in its window whose spell it named -- on the
+-- theory that exactly one record could be meant. But a refusal need not be
+-- about a record at all. A second press mashed in a fight, which the frozen
+-- macro sends whatever the addon decides, or an Arcane Intellect pressed on the
+-- action bar inside the global cooldown, is refused with nothing parked; and on
+-- a client that leaves the guid empty on either side, that refusal was read as
+-- the answer to the press before it, which had landed. The debt came back, the
+-- twelve-second block was cut to two, the panel flashed red, chat said the game
+-- had refused a cast it had taken, and the person was cast at again two seconds
+-- later.
+Mock.reset()
+ns = load("a refusal with no cast guid undoes nothing")
+if ns then
+	local scenario = "a refusal with no cast guid undoes nothing"
+	drive(scenario, ns)
+	Mock.advance(60)
+	ns.Guard("probe", ns.ProbeCapabilities)
+	ns.db.profile.verbose = true
+
+	local buff = ns.CastableBuffs()[1]
+	if not buff then
+		fail(scenario, "SKIPPED -- nothing castable to press with")
+	else
+		local spell = buff.ranks[1]
+		local name = "Anna Aim"
+		local key = name .. "\0" .. buff.key
+		local flashes = 0
+		local realShow = ns.Prompt.ShowOutcome
+		ns.Prompt.ShowOutcome = function(self, kind, who, detail)
+			if kind == "failed" and who == name then flashes = flashes + 1 end
+			return realShow(self, kind, who, detail)
+		end
+
+		-- A press that lands, confirmed by the client naming Anna, and half a
+		-- second later a refusal of something else with nothing parked.
+		local function landThenRefuse(sent, refused)
+			Mock.advance(5)
+			wipe(ns.owed)
+			wipe(ns.tried)
+			flashes = 0
+			ns.owed[name] = { expires = GetTime() + 100, at = GetTime() }
+			ns.pendingClick = { name = name, at = GetTime(), buffKey = buff.key,
+				selfCast = false, targeted = true }
+			ns.addon:UNIT_SPELLCAST_SENT(nil, "player", name, sent, spell)
+			if ns.owed[name] or ns.pendingClick then return nil end
+			Mock.advance(0.5)
+			Mock.printed = {}
+			ns.addon:UNIT_SPELLCAST_FAILED(nil, "player", refused, spell)
+			return table.concat(Mock.printed, "\n")
+		end
+
+		for _, case in ipairs({
+			{ sent = nil, refused = nil, label = "no guid on either side" },
+			{ sent = nil, refused = "Cast-mashed", label = "a guid on the refusal only" },
+			{ sent = "Cast-landed", refused = nil, label = "a guid on the send only" },
+		}) do
+			local said = landThenRefuse(case.sent, case.refused)
+			if not said then
+				fail(scenario, "SKIPPED -- the press did not settle (" .. case.label .. ")")
+			else
+				if ns.owed[name] then
+					fail(scenario, "a refusal nothing tied to the press that landed put the debt"
+						.. " back (" .. case.label .. ")")
+				end
+				local held = ns.tried[key]
+				if not (held and held > GetTime() + 5) then
+					fail(scenario, ("a buff that landed had its block cut to %.1f seconds by a"
+						.. " refusal of something else (%s)"):format(
+						(held or GetTime()) - GetTime(), case.label))
+				end
+				if said:find("refused the cast after sending it", 1, true) then
+					fail(scenario, "chat said the game refused a cast it took (" .. case.label
+						.. "): " .. said)
+				end
+				if flashes ~= 0 then
+					fail(scenario, "the panel flashed red over a buff that landed ("
+						.. case.label .. ")")
+				end
+			end
+		end
+
+		-- And the guid still does what it is there for: both sides naming the
+		-- same cast is an answer, and that one is undone.
+		local said = landThenRefuse("Cast-landed", "Cast-landed")
+		if not said then
+			fail(scenario, "SKIPPED -- the press did not settle (the same guid on both)")
+		elseif not ns.owed[name] then
+			fail(scenario, "a refusal naming the very cast that settled was ignored")
+		end
+		ns.Prompt.ShowOutcome = realShow
+	end
+	wipe(ns.owed)
+	wipe(ns.tried)
+	ns.pendingClick = nil
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 229
+-- A buff that lands after an unrelated error is not left standing as a miss.
+--
+-- An error in the moment after a press takes back what the press wrote and
+-- says so at once, in the game's words: "Anna was not buffed -- the game said:
+-- Your bags are full." The record stays parked in case the cast goes out after
+-- all, and when it did, the settle put the blocks back, cleared the debt and
+-- told the panel the buff went out. Chat only ever spoke again for an inferred
+-- repayment, though, so for a stranger, and for somebody owed whom the client
+-- named, the last thing chat said about them was that they had not been
+-- buffed, or were still owed.
+Mock.reset()
+ns = load("a buff that lands after an unrelated error is not left as a miss")
+if ns then
+	local scenario = "a buff that lands after an unrelated error is not left as a miss"
+	drive(scenario, ns)
+	Mock.advance(60)
+	ns.Guard("probe", ns.ProbeCapabilities)
+	ns.db.profile.verbose = true
+
+	local buff = ns.CastableBuffs()[1]
+	if not buff then
+		fail(scenario, "SKIPPED -- nothing castable to press with")
+	else
+		local spell = buff.ranks[1]
+		local name = "Anna Aim"
+		for _, case in ipairs({
+			{ owed = false, named = true, label = "a stranger the client named" },
+			{ owed = false, named = false, label = "a stranger the client did not name" },
+			{ owed = true, named = true, label = "somebody owed the client named" },
+			{ owed = true, named = false, label = "somebody owed the client did not name" },
+		}) do
+			Mock.advance(5)
+			wipe(ns.owed)
+			wipe(ns.tried)
+			if case.owed then ns.owed[name] = { expires = GetTime() + 100, at = GetTime() } end
+			ns.pendingClick = { name = name, at = GetTime(), buffKey = buff.key,
+				selfCast = false, targeted = true }
+			Mock.printed = {}
+			ns.addon:UI_ERROR_MESSAGE(nil, 0, "Your bags are full.")
+			Mock.advance(0.1)
+			ns.addon:UNIT_SPELLCAST_SENT(nil, "player", case.named and name or nil, "Cast-1", spell)
+			local last, repaid = nil, 0
+			for _, line in ipairs(Mock.printed) do
+				if line:find(name, 1, true) then last = line end
+				if line:find("counted as repaid", 1, true) then repaid = repaid + 1 end
+			end
+			if ns.pendingClick or (case.owed and ns.owed[name]) then
+				fail(scenario, "SKIPPED -- the cast did not settle (" .. case.label .. ")")
+			elseif not last then
+				fail(scenario, "SKIPPED -- the error said nothing about Anna (" .. case.label .. ")")
+			elseif last:find("was not buffed", 1, true) or last:find("still owed", 1, true) then
+				fail(scenario, ("chat was left saying the buff failed after it went out (%s): %s")
+					:format(case.label, last))
+			elseif repaid > 1 then
+				fail(scenario, ("chat said the favour was repaid %d times (%s)"):format(
+					repaid, case.label))
+			end
+		end
+	end
+	wipe(ns.owed)
+	wipe(ns.tried)
+	ns.pendingClick = nil
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 230
+-- A cast off the global cooldown does not hold the prompt.
+--
+-- Every cast the player sent armed a second and a half of "not ready", because
+-- the global cooldown was tracked rather than read. A healthstone, a potion, a
+-- trinket, Counterspell or Presence of Mind report no cooldown of their own or a
+-- long one, and both fell back to the guess. Out of combat that disarmed a
+-- press made a moment later for nothing. In a fight it was worse: the frozen
+-- macro went out anyway and landed, but the press had been set aside as turned
+-- away, so nothing was filed, the debt stayed, and the same person was cast at
+-- again after the fight. The client names the global cooldown itself -- spell
+-- 61304, the same for every class -- so it is read where it will answer.
+Mock.reset()
+restoreUnits = strangers({ nameplate1 = { "Anna", "Aim" } })
+ns = load("a cast off the global cooldown does not hold the prompt")
+if ns then
+	local scenario = "a cast off the global cooldown does not hold the prompt"
+	freshPrompt(ns, scenario)
+	local idle = { startTime = 0, duration = 0, isActive = false }
+
+	-- Out of combat, a press a moment after each of them.
+	for _, case in ipairs({
+		{ id = 6262, cd = 0, label = "a healthstone" },
+		{ id = 2139, cd = 24, label = "Counterspell" },
+		{ id = 424242, label = "a spell the client says nothing about" },
+	}) do
+		clearClicks(ns)
+		Mock.spellCooldowns = { [61304] = idle }
+		if case.cd then Mock.spellCooldowns[case.id] = case.cd end
+		owe(ns, "Anna Aim")
+		ns.addon:Tick()
+		ns.addon:UNIT_SPELLCAST_SENT(nil, "player", nil, "Cast-hand", case.id)
+		Mock.advance(0.3)
+		if not ns.CastReady() then
+			fail(scenario, "the client said the global cooldown was idle, and a press after "
+				.. case.label .. " was held anyway")
+		end
+		local ran = pressButton(ns)
+		if not (ran and ns.pendingClick) then
+			fail(scenario, "a press just after " .. case.label .. " cast nothing and filed nothing")
+		end
+	end
+
+	-- Where the global cooldown will not be read, a spell that says it is off
+	-- it still holds nothing -- and one that says nothing either way keeps the
+	-- guess, which is what stops a press being refused.
+	clearClicks(ns)
+	Mock.spellCooldowns = { [6262] = { duration = 0, isOnGCD = false } }
+	ns.addon:UNIT_SPELLCAST_SENT(nil, "player", nil, "Cast-hand", 6262)
+	Mock.advance(0.3)
+	if not ns.CastReady() then
+		fail(scenario, "a spell the client says is off the global cooldown still held the prompt")
+	end
+	clearClicks(ns)
+	Mock.spellCooldowns = { [6262] = 0 }
+	ns.addon:UNIT_SPELLCAST_SENT(nil, "player", nil, "Cast-hand", 6262)
+	Mock.advance(0.3)
+	if ns.CastReady() then
+		fail(scenario, "with nothing readable, the one-and-a-half-second guess was dropped")
+	end
+
+	-- A spell on the global cooldown is still held, by the client's own figure.
+	clearClicks(ns)
+	Mock.spellCooldowns = { [61304] = { startTime = GetTime(), duration = 1.5, isActive = true } }
+	owe(ns, "Anna Aim")
+	ns.addon:Tick()
+	ns.addon:UNIT_SPELLCAST_SENT(nil, "player", "Somebody", "Cast-hand", 116)
+	Mock.advance(0.3)
+	if ns.CastReady() then
+		fail(scenario, "a Frostbolt's global cooldown was still running and the press was allowed")
+	end
+	if pressButton(ns) or ns.pendingClick then
+		fail(scenario, "a press inside a running global cooldown reached the server")
+	end
+
+	-- And in a fight: the press after a healthstone is filed, so the cast it
+	-- sends settles it.
+	clearClicks(ns)
+	Mock.spellCooldowns = { [61304] = idle, [6262] = 0 }
+	owe(ns, "Anna Aim")
+	ns.addon:Tick()
+	local entry = ns.BuildQueue()[1]
+	Mock.inCombat = true
+	ns.addon:PLAYER_REGEN_DISABLED()
+	if not (entry and entry.name == "Anna Aim" and entry.buff) then
+		fail(scenario, "SKIPPED -- Anna was not the one offered")
+	else
+		ns.addon:UNIT_SPELLCAST_SENT(nil, "player", nil, "Cast-hand", 6262)
+		Mock.advance(0.3)
+		pressButton(ns)
+		if not ns.pendingClick then
+			fail(scenario, "in a fight, a press just after a healthstone was set aside as turned"
+				.. " away, so the buff it casts is never counted")
+		else
+			ns.addon:UNIT_SPELLCAST_SENT(nil, "player", nil, "Cast-press", entry.buff.ranks[1])
+			if ns.owed["Anna Aim"] then
+				fail(scenario, "in a fight, the buff went out and Anna is still owed")
+			end
+			local held = ns.tried["Anna Aim\0" .. entry.buff.key]
+			if not (held and held > GetTime() + 5) then
+				fail(scenario, "in a fight, the buff went out and nothing holds Anna off the prompt")
+			end
+		end
+	end
+	Mock.inCombat = false
+	ns.addon:PLAYER_REGEN_ENABLED()
+end
+restoreUnits()
+Mock.reset()
+
+-- ------------------------------------------------------------------ 231
+-- A press the game has not answered yet is not announced as a miss.
+--
+-- A second press arriving while the first still waits for the game abandons the
+-- first as unknown, and unknown is not the same as failed -- the code says so
+-- in as many words. The chat line said "was not buffed" regardless, of anybody
+-- not owed. In a fight the first press, queued inside the spell-queue window,
+-- then goes out and lands on the same frozen person, and nothing ever took the
+-- line back.
+Mock.reset()
+restoreUnits = strangers({ nameplate1 = { "Anna", "Aim" } })
+ns = load("an unanswered press is not called a miss")
+if ns then
+	local scenario = "an unanswered press is not called a miss"
+	freshPrompt(ns, scenario)
+	ns.addon:Tick()
+	local entry = ns.BuildQueue()[1]
+	if not (entry and entry.name == "Anna Aim" and entry.buff) then
+		fail(scenario, "SKIPPED -- Anna was not the one offered")
+	else
+		Mock.inCombat = true
+		ns.addon:PLAYER_REGEN_DISABLED()
+		-- Something cast by hand, so the first press lands in the last stretch
+		-- of its cooldown and is queued.
+		ns.addon:UNIT_SPELLCAST_SENT(nil, "player", "Somebody", "Cast-hand", 116)
+		Mock.advance(1.15)
+		pressButton(ns)
+		if not ns.pendingClick then
+			fail(scenario, "SKIPPED -- the first press was not filed")
+		else
+			Mock.advance(0.3)
+			Mock.printed = {}
+			pressButton(ns)
+			local said = table.concat(Mock.printed, "\n")
+			if said:find("was not buffed", 1, true) then
+				fail(scenario, "a press the game had not answered yet was announced as a miss: "
+					.. said)
+			end
+			ns.addon:UNIT_SPELLCAST_SENT(nil, "player", nil, "Cast-queued", entry.buff.ranks[1])
+			if ns.pendingClick then
+				fail(scenario, "the queued cast did not settle the press it landed for")
+			end
+		end
+		Mock.inCombat = false
+		ns.addon:PLAYER_REGEN_ENABLED()
+	end
+end
+restoreUnits()
+Mock.reset()
+
+-- ------------------------------------------------------------------ 232
+-- The repaid line for a shout names the shout.
+--
+-- It read "our spell went out, but a selfCast buff has no target at all", on
+-- every repayment a warrior makes, with verbose on by default. selfCast is the
+-- name of a field in Buffs.lua, and means nothing to the person reading chat.
+Mock.reset()
+Mock.class = "WARRIOR"
+-- Battle Shout is partyOnly, so this path only exists in a group.
+Mock.groupSize = 3
+ns = load("the repaid line for a shout names the shout")
+if ns then
+	local scenario = "the repaid line for a shout names the shout"
+	local known = {}
+	for _, id in ipairs(ns.FindBuff("WARRIOR", "battleshout").ranks) do known[id] = true end
+	local realKnown = IsSpellKnown
+	IsSpellKnown = function(id) return known[id] == true end
+	IsPlayerSpell = function(id) return known[id] == true end
+
+	drive(scenario, ns)
+	Mock.advance(60)
+	ns.Guard("probe", ns.ProbeCapabilities)
+	ns.db.profile.verbose = true
+
+	local entry = ns.BuildQueue()[1]
+	if not (entry and entry.buff and entry.buff.selfCast) then
+		fail(scenario, "SKIPPED -- Battle Shout was not what came up")
+	else
+		local name = entry.name
+		local button = ns.Prompt:GetButton()
+		ns.pendingClick = nil
+		ns.owed[name] = { expires = GetTime() + 100, at = GetTime() }
+		ns.Prompt:InvalidateMacro()
+		ns.Prompt:ApplyTarget(entry)
+		local post = button.scripts.PostClick
+		if post then pcall(post, button, "LeftButton", true) end
+		if not (ns.pendingClick and ns.pendingClick.withinShout) then
+			fail(scenario, "SKIPPED -- no press filed, or nothing measured them in earshot")
+		else
+			Mock.printed = {}
+			ns.addon:UNIT_SPELLCAST_SENT(nil, "player", "Mort Defrette", nil,
+				ns.FindBuff("WARRIOR", entry.buff.key).ranks[1])
+			local said = table.concat(Mock.printed, "\n")
+			if ns.owed[name] then
+				fail(scenario, "SKIPPED -- the shout did not settle the debt")
+			elseif said:find("selfCast", 1, true) then
+				fail(scenario, "chat showed the player a name from the code: " .. said)
+			elseif not said:find("Battle Shout", 1, true) then
+				fail(scenario, "the repaid line does not say which spell it means: " .. said)
+			end
+		end
+	end
+
+	IsSpellKnown = realKnown
+	IsPlayerSpell = realKnown
+	wipe(ns.owed)
+	ns.pendingClick = nil
 end
 Mock.reset()
 

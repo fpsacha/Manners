@@ -3390,12 +3390,20 @@ local SENT_SECONDS = 0.5
 -- say it of whoever the press was aimed at, so a stranger, a target or a
 -- party member who never buffed you was announced as owed a favour -- the
 -- mirror of the untruth the settle path takes care never to tell.
-local function SayStillOwed(name, why)
+--
+-- And "was not buffed" only where something says so. `unknown` is the line for
+-- somebody not owed when nothing does -- a format string handed their name --
+-- because the one caller that passes it, a press abandoned before the game
+-- answered, knows nothing about the outcome, and in a fight that press's
+-- queued cast often lands on them a moment later.
+local function SayStillOwed(name, why, unknown)
 	local db = addon.db and addon.db.profile
 	if not (db and db.verbose) then return end
 	local debt = owed[name]
 	if debt and LiveExpiry(debt) > GetTime() then
 		addon:Print(("|cffff8080%s is still owed|r -- %s."):format(name, why))
+	elseif unknown then
+		addon:Print(unknown:format(name))
 	else
 		addon:Print(("|cffff8080%s was not buffed|r -- %s."):format(name, why))
 	end
@@ -3561,7 +3569,8 @@ local function AbandonPendingClick()
 		return
 	end
 	ns.pendingClick = nil
-	SayStillOwed(pending.name, "another press arrived before the game answered that one")
+	SayStillOwed(pending.name, "another press arrived before the game answered that one",
+		"no answer yet for the press on |cffffffff%s|r -- another press arrived first.")
 	RewindClick(pending)
 end
 ns.AbandonPendingClick = AbandonPendingClick
@@ -3577,7 +3586,8 @@ ns.AbandonPendingClick = AbandonPendingClick
 --
 -- The record stays parked rather than being cleared. If the cast went out after
 -- all -- an inventory error a frame before it -- UNIT_SPELLCAST_SENT still
--- settles it normally, and that settle puts back the writes taken away here. If
+-- settles it normally, and that settle puts back the writes taken away here and
+-- takes back, in chat, the line said here. If
 -- it did not, the sweep runs the clock out on it -- quietly, because this is
 -- where the press was answered, and the answer is said here once, in the
 -- game's words, rather than again two seconds later as "nothing at all".
@@ -3645,6 +3655,10 @@ end
 -- the same press. `said` finishes "X counted as repaid -- "; `sub` goes under
 -- the name on the prompt, where there is room for a clause and not a sentence.
 --
+-- `said` is a format string handed the spell's name. The selfcast one used to
+-- say "a selfCast buff", which is the name of a field in Buffs.lua, printed on
+-- every repayment a warrior makes with verbose on -- the default.
+--
 -- There is no entry for a confirmed settle on purpose: that one is the client
 -- naming the person we aimed at, and it has nothing to qualify.
 local SETTLE_INFERENCE = {
@@ -3654,8 +3668,8 @@ local SETTLE_INFERENCE = {
 		sub = "cast -- this client will not confirm who to",
 	},
 	selfcast = {
-		said = "our spell went out, but a selfCast buff has no target at all -- whether"
-			.. " it reached them depends on where they were standing",
+		said = "%s is cast on you, not on them, so whether it reached them depends on"
+			.. " where they were standing",
 		sub = "cast -- it has no target, so nothing says it reached them",
 	},
 }
@@ -3675,24 +3689,23 @@ local settledRecent = {}
 -- and both handlers discarded it into an underscore. Carried through, a refusal
 -- is matched to the cast it answers and two presses in a second cost nothing.
 --
--- It is not assumed, though. Nothing here has established that this client
--- fills the guid in -- it withholds a great deal else -- so a refusal with no
--- guid to go on is matched only when exactly one record could possibly be
--- meant. Two candidates and it abstains: undoing the wrong person's repayment
--- is the same damage as missing the refusal, plus a false sentence about
--- somebody who was in fact buffed.
--- SpellIsOurs read the other way round, for the one direction where it has to
--- be. Everywhere else an unreadable id must settle, or one withheld number
--- makes a favour permanent. Here the same leniency undoes a confirmation:
--- SpellIsOurs(nil) is true by design, so a failure the client would not name
--- reopened a repaid debt, rewound the click and printed a sentence asserting
--- the cast was refused. No evidence has to mean no action on this side.
-local function SpellIsCertainlyOurs(spellId, buffKey)
-	if spellId == nil or not buffKey then return false end
-	local buff = ns.FindBuff(caps.class, buffKey)
-	return buff ~= nil and ns.BUFF_BY_ID[spellId] == buff
-end
-
+-- And it is the only thing that may. A refusal with no guid on one side or the
+-- other used to be matched anyway whenever exactly one record in the window
+-- was for the spell it named, on the theory that only that record could be
+-- meant. The theory was wrong: a refusal need not be about any record at all.
+-- A second press mashed in a fight, which the frozen macro sends whatever the
+-- addon decided, or the same buff pressed on an action bar inside the global
+-- cooldown, is refused with nothing parked -- and that refusal was read as the
+-- answer to the press before it, which had landed. The debt came back, the
+-- blocks were cut to two seconds, chat said the game had refused the cast, and
+-- the person was offered and cast at again. A spell id cannot tell a new
+-- attempt from an old one; only the guid names a cast. So no guid is no
+-- evidence, and on this side no evidence has to mean no action -- the rule
+-- that once kept a failure the client would not put a spell id on from
+-- reopening a repaid debt, applied to the guid instead. Nothing here has
+-- established that this client fills the guid in, so what it may cost is a real
+-- late refusal going unnoticed and the favour staying marked repaid: quieter,
+-- and never a false sentence about somebody who was in fact buffed.
 local function PruneSettled(now)
 	now = now or GetTime()
 	for i = #settledRecent, 1, -1 do
@@ -3707,20 +3720,17 @@ local function RememberSettled(record)
 	settledRecent[#settledRecent + 1] = record
 end
 
--- Which record a refusal answers, or nil for "nothing here says".
-local function MatchSettled(spellId, castGUID)
-	local match, ambiguous
+-- Which record a refusal answers, or nil for "nothing here says". A record
+-- that settled with no guid of its own never compares equal to one, so a guid
+-- on the refusal side alone matches nothing either.
+local function MatchSettled(castGUID)
+	if castGUID == nil then return nil end
 	for i, record in ipairs(settledRecent) do
-		if castGUID ~= nil and record.castGUID ~= nil then
-			-- Both sides named the cast. That is an answer, not a guess, and a
-			-- guid naming none of ours means the failure was not ours at all.
-			if record.castGUID == castGUID then return i end
-		elseif SpellIsCertainlyOurs(spellId, record.buffKey) then
-			if match then ambiguous = true else match = i end
-		end
+		-- Both sides named the cast. That is an answer, not a guess, and a
+		-- guid naming none of ours means the failure was not ours at all.
+		if record.castGUID == castGUID then return i end
 	end
-	if ambiguous then return nil end
-	return match
+	return nil
 end
 
 local function SettlePendingClick(landedOn, spellId, castGUID)
@@ -3872,8 +3882,28 @@ local function SettlePendingClick(landedOn, spellId, castGUID)
 	elseif inferred and wasOwed then
 		local db = addon.db and addon.db.profile
 		if db and db.verbose then
-			addon:Print(("|cffffd100%s counted as repaid|r -- %s."):format(
-				pending.name, SETTLE_INFERENCE[inferred].said))
+			local buff = pending.buffKey and ns.FindBuff(caps.class, pending.buffKey)
+			addon:Print(("|cffffd100%s counted as repaid|r -- %s."):format(pending.name,
+				SETTLE_INFERENCE[inferred].said:format(buff and ns.BuffName(buff) or "the spell")))
+		end
+	elseif pending.answered then
+		-- An error inside the window already told chat, in the game's words,
+		-- that this person was not buffed or is still owed -- and this is the
+		-- cast that went out after it, so the error was about something else.
+		-- Neither branch above speaks for a stranger or for somebody the client
+		-- itself named, so that line was left standing as the last word about a
+		-- buff that landed and a debt this settle is about to clear. Only where
+		-- it was said: without verbose there is nothing to take back.
+		--
+		-- Worded to the evidence, as everything else here is: "was buffed" only
+		-- where the client named them, and otherwise only that the spell went.
+		local db = addon.db and addon.db.profile
+		if db and db.verbose then
+			local line = wasOwed and "%s counted as repaid after all"
+				or inferred and "the spell for %s went out after all"
+				or "%s was buffed after all"
+			addon:Print(("|cffffd100" .. line .. "|r -- the error before it was about"
+				.. " something else."):format(pending.name))
 		end
 	end
 
@@ -3935,13 +3965,13 @@ end
 -- the cast was refused and stops there.
 --
 -- Returns the name, so the caller can flash the panel for it.
-local function UnsettleLateRefusal(spellId, castGUID)
+local function UnsettleLateRefusal(castGUID)
 	PruneSettled()
-	-- Somebody else's spell failing, one the client would not name, or two
-	-- records that could equally be meant. None of those is evidence about a
-	-- particular cast, and this is the direction where no evidence has to mean
-	-- do nothing.
-	local index = MatchSettled(spellId, castGUID)
+	-- Somebody else's cast failing, a new attempt being refused, or a failure
+	-- the client would not put a guid on. None of those is evidence about a
+	-- cast that settled, and this is the direction where no evidence has to
+	-- mean do nothing.
+	local index = MatchSettled(castGUID)
 	if not index then return nil end
 
 	-- Consumed before anything is undone with it. A refusal is one event about
@@ -3975,17 +4005,27 @@ local function UnsettleLateRefusal(spellId, castGUID)
 	return settled.name
 end
 
--- The global cooldown, tracked rather than read.
+-- The global cooldown, read where the client will say and tracked where not.
 --
--- Reading it means naming a spell whose cooldown IS the global one, and which
--- spell that is differs by class and by client -- on a client that withholds
--- half of what it is asked, that is a question with no reliable answer. What
--- is reliable is that a cast went out, because the game says so.
+-- Reading it means naming a spell whose cooldown IS the global one. This file
+-- used to say which spell that is differs by class and by client, and tracked
+-- it instead -- which armed a second and a half of "not ready" after every cast
+-- the player sent, a healthstone, a potion, a trinket or Counterspell as much
+-- as a Frostbolt. A press made a moment after one was held for nothing; and
+-- in a fight, where the frozen macro goes out whatever is decided here, the
+-- press was set aside as turned away while its cast landed, so nothing was
+-- filed and the person was cast at again after the fight. The premise was
+-- wrong: on the retail line this client descends from, spell 61304 is the
+-- global cooldown itself, the same for every class, and addons running on this
+-- very client read it (EnhanceQoL's GCD bar and its cooldown panels).
 --
--- So: the moment a cast is sent, nothing else can be cast for about a second
--- and a half. Ask the client for the real figure where it will answer, and
--- fall back to the value that has been 1.5 seconds since the game shipped.
+-- It may still be withheld, a fight being where this client withholds most.
+-- So the tracking stays, as the fallback: the moment a cast is sent, nothing
+-- else can be cast for about a second and a half. Ask the client for the real
+-- figure where it will answer, and fall back to the value that has been 1.5
+-- seconds since the game shipped.
 local GCD_FALLBACK = 1.5
+local GCD_SPELL = 61304
 local castBlockedUntil = 0
 
 local function NoteCastWentOut(spellId)
@@ -4001,6 +4041,11 @@ local function NoteCastWentOut(spellId)
 	if get and spellId then
 		local ok, info = pcall(get, spellId)
 		if ok and type(info) == "table" then
+			-- Unless it says outright that this spell does not trigger the
+			-- global cooldown at all. Then there is nothing to track: the
+			-- guess would hold the prompt for a cooldown that is not running.
+			-- Only a readable false counts -- nil is the client saying nothing.
+			if plain(info.isOnGCD) == false then return end
 			local duration = plain(info.duration)
 			if type(duration) == "number" and duration > 0 and duration <= 3 then
 				seconds = duration
@@ -4042,9 +4087,29 @@ function ns.SpellQueueWindow()
 	return 0.4
 end
 
+-- What is left of the global cooldown by the client's own figure, or nil where
+-- it will not give one. 61304 reads nothing running -- a zero start and
+-- duration -- when the cooldown is idle, so an idle one is a readable zero
+-- rather than a missing answer.
+local function GlobalCooldownLeft(now)
+	local get = C_Spell and C_Spell.GetSpellCooldown
+	if not get then return nil end
+	local ok, info = pcall(get, GCD_SPELL)
+	if not ok or type(info) ~= "table" then return nil end
+	local start, duration = plain(info.startTime), plain(info.duration)
+	if type(start) ~= "number" or type(duration) ~= "number" then return nil end
+	local left = start + duration - now
+	if left < 0 then left = 0 end
+	return left
+end
+
 function ns.CastReady()
 	local now = GetTime()
-	local left = castBlockedUntil - now
+	-- The client's figure where it gives one, in place of the tracked guess
+	-- rather than alongside it: the guess is what a cast off the global
+	-- cooldown arms wrongly, so keeping the longer of the two would keep the
+	-- whole fault.
+	local left = GlobalCooldownLeft(now) or (castBlockedUntil - now)
 	local casting = _G.UnitCastingInfo
 	if type(casting) == "function" then
 		local ok, _, _, _, _, endMS = pcall(casting, "player")
@@ -4084,11 +4149,12 @@ function addon:UNIT_SPELLCAST_FAILED(_, unit, castGUID, spellId)
 	-- place.
 	--
 	-- Of the two events that carry a refusal this is the only one that can be
-	-- checked at all: it names the spell, so our own cast being refused is told
-	-- apart from anything else on the bar failing. That is why it is the only
-	-- one allowed to undo a settle.
+	-- checked at all: it names the cast, so the refusal of the very cast that
+	-- settled is told apart from anything else on the bar failing, and from a
+	-- new attempt at the same spell being turned away. That is why it is the
+	-- only one allowed to undo a settle.
 	if not ns.pendingClick then
-		local late = UnsettleLateRefusal(spellId, castGUID)
+		local late = UnsettleLateRefusal(castGUID)
 		if late then ShowOutcome("failed", late, "the game refused the cast") end
 	end
 	if self.db.profile.verbose and ns.lastClickTime and (GetTime() - ns.lastClickTime) <= 1 then

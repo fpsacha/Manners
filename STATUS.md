@@ -52,9 +52,12 @@ is the branch deciding whether a warrior can ever repay anybody. It has never
 run against the real game.
 
 **One assumption is untested.** A late refusal is matched to the press it
-answers using the cast guid the client sends with both cast events. If this
-client does not fill it in, matching falls back to "act only when exactly one
-record could be meant", which is safe but quieter. Confirm with
+answers using the cast guid the client sends with both cast events, and only
+the guid: a refusal undoes nothing unless both events carry the same one,
+because without it a new attempt being turned away cannot be told from the
+answer to a press that landed.
+If this client does not fill the guid in, a real late refusal goes unnoticed
+and the favour stays marked repaid, which is safe but quieter. Confirm with
 `/manners clicks` in game.
 
 **Real player names remain in git history** from before the v0.9.5 scrub —

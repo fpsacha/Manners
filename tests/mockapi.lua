@@ -332,9 +332,14 @@ function Mock.reset()
 	-- global cooldown was the only lockout the mock knew, so a press made
 	-- half-way through a three-second conjure could not be told from a free one.
 	Mock.casting = nil
-	-- What C_Spell.GetSpellCooldown reports as the duration for a spell, by id.
-	-- nil is the function answering nothing, which leaves the addon on its own
-	-- one-and-a-half-second fallback exactly as before this existed.
+	-- What C_Spell.GetSpellCooldown reports for a spell, by id. A number is a
+	-- duration starting at the moment of asking, which is all the addon read
+	-- when this was written. A table is the whole reading -- startTime,
+	-- duration, isActive, isOnGCD -- which is what the global cooldown (61304)
+	-- needs, since how much of it is left depends on when it started, and what
+	-- a spell off the global cooldown needs to say so. nil is the function
+	-- answering nothing, which leaves the addon on its own one-and-a-half-second
+	-- fallback exactly as before this existed.
 	Mock.spellCooldowns = nil
 
 	-- Last, because it writes several of the knobs above. Camelot is what every
@@ -1318,9 +1323,13 @@ setmetatable(_G, { __index = function(_, key)
 				return Mock.inRange
 			end,
 			GetSpellCooldown = function(id)
-				local duration = Mock.spellCooldowns and Mock.spellCooldowns[id]
-				if not duration then return nil end
-				return { startTime = Mock.now, duration = duration, isEnabled = true, modRate = 1 }
+				local entry = Mock.spellCooldowns and Mock.spellCooldowns[id]
+				if not entry then return nil end
+				if type(entry) ~= "table" then
+					return { startTime = Mock.now, duration = entry, isEnabled = true, modRate = 1 }
+				end
+				return { startTime = entry.startTime or Mock.now, duration = entry.duration or 0,
+					isEnabled = true, modRate = 1, isActive = entry.isActive, isOnGCD = entry.isOnGCD }
 			end,
 		})
 	elseif key == "C_UnitAuras" then

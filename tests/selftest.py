@@ -786,10 +786,10 @@ mutate("Core.lua",
 		return
 	end
 	ns.pendingClick = nil
-	SayStillOwed(pending.name, "another press arrived before the game answered that one")""",
+	SayStillOwed(pending.name, "another press arrived before the game answered that one",""",
        """	ns.pendingClick = nil
 	if GetTime() - pending.at > SETTLE_SECONDS then return end
-	SayStillOwed(pending.name, "another press arrived before the game answered that one")""",
+	SayStillOwed(pending.name, "another press arrived before the game answered that one",""",
        "a dead record dropped by the abandon",
        expect="a second press: the twelve-second cooldown stood over a press that cast nothing",
        script="runscenarios.py")
@@ -828,7 +828,7 @@ mutate("Core.lua",
 #     a cast that was thrown away.
 mutate("Core.lua",
        """	if not ns.pendingClick then
-		local late = UnsettleLateRefusal(spellId, castGUID)
+		local late = UnsettleLateRefusal(castGUID)
 		if late then ShowOutcome("failed", late, "the game refused the cast") end
 	end
 """,
@@ -837,26 +837,28 @@ mutate("Core.lua",
        expect="a cast the server refused stayed filed as a favour repaid",
        script="runscenarios.py")
 
-# 57. and the check that keeps it honest. UNIT_SPELLCAST_FAILED is the only
-#     refusal that names its spell, so it is the only one that can tell our own
-#     cast being refused from anything else on the bar failing in the same
-#     second -- and without it a confirmed buff is undone by somebody else's
-#     miss.
+# 57. and the check that keeps it honest. UNIT_SPELLCAST_FAILED names the cast
+#     it refuses, so it is the only one that can tell our own cast being refused
+#     from anything else on the bar failing in the same second -- and without
+#     that comparison a confirmed buff is undone by somebody else's miss. (This
+#     was a spell-id check until only the guid was allowed to match; the fault
+#     is the same, re-anchored.)
 mutate("Core.lua",
-       "\t\telseif SpellIsCertainlyOurs(spellId, record.buffKey) then",
-       "\t\telseif true then",
+       "\t\tif record.castGUID == castGUID then return i end",
+       "\t\treturn i",
        "a refusal credited to the wrong spell",
        expect="an unrelated spell failing undid a confirmed cast",
        script="runscenarios.py")
 
-# 57b. the same check read the permissive way round. SpellIsOurs treats a
-#      missing id as ours on purpose, because everywhere else a withheld number
-#      must not make a favour permanent -- but this is the one direction where
-#      no evidence has to mean no action, and borrowing that leniency reopens a
-#      repaid debt on every failure the client will not name.
+# 57b. the same check read the permissive way round. Everywhere else a
+#      withheld value must settle, because one withheld number must not make a
+#      favour permanent -- but this is the one direction where no evidence has
+#      to mean no action, and borrowing that leniency reopens a repaid debt on
+#      every failure the client will not name. Two withheld guids compare equal,
+#      which is exactly that leniency in the form it takes now.
 mutate("Core.lua",
-       "\t\telseif SpellIsCertainlyOurs(spellId, record.buffKey) then",
-       "\t\telseif SpellIsOurs(spellId, record.buffKey) then",
+       "\tif castGUID == nil then return nil end\n\tfor i, record in ipairs(settledRecent) do",
+       "\tfor i, record in ipairs(settledRecent) do",
        "an unnamed failure treated as ours",
        expect="a failure the client would not put a spell id on undid a confirmed cast",
        script="runscenarios.py")
@@ -1213,15 +1215,11 @@ end""",
 
 # Both cast events carry a guid naming the cast, and both handlers discarded it
 # into an underscore -- which is the identity the timestamp above was trying to
-# reconstruct from the clock.
+# reconstruct from the clock. Since the guid became the only thing allowed to
+# match, ignoring it means no refusal is ever matched at all.
 mutate("Core.lua",
-       """\t\tif castGUID ~= nil and record.castGUID ~= nil then
-\t\t\t-- Both sides named the cast. That is an answer, not a guess, and a
-\t\t\t-- guid naming none of ours means the failure was not ours at all.
-\t\t\tif record.castGUID == castGUID then return i end
-\t\telseif SpellIsCertainlyOurs(spellId, record.buffKey) then""",
-       """\t\tif false then
-\t\telseif SpellIsCertainlyOurs(spellId, record.buffKey) then""",
+       "\tif castGUID == nil then return nil end\n\tfor i, record in ipairs(settledRecent) do",
+       "\tdo return nil end\n\tfor i, record in ipairs(settledRecent) do",
        "the cast guid ignored, the way both handlers used to",
        expect="a refusal is matched to the press it answers",
        script="runscenarios.py")
@@ -2691,6 +2689,75 @@ mutate("Core.lua",
        "",
        "combat hold waiting for the next scan",
        expect="the prompt admits it is frozen in combat: the panel kept full brightness",
+       script="runscenarios.py")
+
+# A refusal with a guid missing on one side matched to the only settle in the
+# window. A new attempt refused with nothing parked -- a mashed press in a
+# fight, the same buff on an action bar -- undid a press that had landed.
+mutate("Core.lua",
+       "\tif castGUID == nil then return nil end\n"
+       "\tfor i, record in ipairs(settledRecent) do\n"
+       "\t\t-- Both sides named the cast. That is an answer, not a guess, and a\n"
+       "\t\t-- guid naming none of ours means the failure was not ours at all.\n"
+       "\t\tif record.castGUID == castGUID then return i end\n"
+       "\tend\n"
+       "\treturn nil\n",
+       "\tlocal match, ambiguous\n"
+       "\tfor i, record in ipairs(settledRecent) do\n"
+       "\t\tif castGUID ~= nil and record.castGUID ~= nil then\n"
+       "\t\t\tif record.castGUID == castGUID then return i end\n"
+       "\t\telseif match then ambiguous = true else match = i end\n"
+       "\tend\n"
+       "\tif ambiguous then return nil end\n"
+       "\treturn match\n",
+       "a guid-less refusal matched to the only settle",
+       expect="a refusal nothing tied to the press that landed put the debt back",
+       script="runscenarios.py")
+
+# The settle after an error inside the window saying nothing, so chat is left
+# on "was not buffed" about a buff that went out.
+mutate("Core.lua",
+       "\telseif pending.answered then\n",
+       "\telseif false then\n",
+       "an error's line left standing after the settle",
+       expect="chat was left saying the buff failed after it went out",
+       script="runscenarios.py")
+
+# The global cooldown tracked and never read, so every cast -- a healthstone,
+# Counterspell -- arms a second and a half of "not ready".
+mutate("Core.lua",
+       "\tlocal left = GlobalCooldownLeft(now) or (castBlockedUntil - now)\n",
+       "\tlocal left = castBlockedUntil - now\n",
+       "the global cooldown guessed where it can be read",
+       expect="the client said the global cooldown was idle",
+       script="runscenarios.py")
+
+# And a spell the client says is off the global cooldown arming the guess
+# anyway, where 61304 will not answer.
+mutate("Core.lua",
+       "\t\t\tif plain(info.isOnGCD) == false then return end\n",
+       "",
+       "an off-GCD spell arming the fallback",
+       expect="a spell the client says is off the global cooldown still held the prompt",
+       script="runscenarios.py")
+
+# An abandoned press announced as "was not buffed", though nothing says so.
+mutate("Core.lua",
+       '\tSayStillOwed(pending.name, "another press arrived before the game answered that one",\n'
+       '\t\t"no answer yet for the press on |cffffffff%s|r -- another press arrived first.")\n',
+       '\tSayStillOwed(pending.name, "another press arrived before the game answered that one")\n',
+       "an unanswered press called a miss",
+       expect="a press the game had not answered yet was announced as a miss",
+       script="runscenarios.py")
+
+# The repaid line for a shout printing a field name from Buffs.lua.
+mutate("Core.lua",
+       '\t\tsaid = "%s is cast on you, not on them, so whether it reached them depends on"\n'
+       '\t\t\t.. " where they were standing",\n',
+       '\t\tsaid = "our spell went out, but a selfCast buff has no target at all -- whether"\n'
+       '\t\t\t.. " it reached them depends on where they were standing",\n',
+       "a code name in the repaid line",
+       expect="chat showed the player a name from the code",
        script="runscenarios.py")
 
 print()
