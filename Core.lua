@@ -4236,6 +4236,9 @@ function addon:PLAYER_UNGHOST() if ns.Prompt then ns.Prompt:Refresh() end end
 -- painted by a second Refresh on the next frame, once lockdown is on, rather
 -- than waiting up to two seconds for the next scan.
 function addon:PLAYER_REGEN_DISABLED()
+	-- First, while the button can still be touched: a drag held into the pull
+	-- is let go of and its position kept, rather than released in the fight.
+	if ns.Prompt then ns.Guard("drag at fight start", ns.Prompt.FinishDragForFight, ns.Prompt) end
 	if ns.Prompt then ns.Guard("combat hold", ns.Prompt.Refresh, ns.Prompt) end
 	C_Timer.After(0, function()
 		if ns.Prompt then ns.Guard("combat hold", ns.Prompt.Refresh, ns.Prompt) end

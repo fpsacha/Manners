@@ -359,7 +359,7 @@ mutate("Prompt.lua",
 #      disarms it -- so the click does nothing and says nothing, which is the
 #      silent failure the fuse was added to avoid, arriving by the other door.
 mutate("Prompt.lua",
-       "		if not top and FuseStillBurning(now) and not Retired(current, now) then\n",
+       "		if not top and current and not Retired(current, now) and named == current.name then\n",
        "		if false then\n",
        "a press that disarms a visible prompt",
        expect="a press while the prompt was still naming Ana disarmed it",
@@ -1749,7 +1749,7 @@ mutate("Flavour.lua",
 
 mutate("Prompt.lua",
        '\treturn {\n\t\tTargetCommand() .. " " .. who,\n\t\t"/cast " .. spell,\n'
-       "\t}, ns.db.profile.filters.restoreTarget == true,",
+       "\t}, restore,",
        '\treturn {\n\t\t"/cast [@" .. who .. ",help,nodead] " .. spell,\n\t}, false,',
        "the conditional route built after all",
        expect="gets the /target macro",
@@ -2758,6 +2758,93 @@ mutate("Core.lua",
        '\t\t\t.. " it reached them depends on where they were standing",\n',
        "a code name in the repaid line",
        expect="chat showed the player a name from the code",
+       script="runscenarios.py")
+
+# The press rule believing the flash only while it is live, so a press after
+# it timed out -- its words still on the panel -- went to the entry under it.
+mutate("Prompt.lua",
+       "\tif outcomePainted then return outcomePainted end\n",
+       "\tif self:OutcomeLive() then return outcomeName end\n",
+       "a press under an old flash going to the next person",
+       expect="cast at Bert (",
+       script="runscenarios.py")
+
+# And the flash left for the next scan to take off.
+mutate("Prompt.lua",
+       "\t\t\tif gen ~= outcomeGen then return end\n"
+       "\t\t\tns.Guard(\"prompt outcome expiry\", Prompt.Refresh, Prompt)\n",
+       "\t\t\tif gen ~= outcomeGen then return end\n",
+       "the red flash waiting for a scan",
+       expect="the red flash outlived its own six tenths of a second",
+       script="runscenarios.py")
+
+# A right-click under the flash skipping whoever is armed underneath it.
+mutate("Prompt.lua",
+       "\t\t\tlocal victim = Prompt:PanelName() or (current and current.name)\n",
+       "\t\t\tlocal victim = current and current.name\n",
+       "a right-click skipping the person under the flash",
+       expect="skipped Bert instead",
+       script="runscenarios.py")
+
+# The press asking the fuse's clock rather than the panel, so a press before
+# any scan lit the fuse, or after it burnt out, disarmed a named prompt.
+mutate("Prompt.lua",
+       "\t\tif not top and current and not Retired(current, now) and named == current.name then\n",
+       "\t\tif not top and emptyAt and (now - emptyAt) < EMPTY_FUSE_SECONDS"
+       " and not Retired(current, now) then\n",
+       "a press on a named prompt going nowhere",
+       expect="did nothing and said nothing",
+       script="runscenarios.py")
+
+# And the panel left up past its fuse until a scan came round.
+mutate("Prompt.lua",
+       "\t\tC_Timer.After(EMPTY_FUSE_SECONDS + 0.05, function()\n"
+       "\t\t\tns.Guard(\"fuse repaint\", Prompt.Refresh, Prompt)\n",
+       "\t\tC_Timer.After(EMPTY_FUSE_SECONDS + 0.05, function()\n",
+       "the fuse burning out with nobody to notice",
+       expect="the fuse burnt out and the panel stayed up",
+       script="runscenarios.py")
+
+# A press while switched off answered with "nobody to buff".
+mutate("Prompt.lua",
+       "\t\t\tif db and not db.enabled then\n"
+       "\t\t\t\tns.addon:Print(\"Manners is |cffff8080switched off|r",
+       "\t\t\tif false then\n"
+       "\t\t\t\tns.addon:Print(\"Manners is |cffff8080switched off|r",
+       "a press while switched off saying nobody to buff",
+       expect="never said Manners is switched off",
+       script="runscenarios.py")
+
+# Your own target handed back to whoever came before them.
+mutate("Prompt.lua",
+       '\tlocal restore = ns.db.profile.filters.restoreTarget == true and entry.unit ~= "target"\n',
+       "\tlocal restore = ns.db.profile.filters.restoreTarget == true\n",
+       "your own target switched away after the buff",
+       expect="hands the target to whoever came before",
+       script="runscenarios.py")
+
+# The tooltip reading the setting instead of what the macro does.
+mutate("Prompt.lua",
+       "\t\tlocal _, restore = CastLines(entry)\n\t\tif restore then\n",
+       "\t\tif ns.db.profile.filters.restoreTarget then\n",
+       "the tooltip promising a hand-back the macro skips",
+       expect="the tooltip promises to hand back a target the macro keeps",
+       script="runscenarios.py")
+
+# A release ending a drag that never started.
+mutate("Prompt.lua",
+       "\t\tif not dragging then return end\n",
+       "",
+       "a drag that never started being ended",
+       expect="slid a few pixels ended a move",
+       script="runscenarios.py")
+
+# A drag held into a pull left for the release, which comes in the fight.
+mutate("Core.lua",
+       '\tif ns.Prompt then ns.Guard("drag at fight start", ns.Prompt.FinishDragForFight, ns.Prompt) end\n',
+       "",
+       "a drag held into a pull",
+       expect="never had its position saved",
        script="runscenarios.py")
 
 print()

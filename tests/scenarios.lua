@@ -1250,9 +1250,15 @@ if ns then
 	local button = ns.Prompt:GetButton()
 	local pre = button.scripts.PreClick
 
-	-- Off is the cheapest way to empty the prompt. PreClick's own disabled
-	-- branch sits below the one under test, so it cannot be what answers.
-	ns.db.profile.enabled = false
+	-- Nobody about. Switching the addon off used to be the cheap way to empty
+	-- the prompt, and it is a different answer now: a press while switched off
+	-- says so (scenario 236). The fuse keeps a panel up for a moment after the
+	-- queue empties, so it is given time to come down.
+	local realExists = UnitExists
+	UnitExists = function(unit) return unit == "player" end
+	wipe(ns.owed)
+	ns.Prompt:Refresh()
+	Mock.advance(1)
 	ns.Prompt:Refresh()
 	if button:IsShown() then
 		fail("a press with nobody on the prompt says so",
@@ -1273,6 +1279,7 @@ if ns then
 	if not said then
 		fail("a press with nobody on the prompt says so", "the press was silent")
 	end
+	UnitExists = realExists
 end
 
 -- ------------------------------------------------------------------ 33
@@ -1924,6 +1931,12 @@ ns = load("the macro is armed once per candidate")
 if ns then
 	drive("the macro is armed once per candidate", ns)
 	Mock.advance(60)
+	-- Nobody targeted. Every token in the mock is the same person and the
+	-- target is walked first, and your own target is never handed back
+	-- (scenario 237) -- so the restore setting below would change nothing about
+	-- the macro for them, and this is about a setting that does.
+	local realExists = UnitExists
+	UnitExists = function(unit) if unit == "target" then return false end return realExists(unit) end
 	local button = ns.Prompt:GetButton()
 	local realSet = button.SetAttribute
 	local sets = 0
@@ -2005,6 +2018,7 @@ if ns then
 	end
 
 	button.SetAttribute = realSet
+	UnitExists = realExists
 end
 
 -- ------------------------------------------------------------------ 42
@@ -2022,7 +2036,12 @@ if ns then
 	if #queue == 0 then
 		fail("the spoken line is measured, not assumed", "SKIPPED -- nobody to arm against")
 	else
-		local entry = queue[1]
+		-- Off a nameplate rather than through the target token the mock walks
+		-- first: your own target is never handed back (scenario 237), and the
+		-- room the hand-back takes is half of what is measured here.
+		local entry = {}
+		for k, v in pairs(queue[1]) do entry[k] = v end
+		entry.unit = "nameplate1"
 		ns.db.profile.speech.enabled = true
 		ns.db.profile.speech.channel = "SAY"
 		-- This candidate is a passer-by, not a debt, so the returning-only
@@ -4897,6 +4916,9 @@ if ns then
 		for k, v in pairs(template) do ana[k] = v end
 		ana.name, ana.short, ana.reason, ana.priority = "Ana Field", "Ana Field", "owed", 1
 		ana.targetName = ns.TargetName(ana.name)
+		-- Off a nameplate. The template came through the target token, and your
+		-- own target is never handed back (scenario 237).
+		ana.unit = "nameplate1"
 		ns.BuildQueue = function() return { ana } end
 
 		local db = ns.db.profile
@@ -9238,6 +9260,10 @@ if ns then
 	if not entry or not entry.buff or entry.buff.selfCast then
 		fail(scenario, "SKIPPED -- nobody to measure a budget against")
 	else
+		-- Off a nameplate, so the hand-back is part of what is measured: the
+		-- mock walks the target first, and your own target keeps none
+		-- (scenario 237).
+		entry.unit = "nameplate1"
 		local spell = ns.BuffName(entry.buff)
 		local want = ns.MACRO_LIMIT
 			- #(ns.TargetCommand() .. " " .. tostring(entry.targetName)
@@ -9992,6 +10018,10 @@ for _, want in ipairs(CLIENTS) do
 			if not entry then
 				fail(scenario, "nobody called " .. aimedAt .. " was offered")
 			else
+				-- A stranger off a nameplate, which is how they usually come.
+				-- Every token in the mock is Petra and the target is walked
+				-- first, and your own target is never handed back (scenario 237).
+				if entry.unit == "target" then entry.unit = "nameplate1" end
 				ns.Prompt:InvalidateMacro()
 				ns.Prompt:ApplyTarget(entry)
 				local macro = tostring(ns.lastMacro or "")
@@ -15123,6 +15153,361 @@ if ns then
 	IsPlayerSpell = realKnown
 	wipe(ns.owed)
 	ns.pendingClick = nil
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 233
+-- A press made while the red flash is still up goes to whoever it names.
+--
+-- The flash about a refused press is written over the name line, and it only
+-- ever came off at the next repaint -- up to a scan later. The press rule
+-- stopped believing it after six tenths of a second all the same, and went back
+-- to the entry painted underneath: the next person, whom the refusal had
+-- already armed. So a press while the panel still read "could not buff Anna"
+-- cast at, and spoke to, Bert, and nothing in chat said so. With the queue
+-- emptied by the refusal it was worse: the rule then named nobody at all, and
+-- anybody who walked up in that moment was cast at the same way.
+Mock.reset()
+local seen = { nameplate1 = { "Anna", "Aim" }, nameplate2 = { "Bert", "Beside" } }
+restoreUnits = strangers(seen)
+ns = load("a press under an old flash goes to whoever it names")
+if ns then
+	local scenario = "a press under an old flash goes to whoever it names"
+	freshPrompt(ns, scenario)
+	local nameLine = ns.Prompt:Regions().name
+	for _, case in ipairs({ "Bert queued", "Bert walks up", "the flash times out" }) do
+		clearClicks(ns)
+		-- Only what this case parks. The lifecycle leaves timers of its own
+		-- behind -- the first-login preview among them -- and running those
+		-- puts a mock-up on the panel.
+		wipe(Mock.timers)
+		local arrives = case == "Bert walks up"
+		if arrives then seen.nameplate2 = nil end
+		owe(ns, "Anna Aim")
+		ns.addon:Tick()
+		local first = pressButton(ns)
+		ns.addon:UI_ERROR_MESSAGE(nil, 0, "Out of range.")
+		if case == "the flash times out" then
+			-- Nothing but the clock: no scan lands before the next press.
+			Mock.runTimers(0.7)
+			local named = tostring(nameLine:GetText())
+			if named:find("could not buff", 1, true) then
+				fail(scenario, "the red flash outlived its own six tenths of a second and"
+					.. " waited for a scan to take it off: " .. named)
+			elseif not named:find("Bert Beside", 1, true) then
+				fail(scenario, "SKIPPED -- the flash came off onto something other than Bert: "
+					.. named)
+			end
+		else
+			-- A scan under the flash, then the press after it has timed out.
+			Mock.advance(0.35)
+			ns.addon:Tick()
+			Mock.advance(0.3)
+			-- Walking up is a nameplate arriving, which is how the queue hears of it.
+			if arrives then
+				seen.nameplate2 = { "Bert", "Beside" }
+				ns.nameplateUnits["nameplate2"] = true
+			end
+			local named = tostring(nameLine:GetText())
+			if not (first and first:find("Anna Aim", 1, true) and named:find("Anna Aim", 1, true)) then
+				fail(scenario, "SKIPPED -- no red flash about Anna to press under (" .. case .. "): "
+					.. named)
+			else
+				Mock.printed = {}
+				local ran = pressButton(ns)
+				if ran and ran:find("Bert Beside", 1, true) then
+					fail(scenario, ("a press on a panel reading %q cast at Bert (%s): %s")
+						:format(named, case, (ran:gsub("\n", " / "))))
+				end
+				if ns.pendingClick and ns.pendingClick.name == "Bert Beside" then
+					fail(scenario, "a press was filed against Bert under a flash naming Anna ("
+						.. case .. ")")
+				end
+			end
+		end
+		seen.nameplate2 = { "Bert", "Beside" }
+	end
+end
+restoreUnits()
+Mock.reset()
+
+-- ------------------------------------------------------------------ 234
+-- A right-click under the red flash skips the person the flash names.
+--
+-- The skip acted on whoever was armed underneath -- the next person, whom the
+-- refusal had already moved the button on to. So Bert was declined for the full
+-- retry cooldown with chat saying "skipping Bert", and Anna, the one on screen,
+-- came straight back when her two-second block ran out. With nobody else
+-- queued the button underneath was empty, and the right-click did nothing and
+-- said nothing at all.
+Mock.reset()
+local seen = { nameplate1 = { "Anna", "Aim" }, nameplate2 = { "Bert", "Beside" } }
+restoreUnits = strangers(seen)
+ns = load("a right-click under the flash skips who it names")
+if ns then
+	local scenario = "a right-click under the flash skips who it names"
+	freshPrompt(ns, scenario)
+	local button = ns.Prompt:GetButton()
+	for _, case in ipairs({ "Anna and Bert", "Anna alone" }) do
+		clearClicks(ns)
+		if case == "Anna alone" then seen.nameplate2 = nil end
+		owe(ns, "Anna Aim")
+		ns.addon:Tick()
+		local first = pressButton(ns)
+		ns.addon:UI_ERROR_MESSAGE(nil, 0, "Out of range.")
+		Mock.advance(0.3)
+		local named = tostring(ns.Prompt:Regions().name:GetText())
+		if not (first and first:find("Anna Aim", 1, true) and named:find("could not buff", 1, true)) then
+			fail(scenario, "SKIPPED -- no red flash about Anna to right-click (" .. case .. ")")
+		else
+			Mock.printed = {}
+			pressButton(ns, "RightButton")
+			local said = table.concat(Mock.printed, "\n")
+			if said:find("skipping |cffffffffBert", 1, true) or ns.IsBlocked("Bert Beside") then
+				fail(scenario, "a right-click on a flash naming Anna skipped Bert instead: " .. said)
+			end
+			if not said:find("Anna", 1, true) then
+				fail(scenario, "a right-click on a flash naming Anna said nothing about her ("
+					.. case .. "): " .. said)
+			end
+			Mock.advance(2.2)
+			ns.addon:Tick()
+			local armed = tostring(button:GetAttribute("macrotext1") or "")
+			if armed:find("Anna Aim", 1, true) then
+				fail(scenario, "Anna was offered again two seconds after being skipped (" .. case .. ")")
+			end
+		end
+		seen.nameplate2 = { "Bert", "Beside" }
+	end
+end
+restoreUnits()
+Mock.reset()
+
+-- ------------------------------------------------------------------ 235
+-- A press on a prompt still naming somebody is never silently empty.
+--
+-- The fuse that keeps a panel up while the queue is briefly empty is lit by a
+-- scan, and the press asked the clock whether it was burning. So a press in the
+-- moment between somebody stepping out of range and the next scan noticing --
+-- no fuse lit yet -- and a press after the fuse had burnt out but before the
+-- scan that takes the panel down, both disarmed a visible prompt that was still
+-- naming Petra. The click cast nothing and said nothing, which is the silent
+-- failure the fuse was added to avoid.
+Mock.reset()
+restoreUnits = strangers({ nameplate1 = { "Petra", "Stonewell" } })
+ns = load("a press on a named prompt is never silently empty")
+if ns then
+	local scenario = "a press on a named prompt is never silently empty"
+	freshPrompt(ns, scenario)
+	local button = ns.Prompt:GetButton()
+	for _, case in ipairs({ "before any scan", "after the fuse", "the fuse runs out" }) do
+		clearClicks(ns)
+		-- Only what this case parks. The lifecycle leaves timers of its own
+		-- behind -- the first-login preview among them -- and running those
+		-- puts a mock-up on the panel.
+		wipe(Mock.timers)
+		Mock.inRange = true
+		ns.addon:Tick()
+		Mock.inRange = false
+		if case ~= "before any scan" then
+			-- A scan lights the fuse.
+			Mock.advance(0.1)
+			ns.addon:Tick()
+		end
+		if not (button:IsShown() and tostring(button:GetAttribute("macrotext1") or ""):find("Petra", 1, true)) then
+			fail(scenario, "SKIPPED -- Petra was not on the panel (" .. case .. ")")
+		elseif case == "the fuse runs out" then
+			-- Nothing but the clock: the panel comes down when the fuse ends.
+			Mock.runTimers(0.85)
+			if button:IsShown() then
+				fail(scenario, "the fuse burnt out and the panel stayed up naming Petra until a"
+					.. " scan got round to it")
+			end
+		else
+			Mock.advance(case == "after the fuse" and 0.8 or 0.1)
+			Mock.printed = {}
+			local ran = pressButton(ns)
+			if button:IsShown() and not (ran and ran:find("Petra", 1, true)) then
+				fail(scenario, ("a press on a panel still naming Petra did nothing and said"
+					.. " nothing (%s): %s"):format(case, table.concat(Mock.printed, " | ")))
+			end
+		end
+	end
+	Mock.inRange = true
+end
+restoreUnits()
+Mock.reset()
+
+-- ------------------------------------------------------------------ 236
+-- A press while switched off says it is switched off.
+--
+-- /manners off and a right-click on the minimap button take the panel down,
+-- and a key bound to the prompt still reaches it. The press found the panel
+-- hidden and said "nobody to buff right now." -- often untrue, since the queue
+-- is built whatever the switch says, and silent about the one thing that
+-- actually explains the empty prompt.
+Mock.reset()
+ns = load("a press while switched off says so")
+if ns then
+	local scenario = "a press while switched off says so"
+	drive(scenario, ns)
+	ns.Prompt:ExitTest()
+	local button = ns.Prompt:GetButton()
+	for _, how in ipairs({ "/manners off", "the minimap button" }) do
+		ns.addon:HandleSlash("on")
+		if how == "/manners off" then
+			ns.addon:HandleSlash("off")
+		elseif Mock.broker and Mock.broker.OnClick then
+			Mock.broker.OnClick(nil, "RightButton")
+		end
+		if ns.db.profile.enabled or button:IsShown() then
+			fail(scenario, "SKIPPED -- " .. how .. " did not switch the prompt off")
+		else
+			Mock.advance(1)
+			Mock.printed = {}
+			pressButton(ns)
+			local said = table.concat(Mock.printed, "\n")
+			if said:find("nobody to buff", 1, true) then
+				fail(scenario, "a press after " .. how .. " said nobody wanted a buff: " .. said)
+			end
+			if not said:find("switched off", 1, true) then
+				fail(scenario, "a press after " .. how .. " never said Manners is switched off: " .. said)
+			end
+		end
+	end
+	ns.addon:HandleSlash("on")
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 237
+-- Buffing the player you already have targeted leaves them targeted.
+--
+-- The target is walked first, so a stranger you have clicked on is offered
+-- through the target token. /target on somebody already targeted changes
+-- nothing, so the last-target slot still holds whoever came before them -- a
+-- mob, usually -- and the /targetlasttarget on the end of the macro switched to
+-- it, while the tooltip promised to hand your own target back.
+Mock.reset()
+local seen = { target = { "Anna", "Aim" } }
+restoreUnits = strangers(seen)
+ns = load("buffing your own target leaves them targeted")
+if ns then
+	local scenario = "buffing your own target leaves them targeted"
+	freshPrompt(ns, scenario)
+	ns.db.profile.filters.restoreTarget = true
+	ns.Prompt:InvalidateMacro()
+	ns.addon:Tick()
+	local button = ns.Prompt:GetButton()
+	local armed = tostring(button:GetAttribute("macrotext1") or "")
+	local top = ns.BuildQueue()[1]
+	if not (top and top.unit == "target" and armed:find("Anna Aim", 1, true)) then
+		fail(scenario, "SKIPPED -- Anna was not offered through the target token: " .. armed)
+	else
+		if armed:find("/targetlasttarget", 1, true) then
+			fail(scenario, "the macro for your own target hands the target to whoever came"
+				.. " before: " .. (armed:gsub("\n", " / ")))
+		end
+		button.scripts.OnEnter(button)
+		local tip = table.concat(Mock.tooltip, "\n")
+		if tip:find("Hands your own target back", 1, true) then
+			fail(scenario, "the tooltip promises to hand back a target the macro keeps")
+		end
+	end
+
+	-- A stranger off a nameplate is still handed back.
+	seen.target = nil
+	seen.nameplate1 = { "Bert", "Beside" }
+	clearClicks(ns)
+	ns.Prompt:InvalidateMacro()
+	ns.addon:Tick()
+	local other = tostring(button:GetAttribute("macrotext1") or "")
+	if not (other:find("Bert Beside", 1, true) and other:find("/targetlasttarget", 1, true)) then
+		fail(scenario, "a stranger off a nameplate no longer gets your target handed back: "
+			.. (other:gsub("\n", " / ")))
+	end
+end
+restoreUnits()
+Mock.reset()
+
+-- ------------------------------------------------------------------ 238
+-- A drag that never started does not end.
+--
+-- OnDragStart refuses a locked prompt and a fight, but the release still
+-- arrives: it stopped a move on the secure button -- a call the client refuses
+-- during lockdown -- saved the position and said "moved and locked." for a
+-- click on a locked prompt that slid a few pixels. And a drag held into a pull
+-- was released in combat, where the same call is refused.
+Mock.reset()
+ns = load("a drag that never started does not end")
+if ns then
+	local scenario = "a drag that never started does not end"
+	drive(scenario, ns)
+	ns.Prompt:ExitTest()
+	local button = Mock.protect(ns.Prompt:GetButton())
+	local p = ns.db.profile.prompt
+	local stops = 0
+	local inner = button.StopMovingOrSizing
+	button.StopMovingOrSizing = function(self, ...)
+		stops = stops + 1
+		return inner(self, ...)
+	end
+	local function stoppedInCombat()
+		for _, name in ipairs(Mock.protectedCalls) do
+			if name == "StopMovingOrSizing" then return true end
+		end
+		return false
+	end
+
+	-- A locked prompt, out of combat: a click that slid.
+	p.locked = true
+	Mock.printed = {}
+	button.scripts.OnDragStart(button)
+	button.scripts.OnDragStop(button)
+	if stops > 0 or table.concat(Mock.printed, "\n"):find("moved and locked", 1, true) then
+		fail(scenario, "a click on a locked prompt that slid a few pixels ended a move and"
+			.. " said the prompt was moved")
+	end
+
+	-- A locked prompt in a fight.
+	Mock.inCombat = true
+	Mock.protectedCalls = {}
+	button.scripts.OnDragStart(button)
+	button.scripts.OnDragStop(button)
+	if stoppedInCombat() then
+		fail(scenario, "a release in combat stopped a move on the secure button")
+	end
+	Mock.inCombat = false
+
+	-- Unlocked, picked up, and still held when the pull starts.
+	p.locked = false
+	ns.Prompt:Refresh()
+	stops = 0
+	p.x = 999
+	button.scripts.OnDragStart(button)
+	ns.addon:PLAYER_REGEN_DISABLED()
+	Mock.inCombat = true
+	Mock.protectedCalls = {}
+	button.scripts.OnDragStop(button)
+	if stoppedInCombat() then
+		fail(scenario, "a drag held into a pull was ended in combat on the secure button")
+	end
+	if p.x == 999 then
+		fail(scenario, "a drag held into a pull never had its position saved")
+	end
+	Mock.inCombat = false
+	ns.addon:PLAYER_REGEN_ENABLED()
+
+	-- And an ordinary drag still saves and says so.
+	p.locked = false
+	ns.Prompt:Refresh()
+	p.x = 999
+	Mock.printed = {}
+	button.scripts.OnDragStart(button)
+	button.scripts.OnDragStop(button)
+	if p.x == 999 or not p.locked
+		or not table.concat(Mock.printed, "\n"):find("moved and locked", 1, true) then
+		fail(scenario, "SKIPPED -- an ordinary drag no longer saves, locks and says so")
+	end
 end
 Mock.reset()
 

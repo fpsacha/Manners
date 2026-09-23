@@ -419,6 +419,10 @@ local PROTECTED_METHODS = {
 	"Show", "Hide", "SetShown", "SetAttribute", "SetPoint", "ClearAllPoints",
 	"SetAllPoints", "SetSize", "SetWidth", "SetHeight", "SetScale", "SetParent",
 	"EnableMouse", "SetFrameStrata", "RegisterForClicks",
+	-- Moving the frame is as protected as placing it: OnDragStop used to end a
+	-- move on the secure button in combat, and against a mock that did not
+	-- write these down it looked exactly like a drag that behaved.
+	"StartMoving", "StopMovingOrSizing",
 }
 
 -- Which frame is the secure one is the addon's business, not the mock's, so a

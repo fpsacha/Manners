@@ -144,10 +144,26 @@ local lastSoundAt
 -- once on each transition rather than on every pass through a locked-down
 -- Refresh.
 local combatHeld
+-- Whether a drag has actually started. The client delivers OnDragStop for
+-- every drag gesture, including the ones OnDragStart refused -- a locked
+-- prompt, a fight -- so the release cannot take it on trust that a move is
+-- under way.
+local dragging
 
 -- What the last click turned into: "cast", "sent" or "failed", who it was
 -- about, and the game's own words where it had any.
 local outcomeKind, outcomeAt, outcomeName, outcomeDetail
+-- Who the name line is actually about while an outcome is written over it, and
+-- nil once anything else has been painted there. Kept apart from outcomeName
+-- because the two end at different moments: the outcome stops being live on
+-- the clock, and the words stay on the panel until something repaints it. The
+-- press has to follow the words.
+local outcomePainted
+-- Which outcome the expiry timer was set for. A second press can put a new
+-- outcome up before the first one's timer fires; that timer then has nothing
+-- of its own left to take down, and is ignored rather than spending a repaint
+-- on a flash that is not its own.
+local outcomeGen = 0
 
 -- The spoken line settled for the candidate currently on the button, and the
 -- macro identity it was settled against. Both exist so the tooltip can quote a
@@ -168,12 +184,18 @@ local function ClearHold()
 	heldEntry, heldAt, emptyAt = nil, nil, nil
 end
 
--- Whether an empty queue is still inside its grace period. Asked by the press
--- as well as by the repaint, because the two have to agree about who is on the
--- panel: a visible, named prompt that silently casts nothing is worse than
--- either a prompt that is gone or one that tries and fails.
-local function FuseStillBurning(now)
-	return emptyAt ~= nil and (now - emptyAt) < EMPTY_FUSE_SECONDS
+-- Lights the fuse on an empty queue, once, and asks for a repaint the moment
+-- it has burnt out. The scan is what used to notice, and at two seconds
+-- between scans the panel stood for over a second past its own fuse, still
+-- naming somebody the queue had already let go of.
+local function LightFuse(now)
+	if emptyAt then return end
+	emptyAt = now
+	if C_Timer and C_Timer.After then
+		C_Timer.After(EMPTY_FUSE_SECONDS + 0.05, function()
+			ns.Guard("fuse repaint", Prompt.Refresh, Prompt)
+		end)
+	end
 end
 
 -- Whether this entry was deliberately retired: a block is either the retry
@@ -212,6 +234,31 @@ local function SetPanelShown(want)
 	if InCombatLockdown() then return false end
 	if want then button:Show() else button:Hide() end
 	return true
+end
+
+-- Ends a move that is under way: the frame let go of, where it landed written
+-- down, and the prompt locked. One place for the two ways a drag can end -- the
+-- release, and a fight arriving while it is still held -- because the second
+-- has to leave the prompt exactly where the first would have.
+local function FinishDrag()
+	dragging = nil
+	button:StopMovingOrSizing()
+	local point, _, relPoint, x, y = button:GetPoint()
+	local p = ns.db.profile.prompt
+	p.point, p.relPoint, p.x, p.y = point, relPoint, math.floor(x + 0.5), math.floor(y + 0.5)
+
+	-- Lock straight after a drag. An unlocked prompt cannot cast, and
+	-- leaving it that way looks identical to a working one that simply has
+	-- nobody to offer -- so the addon silently does nothing. Unlock again
+	-- to nudge it further.
+	p.locked = true
+	Prompt:ApplyStyle()
+	-- The page is usually open for this -- its Locked box is how the prompt
+	-- was unlocked -- and it went on showing the box unticked over a prompt
+	-- that had just locked itself, with the sliders and the position
+	-- dropdown still describing where it used to be.
+	ns.RepaintOptions()
+	ns.addon:Print("moved and locked.")
 end
 
 -- Below the panel normally, above it when the prompt is sitting in the bottom
@@ -517,26 +564,23 @@ function Prompt:Create()
 	button:SetScript("OnDragStart", function(self)
 		if ns.db.profile.prompt.locked or InCombatLockdown() then return end
 		self:StartMoving()
+		dragging = true
 	end)
 
-	button:SetScript("OnDragStop", function(self)
-		self:StopMovingOrSizing()
-		local point, _, relPoint, x, y = self:GetPoint()
-		local p = ns.db.profile.prompt
-		p.point, p.relPoint, p.x, p.y = point, relPoint, math.floor(x + 0.5), math.floor(y + 0.5)
-
-		-- Lock straight after a drag. An unlocked prompt cannot cast, and
-		-- leaving it that way looks identical to a working one that simply has
-		-- nobody to offer -- so the addon silently does nothing. Unlock again
-		-- to nudge it further.
-		p.locked = true
-		Prompt:ApplyStyle()
-		-- The page is usually open for this -- its Locked box is how the prompt
-		-- was unlocked -- and it went on showing the box unticked over a prompt
-		-- that had just locked itself, with the sliders and the position
-		-- dropdown still describing where it used to be.
-		ns.RepaintOptions()
-		ns.addon:Print("moved and locked.")
+	-- Only a drag that started has anything to end. The release arrives for
+	-- the refused ones too, and ending them stopped a move on the secure button
+	-- in combat -- a call the client refuses there -- and said "moved and
+	-- locked." for a click on a locked prompt that slid a few pixels. A drag
+	-- still held when a fight starts was ended at the start of it (FinishDrag,
+	-- from PLAYER_REGEN_DISABLED), so one released in combat has nothing left
+	-- to do but forget itself.
+	button:SetScript("OnDragStop", function()
+		if not dragging then return end
+		if InCombatLockdown() then
+			dragging = nil
+			return
+		end
+		FinishDrag()
 	end)
 
 	-- Remember that we tried this person so the queue moves on even if the
@@ -596,8 +640,26 @@ function Prompt:Create()
 		-- A keypress with an empty prompt is otherwise indistinguishable from a
 		-- binding that does not work, which is what this one was. Says it here
 		-- rather than in Bindings.xml because the macro route lands here too.
+		--
+		-- And it says why the panel is empty where that is the addon's own
+		-- doing. A key pressed after /manners off used to hear "nobody to buff"
+		-- -- often untrue, since the queue is built whatever the switch says --
+		-- and nothing about the switch that actually took the panel away.
 		if not self:IsShown() then
-			ns.addon:Print("nobody to buff right now.")
+			local db = ns.db and ns.db.profile
+			if db and not db.enabled then
+				ns.addon:Print("Manners is |cffff8080switched off|r -- |cffffd100/manners on|r"
+					.. " to start again.")
+			elseif not ns.caps.anyKnown then
+				local class = ns.caps.class
+				if class and ns.CLASSES_WITHOUT_BUFFS and ns.CLASSES_WITHOUT_BUFFS[class] then
+					ns.addon:Print(ns.NO_CLASS_BUFFS)
+				else
+					ns.addon:Print("nothing learned to cast yet.")
+				end
+			else
+				ns.addon:Print("nobody to buff right now.")
+			end
 			Prompt:ApplyTarget(nil)
 			return
 		end
@@ -632,17 +694,28 @@ function Prompt:Create()
 
 		local queue = ns.BuildQueue()
 		local top = Prompt:PickTop(queue, queue[1])
-		-- An empty queue while the fuse is still burning is the panel showing
-		-- somebody it has not given up on yet, and the press has to agree with
-		-- what is on screen. Re-resolving to nobody here would disarm a prompt
-		-- that is visible and naming a person, so the click would do nothing at
-		-- all and say nothing about it -- the silent failure the fuse was added
-		-- to avoid, arriving by the other door.
+		local named = Prompt:PanelName()
+		-- An empty queue under a panel still naming somebody is the panel
+		-- showing a person it has not given up on yet, and the press has to
+		-- agree with what is on screen. Re-resolving to nobody here would disarm
+		-- a prompt that is visible and naming a person, so the click would do
+		-- nothing at all and say nothing about it -- the silent failure the fuse
+		-- was added to avoid, arriving by the other door.
+		--
+		-- Asked of the panel rather than of the fuse's clock. Only a scan lights
+		-- the fuse, so a press between somebody stepping out of range and the
+		-- next scan noticing found no fuse at all; and one after the fuse had
+		-- burnt out found the panel still up until the repaint came to take it
+		-- down. Both disarmed a prompt still naming them. The worst this can do
+		-- instead is send a cast the game refuses, and that says so in red.
 		--
 		-- Unless that person was retired: a right-click skip leaves them named
-		-- on the panel until the repaint, and the fuse must not keep them armed
-		-- for a left press to cast at, and speak at, somebody just declined.
-		if not top and FuseStillBurning(now) and not Retired(current, now) then
+		-- on the panel until the repaint, and this must not keep them armed for
+		-- a left press to cast at, and speak at, somebody just declined. Nor
+		-- when a flash about somebody else is written over their name: the
+		-- press follows the words on the panel, never the entry under them.
+		if not top and current and not Retired(current, now) and named == current.name then
+			LightFuse(now)
 			pressKey = appliedKey
 			return
 		end
@@ -654,7 +727,6 @@ function Prompt:Create()
 		-- was cast at, and spoken to, under a panel still naming somebody else.
 		-- The same goes for a red flash about a refused press, which sits over a
 		-- button the refusal has already re-armed at the next person.
-		local named = Prompt:PanelName()
 		if top and named and top.name ~= named then
 			local fresh
 			for _, candidate in ipairs(queue) do
@@ -717,14 +789,26 @@ function Prompt:Create()
 			local now = GetTime()
 			if lastSkipAt and (now - lastSkipAt) < 0.25 then return end
 			lastSkipAt = now
-			if not (current and current.name) then return end
+			-- Whoever the panel names, which the left press was already made to
+			-- follow. Under a red flash that is the person the flash is about,
+			-- while `current` is the next one the refusal re-armed underneath --
+			-- so the skip declined somebody still out of sight for the full
+			-- cooldown, and the one on screen came back two seconds later. With
+			-- nobody underneath at all it did nothing and said nothing.
+			local victim = Prompt:PanelName() or (current and current.name)
+			if not victim then
+				ns.addon:Print("nobody to skip right now.")
+				return
+			end
 			local db = ns.db and ns.db.profile
 			-- The retry cooldown, not the two seconds a failed cast writes:
 			-- that would put them straight back on the prompt.
-			ns.BlockPerson(current.name)
+			ns.BlockPerson(victim)
 			Prompt:StopAttention()
 			if db and db.verbose then
-				ns.addon:Print(("skipping |cffffffff%s|r for now."):format(current.short or current.name))
+				local shown = (current and current.name == victim and current.short)
+					or (ns.ShortName and ns.ShortName(victim)) or victim
+				ns.addon:Print(("skipping |cffffffff%s|r for now."):format(shown))
 			end
 			-- And the panel moves on now rather than at the next scan. Until it
 			-- did, the declined person stayed named and armed for up to a scan --
@@ -1578,10 +1662,16 @@ STRATEGIES.target = function(entry, spell)
 	-- made-up entries -- the preview, the phrase roller -- whose names have no
 	-- realm in them either way.
 	local who = entry.targetName or entry.name or ""
+	-- No hand-back for somebody reached through the target token: they are
+	-- already the player's target, /target on them changes nothing, and the
+	-- last-target slot still holds whoever came before them -- a mob, as often
+	-- as not -- which /targetlasttarget would then switch to. The unit is in
+	-- the macro's key, so this is rebuilt the moment the target changes.
+	local restore = ns.db.profile.filters.restoreTarget == true and entry.unit ~= "target"
 	return {
 		TargetCommand() .. " " .. who,
 		"/cast " .. spell,
-	}, ns.db.profile.filters.restoreTarget == true,
+	}, restore,
 		{ targeted = true, selfCast = false, aimedAt = who }
 end
 
@@ -1646,8 +1736,13 @@ function Prompt:ClickSummary(entry)
 		-- player anywhere else, and this sentence claims to describe the macro.
 		out[#out + 1] = ("Targets |cffffffff%s|r, casts |cffffffff%s|r.")
 			:format(entry.targetName or entry.name or who, spell)
-		if ns.db.profile.filters.restoreTarget then
+		-- What the strategy decided, not the setting it started from: the two
+		-- differ for your own target, whose macro hands nothing back.
+		local _, restore = CastLines(entry)
+		if restore then
 			out[#out + 1] = "Hands your own target back afterwards."
+		elseif ns.db.profile.filters.restoreTarget then
+			out[#out + 1] = "They are already your target, so they stay targeted."
 		else
 			out[#out + 1] = "|cffffcc66Leaves them targeted|r -- your own target is not restored."
 		end
@@ -1918,6 +2013,18 @@ function Prompt:ShowOutcome(kind, name, detail)
 		textLayer.swap:Stop()
 		textLayer.swap:Play()
 	end
+	-- And taken off on time, for the same reason. The scan used to be what
+	-- noticed the outcome had run out, up to two seconds later, and all that
+	-- while the name line went on reading "could not buff" somebody the button
+	-- underneath had already moved on from.
+	outcomeGen = outcomeGen + 1
+	local gen = outcomeGen
+	if C_Timer and C_Timer.After then
+		C_Timer.After(OUTCOME_SECONDS + 0.05, function()
+			if gen ~= outcomeGen then return end
+			ns.Guard("prompt outcome expiry", Prompt.Refresh, Prompt)
+		end)
+	end
 	-- Painted now rather than waiting for the scan. At 0.4s between ticks, a
 	-- confirmation that waits for one misses most of its own half-second.
 	ns.Guard("prompt outcome paint", Prompt.Refresh, self)
@@ -1931,11 +2038,17 @@ function Prompt:OutcomeLive()
 	return false
 end
 
--- Who the panel is naming as far as a press is concerned: the person a live
--- outcome is about, since it is written over the name line, and otherwise the
+-- Who the panel is naming as far as a press is concerned: the person an
+-- outcome is about while it is written over the name line, and otherwise the
 -- entry last painted. nil when it is naming nobody the queue could hold.
+--
+-- Read off what was painted, not off whether the outcome is still live. The
+-- two used to be treated as one, and they are not: the outcome runs out on the
+-- clock and its words stay until something repaints the panel. In that gap
+-- this answered with the entry underneath, and a press made on a panel reading
+-- "could not buff Anna" cast at whoever the refusal had armed after her.
 function Prompt:PanelName()
-	if self:OutcomeLive() then return outcomeName end
+	if outcomePainted then return outcomePainted end
 	return heldEntry and heldEntry.name
 end
 
@@ -1945,6 +2058,7 @@ end
 -- one, made on a panel that says who it is for, casts at them.
 function Prompt:MovedOn(top)
 	outcomeKind, outcomeAt, outcomeName, outcomeDetail = nil, nil, nil, nil
+	outcomePainted = nil
 	if resultFill then resultFill:Hide() end
 	ns.Guard("prompt moved on", Prompt.Refresh, self)
 	self:ApplyTarget(nil)
@@ -1994,6 +2108,7 @@ function Prompt:PaintOutcome()
 	resultFill:SetVertexColor(r, g, b, 0.22)
 	resultFill:Show()
 	nameText:SetText(lead)
+	outcomePainted = outcomeName
 	if subText:IsShown() then subText:SetText(sub or "") end
 	countChip:Hide()
 	countText:SetText("")
@@ -2027,6 +2142,7 @@ function Prompt:PaintHeldInert(why)
 	local frozen = button:GetAttribute("macrotext1")
 	nameText:SetText(frozen and "|cffff8080still armed by the fight|r"
 		or "|cff909098nothing to buff|r")
+	outcomePainted = nil
 	if subText:IsShown() then
 		subText:SetText(("|cffb0b0b0%s -- %s|r"):format(why,
 			frozen and "a press still casts what the fight froze"
@@ -2100,6 +2216,8 @@ function Prompt:Paint(entry, extra)
 	local p = ns.db.profile.prompt
 
 	nameText:SetText(self:RenderPrimary(entry, extra))
+	-- The name line is the entry's again, so a press follows the entry.
+	outcomePainted = nil
 	if subText:IsShown() then subText:SetText(self:ReasonText(entry)) end
 
 	local showCount = p.showCount and extra > 0
@@ -2230,6 +2348,7 @@ function Prompt:Refresh()
 		ClearHold()
 		if SetPanelShown(true) then
 			nameText:SetText("|cffffd100Drag to move|r")
+			outcomePainted = nil
 			if subText:IsShown() then subText:SetText("|cffff8080not buffing while unlocked|r") end
 			countChip:Hide()
 			countText:SetText("")
@@ -2313,6 +2432,7 @@ function Prompt:Refresh()
 			-- only clear it, never point it at somebody new.
 			if current then
 				nameText:SetText(self:RenderPrimary(current, 0))
+				outcomePainted = nil
 				if subText:IsShown() then
 					subText:SetText("|cffb0b0b0held -- in combat|r")
 				end
@@ -2378,12 +2498,13 @@ function Prompt:Refresh()
 		end
 
 		if button:IsShown() and current and not retired then
-			emptyAt = emptyAt or now
+			LightFuse(now)
 			if now - emptyAt < EMPTY_FUSE_SECONDS then return end
 		end
 
 		self:ApplyTarget(nil)
 		button:Hide()
+		outcomePainted = nil
 		self:StopAttention()
 		HideQueue()
 		lastTop = nil
@@ -2492,6 +2613,16 @@ function Prompt:SayWaiting(left)
 		subText:SetText(("|cffb8b8c7ready in %.1fs|r"):format(
 			math.max(0.1, math.ceil((left or 0) * 10) / 10)))
 	end)
+end
+
+-- A drag still held when a fight starts is ended here, from
+-- PLAYER_REGEN_DISABLED, which arrives just before the lockdown does. That is
+-- the last moment the move can be stopped at all: the release comes in the
+-- fight, where stopping a move on the secure button is refused, and the
+-- position with it would never have been saved.
+function Prompt:FinishDragForFight()
+	if not dragging or not button or InCombatLockdown() then return end
+	FinishDrag()
 end
 
 function Prompt:GetButton()
