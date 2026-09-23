@@ -688,6 +688,53 @@ local function getLibrary(name, silent)
 			db.RegisterCallback = function(target, event, method)
 				Mock.dbCallbacks[event] = { target = target, method = method }
 			end
+
+			-- AceDB's SetProfile, reduced to what it does to the tables: the
+			-- profile being left has every value equal to its default stripped
+			-- -- compared against the very table handed to New, and a sub-table
+			-- emptied by that is dropped -- and the one arrived at is filled from
+			-- that same defaults table. Both walks are the library's own. A
+			-- profile that shares a table with the defaults instead of copying
+			-- it has that table stripped against itself, which empties the
+			-- default for the rest of the session; a scenario that only swaps
+			-- sub-tables by hand can never see that.
+			local function removeDefaults(tbl, defs)
+				for k, v in pairs(defs) do
+					if type(v) == "table" and type(tbl[k]) == "table" then
+						removeDefaults(tbl[k], v)
+						if next(tbl[k]) == nil then tbl[k] = nil end
+					elseif tbl[k] == defs[k] then
+						tbl[k] = nil
+					end
+				end
+			end
+			local function copyDefaults(dest, src)
+				for k, v in pairs(src) do
+					if type(v) == "table" then
+						if rawget(dest, k) == nil then rawset(dest, k, {}) end
+						if type(dest[k]) == "table" then copyDefaults(dest[k], v) end
+					elseif rawget(dest, k) == nil then
+						rawset(dest, k, v)
+					end
+				end
+			end
+			Mock.sv.profiles = Mock.sv.profiles or {}
+			db.SetProfile = function(self, name)
+				local current = Mock.sv.profileName or "Default"
+				if name == current then return end
+				removeDefaults(self.profile, defaults.profile)
+				Mock.sv.profiles[current] = self.profile
+				local arrived = Mock.sv.profiles[name] or {}
+				copyDefaults(arrived, defaults.profile)
+				Mock.sv.profiles[name] = arrived
+				Mock.sv.profileName = name
+				Mock.sv.profile = arrived
+				self.profile = arrived
+				local changed = Mock.dbCallbacks["OnProfileChanged"]
+				if changed then
+					changed.target[changed.method](changed.target, "OnProfileChanged", self, name)
+				end
+			end
 			return db
 		end
 	elseif name == "AceConfig-3.0" then lib.RegisterOptionsTable = function() end

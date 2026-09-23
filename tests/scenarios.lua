@@ -14212,6 +14212,211 @@ if ns then
 end
 Mock.reset()
 
+-- ------------------------------------------------------------------ 219
+-- A colour repaired at login does not turn the prompt white on the next
+-- profile switch.
+--
+-- ClampSettings put a damaged colour right by storing the defaults' own table
+-- in the profile -- the very table AceDB holds as the default. At a profile
+-- switch AceDB strips every value equal to its default out of the profile it
+-- is leaving, and with the two tables being one, it stripped the default of
+-- all four of its numbers. Every profile arrived at after that was filled from
+-- an empty colour, which reads as 1,1,1,1: a solid white panel on every
+-- profile until the next /reload.
+for _, case in ipairs({
+	{ label = "a word", value = "black" },
+	{ label = "three letters", value = { "a", "b", "c" } },
+}) do
+	Mock.reset()
+	Mock.sv = {}
+	local scenario = "a repaired colour survives a profile switch (" .. case.label .. ")"
+	ns = load(scenario)
+	if ns then
+		drive(scenario, ns)
+		if not ns.db.SetProfile then
+			fail(scenario, "SKIPPED -- the mock AceDB cannot switch profiles")
+		else
+			local want = { 0.04, 0.04, 0.06, 0.88 }
+			ns.db.profile.prompt.bgColor = case.value
+			ns.ClampSettings()
+			ns.db:SetProfile("Alt")
+			local function same(c)
+				if type(c) ~= "table" then return false end
+				for i = 1, 4 do
+					if c[i] ~= want[i] then return false end
+				end
+				return true
+			end
+			if not same(ns.defaults.profile.prompt.bgColor) then
+				fail(scenario, "the switch emptied the default colour itself: "
+					.. #ns.defaults.profile.prompt.bgColor .. " numbers left in it")
+			end
+			if not same(ns.db.profile.prompt.bgColor) then
+				fail(scenario, "the profile switched to paints its panel from "
+					.. #ns.db.profile.prompt.bgColor .. " numbers, which reads as white")
+			end
+			ns.db:SetProfile("Default")
+			if not same(ns.db.profile.prompt.bgColor) then
+				fail(scenario, "switching back found the repaired colour gone")
+			end
+		end
+	end
+end
+Mock.reset()
+
+-- And a colour that was fine to begin with is the one kept.
+Mock.reset()
+Mock.sv = {}
+ns = load("a chosen colour survives a profile switch")
+if ns then
+	local scenario = "a chosen colour survives a profile switch"
+	drive(scenario, ns)
+	if ns.db.SetProfile then
+		ns.db.profile.prompt.bgColor = { 0.2, 0.3, 0.4, 0.5 }
+		ns.ClampSettings()
+		ns.db:SetProfile("Alt")
+		ns.db:SetProfile("Default")
+		local c = ns.db.profile.prompt.bgColor
+		if c[1] ~= 0.2 or c[2] ~= 0.3 or c[3] ~= 0.4 or c[4] ~= 0.5 then
+			fail(scenario, "a colour somebody chose did not come back from a switch")
+		end
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 220
+-- An emptied phrase box shows at once what it falls back to, and nothing
+-- unrelated changes the phrases afterwards.
+--
+-- The box stored an empty string as it was typed: it looked empty, nothing
+-- was said, and Roll a few printed "(nothing ...)". But the load-time repair
+-- refills blank phrases with a set, and it also runs from the Width, Height
+-- and Icon size sliders -- so the lines a player had deleted came back after a
+-- nudge of a slider that has nothing to do with speech, and at the next login
+-- regardless, since AceDB never keeps an empty string that is the default.
+for _, case in ipairs({
+	{ label = "emptied", typed = "", choice = nil },
+	{ label = "only spaces", typed = "  \n  ", choice = nil },
+	{ label = "emptied on the Quiet set", typed = "", choice = "quiet" },
+}) do
+	Mock.reset()
+	local scenario = "an emptied phrase box shows its fallback at once (" .. case.label .. ")"
+	ns = load(scenario)
+	if ns then
+		drive(scenario, ns)
+		local phrases = findOption(ns.optionsTable, "phrases")
+		local width = findOption(ns.optionsTable, "width")
+		if not (phrases and phrases.set and phrases.get and width and width.set) then
+			fail(scenario, "SKIPPED -- the phrase box or the width slider is not on the page")
+		else
+			local speech = ns.db.profile.speech
+			speech.presetChoice = case.choice
+			local want = ns.PhraseSetText(case.choice or "roleplay")
+			phrases.set({ "phrases" }, case.typed)
+			local shown = phrases.get({ "phrases" })
+			if shown ~= want then
+				fail(scenario, "the box went on showing \"" .. (tostring(shown):gsub("\n", "\\n"))
+					.. "\" instead of the set it falls back to")
+			end
+			width.set({ "width" }, ns.db.profile.prompt.width + 10)
+			if phrases.get({ "phrases" }) ~= shown then
+				fail(scenario, "nudging the width slider changed the phrases the box showed")
+			end
+		end
+	end
+end
+Mock.reset()
+
+-- Lines somebody typed are theirs: no slider rewrites them.
+Mock.reset()
+ns = load("typed phrases survive the size sliders")
+if ns then
+	local scenario = "typed phrases survive the size sliders"
+	drive(scenario, ns)
+	local phrases = findOption(ns.optionsTable, "phrases")
+	if phrases and phrases.set then
+		local typed = "Here you go, {name}.\nOne good turn."
+		phrases.set({ "phrases" }, typed)
+		for _, key in ipairs({ "width", "height", "iconSize" }) do
+			local slider = findOption(ns.optionsTable, key)
+			if slider and slider.set then
+				slider.set({ key }, ns.db.profile.prompt[key])
+			end
+		end
+		if ns.db.profile.speech.phrases ~= typed then
+			fail(scenario, "the size sliders rewrote the phrases somebody typed")
+		end
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 221
+-- A prompt moved onto its new anchor by an update says so in chat.
+--
+-- The carry-over in scenario 190 takes a bottom anchor with a negative offset
+-- to be a 0.9.x leftover and moves it onto the middle of the screen. Its
+-- reasoning was that no drag produces a negative offset from the bottom edge
+-- -- but the Y slider does, anywhere down to -2000, and on beta.1 to beta.3 the
+-- default anchor was already the bottom one. Such a prompt, sat on the bottom
+-- edge, came back below the middle of the screen with nothing anywhere to say
+-- why. The two cannot be told apart from what is on disk, so the move stands;
+-- the player is told it happened and how to put it back.
+for _, case in ipairs({
+	{ label = "carried", y = -40, note = true },
+	{ label = "nothing to carry", y = 40, note = false },
+}) do
+	Mock.reset()
+	Mock.sv = {}
+	local scenario = "a carried anchor is announced (" .. case.label .. ")"
+	local saved = savedProfile(scenario, function(profile)
+		profile.prompt.point, profile.prompt.relPoint = "BOTTOM", "BOTTOM"
+		profile.prompt.y = case.y
+		profile.prompt.anchorCarried = nil
+	end)
+	ns = saved and load(scenario)
+	local said = ns and firstLogin(ns)
+	if not said then
+		fail(scenario, "SKIPPED -- the session would not start")
+	else
+		local p = ns.db.profile.prompt
+		local moved = p.point == "CENTER"
+		if moved ~= case.note then
+			fail(scenario, "SKIPPED -- the carry-over " .. (moved and "fired" or "did not fire")
+				.. " for a Y of " .. case.y)
+		end
+		local noted = said:find("Put it", 1, true) ~= nil
+		if case.note and not noted then
+			fail(scenario, "the prompt was moved onto a new anchor and chat said nothing: " .. said)
+		elseif not case.note and noted then
+			fail(scenario, "a prompt that was not moved was said to have been: " .. said)
+		end
+		ns.Prompt:ExitTest()
+	end
+end
+Mock.reset()
+
+-- And a switch onto a profile no version since has loaded, which is carried
+-- the same way and has to be told about in the same way.
+Mock.reset()
+ns = load("a carried anchor is announced (profile switch)")
+if ns then
+	local scenario = "a carried anchor is announced (profile switch)"
+	drive(scenario, ns)
+	local p = ns.db.profile.prompt
+	p.point, p.relPoint, p.y = "BOTTOM", "BOTTOM", -40
+	p.anchorCarried = nil
+	Mock.printed = {}
+	ns.addon:RefreshConfig()
+	local said = table.concat(Mock.printed, "\n")
+	if p.point ~= "CENTER" then
+		fail(scenario, "SKIPPED -- the carry-over did not fire on the switch")
+	elseif not said:find("Put it", 1, true) then
+		fail(scenario, "a profile switch moved the prompt onto a new anchor and chat said"
+			.. " nothing: " .. said)
+	end
+end
+Mock.reset()
+
 -- ------------------------------------------------------------------ report
 print("=== scenarios ===")
 if #failures == 0 then

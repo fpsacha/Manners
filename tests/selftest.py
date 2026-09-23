@@ -2547,6 +2547,39 @@ mutate("Core.lua",
        expect="said it is switched off 2 times",
        script="runscenarios.py")
 
+# A damaged colour repaired with the defaults' own table, which the next
+# profile switch strips bare -- a white panel on every profile after it.
+mutate("Core.lua",
+       "\t\t\tp[key] = { d[1], d[2], d[3], d[4] }\n",
+       "\t\t\tp[key] = d\n",
+       "a repaired colour sharing the default's table",
+       expect="the switch emptied the default colour itself",
+       script="runscenarios.py")
+
+# An emptied phrase box kept as typed, and refilled later by a size slider.
+mutate("Options.lua",
+       "\t\t\t\t\t\t\tif type(value) ~= \"string\" or value:match(\"^%s*$\") then\n",
+       "\t\t\t\t\t\t\tif false then\n",
+       "an emptied phrase box kept empty",
+       expect="the box went on showing",
+       script="runscenarios.py")
+
+# The anchor carry-over moving a prompt without a word...
+mutate("Core.lua",
+       "\t\t\tns.anchorCarriedNote = true\n",
+       "",
+       "a carried anchor moved in silence",
+       expect="the prompt was moved onto a new anchor and chat said nothing",
+       script="runscenarios.py")
+
+# ...and a profile switch that carries one not saying so.
+mutate("Core.lua",
+       "\tns.SayAnchorCarried()\n\tns.Prompt:ApplyStyle()\n",
+       "\tns.Prompt:ApplyStyle()\n",
+       "a carried anchor on a switch moved in silence",
+       expect="a profile switch moved the prompt onto a new anchor",
+       script="runscenarios.py")
+
 print()
 print("after restore:")
 # This file edits the addon in place. A restore that did not happen leaves a

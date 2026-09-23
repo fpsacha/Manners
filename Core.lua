@@ -4885,15 +4885,23 @@ function ns.ClampSettings()
 	-- the middle of the screen landed below the bottom edge, where clamping
 	-- pinned it over the action bars and the position dropdown showed nothing.
 	--
-	-- A negative offset from the bottom edge can only be that: the prompt is
-	-- clamped to the screen, so no drag produces one. A positive one cannot be
-	-- told from a drag made since, and is left alone. Once per profile, stamped
-	-- in a key with no default so AceDB never strips the stamp -- a copied or
-	-- reset profile comes back through here and gets the same treatment.
+	-- A negative offset from the bottom edge is taken to be that, though it is
+	-- not the only way to get one. No drag produces it -- the prompt is clamped
+	-- to the screen -- but the Y slider does, anywhere down to -2000, and on
+	-- beta.1 to beta.3 the default anchor was already the bottom edge. A prompt
+	-- slid a little below it, which clamping kept flush with the edge, is
+	-- carried too, and lands that far below the middle of the screen. Nothing
+	-- on disk tells the two apart: AceDB strips both anchors as defaults. So
+	-- the move stands and the player is told it happened, and how to put the
+	-- prompt back if it was not wanted. A positive offset cannot be told from a
+	-- drag made since, and is left alone. Once per profile, stamped in a key
+	-- with no default so AceDB never strips the stamp -- a copied or reset
+	-- profile comes back through here and gets the same treatment.
 	if p.anchorCarried ~= true then
 		if p.point == "BOTTOM" and p.relPoint == "BOTTOM"
 			and type(p.y) == "number" and p.y < 0 then
 			p.point, p.relPoint = "CENTER", "CENTER"
+			ns.anchorCarriedNote = true
 		end
 		p.anchorCarried = true
 	end
@@ -4920,13 +4928,34 @@ function ns.ClampSettings()
 	end
 
 	-- Colours are read as four numbers without checking.
+	--
+	-- Repaired with a copy of the default, never the default itself. That
+	-- table is the one AceDB holds as the default: at a profile switch the
+	-- library strips every value equal to its default from the profile being
+	-- left, and with the two being one table it stripped the default bare --
+	-- every profile after that was filled from an empty colour, which reads
+	-- as white, until the next /reload.
 	for _, key in ipairs({ "fontColor", "bgColor", "accentColor" }) do
 		local c = p[key]
 		if type(c) ~= "table" or type(c[1]) ~= "number" or type(c[2]) ~= "number"
 			or type(c[3]) ~= "number" then
-			p[key] = ns.defaults.profile.prompt[key]
+			local d = ns.defaults.profile.prompt[key]
+			p[key] = { d[1], d[2], d[3], d[4] }
 		end
 	end
+end
+
+-- The line for a prompt the anchor carry-over above has just moved. Said
+-- apart from the clamp because the clamp runs at load, before the default
+-- chat frame exists, and anything printed then is printed to nobody: at login
+-- it waits for the build line, and on a profile switch it is said straight
+-- after the clamp. Once, whichever gets there first.
+function ns.SayAnchorCarried()
+	if not ns.anchorCarriedNote then return end
+	ns.anchorCarriedNote = nil
+	addon:Print("the prompt was moved onto its new anchor, the middle of the screen."
+		.. " If it used to sit on the bottom edge, drag it back or pick a place under"
+		.. " |cffffd100Put it|r on the options page.")
 end
 
 function addon:OnInitialize()
@@ -5029,6 +5058,8 @@ function addon:OnEnable()
 			self:Print(("build |cffffd100%s|r watching for buffs. Ready to cast |cffffd100%s|r."):format(
 				tostring(ns.BUILD), buff and ns.BuffName(buff) or ("nothing -- " .. ns.NothingToCast())))
 		end
+		-- Why the prompt is somewhere else this session, if an update moved it.
+		ns.SayAnchorCarried()
 		-- The macro an older version made, while nothing else is going on.
 		ns.SettleOldMacro()
 		-- And, on this character's very first login, what the thing is for.
@@ -5071,6 +5102,9 @@ end
 
 function addon:RefreshConfig()
 	ns.ClampSettings()
+	-- A switch or copy onto a profile no version since the carry-over has
+	-- loaded is moved the same way, and said here, where chat already exists.
+	ns.SayAnchorCarried()
 	ns.Prompt:ApplyStyle()
 	ns.Prompt:InvalidateMacro()
 	-- Guarded: the function is nil if Options.lua failed to load, and a throw

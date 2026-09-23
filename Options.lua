@@ -1122,7 +1122,9 @@ local function BuildOptions()
 							.. "|cff888888The whole macro cannot exceed 255 characters, so how long a line "
 							.. "may be depends on the name and on whether your target is handed back. "
 							.. "One that will not fit is dropped rather than cut off -- "
-							.. "|cffffd100Roll a few|r shows what would really go out.|r",
+							.. "|cffffd100Roll a few|r shows what would really go out. "
+							.. "An empty box goes back to the chosen set -- switch off "
+							.. "|cffffd100Say something|r to stay quiet.|r",
 					},
 					phrases = {
 						type = "input",
@@ -1132,7 +1134,19 @@ local function BuildOptions()
 						width = "full",
 						disabled = function() return not SP().enabled end,
 						get = spGet,
-						set = spSet,
+						-- An empty box snaps back to the set the dropdown names,
+						-- the way the First line does. It used to be kept as
+						-- typed: nothing was said and the box looked empty, until
+						-- the load-time repair refilled it -- which also runs from
+						-- the Width, Height and Icon size sliders, so the deleted
+						-- lines came back on a nudge of one of those, or at the
+						-- next login. What the box shows is now what is kept.
+						set = function(info, value)
+							if type(value) ~= "string" or value:match("^%s*$") then
+								value = ns.PhraseSetText(SP().presetChoice) or ns.PhraseSetText("roleplay")
+							end
+							spSet(info, value)
+						end,
 					},
 					roll = {
 						type = "execute",
