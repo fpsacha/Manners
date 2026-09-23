@@ -1171,10 +1171,10 @@ mutate("Options.lua",
        script="runscenarios.py")
 
 # 86. and the chat switch described as one line when it prints seven kinds --
-#     the useful ones being what each click turned into.
+#     the useful ones being a click that failed or left somebody owed.
 mutate("Options.lua",
-       '''desc = "A line when somebody buffs you, and a line for what each click turned"
-							.. " into -- cast, refused, skipped, or still owed.\\n\\n"''',
+       'desc = "A line when somebody buffs you, when a favour is counted as repaid,"\n'
+       '\t\t\t\t\t\t\t.. " and when a click fails, is skipped, or leaves somebody owed.\\n\\n"',
        '''desc = "A line when somebody buffs you.\\n\\n"''',
        "a chat switch narrower on the page than in the code",
        expect="still describes it as a line for when somebody buffs you",
@@ -1559,9 +1559,9 @@ mutate("Core.lua",
 # it than will ever type a slash command.
 mutate("Options.lua",
        """\t\t\t\t\t\t\t\tif info and info.unresolved and #info.unresolved > 0 then
-\t\t\t\t\t\t\t\t\tlines[#lines + 1] = ("|cffff4040    this client has never heard of\"""",
+\t\t\t\t\t\t\t\t\tlocal missing = {}""",
        """\t\t\t\t\t\t\t\tif false then
-\t\t\t\t\t\t\t\t\tlines[#lines + 1] = ("|cffff4040    this client has never heard of\"""",
+\t\t\t\t\t\t\t\t\tlocal missing = {}""",
        "wrong spell data reported to the console and nowhere else",
        expect="a spell id this client has never heard of",
        script="runscenarios.py")
@@ -2049,13 +2049,11 @@ mutate("Options.lua",
 # icon alone -- on the minimap that is the only shape it has -- and then the
 # tooltip is the last place that can say why no prompt has appeared all evening.
 mutate("Options.lua",
-       """				if Enabled() then
-					tooltip:AddLine("Watching for people to buff.", 0.4, 0.9, 0.4)
-				else
+       """				if not Enabled() then
 					tooltip:AddLine("Switched off -- no prompt will appear.", 1, 0.5, 0.5)
-				end
 """,
-       "",
+       """				if not Enabled() then
+""",
        "a tooltip that never names the state",
        expect="the tooltip never names the state",
        script="runscenarios.py")
@@ -3149,6 +3147,87 @@ mutate("Options.lua",
        "is left alone.\",\n",
        "top-up slider hides the favour exception",
        expect="the top-up slider's description never says somebody who buffed you",
+       script="runscenarios.py")
+
+# The paladin note promising "left alone" under Always offer, which does not
+# look at what they carry...
+mutate("Options.lua",
+       "\t\tif F().whenBuffed == \"always\" then\n",
+       "\t\tif false then\n",
+       "paladin note silent about Always offer",
+       expect="(always offer): somebody wearing your Might is handed",
+       script="runscenarios.py")
+
+# ...and on a client that will not show their blessings.
+mutate("Options.lua",
+       "\t\t\tif not (info and info.readable) then hidden = true end\n",
+       "",
+       "paladin note silent about hidden blessings",
+       expect="(blessings the game hides): somebody wearing your Might is handed",
+       script="runscenarios.py")
+
+# The chat switch promising a line for every click, when a cast that worked
+# prints nothing unless it repaid a favour...
+mutate("Options.lua",
+       'desc = "A line when somebody buffs you, when a favour is counted as repaid,"\n'
+       '\t\t\t\t\t\t\t.. " and when a click fails, is skipped, or leaves somebody owed.\\n\\n"',
+       'desc = "A line when somebody buffs you, and a line for what each click turned"\n'
+       '\t\t\t\t\t\t\t.. " into -- cast, refused, skipped, or still owed.\\n\\n"',
+       "chat switch promises a line per click",
+       expect="the switch's description promises a line for every click",
+       script="runscenarios.py")
+
+# ...and /manners verbose saying the same.
+mutate("Core.lua",
+       "\t\t\t\t.. \" when a favour is counted as repaid, and when a click fails, is\"\n"
+       "\t\t\t\t.. \" skipped, or leaves somebody owed\"\n",
+       "\t\t\t\t.. \" and for what each click turned into\"\n",
+       "/manners verbose promises a line per click",
+       expect="/manners verbose promises a line for every click",
+       script="runscenarios.py")
+
+# Diagnostics saying "never offer" about a spell whose group id alone is
+# missing, while the queue offers it.
+mutate("Options.lua",
+       "\t\t\t\t\t\t\t\t\tif not info.known and not rankResolves then\n",
+       "\t\t\t\t\t\t\t\t\tif true then\n",
+       "diagnostics says never offer for a group id",
+       expect="the page says Manners will never offer a spell the queue is offering",
+       script="runscenarios.py")
+
+# The minimap tooltip saying "Watching" for a character with nothing learned...
+mutate("Options.lua",
+       "\t\t\t\telseif not ns.ResolveBuff(true) then\n",
+       "\t\t\t\telseif false then\n",
+       "tooltip watching with nothing learned",
+       expect="(a mage who has learned nothing): a mage who has learned nothing will never see",
+       script="runscenarios.py")
+
+# ...and for a class with nothing to give.
+mutate("Options.lua",
+       "\t\t\t\telseif class and ns.CLASSES_WITHOUT_BUFFS and ns.CLASSES_WITHOUT_BUFFS[class] then\n",
+       "\t\t\t\telseif false then\n",
+       "tooltip silent about a class with no buffs",
+       expect="the tooltip does not say why a rogue sees no prompt",
+       script="runscenarios.py")
+
+# "Stay quiet in combat" claiming the prompt cannot be hidden.
+mutate("Options.lua",
+       "\t\t\t\t\t\t\t.. \"|cff888888It stays on screen in a fight on purpose: your key binding\"\n"
+       "\t\t\t\t\t\t\t.. \" would still cast the frozen macro if it were hidden.|r\",\n",
+       "\t\t\t\t\t\t\t.. \"|cff888888It cannot be hidden. Blizzard freezes secure frames, so a\"\n"
+       "\t\t\t\t\t\t\t.. \" prompt the fight finds on screen stays on screen until it ends,\"\n"
+       "\t\t\t\t\t\t\t.. \" whatever this says.|r\",\n",
+       "quiet-in-combat says it cannot be hidden",
+       expect="the switch still says the prompt cannot be hidden",
+       script="runscenarios.py")
+
+# "Stay quiet in combat" promising a green flash nothing paints.
+mutate("Options.lua",
+       "\t\t\t\t\t\t\t.. \" happened -- red if it failed. With this on it does not -- the panel\"\n",
+       "\t\t\t\t\t\t\t.. \" happened -- green or red. With this on it does not -- the panel\"\n",
+       "quiet-in-combat promises a green flash",
+       expect="the switch promises a green flash the prompt never paints",
        script="runscenarios.py")
 
 print()

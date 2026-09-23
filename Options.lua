@@ -254,10 +254,30 @@ local function AutoExplanation()
 	-- walk at all: it gives one and stops. Saying "the first of these they are
 	-- missing" here would promise a rotation that would take away what the last
 	-- click gave.
+	--
+	-- "Left alone" rests on reading what they carry, and two things stop the
+	-- reading: "Always offer" chooses not to look, and a client that hides a
+	-- blessing's aura cannot. Either way the walk hands out the first blessing
+	-- that suits them -- deliberately, see PickBuffFor -- and for a mana user
+	-- wearing your Might that is Wisdom, which takes the Might away. The note
+	-- said it could not happen.
 	if ns.EXCLUSIVE_BUFFS[ns.caps.class] then
-		return ("Your blessings replace one another, so Automatic gives one and stops:"
+		local text = ("Your blessings replace one another, so Automatic gives one and stops:"
 			.. " the first of %s that suits them. Anybody already carrying one of yours is"
-			.. " left alone rather than handed a different one."):format(list)
+			.. " left alone rather than handed a different one"):format(list)
+		local hidden = false
+		for _, buff in ipairs(castable) do
+			local info = ns.BuffInfo(buff)
+			if not (info and info.readable) then hidden = true end
+		end
+		if F().whenBuffed == "always" then
+			return text .. " -- except with |cffffd100Always offer|r chosen, which does not look:"
+				.. " then the first that suits them is offered, and it can replace one of yours."
+		elseif hidden then
+			return text .. " -- except where the game won't show which blessing they carry:"
+				.. " then the first that suits them is offered, and it can replace one of yours."
+		end
+		return text .. "."
 	end
 
 	local text = ("Automatic offers the first of these they are missing, in this order: %s.")
@@ -887,9 +907,14 @@ local function BuildOptions()
 						-- reading the old label had no reason to switch it on to
 						-- find out why a buff went nowhere, which is the question
 						-- it answers best.
+						--
+						-- Those, and not "what each click turned into", which it
+						-- used to promise: a cast that worked prints nothing
+						-- unless it repaid a favour, so somebody switching this on
+						-- to watch their casts saw silence and took it for broken.
 						name = "Tell me in chat what the addon is doing",
-						desc = "A line when somebody buffs you, and a line for what each click turned"
-							.. " into -- cast, refused, skipped, or still owed.\n\n"
+						desc = "A line when somebody buffs you, when a favour is counted as repaid,"
+							.. " and when a click fails, is skipped, or leaves somebody owed.\n\n"
 							.. "Only you see any of it; nothing is ever said to anybody else from"
 							.. " here. Use it to tell 'the buff was never noticed' apart from 'it was"
 							.. " noticed but they could not be reached' -- two very different"
@@ -1677,10 +1702,13 @@ local function BuildOptions()
 					-- call that ever acted on it -- a button:Hide() inside the
 					-- combat branch -- was a protected method on a protected frame,
 					-- so Blizzard refused it every single time it was made, and it
-					-- has since been deleted rather than guarded. There is no
-					-- version of this that hides the panel: a secure visibility
-					-- driver needs macro conditionals, and this client does not
-					-- resolve them.
+					-- has since been deleted rather than guarded. A secure
+					-- visibility driver could hide it -- only the conditionals
+					-- that name a unit, [@Name], are restricted on this client,
+					-- and [combat] resolves -- but a hidden secure button still
+					-- fires from its key binding and from /click, casting the
+					-- frozen macro out of sight. So the panel stays up on
+					-- purpose, and the page says that rather than "cannot".
 					--
 					-- What is left is real and worth a switch, so the switch stays
 					-- and the label moves to it. In a fight the panel is frozen at
@@ -1688,15 +1716,18 @@ local function BuildOptions()
 					-- macro -- so the confirmation flash for that click is the one
 					-- thing on the panel that still changes. This decides whether
 					-- it does.
+					--
+					-- The flash is the reason's own colour and turns red only for
+					-- a failure; nothing paints it green, which this used to
+					-- promise.
 					hideInCombat = {
 						type = "toggle",
 						name = "Stay quiet in combat",
-						desc = "A click still casts in combat, and the prompt still flashes green or red"
-							.. " to say what happened. With this on it does not -- the panel simply"
-							.. " sits there dimmed for the length of the fight.\n\n"
-							.. "|cff888888It cannot be hidden. Blizzard freezes secure frames, so a"
-							.. " prompt the fight finds on screen stays on screen until it ends,"
-							.. " whatever this says.|r",
+						desc = "A click still casts in combat, and the prompt still flashes to say what"
+							.. " happened -- red if it failed. With this on it does not -- the panel"
+							.. " simply sits there dimmed for the length of the fight.\n\n"
+							.. "|cff888888It stays on screen in a fight on purpose: your key binding"
+							.. " would still cast the frozen macro if it were hidden.|r",
 						order = 38,
 						width = "full",
 						get = pGet,
@@ -1946,11 +1977,33 @@ local function BuildOptions()
 								-- are a spell that is never offered -- and only
 								-- one of them is fixable by the people reading
 								-- this page's bug reports.
+								--
+								-- "Never offer" only where it is true. The list
+								-- holds the group version as well as the ranks,
+								-- and a group id the client lacks -- Arcane
+								-- Brilliance -- costs only the check of whether
+								-- somebody is wearing it: Arcane Intellect is
+								-- still learned, offered and cast. Said as "never
+								-- offer", right under "learned: yes".
 								if info and info.unresolved and #info.unresolved > 0 then
-									lines[#lines + 1] = ("|cffff4040    this client has never heard of"
-										.. " spell %s, so Manners will never offer this one."
-										.. " That is a mistake in Manners -- please report it.|r")
-										:format(table.concat(info.unresolved, ", "))
+									local missing = {}
+									for _, id in ipairs(info.unresolved) do missing[id] = true end
+									local rankResolves = false
+									for _, id in ipairs(buff.ranks) do
+										if not missing[id] then rankResolves = true end
+									end
+									if not info.known and not rankResolves then
+										lines[#lines + 1] = ("|cffff4040    this client has never heard of"
+											.. " spell %s, so Manners will never offer this one."
+											.. " That is a mistake in Manners -- please report it.|r")
+											:format(table.concat(info.unresolved, ", "))
+									else
+										lines[#lines + 1] = ("|cffff4040    this client doesn't know spell"
+											.. " %s, so Manners can't see that version on anyone --"
+											.. " somebody already carrying it may be offered this anyway."
+											.. " That is a mistake in Manners -- please report it.|r")
+											:format(table.concat(info.unresolved, ", "))
+									end
 								end
 							end
 							lines[#lines + 1] = "\n|cff888888Where the missing-check is blocked, the game will "
@@ -2108,10 +2161,32 @@ function ns.SetupOptions()
 				-- display is free to show the icon on its own -- and then this
 				-- tooltip is the only place left that can say why no prompt has
 				-- appeared all evening.
-				if Enabled() then
-					tooltip:AddLine("Watching for people to buff.", 0.4, 0.9, 0.4)
-				else
+				--
+				-- Which is why "on" is not enough to say "watching". A rogue, a
+				-- mage who has not learned Arcane Intellect and a priest with
+				-- every spell switched off are all switched on, and none of
+				-- them will ever see a prompt -- so "Watching for people to
+				-- buff" was the one line that made the missing prompt look like
+				-- a bug. Told apart as the greeting tells them apart: a class
+				-- with nothing to give, a class the buff data has no table for,
+				-- nothing learned yet, and a setting in the way.
+				local class = ns.caps and ns.caps.class
+				if not Enabled() then
 					tooltip:AddLine("Switched off -- no prompt will appear.", 1, 0.5, 0.5)
+				elseif class and ns.CLASSES_WITHOUT_BUFFS and ns.CLASSES_WITHOUT_BUFFS[class] then
+					tooltip:AddLine("Nothing to do: " .. ns.NO_CLASS_BUFFS, 1, 0.82, 0)
+				elseif not HasClassBuffs() then
+					tooltip:AddLine("Nothing to cast on this character -- /manners debug says why.",
+						1, 0.82, 0)
+				elseif not ns.ResolveBuff(true) then
+					if ns.caps.anyKnown then
+						tooltip:AddLine(("Nothing will be offered: %s."):format(ns.NothingToCast()),
+							1, 0.5, 0.5, true)
+					else
+						tooltip:AddLine("Nothing learned to cast yet.", 1, 0.82, 0)
+					end
+				else
+					tooltip:AddLine("Watching for people to buff.", 0.4, 0.9, 0.4)
 				end
 				tooltip:AddLine("Left click: options", 0.8, 0.8, 0.8)
 				-- What the click will do, not what the button is for. "Enable or

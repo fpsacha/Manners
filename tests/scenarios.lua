@@ -7797,8 +7797,9 @@ end
 -- "Hide in combat" hid nothing. The only call that ever read it was a
 -- button:Hide() inside the combat branch -- a protected method on a protected
 -- frame, refused by the client every single time it was made -- and that call
--- is now gone. There is no version of it that works: a secure visibility driver
--- wants macro conditionals, which this client does not resolve.
+-- is now gone. A secure visibility driver could hide it ([combat] resolves
+-- here; only [@Name] is restricted), but a hidden secure button still fires
+-- from its key binding and /click, casting the frozen macro out of sight.
 --
 -- What is left is real. A click still casts the frozen macro in a fight, and
 -- the confirmation flash for it is the one thing on a held panel that still
@@ -16777,6 +16778,315 @@ if ns then
 				fail(scenario, what .. " never says somebody who buffed you is offered the buff"
 					.. " anyway: " .. text)
 			end
+		end
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 260
+-- The paladin note says when a blessing of yours can be replaced.
+--
+-- It said that anybody already carrying one of your blessings is left alone
+-- rather than handed a different one. That rests on reading their blessings,
+-- and two things stop the reading: "Always offer, whatever they have", which
+-- chooses not to look, and a client that will not show those auras. Either way
+-- the first blessing that suits them is offered -- Wisdom, to a mana user
+-- wearing your Might, which replaces it -- under a note promising it could not
+-- happen. Where the blessings are read, the promise holds and stays as it was.
+for _, case in ipairs({
+	{ label = "reading them", whenBuffed = "skip" },
+	{ label = "always offer", whenBuffed = "always", exception = true },
+	{ label = "blessings the game hides", whenBuffed = "skip", secret = true, exception = true },
+	{ label = "blessings the game hides, topping up", whenBuffed = "refresh", secret = true,
+		exception = true },
+}) do
+	Mock.reset()
+	Mock.class = "PALADIN"
+	local scenario = "the paladin note says when a blessing can be replaced (" .. case.label .. ")"
+	local realName = UnitName
+	UnitName = function(u)
+		if u == "player" then return "Mort", "Defrette" end
+		if u == "target" then return "Petra", "Stonewell" end
+		return "Yorick", "Vane"
+	end
+	ns = load(scenario)
+	if ns then
+		local known = {}
+		for _, key in ipairs({ "wisdom", "might", "kings" }) do
+			for _, id in ipairs(ns.FindBuff("PALADIN", key).ranks) do known[id] = true end
+		end
+		local realKnown = IsSpellKnown
+		IsSpellKnown = function(id) return known[id] == true end
+		IsPlayerSpell = function(id) return known[id] == true end
+
+		drive(scenario, ns)
+		Mock.advance(60)
+		wipe(ns.owed)
+		wipe(ns.tried)
+		local might = ns.FindBuff("PALADIN", "might")
+		Mock.held = {}
+		for _, id in ipairs(might.auraIds) do Mock.held[id] = true end
+		if case.secret then
+			Mock.secretAuraIds = {}
+			for _, key in ipairs({ "wisdom", "might", "kings" }) do
+				for _, id in ipairs(ns.FindBuff("PALADIN", key).auraIds) do
+					Mock.secretAuraIds[id] = true
+				end
+			end
+		end
+		ns.Guard("probe", ns.ProbeCapabilities)
+		ns.db.profile.filters.whenBuffed = case.whenBuffed
+
+		-- What the scan really does with somebody wearing your Might, so the
+		-- note is judged against the walk rather than against itself.
+		local handed
+		for _, entry in ipairs(ns.BuildQueue()) do
+			if entry.name == "Petra Stonewell" then handed = entry.buff end
+		end
+		local replaced = handed ~= nil and handed.key ~= "might"
+
+		local note = ns.optionsTable and ns.optionsTable.args.who.args.autoNote
+		local text = note and optionText(note.name) or ""
+		local EXCEPTION = "replace one of yours"
+		if not note then
+			fail(scenario, "SKIPPED -- no Automatic note")
+		elseif replaced ~= (case.exception == true) then
+			fail(scenario, "SKIPPED -- somebody wearing your Might was "
+				.. (handed and ("handed " .. handed.key) or "left alone")
+				.. ", which is not what this case was built to show")
+		elseif case.exception and not text:find(EXCEPTION, 1, true) then
+			fail(scenario, ("somebody wearing your Might is handed %s, which replaces it, and"
+				.. " the note still promises they are left alone: %s"):format(handed.key, text))
+		elseif not case.exception and (text:find(EXCEPTION, 1, true)
+			or not text:find("left alone", 1, true)) then
+			fail(scenario, "where the blessings are read the note no longer says plainly that"
+				.. " somebody carrying one of yours is left alone: " .. text)
+		end
+
+		IsSpellKnown = realKnown
+		IsPlayerSpell = realKnown
+	end
+	UnitName = realName
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 261
+-- The chat switch lists what it prints.
+--
+-- Its description promised "a line for what each click turned into -- cast,
+-- refused, skipped, or still owed", and /manners verbose said the same. A cast
+-- the game confirmed prints nothing at all, and neither does any cast on
+-- somebody who was not owed: the only line for a click that worked is "counted
+-- as repaid", for a favour. So somebody switching it on to watch their casts
+-- saw nothing and took the switch for broken.
+Mock.reset()
+ns = load("the chat switch lists what it prints")
+if ns then
+	local scenario = "the chat switch lists what it prints"
+	drive(scenario, ns)
+	local verbose = ns.optionsTable and ns.optionsTable.args.general.args.verbose
+	if not verbose then
+		fail(scenario, "SKIPPED -- the chat switch is not on the page")
+	else
+		ns.db.profile.verbose = false
+		Mock.printed = {}
+		ns.addon:HandleSlash("verbose")
+		local said = table.concat(Mock.printed, " | ")
+		for what, text in pairs({ ["the switch's description"] = optionText(verbose.desc),
+			["/manners verbose"] = said }) do
+			if text:find("each click", 1, true) then
+				fail(scenario, what .. " promises a line for every click, and a cast that"
+					.. " worked prints nothing: " .. text)
+			end
+			if not text:find("repaid", 1, true) then
+				fail(scenario, what .. " does not name the one line a cast that worked"
+					.. " prints: " .. text)
+			end
+		end
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 262
+-- Diagnostics says "never offer" only about a spell that is never offered.
+--
+-- Every id of a buff is checked against the client, the ranks and the group
+-- version alike, and any one of them missing printed "this client has never
+-- heard of spell N, so Manners will never offer this one". A missing group id
+-- -- Arcane Brilliance, say -- costs only the check of whether somebody is
+-- already wearing it: Arcane Intellect is still learned, offered and cast, and
+-- the page said "learned: yes" directly above "never offer". A rank the client
+-- does not have, on a spell nobody has learned, is still the "never" case.
+for _, case in ipairs({
+	{ label = "a group id", class = "MAGE", key = "intellect", missing = 23028, offered = true },
+	{ label = "the only rank", class = "SHAMAN", key = "skyfury", missing = 462854,
+		interface = 120100 },
+}) do
+	Mock.reset()
+	if case.interface then Mock.interface = case.interface end
+	Mock.class = case.class
+	Mock.unknownSpells = { [case.missing] = true }
+	local scenario = "diagnostics says never offer only when it is true (" .. case.label .. ")"
+	local realName = UnitName
+	UnitName = function(u)
+		if u == "player" then return "Mort", "Defrette" end
+		if u == "target" then return "Petra", "Stonewell" end
+		return "Yorick", "Vane"
+	end
+	ns = load(scenario)
+	if ns then
+		drive(scenario, ns)
+		Mock.advance(60)
+		wipe(ns.owed)
+		wipe(ns.tried)
+		ns.Guard("probe", ns.ProbeCapabilities)
+
+		local offered = false
+		for _, entry in ipairs(ns.BuildQueue()) do
+			if entry.buff and entry.buff.key == case.key then offered = true end
+		end
+		local diag = ns.optionsTable and ns.optionsTable.args.diagnostics
+			and ns.optionsTable.args.diagnostics.args.diag
+		local text = diag and optionText(diag.name) or ""
+		if not ns.FindBuff(case.class, case.key) then
+			fail(scenario, "SKIPPED -- this client has no " .. case.key .. " to get wrong")
+		elseif not diag then
+			fail(scenario, "SKIPPED -- there is no diagnostics text to read")
+		elseif offered ~= (case.offered == true) then
+			fail(scenario, "SKIPPED -- " .. case.key .. " was " .. (offered and "" or "not ")
+				.. "offered, which is not what this case was built to show")
+		elseif not text:find(tostring(case.missing), 1, true) then
+			fail(scenario, "the page no longer names the id this client does not have: " .. text)
+		elseif case.offered and text:find("never offer", 1, true) then
+			fail(scenario, "the page says Manners will never offer a spell the queue is offering"
+				.. " right now: " .. text)
+		elseif not case.offered and not text:find("never offer", 1, true) then
+			fail(scenario, "a spell no rank of which exists here is no longer said to be never"
+				.. " offered: " .. text)
+		end
+	end
+	UnitName = realName
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 263
+-- The minimap tooltip does not say it is watching for a character with nothing
+-- to cast.
+--
+-- It asked only whether the addon was switched on, and said "Watching for
+-- people to buff." whenever it was -- to a rogue, and to a mage who has not
+-- learned Arcane Intellect yet, neither of whom will ever see a prompt. The
+-- tooltip exists to say why no prompt has appeared, and it said the one thing
+-- that makes a missing prompt look like a bug.
+for _, case in ipairs({
+	{ label = "a rogue", class = "ROGUE", says = "no buffs" },
+	{ label = "a mage who has learned nothing", class = "MAGE", learned = false,
+		says = "learned" },
+	{ label = "a mage with every spell switched off", class = "MAGE", off = true,
+		says = "switched off under" },
+	{ label = "a mage who can cast", class = "MAGE", watching = true },
+}) do
+	Mock.reset()
+	Mock.class = case.class
+	local scenario = "the minimap tooltip says why nothing is offered (" .. case.label .. ")"
+	ns = load(scenario)
+	if ns then
+		local realKnown = IsSpellKnown
+		if case.learned == false then
+			IsSpellKnown = function() return false end
+			IsPlayerSpell = IsSpellKnown
+		end
+		drive(scenario, ns)
+		ns.Prompt:ExitTest()
+		ns.Guard("probe", ns.ProbeCapabilities)
+		if case.off then
+			for _, buff in ipairs(ns.GetClassBuffs(case.class) or {}) do
+				ns.db.profile.buff.skip[buff.key] = true
+			end
+		end
+
+		local broker = Mock.broker
+		if not (broker and broker.OnTooltipShow) then
+			fail(scenario, "SKIPPED -- no launcher to read")
+		else
+			local lines = {}
+			local tt = { AddLine = function(_, text) lines[#lines + 1] = tostring(text) end }
+			local ok, err = pcall(broker.OnTooltipShow, tt)
+			local said = table.concat(lines, "\n")
+			if not ok then
+				fail(scenario, "the launcher tooltip threw -> " .. tostring(err))
+			elseif case.watching then
+				if not said:find("Watching for people to buff", 1, true) then
+					fail(scenario, "a character with a spell to cast is no longer told the addon"
+						.. " is watching: " .. said)
+				end
+			elseif said:find("Watching", 1, true) then
+				fail(scenario, case.label .. " will never see a prompt and the tooltip says it is"
+					.. " watching for people to buff: " .. said)
+			elseif not said:find(case.says, 1, true) then
+				fail(scenario, "the tooltip does not say why " .. case.label .. " sees no prompt: "
+					.. said)
+			end
+		end
+
+		IsSpellKnown = realKnown
+		IsPlayerSpell = realKnown
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 264
+-- "Stay quiet in combat" gives the true reason the prompt stays up.
+--
+-- It told players the prompt "cannot be hidden" because Blizzard freezes secure
+-- frames, and the comments behind it said a secure visibility driver was out
+-- because this client does not resolve macro conditionals. Only the ones that
+-- name a unit, [@Name], are restricted here; [combat] resolves, and other
+-- addons on this client drive visibility with it. The prompt stays on screen
+-- because a hidden secure button still fires from its key binding and /click,
+-- casting the frozen macro out of sight -- and that is what the page now says.
+Mock.reset()
+ns = load("stay quiet in combat gives the true reason")
+if ns then
+	local scenario = "stay quiet in combat gives the true reason"
+	drive(scenario, ns)
+	local toggle = ns.optionsTable and ns.optionsTable.args.appearance.args.hideInCombat
+	if not toggle then
+		fail(scenario, "SKIPPED -- the combat switch is not on the page")
+	else
+		local desc = optionText(toggle.desc)
+		if desc:find("cannot be hidden", 1, true) or desc:find("Blizzard freezes", 1, true) then
+			fail(scenario, "the switch still says the prompt cannot be hidden, when it is kept up"
+				.. " on purpose: " .. desc)
+		elseif not desc:find("binding", 1, true) then
+			fail(scenario, "the switch does not say why the prompt stays on screen: " .. desc)
+		end
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ 265
+-- "Stay quiet in combat" does not promise a green flash.
+--
+-- It said the prompt "still flashes green or red" to say what happened. The
+-- wash is the reason's own colour -- amber, cyan, blue, grey or the accent you
+-- picked -- and only a failure overrides it, with red. Nothing ever washes the
+-- panel green, so somebody watching for green after a cast that worked took
+-- the cast for lost.
+Mock.reset()
+ns = load("stay quiet in combat promises no green")
+if ns then
+	local scenario = "stay quiet in combat promises no green"
+	drive(scenario, ns)
+	local toggle = ns.optionsTable and ns.optionsTable.args.appearance.args.hideInCombat
+	if not toggle then
+		fail(scenario, "SKIPPED -- the combat switch is not on the page")
+	else
+		local desc = optionText(toggle.desc)
+		if desc:lower():find("green", 1, true) then
+			fail(scenario, "the switch promises a green flash the prompt never paints: " .. desc)
+		elseif not desc:find("%f[%a]red%f[%A]") then
+			fail(scenario, "the switch no longer says a failure flashes red: " .. desc)
 		end
 	end
 end

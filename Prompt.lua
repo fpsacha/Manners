@@ -2494,11 +2494,13 @@ function Prompt:Refresh()
 		-- Nothing honest goes in its place. The button keeps its size, its place
 		-- and its armed macro whatever the art does, so blanking the art would
 		-- leave an invisible thing that still takes a click and still casts --
-		-- worse than a visible panel saying it is held. Doing it properly wants a
-		-- secure visibility driver, and a driver is driven by macro conditionals;
-		-- conditionals are the one thing this client is known not to resolve. So
-		-- what is left is to say true things on art, which is the rest of this
-		-- branch.
+		-- worse than a visible panel saying it is held. A secure visibility
+		-- driver would not change that: only the conditionals that name a unit,
+		-- [@Name], are restricted on this client, and [combat] resolves -- but a
+		-- button the driver hides still fires from its key binding and from
+		-- /click, casting the frozen macro out of sight, which is the same
+		-- invisible thing. So what is left is to say true things on art, which
+		-- is the rest of this branch.
 
 		-- The pulse is a claim that somebody is still owed. The debt can expire
 		-- or be settled in the middle of a fight, and nothing else down here can

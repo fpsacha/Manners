@@ -5455,12 +5455,15 @@ function addon:HandleSlash(rawInput)
 		-- chat frame and nowhere else.
 		--
 		-- And it is not only the favour line. Six other places print through
-		-- this switch -- what a click turned into, above all -- so saying only
-		-- the first of them here left the option's best use unadvertised in
-		-- both of the two places that describe it.
+		-- this switch -- a click that failed or left somebody owed, above all --
+		-- so saying only the first of them here left the option's best use
+		-- unadvertised in both of the two places that describe it. Not "what
+		-- each click turned into", which it once said: a cast that worked prints
+		-- nothing unless it repaid a favour.
 		self:Print("verbose: " .. (db.verbose
 			and "|cff00ff00on|r -- a line in your own chat when somebody buffs you,"
-				.. " and for what each click turned into"
+				.. " when a favour is counted as repaid, and when a click fails, is"
+				.. " skipped, or leaves somebody owed"
 			or "|cffff0000off|r"))
 	elseif input == "on" then
 		db.enabled = true
