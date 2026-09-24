@@ -608,7 +608,23 @@ def draw_texture(canvas, tree, r, box, alpha, px, to_px, place):
     elif isinstance(file, str) and "WHITE8X8" not in file.upper():
         art = load_image_file(file)
         if art is not None:
-            img = Image.fromarray((art * 255).astype(np.uint8), "RGBA").resize((w, h), Image.LANCZOS)
+            img = Image.fromarray((art * 255).astype(np.uint8), "RGBA")
+            # The four-number SetTexCoord -- left, right, top, bottom -- cuts
+            # a piece out of the file before it is stretched, which is how
+            # the halo's corners and sides come out of one glow. At least a
+            # texel either way, so a line through the middle is still a line.
+            tc = r.get("texCoord")
+            if tc and len(tc) == 4 and all(isinstance(v, (int, float)) for v in tc):
+                iw, ih = img.size
+                cl, cr = sorted((tc[0] * iw, tc[1] * iw))
+                ct, cb = sorted((tc[2] * ih, tc[3] * ih))
+                if cr - cl < 1:
+                    cl, cr = (cl + cr) / 2 - 0.5, (cl + cr) / 2 + 0.5
+                if cb - ct < 1:
+                    ct, cb = (ct + cb) / 2 - 0.5, (ct + cb) / 2 + 0.5
+                img = img.resize((w, h), Image.LANCZOS, box=(cl, ct, cr, cb))
+            else:
+                img = img.resize((w, h), Image.LANCZOS)
             a = np.asarray(img).astype(np.float32) / 255
             rgba[..., :3] *= a[..., :3]
             rgba[..., 3] *= a[..., 3]

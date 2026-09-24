@@ -103,6 +103,20 @@ rather than restated here. Where a region is anchored by an edge and a centre
 on the same axis, it is drawn from the edge and a note says so: which of the
 two the client uses is not settled here.
 
+## make-glow.py
+
+`Textures/Glow.tga` and `Textures/GlowRound.tga`, the soft glows the prompt
+draws round its spell icon. Like `Manners64.tga` they ship in the zip. Needs
+Pillow; deterministic.
+
+`Glow.tga` is light falling off in every direction from its centre, and
+`Prompt.lua` cuts it into eight pieces round a square icon: the quarters are
+the corners and a line through the middle is each side, so every join has the
+same brightness on both sides of it. `GlowRound.tga` is a ring for the rounded
+icon; `RING_AT` in the script and `GLOW_RING_AT` in `Prompt.lua` say where its
+rim is and have to agree. Both are white with the shape in the alpha, and the
+prompt colours them.
+
 ## make-icon.py
 
 `icon-512.png` (the CurseForge avatar), `icon-64.png`, and `icon-check.png`,

@@ -71,13 +71,13 @@ local sheen
 local edges
 local accentTop, accentBottom, sweep, sweepFrame
 local iconBack, icon, glowFrame, iconMask
--- The glow is a halo round the icon, four strips fading outwards, rather than
--- the filled square it was. glowFrame is a frame of its own so it can be
--- animated, and a child frame draws over everything its parent draws -- so the
--- square was washed additively over the spell icon, and at the top of the
--- pulse the icon turned into a pale smudge of the reason colour. The strips
--- stop at the ring, so the icon stays readable at every point of the pulse.
-local glowStrips
+-- The glow is a halo round the icon, rather than the filled square it was.
+-- glowFrame is a frame of its own so it can be animated, and a child frame
+-- draws over everything its parent draws -- so the square was washed
+-- additively over the spell icon, and at the top of the pulse the icon turned
+-- into a pale smudge of the reason colour. The halo starts at the ring, so the
+-- icon stays readable at every point of the pulse. See Halo.
+local glowHalo
 -- A dark line between the icon and its ring, and a shade over the icon's lower
 -- half. Without them the ring sat flush against the art and read as a flat
 -- coloured square rather than a frame.
@@ -88,10 +88,12 @@ local cooldown
 -- when somebody buffs you: a ring that pops outward from the icon, and a band
 -- of light that crosses the panel once. Both play once and stop; neither runs
 -- while nothing is happening.
-local burstFrame, burstStrips, shineFrame, shineLeft, shineRight
+local burstFrame, burstHalo, shineFrame, shineLeft, shineRight
 -- Whether the panel colour is dark enough for the reason line to carry a tint
 -- of the reason colour. On a light panel a tinted grey loses its contrast.
 local tintSub
+-- What PaintAccent last painted, so a repaint in the same colour costs nothing.
+local accentPainted
 local nameText, subText, countChip, countText, queueRows
 -- A flood of colour over the whole panel, for the half-second after a click.
 -- The panel is what the eye is already on, so the confirmation goes there
@@ -110,6 +112,13 @@ ns.BUILD = "1.0.0-beta.5"
 local current, testMode, testExpiry, lastTop, appliedKey, lastClickAt, lastPreClickAt, lastSkipAt
 -- Why the last painted person was on the panel, beside lastTop's who.
 local lastTopReason
+-- The stamp of the newest favour a repaint has seen, and how old a favour can
+-- be and still count as just done. A scan comes round every fraction of a
+-- second, so three is time enough for the repaint to reach it, and short
+-- enough that an old favour first seen late -- one carried over from the last
+-- session, or done while a fight kept the panel from looking -- is not news.
+local seenDebtAt
+local ARRIVAL_SECONDS = 3
 -- Its own stamp rather than one of the three above: the refusal it rate-limits
 -- happens on presses none of those are counting.
 local lastStaleAt
@@ -433,38 +442,85 @@ local function Try(obj, method, ...)
 	return (pcall(fn, obj, ...))
 end
 
--- Strips round a box, each fading from bright at the box towards nothing as it
--- goes outward: a soft rectangular halo out of the white texture, with no art
--- file to go missing. Four sides the length of the box, and four corner pieces
--- at half strength. A gradient runs along one axis only, so a corner cannot
--- fade both ways; at half strength it rounds the halo off rather than leaving
--- a notch, or a bright square, where the sides meet.
-local function HaloStrips(parent, layer, sublevel)
-	local strips = {}
-	for i = 1, 8 do
-		local t = Solid(parent, layer, sublevel)
+-- The soft glows round the icon, drawn once by tools/make-glow.py: white, with
+-- the shape in the alpha, so they take the reason colour from SetVertexColor.
+local GLOW = "Interface\\AddOns\\Manners\\Textures\\Glow"
+local GLOW_ROUND = "Interface\\AddOns\\Manners\\Textures\\GlowRound"
+-- Where the rim of the round glow sits, as a fraction of the texture's
+-- half-width. RING_AT in tools/make-glow.py; the two have to agree, because
+-- the texture is sized from this so that its rim lands on the round icon's edge.
+local GLOW_RING_AT = 0.70
+
+-- Where each piece of the square halo is cut from Glow.tga, as the left, right,
+-- top and bottom of SetTexCoord. The texture is light falling off in every
+-- direction from its centre, so a quarter of it is a corner that fades from the
+-- icon's corner outwards, and a thin line through the middle is a side that
+-- fades straight out. The strips used to be gradients, which run along one axis
+-- only: the corners could not fade both ways, and the halo read as four bars
+-- with a notch at each corner. Cut from one falloff, every join has the same
+-- brightness on both sides of it.
+local MID0, MID1 = 0.49, 0.51
+local HALO_CUTS = {
+	{ MID0, MID1, 0, 0.5 }, -- top
+	{ MID0, MID1, 0.5, 1 }, -- bottom
+	{ 0, 0.5, MID0, MID1 }, -- left
+	{ 0.5, 1, MID0, MID1 }, -- right
+	{ 0, 0.5, 0, 0.5 },     -- top-left
+	{ 0.5, 1, 0, 0.5 },     -- top-right
+	{ 0, 0.5, 0.5, 1 },     -- bottom-left
+	{ 0.5, 1, 0.5, 1 },     -- bottom-right
+}
+
+-- A halo round a box: the eight pieces of the square one, and the ring a
+-- rounded icon wears instead. Additive, so it is light added to what is there.
+local function Halo(parent, layer, sublevel)
+	local halo = { strips = {} }
+	for i, cut in ipairs(HALO_CUTS) do
+		local t = parent:CreateTexture(nil, layer, nil, sublevel)
+		t:SetTexture(GLOW)
+		t:SetTexCoord(cut[1], cut[2], cut[3], cut[4])
 		t:SetBlendMode("ADD")
-		strips[i] = t
+		halo.strips[i] = t
 	end
-	return strips
+	halo.round = parent:CreateTexture(nil, layer, nil, sublevel)
+	halo.round:SetTexture(GLOW_ROUND)
+	halo.round:SetBlendMode("ADD")
+	halo.round:Hide()
+	return halo
 end
 
--- Placed round `box` at `spread` pixels, outside an inset of `gap`.
-local function PlaceHalo(strips, box, spread, gap)
+-- Placed round `box`, outside an inset of `gap`: `sx` pixels out to the sides
+-- and `sy` above and below, which differ because the panel has more room
+-- beside the icon than over it. With `round` -- the size of a round icon --
+-- the ring instead, sized so its rim sits on the icon's edge. The size is
+-- passed rather than read off the box, which may not have been laid out yet.
+local function PlaceHalo(halo, box, sx, sy, gap, round)
+	local strips = halo.strips
 	local top, bottom, left, right = strips[1], strips[2], strips[3], strips[4]
-	for _, t in ipairs(strips) do t:ClearAllPoints() end
+	for _, t in ipairs(strips) do
+		t:ClearAllPoints()
+		t:SetShown(not round)
+	end
+	halo.round:ClearAllPoints()
+	halo.round:SetShown(round and true or false)
+	if round then
+		local size = round / GLOW_RING_AT
+		halo.round:SetPoint("CENTER", box, "CENTER", 0, 0)
+		halo.round:SetSize(size, size)
+		return
+	end
 	top:SetPoint("BOTTOMLEFT", box, "TOPLEFT", -gap, gap)
 	top:SetPoint("BOTTOMRIGHT", box, "TOPRIGHT", gap, gap)
-	top:SetHeight(spread)
+	top:SetHeight(sy)
 	bottom:SetPoint("TOPLEFT", box, "BOTTOMLEFT", -gap, -gap)
 	bottom:SetPoint("TOPRIGHT", box, "BOTTOMRIGHT", gap, -gap)
-	bottom:SetHeight(spread)
+	bottom:SetHeight(sy)
 	left:SetPoint("TOPRIGHT", box, "TOPLEFT", -gap, gap)
 	left:SetPoint("BOTTOMRIGHT", box, "BOTTOMLEFT", -gap, -gap)
-	left:SetWidth(spread)
+	left:SetWidth(sx)
 	right:SetPoint("TOPLEFT", box, "TOPRIGHT", gap, gap)
 	right:SetPoint("BOTTOMLEFT", box, "BOTTOMRIGHT", gap, -gap)
-	right:SetWidth(spread)
+	right:SetWidth(sx)
 	-- Top-left, top-right, bottom-left, bottom-right.
 	for i, at in ipairs({
 		{ "BOTTOMRIGHT", "TOPLEFT", -gap, gap },
@@ -474,23 +530,16 @@ local function PlaceHalo(strips, box, spread, gap)
 	}) do
 		local corner = strips[4 + i]
 		corner:SetPoint(at[1], box, at[2], at[3], at[4])
-		corner:SetSize(spread, spread)
+		corner:SetSize(sx, sy)
 	end
 end
 
--- Coloured from `alpha` at the edge nearest the box to nothing at the far one.
-local function PaintHalo(strips, r, g, b, alpha)
-	-- Vertical gradients run bottom to top and horizontal ones left to right,
-	-- so which stop is the inner one depends on the side.
-	Gradient(strips[1], "VERTICAL", r, g, b, alpha, r, g, b, 0)
-	Gradient(strips[2], "VERTICAL", r, g, b, 0, r, g, b, alpha)
-	Gradient(strips[3], "HORIZONTAL", r, g, b, 0, r, g, b, alpha)
-	Gradient(strips[4], "HORIZONTAL", r, g, b, alpha, r, g, b, 0)
-	local half = alpha * 0.45
-	Gradient(strips[5], "VERTICAL", r, g, b, half, r, g, b, 0)
-	Gradient(strips[6], "VERTICAL", r, g, b, half, r, g, b, 0)
-	Gradient(strips[7], "VERTICAL", r, g, b, 0, r, g, b, half)
-	Gradient(strips[8], "VERTICAL", r, g, b, 0, r, g, b, half)
+-- The whole halo in one colour. The fade is in the texture, so this is a
+-- vertex colour per piece and nothing else -- no gradient, and no colour
+-- objects made on the way.
+local function PaintHalo(halo, r, g, b, alpha)
+	for _, t in ipairs(halo.strips) do t:SetVertexColor(r, g, b, alpha) end
+	halo.round:SetVertexColor(r, g, b, alpha)
 end
 
 local function AtlasExists(name)
@@ -636,7 +685,7 @@ function Prompt:Create()
 	-- Sized to the icon itself; the halo is drawn outside it, past the ring.
 	glowFrame = CreateFrame("Frame", nil, art)
 	glowFrame:SetAlpha(0)
-	glowStrips = HaloStrips(glowFrame, "BACKGROUND", -3)
+	glowHalo = Halo(glowFrame, "BACKGROUND", -3)
 
 	-- Doubles as the icon's border and as the reason signal. A ring around the
 	-- icon reads far better than a hairline stripe at the panel edge, which
@@ -670,7 +719,7 @@ function Prompt:Create()
 	-- grow; drawn from the same strips as the glow, bright at the inside edge.
 	burstFrame = CreateFrame("Frame", nil, art)
 	burstFrame:SetAlpha(0)
-	burstStrips = HaloStrips(burstFrame, "OVERLAY", 2)
+	burstHalo = Halo(burstFrame, "OVERLAY", 2)
 
 	-- A band of light that crosses the panel once. Two halves, each fading
 	-- towards its outer edge, so the band has a soft middle and no hard sides.
@@ -1393,6 +1442,18 @@ function Prompt:BuildAnimations()
 		art:SetAlpha(0)
 	end)
 	art.outro = outro
+
+	-- A fade cancelled part-way, brought back to where the panel rests rather
+	-- than snapped there. Two ways in: somebody arrives while the panel is on
+	-- its way out, and a fight starts, which keeps the panel up whatever it
+	-- was doing -- the button cannot be hidden in combat. From and to are set
+	-- for each play, from how far the fade had got.
+	local comeback = art:CreateAnimationGroup()
+	local cFade = comeback:CreateAnimation("Alpha")
+	cFade:SetDuration(0.18)
+	if cFade.SetSmoothing then cFade:SetSmoothing("OUT") end
+	comeback.fade = cFade
+	art.comeback = comeback
 end
 
 -- Whether the extra motion is wanted: the landing burst, the shine, the shake
@@ -1415,6 +1476,48 @@ end
 function Prompt:StopOutro()
 	if art.outro and art.outro:IsPlaying() then art.outro:Stop() end
 	if art.faded then RestArtAlpha() end
+	art.outroFor = nil
+end
+
+-- How far the fade on the way out has taken art, worked out from when it
+-- started rather than read back: what GetAlpha answers in the middle of an
+-- animation is not something this client has been seen to settle. The same
+-- shape the fade is built with -- a wait, then an eased-in fall to nothing.
+local function OutroAlpha()
+	if art.faded then return 0 end
+	if not (art.outro and art.outro:IsPlaying() and art.outroAt) then return nil end
+	local wait = OUTCOME_SECONDS * 0.5
+	local t = (GetTime() - art.outroAt - wait) / (OUTCOME_SECONDS * 0.5)
+	if t <= 0 then return 1 end
+	if t >= 1 then return 0 end
+	return 1 - t * t
+end
+
+-- The fade on the way out, for the outcome being shown now. Started again for
+-- each new outcome rather than once: a second one -- a refusal that arrives a
+-- moment after the buff before it, the realistic case -- would otherwise be
+-- painted onto a panel the first one's fade had already taken to nothing, or
+-- cut short by a fade that was half over when it arrived.
+function Prompt:PlayOutro(stamp)
+	if art.outroFor == stamp then return end
+	self:StopOutro()
+	if art.comeback and art.comeback:IsPlaying() then art.comeback:Stop() end
+	art.outroFor, art.outroAt = stamp, GetTime()
+	art.outro:Play()
+end
+
+-- A fade that a repaint has just cancelled, taken back to the resting alpha
+-- from wherever it had got to, over a moment. `from` is nil when no fade was
+-- running, and then there is nothing to do.
+function Prompt:ComeBack(from)
+	self:StopOutro()
+	local rest = combatHeld and 0.55 or 1
+	if from == nil or math.abs(from - rest) < 0.02 then return end
+	if not (art.comeback and button:IsShown()) then return end
+	art.comeback:Stop()
+	art.comeback.fade:SetFromAlpha(from)
+	art.comeback.fade:SetToAlpha(rest)
+	art.comeback:Play()
 end
 
 -- The once-only effects, stopped: what a repaint about somebody else does to a
@@ -1428,8 +1531,13 @@ end
 -- The band of light across the panel, in the colour given. Brighter for a buff
 -- that landed than for somebody arriving on the panel: the first is the answer
 -- to a question the player asked, the second only a nudge.
+--
+-- Not on the Minimal look, which has no panel: the band is additive light, and
+-- with nothing under it, it was a white column sweeping across the game world
+-- behind the text.
 function Prompt:PlayShine(r, g, b, strength)
 	if not shineFrame.anim then return end
+	if ns.db and ns.db.profile.prompt.style == "minimal" then return end
 	Gradient(shineLeft, "HORIZONTAL", r, g, b, 0, r, g, b, strength)
 	Gradient(shineRight, "HORIZONTAL", r, g, b, strength, r, g, b, 0)
 	shineFrame.anim:Stop()
@@ -1442,7 +1550,15 @@ end
 function Prompt:SyncCooldown()
 	if not cooldown then return end
 	local p = ns.db and ns.db.profile.prompt
-	if not (p and p.showCooldown and p.showIcon) then
+	-- And not in a fight with "Stay quiet in combat" on, which promises a
+	-- panel that sits still for the length of it. Every cast of the fight
+	-- starts a global cooldown, most of them from the action bars, so the
+	-- sweep would be the busiest thing on a panel asked to be quiet. The
+	-- Cooldown frame is ours and not protected, so hiding it in combat is
+	-- allowed; SetCombatHold asks again as the fight starts and ends.
+	local quiet = p and p.hideInCombat and InCombatLockdown()
+	if not (p and p.showCooldown and p.showIcon) or quiet then
+		Try(cooldown, "Clear")
 		cooldown:Hide()
 		return
 	end
@@ -1462,7 +1578,11 @@ function Prompt:StopAttention()
 	glowFrame:SetAlpha(0)
 end
 
-function Prompt:StartAttention(isNew)
+-- `isNew` is somebody owed who has just become the one on the panel, which is
+-- what the flash and the stripe's sweep answer to. `arrived` is narrower: the
+-- favour itself has only just been done, which is what the light on arrival
+-- answers to -- see Refresh for why the two are not the same moment.
+function Prompt:StartAttention(isNew, arrived)
 	local p = ns.db.profile.prompt
 	local mode = p.flashStyle or "pulse"
 	if mode == "off" then
@@ -1480,11 +1600,17 @@ function Prompt:StartAttention(isNew)
 		sweepFrame.anim:Play()
 	end
 
-	-- And the panel catches the light once, as they arrive on it. Nothing to
+	-- And the panel catches the light once, as the favour is done. Nothing to
 	-- do with the icon either, so it is above the return below as well. In
 	-- the reason colour where the prompt uses one, plain light where the
 	-- player has asked for no accent at all.
-	if isNew and FullEffects() then
+	--
+	-- Never over an outcome, or over light already crossing: the success of
+	-- the last press sends its own band across, and the repaint that follows
+	-- it -- usually the next person owed -- used to restart the band in this
+	-- dimmer colour, so the answer to the press was cut off by a nudge.
+	if arrived and FullEffects() and not self:OutcomeLive()
+		and not (shineFrame.anim and shineFrame.anim:IsPlaying()) then
 		local r, g, b = 1, 1, 1
 		if (p.accentMode or "icon") ~= "off" then r, g, b = self:AccentColor("owed") end
 		self:PlayShine(r, g, b, 0.20)
@@ -1670,20 +1796,6 @@ function Prompt:ApplyStyle()
 		Gradient(iconShade, "VERTICAL", 0, 0, 0, 0.38, 0, 0, 0, 0)
 		iconShade:Show()
 
-		-- The halo starts where the ring stops, so it frames the icon without
-		-- ever lying over it, and it stops about at the panel's edge: spilling
-		-- well past it, the halo read as two bars stuck to the top and bottom
-		-- of the prompt. Two pixels over is the dark rim of the shadow, where a
-		-- little light reads as glow rather than as a shape.
-		local room = math.floor((p.height - p.iconSize) / 2) - outer + 2
-		local spread = math.max(3, math.min(8, room))
-		glowFrame:SetPoint("TOPLEFT", icon, "TOPLEFT")
-		glowFrame:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT")
-		PlaceHalo(glowStrips, glowFrame, spread, outer)
-		burstFrame:ClearAllPoints()
-		burstFrame:SetPoint("TOPLEFT", icon, "TOPLEFT")
-		burstFrame:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT")
-		PlaceHalo(burstStrips, burstFrame, 3, outer)
 		if cooldown then
 			cooldown:ClearAllPoints()
 			cooldown:SetAllPoints(icon)
@@ -1691,6 +1803,7 @@ function Prompt:ApplyStyle()
 
 		-- A circular icon is available where masks are, but it reads as a
 		-- portrait rather than a spell, so it stays opt-in.
+		local round = false
 		if p.roundIcon and art.CreateMaskTexture and icon.AddMaskTexture then
 			if not iconMask then
 				local ok, mask = pcall(art.CreateMaskTexture, art)
@@ -1716,11 +1829,31 @@ function Prompt:ApplyStyle()
 				if cooldown then
 					Try(cooldown, "SetSwipeTexture", "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask")
 				end
+				round = true
 			end
 		else
 			if iconMask then iconMask:Hide() end
 			if cooldown then Try(cooldown, "SetSwipeTexture", WHITE) end
 		end
+
+		-- The halo starts where the ring stops, so it frames the icon without
+		-- ever lying over it, and it stops at the panel's edge: past it, even a
+		-- little light read as bars stuck to the top and bottom of the prompt,
+		-- and on the framed look it lit the border up over the icon. There is
+		-- more room beside the icon than above it -- ten pixels to the panel's
+		-- edge on the left and to the text on the right -- so the halo reaches
+		-- further sideways. A rounded icon wears the ring instead, whose rim is
+		-- its own edge: square pieces round a circle read as a picture frame.
+		local sy = math.max(2, math.min(8, math.floor((p.height - p.iconSize) / 2) - outer))
+		local sx = math.max(2, math.min(8, 10 - outer))
+		local roundSize = round and p.iconSize or nil
+		glowFrame:SetPoint("TOPLEFT", icon, "TOPLEFT")
+		glowFrame:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT")
+		PlaceHalo(glowHalo, glowFrame, sx, sy, outer, roundSize)
+		burstFrame:ClearAllPoints()
+		burstFrame:SetPoint("TOPLEFT", icon, "TOPLEFT")
+		burstFrame:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT")
+		PlaceHalo(burstHalo, burstFrame, 4, 4, outer, roundSize)
 
 		textX = 10 + p.iconSize + 10
 	else
@@ -1784,6 +1917,9 @@ function Prompt:ApplyStyle()
 	nameText:SetTextColor(unpackColor(p.fontColor, { 1, 1, 1, 1 }))
 	subText:SetFont(fontPath, math.max(7, p.fontSize - 3), outline)
 	subText:SetTextColor(0.60, 0.61, 0.68, 1)
+	-- The grey just written over the reason line's tint, and the ring and the
+	-- stripe may have changed shape: the next PaintAccent paints in full.
+	accentPainted = nil
 
 	if twoLine then
 		nameText:SetPoint("TOPLEFT", textX, -8)
@@ -1873,11 +2009,22 @@ function Prompt:PaintAccent(reason)
 	local mode = p.accentMode or "icon"
 	local r, g, b = self:AccentColor(reason)
 
+	-- This runs on every scan -- every repaint of a person, and every pass of
+	-- a fight -- and the colour almost never changes between two of them. So
+	-- the colour last painted is kept, and the same one again is nothing to
+	-- do: two and a half repaints a second of a dozen textures, each gradient
+	-- making two colour objects, was work the eye could not see. Forgotten by
+	-- anything else that writes over these textures: ApplyStyle, and a
+	-- refusal's red ring.
+	local key = ("%s:%.3f:%.3f:%.3f:%s"):format(mode, r, g, b, tostring(tintSub))
+	if key == accentPainted then return end
+	accentPainted = key
+
 	-- Brightest at the middle, fading towards both ends.
 	Gradient(accentTop, "VERTICAL", r, g, b, 1, r, g, b, 0.15)
 	Gradient(accentBottom, "VERTICAL", r, g, b, 0.15, r, g, b, 1)
 	sweep:SetVertexColor(r, g, b, 1)
-	PaintHalo(glowStrips, r, g, b, 1)
+	PaintHalo(glowHalo, r, g, b, 1)
 
 	if mode == "icon" or mode == "both" then
 		-- Lit from above like everything else on the panel: a little brighter
@@ -2560,7 +2707,7 @@ function Prompt:PlayOutcomeFlourish(kind)
 			r, g, b = self:AccentColor(current and current.reason or "owed")
 		end
 		if p.showIcon and burstFrame.anim then
-			PaintHalo(burstStrips, r, g, b, 1)
+			PaintHalo(burstHalo, r, g, b, 1)
 			burstFrame.anim:Play()
 		end
 		self:PlayShine(1, 1, 1, 0.30)
@@ -2683,6 +2830,7 @@ function Prompt:PaintOutcome()
 	local mode = ns.db.profile.prompt.accentMode or "icon"
 	if outcomeKind == "failed" and (mode == "icon" or mode == "both") then
 		Gradient(iconBack, "VERTICAL", 0.62, 0.16, 0.14, 0.95, 1.0, 0.36, 0.30, 0.95)
+		accentPainted = nil
 	end
 	nameText:SetText(lead)
 	outcomePainted = outcomeName
@@ -2700,6 +2848,8 @@ function Prompt:SetCombatHold(on)
 	-- art, never the button: every visual in this file lives on art precisely
 	-- so that combat -- which is when this runs -- cannot refuse it.
 	RestArtAlpha()
+	-- The sweep answers to the fight as well: see SyncCooldown.
+	self:SyncCooldown()
 end
 
 -- What a branch says when it wanted the prompt gone and the fight would not let
@@ -2816,11 +2966,16 @@ end
 -- fading to nothing. So the branch asks for it by name and this wrapper stops
 -- it for everybody else, rather than each of a dozen early returns having to
 -- remember to.
+--
+-- Cancelled gently. How far the fade had got is taken before the repaint --
+-- the combat branch sets the dim, and a fight must not read as a fade that
+-- finished -- and the panel is brought back from there.
 function Prompt:Refresh()
 	if not button or not ns.db then return end
 	self.outroWanted = nil
+	local fadedTo = OutroAlpha()
 	self:RefreshPanel()
-	if not self.outroWanted then self:StopOutro() end
+	if not self.outroWanted then self:ComeBack(fadedTo) end
 end
 
 function Prompt:RefreshPanel()
@@ -3095,7 +3250,7 @@ function Prompt:RefreshPanel()
 			-- repaint the outcome's own timer asks for.
 			if FullEffects() then
 				self.outroWanted = true
-				if not art.outro:IsPlaying() and not art.faded then art.outro:Play() end
+				self:PlayOutro(outcomeAt)
 			end
 			return
 		end
@@ -3150,6 +3305,28 @@ function Prompt:RefreshPanel()
 	local becameOwed = top.reason == "owed" and (isNew or lastTopReason ~= "owed")
 	lastTop = top.name
 	lastTopReason = top.reason
+	-- Narrower again: the favour was only just done. The light on arrival
+	-- used to take becameOwed, and that is also true of the next person owed
+	-- reaching the panel after every press and of somebody coming back after
+	-- you targeted somebody else -- people who had been waiting all along.
+	--
+	-- So it is keyed on the favour, by the debt's own stamp: lit when the
+	-- repaint that first sees a favour has its giver on top, and never after.
+	-- A favour first seen while somebody else was on the panel has been seen,
+	-- and its giver reaching the top later -- after your press on the first,
+	-- usually -- is not news.
+	local newest = seenDebtAt
+	for _, owed in pairs(ns.owed or {}) do
+		if type(owed) == "table" and type(owed.at) == "number"
+			and owed.at > (newest or -math.huge) then
+			newest = owed.at
+		end
+	end
+	local debt = top.reason == "owed" and ns.owed and ns.owed[top.name]
+	local debtAt = type(debt) == "table" and type(debt.at) == "number" and debt.at or nil
+	local arrived = debtAt ~= nil and debtAt > (seenDebtAt or -math.huge)
+		and now - debtAt <= ARRIVAL_SECONDS
+	seenDebtAt = newest
 
 	-- Stamped where the panel is repainted rather than where the pick is made:
 	-- PreClick picks too, and a press is not a paint. Renewed on every paint
@@ -3191,7 +3368,7 @@ function Prompt:RefreshPanel()
 	end
 
 	if top.reason == "owed" then
-		self:StartAttention(becameOwed)
+		self:StartAttention(becameOwed, arrived)
 	else
 		self:StopAttention()
 	end
@@ -3279,7 +3456,10 @@ function Prompt:Regions()
 		-- does anything -- a flash style that plays nothing throws nothing.
 		sweep = sweepFrame,
 		glow = glowFrame,
-		glowStrips = glowStrips,
+		glowStrips = glowHalo and glowHalo.strips,
+		glowRound = glowHalo and glowHalo.round,
+		burstStrips = burstHalo and burstHalo.strips,
+		burstRound = burstHalo and burstHalo.round,
 		-- The effects added for the look: each is a frame or a group whose
 		-- playing is the only evidence it ran, for the same reason as the two
 		-- above. The cooldown is nil on a client without the template.
@@ -3289,6 +3469,7 @@ function Prompt:Regions()
 		shake = textLayer and textLayer.shake,
 		intro = art and art.intro,
 		outro = art and art.outro,
+		comeback = art and art.comeback,
 		shadows = shadows,
 		sheen = sheen,
 		iconEdge = iconEdge,

@@ -96,8 +96,9 @@ end
 -- It was one filled square on a frame of its own, and a child frame draws over
 -- everything its parent draws -- so at the top of every pulse the spell icon
 -- was washed over with the reason colour until it was a pale smudge. The halo
--- is strips outside the ring now; if one of them strays onto the icon, the
--- smudge is back.
+-- is pieces of a soft glow outside the ring now; if one of them strays onto the
+-- icon, the smudge is back. And it stops at the panel's edge: two pixels past
+-- it read as bars stuck to the prompt, and lit the framed look's border.
 withTree("the glow frames the icon and never lies over it",
 	{ nameplate1 = { "Anna", "Aim" } }, function(ns)
 	local scenario = "the glow frames the icon and never lies over it"
@@ -126,8 +127,7 @@ withTree("the glow frames the icon and never lies over it",
 				fail(scenario, ("glow strip %d lies over the spell icon, which washes the icon"
 					.. " out at the top of every pulse"):format(i))
 			end
-			-- Out past the panel by the width of the shadow's rim at most.
-			if box[2] < panel[2] - 2.01 or box[4] > panel[4] + 2.01 then
+			if box[2] < panel[2] - 0.01 or box[4] > panel[4] + 0.01 then
 				fail(scenario, ("glow strip %d reaches %.0f past the panel's edge, where it"
 					.. " reads as a bar stuck to the prompt"):format(i,
 					math.max(panel[2] - box[2], box[4] - panel[4])))
@@ -375,6 +375,24 @@ withTree("the effects never touch the secure button in a fight",
 	if plays(burst) ~= b or plays(shine) ~= s or plays(r.shake) ~= k then
 		fail(scenario, "Stay quiet in combat is on and a click in a fight still set the panel moving")
 	end
+	-- The sweep as well. Every cast of a fight starts a global cooldown, most
+	-- of them from the action bars, and a sweep on each is the busiest thing a
+	-- panel asked to sit still could do.
+	local cd = r.cooldown
+	if cd then
+		Mock.advance(1)
+		Mock.spellCooldowns = { [61304] = { startTime = Mock.now, duration = 1.5 } }
+		ns.addon:UNIT_SPELLCAST_SENT(nil, "player", "Anna", "Cast-9", 1459)
+		if cd:IsShown() then
+			fail(scenario, "Stay quiet in combat is on and the icon still sweeps with every cast of the fight")
+		end
+		-- And back as the fight ends, for what is left of the cooldown.
+		Mock.inCombat = false
+		ns.addon:PLAYER_REGEN_ENABLED()
+		if not cd:IsShown() then
+			fail(scenario, "the fight ended part-way through a global cooldown and the sweep did not come back")
+		end
+	end
 	Mock.inCombat = false
 	Mock.spellCooldowns = nil
 end)
@@ -584,5 +602,327 @@ withTree("the look's settings are clamped and offered", {}, function(ns)
 			fail(scenario, "the cooldown switch is offered with no icon for it to sweep")
 		end
 		p.showIcon = true
+	end
+end)
+
+-- The band of light's strength as it was last painted: 0.30 for a buff that
+-- landed, 0.20 for a favour just done. Read off the band's left half, whose
+-- inner stop carries it.
+local function shineStrength(r)
+	local half = r.shine and r.shine._children and r.shine._children[1]
+	local g = half and half._gradient
+	return type(g) == "table" and type(g[3]) == "table" and g[3].a or nil
+end
+
+-- ------------------------------------------------------------------ look 12
+-- A rounded icon wears a round glow, and the glow ships.
+--
+-- The mask rounds the icon, and the square halo went on being drawn round it:
+-- a round icon in a square gold picture frame, which is the square pieces
+-- poking out that hiding the ring's edge and shade was meant to prevent. And
+-- the glows are art files in the package now, so the files have to be there.
+withTree("a rounded icon wears a round glow, and the glow ships",
+	{ nameplate1 = { "Anna", "Aim" } }, function(ns)
+	local scenario = "a rounded icon wears a round glow, and the glow ships"
+	for _, file in ipairs({ "Glow", "GlowRound" }) do
+		local f = io.open(dir .. "/Textures/" .. file .. ".tga", "rb")
+		if f then
+			f:close()
+		else
+			fail(scenario, "Textures/" .. file .. ".tga is not in the package, and the glow round"
+				.. " the icon is drawn from it")
+		end
+	end
+	freshPrompt(ns, scenario)
+	local p = ns.db.profile.prompt
+	p.roundIcon = true
+	ns.Prompt:ApplyStyle()
+	owe(ns, "Anna Aim")
+	ns.addon:Tick()
+	local r = ns.Prompt:Regions()
+	if not (r.glowStrips and r.glowRound and r.icon and r.icon._mask) then
+		fail(scenario, "SKIPPED -- the icon was not rounded, or the glow is not reachable")
+		return
+	end
+	for i, strip in ipairs(r.glowStrips) do
+		if strip._shown ~= false then
+			fail(scenario, ("square glow piece %d is shown round a rounded icon"):format(i))
+		end
+	end
+	for i, strip in ipairs(r.burstStrips or {}) do
+		if strip._shown ~= false then
+			fail(scenario, ("square burst piece %d is shown round a rounded icon"):format(i))
+		end
+	end
+	if r.glowRound._shown == false then
+		fail(scenario, "a rounded icon has no glow round it at all")
+	else
+		local rect = layout(FT.snapshot(UIParent))
+		local ring, iconBox = rect(r.glowRound._serial), rect(r.icon._serial)
+		if ring and iconBox then
+			local want = p.iconSize / 0.70
+			if math.abs((ring[3] - ring[1]) - want) > 0.5 then
+				fail(scenario, ("the round glow is %.1f across; its rim lands on the icon's edge at %.1f"):format(
+					ring[3] - ring[1], want))
+			end
+			local dx = (ring[1] + ring[3]) / 2 - (iconBox[1] + iconBox[3]) / 2
+			local dy = (ring[2] + ring[4]) / 2 - (iconBox[2] + iconBox[4]) / 2
+			if math.abs(dx) > 0.5 or math.abs(dy) > 0.5 then
+				fail(scenario, "the round glow is not centred on the icon")
+			end
+		end
+	end
+	-- And square again when the icon is.
+	p.roundIcon = false
+	ns.Prompt:ApplyStyle()
+	if r.glowRound._shown ~= false or r.glowStrips[1]._shown == false then
+		fail(scenario, "the icon was squared off again and kept the round glow")
+	end
+end)
+
+-- ------------------------------------------------------------------ look 13
+-- Every outcome gets its own fade.
+--
+-- The fade started once and was never started again, so an outcome that came
+-- after it -- a refusal a moment after the buff before it, the realistic case
+-- -- was painted onto a panel already faded to nothing, or cut short by a fade
+-- that was half over when it arrived.
+withTree("every outcome over an empty queue gets its own fade",
+	{ nameplate1 = { "Anna", "Aim" } }, function(ns)
+	local scenario = "every outcome over an empty queue gets its own fade"
+	freshPrompt(ns, scenario)
+	owe(ns, "Anna Aim")
+	ns.addon:Tick()
+	local r = ns.Prompt:Regions()
+	local outro = r.outro
+	if not (outro and ns.Prompt:GetButton():IsShown()) then
+		fail(scenario, "SKIPPED -- no panel or no fade to watch")
+		return
+	end
+	ns.BlockPerson("Anna Aim")
+	wipe(ns.owed)
+	Mock.advance(1)
+	ns.Prompt:ShowOutcome("cast", "Anna Aim")
+	Mock.advance(0.61)
+	FT.settle()
+	if (r.art:GetAlpha() or 1) > 0.01 then
+		fail(scenario, "SKIPPED -- the first fade did not run to nothing")
+		return
+	end
+	local before = plays(outro)
+	ns.Prompt:ShowOutcome("failed", "Anna Aim", "Out of range.")
+	if not ns.Prompt:OutcomeLive() then
+		fail(scenario, "SKIPPED -- the refusal is not live")
+	elseif (r.art:GetAlpha() or 0) < 0.99 then
+		fail(scenario, ("a refusal after the fade was painted onto a panel at alpha %.2f"):format(
+			r.art:GetAlpha() or 0))
+	elseif plays(outro) == before then
+		fail(scenario, "a refusal after the fade got no fade of its own")
+	end
+	-- Half-way through that one, another: started again, not left to finish.
+	Mock.advance(0.45)
+	before = plays(outro)
+	ns.Prompt:ShowOutcome("failed", "Anna Aim", "Out of range.")
+	if plays(outro) == before then
+		fail(scenario, "an outcome that arrived half-way through the fade was cut short by it")
+	end
+end)
+
+-- ------------------------------------------------------------------ look 14
+-- A buff that lands shines once, in its own light, even when somebody buffs you
+-- at the same moment.
+--
+-- The repaint after a success is usually about the next person owed, and it
+-- restarted the band in the dimmer colour of a favour arriving -- so the answer
+-- to the press was cut off by a nudge.
+withTree("a success shines once in its own light",
+	{ nameplate1 = { "Anna", "Aim" }, nameplate2 = { "Bert", "Beside" } }, function(ns)
+	local scenario = "a success shines once in its own light"
+	freshPrompt(ns, scenario)
+	owe(ns, "Anna Aim")
+	ns.addon:Tick()
+	local r = ns.Prompt:Regions()
+	local shine = r.shine and r.shine.anim
+	local top = ns.BuildQueue()[1]
+	if not (shine and top and top.name == "Anna Aim") then
+		fail(scenario, "SKIPPED -- Anna is not on the panel, or the shine is not reachable")
+		return
+	end
+	Mock.advance(1)
+	FT.settle()
+	-- Bert buffs you in the same moment the press on Anna lands.
+	ns.BlockPerson("Anna Aim")
+	ns.owed["Anna Aim"] = nil
+	owe(ns, "Bert Beside")
+	local before = plays(shine)
+	ns.Prompt:ShowOutcome("cast", "Anna Aim")
+	if plays(shine) ~= before + 1 then
+		fail(scenario, ("the band of light played %d times for one buff landing"):format(plays(shine) - before))
+	elseif math.abs((shineStrength(r) or 0) - 0.30) > 0.001 then
+		fail(scenario, ("the success's light was replaced by one at %.2f"):format(shineStrength(r) or 0))
+	end
+	-- And Bert's favour is not lit later either: it was seen, and the moment
+	-- went to the success.
+	for _ = 1, 4 do
+		Mock.advance(0.4)
+		FT.settle()
+		ns.addon:Tick()
+	end
+	if plays(shine) ~= before + 1 then
+		fail(scenario, "the light on arrival played after the success for a favour already seen")
+	end
+end)
+
+-- ------------------------------------------------------------------ look 15
+-- Somebody who has been waiting all along reaching the top is not an arrival.
+--
+-- The light was keyed on an owed name reaching the panel, which is also the
+-- next person after every press and somebody coming back after you looked away.
+withTree("somebody waiting all along reaching the top does not catch the light",
+	{ nameplate1 = { "Anna", "Aim" } }, function(ns)
+	local scenario = "somebody waiting all along reaching the top does not catch the light"
+	freshPrompt(ns, scenario)
+	owe(ns, "Anna Aim")
+	ns.addon:Tick()
+	local r = ns.Prompt:Regions()
+	local shine = r.shine and r.shine.anim
+	if not shine or plays(shine) == 0 then
+		fail(scenario, "SKIPPED -- Anna's favour did not light the panel to begin with")
+		return
+	end
+	-- Bert buffs you from out of sight, and the panel sees it with Anna on it.
+	Mock.advance(0.5)
+	owe(ns, "Bert Beside")
+	ns.addon:Tick()
+	if ns.Prompt:PanelName() ~= "Anna Aim" then
+		fail(scenario, "SKIPPED -- Anna did not stay on the panel: " .. tostring(ns.Prompt:PanelName()))
+		return
+	end
+	Mock.advance(0.4)
+	FT.settle()
+	-- Bert walks up, and Anna is dealt with -- retired, the way a press on
+	-- her retires her -- a second after he buffed you: he is next.
+	Mock.unitNames.nameplate2 = { "Bert", "Beside" }
+	ns.nameplateUnits.nameplate2 = true
+	ns.BlockPerson("Anna Aim")
+	ns.owed["Anna Aim"] = nil
+	local before = plays(shine)
+	ns.addon:Tick()
+	if ns.Prompt:PanelName() ~= "Bert Beside" then
+		fail(scenario, "SKIPPED -- Bert did not reach the panel: " .. tostring(ns.Prompt:PanelName()))
+	elseif plays(shine) ~= before then
+		fail(scenario, "Bert had been waiting since before he reached the panel and it caught the light"
+			.. " for him as if he had just buffed you")
+	end
+end)
+
+-- ------------------------------------------------------------------ look 16
+-- The Minimal look has no panel for light to cross.
+--
+-- The band is additive light, and with nothing under it, it was a white column
+-- sweeping across the game world behind the text. The ring round the icon is
+-- still the icon's.
+withTree("no light crosses the Minimal look",
+	{ nameplate1 = { "Anna", "Aim" } }, function(ns)
+	local scenario = "no light crosses the Minimal look"
+	freshPrompt(ns, scenario)
+	ns.db.profile.prompt.style = "minimal"
+	ns.Prompt:ApplyStyle()
+	local r = ns.Prompt:Regions()
+	local shine, burst = r.shine and r.shine.anim, r.burst and r.burst.anim
+	if not (shine and burst) then
+		fail(scenario, "SKIPPED -- the shine or the burst is not reachable")
+		return
+	end
+	owe(ns, "Anna Aim")
+	ns.addon:Tick()
+	Mock.advance(1)
+	local b = plays(burst)
+	ns.Prompt:ShowOutcome("cast", "Anna Aim")
+	if plays(shine) > 0 then
+		fail(scenario, "a band of light crossed a Minimal prompt, which has no panel under it")
+	end
+	if plays(burst) == b then
+		fail(scenario, "a buff landing on a Minimal prompt lost the ring round its icon too")
+	end
+end)
+
+-- ------------------------------------------------------------------ look 17
+-- A fight that starts while the panel fades out brings it back gently.
+--
+-- The button cannot be hidden in a fight, so a panel on its way out when one
+-- starts stays up, dimmed and held. It used to snap from wherever the fade had
+-- got to straight to the dim, which read as a glitch; now it is taken there.
+withTree("a fight during the fade out brings the panel back gently",
+	{ nameplate1 = { "Anna", "Aim" } }, function(ns)
+	local scenario = "a fight during the fade out brings the panel back gently"
+	freshPrompt(ns, scenario)
+	owe(ns, "Anna Aim")
+	ns.addon:Tick()
+	local r = ns.Prompt:Regions()
+	local outro, comeback = r.outro, r.comeback
+	if not (outro and comeback and comeback._anims and comeback._anims[1]) then
+		fail(scenario, "SKIPPED -- the fade out or the way back is not reachable")
+		return
+	end
+	ns.BlockPerson("Anna Aim")
+	wipe(ns.owed)
+	Mock.advance(1)
+	ns.Prompt:ShowOutcome("cast", "Anna Aim")
+	if not playing(outro) then
+		fail(scenario, "SKIPPED -- the panel did not start fading out")
+		return
+	end
+	-- Three quarters of the way through the wait and the fall: part-faded.
+	Mock.advance(0.45)
+	local before = plays(comeback)
+	Mock.inCombat = true
+	ns.addon:PLAYER_REGEN_DISABLED()
+	local fade = comeback._anims[1]
+	if playing(outro) then
+		fail(scenario, "the fade out went on in a fight, where the panel cannot go")
+	elseif plays(comeback) == before then
+		fail(scenario, "a fight caught the panel part-faded and it snapped back instead of returning")
+	elseif not (fade._fromAlpha and fade._fromAlpha > 0.6 and fade._fromAlpha < 0.9
+		and math.abs((fade._toAlpha or 0) - 0.55) < 0.001) then
+		fail(scenario, ("the way back runs from %s to %s, not from where the fade had got to the"
+			.. " fight's dim"):format(tostring(fade._fromAlpha), tostring(fade._toAlpha)))
+	elseif math.abs((r.art:GetAlpha() or 0) - 0.55) > 0.001 then
+		fail(scenario, ("the panel rests at %.2f in the fight, not dimmed"):format(r.art:GetAlpha() or 0))
+	end
+	Mock.inCombat = false
+end)
+
+-- ------------------------------------------------------------------ look 18
+-- A repaint in the same colour costs nothing.
+--
+-- The accent is painted on every scan, and the colour almost never changes
+-- between two. With the halo, the ring and the stripe it was a dozen texture
+-- writes a scan, each gradient making two colour objects, two and a half times
+-- a second for as long as anybody is on the panel.
+withTree("a repaint in the same colour paints nothing",
+	{ nameplate1 = { "Anna", "Aim" } }, function(ns)
+	local scenario = "a repaint in the same colour paints nothing"
+	freshPrompt(ns, scenario)
+	ns.addon:Tick()
+	if not ns.Prompt:GetButton():IsShown() then
+		fail(scenario, "SKIPPED -- nobody on the panel")
+		return
+	end
+	local real, made = CreateColor, 0
+	CreateColor = function(...)
+		made = made + 1
+		return real(...)
+	end
+	local ok, err = pcall(function()
+		for _ = 1, 10 do
+			Mock.advance(0.4)
+			ns.addon:Tick()
+		end
+	end)
+	CreateColor = real
+	if not ok then error(err, 0) end
+	if made > 10 then
+		fail(scenario, ("ten scans of the same passer-by made %d colour objects"):format(made))
 	end
 end)

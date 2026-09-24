@@ -13,3 +13,7 @@
 # Listing images are compared byte for byte against what tools/ regenerates.
 # Any newline translation at all would break that check.
 *.png binary
+
+# The textures the addon ships are binary, and the game reads them byte for
+# byte; tools/make-icon.py and tools/make-glow.py regenerate them exactly.
+*.tga binary

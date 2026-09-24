@@ -1563,8 +1563,9 @@ local function BuildOptions()
 						desc = "Pulse keeps breathing until you have returned the favour or they are gone. "
 							.. "Flash once is easy to miss if you were looking elsewhere.\n\n"
 							.. "|cff888888It lights up round the spell icon and sweeps the stripe, and"
-							.. " with Effects on Full the panel catches the light as they arrive. With"
-							.. " the icon hidden, no stripe showing and Effects on Calm there is"
+							.. " with Effects on Full the panel catches the light the moment they buff"
+							.. " you. With the icon hidden, no stripe showing and no light either --"
+							.. " Effects on Calm, or the Minimal look, which has no panel -- there is"
 							.. " nothing for it to do.|r",
 						order = 21,
 						-- A setting with nothing to act on reads as one that is
@@ -1574,7 +1575,8 @@ local function BuildOptions()
 						-- none of them this does nothing.
 						disabled = function()
 							local _, stripe = AccentCarriers()
-							return not P().showIcon and not stripe and P().effects == "calm"
+							local noLight = P().effects == "calm" or P().style == "minimal"
+							return not P().showIcon and not stripe and noLight
 						end,
 						values = {
 							pulse = "Pulse until dealt with",
@@ -1600,8 +1602,10 @@ local function BuildOptions()
 							.. " somebody who buffs you makes the panel catch the light, unless the"
 							.. " setting above is Nothing; and after your last buff the prompt fades"
 							.. " out instead of vanishing.\n\nCalm: none of that movement. The prompt"
-							.. " still fades in, and the glow set above still works.\n\n|cff888888In"
-							.. " a fight, Stay quiet in combat keeps the outcome still as well.|r",
+							.. " still fades in, and the glow set above still works.\n\n|cff888888The"
+							.. " Minimal look has no panel, so no light crosses it. The cooldown sweep"
+							.. " on the icon has its own switch, under Icon and queue. In a fight, Stay"
+							.. " quiet in combat keeps the outcome still as well.|r",
 						order = 21.5,
 						values = {
 							full = "Full",
@@ -1770,7 +1774,8 @@ local function BuildOptions()
 						name = "Stay quiet in combat",
 						desc = "A click still casts in combat, and the prompt still flashes to say what"
 							.. " happened -- red if it failed. With this on it does not -- the panel"
-							.. " simply sits there dimmed for the length of the fight.\n\n"
+							.. " simply sits there dimmed for the length of the fight, with no cooldown"
+							.. " sweep on the icon.\n\n"
 							.. "|cff888888It stays on screen in a fight on purpose: your key binding"
 							.. " would still cast the frozen macro if it were hidden.|r",
 						order = 38,
@@ -1956,7 +1961,7 @@ local function BuildOptions()
 							.. "so it is off by default.\n\n"
 							.. "|cff888888The mask goes where the ring was, so a rounded icon has no"
 							.. " ring to colour -- move the reason colour to the stripe if you want"
-							.. " both.|r",
+							.. " both. The glow when somebody buffs you follows the circle.|r",
 						order = 63,
 						width = "full",
 						disabled = function() return not P().showIcon end,
@@ -1970,7 +1975,8 @@ local function BuildOptions()
 						name = "Show the global cooldown on the icon",
 						desc = "Sweeps the spell icon while the global cooldown runs after a cast,"
 							.. " the way your action bars do, so you can see when the next press will"
-							.. " go through.",
+							.. " go through.\n\n|cff888888Not in a fight while Stay quiet in combat"
+							.. " is on.|r",
 						order = 63.5,
 						width = "full",
 						disabled = function() return not P().showIcon end,
