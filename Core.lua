@@ -202,7 +202,19 @@ local defaults = {
 		-- this only changes the order.
 		priority = {
 			target = true, -- a deliberate target outranks a favour owed
+			-- Your friends and guildmates ahead of the rest of your group and
+			-- the rest of the passers-by. On from the start because it only
+			-- reorders people who were going to be offered anyway: nobody is
+			-- added or dropped by it, and a friend waiting behind a stranger is
+			-- never what anybody wanted.
+			friends = true,
 		},
+
+		-- People never to offer anything to, by the name they are filed under,
+		-- as a set: name -> true. Filled by shift-right-clicking the prompt, the
+		-- Who to buff tab or /manners never. Somebody on it who buffs you is still
+		-- offered the favour back -- see BuildQueue for why.
+		never = {},
 
 		filters = {
 			relevantOnly = true, -- skip people the buff does nothing for
@@ -214,6 +226,9 @@ local defaults = {
 			-- nameplates, and everybody the game would let you cast on got a
 			-- card. "In range" is a far weaker idea of near me than a person's.
 			proximity = "near",
+			-- Passers-by only in a city or an inn, where the game calls you
+			-- resting. Off, because it takes away offers somebody gets today.
+			restingOnly = false,
 			reachableOnly = true, -- hide people we cannot actually reach
 			restoreTarget = true, -- hand your target back after buffing
 			whenBuffed = "skip", -- skip | refresh | always
@@ -1708,6 +1723,26 @@ function ns.NearEnough(unit, quiet)
 	return verdict
 end
 
+-- Whether the game calls the player resting -- in a city or an inn: true,
+-- false, or nil for could not tell.
+--
+-- Written out rather than put through safecall, because safecall hands back a
+-- withheld answer as nil and the old API said "not resting" with a nil. So a
+-- plain nil is read as no, and only a missing function, a throw or a value
+-- withheld as a secret is could-not-tell -- which BuildQueue reads as resting,
+-- since a setting the client cannot answer must not quietly empty the queue.
+--
+-- Up here rather than beside BuildQueue because the distance summary below
+-- asks it too: with passers-by left alone out in the world, nobody is measured,
+-- and the summary has to say why.
+local function Resting()
+	if type(_G.IsResting) ~= "function" then return nil end
+	local ok, value = pcall(_G.IsResting)
+	if not ok then return nil end
+	if issecretvalue and issecretvalue(value) then return nil end
+	return value == true or value == 1
+end
+
 -- One line saying what is measuring nearness and how it is getting on, for
 -- /manners debug and for the options page. Built here rather than at either
 -- call site so the two cannot come to disagree about what the same state means.
@@ -1737,6 +1772,16 @@ function ns.ProximitySummary()
 	-- about a filter nobody reaches.
 	if ns.OnlyReachesGroup() then
 		return out .. " -- your buffs reach only your group, so nobody is measured"
+	end
+	-- And for passers-by left alone because the player is out in the world.
+	-- BuildQueue turns every one of them down before the distance check, so the
+	-- counts stay at nothing and "nobody measured yet" sat there for as long as
+	-- the player stayed out -- directly above the switch that caused it, reading
+	-- as a distance setting that had stopped working. The same question
+	-- BuildQueue asks, so the two cannot disagree: only a definite "not resting".
+	if db.filters.restingOnly == true and Resting() == false then
+		return ("%s -- you are out in the world and passers-by are only offered in cities"
+			.. " and inns, so nobody is measured"):format(out)
 	end
 
 	-- Said first, because it is the state the line is most often read in and
@@ -2215,6 +2260,264 @@ function ns.SettleFavour(name)
 	SaveDebts()
 end
 
+---------------------------------------------------------------------------
+-- the never-offer list
+--
+-- People the player has said never to offer anything to, filed under the same
+-- name debts and blocks are. A set in the profile, so it is shared by every
+-- character on the account the way the rest of the profile is, and it reaches
+-- the queue at its next rebuild -- which in a fight is the end of the fight,
+-- since the prompt does not re-arm in one. Nothing here touches the button.
+---------------------------------------------------------------------------
+
+local function NeverSet()
+	local db = addon.db and addon.db.profile
+	local never = db and db.never
+	if type(never) ~= "table" then return nil end
+	return never
+end
+
+-- What somebody typed, tidied: the space around it off and any run of spaces
+-- inside it cut to one. nil for nothing at all.
+local function CleanName(name)
+	if type(name) ~= "string" then return nil end
+	name = name:gsub("%s+", " "):match("^%s*(.-)%s*$")
+	if name == "" then return nil end
+	return name
+end
+
+-- The entry on the list that names this person, or nil.
+--
+-- Exact first, then regardless of case, because a name added from the options
+-- page or /manners never is typed by hand and "petra stonewell" plainly means
+-- Petra Stonewell. Also against the name with any realm taken off, which is how
+-- the prompt shows a player from another realm -- and so how anybody will type
+-- them. Never the other way round: an entry that names a realm matches only
+-- that realm.
+--
+-- Case is folded by the client's strcmputf8i where there is one, which the
+-- addons known to work on this client use to compare names. string.lower works
+-- byte by byte and leaves every accented capital alone, so "élodie" typed for
+-- Élodie never matched -- while chat said she was on the list. The plain lower
+-- is the fallback for a client without it, and still right for every name that
+-- is ASCII.
+local function SameName(a, b)
+	if not b then return false end
+	local fold = _G.strcmputf8i
+	if type(fold) == "function" then
+		local ok, cmp = pcall(fold, a, b)
+		if ok and type(cmp) == "number" then return cmp == 0 end
+	end
+	return a:lower() == b:lower()
+end
+
+local function ListedAs(name)
+	local never = NeverSet()
+	if not never or type(name) ~= "string" or next(never) == nil then return nil end
+	if never[name] == true then return name end
+	local short = ShortName(name)
+	for key in pairs(never) do
+		if type(key) == "string" then
+			if SameName(key, name) or SameName(key, short) then return key end
+		end
+	end
+	return nil
+end
+
+function ns.IsNeverOffered(name)
+	return ListedAs(name) ~= nil
+end
+
+-- Puts somebody on the list. Returns the spelling now on it, and whether they
+-- were already there -- in which case the spelling already there is kept, so
+-- one person cannot end up on it twice in two cases.
+function ns.NeverOffer(name)
+	name = CleanName(name)
+	local never = NeverSet()
+	if not name or not never then return nil end
+	local already = ListedAs(name)
+	if already then return already, true end
+	never[name] = true
+	return name, false
+end
+
+-- Takes somebody off. Returns the spelling that came off, or nil when nobody
+-- on the list answers to that name.
+function ns.AllowAgain(name)
+	local listed = ListedAs(CleanName(name))
+	if not listed then return nil end
+	NeverSet()[listed] = nil
+	return listed
+end
+
+-- Everybody on it, sorted the way a reader looks for a name.
+function ns.NeverList()
+	local names = {}
+	for name, flag in pairs(NeverSet() or {}) do
+		if flag == true then names[#names + 1] = name end
+	end
+	table.sort(names, function(a, b) return a:lower() < b:lower() end)
+	return names
+end
+
+function ns.ClearNeverList()
+	local never = NeverSet()
+	if never then wipe(never) end
+end
+
+-- Puts somebody on the list as a deliberate act -- a shift-right-click on the
+-- prompt, /manners never, the box on the options page -- and says so. Returns
+-- the spelling on the list, or nil for a name that was nothing but space.
+--
+-- A favour they are owed goes with them. Owed people are exempt from the list
+-- (see BuildQueue), so without this somebody shift-right-clicked while owed
+-- came straight back once the skip ran out, which is the one thing the player
+-- had just asked for not to happen. The next favour they do you is offered as
+-- usual, and the line says so.
+--
+-- The line is always said, whatever Tell me in chat is set to: it answers a
+-- deliberate act, and it is the only place the way back is written down at the
+-- moment somebody might want it.
+function ns.PutOnNeverList(name)
+	local listed, already = ns.NeverOffer(name)
+	if not listed then return nil end
+
+	-- Whether or not they were on the list already. Somebody already on it is
+	-- only on the prompt at all because they are owed -- that is the exception
+	-- -- so a shift-right-click on them is exactly the case this is for, and it
+	-- used to return before reaching it: the favour stayed, and they were back
+	-- once the skip ran out.
+	local forgiven = false
+	for key in pairs(owed) do
+		if ListedAs(key) == listed then
+			owed[key] = nil
+			forgiven = true
+		end
+	end
+	if forgiven then SaveDebts() end
+
+	if already then
+		if forgiven then
+			addon:Print(("|cffffffff%s|r is already on your never-offer list, and the favour"
+				.. " they did you is let go."):format(listed))
+		else
+			addon:Print(("|cffffffff%s|r is already on your never-offer list."):format(listed))
+		end
+		return listed
+	end
+
+	if forgiven then
+		addon:Print(("|cffffffff%s|r will not be offered anything again unless they buff you,"
+			.. " and the favour they just did you is let go. |cffffd100/manners allow %s|r"
+			.. " takes them off the list."):format(listed, listed))
+	else
+		addon:Print(("|cffffffff%s|r will not be offered anything again unless they buff you."
+			.. " |cffffd100/manners allow %s|r takes them off the list."):format(listed, listed))
+	end
+	ns.RepaintOptions()
+	return listed
+end
+
+---------------------------------------------------------------------------
+-- friends and guildmates
+--
+-- For "Who comes first". Every answer here is a preference about order, never
+-- a reason to offer or drop anybody, so anything the client will not say --
+-- an API that is missing, one that throws, a value withheld as a secret -- is
+-- read as "not a friend" and the person is ranked like everybody else.
+---------------------------------------------------------------------------
+
+-- How long an answer about one person is kept. A friends list or a guild
+-- roster changes on the scale of minutes, and the scan asks about everybody in
+-- front of you two and a half times a second.
+local CLOSE_SECONDS = 10
+local closeCache = {}
+-- The friends list read off the list itself, by lower-cased name and by GUID,
+-- and when it was read.
+local friendNames, friendGuids, friendsReadAt = {}, {}, nil
+
+-- The fallback for a client whose C_FriendList has no IsFriend: the list read
+-- by index, the way the addons known to work on this client read it.
+local function ReadFriendsList(now)
+	if friendsReadAt and now - friendsReadAt < CLOSE_SECONDS then return end
+	friendsReadAt = now
+	wipe(friendNames)
+	wipe(friendGuids)
+	local list = _G.C_FriendList
+	if type(list) ~= "table" then return end
+	local count = safecall(list.GetNumFriends)
+	if type(count) ~= "number" then return end
+	-- The game caps a friends list well below this; the bound is there so a
+	-- nonsense count cannot turn one scan into a very long one.
+	for i = 1, math.min(count, 200) do
+		local info = safecall(list.GetFriendInfoByIndex, i)
+		if type(info) == "table" then
+			local name, guid = plain(info.name), plain(info.guid)
+			if type(name) == "string" then friendNames[name:lower()] = true end
+			if type(guid) == "string" then friendGuids[guid] = true end
+		end
+	end
+end
+
+-- Old answers go, so the cache holds the people around you now rather than
+-- everybody met since login.
+local function SweepCloseness(now)
+	for name, answer in pairs(closeCache) do
+		if now - answer.at >= CLOSE_SECONDS then closeCache[name] = nil end
+	end
+end
+
+-- "friend", "guild", or nil for neither and for could-not-tell alike.
+--
+-- The GUID goes to the client exactly as the client handed it over, secret or
+-- not: a withheld GUID may still be one the friends API is allowed to take, and
+-- safecall is what stands between a refusal and the scan. It is never compared
+-- or read here, because a secret throws on both.
+--
+-- A friend is asked about before the guild, because a friend is the more
+-- particular thing to say about somebody on the tooltip.
+local function Closeness(unit, full, now)
+	local cached = closeCache[full]
+	if cached and now - cached.at < CLOSE_SECONDS then return cached.kind or nil end
+
+	local kind
+	local rawGuid = UnitGUID(unit)
+	local list, bnet = _G.C_FriendList, _G.C_BattleNet
+	if type(list) == "table" and safecall(list.IsFriend, rawGuid) == true then
+		kind = "friend"
+	elseif type(bnet) == "table"
+		and type(safecall(bnet.GetGameAccountInfoByGUID, rawGuid)) == "table" then
+		-- Answers for Battle.net friends and nobody else; the Camelot social
+		-- addon accepts group invites from friends on exactly this.
+		kind = "friend"
+	else
+		ReadFriendsList(now)
+		local guid = plain(rawGuid)
+		if (type(guid) == "string" and friendGuids[guid])
+			or friendNames[full:lower()]
+			or friendNames[(ns.TargetName(full) or full):lower()] then
+			kind = "friend"
+		end
+	end
+
+	if not kind then
+		if safecall(_G.UnitIsInMyGuild, unit) == true then
+			kind = "guild"
+		else
+			-- Where there is no UnitIsInMyGuild: the two guild names, compared
+			-- only when both are readable and there is a guild to compare.
+			local theirs = safecall(_G.GetGuildInfo, unit)
+			local ours = safecall(_G.GetGuildInfo, "player")
+			if type(theirs) == "string" and theirs ~= "" and theirs == ours then
+				kind = "guild"
+			end
+		end
+	end
+
+	closeCache[full] = { at = now, kind = kind or false }
+	return kind
+end
+
 local PRIORITY = { target = 0, owed = 1, group = 2, nearby = 3 }
 
 -- fn(unit, pointed). `pointed` is the second argument because one caller has to
@@ -2312,6 +2615,15 @@ function ns.BuildQueue()
 	-- duel prompt says nothing about strangers, dropped that rung for silence.
 	local groupOnly = ns.OnlyReachesGroup()
 
+	-- Once per scan as well: whether passers-by are to be left alone because
+	-- the player is out in the world rather than in a city or an inn. Only a
+	-- definite "not resting" does it; could-not-tell offers them as before.
+	local notResting = f.restingOnly == true and Resting() == false
+	-- And whether friends and guildmates are to be picked out at all. Nobody is
+	-- asked about when this is off, which is most of the cost of it.
+	local friendsFirst = db.priority.friends == true
+	if friendsFirst then SweepCloseness(now) end
+
 	-- Offering a buff that cannot be paid for is a button that fails -- but
 	-- only classes with a mana bar can run out of it. A warrior's current mana
 	-- is a readable, permanent 0, so an unconditional check here meant every
@@ -2351,12 +2663,39 @@ function ns.BuildQueue()
 		local inGroup = plain(UnitInParty and UnitInParty(unit)) or plain(UnitInRaid and UnitInRaid(unit))
 		local isOwed = db.sources.owed and owed[full] and LiveExpiry(owed[full]) > now
 
+		-- The never-offer list, for everybody but a person owed a favour.
+		--
+		-- That exception is the decision, and the options page says it in so
+		-- many words: returning a favour is what this addon is for, and somebody
+		-- who has just buffed you has done the one thing that earns an offer
+		-- whatever list they are on. Shift-right-clicking them lets the favour
+		-- go as well, so the list never keeps somebody on the prompt that the
+		-- player has just asked to be rid of.
+		--
+		-- Written into `rejected` like every other refusal here -- one verdict
+		-- per person per scan -- and safe to write for the reason the distance
+		-- check below gives: nobody reaching this line is owed anything the
+		-- fallback could offer, because the fallback asks the same two questions
+		-- isOwed just did.
+		if not isOwed and ns.IsNeverOffered(full) then
+			rejected[full] = true
+			return
+		end
+
 		-- Decide whether we would offer this person at all before reading any
 		-- auras, which is the expensive part.
 		local reason = isOwed and "owed" or (inGroup and "group" or "nearby")
 		if reason == "group" and not db.sources.group then return end
 		if reason == "nearby" and not db.sources.strangers then return end
 		if reason == "nearby" and groupOnly then return end
+
+		-- Passers-by only in a city or an inn, when that is asked for. Exempt
+		-- exactly who the distance check below exempts, for the same reason: a
+		-- stranger you have targeted or focused you picked on purpose.
+		if reason == "nearby" and not pointed and notResting then
+			rejected[full] = true
+			return
+		end
 
 		-- A passer-by has to be near, not merely castable on.
 		--
@@ -2455,6 +2794,15 @@ function ns.BuildQueue()
 			reason = "target"
 		end
 
+		-- Asked last, of the people who made it this far and nobody else: the
+		-- answer only orders the queue, so nobody turned down above is worth a
+		-- question. Not for a favour owed or your target, who already outrank
+		-- everybody it could move them past.
+		local close
+		if friendsFirst and (reason == "group" or reason == "nearby") then
+			close = Closeness(unit, full, now)
+		end
+
 		seen[full] = true
 		queue[#queue + 1] = {
 			name = full,
@@ -2478,6 +2826,9 @@ function ns.BuildQueue()
 			-- false when we chose not to look, as opposed to looked and were
 			-- refused. Only the second is the client's doing.
 			checked = checked,
+			-- "friend" or "guild" where Who comes first asked and got an answer,
+			-- nil otherwise. The sort reads it, and so does the tooltip.
+			close = close,
 		}
 	end)
 
@@ -2581,6 +2932,16 @@ function ns.BuildQueue()
 		local ar = a.ranged == true and 0 or (a.ranged == nil and 1 or 2)
 		local br = b.ranged == true and 0 or (b.ranged == nil and 1 or 2)
 		if ar ~= br then return ar < br end
+		-- Inside a kind of offer, never across one: a friend passing by comes
+		-- ahead of the other passers-by and behind your group, and a guildmate
+		-- in your group ahead of the rest of it. Only set with Who comes first
+		-- switched on, so with it off this is a tie and nothing moves.
+		--
+		-- Below the range key, not above it. With "Hide players known to be out
+		-- of range" off, a friend the client says is out of reach is still
+		-- queued, and putting them first led the prompt with a cast that fails
+		-- over somebody it would land on.
+		if (a.close ~= nil) ~= (b.close ~= nil) then return a.close ~= nil end
 		return (a.name or "") < (b.name or "")
 	end)
 
@@ -5028,6 +5389,21 @@ function ns.ClampSettings()
 	-- by something else entirely.
 	if type(profile.priority) ~= "table" then profile.priority = {} end
 	boolean(profile.priority, "target", true)
+	boolean(profile.priority, "friends", true)
+	boolean(profile.filters, "restingOnly", false)
+
+	-- The never-offer list is read on every scan, so a profile carrying
+	-- something other than a table there would take the whole queue down with
+	-- it. Anything inside that is not a name set to true is dropped rather than
+	-- repaired: there is no telling who a number or an empty string was meant to
+	-- be, and a stray key would sit on the options page as a person nobody put
+	-- there.
+	if type(profile.never) ~= "table" then profile.never = {} end
+	for name, flag in pairs(profile.never) do
+		if type(name) ~= "string" or not name:find("%S") or flag ~= true then
+			profile.never[name] = nil
+		end
+	end
 
 	-- The set of switched-off spells. Indexed on every scan by CastableBuffs,
 	-- and a non-table there would take the whole queue down with it.
@@ -5330,6 +5706,8 @@ ns.COMMANDS = {
 	-- profile switched that very thing off.
 	{ word = "restore", help = "switch handing your target back after buffing on or off" },
 	{ word = "verbose", help = "switch the chat lines about who buffed you on or off" },
+	{ word = "never", args = " [name]", help = "list who is never offered anything, or put somebody on that list" },
+	{ word = "allow", args = " <name>", help = "take somebody off the never-offer list" },
 	{ word = "clicks", help = "log what the button does when clicked" },
 	{ word = "try", args = " <macro>", help = "run any macro text from the prompt" },
 	{ word = "look", args = " [unit]", help = "dump every API answer for a unit" },
@@ -5356,6 +5734,8 @@ ns.COMMANDS = {
 local REPAINT_AFTER = {
 	on = true, off = true, verbose = true, clicks = true,
 	restore = true, lock = true, unlock = true,
+	-- The never-offer list is drawn on the Who to buff tab.
+	never = true, allow = true,
 }
 
 -- Said by every command that changes what a press does. The macro on the
@@ -5532,6 +5912,33 @@ function addon:HandleSlash(rawInput)
 		db.enabled = false
 		ns.Prompt:Refresh()
 		self:Print("disabled.")
+	elseif input == "never" then
+		-- The name is `rest`, kept as typed: a surname or a realm is part of it,
+		-- and the list matches regardless of case anyway.
+		if rest == "" then
+			local names = ns.NeverList()
+			if #names == 0 then
+				self:Print("nobody is on your never-offer list. Shift-right-click the prompt to"
+					.. " put whoever it is showing on it.")
+			else
+				self:Print(("never offered anything unless they buff you: %s")
+					:format(table.concat(names, ", ")))
+			end
+		else
+			ns.PutOnNeverList(rest)
+		end
+	elseif input == "allow" then
+		if rest == "" then
+			self:Print("say who: |cffffd100/manners allow Name|r. |cffffd100/manners never|r"
+				.. " lists everybody on the list.")
+		else
+			local name = ns.AllowAgain(rest)
+			if name then
+				self:Print(("|cffffffff%s|r can be offered again."):format(name))
+			else
+				self:Print(("nobody called %s is on your never-offer list."):format(rest))
+			end
+		end
 	elseif input == "errors" then
 		-- Guard names every failure it catches but only says each one out loud
 		-- once. This is the rest of them, and the only way to see a failure

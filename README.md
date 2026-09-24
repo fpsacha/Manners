@@ -90,6 +90,24 @@ Skips the dead, the out-of-range, anyone you just tried, and anyone the buff
 does nothing for — Arcane Intellect is wasted on a rogue. Right-click the
 prompt to skip somebody without marking their favour repaid.
 
+**Never offer.** Shift-right-click the prompt to put the person on it on a
+list of people who are never offered anything, as a passer-by or as a member
+of your group. Chat says how to undo it; the list is also on the *Who to buff*
+tab, where names can be added, taken off one at a time or cleared. Somebody on
+the list who buffs you is still offered the favour back — returning a favour is
+the point — and shift-right-clicking them then lets that favour go as well.
+
+**Who comes first.** A friend (Battle.net friends included) or guildmate
+passing by goes ahead of the other passers-by, and one in your group ahead of
+the rest of your group. It only changes the order: people who buffed you still
+come first, so does your target whenever *Whoever I have targeted comes first*
+puts them there, and somebody the game says is out of range stays behind
+somebody in range. Switch it off under *Who comes first*.
+
+**Passers-by only in cities and inns** is a choice under *Who to skip*, off by
+default: out in the world, strangers walking past are left alone, while your
+group, anybody who buffed you and whoever you target are still offered.
+
 **How near a passer-by has to be** is its own setting, because being in range
 is not the same as being near: Arcane Intellect reaches about thirty yards,
 which in a city is everybody on the screen. Choose *anywhere I can cast*
@@ -200,6 +218,8 @@ favour.
 /manners welcome   what it does and the one thing it needs from you
 /manners unlock    drag the prompt, then /manners lock
 /manners test      preview, for styling without waiting for a real entry
+/manners never     who is never offered anything; /manners never <name> adds
+/manners allow <name>  takes somebody off that list
 /manners debug     what your class and this build allow
 /manners errors    the last few things that broke, if any did
 ```

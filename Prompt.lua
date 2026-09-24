@@ -841,6 +841,22 @@ function Prompt:Create()
 			-- that would put them straight back on the prompt.
 			ns.BlockPerson(victim)
 			Prompt:StopAttention()
+			-- Held shift makes it "never", not "not now": onto the never-offer
+			-- list, with a line saying how to undo it. The block above is still
+			-- wanted -- it is what takes them off the panel at once rather than
+			-- after the hold and the fuse -- and nothing else here differs from
+			-- the skip, so the secure side cannot tell the two apart: type2 is
+			-- "none", no shift- attribute is ever set, and the shifted press
+			-- matches nothing exactly as the plain one does.
+			--
+			-- Nothing in this branch touches the button, so it is as safe in a
+			-- fight as the skip. The list reaches the queue at its next rebuild,
+			-- which in a fight is when it ends.
+			if IsShiftKeyDown and ns.plain(IsShiftKeyDown()) then
+				ns.PutOnNeverList(victim)
+				ns.Guard("never repaint", Prompt.Refresh, Prompt)
+				return
+			end
 			if db and db.verbose then
 				local shown = (current and current.name == victim and current.short)
 					or (ns.ShortName and ns.ShortName(victim)) or victim
@@ -1001,6 +1017,13 @@ function Prompt:Create()
 				or "Nearby."
 		end
 		GameTooltip:AddLine(why, 0.7, 0.7, 0.7, true)
+		-- Why they are ahead of the others like them, where Who comes first
+		-- put them there. Only ever set for a group member or a passer-by.
+		if current.close == "friend" then
+			GameTooltip:AddLine("On your friends list.", 0.7, 0.7, 0.7, true)
+		elseif current.close == "guild" then
+			GameTooltip:AddLine("In your guild.", 0.7, 0.7, 0.7, true)
+		end
 		if left then
 			GameTooltip:AddLine(("Theirs expires in %s."):format(left), 0.7, 0.7, 0.7, true)
 		end
@@ -1032,6 +1055,14 @@ function Prompt:Create()
 		GameTooltip:AddLine("Click to cast. |cffffd100/manners|r for options.", 0.5, 0.5, 0.5)
 		-- A gesture nobody can discover is not a feature.
 		GameTooltip:AddLine("Right-click to skip this one.", 0.5, 0.5, 0.5)
+		-- Somebody already on the list is only here because they are owed, and
+		-- for them the same press lets that favour go; offering to put them on
+		-- a list they are on was the tooltip describing a different person.
+		if ns.IsNeverOffered and ns.IsNeverOffered(current.name) then
+			GameTooltip:AddLine("Shift-right-click to let this favour go.", 0.5, 0.5, 0.5)
+		else
+			GameTooltip:AddLine("Shift-right-click to put them on your never-offer list.", 0.5, 0.5, 0.5)
+		end
 		GameTooltip:Show()
 	end)
 	button:SetScript("OnLeave", function() GameTooltip:Hide() end)

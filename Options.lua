@@ -467,6 +467,11 @@ local function BugReport()
 		tostring(db.sources.owed), tostring(db.sources.group), tostring(db.sources.strangers),
 		tostring(db.filters.whenBuffed), tostring(db.priority.target),
 		tostring(db.timing.keepDebts))
+	-- Who is ordered and who is held back, as opposed to who is on the list at
+	-- all. A report of "my friend is never offered" is answered by the last
+	-- number here more often than by anything else.
+	lines[#lines + 1] = ("friendsFirst=%s restingOnly=%s neverOffered=%d"):format(
+		tostring(db.priority.friends), tostring(db.filters.restingOnly), #ns.NeverList())
 
 	local scan = ns.auraScan
 	lines[#lines + 1] = ("own buffs: %s read, baseline %s, primed=%s, doubt=%s"):format(
@@ -500,6 +505,20 @@ local function BugReport()
 	end
 
 	return table.concat(lines, "\n")
+end
+
+-- Who is picked in the never-offer dropdown, waiting for Take them off. A file
+-- local for the reason reportOpen is one: it is a state of the window, not of
+-- the profile.
+local neverPicked
+
+-- The never-offer list as dropdown choices, built fresh each time the page asks,
+-- because a shift-right-click on the prompt or /manners never can add to it
+-- while the page is open.
+local function NeverChoices()
+	local values = {}
+	for _, name in ipairs(ns.NeverList()) do values[name] = name end
+	return values
 end
 
 ---------------------------------------------------------------------------
@@ -661,6 +680,29 @@ local function BuildOptions()
 				get = prGet,
 				set = prSet,
 			},
+			friends = {
+				type = "toggle",
+				name = "My friends and guildmates come before the others",
+				-- Inside a kind of offer and never across one, which is what the
+				-- sort does; see BuildQueue. Saying "ahead of strangers" alone
+				-- would promise a friend passing by a place above your group.
+				-- Your target is named only where it is true: a target is put
+				-- first by the switch above, which needs their buffs readable,
+				-- and a stranger's often are not. Otherwise a targeted stranger
+				-- is a passer-by like any other, and a friend goes ahead of them.
+				desc = "A friend or guildmate passing by comes ahead of the other passers-by,"
+					.. " and one in your group ahead of the rest of your group. People who"
+					.. " buffed you still come first, and so does your target whenever"
+					.. " |cffffd100Whoever I have targeted comes first|r puts them there."
+					.. " Nobody is added or left out by this -- it only changes the"
+					.. " order.\n\n"
+					.. "|cff888888Friends include Battle.net friends. When the game will not say"
+					.. " whether somebody is a friend, they are ranked like anybody else.|r",
+				order = 17,
+				width = "full",
+				get = prGet,
+				set = prSet,
+			},
 
 			skipHeader = { type = "header", name = "Who to skip", order = 20 },
 			relevantOnly = {
@@ -735,6 +777,25 @@ local function BuildOptions()
 					return "|cff888888" .. tostring(ns.ProximitySummary()) .. "|r"
 				end,
 			},
+			restingOnly = {
+				type = "toggle",
+				name = "Only offer passers-by in cities and inns",
+				-- Hidden and disabled exactly where the distance setting above
+				-- is, and for the same reasons: it is about passers-by and
+				-- nothing else.
+				desc = "Out in the world, passers-by are left alone; they are offered only where"
+					.. " the game shows you as resting, which is in a city or an inn.\n\n"
+					.. "Somebody who buffed you, your group, and whoever you have targeted or"
+					.. " focused are offered anywhere.\n\n"
+					.. "|cff888888If the game will not say whether you are resting, passers-by are"
+					.. " offered as usual.|r",
+				order = 22.7,
+				width = "full",
+				hidden = OnlyReachesGroup,
+				disabled = function() return not S().strangers end,
+				get = fGet,
+				set = fSet,
+			},
 			reachableOnly = {
 				type = "toggle",
 				name = "Drop people who are probably gone",
@@ -784,6 +845,84 @@ local function BuildOptions()
 				step = 1,
 				get = fGet,
 				set = fSet,
+			},
+
+			neverHeader = { type = "header", name = "Never offer", order = 30 },
+			neverNote = {
+				type = "description",
+				order = 31,
+				fontSize = "medium",
+				name = function()
+					local count = #ns.NeverList()
+					if count == 0 then
+						return "Nobody is on the list. Shift-right-click the prompt to put whoever"
+							.. " it is showing on it, or add a name below."
+					end
+					-- The exception is the decision this section rests on, so it
+					-- is said every time the list is, rather than once in a
+					-- tooltip nobody hovers.
+					local text = count == 1
+						and "One person is on the list. They are never offered anything as a"
+							.. " passer-by or as a member of your group."
+						or ("%d people are on the list. They are never offered anything as"
+							.. " passers-by or as members of your group."):format(count)
+					return text .. "\n\nSomebody on it who buffs you is still offered the favour"
+						.. " back: returning a favour is what Manners is for. Shift-right-click"
+						.. " them on the prompt to let that favour go."
+				end,
+			},
+			neverAdd = {
+				type = "input",
+				name = "Add somebody by name",
+				desc = "Spelled the way the prompt shows them. Capitals do not matter.",
+				order = 32,
+				width = "full",
+				-- Always empty: it is a box to type into, not a setting with a
+				-- value to show back.
+				get = function() return "" end,
+				set = function(_, value) ns.PutOnNeverList(value) end,
+			},
+			neverPick = {
+				type = "select",
+				name = "On the list",
+				order = 33,
+				values = NeverChoices,
+				disabled = function() return #ns.NeverList() == 0 end,
+				-- Only somebody still on the list: the pick outlives a removal
+				-- made from chat, and a dropdown showing a name that is no
+				-- longer there offers a Remove that does nothing.
+				get = function()
+					if neverPicked and ns.IsNeverOffered(neverPicked) then return neverPicked end
+					return nil
+				end,
+				set = function(_, value) neverPicked = value end,
+			},
+			neverRemove = {
+				type = "execute",
+				name = "Take them off",
+				order = 34,
+				disabled = function()
+					return not (neverPicked and ns.IsNeverOffered(neverPicked))
+				end,
+				func = function()
+					local name = neverPicked and ns.AllowAgain(neverPicked)
+					neverPicked = nil
+					if name then
+						ns.addon:Print(("|cffffffff%s|r can be offered again."):format(name))
+					end
+				end,
+			},
+			neverClear = {
+				type = "execute",
+				name = "Clear the list",
+				order = 35,
+				disabled = function() return #ns.NeverList() == 0 end,
+				confirm = true,
+				confirmText = "Take everybody off the never-offer list?",
+				func = function()
+					ns.ClearNeverList()
+					neverPicked = nil
+				end,
 			},
 		},
 	}
