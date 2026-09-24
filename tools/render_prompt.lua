@@ -21,7 +21,9 @@ dofile(dir .. "/tests/mockapi.lua")
 dofile(dir .. "/tests/frametree.lua")
 
 local R = {}
-local FILES = { "Flavour.lua", "Buffs.lua", "Core.lua", "Prompt.lua", "Options.lua" }
+-- What the drawn build's own toc loads, so an older checkout is drawn with its
+-- own file list and today's picks up the ledger and the locales.
+local FILES = dofile(dir .. "/tests/addonfiles.lua")(addonDir)
 
 -- Only the units a state names exist; everybody else is nobody. The mock's
 -- default answers yes for every token, which would put the same person on the
