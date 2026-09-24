@@ -223,10 +223,21 @@ favour.
 /manners snooze    hide the prompt for 15 minutes (or /manners snooze 5, snooze 1h, snooze off)
 /manners export    your settings as one line of text, to keep or to share
 /manners import    use a line somebody exported (/manners import undo puts yours back)
+/manners ledger    the favour ledger
 /manners debug     what your class and this build allow
 /manners errors    the last few things that broke, if any did
 /manners help      every command, grouped
 ```
+
+The favour ledger is a small window listing who buffed you, with what and
+when, whether you returned it and with what, and who you buffed without being
+asked -- newest first. Today's count ("Returned 12 of 14 favours today") and
+the all-time totals sit at the top, then tabs for everything, favours, and
+buffs you gave. A favour nothing you cast could return (a warrior's shout, to a
+mage) is listed but left out of today's count. Shift-click the minimap button
+for it, or use the button on the General tab. It keeps the last 200 entries per
+character; Clear empties the list but keeps favours still owed and the all-time
+counts. It never says anything in chat.
 
 The first login on a character says all of that by itself, once, and puts the
 prompt on screen so you can see where it is. It is kept per character rather

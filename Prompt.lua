@@ -959,6 +959,11 @@ function Prompt:Create()
 			-- of range" off they are still offered, and the line has to say the
 			-- answer was no rather than that nothing answered.
 			outOfShout = current.ranged == false,
+			-- For the favour ledger, which records who a buff went to and
+			-- whether they were in the group; nothing on the settle path reads
+			-- either.
+			class = current.class,
+			inGroup = current.inGroup,
 			gave = ns.lastGave[current.name] }
 		-- Per buff, so casting Fortitude does not stop the walk reaching
 		-- Divine Spirit on the next click.

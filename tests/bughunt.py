@@ -1,7 +1,7 @@
 import re, os
 
 D = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-FILES = ["Flavour.lua", "Buffs.lua", "Core.lua", "Prompt.lua", "Options.lua"]
+FILES = ["Flavour.lua", "Buffs.lua", "Core.lua", "Ledger.lua", "Prompt.lua", "Options.lua"]
 src = {f: open(os.path.join(D, f), encoding="utf-8").read() for f in FILES}
 
 findings = []

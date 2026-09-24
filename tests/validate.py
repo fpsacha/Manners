@@ -11,7 +11,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "tools"))
 import maketocs
 
-OURS = ["Flavour.lua", "Buffs.lua", "Core.lua", "Prompt.lua", "Options.lua"]
+OURS = ["Flavour.lua", "Buffs.lua", "Core.lua", "Ledger.lua", "Prompt.lua", "Options.lua"]
 
 # Manners.toc is the hand-edited source and the fallback for a client that does
 # not honour a suffixed name; every per-flavour toc (tools/maketocs.py's
