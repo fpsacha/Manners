@@ -4,7 +4,7 @@ game is told to load actually exists.
 Paths are resolved relative to this file so it runs anywhere -- on a developer
 machine, and on a CI runner that has never heard of the game.
 """
-import os, re, sys, xml.etree.ElementTree as ET
+import glob, os, re, sys, xml.etree.ElementTree as ET
 import lupa
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -654,6 +654,19 @@ for name in unread:
     print("  WRITE-ONLY ns.%s -- delete it, or use it" % name)
     fail += 1
 print("  %d namespace symbols, %d nothing reads" % (len(declared), len(unread)))
+
+print("\n== translations ==")
+# See tools/locale_keys.py for what is checked and why. A translation that
+# breaks a format string fails only for players in that language, which is
+# exactly where nobody testing in English would ever notice it.
+for path in sorted(glob.glob(os.path.join(ROOT, "Locales", "*.lua"))):
+    lua_ok(path)
+import locale_keys
+_problems, _summary = locale_keys.audit()
+for _line in _problems:
+    print("  " + _line)
+    fail += 1
+print("  " + ", ".join(_summary))
 
 print("\n== stale names ==")
 allsrc = "\n".join(open(os.path.join(ROOT, f), encoding="utf-8").read() for f in OURS) + toc

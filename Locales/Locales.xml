@@ -1,0 +1,4 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/">
+	<!-- Init.lua first: it creates ns.L, which every file after it fills. -->
+	<Script file="Init.lua"/>
+</Ui>

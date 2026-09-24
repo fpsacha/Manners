@@ -103,6 +103,7 @@ function Mock.setFlavour(name)
 end
 
 function Mock.reset()
+	Mock.locale = nil
 	Mock.class = "MAGE"
 	Mock.dead = false
 	Mock.inCombat = false
@@ -1182,6 +1183,11 @@ Mock.setInteract("on")
 function GetSpellInfo(id)
 	if Mock.unknownSpells and Mock.unknownSpells[id] then return nil end
 	return "Arcane Intellect"
+end
+-- The client's language. Mock.locale lets a scenario run the addon as a
+-- French or Korean client would; everything else sees English.
+function GetLocale()
+	return Mock.locale or "enUS"
 end
 function GetBuildInfo()
 	return Mock.build or "1.60.1", "69893", "d", Mock.interface or 16001

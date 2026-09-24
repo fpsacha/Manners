@@ -23,6 +23,8 @@
 
 embeds.xml
 
+Locales\Locales.xml
+
 Flavour.lua
 Buffs.lua
 Core.lua

@@ -259,12 +259,14 @@ Enum = {
 Settings = nil
 CreateColor = function(r, g, b, a) return { r = r, g = g, b = b, a = a } end
 BackdropTemplateMixin = {}
+GetLocale = function() return "enUS" end
 
 -- ---------------------------------------------------------------- run it
 local ADDON, ns = "Manners", {}
 local dir = ...
 
-for _, file in ipairs({ "Flavour.lua", "Buffs.lua", "Core.lua", "Prompt.lua", "Options.lua" }) do
+-- What the toc loads, in its order -- see tests/addonfiles.lua.
+for _, file in ipairs(dofile(dir .. "/tests/addonfiles.lua")(dir)) do
   local chunk, err = loadfile(dir .. "/" .. file)
   if not chunk then
     note("LOAD " .. file .. ": " .. tostring(err))

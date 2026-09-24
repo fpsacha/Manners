@@ -11,10 +11,12 @@ local failures = {}
 local function fail(scenario, msg) failures[#failures + 1] = scenario .. ": " .. msg end
 
 dofile(dir .. "/tests/mockapi.lua")
+-- What the toc loads, in its order -- see tests/addonfiles.lua.
+ADDON_FILES = dofile(dir .. "/tests/addonfiles.lua")(dir)
 
 local function load(scenario)
 	local ns = {}
-	for _, file in ipairs({ "Flavour.lua", "Buffs.lua", "Core.lua", "Prompt.lua", "Options.lua" }) do
+	for _, file in ipairs(ADDON_FILES) do
 		local chunk, err = loadfile(dir .. "/" .. file)
 		if not chunk then
 			fail(scenario, "load " .. file .. ": " .. tostring(err))
