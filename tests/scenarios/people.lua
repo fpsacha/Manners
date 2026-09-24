@@ -14,7 +14,7 @@ local clearClicks, owe, findOption = H.clearClicks, H.owe, H.findOption
 
 -- Globals a scenario may set, and what they were before this file touched them.
 local TOUCHED = { "C_FriendList", "C_BattleNet", "UnitIsInMyGuild", "GetGuildInfo",
-	"IsShiftKeyDown", "IsResting", "UnitInParty", "GetNumGroupMembers" }
+	"IsShiftKeyDown", "IsResting", "UnitInParty", "GetNumGroupMembers", "strcmputf8i" }
 local original = {}
 for _, name in ipairs(TOUCHED) do original[name] = _G[name] end
 
@@ -725,6 +725,212 @@ do
 				fail(scenario, ("when resting could not be told (%s), the passers-by were dropped")
 					:format(label))
 			end
+		end
+		noErrors(scenario, ns)
+	end)
+	restoreUnits()
+end
+Mock.reset()
+
+-- ----------------------------------------------------------------- people 10
+-- Somebody already on the list, owed a favour and shift-right-clicked, has the
+-- favour let go.
+--
+-- The one case the options page's "Shift-right-click them on the prompt to let
+-- that favour go" is about: a listed person is only on the prompt because they
+-- are owed. People 5 takes Anna off the list first, so it never reaches this.
+Mock.reset()
+do
+	local scenario = "an owed person already on the list lets the favour go"
+	local restoreUnits = strangers({ nameplate1 = { "Anna", "Aim" }, nameplate2 = { "Bert", "Beside" } })
+	local shift = false
+	with(scenario, { IsShiftKeyDown = function() return shift end }, function()
+		local ns = load(scenario)
+		if not ns then return end
+		freshPrompt(ns, scenario)
+		ns.NeverOffer("Anna Aim")
+		owe(ns, "Anna Aim")
+		ns.addon:Tick()
+		if ns.Prompt:PanelName() ~= "Anna Aim" then
+			fail(scenario, "SKIPPED -- the prompt did not name Anna: " .. tostring(ns.Prompt:PanelName()))
+			return
+		end
+
+		-- The tooltip says what the press does to her, not what it does to
+		-- somebody not on the list yet.
+		local button = ns.Prompt:GetButton()
+		if button.scripts.OnEnter then button.scripts.OnEnter(button) end
+		local tip = table.concat(Mock.tooltip, "\n")
+		if not tip:find("Shift-right-click to let this favour go.", 1, true) then
+			fail(scenario, "the tooltip over a listed, owed person does not say the press lets the"
+				.. " favour go: " .. tip)
+		end
+		if tip:find("put them on your never-offer list", 1, true) then
+			fail(scenario, "the tooltip offers to put somebody on a list they are already on")
+		end
+
+		shift = true
+		Mock.printed = {}
+		pressButton(ns, "RightButton")
+		shift = false
+		if ns.owed["Anna Aim"] then
+			fail(scenario, "Anna, already on the list, was shift-right-clicked and is still owed")
+		end
+		if not said():find("already on your never-offer list, and the favour they did you is let go",
+			1, true) then
+			fail(scenario, "the line did not say the favour was let go: " .. said())
+		end
+		if #ns.NeverList() ~= 1 then
+			fail(scenario, "Anna went on the list twice: " .. table.concat(ns.NeverList(), ", "))
+		end
+
+		-- Past the skip: she does not come back.
+		Mock.advance(ns.db.profile.timing.retryCooldown + 5)
+		wipe(ns.tried)
+		if entryFor(ns, "Anna Aim") then
+			fail(scenario, "Anna came back once the skip ran out")
+		end
+
+		-- Shift-right-click on nobody owed, already listed: said, and harmless.
+		Mock.printed = {}
+		ns.PutOnNeverList("Anna Aim")
+		if not said():find("is already on your never-offer list.", 1, true)
+			or said():find("let go", 1, true) then
+			fail(scenario, "with nothing owed the line should only say she is on the list: " .. said())
+		end
+		noErrors(scenario, ns)
+	end)
+	restoreUnits()
+end
+Mock.reset()
+
+-- ----------------------------------------------------------------- people 11
+-- A friend the game says is out of range does not lead over somebody in range.
+--
+-- Only reachable with "Hide players known to be out of range" off, which keeps
+-- such people on the queue. Bert is a friend in range, Anna a stranger in range,
+-- Cara a friend out of range: friends first inside each, range first across.
+-- The range answer is per unit here, which the shared mock does not do, so
+-- C_Spell is wrapped for this scenario and put back after it.
+Mock.reset()
+do
+	local scenario = "an out-of-range friend stays behind somebody in range"
+	local restoreUnits = strangers({ nameplate1 = { "Anna", "Aim" },
+		nameplate2 = { "Bert", "Beside" }, nameplate3 = { "Cara", "Close" } })
+	local realSpell = _G.C_Spell
+	local globals = socialGlobals({ nameplate2 = true, nameplate3 = true }, {})
+	with(scenario, globals, function()
+		_G.C_Spell = setmetatable({
+			IsSpellInRange = function(_, unit) return unit ~= "nameplate3" end,
+		}, { __index = realSpell })
+		local ns = load(scenario)
+		if not ns then return end
+		freshPrompt(ns, scenario)
+		ns.db.profile.filters.requireInRange = false
+
+		local names = table.concat(order(ns), ",")
+		if names ~= "Bert Beside,Anna Aim,Cara Close" then
+			fail(scenario, "expected the friend in range, the stranger in range, then the friend"
+				.. " out of range: " .. names)
+		end
+		local cara = entryFor(ns, "Cara Close")
+		if not (cara and cara.ranged == false and cara.close == "friend") then
+			fail(scenario, "SKIPPED -- Cara was not queued as an out-of-range friend")
+		end
+		noErrors(scenario, ns)
+	end)
+	_G.C_Spell = realSpell
+	restoreUnits()
+end
+Mock.reset()
+
+-- ----------------------------------------------------------------- people 12
+-- The distance summary says why nobody is measured out in the world.
+--
+-- With passers-by only in cities and inns, every one of them is turned down
+-- before the distance check, and "nobody measured yet" read as a distance
+-- setting that had stopped working.
+Mock.reset()
+do
+	local scenario = "the distance summary explains resting-only"
+	local restoreUnits = strangers({ nameplate1 = { "Anna", "Aim" } })
+	local resting = false
+	with(scenario, { IsResting = function() return resting end }, function()
+		local ns = load(scenario)
+		if not ns then return end
+		freshPrompt(ns, scenario)
+		ns.db.profile.filters.proximity = "near"
+		ns.db.profile.filters.restingOnly = true
+		ns.BuildQueue()
+		local text = tostring(ns.ProximitySummary())
+		if not text:find("you are out in the world and passers-by are only offered in cities and"
+			.. " inns, so nobody is measured", 1, true) then
+			fail(scenario, "out in the world the summary does not say why nobody is measured: " .. text)
+		end
+
+		-- Resting, or the setting off: the summary is about the measuring again.
+		resting = true
+		ns.BuildQueue()
+		text = tostring(ns.ProximitySummary())
+		if text:find("out in the world", 1, true) then
+			fail(scenario, "resting, the summary still says you are out in the world: " .. text)
+		end
+		resting = false
+		ns.db.profile.filters.restingOnly = false
+		ns.BuildQueue()
+		text = tostring(ns.ProximitySummary())
+		if text:find("out in the world", 1, true) then
+			fail(scenario, "with the setting off, the summary still says you are out in the world: "
+				.. text)
+		end
+		noErrors(scenario, ns)
+	end)
+	restoreUnits()
+end
+Mock.reset()
+
+-- ----------------------------------------------------------------- people 13
+-- An accented capital matches, where the client can fold it.
+--
+-- string.lower leaves "É" alone, so "élodie aim" typed for Élodie Aim matched
+-- nothing while chat said she was on the list. strcmputf8i here is a stand-in
+-- that folds the two capitals used, the way the client's folds all of them.
+Mock.reset()
+do
+	local scenario = "the never list folds accented capitals"
+	local E_UPPER, E_LOWER = "\195\137", "\195\169"
+	local O_UPPER, O_LOWER = "\195\152", "\195\184"
+	local function fold(s)
+		return (s:gsub(E_UPPER, E_LOWER):gsub(O_UPPER, O_LOWER):lower())
+	end
+	local restoreUnits = strangers({ nameplate1 = { E_UPPER .. "lodie", "Aim" },
+		nameplate2 = { O_UPPER .. "yvind", "Oak" } })
+	with(scenario, {
+		strcmputf8i = function(a, b)
+			a, b = fold(a), fold(b)
+			if a == b then return 0 end
+			return a < b and -1 or 1
+		end,
+	}, function()
+		local ns = load(scenario)
+		if not ns then return end
+		freshPrompt(ns, scenario)
+		local elodie, oyvind = E_UPPER .. "lodie Aim", O_UPPER .. "yvind Oak"
+		if not (entryFor(ns, elodie) and entryFor(ns, oyvind)) then
+			fail(scenario, "SKIPPED -- both passers-by were not offered to start with")
+			return
+		end
+		local add = findOption(ns.optionsTable, "neverAdd")
+		add.set({ "neverAdd" }, E_LOWER .. "lodie aim")
+		ns.addon:HandleSlash("never " .. O_LOWER .. "yvind oak")
+		if entryFor(ns, elodie) then
+			fail(scenario, "a name typed with a small accented letter did not keep Elodie off the queue")
+		end
+		if entryFor(ns, oyvind) then
+			fail(scenario, "a name typed with a small accented letter did not keep Oyvind off the queue")
+		end
+		if not ns.AllowAgain(elodie) then
+			fail(scenario, "taking Elodie off by the name the prompt shows found nobody")
 		end
 		noErrors(scenario, ns)
 	end)

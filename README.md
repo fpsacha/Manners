@@ -99,8 +99,10 @@ the point — and shift-right-clicking them then lets that favour go as well.
 
 **Who comes first.** A friend (Battle.net friends included) or guildmate
 passing by goes ahead of the other passers-by, and one in your group ahead of
-the rest of your group. It only changes the order, and people who buffed you
-and your target still come first. Switch it off under *Who comes first*.
+the rest of your group. It only changes the order: people who buffed you still
+come first, so does your target whenever *Whoever I have targeted comes first*
+puts them there, and somebody the game says is out of range stays behind
+somebody in range. Switch it off under *Who comes first*.
 
 **Passers-by only in cities and inns** is a choice under *Who to skip*, off by
 default: out in the world, strangers walking past are left alone, while your

@@ -686,10 +686,16 @@ local function BuildOptions()
 				-- Inside a kind of offer and never across one, which is what the
 				-- sort does; see BuildQueue. Saying "ahead of strangers" alone
 				-- would promise a friend passing by a place above your group.
+				-- Your target is named only where it is true: a target is put
+				-- first by the switch above, which needs their buffs readable,
+				-- and a stranger's often are not. Otherwise a targeted stranger
+				-- is a passer-by like any other, and a friend goes ahead of them.
 				desc = "A friend or guildmate passing by comes ahead of the other passers-by,"
 					.. " and one in your group ahead of the rest of your group. People who"
-					.. " buffed you and your target still come first, and nobody is added or"
-					.. " left out by this -- it only changes the order.\n\n"
+					.. " buffed you still come first, and so does your target whenever"
+					.. " |cffffd100Whoever I have targeted comes first|r puts them there."
+					.. " Nobody is added or left out by this -- it only changes the"
+					.. " order.\n\n"
 					.. "|cff888888Friends include Battle.net friends. When the game will not say"
 					.. " whether somebody is a friend, they are ranked like anybody else.|r",
 				order = 17,
@@ -862,7 +868,7 @@ local function BuildOptions()
 							.. " passers-by or as members of your group."):format(count)
 					return text .. "\n\nSomebody on it who buffs you is still offered the favour"
 						.. " back: returning a favour is what Manners is for. Shift-right-click"
-						.. " them on the prompt to let that one go as well."
+						.. " them on the prompt to let that favour go."
 				end,
 			},
 			neverAdd = {

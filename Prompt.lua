@@ -1055,7 +1055,14 @@ function Prompt:Create()
 		GameTooltip:AddLine("Click to cast. |cffffd100/manners|r for options.", 0.5, 0.5, 0.5)
 		-- A gesture nobody can discover is not a feature.
 		GameTooltip:AddLine("Right-click to skip this one.", 0.5, 0.5, 0.5)
-		GameTooltip:AddLine("Shift-right-click to put them on your never-offer list.", 0.5, 0.5, 0.5)
+		-- Somebody already on the list is only here because they are owed, and
+		-- for them the same press lets that favour go; offering to put them on
+		-- a list they are on was the tooltip describing a different person.
+		if ns.IsNeverOffered and ns.IsNeverOffered(current.name) then
+			GameTooltip:AddLine("Shift-right-click to let this favour go.", 0.5, 0.5, 0.5)
+		else
+			GameTooltip:AddLine("Shift-right-click to put them on your never-offer list.", 0.5, 0.5, 0.5)
+		end
 		GameTooltip:Show()
 	end)
 	button:SetScript("OnLeave", function() GameTooltip:Hide() end)

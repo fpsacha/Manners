@@ -55,8 +55,8 @@ mutate("Core.lua",
 
 # A name typed in another case not matched.
 mutate("Core.lua",
-       "\t\t\tif k == lower or k == short then return key end\n",
-       "\t\t\tif false then return key end\n",
+       "\treturn a:lower() == b:lower()\n",
+       "\treturn a == b\n",
        "never-offer list matches exact case only",
        expect="the never list persists and can be emptied",
        script="runscenarios.py")
@@ -96,10 +96,10 @@ mutate("Core.lua",
 # Friends put ahead across kinds of offer: a friend passing by above your group.
 mutate("Core.lua",
        "\t\tif a.priority ~= b.priority then return a.priority < b.priority end\n"
-       "\t\t-- Inside a kind of offer",
+       "\t\tlocal ar",
        "\t\tif (a.close ~= nil) ~= (b.close ~= nil) then return a.close ~= nil end\n"
        "\t\tif a.priority ~= b.priority then return a.priority < b.priority end\n"
-       "\t\t-- Inside a kind of offer",
+       "\t\tlocal ar",
        "a friend passing by jumps your group",
        expect="within their kind",
        script="runscenarios.py")
@@ -151,4 +151,46 @@ mutate("Core.lua",
        "\treturn value == true or value == 1\n",
        "withheld resting answer drops passers-by",
        expect="passers-by only while resting",
+       script="runscenarios.py")
+
+# The favour kept for somebody already on the list, which is how the loop sat
+# before: below the early return for "already there".
+mutate("Core.lua",
+       "\t\tif ListedAs(key) == listed then\n",
+       "\t\tif not already and ListedAs(key) == listed then\n",
+       "already-listed owed person keeps the debt",
+       expect="an owed person already on the list lets the favour go",
+       script="runscenarios.py")
+
+# The tooltip offering to put a listed person on the list they are on.
+mutate("Prompt.lua",
+       "\t\tif ns.IsNeverOffered and ns.IsNeverOffered(current.name) then\n",
+       "\t\tif false then\n",
+       "tooltip misdescribes shift-right-click on a listed person",
+       expect="an owed person already on the list lets the favour go",
+       script="runscenarios.py")
+
+# Friends put ahead of the range key, so an out-of-range friend leads.
+mutate("Core.lua",
+       "\t\tif ar ~= br then return ar < br end\n",
+       "\t\tif (a.close ~= nil) ~= (b.close ~= nil) then return a.close ~= nil end\n"
+       "\t\tif ar ~= br then return ar < br end\n",
+       "out-of-range friend leads over somebody in range",
+       expect="an out-of-range friend stays behind somebody in range",
+       script="runscenarios.py")
+
+# The distance summary silent about resting-only, back to "nobody measured yet".
+mutate("Core.lua",
+       "\tif db.filters.restingOnly == true and Resting() == false then\n",
+       "\tif false then\n",
+       "distance summary says nothing about resting-only",
+       expect="the distance summary explains resting-only",
+       script="runscenarios.py")
+
+# The client's UTF-8 fold not used, so an accented capital never matches.
+mutate("Core.lua",
+       "\tlocal fold = _G.strcmputf8i\n",
+       "\tlocal fold = nil\n",
+       "never-offer list folds ASCII only",
+       expect="the never list folds accented capitals",
        script="runscenarios.py")

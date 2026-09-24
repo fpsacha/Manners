@@ -37,8 +37,10 @@ Worth knowing about, because they are decisions rather than code:
   who buffs you is still offered the return, because returning a favour is
   the point of the addon; the options page says so. Shift-right-clicking an
   owed person lets that one favour go too, or they would come straight back
-  when the skip ran out. Friends-first orders people *within* a kind of offer
-  (group, passers-by) and never across one.
+  when the skip ran out -- including somebody who was already on the list.
+  Friends-first orders people *within* a kind of offer (group, passers-by)
+  and never across one, and below the range key: a friend known to be out of
+  range never leads over somebody in range.
 - **The combat log is an addition, never a replacement.** It is registered only
   on Classic Era, Burning Crusade and Mists — Forever and retail refuse it — and
   it exists for the one thing the aura scan cannot do anywhere: name a stranger

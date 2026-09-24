@@ -1723,6 +1723,26 @@ function ns.NearEnough(unit, quiet)
 	return verdict
 end
 
+-- Whether the game calls the player resting -- in a city or an inn: true,
+-- false, or nil for could not tell.
+--
+-- Written out rather than put through safecall, because safecall hands back a
+-- withheld answer as nil and the old API said "not resting" with a nil. So a
+-- plain nil is read as no, and only a missing function, a throw or a value
+-- withheld as a secret is could-not-tell -- which BuildQueue reads as resting,
+-- since a setting the client cannot answer must not quietly empty the queue.
+--
+-- Up here rather than beside BuildQueue because the distance summary below
+-- asks it too: with passers-by left alone out in the world, nobody is measured,
+-- and the summary has to say why.
+local function Resting()
+	if type(_G.IsResting) ~= "function" then return nil end
+	local ok, value = pcall(_G.IsResting)
+	if not ok then return nil end
+	if issecretvalue and issecretvalue(value) then return nil end
+	return value == true or value == 1
+end
+
 -- One line saying what is measuring nearness and how it is getting on, for
 -- /manners debug and for the options page. Built here rather than at either
 -- call site so the two cannot come to disagree about what the same state means.
@@ -1752,6 +1772,16 @@ function ns.ProximitySummary()
 	-- about a filter nobody reaches.
 	if ns.OnlyReachesGroup() then
 		return out .. " -- your buffs reach only your group, so nobody is measured"
+	end
+	-- And for passers-by left alone because the player is out in the world.
+	-- BuildQueue turns every one of them down before the distance check, so the
+	-- counts stay at nothing and "nobody measured yet" sat there for as long as
+	-- the player stayed out -- directly above the switch that caused it, reading
+	-- as a distance setting that had stopped working. The same question
+	-- BuildQueue asks, so the two cannot disagree: only a definite "not resting".
+	if db.filters.restingOnly == true and Resting() == false then
+		return ("%s -- you are out in the world and passers-by are only offered in cities"
+			.. " and inns, so nobody is measured"):format(out)
 	end
 
 	-- Said first, because it is the state the line is most often read in and
@@ -2264,17 +2294,31 @@ end
 -- the prompt shows a player from another realm -- and so how anybody will type
 -- them. Never the other way round: an entry that names a realm matches only
 -- that realm.
+--
+-- Case is folded by the client's strcmputf8i where there is one, which the
+-- addons known to work on this client use to compare names. string.lower works
+-- byte by byte and leaves every accented capital alone, so "élodie" typed for
+-- Élodie never matched -- while chat said she was on the list. The plain lower
+-- is the fallback for a client without it, and still right for every name that
+-- is ASCII.
+local function SameName(a, b)
+	if not b then return false end
+	local fold = _G.strcmputf8i
+	if type(fold) == "function" then
+		local ok, cmp = pcall(fold, a, b)
+		if ok and type(cmp) == "number" then return cmp == 0 end
+	end
+	return a:lower() == b:lower()
+end
+
 local function ListedAs(name)
 	local never = NeverSet()
 	if not never or type(name) ~= "string" or next(never) == nil then return nil end
 	if never[name] == true then return name end
-	local lower = name:lower()
 	local short = ShortName(name)
-	short = short and short:lower()
 	for key in pairs(never) do
 		if type(key) == "string" then
-			local k = key:lower()
-			if k == lower or k == short then return key end
+			if SameName(key, name) or SameName(key, short) then return key end
 		end
 	end
 	return nil
@@ -2337,11 +2381,12 @@ end
 function ns.PutOnNeverList(name)
 	local listed, already = ns.NeverOffer(name)
 	if not listed then return nil end
-	if already then
-		addon:Print(("|cffffffff%s|r is already on your never-offer list."):format(listed))
-		return listed
-	end
 
+	-- Whether or not they were on the list already. Somebody already on it is
+	-- only on the prompt at all because they are owed -- that is the exception
+	-- -- so a shift-right-click on them is exactly the case this is for, and it
+	-- used to return before reaching it: the favour stayed, and they were back
+	-- once the skip ran out.
 	local forgiven = false
 	for key in pairs(owed) do
 		if ListedAs(key) == listed then
@@ -2350,6 +2395,16 @@ function ns.PutOnNeverList(name)
 		end
 	end
 	if forgiven then SaveDebts() end
+
+	if already then
+		if forgiven then
+			addon:Print(("|cffffffff%s|r is already on your never-offer list, and the favour"
+				.. " they did you is let go."):format(listed))
+		else
+			addon:Print(("|cffffffff%s|r is already on your never-offer list."):format(listed))
+		end
+		return listed
+	end
 
 	if forgiven then
 		addon:Print(("|cffffffff%s|r will not be offered anything again unless they buff you,"
@@ -2461,22 +2516,6 @@ local function Closeness(unit, full, now)
 
 	closeCache[full] = { at = now, kind = kind or false }
 	return kind
-end
-
--- Whether the game calls the player resting -- in a city or an inn: true,
--- false, or nil for could not tell.
---
--- Written out rather than put through safecall, because safecall hands back a
--- withheld answer as nil and the old API said "not resting" with a nil. So a
--- plain nil is read as no, and only a missing function, a throw or a value
--- withheld as a secret is could-not-tell -- which BuildQueue reads as resting,
--- since a setting the client cannot answer must not quietly empty the queue.
-local function Resting()
-	if type(_G.IsResting) ~= "function" then return nil end
-	local ok, value = pcall(_G.IsResting)
-	if not ok then return nil end
-	if issecretvalue and issecretvalue(value) then return nil end
-	return value == true or value == 1
 end
 
 local PRIORITY = { target = 0, owed = 1, group = 2, nearby = 3 }
@@ -2890,14 +2929,19 @@ function ns.BuildQueue()
 
 	table.sort(queue, function(a, b)
 		if a.priority ~= b.priority then return a.priority < b.priority end
+		local ar = a.ranged == true and 0 or (a.ranged == nil and 1 or 2)
+		local br = b.ranged == true and 0 or (b.ranged == nil and 1 or 2)
+		if ar ~= br then return ar < br end
 		-- Inside a kind of offer, never across one: a friend passing by comes
 		-- ahead of the other passers-by and behind your group, and a guildmate
 		-- in your group ahead of the rest of it. Only set with Who comes first
 		-- switched on, so with it off this is a tie and nothing moves.
+		--
+		-- Below the range key, not above it. With "Hide players known to be out
+		-- of range" off, a friend the client says is out of reach is still
+		-- queued, and putting them first led the prompt with a cast that fails
+		-- over somebody it would land on.
 		if (a.close ~= nil) ~= (b.close ~= nil) then return a.close ~= nil end
-		local ar = a.ranged == true and 0 or (a.ranged == nil and 1 or 2)
-		local br = b.ranged == true and 0 or (b.ranged == nil and 1 or 2)
-		if ar ~= br then return ar < br end
 		return (a.name or "") < (b.name or "")
 	end)
 
