@@ -5809,8 +5809,19 @@ function ns.ImportSettings(text)
 	-- fight ends -- which the line below says.
 	addon:RefreshConfig()
 
-	local lines = { ("settings imported -- %d differ from the defaults."):format(parsed.count) }
-	if parsed.unknown > 0 then
+	-- Whole sentences for each count rather than an "s" glued on, so each can
+	-- be translated as it stands.
+	local lines = {}
+	if parsed.count == 0 then
+		lines[1] = "settings imported -- every one of them is the default."
+	elseif parsed.count == 1 then
+		lines[1] = "settings imported -- 1 differs from the defaults."
+	else
+		lines[1] = ("settings imported -- %d differ from the defaults."):format(parsed.count)
+	end
+	if parsed.unknown == 1 then
+		lines[#lines + 1] = "1 setting from a newer version of Manners was left out."
+	elseif parsed.unknown > 1 then
 		lines[#lines + 1] = ("%d settings from a newer version of Manners were left out.")
 			:format(parsed.unknown)
 	end
