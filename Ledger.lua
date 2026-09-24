@@ -2,7 +2,7 @@
 --
 -- A record of what the addon has done for you: who buffed you, with what and
 -- when, whether you returned it and with what, and who you buffed without being
--- asked. The recent entries are listed in a small window (/manners log), under
+-- asked. The recent entries are listed in a small window (/manners ledger), under
 -- the lifetime counts, which the minimap tooltip and the General tab repeat.
 --
 -- It is a record and never a decision. Core.lua tells it what happened at the
@@ -44,14 +44,23 @@ local TEXT = {
 
 	-- The headline over the list, and the line the minimap tooltip and the
 	-- options page repeat. "Today" is the calendar day on this computer's
-	-- clock.
-	TODAY_NONE = "Nobody has buffed you today.",
+	-- clock. It counts only the favours something you cast could have
+	-- returned: a warrior's shout to a mage is listed, but scoring it as a
+	-- favour not returned would be a failure the player can do nothing about.
+	--
+	-- "Recorded" rather than "nobody buffed you": the ledger hears of nothing
+	-- while the addon is off or has nothing to cast, and after Clear, so all
+	-- it can say is what it has.
+	TODAY_NONE = "No favours recorded today.",
+	TODAY_ONLY_USELESS = "Nothing you cast could return today's favours.",
 	TODAY_ONE = "Returned %d of 1 favour today.",
 	TODAY_MANY = "Returned %d of %d favours today.",
 	OWED_ONE = "1 favour still owed.",
 	OWED_MANY = "%d favours still owed.",
-	GAVE_ONE = "You buffed 1 player unprompted today.",
-	GAVE_MANY = "You buffed %d players unprompted today.",
+	-- Casts, not people: topping up the same five players three times is
+	-- fifteen buffs and still five players.
+	GAVE_ONE = "You gave 1 buff unprompted today.",
+	GAVE_MANY = "You gave %d buffs unprompted today.",
 	LIFETIME = "All time -- received: %d, returned: %d, given to your group: %d, to strangers: %d",
 
 	-- The same four numbers as tiles across the window, each with its label
@@ -73,6 +82,13 @@ local TEXT = {
 	EMPTY_FAVOURS = "No favours recorded. When somebody buffs you, they are listed here.",
 	EMPTY_GIVEN = "No buffs given unprompted. When the prompt buffs somebody who did not"
 		.. " buff you first, it is listed here.",
+	-- In place of the lines above while nothing new can arrive, because "when
+	-- somebody buffs you it is listed here" is then a promise the addon is not
+	-- keeping. The owed toggle stops favours only; buffs given still arrive.
+	EMPTY_OFF = "Nothing is recorded while Manners is switched off.",
+	EMPTY_NOTHING = "Nothing is recorded while the prompt has nothing to cast on this character.",
+	EMPTY_OWED_OFF = "Favours are not recorded while \"People who buffed me\" is off, on the"
+		.. " Who to buff tab.",
 
 	CLEAR = "Clear",
 	CLEAR_ARMED = "Click again to clear",
@@ -87,7 +103,7 @@ local TEXT = {
 	RETURNED_WITH = "with %s",
 	LETGO_EXPIRED = "the time to return it ran out",
 	LETGO_USELESS = "nothing you cast is any use to them",
-	LETGO_NOTKEPT = "not kept after you logged out",
+	LETGO_NOTKEPT = "forgotten at a logout or reload",
 	GAVE_GROUP = "%s, in your group",
 	GAVE_STRANGER = "%s, to a stranger",
 	UNKNOWN_SPELL = "a buff",
@@ -96,12 +112,21 @@ local TEXT = {
 	TIP_BUFFED = "Buffed you with %s, %s.",
 	TIP_TIMES = "They buffed you %d times; one buff back repays all of it.",
 	TIP_OWED = "Still owed. The prompt offers them until you return it or the time runs out.",
+	-- A warrior's shout and the like reach the caster's party and nobody else,
+	-- so a favour from outside it waits for them to be in it. Said so it is
+	-- true whether or not they are in it now.
+	TIP_OWED_PARTY = "Still owed. What you cast reaches only your own party, so the prompt"
+		.. " offers them only while they are in it.",
+	TIP_OWED_SUBGROUP = "Still owed. What you cast reaches only your own party -- in a raid,"
+		.. " your own subgroup -- so the prompt offers them only while they are in it.",
 	TIP_RETURNED = "You returned it %s later.",
 	TIP_RETURNED_WITH = "You returned it %s later, with %s.",
 	TIP_LETGO_EXPIRED = "Let go: the time to return it ran out before you did.",
 	TIP_LETGO_USELESS = "Let go: nothing you can cast is any use to them.",
-	TIP_LETGO_NOTKEPT = "Let go: \"Remember favours across a reload\" is off, so it was"
-		.. " forgotten when you logged out.",
+	-- Quotes the setting by the name it has on the When tab, which a scenario
+	-- holds it to.
+	TIP_LETGO_NOTKEPT = "Let go: \"Remember them across a reload\" (When tab, under Timing) is"
+		.. " off, so it was forgotten when you logged out or reloaded.",
 	TIP_GAVE = "You buffed them with %s, %s.",
 	TIP_GAVE_GROUP = "They were in your group and had not buffed you.",
 	TIP_GAVE_STRANGER = "They were not in your group and had not buffed you.",
@@ -278,7 +303,7 @@ end
 --
 --   ledger.entries  oldest first; each one either
 --     { kind = "received", name, class, spells = { id, ... }, at, times,
---       state = owed | returned | letgo, why, doneAt, gave }
+--       state = owed | returned | letgo, why, doneAt, gave, partyOnly }
 --     { kind = "given", name, class, spell, at, to = group | stranger }
 --   ledger.totals   lifetime counts, never trimmed and kept by Clear
 --   ledger.filter   the window's tab
@@ -311,6 +336,7 @@ local function CleanEntry(e)
 		local state = STATES[e.state] and e.state or "letgo"
 		local out = { kind = "received", name = name, class = class, at = at,
 			spells = spells, times = math.max(1, Count(e.times)), state = state }
+		if state == "owed" and e.partyOnly == true then out.partyOnly = true end
 		if state ~= "owed" then out.doneAt = CleanTime(e.doneAt) end
 		if state == "returned" then out.gave = CleanSpell(e.gave) end
 		if state == "letgo" then out.why = WHY[e.why] and e.why or nil end
@@ -467,11 +493,16 @@ local Render -- the window's, defined with it below
 local function Changed()
 	if Render then Render() end
 	-- The General tab prints the same numbers, and AceConfig only asks for
-	-- them while it is drawing. Only while it is open: a repaint for a page
-	-- nobody is looking at is a call into somebody else's layout code for
-	-- nothing.
+	-- them while it is drawing. Only while that tab is the one on screen: a
+	-- repaint rebuilds the whole page, and one on every favour in a busy city
+	-- redrew the dropdowns and edit boxes of the Prompt tab under the player
+	-- tuning them, to refresh a line they could not see. A tab nobody can name
+	-- -- a library without the status table -- is repainted as it always was.
 	if ns.OptionsOpen and ns.OptionsOpen() and ns.RefreshOptionsDisplay then
-		ns.Guard("options repaint", ns.RefreshOptionsDisplay)
+		local tab = ns.OptionsTab and ns.OptionsTab()
+		if tab == nil or tab == "general" then
+			ns.Guard("options repaint", ns.RefreshOptionsDisplay)
+		end
 	end
 end
 
@@ -507,8 +538,11 @@ end
 -- Somebody buffed you. `seen` is the record NoteFavour files: name, class and
 -- the spell id under `key`. `useless` is the favour NoteFavour turns away
 -- because nothing this character casts is any use to them -- a favour all the
--- same, and let go in the moment it arrived.
-function Ledger.Received(seen, useless)
+-- same, and let go in the moment it arrived. `partyOnly` is a favour only a
+-- buff that reaches your own party could return, so the prompt offers them only
+-- while they are in it; the row's tooltip says so rather than promising an
+-- offer that is waiting on them.
+function Ledger.Received(seen, useless, partyOnly)
 	local s, now = Store(), Wall()
 	if not s or not now or type(seen) ~= "table" then return end
 	local name = CleanName(seen.name)
@@ -528,13 +562,18 @@ function Ledger.Received(seen, useless)
 	else
 		into = FindOpen(s, name)
 	end
+	-- The latest word on it wins: what reaches somebody is a question about
+	-- their class and yours, and the newest buff was read with the most to go
+	-- on.
+	partyOnly = (not useless and partyOnly == true) or nil
 	if into then
 		into.times = into.times + 1
 		AddSpell(into, spell)
 		into.class = into.class or CleanClass(seen.class)
+		if not useless then into.partyOnly = partyOnly end
 	else
 		local e = { kind = "received", name = name, class = CleanClass(seen.class),
-			spells = {}, at = now, times = 1, state = "owed" }
+			spells = {}, at = now, times = 1, state = "owed", partyOnly = partyOnly }
 		AddSpell(e, spell)
 		if useless then
 			e.state, e.why, e.doneAt = "letgo", "useless", now
@@ -688,17 +727,42 @@ function Ledger.Entries(filter)
 	return out
 end
 
--- Today's numbers from the list, the lifetime ones from the counts.
+-- Why nothing new can reach the list right now, or nil when it can: "off" for
+-- an addon switched off, "nothing" for a character the prompt has nothing to
+-- cast on, "owedoff" for favours not being watched for. The gates NoteFavour
+-- and the prompt pass before this file hears of anything, asked the same way,
+-- so the window never promises a row that cannot come. Asked, never stored:
+-- every one of them is a setting or a spell book that can change under it.
+local function Quiet()
+	local p = ns.db and ns.db.profile
+	if type(p) ~= "table" then return nil end
+	if not p.enabled then return "off" end
+	local ok, nothing = pcall(function()
+		if #ns.CastableBuffs() == 0 then return true end
+		local pinned = ns.PinnedBuff()
+		return pinned ~= nil and not ns.IsBuffKnown(pinned)
+	end)
+	if ok and nothing then return "nothing" end
+	if type(p.sources) == "table" and not p.sources.owed then return "owedoff" end
+	return nil
+end
+Ledger.Quiet = Quiet
+
+-- Today's numbers from the list, the lifetime ones from the counts. A favour
+-- nothing you cast could return is counted apart from the rest, `useless`, and
+-- left out of `received`, which is what the headline scores you against.
 function Ledger.Summary()
 	local s, now = Store(), Wall()
-	local out = { received = 0, returned = 0, given = 0, owed = 0,
+	local out = { received = 0, returned = 0, useless = 0, given = 0, owed = 0,
 		totals = { received = 0, returned = 0, letGo = 0, group = 0, strangers = 0 } }
 	if not s or not now then return out end
 	local today = StartOfToday(now)
 	for _, e in ipairs(s.entries) do
 		if e.kind == "received" and e.state == "owed" then out.owed = out.owed + 1 end
 		if e.at >= today then
-			if e.kind == "received" then
+			if e.kind == "received" and e.why == "useless" then
+				out.useless = out.useless + 1
+			elseif e.kind == "received" then
 				out.received = out.received + 1
 				if e.state == "returned" then out.returned = out.returned + 1 end
 			else
@@ -712,7 +776,9 @@ end
 
 function Ledger.Headline(sum)
 	sum = sum or Ledger.Summary()
-	if sum.received == 0 then return TEXT.TODAY_NONE end
+	if sum.received == 0 then
+		return (sum.useless or 0) > 0 and TEXT.TODAY_ONLY_USELESS or TEXT.TODAY_NONE
+	end
 	if sum.received == 1 then return TEXT.TODAY_ONE:format(sum.returned) end
 	return TEXT.TODAY_MANY:format(sum.returned, sum.received)
 end
@@ -746,9 +812,19 @@ end
 
 -- For the minimap button's tooltip. AddLine only: every broker display offers
 -- that, and not every one offers anything else.
+--
+-- Left out on a character that is recording nothing and never has: a rogue's
+-- tooltip under "Nothing to do" gained a line of zeros and a headline about
+-- favours it will never hear of. Kept for one with a history, switched off or
+-- not, because those numbers are still true and still theirs.
 function Ledger.AddTooltip(tooltip)
 	if not (tooltip and tooltip.AddLine) or not Store() then return end
 	local sum = Ledger.Summary()
+	local quiet = Quiet()
+	if (quiet == "off" or quiet == "nothing") and #Ledger.Entries("all") == 0 then
+		local t = sum.totals
+		if t.received == 0 and t.group == 0 and t.strangers == 0 then return end
+	end
 	tooltip:AddLine(Ledger.Headline(sum), 1, 0.82, 0)
 	tooltip:AddLine(Ledger.Lifetime(sum), 0.62, 0.62, 0.62, true)
 end
@@ -778,6 +854,7 @@ local ROW_HEIGHT = 34
 local STATS_TOP = -92
 local TABS_TOP = -134
 local LIST_TOP = -164
+local DEFAULT_POINT, DEFAULT_X, DEFAULT_Y = "LEFT", 40, 40
 local CLEAR_SECONDS = 3
 -- How often an open window redraws for "5 min ago" to become "6 min ago".
 local TICK_SECONDS = 15
@@ -876,7 +953,12 @@ local function Place()
 	if w then
 		window:SetPoint(w.point, UIParent, w.relPoint, w.x, w.y)
 	else
-		window:SetPoint("CENTER", UIParent, "CENTER", 0, 60)
+		-- Off to the left rather than centred. The prompt's own default spot
+		-- is the bottom centre, and at a small UI scale a centred window this
+		-- tall reached down over it -- in a higher strata, taking the clicks --
+		-- so somebody who opened the ledger to watch favours come in could no
+		-- longer see or press the prompt that returns them.
+		window:SetPoint(DEFAULT_POINT, UIParent, DEFAULT_POINT, DEFAULT_X, DEFAULT_Y)
 	end
 end
 
@@ -921,7 +1003,9 @@ local function RowTooltip(row)
 		if e.times > 1 then GameTooltip:AddLine(TEXT.TIP_TIMES:format(e.times), 0.7, 0.7, 0.7, true) end
 		local c = COLOUR[e.state] or COLOUR.letgo
 		if e.state == "owed" then
-			GameTooltip:AddLine(TEXT.TIP_OWED, c[1], c[2], c[3], true)
+			local line = not e.partyOnly and TEXT.TIP_OWED
+				or ns.PARTY_IS_SUBGROUP and TEXT.TIP_OWED_SUBGROUP or TEXT.TIP_OWED_PARTY
+			GameTooltip:AddLine(line, c[1], c[2], c[3], true)
 		elseif e.state == "returned" then
 			local took = Duration((e.doneAt or e.at) - e.at)
 			local gave = SpellName(e.gave)
@@ -1045,6 +1129,18 @@ local function DisarmClear()
 	if window then window.clear.label:SetText(TEXT.CLEAR) end
 end
 
+-- What an empty tab says: how a row would come to be there, or, while none can,
+-- why not. The owed toggle stops favours and nothing else, so the tab of buffs
+-- given keeps its ordinary line under it.
+local function EmptyText(key)
+	local quiet = Quiet()
+	if quiet == "off" then return TEXT.EMPTY_OFF end
+	if quiet == "nothing" then return TEXT.EMPTY_NOTHING end
+	if key == "given" then return TEXT.EMPTY_GIVEN end
+	if quiet == "owedoff" then return TEXT.EMPTY_OWED_OFF end
+	return key == "favours" and TEXT.EMPTY_FAVOURS or TEXT.EMPTY_ALL
+end
+
 function Render()
 	if not (window and window:IsShown()) then return end
 	local now = Wall()
@@ -1071,8 +1167,7 @@ function Render()
 	end
 
 	window.empty:SetShown(#list == 0)
-	window.empty:SetText(filter == "favours" and TEXT.EMPTY_FAVOURS
-		or filter == "given" and TEXT.EMPTY_GIVEN or TEXT.EMPTY_ALL)
+	window.empty:SetText(EmptyText(filter))
 
 	-- The scroll bar: a thumb the share of the track the rows on screen are of
 	-- the whole list, only when there is more than one screen of it.
@@ -1107,6 +1202,12 @@ local function Build()
 	window = CreateFrame("Frame", "MannersLedger", UIParent)
 	window:SetSize(WIDTH, HEIGHT)
 	window:SetFrameStrata("HIGH")
+	-- Comes to the front of its strata when clicked, and Show raises it, so
+	-- another window in the same strata that was opened first does not keep
+	-- it underneath. The options button shuts the addon's own options window
+	-- before opening this one; this covers whatever else is up. Asked for
+	-- rather than assumed, as the rest of the client's frame API is here.
+	if window.SetToplevel then window:SetToplevel(true) end
 	window:SetClampedToScreen(true)
 	window:SetMovable(true)
 	window:EnableMouse(true)
@@ -1321,6 +1422,7 @@ function Ledger.Show()
 	for _, tab in ipairs(window.tabs) do tab.underline:SetVertexColor(c[1], c[2], c[3], 1) end
 	offset, lastTop, tickAt = 0, nil, 0
 	window:Show()
+	if window.Raise then window:Raise() end
 	window.fadeIn:Stop()
 	window.fadeIn:Play()
 	Render()

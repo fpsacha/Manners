@@ -468,10 +468,10 @@ do
 		L.Received({ name = "Tomas Reed", key = 10938, class = "MAGE" })
 		L.Settled("Iris Quill", { at = GetTime() - 90 }, { buffKey = "intellect" }, 1459)
 
-		ns.addon:HandleSlash("log")
+		ns.addon:HandleSlash("ledger")
 		local window = L.Window()
 		if not (window and window:IsShown()) then
-			fail(scenario, "/manners log did not open the window")
+			fail(scenario, "/manners ledger did not open the window")
 		else
 			local rows = window.rows
 			local first, second = rows[1].name:GetText() or "", rows[2].name:GetText() or ""
@@ -549,8 +549,9 @@ do
 				fail(scenario, "scrolling past the end does not stop at the last entry")
 			end
 
+			-- "log", the word it was first advertised under, still works.
 			ns.addon:HandleSlash("log")
-			if window:IsShown() then fail(scenario, "/manners log a second time did not close it") end
+			if window:IsShown() then fail(scenario, "/manners log after /manners ledger did not close it") end
 		end
 		for _, e in ipairs(ns.errors or {}) do
 			fail(scenario, "guarded: " .. tostring(e.where) .. " -> " .. tostring(e.err))
@@ -593,12 +594,16 @@ do
 			return realDate(fmt, t)
 		end
 
+		-- Dee's favour is listed, and counted apart: nothing a mage casts
+		-- returns it, so it is not scored as one not returned.
 		local sum = L.Summary()
-		if sum.received ~= 3 or sum.returned ~= 1 or sum.given ~= 1 or sum.owed ~= 1 then
-			fail(scenario, ("today reads received %d, returned %d, given %d, owed %d;"
-				.. " wanted 3, 1, 1, 1"):format(sum.received, sum.returned, sum.given, sum.owed))
+		if sum.received ~= 2 or sum.returned ~= 1 or sum.given ~= 1 or sum.owed ~= 1
+			or sum.useless ~= 1 then
+			fail(scenario, ("today reads received %d, returned %d, given %d, owed %d, useless %s;"
+				.. " wanted 2, 1, 1, 1, 1"):format(sum.received, sum.returned, sum.given, sum.owed,
+				tostring(sum.useless)))
 		end
-		local headline = L.TEXT.TODAY_MANY:format(1, 3)
+		local headline = L.TEXT.TODAY_MANY:format(1, 2)
 		if L.Headline() ~= headline then fail(scenario, "the headline reads " .. L.Headline()) end
 		local lifetime = L.TEXT.LIFETIME:format(4, 2, 1, 1)
 		if L.Lifetime() ~= lifetime then fail(scenario, "the lifetime line reads " .. L.Lifetime()) end
@@ -627,12 +632,22 @@ do
 		if not text:find(headline, 1, true) or not text:find(lifetime, 1, true) then
 			fail(scenario, "the General tab does not carry the summary: " .. text)
 		end
+		-- The button on the General tab shuts the options window it is on
+		-- before it opens the ledger: that window sits in a higher strata, in
+		-- the middle of the screen, and the ledger opened underneath it.
+		local dialog = LibStub("AceConfigDialog-3.0")
+		dialog.Close = function(_, app) if app == "Manners" then Mock.optionsOpen = false end end
+		Mock.optionsOpen = true
 		local open = H.findOption(ns.optionsTable, "ledgerOpen")
 		if window then window:Hide() end
 		if open and open.func then open.func() end
 		if not (window and window:IsShown()) then
 			fail(scenario, "Open the ledger on the General tab did not open it")
 		end
+		if ns.OptionsOpen() then
+			fail(scenario, "Open the ledger left the options window open over it")
+		end
+		dialog.Close = nil
 	end
 	date = realDate
 end
@@ -697,6 +712,293 @@ do
 			end
 		end
 		IsShiftKeyDown = realShift
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ ledger 13
+-- Today's headline scores you only against favours something you cast could
+-- have returned. A mage grouped with a warrior was told "Returned 0 of 3
+-- favours today" for Battle Shouts nothing a mage casts repays -- a failure
+-- score the player could do nothing about. Those are listed, and counted
+-- apart.
+Mock.reset()
+do
+	local scenario = "only favours you could return are scored"
+	local ns = load(scenario)
+	if ns then
+		H.freshPrompt(ns, scenario)
+		fresh(ns)
+		local L = ns.Ledger
+		if L.Headline() ~= L.TEXT.TODAY_NONE then
+			fail(scenario, "a day with nothing recorded reads: " .. L.Headline())
+		end
+		L.Received({ name = "Wade Shout", key = 6673, class = "WARRIOR" }, true)
+		if L.Headline() ~= L.TEXT.TODAY_ONLY_USELESS then
+			fail(scenario, "a day of favours nothing you cast returns reads: " .. L.Headline())
+		end
+		L.Received({ name = "Iris Quill", key = 1459, class = "PRIEST" })
+		L.Settled("Iris Quill", { at = GetTime() }, {}, 1459)
+		if L.Headline() ~= L.TEXT.TODAY_ONE:format(1) then
+			fail(scenario, "a favour nothing you cast returns was scored as one not returned: "
+				.. L.Headline())
+		end
+		if #L.Entries("favours") ~= 2 then
+			fail(scenario, "the favour nothing you cast returns is no longer listed")
+		end
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ ledger 14
+-- While nothing new can arrive, the ledger says why rather than promising
+-- that the next favour will be listed: switched off, nothing to cast, or the
+-- owed toggle off (which stops favours, not buffs given). And a character that
+-- is recording nothing and never has keeps the minimap tooltip free of a
+-- headline and a line of zeros -- a rogue's tooltip under "Nothing to do".
+Mock.reset()
+do
+	local scenario = "the ledger says why nothing is being recorded"
+	local ns = load(scenario)
+	if ns then
+		H.freshPrompt(ns, scenario)
+		fresh(ns)
+		local L, T, p = ns.Ledger, ns.Ledger.TEXT, ns.db.profile
+		ns.addon:HandleSlash("ledger")
+		local window = L.Window()
+		local function empty(key)
+			for _, tab in ipairs(window.tabs) do
+				if tab.key == key then tab.scripts.OnClick(tab) end
+			end
+			return window.empty:IsShown() and window.empty:GetText() or "(no empty line)"
+		end
+		local function tooltip()
+			local lines = {}
+			local tt = { AddLine = function(_, text) lines[#lines + 1] = tostring(text) end }
+			pcall(Mock.broker.OnTooltipShow, tt)
+			return table.concat(lines, "\n")
+		end
+		if not (window and Mock.broker and Mock.broker.OnTooltipShow) then
+			fail(scenario, "SKIPPED -- no window or no launcher to read")
+		else
+			local function expect(key, want, when)
+				local got = empty(key)
+				if got ~= want then
+					fail(scenario, ("%s, the %s tab reads: %s"):format(when, key, got))
+				end
+			end
+			expect("all", T.EMPTY_ALL, "recording")
+			if not tooltip():find(T.TODAY_NONE, 1, true) then
+				fail(scenario, "SKIPPED -- the tooltip of a character that is recording has no headline")
+			end
+
+			p.enabled = false
+			expect("all", T.EMPTY_OFF, "switched off")
+			expect("favours", T.EMPTY_OFF, "switched off")
+			expect("given", T.EMPTY_OFF, "switched off")
+			local said = tooltip()
+			if said:find(T.TODAY_NONE, 1, true) or said:find(L.Lifetime(), 1, true) then
+				fail(scenario, "switched off with nothing ever recorded, the tooltip still counts: " .. said)
+			end
+			p.enabled = true
+
+			p.sources.owed = false
+			expect("all", T.EMPTY_OWED_OFF, "with favours not watched for")
+			expect("favours", T.EMPTY_OWED_OFF, "with favours not watched for")
+			expect("given", T.EMPTY_GIVEN, "with favours not watched for")
+			p.sources.owed = true
+
+			local realCastable = ns.CastableBuffs
+			ns.CastableBuffs = function() return {} end
+			expect("all", T.EMPTY_NOTHING, "with nothing to cast")
+			said = tooltip()
+			if said:find(T.TODAY_NONE, 1, true) then
+				fail(scenario, "with nothing to cast and nothing ever recorded, the tooltip still"
+					.. " has a headline: " .. said)
+			end
+			ns.CastableBuffs = realCastable
+
+			-- A character with a history keeps its numbers, switched off or not.
+			L.Settled("Walker One", nil, { inGroup = false }, 1459)
+			p.enabled = false
+			said = tooltip()
+			if not said:find(L.Lifetime(), 1, true) then
+				fail(scenario, "switched off, a character with a history lost its counts: " .. said)
+			end
+			p.enabled = true
+		end
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ ledger 15
+-- A warrior's shout reaches his own party and nobody else, so a favour from a
+-- raider in another subgroup is offered only once they are in it. The row's
+-- tooltip said "the prompt offers them until you return it", which Core's own
+-- chat line contradicted. The control is a mage's favour from a priest, which
+-- the prompt does offer.
+Mock.reset()
+Mock.class = "WARRIOR"
+Mock.raid = { size = 40, player = 1 }
+Mock.unitNames = {}
+for i = 1, 40 do Mock.unitNames["raid" .. i] = { "Raider" .. i, "Stone" } end
+do
+	local scenario = "a favour only your party can be repaid says so"
+	local realKnown, realPlayer = IsSpellKnown, IsPlayerSpell
+	local ns = load(scenario)
+	if ns then
+		H.knowShout(ns)
+		H.drive(scenario, ns)
+		Mock.advance(60)
+		wipe(ns.owed)
+		wipe(ns.tried)
+		local s = fresh(ns)
+		H.primeAuras(ns)
+		H.favourFrom(ns, "raid30", 25289)
+		local row = newest(s)
+		if not row or row.kind ~= "received" or row.state ~= "owed" then
+			fail(scenario, "SKIPPED -- the raider's favour was not filed as owed")
+		elseif not row.partyOnly then
+			fail(scenario, "a favour only a party buff can return was not marked so")
+		else
+			ns.addon:HandleSlash("ledger")
+			local r = ns.Ledger.Window().rows[1]
+			r.scripts.OnEnter(r)
+			local tip = table.concat(Mock.tooltip, "\n")
+			local T = ns.Ledger.TEXT
+			local want = ns.PARTY_IS_SUBGROUP and T.TIP_OWED_SUBGROUP or T.TIP_OWED_PARTY
+			if not tip:find(want, 1, true) or tip:find(T.TIP_OWED, 1, true) then
+				fail(scenario, "the row promises an offer that waits on them joining your party: " .. tip)
+			end
+		end
+	end
+	IsSpellKnown, IsPlayerSpell = realKnown, realPlayer
+end
+Mock.reset()
+do
+	local scenario = "a favour only your party can be repaid says so (control)"
+	local ns = load(scenario)
+	local s = ns and owedByPetra(ns, scenario)
+	if s then
+		local row = newest(s)
+		if row.partyOnly then
+			fail(scenario, "a priest's favour to a mage was marked as waiting on the party")
+		end
+		ns.addon:HandleSlash("ledger")
+		local r = ns.Ledger.Window().rows[1]
+		r.scripts.OnEnter(r)
+		local tip = table.concat(Mock.tooltip, "\n")
+		if not tip:find(ns.Ledger.TEXT.TIP_OWED, 1, true) then
+			fail(scenario, "a favour the prompt is offering does not say so: " .. tip)
+		end
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ ledger 16
+-- A favour forgotten because debts are not kept across a reload says so by the
+-- name the setting really has -- a quoted name the player searches for and
+-- does not find is no help -- and says a reload does it, not only a logout.
+Mock.reset()
+do
+	local scenario = "a favour forgotten at a reload names the setting"
+	local ns = load(scenario)
+	local s = ns and owedByPetra(ns, scenario)
+	if s then
+		ns.db.profile.timing.keepDebts = false
+		ns.addon:SaveDebts()
+		Mock.advance(30)
+		local second = load(scenario)
+		if second and pcall(function() second.addon:OnInitialize() end) then
+			local row = newest(second.db.char.ledger)
+			local keep = H.findOption(second.optionsTable or ns.optionsTable, "keepDebts")
+			if second.owed[PETRA] then
+				fail(scenario, "SKIPPED -- the debt came back with the setting off")
+			elseif not row or row.why ~= "notkept" then
+				fail(scenario, "SKIPPED -- the row was let go for " .. tostring(row and row.why))
+			elseif not keep then
+				fail(scenario, "SKIPPED -- there is no keepDebts setting to name")
+			else
+				second.addon:HandleSlash("ledger")
+				local r = second.Ledger.Window().rows[1]
+				r.scripts.OnEnter(r)
+				local tip = table.concat(Mock.tooltip, "\n")
+				if not tip:find("\"" .. H.optionText(keep.name) .. "\"", 1, true) then
+					fail(scenario, "the row names a setting the options do not have: " .. tip)
+				end
+				if not tip:find("reload", 1, true) then
+					fail(scenario, "the row says only a logout forgets a favour: " .. tip)
+				end
+			end
+		end
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ ledger 17
+-- The ledger's first-open spot is clear of the prompt's default one, at every
+-- common screen. Centred, it reached down over the prompt at a small UI scale,
+-- in a higher strata and taking the clicks, so somebody watching favours come
+-- in could no longer press the prompt that returns them.
+for _, screen in ipairs({ { 1024, 768 }, { 1365, 768 }, { 1440, 900 }, { 1920, 1080 } }) do
+	Mock.reset()
+	Mock.geometry = { width = screen[1], height = screen[2] }
+	local scenario = ("the ledger opens clear of the prompt (%dx%d)"):format(screen[1], screen[2])
+	local ns = load(scenario)
+	if ns then
+		H.freshPrompt(ns, scenario)
+		fresh(ns)
+		ns.addon:HandleSlash("ledger")
+		local window = ns.Ledger.Window()
+		local p = ns.db.profile.prompt
+		local prompt = { points = { { p.point, UIParent, p.relPoint, p.x, p.y } },
+			_width = p.width, _height = p.height, _scale = p.scale, _clamped = true }
+		if not (window and window.points[1]) then
+			fail(scenario, "SKIPPED -- the window has no anchor to measure")
+		else
+			local l1, b1, r1, t1 = Mock.rectUI(window)
+			local l2, b2, r2, t2 = Mock.rectUI(prompt)
+			if l1 < r2 and l2 < r1 and b1 < t2 and b2 < t1 then
+				fail(scenario, ("the ledger (%d-%d across, %d-%d up) covers the prompt's default"
+					.. " spot (%d-%d across, %d-%d up)"):format(l1, r1, b1, t1, l2, r2, b2, t2))
+			end
+		end
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ ledger 18
+-- A favour repaints the options page only while the General tab, which prints
+-- the count, is the one on screen. Every favour in a busy city used to redraw
+-- whatever tab was open, dropdowns and edit boxes and all, under the player
+-- tuning them.
+Mock.reset()
+do
+	local scenario = "a favour repaints the options only on the General tab"
+	local ns = load(scenario)
+	if ns then
+		H.freshPrompt(ns, scenario)
+		fresh(ns)
+		local dialog = LibStub("AceConfigDialog-3.0")
+		local status = { groups = { selected = "prompt" } }
+		dialog.GetStatusTable = function(_, app)
+			if app == "Manners" then return status end
+			return {}
+		end
+		Mock.optionsOpen = true
+		local before = Mock.optionsRepaints
+		ns.Ledger.Received({ name = "Iris Quill", key = 1459 })
+		if Mock.optionsRepaints ~= before then
+			fail(scenario, "a favour redrew the Prompt tab under the player")
+		end
+		status.groups.selected = "general"
+		before = Mock.optionsRepaints
+		ns.Ledger.Received({ name = "Tomas Reed", key = 1459 })
+		if Mock.optionsRepaints == before then
+			fail(scenario, "a favour did not repaint the General tab, which prints the count")
+		end
+		dialog.GetStatusTable = nil
+		Mock.optionsOpen = false
 	end
 end
 Mock.reset()

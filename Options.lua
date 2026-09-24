@@ -953,11 +953,18 @@ local function BuildOptions()
 						type = "execute",
 						name = "Open the ledger",
 						desc = "A window listing who buffed you and with what, whether you returned"
-							.. " it, and who you buffed without being asked. Also /manners log, or"
-							.. " shift-click the minimap button.",
+							.. " it, and who you buffed without being asked. Also /manners ledger,"
+							.. " or shift-click the minimap button.",
 						order = 42,
 						hidden = function() return not ns.Ledger end,
-						func = function() ns.Ledger.Show() end,
+						-- This window shut first. It sits in a higher strata
+						-- than the ledger and both are centred on the screen,
+						-- so the ledger opened underneath it with only its
+						-- title showing, and the button seemed to do nothing.
+						func = function()
+							ns.CloseOptions()
+							ns.Ledger.Show()
+						end,
 					},
 				},
 			},
@@ -2332,6 +2339,27 @@ function ns.OptionsOpen()
 		if ok and visible then return true end
 	end
 	return false
+end
+
+-- Shut the standalone options window, if it is up. Only that one: the game's
+-- Settings window is Blizzard's to open and shut, and some of it is protected
+-- in a fight. Guarded, since a library without Close just leaves it open.
+function ns.CloseOptions()
+	if AceConfigDialog and AceConfigDialog.Close then
+		pcall(AceConfigDialog.Close, AceConfigDialog, ADDON)
+	end
+end
+
+-- The key of the tab the options window has open -- "general", "prompt" -- or
+-- nil where the library will not say. The library keeps the choice in its
+-- status table for the page, which both the standalone window and the Settings
+-- page read, so one answer covers both.
+function ns.OptionsTab()
+	if not (AceConfigDialog and AceConfigDialog.GetStatusTable) then return nil end
+	local ok, status = pcall(AceConfigDialog.GetStatusTable, AceConfigDialog, ADDON)
+	local groups = ok and type(status) == "table" and status.groups
+	local selected = type(groups) == "table" and groups.selected
+	return type(selected) == "string" and selected or nil
 end
 
 function ns.OpenOptions()

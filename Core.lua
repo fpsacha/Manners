@@ -2840,7 +2840,11 @@ local function NoteFavour(seen)
 
 	owed[seen.name] = { expires = GetTime() + db.timing.reciprocateWindow, at = GetTime(),
 		guid = seen.guid, class = seen.class }
-	TellLedger("Received", seen)
+	-- Whether only a buff that reaches your own party could return it, asked
+	-- as if they were outside it: a question about their class and yours, not
+	-- about where they stand now, so the ledger's row stays true after they
+	-- join or leave.
+	TellLedger("Received", seen, nil, ns.CouldOffer(hasMana, false) == nil)
 	if db.verbose then
 		-- A warrior's shout reaches the party and nobody else, so a stranger who
 		-- buffed one is kept -- they may yet join the group -- but is not on the
@@ -5350,7 +5354,10 @@ end
 ns.COMMANDS = {
 	{ word = "options", help = "open the options window" },
 	{ word = "welcome", help = "what this addon does, and the one thing it needs from you" },
-	{ word = "log", help = "the favour ledger: who buffed you, what you gave back, and who you buffed" },
+	-- "ledger" and not "log", which HandleSlash still takes: listed a line
+	-- from "clicks", whose help says "log what the button does", "log" sent
+	-- somebody after the click log to a different window.
+	{ word = "ledger", help = "the favour ledger: who buffed you, what you gave back, and who you buffed" },
 	{ word = "unlock", help = "unlock the prompt so it can be dragged" },
 	{ word = "lock", help = "lock it again -- an unlocked prompt never casts" },
 	{ word = "test", help = "preview the prompt with a mock candidate" },
@@ -5499,13 +5506,13 @@ function addon:HandleSlash(rawInput)
 		-- the whole reason the command exists. Somebody will want to find the
 		-- prompt again after moving it, or show a guildmate what it looks like.
 		ns.Guard("welcome", ns.Welcome, true)
-	elseif input == "log" or input == "ledger" then
+	elseif input == "ledger" or input == "log" then
 		-- Plain UI with nothing secure in it, so unlike the prompt it opens in
 		-- a fight as readily as out of one.
 		if ns.Ledger then
 			ns.Guard("ledger window", ns.Ledger.Toggle)
 		else
-			self:Print("the favour ledger did not load -- check the toc's file list.")
+			self:Print("the favour ledger did not load -- reinstalling Manners should bring it back.")
 		end
 	elseif input == "unlock" then
 		db.prompt.locked = false

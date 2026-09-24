@@ -200,18 +200,20 @@ favour.
 /manners welcome   what it does and the one thing it needs from you
 /manners unlock    drag the prompt, then /manners lock
 /manners test      preview, for styling without waiting for a real entry
-/manners log       the favour ledger
+/manners ledger    the favour ledger
 /manners debug     what your class and this build allow
 /manners errors    the last few things that broke, if any did
 ```
 
 The favour ledger is a small window listing who buffed you, with what and
 when, whether you returned it and with what, and who you buffed without being
-asked -- newest first, with today's count at the top ("Returned 12 of 14
-favours today") and the all-time counts at the bottom. Shift-click the minimap
-button for it, or use the button on the General tab. It keeps the last 200
-entries per character; Clear empties the list but keeps favours still owed and
-the all-time counts. It never says anything in chat.
+asked -- newest first. Today's count ("Returned 12 of 14 favours today") and
+the all-time totals sit at the top, then tabs for everything, favours, and
+buffs you gave. A favour nothing you cast could return (a warrior's shout, to a
+mage) is listed but left out of today's count. Shift-click the minimap button
+for it, or use the button on the General tab. It keeps the last 200 entries per
+character; Clear empties the list but keeps favours still owed and the all-time
+counts. It never says anything in chat.
 
 The first login on a character says all of that by itself, once, and puts the
 prompt on screen so you can see where it is. It is kept per character rather

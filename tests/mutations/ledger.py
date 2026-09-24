@@ -7,7 +7,7 @@ S = "runscenarios.py"
 
 # The four moments Core tells the ledger about, and the login that reconciles it.
 mutate("Core.lua",
-       "\tTellLedger(\"Received\", seen)\n",
+       "\tTellLedger(\"Received\", seen, nil, ns.CouldOffer(hasMana, false) == nil)\n",
        "",
        "ledger: a favour is never written down",
        expect="a favour appears in the ledger", script=S)
@@ -101,7 +101,81 @@ mutate("Ledger.lua",
 
 # The slash command reaches the window.
 mutate("Core.lua",
-       "\telseif input == \"log\" or input == \"ledger\" then\n",
+       "\telseif input == \"ledger\" or input == \"log\" then\n",
        "\telseif input == \"nolog\" then\n",
-       "ledger: /manners log does nothing",
+       "ledger: /manners ledger does nothing",
        expect="the ledger window lists entries", script=S)
+
+# Today's headline scores only favours something you cast could return.
+mutate("Ledger.lua",
+       "\t\t\tif e.kind == \"received\" and e.why == \"useless\" then\n",
+       "\t\t\tif false then\n",
+       "ledger: a useless favour scored as unreturned",
+       expect="only favours you could return are scored", script=S)
+mutate("Ledger.lua",
+       "\t\treturn (sum.useless or 0) > 0 and TEXT.TODAY_ONLY_USELESS or TEXT.TODAY_NONE\n",
+       "\t\treturn TEXT.TODAY_NONE\n",
+       "ledger: only useless favours read as none",
+       expect="only favours you could return are scored", script=S)
+
+# While nothing can arrive, the window and the tooltip say so.
+mutate("Ledger.lua",
+       "\tif quiet == \"off\" then return TEXT.EMPTY_OFF end\n",
+       "",
+       "ledger: switched off still promises rows",
+       expect="the ledger says why nothing is being recorded", script=S)
+mutate("Ledger.lua",
+       "\tif type(p.sources) == \"table\" and not p.sources.owed then return \"owedoff\" end\n",
+       "",
+       "ledger: owed toggle off still promises favours",
+       expect="the ledger says why nothing is being recorded", script=S)
+mutate("Ledger.lua",
+       "\tif ok and nothing then return \"nothing\" end\n",
+       "",
+       "ledger: nothing to cast still promises rows",
+       expect="the ledger says why nothing is being recorded", script=S)
+mutate("Ledger.lua",
+       "\tif (quiet == \"off\" or quiet == \"nothing\") and #Ledger.Entries(\"all\") == 0 then\n",
+       "\tif false then\n",
+       "ledger: a rogue's tooltip gets a line of zeros",
+       expect="the ledger says why nothing is being recorded", script=S)
+
+# A favour only a party buff can return waits on them being in the party.
+mutate("Core.lua",
+       "\tTellLedger(\"Received\", seen, nil, ns.CouldOffer(hasMana, false) == nil)\n",
+       "\tTellLedger(\"Received\", seen)\n",
+       "ledger: party-only favours not marked",
+       expect="a favour only your party can be repaid says so", script=S)
+mutate("Ledger.lua",
+       "\t\t\tlocal line = not e.partyOnly and TEXT.TIP_OWED\n",
+       "\t\t\tlocal line = true and TEXT.TIP_OWED\n",
+       "ledger: party-only row promises an offer",
+       expect="a favour only your party can be repaid says so", script=S)
+
+# The row forgotten at a reload names the setting as the options name it.
+mutate("Ledger.lua",
+       "\"Let go: \\\"Remember them across a reload\\\" (When tab",
+       "\"Let go: \\\"Remember favours across a reload\\\" (When tab",
+       "ledger: not-kept row names a missing setting",
+       expect="a favour forgotten at a reload names the setting", script=S)
+
+# The window's first spot is clear of the prompt's.
+mutate("Ledger.lua",
+       "\t\twindow:SetPoint(DEFAULT_POINT, UIParent, DEFAULT_POINT, DEFAULT_X, DEFAULT_Y)\n",
+       "\t\twindow:SetPoint(\"CENTER\", UIParent, \"CENTER\", 0, 60)\n",
+       "ledger: opens centred over the prompt",
+       expect="the ledger opens clear of the prompt", script=S)
+
+# The General tab's button shuts the options window the ledger would sit under.
+mutate("Options.lua",
+       "\t\t\t\t\t\t\tns.CloseOptions()\n",
+       "",
+       "ledger: opens under the options window",
+       expect="the ledger summary counts are right", script=S)
+
+# A favour repaints the options only where the count is printed.
+mutate("Ledger.lua",
+       "\t\tif tab == nil or tab == \"general\" then\n",
+       "\t\tif true then\n",
+       "ledger: every favour redraws every tab",
+       expect="a favour repaints the options only on the General tab", script=S)
