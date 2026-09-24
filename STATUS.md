@@ -33,6 +33,12 @@ Worth knowing about, because they are decisions rather than code:
 - **A favour names who was there when the aura landed**, not who holds that
   nameplate token when it is noticed. A sighting nobody could name is never
   announced.
+- **The never-offer list does not apply to a favour owed.** Somebody on it
+  who buffs you is still offered the return, because returning a favour is
+  the point of the addon; the options page says so. Shift-right-clicking an
+  owed person lets that one favour go too, or they would come straight back
+  when the skip ran out. Friends-first orders people *within* a kind of offer
+  (group, passers-by) and never across one.
 - **The combat log is an addition, never a replacement.** It is registered only
   on Classic Era, Burning Crusade and Mists — Forever and retail refuse it — and
   it exists for the one thing the aura scan cannot do anywhere: name a stranger
