@@ -5113,6 +5113,20 @@ function ns.ClampSettings()
 	end
 	oneOf(p, "point", VALID_ANCHORS, "CENTER")
 	oneOf(p, "relPoint", VALID_ANCHORS, "CENTER")
+	-- An offset no screen has. A drag cannot write one -- the button is
+	-- clamped to the screen -- but a hand-edited file can, and SetPoint takes
+	-- it without complaint: a prompt a million pixels away is one nobody can
+	-- see or drag back. Far wider than the widest screen at the smallest UI
+	-- scale, so no real position is ever touched. The whole position goes back
+	-- to the default, anchor and all, since half of one is nowhere in
+	-- particular.
+	local function offset(v)
+		return type(v) == "number" and v == v and v <= 10000 and v >= -10000
+	end
+	if not offset(p.x) or not offset(p.y) then
+		local d = ns.defaults.profile.prompt
+		p.point, p.relPoint, p.x, p.y = d.point, d.relPoint, d.x, d.y
+	end
 
 	-- Only a sound key that is not a string is repaired. One that is not
 	-- registered is left alone: a sound pack that sorts after this addon --
@@ -5325,6 +5339,10 @@ function addon:RefreshConfig()
 	-- here would take StartScanner with it -- the one call that makes the
 	-- prompt appear at all.
 	ns.Guard("RefreshMinimapButton", ns.RefreshMinimapButton)
+	-- The undo an import keeps belongs to the profile it was made on. Reached
+	-- from a switch, copy or reset, it would put one profile's settings over
+	-- another's, so it goes; an import sets it again after calling this.
+	ns.ForgetImportUndo()
 	self:StartScanner()
 	-- A switch, copy or reset changes every setting at once, the on switch
 	-- among them, and the launcher's text is only ever put back from here. It
@@ -5367,11 +5385,27 @@ function ns.SnoozeLeft(now)
 	return left
 end
 
+-- Whether the player's clock is a 12-hour one. The game clock by the minimap
+-- reads this setting, and a snooze "until 21:45" is a sum to do for somebody
+-- whose clock says 9:40 PM. A client that will not answer gets the 24-hour
+-- clock, which is at least never ambiguous.
+local function TwelveHourClock()
+	local get = _G.GetCVar
+	if type(get) ~= "function" then return false end
+	local ok, value = pcall(get, "timeMgrUseMilitaryTime")
+	return ok and plain(value) == "0"
+end
+
 -- When the snooze ends, on the clock on the player's screen.
 function ns.SnoozeEndsAt()
 	local left = ns.SnoozeLeft()
 	if not left then return nil end
-	return date("%H:%M", time() + math.floor(left + 0.5))
+	local at = time() + math.floor(left + 0.5)
+	if TwelveHourClock() then
+		-- "9:45 PM", not "09:45 PM": the game clock drops the leading zero.
+		return (date("%I:%M %p", at):gsub("^0", ""))
+	end
+	return date("%H:%M", at)
 end
 
 -- "5 minutes", with the one case English spells differently spelt out as a
@@ -5414,6 +5448,26 @@ local function SnoozeOverText()
 		return "the snooze is over -- the prompt can appear again once this fight ends."
 	end
 	return "the snooze is over -- the prompt can appear again."
+end
+
+-- Units a length can be typed in, as minutes each. People write a length the
+-- way they would say it -- "15", "15m", "15 minutes", "1h", "2 hours" -- and a
+-- snooze that answers "15 minutes" with "snooze takes a number of
+-- minutes" is correcting them for using the unit it asked for.
+local SNOOZE_UNITS = {
+	[""] = 1, m = 1, min = 1, mins = 1, minute = 1, minutes = 1,
+	h = 60, hr = 60, hrs = 60, hour = 60, hours = 60,
+}
+
+-- Minutes from what was typed after /manners snooze, or nil when it is not a
+-- length. Not checked against the range: the caller says what the range is.
+function ns.SnoozeLength(text)
+	local number, unit = tostring(text or ""):lower():match("^%s*(%d*%.?%d+)%s*(%a*)%s*$")
+	local scale = unit and SNOOZE_UNITS[unit]
+	if not scale then return nil end
+	local minutes = tonumber(number)
+	if not minutes then return nil end
+	return math.floor(minutes * scale + 0.5)
 end
 
 -- Start a snooze of `minutes`, replacing any snooze already running rather
@@ -5488,10 +5542,37 @@ local SHARE_MAX = 8000
 -- screen, not about how the addon behaves.
 local SHARE_SKIP = { enabled = true, debugClicks = true, minimap = true }
 
+-- The same, for settings further down than the top of the profile. The lock
+-- is a state like the on switch, and the worst one to carry: a string copied
+-- while its owner had the prompt unlocked to drag it -- the obvious moment to
+-- be on the options page -- would unlock the prompt of everybody who pasted
+-- it, and an unlocked prompt never casts. Where the prompt sits is about the
+-- screen it sits on, as the minimap button's place is.
+local SHARE_SKIP_NAMES = {
+	["prompt.locked"] = true,
+	["prompt.point"] = true,
+	["prompt.relPoint"] = true,
+	["prompt.x"] = true,
+	["prompt.y"] = true,
+}
+
 -- Imported only when the player already has it on. Speaking a line when you
 -- buff talks to other players, and a string from somebody else must never be
 -- able to switch that on -- /yell included -- behind a single paste.
 local SHARE_KEEP_MINE = { ["speech.enabled"] = true }
+
+-- What is said and where, kept as the player has it whenever speaking is
+-- already on. Keeping the switch alone is not enough: somebody who speaks a
+-- quiet "thanks" in /say would otherwise start yelling a stranger's words at
+-- everybody they buff, the moment they pasted. With speaking off these change
+-- nothing anybody hears, so they travel -- and are waiting, as the string's
+-- author wrote them, for the day the player switches it on themselves.
+local SHARE_SPEECH = {
+	["speech.channel"] = true,
+	["speech.phrases"] = true,
+	["speech.presetChoice"] = true,
+	["speech.onlyWhenReturning"] = true,
+}
 
 -- Defaults that are not a constant. The phrase box is filled from the chosen
 -- set at load, so a profile nobody has touched holds six lines of Roleplay --
@@ -5513,7 +5594,8 @@ local function ShareFields()
 	local fields = {}
 	local function walk(defs, path, prefix)
 		for key, value in pairs(defs) do
-			if type(key) == "string" and not (prefix == "" and SHARE_SKIP[key]) then
+			if type(key) == "string" and not (prefix == "" and SHARE_SKIP[key])
+				and not SHARE_SKIP_NAMES[prefix .. key] then
 				local name = prefix .. key
 				local kind
 				if type(value) == "table" then
@@ -5766,7 +5848,13 @@ function ns.ParseSettings(text)
 	return { values = values, unknown = unknown, count = count }
 end
 
+-- The settings the last import replaced, as a settings string, for this
+-- session and this profile only.
 local lastImportUndo
+
+function ns.ForgetImportUndo()
+	lastImportUndo = nil
+end
 
 local function CopyValue(v)
 	if type(v) ~= "table" then return v end
@@ -5775,10 +5863,48 @@ local function CopyValue(v)
 	return out
 end
 
+local function SameValue(a, b)
+	if type(a) ~= "table" or type(b) ~= "table" then return a == b end
+	for k, v in pairs(a) do if b[k] ~= v then return false end end
+	for k, v in pairs(b) do if a[k] ~= v then return false end end
+	return true
+end
+
+-- Write a parsed string over the current profile. Everything it does not name
+-- goes back to its default, so the profile that comes out is the one that
+-- went in. `own` is for the player's own settings coming back -- the undo --
+-- which were never somebody else's words and are put back exactly; anything
+-- else keeps speaking as the player has it. Returns what was kept back.
+local function ApplySettings(profile, parsed, own)
+	local speaking = profile.speech and profile.speech.enabled == true
+	local kept = { switch = false, words = false }
+	for _, field in ipairs(ShareFields()) do
+		local holder = Holder(profile, field.path, true)
+		local value = parsed.values[field.name]
+		if value == nil then value = CopyValue(field.default) end
+		if not own and SHARE_KEEP_MINE[field.name] then
+			if value == true and holder[field.key] ~= true then kept.switch = true end
+		elseif not own and speaking and SHARE_SPEECH[field.name] then
+			-- A string that names nothing here leaves nothing to keep: the
+			-- default a missing name stands for is not a word from anybody.
+			if parsed.values[field.name] ~= nil
+				and not SameValue(parsed.values[field.name], holder[field.key]) then
+				kept.words = true
+			end
+		else
+			holder[field.key] = value
+		end
+	end
+	-- What a profile switch runs, for the same reason: every setting changed
+	-- at once. It is safe in a fight -- ApplyStyle puts itself off until the
+	-- fight ends -- which the line the callers print says. It also forgets the
+	-- undo, which each caller then sets as it needs.
+	addon:RefreshConfig()
+	return kept
+end
+
 -- Replace the current profile's shareable settings with the ones in `text`.
--- Everything the string does not name goes back to its default, so the
--- profile that comes out is the one that went in. Returns whether it applied
--- and the line to say.
+-- Returns whether it applied and the line to say.
 function ns.ImportSettings(text)
 	local profile = addon.db and addon.db.profile
 	if not profile then return false, ns.SHARE_ERRORS.empty end
@@ -5786,28 +5912,8 @@ function ns.ImportSettings(text)
 	if not parsed then return false, err end
 
 	local undo = ns.ExportSettings()
-	local keptSpeech = false
-	for _, field in ipairs(ShareFields()) do
-		local holder = Holder(profile, field.path, true)
-		local value = parsed.values[field.name]
-		if SHARE_KEEP_MINE[field.name] then
-			if value == true and holder[field.key] ~= true then keptSpeech = true end
-		elseif value ~= nil then
-			holder[field.key] = value
-		else
-			holder[field.key] = CopyValue(field.default)
-		end
-	end
-	-- The two one-time carry-overs in ClampSettings convert positions written
-	-- by old versions. A position that arrived in a settings string was
-	-- written by one that had already converted it, so neither may touch it.
-	profile.prompt.anchorCarried = true
-	profile.prompt.offsetsUnscaled = true
+	local kept = ApplySettings(profile, parsed, false)
 	lastImportUndo = undo
-	-- What a profile switch runs, for the same reason: every setting changed
-	-- at once. It is safe in a fight -- ApplyStyle puts itself off until the
-	-- fight ends -- which the line below says.
-	addon:RefreshConfig()
 
 	-- Whole sentences for each count rather than an "s" glued on, so each can
 	-- be translated as it stands.
@@ -5825,24 +5931,45 @@ function ns.ImportSettings(text)
 		lines[#lines + 1] = ("%d settings from a newer version of Manners were left out.")
 			:format(parsed.unknown)
 	end
-	if keptSpeech then
+	if kept.switch then
 		lines[#lines + 1] = "The string had speaking a line when you buff switched on. That"
 			.. " is left off, because it talks to other players: switch it on under When you"
 			.. " click if you want it."
 	end
+	if kept.words then
+		lines[#lines + 1] = "What you say when you buff, and where, is kept as you had it,"
+			.. " because you have speaking switched on."
+	end
 	if InCombatLockdown() then
-		lines[#lines + 1] = "The prompt's look and place change when this fight ends."
+		lines[#lines + 1] = "The prompt's look changes when this fight ends."
 	end
 	lines[#lines + 1] = "|cffffd100/manners import undo|r puts your old settings back."
 	return true, table.concat(lines, " ")
 end
 
--- Put back the settings the last import replaced, this session.
+-- Put back the settings the last import replaced, this session. Once: the
+-- undo is used up, so a second one says there is nothing left rather than
+-- putting the import back.
 function ns.UndoImport()
-	if not lastImportUndo then
-		return false, "nothing to undo -- no settings have been imported this session."
+	local profile = addon.db and addon.db.profile
+	if not lastImportUndo or not profile then
+		return false, "nothing to undo -- no settings have been imported on this profile"
+			.. " this session."
 	end
-	return ns.ImportSettings(lastImportUndo)
+	-- Read back through the same checks as any string, though it never left
+	-- this session: one path in, and nothing that skips it.
+	local parsed = ns.ParseSettings(lastImportUndo)
+	lastImportUndo = nil
+	if not parsed then
+		return false, "nothing to undo -- no settings have been imported on this profile"
+			.. " this session."
+	end
+	ApplySettings(profile, parsed, true)
+	if InCombatLockdown() then
+		return true, "your settings from before the import are back. The prompt's look"
+			.. " changes when this fight ends."
+	end
+	return true, "your settings from before the import are back."
 end
 
 ---------------------------------------------------------------------------
@@ -5914,26 +6041,39 @@ local function PrintHelp()
 	addon:Print("|cffffd100/mnr|r works in place of |cffffd100/manners|r in all of them.")
 end
 
--- How many single-letter changes turn one word into the other.
+-- How many slips of a finger turn one word into the other: a letter missed,
+-- added or changed, or two neighbours swapped. The swap counts as one because
+-- that is how it happens at a keyboard -- "tset" is one slip from "test", not
+-- the two a plain letter count makes it.
 local function EditDistance(a, b)
 	if a == b then return 0 end
-	local previous = {}
-	for j = 0, #b do previous[j] = j end
+	local rows = {}
+	for i = 0, #a do rows[i] = { [0] = i } end
+	for j = 0, #b do rows[0][j] = j end
 	for i = 1, #a do
-		local current = { [0] = i }
 		for j = 1, #b do
 			local cost = a:sub(i, i) == b:sub(j, j) and 0 or 1
-			current[j] = math.min(previous[j] + 1, current[j - 1] + 1, previous[j - 1] + cost)
+			local best = math.min(rows[i - 1][j] + 1, rows[i][j - 1] + 1, rows[i - 1][j - 1] + cost)
+			if i > 1 and j > 1 and a:sub(i, i) == b:sub(j - 1, j - 1)
+				and a:sub(i - 1, i - 1) == b:sub(j, j) then
+				best = math.min(best, rows[i - 2][j - 2] + 1)
+			end
+			rows[i][j] = best
 		end
-		previous = current
 	end
-	return previous[#b]
+	return rows[#a][#b]
 end
 
 -- The command somebody most likely meant by a word that is not one, or nil
--- when nothing is close enough to be worth suggesting. Close means a slip of
--- a letter or two -- fewer for a short word, where two changes turn anything
--- into anything -- or the start of exactly one command.
+-- when nothing is close enough to be worth suggesting. Close means one slip,
+-- or two in a word long enough that two slips still leave most of it -- in a
+-- five-letter word two changes turn "reset" into "test", which is a guess, not
+-- a correction -- or the start of exactly one command.
+--
+-- Never the word itself. A word that is a command and still reached the
+-- fallback is a command with no branch, and "did you mean /manners forms?" in
+-- answer to /manners forms would hide that from the player and from the
+-- scenario that walks the list looking for it.
 function ns.ClosestCommand(word)
 	word = tostring(word or ""):lower()
 	if word == "" then return nil end
@@ -5941,6 +6081,9 @@ function ns.ClosestCommand(word)
 	for _, command in ipairs(ns.COMMANDS) do words[#words + 1] = command.word end
 	for alias in pairs(ns.COMMAND_ALIASES) do
 		if alias:match("^%a+$") then words[#words + 1] = alias end
+	end
+	for _, candidate in ipairs(words) do
+		if candidate == word then return nil end
 	end
 	table.sort(words)
 
@@ -5956,7 +6099,7 @@ function ns.ClosestCommand(word)
 	end
 
 	local best, bestDistance
-	local allowed = #word <= 4 and 1 or 2
+	local allowed = #word >= 6 and 2 or 1
 	for _, candidate in ipairs(words) do
 		local distance = EditDistance(word, candidate)
 		if distance <= allowed and (not bestDistance or distance < bestDistance) then
@@ -6172,13 +6315,13 @@ function addon:HandleSlash(rawInput)
 		elseif arg == "" then
 			ns.StartSnooze(ns.SNOOZE_DEFAULT)
 		else
-			-- "15m" is how a lot of people write fifteen minutes.
-			local minutes = tonumber((arg:gsub("%s*m[in]*s?$", "")))
+			local minutes = ns.SnoozeLength(arg)
 			if minutes and minutes >= 1 and minutes <= ns.SNOOZE_MAX then
 				ns.StartSnooze(minutes)
 			else
 				self:Print(("snooze takes a number of minutes from 1 to %d, or off -- for"
-					.. " example |cffffd100/manners snooze 15|r."):format(ns.SNOOZE_MAX))
+					.. " example |cffffd100/manners snooze 15|r or |cffffd100/manners snooze"
+					.. " 1h|r."):format(ns.SNOOZE_MAX))
 			end
 		end
 	elseif input == "export" then

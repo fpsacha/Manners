@@ -141,7 +141,7 @@ do
 				fail(scenario, "/manners snooze off said nothing: " .. said())
 			end
 
-			for _, bad in ipairs({ "banana", "0", "-5", "100000" }) do
+			for _, bad in ipairs({ "banana", "0", "-5", "100000", "5 parsecs", "5h", "1h30" }) do
 				Mock.printed = {}
 				ns.addon:HandleSlash("snooze " .. bad)
 				if ns.SnoozeLeft() then
@@ -153,12 +153,20 @@ do
 				end
 			end
 
-			-- "15m" is fifteen minutes to most people.
-			ns.addon:HandleSlash("snooze 15m")
-			if math.abs((ns.SnoozeLeft() or 0) - 900) > 1 then
-				fail(scenario, "/manners snooze 15m did not snooze for fifteen minutes")
+			-- A length written the way people say it, in the unit the help and
+			-- every chat line use, or in hours.
+			for typed, minutes in pairs({ ["15m"] = 15, ["15 min"] = 15, ["15 minutes"] = 15,
+				["1 minute"] = 1, ["90 Mins"] = 90, ["1h"] = 60, ["2 hours"] = 120,
+				["1.5h"] = 90, ["4 hr"] = 240 }) do
+				Mock.printed = {}
+				ns.addon:HandleSlash("snooze " .. typed)
+				local left = ns.SnoozeLeft() or 0
+				if math.abs(left - minutes * 60) > 1 then
+					fail(scenario, ("/manners snooze %s snoozed for %ds, not %d minutes: %s")
+						:format(typed, left, minutes, said()))
+				end
+				ns.StopSnooze(true)
 			end
-			ns.StopSnooze(true)
 		end
 	end
 	restore()
@@ -256,6 +264,47 @@ do
 			if not stop.hidden() then fail(scenario, "Stop snoozing shows with no snooze running") end
 		end
 	end
+	Mock.reset()
+end
+
+-- The end of a snooze is read off the clock on the player's screen, so it is
+-- written the way that clock writes it: 9:45 PM for a 12-hour clock, 21:45
+-- for a 24-hour one or a client that will not say.
+do
+	local scenario = "ease: the snooze ends on the player's own clock"
+	Mock.reset()
+	local realGetCVar, realDate = _G.GetCVar, _G.date
+	local military
+	local ns = load(scenario)
+	if ns then
+		drive(scenario, ns)
+		ns.Prompt:ExitTest()
+		-- The mock's date answers one fixed string whatever it is asked; the
+		-- format is the whole question here, so the real one answers it.
+		_G.date = os.date
+		_G.GetCVar = function(name)
+			if name == "timeMgrUseMilitaryTime" then return military end
+		end
+		ns.StartSnooze(15)
+
+		military = "0"
+		local twelve = tostring(ns.SnoozeEndsAt())
+		if not twelve:match("^[1-9]%d?:%d%d [AP]M$") then
+			fail(scenario, "a 12-hour clock was told the snooze ends at " .. twelve)
+		end
+		military = "1"
+		local full = tostring(ns.SnoozeEndsAt())
+		if not full:match("^%d%d:%d%d$") then
+			fail(scenario, "a 24-hour clock was told the snooze ends at " .. full)
+		end
+		_G.GetCVar = function() error("no", 0) end
+		local unknown = tostring(ns.SnoozeEndsAt())
+		if not unknown:match("^%d%d:%d%d$") then
+			fail(scenario, "a client with no clock setting was told " .. unknown)
+		end
+		ns.StopSnooze(true)
+	end
+	_G.GetCVar, _G.date = realGetCVar, realDate
 	Mock.reset()
 end
 
@@ -574,7 +623,8 @@ do
 	if ns then
 		drive(scenario, ns)
 		for typed, meant in pairs({ snoze = "snooze", exprot = "export", optoins = "options",
-			imp = "import", verbos = "verbose", loc = "lock" }) do
+			imp = "import", verbos = "verbose", loc = "lock", tset = "test", snoozr = "snooze",
+			weclome = "welcome" }) do
 			Mock.printed = {}
 			ns.addon:HandleSlash(typed)
 			local out = said()
@@ -586,7 +636,9 @@ do
 				fail(scenario, "/manners " .. typed .. " printed the whole list under its suggestion")
 			end
 		end
-		for _, typed in ipairs({ "xyzzyplugh", "help", "?" }) do
+		-- "reset" is two changes from "test", and a player typing it wants their
+		-- settings back, not a preview: a guess that far out is worse than the list.
+		for _, typed in ipairs({ "xyzzyplugh", "help", "?", "reset" }) do
 			Mock.printed = {}
 			ns.addon:HandleSlash(typed)
 			local out = said()
@@ -597,6 +649,18 @@ do
 				fail(scenario, "/manners " .. typed .. " was answered with a guess: " .. out)
 			end
 		end
+		-- A command is never suggested to itself. That word reaching the guess
+		-- means its branch is missing, and "did you mean /manners forms?" in
+		-- answer to /manners forms hides that from the player and from the
+		-- scenario that walks the list, which looks for the full help.
+		for _, command in ipairs(ns.COMMANDS) do
+			local guess = ns.ClosestCommand(command.word)
+			if guess then
+				fail(scenario, ("/manners %s, a real command, would be answered with a guess of"
+					.. " /manners %s"):format(command.word, guess))
+			end
+		end
+
 		-- Every suggestion is something that works.
 		for _, command in ipairs(ns.COMMANDS) do
 			local guess = ns.ClosestCommand(command.word .. "x")
@@ -733,9 +797,25 @@ do
 				if not tostring(message):find("undo", 1, true) then
 					fail(scenario, "the import never said how to undo it: " .. tostring(message))
 				end
-				local undone = ns.UndoImport()
-				if not undone or ns.ExportSettings() ~= before then
+				Mock.printed = {}
+				ns.addon:HandleSlash("import undo")
+				if ns.ExportSettings() ~= before then
 					fail(scenario, "/manners import undo did not put the old settings back")
+				end
+				local first = said()
+				if not first:find("from before the import are back", 1, true)
+					or first:find("undo", 1, true) then
+					fail(scenario, "/manners import undo described itself as an import, or told the"
+						.. " player to undo it: " .. first)
+				end
+				-- Used up: a second undo is not the import all over again.
+				Mock.printed = {}
+				ns.addon:HandleSlash("import undo")
+				if ns.ExportSettings() ~= before then
+					fail(scenario, "a second /manners import undo put the imported settings back")
+				end
+				if not said():find("nothing to undo", 1, true) then
+					fail(scenario, "a second /manners import undo said: " .. said())
 				end
 			end
 
@@ -786,6 +866,149 @@ do
 		end
 		Mock.inCombat = false
 		ns.addon:PLAYER_REGEN_ENABLED()
+	end
+	Mock.reset()
+end
+
+-- The lock and the prompt's place are never in a string. The obvious moment to
+-- copy one is with the prompt unlocked to drag it, and an import that carried
+-- that would unlock -- and so stop -- everybody who pasted it.
+do
+	local scenario = "ease: an import never unlocks or moves the prompt"
+	Mock.reset()
+	local ns = load(scenario)
+	if ns then
+		drive(scenario, ns)
+		ns.Prompt:ExitTest()
+		local p = ns.db.profile.prompt
+		p.locked, p.point, p.relPoint, p.x, p.y = false, "TOPLEFT", "TOPLEFT", 900, 40
+		p.width = 260
+		local text = ns.ExportSettings()
+		for _, name in ipairs({ "prompt.locked", "prompt.point", "prompt.relPoint",
+			"prompt.x", "prompt.y" }) do
+			if text:find(name .. "=", 1, true) then
+				fail(scenario, name .. " is written into the settings string: " .. text)
+			end
+		end
+
+		p.locked, p.point, p.relPoint, p.x, p.y = true, "BOTTOM", "BOTTOM", 0, 300
+		p.width = 220
+		local ok, message = ns.ImportSettings(text)
+		if not ok then
+			fail(scenario, "the string was refused: " .. tostring(message))
+		else
+			if p.locked ~= true then
+				fail(scenario, "importing a string copied from an unlocked prompt unlocked this one,"
+					.. " and an unlocked prompt never casts")
+			end
+			if p.point ~= "BOTTOM" or p.relPoint ~= "BOTTOM" or p.x ~= 0 or p.y ~= 300 then
+				fail(scenario, ("the import moved the prompt to %s %s %s,%s"):format(tostring(p.point),
+					tostring(p.relPoint), tostring(p.x), tostring(p.y)))
+			end
+			if p.width ~= 260 then
+				fail(scenario, "the prompt's width, which is shared, did not arrive")
+			end
+		end
+		-- Nor through a string written by hand to carry them.
+		ns.ImportSettings(signed("prompt.locked=0;prompt.x=900;prompt.y=40"))
+		if p.locked ~= true or p.x ~= 0 or p.y ~= 300 then
+			fail(scenario, "a string written to carry the lock and the place still changed them")
+		end
+
+		-- And an offset no screen has, however it got into the file, is put back.
+		p.x = 1e300
+		ns.ClampSettings()
+		if p.x ~= 0 or p.y ~= 300 or p.point ~= "BOTTOM" then
+			fail(scenario, "an offset of 1e300 survived the repair: " .. tostring(p.x))
+		end
+		p.point, p.relPoint, p.x, p.y = "CENTER", "CENTER", -2500, 1200
+		ns.ClampSettings()
+		if p.x ~= -2500 or p.y ~= 1200 or p.point ~= "CENTER" then
+			fail(scenario, "the repair moved a prompt sitting where a wide screen can put it")
+		end
+	end
+	Mock.reset()
+end
+
+-- Speaking stays the player's while they have it on: the switch, and also
+-- what is said and where. With it off those change nothing anybody hears, so
+-- they arrive as the string has them.
+do
+	local scenario = "ease: an import keeps what you say while speaking is on"
+	Mock.reset()
+	local ns = load(scenario)
+	if ns then
+		drive(scenario, ns)
+		ns.Prompt:ExitTest()
+		local s = ns.db.profile.speech
+		s.enabled, s.channel, s.onlyWhenReturning = false, "YELL", false
+		s.phrases = "HELLO EVERYBODY"
+		local loud = ns.ExportSettings()
+
+		s.enabled, s.channel, s.onlyWhenReturning, s.phrases = true, "SAY", true, "thanks!"
+		local ok, message = ns.ImportSettings(loud)
+		if not ok then
+			fail(scenario, "the string was refused: " .. tostring(message))
+		else
+			if s.channel ~= "SAY" or s.phrases ~= "thanks!" or s.onlyWhenReturning ~= true
+				or s.enabled ~= true then
+				fail(scenario, ("a pasted string changed what a player who speaks says: channel %s,"
+					.. " phrases %q, only when returning %s"):format(tostring(s.channel),
+					tostring(s.phrases), tostring(s.onlyWhenReturning)))
+			end
+			if not tostring(message):find("kept as you had it", 1, true) then
+				fail(scenario, "the import kept the player's words without saying so: "
+					.. tostring(message))
+			end
+		end
+
+		-- Nothing about speech in the string: nothing kept, nothing said.
+		ok, message = ns.ImportSettings(signed("prompt.width=240"))
+		if tostring(message):find("kept as you had it", 1, true) then
+			fail(scenario, "a string with no words in it was said to have had some kept: "
+				.. tostring(message))
+		end
+		if s.phrases ~= "thanks!" or s.channel ~= "SAY" then
+			fail(scenario, "a string with no words in it reset a speaking player's words")
+		end
+
+		s.enabled = false
+		ns.ImportSettings(loud)
+		if s.channel ~= "YELL" or s.phrases ~= "HELLO EVERYBODY" then
+			fail(scenario, "with speaking off, the string's words did not arrive")
+		end
+		if s.enabled then fail(scenario, "the import switched speaking on") end
+	end
+	Mock.reset()
+end
+
+-- The undo an import keeps is for the profile it was made on. Switching
+-- profile and undoing would lay one profile's old settings over another's.
+do
+	local scenario = "ease: an undo belongs to the profile it was made on"
+	Mock.reset()
+	local ns = load(scenario)
+	if ns then
+		drive(scenario, ns)
+		ns.Prompt:ExitTest()
+		if not ns.db.SetProfile then
+			fail(scenario, "SKIPPED -- the mock has no profile switch")
+		else
+			ns.db.profile.prompt.width = 300
+			ns.ImportSettings(signed("prompt.width=250"))
+			ns.db:SetProfile("Alt")
+			ns.db.profile.prompt.width = 180
+			local before = ns.ExportSettings()
+			Mock.printed = {}
+			ns.addon:HandleSlash("import undo")
+			if ns.ExportSettings() ~= before then
+				fail(scenario, "an undo made on one profile rewrote another")
+			end
+			if not said():find("nothing to undo", 1, true) then
+				fail(scenario, "an undo on a profile that imported nothing said: " .. said())
+			end
+			ns.db:SetProfile("Default")
+		end
 	end
 	Mock.reset()
 end
@@ -913,6 +1136,23 @@ do
 		end
 		if not said():find("Share settings", 1, true) then
 			fail(scenario, "/manners export did not say where the settings are: " .. said())
+		end
+		-- The game cannot copy for the player, so nothing on the page may say
+		-- it has, and the box itself says how.
+		local button = findOption(ns.optionsTable, "shareCopy")
+		if button then
+			-- Both of its labels: shut, and open.
+			for _ = 1, 2 do
+				local name = optionText(button.name)
+				if tostring(name):find("Copy", 1, true) then
+					fail(scenario, "a button labelled " .. tostring(name) .. " copies nothing")
+				end
+				button.func()
+			end
+		end
+		if copy and not tostring(optionText(copy.name)):find("Ctrl+C", 1, true) then
+			fail(scenario, "the box to copy from does not say how to copy: "
+				.. tostring(optionText(copy.name)))
 		end
 		Mock.printed = {}
 		ns.addon:HandleSlash("import")

@@ -200,7 +200,7 @@ favour.
 /manners welcome   what it does and the one thing it needs from you
 /manners unlock    drag the prompt, then /manners lock
 /manners test      preview, for styling without waiting for a real entry
-/manners snooze    hide the prompt for 15 minutes (or /manners snooze 5, snooze off)
+/manners snooze    hide the prompt for 15 minutes (or /manners snooze 5, snooze 1h, snooze off)
 /manners export    your settings as one line of text, to keep or to share
 /manners import    use a line somebody exported (/manners import undo puts yours back)
 /manners debug     what your class and this build allow

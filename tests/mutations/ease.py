@@ -67,6 +67,29 @@ mutate("Options.lua",
        expect="the launcher's text does not say a snooze is running",
        script="runscenarios.py")
 
+# The unit the help itself uses, refused.
+mutate("Core.lua",
+       "\t[\"\"] = 1, m = 1, min = 1, mins = 1, minute = 1, minutes = 1,\n",
+       "\t[\"\"] = 1, m = 1, min = 1, mins = 1,\n",
+       "a snooze that refuses 15 minutes",
+       expect="/manners snooze 15 minutes snoozed for",
+       script="runscenarios.py")
+
+mutate("Core.lua",
+       "\th = 60, hr = 60, hrs = 60, hour = 60, hours = 60,\n",
+       "",
+       "a snooze that refuses hours",
+       expect="/manners snooze 1h snoozed for",
+       script="runscenarios.py")
+
+# A 24-hour time for somebody whose clock says PM.
+mutate("Core.lua",
+       "\treturn ok and plain(value) == \"0\"\n",
+       "\treturn false\n",
+       "a snooze end on a clock not the player's",
+       expect="a 12-hour clock was told",
+       script="runscenarios.py")
+
 # ------------------------------------------------------------------ mounted
 
 mutate("Core.lua",
@@ -147,10 +170,43 @@ mutate("Core.lua",
 
 # A guess for anything at all.
 mutate("Core.lua",
-       "\tlocal allowed = #word <= 4 and 1 or 2\n",
+       "\tlocal allowed = #word >= 6 and 2 or 1\n",
        "\tlocal allowed = 99\n",
        "a did-you-mean that always guesses",
        expect="was answered with a guess",
+       script="runscenarios.py")
+
+# Two slips allowed in a five-letter word, which makes "reset" into "test".
+mutate("Core.lua",
+       "\tlocal allowed = #word >= 6 and 2 or 1\n",
+       "\tlocal allowed = #word <= 4 and 1 or 2\n",
+       "a did-you-mean that guesses test for reset",
+       expect="/manners reset was answered with a guess",
+       script="runscenarios.py")
+
+# Two letters swapped counted as two slips, so "tset" finds nothing.
+mutate("Core.lua",
+       "\t\t\t\tbest = math.min(best, rows[i - 2][j - 2] + 1)\n",
+       "\t\t\t\tbest = best\n",
+       "a did-you-mean blind to swapped letters",
+       expect="/manners tset did not suggest",
+       script="runscenarios.py")
+
+# A command suggested to itself: the guess a missing branch hides behind.
+mutate("Core.lua",
+       "\tfor _, candidate in ipairs(words) do\n\t\tif candidate == word then return nil end\n\tend\n",
+       "",
+       "a command suggested to itself",
+       expect="a real command, would be answered with a guess",
+       script="runscenarios.py")
+
+# An advertised command with no branch. The walk in the main file finds it by
+# the full help it falls through to, which a guess of itself used to replace.
+mutate("Core.lua",
+       "\telseif input == \"forms\" then\n",
+       "\telseif false then\n",
+       "an advertised command with no branch",
+       expect="every advertised command exists",
        script="runscenarios.py")
 
 # ------------------------------------------------------------------ sharing
@@ -167,17 +223,65 @@ mutate("Core.lua",
 # Everything the string does not name left as it was, so an import is a merge
 # and its undo leaves the imported settings behind.
 mutate("Core.lua",
-       "\t\t\tholder[field.key] = CopyValue(field.default)\n",
-       "\t\t\tlocal _ = CopyValue(field.default)\n",
+       "\t\tif value == nil then value = CopyValue(field.default) end\n",
+       "\t\tif value == nil then value = holder[field.key] end\n",
        "an import that does not reset what it leaves out",
        expect="did not put the old settings back",
        script="runscenarios.py")
 
 mutate("Core.lua",
-       "\t\tif SHARE_KEEP_MINE[field.name] then\n",
+       "\t\tif not own and SHARE_KEEP_MINE[field.name] then\n",
        "\t\tif false then\n",
        "an import that switches speech on",
        expect="switched on speaking to other players",
+       script="runscenarios.py")
+
+# The switch kept and everything behind it handed over: the player who says
+# "thanks" in /say starts yelling a stranger's words.
+mutate("Core.lua",
+       "\t\telseif not own and speaking and SHARE_SPEECH[field.name] then\n",
+       "\t\telseif false then\n",
+       "an import that rewrites a speaker's words",
+       expect="changed what a player who speaks says",
+       script="runscenarios.py")
+
+mutate("Core.lua",
+       "\t[\"prompt.locked\"] = true,\n",
+       "",
+       "an import that unlocks the prompt",
+       expect="unlocked this one",
+       script="runscenarios.py")
+
+mutate("Core.lua",
+       "\t[\"prompt.x\"] = true,\n",
+       "",
+       "an import that moves the prompt",
+       expect="the import moved the prompt",
+       script="runscenarios.py")
+
+# The undo run as an import, the way it first was: it keeps the settings it
+# replaced as a new undo, so a second undo puts the import back -- and the
+# first says "settings imported" and tells the player to undo it.
+mutate("Core.lua",
+       "\tlocal parsed = ns.ParseSettings(lastImportUndo)\n\tlastImportUndo = nil\n",
+       "\tdo return ns.ImportSettings(lastImportUndo) end\n\tlocal parsed\n",
+       "an undo that can be run twice",
+       expect="a second /manners import undo",
+       script="runscenarios.py")
+
+# The undo outliving a profile switch, and landing on the wrong profile.
+mutate("Core.lua",
+       "\tns.ForgetImportUndo()\n\tself:StartScanner()\n",
+       "\tself:StartScanner()\n",
+       "an undo that follows a profile switch",
+       expect="an undo made on one profile rewrote another",
+       script="runscenarios.py")
+
+mutate("Core.lua",
+       "\tif not offset(p.x) or not offset(p.y) then\n",
+       "\tif false then\n",
+       "an offset no screen has, kept",
+       expect="an offset of 1e300 survived the repair",
        script="runscenarios.py")
 
 mutate("Core.lua",
@@ -207,12 +311,9 @@ mutate("Core.lua",
 
 # The repair skipped, so a value no slider can reach is kept.
 mutate("Core.lua",
-       "\tlastImportUndo = undo\n"
-       "\t-- What a profile switch runs, for the same reason: every setting changed\n"
-       "\t-- at once. It is safe in a fight -- ApplyStyle puts itself off until the\n"
-       "\t-- fight ends -- which the line below says.\n"
+       "\t-- undo, which each caller then sets as it needs.\n"
        "\taddon:RefreshConfig()\n",
-       "\tlastImportUndo = undo\n",
+       "\t-- undo, which each caller then sets as it needs.\n",
        "an import that is never repaired",
        expect="outside what the page allows survived",
        script="runscenarios.py")
@@ -222,4 +323,12 @@ mutate("Options.lua",
        "",
        "/manners export with the box shut",
        expect="left the box with the settings in it shut",
+       script="runscenarios.py")
+
+# The game cannot copy, so a button that says it does is a promise broken.
+mutate("Options.lua",
+       "or \"Show my settings as text\" end,",
+       "or \"Copy my settings\" end,",
+       "a button that says it copies",
+       expect="copies nothing",
        script="runscenarios.py")

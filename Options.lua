@@ -1017,14 +1017,16 @@ local function BuildOptions()
 						fontSize = "medium",
 						name = "Copy these settings as one line of text, to keep or to give to"
 							.. " somebody, or paste one you were given. Whether Manners is on,"
-							.. " the click log and the minimap button stay as they are, and a"
-							.. " pasted line never switches on speaking when you buff.",
+							.. " whether the prompt is locked, where it sits, the click log and"
+							.. " the minimap button stay as they are. A pasted line never"
+							.. " switches on speaking when you buff, and while you have it on,"
+							.. " what you say and where stays yours too.",
 					},
 					shareCopy = {
 						type = "execute",
-						name = function() return shareOpen and "Hide the text" or "Copy my settings" end,
-						desc = "Shows these settings as one line of text, ready to select and copy."
-							.. " |cffffd100/manners export|r opens it too.",
+						name = function() return shareOpen and "Hide the text" or "Show my settings as text" end,
+						desc = "Shows these settings as one line of text in a box below, ready to"
+							.. " select and copy. |cffffd100/manners export|r opens it too.",
 						order = 42,
 						func = function()
 							shareOpen = not shareOpen
@@ -1033,7 +1035,12 @@ local function BuildOptions()
 					},
 					shareText = {
 						type = "input",
-						name = "",
+						-- On the page rather than in the button's tooltip: the game
+						-- has no way to put text on the clipboard for the player,
+						-- and somebody who pasted after clicking a button that said
+						-- "Copy" pasted whatever they had copied before.
+						name = "Click in the box, press Ctrl+A to select it all, then Ctrl+C to copy"
+							.. " (Cmd on a Mac).",
 						order = 43,
 						multiline = 3,
 						width = "full",
