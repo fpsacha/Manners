@@ -73,6 +73,50 @@ Every player name in the output is invented. Real names from a live session
 ended up in an earlier draft; they belong to real people and were scrubbed.
 Keep it that way.
 
+## render_prompt.py
+
+Draws the prompt the way the addon builds it, with no game running. It loads
+the addon on the mock client from `tests/`, puts the prompt into each of the
+states listed in `render_prompt.lua` (somebody who buffed you, a refused buff,
+held in combat, each look and accent mode, two scales, and more), and draws
+what the frames were told: anchors, sizes, colours, gradients, blend modes,
+masks, text, and where each animation is in its run. The frame tree comes from
+`tests/frametree.lua`, which records every frame, texture, font string,
+animation group and cooldown the addon makes.
+
+```
+python tools/render_prompt.py --out renders          # every state, plus sheet.png
+python tools/render_prompt.py --states owed,refused  # just those
+python tools/render_prompt.py --addon ../old --out before   # an older build
+python tools/render_prompt.py --compare before after compare.png
+```
+
+`--addon` draws another checkout of the addon with today's renderer, which is
+the fair way to put a before and an after side by side. Needs lupa, Pillow and
+numpy.
+
+It is not pixel-true. The font is Candara standing in for Friz Quadrata, spell
+icons are drawn tiles with the spell's initials, and Blizzard art files are
+flat tiles with a note on stdout. It is faithful about layout, colour, text,
+size and what is shown or hidden, because all of those are read from the addon
+rather than restated here. Where a region is anchored by an edge and a centre
+on the same axis, it is drawn from the edge and a note says so: which of the
+two the client uses is not settled here.
+
+## make-glow.py
+
+`Textures/Glow.tga` and `Textures/GlowRound.tga`, the soft glows the prompt
+draws round its spell icon. Like `Manners64.tga` they ship in the zip. Needs
+Pillow; deterministic.
+
+`Glow.tga` is light falling off in every direction from its centre, and
+`Prompt.lua` cuts it into eight pieces round a square icon: the quarters are
+the corners and a line through the middle is each side, so every join has the
+same brightness on both sides of it. `GlowRound.tga` is a ring for the rounded
+icon; `RING_AT` in the script and `GLOW_RING_AT` in `Prompt.lua` say where its
+rim is and have to agree. Both are white with the shape in the alpha, and the
+prompt colours them.
+
 ## make-icon.py
 
 `icon-512.png` (the CurseForge avatar), `icon-64.png`, and `icon-check.png`,

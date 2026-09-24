@@ -72,6 +72,19 @@ local fail, load, drive = H.fail, H.load, H.drive
 Their mutations go in `tests/mutations/<topic>.py`, which `selftest.py` runs
 with `mutate()` in scope.
 
+### `frametree.lua` — what the frames were told
+
+The mock's frames remember only what a scenario has needed to read back. A
+scenario about how the prompt looks or moves can load this first and call
+`FrameTree.install()` before loading the addon: every frame, texture, font
+string, animation group and cooldown is then recorded with its parent, its
+anchors and every Play and Stop, while the mock underneath still sees every
+call (so a protected call in combat is still written down).
+`FrameTree.playing()` says what is animating, `FrameTree.settle()` finishes the
+one-shot animations the clock has reached, and `FrameTree.uninstall()` puts the
+mock's own `CreateFrame` back. `tests/scenarios/look.lua` uses it, and so does
+`tools/render_prompt.py`.
+
 ## `validate.py` — structure
 
 Lua syntax for every file including bundled libraries, XML well-formedness,
