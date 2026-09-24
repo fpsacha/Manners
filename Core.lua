@@ -2215,6 +2215,18 @@ function ns.SettleFavour(name)
 	SaveDebts()
 end
 
+-- Tell the favour ledger (Ledger.lua) what just happened to a favour. One way
+-- only: nothing in this file reads the ledger back, so it can never change who
+-- is offered what. Guarded because it is a record of the decision rather than
+-- part of it, and a ledger that throws must not take a settle or a sweep with
+-- it. Absent entirely is a toc that lost the file, and costs nothing but the
+-- record.
+local function TellLedger(event, ...)
+	local ledger = ns.Ledger
+	local fn = ledger and ledger[event]
+	if type(fn) == "function" then ns.Guard("ledger " .. event, fn, ...) end
+end
+
 local PRIORITY = { target = 0, owed = 1, group = 2, nearby = 3 }
 
 -- fn(unit, pointed). `pointed` is the second argument because one caller has to
@@ -2467,6 +2479,10 @@ function ns.BuildQueue()
 			class = plain(select(2, UnitClass(unit))),
 			buff = buff,
 			reason = reason,
+			-- Whether they are in the group, which `reason` stops saying once
+			-- they are owed or targeted. The favour ledger files a buff given
+			-- unprompted under the group or under strangers by it.
+			inGroup = not not inGroup,
 			priority = PRIORITY[reason],
 			ranged = ranged,
 			known = has,
@@ -2813,6 +2829,8 @@ local function NoteFavour(seen)
 	-- only buff is intellect. Recording that was a pulsing prompt the queue
 	-- could never fill and a line promising it would.
 	if not ns.CouldOffer(hasMana, true) then
+		-- A favour all the same, and let go in the moment it arrived.
+		TellLedger("Received", seen, true)
 		if db.verbose then
 			addon:Print(("|cff80ff80%s buffed you|r -- nothing you cast is any use to them"
 				.. " (\"Skip players the buff does nothing for\" is on)"):format(seen.name))
@@ -2822,6 +2840,7 @@ local function NoteFavour(seen)
 
 	owed[seen.name] = { expires = GetTime() + db.timing.reciprocateWindow, at = GetTime(),
 		guid = seen.guid, class = seen.class }
+	TellLedger("Received", seen)
 	if db.verbose then
 		-- A warrior's shout reaches the party and nobody else, so a stranger who
 		-- buffed one is kept -- they may yet join the group -- but is not on the
@@ -3978,7 +3997,12 @@ local function SettlePendingClick(landedOn, spellId, castGUID)
 		ns.lastGave[pending.name] = pending.buffKey
 	end
 
-	if not unheard then ns.SettleFavour(pending.name) end
+	if not unheard then
+		ns.SettleFavour(pending.name)
+		-- A shout nobody measured them hearing is not recorded either way:
+		-- the debt stands, and so does the ledger's row for it.
+		TellLedger("Settled", pending.name, wasOwed, pending, spellId)
+	end
 	-- The client sent the cast; the server has not answered yet. Keep the
 	-- record so a refusal arriving a moment from now has something to be about.
 	RememberSettled({ name = pending.name, buffKey = pending.buffKey,
@@ -4045,6 +4069,9 @@ local function UnsettleLateRefusal(castGUID)
 		owed[settled.name] = settled.owed
 		SaveDebts()
 	end
+	-- The ledger wrote the settle down too, stamped with the same clock as this
+	-- record, and takes it back the same way.
+	TellLedger("Refused", settled.name, settled.at)
 	-- And the blocks and the rotation pointer the click wrote on the assumption
 	-- it landed, which the settle deliberately let stand.
 	RewindClick(settled)
@@ -5166,6 +5193,9 @@ function addon:OnInitialize()
 	-- PLAYER_ENTERING_WORLD: that fires on every zone and instance door, and
 	-- would resurrect debts this session had already settled.
 	ns.Guard("RestoreDebts", RestoreDebts)
+	-- After the debts are back, so a favour the ledger still lists as owed can
+	-- be checked against whether its debt survived the logout.
+	TellLedger("Load")
 	ns.Guard("SetupOptions", ns.SetupOptions)
 	ns.Guard("Prompt:Create", function() ns.Prompt:Create() end)
 
@@ -5281,7 +5311,10 @@ function addon:TickBody()
 	-- /cast with nothing to aim at, and the game says nothing to anybody.
 	SweepPendingClick(now)
 	for name, entry in pairs(owed) do
-		if LiveExpiry(entry) <= now then owed[name] = nil end
+		if LiveExpiry(entry) <= now then
+			owed[name] = nil
+			TellLedger("LetGo", name)
+		end
 	end
 	for key, expiry in pairs(tried) do
 		if expiry <= now then tried[key] = nil end
@@ -5319,6 +5352,7 @@ end
 ns.COMMANDS = {
 	{ word = "options", help = "open the options window" },
 	{ word = "welcome", help = "what this addon does, and the one thing it needs from you" },
+	{ word = "log", help = "the favour ledger: who buffed you, what you gave back, and who you buffed" },
 	{ word = "unlock", help = "unlock the prompt so it can be dragged" },
 	{ word = "lock", help = "lock it again -- an unlocked prompt never casts" },
 	{ word = "test", help = "preview the prompt with a mock candidate" },
@@ -5467,6 +5501,14 @@ function addon:HandleSlash(rawInput)
 		-- the whole reason the command exists. Somebody will want to find the
 		-- prompt again after moving it, or show a guildmate what it looks like.
 		ns.Guard("welcome", ns.Welcome, true)
+	elseif input == "log" or input == "ledger" then
+		-- Plain UI with nothing secure in it, so unlike the prompt it opens in
+		-- a fight as readily as out of one.
+		if ns.Ledger then
+			ns.Guard("ledger window", ns.Ledger.Toggle)
+		else
+			self:Print("the favour ledger did not load -- check the toc's file list.")
+		end
 	elseif input == "unlock" then
 		db.prompt.locked = false
 		ns.Prompt:ApplyStyle()

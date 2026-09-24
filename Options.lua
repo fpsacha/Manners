@@ -934,6 +934,31 @@ local function BuildOptions()
 						get = function() return ns.db.profile.verbose end,
 						set = function(_, v) ns.db.profile.verbose = v end,
 					},
+
+					-- What the addon has done, rather than a setting. Here
+					-- because General is the page people land on, and the
+					-- window is otherwise only a slash command away.
+					ledgerHeader = {
+						type = "header", name = "Favour ledger", order = 40,
+						hidden = function() return not ns.Ledger end,
+					},
+					ledgerSummary = {
+						type = "description",
+						order = 41,
+						fontSize = "medium",
+						hidden = function() return not ns.Ledger end,
+						name = function() return ns.Ledger and ns.Ledger.OptionsText() or "" end,
+					},
+					ledgerOpen = {
+						type = "execute",
+						name = "Open the ledger",
+						desc = "A window listing who buffed you and with what, whether you returned"
+							.. " it, and who you buffed without being asked. Also /manners log, or"
+							.. " shift-click the minimap button.",
+						order = 42,
+						hidden = function() return not ns.Ledger end,
+						func = function() ns.Ledger.Show() end,
+					},
 				},
 			},
 
@@ -2156,7 +2181,13 @@ function ns.SetupOptions()
 			text = BrokerText(),
 			icon = ICON,
 			OnClick = function(_, mouseButton)
-				if mouseButton == "RightButton" then
+				-- Shift with the left button opens the ledger. The plain click
+				-- stays the options window, which is what everybody who has
+				-- used this button before expects of it.
+				if mouseButton ~= "RightButton" and ns.Ledger
+					and IsShiftKeyDown and IsShiftKeyDown() then
+					ns.Guard("ledger window", ns.Ledger.Toggle)
+				elseif mouseButton == "RightButton" then
 					ns.db.profile.enabled = not ns.db.profile.enabled
 					ns.Prompt:Refresh()
 					ns.addon:Print(ns.db.profile.enabled and "enabled." or "disabled.")
@@ -2203,7 +2234,14 @@ function ns.SetupOptions()
 				else
 					tooltip:AddLine("Watching for people to buff.", 0.4, 0.9, 0.4)
 				end
+				-- Today's favours and the lifetime counts, from the ledger.
+				-- Guarded like the rest of what this tooltip borrows: a count
+				-- that throws must not take the lines above with it.
+				if ns.Ledger then ns.Guard("ledger tooltip", ns.Ledger.AddTooltip, tooltip) end
 				tooltip:AddLine("Left click: options", 0.8, 0.8, 0.8)
+				if ns.Ledger then
+					tooltip:AddLine("Shift-click: favour ledger", 0.8, 0.8, 0.8)
+				end
 				-- What the click will do, not what the button is for. "Enable or
 				-- disable" is true of every press and tells you nothing about
 				-- the one you are about to make.

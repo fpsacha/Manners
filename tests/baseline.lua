@@ -21,7 +21,7 @@ dofile(dir .. "/tests/mockapi.lua")
 
 local function load()
 	local ns = {}
-	for _, file in ipairs({ "Flavour.lua", "Buffs.lua", "Core.lua", "Prompt.lua", "Options.lua" }) do
+	for _, file in ipairs({ "Flavour.lua", "Buffs.lua", "Core.lua", "Ledger.lua", "Prompt.lua", "Options.lua" }) do
 		local chunk, err = loadfile(dir .. "/" .. file)
 		if not chunk then return nil, "load " .. file .. ": " .. tostring(err) end
 		local ok, runErr = pcall(chunk, "Manners", ns)

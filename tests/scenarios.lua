@@ -14,7 +14,7 @@ dofile(dir .. "/tests/mockapi.lua")
 
 local function load(scenario)
 	local ns = {}
-	for _, file in ipairs({ "Flavour.lua", "Buffs.lua", "Core.lua", "Prompt.lua", "Options.lua" }) do
+	for _, file in ipairs({ "Flavour.lua", "Buffs.lua", "Core.lua", "Ledger.lua", "Prompt.lua", "Options.lua" }) do
 		local chunk, err = loadfile(dir .. "/" .. file)
 		if not chunk then
 			fail(scenario, "load " .. file .. ": " .. tostring(err))
@@ -8583,7 +8583,7 @@ do
 	local scenario = "a toc that lost Flavour.lua from its file list"
 	local short = {}
 	local loaded = true
-	for _, file in ipairs({ "Buffs.lua", "Core.lua", "Prompt.lua", "Options.lua" }) do
+	for _, file in ipairs({ "Buffs.lua", "Core.lua", "Ledger.lua", "Prompt.lua", "Options.lua" }) do
 		local chunk, err = loadfile(dir .. "/" .. file)
 		if not chunk then
 			fail(scenario, "load " .. file .. ": " .. tostring(err))

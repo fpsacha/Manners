@@ -264,7 +264,7 @@ BackdropTemplateMixin = {}
 local ADDON, ns = "Manners", {}
 local dir = ...
 
-for _, file in ipairs({ "Flavour.lua", "Buffs.lua", "Core.lua", "Prompt.lua", "Options.lua" }) do
+for _, file in ipairs({ "Flavour.lua", "Buffs.lua", "Core.lua", "Ledger.lua", "Prompt.lua", "Options.lua" }) do
   local chunk, err = loadfile(dir .. "/" .. file)
   if not chunk then
     note("LOAD " .. file .. ": " .. tostring(err))

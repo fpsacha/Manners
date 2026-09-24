@@ -20,5 +20,6 @@ embeds.xml
 Flavour.lua
 Buffs.lua
 Core.lua
+Ledger.lua
 Prompt.lua
 Options.lua

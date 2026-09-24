@@ -401,7 +401,7 @@ local frameMethods = {
 	"SetBackdropBorderColor", "UnregisterEvent", "SetFrameStrata",
 	"SetHighlightTexture", "EnableMouse", "StartMoving", "StopMovingOrSizing",
 	"SetGradient", "AddMaskTexture", "SetAtlas", "SetUserPlaced",
-	"RegisterForClicks", "SetGradientAlpha",
+	"RegisterForClicks", "SetGradientAlpha", "EnableMouseWheel",
 }
 
 local KNOWN_EVENTS = {}
