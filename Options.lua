@@ -48,6 +48,11 @@ end
 -- changes the answer. Off is the state worth carrying: the prompt simply never
 -- appears, and from the outside that is exactly what a broken addon looks like.
 local function BrokerText()
+	-- A snooze is the other state in which no prompt appears on purpose, and
+	-- the end of it is the part worth reading off a bar. Only while on: off
+	-- outranks it, since a snooze ending brings nothing back while off.
+	local ends = Enabled() and ns.SnoozeEndsAt and ns.SnoozeEndsAt()
+	if ends then return ("Manners |cffffd100snoozed until %s|r"):format(ends) end
 	return Enabled() and "Manners" or "Manners |cffff8080off|r"
 end
 
@@ -419,6 +424,8 @@ end
 -- of the profile, and one that has no business surviving the window being shut.
 -- Put back in OpenOptions and when the Settings page hides; see there.
 local reportOpen = false
+-- And the box holding these settings as text, for the same reasons.
+local shareOpen = false
 
 -- Everything somebody would otherwise be asked for twice, in one block that can
 -- be selected and pasted. No colour codes: this is written to be quoted
@@ -1014,6 +1021,71 @@ local function BuildOptions()
 						func = function() ns.CreateClickMacro() end,
 					},
 
+					-- The same three lengths as the minimap menu, and through the
+					-- same functions as /manners snooze, so all three say the
+					-- same thing in chat.
+					snoozeHeader = {
+						type = "header", name = "Snooze", order = 15,
+						hidden = function() return not HasClassBuffs() end,
+					},
+					snoozeNote = {
+						type = "description",
+						order = 15.5,
+						fontSize = "medium",
+						hidden = function() return not HasClassBuffs() end,
+						name = function()
+							local ends = ns.SnoozeEndsAt()
+							-- The page is repainted at both ends of a fight, so this
+							-- is only shown while it is true.
+							if ends and InCombatLockdown() then
+								-- Worded for both ways into this: a snooze started in the
+								-- fight, over a panel that is still up, and one started
+								-- before it, over a panel that is already gone.
+								return ("|cffffd100Snoozed until %s.|r In a fight the prompt stays"
+									.. " as the fight found it, and follows the snooze once the"
+									.. " fight ends."):format(ends)
+							elseif ends then
+								-- Not "offered when it ends": a favour is remembered for
+								-- as long as the When tab says, which is usually shorter
+								-- than a snooze.
+								return ("|cffffd100Snoozed until %s.|r No prompt until then,"
+									.. " though who buffs you is still noticed."):format(ends)
+							end
+							return "Keep the prompt out of the way for a while without switching"
+								.. " Manners off. It comes back by itself when the time is up, and"
+								.. " a /reload ends a snooze as well. One started in a fight takes"
+								.. " effect when the fight ends."
+						end,
+					},
+					snooze5 = {
+						type = "execute",
+						name = function() return ns.MinutesText(ns.SNOOZE_CHOICES[1]) end,
+						order = 16,
+						hidden = function() return not HasClassBuffs() end,
+						func = function() ns.StartSnooze(ns.SNOOZE_CHOICES[1]) end,
+					},
+					snooze15 = {
+						type = "execute",
+						name = function() return ns.MinutesText(ns.SNOOZE_CHOICES[2]) end,
+						order = 17,
+						hidden = function() return not HasClassBuffs() end,
+						func = function() ns.StartSnooze(ns.SNOOZE_CHOICES[2]) end,
+					},
+					snooze30 = {
+						type = "execute",
+						name = function() return ns.MinutesText(ns.SNOOZE_CHOICES[3]) end,
+						order = 18,
+						hidden = function() return not HasClassBuffs() end,
+						func = function() ns.StartSnooze(ns.SNOOZE_CHOICES[3]) end,
+					},
+					snoozeStop = {
+						type = "execute",
+						name = "Stop snoozing",
+						order = 19,
+						hidden = function() return not ns.SnoozeLeft() end,
+						func = function() ns.StopSnooze() end,
+					},
+
 					miscHeader = {
 						type = "header", name = "Minimap", order = 20,
 						hidden = function() return not HasMinimapButton() end,
@@ -1072,6 +1144,72 @@ local function BuildOptions()
 						width = "full",
 						get = function() return ns.db.profile.verbose end,
 						set = function(_, v) ns.db.profile.verbose = v end,
+					},
+
+					-- Two boxes rather than one that does both: a box that shows
+					-- your settings and also applies whatever is typed into it
+					-- is one stray keypress from replacing them.
+					shareHeader = { type = "header", name = "Share settings", order = 40 },
+					shareNote = {
+						type = "description",
+						order = 41,
+						fontSize = "medium",
+						name = "Copy these settings as one line of text, to keep or to give to"
+							.. " somebody, or paste one you were given. Whether Manners is on,"
+							.. " whether the prompt is locked, where it sits, the click log and"
+							.. " the minimap button stay as they are. A pasted line never"
+							.. " switches on speaking when you buff, and while you have it on,"
+							.. " what you say and where stays yours too.",
+					},
+					shareCopy = {
+						type = "execute",
+						name = function() return shareOpen and "Hide the text" or "Show my settings as text" end,
+						desc = "Shows these settings as one line of text in a box below, ready to"
+							.. " select and copy. |cffffd100/manners export|r opens it too.",
+						order = 42,
+						func = function()
+							shareOpen = not shareOpen
+							ns.RefreshOptionsDisplay()
+						end,
+					},
+					shareText = {
+						type = "input",
+						-- On the page rather than in the button's tooltip: the game
+						-- has no way to put text on the clipboard for the player,
+						-- and somebody who pasted after clicking a button that said
+						-- "Copy" pasted whatever they had copied before.
+						name = "Click in the box, press Ctrl+A to select it all, then Ctrl+C to copy"
+							.. " (Cmd on a Mac).",
+						order = 43,
+						multiline = 3,
+						width = "full",
+						hidden = function() return not shareOpen end,
+						get = function() return ns.ExportSettings() or "" end,
+						-- Read-only the way the bug report is: anything typed in
+						-- is discarded, and the box repaints from the profile.
+						set = function() end,
+					},
+					sharePaste = {
+						type = "input",
+						name = "Paste settings to use them",
+						desc = "Replaces the settings on this profile with the ones in the text."
+							.. " |cffffd100/manners import undo|r puts yours back.",
+						order = 44,
+						multiline = 3,
+						width = "full",
+						get = function() return "" end,
+						-- Refused here with the reason, before anything changes.
+						-- The dialog shows the sentence and keeps what was pasted,
+						-- so it can be fixed rather than pasted again.
+						validate = function(_, value)
+							local parsed, err = ns.ParseSettings(value)
+							if not parsed then return err end
+							return true
+						end,
+						set = function(_, value)
+							local _, message = ns.ImportSettings(value)
+							ns.addon:Print(message)
+						end,
 					},
 				},
 			},
@@ -1232,6 +1370,28 @@ local function BuildOptions()
 						step = 0.1,
 						get = tGet,
 						set = tSet,
+					},
+
+					-- Only the mount has a switch. Dead, a taxi and a vehicle
+					-- are places nothing can be cast from, and the queue has
+					-- always been empty there; a mount is a place the cast
+					-- works and costs you the mount, which is a trade some
+					-- players want to make.
+					wayHeader = { type = "header", name = "Out of the way", order = 20 },
+					hideMounted = {
+						type = "toggle",
+						name = "Not while mounted",
+						desc = "Keep the prompt away while you are on a mount, since casting would"
+							.. " take you off it. It comes back when you get off, if there is"
+							.. " somebody to buff.\n\n"
+							.. "|cff888888It already stays away while you are dead, on a flight"
+							.. " path or in a vehicle, where nothing can be cast. In a fight the"
+							.. " prompt stays as the fight found it, and follows this once the"
+							.. " fight ends.|r",
+						order = 21,
+						width = "full",
+						get = fGet,
+						set = fSet,
 					},
 				},
 			},
@@ -2269,6 +2429,59 @@ end
 -- only the ID is something Settings.OpenToCategory can find the page by.
 local blizCategory, blizCategoryID
 
+-- The minimap button's right-click menu.
+--
+-- A right-click used to switch the addon off and on and do nothing else, which
+-- spent the one free click on the thing least often wanted and left a snooze,
+-- the preview and the options three different commands away. The switch is
+-- the first line here, so it is still one click and a choice.
+--
+-- MenuUtil is the client's own context menu, and the addons known to work on
+-- this client open theirs the same way. Asked for at the moment of the click:
+-- a client without it keeps the old right-click, the switch on its own.
+local function HasLauncherMenu()
+	return type(MenuUtil) == "table" and type(MenuUtil.CreateContextMenu) == "function"
+end
+
+-- Every entry goes through the same function its slash command does, so the
+-- menu cannot describe a state the commands disagree with, and says the same
+-- line in chat.
+local function FillLauncherMenu(root)
+	if root.CreateTitle then root:CreateTitle("Manners") end
+	root:CreateButton(Enabled() and "Switch Manners off" or "Switch Manners on", function()
+		ns.addon:HandleSlash(Enabled() and "off" or "on")
+	end)
+	local ends = ns.SnoozeEndsAt()
+	if ends then
+		root:CreateButton(("Stop snoozing (snoozed until %s)"):format(ends), function()
+			ns.addon:HandleSlash("snooze off")
+		end)
+	end
+	local snooze = root:CreateButton(ends and "Snooze for a different time" or "Snooze the prompt")
+	for _, minutes in ipairs(ns.SNOOZE_CHOICES) do
+		snooze:CreateButton(("For %s"):format(ns.MinutesText(minutes)), function()
+			ns.addon:HandleSlash(("snooze %d"):format(minutes))
+		end)
+	end
+	root:CreateButton(ns.Prompt:InTest() and "End the preview" or "Preview the prompt", function()
+		ns.addon:HandleSlash("test")
+	end)
+	if root.CreateDivider then root:CreateDivider() end
+	root:CreateButton("Options", function() ns.OpenOptions() end)
+end
+
+-- Opens the menu and answers whether there was one to open. A menu that
+-- throws while being built is caught and named like any other failure, and
+-- still counts as opened: falling back to the switch then would turn the
+-- addon off in answer to a click that asked for a menu.
+local function OpenLauncherMenu(owner)
+	if not HasLauncherMenu() then return false end
+	ns.Guard("minimap menu", MenuUtil.CreateContextMenu, owner, function(_, root)
+		FillLauncherMenu(root)
+	end)
+	return true
+end
+
 function ns.SetupOptions()
 	local options = BuildOptions()
 	options.args.profiles = AceDBOptions:GetOptionsTable(ns.db)
@@ -2287,6 +2500,7 @@ function ns.SetupOptions()
 	-- exactly when the page is open.
 	if blizCategory and blizCategory.HookScript then
 		blizCategory:HookScript("OnHide", function() reportOpen = false end)
+		blizCategory:HookScript("OnHide", function() shareOpen = false end)
 	end
 
 	if LDB then
@@ -2294,7 +2508,10 @@ function ns.SetupOptions()
 			type = "launcher",
 			text = BrokerText(),
 			icon = ICON,
-			OnClick = function(_, mouseButton)
+			OnClick = function(owner, mouseButton)
+				-- The menu where the client has one; the switch on its own
+				-- where it does not, which is what a right-click always did.
+				if mouseButton == "RightButton" and OpenLauncherMenu(owner) then return end
 				if mouseButton == "RightButton" then
 					ns.db.profile.enabled = not ns.db.profile.enabled
 					ns.Prompt:Refresh()
@@ -2325,8 +2542,16 @@ function ns.SetupOptions()
 				-- with nothing to give, a class the buff data has no table for,
 				-- nothing learned yet, and a setting in the way.
 				local class = ns.caps and ns.caps.class
+				local snoozeLeft = ns.SnoozeLeft and ns.SnoozeLeft()
 				if not Enabled() then
 					tooltip:AddLine("Switched off -- no prompt will appear.", 1, 0.5, 0.5)
+				elseif snoozeLeft then
+					-- The clock time and the minutes both: the time is what the
+					-- player compares with a raid timer, and the minutes are what
+					-- they asked for.
+					tooltip:AddLine(("Snoozed until %s, %s from now -- no prompt until then.")
+						:format(ns.SnoozeEndsAt(), ns.MinutesText(math.ceil(snoozeLeft / 60))),
+						1, 0.82, 0, true)
 				elseif class and ns.CLASSES_WITHOUT_BUFFS and ns.CLASSES_WITHOUT_BUFFS[class] then
 					tooltip:AddLine("Nothing to do: " .. ns.NO_CLASS_BUFFS, 1, 0.82, 0)
 				elseif not HasClassBuffs() then
@@ -2346,8 +2571,13 @@ function ns.SetupOptions()
 				-- What the click will do, not what the button is for. "Enable or
 				-- disable" is true of every press and tells you nothing about
 				-- the one you are about to make.
-				tooltip:AddLine(Enabled() and "Right click: switch it off"
-					or "Right click: switch it on", 0.8, 0.8, 0.8)
+				if HasLauncherMenu() then
+					tooltip:AddLine(Enabled() and "Right click: switch it off, snooze or preview"
+						or "Right click: switch it on, snooze or preview", 0.8, 0.8, 0.8)
+				else
+					tooltip:AddLine(Enabled() and "Right click: switch it off"
+						or "Right click: switch it on", 0.8, 0.8, 0.8)
+				end
 			end,
 		})
 		if LDBIcon and broker then
@@ -2443,6 +2673,7 @@ function ns.OpenOptions()
 	-- than an opening, and shutting the box under somebody copying it would be
 	-- the surprise.
 	if not ns.OptionsOpen() then reportOpen = false end
+	if not ns.OptionsOpen() then shareOpen = false end
 
 	-- The standalone dialog, first and by default.
 	--
@@ -2470,4 +2701,19 @@ function ns.OpenOptions()
 	if Settings and Settings.OpenToCategory and blizCategoryID ~= nil then
 		pcall(Settings.OpenToCategory, blizCategoryID)
 	end
+end
+
+-- Open the options on the General tab, where the share boxes are, with the
+-- box of this profile's settings showing when that is what was asked for.
+-- For /manners export and a bare /manners import. Answers whether there is a
+-- page to send them to at all; SelectGroup is asked for because a library
+-- without it still opens the window, just not on this tab.
+function ns.ShowShareBox(which)
+	ns.OpenOptions()
+	if which == "export" then shareOpen = true end
+	if AceConfigDialog.SelectGroup then
+		pcall(AceConfigDialog.SelectGroup, AceConfigDialog, ADDON, "general")
+	end
+	ns.RefreshOptionsDisplay()
+	return true
 end

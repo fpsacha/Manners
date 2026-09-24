@@ -685,6 +685,12 @@ function Prompt:Create()
 			if db and not db.enabled then
 				ns.addon:Print("Manners is |cffff8080switched off|r -- |cffffd100/manners on|r"
 					.. " to start again.")
+			elseif ns.SnoozeLeft(now) then
+				ns.addon:Print(("Manners is snoozed until %s -- |cffffd100/manners snooze off|r"
+					.. " brings the prompt back now."):format(ns.SnoozeEndsAt()))
+			elseif ns.HiddenWhileMounted() then
+				ns.addon:Print("the prompt stays away while you are mounted -- get off, or switch"
+					.. " off |cffffd100Not while mounted|r on the When tab.")
 			elseif not ns.caps.anyKnown then
 				local class = ns.caps.class
 				if class and ns.CLASSES_WITHOUT_BUFFS and ns.CLASSES_WITHOUT_BUFFS[class] then
@@ -2139,8 +2145,11 @@ function Prompt:ToggleTest()
 	-- test is Refresh's own, word for word, so the two cannot disagree about
 	-- whether a preview would survive its first pass.
 	local db = ns.db and ns.db.profile
+	-- Except while snoozed: nobody real is on a snoozed prompt, so a preview
+	-- there stands in front of nobody. Refresh makes the same exception.
 	if db and db.enabled and db.prompt.locked and not InCombatLockdown()
-		and not (ns.OptionsOpen and ns.OptionsOpen()) and #ns.BuildQueue() > 0 then
+		and not ns.SnoozeLeft() and not (ns.OptionsOpen and ns.OptionsOpen())
+		and #ns.BuildQueue() > 0 then
 		ns.addon:Print("somebody real is on the prompt, so there is nothing to preview"
 			.. " -- open |cffffd100/manners|r to style it; a preview holds while that"
 			.. " window is open.")
@@ -2457,7 +2466,8 @@ function Prompt:Refresh()
 			testExpiry = now + TEST_SECONDS
 		elseif testExpiry and now > testExpiry then
 			self:ExitTest("timed out")
-		elseif db.enabled and p.locked and not InCombatLockdown() and #ns.BuildQueue() > 0 then
+		elseif db.enabled and p.locked and not InCombatLockdown() and not ns.SnoozeLeft(now)
+			and #ns.BuildQueue() > 0 then
 			-- Somebody real is waiting. Never let a mock-up stand in front of
 			-- an actual person who just buffed you.
 			self:ExitTest("somebody real turned up")
@@ -2631,6 +2641,25 @@ function Prompt:Refresh()
 				self:PaintHeldInert("held")
 			end
 		end
+		return
+	end
+
+	-- Snoozed. Below the combat branch and not beside /manners off, which is
+	-- what makes a snooze started in a fight wait for the end of it: in a
+	-- fight the panel cannot be taken down, and one that stays up is left
+	-- exactly as the fight found it -- its frozen macro still casts on a
+	-- press, so blanking it would only hide that. The first pass after the
+	-- fight arrives here and takes it down. The off branch above can paint
+	-- over a frozen panel because /manners off says it has stopped offering
+	-- anybody; a snooze says only that the prompt should be out of the way.
+	if ns.SnoozeLeft(now) then
+		self:ApplyTarget(nil)
+		button:Hide()
+		outcomePainted = nil
+		self:StopAttention()
+		HideQueue()
+		lastTop = nil
+		ClearHold()
 		return
 	end
 

@@ -220,8 +220,12 @@ favour.
 /manners test      preview, for styling without waiting for a real entry
 /manners never     who is never offered anything; /manners never <name> adds
 /manners allow <name>  takes somebody off that list
+/manners snooze    hide the prompt for 15 minutes (or /manners snooze 5, snooze 1h, snooze off)
+/manners export    your settings as one line of text, to keep or to share
+/manners import    use a line somebody exported (/manners import undo puts yours back)
 /manners debug     what your class and this build allow
 /manners errors    the last few things that broke, if any did
+/manners help      every command, grouped
 ```
 
 The first login on a character says all of that by itself, once, and puts the
@@ -230,7 +234,9 @@ than per profile: every character starts on the one shared profile, so a flag
 there would greet whoever logged in first and nobody else — and what it asks
 for (a macro on this character's bars, or a key bound) is per character too.
 
-`/manners` with anything it does not recognise lists the rest.
+`/manners` with a word it does not recognise suggests the closest command, or
+lists them all. Right-click the minimap button for a menu: switch on or off,
+snooze, preview.
 
 Put it on a bar with a macro containing `/click MannersPrompt LeftButton 1`
 (`/manners macro` makes one), or keybind under

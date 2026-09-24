@@ -234,6 +234,12 @@ local defaults = {
 			whenBuffed = "skip", -- skip | refresh | always
 			refreshUnder = 5, -- minutes left before a top-up is offered
 			minLevel = 1,
+			-- Off by default, because the prompt has always stayed up on a
+			-- mount and a press there takes you off it -- which somebody who
+			-- buffs from the saddle between pulls may well want. Dead, a
+			-- taxi and a vehicle need no switch: nothing can be cast in any of
+			-- them, so BuildQueue offers nobody there whatever this says.
+			hideMounted = false,
 		},
 
 		timing = {
@@ -2578,6 +2584,18 @@ local function IterateUnits(fn)
 	end
 end
 
+-- Whether "Not while mounted" is keeping the prompt away right now. One
+-- answer, asked by the queue, by a keypress on the empty prompt and by
+-- /manners debug, so the three cannot disagree about why nothing is offered.
+-- IsMounted is asked for rather than assumed, and a withheld answer counts as
+-- not mounted: the switch exists to hide the prompt, never to lose it.
+function ns.HiddenWhileMounted()
+	local db = addon.db and addon.db.profile
+	if not (db and db.filters and db.filters.hideMounted == true) then return false end
+	if type(IsMounted) ~= "function" then return false end
+	return plain(safecall(IsMounted)) == true
+end
+
 function ns.BuildQueue()
 	local db = addon.db and addon.db.profile
 	if not db or not caps.anyKnown then return {} end
@@ -2588,6 +2606,9 @@ function ns.BuildQueue()
 	if plain(UnitIsCharmed and UnitIsCharmed("player")) == true then return {} end
 	if UnitInVehicle and plain(UnitInVehicle("player")) == true then return {} end
 	if UnitOnTaxi and plain(UnitOnTaxi("player")) == true then return {} end
+	-- A mount is different: the cast works and takes you off it. So it is
+	-- the player's call, and only asked when they have made it.
+	if ns.HiddenWhileMounted() then return {} end
 
 	local now = GetTime()
 	local seen, queue = {}, {}
@@ -5382,6 +5403,7 @@ function ns.ClampSettings()
 	for _, tier in ipairs(PROXIMITY) do proximities[tier.key] = true end
 	oneOf(profile.filters, "proximity", proximities, "near")
 	boolean(profile.filters, "restoreTarget", true)
+	boolean(profile.filters, "hideMounted", false)
 	boolean(profile.sound, "owedOnly", true)
 	boolean(profile.timing, "keepDebts", true)
 	-- Only replaced when it is genuinely not a table: AceDB fills the section
@@ -5467,6 +5489,20 @@ function ns.ClampSettings()
 	end
 	oneOf(p, "point", VALID_ANCHORS, "CENTER")
 	oneOf(p, "relPoint", VALID_ANCHORS, "CENTER")
+	-- An offset no screen has. A drag cannot write one -- the button is
+	-- clamped to the screen -- but a hand-edited file can, and SetPoint takes
+	-- it without complaint: a prompt a million pixels away is one nobody can
+	-- see or drag back. Far wider than the widest screen at the smallest UI
+	-- scale, so no real position is ever touched. The whole position goes back
+	-- to the default, anchor and all, since half of one is nowhere in
+	-- particular.
+	local function offset(v)
+		return type(v) == "number" and v == v and v <= 10000 and v >= -10000
+	end
+	if not offset(p.x) or not offset(p.y) then
+		local d = ns.defaults.profile.prompt
+		p.point, p.relPoint, p.x, p.y = d.point, d.relPoint, d.x, d.y
+	end
 
 	-- Only a sound key that is not a string is repaired. One that is not
 	-- registered is left alone: a sound pack that sorts after this addon --
@@ -5662,6 +5698,9 @@ function addon:TickBody()
 	for key, expiry in pairs(tried) do
 		if expiry <= now then tried[key] = nil end
 	end
+	-- Before the repaint, so the scan that notices the snooze is over is the
+	-- one that puts the prompt back.
+	ns.EndSnoozeIfDue(now)
 	ns.Prompt:Refresh()
 end
 
@@ -5676,12 +5715,637 @@ function addon:RefreshConfig()
 	-- here would take StartScanner with it -- the one call that makes the
 	-- prompt appear at all.
 	ns.Guard("RefreshMinimapButton", ns.RefreshMinimapButton)
+	-- The undo an import keeps belongs to the profile it was made on. Reached
+	-- from a switch, copy or reset, it would put one profile's settings over
+	-- another's, so it goes; an import sets it again after calling this.
+	ns.ForgetImportUndo()
 	self:StartScanner()
 	-- A switch, copy or reset changes every setting at once, the on switch
 	-- among them, and the launcher's text is only ever put back from here. It
 	-- went on saying "Manners off" over a profile that was on, or the reverse,
 	-- until the next fight or /manners on.
 	ns.RepaintOptions()
+end
+
+---------------------------------------------------------------------------
+-- snooze
+--
+-- Keeping the prompt away for a while without switching the addon off. Off is
+-- a decision that lasts: it is saved in the profile, and every alt on the
+-- account wakes up to it. A snooze is for the next quarter of an hour -- a
+-- boss, a queue, a crowd that will not stop buffing you -- so it lives in this
+-- session only, and a /reload ends it. Nothing else stops while it runs:
+-- favours are still noticed, so somebody who buffs you in its last minute is
+-- still offered when it ends.
+--
+-- The prompt is a secure frame and cannot be taken down in a fight, so a
+-- snooze started in one takes effect when the fight ends -- the same rule
+-- "Stay quiet in combat" follows. Prompt:Refresh reads it below its combat
+-- branch, which is what makes that true rather than promised.
+---------------------------------------------------------------------------
+
+ns.SNOOZE_CHOICES = { 5, 15, 30 }
+ns.SNOOZE_DEFAULT = 15
+ns.SNOOZE_MAX = 240
+
+-- On the scan's clock rather than the wall's. GetTime is what every other
+-- expiry in this file is measured on, and the wall clock only comes in where
+-- the player reads the answer.
+local snoozeUntil
+
+-- Seconds of snooze left, or nil when there is none.
+function ns.SnoozeLeft(now)
+	if not snoozeUntil then return nil end
+	local left = snoozeUntil - (now or GetTime())
+	if left <= 0 then return nil end
+	return left
+end
+
+-- Whether the player's clock is a 12-hour one. The game clock by the minimap
+-- reads this setting, and a snooze "until 21:45" is a sum to do for somebody
+-- whose clock says 9:40 PM. A client that will not answer gets the 24-hour
+-- clock, which is at least never ambiguous.
+local function TwelveHourClock()
+	local get = _G.GetCVar
+	if type(get) ~= "function" then return false end
+	local ok, value = pcall(get, "timeMgrUseMilitaryTime")
+	return ok and plain(value) == "0"
+end
+
+-- When the snooze ends, on the clock on the player's screen.
+function ns.SnoozeEndsAt()
+	local left = ns.SnoozeLeft()
+	if not left then return nil end
+	local at = time() + math.floor(left + 0.5)
+	if TwelveHourClock() then
+		-- "9:45 PM", not "09:45 PM": the game clock drops the leading zero.
+		return (date("%I:%M %p", at):gsub("^0", ""))
+	end
+	return date("%H:%M", at)
+end
+
+-- "5 minutes", with the one case English spells differently spelt out as a
+-- whole string of its own rather than an "s" glued on.
+function ns.MinutesText(minutes)
+	if minutes == 1 then return "1 minute" end
+	return ("%d minutes"):format(minutes)
+end
+
+-- The one thing every route into a snooze says, so the slash command, the
+-- minimap menu and the options page cannot describe it three ways.
+local function SaySnoozeStarted(minutes)
+	local db = addon.db.profile
+	if not db.enabled then
+		-- Started anyway, and said so: the snooze outlives a /manners on.
+		addon:Print(("snoozed for %s, until %s -- though Manners is switched off, so no"
+			.. " prompt appears either way."):format(ns.MinutesText(minutes), ns.SnoozeEndsAt()))
+	elseif InCombatLockdown() then
+		-- Not "it goes when the fight ends": a panel the fight found empty is
+		-- already gone, and one it found up is what this sentence is for.
+		addon:Print(("snoozed for %s, until %s. In a fight the prompt stays as the fight"
+			.. " found it, and follows the snooze once this one ends."
+			.. " |cffffd100/manners snooze off|r ends it early."):format(
+			ns.MinutesText(minutes), ns.SnoozeEndsAt()))
+	else
+		addon:Print(("snoozed for %s -- no prompt until %s. |cffffd100/manners snooze off|r"
+			.. " ends it early."):format(ns.MinutesText(minutes), ns.SnoozeEndsAt()))
+	end
+end
+
+-- The line for a snooze that has ended, however it ended. What the prompt does
+-- next depends on the fight and the switch, not on the snooze, so the line
+-- says whichever is true now.
+local function SnoozeOverText()
+	local db = addon.db.profile
+	if not db.enabled then
+		return "the snooze is over, but Manners is switched off -- |cffffd100/manners on|r"
+			.. " to see the prompt again."
+	elseif InCombatLockdown() then
+		return "the snooze is over -- the prompt can appear again once this fight ends."
+	end
+	return "the snooze is over -- the prompt can appear again."
+end
+
+-- Units a length can be typed in, as minutes each. People write a length the
+-- way they would say it -- "15", "15m", "15 minutes", "1h", "2 hours" -- and a
+-- snooze that answers "15 minutes" with "snooze takes a number of
+-- minutes" is correcting them for using the unit it asked for.
+local SNOOZE_UNITS = {
+	[""] = 1, m = 1, min = 1, mins = 1, minute = 1, minutes = 1,
+	h = 60, hr = 60, hrs = 60, hour = 60, hours = 60,
+}
+
+-- Minutes from what was typed after /manners snooze, or nil when it is not a
+-- length. Not checked against the range: the caller says what the range is.
+function ns.SnoozeLength(text)
+	local number, unit = tostring(text or ""):lower():match("^%s*(%d*%.?%d+)%s*(%a*)%s*$")
+	local scale = unit and SNOOZE_UNITS[unit]
+	if not scale then return nil end
+	local minutes = tonumber(number)
+	if not minutes then return nil end
+	return math.floor(minutes * scale + 0.5)
+end
+
+-- Start a snooze of `minutes`, replacing any snooze already running rather
+-- than adding to it: "snooze 5" means five minutes from now.
+function ns.StartSnooze(minutes)
+	minutes = math.floor(tonumber(minutes) or ns.SNOOZE_DEFAULT)
+	minutes = math.max(1, math.min(ns.SNOOZE_MAX, minutes))
+	snoozeUntil = GetTime() + minutes * 60
+	-- Refresh decides for itself what it may do in a fight, and in one it
+	-- leaves the panel exactly as the fight found it.
+	ns.Guard("snooze", ns.Prompt.Refresh, ns.Prompt)
+	SaySnoozeStarted(minutes)
+	ns.RepaintOptions()
+	return minutes
+end
+
+-- End the snooze now. Says so when asked to; returns whether there was one.
+function ns.StopSnooze(quiet)
+	local was = ns.SnoozeLeft() ~= nil
+	snoozeUntil = nil
+	if was then
+		ns.Guard("snooze", ns.Prompt.Refresh, ns.Prompt)
+		ns.RepaintOptions()
+	end
+	if not quiet then
+		addon:Print(was and SnoozeOverText() or "not snoozed -- the prompt is free to appear.")
+	end
+	return was
+end
+
+-- From the scan: a snooze that has run out ends here, and says so only if the
+-- player asked to be told what the addon is doing.
+function ns.EndSnoozeIfDue(now)
+	if not snoozeUntil or snoozeUntil > (now or GetTime()) then return end
+	snoozeUntil = nil
+	if addon.db.profile.verbose then addon:Print(SnoozeOverText()) end
+	ns.RepaintOptions()
+end
+
+---------------------------------------------------------------------------
+-- sharing settings
+--
+-- /manners export hands over the current profile as one line of text, and
+-- /manners import (or the box on the General tab) reads one back. Only
+-- differences from the defaults are written, so an untouched profile is a
+-- dozen characters and a typical one fits in a chat line.
+--
+-- The format is plain text read with string functions and nothing else. It
+-- is never handed to loadstring or anything like it: this is text a stranger
+-- pasted into a forum, and a settings string that could run code would be a
+-- way of making somebody run it. Every name is looked up in a list built from
+-- the defaults table, and every value has to have the type its default has;
+-- anything else is refused before a single setting is touched, and whatever
+-- survives then goes through ClampSettings, the same repair a saved profile
+-- gets at login.
+--
+--   MNR1:prompt.width=260;prompt.fontColor=1,0.8,0,1;buff.skip=wisdom:5f3a9c
+--
+-- A version number, the name=value pairs, and a checksum over both, so a
+-- string cut short by a chat line or a copy that missed the end is refused as
+-- incomplete rather than half applied.
+---------------------------------------------------------------------------
+
+ns.SHARE_PREFIX = "MNR1:"
+local SHARE_VERSION = 1
+-- Far more than any real profile needs, and a ceiling on how much work a
+-- hostile string can ask for.
+local SHARE_MAX = 8000
+
+-- Never shared. Whether the addon is on is a state rather than a taste, the
+-- click logger is a diagnostic, and the minimap button's place is about this
+-- screen, not about how the addon behaves.
+local SHARE_SKIP = { enabled = true, debugClicks = true, minimap = true }
+
+-- The same, for settings further down than the top of the profile. The lock
+-- is a state like the on switch, and the worst one to carry: a string copied
+-- while its owner had the prompt unlocked to drag it -- the obvious moment to
+-- be on the options page -- would unlock the prompt of everybody who pasted
+-- it, and an unlocked prompt never casts. Where the prompt sits is about the
+-- screen it sits on, as the minimap button's place is.
+local SHARE_SKIP_NAMES = {
+	["prompt.locked"] = true,
+	["prompt.point"] = true,
+	["prompt.relPoint"] = true,
+	["prompt.x"] = true,
+	["prompt.y"] = true,
+}
+
+-- Imported only when the player already has it on. Speaking a line when you
+-- buff talks to other players, and a string from somebody else must never be
+-- able to switch that on -- /yell included -- behind a single paste.
+local SHARE_KEEP_MINE = { ["speech.enabled"] = true }
+
+-- What is said and where, kept as the player has it whenever speaking is
+-- already on. Keeping the switch alone is not enough: somebody who speaks a
+-- quiet "thanks" in /say would otherwise start yelling a stranger's words at
+-- everybody they buff, the moment they pasted. With speaking off these change
+-- nothing anybody hears, so they travel -- and are waiting, as the string's
+-- author wrote them, for the day the player switches it on themselves.
+local SHARE_SPEECH = {
+	["speech.channel"] = true,
+	["speech.phrases"] = true,
+	["speech.presetChoice"] = true,
+	["speech.onlyWhenReturning"] = true,
+}
+
+-- Defaults that are not a constant. The phrase box is filled from the chosen
+-- set at load, so a profile nobody has touched holds six lines of Roleplay --
+-- which is a default in every sense but the table's, and not worth sharing.
+local SHARE_DEFAULT = {
+	["speech.phrases"] = function(profile)
+		local speech = profile.speech or {}
+		return ns.PhraseSetText(speech.presetChoice) or ns.PhraseSetText("roleplay")
+	end,
+}
+
+local shareFields
+
+-- Every setting that can be shared, walked out of the defaults table so a new
+-- setting is shareable the moment it has a default and no list has to be kept
+-- in step by hand.
+local function ShareFields()
+	if shareFields then return shareFields end
+	local fields = {}
+	local function walk(defs, path, prefix)
+		for key, value in pairs(defs) do
+			if type(key) == "string" and not (prefix == "" and SHARE_SKIP[key])
+				and not SHARE_SKIP_NAMES[prefix .. key] then
+				local name = prefix .. key
+				local kind
+				if type(value) == "table" then
+					if type(value[1]) == "number" then
+						kind = "colour"
+					elseif name == "buff.skip" then
+						kind = "set"
+					else
+						local inner = {}
+						for i = 1, #path do inner[i] = path[i] end
+						inner[#inner + 1] = key
+						walk(value, inner, name .. ".")
+					end
+				elseif type(value) == "boolean" or type(value) == "number"
+					or type(value) == "string" then
+					kind = type(value)
+				end
+				if kind then
+					fields[#fields + 1] = { name = name, kind = kind, path = path, key = key,
+						default = value }
+				end
+			end
+		end
+	end
+	walk(ns.defaults.profile, {}, "")
+	-- The phrase set's dropdown has no default -- nil reads as Roleplay -- so
+	-- the walk cannot find it, and without it an imported set of phrases
+	-- arrives under whatever set the importer's dropdown happened to name.
+	fields[#fields + 1] = { name = "speech.presetChoice", kind = "string",
+		path = { "speech" }, key = "presetChoice" }
+	table.sort(fields, function(a, b) return a.name < b.name end)
+	shareFields = fields
+	return fields
+end
+
+-- The table a field lives in, made on the way if asked to.
+local function Holder(profile, path, create)
+	local t = profile
+	for _, seg in ipairs(path) do
+		if type(t[seg]) ~= "table" then
+			if not create then return nil end
+			t[seg] = {}
+		end
+		t = t[seg]
+	end
+	return t
+end
+
+local function Finite(n)
+	return type(n) == "number" and n == n and n ~= math.huge and n ~= -math.huge
+end
+
+local function NumberText(n)
+	return ("%.10g"):format(n)
+end
+
+-- Anything but letters, digits and a little punctuation is written as %XX, and
+-- a space as +. Nothing that separates the format -- ; = : , -- and nothing
+-- the chat box treats specially, like |, survives unescaped, and the whole
+-- string has no spaces in it, so a line break a text box inserts can be
+-- stripped on the way back in without losing anything.
+local function EncodeText(s)
+	return (s:gsub("[^%w_%.%-!%?'%(%){}/ ]", function(c)
+		return ("%%%02X"):format(c:byte())
+	end):gsub(" ", "+"))
+end
+
+local function DecodeText(s)
+	-- Every % has to open a pair of hex digits. A lone one is not something
+	-- EncodeText writes, so it is a string somebody has been at.
+	if s:gsub("%%%x%x", ""):find("%", 1, true) then return nil end
+	local text = s:gsub("%+", " "):gsub("%%(%x%x)", function(hex)
+		return string.char(tonumber(hex, 16))
+	end)
+	-- Control characters have no business in a setting. A line break does --
+	-- the phrase box is one phrase per line -- and so does a tab, which a
+	-- text box will take and ExportSettings will therefore write.
+	for i = 1, #text do
+		local b = text:byte(i)
+		if (b < 32 and b ~= 10 and b ~= 9) or b == 127 then return nil end
+	end
+	return text
+end
+
+local function ReadNumber(s)
+	if not s:match("^[%d%.%-%+eE]+$") then return nil end
+	local n = tonumber(s)
+	if not Finite(n) then return nil end
+	return n
+end
+
+local function DefaultOf(field, profile)
+	local fn = SHARE_DEFAULT[field.name]
+	if fn then return fn(profile) end
+	return field.default
+end
+
+-- A field's value as text, or nil when it is the default and need not travel.
+local function EncodeValue(field, value, profile)
+	local kind = field.kind
+	if kind == "boolean" then
+		if type(value) ~= "boolean" or value == field.default then return nil end
+		return value and "1" or "0"
+	elseif kind == "number" then
+		if not Finite(value) or value == field.default then return nil end
+		return NumberText(value)
+	elseif kind == "string" then
+		if type(value) ~= "string" or value == DefaultOf(field, profile) then return nil end
+		return EncodeText(value)
+	elseif kind == "colour" then
+		if type(value) ~= "table" then return nil end
+		local parts, same = {}, true
+		for i = 1, 4 do
+			local c = value[i]
+			if c == nil and i == 4 then break end
+			if not Finite(c) then return nil end
+			parts[i] = NumberText(c)
+			if c ~= field.default[i] then same = false end
+		end
+		if same and #parts == #field.default then return nil end
+		return table.concat(parts, ",")
+	elseif kind == "set" then
+		if type(value) ~= "table" then return nil end
+		local keys = {}
+		for key, on in pairs(value) do
+			if on == true and type(key) == "string" and key:match("^[%w_]+$") then
+				keys[#keys + 1] = key
+			end
+		end
+		if #keys == 0 then return nil end
+		table.sort(keys)
+		return table.concat(keys, ",")
+	end
+end
+
+-- Text back into a value of the field's own type, or nil for anything that is
+-- not one.
+local function DecodeValue(field, raw)
+	local kind = field.kind
+	if kind == "boolean" then
+		if raw == "1" then return true elseif raw == "0" then return false end
+		return nil
+	elseif kind == "number" then
+		return ReadNumber(raw)
+	elseif kind == "string" then
+		return DecodeText(raw)
+	elseif kind == "colour" then
+		local out = {}
+		for part in (raw .. ","):gmatch("([^,]*),") do
+			local n = ReadNumber(part)
+			if not n or #out >= 4 then return nil end
+			out[#out + 1] = math.max(0, math.min(1, n))
+		end
+		if #out < 3 then return nil end
+		return out
+	elseif kind == "set" then
+		local out, count = {}, 0
+		for part in (raw .. ","):gmatch("([^,]*),") do
+			if not part:match("^[%w_]+$") then return nil end
+			count = count + 1
+			if count > 64 then return nil end
+			out[part] = true
+		end
+		return out
+	end
+end
+
+local function Checksum(text)
+	local h = 0
+	for i = 1, #text do h = (h * 31 + text:byte(i)) % 16777213 end
+	return ("%06x"):format(h)
+end
+
+-- The current profile as a settings string.
+function ns.ExportSettings()
+	local profile = addon.db and addon.db.profile
+	if not profile then return nil end
+	local parts = {}
+	for _, field in ipairs(ShareFields()) do
+		local holder = Holder(profile, field.path)
+		local text = holder and EncodeValue(field, holder[field.key], profile)
+		if text then parts[#parts + 1] = field.name .. "=" .. text end
+	end
+	local signed = ns.SHARE_PREFIX .. table.concat(parts, ";")
+	return signed .. ":" .. Checksum(signed)
+end
+
+-- Why a string was refused, one sentence each, each one something the player
+-- can act on.
+ns.SHARE_ERRORS = {
+	empty = "there is nothing to import -- paste a settings string that starts with MNR1:.",
+	notOurs = "that is not a Manners settings string -- one starts with MNR1:.",
+	tooLong = "that is far longer than any Manners settings string, so it was not read.",
+	newer = "that string was made by a newer version of Manners -- update the addon to read it.",
+	incomplete = "that string is incomplete or has been changed -- copy it again in one piece."
+		.. " A chat line holds 255 characters, so paste a longer one into the box under"
+		.. " Share settings on the General tab of the options.",
+	malformed = "that string is damaged -- part of it is not a setting Manners can read."
+		.. " Copy it again in one piece.",
+	badValue = "that string gives %s a value it cannot have, so nothing was changed.",
+}
+
+-- Read a settings string without touching anything. Returns the values keyed
+-- by field name and how many names this version does not know, or nil and the
+-- sentence saying why not.
+function ns.ParseSettings(text)
+	if type(text) ~= "string" then return nil, ns.SHARE_ERRORS.empty end
+	if #text > SHARE_MAX * 2 then return nil, ns.SHARE_ERRORS.tooLong end
+	-- No setting's text holds whitespace -- a space travels as + -- so any
+	-- that is here was added on the way: a text box wrapping the line, or the
+	-- blank either side of a paste.
+	text = text:gsub("%s+", "")
+	if text == "" then return nil, ns.SHARE_ERRORS.empty end
+	if #text > SHARE_MAX then return nil, ns.SHARE_ERRORS.tooLong end
+
+	local version, body, sum = text:match("^MNR(%d+):(.*):(%x+)$")
+	if not version then
+		if text:sub(1, 3) == "MNR" then return nil, ns.SHARE_ERRORS.incomplete end
+		return nil, ns.SHARE_ERRORS.notOurs
+	end
+	if tonumber(version) ~= SHARE_VERSION then
+		if (tonumber(version) or 0) > SHARE_VERSION then return nil, ns.SHARE_ERRORS.newer end
+		return nil, ns.SHARE_ERRORS.notOurs
+	end
+	if Checksum("MNR" .. version .. ":" .. body) ~= sum:lower() then
+		return nil, ns.SHARE_ERRORS.incomplete
+	end
+
+	local byName = {}
+	for _, field in ipairs(ShareFields()) do byName[field.name] = field end
+	local values, unknown, count = {}, 0, 0
+	if body ~= "" then
+		for pair in (body .. ";"):gmatch("([^;]*);") do
+			local name, raw = pair:match("^([%w_%.]+)=(.*)$")
+			if not name then return nil, ns.SHARE_ERRORS.malformed end
+			local field = byName[name]
+			if field then
+				local value = DecodeValue(field, raw)
+				if value == nil then return nil, ns.SHARE_ERRORS.badValue:format(name) end
+				if values[name] == nil then count = count + 1 end
+				values[name] = value
+			else
+				-- A setting a later version added. Skipped rather than refused,
+				-- so a string from somebody a release ahead still carries
+				-- everything this version understands.
+				unknown = unknown + 1
+			end
+		end
+	end
+	return { values = values, unknown = unknown, count = count }
+end
+
+-- The settings the last import replaced, as a settings string, for this
+-- session and this profile only.
+local lastImportUndo
+
+function ns.ForgetImportUndo()
+	lastImportUndo = nil
+end
+
+local function CopyValue(v)
+	if type(v) ~= "table" then return v end
+	local out = {}
+	for k, inner in pairs(v) do out[k] = inner end
+	return out
+end
+
+local function SameValue(a, b)
+	if type(a) ~= "table" or type(b) ~= "table" then return a == b end
+	for k, v in pairs(a) do if b[k] ~= v then return false end end
+	for k, v in pairs(b) do if a[k] ~= v then return false end end
+	return true
+end
+
+-- Write a parsed string over the current profile. Everything it does not name
+-- goes back to its default, so the profile that comes out is the one that
+-- went in. `own` is for the player's own settings coming back -- the undo --
+-- which were never somebody else's words and are put back exactly; anything
+-- else keeps speaking as the player has it. Returns what was kept back.
+local function ApplySettings(profile, parsed, own)
+	local speaking = profile.speech and profile.speech.enabled == true
+	local kept = { switch = false, words = false }
+	for _, field in ipairs(ShareFields()) do
+		local holder = Holder(profile, field.path, true)
+		local value = parsed.values[field.name]
+		if value == nil then value = CopyValue(field.default) end
+		if not own and SHARE_KEEP_MINE[field.name] then
+			if value == true and holder[field.key] ~= true then kept.switch = true end
+		elseif not own and speaking and SHARE_SPEECH[field.name] then
+			-- A string that names nothing here leaves nothing to keep: the
+			-- default a missing name stands for is not a word from anybody.
+			if parsed.values[field.name] ~= nil
+				and not SameValue(parsed.values[field.name], holder[field.key]) then
+				kept.words = true
+			end
+		else
+			holder[field.key] = value
+		end
+	end
+	-- What a profile switch runs, for the same reason: every setting changed
+	-- at once. It is safe in a fight -- ApplyStyle puts itself off until the
+	-- fight ends -- which the line the callers print says. It also forgets the
+	-- undo, which each caller then sets as it needs.
+	addon:RefreshConfig()
+	return kept
+end
+
+-- Replace the current profile's shareable settings with the ones in `text`.
+-- Returns whether it applied and the line to say.
+function ns.ImportSettings(text)
+	local profile = addon.db and addon.db.profile
+	if not profile then return false, ns.SHARE_ERRORS.empty end
+	local parsed, err = ns.ParseSettings(text)
+	if not parsed then return false, err end
+
+	local undo = ns.ExportSettings()
+	local kept = ApplySettings(profile, parsed, false)
+	lastImportUndo = undo
+
+	-- Whole sentences for each count rather than an "s" glued on, so each can
+	-- be translated as it stands.
+	local lines = {}
+	if parsed.count == 0 then
+		lines[1] = "settings imported -- every one of them is the default."
+	elseif parsed.count == 1 then
+		lines[1] = "settings imported -- 1 differs from the defaults."
+	else
+		lines[1] = ("settings imported -- %d differ from the defaults."):format(parsed.count)
+	end
+	if parsed.unknown == 1 then
+		lines[#lines + 1] = "1 setting from a newer version of Manners was left out."
+	elseif parsed.unknown > 1 then
+		lines[#lines + 1] = ("%d settings from a newer version of Manners were left out.")
+			:format(parsed.unknown)
+	end
+	if kept.switch then
+		lines[#lines + 1] = "The string had speaking a line when you buff switched on. That"
+			.. " is left off, because it talks to other players: switch it on under When you"
+			.. " click if you want it."
+	end
+	if kept.words then
+		lines[#lines + 1] = "What you say when you buff, and where, is kept as you had it,"
+			.. " because you have speaking switched on."
+	end
+	if InCombatLockdown() then
+		lines[#lines + 1] = "The prompt's look changes when this fight ends."
+	end
+	lines[#lines + 1] = "|cffffd100/manners import undo|r puts your old settings back."
+	return true, table.concat(lines, " ")
+end
+
+-- Put back the settings the last import replaced, this session. Once: the
+-- undo is used up, so a second one says there is nothing left rather than
+-- putting the import back.
+function ns.UndoImport()
+	local profile = addon.db and addon.db.profile
+	if not lastImportUndo or not profile then
+		return false, "nothing to undo -- no settings have been imported on this profile"
+			.. " this session."
+	end
+	-- Read back through the same checks as any string, though it never left
+	-- this session: one path in, and nothing that skips it.
+	local parsed = ns.ParseSettings(lastImportUndo)
+	lastImportUndo = nil
+	if not parsed then
+		return false, "nothing to undo -- no settings have been imported on this profile"
+			.. " this session."
+	end
+	ApplySettings(profile, parsed, true)
+	if InCombatLockdown() then
+		return true, "your settings from before the import are back. The prompt's look"
+			.. " changes when this fight ends."
+	end
+	return true, "your settings from before the import are back."
 end
 
 ---------------------------------------------------------------------------
@@ -5692,29 +6356,138 @@ end
 -- help block and an if/elseif chain that have to be kept in step by hand: that
 -- is how "restore" came to be advertised for a release without existing, and it
 -- is what the scenario walks to prove none of them falls through to the help.
+--
+-- Grouped by what somebody is trying to do when they type one, because
+-- eighteen lines in the order they were written is a list nobody reads past
+-- the fourth. The groups print in the order of COMMAND_GROUPS.
+ns.COMMAND_GROUPS = {
+	{ key = "everyday", title = "Everyday" },
+	{ key = "setup", title = "Setting it up" },
+	{ key = "share", title = "Sharing settings" },
+	{ key = "trouble", title = "When something is wrong" },
+}
+
 ns.COMMANDS = {
-	{ word = "options", help = "open the options window" },
-	{ word = "welcome", help = "what this addon does, and the one thing it needs from you" },
-	{ word = "unlock", help = "unlock the prompt so it can be dragged" },
-	{ word = "lock", help = "lock it again -- an unlocked prompt never casts" },
-	{ word = "test", help = "preview the prompt with a mock candidate" },
-	{ word = "macro", help = "make a /click macro for your action bar" },
-	{ word = "on", help = "turn the addon on" },
-	{ word = "off", help = "turn it off" },
+	{ word = "options", group = "everyday", help = "open the options window" },
+	{ word = "on", group = "everyday", help = "turn the addon on" },
+	{ word = "off", group = "everyday", help = "turn it off" },
+	{ word = "snooze", group = "everyday", args = " [minutes|off]",
+		help = "hide the prompt for a while -- 15 minutes unless you say" },
+	{ word = "test", group = "everyday", help = "preview the prompt with a mock candidate" },
+	{ word = "welcome", group = "setup",
+		help = "what this addon does, and the one thing it needs from you" },
+	{ word = "macro", group = "setup", help = "make a /click macro for your action bar" },
+	{ word = "unlock", group = "setup", help = "unlock the prompt so it can be dragged" },
+	{ word = "lock", group = "setup", help = "lock it again -- an unlocked prompt never casts" },
 	-- Both of these flip a setting that starts on. Written as actions, the way
 	-- they were, somebody who typed one to get what it described on a fresh
 	-- profile switched that very thing off.
-	{ word = "restore", help = "switch handing your target back after buffing on or off" },
-	{ word = "verbose", help = "switch the chat lines about who buffed you on or off" },
-	{ word = "never", args = " [name]", help = "list who is never offered anything, or put somebody on that list" },
-	{ word = "allow", args = " <name>", help = "take somebody off the never-offer list" },
-	{ word = "clicks", help = "log what the button does when clicked" },
-	{ word = "try", args = " <macro>", help = "run any macro text from the prompt" },
-	{ word = "look", args = " [unit]", help = "dump every API answer for a unit" },
-	{ word = "forms", help = "example macros to try" },
-	{ word = "debug", help = "what your class and this build allow" },
-	{ word = "errors", help = "the last few things that broke" },
+	{ word = "never", group = "everyday", args = " [name]",
+		help = "list who is never offered anything, or put somebody on that list" },
+	{ word = "allow", group = "everyday", args = " <name>",
+		help = "take somebody off the never-offer list" },
+	{ word = "restore", group = "setup", help = "switch handing your target back after buffing on or off" },
+	{ word = "verbose", group = "setup", help = "switch the chat lines about who buffed you on or off" },
+	{ word = "export", group = "share", help = "copy these settings as one line of text" },
+	{ word = "import", group = "share", args = " <text|undo>",
+		help = "use settings somebody exported, or undo the last import" },
+	{ word = "debug", group = "trouble", help = "what your class and this build allow" },
+	{ word = "errors", group = "trouble", help = "the last few things that broke" },
+	{ word = "clicks", group = "trouble", help = "log what the button does when clicked" },
+	{ word = "try", group = "trouble", args = " <macro>", help = "run any macro text from the prompt" },
+	{ word = "look", group = "trouble", args = " [unit]", help = "dump every API answer for a unit" },
+	{ word = "forms", group = "trouble", help = "example macros to try" },
 }
+
+-- Other words that reach a command, for somebody who types what they expect
+-- rather than what the list says. The help itself is not in COMMANDS: it is
+-- what an unknown word falls through to, and the scenario that walks the list
+-- tells an advertised command from a missing one by whether the help appears.
+ns.COMMAND_ALIASES = { config = "options", help = "help", ["?"] = "help" }
+
+-- The whole list, one line per command under its group's heading. The first
+-- line is the marker a scenario looks for.
+local function PrintHelp()
+	addon:Print("|cffffd100Manners commands:|r")
+	for _, group in ipairs(ns.COMMAND_GROUPS) do
+		addon:Print(("|cff909098%s|r"):format(group.title))
+		for _, command in ipairs(ns.COMMANDS) do
+			if command.group == group.key then
+				addon:Print(("  |cffffd100/manners %s%s|r  %s"):format(
+					command.word, command.args or "", command.help))
+			end
+		end
+	end
+	addon:Print("|cffffd100/mnr|r works in place of |cffffd100/manners|r in all of them.")
+end
+
+-- How many slips of a finger turn one word into the other: a letter missed,
+-- added or changed, or two neighbours swapped. The swap counts as one because
+-- that is how it happens at a keyboard -- "tset" is one slip from "test", not
+-- the two a plain letter count makes it.
+local function EditDistance(a, b)
+	if a == b then return 0 end
+	local rows = {}
+	for i = 0, #a do rows[i] = { [0] = i } end
+	for j = 0, #b do rows[0][j] = j end
+	for i = 1, #a do
+		for j = 1, #b do
+			local cost = a:sub(i, i) == b:sub(j, j) and 0 or 1
+			local best = math.min(rows[i - 1][j] + 1, rows[i][j - 1] + 1, rows[i - 1][j - 1] + cost)
+			if i > 1 and j > 1 and a:sub(i, i) == b:sub(j - 1, j - 1)
+				and a:sub(i - 1, i - 1) == b:sub(j, j) then
+				best = math.min(best, rows[i - 2][j - 2] + 1)
+			end
+			rows[i][j] = best
+		end
+	end
+	return rows[#a][#b]
+end
+
+-- The command somebody most likely meant by a word that is not one, or nil
+-- when nothing is close enough to be worth suggesting. Close means one slip,
+-- or two in a word long enough that two slips still leave most of it -- in a
+-- five-letter word two changes turn "reset" into "test", which is a guess, not
+-- a correction -- or the start of exactly one command.
+--
+-- Never the word itself. A word that is a command and still reached the
+-- fallback is a command with no branch, and "did you mean /manners forms?" in
+-- answer to /manners forms would hide that from the player and from the
+-- scenario that walks the list looking for it.
+function ns.ClosestCommand(word)
+	word = tostring(word or ""):lower()
+	if word == "" then return nil end
+	local words = {}
+	for _, command in ipairs(ns.COMMANDS) do words[#words + 1] = command.word end
+	for alias in pairs(ns.COMMAND_ALIASES) do
+		if alias:match("^%a+$") then words[#words + 1] = alias end
+	end
+	for _, candidate in ipairs(words) do
+		if candidate == word then return nil end
+	end
+	table.sort(words)
+
+	if #word >= 3 then
+		local starts
+		for _, candidate in ipairs(words) do
+			if candidate:sub(1, #word) == word then
+				if starts then starts = false break end
+				starts = candidate
+			end
+		end
+		if starts then return starts end
+	end
+
+	local best, bestDistance
+	local allowed = #word >= 6 and 2 or 1
+	for _, candidate in ipairs(words) do
+		local distance = EditDistance(word, candidate)
+		if distance <= allowed and (not bestDistance or distance < bestDistance) then
+			best, bestDistance = candidate, distance
+		end
+	end
+	return best
+end
 
 -- Commands that write a setting the options page has a control for.
 --
@@ -5731,9 +6504,14 @@ ns.COMMANDS = {
 -- because the preview repaints the page itself whenever it starts or stops
 -- (ToggleTest and ExitTest), which also covers the clock and the page's own
 -- button.
+--
+-- `snooze` is here for the launcher, whose text says a snooze is running and
+-- until when. StartSnooze and StopSnooze repaint as well, because the minimap
+-- menu and the options page reach them without coming through here; asking
+-- twice costs nothing. `import` repaints through RefreshConfig.
 local REPAINT_AFTER = {
 	on = true, off = true, verbose = true, clicks = true,
-	restore = true, lock = true, unlock = true,
+	restore = true, lock = true, unlock = true, snooze = true,
 	-- The never-offer list is drawn on the Who to buff tab.
 	never = true, allow = true,
 }
@@ -5939,6 +6717,48 @@ function addon:HandleSlash(rawInput)
 				self:Print(("nobody called %s is on your never-offer list."):format(rest))
 			end
 		end
+	elseif input == "snooze" then
+		local arg = rest:lower()
+		if arg == "off" or arg == "stop" or arg == "end" then
+			ns.StopSnooze()
+		elseif arg == "" then
+			ns.StartSnooze(ns.SNOOZE_DEFAULT)
+		else
+			local minutes = ns.SnoozeLength(arg)
+			if minutes and minutes >= 1 and minutes <= ns.SNOOZE_MAX then
+				ns.StartSnooze(minutes)
+			else
+				self:Print(("snooze takes a number of minutes from 1 to %d, or off -- for"
+					.. " example |cffffd100/manners snooze 15|r or |cffffd100/manners snooze"
+					.. " 1h|r."):format(ns.SNOOZE_MAX))
+			end
+		end
+	elseif input == "export" then
+		-- Into a box, not into chat: nothing printed to the chat frame can be
+		-- selected and copied. Printed only when there is no box to put it in,
+		-- because a string that can be read off the screen still beats none.
+		if ns.ShowShareBox and ns.ShowShareBox("export") then
+			self:Print("your settings are in the box under |cffffd100Share settings|r on the"
+				.. " General tab of the options -- click in it, select all and copy.")
+		else
+			self:Print(tostring(ns.ExportSettings()))
+		end
+	elseif input == "import" then
+		if rest == "" then
+			if ns.ShowShareBox and ns.ShowShareBox("import") then
+				self:Print("paste the settings string into the box under |cffffd100Share"
+					.. " settings|r on the General tab, or type |cffffd100/manners import|r"
+					.. " followed by it.")
+			else
+				self:Print("type |cffffd100/manners import|r followed by a settings string.")
+			end
+		elseif rest:lower() == "undo" then
+			local _, message = ns.UndoImport()
+			self:Print(message)
+		else
+			local _, message = ns.ImportSettings(rest)
+			self:Print(message)
+		end
 	elseif input == "errors" then
 		-- Guard names every failure it catches but only says each one out loud
 		-- once. This is the rest of them, and the only way to see a failure
@@ -6103,6 +6923,17 @@ function addon:HandleSlash(rawInput)
 		if not db.prompt.locked then
 			self:Print("|cffff8080prompt is UNLOCKED -- it will not buff anyone until you /manners lock|r")
 		end
+		-- The other two things that keep the prompt off the screen with the
+		-- queue below still counting people, for the same reason as the two
+		-- above.
+		if ns.SnoozeLeft() then
+			self:Print(("|cffffd100snoozed until %s|r -- no prompt until then;"
+				.. " /manners snooze off ends it"):format(ns.SnoozeEndsAt()))
+		end
+		if ns.HiddenWhileMounted() then
+			self:Print("|cffffd100mounted|r -- Not while mounted keeps the prompt away until"
+				.. " you get off")
+		end
 		self:Print(("  build |cffffffff%s|r"):format(tostring(ns.BUILD)))
 		if ns.tryMacro then
 			self:Print(("  |cffff8080/manners try is armed:|r %s -- clear it with a bare /manners try"):format(
@@ -6111,12 +6942,20 @@ function addon:HandleSlash(rawInput)
 		self:Print((db.enabled and "queue now: " or "queue if switched on: ") .. #ns.BuildQueue())
 		ns.Guard("WriteProbe", ns.WriteProbe)
 	else
-		-- The header is the marker the scenario looks for: falling through to
-		-- here is the one outcome an advertised command must never have.
-		self:Print("|cffffd100Manners commands:|r")
-		for _, command in ipairs(ns.COMMANDS) do
-			self:Print(("  |cffffd100/manners %s%s|r  %s"):format(
-				command.word, command.args or "", command.help))
+		-- A word that is nearly a command gets that command named, rather
+		-- than twenty lines to find it in. Anything else -- help itself
+		-- included -- gets the whole list, whose header is the marker the
+		-- scenario looks for: falling through to here is the one outcome an
+		-- advertised command must never have.
+		local closest = ns.COMMAND_ALIASES[input] == nil and ns.ClosestCommand(input)
+		if closest then
+			self:Print(("there is no |cffffd100/manners %s|r -- did you mean"
+				.. " |cffffd100/manners %s|r? |cffffd100/manners help|r lists them all.")
+				-- Doubled, so a | somebody typed is shown rather than read by
+				-- the chat frame as the start of a colour code.
+				:format((input:gsub("|", "||")), closest))
+		else
+			PrintHelp()
 		end
 	end
 
