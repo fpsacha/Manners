@@ -64,6 +64,15 @@ do
 			if not said():find("5 minutes", 1, true) then
 				fail(scenario, "the snooze never said how long it lasts: " .. said())
 			end
+			-- The key binding still reaches the hidden button, and has to say
+			-- why nothing happened rather than "nobody to buff".
+			Mock.printed = {}
+			local ran = pressButton(ns)
+			if ran then fail(scenario, "a keypress on the snoozed prompt cast: " .. ran) end
+			if not said():find("snoozed until", 1, true) then
+				fail(scenario, "a keypress on the snoozed prompt did not say it is snoozed: "
+					.. said())
+			end
 
 			-- Still away just before the end, however many scans run.
 			Mock.advance(4 * 60 + 50)
@@ -353,10 +362,18 @@ do
 	if ns then
 		drive(scenario, ns)
 		ns.db.profile.filters.hideMounted = true
+		-- Asked through pcall so a throw lands here, named, rather than as the
+		-- whole file falling over.
 		IsMounted = function() error("no", 0) end
-		if ns.HiddenWhileMounted() then fail(scenario, "a throwing IsMounted read as mounted") end
+		local ok, hidden = pcall(ns.HiddenWhileMounted)
+		if not ok then
+			fail(scenario, "a throwing IsMounted took the queue down with it -> " .. tostring(hidden))
+		elseif hidden then
+			fail(scenario, "a throwing IsMounted read as mounted")
+		end
 		IsMounted = nil
-		if ns.HiddenWhileMounted() then fail(scenario, "a missing IsMounted read as mounted") end
+		ok, hidden = pcall(ns.HiddenWhileMounted)
+		if not ok or hidden then fail(scenario, "a missing IsMounted read as mounted, or threw") end
 	end
 	IsMounted = realMounted
 	Mock.reset()
