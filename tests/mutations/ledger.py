@@ -12,7 +12,7 @@ mutate("Core.lua",
        "ledger: a favour is never written down",
        expect="a favour appears in the ledger", script=S)
 mutate("Core.lua",
-       "\t\tTellLedger(\"Settled\", pending.name, wasOwed, pending, spellId)\n",
+       "\tif not unheard then TellLedger(\"Settled\", pending.name, wasOwed, pending, spellId) end\n",
        "",
        "ledger: a repayment is never written down",
        expect="a favour repaid is marked returned", script=S)

@@ -3997,12 +3997,10 @@ local function SettlePendingClick(landedOn, spellId, castGUID)
 		ns.lastGave[pending.name] = pending.buffKey
 	end
 
-	if not unheard then
-		ns.SettleFavour(pending.name)
-		-- A shout nobody measured them hearing is not recorded either way:
-		-- the debt stands, and so does the ledger's row for it.
-		TellLedger("Settled", pending.name, wasOwed, pending, spellId)
-	end
+	if not unheard then ns.SettleFavour(pending.name) end
+	-- The ledger follows the same gate: a shout nobody measured them hearing is
+	-- not recorded either way, so the debt stands and so does its row.
+	if not unheard then TellLedger("Settled", pending.name, wasOwed, pending, spellId) end
 	-- The client sent the cast; the server has not answered yet. Keep the
 	-- record so a refusal arriving a moment from now has something to be about.
 	RememberSettled({ name = pending.name, buffKey = pending.buffKey,
