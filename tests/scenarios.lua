@@ -12851,11 +12851,20 @@ if ns then
 			if control.disabled() then
 				fail(scenario, "the flash control is disabled while the stripe can show it")
 			end
+			-- With the icon hidden and the colour on the ring, the only thing
+			-- left for the setting to move is the light the panel catches on
+			-- arrival -- which Effects on Full draws and Calm does not.
 			p.accentMode = "icon"
+			if control.disabled() then
+				fail(scenario, "with Effects on Full the panel still catches the light on"
+					.. " arrival, and the flash control was greyed out anyway")
+			end
+			p.effects = "calm"
 			if not control.disabled() then
 				fail(scenario, "with no icon and no stripe there is nothing to flash, and the"
 					.. " control is still offered")
 			end
+			p.effects = "full"
 		else
 			fail(scenario, "the flash control never says when it has nothing to act on")
 		end

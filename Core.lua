@@ -263,6 +263,13 @@ local defaults = {
 			accentByReason = true,
 			accentMode = "icon", -- icon | stripe | both | off
 			flashStyle = "pulse", -- pulse | once | off
+			-- full | calm. Full adds the motion: a ring and a band of light
+			-- when a buff lands, a shake when one is refused, the panel
+			-- catching the light when somebody buffs you and fading out after
+			-- the last buff. Calm is the prompt without any of that.
+			effects = "full",
+			-- The global cooldown swept over the spell icon.
+			showCooldown = true,
 
 			showIcon = true,
 			iconSize = 30,
@@ -4074,6 +4081,9 @@ end
 local GCD_FALLBACK = 1.5
 local GCD_SPELL = 61304
 local castBlockedUntil = 0
+-- When the tracked block above began, so the prompt's cooldown sweep can be
+-- drawn from it where the client will not give its own figure.
+local castBlockedFrom = 0
 
 local function NoteCastWentOut(spellId)
 	local now = GetTime()
@@ -4103,7 +4113,10 @@ local function NoteCastWentOut(spellId)
 	-- Extended, never shortened. A second cast event inside a running cooldown
 	-- can report a smaller figure of its own -- an off-cooldown spell's -- and
 	-- overwriting reopened the button under a cooldown that was still running.
-	if now + seconds > castBlockedUntil then castBlockedUntil = now + seconds end
+	if now + seconds > castBlockedUntil then
+		castBlockedUntil = now + seconds
+		castBlockedFrom = now
+	end
 end
 
 -- Whether a press right now could reach the server at all, and how long until
@@ -4150,6 +4163,30 @@ local function GlobalCooldownLeft(now)
 	return left
 end
 
+-- The global cooldown as a start and a length, for the sweep the prompt draws
+-- over its icon, or nil when none is running. The client's own figure where it
+-- gives one, and the tracked block where it does not -- the same two sources,
+-- in the same order, as CastReady below, so the sweep and the "ready in" line
+-- cannot disagree about when the button is ready.
+function ns.GlobalCooldownSpan(now)
+	now = now or GetTime()
+	local get = C_Spell and C_Spell.GetSpellCooldown
+	if get then
+		local ok, info = pcall(get, GCD_SPELL)
+		if ok and type(info) == "table" then
+			local start, duration = plain(info.startTime), plain(info.duration)
+			if type(start) == "number" and type(duration) == "number" then
+				if duration > 0 and start + duration > now then return start, duration end
+				return nil
+			end
+		end
+	end
+	if castBlockedUntil > now and castBlockedUntil > castBlockedFrom then
+		return castBlockedFrom, castBlockedUntil - castBlockedFrom
+	end
+	return nil
+end
+
 function ns.CastReady()
 	local now = GetTime()
 	-- The client's figure where it gives one, in place of the tracked guess
@@ -4172,6 +4209,11 @@ end
 function addon:UNIT_SPELLCAST_SENT(_, unit, target, castGUID, spellId)
 	if unit ~= "player" then return end
 	NoteCastWentOut(plain(spellId))
+	-- The sweep over the prompt's icon starts with the cooldown this cast
+	-- began, whichever button sent it.
+	if ns.Prompt and ns.Prompt.SyncCooldown then
+		ns.Guard("cooldown sweep", ns.Prompt.SyncCooldown, ns.Prompt)
+	end
 	SettlePendingClick(plain(target), plain(spellId), plain(castGUID))
 	if not self.db.profile.debugClicks then return end
 	self:Print(("|cff80ff80CAST SENT %s -> %s|r"):format(
@@ -4180,6 +4222,11 @@ end
 
 function addon:UNIT_SPELLCAST_SUCCEEDED(_, unit, _, spellId)
 	if unit ~= "player" then return end
+	-- Again here, for a cast with a cast time: its global cooldown is running
+	-- by now, and the client's figure for it is the one to draw.
+	if ns.Prompt and ns.Prompt.SyncCooldown then
+		ns.Guard("cooldown sweep", ns.Prompt.SyncCooldown, ns.Prompt)
+	end
 	if self.db.profile.debugClicks then
 		self:Print("|cff00ff00CAST OK|r " .. tostring(plain(spellId)))
 	end
@@ -5043,6 +5090,8 @@ function ns.ClampSettings()
 	oneOf(p, "style", { glass = true, framed = true, minimal = true }, "glass")
 	oneOf(p, "accentMode", { icon = true, stripe = true, both = true, off = true }, "icon")
 	oneOf(p, "flashStyle", { pulse = true, once = true, off = true }, "pulse")
+	oneOf(p, "effects", { full = true, calm = true }, "full")
+	boolean(p, "showCooldown", true)
 
 	-- 0.9.x anchored the prompt to the middle of the screen and beta.1 moved
 	-- the default anchor to the bottom edge without carrying anybody across.

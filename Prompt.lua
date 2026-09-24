@@ -47,7 +47,22 @@ ns.Prompt = Prompt
 local WHITE = "Interface\\Buttons\\WHITE8X8"
 
 local button, art, textLayer
-local shadowOuter, shadowInner, panel, hairTop, hairBottom
+local panel, hairTop, hairBottom
+-- The drop shadow, as steps of falloff from a crisp dark rim at the panel's
+-- edge out to almost nothing, each a little lower than the last so the light
+-- reads as coming from above. Two hard-edged rectangles was the old version,
+-- and at a glance it read as a grey frame round the panel rather than as depth.
+local shadows
+local SHADOW_STEPS = {
+	-- spread, alpha, drop
+	{ 1, 0.50, 0 },
+	{ 3, 0.16, 1 },
+	{ 6, 0.09, 2 },
+	{ 10, 0.05, 3 },
+}
+-- Light falling on the top half of the glass. The panel's own gradient darkens
+-- towards the bottom; this is the other half of the same idea.
+local sheen
 -- The four edges of the framed look, drawn from the same white texture as
 -- everything else here. A backdrop needs BackdropTemplate and a border needs an
 -- art file or an atlas, and both of those are things this client may not have
@@ -55,7 +70,28 @@ local shadowOuter, shadowInner, panel, hairTop, hairBottom
 -- nothing at all. Four one-pixel rectangles cannot fail.
 local edges
 local accentTop, accentBottom, sweep, sweepFrame
-local iconBack, icon, iconGlow, glowFrame, iconMask
+local iconBack, icon, glowFrame, iconMask
+-- The glow is a halo round the icon, four strips fading outwards, rather than
+-- the filled square it was. glowFrame is a frame of its own so it can be
+-- animated, and a child frame draws over everything its parent draws -- so the
+-- square was washed additively over the spell icon, and at the top of the
+-- pulse the icon turned into a pale smudge of the reason colour. The strips
+-- stop at the ring, so the icon stays readable at every point of the pulse.
+local glowStrips
+-- A dark line between the icon and its ring, and a shade over the icon's lower
+-- half. Without them the ring sat flush against the art and read as a flat
+-- coloured square rather than a frame.
+local iconEdge, iconShade
+-- The global cooldown, swept over the icon. See SyncCooldown.
+local cooldown
+-- The confirmation a landed buff gets, and the light that catches the panel
+-- when somebody buffs you: a ring that pops outward from the icon, and a band
+-- of light that crosses the panel once. Both play once and stop; neither runs
+-- while nothing is happening.
+local burstFrame, burstStrips, shineFrame, shineLeft, shineRight
+-- Whether the panel colour is dark enough for the reason line to carry a tint
+-- of the reason colour. On a light panel a tinted grey loses its contrast.
+local tintSub
 local nameText, subText, countChip, countText, queueRows
 -- A flood of colour over the whole panel, for the half-second after a click.
 -- The panel is what the eye is already on, so the confirmation goes there
@@ -72,6 +108,8 @@ local queueTextX = 0
 ns.BUILD = "1.0.0-beta.5"
 
 local current, testMode, testExpiry, lastTop, appliedKey, lastClickAt, lastPreClickAt, lastSkipAt
+-- Why the last painted person was on the panel, beside lastTop's who.
+local lastTopReason
 -- Its own stamp rather than one of the three above: the refusal it rate-limits
 -- happens on presses none of those are counting.
 local lastStaleAt
@@ -385,6 +423,76 @@ local function Solid(parent, layer, sublevel)
 	return t
 end
 
+-- A method this client may not have, called if it is there. The effects below
+-- use a few calls -- scale animations, start delays, the cooldown sweep's
+-- settings -- that every retail-line client has and nothing here has been able
+-- to watch run; a missing one costs that one detail, never the prompt.
+local function Try(obj, method, ...)
+	local fn = obj and obj[method]
+	if type(fn) ~= "function" then return false end
+	return (pcall(fn, obj, ...))
+end
+
+-- Strips round a box, each fading from bright at the box towards nothing as it
+-- goes outward: a soft rectangular halo out of the white texture, with no art
+-- file to go missing. Four sides the length of the box, and four corner pieces
+-- at half strength. A gradient runs along one axis only, so a corner cannot
+-- fade both ways; at half strength it rounds the halo off rather than leaving
+-- a notch, or a bright square, where the sides meet.
+local function HaloStrips(parent, layer, sublevel)
+	local strips = {}
+	for i = 1, 8 do
+		local t = Solid(parent, layer, sublevel)
+		t:SetBlendMode("ADD")
+		strips[i] = t
+	end
+	return strips
+end
+
+-- Placed round `box` at `spread` pixels, outside an inset of `gap`.
+local function PlaceHalo(strips, box, spread, gap)
+	local top, bottom, left, right = strips[1], strips[2], strips[3], strips[4]
+	for _, t in ipairs(strips) do t:ClearAllPoints() end
+	top:SetPoint("BOTTOMLEFT", box, "TOPLEFT", -gap, gap)
+	top:SetPoint("BOTTOMRIGHT", box, "TOPRIGHT", gap, gap)
+	top:SetHeight(spread)
+	bottom:SetPoint("TOPLEFT", box, "BOTTOMLEFT", -gap, -gap)
+	bottom:SetPoint("TOPRIGHT", box, "BOTTOMRIGHT", gap, -gap)
+	bottom:SetHeight(spread)
+	left:SetPoint("TOPRIGHT", box, "TOPLEFT", -gap, gap)
+	left:SetPoint("BOTTOMRIGHT", box, "BOTTOMLEFT", -gap, -gap)
+	left:SetWidth(spread)
+	right:SetPoint("TOPLEFT", box, "TOPRIGHT", gap, gap)
+	right:SetPoint("BOTTOMLEFT", box, "BOTTOMRIGHT", gap, -gap)
+	right:SetWidth(spread)
+	-- Top-left, top-right, bottom-left, bottom-right.
+	for i, at in ipairs({
+		{ "BOTTOMRIGHT", "TOPLEFT", -gap, gap },
+		{ "BOTTOMLEFT", "TOPRIGHT", gap, gap },
+		{ "TOPRIGHT", "BOTTOMLEFT", -gap, -gap },
+		{ "TOPLEFT", "BOTTOMRIGHT", gap, -gap },
+	}) do
+		local corner = strips[4 + i]
+		corner:SetPoint(at[1], box, at[2], at[3], at[4])
+		corner:SetSize(spread, spread)
+	end
+end
+
+-- Coloured from `alpha` at the edge nearest the box to nothing at the far one.
+local function PaintHalo(strips, r, g, b, alpha)
+	-- Vertical gradients run bottom to top and horizontal ones left to right,
+	-- so which stop is the inner one depends on the side.
+	Gradient(strips[1], "VERTICAL", r, g, b, alpha, r, g, b, 0)
+	Gradient(strips[2], "VERTICAL", r, g, b, 0, r, g, b, alpha)
+	Gradient(strips[3], "HORIZONTAL", r, g, b, 0, r, g, b, alpha)
+	Gradient(strips[4], "HORIZONTAL", r, g, b, alpha, r, g, b, 0)
+	local half = alpha * 0.45
+	Gradient(strips[5], "VERTICAL", r, g, b, half, r, g, b, 0)
+	Gradient(strips[6], "VERTICAL", r, g, b, half, r, g, b, 0)
+	Gradient(strips[7], "VERTICAL", r, g, b, 0, r, g, b, half)
+	Gradient(strips[8], "VERTICAL", r, g, b, 0, r, g, b, half)
+end
+
 local function AtlasExists(name)
 	if not C_Texture or not C_Texture.GetAtlasInfo then return false end
 	local ok, info = pcall(C_Texture.GetAtlasInfo, name)
@@ -446,21 +554,29 @@ function Prompt:Create()
 	art = CreateFrame("Frame", nil, button)
 	art:SetAllPoints()
 
-	-- Two offset black rectangles stand in for a soft drop shadow. Real blur
-	-- is not available, but two steps of falloff is enough to lift the panel
-	-- off the world behind it.
-	shadowOuter = Solid(art, "BACKGROUND", -8)
-	shadowOuter:SetPoint("TOPLEFT", -5, 5)
-	shadowOuter:SetPoint("BOTTOMRIGHT", 5, -5)
-	shadowOuter:SetVertexColor(0, 0, 0, 0.18)
-
-	shadowInner = Solid(art, "BACKGROUND", -7)
-	shadowInner:SetPoint("TOPLEFT", -2, 2)
-	shadowInner:SetPoint("BOTTOMRIGHT", 2, -2)
-	shadowInner:SetVertexColor(0, 0, 0, 0.32)
+	-- Stacked black rectangles stand in for a soft drop shadow. Real blur is
+	-- not available, but four steps of falloff, each dropped a pixel lower
+	-- than the last, read as a panel lifted off the world rather than a panel
+	-- with a grey frame round it. The innermost step is a crisp dark rim, which
+	-- is what keeps the edge clean over a bright floor.
+	shadows = {}
+	for i, step in ipairs(SHADOW_STEPS) do
+		local spread, alpha, drop = step[1], step[2], step[3]
+		-- Outermost first, so it sits underneath; sublevels -8 to -7 are all
+		-- the layer has below the panel, and two share one where they must.
+		local t = Solid(art, "BACKGROUND", i <= 2 and -7 or -8)
+		t:SetPoint("TOPLEFT", -spread, spread - drop)
+		t:SetPoint("BOTTOMRIGHT", spread, -spread - drop)
+		t:SetVertexColor(0, 0, 0, alpha)
+		shadows[i] = t
+	end
 
 	panel = Solid(art, "BACKGROUND", -6)
 	panel:SetAllPoints()
+
+	sheen = Solid(art, "BORDER", 0)
+	sheen:SetPoint("TOPLEFT")
+	sheen:SetPoint("TOPRIGHT")
 
 	-- A hairline of light along the top and shade along the bottom. The
 	-- cheapest possible bevel, and the thing that stops a flat rectangle
@@ -517,20 +633,57 @@ function Prompt:Create()
 	sweep:SetAllPoints()
 	sweep:SetBlendMode("ADD")
 
+	-- Sized to the icon itself; the halo is drawn outside it, past the ring.
 	glowFrame = CreateFrame("Frame", nil, art)
 	glowFrame:SetAlpha(0)
-	iconGlow = Solid(glowFrame, "BACKGROUND", -3)
-	iconGlow:SetAllPoints()
-	iconGlow:SetBlendMode("ADD")
+	glowStrips = HaloStrips(glowFrame, "BACKGROUND", -3)
 
 	-- Doubles as the icon's border and as the reason signal. A ring around the
 	-- icon reads far better than a hairline stripe at the panel edge, which
 	-- ends up competing with the icon rather than framing it.
 	iconBack = Solid(art, "BACKGROUND", -2)
 	iconBack:SetVertexColor(0, 0, 0, 0.85)
+	iconEdge = Solid(art, "BACKGROUND", -1)
+	iconEdge:SetVertexColor(0, 0, 0, 0.9)
 
 	icon = art:CreateTexture(nil, "ARTWORK")
 	icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+	iconShade = Solid(art, "ARTWORK", 1)
+
+	-- The global cooldown swept over the icon, the way an action button shows
+	-- it. A Cooldown frame is not protected and the client animates it itself,
+	-- so it costs nothing per frame here and is allowed in a fight. Made in a
+	-- pcall because the template is the one part of this that is not ours: a
+	-- client without it has an icon with no sweep, not a prompt that failed to
+	-- build.
+	local okCooldown, made = pcall(CreateFrame, "Cooldown", nil, art, "CooldownFrameTemplate")
+	if okCooldown and made then
+		cooldown = made
+		Try(cooldown, "SetDrawEdge", false)
+		Try(cooldown, "SetDrawBling", false)
+		Try(cooldown, "SetHideCountdownNumbers", true)
+		Try(cooldown, "SetSwipeColor", 0, 0, 0, 0.62)
+		cooldown:Hide()
+	end
+
+	-- The ring that pops outward when a buff lands. Its own frame so it can
+	-- grow; drawn from the same strips as the glow, bright at the inside edge.
+	burstFrame = CreateFrame("Frame", nil, art)
+	burstFrame:SetAlpha(0)
+	burstStrips = HaloStrips(burstFrame, "OVERLAY", 2)
+
+	-- A band of light that crosses the panel once. Two halves, each fading
+	-- towards its outer edge, so the band has a soft middle and no hard sides.
+	shineFrame = CreateFrame("Frame", nil, art)
+	shineFrame:SetAlpha(0)
+	shineLeft = Solid(shineFrame, "OVERLAY", 1)
+	shineLeft:SetBlendMode("ADD")
+	shineLeft:SetPoint("TOPLEFT")
+	shineLeft:SetPoint("BOTTOMRIGHT", shineFrame, "BOTTOM", 0, 0)
+	shineRight = Solid(shineFrame, "OVERLAY", 1)
+	shineRight:SetBlendMode("ADD")
+	shineRight:SetPoint("TOPLEFT", shineFrame, "TOP", 0, 0)
+	shineRight:SetPoint("BOTTOMRIGHT")
 
 	-- Text sits on its own frame so a target change can cross-fade all of it
 	-- at once rather than swapping strings mid-read.
@@ -1072,15 +1225,33 @@ end
 ---------------------------------------------------------------------------
 
 function Prompt:BuildAnimations()
-	-- Entrance: rise and fade. Short, eased out, never repeated.
+	-- Entrance: rise into place and fade in. Short, eased out, never repeated.
+	--
+	-- A translation is undone the moment its group ends, so the old single
+	-- step -- up six pixels -- rose past the panel's place and then dropped
+	-- back into it with a visible hop at the end. The drop comes first now,
+	-- in an instant, and the rise brings it back to exactly where it belongs,
+	-- so the group ends where the panel already is.
 	local intro = art:CreateAnimationGroup()
+	local hold = intro:CreateAnimation("Alpha")
+	hold:SetFromAlpha(0)
+	hold:SetToAlpha(0)
+	hold:SetDuration(0.01)
+	hold:SetOrder(1)
+	local drop = intro:CreateAnimation("Translation")
+	drop:SetOffset(0, -6)
+	drop:SetDuration(0.01)
+	drop:SetOrder(1)
 	local fade = intro:CreateAnimation("Alpha")
 	fade:SetFromAlpha(0)
 	fade:SetToAlpha(1)
-	fade:SetDuration(0.18)
+	fade:SetDuration(0.20)
+	fade:SetOrder(2)
+	if fade.SetSmoothing then fade:SetSmoothing("OUT") end
 	local rise = intro:CreateAnimation("Translation")
 	rise:SetOffset(0, 6)
-	rise:SetDuration(0.18)
+	rise:SetDuration(0.20)
+	rise:SetOrder(2)
 	if rise.SetSmoothing then rise:SetSmoothing("OUT") end
 	art.intro = intro
 
@@ -1150,6 +1321,140 @@ function Prompt:BuildAnimations()
 	if breathe.SetSmoothing then breathe:SetSmoothing("IN_OUT") end
 	pulse:SetScript("OnStop", function() glowFrame:SetAlpha(0) end)
 	glowFrame.pulse = pulse
+
+	-- A buff that landed: the ring pops outward from the icon and fades as it
+	-- goes. Short -- a confirmation, not a celebration.
+	local burst = burstFrame:CreateAnimationGroup()
+	local bIn = burst:CreateAnimation("Alpha")
+	bIn:SetFromAlpha(0.95)
+	bIn:SetToAlpha(0)
+	bIn:SetDuration(0.42)
+	if bIn.SetSmoothing then bIn:SetSmoothing("IN") end
+	local grow = burst:CreateAnimation("Scale")
+	Try(grow, "SetScaleFrom", 1, 1)
+	Try(grow, "SetScaleTo", 1.35, 1.35)
+	Try(grow, "SetOrigin", "CENTER", 0, 0)
+	grow:SetDuration(0.42)
+	if grow.SetSmoothing then grow:SetSmoothing("OUT") end
+	burst:SetScript("OnFinished", function() burstFrame:SetAlpha(0) end)
+	burst:SetScript("OnStop", function() burstFrame:SetAlpha(0) end)
+	burstFrame.anim = burst
+
+	-- Light crossing the panel once, left to right: in, across, out. The
+	-- distance is the panel's width, which ApplyStyle knows and sets.
+	local shine = shineFrame:CreateAnimationGroup()
+	local shIn = shine:CreateAnimation("Alpha")
+	shIn:SetFromAlpha(0)
+	shIn:SetToAlpha(1)
+	shIn:SetDuration(0.10)
+	shIn:SetOrder(1)
+	local shMove = shine:CreateAnimation("Translation")
+	shMove:SetDuration(0.50)
+	shMove:SetOrder(2)
+	if shMove.SetSmoothing then shMove:SetSmoothing("IN_OUT") end
+	local shOut = shine:CreateAnimation("Alpha")
+	shOut:SetFromAlpha(1)
+	shOut:SetToAlpha(0)
+	shOut:SetDuration(0.50)
+	shOut:SetOrder(2)
+	if shOut.SetSmoothing then shOut:SetSmoothing("IN") end
+	shine.move = shMove
+	shine:SetScript("OnFinished", function() shineFrame:SetAlpha(0) end)
+	shine:SetScript("OnStop", function() shineFrame:SetAlpha(0) end)
+	shineFrame.anim = shine
+
+	-- A refusal: the text gives a small shake of the head. Two pixels either
+	-- way and back to rest, a quarter of a second in all -- enough to say no
+	-- without turning the panel into an alarm.
+	local shake = textLayer:CreateAnimationGroup()
+	for i, dx in ipairs({ -2, 4, -4, 2 }) do
+		local step = shake:CreateAnimation("Translation")
+		step:SetOffset(dx, 0)
+		step:SetDuration(0.06)
+		step:SetOrder(i)
+	end
+	textLayer.shake = shake
+
+	-- Leaving after the last buff: the panel fades out over the second half of
+	-- the confirmation, so it goes rather than vanishes. Only ever played while
+	-- the prompt is on its way down anyway -- the secure button is hidden when
+	-- the confirmation runs out, exactly as before, and this changes nothing
+	-- about when. Parked at invisible when it finishes, because the button is
+	-- not hidden until a moment later, and the next Refresh puts the alpha back.
+	local outro = art:CreateAnimationGroup()
+	local oFade = outro:CreateAnimation("Alpha")
+	oFade:SetFromAlpha(1)
+	oFade:SetToAlpha(0)
+	oFade:SetDuration(OUTCOME_SECONDS * 0.5)
+	Try(oFade, "SetStartDelay", OUTCOME_SECONDS * 0.5)
+	if oFade.SetSmoothing then oFade:SetSmoothing("IN") end
+	outro:SetScript("OnFinished", function()
+		art.faded = true
+		art:SetAlpha(0)
+	end)
+	art.outro = outro
+end
+
+-- Whether the extra motion is wanted: the landing burst, the shine, the shake
+-- and the fade on the way out. "Calm" keeps the prompt as it was before those
+-- existed -- fades, the text cross-fade and the favour glow -- for anybody who
+-- finds movement at the edge of the screen distracting.
+local function FullEffects()
+	local p = ns.db and ns.db.profile.prompt
+	return p ~= nil and p.effects ~= "calm"
+end
+
+-- The alpha art should have when nothing is animating it: dimmed for a fight,
+-- full otherwise. One place, because the fade on the way out leaves art at
+-- zero and every way back onto the screen has to undo that.
+local function RestArtAlpha()
+	art.faded = nil
+	art:SetAlpha(combatHeld and 0.55 or 1)
+end
+
+function Prompt:StopOutro()
+	if art.outro and art.outro:IsPlaying() then art.outro:Stop() end
+	if art.faded then RestArtAlpha() end
+end
+
+-- The once-only effects, stopped: what a repaint about somebody else does to a
+-- flash that belonged to the last thing on the panel.
+function Prompt:StopFlourishes()
+	if burstFrame.anim and burstFrame.anim:IsPlaying() then burstFrame.anim:Stop() end
+	if shineFrame.anim and shineFrame.anim:IsPlaying() then shineFrame.anim:Stop() end
+	if textLayer.shake and textLayer.shake:IsPlaying() then textLayer.shake:Stop() end
+end
+
+-- The band of light across the panel, in the colour given. Brighter for a buff
+-- that landed than for somebody arriving on the panel: the first is the answer
+-- to a question the player asked, the second only a nudge.
+function Prompt:PlayShine(r, g, b, strength)
+	if not shineFrame.anim then return end
+	Gradient(shineLeft, "HORIZONTAL", r, g, b, 0, r, g, b, strength)
+	Gradient(shineRight, "HORIZONTAL", r, g, b, strength, r, g, b, 0)
+	shineFrame.anim:Stop()
+	shineFrame.anim:Play()
+end
+
+-- The cooldown sweep, brought up to date with the client. Asked for when a
+-- cast goes out and when the panel comes up, never on a timer: the Cooldown
+-- frame animates itself, so between those two moments there is nothing to do.
+function Prompt:SyncCooldown()
+	if not cooldown then return end
+	local p = ns.db and ns.db.profile.prompt
+	if not (p and p.showCooldown and p.showIcon) then
+		cooldown:Hide()
+		return
+	end
+	local start, duration
+	local span = ns.GlobalCooldownSpan
+	if span then start, duration = span(GetTime()) end
+	if start and duration and duration > 0 and Try(cooldown, "SetCooldown", start, duration) then
+		cooldown:Show()
+	else
+		Try(cooldown, "Clear")
+		cooldown:Hide()
+	end
 end
 
 function Prompt:StopAttention()
@@ -1173,6 +1478,16 @@ function Prompt:StartAttention(isNew)
 		sweepFrame.anim:Stop()
 		sweepFrame.anim.move:SetOffset(0, -(p.height - 14))
 		sweepFrame.anim:Play()
+	end
+
+	-- And the panel catches the light once, as they arrive on it. Nothing to
+	-- do with the icon either, so it is above the return below as well. In
+	-- the reason colour where the prompt uses one, plain light where the
+	-- player has asked for no accent at all.
+	if isNew and FullEffects() then
+		local r, g, b = 1, 1, 1
+		if (p.accentMode or "icon") ~= "off" then r, g, b = self:AccentColor("owed") end
+		self:PlayShine(r, g, b, 0.20)
 	end
 
 	-- The glow is drawn around the icon, so it goes with it.
@@ -1251,18 +1566,24 @@ function Prompt:ApplyStyle()
 	-- panel
 	if style == "minimal" then
 		panel:Hide()
-		shadowOuter:Hide()
-		shadowInner:Hide()
+		for _, t in ipairs(shadows) do t:Hide() end
+		sheen:Hide()
 		hairTop:Hide()
 		hairBottom:Hide()
 	else
 		panel:Show()
-		shadowOuter:SetShown(glass)
-		shadowInner:SetShown(glass)
+		-- The framed look keeps its flat panel and its border, and gets only
+		-- the dark rim of the shadow under it: the rest is the glass's depth.
+		for i, t in ipairs(shadows) do t:SetShown(glass or i == 1) end
 		-- Vertical gradients run bottom-to-top, so the darker stop goes first.
 		Gradient(panel, "VERTICAL", br * 0.62, bg * 0.62, bb * 0.72, ba, br, bg, bb, ba)
+		-- Scaled by the panel's own opacity, so a panel the player has made
+		-- mostly see-through does not keep a bright band floating on its own.
+		sheen:SetShown(glass)
+		sheen:SetHeight(math.max(4, math.floor(p.height * 0.5)))
+		Gradient(sheen, "VERTICAL", 1, 1, 1, 0, 1, 1, 1, 0.07 * ba)
 		hairTop:SetShown(glass)
-		hairTop:SetVertexColor(1, 1, 1, 0.10)
+		hairTop:SetVertexColor(1, 1, 1, 0.12)
 		hairBottom:SetShown(glass)
 	end
 
@@ -1284,6 +1605,11 @@ function Prompt:ApplyStyle()
 	-- apparent brightness, so an average calls a saturated blue panel mid-grey
 	-- and lands the edge on top of it -- the one case this is here to prevent.
 	local lighten = (0.299 * br + 0.587 * bg + 0.114 * bb) <= 0.5
+	-- The same question decides whether the reason line can carry a tint: on a
+	-- dark panel a grey warmed towards the reason colour still reads, on a
+	-- light one it loses the contrast the plain grey had. With no panel at all
+	-- the world is behind it, which is dark far more often than not.
+	tintSub = lighten or style == "minimal"
 	local function edgeOf(c, amount)
 		if lighten then return c + (1 - c) * amount end
 		return c * (1 - amount)
@@ -1325,13 +1651,43 @@ function Prompt:ApplyStyle()
 		icon:SetPoint("LEFT", 10, 0)
 		icon:Show()
 
+		-- The coloured ring, and a pixel of dark between it and the art.
 		local ring = (p.accentMode == "icon" or p.accentMode == "both") and 2 or 1
-		iconBack:SetPoint("TOPLEFT", icon, "TOPLEFT", -ring, ring)
-		iconBack:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", ring, -ring)
+		local outer = ring + 1
+		iconBack:SetPoint("TOPLEFT", icon, "TOPLEFT", -outer, outer)
+		iconBack:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", outer, -outer)
 		iconBack:Show()
+		iconEdge:ClearAllPoints()
+		iconEdge:SetPoint("TOPLEFT", icon, "TOPLEFT", -1, 1)
+		iconEdge:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", 1, -1)
+		iconEdge:Show()
+		-- Darkest at the bottom edge and gone by the middle: the icon reads as
+		-- set into the panel rather than printed on it.
+		iconShade:ClearAllPoints()
+		iconShade:SetPoint("BOTTOMLEFT", icon, "BOTTOMLEFT")
+		iconShade:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT")
+		iconShade:SetHeight(math.max(2, math.floor(p.iconSize * 0.55)))
+		Gradient(iconShade, "VERTICAL", 0, 0, 0, 0.38, 0, 0, 0, 0)
+		iconShade:Show()
 
-		glowFrame:SetPoint("TOPLEFT", icon, "TOPLEFT", -6, 6)
-		glowFrame:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", 6, -6)
+		-- The halo starts where the ring stops, so it frames the icon without
+		-- ever lying over it, and it stops about at the panel's edge: spilling
+		-- well past it, the halo read as two bars stuck to the top and bottom
+		-- of the prompt. Two pixels over is the dark rim of the shadow, where a
+		-- little light reads as glow rather than as a shape.
+		local room = math.floor((p.height - p.iconSize) / 2) - outer + 2
+		local spread = math.max(3, math.min(8, room))
+		glowFrame:SetPoint("TOPLEFT", icon, "TOPLEFT")
+		glowFrame:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT")
+		PlaceHalo(glowStrips, glowFrame, spread, outer)
+		burstFrame:ClearAllPoints()
+		burstFrame:SetPoint("TOPLEFT", icon, "TOPLEFT")
+		burstFrame:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT")
+		PlaceHalo(burstStrips, burstFrame, 3, outer)
+		if cooldown then
+			cooldown:ClearAllPoints()
+			cooldown:SetAllPoints(icon)
+		end
 
 		-- A circular icon is available where masks are, but it reads as a
 		-- portrait rather than a spell, so it stays opt-in.
@@ -1350,17 +1706,41 @@ function Prompt:ApplyStyle()
 				iconMask:SetAllPoints(icon)
 				iconMask:Show()
 				iconBack:Hide()
+				-- Square pieces under and over a round icon would poke out
+				-- at its corners.
+				iconEdge:Hide()
+				iconShade:Hide()
+				-- The sweep follows the icon's shape: the mask art doubles as
+				-- the swipe texture, which is how the client's own round
+				-- buttons do it.
+				if cooldown then
+					Try(cooldown, "SetSwipeTexture", "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask")
+				end
 			end
-		elseif iconMask then
-			iconMask:Hide()
+		else
+			if iconMask then iconMask:Hide() end
+			if cooldown then Try(cooldown, "SetSwipeTexture", WHITE) end
 		end
 
 		textX = 10 + p.iconSize + 10
 	else
 		icon:Hide()
 		iconBack:Hide()
+		iconEdge:Hide()
+		iconShade:Hide()
 		if iconMask then iconMask:Hide() end
 	end
+	-- Whether there is an icon to sweep, and a cooldown running to sweep it
+	-- with, is SyncCooldown's to decide; the settings behind both just changed.
+	self:SyncCooldown()
+
+	-- The band of light is about a fifth of the panel wide and crosses all of
+	-- it, so the distance it travels is the width less its own.
+	local shineWidth = math.max(16, math.min(48, math.floor(p.width * 0.18)))
+	shineFrame:ClearAllPoints()
+	shineFrame:SetPoint("LEFT", art, "LEFT", 0, 0)
+	shineFrame:SetSize(shineWidth, p.height)
+	if shineFrame.anim then shineFrame.anim.move:SetOffset(p.width - shineWidth, 0) end
 
 	-- count chip
 	--
@@ -1497,13 +1877,26 @@ function Prompt:PaintAccent(reason)
 	Gradient(accentTop, "VERTICAL", r, g, b, 1, r, g, b, 0.15)
 	Gradient(accentBottom, "VERTICAL", r, g, b, 0.15, r, g, b, 1)
 	sweep:SetVertexColor(r, g, b, 1)
-	iconGlow:SetVertexColor(r, g, b, 1)
+	PaintHalo(glowStrips, r, g, b, 1)
 
 	if mode == "icon" or mode == "both" then
-		iconBack:SetVertexColor(r, g, b, 0.95)
+		-- Lit from above like everything else on the panel: a little brighter
+		-- at the top of the ring than at the bottom, which is what makes it
+		-- read as a rim rather than a flat square of colour.
+		Gradient(iconBack, "VERTICAL", r * 0.78, g * 0.78, b * 0.78, 0.95,
+			math.min(1, r * 1.12), math.min(1, g * 1.12), math.min(1, b * 1.12), 0.95)
 	else
 		iconBack:SetVertexColor(0, 0, 0, 0.85)
 	end
+
+	-- The reason line, warmed a little towards the same colour, so the two
+	-- things that say why somebody is on the prompt agree at a glance. Mostly
+	-- the grey it always was: it is the second line, and it must not compete
+	-- with the name. Not where the player asked for no accent, and not on a
+	-- light panel, where the tint costs the grey its contrast.
+	local mix = (tintSub and mode ~= "off") and 0.35 or 0
+	subText:SetTextColor(0.60 + (r - 0.60) * mix, 0.61 + (g - 0.61) * mix,
+		0.68 + (b - 0.68) * mix, 1)
 end
 
 ---------------------------------------------------------------------------
@@ -2144,6 +2537,38 @@ end
 -- avoid claiming.
 ---------------------------------------------------------------------------
 
+-- The motion that goes with an outcome, once, as it arrives. A buff the game
+-- confirmed gets the ring popping outward and a band of light across the
+-- panel; a refusal gets the text shaking its head. A cast nobody confirmed gets
+-- neither, on purpose: the panel claims no more than the settle path does, and
+-- a flourish is a claim.
+--
+-- Nothing at all where "Stay quiet in combat" has asked for a still panel in a
+-- fight, or where "Calm" has asked for less movement; and nothing on a panel
+-- that is not up, where it would play to nobody.
+function Prompt:PlayOutcomeFlourish(kind)
+	local p = ns.db and ns.db.profile.prompt
+	if not p or not FullEffects() then return end
+	if InCombatLockdown() and p.hideInCombat then return end
+	if not button:IsShown() then return end
+	self:StopFlourishes()
+	if kind == "cast" then
+		-- Coloured here rather than by PaintAccent: the repaint that follows
+		-- is usually about the next person, and the ring belongs to this one.
+		local r, g, b = 1, 1, 1
+		if (p.accentMode or "icon") ~= "off" then
+			r, g, b = self:AccentColor(current and current.reason or "owed")
+		end
+		if p.showIcon and burstFrame.anim then
+			PaintHalo(burstStrips, r, g, b, 1)
+			burstFrame.anim:Play()
+		end
+		self:PlayShine(1, 1, 1, 0.30)
+	elseif kind == "failed" then
+		if textLayer.shake then textLayer.shake:Play() end
+	end
+end
+
 function Prompt:ShowOutcome(kind, name, detail)
 	if not button then return end
 	outcomeKind, outcomeAt, outcomeName, outcomeDetail = kind, GetTime(), name, detail
@@ -2158,6 +2583,7 @@ function Prompt:ShowOutcome(kind, name, detail)
 	-- noticed the outcome had run out, up to two seconds later, and all that
 	-- while the name line went on reading "could not buff" somebody the button
 	-- underneath had already moved on from.
+	self:PlayOutcomeFlourish(kind)
 	outcomeGen = outcomeGen + 1
 	local gen = outcomeGen
 	if C_Timer and C_Timer.After then
@@ -2245,9 +2671,19 @@ function Prompt:PaintOutcome()
 
 	-- Low alpha and the whole panel, rather than a badge somewhere on it: a
 	-- wash of colour is read without being looked at, which is the point of it
-	-- at half a second.
-	resultFill:SetVertexColor(r, g, b, 0.22)
+	-- at half a second. Lighter for a refusal than it was: the red words and
+	-- the red ring already say it, and a panel flooded red read as an alarm
+	-- over what is usually somebody a step out of range. Lightest for a cast
+	-- nobody confirmed, for the reason above.
+	local wash = (outcomeKind == "failed" and 0.15) or (outcomeKind == "sent" and 0.14) or 0.20
+	resultFill:SetVertexColor(r, g, b, wash)
 	resultFill:Show()
+	-- The ring says it too, where the ring carries a colour at all. Put back by
+	-- the next PaintAccent, which every repaint of a person runs.
+	local mode = ns.db.profile.prompt.accentMode or "icon"
+	if outcomeKind == "failed" and (mode == "icon" or mode == "both") then
+		Gradient(iconBack, "VERTICAL", 0.62, 0.16, 0.14, 0.95, 1.0, 0.36, 0.30, 0.95)
+	end
 	nameText:SetText(lead)
 	outcomePainted = outcomeName
 	if subText:IsShown() then subText:SetText(sub or "") end
@@ -2263,7 +2699,7 @@ function Prompt:SetCombatHold(on)
 	combatHeld = on
 	-- art, never the button: every visual in this file lives on art precisely
 	-- so that combat -- which is when this runs -- cannot refuse it.
-	art:SetAlpha(on and 0.55 or 1)
+	RestArtAlpha()
 end
 
 -- What a branch says when it wanted the prompt gone and the fight would not let
@@ -2373,8 +2809,21 @@ function Prompt:Paint(entry, extra)
 	end
 end
 
+-- The fade on the way out belongs to exactly one branch below -- the panel
+-- showing a click's outcome over an empty queue, which is the panel about to
+-- come down -- and every other outcome of a repaint has to cancel it, or a
+-- person arriving in that half second would be painted onto a panel still
+-- fading to nothing. So the branch asks for it by name and this wrapper stops
+-- it for everybody else, rather than each of a dozen early returns having to
+-- remember to.
 function Prompt:Refresh()
 	if not button or not ns.db then return end
+	self.outroWanted = nil
+	self:RefreshPanel()
+	if not self.outroWanted then self:StopOutro() end
+end
+
+function Prompt:RefreshPanel()
 	local db = ns.db.profile
 	if not db then return end
 	local p = db.prompt
@@ -2576,6 +3025,9 @@ function Prompt:Refresh()
 			if current then
 				nameText:SetText(self:RenderPrimary(current, 0))
 				outcomePainted = nil
+				-- The ring as well: a refusal turned it red, and the name
+				-- line is not the only thing the flash wrote over.
+				self:PaintAccent(current.reason)
 				if subText:IsShown() then
 					subText:SetText("|cffb0b0b0held -- in combat|r")
 				end
@@ -2637,6 +3089,14 @@ function Prompt:Refresh()
 			self:PaintOutcome()
 			lastTop = nil
 			ClearHold()
+			-- Nobody left and the confirmation running out: the panel is on
+			-- its way down, so it fades over the second half of it instead of
+			-- blinking out. The hide itself is still the one below, on the
+			-- repaint the outcome's own timer asks for.
+			if FullEffects() then
+				self.outroWanted = true
+				if not art.outro:IsPlaying() and not art.faded then art.outro:Play() end
+			end
 			return
 		end
 
@@ -2683,7 +3143,13 @@ function Prompt:Refresh()
 
 	local wasHidden = not button:IsShown()
 	local isNew = top.name ~= lastTop
+	-- The moment somebody becomes owed, which is not only the moment they
+	-- arrive on the panel: a passer-by already offered who then buffs you
+	-- stays the same name, and "Flash once" and the stripe's sweep -- both
+	-- keyed on a new name -- let the one event they are named after go by.
+	local becameOwed = top.reason == "owed" and (isNew or lastTopReason ~= "owed")
 	lastTop = top.name
+	lastTopReason = top.reason
 
 	-- Stamped where the panel is repainted rather than where the pick is made:
 	-- PreClick picks too, and a press is not a paint. Renewed on every paint
@@ -2700,6 +3166,9 @@ function Prompt:Refresh()
 
 	if wasHidden then
 		if art.intro then art.intro:Play() end
+		-- A panel coming up part-way through a global cooldown shows what is
+		-- left of it; the cast that started it was sent while it was down.
+		self:SyncCooldown()
 	elseif isNew and textLayer.swap then
 		textLayer.swap:Stop()
 		textLayer.swap:Play()
@@ -2722,7 +3191,7 @@ function Prompt:Refresh()
 	end
 
 	if top.reason == "owed" then
-		self:StartAttention(isNew)
+		self:StartAttention(becameOwed)
 	else
 		self:StopAttention()
 	end
@@ -2810,6 +3279,21 @@ function Prompt:Regions()
 		-- does anything -- a flash style that plays nothing throws nothing.
 		sweep = sweepFrame,
 		glow = glowFrame,
+		glowStrips = glowStrips,
+		-- The effects added for the look: each is a frame or a group whose
+		-- playing is the only evidence it ran, for the same reason as the two
+		-- above. The cooldown is nil on a client without the template.
+		cooldown = cooldown,
+		burst = burstFrame,
+		shine = shineFrame,
+		shake = textLayer and textLayer.shake,
+		intro = art and art.intro,
+		outro = art and art.outro,
+		shadows = shadows,
+		sheen = sheen,
+		iconEdge = iconEdge,
+		iconShade = iconShade,
+		icon = icon,
 		queueBack = queueBack,
 		queueHair = queueHair,
 		rows = queueRows,
