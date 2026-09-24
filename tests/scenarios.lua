@@ -6,7 +6,7 @@
 -- Anything that throws here would, in game, be a silent failure: a timer that
 -- stops running, or a prompt that sits there doing nothing.
 
-local dir = ...
+local dir, extras = ...
 local failures = {}
 local function fail(scenario, msg) failures[#failures + 1] = scenario .. ": " .. msg end
 
@@ -17573,6 +17573,38 @@ if ns then
 	end
 end
 Mock.reset()
+
+-- ------------------------------------------------------------------ extras
+-- Scenarios kept in tests/scenarios/*.lua. Each file is called with the
+-- addon directory and this table of the helpers above, and reads them as
+--   local dir, H = ...
+--   local fail, load, drive = H.fail, H.load, H.drive
+-- A file that will not load, or throws, is a failure of its own rather than
+-- a silent skip: a scenario file nobody runs proves nothing.
+local H = {
+	fail = fail, load = load, drive = drive,
+	optionKeys = optionKeys, walkOptions = walkOptions,
+	inQueue = inQueue, settle = settle, withEmptyPrompt = withEmptyPrompt,
+	firstLogin = firstLogin, strangers = strangers, clearClicks = clearClicks,
+	freshPrompt = freshPrompt, pressButton = pressButton, owe = owe,
+	knowShout = knowShout, primeAuras = primeAuras, favourFrom = favourFrom,
+	pressAndSend = pressAndSend, findOption = findOption, namedSpell = namedSpell,
+	savedProfile = savedProfile, tryAgainst = tryAgainst, optionText = optionText,
+}
+if extras then
+	for i = 1, #extras do
+		local path = extras[i]
+		local name = tostring(path):match("[^/\\]+$") or tostring(path)
+		local chunk, err = loadfile(path)
+		if not chunk then
+			fail(name, "will not load: " .. tostring(err))
+		else
+			local ok, runErr = pcall(chunk, dir, H)
+			if not ok then fail(name, "threw: " .. tostring(runErr)) end
+		end
+		Mock.reset()
+	end
+end
 
 -- ------------------------------------------------------------------ report
 print("=== scenarios ===")

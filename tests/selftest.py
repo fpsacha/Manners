@@ -3493,6 +3493,16 @@ mutate("Core.lua",
        expect="the players it rescued included",
        script="runscenarios.py")
 
+# Mutations kept in tests/mutations/*.py, one file per topic, for the same
+# reason the scenarios are: two pieces of work both appending here collide.
+# Each file is run with mutate() in scope and nothing else.
+import glob as _glob
+for _mf in sorted(_glob.glob(os.path.join(DIR, "tests", "mutations", "*.py"))):
+    print()
+    print("-- " + os.path.basename(_mf))
+    exec(compile(open(_mf, encoding="utf-8").read(), _mf, "exec"),
+         {"mutate": mutate, "__file__": _mf})
+
 print()
 print("after restore:")
 # This file edits the addon in place. A restore that did not happen leaves a

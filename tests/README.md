@@ -59,6 +59,19 @@ prompt sitting there doing nothing.
 python tests/runscenarios.py
 ```
 
+Scenarios can also live in `tests/scenarios/<topic>.lua`, one file per topic,
+so that two pieces of work do not both append to the end of `scenarios.lua`.
+They run after the main file, in name order. Each is called with the addon
+directory and a table of the main file's helpers:
+
+```lua
+local dir, H = ...
+local fail, load, drive = H.fail, H.load, H.drive
+```
+
+Their mutations go in `tests/mutations/<topic>.py`, which `selftest.py` runs
+with `mutate()` in scope.
+
 ## `validate.py` — structure
 
 Lua syntax for every file including bundled libraries, XML well-formedness,
