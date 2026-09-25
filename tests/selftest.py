@@ -808,10 +808,10 @@ mutate("Core.lua",
 		return
 	end
 	ns.pendingClick = nil
-	SayStillOwed(pending.name, "another press arrived before the game answered that one",""",
+	SayStillOwed(pending.name, L["another press arrived before the game answered that one"],""",
        """	ns.pendingClick = nil
 	if GetTime() - pending.at > SETTLE_SECONDS then return end
-	SayStillOwed(pending.name, "another press arrived before the game answered that one",""",
+	SayStillOwed(pending.name, L["another press arrived before the game answered that one"],""",
        "a dead record dropped by the abandon",
        expect="a second press: the twelve-second cooldown stood over a press that cast nothing",
        script="runscenarios.py")
@@ -822,7 +822,7 @@ mutate("Core.lua",
 mutate("Core.lua",
        """	if GetTime() - pending.at > SETTLE_SECONDS then
 		ExpirePendingClick(pending,
-			"the game never answered that press, and this cast came too late to be its answer")
+			L["the game never answered that press, and this cast came too late to be its answer"])
 		return
 	end""",
        """	if GetTime() - pending.at > SETTLE_SECONDS then
@@ -851,7 +851,7 @@ mutate("Core.lua",
 mutate("Core.lua",
        """	if not ns.pendingClick then
 		local late = UnsettleLateRefusal(castGUID)
-		if late then ShowOutcome("failed", late, "the game refused the cast") end
+		if late then ShowOutcome("failed", late, L["the game refused the cast"]) end
 	end
 """,
        "",
@@ -2763,19 +2763,19 @@ mutate("Core.lua",
 
 # An abandoned press announced as "was not buffed", though nothing says so.
 mutate("Core.lua",
-       '\tSayStillOwed(pending.name, "another press arrived before the game answered that one",\n'
-       '\t\t"no answer yet for the press on |cffffffff%s|r -- another press arrived first.")\n',
-       '\tSayStillOwed(pending.name, "another press arrived before the game answered that one")\n',
+       '\tSayStillOwed(pending.name, L["another press arrived before the game answered that one"],\n'
+       '\t\tL["no answer yet for the press on |cffffffff%s|r -- another press arrived first."])\n',
+       '\tSayStillOwed(pending.name, L["another press arrived before the game answered that one"])\n',
        "an unanswered press called a miss",
        expect="a press the game had not answered yet was announced as a miss",
        script="runscenarios.py")
 
 # The repaid line for a shout printing a field name from Buffs.lua.
 mutate("Core.lua",
-       '\t\tsaid = "%s is cast on you, not on them, so whether it reached them depends on"\n'
-       '\t\t\t.. " where they were standing",\n',
-       '\t\tsaid = "our spell went out, but a selfCast buff has no target at all -- whether"\n'
-       '\t\t\t.. " it reached them depends on where they were standing",\n',
+       '\t\tsaid = L["%s is cast on you, not on them, so whether it reached them depends on'
+       ' where they were standing"],\n',
+       '\t\tsaid = L["our spell went out, but a selfCast buff has no target at all -- whether'
+       ' it reached them depends on where they were standing"],\n',
        "a code name in the repaid line",
        expect="chat showed the player a name from the code",
        script="runscenarios.py")
@@ -3472,8 +3472,8 @@ mutate("README.md",
 
 # A raider in another subgroup told to join a group they are in.
 mutate("Core.lua",
-       "or ns.PARTY_IS_SUBGROUP and \"what you cast reaches only your own party -- in a\"",
-       "or false and \"what you cast reaches only your own party -- in a\"",
+       "or ns.PARTY_IS_SUBGROUP and L[\"|cff80ff80%s buffed you|r -- what you cast reaches only your own party",
+       "or false and L[\"|cff80ff80%s buffed you|r -- what you cast reaches only your own party",
        "favour line says group, not subgroup",
        expect="a raider already in the group was told to join it",
        script="runscenarios.py")
