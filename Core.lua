@@ -3223,7 +3223,10 @@ local function NoteFavour(seen)
 		-- A favour all the same, and let go in the moment it arrived.
 		TellLedger("Received", seen, true)
 		if db.verbose then
-			addon:Print(L["|cff80ff80%s buffed you|r -- nothing you cast is any use to them (\"Skip players the buff does nothing for\" is on)"]:format(seen.name))
+			-- The option's name comes in through its own key, the same one the
+			-- options page shows, so a translated line always quotes the
+			-- checkbox the player can actually find.
+			addon:Print(L["|cff80ff80%s buffed you|r -- nothing you cast is any use to them (\"%s\" is on)"]:format(seen.name, L["Skip players the buff does nothing for"]))
 		end
 		return
 	end
