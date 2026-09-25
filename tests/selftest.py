@@ -2326,7 +2326,7 @@ mutate("Core.lua",
 # The summary describing a stranger filter to a class that never reaches one.
 mutate("Core.lua",
        "\tif ns.OnlyReachesGroup() then\n"
-       "\t\treturn out .. \" -- your buffs reach only your group, so nobody is measured\"\n"
+       "\t\treturn L[\"%s -- your buffs reach only your group, so nobody is measured\"]:format(out)\n"
        "\tend\n",
        "",
        "a warrior told strangers are measured",
@@ -2491,7 +2491,7 @@ mutate("Core.lua",
 # The same pin, named nowhere: the line then blames something else.
 mutate("Core.lua",
        "\tif pinned and not ns.IsBuffKnown(pinned) then\n"
-       "\t\treturn (\"%s is pinned and not learned on this character\"):format(ns.BuffName(pinned))\n"
+       "\t\treturn L[\"%s is pinned and not learned on this character\"]:format(ns.BuffName(pinned))\n"
        "\tend\n",
        "",
        "an unlearned pin not named at login",
@@ -3526,8 +3526,11 @@ if ANCHORS_ONLY:
     print()
     for label in dead_anchors:
         print("ANCHOR GONE: " + label)
-    print("RESULT: " + ("%d anchors gone" % len(dead_anchors) if dead_anchors
-                        else "every anchor is live (mutations not run)"))
+    # Through %s rather than a literal ending in a colon and a space before a
+    # quote: validate.py reads every print written that way as a failure word
+    # the CI grep must know, and RESULT is what a passing run prints too.
+    print("RESULT: %s" % ("%d anchors gone" % len(dead_anchors) if dead_anchors
+                          else "every anchor is live (mutations not run)"))
     sys.exit(1 if dead_anchors else 0)
 
 print("after restore:")
