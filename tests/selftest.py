@@ -2058,8 +2058,8 @@ mutate("Core.lua",
 # name written next to the addon's icon, and the only way left to ask what state
 # it is in is to click it -- which changes the answer.
 mutate("Options.lua",
-       '\treturn Enabled() and "Manners" or "Manners |cffff8080off|r"',
-       '\treturn "Manners"',
+       '\tif not Enabled() then return L["%s |cffff8080off|r"]:format("Manners") end\n',
+       '',
        "a launcher that never says which state it is in",
        expect="reads the same on as off",
        script="runscenarios.py")
@@ -2077,10 +2077,10 @@ mutate("Options.lua",
 # icon alone -- on the minimap that is the only shape it has -- and then the
 # tooltip is the last place that can say why no prompt has appeared all evening.
 mutate("Options.lua",
-       """				if not Enabled() then
-					tooltip:AddLine("Switched off -- no prompt will appear.", 1, 0.5, 0.5)
+       """	if not Enabled() then
+		return false, L["Switched off -- no prompt will appear."], 1, 0.5, 0.5
 """,
-       """				if not Enabled() then
+       """	if not Enabled() then
 """,
        "a tooltip that never names the state",
        expect="the tooltip never names the state",
@@ -2089,8 +2089,8 @@ mutate("Options.lua",
 # The minimap button's own click, which is the other way the switch is thrown
 # from outside the page it has a checkbox on.
 mutate("Options.lua",
-       "\t\t\t\t\tns.RepaintOptions()\n\t\t\t\telse",
-       "\t\t\t\telse",
+       "\t-- ticked over an addon that is off.\n\tns.RepaintOptions()\n",
+       "\t-- ticked over an addon that is off.\n",
        "the minimap click leaving the page stale",
        expect="options page drawing the old value",
        script="runscenarios.py")
@@ -3229,16 +3229,16 @@ mutate("Options.lua",
 
 # The minimap tooltip saying "Watching" for a character with nothing learned...
 mutate("Options.lua",
-       "\t\t\t\telseif not ns.ResolveBuff(true) then\n",
-       "\t\t\t\telseif false then\n",
+       "\telseif not ns.ResolveBuff(true) then\n",
+       "\telseif false then\n",
        "tooltip watching with nothing learned",
        expect="(a mage who has learned nothing): a mage who has learned nothing will never see",
        script="runscenarios.py")
 
 # ...and for a class with nothing to give.
 mutate("Options.lua",
-       "\t\t\t\telseif class and ns.CLASSES_WITHOUT_BUFFS and ns.CLASSES_WITHOUT_BUFFS[class] then\n",
-       "\t\t\t\telseif false then\n",
+       "\telseif class and ns.CLASSES_WITHOUT_BUFFS and ns.CLASSES_WITHOUT_BUFFS[class] then\n",
+       "\telseif false then\n",
        "tooltip silent about a class with no buffs",
        expect="the tooltip does not say why a rogue sees no prompt",
        script="runscenarios.py")

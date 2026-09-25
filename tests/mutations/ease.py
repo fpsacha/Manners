@@ -61,7 +61,7 @@ mutate("Prompt.lua",
 
 # The launcher's text knowing nothing about a snooze.
 mutate("Options.lua",
-       "\tif ends then return (\"Manners |cffffd100snoozed until %s|r\"):format(ends) end\n",
+       "\tif ends then return L[\"%s |cffffd100snoozed until %s|r\"]:format(\"Manners\", ends) end\n",
        "",
        "a launcher that never mentions the snooze",
        expect="the launcher's text does not say a snooze is running",
@@ -123,21 +123,21 @@ mutate("Core.lua",
 # ------------------------------------------------------------------ minimap
 
 mutate("Options.lua",
-       "\t\t\t\tif mouseButton == \"RightButton\" and OpenLauncherMenu(owner) then return end\n",
+       "\tif mouseButton == \"RightButton\" and OpenLauncherMenu(owner, later) then return end\n",
        "",
        "a right-click that opens no menu",
        expect="ease: the minimap right-click opens a menu",
        script="runscenarios.py")
 
 mutate("Options.lua",
-       "\tfor _, minutes in ipairs(ns.SNOOZE_CHOICES) do\n",
+       "\tfor _, minutes in ipairs(MENU_SNOOZE_MINUTES) do\n",
        "\tfor _, minutes in ipairs({}) do\n",
        "a menu with no snooze in it",
        expect="the menu is missing entries",
        script="runscenarios.py")
 
 mutate("Options.lua",
-       "\t\t\t\tif HasLauncherMenu() then\n",
+       "\tif HasLauncherMenu() then\n",
        "\t\t\t\tif false then\n",
        "a tooltip that does not mention the menu",
        expect="the tooltip does not list what the clicks do",

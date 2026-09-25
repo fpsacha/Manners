@@ -2430,7 +2430,13 @@ function ns.PutOnNeverList(name)
 			forgiven = true
 		end
 	end
-	if forgiven then SaveDebts() end
+	-- Repainted here rather than only at the end, which somebody already on
+	-- the list never reaches: the launcher's "1 waiting" went on counting a
+	-- favour that had just been let go.
+	if forgiven then
+		SaveDebts()
+		ns.RepaintOptions()
+	end
 
 	if already then
 		if forgiven then
@@ -2566,6 +2572,9 @@ local function TellLedger(event, ...)
 	local ledger = ns.Ledger
 	local fn = ledger and ledger[event]
 	if type(fn) == "function" then ns.Guard("ledger " .. event, fn, ...) end
+	-- The launcher counts the favours waiting to be returned, and these are
+	-- the moments that count changes.
+	if ns.RefreshBrokerText then ns.Guard("broker text", ns.RefreshBrokerText) end
 end
 
 local PRIORITY = { target = 0, owed = 1, group = 2, nearby = 3 }
