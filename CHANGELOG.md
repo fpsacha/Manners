@@ -1,5 +1,105 @@
 # Changelog
 
+## Unreleased
+
+A feature release: a favour ledger, a never-offer list, a snooze, a menu on
+the minimap button, a new look for the prompt, and nine more languages.
+
+### New
+
+- **The favour ledger.** `/manners ledger`, or shift-click the minimap
+  button, shows who buffed you and with what, whether you returned it, and
+  who you buffed without being asked. Newest first.
+- Today's count sits at the top of the ledger ("Returned 3 of 4 favours
+  today"), with your all-time totals under it. The minimap tooltip and the
+  General tab show the same summary.
+- A favour you didn't return says why: the time ran out, nothing you cast
+  helps them, or you put them on your never-offer list.
+- The ledger keeps your last 200 entries per character, never says anything
+  in chat, and opens in combat. Clear keeps favours you still owe and your
+  all-time totals.
+- **Never offer.** Shift-right-click the prompt and that person is never
+  offered anything again. Chat says how to undo it (`/manners allow Name`).
+  A plain right-click still just skips.
+- The never-offer list is on the Who to buff tab, where you can add a name,
+  take one off or clear it. `/manners never` shows it in chat.
+- Someone on the list who buffs you is still offered the favour back.
+  Shift-right-click them on the prompt to let that favour go.
+- **Friends and guildmates first.** Your friends (Battle.net friends
+  included) and guildmates go ahead of other passers-by, and ahead of the
+  rest of your group. People who buffed you still come first. Switch it off
+  under Who comes first.
+- **Snooze.** `/manners snooze` hides the prompt for 15 minutes, or as long
+  as you say (`/manners snooze 5`, `snooze 1h`, up to 4 hours).
+  `/manners snooze off` ends it. The minimap menu and the General tab can
+  snooze too, and the minimap button shows when it ends.
+- **Not while mounted**, on the When tab, keeps the prompt away while you
+  ride. Off by default.
+- **Passers-by only in cities and inns**, under Who to skip, off by default.
+  Your group, anyone who buffed you and your target are still offered
+  everywhere.
+- **Share your settings.** `/manners export` turns them into one line of
+  text to back up or share, and `/manners import` (or the Share settings box
+  on the General tab) uses one. `/manners import undo` puts yours back.
+- A pasted line never switches on speaking to other players, and never
+  changes your on switch, the prompt's lock or position, or your minimap
+  button.
+- `/manners help` lists every command in groups, one line each. A mistyped
+  command, such as `/manners snoze`, suggests the one you probably meant.
+- Pressing the key while the prompt is hidden says why: snoozed, or mounted.
+- The prompt's tooltip says when someone is on your friends list or in your
+  guild.
+
+### The look
+
+- The prompt has a new look: a softer shadow with a crisp edge, light on the
+  glass, and a proper frame around the spell icon.
+- When somebody buffs you, the icon gets a soft glow around it instead of
+  being washed out.
+- The spell icon shows the global cooldown sweep after you cast, like your
+  action bars. Turn it off under Prompt > Icon and queue.
+- When a buff lands, a ring pops out of the icon and light crosses the panel.
+  A refused buff gives a small shake and a red ring instead of flooding the
+  panel red.
+- After your last buff the prompt fades out instead of blinking off.
+- New Prompt setting **Effects**: Full, or Calm for less movement. "Stay
+  quiet in combat" also stops the new effects during a fight.
+
+### The minimap button
+
+- **Right-click now opens a menu** instead of switching Manners off.
+  Middle-click switches it on or off in one press.
+- The menu has on or off, snooze, who's next (skip them or never offer them),
+  the ledger, preview, the prompt's lock and position, sound and effects, the
+  chat lines, and your profiles.
+- In a fight, the entries that would move the prompt are greyed out until it
+  ends.
+- The icon dims while Manners is snoozed and goes darker still while it is
+  off. A broker display shows how many people who buffed you are waiting for
+  one back.
+- Manners is also in the addon compartment under the minimap, so hiding the
+  button loses nothing.
+
+### Languages
+
+- Manners now speaks German, Spanish (Spain and Mexico), French, Italian,
+  Korean, Brazilian Portuguese, Russian, Simplified Chinese and Traditional
+  Chinese: the options, the prompt, the ledger and the chat lines.
+- The prompt's wordings and the buff phrases start out in your client's
+  language. Phrases you never edited switch over too, even though earlier
+  versions saved them in English.
+- Slash commands stay in English in every language.
+
+### Fixed
+
+- Someone already on the prompt who then buffs you now gets "Flash once" and
+  the stripe sweep. Before, only a new face did.
+- The prompt no longer hops down a few pixels at the end of its entrance.
+- While the prompt is unlocked, the chat line when someone buffs you says the
+  favour waits until you lock it, instead of saying it is on the prompt.
+- A buff the game refused late no longer cuts short a newer favour the same
+  person gave you in the meantime.
+
 ## 1.0.0-beta.5
 
 A second full bug-fix pass: 73 fixes, most with a test that fails without them.

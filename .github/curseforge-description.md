@@ -35,6 +35,20 @@ It skips the dead, the out of range, anyone you just tried, and anyone the buff
 does nothing for — Arcane Intellect is wasted on a rogue. Right-click the
 prompt to skip somebody without marking their favour repaid.
 
+**Never offer.** Shift-right-click the prompt and that person is never offered
+anything again — unless they buff you, because returning a favour is the point.
+The list is on the *Who to buff* tab, and `/manners allow Name` takes somebody
+off it.
+
+**Friends and guildmates first.** Battle.net friends included, they go ahead
+of other passers-by and ahead of the rest of your group. People who buffed you
+still come first.
+
+**Out of the way when you want it.** `/manners snooze` hides the prompt for
+15 minutes (or `snooze 5`, `snooze 1h`, `snooze off`). *Not while mounted*
+keeps it away while you ride, and *only in cities and inns* leaves strangers
+alone out in the world. The last two are off by default.
+
 ### How near is near
 
 Being in range is not the same as being near. Arcane Intellect reaches about
@@ -67,6 +81,28 @@ click and editable afterwards:
 > Winds at your back, Ardith.
 
 Roleplay, Polite, Cheeky, or just their name.
+
+### The favour ledger
+
+Who buffed you and with what, whether you returned it, and who you buffed
+without being asked — newest first, with today's count at the top ("Returned
+12 of 14 favours today") and your all-time totals under it. `/manners ledger`
+or shift-click the minimap button. It never says anything in chat.
+
+### The prompt
+
+Three looks, full colour and font control, and LibSharedMedia support. When a
+buff lands a ring pops out of the icon and light crosses the panel; a refused
+one gives a small shake. The icon shows the global cooldown sweep like an
+action bar. Set *Effects* to *Calm* if you would rather it kept still.
+
+### The minimap button
+
+Click for options, shift-click for the ledger, middle-click to switch Manners
+on or off. Right-click for a menu: snooze, preview, who's next (skip them or
+never offer them), lock and position, sound and effects, chat lines and
+profiles. It is in the addon compartment too, so hiding the button loses
+nothing.
 
 ### Classes
 
@@ -147,12 +183,24 @@ Once per character, and `/manners welcome` brings it back.
 /manners welcome   what it does, and the one thing it needs from you
 /manners unlock    drag the prompt — it re-locks when you let go
 /manners test      preview, for styling
+/manners snooze    hide the prompt for 15 minutes, or as long as you say
+/manners ledger    the favour ledger
+/manners never     who is never offered anything; add a name to put them on it
+/manners export    your settings as one line of text, to keep or to share
+/manners import    use a line somebody exported (import undo puts yours back)
 /manners debug     which client, which spells, and what it can measure
 /manners errors    anything the addon caught and carried on from
+/manners help      every command, grouped
 ```
 
-Three looks, full colour and font control, LibSharedMedia support, profiles,
-and a minimap button.
+Settings travel as one line of text: a pasted one never switches on speaking
+to other players, and never moves your prompt. Profiles are supported too.
+
+### Languages
+
+English, German, Spanish (Spain and Mexico), French, Italian, Korean,
+Brazilian Portuguese, Russian, Simplified and Traditional Chinese — whichever
+your client runs in.
 
 ### On WoW Forever
 
