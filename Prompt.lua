@@ -2393,7 +2393,10 @@ function Prompt:ClickSummary(entry)
 	local out = {}
 	if not (entry and entry.buff) then return out end
 	local spell = ns.BuffName(entry.buff)
-	local who = entry.short or entry.name or "them"
+	-- An entry with no name at all is rare, and it gets sentences of its own
+	-- that say "them" rather than a bare "them" slotted into each one: the
+	-- pronoun takes a different form in each position in plenty of languages.
+	local who = entry.short or entry.name
 
 	-- /manners try replaces the whole macro with whatever was typed, and none
 	-- of the sentences below are true of it.
@@ -2402,33 +2405,36 @@ function Prompt:ClickSummary(entry)
 		-- the button was left empty for.
 		local text, unfilled = ns.ExpandTokens(ns.tryMacro)
 		if not text then
-			out[#out + 1] = ("|cffffcc66Does nothing:|r %s."):format(unfilled)
+			out[#out + 1] = L["|cffffcc66Does nothing:|r %s."]:format(unfilled)
 			return out
 		end
-		out[#out + 1] = ("Runs your |cffffd100/manners try|r macro against |cffffffff%s|r.")
-			:format(who)
+		out[#out + 1] = who
+			and L["Runs your |cffffd100/manners try|r macro against |cffffffff%s|r."]:format(who)
+			or L["Runs your |cffffd100/manners try|r macro against |cffffffffthem|r."]
 		return out
 	end
 
 	if entry.buff.selfCast then
-		out[#out + 1] = ("Casts |cffffffff%s|r on you; it reaches your party from there.")
+		out[#out + 1] = L["Casts |cffffffff%s|r on you; it reaches your party from there."]
 			:format(spell)
 	else
 		-- The spelling the targeting line will actually carry, rather than the
 		-- name the person is filed under or the shortened one the panel shows.
 		-- Those are the same string on Camelot and diverge for a cross-realm
 		-- player anywhere else, and this sentence claims to describe the macro.
-		out[#out + 1] = ("Targets |cffffffff%s|r, casts |cffffffff%s|r.")
-			:format(entry.targetName or entry.name or who, spell)
+		local target = entry.targetName or entry.name or who
+		out[#out + 1] = target
+			and L["Targets |cffffffff%s|r, casts |cffffffff%s|r."]:format(target, spell)
+			or L["Targets |cffffffffthem|r, casts |cffffffff%s|r."]:format(spell)
 		-- What the strategy decided, not the setting it started from: the two
 		-- differ for your own target, whose macro hands nothing back.
 		local _, restore = CastLines(entry)
 		if restore then
-			out[#out + 1] = "Hands your own target back afterwards."
+			out[#out + 1] = L["Hands your own target back afterwards."]
 		elseif ns.db.profile.filters.restoreTarget then
-			out[#out + 1] = "They are already your target, so they stay targeted."
+			out[#out + 1] = L["They are already your target, so they stay targeted."]
 		else
-			out[#out + 1] = "|cffffcc66Leaves them targeted|r -- your own target is not restored."
+			out[#out + 1] = L["|cffffcc66Leaves them targeted|r -- your own target is not restored."]
 		end
 	end
 
@@ -2436,7 +2442,7 @@ function Prompt:ClickSummary(entry)
 		-- Quoted without its slash command: which channel it goes to is a
 		-- setting three lines away in the options, and what it says is the part
 		-- worth reading before pressing anything.
-		out[#out + 1] = ("Says: |cffffffff%s|r"):format((phraseText:gsub("^/%S+%s*", "")))
+		out[#out + 1] = L["Says: |cffffffff%s|r"]:format((phraseText:gsub("^/%S+%s*", "")))
 	end
 	return out
 end
@@ -2632,7 +2638,7 @@ end
 local function TestEntry()
 	return {
 		name = "Preview",
-		short = "|cffffd100PREVIEW|r",
+		short = "|cffffd100" .. L["PREVIEW"] .. "|r",
 		class = "PRIEST",
 		reason = "owed",
 		buff = ns.ResolveBuff(true),
@@ -2642,11 +2648,13 @@ end
 
 local TEST_SECONDS = 20
 
-function Prompt:ExitTest(why)
+-- `line` is the whole chat line for a preview that ended on its own, written
+-- where the reason is known so each reason is one sentence to translate.
+function Prompt:ExitTest(line)
 	if not testMode then return end
 	testMode, testExpiry = false, nil
 	self:ApplyTarget(nil)
-	ns.addon:Print("preview off" .. (why and (" -- " .. why) or "") .. ".")
+	ns.addon:Print(line or L["preview off."])
 	-- The options page labels its button from InTest, and AceConfig only asks
 	-- while it is drawing. Every way a preview ends comes through here -- the
 	-- slash command, the page's own button, the clock, somebody real -- so
@@ -2683,8 +2691,7 @@ function Prompt:ToggleTest()
 	-- -- the fight froze it -- so the preview painted "PREVIEW" over a button
 	-- that still cast at them. Stopping one is above this and still works.
 	if InCombatLockdown() then
-		ns.addon:Print("|cffff8080not during a fight|r -- the preview can be shown once it"
-			.. " ends.")
+		ns.addon:Print(L["|cffff8080not during a fight|r -- the preview can be shown once it ends."])
 		return
 	end
 	-- Refresh stands a mock-up aside the moment somebody real is waiting, and
@@ -2705,9 +2712,7 @@ function Prompt:ToggleTest()
 	if db and db.enabled and db.prompt.locked and not InCombatLockdown()
 		and not ns.SnoozeLeft() and not (ns.OptionsOpen and ns.OptionsOpen())
 		and #ns.BuildQueue() > 0 then
-		ns.addon:Print("somebody real is on the prompt, so there is nothing to preview"
-			.. " -- open |cffffd100/manners|r to style it; a preview holds while that"
-			.. " window is open.")
+		ns.addon:Print(L["somebody real is on the prompt, so there is nothing to preview -- open |cffffd100/manners|r to style it; a preview holds while that window is open."])
 		return
 	end
 	testMode = true
@@ -2719,8 +2724,8 @@ function Prompt:ToggleTest()
 	if not testMode then return end
 	-- The options page's button now has to read "Stop preview"; see ExitTest.
 	if ns.RepaintOptions then ns.RepaintOptions() end
-	ns.addon:Print(("preview on -- it stays while the options window is open, then %ds"
-		.. " longer, or |cffffd100/manners test|r to stop."):format(TEST_SECONDS))
+	ns.addon:Print(L["preview on -- it stays while the options window is open, then %ds longer, or |cffffd100/manners test|r to stop."]
+		:format(TEST_SECONDS))
 end
 
 ---------------------------------------------------------------------------
@@ -2831,7 +2836,7 @@ function Prompt:MovedOn(top)
 	if resultFill then resultFill:Hide() end
 	ns.Guard("prompt moved on", Prompt.Refresh, self)
 	self:ApplyTarget(nil)
-	ns.addon:Print(("the prompt has moved on to |cffffffff%s|r -- press again to buff them.")
+	ns.addon:Print(L["the prompt has moved on to |cffffffff%s|r -- press again to buff them."]
 		:format(tostring(top.short or top.name)))
 end
 
@@ -2840,8 +2845,9 @@ end
 -- usually moved on to somebody else -- which is exactly why it has to be able
 -- to overwrite rather than being folded into Paint.
 function Prompt:PaintOutcome()
-	local who = outcomeName or "them"
-	if ns.ShortName then who = ns.ShortName(outcomeName) or who end
+	-- No name is rare, and each headline has its own "them" sentence for it,
+	-- for the same reason as in ClickSummary.
+	local who = ns.ShortName and ns.ShortName(outcomeName) or outcomeName
 
 	local r, g, b = self:AccentColor(current and current.reason or "owed")
 	local lead, sub
@@ -2852,7 +2858,8 @@ function Prompt:PaintOutcome()
 		-- sight, not enough mana -- and until now none of it reached the user
 		-- unless they had turned the click debugging on.
 		r, g, b = 0.90, 0.26, 0.22
-		lead = ("|cffff8080could not buff|r |cffffffff%s|r"):format(who)
+		lead = who and L["|cffff8080could not buff|r |cffffffff%s|r"]:format(who)
+			or L["|cffff8080could not buff|r |cffffffffthem|r"]
 		sub = outcomeDetail
 	elseif outcomeKind == "sent" then
 		-- Deliberately not a tick. Our spell went out, but what connects it to
@@ -2864,11 +2871,13 @@ function Prompt:PaintOutcome()
 		-- confirm, or a selfCast buff with no target at all -- so the settle
 		-- sends the clause rather than this file guessing at it. The fallback
 		-- is the commoner of the two, for a caller that sends none.
-		lead = ("|cffe8e0a0sent to|r |cffffffff%s|r"):format(who)
-		sub = outcomeDetail or "cast -- this client will not confirm who to"
+		lead = who and L["|cffe8e0a0sent to|r |cffffffff%s|r"]:format(who)
+			or L["|cffe8e0a0sent to|r |cffffffffthem|r"]
+		sub = outcomeDetail or L["cast -- this client will not confirm who to"]
 	else
-		lead = ("|cff8ce88cbuffed|r |cffffffff%s|r"):format(who)
-		sub = "the game confirmed it"
+		lead = who and L["|cff8ce88cbuffed|r |cffffffff%s|r"]:format(who)
+			or L["|cff8ce88cbuffed|r |cffffffffthem|r"]
+		sub = L["the game confirmed it"]
 	end
 
 	-- Low alpha and the whole panel, rather than a badge somewhere on it: a
@@ -2911,7 +2920,12 @@ end
 -- it go. Four are in that position -- switched off, unlocked, nothing this
 -- character can cast, and the held panel with nobody on it -- and all four have
 -- the same two problems: a panel that cannot be taken down and nobody to put on
--- it. One sentence, then, with `why` the only part that differs.
+-- it. One sentence, then, with the reason the only part that differs.
+--
+-- Each caller hands over both whole sentences for its reason rather than the
+-- reason alone. A bare "held" or "unlocked" gives a translator no idea it
+-- names the panel, and the word has to agree with the rest of the sentence it
+-- lands in, which only a whole sentence lets them see.
 --
 -- The name line has two shapes because the state genuinely has two. The
 -- attributes were either emptied by the clear path before the fight started -- a
@@ -2920,15 +2934,13 @@ end
 -- the macro. The first is inert; the second still casts on a press, which is
 -- what PostClick warns about off this same attribute, so the panel and the
 -- warning cannot come apart.
-function Prompt:PaintHeldInert(why)
+function Prompt:PaintHeldInert(whyFrozen, whyInert)
 	local frozen = button:GetAttribute("macrotext1")
-	nameText:SetText(frozen and "|cffff8080still armed by the fight|r"
-		or "|cff909098nothing to buff|r")
+	nameText:SetText(frozen and "|cffff8080" .. L["still armed by the fight"] .. "|r"
+		or "|cff909098" .. L["nothing to buff"] .. "|r")
 	outcomePainted = nil
 	if subText:IsShown() then
-		subText:SetText(("|cffb0b0b0%s -- %s|r"):format(why,
-			frozen and "a press still casts what the fight froze"
-			or "nothing armed, and the panel cannot go"))
+		subText:SetText(("|cffb0b0b0%s|r"):format(frozen and whyFrozen or whyInert))
 	end
 	-- Every other claim on the panel goes with the name: a count of a queue that
 	-- is not being offered, and the wash of colour from a click that is over.
@@ -3062,7 +3074,9 @@ function Prompt:RefreshPanel()
 		-- whenever the client finally answers -- and the panel cannot come down
 		-- for it any more than for anything else.
 		if not SetPanelShown(false) then
-			self:PaintHeldInert("nothing this character can cast")
+			self:PaintHeldInert(
+				L["nothing this character can cast -- a press still casts what the fight froze"],
+				L["nothing this character can cast -- nothing armed, and the panel cannot go"])
 		end
 		return
 	end
@@ -3084,12 +3098,12 @@ function Prompt:RefreshPanel()
 		if styling then
 			testExpiry = now + TEST_SECONDS
 		elseif testExpiry and now > testExpiry then
-			self:ExitTest("timed out")
+			self:ExitTest(L["preview off -- timed out."])
 		elseif db.enabled and p.locked and not InCombatLockdown() and not ns.SnoozeLeft(now)
 			and #ns.BuildQueue() > 0 then
 			-- Somebody real is waiting. Never let a mock-up stand in front of
 			-- an actual person who just buffed you.
-			self:ExitTest("somebody real turned up")
+			self:ExitTest(L["preview off -- somebody real turned up."])
 		end
 	end
 
@@ -3119,7 +3133,7 @@ function Prompt:RefreshPanel()
 		-- the prompt never shows.
 		local mock, reasons = {}, { "owed", "group", "nearby", "nearby", "nearby" }
 		for i = 1, (p.showQueue and p.queueRows or 0) do
-			mock[i] = { text = "Someone " .. i, reason = reasons[i] }
+			mock[i] = { text = L["Someone %d"]:format(i), reason = reasons[i] }
 		end
 		self:PaintQueue(mock)
 		return
@@ -3138,7 +3152,10 @@ function Prompt:RefreshPanel()
 		-- macro under it. Saying so is the whole of what is left to do: the user
 		-- was told the addon is off, and a panel still standing there naming the
 		-- last candidate is the addon disagreeing with its own chat line.
-		if not SetPanelShown(false) then self:PaintHeldInert("switched off") end
+		if not SetPanelShown(false) then
+			self:PaintHeldInert(L["switched off -- a press still casts what the fight froze"],
+				L["switched off -- nothing armed, and the panel cannot go"])
+		end
 		return
 	end
 
@@ -3148,9 +3165,9 @@ function Prompt:RefreshPanel()
 		HideQueue()
 		ClearHold()
 		if SetPanelShown(true) then
-			nameText:SetText("|cffffd100Drag to move|r")
+			nameText:SetText("|cffffd100" .. L["Drag to move"] .. "|r")
 			outcomePainted = nil
-			if subText:IsShown() then subText:SetText("|cffff8080not buffing while unlocked|r") end
+			if subText:IsShown() then subText:SetText("|cffff8080" .. L["not buffing while unlocked"] .. "|r") end
 			countChip:Hide()
 			countText:SetText("")
 			resultFill:Hide()
@@ -3161,7 +3178,8 @@ function Prompt:RefreshPanel()
 			-- OnDragStart gives up on lockdown too. So an unlocked prompt caught
 			-- by a fight says what it is rather than inviting the one thing that
 			-- cannot be done to it.
-			self:PaintHeldInert("unlocked")
+			self:PaintHeldInert(L["unlocked -- a press still casts what the fight froze"],
+				L["unlocked -- nothing armed, and the panel cannot go"])
 		end
 		return
 	end
@@ -3240,7 +3258,7 @@ function Prompt:RefreshPanel()
 				-- line is not the only thing the flash wrote over.
 				self:PaintAccent(current.reason)
 				if subText:IsShown() then
-					subText:SetText("|cffb0b0b0held -- in combat|r")
+					subText:SetText("|cffb0b0b0" .. L["held -- in combat"] .. "|r")
 				end
 				-- Nobody, rather than the number the fight started with. The
 				-- count is a claim about a queue this branch has just blanked for
@@ -3260,7 +3278,8 @@ function Prompt:RefreshPanel()
 				-- painted -- a green past-tense headline about somebody no longer
 				-- anywhere near the queue -- stood as the panel's title for the
 				-- whole fight, over a button holding no macro at all.
-				self:PaintHeldInert("held")
+				self:PaintHeldInert(L["held -- a press still casts what the fight froze"],
+					L["held -- nothing armed, and the panel cannot go"])
 			end
 		end
 		return
@@ -3474,8 +3493,8 @@ function Prompt:SayWaiting(left)
 	-- Rounded up: "ready in 0.0s" over a press that was just refused for not
 	-- being ready reads as the addon contradicting itself.
 	ns.Guard("waiting line", function()
-		subText:SetText(("|cffb8b8c7ready in %.1fs|r"):format(
-			math.max(0.1, math.ceil((left or 0) * 10) / 10)))
+		subText:SetText("|cffb8b8c7" .. L["ready in %.1fs"]:format(
+			math.max(0.1, math.ceil((left or 0) * 10) / 10)) .. "|r")
 	end)
 end
 
