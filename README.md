@@ -20,6 +20,10 @@ It also offers nearby players who are missing yours — not to optimise a raid,
 just so being the person who buffs strangers costs one click instead of a
 minute of squinting at names.
 
+**Languages:** English, German, Spanish (Spain and Mexico), French, Italian,
+Korean, Brazilian Portuguese, Russian, Simplified and Traditional Chinese —
+whichever your client runs in. Slash commands are English in all of them.
+
 ## Installing
 
 **[Wago](https://addons.wago.io/addons/rNkgzlNa)** — and through **WowUp**,
@@ -127,6 +131,14 @@ their timer drops below a threshold you set, or always offer regardless.
 Somebody who buffed you is offered the favour back either way, even if they
 already have it — recasting it only refreshes it.
 
+**Snooze** hides the prompt for a while without switching Manners off:
+`/manners snooze` for 15 minutes, `/manners snooze 5` or `snooze 1h` for your
+own length (up to four hours), `snooze off` to end it early. The minimap menu
+and the General tab have it too. It lasts until the time is up or you reload.
+**Not while mounted**, on the *When* tab and off by default, keeps the prompt
+away while you ride. Press the key while either is hiding the prompt and chat
+says which.
+
 <img src=".github/media/screenshot-reasons.png" alt="Four prompts, each a different colour, showing the four reasons somebody appears" width="640">
 
 <details>
@@ -211,59 +223,107 @@ talking.
 Off by default, and when on it defaults to speaking only when returning a
 favour.
 
+## The favour ledger
+
+A small window listing who buffed you, with what and when, whether you
+returned it and with what, and who you buffed without being asked — newest
+first. Today's count ("Returned 12 of 14 favours today") and the all-time
+totals sit at the top, then tabs for everything, favours, and buffs you gave.
+A favour you did not return says why: the time ran out, nothing you cast helps
+them, or you put them on the never-offer list. A favour nothing you cast could
+return (a warrior's shout, to a mage) is listed but left out of today's count.
+
+`/manners ledger`, a shift-click on the minimap button, or the button on the
+General tab. It keeps the last 200 entries per character; Clear empties the
+list but keeps favours still owed and the all-time counts. It opens in combat
+and never says anything in chat.
+
+## The prompt's look
+
+Three looks — glass, framed and minimal — with full colour and font control
+and LibSharedMedia support. When a buff lands, a ring pops out of the icon and
+light crosses the panel; a refused one gives the text a small shake and turns
+the ring red. Somebody who buffs you makes the panel catch the light once, and
+after your last buff the prompt fades out rather than blinking off. The icon
+shows the global cooldown sweep, like an action bar.
+
+*Effects* on the *Prompt* tab turns all that movement down to *Calm*, and the
+sweep has its own switch under *Icon and queue*. *Stay quiet in combat* keeps
+it still in a fight.
+
+## The minimap button
+
+A click opens the options, a shift-click the favour ledger, and a middle click
+switches Manners on or off. Right-click it for a menu: on or off, snooze
+(5 minutes to an hour), preview, the ledger, who is waiting next (skip one, or
+never offer them anything), the prompt's lock, position, sound and effects,
+the chat lines, and your profiles (when you have more than one). In a fight the
+entries that would move the prompt wait until it ends.
+
+The icon dims while Manners is snoozed and goes darker still while it is off,
+and a broker display shows how many people who buffed you are still waiting
+for one back. The same launcher is in the addon compartment under the minimap,
+and its line there says off, snoozed or waiting just as the button's text
+does, so hiding the button loses nothing.
+
 ## Usage
 
 ```
-/manners           options
-/manners welcome   what it does and the one thing it needs from you
-/manners unlock    drag the prompt, then /manners lock
-/manners test      preview, for styling without waiting for a real entry
-/manners never     who is never offered anything; /manners never <name> adds
-/manners allow <name>  takes somebody off that list
-/manners snooze    hide the prompt for 15 minutes (or /manners snooze 5, snooze 1h, snooze off)
-/manners export    your settings as one line of text, to keep or to share
-/manners import    use a line somebody exported (/manners import undo puts yours back)
-/manners ledger    the favour ledger
-/manners debug     what your class and this build allow
-/manners errors    the last few things that broke, if any did
-/manners help      every command, grouped
+/manners                    options (so does /manners options)
+
+Everyday
+/manners on | off           switch it on or off
+/manners snooze [min|off]   hide the prompt for 15 minutes, or as long as you say
+/manners test               preview the prompt, for styling
+/manners ledger             the favour ledger
+/manners never [name]       who is never offered anything, or put somebody on it
+/manners allow <name>       take somebody off that list
+
+Setting it up
+/manners welcome            what it does, and the one thing it needs from you
+/manners macro              make a /click macro for your action bar
+/manners unlock             drag the prompt; it locks again when you let go
+/manners lock               lock it again -- an unlocked prompt never casts
+/manners restore            switch handing your target back on or off
+/manners verbose            switch the chat lines about who buffed you on or off
+
+Sharing settings
+/manners export             your settings as one line of text
+/manners import <text>      use a line somebody exported
+/manners import undo        put your own settings back
+
+When something is wrong
+/manners debug              what your class and this build allow
+/manners errors             the last few things that broke, if any did
+/manners clicks             log what the button does when clicked
+/manners try <macro>        run any macro text from the prompt
+/manners look [unit]        every answer the game gives about a unit
+/manners forms              example macros to try
+/manners help               this list, grouped the same way
 ```
 
-The favour ledger is a small window listing who buffed you, with what and
-when, whether you returned it and with what, and who you buffed without being
-asked -- newest first. Today's count ("Returned 12 of 14 favours today") and
-the all-time totals sit at the top, then tabs for everything, favours, and
-buffs you gave. A favour nothing you cast could return (a warrior's shout, to a
-mage) is listed but left out of today's count. Shift-click the minimap button
-for it, or use the button on the General tab. It keeps the last 200 entries per
-character; Clear empties the list but keeps favours still owed and the all-time
-counts. It never says anything in chat.
+`/mnr` works in place of `/manners` in all of them. A word it does not
+recognise suggests the closest command, or lists them all.
 
-The first login on a character says all of that by itself, once, and puts the
-prompt on screen so you can see where it is. It is kept per character rather
-than per profile: every character starts on the one shared profile, so a flag
-there would greet whoever logged in first and nobody else — and what it asks
-for (a macro on this character's bars, or a key bound) is per character too.
-
-`/manners` with a word it does not recognise suggests the closest command, or
-lists them all.
-
-The minimap button opens the options on a click, the favour ledger on a
-shift-click, and switches Manners on or off with a middle click. Right-click it
-for a menu: on or off, snooze (5 minutes to an hour), preview, the ledger, who
-is waiting next (skip one, or never offer them anything), the prompt's lock,
-position, sound and effects, the chat lines, and your profiles (when you have
-more than one). In a fight the entries that would move the prompt wait until it
-ends. The icon dims while Manners is snoozed and goes darker still while it is
-off, and a broker display shows how many people who buffed you are still
-waiting for one back. The same launcher is in the addon compartment under the
-minimap, and its line there says off, snoozed or waiting just as the button's
-text does, so hiding the button loses nothing.
+The first login on a character says what `/manners welcome` says by itself,
+once, and puts the prompt on screen so you can see where it is. It is kept per
+character rather than per profile: every character starts on the one shared
+profile, so a flag there would greet whoever logged in first and nobody else —
+and what it asks for (a macro on this character's bars, or a key bound) is per
+character too.
 
 Put it on a bar with a macro containing `/click MannersPrompt LeftButton 1`
 (`/manners macro` makes one), or keybind under
 **Options → Keybindings → Manners** ("Buff the prompted player"). The trailing `1` is the down flag: the
 secure button only casts on the way down.
+
+**Sharing settings.** `/manners export` puts your settings in a box on the
+General tab as one line of text, to keep or to hand to somebody; paste one into
+the box beside it, or after `/manners import`, to use it. Only what differs
+from the defaults is written, a damaged line is refused before anything
+changes, and `/manners import undo` puts your own settings back. A pasted line
+never switches on speaking to other players, and never touches your on switch,
+the prompt's lock or position, or the minimap button.
 
 ## Notes on WoW Forever
 
