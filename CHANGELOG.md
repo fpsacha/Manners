@@ -84,8 +84,7 @@ the minimap button, a new look for the prompt, and nine more languages.
 
 - Manners now speaks German, Spanish (Spain and Mexico), French, Italian,
   Korean, Brazilian Portuguese, Russian, Simplified Chinese and Traditional
-  Chinese: the options, the prompt, the ledger and the chat lines. A handful
-  of the newest lines are still in English for now.
+  Chinese: the options, the prompt, the ledger and the chat lines.
 - The prompt's wordings and the buff phrases start out in your client's
   language. Phrases you never edited switch over too, even though earlier
   versions saved them in English.
