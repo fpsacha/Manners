@@ -594,7 +594,7 @@ mutate("Core.lua",
 #     there -- so a priest read an explanation of a paladin's spells, and with
 #     the walk shipped it does not describe even the paladin any more.
 mutate("Options.lua",
-       """	local text = ("Automatic offers the first of these they are missing, in this order: %s.")
+       """	local text = L["Automatic offers the first of these they are missing, in this order: %s."]
 		:format(list)""",
        '	local text = "Automatic uses the first buff you have learned."',
        "the auto note naming no spells at all",
@@ -1091,10 +1091,10 @@ mutate("Prompt.lua",
 # 75. the label that promised a per-player wait over a click that blocks one
 #     spell. The wording is the bug here, so the wording is what goes back.
 mutate("Options.lua",
-       '''desc = "After you click, how long before that spell is offered to that"
-							.. " player again. Covers casts that failed out of sight.\\n\\n"''',
-       '''desc = "After you click, how long before the same player can come back up."
-							.. " Covers casts that failed out of sight.\\n\\n"''',
+       'desc = L["After you click, how long before that spell is offered to that player again.'
+       ' Covers casts that failed out of sight."]',
+       'desc = L["After you click, how long before the same player can come back up.'
+       ' Covers casts that failed out of sight."]',
        "a per-spell wait sold as a per-player one",
        expect="the same player can come back up",
        script="runscenarios.py")
@@ -1111,8 +1111,8 @@ mutate("Prompt.lua",
 
 # 77. the one place the number really is per person, taken back off the page.
 mutate("Options.lua",
-       '.. " down your buffs works at all. Right-click the prompt to skip"',
-       '.. " down your buffs works at all. There is another way to skip"',
+       ' down your buffs works at all. Right-click the prompt to skip somebody',
+       ' down your buffs works at all. There is another way to skip somebody',
        "the per-person half left unmentioned",
        expect="is nowhere on the page",
        script="runscenarios.py")
@@ -1192,8 +1192,8 @@ mutate("Prompt.lua",
 
 # 85. the source list that named three of the four unit tokens the scan walks.
 mutate("Options.lua",
-       '.. "Seen through nameplates, your target, your focus and your mouseover.",',
-       '.. "Seen through nameplates, your target and your mouseover.",',
+       ' Seen through nameplates, your target, your focus and your mouseover."],',
+       ' Seen through nameplates, your target and your mouseover."],',
        "a way of reaching somebody left off the page",
        expect="does not mention it",
        script="runscenarios.py")
@@ -1201,9 +1201,9 @@ mutate("Options.lua",
 # 86. and the chat switch described as one line when it prints seven kinds --
 #     the useful ones being a click that failed or left somebody owed.
 mutate("Options.lua",
-       'desc = "A line when somebody buffs you, when a favour is counted as repaid,"\n'
-       '\t\t\t\t\t\t\t.. " and when a click fails, is skipped, or leaves somebody owed.\\n\\n"',
-       '''desc = "A line when somebody buffs you.\\n\\n"''',
+       'desc = L["A line when somebody buffs you, when a favour is counted as repaid,'
+       ' and when a click fails, is skipped, or leaves somebody owed."]',
+       'desc = L["A line when somebody buffs you."]',
        "a chat switch narrower on the page than in the code",
        expect="still describes it as a line for when somebody buffs you",
        script="runscenarios.py")
@@ -1212,9 +1212,9 @@ mutate("Options.lua",
 #     somebody, which is a thing nothing in the addon can notice. It runs from
 #     their buff -- the one instant they were provably in range.
 mutate("Options.lua",
-       '''desc = "How long after somebody buffs you that counts as proof they were in"
-					.. " range. It runs from their buff, not from the moment they walk off:"
-					.. " nothing here can see them go.",''',
+       'desc = L["How long after somebody buffs you that counts as proof they were in range.'
+       ' It runs from their buff, not from the moment they walk off: nothing here can see'
+       ' them go."],',
        'desc = "How long a favour stays offerable once we can no longer see them.",',
        "a window timed from an event nothing sees",
        expect="the page does not say so",
@@ -2110,10 +2110,10 @@ mutate("Options.lua",
 # The header over it, which would otherwise be a heading with nothing under it.
 mutate("Options.lua",
        """					miscHeader = {
-						type = "header", name = "Minimap", order = 20,
+						type = "header", name = L["Minimap"], order = 20,
 						hidden = function() return not HasMinimapButton() end,
 					},""",
-       """					miscHeader = { type = "header", name = "Minimap", order = 20 },""",
+       """					miscHeader = { type = "header", name = L["Minimap"], order = 20 },""",
        "a Minimap header over an empty space",
        expect="drawn over nothing at all",
        script="runscenarios.py")
@@ -3093,9 +3093,10 @@ mutate("Options.lua",
 
 # The target switch silent about Always offer...
 mutate("Options.lua",
-       "\t\t\t\t\t.. \"Not while |cffffd100If they already have the buff|r is set to Always\"\n"
-       "\t\t\t\t\t.. \" offer, under When: nothing is read then, so your target is ranked by\"\n"
-       "\t\t\t\t\t.. \" why they are on the list like anybody else.\\n\\n\"\n",
+       "\t\t\t\t\t.. \"\\n\\n\"\n"
+       "\t\t\t\t\t.. L[\"Not while |cffffd100If they already have the buff|r is set to Always"
+       " offer, under When: nothing is read then, so your target is ranked by"
+       " why they are on the list like anybody else.\"]\n",
        "",
        "target switch silent about Always offer",
        expect="the target switch's description does not say that Always offer",
@@ -3113,21 +3114,23 @@ mutate("Options.lua",
 
 # ...and the note under Always offer itself.
 mutate("Options.lua",
-       "Expect to be spending mana.|r\\n\\n\"\n"
-       "\t\t\t\t\t\t\t.. \"|cff888888Nothing is read in this mode, so |cffffd100Whoever I have\"\n"
-       "\t\t\t\t\t\t\t.. \" targeted comes first|r has nothing to go on: your target is ranked by\"\n"
-       "\t\t\t\t\t\t\t.. \" why they are on the list like anybody else.|r\",\n",
-       "Expect to be spending mana.|r\",\n",
+       "Expect to be spending mana.\"]\n"
+       "\t\t\t\t\t\t\t.. \"|r\\n\\n|cff888888\"\n"
+       "\t\t\t\t\t\t\t.. L[\"Nothing is read in this mode, so |cffffd100Whoever I have"
+       " targeted comes first|r has nothing to go on: your target is ranked by"
+       " why they are on the list like anybody else.\"]\n"
+       "\t\t\t\t\t\t\t.. \"|r\",\n",
+       "Expect to be spending mana.\"]\n"
+       "\t\t\t\t\t\t\t.. \"|r\",\n",
        "Always note silent about the target",
        expect="the note under Always offer does not say that Always offer",
        script="runscenarios.py")
 
 # "Remember a buff for" saying nothing of the grace that ends it sooner.
 mutate("Options.lua",
-       "\t\t\t\t\t\t\t.. \" sooner if |cffffd100Let them go after|r is shorter, while\"\n"
-       "\t\t\t\t\t\t\t.. \" |cffffd100Drop people who are probably gone|r is on, under Who to\"\n"
-       "\t\t\t\t\t\t\t.. \" buff.\",\n",
-       "\t\t\t\t\t\t\t.. \" sooner.\",\n",
+       " sooner if |cffffd100Let them go after|r is shorter, while"
+       " |cffffd100Drop people who are probably gone|r is on, under Who to buff.\"],\n",
+       " sooner.\"],\n",
        "remember window silent about the grace",
        expect="the slider says people stay on the prompt this long",
        script="runscenarios.py")
@@ -3135,9 +3138,9 @@ mutate("Options.lua",
 # "People who buffed me" promising a warrior strangers.
 mutate("Options.lua",
        "\t\t\t\t\tif OnlyReachesGroup() then\n"
-       "\t\t\t\t\t\treturn \"Watch for buffs cast on you and offer to return them. What you\"\n",
+       "\t\t\t\t\t\tif ns.PARTY_IS_SUBGROUP then\n",
        "\t\t\t\t\tif false then\n"
-       "\t\t\t\t\t\treturn \"Watch for buffs cast on you and offer to return them. What you\"\n",
+       "\t\t\t\t\t\tif ns.PARTY_IS_SUBGROUP then\n",
        "favour switch promises a warrior strangers",
        expect="a class whose spells reach its group only is told the favour switch works on strangers",
        script="runscenarios.py")
@@ -3160,20 +3163,20 @@ mutate("Options.lua",
 
 # "If they already have the buff" silent about the favour exception...
 mutate("Options.lua",
-       "qualify.\\n\\n\"\n"
-       "\t\t\t\t\t\t\t.. \"Somebody who buffed you is offered the favour back whichever you\"\n"
-       "\t\t\t\t\t\t\t.. \" choose, even if they already have it.\",\n",
-       "qualify.\",\n",
+       "qualify.\"]\n"
+       "\t\t\t\t\t\t\t.. \"\\n\\n\"\n"
+       "\t\t\t\t\t\t\t.. L[\"Somebody who buffed you is offered the favour back whichever you"
+       " choose, even if they already have it.\"],\n",
+       "qualify.\"],\n",
        "already-buffed dropdown hides the favour exception",
        expect="the dropdown's description never says somebody who buffed you",
        script="runscenarios.py")
 
 # ...and the top-up slider the same.
 mutate("Options.lua",
-       "is left alone -- unless\"\n"
-       "\t\t\t\t\t\t\t.. \" they buffed you, in which case they are offered the favour back\"\n"
-       "\t\t\t\t\t\t\t.. \" anyway.\",\n",
-       "is left alone.\",\n",
+       "is left alone -- unless they buffed you, in which case they are offered the favour back"
+       " anyway.\"],\n",
+       "is left alone.\"],\n",
        "top-up slider hides the favour exception",
        expect="the top-up slider's description never says somebody who buffed you",
        script="runscenarios.py")
@@ -3198,10 +3201,10 @@ mutate("Options.lua",
 # The chat switch promising a line for every click, when a cast that worked
 # prints nothing unless it repaid a favour...
 mutate("Options.lua",
-       'desc = "A line when somebody buffs you, when a favour is counted as repaid,"\n'
-       '\t\t\t\t\t\t\t.. " and when a click fails, is skipped, or leaves somebody owed.\\n\\n"',
-       'desc = "A line when somebody buffs you, and a line for what each click turned"\n'
-       '\t\t\t\t\t\t\t.. " into -- cast, refused, skipped, or still owed.\\n\\n"',
+       'desc = L["A line when somebody buffs you, when a favour is counted as repaid,'
+       ' and when a click fails, is skipped, or leaves somebody owed."]',
+       'desc = L["A line when somebody buffs you, and a line for what each click turned'
+       ' into -- cast, refused, skipped, or still owed."]',
        "chat switch promises a line per click",
        expect="the switch's description promises a line for every click",
        script="runscenarios.py")
@@ -3272,8 +3275,8 @@ mutate("Core.lua",
 
 # The same path on the General tab.
 mutate("Options.lua",
-       "\"Options > Keybindings > Manners.\\n\",",
-       "\"Game Menu > Key Bindings > Manners.\\n\",",
+       "Options > Keybindings > Manners.\"]",
+       "Game Menu > Key Bindings > Manners.\"]",
        "How this works names the Game Menu key bindings",
        expect="the key binding is where the greeting says",
        script="runscenarios.py")
@@ -3486,8 +3489,8 @@ mutate("Core.lua",
 
 # The warrior's owed toggle saying the same.
 mutate("Options.lua",
-       "(ns.PARTY_IS_SUBGROUP and \" cast reaches only your own party --\"",
-       "(false and \" cast reaches only your own party --\"",
+       "\t\t\t\t\t\tif ns.PARTY_IS_SUBGROUP then\n",
+       "\t\t\t\t\t\tif false then\n",
        "owed toggle says group, not subgroup",
        expect="the warrior's owed toggle says the shout reaches the group",
        script="runscenarios.py")

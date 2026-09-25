@@ -327,8 +327,8 @@ mutate("Options.lua",
 
 # The game cannot copy, so a button that says it does is a promise broken.
 mutate("Options.lua",
-       "or \"Show my settings as text\" end,",
-       "or \"Copy my settings\" end,",
+       "or L[\"Show my settings as text\"]\n",
+       "or L[\"Copy my settings\"]\n",
        "a button that says it copies",
        expect="copies nothing",
        script="runscenarios.py")
