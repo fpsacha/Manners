@@ -4986,7 +4986,12 @@ end
 -- The honest sentence for a character that will never have anything to offer,
 -- named once. /manners debug has printed it for as long as it has existed and
 -- the greeting owes the same person the same words; two copies of it drift.
-ns.NO_CLASS_BUFFS = "this class has no buffs to cast on other players."
+--
+-- Except that the greeting and the login line say it as the end of a longer
+-- sentence, and a translation cannot glue a standalone sentence onto another
+-- one's clause. So those two carry their own copy of the words inside their
+-- own key, and the copies have to be kept in step with this one by hand.
+ns.NO_CLASS_BUFFS = L["this class has no buffs to cast on other players."]
 
 -- Returns true once it has said its piece, false while it is still waiting.
 --
@@ -5036,8 +5041,7 @@ function ns.Welcome(force, offSaid)
 	-- end of the pull instead, attached to nothing.
 	if InCombatLockdown() and not nothingToGive then
 		if force then
-			addon:Print("|cffff8080not during a fight|r -- the prompt cannot be put on"
-				.. " screen while one is on. Try again when it ends.")
+			addon:Print(L["|cffff8080not during a fight|r -- the prompt cannot be put on screen while one is on. Try again when it ends."])
 		end
 		return false
 	end
@@ -5051,9 +5055,8 @@ function ns.Welcome(force, offSaid)
 	if nothingToGive then
 		-- No preview and no macro for a class that can never fill the prompt:
 		-- that would be a tour of something that is not going to happen.
-		addon:Print("|cffffd100Manners|r is installed, but " .. ns.NO_CLASS_BUFFS)
-		addon:Print("It is still worth keeping for an alt that does -- it will say"
-			.. " hello again there.")
+		addon:Print(L["|cffffd100Manners|r is installed, but this class has no buffs to cast on other players."])
+		addon:Print(L["It is still worth keeping for an alt that does -- it will say hello again there."])
 		return true
 	end
 
@@ -5064,10 +5067,9 @@ function ns.Welcome(force, offSaid)
 	-- for a character with nothing learned yet: that one is worth the tour, and
 	-- learns its first spell in a level or two.
 	if caps.anyKnown and not ns.ResolveBuff(true) then
-		addon:Print(("|cffffd100Manners|r is installed, but nothing will be offered to"
-			.. " anybody: %s."):format(ns.NothingToCast()))
-		addon:Print("|cffffd100/manners welcome|r brings the rest of this back once"
-			.. " that changes.")
+		addon:Print(L["|cffffd100Manners|r is installed, but nothing will be offered to anybody: %s."]
+			:format(ns.NothingToCast()))
+		addon:Print(L["|cffffd100/manners welcome|r brings the rest of this back once that changes."])
 		return true
 	end
 
@@ -5077,18 +5079,16 @@ function ns.Welcome(force, offSaid)
 	-- line.
 	if ns.OnlyReachesGroup() then
 		local buff = ns.ResolveBuff(true)
-		addon:Print(("|cffffd100Manners|r puts anybody in your group who is missing your"
-			.. " |cffffd100%s|r -- or who has just buffed you -- on a small prompt. Clicking"
-			.. " the prompt casts it."):format(buff and ns.BuffName(buff) or "buff"))
+		if buff then
+			addon:Print(L["|cffffd100Manners|r puts anybody in your group who is missing your |cffffd100%s|r -- or who has just buffed you -- on a small prompt. Clicking the prompt casts it."]
+				:format(ns.BuffName(buff)))
+		else
+			addon:Print(L["|cffffd100Manners|r puts anybody in your group who is missing your |cffffd100buff|r -- or who has just buffed you -- on a small prompt. Clicking the prompt casts it."])
+		end
 	else
-		addon:Print("|cffffd100Manners|r puts anybody who buffs you -- and any stranger"
-			.. " nearby who is missing one of yours -- on a small prompt. Clicking the"
-			.. " prompt buffs them.")
+		addon:Print(L["|cffffd100Manners|r puts anybody who buffs you -- and any stranger nearby who is missing one of yours -- on a small prompt. Clicking the prompt buffs them."])
 	end
-	addon:Print("The one thing that is not automatic: |cffffd100/manners macro|r makes"
-		.. " a macro to drag onto a bar -- the |cffffd100Create the macro|r button on"
-		.. " the options page does the same -- or bind a key under Options >"
-		.. " Keybindings > Manners.")
+	addon:Print(L["The one thing that is not automatic: |cffffd100/manners macro|r makes a macro to drag onto a bar -- the |cffffd100Create the macro|r button on the options page does the same -- or bind a key under Options > Keybindings > Manners."])
 
 	-- Switched off, and this character never touched the switch: the profile
 	-- is shared, so an alt of somebody who turned the addon off is greeted by
@@ -5097,8 +5097,7 @@ function ns.Welcome(force, offSaid)
 	-- the setting, the same way /manners unlock does. Unless the login line
 	-- said exactly that one line above.
 	if addon.db.profile and not addon.db.profile.enabled and not offSaid then
-		addon:Print("|cffff8080It is switched off on this profile|r, so no prompt will"
-			.. " appear -- |cffffd100/manners on|r when you want it.")
+		addon:Print(L["|cffff8080It is switched off on this profile|r, so no prompt will appear -- |cffffd100/manners on|r when you want it."])
 	end
 
 	-- In a city the prompt may already have somebody real on it. Refresh drops
@@ -5122,8 +5121,7 @@ function ns.Welcome(force, offSaid)
 	end
 
 	if queued > 0 then
-		addon:Print("The prompt is on screen now, with somebody real on it already."
-			.. " |cffffd100/manners welcome|r brings this back.")
+		addon:Print(L["The prompt is on screen now, with somebody real on it already. |cffffd100/manners welcome|r brings this back."])
 	else
 		-- The existing preview rather than a second path to the same picture:
 		-- it is the real panel in its real place, and it already knows how to
@@ -5141,8 +5139,7 @@ function ns.Welcome(force, offSaid)
 		ns.Guard("welcome preview", function()
 			if ns.Prompt and not ns.Prompt:InTest() then ns.Prompt:ToggleTest() end
 		end)
-		addon:Print("That is the prompt, with a pretend name on it."
-			.. " |cffffd100/manners welcome|r brings this back.")
+		addon:Print(L["That is the prompt, with a pretend name on it. |cffffd100/manners welcome|r brings this back."])
 	end
 	return true
 end
@@ -5194,7 +5191,7 @@ function ns.InspectUnit(unit)
 
 	local okExists, exists = raw(UnitExists, unit)
 	if not okExists or not plain(exists) then
-		say("  does not exist (or its existence is withheld)")
+		say("  %s", L["does not exist (or its existence is withheld)"])
 		return
 	end
 
@@ -5254,8 +5251,8 @@ function ns.InspectUnit(unit)
 				end
 			end
 			if not found and (unreadable or #withheld > 0) then
-				say("  %s  |cff808080withheld: %s|r", show("hasBuff", false),
-					#withheld > 0 and table.concat(withheld, ", ") or "this buff is not readable here")
+				say("  %s  |cff808080%s|r", show("hasBuff", false), L["withheld: %s"]:format(
+					#withheld > 0 and table.concat(withheld, ", ") or L["this buff is not readable here"]))
 			else
 				say("  %s", show("hasBuff", true, found or false))
 			end
@@ -5289,7 +5286,7 @@ function ns.ExpandTokens(text)
 	local info = buff and ns.BuffInfo(buff)
 
 	if entry and not entry.unit and text:find("{unit}", 1, true) then
-		return nil, ("%s has no unit token right now, so {unit} cannot be filled"):format(
+		return nil, L["%s has no unit token right now, so {unit} cannot be filled"]:format(
 			tostring(entry.targetName or entry.name))
 	end
 
@@ -5335,11 +5332,11 @@ local VALID_ANCHORS = {
 -- A list rather than a table keyed by name, because the dropdown needs an
 -- order and a set of anchors has none.
 ns.POSITION_PRESETS = {
-	{ key = "bars", name = "Above the action bars",
+	{ key = "bars", name = L["Above the action bars"],
 		point = "BOTTOM", relPoint = "BOTTOM", x = 0, y = 300 },
-	{ key = "minimap", name = "Under the minimap",
+	{ key = "minimap", name = L["Under the minimap"],
 		point = "TOPRIGHT", relPoint = "TOPRIGHT", x = -20, y = -220 },
-	{ key = "centre", name = "Middle of the screen",
+	{ key = "centre", name = L["Middle of the screen"],
 		point = "CENTER", relPoint = "CENTER", x = 0, y = -140 },
 }
 
@@ -5652,9 +5649,7 @@ end
 function ns.SayAnchorCarried()
 	if not ns.anchorCarriedNote then return end
 	ns.anchorCarriedNote = nil
-	addon:Print("the prompt was moved onto its new anchor, the middle of the screen."
-		.. " If you had put it at the bottom edge on purpose, drag it back or pick a place"
-		.. " under |cffffd100Put it|r on the options page.")
+	addon:Print(L["the prompt was moved onto its new anchor, the middle of the screen. If you had put it at the bottom edge on purpose, drag it back or pick a place under |cffffd100Put it|r on the options page."])
 end
 
 function addon:OnInitialize()
@@ -5753,13 +5748,19 @@ function addon:OnEnable()
 		-- ever appear.
 		local off = not self.db.profile.enabled
 		if not buff and nothingToGive then
-			self:Print(("build |cffffd100%s|r -- %s"):format(tostring(ns.BUILD), ns.NO_CLASS_BUFFS))
+			self:Print(L["build |cffffd100%s|r -- this class has no buffs to cast on other players."]:format(tostring(ns.BUILD)))
 		elseif off then
-			self:Print(("build |cffffd100%s|r -- |cffff8080switched off on this profile|r;"
-				.. " |cffffd100/manners on|r to start."):format(tostring(ns.BUILD)))
+			self:Print(L["build |cffffd100%s|r -- |cffff8080switched off on this profile|r; |cffffd100/manners on|r to start."]
+				:format(tostring(ns.BUILD)))
+		elseif buff then
+			self:Print(L["build |cffffd100%s|r watching for buffs. Ready to cast |cffffd100%s|r."]:format(
+				tostring(ns.BUILD), ns.BuffName(buff)))
 		else
-			self:Print(("build |cffffd100%s|r watching for buffs. Ready to cast |cffffd100%s|r."):format(
-				tostring(ns.BUILD), buff and ns.BuffName(buff) or ("nothing -- " .. ns.NothingToCast())))
+			-- Its own sentence rather than "nothing -- why" dropped into the slot
+			-- above: that slot is written for a spell's name, and a translator
+			-- who is given the object of "cast" cannot also fit a reason there.
+			self:Print(L["build |cffffd100%s|r watching for buffs. Ready to cast |cffffd100nothing -- %s|r."]:format(
+				tostring(ns.BUILD), ns.NothingToCast()))
 		end
 		-- Why the prompt is somewhere else this session, if an update moved it.
 		ns.SayAnchorCarried()
@@ -5892,8 +5893,8 @@ end
 -- "5 minutes", with the one case English spells differently spelt out as a
 -- whole string of its own rather than an "s" glued on.
 function ns.MinutesText(minutes)
-	if minutes == 1 then return "1 minute" end
-	return ("%d minutes"):format(minutes)
+	if minutes == 1 then return L["1 minute"] end
+	return L["%d minutes"]:format(minutes)
 end
 
 -- The one thing every route into a snooze says, so the slash command, the
@@ -5902,18 +5903,16 @@ local function SaySnoozeStarted(minutes)
 	local db = addon.db.profile
 	if not db.enabled then
 		-- Started anyway, and said so: the snooze outlives a /manners on.
-		addon:Print(("snoozed for %s, until %s -- though Manners is switched off, so no"
-			.. " prompt appears either way."):format(ns.MinutesText(minutes), ns.SnoozeEndsAt()))
+		addon:Print(L["snoozed for %s, until %s -- though Manners is switched off, so no prompt appears either way."]
+			:format(ns.MinutesText(minutes), ns.SnoozeEndsAt()))
 	elseif InCombatLockdown() then
 		-- Not "it goes when the fight ends": a panel the fight found empty is
 		-- already gone, and one it found up is what this sentence is for.
-		addon:Print(("snoozed for %s, until %s. In a fight the prompt stays as the fight"
-			.. " found it, and follows the snooze once this one ends."
-			.. " |cffffd100/manners snooze off|r ends it early."):format(
-			ns.MinutesText(minutes), ns.SnoozeEndsAt()))
+		addon:Print(L["snoozed for %s, until %s. In a fight the prompt stays as the fight found it, and follows the snooze once this one ends. |cffffd100/manners snooze off|r ends it early."]
+			:format(ns.MinutesText(minutes), ns.SnoozeEndsAt()))
 	else
-		addon:Print(("snoozed for %s -- no prompt until %s. |cffffd100/manners snooze off|r"
-			.. " ends it early."):format(ns.MinutesText(minutes), ns.SnoozeEndsAt()))
+		addon:Print(L["snoozed for %s -- no prompt until %s. |cffffd100/manners snooze off|r ends it early."]
+			:format(ns.MinutesText(minutes), ns.SnoozeEndsAt()))
 	end
 end
 
@@ -5923,12 +5922,11 @@ end
 local function SnoozeOverText()
 	local db = addon.db.profile
 	if not db.enabled then
-		return "the snooze is over, but Manners is switched off -- |cffffd100/manners on|r"
-			.. " to see the prompt again."
+		return L["the snooze is over, but Manners is switched off -- |cffffd100/manners on|r to see the prompt again."]
 	elseif InCombatLockdown() then
-		return "the snooze is over -- the prompt can appear again once this fight ends."
+		return L["the snooze is over -- the prompt can appear again once this fight ends."]
 	end
-	return "the snooze is over -- the prompt can appear again."
+	return L["the snooze is over -- the prompt can appear again."]
 end
 
 -- Units a length can be typed in, as minutes each. People write a length the
@@ -5974,7 +5972,7 @@ function ns.StopSnooze(quiet)
 		ns.RepaintOptions()
 	end
 	if not quiet then
-		addon:Print(was and SnoozeOverText() or "not snoozed -- the prompt is free to appear.")
+		addon:Print(was and SnoozeOverText() or L["not snoozed -- the prompt is free to appear."])
 	end
 	return was
 end
@@ -6267,16 +6265,13 @@ end
 -- Why a string was refused, one sentence each, each one something the player
 -- can act on.
 ns.SHARE_ERRORS = {
-	empty = "there is nothing to import -- paste a settings string that starts with MNR1:.",
-	notOurs = "that is not a Manners settings string -- one starts with MNR1:.",
-	tooLong = "that is far longer than any Manners settings string, so it was not read.",
-	newer = "that string was made by a newer version of Manners -- update the addon to read it.",
-	incomplete = "that string is incomplete or has been changed -- copy it again in one piece."
-		.. " A chat line holds 255 characters, so paste a longer one into the box under"
-		.. " Share settings on the General tab of the options.",
-	malformed = "that string is damaged -- part of it is not a setting Manners can read."
-		.. " Copy it again in one piece.",
-	badValue = "that string gives %s a value it cannot have, so nothing was changed.",
+	empty = L["there is nothing to import -- paste a settings string that starts with MNR1:."],
+	notOurs = L["that is not a Manners settings string -- one starts with MNR1:."],
+	tooLong = L["that is far longer than any Manners settings string, so it was not read."],
+	newer = L["that string was made by a newer version of Manners -- update the addon to read it."],
+	incomplete = L["that string is incomplete or has been changed -- copy it again in one piece. A chat line holds 255 characters, so paste a longer one into the box under Share settings on the General tab of the options."],
+	malformed = L["that string is damaged -- part of it is not a setting Manners can read. Copy it again in one piece."],
+	badValue = L["that string gives %s a value it cannot have, so nothing was changed."],
 }
 
 -- Read a settings string without touching anything. Returns the values keyed
@@ -6400,31 +6395,28 @@ function ns.ImportSettings(text)
 	-- be translated as it stands.
 	local lines = {}
 	if parsed.count == 0 then
-		lines[1] = "settings imported -- every one of them is the default."
+		lines[1] = L["settings imported -- every one of them is the default."]
 	elseif parsed.count == 1 then
-		lines[1] = "settings imported -- 1 differs from the defaults."
+		lines[1] = L["settings imported -- 1 differs from the defaults."]
 	else
-		lines[1] = ("settings imported -- %d differ from the defaults."):format(parsed.count)
+		lines[1] = L["settings imported -- %d differ from the defaults."]:format(parsed.count)
 	end
 	if parsed.unknown == 1 then
-		lines[#lines + 1] = "1 setting from a newer version of Manners was left out."
+		lines[#lines + 1] = L["1 setting from a newer version of Manners was left out."]
 	elseif parsed.unknown > 1 then
-		lines[#lines + 1] = ("%d settings from a newer version of Manners were left out.")
+		lines[#lines + 1] = L["%d settings from a newer version of Manners were left out."]
 			:format(parsed.unknown)
 	end
 	if kept.switch then
-		lines[#lines + 1] = "The string had speaking a line when you buff switched on. That"
-			.. " is left off, because it talks to other players: switch it on under When you"
-			.. " click if you want it."
+		lines[#lines + 1] = L["The string had speaking a line when you buff switched on. That is left off, because it talks to other players: switch it on under When you click if you want it."]
 	end
 	if kept.words then
-		lines[#lines + 1] = "What you say when you buff, and where, is kept as you had it,"
-			.. " because you have speaking switched on."
+		lines[#lines + 1] = L["What you say when you buff, and where, is kept as you had it, because you have speaking switched on."]
 	end
 	if InCombatLockdown() then
-		lines[#lines + 1] = "The prompt's look changes when this fight ends."
+		lines[#lines + 1] = L["The prompt's look changes when this fight ends."]
 	end
-	lines[#lines + 1] = "|cffffd100/manners import undo|r puts your old settings back."
+	lines[#lines + 1] = L["|cffffd100/manners import undo|r puts your old settings back."]
 	return true, table.concat(lines, " ")
 end
 
@@ -6434,23 +6426,20 @@ end
 function ns.UndoImport()
 	local profile = addon.db and addon.db.profile
 	if not lastImportUndo or not profile then
-		return false, "nothing to undo -- no settings have been imported on this profile"
-			.. " this session."
+		return false, L["nothing to undo -- no settings have been imported on this profile this session."]
 	end
 	-- Read back through the same checks as any string, though it never left
 	-- this session: one path in, and nothing that skips it.
 	local parsed = ns.ParseSettings(lastImportUndo)
 	lastImportUndo = nil
 	if not parsed then
-		return false, "nothing to undo -- no settings have been imported on this profile"
-			.. " this session."
+		return false, L["nothing to undo -- no settings have been imported on this profile this session."]
 	end
 	ApplySettings(profile, parsed, true)
 	if InCombatLockdown() then
-		return true, "your settings from before the import are back. The prompt's look"
-			.. " changes when this fight ends."
+		return true, L["your settings from before the import are back. The prompt's look changes when this fight ends."]
 	end
-	return true, "your settings from before the import are back."
+	return true, L["your settings from before the import are back."]
 end
 
 ---------------------------------------------------------------------------
@@ -6466,47 +6455,50 @@ end
 -- eighteen lines in the order they were written is a list nobody reads past
 -- the fourth. The groups print in the order of COMMAND_GROUPS.
 ns.COMMAND_GROUPS = {
-	{ key = "everyday", title = "Everyday" },
-	{ key = "setup", title = "Setting it up" },
-	{ key = "share", title = "Sharing settings" },
-	{ key = "trouble", title = "When something is wrong" },
+	{ key = "everyday", title = L["Everyday"] },
+	{ key = "setup", title = L["Setting it up"] },
+	{ key = "share", title = L["Sharing settings"] },
+	{ key = "trouble", title = L["When something is wrong"] },
 }
 
+-- `word` and `args` stay in English: the word is what HandleSlash matches, and
+-- the arguments mix placeholders with keywords it matches too -- off, undo --
+-- which a translated help line would teach somebody to type wrong.
 ns.COMMANDS = {
-	{ word = "options", group = "everyday", help = "open the options window" },
-	{ word = "on", group = "everyday", help = "turn the addon on" },
-	{ word = "off", group = "everyday", help = "turn it off" },
+	{ word = "options", group = "everyday", help = L["open the options window"] },
+	{ word = "on", group = "everyday", help = L["turn the addon on"] },
+	{ word = "off", group = "everyday", help = L["turn it off"] },
 	{ word = "snooze", group = "everyday", args = " [minutes|off]",
-		help = "hide the prompt for a while -- 15 minutes unless you say" },
-	{ word = "test", group = "everyday", help = "preview the prompt with a mock candidate" },
+		help = L["hide the prompt for a while -- 15 minutes unless you say"] },
+	{ word = "test", group = "everyday", help = L["preview the prompt with a mock candidate"] },
 	-- "ledger" and not "log", which HandleSlash still takes: listed a line
 	-- from "clicks", whose help says "log what the button does", "log" sent
 	-- somebody after the click log to a different window.
 	{ word = "ledger", group = "everyday",
-		help = "the favour ledger: who buffed you, what you gave back, and who you buffed" },
+		help = L["the favour ledger: who buffed you, what you gave back, and who you buffed"] },
 	{ word = "welcome", group = "setup",
-		help = "what this addon does, and the one thing it needs from you" },
-	{ word = "macro", group = "setup", help = "make a /click macro for your action bar" },
-	{ word = "unlock", group = "setup", help = "unlock the prompt so it can be dragged" },
-	{ word = "lock", group = "setup", help = "lock it again -- an unlocked prompt never casts" },
+		help = L["what this addon does, and the one thing it needs from you"] },
+	{ word = "macro", group = "setup", help = L["make a /click macro for your action bar"] },
+	{ word = "unlock", group = "setup", help = L["unlock the prompt so it can be dragged"] },
+	{ word = "lock", group = "setup", help = L["lock it again -- an unlocked prompt never casts"] },
 	-- Both of these flip a setting that starts on. Written as actions, the way
 	-- they were, somebody who typed one to get what it described on a fresh
 	-- profile switched that very thing off.
 	{ word = "never", group = "everyday", args = " [name]",
-		help = "list who is never offered anything, or put somebody on that list" },
+		help = L["list who is never offered anything, or put somebody on that list"] },
 	{ word = "allow", group = "everyday", args = " <name>",
-		help = "take somebody off the never-offer list" },
-	{ word = "restore", group = "setup", help = "switch handing your target back after buffing on or off" },
-	{ word = "verbose", group = "setup", help = "switch the chat lines about who buffed you on or off" },
-	{ word = "export", group = "share", help = "copy these settings as one line of text" },
+		help = L["take somebody off the never-offer list"] },
+	{ word = "restore", group = "setup", help = L["switch handing your target back after buffing on or off"] },
+	{ word = "verbose", group = "setup", help = L["switch the chat lines about who buffed you on or off"] },
+	{ word = "export", group = "share", help = L["copy these settings as one line of text"] },
 	{ word = "import", group = "share", args = " <text|undo>",
-		help = "use settings somebody exported, or undo the last import" },
-	{ word = "debug", group = "trouble", help = "what your class and this build allow" },
-	{ word = "errors", group = "trouble", help = "the last few things that broke" },
-	{ word = "clicks", group = "trouble", help = "log what the button does when clicked" },
-	{ word = "try", group = "trouble", args = " <macro>", help = "run any macro text from the prompt" },
-	{ word = "look", group = "trouble", args = " [unit]", help = "dump every API answer for a unit" },
-	{ word = "forms", group = "trouble", help = "example macros to try" },
+		help = L["use settings somebody exported, or undo the last import"] },
+	{ word = "debug", group = "trouble", help = L["what your class and this build allow"] },
+	{ word = "errors", group = "trouble", help = L["the last few things that broke"] },
+	{ word = "clicks", group = "trouble", help = L["log what the button does when clicked"] },
+	{ word = "try", group = "trouble", args = " <macro>", help = L["run any macro text from the prompt"] },
+	{ word = "look", group = "trouble", args = " [unit]", help = L["dump every API answer for a unit"] },
+	{ word = "forms", group = "trouble", help = L["example macros to try"] },
 }
 
 -- Other words that reach a command, for somebody who types what they expect
@@ -6518,7 +6510,7 @@ ns.COMMAND_ALIASES = { config = "options", help = "help", ["?"] = "help", log = 
 -- The whole list, one line per command under its group's heading. The first
 -- line is the marker a scenario looks for.
 local function PrintHelp()
-	addon:Print("|cffffd100Manners commands:|r")
+	addon:Print("|cffffd100" .. L["Manners commands:"] .. "|r")
 	for _, group in ipairs(ns.COMMAND_GROUPS) do
 		addon:Print(("|cff909098%s|r"):format(group.title))
 		for _, command in ipairs(ns.COMMANDS) do
@@ -6528,7 +6520,7 @@ local function PrintHelp()
 			end
 		end
 	end
-	addon:Print("|cffffd100/mnr|r works in place of |cffffd100/manners|r in all of them.")
+	addon:Print(L["|cffffd100/mnr|r works in place of |cffffd100/manners|r in all of them."])
 end
 
 -- How many slips of a finger turn one word into the other: a letter missed,
@@ -6626,12 +6618,14 @@ local REPAINT_AFTER = {
 	never = true, allow = true,
 }
 
--- Said by every command that changes what a press does. The macro on the
--- button is a secure attribute, frozen for the length of a fight, so a change
--- made in one is kept and applied when it ends -- and until then the press
--- runs whatever the fight froze, which chat used to say nothing about.
-local FROZEN_UNTIL_FIGHT_ENDS = "takes effect when this fight ends; until then a press"
-	.. " runs the macro already on the button."
+-- Every command that changes what a press does says, in a fight, that it
+-- "takes effect when this fight ends; until then a press runs the macro
+-- already on the button." The macro on the button is a secure attribute,
+-- frozen for the length of a fight, so a change made in one is kept and
+-- applied when it ends -- and until then the press runs whatever the fight
+-- froze, which chat used to say nothing about. The clause is written out in
+-- each whole sentence rather than glued onto the start of one, so each can be
+-- translated as it stands; keep the copies in step when the wording changes.
 
 function addon:HandleSlash(rawInput)
 	rawInput = (rawInput or ""):match("^%s*(.-)%s*$")
@@ -6649,22 +6643,22 @@ function addon:HandleSlash(rawInput)
 			ns.tryMacro = nil
 			ns.Prompt:InvalidateMacro()
 			if InCombatLockdown() then
-				self:Print("try cleared -- the normal cast " .. FROZEN_UNTIL_FIGHT_ENDS)
+				self:Print(L["try cleared -- the normal cast takes effect when this fight ends; until then a press runs the macro already on the button."])
 			else
-				self:Print("try cleared -- back to the normal cast.")
+				self:Print(L["try cleared -- back to the normal cast."])
 			end
 		else
 			ns.tryMacro = rest:gsub("\\n", "\n")
 			ns.Prompt:InvalidateMacro()
-			ns.Say("try armed: |cff80ff80%s|r", (ns.tryMacro:gsub("\n", " | ")))
+			ns.Say(L["try armed: |cff80ff80%s|r"], (ns.tryMacro:gsub("\n", " | ")))
 			local expanded, unfilled = ns.ExpandTokens(ns.tryMacro)
 			-- The same answer the button gets, so the line quoted here cannot be
 			-- one the button was left empty instead of running.
 			if not expanded then
-				ns.Say("  |cffff8080not armed for now:|r %s.", unfilled)
+				ns.Say("  " .. L["|cffff8080not armed for now:|r %s."], unfilled)
 				expanded = ""
 			else
-				ns.Say("  expands to: |cffffffff%s|r", (expanded:gsub("\n", " | ")))
+				ns.Say("  " .. L["expands to: |cffffffff%s|r"], (expanded:gsub("\n", " | ")))
 			end
 
 			-- Measured against the same budget every other macro in this addon
@@ -6684,21 +6678,18 @@ function addon:HandleSlash(rawInput)
 			-- later moves it, which is why this quotes the number rather than
 			-- promising it fits.
 			if #expanded > ns.MACRO_LIMIT then
-				ns.Say("  |cffff4040%d characters -- %d over the %d a macro body holds."
-					.. " The client will cut it, and what runs is not what is printed"
-					.. " above.|r", #expanded, #expanded - ns.MACRO_LIMIT, ns.MACRO_LIMIT)
+				ns.Say("  |cffff4040" .. L["%d characters -- %d over the %d a macro body holds. The client will cut it, and what runs is not what is printed above."]
+					.. "|r", #expanded, #expanded - ns.MACRO_LIMIT, ns.MACRO_LIMIT)
 			end
 			-- Attributes are frozen for the fight, so the button still holds the
 			-- macro it was armed with when the fight began. "Click the prompt to
 			-- run it" sent a press to that one instead -- which may /yell.
 			if InCombatLockdown() then
-				self:Print("It " .. FROZEN_UNTIL_FIGHT_ENDS
-					.. " |cffffd100/manners try|r with nothing clears it.")
+				self:Print(L["It takes effect when this fight ends; until then a press runs the macro already on the button. |cffffd100/manners try|r with nothing clears it."])
 			elseif unfilled then
-				self:Print("The prompt arms it once they have one."
-					.. " |cffffd100/manners try|r with nothing clears it.")
+				self:Print(L["The prompt arms it once they have one. |cffffd100/manners try|r with nothing clears it."])
 			else
-				self:Print("Click the prompt to run it. |cffffd100/manners try|r with nothing clears it.")
+				self:Print(L["Click the prompt to run it. |cffffd100/manners try|r with nothing clears it."])
 			end
 		end
 		return
@@ -6710,7 +6701,7 @@ function addon:HandleSlash(rawInput)
 		ns.Guard("WriteProbe", ns.WriteProbe)
 		return
 	elseif input == "forms" then
-		self:Print("|cffffd100Targeting forms, for /manners try:|r")
+		self:Print("|cffffd100" .. L["Targeting forms, for /manners try:"] .. "|r")
 		self:Print("  /manners try /cast [@{unit}] {spell}")
 		self:Print("  /manners try /cast [@{name}] {spell}")
 		-- {aim} rather than {name} on the targeting line, and the command the
@@ -6719,11 +6710,11 @@ function addon:HandleSlash(rawInput)
 		-- is wrong for their client wastes the one experiment they will run.
 		self:Print(("  /manners try %s {aim}\\n/cast {spell}"):format(
 			(ns.TargetCommand and ns.TargetCommand()) or "/target"))
-		self:Print("  /manners try /cast {spell}                 (on yourself)")
+		-- The examples themselves are macro text and stay as the client reads
+		-- them; only the note beside one is words.
+		self:Print(("  /manners try /cast {spell}                 %s"):format(L["(on yourself)"]))
 		self:Print("  /manners try /cast [@party1] {spell}")
-		self:Print("Tokens: |cffffd100{unit} {name} {aim} {first} {spell} {id}|r."
-			.. " {name} is what a debt is filed under, {aim} is what a targeting"
-			.. " line wants. Use \\n for a new line.")
+		self:Print(L["Tokens: |cffffd100{unit} {name} {aim} {first} {spell} {id}|r. {name} is what a debt is filed under, {aim} is what a targeting line wants. Use \\n for a new line."])
 		return
 	end
 
@@ -6741,7 +6732,7 @@ function addon:HandleSlash(rawInput)
 		if ns.Ledger then
 			ns.Guard("ledger window", ns.Ledger.Toggle)
 		else
-			self:Print("the favour ledger did not load -- reinstalling Manners should bring it back.")
+			self:Print(L["the favour ledger did not load -- reinstalling Manners should bring it back."])
 		end
 	elseif input == "unlock" then
 		db.prompt.locked = false
@@ -6759,18 +6750,16 @@ function addon:HandleSlash(rawInput)
 		-- panel says "a press still casts what the fight froze" rather than
 		-- "Drag to move" for exactly that reason. Chat has to agree with it.
 		if db.enabled and InCombatLockdown() then
-			self:Print("unlocked -- it can be dragged once this fight ends; until then a press"
-				.. " still casts what the fight froze. Then |cffffd100/manners lock|r.")
+			self:Print(L["unlocked -- it can be dragged once this fight ends; until then a press still casts what the fight froze. Then |cffffd100/manners lock|r."])
 		elseif db.enabled then
-			self:Print("unlocked -- drag the prompt, then |cffffd100/manners lock|r.")
+			self:Print(L["unlocked -- drag the prompt, then |cffffd100/manners lock|r."])
 		else
-			self:Print("unlocked, but the addon is |cffff8080off|r so there is no prompt to"
-				.. " drag -- |cffffd100/manners on|r first.")
+			self:Print(L["unlocked, but the addon is |cffff8080off|r so there is no prompt to drag -- |cffffd100/manners on|r first."])
 		end
 	elseif input == "lock" then
 		db.prompt.locked = true
 		ns.Prompt:ApplyStyle()
-		self:Print("locked.")
+		self:Print(L["locked."])
 	elseif input == "test" then
 		ns.Prompt:ToggleTest()
 	elseif input == "macro" then
@@ -6778,12 +6767,20 @@ function addon:HandleSlash(rawInput)
 	elseif input == "restore" then
 		db.filters.restoreTarget = not db.filters.restoreTarget
 		ns.Prompt:InvalidateMacro()
-		self:Print("hand your target back after buffing: "
-			.. (db.filters.restoreTarget and "|cff00ff00on|r" or "|cffff0000off|r")
-			.. (InCombatLockdown() and (" -- " .. FROZEN_UNTIL_FIGHT_ENDS) or ""))
+		-- One whole line per state, the on and off inside it: which word goes
+		-- where, and what it agrees with, is the translator's to decide.
+		if InCombatLockdown() then
+			self:Print(db.filters.restoreTarget
+				and L["hand your target back after buffing: |cff00ff00on|r -- takes effect when this fight ends; until then a press runs the macro already on the button."]
+				or L["hand your target back after buffing: |cffff0000off|r -- takes effect when this fight ends; until then a press runs the macro already on the button."])
+		else
+			self:Print(db.filters.restoreTarget
+				and L["hand your target back after buffing: |cff00ff00on|r"]
+				or L["hand your target back after buffing: |cffff0000off|r"])
+		end
 	elseif input == "clicks" then
 		db.debugClicks = not db.debugClicks
-		self:Print("click logging: " .. (db.debugClicks and "|cff00ff00on|r" or "|cffff0000off|r"))
+		self:Print(db.debugClicks and L["click logging: |cff00ff00on|r"] or L["click logging: |cffff0000off|r"])
 	elseif input == "verbose" then
 		db.verbose = not db.verbose
 		-- "Announce" read as though it talks to other players, which is the one
@@ -6796,28 +6793,25 @@ function addon:HandleSlash(rawInput)
 		-- unadvertised in both of the two places that describe it. Not "what
 		-- each click turned into", which it once said: a cast that worked prints
 		-- nothing unless it repaid a favour.
-		self:Print("verbose: " .. (db.verbose
-			and "|cff00ff00on|r -- a line in your own chat when somebody buffs you,"
-				.. " when a favour is counted as repaid, and when a click fails, is"
-				.. " skipped, or leaves somebody owed"
-			or "|cffff0000off|r"))
+		self:Print(db.verbose
+			and L["verbose: |cff00ff00on|r -- a line in your own chat when somebody buffs you, when a favour is counted as repaid, and when a click fails, is skipped, or leaves somebody owed"]
+			or L["verbose: |cffff0000off|r"])
 	elseif input == "on" then
 		db.enabled = true
-		self:Print("enabled.")
+		self:Print(L["enabled."])
 	elseif input == "off" then
 		db.enabled = false
 		ns.Prompt:Refresh()
-		self:Print("disabled.")
+		self:Print(L["disabled."])
 	elseif input == "never" then
 		-- The name is `rest`, kept as typed: a surname or a realm is part of it,
 		-- and the list matches regardless of case anyway.
 		if rest == "" then
 			local names = ns.NeverList()
 			if #names == 0 then
-				self:Print("nobody is on your never-offer list. Shift-right-click the prompt to"
-					.. " put whoever it is showing on it.")
+				self:Print(L["nobody is on your never-offer list. Shift-right-click the prompt to put whoever it is showing on it."])
 			else
-				self:Print(("never offered anything unless they buff you: %s")
+				self:Print(L["never offered anything unless they buff you: %s"]
 					:format(table.concat(names, ", ")))
 			end
 		else
@@ -6825,14 +6819,13 @@ function addon:HandleSlash(rawInput)
 		end
 	elseif input == "allow" then
 		if rest == "" then
-			self:Print("say who: |cffffd100/manners allow Name|r. |cffffd100/manners never|r"
-				.. " lists everybody on the list.")
+			self:Print(L["say who: |cffffd100/manners allow Name|r. |cffffd100/manners never|r lists everybody on the list."])
 		else
 			local name = ns.AllowAgain(rest)
 			if name then
-				self:Print(("|cffffffff%s|r can be offered again."):format(name))
+				self:Print(L["|cffffffff%s|r can be offered again."]:format(name))
 			else
-				self:Print(("nobody called %s is on your never-offer list."):format(rest))
+				self:Print(L["nobody called %s is on your never-offer list."]:format(rest))
 			end
 		end
 	elseif input == "snooze" then
@@ -6846,9 +6839,8 @@ function addon:HandleSlash(rawInput)
 			if minutes and minutes >= 1 and minutes <= ns.SNOOZE_MAX then
 				ns.StartSnooze(minutes)
 			else
-				self:Print(("snooze takes a number of minutes from 1 to %d, or off -- for"
-					.. " example |cffffd100/manners snooze 15|r or |cffffd100/manners snooze"
-					.. " 1h|r."):format(ns.SNOOZE_MAX))
+				self:Print(L["snooze takes a number of minutes from 1 to %d, or off -- for example |cffffd100/manners snooze 15|r or |cffffd100/manners snooze 1h|r."]
+					:format(ns.SNOOZE_MAX))
 			end
 		end
 	elseif input == "export" then
@@ -6856,19 +6848,16 @@ function addon:HandleSlash(rawInput)
 		-- selected and copied. Printed only when there is no box to put it in,
 		-- because a string that can be read off the screen still beats none.
 		if ns.ShowShareBox and ns.ShowShareBox("export") then
-			self:Print("your settings are in the box under |cffffd100Share settings|r on the"
-				.. " General tab of the options -- click in it, select all and copy.")
+			self:Print(L["your settings are in the box under |cffffd100Share settings|r on the General tab of the options -- click in it, select all and copy."])
 		else
 			self:Print(tostring(ns.ExportSettings()))
 		end
 	elseif input == "import" then
 		if rest == "" then
 			if ns.ShowShareBox and ns.ShowShareBox("import") then
-				self:Print("paste the settings string into the box under |cffffd100Share"
-					.. " settings|r on the General tab, or type |cffffd100/manners import|r"
-					.. " followed by it.")
+				self:Print(L["paste the settings string into the box under |cffffd100Share settings|r on the General tab, or type |cffffd100/manners import|r followed by it."])
 			else
-				self:Print("type |cffffd100/manners import|r followed by a settings string.")
+				self:Print(L["type |cffffd100/manners import|r followed by a settings string."])
 			end
 		elseif rest:lower() == "undo" then
 			local _, message = ns.UndoImport()
@@ -6882,7 +6871,7 @@ function addon:HandleSlash(rawInput)
 		-- once. This is the rest of them, and the only way to see a failure
 		-- that happened before anyone was looking at chat.
 		if #ns.errors == 0 then
-			self:Print("nothing has broken this session.")
+			self:Print(L["nothing has broken this session."])
 			return
 		end
 		-- Two different numbers, and this used to print the wrong one for both.
@@ -6897,8 +6886,11 @@ function addon:HandleSlash(rawInput)
 		local from = math.max(1, kept - 4)
 		-- The size of the ring is only worth a reader's attention once it has
 		-- started dropping things; until then it is the same number twice.
-		local capped = total > kept and (" |cff808080(%d kept)|r"):format(kept) or ""
-		self:Print(("|cffffd100the last %d of %d|r%s:"):format(kept - from + 1, total, capped))
+		if total > kept then
+			self:Print(L["|cffffd100the last %d of %d|r |cff808080(%d kept)|r:"]:format(kept - from + 1, total, kept))
+		else
+			self:Print(L["|cffffd100the last %d of %d|r:"]:format(kept - from + 1, total))
+		end
 		for i = from, #ns.errors do
 			local e = ns.errors[i]
 			self:Print(("  |cff808080%s|r %s -- |cffff8080%s|r"):format(
@@ -6919,7 +6911,7 @@ function addon:HandleSlash(rawInput)
 		-- takes the last diagnostic with it.
 		self:Print("client: |cffffffff"
 			.. (ns.FlavourSummary and ns.FlavourSummary()
-				or "|cffff4040Flavour.lua did not load -- check the toc's file list|r")
+				or "|cffff4040" .. L["Flavour.lua did not load -- check the toc's file list"] .. "|r")
 			.. "|r")
 		self:Print(("  targeting: conditional=%s @unit=%s /targetexact=%s"):format(
 			tostring(caps.conditionalTargeting), tostring(caps.unitConditionals),
@@ -6979,9 +6971,7 @@ function addon:HandleSlash(rawInput)
 			-- does not exist here is a buff that is silently never offered and
 			-- never noticed. Saying it here is the whole of the noticing.
 			if info and info.unresolved and #info.unresolved > 0 then
-				self:Print(("    |cffff4040this client has never heard of %s|r"
-					.. " -- Manners has the wrong spell ids for %s on %s."
-					.. " Please report this line."):format(
+				self:Print(("    " .. L["|cffff4040this client has never heard of %s|r -- Manners has the wrong spell ids for %s on %s. Please report this line."]):format(
 					table.concat(info.unresolved, ", "), buff.key,
 					tostring(ns.BUFFS_SOURCE)))
 			end
@@ -6994,7 +6984,7 @@ function addon:HandleSlash(rawInput)
 			local expires = LiveExpiry(entry)
 			if expires > now then
 				pending = pending + 1
-				self:Print(string.format("  owes returning: |cffffffff%s|r (%ds left, buffed you %ds ago)",
+				self:Print(string.format("  " .. L["owes returning: |cffffffff%s|r (%ds left, buffed you %ds ago)"],
 					name, math.floor(expires - now), math.floor(now - entry.at)))
 			end
 		end
@@ -7004,12 +6994,11 @@ function addon:HandleSlash(rawInput)
 		-- in the output the bug-report template asks players to paste.
 		if pending == 0 then
 			if not db.enabled then
-				self:Print("  not watching for favours -- Manners is switched off.")
+				self:Print("  " .. L["not watching for favours -- Manners is switched off."])
 			elseif not db.sources.owed then
-				self:Print("  not watching for favours -- |cffffd100People who buffed me|r"
-					.. " is switched off.")
+				self:Print("  " .. L["not watching for favours -- |cffffd100People who buffed me|r is switched off."])
 			else
-				self:Print("  nobody has buffed you recently.")
+				self:Print("  " .. L["nobody has buffed you recently."])
 			end
 		end
 
@@ -7017,17 +7006,17 @@ function addon:HandleSlash(rawInput)
 		-- your own buffs was not one this addon was willing to believe.
 		local scan = ns.auraScan
 		if scan.doubt then
-			self:Print(("  |cffff8080own buffs: last scan not believed (%s)|r --"
-				.. " %d read, baseline %d"):format(scan.doubt, scan.read, scan.held))
+			self:Print(("  " .. L["|cffff8080own buffs: last scan not believed (%s)|r -- %d read, baseline %d"])
+				:format(scan.doubt, scan.read, scan.held))
 		elseif not scan.primed then
 			-- Believed, and still not acting on anything: the baseline is only
 			-- taken once two scans running agree, and nothing counts as a favour
 			-- before it is. Silence from here means "waiting", not "nobody has
 			-- buffed you", and those look identical from the prompt.
-			self:Print(("  |cffffd100own buffs: baseline not settled|r -- %d read,"
-				.. " waiting for a second scan to agree"):format(scan.read))
+			self:Print(("  " .. L["|cffffd100own buffs: baseline not settled|r -- %d read, waiting for a second scan to agree"])
+				:format(scan.read))
 		else
-			self:Print(("  own buffs: %d read, baseline %d"):format(scan.read, scan.held))
+			self:Print(("  " .. L["own buffs: %d read, baseline %d"]):format(scan.read, scan.held))
 		end
 
 		-- Beside the unlocked line and for the same reason: a switch that stops
@@ -7035,29 +7024,27 @@ function addon:HandleSlash(rawInput)
 		-- BuildQueue does not read it, so the count below went on reading like
 		-- a healthy queue behind a prompt that was never going to be drawn.
 		if not db.enabled then
-			self:Print("|cffff8080switched OFF on this profile -- nothing is recorded or offered;"
-				.. " /manners on|r")
+			self:Print("|cffff8080" .. L["switched OFF on this profile -- nothing is recorded or offered; /manners on"] .. "|r")
 		end
 		if not db.prompt.locked then
-			self:Print("|cffff8080prompt is UNLOCKED -- it will not buff anyone until you /manners lock|r")
+			self:Print("|cffff8080" .. L["prompt is UNLOCKED -- it will not buff anyone until you /manners lock"] .. "|r")
 		end
 		-- The other two things that keep the prompt off the screen with the
 		-- queue below still counting people, for the same reason as the two
 		-- above.
 		if ns.SnoozeLeft() then
-			self:Print(("|cffffd100snoozed until %s|r -- no prompt until then;"
-				.. " /manners snooze off ends it"):format(ns.SnoozeEndsAt()))
+			self:Print(L["|cffffd100snoozed until %s|r -- no prompt until then; /manners snooze off ends it"]
+				:format(ns.SnoozeEndsAt()))
 		end
 		if ns.HiddenWhileMounted() then
-			self:Print("|cffffd100mounted|r -- Not while mounted keeps the prompt away until"
-				.. " you get off")
+			self:Print(L["|cffffd100mounted|r -- Not while mounted keeps the prompt away until you get off"])
 		end
 		self:Print(("  build |cffffffff%s|r"):format(tostring(ns.BUILD)))
 		if ns.tryMacro then
-			self:Print(("  |cffff8080/manners try is armed:|r %s -- clear it with a bare /manners try"):format(
+			self:Print(("  " .. L["|cffff8080/manners try is armed:|r %s -- clear it with a bare /manners try"]):format(
 				(ns.tryMacro:gsub("%s+", " "))))
 		end
-		self:Print((db.enabled and "queue now: " or "queue if switched on: ") .. #ns.BuildQueue())
+		self:Print((db.enabled and L["queue now: %d"] or L["queue if switched on: %d"]):format(#ns.BuildQueue()))
 		ns.Guard("WriteProbe", ns.WriteProbe)
 	else
 		-- A word that is nearly a command gets that command named, rather
@@ -7067,8 +7054,7 @@ function addon:HandleSlash(rawInput)
 		-- advertised command must never have.
 		local closest = ns.COMMAND_ALIASES[input] == nil and ns.ClosestCommand(input)
 		if closest then
-			self:Print(("there is no |cffffd100/manners %s|r -- did you mean"
-				.. " |cffffd100/manners %s|r? |cffffd100/manners help|r lists them all.")
+			self:Print(L["there is no |cffffd100/manners %s|r -- did you mean |cffffd100/manners %s|r? |cffffd100/manners help|r lists them all."]
 				-- Doubled, so a | somebody typed is shown rather than read by
 				-- the chat frame as the start of a colour code.
 				:format((input:gsub("|", "||")), closest))

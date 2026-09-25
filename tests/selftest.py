@@ -1442,7 +1442,7 @@ mutate("Core.lua",
 # that could have said which file never loaded.
 mutate("Core.lua",
        """\t\t\t.. (ns.FlavourSummary and ns.FlavourSummary()
-\t\t\t\tor "|cffff4040Flavour.lua did not load -- check the toc's file list|r")""",
+\t\t\t\tor "|cffff4040" .. L["Flavour.lua did not load -- check the toc's file list"] .. "|r")""",
        "\t\t\t.. ns.FlavourSummary()",
        "debug throws when Flavour.lua never loaded",
        expect="a toc that lost Flavour.lua from its file list",
@@ -2128,9 +2128,8 @@ mutate("Options.lua",
 # not what the button holds -- and this command exists to run one experiment.
 mutate("Core.lua",
        """			if #expanded > ns.MACRO_LIMIT then
-				ns.Say("  |cffff4040%d characters -- %d over the %d a macro body holds."
-					.. " The client will cut it, and what runs is not what is printed"
-					.. " above.|r", #expanded, #expanded - ns.MACRO_LIMIT, ns.MACRO_LIMIT)
+				ns.Say("  |cffff4040" .. L["%d characters -- %d over the %d a macro body holds. The client will cut it, and what runs is not what is printed above."]
+					.. "|r", #expanded, #expanded - ns.MACRO_LIMIT, ns.MACRO_LIMIT)
 			end
 """,
        "",
@@ -2465,8 +2464,8 @@ mutate("Core.lua",
 
 # Every spell switched off, reported as none learned.
 mutate("Core.lua",
-       '("nothing -- " .. ns.NothingToCast())',
-       '"nothing -- no buff learned"',
+       "\t\t\t\ttostring(ns.BUILD), ns.NothingToCast()))\n",
+       "\t\t\t\ttostring(ns.BUILD), \"no buff learned\"))\n",
        "switched-off spells reported as unlearned",
        expect="three learned spells, all switched off, reported as none learned",
        script="runscenarios.py")
@@ -2604,8 +2603,8 @@ mutate("Core.lua",
 
 # /manners debug saying "nobody has buffed you" while switched off...
 mutate("Core.lua",
-       "\t\t\tif not db.enabled then\n\t\t\t\tself:Print(\"  not watching for favours",
-       "\t\t\tif false then\n\t\t\t\tself:Print(\"  not watching for favours",
+       "\t\t\tif not db.enabled then\n\t\t\t\tself:Print(\"  \" .. L[\"not watching for favours",
+       "\t\t\tif false then\n\t\t\t\tself:Print(\"  \" .. L[\"not watching for favours",
        "debug claiming nobody buffed you while off",
        expect="(switched off): debug said nobody has buffed you",
        script="runscenarios.py")
@@ -2620,8 +2619,8 @@ mutate("Core.lua",
 
 # ...and never naming the off switch at all.
 mutate("Core.lua",
-       "\t\tif not db.enabled then\n\t\t\tself:Print(\"|cffff8080switched OFF",
-       "\t\tif false then\n\t\t\tself:Print(\"|cffff8080switched OFF",
+       "\t\tif not db.enabled then\n\t\t\tself:Print(\"|cffff8080\" .. L[\"switched OFF",
+       "\t\tif false then\n\t\t\tself:Print(\"|cffff8080\" .. L[\"switched OFF",
        "debug silent about the off switch",
        expect="debug never said the addon is switched off",
        script="runscenarios.py")
@@ -2660,24 +2659,24 @@ mutate("Core.lua",
 
 # The help describing a switch that starts on as the thing it does.
 mutate("Core.lua",
-       "help = \"switch handing your target back after buffing on or off\"",
-       "help = \"hand your target back after buffing\"",
+       "help = L[\"switch handing your target back after buffing on or off\"]",
+       "help = L[\"hand your target back after buffing\"]",
        "help describing restore as an action",
        expect="the help describes restore as an action",
        script="runscenarios.py")
 
 # /manners restore in a fight, silent about the frozen macro...
 mutate("Core.lua",
-       "\t\t\t.. (InCombatLockdown() and (\" -- \" .. FROZEN_UNTIL_FIGHT_ENDS) or \"\"))\n",
-       ")\n",
+       "\t\tif InCombatLockdown() then\n\t\t\tself:Print(db.filters.restoreTarget\n",
+       "\t\tif false then\n\t\t\tself:Print(db.filters.restoreTarget\n",
        "restore in a fight silent about the freeze",
        expect="/manners restore in a fight never said",
        script="runscenarios.py")
 
 # ...and /manners try sending a press to it.
 mutate("Core.lua",
-       "\t\t\tif InCombatLockdown() then\n\t\t\t\tself:Print(\"It \" .. FROZEN_UNTIL_FIGHT_ENDS",
-       "\t\t\tif false then\n\t\t\t\tself:Print(\"It \" .. FROZEN_UNTIL_FIGHT_ENDS",
+       "\t\t\tif InCombatLockdown() then\n\t\t\t\tself:Print(L[\"It takes effect when this fight ends",
+       "\t\t\tif false then\n\t\t\t\tself:Print(L[\"It takes effect when this fight ends",
        "try in a fight sending a press to the old macro",
        expect="/manners try /cast Frost Nova sent a press to a frozen macro",
        script="runscenarios.py")
@@ -3203,9 +3202,10 @@ mutate("Options.lua",
 
 # ...and /manners verbose saying the same.
 mutate("Core.lua",
-       "\t\t\t\t.. \" when a favour is counted as repaid, and when a click fails, is\"\n"
-       "\t\t\t\t.. \" skipped, or leaves somebody owed\"\n",
-       "\t\t\t\t.. \" and for what each click turned into\"\n",
+       "a line in your own chat when somebody buffs you, when a favour is counted as"
+       " repaid, and when a click fails, is skipped, or leaves somebody owed\"]",
+       "a line in your own chat when somebody buffs you, and for what each click"
+       " turned into\"]",
        "/manners verbose promises a line per click",
        expect="/manners verbose promises a line for every click",
        script="runscenarios.py")
@@ -3256,10 +3256,10 @@ mutate("Options.lua",
 
 # The greeting sending the player to a Game Menu entry this client lacks.
 mutate("Core.lua",
-       "\t\t.. \" the options page does the same -- or bind a key under Options >\"\n"
-       "\t\t.. \" Keybindings > Manners.\")\n",
-       "\t\t.. \" the options page does the same -- or bind a key under Game Menu > Key\"\n"
-       "\t\t.. \" Bindings > Manners.\")\n",
+       " the options page does the same -- or bind a key under Options > Keybindings >"
+       " Manners.\"])\n",
+       " the options page does the same -- or bind a key under Game Menu > Key Bindings >"
+       " Manners.\"])\n",
        "greeting names the Game Menu key bindings",
        expect="the key binding is where the greeting says",
        script="runscenarios.py")
@@ -3505,8 +3505,8 @@ mutate("Core.lua",
 
 # The carried-anchor line telling a rescued player to undo the rescue.
 mutate("Core.lua",
-       "\" If you had put it at the bottom edge on purpose, drag it back or pick a place\"",
-       "\" If it used to sit on the bottom edge, drag it back or pick a place\"",
+       " If you had put it at the bottom edge on purpose, drag it back or pick a place",
+       " If it used to sit on the bottom edge, drag it back or pick a place",
        "carried-anchor advice keyed on where it sat",
        expect="the players it rescued included",
        script="runscenarios.py")
