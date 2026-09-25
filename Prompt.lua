@@ -252,14 +252,36 @@ local function LightFuse(now)
 	end
 end
 
+-- Whether somebody is on the never-offer list with no favour to be returned,
+-- asked the way BuildQueue asks it, on the same GetTime clock: owed people are
+-- the list's one exception, and anybody else on it is somebody the player has
+-- asked never to be offered.
+--
+-- Only the prompt's own shift-right-click writes a block as well, so without
+-- this a name put on the list by /manners never, the options box or the menu
+-- -- or a listed person whose favour ran out while they were on the panel --
+-- was dropped by the queue and kept by the hold or the fuse, still armed for
+-- a keypress to cast at.
+local function ListedWithoutDebt(name, now)
+	if not (name and ns.IsNeverOffered and ns.IsNeverOffered(name)) then return false end
+	local db = ns.db and ns.db.profile
+	local debt = ns.owed and ns.owed[name]
+	local owed = db and db.sources and db.sources.owed and debt
+		and ns.DebtExpiry(debt) > now
+	return not owed
+end
+
 -- Whether this entry was deliberately retired: a block is either the retry
--- cooldown a click wrote or the refusal a right-press wrote, and in both cases
--- "they are gone" is the answer that was just asked for. Asked by the repaint
--- and by the press, which have to agree about it: a press inside the fuse used
--- to keep the person a right-click had just declined, and cast at them.
+-- cooldown a click wrote or the refusal a right-press wrote, and a place on
+-- the never-offer list with nothing owed is the player saying the same thing
+-- by another route. In every case "they are gone" is the answer that was just
+-- asked for. Asked by the repaint and by the press, which have to agree about
+-- it: a press inside the fuse used to keep the person a right-click had just
+-- declined, and cast at them.
 local function Retired(entry, now)
 	return entry ~= nil and entry.name ~= nil
-		and ns.IsBlocked(entry.name, entry.buff and entry.buff.key, now)
+		and (ns.IsBlocked(entry.name, entry.buff and entry.buff.key, now)
+			or ListedWithoutDebt(entry.name, now))
 end
 
 -- The list and its background live outside the panel, so hiding the button
@@ -2184,11 +2206,14 @@ end
 -- prompt indefinitely. It never holds off somebody strictly more deserving --
 -- that test is in PickTop, because it needs the replacement. And it never
 -- holds somebody who was deliberately retired: a block is either the retry
--- cooldown a click wrote or the refusal a right-press wrote, and in both cases
--- "they are gone" is the answer the user just asked for.
+-- cooldown a click wrote or the refusal a right-press wrote, and a place on
+-- the never-offer list with nothing owed is the same request made from chat,
+-- the options page or the menu. In every case "they are gone" is the answer
+-- the user just asked for.
 local function HoldStillStands(now)
 	if not (heldEntry and heldAt) then return false end
 	if now - heldAt >= HOLD_SECONDS then return false end
+	if ListedWithoutDebt(heldEntry.name, now) then return false end
 	return not ns.IsBlocked(heldEntry.name, heldEntry.buff and heldEntry.buff.key, now)
 end
 
