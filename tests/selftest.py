@@ -695,9 +695,9 @@ mutate("Options.lua",
 #     of these as well now, and it comes first in the file.
 mutate("Options.lua",
        "hidden = function() return not InCombatLockdown() end,\n"
-       "\t\t\t\t\t\tname = \"|cffffd100In combat.|r Blizzard freezes secure frames",
+       "\t\t\t\t\t\tname = L[\"|cffffd100In combat.|r Blizzard freezes secure frames",
        "hidden = function() return true end,\n"
-       "\t\t\t\t\t\tname = \"|cffffd100In combat.|r Blizzard freezes secure frames",
+       "\t\t\t\t\t\tname = L[\"|cffffd100In combat.|r Blizzard freezes secure frames",
        "a frozen tab that looks like a working one",
        expect="in combat, and the tab reads as though everything on it works",
        script="runscenarios.py")
@@ -722,7 +722,7 @@ mutate("Core.lua",
 #     anywhere in the addon, did not.
 mutate("Options.lua",
        """						confirm = function(_, value)
-							return ("Replace everything in the box below with the %s lines?"):format(
+							return L["Replace everything in the box below with the %s lines?"]:format(
 								(ns.PHRASE_SETS[value] and ns.PHRASE_SETS[value].label)
 									or tostring(value))
 						end,
@@ -954,8 +954,8 @@ mutate("Core.lua",
 #     the old bug: the entry existed, the addon drew no border of any kind, and
 #     nothing anywhere could tell the difference.
 mutate("Options.lua",
-       '\t\t\t\t\t\t\tframed = "Framed -- flat panel, thin border",',
-       '\t\t\t\t\t\t\tblizzard = "Blizzard -- default UI border",',
+       '\t\t\t\t\t\t\tframed = L["Framed -- flat panel, thin border"],',
+       '\t\t\t\t\t\t\tblizzard = L["Blizzard -- default UI border"],',
        "a look the addon draws nothing for",
        expect="the dropdown still offers a name the addon draws nothing for",
        script="runscenarios.py")
@@ -1142,8 +1142,8 @@ mutate("Options.lua",
 # 80. the description that named three reason colours out of four, leaving out
 #     the one most people see most often.
 mutate("Options.lua",
-       'desc = "Pale blue for somebody you targeted yourself, amber when returning a"',
-       'desc = "Amber when returning a"',
+       'desc = L["Pale blue for somebody you targeted yourself, amber when returning a',
+       'desc = L["Amber when returning a',
        "a reason colour the page never names",
        expect="reason colours and the description names",
        script="runscenarios.py")
@@ -1169,8 +1169,8 @@ mutate("Options.lua",
 # 83. "Hide in combat" over a panel that cannot be hidden. The call that read
 #     it was protected and refused every time it ran, and it is gone.
 mutate("Options.lua",
-       'name = "Stay quiet in combat",',
-       'name = "Hide in combat",',
+       'name = L["Stay quiet in combat"],',
+       'name = L["Hide in combat"],',
        "a switch named for something it cannot do",
        expect="is still called",
        script="runscenarios.py")
@@ -2685,9 +2685,9 @@ mutate("Core.lua",
 # The When you click tab saying nothing in a fight.
 mutate("Options.lua",
        "\t\t\t\t\t\thidden = function() return not InCombatLockdown() end,\n"
-       "\t\t\t\t\t\tname = \"|cffffd100In combat.|r Blizzard freezes the macro",
+       "\t\t\t\t\t\tname = L[\"|cffffd100In combat.|r Blizzard freezes the macro",
        "\t\t\t\t\t\thidden = function() return true end,\n"
-       "\t\t\t\t\t\tname = \"|cffffd100In combat.|r Blizzard freezes the macro",
+       "\t\t\t\t\t\tname = L[\"|cffffd100In combat.|r Blizzard freezes the macro",
        "click tab silent in a fight",
        expect="the When you click tab says nothing about the fight",
        script="runscenarios.py")
@@ -3079,9 +3079,9 @@ mutate("Options.lua",
 # The targeting note naming /targetlasttarget whatever the switch above says.
 mutate("Options.lua",
        "\t\t\t\t\t\t\tif F().restoreTarget then\n"
-       "\t\t\t\t\t\t\t\tafter = \", then |cffffd100/targetlasttarget|r",
+       "\t\t\t\t\t\t\t\ttext = L[\"The prompt runs |cffffd100%s|r, then the cast, then |cffffd100%s|r",
        "\t\t\t\t\t\t\tif true then\n"
-       "\t\t\t\t\t\t\t\tafter = \", then |cffffd100/targetlasttarget|r",
+       "\t\t\t\t\t\t\t\ttext = L[\"The prompt runs |cffffd100%s|r, then the cast, then |cffffd100%s|r",
        "targeting note ignores the hand-back switch",
        expect="with the switch off the note promises /targetlasttarget",
        script="runscenarios.py")
@@ -3098,10 +3098,9 @@ mutate("Options.lua",
 
 # ...the pale-blue colour the same...
 mutate("Options.lua",
-       "\t\t\t\t\t\t\t.. \" I have targeted comes first|r is on, under Who to buff, and never\"\n"
-       "\t\t\t\t\t\t\t.. \" while |cffffd100If they already have the buff|r is set to Always\"\n"
-       "\t\t\t\t\t\t\t.. \" offer, under When.|r\",\n",
-       "\t\t\t\t\t\t\t.. \" I have targeted comes first|r is on, under Who to buff.|r\",\n",
+       " I have targeted comes first|r is on, under Who to buff, and never while"
+       " |cffffd100If they already have the buff|r is set to Always offer, under When.\"]",
+       " I have targeted comes first|r is on, under Who to buff.\"]",
        "reason colour silent about Always offer",
        expect="the colour switch's description does not say that Always offer",
        script="runscenarios.py")
@@ -3237,19 +3236,18 @@ mutate("Options.lua",
 
 # "Stay quiet in combat" claiming the prompt cannot be hidden.
 mutate("Options.lua",
-       "\t\t\t\t\t\t\t.. \"|cff888888It stays on screen in a fight on purpose: your key binding\"\n"
-       "\t\t\t\t\t\t\t.. \" would still cast the frozen macro if it were hidden.|r\",\n",
-       "\t\t\t\t\t\t\t.. \"|cff888888It cannot be hidden. Blizzard freezes secure frames, so a\"\n"
-       "\t\t\t\t\t\t\t.. \" prompt the fight finds on screen stays on screen until it ends,\"\n"
-       "\t\t\t\t\t\t\t.. \" whatever this says.|r\",\n",
+       "L[\"It stays on screen in a fight on purpose: your key binding would still cast"
+       " the frozen macro if it were hidden.\"]",
+       "L[\"It cannot be hidden. Blizzard freezes secure frames, so a prompt the fight"
+       " finds on screen stays on screen until it ends, whatever this says.\"]",
        "quiet-in-combat says it cannot be hidden",
        expect="the switch still says the prompt cannot be hidden",
        script="runscenarios.py")
 
 # "Stay quiet in combat" promising a green flash nothing paints.
 mutate("Options.lua",
-       "\t\t\t\t\t\t\t.. \" happened -- red if it failed. With this on it does not -- the panel\"\n",
-       "\t\t\t\t\t\t\t.. \" happened -- green or red. With this on it does not -- the panel\"\n",
+       " happened -- red if it failed. With this on it does not -- the panel",
+       " happened -- green or red. With this on it does not -- the panel",
        "quiet-in-combat promises a green flash",
        expect="the switch promises a green flash the prompt never paints",
        script="runscenarios.py")
@@ -3425,10 +3423,8 @@ mutate("Core.lua",
 
 # The Targeting note promising your own target stays targeted in a fight too.
 mutate("Options.lua",
-       "|r -- except, outside a\"\n"
-       "\t\t\t\t\t\t\t\t\t.. \" fight, for somebody who is already your target, who stays\"",
-       "|r -- except for\"\n"
-       "\t\t\t\t\t\t\t\t\t.. \" somebody who is already your target, who stays\"",
+       "|r -- except, outside a fight, for somebody who is already your target, who stays",
+       "|r -- except for somebody who is already your target, who stays",
        "Targeting note forgets the fight",
        expect="the Targeting note says your own target stays targeted",
        script="runscenarios.py")
