@@ -235,8 +235,11 @@ local function AutoExplanation()
 		-- below would send somebody hunting for a switch that is already on.
 		for _, buff in ipairs(ns.GetClassBuffs(ns.caps.class) or {}) do
 			if buff.neverAuto and ns.IsBuffKnown(buff) and not B().skip[buff.key] then
-				return L["|cffff8080Automatic never offers %s -- nobody standing in a city wants it -- so nobody will be offered anything.|r\n\nPin it in the dropdown above if you want it given out anyway."]
-					:format(ns.BuffName(buff))
+				return "|cffff8080"
+					.. L["Automatic never offers %s -- nobody standing in a city wants it -- so nobody will be offered anything."]
+						:format(ns.BuffName(buff))
+					.. "|r\n\n"
+					.. L["Pin it in the dropdown above if you want it given out anyway."]
 			end
 		end
 		-- Everything learned is switched off -- but the spells not learned yet
@@ -320,8 +323,10 @@ local function PinExplanation()
 			:format(name)
 	end
 
-	return L["|cffff8080You have pinned %s, which you have not learned.|r\n\nNothing will be offered to anybody until you learn it or switch back to Automatic -- a pinned spell is the only one considered, so there is nothing to fall back to."]
-		:format(name)
+	return "|cffff8080"
+		.. L["You have pinned %s, which you have not learned."]:format(name)
+		.. "|r\n\n"
+		.. L["Nothing will be offered to anybody until you learn it or switch back to Automatic -- a pinned spell is the only one considered, so there is nothing to fall back to."]
 end
 
 -- One toggle per spell the class can put on somebody else.
@@ -1222,6 +1227,10 @@ local function BuildOptions()
 			-- order numbers were between the two halves.
 			when = {
 				type = "group",
+				-- The key list gives translators this one word and nothing
+				-- else, and some languages split "when" in two: it is the
+				-- question "when?", the tab of settings about timing, never
+				-- the "when" that opens a condition.
 				name = L["When"],
 				order = 3,
 				hidden = function() return not HasClassBuffs() end,
