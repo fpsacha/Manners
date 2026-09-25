@@ -489,7 +489,7 @@ do
 					fail(scenario, "right-clicking switched the addon off instead of opening the menu")
 					ns.db.profile.enabled = true
 				end
-				local switch = findEntry(menu, "^Switch Manners off")
+				local switch = findEntry(menu, "^Enable$")
 				local snooze15 = findEntry(menu, "15 minutes")
 				local preview = findEntry(menu, "^Preview the prompt")
 				local options = findEntry(menu, "^Options$")
@@ -523,11 +523,13 @@ do
 
 					switch.fn()
 					if ns.db.profile.enabled then
-						fail(scenario, "the menu's Switch Manners off left it on")
+						fail(scenario, "the menu's Enable left it on")
 					end
-					if not findEntry(rightClick(), "^Switch Manners on") then
-						fail(scenario, "the menu of an addon that is off does not offer to switch"
-							.. " it on")
+					local again = findEntry(rightClick(), "^Enable$")
+					if again then again.fn() end
+					if not ns.db.profile.enabled then
+						fail(scenario, "the menu of an addon that is off does not switch it"
+							.. " back on")
 					end
 					ns.db.profile.enabled = true
 				end
@@ -535,7 +537,7 @@ do
 
 			local tip = tooltipLines(ns) or ""
 			if not tip:find("Left click: options", 1, true)
-				or not tip:find("Right click: switch it off, snooze or preview", 1, true) then
+				or not tip:find("Right click: snooze, preview, who's next and more", 1, true) then
 				fail(scenario, "the tooltip does not list what the clicks do: " .. tip)
 			end
 

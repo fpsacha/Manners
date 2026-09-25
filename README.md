@@ -246,8 +246,18 @@ there would greet whoever logged in first and nobody else — and what it asks
 for (a macro on this character's bars, or a key bound) is per character too.
 
 `/manners` with a word it does not recognise suggests the closest command, or
-lists them all. Right-click the minimap button for a menu: switch on or off,
-snooze, preview.
+lists them all.
+
+The minimap button opens the options on a click, the favour ledger on a
+shift-click, and switches Manners on or off with a middle click. Right-click it
+for a menu: on or off, snooze (5 minutes to an hour), preview, the ledger, who
+is waiting next (skip one, or never offer them anything), the prompt's lock,
+position, sound and effects, the chat lines, and your profiles. In a fight the
+entries that would move the prompt wait until it ends. The icon dims while
+Manners is off and turns amber while it is snoozed, and a broker display shows
+how many people who buffed you are still waiting for one back. The same
+launcher is in the addon compartment under the minimap, so hiding the button
+loses nothing.
 
 Put it on a bar with a macro containing `/click MannersPrompt LeftButton 1`
 (`/manners macro` makes one), or keybind under

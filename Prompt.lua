@@ -3485,6 +3485,14 @@ function Prompt:GetButton()
 	return button
 end
 
+-- The entry the panel is armed at, or nil when there is no panel up, or a
+-- preview is standing in for one. For the launcher's tooltip and menu, which
+-- name who is on the prompt; they read it and never write it.
+function Prompt:Showing()
+	if not button or testMode or not button:IsShown() then return nil end
+	return current
+end
+
 -- The pieces of the panel, handed out so they can be read back.
 --
 -- Everything on the prompt is a file local, which is the right shape for a

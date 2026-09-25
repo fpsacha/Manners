@@ -2543,6 +2543,9 @@ local function TellLedger(event, ...)
 	local ledger = ns.Ledger
 	local fn = ledger and ledger[event]
 	if type(fn) == "function" then ns.Guard("ledger " .. event, fn, ...) end
+	-- The launcher counts the favours waiting to be returned, and these are
+	-- the moments that count changes.
+	if ns.RefreshBrokerText then ns.Guard("broker text", ns.RefreshBrokerText) end
 end
 
 local PRIORITY = { target = 0, owed = 1, group = 2, nearby = 3 }
