@@ -8579,7 +8579,9 @@ Mock.reset()
 -- only thing left that can name the missing file.
 --
 -- Loaded by hand rather than through load(), since the whole point is a file
--- list that is missing an entry.
+-- list that is missing an entry. That one entry and no other: the locale table
+-- comes first in the real toc, and Core.lua reads it while it loads, so a list
+-- without it is testing a second missing file rather than the first.
 Mock.reset()
 do
 	local scenario = "a toc that lost Flavour.lua from its file list"

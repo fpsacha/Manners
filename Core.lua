@@ -3246,8 +3246,10 @@ local function NoteFavour(seen)
 		-- A favour all the same, and let go in the moment it arrived.
 		TellLedger("Received", seen, true)
 		if db.verbose then
-			addon:Print(("|cff80ff80%s buffed you|r -- nothing you cast is any use to them"
-				.. " (\"Skip players the buff does nothing for\" is on)"):format(seen.name))
+			-- The option's name comes in through its own key, the same one the
+			-- options page shows, so a translated line always quotes the
+			-- checkbox the player can actually find.
+			addon:Print(L["|cff80ff80%s buffed you|r -- nothing you cast is any use to them (\"%s\" is on)"]:format(seen.name, L["Skip players the buff does nothing for"]))
 		end
 		return
 	end
@@ -3270,11 +3272,10 @@ local function NoteFavour(seen)
 		-- from another subgroup is in the group already, and "offered if they
 		-- join it" gave the player nothing to act on.
 		local reachable = ns.CouldOffer(hasMana, inParty) ~= nil
-		addon:Print(("|cff80ff80%s buffed you|r -- %s"):format(seen.name, reachable
-			and "returning the favour is on the prompt"
-			or ns.PARTY_IS_SUBGROUP and "what you cast reaches only your own party -- in a"
-				.. " raid, your own subgroup -- so they are offered if they join it"
-			or "what you cast reaches your group only, so they are offered if they join it"))
+		addon:Print((reachable
+			and L["|cff80ff80%s buffed you|r -- returning the favour is on the prompt"]
+			or ns.PARTY_IS_SUBGROUP and L["|cff80ff80%s buffed you|r -- what you cast reaches only your own party -- in a raid, your own subgroup -- so they are offered if they join it"]
+			or L["|cff80ff80%s buffed you|r -- what you cast reaches your group only, so they are offered if they join it"]):format(seen.name))
 	end
 	-- Written through rather than left to the logout hook: a favour is rare
 	-- enough to afford it, and correctness then does not depend on a callback
@@ -3883,11 +3884,11 @@ local function SayStillOwed(name, why, unknown)
 	if not (db and db.verbose) then return end
 	local debt = owed[name]
 	if debt and LiveExpiry(debt) > GetTime() then
-		addon:Print(("|cffff8080%s is still owed|r -- %s."):format(name, why))
+		addon:Print(L["|cffff8080%s is still owed|r -- %s."]:format(name, why))
 	elseif unknown then
 		addon:Print(unknown:format(name))
 	else
-		addon:Print(("|cffff8080%s was not buffed|r -- %s."):format(name, why))
+		addon:Print(L["|cffff8080%s was not buffed|r -- %s."]:format(name, why))
 	end
 end
 
@@ -4015,7 +4016,7 @@ local function ExpirePendingClick(pending, why)
 	-- and the chat line claimed the game had answered with nothing at all.
 	if pending.answered then return end
 	RewindClick(pending)
-	SayStillOwed(pending.name, why or "the game answered that press with nothing at all")
+	SayStillOwed(pending.name, why or L["the game answered that press with nothing at all"])
 end
 
 -- A second press while the first is still waiting for the game.
@@ -4051,8 +4052,8 @@ local function AbandonPendingClick()
 		return
 	end
 	ns.pendingClick = nil
-	SayStillOwed(pending.name, "another press arrived before the game answered that one",
-		"no answer yet for the press on |cffffffff%s|r -- another press arrived first.")
+	SayStillOwed(pending.name, L["another press arrived before the game answered that one"],
+		L["no answer yet for the press on |cffffffff%s|r -- another press arrived first."])
 	RewindClick(pending)
 end
 ns.AbandonPendingClick = AbandonPendingClick
@@ -4096,7 +4097,7 @@ local function FailPendingClick(message)
 	pending.answered = true
 	-- The game's sentence brings its own full stop, and this line adds one.
 	SayStillOwed(pending.name, type(message) == "string"
-		and ("the game said: " .. message:gsub("%.$", "")) or "the game refused it")
+		and L["the game said: %s"]:format((message:gsub("%.$", ""))) or L["the game refused it"])
 	RewindClick(pending)
 	return pending.name
 end
@@ -4129,7 +4130,7 @@ local function SweepPendingClick(now)
 	-- a press the user has stopped thinking about -- or, from inside PostClick,
 	-- a repaint in the middle of arming the next one. What those three owe is
 	-- the rewind, which is what they were not doing.
-	ShowOutcome("failed", pending.name, "nothing was cast")
+	ShowOutcome("failed", pending.name, L["nothing was cast"])
 end
 
 -- What an inferred settle is inferring, said once and read by both the chat
@@ -4145,14 +4146,12 @@ end
 -- naming the person we aimed at, and it has nothing to qualify.
 local SETTLE_INFERENCE = {
 	targeted = {
-		said = "our spell went out and the macro aimed at them, but this client would"
-			.. " not say who received it",
-		sub = "cast -- this client will not confirm who to",
+		said = L["our spell went out and the macro aimed at them, but this client would not say who received it"],
+		sub = L["cast -- this client will not confirm who to"],
 	},
 	selfcast = {
-		said = "%s is cast on you, not on them, so whether it reached them depends on"
-			.. " where they were standing",
-		sub = "cast -- it has no target, so nothing says it reached them",
+		said = L["%s is cast on you, not on them, so whether it reached them depends on where they were standing"],
+		sub = L["cast -- it has no target, so nothing says it reached them"],
 	},
 }
 
@@ -4231,7 +4230,7 @@ local function SettlePendingClick(landedOn, spellId, castGUID)
 	-- went out as proof none did is a plain untruth in the user's chat.
 	if GetTime() - pending.at > SETTLE_SECONDS then
 		ExpirePendingClick(pending,
-			"the game never answered that press, and this cast came too late to be its answer")
+			L["the game never answered that press, and this cast came too late to be its answer"])
 		return
 	end
 
@@ -4268,7 +4267,7 @@ local function SettlePendingClick(landedOn, spellId, castGUID)
 		-- Whether our own spell went out is the only thing left to check, and
 		-- the only thing that needs checking.
 		if not ours then
-			why = ("|cffffffff%s|r went out instead"):format(SpellLabel(spellId))
+			why = L["|cffffffff%s|r went out instead"]:format(SpellLabel(spellId))
 		else
 			-- Settled, and inferred -- which this used to skip, taking the
 			-- confirmed tick instead. That was the strongest claim the panel
@@ -4307,11 +4306,11 @@ local function SettlePendingClick(landedOn, spellId, castGUID)
 		and landedOn ~= (ns.ShortName and ns.ShortName(pending.name)) then
 		-- Somebody else entirely got it, which means our own /target did
 		-- nothing and the spell went to whoever was already targeted.
-		why = ("it went to |cffffffff%s|r"):format(tostring(landedOn))
+		why = L["it went to |cffffffff%s|r"]:format(tostring(landedOn))
 	elseif not ours then
 		-- Right person, wrong spell: anything else on a bar can beat the
 		-- macro's own /cast to the click.
-		why = ("|cffffffff%s|r went out instead"):format(SpellLabel(spellId))
+		why = L["|cffffffff%s|r went out instead"]:format(SpellLabel(spellId))
 	elseif landedOn then
 		-- Our spell, and the client named the person we aimed at. The only
 		-- branch here where the favour is confirmed rather than inferred, which
@@ -4335,7 +4334,7 @@ local function SettlePendingClick(landedOn, spellId, castGUID)
 		-- the shape that gets here. There is no thread at all between the
 		-- press and the person, so settling would be settling on the bare fact
 		-- that a spell was cast.
-		why = "this client would not say who received it, and the macro aimed at nobody"
+		why = L["this client would not say who received it, and the macro aimed at nobody"]
 	end
 
 	if why then
@@ -4359,16 +4358,15 @@ local function SettlePendingClick(landedOn, spellId, castGUID)
 	-- nothing, so saying "counted as repaid" about them would be its own small
 	-- untruth.
 	if unheard and wasOwed and pending.outOfShout then
-		SayStillOwed(pending.name, "the shout went out, but they were too far away to hear it")
+		SayStillOwed(pending.name, L["the shout went out, but they were too far away to hear it"])
 	elseif unheard and wasOwed then
-		SayStillOwed(pending.name, "the shout went out, but nothing could tell whether they"
-			.. " were close enough to hear it")
+		SayStillOwed(pending.name, L["the shout went out, but nothing could tell whether they were close enough to hear it"])
 	elseif inferred and wasOwed then
 		local db = addon.db and addon.db.profile
 		if db and db.verbose then
 			local buff = pending.buffKey and ns.FindBuff(caps.class, pending.buffKey)
-			addon:Print(("|cffffd100%s counted as repaid|r -- %s."):format(pending.name,
-				SETTLE_INFERENCE[inferred].said:format(buff and ns.BuffName(buff) or "the spell")))
+			addon:Print(L["|cffffd100%s counted as repaid|r -- %s."]:format(pending.name,
+				SETTLE_INFERENCE[inferred].said:format(buff and ns.BuffName(buff) or L["the spell"])))
 		end
 	elseif pending.answered then
 		-- An error inside the window already told chat, in the game's words,
@@ -4383,11 +4381,10 @@ local function SettlePendingClick(landedOn, spellId, castGUID)
 		-- where the client named them, and otherwise only that the spell went.
 		local db = addon.db and addon.db.profile
 		if db and db.verbose then
-			local line = wasOwed and "%s counted as repaid after all"
-				or inferred and "the spell for %s went out after all"
-				or "%s was buffed after all"
-			addon:Print(("|cffffd100" .. line .. "|r -- the error before it was about"
-				.. " something else."):format(pending.name))
+			local line = wasOwed and L["|cffffd100%s counted as repaid after all|r -- the error before it was about something else."]
+				or inferred and L["|cffffd100the spell for %s went out after all|r -- the error before it was about something else."]
+				or L["|cffffd100%s was buffed after all|r -- the error before it was about something else."]
+			addon:Print(line:format(pending.name))
 		end
 	end
 
@@ -4491,7 +4488,7 @@ local function UnsettleLateRefusal(castGUID)
 	-- And the blocks and the rotation pointer the click wrote on the assumption
 	-- it landed, which the settle deliberately let stand.
 	RewindClick(settled)
-	SayStillOwed(settled.name, "the game refused the cast after sending it")
+	SayStillOwed(settled.name, L["the game refused the cast after sending it"])
 	return settled.name
 end
 
@@ -4652,7 +4649,7 @@ function addon:UNIT_SPELLCAST_SENT(_, unit, target, castGUID, spellId)
 	end
 	SettlePendingClick(plain(target), plain(spellId), plain(castGUID))
 	if not self.db.profile.debugClicks then return end
-	self:Print(("|cff80ff80CAST SENT %s -> %s|r"):format(
+	self:Print(("|cff80ff80" .. L["CAST SENT %s -> %s"] .. "|r"):format(
 		tostring(plain(spellId)), tostring(plain(target))))
 end
 
@@ -4664,7 +4661,7 @@ function addon:UNIT_SPELLCAST_SUCCEEDED(_, unit, _, spellId)
 		ns.Guard("cooldown sweep", ns.Prompt.SyncCooldown, ns.Prompt)
 	end
 	if self.db.profile.debugClicks then
-		self:Print("|cff00ff00CAST OK|r " .. tostring(plain(spellId)))
+		self:Print(L["|cff00ff00CAST OK|r %s"]:format(tostring(plain(spellId))))
 	end
 end
 
@@ -4685,10 +4682,10 @@ function addon:UNIT_SPELLCAST_FAILED(_, unit, castGUID, spellId)
 	-- only one allowed to undo a settle.
 	if not ns.pendingClick then
 		local late = UnsettleLateRefusal(castGUID)
-		if late then ShowOutcome("failed", late, "the game refused the cast") end
+		if late then ShowOutcome("failed", late, L["the game refused the cast"]) end
 	end
 	if self.db.profile.verbose and ns.lastClickTime and (GetTime() - ns.lastClickTime) <= 1 then
-		self:Print("|cffff8080could not cast|r " .. SpellLabel(spellId))
+		self:Print(L["|cffff8080could not cast|r %s"]:format(SpellLabel(spellId)))
 	end
 end
 
@@ -4717,7 +4714,7 @@ function addon:UI_ERROR_MESSAGE(_, _, message)
 	if not self.db.profile.debugClicks then return end
 	if not ns.lastClickTime or (GetTime() - ns.lastClickTime) > 1 then return end
 	if not message then return end
-	self:Print("|cffff4040after our cast:|r " .. tostring(message))
+	self:Print(L["|cffff4040after our cast:|r %s"]:format(tostring(message)))
 end
 
 -- SPELLS_CHANGED fires often, so the probe is rate-limited rather than run on
@@ -4900,7 +4897,7 @@ local MACRO_BODY = "/click MannersPrompt LeftButton 1"
 
 function ns.CreateClickMacro()
 	if InCombatLockdown() then
-		addon:Print("|cffff8080cannot touch macros in combat.|r")
+		addon:Print("|cffff8080" .. L["cannot touch macros in combat."] .. "|r")
 		return
 	end
 
@@ -4908,7 +4905,7 @@ function ns.CreateClickMacro()
 	if existing and existing > 0 then
 		if _G.EditMacro then
 			_G.EditMacro(existing, MACRO_NAME, nil, MACRO_BODY)
-			addon:Print("macro |cffffd100" .. MACRO_NAME .. "|r updated. Drag it onto a bar.")
+			addon:Print(L["macro |cffffd100%s|r updated. Drag it onto a bar."]:format(MACRO_NAME))
 		end
 		return
 	end
@@ -4920,13 +4917,13 @@ function ns.CreateClickMacro()
 		ok = pcall(_G.CreateMacro, MACRO_NAME, "INV_MISC_NOTE_03", MACRO_BODY, true)
 	end
 	if ok and safecall(_G.GetMacroIndexByName, MACRO_NAME) == 0 then
-		addon:Print("|cffff8080no free macro slots.|r Delete one and try again.")
+		addon:Print(L["|cffff8080no free macro slots.|r Delete one and try again."])
 		return
 	end
 	if ok then
-		addon:Print("macro |cffffd100" .. MACRO_NAME .. "|r created. Drag it onto a bar from the macro window.")
+		addon:Print(L["macro |cffffd100%s|r created. Drag it onto a bar from the macro window."]:format(MACRO_NAME))
 	else
-		addon:Print("|cffff8080could not create the macro.|r")
+		addon:Print("|cffff8080" .. L["could not create the macro."] .. "|r")
 	end
 end
 
@@ -4947,8 +4944,7 @@ function ns.RepairOldMacro()
 	if type(body) ~= "string" or body:match("^%s*(.-)%s*$") ~= OLD_MACRO_BODY then return true end
 	if type(_G.EditMacro) ~= "function" then return true end
 	if pcall(_G.EditMacro, index, MACRO_NAME, nil, MACRO_BODY) then
-		addon:Print("your |cffffd100" .. MACRO_NAME .. "|r macro was updated -- the one an older"
-			.. " version made no longer pressed the prompt.")
+		addon:Print(L["your |cffffd100%s|r macro was updated -- the one an older version made no longer pressed the prompt."]:format(MACRO_NAME))
 	end
 	return true
 end
