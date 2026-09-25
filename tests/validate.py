@@ -384,9 +384,14 @@ print("\n== the release gates fail when selftest does ==")
 # spelling GitHub runs with -eo pipefail, which hands selftest's own exit
 # status to the step; the grep stays only to print a readable error, so it has
 # to know every summary word selftest.py prints.
+#
+# RESULT is left out: it is the verdict line every run ends on, a passing one
+# included ("RESULT: every mutation was caught"), so a grep that knew it would
+# fail every green build. The --anchors summary made it look like one of the
+# failure words by printing it the same way they are printed.
 _st_words = sorted(set(re.findall(r'print\("([A-Z][A-Z ]+): "',
                                   open(os.path.join(ROOT, "tests", "selftest.py"),
-                                       encoding="utf-8").read())))
+                                       encoding="utf-8").read())) - {"RESULT"})
 _gate_bad = 0
 for _wf in ("ci.yml", "release.yml"):
     _text = open(os.path.join(ROOT, ".github", "workflows", _wf),
