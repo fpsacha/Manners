@@ -66,14 +66,6 @@ mutate("Ledger.lua",
        "hunt3 ledger: owed row promises while mounted",
        expect="hunt3 ledger: an owed row does not promise an offer", script=S)
 
-# Putting a giver on the never-offer list lets their favour go in the ledger,
-# whichever way they were put on it.
-mutate("Ledger.lua",
-       "\t\t\t\t\tns.Guard(\"ledger LetGo\", Ledger.LetGo, name, \"never\")\n",
-       "",
-       "hunt3 ledger: never-offer list leaves the row owed",
-       expect="hunt3 ledger: putting a giver on the never-offer list lets their favour go", script=S)
-
 # A party-only favour held back by a snooze or a mount still waits on the party.
 mutate("Ledger.lua",
        "\tif e.partyOnly then\n\t\tif ns.PARTY_IS_SUBGROUP then\n",

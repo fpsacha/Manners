@@ -7,8 +7,8 @@
 --
 -- It is a record and never a decision. Core.lua tells it what happened at the
 -- four moments a favour changes hands -- noticed, repaid, refused after all, and
--- let go, bar one way of letting go it listens for itself (see LetGo) -- and
--- nothing anywhere reads a ledger entry to decide what to offer
+-- let go, the never-offer list included -- and nothing anywhere reads a
+-- ledger entry to decide what to offer
 -- or whom to cast at. That is on purpose: the debt table in Core.lua is what the
 -- prompt works from, and a second opinion about who is owed would be exactly the
 -- kind of drift the rest of this addon has spent rounds removing. So everything
@@ -780,39 +780,6 @@ function Ledger.LetGo(name, why)
 	e.state, e.why, e.doneAt = "letgo", why, now
 	Bump(s, "letGo")
 	Changed()
-end
-
--- The one moment a favour changes hands that Core does not tell this file
--- about: putting its giver on the never-offer list, which drops their debt
--- there and then (see ns.PutOnNeverList). The sweep that reports a debt
--- running out never sees one that is already gone, so the row stayed owed --
--- counted in the headline, its tooltip promising an offer -- until the next
--- reload called it run out, which is the one thing it was not. So the ledger
--- listens for it itself, around the function every way onto the list goes
--- through: the prompt's shift-right-click, /manners never and the box on the
--- options page all look it up on ns when they run, and this file loads after
--- Core.lua has defined it. Whichever debts were there before the call and are
--- gone after it went with it, on purpose. They are compared by the name Core
--- keeps them under, which is the name rows are kept under (see Load), so how
--- the list matches a typed name is decided in one place only. Were Core to
--- tell this file as well, the row would already be let go, which LetGo finds
--- no open row for and leaves alone. Guarded like everything Core tells it: a
--- ledger that throws must not take the never-offer list with it.
-do
-	local put = ns.PutOnNeverList
-	if type(put) == "function" then
-		ns.PutOnNeverList = function(...)
-			local before = {}
-			for name in pairs(ns.owed or {}) do before[#before + 1] = name end
-			local listed = put(...)
-			for _, name in ipairs(before) do
-				if not (ns.owed and ns.owed[name]) then
-					ns.Guard("ledger LetGo", Ledger.LetGo, name, "never")
-				end
-			end
-			return listed
-		end
-	end
 end
 
 -- Everything but the favours still owed, and today's count of buffs given with
