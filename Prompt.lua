@@ -887,7 +887,9 @@ function Prompt:Create()
 		--
 		-- The commands go in as arguments rather than as part of the sentence:
 		-- they are what the player has to type, in English in every language,
-		-- and a translator should never be handed them to translate.
+		-- and a translator should never be handed them to translate. The option
+		-- and tab names go in the same way, through the keys the options window
+		-- shows them with, so the sentence names the labels the player will find.
 		if not self:IsShown() then
 			local db = ns.db and ns.db.profile
 			if db and not db.enabled then
@@ -897,7 +899,8 @@ function Prompt:Create()
 				ns.addon:Print(L["Manners is snoozed until %s -- %s brings the prompt back now."]
 					:format(ns.SnoozeEndsAt(), "|cffffd100/manners snooze off|r"))
 			elseif ns.HiddenWhileMounted() then
-				ns.addon:Print(L["the prompt stays away while you are mounted -- get off, or switch off |cffffd100Not while mounted|r on the When tab."])
+				ns.addon:Print(L["the prompt stays away while you are mounted -- get off, or switch off %s on the %s tab."]
+					:format("|cffffd100" .. L["Not while mounted"] .. "|r", L["When"]))
 			elseif not ns.caps.anyKnown then
 				local class = ns.caps.class
 				if class and ns.CLASSES_WITHOUT_BUFFS and ns.CLASSES_WITHOUT_BUFFS[class] then
