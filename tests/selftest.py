@@ -12,6 +12,13 @@ column then measured nothing but whether the file still loaded.
 """
 import subprocess, shutil, sys, os
 
+# --anchors checks only that every mutation still finds the text it replaces,
+# which takes seconds rather than the full run's many minutes. It is for the
+# middle of a change that moves a lot of code text -- wrapping strings for
+# translation, say -- and proves nothing about whether a check still fires:
+# the full run is still what a change is finished against.
+ANCHORS_ONLY = "--anchors" in sys.argv[1:]
+
 DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TESTS = os.path.join(DIR, "tests")
 
@@ -72,6 +79,16 @@ def mutate(filename, old, new, label, expect, script="runharness.py"):
     when the run is red, because a red run proves nothing about this bug.
     """
     path = os.path.join(DIR, filename)
+    if ANCHORS_ONLY:
+        text = open(path, encoding="utf-8").read()
+        if old not in text:
+            dead_anchors.append(label)
+            print("%-44s *** ANCHOR GONE ***" % label)
+        elif text.count(old) > 1:
+            # Replaced at its first occurrence only, which may not be the
+            # one the mutation was written against.
+            print("%-44s ambiguous: the text occurs %d times" % (label, text.count(old)))
+        return
     backup = path + ".selftest-backup"
     shutil.copy2(path, backup)
     try:
@@ -107,23 +124,24 @@ def mutate(filename, old, new, label, expect, script="runharness.py"):
         shutil.move(backup, path)
 
 
-print("baseline:")
-# Every mutation below is judged by the suite going red. Against a tree that is
-# already red they all report CAUGHT without proving a thing, and this file then
-# signs off on checks it never exercised -- the same failure as a dead anchor,
-# arriving from the other direction. So the baseline is a gate, not a note.
-dirty = []
-for script in SUITES:
-    line, clean = tally(script)
-    print("  %-20s %s" % (script, line))
-    if not clean:
-        dirty.append(script)
-if dirty:
+if not ANCHORS_ONLY:
+    print("baseline:")
+    # Every mutation below is judged by the suite going red. Against a tree that is
+    # already red they all report CAUGHT without proving a thing, and this file then
+    # signs off on checks it never exercised -- the same failure as a dead anchor,
+    # arriving from the other direction. So the baseline is a gate, not a note.
+    dirty = []
+    for script in SUITES:
+        line, clean = tally(script)
+        print("  %-20s %s" % (script, line))
+        if not clean:
+            dirty.append(script)
+    if dirty:
+        print()
+        print("RESULT: the tree is already failing (" + ", ".join(dirty) + "),"
+              " so no mutation below would mean anything")
+        sys.exit(1)
     print()
-    print("RESULT: the tree is already failing (" + ", ".join(dirty) + "),"
-          " so no mutation below would mean anything")
-    sys.exit(1)
-print()
 
 # 1. a name local to another file, called from this one -- the `plain` bug
 mutate("Prompt.lua",
@@ -3504,6 +3522,14 @@ for _mf in sorted(_glob.glob(os.path.join(DIR, "tests", "mutations", "*.py"))):
          {"mutate": mutate, "__file__": _mf})
 
 print()
+if ANCHORS_ONLY:
+    print()
+    for label in dead_anchors:
+        print("ANCHOR GONE: " + label)
+    print("RESULT: " + ("%d anchors gone" % len(dead_anchors) if dead_anchors
+                        else "every anchor is live (mutations not run)"))
+    sys.exit(1 if dead_anchors else 0)
+
 print("after restore:")
 # This file edits the addon in place. A restore that did not happen leaves a
 # mutation in the working tree and every later run measuring it, so the check
