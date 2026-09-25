@@ -10,7 +10,7 @@ S = "runscenarios.py"
 # ------------------------------------------------------------------ clicks
 
 mutate("Options.lua",
-       "\tif mouseButton == \"MiddleButton\" then\n\t\tToggleEnabled()\n\t\treturn\n\tend\n",
+       "\tif mouseButton == \"MiddleButton\" then\n\t\tToggleEnabled(mouseButton)\n\t\treturn\n\tend\n",
        "",
        "minimap: a middle click that does nothing",
        expect="a middle click did not switch Manners off", script=S)
@@ -92,14 +92,14 @@ mutate("Options.lua",
        expect="the tooltip does not say who is on the prompt", script=S)
 
 mutate("Options.lua",
-       "\tif watching and InCombatLockdown() then\n",
-       "\tif false then\n",
+       "\t\tif showing and InCombatLockdown() then\n",
+       "\t\tif false then\n",
        "minimap: the tooltip never says held",
        expect="the tooltip does not say the prompt is held in a fight", script=S)
 
 mutate("Options.lua",
-       "\ttooltip:AddLine(Enabled() and L[\"Middle click: switch it off\"]\n"
-       "\t\tor L[\"Middle click: switch it on\"], 0.6, 0.6, 0.6)\n",
+       "\t\ttooltip:AddLine(Enabled() and L[\"Middle click: switch it off\"]\n"
+       "\t\t\tor L[\"Middle click: switch it on\"], 0.6, 0.6, 0.6)\n",
        "",
        "minimap: the tooltip without the middle click",
        expect="the tooltip has no click hint \"Middle click", script=S)
@@ -113,7 +113,7 @@ mutate("Options.lua",
        expect="the icon is not dimmed while off", script=S)
 
 mutate("Options.lua",
-       "\tif not Enabled() then return 0.45, 0.45, 0.45 end\n",
+       "\tif not Enabled() then return 0.4, 0.4, 0.4 end\n",
        "",
        "minimap: an icon that ignores the switch",
        expect="the icon is not dimmed while off", script=S)
@@ -149,3 +149,85 @@ mutate("Options.lua",
        "\tif false then\n",
        "minimap: the menu opened inside the compartment",
        expect="the menu opened inside the compartment's own click", script=S)
+
+mutate("Options.lua",
+       "\tif compartment then compartment.text = text end\n",
+       "",
+       "minimap: a compartment line that never says the state",
+       expect="the compartment line does not say Manners is off", script=S)
+
+mutate("Options.lua",
+       "\t\t\tif _G.AddonCompartmentFrame then\n",
+       "\t\t\tif false then\n",
+       "minimap: the minimap toggle silent about the compartment",
+       expect="Show minimap button does not say Manners stays in the compartment", script=S)
+
+# ------------------------------------------------------------------ review round
+
+# The already-listed branch of PutOnNeverList returns before the repaint at the
+# end of the function, which is how "1 waiting" outlived a favour let go.
+mutate("Core.lua",
+       "\tif forgiven then\n\t\tSaveDebts()\n\t\tns.RepaintOptions()\n\tend\n",
+       "\tif forgiven then\n\t\tSaveDebts()\n\tend\n",
+       "minimap: a favour let go and the count left behind",
+       expect="a favour let go left the launcher reading", script=S)
+
+mutate("Options.lua",
+       "\tif not (profile and profile.sources and profile.sources.owed) then return 0 end\n",
+       "",
+       "minimap: counting favours nobody will be offered",
+       expect="with People who buffed me off, the launcher still counts favours", script=S)
+
+mutate("Options.lua",
+       "\t\tif showing and InCombatLockdown() then\n",
+       "\t\tif InCombatLockdown() then\n",
+       "minimap: held in combat with no prompt up",
+       expect="the tooltip says a prompt is held in a fight with no prompt up", script=S)
+
+mutate("Options.lua",
+       "\tif onPrompt and InCombatLockdown() then\n",
+       "\tif false then\n",
+       "minimap: a skip in a fight that claims to have worked",
+       expect="Skip for now on the prompt in a fight claimed the skip", script=S)
+
+mutate("Options.lua",
+       "\telseif mouseButton == \"RightButton\" then\n",
+       "\telseif false then\n",
+       "minimap: the right click told to middle-click",
+       expect="a right click that switched it off names another way back", script=S)
+
+mutate("Options.lua",
+       "\tif reason == \"owed\" then return owed end\n",
+       "",
+       "minimap: every reason read as nearby",
+       expect="does not say why Anna is there", script=S)
+
+mutate("Options.lua",
+       "\tif ends then\n\t\tNobody(parent, L[\"Nobody -- snoozed until %s\"]:format(ends))\n\t\treturn\n\tend\n",
+       "",
+       "minimap: who's next listing people while snoozed",
+       expect="while snoozed, who's next lists people no prompt will offer", script=S)
+
+mutate("Options.lua",
+       "\tif not watching then\n\t\tNobody(parent, line)\n",
+       "\tif false then\n\t\tNobody(parent, line)\n",
+       "minimap: who's next listing people with nothing to cast",
+       expect="with nothing to cast, who's next still lists people", script=S)
+
+mutate("Options.lua",
+       "\tif not ok or #names < 2 then return end\n",
+       "\tif not ok or #names == 0 then return end\n",
+       "minimap: a Profiles submenu with one profile",
+       expect="the menu offers a Profiles submenu with one profile in it", script=S)
+
+mutate("Options.lua",
+       "\tDivider(root)\n\tFillWhoIsNext(root:CreateButton(L[\"Who's next\"]))\n",
+       "\tFillWhoIsNext(root:CreateButton(L[\"Who's next\"]))\n",
+       "minimap: a menu in one run",
+       expect="the menu is not grouped as it should be", script=S)
+
+mutate("Options.lua",
+       "\tif ns.SnoozeLeft and ns.SnoozeLeft() then return 0.7, 0.7, 0.7 end\n",
+       "\tif ns.SnoozeLeft and ns.SnoozeLeft() then return 1, 0.78, 0.35 end\n",
+       "minimap: a snooze tint that changes the icon's colours",
+       expect="not as a dimmer icon between on and off", script=S)

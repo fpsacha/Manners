@@ -168,8 +168,12 @@ do
 			if ns.db.profile.enabled then
 				fail(scenario, "a middle click did not switch Manners off")
 			else
-				if not said():find("disabled.", 1, true) then
-					fail(scenario, "a middle click switched it off without a word: " .. said())
+				-- Off is saved, and a wheel pressed on the minimap's edge throws
+				-- it too, so the line has to carry the way back.
+				if not said():find("middle-click it again", 1, true)
+					or not said():find("/manners on", 1, true) then
+					fail(scenario, "a middle click switched it off without saying how to switch it back: "
+						.. said())
 				end
 				if not tostring(broker.text):find("off", 1, true) then
 					fail(scenario, "a middle click switched it off and the launcher still reads "
@@ -196,9 +200,12 @@ do
 
 			local realMenu = MenuUtil
 			MenuUtil = nil
+			Mock.printed = {}
 			broker.OnClick({}, "RightButton")
 			if ns.db.profile.enabled then
 				fail(scenario, "with no menu to open, a right click no longer throws the switch")
+			elseif not said():find("right-click it again", 1, true) then
+				fail(scenario, "a right click that switched it off names another way back: " .. said())
 			end
 			MenuUtil = realMenu
 			ns.db.profile.enabled = true
@@ -255,6 +262,18 @@ do
 					return
 				end
 
+				-- In groups: the state, the people, the prompt, the options.
+				local shape = {}
+				for _, item in ipairs(menu.items) do
+					shape[#shape + 1] = item.divider and "|" or tostring(item.text)
+				end
+				shape = table.concat(shape, " / ")
+				local want = "Manners / Enable / Snooze / | / Who's next / Open the ledger / | / "
+					.. "Preview the prompt / Prompt / Tell me in chat what the addon is doing / Profiles / | / Options"
+				if shape ~= want then
+					fail(scenario, "the menu is not grouped as it should be: " .. shape)
+				end
+
 				-- The switch, as a checkbox reading the switch.
 				if enable.kind ~= "checkbox" or enable.get() ~= true then
 					fail(scenario, "the Enable checkbox does not read the switch as on")
@@ -284,7 +303,16 @@ do
 					if math.abs((ns.SnoozeLeft() or 0) - 3600) > 1 then
 						fail(scenario, "For 60 minutes did not snooze for an hour")
 					end
-					local snoozed = child(rightClick(), "^Snoozed until ")
+					local whileSnoozed = rightClick()
+					-- Nobody is offered while snoozed, so Who's next says that
+					-- rather than listing people no prompt is going to show.
+					local nobody = child(child(whileSnoozed, "^Who's next$"), "")
+					if not nobody or not tostring(nobody.text):find("^Nobody %-%- snoozed until ")
+						or nobody.enabled ~= false or #nobody.items > 0 then
+						fail(scenario, "while snoozed, who's next lists people no prompt will offer: "
+							.. tostring(nobody and nobody.text))
+					end
+					local snoozed = child(whileSnoozed, "^Snoozed until ")
 					local stop = snoozed and child(snoozed, "^Stop snoozing$")
 					if not stop then
 						fail(scenario, "a snooze running is not named on the menu with a way to stop it")
@@ -308,6 +336,18 @@ do
 					if not (child(anna, "^Skip for now$") and child(anna, "^Never offer$")) then
 						fail(scenario, "a person on who's next has no Skip for now and Never offer")
 					end
+				end
+
+				-- With nothing to cast, the same reason the tooltip gives, and
+				-- nobody listed.
+				local realResolve = ns.ResolveBuff
+				ns.ResolveBuff = function() return nil end
+				local stuck = child(child(rightClick(), "^Who's next$"), "")
+				ns.ResolveBuff = realResolve
+				if not stuck or stuck.enabled ~= false or tostring(stuck.text):find("Anna Aim", 1, true)
+					or tostring(stuck.text):find("Bo Bell", 1, true) then
+					fail(scenario, "with nothing to cast, who's next still lists people: "
+						.. tostring(stuck and stuck.text))
 				end
 
 				-- The prompt's own settings.
@@ -375,6 +415,17 @@ do
 					end
 					ns.db:SetProfile("Default")
 				end
+				-- One profile is nothing to switch to, and no entry at all.
+				local realProfiles = ns.db.GetProfiles
+				ns.db.GetProfiles = function(_, t)
+					t = t or {}
+					t[1] = "Default"
+					return t, 1
+				end
+				if child(rightClick(), "^Profiles$") then
+					fail(scenario, "the menu offers a Profiles submenu with one profile in it")
+				end
+				ns.db.GetProfiles = realProfiles
 
 				-- The ledger, and the options.
 				ledger.fn()
@@ -536,6 +587,12 @@ do
 				if not said():find("skipping", 1, true) then
 					fail(scenario, "Skip for now said nothing in chat: " .. said())
 				end
+				-- The prompt cannot follow the skip in a fight, and a press still
+				-- casts at them, so the line has to say so.
+				if not said():find("cannot move off them in a fight", 1, true) then
+					fail(scenario, "Skip for now on the prompt in a fight claimed the skip without saying"
+						.. " a press still casts at them: " .. said())
+				end
 				if #Mock.protectedCalls > 0 then
 					fail(scenario, "Skip for now touched the secure button in a fight: "
 						.. table.concat(Mock.protectedCalls, ", "))
@@ -577,6 +634,51 @@ do
 			for _, e in ipairs(ns.errors or {}) do
 				fail(scenario, "guarded: " .. tostring(e.where) .. " -> " .. tostring(e.err))
 			end
+		end
+	end
+	restore()
+	Mock.reset()
+end
+
+-- Somebody already on the never-offer list is only on the prompt because they
+-- buffed you, and for them Never offer reads Let this favour go. Letting it go
+-- takes the favour off the launcher's count at once -- the bar used to go on
+-- reading "1 waiting" for a favour that no longer existed.
+Mock.reset()
+do
+	local scenario = "minimap: letting a favour go takes it off the count"
+	local restore = strangers({ nameplate1 = { "Anna", "Aim" } })
+	local ns = load(scenario)
+	if ns then
+		freshPrompt(ns, scenario)
+		ns.PutOnNeverList("Anna Aim")
+		owe(ns, "Anna Aim")
+		ns.addon:Tick()
+		ns.RefreshBrokerText()
+		local broker = Mock.broker
+		if not (broker and tostring(broker.text):find("1 waiting", 1, true)) then
+			fail(scenario, "SKIPPED -- the launcher never counted Anna's favour: "
+				.. tostring(broker and broker.text))
+		else
+			local ok, err = pcall(withMenu, function(rightClick)
+				local anna = child(child(rightClick(), "^Who's next$"), "^Anna Aim %-%- ")
+				local letGo = anna and child(anna, "^Let this favour go$")
+				if not letGo then
+					fail(scenario, "SKIPPED -- who's next has no Let this favour go for Anna")
+					return
+				end
+				letGo.fn()
+				if next(ns.owed) then
+					fail(scenario, "Let this favour go left the favour standing")
+				end
+				if broker.text ~= "Manners" then
+					fail(scenario, "a favour let go left the launcher reading " .. tostring(broker.text))
+				end
+			end)
+			if not ok then fail(scenario, tostring(err)) end
+		end
+		for _, e in ipairs(ns.errors or {}) do
+			fail(scenario, "guarded: " .. tostring(e.where) .. " -> " .. tostring(e.err))
 		end
 	end
 	restore()
@@ -626,6 +728,16 @@ do
 			if not tip:find("Held in combat", 1, true) then
 				fail(scenario, "the tooltip does not say the prompt is held in a fight: " .. tip)
 			end
+			-- And not with no prompt up, where it describes one nobody can see.
+			local realShowing = ns.Prompt.Showing
+			ns.Prompt.Showing = function() return nil end
+			Mock.inCombat = true
+			tip = tooltipLines() or ""
+			Mock.inCombat = false
+			ns.Prompt.Showing = realShowing
+			if tip:find("Held in combat", 1, true) then
+				fail(scenario, "the tooltip says a prompt is held in a fight with no prompt up: " .. tip)
+			end
 
 			ns.addon:HandleSlash("snooze 15")
 			tip = tooltipLines() or ""
@@ -650,8 +762,11 @@ do
 
 			MenuUtil = nil
 			tip = tooltipLines() or ""
-			if not tip:find("Right click: switch it off", 1, true) then
+			if not tip:find("Middle or right click: switch it off", 1, true) then
 				fail(scenario, "with no menu, the tooltip does not say what a right click does: " .. tip)
+			end
+			if tip:find("Middle click:", 1, true) then
+				fail(scenario, "with no menu, the tooltip says the same thing twice: " .. tip)
 			end
 			MenuUtil = real
 		end
@@ -689,14 +804,18 @@ do
 			if not (r and r < 0.6 and g < 0.6 and b < 0.6) then
 				fail(scenario, "the icon is not dimmed while off: " .. tostring(r))
 			end
+			local offR = r
 			ns.addon:HandleSlash("on")
 			r = tint()
 			if r ~= 1 then fail(scenario, "the icon stayed dimmed after switching on") end
 
+			-- Dimmed evenly, and less than off: a hue turned the icon's blue
+			-- arrow olive and read as a different icon.
 			ns.addon:HandleSlash("snooze 15")
 			r, g, b = tint()
-			if not (r == 1 and b < 0.6) then
-				fail(scenario, "the icon is not tinted while snoozed")
+			if not (r and r < 1 and r == g and g == b and r > (offR or 1)) then
+				fail(scenario, ("the icon is not tinted while snoozed, or not as a dimmer icon between"
+					.. " on and off: %s %s %s"):format(tostring(r), tostring(g), tostring(b)))
 			end
 			if not tostring(broker.text):find("snoozed until", 1, true) then
 				fail(scenario, "the launcher does not say it is snoozed: " .. tostring(broker.text))
@@ -710,6 +829,31 @@ do
 			ns.RefreshBrokerText()
 			if not tostring(broker.text):find("2 waiting", 1, true) then
 				fail(scenario, "the launcher does not count the favours waiting: " .. tostring(broker.text))
+			end
+
+			-- With "People who buffed me" off the queue offers none of them, so
+			-- nobody is waiting -- and the switch on the page repaints the bar.
+			local function findOption(group, key)
+				for k, option in pairs(group and group.args or {}) do
+					if k == key and option.type == "toggle" then return option end
+					local inner = findOption(option, key)
+					if inner then return inner end
+				end
+			end
+			local owedToggle = findOption(ns.optionsTable, "owed")
+			if not owedToggle then
+				fail(scenario, "SKIPPED -- no People who buffed me toggle on the page")
+			else
+				owedToggle.set({ "owed" }, false)
+				if broker.text ~= "Manners" then
+					fail(scenario, "with People who buffed me off, the launcher still counts favours"
+						.. " nobody will be offered: " .. tostring(broker.text))
+				end
+				owedToggle.set({ "owed" }, true)
+				if not tostring(broker.text):find("2 waiting", 1, true) then
+					fail(scenario, "switching People who buffed me back on left the launcher reading "
+						.. tostring(broker.text))
+				end
 			end
 			wipe(ns.owed)
 			ns.RefreshBrokerText()
@@ -765,8 +909,31 @@ do
 			if ns.db.profile.enabled then
 				fail(scenario, "a middle click in the compartment did not throw the switch")
 			end
+			-- The line reads the state as the button's text does, since it is
+			-- what is left with the button hidden.
+			if not tostring(entry.text):find("off", 1, true) then
+				fail(scenario, "the compartment line does not say Manners is off: " .. tostring(entry.text))
+			end
 			entry.func(nil, { buttonName = "MiddleButton" })
+			if entry.text ~= "Manners" then
+				fail(scenario, "the compartment line still reads " .. tostring(entry.text) .. " once back on")
+			end
 			ns.OpenOptions = realOpen
+
+			-- And the page says so where the button is hidden.
+			local function findOption(group, key)
+				for k, option in pairs(group and group.args or {}) do
+					if k == key and option.type == "toggle" then return option end
+					local inner = findOption(option, key)
+					if inner then return inner end
+				end
+			end
+			local toggle = findOption(ns.optionsTable, "minimap")
+			local desc = toggle and type(toggle.desc) == "function" and toggle.desc() or nil
+			if not (desc and desc:find("addon compartment", 1, true)) then
+				fail(scenario, "Show minimap button does not say Manners stays in the compartment: "
+					.. tostring(desc))
+			end
 
 			local real = MenuUtil
 			local opened, shown

@@ -548,7 +548,7 @@ do
 				fail(scenario, "with no menu to open, right-click no longer switches the addon")
 			end
 			tip = tooltipLines(ns) or ""
-			if not tip:find("Right click: switch it on", 1, true) or tip:find("snooze", 1, true) then
+			if not tip:find("Middle or right click: switch it on", 1, true) or tip:find("snooze", 1, true) then
 				fail(scenario, "with no menu, the tooltip promises one: " .. tip)
 			end
 			ns.db.profile.enabled = true

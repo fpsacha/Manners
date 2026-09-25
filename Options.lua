@@ -49,7 +49,14 @@ end
 -- "12 waiting" all evening is a number nobody reads twice; somebody who buffed
 -- you is the one kind of person actually waiting for something. Counted by the
 -- debt's live expiry, the one every other reader of the debts asks.
+--
+-- And none at all while "People who buffed me" is switched off. The debts
+-- filed before it was turned off stay until they expire, but the queue ignores
+-- every one of them, so counting them would have the bar promise a return the
+-- addon is never going to offer.
 local function WaitingCount()
+	local profile = ns.db and ns.db.profile
+	if not (profile and profile.sources and profile.sources.owed) then return 0 end
 	local owed, expiry = ns.owed, ns.DebtExpiry
 	if type(owed) ~= "table" or type(expiry) ~= "function" then return 0 end
 	local now, n = GetTime(), 0
@@ -69,30 +76,41 @@ end
 -- whether it was switched on was to right-click it and read chat, and that
 -- changes the answer. Off is the state worth carrying: the prompt simply never
 -- appears, and from the outside that is exactly what a broken addon looks like.
+--
+-- Each state is one whole phrase with the addon's name passed in, so a
+-- translation sees what the word describes and can put it, and its colour,
+-- where its own grammar wants them. The name itself is never translated.
 local function BrokerText()
 	-- A snooze is the other state in which no prompt appears on purpose, and
 	-- the end of it is the part worth reading off a bar. Only while on: off
 	-- outranks it, since a snooze ending brings nothing back while off.
 	local ends = Enabled() and ns.SnoozeEndsAt and ns.SnoozeEndsAt()
-	if ends then return ("Manners |cffffd100%s|r"):format(L["snoozed until %s"]:format(ends)) end
-	if not Enabled() then return "Manners |cffff8080" .. L["off"] .. "|r" end
+	if ends then return L["%s |cffffd100snoozed until %s|r"]:format("Manners", ends) end
+	if not Enabled() then return L["%s |cffff8080off|r"]:format("Manners") end
 	-- Then the favours still to return, which is the number worth glancing at
 	-- a bar for. Nothing at all when there are none, so a quiet evening reads
 	-- as the name and nothing else, as it always has.
 	local waiting = WaitingCount()
-	if waiting == 1 then return "Manners |cff80e080" .. L["1 waiting"] .. "|r" end
-	if waiting > 1 then return ("Manners |cff80e080%s|r"):format(L["%d waiting"]:format(waiting)) end
+	if waiting == 1 then return L["%s |cff80e0801 waiting|r"]:format("Manners") end
+	if waiting > 1 then return L["%s |cff80e080%d waiting|r"]:format("Manners", waiting) end
 	return "Manners"
 end
 
--- The colour the launcher's icon is drawn in: dimmed while switched off,
--- warmed while snoozed, as it is otherwise. The icon is the only part of the
--- launcher on the minimap that is always in view -- the text is only on a
+-- The colour the launcher's icon is drawn in: dimmed while snoozed, darker
+-- still while switched off, as it is otherwise. The icon is the only part of
+-- the launcher on the minimap that is always in view -- the text is only on a
 -- broker bar, and the tooltip only on a hover -- so it is the one place a
 -- glance can tell a resting addon from a working one.
+--
+-- Brightness only, never a hue. The icon is a gold arrow over a blue one, and
+-- the amber the snooze used to multiply it by left the gold as it was and
+-- turned the blue arrow olive: at minimap size it read as a different icon
+-- rather than a resting one. Scaled evenly, both arrows keep their colours and
+-- the three states read in order -- working, resting, off -- with the text and
+-- the tooltip saying which.
 local function IconTint()
-	if not Enabled() then return 0.45, 0.45, 0.45 end
-	if ns.SnoozeLeft and ns.SnoozeLeft() then return 1, 0.78, 0.35 end
+	if not Enabled() then return 0.4, 0.4, 0.4 end
+	if ns.SnoozeLeft and ns.SnoozeLeft() then return 0.7, 0.7, 0.7 end
 	return 1, 1, 1
 end
 
@@ -165,7 +183,11 @@ local function B() return ns.db.profile.buff end
 local function PR() return ns.db.profile.priority end
 
 local pGet, pSet, pGetColor, pSetColor = bind(P, restyle)
-local sGet, sSet = bind(S)
+-- The launcher's "N waiting" counts favours only while "People who buffed me"
+-- is on, so throwing that switch changes the number on the bar.
+local sGet, sSet = bind(S, function()
+	if ns.RefreshBrokerText then ns.Guard("broker text", ns.RefreshBrokerText) end
+end)
 local fGet, fSet = bind(F)
 -- The armed macro is only rebuilt when the candidate changes, so a filter that
 -- alters what the macro says -- rather than who is on the prompt -- has to say
@@ -1061,9 +1083,10 @@ local function BuildOptions()
 						func = function() ns.CreateClickMacro() end,
 					},
 
-					-- The same three lengths as the minimap menu, and through the
-					-- same functions as /manners snooze, so all three say the
-					-- same thing in chat.
+					-- The three lengths in ns.SNOOZE_CHOICES. The minimap menu
+					-- keeps its own list, with an hour added; all of them go
+					-- through ns.StartSnooze, as /manners snooze does, so every
+					-- way in says the same thing in chat.
 					snoozeHeader = {
 						type = "header", name = "Snooze", order = 15,
 						hidden = function() return not HasClassBuffs() end,
@@ -1134,6 +1157,13 @@ local function BuildOptions()
 						type = "toggle",
 						name = "Show minimap button",
 						order = 21,
+						-- Said where the choice is made, because hiding the button
+						-- loses nothing only on a client that has the compartment.
+						desc = function()
+							if _G.AddonCompartmentFrame then
+								return L["Manners stays in the addon compartment under the minimap either way."]
+							end
+						end,
 						-- Gone entirely where the libraries are not, rather than
 						-- greyed out. Without this the checkbox writes a setting
 						-- nothing reads and calls Show or Hide on a button that
@@ -2575,13 +2605,18 @@ local MENU_SNOOZE_MINUTES = { 5, 15, 30, 60 }
 local MENU_QUEUE_ROWS = 8
 local TOOLTIP_QUEUE_ROWS = 3
 
--- Why somebody is being offered a buff, in the words the prompt uses.
-local function WhyWords(entry)
+-- Picks the line for why somebody is being offered a buff.
+--
+-- The caller writes out all four lines, one whole sentence per reason, rather
+-- than slotting a word for the reason into one sentence: "buffed you" slotted
+-- into three different sentences is a word a translation has to make agree
+-- with a subject it never sees.
+local function ByReason(entry, owed, group, target, nearby)
 	local reason = entry and entry.reason
-	if reason == "owed" then return L["buffed you"] end
-	if reason == "group" then return L["in your group"] end
-	if reason == "target" then return L["your target"] end
-	return L["nearby"]
+	if reason == "owed" then return owed end
+	if reason == "group" then return group end
+	if reason == "target" then return target end
+	return nearby
 end
 
 local function WhoIs(entry)
@@ -2618,64 +2653,67 @@ local function WhoIsWaiting(limit)
 	return list, showing
 end
 
+-- Whether a prompt can appear at all right now, and the line that says so:
+-- watching, then the line with its colour and whether it wraps.
+--
+-- Which is why "on" is not enough to say "watching". A rogue, a mage who has
+-- not learned Arcane Intellect and a priest with every spell switched off are
+-- all switched on, and none of them will ever see a prompt -- so "Watching for
+-- people to buff" was the one line that made the missing prompt look like a
+-- bug. Told apart as the greeting tells them apart: a class with nothing to
+-- give, a class the buff data has no table for, nothing learned yet, and a
+-- setting in the way.
+--
+-- One answer for the tooltip and the menu's Who's next, so the hover and the
+-- menu cannot give two different accounts of the same moment.
+local function LauncherState()
+	local class = ns.caps and ns.caps.class
+	local snoozeLeft = ns.SnoozeLeft and ns.SnoozeLeft()
+	if not Enabled() then
+		return false, L["Switched off -- no prompt will appear."], 1, 0.5, 0.5
+	elseif snoozeLeft then
+		-- The clock time and the minutes both: the time is what the player
+		-- compares with a raid timer, and the minutes are what they asked for.
+		return false, L["Snoozed until %s, %s from now -- no prompt until then."]
+			:format(ns.SnoozeEndsAt(), ns.MinutesText(math.ceil(snoozeLeft / 60))), 1, 0.82, 0, true
+	elseif class and ns.CLASSES_WITHOUT_BUFFS and ns.CLASSES_WITHOUT_BUFFS[class] then
+		return false, L["Nothing to do: %s"]:format(ns.NO_CLASS_BUFFS), 1, 0.82, 0
+	elseif not HasClassBuffs() then
+		return false, L["Nothing to cast on this character -- /manners debug says why."], 1, 0.82, 0
+	elseif not ns.ResolveBuff(true) then
+		if ns.caps.anyKnown then
+			return false, L["Nothing will be offered: %s."]:format(ns.NothingToCast()), 1, 0.5, 0.5, true
+		end
+		return false, L["Nothing learned to cast yet."], 1, 0.82, 0
+	end
+	return true, L["Watching for people to buff."], 0.4, 0.9, 0.4
+end
+
 -- What the launcher's tooltip says, for the minimap button, a broker display
 -- and the addon compartment alike.
 local function FillLauncherTooltip(tooltip)
 	tooltip:AddLine("Manners")
-	-- The state, said here as well as in the text, because a broker
-	-- display is free to show the icon on its own -- and then this
-	-- tooltip is the only place left that can say why no prompt has
-	-- appeared all evening.
-	--
-	-- Which is why "on" is not enough to say "watching". A rogue, a
-	-- mage who has not learned Arcane Intellect and a priest with
-	-- every spell switched off are all switched on, and none of
-	-- them will ever see a prompt -- so "Watching for people to
-	-- buff" was the one line that made the missing prompt look like
-	-- a bug. Told apart as the greeting tells them apart: a class
-	-- with nothing to give, a class the buff data has no table for,
-	-- nothing learned yet, and a setting in the way.
-	local class = ns.caps and ns.caps.class
-	local snoozeLeft = ns.SnoozeLeft and ns.SnoozeLeft()
-	local watching = false
-	if not Enabled() then
-		tooltip:AddLine(L["Switched off -- no prompt will appear."], 1, 0.5, 0.5)
-	elseif snoozeLeft then
-		-- The clock time and the minutes both: the time is what the
-		-- player compares with a raid timer, and the minutes are what
-		-- they asked for.
-		tooltip:AddLine(L["Snoozed until %s, %s from now -- no prompt until then."]
-			:format(ns.SnoozeEndsAt(), ns.MinutesText(math.ceil(snoozeLeft / 60))),
-			1, 0.82, 0, true)
-	elseif class and ns.CLASSES_WITHOUT_BUFFS and ns.CLASSES_WITHOUT_BUFFS[class] then
-		tooltip:AddLine(L["Nothing to do: %s"]:format(ns.NO_CLASS_BUFFS), 1, 0.82, 0)
-	elseif not HasClassBuffs() then
-		tooltip:AddLine(L["Nothing to cast on this character -- /manners debug says why."],
-			1, 0.82, 0)
-	elseif not ns.ResolveBuff(true) then
-		if ns.caps.anyKnown then
-			tooltip:AddLine(L["Nothing will be offered: %s."]:format(ns.NothingToCast()),
-				1, 0.5, 0.5, true)
-		else
-			tooltip:AddLine(L["Nothing learned to cast yet."], 1, 0.82, 0)
-		end
-	else
-		tooltip:AddLine(L["Watching for people to buff."], 0.4, 0.9, 0.4)
-		watching = true
-	end
+	-- The state, said here as well as in the text, because a broker display is
+	-- free to show the icon on its own -- and then this tooltip is the only
+	-- place left that can say why no prompt has appeared all evening.
+	local watching, line, r, g, b, wrap = LauncherState()
+	tooltip:AddLine(line, r, g, b, wrap)
 
-	-- In a fight the prompt keeps whoever it had when the fight began, and a
-	-- press still casts at them; the list under it stops moving. Said beside
-	-- the state because "watching" alone would promise a prompt that follows
-	-- the queue, which in a fight it cannot.
-	if watching and InCombatLockdown() then
-		tooltip:AddLine(L["Held in combat -- the prompt moves on once the fight ends."], 1, 0.82, 0, true)
-	end
-
-	-- Who is waiting, while there is a prompt to wait on. The favours first:
-	-- they are what the launcher's own text counts, so a bar reading "2
-	-- waiting" is answered by the first line of the hover.
+	-- Who is waiting, while there is a prompt to wait on.
 	if watching then
+		local list, showing = WhoIsWaiting(TOOLTIP_QUEUE_ROWS + 1)
+
+		-- In a fight the prompt keeps whoever it had when the fight began, and
+		-- a press still casts at them; the list under it stops moving. Said
+		-- beside the state because "watching" alone would promise a prompt that
+		-- follows the queue, which in a fight it cannot -- and only while there
+		-- is a prompt up to be held, or it describes one nobody can see.
+		if showing and InCombatLockdown() then
+			tooltip:AddLine(L["Held in combat -- the prompt moves on once the fight ends."], 1, 0.82, 0, true)
+		end
+
+		-- The favours first: they are what the launcher's own text counts, so a
+		-- bar reading "2 waiting" is answered by the first line of the hover.
 		local waiting = WaitingCount()
 		if waiting == 1 then
 			tooltip:AddLine(L["1 person who buffed you is waiting for one back."], 0.5, 0.88, 0.5, true)
@@ -2683,14 +2721,21 @@ local function FillLauncherTooltip(tooltip)
 			tooltip:AddLine(L["%d people who buffed you are waiting for one back."]:format(waiting),
 				0.5, 0.88, 0.5, true)
 		end
-		local list, showing = WhoIsWaiting(TOOLTIP_QUEUE_ROWS + 1)
 		for i, entry in ipairs(list) do
 			if entry == showing then
-				tooltip:AddLine(L["On the prompt: |cffffffff%s|r -- %s, %s"]:format(
-					WhoIs(entry), WhatBuff(entry), WhyWords(entry)), 1, 0.82, 0, true)
+				tooltip:AddLine(ByReason(entry,
+					L["On the prompt: |cffffffff%s|r -- %s, buffed you"],
+					L["On the prompt: |cffffffff%s|r -- %s, in your group"],
+					L["On the prompt: |cffffffff%s|r -- %s, your target"],
+					L["On the prompt: |cffffffff%s|r -- %s, nearby"]
+				):format(WhoIs(entry), WhatBuff(entry)), 1, 0.82, 0, true)
 			elseif i <= TOOLTIP_QUEUE_ROWS + (showing and 1 or 0) then
-				tooltip:AddLine(L["Next: |cffffffff%s|r -- %s, %s"]:format(
-					WhoIs(entry), WhatBuff(entry), WhyWords(entry)), 0.8, 0.8, 0.8, true)
+				tooltip:AddLine(ByReason(entry,
+					L["Next: |cffffffff%s|r -- %s, buffed you"],
+					L["Next: |cffffffff%s|r -- %s, in your group"],
+					L["Next: |cffffffff%s|r -- %s, your target"],
+					L["Next: |cffffffff%s|r -- %s, nearby"]
+				):format(WhoIs(entry), WhatBuff(entry)), 0.8, 0.8, 0.8, true)
 			end
 		end
 	end
@@ -2707,22 +2752,36 @@ local function FillLauncherTooltip(tooltip)
 	if ns.Ledger then
 		tooltip:AddLine(L["Shift-click: favour ledger"], 0.6, 0.6, 0.6)
 	end
-	tooltip:AddLine(Enabled() and L["Middle click: switch it off"]
-		or L["Middle click: switch it on"], 0.6, 0.6, 0.6)
+	-- Where there is no menu both buttons throw the switch, and one line says
+	-- so rather than two saying the same thing.
 	if HasLauncherMenu() then
+		tooltip:AddLine(Enabled() and L["Middle click: switch it off"]
+			or L["Middle click: switch it on"], 0.6, 0.6, 0.6)
 		tooltip:AddLine(L["Right click: snooze, preview, who's next and more"], 0.6, 0.6, 0.6)
 	else
-		tooltip:AddLine(Enabled() and L["Right click: switch it off"]
-			or L["Right click: switch it on"], 0.6, 0.6, 0.6)
+		tooltip:AddLine(Enabled() and L["Middle or right click: switch it off"]
+			or L["Middle or right click: switch it on"], 0.6, 0.6, 0.6)
 	end
 end
 
 -- The switch, thrown in one press. What a right-click always did where there
 -- is no menu, and what the middle button does everywhere.
-local function ToggleEnabled()
+--
+-- Off is said with the way back in it. It is saved in the profile, so it lasts
+-- across logins, and the button takes any mouse button -- a wheel pressed on
+-- the minimap's edge throws it as surely as a deliberate click. The dimmed icon
+-- is the only other sign, so "disabled." alone left somebody who never meant
+-- to press it with an addon that had stopped and no idea why.
+local function ToggleEnabled(mouseButton)
 	ns.db.profile.enabled = not ns.db.profile.enabled
 	ns.Prompt:Refresh()
-	ns.addon:Print(ns.db.profile.enabled and L["enabled."] or L["disabled."])
+	if ns.db.profile.enabled then
+		ns.addon:Print(L["enabled."])
+	elseif mouseButton == "RightButton" then
+		ns.addon:Print(L["switched off from the launcher -- right-click it again, or type |cffffd100/manners on|r, to switch it back."])
+	else
+		ns.addon:Print(L["switched off from the launcher -- middle-click it again, or type |cffffd100/manners on|r, to switch it back."])
+	end
 	-- The switch this click just threw has a checkbox on the options page and
 	-- a word in the launcher's own text, and neither re-reads the profile on
 	-- its own. Without this, clicking with the window open leaves Enable
@@ -2806,11 +2865,23 @@ end
 -- and the same repaint after it, which knows about the fight and moves the
 -- panel on only where it may. Said in chat every time, unlike the press on the
 -- prompt: somebody further down the list leaves nothing on screen changed.
+--
+-- Except for the one on the prompt in a fight. The button cannot be pointed at
+-- anybody else until the fight ends, so the panel goes on naming them and a
+-- press still casts at them -- and a line saying only "skipping" had the
+-- player buff the person they had just skipped. The skip is still written, for
+-- whatever of it is left when the fight ends.
 local function SkipFromMenu(entry)
 	ns.BlockPerson(entry.name)
 	local showing = ns.Prompt.Showing and ns.Prompt:Showing()
-	if showing and showing.name == entry.name then ns.Prompt:StopAttention() end
-	ns.addon:Print(L["skipping |cffffffff%s|r for now."]:format(WhoIs(entry)))
+	local onPrompt = showing and showing.name == entry.name
+	if onPrompt then ns.Prompt:StopAttention() end
+	if onPrompt and InCombatLockdown() then
+		ns.addon:Print(L["skipping |cffffffff%s|r for now -- but the prompt cannot move off them in a fight, and a press still casts at them."]
+			:format(WhoIs(entry)))
+	else
+		ns.addon:Print(L["skipping |cffffffff%s|r for now."]:format(WhoIs(entry)))
+	end
 	ns.Guard("skip repaint", ns.Prompt.Refresh, ns.Prompt)
 end
 
@@ -2821,26 +2892,52 @@ local function NeverFromMenu(entry)
 	ns.Guard("never repaint", ns.Prompt.Refresh, ns.Prompt)
 end
 
+-- One greyed line in place of the list.
+local function Nobody(parent, text)
+	local none = parent:CreateButton(text)
+	if none.SetEnabled then none:SetEnabled(false) end
+end
+
+-- The people the prompt would offer, and only while it would offer anybody:
+-- the same test the tooltip makes, so a snoozed addon or a class with nothing
+-- to cast does not list people with a Skip beside them that no prompt is
+-- going to show.
 local function FillWhoIsNext(parent)
 	if not Enabled() then
-		local none = parent:CreateButton(L["Nobody -- Manners is switched off"])
-		if none.SetEnabled then none:SetEnabled(false) end
+		Nobody(parent, L["Nobody -- Manners is switched off"])
+		return
+	end
+	local ends = ns.SnoozeEndsAt and ns.SnoozeEndsAt()
+	if ends then
+		Nobody(parent, L["Nobody -- snoozed until %s"]:format(ends))
+		return
+	end
+	local watching, line = LauncherState()
+	if not watching then
+		Nobody(parent, line)
 		return
 	end
 	local list, showing = WhoIsWaiting(MENU_QUEUE_ROWS)
 	if #list == 0 then
-		local none = parent:CreateButton(L["Nobody is waiting"])
-		if none.SetEnabled then none:SetEnabled(false) end
+		Nobody(parent, L["Nobody is waiting"])
 		return
 	end
 	for _, entry in ipairs(list) do
 		local label
 		if entry == showing then
-			label = L["%s -- %s (%s), on the prompt"]:format(WhoIs(entry), WhatBuff(entry), WhyWords(entry))
+			label = ByReason(entry,
+				L["%s -- %s (buffed you), on the prompt"],
+				L["%s -- %s (in your group), on the prompt"],
+				L["%s -- %s (your target), on the prompt"],
+				L["%s -- %s (nearby), on the prompt"])
 		else
-			label = L["%s -- %s (%s)"]:format(WhoIs(entry), WhatBuff(entry), WhyWords(entry))
+			label = ByReason(entry,
+				L["%s -- %s (buffed you)"],
+				L["%s -- %s (in your group)"],
+				L["%s -- %s (your target)"],
+				L["%s -- %s (nearby)"])
 		end
-		local person = parent:CreateButton(label)
+		local person = parent:CreateButton(label:format(WhoIs(entry), WhatBuff(entry)))
 		person:CreateButton(L["Skip for now"], Act(function() SkipFromMenu(entry) end))
 		-- Somebody already on the list is only here because they are owed,
 		-- and for them the same act lets the favour go -- which is what it
@@ -2902,8 +2999,13 @@ end
 -- AceDB's profiles, when the database can list them. Switching one changes
 -- where the prompt sits and what it is armed with, so it waits for the fight
 -- to end like the lock does.
-local function FillProfiles(parent, fight)
+--
+-- Only with a second profile to switch to. Most players have the one, and a
+-- submenu holding a single radio that is already ticked is an entry that does
+-- nothing.
+local function AddProfiles(root, fight)
 	local db = ns.db
+	if not (db.GetProfiles and db.GetCurrentProfile and db.SetProfile) then return end
 	local names = {}
 	local ok = pcall(function()
 		local list = db:GetProfiles()
@@ -2912,7 +3014,8 @@ local function FillProfiles(parent, fight)
 		end
 	end)
 	table.sort(names, function(a, b) return a:lower() < b:lower() end)
-	if not ok or #names == 0 then return end
+	if not ok or #names < 2 then return end
+	local parent = root:CreateButton(L["Profiles"])
 	for _, name in ipairs(names) do
 		local choice = Radio(parent, FightLabel(name, fight), function() return db:GetCurrentProfile() == name end,
 			ActOutOfCombat(function()
@@ -2922,6 +3025,8 @@ local function FillProfiles(parent, fight)
 	end
 end
 
+-- In four groups: the state (on, snoozed), the people (who is next, the
+-- ledger), the prompt and how it talks, and the options window.
 local function FillLauncherMenu(root)
 	local fight = InCombatLockdown()
 	if root.CreateTitle then root:CreateTitle("Manners") end
@@ -2942,6 +3047,13 @@ local function FillLauncherMenu(root)
 		snooze:CreateButton(L["Stop snoozing"], Act(function() ns.StopSnooze() end))
 	end
 
+	Divider(root)
+	FillWhoIsNext(root:CreateButton(L["Who's next"]))
+	if ns.Ledger then
+		root:CreateButton(L["Open the ledger"], Act(function() ns.Ledger.Show() end))
+	end
+
+	Divider(root)
 	-- Greyed out in a fight as it is on the options page: ToggleTest refuses to
 	-- start one there. One already running can still be stopped.
 	local inTest = ns.Prompt:InTest()
@@ -2949,18 +3061,10 @@ local function FillLauncherMenu(root)
 		inTest and L["End the preview"] or FightLabel(L["Preview the prompt"], fight),
 		Act(function() ns.addon:HandleSlash("test") end))
 	if fight and not inTest then HeldForFight(preview) end
-
-	if ns.Ledger then
-		root:CreateButton(L["Open the ledger"], Act(function() ns.Ledger.Show() end))
-	end
-
-	FillWhoIsNext(root:CreateButton(L["Who's next"]))
 	FillPromptMenu(root:CreateButton(L["Prompt"]), fight)
 	Check(root, L["Tell me in chat what the addon is doing"], function() return ns.db.profile.verbose end,
 		Act(function() ns.addon:HandleSlash("verbose") end))
-	if ns.db.GetProfiles and ns.db.GetCurrentProfile and ns.db.SetProfile then
-		FillProfiles(root:CreateButton(L["Profiles"]), fight)
-	end
+	AddProfiles(root, fight)
 
 	Divider(root)
 	root:CreateButton(L["Options"], Act(function() ns.OpenOptions() end))
@@ -2996,7 +3100,7 @@ local function LauncherClick(owner, mouseButton, later)
 	-- The middle button throws the switch: the one thing wanted in a hurry,
 	-- with no menu in the way.
 	if mouseButton == "MiddleButton" then
-		ToggleEnabled()
+		ToggleEnabled(mouseButton)
 		return
 	end
 	-- Shift with the left button opens the ledger. The plain click
@@ -3011,7 +3115,7 @@ local function LauncherClick(owner, mouseButton, later)
 	-- where it does not, which is what a right-click always did.
 	if mouseButton == "RightButton" and OpenLauncherMenu(owner, later) then return end
 	if mouseButton == "RightButton" then
-		ToggleEnabled()
+		ToggleEnabled(mouseButton)
 	else
 		ns.OpenOptions()
 	end
@@ -3055,7 +3159,7 @@ local function RegisterCompartment()
 		return false
 	end
 	compartment = {
-		text = "Manners",
+		text = BrokerText(),
 		icon = ICON,
 		notCheckable = true,
 		registerForAnyClick = true,
@@ -3123,8 +3227,13 @@ end
 -- it is there, and a launcher whose text is a release behind is not worth
 -- taking down the command that changed the setting.
 function ns.RefreshBrokerText()
-	if not broker then return end
 	local text = BrokerText()
+	-- The compartment's line reads the same, since it is the launcher left
+	-- for somebody who hid the minimap button. The compartment builds its menu
+	-- from the registered tables each time it opens, so a plain assignment is
+	-- all it takes -- and it is there with or without a broker.
+	if compartment then compartment.text = text end
+	if not broker then return end
 	-- Only when it has actually changed. Assigning to a data object wakes every
 	-- display showing it, and this is reached at both ends of every fight --
 	-- so writing the same string back would be a call into somebody else's

@@ -252,12 +252,13 @@ The minimap button opens the options on a click, the favour ledger on a
 shift-click, and switches Manners on or off with a middle click. Right-click it
 for a menu: on or off, snooze (5 minutes to an hour), preview, the ledger, who
 is waiting next (skip one, or never offer them anything), the prompt's lock,
-position, sound and effects, the chat lines, and your profiles. In a fight the
-entries that would move the prompt wait until it ends. The icon dims while
-Manners is off and turns amber while it is snoozed, and a broker display shows
-how many people who buffed you are still waiting for one back. The same
-launcher is in the addon compartment under the minimap, so hiding the button
-loses nothing.
+position, sound and effects, the chat lines, and your profiles (when you have
+more than one). In a fight the entries that would move the prompt wait until it
+ends. The icon dims while Manners is snoozed and goes darker still while it is
+off, and a broker display shows how many people who buffed you are still
+waiting for one back. The same launcher is in the addon compartment under the
+minimap, and its line there says off, snoozed or waiting just as the button's
+text does, so hiding the button loses nothing.
 
 Put it on a bar with a macro containing `/click MannersPrompt LeftButton 1`
 (`/manners macro` makes one), or keybind under

@@ -2052,7 +2052,7 @@ mutate("Core.lua",
 # name written next to the addon's icon, and the only way left to ask what state
 # it is in is to click it -- which changes the answer.
 mutate("Options.lua",
-       '\tif not Enabled() then return "Manners |cffff8080" .. L["off"] .. "|r" end\n',
+       '\tif not Enabled() then return L["%s |cffff8080off|r"]:format("Manners") end\n',
        '',
        "a launcher that never says which state it is in",
        expect="reads the same on as off",
@@ -2072,7 +2072,7 @@ mutate("Options.lua",
 # tooltip is the last place that can say why no prompt has appeared all evening.
 mutate("Options.lua",
        """	if not Enabled() then
-		tooltip:AddLine(L["Switched off -- no prompt will appear."], 1, 0.5, 0.5)
+		return false, L["Switched off -- no prompt will appear."], 1, 0.5, 0.5
 """,
        """	if not Enabled() then
 """,
