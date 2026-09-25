@@ -7,7 +7,8 @@
 --
 -- It is a record and never a decision. Core.lua tells it what happened at the
 -- four moments a favour changes hands -- noticed, repaid, refused after all, and
--- let go -- and nothing anywhere reads a ledger entry to decide what to offer
+-- let go, bar one way of letting go it listens for itself (see LetGo) -- and
+-- nothing anywhere reads a ledger entry to decide what to offer
 -- or whom to cast at. That is on purpose: the debt table in Core.lua is what the
 -- prompt works from, and a second opinion about who is owed would be exactly the
 -- kind of drift the rest of this addon has spent rounds removing. So everything
@@ -151,6 +152,13 @@ local TEXT = {
 	TIP_OWED_NOTHING = L["Still owed, but there is nothing on this character the prompt can cast."],
 	TIP_OWED_SNOOZED = L["Still owed. The prompt is snoozed until %s, so it offers them only if the snooze ends before the time to return it runs out."],
 	TIP_OWED_MOUNTED = L["Still owed. The prompt stays away while you are mounted, and offers them once you get off, until the time to return it runs out."],
+	-- The same two for a favour only your party can return, as TIP_OWED_PARTY
+	-- and TIP_OWED_SUBGROUP say it: the snooze or the ride ending is not
+	-- enough while they are outside your party.
+	TIP_OWED_SNOOZED_PARTY = L["Still owed. What you cast reaches only your own party, so the prompt offers them only while they are in it, and it is snoozed until %s: they are offered only if the snooze ends before the time to return it runs out."],
+	TIP_OWED_SNOOZED_SUBGROUP = L["Still owed. What you cast reaches only your own party -- in a raid, your own subgroup -- so the prompt offers them only while they are in it, and it is snoozed until %s: they are offered only if the snooze ends before the time to return it runs out."],
+	TIP_OWED_MOUNTED_PARTY = L["Still owed. What you cast reaches only your own party, so the prompt offers them only while they are in it, and it stays away while you are mounted: they are offered once you get off, if they are in it, until the time to return it runs out."],
+	TIP_OWED_MOUNTED_SUBGROUP = L["Still owed. What you cast reaches only your own party -- in a raid, your own subgroup -- so the prompt offers them only while they are in it, and it stays away while you are mounted: they are offered once you get off, if they are in it, until the time to return it runs out."],
 	TIP_GAVE = L["You buffed them with %s, %s."],
 	TIP_GAVE_GROUP = L["They were in your group and had not buffed you."],
 	TIP_GAVE_STRANGER = L["They were not in your group and had not buffed you."],
@@ -774,6 +782,39 @@ function Ledger.LetGo(name, why)
 	Changed()
 end
 
+-- The one moment a favour changes hands that Core does not tell this file
+-- about: putting its giver on the never-offer list, which drops their debt
+-- there and then (see ns.PutOnNeverList). The sweep that reports a debt
+-- running out never sees one that is already gone, so the row stayed owed --
+-- counted in the headline, its tooltip promising an offer -- until the next
+-- reload called it run out, which is the one thing it was not. So the ledger
+-- listens for it itself, around the function every way onto the list goes
+-- through: the prompt's shift-right-click, /manners never and the box on the
+-- options page all look it up on ns when they run, and this file loads after
+-- Core.lua has defined it. Whichever debts were there before the call and are
+-- gone after it went with it, on purpose. They are compared by the name Core
+-- keeps them under, which is the name rows are kept under (see Load), so how
+-- the list matches a typed name is decided in one place only. Were Core to
+-- tell this file as well, the row would already be let go, which LetGo finds
+-- no open row for and leaves alone. Guarded like everything Core tells it: a
+-- ledger that throws must not take the never-offer list with it.
+do
+	local put = ns.PutOnNeverList
+	if type(put) == "function" then
+		ns.PutOnNeverList = function(...)
+			local before = {}
+			for name in pairs(ns.owed or {}) do before[#before + 1] = name end
+			local listed = put(...)
+			for _, name in ipairs(before) do
+				if not (ns.owed and ns.owed[name]) then
+					ns.Guard("ledger LetGo", Ledger.LetGo, name, "never")
+				end
+			end
+			return listed
+		end
+	end
+end
+
 -- Everything but the favours still owed, and today's count of buffs given with
 -- the list, as the button's tooltip says. Those favours stay because the debt
 -- behind each one is still live on the prompt, and because a settle that found
@@ -1085,20 +1126,35 @@ end
 -- because every one of these is a switch, a timer or a mount that changes
 -- under a window left open. Each question is asked through pcall: this is a
 -- tooltip, and a helper that throws must cost the caveat, not the tooltip.
-local function OwedHeldBack()
+--
+-- A snooze and a mount only hold the offer back for a while, so their lines
+-- say when it comes. For a favour only a party buff can return it also waits
+-- on the giver being in your party, and a line that left that out promised an
+-- offer at the end of the snooze or the ride that never came for somebody
+-- outside it. Those rows get lines that say both. Switched off, not watching
+-- for favours or nothing to cast is no offer at all, party or not.
+local function OwedHeldBack(e)
 	local ok, quiet = pcall(Quiet)
 	quiet = ok and quiet or nil
 	if quiet == "off" then return TEXT.TIP_OWED_OFF end
 	if quiet == "owedoff" then return TEXT.TIP_OWED_SOURCE_OFF end
 	if quiet == "nothing" then return TEXT.TIP_OWED_NOTHING end
+	local snoozeLine, mountLine = TEXT.TIP_OWED_SNOOZED, TEXT.TIP_OWED_MOUNTED
+	if e.partyOnly then
+		if ns.PARTY_IS_SUBGROUP then
+			snoozeLine, mountLine = TEXT.TIP_OWED_SNOOZED_SUBGROUP, TEXT.TIP_OWED_MOUNTED_SUBGROUP
+		else
+			snoozeLine, mountLine = TEXT.TIP_OWED_SNOOZED_PARTY, TEXT.TIP_OWED_MOUNTED_PARTY
+		end
+	end
 	local snoozed, ends = pcall(function()
 		return ns.SnoozeLeft and ns.SnoozeLeft() and ns.SnoozeEndsAt()
 	end)
-	if snoozed and type(ends) == "string" then return TEXT.TIP_OWED_SNOOZED:format(ends) end
+	if snoozed and type(ends) == "string" then return snoozeLine:format(ends) end
 	local okMounted, mounted = pcall(function()
 		return ns.HiddenWhileMounted and ns.HiddenWhileMounted()
 	end)
-	if okMounted and mounted == true then return TEXT.TIP_OWED_MOUNTED end
+	if okMounted and mounted == true then return mountLine end
 	return nil
 end
 
@@ -1121,7 +1177,7 @@ local function RowTooltip(row)
 		if e.times > 1 then GameTooltip:AddLine(TEXT.TIP_TIMES:format(e.times), 0.7, 0.7, 0.7, true) end
 		local c = COLOUR[e.state] or COLOUR.letgo
 		if e.state == "owed" then
-			local line = OwedHeldBack()
+			local line = OwedHeldBack(e)
 				or not e.partyOnly and TEXT.TIP_OWED
 				or ns.PARTY_IS_SUBGROUP and TEXT.TIP_OWED_SUBGROUP or TEXT.TIP_OWED_PARTY
 			GameTooltip:AddLine(line, c[1], c[2], c[3], true)

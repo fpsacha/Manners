@@ -440,3 +440,161 @@ do
 	end
 end
 Mock.reset()
+
+-- ------------------------------------------------------------------ never, for real
+-- The reason above was only ever given by the scenario: nothing in the addon
+-- called LetGo with it. Putting somebody on the never-offer list drops their
+-- debt in Core, so the sweep never saw it run out, and the row stayed "owed",
+-- counted in the headline and promising an offer, until the next reload marked
+-- it "the time to return it ran out". Here it goes the ways the player does it:
+-- /manners never typed in lower case, and the call the prompt's shift-right-
+-- click and the options box make, for somebody already on the list who buffed
+-- you again. Somebody else owed is the control.
+Mock.reset()
+do
+	local scenario = "hunt3 ledger: putting a giver on the never-offer list lets their favour go"
+	local ns = load(scenario)
+	local s = ns and owedByPetra(ns, scenario)
+	if s then
+		local L, T = ns.Ledger, ns.Ledger.TEXT
+		local ADA = "Ada None"
+		ns.owed[ADA] = { expires = GetTime() + 100, at = GetTime() }
+		L.Received({ name = ADA, key = 1459 })
+
+		ns.addon:HandleSlash("never petra stonewell")
+		if ns.owed[PETRA] then
+			fail(scenario, "SKIPPED -- /manners never did not let Petra's debt go")
+		else
+			local row = rowsFor(s, PETRA)[1]
+			if not row or row.state ~= "letgo" or row.why ~= "never" then
+				fail(scenario, ("/manners never left Petra's row %s, why=%s"):format(
+					tostring(row and row.state), tostring(row and row.why)))
+			end
+			local sum = L.Summary()
+			if sum.owed ~= 1 then
+				fail(scenario, ("with one favour still owed the headline counts %d"):format(sum.owed))
+			end
+			if #rowsFor(s, ADA, "owed") ~= 1 then
+				fail(scenario, "somebody nobody put on the list lost their owed row")
+			end
+			if s.totals.letGo ~= 1 then
+				fail(scenario, "one favour let go is counted as " .. tostring(s.totals.letGo))
+			end
+
+			ns.addon:HandleSlash("ledger")
+			local window = L.Window()
+			local shown
+			for _, r in ipairs(window and window.rows or {}) do
+				if r:IsShown() and r.entry == row then shown = r end
+			end
+			if not shown then
+				fail(scenario, "SKIPPED -- Petra's row is not on screen")
+			else
+				local tip = hover(shown)
+				if not tip:find(T.TIP_LETGO_NEVER or "never-offer list", 1, true)
+					or tip:find(T.TIP_OWED, 1, true) then
+					fail(scenario, "the tooltip of a favour let go through the list reads: " .. tip)
+				end
+			end
+
+			-- Already on the list, buffed you again, and shift-right-clicked.
+			ns.owed[PETRA] = { expires = GetTime() + 100, at = GetTime() }
+			L.Received({ name = PETRA, key = 1459 })
+			ns.PutOnNeverList(PETRA)
+			local again = rowsFor(s, PETRA, "owed")
+			if ns.owed[PETRA] then
+				fail(scenario, "SKIPPED -- a second shift-right-click did not let the debt go")
+			elseif #again ~= 0 then
+				fail(scenario, "somebody already on the list kept an owed row after the favour went")
+			elseif #rowsFor(s, PETRA, "letgo") ~= 2 then
+				fail(scenario, "the second favour let go through the list is not recorded as let go")
+			end
+
+			Mock.advance(ns.db.profile.timing.reciprocateWindow + 5)
+			ns.addon:TickBody()
+			local second = load(scenario)
+			if second and pcall(function() second.addon:OnInitialize() end) then
+				for _, e in ipairs(rowsFor(second.db.char.ledger, PETRA)) do
+					if e.why ~= "never" then
+						fail(scenario, "after the sweep and a reload Petra's favour reads why=" .. tostring(e.why))
+					end
+				end
+			end
+		end
+		guarded(scenario, ns)
+	end
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ party-only, held back
+-- A favour only a party buff can return is offered only while its giver is in
+-- your party. Snoozed or mounted, the row said the prompt offers them once the
+-- snooze ends or you get off -- which is not true of somebody who is not in
+-- it -- where it used to say it waits on them joining. Both have to be said.
+Mock.reset()
+Mock.class = "WARRIOR"
+Mock.raid = { size = 40, player = 1 }
+Mock.unitNames = {}
+for i = 1, 40 do Mock.unitNames["raid" .. i] = { "Raider" .. i, "Stone" } end
+do
+	local scenario = "hunt3 ledger: a party-only favour held back still says it waits on the party"
+	local realKnown, realPlayer, realMounted = IsSpellKnown, IsPlayerSpell, IsMounted
+	local ns = load(scenario)
+	if ns then
+		H.knowShout(ns)
+		H.drive(scenario, ns)
+		Mock.advance(60)
+		wipe(ns.owed)
+		wipe(ns.tried)
+		local s = fresh(ns)
+		H.primeAuras(ns)
+		H.favourFrom(ns, "raid30", 25289)
+		local row = s.entries[#s.entries]
+		if not row or row.kind ~= "received" or row.state ~= "owed" or not row.partyOnly then
+			fail(scenario, "SKIPPED -- the raider's favour was not filed as owed and party-only")
+		else
+			local T, p = ns.Ledger.TEXT, ns.db.profile
+			ns.addon:HandleSlash("ledger")
+			local r = ns.Ledger.Window().rows[1]
+			local waits = "only while they are in it"
+			local function expect(case, word, plain, want)
+				local said = hover(r)
+				if r.entry ~= row or row.state ~= "owed" then
+					fail(scenario, ("SKIPPED -- %s, the row is no longer the owed one"):format(case))
+				elseif not said:find(waits, 1, true) then
+					fail(scenario, ("%s, the row no longer says it waits on the party: %s"):format(case, said))
+				elseif not said:find(word, 1, true) or said:find(plain, 1, true) then
+					fail(scenario, ("%s, the row does not say why in the party-only way: %s"):format(case, said))
+				elseif not (want and said:find(want, 1, true)) then
+					fail(scenario, ("%s, the row does not use the party-only line: %s"):format(case, said))
+				end
+			end
+
+			ns.addon:HandleSlash("snooze 15")
+			if not ns.SnoozeLeft() then
+				fail(scenario, "SKIPPED -- /manners snooze 15 did not start a snooze")
+			else
+				local ends = ns.SnoozeEndsAt()
+				local want = ns.PARTY_IS_SUBGROUP and T.TIP_OWED_SNOOZED_SUBGROUP or T.TIP_OWED_SNOOZED_PARTY
+				expect("snoozed", "snoozed", T.TIP_OWED_SNOOZED:format(ends), want and want:format(ends))
+			end
+			ns.addon:HandleSlash("snooze off")
+
+			p.filters.hideMounted = true
+			IsMounted = function() return true end
+			expect("mounted with Not while mounted on", "mounted", T.TIP_OWED_MOUNTED,
+				ns.PARTY_IS_SUBGROUP and T.TIP_OWED_MOUNTED_SUBGROUP or T.TIP_OWED_MOUNTED_PARTY)
+			IsMounted = realMounted
+			p.filters.hideMounted = false
+
+			local tip = hover(r)
+			local want = ns.PARTY_IS_SUBGROUP and T.TIP_OWED_SUBGROUP or T.TIP_OWED_PARTY
+			if not tip:find(want, 1, true) then
+				fail(scenario, "with nothing holding the prompt back, the row reads: " .. tip)
+			end
+		end
+		guarded(scenario, ns)
+	end
+	IsSpellKnown, IsPlayerSpell, IsMounted = realKnown, realPlayer, realMounted
+end
+Mock.reset()

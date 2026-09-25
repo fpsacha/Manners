@@ -56,12 +56,27 @@ mutate("Ledger.lua",
        "hunt3 ledger: owed row promises with source off",
        expect="hunt3 ledger: an owed row does not promise an offer", script=S)
 mutate("Ledger.lua",
-       "\tif snoozed and type(ends) == \"string\" then return TEXT.TIP_OWED_SNOOZED:format(ends) end\n",
+       "\tif snoozed and type(ends) == \"string\" then return snoozeLine:format(ends) end\n",
        "",
        "hunt3 ledger: owed row promises while snoozed",
        expect="hunt3 ledger: an owed row does not promise an offer", script=S)
 mutate("Ledger.lua",
-       "\tif okMounted and mounted == true then return TEXT.TIP_OWED_MOUNTED end\n",
+       "\tif okMounted and mounted == true then return mountLine end\n",
        "",
        "hunt3 ledger: owed row promises while mounted",
        expect="hunt3 ledger: an owed row does not promise an offer", script=S)
+
+# Putting a giver on the never-offer list lets their favour go in the ledger,
+# whichever way they were put on it.
+mutate("Ledger.lua",
+       "\t\t\t\t\tns.Guard(\"ledger LetGo\", Ledger.LetGo, name, \"never\")\n",
+       "",
+       "hunt3 ledger: never-offer list leaves the row owed",
+       expect="hunt3 ledger: putting a giver on the never-offer list lets their favour go", script=S)
+
+# A party-only favour held back by a snooze or a mount still waits on the party.
+mutate("Ledger.lua",
+       "\tif e.partyOnly then\n\t\tif ns.PARTY_IS_SUBGROUP then\n",
+       "\tif false then\n\t\tif ns.PARTY_IS_SUBGROUP then\n",
+       "hunt3 ledger: party-only row held back drops the party",
+       expect="hunt3 ledger: a party-only favour held back still says it waits on the party", script=S)
