@@ -3,6 +3,16 @@
 ## Interface: 16001
 ## Title: Manners
 ## Notes: One click to buff back whoever just buffed you, and nearby players missing yours.|n|cffffd100Mage is tested in game; other classes are implemented but unverified.|r
+## Notes-deDE: Ein Klick erwidert den Gefallen, wenn Euch gerade jemand gestärkt hat, und stärkt Spieler in der Nähe, denen Euer Stärkungszauber fehlt.|n|cffffd100Der Magier ist im Spiel getestet; die anderen Klassen sind umgesetzt, aber ungeprüft.|r
+## Notes-esES: Un clic para devolver el beneficio a quien acaba de darte uno, y para dar el tuyo a los jugadores cercanos que no lo tienen.|n|cffffd100La clase Mago está probada en el juego; las demás están implementadas pero sin verificar.|r
+## Notes-esMX: Un clic para devolver el beneficio a quien acaba de darte uno, y para dar el tuyo a los jugadores cercanos que no lo tienen.|n|cffffd100La clase Mago está probada en el juego; las demás están implementadas pero sin verificar.|r
+## Notes-frFR: Un clic pour rendre la politesse à qui vient de vous buffer, et pour buffer les joueurs proches à qui manque votre amélioration.|n|cffffd100Testé en jeu avec un mage ; les autres classes sont prises en charge mais non vérifiées.|r
+## Notes-itIT: Un clic per ricambiare chi ti ha appena dato un beneficio, e per dare il tuo ai giocatori vicini a cui manca.|n|cffffd100Testato in gioco con il mago; le altre classi sono implementate ma non verificate.|r
+## Notes-koKR: 클릭 한 번으로, 방금 나에게 버프를 준 사람에게는 버프로 보답하고 내 버프가 없는 주변 플레이어에게는 버프를 줍니다.|n|cffffd100마법사는 게임에서 직접 테스트했고, 다른 직업은 구현되었지만 아직 검증되지 않았습니다.|r
+## Notes-ptBR: Um clique para devolver o bônus a quem acabou de dar um a você, e para dar o seu aos jogadores por perto que estão sem ele.|n|cffffd100A classe Mago foi testada no jogo; as outras estão implementadas, mas não verificadas.|r
+## Notes-ruRU: Одним щелчком ответьте баффом тому, кто только что баффнул вас, и баффните игроков рядом, у которых нет вашего.|n|cffffd100Маг проверен в игре; остальные классы реализованы, но не проверены.|r
+## Notes-zhCN: 一键给刚为你加过增益的人回一个，也给附近缺少你增益的玩家补上。|n|cffffd100法师已在游戏中实测；其他职业已实现，但尚未验证。|r
+## Notes-zhTW: 一鍵為剛替你加增益的人加回去，也為附近缺少你增益的玩家加上。|n|cffffd100法師已在遊戲中實測；其他職業已實作，但尚未驗證。|r
 ## Author: Sacha
 ## Version: 1.0.0-beta.5
 ## SavedVariables: MannersDB
