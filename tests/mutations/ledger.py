@@ -147,8 +147,8 @@ mutate("Core.lua",
        "ledger: party-only favours not marked",
        expect="a favour only your party can be repaid says so", script=S)
 mutate("Ledger.lua",
-       "\t\t\tlocal line = not e.partyOnly and TEXT.TIP_OWED\n",
-       "\t\t\tlocal line = true and TEXT.TIP_OWED\n",
+       "\t\t\t\tor not e.partyOnly and TEXT.TIP_OWED\n",
+       "\t\t\t\tor true and TEXT.TIP_OWED\n",
        "ledger: party-only row promises an offer",
        expect="a favour only your party can be repaid says so", script=S)
 

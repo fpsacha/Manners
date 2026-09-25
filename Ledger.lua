@@ -7,7 +7,8 @@
 --
 -- It is a record and never a decision. Core.lua tells it what happened at the
 -- four moments a favour changes hands -- noticed, repaid, refused after all, and
--- let go -- and nothing anywhere reads a ledger entry to decide what to offer
+-- let go, bar one way of letting go it listens for itself (see LetGo) -- and
+-- nothing anywhere reads a ledger entry to decide what to offer
 -- or whom to cast at. That is on purpose: the debt table in Core.lua is what the
 -- prompt works from, and a second opinion about who is owed would be exactly the
 -- kind of drift the rest of this addon has spent rounds removing. So everything
@@ -116,6 +117,9 @@ local TEXT = {
 	LETGO_EXPIRED = L["the time to return it ran out"],
 	LETGO_USELESS = L["nothing you cast is any use to them"],
 	LETGO_NOTKEPT = L["forgotten at a logout or reload"],
+	-- A favour the player let go on purpose, by putting its giver on the
+	-- never-offer list.
+	LETGO_NEVER = L["you put them on your never-offer list"],
 	-- After "Gave": %s is the spell you gave the row's player.
 	GAVE_GROUP = L["%s, in your group"],
 	GAVE_STRANGER = L["%s, to a stranger"],
@@ -138,6 +142,23 @@ local TEXT = {
 	-- Quotes the setting by the name it has on the When tab, which a scenario
 	-- holds it to.
 	TIP_LETGO_NOTKEPT = L["Let go: \"Remember them across a reload\" (When tab, under Timing) is off, so it was forgotten when you logged out or reloaded."],
+	TIP_LETGO_NEVER = L["Let go: you put them on your never-offer list."],
+	-- In place of TIP_OWED while the prompt cannot offer them, which is the
+	-- rule Quiet() below keeps for the empty list: the window never promises
+	-- what cannot come. The toggle is quoted by the name it has on the Who to
+	-- buff tab, and %s is the time the snooze ends, on the player's clock.
+	TIP_OWED_OFF = L["Still owed, but Manners is switched off, so the prompt will not offer them."],
+	TIP_OWED_SOURCE_OFF = L["Still owed, but the prompt is not offering favours while \"People who buffed me\" is off."],
+	TIP_OWED_NOTHING = L["Still owed, but there is nothing on this character the prompt can cast."],
+	TIP_OWED_SNOOZED = L["Still owed. The prompt is snoozed until %s, so it offers them only if the snooze ends before the time to return it runs out."],
+	TIP_OWED_MOUNTED = L["Still owed. The prompt stays away while you are mounted, and offers them once you get off, until the time to return it runs out."],
+	-- The same two for a favour only your party can return, as TIP_OWED_PARTY
+	-- and TIP_OWED_SUBGROUP say it: the snooze or the ride ending is not
+	-- enough while they are outside your party.
+	TIP_OWED_SNOOZED_PARTY = L["Still owed. What you cast reaches only your own party, so the prompt offers them only while they are in it, and it is snoozed until %s: they are offered only if the snooze ends before the time to return it runs out."],
+	TIP_OWED_SNOOZED_SUBGROUP = L["Still owed. What you cast reaches only your own party -- in a raid, your own subgroup -- so the prompt offers them only while they are in it, and it is snoozed until %s: they are offered only if the snooze ends before the time to return it runs out."],
+	TIP_OWED_MOUNTED_PARTY = L["Still owed. What you cast reaches only your own party, so the prompt offers them only while they are in it, and it stays away while you are mounted: they are offered once you get off, if they are in it, until the time to return it runs out."],
+	TIP_OWED_MOUNTED_SUBGROUP = L["Still owed. What you cast reaches only your own party -- in a raid, your own subgroup -- so the prompt offers them only while they are in it, and it stays away while you are mounted: they are offered once you get off, if they are in it, until the time to return it runs out."],
 	TIP_GAVE = L["You buffed them with %s, %s."],
 	TIP_GAVE_GROUP = L["They were in your group and had not buffed you."],
 	TIP_GAVE_STRANGER = L["They were not in your group and had not buffed you."],
@@ -180,7 +201,9 @@ local FOLD_SECONDS = 10
 local UNDO_SECONDS = 30
 
 local STATES = { owed = true, returned = true, letgo = true }
-local WHY = { expired = true, useless = true, notkept = true }
+-- Why a favour was let go: its time ran out, nothing you cast is any use to
+-- them, it was forgotten at a reload, or you put them on the never-offer list.
+local WHY = { expired = true, useless = true, notkept = true, never = true }
 local FILTERS = { all = true, favours = true, given = true }
 local TOTALS = { "received", "returned", "letGo", "group", "strangers" }
 local POINTS = {
@@ -317,6 +340,8 @@ end
 --       state = owed | returned | letgo, why, doneAt, gave, partyOnly }
 --     { kind = "given", name, class, spell, at, to = group | stranger }
 --   ledger.totals   lifetime counts, never trimmed and kept by Clear
+--   ledger.today    { day = local midnight, given = n }: today's buffs given,
+--                   which the trim cannot touch and Clear resets
 --   ledger.filter   the window's tab
 --   ledger.window   where the window was dragged to
 ---------------------------------------------------------------------------
@@ -436,6 +461,16 @@ local function Repair(char)
 
 	s.filter = FILTERS[s.filter] and s.filter or "all"
 
+	-- Today's count of buffs given, kept apart from the list: see Summary.
+	-- Kept only whole, a day that is a number and a count that is one.
+	local today = s.today
+	if type(today) == "table" and CleanTime(today.day) and type(today.given) == "number"
+		and today.given >= 0 and today.given == math.floor(today.given) and today.given ~= math.huge then
+		s.today = { day = today.day, given = today.given }
+	else
+		s.today = nil
+	end
+
 	local w = s.window
 	if type(w) == "table" and POINTS[w.point] and POINTS[w.relPoint]
 		and type(w.x) == "number" and w.x == w.x and math.abs(w.x) < 10000
@@ -464,6 +499,13 @@ end
 local function Append(s, e)
 	s.entries[#s.entries + 1] = e
 	Trim(s)
+end
+
+local function Holds(s, e)
+	for i = #s.entries, 1, -1 do
+		if s.entries[i] == e then return true end
+	end
+	return false
 end
 
 local function Remove(s, e)
@@ -653,6 +695,12 @@ function Ledger.Settled(name, wasOwed, pending, spellId)
 			class = CleanClass(type(pending) == "table" and pending.class or nil) }
 		Append(s, e)
 		Bump(s, to == "group" and "group" or "strangers")
+		-- Counted for today apart from the list, which keeps only MAX_GIVEN of
+		-- these: counted off the list, a mage in a city read "You gave 100
+		-- buffs unprompted today" from the hundredth one until midnight.
+		local day = StartOfToday(now)
+		if not (s.today and s.today.day == day) then s.today = { day = day, given = 0 } end
+		s.today.given = s.today.given + 1
 		undo.entry, undo.to = e, to
 	end
 	recent[#recent + 1] = undo
@@ -673,37 +721,110 @@ function Ledger.Refused(name, clock)
 		end
 	end
 	if not undo then return end
+	-- The row the settle wrote may be gone by now: Clear takes every row but
+	-- the favours still owed, and it can be pressed in the second between a
+	-- settle and its refusal. The counts are taken back all the same, since
+	-- Clear keeps those, and a favour Core has just put back gets its owed row
+	-- back with it -- left out, the next return found no row, made one, and
+	-- counted the one favour a second time.
 	local e = undo.entry
 	if undo.to then
 		Remove(s, e)
 		Bump(s, undo.to == "group" and "group" or "strangers", -1)
+		-- Today's count too, while today is still the day it was counted on:
+		-- after midnight, or after Clear, the gift is not in it.
+		if s.today and s.today.day == StartOfToday(e.at) then
+			s.today.given = math.max(0, s.today.given - 1)
+		end
 	else
 		Bump(s, "returned", -1)
 		if undo.created then
 			Remove(s, e)
 			Bump(s, "received", -1)
 		else
-			e.state, e.doneAt, e.gave = "owed", nil, nil
+			-- Somebody repaid and then buffing you again before the refusal
+			-- arrived already has an owed row for the new buff. Reopening this
+			-- one beside it put two rows on screen for the one debt Core keeps,
+			-- and only one of them would ever be closed. So the two are folded
+			-- into one favour, counted once, as a second buff from somebody
+			-- already owed always is.
+			local open = FindOpen(s, e.name)
+			if open and open ~= e then
+				open.times = open.times + e.times
+				for _, id in ipairs(e.spells) do AddSpell(open, id) end
+				open.at = math.min(open.at, e.at)
+				open.class = open.class or e.class
+				Remove(s, e)
+				Bump(s, "received", -1)
+			else
+				e.state, e.doneAt, e.gave = "owed", nil, nil
+				if not Holds(s, e) then Append(s, e) end
+			end
 		end
 	end
 	Changed()
 end
 
--- The debt ran out before it was returned.
-function Ledger.LetGo(name)
+-- The debt was let go before it was returned. `why` is one of WHY: "never" for
+-- a favour the player let go by putting its giver on the never-offer list,
+-- which is on purpose and must not read as time running out. Anything else,
+-- nothing included, is the sweep's case -- the time ran out -- because that is
+-- the caller that passes no reason.
+function Ledger.LetGo(name, why)
 	local s, now = Store(), Wall()
 	name = CleanName(name)
 	if not s or not now or not name then return end
 	local e = FindOpen(s, name)
 	if not e then return end
-	e.state, e.why, e.doneAt = "letgo", "expired", now
+	why = WHY[why] and why or "expired"
+	e.state, e.why, e.doneAt = "letgo", why, now
 	Bump(s, "letGo")
 	Changed()
 end
 
--- Everything but the favours still owed. Those stay because the debt behind
--- each one is still live on the prompt, and because a settle that found no row
--- would count the favour a second time.
+-- The one moment a favour changes hands that Core does not tell this file
+-- about: putting its giver on the never-offer list, which drops their debt
+-- there and then (see ns.PutOnNeverList). The sweep that reports a debt
+-- running out never sees one that is already gone, so the row stayed owed --
+-- counted in the headline, its tooltip promising an offer -- until the next
+-- reload called it run out, which is the one thing it was not. So the ledger
+-- listens for it itself, around the function every way onto the list goes
+-- through: the prompt's shift-right-click, /manners never and the box on the
+-- options page all look it up on ns when they run, and this file loads after
+-- Core.lua has defined it. Whichever debts were there before the call and are
+-- gone after it went with it, on purpose. They are compared by the name Core
+-- keeps them under, which is the name rows are kept under (see Load), so how
+-- the list matches a typed name is decided in one place only. Were Core to
+-- tell this file as well, the row would already be let go, which LetGo finds
+-- no open row for and leaves alone. Guarded like everything Core tells it: a
+-- ledger that throws must not take the never-offer list with it.
+do
+	local put = ns.PutOnNeverList
+	if type(put) == "function" then
+		ns.PutOnNeverList = function(...)
+			local before = {}
+			for name in pairs(ns.owed or {}) do before[#before + 1] = name end
+			local listed = put(...)
+			for _, name in ipairs(before) do
+				if not (ns.owed and ns.owed[name]) then
+					ns.Guard("ledger LetGo", Ledger.LetGo, name, "never")
+				end
+			end
+			return listed
+		end
+	end
+end
+
+-- Everything but the favours still owed, and today's count of buffs given with
+-- the list, as the button's tooltip says. Those favours stay because the debt
+-- behind each one is still live on the prompt, and because a settle that found
+-- no row would count the favour a second time.
+--
+-- The settles kept for a refusal stay too. A refusal can still arrive for one
+-- the list no longer shows, and Core puts that debt back either way; forgetting
+-- the settle here left the return counted and the favour with no row, so the
+-- next return counted it again. Refused copes with a row that is gone, and the
+-- list of settles prunes itself.
 function Ledger.Clear()
 	local s = Store()
 	if not s then return end
@@ -712,7 +833,7 @@ function Ledger.Clear()
 		if e.kind == "received" and e.state == "owed" then kept[#kept + 1] = e end
 	end
 	s.entries = kept
-	wipe(recent)
+	s.today = nil
 	Changed()
 end
 
@@ -781,6 +902,10 @@ function Ledger.Summary()
 			end
 		end
 	end
+	-- The list keeps only MAX_GIVEN buffs given, so on a busy day the count
+	-- kept apart from it is the one that is right. The larger of the two,
+	-- because a list from before that count existed has rows it never saw.
+	if s.today and s.today.day == today then out.given = math.max(out.given, s.today.given) end
 	for _, key in ipairs(TOTALS) do out.totals[key] = s.totals[key] or 0 end
 	return out
 end
@@ -991,8 +1116,46 @@ local function Detail(e)
 			.. (gave and ("  " .. TEXT.RETURNED_WITH:format(gave)) or ""), COLOUR.returned
 	end
 	local why = e.why == "useless" and TEXT.LETGO_USELESS
-		or e.why == "notkept" and TEXT.LETGO_NOTKEPT or TEXT.LETGO_EXPIRED
+		or e.why == "notkept" and TEXT.LETGO_NOTKEPT
+		or e.why == "never" and TEXT.LETGO_NEVER or TEXT.LETGO_EXPIRED
 	return Badge(TEXT.STATE_LETGO, COLOUR.letgo) .. "  " .. why, COLOUR.letgo
+end
+
+-- What an owed row says in place of "the prompt offers them" while the prompt
+-- cannot, or nil while it can. Asked at the moment of hovering, like Quiet(),
+-- because every one of these is a switch, a timer or a mount that changes
+-- under a window left open. Each question is asked through pcall: this is a
+-- tooltip, and a helper that throws must cost the caveat, not the tooltip.
+--
+-- A snooze and a mount only hold the offer back for a while, so their lines
+-- say when it comes. For a favour only a party buff can return it also waits
+-- on the giver being in your party, and a line that left that out promised an
+-- offer at the end of the snooze or the ride that never came for somebody
+-- outside it. Those rows get lines that say both. Switched off, not watching
+-- for favours or nothing to cast is no offer at all, party or not.
+local function OwedHeldBack(e)
+	local ok, quiet = pcall(Quiet)
+	quiet = ok and quiet or nil
+	if quiet == "off" then return TEXT.TIP_OWED_OFF end
+	if quiet == "owedoff" then return TEXT.TIP_OWED_SOURCE_OFF end
+	if quiet == "nothing" then return TEXT.TIP_OWED_NOTHING end
+	local snoozeLine, mountLine = TEXT.TIP_OWED_SNOOZED, TEXT.TIP_OWED_MOUNTED
+	if e.partyOnly then
+		if ns.PARTY_IS_SUBGROUP then
+			snoozeLine, mountLine = TEXT.TIP_OWED_SNOOZED_SUBGROUP, TEXT.TIP_OWED_MOUNTED_SUBGROUP
+		else
+			snoozeLine, mountLine = TEXT.TIP_OWED_SNOOZED_PARTY, TEXT.TIP_OWED_MOUNTED_PARTY
+		end
+	end
+	local snoozed, ends = pcall(function()
+		return ns.SnoozeLeft and ns.SnoozeLeft() and ns.SnoozeEndsAt()
+	end)
+	if snoozed and type(ends) == "string" then return snoozeLine:format(ends) end
+	local okMounted, mounted = pcall(function()
+		return ns.HiddenWhileMounted and ns.HiddenWhileMounted()
+	end)
+	if okMounted and mounted == true then return mountLine end
+	return nil
 end
 
 local function RowTooltip(row)
@@ -1014,7 +1177,8 @@ local function RowTooltip(row)
 		if e.times > 1 then GameTooltip:AddLine(TEXT.TIP_TIMES:format(e.times), 0.7, 0.7, 0.7, true) end
 		local c = COLOUR[e.state] or COLOUR.letgo
 		if e.state == "owed" then
-			local line = not e.partyOnly and TEXT.TIP_OWED
+			local line = OwedHeldBack(e)
+				or not e.partyOnly and TEXT.TIP_OWED
 				or ns.PARTY_IS_SUBGROUP and TEXT.TIP_OWED_SUBGROUP or TEXT.TIP_OWED_PARTY
 			GameTooltip:AddLine(line, c[1], c[2], c[3], true)
 		elseif e.state == "returned" then
@@ -1024,7 +1188,8 @@ local function RowTooltip(row)
 				or TEXT.TIP_RETURNED:format(took), c[1], c[2], c[3], true)
 		else
 			GameTooltip:AddLine(e.why == "useless" and TEXT.TIP_LETGO_USELESS
-				or e.why == "notkept" and TEXT.TIP_LETGO_NOTKEPT or TEXT.TIP_LETGO_EXPIRED,
+				or e.why == "notkept" and TEXT.TIP_LETGO_NOTKEPT
+				or e.why == "never" and TEXT.TIP_LETGO_NEVER or TEXT.TIP_LETGO_EXPIRED,
 				c[1], c[2], c[3], true)
 		end
 	end
