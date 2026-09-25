@@ -18,6 +18,8 @@
 -- prompt it can be opened, scrolled, cleared and dragged in a fight.
 
 local ADDON, ns = ...
+-- Player-facing text, in the client's language: see Locales/Init.lua.
+local L = ns.L
 
 local Ledger = {}
 ns.Ledger = Ledger

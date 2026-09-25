@@ -7,6 +7,8 @@
 -- this file works out what goes on it.
 
 local ADDON, ns = ...
+-- Player-facing text, in the client's language: see Locales/Init.lua.
+local L = ns.L
 
 local AceAddon = LibStub("AceAddon-3.0")
 local addon = AceAddon:NewAddon(ADDON, "AceEvent-3.0", "AceConsole-3.0", "AceTimer-3.0")

@@ -11,6 +11,8 @@
 -- on top only after being confirmed present at runtime.
 
 local ADDON, ns = ...
+-- Player-facing text, in the client's language: see Locales/Init.lua.
+local L = ns.L
 
 local LSM = LibStub("LibSharedMedia-3.0")
 local InCombatLockdown = _G.InCombatLockdown

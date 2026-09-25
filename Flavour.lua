@@ -32,6 +32,8 @@
 -- ids before adding the toc.
 
 local ADDON, ns = ...
+-- Player-facing text, in the client's language: see Locales/Init.lua.
+local L = ns.L
 
 -- issecretvalue is simply absent on the clients that never had secret values,
 -- so it is normalised once rather than guarded at every call site.
