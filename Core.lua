@@ -22,7 +22,7 @@ local MANA = (Enum and Enum.PowerType and Enum.PowerType.Mana) or 0
 --
 -- The binding is the client's own CLICK form, so its name is not a Lua
 -- identifier and the label has to be set through _G.
-_G["BINDING_NAME_CLICK MannersPrompt:LeftButton"] = "Buff the prompted player"
+_G["BINDING_NAME_CLICK MannersPrompt:LeftButton"] = L["Buff the prompted player"]
 
 ---------------------------------------------------------------------------
 -- secret-safe access
@@ -114,8 +114,10 @@ function ns.Guard(label, fn, ...)
 	if not ns.shouted[label] then
 		ns.shouted[label] = true
 		if ns.addon and ns.addon.Print then
-			ns.addon:Print("|cffff4040something broke in " .. label .. "|r -- " .. err
-				.. " |cff808080(/manners errors for the rest)|r")
+			-- The label is the code's own name for the handler and the command
+			-- is typed as it stands, so neither is the translator's to change.
+			ns.addon:Print(L["|cffff4040something broke in %s|r -- %s |cff808080(%s for the rest)|r"]
+				:format(label, err, "/manners errors"))
 		end
 		-- And the page, once per new failure rather than on every repeat of a
 		-- tick that keeps throwing. Diagnostics went on reading "Nothing has
@@ -311,22 +313,26 @@ local defaults = {
 			showSub = true,
 			-- Short on purpose: the 220px default width will not take a qualifier
 			-- on top of "needs {buff}", and the icon already names the spell.
-			reasonTarget = "your target",
-			reasonOwed = "buffed you",
+			--
+			-- These six are the prompt's own words, so they start out in the
+			-- player's language. Nothing compares a stored line against them:
+			-- AceDB keeps a line only once somebody has typed their own.
+			reasonTarget = L["your target"],
+			reasonOwed = L["buffed you"],
 			-- Group and passer-by used to carry the same sentence, which left
 			-- the colour of the ring as the only thing separating them -- no
 			-- use to somebody who cannot see that difference, and no use to
 			-- anybody reading the queue rows at a glance. They say which now.
-			reasonGroup = "in your group",
-			reasonNearby = "needs {buff}",
+			reasonGroup = L["in your group"],
+			reasonNearby = L["needs {buff}"],
 			-- A top-up is a different offer from a missing buff, and the four
 			-- lines above are the user's to rewrite -- "needs {buff}" is only
 			-- what they start with, so qualifying it here would throw away
 			-- whatever they typed. The refresh case gets a line of its own
 			-- instead, the same way the unverified one does. {time} is what
 			-- the aura they are already carrying has left to run.
-			reasonRefresh = "expires in {time}",
-			reasonUnknown = "unverified",
+			reasonRefresh = L["expires in {time}"],
+			reasonUnknown = L["unverified"],
 			classColor = true,
 		},
 
@@ -1040,19 +1046,19 @@ end
 function ns.NothingToCast()
 	local pinned = ns.PinnedBuff()
 	if pinned and not ns.IsBuffKnown(pinned) then
-		return ("%s is pinned and not learned on this character"):format(ns.BuffName(pinned))
+		return L["%s is pinned and not learned on this character"]:format(ns.BuffName(pinned))
 	end
-	if not caps.anyKnown then return "no buff learned" end
+	if not caps.anyKnown then return L["no buff learned"] end
 	local db = addon.db and addon.db.profile
 	local skip = db and db.buff and db.buff.skip
 	for _, buff in ipairs(ns.GetClassBuffs(playerClass) or {}) do
 		-- Learned, switched on and still not chosen: a spell Automatic never
 		-- reaches for, which is not a switch anybody can find turned off.
 		if ns.IsBuffKnown(buff) and not (skip and skip[buff.key]) then
-			return ("Automatic never offers %s"):format(ns.BuffName(buff))
+			return L["Automatic never offers %s"]:format(ns.BuffName(buff))
 		end
 	end
-	return "every spell you know is switched off under Who to buff"
+	return L["every spell you know is switched off under Who to buff"]
 end
 
 ---------------------------------------------------------------------------
@@ -1357,9 +1363,9 @@ end
 -- "cast" is today's behaviour said out loud rather than an absence. A setting
 -- whose loosest position is the old one is a setting somebody can undo.
 local PROXIMITY = {
-	{ key = "cast", yards = nil, name = "Anywhere I can cast", about = "about 30 yards" },
-	{ key = "near", yards = 10, name = "Nearby", about = "about 10 yards" },
-	{ key = "beside", yards = 5, name = "Right beside me", about = "about 5 yards" },
+	{ key = "cast", yards = nil, name = L["Anywhere I can cast"], about = L["about 30 yards"] },
+	{ key = "near", yards = 10, name = L["Nearby"], about = L["about 10 yards"] },
+	{ key = "beside", yards = 5, name = L["Right beside me"], about = L["about 5 yards"] },
 }
 ns.PROXIMITY = PROXIMITY
 
@@ -1624,8 +1630,12 @@ local function DroppedNote()
 		if proxDead[source.name] then names[#names + 1] = source.name end
 	end
 	if #names == 0 then return nil end
-	if #names == 1 then return names[1] .. " answered for nobody, so it was dropped" end
-	return table.concat(names, " and ") .. " answered for nobody, so they were dropped"
+	if #names == 1 then return L["%s answered for nobody, so it was dropped"]:format(names[1]) end
+	-- Two is every rung there is today, so the pair gets a whole sentence of its
+	-- own: a bare " and " spliced into the list left translators a conjunction
+	-- with no sentence around it. The comma list only covers a rung added later.
+	if #names == 2 then return L["%s and %s answered for nobody, so they were dropped"]:format(names[1], names[2]) end
+	return L["%s answered for nobody, so they were dropped"]:format(table.concat(names, ", "))
 end
 
 -- Every rung that can measure `want`, best first, resolved at most every
@@ -1770,8 +1780,10 @@ end
 function ns.ProximitySummary()
 	local db = addon.db and addon.db.profile
 	local tier = db and db.filters and PROXIMITY_BY_KEY[db.filters.proximity]
-	if not tier then return "unset" end
-	if not tier.yards then return tier.name .. " -- nothing is measured" end
+	-- For translators: a state, "no distance has been chosen", not the verb. It
+	-- stands alone after "proximity:" in /manners debug and on the options page.
+	if not tier then return L["unset"] end
+	if not tier.yards then return L["%s -- nothing is measured"]:format(tier.name) end
 
 	local out = ("%s (%s)"):format(tier.name, tier.about)
 
@@ -1779,14 +1791,14 @@ function ns.ProximitySummary()
 	-- off it measures nobody. Saying "no signal, so everybody is offered" under
 	-- a queue that offers no passer-by at all was the line contradicting itself.
 	if db.sources and db.sources.strangers == false then
-		return out .. " -- passers-by are switched off, so nobody is measured"
+		return L["%s -- passers-by are switched off, so nobody is measured"]:format(out)
 	end
 	-- The same for a class whose every buff is heard by its group alone -- a
 	-- warrior's shout. Strangers are never offered anything, so BuildQueue does
 	-- not measure them, and a line about how the measuring is going would be
 	-- about a filter nobody reaches.
 	if ns.OnlyReachesGroup() then
-		return out .. " -- your buffs reach only your group, so nobody is measured"
+		return L["%s -- your buffs reach only your group, so nobody is measured"]:format(out)
 	end
 	-- And for passers-by left alone because the player is out in the world.
 	-- BuildQueue turns every one of them down before the distance check, so the
@@ -1795,8 +1807,8 @@ function ns.ProximitySummary()
 	-- as a distance setting that had stopped working. The same question
 	-- BuildQueue asks, so the two cannot disagree: only a definite "not resting".
 	if db.filters.restingOnly == true and Resting() == false then
-		return ("%s -- you are out in the world and passers-by are only offered in cities"
-			.. " and inns, so nobody is measured"):format(out)
+		return L["%s -- you are out in the world and passers-by are only offered in cities and inns, so nobody is measured"]
+			:format(out)
 	end
 
 	-- Said first, because it is the state the line is most often read in and
@@ -1805,8 +1817,7 @@ function ns.ProximitySummary()
 	-- it would have been with no filter at all, and a summary that went on to
 	-- describe a working source was describing one that is not consulted.
 	if InCombatLockdown() then
-		return out .. " |cffffd100-- stood down while in combat, so distance is"
-			.. " not being measured|r"
+		return L["%s |cffffd100-- stood down while in combat, so distance is not being measured|r"]:format(out)
 	end
 
 	ProxLadder(tier.yards)
@@ -1814,28 +1825,33 @@ function ns.ProximitySummary()
 		-- Floored rather than printed raw: the edge arrives from a library that
 		-- rounds its own way, and "really 8.0yd" reads as a number somebody
 		-- calculated rather than a bucket the client happens to have.
+		--
+		-- One whole sentence for each of the four shapes, the backup rung
+		-- included, so a translator is never handed a clause to bolt on.
+		local yards = math.floor(prox.yards or 0)
 		if prox.mode == "beyond" then
-			out = out .. (" via %s, which only rules out people past %dyd"):format(
-				prox.source, math.floor(prox.yards or 0))
+			if prox.backup then
+				out = L["%s via %s, which only rules out people past %dyd, then %s"]:format(
+					out, prox.source, yards, prox.backup)
+			else
+				out = L["%s via %s, which only rules out people past %dyd"]:format(
+					out, prox.source, yards)
+			end
+		elseif prox.backup then
+			out = L["%s via %s, really %dyd, then %s"]:format(out, prox.source, yards, prox.backup)
 		else
-			out = out .. (" via %s, really %dyd"):format(
-				prox.source, math.floor(prox.yards or 0))
-		end
-		if prox.backup then
-			out = out .. (", then %s"):format(prox.backup)
+			out = L["%s via %s, really %dyd"]:format(out, prox.source, yards)
 		end
 		-- The number that says whether it is working. A source that is present
 		-- and answering for nobody offers the whole square exactly as before,
 		-- and from the prompt that is indistinguishable from a quiet evening.
 		if prox.asked > 0 then
-			out = out .. (" -- answered for %d of %d last scan"):format(
-				prox.answered, prox.asked)
+			out = L["%s -- answered for %d of %d last scan"]:format(out, prox.answered, prox.asked)
 		else
-			out = out .. " -- nobody measured yet"
+			out = L["%s -- nobody measured yet"]:format(out)
 		end
 	else
-		out = out .. " -- |cffff8080no signal, so everybody in casting range is"
-			.. " offered|r"
+		out = L["%s -- |cffff8080no signal, so everybody in casting range is offered|r"]:format(out)
 	end
 	if prox.note then out = out .. " |cff808080(" .. prox.note .. ")|r" end
 	return out
@@ -1962,49 +1978,54 @@ end
 -- Ready-made phrase sets, loadable from the options. Kept faction-neutral
 -- where possible so they do not read oddly on the wrong side, and short
 -- enough to leave room in a 255-character macro.
+--
+-- In the player's language, because they are what the player says out loud.
+-- The box these fill is saved as text, so a set loaded on a French client
+-- stays French after a switch to English; the dropdown then simply stops
+-- naming it, which is what it does for any lines somebody has edited.
 ns.PHRASE_SETS = {
 	roleplay = {
-		label = "Roleplay",
+		label = L["Roleplay"],
 		lines = {
-			"May the Light watch over you, {name}.",
-			"The arcane favours you, {name}.",
-			"Strength to your arm, {name}.",
-			"A boon for the road, {name}.",
-			"Safe travels, {name}. The roads are not kind.",
-			"Winds at your back, {name}.",
-			"May your blade stay keen, {name}.",
-			"Fortune favour you, {name}.",
-			"Go well, {name}. You will need it.",
-			"Take this with you, {name}.",
-			"A gift, freely given.",
-			"Stay sharp out there, {name}.",
+			L["May the Light watch over you, {name}."],
+			L["The arcane favours you, {name}."],
+			L["Strength to your arm, {name}."],
+			L["A boon for the road, {name}."],
+			L["Safe travels, {name}. The roads are not kind."],
+			L["Winds at your back, {name}."],
+			L["May your blade stay keen, {name}."],
+			L["Fortune favour you, {name}."],
+			L["Go well, {name}. You will need it."],
+			L["Take this with you, {name}."],
+			L["A gift, freely given."],
+			L["Stay sharp out there, {name}."],
 		},
 	},
 	polite = {
-		label = "Polite",
+		label = L["Polite"],
 		lines = {
-			"Thanks for the buff, {name}!",
-			"Returning the favour, {name}.",
-			"Have some {buff}, {name}.",
-			"Cheers, {name}!",
-			"One good buff deserves another, {name}.",
-			"Least I could do, {name}.",
+			L["Thanks for the buff, {name}!"],
+			L["Returning the favour, {name}."],
+			L["Have some {buff}, {name}."],
+			L["Cheers, {name}!"],
+			L["One good buff deserves another, {name}."],
+			L["Least I could do, {name}."],
 		},
 	},
 	cheeky = {
-		label = "Cheeky",
+		label = L["Cheeky"],
 		lines = {
-			"You dropped this, {name}.",
-			"Buffed. You're welcome, {name}.",
-			"{name}, you look like you need this.",
-			"Consider us even, {name}.",
-			"Don't spend it all at once, {name}.",
-			"This one's on me, {name}.",
+			L["You dropped this, {name}."],
+			L["Buffed. You're welcome, {name}."],
+			L["{name}, you look like you need this."],
+			L["Consider us even, {name}."],
+			L["Don't spend it all at once, {name}."],
+			L["This one's on me, {name}."],
 		},
 	},
 	quiet = {
-		label = "Just their name",
-		lines = { "{name}.", "For you, {name}.", "{name} \\o" },
+		label = L["Just their name"],
+		lines = { L["{name}."], L["For you, {name}."], L["{name} \\o"] },
 	},
 }
 
@@ -2413,21 +2434,23 @@ function ns.PutOnNeverList(name)
 
 	if already then
 		if forgiven then
-			addon:Print(("|cffffffff%s|r is already on your never-offer list, and the favour"
-				.. " they did you is let go."):format(listed))
+			addon:Print(L["|cffffffff%s|r is already on your never-offer list, and the favour they did you is let go."]
+				:format(listed))
 		else
-			addon:Print(("|cffffffff%s|r is already on your never-offer list."):format(listed))
+			addon:Print(L["|cffffffff%s|r is already on your never-offer list."]:format(listed))
 		end
 		return listed
 	end
 
+	-- The way back goes in whole, command and name together, because it is
+	-- typed exactly as shown in every language.
+	local undo = "/manners allow " .. listed
 	if forgiven then
-		addon:Print(("|cffffffff%s|r will not be offered anything again unless they buff you,"
-			.. " and the favour they just did you is let go. |cffffd100/manners allow %s|r"
-			.. " takes them off the list."):format(listed, listed))
+		addon:Print(L["|cffffffff%s|r will not be offered anything again unless they buff you, and the favour they just did you is let go. |cffffd100%s|r takes them off the list."]
+			:format(listed, undo))
 	else
-		addon:Print(("|cffffffff%s|r will not be offered anything again unless they buff you."
-			.. " |cffffd100/manners allow %s|r takes them off the list."):format(listed, listed))
+		addon:Print(L["|cffffffff%s|r will not be offered anything again unless they buff you. |cffffd100%s|r takes them off the list."]
+			:format(listed, undo))
 	end
 	ns.RepaintOptions()
 	return listed
