@@ -8585,7 +8585,14 @@ do
 	local scenario = "a toc that lost Flavour.lua from its file list"
 	local short = {}
 	local loaded = true
-	for _, file in ipairs({ "Buffs.lua", "Core.lua", "Ledger.lua", "Prompt.lua", "Options.lua" }) do
+	-- The toc's own list with the one file taken out, rather than a list of the
+	-- survivors written here: the locale table loads ahead of Flavour.lua, and a
+	-- copy written before it existed left every translated line indexing a nil L.
+	local files = {}
+	for _, file in ipairs(ADDON_FILES) do
+		if file ~= "Flavour.lua" then files[#files + 1] = file end
+	end
+	for _, file in ipairs(files) do
 		local chunk, err = loadfile(dir .. "/" .. file)
 		if not chunk then
 			fail(scenario, "load " .. file .. ": " .. tostring(err))

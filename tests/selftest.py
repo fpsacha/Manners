@@ -2828,9 +2828,9 @@ mutate("Prompt.lua",
 # A press while switched off answered with "nobody to buff".
 mutate("Prompt.lua",
        "\t\t\tif db and not db.enabled then\n"
-       "\t\t\t\tns.addon:Print(\"Manners is |cffff8080switched off|r",
+       "\t\t\t\tns.addon:Print(L[\"Manners is |cffff8080switched off|r",
        "\t\t\tif false then\n"
-       "\t\t\t\tns.addon:Print(\"Manners is |cffff8080switched off|r",
+       "\t\t\t\tns.addon:Print(L[\"Manners is |cffff8080switched off|r",
        "a press while switched off saying nobody to buff",
        expect="never said Manners is switched off",
        script="runscenarios.py")

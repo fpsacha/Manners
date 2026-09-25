@@ -39,7 +39,7 @@ function ns.PlayPromptSound(file)
 	-- The client can refuse a file outright. A toggle that is on and silent is
 	-- the whole complaint, so say which sound it was rather than nothing.
 	if willPlay == false and ns.db and ns.db.profile.verbose then
-		ns.addon:Print(("|cffff8080%s did not play.|r Pick another sound."):format(tostring(file)))
+		ns.addon:Print(L["|cffff8080%s did not play.|r Pick another sound."]:format(tostring(file)))
 	end
 end
 
@@ -321,7 +321,7 @@ local function FinishDrag()
 	-- that had just locked itself, with the sliders and the position
 	-- dropdown still describing where it used to be.
 	ns.RepaintOptions()
-	ns.addon:Print("moved and locked.")
+	ns.addon:Print(L["moved and locked."])
 end
 
 -- Below the panel normally, above it when the prompt is sitting in the bottom
@@ -403,8 +403,8 @@ local REASON_KEY = { target = "reasonTarget", owed = "reasonOwed",
 -- minute is the one case where seconds say something a "0m" cannot.
 local function RemainingText(seconds)
 	if type(seconds) ~= "number" or seconds <= 0 then return nil end
-	if seconds < 60 then return ("%ds"):format(math.floor(seconds)) end
-	return ("%dm"):format(math.floor(seconds / 60))
+	if seconds < 60 then return L["%ds"]:format(math.floor(seconds)) end
+	return L["%dm"]:format(math.floor(seconds / 60))
 end
 
 ---------------------------------------------------------------------------
@@ -884,26 +884,29 @@ function Prompt:Create()
 		-- doing. A key pressed after /manners off used to hear "nobody to buff"
 		-- -- often untrue, since the queue is built whatever the switch says --
 		-- and nothing about the switch that actually took the panel away.
+		--
+		-- The commands go in as arguments rather than as part of the sentence:
+		-- they are what the player has to type, in English in every language,
+		-- and a translator should never be handed them to translate.
 		if not self:IsShown() then
 			local db = ns.db and ns.db.profile
 			if db and not db.enabled then
-				ns.addon:Print("Manners is |cffff8080switched off|r -- |cffffd100/manners on|r"
-					.. " to start again.")
+				ns.addon:Print(L["Manners is |cffff8080switched off|r -- %s to start again."]
+					:format("|cffffd100/manners on|r"))
 			elseif ns.SnoozeLeft(now) then
-				ns.addon:Print(("Manners is snoozed until %s -- |cffffd100/manners snooze off|r"
-					.. " brings the prompt back now."):format(ns.SnoozeEndsAt()))
+				ns.addon:Print(L["Manners is snoozed until %s -- %s brings the prompt back now."]
+					:format(ns.SnoozeEndsAt(), "|cffffd100/manners snooze off|r"))
 			elseif ns.HiddenWhileMounted() then
-				ns.addon:Print("the prompt stays away while you are mounted -- get off, or switch"
-					.. " off |cffffd100Not while mounted|r on the When tab.")
+				ns.addon:Print(L["the prompt stays away while you are mounted -- get off, or switch off |cffffd100Not while mounted|r on the When tab."])
 			elseif not ns.caps.anyKnown then
 				local class = ns.caps.class
 				if class and ns.CLASSES_WITHOUT_BUFFS and ns.CLASSES_WITHOUT_BUFFS[class] then
 					ns.addon:Print(ns.NO_CLASS_BUFFS)
 				else
-					ns.addon:Print("nothing learned to cast yet.")
+					ns.addon:Print(L["nothing learned to cast yet."])
 				end
 			else
-				ns.addon:Print("nobody to buff right now.")
+				ns.addon:Print(L["nobody to buff right now."])
 			end
 			Prompt:ApplyTarget(nil)
 			return
@@ -1019,8 +1022,7 @@ function Prompt:Create()
 			if couldCast and db and db.verbose and InCombatLockdown() and self:GetAttribute("macrotext1")
 				and not (lastStaleAt and (now - lastStaleAt) < 0.25) then
 				lastStaleAt = now
-				ns.addon:Print("|cffff8080that may still have cast|r -- the prompt cannot be"
-					.. " disarmed in combat, and nothing was recorded for it.")
+				ns.addon:Print(L["|cffff8080that may still have cast|r -- the prompt cannot be disarmed in combat, and nothing was recorded for it."])
 			end
 			return
 		end
@@ -1043,7 +1045,7 @@ function Prompt:Create()
 			-- nobody underneath at all it did nothing and said nothing.
 			local victim = Prompt:PanelName() or (current and current.name)
 			if not victim then
-				ns.addon:Print("nobody to skip right now.")
+				ns.addon:Print(L["nobody to skip right now."])
 				return
 			end
 			local db = ns.db and ns.db.profile
@@ -1070,7 +1072,7 @@ function Prompt:Create()
 			if db and db.verbose then
 				local shown = (current and current.name == victim and current.short)
 					or (ns.ShortName and ns.ShortName(victim)) or victim
-				ns.addon:Print(("skipping |cffffffff%s|r for now."):format(shown))
+				ns.addon:Print(L["skipping |cffffffff%s|r for now."]:format(shown))
 			end
 			-- And the panel moves on now rather than at the next scan. Until it
 			-- did, the declined person stayed named and armed for up to a scan --
@@ -1101,7 +1103,7 @@ function Prompt:Create()
 			end
 			guardedPhraseKey, guardedPhraseText = nil, nil
 			if ns.db and ns.db.profile.debugClicks then
-				ns.addon:Print("|cffffd100CLICK|r held back -- the cooldown was still running")
+				ns.addon:Print("|cffffd100CLICK|r " .. L["held back -- the cooldown was still running"])
 			end
 			return
 		end
@@ -1217,36 +1219,36 @@ function Prompt:Create()
 		local left = RemainingText(current.remaining)
 		local why
 		if current.reason == "owed" then
-			why = "Buffed you -- return the favour."
+			why = L["Buffed you -- return the favour."]
 		elseif left then
-			why = current.reason == "group" and "In your group, and theirs is running out."
-				or current.reason == "target" and "Your target, and theirs is running out."
-				or "Nearby, and theirs is running out."
+			why = current.reason == "group" and L["In your group, and theirs is running out."]
+				or current.reason == "target" and L["Your target, and theirs is running out."]
+				or L["Nearby, and theirs is running out."]
 		elseif current.known == false then
-			why = current.reason == "group" and "In your group and missing it."
-				or current.reason == "target" and "Your target, and missing it."
-				or "Nearby and missing it."
+			why = current.reason == "group" and L["In your group and missing it."]
+				or current.reason == "target" and L["Your target, and missing it."]
+				or L["Nearby and missing it."]
 		else
-			why = current.reason == "group" and "In your group."
-				or current.reason == "target" and "Your target."
-				or "Nearby."
+			why = current.reason == "group" and L["In your group."]
+				or current.reason == "target" and L["Your target."]
+				or L["Nearby."]
 		end
 		GameTooltip:AddLine(why, 0.7, 0.7, 0.7, true)
 		-- Why they are ahead of the others like them, where Who comes first
 		-- put them there. Only ever set for a group member or a passer-by.
 		if current.close == "friend" then
-			GameTooltip:AddLine("On your friends list.", 0.7, 0.7, 0.7, true)
+			GameTooltip:AddLine(L["On your friends list."], 0.7, 0.7, 0.7, true)
 		elseif current.close == "guild" then
-			GameTooltip:AddLine("In your guild.", 0.7, 0.7, 0.7, true)
+			GameTooltip:AddLine(L["In your guild."], 0.7, 0.7, 0.7, true)
 		end
 		if left then
-			GameTooltip:AddLine(("Theirs expires in %s."):format(left), 0.7, 0.7, 0.7, true)
+			GameTooltip:AddLine(L["Theirs expires in %s."]:format(left), 0.7, 0.7, 0.7, true)
 		end
 		if current.checked and current.known == nil then
-			GameTooltip:AddLine("Buff state unreadable on this build -- they may already have it.",
+			GameTooltip:AddLine(L["Buff state unreadable on this build -- they may already have it."],
 				1, 0.5, 0.5, true)
 		elseif not current.checked then
-			GameTooltip:AddLine("Not checking whether they have it -- set by your options.",
+			GameTooltip:AddLine(L["Not checking whether they have it -- set by your options."],
 				0.7, 0.7, 0.7, true)
 		end
 		GameTooltip:AddLine(" ")
@@ -1261,22 +1263,25 @@ function Prompt:Create()
 		-- The raw macro is a debugging tool and reads like one, so it goes where
 		-- the other debugging tools are. /manners clicks turns it back on.
 		if ns.db.profile.debugClicks and ns.lastMacro then
-			GameTooltip:AddLine("Will run:", 0.5, 0.5, 0.5)
+			GameTooltip:AddLine(L["Will run:"], 0.5, 0.5, 0.5)
 			for line in ns.lastMacro:gmatch("[^\r\n]+") do
 				GameTooltip:AddLine("  " .. line, 0.4, 0.8, 0.4)
 			end
 			GameTooltip:AddLine(" ")
 		end
-		GameTooltip:AddLine("Click to cast. |cffffd100/manners|r for options.", 0.5, 0.5, 0.5)
+		-- The command goes in as an argument, as it does in PreClick's lines: it
+		-- is typed in English whatever the client's language.
+		GameTooltip:AddLine(L["Click to cast. %s for options."]:format("|cffffd100/manners|r"),
+			0.5, 0.5, 0.5)
 		-- A gesture nobody can discover is not a feature.
-		GameTooltip:AddLine("Right-click to skip this one.", 0.5, 0.5, 0.5)
+		GameTooltip:AddLine(L["Right-click to skip this one."], 0.5, 0.5, 0.5)
 		-- Somebody already on the list is only here because they are owed, and
 		-- for them the same press lets that favour go; offering to put them on
 		-- a list they are on was the tooltip describing a different person.
 		if ns.IsNeverOffered and ns.IsNeverOffered(current.name) then
-			GameTooltip:AddLine("Shift-right-click to let this favour go.", 0.5, 0.5, 0.5)
+			GameTooltip:AddLine(L["Shift-right-click to let this favour go."], 0.5, 0.5, 0.5)
 		else
-			GameTooltip:AddLine("Shift-right-click to put them on your never-offer list.", 0.5, 0.5, 0.5)
+			GameTooltip:AddLine(L["Shift-right-click to put them on your never-offer list."], 0.5, 0.5, 0.5)
 		end
 		GameTooltip:Show()
 	end)
