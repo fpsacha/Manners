@@ -4967,6 +4967,11 @@ end
 -- The honest sentence for a character that will never have anything to offer,
 -- named once. /manners debug has printed it for as long as it has existed and
 -- the greeting owes the same person the same words; two copies of it drift.
+--
+-- Except that the greeting and the login line say it as the end of a longer
+-- sentence, and a translation cannot glue a standalone sentence onto another
+-- one's clause. So those two carry their own copy of the words inside their
+-- own key, and the copies have to be kept in step with this one by hand.
 ns.NO_CLASS_BUFFS = L["this class has no buffs to cast on other players."]
 
 -- Returns true once it has said its piece, false while it is still waiting.
@@ -5031,7 +5036,7 @@ function ns.Welcome(force, offSaid)
 	if nothingToGive then
 		-- No preview and no macro for a class that can never fill the prompt:
 		-- that would be a tour of something that is not going to happen.
-		addon:Print(L["|cffffd100Manners|r is installed, but %s"]:format(ns.NO_CLASS_BUFFS))
+		addon:Print(L["|cffffd100Manners|r is installed, but this class has no buffs to cast on other players."])
 		addon:Print(L["It is still worth keeping for an alt that does -- it will say hello again there."])
 		return true
 	end
@@ -5055,8 +5060,12 @@ function ns.Welcome(force, offSaid)
 	-- line.
 	if ns.OnlyReachesGroup() then
 		local buff = ns.ResolveBuff(true)
-		addon:Print(L["|cffffd100Manners|r puts anybody in your group who is missing your |cffffd100%s|r -- or who has just buffed you -- on a small prompt. Clicking the prompt casts it."]
-			:format(buff and ns.BuffName(buff) or L["buff"]))
+		if buff then
+			addon:Print(L["|cffffd100Manners|r puts anybody in your group who is missing your |cffffd100%s|r -- or who has just buffed you -- on a small prompt. Clicking the prompt casts it."]
+				:format(ns.BuffName(buff)))
+		else
+			addon:Print(L["|cffffd100Manners|r puts anybody in your group who is missing your |cffffd100buff|r -- or who has just buffed you -- on a small prompt. Clicking the prompt casts it."])
+		end
 	else
 		addon:Print(L["|cffffd100Manners|r puts anybody who buffs you -- and any stranger nearby who is missing one of yours -- on a small prompt. Clicking the prompt buffs them."])
 	end
@@ -5720,13 +5729,19 @@ function addon:OnEnable()
 		-- ever appear.
 		local off = not self.db.profile.enabled
 		if not buff and nothingToGive then
-			self:Print(L["build |cffffd100%s|r -- %s"]:format(tostring(ns.BUILD), ns.NO_CLASS_BUFFS))
+			self:Print(L["build |cffffd100%s|r -- this class has no buffs to cast on other players."]:format(tostring(ns.BUILD)))
 		elseif off then
 			self:Print(L["build |cffffd100%s|r -- |cffff8080switched off on this profile|r; |cffffd100/manners on|r to start."]
 				:format(tostring(ns.BUILD)))
-		else
+		elseif buff then
 			self:Print(L["build |cffffd100%s|r watching for buffs. Ready to cast |cffffd100%s|r."]:format(
-				tostring(ns.BUILD), buff and ns.BuffName(buff) or L["nothing -- %s"]:format(ns.NothingToCast())))
+				tostring(ns.BUILD), ns.BuffName(buff)))
+		else
+			-- Its own sentence rather than "nothing -- why" dropped into the slot
+			-- above: that slot is written for a spell's name, and a translator
+			-- who is given the object of "cast" cannot also fit a reason there.
+			self:Print(L["build |cffffd100%s|r watching for buffs. Ready to cast |cffffd100nothing -- %s|r."]:format(
+				tostring(ns.BUILD), ns.NothingToCast()))
 		end
 		-- Why the prompt is somewhere else this session, if an update moved it.
 		ns.SayAnchorCarried()

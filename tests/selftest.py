@@ -2464,8 +2464,8 @@ mutate("Core.lua",
 
 # Every spell switched off, reported as none learned.
 mutate("Core.lua",
-       'L["nothing -- %s"]:format(ns.NothingToCast())',
-       '"nothing -- no buff learned"',
+       "\t\t\t\ttostring(ns.BUILD), ns.NothingToCast()))\n",
+       "\t\t\t\ttostring(ns.BUILD), \"no buff learned\"))\n",
        "switched-off spells reported as unlearned",
        expect="three learned spells, all switched off, reported as none learned",
        script="runscenarios.py")
