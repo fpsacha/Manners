@@ -184,6 +184,10 @@ do
 	if ns then
 		local button = promptWithAnna(ns, scenario)
 		if button then
+			-- Greeted already. A character that was not gets its first-login
+			-- greeting at the end of the fight, and while snoozed that is the
+			-- preview (hunt3-core.lua), which is a different thing on screen.
+			ns.db.char.welcomed = true
 			Mock.protect(button)
 			Mock.inCombat = true
 			ns.addon:PLAYER_REGEN_DISABLED()
