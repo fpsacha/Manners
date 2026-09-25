@@ -1982,7 +1982,9 @@ end
 -- In the player's language, because they are what the player says out loud.
 -- The box these fill is saved as text, so a set loaded on a French client
 -- stays French after a switch to English; the dropdown then simply stops
--- naming it, which is what it does for any lines somebody has edited.
+-- naming it, which is what it does for any lines somebody has edited. The one
+-- exception is a set's English text, which builds before the translations
+-- wrote on every client: see PHRASE_SETS_ENGLISH below.
 ns.PHRASE_SETS = {
 	roleplay = {
 		label = L["Roleplay"],
@@ -2030,6 +2032,59 @@ ns.PHRASE_SETS = {
 }
 
 ns.PHRASE_SET_ORDER = { "roleplay", "polite", "cheeky", "quiet" }
+
+-- The same sets as every build before this one wrote them, which is in
+-- English and only in English: 0.9.1 to 1.0.0-beta.5 shipped exactly these
+-- lines and filled the phrase box with one of them. AceDB kept that text,
+-- since the box's default is empty, so on a translated client the box stayed
+-- English -- in the macro, in Roll a few and in every export -- and the set
+-- dropdown read blank as though somebody had edited it. ClampSettings swaps
+-- this text for the translated set. Plain strings rather than L[...]: these
+-- are what a profile holds, not something to translate, and the same English
+-- as the keys above, which a scenario checks set by set.
+local PHRASE_SETS_ENGLISH = {
+	roleplay = {
+		"May the Light watch over you, {name}.",
+		"The arcane favours you, {name}.",
+		"Strength to your arm, {name}.",
+		"A boon for the road, {name}.",
+		"Safe travels, {name}. The roads are not kind.",
+		"Winds at your back, {name}.",
+		"May your blade stay keen, {name}.",
+		"Fortune favour you, {name}.",
+		"Go well, {name}. You will need it.",
+		"Take this with you, {name}.",
+		"A gift, freely given.",
+		"Stay sharp out there, {name}.",
+	},
+	polite = {
+		"Thanks for the buff, {name}!",
+		"Returning the favour, {name}.",
+		"Have some {buff}, {name}.",
+		"Cheers, {name}!",
+		"One good buff deserves another, {name}.",
+		"Least I could do, {name}.",
+	},
+	cheeky = {
+		"You dropped this, {name}.",
+		"Buffed. You're welcome, {name}.",
+		"{name}, you look like you need this.",
+		"Consider us even, {name}.",
+		"Don't spend it all at once, {name}.",
+		"This one's on me, {name}.",
+	},
+	quiet = { "{name}.", "For you, {name}.", "{name} \\o" },
+}
+
+-- The set whose English text this is, or nil for anything else.
+local function EnglishPhraseSet(text)
+	if type(text) ~= "string" then return nil end
+	for _, key in ipairs(ns.PHRASE_SET_ORDER) do
+		local english = PHRASE_SETS_ENGLISH[key]
+		if english and text == table.concat(english, "\n") then return key end
+	end
+	return nil
+end
 
 function ns.PhraseSetText(key)
 	local set = ns.PHRASE_SETS[key]
@@ -2306,6 +2361,10 @@ end
 -- since the prompt does not re-arm in one. Nothing here touches the button.
 ---------------------------------------------------------------------------
 
+-- Defined with the favour ledger's other hook further down, and declared here
+-- so the never-offer list below can tell the ledger about a favour it lets go.
+local TellLedger
+
 local function NeverSet()
 	local db = addon.db and addon.db.profile
 	local never = db and db.never
@@ -2428,6 +2487,11 @@ function ns.PutOnNeverList(name)
 		if ListedAs(key) == listed then
 			owed[key] = nil
 			forgiven = true
+			-- The ledger's row goes with the debt. Its own sweep walks the
+			-- debts, so it can never reach one let go here, and the row read
+			-- "Still owed" all session and swallowed their next favour as a
+			-- second buff of this one.
+			TellLedger("LetGo", key, "never")
 		end
 	end
 	-- Repainted here rather than only at the end, which somebody already on
@@ -2438,8 +2502,29 @@ function ns.PutOnNeverList(name)
 		ns.RepaintOptions()
 	end
 
+	-- In a fight the secure button cannot be re-armed, so when the person the
+	-- prompt names is the one just listed, the panel goes on naming them and a
+	-- press still casts at them until the fight ends. "Will not be offered
+	-- anything again" alone had the player buff them straight after, which is
+	-- what Skip for now's own fight line exists to prevent. Guarded because
+	-- Prompt.lua is another file that may not have loaded.
+	local onPromptInFight = false
+	if InCombatLockdown() and ns.Prompt and ns.Prompt.Showing then
+		ns.Guard("never-offer prompt check", function()
+			local showing = ns.Prompt:Showing()
+			onPromptInFight = type(showing) == "table" and type(showing.name) == "string"
+				and ListedAs(showing.name) == listed
+		end)
+	end
+
 	if already then
-		if forgiven then
+		if forgiven and onPromptInFight then
+			addon:Print(L["|cffffffff%s|r is already on your never-offer list, and the favour they did you is let go -- but the prompt cannot move off them in this fight, and a press still casts at them."]
+				:format(listed))
+		elseif onPromptInFight then
+			addon:Print(L["|cffffffff%s|r is already on your never-offer list -- but the prompt cannot move off them in this fight, and a press still casts at them."]
+				:format(listed))
+		elseif forgiven then
 			addon:Print(L["|cffffffff%s|r is already on your never-offer list, and the favour they did you is let go."]
 				:format(listed))
 		else
@@ -2451,7 +2536,13 @@ function ns.PutOnNeverList(name)
 	-- The way back goes in whole, command and name together, because it is
 	-- typed exactly as shown in every language.
 	local undo = "/manners allow " .. listed
-	if forgiven then
+	if forgiven and onPromptInFight then
+		addon:Print(L["|cffffffff%s|r will not be offered anything again unless they buff you, and the favour they just did you is let go -- but the prompt cannot move off them in this fight, and a press still casts at them. |cffffd100%s|r takes them off the list."]
+			:format(listed, undo))
+	elseif onPromptInFight then
+		addon:Print(L["|cffffffff%s|r will not be offered anything again unless they buff you -- but the prompt cannot move off them in this fight, and a press still casts at them. |cffffd100%s|r takes them off the list."]
+			:format(listed, undo))
+	elseif forgiven then
 		addon:Print(L["|cffffffff%s|r will not be offered anything again unless they buff you, and the favour they just did you is let go. |cffffd100%s|r takes them off the list."]
 			:format(listed, undo))
 	else
@@ -2511,6 +2602,17 @@ local function SweepCloseness(now)
 	end
 end
 
+-- GetGuildInfo's realm as something to compare: "" for your own realm, which
+-- it answers as nil, and nil for a realm withheld as a secret or nonsense,
+-- which matches nothing -- a withheld realm read as your own would be the
+-- same-name mistake all over again.
+local function GuildRealm(realm)
+	if issecretvalue and issecretvalue(realm) then return nil end
+	if realm == nil then return "" end
+	if type(realm) ~= "string" then return nil end
+	return realm
+end
+
 -- "friend", "guild", or nil for neither and for could-not-tell alike.
 --
 -- The GUID goes to the client exactly as the client handed it over, secret or
@@ -2545,14 +2647,30 @@ local function Closeness(unit, full, now)
 	end
 
 	if not kind then
-		if safecall(_G.UnitIsInMyGuild, unit) == true then
+		local inMine
+		if type(_G.UnitIsInMyGuild) == "function" then
+			local ok, answer = pcall(_G.UnitIsInMyGuild, unit)
+			if ok then inMine = plain(answer) end
+		end
+		if inMine == true then
 			kind = "guild"
-		else
-			-- Where there is no UnitIsInMyGuild: the two guild names, compared
-			-- only when both are readable and there is a guild to compare.
-			local theirs = safecall(_G.GetGuildInfo, unit)
-			local ours = safecall(_G.GetGuildInfo, "player")
-			if type(theirs) == "string" and theirs ~= "" and theirs == ours then
+		elseif inMine == nil then
+			-- Only where UnitIsInMyGuild gave no answer -- missing, refused, or
+			-- withheld -- the two guild names, compared only when both are
+			-- readable and there is a guild to compare. A plain no is an answer,
+			-- and the names used to overrule it.
+			--
+			-- With the realms, which is GetGuildInfo's fourth return (nil for
+			-- your own realm): a guild's name is only unique on its realm, so
+			-- somebody from another one whose guild shares yours was ranked a
+			-- guildmate and their tooltip said "In your guild." Called directly
+			-- rather than through safecall, which keeps three returns.
+			local okTheirs, theirs, _, _, theirRealm = pcall(_G.GetGuildInfo, unit)
+			local okOurs, ours, _, _, ourRealm = pcall(_G.GetGuildInfo, "player")
+			theirs, ours = plain(theirs), plain(ours)
+			theirRealm, ourRealm = GuildRealm(theirRealm), GuildRealm(ourRealm)
+			if okTheirs and okOurs and type(theirs) == "string" and theirs ~= ""
+				and theirs == ours and theirRealm and theirRealm == ourRealm then
 				kind = "guild"
 			end
 		end
@@ -2568,7 +2686,9 @@ end
 -- part of it, and a ledger that throws must not take a settle or a sweep with
 -- it. Absent entirely is a toc that lost the file, and costs nothing but the
 -- record.
-local function TellLedger(event, ...)
+--
+-- Not a global: this assigns the local declared above the never-offer list.
+function TellLedger(event, ...)
 	local ledger = ns.Ledger
 	local fn = ledger and ledger[event]
 	if type(fn) == "function" then ns.Guard("ledger " .. event, fn, ...) end
@@ -3281,10 +3401,24 @@ local function NoteFavour(seen)
 		-- from another subgroup is in the group already, and "offered if they
 		-- join it" gave the player nothing to act on.
 		local reachable = ns.CouldOffer(hasMana, inParty) ~= nil
-		addon:Print((reachable
-			and L["|cff80ff80%s buffed you|r -- returning the favour is on the prompt"]
-			or ns.PARTY_IS_SUBGROUP and L["|cff80ff80%s buffed you|r -- what you cast reaches only your own party -- in a raid, your own subgroup -- so they are offered if they join it"]
-			or L["|cff80ff80%s buffed you|r -- what you cast reaches your group only, so they are offered if they join it"]):format(seen.name))
+		-- "On the prompt" only when a prompt can show it. A snooze runs for up
+		-- to half an hour and the favour is kept for two minutes by default,
+		-- and Not while mounted keeps the prompt away for as long as the
+		-- mount lasts, so in both the line promised something that usually
+		-- never happened.
+		local snoozeEnds = reachable and ns.SnoozeLeft() and ns.SnoozeEndsAt()
+		if snoozeEnds then
+			addon:Print(L["|cff80ff80%s buffed you|r -- the prompt is snoozed until %s, so returning it is offered only if the snooze ends before the favour runs out"]
+				:format(seen.name, snoozeEnds))
+		elseif reachable and ns.HiddenWhileMounted() then
+			addon:Print(L["|cff80ff80%s buffed you|r -- returning the favour is on the prompt once you get off your mount"]
+				:format(seen.name))
+		else
+			addon:Print((reachable
+				and L["|cff80ff80%s buffed you|r -- returning the favour is on the prompt"]
+				or ns.PARTY_IS_SUBGROUP and L["|cff80ff80%s buffed you|r -- what you cast reaches only your own party -- in a raid, your own subgroup -- so they are offered if they join it"]
+				or L["|cff80ff80%s buffed you|r -- what you cast reaches your group only, so they are offered if they join it"]):format(seen.name))
+		end
 	end
 	-- Written through rather than left to the logout hook: a favour is rare
 	-- enough to afford it, and correctness then does not depend on a callback
@@ -4487,8 +4621,17 @@ local function UnsettleLateRefusal(castGUID)
 	-- Out through the same door SettleFavour went: it wrote the clearing to
 	-- disk, so putting the debt back in memory alone would restore the favour
 	-- for this session and lose it again at the next login.
+	--
+	-- Unless they have buffed you again since, which files a debt of its own
+	-- inside the same few seconds. That one is the newer favour and runs out
+	-- later, and writing the older one over it moved its end back to the first
+	-- favour's, so it left the prompt before its own window was up. Whichever
+	-- lasts longer is the one kept: the refusal only means you still owe them.
 	if settled.owed then
-		owed[settled.name] = settled.owed
+		local standing = owed[settled.name]
+		if not standing or LiveExpiry(standing) < LiveExpiry(settled.owed) then
+			owed[settled.name] = settled.owed
+		end
 		SaveDebts()
 	end
 	-- The ledger wrote the settle down too, stamped with the same clock as this
@@ -4606,12 +4749,14 @@ local function GlobalCooldownLeft(now)
 end
 
 -- The global cooldown as a start and a length, for the sweep the prompt draws
--- over its icon, or nil when none is running. The client's own figure where it
--- gives one, and the tracked block where it does not -- the same two sources,
--- in the same order, as CastReady below, so the sweep and the "ready in" line
--- cannot disagree about when the button is ready.
-function ns.GlobalCooldownSpan(now)
-	now = now or GetTime()
+-- over its icon, or nil when none is running. The same three sources as
+-- CastReady below: the client's own figure where it gives one, the tracked
+-- block where it does not, and the player's own cast in progress, which keeps
+-- a press from going through for as long as it runs. With only the first two
+-- the sweep ended a second and a half into a three-second conjure, over a
+-- button that answered "ready in 1.0s" -- the sweep and the "ready in" line
+-- have to agree about when the button is ready.
+local function GcdSpan(now)
 	local get = C_Spell and C_Spell.GetSpellCooldown
 	if get then
 		local ok, info = pcall(get, GCD_SPELL)
@@ -4627,6 +4772,24 @@ function ns.GlobalCooldownSpan(now)
 		return castBlockedFrom, castBlockedUntil - castBlockedFrom
 	end
 	return nil
+end
+
+function ns.GlobalCooldownSpan(now)
+	now = now or GetTime()
+	local start, duration = GcdSpan(now)
+	-- Read exactly as CastReady reads it. Channels are left out there, so they
+	-- are here: a new cast interrupts one rather than being refused.
+	local casting = _G.UnitCastingInfo
+	if type(casting) == "function" then
+		local ok, _, _, _, startMS, endMS = pcall(casting, "player")
+		if ok then startMS, endMS = plain(startMS), plain(endMS) else startMS, endMS = nil, nil end
+		if type(endMS) == "number" and endMS / 1000 > now
+			and (not start or endMS / 1000 > start + duration) then
+			local from = start or (type(startMS) == "number" and startMS / 1000) or now
+			return from, endMS / 1000 - from
+		end
+	end
+	return start, duration
 end
 
 function ns.CastReady()
@@ -4674,8 +4837,40 @@ function addon:UNIT_SPELLCAST_SUCCEEDED(_, unit, _, spellId)
 	end
 end
 
+-- The sweep read again, for the three moments the global cooldown or the
+-- player's cast changes without a cast going out.
+local function SyncSweep()
+	if ns.Prompt and ns.Prompt.SyncCooldown then
+		ns.Guard("cooldown sweep", ns.Prompt.SyncCooldown, ns.Prompt)
+	end
+end
+
+-- A cast with a cast time: UnitCastingInfo may not say anything yet at SENT,
+-- so the sweep is read again once the cast has started.
+function addon:UNIT_SPELLCAST_START(_, unit)
+	if unit ~= "player" then return end
+	SyncSweep()
+end
+
+-- A cast stopped part-way: whatever it held up is over.
+function addon:UNIT_SPELLCAST_INTERRUPTED(_, unit)
+	if unit ~= "player" then return end
+	SyncSweep()
+end
+
+-- Any change to the cooldowns, the global one included -- which is how a
+-- cooldown handed back without a failure of ours reaches the sweep.
+function addon:SPELL_UPDATE_COOLDOWN()
+	SyncSweep()
+end
+
 function addon:UNIT_SPELLCAST_FAILED(_, unit, castGUID, spellId)
 	if unit ~= "player" then return end
+	-- First: a refusal after SENT has the client take back the global
+	-- cooldown it started on the cast's word, and the sweep drawn from it went
+	-- on running for up to a second and a half over a button a press already
+	-- went through on.
+	SyncSweep()
 	spellId = plain(spellId)
 	castGUID = plain(castGUID)
 	-- The server refusing a cast the client already reported sending. Only when
@@ -5122,9 +5317,16 @@ function ns.Welcome(force, offSaid)
 	-- real on it" straight after "no prompt will appear" -- over a hidden
 	-- button, or one reading "Drag to move". The preview is what those two
 	-- states can show, and the preview runs in both.
+	--
+	-- Nor about a snooze, which hides the button while the queue goes on
+	-- filling: a snoozed character with a stranger nearby was told the prompt
+	-- was on screen with somebody on it, and never shown the preview -- the
+	-- greeting is written down as done, so it never came back. The preview
+	-- runs while snoozed, so a snooze takes that path like the switch and the
+	-- lock.
 	local queued = 0
 	local profile = addon.db.profile
-	if profile and profile.enabled and profile.prompt.locked then
+	if profile and profile.enabled and profile.prompt.locked and not ns.SnoozeLeft() then
 		local ok, list = pcall(ns.BuildQueue)
 		if ok and type(list) == "table" then queued = #list end
 	end
@@ -5481,6 +5683,12 @@ function ns.ClampSettings()
 	if type(speech.phrases) ~= "string" or speech.phrases:match("^%s*$") then
 		speech.phrases = ns.PhraseSetText(speech.presetChoice) or ns.PhraseSetText("roleplay")
 	end
+	-- A set's English text is what an English-only build wrote into the box,
+	-- not something the player typed, so it follows the client's language.
+	-- On an English client the two are the same text and nothing changes.
+	local englishSet = EnglishPhraseSet(speech.phrases)
+	local translatedSet = englishSet and ns.PhraseSetText(englishSet)
+	if translatedSet and translatedSet ~= speech.phrases then speech.phrases = translatedSet end
 
 	-- Everything with a fixed set of values, checked against that set. A
 	-- profile can outlive the version that wrote it, and an unrecognised value
@@ -5669,6 +5877,9 @@ function addon:OnInitialize()
 	self.db.RegisterCallback(self, "OnProfileChanged", "RefreshConfig")
 	self.db.RegisterCallback(self, "OnProfileCopied", "RefreshConfig")
 	self.db.RegisterCallback(self, "OnProfileReset", "RefreshConfig")
+	-- Deleting a profile changes nothing on the one you are on, so it is not a
+	-- refresh: it only ends an import's undo that was made on the deleted one.
+	self.db.RegisterCallback(self, "OnProfileDeleted", "ProfileDeleted")
 	self.db.RegisterCallback(self, "OnDatabaseShutdown", "SaveDebts")
 
 	-- Probe first: ClampSettings validates the pinned buff against caps.class,
@@ -5709,6 +5920,11 @@ function addon:OnEnable()
 		"UNIT_SPELLCAST_SENT",
 		"UNIT_SPELLCAST_SUCCEEDED",
 		"UNIT_SPELLCAST_FAILED",
+		-- The sweep over the prompt's icon, which has to follow a cast that
+		-- starts, one that stops early, and a cooldown the client takes back.
+		"UNIT_SPELLCAST_START",
+		"UNIT_SPELLCAST_INTERRUPTED",
+		"SPELL_UPDATE_COOLDOWN",
 		"UI_ERROR_MESSAGE",
 		"PLAYER_UNGHOST",
 		"PLAYER_ALIVE",
@@ -5819,7 +6035,12 @@ function addon:TickBody()
 	ns.Prompt:Refresh()
 end
 
-function addon:RefreshConfig()
+function addon:ProfileDeleted(event, _, name)
+	ns.ProfileChangedForUndo(event, name)
+end
+
+-- `event` is AceDB's, and nil when an import or its undo calls this itself.
+function addon:RefreshConfig(event)
 	ns.ClampSettings()
 	-- A switch or copy onto a profile no version since the carry-over has
 	-- loaded is moved the same way, and said here, where chat already exists.
@@ -5830,10 +6051,15 @@ function addon:RefreshConfig()
 	-- here would take StartScanner with it -- the one call that makes the
 	-- prompt appear at all.
 	ns.Guard("RefreshMinimapButton", ns.RefreshMinimapButton)
-	-- The undo an import keeps belongs to the profile it was made on. Reached
-	-- from a switch, copy or reset, it would put one profile's settings over
-	-- another's, so it goes; an import sets it again after calling this.
-	ns.ForgetImportUndo()
+	-- The undo an import keeps belongs to the profile it was made on, and
+	-- ProfileChangedForUndo decides what a switch, copy or reset does to it.
+	-- Called by an import or its undo, it goes; an import sets it again after
+	-- calling this.
+	if event == nil then
+		ns.ForgetImportUndo()
+	else
+		ns.ProfileChangedForUndo(event)
+	end
 	self:StartScanner()
 	-- A switch, copy or reset changes every setting at once, the on switch
 	-- among them, and the launcher's text is only ever put back from here. It
@@ -5918,6 +6144,12 @@ local function SaySnoozeStarted(minutes)
 		-- Not "it goes when the fight ends": a panel the fight found empty is
 		-- already gone, and one it found up is what this sentence is for.
 		addon:Print(L["snoozed for %s, until %s. In a fight the prompt stays as the fight found it, and follows the snooze once this one ends. |cffffd100/manners snooze off|r ends it early."]
+			:format(ns.MinutesText(minutes), ns.SnoozeEndsAt()))
+	elseif not db.prompt.locked then
+		-- An unlocked prompt stays up through a snooze as something to drag --
+		-- /manners unlock during one has to show you what you are moving -- so
+		-- "no prompt until" was false for exactly as long as it stayed unlocked.
+		addon:Print(L["snoozed for %s, until %s. The prompt is unlocked, so it stays up to be dragged and casts nothing; once you lock it, it stays away until the snooze ends. |cffffd100/manners snooze off|r ends it early."]
 			:format(ns.MinutesText(minutes), ns.SnoozeEndsAt()))
 	else
 		addon:Print(L["snoozed for %s -- no prompt until %s. |cffffd100/manners snooze off|r ends it early."]
@@ -6021,9 +6253,14 @@ end
 
 ns.SHARE_PREFIX = "MNR1:"
 local SHARE_VERSION = 1
--- Far more than any real profile needs, and a ceiling on how much work a
--- hostile string can ask for.
-local SHARE_MAX = 8000
+-- A ceiling on how much work a hostile string can ask for, and on nothing
+-- else: reading one is a single pass over it, so the bound is on memory and
+-- time, not on what a real profile may hold. It used to be 8000, which a phrase
+-- box of ninety-odd lines outgrows -- nothing caps the box or the export -- and
+-- then the player's own export would not import back and the undo an import
+-- keeps, which is an export, could not be read. /manners export says so when a
+-- profile outgrows even this.
+local SHARE_MAX = 64000
 
 -- Never shared. Whether the addon is on is a state rather than a taste, the
 -- click logger is a diagnostic, and the minimap button's place is about this
@@ -6285,16 +6522,16 @@ ns.SHARE_ERRORS = {
 
 -- Read a settings string without touching anything. Returns the values keyed
 -- by field name and how many names this version does not know, or nil and the
--- sentence saying why not.
-function ns.ParseSettings(text)
+-- sentence saying why not. `cap` is the longest string it will read.
+local function Parse(text, cap)
 	if type(text) ~= "string" then return nil, ns.SHARE_ERRORS.empty end
-	if #text > SHARE_MAX * 2 then return nil, ns.SHARE_ERRORS.tooLong end
+	if #text > cap * 2 then return nil, ns.SHARE_ERRORS.tooLong end
 	-- No setting's text holds whitespace -- a space travels as + -- so any
 	-- that is here was added on the way: a text box wrapping the line, or the
 	-- blank either side of a paste.
 	text = text:gsub("%s+", "")
 	if text == "" then return nil, ns.SHARE_ERRORS.empty end
-	if #text > SHARE_MAX then return nil, ns.SHARE_ERRORS.tooLong end
+	if #text > cap then return nil, ns.SHARE_ERRORS.tooLong end
 
 	local version, body, sum = text:match("^MNR(%d+):(.*):(%x+)$")
 	if not version then
@@ -6333,12 +6570,50 @@ function ns.ParseSettings(text)
 	return { values = values, unknown = unknown, count = count }
 end
 
+-- Anything pasted or typed is read under the ceiling.
+function ns.ParseSettings(text)
+	return Parse(text, SHARE_MAX)
+end
+
 -- The settings the last import replaced, as a settings string, for this
--- session and this profile only.
-local lastImportUndo
+-- session, and the profile they came off: its table, which is what says the
+-- profile is the same one -- AceDB hands back the same table when you return
+-- to a profile -- and its name, for the line that sends the player back to it.
+local lastImportUndo, undoProfile, undoProfileName
+
+local function ProfileName()
+	local db = addon.db
+	if not db or type(db.GetCurrentProfile) ~= "function" then return nil end
+	local ok, name = pcall(db.GetCurrentProfile, db)
+	if ok and type(name) == "string" then return name end
+	return nil
+end
 
 function ns.ForgetImportUndo()
-	lastImportUndo = nil
+	lastImportUndo, undoProfile, undoProfileName = nil, nil, nil
+end
+
+-- What a change of profile does to the undo. A switch leaves it alone: it
+-- stays with the profile it was made on and waits for the player to come
+-- back, where it used to be thrown away by the first switch, so a visit to an
+-- alt's profile and back left "nothing to undo". A copy or a reset rewrites
+-- the profile it is on in place, and when that is the import's own profile
+-- there is nothing left for the undo to be an undo of. Deleting that profile
+-- ends it too. And arriving at the import's profile name with a different
+-- table is that profile made again from nothing, which the old settings do not
+-- belong to either.
+function ns.ProfileChangedForUndo(event, name)
+	if not lastImportUndo then return end
+	local here = addon.db and addon.db.profile
+	if event == "OnProfileChanged" then
+		if here ~= undoProfile and undoProfileName and ProfileName() == undoProfileName then
+			ns.ForgetImportUndo()
+		end
+	elseif event == "OnProfileDeleted" then
+		if name ~= nil and name == undoProfileName then ns.ForgetImportUndo() end
+	elseif here == undoProfile then
+		ns.ForgetImportUndo()
+	end
 end
 
 local function CopyValue(v)
@@ -6398,7 +6673,7 @@ function ns.ImportSettings(text)
 
 	local undo = ns.ExportSettings()
 	local kept = ApplySettings(profile, parsed, false)
-	lastImportUndo = undo
+	lastImportUndo, undoProfile, undoProfileName = undo, profile, ProfileName()
 
 	-- Whole sentences for each count rather than an "s" glued on, so each can
 	-- be translated as it stands.
@@ -6437,12 +6712,28 @@ function ns.UndoImport()
 	if not lastImportUndo or not profile then
 		return false, L["nothing to undo -- no settings have been imported on this profile this session."]
 	end
+	-- Made on another profile: kept for when the player goes back there, and
+	-- this one left alone -- one profile's old settings laid over another's
+	-- would be a second import nobody asked for.
+	if profile ~= undoProfile then
+		if undoProfileName then
+			return false, L["nothing to undo on this profile -- the last import was made on profile %s. Switch back to it to undo it."]
+				:format(undoProfileName)
+		end
+		return false, L["nothing to undo on this profile -- the last import was made on another one. Switch back to it to undo it."]
+	end
 	-- Read back through the same checks as any string, though it never left
-	-- this session: one path in, and nothing that skips it.
-	local parsed = ns.ParseSettings(lastImportUndo)
+	-- this session: one path in, and nothing that skips it. All but the length:
+	-- the ceiling is there for strings from strangers, and this is the player's
+	-- own profile written out a moment ago, which nothing caps. Under the
+	-- ceiling, a long phrase box made the undo unreadable and the settings it
+	-- held were lost.
+	local parsed = Parse(lastImportUndo, math.huge)
 	lastImportUndo = nil
 	if not parsed then
-		return false, L["nothing to undo -- no settings have been imported on this profile this session."]
+		-- Not "nothing to undo": there was an import, and this is the one
+		-- place that knows its undo could not be read.
+		return false, L["your settings from before the import could not be read back, so they were not restored."]
 	end
 	ApplySettings(profile, parsed, true)
 	if InCombatLockdown() then
@@ -6860,6 +7151,14 @@ function addon:HandleSlash(rawInput)
 			self:Print(L["your settings are in the box under |cffffd100Share settings|r on the General tab of the options -- click in it, select all and copy."])
 		else
 			self:Print(tostring(ns.ExportSettings()))
+		end
+		-- A string longer than an import will read is handed over all the same
+		-- -- it is still the settings -- but not without saying it will not go
+		-- back in. The phrase box is the setting that grows that far in
+		-- practice; the prompt's lines are free text too, so "usually".
+		local export = ns.ExportSettings()
+		if type(export) == "string" and #export:gsub("%s+", "") > SHARE_MAX then
+			self:Print(L["this string is too long to be imported back -- a very long phrase box under When you click is the usual cause. Shorten it if you want to share these settings."])
 		end
 	elseif input == "import" then
 		if rest == "" then

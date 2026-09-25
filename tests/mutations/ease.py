@@ -263,16 +263,18 @@ mutate("Core.lua",
 # replaced as a new undo, so a second undo puts the import back -- and the
 # first says "settings imported" and tells the player to undo it.
 mutate("Core.lua",
-       "\tlocal parsed = ns.ParseSettings(lastImportUndo)\n\tlastImportUndo = nil\n",
+       "\tlocal parsed = Parse(lastImportUndo, math.huge)\n\tlastImportUndo = nil\n",
        "\tdo return ns.ImportSettings(lastImportUndo) end\n\tlocal parsed\n",
        "an undo that can be run twice",
        expect="a second /manners import undo",
        script="runscenarios.py")
 
-# The undo outliving a profile switch, and landing on the wrong profile.
+# The undo landing on the wrong profile. It outlives a switch on purpose, so
+# the player who comes back can still use it; what stops it is UndoImport
+# asking whether this is the profile it was made on.
 mutate("Core.lua",
-       "\tns.ForgetImportUndo()\n\tself:StartScanner()\n",
-       "\tself:StartScanner()\n",
+       "\tif profile ~= undoProfile then\n",
+       "\tif false then\n",
        "an undo that follows a profile switch",
        expect="an undo made on one profile rewrote another",
        script="runscenarios.py")
