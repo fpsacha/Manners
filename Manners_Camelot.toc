@@ -14,7 +14,7 @@
 ## Notes-zhCN: 一键给刚为你加过增益的人回一个，也给附近缺少你增益的玩家补上。|n|cffffd100法师已在游戏中实测；其他职业已实现，但尚未验证。|r
 ## Notes-zhTW: 一鍵為剛替你加增益的人加回去，也為附近缺少你增益的玩家加上。|n|cffffd100法師已在遊戲中實測；其他職業已實作，但尚未驗證。|r
 ## Author: Sacha
-## Version: 1.0.0-beta.5
+## Version: 1.0.0-beta.6
 ## SavedVariables: MannersDB
 ## X-Compatible-With: forever
 ## X-License: MIT

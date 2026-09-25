@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.0.0-beta.6
 
 A feature release: a favour ledger, a never-offer list, a snooze, a menu on
 the minimap button, a new look for the prompt, and nine more languages.

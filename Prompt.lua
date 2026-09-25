@@ -109,7 +109,7 @@ local queueTextX = 0
 -- Goes into every click line. A log that does not say which build produced it
 -- can be diagnosed for an hour before anyone notices the game never loaded the
 -- file being read.
-ns.BUILD = "1.0.0-beta.5"
+ns.BUILD = "1.0.0-beta.6"
 
 local current, testMode, testExpiry, lastTop, appliedKey, lastClickAt, lastPreClickAt, lastSkipAt
 -- Why the last painted person was on the panel, beside lastTop's who.
