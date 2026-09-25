@@ -607,8 +607,9 @@ Mock.reset()
 -- "Returning the favour is on the prompt", said while a snooze keeps the
 -- prompt away for up to half an hour -- longer than the favour is kept -- or
 -- while Not while mounted does. Neither is true, and the favour usually runs
--- out without ever being shown.
-for _, case in ipairs({ "snoozed", "mounted", "neither" }) do
+-- out without ever being shown. Nor while the prompt is unlocked: it is on
+-- screen then, but as "Drag to move", arming nobody.
+for _, case in ipairs({ "snoozed", "mounted", "unlocked", "neither" }) do
 	Mock.reset()
 	local scenario = "core: the favour line does not promise a prompt that is kept away (" .. case .. ")"
 	local realMounted = IsMounted
@@ -622,6 +623,11 @@ for _, case in ipairs({ "snoozed", "mounted", "neither" }) do
 			ns.db.profile.filters.hideMounted = true
 			IsMounted = function() return true end
 			ns.addon:Tick()
+		elseif case == "unlocked" then
+			ns.addon:HandleSlash("unlock")
+			if ns.db.profile.prompt.locked then
+				fail(scenario, "SKIPPED -- /manners unlock left the prompt locked")
+			end
 		end
 		local line = H.favourFrom(ns, "nameplate1", 1459, 4101)
 		if not ns.owed[PETRA] then
@@ -631,12 +637,15 @@ for _, case in ipairs({ "snoozed", "mounted", "neither" }) do
 				fail(scenario, "the ordinary favour line changed: " .. line)
 			end
 		elseif line:find("returning the favour is on the prompt", 1, true)
-			and not line:find("once you get off your mount", 1, true) then
+			and not line:find("once you get off your mount", 1, true)
+			and not line:find("once you lock it", 1, true) then
 			fail(scenario, "the line promises the prompt while it is kept away: " .. line)
 		elseif case == "snoozed" and not line:find("snoozed", 1, true) then
 			fail(scenario, "the line does not say the prompt is snoozed: " .. line)
 		elseif case == "mounted" and not line:find("once you get off your mount", 1, true) then
 			fail(scenario, "the line does not say the mount is keeping the prompt away: " .. line)
+		elseif case == "unlocked" and not line:find("once you lock it", 1, true) then
+			fail(scenario, "the line does not say the prompt waits for the lock: " .. line)
 		end
 		if ns.StopSnooze then ns.StopSnooze(true) end
 		guarded(scenario, ns)
@@ -668,6 +677,21 @@ end
 
 local IDLE = { startTime = 0, duration = 0 }
 
+-- An event delivered the way the client delivers it: only if the addon asked
+-- for it. Calling the handler directly would pass with the registration gone,
+-- and on the real client the handler would then never run.
+local function send(scenario, ns, event, ...)
+	if not Mock.registeredEvents[event] then
+		fail(scenario, event .. " is never registered, so the client never delivers it")
+		return
+	end
+	if type(ns.addon[event]) ~= "function" then
+		fail(scenario, "there is no " .. event .. " handler")
+		return
+	end
+	ns.addon[event](ns.addon, event, ...)
+end
+
 -- Whether the sweep is still running at this moment.
 local function sweeping(cd)
 	local c = cd._cooldown
@@ -688,7 +712,7 @@ for _, how in ipairs({ "refused", "cooldown update", "interrupted" }) do
 		end
 		Mock.spellCooldowns = { [61304] = IDLE }
 		Mock.spellCooldowns[61304] = { startTime = Mock.now, duration = 1.5 }
-		ns.addon:UNIT_SPELLCAST_SENT(nil, "player", "Anna", "Cast-LOS", 1459)
+		send(scenario, ns, "UNIT_SPELLCAST_SENT", "player", "Anna", "Cast-LOS", 1459)
 		if not sweeping(cd) then
 			fail(scenario, "SKIPPED -- the cast showed no sweep to begin with")
 			return
@@ -696,19 +720,11 @@ for _, how in ipairs({ "refused", "cooldown update", "interrupted" }) do
 		Mock.advance(0.1)
 		Mock.spellCooldowns[61304] = IDLE
 		if how == "refused" then
-			ns.addon:UNIT_SPELLCAST_FAILED(nil, "player", "Cast-LOS", 1459)
+			send(scenario, ns, "UNIT_SPELLCAST_FAILED", "player", "Cast-LOS", 1459)
 		elseif how == "cooldown update" then
-			if not ns.addon.SPELL_UPDATE_COOLDOWN then
-				fail(scenario, "there is no SPELL_UPDATE_COOLDOWN handler")
-				return
-			end
-			ns.addon:SPELL_UPDATE_COOLDOWN()
+			send(scenario, ns, "SPELL_UPDATE_COOLDOWN")
 		else
-			if not ns.addon.UNIT_SPELLCAST_INTERRUPTED then
-				fail(scenario, "there is no UNIT_SPELLCAST_INTERRUPTED handler")
-				return
-			end
-			ns.addon:UNIT_SPELLCAST_INTERRUPTED(nil, "player", "Cast-LOS", 1459)
+			send(scenario, ns, "UNIT_SPELLCAST_INTERRUPTED", "player", "Cast-LOS", 1459)
 		end
 		local ready = ns.CastReady()
 		if ready and sweeping(cd) then
@@ -725,8 +741,18 @@ end
 -- press from going through until it ends, and CastReady says so. The sweep
 -- read only the global cooldown, so it ended at a second and a half over a
 -- button that answered "ready in 1.0s".
-for _, figure in ipairs({ "the client's figure", "the tracked block" }) do
-	local scenario = "core: the sweep lasts until the player's own cast ends (" .. figure .. ")"
+--
+-- The cast is only on UnitCastingInfo once it has started, as on the real
+-- client, where it is empty at SENT: START is what stretches the sweep over it.
+-- And pushback moves the end later with UNIT_SPELLCAST_DELAYED alone.
+for _, case in ipairs({
+	{ figure = "the client's figure" },
+	{ figure = "the tracked block" },
+	{ figure = "the client's figure", pushback = true },
+}) do
+	local figure = case.figure
+	local scenario = "core: the sweep lasts until the player's own cast ends (" .. figure
+		.. (case.pushback and ", pushed back" or "") .. ")"
 	withTree(scenario, { nameplate1 = { "Anna", "Aim" } }, function(ns)
 		H.freshPrompt(ns, scenario)
 		H.owe(ns, "Anna Aim")
@@ -737,21 +763,25 @@ for _, figure in ipairs({ "the client's figure", "the tracked block" }) do
 			return
 		end
 		local t0 = Mock.now
-		Mock.casting = { spellId = 190336, startsAt = t0, endsAt = t0 + 3 }
 		if figure == "the client's figure" then
 			Mock.spellCooldowns = { [61304] = { startTime = t0, duration = 1.5 } }
 		else
 			Mock.spellCooldowns = nil
 		end
-		ns.addon:UNIT_SPELLCAST_SENT(nil, "player", nil, "Cast-C", 190336)
-		if not ns.addon.UNIT_SPELLCAST_START then
-			fail(scenario, "there is no UNIT_SPELLCAST_START handler")
+		send(scenario, ns, "UNIT_SPELLCAST_SENT", "player", nil, "Cast-C", 190336)
+		Mock.casting = { spellId = 190336, startsAt = t0, endsAt = t0 + 3 }
+		send(scenario, ns, "UNIT_SPELLCAST_START", "player", "Cast-C", 190336)
+		local ends = t0 + 3
+		if case.pushback then
+			Mock.advance(1)
+			ends = t0 + 3.5
+			Mock.casting.endsAt = ends
+			send(scenario, ns, "UNIT_SPELLCAST_DELAYED", "player", "Cast-C", 190336)
+			Mock.advance(2.1)
 		else
-			ns.addon:UNIT_SPELLCAST_START(nil, "player", "Cast-C", 190336)
+			Mock.advance(2)
 		end
-		Mock.advance(2)
 		if Mock.spellCooldowns then Mock.spellCooldowns[61304] = IDLE end
-		ns.Prompt:SyncCooldown()
 		local ready, left = ns.CastReady()
 		if ready then
 			fail(scenario, "SKIPPED -- CastReady does not see the cast either")
@@ -759,8 +789,8 @@ for _, figure in ipairs({ "the client's figure", "the tracked block" }) do
 			fail(scenario, ("the icon shows no cooldown while a press is refused for another %.1fs"):format(left))
 		else
 			local c = cd._cooldown
-			if c.start + c.duration < t0 + 3 - 1e-6 then
-				fail(scenario, ("the sweep ends at %.1f and the cast at %.1f"):format(c.start + c.duration, t0 + 3))
+			if c.start + c.duration < ends - 1e-6 then
+				fail(scenario, ("the sweep ends at %.1f and the cast at %.1f"):format(c.start + c.duration - t0, ends - t0))
 			end
 		end
 		guarded(scenario, ns)

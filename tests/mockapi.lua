@@ -415,6 +415,7 @@ for _, e in ipairs({
 	"GROUP_ROSTER_UPDATE", "ADDON_LOADED",
 	-- Registered on this client by BetterBlizzFrames' forever build.
 	"UNIT_SPELLCAST_START", "UNIT_SPELLCAST_INTERRUPTED", "SPELL_UPDATE_COOLDOWN",
+	"UNIT_SPELLCAST_DELAYED",
 }) do KNOWN_EVENTS[e] = true end
 Mock.KNOWN_EVENTS = KNOWN_EVENTS
 Mock.badEvents = {}

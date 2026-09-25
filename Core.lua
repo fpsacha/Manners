@@ -3410,6 +3410,13 @@ local function NoteFavour(seen)
 		if snoozeEnds then
 			addon:Print(L["|cff80ff80%s buffed you|r -- the prompt is snoozed until %s, so returning it is offered only if the snooze ends before the favour runs out"]
 				:format(seen.name, snoozeEnds))
+		elseif reachable and not db.prompt.locked then
+			-- An unlocked prompt is on screen to be dragged and arms nobody, so
+			-- the favour waits for the lock. Ahead of the mount, since locking
+			-- is the step the player has to take; getting off a mount happens
+			-- on its own.
+			addon:Print(L["|cff80ff80%s buffed you|r -- returning the favour is on the prompt once you lock it"]
+				:format(seen.name))
 		elseif reachable and ns.HiddenWhileMounted() then
 			addon:Print(L["|cff80ff80%s buffed you|r -- returning the favour is on the prompt once you get off your mount"]
 				:format(seen.name))
@@ -4858,6 +4865,14 @@ function addon:UNIT_SPELLCAST_INTERRUPTED(_, unit)
 	SyncSweep()
 end
 
+-- Pushback: being hit while casting moves the cast's end later, and this is
+-- the only event that says so. CastReady reads the new end live, so without
+-- this the sweep stopped at the old one while a press was still refused.
+function addon:UNIT_SPELLCAST_DELAYED(_, unit)
+	if unit ~= "player" then return end
+	SyncSweep()
+end
+
 -- Any change to the cooldowns, the global one included -- which is how a
 -- cooldown handed back without a failure of ours reaches the sweep.
 function addon:SPELL_UPDATE_COOLDOWN()
@@ -5921,8 +5936,10 @@ function addon:OnEnable()
 		"UNIT_SPELLCAST_SUCCEEDED",
 		"UNIT_SPELLCAST_FAILED",
 		-- The sweep over the prompt's icon, which has to follow a cast that
-		-- starts, one that stops early, and a cooldown the client takes back.
+		-- starts, one pushed back, one that stops early, and a cooldown the
+		-- client takes back.
 		"UNIT_SPELLCAST_START",
+		"UNIT_SPELLCAST_DELAYED",
 		"UNIT_SPELLCAST_INTERRUPTED",
 		"SPELL_UPDATE_COOLDOWN",
 		"UI_ERROR_MESSAGE",

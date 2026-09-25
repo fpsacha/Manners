@@ -125,6 +125,14 @@ mutate("Core.lua",
        expect="core: the favour line does not promise a prompt that is kept away (mounted)",
        script="runscenarios.py")
 
+# core-9: the favour line promising the prompt while it is unlocked.
+mutate("Core.lua",
+       "\telseif reachable and not db.prompt.locked then\n",
+       "\telseif false then\n",
+       "favour line ignores the unlocked prompt",
+       expect="core: the favour line does not promise a prompt that is kept away (unlocked)",
+       script="runscenarios.py")
+
 # core-10: a refusal leaving the sweep running.
 mutate("Core.lua",
        "\t-- went through on.\n\tSyncSweep()\n",
@@ -155,6 +163,53 @@ mutate("Core.lua",
        "\t\tif false\n\t\t\tand (not start",
        "sweep ignores the player's own cast",
        expect="core: the sweep lasts until the player's own cast ends",
+       script="runscenarios.py")
+
+# core-11: START not re-reading the sweep. UnitCastingInfo is empty at SENT,
+# so this is the one moment a cast-time spell reaches it.
+mutate("Core.lua",
+       "function addon:UNIT_SPELLCAST_START(_, unit)\n\tif unit ~= \"player\" then return end\n\tSyncSweep()\n",
+       "function addon:UNIT_SPELLCAST_START(_, unit)\n\tif unit ~= \"player\" then return end\n",
+       "sweep not re-read when a cast starts",
+       expect="core: the sweep lasts until the player's own cast ends (the client's figure)",
+       script="runscenarios.py")
+
+# core-11: pushback ignored -- the sweep stops at the cast's old end.
+mutate("Core.lua",
+       "function addon:UNIT_SPELLCAST_DELAYED(_, unit)\n\tif unit ~= \"player\" then return end\n\tSyncSweep()\n",
+       "function addon:UNIT_SPELLCAST_DELAYED(_, unit)\n\tif unit ~= \"player\" then return end\n",
+       "sweep not re-read on pushback",
+       expect="core: the sweep lasts until the player's own cast ends (the client's figure, pushed back)",
+       script="runscenarios.py")
+
+# core-10 and core-11: each sweep event dropped from OnEnable's list, so the
+# client never delivers it and the handler above never runs.
+mutate("Core.lua",
+       "\t\t\"UNIT_SPELLCAST_START\",\n",
+       "",
+       "cast start never registered",
+       expect="core: the sweep lasts until the player's own cast ends (the tracked block)",
+       script="runscenarios.py")
+
+mutate("Core.lua",
+       "\t\t\"UNIT_SPELLCAST_DELAYED\",\n",
+       "",
+       "pushback never registered",
+       expect="core: the sweep lasts until the player's own cast ends (the client's figure, pushed back)",
+       script="runscenarios.py")
+
+mutate("Core.lua",
+       "\t\t\"UNIT_SPELLCAST_INTERRUPTED\",\n",
+       "",
+       "interrupted cast never registered",
+       expect="core: the sweep stops when the global cooldown is given back (interrupted)",
+       script="runscenarios.py")
+
+mutate("Core.lua",
+       "\t\t\"SPELL_UPDATE_COOLDOWN\",\n",
+       "",
+       "cooldown update never registered",
+       expect="core: the sweep stops when the global cooldown is given back (cooldown update)",
        script="runscenarios.py")
 
 # core-12: the English an earlier build wrote left in the box.
