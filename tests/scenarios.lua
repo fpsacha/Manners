@@ -8585,7 +8585,10 @@ do
 	local scenario = "a toc that lost Flavour.lua from its file list"
 	local short = {}
 	local loaded = true
-	for _, file in ipairs({ "Buffs.lua", "Core.lua", "Ledger.lua", "Prompt.lua", "Options.lua" }) do
+	-- Locales/Init.lua comes first, as Locales.xml does in the toc: the only
+	-- entry this toc lost is Flavour.lua, and the files after it read ns.L as
+	-- they load.
+	for _, file in ipairs({ "Locales/Init.lua", "Buffs.lua", "Core.lua", "Ledger.lua", "Prompt.lua", "Options.lua" }) do
 		local chunk, err = loadfile(dir .. "/" .. file)
 		if not chunk then
 			fail(scenario, "load " .. file .. ": " .. tostring(err))

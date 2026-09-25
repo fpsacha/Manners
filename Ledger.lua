@@ -35,14 +35,17 @@ local issecretvalue = _G.issecretvalue
 -- text
 --
 -- Every sentence a player reads, in one place and each one whole, because a
--- translation pass follows and a sentence assembled from pieces cannot be
--- translated. Format strings carry the numbers and names.
+-- sentence assembled from pieces cannot be translated. Format strings carry the
+-- numbers and names; each is looked up in L once, at load, which is after the
+-- locale files have filled it.
 ---------------------------------------------------------------------------
 
 local TEXT = {
-	TITLE = "Favour ledger",
+	TITLE = L["Favour ledger"],
+	-- A glyph drawn as the close button, not a word, so it is the same in
+	-- every language and there is nothing to hand a translator.
 	CLOSE = "x",
-	CLOSE_TIP = "Close (Escape works too)",
+	CLOSE_TIP = L["Close (Escape works too)"],
 
 	-- The headline over the list, and the line the minimap tooltip and the
 	-- options page repeat. "Today" is the calendar day on this computer's
@@ -53,96 +56,102 @@ local TEXT = {
 	-- "Recorded" rather than "nobody buffed you": the ledger hears of nothing
 	-- while the addon is off or has nothing to cast, and after Clear, so all
 	-- it can say is what it has.
-	TODAY_NONE = "No favours recorded today.",
-	TODAY_ONLY_USELESS = "Nothing you cast could return today's favours.",
-	TODAY_ONE = "Returned %d of 1 favour today.",
-	TODAY_MANY = "Returned %d of %d favours today.",
-	OWED_ONE = "1 favour still owed.",
-	OWED_MANY = "%d favours still owed.",
+	TODAY_NONE = L["No favours recorded today."],
+	TODAY_ONLY_USELESS = L["Nothing you cast could return today's favours."],
+	TODAY_ONE = L["Returned %d of 1 favour today."],
+	TODAY_MANY = L["Returned %d of %d favours today."],
+	OWED_ONE = L["1 favour still owed."],
+	OWED_MANY = L["%d favours still owed."],
 	-- Casts, not people: topping up the same five players three times is
 	-- fifteen buffs and still five players.
-	GAVE_ONE = "You gave 1 buff unprompted today.",
-	GAVE_MANY = "You gave %d buffs unprompted today.",
-	LIFETIME = "All time -- received: %d, returned: %d, given to your group: %d, to strangers: %d",
+	GAVE_ONE = L["You gave 1 buff unprompted today."],
+	GAVE_MANY = L["You gave %d buffs unprompted today."],
+	LIFETIME = L["All time -- received: %d, returned: %d, given to your group: %d, to strangers: %d"],
 
 	-- The same four numbers as tiles across the window, each with its label
 	-- underneath, and the caption over them.
-	ALL_TIME = "All time",
-	STAT_RECEIVED = "received",
-	STAT_RETURNED = "returned",
-	STAT_GROUP = "to your group",
-	STAT_STRANGERS = "to strangers",
+	ALL_TIME = L["All time"],
+	STAT_RECEIVED = L["received"],
+	STAT_RETURNED = L["returned"],
+	STAT_GROUP = L["to your group"],
+	STAT_STRANGERS = L["to strangers"],
 	-- Where the rows on screen sit in the list: "1-8 of 42".
-	SHOWING = "%d-%d of %d",
+	SHOWING = L["%d-%d of %d"],
 
-	TAB_ALL = "Everything",
-	TAB_FAVOURS = "Favours",
-	TAB_GIVEN = "Buffs you gave",
+	TAB_ALL = L["Everything"],
+	TAB_FAVOURS = L["Favours"],
+	TAB_GIVEN = L["Buffs you gave"],
 
-	EMPTY_ALL = "Nothing recorded. When somebody buffs you it is listed here, and so is"
-		.. " what you give back and who you buff unprompted.",
-	EMPTY_FAVOURS = "No favours recorded. When somebody buffs you, they are listed here.",
-	EMPTY_GIVEN = "No buffs given unprompted. When the prompt buffs somebody who did not"
-		.. " buff you first, it is listed here.",
+	EMPTY_ALL = L["Nothing recorded. When somebody buffs you it is listed here, and so is what you give back and who you buff unprompted."],
+	EMPTY_FAVOURS = L["No favours recorded. When somebody buffs you, they are listed here."],
+	EMPTY_GIVEN = L["No buffs given unprompted. When the prompt buffs somebody who did not buff you first, it is listed here."],
 	-- In place of the lines above while nothing new can arrive, because "when
 	-- somebody buffs you it is listed here" is then a promise the addon is not
 	-- keeping. The owed toggle stops favours only; buffs given still arrive.
-	EMPTY_OFF = "Nothing is recorded while Manners is switched off.",
-	EMPTY_NOTHING = "Nothing is recorded while the prompt has nothing to cast on this character.",
-	EMPTY_OWED_OFF = "Favours are not recorded while \"People who buffed me\" is off, on the"
-		.. " Who to buff tab.",
+	EMPTY_OFF = L["Nothing is recorded while Manners is switched off."],
+	EMPTY_NOTHING = L["Nothing is recorded while the prompt has nothing to cast on this character."],
+	EMPTY_OWED_OFF = L["Favours are not recorded while \"People who buffed me\" is off, on the Who to buff tab."],
 
-	CLEAR = "Clear",
-	CLEAR_ARMED = "Click again to clear",
-	CLEAR_TIP = "Empties the list, and today's count with it. Favours you still owe"
-		.. " stay, and the all-time totals are kept.",
+	CLEAR = L["Clear"],
+	CLEAR_ARMED = L["Click again to clear"],
+	CLEAR_TIP = L["Empties the list, and today's count with it. Favours you still owe stay, and the all-time totals are kept."],
 
-	-- The badge at the front of a row's second line, and what follows it.
-	STATE_OWED = "Still owed",
-	STATE_RETURNED = "Returned",
-	STATE_LETGO = "Let go",
-	STATE_GAVE = "Gave",
-	RETURNED_WITH = "with %s",
-	LETGO_EXPIRED = "the time to return it ran out",
-	LETGO_USELESS = "nothing you cast is any use to them",
-	LETGO_NOTKEPT = "forgotten at a logout or reload",
-	GAVE_GROUP = "%s, in your group",
-	GAVE_STRANGER = "%s, to a stranger",
-	UNKNOWN_SPELL = "a buff",
+	-- The badge at the front of a row's second line, and what follows it. A
+	-- row reads "badge  detail": the badge is a coloured status word, then two
+	-- spaces, then one of the details below, so each detail finishes the
+	-- badge's phrase without repeating it. The badges are separate keys because
+	-- a returned favour with no spell to name shows its badge alone, and
+	-- because the badge takes its own colour; a detail that needs its words in
+	-- another order has them all in its own key.
+	--
+	-- Badges: a favour owed to the row's player; one returned; one let go
+	-- unreturned; and a buff you gave them unprompted, when nobody owed it.
+	STATE_OWED = L["Still owed"],
+	STATE_RETURNED = L["Returned"],
+	STATE_LETGO = L["Let go"],
+	STATE_GAVE = L["Gave"],
+	-- After "Returned": %s is the spell you returned the favour with.
+	RETURNED_WITH = L["with %s"],
+	-- After "Let go": why it was let go.
+	LETGO_EXPIRED = L["the time to return it ran out"],
+	LETGO_USELESS = L["nothing you cast is any use to them"],
+	LETGO_NOTKEPT = L["forgotten at a logout or reload"],
+	-- After "Gave": %s is the spell you gave the row's player.
+	GAVE_GROUP = L["%s, in your group"],
+	GAVE_STRANGER = L["%s, to a stranger"],
+	-- In place of a spell name the client could not give.
+	UNKNOWN_SPELL = L["a buff"],
 
 	-- The row tooltip, which is where the whole story goes.
-	TIP_BUFFED = "Buffed you with %s, %s.",
-	TIP_TIMES = "They buffed you %d times; one buff back repays all of it.",
-	TIP_OWED = "Still owed. The prompt offers them until you return it or the time runs out.",
+	TIP_BUFFED = L["Buffed you with %s, %s."],
+	TIP_TIMES = L["They buffed you %d times; one buff back repays all of it."],
+	TIP_OWED = L["Still owed. The prompt offers them until you return it or the time runs out."],
 	-- A warrior's shout and the like reach the caster's party and nobody else,
 	-- so a favour from outside it waits for them to be in it. Said so it is
 	-- true whether or not they are in it now.
-	TIP_OWED_PARTY = "Still owed. What you cast reaches only your own party, so the prompt"
-		.. " offers them only while they are in it.",
-	TIP_OWED_SUBGROUP = "Still owed. What you cast reaches only your own party -- in a raid,"
-		.. " your own subgroup -- so the prompt offers them only while they are in it.",
-	TIP_RETURNED = "You returned it %s later.",
-	TIP_RETURNED_WITH = "You returned it %s later, with %s.",
-	TIP_LETGO_EXPIRED = "Let go: the time to return it ran out before you did.",
-	TIP_LETGO_USELESS = "Let go: nothing you can cast is any use to them.",
+	TIP_OWED_PARTY = L["Still owed. What you cast reaches only your own party, so the prompt offers them only while they are in it."],
+	TIP_OWED_SUBGROUP = L["Still owed. What you cast reaches only your own party -- in a raid, your own subgroup -- so the prompt offers them only while they are in it."],
+	TIP_RETURNED = L["You returned it %s later."],
+	TIP_RETURNED_WITH = L["You returned it %s later, with %s."],
+	TIP_LETGO_EXPIRED = L["Let go: the time to return it ran out before you did."],
+	TIP_LETGO_USELESS = L["Let go: nothing you can cast is any use to them."],
 	-- Quotes the setting by the name it has on the When tab, which a scenario
 	-- holds it to.
-	TIP_LETGO_NOTKEPT = "Let go: \"Remember them across a reload\" (When tab, under Timing) is"
-		.. " off, so it was forgotten when you logged out or reloaded.",
-	TIP_GAVE = "You buffed them with %s, %s.",
-	TIP_GAVE_GROUP = "They were in your group and had not buffed you.",
-	TIP_GAVE_STRANGER = "They were not in your group and had not buffed you.",
+	TIP_LETGO_NOTKEPT = L["Let go: \"Remember them across a reload\" (When tab, under Timing) is off, so it was forgotten when you logged out or reloaded."],
+	TIP_GAVE = L["You buffed them with %s, %s."],
+	TIP_GAVE_GROUP = L["They were in your group and had not buffed you."],
+	TIP_GAVE_STRANGER = L["They were not in your group and had not buffed you."],
 
-	JUST_NOW = "just now",
-	MINUTES_AGO = "%d min ago",
-	HOURS_AGO = "%d hr ago",
-	DAY_AGO = "a day ago",
-	DAYS_AGO = "%d days ago",
-	SECONDS = "%d sec",
-	MINUTES = "%d min",
-	HOURS = "%d hr",
+	JUST_NOW = L["just now"],
+	MINUTES_AGO = L["%d min ago"],
+	HOURS_AGO = L["%d hr ago"],
+	DAY_AGO = L["a day ago"],
+	DAYS_AGO = L["%d days ago"],
+	SECONDS = L["%d sec"],
+	MINUTES = L["%d min"],
+	HOURS = L["%d hr"],
 
-	OPTIONS_EMPTY = "Nothing has been recorded on this character yet.",
+	OPTIONS_EMPTY = L["Nothing has been recorded on this character yet."],
 }
 Ledger.TEXT = TEXT
 

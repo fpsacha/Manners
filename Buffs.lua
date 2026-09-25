@@ -365,18 +365,20 @@ local function ChooseSet()
 		-- fails a build whose toc lost it, so this is not reachable from a
 		-- release. It is reachable from a hand-assembled addon folder, and the
 		-- complaint below is the only thing that would ever say so.
-		return nil, "Flavour.lua did not load, so there is nothing to choose from"
+		return nil, L["Flavour.lua did not load, so there is nothing to choose from"]
 	end
 
+	-- The set's name stays as it is in every language: it is the data set's
+	-- identifier, and the scenarios find it in this string.
 	local set = SETS[flavour.flavour]
 	if set then return set, set.name end
 
 	set = BY_FAMILY[flavour.family]
 	if set then
-		return set, ("%s, guessed from the %s family"):format(set.name, tostring(flavour.family))
+		return set, L["%s, guessed from the %s family"]:format(set.name, tostring(flavour.family))
 	end
 
-	return nil, ("no set for %s/%s"):format(tostring(flavour.flavour), tostring(flavour.family))
+	return nil, L["no set for %s/%s"]:format(tostring(flavour.flavour), tostring(flavour.family))
 end
 
 local chosen, source = ChooseSet()
@@ -424,15 +426,13 @@ function ns.BuildBuffLookups()
 
 	if type(ns.BUFFS) ~= "table" then
 		ns.BUFFS = {}
-		ns.BUFFS_MISSING = ("no buff data for this client -- %s"):format(
-			(ns.FlavourSummary and ns.FlavourSummary()) or "flavour unknown")
+		ns.BUFFS_MISSING = L["no buff data for this client -- %s"]:format(
+			(ns.FlavourSummary and ns.FlavourSummary()) or L["flavour unknown"])
 		-- Said out loud here as well as from /manners debug. This runs during
 		-- load, before the addon has a Print of its own, and a user who never
 		-- opens the options screen would otherwise be told nothing at all.
 		if type(print) == "function" then
-			print("|cffff4040Manners:|r " .. ns.BUFFS_MISSING
-				.. " -- nobody will be offered a buff. Please report this,"
-				.. " with the output of /manners debug.")
+			print("|cffff4040Manners:|r " .. L["%s -- nobody will be offered a buff. Please report this, with the output of /manners debug."]:format(ns.BUFFS_MISSING))
 		end
 		return
 	end

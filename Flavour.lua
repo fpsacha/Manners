@@ -202,23 +202,40 @@ end
 
 ns.Flavour = decided
 
+-- How each way of deciding reads in the summary below. `source` itself stays
+-- the English word, because it is compared as a value; only what is printed
+-- from it is translated. Each note is one whole key, brackets included, since
+-- "decided by" reads differently in most languages before a noun, an idiom and
+-- a failure. "(by project)" means by the WOW_PROJECT_ID the client reports,
+-- which the summary prints just before it as project=.
+local SOURCE_TEXT = {
+	project = L["(by project)"],
+	["nothing to go on"] = L["(by nothing to go on)"],
+	["GetBuildInfo failed"] = L["(by GetBuildInfo failed)"],
+}
+
 -- One line, meant to be pasted into an issue. Four of the five clients cannot
 -- be tested by anybody working on this addon, so a user running one command is
 -- the cheapest evidence there is -- and it is only evidence if it says which
 -- client it came from.
+--
+-- The key=value part is left in English on purpose: it is read by whoever
+-- takes the report, and the words in it are field names, not sentences.
 function ns.FlavourSummary()
 	local f = ns.Flavour or {}
 	local out = ("%s/%s interface=%s build=%s project=%s"):format(
 		tostring(f.flavour), tostring(f.family), tostring(f.interface),
 		tostring(f.build), tostring(f.project))
 	if f.source and f.source ~= "interface" then
-		out = out .. " (by " .. tostring(f.source) .. ")"
+		-- A source this file does not set cannot have a translation, so it is
+		-- shown as it is.
+		out = out .. " " .. (SOURCE_TEXT[f.source] or ("(by %s)"):format(tostring(f.source)))
 	end
 	if f.agrees == false then
-		out = out .. " |cffff8080interface and project id disagree|r"
+		out = out .. " |cffff8080" .. L["interface and project id disagree"] .. "|r"
 	end
 	if f.err then
-		out = out .. " |cffff8080GetBuildInfo threw: " .. tostring(f.err) .. "|r"
+		out = out .. " |cffff8080" .. L["GetBuildInfo threw: %s"]:format(tostring(f.err)) .. "|r"
 	end
 	return out
 end
