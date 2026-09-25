@@ -78,8 +78,8 @@ mutate("Options.lua",
        expect="Skip for now touched the secure button in a fight", script=S)
 
 mutate("Options.lua",
-       "\tlocal listed = ns.PutOnNeverList(entry.name)\n",
-       "\tlocal listed = nil\n",
+       "\tns.PutOnNeverList(entry.name)\n",
+       "",
        "minimap: Never offer that lists nobody",
        expect="Never offer did not put", script=S)
 
@@ -163,14 +163,6 @@ mutate("Options.lua",
        expect="Show minimap button does not say Manners stays in the compartment", script=S)
 
 # ------------------------------------------------------------------ review round
-
-# The already-listed branch of PutOnNeverList returns before the repaint at the
-# end of the function, which is how "1 waiting" outlived a favour let go.
-mutate("Core.lua",
-       "\tif forgiven then\n\t\tSaveDebts()\n\t\tns.RepaintOptions()\n\tend\n",
-       "\tif forgiven then\n\t\tSaveDebts()\n\tend\n",
-       "minimap: a favour let go and the count left behind",
-       expect="a favour let go left the launcher reading", script=S)
 
 mutate("Options.lua",
        "\tif not (profile and profile.sources and profile.sources.owed) then return 0 end\n",

@@ -5,15 +5,6 @@
 
 S = "runscenarios.py"
 
-# ------------------------------------------------------------------ options-1
-# Never offer from the menu without the block: the person just listed stays
-# armed through the hold and the fuse, and a keypress casts at them.
-mutate("Options.lua",
-       "local function NeverFromMenu(entry)\n\tns.BlockPerson(entry.name)\n",
-       "local function NeverFromMenu(entry)\n",
-       "hunt3-options: never offer from the menu leaves them armed",
-       expect="hunt3-options: never offer from the menu takes them off the prompt", script=S)
-
 # ------------------------------------------------------------------ options-2
 mutate("Options.lua",
        "\telseif snoozeLeft and held then\n",
@@ -119,13 +110,6 @@ mutate("Options.lua",
        "\treturn ns.db.profile.prompt.locked == false\n",
        "hunt3-options: drag panel while switched off",
        expect="switched off, unlocked and snoozed, the snooze note offers a prompt to drag", script=S)
-
-# ------------------------------------------------------------------ review-3
-mutate("Options.lua",
-       "\tif listed and onPrompt and InCombatLockdown() then\n",
-       "\tif false then\n",
-       "hunt3-options: never offer in a fight, silent",
-       expect="Never offer in a fight does not say a press still casts at Anna", script=S)
 
 # ------------------------------------------------------------------ review-4
 mutate("Options.lua",

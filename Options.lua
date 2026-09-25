@@ -2961,14 +2961,11 @@ end
 local function NeverFromMenu(entry)
 	ns.BlockPerson(entry.name)
 	local showing = ns.Prompt.Showing and ns.Prompt:Showing()
-	local onPrompt = showing and showing.name == entry.name
-	if onPrompt then ns.Prompt:StopAttention() end
-	local listed = ns.PutOnNeverList(entry.name)
-	if listed and onPrompt and InCombatLockdown() then
-		ns.addon:Print(L["the prompt cannot move off |cffffffff%s|r in a fight, and a press still casts at them until it ends."]
-			:format(WhoIs(entry)))
-	end
-	ns.Guard("never repaint", ns.Prompt.Refresh, ns.Prompt)
+	if showing and showing.name == entry.name then ns.Prompt:StopAttention() end
+	-- Says the fight's warning itself when they are the one the prompt
+	-- holds, and the prompt repaints around it, for every route onto the
+	-- list alike -- a line said here as well was said twice.
+	ns.PutOnNeverList(entry.name)
 end
 
 -- One greyed line in place of the list.
