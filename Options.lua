@@ -42,6 +42,17 @@ local function Enabled()
 	return ns.db ~= nil and ns.db.profile ~= nil and ns.db.profile.enabled == true
 end
 
+-- Whether an unlocked prompt is up to be dragged. Prompt:RefreshPanel takes the
+-- panel down for a character with nothing it can cast, then for /manners off,
+-- and only after both reads the lock -- so the lock alone put "up to be
+-- dragged" into the tooltip, Who's next and the snooze note of a rogue, of a
+-- mage who has not learned Arcane Intellect, and of an addon switched off, none
+-- of which has anything on screen.
+local function DragPanelUp()
+	return Enabled() and ns.db.profile.prompt.locked == false
+		and ns.caps ~= nil and ns.caps.anyKnown == true
+end
+
 -- How many people who buffed you are still waiting for one back.
 --
 -- The favours, and not the whole queue. A crowd in a city puts a dozen
@@ -1088,10 +1099,12 @@ local function BuildOptions()
 								-- before it, over a panel that is already gone.
 								return L["|cffffd100Snoozed until %s.|r In a fight the prompt stays as the fight found it, and follows the snooze once the fight ends."]
 									:format(ends)
-							elseif ends and ns.db.profile.prompt.locked == false then
+							elseif ends and DragPanelUp() then
 								-- An unlocked prompt stays on screen to be dragged for
 								-- the whole snooze -- the lock is read before the snooze
 								-- -- so "no prompt" would be false while it is there.
+								-- Only where there is one: switched off, or with nothing
+								-- to cast, there is no panel, and "no prompt" is true.
 								return L["|cffffd100Snoozed until %s.|r The prompt is unlocked, so it stays up to be dragged and casts nothing; once you lock it, it stays away until the snooze ends."]
 									:format(ends)
 							elseif ends then
@@ -2637,9 +2650,9 @@ end
 -- One answer for the tooltip and the menu's Who's next, so the hover and the
 -- menu cannot give two different accounts of the same moment.
 --
--- A seventh answer, `heldOnly`, is true while a fight holds a prompt that the
--- snooze will take down once it ends: the one on it is still armed and still
--- worth a Skip, and nobody after them is going to be offered.
+-- A seventh answer, `heldOnly`, is true while a fight holds a prompt that a
+-- snooze or the lock will take down once it ends: the one on it is still armed
+-- and still worth a Skip, and nobody after them is going to be offered.
 local function HeldInFight()
 	if not InCombatLockdown() then return nil end
 	local ok, showing = pcall(function()
@@ -2672,11 +2685,27 @@ local function LauncherState()
 				1, 0.5, 0.5, true
 		end
 		return false, L["Switched off -- no prompt will appear."], 1, 0.5, 0.5
-	elseif ns.db.profile.prompt.locked == false then
+	elseif DragPanelUp() then
 		-- Ahead of the snooze, as the prompt reads them: an unlocked prompt is
-		-- up to be dragged whatever else is true, and never casts. Unlocking is
-		-- refused in a fight, and an unlocked prompt names nobody, so this never
-		-- meets a held one.
+		-- up to be dragged whatever else is true, and casts nothing. Only where
+		-- there is a panel at all, though -- nothing castable takes it down
+		-- before the lock is read, and then the class and learned lines below
+		-- are the true ones.
+		--
+		-- Except in a fight. /manners unlock is taken there, but the macro on
+		-- the button is frozen with the rest, so a press still casts at whoever
+		-- the fight found on it. Until the next pass the prompt still names
+		-- them, and they are listed with their Skip and nobody after them, as
+		-- for a snooze started in the fight; after it the name is cleared and
+		-- only the macro is left, which is said as /manners off in a fight says
+		-- it.
+		if held then
+			return true, L["Unlocked, but in this fight the prompt stays as the fight found it, and a press still casts it; it can be dragged once the fight ends."],
+				1, 0.82, 0, true, true
+		elseif InCombatLockdown() and ArmedButtonLeft() then
+			return false, L["Unlocked -- the prompt this fight froze stays up until it ends, and a press still casts it; then it can be dragged."],
+				1, 0.82, 0, true
+		end
 		if snoozeLeft then
 			return false, L["Unlocked, and snoozed until %s -- the prompt stays up to be dragged and casts nothing; once you lock it, it stays away until the snooze ends."]
 				:format(ns.SnoozeEndsAt()), 1, 0.82, 0, true
@@ -2708,7 +2737,10 @@ local function LauncherState()
 		-- count of people waiting read as a prompt that had broken. The queue,
 		-- the keypress and /manners debug all name the mount; so does this.
 		-- Not over a prompt a fight holds, which is still up and still armed.
-		return false, L["Kept away while you are mounted -- Not while mounted, on the When tab."], 1, 0.82, 0, true
+		-- The option and its tab go in by their own keys, as the keypress's line
+		-- puts them, so a translation names the labels the window shows.
+		return false, L["Kept away while you are mounted -- %s, on the %s tab."]
+			:format(L["Not while mounted"], L["When"]), 1, 0.82, 0, true
 	end
 	return true, L["Watching for people to buff."], 0.4, 0.9, 0.4
 end
@@ -2920,14 +2952,22 @@ end
 -- the panel only after the hold and the fuse have run, so for a second and a
 -- half the person just listed stayed armed and a keypress cast at them; the
 -- block is what takes them off the panel at once. The attention pulse stops
--- with them, as it does for a skip. The line in chat is PutOnNeverList's own,
--- which knows about the fight.
+-- with them, as it does for a skip.
+--
+-- The line in chat is PutOnNeverList's own, and it knows nothing of the fight:
+-- "will not be offered anything again" over a prompt that cannot move off them
+-- had the player buff the person they had just listed. So in a fight, for the
+-- one on the prompt, a second line says what the skip's line says.
 local function NeverFromMenu(entry)
 	ns.BlockPerson(entry.name)
 	local showing = ns.Prompt.Showing and ns.Prompt:Showing()
 	local onPrompt = showing and showing.name == entry.name
 	if onPrompt then ns.Prompt:StopAttention() end
-	ns.PutOnNeverList(entry.name)
+	local listed = ns.PutOnNeverList(entry.name)
+	if listed and onPrompt and InCombatLockdown() then
+		ns.addon:Print(L["the prompt cannot move off |cffffffff%s|r in a fight, and a press still casts at them until it ends."]
+			:format(WhoIs(entry)))
+	end
 	ns.Guard("never repaint", ns.Prompt.Refresh, ns.Prompt)
 end
 
@@ -2942,9 +2982,9 @@ end
 -- to cast does not list people with a Skip beside them that no prompt is
 -- going to show.
 --
--- Except the one a fight holds on the prompt after a snooze started in it: a
--- press still casts at them until the fight ends, so they are listed with
--- their Skip, and nobody after them is.
+-- Except the one a fight holds on the prompt after a snooze or an unlock in
+-- it: a press still casts at them until the fight ends, so they are listed
+-- with their Skip, and nobody after them is.
 local function FillWhoIsNext(parent)
 	local watching, line, _, _, _, _, heldOnly = LauncherState()
 	if not Enabled() then
@@ -2952,8 +2992,9 @@ local function FillWhoIsNext(parent)
 		return
 	end
 	-- The lock before the snooze, as LauncherState reads them: an unlocked
-	-- prompt is on screen to be dragged, and "snoozed" alone denied it.
-	if ns.db.profile.prompt.locked == false then
+	-- prompt is on screen to be dragged, and "snoozed" alone denied it. Not
+	-- over the one a fight still holds on it, who is listed below.
+	if DragPanelUp() and not heldOnly then
 		Nobody(parent, line)
 		return
 	end
@@ -3024,9 +3065,11 @@ local function FillWhoIsNext(parent)
 				Act(function() NeverFromMenu(entry) end))
 		end
 	end
-	-- Snoozed in a fight: the one the fight holds, then a line saying why
-	-- nobody comes after them.
-	if heldOnly and ends then
+	-- Unlocked or snoozed in a fight: the one the fight holds, then a line
+	-- saying why nobody comes after them -- the lock first, as it is read.
+	if heldOnly and DragPanelUp() then
+		Nobody(parent, L["Nobody else -- the prompt is unlocked"])
+	elseif heldOnly and ends then
 		Nobody(parent, L["Nobody else -- snoozed until %s"]:format(ends))
 	end
 end

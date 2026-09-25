@@ -78,8 +78,8 @@ mutate("Options.lua",
        expect="Skip for now touched the secure button in a fight", script=S)
 
 mutate("Options.lua",
-       "\tns.PutOnNeverList(entry.name)\n",
-       "",
+       "\tlocal listed = ns.PutOnNeverList(entry.name)\n",
+       "\tlocal listed = nil\n",
        "minimap: Never offer that lists nobody",
        expect="Never offer did not put", script=S)
 

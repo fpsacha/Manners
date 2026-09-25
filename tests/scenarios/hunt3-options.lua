@@ -527,3 +527,246 @@ do
 	restore()
 	Mock.reset()
 end
+
+-- ------------------------------------------------------------------ review-1
+-- /manners unlock is taken in a fight, and the fight keeps the macro on the
+-- button: a press still casts at whoever it froze. The tooltip and Who's next
+-- said the prompt "casts nothing", and dropped the held person's Skip.
+Mock.reset()
+do
+	local scenario = "hunt3-options: unlocked in a fight owns up to the frozen macro"
+	local restore = strangers({ nameplate1 = { "Anna", "Aim" }, nameplate2 = { "Bo", "Bell" } })
+	local ns = load(scenario)
+	if ns then
+		local button = annaAndBo(ns, scenario)
+		if button then
+			Mock.protect(button)
+			Mock.inCombat = true
+			ns.addon:PLAYER_REGEN_DISABLED()
+			Mock.runTimers(0)
+			ns.addon:HandleSlash("unlock")
+			local ok, err = pcall(withMenu, function(rightClick)
+				-- Before the next pass the prompt still names Anna.
+				local tip = tooltipLines()
+				if tip:find("casts nothing", 1, true) then
+					fail(scenario, "unlocked in a fight, the tooltip says the armed prompt casts nothing: " .. tip)
+				end
+				local next = whoIsNext(rightClick)
+				local first = next and next.items[1]
+				if not (first and tostring(first.text):find("^Anna Aim %-%- ") and child(first, "^Skip for now$")) then
+					fail(scenario, "unlocked in a fight, who's next drops the person a press still casts at: "
+						.. texts(next))
+				end
+				if child(next, "^Bo Bell") then
+					fail(scenario, "unlocked in a fight, who's next lists Bo, whom an unlocked prompt will not offer: "
+						.. texts(next))
+				end
+				if not child(next, "^Nobody else %-%- the prompt is unlocked$") then
+					fail(scenario, "unlocked in a fight, who's next does not say why nobody comes after Anna: "
+						.. texts(next))
+				end
+				-- After it, the name is cleared and the macro is not.
+				ns.addon:Tick()
+				local macro = tostring(button:GetAttribute("macrotext1") or "")
+				if not (macro:find("Anna Aim", 1, true) and button:IsShown()) then
+					fail(scenario, "SKIPPED -- the fight did not keep Anna's macro on the button: " .. macro)
+					return
+				end
+				tip = tooltipLines()
+				if tip:find("casts nothing", 1, true) or not tip:find("still casts", 1, true) then
+					fail(scenario, "unlocked in a fight, after a pass the tooltip does not say a press still casts: " .. tip)
+				end
+				first = whoIsNext(rightClick).items[1]
+				if tostring(first and first.text):find("casts nothing", 1, true) then
+					fail(scenario, "unlocked in a fight, after a pass who's next says the prompt casts nothing: "
+						.. tostring(first.text))
+				end
+			end)
+			if not ok then fail(scenario, tostring(err)) end
+			Mock.inCombat = false
+			ns.addon:HandleSlash("lock")
+			guarded(scenario, ns)
+		end
+	end
+	restore()
+	Mock.reset()
+end
+
+-- ------------------------------------------------------------------ review-2
+-- Unlocking puts a drag panel up only where the prompt can be up at all. A
+-- class with nothing to cast, a character with nothing learned yet, and an
+-- addon switched off have none, and the tooltip, Who's next and the snooze
+-- note all said there was one to drag.
+Mock.reset()
+Mock.class = "ROGUE"
+do
+	local scenario = "hunt3-options: unlocked with nothing to cast says why"
+	local restore = strangers({ nameplate1 = { "Anna", "Aim" } })
+	local ns = load(scenario)
+	if ns then
+		freshPrompt(ns, scenario)
+		ns.addon:HandleSlash("unlock")
+		ns.addon:Tick()
+		if ns.Prompt:GetButton():IsShown() then
+			fail(scenario, "SKIPPED -- a rogue's unlocked prompt is on screen")
+		else
+			local tip = tooltipLines()
+			if tip:find("Unlocked", 1, true) or tip:find("dragged", 1, true) then
+				fail(scenario, "a rogue, unlocked, is told there is a prompt to drag: " .. tip)
+			end
+			local ok, err = pcall(withMenu, function(rightClick)
+				local first = whoIsNext(rightClick).items[1]
+				if tostring(first and first.text):find("dragged", 1, true) then
+					fail(scenario, "a rogue, unlocked, is told by who's next there is a prompt to drag: "
+						.. tostring(first.text))
+				end
+			end)
+			if not ok then fail(scenario, tostring(err)) end
+		end
+		ns.addon:HandleSlash("lock")
+		guarded(scenario, ns)
+	end
+	restore()
+	Mock.reset()
+end
+
+Mock.reset()
+do
+	local scenario = "hunt3-options: unlocked with nothing learned says why"
+	local restore = strangers({ nameplate1 = { "Anna", "Aim" } })
+	local ns = load(scenario)
+	if ns then
+		freshPrompt(ns, scenario)
+		ns.caps.anyKnown = false
+		ns.addon:HandleSlash("unlock")
+		ns.addon:HandleSlash("snooze 5")
+		ns.addon:Tick()
+		if ns.Prompt:GetButton():IsShown() then
+			fail(scenario, "SKIPPED -- the unlocked prompt is on screen with nothing learned")
+		else
+			local tip = tooltipLines()
+			if tip:find("Unlocked", 1, true) or tip:find("dragged", 1, true) then
+				fail(scenario, "nothing learned, unlocked and snoozed, the tooltip offers a prompt to drag: " .. tip)
+			end
+			local note = H.findOption(ns.optionsTable, "snoozeNote")
+			local text = note and type(note.name) == "function" and note.name() or ""
+			if text:find("dragged", 1, true) then
+				fail(scenario, "nothing learned, unlocked and snoozed, the snooze note offers a prompt to drag: " .. text)
+			end
+		end
+		ns.StopSnooze(true)
+		ns.addon:HandleSlash("lock")
+		guarded(scenario, ns)
+	end
+	restore()
+	Mock.reset()
+end
+
+Mock.reset()
+do
+	local scenario = "hunt3-options: the snooze note while off and unlocked"
+	local restore = strangers({ nameplate1 = { "Anna", "Aim" } })
+	local ns = load(scenario)
+	if ns then
+		freshPrompt(ns, scenario)
+		ns.addon:HandleSlash("off")
+		ns.addon:HandleSlash("unlock")
+		local note = H.findOption(ns.optionsTable, "snoozeNote")
+		local five = H.findOption(ns.optionsTable, "snooze5")
+		if not (note and five and type(note.name) == "function") then
+			fail(scenario, "SKIPPED -- no snooze note or 5-minute button on the page")
+		else
+			five.func()
+			ns.addon:Tick()
+			local text = note.name()
+			if ns.Prompt:GetButton():IsShown() then
+				fail(scenario, "SKIPPED -- the prompt is on screen while switched off")
+			elseif text:find("dragged", 1, true) then
+				fail(scenario, "switched off, unlocked and snoozed, the snooze note offers a prompt to drag: " .. text)
+			end
+		end
+		ns.StopSnooze(true)
+		ns.addon:HandleSlash("lock")
+		ns.addon:HandleSlash("on")
+		guarded(scenario, ns)
+	end
+	restore()
+	Mock.reset()
+end
+
+-- ------------------------------------------------------------------ review-3
+-- Never offer from the menu on the one a fight holds: the list is written,
+-- but the macro cannot move off them, and chat said only that they would not
+-- be offered again while a press still cast at them.
+Mock.reset()
+do
+	local scenario = "hunt3-options: never offer in a fight says a press still casts"
+	local restore = strangers({ nameplate1 = { "Anna", "Aim" } })
+	local ns = load(scenario)
+	if ns then
+		freshPrompt(ns, scenario)
+		owe(ns, "Anna Aim")
+		ns.addon:Tick()
+		local button = ns.Prompt:GetButton()
+		local showing = ns.Prompt:Showing()
+		if not (showing and showing.name == "Anna Aim") then
+			fail(scenario, "SKIPPED -- Anna never came up on the prompt")
+		else
+			Mock.protect(button)
+			Mock.inCombat = true
+			ns.addon:PLAYER_REGEN_DISABLED()
+			Mock.runTimers(0)
+			local ok, err = pcall(withMenu, function(rightClick)
+				local anna = child(whoIsNext(rightClick), "^Anna Aim %-%- ")
+				local never = anna and child(anna, "^Never offer$")
+				if not never then
+					fail(scenario, "SKIPPED -- who's next has no Never offer for Anna")
+					return
+				end
+				Mock.printed = {}
+				never.fn()
+				local ran = tostring(H.pressButton(ns) or "")
+				if not ran:find("Anna Aim", 1, true) then
+					fail(scenario, "SKIPPED -- the fight did not keep Anna's macro: " .. ran)
+				elseif not said():find("still casts at them", 1, true) then
+					fail(scenario, "Never offer in a fight does not say a press still casts at Anna: " .. said())
+				end
+			end)
+			if not ok then fail(scenario, tostring(err)) end
+			Mock.inCombat = false
+		end
+		guarded(scenario, ns)
+	end
+	restore()
+	Mock.reset()
+end
+
+-- ------------------------------------------------------------------ review-4
+-- The mount line names the option and its tab as the options window does, so
+-- a translated client names the labels the player will find there.
+Mock.reset()
+do
+	local scenario = "hunt3-options: the mount line names the labels the window shows"
+	local restore = strangers({ nameplate1 = { "Anna", "Aim" } })
+	local realMounted = IsMounted
+	IsMounted = function() return true end
+	local ns = load(scenario)
+	if ns then
+		freshPrompt(ns, scenario)
+		ns.db.profile.filters.hideMounted = true
+		owe(ns, "Anna Aim")
+		ns.L["Not while mounted"] = "TRANSLATED-MOUNT-LABEL"
+		ns.L["When"] = "TRANSLATED-WHEN-TAB"
+		ns.addon:Tick()
+		local tip = tooltipLines()
+		if not (tip:find("TRANSLATED-MOUNT-LABEL", 1, true) and tip:find("TRANSLATED-WHEN-TAB", 1, true)) then
+			fail(scenario, "the mount line does not take the option and tab names from their own keys: " .. tip)
+		end
+		ns.L["Not while mounted"] = nil
+		ns.L["When"] = nil
+		guarded(scenario, ns)
+	end
+	IsMounted = realMounted
+	restore()
+	Mock.reset()
+end
