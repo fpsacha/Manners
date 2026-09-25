@@ -30,8 +30,8 @@ mutate("Options.lua",
        expect="the Enable checkbox does not read the switch as off", script=S)
 
 mutate("Options.lua",
-       "\tlocal list, showing = WhoIsWaiting(MENU_QUEUE_ROWS)\n",
-       "\tlocal list, showing = {}, nil\n",
+       "\t\tlist, showing = WhoIsWaiting(MENU_QUEUE_ROWS)\n",
+       "\t\tlist, showing = {}, nil\n",
        "minimap: who's next lists nobody",
        expect="who's next does not list the prompt and the queue", script=S)
 
@@ -64,8 +64,8 @@ mutate("Options.lua",
 # ------------------------------------------------------------------ who's next
 
 mutate("Options.lua",
-       "\tns.BlockPerson(entry.name)\n",
-       "",
+       "local function SkipFromMenu(entry)\n\tns.BlockPerson(entry.name)\n",
+       "local function SkipFromMenu(entry)\n",
        "minimap: Skip for now that skips nobody",
        expect="Skip for now did not skip", script=S)
 
@@ -203,7 +203,7 @@ mutate("Options.lua",
        expect="does not say why Anna is there", script=S)
 
 mutate("Options.lua",
-       "\tif ends then\n\t\tNobody(parent, L[\"Nobody -- snoozed until %s\"]:format(ends))\n\t\treturn\n\tend\n",
+       "\tif ends and not heldOnly then\n\t\tNobody(parent, L[\"Nobody -- snoozed until %s\"]:format(ends))\n\t\treturn\n\tend\n",
        "",
        "minimap: who's next listing people while snoozed",
        expect="while snoozed, who's next lists people no prompt will offer", script=S)

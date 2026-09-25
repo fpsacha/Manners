@@ -2077,11 +2077,9 @@ mutate("Options.lua",
 # icon alone -- on the minimap that is the only shape it has -- and then the
 # tooltip is the last place that can say why no prompt has appeared all evening.
 mutate("Options.lua",
-       """	if not Enabled() then
-		return false, L["Switched off -- no prompt will appear."], 1, 0.5, 0.5
+       """		return false, L["Switched off -- no prompt will appear."], 1, 0.5, 0.5
 """,
-       """	if not Enabled() then
-""",
+       "",
        "a tooltip that never names the state",
        expect="the tooltip never names the state",
        script="runscenarios.py")

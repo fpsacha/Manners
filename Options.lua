@@ -1088,6 +1088,12 @@ local function BuildOptions()
 								-- before it, over a panel that is already gone.
 								return L["|cffffd100Snoozed until %s.|r In a fight the prompt stays as the fight found it, and follows the snooze once the fight ends."]
 									:format(ends)
+							elseif ends and ns.db.profile.prompt.locked == false then
+								-- An unlocked prompt stays on screen to be dragged for
+								-- the whole snooze -- the lock is read before the snooze
+								-- -- so "no prompt" would be false while it is there.
+								return L["|cffffd100Snoozed until %s.|r The prompt is unlocked, so it stays up to be dragged and casts nothing; once you lock it, it stays away until the snooze ends."]
+									:format(ends)
 							elseif ends then
 								-- Not "offered when it ends": a favour is remembered for
 								-- as long as the When tab says, which is usually shorter
@@ -2630,11 +2636,59 @@ end
 --
 -- One answer for the tooltip and the menu's Who's next, so the hover and the
 -- menu cannot give two different accounts of the same moment.
+--
+-- A seventh answer, `heldOnly`, is true while a fight holds a prompt that the
+-- snooze will take down once it ends: the one on it is still armed and still
+-- worth a Skip, and nobody after them is going to be offered.
+local function HeldInFight()
+	if not InCombatLockdown() then return nil end
+	local ok, showing = pcall(function()
+		return ns.Prompt and ns.Prompt.Showing and ns.Prompt:Showing() or nil
+	end)
+	return ok and showing or nil
+end
+
+-- Whether the button is still up with a macro on it, which after /manners off
+-- in a fight is all that is left of the prompt: `current` is cleared, and the
+-- macro and the panel cannot be until the fight ends. Both are readable there.
+local function ArmedButtonLeft()
+	local ok, armed = pcall(function()
+		local button = ns.Prompt and ns.Prompt.GetButton and ns.Prompt:GetButton()
+		return button ~= nil and button:IsShown() and button:GetAttribute("macrotext1") ~= nil
+	end)
+	return ok and armed == true
+end
+
 local function LauncherState()
 	local class = ns.caps and ns.caps.class
 	local snoozeLeft = ns.SnoozeLeft and ns.SnoozeLeft()
+	local held = HeldInFight()
 	if not Enabled() then
+		-- Switched off in a fight leaves the panel the fight froze on screen,
+		-- and a press on it still casts. "No prompt will appear" is false for
+		-- as long as that lasts.
+		if InCombatLockdown() and ArmedButtonLeft() then
+			return false, L["Switched off -- the prompt this fight froze stays up until it ends, and a press still casts it."],
+				1, 0.5, 0.5, true
+		end
 		return false, L["Switched off -- no prompt will appear."], 1, 0.5, 0.5
+	elseif ns.db.profile.prompt.locked == false then
+		-- Ahead of the snooze, as the prompt reads them: an unlocked prompt is
+		-- up to be dragged whatever else is true, and never casts. Unlocking is
+		-- refused in a fight, and an unlocked prompt names nobody, so this never
+		-- meets a held one.
+		if snoozeLeft then
+			return false, L["Unlocked, and snoozed until %s -- the prompt stays up to be dragged and casts nothing; once you lock it, it stays away until the snooze ends."]
+				:format(ns.SnoozeEndsAt()), 1, 0.82, 0, true
+		end
+		return false, L["Unlocked -- the prompt is up to be dragged and casts nothing until you lock it (%s)."]
+			:format("|cffffd100/manners lock|r"), 1, 0.82, 0, true
+	elseif snoozeLeft and held then
+		-- A snooze started in the fight: the panel stays as the fight found it,
+		-- armed, and follows the snooze once it ends. Said as that, and with the
+		-- held entry still listed, since a press still casts at them.
+		return true, L["Snoozed until %s -- in this fight the prompt stays as the fight found it, and follows the snooze once the fight ends."]
+			:format(ns.SnoozeEndsAt()), 1, 0.82, 0, true, true
 	elseif snoozeLeft then
 		-- The clock time and the minutes both: the time is what the player
 		-- compares with a raid timer, and the minutes are what they asked for.
@@ -2649,6 +2703,12 @@ local function LauncherState()
 			return false, L["Nothing will be offered: %s."]:format(ns.NothingToCast()), 1, 0.5, 0.5, true
 		end
 		return false, L["Nothing learned to cast yet."], 1, 0.82, 0
+	elseif not held and ns.HiddenWhileMounted and ns.HiddenWhileMounted() then
+		-- The queue offers nobody while this is true, so "watching" over a
+		-- count of people waiting read as a prompt that had broken. The queue,
+		-- the keypress and /manners debug all name the mount; so does this.
+		-- Not over a prompt a fight holds, which is still up and still armed.
+		return false, L["Kept away while you are mounted -- Not while mounted, on the When tab."], 1, 0.82, 0, true
 	end
 	return true, L["Watching for people to buff."], 0.4, 0.9, 0.4
 end
@@ -2660,12 +2720,16 @@ local function FillLauncherTooltip(tooltip)
 	-- The state, said here as well as in the text, because a broker display is
 	-- free to show the icon on its own -- and then this tooltip is the only
 	-- place left that can say why no prompt has appeared all evening.
-	local watching, line, r, g, b, wrap = LauncherState()
+	local watching, line, r, g, b, wrap, heldOnly = LauncherState()
 	tooltip:AddLine(line, r, g, b, wrap)
 
 	-- Who is waiting, while there is a prompt to wait on.
 	if watching then
 		local list, showing = WhoIsWaiting(TOOLTIP_QUEUE_ROWS + 1)
+		-- Snoozed in a fight: only the one the fight holds. Nobody after them
+		-- is going to be offered until the snooze ends, so neither the rows
+		-- under them nor the count of favours waiting is anything to read.
+		if heldOnly then list = showing and { showing } or {} end
 
 		-- In a fight the prompt keeps whoever it had when the fight began, and
 		-- a press still casts at them; the list under it stops moving. Said
@@ -2678,7 +2742,7 @@ local function FillLauncherTooltip(tooltip)
 
 		-- The favours first: they are what the launcher's own text counts, so a
 		-- bar reading "2 waiting" is answered by the first line of the hover.
-		local waiting = WaitingCount()
+		local waiting = heldOnly and 0 or WaitingCount()
 		if waiting == 1 then
 			tooltip:AddLine(L["1 person who buffed you is waiting for one back."], 0.5, 0.88, 0.5, true)
 		elseif waiting > 1 then
@@ -2851,7 +2915,18 @@ end
 
 -- Never, from the menu: the never-offer list, as a shift-right-press on the
 -- prompt puts them there, with the line that says how to undo it.
+--
+-- With the same block first, as that press writes it. The list alone reaches
+-- the panel only after the hold and the fuse have run, so for a second and a
+-- half the person just listed stayed armed and a keypress cast at them; the
+-- block is what takes them off the panel at once. The attention pulse stops
+-- with them, as it does for a skip. The line in chat is PutOnNeverList's own,
+-- which knows about the fight.
 local function NeverFromMenu(entry)
+	ns.BlockPerson(entry.name)
+	local showing = ns.Prompt.Showing and ns.Prompt:Showing()
+	local onPrompt = showing and showing.name == entry.name
+	if onPrompt then ns.Prompt:StopAttention() end
 	ns.PutOnNeverList(entry.name)
 	ns.Guard("never repaint", ns.Prompt.Refresh, ns.Prompt)
 end
@@ -2866,24 +2941,50 @@ end
 -- the same test the tooltip makes, so a snoozed addon or a class with nothing
 -- to cast does not list people with a Skip beside them that no prompt is
 -- going to show.
+--
+-- Except the one a fight holds on the prompt after a snooze started in it: a
+-- press still casts at them until the fight ends, so they are listed with
+-- their Skip, and nobody after them is.
 local function FillWhoIsNext(parent)
+	local watching, line, _, _, _, _, heldOnly = LauncherState()
 	if not Enabled() then
 		Nobody(parent, L["Nobody -- Manners is switched off"])
 		return
 	end
+	-- The lock before the snooze, as LauncherState reads them: an unlocked
+	-- prompt is on screen to be dragged, and "snoozed" alone denied it.
+	if ns.db.profile.prompt.locked == false then
+		Nobody(parent, line)
+		return
+	end
 	local ends = ns.SnoozeEndsAt and ns.SnoozeEndsAt()
-	if ends then
+	if ends and not heldOnly then
 		Nobody(parent, L["Nobody -- snoozed until %s"]:format(ends))
 		return
 	end
-	local watching, line = LauncherState()
 	if not watching then
 		Nobody(parent, line)
 		return
 	end
-	local list, showing = WhoIsWaiting(MENU_QUEUE_ROWS)
+	local list, showing
+	if heldOnly then
+		showing = HeldInFight()
+		list = showing and { showing } or {}
+	else
+		list, showing = WhoIsWaiting(MENU_QUEUE_ROWS)
+	end
 	if #list == 0 then
-		Nobody(parent, L["Nobody is waiting"])
+		-- Favours can be live while the queue offers none of them -- skipped,
+		-- dead, on a taxi, out of mana, out of reach -- and "Nobody is waiting"
+		-- under a bar counting them was the menu contradicting the launcher.
+		local waiting = WaitingCount()
+		if waiting == 1 then
+			Nobody(parent, L["Nobody can be offered right now -- 1 favour is waiting"])
+		elseif waiting > 1 then
+			Nobody(parent, L["Nobody can be offered right now -- %d favours are waiting"]:format(waiting))
+		else
+			Nobody(parent, L["Nobody is waiting"])
+		end
 		return
 	end
 	for _, entry in ipairs(list) do
@@ -2903,12 +3004,30 @@ local function FillWhoIsNext(parent)
 		end
 		local person = parent:CreateButton(label:format(WhoIs(entry), WhatBuff(entry)))
 		person:CreateButton(L["Skip for now"], Act(function() SkipFromMenu(entry) end))
-		-- Somebody already on the list is only here because they are owed,
-		-- and for them the same act lets the favour go -- which is what it
-		-- says, as the prompt's own tooltip does.
+		-- Somebody already on the list is in the queue only because they are
+		-- owed, and for them the same act lets the favour go -- which is what
+		-- it says, as the prompt's own tooltip does. But the one on the prompt
+		-- comes from the prompt, and in a fight it goes on naming somebody just
+		-- put on the list whether they owe anything or not; for them there is
+		-- no favour to let go, and the click only said they were listed
+		-- already. Owed is asked as the queue asks it.
 		local listed = ns.IsNeverOffered and ns.IsNeverOffered(entry.name)
-		person:CreateButton(listed and L["Let this favour go"] or L["Never offer"],
-			Act(function() NeverFromMenu(entry) end))
+		local ok, owedNow = pcall(function()
+			local debt = ns.owed and ns.owed[entry.name]
+			return ns.db.profile.sources.owed and debt ~= nil and ns.DebtExpiry(debt) > GetTime()
+		end)
+		owedNow = ok and owedNow == true
+		if listed and not owedNow then
+			Nobody(person, L["On your never-offer list"])
+		else
+			person:CreateButton(listed and L["Let this favour go"] or L["Never offer"],
+				Act(function() NeverFromMenu(entry) end))
+		end
+	end
+	-- Snoozed in a fight: the one the fight holds, then a line saying why
+	-- nobody comes after them.
+	if heldOnly and ends then
+		Nobody(parent, L["Nobody else -- snoozed until %s"]:format(ends))
 	end
 end
 
@@ -3021,9 +3140,25 @@ local function FillLauncherMenu(root)
 	-- Greyed out in a fight as it is on the options page: ToggleTest refuses to
 	-- start one there. One already running can still be stopped.
 	local inTest = ns.Prompt:InTest()
-	local preview = root:CreateButton(
-		inTest and L["End the preview"] or FightLabel(L["Preview the prompt"], fight),
-		Act(function() ns.addon:HandleSlash("test") end))
+	--
+	-- Each entry does only what its label says. The menu is built once, when it
+	-- opens, and /manners test is a toggle: a preview that timed out under an
+	-- open menu left "End the preview" standing, and clicking it started a new
+	-- one.
+	local preview
+	if inTest then
+		preview = root:CreateButton(L["End the preview"], Act(function()
+			if ns.Prompt:InTest() then
+				ns.addon:HandleSlash("test")
+			else
+				ns.addon:Print(L["the preview has already ended."])
+			end
+		end))
+	else
+		preview = root:CreateButton(FightLabel(L["Preview the prompt"], fight), Act(function()
+			if not ns.Prompt:InTest() then ns.addon:HandleSlash("test") end
+		end))
+	end
 	if fight and not inTest then HeldForFight(preview) end
 	FillPromptMenu(root:CreateButton(L["Prompt"]), fight)
 	Check(root, L["Tell me in chat what the addon is doing"], function() return ns.db.profile.verbose end,
