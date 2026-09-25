@@ -1014,7 +1014,8 @@ mutate("Core.lua",
 #     exist, so a fight that began with nobody on the panel kept the click's
 #     green headline for its whole length over a button holding no macro.
 mutate("Prompt.lua",
-       '\t\t\t\tself:PaintHeldInert(L["held"])\n',
+       '\t\t\t\tself:PaintHeldInert(L["held -- a press still casts what the fight froze"],\n'
+       '\t\t\t\t\tL["held -- nothing armed, and the panel cannot go"])\n',
        "",
        "a held panel that names nobody at all",
        expect="stops quoting the last click",
@@ -1034,7 +1035,10 @@ mutate("Prompt.lua",
 #     which is where all four of these sat: refused, silently, on every tick of
 #     every fight, with the branch walking away believing the panel had gone.
 mutate("Prompt.lua",
-       '\t\tif not SetPanelShown(false) then self:PaintHeldInert(L["switched off"]) end',
+       '\t\tif not SetPanelShown(false) then\n'
+       '\t\t\tself:PaintHeldInert(L["switched off -- a press still casts what the fight froze"],\n'
+       '\t\t\t\tL["switched off -- nothing armed, and the panel cannot go"])\n'
+       '\t\tend',
        "\t\tbutton:Hide()",
        "a switched-off addon hiding in combat",
        expect="/manners off in combat called",
@@ -1044,7 +1048,9 @@ mutate("Prompt.lua",
 #     true mid-fight the moment the client answers SPELLS_CHANGED.
 mutate("Prompt.lua",
        """		if not SetPanelShown(false) then
-			self:PaintHeldInert(L["nothing this character can cast"])
+			self:PaintHeldInert(
+				L["nothing this character can cast -- a press still casts what the fight froze"],
+				L["nothing this character can cast -- nothing armed, and the panel cannot go"])
 		end""",
        "\t\tbutton:Hide()",
        "a client with nothing to cast hiding in combat",
