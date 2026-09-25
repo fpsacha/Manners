@@ -27,3 +27,12 @@ mutate("Prompt.lua",
        "owed person on the never list let go by the prompt",
        expect="a listed person who is owed still gets the fuse",
        script="runscenarios.py")
+
+# Listing somebody no longer repaints the prompt, so /manners never and the
+# options box leave the panel armed at them until the next scan.
+mutate("Prompt.lua",
+       "\t\t\tif listed then ns.Guard(\"never repaint\", Prompt.Refresh, Prompt) end\n",
+       "",
+       "never list repaints only the options page",
+       expect="/manners never takes the person off the prompt before a fight can freeze it",
+       script="runscenarios.py")

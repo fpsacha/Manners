@@ -7,7 +7,7 @@
 local dir, H = ...
 local fail, load = H.fail, H.load
 local strangers, freshPrompt, pressButton = H.strangers, H.freshPrompt, H.pressButton
-local owe = H.owe
+local owe, findOption = H.owe, H.findOption
 
 local function noErrors(scenario, ns)
 	for _, e in ipairs(ns.errors or {}) do
@@ -192,4 +192,66 @@ do
 	end)
 	restoreUnits()
 end
+Mock.reset()
+
+-- ------------------------------------------------------------ hunt3 prompt 5/6
+-- The routes themselves, with nobody calling Refresh by hand: /manners never
+-- and the options page's box used to leave the panel naming, and armed at, the
+-- person just listed until the next scan tick -- up to two seconds. A fight
+-- starting in that window froze the macro on them, and every press in it cast
+-- at somebody the player had just asked never to be offered.
+local function listedByRoute(scenario, putOnList)
+	local restoreUnits = strangers({ nameplate1 = { "Anna", "Aim" }, nameplate2 = { "Bert", "Beside" } })
+	run(scenario, function()
+		local ns = load(scenario)
+		if not ns then return end
+		freshPrompt(ns, scenario)
+		ns.addon:Tick()
+		if ns.Prompt:PanelName() ~= "Anna Aim" then
+			fail(scenario, "SKIPPED -- the panel named " .. tostring(ns.Prompt:PanelName()) .. " to start with")
+			return
+		end
+		Mock.advance(0.1)
+		if putOnList(ns) == false then return end
+		if ns.Prompt:PanelName() == "Anna Aim" then
+			fail(scenario, "straight after she was listed the panel still named Anna")
+		end
+		local macro = tostring(ns.Prompt:GetButton():GetAttribute("macrotext1") or "")
+		if macro:find("Anna Aim", 1, true) then
+			fail(scenario, "straight after she was listed the macro was still armed at Anna: " .. macro)
+		end
+
+		-- A fight starts before the next scan.
+		Mock.protect(ns.Prompt:GetButton())
+		Mock.inCombat = true
+		ns.addon:PLAYER_REGEN_DISABLED()
+		ns.addon:Tick()
+		Mock.advance(0.3)
+		local ran = tostring(pressButton(ns) or "")
+		if ran:find("Anna Aim", 1, true) then
+			fail(scenario, "a press in the fight cast at Anna, just put on the never list: " .. ran)
+		end
+		Mock.inCombat = false
+		ns.addon:PLAYER_REGEN_ENABLED()
+		noErrors(scenario, ns)
+	end)
+	restoreUnits()
+end
+
+Mock.reset()
+listedByRoute("/manners never takes the person off the prompt before a fight can freeze it", function(ns)
+	ns.addon:HandleSlash("never Anna Aim")
+end)
+Mock.reset()
+
+listedByRoute("the options page's never box takes the person off the prompt before a fight can freeze it",
+	function(ns)
+		local scenario = "the options page's never box takes the person off the prompt before a fight can freeze it"
+		local add = findOption(ns.optionsTable, "neverAdd")
+		if not (add and add.set) then
+			fail(scenario, "SKIPPED -- no Add somebody by name box on the options page")
+			return false
+		end
+		add.set({ "neverAdd" }, "Anna Aim")
+	end)
 Mock.reset()

@@ -1090,8 +1090,9 @@ function Prompt:Create()
 			-- fight as the skip. The list reaches the queue at its next rebuild,
 			-- which in a fight is when it ends.
 			if IsShiftKeyDown and ns.plain(IsShiftKeyDown()) then
+				-- The repaint comes with the listing: see the wrapper below
+				-- Prompt:Refresh.
 				ns.PutOnNeverList(victim)
-				ns.Guard("never repaint", Prompt.Refresh, Prompt)
 				return
 			end
 			if db and db.verbose then
@@ -3068,6 +3069,27 @@ function Prompt:Refresh()
 	local fadedTo = OutroAlpha()
 	self:RefreshPanel()
 	if not self.outroWanted then self:ComeBack(fadedTo) end
+end
+
+-- Putting somebody on the never-offer list repaints the prompt at once, by
+-- whichever route it came: /manners never, the options page's box, the menu
+-- or the prompt's own shift-right-click. Core only repaints the options page
+-- and the launcher, so before this the first two left the panel naming the
+-- person just listed, and the macro armed at them, until the next scan tick --
+-- up to two seconds. A fight starting in that window froze the macro, and
+-- every press in it cast at somebody the player had just asked never to be
+-- offered. Wrapped here, where the prompt is, rather than asked of each
+-- caller; Refresh has its own combat branch, so this is as safe in a fight as
+-- the listing itself. Prompt.lua loads after Core.lua, so the function exists.
+do
+	local putOnNeverList = ns.PutOnNeverList
+	if putOnNeverList then
+		ns.PutOnNeverList = function(name)
+			local listed = putOnNeverList(name)
+			if listed then ns.Guard("never repaint", Prompt.Refresh, Prompt) end
+			return listed
+		end
+	end
 end
 
 function Prompt:RefreshPanel()
