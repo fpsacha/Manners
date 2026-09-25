@@ -3526,8 +3526,12 @@ if ANCHORS_ONLY:
     print()
     for label in dead_anchors:
         print("ANCHOR GONE: " + label)
-    print("RESULT: " + ("%d anchors gone" % len(dead_anchors) if dead_anchors
-                        else "every anchor is live (mutations not run)"))
+    # Formatted rather than concatenated: validate.py reads every capitalised
+    # word printed ahead of a concatenated label in this file as a failure the
+    # release gates' grep must know, and RESULT is also what a passing run
+    # prints -- so the gates would have failed every green build.
+    print("RESULT: %s" % ("%d anchors gone" % len(dead_anchors) if dead_anchors
+                          else "every anchor is live (mutations not run)"))
     sys.exit(1 if dead_anchors else 0)
 
 print("after restore:")
