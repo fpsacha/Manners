@@ -1497,19 +1497,19 @@ local function BuildOptions()
 						--
 						-- Two whole sentences rather than one with the ending
 						-- spliced in, so a translation can order each as its
-						-- language needs. The commands are arguments, not part of
-						-- the text: they are what the macro really says, and a
-						-- translated /targetlasttarget would name a command the
-						-- game does not have.
+						-- language needs. The commands and the conditional are
+						-- arguments, not part of the text: they are macro syntax,
+						-- and a translated /targetlasttarget or [@name] would name
+						-- something the game does not have.
 						name = function()
 							local cmd = (ns.TargetCommand and ns.TargetCommand()) or "/target"
 							local text
 							if F().restoreTarget then
-								text = L["The prompt runs |cffffd100%s|r, then the cast, then |cffffd100%s|r -- except, outside a fight, for somebody who is already your target, who stays targeted. A conditional -- [@name] -- resolves only for somebody already in your party or raid, and this prompt is mostly for passers-by, so the macro takes your target rather than aiming past it."]
-									:format(cmd, "/targetlasttarget")
+								text = L["The prompt runs |cffffd100%s|r, then the cast, then |cffffd100%s|r -- except, outside a fight, for somebody who is already your target, who stays targeted. A conditional -- %s -- resolves only for somebody already in your party or raid, and this prompt is mostly for passers-by, so the macro takes your target rather than aiming past it."]
+									:format(cmd, "/targetlasttarget", "[@name]")
 							else
-								text = L["The prompt runs |cffffd100%s|r, then the cast, and leaves them targeted. A conditional -- [@name] -- resolves only for somebody already in your party or raid, and this prompt is mostly for passers-by, so the macro takes your target rather than aiming past it."]
-									:format(cmd)
+								text = L["The prompt runs |cffffd100%s|r, then the cast, and leaves them targeted. A conditional -- %s -- resolves only for somebody already in your party or raid, and this prompt is mostly for passers-by, so the macro takes your target rather than aiming past it."]
+									:format(cmd, "[@name]")
 							end
 							return "|cff888888" .. text .. "|r\n"
 						end,
@@ -1522,7 +1522,7 @@ local function BuildOptions()
 						fontSize = "medium",
 						name = L["Say something when you buff somebody. The line is added to the macro the prompt runs, so it goes out as you talking rather than as an addon."]
 							.. "\n\n|cff888888"
-							.. L["This matters: the game refuses addon-sent /say and /yell outside instances, which is exactly where somebody buffs you in passing. Going through the macro sidesteps that."]
+							.. L["This matters: the game refuses addon-sent %s and %s outside instances, which is exactly where somebody buffs you in passing. Going through the macro sidesteps that."]:format("/say", "/yell")
 							.. "|r\n",
 					},
 					enabled = {
@@ -1998,8 +1998,10 @@ local function BuildOptions()
 						order = 24.5,
 						hidden = function() return not SND().enabled or SND().file ~= "None" end,
 						-- "None" is the name the sound list shows, which is a
-						-- LibSharedMedia key and never translated.
-						name = "|cffff8080" .. L["None is silent. Pick a sound above."] .. "|r",
+						-- LibSharedMedia key and never translated. It goes in as
+						-- an argument so a translation cannot rename it to an
+						-- entry the list does not have.
+						name = "|cffff8080" .. L["%s is silent. Pick a sound above."]:format("None") .. "|r",
 					},
 
 					posHeader = { type = "header", name = L["Position and size"], order = 30 },
@@ -2357,12 +2359,15 @@ local function BuildOptions()
 							local lines = { L["Class: |cffffffff%s|r"]:format(tostring(ns.caps.class)) .. "\n" }
 							for _, buff in ipairs(ns.GetClassBuffs(ns.caps.class) or {}) do
 								local info = ns.BuffInfo(buff)
-								lines[#lines + 1] = L["|cffffffff%s|r  --  learned: %s   missing-check: %s"]:format(
+								-- Each field is one key with its label, so the
+								-- translator sees what "yes" or "blocked" answers
+								-- and can make the words agree.
+								lines[#lines + 1] = ("|cffffffff%s|r  --  %s   %s"):format(
 									(info and info.name) or buff.key,
-									(info and info.known) and "|cff00ff00" .. L["yes"] .. "|r"
-										or "|cff808080" .. L["no"] .. "|r",
-									(info and info.readable) and "|cff00ff00" .. L["works"] .. "|r"
-										or "|cffff8080" .. L["blocked"] .. "|r")
+									(info and info.known) and L["learned: |cff00ff00yes|r"]
+										or L["learned: |cff808080no|r"],
+									(info and info.readable) and L["missing-check: |cff00ff00works|r"]
+										or L["missing-check: |cffff8080blocked|r"])
 								-- Manners being wrong about the game, rather
 								-- than the game withholding something. The two
 								-- read identically from the line above -- both
