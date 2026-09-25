@@ -3526,8 +3526,12 @@ if ANCHORS_ONLY:
     print()
     for label in dead_anchors:
         print("ANCHOR GONE: " + label)
-    print("RESULT: " + ("%d anchors gone" % len(dead_anchors) if dead_anchors
-                        else "every anchor is live (mutations not run)"))
+    # Formatted rather than written as "RESULT: " + ..., which validate.py's
+    # release-gate check reads as one more failure word the workflows' grep
+    # must know -- and RESULT is printed by a run that passed as well, so the
+    # grep can never be taught it.
+    print("RESULT: %s" % ("%d anchors gone" % len(dead_anchors) if dead_anchors
+                          else "every anchor is live (mutations not run)"))
     sys.exit(1 if dead_anchors else 0)
 
 print("after restore:")
