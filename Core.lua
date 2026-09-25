@@ -1631,7 +1631,11 @@ local function DroppedNote()
 	end
 	if #names == 0 then return nil end
 	if #names == 1 then return L["%s answered for nobody, so it was dropped"]:format(names[1]) end
-	return L["%s answered for nobody, so they were dropped"]:format(table.concat(names, L[" and "]))
+	-- Two is every rung there is today, so the pair gets a whole sentence of its
+	-- own: a bare " and " spliced into the list left translators a conjunction
+	-- with no sentence around it. The comma list only covers a rung added later.
+	if #names == 2 then return L["%s and %s answered for nobody, so they were dropped"]:format(names[1], names[2]) end
+	return L["%s answered for nobody, so they were dropped"]:format(table.concat(names, ", "))
 end
 
 -- Every rung that can measure `want`, best first, resolved at most every
@@ -1776,6 +1780,8 @@ end
 function ns.ProximitySummary()
 	local db = addon.db and addon.db.profile
 	local tier = db and db.filters and PROXIMITY_BY_KEY[db.filters.proximity]
+	-- For translators: a state, "no distance has been chosen", not the verb. It
+	-- stands alone after "proximity:" in /manners debug and on the options page.
 	if not tier then return L["unset"] end
 	if not tier.yards then return L["%s -- nothing is measured"]:format(tier.name) end
 
