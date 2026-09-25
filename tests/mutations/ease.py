@@ -147,7 +147,7 @@ mutate("Options.lua",
 
 # A command the dispatcher answers to, dropped from the list the help prints.
 mutate("Core.lua",
-       "\t{ word = \"export\", group = \"share\", help = \"copy these settings as one line of text\" },\n",
+       "\t{ word = \"export\", group = \"share\", help = L[\"copy these settings as one line of text\"] },\n",
        "",
        "a real command missing from the help",
        expect="is a real command the help never",
@@ -155,7 +155,7 @@ mutate("Core.lua",
 
 # A group missing, so every command in it goes unprinted.
 mutate("Core.lua",
-       "\t{ key = \"trouble\", title = \"When something is wrong\" },\n",
+       "\t{ key = \"trouble\", title = L[\"When something is wrong\"] },\n",
        "",
        "a help group nobody prints",
        expect="ease: help lists every real command",
