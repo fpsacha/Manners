@@ -1014,7 +1014,7 @@ mutate("Core.lua",
 #     exist, so a fight that began with nobody on the panel kept the click's
 #     green headline for its whole length over a button holding no macro.
 mutate("Prompt.lua",
-       '\t\t\t\tself:PaintHeldInert("held")\n',
+       '\t\t\t\tself:PaintHeldInert(L["held"])\n',
        "",
        "a held panel that names nobody at all",
        expect="stops quoting the last click",
@@ -1034,7 +1034,7 @@ mutate("Prompt.lua",
 #     which is where all four of these sat: refused, silently, on every tick of
 #     every fight, with the branch walking away believing the panel had gone.
 mutate("Prompt.lua",
-       '\t\tif not SetPanelShown(false) then self:PaintHeldInert("switched off") end',
+       '\t\tif not SetPanelShown(false) then self:PaintHeldInert(L["switched off"]) end',
        "\t\tbutton:Hide()",
        "a switched-off addon hiding in combat",
        expect="/manners off in combat called",
@@ -1044,7 +1044,7 @@ mutate("Prompt.lua",
 #     true mid-fight the moment the client answers SPELLS_CHANGED.
 mutate("Prompt.lua",
        """		if not SetPanelShown(false) then
-			self:PaintHeldInert("nothing this character can cast")
+			self:PaintHeldInert(L["nothing this character can cast"])
 		end""",
        "\t\tbutton:Hide()",
        "a client with nothing to cast hiding in combat",
@@ -2644,8 +2644,8 @@ mutate("Core.lua",
 
 # The tooltip promising a run the button was left empty for.
 mutate("Prompt.lua",
-       "\t\tif not text then\n\t\t\tout[#out + 1] = (\"|cffffcc66Does nothing:|r",
-       "\t\tif false then\n\t\t\tout[#out + 1] = (\"|cffffcc66Does nothing:|r",
+       "\t\tif not text then\n\t\t\tout[#out + 1] = L[\"|cffffcc66Does nothing:|r",
+       "\t\tif false then\n\t\t\tout[#out + 1] = L[\"|cffffcc66Does nothing:|r",
        "try tooltip promising an empty button",
        expect="the tooltip promised a run the button was left empty for",
        script="runscenarios.py")
@@ -2916,8 +2916,8 @@ mutate("Prompt.lua",
 # A preview started in a fight: painted on a hidden panel, or over a macro the
 # fight froze at somebody real.
 mutate("Prompt.lua",
-       "\tif InCombatLockdown() then\n\t\tns.addon:Print(\"|cffff8080not during a fight|r -- the preview",
-       "\tif false then\n\t\tns.addon:Print(\"|cffff8080not during a fight|r -- the preview",
+       "\tif InCombatLockdown() then\n\t\tns.addon:Print(L[\"|cffff8080not during a fight|r -- the preview",
+       "\tif false then\n\t\tns.addon:Print(L[\"|cffff8080not during a fight|r -- the preview",
        "a preview started in a fight",
        expect="a preview was started in a fight over a panel",
        script="runscenarios.py")
@@ -3526,8 +3526,13 @@ if ANCHORS_ONLY:
     print()
     for label in dead_anchors:
         print("ANCHOR GONE: " + label)
-    print("RESULT: " + ("%d anchors gone" % len(dead_anchors) if dead_anchors
-                        else "every anchor is live (mutations not run)"))
+    # Formatted rather than concatenated onto the literal. validate.py reads
+    # every capitalised word printed as a literal followed by a colon, a space
+    # and a closing quote as a failure the CI grep has to know, and RESULT is
+    # the summary line, not a failure: spelled that way it turned the whole
+    # tree red and stopped every full run.
+    print("RESULT: %s" % ("%d anchors gone" % len(dead_anchors) if dead_anchors
+                          else "every anchor is live (mutations not run)"))
     sys.exit(1 if dead_anchors else 0)
 
 print("after restore:")
