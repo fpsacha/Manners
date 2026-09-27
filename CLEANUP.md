@@ -34,17 +34,31 @@ Everything after this step is paid for by it, and so is every future release.
       release keeps validate, runharness, runscenarios and
       `selftest.py --anchors`. Keep `tests/validate.py`'s "release gates"
       check honest about what it now requires (it reads both workflows).
-- [ ] `tests/selftest.py`: judge each mutation by the scenarios it names, not
+- [x] `tests/selftest.py`: judge each mutation by the scenarios it names, not
       the whole suite -- a `runscenarios.py` filter (by scenario name or by
       `tests/scenarios/<file>.lua`) that `mutate()` passes through, falling
       back to the full suite only where `expect` cannot be mapped.
-- [ ] Run mutations in parallel (each on its own copy of the tree -- they edit
+      (Done: `--scenario`/`--file`/`--select`; the mapping comes from a line
+      trace of the scenario files, `runscenarios.py --trace`. All 615
+      runscenarios.py mutations map (the other 20 of 635 are judged by
+      validate.py or runharness.py, fast already); 12 in asked.lua fall back
+      to their whole file because their scenarios lean on a helper load. A
+      narrowed miss is re-judged on the whole suite, and a narrowed selection
+      must be green on the clean tree first. `selftest.py --plan` shows it.)
+- [x] Run mutations in parallel (each on its own copy of the tree -- they edit
       files in place, so never two in one directory).
-- [ ] `tests/scenarios/locales.lua` drives the addon in ten client locales on
+- [x] `tests/scenarios/locales.lua` drives the addon in ten client locales on
       every run; run it once per selftest, not once per mutation, unless the
       mutation touches `Locales/`.
+- [x] (added) `tests/validate.py` reads each function's upvalue count and most
+      active locals out of Lua 5.1 bytecode (`tools/lua51_limits.py`) and fails
+      over 55 upvalues or 185 locals -- the early warning beta.6 lacked.
 - Target: full selftest under 10 minutes locally, under 20 on GitHub. Prove
   the gate still works: every mutation still CAUGHT by its named check.
+  Measured 2026-09-27 on the 16-core desktop, while six other agents ran their
+  own suites on it: 110 s with 16 workers, 101 s with `--jobs 4` (a GitHub
+  runner's four cores), 292 s at the busiest; every run "RESULT: every
+  mutation was caught" (635 mutations). CI runs it in full on every push.
 
 ### 1. Shorten the long texts
 

@@ -91,6 +91,59 @@ for f in OURS:
     else:
         print("  ok  %-12s %d free" % (f, free))
 
+# The same two limits for every function, not only the main chunk: 60 upvalues
+# and 200 locals active at once. beta.6 shipped with Prompt:Create() at 69
+# upvalues and nothing here said a word, because the count only shows as a
+# compile error once it is over. Lua 5.1's compiler writes both numbers into
+# the bytecode, so they are read out of string.dump (tools/lua51_limits.py) and
+# failed with room still left: at 56 the merge that got there goes red, not the
+# players' game at 61. Every shipped Lua file is counted, translations included.
+import lua51_limits
+UPVALUES_MAX = 55
+ACTIVE_LOCALS_MAX = 185
+
+print("\n== Lua 5.1 limits per function (60 upvalues, 200 active locals) ==")
+_limit_rows = []
+for f in OURS + sorted(os.path.relpath(p, ROOT).replace(os.sep, "/")
+                       for p in glob.glob(os.path.join(ROOT, "Locales", "*.lua"))):
+    p = os.path.join(ROOT, f)
+    if not os.path.exists(p):
+        continue
+    try:
+        protos = lua51_limits.functions(p)
+    except (SyntaxError, ValueError) as e:
+        # A syntax error is reported by the section above; anything else means
+        # the dump format was not what this reads, and the counts cannot be
+        # trusted, so it fails rather than passing on numbers it did not get.
+        print("  COULD NOT COUNT %s: %s" % (f, e))
+        fail += 1
+        continue
+    src_lines = open(p, encoding="utf-8-sig").read().split("\n")
+    for proto in protos:
+        where = ("main chunk" if proto.line == 0
+                 else src_lines[proto.line - 1].strip()[:60])
+        _limit_rows.append((f, proto, where))
+_limits_bad = 0
+for f, proto, where in _limit_rows:
+    if proto.upvalues > UPVALUES_MAX or proto.locals > ACTIVE_LOCALS_MAX:
+        print("  TOO FULL  %s:%d  %s -- %d upvalues (want at most %d), %d active"
+              " locals (want at most %d)" % (f, proto.line, where, proto.upvalues,
+                                             UPVALUES_MAX, proto.locals,
+                                             ACTIVE_LOCALS_MAX))
+        _limits_bad += 1
+fail += _limits_bad
+# Information, not a failure: where the next merge is most likely to cross.
+_limit_rows.sort(key=lambda r: -max(r[1].upvalues / lua51_limits.MAX_UPVALUES,
+                                    r[1].locals / lua51_limits.MAX_LOCALS))
+print("  the five tightest:")
+for f, proto, where in _limit_rows[:5]:
+    print("    %-12s line %-5d upvalues %2d/%d  locals %3d/%d  %s"
+          % (f, proto.line, proto.upvalues, lua51_limits.MAX_UPVALUES, proto.locals,
+             lua51_limits.MAX_LOCALS, where))
+if not _limits_bad:
+    print("  ok  %d functions, none over %d upvalues or %d active locals"
+          % (len(_limit_rows), UPVALUES_MAX, ACTIVE_LOCALS_MAX))
+
 # Libs/ is gitignored: .pkgmeta declares the libraries as build-time externals,
 # so a checkout legitimately has none. Check them when present, do not demand
 # them.

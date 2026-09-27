@@ -9,19 +9,53 @@ to be the one that fires. Inferring "caught" from the whole run going red says
 only that the tree is broken, which a mutation guarantees: a bug reintroduced
 in the prompt and noticed by a scenario about debts read as a pass, and the
 column then measured nothing but whether the file still loaded.
+
+It used to take 25 minutes here and two hours and twenty on GitHub's runner,
+one mutation after another against the whole scenario suite. Now:
+
+- every mutation runs in a copy of the tree of its own, as many at once as
+  there are cores (they edit files in place, so never two in one directory);
+- a mutation judged by runscenarios.py runs only the scenarios its `expect`
+  can be traced to: the scenario files are run once under a line trace
+  (runscenarios.py --trace), which says which scenario was running on each
+  line, and the lines holding the expected text name the scenarios to run.
+  Text that cannot be traced -- the addon's own error text, say -- is judged
+  on the whole suite;
+- tests/scenarios/locales.lua, ten client locales, runs once in the baseline
+  rather than for every mutation, unless the mutation is in Locales/ or its
+  text is traced there.
+
+The judging rule is unchanged. A narrowed run can only ever hide the check that
+catches a mutation, never invent one: so a narrowed run that comes back MISSED
+or WRONG CHECK is judged again on the whole suite before anything is reported,
+and a narrowed selection is first run on the clean tree, where it has to come
+back green, before a failure in it counts as caught.
+
+  --anchors      only check every mutation still finds its text (seconds)
+  --whole        judge every mutation on the whole suite, as before (slow)
+  --plan         run the baseline and the trace, print which scenarios would
+                 judge each runscenarios.py mutation, and stop
+  --jobs N       how many mutations run at once (default: one per core)
 """
-import subprocess, shutil, sys, os
+import subprocess, shutil, sys, os, json, tempfile, threading, time, bisect, re
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # --anchors checks only that every mutation still finds the text it replaces,
-# which takes seconds rather than the full run's many minutes. It is for the
+# which takes seconds rather than the full run's minutes. It is for the
 # middle of a change that moves a lot of code text -- wrapping strings for
 # translation, say -- and proves nothing about whether a check still fires:
 # the full run is still what a change is finished against.
 ANCHORS_ONLY = "--anchors" in sys.argv[1:]
+WHOLE = "--whole" in sys.argv[1:]
+PLAN = "--plan" in sys.argv[1:]
+JOBS = os.cpu_count() or 4
+if "--jobs" in sys.argv[1:]:
+    JOBS = max(1, int(sys.argv[sys.argv.index("--jobs") + 1]))
 
 DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TESTS = os.path.join(DIR, "tests")
-
+sys.path.insert(0, os.path.join(DIR, "tools"))
+import lua51_limits
 
 # Every suite a mutation below is judged by. validate.py judges some of them,
 # so it has to be green before they run and green again after the restore --
@@ -29,27 +63,40 @@ TESTS = os.path.join(DIR, "tests")
 # the strength of the failure that was already there.
 SUITES = ("validate.py", "runharness.py", "runscenarios.py")
 
-
-def run(script):
-    r = subprocess.run([sys.executable, os.path.join(TESTS, script)],
-                       capture_output=True, text=True)
-    return r.stdout
+# A mutation can turn a loop endless. Without a limit that is a selftest that
+# never finishes, which on CI reads as a hung runner rather than a failure.
+TIMEOUT = 600
 
 
-def verdict(out):
+def run(script, args=(), root=DIR):
+    """The suite's output and exit status; status None when it timed out."""
+    env = dict(os.environ, PYTHONIOENCODING="utf-8")
+    try:
+        r = subprocess.run([sys.executable, os.path.join(root, "tests", script)] + list(args),
+                           capture_output=True, text=True, encoding="utf-8",
+                           errors="replace", env=env, timeout=TIMEOUT)
+        return r.stdout, r.returncode
+    except subprocess.TimeoutExpired:
+        return "  (%s timed out after %d s)\n" % (script, TIMEOUT), None
+
+
+def verdict(out, status=0):
     """The suite's own verdict line, and whether it is a clean one.
 
     validate.py says it differently from the two Lua suites, and a mutation
     aimed at it has to be able to come back clean -- otherwise its "caught"
-    would rest on a verdict line this could not read at all."""
+    would rest on a verdict line this could not read at all. The exit status
+    has to agree: a narrowed scenario run that admitted nothing still prints
+    "failures: 0", and only its status says it proved nothing."""
     lines = [l for l in out.split("\n")
              if l.startswith(("errors:", "failures:", "RESULT:"))]
     line = lines[0] if lines else "?"
-    return line, line in ("errors: 0", "failures: 0", "RESULT: all checks passed")
+    return line, status == 0 and line in ("errors: 0", "failures: 0",
+                                          "RESULT: all checks passed")
 
 
 def tally(script):
-    return verdict(run(script))
+    return verdict(*run(script))
 
 
 def findings(out):
@@ -67,6 +114,35 @@ def findings(out):
 dead_anchors = []
 missed = []
 misattributed = []
+not_restored = []
+
+# In a full run nothing is printed as it is collected: the mutations run in
+# parallel, and their lines are printed afterwards in the order they are
+# written here, so the log reads the same as it always has.
+plan = []
+_sources = {}
+
+
+def say(text=""):
+    if ANCHORS_ONLY:
+        print(text)
+    else:
+        plan.append(text)
+
+
+class Mutation:
+    def __init__(self, filename, old, new, label, expect, script):
+        self.filename, self.old, self.new = filename, old, new
+        self.label, self.expect, self.script = label, expect, script
+        self.select = None      # runscenarios.py arguments narrowing its run
+        self.lines = []
+        self.select_files = None  # ...and every scenario in the same files
+        # narrowed: judged on a narrowed run; widened: judged again on the
+        # whole suite after that missed; unclean: its scenarios alone were red
+        # on the clean tree, so a wider run judged it.
+        self.narrowed = self.widened = self.unclean = False
+        self.seconds = 0.0
+        self.why = "judged by its own suite"
 
 
 def mutate(filename, old, new, label, expect, script="runharness.py"):
@@ -77,10 +153,15 @@ def mutate(filename, old, new, label, expect, script="runharness.py"):
     well is fine and often unavoidable -- one broken function takes several
     paths down with it -- but the named check going quiet is a failure even
     when the run is red, because a red run proves nothing about this bug.
+
+    Called at the top level of this file and of tests/mutations/*.py, it only
+    records the mutation; they are all run together at the end.
     """
     path = os.path.join(DIR, filename)
+    if filename not in _sources:
+        _sources[filename] = open(path, encoding="utf-8").read()
+    text = _sources[filename]
     if ANCHORS_ONLY:
-        text = open(path, encoding="utf-8").read()
         if old not in text:
             dead_anchors.append(label)
             print("%-44s *** ANCHOR GONE ***" % label)
@@ -89,59 +170,337 @@ def mutate(filename, old, new, label, expect, script="runharness.py"):
             # one the mutation was written against.
             print("%-44s ambiguous: the text occurs %d times" % (label, text.count(old)))
         return
-    backup = path + ".selftest-backup"
-    shutil.copy2(path, backup)
+    if old not in text:
+        # A check that is no longer wired to anything reports success for
+        # the rest of time, which is worse than a failing one. Recorded so
+        # the run itself fails rather than printing a warning nobody reads.
+        dead_anchors.append(label)
+        say("%-44s *** ANCHOR GONE -- check is no longer live ***" % label)
+        return
+    m = Mutation(filename, old, new, label, expect, script)
+    plan.append(m)
+
+
+# ---------------------------------------------------------------- the trace
+# Which scenarios a mutation's expected text can come from. runscenarios.py
+# --trace records, for every line of a scenario file that runs, the scenario
+# that was last loaded when it did. The expected text is looked for in the
+# scenario files; each place it is found is a line inside some function, and
+# the nearest lines of that same function that ran say which scenarios it
+# belongs to. A fail() on a line of its own inside an `if` never runs on a
+# clean tree, but the `if` above it does, under the same scenario.
+
+SCENARIO_FILES = None
+
+
+def scenario_files():
+    files = {"scenarios.lua": os.path.join(TESTS, "scenarios.lua")}
+    extras = os.path.join(TESTS, "scenarios")
+    for name in sorted(os.listdir(extras)):
+        if name.endswith(".lua"):
+            files[name] = os.path.join(extras, name)
+    return files
+
+
+# Two literals joined with `..` are one message on the failing line: "was" ..
+# " offered" reads "was offered" there, so the source is searched with the
+# joins taken out.
+_JOIN = re.compile(r"""(["'])\s*\.\.\s*(["'])""")
+# A Lua short string, its escapes, and the string.format specifiers inside it.
+_LITERAL = re.compile(r"""(["'])((?:\\.|(?!\1)[^\\\n])*)\1""")
+_ESCAPE = re.compile(r"\\(.)")
+_FORMAT = re.compile(r"%[-+ #0-9.]*[a-z]")
+_WORD = re.compile(r"[a-z0-9']+")
+# A shorter piece of literal text says too little about where it came from.
+PIECE_MIN = 12
+
+
+class _Source:
+    def __init__(self, path):
+        text = open(path, encoding="utf-8").read()
+        self.newlines = [i for i, c in enumerate(text) if c == "\n"]
+        pieces, self.starts, self.origins = [], [], []
+        pos = at = 0
+        for m in _JOIN.finditer(text):
+            if m.group(1) != m.group(2):
+                continue
+            pieces.append(text[pos:m.start()])
+            self.starts.append(at)
+            self.origins.append(pos)
+            at += m.start() - pos
+            pos = m.end()
+        pieces.append(text[pos:])
+        self.starts.append(at)
+        self.origins.append(pos)
+        self.joined = "".join(pieces).lower()
+        protos = lua51_limits.functions(path)
+        self.main = protos[0]
+        self.protos = protos[1:]
+
+    def line_of(self, offset):
+        i = bisect.bisect_right(self.starts, offset) - 1
+        original = self.origins[i] + (offset - self.starts[i])
+        return bisect.bisect_left(self.newlines, original) + 1
+
+    def find(self, needle):
+        at = self.joined.find(needle)
+        while at >= 0:
+            yield self.line_of(at)
+            at = self.joined.find(needle, at + 1)
+
+    def literals(self):
+        """Every string literal in the file, as (words of each piece, line):
+        its escapes read and cut at its format specifiers, since the failing
+        line holds what they were filled in with instead."""
+        if not hasattr(self, "_literals"):
+            self._literals = []
+            for m in _LITERAL.finditer(self.joined):
+                body = _ESCAPE.sub(lambda e: e.group(1), m.group(2))
+                parts = [_WORD.findall(piece) for piece in _FORMAT.split(body)]
+                self._literals.append(([p for p in parts if p], self.line_of(m.start())))
+        return self._literals
+
+    def innermost(self, line):
+        best = None
+        for p in self.protos:
+            if p.line <= line <= p.last and (best is None or p.line >= best.line):
+                best = p
+        return best or self.main
+
+
+class ScenarioMap:
+    def __init__(self, trace):
+        self.lines = {}
+        for key, names in trace["lines"].items():
+            f, _, n = key.rpartition(":")
+            self.lines.setdefault(f, {})[int(n)] = set(names)
+        self.names = {n: set(fs) for n, fs in trace["names"].items()}
+        self.paths = scenario_files()
+        self._src = {}
+
+    def source(self, f):
+        if f not in self._src:
+            self._src[f] = _Source(self.paths[f])
+        return self._src[f]
+
+    def names_at(self, f, line):
+        """The scenarios running around a line: the nearest lines before and
+        after it in the same function that ran, or failing that in the
+        function around that one."""
+        ran = self.lines.get(f, {})
+        src = self.source(f)
+        proto = src.innermost(line)
+        while proto is not None:
+            own = sorted(l for l in set(proto.lines) if l in ran)
+            i = bisect.bisect_right(own, line)
+            near = own[i - 1:i] + own[i:i + 1]
+            if near:
+                found = set()
+                for l in near:
+                    found |= ran[l]
+                return found
+            proto = getattr(proto, "parent", None)
+        return set()
+
+    def locate(self, expect):
+        """(scenario names, scenario files) the text can come from, or None."""
+        needle = expect.lower()
+        names, files = set(), set()
+
+        def around(f, line):
+            found = self.names_at(f, line)
+            if found:
+                files.add(f)
+                names.update(found)
+                for n in found:
+                    files.update(self.names.get(n, set()))
+
+        # The text is a scenario's name, or holds one whole: the failing line
+        # is "<scenario>: <message>", so an expect may run across the colon.
+        # And an expect that starts inside the name -- "(a priest): offered
+        # nothing" -- ends the name at one of its colons.
+        heads = [needle[:i] for i in range(len(needle)) if needle.startswith(": ", i)]
+        heads = [h for h in heads if len(h) >= 6]
+        for name, where in self.names.items():
+            low = name.lower()
+            if (needle in low or (len(low) >= PIECE_MIN and low in needle)
+                    or any(low.endswith(h) for h in heads)):
+                names.add(name)
+                files |= where
+        for f in self.paths:
+            for line in self.source(f).find(needle):
+                around(f, line)
+        if not names:
+            # Not in any file as written: the message is put together from
+            # pieces, or runs on from the scenario's name. Where it is written
+            # is the literal sharing the most text with it, counted in runs of
+            # whole words, one run for each piece between its format
+            # specifiers -- words, because the literal's own punctuation
+            # (": said it is switched off ") is not the failing line's.
+            words = _WORD.findall(needle)
+            runs = {tuple(words[i:j]) for i in range(len(words))
+                    for j in range(i + 1, len(words) + 1)}
+            best, score = [], PIECE_MIN - 1
+            for f in self.paths:
+                for parts, line in self.source(f).literals():
+                    shared = 0
+                    for own in parts:
+                        longest = 0
+                        for i in range(len(own)):
+                            j = i + 1
+                            while j <= len(own) and tuple(own[i:j]) in runs:
+                                longest = max(longest, sum(len(w) + 1 for w in own[i:j]) - 1)
+                                j += 1
+                        shared += longest
+                    if shared > score:
+                        best, score = [(f, line)], shared
+                    elif shared == score and best:
+                        best.append((f, line))
+            for f, line in best:
+                around(f, line)
+        names.discard("(before any scenario)")
+        if not names:
+            return None
+        return names, files
+
+
+# ---------------------------------------------------------------- the runs
+_copies = threading.local()
+_all_copies = []
+_copies_lock = threading.Lock()
+_restore_lock = threading.Lock()
+_clean = {}
+_clean_lock = threading.Lock()
+
+
+def own_tree():
+    """This worker's copy of the tree, made the first time it is needed."""
+    root = getattr(_copies, "root", None)
+    if root is None:
+        with _copies_lock:
+            root = os.path.join(scratch(), "tree-%d" % len(_all_copies))
+            _all_copies.append(root)
+        shutil.copytree(DIR, root, ignore=shutil.ignore_patterns(
+            ".git", "__pycache__", "*.selftest-backup", "selftest.out"))
+        _copies.root = root
+    return root
+
+
+def tree_snapshot():
+    """The content of every file a mutation edits, in the tree itself."""
+    return {f: open(os.path.join(DIR, f), "rb").read()
+            for f in sorted({m.filename for m in plan if isinstance(m, Mutation)})}
+
+
+def narrowed_clean(root, script, args):
+    """Whether a narrowed run is green on the clean tree. A selection that is
+    red on its own -- a scenario leaning on one before it that was left out --
+    would otherwise have its own failure counted as the mutation caught."""
+    key = (script, tuple(args))
+    with _clean_lock:
+        if key in _clean:
+            return _clean[key]
+    ok = verdict(*run(script, args, root))[1]
+    with _clean_lock:
+        _clean[key] = ok
+    return ok
+
+
+def attempt(m, root, args):
+    path = os.path.join(root, m.filename)
+    original = open(path, "rb").read()
+    text = original.decode("utf-8")
     try:
-        s = open(path, encoding="utf-8").read()
-        if old not in s:
-            # A check that is no longer wired to anything reports success for
-            # the rest of time, which is worse than a failing one. Recorded so
-            # the run itself fails rather than printing a warning nobody reads.
-            dead_anchors.append(label)
-            print("%-44s *** ANCHOR GONE -- check is no longer live ***" % label)
-            return
-        open(path, "w", encoding="utf-8", newline="\n").write(s.replace(old, new, 1))
-        out = run(script)
-        _, clean = verdict(out)
-        complaints = findings(out)
-        hits = [c for c in complaints if expect.lower() in c.lower()]
-
-        if clean:
-            missed.append(label)
-            print("%-44s *** MISSED ***" % label)
-        elif not hits:
-            # Red, but not about this. The bug was reintroduced and something
-            # else fell over -- so this line proves that other thing is fragile
-            # and nothing whatever about the check it claims to exercise.
-            misattributed.append((label, expect, complaints[:3]))
-            print("%-44s *** WRONG CHECK -- %r did not fire ***" % (label, expect))
-            for c in complaints[:3]:
-                print("      instead: " + c.strip()[:96])
-        else:
-            print("%-44s CAUGHT  (%d)" % (label, len(complaints)))
-            print("      " + hits[0].strip()[:96])
+        open(path, "w", encoding="utf-8", newline="\n").write(text.replace(m.old, m.new, 1))
+        out, status = run(m.script, args, root)
     finally:
-        shutil.move(backup, path)
+        open(path, "wb").write(original)
+    # This edits a file in place. A restore that did not happen leaves the
+    # mutation in this worker's copy and every later run there measuring it.
+    if open(path, "rb").read() != original:
+        with _restore_lock:
+            not_restored.append(m.label)
+    _, clean = verdict(out, status)
+    complaints = findings(out)
+    hits = [c for c in complaints if m.expect.lower() in c.lower()]
+    return clean, complaints, hits
 
 
-if not ANCHORS_ONLY:
-    print("baseline:")
-    # Every mutation below is judged by the suite going red. Against a tree that is
-    # already red they all report CAUGHT without proving a thing, and this file then
-    # signs off on checks it never exercised -- the same failure as a dead anchor,
-    # arriving from the other direction. So the baseline is a gate, not a note.
-    dirty = []
-    for script in SUITES:
-        line, clean = tally(script)
-        print("  %-20s %s" % (script, line))
-        if not clean:
-            dirty.append(script)
-    if dirty:
-        print()
-        print("RESULT: the tree is already failing (" + ", ".join(dirty) + "),"
-              " so no mutation below would mean anything")
-        sys.exit(1)
-    print()
+def judge(m):
+    started = time.time()
+    root = own_tree()
+    # Its scenarios, or failing that every scenario in their files: a few
+    # scenarios lean on another loaded along the way (asked.lua reads the buff
+    # table from a copy of the addon loaded under a name of its own), and
+    # leaving that one out turns them red on a clean tree.
+    args = None
+    for narrower in (m.select, m.select_files):
+        if narrower is None:
+            continue
+        if narrowed_clean(root, m.script, narrower):
+            args = narrower
+            break
+        m.unclean = True
+    m.narrowed = args is not None
+    if args is None:
+        args = whole_suite_args(m)
+    clean, complaints, hits = attempt(m, root, args)
+    if m.narrowed and (clean or not hits):
+        # The narrowed run may have left out the scenario that catches it;
+        # the whole suite decides.
+        m.widened = True
+        clean, complaints, hits = attempt(m, root, whole_suite_args(m))
+
+    label = m.label
+    if clean:
+        missed.append(label)
+        m.lines.append("%-44s *** MISSED ***" % label)
+    elif not hits:
+        # Red, but not about this. The bug was reintroduced and something
+        # else fell over -- so this line proves that other thing is fragile
+        # and nothing whatever about the check it claims to exercise.
+        misattributed.append((label, m.expect, complaints[:3]))
+        m.lines.append("%-44s *** WRONG CHECK -- %r did not fire ***" % (label, m.expect))
+        for c in complaints[:3]:
+            m.lines.append("      instead: " + c.strip()[:96])
+    else:
+        m.lines.append("%-44s CAUGHT  (%d)" % (label, len(complaints)))
+        m.lines.append("      " + hits[0].strip()[:96])
+    m.seconds = time.time() - started
+    return m
+
+
+# Scratch space for this run: the trace shards and the selection files handed
+# to runscenarios.py --select. Written before the workers start, never by them.
+SCRATCH = None
+_selections = {}
+
+
+def scratch():
+    global SCRATCH
+    if SCRATCH is None:
+        SCRATCH = tempfile.mkdtemp(prefix="manners-selftest-")
+    return SCRATCH
+
+
+def select_args(scenarios, files):
+    key = (frozenset(scenarios) if scenarios is not None else None, frozenset(files))
+    if key not in _selections:
+        path = os.path.join(scratch(), "select-%d.json" % len(_selections))
+        json.dump({"scenarios": sorted(scenarios) if scenarios is not None else None,
+                   "files": sorted(files)}, open(path, "w", encoding="utf-8"))
+        _selections[key] = ["--select", path]
+    return _selections[key]
+
+
+def whole_suite_args(m):
+    """The whole suite for this mutation: every scenario but the ten locales,
+    which the baseline ran, unless the mutation is in Locales/."""
+    if (WHOLE or m.script != "runscenarios.py"
+            or m.filename.replace("\\", "/").startswith("Locales/")):
+        return []
+    return select_args(None, [f for f in scenario_files() if f != "locales.lua"])
+
 
 # 1. a name local to another file, called from this one -- the `plain` bug
 mutate("Prompt.lua",
@@ -3516,13 +3875,13 @@ mutate("Core.lua",
 # Each file is run with mutate() in scope and nothing else.
 import glob as _glob
 for _mf in sorted(_glob.glob(os.path.join(DIR, "tests", "mutations", "*.py"))):
-    print()
-    print("-- " + os.path.basename(_mf))
+    say()
+    say("-- " + os.path.basename(_mf))
     exec(compile(open(_mf, encoding="utf-8").read(), _mf, "exec"),
          {"mutate": mutate, "__file__": _mf})
 
-print()
 if ANCHORS_ONLY:
+    print()
     print()
     for label in dead_anchors:
         print("ANCHOR GONE: " + label)
@@ -3533,18 +3892,146 @@ if ANCHORS_ONLY:
                           else "every anchor is live (mutations not run)"))
     sys.exit(1 if dead_anchors else 0)
 
-print("after restore:")
-# This file edits the addon in place. A restore that did not happen leaves a
-# mutation in the working tree and every later run measuring it, so the check
-# that the files came back is as load-bearing as the mutations themselves.
-not_restored = []
+say()
+_started = time.time()
+_tree_before = tree_snapshot()
+mutations = [m for m in plan if isinstance(m, Mutation)]
+
+# The baseline and the trace, side by side: neither edits anything, so both
+# run on the tree itself.
+_shards = []
+with ThreadPoolExecutor(max_workers=JOBS) as _pool:
+    _base = {script: _pool.submit(tally, script) for script in SUITES}
+    if not WHOLE:
+        # The trace slows a run about threefold, so it is split by scenario
+        # name across every core; each shard still runs the lines between
+        # scenarios, which is where a name is told apart from the next.
+        for _i in range(JOBS):
+            _p = os.path.join(scratch(), "trace-%d.json" % _i)
+            _shards.append((_p, _pool.submit(run, "runscenarios.py",
+                                             ["--shard", "%d/%d" % (_i, JOBS), "--trace", _p])))
+    for _, _f in _shards:
+        _f.result()
+
+print("baseline:")
+# Every mutation below is judged by the suite going red. Against a tree that is
+# already red they all report CAUGHT without proving a thing, and this file then
+# signs off on checks it never exercised -- the same failure as a dead anchor,
+# arriving from the other direction. So the baseline is a gate, not a note.
+dirty = []
 for script in SUITES:
-    line, clean = tally(script)
+    line, clean = _base[script].result()
     print("  %-20s %s" % (script, line))
     if not clean:
-        not_restored.append(script)
+        dirty.append(script)
+if dirty:
+    print()
+    print("RESULT: the tree is already failing (" + ", ".join(dirty) + "),"
+          " so no mutation below would mean anything")
+    sys.exit(1)
+print()
 
-if dead_anchors or missed or misattributed or not_restored:
+# Each runscenarios.py mutation gets the scenarios its expected text is traced
+# to. What cannot be traced, or traces to most of the suite anyway, is judged
+# on the whole suite.
+scenario_map = None
+if not WHOLE:
+    _merged = {"lines": {}, "names": {}}
+    try:
+        for _p, _ in _shards:
+            _t = json.load(open(_p, encoding="utf-8"))
+            for _key in ("lines", "names"):
+                for _k, _v in _t[_key].items():
+                    _merged[_key].setdefault(_k, set()).update(_v)
+        scenario_map = ScenarioMap(_merged)
+    except (OSError, ValueError) as _e:
+        print("(the scenario trace did not finish, so every mutation is judged"
+              " on the whole suite: %s)" % _e)
+if scenario_map is not None:
+    _locales = {n for n, fs in scenario_map.names.items() if "locales.lua" in fs}
+    for m in mutations:
+        if m.script != "runscenarios.py":
+            continue
+        where = scenario_map.locate(m.expect)
+        if where is None:
+            m.why = "its text is in no scenario file"
+            continue
+        names, files = where
+        if m.filename.replace("\\", "/").startswith("Locales/"):
+            names, files = names | _locales, files | {"locales.lua"}
+        if len(names) > len(scenario_map.names) // 2:
+            m.why = "its text is in %d of the %d scenarios" % (len(names), len(scenario_map.names))
+            continue
+        m.select = select_args(names, files)
+        m.select_files = select_args(None, files)
+        m.why = "%d scenarios in %s" % (len(names), ", ".join(sorted(files)))
+        if len(names) <= 3:
+            m.why += ": " + "; ".join(sorted(names))
+# Built here, on this thread, so no worker writes a selection file.
+for m in mutations:
+    whole_suite_args(m)
+
+if PLAN:
+    for m in mutations:
+        if m.script == "runscenarios.py":
+            print("%-44s %s" % (m.label, m.why if m.select else "whole suite: " + m.why))
+    print()
+    print("%d mutations, %d narrowed" % (len(mutations), sum(1 for m in mutations if m.select)))
+    sys.exit(0)
+
+_done = 0
+# The slowest first -- those judged on the whole suite -- so the last minute is
+# not one long run on one core while the rest sit idle.
+_order = sorted(mutations, key=lambda m: m.select is not None)
+with ThreadPoolExecutor(max_workers=JOBS) as _pool:
+    _futures = [_pool.submit(judge, m) for m in _order]
+    for _f in as_completed(_futures):
+        _f.result()
+        _done += 1
+        if _done % 50 == 0 or _done == len(_futures):
+            sys.stderr.write("selftest: %d of %d mutations judged, %d s\n"
+                             % (_done, len(_futures), time.time() - _started))
+            sys.stderr.flush()
+
+for item in plan:
+    if isinstance(item, Mutation):
+        for line in item.lines:
+            print(line)
+    else:
+        print(item)
+
+print()
+_narrowed = [m for m in mutations if m.narrowed]
+_widened = [m for m in mutations if m.widened]
+_unclean = [m for m in mutations if m.unclean]
+print("%d mutations in %d s on %d workers: %d judged on the scenarios their check"
+      " is in, %d on a whole suite" % (len(mutations), time.time() - _started, JOBS,
+                                       len(_narrowed) - len(_widened),
+                                       len(mutations) - len(_narrowed) + len(_widened)))
+# Not failures -- the whole suite judged these -- but each one is a mutation the
+# trace sent to the wrong scenarios, and a slower run until it is looked at.
+for m in _widened:
+    print("  judged again on the whole suite, its scenarios missed it: " + m.label)
+for m in _unclean:
+    print("  its scenarios were red on their own, judged on a wider run: " + m.label)
+for m in sorted(mutations, key=lambda m: -m.seconds)[:5]:
+    print("  slowest: %-44s %5.1f s" % (m.label, m.seconds))
+
+print("after restore:")
+# Each mutation was put back in its own copy and checked byte for byte there.
+# This tree was never edited at all, and the check that says so is that it is
+# still byte for byte what the baseline ran against -- where a restore that
+# did not happen here used to mean running every suite again.
+_tree_after = tree_snapshot()
+red_after = [f for f in _tree_before if _tree_before[f] != _tree_after[f]]
+print("  the %d files the mutations edit: %s" % (
+    len(_tree_before), "changed: " + ", ".join(red_after) if red_after
+    else "byte for byte as the baseline ran them"))
+
+if SCRATCH:
+    shutil.rmtree(SCRATCH, ignore_errors=True)
+
+if dead_anchors or missed or misattributed or red_after or not_restored:
     print()
     for label in dead_anchors:
         print("ANCHOR GONE: " + label)
@@ -3557,8 +4044,10 @@ if dead_anchors or missed or misattributed or not_restored:
         print("WRONG CHECK: " + label + " -- nothing said " + repr(expect))
         for c in complaints:
             print("             instead: " + c.strip()[:96])
-    for script in not_restored:
-        print("NOT RESTORED: " + script + " is red on a tree that started green")
+    for path in red_after:
+        print("NOT RESTORED: " + path + " changed while the mutations ran")
+    for label in not_restored:
+        print("NOT RESTORED: " + label + " -- its file did not come back byte for byte")
     # The four suites are the project's only gate. One of them reporting a
     # check that is switched off as success is how the stale-macro guarantee
     # stayed dead through three releases.

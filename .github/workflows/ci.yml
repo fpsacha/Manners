@@ -14,6 +14,10 @@ on:
 jobs:
   tests:
     runs-on: ubuntu-latest
+    # The whole job takes minutes now. Past half an hour something is stuck --
+    # a mutation that turned a loop endless, say -- and GitHub's own limit is
+    # six hours of a runner doing nothing.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
@@ -36,6 +40,10 @@ jobs:
 
       # A suite that cannot go red proves nothing. This reintroduces each fault
       # class it is supposed to catch and fails the build if any goes unnoticed.
+      # The whole of it, every push: it runs the mutations in parallel, one
+      # copy of the tree each, and each against only the scenarios its check
+      # lives in, so it takes minutes where it once took two hours here (see
+      # tests/README.md). Its progress goes to stderr, outside the tee.
       #
       # `shell: bash` is not decoration. A step with no shell runs under
       # `bash -e` without pipefail, so the pipe's exit status is tee's, which is

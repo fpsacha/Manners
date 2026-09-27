@@ -199,3 +199,21 @@ for comparing two versions of the addon on one machine; the call counts and the
 allocations carry over. The crowd itself is in `profile_scan.lua`. To compare
 against an older version, `git archive` it into a scratch folder, copy both
 `profile_scan` files into its `tools/`, and run it there.
+
+## lua51_limits.py
+
+How full each function is against Lua 5.1's two limits: 60 upvalues, and 200
+locals active at once. The game runs 5.1, and a file with one function past
+either does not compile, so the addon does not load -- 1.0.0-beta.6 shipped
+that way with `Prompt:Create()` at 69 upvalues. It compiles each file with
+`lupa.lua51`, reads the chunk `string.dump` produces, and takes every
+function's upvalue count and the deepest overlap of its locals' live ranges
+straight from the compiler's own bookkeeping.
+
+```
+python tools/lua51_limits.py Core.lua Prompt.lua Options.lua   # the twenty tightest
+```
+
+`tests/validate.py` uses it to fail any function in a shipped file over 55
+upvalues or 185 active locals, and `tests/selftest.py` uses the same parse to
+find which function a line of a scenario file sits in.

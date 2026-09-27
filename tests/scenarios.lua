@@ -8,13 +8,42 @@
 
 local dir, extras = ...
 local failures = {}
-local function fail(scenario, msg) failures[#failures + 1] = scenario .. ": " .. msg end
+
+-- What runscenarios.py asked for: every scenario, or only some (selftest.py
+-- judges a mutation by the scenarios its check lives in, not by all of them).
+-- `file` is the scenario file running now, which the extras loop below moves
+-- on. `admit(name, file)` says whether a scenario runs, nil meaning all of
+-- them; `loaded(name, file)` is told every scenario name as it comes up, for
+-- the --trace map. `left`/`ran` are the names load() refused and let through.
+-- One table, so this file's main chunk spends one of Lua 5.1's 200 locals on it.
+local run = { file = "scenarios.lua", left = {}, ran = {} }
+if SCENARIO_RUN then
+	run.admit, run.loaded = SCENARIO_RUN.admit, SCENARIO_RUN.loaded
+end
+
+local function fail(scenario, msg)
+	-- A few scenarios report a load that came back empty as a failure of its
+	-- own ("SKIPPED -- the session would not start"), so a scenario that
+	-- quietly stopped running cannot pass. When the run was narrowed and it
+	-- was left out on purpose, that is not news: only a name load() refused,
+	-- and never let through, is excused.
+	if run.left[scenario] and not run.ran[scenario] then return end
+	failures[#failures + 1] = scenario .. ": " .. msg
+end
 
 dofile(dir .. "/tests/mockapi.lua")
 -- What the toc loads, in its order -- see tests/addonfiles.lua.
 ADDON_FILES = dofile(dir .. "/tests/addonfiles.lua")(dir)
 
 local function load(scenario)
+	if run.loaded then run.loaded(scenario, run.file) end
+	-- A scenario left out gets nil back, which every scenario already reads as
+	-- "skip": the same answer as an addon file that would not load.
+	if run.admit and not run.admit(scenario, run.file) then
+		run.left[scenario] = true
+		return nil
+	end
+	run.ran[scenario] = true
 	local ns = {}
 	for _, file in ipairs(ADDON_FILES) do
 		local chunk, err = loadfile(dir .. "/" .. file)
@@ -17617,6 +17646,7 @@ if extras then
 	for i = 1, #extras do
 		local path = extras[i]
 		local name = tostring(path):match("[^/\\]+$") or tostring(path)
+		run.file = name
 		local chunk, err = loadfile(path)
 		if not chunk then
 			fail(name, "will not load: " .. tostring(err))
