@@ -5182,7 +5182,7 @@ function ns.Welcome(force, offSaid)
 	else
 		addon:Print(L["|cffffd100Manners|r puts anybody who buffs you -- and any stranger nearby who is missing one of yours -- on a small prompt. Clicking the prompt buffs them."])
 	end
-	addon:Print(L["The one thing that is not automatic: |cffffd100/manners macro|r makes a macro to drag onto a bar -- the |cffffd100Create the macro|r button on the options page does the same -- or bind a key under Options > Keybindings > Manners."])
+	addon:Print(L["The one thing that is not automatic: |cffffd100/manners macro|r or |cffffd100Create the macro|r in the options makes a macro for your bars, or bind a key under Options > Keybindings > Manners."])
 
 	-- Switched off (perhaps by another character, on the shared profile): name
 	-- the setting, unless the login line said so one line above.
@@ -6199,7 +6199,7 @@ ns.SHARE_ERRORS = {
 	notOurs = L["that is not a Manners settings string -- one starts with MNR1:."],
 	tooLong = L["that is far longer than any Manners settings string, so it was not read."],
 	newer = L["that string was made by a newer version of Manners -- update the addon to read it."],
-	incomplete = L["that string is incomplete or has been changed -- copy it again in one piece. A chat line holds 255 characters, so paste a longer one into the box under Share settings on the General tab of the options."],
+	incomplete = L["that string is incomplete or has been changed -- copy it again in one piece, and paste a long one into the box under Share settings on the General tab."],
 	malformed = L["that string is damaged -- part of it is not a setting Manners can read. Copy it again in one piece."],
 	badValue = L["that string gives %s a value it cannot have, so nothing was changed."],
 }

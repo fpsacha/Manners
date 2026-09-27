@@ -3256,9 +3256,9 @@ mutate("Options.lua",
 
 # The greeting sending the player to a Game Menu entry this client lacks.
 mutate("Core.lua",
-       " the options page does the same -- or bind a key under Options > Keybindings >"
+       " makes a macro for your bars, or bind a key under Options > Keybindings >"
        " Manners.\"])\n",
-       " the options page does the same -- or bind a key under Game Menu > Key Bindings >"
+       " makes a macro for your bars, or bind a key under Game Menu > Key Bindings >"
        " Manners.\"])\n",
        "greeting names the Game Menu key bindings",
        expect="the key binding is where the greeting says",
