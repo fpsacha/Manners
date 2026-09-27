@@ -83,3 +83,20 @@ mutate("Core.lua",
        "landed cast does not clear the hold",
        expect="speech-range: a refusal holds the line until a cast that lands",
        script="runscenarios.py")
+
+# PreClick's main path trusting the held entry's old range reading.
+mutate("Prompt.lua",
+       "\tPrompt:ApplyTarget(top, OutOfReachNow(top))\n",
+       "\tPrompt:ApplyTarget(top)\n",
+       "press keeps the line for a held entry that walked off",
+       expect="speech-range: the press asks again for a held entry that walked off",
+       script="runscenarios.py")
+
+# A press the settle path calls a failure (the cast went to somebody else)
+# holding nothing: the next press thanks them again.
+mutate("Core.lua",
+       "\t\t-- went, so it is held; no back-off, since the game refused nobody.\n\t\tns.NoteRefusal(pending.name, nil, true)\n",
+       "\t\t-- went, so it is held; no back-off, since the game refused nobody.\n",
+       "settle failure does not hold the line",
+       expect="speech-range: a press that went to somebody else holds the line",
+       script="runscenarios.py")

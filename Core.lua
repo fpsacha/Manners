@@ -1811,6 +1811,8 @@ do
 	local OWED_STEPS = { 2, 20, 60 }
 	-- The refusal in a row that says so in chat, once per run.
 	local TELL_AT = 3
+	-- How long the spoken line stays held after a press came to nothing, and
+	-- past the end of any back-off.
 	local QUIET_SECONDS = 30
 	-- A run of refusals this long over is forgotten, and the sweep lets the
 	-- person go: somebody never seen again must not be kept all session.
@@ -1902,7 +1904,9 @@ do
 		local now = GetTime()
 		if why == nil and lastError and now - lastErrorAt <= ERROR_SECONDS then why = lastError end
 		local r = Record(name, now)
-		r.quietUntil = now + QUIET_SECONDS
+		-- Never shortened: a quiet note must not cut the longer hold a back-off
+		-- below wrote.
+		if now + QUIET_SECONDS > r.quietUntil then r.quietUntil = now + QUIET_SECONDS end
 		newest = name
 		if quietOnly or AboutTheCaster(why) then
 			r.last = now
@@ -1916,6 +1920,10 @@ do
 		local steps = (debt and LiveExpiry(debt) > now) and OWED_STEPS or STEPS
 		local seconds = steps[math.min(r.count, #steps)]
 		if now + seconds > r.blockUntil then r.blockUntil = now + seconds end
+		-- The line stays held past the back-off: somebody the game keeps refusing
+		-- comes back when it runs out, and the first press then would thank them
+		-- over yet another refused cast. A cast that lands clears it (NoteLanded).
+		if r.blockUntil + QUIET_SECONDS > r.quietUntil then r.quietUntil = r.blockUntil + QUIET_SECONDS end
 		if r.count >= TELL_AT and not r.said then
 			r.said = true
 			if r.why or not (C_Timer and C_Timer.After) then
@@ -4186,6 +4194,9 @@ local function SettlePendingClick(landedOn, spellId, castGUID)
 	if why then
 		SayStillOwed(pending.name, why)
 		RewindClick(pending)
+		-- The macro's line thanked them for a buff that went elsewhere or never
+		-- went, so it is held; no back-off, since the game refused nobody.
+		ns.NoteRefusal(pending.name, nil, true)
 		ns.pendingClick = nil
 		-- The chat line's sentence, without colour codes: the sub-line is
 		-- already tinted, and a nested one renders as literal text.

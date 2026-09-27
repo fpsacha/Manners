@@ -234,6 +234,9 @@ function Mock.reset()
 	-- people sixty yards away.
 	Mock.rangeless = nil
 	Mock.inRange = true
+	-- Exceptions to Mock.inRange by unit token, e.g. { nameplate1 = false }:
+	-- one person walking off while somebody else stays in reach.
+	Mock.rangeByUnit = nil
 	-- How far away everybody is, and the exceptions by unit token. Five yards
 	-- is close enough for every proximity setting, so a scenario that says
 	-- nothing about distance is a scenario where nobody is dropped for it --
@@ -1111,10 +1114,10 @@ end
 function IsInRaid() return Mock.raid ~= nil end
 function IsSpellKnown(id) return id == 1459 end
 function IsPlayerSpell(id) return id == 1459 end
-function IsSpellInRange(spell)
+function IsSpellInRange(spell, unit)
 	Mock.counts.range = Mock.counts.range + 1
 	if Mock.isRangeless(spell) then return nil end
-	return Mock.inRange and 1 or 0
+	return Mock.unitInRange(unit) and 1 or 0
 end
 
 -- The player's own cast, from Mock.casting. The real call hands back nine
@@ -1444,6 +1447,13 @@ local SPELL_NAMES = {
 	[5504] = "Conjure Water",
 }
 
+-- Mock.inRange, unless Mock.rangeByUnit names this unit.
+function Mock.unitInRange(unit)
+	local by = Mock.rangeByUnit
+	if by and unit and by[unit] ~= nil then return by[unit] end
+	return Mock.inRange
+end
+
 -- Whether IsSpellInRange has nothing to say about this spell, asked by id or by
 -- the name one of the listed ids resolves to: the addon asks both ways.
 function Mock.isRangeless(spell)
@@ -1467,10 +1477,10 @@ setmetatable(_G, { __index = function(_, key)
 			end,
 			GetSpellTexture = function() return 135932 end,
 			GetSpellInfo = function() return { name = "Arcane Intellect" } end,
-			IsSpellInRange = function(spell)
+			IsSpellInRange = function(spell, unit)
 				Mock.counts.range = Mock.counts.range + 1
 				if Mock.isRangeless(spell) then return nil end
-				return Mock.inRange
+				return Mock.unitInRange(unit)
 			end,
 			GetSpellCooldown = function(id)
 				local entry = Mock.spellCooldowns and Mock.spellCooldowns[id]

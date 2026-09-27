@@ -151,6 +151,50 @@ do
 	end
 end
 
+-- The same walk-off with somebody else still in reach: the queue is not empty,
+-- so the press goes down PreClick's main path, and the panel's held entry
+-- (Munin, left the queue a moment ago) carries the range the last scan read.
+-- Only the press's own reading can drop the line there.
+do
+	local scenario = "speech-range: the press asks again for a held entry that walked off"
+	Mock.reset()
+	local restore = H.strangers({ nameplate1 = { "Munin", "Hugins" }, nameplate2 = { "Ejp", "Ejp" } })
+	local ns = load(scenario)
+	if ns then
+		H.freshPrompt(ns, scenario)
+		local speech = ns.db.profile.speech
+		speech.enabled = true
+		speech.onlyWhenReturning = false
+		speech.channel = "SAY"
+		speech.phrases = "Thanks, {name}."
+		H.owe(ns, MUNIN)
+		ns.Prompt:InvalidateMacro()
+		ns.addon:Tick()
+		local before = macro(ns)
+		local queue = H.inQueue(ns)
+		if not (queue[MUNIN] and queue["Ejp Ejp"]) then
+			fail(scenario, "SKIPPED -- the queue did not hold both of them")
+		elseif not (speaks(before) and before:find(MUNIN, 1, true)) then
+			fail(scenario, "SKIPPED -- Munin was not armed with the line: " .. flat(before))
+		else
+			Mock.rangeByUnit = { nameplate1 = false }
+			local after = H.inQueue(ns)
+			if after[MUNIN] or not after["Ejp Ejp"] then
+				fail(scenario, "SKIPPED -- the queue did not drop Munin and keep Ejp")
+			else
+				local ran = H.pressButton(ns)
+				if not (ran and ran:find("/cast", 1, true) and ran:find(MUNIN, 1, true)) then
+					fail(scenario, "SKIPPED -- the press did not go to the held Munin: " .. flat(ran))
+				elseif speaks(ran) then
+					fail(scenario, "the press ran the spoken line at a held entry out of range: " .. flat(ran))
+				end
+			end
+		end
+		guarded(scenario, ns)
+	end
+	restore()
+end
+
 -- ------------------------------------------------------------ speech-range-3
 -- The game refuses the cast. The next arming for Munin carries no line, until a
 -- cast on him lands or half a minute passes.
@@ -218,6 +262,48 @@ for _, ending in ipairs({ "a cast that lands", "half a minute", "neither" }) do
 				if speaks(after) ~= want then
 					fail(scenario, ("after %s the line is %s: %s"):format(ending,
 						want and "still held" or "back already", flat(after)))
+				end
+			end
+		end
+		guarded(scenario, ns)
+		restore()
+	end
+end
+
+-- A press the settle path calls a failure without the game refusing anybody:
+-- the /target resolved nobody and the cast went to whoever was targeted, or
+-- another spell beat the macro's /cast. The macro's line thanked Munin anyway,
+-- so the next arming for him is quiet too.
+for _, kind in ipairs({ "went to somebody else", "sent another spell" }) do
+	local scenario = "speech-range: a press that " .. kind .. " holds the line"
+	local ns, restore = session(scenario)
+	if ns then
+		local button = ns.Prompt:GetButton()
+		Mock.advance(1)
+		ns.pendingClick = nil
+		ns.Prompt:ApplyTarget(inReach(ns))
+		local armed = macro(ns)
+		local post = button.scripts.PostClick
+		if post then pcall(post, button, "LeftButton", true) end
+		if not speaks(armed) then
+			fail(scenario, "SKIPPED -- the line was not armed to begin with: " .. flat(armed))
+		elseif not ns.pendingClick then
+			fail(scenario, "SKIPPED -- the press parked nothing")
+		else
+			if kind == "went to somebody else" then
+				ns.addon:UNIT_SPELLCAST_SENT(nil, "player", "Some Body", "Cast-E", 1459)
+			else
+				ns.addon:UNIT_SPELLCAST_SENT(nil, "player", MUNIN, "Cast-E", 116)
+			end
+			if ns.pendingClick then
+				fail(scenario, "SKIPPED -- the settle path did not call it a failure")
+			else
+				Mock.advance(2.5)
+				ns.addon:Tick()
+				ns.Prompt:ApplyTarget(inReach(ns))
+				local following = macro(ns)
+				if speaks(following) then
+					fail(scenario, "the next arming still speaks: " .. flat(following))
 				end
 			end
 		end

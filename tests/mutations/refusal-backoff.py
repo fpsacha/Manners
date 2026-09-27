@@ -121,3 +121,19 @@ mutate("Core.lua",
        "caster errors back people off",
        expect="refusal-backoff: out of mana backs nobody off",
        script="runscenarios.py")
+
+# The spoken line's hold running out with the back-off, or before it.
+mutate("Core.lua",
+       "\t\tif r.blockUntil + QUIET_SECONDS > r.quietUntil then r.quietUntil = r.blockUntil + QUIET_SECONDS end\n",
+       "",
+       "line comes back with the person",
+       expect="refusal-backoff: the spoken line stays held past the back-off (nearby)",
+       script="runscenarios.py")
+
+# A quiet note overwriting a longer hold.
+mutate("Core.lua",
+       "\t\tif now + QUIET_SECONDS > r.quietUntil then r.quietUntil = now + QUIET_SECONDS end\n",
+       "\t\tr.quietUntil = now + QUIET_SECONDS\n",
+       "quiet note shortens the hold",
+       expect="refusal-backoff: a quiet note never shortens the hold",
+       script="runscenarios.py")

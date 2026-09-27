@@ -388,3 +388,91 @@ do
 		restore()
 	end
 end
+
+-- ------------------------------------------------------------ backoff-9
+-- The spoken line outlasts every back-off. Somebody the game keeps refusing
+-- comes back when a back-off runs out, and the press then would thank them
+-- over yet another refused cast (a hold of its own thirty seconds ran out
+-- with the thirty-second step, and long before the longer ones).
+local function speaking(ns)
+	local speech = ns.db.profile.speech
+	speech.enabled = true
+	speech.onlyWhenReturning = false
+	speech.channel = "SAY"
+	speech.phrases = "Thanks, {name}."
+	ns.Prompt:InvalidateMacro()
+end
+
+local function armedSpeaks(ns, reason)
+	ns.Prompt:ApplyTarget(entryFor(ns, reason))
+	local text = ns.Prompt:GetButton():GetAttribute("macrotext1")
+	return text ~= nil and text:find("\n/say ", 1, true) ~= nil, text
+end
+
+for _, reason in ipairs({ "nearby", "owed" }) do
+	local scenario = "refusal-backoff: the spoken line stays held past the back-off (" .. reason .. ")"
+	local ns, restore = session(scenario)
+	if ns then
+		speaking(ns)
+		if reason == "owed" then H.owe(ns, EJP) end
+		local steps = reason == "owed" and { 2, 20, 60 } or { 2, 30, 300 }
+		if not armedSpeaks(ns, reason) then
+			fail(scenario, "SKIPPED -- the line was not armed to begin with")
+		else
+			for i, step in ipairs(steps) do
+				if not refusedPress(ns, reason) then
+					fail(scenario, "SKIPPED -- press " .. i .. " parked nothing")
+					break
+				end
+				Mock.advance(step + 0.5)
+				ns.addon:Tick()
+				local spoke, text = armedSpeaks(ns, reason)
+				if blockedIn(ns, 0) then
+					fail(scenario, ("SKIPPED -- still backed off after refusal %d"):format(i))
+					break
+				elseif spoke then
+					fail(scenario, ("back from refusal %d's back-off, the line is armed again: %s")
+						:format(i, (text:gsub("\n", " / "))))
+					break
+				end
+			end
+		end
+		guarded(scenario, ns)
+		restore()
+	end
+end
+
+-- A press that went to somebody else only holds the line (no refusal to back
+-- off from), and that shorter note must not cut a hold a back-off wrote.
+do
+	local scenario = "refusal-backoff: a quiet note never shortens the hold"
+	local ns, restore = session(scenario)
+	if ns then
+		speaking(ns)
+		local button = ns.Prompt:GetButton()
+		local ok = refusedPress(ns) and refusedPress(ns)
+		if ok then
+			-- Refusal two: backed off for 30 s, the line held for 60.
+			Mock.advance(1)
+			ns.pendingClick = nil
+			ns.Prompt:ApplyTarget(entryFor(ns))
+			local post = button.scripts.PostClick
+			if post then pcall(post, button, "LeftButton", true) end
+			ok = ns.pendingClick ~= nil
+			if ok then ns.addon:UNIT_SPELLCAST_SENT(nil, "player", "Some Body", "Cast-Q", 1459) end
+		end
+		if not ok then
+			fail(scenario, "SKIPPED -- a press parked nothing")
+		else
+			Mock.advance(35)
+			ns.addon:Tick()
+			if blockedIn(ns, 0) then
+				fail(scenario, "SKIPPED -- still backed off")
+			elseif armedSpeaks(ns) then
+				fail(scenario, "the press that went elsewhere cut the hold the back-off wrote")
+			end
+		end
+		guarded(scenario, ns)
+		restore()
+	end
+end
