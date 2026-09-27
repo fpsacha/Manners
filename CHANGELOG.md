@@ -1,5 +1,28 @@
 # Changelog
 
+## 1.0.0-beta.10
+
+The "In character" phrase set, grown into the addon's party piece: over a
+thousand lines, funnier, and aware of the moment.
+
+### In character
+
+- **Seven times the lines.** Every people has around thirty of its own now,
+  plus lines for your class, your faction, and anyone at all -- in all ten
+  languages.
+- **It reads the moment.** The line can be about the spell you are giving
+  ("Mark of the Wild, {name}. The wolves will still bite, but they'll feel
+  bad."), a trade for the one they gave you, the third time you two have
+  swapped today, an inn, the wild or a dungeon, the small hours or the
+  morning, or somebody of your own class or people. When the game will not
+  say, that part is simply left out.
+- **Your class speaks too**: mages, priests, druids, paladins, warlocks and
+  warriors each have their own lines.
+- **No repeats.** The last dozen lines you said are left out while anything
+  else fits.
+- Still only if you pick "In character" under When you click > Load a set.
+  Nobody else hears a thing.
+
 ## 1.0.0-beta.9
 
 A phrase set that speaks in your character's own voice, a colour of their own

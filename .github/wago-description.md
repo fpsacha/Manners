@@ -37,7 +37,7 @@ Built for **WoW Forever** (Interface 16001) only.
 - **Three looks**, effects you can calm down, text that stays readable on any panel colour, LibSharedMedia fonts and sounds.
 - **Minimap button and addon compartment**, with a right-click menu for snooze, preview, who's next and more.
 - **Share settings** as one line of text with `/manners export` and `/manners import`.
-- **Say something in character** (off by default): a line picked for your race, your faction and the moment -- thanks, an answer, an offer -- in every people's own voice.
+- **Say something in character** (off by default): over a thousand funny lines, picked for your race, class and faction and for the moment -- the spell you give, what they gave you, how often you two swap, where you are, the hour -- in every people's own voice, never repeating.
 - **Ten languages:** English, German, Spanish (Spain and Mexico), French, Italian, Korean, Brazilian Portuguese, Russian, Simplified and Traditional Chinese.
 
 **Getting started:** bind a key under Options > Keybindings > Manners, or `/manners macro` for a macro on your bars. `/manners` opens the options and `/manners help` lists every command.

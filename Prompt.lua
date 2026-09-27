@@ -89,7 +89,7 @@ local resultFill
 local queueBack, queueHair, queueBars
 local queueTextX = 0
 -- Goes into every click line, so a log says which build produced it.
-ns.BUILD = "1.0.0-beta.9"
+ns.BUILD = "1.0.0-beta.10"
 
 local current, testMode, testExpiry, lastTop, appliedKey, lastClickAt, lastPreClickAt, lastSkipAt
 -- Why the last painted person was on the panel, beside lastTop's who.
