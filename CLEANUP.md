@@ -52,7 +52,7 @@ Everything after this step is paid for by it, and so is every future release.
       mutation touches `Locales/`.
 - [x] (added) `tests/validate.py` reads each function's upvalue count and most
       active locals out of Lua 5.1 bytecode (`tools/lua51_limits.py`) and fails
-      over 55 upvalues or 185 locals -- the early warning beta.6 lacked.
+      over 55 upvalues or 190 locals -- the early warning beta.6 lacked.
 - Target: full selftest under 10 minutes locally, under 20 on GitHub. Prove
   the gate still works: every mutation still CAUGHT by its named check.
   Measured 2026-09-27 on the 16-core desktop, while six other agents ran their

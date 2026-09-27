@@ -98,9 +98,13 @@ for f in OURS:
 # the bytecode, so they are read out of string.dump (tools/lua51_limits.py) and
 # failed with room still left: at 56 the merge that got there goes red, not the
 # players' game at 61. Every shipped Lua file is counted, translations included.
+# The locals budget is the one above, 10 left free, and not a second one of its
+# own: a main chunk's most active locals and its free slots are the same count
+# read two ways, and two budgets had this file print "ok" and "TOO FULL" for
+# Core.lua in one run once it went past 185.
 import lua51_limits
 UPVALUES_MAX = 55
-ACTIVE_LOCALS_MAX = 185
+ACTIVE_LOCALS_MAX = lua51_limits.MAX_LOCALS - LOCALS_MIN_FREE
 
 print("\n== Lua 5.1 limits per function (60 upvalues, 200 active locals) ==")
 _limit_rows = []

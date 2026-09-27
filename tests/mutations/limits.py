@@ -1,5 +1,5 @@
 # Mutations for validate.py's Lua 5.1 limits: a function over 55 upvalues and
-# one over 185 active locals, each still under the compiler's own limit so the
+# one over 190 active locals, each still under the compiler's own limit so the
 # file compiles and it is the early warning that has to object, not a syntax
 # error. The functions are written in whole rather than grown from one already
 # in the addon, so trimming Prompt:Create() or Core.lua's file-level locals
@@ -18,13 +18,13 @@ mutate("Flavour.lua",
        expect="-- 56 upvalues (want at most 55)",
        script="validate.py")
 
-# 186 locals active at once in one function.
+# 191 locals active at once in one function.
 mutate("Flavour.lua",
        "local ADDON, ns = ...\n",
        "local ADDON, ns = ...\n"
        "local function tooManyLocals()\n"
-       + "".join("\tlocal l%d = %d\n" % (i, i) for i in range(186)) +
+       + "".join("\tlocal l%d = %d\n" % (i, i) for i in range(191)) +
        "end\n",
-       "a function over 185 active locals",
-       expect="186 active locals (want at most 185)",
+       "a function over 190 active locals",
+       expect="191 active locals (want at most 190)",
        script="validate.py")

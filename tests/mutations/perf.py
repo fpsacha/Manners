@@ -97,11 +97,14 @@ mutate("Core.lua",
 # Ten more file-level locals in Core.lua, the size of the next fix or two, which
 # still loads but leaves too little room for the one after. Core.lua has 15
 # free as this is written; if later work frees more than five, this has to add
-# more to stay caught.
+# more to stay caught. The per-function limits section objects to the same
+# change in its own words, so the expect is this section's wording alone: with
+# "TOO FULL  Core.lua" either section's line counted, and switching this one
+# off still read as CAUGHT.
 mutate("Core.lua",
        "local PRIORITY = { target = 0, owed = 1, asked = 1.5, group = 2, nearby = 3 }\n",
        "local PRIORITY = { target = 0, owed = 1, asked = 1.5, group = 2, nearby = 3 }\n"
        "local m1, m2, m3, m4, m5, m6, m7, m8, m9, m10\n",
        "Core.lua's main chunk ten locals fuller",
-       expect="TOO FULL  Core.lua",
+       expect="free, want 10 -- put helpers",
        script="validate.py")

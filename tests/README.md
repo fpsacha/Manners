@@ -148,7 +148,7 @@ It also reads Lua 5.1's two per-function limits out of the bytecode
 (`tools/lua51_limits.py`, from `string.dump` in `lupa.lua51`): the game allows
 a function 60 upvalues and 200 locals active at once, and a file past either
 does not load. beta.6 shipped with `Prompt:Create()` at 69 upvalues. Any
-function in a shipped file over 55 upvalues or 185 active locals fails, named
+function in a shipped file over 55 upvalues or 190 active locals fails, named
 by file and line, and the five tightest are printed every run so the next
 merge to cross can be seen coming.
 

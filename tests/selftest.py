@@ -37,7 +37,7 @@ back green, before a failure in it counts as caught.
                  judge each runscenarios.py mutation, and stop
   --jobs N       how many mutations run at once (default: one per core)
 """
-import subprocess, shutil, sys, os, json, tempfile, threading, time, bisect, re
+import atexit, subprocess, shutil, sys, os, json, tempfile, threading, time, bisect, re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # --anchors checks only that every mutation still finds the text it replaces,
@@ -480,6 +480,11 @@ def scratch():
     global SCRATCH
     if SCRATCH is None:
         SCRATCH = tempfile.mkdtemp(prefix="manners-selftest-")
+        # Removed on every way out, not only the normal end: --plan, a dirty
+        # baseline, an exception and Ctrl-C all exit early, and each left about
+        # 14 MB of traces and tree copies behind in %TEMP% when the removal sat
+        # only at the bottom of the script.
+        atexit.register(shutil.rmtree, SCRATCH, ignore_errors=True)
     return SCRATCH
 
 

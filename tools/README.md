@@ -215,5 +215,5 @@ python tools/lua51_limits.py Core.lua Prompt.lua Options.lua   # the twenty tigh
 ```
 
 `tests/validate.py` uses it to fail any function in a shipped file over 55
-upvalues or 185 active locals, and `tests/selftest.py` uses the same parse to
+upvalues or 190 active locals, and `tests/selftest.py` uses the same parse to
 find which function a line of a scenario file sits in.
