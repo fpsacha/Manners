@@ -658,7 +658,7 @@ local function BuildOptions()
 					-- read the hidden toggle's leftover true and stay silent,
 					-- in exactly the case where the prompt really was dead and
 					-- no visible control could explain it.
-					return s.owed or s.group or (s.strangers and not OnlyReachesGroup())
+					return s.owed or s.group or s.asked or (s.strangers and not OnlyReachesGroup())
 				end,
 				name = "|cffff8080"
 					.. L["Nothing below is switched on, so the prompt will never appear."] .. "|r",
@@ -731,6 +731,33 @@ local function BuildOptions()
 				name = "|cff888888"
 					.. L["Everything you can offer is cast on yourself and heard by your party, so there is nothing to give a passer-by."]
 					.. "|r",
+			},
+			-- The source that reads chat. The rule is spelled out here in full,
+			-- because it is the whole of what decides whether somebody is put on
+			-- the prompt, and "why did it offer them" has no other answer the
+			-- player can see. The section in Core.lua is the same rule in code.
+			asked = {
+				type = "toggle",
+				name = L["People who ask me for it"],
+				desc = L["Somebody who asks for your buff in /say, /yell, your group's chat or a whisper is offered it for the next minute, if the game can see them in that time and they do not have it yet -- \"int pls\", \"fort?\", \"can I get motw\", \"buffs please\", or the spell's own name in your language. They come after people who buffed you and before your group. Nothing is said back to them, and nobody of your own class is taken for asking."]
+					.. "\n\n"
+					.. L["Only short messages that ask count: eight words at most, the buff named as a whole word, nothing saying no or not, and a please, a question mark, an opening like \"can I\" or \"anyone\", or nothing but the buff's name. Beside a nickname like int or fort, or beside \"buff\", only small words like \"me\", \"get\" or \"pls\" may stand, so \"int the healer\" and \"need int ring\" ask for nothing. Words English uses for other things -- might, mark, wisdom, spirit, shadow -- need a please or to stand alone, and never count in your group's chat."]
+					.. "\n\n|cff888888"
+					.. L["Off at first, because reading chat is guesswork: now and then somebody only talking about a buff will be offered one. What is said in a fight is taken for tactics and ignored, except a whisper; a request still waiting when a fight starts waits until it ends."]
+					.. "|r",
+				order = 14.6,
+				width = "full",
+				get = sGet,
+				set = sSet,
+			},
+			reasonAsked = {
+				type = "input",
+				name = L["Wording: asked for it"],
+				desc = L["The prompt's second line for somebody who asked for the buff in chat."],
+				order = 14.7,
+				disabled = function() return not S().asked end,
+				get = pGet,
+				set = pSet,
 			},
 
 			-- Not a source: everybody here is already on the list by one of the
@@ -2645,15 +2672,16 @@ local TOOLTIP_QUEUE_ROWS = 3
 
 -- Picks the line for why somebody is being offered a buff.
 --
--- The caller writes out all four lines, one whole sentence per reason, rather
+-- The caller writes out all five lines, one whole sentence per reason, rather
 -- than slotting a word for the reason into one sentence: "buffed you" slotted
 -- into three different sentences is a word a translation has to make agree
 -- with a subject it never sees.
-local function ByReason(entry, owed, group, target, nearby)
+local function ByReason(entry, owed, group, target, nearby, asked)
 	local reason = entry and entry.reason
 	if reason == "owed" then return owed end
 	if reason == "group" then return group end
 	if reason == "target" then return target end
+	if reason == "asked" then return asked end
 	return nearby
 end
 
@@ -2842,14 +2870,16 @@ local function FillLauncherTooltip(tooltip)
 					L["On the prompt: |cffffffff%s|r -- %s, buffed you"],
 					L["On the prompt: |cffffffff%s|r -- %s, in your group"],
 					L["On the prompt: |cffffffff%s|r -- %s, your target"],
-					L["On the prompt: |cffffffff%s|r -- %s, nearby"]
+					L["On the prompt: |cffffffff%s|r -- %s, nearby"],
+					L["On the prompt: |cffffffff%s|r -- %s, asked for it"]
 				):format(WhoIs(entry), WhatBuff(entry)), 1, 0.82, 0, true)
 			elseif i <= TOOLTIP_QUEUE_ROWS + (showing and 1 or 0) then
 				tooltip:AddLine(ByReason(entry,
 					L["Next: |cffffffff%s|r -- %s, buffed you"],
 					L["Next: |cffffffff%s|r -- %s, in your group"],
 					L["Next: |cffffffff%s|r -- %s, your target"],
-					L["Next: |cffffffff%s|r -- %s, nearby"]
+					L["Next: |cffffffff%s|r -- %s, nearby"],
+					L["Next: |cffffffff%s|r -- %s, asked for it"]
 				):format(WhoIs(entry), WhatBuff(entry)), 0.8, 0.8, 0.8, true)
 			end
 		end
@@ -3087,13 +3117,15 @@ local function FillWhoIsNext(parent)
 				L["%s -- %s (buffed you), on the prompt"],
 				L["%s -- %s (in your group), on the prompt"],
 				L["%s -- %s (your target), on the prompt"],
-				L["%s -- %s (nearby), on the prompt"])
+				L["%s -- %s (nearby), on the prompt"],
+				L["%s -- %s (asked for it), on the prompt"])
 		else
 			label = ByReason(entry,
 				L["%s -- %s (buffed you)"],
 				L["%s -- %s (in your group)"],
 				L["%s -- %s (your target)"],
-				L["%s -- %s (nearby)"])
+				L["%s -- %s (nearby)"],
+				L["%s -- %s (asked for it)"])
 		end
 		local person = parent:CreateButton(label:format(WhoIs(entry), WhatBuff(entry)))
 		person:CreateButton(L["Skip for now"], Act(function() SkipFromMenu(entry) end))

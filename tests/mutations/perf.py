@@ -99,8 +99,8 @@ mutate("Core.lua",
 # free as this is written; if later work frees more than five, this has to add
 # more to stay caught.
 mutate("Core.lua",
-       "local PRIORITY = { target = 0, owed = 1, group = 2, nearby = 3 }\n",
-       "local PRIORITY = { target = 0, owed = 1, group = 2, nearby = 3 }\n"
+       "local PRIORITY = { target = 0, owed = 1, asked = 1.5, group = 2, nearby = 3 }\n",
+       "local PRIORITY = { target = 0, owed = 1, asked = 1.5, group = 2, nearby = 3 }\n"
        "local m1, m2, m3, m4, m5, m6, m7, m8, m9, m10\n",
        "Core.lua's main chunk ten locals fuller",
        expect="TOO FULL  Core.lua",
