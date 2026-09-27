@@ -257,7 +257,7 @@ local function say(fs)
 	return '"' .. text .. '"'
 end
 
-local LOCALES = { "enUS", "deDE", "ruRU" }
+local LOCALES = { "enUS", "deDE", "frFR" }
 
 -- ------------------------------------------------------------------ ledgerui 1
 -- Every string and plate on the window is hung by edges, never by an edge and

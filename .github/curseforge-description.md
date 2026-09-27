@@ -73,7 +73,7 @@ Leave the text colour at white and it turns dark by itself on a light panel. *Re
 
 Optional, and off until you turn it on: a line when you buff somebody, from four sets (Roleplay, Polite, Cheeky, or just their name) that you can edit. It goes out through the button's macro, so it counts as you talking.
 
-Or pick **In character: your race and faction**: over a thousand lines, and the one you say is chosen when you click, to fit your people, your class and the moment. Thanks when you return a favour, an answer when somebody asked, an offer to a stranger, something warmer for your group -- and lines that only work right now: about the spell you are giving, a trade for the one they gave you, the third swap today, an inn, a dungeon, the small hours, somebody of your own class. Every race has its own voice (a dwarf's brogue, an orc's *Lok'tar ogar*, a Forsaken's gallows humour), and it does not repeat itself. In all ten languages.
+Or pick **In character: your race and faction**: over a thousand lines, and the one you say is chosen when you click, to fit your people, your class and the moment. Thanks when you return a favour, an answer when somebody asked, an offer to a stranger, something warmer for your group -- and lines that only work right now: about the spell you are giving, a trade for the one they gave you, the third swap today, an inn, a dungeon, the small hours, somebody of your own class. Every race has its own voice (a dwarf's brogue, an orc's *Lok'tar ogar*, a Forsaken's gallows humour), and it does not repeat itself. In all nine languages.
 
 > *"Most kind, Elowen. You've lifted me from 'deceased' to 'mildly deceased'."* -- a Forsaken, returning a favour
 
@@ -115,9 +115,9 @@ Where a class has several, the prompt offers whichever one they are missing: a p
 
 ### Languages
 
-![The prompt and its list in German, Russian and Simplified Chinese](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-languages.png)
+![The prompt and its list in German, French and Simplified Chinese](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-languages.png)
 
-English, German, Spanish (Spain and Mexico), French, Italian, Korean, Brazilian Portuguese, Russian, Simplified and Traditional Chinese, whichever your client runs in.
+English, German, Spanish (Spain and Mexico), French, Italian, Korean, Brazilian Portuguese, Simplified and Traditional Chinese, whichever your client runs in.
 
 ### Why a button, and not automatic
 

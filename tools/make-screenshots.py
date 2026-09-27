@@ -18,7 +18,7 @@ What it writes, all 1280 pixels wide:
     manners-prompt.png     somebody who buffed you, with the glow
     manners-reasons.png    the five reasons somebody is offered, each in its colour
     manners-ledger.png     the favour ledger with a day of ordinary play in it
-    manners-languages.png  the prompt in German, Russian and Chinese
+    manners-languages.png  the prompt in German, French and Chinese
     manners-palette.png    the standard and the colour-blind reason colours
 
 Every player name is invented. Real names from a live session once reached a
@@ -69,7 +69,7 @@ SS = rp.SUPER
 # "Arcane Intellect" is a picture of a client that does not exist.
 LANGUAGES = [
     ("deDE", "Deutsch", "Arkane Intelligenz"),
-    ("ruRU", "Русский", "Чародейский интеллект"),
+    ("frFR", "Français", "Intelligence des Arcanes"),
     ("zhCN", "简体中文", "奥术智慧"),
 ]
 
@@ -197,7 +197,7 @@ local MARIBEL = { "Maribel", "Quickwater" }
 local OSKAR = { "Oskar", "Fenwick" }
 local SABLE = { "Sable", "Harrow" }
 -- Short names for the rows under a translated prompt. A row has a fixed width
--- and German and Russian need most of it for the reason, so a long name there
+-- and German and French need most of it for the reason, so a long name there
 -- only shows the reason being cut.
 local MIRA = { "Mira", "Holt" }
 local IVO = { "Ivo", "Lark" }
@@ -233,7 +233,7 @@ local added = {
 	-- A favour on top and three more behind it, each a sentence the
 	-- translation had to say: what the translated pictures show. The third is
 	-- a second favour rather than a passer-by, because a passer-by's line
-	-- names the spell, and Russian's "нужно: Чародейский интеллект" does not
+	-- names the spell, and a long translation of "needs Arcane Intellect" does not
 	-- fit a row at the default width -- the addon cuts it with an ellipsis,
 	-- which is true and not what a picture of the translation is for.
 	{ key = "shot-list", at = 0.85, setup = function(ns)
@@ -1065,7 +1065,7 @@ def picture_languages(snaps):
     top = 150
     board = Board(top + row * len(layers) + 24, seed=31, sun=(0.86, 0.50))
     heading(board, "In your language",
-            "English and nine translations, chosen by your game client.")
+            "English and eight translations, chosen by your game client.")
     w = max(l.size[0] for l in layers)
     x = WIDTH - w - 70
     board.shade(20, top, x - 20, top + row * len(layers), 0.45)

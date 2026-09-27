@@ -34,7 +34,6 @@ LANGUAGES = {
     "itIT": ("Italian", ["itIT"]),
     "koKR": ("Korean", ["koKR"]),
     "ptBR": ("Brazilian Portuguese", ["ptBR"]),
-    "ruRU": ("Russian", ["ruRU"]),
     "zhCN": ("Simplified Chinese", ["zhCN"]),
     "zhTW": ("Traditional Chinese", ["zhTW"]),
 }

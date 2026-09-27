@@ -47,7 +47,7 @@ Everything after this step is paid for by it, and so is every future release.
       must be green on the clean tree first. `selftest.py --plan` shows it.)
 - [x] Run mutations in parallel (each on its own copy of the tree -- they edit
       files in place, so never two in one directory).
-- [x] `tests/scenarios/locales.lua` drives the addon in ten client locales on
+- [x] `tests/scenarios/locales.lua` drives the addon in nine client locales on
       every run; run it once per selftest, not once per mutation, unless the
       mutation touches `Locales/`.
 - [x] (added) `tests/validate.py` reads each function's upvalue count and most

@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.0-beta.11
+
+- **Russian is no longer one of the addon's languages.** On a Russian game
+  client Manners now shows its options, chat lines and phrases in English.
+  German, Spanish, French, Italian, Korean, Brazilian Portuguese and Simplified
+  and Traditional Chinese stay.
+- French: the ledger's Clear button asks "Vraiment effacer ?" before it
+  empties the list. The longer wording did not fit the button.
+
 ## 1.0.0-beta.10
 
 The "In character" phrase set, grown into the addon's party piece: over a

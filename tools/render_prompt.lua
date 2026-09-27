@@ -18,7 +18,7 @@
 -- drawn. They differ when an older build is drawn with today's renderer, which
 -- is the only fair way to put a before and an after side by side.
 --
--- `locale` is the client language the addon is loaded as, "deDE" or "ruRU"
+-- `locale` is the client language the addon is loaded as, "deDE" or "frFR"
 -- say, or nil for English. The longer translations are where a line that fits
 -- in English runs off the panel, and the only way to see that without the
 -- game is to draw the prompt in them.

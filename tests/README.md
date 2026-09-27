@@ -68,7 +68,7 @@ makes it fast, and why none of it loosens the rule:
   the whole suite. A narrowed run that comes back MISSED or WRONG CHECK is
   judged again on the whole suite before anything is reported. The summary
   lists both, since each is a mutation the trace sent to the wrong place.
-- **The locales once.** `tests/scenarios/locales.lua` drives the addon in ten
+- **The locales once.** `tests/scenarios/locales.lua` drives the addon in nine
   client locales. The baseline runs it; a mutation runs it only when the
   mutation is in `Locales/` or its text is traced there.
 

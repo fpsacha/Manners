@@ -8,8 +8,8 @@ own entry points with days of ordinary play (tools/render_ledger.lua lists the
 states), the window is opened on a tab, and the frame tree tests/frametree.lua
 recorded is drawn with Pillow.
 
-Every state is drawn in English, German and Russian, because the window's
-labels and rows have to fit in all three, and German and Russian run longest.
+Every state is drawn in English, German and French, because the window's
+labels and rows have to fit in all three, and German and French run longest.
 The addon's text measure is the renderer's own font here, so a label the
 addon sized to its text is sized to the text the picture draws.
 
@@ -38,7 +38,7 @@ import render_prompt as rp  # noqa: E402 - the drawing code this shares
 rp.lupa = lupa
 
 ROOT = rp.ROOT
-LOCALES = ["enUS", "deDE", "ruRU"]
+LOCALES = ["enUS", "deDE", "frFR"]
 # UI units of the screen shown round the window on every side.
 MARGIN = 18
 
@@ -369,7 +369,7 @@ def compare(before_dir, after_dir, out_path):
 
 
 def main():
-    # Russian and German in the notes, on a console that may not be UTF-8.
+    # French and German in the notes, on a console that may not be UTF-8.
     try:
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     except AttributeError:

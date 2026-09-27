@@ -363,10 +363,10 @@ they work when typed directly and bug reports quote them:
 
 ## Languages
 
-<img src=".github/media/manners-languages.png" alt="The prompt and its list in German, Russian and Simplified Chinese" width="640">
+<img src=".github/media/manners-languages.png" alt="The prompt and its list in German, French and Simplified Chinese" width="640">
 
 English, German, Spanish (Spain and Mexico), French, Italian, Korean,
-Brazilian Portuguese, Russian, Simplified and Traditional Chinese, whichever
+Brazilian Portuguese, Simplified and Traditional Chinese, whichever
 your client runs in. Slash commands are English in all of them.
 
 ## Which buffs each class offers

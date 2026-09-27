@@ -45,11 +45,11 @@ local SPELL_NAMES = {
 		[27841] = "Göttlicher Willen", [10958] = "Schattenschutz", [1126] = "Mal der Wildnis",
 		[20217] = "Segen der Könige", [6673] = "Schlachtruf", [19740] = "Segen der Macht",
 	},
-	ruRU = {
-		[1459] = "Чародейский интеллект", [21562] = "Слово силы: Стойкость",
-		[27841] = "Божественный дух", [10958] = "Защита от темной магии",
-		[1126] = "Знак дикой природы", [20217] = "Благословение королей",
-		[6673] = "Боевой крик", [19740] = "Благословение могущества",
+	frFR = {
+		[1459] = "Intelligence des Arcanes", [21562] = "Mot de pouvoir : Robustesse",
+		[27841] = "Esprit divin", [10958] = "Protection contre l'Ombre",
+		[1126] = "Marque du fauve", [20217] = "Bénédiction des rois",
+		[6673] = "Cri de guerre", [19740] = "Bénédiction de puissance",
 	},
 }
 -- Each spell's own icon file id, which the renderer draws as a tile in the

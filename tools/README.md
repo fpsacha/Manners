@@ -62,7 +62,7 @@ The listing images for CurseForge, Wago and the README, all 1280 wide:
 | `manners-prompt.png` | the prompt for somebody who buffed you, glowing |
 | `manners-reasons.png` | the five reasons somebody is offered, each in its colour, in the order they rank |
 | `manners-ledger.png` | the favour ledger with a day of ordinary play in it |
-| `manners-languages.png` | the prompt and its list in German, Russian and Simplified Chinese |
+| `manners-languages.png` | the prompt and its list in German, French and Simplified Chinese |
 | `manners-palette.png` | the standard reason colours beside the colour-blind set |
 
 These are **renders of the addon, not captures from the game**, and nothing
