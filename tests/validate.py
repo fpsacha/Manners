@@ -563,63 +563,35 @@ if not _rl_bad:
     print("  ok  notes, version, suites, commit, master, then the tag (%d libraries)"
           % _libs)
 
-print("\n== the screenshot generator refuses to guess ==")
-# tools/make-screenshots.py reads the prompt's geometry out of Core.lua and its
-# colours out of Prompt.lua. A value it cannot find used to fall back to a
-# number restated in the script -- one of them already wrong, green where the
-# addon draws cyan -- with a note on stderr and exit status 0, so the CI step
-# that exists to notice a renamed setting could not. --strict, which CI passes,
-# makes a fallback a failure; that is run here against a Core.lua with the
-# width renamed, which it must refuse before drawing anything. And the
-# fallbacks themselves must still be the addon's values, so a local run
-# without --strict draws the right thing too.
-import shutil, subprocess, tempfile
-_ss_src = open(os.path.join(ROOT, "tools", "make-screenshots.py"), encoding="utf-8").read()
-_core_src = open(os.path.join(ROOT, "Core.lua"), encoding="utf-8").read()
-_prompt_src = open(os.path.join(ROOT, "Prompt.lua"), encoding="utf-8").read()
+print("\n== the listing images refuse what they cannot vouch for ==")
+# tools/make-screenshots.py draws the listing images with the renderers, from
+# the addon on the mock client, so nothing about the prompt is restated there
+# to go stale. What --strict adds is refusing, rather than drawing, a picture
+# that would show something other than what it claims: a state the addon cannot
+# reach, the wrong person or reason on the prompt, a translation still in
+# English, a script the face cannot draw. It needs Pillow and a CJK face, which
+# this suite does not have, so it runs in ci.yml's images job -- and a strict
+# run that could never refuse would pass there every time, so that job also
+# shows it refusing an addon whose German was emptied. Checked here is that the
+# job still does both.
+_ci = open(os.path.join(ROOT, ".github", "workflows", "ci.yml"), encoding="utf-8").read()
+_img = re.search(r"^  images:\n(.*?)(?=^  \w|\Z)", _ci, re.M | re.S)
+_img = _img.group(1) if _img else ""
 _ss_bad = 0
-for _key, _fb in re.findall(r'\bdefault\("(\w+)", ([0-9.]+)\)', _ss_src):
-    _m = re.search(r"^\t{3}" + _key + r" = ([0-9.]+),", _core_src, re.M)
-    if not _m:
-        print("  make-screenshots.py cannot find prompt.%s in Core.lua" % _key)
-        _ss_bad += 1
-    elif float(_m.group(1)) != float(_fb):
-        print("  make-screenshots.py's fallback for %s is %s; Core.lua says %s"
-              % (_key, _fb, _m.group(1)))
-        _ss_bad += 1
-for _key, _fb in re.findall(r'\breason_colour\("(\w+)", \(([0-9, ]+)\)\)', _ss_src):
-    _m = re.search(r"^\t" + _key + r" = \{ ([0-9.]+), ([0-9.]+), ([0-9.]+) \}",
-                   _prompt_src, re.M)
-    _want = tuple(round(float(_m.group(i)) * 255) for i in (1, 2, 3)) if _m else None
-    _have = tuple(int(x) for x in _fb.split(","))
-    if _want is None:
-        print("  make-screenshots.py cannot find REASON_COLOR.%s in Prompt.lua" % _key)
-        _ss_bad += 1
-    elif _want != _have:
-        print("  make-screenshots.py's fallback for %s is %s; Prompt.lua draws %s"
-              % (_key, _have, _want))
-        _ss_bad += 1
-_tmp = tempfile.mkdtemp()
-try:
-    os.makedirs(os.path.join(_tmp, "tools"))
-    shutil.copy(os.path.join(ROOT, "tools", "make-screenshots.py"),
-                os.path.join(_tmp, "tools"))
-    shutil.copy(os.path.join(ROOT, "Prompt.lua"), _tmp)
-    with open(os.path.join(_tmp, "Core.lua"), "w", encoding="utf-8") as _f:
-        _f.write(re.sub(r"^(\t{3})width = ", r"\1panelWidth = ", _core_src,
-                        count=1, flags=re.M))
-    _r = subprocess.run([sys.executable, os.path.join(_tmp, "tools",
-                                                      "make-screenshots.py"), "--strict"],
-                        capture_output=True, text=True)
-    if _r.returncode == 0 or "refusing to draw" not in _r.stderr:
-        print("  make-screenshots.py --strict drew with prompt.width missing from"
-              " Core.lua (exit %d) -- CI cannot see a renamed setting" % _r.returncode)
-        _ss_bad += 1
-finally:
-    shutil.rmtree(_tmp, ignore_errors=True)
+if not re.search(r"make-screenshots\.py --strict\s*$", _img, re.M):
+    print("  ci.yml's images job does not run make-screenshots.py --strict -- a picture"
+          " of something the addon no longer builds would be drawn and pass")
+    _ss_bad += 1
+# The grep for the refusal's own words, not the phrase anywhere: the job's
+# comments use it too.
+if (not re.search(r"make-screenshots\.py --strict --addon", _img)
+        or not re.search(r'^\s*grep -q "still in English"', _img, re.M)):
+    print("  ci.yml's images job no longer shows --strict refusing an emptied translation"
+          " -- a strict run that cannot fail would pass unnoticed")
+    _ss_bad += 1
 fail += _ss_bad
 if not _ss_bad:
-    print("  ok  a missing value fails --strict, and every fallback is the addon's own")
+    print("  ok  CI draws the listing images strictly, and shows strict refusing")
 
 print("\n== version consistency ==")
 # Every toc carries a Version line -- the source and each generated one -- and
