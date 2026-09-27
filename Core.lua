@@ -6,22 +6,19 @@
 -- and parks that decision on a secure button. Prompt.lua owns that button;
 -- this file works out what goes on it.
 
-local ADDON, ns = ...
+-- The file's arguments are the addon's folder name and its namespace table.
+local ns = select(2, ...)
 -- Player-facing text, in the client's language: see Locales/Init.lua.
 local L = ns.L
 
-local AceAddon = LibStub("AceAddon-3.0")
-local addon = AceAddon:NewAddon(ADDON, "AceEvent-3.0", "AceConsole-3.0", "AceTimer-3.0")
+local addon = LibStub("AceAddon-3.0"):NewAddon((...), "AceEvent-3.0", "AceConsole-3.0", "AceTimer-3.0")
 ns.addon = addon
 
 local MANA = (Enum and Enum.PowerType and Enum.PowerType.Mana) or 0
 
--- The label for the entry Bindings.xml adds to Options > Keybindings, in a
--- section of its own called Manners. This client's game menu has no Key
--- Bindings entry; the Keybindings page of Options is the only way there.
---
--- The binding is the client's own CLICK form, so its name is not a Lua
--- identifier and the label has to be set through _G.
+-- The label for Bindings.xml's entry under Options > Keybindings (this client's
+-- game menu has no Key Bindings entry). A CLICK binding's name is not a Lua
+-- identifier, so the label is set through _G.
 _G["BINDING_NAME_CLICK MannersPrompt:LeftButton"] = L["Buff the prompted player"]
 
 ---------------------------------------------------------------------------
@@ -49,22 +46,10 @@ local function safecall(fn, ...)
 end
 
 -- One token swapped for one piece of text, with the text never read as a
--- pattern.
---
--- gsub treats a *string* replacement as a template of its own, in which % is an
--- escape: "%1" means the first capture and a lone "%" in front of anything else
--- throws from inside gsub. Every substitution in this addon puts free text into
--- that position -- the four reason lines and the spoken phrases are boxes
--- somebody types into, and "10% left" is exactly what goes in the top-up
--- wording -- so one per-cent sign threw on every repaint of the prompt. A
--- function replacement is handed back verbatim and has no escapes at all.
---
--- Here rather than in Prompt.lua because both files substitute into text the
--- user wrote, and one of them getting this right on its own is how it came to
--- be wrong in the other.
---
--- The parentheses are not decoration: gsub returns the match count as a second
--- value, and without them it rides along into whatever this feeds.
+-- pattern. A string replacement is a gsub template in which "%" is an escape,
+-- and the reason lines and phrases are typed by the player ("10% left"); a
+-- function replacement is returned verbatim. Shared here so Core and Prompt
+-- cannot disagree. The parentheses drop gsub's second return, the match count.
 function ns.Swap(text, token, value)
 	return ((text or ""):gsub(token, function() return value or "" end))
 end
@@ -72,32 +57,16 @@ end
 ---------------------------------------------------------------------------
 -- failure handling
 --
--- Errors in an addon are invisible unless the player has turned script errors
--- on, and a handler that dies takes everything after it with it -- a repeating
--- timer whose function throws simply stops, silently, which is what "the
--- prompt never appeared" looks like from the outside. Anything that can fail
--- goes through here so the failure is named instead.
+-- Script errors are invisible unless the player turned them on, and a repeating
+-- timer whose function throws simply stops. Anything that can fail goes through
+-- here so the failure is named instead.
 ---------------------------------------------------------------------------
 
+-- The last thirty failures (Guard wraps the tick, so one can repeat 2.5 times a
+-- second), the count of all of them ever, and which labels have been announced.
 ns.errors = {}
-
--- How many failures there have ever been, as opposed to how many are still in
--- the list above. The list is a ring thirty deep, so its length stops being the
--- answer to "how much has broken" the moment the thirty-first thing breaks --
--- and the two readings want opposite responses. Thirty failures in a session is
--- a bug to report; thirty thousand is a handler firing on every frame, which is
--- the shape of the problem that made a cap necessary in the first place.
 ns.errorCount = 0
-
--- Which labels have already said something out loud. One flag for the whole
--- session meant the first failure was the only one anybody ever heard about,
--- and something unrelated breaking an hour later was silent.
 ns.shouted = {}
-
--- Guard wraps the tick, so a failure that repeats does so two and a half times
--- a second. Capped like ns.console is, and for the same reason: an unbounded
--- list of the same line is not a better diagnostic than thirty of them.
-local ERROR_LIMIT = 30
 
 function ns.Guard(label, fn, ...)
 	local ok, err = pcall(fn, ...)
@@ -109,7 +78,7 @@ function ns.Guard(label, fn, ...)
 	err = tostring(err)
 	ns.errorCount = (ns.errorCount or 0) + 1
 	ns.errors[#ns.errors + 1] = { at = date("%H:%M:%S"), where = label, err = err }
-	while #ns.errors > ERROR_LIMIT do table.remove(ns.errors, 1) end
+	while #ns.errors > 30 do table.remove(ns.errors, 1) end
 
 	if not ns.shouted[label] then
 		ns.shouted[label] = true
@@ -119,10 +88,8 @@ function ns.Guard(label, fn, ...)
 			ns.addon:Print(L["|cffff4040something broke in %s|r -- %s |cff808080(%s for the rest)|r"]
 				:format(label, err, "/manners errors"))
 		end
-		-- And the page, once per new failure rather than on every repeat of a
-		-- tick that keeps throwing. Diagnostics went on reading "Nothing has
-		-- broken this session" over a failure that had just happened. Not for
-		-- a failure of the repaint itself, which would only ask it to fail again.
+		-- Repaint Diagnostics once per new failure, but not for a failure of
+		-- the repaint itself, which would only fail again.
 		if ns.RepaintOptions and label ~= "options repaint" and label ~= "broker text" then
 			ns.RepaintOptions()
 		end
@@ -133,23 +100,11 @@ end
 ---------------------------------------------------------------------------
 -- telling the settings UI that something changed under it
 --
--- Two things on screen are drawn from the profile and never re-read it on
--- their own. AceConfig asks a control for its value, its name and its `hidden`
--- only while it is drawing, so an open options page goes on showing whatever
--- was true when it was last painted; and the broker launcher's text is a
--- string somebody assigned once.
---
--- Everything that changes a setting from somewhere other than the control for
--- it comes through here: the slash commands, the minimap button's right-click,
--- and the two ends of a fight (which change no setting but do change what the
--- Prompt tab is allowed to say). Without it, /manners off leaves the Enable
--- box ticked and the red "Manners is switched off" notice -- written for
--- exactly that moment -- hidden.
---
--- Both halves are optional and both are guarded. Options.lua may not have
--- loaded at all, the libraries behind it are fetched with the silent flag, and
--- failing to repaint a window must never be the thing that takes down the
--- handler that changed the setting.
+-- AceConfig reads a control's value, name and `hidden` only while drawing, and
+-- the broker text is assigned once, so anything that changes a setting outside
+-- its own control (slash commands, the minimap right-click, a fight starting
+-- or ending) calls this. Both halves are optional and guarded: Options.lua may
+-- not have loaded, and a failed repaint must not take down the caller.
 ---------------------------------------------------------------------------
 
 function ns.RepaintOptions()
@@ -165,13 +120,8 @@ end
 -- defaults
 ---------------------------------------------------------------------------
 
--- LibSharedMedia's sound table ships with one entry, "None", whose value is
--- the number 1: PlaySoundFile accepts it and plays nothing. With no media
--- addon installed there is nothing to default to, so register one of our own
--- (Prompt.lua does the registering, next to the only code that plays it). A
--- file id rather than a path -- Register only validates strings, and paths
--- under Sound\ are rejected outright. Prefixed with the addon name so it is
--- obvious where it came from in everyone else's sound dropdown.
+-- LibSharedMedia ships only "None", so Prompt.lua registers a sound of our own.
+-- A file id rather than a path, because Register rejects paths under Sound\.
 ns.SOUND_KEY = "Manners alert"
 ns.SOUND_FILE = 567458
 
@@ -183,13 +133,8 @@ local defaults = {
 
 		buff = {
 			choice = "auto",
-			-- Which of the class list are switched off, as a sparse set of
-			-- keys: switched on is the absence of a key, so a profile nobody
-			-- has touched stores nothing at all and every profile written
-			-- before the walk existed arrives with the whole list on. Keys are
-			-- class-unique -- "might" exists only for a paladin -- so a profile
-			-- shared between characters cannot have one class switching off
-			-- another's spells.
+			-- The class's spells switched off, as a sparse set (absent = on).
+			-- Keys are class-unique, so a shared profile cannot cross classes.
 			skip = {},
 		},
 
@@ -199,56 +144,38 @@ local defaults = {
 			strangers = true, -- nearby non-group players
 			owedClassBuffsOnly = true, -- ignore stray HoTs and procs
 			-- People who ask for your buff in chat. Off, because reading chat is
-			-- guesswork however careful the rules are: now and then somebody who
-			-- is only talking about a buff will be put on the prompt, and a
-			-- source that can be wrong about who wants something is one the
-			-- player should choose. See "people who ask for a buff".
+			-- guesswork, so the player should choose it.
 			asked = false,
 		},
 
-		-- Who reaches the top of the queue, as opposed to who is on it at all.
-		-- Its own section rather than a line in `sources` or `filters`, because
-		-- it is neither: everybody it applies to is already on the list, and
-		-- this only changes the order.
+		-- The order of the queue, not who is on it.
 		priority = {
 			target = true, -- a deliberate target outranks a favour owed
-			-- Your friends and guildmates ahead of the rest of your group and
-			-- the rest of the passers-by. On from the start because it only
-			-- reorders people who were going to be offered anyway: nobody is
-			-- added or dropped by it, and a friend waiting behind a stranger is
-			-- never what anybody wanted.
+			-- Friends and guildmates ahead of the rest of their kind. On,
+			-- because it only reorders people who were offered anyway.
 			friends = true,
 		},
 
-		-- People never to offer anything to, by the name they are filed under,
-		-- as a set: name -> true. Filled by shift-right-clicking the prompt, the
-		-- Who to buff tab or /manners never. Somebody on it who buffs you is still
-		-- offered the favour back -- see BuildQueue for why.
+		-- People never to offer anything to, as a set of filed names. Somebody
+		-- on it who buffs you is still offered the favour back (STATUS.md).
 		never = {},
 
 		filters = {
 			relevantOnly = true, -- skip people the buff does nothing for
 			requireInRange = true,
-			-- How near a passer-by has to be, as opposed to merely castable on.
-			-- cast | near | beside, and "near" rather than "cast" because the
-			-- old behaviour is the one that produced the complaint: Arcane
-			-- Intellect reaches thirty yards, a city square holds twenty-odd
-			-- nameplates, and everybody the game would let you cast on got a
-			-- card. "In range" is a far weaker idea of near me than a person's.
+			-- How near a passer-by has to be: cast | near | beside. Not "cast",
+			-- because thirty yards of a city square is twenty-odd nameplates.
 			proximity = "near",
-			-- Passers-by only in a city or an inn, where the game calls you
-			-- resting. Off, because it takes away offers somebody gets today.
+			-- Passers-by only where the game calls you resting.
 			restingOnly = false,
 			reachableOnly = true, -- hide people we cannot actually reach
 			restoreTarget = true, -- hand your target back after buffing
 			whenBuffed = "skip", -- skip | refresh | always
 			refreshUnder = 5, -- minutes left before a top-up is offered
 			minLevel = 1,
-			-- Off by default, because the prompt has always stayed up on a
-			-- mount and a press there takes you off it -- which somebody who
-			-- buffs from the saddle between pulls may well want. Dead, a
-			-- taxi and a vehicle need no switch: nothing can be cast in any of
-			-- them, so BuildQueue offers nobody there whatever this says.
+			-- Off, because a press on a mount dismounts you, which somebody
+			-- buffing from the saddle may want. Dead, taxi and vehicle need no
+			-- switch: nothing can be cast there, so BuildQueue offers nobody.
 			hideMounted = false,
 		},
 
@@ -257,22 +184,15 @@ local defaults = {
 			retryCooldown = 12,
 			scanInterval = 0.4,
 			graceSeconds = 45,
-			-- Whether a debt outlives the session it was incurred in. A favour
-			-- noticed a minute before a disconnect is the case it exists for;
-			-- anybody who would rather a reload wiped the slate turns it off,
-			-- and the file goes with it.
+			-- Whether a debt survives a reload or disconnect.
 			keepDebts = true,
 		},
 
 		prompt = {
 			locked = true,
-			-- Just above where the action bars sit, not over the middle of the
-			-- world. The old default put a 220x44 panel that eats mouse clicks
-			-- across the centre of the play area, where it covers whatever you
-			-- are looking at and swallows the presses aimed at it -- and the
-			-- only way out was the unlock, drag, lock dance. Anchored to the
-			-- bottom edge so it keeps its distance from the bars at any
-			-- resolution, which a CENTER offset does not.
+			-- Just above the action bars rather than over the play area, where
+			-- it would swallow clicks. The bottom edge keeps that distance at
+			-- any resolution, which a CENTER offset does not.
 			point = "BOTTOM",
 			relPoint = "BOTTOM",
 			x = 0,
@@ -281,13 +201,9 @@ local defaults = {
 			height = 44,
 			scale = 1,
 			alpha = 1,
-			-- Named for what it used to attempt rather than what it does. The
-			-- panel cannot be hidden in a fight at all -- Blizzard refuses
-			-- Hide() on a protected frame -- so the only thing left reading
-			-- this is the combat branch in Prompt:Refresh, where it suppresses
-			-- the click-outcome flash. The key keeps the old spelling because
-			-- renaming it is a silent settings reset for everybody who has
-			-- touched it; the label on the options page says the true thing.
+			-- Only suppresses the click-outcome flash in a fight: Hide() on a
+			-- protected frame is refused in combat. The key keeps its old name
+			-- because renaming it would silently reset everyone's setting.
 			hideInCombat = false,
 
 			style = "glass",
@@ -296,10 +212,7 @@ local defaults = {
 			reasonPalette = "standard",
 			accentMode = "icon", -- icon | stripe | both | off
 			flashStyle = "pulse", -- pulse | once | off
-			-- full | calm. Full adds the motion: a ring and a band of light
-			-- when a buff lands, a shake when one is refused, the panel
-			-- catching the light when somebody buffs you and fading out after
-			-- the last buff. Calm is the prompt without any of that.
+			-- full | calm: calm is the prompt without the animations.
 			effects = "full",
 			-- The global cooldown swept over the spell icon.
 			showCooldown = true,
@@ -319,30 +232,16 @@ local defaults = {
 
 			format = "{name}",
 			showSub = true,
-			-- Short on purpose: the 220px default width will not take a qualifier
-			-- on top of "needs {buff}", and the icon already names the spell.
-			--
-			-- These six are the prompt's own words, so they start out in the
-			-- player's language. Nothing compares a stored line against them:
-			-- AceDB keeps a line only once somebody has typed their own.
+			-- Short to fit the 220px default width. They start in the player's
+			-- language; AceDB stores a line only once somebody types their own.
+			-- Each reason has its own words, so colour is never the only cue.
 			reasonTarget = L["your target"],
 			reasonOwed = L["buffed you"],
-			-- Group and passer-by used to carry the same sentence, which left
-			-- the colour of the ring as the only thing separating them -- no
-			-- use to somebody who cannot see that difference, and no use to
-			-- anybody reading the queue rows at a glance. They say which now.
 			reasonGroup = L["in your group"],
 			reasonNearby = L["needs {buff}"],
-			-- Somebody who asked for it in chat. Its own line rather than one
-			-- of the others: "needs {buff}" is a guess read off their auras,
-			-- and this is them saying so.
 			reasonAsked = L["asked for it"],
-			-- A top-up is a different offer from a missing buff, and the four
-			-- lines above are the user's to rewrite -- "needs {buff}" is only
-			-- what they start with, so qualifying it here would throw away
-			-- whatever they typed. The refresh case gets a line of its own
-			-- instead, the same way the unverified one does. {time} is what
-			-- the aura they are already carrying has left to run.
+			-- A top-up gets its own line rather than qualifying the player's
+			-- text. {time} is what their current aura has left.
 			reasonRefresh = L["expires in {time}"],
 			reasonUnknown = L["unverified"],
 			classColor = true,
@@ -352,25 +251,19 @@ local defaults = {
 			enabled = false,
 			channel = "SAY",
 			onlyWhenReturning = true,
-			-- Filled in at load from the Roleplay set, so the defaults live in
-			-- one place rather than being duplicated here.
+			-- Filled in at load from the Roleplay set.
 			phrases = "",
 		},
 
-		-- owedOnly by default because the flash already works that way: the
-		-- pulse fires for a favour owed and nothing else, while the sound fired
-		-- for every stranger who walked past, so the two disagreed about who is
-		-- worth interrupting for.
+		-- owedOnly, to match the flash, which only pulses for a favour owed.
 		sound = { enabled = false, file = ns.SOUND_KEY, owedOnly = true },
 		minimap = { hide = false },
 	},
 }
 ns.defaults = defaults
 
--- Whether a first line says anything at all. The prompt's name line is drawn
--- from it, and an empty or blank one is a prompt that names nobody -- asked by
--- the repair at load and by the box's own setter, so the two cannot disagree
--- about what an empty line is.
+-- Whether the prompt's first line says anything at all; shared by the repair at
+-- load and the box's setter so they agree on what an empty line is.
 function ns.UsableFormat(text)
 	return type(text) == "string" and text:find("%S") ~= nil
 end
@@ -384,262 +277,190 @@ ns.caps = caps
 
 local playerClass
 
--- The client's own name for a spell id, or nil if it has never heard of it.
---
--- Both routes, because they are different generations of the same call and no
--- client this addon supports has only one of them. A nil from both is the
--- answer that matters: it means this id does not exist here.
+-- The client's own name for a spell id, or nil when this client does not have
+-- the id. Both generations of the call are tried.
 local function SpellNameFor(id)
 	return safecall(C_Spell and C_Spell.GetSpellName, id)
 		or safecall(_G.GetSpellInfo, id)
 end
 
-local function ProbeBuff(buff)
-	local info = { key = buff.key, buff = buff }
-
-	for _, id in ipairs(buff.ranks) do
-		if safecall(_G.IsSpellKnown, id) == true or safecall(_G.IsPlayerSpell, id) == true then
-			info.known = true
-			info.topRank = info.topRank or id
-		end
-	end
-	for _, id in ipairs(buff.group or {}) do
-		if safecall(_G.IsSpellKnown, id) == true or safecall(_G.IsPlayerSpell, id) == true then
-			info.knownGroup = true
-		end
-	end
-
-	-- The name resolves whether or not we know the rank, and every rank shares
-	-- it, so the macro can cast by name and let the game pick the best one.
-	info.name = SpellNameFor(buff.ranks[1])
-	info.icon = safecall(C_Spell and C_Spell.GetSpellTexture, buff.ranks[1])
-
-	-- Ids this client has never heard of.
-	--
-	-- A wrong spell id has no symptom. The buff is never offered, nothing
-	-- throws, and the addon simply goes quiet about one spell -- which reads
-	-- exactly like a class that does not have it. Four of the five clients this
-	-- addon ships for cannot be tested by anybody who works on it, so the data
-	-- is checked against the client it is actually running on and the mismatch
-	-- is said out loud in /manners debug and on the Diagnostics page.
-	--
-	-- Every id rather than the first, because a group id that does not resolve
-	-- is the more likely mistake and the more invisible one: casting still
-	-- works and only the "are they already carrying it" check is dead.
-	--
-	-- A client that has not finished loading its spell data answers nil for
-	-- everything, which would be a false accusation -- that is why the probe
-	-- re-runs on SPELLS_CHANGED and why this is a line in a diagnostic rather
-	-- than a popup at load.
-	info.unresolved = {}
-	for _, id in ipairs(buff.auraIds) do
-		if not SpellNameFor(id) then
-			info.unresolved[#info.unresolved + 1] = id
-		end
-	end
-
-	-- Secrecy is decided per spell. Long-duration class buffs are the most
-	-- likely to stay readable, which is what the "who is missing it" feature
-	-- rests on, so record every id rather than sampling one.
-	info.secrecy = {}
-	local readable = 0
-	for _, id in ipairs(buff.auraIds) do
-		local secret
-		if C_Secrets and type(C_Secrets.ShouldSpellAuraBeSecret) == "function" then
-			secret = safecall(C_Secrets.ShouldSpellAuraBeSecret, id)
-		end
-		if secret == nil and C_Secrets and type(C_Secrets.GetSpellAuraSecrecy) == "function" then
-			local level = safecall(C_Secrets.GetSpellAuraSecrecy, id)
-			if level ~= nil and Enum and Enum.SecrecyLevel then
-				secret = (level ~= Enum.SecrecyLevel.NeverSecret)
-			end
-		end
-		info.secrecy[id] = secret
-		if secret == false then readable = readable + 1 end
-	end
-	info.readable = caps.getUnitAuraBySpellID and readable > 0
-
-	return info
-end
-
--- Does this client still hand addons the combat log?
---
--- Asked by trying it. Where the log is gone the client throws on registration
--- rather than accepting it and staying quiet, so one pcall'd RegisterEvent
--- answers it now instead of waiting for an event that may never arrive. A frame
--- of our own rather than the addon object, because Ace's registry would keep
--- the subscription and the handler list afterwards.
---
--- The frame is made once and reused: ProbeCapabilities runs again on every
--- SPELLS_CHANGED, and a client that leaks one frame per talent change is a
--- worse bug than the one this answers.
-local probeFrame
-local function ProbeCombatLog()
-	if type(_G.CreateFrame) ~= "function" then return nil end
-	if not probeFrame then
-		local made, frame = pcall(_G.CreateFrame, "Frame")
-		if not made then return nil end
-		probeFrame = frame
-	end
-	if type(probeFrame) ~= "table" or type(probeFrame.RegisterEvent) ~= "function" then
-		return nil
-	end
-
-	local ok = pcall(probeFrame.RegisterEvent, probeFrame, "COMBAT_LOG_EVENT_UNFILTERED")
-	if ok then
-		pcall(probeFrame.UnregisterEvent, probeFrame, "COMBAT_LOG_EVENT_UNFILTERED")
-	end
-	return ok
-end
-
--- Whether UnitName's second return is a surname here rather than a realm.
---
--- Asked from the aura scan and from the queue, both of which can run before the
--- first capability probe has finished, so it reads ns.Flavour -- settled at load
--- and never re-decided -- rather than caps. caps.unitNameIsSurname is this same
--- answer, copied there for the bug report and set from this function so the two
--- cannot come apart.
+-- Whether UnitName's second return is a surname here rather than a realm. Reads
+-- ns.Flavour, settled at load, because callers can run before the first probe;
+-- caps.unitNameIsSurname is set from this so the two cannot disagree.
 local function SurnameClient()
 	return (ns.Flavour and ns.Flavour.flavour) == "camelot"
 end
 
-function ns.ProbeCapabilities()
-	wipe(caps)
-	caps.buffs = {}
+-- The probe's helpers, in a block of their own for the main chunk's 200 locals.
+do
+	local function ProbeBuff(buff)
+		local info = { key = buff.key, buff = buff }
 
-	-- What measures nearness is decided from the spellbook, the bags and the
-	-- libraries present, and this is the one place that runs when any of those
-	-- may have changed -- it is what SPELLS_CHANGED calls. A bucket edge worked
-	-- out before a spell was learned is a measurement of a different spellbook,
-	-- and a source written off an hour ago has had no chance to come back.
-	ns.ForgetProximity()
+		for _, id in ipairs(buff.ranks) do
+			if safecall(_G.IsSpellKnown, id) == true or safecall(_G.IsPlayerSpell, id) == true then
+				info.known = true
+				info.topRank = info.topRank or id
+			end
+		end
+		for _, id in ipairs(buff.group or {}) do
+			if safecall(_G.IsSpellKnown, id) == true or safecall(_G.IsPlayerSpell, id) == true then
+				info.knownGroup = true
+			end
+		end
 
-	playerClass = plain(select(2, UnitClass("player")))
-	caps.class = playerClass
+		-- The name resolves whether or not we know the rank, and every rank shares
+		-- it, so the macro can cast by name and let the game pick the best one.
+		info.name = SpellNameFor(buff.ranks[1])
+		info.icon = safecall(C_Spell and C_Spell.GetSpellTexture, buff.ranks[1])
 
-	caps.getUnitAuraBySpellID = type(C_UnitAuras and C_UnitAuras.GetUnitAuraBySpellID) == "function"
-	caps.hasSecrets = type(C_Secrets) == "table"
-	caps.namePlates = type(C_NamePlate and C_NamePlate.GetNamePlates) == "function"
+		-- Ids this client has never heard of. A wrong id has no symptom but silence,
+		-- so the mismatch is named in /manners debug and on the Diagnostics page.
+		-- Every aura id, since a dead group id only breaks the "already has it"
+		-- check. A diagnostic line rather than a popup, because a client still
+		-- loading spell data answers nil for everything (the probe re-runs on
+		-- SPELLS_CHANGED).
+		info.unresolved = {}
+		for _, id in ipairs(buff.auraIds) do
+			if not SpellNameFor(id) then
+				info.unresolved[#info.unresolved + 1] = id
+			end
+		end
 
-	if C_Secrets and type(C_Secrets.ShouldAurasBeSecret) == "function" then
-		caps.aurasSecretNow = safecall(C_Secrets.ShouldAurasBeSecret)
+		-- Secrecy is decided per spell. Long-duration class buffs are the most
+		-- likely to stay readable, which is what the "who is missing it" feature
+		-- rests on, so record every id rather than sampling one.
+		info.secrecy = {}
+		local readable = 0
+		for _, id in ipairs(buff.auraIds) do
+			local secret
+			if C_Secrets and type(C_Secrets.ShouldSpellAuraBeSecret) == "function" then
+				secret = safecall(C_Secrets.ShouldSpellAuraBeSecret, id)
+			end
+			if secret == nil and C_Secrets and type(C_Secrets.GetSpellAuraSecrecy) == "function" then
+				local level = safecall(C_Secrets.GetSpellAuraSecrecy, id)
+				if level ~= nil and Enum and Enum.SecrecyLevel then
+					secret = (level ~= Enum.SecrecyLevel.NeverSecret)
+				end
+			end
+			info.secrecy[id] = secret
+			if secret == false then readable = readable + 1 end
+		end
+		info.readable = caps.getUnitAuraBySpellID and readable > 0
+
+		return info
 	end
 
-	---------------------------------------------------------------------
-	-- what this client is, and what follows from that
-	---------------------------------------------------------------------
+	-- Does this client still hand addons the combat log? Where it is gone,
+	-- registration throws, so one pcall'd RegisterEvent answers it. A frame of our
+	-- own (Ace's registry would keep the subscription), made once because this
+	-- re-runs on every SPELLS_CHANGED.
+	local probeFrame
+	local function ProbeCombatLog()
+		if type(_G.CreateFrame) ~= "function" then return nil end
+		if not probeFrame then
+			local made, frame = pcall(_G.CreateFrame, "Frame")
+			if not made then return nil end
+			probeFrame = frame
+		end
+		if type(probeFrame) ~= "table" or type(probeFrame.RegisterEvent) ~= "function" then
+			return nil
+		end
 
-	-- Flavour.lua decided all of this at load; it is copied onto caps so that
-	-- one table answers "what am I allowed to do here", and so /manners debug
-	-- and the saved probe read it from the same place.
-	local flavour = ns.Flavour or {}
-	caps.flavour = flavour.flavour
-	caps.family = flavour.family
-	caps.interface = flavour.interface
-	-- Carried across because two things need it: the combat-log probe below
-	-- asks only where the client cannot be named, and a bug report from a
-	-- client nobody here has seen is worth marking as exactly that.
-	caps.recognised = flavour.recognised == true
-
-	-- Are secret values actually being enforced, as opposed to the namespace
-	-- merely existing?
-	--
-	-- Probed, because those are different questions and this addon has already
-	-- answered the wrong one. C_Secrets is present on clients where nothing is
-	-- restricted at the moment -- the namespace was backported ahead of the
-	-- restrictions -- so caps.hasSecrets says only that the client knows the
-	-- word. This says whether anything is being kept from us.
-	caps.secretRestrictions = safecall(C_Secrets and C_Secrets.HasSecretRestrictions)
-
-	-- The combat log, which is what "family" means.
-	--
-	-- The family answers it for the four flavours that can be named, and the
-	-- probe only decides a client nobody here has seen. That is the right way
-	-- round: the probe can prove the log is *gone*, because registration
-	-- throws, but it cannot prove it is there -- a client that accepts the
-	-- registration and then never fires the event is exactly how this addon's
-	-- own notes described Forever until this round, and it reads as a yes.
-	-- Asked only where the answer is not already known. On a client we can
-	-- NAME as modern, registering COMBAT_LOG_EVENT_UNFILTERED is the forbidden
-	-- action itself: pcall catches a throw, but a client that answers by
-	-- raising ADDON_ACTION_FORBIDDEN instead puts a popup carrying this addon's
-	-- name in front of the user, for a question the flavour had already
-	-- answered.
-	--
-	-- An UNRECOGNISED client is the opposite case and must still be asked --
-	-- it is the only thing deciding there, and refusing to ask would leave the
-	-- probe unreachable everywhere, which is a check that cannot fire.
-	if caps.recognised and caps.family == "modern" then
-		caps.combatLogProbe = nil
-	else
-		caps.combatLogProbe = ProbeCombatLog()
-	end
-	if flavour.recognised then
-		caps.combatLog = caps.family == "classic"
-	else
-		caps.combatLog = caps.combatLogProbe == true
+		local ok = pcall(probeFrame.RegisterEvent, probeFrame, "COMBAT_LOG_EVENT_UNFILTERED")
+		if ok then
+			pcall(probeFrame.UnregisterEvent, probeFrame, "COMBAT_LOG_EVENT_UNFILTERED")
+		end
+		return ok
 	end
 
-	-- Does the client understand a macro conditional at all -- [@party1,help]?
-	--
-	-- SecureCmdOptionParse is the client's own parser for that syntax, and
-	-- every macro conditional in the game goes through it, so its presence is
-	-- as close to a direct answer as this gets. It says nothing about whether a
-	-- *name* resolves inside one; that is the next question and it has no probe.
-	caps.unitConditionals = type(_G.SecureCmdOptionParse) == "function"
+	function ns.ProbeCapabilities()
+		wipe(caps)
+		caps.buffs = {}
 
-	-- Whether a macro may name a player in a conditional --
-	-- /cast [@Playername,help,nodead] -- instead of targeting them with
-	-- /target, casting, and putting the old target back.
-	--
-	-- ASSUMPTION, and deliberately not dressed up as anything else. Nothing in
-	-- the API answers it: the only way to find out is to arm a macro and watch
-	-- what it casts, which is precisely the mistake this addon exists to stop
-	-- somebody making on a stranger. It rests on one finding -- [@PlayerName]
-	-- resolves only for party and raid members, on every client -- plus the
-	-- fact that the /target route is the only shape ever verified in game here,
-	-- and that was on Camelot. So Camelot keeps the route that is known to
-	-- work and nothing reads this yet; it exists so the flavours nobody can
-	-- test can be told apart when something does.
-	caps.conditionalTargeting = flavour.flavour ~= "camelot"
+		-- What measures nearness depends on the spellbook, bags and libraries, and
+		-- this runs whenever those may have changed (SPELLS_CHANGED).
+		ns.ForgetProximity()
 
-	-- /targetexact matches the whole name where /target matches a prefix, so
-	-- "/target Mort" will happily find Mortimer standing next to Mort and buff
-	-- the wrong person. Probed rather than assumed: it is a client-side command
-	-- and its absence is a fallback, not a failure.
-	local secureCommands = _G.SecureCmdList
-	caps.targetExact = (type(secureCommands) == "table"
-			and type(secureCommands.TARGET_EXACT) == "function")
-		or type(_G.SLASH_TARGET_EXACT1) == "string"
+		playerClass = plain(select(2, UnitClass("player")))
+		caps.class = playerClass
 
-	-- What the second return of UnitName means here.
-	--
-	-- A realm on every client but Camelot, where it is a surname. The two want
-	-- opposite handling -- a surname is joined to the first name with a space,
-	-- a realm is appended with a dash or dropped -- so getting it wrong turns
-	-- "Mort Defrette" into a name no /target will ever find, or shows somebody
-	-- "Mort Ravencrest" as though the realm were part of who they are.
-	-- Surnames are Camelot's alone, so this is a flavour branch and cannot be
-	-- anything else: both returns are strings and neither says which it is.
-	caps.unitNameIsSurname = SurnameClient()
+		caps.getUnitAuraBySpellID = type(C_UnitAuras and C_UnitAuras.GetUnitAuraBySpellID) == "function"
+		caps.hasSecrets = type(C_Secrets) == "table"
+		caps.namePlates = type(C_NamePlate and C_NamePlate.GetNamePlates) == "function"
 
-	caps.anyKnown = false
-	caps.anyReadable = false
-	-- How many of this class's buffs carry an id this client does not have, so
-	-- the readers of caps do not each have to walk the list to find out whether
-	-- there is anything to complain about.
-	caps.unresolvedBuffs = 0
-	for _, buff in ipairs(ns.GetClassBuffs(playerClass) or {}) do
-		local info = ProbeBuff(buff)
-		caps.buffs[buff.key] = info
-		if info.known then caps.anyKnown = true end
-		if info.readable then caps.anyReadable = true end
-		if #info.unresolved > 0 then caps.unresolvedBuffs = caps.unresolvedBuffs + 1 end
+		if C_Secrets and type(C_Secrets.ShouldAurasBeSecret) == "function" then
+			caps.aurasSecretNow = safecall(C_Secrets.ShouldAurasBeSecret)
+		end
+
+		---------------------------------------------------------------------
+		-- what this client is, and what follows from that
+		---------------------------------------------------------------------
+
+		-- Flavour.lua decided all of this at load; copied so one table answers
+		-- "what am I allowed to do here" for /manners debug and the saved probe.
+		local flavour = ns.Flavour or {}
+		caps.flavour = flavour.flavour
+		caps.family = flavour.family
+		caps.interface = flavour.interface
+		caps.recognised = flavour.recognised == true
+
+		-- Whether secrets are enforced right now. C_Secrets exists on clients
+		-- where nothing is restricted, so caps.hasSecrets is not this answer.
+		caps.secretRestrictions = safecall(C_Secrets and C_Secrets.HasSecretRestrictions)
+
+		-- The combat log: the family answers it for a named client, and the probe
+		-- only for one nobody here has seen. The probe can prove the log gone (a
+		-- throw), never present. Never probed on a known modern client, where
+		-- registering may raise ADDON_ACTION_FORBIDDEN, a popup with our name on it.
+		if caps.recognised and caps.family == "modern" then
+			caps.combatLogProbe = nil
+		else
+			caps.combatLogProbe = ProbeCombatLog()
+		end
+		if flavour.recognised then
+			caps.combatLog = caps.family == "classic"
+		else
+			caps.combatLog = caps.combatLogProbe == true
+		end
+
+		-- Whether the client parses macro conditionals like [@party1,help] at all.
+		-- It says nothing about whether a name resolves inside one.
+		caps.unitConditionals = type(_G.SecureCmdOptionParse) == "function"
+
+		-- ASSUMPTION: whether /cast [@Name] can replace /target, cast, target back.
+		-- No API answers it, and [@Name] resolves only for group members, so
+		-- Camelot keeps the /target route, the only one verified in game. Nothing
+		-- reads this yet.
+		caps.conditionalTargeting = flavour.flavour ~= "camelot"
+
+		-- /targetexact matches the whole name where /target matches a prefix
+		-- ("/target Mort" can find Mortimer). A client command, so probed.
+		local secureCommands = _G.SecureCmdList
+		caps.targetExact = (type(secureCommands) == "table"
+				and type(secureCommands.TARGET_EXACT) == "function")
+			or type(_G.SLASH_TARGET_EXACT1) == "string"
+
+		-- UnitName's second return is a surname on Camelot (joined with a space)
+		-- and a realm elsewhere (a dash, or dropped). Nothing in the value says
+		-- which, so this is a flavour branch.
+		caps.unitNameIsSurname = SurnameClient()
+
+		caps.anyKnown = false
+		caps.anyReadable = false
+		-- How many of this class's buffs carry an id this client does not have.
+		caps.unresolvedBuffs = 0
+		for _, buff in ipairs(ns.GetClassBuffs(playerClass) or {}) do
+			local info = ProbeBuff(buff)
+			caps.buffs[buff.key] = info
+			if info.known then caps.anyKnown = true end
+			if info.readable then caps.anyReadable = true end
+			if #info.unresolved > 0 then caps.unresolvedBuffs = caps.unresolvedBuffs + 1 end
+		end
+
+		caps.hasClassBuffs = ns.GetClassBuffs(playerClass) ~= nil
+
+		return caps
 	end
-
-	caps.hasClassBuffs = ns.GetClassBuffs(playerClass) ~= nil
-
-	return caps
 end
 
 function ns.BuffInfo(buff)
@@ -660,16 +481,9 @@ end
 -- which buff for which person
 ---------------------------------------------------------------------------
 
--- Only ever reached in Automatic -- ResolveBuff answers every pin of this
--- class's above it, the unlearned ones with nil -- so a neverAuto buff is
--- skipped here without an exception for the pinned one.
--- Honours the per-spell switches, which it did not, while CastableBuffs did.
--- So everything that names "the spell you are about to cast" -- the login
--- line, the preview panel, the phrase roller that promises to show what would
--- really go out -- named one that had been switched off and would never be
--- offered to anybody. That was only half of it: the paladin's pick in
--- ResolveBuff, above this, went on naming a switched-off Wisdom until it was
--- taught the same rule.
+-- The spell Automatic would name: reached only in Automatic (ResolveBuff answers
+-- pins), so neverAuto is skipped outright. Honours the per-spell switches like
+-- CastableBuffs, so the login line and previews never name a switched-off spell.
 local function FirstKnownBuff()
 	local db = addon.db and addon.db.profile
 	local skip = db and db.buff and db.buff.skip
@@ -681,20 +495,10 @@ local function FirstKnownBuff()
 	end
 end
 
--- Everything of this class the player can actually cast, in list order.
--- Resolved once per scan rather than once per unit.
---
--- A neverAuto buff is left out unless it is the pinned one. Unending Breath is
--- the only one so far: a warlock in a city has it and nobody wants it, so it
--- must never be what the walk hands a passer-by -- but somebody who deliberately
--- pinned it has asked for it, and PickBuffFor gives up before it ever reads the
--- pin if this list comes back empty.
---
--- The per-spell switches are passed over by a pin for the same reason, and the
--- same trap was waiting there: the options page hides the switches while a
--- spell is pinned and says they are left alone, so a priest who switched every
--- spell off and then pinned Fortitude had nothing left on this list -- and was
--- offered nothing, by anybody, with the page promising Fortitude to everybody.
+-- Everything of this class the player can actually cast, in list order, once
+-- per scan. A neverAuto buff (Unending Breath) and a switched-off one are left
+-- out unless pinned: a pin is a deliberate ask, and the options page hides the
+-- switches while a spell is pinned.
 function ns.CastableBuffs()
 	local db = addon.db and addon.db.profile
 	local pinned = db and db.buff.choice
@@ -709,20 +513,11 @@ function ns.CastableBuffs()
 	return out
 end
 
--- Whether everything this character could offer reaches its party and nobody
--- else -- a warrior's Battle Shout, which is cast on yourself and heard by the
--- group.
---
--- BuildQueue rejects a party-only buff for anybody outside the group before the
--- strangers toggle is ever consulted, so for these classes "passers-by" is a
--- promise with nothing behind it. Computed rather than listed by class: it
--- follows the per-spell switches and a pin, so a warrior who learns something
--- else is back to offering strangers on their own. Here rather than on the
--- options page, where it started, because the greeting and the favour line say
--- the same thing and have to agree with the page about it.
---
--- `castable` is CastableBuffs' answer when the caller already has it, which the
--- scan does.
+-- Whether everything this character could offer reaches only its party (a
+-- warrior's Battle Shout), so "passers-by" means nothing for them. Computed
+-- from the switches and pin rather than listed by class; shared by the options
+-- page, the greeting and the favour line so they agree. `castable` is
+-- CastableBuffs' answer when the caller already has it.
 function ns.OnlyReachesGroup(castable)
 	castable = castable or ns.CastableBuffs()
 	if #castable == 0 then return false end
@@ -732,10 +527,8 @@ function ns.OnlyReachesGroup(castable)
 	return true
 end
 
--- The spell pinned for this character, or nil for Automatic -- which is also
--- what a pin belonging to another class means here. One answer, asked by the
--- walk and by the options page, so the page cannot describe a pin the walk is
--- not honouring.
+-- The spell pinned for this character, or nil for Automatic (and for another
+-- class's pin). Shared by the walk and the options page so they agree.
 function ns.PinnedBuff()
 	local db = addon.db and addon.db.profile
 	local choice = db and db.buff and db.buff.choice
@@ -743,27 +536,21 @@ function ns.PinnedBuff()
 	return ns.FindBuff(playerClass, choice)
 end
 
--- PickBuffFor in a block of its own, with the helpers only it reads: Lua 5.1
--- allows the main chunk of a file 200 locals, Core.lua is not far off them, and
--- a file past them does not load at all. tests/validate.py counts what is left.
+-- PickBuffFor in a block of its own with the helpers only it reads, to spare
+-- the main chunk's locals (Lua 5.1 allows 200; tests/validate.py counts them).
 do
-	-- The walk's questions about one candidate, split in two because the exclusive
-	-- branch of PickBuffFor needs the halves apart: "this spell is wrong for this
-	-- person" is permanent for the scan, while "we tried it on them a moment ago"
-	-- is a cooldown, and that branch has to read the auras of a blessing it may not
-	-- offer.
-	--
-	-- inParty rather than inGroup: in a raid "in the group" is all forty and the
-	-- shout reaches the caster's subgroup of five. See SameParty.
+	-- Split in two because the exclusive branch needs the halves apart: "wrong
+	-- spell for this person" holds for the scan, "tried a moment ago" is a
+	-- cooldown. inParty, not inGroup: a shout reaches only the caster's
+	-- subgroup (see SameParty).
 	local function Castable(opts, buff)
 		if opts.relevantOnly and buff.manaOnly and opts.hasMana == false then return false end
 		if buff.partyOnly and not opts.inParty then return false end
 		return true
 	end
 
-	-- opts.blocked is handed opts as well, so the caller's answer can be a
-	-- file-level function reading the person off it rather than a closure made for
-	-- each of them.
+	-- opts.blocked is handed opts, so the caller's answer can be a file-level
+	-- function rather than a closure made per person.
 	local function Blocked(opts, buff)
 		if not opts.blocked then return false end
 		return opts.blocked(buff, opts) == true
@@ -773,50 +560,28 @@ do
 		return Castable(opts, buff) and not Blocked(opts, buff)
 	end
 
-	-- The candidate list a pin reduces the walk to, one table rewritten for every
-	-- call rather than one made per person. Only the walk inside a call reads it.
+	-- The candidate list a pin reduces the walk to, reused for every call.
 	local PINNED_ONLY = {}
 
-	-- Which of their buffs this person should be offered, or nil for none.
+	-- Which of their buffs this person should be offered, or nil for none. Every
+	-- castable buff is walked, so holding the first one never hides somebody.
 	--
-	-- The addon used to resolve exactly one buff per class and check only that
-	-- one, which meant a priest never offered Divine Spirit or Shadow Protection
-	-- and a druid never offered Thorns. Worse, the default "leave them alone if
-	-- they have it" then dropped the person from the queue entirely the moment
-	-- they held the first buff in the list -- so being partly buffed made you
-	-- invisible to the addon.
+	-- `candidates` comes from CastableBuffs. `has(buff)` answers only the aura
+	-- question: has, remaining, and mine (their copy is our cast; nil unknown).
+	--   offerAnyway  offer even when they are covered: we owe them a favour, and
+	--                a refresh takes nothing away.
+	--   rotate       false where there is nothing to walk along: the tokenless
+	--                owed path has one buff per favour and cannot verify it.
 	--
-	-- `candidates` comes from CastableBuffs. `has(buff)` answers the aura question
-	-- and returns has, remaining, mine -- the last one whether what they hold is
-	-- the player's own cast, nil where nothing says. It answers only that
-	-- question: whatever the caller's policy is about who deserves an offer, it
-	-- does not belong in a reading of somebody's auras.
-	--
-	-- Two of the options say so out loud, because both used to arrive disguised as
-	-- a reading instead:
-	--
-	--   offerAnyway  offer this person even when they are covered -- we owe them a
-	--                favour, and the point of a debt is to give something back.
-	--                What is offered is then something they already hold, which is
-	--                a refresh and takes nothing away.
-	--   rotate       false where there is no walk to move along: the tokenless
-	--                owed path has one buff per favour and nothing that could
-	--                verify the first one ever landed.
-	--
-	-- Returns the buff, whether they were found to be holding it -- true, false, or
-	-- nil for "nobody could tell", which callers must keep apart from false -- and,
-	-- for a top-up, how long what they have left to run.
+	-- Returns the buff, whether they hold it (true, false, or nil for "nobody
+	-- could tell", which callers keep apart from false), and for a top-up how
+	-- long theirs has left.
 	function ns.PickBuffFor(candidates, opts, has)
 		local db = addon.db and addon.db.profile
 		if not db or #candidates == 0 then return nil end
 
-		-- A pin means "only ever this one". No walk.
-		--
-		-- Unless it is not one of this class's at all, which on a profile every
-		-- character shares means it is somebody else's: a priest's Divine Spirit,
-		-- read by the mage alt. That reads as Automatic here. It used to read as
-		-- "offer nothing", which is why the pin was reset on login -- for every
-		-- character, the priest who set it included.
+		-- A pin means "only ever this one", no walk. A pin of another class's
+		-- (a profile shared with a priest alt) reads as Automatic.
 		local pinned = ns.PinnedBuff()
 		if pinned then
 			if not ns.IsBuffKnown(pinned) then return nil end
@@ -824,117 +589,53 @@ do
 			candidates = PINNED_ONLY
 		end
 
-		-- The three questions about one candidate are Castable, Blocked and
-		-- Eligible above, made once and handed `opts`, rather than closures made here:
-		-- this runs for every person in the queue and every favour outstanding, two
-		-- and a half times a second, and three closures a call were most of the
-		-- garbage a scan left behind.
-
 		-- Blessings overwrite each other, so holding any one of yours counts as
-		-- covered. Walking would replace what they already have.
-		--
-		-- One of *yours*: blessings from different paladins stack, so another
-		-- paladin's Kings covers nothing of ours -- it only means Kings is not
-		-- ours to give. It used to count as covered, because the aura read never
-		-- asked who had cast what it found: a warrior wearing somebody else's Kings
-		-- was never offered Might, and a paladin we owed, wearing a third paladin's
-		-- Kings, was "repaid" with Kings instead of the Wisdom they lacked. An aura
-		-- that names nobody we can read is still taken as covered -- guessing "not
-		-- mine" there is how our own blessing would be walked over.
-		--
-		-- Which is also the answer to "why does this branch never consult
-		-- ns.lastGave": rotating is a cure for a list that cannot be read, and here
-		-- it would be worse than the disease. Give Might, rotate to Wisdom on the
-		-- next click, and that click has taken the Might away again -- on a client
-		-- that cannot show us auras, with no way to notice. The same blessing
-		-- offered twice merely refreshes it. So this class is handed the first
-		-- eligible blessing and keeps being handed it, deliberately, and
-		-- ns.RotatesBuffs says so to the writers of that table.
+		-- covered and walking would replace it. Another paladin's blessing
+		-- covers nothing of ours (they stack) but is not ours to give; one that
+		-- names nobody we can read counts as ours, or ours would be walked over.
+		-- Never rotated: rotating would take the blessing just given away again,
+		-- where offering the same one twice only refreshes it (ns.RotatesBuffs).
 		if ns.EXCLUSIVE_BUFFS[playerClass] then
 			local pick, allRead, onCooldown = nil, true, false
 			-- The first blessing they carry from another paladin, kept for a debt
 			-- with nothing else left to give: see the end of this branch.
 			local theirs
 			for _, buff in ipairs(candidates) do
-				-- castable rather than eligible: a blessing we tried moments ago is
-				-- exactly the one they are most likely to be carrying, and skipping
-				-- the read of it was how a blessing that had just landed stayed
-				-- invisible -- so the next one down was offered over the top of it.
+				-- Castable rather than Eligible: the blessing we tried moments ago
+				-- is the one they most likely carry, so it must still be read.
 				if Castable(opts, buff) then
-					-- Both returns. The second one was dropped here and read
-					-- everywhere else, which is how the refresh mode came to be
-					-- switched on, described in the options, and dead for the one
-					-- class it is safest on -- see the top-up below.
 					local held, remaining, mine = has(buff)
 					if held == true and mine == false then
-						-- Another paladin's. Not covered, and not ours to offer
-						-- either: ours of the same kind would only replace theirs.
-						-- So the walk moves on to a kind they lack -- unless we
-						-- offered this one moments ago, which is the cooldown rule
-						-- below and still means "wait".
+						-- Another paladin's: ours of the same kind would only
+						-- replace it, so move on to a kind they lack -- unless we
+						-- offered this one moments ago, which still means "wait".
 						if Blocked(opts, buff) then
 							onCooldown = true
 						elseif not theirs then
 							theirs = buff
 						end
 					elseif held == true then
-						-- Covered, and for this class that is the end of it:
-						-- anything else offered replaces what they are carrying.
-						--
-						-- Unless we owe them, in which case the policy is to offer
-						-- anyway -- and the only offer that costs them nothing is
-						-- the blessing they already hold, which is refreshed. That
-						-- policy used to reach this branch disguised as an aura
-						-- reading manufactured one function away, so `held` was
-						-- false for every blessing and this line was unreachable
-						-- for anybody we owed: the walk below then handed them the
-						-- next blessing down and took away the one just given.
-						--
-						-- Except when we have just offered it. A blessing on
-						-- cooldown means this person was offered one moments ago,
-						-- and the answer to that is to wait, not to reach for a
-						-- different one. First, because it outranks both of the
-						-- reasons below for offering somebody a buff they hold.
+						-- Covered, and for this class that is the end of it. First
+						-- the cooldown: offered one moments ago means wait.
 						if Blocked(opts, buff) then return nil, true end
 
-						-- The top-up, which this branch managed to miss twice over:
-						-- the timer was thrown away with the second return, and
-						-- whenBuffed was never consulted at all -- so "offer a
-						-- top-up when it is running out" did nothing whatever for a
-						-- paladin. It is the one class where topping up is the
-						-- safest thing the addon can do: recasting the blessing
-						-- somebody already holds replaces it with itself, where
-						-- every other offer this branch could make replaces it with
-						-- a different one.
-						--
-						-- Ahead of the debt below, which is how the ordinary path
-						-- orders the same two answers: `expiring` is returned there
-						-- before `offerAnyway and firstHeld`. A timer running out is
-						-- the more urgent thing to say, and it is the only one of
-						-- the two the queue can say at all -- `remaining` is what
-						-- puts the top-up wording on the prompt, and a favour is
-						-- already named by its own reason line.
+						-- The top-up, safest on this class: recasting a blessing
+						-- replaces it with itself. Ahead of the debt, as on the
+						-- ordinary path, since only `remaining` puts the top-up
+						-- wording on the prompt.
 						if opts.whenBuffed == "refresh" and remaining
 							and remaining <= (opts.refreshUnder or 5) * 60 then
 							return buff, true, remaining
 						end
 
-						-- Ours, or nobody's we can name -- never another paladin's,
-						-- which the branch above has already walked past: recasting
-						-- that would replace their blessing, not refresh ours. A debt
-						-- owed to somebody wearing only other paladins' blessings is
-						-- repaid with the first kind they lack, below -- or, with none
-						-- left, with the first of theirs, at the end of the branch.
+						-- A debt is repaid with the blessing they already hold
+						-- from us (or from nobody we can name), which refreshes it.
 						if not opts.offerAnyway then return nil, true end
 						return buff, true
 					else
-						-- "They are carrying none of mine" is established only once
-						-- every one of them has read back a definite no. Claiming it
-						-- on an answer that never came promotes a guess over a real
-						-- debt in BuildQueue, which gates that promotion on has ==
-						-- false for exactly this reason, and suppresses the
-						-- unverified wording on the prompt. For this class that was
-						-- every single pick.
+						-- "None of mine" only once every one has read back a
+						-- definite no: BuildQueue promotes over a debt on has ==
+						-- false, and the prompt drops the unverified wording.
 						if held ~= false then allRead = false end
 						if Blocked(opts, buff) then
 							onCooldown = true
@@ -944,51 +645,28 @@ do
 					end
 				end
 			end
-			-- The rotation again, arriving by the other door. The per-buff cooldown
-			-- is there so a priest's walk can reach Divine Spirit while Fortitude
-			-- settles; for a class whose buffs overwrite each other it did the one
-			-- thing the comment above forbids -- click Wisdom, be offered Might
-			-- four tenths of a second later, and take the Wisdom away. A blessing
-			-- on cooldown means this person was just offered one, so the answer is
-			-- to leave them alone until it lifts.
-			--
-			-- It used to read `onCooldown and not allRead`, which closed the
-			-- unreadable route and left the readable one open. A client that
-			-- answers is not the safeguard that carve-out took it for: the aura
-			-- cache is three seconds deep and the blessing was armed a fraction of
-			-- a second ago, so the definite "they hold none of yours" being read
-			-- here is, in the ordinary case, the reading taken *before* the cast --
-			-- evidence about the moment before the click, offered as evidence about
-			-- the click. Acting on it walks the paladin off the blessing just given
-			-- by the one door still open.
+			-- A blessing on cooldown means this person was just offered one: leave
+			-- them alone until it lifts, readable or not. The aura cache is three
+			-- seconds deep, so a "none of yours" here is usually the reading from
+			-- before the cast, and acting on it would replace the blessing just given.
 			if onCooldown then return nil, nil end
 			-- A debt, and every blessing we could give is already on them from
-			-- another paladin: a young paladin who knows only Might, owing somebody
-			-- who wears somebody else's. The walk above found no kind they lack, and
-			-- ending there offered nobody anything while chat had said the favour
-			-- was on the prompt. The policy for a debt is to offer anyway, even
-			-- what they already have, and ours of the same kind only replaces
-			-- theirs -- which is what that policy means for every other class.
+			-- another paladin: offer anyway, as the debt policy does for every class.
 			if not pick and opts.offerAnyway and theirs then return theirs, true end
-			-- Spelled out rather than collapsed: `allRead and false or nil` is nil
-			-- either way, because false loses the and-branch to the or -- and the
-			-- whole subject here is the difference between false and nil.
+			-- Spelled out: `allRead and false or nil` is always nil.
 			if allRead then return pick, false end
 			return pick, nil
 		end
 
-		-- Three answers per candidate, and they do not mean the same thing: they
-		-- have it, they definitely do not, and the client would not say. Something
-		-- lacked outright beats everything else, in list order.
+		-- Three answers per candidate: they have it, they definitely do not, and
+		-- the client would not say. Something lacked outright wins, in list order.
 		local expiring, expiringRemaining
 		-- Where the rotation below starts, and what it falls back to, gathered on
-		-- the way past. Two upvalues rather than a list of the unknown ones: this
-		-- runs for every person in range, two and a half times a second.
+		-- the way past rather than as a list (this runs 2.5 times a second).
 		local last = ns.lastGave and ns.lastGave[opts.name]
 		local firstUnknown, afterLast, seenLast
-		-- The first thing they are known to be carrying, kept for the one caller
-		-- that wants it: we owe this person, so they are offered even when covered,
-		-- and a buff they already hold is the offer that takes nothing away.
+		-- The first thing they are known to carry, for a debt: the offer that
+		-- takes nothing away.
 		local firstHeld
 		for _, buff in ipairs(candidates) do
 			if Eligible(opts, buff) then
@@ -1008,60 +686,38 @@ do
 			end
 		end
 
-		-- Nothing they are definitely missing, but something nobody could read --
-		-- the client will not show their auras, or the mode says not to look. There
-		-- is no truth to go on, so rotate past whatever was given last rather than
-		-- offering the top of the list forever: the per-buff cooldown moves the walk
-		-- along for twelve seconds and then hands it straight back.
-		--
-		-- This sat below the loop and could not be reached from it, because the loop
-		-- returned on anything that was not a hard true -- so ns.lastGave was written
-		-- on every click and read by nothing.
+		-- Nothing definitely missing, but something nobody could read: with no
+		-- truth to go on, rotate past whatever was given last rather than offering
+		-- the top of the list forever. The tokenless owed path (rotate == false)
+		-- asks for the first thing it could cast.
 		if firstUnknown then
-			-- Where there is no walk, there is nothing to move along. The tokenless
-			-- owed path gives one buff per favour and can verify none of it, so it
-			-- asks for the first thing it could cast and not the next one down.
 			if opts.rotate == false then return firstUnknown, nil end
 			return afterLast or firstUnknown, nil
 		end
 
 		if expiring then return expiring, true, expiringRemaining end
 
-		-- Nothing missing, nothing running out -- and a favour outstanding. The
-		-- policy is to offer them anyway; what it is not is a claim that they are
-		-- missing something, which is how it used to be spelled and what walked a
-		-- paladin off the blessing just given. Offering what they already hold is
-		-- honest about both halves: they are being offered because of the debt, and
-		-- `true` says the client told us they are covered.
+		-- Nothing missing, nothing running out, and a favour outstanding: offer
+		-- what they already hold, with `true` saying they are covered.
 		if opts.offerAnyway and firstHeld then return firstHeld, true end
 
 		return nil, true
 	end
 end
 
--- hasMana is passed in rather than read here so the caller can reuse it.
---
--- The one spell named as "the spell you are about to cast" -- by the login
--- line, the preview, Roll a few, {spell} and /manners look -- so it has to be
--- a spell the queue would really offer, or nil when it would offer none.
+-- The one spell named as "the spell you are about to cast" (login line,
+-- preview, Roll a few, {spell}, /manners look), so it must be one the queue
+-- would really offer, or nil. hasMana is passed in so the caller can reuse it.
 function ns.ResolveBuff(hasMana)
 	local db = addon.db and addon.db.profile
 	if not db then return nil end
 
-	-- A pin of this class's is the only spell the walk ever considers, learned
-	-- or not. An unlearned one used to fall through to Automatic here, so a
-	-- low-level alt on a profile whose priest had pinned Divine Spirit was told
-	-- "Ready to cast Power Word: Fortitude" and shown a preview of it -- while
-	-- PickBuffFor, reading the same pin, offered nobody anything. Asked through
-	-- PinnedBuff so a pin that belongs to another class still reads as
-	-- Automatic, as it does in the walk.
+	-- A pin is the only spell the walk considers, learned or not, so an
+	-- unlearned pin names nothing rather than falling through to Automatic.
 	local pinned = ns.PinnedBuff()
 	if pinned then return ns.IsBuffKnown(pinned) and pinned or nil end
 
-	-- The switches and the never-automatic rule apply to this pick as they do
-	-- to the walk. Without them a paladin with Wisdom switched off was told at
-	-- every login that Wisdom was what would be cast, while the queue offered
-	-- Might.
+	-- The switches and the never-automatic rule apply here as in the walk.
 	local auto = ns.CLASS_AUTO[playerClass]
 	if auto then
 		local key = hasMana and auto.mana or auto.other
@@ -1075,10 +731,8 @@ function ns.ResolveBuff(hasMana)
 	return FirstKnownBuff()
 end
 
--- Why ResolveBuff has nothing to name, said as the setting that decides it.
--- Four characters get nil there and "no buff learned" was said to all four --
--- to a priest with all three spells learned and every one switched off, who
--- would go looking for a trainer rather than for the switches.
+-- Why ResolveBuff has nothing to name, said as the setting that decides it, so
+-- a priest with every spell switched off is not sent to a trainer.
 function ns.NothingToCast()
 	local pinned = ns.PinnedBuff()
 	if pinned and not ns.IsBuffKnown(pinned) then
@@ -1111,16 +765,10 @@ ns.nameplateUnits = {}
 -- unit inspection
 ---------------------------------------------------------------------------
 
--- auraCache[guid][buffKey] = { at, has, expires, mine }. Swept periodically: a
--- city can put hundreds of players through here in a session and nothing else
--- would ever remove them.
---
--- Two levels rather than one composed string key, because invalidation is the
--- hot path: UNIT_AURA fires constantly and used to build one key per class buff
--- every time -- six concatenations for a paladin -- where a whole player now
--- goes in a single assignment. The count is of players, and is kept honest in
--- both directions; the flat version only ever counted upwards, so deletions
--- dragged it to the sweep threshold as readily as new people did.
+-- auraCache[guid][buffKey] = { at, has, expires, mine }, swept periodically
+-- because a city puts hundreds of players through here. Keyed by player so
+-- UNIT_AURA, the hot path, forgets a whole player in one assignment; the count
+-- is of players.
 local auraCache = {}
 local auraCacheCount = 0
 
@@ -1134,10 +782,7 @@ local lastSweep = 0
 
 local function SweepAuraCache(now)
 	if auraCacheCount < 400 then return end
-	-- The count is a floor, not a trigger: once the table is big it stays big
-	-- in a city, and the old version reset the count to zero after each sweep
-	-- to avoid walking it every tick. The count is honest now, so the rate has
-	-- to be limited here instead.
+	-- A big table stays big in a city, so the sweep is also rate-limited.
 	if (now - lastSweep) < 10 then return end
 	lastSweep = now
 
@@ -1146,18 +791,14 @@ local function SweepAuraCache(now)
 		for _, entry in pairs(perUnit) do
 			if not newest or entry.at > newest then newest = entry.at end
 		end
-		-- A whole player at a time: their buffs are read together and go stale
-		-- together, so there is nothing to gain from keeping half of one.
 		if not newest or (now - newest) > 10 then ForgetUnitAuras(guid) end
 	end
 end
 
--- Returns has, secondsRemaining, mine. `has` is nil when the client will not
--- let us look -- at any one of the buff's ids, since the one it hid may be the
--- one they are wearing; `secondsRemaining` is nil when the buff is there but
--- its timer is not readable, which is a different thing from "about to
--- expire". `mine` says whether what was found is the player's own cast: true,
--- false, or nil when the aura names nobody we can read.
+-- Returns has, secondsRemaining, mine. `has` is nil when the client refuses any
+-- one of the buff's ids (the hidden one may be the one they wear);
+-- `secondsRemaining` is nil when the timer is unreadable, not "about to expire";
+-- `mine` is nil when the aura names nobody we can read.
 local function UnitHasBuff(unit, buff, guid)
 	local info = ns.BuffInfo(buff)
 	if not info or not info.readable then return nil, nil end
@@ -1169,14 +810,9 @@ local function UnitHasBuff(unit, buff, guid)
 		return cached.has, cached.expires and (cached.expires - now) or nil, cached.mine
 	end
 
-	-- Refusals are counted rather than read as absence. This started at false
-	-- and stayed there both for an id passed over because the client declared
-	-- it secret and for a read that threw or came back secret, which safecall
-	-- and plain turn into the same nil an empty slot is -- so somebody wearing
-	-- Arcane Brilliance, on a client hiding that one id, was "definitely not
-	-- carrying Arcane Intellect". BuildQueue promotes a target over a debt on
-	-- exactly that definite no, and the prompt drops the wording that says the
-	-- reading could not be taken.
+	-- Refusals (an id declared secret, a read that throws or comes back secret)
+	-- are counted, not read as absence: BuildQueue promotes a target over a debt
+	-- on a definite no, and the prompt drops its unverified wording.
 	local has, expires, mine, refused = false, nil, nil, false
 	for _, id in ipairs(buff.auraIds) do
 		if info.secrecy[id] == true then
@@ -1189,10 +825,8 @@ local function UnitHasBuff(unit, buff, guid)
 				has = true
 				local expiration = plain(aura.expirationTime)
 				if type(expiration) == "number" and expiration > 0 then expires = expiration end
-				-- Whose it is, for the one class that needs to know: a paladin's
-				-- blessings overwrite each other, another paladin's do not. Only
-				-- a token we can read answers, and isFromPlayerOrPlayerPet would
-				-- not -- it is true for any player's aura, not for ours.
+				-- Whose it is, for a paladin's blessings. isFromPlayerOrPlayerPet
+				-- is true for any player's aura, so only a readable token answers.
 				local source = plain(aura.sourceUnit)
 				if type(source) == "string" then
 					local same = safecall(UnitIsUnit, source, "player")
@@ -1204,18 +838,16 @@ local function UnitHasBuff(unit, buff, guid)
 	end
 	if not has and refused then has = nil end
 
-	-- A negative answer is cached too, or the walk re-reads every buff for every
-	-- person on every tick -- which is the whole reason this table exists. A
-	-- refusal is cached as the nil it is, never as the false it used to become.
+	-- Negative answers are cached too (a refusal as nil), or the walk re-reads
+	-- every buff for every person on every tick.
 	if guid then
 		if not perUnit then
 			perUnit = {}
 			auraCache[guid] = perUnit
 			auraCacheCount = auraCacheCount + 1
 		end
-		-- A reading that went stale is rewritten where it stands rather than
-		-- replaced: nothing outside this function holds one, and a crowd
-		-- turns every one of them over every three seconds.
+		-- A stale reading is rewritten in place: nothing else holds one, and a
+		-- crowd turns them all over every three seconds.
 		if cached then
 			cached.at, cached.has, cached.expires, cached.mine = now, has, expires, mine
 		else
@@ -1225,27 +857,17 @@ local function UnitHasBuff(unit, buff, guid)
 	return has, expires and (expires - now) or nil, mine
 end
 
--- Classes that have a mana bar at all. Used when the client will not tell us a
--- unit's power directly -- which for the tokenless owed fallback is always, since
--- it has the class and nothing else.
---
--- The two below the vanilla seven are the later flavours'. A monk and an evoker
--- have a mana bar; left off, a Mists monk who buffed you was judged manaless
--- the moment their nameplate went, and dropped for Arcane Brilliance by the
--- same fallback that offered them a second earlier. A death knight and a demon
--- hunter really have none, and stay out.
+-- Classes that have a mana bar, for when the client will not tell us a unit's
+-- power (always, on the tokenless owed path). Monk and evoker have one; death
+-- knight and demon hunter do not.
 local MANA_CLASSES = {
 	MAGE = true, PRIEST = true, WARLOCK = true,
 	DRUID = true, PALADIN = true, HUNTER = true, SHAMAN = true,
 	MONK = true, EVOKER = true,
 }
 
--- Returns true, false, or nil for "cannot tell".
---
--- UnitPowerMax comes back as a secret value for players outside your group on
--- this client, which made every stranger look like they had no mana and got
--- them all filtered out before they could ever reach the prompt. Class is not
--- secret, so it answers the same question when power will not.
+-- Returns true, false, or nil for "cannot tell". UnitPowerMax is a secret value
+-- for players outside your group here; class is not, so it answers instead.
 local function UnitHasMana(unit)
 	local maxMana = plain(UnitPowerMax(unit, MANA))
 	if maxMana ~= nil then return maxMana > 0 end
@@ -1266,11 +888,8 @@ local function IsBuffableUnit(unit, f)
 	if plain(UnitIsUnit(unit, "player")) then return false end
 	if plain(UnitIsPlayer(unit)) ~= true then return false end
 	if plain(UnitIsDeadOrGhost(unit)) == true then return false, true end
-	-- Only a definite refusal is a judgement about the person. plain() collapses
-	-- a withheld answer to nil, so testing "not true" here recorded somebody
-	-- standing right in front of you as rejected on the strength of a value the
-	-- client simply would not show -- and the tokenless fallback then honoured
-	-- that rejection, which is the exact case it exists to reach.
+	-- Only a definite refusal is a judgement about the person: a withheld
+	-- answer is nil, and the tokenless fallback exists to reach exactly those.
 	local canAssist = plain(UnitCanAssist("player", unit))
 	if canAssist ~= true then return false, canAssist == false end
 	if plain(UnitIsConnected(unit)) == false then return false, true end
@@ -1301,22 +920,11 @@ local function InRange(unit, buff)
 	return (r == true or r == 1)
 end
 
--- Whether a partyOnly buff the player casts reaches this unit.
---
--- Not the question "are they in my group", which is what used to be asked. In a
--- raid UnitInRaid answers with an index for every member of it, and vanilla's
--- Battle Shout reaches the caster's own subgroup and nobody else -- so a warrior
--- in a forty-man raid was offered thirty-five people the shout cannot reach,
--- every twelve seconds, and a press counted as repaying whichever of them was
--- owed. UnitInSubgroup is what the Camelot class-buff reminder asks for its
--- shouts; where the client has not got it, the raid roster says which subgroup
--- each member is in.
---
--- Only where the buff set says so. The later flavours made their shouts
--- raid-wide, and there everybody in the raid is inside one.
---
--- `inRaid` is the scan's own reading of IsInRaid, asked once for everybody;
--- nil asks here.
+-- Whether a partyOnly buff the player casts reaches this unit. In a raid a
+-- vanilla shout reaches only the caster's subgroup (ns.PARTY_IS_SUBGROUP; later
+-- flavours made it raid-wide): UnitInSubgroup where the client has it, as the
+-- Camelot class-buff reminder uses, else the raid roster. `inRaid` is the
+-- scan's reading of IsInRaid; nil asks here.
 local function SameParty(unit, inRaid)
 	if not unit then return false end
 	if inRaid == nil then inRaid = plain(IsInRaid and IsInRaid()) == true end
@@ -1337,36 +945,17 @@ local function SameParty(unit, inRaid)
 	return theirs ~= nil and theirs == ours
 end
 
--- How far a shout carries: twenty yards, and thirty with all of Booming Voice.
-local SHOUT_YARDS = 30
--- The follow prompt, CheckInteractDistance index 4: about twenty-eight yards,
--- the nearest thing to a shout's reach the client will answer about. Looser than
--- an untalented shout, so somebody twenty-five yards off can pass it; what it
--- cannot do is pass somebody sixty yards off, which is the failure it is for.
-local INTERACT_FOLLOW = 4
-
 -- Whether a shout would reach this unit: true, false, or nil for nothing could
--- tell.
+-- tell. InRange cannot answer it: a self-cast spell has no range to anybody.
 --
--- InRange cannot answer it. A shout is cast on yourself and has no range to
--- anybody, and the client answers nil -- "could not tell", which the queue lets
--- through -- so a party member sixty yards away, or in another zone, was
--- offered Battle Shout and counted as repaid by it.
---
--- The follow prompt first, because it is asked directly and a refusal stays a
--- refusal. LibRangeCheck only after it, and only to say yes: its search reads a
--- check that would not answer as "further out" -- see DirectCheck -- so its "far"
--- can be a refusal in disguise, and turning somebody away on that would drop a
--- party member standing beside you. Its "within" has no such doubt about it.
---
--- Not the follow prompt in a fight. It is restricted there for a friendly unit
--- -- the game blocks the call and names the addon for it, which no pcall
--- catches -- and the scan never builds the queue in a fight, but /manners debug
--- does. LibRangeCheck is still asked: it switches to its in-combat checkers by
--- itself.
+-- The follow prompt (CheckInteractDistance 4, about 28 yards) first, where a
+-- refusal stays a refusal. LibRangeCheck only after it and only to say yes
+-- within 30 yards (a talented shout), since its "far" can be a refusal in
+-- disguise (see DirectCheck). Never the follow prompt in a fight: the game
+-- blocks it for a friendly unit and names the addon, which no pcall catches.
 local function ShoutReach(unit)
 	if not InCombatLockdown() then
-		local follow = safecall(_G.CheckInteractDistance, unit, INTERACT_FOLLOW)
+		local follow = safecall(_G.CheckInteractDistance, unit, 4)
 		if follow ~= nil then return follow == true or follow == 1 end
 	end
 
@@ -1375,7 +964,7 @@ local function ShoutReach(unit)
 		and safecall(stub.GetLibrary, stub, "LibRangeCheck-3.0", true) or nil
 	if type(lib) == "table" and type(lib.GetRange) == "function" then
 		local _, maxRange = safecall(lib.GetRange, lib, unit)
-		if type(maxRange) == "number" and maxRange <= SHOUT_YARDS then return true end
+		if type(maxRange) == "number" and maxRange <= 30 then return true end
 	end
 	return nil
 end
@@ -1383,32 +972,17 @@ end
 ---------------------------------------------------------------------------
 -- how near is near
 --
--- Spell range is not nearness. Arcane Intellect reaches thirty yards, a city
--- square holds twenty-odd nameplates, and offering everybody the game would
--- let you cast on is what the author, standing in one, called noise. So the
--- passer-by scan gets a second, tighter distance of its own.
+-- Spell range is not nearness: thirty yards of a city square is twenty-odd
+-- nameplates. So passers-by, and only passers-by, get a tighter distance of
+-- their own; the owed, the group and your target carry their own evidence.
 --
--- Only the passer-by scan. Somebody who buffed you was demonstrably close
--- enough moments ago, your group is your group, and a unit you are pointing at
--- you chose on purpose -- all three carry their own evidence of nearness, and
--- none of them is what filled the queue.
---
--- Nothing in the client answers "how many yards away is this player" directly,
--- so every signal below is an approximation with its own failure mode, and the
--- ladder is ordered by how good the approximation is. Which rung is in use is
--- said out loud in /manners debug, because a filter that has quietly stopped
--- measuring looks exactly like a quiet evening.
+-- Nothing in the client answers "how many yards away" directly, so each signal
+-- below is an approximation, ordered best first, and the rung in use is named
+-- in /manners debug: a filter that stopped measuring looks like a quiet evening.
 ---------------------------------------------------------------------------
 
--- The three named distances, loosest first.
---
--- Named for what a player perceives rather than in yards: nobody can judge ten
--- yards from inside the game, and everybody can judge "right beside me". The
--- numbers exist only to be handed to whichever signal is measuring, and the
--- options page is where the yardage is admitted to.
---
--- "cast" is today's behaviour said out loud rather than an absence. A setting
--- whose loosest position is the old one is a setting somebody can undo.
+-- The three named distances, loosest first, named for what a player perceives
+-- rather than in yards.
 local PROXIMITY = {
 	{ key = "cast", yards = nil, name = L["Anywhere I can cast"], about = L["about 30 yards"] },
 	{ key = "near", yards = 10, name = L["Nearby"], about = L["about 10 yards"] },
@@ -1416,60 +990,8 @@ local PROXIMITY = {
 }
 ns.PROXIMITY = PROXIMITY
 
-local PROXIMITY_BY_KEY = {}
-for _, tier in ipairs(PROXIMITY) do PROXIMITY_BY_KEY[tier.key] = tier end
-
--- The duel prompt, CheckInteractDistance index 3.
---
--- Eight yards for most races, six for a tauren and seven for the undead: the
--- prompt is measured from the player, and those two stand further off. The
--- figures are LibRangeCheck's -- its DefaultInteractList and InteractLists,
--- the only measurement of the prompt anywhere in the tree. This used to say
--- ten, and then a flat eight, while that library said otherwise, so the same
--- client call was reported as "really 8yd" through one rung and "really 6yd"
--- through the other, and a tauren's "Nearby" dropped people between six and
--- eight yards while claiming eight. Older clients put it nearer ten, which is
--- why the page says "about".
---
--- Index 2 is the trade prompt at about nine and index 1 and 4 are about
--- twenty-eight -- no tighter than the spell this would be filtering, so they
--- are no use here. LibRangeCheck's own interact table dropped 2 and kept 3, on
--- a modern client, which is the only evidence available about which of them
--- still answers; this follows it rather than guessing differently.
-local INTERACT_DUEL = 3
-local INTERACT_DUEL_RACE = { Tauren = 6, Scourge = 7 }
-
--- Keyed on UnitRace's second return, the file name, which is the one the
--- library keys on too: the first is translated, and the undead are "Scourge"
--- there and "Undead" on screen.
-local function InteractDuelYards()
-	local _, race = safecall(_G.UnitRace, "player")
-	return INTERACT_DUEL_RACE[race] or 8
-end
-
--- A rung that resolved and then answered for nobody at all costs a call per
--- person and adds nothing, so a run of silence this long drops it from the
--- ladder for a while. It no longer lets anybody through while it lasts: a
--- rung that cannot tell hands the person to the one below it, so this saves
--- work rather than keeping the filter honest. Generous on purpose -- a quiet
--- corner of the world with two people in it must not drop anything.
-local PROX_BLIND_LIMIT = 40
-
--- How long a dropped rung stays dropped before it is tried again. Not reset by
--- the capability probe: that runs on every SPELLS_CHANGED, and a talent change
--- moves a bucket edge -- it does not make a withheld GUID readable -- so
--- clearing the list there put a rung that had just been dropped for answering
--- nobody straight back, several times a minute.
-local PROX_DEAD_RETRY = 60
-
--- How often the ladder is resolved again. The scan runs two and a half times a
--- second, LibStub misses cost a pcall each, and an edge can move under it when
--- the library finishes building its lists or a spell is learned.
-local PROX_RETRY = 5
-
--- What is doing the measuring, how well it is going, and why. Read by
--- /manners debug, by /manners look and by the options page, which is the whole
--- of the promise that this never fails silently.
+-- What is doing the measuring, how well it is going, and why, for /manners
+-- debug, /manners look and the options page.
 local prox = {
 	source = nil, -- the first rung asked, nil when nothing is measuring
 	yards = nil, -- what that rung really tests, which is not always what was asked
@@ -1483,330 +1005,11 @@ local prox = {
 }
 ns.proximity = prox
 
--- Rungs dropped for answering nobody, by name, and when.
-local proxDead = {}
--- People in a row each rung has had nothing to say about, by name. Kept apart
--- from the ladder, which is rebuilt every few seconds, so a rebuild cannot wipe
--- the evidence that one of its rungs is deaf.
-local proxBlind = {}
-
--- The ladder resolved for one distance, and when.
-local proxState = { want = nil, ladder = {}, at = -1 }
-
--- The ladder, best first. Each builds a function answering "is this unit within
--- `want` yards" as true, false, or nil for cannot tell -- and, second, whether
--- the client call under it answered at all, which is what the silence above is
--- counted on. Plus the distance it really tests, and its mode. Returning nil
--- means this rung is not available here.
--- Above this, a step is loose enough that a much tighter bucket standing in
--- for it would visibly drop people. At or below it, the step is already asking
--- for melee and a melee bucket is the answer, not a substitute.
-local PROX_LOOSE_FROM = 6
-
--- Asks the client call a LibRangeCheck edge stands for, directly.
---
--- The library's own checkers flatten the one answer that matters here. Its
--- interact checker is `CheckInteractDistance(...) and true or false` and its
--- item checker is `IsItemInRange(...) or nil`, and GetRange's search reads a
--- nil as "further out" -- so on a client that will not answer about a stranger
--- everybody came back as twenty-eight to forty yards, a person standing a yard
--- away included, and "Nearby" dropped the whole square while reporting that it
--- had answered for all of them. A value the client withheld reads as true
--- through `and true or false`, which flipped it the other way. Asked here, a
--- refusal stays a refusal. One call a person, too, where GetRange makes up to
--- five.
---
--- nil for an edge backed by a spell, whose checker answers true or nothing and
--- for which GetRange is all there is.
-local function DirectCheck(lib, edge)
-	local list = lib.friendRC
-	if type(list) ~= "table" then return nil end
-	for _, rc in ipairs(list) do
-		if type(rc) == "table" and rc.range == edge then
-			local info = tostring(rc.info or "")
-			local index = tonumber(info:match("^interact:(%d+)$"))
-			if index then
-				return function(unit)
-					local r = safecall(_G.CheckInteractDistance, unit, index)
-					if r == nil then return nil end
-					return r == true or r == 1
-				end
-			end
-			local item = tonumber(info:match("^item:(%d+)$"))
-			local inRange = (C_Item and C_Item.IsItemInRange) or _G.IsItemInRange
-			if item and type(inRange) == "function" then
-				return function(unit)
-					local r = safecall(inRange, item, unit)
-					if r == nil then return nil end
-					return r == true or r == 1
-				end
-			end
-			return nil
-		end
-	end
-	return nil
-end
-
-local PROX_SOURCES = {
-	{
-		name = "LibRangeCheck-3.0",
-		build = function(want)
-			-- Optional, and fetched with the silent flag, which is the promise
-			-- that nil is handled. The test harness hands back a table with
-			-- nothing in it for every library it has not been taught, so what
-			-- is tested is the method rather than the table.
-			--
-			-- Through GetLibrary, not by calling LibStub itself. LibStub is a
-			-- table made callable by a metatable, and safecall refuses
-			-- anything that is not a function -- so handing it LibStub came
-			-- back nil every time, and in the game this rung was never built:
-			-- "Nearby" cut at the duel prompt and "Right beside me" offered the
-			-- same people as "Nearby". The mocks were plain functions, which
-			-- is how nobody saw it.
-			local stub = _G.LibStub
-			local lib = type(stub) == "table" and type(stub.GetLibrary) == "function"
-				and safecall(stub.GetLibrary, stub, "LibRangeCheck-3.0", true) or nil
-			if type(lib) ~= "table" then return nil end
-			if type(lib.GetRange) ~= "function" then return nil end
-			if type(lib.GetFriendMaxChecker) ~= "function" then return nil end
-
-			-- The library builds its checker lists on its own events and has
-			-- none before that has happened. Asking again costs nothing if it
-			-- already has.
-			safecall(lib.init, lib)
-
-			-- What the answer can actually land on.
-			--
-			-- The library answers in buckets whose edges are the range checkers
-			-- this class and this client happen to have, so "within ten yards"
-			-- really means "inside the largest bucket edge at or below ten".
-			-- If the only edge under ten is two, the setting would drop
-			-- everybody not in your pocket -- which is the failure worth more
-			-- than the noise it fixes. Found here, before anybody is dropped,
-			-- rather than discovered by the user.
-			local checker, edge = safecall(lib.GetFriendMaxChecker, lib, want)
-			if type(checker) ~= "function" or type(edge) ~= "number" then return nil end
-			-- Two yards is melee, the tightest distance the game has a word
-			-- for, and nothing below it is a distance at all.
-			--
-			-- Above that the test is relative, and it only applies to the
-			-- looser steps. "Nearby, about ten yards" honoured by a four-yard
-			-- bucket drops most of a square somebody was told would be
-			-- included -- that is a different setting wearing this one's name.
-			-- But the tightest step is ASKING for melee, so a two-yard bucket
-			-- is that step working rather than failing, and refusing it would
-			-- leave the one setting most in need of a signal without one.
-			if edge < 2 then return nil end
-			if want > PROX_LOOSE_FROM and edge * 2 < want then return nil end
-
-			local direct = DirectCheck(lib, edge)
-			if direct then
-				return function(unit)
-					local near = direct(unit)
-					return near, near ~= nil
-				end, edge, "within"
-			end
-
-			return function(unit)
-				-- minRange, maxRange in yards, or nothing at all. The bucket is
-				-- the whole answer: "at most maxRange away" is the only half of
-				-- it that can say yes, because a bucket that straddles the line
-				-- -- eight to twenty-eight, against a wanted ten -- contains
-				-- both a person beside you and a person across the square.
-				--
-				-- So the promise is "certainly within", and it is kept tighter
-				-- than the label rather than looser. The label says about ten;
-				-- the debug line says which edge that turned out to be.
-				local minRange, maxRange = safecall(lib.GetRange, lib, unit)
-				if type(minRange) ~= "number" then return nil, false end
-				return type(maxRange) == "number" and maxRange <= want, true
-			end, edge, "within"
-		end,
-	},
-	{
-		name = "CheckInteractDistance",
-		build = function(want)
-			-- Restricted for non-party units on some modern clients, where it
-			-- answers nothing at all rather than refusing loudly. There is no
-			-- probe for that which is not simply asking about somebody, so this
-			-- rung is built whenever the function exists and dropped by its own
-			-- silence if it turns out to answer for nobody.
-			if type(want) ~= "number" then return nil end
-			if type(_G.CheckInteractDistance) ~= "function" then return nil end
-			local function read(unit)
-				local r = safecall(_G.CheckInteractDistance, unit, INTERACT_DUEL)
-				if r == nil then return nil end
-				return r == true or r == 1
-			end
-
-			local yards = InteractDuelYards()
-			if yards <= want then
-				return function(unit)
-					local near = read(unit)
-					return near, near ~= nil
-				end, yards, "within"
-			end
-
-			-- A step tighter than the prompt. It cannot say anybody is inside
-			-- five yards, but anybody it puts past the prompt's six to eight is
-			-- past five as well, so it answers its "no" and passes on its
-			-- "yes". Declining the step outright left "Right beside me" with
-			-- no signal on every client that has no library -- so the tightest
-			-- step on the page offered everybody in casting range, twice as
-			-- many as the step above it.
-			--
-			-- This is not the older mistake of answering every step as though
-			-- the prompt measured it, which reported ten yards for "right beside
-			-- me" and said nothing more. The mode rides along, and the summary
-			-- says this step is only being ruled out past the prompt's distance.
-			return function(unit)
-				local near = read(unit)
-				if near == nil then return nil, false end
-				if near then return nil, true end
-				return false, true
-			end, yards, "beyond"
-		end,
-	},
-}
-
--- Why the rungs that are missing are missing, all of them. Naming only the last
--- one dropped left the reader to wonder where the better one had gone.
-local function DroppedNote()
-	local names = {}
-	for _, source in ipairs(PROX_SOURCES) do
-		if proxDead[source.name] then names[#names + 1] = source.name end
-	end
-	if #names == 0 then return nil end
-	if #names == 1 then return L["%s answered for nobody, so it was dropped"]:format(names[1]) end
-	-- Two is every rung there is today, so the pair gets a whole sentence of its
-	-- own: a bare " and " spliced into the list left translators a conjunction
-	-- with no sentence around it. The comma list only covers a rung added later.
-	if #names == 2 then return L["%s and %s answered for nobody, so they were dropped"]:format(names[1], names[2]) end
-	return L["%s answered for nobody, so they were dropped"]:format(table.concat(names, ", "))
-end
-
--- Every rung that can measure `want`, best first, resolved at most every
--- PROX_RETRY seconds. What /manners debug and the page describe is the first of
--- them, set here -- so asking for the ladder is also how a summary brings itself
--- up to date with the step that is selected now.
-local function ProxLadder(want)
-	local now = GetTime()
-	if proxState.want == want and now < proxState.at + PROX_RETRY then
-		return proxState.ladder
-	end
-
-	-- A count taken for one step is not a count for another. Left alone, the
-	-- line under the page's dropdown described the previous step's measurement
-	-- under the new step's name until the next scan came round.
-	if proxState.want ~= want then prox.asked, prox.answered = 0, 0 end
-	proxState.want, proxState.at = want, now
-
-	local ladder = {}
-	for _, source in ipairs(PROX_SOURCES) do
-		local droppedAt = proxDead[source.name]
-		if droppedAt and now - droppedAt >= PROX_DEAD_RETRY then
-			proxDead[source.name], proxBlind[source.name] = nil, 0
-			droppedAt = nil
-		end
-		if not droppedAt then
-			local ask, yards, mode = safecall(source.build, want)
-			if type(ask) == "function" then
-				ladder[#ladder + 1] = { name = source.name, ask = ask, yards = yards, mode = mode }
-			end
-		end
-	end
-	proxState.ladder = ladder
-
-	local first, second = ladder[1], ladder[2]
-	prox.source, prox.yards = first and first.name, first and first.yards
-	prox.mode, prox.backup = first and first.mode, second and second.name
-	prox.note = DroppedNote()
-	return ladder
-end
-
--- Forget what was resolved, so the next question resolves it again. Called from
--- the capability probe, which is also what runs on SPELLS_CHANGED: a spell
--- learned or a talent changed rebuilds LibRangeCheck's checker lists, and a
--- bucket edge captured before that is a measurement of something else. Dropped
--- rungs stay dropped -- see PROX_DEAD_RETRY.
-function ns.ForgetProximity()
-	proxState.want, proxState.ladder, proxState.at = nil, {}, -1
-	prox.source, prox.yards, prox.mode, prox.backup = nil, nil, nil, nil
-	prox.asked, prox.answered = 0, 0
-end
-
--- true, false, or nil for "cannot tell". nil is worth offering rather than
--- silently dropping somebody who is probably standing next to you -- the same
--- rule InRange uses, and for the same reason.
---
--- Walked per person: a rung that cannot tell about somebody hands them to the
--- next rung down rather than letting them through. One that answers for some
--- people and not others -- a library whose estimate fails for half the square
--- -- offered the other half unmeasured, from thirty yards, while a working rung
--- sat underneath it.
---
--- `quiet` asks without counting, for /manners look: one person looked at by
--- hand is not part of the last scan, and adding them made "answered for 25 of
--- 25" out of a scan of twenty-four.
-function ns.NearEnough(unit, quiet)
-	local db = addon.db and addon.db.profile
-	local tier = db and db.filters and PROXIMITY_BY_KEY[db.filters.proximity]
-	-- No tier, or the loosest one: nothing to measure, and the queue is what it
-	-- always was.
-	if not tier or not tier.yards then return nil end
-
-	-- Nobody is measured in a fight.
-	--
-	-- Every signal below is restricted there: the interact prompts refuse
-	-- outright for a friendly unit, and LibRangeCheck falls back to a
-	-- spell-only checker list whose every bucket is wider than any setting
-	-- here -- so measuring in combat would drop the whole square on the
-	-- strength of a measurement nobody took. The prompt cannot rearm in a
-	-- fight anyway, so there is nothing to be gained by trying.
-	if InCombatLockdown() then return nil end
-
-	local ladder = ProxLadder(tier.yards)
-	if #ladder == 0 then return nil end
-
-	if not quiet then prox.asked = prox.asked + 1 end
-	local verdict, heard = nil, false
-	for _, rung in ipairs(ladder) do
-		local near, answered = safecall(rung.ask, unit)
-		if answered == true then
-			heard = true
-			if not quiet then proxBlind[rung.name] = 0 end
-		elseif not quiet then
-			local silent = (proxBlind[rung.name] or 0) + 1
-			proxBlind[rung.name] = silent
-			if silent > PROX_BLIND_LIMIT then
-				-- It is here and it is saying nothing. Asking it costs a call a
-				-- person for no answer, so it sits out for a while.
-				proxDead[rung.name], proxBlind[rung.name] = GetTime(), 0
-				prox.note = DroppedNote()
-				proxState.at = -1
-			end
-		end
-		if near ~= nil then
-			verdict = near
-			break
-		end
-	end
-	if heard and not quiet then prox.answered = prox.answered + 1 end
-	return verdict
-end
-
--- Whether the game calls the player resting -- in a city or an inn: true,
--- false, or nil for could not tell.
---
--- Written out rather than put through safecall, because safecall hands back a
--- withheld answer as nil and the old API said "not resting" with a nil. So a
--- plain nil is read as no, and only a missing function, a throw or a value
--- withheld as a secret is could-not-tell -- which BuildQueue reads as resting,
--- since a setting the client cannot answer must not quietly empty the queue.
---
--- Up here rather than beside BuildQueue because the distance summary below
--- asks it too: with passers-by left alone out in the world, nobody is measured,
--- and the summary has to say why.
+-- Whether the game calls the player resting (a city or an inn): true, false, or
+-- nil for could not tell. Not through safecall: the old API says "not resting"
+-- with a plain nil, so only a missing function, a throw or a secret is
+-- could-not-tell, which BuildQueue reads as resting so the queue never empties
+-- on a question the client will not answer.
 local function Resting()
 	if type(_G.IsResting) ~= "function" then return nil end
 	local ok, value = pcall(_G.IsResting)
@@ -1815,93 +1018,336 @@ local function Resting()
 	return value == true or value == 1
 end
 
--- One line saying what is measuring nearness and how it is getting on, for
--- /manners debug and for the options page. Built here rather than at either
--- call site so the two cannot come to disagree about what the same state means.
---
--- About the step selected now. It described whatever the last scan left behind,
--- and AceConfig redraws the page straight after the dropdown's setter, before
--- any scan -- so choosing "Right beside me" put the previous step's rung and
--- counts under the new step's name, and they stayed there until something else
--- repainted the page. Asking for the ladder first brings it up to date.
-function ns.ProximitySummary()
-	local db = addon.db and addon.db.profile
-	local tier = db and db.filters and PROXIMITY_BY_KEY[db.filters.proximity]
-	-- For translators: a state, "no distance has been chosen", not the verb. It
-	-- stands alone after "proximity:" in /manners debug and on the options page.
-	if not tier then return L["unset"] end
-	if not tier.yards then return L["%s -- nothing is measured"]:format(tier.name) end
+-- The ladder's private state and helpers, in a block of their own for the main
+-- chunk's 200 locals (Lua 5.1).
+do
+	local PROXIMITY_BY_KEY = {}
+	for _, tier in ipairs(PROXIMITY) do PROXIMITY_BY_KEY[tier.key] = tier end
 
-	local out = ("%s (%s)"):format(tier.name, tier.about)
+	-- The duel prompt, CheckInteractDistance index 3: eight yards, six for a tauren
+	-- and seven for the undead (LibRangeCheck's figures, the only measurement of
+	-- it). Indexes 1, 2 and 4 are no tighter than a spell, and LibRangeCheck keeps
+	-- only 3 on a modern client.
+	local INTERACT_DUEL = 3
+	local INTERACT_DUEL_RACE = { Tauren = 6, Scourge = 7 }
 
-	-- The setting is about passers-by and nothing else, and with them switched
-	-- off it measures nobody. Saying "no signal, so everybody is offered" under
-	-- a queue that offers no passer-by at all was the line contradicting itself.
-	if db.sources and db.sources.strangers == false then
-		return L["%s -- passers-by are switched off, so nobody is measured"]:format(out)
-	end
-	-- The same for a class whose every buff is heard by its group alone -- a
-	-- warrior's shout. Strangers are never offered anything, so BuildQueue does
-	-- not measure them, and a line about how the measuring is going would be
-	-- about a filter nobody reaches.
-	if ns.OnlyReachesGroup() then
-		return L["%s -- your buffs reach only your group, so nobody is measured"]:format(out)
-	end
-	-- And for passers-by left alone because the player is out in the world.
-	-- BuildQueue turns every one of them down before the distance check, so the
-	-- counts stay at nothing and "nobody measured yet" sat there for as long as
-	-- the player stayed out -- directly above the switch that caused it, reading
-	-- as a distance setting that had stopped working. The same question
-	-- BuildQueue asks, so the two cannot disagree: only a definite "not resting".
-	if db.filters.restingOnly == true and Resting() == false then
-		return L["%s -- you are out in the world and passers-by are only offered in cities and inns, so nobody is measured"]
-			:format(out)
+	-- Keyed on UnitRace's second return, the untranslated file name the library
+	-- keys on too ("Scourge", not "Undead").
+	local function InteractDuelYards()
+		local _, race = safecall(_G.UnitRace, "player")
+		return INTERACT_DUEL_RACE[race] or 8
 	end
 
-	-- Said first, because it is the state the line is most often read in and
-	-- it overrides everything after it. Nothing is measured during a fight --
-	-- every signal is restricted there -- so the passer-by queue is whatever
-	-- it would have been with no filter at all, and a summary that went on to
-	-- describe a working source was describing one that is not consulted.
-	if InCombatLockdown() then
-		return L["%s |cffffd100-- stood down while in combat, so distance is not being measured|r"]:format(out)
-	end
+	-- A rung silent for this many people in a row answers for nobody, so it is
+	-- dropped for a while to save the calls (anybody it cannot tell about goes to
+	-- the rung below anyway). Generous, so a quiet corner drops nothing.
+	local PROX_BLIND_LIMIT = 40
 
-	ProxLadder(tier.yards)
-	if prox.source then
-		-- Floored rather than printed raw: the edge arrives from a library that
-		-- rounds its own way, and "really 8.0yd" reads as a number somebody
-		-- calculated rather than a bucket the client happens to have.
-		--
-		-- One whole sentence for each of the four shapes, the backup rung
-		-- included, so a translator is never handed a clause to bolt on.
-		local yards = math.floor(prox.yards or 0)
-		if prox.mode == "beyond" then
-			if prox.backup then
-				out = L["%s via %s, which only rules out people past %dyd, then %s"]:format(
-					out, prox.source, yards, prox.backup)
-			else
-				out = L["%s via %s, which only rules out people past %dyd"]:format(
-					out, prox.source, yards)
+	-- How long a dropped rung stays dropped. Not reset by the capability probe,
+	-- which runs on every SPELLS_CHANGED and cannot make a withheld GUID readable.
+	local PROX_DEAD_RETRY = 60
+
+	-- How often the ladder is resolved again: LibStub misses cost a pcall each,
+	-- and an edge can move when the library finishes its lists or a spell is learned.
+	local PROX_RETRY = 5
+
+	-- Rungs dropped for answering nobody, by name, and when.
+	local proxDead = {}
+	-- People in a row each rung has had nothing to say about, by name; kept apart
+	-- from the ladder so a rebuild cannot wipe the evidence.
+	local proxBlind = {}
+
+	-- The ladder resolved for one distance, and when.
+	local proxState = { want = nil, ladder = {}, at = -1 }
+
+	-- Above this, a step is loose enough that a much tighter bucket standing in
+	-- for it would visibly drop people; at or below it, a melee bucket is the answer.
+	local PROX_LOOSE_FROM = 6
+
+	-- Asks the client call a LibRangeCheck edge stands for, directly. The library's
+	-- checkers flatten a refusal (`and true or false`, `or nil`) and GetRange reads
+	-- nil as "further out", so a client withholding answers put everybody at 28-40
+	-- yards. Asked here, a refusal stays a refusal, in one call rather than five.
+	-- nil for an edge backed by a spell, where GetRange is all there is.
+	local function DirectCheck(lib, edge)
+		local list = lib.friendRC
+		if type(list) ~= "table" then return nil end
+		for _, rc in ipairs(list) do
+			if type(rc) == "table" and rc.range == edge then
+				local info = tostring(rc.info or "")
+				local index = tonumber(info:match("^interact:(%d+)$"))
+				if index then
+					return function(unit)
+						local r = safecall(_G.CheckInteractDistance, unit, index)
+						if r == nil then return nil end
+						return r == true or r == 1
+					end
+				end
+				local item = tonumber(info:match("^item:(%d+)$"))
+				local inRange = (C_Item and C_Item.IsItemInRange) or _G.IsItemInRange
+				if item and type(inRange) == "function" then
+					return function(unit)
+						local r = safecall(inRange, item, unit)
+						if r == nil then return nil end
+						return r == true or r == 1
+					end
+				end
+				return nil
 			end
-		elseif prox.backup then
-			out = L["%s via %s, really %dyd, then %s"]:format(out, prox.source, yards, prox.backup)
-		else
-			out = L["%s via %s, really %dyd"]:format(out, prox.source, yards)
 		end
-		-- The number that says whether it is working. A source that is present
-		-- and answering for nobody offers the whole square exactly as before,
-		-- and from the prompt that is indistinguishable from a quiet evening.
-		if prox.asked > 0 then
-			out = L["%s -- answered for %d of %d last scan"]:format(out, prox.answered, prox.asked)
-		else
-			out = L["%s -- nobody measured yet"]:format(out)
-		end
-	else
-		out = L["%s -- |cffff8080no signal, so everybody in casting range is offered|r"]:format(out)
+		return nil
 	end
-	if prox.note then out = out .. " |cff808080(" .. prox.note .. ")|r" end
-	return out
+
+	-- The ladder, best first. Each build returns a function answering "is this unit
+	-- within `want` yards" (true, false, or nil for cannot tell) and whether the
+	-- client call answered at all, plus the distance it really tests and its mode;
+	-- nil means the rung is not available here.
+	local PROX_SOURCES = {
+		{
+			name = "LibRangeCheck-3.0",
+			build = function(want)
+				-- Optional, fetched with the silent flag. Through GetLibrary: LibStub
+				-- is a table made callable by a metatable, which safecall refuses.
+				local stub = _G.LibStub
+				local lib = type(stub) == "table" and type(stub.GetLibrary) == "function"
+					and safecall(stub.GetLibrary, stub, "LibRangeCheck-3.0", true) or nil
+				if type(lib) ~= "table" then return nil end
+				if type(lib.GetRange) ~= "function" then return nil end
+				if type(lib.GetFriendMaxChecker) ~= "function" then return nil end
+
+				-- The library builds its checker lists on its own events; asking
+				-- again costs nothing if it already has.
+				safecall(lib.init, lib)
+
+				-- The library answers in buckets whose edges are this class's
+				-- range checkers, so "within ten" means "inside the largest edge at
+				-- or below ten". An edge far tighter than a loose step would drop
+				-- most of the square, so that rung is refused; below two yards
+				-- (melee) nothing is a distance. The tightest step asks for melee,
+				-- so a two-yard bucket is that step working.
+				local checker, edge = safecall(lib.GetFriendMaxChecker, lib, want)
+				if type(checker) ~= "function" or type(edge) ~= "number" then return nil end
+				if edge < 2 then return nil end
+				if want > PROX_LOOSE_FROM and edge * 2 < want then return nil end
+
+				local direct = DirectCheck(lib, edge)
+				if direct then
+					return function(unit)
+						local near = direct(unit)
+						return near, near ~= nil
+					end, edge, "within"
+				end
+
+				return function(unit)
+					-- Only "at most maxRange away" can say yes: a bucket straddling
+					-- the line (8-28 against a wanted 10) holds both a person beside
+					-- you and one across the square. Tighter than the label, never looser.
+					local minRange, maxRange = safecall(lib.GetRange, lib, unit)
+					if type(minRange) ~= "number" then return nil, false end
+					return type(maxRange) == "number" and maxRange <= want, true
+				end, edge, "within"
+			end,
+		},
+		{
+			name = "CheckInteractDistance",
+			build = function(want)
+				-- Restricted for non-party units on some modern clients, where it
+				-- answers nothing. No probe for that, so the rung is built whenever
+				-- the function exists and dropped by its own silence.
+				if type(want) ~= "number" then return nil end
+				if type(_G.CheckInteractDistance) ~= "function" then return nil end
+				local function read(unit)
+					local r = safecall(_G.CheckInteractDistance, unit, INTERACT_DUEL)
+					if r == nil then return nil end
+					return r == true or r == 1
+				end
+
+				local yards = InteractDuelYards()
+				if yards <= want then
+					return function(unit)
+						local near = read(unit)
+						return near, near ~= nil
+					end, yards, "within"
+				end
+
+				-- A step tighter than the prompt: it cannot say anybody is inside
+				-- five yards, but anybody past the prompt is past five too, so it
+				-- answers its "no" and passes on its "yes". Mode "beyond" makes the
+				-- summary say so.
+				return function(unit)
+					local near = read(unit)
+					if near == nil then return nil, false end
+					if near then return nil, true end
+					return false, true
+				end, yards, "beyond"
+			end,
+		},
+	}
+
+	-- Why the rungs that are missing are missing, all of them.
+	local function DroppedNote()
+		local names = {}
+		for _, source in ipairs(PROX_SOURCES) do
+			if proxDead[source.name] then names[#names + 1] = source.name end
+		end
+		if #names == 0 then return nil end
+		if #names == 1 then return L["%s answered for nobody, so it was dropped"]:format(names[1]) end
+		-- Two is every rung there is today, so the pair gets a whole sentence for
+		-- translators rather than a bare " and ".
+		if #names == 2 then return L["%s and %s answered for nobody, so they were dropped"]:format(names[1], names[2]) end
+		return L["%s answered for nobody, so they were dropped"]:format(table.concat(names, ", "))
+	end
+
+	-- Every rung that can measure `want`, best first, resolved at most every
+	-- PROX_RETRY seconds. It also sets what the summaries describe, so asking for
+	-- the ladder brings a summary up to date with the selected step.
+	local function ProxLadder(want)
+		local now = GetTime()
+		if proxState.want == want and now < proxState.at + PROX_RETRY then
+			return proxState.ladder
+		end
+
+		-- A count taken for one step is not a count for another.
+		if proxState.want ~= want then prox.asked, prox.answered = 0, 0 end
+		proxState.want, proxState.at = want, now
+
+		local ladder = {}
+		for _, source in ipairs(PROX_SOURCES) do
+			local droppedAt = proxDead[source.name]
+			if droppedAt and now - droppedAt >= PROX_DEAD_RETRY then
+				proxDead[source.name], proxBlind[source.name] = nil, 0
+				droppedAt = nil
+			end
+			if not droppedAt then
+				local ask, yards, mode = safecall(source.build, want)
+				if type(ask) == "function" then
+					ladder[#ladder + 1] = { name = source.name, ask = ask, yards = yards, mode = mode }
+				end
+			end
+		end
+		proxState.ladder = ladder
+
+		local first, second = ladder[1], ladder[2]
+		prox.source, prox.yards = first and first.name, first and first.yards
+		prox.mode, prox.backup = first and first.mode, second and second.name
+		prox.note = DroppedNote()
+		return ladder
+	end
+
+	-- Forget what was resolved, from the capability probe (SPELLS_CHANGED rebuilds
+	-- LibRangeCheck's lists). Dropped rungs stay dropped: see PROX_DEAD_RETRY.
+	function ns.ForgetProximity()
+		proxState.want, proxState.ladder, proxState.at = nil, {}, -1
+		prox.source, prox.yards, prox.mode, prox.backup = nil, nil, nil, nil
+		prox.asked, prox.answered = 0, 0
+	end
+
+	-- true, false, or nil for "cannot tell", which is offered rather than dropping
+	-- somebody probably standing next to you (as InRange does). Walked per person:
+	-- a rung that cannot tell hands them to the next rung down. `quiet` asks
+	-- without counting, for /manners look, which is not part of a scan.
+	function ns.NearEnough(unit, quiet)
+		local db = addon.db and addon.db.profile
+		local tier = db and db.filters and PROXIMITY_BY_KEY[db.filters.proximity]
+		-- No tier, or the loosest one: nothing to measure.
+		if not tier or not tier.yards then return nil end
+
+		-- Nobody is measured in a fight: the interact prompts refuse for a friendly
+		-- unit and LibRangeCheck's in-combat buckets are wider than any setting, and
+		-- the prompt cannot rearm in a fight anyway.
+		if InCombatLockdown() then return nil end
+
+		local ladder = ProxLadder(tier.yards)
+		if #ladder == 0 then return nil end
+
+		if not quiet then prox.asked = prox.asked + 1 end
+		local verdict, heard = nil, false
+		for _, rung in ipairs(ladder) do
+			local near, answered = safecall(rung.ask, unit)
+			if answered == true then
+				heard = true
+				if not quiet then proxBlind[rung.name] = 0 end
+			elseif not quiet then
+				local silent = (proxBlind[rung.name] or 0) + 1
+				proxBlind[rung.name] = silent
+				if silent > PROX_BLIND_LIMIT then
+					-- Here and saying nothing, so it sits out for a while.
+					proxDead[rung.name], proxBlind[rung.name] = GetTime(), 0
+					prox.note = DroppedNote()
+					proxState.at = -1
+				end
+			end
+			if near ~= nil then
+				verdict = near
+				break
+			end
+		end
+		if heard and not quiet then prox.answered = prox.answered + 1 end
+		return verdict
+	end
+
+	-- One line saying what is measuring nearness and how it is getting on, shared
+	-- by /manners debug and the options page. About the step selected now, since
+	-- AceConfig redraws straight after the dropdown's setter, before any scan.
+	function ns.ProximitySummary()
+		local db = addon.db and addon.db.profile
+		local tier = db and db.filters and PROXIMITY_BY_KEY[db.filters.proximity]
+		-- For translators: a state, "no distance has been chosen", not the verb. It
+		-- stands alone after "proximity:" in /manners debug and on the options page.
+		if not tier then return L["unset"] end
+		if not tier.yards then return L["%s -- nothing is measured"]:format(tier.name) end
+
+		local out = ("%s (%s)"):format(tier.name, tier.about)
+
+		-- The setting is about passers-by alone, so say when none are measured:
+		-- switched off, a class whose buffs reach only its group, or resting-only
+		-- out in the world (a definite "not resting", as BuildQueue asks).
+		if db.sources and db.sources.strangers == false then
+			return L["%s -- passers-by are switched off, so nobody is measured"]:format(out)
+		end
+		if ns.OnlyReachesGroup() then
+			return L["%s -- your buffs reach only your group, so nobody is measured"]:format(out)
+		end
+		if db.filters.restingOnly == true and Resting() == false then
+			return L["%s -- you are out in the world and passers-by are only offered in cities and inns, so nobody is measured"]
+				:format(out)
+		end
+
+		-- Nothing is measured during a fight, which overrides everything below.
+		if InCombatLockdown() then
+			return L["%s |cffffd100-- stood down while in combat, so distance is not being measured|r"]:format(out)
+		end
+
+		ProxLadder(tier.yards)
+		if prox.source then
+			-- Floored: "really 8.0yd" reads as a calculation, not a bucket. One
+			-- whole sentence per shape, so translators never get a clause to bolt on.
+			local yards = math.floor(prox.yards or 0)
+			if prox.mode == "beyond" then
+				if prox.backup then
+					out = L["%s via %s, which only rules out people past %dyd, then %s"]:format(
+						out, prox.source, yards, prox.backup)
+				else
+					out = L["%s via %s, which only rules out people past %dyd"]:format(
+						out, prox.source, yards)
+				end
+			elseif prox.backup then
+				out = L["%s via %s, really %dyd, then %s"]:format(out, prox.source, yards, prox.backup)
+			else
+				out = L["%s via %s, really %dyd"]:format(out, prox.source, yards)
+			end
+			-- The number that says whether it is working at all.
+			if prox.asked > 0 then
+				out = L["%s -- answered for %d of %d last scan"]:format(out, prox.answered, prox.asked)
+			else
+				out = L["%s -- nobody measured yet"]:format(out)
+			end
+		else
+			out = L["%s -- |cffff8080no signal, so everybody in casting range is offered|r"]:format(out)
+		end
+		if prox.note then out = out .. " |cff808080(" .. prox.note .. ")|r" end
+		return out
+	end
 end
 
 -- Strips a cross-realm suffix, keeping any surname: "Petra Stonewell-Realm" gives
@@ -1913,15 +1359,9 @@ end
 ns.ShortName = ShortName
 
 -- Just the first word: "Petra" out of "Petra Stonewell", nil for a name that is
--- one word already.
---
--- It never goes on a /target line. The macro sends the full name and nothing
--- else -- a second, first-name-only line was tried and removed on purpose, and
--- the note above ExpirePendingClick says why it must not come back. What this
--- feeds is the {first} token of /manners try, and the settle path's check
--- that a cast which landed on the bare first name landed on the person it was
--- aimed at, since the game may report either spelling for somebody with a
--- surname.
+-- one word already. Never on a /target line (the first-name fallback was
+-- removed deliberately: see ExpirePendingClick); it feeds {first} in /manners
+-- try and the settle path, since the game may report either spelling.
 local function FirstName(name)
 	if type(name) ~= "string" then return nil end
 	local first = name:match("^([^%s%-]+)")
@@ -1939,36 +1379,13 @@ local function SafeForMacro(name)
 	return true
 end
 
--- The one spelling of a player's name that this addon files them under.
---
--- This is the identity, not the spelling: it is the key for debts (which are on
--- disk and survive a reload), for the tried table and for the rotation pointer.
--- What goes on a /target line is a separate question with a separate answer --
--- ns.TargetName below -- because on four of the five clients they are not the
--- same string.
---
--- The name somebody is filed under, given the two halves however they were come
--- by.
---
--- What the second half means is the whole of the branch. On Camelot it is a
--- surname -- six players standing together came back with six different values
--- -- and joining with a space is the form verified in game there. Everywhere
--- else it is the realm, and it is present only for a player from another realm;
--- a space would produce "Mort Ravencrest", which names nobody. "Mort-Ravencrest"
--- is the form the game itself uses for a cross-realm player, so that is what
--- they are filed under, and a same-realm player has no second half and is just
--- "Mort".
---
--- nil for a name the client withheld, and nil for one that could not go into
--- macro text. Every caller wants exactly those two rejections, and keeping them
--- apart is how the two copies of this drifted in the first place.
---
--- Split out from UnitFullName because there are now two ways to arrive here. The
--- aura scan has a unit token; the combat log has a GUID, which
--- GetPlayerInfoByGUID answers with a name and a realm and no token at all. Both
--- file debts under this key and both hand it to BuildQueue, so one of them
--- spelling the same person differently would make them two people -- and the
--- debt one source wrote would be unpayable by the other.
+-- The name somebody is filed under, given UnitName's two halves: the key for
+-- debts (on disk), the tried table and the rotation pointer. The /target
+-- spelling is ns.TargetName. On Camelot the second half is a surname, joined
+-- with a space (verified in game); elsewhere it is a realm, present only for a
+-- cross-realm player and joined with a dash as the game does. nil for a name
+-- withheld or unsafe for macro text. One function for the aura scan and the
+-- combat log (GetPlayerInfoByGUID), so both spell a person the same way.
 local function JoinName(name, second)
 	if not name then return nil end
 
@@ -1987,26 +1404,11 @@ function ns.UnitFullName(unit)
 	return JoinName(plain(rawName), plain(rawSecond))
 end
 
--- The spelling that goes on the /target line, given the name they are filed
--- under.
---
--- Taken from the key rather than from a unit token on purpose: the tokenless
--- fallback in BuildQueue offers people the scan can no longer see, and it has
--- nothing but the key. Two functions answering this from two different sources
--- is exactly the drift the comment above UnitFullName is about.
---
--- On Camelot the answer is the key, unchanged and untouched. That is deliberate
--- and it is not a shortcut: nobody has documented what UnitName's second return
--- is there for a player from another realm, so the join UnitFullName already
--- makes is the only thing known to be right, and nothing here may generalise it
--- on a guess.
---
--- Everywhere else the realm comes off. /target is a name search over units the
--- client has drawn in, not a lookup of a unit id, and a realm is not part of
--- what it searches -- so "Mort" is what finds the cross-realm player standing in
--- front of you and "Mort-Ravencrest" finds nobody. That is reasoning about how
--- /target works rather than behaviour anybody has cited; one live test on retail
--- with a cross-realm player in reach would settle it either way.
+-- The spelling that goes on the /target line, from the filed name (the
+-- tokenless fallback has nothing else). On Camelot the key unchanged: its join
+-- is the only form verified there. Elsewhere the realm comes off, on the
+-- reasoning (untested live) that /target searches names of units drawn in and
+-- a realm is not part of what it searches.
 function ns.TargetName(name)
 	if type(name) ~= "string" then return nil end
 	if SurnameClient() then return name end
@@ -2016,22 +1418,13 @@ end
 ---------------------------------------------------------------------------
 -- speech
 --
--- C_ChatInfo.SendChatMessage refuses SAY and YELL outside instances, which is
--- exactly where somebody buffs you in passing. A /say inside the macro the
--- secure button runs is not subject to that: the macro fires from your click,
--- so the game counts it as you talking rather than the addon.
+-- C_ChatInfo.SendChatMessage refuses SAY and YELL outside instances. A /say in
+-- the secure button's macro fires from your click, so the game allows it.
 ---------------------------------------------------------------------------
 
--- Ready-made phrase sets, loadable from the options. Kept faction-neutral
--- where possible so they do not read oddly on the wrong side, and short
--- enough to leave room in a 255-character macro.
---
--- In the player's language, because they are what the player says out loud.
--- The box these fill is saved as text, so a set loaded on a French client
--- stays French after a switch to English; the dropdown then simply stops
--- naming it, which is what it does for any lines somebody has edited. The one
--- exception is a set's English text, which builds before the translations
--- wrote on every client: see PHRASE_SETS_ENGLISH below.
+-- Ready-made phrase sets, loadable from the options: faction-neutral, short
+-- enough for a 255-character macro, and in the player's language. The box they
+-- fill is saved as text, so a loaded set stays in the language it was loaded in.
 ns.PHRASE_SETS = {
 	roleplay = {
 		label = L["Roleplay"],
@@ -2080,57 +1473,55 @@ ns.PHRASE_SETS = {
 
 ns.PHRASE_SET_ORDER = { "roleplay", "polite", "cheeky", "quiet" }
 
--- The same sets as every build before this one wrote them, which is in
--- English and only in English: 0.9.1 to 1.0.0-beta.5 shipped exactly these
--- lines and filled the phrase box with one of them. AceDB kept that text,
--- since the box's default is empty, so on a translated client the box stayed
--- English -- in the macro, in Roll a few and in every export -- and the set
--- dropdown read blank as though somebody had edited it. ClampSettings swaps
--- this text for the translated set. Plain strings rather than L[...]: these
--- are what a profile holds, not something to translate, and the same English
--- as the keys above, which a scenario checks set by set.
-local PHRASE_SETS_ENGLISH = {
-	roleplay = {
-		"May the Light watch over you, {name}.",
-		"The arcane favours you, {name}.",
-		"Strength to your arm, {name}.",
-		"A boon for the road, {name}.",
-		"Safe travels, {name}. The roads are not kind.",
-		"Winds at your back, {name}.",
-		"May your blade stay keen, {name}.",
-		"Fortune favour you, {name}.",
-		"Go well, {name}. You will need it.",
-		"Take this with you, {name}.",
-		"A gift, freely given.",
-		"Stay sharp out there, {name}.",
-	},
-	polite = {
-		"Thanks for the buff, {name}!",
-		"Returning the favour, {name}.",
-		"Have some {buff}, {name}.",
-		"Cheers, {name}!",
-		"One good buff deserves another, {name}.",
-		"Least I could do, {name}.",
-	},
-	cheeky = {
-		"You dropped this, {name}.",
-		"Buffed. You're welcome, {name}.",
-		"{name}, you look like you need this.",
-		"Consider us even, {name}.",
-		"Don't spend it all at once, {name}.",
-		"This one's on me, {name}.",
-	},
-	quiet = { "{name}.", "For you, {name}.", "{name} \\o" },
-}
+-- The sets as builds up to 1.0.0-beta.5 stored them in every profile, in
+-- English on every client; ClampSettings swaps this text for the translated
+-- set. Plain strings, not L[...]: they are what a profile holds (a scenario
+-- checks they match the keys above).
+local EnglishPhraseSet
+do
+	local PHRASE_SETS_ENGLISH = {
+		roleplay = {
+			"May the Light watch over you, {name}.",
+			"The arcane favours you, {name}.",
+			"Strength to your arm, {name}.",
+			"A boon for the road, {name}.",
+			"Safe travels, {name}. The roads are not kind.",
+			"Winds at your back, {name}.",
+			"May your blade stay keen, {name}.",
+			"Fortune favour you, {name}.",
+			"Go well, {name}. You will need it.",
+			"Take this with you, {name}.",
+			"A gift, freely given.",
+			"Stay sharp out there, {name}.",
+		},
+		polite = {
+			"Thanks for the buff, {name}!",
+			"Returning the favour, {name}.",
+			"Have some {buff}, {name}.",
+			"Cheers, {name}!",
+			"One good buff deserves another, {name}.",
+			"Least I could do, {name}.",
+		},
+		cheeky = {
+			"You dropped this, {name}.",
+			"Buffed. You're welcome, {name}.",
+			"{name}, you look like you need this.",
+			"Consider us even, {name}.",
+			"Don't spend it all at once, {name}.",
+			"This one's on me, {name}.",
+		},
+		quiet = { "{name}.", "For you, {name}.", "{name} \\o" },
+	}
 
--- The set whose English text this is, or nil for anything else.
-local function EnglishPhraseSet(text)
-	if type(text) ~= "string" then return nil end
-	for _, key in ipairs(ns.PHRASE_SET_ORDER) do
-		local english = PHRASE_SETS_ENGLISH[key]
-		if english and text == table.concat(english, "\n") then return key end
+	-- The set whose English text this is, or nil for anything else.
+	function EnglishPhraseSet(text)
+		if type(text) ~= "string" then return nil end
+		for _, key in ipairs(ns.PHRASE_SET_ORDER) do
+			local english = PHRASE_SETS_ENGLISH[key]
+			if english and text == table.concat(english, "\n") then return key end
+		end
+		return nil
 	end
-	return nil
 end
 
 function ns.PhraseSetText(key)
@@ -2149,47 +1540,43 @@ ns.CHANNEL_COMMANDS = {
 
 ns.MACRO_LIMIT = 255
 
--- What a spoken line may occupy is not a constant: it is whatever the cast
--- lines leave, and those carry the person's name and the spell's, so they are
--- a different length for everybody. ns.PhraseBudget, in Prompt.lua beside the code that assembles them, answers
--- it for a given person; the options preview asks the same function.
-
-local function SanitizePhrase(text)
-	if type(text) ~= "string" then return nil end
-	text = text:gsub("[\r\n]", " "):gsub("%s+", " "):match("^%s*(.-)%s*$")
-	if text == "" then return nil end
-	return text
-end
-
-function ns.PickPhrase(entry, budget)
-	local db = addon.db and addon.db.profile
-	if not db or not db.speech.enabled then return nil end
-	if db.speech.onlyWhenReturning and entry.reason ~= "owed" then return nil end
-
-	local command = ns.CHANNEL_COMMANDS[db.speech.channel]
-	if not command then return nil end
-
-	local pool = {}
-	for line in tostring(db.speech.phrases or ""):gmatch("[^\r\n]+") do
-		local clean = SanitizePhrase(line)
-		if clean then pool[#pool + 1] = clean end
+-- The room a spoken line gets is whatever the cast lines leave, which differs
+-- per person: ns.PhraseBudget in Prompt.lua answers it. A block of its own for
+-- the main chunk's 200 locals.
+do
+	local function SanitizePhrase(text)
+		if type(text) ~= "string" then return nil end
+		text = text:gsub("[\r\n]", " "):gsub("%s+", " "):match("^%s*(.-)%s*$")
+		if text == "" then return nil end
+		return text
 	end
-	if #pool == 0 then return nil end
 
-	-- Through Swap for the same reason the prompt's own tokens are: a string
-	-- replacement is a template to gsub, where % escapes a capture, so a name or
-	-- a spell name carrying one would throw from inside the substitution. Less
-	-- likely here than on the prompt -- both of these come from the client
-	-- rather than from typing -- but it is the same mistake and it costs a call.
-	local phrase = pool[math.random(#pool)]
-	phrase = ns.Swap(phrase, "{name}", entry.short or entry.name)
-	phrase = ns.Swap(phrase, "{buff}", entry.buff and ns.BuffName(entry.buff))
-	phrase = SanitizePhrase(phrase)
-	if not phrase then return nil end
+	function ns.PickPhrase(entry, budget)
+		local db = addon.db and addon.db.profile
+		if not db or not db.speech.enabled then return nil end
+		if db.speech.onlyWhenReturning and entry.reason ~= "owed" then return nil end
 
-	local line = "/" .. command .. " " .. phrase
-	if #line > budget then return nil end
-	return line
+		local command = ns.CHANNEL_COMMANDS[db.speech.channel]
+		if not command then return nil end
+
+		local pool = {}
+		for line in tostring(db.speech.phrases or ""):gmatch("[^\r\n]+") do
+			local clean = SanitizePhrase(line)
+			if clean then pool[#pool + 1] = clean end
+		end
+		if #pool == 0 then return nil end
+
+		-- Through Swap, so a "%" in a name cannot throw from inside gsub.
+		local phrase = pool[math.random(#pool)]
+		phrase = ns.Swap(phrase, "{name}", entry.short or entry.name)
+		phrase = ns.Swap(phrase, "{buff}", entry.buff and ns.BuffName(entry.buff))
+		phrase = SanitizePhrase(phrase)
+		if not phrase then return nil end
+
+		local line = "/" .. command .. " " .. phrase
+		if #line > budget then return nil end
+		return line
+	end
 end
 
 ---------------------------------------------------------------------------
@@ -2200,31 +1587,17 @@ end
 -- the favour was noticed, which the grace window and LiveExpiry count from.
 local owed = {}
 
--- [name .. "\0" .. buffKey] = expiry for a buff we just tried on them, and
--- [name .. "\0*"] = expiry for the whole person, written by a right-press skip
--- (at the full retry cooldown) or by a press that reached nobody (RewindClick,
--- for two seconds). Keyed per buff because casting Fortitude must not
--- stop the walk reaching Divine Spirit; keyed whole-person as well because
--- somebody behind a pillar should not make the prompt march down the entire
--- list failing at each one.
+-- [name .. "\0" .. buffKey] = expiry for a buff we just tried on them, so
+-- casting Fortitude does not stop the walk reaching Divine Spirit; and
+-- [name .. "\0*"] = expiry for the whole person (a right-press skip, or a press
+-- that reached nobody), so somebody behind a pillar does not walk the list.
 local tried = {}
 
 ns.lastGave = {} -- [name] = buffKey, for rotating when auras cannot be read
 
--- Whether the buff walk will ever read ns.lastGave back for this character.
---
--- It will not for a paladin, and that is a decision rather than an oversight.
--- The rotation exists so that a person whose auras the client will not show
--- gets the next thing on the list instead of the same one forever -- which is
--- only an improvement where the buffs stack. Blessings overwrite one another,
--- so rotating them takes away what the last click gave: offer Might, offer
--- Wisdom eight seconds later, and the second click removes the Might rather
--- than adding to it. Repeating one blessing at worst refreshes it. So for an
--- exclusive class the right move is to keep offering the same one, and
--- PickBuffFor does.
---
--- Nothing may write ns.lastGave for those classes either. A table written and
--- never read is what sent somebody looking for a rotation that was not there.
+-- Whether the buff walk reads ns.lastGave back for this character. Not for a
+-- paladin, deliberately: blessings overwrite each other, so rotating takes away
+-- what the last click gave. Nothing may write ns.lastGave for them either.
 function ns.RotatesBuffs()
 	return not ns.EXCLUSIVE_BUFFS[playerClass]
 end
@@ -2232,14 +1605,8 @@ end
 ns.owed, ns.tried = owed, tried
 
 -- When a debt really runs out: the stamp it was filed with, or its age against
--- the window as it stands now, whichever comes first.
---
--- The stamp alone was read everywhere, and it was taken once, when the favour
--- was noticed -- so lowering "Remember a buff for" from ten minutes to thirty
--- seconds, or switching to a profile with a shorter one, left a minute-old debt
--- owed for nine minutes more, at the top of the queue. A /reload clamped it,
--- which is the only place the setting was being honoured. Every reader asks
--- this instead.
+-- the window as it stands now, whichever comes first -- so lowering "Remember a
+-- buff for" applies to debts already owed. Every reader asks this.
 local function LiveExpiry(entry)
 	local db = addon.db and addon.db.profile
 	local window = db and db.timing and db.timing.reciprocateWindow
@@ -2248,25 +1615,15 @@ local function LiveExpiry(entry)
 end
 ns.DebtExpiry = LiveExpiry
 
--- SavedVariables outlive the machine, GetTime() does not: it is the time since
--- the computer booted, so it survives a /reload and a relog but starts again
--- near zero after a reboot, and it is a different number on another computer.
--- A debt stored GetTime()-relative would come back from either already expired
--- or hours long. Everything goes out on the wall clock and is rebased on the
--- way back in -- including `at`, which is what the grace window reads.
---
--- db.char, not the profile: a debt is owed to a character, and profiles are
--- shared. AceDB partitions it inside the one saved file already, so there is no
--- second SavedVariables line to add.
+-- GetTime() is time since boot, so it restarts after a reboot and differs per
+-- machine: debts go out on the wall clock and are rebased on the way back in,
+-- `at` included. db.char, not the profile: a debt is owed to a character.
 local function SaveDebts()
 	local store = addon.db and addon.db.char
 	local wall = plain(time and time())
 	if not store or type(wall) ~= "number" then return end
 
-	-- Switched off means gone, not merely not-written. This function owns the
-	-- file, so it is also the one that clears it -- otherwise turning the
-	-- setting off in the middle of a session leaves yesterday's debts on disk
-	-- for a login that has been told not to want them.
+	-- Switched off means the file is cleared, not merely not written.
 	if addon.db.profile and addon.db.profile.timing.keepDebts == false then
 		store.debts = nil
 		return
@@ -2277,10 +1634,8 @@ local function SaveDebts()
 		local expires = LiveExpiry(entry)
 		if expires > now then
 			out = out or {}
-			-- The class is worth carrying: it is all the tokenless fallback has
-			-- to judge what to offer. The guid is not -- nothing reads it back,
-			-- and whether it means the same person after a reload has never been
-			-- measured on this client.
+			-- The class is all the tokenless fallback has to judge by. The guid
+			-- is not kept: nothing reads it back.
 			out[name] = {
 				expires = wall + (expires - now),
 				at = wall - (now - entry.at),
@@ -2297,10 +1652,8 @@ local function RestoreDebts()
 	local wall = plain(time and time())
 	if type(saved) ~= "table" or type(wall) ~= "number" then return end
 
-	-- Read as well as written. A file can outlive the setting being switched
-	-- off -- the profile is switched between logins, or the setting is changed
-	-- on another character sharing it -- and a debt restored from one is a
-	-- pulsing prompt for a favour this session was told to forget.
+	-- Honoured on the way in too: a file can outlive the setting (a profile
+	-- switched between logins, or changed on another character).
 	if addon.db.profile and addon.db.profile.timing.keepDebts == false then
 		store.debts = nil
 		return
@@ -2311,18 +1664,12 @@ local function RestoreDebts()
 	for name, entry in pairs(saved) do
 		if type(entry) == "table" and type(entry.expires) == "number"
 			and type(entry.at) == "number" and SafeForMacro(name) then
-			-- Clamped to the window as it stands now, so lowering the slider
-			-- cannot be out-waited by a file written under a longer one --
-			-- counted from the favour, as LiveExpiry counts it in play. It used
-			-- to restart the whole window from the login, so a debt already
-			-- older than the window came back with all of it to run.
+			-- Clamped to the window as it stands now, counted from the favour
+			-- as LiveExpiry does.
 			local left = math.min(entry.expires, entry.at + window) - wall
 			if left > 0 then
-				-- `at` rebases negative when the debt is older than the
-				-- machine's uptime, which is to say just after a reboot. That
-				-- is correct rather than a bug: now - at is
-				-- then the real age of the debt, which is what the grace window
-				-- and the debug listing both want.
+				-- `at` goes negative just after a reboot, correctly: now - at
+				-- is still the real age of the debt.
 				owed[name] = {
 					expires = now + left,
 					at = now - (wall - entry.at),
@@ -2333,59 +1680,42 @@ local function RestoreDebts()
 	end
 end
 
--- AceDB fires this from its own PLAYER_LOGOUT handler, before it strips the
--- defaults out of the table -- so writing here is safe, and there is no event
--- to register that both test mocks would have to be taught about.
+-- AceDB fires this from its PLAYER_LOGOUT handler, before it strips the
+-- defaults, so writing here is safe.
 function addon:SaveDebts()
 	ns.Guard("SaveDebts", SaveDebts)
 end
 
--- One owner for each of the two key shapes. Prompt.lua and the settle handler
--- both used to compose them by hand, which meant the convention above was
--- written out in three files and only explained in one -- and re-keying it per
--- buff quietly left one of the three behind.
-local function BlockSeconds(seconds)
-	if seconds then return seconds end
-	local db = addon.db and addon.db.profile
-	return (db and db.timing.retryCooldown) or 12
-end
-
--- One writer under both, so the rule below cannot be applied to one key shape
--- and quietly forgotten on the other -- which is exactly how the two copies of
--- the key convention drifted.
---
--- keepLonger is for a block written speculatively over ground somebody else may
--- already hold: it extends, never shortens. A right-press is a deliberate
--- refusal recorded at the full retry cooldown, and without this the two-second
--- rewind of a cast that went nowhere overwrote it -- so a stale pending click
--- from an earlier press cancelled the skip, and the person who had just been
--- declined was offered again two seconds later.
-local function Block(key, seconds, keepLonger)
-	local expiry = GetTime() + BlockSeconds(seconds)
-	local standing = tried[key]
-	if keepLonger and standing and standing > expiry then return end
-	tried[key] = expiry
-end
-
-function ns.MarkAttempted(name, buffKey, seconds, keepLonger)
-	if not name or not buffKey then return end
-	Block(name .. "\0" .. buffKey, seconds, keepLonger)
-end
-
-function ns.BlockPerson(name, seconds, keepLonger)
-	if not name then return end
-	Block(name .. "\0*", seconds, keepLonger)
-end
-
--- In a block of its own for the same reason as PickBuffFor: the main chunk's
--- 200 locals.
+-- The only writers and reader of the two key shapes in `tried`, in a block of
+-- their own for the main chunk's 200 locals.
 do
-	-- The keys one person's blocks are filed under, the same strings Block writes,
-	-- built once per person and kept: IsBlocked is asked for every person the scan
-	-- reaches, every favour outstanding and each buff the walk considers, and
-	-- joining the same two strings again every time was most of what it did. The
-	-- whole-person key sits under a key no buff can have, beside the per-buff
-	-- ones, which are filed under the buff's own key.
+	-- One writer under both shapes. keepLonger extends a block and never
+	-- shortens it, so the two-second rewind of a press that went nowhere cannot
+	-- cancel a right-press skip at the full retry cooldown.
+	local function Block(key, seconds, keepLonger)
+		if not seconds then
+			local db = addon.db and addon.db.profile
+			seconds = (db and db.timing.retryCooldown) or 12
+		end
+		local expiry = GetTime() + seconds
+		local standing = tried[key]
+		if keepLonger and standing and standing > expiry then return end
+		tried[key] = expiry
+	end
+
+	function ns.MarkAttempted(name, buffKey, seconds, keepLonger)
+		if not name or not buffKey then return end
+		Block(name .. "\0" .. buffKey, seconds, keepLonger)
+	end
+
+	function ns.BlockPerson(name, seconds, keepLonger)
+		if not name then return end
+		Block(name .. "\0*", seconds, keepLonger)
+	end
+
+	-- The keys one person's blocks are filed under, built once per person and
+	-- kept, since IsBlocked is asked for everybody on every scan. The
+	-- whole-person key sits under a table key no buff can have.
 	local blockKeys, blockKeyCount = {}, 0
 	local WHOLE_PERSON = {}
 
@@ -2404,11 +1734,7 @@ do
 	end
 
 	-- Whether this person, or this one buff for this person, is inside a block.
-	-- The whole-person key is always consulted: it exists precisely to stop the
-	-- walk marching down the list when nothing reached them at all.
-	--
-	-- Nearly always asked of a table with nothing in it, which answers without a
-	-- key being looked at.
+	-- The whole-person key is always consulted.
 	function ns.IsBlocked(name, buffKey, now)
 		if not name then return false end
 		if next(tried) == nil then return false end
@@ -2427,8 +1753,7 @@ do
 	end
 end
 
--- The debt is paid. Written through, because the only thing worse than losing
--- a debt across a reload is raising one that was already settled.
+-- The debt is paid. Written through, so a reload cannot raise it again.
 function ns.SettleFavour(name)
 	if not name then return end
 	owed[name] = nil
@@ -2439,10 +1764,8 @@ end
 -- the never-offer list
 --
 -- People the player has said never to offer anything to, filed under the same
--- name debts and blocks are. A set in the profile, so it is shared by every
--- character on the account the way the rest of the profile is, and it reaches
--- the queue at its next rebuild -- which in a fight is the end of the fight,
--- since the prompt does not re-arm in one. Nothing here touches the button.
+-- name debts are, in the profile. It reaches the queue at its next rebuild (in
+-- a fight, the end of it); nothing here touches the button.
 ---------------------------------------------------------------------------
 
 -- Defined with the favour ledger's other hook further down, and declared here
@@ -2465,21 +1788,9 @@ local function CleanName(name)
 	return name
 end
 
--- The entry on the list that names this person, or nil.
---
--- Exact first, then regardless of case, because a name added from the options
--- page or /manners never is typed by hand and "petra stonewell" plainly means
--- Petra Stonewell. Also against the name with any realm taken off, which is how
--- the prompt shows a player from another realm -- and so how anybody will type
--- them. Never the other way round: an entry that names a realm matches only
--- that realm.
---
--- Case is folded by the client's strcmputf8i where there is one, which the
--- addons known to work on this client use to compare names. string.lower works
--- byte by byte and leaves every accented capital alone, so "élodie" typed for
--- Élodie never matched -- while chat said she was on the list. The plain lower
--- is the fallback for a client without it, and still right for every name that
--- is ASCII.
+-- Whether a listed name matches, regardless of case, since names are typed by
+-- hand. Folded by the client's strcmputf8i where there is one (string.lower
+-- leaves accented capitals alone); plain lower is the fallback.
 local function SameName(a, b)
 	if not b then return false end
 	local fold = _G.strcmputf8i
@@ -2490,23 +1801,13 @@ local function SameName(a, b)
 	return a:lower() == b:lower()
 end
 
--- What the walk below has already answered, by name: the entry that names them,
--- or false for nobody. The scan asks about everybody in front of the player two
--- and a half times a second, and the walk is two case-folded compares per
--- entry. Forty nameplates against a two-hundred-name list was twenty-five
--- thousand of them a scan, for a list that had not changed since the last one.
---
--- Checked against the list rather than cleared by whoever edits it, because
--- not everybody who edits it comes through this file: an import, a profile
--- switch or reset, and the scenarios all write the table directly. The check is
--- a walk comparing each entry with a copy, a table lookup apiece and no string
--- work at all, and BuildQueue makes it once a scan rather than once a person.
--- The fold function is part of what an answer depends on, so a client handing
--- over a different one throws the answers away too.
---
--- `max` bounds the answers kept; `scan` is the answers while BuildQueue is
--- walking the units, and nil at every other moment (see the walk). Fields of
--- one table rather than locals of their own, for the main chunk's 200 locals.
+-- What the list walk has already answered, by name: the entry, or false. The
+-- scan asks about everybody 2.5 times a second, two case-folded compares per
+-- entry. Checked against a copy of the list rather than cleared by an editor,
+-- because imports, profile switches and the scenarios write the table directly;
+-- a different fold function throws the answers away too. `scan` is the answers
+-- while BuildQueue walks the units, nil otherwise. One table for the main
+-- chunk's 200 locals.
 local neverSeen = {
 	list = nil, fold = nil, size = 0, copy = {}, verdict = {}, count = 0,
 	max = 1000, scan = nil,
@@ -2540,9 +1841,10 @@ local function NeverVerdicts()
 	return neverSeen.verdict
 end
 
--- `verdict` is NeverVerdicts' table, passed only by a caller that has just
--- asked for it; anybody else walks the list, which is what every caller but
--- the scan does and can afford to.
+-- The entry on the list that names this person, or nil: exact, then regardless
+-- of case, then with the realm taken off the name (as the prompt shows it) --
+-- never the other way round. `verdict` is NeverVerdicts' table, passed only by
+-- the scan; anybody else walks the list.
 local function ListedAs(name, verdict)
 	local never = NeverSet()
 	if not never or type(name) ~= "string" or next(never) == nil then return nil end
@@ -2559,8 +1861,7 @@ local function ListedAs(name, verdict)
 		end
 	end
 	if verdict then
-		-- Bounded like the other per-person caches: a city puts hundreds of
-		-- people through here in a session.
+		-- Bounded like the other per-person caches.
 		if neverSeen.count >= neverSeen.max then
 			wipe(verdict)
 			neverSeen.count = 0
@@ -2571,15 +1872,12 @@ local function ListedAs(name, verdict)
 	return found
 end
 
--- neverSeen.scan is NeverVerdicts' table while BuildQueue is walking the units,
--- and nil at every other moment; see the walk.
 function ns.IsNeverOffered(name)
 	return ListedAs(name, neverSeen.scan) ~= nil
 end
 
 -- Puts somebody on the list. Returns the spelling now on it, and whether they
--- were already there -- in which case the spelling already there is kept, so
--- one person cannot end up on it twice in two cases.
+-- were already there (whose spelling is kept, so nobody is listed twice).
 function ns.NeverOffer(name)
 	name = CleanName(name)
 	local never = NeverSet()
@@ -2614,54 +1912,37 @@ function ns.ClearNeverList()
 	if never then wipe(never) end
 end
 
--- Puts somebody on the list as a deliberate act -- a shift-right-click on the
--- prompt, /manners never, the box on the options page -- and says so. Returns
--- the spelling on the list, or nil for a name that was nothing but space.
+-- Puts somebody on the list as a deliberate act (a shift-right-click on the
+-- prompt, /manners never, the options box) and always says so, whatever Tell
+-- me in chat is set to, since it is where the way back is written down.
+-- Returns the spelling on the list, or nil for a name that was only space.
 --
--- A favour they are owed goes with them. Owed people are exempt from the list
--- (see BuildQueue), so without this somebody shift-right-clicked while owed
--- came straight back once the skip ran out, which is the one thing the player
--- had just asked for not to happen. The next favour they do you is offered as
--- usual, and the line says so.
---
--- The line is always said, whatever Tell me in chat is set to: it answers a
--- deliberate act, and it is the only place the way back is written down at the
--- moment somebody might want it.
+-- A favour they are owed goes with them, even when already listed: owed people
+-- are exempt from the list (STATUS.md), so they would otherwise come straight
+-- back once the skip ran out. Their next favour is offered as usual.
 function ns.PutOnNeverList(name)
 	local listed, already = ns.NeverOffer(name)
 	if not listed then return nil end
 
-	-- Whether or not they were on the list already. Somebody already on it is
-	-- only on the prompt at all because they are owed -- that is the exception
-	-- -- so a shift-right-click on them is exactly the case this is for, and it
-	-- used to return before reaching it: the favour stayed, and they were back
-	-- once the skip ran out.
 	local forgiven = false
 	for key in pairs(owed) do
 		if ListedAs(key) == listed then
 			owed[key] = nil
 			forgiven = true
-			-- The ledger's row goes with the debt. Its own sweep walks the
-			-- debts, so it can never reach one let go here, and the row read
-			-- "Still owed" all session and swallowed their next favour as a
-			-- second buff of this one.
+			-- The ledger's row goes with the debt: its own sweep walks the
+			-- debts and could never reach one let go here.
 			TellLedger("LetGo", key, "never")
 		end
 	end
-	-- Repainted here rather than only at the end, which somebody already on
-	-- the list never reaches: the launcher's "1 waiting" went on counting a
-	-- favour that had just been let go.
+	-- Repainted here too, since somebody already listed never reaches the end.
 	if forgiven then
 		SaveDebts()
 		ns.RepaintOptions()
 	end
 
-	-- In a fight the secure button cannot be re-armed, so when the person the
-	-- prompt names is the one just listed, the panel goes on naming them and a
-	-- press still casts at them until the fight ends. "Will not be offered
-	-- anything again" alone had the player buff them straight after, which is
-	-- what Skip for now's own fight line exists to prevent. Guarded because
-	-- Prompt.lua is another file that may not have loaded.
+	-- In a fight the secure button cannot be re-armed, so if the prompt names
+	-- the person just listed, a press still casts at them until it ends, and
+	-- the line has to say so. Guarded: Prompt.lua may not have loaded.
 	local onPromptInFight = false
 	if InCombatLockdown() and ns.Prompt and ns.Prompt.Showing then
 		ns.Guard("never-offer prompt check", function()
@@ -2687,11 +1968,10 @@ function ns.PutOnNeverList(name)
 		return listed
 	end
 
-	-- The way back goes in whole, command and name together, because it is
-	-- typed exactly as shown in every language.
+	-- The way back goes in whole: it is typed exactly as shown in every language.
 	local undo = "/manners allow " .. listed
 	if forgiven and onPromptInFight then
-		addon:Print(L["|cffffffff%s|r will not be offered anything again unless they buff you, and the favour they just did you is let go -- but the prompt cannot move off them in this fight, and a press still casts at them. |cffffd100%s|r takes them off the list."]
+		addon:Print(L["|cffffffff%s|r will not be offered anything again unless they buff you, and their favour is let go -- but in this fight a press still casts at them. |cffffd100%s|r takes them off the list."]
 			:format(listed, undo))
 	elseif onPromptInFight then
 		addon:Print(L["|cffffffff%s|r will not be offered anything again unless they buff you -- but the prompt cannot move off them in this fight, and a press still casts at them. |cffffd100%s|r takes them off the list."]

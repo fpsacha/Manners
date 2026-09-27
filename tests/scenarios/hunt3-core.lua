@@ -162,7 +162,7 @@ local function rightClickMenu()
 	return opened
 end
 
-local CAVEAT = "cannot move off them in this fight"
+local CAVEAT = "a press still casts at them"
 
 for _, case in ipairs({
 	{ label = "shift-right-click in a fight", fight = true, how = "press" },

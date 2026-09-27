@@ -982,10 +982,8 @@ mutate("Core.lua",
 #     branch -- so the refresh mode was switched on, described in the options,
 #     and dead for the one class it is safest on.
 mutate("Core.lua",
-       """					-- class it is safest on -- see the top-up below.
-					local held, remaining, mine = has(buff)""",
-       """					-- class it is safest on -- see the top-up below.
-					local held, _, mine = has(buff)""",
+       "\t\t\t\t\tlocal held, remaining, mine = has(buff)\n",
+       "\t\t\t\t\tlocal held, _, mine = has(buff)\n",
        "a top-up with the timer thrown away",
        expect="was offered no top-up at all",
        script="runscenarios.py")
@@ -1424,10 +1422,10 @@ mutate("Core.lua",
 # A command believed in rather than probed. /target matches a name prefix, so
 # this is how "/target Mort" ends up buffing Mortimer.
 mutate("Core.lua",
-       """\tcaps.targetExact = (type(secureCommands) == "table"
-\t\t\tand type(secureCommands.TARGET_EXACT) == "function")
-\t\tor type(_G.SLASH_TARGET_EXACT1) == "string\"""",
-       "\tcaps.targetExact = true",
+       """\t\tcaps.targetExact = (type(secureCommands) == "table"
+\t\t\t\tand type(secureCommands.TARGET_EXACT) == "function")
+\t\t\tor type(_G.SLASH_TARGET_EXACT1) == "string\"""",
+       "\t\tcaps.targetExact = true",
        "/targetexact assumed rather than probed",
        expect="a client without /targetexact",
        script="runscenarios.py")
@@ -2245,8 +2243,8 @@ mutate("Core.lua",
 # A rung that cannot tell about somebody offering them outright, with a working
 # rung underneath that could have measured them.
 mutate("Core.lua",
-       "\t\tif near ~= nil then\n\t\t\tverdict = near\n\t\t\tbreak\n\t\tend\n",
-       "\t\tverdict = near\n\t\tbreak\n",
+       "\t\t\tif near ~= nil then\n\t\t\t\tverdict = near\n\t\t\t\tbreak\n\t\t\tend\n",
+       "\t\t\tverdict = near\n\t\t\tbreak\n",
        "a rung's silence letting a passer-by through",
        expect="a rung that cannot tell hands the person down",
        script="runscenarios.py")
@@ -2300,10 +2298,10 @@ mutate("embeds.xml",
 # LibStub called through safecall, which refuses the callable table the real
 # LibStub is -- so the library rung was never built in the game.
 mutate("Core.lua",
-       "\t\t\tlocal stub = _G.LibStub\n"
-       "\t\t\tlocal lib = type(stub) == \"table\" and type(stub.GetLibrary) == \"function\"\n"
-       "\t\t\t\tand safecall(stub.GetLibrary, stub, \"LibRangeCheck-3.0\", true) or nil\n",
-       "\t\t\tlocal lib = safecall(_G.LibStub, \"LibRangeCheck-3.0\", true)\n",
+       "\t\t\t\tlocal stub = _G.LibStub\n"
+       "\t\t\t\tlocal lib = type(stub) == \"table\" and type(stub.GetLibrary) == \"function\"\n"
+       "\t\t\t\t\tand safecall(stub.GetLibrary, stub, \"LibRangeCheck-3.0\", true) or nil\n",
+       "\t\t\t\tlocal lib = safecall(_G.LibStub, \"LibRangeCheck-3.0\", true)\n",
        "the range library fetched through safecall",
        expect="the range library is found through a LibStub shaped like the game's",
        script="runscenarios.py")
@@ -2328,9 +2326,9 @@ mutate("Core.lua",
 
 # The summary describing a stranger filter to a class that never reaches one.
 mutate("Core.lua",
-       "\tif ns.OnlyReachesGroup() then\n"
-       "\t\treturn L[\"%s -- your buffs reach only your group, so nobody is measured\"]:format(out)\n"
-       "\tend\n",
+       "\t\tif ns.OnlyReachesGroup() then\n"
+       "\t\t\treturn L[\"%s -- your buffs reach only your group, so nobody is measured\"]:format(out)\n"
+       "\t\tend\n",
        "",
        "a warrior told strangers are measured",
        expect="the line does not say a warrior's buffs reach only the group",
@@ -3444,9 +3442,9 @@ mutate("Prompt.lua",
 # The follow prompt asked about a party member in a fight.
 mutate("Core.lua",
        "\tif not InCombatLockdown() then\n"
-       "\t\tlocal follow = safecall(_G.CheckInteractDistance, unit, INTERACT_FOLLOW)",
+       "\t\tlocal follow = safecall(_G.CheckInteractDistance, unit, 4)",
        "\tif true then\n"
-       "\t\tlocal follow = safecall(_G.CheckInteractDistance, unit, INTERACT_FOLLOW)",
+       "\t\tlocal follow = safecall(_G.CheckInteractDistance, unit, 4)",
        "shout reach asked in combat",
        expect="which the game blocks",
        script="runscenarios.py")
