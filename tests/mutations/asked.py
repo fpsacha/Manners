@@ -84,16 +84,16 @@ mutate("Core.lua",
 
 # A question about a buff taken for a question asking for it.
 mutate("Core.lua",
-       "\t\tlocal questioned = not Among(ASK.question, words[1])\n",
-       "\t\tlocal questioned = true\n",
+       "\t\tlocal questioned = marked and not Among(ASK.question, words[1])\n",
+       "\t\tlocal questioned = marked\n",
        "questions about a buff ask for it",
        expect="only whole words and real requests count",
        script="runscenarios.py")
 
 # "who has arcane intellect?" read as asking for it.
 mutate("Core.lua",
-       "\t\t\t\"who\", \"whos\", \"wants\", \"needs\" }),\n",
-       "\t\t\t}),\n",
+       "\t\t\t\"who\", \"whos\", \"wants\", \"needs\",\n",
+       "",
        "who has it read as asking for it",
        expect="only whole words and real requests count",
        script="runscenarios.py")
@@ -220,7 +220,7 @@ mutate("Core.lua",
 
 # A buff landing does not answer the request.
 mutate("Core.lua",
-       "\tif not unheard then ns.ServeRequest(pending.name) end\n",
+       "\tif not unheard then ns.ServeRequest(pending.name, pending.buffKey) end\n",
        "",
        "a request is never served",
        expect="a buff that lands serves the request",
