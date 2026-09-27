@@ -18,6 +18,8 @@
 --   partyOnly reaches your party and nobody else.
 --   selfCast  cast on yourself, not on them, so the macro takes no target.
 --   neverAuto offerable, but never what "Automatic" reaches for.
+--   talent    learned from a talent, so somebody of your class may lack it and
+--             ask for it.
 --
 -- Only buffs worth giving a passer-by are listed: emergency spells (Blessing
 -- of Freedom, Protection) and anything that moves somebody (Slow Fall,
@@ -55,6 +57,7 @@ local VANILLA = {
 			ranks = { 27841, 14819, 14818, 14752 },
 			group = { 27681 },
 			manaOnly = true,
+			talent = true,
 		},
 		{
 			key = "shadow",
@@ -91,6 +94,7 @@ local VANILLA = {
 			key = "kings",
 			ranks = { 20217 },
 			group = { 25898 },
+			talent = true,
 		},
 		{
 			key = "salvation",
@@ -106,6 +110,7 @@ local VANILLA = {
 			key = "sanctuary",
 			ranks = { 20914, 20913, 20912, 20911 },
 			group = { 25899 },
+			talent = true,
 		},
 	},
 
