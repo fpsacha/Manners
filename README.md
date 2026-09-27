@@ -315,15 +315,23 @@ Sharing settings
 When something is wrong
 /manners debug              what your class and this build allow
 /manners errors             the last few things that broke, if any did
-/manners clicks             log what the button does when clicked
-/manners try <macro>        run any macro text from the prompt
-/manners look [unit]        every answer the game gives about a unit
-/manners forms              example macros to try
+/manners dev                tools for testing the addon on this client: the click log, try, look and forms
 /manners help               this list, grouped the same way
 ```
 
 `/mnr` works in place of `/manners` in all of them. A word it does not
 recognise suggests the closest command, or lists them all.
+
+`/manners dev` lists four tools for finding out what this client allows, kept
+out of the help because only somebody reporting a problem needs them. They
+still work when typed directly, and bug reports quote them:
+
+```
+/manners clicks             log what the button does when clicked
+/manners try <macro>        run any macro text from the prompt
+/manners look [unit]        every answer the game gives about a unit
+/manners forms              example macros to try
+```
 
 The first login on a character says what `/manners welcome` says by itself,
 once, and puts the prompt on screen so you can see where it is. It is kept per
@@ -339,8 +347,10 @@ secure button only casts on the way down.
 
 **Sharing settings.** `/manners export` puts your settings in a box on the
 General tab as one line of text, to keep or to hand to somebody; paste one into
-the box beside it, or after `/manners import`, to use it. Only what differs
-from the defaults is written, a damaged line is refused before anything
+the box beside it, or after `/manners import`, to use it. A chat line holds
+only 255 characters, so a longer string has to go in that box, under Share
+settings on the General tab of the options. Only what differs from the
+defaults is written, a damaged line is refused before anything
 changes, and `/manners import undo` puts your own settings back. A pasted line
 never switches on speaking to other players, and never touches your on switch,
 the prompt's lock or position, or the minimap button.

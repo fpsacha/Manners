@@ -200,7 +200,8 @@ Once per character, and `/manners welcome` brings it back.
 /manners import    use a line somebody exported (import undo puts yours back)
 /manners debug     which client, which spells, and what it can measure
 /manners errors    anything the addon caught and carried on from
-/manners help      every command, grouped
+/manners dev       tools for testing the addon on this client
+/manners help      the full list, grouped
 ```
 
 Settings travel as one line of text: a pasted one never switches on speaking
