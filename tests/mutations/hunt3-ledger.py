@@ -20,7 +20,7 @@ mutate("Ledger.lua",
 
 # Today's count of buffs given does not stop where the list's share does.
 mutate("Ledger.lua",
-       "\tif s.today and s.today.day == today then out.given = math.max(out.given, s.today.given) end\n",
+       "\t\tout.given = math.max(out.given, s.today.given)\n",
        "",
        "hunt3 ledger: today's gifts stop at 100",
        expect="hunt3 ledger: today's gifts are counted past a hundred", script=S)

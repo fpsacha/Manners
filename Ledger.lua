@@ -154,6 +154,9 @@ local TEXT = {
 	TIP_GAVE = L["You buffed them with %s, %s."],
 	TIP_GAVE_GROUP = L["They were in your group and had not buffed you."],
 	TIP_GAVE_STRANGER = L["They were not in your group and had not buffed you."],
+	-- Under either of those for a buff somebody asked for, which is listed
+	-- with the rest but not counted as given unprompted.
+	TIP_GAVE_ASKED = L["They asked for it in chat."],
 
 	JUST_NOW = L["just now"],
 	MINUTES_AGO = L["%d min ago"],
@@ -196,6 +199,8 @@ local STATES = { owed = true, returned = true, letgo = true }
 local WHY = { expired = true, useless = true, notkept = true, never = true }
 local FILTERS = { all = true, favours = true, given = true }
 local TOTALS = { "received", "returned", "letGo", "group", "strangers" }
+-- Today's counts of favours, kept beside today's count of gifts.
+local TODAY = { "received", "returned", "useless" }
 local POINTS = {
 	CENTER = true, TOP = true, BOTTOM = true, LEFT = true, RIGHT = true,
 	TOPLEFT = true, TOPRIGHT = true, BOTTOMLEFT = true, BOTTOMRIGHT = true,
@@ -211,11 +216,12 @@ end
 
 -- A name that may be kept, or nil: the debt table's rules, restated because
 -- this is the other place a name goes to disk and the window prints it. A
--- secret, anything too long for a character's name, and anything carrying a
--- chat escape or macro punctuation are refused.
+-- secret, anything too long for a name and a surname, and anything carrying a
+-- chat escape or macro punctuation are refused. The longest name and surname
+-- are twelve characters each of up to four bytes, and the space between.
 local function CleanName(name)
 	if Secret(name) or type(name) ~= "string" then return nil end
-	if name == "" or #name > 48 then return nil end
+	if name == "" or #name > 97 then return nil end
 	if name:find("[%[%]\n\r;|]") then return nil end
 	return name
 end
@@ -243,6 +249,10 @@ end
 local function Count(v)
 	if type(v) ~= "number" or v ~= v or v < 0 or v == math.huge then return 0 end
 	return math.floor(v)
+end
+
+local function Whole(v)
+	return type(v) == "number" and v >= 0 and v == math.floor(v) and v ~= math.huge
 end
 
 -- The wall clock. Everything stored is on it, for the reason Core's debts are:
@@ -304,13 +314,25 @@ local function Duration(seconds)
 	return TEXT.HOURS:format(math.floor(seconds / 3600 + 0.5))
 end
 
--- Local midnight, on this computer's clock. date("*t") is the only thing that
--- knows the time zone; should it not answer with a table, "today" is the last
--- day's worth of seconds.
+-- Local midnight, on this computer's clock. Made from today's date by time(),
+-- which applies daylight saving: counting back the hours on the clock is an
+-- hour out on the day the clocks change, and "today" would then move at the
+-- change. An answer that does not read back as midnight today (a time() that
+-- ignores the table) is not trusted, and the count back is used; should date()
+-- not answer with a table, "today" is the last day's worth of seconds.
 local function StartOfToday(now)
 	local ok, t = pcall(_G.date, "*t", now)
-	if ok and type(t) == "table" and type(t.hour) == "number"
-		and type(t.min) == "number" and type(t.sec) == "number" then
+	if not (ok and type(t) == "table") then return now - 86400 end
+	local okTime, midnight = pcall(_G.time,
+		{ year = t.year, month = t.month, day = t.day, hour = 0, min = 0, sec = 0 })
+	if okTime and type(midnight) == "number" and midnight <= now then
+		local okBack, back = pcall(_G.date, "*t", midnight)
+		if okBack and type(back) == "table" and back.hour == 0
+			and back.day == t.day and back.month == t.month then
+			return midnight
+		end
+	end
+	if type(t.hour) == "number" and type(t.min) == "number" and type(t.sec) == "number" then
 		return now - ((t.hour * 60 + t.min) * 60 + t.sec)
 	end
 	return now - 86400
@@ -325,10 +347,10 @@ end
 --   ledger.entries  oldest first; each one either
 --     { kind = "received", name, class, spells = { id, ... }, at, times,
 --       state = owed | returned | letgo, why, doneAt, gave, partyOnly }
---     { kind = "given", name, class, spell, at, to = group | stranger }
+--     { kind = "given", name, class, spell, at, to = group | stranger, asked }
 --   ledger.totals   lifetime counts, never trimmed and kept by Clear
---   ledger.today    { day = local midnight, given = n }: today's buffs given,
---                   which the trim cannot touch and Clear resets
+--   ledger.today    { day = local midnight, given, received, returned, useless }:
+--                   today's counts, which the trim cannot touch and Clear resets
 --   ledger.filter   the window's tab
 --   ledger.window   where the window was dragged to
 ---------------------------------------------------------------------------
@@ -343,7 +365,8 @@ local function CleanEntry(e)
 
 	if e.kind == "given" then
 		return { kind = "given", name = name, class = class, at = at,
-			spell = CleanSpell(e.spell), to = e.to == "group" and "group" or "stranger" }
+			spell = CleanSpell(e.spell), to = e.to == "group" and "group" or "stranger",
+			asked = e.asked == true or nil }
 	elseif e.kind == "received" then
 		local spells = {}
 		if type(e.spells) == "table" then
@@ -445,12 +468,15 @@ local function Repair(char)
 
 	s.filter = FILTERS[s.filter] and s.filter or "all"
 
-	-- Today's count of buffs given, kept apart from the list: see Summary.
-	-- Kept only whole, a day that is a number and a count that is one.
+	-- Today's counts, kept apart from the list: see Summary. Kept only with a
+	-- day that is a time and a count of gifts that is whole; any other count
+	-- that is not a whole number reads as none.
 	local today = s.today
-	if type(today) == "table" and CleanTime(today.day) and type(today.given) == "number"
-		and today.given >= 0 and today.given == math.floor(today.given) and today.given ~= math.huge then
+	if type(today) == "table" and CleanTime(today.day) and Whole(today.given) then
 		s.today = { day = today.day, given = today.given }
+		for _, key in ipairs(TODAY) do
+			s.today[key] = Whole(today[key]) and today[key] or 0
+		end
 	else
 		s.today = nil
 	end
@@ -478,6 +504,24 @@ end
 
 local function Bump(s, key, by)
 	s.totals[key] = math.max(0, (s.totals[key] or 0) + (by or 1))
+end
+
+-- Today's counts, counted apart from the list, which keeps only MAX_ENTRIES
+-- rows and so cannot count a busy day to its end. Started afresh on a new day.
+local function Today(s, now)
+	local day = StartOfToday(now)
+	if not (s.today and s.today.day == day) then
+		s.today = { day = day, given = 0, received = 0, returned = 0, useless = 0 }
+	end
+	return s.today
+end
+
+-- One off today's `key` for a row dated `at`, while today is still the day it
+-- was counted on: after midnight, or after Clear, it is not in the count.
+local function Untoday(s, key, at)
+	if s.today and s.today.day == StartOfToday(at) then
+		s.today[key] = math.max(0, (s.today[key] or 0) - 1)
+	end
 end
 
 local function Append(s, e)
@@ -612,6 +656,9 @@ function Ledger.Received(seen, useless, partyOnly)
 		end
 		Append(s, e)
 		Bump(s, "received")
+		local today = Today(s, now)
+		local key = useless and "useless" or "received"
+		today[key] = today[key] + 1
 	end
 	Changed()
 end
@@ -648,6 +695,7 @@ function Ledger.Settled(name, wasOwed, pending, spellId)
 
 	local gave = GaveSpell(pending, spellId)
 	local undo = { name = name, clock = clock }
+	local today = Today(s, now)
 	if wasOwed then
 		local e = FindOpen(s, name)
 		if not e then
@@ -661,22 +709,25 @@ function Ledger.Settled(name, wasOwed, pending, spellId)
 				class = CleanClass(type(wasOwed) == "table" and wasOwed.class or nil) }
 			Append(s, e)
 			Bump(s, "received")
+			if StartOfToday(at) == today.day then today.received = today.received + 1 end
 			undo.created = true
 		end
 		e.state, e.doneAt, e.gave = "returned", now, gave
 		Bump(s, "returned")
+		-- Today's headline scores the favours received today, so a return
+		-- counts for today only when the favour does.
+		if StartOfToday(e.at) == today.day then today.returned = today.returned + 1 end
 		undo.entry = e
 	else
 		local to = type(pending) == "table" and pending.inGroup == true and "group" or "stranger"
-		local e = { kind = "given", name = name, at = now, spell = gave, to = to,
+		-- A buff somebody asked for in chat is listed, but it was not given
+		-- unprompted, which is what today's count of gifts says.
+		local asked = type(pending) == "table" and pending.reason == "asked"
+		local e = { kind = "given", name = name, at = now, spell = gave, to = to, asked = asked or nil,
 			class = CleanClass(type(pending) == "table" and pending.class or nil) }
 		Append(s, e)
 		Bump(s, to == "group" and "group" or "strangers")
-		-- Counted for today apart from the list, which keeps only MAX_GIVEN of
-		-- these and so cannot count a busy day past a hundred.
-		local day = StartOfToday(now)
-		if not (s.today and s.today.day == day) then s.today = { day = day, given = 0 } end
-		s.today.given = s.today.given + 1
+		if not asked then today.given = today.given + 1 end
 		undo.entry, undo.to = e, to
 	end
 	recent[#recent + 1] = undo
@@ -705,22 +756,24 @@ function Ledger.Refused(name, clock)
 	if undo.to then
 		Remove(s, e)
 		Bump(s, undo.to == "group" and "group" or "strangers", -1)
-		-- Today's count too, while today is still the day it was counted on:
-		-- after midnight, or after Clear, the gift is not in it.
-		if s.today and s.today.day == StartOfToday(e.at) then
-			s.today.given = math.max(0, s.today.given - 1)
-		end
+		-- Today's count too, which never had a buff somebody asked for.
+		if not e.asked then Untoday(s, "given", e.at) end
 	else
 		Bump(s, "returned", -1)
+		Untoday(s, "returned", e.at)
 		if undo.created then
 			Remove(s, e)
 			Bump(s, "received", -1)
+			Untoday(s, "received", e.at)
 		else
 			-- Somebody who buffed you again before the refusal arrived already
 			-- has an owed row, and Core keeps one debt per person, so the two
-			-- are folded into one favour, counted once.
+			-- are folded into one favour, counted once. Today's count gives
+			-- back the later of the two, which it holds even when the other
+			-- was yesterday's.
 			local open = FindOpen(s, e.name)
 			if open and open ~= e then
+				Untoday(s, "received", math.max(open.at, e.at))
 				open.times = open.times + e.times
 				for _, id in ipairs(e.spells) do AddSpell(open, id) end
 				open.at = math.min(open.at, e.at)
@@ -821,9 +874,10 @@ local function Quiet()
 	return nil
 end
 
--- Today's numbers from the list, the lifetime ones from the counts. A favour
--- nothing you cast could return is counted apart from the rest, `useless`, and
--- left out of `received`, which is what the headline scores you against.
+-- Today's numbers from the list and today's counts, the lifetime ones from the
+-- totals. A favour nothing you cast could return is counted apart from the
+-- rest, `useless`, and left out of `received`, which is what the headline
+-- scores you against. A buff somebody asked for is not in `given`.
 function Ledger.Summary()
 	local s, now = Store(), Wall()
 	local out = { received = 0, returned = 0, useless = 0, given = 0, owed = 0,
@@ -838,15 +892,18 @@ function Ledger.Summary()
 			elseif e.kind == "received" then
 				out.received = out.received + 1
 				if e.state == "returned" then out.returned = out.returned + 1 end
-			else
+			elseif not e.asked then
 				out.given = out.given + 1
 			end
 		end
 	end
-	-- The list keeps only MAX_GIVEN buffs given, so on a busy day the count
-	-- kept apart from it is the right one. The larger of the two, because a
-	-- list saved before that count existed has rows it never saw.
-	if s.today and s.today.day == today then out.given = math.max(out.given, s.today.given) end
+	-- The list keeps only so many rows, so on a busy day the counts kept apart
+	-- from it are the right ones. The larger of the two, because a list saved
+	-- before those counts existed has rows they never saw.
+	if s.today and s.today.day == today then
+		out.given = math.max(out.given, s.today.given)
+		for _, key in ipairs(TODAY) do out[key] = math.max(out[key], s.today[key] or 0) end
+	end
 	for _, key in ipairs(TOTALS) do out.totals[key] = s.totals[key] or 0 end
 	return out
 end
@@ -977,6 +1034,15 @@ local function Font()
 	return path or STANDARD_TEXT_FONT
 end
 
+-- A font file the client cannot load leaves the string with no font, and the
+-- first SetText on it throws; the game's own font always loads. GetFont is
+-- asked for rather than assumed, like the rest of the frame API here.
+local function SafeFont(fs, path, size, flags)
+	if not fs:SetFont(path, size, flags) or (fs.GetFont and not fs:GetFont()) then
+		fs:SetFont(STANDARD_TEXT_FONT, size, flags)
+	end
+end
+
 local function Solid(parent, layer, sublevel)
 	local t = parent:CreateTexture(nil, layer, nil, sublevel)
 	t:SetTexture(WHITE)
@@ -988,7 +1054,7 @@ end
 -- colour the client defaults to, and the window should not depend on that.
 local function Text(parent, size, colour, layer)
 	local fs = parent:CreateFontString(nil, layer or "OVERLAY")
-	fs:SetFont(Font(), size, "")
+	SafeFont(fs, Font(), size, "")
 	fs:SetJustifyH("LEFT")
 	fs:SetWordWrap(false)
 	fs:SetShadowColor(0, 0, 0, 0.9)
@@ -1163,6 +1229,7 @@ local function RowTooltip(row)
 			Ledger.Ago(now - e.at)), 1, 1, 1, true)
 		GameTooltip:AddLine(e.to == "group" and TEXT.TIP_GAVE_GROUP or TEXT.TIP_GAVE_STRANGER,
 			0.7, 0.7, 0.7, true)
+		if e.asked then GameTooltip:AddLine(TEXT.TIP_GAVE_ASKED, 0.7, 0.7, 0.7, true) end
 	else
 		local theirs = {}
 		for _, id in ipairs(e.spells) do theirs[#theirs + 1] = SpellName(id) or TEXT.UNKNOWN_SPELL end
