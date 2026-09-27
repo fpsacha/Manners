@@ -118,7 +118,7 @@ mutate("Prompt.lua",
 
 # A line shrunk once and never put back to its size.
 mutate("Prompt.lua",
-       "\tif fit.size[fs] ~= base then\n\t\tfs:SetFont(fit.path, base, fit.flags)\n\t\tfit.size[fs] = base\n\tend\n",
+       "\tif fit.size[fs] ~= base then\n\t\tSafeFont(fs, fit.path, base, fit.flags)\n\t\tfit.size[fs] = base\n\tend\n",
        "",
        "a shrunk line never regrows",
        expect="stayed shrunk",

@@ -20,6 +20,8 @@ local frameMethods = {
   "UnregisterEvent", "SetFrameStrata", "SetHighlightTexture", "EnableMouse",
   "StartMoving", "StopMovingOrSizing", "SetGradient", "CreateMaskTexture",
   "AddMaskTexture", "SetAtlas", "SetCountdownFormatter", "SetUserPlaced",
+  -- The prompt asks whether a font loaded, so it can fall back when not.
+  "GetFont",
 }
 
 local function newFrame()

@@ -2577,8 +2577,8 @@ mutate("Core.lua",
 # The cooldown asked after the fight is: in combat the macro cannot be disarmed,
 # and a press inside the cooldown was filed against the frozen person.
 mutate("Prompt.lua",
-       "\tcooldownPressAt = (not ready) and now or nil\n\tif InCombatLockdown() then return end\n",
-       "\tif InCombatLockdown() then cooldownPressAt = nil return end\n\tcooldownPressAt = (not ready) and now or nil\n",
+       "\tcooldownPressAt = (not ready) and now or nil\n\tif InCombatLockdown() then\n\t\tpressStale = nil\n\t\treturn\n\tend\n",
+       "\tif InCombatLockdown() then cooldownPressAt = nil pressStale = nil return end\n\tcooldownPressAt = (not ready) and now or nil\n",
        "a press in the cooldown filed during a fight",
        expect="in a fight, a press inside the cooldown is not filed",
        script="runscenarios.py")
@@ -3197,7 +3197,7 @@ mutate("Prompt.lua",
 # Your own target handed back to whoever came before them.
 mutate("Prompt.lua",
        '\tlocal restore = ns.db.profile.filters.restoreTarget == true\n'
-       '\t\tand (entry.unit ~= "target" or Prompt.armedForFight == true)\n',
+       '\t\tand (not StillTargeted(entry) or Prompt.armedForFight == true)\n',
        "\tlocal restore = ns.db.profile.filters.restoreTarget == true\n",
        "your own target switched away after the buff",
        expect="hands the target to whoever came before",
@@ -3768,8 +3768,8 @@ mutate(".github/workflows/ci.yml",
 # Your own target's macro frozen for a fight without the hand-back, so tabbing
 # to the mob and pressing leaves you on the friend.
 mutate("Prompt.lua",
-       "\t\tand (entry.unit ~= \"target\" or Prompt.armedForFight == true)",
-       "\t\tand entry.unit ~= \"target\"",
+       "\t\tand (not StillTargeted(entry) or Prompt.armedForFight == true)",
+       "\t\tand not StillTargeted(entry)",
        "fight macro for your target drops the hand-back",
        expect="the macro frozen for the fight cannot hand back",
        script="runscenarios.py")
