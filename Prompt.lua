@@ -1,14 +1,11 @@
 -- Manners -- the on-screen prompt.
 --
--- The button itself is a SecureActionButtonTemplate: Blizzard owns the click,
--- and SetAttribute, SetSize, SetScale and SetPoint are all protected once
--- combat starts. Every visual instead lives on `art`, an ordinary frame
--- parented to it, so animations never touch protected state.
---
--- Everything is drawn from a single white texture plus gradients, alpha and
--- motion. That is deliberate: a missing atlas or art file renders as a green
--- placeholder, and a solid texture cannot fail. Atlas and mask work is layered
--- on top only after being confirmed present at runtime.
+-- The button is a SecureActionButtonTemplate: Blizzard owns the click, and its
+-- attributes, size, scale and position are protected in combat. Every visual
+-- lives on `art`, an ordinary child frame, so animations never touch protected
+-- state. Everything is drawn from one white texture plus gradients, alpha and
+-- motion: a missing atlas or art file renders as a green placeholder, and a
+-- solid texture cannot fail.
 
 local ADDON, ns = ...
 -- Player-facing text, in the client's language: see Locales/Init.lua.
@@ -26,13 +23,9 @@ end)
 
 function ns.PlayPromptSound(file)
 	if not file or file == "None" then return end
-	-- noDefault: without it an entry whose addon has been uninstalled resolves
-	-- to "None", which is the number 1 and plays nothing -- silence that reads
-	-- as a broken addon, which is the bug this fixes.
-	--
-	-- A key that is not there falls back to our own sound, here and not in the
-	-- saved setting. Rewriting the setting at load is what reset a sound from
-	-- any pack that loads after this addon: it had not registered yet.
+	-- noDefault: an uninstalled pack's entry would resolve to "None" and play
+	-- nothing. A missing key falls back to our sound here, not in the saved
+	-- setting: a pack loading after this addon has not registered yet.
 	local data = LSM:Fetch("sound", file, true) or LSM:Fetch("sound", ns.SOUND_KEY, true)
 	if not data then return end
 	local willPlay = ns.plain(PlaySoundFile(data, "Master"))
@@ -50,10 +43,8 @@ local WHITE = "Interface\\Buttons\\WHITE8X8"
 
 local button, art, textLayer
 local panel, hairTop, hairBottom
--- The drop shadow, as steps of falloff from a crisp dark rim at the panel's
--- edge out to almost nothing, each a little lower than the last so the light
--- reads as coming from above. Two hard-edged rectangles was the old version,
--- and at a glance it read as a grey frame round the panel rather than as depth.
+-- The drop shadow: steps of falloff from a crisp dark rim out to almost
+-- nothing, each a little lower, so the light reads as coming from above.
 local shadows
 local SHADOW_STEPS = {
 	-- spread, alpha, drop
@@ -65,31 +56,24 @@ local SHADOW_STEPS = {
 -- Light falling on the top half of the glass. The panel's own gradient darkens
 -- towards the bottom; this is the other half of the same idea.
 local sheen
--- The four edges of the framed look, drawn from the same white texture as
--- everything else here. A backdrop needs BackdropTemplate and a border needs an
--- art file or an atlas, and both of those are things this client may not have
--- -- which is how the look that promised one went three releases applying
--- nothing at all. Four one-pixel rectangles cannot fail.
+-- The framed look's four edges, from the same white texture. A backdrop needs
+-- BackdropTemplate and a border needs art or an atlas, either of which this
+-- client may lack; four one-pixel rectangles cannot fail.
 local edges
 local accentTop, accentBottom, sweep, sweepFrame
 local iconBack, icon, glowFrame, iconMask
--- The glow is a halo round the icon, rather than the filled square it was.
--- glowFrame is a frame of its own so it can be animated, and a child frame
--- draws over everything its parent draws -- so the square was washed
--- additively over the spell icon, and at the top of the pulse the icon turned
--- into a pale smudge of the reason colour. The halo starts at the ring, so the
--- icon stays readable at every point of the pulse. See Halo.
+-- A halo round the icon, starting at the ring so the icon stays readable at
+-- every point of the pulse. glowFrame is a frame of its own so it can be
+-- animated, and a child frame draws over its parent. See Halo.
 local glowHalo
 -- A dark line between the icon and its ring, and a shade over the icon's lower
--- half. Without them the ring sat flush against the art and read as a flat
--- coloured square rather than a frame.
+-- half, so the ring reads as a frame rather than a flat square.
 local iconEdge, iconShade
 -- The global cooldown, swept over the icon. See SyncCooldown.
 local cooldown
--- The confirmation a landed buff gets, and the light that catches the panel
--- when somebody buffs you: a ring that pops outward from the icon, and a band
--- of light that crosses the panel once. Both play once and stop; neither runs
--- while nothing is happening.
+-- The confirmation a landed buff gets, and the light on a new favour: a ring
+-- popping outward from the icon, and a band of light crossing the panel once.
+-- Both play once and stop.
 local burstFrame, burstHalo, shineFrame, shineLeft, shineRight
 -- Whether the panel colour is dark enough for the reason line to carry a tint
 -- of the reason colour. On a light panel a tinted grey loses its contrast.
@@ -97,86 +81,57 @@ local tintSub
 -- What PaintAccent last painted, so a repaint in the same colour costs nothing.
 local accentPainted
 local nameText, subText, countChip, countText, queueRows
--- A flood of colour over the whole panel, for the half-second after a click.
--- The panel is what the eye is already on, so the confirmation goes there
--- rather than into a chat line nobody is watching for.
+-- A flood of colour over the whole panel for the half-second after a click:
+-- the panel is where the eye already is.
 local resultFill
--- The queue list is drawn outside the panel, so it needs its own background or
--- it is white text on the world. queueBars are the reason stripes down the
--- left of each row.
+-- The queue list hangs outside the panel, so it needs its own background.
+-- queueBars are the reason stripes down the left of each row.
 local queueBack, queueHair, queueBars
 local queueTextX = 0
--- Goes into every click line. A log that does not say which build produced it
--- can be diagnosed for an hour before anyone notices the game never loaded the
--- file being read.
+-- Goes into every click line, so a log says which build produced it.
 ns.BUILD = "1.0.0-beta.8"
 
 local current, testMode, testExpiry, lastTop, appliedKey, lastClickAt, lastPreClickAt, lastSkipAt
 -- Why the last painted person was on the panel, beside lastTop's who.
 local lastTopReason
--- The stamp of the newest favour a repaint has seen, and how old a favour can
--- be and still count as just done. A scan comes round every fraction of a
--- second, so three is time enough for the repaint to reach it, and short
--- enough that an old favour first seen late -- one carried over from the last
--- session, or done while a fight kept the panel from looking -- is not news.
+-- The newest favour stamp a repaint has seen, and how old a favour can be and
+-- still count as just done; one first seen late is not news.
 local seenDebtAt
 local ARRIVAL_SECONDS = 3
 -- Its own stamp rather than one of the three above: the refusal it rate-limits
 -- happens on presses none of those are counting.
 local lastStaleAt
 
--- What the last resolved press left on the button, as appliedKey stood when
--- PreClick finished with it. The debounce below lets the second half of a press
--- through without re-resolving, and that is only safe while the button still
--- holds what the resolved half armed: an error in between repaints the prompt
--- onto the next person, and a debounced press then fired their macro with no
--- record behind it -- so the parked record from the refused press was settled
--- by the other person's cast, and the one who got the buff stayed owed.
+-- What the last resolved press left on the button. The debounce may skip
+-- re-resolving only while the button still holds this.
 local pressKey
 
 -- The moment of a press the cooldown turned away, stamped in PreClick and
--- consumed by PostClick of the same press. Both run in the one frame, so the
--- clock agrees. Stamped ahead of the combat return, because in a fight the
--- macro cannot be disarmed and the bookkeeping is the only thing left to refuse.
+-- consumed by PostClick in the same frame. Stamped ahead of the combat return:
+-- in a fight only the bookkeeping can be refused.
 local cooldownPressAt
--- ...and what the button was holding when the guard disarmed it, so PostClick
--- can put it back once the secure handler has had its turn and found nothing.
--- Left disarmed, a fight starting before the next scan froze the prompt empty
--- for its whole length.
+-- ...and what the button held when the guard disarmed it, so PostClick can put
+-- it back; left disarmed, a fight starting before the next scan froze the
+-- prompt empty.
 local guardedEntry
--- ...and the spoken line it was carrying. The disarm wipes the roll along with
--- the macro, as every disarm must, and putting the same person back rolled a
--- fresh line -- so the tooltip, which had not changed its mind about who, went
--- on quoting the old one while the next press said another.
+-- ...and the spoken line it carried, put back with it so the tooltip and the
+-- next press quote the same roll.
 local guardedPhraseKey, guardedPhraseText
 
 ---------------------------------------------------------------------------
 -- hysteresis
 --
--- The scan runs two and a half times a second and the queue is rebuilt from
--- scratch each time. In a quiet field that is invisible; in a city it is a
--- strobe. Somebody steps a yard out of range, a nameplate is recycled, an aura
--- read falls out of the three-second cache -- and the top of the queue changes
--- for a moment. The panel hid, showed again, replayed its entrance animation
--- and replayed the sound, at 2.5 Hz, for a prompt that never actually had
--- anything new to say.
---
--- Three floors, because there are three separate things churning: who is on
--- it, whether it is on screen at all, and the sound. None of them is a
--- smoothing filter -- each one refuses a *change* for a short time and then
--- allows it, so nothing can be held back indefinitely by a queue that keeps
--- flickering.
+-- The scan rebuilds the queue 2.5 times a second, and in a crowd its top
+-- churns. Three floors -- who is on it, whether it is shown, the sound -- each
+-- refuse a change for a short time and then allow it.
 ---------------------------------------------------------------------------
 
--- How long a freshly painted candidate is protected from being replaced by
--- one of equal or lower priority. Someone strictly more deserving -- a favour
--- owed arriving over a passer-by -- takes the panel immediately, because that
--- is the case the prompt exists to notice.
+-- How long a freshly painted candidate is protected from one of equal or lower
+-- priority. Somebody strictly better takes the panel at once.
 local HOLD_SECONDS = 1.5
 
 -- How long an empty queue is given to refill before the prompt comes down.
--- Shorter than the hold on purpose: "there is nobody" should be believed
--- quickly, it is only the first empty scan that is not worth believing.
+-- Shorter than the hold: "there is nobody" should be believed quickly.
 local EMPTY_FUSE_SECONDS = 0.75
 
 -- The floor between two sounds. Without it the sound is tied to the name
@@ -186,62 +141,48 @@ local SOUND_FLOOR_SECONDS = 3
 -- How long a click's outcome sits over the panel.
 local OUTCOME_SECONDS = 0.6
 
--- The entry last painted and when, which together are what the hold is
--- measured against. Held as the whole entry rather than the name: when the
--- queue drops somebody for a scan there is nothing left to look the rest of
--- them up from, and re-arming the macro needs the buff as much as the name.
+-- The entry last painted and when, which the hold is measured against. The
+-- whole entry, because re-arming the macro needs the buff as well as the name
+-- after the queue has dropped them.
 local heldEntry, heldAt
 -- When the queue first came back empty, cleared the moment it refills.
 local emptyAt
 local lastSoundAt
--- Whether the panel is currently dimmed for combat, so the alpha is written
--- once on each transition rather than on every pass through a locked-down
--- Refresh.
+-- Whether the panel is dimmed for combat, so the alpha is written once per
+-- transition.
 local combatHeld
--- Whether a drag has actually started. The client delivers OnDragStop for
--- every drag gesture, including the ones OnDragStart refused -- a locked
--- prompt, a fight -- so the release cannot take it on trust that a move is
--- under way.
+-- Whether a drag actually started. The client delivers OnDragStop for every
+-- drag gesture, including the ones OnDragStart refused (locked, in combat).
 local dragging
 
 -- What the last click turned into: "cast", "sent" or "failed", who it was
 -- about, and the game's own words where it had any.
 local outcomeKind, outcomeAt, outcomeName, outcomeDetail
--- Who the name line is actually about while an outcome is written over it, and
--- nil once anything else has been painted there. Kept apart from outcomeName
--- because the two end at different moments: the outcome stops being live on
--- the clock, and the words stay on the panel until something repaints it. The
--- press has to follow the words.
+-- Who the name line is about while an outcome is over it: the outcome expires
+-- on the clock but its words stay until a repaint, and a press follows the
+-- words.
 local outcomePainted
--- Which outcome the expiry timer was set for. A second press can put a new
--- outcome up before the first one's timer fires; that timer then has nothing
--- of its own left to take down, and is ignored rather than spending a repaint
--- on a flash that is not its own.
+-- Which outcome the expiry timer was set for, so a timer left from an earlier
+-- outcome is ignored.
 local outcomeGen = 0
 
--- The spoken line settled for the candidate currently on the button, and the
--- person, buff and reason it was settled against. Both exist so the tooltip
--- can quote a line that is still the one that will run: PickPhrase rolls a
--- random entry out of the pool, and PreClick rebuilds the macro at press time
--- -- so the line being read and the line being cast were never the same roll.
+-- The spoken line settled for the candidate on the button, and its key, so the
+-- tooltip quotes the roll the press will cast.
 local phraseKey, phraseText
 
 -- Which side of the panel the queue list hangs off. Decided in ApplyStyle,
 -- because the only things that move the prompt come back through it.
 local queueAbove
 
--- Everything the hysteresis is holding on to. Dropped whenever the prompt goes
--- down for a reason of its own -- switched off, unlocked, nothing learned -- so
--- that coming back up is a fresh start rather than a continuation of a panel
--- that was last on screen an hour ago.
+-- Everything the hysteresis holds, dropped whenever the prompt goes down for a
+-- reason of its own (switched off, unlocked, nothing learned), so coming back
+-- up is a fresh start.
 local function ClearHold()
 	heldEntry, heldAt, emptyAt = nil, nil, nil
 end
 
--- Lights the fuse on an empty queue, once, and asks for a repaint the moment
--- it has burnt out. The scan is what used to notice, and at two seconds
--- between scans the panel stood for over a second past its own fuse, still
--- naming somebody the queue had already let go of.
+-- Lights the fuse on an empty queue, once, and asks for a repaint when it has
+-- burnt out rather than waiting for the next scan.
 local function LightFuse(now)
 	if emptyAt then return end
 	emptyAt = now
@@ -252,16 +193,8 @@ local function LightFuse(now)
 	end
 end
 
--- Whether somebody is on the never-offer list with no favour to be returned,
--- asked the way BuildQueue asks it, on the same GetTime clock: owed people are
--- the list's one exception, and anybody else on it is somebody the player has
--- asked never to be offered.
---
--- Only the prompt's own shift-right-click writes a block as well, so without
--- this a name put on the list by /manners never, the options box or the menu
--- -- or a listed person whose favour ran out while they were on the panel --
--- was dropped by the queue and kept by the hold or the fuse, still armed for
--- a keypress to cast at.
+-- On the never-offer list with no favour to return, asked as BuildQueue asks
+-- it, so the hold and the fuse drop a name listed by any route.
 local function ListedWithoutDebt(name, now)
 	if not (name and ns.IsNeverOffered and ns.IsNeverOffered(name)) then return false end
 	local db = ns.db and ns.db.profile
@@ -271,13 +204,9 @@ local function ListedWithoutDebt(name, now)
 	return not owed
 end
 
--- Whether this entry was deliberately retired: a block is either the retry
--- cooldown a click wrote or the refusal a right-press wrote, and a place on
--- the never-offer list with nothing owed is the player saying the same thing
--- by another route. In every case "they are gone" is the answer that was just
--- asked for. Asked by the repaint and by the press, which have to agree about
--- it: a press inside the fuse used to keep the person a right-click had just
--- declined, and cast at them.
+-- Whether this entry was deliberately retired: blocked (the retry cooldown a
+-- click wrote, or a right-press refusal) or on the never-offer list with
+-- nothing owed. The repaint and the press both ask this and must agree.
 local function Retired(entry, now)
 	return entry ~= nil and entry.name ~= nil
 		and (ns.IsBlocked(entry.name, entry.buff and entry.buff.key, now)
@@ -296,71 +225,42 @@ local function HideQueue()
 	queueHair:Hide()
 end
 
--- Show and Hide are protected on the secure button, and the client refuses both
--- for the length of a fight without throwing, without returning anything and
--- without changing the frame. Four branches of Refresh called one of them
--- straight and returned above the branch that knows lockdown exists, so the
--- lockdown was never consulted at all: they walked away believing the panel had
--- gone up or come down when it had done neither, and whatever was last painted
--- stood for the rest of the fight.
---
--- `false` back means the panel is exactly where the fight found it, and the
--- caller then owes the user a sentence about the rectangle that did not move.
+-- Show and Hide are protected, and in combat the client refuses both silently.
+-- `false` means the panel stayed where the fight found it.
 local function SetPanelShown(want)
 	if InCombatLockdown() then return false end
 	if want then button:Show() else button:Hide() end
 	return true
 end
 
--- Ends a move that is under way: the frame let go of, where it landed written
--- down, and the prompt locked. One place for the two ways a drag can end -- the
--- release, and a fight arriving while it is still held -- because the second
--- has to leave the prompt exactly where the first would have.
+-- Ends a move under way: the frame let go, where it landed saved, and the
+-- prompt locked. Shared by the release and by a fight arriving mid-drag, which
+-- must leave the prompt in the same place.
 local function FinishDrag()
 	dragging = nil
 	button:StopMovingOrSizing()
 	local point, _, relPoint, x, y = button:GetPoint()
 	local p = ns.db.profile.prompt
-	-- The client hands the offsets back in the frame's own scaled units, and
-	-- the profile keeps UIParent's -- the units the presets, Reset position
-	-- and the X and Y sliders all mean. Saved as they came, a prompt dropped
-	-- at Scale 2 moved when the scale went back to 1. The frame's own scale
-	-- is the one it was moved at; the profile's can be ahead of it by a slider
-	-- moved in a fight, whose restyle is still waiting for the fight to end.
+	-- The client returns the offsets in the frame's scaled units; the profile
+	-- keeps UIParent's. The frame's own scale is the one it was moved at.
 	local okScale, s = pcall(button.GetScale, button)
 	if not okScale or type(s) ~= "number" or s <= 0 then s = p.scale end
 	p.point, p.relPoint = point, relPoint
 	p.x, p.y = math.floor(x * s + 0.5), math.floor(y * s + 0.5)
 
-	-- Lock straight after a drag. An unlocked prompt cannot cast, and
-	-- leaving it that way looks identical to a working one that simply has
-	-- nobody to offer -- so the addon silently does nothing. Unlock again
-	-- to nudge it further.
+	-- Lock straight after a drag: an unlocked prompt cannot cast, and looks
+	-- just like a working one with nobody to offer.
 	p.locked = true
 	Prompt:ApplyStyle()
-	-- The page is usually open for this -- its Locked box is how the prompt
-	-- was unlocked -- and it went on showing the box unticked over a prompt
-	-- that had just locked itself, with the sliders and the position
-	-- dropdown still describing where it used to be.
+	-- The options page is usually open for this; repaint it so its Locked box
+	-- and position controls match.
 	ns.RepaintOptions()
 	ns.addon:Print(L["moved and locked."])
 end
 
--- Below the panel normally, above it when the prompt is sitting in the bottom
--- third of the screen -- which is where the default position now puts it, and
--- where five rows hanging underneath run off the bottom edge entirely.
---
--- Every call is guarded rather than checked, because neither of these methods
--- is one the addon can assume: a frame that has never been positioned has no
--- centre, and both test harnesses have neither.
---
--- The centre comes back in the prompt's own scaled units and the height in
--- UIParent's, so the centre is converted before the two are compared. Held
--- against each other raw, the line was drawn at the scale times a third of the
--- screen: at Scale 2.5 a prompt four fifths of the way up hung its list above
--- itself and off the top edge. The ratio of the two effective scales is the
--- conversion; where either is missing the prompt's own scale stands in for it,
--- which is the same number while UIParent is the prompt's parent.
+-- Below the panel normally, above it when the prompt sits in the bottom third
+-- of the screen. Every call is guarded (an unplaced frame has no centre), and
+-- the centre is converted from the prompt's scaled units to UIParent's.
 local function QueueGoesAbove()
 	local okCentre, _, y = pcall(button.GetCenter, button)
 	if not okCentre or type(y) ~= "number" then return false end
@@ -377,71 +277,32 @@ local function QueueGoesAbove()
 	return y * ratio < screenHeight / 3
 end
 
--- What the macro currently sitting on the button is aimed at:
--- { targeted = boolean, selfCast = boolean }, or nil when there is no macro of
--- ours on it at all. PostClick copies this onto the pending click so the settle
--- handler can judge the press by what actually went out -- a /target of ours
--- aimed at this person is the one thread tying a press to a person on a client
--- that will not name a recipient.
---
--- Written here rather than worked out again over there, because a settle
--- arriving a few hundred milliseconds later would be re-deriving it from a
--- queue that has been rebuilt half a dozen times since. It is set beside
--- appliedKey, so the early return that skips a rebuild skips this too --
--- correct, because the macro it describes did not change either.
+-- What the macro on the button is aimed at: { targeted, selfCast, aimedAt },
+-- or nil. PostClick copies it onto the pending click, so the settle handler
+-- judges the press by what actually went out. Set beside appliedKey.
 local armed
 
--- Amber for a favour returned, because that is the case worth noticing.
--- The others stay quiet so the prompt does not shout at you constantly.
--- Chosen so the pairs stay apart for the commonest colour blindness, not just
--- on a calibrated monitor.
---
--- The previous set put a soft green against the owed amber, which is precisely
--- the pair deuteranopia and protanopia collapse -- and amber is the one that
--- matters most, because it is the favour you owe somebody standing in front of
--- you. Target is now a pale cyan instead: it sits on the blue side with the
--- group colour but is separated from it by lightness rather than by hue, which
--- survives every form of colour blindness because it survives greyscale.
---
--- Desaturated with the weights ApplyStyle uses for the border (Rec.601), the
--- four come out at 0.83, 0.79, 0.56 and 0.54 -- target, owed, group, nearby.
--- So they are not four distinct greys. Target and group are apart by
--- lightness, 0.27, which is the pair the cyan was chosen for. Group and nearby
--- are 0.02 apart and told apart by hue and saturation alone, and target and
--- owed, 0.04 apart, by blue against amber -- the one opposition red-green
--- colour blindness leaves intact.
+-- Amber for a favour returned, the case worth noticing; the others stay quiet.
+-- Picked to survive the commonest colour blindness: target and group differ in
+-- lightness, owed and target are amber against blue. Rec.601
+-- greys: target 0.83, owed 0.79, group 0.56, nearby 0.54.
 local REASON_COLOR = {
 	target = { 0.62, 0.90, 1.00 },
 	owed = { 1.00, 0.78, 0.30 },
 	group = { 0.34, 0.60, 0.96 },
 	nearby = { 0.52, 0.54, 0.62 },
-	-- Somebody who asked for it in chat: a warm pink, which is none of the
-	-- four above in hue and sits between owed and group in grey (0.68), so it
-	-- still reads as its own thing to somebody who cannot tell the hues apart.
+	-- Somebody who asked in chat: a warm pink, apart from the four in hue and
+	-- between owed and group in grey (0.68).
 	asked = { 0.96, 0.52, 0.80 },
 }
 
 local REASON_KEY = { target = "reasonTarget", owed = "reasonOwed",
 	group = "reasonGroup", nearby = "reasonNearby", asked = "reasonAsked" }
 
--- The same four reasons for somebody the set above still fails: pale yellow,
--- orange, sky blue and violet. The set above keeps group and nearby apart by
--- hue and saturation alone and target and owed by little more, and with the
--- common red-green colour blindness those are the differences that go.
---
--- Found by search rather than by eye: each colour held to its own family of
--- hues, owed held vivid, all four held light enough to carry on a near-black
--- panel, and the set chosen whose closest pair is furthest apart -- measured
--- as CIE76 distance, with normal sight and with protanopia and deuteranopia
--- simulated (Machado, Oliveira and Fernandes, 2009, at full severity). The
--- closest pair comes out at 33 under deuteranopia, 38 under protanopia and 62
--- with normal sight; the standard set's closest are 30, 32 and 36. The warm
--- pair is told from the cool pair by blue against yellow, the one opposition
--- red-green colour blindness leaves intact, and within each pair the two are
--- far apart in lightness. tests/scenarios/look2.lua holds the set to that.
---
--- Chosen under Prompt > Style, and off unless asked for: the standard set is
--- the look everybody else already knows.
+-- For somebody the set above still fails: chosen by search so the closest pair
+-- is furthest apart in CIE76 under normal sight, protanopia and deuteranopia
+-- (Machado et al. 2009); tests/scenarios/look2.lua holds it to that. Opt-in
+-- under Prompt > Style.
 local REASON_COLOR_CVD = {
 	target = { 0.98, 0.96, 0.56 },
 	owed = { 0.92, 0.48, 0.08 },
@@ -450,18 +311,16 @@ local REASON_COLOR_CVD = {
 }
 local REASON_PALETTES = { standard = REASON_COLOR, colourblind = REASON_COLOR_CVD }
 
--- The colour for a reason in the palette the player picked. Anything that is
--- not a palette -- a hand-edited file, an import from a later version with a
--- third one -- reads as the standard set rather than as no colour at all.
+-- The colour for a reason in the player's palette; anything unknown reads as
+-- the standard set.
 local function ReasonColor(reason)
 	local p = ns.db and ns.db.profile.prompt
 	local set = REASON_PALETTES[p and p.reasonPalette] or REASON_COLOR
 	return set[reason or "nearby"] or set.nearby
 end
 
--- Whole minutes, because the refresh threshold is set in minutes and a countdown
--- ticking under the cursor reads as urgency the prompt does not mean. Under a
--- minute is the one case where seconds say something a "0m" cannot.
+-- Whole minutes, like the refresh threshold: a ticking countdown reads as
+-- urgency. Seconds only under a minute.
 local function RemainingText(seconds)
 	if type(seconds) ~= "number" or seconds <= 0 then return nil end
 	if seconds < 60 then return L["%ds"]:format(math.floor(seconds)) end
@@ -495,10 +354,9 @@ local function Solid(parent, layer, sublevel)
 	return t
 end
 
--- A method this client may not have, called if it is there. The effects below
--- use a few calls -- scale animations, start delays, the cooldown sweep's
--- settings -- that every retail-line client has and nothing here has been able
--- to watch run; a missing one costs that one detail, never the prompt.
+-- A method this client may not have, called if it is there. The effects use a
+-- few calls nobody here has watched run; a missing one costs that detail,
+-- never the prompt.
 local function Try(obj, method, ...)
 	local fn = obj and obj[method]
 	if type(fn) ~= "function" then return false end
@@ -510,18 +368,12 @@ end
 local GLOW = "Interface\\AddOns\\Manners\\Textures\\Glow"
 local GLOW_ROUND = "Interface\\AddOns\\Manners\\Textures\\GlowRound"
 -- Where the rim of the round glow sits, as a fraction of the texture's
--- half-width. RING_AT in tools/make-glow.py; the two have to agree, because
--- the texture is sized from this so that its rim lands on the round icon's edge.
+-- half-width: RING_AT in tools/make-glow.py, which must agree.
 local GLOW_RING_AT = 0.70
 
--- Where each piece of the square halo is cut from Glow.tga, as the left, right,
--- top and bottom of SetTexCoord. The texture is light falling off in every
--- direction from its centre, so a quarter of it is a corner that fades from the
--- icon's corner outwards, and a thin line through the middle is a side that
--- fades straight out. The strips used to be gradients, which run along one axis
--- only: the corners could not fade both ways, and the halo read as four bars
--- with a notch at each corner. Cut from one falloff, every join has the same
--- brightness on both sides of it.
+-- Where each piece of the square halo is cut from Glow.tga (SetTexCoord's
+-- left, right, top, bottom): quarters for corners and a thin middle line for
+-- sides, so every join has matching brightness.
 local MID0, MID1 = 0.49, 0.51
 local HALO_CUTS = {
 	{ MID0, MID1, 0, 0.5 }, -- top
@@ -552,11 +404,9 @@ local function Halo(parent, layer, sublevel)
 	return halo
 end
 
--- Placed round `box`, outside an inset of `gap`: `sx` pixels out to the sides
--- and `sy` above and below, which differ because the panel has more room
--- beside the icon than over it. With `round` -- the size of a round icon --
--- the ring instead, sized so its rim sits on the icon's edge. The size is
--- passed rather than read off the box, which may not have been laid out yet.
+-- Placed round `box`, outside an inset of `gap`: `sx` out to the sides and `sy`
+-- above and below. With `round` (a round icon's size, passed because the box
+-- may not be laid out yet) the ring instead, its rim on the icon's edge.
 local function PlaceHalo(halo, box, sx, sy, gap, round)
 	local strips = halo.strips
 	local top, bottom, left, right = strips[1], strips[2], strips[3], strips[4]
@@ -597,9 +447,8 @@ local function PlaceHalo(halo, box, sx, sy, gap, round)
 	end
 end
 
--- The whole halo in one colour. The fade is in the texture, so this is a
--- vertex colour per piece and nothing else -- no gradient, and no colour
--- objects made on the way.
+-- The whole halo in one colour: the fade is in the texture, so a vertex colour
+-- per piece is all it takes.
 local function PaintHalo(halo, r, g, b, alpha)
 	for _, t in ipairs(halo.strips) do t:SetVertexColor(r, g, b, alpha) end
 	halo.round:SetVertexColor(r, g, b, alpha)
@@ -615,80 +464,49 @@ end
 -- construction
 ---------------------------------------------------------------------------
 
--- The one question the click path asks, in one place.
---
--- It was written out by hand at each site with a different set of members, and
--- ns.caps.anyKnown was in none of them: a character with nothing it can cast
--- still armed a macro and still filed a press against somebody, while Refresh
--- one function away had already taken the panel down for exactly that reason.
---
--- Deliberately NOT the same question as Core's "is the addon switched on".
--- That one governs bookkeeping -- whether a favour is recorded at all -- and
--- says nothing about whether the button in front of somebody should fire.
+-- The one question the click path asks. Deliberately not Core's "is the addon
+-- switched on", which governs bookkeeping; this governs whether the button in
+-- front of somebody should fire.
 local function PromptIsLive()
 	local db = ns.db and ns.db.profile
 	if not db or not db.enabled then return false end
 	-- Unlocked is drag mode, and a prompt being dragged must not cast.
 	if not db.prompt.locked then return false end
 	if testMode then return false end
-	-- Belt and braces rather than a live fix, and worth saying so: BuildQueue
-	-- already returns nothing when this is false, so no candidate reaches the
-	-- button and no mutation of this line can be made to go red. It is here so
-	-- the click path states the same condition the panel does instead of
-	-- relying on a caller two files away to have got there first.
+	-- Belt and braces: BuildQueue already returns nothing without anyKnown, so
+	-- no mutation of this line can go red. It keeps the click path stating the
+	-- same condition the panel does.
 	if not ns.caps.anyKnown then return false end
 	return true
 end
 
--- The prompt's PreClick and PostClick, written here rather than inside
--- Prompt:Create(): WoW runs Lua 5.1, where a function may reach at most 60
--- outside locals, and a closure's count towards the function it sits in.
--- Written inline, these two took Create() past the limit and Prompt.lua
--- failed to load at all (beta.6). They use nothing of Create()'s own, only
--- `self` -- the button -- and the file's locals above this point.
+-- The button's scripts are written out here rather than inside
+-- Prompt:Create(): Lua 5.1 allows a function 60 upvalues, a closure's count
+-- against the function it sits in, and written inline they took Create() past
+-- the limit, so Prompt.lua failed to load at all (beta.6).
 
--- Remember that we tried this person so the queue moves on even if the
--- cast failed for reasons we cannot see: line of sight, range, immunity.
--- MountActions does the same thing: PreClick runs before the secure handler
--- reads the attributes, and out of combat it may still change them. So the
--- target is re-resolved at the last possible moment, and a nameplate token
--- that has since been handed to somebody else can never be cast at.
--- RegisterForClicks("AnyDown") is what makes the secure handler act at all
--- on this client, but it means every mouse button reaches these handlers.
--- Only the left button casts; a right-press to turn the camera used to
--- burn the candidate: retry cooldown set, favour cleared, nothing cast.
+-- PreClick runs before the secure handler reads the attributes, so out of
+-- combat the target is re-resolved at the last moment. Every mouse button
+-- arrives ("AnyDown"); only the left one casts.
 local function OnPreClick(self, mouseButton)
 	if mouseButton and mouseButton ~= "LeftButton" then return end
 	local now = GetTime()
 
-	-- Asked before the fight is, because the fight does not stop the global
-	-- cooldown mattering. In combat the macro is frozen and nothing here can
-	-- disarm it, so a press inside the cooldown still goes out and is still
-	-- refused -- and PostClick used to file it against the frozen person,
-	-- which is the very blame the guard below was written to stop. The
-	-- bookkeeping can still be refused where the macro cannot.
+	-- Asked before the combat return: in combat the frozen macro still goes
+	-- out, and the bookkeeping can still be refused where the macro cannot.
 	local ready, left = ns.CastReady()
-	-- In combat the frozen macro goes out whatever this decides, and one
-	-- pressed in the last stretch of the cooldown is not refused: the client
-	-- queues it and casts it when the cooldown ends. Treating that as turned
-	-- away dropped the bookkeeping for a buff that actually landed, so the
-	-- person stayed owed and was offered -- and cast at -- again. Only a
-	-- press too early to be queued is one the game refuses.
-	--
-	-- Out of combat the whole cooldown is still held back: there the macro
-	-- CAN be disarmed, and a queued /cast would fire after /targetlasttarget
-	-- has already handed the old target back.
+	-- In combat a press late in the cooldown is queued by the client, so it
+	-- counts as ready. Out of combat the whole cooldown is held back: a queued
+	-- /cast would fire after /targetlasttarget.
 	if InCombatLockdown() and not ready and left <= ns.SpellQueueWindow() then
 		ready = true
 	end
 	cooldownPressAt = (not ready) and now or nil
 	if InCombatLockdown() then return end
 
-	-- Down and up both land here; one rebuild per press is enough -- but only
-	-- while the button still holds what that rebuild armed. Between the two
-	-- halves an error can repaint the prompt onto somebody else, and a cast
-	-- can start the cooldown, and in either case what is sitting on the
-	-- button is not something this press resolved.
+	-- Down and up both land here; one rebuild per press, but only while the
+	-- button still holds what that rebuild armed (an error or a cooldown in
+	-- between can change it).
 	if lastPreClickAt and (now - lastPreClickAt) < 0.25 then
 		if not ready then
 			guardedEntry = current
@@ -702,20 +520,9 @@ local function OnPreClick(self, mouseButton)
 	lastPreClickAt = now
 	pressKey = nil
 
-	-- A keypress with an empty prompt is otherwise indistinguishable from a
-	-- binding that does not work, which is what this one was. Says it here
-	-- rather than in Bindings.xml because the macro route lands here too.
-	--
-	-- And it says why the panel is empty where that is the addon's own
-	-- doing. A key pressed after /manners off used to hear "nobody to buff"
-	-- -- often untrue, since the queue is built whatever the switch says --
-	-- and nothing about the switch that actually took the panel away.
-	--
-	-- The commands go in as arguments rather than as part of the sentence:
-	-- they are what the player has to type, in English in every language,
-	-- and a translator should never be handed them to translate. The option
-	-- and tab names go in the same way, through the keys the options window
-	-- shows them with, so the sentence names the labels the player will find.
+	-- A keypress on an empty prompt says why it is empty, or it looks like a
+	-- broken binding. Commands and option names go in as arguments: they are
+	-- not translated.
 	if not self:IsShown() then
 		local db = ns.db and ns.db.profile
 		if db and not db.enabled then
@@ -741,26 +548,16 @@ local function OnPreClick(self, mouseButton)
 		return
 	end
 
-	-- An unlocked or disabled prompt must not cast, and PreClick is the
-	-- last chance to make sure of it: it runs after Refresh has decided
-	-- what to show but before the secure handler reads the attributes.
+	-- PreClick is the last chance to stop an unlocked or disabled prompt
+	-- casting.
 	if not PromptIsLive() then
 		Prompt:ApplyTarget(nil)
 		return
 	end
 
-	-- Nor may a press during the global cooldown. Disarming here is what
-	-- stops it reaching the server: a cast sent inside that second and a
-	-- half is refused, and the refusal used to be filed against the person
-	-- it was aimed at -- so they were marked tried and dropped, and the
-	-- one thing the user actually wanted never happened. Nothing is cast,
-	-- nothing is recorded, and the panel says why.
-	--
-	-- And it does not count as a press. Its stamp is taken back, so a press
-	-- a moment later -- the cooldown ends mid-click as often as not -- is
-	-- resolved properly rather than swallowed by the debounce above, which
-	-- either did nothing or fired whatever a scan had re-armed with no
-	-- record filed for it.
+	-- Nor during the global cooldown: disarmed here, the press never reaches
+	-- the server to be refused. Its stamp is taken back so the next press
+	-- resolves.
 	if not ready then
 		lastPreClickAt = nil
 		guardedEntry = current
@@ -773,38 +570,20 @@ local function OnPreClick(self, mouseButton)
 	local queue = ns.BuildQueue()
 	local top = Prompt:PickTop(queue, queue[1])
 	local named = Prompt:PanelName()
-	-- An empty queue under a panel still naming somebody is the panel
-	-- showing a person it has not given up on yet, and the press has to
-	-- agree with what is on screen. Re-resolving to nobody here would disarm
-	-- a prompt that is visible and naming a person, so the click would do
-	-- nothing at all and say nothing about it -- the silent failure the fuse
-	-- was added to avoid, arriving by the other door.
-	--
-	-- Asked of the panel rather than of the fuse's clock. Only a scan lights
-	-- the fuse, so a press between somebody stepping out of range and the
-	-- next scan noticing found no fuse at all; and one after the fuse had
-	-- burnt out found the panel still up until the repaint came to take it
-	-- down. Both disarmed a prompt still naming them. The worst this can do
-	-- instead is send a cast the game refuses, and that says so in red.
-	--
-	-- Unless that person was retired: a right-click skip leaves them named
-	-- on the panel until the repaint, and this must not keep them armed for
-	-- a left press to cast at, and speak at, somebody just declined. Nor
-	-- when a flash about somebody else is written over their name: the
-	-- press follows the words on the panel, never the entry under them.
+	-- An empty queue under a panel still naming somebody: the press agrees with
+	-- the screen (at worst the game refuses the cast, in red) rather than
+	-- silently doing nothing. Not for somebody retired, and not under a flash
+	-- about somebody else: the press follows the words on the panel.
 	if not top and current and not Retired(current, now) and named == current.name then
 		LightFuse(now)
 		pressKey = appliedKey
 		return
 	end
 
-	-- And the press goes to whoever the panel is naming, not to whoever the
-	-- queue has just promoted. PickTop hands the panel to somebody strictly
-	-- better at once, which is right for the next repaint and wrong for a
-	-- press made on this one: a target picked up a tenth of a second ago
-	-- was cast at, and spoken to, under a panel still naming somebody else.
-	-- The same goes for a red flash about a refused press, which sits over a
-	-- button the refusal has already re-armed at the next person.
+	-- The press goes to whoever the panel names, not whoever the queue just
+	-- promoted: PickTop hands the panel to somebody strictly better at once,
+	-- which is right for the next repaint and wrong for a press made on this
+	-- one.
 	if top and named and top.name ~= named then
 		local fresh
 		for _, candidate in ipairs(queue) do
@@ -823,30 +602,15 @@ local function OnPreClick(self, mouseButton)
 end
 
 local function OnPostClick(self, mouseButton, down)
-	-- Nothing below casts anything -- the secure handler has already had its
-	-- turn -- but all of it is bookkeeping about a cast this addon asked for,
-	-- and switched off, unlocked or previewing it asked for none. Hiding the
-	-- button was never a guard: a CLICK binding is delivered to a hidden
-	-- frame, so a disabled addon went on settling debts and blocking people
-	-- for every press of the key.
-	--
-	-- In combat the macro cannot be disarmed, so the press may genuinely have
-	-- cast from an attribute armed before the addon was switched off.
-	-- Refusing the bookkeeping is the honest answer to that -- the debt stays
-	-- standing, because none of what we meant to do happened -- and the line
-	-- says so rather than leaving somebody to wonder why a buff went out. Its
-	-- own stamp, because down and up both land here.
+	-- Bookkeeping only, and switched off, unlocked or previewing there is none:
+	-- a CLICK binding reaches a hidden frame. In combat the frozen macro may
+	-- still have cast; the debt stands and the line says so.
 	local db = ns.db and ns.db.profile
 	if not PromptIsLive() then
 		local now = GetTime()
-		-- Only a press that could have cast gets the warning. type2 to
-		-- type5 are "none", so the secure handler matches nothing for the
-		-- right button however stale the macro sitting on the attributes
-		-- is -- and this guard is above the right-button branch, so it was
-		-- telling somebody who pressed to skip that a buff may have gone
-		-- out when provably none did. A keybinding arrives with no button
-		-- at all and is treated as a left press, which is the same reading
-		-- the cast path below takes.
+		-- Only a press that could have cast gets the warning: type2 to type5
+		-- are "none", so the right button casts nothing. A keybinding arrives
+		-- with no button and counts as a left press, as in the cast path below.
 		local couldCast = mouseButton == nil or mouseButton == "LeftButton"
 		if couldCast and db and db.verbose and InCombatLockdown() and self:GetAttribute("macrotext1")
 			and not (lastStaleAt and (now - lastStaleAt) < 0.25) then
@@ -856,22 +620,17 @@ local function OnPostClick(self, mouseButton, down)
 		return
 	end
 
-	-- A right-press says "not this one", which is not a repayment: the debt
-	-- stands, nothing is cast, and only the offer is postponed. The block is
-	-- on the person rather than the buff, because declining is about who is
-	-- being offered, not which spell they would have got.
+	-- A right-press says "not this one": the debt stands, nothing is cast, and
+	-- the offer is postponed. The block is on the person, not the buff.
 	if mouseButton == "RightButton" then
 		-- Its own stamp: sharing the cast path's would let a right-press
 		-- swallow a real left click landing just after it.
 		local now = GetTime()
 		if lastSkipAt and (now - lastSkipAt) < 0.25 then return end
 		lastSkipAt = now
-		-- Whoever the panel names, which the left press was already made to
-		-- follow. Under a red flash that is the person the flash is about,
-		-- while `current` is the next one the refusal re-armed underneath --
-		-- so the skip declined somebody still out of sight for the full
-		-- cooldown, and the one on screen came back two seconds later. With
-		-- nobody underneath at all it did nothing and said nothing.
+		-- Whoever the panel names, as the left press follows: under a red flash
+		-- that is the person the flash is about, not the next one armed
+		-- underneath.
 		local victim = Prompt:PanelName() or (current and current.name)
 		if not victim then
 			ns.addon:Print(L["nobody to skip right now."])
@@ -882,17 +641,9 @@ local function OnPostClick(self, mouseButton, down)
 		-- that would put them straight back on the prompt.
 		ns.BlockPerson(victim)
 		Prompt:StopAttention()
-		-- Held shift makes it "never", not "not now": onto the never-offer
-		-- list, with a line saying how to undo it. The block above is still
-		-- wanted -- it is what takes them off the panel at once rather than
-		-- after the hold and the fuse -- and nothing else here differs from
-		-- the skip, so the secure side cannot tell the two apart: type2 is
-		-- "none", no shift- attribute is ever set, and the shifted press
-		-- matches nothing exactly as the plain one does.
-		--
-		-- Nothing in this branch touches the button, so it is as safe in a
-		-- fight as the skip. The list reaches the queue at its next rebuild,
-		-- which in a fight is when it ends.
+		-- Held shift makes it "never": onto the never-offer list. Nothing here
+		-- touches the button (type2 is "none"), so it is as safe in a fight as
+		-- the skip.
 		if IsShiftKeyDown and ns.plain(IsShiftKeyDown()) then
 			-- The repaint comes with the listing: see the wrapper below
 			-- Prompt:Refresh.
@@ -904,30 +655,24 @@ local function OnPostClick(self, mouseButton, down)
 				or (ns.ShortName and ns.ShortName(victim)) or victim
 			ns.addon:Print(L["skipping |cffffffff%s|r for now."]:format(shown))
 		end
-		-- And the panel moves on now rather than at the next scan. Until it
-		-- did, the declined person stayed named and armed for up to a scan --
-		-- longer with the fuse burning -- and a left press in that time cast
-		-- at them. Refresh knows about the fight and about an empty queue.
+		-- The panel moves on now rather than at the next scan, so a left press
+		-- cannot cast at the person just declined. Refresh knows about the
+		-- fight.
 		ns.Guard("skip repaint", Prompt.Refresh, Prompt)
 		return
 	end
 	if mouseButton and mouseButton ~= "LeftButton" then return end
 
 	local now = GetTime()
-	-- A press the cooldown turned away is not a press: nothing reached the
-	-- server, so nothing is filed, and it takes no stamp that would swallow
-	-- the next one. Out of combat PreClick disarmed it and this puts back
-	-- what it found, so a fight starting now finds the prompt armed. In
-	-- combat the frozen macro went out and was refused, and refusing the
-	-- bookkeeping is the whole of what is left to do.
+	-- A press the cooldown turned away is not a press: nothing is filed. Out of
+	-- combat this puts back what PreClick disarmed.
 	if cooldownPressAt == now then
 		cooldownPressAt = nil
 		local found = guardedEntry
 		guardedEntry = nil
 		if found and not InCombatLockdown() then
-			-- The line it was carrying goes back with it, so the macro is
-			-- rebuilt around the roll the tooltip has been quoting rather than
-			-- a new one.
+			-- The line it carried goes back with it, so the macro keeps the
+			-- roll the tooltip has been quoting.
 			phraseKey, phraseText = guardedPhraseKey, guardedPhraseText
 			Prompt:ApplyTarget(found)
 		end
@@ -945,10 +690,8 @@ local function OnPostClick(self, mouseButton, down)
 	-- Lets the error and cast handlers tell our own outcome apart from
 	-- everything else the game is shouting about.
 	ns.lastClickTime = now
-	-- Only assembled when asked for: /manners clicks. The build stamp stays
-	-- because a log that does not say which build produced it can be
-	-- diagnosed for an hour before anyone notices the game never loaded
-	-- the file being read.
+	-- Only assembled when asked for: /manners clicks. The build stamp says
+	-- which build produced the log.
 	if ns.db and ns.db.profile.debugClicks then
 		ns.addon:Print(("|cffffd100CLICK|r build=%s macro=%s"):format(
 			tostring(ns.BUILD),
@@ -956,48 +699,26 @@ local function OnPostClick(self, mouseButton, down)
 	end
 	if not (current and current.name) then return end
 
-	-- Hold the debt rather than clearing it outright. The game says a few
-	-- hundred milliseconds later whether anything was actually cast, and
-	-- clearing here meant a cast blocked by range or line of sight counted
-	-- as a favour returned.
-	--
-	-- What the macro was aimed at rides along, and so does the rotation
-	-- pointer as it stood before this press moved it. The settle handler
-	-- reads both: the first so a name is only ever judged on a /target that
-	-- was really there, the second so a cast that went nowhere can put the
-	-- pointer back instead of walking this person off their own buff list.
-	-- gave is read here, above the write below, which is the only place it
-	-- is still the old value.
-	--
-	-- And before any of that, whatever is already parked is dealt with. One
-	-- slot with no identity on it means the record about to be overwritten
-	-- cannot be matched to the event that will arrive for it -- so the next
-	-- cast event would be read against this press whichever press it
-	-- belongs to. Above the read of ns.lastGave as well as the write,
-	-- because abandoning the old record puts that pointer back and this
-	-- record has to carry the value that is there afterwards.
+	-- Park the press rather than clearing the debt: the game says a moment
+	-- later whether anything was cast. What the macro was aimed at and the old
+	-- rotation pointer ride along. Anything already parked is abandoned first,
+	-- since one slot cannot match two records to their events, and before
+	-- ns.lastGave is read, because abandoning restores it.
 	ns.AbandonPendingClick()
 	ns.pendingClick = { name = current.name, at = GetTime(),
 		buffKey = current.buff and current.buff.key,
 		selfCast = armed ~= nil and armed.selfCast == true,
 		targeted = armed and armed.targeted,
-		-- The spelling the macro aimed at, straight from the builder. The
-		-- settle path compares it against whoever the client says was hit,
-		-- and taking it from here is what stops that comparison being a
-		-- second opinion about text the builder already had in hand.
+		-- The spelling the macro aimed at, straight from the builder, for the
+		-- settle path to compare against whoever the client says was hit.
 		aimedAt = armed and armed.aimedAt,
-		-- Whether the scan measured them inside a shout's reach. A selfCast
-		-- press has nothing else tying it to the person named, so the
-		-- settle clears a debt on it only where this is true.
+		-- Whether the scan measured them inside a shout's reach: a selfCast
+		-- press clears a debt only where this is true.
 		withinShout = current.ranged == true,
-		-- And whether it measured them outside it, which is a different
-		-- reason for the same kept debt: with "Hide players known to be out
-		-- of range" off they are still offered, and the line has to say the
-		-- answer was no rather than that nothing answered.
+		-- ...and outside it, so the line can say the answer was no rather than
+		-- that nothing answered.
 		outOfShout = current.ranged == false,
-		-- For the favour ledger, which records who a buff went to and
-		-- whether they were in the group; nothing on the settle path reads
-		-- either.
+		-- For the favour ledger only.
 		class = current.class,
 		inGroup = current.inGroup,
 		gave = ns.lastGave[current.name] }
@@ -1005,11 +726,8 @@ local function OnPostClick(self, mouseButton, down)
 	-- Divine Spirit on the next click.
 	if current.buff then
 		ns.MarkAttempted(current.name, current.buff.key)
-		-- Only where the walk will read it back. A paladin's blessings
-		-- overwrite one another, so PickBuffFor deliberately never rotates
-		-- them -- and a pointer written for a walk that will not happen is
-		-- a record of nothing, which is exactly how this one came to be
-		-- believed as a feature.
+		-- Only where the walk will read it back: a paladin's blessings
+		-- overwrite one another, so PickBuffFor never rotates them.
 		if ns.RotatesBuffs() then ns.lastGave[current.name] = current.buff.key end
 	end
 	Prompt:StopAttention()
@@ -1020,18 +738,9 @@ function Prompt:Create()
 
 	button = CreateFrame("Button", "MannersPrompt", UIParent, "SecureActionButtonTemplate")
 	button:SetFrameStrata("MEDIUM")
-	-- Copied exactly from the secure buttons that do work on this client.
-	-- MountActions and GroupTools both use this trio, and one carries the
-	-- comment "force the action to trigger on key down regardless of
-	-- ActionButtonUseKeyDown":
-	--
-	--     RegisterForClicks("AnyDown")
-	--     type = "macro"
-	--     pressAndHoldAction = true
-	--
-	-- The two settings go together. Registering down while leaving
-	-- pressAndHoldAction false leaves the click arriving, the attributes
-	-- reading back correctly, and nothing cast -- which is where this was.
+	-- Copied from the secure buttons that work on this client (MountActions,
+	-- GroupTools): "AnyDown" with pressAndHoldAction. Registering down without
+	-- pressAndHoldAction delivers the click and casts nothing.
 	button:RegisterForClicks("AnyDown")
 	button:SetAttribute("pressAndHoldAction", true)
 	button:SetMovable(true)
@@ -1041,11 +750,9 @@ function Prompt:Create()
 	art = CreateFrame("Frame", nil, button)
 	art:SetAllPoints()
 
-	-- Stacked black rectangles stand in for a soft drop shadow. Real blur is
-	-- not available, but four steps of falloff, each dropped a pixel lower
-	-- than the last, read as a panel lifted off the world rather than a panel
-	-- with a grey frame round it. The innermost step is a crisp dark rim, which
-	-- is what keeps the edge clean over a bright floor.
+	-- Stacked black rectangles stand in for a soft drop shadow: four steps of
+	-- falloff, each a pixel lower, with a crisp dark rim innermost to keep the
+	-- edge clean over a bright floor.
 	shadows = {}
 	for i, step in ipairs(SHADOW_STEPS) do
 		local spread, alpha, drop = step[1], step[2], step[3]
@@ -1065,9 +772,8 @@ function Prompt:Create()
 	sheen:SetPoint("TOPLEFT")
 	sheen:SetPoint("TOPRIGHT")
 
-	-- A hairline of light along the top and shade along the bottom. The
-	-- cheapest possible bevel, and the thing that stops a flat rectangle
-	-- reading as a debug frame.
+	-- A hairline of light along the top and shade along the bottom: the
+	-- cheapest bevel.
 	hairTop = Solid(art, "BORDER", 1)
 	hairTop:SetHeight(1)
 	hairTop:SetPoint("TOPLEFT")
@@ -1080,11 +786,8 @@ function Prompt:Create()
 	hairBottom:SetVertexColor(0, 0, 0, 0.55)
 
 	-- A line all the way round, for the framed look. Above the bevel and the
-	-- stripe, because it replaces both: the bevel is two edges of a box that
-	-- this draws all four of, and the stripe would sit on top of the left one.
-	--
-	-- Anchored corner to corner rather than sized, so it follows the panel
-	-- through a width or height change without ApplyStyle having to measure it.
+	-- stripe, which it replaces. Anchored corner to corner, so it follows a
+	-- resize without ApplyStyle measuring it.
 	edges = {}
 	for _, at in ipairs({
 		{ "TOPLEFT", "TOPRIGHT", height = 1 },
@@ -1125,9 +828,8 @@ function Prompt:Create()
 	glowFrame:SetAlpha(0)
 	glowHalo = Halo(glowFrame, "BACKGROUND", -3)
 
-	-- Doubles as the icon's border and as the reason signal. A ring around the
-	-- icon reads far better than a hairline stripe at the panel edge, which
-	-- ends up competing with the icon rather than framing it.
+	-- Doubles as the icon's border and the reason signal: a ring round the icon
+	-- reads better than a stripe at the panel's edge.
 	iconBack = Solid(art, "BACKGROUND", -2)
 	iconBack:SetVertexColor(0, 0, 0, 0.85)
 	iconEdge = Solid(art, "BACKGROUND", -1)
@@ -1137,12 +839,9 @@ function Prompt:Create()
 	icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
 	iconShade = Solid(art, "ARTWORK", 1)
 
-	-- The global cooldown swept over the icon, the way an action button shows
-	-- it. A Cooldown frame is not protected and the client animates it itself,
-	-- so it costs nothing per frame here and is allowed in a fight. Made in a
-	-- pcall because the template is the one part of this that is not ours: a
-	-- client without it has an icon with no sweep, not a prompt that failed to
-	-- build.
+	-- The global cooldown swept over the icon. A Cooldown frame is not
+	-- protected and animates itself; made in a pcall, as the template is not
+	-- ours.
 	local okCooldown, made = pcall(CreateFrame, "Cooldown", nil, art, "CooldownFrameTemplate")
 	if okCooldown and made then
 		cooldown = made
@@ -1193,9 +892,8 @@ function Prompt:Create()
 	countText = textLayer:CreateFontString(nil, "OVERLAY")
 	countText:SetJustifyH("CENTER")
 
-	-- Above every other art layer and below textLayer, which is a frame of its
-	-- own and therefore draws over all of them. That is what makes the wash
-	-- read as light falling on the panel rather than as a rectangle over the
+	-- Above every other art layer and below textLayer (a frame, so drawn over
+	-- all of them): the wash reads as light on the panel, not a box over the
 	-- name.
 	resultFill = Solid(art, "ARTWORK", 2)
 	resultFill:SetAllPoints()
@@ -1207,10 +905,9 @@ function Prompt:Create()
 	local hl = button:GetHighlightTexture()
 	if hl then hl:SetVertexColor(1, 1, 1, 0.045) end
 
-	-- The list of who is next hangs outside the panel, so it gets a panel of its
-	-- own. Same background at a lower alpha, divided from the prompt by a
-	-- hairline, because without one the rows were unreadable text lying
-	-- directly on the world -- and on a dark floor they simply were not there.
+	-- The list of who is next hangs outside the panel, so it gets a background
+	-- of its own -- the panel's at a lower alpha, divided by a hairline -- or
+	-- the rows are text lying on the world.
 	queueBack = Solid(art, "BACKGROUND", -6)
 	queueBack:Hide()
 	queueHair = Solid(art, "BORDER", 1)
@@ -1225,9 +922,8 @@ function Prompt:Create()
 		fs:SetShadowColor(0, 0, 0, 0.9)
 		fs:SetShadowOffset(1, -1)
 		queueRows[i] = fs
-		-- Three pixels of the reason colour in front of each row. Priority is
-		-- the one thing about the list worth knowing at a glance, and reading
-		-- four words of grey text to find it out is not a glance.
+		-- Three pixels of the reason colour before each row: priority is the
+		-- one thing about the list worth knowing at a glance.
 		local bar = Solid(art, "ARTWORK", 1)
 		bar:Hide()
 		queueBars[i] = bar
@@ -1241,13 +937,9 @@ function Prompt:Create()
 		dragging = true
 	end)
 
-	-- Only a drag that started has anything to end. The release arrives for
-	-- the refused ones too, and ending them stopped a move on the secure button
-	-- in combat -- a call the client refuses there -- and said "moved and
-	-- locked." for a click on a locked prompt that slid a few pixels. A drag
-	-- still held when a fight starts was ended at the start of it (FinishDrag,
-	-- from PLAYER_REGEN_DISABLED), so one released in combat has nothing left
-	-- to do but forget itself.
+	-- Only a drag that started has anything to end: the release arrives for the
+	-- refused ones too. A drag still held when a fight starts was ended then
+	-- (FinishDragForFight), so one released in combat only forgets itself.
 	button:SetScript("OnDragStop", function()
 		if not dragging then return end
 		if InCombatLockdown() then
@@ -1262,36 +954,22 @@ function Prompt:Create()
 	button:SetScript("PostClick", OnPostClick)
 
 	button:SetScript("OnEnter", function(self)
-		-- Nothing armed is nothing to describe, and a tooltip already up from
-		-- the last person goes with it: "Click to cast" over a press that does
-		-- nothing is the tooltip describing a button that is no longer there.
+		-- Nothing armed is nothing to describe, and a tooltip left from the
+		-- last person goes with it.
 		if not current or not current.buff then
 			if GameTooltip:IsOwned(self) then GameTooltip:Hide() end
 			return
 		end
-		-- Every line below describes the macro sitting on the button, and in
-		-- combat that macro is frozen at whoever was on it when the fight
-		-- started -- Blizzard will not let an addon retarget a secure frame.
-		-- The tooltip is the most detailed thing the prompt says, and saying it
-		-- in that much detail about somebody stale is worse than saying nothing.
+		-- In combat the macro is frozen at whoever it held when the fight
+		-- started, and a detailed tooltip about somebody stale is worse than
+		-- none.
 		if InCombatLockdown() then return end
 		GameTooltip:SetOwner(self, "ANCHOR_TOP")
 		GameTooltip:AddLine("Manners")
 		GameTooltip:AddDoubleLine(current.short or current.name, ns.BuffName(current.buff),
 			1, 1, 1, 0.8, 0.8, 0.8)
-		-- The refresh mode offers somebody a buff it has read them as already
-		-- holding, and for those people "missing it" is simply untrue --
-		-- the countdown line below used to sit under it saying so, one line
-		-- apart. Naming the contradiction is not the same as removing it, so
-		-- the reason itself changes: a top-up is a different offer and reads
-		-- like one, and the countdown then says how urgent it is.
-		--
-		-- And "missing it" only where it was read as missing. "Always offer"
-		-- does not look at all, and a client that hides auras cannot, so both
-		-- used to read "missing it" with the line underneath saying nothing was
-		-- checked -- about somebody who may well have been wearing it. Those two
-		-- get the plain reason, and the line below says why nothing more is
-		-- known.
+		-- A top-up reads as one, and "missing it" only where it was read as
+		-- missing; "Always offer" and unreadable auras get the plain reason.
 		local left = RemainingText(current.remaining)
 		local why
 		if current.reason == "owed" then
@@ -1330,16 +1008,15 @@ function Prompt:Create()
 				0.7, 0.7, 0.7, true)
 		end
 		GameTooltip:AddLine(" ")
-		-- Plain English, first. What was here before was headed "Will run:" and
-		-- quoted the macro -- four lines of slash commands at somebody who
-		-- wanted to know what the button does -- and it was not even an honest
-		-- quote, for the reason ClickSummary sets out.
+		-- Plain English first; the raw macro only with /manners clicks, below.
+		-- ClickSummary quotes the settled roll.
 		for _, line in ipairs(Prompt:ClickSummary(current)) do
 			GameTooltip:AddLine(line, 0.62, 0.78, 0.62, true)
 		end
 		GameTooltip:AddLine(" ")
-		-- The raw macro is a debugging tool and reads like one, so it goes where
-		-- the other debugging tools are. /manners clicks turns it back on.
+		-- The raw macro is a debugging tool and reads like one, so it goes
+		-- where the other debugging tools are. /manners clicks turns it back
+		-- on.
 		if ns.db.profile.debugClicks and ns.lastMacro then
 			GameTooltip:AddLine(L["Will run:"], 0.5, 0.5, 0.5)
 			for line in ns.lastMacro:gmatch("[^\r\n]+") do
@@ -1347,15 +1024,14 @@ function Prompt:Create()
 			end
 			GameTooltip:AddLine(" ")
 		end
-		-- The command goes in as an argument, as it does in PreClick's lines: it
-		-- is typed in English whatever the client's language.
+		-- The command goes in as an argument, as it does in PreClick's lines:
+		-- it is typed in English whatever the client's language.
 		GameTooltip:AddLine(L["Click to cast. %s for options."]:format("|cffffd100/manners|r"),
 			0.5, 0.5, 0.5)
 		-- A gesture nobody can discover is not a feature.
 		GameTooltip:AddLine(L["Right-click to skip this one."], 0.5, 0.5, 0.5)
 		-- Somebody already on the list is only here because they are owed, and
-		-- for them the same press lets that favour go; offering to put them on
-		-- a list they are on was the tooltip describing a different person.
+		-- for them the same press lets that favour go.
 		if ns.IsNeverOffered and ns.IsNeverOffered(current.name) then
 			GameTooltip:AddLine(L["Shift-right-click to let this favour go."], 0.5, 0.5, 0.5)
 		else
@@ -1365,9 +1041,8 @@ function Prompt:Create()
 	end)
 	button:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
-	-- Keep the tooltip honest if the entry changes while it is open.
-	-- Checked a few times a second rather than every frame; the target cannot
-	-- change faster than the scan interval anyway.
+	-- Keep the tooltip honest if the entry changes while it is open, checked a
+	-- few times a second.
 	button:SetScript("OnUpdate", function(self, elapsed)
 		self.sinceCheck = (self.sinceCheck or 0) + elapsed
 		if self.sinceCheck < 0.2 then return end
@@ -1378,12 +1053,9 @@ function Prompt:Create()
 			GameTooltip:Hide()
 			return
 		end
-		-- Keyed on everything the tooltip says, not on the name alone. The same
-		-- person moves from one buff to the next as a priest's walk settles, a
-		-- passer-by becomes somebody you owe, and the spoken line is re-rolled
-		-- when the macro is -- and keyed on the name, the tooltip went on naming
-		-- the old buff, the old reason and the old line over a button that would
-		-- cast and say the new ones.
+		-- Keyed on everything the tooltip says, not the name alone: the same
+		-- person can move to another buff, become owed, or get a re-rolled
+		-- line.
 		local shown = table.concat({ current.name, current.buff.key, tostring(current.reason),
 			tostring(phraseText), tostring(appliedKey) }, "\1")
 		if self.tooltipFor ~= shown then
@@ -1401,13 +1073,9 @@ end
 ---------------------------------------------------------------------------
 
 function Prompt:BuildAnimations()
-	-- Entrance: rise into place and fade in. Short, eased out, never repeated.
-	--
-	-- A translation is undone the moment its group ends, so the old single
-	-- step -- up six pixels -- rose past the panel's place and then dropped
-	-- back into it with a visible hop at the end. The drop comes first now,
-	-- in an instant, and the rise brings it back to exactly where it belongs,
-	-- so the group ends where the panel already is.
+	-- Entrance: rise into place and fade in. A translation is undone when its
+	-- group ends, so the drop comes first, instantly, and the rise ends exactly
+	-- where the panel belongs, with no hop at the end.
 	local intro = art:CreateAnimationGroup()
 	local hold = intro:CreateAnimation("Alpha")
 	hold:SetFromAlpha(0)
@@ -1485,9 +1153,8 @@ function Prompt:BuildAnimations()
 	glowAnim:SetScript("OnStop", function() glowFrame:SetAlpha(0) end)
 	glowFrame.anim = glowAnim
 
-	-- A single flash is easy to miss if you were looking elsewhere. This one
-	-- keeps breathing for as long as somebody is still owed a buff, and stops
-	-- the moment they are not.
+	-- Keeps breathing for as long as somebody is still owed, so it is not
+	-- missed.
 	local pulse = glowFrame:CreateAnimationGroup()
 	pulse:SetLooping("BOUNCE")
 	local breathe = pulse:CreateAnimation("Alpha")
@@ -1539,9 +1206,7 @@ function Prompt:BuildAnimations()
 	shine:SetScript("OnStop", function() shineFrame:SetAlpha(0) end)
 	shineFrame.anim = shine
 
-	-- A refusal: the text gives a small shake of the head. Two pixels either
-	-- way and back to rest, a quarter of a second in all -- enough to say no
-	-- without turning the panel into an alarm.
+	-- A refusal: the text shakes its head, two pixels either way.
 	local shake = textLayer:CreateAnimationGroup()
 	for i, dx in ipairs({ -2, 4, -4, 2 }) do
 		local step = shake:CreateAnimation("Translation")
@@ -1551,12 +1216,10 @@ function Prompt:BuildAnimations()
 	end
 	textLayer.shake = shake
 
-	-- Leaving after the last buff: the panel fades out over the second half of
-	-- the confirmation, so it goes rather than vanishes. Only ever played while
-	-- the prompt is on its way down anyway -- the secure button is hidden when
-	-- the confirmation runs out, exactly as before, and this changes nothing
-	-- about when. Parked at invisible when it finishes, because the button is
-	-- not hidden until a moment later, and the next Refresh puts the alpha back.
+	-- Leaving after the last buff: the panel fades over the second half of the
+	-- confirmation. The button is still hidden when the confirmation runs out;
+	-- art is parked invisible until then, and the next Refresh restores the
+	-- alpha.
 	local outro = art:CreateAnimationGroup()
 	local oFade = outro:CreateAnimation("Alpha")
 	oFade:SetFromAlpha(1)
@@ -1570,11 +1233,9 @@ function Prompt:BuildAnimations()
 	end)
 	art.outro = outro
 
-	-- A fade cancelled part-way, brought back to where the panel rests rather
-	-- than snapped there. Two ways in: somebody arrives while the panel is on
-	-- its way out, and a fight starts, which keeps the panel up whatever it
-	-- was doing -- the button cannot be hidden in combat. From and to are set
-	-- for each play, from how far the fade had got.
+	-- A fade cancelled part-way, brought back to rest rather than snapped: when
+	-- somebody arrives while the panel is fading out, or a fight starts (the
+	-- button cannot be hidden in combat). From and to are set for each play.
 	local comeback = art:CreateAnimationGroup()
 	local cFade = comeback:CreateAnimation("Alpha")
 	cFade:SetDuration(0.18)
@@ -1584,17 +1245,14 @@ function Prompt:BuildAnimations()
 end
 
 -- Whether the extra motion is wanted: the landing burst, the shine, the shake
--- and the fade on the way out. "Calm" keeps the prompt as it was before those
--- existed -- fades, the text cross-fade and the favour glow -- for anybody who
--- finds movement at the edge of the screen distracting.
+-- and the outro. "Calm" keeps only the fades and the favour glow.
 local function FullEffects()
 	local p = ns.db and ns.db.profile.prompt
 	return p ~= nil and p.effects ~= "calm"
 end
 
--- The alpha art should have when nothing is animating it: dimmed for a fight,
--- full otherwise. One place, because the fade on the way out leaves art at
--- zero and every way back onto the screen has to undo that.
+-- The alpha art rests at: dimmed for a fight, full otherwise. The outro leaves
+-- art at zero, and every way back has to undo that.
 local function RestArtAlpha()
 	art.faded = nil
 	art:SetAlpha(combatHeld and 0.55 or 1)
@@ -1606,10 +1264,9 @@ function Prompt:StopOutro()
 	art.outroFor = nil
 end
 
--- How far the fade on the way out has taken art, worked out from when it
--- started rather than read back: what GetAlpha answers in the middle of an
--- animation is not something this client has been seen to settle. The same
--- shape the fade is built with -- a wait, then an eased-in fall to nothing.
+-- How far the outro has taken art, worked out from when it started: what
+-- GetAlpha answers mid-animation has not been seen to settle on this client.
+-- Same shape as the fade: a wait, then an eased-in fall.
 local function OutroAlpha()
 	if art.faded then return 0 end
 	if not (art.outro and art.outro:IsPlaying() and art.outroAt) then return nil end
@@ -1620,11 +1277,8 @@ local function OutroAlpha()
 	return 1 - t * t
 end
 
--- The fade on the way out, for the outcome being shown now. Started again for
--- each new outcome rather than once: a second one -- a refusal that arrives a
--- moment after the buff before it, the realistic case -- would otherwise be
--- painted onto a panel the first one's fade had already taken to nothing, or
--- cut short by a fade that was half over when it arrived.
+-- Restarted for each new outcome: a second one (a refusal just after a landed
+-- buff) would otherwise paint onto a panel already faded, or be cut short.
 function Prompt:PlayOutro(stamp)
 	if art.outroFor == stamp then return end
 	self:StopOutro()
@@ -1633,9 +1287,8 @@ function Prompt:PlayOutro(stamp)
 	art.outro:Play()
 end
 
--- A fade that a repaint has just cancelled, taken back to the resting alpha
--- from wherever it had got to, over a moment. `from` is nil when no fade was
--- running, and then there is nothing to do.
+-- A fade a repaint just cancelled, taken back to rest over a moment; `from` is
+-- nil when no fade was running.
 function Prompt:ComeBack(from)
 	self:StopOutro()
 	local rest = combatHeld and 0.55 or 1
@@ -1655,13 +1308,9 @@ function Prompt:StopFlourishes()
 	if textLayer.shake and textLayer.shake:IsPlaying() then textLayer.shake:Stop() end
 end
 
--- The band of light across the panel, in the colour given. Brighter for a buff
--- that landed than for somebody arriving on the panel: the first is the answer
--- to a question the player asked, the second only a nudge.
---
--- Not on the Minimal look, which has no panel: the band is additive light, and
--- with nothing under it, it was a white column sweeping across the game world
--- behind the text.
+-- The band of light across the panel, brighter for a landed buff than for an
+-- arrival. Not on the Minimal look: additive light with no panel under it is a
+-- white column sweeping over the world.
 function Prompt:PlayShine(r, g, b, strength)
 	if not shineFrame.anim then return end
 	if ns.db and ns.db.profile.prompt.style == "minimal" then return end
@@ -1671,17 +1320,13 @@ function Prompt:PlayShine(r, g, b, strength)
 	shineFrame.anim:Play()
 end
 
--- The cooldown sweep, brought up to date with the client. Asked for when a
--- cast goes out and when the panel comes up, never on a timer: the Cooldown
--- frame animates itself, so between those two moments there is nothing to do.
+-- The cooldown sweep, brought up to date when a cast goes out and when the
+-- panel comes up; the Cooldown frame animates itself in between.
 function Prompt:SyncCooldown()
 	if not cooldown then return end
 	local p = ns.db and ns.db.profile.prompt
-	-- And not in a fight with "Stay quiet in combat" on, which promises a
-	-- panel that sits still for the length of it. Every cast of the fight
-	-- starts a global cooldown, most of them from the action bars, so the
-	-- sweep would be the busiest thing on a panel asked to be quiet. The
-	-- Cooldown frame is ours and not protected, so hiding it in combat is
+	-- Not in a fight with "Stay quiet in combat" on, which promises a still
+	-- panel. The Cooldown frame is not protected, so hiding it in combat is
 	-- allowed; SetCombatHold asks again as the fight starts and ends.
 	local quiet = p and p.hideInCombat and InCombatLockdown()
 	if not (p and p.showCooldown and p.showIcon) or quiet then
@@ -1705,10 +1350,9 @@ function Prompt:StopAttention()
 	glowFrame:SetAlpha(0)
 end
 
--- `isNew` is somebody owed who has just become the one on the panel, which is
--- what the flash and the stripe's sweep answer to. `arrived` is narrower: the
--- favour itself has only just been done, which is what the light on arrival
--- answers to -- see Refresh for why the two are not the same moment.
+-- `isNew`: somebody owed has just become the one on the panel (the flash and
+-- the sweep). `arrived`: the favour itself was only just done (the light). See
+-- Refresh.
 function Prompt:StartAttention(isNew, arrived)
 	local p = ns.db.profile.prompt
 	local mode = p.flashStyle or "pulse"
@@ -1717,25 +1361,17 @@ function Prompt:StartAttention(isNew, arrived)
 		return
 	end
 
-	-- The stripe's sweep first, and whatever the icon is doing. It has nothing
-	-- to do with the icon, and returning on a hidden icon above it silenced
-	-- both flash styles outright -- the setting stayed on the page, enabled,
-	-- and did nothing at all with the accent on the stripe.
+	-- The stripe's sweep first, whatever the icon is doing: it has nothing to
+	-- do with the icon.
 	if isNew and sweepFrame.anim and sweepFrame:IsShown() then
 		sweepFrame.anim:Stop()
 		sweepFrame.anim.move:SetOffset(0, -(p.height - 14))
 		sweepFrame.anim:Play()
 	end
 
-	-- And the panel catches the light once, as the favour is done. Nothing to
-	-- do with the icon either, so it is above the return below as well. In
-	-- the reason colour where the prompt uses one, plain light where the
-	-- player has asked for no accent at all.
-	--
-	-- Never over an outcome, or over light already crossing: the success of
-	-- the last press sends its own band across, and the repaint that follows
-	-- it -- usually the next person owed -- used to restart the band in this
-	-- dimmer colour, so the answer to the press was cut off by a nudge.
+	-- And the panel catches the light once as the favour is done, in the reason
+	-- colour (plain light with accents off). Never over an outcome or over
+	-- light already crossing, so a press's own confirmation is not cut off.
 	if arrived and FullEffects() and not self:OutcomeLive()
 		and not (shineFrame.anim and shineFrame.anim:IsPlaying()) then
 		local r, g, b = 1, 1, 1
@@ -1755,10 +1391,9 @@ function Prompt:StartAttention(isNew, arrived)
 			glowFrame.pulse:Play()
 		end
 	else
-		-- Unconditionally, and before anything else plays: the looping pulse is
-		-- only ever stopped inside the branch above, so changing Flash style
-		-- away from Pulse left it running and the one-shot flash played on top
-		-- of a glow that never went out.
+		-- Unconditionally, before anything else plays: the looping pulse is
+		-- only stopped in the branch above, so switching away from Pulse left
+		-- it running.
 		if glowFrame.pulse then glowFrame.pulse:Stop() end
 		if isNew and glowFrame.anim then
 			glowFrame.anim:Stop()
@@ -1780,37 +1415,25 @@ end
 -- legible text
 ---------------------------------------------------------------------------
 
--- What ApplyStyle worked out about the ground the text stands on, kept for the
--- painters that run between two of its calls. One table rather than a local
--- apiece, because this file's main chunk already holds well over half of the
--- two hundred locals Lua 5.1 allows one.
+-- What ApplyStyle worked out about the ground the text stands on. One table,
+-- not a local apiece: the main chunk is near Lua 5.1's 200 locals.
 --
 --   light   the text wants to be light: a dark panel, or no panel at all
---   lo, hi  the luminance of the panel at the dark and the light end of its
---           gradient, as it lands over the world
+--   lo, hi  the luminance of the panel's gradient ends, over the world
 --   codes   colour codes already made legible on this ground, by code
 local ink = { light = true, lo = 0, hi = 0, codes = {} }
 
 -- The world is not ours to read, so a see-through panel is judged over a
--- dusky grey: dark far more often than not, which is what the old white text
--- assumed too, but not black, so a panel at a third of its opacity is not
--- judged as though the floor under it were a hole.
+-- dusky grey: usually dark, but not black.
 local WORLD_GREY = 0.15
 
--- Coloured text is held to 3:1 against the panel, the figure the web's
--- accessibility rules give large text. The class colours clear it on the
--- default panel -- the death knight's red, the deepest of them, only just --
--- so nobody who kept the dark panel sees a colour move; on a light panel
--- none of them was ever meant to be read, and all of them get darker -- to
--- 4.5:1, the figure for body text, once they have to move at all (see
--- LegibleCode). The plain lines are held to 4.5:1 throughout, since they are
--- small and are the ones actually read.
+-- Coloured text is held to 3:1 against the panel (WCAG large text), and taken
+-- to 4.5:1 once it has to move at all; the plain lines are held to 4.5:1.
 local CODE_CONTRAST, TEXT_CONTRAST = 3, 4.5
 
--- Relative luminance as the web's contrast rules define it: the sRGB curve
--- taken off first, then weighted. The Rec. 601 weights the border uses are
--- the right question for "is this panel light" and the wrong one for "can
--- this be read on it", which is about light, not about the signal.
+-- Relative luminance as the web's contrast rules define it (the sRGB curve
+-- off, then weighted). Rec. 601 answers "is this panel light"; this answers
+-- "can this be read on it".
 local function Linear(c)
 	if c <= 0.03928 then return c / 12.92 end
 	return ((c + 0.055) / 1.055) ^ 2.4
@@ -1825,17 +1448,15 @@ local function Ratio(a, b)
 	return (a + 0.05) / (b + 0.05)
 end
 
--- Against the worse of the panel's two ends, because the name sits near the
--- light top and the reason line near the dark bottom, and light text is
--- hardest to read at one end and dark text at the other.
+-- Against the worse of the panel's two ends: the name sits near the light top
+-- and the reason line near the dark bottom.
 local function Contrast(r, g, b)
 	local l = Luminance(r, g, b)
 	return math.min(Ratio(l, ink.lo), Ratio(l, ink.hi))
 end
 
--- A colour moved towards whichever of white and black the ground wants, by
--- `t` of the way. Towards black by scaling, so a class colour darkened for a
--- light panel keeps its hue rather than going grey.
+-- A colour moved `t` of the way towards white or black; towards black by
+-- scaling, so a class colour keeps its hue.
 local function Toward(r, g, b, t)
 	if ink.light then
 		return r + (1 - r) * t, g + (1 - g) * t, b + (1 - b) * t
@@ -1843,10 +1464,9 @@ local function Toward(r, g, b, t)
 	return r * (1 - t), g * (1 - t), b * (1 - t)
 end
 
--- The colour itself if it already reads on this panel, and otherwise the
--- nearest colour on the way to white or black that does. Nearest, so a colour
--- that needs a nudge gets a nudge: the name of the class and the warmth of
--- the reason line both survive it.
+-- The colour itself if it already reads on this panel, otherwise the nearest
+-- colour towards white or black that does, so class colours and the reason
+-- tint survive.
 local function Legible(r, g, b, minimum)
 	r = math.max(0, math.min(1, r))
 	g = math.max(0, math.min(1, g))
@@ -1860,17 +1480,15 @@ local function Legible(r, g, b, minimum)
 	return Toward(r, g, b, hi)
 end
 
--- One |cAARRGGBB code, made legible on this panel. Cached per code, and the
--- cache emptied by ApplyStyle, because the same dozen codes -- the class
--- colours, the outcome words -- are rewritten on every repaint.
+-- One |cAARRGGBB code made legible, cached per code (ApplyStyle empties the
+-- cache): the same dozen codes are rewritten on every repaint.
 local function LegibleCode(a, r, g, b)
 	local key = a .. r .. g .. b
 	local hit = ink.codes[key]
 	if hit then return hit end
-	-- Left alone if it clears 3:1, and taken all the way to the body text's
-	-- 4.5:1 if it has to move at all. Stopped at 3:1, a priest's white on a
-	-- cream panel came out a mid grey fainter than the plain text beside it:
-	-- legible by the letter of the rule and still the weakest thing there.
+	-- Left alone if it clears 3:1, taken all the way to 4.5:1 if it has to
+	-- move: stopped at 3:1, white on cream came out fainter than the plain
+	-- text.
 	local fr, fg, fb = tonumber(r, 16) / 255, tonumber(g, 16) / 255, tonumber(b, 16) / 255
 	local nr, ng, nb = fr, fg, fb
 	if Contrast(fr, fg, fb) < CODE_CONTRAST then
@@ -1882,32 +1500,26 @@ local function LegibleCode(a, r, g, b)
 	return hit
 end
 
--- Every colour code in a line of the panel's text, made legible. The lines
--- carry colours of their own -- the class colour on a name, the white of a
--- name in "could not buff", the gold of "Drag to move" -- all picked for the
--- dark panel, and on a light one they were white words on cream whatever the
--- text colour said. A secret string is passed through untouched: it cannot
--- be read, and it did not come with codes of ours in it.
+-- Every colour code in a line of panel text, made legible: the lines carry
+-- colours picked for the dark panel (class colours, white names, gold). A
+-- secret string passes untouched: it cannot be read, and has no codes of ours.
 local function LegibleText(text)
 	if type(text) ~= "string" or (issecretvalue and issecretvalue(text)) then return text end
 	return (text:gsub("|c(%x%x)(%x%x)(%x%x)(%x%x)", LegibleCode))
 end
 
--- How the name and the reason line are laid out, kept by ApplyStyle for the
--- painters: the font each was given, the size each is drawn at now, where
--- they start and how far short of the right-hand edge they stop -- which is
--- further while the count chip is up beside them than while it is not.
+-- How the name and reason line are laid out, kept by ApplyStyle for the
+-- painters: fonts, current sizes, start, and the room kept at the right (more
+-- while the count chip is up).
 local fit = { path = nil, flags = "", base = {}, size = {}, width = 0, textX = 0,
 	chipRoom = 10, right = nil, twoLine = false }
 
 -- The inset from the right-hand edge when nothing is beside the lines.
 local EDGE_ROOM = 10
 
--- How wide a line's text is, or nil when the client will not say. Measured
--- without the bound the anchors put on it where the client can, because a
--- bounded width is the width after the ellipsis, which always fits. Guarded
--- and made plain: a name that arrived secret makes its width secret too, and
--- a secret throws on the comparison that follows.
+-- How wide a line's text is, or nil when the client will not say. Unbounded
+-- where possible, since a bounded width always fits. Made plain: a secret name
+-- makes a secret width, which throws on the comparison.
 local function TextWidth(fs)
 	local measure = fs.GetUnboundedStringWidth or fs.GetStringWidth
 	if not measure then return nil end
@@ -1916,14 +1528,8 @@ local function TextWidth(fs)
 	return type(w) == "number" and w or nil
 end
 
--- A line too long for its room is drawn a little smaller before the client is
--- left to cut it. The German and the Russian for most of the panel's lines
--- are a third longer than the English, and the reason line lost exactly the
--- words that said why: "cast -- this client will not confirm who to" had its
--- "who to" cut off in German, which is the half that matters. A point or two is
--- nearly invisible and usually enough; four fifths of the size is the least
--- it goes to, because past that it stops reading as the same panel, and a
--- line that still does not fit is cut with an ellipsis as it always was.
+-- A line too long for its room is drawn up to a fifth smaller before the
+-- client cuts it: German and Russian run a third longer than English.
 local function FitLine(fs)
 	local base = fit.base[fs]
 	if not base or not fit.path then return end
@@ -1950,11 +1556,9 @@ local function SetLine(fs, text)
 	FitLine(fs)
 end
 
--- Where the name and the reason line end on the right: clear of the count chip
--- while it is up, and at the panel's inset while it is not. The chip is down
--- for every outcome, every held panel and every single person -- nearly all
--- the time -- and the eighteen points it kept for itself were exactly what a
--- longer translation of those lines was missing.
+-- Where the name and reason line end on the right: clear of the count chip
+-- while it is up, at the panel's inset while it is not (nearly always), so
+-- longer translations get the room.
 local function PlaceLines(chipUp)
 	local right = chipUp and fit.chipRoom or EDGE_ROOM
 	if fit.right == right then return end
@@ -1980,11 +1584,9 @@ local function ShowChip(on)
 	PlaceLines(on)
 end
 
--- Whether the player picked the text colour, or left it at the default. AceDB
--- strips a value equal to its default when it saves, so white chosen on
--- purpose and white never touched are the same thing on disk, and only the
--- second can be meant: nobody picks white text for a cream panel. Any other
--- colour is theirs and is drawn as it is.
+-- Whether the player picked the text colour. AceDB strips a value equal to its
+-- default on save, so white chosen and white untouched look the same, and only
+-- the second can be meant: nobody picks white text for a cream panel.
 local function ChosenTextColor(c)
 	local d = ns.defaults and ns.defaults.profile.prompt.fontColor or { 1, 1, 1, 1 }
 	if type(c) ~= "table" then return false end
@@ -1994,10 +1596,9 @@ local function ChosenTextColor(c)
 	return false
 end
 
--- The shadow that goes with a text colour: black under light text, as it
--- always was, and none under dark text. A black one there only thickens the
--- letters into a smudge, and a light one was tried and drawn: a pixel of pale
--- behind small dark letters reads as a second, blurred copy of the word.
+-- The shadow for a text colour: black under light text, none under dark text,
+-- where a black one smudges the letters and a light one reads as a blurred
+-- second copy.
 local function ShadowFor(fs, r, g, b, strength)
 	if Ratio(Luminance(r, g, b), 0) >= Ratio(Luminance(r, g, b), 1) then
 		fs:SetShadowColor(0, 0, 0, strength)
@@ -2015,26 +1616,15 @@ function Prompt:AccentColor(reason)
 	return c[1], c[2], c[3], 1
 end
 
--- How tall the prompt has to be for a second line at this font size: both
--- fonts plus the insets. Published because the options page states it, and a
--- page with its own figure is how "at least 34 pixels" outlived the 34.
+-- How tall the prompt must be for a second line at this font size. Published
+-- so the options page states the same figure.
 function ns.TwoLineHeight(fontSize)
 	return 16 + fontSize + math.max(7, fontSize - 3)
 end
 
--- The greys of the lines under the name, for a panel and for no panel. With a
--- panel they are the greys the prompt always had, darkened where the panel is
--- too light for them. With none they are brighter: the Minimal look's lines
--- lay dim grey on the world, and the world is as often a lit field as a dark
--- floor. The outline carries them over the bright one, and the brightness
--- over the dark.
---
--- `reason` is the dimmer grey of the words after a name in the list. It goes
--- into the row as a colour code of its own, which the row's text colour cannot
--- reach -- so it has to change with the look here, or Minimal brightens only
--- the two spaces between the name and the words. The panel's is the 707078
--- the list always had, as a code, so LegibleText still darkens it for a light
--- panel and nobody on the dark one sees it move.
+-- The greys under the name, for a panel and for none (brighter, carried by the
+-- outline). `reason` is the list's dimmer grey, a colour code the row's text
+-- colour cannot reach.
 local GREYS = {
 	panel = { sub = { 0.60, 0.61, 0.68 }, count = { 0.72, 0.73, 0.80 }, row = { 0.62, 0.63, 0.70 },
 		reason = "|cff707078" },
@@ -2042,17 +1632,9 @@ local GREYS = {
 		reason = "|cffbdbfd1" },
 }
 
--- Everything about the text that depends on what it is drawn on: which way the
--- colours go, the fonts and their outline, the colours and shadows of every
--- line, and where the name and the reason line stop. Out of ApplyStyle, which
--- sits near the sixty upvalues Lua 5.1 allows a function.
---
--- The panel colour is the player's, and until this the text was white on it
--- whatever it was: cream, pale grey or yellow all gave white words nobody
--- could read, and the class colour on a priest's name was white on top of
--- that. So the ground is measured -- both ends of the panel's gradient, over
--- the world where the panel lets it through -- and the text goes light or
--- dark by whichever reads better on the worse of the two ends.
+-- Everything about the text that depends on the ground: ink, fonts, colours,
+-- shadows and where the lines stop. The ground is measured at both ends of the
+-- panel's gradient. Out of ApplyStyle, for its upvalues.
 local function StyleText(p, style, fontPath, textX, chipRoom, twoLine, countSize)
 	local br, bg, bb, ba = unpackColor(p.bgColor, { 0.04, 0.04, 0.06, 0.88 })
 	local bare = style == "minimal"
@@ -2110,10 +1692,9 @@ local function StyleText(p, style, fontPath, textX, chipRoom, twoLine, countSize
 		fs:SetTextColor(qr, qg, qb, 1)
 	end
 
-	-- Shadows. With no panel, a full black one under the outline: the two
-	-- together are what the game's own floating text uses to stay readable on
-	-- snow and on shadow alike. On a panel, one that suits the text colour.
-	-- The count sits on its own chip on a panel and never had a shadow there.
+	-- Shadows: with no panel, full black under the outline, as the game's own
+	-- floating text does; on a panel, one that suits the text colour. The count
+	-- has no shadow on its chip.
 	if bare then
 		for _, fs in ipairs({ nameText, subText, countText }) do
 			fs:SetShadowColor(0, 0, 0, 1)
@@ -2153,12 +1734,8 @@ function Prompt:ApplyStyle()
 	button:SetScale(p.scale)
 	button:SetAlpha(p.alpha)
 	button:ClearAllPoints()
-	-- The stored offsets are in UIParent's units, and the client reads
-	-- SetPoint's in the frame's own scaled ones, so they are divided by the
-	-- scale on the way in. Passed straight through, every offset was
-	-- multiplied by it: at Scale 2 "Above the action bars" sat 600 up instead
-	-- of 300, and moving the slider moved the prompt. FinishDrag converts the
-	-- other way.
+	-- Stored offsets are in UIParent's units and SetPoint reads the frame's own
+	-- scaled ones, so they are divided by the scale. FinishDrag converts back.
 	button:SetPoint(p.point, UIParent, p.relPoint, p.x / p.scale, p.y / p.scale)
 
 	local br, bg, bb, ba = unpackColor(p.bgColor, { 0.04, 0.04, 0.06, 0.88 })
@@ -2187,33 +1764,19 @@ function Prompt:ApplyStyle()
 		hairBottom:SetShown(glass)
 	end
 
-	-- The border, and the one look that has it. Derived from the panel colour
-	-- rather than fixed, because the panel colour is the user's: a light panel
-	-- with a hardcoded pale border has no border, and finding that out means
-	-- opening the colour picker and wondering whether the setting works.
-	--
-	-- Pushed away from the panel, not towards white. Brightening towards white
-	-- is the same failure the paragraph above describes, arrived at from the
-	-- other side: the lighter the panel, the less room there is above it, so the
-	-- edge converges on the panel exactly as the panel gets pale, and at white
-	-- the two are the same colour. So the direction is chosen from the panel's
-	-- own luminance -- a dark panel gets a lighter edge, a light one a darker
-	-- edge -- and the distance is a fraction of the room available in whichever
-	-- direction was picked, which is the same separation either way.
+	-- The border, on the framed look only: pushed away from the panel colour --
+	-- lighter for a dark panel, darker for a light one -- so it shows on any.
 	local framed = style == "framed"
-	-- Rec. 601 weights rather than a flat average. Green carries most of the
-	-- apparent brightness, so an average calls a saturated blue panel mid-grey
-	-- and lands the edge on top of it -- the one case this is here to prevent.
+	-- Rec. 601 weights: green carries most apparent brightness, so a flat
+	-- average calls a saturated blue panel mid-grey.
 	local lighten = (0.299 * br + 0.587 * bg + 0.114 * bb) <= 0.5
 	local function edgeOf(c, amount)
 		if lighten then return c + (1 - c) * amount end
 		return c * (1 - amount)
 	end
-	-- Blue travels a little further towards light and a little less far towards
-	-- dark, so the edge lands slightly cooler than the panel in both directions.
-	-- That is the tint the framed look already had, and it is worth keeping: a
-	-- dead-neutral border on a tinted panel reads as grey dirt rather than as a
-	-- frame. The two numbers are the same 0.05 of bias, mirrored.
+	-- Blue goes a little further towards light and less towards dark, so the
+	-- edge lands slightly cooler than the panel either way: a dead-neutral
+	-- border on a tinted panel reads as grey dirt.
 	local er, eg, eb = edgeOf(br, 0.50), edgeOf(bg, 0.50),
 		edgeOf(bb, lighten and 0.55 or 0.45)
 	for _, edge in ipairs(edges) do
@@ -2222,10 +1785,8 @@ function Prompt:ApplyStyle()
 	end
 
 	local mode = p.accentMode or "icon"
-	-- Not on the framed look: the stripe would run down the inside of the left
-	-- edge, a second line a pixel from the first, which reads as a drawing
-	-- mistake rather than as a reason colour. The ring around the icon is still
-	-- there, and it is the better carrier of the two anyway.
+	-- Not on the framed look: the stripe would run a pixel inside the left edge
+	-- and read as a drawing mistake. The ring still carries the colour.
 	local showAccent = not framed and (mode == "stripe" or mode == "both")
 	accentTop:SetShown(showAccent)
 	accentBottom:SetShown(showAccent)
@@ -2291,9 +1852,8 @@ function Prompt:ApplyStyle()
 				-- at its corners.
 				iconEdge:Hide()
 				iconShade:Hide()
-				-- The sweep follows the icon's shape: the mask art doubles as
-				-- the swipe texture, which is how the client's own round
-				-- buttons do it.
+				-- The mask art doubles as the swipe texture, as the client's
+				-- own round buttons do.
 				if cooldown then
 					Try(cooldown, "SetSwipeTexture", "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask")
 				end
@@ -2304,14 +1864,10 @@ function Prompt:ApplyStyle()
 			if cooldown then Try(cooldown, "SetSwipeTexture", WHITE) end
 		end
 
-		-- The halo starts where the ring stops, so it frames the icon without
-		-- ever lying over it, and it stops at the panel's edge: past it, even a
-		-- little light read as bars stuck to the top and bottom of the prompt,
-		-- and on the framed look it lit the border up over the icon. There is
-		-- more room beside the icon than above it -- ten pixels to the panel's
-		-- edge on the left and to the text on the right -- so the halo reaches
-		-- further sideways. A rounded icon wears the ring instead, whose rim is
-		-- its own edge: square pieces round a circle read as a picture frame.
+		-- The halo starts where the ring stops and ends at the panel's edge
+		-- (past it, light read as bars stuck to the prompt), reaching further
+		-- sideways where there is more room. A round icon wears the ring
+		-- instead.
 		local sy = math.max(2, math.min(8, math.floor((p.height - p.iconSize) / 2) - outer))
 		local sx = math.max(2, math.min(8, 10 - outer))
 		local roundSize = round and p.iconSize or nil
@@ -2343,22 +1899,10 @@ function Prompt:ApplyStyle()
 	shineFrame:SetSize(shineWidth, p.height)
 	if shineFrame.anim then shineFrame.anim.move:SetOffset(p.width - shineWidth, 0) end
 
-	-- count chip
-	--
-	-- Sized from the font, like everything else on the panel. It was a fixed
-	-- 20x14 box with a fixed 28px reserved beside it, holding a number drawn at
-	-- fontSize - 3 -- and the font slider goes to 32, where those digits are
-	-- taller than the box they sit in and wider than the gap left for it. The
-	-- chip then read as a smudge behind a number spilling over the name.
-	--
-	-- The arithmetic is pinned so it reproduces the old constants exactly at the
-	-- default font of 13, where they were chosen and where they looked right:
-	-- 20 wide, 14 high, 28 reserved. Nobody who never touched the slider sees
-	-- anything move.
+	-- count chip: sized from the font, so large fonts do not spill out of it;
+	-- at the default 13 it is the old 20 by 14, with 28 reserved.
 	local countSize = math.max(8, p.fontSize - 3)
-	-- A digit is about half the font's size across, so this is room for four of
-	-- them. The queue never gets near that; the width is what keeps the chip a
-	-- chip rather than a square around one number.
+	-- A digit is about half the font's size across: room for four.
 	local chipWidth = countSize * 2
 	-- Kept inside the panel at the top of the slider, where a chip grown from
 	-- the font would otherwise stand taller than the prompt it is drawn on.
@@ -2369,33 +1913,25 @@ function Prompt:ApplyStyle()
 	countChip:SetShown(false)
 	Gradient(countChip, "VERTICAL", 1, 1, 1, 0.03, 1, 1, 1, 0.09)
 
-	-- What the name and sub-line have to keep clear while the chip is up: the
-	-- chip itself, the 7px it is inset from the right edge, and a point of gap
-	-- so the two do not touch. While it is down they run to the panel's inset.
+	-- What the lines keep clear while the chip is up: the chip, its 7px inset
+	-- and a point of gap.
 	local chipRoom = p.showCount and (chipWidth + 8) or EDGE_ROOM
 
 	-- text
-	-- The arithmetic the constant 34 stood in for. Two lines need both fonts
-	-- plus the insets, and at the top of the font slider 34 is not close --
-	-- so the sub-line silently vanished at sizes the page happily offers.
+	-- Two lines need both fonts plus the insets: see ns.TwoLineHeight.
 	local twoLine = p.showSub and p.height >= ns.TwoLineHeight(p.fontSize)
 
 	countText:ClearAllPoints()
 	countText:SetPoint("CENTER", countChip, "CENTER", 0, 0)
 	-- Fonts, colours, shadows and the lines' anchors, from the panel colour.
-	-- The count's font is the same number the chip was just sized from: two
-	-- expressions of one size is how they came apart in the first place.
+	-- The count's font is the size the chip was just sized from.
 	StyleText(p, style, fontPath, textX, chipRoom, twoLine, countSize)
 	-- The grey just written over the reason line's tint, and the ring and the
 	-- stripe may have changed shape: the next PaintAccent paints in full.
 	accentPainted = nil
 
-	-- Anchoring a row by both TOPLEFT and RIGHT fights over its vertical
-	-- centre, so the rows get one anchor and an explicit width instead.
-	--
-	-- Which way the list hangs is settled here rather than on every repaint:
-	-- the only three things that move the prompt -- a drag, a position preset,
-	-- a profile switch -- all come back through ApplyStyle.
+	-- Rows get one anchor and an explicit width: TOPLEFT and RIGHT together
+	-- fight over the vertical centre. Which way the list hangs is settled here.
 	queueAbove = QueueGoesAbove()
 	-- Kept for PaintQueue, which re-places the rows when the list hangs above
 	-- and therefore needs the same inset this loop uses.
@@ -2405,17 +1941,13 @@ function Prompt:ApplyStyle()
 	for i, fs in ipairs(queueRows) do
 		fs:ClearAllPoints()
 		if queueAbove then
-			-- Counted down from the top of the block rather than up from the
-			-- panel: row one nearest the panel would put the list in reverse
-			-- reading order, which is a list you have to think about.
+			-- Counted down from the top of the block, so the list reads top to
+			-- bottom.
 			fs:SetPoint("BOTTOMLEFT", art, "TOPLEFT", textX, 4 + (rowCount - i) * rowHeight)
 		else
 			fs:SetPoint("TOPLEFT", art, "BOTTOMLEFT", textX, -4 - (i - 1) * rowHeight)
 		end
-		-- The font and the colour are StyleText's, above. The grey is a little
-		-- brighter than it was: these rows sit on their own background now
-		-- instead of on the world, so they no longer have to be dim enough to
-		-- survive a bright one.
+		-- The font and the colour are StyleText's.
 		fs:SetWidth(math.max(20, p.width - textX - 8))
 
 		-- Anchored to its own row, so the bar follows the list whichever way it
@@ -2426,9 +1958,8 @@ function Prompt:ApplyStyle()
 		bar:SetPoint("RIGHT", fs, "LEFT", -4, 0)
 	end
 
-	-- The background behind the list: left and right edges only. How deep it
-	-- goes is not known until the queue is painted, because it depends on how
-	-- many rows have somebody in them rather than on how many were asked for.
+	-- The background behind the list; PaintQueue sets its depth from the rows
+	-- filled.
 	queueBack:ClearAllPoints()
 	queueHair:ClearAllPoints()
 	queueHair:SetHeight(1)
@@ -2443,14 +1974,10 @@ function Prompt:ApplyStyle()
 		queueHair:SetPoint("TOPLEFT", art, "BOTTOMLEFT", 0, 0)
 		queueHair:SetPoint("TOPRIGHT", art, "BOTTOMRIGHT", 0, 0)
 	end
-	-- A shade darker than the panel and slightly more transparent, so the list
-	-- reads as belonging to the prompt without competing with it. The hairline
-	-- is the same bevel trick used along the top of the panel itself: one pixel
-	-- of light is what stops two stacked rectangles reading as one.
-	--
-	-- Only a shade on a light panel. Taken down to half, cream went to a
-	-- muddy mid-grey that neither the light nor the dark text could be read
-	-- on, and the rows are coloured for the panel above them.
+	-- A shade darker than the panel and slightly more transparent, with a
+	-- hairline of light so the two rectangles do not read as one. Only a shade
+	-- on a light panel, where halving went to a mud neither text colour reads
+	-- on.
 	local shade = ink.light and 0.55 or 0.90
 	queueBack:SetVertexColor(br * shade, bg * shade, bb * (ink.light and 0.66 or 0.92),
 		math.min(1, ba * 0.9))
@@ -2464,13 +1991,9 @@ function Prompt:PaintAccent(reason)
 	local mode = p.accentMode or "icon"
 	local r, g, b = self:AccentColor(reason)
 
-	-- This runs on every scan -- every repaint of a person, and every pass of
-	-- a fight -- and the colour almost never changes between two of them. So
-	-- the colour last painted is kept, and the same one again is nothing to
-	-- do: two and a half repaints a second of a dozen textures, each gradient
-	-- making two colour objects, was work the eye could not see. Forgotten by
-	-- anything else that writes over these textures: ApplyStyle, and a
-	-- refusal's red ring.
+	-- Runs on every repaint and the colour rarely changes, so the same colour
+	-- again is nothing to do. ApplyStyle and a refusal's red ring forget the
+	-- key when they write over these textures.
 	local key = ("%s:%.3f:%.3f:%.3f:%s"):format(mode, r, g, b, tostring(tintSub))
 	if key == accentPainted then return end
 	accentPainted = key
@@ -2482,24 +2005,17 @@ function Prompt:PaintAccent(reason)
 	PaintHalo(glowHalo, r, g, b, 1)
 
 	if mode == "icon" or mode == "both" then
-		-- Lit from above like everything else on the panel: a little brighter
-		-- at the top of the ring than at the bottom, which is what makes it
-		-- read as a rim rather than a flat square of colour.
+		-- A little brighter at the top of the ring, lit from above, so it reads
+		-- as a rim.
 		Gradient(iconBack, "VERTICAL", r * 0.78, g * 0.78, b * 0.78, 0.95,
 			math.min(1, r * 1.12), math.min(1, g * 1.12), math.min(1, b * 1.12), 0.95)
 	else
 		iconBack:SetVertexColor(0, 0, 0, 0.85)
 	end
 
-	-- The reason line, warmed a little towards the same colour, so the two
-	-- things that say why somebody is on the prompt agree at a glance. Mostly
-	-- the grey it always was: it is the second line, and it must not compete
-	-- with the name. Not where the player asked for no accent, and not on a
-	-- light panel, where the tint costs the grey its contrast.
-	--
-	-- The grey is StyleText's for this panel, and the tinted grey is held to
-	-- the same contrast the plain one is: warmed towards a deep blue, the grey
-	-- of a panel that is only just dark enough for light text went under it.
+	-- The reason line, warmed a little towards the same colour so the two agree
+	-- at a glance -- but not with accents off, nor on a light panel where the
+	-- tint costs contrast. The tinted grey is held to the plain one's contrast.
 	local mix = (tintSub and mode ~= "off") and 0.35 or 0
 	local base = ink.sub or GREYS.panel.sub
 	local sr, sg, sb = Legible(base[1] + (r - base[1]) * mix, base[2] + (g - base[2]) * mix,
@@ -2518,9 +2034,8 @@ local function ClassColored(entry, text)
 	return string.format("|c%s%s|r", c.colorStr, text)
 end
 
--- Core's, and the comment on it says why every substitution below goes through
--- a function replacement rather than a string one. Taken as a local because
--- this runs two and a half times a second on every line of the panel.
+-- Core's; its comment says why substitutions use a function replacement.
+-- Local because this runs on every line of every repaint.
 local Swap = ns.Swap
 
 local function Substitute(template, entry, extra)
@@ -2538,25 +2053,9 @@ end
 function Prompt:ReasonText(entry)
 	local p = ns.db.profile.prompt
 	local template = p[REASON_KEY[entry.reason] or "reasonNearby"] or ""
-	-- The sub-line is what somebody reads without hovering, so it has to be the
-	-- true one. In refresh mode the person on the prompt is holding the buff,
-	-- and "needs {buff}" says the opposite of the countdown the tooltip prints
-	-- underneath it. A top-up is a different offer and gets its own wording --
-	-- swapped in whole, not suffixed, because the four reason lines belong to
-	-- the user and may say anything at all by the time this runs.
-	--
-	-- The two swaps cannot both apply: a top-up is read off an aura we did read
-	-- and were given a timer for, so `known` is true and the unverified branch
-	-- is unreachable for it. Written as one chain anyway, so a later change to
-	-- either condition cannot end up applying both.
-	--
-	-- The owed exclusion used to be belt and braces over a case that could not
-	-- happen: a debt's aura state was fabricated as false before it ever got
-	-- here, so `known` was never nil for one. Now that the queue reports what
-	-- the client actually said, an unreadable debt arrives here for real -- and
-	-- the exclusion is doing work. It stays because the reason somebody is on
-	-- the prompt is the favour they did, and that is the line worth reading;
-	-- the tooltip still says the aura could not be read.
+	-- The sub-line must be true without hovering: a top-up and an unreadable
+	-- aura get their own wording, swapped in whole since reason lines are free
+	-- text. Not for owed or asked, whose reason is the line worth reading.
 	if RemainingText(entry.remaining) then
 		template = p.reasonRefresh or template
 	elseif entry.checked and entry.known == nil and entry.reason ~= "owed"
@@ -2571,16 +2070,14 @@ function Prompt:RenderPrimary(entry, extra)
 	local template = p.format or "{name}"
 	local out = Substitute(template, entry, extra)
 	if template:find("{name}", 1, true) then
-		-- The name is escaped on the way into the pattern, and the colour
-		-- wrapper goes in through a function for the same reason as everything
-		-- else here: what is being handed to gsub is text, not a template.
+		-- The name is escaped into the pattern and the colour goes in through a
+		-- function: gsub is being handed text, not a template.
 		local plainName = entry.short or entry.name or "?"
 		local coloured = ClassColored(entry, plainName)
 		out = (out:gsub(plainName:gsub("(%W)", "%%%1"), function() return coloured end, 1))
 	end
-	-- The one that was live. A reason line is free text somebody typed, and it
-	-- was being handed to gsub as a replacement, where % is an escape: "10%
-	-- left" in the top-up wording threw here on every repaint.
+	-- A reason line is free text, and as a gsub replacement a % in it ("10%
+	-- left") threw on every repaint; Swap takes it as text.
 	return Swap(out, "{reason}", self:ReasonText(entry))
 end
 
@@ -2588,16 +2085,9 @@ end
 -- targeting
 ---------------------------------------------------------------------------
 
--- Whether the last candidate painted is still entitled to the panel.
---
--- Three things keep this from being a lie. It expires, so nothing can hold the
--- prompt indefinitely. It never holds off somebody strictly more deserving --
--- that test is in PickTop, because it needs the replacement. And it never
--- holds somebody who was deliberately retired: a block is either the retry
--- cooldown a click wrote or the refusal a right-press wrote, and a place on
--- the never-offer list with nothing owed is the same request made from chat,
--- the options page or the menu. In every case "they are gone" is the answer
--- the user just asked for.
+-- Whether the last candidate painted is still entitled to the panel. It
+-- expires, it never holds off somebody strictly better (PickTop checks that),
+-- and it never holds somebody deliberately retired (see Retired).
 local function HoldStillStands(now)
 	if not (heldEntry and heldAt) then return false end
 	if now - heldAt >= HOLD_SECONDS then return false end
@@ -2605,19 +2095,9 @@ local function HoldStillStands(now)
 	return not ns.IsBlocked(heldEntry.name, heldEntry.buff and heldEntry.buff.key, now)
 end
 
--- Whoever is offered should stay offered. Re-sorting every tick swapped the
--- target while the cursor was over it, so the tooltip described one person and
--- the button was aimed at another. The current pick wins ties.
---
--- That much only works while the current pick is still in the queue, and in a
--- crowd the reason the top changes is usually that it is not: somebody steps a
--- yard out of range, a nameplate is recycled, an aura read falls out of the
--- three-second cache. The loop below then finds nothing to keep, the panel
--- swaps to a stranger, and the scan after that swaps back -- at 2.5 Hz, with
--- the sound and the entrance animation following each swap.
---
--- So the last painted candidate is also held for a moment after leaving the
--- queue, against anything no better than itself.
+-- Whoever is offered stays offered: the current pick wins ties, and the last
+-- painted one is held briefly after leaving the queue against anything no
+-- better.
 function Prompt:PickTop(queue, fallback)
 	local top = fallback
 	if current and top then
@@ -2629,51 +2109,31 @@ function Prompt:PickTop(queue, fallback)
 		end
 	end
 
-	-- An empty queue is a different question and gets a different, shorter
-	-- answer: the fuse in Refresh. Holding here as well would stack the two
-	-- and leave a prompt up for over two seconds with nobody behind it.
+	-- An empty queue is the fuse's question, in Refresh; holding here too would
+	-- stack the two.
 	if not top then return nil end
 	if not HoldStillStands(GetTime()) then return top end
 	if top.name == heldEntry.name then return top end
-	-- Lower number is better, so this is the strict improvement -- a favour
-	-- owed arriving over a passer-by -- and it is never held off. Noticing that
-	-- is the whole business of the prompt.
+	-- Lower is better: a strict improvement (a favour owed over a passer-by) is
+	-- never held off.
 	if top.priority < heldEntry.priority then return top end
 	return heldEntry
 end
 
--- Buttons 2 to 5 get a type the secure handler does not recognise, so they
--- match nothing and do nothing. Without this the unsuffixed type/macrotext --
--- which must stay, being the form that provably works on this client -- act as
--- the fallback for every button, and a right-press to turn the camera over the
--- panel fired the buff with none of the bookkeeping.
+-- Buttons 2 to 5 get a type the secure handler does not recognise, so they do
+-- nothing; otherwise the unsuffixed type/macrotext (the form that works on
+-- this client) fires for every button, a right-press included.
 local function SilenceOtherButtons()
 	for index = 2, 5 do
 		button:SetAttribute("type" .. index, "none")
 	end
 end
 
--- Which targeting command to write.
---
--- /targetexact matches the whole name, /target matches a prefix -- so
--- "/target Mort" will happily find Mortimer standing beside Mort and buff, and
--- speak at, the wrong player. On that alone /targetexact is the better command
--- and this returned it.
---
--- It is not used, and the reason is worth keeping. The name this addon writes
--- is assembled from UnitName's two returns, and what the second one means is
--- exactly what this client does differently from every other: a surname here,
--- a realm everywhere else, and undocumented here for a player from another
--- realm. /target tolerates a name that is slightly wrong, because a prefix
--- still finds them. /targetexact does not: a name one character out finds
--- nobody, casts nothing, and the addon appears broken on the only client
--- anybody has ever run it on.
---
--- So the prefix risk is accepted for now. It casts on the wrong person, which
--- is worse in kind but rarer, and the settle path already notices a cast that
--- landed on somebody other than the person offered. Switching this on wants
--- one live test of what the assembled name actually looks like -- caps
--- .targetExact is probed and reported by /manners debug for exactly that.
+-- Which targeting command to write. Not /targetexact, though it would stop
+-- "/target Mort" finding Mortimer: the name is built from UnitName's two
+-- returns, whose second is undocumented here for other realms, and one
+-- character out finds nobody. caps.targetExact (/manners debug) is the probe
+-- for switching.
 local function TargetCommand()
 	return "/target"
 end
@@ -2681,88 +2141,40 @@ end
 -- rather than a second, hand-maintained opinion about it.
 ns.TargetCommand = TargetCommand
 
--- The shape of the macro for this person. One place, and deliberately a name
--- rather than a condition inside the builder, so a second strategy is a new
--- entry in STRATEGIES plus a line here instead of a branch threaded through
--- everything that assembles a line.
---
--- There is exactly one targeting strategy, and the absence of a second one is a
--- decision rather than an oversight. The obvious candidate is
--- /cast [@Playername,help,nodead] <Spell> for somebody in your group on a
--- non-Camelot client: a named conditional resolves for party and raid members
--- everywhere, and it would never touch the player's own target, so there would
--- be no /targetlasttarget and nothing to restore. It is not built, for three
--- reasons:
---
---   * It has to be right about something nobody who works on this addon can
---     test. Conditional targeting is believed to work on Classic Era, TBC and
---     Mists; every source says so and nobody has run it. Worse, the restriction
---     that rules it out on Camelot arrived in retail 12.0, so it may well fail
---     on retail Midnight too.
---   * Its failure mode is silent. A guarded clause that resolves to nothing
---     casts nothing and says nothing, so a user on an untested client would get
---     an addon that quietly never works and no symptom to report.
---   * It buys convenience only. Not taking the player's target is nicer; being
---     cast at all is the feature.
---
--- The targeting route below is the only way to buff an ungrouped stranger on any
--- client -- [@name] resolves only for group members, and [@nameplateN] resolves
--- nowhere -- and a stranger is the whole reason this addon exists. It also works
--- perfectly well for somebody in your group. So it ships everywhere.
+-- The shape of the macro for this person. There is deliberately one targeting
+-- strategy: /cast [@Name] works only for group members, cannot be tested here
+-- and fails silently, while targeting reaches ungrouped strangers everywhere.
 local function StrategyFor(entry)
 	if entry.buff and entry.buff.selfCast then return "selfcast" end
 	return "target"
 end
 
--- Each returns three things: the lines, whether a /targetlasttarget belongs on
--- the end, and a record of what the macro does.
---
--- That record is what the settle path judges a press by, several hundred
--- milliseconds later. Nothing over there reads the macro text back to work it
--- out, and nothing over there re-derives it from the queue entry, because by
--- then the queue has been rebuilt a dozen times. So a strategy added later
--- cannot mislead it by omission: filling the record in is part of being a
--- strategy.
+-- Each returns the lines, whether /targetlasttarget goes on the end, and a
+-- record the settle path judges the press by:
 --
 --   targeted  the macro carries a targeting line of ours, aimed at this person
 --   selfCast  the spell lands on the caster and reaches the party from there
 --   aimedAt   the exact spelling that went onto the targeting line
 local STRATEGIES = {}
 
--- No targeting line, and there is no version of this that has one: the spell
--- lands on you and reaches the party from there. Saying so in the record is what
--- lets the settle path judge the press at all -- that it was left to work this
--- out for itself is why a warrior could never once repay anybody.
+-- No targeting line: the spell lands on you and reaches the party from there.
+-- The record says so, which is what lets the settle path judge the press.
 STRATEGIES.selfcast = function(entry, spell)
 	return { "/cast " .. spell }, false,
 		{ targeted = false, selfCast = true, aimedAt = nil }
 end
 
--- Target them, cast, and optionally hand the player's own target back.
---
--- One targeting line, carrying one spelling. Two lines offering both spellings,
--- and the fallback that replaced them, were both tried and both are gone: with
--- two, /targetlasttarget hands back whatever the first line found rather than
--- the player's target, and two players sharing a first name is all that takes.
--- The account is in Core, where the counting used to live.
+-- Target them, cast, and optionally hand the player's own target back. One
+-- targeting line with one spelling: with two, /targetlasttarget hands back
+-- what the first found, not the player's target. The account is in Core.
 STRATEGIES.target = function(entry, spell)
-	-- targetName is the spelling, entry.name is the identity. They differ only
-	-- for a cross-realm player off Camelot; the fallback is for the handful of
-	-- made-up entries -- the preview, the phrase roller -- whose names have no
-	-- realm in them either way.
+	-- targetName is the spelling, entry.name the identity; they differ only for
+	-- a cross-realm player off Camelot. The fallback covers made-up entries
+	-- (the preview, the phrase roller).
 	local who = entry.targetName or entry.name or ""
-	-- No hand-back for somebody reached through the target token: they are
-	-- already the player's target, /target on them changes nothing, and the
-	-- last-target slot still holds whoever came before them -- a mob, as often
-	-- as not -- which /targetlasttarget would then switch to. The unit is in
-	-- the macro's key, so this is rebuilt the moment the target changes.
-	--
-	-- Except in a fight, where nothing is rebuilt at all: the macro armed at
-	-- the pull is the one every press runs until it ends. The player tabs to
-	-- the mob, presses, and a macro without the hand-back leaves them
-	-- targeting the friend with the mob lost. So the macro armed for the
-	-- fight keeps it -- a press with the friend still targeted then switches
-	-- to whoever came before them, which is the smaller of the two losses.
+	-- No hand-back for somebody reached through the target token: they already
+	-- are the target, and /targetlasttarget would switch away (often to a mob).
+	-- In a fight the macro armed at the pull runs every press, so it keeps it.
 	local restore = ns.db.profile.filters.restoreTarget == true
 		and (entry.unit ~= "target" or Prompt.armedForFight == true)
 	return {
@@ -2772,16 +2184,14 @@ STRATEGIES.target = function(entry, spell)
 		{ targeted = true, selfCast = false, aimedAt = who }
 end
 
--- The cast half of the macro, in the order the client needs it. Handed back as
--- a list rather than a string so the room left for a spoken line can be measured
--- against what these actually take.
+-- The cast half of the macro, as a list, so the room left for a spoken line can
+-- be measured.
 local function CastLines(entry)
 	return STRATEGIES[StrategyFor(entry)](entry, ns.BuffName(entry.buff))
 end
 
--- How many characters a spoken line has left, for this person with these
--- settings. One answer, asked by the cast path and by the options preview, so
--- the preview can no longer promise a line the cast would silently drop.
+-- How many characters a spoken line has left for this person. Asked by the
+-- cast path and the options preview, so the two cannot disagree.
 function ns.PhraseBudget(entry)
 	local lines, restore = CastLines(entry)
 	-- The newline the spoken line itself would add, and the restore that
@@ -2791,24 +2201,15 @@ function ns.PhraseBudget(entry)
 	return ns.MACRO_LIMIT - used
 end
 
--- What the button will do, said the way a person would say it.
---
--- The tooltip used to print the macro instead, under the heading "Will run:",
--- and that heading was not true. The spoken line is drawn at random out of the
--- phrase pool and was re-rolled on every repaint -- two and a half times a
--- second -- and then once more inside PreClick, so the line quoted was never
--- the line that went out. The roll is settled per candidate now (see phraseKey
--- in ApplyTarget) and this quotes the settled one.
---
--- A method rather than a local because Create's tooltip handler is written
--- above CastLines, and a local would not be in scope there.
+-- What the button will do, said the way a person would say it, quoting the
+-- settled spoken line (see phraseKey in ApplyTarget). A method because the
+-- tooltip handler is written above CastLines.
 function Prompt:ClickSummary(entry)
 	local out = {}
 	if not (entry and entry.buff) then return out end
 	local spell = ns.BuffName(entry.buff)
-	-- An entry with no name at all is rare, and it gets sentences of its own
-	-- that say "them" rather than a bare "them" slotted into each one: the
-	-- pronoun takes a different form in each position in plenty of languages.
+	-- No name at all is rare, and gets sentences of its own: "them" takes a
+	-- different form in each position in plenty of languages.
 	local who = entry.short or entry.name
 
 	-- /manners try replaces the whole macro with whatever was typed, and none
@@ -2831,10 +2232,8 @@ function Prompt:ClickSummary(entry)
 		out[#out + 1] = L["Casts |cffffffff%s|r on you; it reaches your party from there."]
 			:format(spell)
 	else
-		-- The spelling the targeting line will actually carry, rather than the
-		-- name the person is filed under or the shortened one the panel shows.
-		-- Those are the same string on Camelot and diverge for a cross-realm
-		-- player anywhere else, and this sentence claims to describe the macro.
+		-- The spelling the targeting line will carry, which differs from the
+		-- filed or shortened name for a cross-realm player off Camelot.
 		local target = entry.targetName or entry.name or who
 		out[#out + 1] = target
 			and L["Targets |cffffffff%s|r, casts |cffffffff%s|r."]:format(target, spell)
@@ -2852,9 +2251,8 @@ function Prompt:ClickSummary(entry)
 	end
 
 	if phraseText then
-		-- Quoted without its slash command: which channel it goes to is a
-		-- setting three lines away in the options, and what it says is the part
-		-- worth reading before pressing anything.
+		-- Quoted without its slash command: the channel is a setting, and what
+		-- it says is the part worth reading.
 		out[#out + 1] = L["Says: |cffffffff%s|r"]:format((phraseText:gsub("^/%S+%s*", "")))
 	end
 	return out
@@ -2862,23 +2260,9 @@ end
 
 function Prompt:ApplyTarget(entry)
 	if InCombatLockdown() then
-		-- The attributes are frozen until the fight ends, so the macro on the
-		-- button cannot follow an entry in here. Everything that is not secure
-		-- can, and has to: `current` is what PostClick files its bookkeeping
-		-- under, what the tooltip describes and what the pulse claims. Giving
-		-- up above it made every disarm a no-op in combat -- /manners off,
-		-- /manners unlock and leaving preview all arrive here with nil -- so
-		-- the prompt went on naming somebody it had been told to forget, and a
-		-- CLICK binding still reaches the handlers on a hidden button.
-		--
-		-- Only the clearing direction is taken. Pointing `current` at somebody
-		-- new while the armed macro still names the last person swaps one lie
-		-- for another, and the bookkeeping would then be filed under a name
-		-- nothing was cast at.
-		--
-		-- appliedKey is left alone on purpose: it says what is on the button,
-		-- and what is on the button did not change. The clear path below is
-		-- unconditional, so the first pass after the fight disarms it for real.
+		-- Frozen until the fight ends. `current` may only be cleared: a disarm
+		-- must take effect, and pointing it at somebody new would file
+		-- bookkeeping under a name the macro does not hold.
 		if not entry then current = nil end
 		return
 	end
@@ -2886,11 +2270,9 @@ function Prompt:ApplyTarget(entry)
 	current = entry
 
 	if not entry or not entry.buff or testMode then
-		-- Unconditionally. This used to be guarded by `appliedKey ~= nil` as an
-		-- optimisation, but PreClick sets appliedKey to nil immediately before
-		-- calling here -- so the guard was always false on a click and the
-		-- clear never ran. An emptied queue therefore left the previous
-		-- person's macro armed, and clicking cast at them instead of nobody.
+		-- Unconditionally: PreClick nils appliedKey just before calling here,
+		-- so a guard on it never ran on a click and left the last person's
+		-- macro armed.
 		for _, attribute in ipairs({ "type1", "macrotext1", "spell1", "unit1",
 			"type", "macrotext", "spell", "unit",
 			"type2", "type3", "type4", "type5" }) do
@@ -2898,8 +2280,6 @@ function Prompt:ApplyTarget(entry)
 		end
 		appliedKey = nil
 		-- Nothing on the button, so nothing for a settle to be judged against.
-		-- Left standing, it would describe the last person's macro to the next
-		-- press that arrives from somewhere this path cannot see.
 		armed = nil
 		-- Same reasoning for the spoken line: there is no macro, so there is no
 		-- line, and the tooltip must not still be quoting the last one.
@@ -2907,48 +2287,28 @@ function Prompt:ApplyTarget(entry)
 		return
 	end
 
-	-- The console expands {unit}/{name}/{spell} against whoever is offered.
-	-- Above the early return below, because the token a person is reached
-	-- through can change while the macro that would go out does not.
+	-- The console expands {unit}/{name}/{spell} against whoever is offered;
+	-- above the early return, because the unit can change while the macro does
+	-- not.
 	ns.lastTopEntry = entry
 	ns.lastTopUnit = entry.unit
 
-	-- Everything the macro is built out of. The same person, the same buff and
-	-- the same reason produce the same macro, so rebuilding it two and a half
-	-- times a second -- eight SetAttribute calls each time -- buys nothing.
-	-- Every other input comes through InvalidateMacro: the restore setting, the
-	-- speech options, /manners try. PreClick clears it outright, so a press
-	-- always re-arms against a queue built in that moment.
-	--
-	-- It also settles the spoken line per candidate instead of re-rolling it on
-	-- every tick, which is what makes the tooltip's "Will run:" worth reading.
-	--
-	-- The clear path above stays unconditional. That asymmetry is deliberate:
-	-- guarding it was the 1.4.1 bug, because PreClick nils the key immediately
-	-- before calling here, so the guard was always false on a click and an
-	-- emptied queue left the last person's macro armed.
-	--
-	-- Everything the macro interpolates is in the key, the unit token included:
-	-- a /manners try template can say {unit}, so the same person reached
-	-- through a nameplate one tick and through party2 the next expands to a
-	-- different macro, and the memo would have shown and armed the old one.
-	-- And whether it is being armed for a fight, which decides the hand-back
-	-- for your own target: see STRATEGIES.target.
+	-- Everything the macro is built from, so it is not rebuilt at 2.5 Hz. Other
+	-- inputs come through InvalidateMacro; the unit is here for try's {unit},
+	-- and armedForFight for the hand-back.
 	local key = table.concat({ entry.name, tostring(entry.unit), entry.buff.key,
 		tostring(entry.reason), tostring(ns.tryMacro), tostring(Prompt.armedForFight) }, "\1")
 	if key == appliedKey then return end
 
-	-- /manners try: arbitrary macro text, expanded against the current
-	-- candidate. Iterating on this client otherwise means one guess per
-	-- /reload; this makes it one guess per click.
+	-- /manners try: arbitrary macro text, expanded against the candidate, so
+	-- testing on this client is one guess per click rather than per /reload.
 	if ns.tryMacro then
 		local text, unfilled = ns.ExpandTokens(ns.tryMacro)
 		if not text then
-			-- A template that asks for a unit token this person has not got.
-			-- Nothing goes on the button rather than a guess at one: the guess
-			-- was "target", which casts at whoever you happen to have targeted.
-			-- The key is still taken, and it carries the unit, so the first
-			-- repaint that reaches them through a token arms it after all.
+			-- A template asking for a unit token this person lacks: nothing
+			-- goes on the button rather than a guess ("target" would cast at
+			-- whoever is targeted). The key carries the unit, so a later
+			-- repaint through a token arms it.
 			for _, attribute in ipairs({ "type1", "macrotext1", "spell1", "unit1",
 				"type", "macrotext", "spell", "unit" }) do
 				button:SetAttribute(attribute, nil)
@@ -2965,43 +2325,18 @@ function Prompt:ApplyTarget(entry)
 		SilenceOtherButtons()
 		ns.lastMacro = "[try] " .. text
 		appliedKey = key
-		-- Whatever this text does, none of it is a /target this addon wrote, so
-		-- it is evidence about nobody's name. A template that casts nothing at
-		-- all -- "/target {name}" on its own, which is exactly the shape you
-		-- reach for while working out what resolves -- used to park a click
-		-- that never settled and then blame the next spell cast by hand for it.
+		-- None of this text is a /target this addon wrote, so it is evidence
+		-- about nobody's name and there is no record for the settle path.
 		armed = nil
 		return
 	end
 
 	local lines, restore, record = CastLines(entry)
 
-	-- Rolled once per candidate rather than once per repaint and again on the
-	-- press. PickPhrase draws at random out of the pool, so asking it twice for
-	-- the same person gives two different lines -- and PreClick clears
-	-- appliedKey and comes straight back through here, so the line the tooltip
-	-- quoted was reliably not the line that went out. Keyed on who, which buff
-	-- and why, and not on the macro's own key: that one carries the unit token,
-	-- which only /manners try reads -- and try returns above here. Keyed on the
-	-- macro, the same person seen through a nameplate on one scan and under
-	-- the cursor on the next was somebody new to the roll, and the line changed
-	-- under a tooltip still quoting the last one.
-	--
-	-- Deliberately not cleared by PreClick, which sets appliedKey to nil
-	-- directly; InvalidateMacro clears both, and that is the split that makes
-	-- the quote honest while still following a change to the phrase pool.
-	--
-	-- Measured, not assumed. The budget used to be a constant 120 with a
-	-- second, correct length check immediately below it -- two rules for one
-	-- question, and the constant was the one the options preview quoted.
-	--
-	-- The room is not part of the identity, though, and it can change under a
-	-- settled line: your own target's macro has no hand-back and leaves the
-	-- line eighteen characters more than the same person's macro off a
-	-- nameplate. A line rolled into that room and kept took the macro past
-	-- the client's limit, which cuts off the last line -- the hand-back. So a
-	-- kept line is measured again, and rolled afresh only when it no longer
-	-- fits.
+	-- Rolled once per candidate (who, buff, why), so the tooltip quotes the
+	-- line the press will cast; InvalidateMacro clears it, PreClick does not. A
+	-- kept line that no longer fits the room is rolled again, or the client
+	-- would cut the hand-back off the macro.
 	local phraseIdentity = table.concat({ entry.name, entry.buff.key, tostring(entry.reason),
 		tostring(ns.tryMacro) }, "\1")
 	local budget = ns.PhraseBudget(entry)
@@ -3025,22 +2360,14 @@ function Prompt:ApplyTarget(entry)
 
 	ns.lastMacro = macro
 	appliedKey = key
-	-- Taken whole from the strategy that built the macro, rather than assembled
-	-- here out of what the entry says and what the text looks like. selfCast
-	-- used to be read back off the buff and `targeted` off whether a line had
-	-- been added, which is two opinions about one macro -- and the try path
-	-- writes no record at all, because whatever that text does, none of it is
-	-- ours.
+	-- Taken whole from the strategy that built the macro: one opinion about it.
 	armed = record
 end
 
 function Prompt:InvalidateMacro()
 	appliedKey = nil
-	-- The phrase pool, the channel and the speech toggle all invalidate through
-	-- here, so the settled roll goes with the macro it belonged to. PreClick
-	-- does not come through here -- it clears appliedKey on its own -- and that
-	-- asymmetry is the point: a press re-resolves who is being buffed without
-	-- re-rolling what is said, which is what makes the tooltip's quote true.
+	-- The settled roll goes with the macro. PreClick clears appliedKey on its
+	-- own instead, so a press re-resolves who without re-rolling what is said.
 	phraseKey, phraseText = nil, nil
 end
 
@@ -3068,16 +2395,12 @@ function Prompt:ExitTest(line)
 	testMode, testExpiry = false, nil
 	self:ApplyTarget(nil)
 	ns.addon:Print(line or L["preview off."])
-	-- The options page labels its button from InTest, and AceConfig only asks
-	-- while it is drawing. Every way a preview ends comes through here -- the
-	-- slash command, the page's own button, the clock, somebody real -- so
-	-- this is the one place the open page can be told its button now reads
-	-- "Preview" again. Does nothing with the window shut.
+	-- Every way a preview ends comes through here, so this tells an open
+	-- options page that its button reads "Preview" again.
 	if ns.RepaintOptions then ns.RepaintOptions() end
 end
 
--- Read by the options page, which used to offer a button labelled "Preview"
--- whether that would start one or stop one.
+-- Read by the options page to label its button.
 function Prompt:InTest()
 	return testMode == true
 end
@@ -3088,37 +2411,16 @@ function Prompt:ToggleTest()
 		self:Refresh()
 		return
 	end
-	-- Time-limited on purpose. A preview that stays until you remember to turn
-	-- it off looks exactly like a working prompt while ignoring every real
-	-- buff, which is a silent failure with no clue attached.
-	--
-	-- The limit does not run while the options window is open, which is the one
-	-- place the preview is of any use -- see Refresh. So the number quoted here
-	-- is what is left after the window is shut, and the line says that rather
-	-- than starting a countdown the user will watch expire mid-slider.
-	--
-	-- Not in a fight, for the reason the greeting gives. A panel the fight
-	-- found hidden cannot be put up, so the mock-up was painted on a frame
-	-- nobody could see while chat said "preview on" and, twenty seconds
-	-- later, "timed out". And a panel armed at somebody real keeps that macro
-	-- -- the fight froze it -- so the preview painted "PREVIEW" over a button
-	-- that still cast at them. Stopping one is above this and still works.
+	-- Time-limited, because a preview left on looks like a working prompt; the
+	-- clock stops while the options window is open. Not in a fight: the panel
+	-- cannot be put up, and an armed macro would still cast under "PREVIEW".
 	if InCombatLockdown() then
 		ns.addon:Print(L["|cffff8080not during a fight|r -- the preview can be shown once it ends."])
 		return
 	end
-	-- Refresh stands a mock-up aside the moment somebody real is waiting, and
-	-- says so. "Preview on" printed after that described a preview that was no
-	-- longer running, and "/manners test to stop" invited a second toggle that
-	-- did exactly the same thing again. The options window holds a preview up
-	-- over a real person, which is where one is any use.
-	--
-	-- Asked before the preview is started rather than after, the way the
-	-- greeting asks: started first, Refresh took it down again with "preview
-	-- off -- somebody real turned up", and this then said the same thing a
-	-- second time in other words, about a preview that never appeared. The
-	-- test is Refresh's own, word for word, so the two cannot disagree about
-	-- whether a preview would survive its first pass.
+	-- Refresh stands a mock-up aside when somebody real is waiting, so ask
+	-- first, with Refresh's own test word for word, rather than start a preview
+	-- that would end on its first pass. The options window holds one up anyway.
 	local db = ns.db and ns.db.profile
 	-- Except while snoozed: nobody real is on a snoozed prompt, so a preview
 	-- there stands in front of nobody. Refresh makes the same exception.
@@ -3144,28 +2446,13 @@ end
 ---------------------------------------------------------------------------
 -- what the click turned into
 --
--- Every ingredient for this already existed -- the parked click, the cast
--- event with its recipient, the error event -- and all of it was thrown away
--- unless the debug flag was on. So the one question anybody has after pressing
--- the button ("did that work?") had no answer anywhere on screen, on a client
--- that also refuses to show most auras.
---
--- Three states, and they are not interchangeable. The settle path in Core is
--- careful about the difference between a cast the client attributed to the
--- person we aimed at and one it would not attribute at all, and a tick over
--- the second would be the panel claiming exactly what that care exists to
--- avoid claiming.
+-- Three states, because the settle path separates a confirmed cast from one
+-- the client would not attribute.
 ---------------------------------------------------------------------------
 
--- The motion that goes with an outcome, once, as it arrives. A buff the game
--- confirmed gets the ring popping outward and a band of light across the
--- panel; a refusal gets the text shaking its head. A cast nobody confirmed gets
--- neither, on purpose: the panel claims no more than the settle path does, and
--- a flourish is a claim.
---
--- Nothing at all where "Stay quiet in combat" has asked for a still panel in a
--- fight, or where "Calm" has asked for less movement; and nothing on a panel
--- that is not up, where it would play to nobody.
+-- The motion for an outcome, once: ring and light for a confirmed buff, a
+-- shake for a refusal, nothing for an unconfirmed cast. None when quiet in
+-- combat, on "Calm", or with the panel not shown.
 function Prompt:PlayOutcomeFlourish(kind)
 	local p = ns.db and ns.db.profile.prompt
 	if not p or not FullEffects() then return end
@@ -3192,17 +2479,12 @@ end
 function Prompt:ShowOutcome(kind, name, detail)
 	if not button then return end
 	outcomeKind, outcomeAt, outcomeName, outcomeDetail = kind, GetTime(), name, detail
-	-- The cross-fade the target swap already uses. The same gesture -- the text
-	-- is about to say something different -- so it gets the same animation
-	-- rather than a second one that could fight it.
+	-- The same cross-fade a target swap uses: the text is about to change.
 	if textLayer.swap then
 		textLayer.swap:Stop()
 		textLayer.swap:Play()
 	end
-	-- And taken off on time, for the same reason. The scan used to be what
-	-- noticed the outcome had run out, up to two seconds later, and all that
-	-- while the name line went on reading "could not buff" somebody the button
-	-- underneath had already moved on from.
+	-- Taken off on time rather than at the next scan.
 	self:PlayOutcomeFlourish(kind)
 	outcomeGen = outcomeGen + 1
 	local gen = outcomeGen
@@ -3225,24 +2507,16 @@ function Prompt:OutcomeLive()
 	return false
 end
 
--- Who the panel is naming as far as a press is concerned: the person an
--- outcome is about while it is written over the name line, and otherwise the
--- entry last painted. nil when it is naming nobody the queue could hold.
---
--- Read off what was painted, not off whether the outcome is still live. The
--- two used to be treated as one, and they are not: the outcome runs out on the
--- clock and its words stay until something repaints the panel. In that gap
--- this answered with the entry underneath, and a press made on a panel reading
--- "could not buff Anna" cast at whoever the refusal had armed after her.
+-- Who the panel names for a press: the outcome's person while its words are on
+-- the name line, otherwise the entry last painted.
 function Prompt:PanelName()
 	if outcomePainted then return outcomePainted end
 	return heldEntry and heldEntry.name
 end
 
--- A press that would have gone to somebody the panel is not naming. Nothing is
--- cast: the panel is brought up to date first -- the flash taken off and the
--- new person painted -- and then disarmed, so this press is empty and the next
--- one, made on a panel that says who it is for, casts at them.
+-- A press aimed at somebody the panel is not naming: nothing is cast. The
+-- panel is brought up to date and disarmed, so the next press casts at who it
+-- says.
 function Prompt:MovedOn(top)
 	outcomeKind, outcomeAt, outcomeName, outcomeDetail = nil, nil, nil, nil
 	outcomePainted = nil
@@ -3253,10 +2527,8 @@ function Prompt:MovedOn(top)
 		:format(tostring(top.short or top.name)))
 end
 
--- Written over whatever Paint has already put on the panel. The outcome is
--- about the press that just happened, and by the time it lands the queue has
--- usually moved on to somebody else -- which is exactly why it has to be able
--- to overwrite rather than being folded into Paint.
+-- Written over whatever Paint put on the panel: by the time the outcome lands
+-- the queue has usually moved on.
 function Prompt:PaintOutcome()
 	-- No name is rare, and each headline has its own "them" sentence for it,
 	-- for the same reason as in ClickSummary.
@@ -3266,24 +2538,17 @@ function Prompt:PaintOutcome()
 	local lead, sub
 
 	if outcomeKind == "failed" then
-		-- Red, and the game's own words underneath. They are localised and are
-		-- frequently the only thing that says *why* -- out of range, line of
-		-- sight, not enough mana -- and until now none of it reached the user
-		-- unless they had turned the click debugging on.
+		-- Red, with the game's own localised words underneath: often the only
+		-- thing that says why (range, line of sight, mana).
 		r, g, b = 0.90, 0.26, 0.22
 		lead = who and L["|cffff8080could not buff|r |cffffffff%s|r"]:format(who)
 			or L["|cffff8080could not buff|r |cffffffffthem|r"]
 		sub = outcomeDetail
 	elseif outcomeKind == "sent" then
-		-- Deliberately not a tick. Our spell went out, but what connects it to
-		-- this person is an inference and not the client's word, and the settle
-		-- path only infers the favour was repaid. The panel says the same thing
-		-- at the same strength.
-		--
-		-- Which inference varies -- a /target of ours the client would not
-		-- confirm, or a selfCast buff with no target at all -- so the settle
-		-- sends the clause rather than this file guessing at it. The fallback
-		-- is the commoner of the two, for a caller that sends none.
+		-- Deliberately not a tick: our spell went out, but tying it to this
+		-- person is an inference, and the panel says it at the settle path's
+		-- strength. The settle sends the clause for which inference; the
+		-- fallback is the commoner.
 		lead = who and L["|cffe8e0a0sent to|r |cffffffff%s|r"]:format(who)
 			or L["|cffe8e0a0sent to|r |cffffffffthem|r"]
 		sub = outcomeDetail or L["cast -- this client will not confirm who to"]
@@ -3293,12 +2558,9 @@ function Prompt:PaintOutcome()
 		sub = L["the game confirmed it"]
 	end
 
-	-- Low alpha and the whole panel, rather than a badge somewhere on it: a
-	-- wash of colour is read without being looked at, which is the point of it
-	-- at half a second. Lighter for a refusal than it was: the red words and
-	-- the red ring already say it, and a panel flooded red read as an alarm
-	-- over what is usually somebody a step out of range. Lightest for a cast
-	-- nobody confirmed, for the reason above.
+	-- A low-alpha wash over the whole panel, read without being looked at.
+	-- Lighter for a refusal, which the red words and ring already say, and
+	-- lightest for an unconfirmed cast.
 	local wash = (outcomeKind == "failed" and 0.15) or (outcomeKind == "sent" and 0.14) or 0.20
 	resultFill:SetVertexColor(r, g, b, wash)
 	resultFill:Show()
@@ -3316,9 +2578,8 @@ function Prompt:PaintOutcome()
 	countText:SetText("")
 end
 
--- Dim the whole panel for combat, or take the dim off. One writer, and it
--- remembers what it last did: Refresh runs on every scan and this would
--- otherwise re-set the alpha two and a half times a second for no change.
+-- Dim the whole panel for combat, or undo it; remembers what it last did, so a
+-- repaint costs nothing.
 function Prompt:SetCombatHold(on)
 	if combatHeld == on then return end
 	combatHeld = on
@@ -3329,24 +2590,9 @@ function Prompt:SetCombatHold(on)
 	self:SyncCooldown()
 end
 
--- What a branch says when it wanted the prompt gone and the fight would not let
--- it go. Four are in that position -- switched off, unlocked, nothing this
--- character can cast, and the held panel with nobody on it -- and all four have
--- the same two problems: a panel that cannot be taken down and nobody to put on
--- it. One sentence, then, with the reason the only part that differs.
---
--- Each caller hands over both whole sentences for its reason rather than the
--- reason alone. A bare "held" or "unlocked" gives a translator no idea it
--- names the panel, and the word has to agree with the rest of the sentence it
--- lands in, which only a whole sentence lets them see.
---
--- The name line has two shapes because the state genuinely has two. The
--- attributes were either emptied by the clear path before the fight started -- a
--- click that blocked the last candidate, much the commonest way in -- or frozen
--- by a disarm that arrived during it, which can clear the name and cannot clear
--- the macro. The first is inert; the second still casts on a press, which is
--- what PostClick warns about off this same attribute, so the panel and the
--- warning cannot come apart.
+-- What a branch paints when the fight would not let the prompt go. The two
+-- shapes -- inert, or still armed by the fight -- are read off the attribute
+-- PostClick warns about, so the two agree.
 function Prompt:PaintHeldInert(whyFrozen, whyInert)
 	local frozen = button:GetAttribute("macrotext1")
 	SetLine(nameText, frozen and "|cffff8080" .. L["still armed by the fight"] .. "|r"
@@ -3355,37 +2601,32 @@ function Prompt:PaintHeldInert(whyFrozen, whyInert)
 	if subText:IsShown() then
 		SetLine(subText, ("|cffb0b0b0%s|r"):format(frozen and whyFrozen or whyInert))
 	end
-	-- Every other claim on the panel goes with the name: a count of a queue that
-	-- is not being offered, and the wash of colour from a click that is over.
+	-- Every other claim on the panel goes with the name: a count of a queue
+	-- that is not being offered, and the wash of colour from a click that is
+	-- over.
 	ShowChip(false)
 	countText:SetText("")
 	resultFill:Hide()
 	self:PaintAccent("nearby")
-	-- The same statement the held panel makes, for the same reason: nothing here
-	-- can be pointed at anybody until the fight ends.
+	-- The same statement the held panel makes, for the same reason: nothing
+	-- here can be pointed at anybody until the fight ends.
 	self:SetCombatHold(true)
 end
 
--- The list of who is next, and the panel behind it. One place, because the
--- preview draws it too and a preview whose list has no background is a preview
--- of a prompt that does not exist.
+-- The list of who is next, and the panel behind it; the preview draws it too.
 function Prompt:PaintQueue(rows)
 	local p = ns.db.profile.prompt
 	local shown = 0
 	for i, fs in ipairs(queueRows) do
 		local row = rows and rows[i]
 		if row then
-			-- The words after the name in the look's own dimmer grey, joined
-			-- here rather than by Tick, so the code is the one for the look the
-			-- row is drawn in.
+			-- The words after the name in the look's own dimmer grey.
 			local text = row.text
 			if row.detail then
 				text = text .. "  " .. (ink.rowReason or GREYS.panel.reason) .. row.detail .. "|r"
 			end
 			fs:SetText(LegibleText(text))
-			-- Three pixels of the reason colour. Priority is the one thing
-			-- about this list worth knowing at a glance, and reading four words
-			-- of grey text to find it out is not a glance.
+			-- Three pixels of the reason colour.
 			local c = ReasonColor(row.reason)
 			queueBars[i]:SetVertexColor(c[1], c[2], c[3], 0.9)
 			queueBars[i]:Show()
@@ -3396,22 +2637,11 @@ function Prompt:PaintQueue(rows)
 		end
 	end
 
-	-- Sized to the rows that have somebody in them, not to the number the
-	-- slider asks for: a background with two empty rows under it looks like the
-	-- addon lost them.
+	-- Sized to the filled rows, not the slider.
 	local back = shown > 0 and p.style ~= "minimal"
 	if back then queueBack:SetHeight(6 + shown * (p.fontSize + 4)) end
 
-	-- When the list hangs ABOVE the panel the rows have to be placed here and
-	-- not in ApplyStyle, because where the top of the list falls depends on how
-	-- many rows have somebody in them -- and that is only known now.
-	--
-	-- ApplyStyle counted down from a block sized by the slider, while the
-	-- background above is sized to the rows actually filled, so with the slider
-	-- at four and two people waiting the names floated two rows clear of the
-	-- panel they belong to, over a background drawn somewhere else entirely.
-	-- Hanging downward has no such problem: the first row starts at the panel's
-	-- bottom edge and the rest follow, whatever the count.
+	-- Rows hanging above are placed here, where the number filled is known.
 	if queueAbove then
 		local rowHeight = p.fontSize + 4
 		for i, fs in ipairs(queueRows) do
@@ -3446,17 +2676,8 @@ function Prompt:Paint(entry, extra)
 	end
 end
 
--- The fade on the way out belongs to exactly one branch below -- the panel
--- showing a click's outcome over an empty queue, which is the panel about to
--- come down -- and every other outcome of a repaint has to cancel it, or a
--- person arriving in that half second would be painted onto a panel still
--- fading to nothing. So the branch asks for it by name and this wrapper stops
--- it for everybody else, rather than each of a dozen early returns having to
--- remember to.
---
--- Cancelled gently. How far the fade had got is taken before the repaint --
--- the combat branch sets the dim, and a fight must not read as a fade that
--- finished -- and the panel is brought back from there.
+-- The outro belongs to one branch (an outcome over an empty queue); every
+-- other repaint cancels it and brings the panel back from where it had got.
 function Prompt:Refresh()
 	if not button or not ns.db then return end
 	self.outroWanted = nil
@@ -3465,16 +2686,8 @@ function Prompt:Refresh()
 	if not self.outroWanted then self:ComeBack(fadedTo) end
 end
 
--- Putting somebody on the never-offer list repaints the prompt at once, by
--- whichever route it came: /manners never, the options page's box, the menu
--- or the prompt's own shift-right-click. Core only repaints the options page
--- and the launcher, so before this the first two left the panel naming the
--- person just listed, and the macro armed at them, until the next scan tick --
--- up to two seconds. A fight starting in that window froze the macro, and
--- every press in it cast at somebody the player had just asked never to be
--- offered. Wrapped here, where the prompt is, rather than asked of each
--- caller; Refresh has its own combat branch, so this is as safe in a fight as
--- the listing itself. Prompt.lua loads after Core.lua, so the function exists.
+-- Listing somebody repaints the prompt at once, whatever the route, so the
+-- macro is not left armed at them until the next scan. Core loads first.
 do
 	local putOnNeverList = ns.PutOnNeverList
 	if putOnNeverList then
@@ -3493,17 +2706,9 @@ function Prompt:RefreshPanel()
 
 	local now = GetTime()
 
-	-- The dim goes on in the combat branch far below and used to come off on
-	-- the one path that reaches past it. Every branch in between returns before
-	-- it: preview, /manners off, an unlocked prompt, a client with nothing to
-	-- cast. Preview is the one that never heals -- it stays alive for as long
-	-- as the options window is open, so a preview started mid-fight sat at 0.55
-	-- alpha for the whole of a styling session, long after the fight ended.
-	--
-	-- One writer per direction, and this one answers the only question that
-	-- decides it. The dim means "the button cannot be pointed at anybody new",
-	-- which is true exactly while the lockdown is -- so it is read here, above
-	-- everything that returns, rather than at the far end of the function.
+	-- The combat dim comes off here, above every early return: it means "the
+	-- button cannot be pointed at anybody new", which is true exactly while the
+	-- lockdown is.
 	if not InCombatLockdown() then self:SetCombatHold(false) end
 
 	if not ns.caps.anyKnown and not testMode then
@@ -3511,9 +2716,8 @@ function Prompt:RefreshPanel()
 		HideQueue()
 		lastTop = nil
 		ClearHold()
-		-- This can become true in the middle of a fight -- SPELLS_CHANGED lands
-		-- whenever the client finally answers -- and the panel cannot come down
-		-- for it any more than for anything else.
+		-- SPELLS_CHANGED can land mid-fight, and the panel cannot come down
+		-- then.
 		if not SetPanelShown(false) then
 			self:PaintHeldInert(
 				L["nothing this character can cast -- a press still casts what the fight froze"],
@@ -3523,18 +2727,8 @@ function Prompt:RefreshPanel()
 	end
 
 	if testMode then
-		-- Both of preview's exits used to fire while you were doing the one
-		-- thing preview exists for. Twenty seconds is not long enough to work
-		-- through a tab of sliders, and the "somebody real turned up" rule
-		-- fires on the first pass anywhere there are people -- so the prompt
-		-- could not be styled in a city at all, which is the place its size and
-		-- position matter most.
-		--
-		-- While the options window is open the clock is pushed forward rather
-		-- than read, so shutting the window starts a fresh twenty seconds and
-		-- both exit rules apply from there. Nothing is disabled: a preview left
-		-- running with the window shut still goes away on its own, which is the
-		-- silent-failure the limit was put there to prevent.
+		-- While the options window is open the clock is pushed on and somebody
+		-- real does not end it, so the prompt can be styled in a city.
 		local styling = ns.OptionsOpen and ns.OptionsOpen()
 		if styling then
 			testExpiry = now + TEST_SECONDS
@@ -3549,29 +2743,20 @@ function Prompt:RefreshPanel()
 	end
 
 	if testMode then
-		-- Preview is a disarm like the other two, and it was the only one that
-		-- never healed. ToggleTest asks for it once, and a preview started in
-		-- combat cannot have it: ApplyTarget can only clear `current` there,
-		-- because the attributes are frozen. The disabled and unlocked branches
-		-- below re-ask on every pass, so their first pass out of combat clears
-		-- the macro for real -- this branch returned before reaching any of
-		-- them, so the fight ended with a mock-up on screen and a real person's
-		-- macro still armed under it, aimed at somebody `current` no longer
-		-- even names.
+		-- Preview is a disarm, asked again on every pass: one started in combat
+		-- could only clear `current`, and the first pass after the fight must
+		-- clear the macro for real.
 		self:ApplyTarget(nil)
-		-- A preview started in a fight paints onto whatever the fight left on
-		-- screen: if the panel was down, this cannot put it up, and the mock-up
-		-- is drawn on a hidden frame until the fight ends. Everything below is
-		-- art and runs either way, which is what keeps the dim, the mock rows and
-		-- the styling itself working the moment the panel is up at all.
+		-- A preview started in a fight paints on whatever the fight left: a
+		-- hidden panel stays hidden until it ends. Everything below is art and
+		-- runs anyway.
 		if not button:IsShown() and SetPanelShown(true) then
 			if art.intro then art.intro:Play() end
 		end
 		self:Paint(TestEntry(), 2)
 		self:StartAttention(false)
-		-- Mock rows, with mock reasons: the reason bar is a thing being styled,
-		-- so a preview that drew three grey ones would be previewing something
-		-- the prompt never shows.
+		-- Mock rows with mock reasons, since the reason bar is being styled
+		-- too.
 		local mock, reasons = {}, { "owed", "group", "nearby", "nearby", "nearby" }
 		for i = 1, (p.showQueue and p.queueRows or 0) do
 			mock[i] = { text = L["Someone %d"]:format(i), reason = reasons[i] }
@@ -3580,19 +2765,14 @@ function Prompt:RefreshPanel()
 		return
 	end
 
-	-- Ahead of the unlocked branch, which used to return before this was ever
-	-- read: an unlocked prompt that ignores /manners off is a button still
-	-- sitting on screen after the user was told the addon is off.
+	-- Ahead of the unlocked branch: an unlocked prompt must obey /manners off.
 	if not db.enabled then
 		self:ApplyTarget(nil)
 		self:StopAttention()
 		HideQueue()
 		lastTop = nil
 		ClearHold()
-		-- ApplyTarget above cleared the name and, in a fight, could not clear the
-		-- macro under it. Saying so is the whole of what is left to do: the user
-		-- was told the addon is off, and a panel still standing there naming the
-		-- last candidate is the addon disagreeing with its own chat line.
+		-- In a fight the macro under the name could not be cleared; say so.
 		if not SetPanelShown(false) then
 			self:PaintHeldInert(L["switched off -- a press still casts what the fight froze"],
 				L["switched off -- nothing armed, and the panel cannot go"])
@@ -3614,11 +2794,8 @@ function Prompt:RefreshPanel()
 			resultFill:Hide()
 			self:PaintAccent("owed")
 		else
-			-- "Drag to move" is an instruction, and in a fight it is one the
-			-- client refuses as flatly as it refused the Show above it:
-			-- OnDragStart gives up on lockdown too. So an unlocked prompt caught
-			-- by a fight says what it is rather than inviting the one thing that
-			-- cannot be done to it.
+			-- "Drag to move" is refused in a fight too (OnDragStart gives up on
+			-- lockdown), so say what the panel is instead.
 			self:PaintHeldInert(L["unlocked -- a press still casts what the fight froze"],
 				L["unlocked -- nothing armed, and the panel cannot go"])
 		end
@@ -3626,72 +2803,35 @@ function Prompt:RefreshPanel()
 	end
 
 	if InCombatLockdown() then
-		-- Attributes are frozen, so the list cannot be trusted, and the panel
-		-- cannot be taken off the screen either: a fight that starts with it up
-		-- keeps it up, and hideInCombat takes effect at the next scan after the
-		-- fight ends. There used to be a `if p.hideInCombat or not current then
-		-- button:Hide() end` here; this branch only ever runs in combat, so that
-		-- call was refused every single time it was made, and it is deleted
-		-- rather than guarded because a guard on it would be just as dead.
-		--
-		-- Nothing honest goes in its place. The button keeps its size, its place
-		-- and its armed macro whatever the art does, so blanking the art would
-		-- leave an invisible thing that still takes a click and still casts --
-		-- worse than a visible panel saying it is held. A secure visibility
-		-- driver would not change that: only the conditionals that name a unit,
-		-- [@Name], are restricted on this client, and [combat] resolves -- but a
-		-- button the driver hides still fires from its key binding and from
-		-- /click, casting the frozen macro out of sight, which is the same
-		-- invisible thing. So what is left is to say true things on art, which
-		-- is the rest of this branch.
+		-- The panel cannot leave the screen, and blanking the art (or a
+		-- visibility driver) would leave an invisible button that still casts
+		-- from its binding. So this branch says true things on art.
 
-		-- The pulse is a claim that somebody is still owed. The debt can expire
-		-- or be settled in the middle of a fight, and nothing else down here can
-		-- notice, so the claim would outlive it until the fight ended.
+		-- The pulse claims somebody is still owed, and the debt can expire or
+		-- be settled mid-fight.
 		local debt = current and current.name and ns.owed[current.name]
 		if not current or current.reason ~= "owed" or not debt or ns.DebtExpiry(debt) <= now then
 			self:StopAttention()
 		end
 
-		-- Everything on the panel is frozen at whoever was on it when the fight
-		-- started -- the macro cannot follow the queue, so neither may the name
-		-- above it -- and it went on looking exactly as live as it does out of
-		-- combat: full brightness, a list underneath still being rebuilt from a
-		-- queue the button cannot be aimed at, and a tooltip describing a macro
-		-- for somebody who may have walked off two minutes ago. The dim, the
-		-- blanked list and the line are all one statement: this is held.
+		-- The panel is frozen at whoever was on it when the fight started, so
+		-- it must not look live: the dim, the blanked list and the line all say
+		-- it is held.
 		self:SetCombatHold(true)
 		HideQueue()
-		-- Asked for rather than assumed: this runs from inside the scan timer,
-		-- and a method the client does not have would take the whole tick with
-		-- it -- which is what "the prompt stopped appearing" looks like.
+		-- Asked for rather than assumed: a missing method would take the whole
+		-- scan tick with it.
 		if GameTooltip and GameTooltip.IsOwned and GameTooltip:IsOwned(button) then
 			GameTooltip:Hide()
 		end
-		-- A click still works in combat -- the frozen macro is a real macro --
-		-- so its outcome is still worth showing, and it wins over the held line.
-		--
-		-- Art, and nothing else. This used to call button:Show() first, which
-		-- is a protected method on a protected frame: Blizzard refuses it for
-		-- the length of the fight, and it was the one call that would have made
-		-- the confirmation appear. Everything the flash is actually made of --
-		-- the wash of colour, the headline, the sub-line -- lives on art, which
-		-- stays ours in combat. A panel the fight found hidden stays hidden,
-		-- and there is nothing honest to be done about that until it ends.
+		-- A click still works in combat, so its outcome wins over the held
+		-- line. Art only: a panel the fight found hidden stays hidden.
 		if self:OutcomeLive() and not p.hideInCombat then
 			self:PaintOutcome()
 		else
-			-- Repainted from `current`, not left where the flash put it.
-			-- PaintOutcome writes the click's past-tense headline into the name
-			-- line, and this branch only ever rewrote the sub-line underneath
-			-- it -- so a click whose half-second outcome window ran out during
-			-- a fight left "buffed <whoever you pressed>" as the panel's title
-			-- for the rest of that fight, over a frozen macro armed at, and
-			-- about to cast on, the next person in the queue.
-			--
-			-- The name line is the one thing that has to agree with the macro,
-			-- and `current` is the macro's identity: in combat ApplyTarget can
-			-- only clear it, never point it at somebody new.
+			-- Repainted from `current`, the frozen macro's identity, so an
+			-- expired outcome's headline does not stand over the next person's
+			-- macro.
 			if current then
 				SetLine(nameText, self:RenderPrimary(current, 0))
 				outcomePainted = nil
@@ -3701,24 +2841,15 @@ function Prompt:RefreshPanel()
 				if subText:IsShown() then
 					SetLine(subText, "|cffb0b0b0" .. L["held -- in combat"] .. "|r")
 				end
-				-- Nobody, rather than the number the fight started with. The
-				-- count is a claim about a queue this branch has just blanked for
-				-- being unaimable, so it goes with the list and the line rather
-				-- than outliving both of them on its own -- and the panel then
-				-- looks the same whether or not a flash has been over it.
+				-- No count: it is a claim about the queue this branch just
+				-- blanked.
 				ShowChip(false)
 				countText:SetText("")
 			else
-				-- And the commonest way into this branch at all, which had no
-				-- repaint of any kind: a click blocks the person it was for, the
-				-- queue empties, and the empty-queue branch disarms the button and
-				-- clears `current` on its way past -- so a fight starting in the
-				-- second after a click arrives here with nobody on the panel. The
-				-- name line above is guarded on `current` and nothing was written
-				-- for the other side of it, so the confirmation the click had just
-				-- painted -- a green past-tense headline about somebody no longer
-				-- anywhere near the queue -- stood as the panel's title for the
-				-- whole fight, over a button holding no macro at all.
+				-- The commonest way in: a click emptied the queue and a fight
+				-- started with nobody on the panel, so the click's green
+				-- headline would otherwise stand for the whole fight over an
+				-- empty button.
 				self:PaintHeldInert(L["held -- a press still casts what the fight froze"],
 					L["held -- nothing armed, and the panel cannot go"])
 			end
@@ -3726,14 +2857,8 @@ function Prompt:RefreshPanel()
 		return
 	end
 
-	-- Snoozed. Below the combat branch and not beside /manners off, which is
-	-- what makes a snooze started in a fight wait for the end of it: in a
-	-- fight the panel cannot be taken down, and one that stays up is left
-	-- exactly as the fight found it -- its frozen macro still casts on a
-	-- press, so blanking it would only hide that. The first pass after the
-	-- fight arrives here and takes it down. The off branch above can paint
-	-- over a frozen panel because /manners off says it has stopped offering
-	-- anybody; a snooze says only that the prompt should be out of the way.
+	-- Snoozed, below the combat branch: a snooze started in a fight waits for
+	-- it to end, when the panel can come down.
 	if ns.SnoozeLeft(now) then
 		self:ApplyTarget(nil)
 		button:Hide()
@@ -3749,27 +2874,14 @@ function Prompt:RefreshPanel()
 	local top = self:PickTop(queue, queue[1])
 
 	if not top then
-		-- An empty queue in a crowd is usually a gap rather than an answer: one
-		-- person steps out of range for a single scan, or their aura read falls
-		-- out of the cache. Hiding on that and showing again 0.4s later replays
-		-- the entrance animation and the sound for a prompt that never went
-		-- anywhere. So the first empty scan lights a short fuse, and a refill
-		-- puts it out.
-		--
-		-- Nothing is disarmed and nothing is repainted while it burns: a prompt
-		-- on screen has to name somebody and has to be clickable, and the
-		-- person it already names is the last one it had.
-		--
-		-- Somebody deliberately retired gets no fuse at all. A block is either
-		-- the cooldown a click wrote or the refusal a right-press wrote, and in
-		-- both cases "they are gone" is the answer that was just asked for.
+		-- An empty queue in a crowd is usually a gap, so the first empty scan
+		-- lights a short fuse and a refill puts it out. Nobody retired gets
+		-- one.
 		local retired = Retired(current, now)
 
 		if self:OutcomeLive() then
-			-- The click is what empties the queue, so this is where the
-			-- confirmation for it nearly always lands -- and hiding first is
-			-- why there was never one to see. Disarmed, because there is nobody
-			-- to arm against; PostClick files nothing for a press with no
+			-- The click is what empties the queue, so its confirmation nearly
+			-- always lands here. Disarmed: PostClick files nothing without a
 			-- current entry, so the button is inert for the half second it
 			-- stays up.
 			self:ApplyTarget(nil)
@@ -3779,10 +2891,8 @@ function Prompt:RefreshPanel()
 			self:PaintOutcome()
 			lastTop = nil
 			ClearHold()
-			-- Nobody left and the confirmation running out: the panel is on
-			-- its way down, so it fades over the second half of it instead of
-			-- blinking out. The hide itself is still the one below, on the
-			-- repaint the outcome's own timer asks for.
+			-- Nobody left: fade over the second half of the confirmation. The
+			-- hide is still the repaint the outcome's own timer asks for.
 			if FullEffects() then
 				self.outroWanted = true
 				self:PlayOutro(outcomeAt)
@@ -3808,12 +2918,9 @@ function Prompt:RefreshPanel()
 
 	self:ApplyTarget(top)
 
-	-- Who else is waiting, which of them goes in the list, and whether the pick
-	-- is in the queue at all. One pass, and all three counted rather than read
-	-- off the queue's order: the pick is not always queue[1] -- a tie is kept
-	-- with the current candidate, and a held one may not be in the queue at all
-	-- -- so `#queue - 1` undercounted by one and `queue[i + 1]` dropped the
-	-- genuine top out of the list entirely.
+	-- Who else is waiting, which of them are listed, and whether the pick is in
+	-- the queue: counted, not read off queue order, because the pick is not
+	-- always queue[1] (ties keep the current one; a held one may be absent).
 	local rows, others, inQueue = {}, 0, false
 	local wanted = (p.showQueue and p.queueRows) or 0
 	for _, entry in ipairs(queue) do
@@ -3835,23 +2942,14 @@ function Prompt:RefreshPanel()
 
 	local wasHidden = not button:IsShown()
 	local isNew = top.name ~= lastTop
-	-- The moment somebody becomes owed, which is not only the moment they
-	-- arrive on the panel: a passer-by already offered who then buffs you
-	-- stays the same name, and "Flash once" and the stripe's sweep -- both
-	-- keyed on a new name -- let the one event they are named after go by.
+	-- The moment somebody becomes owed, which includes a passer-by already on
+	-- the panel who then buffs you.
 	local becameOwed = top.reason == "owed" and (isNew or lastTopReason ~= "owed")
 	lastTop = top.name
 	lastTopReason = top.reason
-	-- Narrower again: the favour was only just done. The light on arrival
-	-- used to take becameOwed, and that is also true of the next person owed
-	-- reaching the panel after every press and of somebody coming back after
-	-- you targeted somebody else -- people who had been waiting all along.
-	--
-	-- So it is keyed on the favour, by the debt's own stamp: lit when the
-	-- repaint that first sees a favour has its giver on top, and never after.
-	-- A favour first seen while somebody else was on the panel has been seen,
-	-- and its giver reaching the top later -- after your press on the first,
-	-- usually -- is not news.
+	-- Narrower again: the favour itself was only just done, keyed on the debt's
+	-- own stamp. A favour first seen while somebody else was on the panel is
+	-- not news when its giver reaches the top later.
 	local newest = seenDebtAt
 	for _, owed in pairs(ns.owed or {}) do
 		if type(owed) == "table" and type(owed.at) == "number"
@@ -3865,13 +2963,9 @@ function Prompt:RefreshPanel()
 		and now - debtAt <= ARRIVAL_SECONDS
 	seenDebtAt = newest
 
-	-- Stamped where the panel is repainted rather than where the pick is made:
-	-- PreClick picks too, and a press is not a paint. Renewed on every paint
-	-- that came out of the queue, so somebody flickering in and out of a
-	-- crowded one keeps the panel for as long as they keep coming back -- and
-	-- pointedly not renewed by a paint the hold itself produced, because a hold
-	-- that renews itself is somebody who walked away an hour ago still owning
-	-- the prompt.
+	-- Stamped where the panel is painted, not where the pick is made (PreClick
+	-- picks too). Renewed by paints from the queue, never by a paint the hold
+	-- itself produced, or somebody long gone would own the prompt.
 	if inQueue or not heldEntry then heldAt = now end
 	heldEntry = top
 
@@ -3888,15 +2982,9 @@ function Prompt:RefreshPanel()
 		textLayer.swap:Play()
 	end
 
-	-- A floor under the sound as well as under the name. They are the same
-	-- churn -- the sound fires on the name changing -- but not the same
-	-- annoyance: a panel swapping a name is something you can look away from,
-	-- and a sound is not.
-	--
-	-- And the same filter the flash below uses. The two are one job -- getting
-	-- you to look -- and they disagreed about who is worth it: the pulse fired
-	-- for a favour owed and nothing else, while the sound went off for every
-	-- stranger who walked within range of a nameplate.
+	-- A floor under the sound as well as the name: a swapped name can be
+	-- ignored, a sound cannot. And the flash's filter: both exist to make you
+	-- look, so they agree about who is worth it.
 	if isNew and db.sound.enabled
 		and (not db.sound.owedOnly or top.reason == "owed")
 		and not (lastSoundAt and (now - lastSoundAt) < SOUND_FLOOR_SECONDS) then
@@ -3912,9 +3000,7 @@ function Prompt:RefreshPanel()
 
 	self:PaintQueue(rows)
 
-	-- Last, over the top of all of it. The outcome belongs to the press that
-	-- just happened, and by now the panel has usually moved on to the next
-	-- person -- so it overwrites rather than being folded into Paint.
+	-- Last, over all of it: the outcome belongs to the press just made.
 	if self:OutcomeLive() then
 		self:PaintOutcome()
 	else
@@ -3922,19 +3008,14 @@ function Prompt:RefreshPanel()
 	end
 end
 
--- Says, on the panel itself, that the pause is the game's and not the addon's.
--- Written to the sub-line only: the name stays, because the person is still
--- the one being offered and replacing their name with a countdown would read
--- as having lost them.
+-- Says on the panel that the pause is the game's, on the sub-line only: the
+-- person is still the one being offered.
 function Prompt:SayWaiting(left)
 	if not button or not subText then return end
 	if InCombatLockdown() then return end
-	-- The colour rides in the string rather than on the font string. Set on the
-	-- font string it stayed there -- Paint only ever sets text, and only
-	-- ApplyStyle sets the colour -- so one press inside the cooldown left the
-	-- reason line in this lighter grey for the rest of the session.
-	-- Rounded up: "ready in 0.0s" over a press that was just refused for not
-	-- being ready reads as the addon contradicting itself.
+	-- The colour rides in the string: set on the font string it would stay
+	-- after the wait. Rounded up, so a refused press never reads "ready in
+	-- 0.0s".
 	ns.Guard("waiting line", function()
 		SetLine(subText, "|cffb8b8c7" .. L["ready in %.1fs"]:format(
 			math.max(0.1, math.ceil((left or 0) * 10) / 10)) .. "|r")
@@ -3942,10 +3023,8 @@ function Prompt:SayWaiting(left)
 end
 
 -- A drag still held when a fight starts is ended here, from
--- PLAYER_REGEN_DISABLED, which arrives just before the lockdown does. That is
--- the last moment the move can be stopped at all: the release comes in the
--- fight, where stopping a move on the secure button is refused, and the
--- position with it would never have been saved.
+-- PLAYER_REGEN_DISABLED just before the lockdown: the release will come in the
+-- fight, where the move can be neither stopped nor saved.
 function Prompt:FinishDragForFight()
 	if not dragging or not button or InCombatLockdown() then return end
 	FinishDrag()
@@ -3955,59 +3034,42 @@ function Prompt:GetButton()
 	return button
 end
 
--- The entry the panel is armed at, or nil when there is no panel up, or a
--- preview is standing in for one. For the launcher's tooltip and menu, which
--- name who is on the prompt; they read it and never write it.
+-- The entry the panel is armed at, or nil with no panel up or a preview
+-- showing. Read by the launcher's tooltip and menu.
 function Prompt:Showing()
 	if not button or testMode or not button:IsShown() then return nil end
 	return current
 end
 
--- The pieces of the panel, handed out so they can be read back.
---
--- Everything on the prompt is a file local, which is the right shape for a
--- thing only this file ever writes to and the wrong shape for proving what it
--- wrote: a tick over a cast nobody confirmed, a queue row with no background
--- behind it and a panel that looks live while it is frozen are all failures
--- with no symptom except how they look. GetButton above is the same accessor
--- for the same reason.
+-- The pieces of the panel, handed out so tests can read back what this file
+-- wrote: many failures here have no symptom but how they look.
 function Prompt:Regions()
 	return {
 		art = art,
 		name = nameText,
 		sub = subText,
 		count = countText,
-		-- The box the count is drawn in, beside the number itself. The two are
-		-- sized from the same font and there is nothing outside this file that
-		-- can tell they have come apart: a chip smaller than its own digits
-		-- draws perfectly, throws nothing, and reads as a smudge under a number
-		-- lying across the name.
+		-- The chip beside its number: both are sized from one font, and a chip
+		-- smaller than its digits throws nothing.
 		chip = countChip,
 		fill = resultFill,
-		-- The four edges of the framed look. A look that applies nothing is
-		-- indistinguishable from one that applies something, from the outside,
-		-- which is how the dropdown came to offer a border the addon never drew.
+		-- The framed look's four edges.
 		edges = edges,
-		-- The two carriers of the reason colour. Both are switched off from
-		-- somewhere other than the dropdown that asks for them -- the stripe by
-		-- the framed look, the ring by hiding or rounding the icon -- and from
-		-- outside, a prompt that shows the colour nowhere looks exactly like one
-		-- that was never asked to.
+		-- The two carriers of the reason colour, each switched off from
+		-- elsewhere (the stripe by the framed look, the ring by hiding or
+		-- rounding the icon).
 		iconBack = iconBack,
 		accentTop = accentTop,
-		-- The two things "When someone buffs you" animates: the sweep down the
-		-- stripe and the glow round the icon. Each is a frame carrying its own
-		-- animation, and whether one played is the only evidence the setting
-		-- does anything -- a flash style that plays nothing throws nothing.
+		-- What "When someone buffs you" animates: whether one played is the
+		-- only evidence the setting does anything.
 		sweep = sweepFrame,
 		glow = glowFrame,
 		glowStrips = glowHalo and glowHalo.strips,
 		glowRound = glowHalo and glowHalo.round,
 		burstStrips = burstHalo and burstHalo.strips,
 		burstRound = burstHalo and burstHalo.round,
-		-- The effects added for the look: each is a frame or a group whose
-		-- playing is the only evidence it ran, for the same reason as the two
-		-- above. The cooldown is nil on a client without the template.
+		-- The look's effects, for the same reason. The cooldown is nil on a
+		-- client without the template.
 		cooldown = cooldown,
 		burst = burstFrame,
 		shine = shineFrame,
