@@ -263,8 +263,10 @@ mutate("Core.lua",
 # replaced as a new undo, so a second undo puts the import back -- and the
 # first says "settings imported" and tells the player to undo it.
 mutate("Core.lua",
-       "\tlocal parsed = Parse(lastImportUndo, math.huge)\n\tlastImportUndo = nil\n",
-       "\tdo return ns.ImportSettings(lastImportUndo) end\n\tlocal parsed\n",
+       "\t\tlocal parsed = Parse(lastImportUndo, math.huge)\n"
+       "\t\tlastImportUndo = nil\n",
+       "\t\tdo return ns.ImportSettings(lastImportUndo) end\n"
+       "\t\tlocal parsed\n",
        "an undo that can be run twice",
        expect="a second /manners import undo",
        script="runscenarios.py")
@@ -313,9 +315,9 @@ mutate("Core.lua",
 
 # The repair skipped, so a value no slider can reach is kept.
 mutate("Core.lua",
-       "\t-- undo, which each caller then sets as it needs.\n"
-       "\taddon:RefreshConfig()\n",
-       "\t-- undo, which each caller then sets as it needs.\n",
+       "\t\t-- undo, which each caller then sets as it needs.\n"
+       "\t\taddon:RefreshConfig()\n",
+       "\t\t-- undo, which each caller then sets as it needs.\n",
        "an import that is never repaired",
        expect="outside what the page allows survived",
        script="runscenarios.py")

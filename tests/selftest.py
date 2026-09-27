@@ -215,8 +215,8 @@ mutate("Core.lua",
 #    optimisation -- this runs on every UNIT_AURA -- and the wipe is the only
 #    thing that keeps it from becoming a list of everything you have ever held.
 mutate("Core.lua",
-       "function ns.ScanOwnBuffs()\n\twipe(present)\n",
-       "function ns.ScanOwnBuffs()\n",
+       "\tfunction ns.ScanOwnBuffs()\n\t\twipe(present)\n",
+       "\tfunction ns.ScanOwnBuffs()\n",
        "an aura baseline that never forgets",
        expect="the aura baseline forgets what fell off",
        script="runscenarios.py")
@@ -266,8 +266,8 @@ mutate("Core.lua",
 #     ever agreeing with itself; without this it corroborates its own refusal on
 #     the second scan and empties the baseline.
 mutate("Core.lua",
-       "\t\tif not primed then ScheduleSettle() end\n\t\treturn\n\tend\n",
-       "\t\tif not primed then ScheduleSettle() end\n\tend\n",
+       "\t\t\tif not primed then ScheduleSettle() end\n\t\t\treturn\n\t\tend\n",
+       "\t\t\tif not primed then ScheduleSettle() end\n\t\tend\n",
        "a refusal that corroborates itself",
        expect="a refusal cannot corroborate itself",
        script="runscenarios.py")
@@ -739,8 +739,8 @@ mutate("Options.lua",
 #     speaks then all name a bystander. It also puts a name on an aura that had
 #     none when it was seen, which is the same lie from the other end.
 mutate("Core.lua",
-       "\t-- A different aura under the same number is a different sighting.\n"
-       "\tif seen and seen.key == key then return end\n",
+       "\t\t-- A different aura under the same number is a different sighting.\n"
+       "\t\tif seen and seen.key == key then return end\n",
        "",
        "the caster read at the announcement",
        expect="the favour was filed against whoever was holding the token",
@@ -753,10 +753,10 @@ mutate("Core.lua",
 #     who zones in and stands still is minutes -- and everything landing in that
 #     window is filed as something they were already carrying.
 mutate("Core.lua",
-       "\t\telse\n"
-       "\t\t\t-- And the reading that has to agree is asked for on the clock.",
-       "\t\telseif false then\n"
-       "\t\t\t-- And the reading that has to agree is asked for on the clock.",
+       "\t\t\telse\n"
+       "\t\t\t\t-- And the reading that has to agree is asked for on the clock.",
+       "\t\t\telseif false then\n"
+       "\t\t\t\t-- And the reading that has to agree is asked for on the clock.",
        "a baseline settling when the client says so",
        expect="the baseline never settled without an event",
        script="runscenarios.py")
@@ -1639,13 +1639,13 @@ mutate("Core.lua",
 # The mark left standing instead of consumed, which turns the agreement into a
 # suppression window and swallows the next real favour inside it.
 mutate("Core.lua",
-       """\tif claimed and now - claimed <= NOTE_MEMORY then
-\t\tnotedFavours[key] = nil
-\t\treturn false
-\tend""",
-       """\tif claimed and now - claimed <= NOTE_MEMORY then
-\t\treturn false
-\tend""",
+       "\t\tif claimed and now - claimed <= NOTE_MEMORY then\n"
+       "\t\t\tnotedFavours[key] = nil\n"
+       "\t\t\treturn false\n"
+       "\t\tend",
+       "\t\tif claimed and now - claimed <= NOTE_MEMORY then\n"
+       "\t\t\treturn false\n"
+       "\t\tend",
        "a suppression window instead of a claim",
        expect="the mark was a timer, not a claim",
        script="runscenarios.py")
@@ -1681,8 +1681,10 @@ mutate("Core.lua",
 
 # A line the log cannot name a player for, carried on into the machinery.
 mutate("Core.lua",
-       "\tif not full then return end\n\n\tif not ClaimFavour(full, spellId) then return end",
-       "\tif not ClaimFavour(full, spellId) then return end",
+       "\t\tif not full then return end\n"
+       "\n"
+       "\t\tif not ClaimFavour(full, spellId) then return end",
+       "\t\tif not ClaimFavour(full, spellId) then return end",
        "an unnameable caster carried on into the queue",
        expect="the log ignores an NPC",
        script="runscenarios.py")
@@ -1738,12 +1740,10 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 mutate("Core.lua",
-       """\tif db.sources.owedClassBuffsOnly ~= false and not ns.ALL_BUFF_IDS[spellId] then
-\t\treturn
-\tend""",
-       """\tif false then
-\t\treturn
-\tend""",
+       "\t\tif db.sources.owedClassBuffsOnly ~= false and not ns.ALL_BUFF_IDS[spellId] then\n"
+       "\t\t\treturn\n"
+       "\t\tend",
+       "\t\tif false then\n\t\t\treturn\n\t\tend",
        "every incoming aura counted as a class buff",
        expect="the log ignores a heal-over-time",
        script="runscenarios.py")
@@ -1796,11 +1796,11 @@ mutate("Buffs.lua",
        script="runscenarios.py")
 
 mutate("Core.lua",
-       '\tlocal ok, value = pcall(C_UnitAuras.GetAuraDataByIndex, "player", index, "HELPFUL")\n'
-       "\tif not ok then return nil, true end",
-       '\tlocal ok, value = pcall(C_UnitAuras.GetAuraDataByIndex, "player", index, "HELPFUL")\n'
-       '\tif _G.UnitBuff then pcall(_G.UnitBuff, "player", index) end\n'
-       "\tif not ok then return nil, true end",
+       "\t\tlocal ok, value = pcall(C_UnitAuras.GetAuraDataByIndex, \"player\", index, \"HELPFUL\")\n"
+       "\t\tif not ok then return nil, true end",
+       "\t\tlocal ok, value = pcall(C_UnitAuras.GetAuraDataByIndex, \"player\", index, \"HELPFUL\")\n"
+       "\t\tif _G.UnitBuff then pcall(_G.UnitBuff, \"player\", index) end\n"
+       "\t\tif not ok then return nil, true end",
        "a UnitBuff fallback nobody needs",
        expect="does not use UnitBuff",
        script="runscenarios.py")
@@ -2363,9 +2363,9 @@ mutate("Core.lua",
 # The favour line asking whether they are in the raid rather than whether the
 # shout reaches them.
 mutate("Core.lua",
-       "\tlocal inParty = seen.sameParty\n"
-       "\tif inParty == nil then inParty = SameParty(seen.name) end\n",
-       "\tlocal inParty = type(safecall(_G.UnitInRaid, seen.name)) == \"number\"\n",
+       "\t\tlocal inParty = seen.sameParty\n"
+       "\t\tif inParty == nil then inParty = SameParty(seen.name) end\n",
+       "\t\tlocal inParty = type(safecall(_G.UnitInRaid, seen.name)) == \"number\"\n",
        "a raider in another subgroup promised the prompt",
        expect="a favour from another subgroup was announced as on the prompt",
        script="runscenarios.py")
@@ -2405,8 +2405,8 @@ mutate("Core.lua",
 
 # A favour announced by a character whose pinned spell is not learned.
 mutate("Core.lua",
-       "\tlocal pinned = ns.PinnedBuff()\n"
-       "\tif pinned and not ns.IsBuffKnown(pinned) then return end\n",
+       "\t\tlocal pinned = ns.PinnedBuff()\n"
+       "\t\tif pinned and not ns.IsBuffKnown(pinned) then return end\n",
        "",
        "a favour noted under an unlearned pin",
        expect="(the pinned spell not learned): a favour was announced with nothing",

@@ -2716,114 +2716,120 @@ end
 -- read as "not a friend" and the person is ranked like everybody else.
 ---------------------------------------------------------------------------
 
--- How long an answer about one person is kept: a friends list changes over
--- minutes, and the scan asks about everybody two and a half times a second.
-local CLOSE_SECONDS = 10
-local closeCache = {}
--- The friends list by lower-cased name and by GUID, and when it was read.
-local friendNames, friendGuids, friendsReadAt = {}, {}, nil
+-- The section's two entry points. Everything else is private to the block
+-- below, whose locals are released at its end: the main chunk is close to
+-- the 200 locals Lua 5.1 allows one function.
+local SweepCloseness, Closeness
+do
+	-- How long an answer about one person is kept: a friends list changes over
+	-- minutes, and the scan asks about everybody two and a half times a second.
+	local CLOSE_SECONDS = 10
+	local closeCache = {}
+	-- The friends list by lower-cased name and by GUID, and when it was read.
+	local friendNames, friendGuids, friendsReadAt = {}, {}, nil
 
--- The fallback for a client whose C_FriendList has no IsFriend: the list read
--- by index, the way the addons known to work on this client read it.
-local function ReadFriendsList(now)
-	if friendsReadAt and now - friendsReadAt < CLOSE_SECONDS then return end
-	friendsReadAt = now
-	wipe(friendNames)
-	wipe(friendGuids)
-	local list = _G.C_FriendList
-	if type(list) ~= "table" then return end
-	local count = safecall(list.GetNumFriends)
-	if type(count) ~= "number" then return end
-	-- The game caps a friends list well below this; the bound is there so a
-	-- nonsense count cannot turn one scan into a very long one.
-	for i = 1, math.min(count, 200) do
-		local info = safecall(list.GetFriendInfoByIndex, i)
-		if type(info) == "table" then
-			local name, guid = plain(info.name), plain(info.guid)
-			if type(name) == "string" then friendNames[name:lower()] = true end
-			if type(guid) == "string" then friendGuids[guid] = true end
-		end
-	end
-end
-
--- Old answers go, once per lifetime of an answer: Closeness checks an answer's
--- age before trusting it, so one left standing a little longer is never used.
-local closeSweptAt
-
-local function SweepCloseness(now)
-	if closeSweptAt and now >= closeSweptAt and now - closeSweptAt < CLOSE_SECONDS then return end
-	closeSweptAt = now
-	for name, answer in pairs(closeCache) do
-		if now - answer.at >= CLOSE_SECONDS then closeCache[name] = nil end
-	end
-end
-
--- GetGuildInfo's realm as something to compare: "" for your own realm, which
--- it answers as nil, and nil (matching nothing) for a secret or nonsense.
-local function GuildRealm(realm)
-	if issecretvalue and issecretvalue(realm) then return nil end
-	if realm == nil then return "" end
-	if type(realm) ~= "string" then return nil end
-	return realm
-end
-
--- "friend", "guild", or nil for neither and for could-not-tell alike. A friend
--- is asked about first, as the more particular thing for the tooltip to say.
---
--- The GUID goes to the client as it was handed over, secret or not: the
--- friends API may still take a withheld one, and safecall absorbs a refusal.
--- It is never compared or read here, because a secret throws on both.
-local function Closeness(unit, full, now)
-	local cached = closeCache[full]
-	if cached and now - cached.at < CLOSE_SECONDS then return cached.kind or nil end
-
-	local kind
-	local rawGuid = UnitGUID(unit)
-	local list, bnet = _G.C_FriendList, _G.C_BattleNet
-	if type(list) == "table" and safecall(list.IsFriend, rawGuid) == true then
-		kind = "friend"
-	elseif type(bnet) == "table"
-		and type(safecall(bnet.GetGameAccountInfoByGUID, rawGuid)) == "table" then
-		-- Answers for Battle.net friends and nobody else; the Camelot social
-		-- addon accepts group invites from friends on exactly this.
-		kind = "friend"
-	else
-		ReadFriendsList(now)
-		local guid = plain(rawGuid)
-		if (type(guid) == "string" and friendGuids[guid])
-			or friendNames[full:lower()]
-			or friendNames[(ns.TargetName(full) or full):lower()] then
-			kind = "friend"
-		end
-	end
-
-	if not kind then
-		local inMine
-		if type(_G.UnitIsInMyGuild) == "function" then
-			local ok, answer = pcall(_G.UnitIsInMyGuild, unit)
-			if ok then inMine = plain(answer) end
-		end
-		if inMine == true then
-			kind = "guild"
-		elseif inMine == nil then
-			-- Only where UnitIsInMyGuild gave no answer (a plain no is an
-			-- answer): the two guild names, when both are readable, and their
-			-- realms, since a guild's name is only unique on its realm. pcall
-			-- rather than safecall, which keeps only three returns and the
-			-- realm is the fourth.
-			local okTheirs, theirs, _, _, theirRealm = pcall(_G.GetGuildInfo, unit)
-			local okOurs, ours, _, _, ourRealm = pcall(_G.GetGuildInfo, "player")
-			theirs, ours = plain(theirs), plain(ours)
-			theirRealm, ourRealm = GuildRealm(theirRealm), GuildRealm(ourRealm)
-			if okTheirs and okOurs and type(theirs) == "string" and theirs ~= ""
-				and theirs == ours and theirRealm and theirRealm == ourRealm then
-				kind = "guild"
+	-- The fallback for a client whose C_FriendList has no IsFriend: the list read
+	-- by index, the way the addons known to work on this client read it.
+	local function ReadFriendsList(now)
+		if friendsReadAt and now - friendsReadAt < CLOSE_SECONDS then return end
+		friendsReadAt = now
+		wipe(friendNames)
+		wipe(friendGuids)
+		local list = _G.C_FriendList
+		if type(list) ~= "table" then return end
+		local count = safecall(list.GetNumFriends)
+		if type(count) ~= "number" then return end
+		-- The game caps a friends list well below this; the bound is there so a
+		-- nonsense count cannot turn one scan into a very long one.
+		for i = 1, math.min(count, 200) do
+			local info = safecall(list.GetFriendInfoByIndex, i)
+			if type(info) == "table" then
+				local name, guid = plain(info.name), plain(info.guid)
+				if type(name) == "string" then friendNames[name:lower()] = true end
+				if type(guid) == "string" then friendGuids[guid] = true end
 			end
 		end
 	end
 
-	closeCache[full] = { at = now, kind = kind or false }
-	return kind
+	-- Old answers go, once per lifetime of an answer: Closeness checks an answer's
+	-- age before trusting it, so one left standing a little longer is never used.
+	local closeSweptAt
+
+	function SweepCloseness(now)
+		if closeSweptAt and now >= closeSweptAt and now - closeSweptAt < CLOSE_SECONDS then return end
+		closeSweptAt = now
+		for name, answer in pairs(closeCache) do
+			if now - answer.at >= CLOSE_SECONDS then closeCache[name] = nil end
+		end
+	end
+
+	-- GetGuildInfo's realm as something to compare: "" for your own realm, which
+	-- it answers as nil, and nil (matching nothing) for a secret or nonsense.
+	local function GuildRealm(realm)
+		if issecretvalue and issecretvalue(realm) then return nil end
+		if realm == nil then return "" end
+		if type(realm) ~= "string" then return nil end
+		return realm
+	end
+
+	-- "friend", "guild", or nil for neither and for could-not-tell alike. A friend
+	-- is asked about first, as the more particular thing for the tooltip to say.
+	--
+	-- The GUID goes to the client as it was handed over, secret or not: the
+	-- friends API may still take a withheld one, and safecall absorbs a refusal.
+	-- It is never compared or read here, because a secret throws on both.
+	function Closeness(unit, full, now)
+		local cached = closeCache[full]
+		if cached and now - cached.at < CLOSE_SECONDS then return cached.kind or nil end
+
+		local kind
+		local rawGuid = UnitGUID(unit)
+		local list, bnet = _G.C_FriendList, _G.C_BattleNet
+		if type(list) == "table" and safecall(list.IsFriend, rawGuid) == true then
+			kind = "friend"
+		elseif type(bnet) == "table"
+			and type(safecall(bnet.GetGameAccountInfoByGUID, rawGuid)) == "table" then
+			-- Answers for Battle.net friends and nobody else; the Camelot social
+			-- addon accepts group invites from friends on exactly this.
+			kind = "friend"
+		else
+			ReadFriendsList(now)
+			local guid = plain(rawGuid)
+			if (type(guid) == "string" and friendGuids[guid])
+				or friendNames[full:lower()]
+				or friendNames[(ns.TargetName(full) or full):lower()] then
+				kind = "friend"
+			end
+		end
+
+		if not kind then
+			local inMine
+			if type(_G.UnitIsInMyGuild) == "function" then
+				local ok, answer = pcall(_G.UnitIsInMyGuild, unit)
+				if ok then inMine = plain(answer) end
+			end
+			if inMine == true then
+				kind = "guild"
+			elseif inMine == nil then
+				-- Only where UnitIsInMyGuild gave no answer (a plain no is an
+				-- answer): the two guild names, when both are readable, and their
+				-- realms, since a guild's name is only unique on its realm. pcall
+				-- rather than safecall, which keeps only three returns and the
+				-- realm is the fourth.
+				local okTheirs, theirs, _, _, theirRealm = pcall(_G.GetGuildInfo, unit)
+				local okOurs, ours, _, _, ourRealm = pcall(_G.GetGuildInfo, "player")
+				theirs, ours = plain(theirs), plain(ours)
+				theirRealm, ourRealm = GuildRealm(theirRealm), GuildRealm(ourRealm)
+				if okTheirs and okOurs and type(theirs) == "string" and theirs ~= ""
+					and theirs == ours and theirRealm and theirRealm == ourRealm then
+					kind = "guild"
+				end
+			end
+		end
+
+		closeCache[full] = { at = now, kind = kind or false }
+		return kind
+	end
 end
 
 -- Tell the favour ledger (Ledger.lua) what just happened to a favour. One way
@@ -3730,520 +3736,527 @@ end
 -- be identified at all, which is a hard limit.
 ---------------------------------------------------------------------------
 
--- What the baseline holds: instance id -> the spell under that number, or
--- `true` where the spell could not be read. Instance ids are recycled here, so
--- the number alone is not an identity.
-local knownAuras = {}
--- When each filed cast was due to end, where the client says so. Read only by
--- IsNew; see there.
-local knownUntil = {}
-local auraScanPrimed = false
--- What the last scan of your own buffs made of itself, for /manners debug:
--- the gate in ScanOwnBuffs can switch this source off without a word, and a
--- silent stop is the one failure the addon cannot notice on its own. It
--- starts doubted, because "0 read, baseline 0" is also what a quiet healthy
--- session prints.
-ns.auraScan = { read = 0, held = 0, doubt = "never scanned", primed = false }
--- Reused on every UNIT_AURA rather than rebuilt. Wiped at the top of the scan,
--- never at the bottom, so a re-entrant call (NoteFavour prints, and another
--- addon can hook chat) sees a clean table rather than a half-built one.
-local present = {}
--- ...and when each was due to end, beside it so no record is allocated per slot.
-local presentUntil = {}
--- What the scan before this one read, and whether there was one. Nothing in
--- the baseline moves on a single reading; see ScanOwnBuffs.
-local lastPresent = {}
-local haveLastScan = false
-
--- Who cast each aura read but not yet filed, keyed by instance id with the
--- identity it was read under. Resolved when the slot is read, because
--- nameplate tokens are recycled: asked a scan later, "nameplate3" may be a
--- bystander, and the debt, the chat line and the /say would go to them.
-local sighted = {}
-
--- A baseline settles on two readings that agree, and the second is asked for
--- on a timer rather than waited for: on a character standing still the next
--- UNIT_AURA can be minutes away, and anything landing meanwhile would be filed
--- as already carried. The count bounds what a client that never settles
--- costs. Both reset on a zone change, the only thing that unprimes a baseline.
-local SETTLE_INTERVAL = 0.2
-local SETTLE_TRIES = 20
-local settleTries = 0
-local settlePending = false
-
-local function ScheduleSettle()
-	if settlePending or settleTries >= SETTLE_TRIES then return end
-	if not (C_Timer and C_Timer.After) then return end
-	settleTries = settleTries + 1
-	settlePending = true
-	C_Timer.After(SETTLE_INTERVAL, function()
-		settlePending = false
-		-- Guarded: a throw inside a timer callback would leave the baseline
-		-- unsettled for the session without a word.
-		ns.Guard("settle aura baseline", ns.ScanOwnBuffs)
-	end)
-end
-
--- A loading screen can hand back an aura list that is not readable yet, and a
--- baseline taken from it makes everything already on you look like a favour.
--- The previous reading and the sightings go too: the zone renumbered every
--- instance id, and the tokens they were read from mean nothing now.
-function ns.ResetAuraBaseline()
-	wipe(knownAuras)
-	wipe(knownUntil)
-	wipe(lastPresent)
-	wipe(sighted)
-	haveLastScan = false
-	auraScanPrimed = false
-	settleTries = 0
-end
-
--- Read the caster off a slot at the moment the slot is read, and keep it under
--- the aura it belongs to, with the class: neither can be recovered later, and
--- the fallback queue needs the class to decide what to offer.
---
--- A sighting with nobody in it still records that no name could be read, so a
--- later scan does not go back to the token and take whoever holds it by then.
--- A favour whose caster could not be read is nobody's: one spoken at the wrong
--- player is worse than none.
-local function Sight(instanceId, key, aura)
-	local seen = sighted[instanceId]
-	-- A different aura under the same number is a different sighting.
-	if seen and seen.key == key then return end
-
-	seen = { key = key }
-	sighted[instanceId] = seen
-
-	local source = plain(aura.sourceUnit)
-	if not source or source == "player" then return end
-	if plain(UnitIsUnit(source, "player")) then return end
-	if plain(UnitIsPlayer(source)) ~= true then return end
-
-	local full = ns.UnitFullName(source)
-	if not full then return end
-
-	seen.name = full
-	seen.guid = plain(UnitGUID(source))
-	seen.class = plain(select(2, UnitClass(source)))
-	-- Asked of the token while it still means them, like the name.
-	seen.sameParty = SameParty(source)
-	seen.hasMana = UnitHasMana(source)
-end
-
--- What the queue would offer somebody (nil for nothing) knowing only whether
--- they have mana and whether a shout reaches them. The rest is set as the
--- queue sets it for a debt, so the two cannot disagree.
-function ns.CouldOffer(hasMana, inParty)
-	local db = addon.db and addon.db.profile
-	if not db then return nil end
-	return ns.PickBuffFor(ns.CastableBuffs(), {
-		hasMana = hasMana,
-		inGroup = inParty,
-		inParty = inParty,
-		relevantOnly = db.filters.relevantOnly,
-		whenBuffed = "always",
-		offerAnyway = true,
-		rotate = false,
-	}, NoReading)
-end
-
--- One favour, filed against the person who was holding the token when the aura
--- was read. `seen` comes from Sight and nothing is re-derived from the aura
--- here: by now the token may mean somebody else.
-local function NoteFavour(seen)
-	local db = addon.db and addon.db.profile
-	if not db then return end
-
-	-- With this source off, or the addon off, nothing written here could ever
-	-- reach a prompt; the scan checks too, but the setting can change between
-	-- the sighting and here.
-	if not db.enabled or not db.sources.owed then return end
-
-	-- Nor with nothing castable for anybody (a rogue, a buff not learned, every
-	-- spell switched off, a pin on one not learned): asked as the queue asks it.
-	if #ns.CastableBuffs() == 0 then return end
-	local pinned = ns.PinnedBuff()
-	if pinned and not ns.IsBuffKnown(pinned) then return end
-
-	-- Then the same question about this person, from what Sight read off the
-	-- token (the combat log, which never had one, has the class and the name).
-	local hasMana = seen.hasMana
-	if hasMana == nil and seen.class then hasMana = MANA_CLASSES[seen.class] == true end
-	local inParty = seen.sameParty
-	if inParty == nil then inParty = SameParty(seen.name) end
-
-	-- Nothing we cast is any use to them, so no debt the queue could never fill.
-	if not ns.CouldOffer(hasMana, true) then
-		-- A favour all the same, and let go in the moment it arrived.
-		TellLedger("Received", seen, true)
-		if db.verbose then
-			-- Translators: the option's name comes in through its own key, so a
-			-- translated line quotes the checkbox the player can find.
-			addon:Print(L["|cff80ff80%s buffed you|r -- nothing you cast is any use to them (\"%s\" is on)"]:format(seen.name, L["Skip players the buff does nothing for"]))
-		end
-		return
-	end
-
-	owed[seen.name] = { expires = GetTime() + db.timing.reciprocateWindow, at = GetTime(),
-		guid = seen.guid, class = seen.class }
-	-- Whether only a buff that reaches your own party could return it: asked
-	-- as if they were outside it, about classes rather than where they stand,
-	-- so the ledger's row stays true after they join or leave.
-	TellLedger("Received", seen, nil, ns.CouldOffer(hasMana, false) == nil)
-	if db.verbose then
-		-- A warrior's shout reaches the party (in a raid, the subgroup) and
-		-- nobody else, so a stranger who buffed one is kept but not on the
-		-- prompt, and the line says so, naming the subgroup where that is the limit.
-		local reachable = ns.CouldOffer(hasMana, inParty) ~= nil
-		-- "On the prompt" only when a prompt can show it: not through a snooze,
-		-- an unlocked prompt or Not while mounted.
-		local snoozeEnds = reachable and ns.SnoozeLeft() and ns.SnoozeEndsAt()
-		if snoozeEnds then
-			addon:Print(L["|cff80ff80%s buffed you|r -- the prompt is snoozed until %s, so returning it is offered only if the snooze ends before the favour runs out"]
-				:format(seen.name, snoozeEnds))
-		elseif reachable and not db.prompt.locked then
-			-- An unlocked prompt arms nobody. Ahead of the mount, since locking
-			-- is the step the player has to take.
-			addon:Print(L["|cff80ff80%s buffed you|r -- returning the favour is on the prompt once you lock it"]
-				:format(seen.name))
-		elseif reachable and ns.HiddenWhileMounted() then
-			addon:Print(L["|cff80ff80%s buffed you|r -- returning the favour is on the prompt once you get off your mount"]
-				:format(seen.name))
-		else
-			addon:Print((reachable
-				and L["|cff80ff80%s buffed you|r -- returning the favour is on the prompt"]
-				or ns.PARTY_IS_SUBGROUP and L["|cff80ff80%s buffed you|r -- what you cast reaches only your own party -- in a raid, your own subgroup -- so they are offered if they join it"]
-				or L["|cff80ff80%s buffed you|r -- what you cast reaches your group only, so they are offered if they join it"]):format(seen.name))
-		end
-	end
-	-- Written through rather than left to the logout hook: favours are rare.
-	SaveDebts()
-end
-
 -- Whether the combat log is actually running as a second favour source: what
 -- happened when it was asked, not caps.combatLog's belief about the client.
+-- Set by OnEnable, so it lives outside the block below.
 local combatLogArmed = false
 
--- One buff landing, seen by two sources that cannot see each other (a log line
--- has no instance id), agreed on the only thing both know: who cast what. A
--- mark is claimed by the first source and CONSUMED by the other, so a genuine
--- recast afterwards is still announced (STATUS.md).
---
--- A mark nobody consumes (the ordinary case: the log exists for the stranger
--- the scan cannot see) suppresses a real recast until it expires, so the
--- window is the slowest honest disagreement and no longer: the aura scan
--- defers a landing by up to SETTLE_INTERVAL * SETTLE_TRIES, plus a tick.
-local NOTE_MEMORY = (SETTLE_INTERVAL * SETTLE_TRIES) + 1
-local notedFavours = {}
+-- Everything else in this section and the next is private to this block and
+-- reached through ns and the event handlers; its locals are released at the
+-- end of it, because the main chunk is close to the 200 locals Lua 5.1
+-- allows one function.
+do
+	-- What the baseline holds: instance id -> the spell under that number, or
+	-- `true` where the spell could not be read. Instance ids are recycled here, so
+	-- the number alone is not an identity.
+	local knownAuras = {}
+	-- When each filed cast was due to end, where the client says so. Read only by
+	-- IsNew; see there.
+	local knownUntil = {}
+	local auraScanPrimed = false
+	-- What the last scan of your own buffs made of itself, for /manners debug:
+	-- the gate in ScanOwnBuffs can switch this source off without a word, and a
+	-- silent stop is the one failure the addon cannot notice on its own. It
+	-- starts doubted, because "0 read, baseline 0" is also what a quiet healthy
+	-- session prints.
+	ns.auraScan = { read = 0, held = 0, doubt = "never scanned", primed = false }
+	-- Reused on every UNIT_AURA rather than rebuilt. Wiped at the top of the scan,
+	-- never at the bottom, so a re-entrant call (NoteFavour prints, and another
+	-- addon can hook chat) sees a clean table rather than a half-built one.
+	local present = {}
+	-- ...and when each was due to end, beside it so no record is allocated per slot.
+	local presentUntil = {}
+	-- What the scan before this one read, and whether there was one. Nothing in
+	-- the baseline moves on a single reading; see ScanOwnBuffs.
+	local lastPresent = {}
+	local haveLastScan = false
 
-local function ClaimFavour(name, spellKey)
-	-- One source running: the sighting's own `filed` flag is the whole guard,
-	-- and a mark never consumed would only suppress genuine recasts.
-	if not combatLogArmed then return true end
-	if type(name) ~= "string" then return true end
+	-- Who cast each aura read but not yet filed, keyed by instance id with the
+	-- identity it was read under. Resolved when the slot is read, because
+	-- nameplate tokens are recycled: asked a scan later, "nameplate3" may be a
+	-- bystander, and the debt, the chat line and the /say would go to them.
+	local sighted = {}
 
-	local now = GetTime()
-	local key = name .. "\0" .. tostring(spellKey)
-	local claimed = notedFavours[key]
+	-- A baseline settles on two readings that agree, and the second is asked for
+	-- on a timer rather than waited for: on a character standing still the next
+	-- UNIT_AURA can be minutes away, and anything landing meanwhile would be filed
+	-- as already carried. The count bounds what a client that never settles
+	-- costs. Both reset on a zone change, the only thing that unprimes a baseline.
+	local SETTLE_INTERVAL = 0.2
+	local SETTLE_TRIES = 20
+	local settleTries = 0
+	local settlePending = false
 
-	-- Swept here rather than on a timer: favours are rare. Read above the
-	-- sweep, so the entry about to be judged cannot be swept out from under it.
-	for k, at in pairs(notedFavours) do
-		if now - at > NOTE_MEMORY then notedFavours[k] = nil end
+	local function ScheduleSettle()
+		if settlePending or settleTries >= SETTLE_TRIES then return end
+		if not (C_Timer and C_Timer.After) then return end
+		settleTries = settleTries + 1
+		settlePending = true
+		C_Timer.After(SETTLE_INTERVAL, function()
+			settlePending = false
+			-- Guarded: a throw inside a timer callback would leave the baseline
+			-- unsettled for the session without a word.
+			ns.Guard("settle aura baseline", ns.ScanOwnBuffs)
+		end)
 	end
 
-	if claimed and now - claimed <= NOTE_MEMORY then
-		notedFavours[key] = nil
-		return false
-	end
-	notedFavours[key] = now
-	return true
-end
-
--- One slot of your own aura list: the aura, and whether the client provably
--- refused it. A throw or a secret value is a refusal; a plain nil is what an
--- empty slot looks like and possibly a refusal too, and one slot cannot tell
--- them apart. So this reports proof of a refusal and never claims honesty,
--- and the scan reads the walk as a whole.
-local function ReadAuraSlot(index)
-	local ok, value = pcall(C_UnitAuras.GetAuraDataByIndex, "player", index, "HELPFUL")
-	if not ok then return nil, true end
-	-- The end of the list, a gap in it, or a refusal wearing either's clothes.
-	if value == nil then return nil, false end
-	local aura = plain(value)
-	if type(aura) ~= "table" then return nil, true end
-	return aura, false
-end
-
--- Do two readings of the aura list name the same auras? Membership both ways,
--- spell with number, so a recycled number is a disagreement.
-local function SameAuraSet(a, b)
-	for id, key in pairs(a) do if b[id] ~= key then return false end end
-	for id, key in pairs(b) do if a[id] ~= key then return false end end
-	return true
-end
-
--- Is the aura in this slot one the baseline has not filed? The number is
--- reused, so the spell is compared too. And for an entry the previous reading
--- did not show (the one scan of grace the prune gives a vanished aura), the
--- ending decides: a cast that ran out and was replaced under its own number
--- ends later, while a refusal handed back returns the same ending. The two
--- readings are otherwise identical slot for slot. An ending missing or
--- unreadable at either end claims nothing and leaves the aura filed.
-local function IsNew(instanceId, key, expires)
-	local known = knownAuras[instanceId]
-	if known == nil or known ~= key then return true end
-	if lastPresent[instanceId] == key then return false end
-	local was = knownUntil[instanceId]
-	return (was ~= nil and expires ~= nil and expires > was) or false
-end
-
-function ns.ScanOwnBuffs()
-	wipe(present)
-	wipe(presentUntil)
-
-	-- What the baseline held a moment ago: the one thing the scan knows that
-	-- did not come from the client.
-	local held = 0
-	for _ in pairs(knownAuras) do held = held + 1 end
-
-	local scan = ns.auraScan
-
-	-- No aura API on this client: recorded, so /manners debug says so rather
-	-- than printing a healthy "0 read, baseline 0".
-	if not (C_UnitAuras and C_UnitAuras.GetAuraDataByIndex) then
-		scan.read, scan.held, scan.doubt = 0, held, "no aura api"
-		scan.primed = auraScanPrimed
-		return
+	-- A loading screen can hand back an aura list that is not readable yet, and a
+	-- baseline taken from it makes everything already on you look like a favour.
+	-- The previous reading and the sightings go too: the zone renumbered every
+	-- instance id, and the tokens they were read from mean nothing now.
+	function ns.ResetAuraBaseline()
+		wipe(knownAuras)
+		wipe(knownUntil)
+		wipe(lastPresent)
+		wipe(sighted)
+		haveLastScan = false
+		auraScanPrimed = false
+		settleTries = 0
 	end
 
-	-- Read before the walk, which may set the flag itself further down.
-	local primed = auraScanPrimed
+	-- Read the caster off a slot at the moment the slot is read, and keep it under
+	-- the aura it belongs to, with the class: neither can be recovered later, and
+	-- the fallback queue needs the class to decide what to offer.
+	--
+	-- A sighting with nobody in it still records that no name could be read, so a
+	-- later scan does not go back to the token and take whoever holds it by then.
+	-- A favour whose caster could not be read is nobody's: one spoken at the wrong
+	-- player is worse than none.
+	local function Sight(instanceId, key, aura)
+		local seen = sighted[instanceId]
+		-- A different aura under the same number is a different sighting.
+		if seen and seen.key == key then return end
 
-	local db = addon.db and addon.db.profile
-	local classOnly = not db or db.sources.owedClassBuffsOnly ~= false
-	-- Whether anything read now could become a favour at all; if not, no
-	-- caster is read (four unit lookups per slot, on every UNIT_AURA).
-	local watching = primed and db and db.enabled and db.sources.owed and true or false
+		seen = { key = key }
+		sighted[instanceId] = seen
 
-	local read = 0
-	local refused = false  -- a slot said outright that it would not answer
-	local silence = false  -- a slot handed back nothing, with the walk still going
-	local hole = false     -- ...and an aura was found behind it
-	-- The instance ids the baseline has not filed, judged after the walk once
-	-- the scan is known to be believable. Fresh each time, unlike `present`,
-	-- because NoteFavour can re-enter the scan while this is walked; allocated
-	-- only when something new is found.
-	local fresh
+		local source = plain(aura.sourceUnit)
+		if not source or source == "player" then return end
+		if plain(UnitIsUnit(source, "player")) then return end
+		if plain(UnitIsPlayer(source)) ~= true then return end
 
-	-- Every slot, every time: the end of the list and a hole in the middle of
-	-- it look alike from the first silent slot, and an aura behind the silence
-	-- is the one refusal that shows on the reading itself.
-	for i = 1, 40 do
-		local aura, slotRefused = ReadAuraSlot(i)
-		if slotRefused then refused = true end
-		if not aura then
-			silence = true
-		else
-			-- The list is packed from slot one, so silence with an aura behind
-			-- it was never the end.
-			if silence then hole = true end
-			read = read + 1
+		local full = ns.UnitFullName(source)
+		if not full then return end
 
-			local instanceId = plain(aura.auraInstanceID)
-			if instanceId then
-				-- The spell is half of the aura's identity, not only a filter.
-				local spellId = plain(aura.spellId)
-				local key = spellId or true
-				local expires = plain(aura.expirationTime)
-				present[instanceId] = key
-				presentUntil[instanceId] = expires
-				if IsNew(instanceId, key, expires) then
-					fresh = fresh or {}
-					fresh[#fresh + 1] = instanceId
-					-- Who cast it, read while the token still means them, and
-					-- only for an aura that could ever be announced.
-					if watching and spellId
-						and (not classOnly or ns.ALL_BUFF_IDS[spellId]) then
-						Sight(instanceId, key, aura)
+		seen.name = full
+		seen.guid = plain(UnitGUID(source))
+		seen.class = plain(select(2, UnitClass(source)))
+		-- Asked of the token while it still means them, like the name.
+		seen.sameParty = SameParty(source)
+		seen.hasMana = UnitHasMana(source)
+	end
+
+	-- What the queue would offer somebody (nil for nothing) knowing only whether
+	-- they have mana and whether a shout reaches them. The rest is set as the
+	-- queue sets it for a debt, so the two cannot disagree.
+	function ns.CouldOffer(hasMana, inParty)
+		local db = addon.db and addon.db.profile
+		if not db then return nil end
+		return ns.PickBuffFor(ns.CastableBuffs(), {
+			hasMana = hasMana,
+			inGroup = inParty,
+			inParty = inParty,
+			relevantOnly = db.filters.relevantOnly,
+			whenBuffed = "always",
+			offerAnyway = true,
+			rotate = false,
+		}, NoReading)
+	end
+
+	-- One favour, filed against the person who was holding the token when the aura
+	-- was read. `seen` comes from Sight and nothing is re-derived from the aura
+	-- here: by now the token may mean somebody else.
+	local function NoteFavour(seen)
+		local db = addon.db and addon.db.profile
+		if not db then return end
+
+		-- With this source off, or the addon off, nothing written here could ever
+		-- reach a prompt; the scan checks too, but the setting can change between
+		-- the sighting and here.
+		if not db.enabled or not db.sources.owed then return end
+
+		-- Nor with nothing castable for anybody (a rogue, a buff not learned, every
+		-- spell switched off, a pin on one not learned): asked as the queue asks it.
+		if #ns.CastableBuffs() == 0 then return end
+		local pinned = ns.PinnedBuff()
+		if pinned and not ns.IsBuffKnown(pinned) then return end
+
+		-- Then the same question about this person, from what Sight read off the
+		-- token (the combat log, which never had one, has the class and the name).
+		local hasMana = seen.hasMana
+		if hasMana == nil and seen.class then hasMana = MANA_CLASSES[seen.class] == true end
+		local inParty = seen.sameParty
+		if inParty == nil then inParty = SameParty(seen.name) end
+
+		-- Nothing we cast is any use to them, so no debt the queue could never fill.
+		if not ns.CouldOffer(hasMana, true) then
+			-- A favour all the same, and let go in the moment it arrived.
+			TellLedger("Received", seen, true)
+			if db.verbose then
+				-- Translators: the option's name comes in through its own key, so a
+				-- translated line quotes the checkbox the player can find.
+				addon:Print(L["|cff80ff80%s buffed you|r -- nothing you cast is any use to them (\"%s\" is on)"]:format(seen.name, L["Skip players the buff does nothing for"]))
+			end
+			return
+		end
+
+		owed[seen.name] = { expires = GetTime() + db.timing.reciprocateWindow, at = GetTime(),
+			guid = seen.guid, class = seen.class }
+		-- Whether only a buff that reaches your own party could return it: asked
+		-- as if they were outside it, about classes rather than where they stand,
+		-- so the ledger's row stays true after they join or leave.
+		TellLedger("Received", seen, nil, ns.CouldOffer(hasMana, false) == nil)
+		if db.verbose then
+			-- A warrior's shout reaches the party (in a raid, the subgroup) and
+			-- nobody else, so a stranger who buffed one is kept but not on the
+			-- prompt, and the line says so, naming the subgroup where that is the limit.
+			local reachable = ns.CouldOffer(hasMana, inParty) ~= nil
+			-- "On the prompt" only when a prompt can show it: not through a snooze,
+			-- an unlocked prompt or Not while mounted.
+			local snoozeEnds = reachable and ns.SnoozeLeft() and ns.SnoozeEndsAt()
+			if snoozeEnds then
+				addon:Print(L["|cff80ff80%s buffed you|r -- the prompt is snoozed until %s, so returning it is offered only if the snooze ends before the favour runs out"]
+					:format(seen.name, snoozeEnds))
+			elseif reachable and not db.prompt.locked then
+				-- An unlocked prompt arms nobody. Ahead of the mount, since locking
+				-- is the step the player has to take.
+				addon:Print(L["|cff80ff80%s buffed you|r -- returning the favour is on the prompt once you lock it"]
+					:format(seen.name))
+			elseif reachable and ns.HiddenWhileMounted() then
+				addon:Print(L["|cff80ff80%s buffed you|r -- returning the favour is on the prompt once you get off your mount"]
+					:format(seen.name))
+			else
+				addon:Print((reachable
+					and L["|cff80ff80%s buffed you|r -- returning the favour is on the prompt"]
+					or ns.PARTY_IS_SUBGROUP and L["|cff80ff80%s buffed you|r -- what you cast reaches only your own party -- in a raid, your own subgroup -- so they are offered if they join it"]
+					or L["|cff80ff80%s buffed you|r -- what you cast reaches your group only, so they are offered if they join it"]):format(seen.name))
+			end
+		end
+		-- Written through rather than left to the logout hook: favours are rare.
+		SaveDebts()
+	end
+
+	-- One buff landing, seen by two sources that cannot see each other (a log line
+	-- has no instance id), agreed on the only thing both know: who cast what. A
+	-- mark is claimed by the first source and CONSUMED by the other, so a genuine
+	-- recast afterwards is still announced (STATUS.md).
+	--
+	-- A mark nobody consumes (the ordinary case: the log exists for the stranger
+	-- the scan cannot see) suppresses a real recast until it expires, so the
+	-- window is the slowest honest disagreement and no longer: the aura scan
+	-- defers a landing by up to SETTLE_INTERVAL * SETTLE_TRIES, plus a tick.
+	local NOTE_MEMORY = (SETTLE_INTERVAL * SETTLE_TRIES) + 1
+	local notedFavours = {}
+
+	local function ClaimFavour(name, spellKey)
+		-- One source running: the sighting's own `filed` flag is the whole guard,
+		-- and a mark never consumed would only suppress genuine recasts.
+		if not combatLogArmed then return true end
+		if type(name) ~= "string" then return true end
+
+		local now = GetTime()
+		local key = name .. "\0" .. tostring(spellKey)
+		local claimed = notedFavours[key]
+
+		-- Swept here rather than on a timer: favours are rare. Read above the
+		-- sweep, so the entry about to be judged cannot be swept out from under it.
+		for k, at in pairs(notedFavours) do
+			if now - at > NOTE_MEMORY then notedFavours[k] = nil end
+		end
+
+		if claimed and now - claimed <= NOTE_MEMORY then
+			notedFavours[key] = nil
+			return false
+		end
+		notedFavours[key] = now
+		return true
+	end
+
+	-- One slot of your own aura list: the aura, and whether the client provably
+	-- refused it. A throw or a secret value is a refusal; a plain nil is what an
+	-- empty slot looks like and possibly a refusal too, and one slot cannot tell
+	-- them apart. So this reports proof of a refusal and never claims honesty,
+	-- and the scan reads the walk as a whole.
+	local function ReadAuraSlot(index)
+		local ok, value = pcall(C_UnitAuras.GetAuraDataByIndex, "player", index, "HELPFUL")
+		if not ok then return nil, true end
+		-- The end of the list, a gap in it, or a refusal wearing either's clothes.
+		if value == nil then return nil, false end
+		local aura = plain(value)
+		if type(aura) ~= "table" then return nil, true end
+		return aura, false
+	end
+
+	-- Do two readings of the aura list name the same auras? Membership both ways,
+	-- spell with number, so a recycled number is a disagreement.
+	local function SameAuraSet(a, b)
+		for id, key in pairs(a) do if b[id] ~= key then return false end end
+		for id, key in pairs(b) do if a[id] ~= key then return false end end
+		return true
+	end
+
+	-- Is the aura in this slot one the baseline has not filed? The number is
+	-- reused, so the spell is compared too. And for an entry the previous reading
+	-- did not show (the one scan of grace the prune gives a vanished aura), the
+	-- ending decides: a cast that ran out and was replaced under its own number
+	-- ends later, while a refusal handed back returns the same ending. The two
+	-- readings are otherwise identical slot for slot. An ending missing or
+	-- unreadable at either end claims nothing and leaves the aura filed.
+	local function IsNew(instanceId, key, expires)
+		local known = knownAuras[instanceId]
+		if known == nil or known ~= key then return true end
+		if lastPresent[instanceId] == key then return false end
+		local was = knownUntil[instanceId]
+		return (was ~= nil and expires ~= nil and expires > was) or false
+	end
+
+	function ns.ScanOwnBuffs()
+		wipe(present)
+		wipe(presentUntil)
+
+		-- What the baseline held a moment ago: the one thing the scan knows that
+		-- did not come from the client.
+		local held = 0
+		for _ in pairs(knownAuras) do held = held + 1 end
+
+		local scan = ns.auraScan
+
+		-- No aura API on this client: recorded, so /manners debug says so rather
+		-- than printing a healthy "0 read, baseline 0".
+		if not (C_UnitAuras and C_UnitAuras.GetAuraDataByIndex) then
+			scan.read, scan.held, scan.doubt = 0, held, "no aura api"
+			scan.primed = auraScanPrimed
+			return
+		end
+
+		-- Read before the walk, which may set the flag itself further down.
+		local primed = auraScanPrimed
+
+		local db = addon.db and addon.db.profile
+		local classOnly = not db or db.sources.owedClassBuffsOnly ~= false
+		-- Whether anything read now could become a favour at all; if not, no
+		-- caster is read (four unit lookups per slot, on every UNIT_AURA).
+		local watching = primed and db and db.enabled and db.sources.owed and true or false
+
+		local read = 0
+		local refused = false  -- a slot said outright that it would not answer
+		local silence = false  -- a slot handed back nothing, with the walk still going
+		local hole = false     -- ...and an aura was found behind it
+		-- The instance ids the baseline has not filed, judged after the walk once
+		-- the scan is known to be believable. Fresh each time, unlike `present`,
+		-- because NoteFavour can re-enter the scan while this is walked; allocated
+		-- only when something new is found.
+		local fresh
+
+		-- Every slot, every time: the end of the list and a hole in the middle of
+		-- it look alike from the first silent slot, and an aura behind the silence
+		-- is the one refusal that shows on the reading itself.
+		for i = 1, 40 do
+			local aura, slotRefused = ReadAuraSlot(i)
+			if slotRefused then refused = true end
+			if not aura then
+				silence = true
+			else
+				-- The list is packed from slot one, so silence with an aura behind
+				-- it was never the end.
+				if silence then hole = true end
+				read = read + 1
+
+				local instanceId = plain(aura.auraInstanceID)
+				if instanceId then
+					-- The spell is half of the aura's identity, not only a filter.
+					local spellId = plain(aura.spellId)
+					local key = spellId or true
+					local expires = plain(aura.expirationTime)
+					present[instanceId] = key
+					presentUntil[instanceId] = expires
+					if IsNew(instanceId, key, expires) then
+						fresh = fresh or {}
+						fresh[#fresh + 1] = instanceId
+						-- Who cast it, read while the token still means them, and
+						-- only for an aura that could ever be announced.
+						if watching and spellId
+							and (not classOnly or ns.ALL_BUFF_IDS[spellId]) then
+							Sight(instanceId, key, aura)
+						end
 					end
 				end
 			end
 		end
-	end
 
-	-- Evidence that this scan is worthless, free to collect and real when it
-	-- shows. It is not what keeps the section below safe, which is
-	-- corroboration (STATUS.md): a refusal cannot be recognised, since a secret,
-	-- a throw and a plain nil are all possible here.
-	--   * refused -- a slot threw or handed back a secret.
-	--   * hole -- an aura behind silence: the list was not handed over whole.
-	--   * nothing read while the baseline held something a moment ago.
-	local doubt
-	if refused then doubt = "refused"
-	elseif hole then doubt = "hole"
-	elseif read == 0 and held > 0 then doubt = "empty" end
+		-- Evidence that this scan is worthless, free to collect and real when it
+		-- shows. It is not what keeps the section below safe, which is
+		-- corroboration (STATUS.md): a refusal cannot be recognised, since a secret,
+		-- a throw and a plain nil are all possible here.
+		--   * refused -- a slot threw or handed back a secret.
+		--   * hole -- an aura behind silence: the list was not handed over whole.
+		--   * nothing read while the baseline held something a moment ago.
+		local doubt
+		if refused then doubt = "refused"
+		elseif hole then doubt = "hole"
+		elseif read == 0 and held > 0 then doubt = "empty" end
 
-	-- Recorded either way, including the clear, for /manners debug.
-	scan.read, scan.held, scan.doubt = read, held, doubt
-	scan.primed = auraScanPrimed
-	if doubt then
-		-- A doubted reading settles nothing, so an unsettled baseline asks for
-		-- another reading rather than waiting on the client.
-		if not primed then ScheduleSettle() end
-		return
-	end
-
-	-- Everything below turns on whether a second scan said the same thing; a
-	-- reading on its own moves nothing.
-	local agrees = haveLastScan and SameAuraSet(present, lastPresent)
-
-	if not primed then
-		-- Primed only on two readings that agree. PLAYER_ENTERING_WORLD wipes
-		-- the baseline and scans at once, so `held` is zero and cannot doubt a
-		-- blacked-out list; priming on that would announce everything already
-		-- carried as a favour. A character really carrying nothing reads empty
-		-- twice and primes on the second scan.
-		if agrees then
-			for instanceId, key in pairs(present) do
-				knownAuras[instanceId] = key
-				knownUntil[instanceId] = presentUntil[instanceId]
-			end
-			auraScanPrimed = true
-			scan.primed = true
-		else
-			-- And the reading that has to agree is asked for on the clock.
-			ScheduleSettle()
-		end
-	else
-		-- An aura that ran out has to leave, or a recast under its recycled
-		-- number is swallowed. But a refusal of the trailing slots is invisible
-		-- to the evidence above, so an entry leaves only once two scans running
-		-- have failed to find the aura (the spell under the number, not the
-		-- number alone).
-		for instanceId, key in pairs(knownAuras) do
-			if present[instanceId] ~= key and lastPresent[instanceId] ~= key then
-				knownAuras[instanceId] = nil
-				knownUntil[instanceId] = nil
-			end
+		-- Recorded either way, including the clear, for /manners debug.
+		scan.read, scan.held, scan.doubt = read, held, doubt
+		scan.primed = auraScanPrimed
+		if doubt then
+			-- A doubted reading settles nothing, so an unsettled baseline asks for
+			-- another reading rather than waiting on the client.
+			if not primed then ScheduleSettle() end
+			return
 		end
 
-		-- So "not filed" already means "absent from the last two readings", and
-		-- a buff that just landed is announced on the scan it arrives in. IsNew
-		-- covers the rest: an arrival under a number held for a dead aura.
-		if fresh then
-			for i = 1, #fresh do
-				local instanceId = fresh[i]
-				local key = present[instanceId]
-				if key ~= nil then
+		-- Everything below turns on whether a second scan said the same thing; a
+		-- reading on its own moves nothing.
+		local agrees = haveLastScan and SameAuraSet(present, lastPresent)
+
+		if not primed then
+			-- Primed only on two readings that agree. PLAYER_ENTERING_WORLD wipes
+			-- the baseline and scans at once, so `held` is zero and cannot doubt a
+			-- blacked-out list; priming on that would announce everything already
+			-- carried as a favour. A character really carrying nothing reads empty
+			-- twice and primes on the second scan.
+			if agrees then
+				for instanceId, key in pairs(present) do
 					knownAuras[instanceId] = key
 					knownUntil[instanceId] = presentUntil[instanceId]
-					local seen = sighted[instanceId]
-					-- The name read with the slot is the only one there will be;
-					-- a sighting that read nobody ends here, never asked again of
-					-- a token that may have changed hands. `filed` lives on the
-					-- sighting because an aura that came back under its own
-					-- number is in the baseline already. The claim covers the
-					-- combat log having seen the same landing with no number.
-					if seen and seen.key == key and seen.name and not seen.filed then
-						seen.filed = true
-						if ClaimFavour(seen.name, key) then NoteFavour(seen) end
+				end
+				auraScanPrimed = true
+				scan.primed = true
+			else
+				-- And the reading that has to agree is asked for on the clock.
+				ScheduleSettle()
+			end
+		else
+			-- An aura that ran out has to leave, or a recast under its recycled
+			-- number is swallowed. But a refusal of the trailing slots is invisible
+			-- to the evidence above, so an entry leaves only once two scans running
+			-- have failed to find the aura (the spell under the number, not the
+			-- number alone).
+			for instanceId, key in pairs(knownAuras) do
+				if present[instanceId] ~= key and lastPresent[instanceId] ~= key then
+					knownAuras[instanceId] = nil
+					knownUntil[instanceId] = nil
+				end
+			end
+
+			-- So "not filed" already means "absent from the last two readings", and
+			-- a buff that just landed is announced on the scan it arrives in. IsNew
+			-- covers the rest: an arrival under a number held for a dead aura.
+			if fresh then
+				for i = 1, #fresh do
+					local instanceId = fresh[i]
+					local key = present[instanceId]
+					if key ~= nil then
+						knownAuras[instanceId] = key
+						knownUntil[instanceId] = presentUntil[instanceId]
+						local seen = sighted[instanceId]
+						-- The name read with the slot is the only one there will be;
+						-- a sighting that read nobody ends here, never asked again of
+						-- a token that may have changed hands. `filed` lives on the
+						-- sighting because an aura that came back under its own
+						-- number is in the baseline already. The claim covers the
+						-- combat log having seen the same landing with no number.
+						if seen and seen.key == key and seen.name and not seen.filed then
+							seen.filed = true
+							if ClaimFavour(seen.name, key) then NoteFavour(seen) end
+						end
 					end
 				end
 			end
 		end
-	end
 
-	-- A sighting goes when the baseline files its aura or the aura stops being
-	-- read, or a recycled instance id inherits a caster. Below the doubt check:
-	-- a reading that is not believed is no evidence that an aura has gone.
-	for instanceId, seen in pairs(sighted) do
-		if present[instanceId] ~= seen.key or knownAuras[instanceId] == seen.key then
-			sighted[instanceId] = nil
+		-- A sighting goes when the baseline files its aura or the aura stops being
+		-- read, or a recycled instance id inherits a caster. Below the doubt check:
+		-- a reading that is not believed is no evidence that an aura has gone.
+		for instanceId, seen in pairs(sighted) do
+			if present[instanceId] ~= seen.key or knownAuras[instanceId] == seen.key then
+				sighted[instanceId] = nil
+			end
 		end
+
+		-- This scan becomes the reading the next one has to agree with; a doubted
+		-- one returned above and never does.
+		wipe(lastPresent)
+		for instanceId, key in pairs(present) do lastPresent[instanceId] = key end
+		haveLastScan = true
+
+		-- The price of never guessing what a refusal looks like (STATUS.md): a
+		-- refusal that repeats identically across two scans is indistinguishable
+		-- from holding nothing, and is left as it is. Likewise a buff landing
+		-- between the first true reading and the one corroborating it is filed as
+		-- already carried and never announced -- better unheard than filed against
+		-- a bystander. The settle timer keeps that gap at SETTLE_INTERVAL. A scan
+		-- the evidence above can see through never becomes one of the two readings,
+		-- which narrows the residue to shapes nothing can see; nothing closes it.
 	end
 
-	-- This scan becomes the reading the next one has to agree with; a doubted
-	-- one returned above and never does.
-	wipe(lastPresent)
-	for instanceId, key in pairs(present) do lastPresent[instanceId] = key end
-	haveLastScan = true
+	---------------------------------------------------------------------------
+	-- the combat log, on the clients that still have one
+	--
+	-- Classic Era, TBC and Mists hand addons COMBAT_LOG_EVENT_UNFILTERED; Retail
+	-- 12.0+ and Forever refuse the registration, so none of this runs unless
+	-- OnEnable got it through.
+	--
+	-- An addition, never a replacement (STATUS.md): the aura scan is the spine and
+	-- the only source on Forever. The log adds what the scan cannot do anywhere:
+	-- SPELL_AURA_APPLIED carries the caster's GUID, and GetPlayerInfoByGUID names
+	-- a stranger with no unit token. A log line is an event, not a reading that
+	-- might be wrong, so none of the scan's corroboration applies; the policy
+	-- gates still do, in NoteFavour.
+	---------------------------------------------------------------------------
 
-	-- The price of never guessing what a refusal looks like (STATUS.md): a
-	-- refusal that repeats identically across two scans is indistinguishable
-	-- from holding nothing, and is left as it is. Likewise a buff landing
-	-- between the first true reading and the one corroborating it is filed as
-	-- already carried and never announced -- better unheard than filed against
-	-- a bystander. The settle timer keeps that gap at SETTLE_INTERVAL. A scan
-	-- the evidence above can see through never becomes one of the two readings,
-	-- which narrows the residue to shapes nothing can see; nothing closes it.
-end
+	-- What this source has made of itself, for /manners debug, as ns.auraScan.
+	ns.logScan = { armed = false, applied = 0, noted = 0 }
 
----------------------------------------------------------------------------
--- the combat log, on the clients that still have one
---
--- Classic Era, TBC and Mists hand addons COMBAT_LOG_EVENT_UNFILTERED; Retail
--- 12.0+ and Forever refuse the registration, so none of this runs unless
--- OnEnable got it through.
---
--- An addition, never a replacement (STATUS.md): the aura scan is the spine and
--- the only source on Forever. The log adds what the scan cannot do anywhere:
--- SPELL_AURA_APPLIED carries the caster's GUID, and GetPlayerInfoByGUID names
--- a stranger with no unit token. A log line is an event, not a reading that
--- might be wrong, so none of the scan's corroboration applies; the policy
--- gates still do, in NoteFavour.
----------------------------------------------------------------------------
+	local function ReadCombatLogFavour()
+		local _, subevent, _, sourceGUID, _, _, _, destGUID, _, _, _,
+			spellId, _, _, auraType = CombatLogGetCurrentEventInfo()
 
--- What this source has made of itself, for /manners debug, as ns.auraScan.
-ns.logScan = { armed = false, applied = 0, noted = 0 }
+		-- Cheapest question first: every swing, tick and proc within fifty yards
+		-- arrives here, and most cost two string compares.
+		if plain(subevent) ~= "SPELL_AURA_APPLIED" then return end
+		if plain(auraType) ~= "BUFF" then return end
 
-local function ReadCombatLogFavour()
-	local _, subevent, _, sourceGUID, _, _, _, destGUID, _, _, _,
-		spellId, _, _, auraType = CombatLogGetCurrentEventInfo()
+		-- Landed on us, and not by our own hand.
+		destGUID, sourceGUID = plain(destGUID), plain(sourceGUID)
+		if destGUID == nil or destGUID ~= playerGUID then return end
+		if sourceGUID == nil or sourceGUID == playerGUID then return end
 
-	-- Cheapest question first: every swing, tick and proc within fifty yards
-	-- arrives here, and most cost two string compares.
-	if plain(subevent) ~= "SPELL_AURA_APPLIED" then return end
-	if plain(auraType) ~= "BUFF" then return end
+		-- Asked here too so a switched-off source does no per-event work;
+		-- NoteFavour's check is the gate.
+		local db = addon.db and addon.db.profile
+		if not db or not db.enabled or not db.sources.owed then return end
 
-	-- Landed on us, and not by our own hand.
-	destGUID, sourceGUID = plain(destGUID), plain(sourceGUID)
-	if destGUID == nil or destGUID ~= playerGUID then return end
-	if sourceGUID == nil or sourceGUID == playerGUID then return end
+		spellId = plain(spellId)
+		if spellId == nil then return end
+		-- The aura scan's filter, from the same setting: every class's buffs, since
+		-- the buff a stranger puts on you is one of theirs.
+		if db.sources.owedClassBuffsOnly ~= false and not ns.ALL_BUFF_IDS[spellId] then
+			return
+		end
 
-	-- Asked here too so a switched-off source does no per-event work;
-	-- NoteFavour's check is the gate.
-	local db = addon.db and addon.db.profile
-	if not db or not db.enabled or not db.sources.owed then return end
+		ns.logScan.applied = ns.logScan.applied + 1
 
-	spellId = plain(spellId)
-	if spellId == nil then return end
-	-- The aura scan's filter, from the same setting: every class's buffs, since
-	-- the buff a stranger puts on you is one of theirs.
-	if db.sources.owedClassBuffsOnly ~= false and not ns.ALL_BUFF_IDS[spellId] then
-		return
+		-- A name and a class out of a GUID, with no unit token: the reason this
+		-- source exists. It answers nothing for an NPC, a pet or a totem, so it
+		-- doubles as the is-a-player check without reading possibly withheld flags.
+		if type(GetPlayerInfoByGUID) ~= "function" then return end
+		local _, class, _, _, _, name, realm = GetPlayerInfoByGUID(sourceGUID)
+		-- The aura scan's join, so both sources file one person under one key.
+		local full = JoinName(plain(name), plain(realm))
+		if not full then return end
+
+		if not ClaimFavour(full, spellId) then return end
+		ns.logScan.noted = ns.logScan.noted + 1
+		-- The shape Sight produces, so NoteFavour has one kind of record.
+		NoteFavour({ key = spellId, name = full, guid = sourceGUID, class = plain(class) })
 	end
 
-	ns.logScan.applied = ns.logScan.applied + 1
-
-	-- A name and a class out of a GUID, with no unit token: the reason this
-	-- source exists. It answers nothing for an NPC, a pet or a totem, so it
-	-- doubles as the is-a-player check without reading possibly withheld flags.
-	if type(GetPlayerInfoByGUID) ~= "function" then return end
-	local _, class, _, _, _, name, realm = GetPlayerInfoByGUID(sourceGUID)
-	-- The aura scan's join, so both sources file one person under one key.
-	local full = JoinName(plain(name), plain(realm))
-	if not full then return end
-
-	if not ClaimFavour(full, spellId) then return end
-	ns.logScan.noted = ns.logScan.noted + 1
-	-- The shape Sight produces, so NoteFavour has one kind of record.
-	NoteFavour({ key = spellId, name = full, guid = sourceGUID, class = plain(class) })
-end
-
-function addon:COMBAT_LOG_EVENT_UNFILTERED()
-	-- Guarded: an unguarded handler that throws simply stops being a source.
-	ns.Guard("combat log", ReadCombatLogFavour)
+	function addon:COMBAT_LOG_EVENT_UNFILTERED()
+		-- Guarded: an unguarded handler that throws simply stops being a source.
+		ns.Guard("combat log", ReadCombatLogFavour)
+	end
 end
 
 function addon:UNIT_AURA(_, unit)
@@ -5961,447 +5974,452 @@ local SHARE_VERSION = 1
 -- and an import's undo always read back. /manners export warns past it.
 local SHARE_MAX = 64000
 
--- Never shared: the on switch is a state, not a taste; the click logger is a
--- diagnostic; the minimap button's place is about this screen.
-local SHARE_SKIP = { enabled = true, debugClicks = true, minimap = true }
+-- Everything below is private to this block and reached through ns; its
+-- locals are released at the end of it, because the main chunk is close to
+-- the 200 locals Lua 5.1 allows one function.
+do
+	-- Never shared: the on switch is a state, not a taste; the click logger is a
+	-- diagnostic; the minimap button's place is about this screen.
+	local SHARE_SKIP = { enabled = true, debugClicks = true, minimap = true }
 
--- The same further down. The lock is a state, and a string copied while the
--- prompt was unlocked would unlock everybody's, and an unlocked prompt never
--- casts. Where the prompt sits is about the screen.
-local SHARE_SKIP_NAMES = {
-	["prompt.locked"] = true,
-	["prompt.point"] = true,
-	["prompt.relPoint"] = true,
-	["prompt.x"] = true,
-	["prompt.y"] = true,
-}
+	-- The same further down. The lock is a state, and a string copied while the
+	-- prompt was unlocked would unlock everybody's, and an unlocked prompt never
+	-- casts. Where the prompt sits is about the screen.
+	local SHARE_SKIP_NAMES = {
+		["prompt.locked"] = true,
+		["prompt.point"] = true,
+		["prompt.relPoint"] = true,
+		["prompt.x"] = true,
+		["prompt.y"] = true,
+	}
 
--- Imported only when the player already has it on: a pasted string must never
--- switch on speaking to other players.
-local SHARE_KEEP_MINE = { ["speech.enabled"] = true }
+	-- Imported only when the player already has it on: a pasted string must never
+	-- switch on speaking to other players.
+	local SHARE_KEEP_MINE = { ["speech.enabled"] = true }
 
--- What is said and where, kept as the player has it whenever speaking is on,
--- so a paste cannot start yelling a stranger's words. With speaking off they
--- travel, changing nothing anybody hears.
-local SHARE_SPEECH = {
-	["speech.channel"] = true,
-	["speech.phrases"] = true,
-	["speech.presetChoice"] = true,
-	["speech.onlyWhenReturning"] = true,
-}
+	-- What is said and where, kept as the player has it whenever speaking is on,
+	-- so a paste cannot start yelling a stranger's words. With speaking off they
+	-- travel, changing nothing anybody hears.
+	local SHARE_SPEECH = {
+		["speech.channel"] = true,
+		["speech.phrases"] = true,
+		["speech.presetChoice"] = true,
+		["speech.onlyWhenReturning"] = true,
+	}
 
--- Defaults that are not a constant: the phrase box is filled from the chosen
--- set at load.
-local SHARE_DEFAULT = {
-	["speech.phrases"] = function(profile)
-		local speech = profile.speech or {}
-		return ns.PhraseSetText(speech.presetChoice) or ns.PhraseSetText("roleplay")
-	end,
-}
+	-- Defaults that are not a constant: the phrase box is filled from the chosen
+	-- set at load.
+	local SHARE_DEFAULT = {
+		["speech.phrases"] = function(profile)
+			local speech = profile.speech or {}
+			return ns.PhraseSetText(speech.presetChoice) or ns.PhraseSetText("roleplay")
+		end,
+	}
 
-local shareFields
+	local shareFields
 
--- Every setting that can be shared, walked out of the defaults table, so a
--- new setting is shareable as soon as it has a default.
-local function ShareFields()
-	if shareFields then return shareFields end
-	local fields = {}
-	local function walk(defs, path, prefix)
-		for key, value in pairs(defs) do
-			if type(key) == "string" and not (prefix == "" and SHARE_SKIP[key])
-				and not SHARE_SKIP_NAMES[prefix .. key] then
-				local name = prefix .. key
-				local kind
-				if type(value) == "table" then
-					if type(value[1]) == "number" then
-						kind = "colour"
-					elseif name == "buff.skip" then
-						kind = "set"
-					else
-						local inner = {}
-						for i = 1, #path do inner[i] = path[i] end
-						inner[#inner + 1] = key
-						walk(value, inner, name .. ".")
+	-- Every setting that can be shared, walked out of the defaults table, so a
+	-- new setting is shareable as soon as it has a default.
+	local function ShareFields()
+		if shareFields then return shareFields end
+		local fields = {}
+		local function walk(defs, path, prefix)
+			for key, value in pairs(defs) do
+				if type(key) == "string" and not (prefix == "" and SHARE_SKIP[key])
+					and not SHARE_SKIP_NAMES[prefix .. key] then
+					local name = prefix .. key
+					local kind
+					if type(value) == "table" then
+						if type(value[1]) == "number" then
+							kind = "colour"
+						elseif name == "buff.skip" then
+							kind = "set"
+						else
+							local inner = {}
+							for i = 1, #path do inner[i] = path[i] end
+							inner[#inner + 1] = key
+							walk(value, inner, name .. ".")
+						end
+					elseif type(value) == "boolean" or type(value) == "number"
+						or type(value) == "string" then
+						kind = type(value)
 					end
-				elseif type(value) == "boolean" or type(value) == "number"
-					or type(value) == "string" then
-					kind = type(value)
-				end
-				if kind then
-					fields[#fields + 1] = { name = name, kind = kind, path = path, key = key,
-						default = value }
+					if kind then
+						fields[#fields + 1] = { name = name, kind = kind, path = path, key = key,
+							default = value }
+					end
 				end
 			end
 		end
+		walk(ns.defaults.profile, {}, "")
+		-- The phrase set's dropdown has no default (nil reads as Roleplay), so the
+		-- walk cannot find it.
+		fields[#fields + 1] = { name = "speech.presetChoice", kind = "string",
+			path = { "speech" }, key = "presetChoice" }
+		table.sort(fields, function(a, b) return a.name < b.name end)
+		shareFields = fields
+		return fields
 	end
-	walk(ns.defaults.profile, {}, "")
-	-- The phrase set's dropdown has no default (nil reads as Roleplay), so the
-	-- walk cannot find it.
-	fields[#fields + 1] = { name = "speech.presetChoice", kind = "string",
-		path = { "speech" }, key = "presetChoice" }
-	table.sort(fields, function(a, b) return a.name < b.name end)
-	shareFields = fields
-	return fields
-end
 
--- The table a field lives in, made on the way if asked to.
-local function Holder(profile, path, create)
-	local t = profile
-	for _, seg in ipairs(path) do
-		if type(t[seg]) ~= "table" then
-			if not create then return nil end
-			t[seg] = {}
+	-- The table a field lives in, made on the way if asked to.
+	local function Holder(profile, path, create)
+		local t = profile
+		for _, seg in ipairs(path) do
+			if type(t[seg]) ~= "table" then
+				if not create then return nil end
+				t[seg] = {}
+			end
+			t = t[seg]
 		end
-		t = t[seg]
+		return t
 	end
-	return t
-end
 
-local function Finite(n)
-	return type(n) == "number" and n == n and n ~= math.huge and n ~= -math.huge
-end
-
-local function NumberText(n)
-	return ("%.10g"):format(n)
-end
-
--- Anything but letters, digits and a little punctuation is written as %XX, and
--- a space as +: no separator (; = : ,) or chat escape (|) survives, and with
--- no spaces a line break a text box inserts can be stripped on the way in.
-local function EncodeText(s)
-	return (s:gsub("[^%w_%.%-!%?'%(%){}/ ]", function(c)
-		return ("%%%02X"):format(c:byte())
-	end):gsub(" ", "+"))
-end
-
-local function DecodeText(s)
-	-- Every % has to open a pair of hex digits; EncodeText never writes a lone one.
-	if s:gsub("%%%x%x", ""):find("%", 1, true) then return nil end
-	local text = s:gsub("%+", " "):gsub("%%(%x%x)", function(hex)
-		return string.char(tonumber(hex, 16))
-	end)
-	-- No control characters, except a line break (one phrase per line) and a
-	-- tab, which a text box takes and ExportSettings therefore writes.
-	for i = 1, #text do
-		local b = text:byte(i)
-		if (b < 32 and b ~= 10 and b ~= 9) or b == 127 then return nil end
+	local function Finite(n)
+		return type(n) == "number" and n == n and n ~= math.huge and n ~= -math.huge
 	end
-	return text
-end
 
-local function ReadNumber(s)
-	if not s:match("^[%d%.%-%+eE]+$") then return nil end
-	local n = tonumber(s)
-	if not Finite(n) then return nil end
-	return n
-end
+	local function NumberText(n)
+		return ("%.10g"):format(n)
+	end
 
-local function DefaultOf(field, profile)
-	local fn = SHARE_DEFAULT[field.name]
-	if fn then return fn(profile) end
-	return field.default
-end
+	-- Anything but letters, digits and a little punctuation is written as %XX, and
+	-- a space as +: no separator (; = : ,) or chat escape (|) survives, and with
+	-- no spaces a line break a text box inserts can be stripped on the way in.
+	local function EncodeText(s)
+		return (s:gsub("[^%w_%.%-!%?'%(%){}/ ]", function(c)
+			return ("%%%02X"):format(c:byte())
+		end):gsub(" ", "+"))
+	end
 
--- A field's value as text, or nil when it is the default and need not travel.
-local function EncodeValue(field, value, profile)
-	local kind = field.kind
-	if kind == "boolean" then
-		if type(value) ~= "boolean" or value == field.default then return nil end
-		return value and "1" or "0"
-	elseif kind == "number" then
-		if not Finite(value) or value == field.default then return nil end
-		return NumberText(value)
-	elseif kind == "string" then
-		if type(value) ~= "string" or value == DefaultOf(field, profile) then return nil end
-		return EncodeText(value)
-	elseif kind == "colour" then
-		if type(value) ~= "table" then return nil end
-		local parts, same = {}, true
-		for i = 1, 4 do
-			local c = value[i]
-			if c == nil and i == 4 then break end
-			if not Finite(c) then return nil end
-			parts[i] = NumberText(c)
-			if c ~= field.default[i] then same = false end
+	local function DecodeText(s)
+		-- Every % has to open a pair of hex digits; EncodeText never writes a lone one.
+		if s:gsub("%%%x%x", ""):find("%", 1, true) then return nil end
+		local text = s:gsub("%+", " "):gsub("%%(%x%x)", function(hex)
+			return string.char(tonumber(hex, 16))
+		end)
+		-- No control characters, except a line break (one phrase per line) and a
+		-- tab, which a text box takes and ExportSettings therefore writes.
+		for i = 1, #text do
+			local b = text:byte(i)
+			if (b < 32 and b ~= 10 and b ~= 9) or b == 127 then return nil end
 		end
-		if same and #parts == #field.default then return nil end
-		return table.concat(parts, ",")
-	elseif kind == "set" then
-		if type(value) ~= "table" then return nil end
-		local keys = {}
-		for key, on in pairs(value) do
-			if on == true and type(key) == "string" and key:match("^[%w_]+$") then
-				keys[#keys + 1] = key
+		return text
+	end
+
+	local function ReadNumber(s)
+		if not s:match("^[%d%.%-%+eE]+$") then return nil end
+		local n = tonumber(s)
+		if not Finite(n) then return nil end
+		return n
+	end
+
+	local function DefaultOf(field, profile)
+		local fn = SHARE_DEFAULT[field.name]
+		if fn then return fn(profile) end
+		return field.default
+	end
+
+	-- A field's value as text, or nil when it is the default and need not travel.
+	local function EncodeValue(field, value, profile)
+		local kind = field.kind
+		if kind == "boolean" then
+			if type(value) ~= "boolean" or value == field.default then return nil end
+			return value and "1" or "0"
+		elseif kind == "number" then
+			if not Finite(value) or value == field.default then return nil end
+			return NumberText(value)
+		elseif kind == "string" then
+			if type(value) ~= "string" or value == DefaultOf(field, profile) then return nil end
+			return EncodeText(value)
+		elseif kind == "colour" then
+			if type(value) ~= "table" then return nil end
+			local parts, same = {}, true
+			for i = 1, 4 do
+				local c = value[i]
+				if c == nil and i == 4 then break end
+				if not Finite(c) then return nil end
+				parts[i] = NumberText(c)
+				if c ~= field.default[i] then same = false end
+			end
+			if same and #parts == #field.default then return nil end
+			return table.concat(parts, ",")
+		elseif kind == "set" then
+			if type(value) ~= "table" then return nil end
+			local keys = {}
+			for key, on in pairs(value) do
+				if on == true and type(key) == "string" and key:match("^[%w_]+$") then
+					keys[#keys + 1] = key
+				end
+			end
+			if #keys == 0 then return nil end
+			table.sort(keys)
+			return table.concat(keys, ",")
+		end
+	end
+
+	-- Text back into a value of the field's own type, or nil for anything that is
+	-- not one.
+	local function DecodeValue(field, raw)
+		local kind = field.kind
+		if kind == "boolean" then
+			if raw == "1" then return true elseif raw == "0" then return false end
+			return nil
+		elseif kind == "number" then
+			return ReadNumber(raw)
+		elseif kind == "string" then
+			return DecodeText(raw)
+		elseif kind == "colour" then
+			local out = {}
+			for part in (raw .. ","):gmatch("([^,]*),") do
+				local n = ReadNumber(part)
+				if not n or #out >= 4 then return nil end
+				out[#out + 1] = math.max(0, math.min(1, n))
+			end
+			if #out < 3 then return nil end
+			return out
+		elseif kind == "set" then
+			local out, count = {}, 0
+			for part in (raw .. ","):gmatch("([^,]*),") do
+				if not part:match("^[%w_]+$") then return nil end
+				count = count + 1
+				if count > 64 then return nil end
+				out[part] = true
+			end
+			return out
+		end
+	end
+
+	local function Checksum(text)
+		local h = 0
+		for i = 1, #text do h = (h * 31 + text:byte(i)) % 16777213 end
+		return ("%06x"):format(h)
+	end
+
+	-- The current profile as a settings string.
+	function ns.ExportSettings()
+		local profile = addon.db and addon.db.profile
+		if not profile then return nil end
+		local parts = {}
+		for _, field in ipairs(ShareFields()) do
+			local holder = Holder(profile, field.path)
+			local text = holder and EncodeValue(field, holder[field.key], profile)
+			if text then parts[#parts + 1] = field.name .. "=" .. text end
+		end
+		local signed = ns.SHARE_PREFIX .. table.concat(parts, ";")
+		return signed .. ":" .. Checksum(signed)
+	end
+
+	-- Why a string was refused, one sentence each, each one something the player
+	-- can act on.
+	ns.SHARE_ERRORS = {
+		empty = L["there is nothing to import -- paste a settings string that starts with MNR1:."],
+		notOurs = L["that is not a Manners settings string -- one starts with MNR1:."],
+		tooLong = L["that is far longer than any Manners settings string, so it was not read."],
+		newer = L["that string was made by a newer version of Manners -- update the addon to read it."],
+		incomplete = L["that string is incomplete or has been changed -- copy it again in one piece, and paste a long one into the box under Share settings on the General tab."],
+		malformed = L["that string is damaged -- part of it is not a setting Manners can read. Copy it again in one piece."],
+		badValue = L["that string gives %s a value it cannot have, so nothing was changed."],
+	}
+
+	-- Read a settings string without touching anything. Returns the values keyed
+	-- by field name and how many names this version does not know, or nil and the
+	-- sentence saying why not. `cap` is the longest string it will read.
+	local function Parse(text, cap)
+		if type(text) ~= "string" then return nil, ns.SHARE_ERRORS.empty end
+		if #text > cap * 2 then return nil, ns.SHARE_ERRORS.tooLong end
+		-- No setting's text holds whitespace (a space travels as +), so any here
+		-- was added on the way: a wrapped line, or blanks around a paste.
+		text = text:gsub("%s+", "")
+		if text == "" then return nil, ns.SHARE_ERRORS.empty end
+		if #text > cap then return nil, ns.SHARE_ERRORS.tooLong end
+
+		local version, body, sum = text:match("^MNR(%d+):(.*):(%x+)$")
+		if not version then
+			if text:sub(1, 3) == "MNR" then return nil, ns.SHARE_ERRORS.incomplete end
+			return nil, ns.SHARE_ERRORS.notOurs
+		end
+		if tonumber(version) ~= SHARE_VERSION then
+			if (tonumber(version) or 0) > SHARE_VERSION then return nil, ns.SHARE_ERRORS.newer end
+			return nil, ns.SHARE_ERRORS.notOurs
+		end
+		if Checksum("MNR" .. version .. ":" .. body) ~= sum:lower() then
+			return nil, ns.SHARE_ERRORS.incomplete
+		end
+
+		local byName = {}
+		for _, field in ipairs(ShareFields()) do byName[field.name] = field end
+		local values, unknown, count = {}, 0, 0
+		if body ~= "" then
+			for pair in (body .. ";"):gmatch("([^;]*);") do
+				local name, raw = pair:match("^([%w_%.]+)=(.*)$")
+				if not name then return nil, ns.SHARE_ERRORS.malformed end
+				local field = byName[name]
+				if field then
+					local value = DecodeValue(field, raw)
+					if value == nil then return nil, ns.SHARE_ERRORS.badValue:format(name) end
+					if values[name] == nil then count = count + 1 end
+					values[name] = value
+				else
+					-- A setting a later version added: skipped, not refused.
+					unknown = unknown + 1
+				end
 			end
 		end
-		if #keys == 0 then return nil end
-		table.sort(keys)
-		return table.concat(keys, ",")
+		return { values = values, unknown = unknown, count = count }
 	end
-end
 
--- Text back into a value of the field's own type, or nil for anything that is
--- not one.
-local function DecodeValue(field, raw)
-	local kind = field.kind
-	if kind == "boolean" then
-		if raw == "1" then return true elseif raw == "0" then return false end
+	-- Anything pasted or typed is read under the ceiling.
+	function ns.ParseSettings(text)
+		return Parse(text, SHARE_MAX)
+	end
+
+	-- The settings the last import replaced, as a settings string, for this
+	-- session, and the profile they came off: its table (AceDB hands back the same
+	-- table on returning to a profile) and its name, for the line that says so.
+	local lastImportUndo, undoProfile, undoProfileName
+
+	local function ProfileName()
+		local db = addon.db
+		if not db or type(db.GetCurrentProfile) ~= "function" then return nil end
+		local ok, name = pcall(db.GetCurrentProfile, db)
+		if ok and type(name) == "string" then return name end
 		return nil
-	elseif kind == "number" then
-		return ReadNumber(raw)
-	elseif kind == "string" then
-		return DecodeText(raw)
-	elseif kind == "colour" then
-		local out = {}
-		for part in (raw .. ","):gmatch("([^,]*),") do
-			local n = ReadNumber(part)
-			if not n or #out >= 4 then return nil end
-			out[#out + 1] = math.max(0, math.min(1, n))
-		end
-		if #out < 3 then return nil end
-		return out
-	elseif kind == "set" then
-		local out, count = {}, 0
-		for part in (raw .. ","):gmatch("([^,]*),") do
-			if not part:match("^[%w_]+$") then return nil end
-			count = count + 1
-			if count > 64 then return nil end
-			out[part] = true
-		end
-		return out
-	end
-end
-
-local function Checksum(text)
-	local h = 0
-	for i = 1, #text do h = (h * 31 + text:byte(i)) % 16777213 end
-	return ("%06x"):format(h)
-end
-
--- The current profile as a settings string.
-function ns.ExportSettings()
-	local profile = addon.db and addon.db.profile
-	if not profile then return nil end
-	local parts = {}
-	for _, field in ipairs(ShareFields()) do
-		local holder = Holder(profile, field.path)
-		local text = holder and EncodeValue(field, holder[field.key], profile)
-		if text then parts[#parts + 1] = field.name .. "=" .. text end
-	end
-	local signed = ns.SHARE_PREFIX .. table.concat(parts, ";")
-	return signed .. ":" .. Checksum(signed)
-end
-
--- Why a string was refused, one sentence each, each one something the player
--- can act on.
-ns.SHARE_ERRORS = {
-	empty = L["there is nothing to import -- paste a settings string that starts with MNR1:."],
-	notOurs = L["that is not a Manners settings string -- one starts with MNR1:."],
-	tooLong = L["that is far longer than any Manners settings string, so it was not read."],
-	newer = L["that string was made by a newer version of Manners -- update the addon to read it."],
-	incomplete = L["that string is incomplete or has been changed -- copy it again in one piece, and paste a long one into the box under Share settings on the General tab."],
-	malformed = L["that string is damaged -- part of it is not a setting Manners can read. Copy it again in one piece."],
-	badValue = L["that string gives %s a value it cannot have, so nothing was changed."],
-}
-
--- Read a settings string without touching anything. Returns the values keyed
--- by field name and how many names this version does not know, or nil and the
--- sentence saying why not. `cap` is the longest string it will read.
-local function Parse(text, cap)
-	if type(text) ~= "string" then return nil, ns.SHARE_ERRORS.empty end
-	if #text > cap * 2 then return nil, ns.SHARE_ERRORS.tooLong end
-	-- No setting's text holds whitespace (a space travels as +), so any here
-	-- was added on the way: a wrapped line, or blanks around a paste.
-	text = text:gsub("%s+", "")
-	if text == "" then return nil, ns.SHARE_ERRORS.empty end
-	if #text > cap then return nil, ns.SHARE_ERRORS.tooLong end
-
-	local version, body, sum = text:match("^MNR(%d+):(.*):(%x+)$")
-	if not version then
-		if text:sub(1, 3) == "MNR" then return nil, ns.SHARE_ERRORS.incomplete end
-		return nil, ns.SHARE_ERRORS.notOurs
-	end
-	if tonumber(version) ~= SHARE_VERSION then
-		if (tonumber(version) or 0) > SHARE_VERSION then return nil, ns.SHARE_ERRORS.newer end
-		return nil, ns.SHARE_ERRORS.notOurs
-	end
-	if Checksum("MNR" .. version .. ":" .. body) ~= sum:lower() then
-		return nil, ns.SHARE_ERRORS.incomplete
 	end
 
-	local byName = {}
-	for _, field in ipairs(ShareFields()) do byName[field.name] = field end
-	local values, unknown, count = {}, 0, 0
-	if body ~= "" then
-		for pair in (body .. ";"):gmatch("([^;]*);") do
-			local name, raw = pair:match("^([%w_%.]+)=(.*)$")
-			if not name then return nil, ns.SHARE_ERRORS.malformed end
-			local field = byName[name]
-			if field then
-				local value = DecodeValue(field, raw)
-				if value == nil then return nil, ns.SHARE_ERRORS.badValue:format(name) end
-				if values[name] == nil then count = count + 1 end
-				values[name] = value
-			else
-				-- A setting a later version added: skipped, not refused.
-				unknown = unknown + 1
+	function ns.ForgetImportUndo()
+		lastImportUndo, undoProfile, undoProfileName = nil, nil, nil
+	end
+
+	-- What a change of profile does to the undo. A switch leaves it with the
+	-- profile it was made on, waiting for the player to come back. A copy or reset
+	-- of that profile, or deleting it, ends it, and so does arriving at its name
+	-- with a different table: the profile made again from nothing.
+	function ns.ProfileChangedForUndo(event, name)
+		if not lastImportUndo then return end
+		local here = addon.db and addon.db.profile
+		if event == "OnProfileChanged" then
+			if here ~= undoProfile and undoProfileName and ProfileName() == undoProfileName then
+				ns.ForgetImportUndo()
 			end
-		end
-	end
-	return { values = values, unknown = unknown, count = count }
-end
-
--- Anything pasted or typed is read under the ceiling.
-function ns.ParseSettings(text)
-	return Parse(text, SHARE_MAX)
-end
-
--- The settings the last import replaced, as a settings string, for this
--- session, and the profile they came off: its table (AceDB hands back the same
--- table on returning to a profile) and its name, for the line that says so.
-local lastImportUndo, undoProfile, undoProfileName
-
-local function ProfileName()
-	local db = addon.db
-	if not db or type(db.GetCurrentProfile) ~= "function" then return nil end
-	local ok, name = pcall(db.GetCurrentProfile, db)
-	if ok and type(name) == "string" then return name end
-	return nil
-end
-
-function ns.ForgetImportUndo()
-	lastImportUndo, undoProfile, undoProfileName = nil, nil, nil
-end
-
--- What a change of profile does to the undo. A switch leaves it with the
--- profile it was made on, waiting for the player to come back. A copy or reset
--- of that profile, or deleting it, ends it, and so does arriving at its name
--- with a different table: the profile made again from nothing.
-function ns.ProfileChangedForUndo(event, name)
-	if not lastImportUndo then return end
-	local here = addon.db and addon.db.profile
-	if event == "OnProfileChanged" then
-		if here ~= undoProfile and undoProfileName and ProfileName() == undoProfileName then
+		elseif event == "OnProfileDeleted" then
+			if name ~= nil and name == undoProfileName then ns.ForgetImportUndo() end
+		elseif here == undoProfile then
 			ns.ForgetImportUndo()
 		end
-	elseif event == "OnProfileDeleted" then
-		if name ~= nil and name == undoProfileName then ns.ForgetImportUndo() end
-	elseif here == undoProfile then
-		ns.ForgetImportUndo()
 	end
-end
 
-local function CopyValue(v)
-	if type(v) ~= "table" then return v end
-	local out = {}
-	for k, inner in pairs(v) do out[k] = inner end
-	return out
-end
+	local function CopyValue(v)
+		if type(v) ~= "table" then return v end
+		local out = {}
+		for k, inner in pairs(v) do out[k] = inner end
+		return out
+	end
 
-local function SameValue(a, b)
-	if type(a) ~= "table" or type(b) ~= "table" then return a == b end
-	for k, v in pairs(a) do if b[k] ~= v then return false end end
-	for k, v in pairs(b) do if a[k] ~= v then return false end end
-	return true
-end
+	local function SameValue(a, b)
+		if type(a) ~= "table" or type(b) ~= "table" then return a == b end
+		for k, v in pairs(a) do if b[k] ~= v then return false end end
+		for k, v in pairs(b) do if a[k] ~= v then return false end end
+		return true
+	end
 
--- Write a parsed string over the current profile; everything it does not name
--- goes back to its default. `own` is the undo, the player's own settings put
--- back exactly; anything else keeps speaking as the player has it. Returns
--- what was kept back.
-local function ApplySettings(profile, parsed, own)
-	local speaking = profile.speech and profile.speech.enabled == true
-	local kept = { switch = false, words = false }
-	for _, field in ipairs(ShareFields()) do
-		local holder = Holder(profile, field.path, true)
-		local value = parsed.values[field.name]
-		if value == nil then value = CopyValue(field.default) end
-		if not own and SHARE_KEEP_MINE[field.name] then
-			if value == true and holder[field.key] ~= true then kept.switch = true end
-		elseif not own and speaking and SHARE_SPEECH[field.name] then
-			-- Only what the string actually names counts as kept back.
-			if parsed.values[field.name] ~= nil
-				and not SameValue(parsed.values[field.name], holder[field.key]) then
-				kept.words = true
+	-- Write a parsed string over the current profile; everything it does not name
+	-- goes back to its default. `own` is the undo, the player's own settings put
+	-- back exactly; anything else keeps speaking as the player has it. Returns
+	-- what was kept back.
+	local function ApplySettings(profile, parsed, own)
+		local speaking = profile.speech and profile.speech.enabled == true
+		local kept = { switch = false, words = false }
+		for _, field in ipairs(ShareFields()) do
+			local holder = Holder(profile, field.path, true)
+			local value = parsed.values[field.name]
+			if value == nil then value = CopyValue(field.default) end
+			if not own and SHARE_KEEP_MINE[field.name] then
+				if value == true and holder[field.key] ~= true then kept.switch = true end
+			elseif not own and speaking and SHARE_SPEECH[field.name] then
+				-- Only what the string actually names counts as kept back.
+				if parsed.values[field.name] ~= nil
+					and not SameValue(parsed.values[field.name], holder[field.key]) then
+					kept.words = true
+				end
+			else
+				holder[field.key] = value
 			end
+		end
+		-- What a profile switch runs, since every setting changed at once. Safe in
+		-- a fight: ApplyStyle waits for the fight to end. It also forgets the
+		-- undo, which each caller then sets as it needs.
+		addon:RefreshConfig()
+		return kept
+	end
+
+	-- Replace the current profile's shareable settings with the ones in `text`.
+	-- Returns whether it applied and the line to say.
+	function ns.ImportSettings(text)
+		local profile = addon.db and addon.db.profile
+		if not profile then return false, ns.SHARE_ERRORS.empty end
+		local parsed, err = ns.ParseSettings(text)
+		if not parsed then return false, err end
+
+		local undo = ns.ExportSettings()
+		local kept = ApplySettings(profile, parsed, false)
+		lastImportUndo, undoProfile, undoProfileName = undo, profile, ProfileName()
+
+		-- Translators: whole sentences for each count, not an "s" glued on.
+		local lines = {}
+		if parsed.count == 0 then
+			lines[1] = L["settings imported -- every one of them is the default."]
+		elseif parsed.count == 1 then
+			lines[1] = L["settings imported -- 1 differs from the defaults."]
 		else
-			holder[field.key] = value
+			lines[1] = L["settings imported -- %d differ from the defaults."]:format(parsed.count)
 		end
-	end
-	-- What a profile switch runs, since every setting changed at once. Safe in
-	-- a fight: ApplyStyle waits for the fight to end. It also forgets the
-	-- undo, which each caller then sets as it needs.
-	addon:RefreshConfig()
-	return kept
-end
-
--- Replace the current profile's shareable settings with the ones in `text`.
--- Returns whether it applied and the line to say.
-function ns.ImportSettings(text)
-	local profile = addon.db and addon.db.profile
-	if not profile then return false, ns.SHARE_ERRORS.empty end
-	local parsed, err = ns.ParseSettings(text)
-	if not parsed then return false, err end
-
-	local undo = ns.ExportSettings()
-	local kept = ApplySettings(profile, parsed, false)
-	lastImportUndo, undoProfile, undoProfileName = undo, profile, ProfileName()
-
-	-- Translators: whole sentences for each count, not an "s" glued on.
-	local lines = {}
-	if parsed.count == 0 then
-		lines[1] = L["settings imported -- every one of them is the default."]
-	elseif parsed.count == 1 then
-		lines[1] = L["settings imported -- 1 differs from the defaults."]
-	else
-		lines[1] = L["settings imported -- %d differ from the defaults."]:format(parsed.count)
-	end
-	if parsed.unknown == 1 then
-		lines[#lines + 1] = L["1 setting from a newer version of Manners was left out."]
-	elseif parsed.unknown > 1 then
-		lines[#lines + 1] = L["%d settings from a newer version of Manners were left out."]
-			:format(parsed.unknown)
-	end
-	if kept.switch then
-		lines[#lines + 1] = L["The string had speaking a line when you buff switched on. That is left off, because it talks to other players: switch it on under When you click if you want it."]
-	end
-	if kept.words then
-		lines[#lines + 1] = L["What you say when you buff, and where, is kept as you had it, because you have speaking switched on."]
-	end
-	if InCombatLockdown() then
-		lines[#lines + 1] = L["The prompt's look changes when this fight ends."]
-	end
-	lines[#lines + 1] = L["|cffffd100/manners import undo|r puts your old settings back."]
-	return true, table.concat(lines, " ")
-end
-
--- Put back the settings the last import replaced, this session. Once.
-function ns.UndoImport()
-	local profile = addon.db and addon.db.profile
-	if not lastImportUndo or not profile then
-		return false, L["nothing to undo -- no settings have been imported on this profile this session."]
-	end
-	-- Made on another profile: kept for when the player goes back there.
-	if profile ~= undoProfile then
-		if undoProfileName then
-			return false, L["nothing to undo on this profile -- the last import was made on profile %s. Switch back to it to undo it."]
-				:format(undoProfileName)
+		if parsed.unknown == 1 then
+			lines[#lines + 1] = L["1 setting from a newer version of Manners was left out."]
+		elseif parsed.unknown > 1 then
+			lines[#lines + 1] = L["%d settings from a newer version of Manners were left out."]
+				:format(parsed.unknown)
 		end
-		return false, L["nothing to undo on this profile -- the last import was made on another one. Switch back to it to undo it."]
+		if kept.switch then
+			lines[#lines + 1] = L["The string had speaking a line when you buff switched on. That is left off, because it talks to other players: switch it on under When you click if you want it."]
+		end
+		if kept.words then
+			lines[#lines + 1] = L["What you say when you buff, and where, is kept as you had it, because you have speaking switched on."]
+		end
+		if InCombatLockdown() then
+			lines[#lines + 1] = L["The prompt's look changes when this fight ends."]
+		end
+		lines[#lines + 1] = L["|cffffd100/manners import undo|r puts your old settings back."]
+		return true, table.concat(lines, " ")
 	end
-	-- Read back through the same checks as any string, except the length
-	-- ceiling, which is for strings from strangers.
-	local parsed = Parse(lastImportUndo, math.huge)
-	lastImportUndo = nil
-	if not parsed then
-		-- Not "nothing to undo": there was one, and it could not be read.
-		return false, L["your settings from before the import could not be read back, so they were not restored."]
+
+	-- Put back the settings the last import replaced, this session. Once.
+	function ns.UndoImport()
+		local profile = addon.db and addon.db.profile
+		if not lastImportUndo or not profile then
+			return false, L["nothing to undo -- no settings have been imported on this profile this session."]
+		end
+		-- Made on another profile: kept for when the player goes back there.
+		if profile ~= undoProfile then
+			if undoProfileName then
+				return false, L["nothing to undo on this profile -- the last import was made on profile %s. Switch back to it to undo it."]
+					:format(undoProfileName)
+			end
+			return false, L["nothing to undo on this profile -- the last import was made on another one. Switch back to it to undo it."]
+		end
+		-- Read back through the same checks as any string, except the length
+		-- ceiling, which is for strings from strangers.
+		local parsed = Parse(lastImportUndo, math.huge)
+		lastImportUndo = nil
+		if not parsed then
+			-- Not "nothing to undo": there was one, and it could not be read.
+			return false, L["your settings from before the import could not be read back, so they were not restored."]
+		end
+		ApplySettings(profile, parsed, true)
+		if InCombatLockdown() then
+			return true, L["your settings from before the import are back. The prompt's look changes when this fight ends."]
+		end
+		return true, L["your settings from before the import are back."]
 	end
-	ApplySettings(profile, parsed, true)
-	if InCombatLockdown() then
-		return true, L["your settings from before the import are back. The prompt's look changes when this fight ends."]
-	end
-	return true, L["your settings from before the import are back."]
 end
 
 ---------------------------------------------------------------------------

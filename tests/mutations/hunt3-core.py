@@ -79,8 +79,8 @@ mutate("Core.lua",
 
 # core-6: a reset or copy of the import's own profile leaving the undo alive.
 mutate("Core.lua",
-       "\telseif here == undoProfile then\n\t\tns.ForgetImportUndo()\n",
-       "\telseif false then\n\t\tns.ForgetImportUndo()\n",
+       "\t\telseif here == undoProfile then\n\t\t\tns.ForgetImportUndo()\n",
+       "\t\telseif false then\n\t\t\tns.ForgetImportUndo()\n",
        "import undo outlives a reset of its profile",
        expect="core: an import's undo survives a profile round trip (reset)",
        script="runscenarios.py")
