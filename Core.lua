@@ -166,7 +166,8 @@ local defaults = {
 			-- How near a passer-by has to be: cast | near | beside. Not "cast",
 			-- because thirty yards of a city square is twenty-odd nameplates.
 			proximity = "near",
-			-- Passers-by only where the game calls you resting.
+			-- Passers-by only where the game calls you resting. Off, because
+			-- it takes away offers somebody gets today.
 			restingOnly = false,
 			reachableOnly = true, -- hide people we cannot actually reach
 			restoreTarget = true, -- hand your target back after buffing
@@ -950,9 +951,13 @@ end
 --
 -- The follow prompt (CheckInteractDistance 4, about 28 yards) first, where a
 -- refusal stays a refusal. LibRangeCheck only after it and only to say yes
--- within 30 yards (a talented shout), since its "far" can be a refusal in
--- disguise (see DirectCheck). Never the follow prompt in a fight: the game
--- blocks it for a friendly unit and names the addon, which no pcall catches.
+-- within 30 yards, since its "far" can be a refusal in disguise (see
+-- DirectCheck). Both are looser than an untalented shout (20 yards, 30 with all
+-- of Booming Voice) on purpose: they are there to stop the sixty-yard or
+-- other-zone case, not to measure exactly. Never the follow prompt in a fight:
+-- the game blocks it for a friendly unit and names the addon, which no pcall
+-- catches. LibRangeCheck is still asked in a fight, because it switches to its
+-- in-combat checkers by itself.
 local function ShoutReach(unit)
 	if not InCombatLockdown() then
 		local follow = safecall(_G.CheckInteractDistance, unit, 4)
@@ -1026,8 +1031,10 @@ do
 
 	-- The duel prompt, CheckInteractDistance index 3: eight yards, six for a tauren
 	-- and seven for the undead (LibRangeCheck's figures, the only measurement of
-	-- it). Indexes 1, 2 and 4 are no tighter than a spell, and LibRangeCheck keeps
-	-- only 3 on a modern client.
+	-- it). Older clients put it nearer ten, which is why the page says "about".
+	-- Indexes 1 and 4 (about 28 yards) are no tighter than a spell. Index 2 (the
+	-- trade prompt, about nine) is not used because LibRangeCheck dropped it and
+	-- kept 3 on a modern client, the only evidence of which prompts still answer.
 	local INTERACT_DUEL = 3
 	local INTERACT_DUEL_RACE = { Tauren = 6, Scourge = 7 }
 
