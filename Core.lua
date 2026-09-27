@@ -198,6 +198,12 @@ local defaults = {
 			group = true, -- party/raid missing it
 			strangers = true, -- nearby non-group players
 			owedClassBuffsOnly = true, -- ignore stray HoTs and procs
+			-- People who ask for your buff in chat. Off, because reading chat is
+			-- guesswork however careful the rules are: now and then somebody who
+			-- is only talking about a buff will be put on the prompt, and a
+			-- source that can be wrong about who wants something is one the
+			-- player should choose. See "people who ask for a buff".
+			asked = false,
 		},
 
 		-- Who reaches the top of the queue, as opposed to who is on it at all.
@@ -325,6 +331,10 @@ local defaults = {
 			-- anybody reading the queue rows at a glance. They say which now.
 			reasonGroup = L["in your group"],
 			reasonNearby = L["needs {buff}"],
+			-- Somebody who asked for it in chat. Its own line rather than one
+			-- of the others: "needs {buff}" is a guess read off their auras,
+			-- and this is them saying so.
+			reasonAsked = L["asked for it"],
 			-- A top-up is a different offer from a missing buff, and the four
 			-- lines above are the user's to rewrite -- "needs {buff}" is only
 			-- what they start with, so qualifying it here would throw away
@@ -2697,7 +2707,13 @@ function TellLedger(event, ...)
 	if ns.RefreshBrokerText then ns.Guard("broker text", ns.RefreshBrokerText) end
 end
 
-local PRIORITY = { target = 0, owed = 1, group = 2, nearby = 3 }
+-- Somebody who asked for your buff comes after the people who buffed you and
+-- before your group: a request is a person saying they want it, which is more
+-- than a gap read off their auras, and less than a favour already done. One and
+-- a half rather than a renumbering, so every number the others have had since
+-- the start -- in the sort, in the prompt's hold and in bug reports -- still
+-- means what it did.
+local PRIORITY = { target = 0, owed = 1, asked = 1.5, group = 2, nearby = 3 }
 
 -- fn(unit, pointed). `pointed` is the second argument because one caller has to
 -- tell a unit the player deliberately picked out from one the world happened to
@@ -2876,9 +2892,20 @@ function ns.BuildQueue()
 			return
 		end
 
+		-- Somebody who asked for your buff in chat, as the spells they asked for
+		-- that this character would cast -- nil for nobody, and for anybody
+		-- owed, whose favour is the better reason to give. Below the never-offer
+		-- list on purpose: asking is not the exception buffing you is.
+		local asked = not isOwed and ns.AskedFor(unit, full, now, candidates) or nil
+
 		-- Decide whether we would offer this person at all before reading any
 		-- auras, which is the expensive part.
-		local reason = isOwed and "owed" or (inGroup and "group" or "nearby")
+		--
+		-- A request is a source of its own, so the group and passer-by switches
+		-- below do not apply to it, and neither do the checks on how near a
+		-- passer-by is or whether you are in a city: they asked, and a unit
+		-- the scan walks is them. Casting range still applies, further down.
+		local reason = isOwed and "owed" or (asked and "asked") or (inGroup and "group" or "nearby")
 		if reason == "group" and not db.sources.group then return end
 		if reason == "nearby" and not db.sources.strangers then return end
 		if reason == "nearby" and groupOnly then return end
@@ -2935,20 +2962,23 @@ function ns.BuildQueue()
 			return UnitHasBuff(unit, buff, guid)
 		end
 
-		local buff, has, remaining = ns.PickBuffFor(candidates, {
+		-- Only what they asked for, when they asked. Whether it does them any
+		-- good, and whether they already have it, is theirs to judge: the same
+		-- policy as a favour owed, for the same reason -- a person said so.
+		local buff, has, remaining = ns.PickBuffFor(asked or candidates, {
 			hasMana = hasMana,
 			inGroup = inGroup,
 			-- Who a shout reaches, which in a raid is not the group: see
 			-- SameParty. inGroup stays the reason on the card.
 			inParty = SameParty(unit),
-			relevantOnly = f.relevantOnly,
+			relevantOnly = f.relevantOnly and not asked,
 			whenBuffed = whenBuffed,
 			refreshUnder = f.refreshUnder,
 			name = full,
 			-- The policy, said as a policy. Owing somebody means offering them
 			-- even when they are covered, which is a decision about who gets an
 			-- offer and says nothing whatever about what their auras read.
-			offerAnyway = isOwed,
+			offerAnyway = isOwed or asked ~= nil,
 			blocked = function(candidate) return ns.IsBlocked(full, candidate.key, now) end,
 		}, auraState)
 
@@ -2983,8 +3013,11 @@ function ns.BuildQueue()
 		-- order rather than a fact: a player who targets to inspect rather than
 		-- to buff wants the debts back on top, and with this off a target is
 		-- ranked by why they are on the list like anybody else.
+		--
+		-- Not somebody who asked either, for the reason a debt is left alone:
+		-- "asked for it" is the truer line, and it already ranks them high.
 		if unit == "target" and db.priority.target
-			and not isOwed and checked and has == false then
+			and not isOwed and not asked and checked and has == false then
 			reason = "target"
 		end
 
@@ -3144,6 +3177,477 @@ function ns.BuildQueue()
 	end)
 
 	return queue
+end
+
+---------------------------------------------------------------------------
+-- people who ask for a buff
+--
+-- "int pls", "fort?", "can I get kings", "buffs please" -- said in /say or
+-- /yell near you, in your party or raid, or whispered. A message that asks for
+-- a buff this character casts puts whoever said it on the prompt, reading
+-- "asked for it", for a minute. Nothing is ever said back.
+--
+-- What counts as asking is kept deliberately simple, so that it can be said in
+-- a sentence on the options page and so that it errs towards silence. A message
+-- asks for one of your buffs when all of these hold:
+--
+--   * it is short: eight words at most. Anything longer is a conversation that
+--     happens to mention a buff.
+--   * it names the buff in whole words -- "int" is Arcane Intellect, "intro" is
+--     not -- by one of the names players use for it below, or by the spell's
+--     own name as this client spells it, which is how a German or a Korean
+--     client is covered. "buff" or "buffs" names every buff you have.
+--   * nothing in it says no: no, not, don't, stop.
+--   * it reads as a request: a please (pls, plz, bitte...) or "need" anywhere,
+--     or it opens with can, could, may, any, anyone, someone or got, or it is
+--     nothing but the buff's name and a word or two like "me" or "mage". A
+--     buff's own name -- not the looser words below, and not "buff" -- is also
+--     asked for by a question mark at the end, unless the message opens like a
+--     question about it ("is int worth it?").
+--
+-- The looser words are the ones English uses for other things -- might, mark,
+-- wisdom, spirit, shadow, shout. "might be lag?" asks for nothing, so those
+-- need a please, an opener, or to stand alone.
+--
+-- Chat text and senders can be secret values on this client. A secret is
+-- never compared, matched or kept: a message whose text or sender cannot be
+-- read is not a request. Nor is anything you said yourself.
+--
+-- A request names a person, not a unit, so nothing is resolved when it
+-- arrives. It waits, and the queue asks about it for every unit it walks --
+-- your target, focus, mouseover, your group and the nameplates around you. So
+-- somebody whispering from across the zone is offered only if they turn up
+-- before the minute is out, and never by name alone: there is no tokenless
+-- fallback for a request, as there is for a favour, because a favour is
+-- evidence they were in range and a whisper is not.
+--
+-- In a fight nothing can be re-armed, so a request made during one -- or still
+-- standing when one starts -- does not run out until it is over, and then has
+-- its minute. A buff that lands on them serves it.
+--
+-- Everything here sits inside one do-block and hangs its entry points off ns.
+-- This file's main chunk is close to the two hundred locals Lua 5.1 allows one
+-- function, and a block's locals are released at its end.
+---------------------------------------------------------------------------
+
+do
+	-- How long a request stands, and how many are kept. The cap is for a city
+	-- square full of people asking at once; the oldest goes first.
+	local ASK_SECONDS = 60
+	local ASK_KEEP = 30
+	local ASK_MOST_WORDS = 8
+
+	-- The names players type for each buff, lower case, by the buff's key in
+	-- Buffs.lua. Only the buffs this character knows are ever looked up, so a
+	-- priest reading "int pls" finds nothing. A leading ~ marks a word English
+	-- uses for other things, which needs more than a question mark to count.
+	-- Spaces separate the words of a name; "pw f" is how "pw:f" reads once
+	-- punctuation is gone.
+	local ASK_NAMES = {
+		intellect = { "int", "intellect", "ai", "arcane intellect", "brilliance",
+			"arcane brilliance" },
+		fortitude = { "fort", "fortitude", "stam", "stamina", "pwf", "pw f",
+			"power word fortitude", "prayer of fortitude" },
+		spirit = { "divine spirit", "prayer of spirit", "~spirit" },
+		shadow = { "shadow prot", "shadow protection", "sprot",
+			"prayer of shadow protection", "~shadow" },
+		motw = { "motw", "gotw", "mark of the wild", "gift of the wild", "~mark" },
+		thorns = { "thorns" },
+		wisdom = { "bow", "blessing of wisdom", "~wisdom" },
+		might = { "bom", "blessing of might", "~might" },
+		kings = { "kings", "bok", "blessing of kings" },
+		salvation = { "salv", "salvation", "blessing of salvation" },
+		light = { "bol", "blessing of light" },
+		sanctuary = { "sanc", "sanctuary", "blessing of sanctuary" },
+		breath = { "unending breath", "water breathing", "~breath" },
+		battleshout = { "battle shout", "~shout" },
+		emperor = { "legacy of the emperor", "~emperor" },
+		whitetiger = { "legacy of the white tiger", "white tiger" },
+		darkintent = { "dark intent" },
+		hornofwinter = { "horn of winter", "~horn" },
+		skyfury = { "skyfury" },
+		bronze = { "blessing of the bronze", "bronze" },
+		sourceofmagic = { "source of magic" },
+	}
+
+	local function Set(list)
+		local out = {}
+		for _, word in ipairs(list) do out[word] = true end
+		return out
+	end
+
+	-- The small words the rules above are made of, one table so this block
+	-- spends one local on them rather than six. Apostrophes are dropped before
+	-- anything is looked up, so "don't" is "dont".
+	local ASK = {
+		-- Any of every buff you cast.
+		generic = Set({ "buff", "buffs" }),
+		please = Set({ "please", "pls", "plz", "plx", "plox", "pl0x", "plis", "pliz",
+			"plez", "plse", "pleas", "plss", "plzz", "need", "gimme",
+			"bitte", "svp", "stp", "porfa", "favor", "favore",
+			"пожалуйста", "пж", "плз", "плиз", "пжлст" }),
+		opener = Set({ "can", "could", "may", "any", "anyone", "anybody", "someone",
+			"somebody", "got", "mind" }),
+		-- Opening a question about the buff rather than one asking for it.
+		question = Set({ "is", "are", "does", "do", "did", "what", "whats", "why",
+			"how", "which", "when", "where", "should", "would", "was", "were" }),
+		never = Set({ "no", "not", "dont", "stop", "nvm", "never", "cant", "wont",
+			"nicht", "kein", "pas", "нет", "не" }),
+		-- What may stand beside a buff's name in a message that is nothing but
+		-- the name: "int me", "mage int", "for the kings".
+		filler = Set({ "me", "us", "i", "a", "an", "the", "some", "for", "to",
+			"mage", "mages", "priest", "priests", "druid", "druids", "paladin",
+			"paladins", "pala", "pally", "pallys", "warrior", "warlock", "lock" }),
+		-- Chinese and Korean write "please" as part of a word, and write words
+		-- without spaces between them, so these are looked for anywhere.
+		pleaseInside = { "请", "請", "求", "부탁", "주세요" },
+		-- A command rather than a word, so it reads the same in every language.
+		slash = { SAY = "/say", YELL = "/yell", PARTY = "/party", PARTY_LEADER = "/party",
+			RAID = "/raid", RAID_LEADER = "/raid", WHISPER = "/whisper" },
+		-- Every buff you have, as a request for "buff pls".
+		ANY = {},
+	}
+
+	-- Standing requests, oldest first: { name, short, guid, keys, at, expires,
+	-- channel, fight, full }.
+	local requests = {}
+	-- For /manners debug: how many messages were read, and why the ones that
+	-- were not requests were set aside where that is worth knowing.
+	ns.askScan = { heard = 0, unreadable = 0, own = 0, noted = 0 }
+
+	-- A message as words, lower case, with the chat frame's escapes out of the
+	-- way. A spell linked into chat arrives as |Hspell:...|h[Arcane Intellect]|h,
+	-- and the bracketed name is what is kept. Letters, digits and every byte of
+	-- a multibyte character count as a word; everything else separates words.
+	--
+	-- A to Z spelled out rather than %w and string.lower, which follow the C
+	-- locale: under a Western one they take the lead byte of a Cyrillic or
+	-- Chinese character for an accented Latin letter, and lower-casing it
+	-- breaks the character in two. Other scripts are compared by SameWord.
+	local function Words(text)
+		text = text:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
+			:gsub("|H.-|h(.-)|h", "%1"):gsub("|T.-|t", ""):gsub("[A-Z]", string.lower)
+		local words = {}
+		for found in text:gmatch("[A-Za-z0-9\128-\255']+") do
+			local word = found:gsub("'", "")
+			if word ~= "" then words[#words + 1] = word end
+		end
+		return words, text
+	end
+
+	-- Two words the same, regardless of case. Words only folds A to Z, so a
+	-- Russian or a Greek word typed in another case is folded by the client's
+	-- own strcmputf8i where there is one, as SameName folds names.
+	local function SameWord(a, b)
+		if a == b then return true end
+		if not a:find("[\128-\255]") then return false end
+		local caseless = _G.strcmputf8i
+		if type(caseless) ~= "function" then return false end
+		local ok, cmp = pcall(caseless, a, b)
+		return ok and cmp == 0
+	end
+
+	-- Marks every place `name` (already words) stands in `words`, in `covered`,
+	-- and says whether it was found at all.
+	local function Mark(words, name, covered)
+		local found = false
+		local n = #name
+		if n == 0 then return false end
+		for i = 1, #words - n + 1 do
+			local all = true
+			for j = 1, n do
+				if not SameWord(words[i + j - 1], name[j]) then all = false break end
+			end
+			if all then
+				found = true
+				for j = 1, n do covered[i + j - 1] = true end
+			end
+		end
+		return found
+	end
+
+	-- How strongly a message names this buff: "strict" for its own name or one
+	-- of the plain ones, "loose" for one of the ~ words, nil for not at all.
+	local function Names(words, lowered, buff, covered)
+		local strength
+		local own = ns.BuffInfo(buff)
+		own = own and own.name
+		if type(own) == "string" and own ~= "" then
+			local ownWords = Words(own)
+			if Mark(words, ownWords, covered) then
+				strength = "strict"
+			elseif #ownWords == 1 and not ownWords[1]:find("[A-Za-z0-9]") and #ownWords[1] >= 6
+				and lowered:find(ownWords[1], 1, true) then
+				-- A name with no Latin letters and no spaces in it, which is to
+				-- say Chinese: the message has no spaces either, so the name is
+				-- inside a longer "word" and can only be found by looking for it.
+				-- Two characters at least, so it is a name and not a syllable.
+				strength = "strict"
+			end
+		end
+		for _, entry in ipairs(ASK_NAMES[buff.key] or {}) do
+			local loose = entry:sub(1, 1) == "~"
+			if Mark(words, Words(loose and entry:sub(2) or entry), covered) then
+				if not loose then
+					strength = "strict"
+				elseif not strength then
+					strength = "loose"
+				end
+			end
+		end
+		return strength
+	end
+
+	-- The buffs a message asks for, as a set of keys -- ASK.ANY for "buff pls"
+	-- -- or nil for a message that asks for nothing of yours. The rules are the
+	-- ones at the top of this section, in the same order.
+	local function Asks(text)
+		local words, lowered = Words(text)
+		if #words == 0 or #words > ASK_MOST_WORDS then return nil end
+		for _, word in ipairs(words) do
+			if ASK.never[word] then return nil end
+		end
+
+		local pleased = false
+		for _, word in ipairs(words) do
+			if ASK.please[word] then pleased = true break end
+		end
+		if not pleased then
+			for _, inside in ipairs(ASK.pleaseInside) do
+				if lowered:find(inside, 1, true) then pleased = true break end
+			end
+		end
+		local opens = ASK.opener[words[1]] == true
+		-- The full-width question mark is the one Chinese and Japanese type.
+		local questioned = not ASK.question[words[1]]
+			and (lowered:find("%?%s*$") ~= nil or lowered:find("？%s*$") ~= nil)
+
+		local covered, found, generic = {}, {}, false
+		for _, buff in ipairs(ns.GetClassBuffs(playerClass) or {}) do
+			if ns.IsBuffKnown(buff) then
+				found[buff.key] = Names(words, lowered, buff, covered)
+			end
+		end
+		for i, word in ipairs(words) do
+			if ASK.generic[word] then generic, covered[i] = true, true end
+		end
+		local only = true
+		for i, word in ipairs(words) do
+			if not covered[i] and not ASK.filler[word] then only = false break end
+		end
+
+		local keys
+		for key, strength in pairs(found) do
+			if pleased or opens or only or (strength == "strict" and questioned) then
+				keys = keys or {}
+				keys[key] = true
+			end
+		end
+		if not keys and generic and (pleased or opens or only) then keys = ASK.ANY end
+		return keys
+	end
+
+	-- Whether a message is your own: true, false, or nil for could not tell --
+	-- which is treated as yours, so a message is never taken for somebody
+	-- else's on a guess. The GUID decides where both are readable; the name
+	-- only where it is not, and then only the whole of it, so another Mort on
+	-- a client with surnames is not taken for you.
+	local function Mine(sender, guid)
+		local me = plain(UnitGUID("player"))
+		if guid and type(me) == "string" then return guid == me end
+		local first = plain(UnitName("player"))
+		if type(first) ~= "string" then return nil end
+		local short = ShortName(sender)
+		return short == first or short == ns.UnitFullName("player")
+	end
+
+	local function Live(request, now)
+		return request.fight or request.expires > now
+	end
+
+	local function Sweep(now)
+		for i = #requests, 1, -1 do
+			if not Live(requests[i], now) then table.remove(requests, i) end
+		end
+	end
+
+	-- Whether a request was made by the person behind this unit. The GUID where
+	-- both sides have one; the name where either does not, against the name
+	-- they are filed under and against its first word, because a chat sender
+	-- on the client with surnames may be either.
+	local function Made(request, guid, short, first)
+		if request.guid and guid then return request.guid == guid end
+		if SameName(request.short, short) then return true end
+		return first ~= nil and SameName(request.short, first)
+	end
+
+	-- A chat message from `channel` -- SAY, WHISPER and so on -- in the shape
+	-- the client hands it over: the text, the sender, and the sender's GUID.
+	function ns.NoteRequest(channel, text, sender, guid)
+		local db = addon.db and addon.db.profile
+		if not (db and db.enabled and db.sources.asked) then return end
+		ns.askScan.heard = ns.askScan.heard + 1
+		-- plain() before anything else touches them: a secret throws on the
+		-- first comparison and must not even be kept.
+		text, sender, guid = plain(text), plain(sender), plain(guid)
+		if type(text) ~= "string" or type(sender) ~= "string" or sender == "" then
+			ns.askScan.unreadable = ns.askScan.unreadable + 1
+			return
+		end
+		if type(guid) ~= "string" or guid == "" then guid = nil end
+		if Mine(sender, guid) ~= false then
+			ns.askScan.own = ns.askScan.own + 1
+			return
+		end
+		local keys = Asks(text)
+		if not keys then return end
+
+		local now = GetTime()
+		Sweep(now)
+		-- One standing request per person: asking again starts the minute again
+		-- and asks for what the new message asks for.
+		local short = ShortName(sender)
+		for i = #requests, 1, -1 do
+			if Made(requests[i], guid, short, nil) then table.remove(requests, i) end
+		end
+		requests[#requests + 1] = {
+			name = sender, short = short, guid = guid, keys = keys, at = now,
+			expires = now + ASK_SECONDS, channel = channel,
+			-- Held until the fight is over: nothing can be offered in one.
+			fight = InCombatLockdown() and true or nil,
+		}
+		while #requests > ASK_KEEP do table.remove(requests, 1) end
+		ns.askScan.noted = ns.askScan.noted + 1
+	end
+
+	-- What the person behind `unit`, filed as `full`, asked for, as the part
+	-- of `candidates` -- the queue's castable list -- that answers it, or nil.
+	--
+	-- A pin still means only ever that one spell: somebody asking for Kings
+	-- from a paladin pinned to Might has asked for nothing this paladin will
+	-- offer, and is ranked as whatever else they are.
+	function ns.AskedFor(unit, full, now, candidates)
+		if #requests == 0 then return nil end
+		local db = addon.db and addon.db.profile
+		if not (db and db.sources.asked) then return nil end
+		local guid = plain(UnitGUID(unit))
+		if type(guid) ~= "string" then guid = nil end
+		local short, first = ShortName(full), FirstName(full)
+		for _, request in ipairs(requests) do
+			if Live(request, now) and Made(request, guid, short, first) then
+				local pinned = ns.PinnedBuff()
+				local pool = {}
+				for _, buff in ipairs(candidates) do
+					if (request.keys == ASK.ANY or request.keys[buff.key])
+						and (not pinned or pinned.key == buff.key) then
+						pool[#pool + 1] = buff
+					end
+				end
+				if #pool == 0 then return nil end
+				request.full = full
+				return pool
+			end
+		end
+		return nil
+	end
+
+	-- A buff landed on them, which is what they asked for. Called from the
+	-- settle, beside the favour being settled; a refusal that arrives after it
+	-- does not put the request back -- they can ask again, and will.
+	function ns.ServeRequest(name)
+		if type(name) ~= "string" then return end
+		local short = ShortName(name)
+		for i = #requests, 1, -1 do
+			local request = requests[i]
+			if request.full == name or SameName(request.short, short) then
+				table.remove(requests, i)
+			end
+		end
+	end
+
+	-- The two ends of a fight. Every request standing when one starts is held
+	-- through it, and when it ends each held one gets its minute from then.
+	function ns.HoldRequestsForFight()
+		local now = GetTime()
+		for _, request in ipairs(requests) do
+			if Live(request, now) then request.fight = true end
+		end
+	end
+
+	function ns.RequestsAfterFight()
+		local now = GetTime()
+		for _, request in ipairs(requests) do
+			if request.fight then
+				request.fight = nil
+				request.expires = now + ASK_SECONDS
+			end
+		end
+		Sweep(now)
+	end
+
+	-- For /manners debug: one line per standing request, or the reason there
+	-- are none.
+	function ns.RequestLines()
+		local db = addon.db and addon.db.profile
+		local lines = {}
+		if not (db and db.sources.asked) then
+			lines[1] = L["not listening for requests -- |cffffd100People who ask me for it|r is switched off."]
+			return lines
+		end
+		local now = GetTime()
+		Sweep(now)
+		local scan = ns.askScan
+		lines[1] = L["requests: %d messages read, %d unreadable, %d yours, %d asked for a buff"]
+			:format(scan.heard, scan.unreadable, scan.own, scan.noted)
+		for _, request in ipairs(requests) do
+			local what = {}
+			if request.keys == ASK.ANY then
+				what[1] = L["any buff"]
+			else
+				for _, buff in ipairs(ns.GetClassBuffs(playerClass) or {}) do
+					if request.keys[buff.key] then what[#what + 1] = ns.BuffName(buff) end
+				end
+			end
+			local where = ASK.slash[request.channel] or tostring(request.channel)
+			if request.fight then
+				lines[#lines + 1] = L["asked in %s: |cffffffff%s|r for %s (held until the fight ends)"]
+					:format(where, request.name, table.concat(what, ", "))
+			else
+				lines[#lines + 1] = L["asked in %s: |cffffffff%s|r for %s (%ds left)"]
+					:format(where, request.name, table.concat(what, ", "),
+						math.floor(request.expires - now))
+			end
+		end
+		if #requests == 0 then lines[#lines + 1] = L["nobody has asked you for a buff recently."] end
+		return lines
+	end
+end
+
+-- The channels a request can arrive in. Every one of them is registered on this
+-- client by addons known to work on it (EnhanceQoL's chat and ignore modules),
+-- and each hands over the text, the sender and, twelfth, the sender's GUID.
+-- CHAT_MSG_WHISPER is only ever a whisper to you; your own go out as
+-- WHISPER_INFORM, which is not listened to.
+function addon:CHAT_MSG_SAY(_, text, sender, ...)
+	ns.Guard("request", ns.NoteRequest, "SAY", text, sender, (select(10, ...)))
+end
+function addon:CHAT_MSG_YELL(_, text, sender, ...)
+	ns.Guard("request", ns.NoteRequest, "YELL", text, sender, (select(10, ...)))
+end
+function addon:CHAT_MSG_PARTY(_, text, sender, ...)
+	ns.Guard("request", ns.NoteRequest, "PARTY", text, sender, (select(10, ...)))
+end
+function addon:CHAT_MSG_PARTY_LEADER(_, text, sender, ...)
+	ns.Guard("request", ns.NoteRequest, "PARTY_LEADER", text, sender, (select(10, ...)))
+end
+function addon:CHAT_MSG_RAID(_, text, sender, ...)
+	ns.Guard("request", ns.NoteRequest, "RAID", text, sender, (select(10, ...)))
+end
+function addon:CHAT_MSG_RAID_LEADER(_, text, sender, ...)
+	ns.Guard("request", ns.NoteRequest, "RAID_LEADER", text, sender, (select(10, ...)))
+end
+function addon:CHAT_MSG_WHISPER(_, text, sender, ...)
+	ns.Guard("request", ns.NoteRequest, "WHISPER", text, sender, (select(10, ...)))
 end
 
 ---------------------------------------------------------------------------
@@ -4563,6 +5067,8 @@ local function SettlePendingClick(landedOn, spellId, castGUID)
 	end
 
 	if not unheard then ns.SettleFavour(pending.name) end
+	-- And whatever they asked for is answered, on the same evidence.
+	if not unheard then ns.ServeRequest(pending.name) end
 	-- The ledger follows the same gate: a shout nobody measured them hearing is
 	-- not recorded either way, so the debt stands and so does its row.
 	if not unheard then TellLedger("Settled", pending.name, wasOwed, pending, spellId) end
@@ -4985,6 +5491,8 @@ function addon:PLAYER_REGEN_DISABLED()
 	-- First, while the button can still be touched: a drag held into the pull
 	-- is let go of and its position kept, rather than released in the fight.
 	if ns.Prompt then ns.Guard("drag at fight start", ns.Prompt.FinishDragForFight, ns.Prompt) end
+	-- Somebody who asked for a buff is not let go while you cannot offer it.
+	ns.Guard("requests at fight start", ns.HoldRequestsForFight)
 	-- The macro this Refresh arms is the one every press in the fight runs,
 	-- whatever the player targets meanwhile, so it is built to hand the target
 	-- back even for somebody who is the target now. See STRATEGIES.target.
@@ -5016,6 +5524,9 @@ function addon:PLAYER_REGEN_ENABLED()
 	-- fight -- first, so the Refresh below rebuilds it without the hand-back
 	-- for somebody who is already the target.
 	if ns.Prompt then ns.Prompt.armedForFight = false end
+	-- Requests held through the fight get their minute from now -- before the
+	-- Refresh below, so the one it builds can offer them.
+	ns.Guard("requests after the fight", ns.RequestsAfterFight)
 	if ns.Prompt and ns.Prompt.pendingStyle then
 		ns.Prompt:ApplyStyle()
 	elseif ns.Prompt then
@@ -5651,7 +6162,7 @@ function ns.ClampSettings()
 	-- be granted for the session and quietly taken back at the next login.
 	if not ns.UsableFormat(p.format) then p.format = ns.defaults.profile.prompt.format end
 	for _, key in ipairs({ "reasonTarget", "reasonOwed", "reasonGroup",
-		"reasonNearby", "reasonRefresh", "reasonUnknown" }) do
+		"reasonNearby", "reasonAsked", "reasonRefresh", "reasonUnknown" }) do
 		if type(p[key]) ~= "string" then
 			p[key] = ns.defaults.profile.prompt[key]
 		end
@@ -5946,6 +6457,17 @@ function addon:OnEnable()
 		"PLAYER_UNGHOST",
 		"PLAYER_ALIVE",
 		"PLAYER_DEAD",
+		-- People asking for a buff: see "people who ask for a buff". Registered
+		-- whether or not that source is on, because the handler's first question
+		-- is the switch, and a registration that followed the switch would be one
+		-- more thing a profile change has to remember.
+		"CHAT_MSG_SAY",
+		"CHAT_MSG_YELL",
+		"CHAT_MSG_PARTY",
+		"CHAT_MSG_PARTY_LEADER",
+		"CHAT_MSG_RAID",
+		"CHAT_MSG_RAID_LEADER",
+		"CHAT_MSG_WHISPER",
 	}) do
 		ns.Guard("RegisterEvent " .. event, function() self:RegisterEvent(event) end)
 	end
@@ -7326,6 +7848,11 @@ function addon:HandleSlash(rawInput)
 				self:Print("  " .. L["nobody has buffed you recently."])
 			end
 		end
+		-- The third source, which reads chat: whether it is listening, how much
+		-- it has read and set aside, and who is waiting on it. "Somebody asked
+		-- and was never offered" is answered by whether their message was
+		-- counted at all, and then by whether it is still standing here.
+		for _, line in ipairs(ns.RequestLines()) do self:Print("  " .. line) end
 
 		-- And whether that is because nobody has, or because the last look at
 		-- your own buffs was not one this addon was willing to believe.

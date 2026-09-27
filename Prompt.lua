@@ -415,10 +415,14 @@ local REASON_COLOR = {
 	owed = { 1.00, 0.78, 0.30 },
 	group = { 0.34, 0.60, 0.96 },
 	nearby = { 0.52, 0.54, 0.62 },
+	-- Somebody who asked for it in chat: a warm pink, which is none of the
+	-- four above in hue and sits between owed and group in grey (0.68), so it
+	-- still reads as its own thing to somebody who cannot tell the hues apart.
+	asked = { 0.96, 0.52, 0.80 },
 }
 
 local REASON_KEY = { target = "reasonTarget", owed = "reasonOwed",
-	group = "reasonGroup", nearby = "reasonNearby" }
+	group = "reasonGroup", nearby = "reasonNearby", asked = "reasonAsked" }
 
 -- Whole minutes, because the refresh threshold is set in minutes and a countdown
 -- ticking under the cursor reads as urgency the prompt does not mean. Under a
@@ -1257,6 +1261,8 @@ function Prompt:Create()
 		local why
 		if current.reason == "owed" then
 			why = L["Buffed you -- return the favour."]
+		elseif current.reason == "asked" then
+			why = L["Asked you for it in chat."]
 		elseif left then
 			why = current.reason == "group" and L["In your group, and theirs is running out."]
 				or current.reason == "target" and L["Your target, and theirs is running out."]
@@ -2184,7 +2190,8 @@ function Prompt:ReasonText(entry)
 	-- the tooltip still says the aura could not be read.
 	if RemainingText(entry.remaining) then
 		template = p.reasonRefresh or template
-	elseif entry.checked and entry.known == nil and entry.reason ~= "owed" then
+	elseif entry.checked and entry.known == nil and entry.reason ~= "owed"
+		and entry.reason ~= "asked" then
 		template = p.reasonUnknown or template
 	end
 	return Substitute(template, entry, 0)

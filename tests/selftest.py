@@ -604,7 +604,7 @@ mutate("Options.lua",
 # 38. three sources switched off, which is a prompt that can never appear and
 #     is indistinguishable from a broken addon.
 mutate("Options.lua",
-       "					return s.owed or s.group or (s.strangers and not OnlyReachesGroup())",
+       "					return s.owed or s.group or s.asked or (s.strangers and not OnlyReachesGroup())",
        "					return true",
        "no warning for a queue that can never fill",
        expect="all three sources are off and the page says nothing",

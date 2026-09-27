@@ -658,7 +658,7 @@ local function BuildOptions()
 					-- read the hidden toggle's leftover true and stay silent,
 					-- in exactly the case where the prompt really was dead and
 					-- no visible control could explain it.
-					return s.owed or s.group or (s.strangers and not OnlyReachesGroup())
+					return s.owed or s.group or s.asked or (s.strangers and not OnlyReachesGroup())
 				end,
 				name = "|cffff8080"
 					.. L["Nothing below is switched on, so the prompt will never appear."] .. "|r",
@@ -731,6 +731,33 @@ local function BuildOptions()
 				name = "|cff888888"
 					.. L["Everything you can offer is cast on yourself and heard by your party, so there is nothing to give a passer-by."]
 					.. "|r",
+			},
+			-- The source that reads chat. The rule is spelled out here in full,
+			-- because it is the whole of what decides whether somebody is put on
+			-- the prompt, and "why did it offer them" has no other answer the
+			-- player can see. The section in Core.lua is the same rule in code.
+			asked = {
+				type = "toggle",
+				name = L["People who ask me for it"],
+				desc = L["Somebody who asks for your buff in /say, /yell, your party or raid, or a whisper is offered it for a minute once the game can see them -- \"int pls\", \"fort?\", \"can I get kings\", \"buffs please\", or the spell's own name in your language. They come after people who buffed you and before your group. Nothing is said back to them."]
+					.. "\n\n"
+					.. L["Only short messages that ask count: eight words at most, the buff named as a whole word, nothing saying no or not, and a please, a question mark, an opening like \"can I\" or \"anyone\", or nothing but the buff's name. Words English uses for other things -- might, mark, wisdom, spirit, shadow -- need more than a question mark."]
+					.. "\n\n|cff888888"
+					.. L["Off at first, because reading chat is guesswork: now and then somebody only talking about a buff will be offered one. Asking in a fight is remembered until the fight ends."]
+					.. "|r",
+				order = 14.6,
+				width = "full",
+				get = sGet,
+				set = sSet,
+			},
+			reasonAsked = {
+				type = "input",
+				name = L["Wording: asked for it"],
+				desc = L["The prompt's second line for somebody who asked for the buff in chat."],
+				order = 14.7,
+				disabled = function() return not S().asked end,
+				get = pGet,
+				set = pSet,
 			},
 
 			-- Not a source: everybody here is already on the list by one of the
