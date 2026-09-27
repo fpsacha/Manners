@@ -2354,6 +2354,10 @@ function TellLedger(event, ...)
 	local ledger = ns.Ledger
 	local fn = ledger and ledger[event]
 	if type(fn) == "function" then ns.Guard("ledger " .. event, fn, ...) end
+	-- "In character" counts the exchanges with each person this session from
+	-- the same four moments, for its lines about meeting somebody again.
+	local heard = ns.InCharacter and ns.InCharacter.Heard
+	if type(heard) == "function" then ns.Guard("in character " .. event, heard, event, ...) end
 	-- The launcher counts the favours waiting to be returned.
 	if ns.RefreshBrokerText then ns.Guard("broker text", ns.RefreshBrokerText) end
 end
@@ -3489,8 +3493,11 @@ do
 			return
 		end
 
+		-- The spell rides along for "In character" (Phrases.lua), which thanks
+		-- them by it; the newest favour's, like the class. In memory only.
 		owed[seen.name] = { expires = GetTime() + db.timing.reciprocateWindow, at = GetTime(),
-			guid = seen.guid, class = seen.class }
+			guid = seen.guid, class = seen.class,
+			spell = type(seen.key) == "number" and seen.key or nil }
 		-- Whether only a buff that reaches your own party could return it: asked
 		-- as if they were outside it, about classes rather than where they stand,
 		-- so the ledger's row stays true after they join or leave.

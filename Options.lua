@@ -1487,6 +1487,7 @@ local function BuildOptions()
 						hidden = function() return not (ns.InCharacter and ns.InCharacter.Active(SP())) end,
 						name = function()
 							return "\n|cffffd100" .. L["In character: the line is picked when you click, to fit your race, your faction and the moment -- thanks for a favour, an answer to a request, or an offer. Below are a few of this character's lines; edit them and they become your own lines instead."]
+								.. " " .. L["It notices more than that: your class, the spell, what they gave you, how often you two have met this session, where you are and the hour."]
 								.. "|r\n"
 						end,
 					},

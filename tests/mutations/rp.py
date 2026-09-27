@@ -44,7 +44,7 @@ mutate("Phrases.lua",
 
 # The friendlier group lines never said.
 mutate("Phrases.lua",
-       "\t\t\tadd(RP.GENERAL.group, weight.group)\n",
+       '\t\t\tadd(RP.GENERAL.group, weight.group, "group")\n',
        "",
        "no group lines",
        expect="rp: reasons pick their own lines",
@@ -52,7 +52,7 @@ mutate("Phrases.lua",
 
 # The general lines gone outside a group, so a people repeats itself.
 mutate("Phrases.lua",
-       "\t\t\tadd(RP.GENERAL[kind], weight.general)\n",
+       '\t\t\tadd(RP.GENERAL[kind], weight.general, "general")\n',
        "",
        "no general lines",
        expect="rp: a dwarf of the Alliance thanks like one",
@@ -60,8 +60,8 @@ mutate("Phrases.lua",
 
 # A people's own lines weighed no more than anybody's.
 mutate("Phrases.lua",
-       "RP.WEIGHT = { race = 3, kin = 6, faction = 2, general = 1, group = 2 }\n",
-       "RP.WEIGHT = { race = 1, kin = 6, faction = 2, general = 1, group = 2 }\n",
+       "\trace = 8, kin = 8,",
+       "\trace = 1, kin = 8,",
        "race lines not weighted highest",
        expect="rp: a dwarf of the Alliance thanks like one",
        script="runscenarios.py")
@@ -98,22 +98,28 @@ mutate("Phrases.lua",
        expect="rp: kin is greeted as kin",
        script="runscenarios.py")
 
-# Kin read off a token that has moved on to somebody else.
+# Kin, and a class, read off a token that has moved on to somebody else.
 mutate("Phrases.lua",
-       "\t\tif not ok or name == nil or name ~= entry.name then return false end\n",
-       "\t\tif not ok then return false end\n",
+       "\t\tif not ok or name == nil or name ~= entry.name then return nil end\n",
+       "\t\tif not ok then return nil end\n",
        "kin read off a recycled token",
        expect="rp: kin is greeted as kin",
        script="runscenarios.py")
 
-# Only this character's examples count as untouched, so a shared profile's
-# set reads as edited on every other character.
+# Only this character's class counts as untouched, so a shared profile's set
+# reads as edited on a character of another class.
 mutate("Phrases.lua",
-       "\t\t\tfor family in pairs(RP.RACE) do\n"
-       "\t\t\t\tif text == RP.Examples(family, faction, english) then return true end\n"
-       "\t\t\tend\n",
-       "\t\t\tif text == RP.Text() then return true end\n",
+       "\t\tfor class in pairs(RP.CLASS) do tails[#tails + 1] = Tail(class, english) end\n",
+       "",
        "shared profile loses in character",
+       expect="rp: load the set, share it, edit it",
+       script="runscenarios.py")
+
+# ...and of another people.
+mutate("Phrases.lua",
+       "\t\tfor family in pairs(RP.RACE) do families[#families + 1] = family end\n",
+       "",
+       "shared profile loses in character across peoples",
        expect="rp: load the set, share it, edit it",
        script="runscenarios.py")
 
@@ -125,10 +131,10 @@ mutate("Phrases.lua",
        expect="rp: load the set, share it, edit it",
        script="runscenarios.py")
 
-# Every line rolled, the favours only or not.
+# Every reason rolled, the favours only or not.
 mutate("Phrases.lua",
-       "\t\tif speech and speech.onlyWhenReturning then rows = { ROLL[1], ROLL[1], ROLL[1] } end\n",
-       "",
+       "\t\tlocal only = speech and speech.onlyWhenReturning\n",
+       "\t\tlocal only = false\n",
        "roll ignores only when returning",
        expect="rp: roll a few rolls a line per reason",
        script="runscenarios.py")
@@ -189,8 +195,8 @@ mutate("Phrases.lua",
 
 # English examples saved before translation count as edited lines.
 mutate("Phrases.lua",
-       "\t\tlocal answer = IsExamples(text) or IsExamples(text, true)\n",
-       "\t\tlocal answer = IsExamples(text)\n",
+       "\t\tlocal answer = IsExamples(text, false, true) or IsExamples(text, true, true)\n",
+       "\t\tlocal answer = IsExamples(text, false, true)\n",
        "english examples lose in character",
        expect="rp: english examples still count once the lines are translated",
        script="runscenarios.py")
@@ -201,4 +207,247 @@ mutate("Core.lua",
        "",
        "in character english box not repaired",
        expect="rp: english examples still count once the lines are translated",
+       script="runscenarios.py")
+
+# ---------------------------------------------------------------- the moment
+
+# The speaker's class never heard.
+mutate("Phrases.lua",
+       '\t\tadd(PoolFor(RP.CLASS[class], kind), weight.class, "class")\n',
+       "",
+       "rp no class lines",
+       expect="rp: each class speaks with its own lines",
+       script="runscenarios.py")
+
+# The class read off UnitClass's first return, the display name ("Mage"),
+# which no pool is keyed by.
+mutate("Phrases.lua",
+       '\t\tlocal _, class = Ask(_G.UnitClass, "player")\n',
+       '\t\tlocal class = Ask(_G.UnitClass, "player")\n',
+       "rp class read as its display name",
+       expect="rp: each class speaks with its own lines",
+       script="runscenarios.py")
+
+# Nothing said about the spell going out.
+mutate("Phrases.lua",
+       '\t\tadd(type(entry.buff) == "table" and RP.SPELL[entry.buff.key], weight.spell, "spell")\n',
+       "",
+       "rp no spell lines",
+       expect="rp: lines about the spell going out",
+       script="runscenarios.py")
+
+# The debt forgets which spell they gave.
+mutate("Core.lua",
+       '\t\t\tspell = type(seen.key) == "number" and seen.key or nil }\n',
+       "\t\t\tspell = nil }\n",
+       "rp debt forgets the spell",
+       expect="rp: a favour is thanked for by the spell it was",
+       script="runscenarios.py")
+
+# A trade line for somebody who never gave anything back.
+mutate("Phrases.lua",
+       '\t\tlocal gift = kind == "thanks" and RP.Gift(entry) or nil\n',
+       "\t\tlocal gift = RP.Gift(entry)\n",
+       "rp trade lines for every moment",
+       expect="rp: a favour is thanked for by the spell it was",
+       script="runscenarios.py")
+
+# "Your Arcane Intellect for my Arcane Intellect."
+mutate("Phrases.lua",
+       "\t\tif gift ~= nil and gift == buff then gift = nil end\n",
+       "",
+       "rp a spell traded for itself",
+       expect="rp: a favour is thanked for by the spell it was",
+       script="runscenarios.py")
+
+# The trade lines never joined the draw.
+mutate("Phrases.lua",
+       '\t\tif gift then add(RP.TRADE, weight.trade, "trade") end\n',
+       "",
+       "rp no trade lines",
+       expect="rp: a favour is thanked for by the spell it was",
+       script="runscenarios.py")
+
+# Core never tells the set what happened, so nobody is ever met again.
+mutate("Core.lua",
+       '\tif type(heard) == "function" then ns.Guard("in character " .. event, heard, event, ...) end\n',
+       "",
+       "rp exchanges never heard",
+       expect="rp: meeting the same person again",
+       script="runscenarios.py")
+
+# Every buff of one favour counted as another meeting.
+mutate("Phrases.lua",
+       "\t\t\tif not waiting[name] then Count(name, 1) end\n",
+       "\t\t\tCount(name, 1)\n",
+       "rp one favour counted per buff",
+       expect="rp: meeting the same person again",
+       script="runscenarios.py")
+
+# A favour returned counted as a second exchange.
+mutate("Phrases.lua",
+       "\t\t\tif gift or not waiting[a] then Count(a, 1) end\n",
+       "\t\t\tCount(a, 1)\n",
+       "rp a return counted again",
+       expect="rp: meeting the same person again",
+       script="runscenarios.py")
+
+# A refused gift still counted.
+mutate("Phrases.lua",
+       "\t\t\tif undo.gift then Count(a, -1) else waiting[a] = true end\n",
+       "",
+       "rp a refused gift still counted",
+       expect="rp: meeting the same person again",
+       script="runscenarios.py")
+
+# A thank-you counts the favour it thanks for a second time.
+mutate("Phrases.lua",
+       '\t\t\tif not (kind == "thanks" and waiting[name]) then n = n + 1 end\n',
+       "\t\t\tn = n + 1\n",
+       "rp a thank-you counted twice",
+       expect="rp: meeting the same person again",
+       script="runscenarios.py")
+
+# Nobody is ever a regular.
+mutate("Phrases.lua",
+       '\t\tif n >= 4 then return "regular" end\n',
+       "",
+       "rp no regulars",
+       expect="rp: meeting the same person again",
+       script="runscenarios.py")
+
+# The lines about meeting again never joined the draw.
+mutate("Phrases.lua",
+       '\t\tadd(RP.HISTORY[RP.Familiar(entry, kind)], weight.history, "history")\n',
+       "",
+       "rp no history lines",
+       expect="rp: meeting the same person again",
+       script="runscenarios.py")
+
+# Nothing said about where this is.
+mutate("Phrases.lua",
+       '\t\tadd(RP.PLACE[RP.Place()], weight.place, "place")\n',
+       "",
+       "rp no place lines",
+       expect="rp: lines for where you are",
+       script="runscenarios.py")
+
+# A battleground read as the wilds.
+mutate("Phrases.lua",
+       '\t\t\tif what == "party" or what == "raid" then return "instance" end\n'
+       "\t\t\treturn nil\n",
+       '\t\t\tif what == "party" or what == "raid" then return "instance" end\n',
+       "rp a battleground is the wilds",
+       expect="rp: lines for where you are",
+       script="runscenarios.py")
+
+# A secret answer from the client taken as an answer.
+mutate("Phrases.lua",
+       "\t\tif secret and (secret(a) or secret(b)) then return false end\n",
+       "",
+       "rp a secret world read",
+       expect="rp: lines for where you are",
+       script="runscenarios.py")
+
+# A client with no such question taken as having answered it.
+mutate("Phrases.lua",
+       '\t\tif type(fn) ~= "function" then return false end\n',
+       '\t\tif type(fn) ~= "function" then return true end\n',
+       "rp an unknown world guessed",
+       expect="rp: lines for where you are",
+       script="runscenarios.py")
+
+# Morning starting an hour late, night an hour late and ending one early.
+mutate("Phrases.lua",
+       '\t\tif hour >= 5 and hour <= 10 then return "morning" end\n',
+       '\t\tif hour > 5 and hour <= 10 then return "morning" end\n',
+       "rp morning off by one",
+       expect="rp: lines for the hour",
+       script="runscenarios.py")
+
+mutate("Phrases.lua",
+       '\t\tif hour >= 22 or hour <= 4 then return "night" end\n',
+       '\t\tif hour > 22 or hour < 4 then return "night" end\n',
+       "rp night off by one",
+       expect="rp: lines for the hour",
+       script="runscenarios.py")
+
+# Nothing said about the hour.
+mutate("Phrases.lua",
+       '\t\tadd(RP.TIME[RP.Hour()], weight.time, "time")\n',
+       "",
+       "rp no time lines",
+       expect="rp: lines for the hour",
+       script="runscenarios.py")
+
+# Nothing said about the class being helped.
+mutate("Phrases.lua",
+       '\t\tadd(RP.TARGET[RP.Target(entry, class)], weight.target, "target")\n',
+       "",
+       "rp no target lines",
+       expect="rp: lines for the class being helped",
+       script="runscenarios.py")
+
+# Two mages meeting, and neither notices.
+mutate("Phrases.lua",
+       '\t\tif theirs == mine then return "sameclass" end\n',
+       "",
+       "rp same class not noticed",
+       expect="rp: lines for the class being helped",
+       script="runscenarios.py")
+
+# Every line of a pool weighed in full, so whoever wrote most is heard most.
+mutate("Phrases.lua",
+       "\t\t\tlocal each = share * math.min(fits, spread) / fits\n",
+       "\t\t\tlocal each = share\n",
+       "rp pools weighed per line",
+       expect="rp: pools are weighed as documented",
+       script="runscenarios.py")
+
+# A lone line heard as often as a full pool.
+mutate("Phrases.lua",
+       "\t\t\tlocal each = share * math.min(fits, spread) / fits\n",
+       "\t\t\tlocal each = share * spread / fits\n",
+       "rp a lone line heard as a pool",
+       expect="rp: pools are weighed as documented",
+       script="runscenarios.py")
+
+# Roll a few's context rows not leaning on their pools.
+mutate("Phrases.lua",
+       "\t\tlocal lean = entry.lean\n",
+       "\t\tlocal lean = nil\n",
+       "rp roll does not lean",
+       expect="rp: roll a few rolls a line per reason",
+       script="runscenarios.py")
+
+# Roll a few without the rows that show the moment.
+mutate("Phrases.lua",
+       "\t\trows[#rows + 1] = only and AGAIN_OWED or AGAIN\n",
+       "",
+       "rp roll shows no meeting again",
+       expect="rp: roll a few rolls a line per reason",
+       script="runscenarios.py")
+
+# The box without the lines that show the moment.
+mutate("Phrases.lua",
+       "\t\tput(RP.HISTORY.again)\n",
+       "",
+       "rp box shows no moment",
+       expect="rp: the box shows the moment, and beta.9's box still counts",
+       script="runscenarios.py")
+
+# A box beta.9 saved counted as the player's own lines.
+mutate("Phrases.lua",
+       "\t\tlocal answer = IsExamples(text, false, true) or IsExamples(text, true, true)\n",
+       "\t\tlocal answer = IsExamples(text, false) or IsExamples(text, true)\n",
+       "rp beta.9 box lost",
+       expect="rp: the box shows the moment, and beta.9's box still counts",
+       script="runscenarios.py")
+
+# ...and left as beta.9 saved it.
+mutate("Phrases.lua",
+       "\t\tif not RP.Active(speech) or IsExamples(speech.phrases) then return end\n",
+       "\t\tif not RP.Active(speech) or IsExamples(speech.phrases, false, true) then return end\n",
+       "rp beta.9 box not repaired",
+       expect="rp: the box shows the moment, and beta.9's box still counts",
        script="runscenarios.py")
