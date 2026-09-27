@@ -105,6 +105,20 @@ local lastStaleAt
 -- What the last resolved press left on the button. The debounce may skip
 -- re-resolving only while the button still holds this.
 local pressKey
+-- Whether the press being resolved is on somebody the fresh queue no longer
+-- holds (the hold or the empty-queue fuse kept them). Their entry's range
+-- reading is from a scan the latest one overruled, so it says nothing about
+-- whether a shout reached them. Set in PreClick, read and cleared in PostClick.
+local pressStale
+
+-- Who the macro frozen for a fight is aimed at, kept when a disarm in that
+-- fight (switched off, unlocked, a preview) could only clear `current`.
+local frozenEntry
+
+-- How many names this file has written into ns.lastGave since it was last
+-- emptied; see OnPostClick.
+local lastGaveCount = 0
+local LAST_GAVE_CAP = 400
 
 -- The moment of a press the cooldown turned away, stamped in PreClick and
 -- consumed by PostClick in the same frame. Stamped ahead of the combat return:
@@ -306,12 +320,17 @@ local REASON_KEY = { target = "reasonTarget", owed = "reasonOwed",
 -- For somebody the set above still fails: chosen by search so the closest pair
 -- is furthest apart in CIE76 under normal sight, protanopia and deuteranopia
 -- (Machado et al. 2009); tests/scenarios/look2.lua holds it to that. Opt-in
--- under Prompt > Style.
+-- under Prompt > Style. Rec.601 greys: target 0.92, owed 0.57, group 0.70,
+-- nearby 0.47, asked 0.37.
 local REASON_COLOR_CVD = {
 	target = { 0.98, 0.96, 0.56 },
 	owed = { 0.92, 0.48, 0.08 },
 	group = { 0.42, 0.78, 1.00 },
 	nearby = { 0.80, 0.20, 1.00 },
+	-- A deep pink, searched for the same way against the four above, and
+	-- darker than the violet and the orange: lightness survives all three
+	-- ways of seeing.
+	asked = { 0.72, 0.20, 0.34 },
 }
 local REASON_PALETTES = { standard = REASON_COLOR, colourblind = REASON_COLOR_CVD }
 
@@ -501,7 +520,10 @@ local function OnPreClick(self, mouseButton)
 		ready = true
 	end
 	cooldownPressAt = (not ready) and now or nil
-	if InCombatLockdown() then return end
+	if InCombatLockdown() then
+		pressStale = nil
+		return
+	end
 
 	-- Down and up both land here; one rebuild per press, but only while the
 	-- button still holds what that rebuild armed (an error or a cooldown in
@@ -518,6 +540,7 @@ local function OnPreClick(self, mouseButton)
 	end
 	lastPreClickAt = now
 	pressKey = nil
+	pressStale = nil
 
 	-- A keypress on an empty prompt says why it is empty, or it looks like a
 	-- broken binding. Commands and option names go in as arguments: they are
@@ -575,6 +598,11 @@ local function OnPreClick(self, mouseButton)
 	-- about somebody else: the press follows the words on the panel.
 	if not top and current and not Retired(current, now) and named == current.name then
 		LightFuse(now)
+		pressStale = true
+		-- Re-keyed rather than rebuilt: whether the macro hands your target back
+		-- depends on who is targeted now, which can have changed since the
+		-- repaint that armed it.
+		Prompt:ApplyTarget(current)
 		pressKey = appliedKey
 		return
 	end
@@ -593,6 +621,14 @@ local function OnPreClick(self, mouseButton)
 			return
 		end
 		top = fresh
+	end
+
+	-- A held entry is not in the queue it was just picked against.
+	if top then
+		pressStale = true
+		for _, candidate in ipairs(queue) do
+			if candidate.name == top.name then pressStale = nil break end
+		end
 	end
 
 	appliedKey = nil
@@ -707,6 +743,11 @@ local function OnPostClick(self, mouseButton, down)
 	-- ns.lastGave is read, because abandoning restores it. And it is read here,
 	-- above the rotation write below, the last point it holds the old value.
 	ns.AbandonPendingClick()
+	-- A held or fused entry's range reading comes from a scan the latest one
+	-- overruled, so it answers neither way: the settle keeps the debt as
+	-- nothing being able to tell.
+	local stale = pressStale
+	pressStale = nil
 	ns.pendingClick = { name = current.name, at = GetTime(),
 		buffKey = current.buff and current.buff.key,
 		selfCast = armed ~= nil and armed.selfCast == true,
@@ -716,10 +757,10 @@ local function OnPostClick(self, mouseButton, down)
 		aimedAt = armed and armed.aimedAt,
 		-- Whether the scan measured them inside a shout's reach: a selfCast
 		-- press clears a debt only where this is true.
-		withinShout = current.ranged == true,
+		withinShout = current.ranged == true and not stale,
 		-- ...and outside it, so the line can say the answer was no rather than
 		-- that nothing answered.
-		outOfShout = current.ranged == false,
+		outOfShout = (not stale and current.ranged == false) or nil,
 		-- For the favour ledger only.
 		class = current.class,
 		inGroup = current.inGroup,
@@ -730,7 +771,19 @@ local function OnPostClick(self, mouseButton, down)
 		ns.MarkAttempted(current.name, current.buff.key)
 		-- Only where the walk will read it back: a paladin's blessings
 		-- overwrite one another, so PickBuffFor never rotates them.
-		if ns.RotatesBuffs() then ns.lastGave[current.name] = current.buff.key end
+		if ns.RotatesBuffs() then
+			-- Bounded like every other per-person table. It is only a rotation
+			-- hint for people whose auras cannot be read, so losing an old
+			-- pointer costs at most one repeated first buff.
+			if ns.lastGave[current.name] == nil then
+				if lastGaveCount >= LAST_GAVE_CAP then
+					wipe(ns.lastGave)
+					lastGaveCount = 0
+				end
+				lastGaveCount = lastGaveCount + 1
+			end
+			ns.lastGave[current.name] = current.buff.key
+		end
 	end
 	Prompt:StopAttention()
 end
@@ -1550,13 +1603,22 @@ local function TextWidth(fs)
 	return type(w) == "number" and w or nil
 end
 
+-- A registered font file can still fail to load, and a font string left with
+-- no font throws on SetText; the game's own font stands in. The saved choice
+-- is left alone.
+local function SafeFont(fs, path, size, flags)
+	if not fs:SetFont(path, size, flags) or not fs:GetFont() then
+		fs:SetFont(STANDARD_TEXT_FONT, size, flags)
+	end
+end
+
 -- A line too long for its room is drawn up to a fifth smaller before the
 -- client cuts it: German and Russian run a third longer than English.
 local function FitLine(fs)
 	local base = fit.base[fs]
 	if not base or not fit.path then return end
 	if fit.size[fs] ~= base then
-		fs:SetFont(fit.path, base, fit.flags)
+		SafeFont(fs, fit.path, base, fit.flags)
 		fit.size[fs] = base
 	end
 	local room = fit.width - fit.textX - (fit.right or EDGE_ROOM)
@@ -1566,7 +1628,7 @@ local function FitLine(fs)
 		local w = TextWidth(fs)
 		if not w or w <= room + 0.5 then break end
 		size = size - 1
-		fs:SetFont(fit.path, size, fit.flags)
+		SafeFont(fs, fit.path, size, fit.flags)
 	end
 	fit.size[fs] = size
 end
@@ -1685,8 +1747,8 @@ local function StyleText(p, style, fontPath, textX, chipRoom, twoLine, countSize
 	fit.width, fit.textX, fit.chipRoom, fit.twoLine = p.width, textX, chipRoom, twoLine
 	fit.base[nameText], fit.base[subText] = p.fontSize, subSize
 	fit.size = {}
-	nameText:SetFont(fontPath, p.fontSize, outline)
-	subText:SetFont(fontPath, subSize, outline)
+	SafeFont(nameText, fontPath, p.fontSize, outline)
+	SafeFont(subText, fontPath, subSize, outline)
 	fit.size[nameText], fit.size[subText] = p.fontSize, subSize
 
 	-- The name in the colour the player picked, as it is. Left at the default,
@@ -1705,12 +1767,12 @@ local function StyleText(p, style, fontPath, textX, chipRoom, twoLine, countSize
 	ink.sub = { sr, sg, sb }
 	subText:SetTextColor(sr, sg, sb, 1)
 	local cr, cg, cb = Legible(greys.count[1], greys.count[2], greys.count[3], TEXT_CONTRAST)
-	countText:SetFont(fontPath, countSize, outline)
+	SafeFont(countText, fontPath, countSize, outline)
 	countText:SetTextColor(cr, cg, cb, 1)
 	local qr, qg, qb = Legible(greys.row[1], greys.row[2], greys.row[3], TEXT_CONTRAST)
 	ink.rowReason = greys.reason
 	for _, fs in ipairs(queueRows) do
-		fs:SetFont(fontPath, subSize, outline)
+		SafeFont(fs, fontPath, subSize, outline)
 		fs:SetTextColor(qr, qg, qb, 1)
 	end
 
@@ -2108,6 +2170,13 @@ end
 -- targeting
 ---------------------------------------------------------------------------
 
+-- The one repaint PLAYER_REGEN_DISABLED makes before the lockdown: whatever it
+-- arms is frozen for every press of the fight, so the hold and the fuse, which
+-- only smooth flicker, must not keep somebody the queue has dropped.
+local function ArmingForFight()
+	return Prompt.armedForFight == true and not InCombatLockdown()
+end
+
 -- Whether the last candidate painted is still entitled to the panel. It
 -- expires, it never holds off somebody strictly better (PickTop checks that),
 -- and it never holds somebody deliberately retired (see Retired).
@@ -2136,6 +2205,9 @@ function Prompt:PickTop(queue, fallback)
 	-- stack the two.
 	if not top then return nil end
 	if not HoldStillStands(GetTime()) then return top end
+	-- Not on the pull's own pass (see ArmingForFight). `top` already prefers
+	-- the current pick while it is still in the queue.
+	if ArmingForFight() then return top end
 	if top.name == heldEntry.name then return top end
 	-- Lower is better: a strict improvement (a favour owed over a passer-by) is
 	-- never held off.
@@ -2181,6 +2253,14 @@ end
 --   aimedAt   the exact spelling that went onto the targeting line
 local STRATEGIES = {}
 
+-- Whether this entry was reached through the target token and is still the
+-- player's target at this moment. The strategy and the macro's key ask it the
+-- same way, so a change of target rebuilds the macro.
+local function StillTargeted(entry)
+	return entry.unit == "target" and entry.name ~= nil and ns.UnitFullName ~= nil
+		and ns.UnitFullName("target") == entry.name
+end
+
 -- No targeting line: the spell lands on you and reaches the party from there.
 -- The record says so, which is what lets the settle path judge the press.
 STRATEGIES.selfcast = function(entry, spell)
@@ -2196,11 +2276,13 @@ STRATEGIES.target = function(entry, spell)
 	-- a cross-realm player off Camelot. The fallback covers made-up entries
 	-- (the preview, the phrase roller).
 	local who = entry.targetName or entry.name or ""
-	-- No hand-back for somebody reached through the target token: they already
-	-- are the target, and /targetlasttarget would switch away (often to a mob).
+	-- No hand-back for somebody reached through the target token who is still
+	-- your target: /targetlasttarget would switch away (often to a mob). The
+	-- token alone is not enough: a held or fused entry keeps "target" after you
+	-- have picked somebody else, who is then the one to hand back.
 	-- In a fight the macro armed at the pull runs every press, so it keeps it.
 	local restore = ns.db.profile.filters.restoreTarget == true
-		and (entry.unit ~= "target" or Prompt.armedForFight == true)
+		and (not StillTargeted(entry) or Prompt.armedForFight == true)
 	return {
 		TargetCommand() .. " " .. who,
 		"/cast " .. spell,
@@ -2288,11 +2370,18 @@ function Prompt:ApplyTarget(entry)
 		-- must take effect, and pointing it at somebody new would file
 		-- bookkeeping under a name the macro does not hold. appliedKey stays:
 		-- it says what is on the button, which the fight froze, and the
-		-- unconditional clear path below disarms it after the fight.
-		if not entry then current = nil end
+		-- unconditional clear path below disarms it after the fight. Who the
+		-- macro names is kept (frozenEntry) for a repaint in this fight to put
+		-- back once the prompt is live again.
+		if not entry then
+			frozenEntry = frozenEntry or current
+			current = nil
+		end
 		return
 	end
 
+	-- Out of combat the button is armed or disarmed for real.
+	frozenEntry = nil
 	current = entry
 
 	if not entry or not entry.buff or testMode then
@@ -2321,9 +2410,10 @@ function Prompt:ApplyTarget(entry)
 
 	-- Everything the macro is built from, so it is not rebuilt at 2.5 Hz. Other
 	-- inputs come through InvalidateMacro; the unit is here for try's {unit},
-	-- and armedForFight for the hand-back.
+	-- and armedForFight and who is targeted for the hand-back.
 	local key = table.concat({ entry.name, tostring(entry.unit), entry.buff.key,
-		tostring(entry.reason), tostring(ns.tryMacro), tostring(Prompt.armedForFight) }, "\1")
+		tostring(entry.reason), tostring(ns.tryMacro), tostring(Prompt.armedForFight),
+		tostring(StillTargeted(entry)) }, "\1")
 	if key == appliedKey then return end
 
 	-- /manners try: arbitrary macro text, expanded against the candidate, so
@@ -2834,6 +2924,13 @@ function Prompt:RefreshPanel()
 		-- visibility driver) would leave an invisible button that still casts
 		-- from its binding. So this branch says true things on art.
 
+		-- Switched off and on (or unlocked and locked) inside the fight: the
+		-- macro still names the person the fight froze, so the bookkeeping
+		-- must too. Not pointing `current` at somebody new: it is the same one.
+		if not current and frozenEntry and button:GetAttribute("macrotext1") then
+			current = frozenEntry
+		end
+
 		-- The pulse claims somebody is still owed, and the debt can expire or
 		-- be settled mid-fight.
 		local debt = current and current.name and ns.owed[current.name]
@@ -2928,7 +3025,9 @@ function Prompt:RefreshPanel()
 			return
 		end
 
-		if button:IsShown() and current and not retired then
+		-- No fuse on the pull's own pass (see ArmingForFight): it would freeze
+		-- the dropped person's macro for the whole fight.
+		if button:IsShown() and current and not retired and not ArmingForFight() then
 			LightFuse(now)
 			if now - emptyAt < EMPTY_FUSE_SECONDS then return end
 		end

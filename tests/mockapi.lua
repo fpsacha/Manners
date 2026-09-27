@@ -240,6 +240,8 @@ function Mock.reset()
 	-- which is how every scenario written before this behaved.
 	Mock.yardsDefault = 5
 	Mock.yards = nil
+	-- Font files the client refuses to load, by path: SetFont on one fails.
+	Mock.badFonts = nil
 	-- Whether CheckInteractDistance answers about a stranger. Guarded because
 	-- Mock.setInteract is declared further down this file, beside the function
 	-- it switches, and reset runs once while the file is still loading.
@@ -491,7 +493,11 @@ local function newFrame()
 	-- on the panel -- a tick over an unconfirmed cast, a queue row with no
 	-- background, a prompt that looks live while it is frozen -- and against a
 	-- no-op setter the only thing a scenario can prove is that nothing threw.
-	f.SetText = function(self, text) self._text = text return self end
+	f.SetText = function(self, text)
+		if self._noFont then error("Font not set", 2) end
+		self._text = text
+		return self
+	end
 	f.GetText = function(self) return self._text end
 	f.SetAlpha = function(self, alpha) self._alpha = alpha return self end
 	f.GetAlpha = function(self) return self._alpha or 1 end
@@ -506,9 +512,21 @@ local function newFrame()
 	f.SetSize = function(self, w, h) self._width, self._height = w, h return self end
 	f.SetWidth = function(self, w) self._width = w return self end
 	f.SetHeight = function(self, h) self._height = h return self end
+	-- A file the client cannot load (Mock.badFonts) is refused as the client
+	-- refuses it: SetFont answers false and the string is left with no font,
+	-- and SetText on a string with no font throws "Font not set".
 	f.SetFont = function(self, path, size, flags)
-		self._font = { path = path, size = size, flags = flags }
-		return self
+		if Mock.badFonts and Mock.badFonts[path] then
+			self._font, self._noFont = nil, true
+			return false
+		end
+		self._font, self._noFont = { path = path, size = size, flags = flags }, nil
+		return true
+	end
+	f.GetFont = function(self)
+		local font = self._font
+		if not font then return nil end
+		return font.path, font.size, font.flags
 	end
 	f.SetShown = function(self, shown) self._shown = shown and true or false return self end
 	-- Kept as the raw argument list: SetPoint is called with three arguments in

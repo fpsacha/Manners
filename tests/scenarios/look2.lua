@@ -343,7 +343,7 @@ do
 	withTree(scenario, { nameplate1 = { "Anna", "Aim" } }, nil, function(ns)
 		freshPrompt(ns, scenario)
 		local p = ns.db.profile.prompt
-		local REASONS = { "target", "owed", "group", "nearby" }
+		local REASONS = { "target", "owed", "group", "nearby", "asked" }
 		local function colours()
 			local out = {}
 			for _, reason in ipairs(REASONS) do out[reason] = { ns.Prompt:AccentColor(reason) } end
