@@ -453,9 +453,12 @@ before any release. See `tests/README.md`.
 ## Listing images
 
 The CurseForge icon and the screenshots are generated, not captured — see
-`tools/README.md`. They read the prompt's real defaults out of `Core.lua` and
-its colours out of `Prompt.lua`, and CI fails if any of those can no longer be
-found, so they cannot advertise a layout the addon does not draw.
+`tools/README.md`. The screenshots are the addon itself, loaded on the mock
+client, put into each scene through its own entry points and drawn by
+`tools/render_prompt.py` and `tools/render_ledger.py`. CI refuses to draw one
+that would show something other than what its caption says — the wrong person
+on the prompt, a line cut short, a translation still in English — so they
+cannot advertise a prompt the addon does not build.
 
 ## Licence
 

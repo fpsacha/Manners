@@ -27,9 +27,10 @@ that way.
 
 --strict refuses to write anything when a picture would show something other
 than what it claims: a state the addon cannot build or that raised a guarded
-error, the wrong person or the wrong reason on the prompt, a translated picture
-still in English, a character the font cannot draw (a Chinese line in a Latin
-face comes out as boxes), or no TrueType face at all. Without it the same
+error, the wrong person or the wrong reason on the prompt, a ledger row the
+queue would never have produced, a line the client would cut with an ellipsis,
+a translated picture still in English, a character the font cannot draw (a
+Chinese line in a Latin face comes out as boxes), or no TrueType face at all. Without it the same
 problems are printed and the images are written anyway, so a local run still
 shows what went wrong. CI runs it strictly.
 
@@ -229,8 +230,12 @@ local added = {
 		boot(ns, { nameplate1 = SABLE })
 		settle(ns)
 	end },
-	-- A favour on top and three more behind it, each there for its own
-	-- reason: what the translated pictures show, so every line is a sentence.
+	-- A favour on top and three more behind it, each a sentence the
+	-- translation had to say: what the translated pictures show. The third is
+	-- a second favour rather than a passer-by, because a passer-by's line
+	-- names the spell, and Russian's "нужно: Чародейский интеллект" does not
+	-- fit a row at the default width -- the addon cuts it with an ellipsis,
+	-- which is true and not what a picture of the translation is for.
 	{ key = "shot-list", at = 0.85, setup = function(ns)
 		Mock.groupSize = 2
 		partyIsParty()
@@ -238,11 +243,16 @@ local added = {
 		ns.db.profile.sources.asked = true
 		list(ns, 3)
 		owe(ns, "Elowen Thistledown")
+		Mock.advance(20)
+		owe(ns, "Ivo Lark", "DRUID")
 		ask(ns, "Mira Holt", "nameplate2")
 		settle(ns)
 	end },
 	-- The four reasons the colour-blind palette covers, on screen at once, in
-	-- either palette.
+	-- either palette. Asked-for-it is not one of them: Prompt.lua's
+	-- REASON_COLOR_CVD has no colour for it, and ReasonColor falls back to the
+	-- passer-by's violet. The caption names the four rather than calling them
+	-- the set, so the picture does not promise a fifth colour the palette lacks.
 	{ key = "shot-palette-standard", at = 0.85, setup = function(ns)
 		Mock.groupSize = 2
 		partyIsParty()
@@ -270,16 +280,52 @@ end
 # A day of ordinary play, oldest first, through Ledger.lua's own entry points:
 # favours returned, one still owed, one that ran out, one nothing you cast
 # could return, buffs given to the group and to strangers.
+#
+# The ledger is written to directly, which skips the addon's judgement of who
+# can be offered anything: a row saying Arcane Intellect went to a warrior is a
+# row the addon never writes, and one was drawn four rows under a warrior it
+# said nothing could reach. So every person here is also put to the queue, the
+# way it weighs a favour it has no unit token for -- by class alone -- and a row
+# the queue disagrees with is recorded in ShotDoubts for the run to report.
 LEDGER_STATES = r"""
 local R = ...
 
+-- Whether the queue would offer this person anything. A debt with no token is
+-- the one path that judges somebody by class and nothing else, so it asks the
+-- addon's own question without restating which classes have mana.
+local function offered(ns, name, class)
+	local saved = ns.owed[name]
+	ns.owed[name] = { expires = GetTime() + 100, at = GetTime(), class = class }
+	local found = false
+	for _, entry in ipairs(ns.BuildQueue()) do
+		if entry.name == name then found = true end
+	end
+	ns.owed[name] = saved
+	return found
+end
+
+local function doubt(msg)
+	ShotDoubts[#ShotDoubts + 1] = msg
+end
+
 local function received(ns, name, class, spell, useless)
+	-- A useless favour is one nothing you cast could return; any other is one
+	-- the prompt would have offered to pay back.
+	if offered(ns, name, class) == (useless == true) then
+		doubt(name .. " (" .. class .. ") is drawn as "
+			.. (useless and "beyond anything you cast" or "a favour you could return")
+			.. ", and the queue says otherwise")
+	end
 	ns.Ledger.Received({ name = name, class = class, key = spell }, useless)
 end
 local function returned(ns, name, ago)
 	ns.Ledger.Settled(name, { at = GetTime() - ago }, { buffKey = "intellect" }, 1459)
 end
 local function gave(ns, name, class, inGroup)
+	if not offered(ns, name, class) then
+		doubt(name .. " (" .. class .. ") is drawn as given Arcane Intellect, "
+			.. "which the queue would never offer them")
+	end
 	ns.Ledger.Settled(name, nil, { inGroup = inGroup, class = class }, 1459)
 end
 
@@ -296,9 +342,11 @@ local function day(ns)
 	Mock.advance(900)
 	ns.Ledger.LetGo("Faelan Dunmere")
 	Mock.advance(3600)
-	gave(ns, "Oskar Fenwick", "WARRIOR", true)
+	-- The group's two have mana: Arcane Intellect is no use to anybody
+	-- without, and the prompt does not offer it to them.
+	gave(ns, "Oskar Fenwick", "PALADIN", true)
 	Mock.advance(15)
-	gave(ns, "Wren Tallowmere", "ROGUE", true)
+	gave(ns, "Wren Tallowmere", "HUNTER", true)
 	Mock.advance(1200)
 	received(ns, "Korwin Blackbriar", "WARRIOR", 6673, true)
 	Mock.advance(900)
@@ -476,6 +524,30 @@ def _keep_image(self):
 rp.Canvas.backdrop = _matte_backdrop
 rp.Canvas.image = _keep_image
 
+# The lines drawn cut while the current layer is drawn. The addon leaves a
+# line that does not fit to the client, which cuts it and adds an ellipsis, so
+# the text the addon set is whole and only the drawing shows the cut: the
+# Russian passer-by row went out as "нужно: Чародейский инте..." with every
+# check on the text passing. The test is the one render_prompt.draw_text cuts
+# on, asked before it draws; the ledger's single lines go through it as well.
+_cut = []
+_draw_text = rp.draw_text
+
+
+def _noting_cuts(canvas, tree, r, box, alpha, px):
+    text = r.get("text")
+    width = box[2] - box[0]
+    if text is not None and r.get("wordWrap") is False and width > 0:
+        font = r.get("font") or {}
+        f = rp.get_font((font.get("size") or 12) * tree.eff_scale(r) * px)
+        full = "".join(p[0] for p in rp.runs(str(text), (1, 1, 1, 1)))
+        if f.getlength(full) > width + 0.5:
+            _cut.append(rp.plain_text(text).strip())
+    return _draw_text(canvas, tree, r, box, alpha, px)
+
+
+rp.draw_text = _noting_cuts
+
 
 class Layer:
     """A drawn UI element that can be laid over any backdrop.
@@ -489,7 +561,8 @@ class Layer:
     would have been drawn on it. Kept at the renderer's supersampled size and
     cropped to what the UI covers."""
 
-    def __init__(self, draw):
+    def __init__(self, draw, key):
+        del _cut[:]
         _matte[0] = 0.0
         draw()
         black = _last[0]
@@ -497,6 +570,8 @@ class Layer:
         draw()
         white = _last[0]
         _matte[0] = None
+        for line in _cut:
+            problem("%s: a line is drawn cut: %s" % (key, line))
         add, through = black, np.clip(white - black, 0, 1)
         covered = (add.max(axis=2) > 1.5 / 255) | (through.min(axis=2) < 1 - 1.5 / 255)
         ys, xs = np.nonzero(covered)
@@ -524,17 +599,135 @@ def pixels(zoom):
     return int(px)
 
 
-def prompt_layer(snap, zoom):
+def prompt_layer(key, snap, zoom):
     rp.Tree = PromptTree
     # Wide enough that a glow or a list under the button is never clipped;
     # the layer is cropped to what the prompt covers afterwards.
     rp.TILE_W, rp.TILE_H = 640, 360
-    return Layer(lambda: rp.draw_state(snap, px=pixels(zoom)))
+    return Layer(lambda: rp.draw_state(snap, px=pixels(zoom)), key)
 
 
-def ledger_layer(snap, zoom):
+def ledger_layer(key, snap, zoom):
     rp.Tree = LedgerTree
-    return Layer(lambda: rl.draw_window(snap, px=pixels(zoom)))
+    return Layer(lambda: rl.draw_window(snap, px=pixels(zoom)), key)
+
+
+# ---------------------------------------------------------------- icons
+#
+# The renderers draw a spell's icon as its initials on a tile, which is right
+# for a test render -- it says which spell a row has -- and wrong for a listing.
+# In the game the prompt shows the spell's own icon, and Arcane Intellect's
+# initials are "AI": the largest thing in the hero picture, next to the addon's
+# name, read by anybody skimming a gallery in 2026 as artificial intelligence.
+# Blizzard's icons are not ours to ship, so each spell the pictures use gets a
+# painted emblem of its own instead, in the colours the renderers give it.
+
+def _emblem(kind, n):
+    """The emblem's shape as an n-by-n mask, drawn in fractions of the tile."""
+    m = Image.new("L", (n, n), 0)
+    d = ImageDraw.Draw(m)
+
+    def pts(seq):
+        return [(x * n, y * n) for x, y in seq]
+
+    def disc(cx, cy, rx, ry=None, fill=255):
+        ry = rx if ry is None else ry
+        d.ellipse([(cx - rx) * n, (cy - ry) * n, (cx + rx) * n, (cy + ry) * n], fill=fill)
+
+    if kind == "arcane":
+        # An eight-pointed star in a thin ring: the arcane school's mark.
+        star = []
+        for i in range(16):
+            a = i * np.pi / 8 - np.pi / 2
+            r = 0.40 if i % 4 == 0 else (0.21 if i % 2 == 0 else 0.075)
+            star.append((0.5 + r * np.cos(a), 0.5 + r * np.sin(a)))
+        d.polygon(pts(star), fill=255)
+        w = max(1, int(n * 0.025))
+        d.ellipse([0.19 * n, 0.19 * n, 0.81 * n, 0.81 * n], outline=255, width=w)
+    elif kind == "sun":
+        disc(0.5, 0.5, 0.15)
+        for i in range(12):
+            a = i * np.pi / 6
+            tip = (0.5 + 0.40 * np.cos(a), 0.5 + 0.40 * np.sin(a))
+            l = (0.5 + 0.19 * np.cos(a - 0.13), 0.5 + 0.19 * np.sin(a - 0.13))
+            r = (0.5 + 0.19 * np.cos(a + 0.13), 0.5 + 0.19 * np.sin(a + 0.13))
+            d.polygon(pts([l, tip, r]), fill=255)
+    elif kind == "flame":
+        t = np.linspace(0, 2 * np.pi, 90)
+        xs = 0.5 + 0.22 * np.sin(t) * np.abs(np.sin(t / 2))
+        ys = 0.52 - 0.32 * np.cos(t)
+        d.polygon(pts(zip(xs, ys)), fill=255)
+        inner = zip(0.5 + 0.10 * np.sin(t) * np.abs(np.sin(t / 2)), 0.64 - 0.15 * np.cos(t))
+        d.polygon(pts(inner), fill=110)
+    elif kind == "moon":
+        disc(0.48, 0.52, 0.32)
+        disc(0.62, 0.42, 0.27, fill=0)
+    elif kind == "paw":
+        disc(0.5, 0.63, 0.17, 0.14)
+        for cx, cy in ((0.28, 0.43), (0.41, 0.30), (0.59, 0.30), (0.72, 0.43)):
+            disc(cx, cy, 0.075, 0.09)
+    elif kind == "crown":
+        d.polygon(pts([(0.20, 0.70), (0.20, 0.36), (0.35, 0.52), (0.5, 0.26), (0.65, 0.52),
+                       (0.80, 0.36), (0.80, 0.70)]), fill=255)
+        d.rectangle([0.20 * n, 0.73 * n, 0.80 * n, 0.79 * n], fill=255)
+        for cx, cy in ((0.20, 0.34), (0.5, 0.24), (0.80, 0.34)):
+            disc(cx, cy, 0.045)
+    elif kind == "shout":
+        # Sound spreading from a horn's mouth.
+        d.polygon(pts([(0.16, 0.44), (0.32, 0.34), (0.32, 0.66), (0.16, 0.56)]), fill=255)
+        w = max(1, int(n * 0.055))
+        for r in (0.16, 0.28, 0.40):
+            d.arc([(0.30 - r) * n, (0.5 - r) * n, (0.30 + r) * n, (0.5 + r) * n],
+                  -48, 48, fill=255, width=w)
+    elif kind == "sword":
+        d.polygon(pts([(0.5, 0.14), (0.565, 0.25), (0.565, 0.62), (0.435, 0.62),
+                       (0.435, 0.25)]), fill=255)
+        d.rectangle([0.31 * n, 0.62 * n, 0.69 * n, 0.68 * n], fill=255)
+        d.rectangle([0.47 * n, 0.68 * n, 0.53 * n, 0.80 * n], fill=255)
+        disc(0.5, 0.84, 0.045)
+    elif kind == "question":
+        f = rp.get_font(n * 0.62, bold=True)
+        d.text((n / 2, n * 0.54), "?", font=f, fill=255, anchor="mm")
+    return m
+
+
+# Each icon file id the states hand back, and its emblem.
+EMBLEMS = {
+    135932: "arcane",    # Arcane Intellect
+    135987: "sun",       # Power Word: Fortitude
+    135898: "flame",     # Divine Spirit
+    136121: "moon",      # Shadow Protection
+    136078: "paw",       # Mark of the Wild
+    135995: "crown",     # Blessing of Kings
+    132333: "shout",     # Battle Shout
+    135906: "sword",     # Blessing of Might
+    134400: "question",  # the client's unknown-spell icon
+}
+
+
+def emblem_tile(file, w, h):
+    """render_prompt.icon_tile's replacement: the same tile, the same colours,
+    a painted emblem where the initials were."""
+    _, dark, light = rp.SPELL_ICONS.get(file, (None, (0.25, 0.25, 0.25), (0.8, 0.8, 0.8)))
+    kind = EMBLEMS.get(file)
+    n = max(8, max(w, h) * 4)
+    yy, xx = np.mgrid[0:n, 0:n].astype(np.float32) / n
+    dist = np.sqrt((xx - 0.5) ** 2 + (yy - 0.46) ** 2)
+    t = np.clip(1 - dist * 1.9, 0, 1)[..., None] ** 1.3
+    dark, light = np.array(dark, np.float32), np.array(light, np.float32)
+    rgb = dark * (1 - t) + (light * 0.55 + dark * 0.45) * t
+    if kind:
+        mask = _emblem(kind, n)
+        glow = np.asarray(mask.filter(ImageFilter.GaussianBlur(n * 0.06)), np.float32)[..., None]
+        core = np.asarray(mask, np.float32)[..., None] / 255
+        rgb = rgb + (glow / 255) * light * 0.9
+        rgb = rgb * (1 - core) + (light * 0.35 + 0.65) * core
+    img = Image.fromarray((np.clip(rgb, 0, 1) * 255 + 0.5).astype(np.uint8), "RGB")
+    img = img.resize((max(1, w), max(1, h)), Image.LANCZOS)
+    return np.asarray(img).astype(np.float32) / 255
+
+
+rp.icon_tile = emblem_tile
 
 
 # ---------------------------------------------------------------- the world
@@ -657,14 +850,23 @@ class Board:
         w, h = layer.size
         self.place(layer, cx - w / 2, cy - h / 2)
 
-    def shade(self, x0, y0, x1, y1, strength=0.45):
-        """Darken a soft-edged band so a caption reads over the bright sky."""
+    def shade(self, x0, y0, x1, y1, strength=0.45, cap=0.26):
+        """Darken a soft-edged band so a caption reads over the bright sky.
+
+        An even darkening was not enough where the horizon's glow crosses the
+        band: a caption over it measured 3.4:1 against 12:1 for the rest. So
+        on top of it, nothing inside the band is left brighter than `cap` in
+        any channel, which pulls the glow down to the sky's level and leaves
+        the already-dark sky as it was."""
         mask = Image.new("L", (self.w * SS, self.h * SS), 0)
         ImageDraw.Draw(mask).rounded_rectangle(
             [x0 * SS, y0 * SS, x1 * SS, y1 * SS], radius=18 * SS, fill=255)
         mask = mask.filter(ImageFilter.GaussianBlur(22 * SS))
         m = np.asarray(mask, np.float32)[..., None] / 255
         self.rgb *= 1 - m * strength
+        peak = self.rgb.max(axis=2, keepdims=True)
+        limit = np.minimum(1, cap / np.maximum(peak, 1e-6))
+        self.rgb *= 1 - m * (1 - limit)
 
     def text(self, xy, text, size, bold=False, fill=(240, 236, 228), anchor="la"):
         self.texts.append((xy, text, size, bold, fill, anchor))
@@ -795,7 +997,10 @@ def build(addon_dir):
     use_faces("enUS")
 
     lua, R = ledger_states(addon_dir)
+    lua.globals().ShotDoubts = lua.table()
     snap, _ = snap_of(R, lua, "shot-ledger", "enUS")
+    for doubt in (rp.to_py(lua.globals().ShotDoubts) or []):
+        problem("shot-ledger: " + doubt)
     if snap:
         texts = shown_texts(snap, LedgerTree)
         expect_names("shot-ledger", texts, ["Elowen Thistledown", "Rowan Ashvale", "Oskar Fenwick"])
@@ -806,12 +1011,12 @@ def build(addon_dir):
 
 def picture_prompt(snaps):
     board = Board(600, seed=11, sun=(0.87, 0.47))
-    board.centre(prompt_layer(snaps["shot-owed"], 3.0), WIDTH / 2 - 40, 290)
+    board.centre(prompt_layer("shot-owed", snaps["shot-owed"], 3.0), WIDTH / 2 - 40, 290)
     return board
 
 
 def picture_reasons(snaps):
-    layers = [prompt_layer(snaps[key], 2.0) for key, *_ in REASONS]
+    layers = [prompt_layer(key, snaps[key], 2.0) for key, *_ in REASONS]
     row = max(l.size[1] for l in layers) + 4
     top = 150
     # The sun low on the left, behind the prompts, so the captions on the
@@ -832,7 +1037,7 @@ def picture_reasons(snaps):
 
 
 def picture_ledger(snaps):
-    layer = ledger_layer(snaps["shot-ledger"], 2.0)
+    layer = ledger_layer("shot-ledger", snaps["shot-ledger"], 2.0)
     w, h = layer.size
     board = Board(h + 80, seed=23, sun=(0.22, 0.56))
     x = WIDTH - w - 80
@@ -848,34 +1053,38 @@ def picture_ledger(snaps):
 
 
 def picture_languages(snaps):
+    # One language to a row, and large. Three side by side left the list's
+    # lines -- the sentences the picture exists to show -- about thirteen
+    # pixels tall, and six once the README shows it at half width.
     layers = []
     for loc, _, _ in LANGUAGES:
         use_faces(loc)
-        layers.append(prompt_layer(snaps["shot-list-" + loc], 1.5))
+        layers.append(prompt_layer("shot-list-" + loc, snaps["shot-list-" + loc], 2.5))
     use_faces("enUS")
-    h = max(l.size[1] for l in layers)
-    top = 190
-    board = Board(top + h + 50, seed=31, sun=(0.50, 0.50))
+    row = max(l.size[1] for l in layers) + 16
+    top = 150
+    board = Board(top + row * len(layers) + 24, seed=31, sun=(0.86, 0.50))
     heading(board, "In your language",
             "English and nine translations, chosen by your game client.")
-    gap = (WIDTH - sum(l.size[0] for l in layers)) / (len(layers) + 1)
-    x = gap
-    for (loc, label, _), layer in zip(LANGUAGES, layers):
-        w = layer.size[0]
-        board.text((x + w / 2, top - 22), label, 24, bold=True, anchor="mm")
-        board.place(layer, x, top)
-        x += w + gap
+    w = max(l.size[0] for l in layers)
+    x = WIDTH - w - 70
+    board.shade(20, top, x - 20, top + row * len(layers), 0.45)
+    for i, ((loc, label, _), layer) in enumerate(zip(LANGUAGES, layers)):
+        cy = top + row * i + row / 2
+        board.place(layer, x, cy - layer.size[1] / 2)
+        board.text((x - 60, cy - 12), label, 34, bold=True, anchor="rm")
+        board.text((x - 60, cy + 26), "%s client" % loc, 18, fill=(214, 206, 214), anchor="rm")
     return board
 
 
 def picture_palette(snaps):
-    layers = [prompt_layer(snaps[k], 2.0)
+    layers = [prompt_layer(k, snaps[k], 2.0)
               for k in ("shot-palette-standard", "shot-palette-colourblind")]
     h = max(l.size[1] for l in layers)
     top = 196
     board = Board(top + h + 50, seed=41, sun=(0.62, 0.52))
     heading(board, "A palette for colour blindness",
-            "The four colours redrawn for red-green colour blindness, one setting away.")
+            "Target, favour, group and passer-by, redrawn for red-green colour blindness.")
     gap = (WIDTH - sum(l.size[0] for l in layers)) / 3
     x = gap
     for label, layer in zip(("Standard", "Colour-blind friendly"), layers):

@@ -42,3 +42,23 @@ markdown formatting directly: headings, bold and tables all survive.
 Before pasting, check it still agrees with `Manners.toc`. The listing says Mage
 is tested in game and the other five classes are not, and it should never
 quietly claim more than that.
+
+## Screenshots (the gallery)
+
+CurseForge and Wago each keep an image gallery beside the page body, uploaded
+by hand, with a title and a description for every image. These five, in this
+order -- the first is the one the listing leads with. They are made by
+`tools/make-screenshots.py` into `.github/media/`; upload them again whenever
+they are regenerated, or the gallery shows a prompt the addon no longer draws.
+
+The body in `curseforge-description.md` does not embed them. The gallery sits
+on the same page, and a copy in the body would be a second set to keep in step
+-- the drift this file was split to stop.
+
+| File | Title | Description |
+|---|---|---|
+| `manners-prompt.png` | Buff them back in one click | Somebody buffed you. Manners puts them on one button, glowing until the favour is returned. |
+| `manners-reasons.png` | Why somebody is on the prompt | Your target, somebody who buffed you, somebody who asked in chat, your group, and passers-by missing your buff -- each in its own colour, offered in that order. |
+| `manners-ledger.png` | The favour ledger | Who buffed you, whether you returned it, and who you buffed without being asked. Open it with /manners ledger. |
+| `manners-languages.png` | In your language | English and nine translations, chosen by your game client. Shown here in German, Russian and Simplified Chinese. |
+| `manners-palette.png` | A palette for colour blindness | Target, favour, group and passer-by colours redrawn for red-green colour blindness, one setting away under Prompt > Style. |

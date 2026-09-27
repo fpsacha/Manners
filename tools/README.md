@@ -38,10 +38,13 @@ this, which is what keeps them all agreeing.
 
 ## Running the image tools
 
-Both need [Pillow](https://pypi.org/project/Pillow/):
+`make-icon.py` needs [Pillow](https://pypi.org/project/Pillow/).
+`make-screenshots.py` draws with the renderers below, so it needs what they
+need -- lupa, Pillow and numpy -- and a face with Chinese in it for the
+Chinese panel: Microsoft YaHei on Windows, `fonts-noto-cjk` on Linux.
 
 ```
-python -m pip install Pillow
+python -m pip install Pillow numpy lupa
 python tools/make-screenshots.py
 python tools/make-icon.py
 ```
@@ -52,22 +55,44 @@ check that nothing drifted.
 
 ## make-screenshots.py
 
-`screenshot-reasons.png` and `screenshot-prompt.png`.
+The listing images for CurseForge, Wago and the README, all 1280 wide:
 
-These are **renders of the prompt, not captures from the game**. The panel
-geometry is read out of `Core.lua`'s defaults at run time — width, height, icon
-size, font size — and the four reason colours out of `Prompt.lua`'s
-`REASON_COLOR`. When a default changes, re-run this and commit the result.
+| File | Shows |
+|---|---|
+| `manners-prompt.png` | the prompt for somebody who buffed you, glowing |
+| `manners-reasons.png` | the five reasons somebody is offered, each in its colour, in the order they rank |
+| `manners-ledger.png` | the favour ledger with a day of ordinary play in it |
+| `manners-languages.png` | the prompt and its list in German, Russian and Simplified Chinese |
+| `manners-palette.png` | the standard reason colours beside the colour-blind set |
 
-A value it cannot find falls back to the one restated in the script, with a
-note on stderr, and the last line says which were not read. `--strict` refuses
-to draw instead; CI runs it that way, so a renamed setting fails the build
-rather than producing images of a layout the addon no longer has.
+These are **renders of the addon, not captures from the game**, and nothing
+about the prompt or the ledger is drawn in this script. It adds listing states
+to the lists in `render_prompt.lua` and `render_ledger.lua` at run time, which
+put the addon into each scene through its own entry points (a debt, a line in
+/say, a party token, the ledger's Received and Settled), draws them with
+`render_prompt.py` and `render_ledger.py`, and lays the result over a painted
+dusk. When the addon's look changes, re-run this and commit the images.
 
-What it does not read is the drawing itself, which is restated here. If
-`Prompt.lua` changes how the panel is painted, this has to be updated by hand
-to match, or the images become a nice picture of something that no longer
-exists.
+Two things are its own. The spell icons are painted emblems rather than the
+renderers' initials -- Blizzard's icons are not ours to ship, and Arcane
+Intellect's initials read as "AI" -- and the backdrop and captions are painted
+here.
+
+`--strict` writes nothing if any picture would show something other than what
+it claims:
+
+- a state the addon cannot build, or one that raised a guarded error;
+- the wrong person or the wrong reason on top of the prompt;
+- a ledger row the queue disagrees with -- a buff given to a class it would
+  never offer one to, or a favour called beyond anything you cast when it is
+  not;
+- a line the client would cut with an ellipsis;
+- a translated line still in English;
+- a character the face would draw as a box, or no TrueType face at all.
+
+Without `--strict` the same problems are printed and the images are written
+anyway, so a local run still shows what went wrong. CI runs it strictly, and
+shows it refusing an addon whose German was emptied.
 
 Every player name in the output is invented. Real names from a live session
 ended up in an earlier draft; they belong to real people and were scrubbed.
