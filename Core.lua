@@ -2772,12 +2772,11 @@ do
 		return realm
 	end
 
-	-- "friend", "guild", or nil for neither and for could-not-tell alike. A friend
-	-- is asked about first, as the more particular thing for the tooltip to say.
-	--
-	-- The GUID goes to the client as it was handed over, secret or not: the
-	-- friends API may still take a withheld one, and safecall absorbs a refusal.
-	-- It is never compared or read here, because a secret throws on both.
+	-- "friend", "guild", or nil for neither and for could-not-tell alike; a
+	-- friend is the more particular thing for the tooltip to say, so first.
+	-- The GUID goes to the client as handed over, secret or not (the friends
+	-- API may still take it); it is never compared or read here, because a
+	-- secret throws on both.
 	function Closeness(unit, full, now)
 		local cached = closeCache[full]
 		if cached and now - cached.at < CLOSE_SECONDS then return cached.kind or nil end
@@ -2833,11 +2832,9 @@ do
 end
 
 -- Tell the favour ledger (Ledger.lua) what just happened to a favour. One way
--- only: nothing here reads the ledger back, so it never changes who is
--- offered what, and it is guarded so a ledger that throws cannot take a settle
--- or a sweep with it.
---
--- Not a global: this assigns the local declared above the never-offer list.
+-- only, so it never changes who is offered what, and guarded so a ledger that
+-- throws cannot take a settle or a sweep with it. Not a global: this assigns
+-- the local declared above the never-offer list.
 function TellLedger(event, ...)
 	local ledger = ns.Ledger
 	local fn = ledger and ledger[event]
@@ -3741,10 +3738,8 @@ end
 -- Set by OnEnable, so it lives outside the block below.
 local combatLogArmed = false
 
--- Everything else in this section and the next is private to this block and
--- reached through ns and the event handlers; its locals are released at the
--- end of it, because the main chunk is close to the 200 locals Lua 5.1
--- allows one function.
+-- Everything else in this section and the next is private to the block below,
+-- for the same Lua 5.1 local limit as the friends section's.
 do
 	-- What the baseline holds: instance id -> the spell under that number, or
 	-- `true` where the spell could not be read. Instance ids are recycled here, so
@@ -3814,14 +3809,11 @@ do
 		settleTries = 0
 	end
 
-	-- Read the caster off a slot at the moment the slot is read, and keep it under
-	-- the aura it belongs to, with the class: neither can be recovered later, and
-	-- the fallback queue needs the class to decide what to offer.
-	--
-	-- A sighting with nobody in it still records that no name could be read, so a
-	-- later scan does not go back to the token and take whoever holds it by then.
-	-- A favour whose caster could not be read is nobody's: one spoken at the wrong
-	-- player is worse than none.
+	-- Read the caster off a slot at the moment the slot is read, and keep it with
+	-- the class under the aura: neither can be recovered later, and the fallback
+	-- queue needs the class. A sighting with nobody in it still records that no
+	-- name could be read, so a later scan never takes whoever holds the token by
+	-- then: a favour spoken at the wrong player is worse than none.
 	local function Sight(instanceId, key, aura)
 		local seen = sighted[instanceId]
 		-- A different aura under the same number is a different sighting.
@@ -3937,14 +3929,11 @@ do
 	end
 
 	-- One buff landing, seen by two sources that cannot see each other (a log line
-	-- has no instance id), agreed on the only thing both know: who cast what. A
-	-- mark is claimed by the first source and CONSUMED by the other, so a genuine
-	-- recast afterwards is still announced (STATUS.md).
-	--
-	-- A mark nobody consumes (the ordinary case: the log exists for the stranger
-	-- the scan cannot see) suppresses a real recast until it expires, so the
-	-- window is the slowest honest disagreement and no longer: the aura scan
-	-- defers a landing by up to SETTLE_INTERVAL * SETTLE_TRIES, plus a tick.
+	-- has no instance id), agreed on who cast what. A mark is claimed by the
+	-- first source and CONSUMED by the other, so a genuine recast afterwards is
+	-- still announced (STATUS.md). A mark nobody consumes (the stranger only the
+	-- log sees) suppresses a real recast until it expires, so the window is the
+	-- aura scan's longest deferral, SETTLE_INTERVAL * SETTLE_TRIES, plus a tick.
 	local NOTE_MEMORY = (SETTLE_INTERVAL * SETTLE_TRIES) + 1
 	local notedFavours = {}
 
@@ -4416,16 +4405,11 @@ end
 ns.AbandonPendingClick = AbandonPendingClick
 
 -- An error the game raised in the moment after a click: evidence that
--- something failed, none about what (it carries full bags and everything
--- else the game shouts). So it takes back what the click wrote and no more.
---
--- The record stays parked: if the cast went out after all, the settle puts
--- the writes back and takes back the chat line; if not, the sweep runs the
--- clock out quietly, since the press was answered here.
---
--- Returns the name it rewound, so the caller can put the game's words on the
--- panel; nothing for an error with no live click parked, or a second error
--- about the same press.
+-- something failed, none about what (it carries full bags and all the rest),
+-- so it takes back what the click wrote and no more. The record stays parked:
+-- a cast going out after all still settles it and takes the chat line back;
+-- otherwise the sweep runs the clock out quietly. Returns the name it rewound,
+-- for the panel; nothing without a live click parked, or for a second error.
 local function FailPendingClick(message)
 	local pending = ns.pendingClick
 	if not pending then return nil end
@@ -4643,15 +4627,12 @@ local function SettlePendingClick(landedOn, spellId, castGUID)
 	ns.pendingClick = nil
 end
 
--- A refusal that arrives after the settle has already let the record go.
+-- A refusal that arrives after the settle has already let the record go:
 -- UNIT_SPELLCAST_SENT is the client sending the cast, not the server taking
--- it; out of range, line of sight and the like come back a moment later. The
--- record is kept for SETTLE_SECONDS, the one number every reader of a record
--- agrees on.
---
--- Driven by UNIT_SPELLCAST_FAILED alone: UI_ERROR_MESSAGE carries no spell id.
--- So the game's own words cannot be repeated here; the panel says the cast
--- was refused. Returns the name, so the caller can flash the panel for it.
+-- it, and out of range or line of sight come back a moment later. The record
+-- is kept for SETTLE_SECONDS. Driven by UNIT_SPELLCAST_FAILED alone, since
+-- UI_ERROR_MESSAGE carries no spell id, so the game's own words cannot be
+-- repeated. Returns the name, for the panel.
 local function UnsettleLateRefusal(castGUID)
 	PruneSettled()
 	-- No match is no evidence about a cast that settled, and does nothing.
@@ -5556,12 +5537,10 @@ function ns.ClampSettings()
 	boolean(p, "showCooldown", true)
 
 	-- Beta.1 moved the default anchor from the middle of the screen to the
-	-- bottom edge, and AceDB strips values equal to their default, so a 0.9.x
-	-- prompt anchored to the middle kept only its offsets and a negative one
-	-- read against the bottom edge lands off screen. A negative offset from
-	-- the bottom edge is carried back to the middle. It could also be a Y
-	-- slider setting from beta.1-3, and nothing on disk tells them apart, so
-	-- the player is told (anchorCarriedNote) and how to undo it. Once per
+	-- bottom edge; AceDB strips values equal to their default, so a 0.9.x
+	-- prompt on the middle kept only its offsets, and a negative one lands off
+	-- screen. It is carried back to the middle. A beta.1-3 Y slider setting
+	-- looks the same on disk, so the player is told how to undo it. Once per
 	-- profile, stamped in a key with no default so AceDB never strips it.
 	if p.anchorCarried ~= true then
 		if p.point == "BOTTOM" and p.relPoint == "BOTTOM"
@@ -5974,9 +5953,8 @@ local SHARE_VERSION = 1
 -- and an import's undo always read back. /manners export warns past it.
 local SHARE_MAX = 64000
 
--- Everything below is private to this block and reached through ns; its
--- locals are released at the end of it, because the main chunk is close to
--- the 200 locals Lua 5.1 allows one function.
+-- Everything below is private to this block and reached through ns, for the
+-- same Lua 5.1 local limit as the friends section's.
 do
 	-- Never shared: the on switch is a state, not a taste; the click logger is a
 	-- diagnostic; the minimap button's place is about this screen.
