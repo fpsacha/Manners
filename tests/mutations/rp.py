@@ -110,9 +110,9 @@ mutate("Phrases.lua",
 # set reads as edited on every other character.
 mutate("Phrases.lua",
        "\t\t\tfor family in pairs(RP.RACE) do\n"
-       "\t\t\t\tif text == RP.Examples(family, faction) then answer = true end\n"
+       "\t\t\t\tif text == RP.Examples(family, faction, english) then return true end\n"
        "\t\t\tend\n",
-       "\t\t\tif text == RP.Text() then answer = true end\n",
+       "\t\t\tif text == RP.Text() then return true end\n",
        "shared profile loses in character",
        expect="rp: load the set, share it, edit it",
        script="runscenarios.py")
@@ -158,4 +158,47 @@ mutate("Options.lua",
        "",
        "roll a few ignores in character",
        expect="rp: roll a few rolls a line per reason",
+       script="runscenarios.py")
+
+# A stranger's race read without ns.plain: a secret compared and used as a
+# key, which throws on the live client inside the macro build.
+mutate("Phrases.lua",
+       "\t\treturn ns.plain(a), ns.plain(b)\n",
+       "\t\treturn a, b\n",
+       "secret race read unplained",
+       expect="rp: a secret race is not read",
+       script="runscenarios.py")
+
+# The set spared the only-when-returning check, as a merge that moved its
+# hook above that line would leave it: strangers and the group are spoken to.
+mutate("Core.lua",
+       "\t\tif db.speech.onlyWhenReturning and entry.reason ~= \"owed\" then return nil end\n",
+       "\t\tif db.speech.onlyWhenReturning and entry.reason ~= \"owed\""
+       " and not ns.InCharacter.Active(db.speech) then return nil end\n",
+       "in character ignores only when returning",
+       expect="rp: in character keeps to returning favours",
+       script="runscenarios.py")
+
+# A cross-realm name said in full.
+mutate("Phrases.lua",
+       "\t\tlocal name = entry.short or entry.name\n",
+       "\t\tlocal name = entry.name\n",
+       "in character says the realm",
+       expect="rp: a dwarf of the Alliance thanks like one",
+       script="runscenarios.py")
+
+# English examples saved before translation count as edited lines.
+mutate("Phrases.lua",
+       "\t\tlocal answer = IsExamples(text) or IsExamples(text, true)\n",
+       "\t\tlocal answer = IsExamples(text)\n",
+       "english examples lose in character",
+       expect="rp: english examples still count once the lines are translated",
+       script="runscenarios.py")
+
+# The English box never turned into the translated examples.
+mutate("Core.lua",
+       "\tif ns.InCharacter then ns.InCharacter.Repair(speech) end\n",
+       "",
+       "in character english box not repaired",
+       expect="rp: english examples still count once the lines are translated",
        script="runscenarios.py")

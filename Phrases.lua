@@ -17,11 +17,26 @@
 -- is often a secret: then they are simply not greeted as kin.
 
 local _, ns = ...
--- Player-facing text, in the client's language: see Locales/Init.lua.
-local L = ns.L
 
 local RP = {}
 ns.InCharacter = RP
+
+-- Player-facing text, in the client's language: see Locales/Init.lua. Read
+-- through a proxy that remembers each translation's English key, because the
+-- box keeps whatever language it was filled in: a player who picks the set
+-- before the lines are translated has English examples saved, and they must
+-- still count as untouched once a later release translates them.
+-- The proxy only forwards: every key reaching it is written below as a whole
+-- L["..."] literal, which is what the translation audit collects.
+local ENGLISH = {}
+local L = setmetatable({}, {
+	__index = function(_, key)
+		local translated = ns.L
+		local text = translated[key]
+		ENGLISH[text] = key
+		return text
+	end,
+})
 
 -- UnitRace's second return, the untranslated file name, to the people whose
 -- lines it speaks. Allied races share their parent people's voice: a Mag'har
@@ -53,12 +68,15 @@ RP.FAMILY = {
 -- "asked" for answering a request, "offer" for a buff nobody asked for (a group
 -- member hears these too, next to the friendlier group lines below), and "kin"
 -- for somebody of the same people. Every line is a whole literal so it can be
--- translated as a whole.
+-- translated as a whole. A kin line joins whichever of the others is being
+-- said, so it greets nobody: "well met" is wrong to somebody who just buffed
+-- you. No line says "buff" either -- the set is in character, and {buff} is
+-- the spell's own name.
 RP.RACE = {
 	dwarf = {
 		thanks = {
 			L["Thank ye kindly, {name}! First round's on me when we're back at the forge."],
-			L["Much obliged, {name}. May yer beard grow long and yer mug never run dry."],
+			L["Much obliged, {name}. Ye've a friend in the mountain now."],
 		},
 		asked = {
 			L["Aye, {name}, ye only had to ask. Hold still now!"],
@@ -68,7 +86,7 @@ RP.RACE = {
 			L["Here, {name}, a wee somethin' to keep ye on yer feet."],
 			L["Off ye go, {name}, steady as the mountain."],
 		},
-		kin = L["Well met, cousin {name}! Stone and hammer keep ye."],
+		kin = L["Stone and hammer keep ye, cousin {name}!"],
 	},
 	human = {
 		thanks = {
@@ -83,7 +101,8 @@ RP.RACE = {
 			L["The road ahead is long, {name}. Take this with you."],
 			L["Fair winds and following seas, {name}."],
 		},
-		kin = L["Well met, {name}! Always good to see a face from home."],
+		-- Stormwind and Kul Tiras are both this family, and both Arathor's.
+		kin = L["Arathor's children stand together, {name}."],
 	},
 	nightelf = {
 		thanks = {
@@ -92,41 +111,44 @@ RP.RACE = {
 		},
 		asked = {
 			L["Gladly, {name}. Be still, and let the moonlight find you."],
+			L["Of course, {name}. Elune's blessings are meant to be shared."],
 		},
 		offer = {
 			L["Elune-adore, {name}. Walk softly beneath the stars."],
-			L["The forest watches over you, {name}, and so do I."],
+			L["May the forest shelter you, {name}, wherever you roam."],
 		},
-		kin = L["Ishnu-alah, {name}. It is good to meet another kaldorei."],
+		kin = L["Ishnu-alah, {name}. Elune keeps her children close."],
 	},
 	voidelf = {
 		thanks = {
 			L["The shadows remember kindness, {name}. So do I."],
-			L["My thanks, {name}. Even the Void can be grateful."],
+			L["My thanks, {name}. The ren'dorei do not forget a kindness."],
 		},
 		asked = {
-			L["Of course, {name}. Hold still. The whispers mean no harm."],
+			L["As you wish, {name}. The shadows answer kindly today."],
+			L["Consider it done, {name}. The Void obeys us, not the other way round."],
 		},
 		offer = {
 			L["A touch of shadow for you, {name}. Quite safe. Mostly."],
 			L["Walk carefully in the dark places, {name}."],
 		},
-		kin = L["Well met, {name}. We ren'dorei walk the shadows together."],
+		kin = L["We ren'dorei look after our own, {name}."],
 	},
 	gnome = {
 		thanks = {
-			L["Thanks, {name}! Buff received, catalogued and returned!"],
+			L["Thanks, {name}! Kindness received, catalogued and returned!"],
 			L["Reciprocity engaged! Much obliged, {name}."],
 		},
 		asked = {
 			L["Request received, {name}! Processing... done!"],
+			L["One upgrade, coming right up, {name}! Stand still for calibration."],
 		},
 		offer = {
 			L["Hold still, {name}, this is perfectly safe. Probably!"],
 			L["Science says you need this, {name}. Who am I to argue?"],
 			L["A small upgrade for you, {name}. No cogs required."],
 		},
-		kin = L["For Gnomeregan, {name}! Nice to meet somebody at eye level."],
+		kin = L["For Gnomeregan, {name}! Always nice to talk to somebody at eye level."],
 	},
 	draenei = {
 		thanks = {
@@ -135,10 +157,11 @@ RP.RACE = {
 		},
 		asked = {
 			L["Of course, {name}. May the Naaru guide your steps."],
+			L["Gladly, {name}. The Light answers those who ask."],
 		},
 		offer = {
 			L["The Light is with you, {name}. Go in peace."],
-			L["Walk in the Light, {name}. It has not forgotten you."],
+			L["Walk in the Light, {name}. May it shelter you always."],
 		},
 		kin = L["Archenon poros, {name}! The children of Argus look after one another."],
 	},
@@ -149,12 +172,13 @@ RP.RACE = {
 		},
 		asked = {
 			L["Certainly, {name}. Hold still, I don't bite. Much."],
+			L["Right you are, {name}. Stand steady now."],
 		},
 		offer = {
 			L["Stay off the moors after dark, {name}. Take this."],
 			L["Keep your wits about you, {name}. Something is always hunting."],
 		},
-		kin = L["Well met, {name}. The curse binds us, but Gilneas binds us tighter."],
+		kin = L["The curse binds us, {name}, but Gilneas binds us tighter."],
 	},
 	orc = {
 		thanks = {
@@ -162,7 +186,8 @@ RP.RACE = {
 			L["You give freely, {name}. I return the favour."],
 		},
 		asked = {
-			L["Zug zug, {name}. It is done."],
+			-- Dabu: the grunt's "I obey", not the peon's "zug zug".
+			L["Dabu, {name}. It is done."],
 			L["Hold still, {name}. Strength for the fight ahead."],
 		},
 		offer = {
@@ -174,16 +199,18 @@ RP.RACE = {
 	forsaken = {
 		thanks = {
 			L["Thank you, {name}. It would warm my heart, if it still beat."],
-			L["Kindness from the living? Returned in full, {name}."],
+			-- Not "from the living": Forsaken buff each other all the time.
+			L["Such warmth, for one so cold? Returned in full, {name}."],
 		},
 		asked = {
 			L["Certainly, {name}. Try not to die. It's overrated."],
+			L["You need only ask, {name}. The dead are patient."],
 		},
 		offer = {
 			L["Stay among the living a little longer, {name}."],
 			L["Take this, {name}. The grave can wait."],
 		},
-		kin = L["Well met, {name}. We Forsaken must look after each other."],
+		kin = L["We Forsaken must look after each other, {name}."],
 	},
 	tauren = {
 		thanks = {
@@ -192,12 +219,13 @@ RP.RACE = {
 		},
 		asked = {
 			L["Of course, {name}. Stand tall and be at peace."],
+			L["Ask and it is given, {name}. The herd shares what it has."],
 		},
 		offer = {
 			L["Walk with the Earth Mother, {name}."],
 			L["May An'she light your path, {name}."],
 		},
-		kin = L["The Earth Mother watches over us both, {name}. Well met."],
+		kin = L["The Earth Mother watches over us both, {name}."],
 	},
 	troll = {
 		thanks = {
@@ -206,26 +234,28 @@ RP.RACE = {
 		},
 		asked = {
 			L["Sure ting, {name}. Hold still now."],
+			L["No worries, {name}. Da loa got ya covered."],
 		},
 		offer = {
 			L["Da loa be watchin' over ya, {name}."],
-			L["Stay away from da voodoo, {name}. Take dis instead."],
+			L["Stay sharp out dere, {name}. Take dis wit' ya."],
 		},
 		kin = L["Hey, {name}! Always good to see family, mon."],
 	},
 	bloodelf = {
 		thanks = {
-			L["Bal'a dash, {name}. Such courtesy does you credit."],
+			L["Such courtesy does you credit, {name}. Anar'alah belore."],
 			L["How gracious, {name}. Allow me to return the favour."],
 		},
 		asked = {
 			L["Naturally, {name}. Only the finest for you."],
+			L["For you, {name}? Of course. The sun gives freely."],
 		},
 		offer = {
 			L["Anar'alah belore, {name}. May the sun guide you."],
 			L["Shorel'aran, {name}. Fight with elegance."],
 		},
-		kin = L["Bal'a dash, malanore, {name}. Quel'Thalas is proud of you."],
+		kin = L["The Sunwell shines for us both, {name}."],
 	},
 	nightborne = {
 		thanks = {
@@ -234,26 +264,29 @@ RP.RACE = {
 		},
 		asked = {
 			L["Of course, {name}. A little arcane polish, just for you."],
+			L["A reasonable request, {name}. Granted."],
 		},
 		offer = {
 			L["Take this, {name}. Arcane gifts are wasted on the idle."],
-			L["A spark of the Nightwell for you, {name}. Use it wisely."],
+			-- Suramar's arcana, not the Nightwell: they were weaned off it.
+			L["A spark of Suramar's arcana for you, {name}. Use it wisely."],
 		},
-		kin = L["Well met, {name}. Suramar's children shine again, together."],
+		kin = L["Suramar's children shine together again, {name}."],
 	},
 	goblin = {
 		thanks = {
-			L["A buff for a buff, {name}! Pleasure doing business."],
+			L["A favour for a favour, {name}! Pleasure doing business."],
 			L["Thanks, {name}! Consider your account settled in full."],
 		},
 		asked = {
-			L["You got it, {name}! First one's free. Time is money!"],
+			L["You got it, {name}! Time is money, friend!"],
+			L["Deal, {name}! I'll put it on your tab. Kidding!"],
 		},
 		offer = {
 			L["This one's on the house, {name}. Don't tell the Trade Prince."],
-			L["Premium buff, zero fees, {name}. Today only!"],
+			L["Top-shelf stuff, zero fees, {name}. Today only!"],
 		},
-		kin = L["Hey, {name}! Always good to meet a fellow entrepreneur."],
+		kin = L["Anything for a fellow entrepreneur, {name}!"],
 	},
 	vulpera = {
 		thanks = {
@@ -262,12 +295,13 @@ RP.RACE = {
 		},
 		asked = {
 			L["Of course, {name}! Shake the sand out and hold still."],
+			L["Coming right up, {name}! Caravan service, no waiting."],
 		},
 		offer = {
 			L["Every traveller needs something for the road, {name}."],
 			L["Keep this, {name}. The desert is long and the water is short."],
 		},
-		kin = L["A fellow wanderer! Well met, {name}. The caravan is never far."],
+		kin = L["A fellow wanderer! The caravan is never far, {name}."],
 	},
 	pandaren = {
 		thanks = {
@@ -276,12 +310,13 @@ RP.RACE = {
 		},
 		asked = {
 			L["Of course, {name}. Patience, and it is done."],
+			L["With pleasure, {name}. A kind deed is never wasted."],
 		},
 		offer = {
 			L["Take this, {name}. And perhaps a cup of tea afterward?"],
-			L["Balance in all things, {name}. Even buffs."],
+			L["Balance in all things, {name}. Now go with a light heart."],
 		},
-		kin = L["Well met, {name}! We must share a brew when the road allows."],
+		kin = L["We must share a brew when the road allows, {name}!"],
 	},
 	dracthyr = {
 		thanks = {
@@ -290,21 +325,23 @@ RP.RACE = {
 		},
 		asked = {
 			L["Very well, {name}. Stand still, I would hate to singe you."],
+			L["Granted, {name}. A dragon keeps its word."],
 		},
 		offer = {
 			L["Take this, {name}. Even a dragon needs allies."],
 			L["A gift from the Dragon Isles, {name}. Fly well."],
 		},
-		kin = L["Well met, {name}. The Forbidden Reach feels far behind us now."],
+		kin = L["The Forbidden Reach feels far behind us now, {name}."],
 	},
 }
 
 -- For kin of a people with no kin line of their own (the Haranir, for now).
-RP.KIN = L["Well met, {name}. It is good to see one of our own."]
+RP.KIN = L["It is good to see one of our own, {name}."]
 
 -- Faction pride without a word about the other side. "Neutral" is a pandaren
 -- on the Wandering Isle or a dracthyr before choosing, and anybody whose
--- faction the client would not say.
+-- faction the client would not say. A group member hears a side's offers and
+-- its group line together, so the two are not allowed to say the same thing.
 RP.FACTION = {
 	Alliance = {
 		thanks = {
@@ -317,7 +354,7 @@ RP.FACTION = {
 		},
 		offer = {
 			L["For the Alliance, {name}! Stay strong out there."],
-			L["Stand together, {name}. That is how we win."],
+			L["Onward, {name}. The Alliance is with you."],
 		},
 		group = {
 			L["Together we stand, {name}. For the Alliance!"],
@@ -334,17 +371,17 @@ RP.FACTION = {
 		},
 		offer = {
 			L["For the Horde, {name}! Go with strength."],
-			L["Strength and honour, {name}. Victory awaits."],
+			L["Go with honour, {name}. Victory awaits."],
 		},
 		group = {
 			L["Our strength is each other, {name}. For the Horde!"],
 		},
 	},
 	Neutral = {
-		thanks = { L["No banner needed for kindness, {name}. Thank you."] },
+		thanks = { L["Thank you, {name}. Good hearts are found everywhere."] },
 		asked = { L["Gladly, {name}, whatever banner you fly."] },
 		offer = { L["Friends can come from any side, {name}."] },
-		group = { L["Whatever the banner, we fight as one, {name}."] },
+		group = { L["Side by side, {name}, whatever comes."] },
 	},
 }
 
@@ -354,12 +391,12 @@ RP.GENERAL = {
 	thanks = {
 		L["One good turn deserves another, {name}."],
 		L["Have some {buff} in return, {name}."],
-		L["Well met, {name}, and thank you. Kindness should go both ways."],
+		L["Kindness should go both ways, {name}. Thank you."],
 	},
 	asked = {
 		L["You asked, {name}, and here it is."],
 		L["{buff}, coming right up, {name}."],
-		L["Gladly, {name}. Hold still a moment."],
+		L["Gladly, {name}. One moment."],
 	},
 	offer = {
 		L["Safe travels, {name}. Take some {buff} with you."],
@@ -481,13 +518,16 @@ do
 	end
 
 	-- What the phrase box shows for a people and side: one line of each kind,
-	-- always the same ones, so the box can be recognised as untouched.
-	function RP.Examples(family, faction)
+	-- always the same ones, so the box can be recognised as untouched. With
+	-- english, the same lines as they read before translation.
+	function RP.Examples(family, faction, english)
 		local race = RP.RACE[family]
 		local side = RP.FACTION[faction]
 		local out = {}
 		local function put(pool)
-			if type(pool) == "table" and pool[1] then out[#out + 1] = pool[1] end
+			if type(pool) == "table" and pool[1] then
+				out[#out + 1] = english and ENGLISH[pool[1]] or pool[1]
+			end
 		end
 		if race then
 			put(race.thanks)
@@ -513,24 +553,41 @@ do
 	local FACTIONS = { "Alliance", "Horde", "Neutral" }
 	local lastText, lastAnswer
 
+	-- Whether text is the examples of any people and side, in the client's
+	-- language or, with english, as they read before translation.
+	local function IsExamples(text, english)
+		for _, faction in ipairs(FACTIONS) do
+			if text == RP.Examples(nil, faction, english) then return true end
+			for family in pairs(RP.RACE) do
+				if text == RP.Examples(family, faction, english) then return true end
+			end
+		end
+		return false
+	end
+
 	-- Whether "In character" is what speaks. The box is compared with the
 	-- examples of every people and side, not only this character's: a profile
 	-- is often shared by several characters, and the dwarf who picked the set
-	-- has not edited anything the orc on the same profile should lose.
+	-- has not edited anything the orc on the same profile should lose. English
+	-- examples count too, saved by a player who picked the set before its lines
+	-- were translated into their language.
 	function RP.Active(speech)
 		if type(speech) ~= "table" or speech.presetChoice ~= "incharacter" then return false end
 		local text = speech.phrases
 		if type(text) ~= "string" then return false end
 		if text == lastText then return lastAnswer end
-		local answer = false
-		for _, faction in ipairs(FACTIONS) do
-			if text == RP.Examples(nil, faction) then answer = true end
-			for family in pairs(RP.RACE) do
-				if text == RP.Examples(family, faction) then answer = true end
-			end
-		end
+		local answer = IsExamples(text) or IsExamples(text, true)
 		lastText, lastAnswer = text, answer
 		return answer
+	end
+
+	-- The load-time repair (Core's ClampSettings) for this set: examples saved
+	-- in English become this character's examples in the client's language, as
+	-- the fixed sets' English text does, so the box and an export read like an
+	-- untouched set. On an English client the two are the same and nothing moves.
+	function RP.Repair(speech)
+		if not RP.Active(speech) or IsExamples(speech.phrases) then return end
+		speech.phrases = RP.Text()
 	end
 
 	-- What each reason is called when Roll a few prints it.

@@ -171,6 +171,8 @@ end
 -- ------------------------------------------------------------------ rp-2
 -- A dwarf of the Alliance thanking somebody: dwarvish thanks most, the
 -- Alliance's next, the general ones least, and nothing from anybody else.
+-- Somebody from another realm is called by their short name, as every other
+-- set calls them, never "Bram-Realm".
 do
 	local scenario = "rp: a dwarf of the Alliance thanks like one"
 	with(scenario, "Alliance", nil, function()
@@ -178,12 +180,19 @@ do
 		if not ns then return end
 		local RP = ns.InCharacter
 		local entry = person(ns, "owed")
+		entry.name = "Bram-Realm"
 		local expected = {}
 		render(ns, entry, RP.RACE.dwarf.thanks, expected, "race")
 		render(ns, entry, RP.FACTION.Alliance.thanks, expected, "faction")
 		render(ns, entry, RP.GENERAL.thanks, expected, "general")
 		counting()
 		local counts, strays = tally(ns, entry, expected, 390)
+		for _, line in ipairs(strays) do
+			if line:find("-Realm", 1, true) then
+				fail(scenario, "called somebody by their realm-qualified name: " .. line)
+				break
+			end
+		end
 		if strays[1] then
 			fail(scenario, "said a line that is not a dwarf's, the Alliance's or anybody's thanks: "
 				.. strays[1])
@@ -352,12 +361,18 @@ end
 -- ------------------------------------------------------------------ rp-8
 -- A stranger's race is often a secret on this client: they are not kin as far
 -- as anybody can tell, and nothing throws.
+--
+-- The mock's secret is a plain table, which compares and indexes harmlessly
+-- where the client's would throw, so an unplained secret would pass unseen.
+-- Here it is filed as a dwarf: read without ns.plain, it would be kin. The
+-- table belongs to this scenario's own load, so nothing needs putting back.
 do
 	local scenario = "rp: a secret race is not read"
 	with(scenario, "Alliance", { nameplate1 = Mock.SECRET }, function()
 		local ns = ready(scenario, "Dwarf")
 		if not ns then return end
 		local RP = ns.InCharacter
+		RP.FAMILY[Mock.SECRET] = "dwarf"
 		Mock.unitNames = { nameplate1 = { "Bram" } }
 		local entry = person(ns, "owed", "nameplate1")
 		entry.name = ns.UnitFullName("nameplate1")
@@ -753,6 +768,110 @@ do
 					fail(scenario, "said a line with its spell missing: " .. said)
 					break
 				end
+			end
+		end
+		noErrors(scenario, ns)
+	end)
+end
+
+-- ------------------------------------------------------------------ rp-16
+-- "Only when returning a favour" holds for this set as for every other: it
+-- speaks to somebody who buffed you and to nobody else. Roll a few picks only
+-- favours when that is on, so this asks ns.PickPhrase for the other reasons
+-- itself -- a merge that moved the set's hook above the check would otherwise
+-- go unseen.
+do
+	local scenario = "rp: in character keeps to returning favours"
+	with(scenario, "Horde", nil, function()
+		local ns = ready(scenario, "Orc")
+		if not ns then return end
+		local speech = ns.db.profile.speech
+		speech.onlyWhenReturning = true
+		if not ns.InCharacter.Active(speech) then
+			fail(scenario, "SKIPPED -- In character is not what speaks")
+			return
+		end
+		for _, reason in ipairs({ "asked", "group", "nearby", "target" }) do
+			local line = ns.PickPhrase(person(ns, reason), 250)
+			if line ~= nil then
+				fail(scenario, "spoke for reason " .. reason .. " with only favours on: " .. line)
+			end
+		end
+		if not ns.PickPhrase(person(ns, "owed"), 250) then
+			fail(scenario, "said nothing to somebody who buffed us first")
+		end
+		noErrors(scenario, ns)
+	end)
+end
+
+-- ------------------------------------------------------------------ rp-17
+-- A player on a French client picks the set while its lines are still English,
+-- so the box saves English examples; a later release translates the lines. The
+-- set must still be the one speaking -- else the dropdown goes blank and the
+-- five examples are said as plain lines, thanks and all, to strangers -- and
+-- the load-time repair turns the box into the translated examples, as core-12
+-- does for the fixed sets.
+--
+-- The "translation" is Phrases.lua run again into the same session with every
+-- string prefixed, so the English each line shipped with is captured before
+-- it, as in core-12.
+do
+	local scenario = "rp: english examples still count once the lines are translated"
+	with(scenario, "Alliance", nil, function()
+		local ns = ready(scenario, "Dwarf")
+		if not ns then return end
+		local speech = ns.db.profile.speech
+		local english = speech.phrases
+		if english ~= ns.InCharacter.Examples("dwarf", "Alliance") then
+			fail(scenario, "SKIPPED -- the set did not load the dwarf's examples")
+			return
+		end
+		for i = #ns.PHRASE_SET_ORDER, 1, -1 do
+			if ns.PHRASE_SET_ORDER[i] == "incharacter" then table.remove(ns.PHRASE_SET_ORDER, i) end
+		end
+		local realL = ns.L
+		ns.L = setmetatable({}, { __index = function(_, key) return "[fr] " .. key end })
+		local chunk, err = loadfile(dir .. "/Phrases.lua")
+		local ok, runErr = false, err
+		if chunk then ok, runErr = pcall(chunk, "Manners", ns) end
+		ns.L = realL
+		if not ok then
+			fail(scenario, "Phrases.lua would not load translated: " .. tostring(runErr))
+			return
+		end
+		local RP = ns.InCharacter
+		if RP.Text() == english then
+			fail(scenario, "SKIPPED -- the translated examples read the same as the English ones")
+			return
+		end
+		if not RP.Active(speech) then
+			fail(scenario, "the English examples saved before translation count as edited lines")
+		end
+		ns.ClampSettings()
+		if speech.phrases ~= RP.Text() then
+			fail(scenario, "the load-time repair left the box as |" .. tostring(speech.phrases) .. "|")
+		end
+		if not RP.Active(speech) then fail(scenario, "the repaired box is not In character") end
+		local preset = findOption(ns.optionsTable, "preset")
+		if preset and preset.get and preset.get({ "preset" }) ~= "incharacter" then
+			fail(scenario, "the dropdown reads " .. tostring(preset.get({ "preset" })) .. " over the untouched set")
+		end
+		if ns.ExportSettings():find("speech.phrases=", 1, true) then
+			fail(scenario, "an untouched In character box is exported as though it were edited")
+		end
+		-- A stranger nearby hears an offer, in the new language, never the
+		-- thanks at the top of the box.
+		local entry = person(ns, "nearby")
+		local expected = {}
+		render(ns, entry, RP.RACE.dwarf.offer, expected, true)
+		render(ns, entry, RP.FACTION.Alliance.offer, expected, true)
+		render(ns, entry, RP.GENERAL.offer, expected, true)
+		counting()
+		for _ = 1, 30 do
+			local said = (ns.PickPhrase(entry, 250) or ""):match("^/say (.+)$")
+			if not (said and expected[said]) then
+				fail(scenario, "a stranger nearby heard " .. tostring(said))
+				break
 			end
 		end
 		noErrors(scenario, ns)

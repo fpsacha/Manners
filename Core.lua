@@ -4783,6 +4783,9 @@ function ns.ClampSettings()
 	local englishSet = EnglishPhraseSet(speech.phrases)
 	local translatedSet = englishSet and ns.PhraseSetText(englishSet)
 	if translatedSet and translatedSet ~= speech.phrases then speech.phrases = translatedSet end
+	-- The same for "In character", whose examples differ per character, so
+	-- Phrases.lua recognises its own.
+	if ns.InCharacter then ns.InCharacter.Repair(speech) end
 
 	-- Everything with a fixed set of values, checked against that set: an
 	-- unrecognised value falls through every branch that handles it.
