@@ -132,8 +132,8 @@ mutate("Core.lua",
 
 # Another mage's "anyone need int?" taken for asking you for it.
 mutate("Core.lua",
-       "\t\tlocal sameClass = plain(select(2, UnitClass(unit))) == playerClass\n",
-       "\t\tlocal sameClass = false\n",
+       "\t\tif plain(select(2, UnitClass(unit))) == playerClass then return nil end\n",
+       "",
        "your own class taken for asking",
        expect="tactical chat is not a request",
        script="runscenarios.py")

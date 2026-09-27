@@ -2457,8 +2457,9 @@ function ns.BuildQueue()
 		for full, entry in pairs(owed) do
 			-- And only for a favour noticed since the last loading screen (see
 			-- PLAYER_ENTERING_WORLD); the debt stays, for a token to find them.
-			local fresh = (not ns.zonedAt or entry.at >= ns.zonedAt)
-				and (not db.filters.reachableOnly or (now - entry.at) <= grace)
+			-- Both are "probably gone", so neither applies with that option off.
+			local fresh = not db.filters.reachableOnly
+				or ((not ns.zonedAt or entry.at >= ns.zonedAt) and (now - entry.at) <= grace)
 			if LiveExpiry(entry) > now and fresh and not seen[full] and not rejected[full]
 				and SafeForMacro(full) and not ns.IsBlocked(full, nil, now) then
 				-- Resolved per person, through the same filters as the main
@@ -2617,8 +2618,10 @@ do
 			"nicht", "kein", "keine", "keinen", "keiner", "nein", "pas", "non",
 			"não", "nao", "нет", "не" }),
 		-- Chinese and Korean write "don't" inside a word, so these are looked
-		-- for anywhere.
-		neverInside = { "不要", "不用", "不需要", "别", "別", "말아", "마세요", "필요없" },
+		-- for anywhere. 别 only before the verbs a buff takes: alone it is also
+		-- part of 特别 (especially), 别人 (others) and 区别.
+		neverInside = { "不要", "不用", "不需要", "别给", "别加", "别上", "别刷", "别套", "别丢",
+			"別給", "別加", "別上", "別刷", "別套", "別丟", "말아", "마세요", "필요없" },
 		-- The cap on words, in characters, for Chinese: a sentence there has
 		-- no spaces, so it is one long "word".
 		mostChars = 12,
@@ -2636,9 +2639,13 @@ do
 		group = Set({ "PARTY", "PARTY_LEADER", "RAID", "RAID_LEADER", "INSTANCE_CHAT",
 			"INSTANCE_CHAT_LEADER" }),
 		-- Chinese and Korean write "please" as part of a word, so these are
-		-- looked for anywhere. 求 is not among them: it also ends 要求, 需求 and
-		-- 追求, so it counts only opening the message (求奥术智慧).
+		-- looked for anywhere.
 		pleaseInside = { "请", "請", "부탁", "주세요" },
+		-- 求 is a please too ("法师求奥术智慧"), but also the end of 要求, 需求,
+		-- 追求, 寻求 and 供求, so it counts unless one of these stands just
+		-- before it.
+		notBeforeQiu = { ["要"] = true, ["需"] = true, ["追"] = true, ["寻"] = true,
+			["尋"] = true, ["供"] = true },
 		-- A command rather than a word, so it reads the same in every language.
 		slash = { SAY = "/say", YELL = "/yell", PARTY = "/party", PARTY_LEADER = "/party",
 			RAID = "/raid", RAID_LEADER = "/raid", INSTANCE_CHAT = "/instance",
@@ -2729,13 +2736,15 @@ do
 			if Mark(words, ownWords, covered) then
 				strength = "strict"
 			elseif #ownWords == 1 and not ownWords[1]:find("[A-Za-z0-9]")
-				and not ownWords[1]:find("[\192-\227\234-\255]") and #ownWords[1] >= 6
+				and ownWords[1]:find("[\228-\233]") and #ownWords[1] >= 6
 				and lowered:find(ownWords[1], 1, true) then
-				-- A Chinese name, all ideographs (lead bytes 228-233): the message
-				-- has no spaces either, so the name is found inside a longer
-				-- "word". Two characters at least, so it is a name and not a
-				-- syllable. Chinese only: Korean and Russian put spaces between
-				-- words and build other words from the same syllables.
+				-- A Chinese name, holding ideographs (lead bytes 228-233) and
+				-- perhaps full-width punctuation (真言术：韧): the message has no
+				-- spaces either, so the name is found inside a longer "word". Two
+				-- characters at least, so it is a name and not a syllable. Not a
+				-- Korean or Russian name, which holds no ideograph: those
+				-- languages put spaces between words and build other words from
+				-- the same syllables.
 				strength = "strict"
 			end
 		end
@@ -2768,7 +2777,12 @@ do
 			if lowered:find(inside, 1, true) then return nil end
 		end
 
-		local pleased = lowered:find("^%s*求") ~= nil
+		-- Each 求, with the three bytes before it: one Chinese character.
+		local pleased, at = false, lowered:find("求", 1, true)
+		while at do
+			if not ASK.notBeforeQiu[lowered:sub(at - 3, at - 1)] then pleased = true break end
+			at = lowered:find("求", at + 3, true)
+		end
 		for _, word in ipairs(words) do
 			if Among(ASK.please, word) then pleased = true break end
 		end
@@ -2915,14 +2929,13 @@ do
 
 	-- What the person behind `unit`, filed as `full`, asked for, as the part
 	-- of `candidates` (the queue's castable list) that answers it, or nil. A
-	-- pin still means only that one spell. Of your own class only a talent buff
-	-- can have been asked for, by name, since the rest they cast themselves; a
-	-- class that cannot be read is not taken for yours.
+	-- pin still means only that one spell. Nobody of your own class has asked;
+	-- a class that cannot be read is not taken for yours.
 	function ns.AskedFor(unit, full, now, candidates)
 		if #requests == 0 then return nil end
 		local db = addon.db and addon.db.profile
 		if not (db and db.sources.asked) then return nil end
-		local sameClass = plain(select(2, UnitClass(unit))) == playerClass
+		if plain(select(2, UnitClass(unit))) == playerClass then return nil end
 		local guid = plain(UnitGUID(unit))
 		if type(guid) ~= "string" then guid = nil end
 		local short, first = ShortName(full), FirstName(full)
@@ -2932,8 +2945,7 @@ do
 				local pool = {}
 				for _, buff in ipairs(candidates) do
 					if (request.keys == ASK.ANY or request.keys[buff.key])
-						and (not pinned or pinned.key == buff.key)
-						and (not sameClass or (buff.talent == true and request.keys ~= ASK.ANY)) then
+						and (not pinned or pinned.key == buff.key) then
 						pool[#pool + 1] = buff
 					end
 				end
@@ -2949,20 +2961,25 @@ do
 	-- settled, with the buff's key. A request is answered buff by buff: the one
 	-- that landed comes off it, and it closes once nothing it asked for is
 	-- left, so a favour returned, or the first of two buffs, leaves the rest
-	-- standing. "buff pls" stands until its own clock runs out, since the queue
-	-- offers askers only what they still lack. No key closes it whole. A refusal
-	-- that arrives after it does not put anything back -- they can ask again.
+	-- standing. No key closes it whole. A refusal that arrives after it does
+	-- not put anything back -- they can ask again.
 	function ns.ServeRequest(name, buffKey)
 		if type(name) ~= "string" then return end
 		local short = ShortName(name)
 		for i = #requests, 1, -1 do
 			local request = requests[i]
 			if request.full == name or SameName(request.short, short) then
-				-- ASK.ANY is one table shared by every such request: never written.
-				if request.keys ~= ASK.ANY then
-					if buffKey then request.keys[buffKey] = nil end
-					if not buffKey or next(request.keys) == nil then table.remove(requests, i) end
+				-- "buff pls" becomes the rest of what you can cast, each to be
+				-- given once: whether they carry a buff often cannot be read,
+				-- and then only this list stops the same one being offered
+				-- again. ASK.ANY itself is shared by every such request, so it
+				-- is replaced, never written.
+				if buffKey and request.keys == ASK.ANY then
+					request.keys = {}
+					for _, buff in ipairs(ns.CastableBuffs()) do request.keys[buff.key] = true end
 				end
+				if buffKey then request.keys[buffKey] = nil end
+				if not buffKey or next(request.keys) == nil then table.remove(requests, i) end
 			end
 		end
 	end
@@ -3105,7 +3122,9 @@ do
 	local haveLastScan = false
 	-- Set while a reading of nothing stands doubted: that scan returned before
 	-- rewriting lastPresent, so it still holds the buff from before it ran out,
-	-- and is no evidence about the reading before this one. See IsNew.
+	-- and is no evidence about the reading before this one. See IsNew. The
+	-- next believed scan clears it, and the baseline primes only on those, so
+	-- ResetAuraBaseline has nothing to clear.
 	local sinceEmpty = false
 
 	-- Who cast each aura read but not yet filed, keyed by instance id with the
@@ -3147,7 +3166,6 @@ do
 		wipe(lastPresent)
 		wipe(sighted)
 		haveLastScan = false
-		sinceEmpty = false
 		auraScanPrimed = false
 		settleTries = 0
 	end
@@ -3992,8 +4010,11 @@ local function SettlePendingClick(landedOn, spellId, castGUID)
 	if not unheard then TellLedger("Settled", pending.name, wasOwed, pending, spellId) end
 	-- The client sent the cast; the server has not answered yet. Keep the
 	-- record so a refusal arriving a moment from now has something to be about.
+	-- Whether they were on the never-offer list already, which a favour owed
+	-- ignores (STATUS.md); only a listing after the settle lets it go.
 	RememberSettled({ name = pending.name, buffKey = pending.buffKey,
-		gave = pending.gave, at = GetTime(), owed = wasOwed, castGUID = castGUID })
+		gave = pending.gave, at = GetTime(), owed = wasOwed, castGUID = castGUID,
+		listedAtSettle = ListedAs(pending.name) ~= nil })
 	ns.pendingClick = nil
 end
 
@@ -4020,7 +4041,7 @@ local function UnsettleLateRefusal(castGUID)
 	-- A shift-right-click since the settle let this favour go, and a refusal
 	-- must not bring it back: owed people are exempt from the list. The row
 	-- goes from returned back to let go, and nothing claims a debt still kept.
-	local listed = settled.owed and ListedAs(settled.name)
+	local listed = settled.owed and not settled.listedAtSettle and ListedAs(settled.name)
 	if listed then
 		TellLedger("Refused", settled.name, settled.at)
 		TellLedger("LetGo", settled.name, "never")

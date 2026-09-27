@@ -2,8 +2,7 @@
 -- refusal meeting the never-offer list, a rebuff after every buff ran out, the
 -- tokenless fallback after a loading screen, a damaged settings file, what is
 -- said about a favour or an unlock in a fight, the snooze's clock, requests
--- answered buff by buff, talent buffs asked of your own class, and requests in
--- other languages (questions, long sentences, words inside words, negation).
+-- answered buff by buff, and requests in other languages (questions, long sentences, words inside words, negation).
 --
 -- Every scenario name starts with "core2:" so the mutations in
 -- tests/mutations/hunt5-core2.py can name the one that has to catch them.
@@ -63,17 +62,19 @@ local function ready(ns, scenario)
 end
 
 -- The ids of a buff out of Buffs.lua, from a copy loaded for nothing else.
-local function ranksOf(class, key)
-	local probe = load("core2: reading the buff table")
+-- Loaded under the scenario's own name, so a run narrowed to that scenario
+-- still admits it.
+local function ranksOf(scenario, class, key)
+	local probe = load(scenario)
 	local buff = probe and probe.FindBuff(class, key)
 	return buff and buff.ranks or {}
 end
 
 -- A class that knows exactly these buffs, by key.
-local function knowing(class, keys)
+local function knowing(scenario, class, keys)
 	local known = {}
 	for _, key in ipairs(keys) do
-		for _, id in ipairs(ranksOf(class, key)) do known[id] = true end
+		for _, id in ipairs(ranksOf(scenario, class, key)) do known[id] = true end
 	end
 	local fn = function(id) return known[id] == true end
 	return { IsSpellKnown = fn, IsPlayerSpell = fn }
@@ -86,6 +87,8 @@ local function pressWithGuid(ns, entry, spellId, guid)
 	Mock.advance(1)
 	ns.pendingClick = nil
 	ns.Prompt:InvalidateMacro()
+	-- A preview casts nothing, so any that is up goes first, as in freshPrompt.
+	ns.Prompt:ExitTest()
 	ns.Prompt:ApplyTarget(entry)
 	local post = button.scripts.PostClick
 	if post then pcall(post, button, "LeftButton", true) end
@@ -99,9 +102,16 @@ end
 -- let go, lists them and says they will not be offered again. A refusal of
 -- that press arriving a moment later put the debt back, and owed people are
 -- exempt from the list, so they were offered again once the skip ran out.
+-- Somebody listed before they buffed you is still owed (STATUS.md), so a
+-- refusal of the return puts that debt back as it would anybody's.
 Mock.reset()
-do
-	local scenario = "core2: a late refusal does not bring back somebody just never-offered"
+for _, case in ipairs({
+	{ label = "listed after the settle", after = true },
+	{ label = "listed before the favour", before = true },
+}) do
+	Mock.reset()
+	local scenario = "core2: a late refusal does not bring back somebody just never-offered ("
+		.. case.label .. ")"
 	local restoreUnits = strangers({ nameplate1 = { "Anna", "Aim" } })
 	local ns = load(scenario)
 	if ns then
@@ -109,35 +119,48 @@ do
 		ns.db.char.ledger = nil
 		ns.Ledger.Load()
 		local s = ns.db.char.ledger
+		if case.before then ns.NeverOffer(ANNA) end
 		H.primeAuras(ns)
 		H.favourFrom(ns, "nameplate1", 1459, 4101)
 		local entry = H.inQueue(ns)[ANNA]
 		if not (ns.owed[ANNA] and entry) then
 			fail(scenario, "SKIPPED -- Anna is not owed and offered")
 		elseif not pressWithGuid(ns, entry, 1459, "Cast-7") or ns.owed[ANNA] then
-			fail(scenario, "SKIPPED -- the press did not settle her favour")
+			fail(scenario, "SKIPPED -- the press did not settle her favour ")
 		else
-			ns.PutOnNeverList(ANNA)
+			if case.after then ns.PutOnNeverList(ANNA) end
 			Mock.advance(0.5)
 			ns.addon:UNIT_SPELLCAST_FAILED(nil, "player", "Cast-7", 1459)
-			if ns.owed[ANNA] then
-				fail(scenario, "the refusal put back the debt of somebody just put on the never-offer list")
-			end
 			local row
 			for i = #s.entries, 1, -1 do
 				local e = s.entries[i]
 				if e.kind == "received" and e.name == ANNA then row = e break end
 			end
-			if not row then
-				fail(scenario, "her favour has no ledger row")
-			elseif row.state ~= "letgo" or row.why ~= "never" then
-				fail(scenario, "her ledger row reads " .. tostring(row.state) .. "/" .. tostring(row.why)
-					.. ", not let go for the never-offer list")
+			if case.after then
+				if ns.owed[ANNA] then
+					fail(scenario, "the refusal put back the debt of somebody just put on the never-offer list")
+				end
+				if not row then
+					fail(scenario, "her favour has no ledger row")
+				elseif row.state ~= "letgo" or row.why ~= "never" then
+					fail(scenario, "her ledger row reads " .. tostring(row.state) .. "/" .. tostring(row.why)
+						.. ", not let go for the never-offer list")
+				end
+			else
+				if not ns.owed[ANNA] then
+					fail(scenario, "the refusal let go the debt of somebody listed before she buffed you")
+				end
+				if row and row.state == "letgo" then
+					fail(scenario, "her ledger row was let go for a listing the favour ignores")
+				end
 			end
 			Mock.advance(13)
 			ns.addon:Tick()
-			if H.inQueue(ns)[ANNA] then
+			local again = H.inQueue(ns)[ANNA] ~= nil
+			if case.after and again then
 				fail(scenario, "she is offered again after the skip ran out")
+			elseif case.before and not again then
+				fail(scenario, "she is not offered again after the skip ran out")
 			end
 		end
 		guarded(scenario, ns)
@@ -189,6 +212,16 @@ for _, case in ipairs({
 					if not said():find("buffed you", 1, true) then
 						fail(scenario, "nothing was said about the rebuff")
 					end
+					-- That reading was believed, so the next trusts it again: the
+					-- same aura refreshed with a later end, having never run out
+					-- in between, is not a favour.
+					wipe(ns.owed)
+					Mock.advance(5)
+					Mock.extraAuraUntil = 4000
+					ns.addon:UNIT_AURA(nil, "player")
+					if ns.owed[ANNA] then
+						fail(scenario, "a refresh after the rebuff was taken for another favour")
+					end
 				elseif ns.owed[ANNA] then
 					fail(scenario, "the same aura handed back with the same end was taken for a favour")
 				end
@@ -204,12 +237,15 @@ Mock.reset()
 -- Buffing you proves a stranger was in casting range, which is why somebody
 -- with no token is offered for a grace window. A loading screen leaves them
 -- behind: the favour is kept, but not offered on that evidence. A /reload
--- moves nobody, and a favour noticed after the loading screen is fresh.
+-- moves nobody, and a favour noticed after the loading screen is fresh. With
+-- "Drop people who are probably gone" off, nobody is left behind.
 for _, case in ipairs({
 	{ label = "a loading screen", args = { false, false }, offered = false },
 	{ label = "a reload", args = { false, true }, offered = true },
 	{ label = "a favour after the loading screen", args = { false, false }, offered = true,
 		after = true },
+	{ label = "a loading screen, keeping people who are probably gone", args = { false, false },
+		offered = true, keep = true },
 }) do
 	Mock.reset()
 	local scenario = "core2: a stranger left behind by a loading screen is not offered (" .. case.label .. ")"
@@ -221,6 +257,7 @@ for _, case in ipairs({
 		local ns = load(scenario)
 		if not ns then return end
 		freshPrompt(ns, scenario)
+		if case.keep then ns.db.profile.filters.reachableOnly = false end
 		local name = "Zed Wanderer"
 		if not case.after then owe(ns, name) end
 		Mock.advance(10)
@@ -298,27 +335,36 @@ Mock.reset()
 
 -- ------------------------------------------------------------------ core2-5
 -- A favour done mid-fight was said to be "on the prompt" while the prompt
--- could not show until the fight ended.
-for _, fighting in ipairs({ true, false }) do
+-- could not show until the fight ended. A prompt the fight froze on the same
+-- person does cast at them, and still says so.
+for _, case in ipairs({
+	{ label = "in a fight", fighting = true },
+	{ label = "out of one" },
+	{ label = "in a fight, the prompt already on her", fighting = true, frozen = true },
+}) do
 	Mock.reset()
-	local scenario = "core2: a favour in a fight is offered once it ends ("
-		.. (fighting and "in a fight" or "out of one") .. ")"
+	local scenario = "core2: a favour in a fight is offered once it ends (" .. case.label .. ")"
 	local restoreUnits = strangers({ nameplate1 = { "Anna", "Aim" } })
 	local ns = load(scenario)
 	if ns then
 		freshPrompt(ns, scenario)
 		ns.db.profile.sources.strangers = false
 		ns.db.profile.sources.group = false
+		if case.frozen then owe(ns, ANNA) end
 		ns.addon:Tick()
 		H.primeAuras(ns)
-		if fighting then
+		local showing = ns.Prompt:Showing()
+		local onHer = type(showing) == "table" and showing.name == ANNA
+		if case.fighting then
 			ns.addon:PLAYER_REGEN_DISABLED()
 			Mock.inCombat = true
 		end
 		local text = H.favourFrom(ns, "nameplate1", 1459, 4101)
-		if not ns.owed[ANNA] then
+		if (case.frozen == true) ~= onHer then
+			fail(scenario, "SKIPPED -- the prompt is " .. (onHer and "" or "not ") .. "on Anna before the fight")
+		elseif not ns.owed[ANNA] then
 			fail(scenario, "SKIPPED -- no favour was filed")
-		elseif fighting then
+		elseif case.fighting and not case.frozen then
 			if not text:find("offered once this fight ends", 1, true) then
 				fail(scenario, "the line does not say it is offered after the fight: " .. text)
 			end
@@ -326,7 +372,7 @@ for _, fighting in ipairs({ true, false }) do
 				fail(scenario, "the line says the favour is on the prompt in a fight: " .. text)
 			end
 		elseif not text:find("returning the favour is on the prompt", 1, true) then
-			fail(scenario, "out of a fight the line no longer says it is on the prompt: " .. text)
+			fail(scenario, "the line no longer says it is on the prompt: " .. text)
 		end
 		Mock.inCombat = false
 		guarded(scenario, ns)
@@ -431,7 +477,7 @@ do
 	local scenario = "core2: a request is answered buff by buff (owed asker)"
 	Mock.reset()
 	Mock.class = "PRIEST"
-	local globals = knowing("PRIEST", { "fortitude", "spirit", "shadow" })
+	local globals = knowing(scenario, "PRIEST", { "fortitude", "spirit", "shadow" })
 	Mock.unitClass = "MAGE"
 	local restoreUnits = strangers({ nameplate1 = { "Anna", "Aim" } })
 	with(scenario, globals, function()
@@ -468,7 +514,7 @@ do
 	local scenario = "core2: a request is answered buff by buff (two buffs asked for)"
 	Mock.reset()
 	Mock.class = "PRIEST"
-	local globals = knowing("PRIEST", { "fortitude", "spirit", "shadow" })
+	local globals = knowing(scenario, "PRIEST", { "fortitude", "spirit", "shadow" })
 	Mock.unitClass = "MAGE"
 	local restoreUnits = strangers({ nameplate1 = { "Anna", "Aim" } })
 	with(scenario, globals, function()
@@ -507,7 +553,7 @@ do
 	local scenario = "core2: a request is answered buff by buff (buffs please)"
 	Mock.reset()
 	Mock.class = "PRIEST"
-	local globals = knowing("PRIEST", { "fortitude", "spirit", "shadow" })
+	local globals = knowing(scenario, "PRIEST", { "fortitude", "spirit", "shadow" })
 	Mock.unitClass = "MAGE"
 	local restoreUnits = strangers({ nameplate1 = { "Anna", "Aim" } })
 	with(scenario, globals, function()
@@ -542,42 +588,41 @@ do
 end
 Mock.reset()
 
--- ------------------------------------------------------------------ core2-9
--- Somebody of your own class casts the baseline buffs themselves, but not a
--- talent buff they lack: a paladin asking a Kings paladin for Kings was taken
--- for a passer-by. A same-class "buff pls" or a baseline buff is still nothing.
+-- "buffs please" from somebody whose buffs cannot be read: nothing tells the
+-- queue she now carries what landed, so the request itself has to, or the same
+-- buff comes back on every tick until the request runs out.
 do
-	local scenario = "core2: your own class asking for a talent buff is heard"
+	local scenario = "core2: a request is answered buff by buff (buffs please, unreadable)"
 	Mock.reset()
-	Mock.class = "PALADIN"
-	local globals = knowing("PALADIN", { "kings", "wisdom" })
-	Mock.unitClass = "PALADIN"
+	Mock.class = "PRIEST"
+	Mock.unitClass = "WARRIOR"
+	local globals = knowing(scenario, "PRIEST", { "fortitude" })
 	local restoreUnits = strangers({ nameplate1 = { "Anna", "Aim" } })
 	with(scenario, globals, function()
 		local ns = load(scenario)
 		if not ns then return end
 		ready(ns, scenario)
-		local kings = ns.FindBuff("PALADIN", "kings")
-		if not kings then
-			fail(scenario, "SKIPPED -- no Kings in the buff table")
+		Mock.auraReadRefuse = {}
+		for _, id in ipairs(ranksOf(scenario, "PRIEST", "fortitude")) do Mock.auraReadRefuse[id] = "secret" end
+		hear(ns, "CHAT_MSG_SAY", "buffs please", ANNA, "Player-1-nameplate1")
+		local entry = entryFor(ns, ANNA)
+		if not (entry and entry.reason == "asked") then
+			fail(scenario, "SKIPPED -- Anna is not offered anything after asking")
 			return
 		end
-		kings.talent = true
-		for i, case in ipairs({
-			{ text = "kings pls", want = "kings" },
-			{ text = "wisdom pls" },
-			{ text = "buff pls" },
-		}) do
-			hear(ns, "CHAT_MSG_SAY", case.text, ANNA, "Player-1-nameplate1")
-			local entry = entryFor(ns, ANNA)
-			if case.want and not (entry and entry.reason == "asked" and entry.buff.key == case.want) then
-				fail(scenario, ("message %d from a paladin: offered %s, not %s"):format(i,
-					entry and tostring(entry.buff.key) or "nothing", case.want))
-			elseif not case.want and entry then
-				fail(scenario, ("message %d from a paladin was taken for a request (%s)"):format(i,
-					tostring(entry.buff.key)))
-			end
-			Mock.advance(61)
+		if not H.pressAndSend(ns, entry, entry.buff.ranks[1]) then
+			fail(scenario, "SKIPPED -- the press on Anna was not recorded")
+			return
+		end
+		local offers = 0
+		for _ = 1, 4 do
+			Mock.advance(13)
+			ns.addon:Tick()
+			if entryFor(ns, ANNA) then offers = offers + 1 end
+		end
+		if offers > 0 then
+			fail(scenario, "the buff that landed was offered again " .. offers
+				.. " times in the minute after")
 		end
 		guarded(scenario, ns)
 	end)
@@ -585,6 +630,9 @@ do
 end
 Mock.reset()
 
+-- ------------------------------------------------------------------ core2-9
+-- Somebody of your own class casts your buffs themselves, so nothing they say
+-- is a request of you.
 do
 	local scenario = "core2: your own class asking for a baseline buff is not heard"
 	Mock.reset()
@@ -611,10 +659,12 @@ Mock.reset()
 local function inLanguage(scenario, locale, class, key, name, yes, no)
 	Mock.reset()
 	Mock.locale = locale
+	-- A priest with a mana bar, unless you are one: your own class never asks.
+	if class == "PRIEST" then Mock.unitClass = "WARRIOR" end
 	local restoreUnits = strangers({ nameplate1 = { "Anna", "Aim" } })
 	local ids = {}
-	for _, id in ipairs(ranksOf(class, key)) do ids[id] = true end
-	local globals = knowing(class, { key })
+	for _, id in ipairs(ranksOf(scenario, class, key)) do ids[id] = true end
+	local globals = knowing(scenario, class, { key })
 	Mock.class = class
 	local realSpell = C_Spell
 	globals.C_Spell = setmetatable({
@@ -675,8 +725,15 @@ inLanguage("core2: a long Chinese sentence is not a request", "zhCN", "MAGE", "i
 		"法师的奥术智慧对这个副本的要求很高" })
 inLanguage("core2: the Chinese please inside another word is not a please", "zhCN", "MAGE", "intellect",
 	"奥术智慧",
-	{ "求奥术智慧" },
+	{ "求奥术智慧", "法师求奥术智慧", "大佬求个奥术智慧" },
 	{ "奥术智慧要求很高", "奥术智慧的需求" })
+
+-- A Chinese name with full-width punctuation in it is still found inside the
+-- message.
+inLanguage("core2: a Chinese name with punctuation is found inside the message", "zhCN", "PRIEST",
+	"fortitude", "真言术：韧",
+	{ "求真言术：韧", "请给我真言术：韧" },
+	{})
 
 -- Korean puts spaces between words, and builds other words out of the same
 -- syllables as a short buff name.
@@ -692,7 +749,7 @@ inLanguage("core2: a request that says no is not a request (deDE)", "deDE", "MAG
 	{ "Bitte keine Arkane Intelligenz", "Keine Arkane Intelligenz bitte" })
 inLanguage("core2: a request that says no is not a request (zhCN)", "zhCN", "MAGE", "intellect",
 	"奥术智慧",
-	{ "请给我奥术智慧" },
+	{ "请给我奥术智慧", "请给我奥术智慧，特别感谢", "求奥术智慧，给我和别人" },
 	{ "请不要给我奥术智慧", "别给我奥术智慧，求你了", "求你了别给我奥术智慧" })
 inLanguage("core2: a request that says no is not a request (koKR)", "koKR", "MAGE", "intellect",
 	"신비한 지능",
