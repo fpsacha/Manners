@@ -135,8 +135,8 @@ mutate("Core.lua",
 
 # core-10: a refusal leaving the sweep running.
 mutate("Core.lua",
-       "\t-- went through on.\n\tSyncSweep()\n",
-       "\t-- went through on.\n",
+       "\t-- cooldown the sweep is drawn from.\n\tSyncSweep()\n",
+       "\t-- cooldown the sweep is drawn from.\n",
        "sweep not re-read on a refused cast",
        expect="core: the sweep stops when the global cooldown is given back (refused)",
        script="runscenarios.py")

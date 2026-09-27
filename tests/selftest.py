@@ -706,9 +706,7 @@ mutate("Options.lua",
 #     while AceConfig is drawing, so without this the notice stands over
 #     controls that work again for as long as the window stays open.
 mutate("Core.lua",
-       """	-- And the notice on the Prompt tab comes off. Without this it stands over
-	-- controls that work again, which is the same lie as the one it was added
-	-- to stop, told the other way round.
+       """	-- And the notice on the Prompt tab comes off, over controls that work again.
 	ns.RepaintOptions()
 """,
        "",
@@ -2263,8 +2261,8 @@ mutate("Core.lua",
 # An error answered the press, and the window running out answered it again:
 # a second rewind, a second red flash, and "nothing at all" in chat.
 mutate("Core.lua",
-       "\t-- over a button long since armed at somebody else.\n\tif pending.answered then return end\n",
-       "\t-- over a button long since armed at somebody else.\n",
+       "\t-- the game's own words then.\n\tif pending.answered then return end\n",
+       "\t-- the game's own words then.\n",
        "a refused press flashed twice",
        expect="an error answers a press once",
        script="runscenarios.py")
