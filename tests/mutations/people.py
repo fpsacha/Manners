@@ -71,8 +71,8 @@ mutate("Core.lua",
 
 # A saved list that is not a table left as it is.
 mutate("Core.lua",
-       "\tif type(profile.never) ~= \"table\" then profile.never = {} end\n",
-       "",
+       "\t\tif type(default) == \"table\" and type(profile[key]) ~= \"table\" then\n",
+       "\t\tif false then\n",
        "broken never-offer list not repaired",
        expect="a broken never list in a saved profile is repaired",
        script="runscenarios.py")

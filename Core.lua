@@ -2455,7 +2455,10 @@ function ns.BuildQueue()
 			rotate = false,
 		}
 		for full, entry in pairs(owed) do
-			local fresh = not db.filters.reachableOnly or (now - entry.at) <= grace
+			-- And only for a favour noticed since the last loading screen (see
+			-- PLAYER_ENTERING_WORLD); the debt stays, for a token to find them.
+			local fresh = (not ns.zonedAt or entry.at >= ns.zonedAt)
+				and (not db.filters.reachableOnly or (now - entry.at) <= grace)
 			if LiveExpiry(entry) > now and fresh and not seen[full] and not rejected[full]
 				and SafeForMacro(full) and not ns.IsBlocked(full, nil, now) then
 				-- Resolved per person, through the same filters as the main
@@ -2598,12 +2601,27 @@ do
 			"somebody", "got", "mind" }),
 		-- Opening a question about the buff rather than one asking for it. "who
 		-- has int?" is looking for a mage; "who needs int?" and "needs int?" are
-		-- a mage offering it.
+		-- a mage offering it. The same openers in the shipped languages follow.
 		question = Set({ "is", "are", "does", "do", "did", "what", "whats", "why",
 			"how", "which", "when", "where", "should", "would", "was", "were",
-			"who", "whos", "wants", "needs" }),
+			"who", "whos", "wants", "needs",
+			"ist", "sind", "hat", "wer", "was", "wie", "warum", "welche", "lohnt",
+			"est", "qui", "quoi", "pourquoi", "comment", "quel", "quelle",
+			"es", "quien", "quem", "que", "por", "como", "cual",
+			"chi", "cosa", "perche",
+			"кто", "что", "как", "зачем", "почему", "есть" }),
+		-- Chinese ends a question with a particle before the question mark:
+		-- "is it any good?" rather than a bare name asked for.
+		questionEnds = Set({ "吗", "嗎", "呢" }),
 		never = Set({ "no", "not", "dont", "stop", "nvm", "never", "cant", "wont",
-			"nicht", "kein", "pas", "нет", "не" }),
+			"nicht", "kein", "keine", "keinen", "keiner", "nein", "pas", "non",
+			"não", "nao", "нет", "не" }),
+		-- Chinese and Korean write "don't" inside a word, so these are looked
+		-- for anywhere.
+		neverInside = { "不要", "不用", "不需要", "别", "別", "말아", "마세요", "필요없" },
+		-- The cap on words, in characters, for Chinese: a sentence there has
+		-- no spaces, so it is one long "word".
+		mostChars = 12,
 		-- What may stand beside a buff's name in a message that is nothing but
 		-- the name: "int me", "mage int", "for the kings".
 		filler = Set({ "me", "us", "i", "a", "an", "the", "some", "for", "to",
@@ -2617,9 +2635,10 @@ do
 		-- to pull.
 		group = Set({ "PARTY", "PARTY_LEADER", "RAID", "RAID_LEADER", "INSTANCE_CHAT",
 			"INSTANCE_CHAT_LEADER" }),
-		-- Chinese and Korean write "please" as part of a word, and write words
-		-- without spaces between them, so these are looked for anywhere.
-		pleaseInside = { "请", "請", "求", "부탁", "주세요" },
+		-- Chinese and Korean write "please" as part of a word, so these are
+		-- looked for anywhere. 求 is not among them: it also ends 要求, 需求 and
+		-- 追求, so it counts only opening the message (求奥术智慧).
+		pleaseInside = { "请", "請", "부탁", "주세요" },
 		-- A command rather than a word, so it reads the same in every language.
 		slash = { SAY = "/say", YELL = "/yell", PARTY = "/party", PARTY_LEADER = "/party",
 			RAID = "/raid", RAID_LEADER = "/raid", INSTANCE_CHAT = "/instance",
@@ -2709,11 +2728,14 @@ do
 			local ownWords = Words(own)
 			if Mark(words, ownWords, covered) then
 				strength = "strict"
-			elseif #ownWords == 1 and not ownWords[1]:find("[A-Za-z0-9]") and #ownWords[1] >= 6
+			elseif #ownWords == 1 and not ownWords[1]:find("[A-Za-z0-9]")
+				and not ownWords[1]:find("[\192-\227\234-\255]") and #ownWords[1] >= 6
 				and lowered:find(ownWords[1], 1, true) then
-				-- A Chinese name: the message has no spaces either, so the name
-				-- is found inside a longer "word". Two characters at least, so it
-				-- is a name and not a syllable.
+				-- A Chinese name, all ideographs (lead bytes 228-233): the message
+				-- has no spaces either, so the name is found inside a longer
+				-- "word". Two characters at least, so it is a name and not a
+				-- syllable. Chinese only: Korean and Russian put spaces between
+				-- words and build other words from the same syllables.
 				strength = "strict"
 			end
 		end
@@ -2736,9 +2758,17 @@ do
 		if #words == 0 or #words > ASK_MOST_WORDS then return nil end
 		for _, word in ipairs(words) do
 			if Among(ASK.never, word) then return nil end
+			-- A word holding Chinese ideographs (lead bytes 228-233) is capped
+			-- by its characters, counted by their lead bytes.
+			if word:find("[\228-\233]") and select(2, word:gsub("[\192-\255]", "")) > ASK.mostChars then
+				return nil
+			end
+		end
+		for _, inside in ipairs(ASK.neverInside) do
+			if lowered:find(inside, 1, true) then return nil end
 		end
 
-		local pleased = false
+		local pleased = lowered:find("^%s*求") ~= nil
 		for _, word in ipairs(words) do
 			if Among(ASK.please, word) then pleased = true break end
 		end
@@ -2748,9 +2778,20 @@ do
 			end
 		end
 		local opens = Among(ASK.opener, words[1])
-		-- The full-width question mark is the one Chinese and Japanese type.
-		local questioned = not Among(ASK.question, words[1])
-			and (lowered:find("%?%s*$") ~= nil or lowered:find("？%s*$") ~= nil)
+		-- A trailing question mark, and what stands before it. The full-width
+		-- one is the one Chinese and Japanese type.
+		local stem, marked = lowered:gsub("%s+$", ""), false
+		if stem:sub(-1) == "?" then
+			stem, marked = stem:sub(1, -2), true
+		elseif stem:sub(-3) == "？" then
+			stem, marked = stem:sub(1, -4), true
+		end
+		stem = stem:gsub("%s+$", "")
+		-- Not a question about the buff: no opener that asks about it, no
+		-- Chinese question particle, and no Hangul (lead bytes 234-237), since
+		-- Korean asks about a thing and for it with the same question mark.
+		local questioned = marked and not Among(ASK.question, words[1])
+			and not ASK.questionEnds[stem:sub(-3)] and not lowered:find("[\234-\237]")
 
 		local covered, found, generic = {}, {}, false
 		for _, buff in ipairs(ns.GetClassBuffs(playerClass) or {}) do
@@ -2874,13 +2915,14 @@ do
 
 	-- What the person behind `unit`, filed as `full`, asked for, as the part
 	-- of `candidates` (the queue's castable list) that answers it, or nil. A
-	-- pin still means only that one spell. Nobody of your own class has asked;
-	-- a class that cannot be read is not taken for yours.
+	-- pin still means only that one spell. Of your own class only a talent buff
+	-- can have been asked for, by name, since the rest they cast themselves; a
+	-- class that cannot be read is not taken for yours.
 	function ns.AskedFor(unit, full, now, candidates)
 		if #requests == 0 then return nil end
 		local db = addon.db and addon.db.profile
 		if not (db and db.sources.asked) then return nil end
-		if plain(select(2, UnitClass(unit))) == playerClass then return nil end
+		local sameClass = plain(select(2, UnitClass(unit))) == playerClass
 		local guid = plain(UnitGUID(unit))
 		if type(guid) ~= "string" then guid = nil end
 		local short, first = ShortName(full), FirstName(full)
@@ -2890,7 +2932,8 @@ do
 				local pool = {}
 				for _, buff in ipairs(candidates) do
 					if (request.keys == ASK.ANY or request.keys[buff.key])
-						and (not pinned or pinned.key == buff.key) then
+						and (not pinned or pinned.key == buff.key)
+						and (not sameClass or (buff.talent == true and request.keys ~= ASK.ANY)) then
 						pool[#pool + 1] = buff
 					end
 				end
@@ -2902,16 +2945,24 @@ do
 		return nil
 	end
 
-	-- A buff landed on them, which is what they asked for. Called from the
-	-- settle, beside the favour being settled; a refusal that arrives after it
-	-- does not put the request back -- they can ask again, and will.
-	function ns.ServeRequest(name)
+	-- A buff landed on them. Called from the settle, beside the favour being
+	-- settled, with the buff's key. A request is answered buff by buff: the one
+	-- that landed comes off it, and it closes once nothing it asked for is
+	-- left, so a favour returned, or the first of two buffs, leaves the rest
+	-- standing. "buff pls" stands until its own clock runs out, since the queue
+	-- offers askers only what they still lack. No key closes it whole. A refusal
+	-- that arrives after it does not put anything back -- they can ask again.
+	function ns.ServeRequest(name, buffKey)
 		if type(name) ~= "string" then return end
 		local short = ShortName(name)
 		for i = #requests, 1, -1 do
 			local request = requests[i]
 			if request.full == name or SameName(request.short, short) then
-				table.remove(requests, i)
+				-- ASK.ANY is one table shared by every such request: never written.
+				if request.keys ~= ASK.ANY then
+					if buffKey then request.keys[buffKey] = nil end
+					if not buffKey or next(request.keys) == nil then table.remove(requests, i) end
+				end
 			end
 		end
 	end
@@ -3052,6 +3103,10 @@ do
 	-- the baseline moves on a single reading; see ScanOwnBuffs.
 	local lastPresent = {}
 	local haveLastScan = false
+	-- Set while a reading of nothing stands doubted: that scan returned before
+	-- rewriting lastPresent, so it still holds the buff from before it ran out,
+	-- and is no evidence about the reading before this one. See IsNew.
+	local sinceEmpty = false
 
 	-- Who cast each aura read but not yet filed, keyed by instance id with the
 	-- identity it was read under. Resolved when the slot is read, because
@@ -3092,6 +3147,7 @@ do
 		wipe(lastPresent)
 		wipe(sighted)
 		haveLastScan = false
+		sinceEmpty = false
 		auraScanPrimed = false
 		settleTries = 0
 	end
@@ -3140,6 +3196,14 @@ do
 			offerAnyway = true,
 			rotate = false,
 		}, NoReading)
+	end
+
+	-- Whether the prompt is showing this person, which in a fight is where it
+	-- stays until the fight ends. Guarded: Prompt.lua may not have loaded.
+	local function FrozenOn(name)
+		if not (ns.Prompt and ns.Prompt.Showing) then return false end
+		local ok, showing = pcall(ns.Prompt.Showing, ns.Prompt)
+		return ok and type(showing) == "table" and showing.name == name
 	end
 
 	-- One favour, filed against the person who was holding the token when the aura
@@ -3203,6 +3267,11 @@ do
 					:format(seen.name))
 			elseif reachable and ns.HiddenWhileMounted() then
 				addon:Print(L["|cff80ff80%s buffed you|r -- returning the favour is on the prompt once you get off your mount"]
+					:format(seen.name))
+			elseif reachable and InCombatLockdown() and not FrozenOn(seen.name) then
+				-- The prompt is frozen on somebody else, or hidden, until the
+				-- fight ends; only a prompt already on them casts at them now.
+				addon:Print(L["|cff80ff80%s buffed you|r -- returning the favour is offered once this fight ends"]
 					:format(seen.name))
 			else
 				addon:Print((reachable
@@ -3277,11 +3346,14 @@ do
 	-- ending decides: a cast that ran out and was replaced under its own number
 	-- ends later, while a refusal handed back returns the same ending. The two
 	-- readings are otherwise identical slot for slot. An ending missing or
-	-- unreadable at either end claims nothing and leaves the aura filed.
+	-- unreadable at either end claims nothing and leaves the aura filed. After a
+	-- doubted reading of nothing (the last buff ran out, or death took them all)
+	-- the previous reading is stale, so the ending decides then too: a buff
+	-- recast under the number it had is new, the same one handed back is not.
 	local function IsNew(instanceId, key, expires)
 		local known = knownAuras[instanceId]
 		if known == nil or known ~= key then return true end
-		if lastPresent[instanceId] == key then return false end
+		if not sinceEmpty and lastPresent[instanceId] == key then return false end
 		local was = knownUntil[instanceId]
 		return (was ~= nil and expires ~= nil and expires > was) or false
 	end
@@ -3370,7 +3442,10 @@ do
 		local doubt
 		if refused then doubt = "refused"
 		elseif hole then doubt = "hole"
-		elseif read == 0 and held > 0 then doubt = "empty" end
+		elseif read == 0 and held > 0 then
+			doubt = "empty"
+			sinceEmpty = true
+		end
 
 		-- Recorded either way, including the clear, for /manners debug.
 		scan.read, scan.held, scan.doubt = read, held, doubt
@@ -3456,6 +3531,7 @@ do
 		wipe(lastPresent)
 		for instanceId, key in pairs(present) do lastPresent[instanceId] = key end
 		haveLastScan = true
+		sinceEmpty = false
 
 		-- The price of never guessing what a refusal looks like (STATUS.md): a
 		-- refusal that repeats identically across two scans is indistinguishable
@@ -3542,9 +3618,16 @@ function addon:UNIT_AURA(_, unit)
 	ForgetUnitAuras(plain(UnitGUID(unit)))
 end
 
-function addon:PLAYER_ENTERING_WORLD()
+function addon:PLAYER_ENTERING_WORLD(_, isInitialLogin, isReloadingUi)
 	playerGUID = plain(UnitGUID("player"))
 	wipe(ns.nameplateUnits)
+	-- A loading screen, where anybody not grouped was left behind: a favour
+	-- from before it no longer proves they are in range. Not a login or a
+	-- /reload, where the player has not moved, nor arguments that cannot be
+	-- read, which are no evidence of either.
+	if plain(isInitialLogin) == false and plain(isReloadingUi) == false then
+		ns.zonedAt = GetTime()
+	end
 	ns.Guard("ProbeCapabilities", ns.ProbeCapabilities)
 	-- A fresh baseline of your own buffs now, the old one dropped: instance
 	-- ids are renumbered across a zone.
@@ -3904,7 +3987,7 @@ local function SettlePendingClick(landedOn, spellId, castGUID)
 
 	if not unheard then ns.SettleFavour(pending.name) end
 	-- And whatever they asked for is answered, on the same evidence.
-	if not unheard then ns.ServeRequest(pending.name) end
+	if not unheard then ns.ServeRequest(pending.name, pending.buffKey) end
 	-- The ledger follows the same gate as the debt.
 	if not unheard then TellLedger("Settled", pending.name, wasOwed, pending, spellId) end
 	-- The client sent the cast; the server has not answered yet. Keep the
@@ -3933,6 +4016,17 @@ local function UnsettleLateRefusal(castGUID)
 	-- decides only whether there was a debt, and settled.owed says that.
 	local db = addon.db and addon.db.profile
 	if not db or not db.enabled then return nil end
+
+	-- A shift-right-click since the settle let this favour go, and a refusal
+	-- must not bring it back: owed people are exempt from the list. The row
+	-- goes from returned back to let go, and nothing claims a debt still kept.
+	local listed = settled.owed and ListedAs(settled.name)
+	if listed then
+		TellLedger("Refused", settled.name, settled.at)
+		TellLedger("LetGo", settled.name, "never")
+		RewindClick(settled)
+		return settled.name
+	end
 
 	-- Written to disk, as SettleFavour's clearing was. A newer favour filed
 	-- since is kept if it lasts longer: the refusal only means you still owe.
@@ -4719,6 +4813,19 @@ end
 function ns.ClampSettings()
 	local profile = addon.db and addon.db.profile
 	if not profile then return end
+	-- AceDB fills defaults only into a table, and a damaged or hand-edited
+	-- file can hold anything, so a section that is not one is replaced whole
+	-- (with a copy: AceDB strips values equal to the default table itself).
+	local function copy(t)
+		local out = {}
+		for k, v in pairs(t) do out[k] = type(v) == "table" and copy(v) or v end
+		return out
+	end
+	for key, default in pairs(ns.defaults.profile) do
+		if type(default) == "table" and type(profile[key]) ~= "table" then
+			profile[key] = copy(default)
+		end
+	end
 	for _, limit in ipairs(LIMITS) do
 		local group, key, low, high = limit[1], limit[2], limit[3], limit[4]
 		local value = profile[group] and profile[group][key]
@@ -4795,16 +4902,13 @@ function ns.ClampSettings()
 	boolean(profile.filters, "hideMounted", false)
 	boolean(profile.sound, "owedOnly", true)
 	boolean(profile.timing, "keepDebts", true)
-	-- Only replaced when not a table (AceDB fills the section from defaults).
-	if type(profile.priority) ~= "table" then profile.priority = {} end
 	boolean(profile.priority, "target", true)
 	boolean(profile.priority, "friends", true)
 	boolean(profile.filters, "restingOnly", false)
 
-	-- The never-offer list is read on every scan, so it must be a table. An
-	-- entry that is not a name set to true is dropped: there is no telling who
-	-- it was meant to be.
-	if type(profile.never) ~= "table" then profile.never = {} end
+	-- The never-offer list is read on every scan; the repair at the top made
+	-- it a table. An entry that is not a name set to true is dropped: there is
+	-- no telling who it was meant to be.
 	for name, flag in pairs(profile.never) do
 		if type(name) ~= "string" or not name:find("%S") or flag ~= true then
 			profile.never[name] = nil
@@ -4911,7 +5015,9 @@ function addon:OnInitialize()
 
 	-- Probe first: ClampSettings validates the pinned buff against caps.class.
 	ns.Guard("ProbeCapabilities", ns.ProbeCapabilities)
-	ns.ClampSettings()
+	-- Guarded: a repair that fails must not take the debts, the ledger, the
+	-- options and the slash commands with it.
+	ns.Guard("ClampSettings", ns.ClampSettings)
 	-- After the clamp, so debts meet a validated window. Once per session, not
 	-- on PLAYER_ENTERING_WORLD, which would resurrect debts already settled.
 	ns.Guard("RestoreDebts", RestoreDebts)
@@ -5050,7 +5156,7 @@ end
 
 -- `event` is AceDB's, and nil when an import or its undo calls this itself.
 function addon:RefreshConfig(event)
-	ns.ClampSettings()
+	ns.Guard("ClampSettings", ns.ClampSettings)
 	-- A profile switched to may just have been carried over; chat exists now.
 	ns.SayAnchorCarried()
 	ns.Prompt:ApplyStyle()
@@ -5113,6 +5219,24 @@ end
 function ns.SnoozeEndsAt()
 	local left = ns.SnoozeLeft()
 	if not left then return nil end
+	-- The minimap clock shows realm time unless the player ticked Local Time.
+	local get, realm = _G.GetCVar, _G.GetGameTime
+	local ok, useLocal = false, nil
+	if type(get) == "function" then ok, useLocal = pcall(get, "timeMgrUseLocalTime") end
+	if ok and plain(useLocal) == "0" and type(realm) == "function" then
+		local read, h, m = pcall(realm)
+		h, m = plain(h), plain(m)
+		if read and type(h) == "number" and type(m) == "number" then
+			local total = (h * 60 + m + math.floor(left / 60 + 0.5)) % 1440
+			local hour, minute = math.floor(total / 60), total % 60
+			if TwelveHourClock() then
+				local twelve = hour % 12
+				if twelve == 0 then twelve = 12 end
+				return ("%d:%02d %s"):format(twelve, minute, hour < 12 and "AM" or "PM")
+			end
+			return ("%02d:%02d"):format(hour, minute)
+		end
+	end
 	local at = time() + math.floor(left + 0.5)
 	if TwelveHourClock() then
 		-- "9:45 PM", not "09:45 PM": the game clock drops the leading zero.
@@ -5936,7 +6060,15 @@ function addon:HandleSlash(rawInput)
 		-- fight the secure prompt cannot be moved, and chat agrees with the
 		-- panel about that.
 		if db.enabled and InCombatLockdown() then
-			self:Print(L["unlocked -- it can be dragged once this fight ends; until then a press still casts what the fight froze. Then |cffffd100/manners lock|r."])
+			-- A fight that began with nobody on the prompt froze no macro, so a
+			-- press casts nothing, as the panel and the launcher say.
+			local button = ns.Prompt and ns.Prompt.GetButton and ns.Prompt:GetButton()
+			local armed = button and button:GetAttribute("macrotext1")
+			if type(armed) == "string" and armed ~= "" then
+				self:Print(L["unlocked -- it can be dragged once this fight ends; until then a press still casts what the fight froze. Then |cffffd100/manners lock|r."])
+			else
+				self:Print(L["unlocked -- it can be dragged once this fight ends; nothing is armed meanwhile. Then |cffffd100/manners lock|r."])
+			end
 		elseif db.enabled then
 			self:Print(L["unlocked -- drag the prompt, then |cffffd100/manners lock|r."])
 		else
