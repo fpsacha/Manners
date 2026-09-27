@@ -1,5 +1,129 @@
 # Changelog
 
+## 1.0.0-beta.9
+
+A phrase set that speaks in your character's own voice, a colour of their own
+for people who ask in the colour-blind palette, shorter texts on the options
+page, and a long list of fixes, many of them for players whose names or chat
+are not in English.
+
+### New: In character
+
+- **"In character: your race and faction"**, a new set under When you click >
+  Speech > Load a set. The line isn't taken from a fixed list. It is picked
+  when you click, to fit your people, your faction and why the buff is going
+  out: thanks when you return a favour, an answer when somebody asked, an
+  offer to a stranger, and friendlier lines for your group.
+- Every playable race has a voice, and allied races share their people's: a
+  Dark Iron dwarf talks like a dwarf, a Mag'har like an orc. Each people has
+  two answers to a request, so somebody who asks often doesn't hear the same
+  line every time. The Haranir use their faction's lines and the general ones
+  for now.
+- Somebody of your own people can get a word as kin, when the game lets the
+  addon read their race.
+- No line says "buff" out loud. Where a line names the spell, it uses the
+  spell's own name, as in "Have some Arcane Intellect in return". With a long
+  name, a shorter line is picked instead of saying nothing.
+- The box shows a few of your character's lines. On a profile shared by
+  several characters, each one sees and speaks its own. Edit them and they
+  become your own fixed lines, as with any other set.
+- "Only when returning a favour" applies to this set too, and Roll a few
+  prints one sample line for each reason, so you can hear how it sounds.
+- Nothing changes unless you pick the set.
+
+### Colours and texts
+
+- **In the colour-blind palette, people who asked for your buff have a deep
+  pink of their own** instead of sharing the passers-by violet.
+- The Colour it by reason tooltip names all five reasons and their colours,
+  in both palettes.
+- **Shorter texts on the options page.** Every tooltip and note is one or two
+  short sentences; the longer explanations are on the addon page. No setting
+  was renamed or reset.
+- The Targeting note says plainly that the prompt targets whoever it buffs,
+  group members too, and when your previous target comes back.
+- Share settings lists everything a pasted line leaves alone: your on switch,
+  lock, prompt position, click log and minimap button. It never switches
+  speaking on.
+- **`/manners dev`** lists the tools for testing the addon on this client
+  (clicks, try, look, forms). `/manners help` no longer lists them, but they
+  still work, and a typo of one points you at `/manners dev`.
+- The first-login greeting, the error for a cut-short settings line, the
+  message for never-offering somebody you owe in a fight, and the ledger
+  tooltip for a favour only your party can return are all shorter.
+
+### Asking in chat
+
+- If somebody asks for several buffs, or asks while you owe them, you are
+  offered the rest of what they asked for after the first one lands. When
+  their buffs can't be read, "buffs pls" no longer offers again the one that
+  just landed.
+- Questions about a buff in German, French, Spanish, Portuguese, Italian,
+  Russian and Chinese are no longer taken as asking you for it.
+- "No" and "don't" in other languages now stop a message counting as a
+  request, the way "no" and "not" already did in English.
+- Long Chinese sentences that only mention a buff no longer count as asking,
+  while "法师求奥术智慧" (a 求 after a word, not only at the start) still
+  does.
+- On Korean clients, everyday words that happen to contain a buff's name, such
+  as 가시나요, no longer count as asking for Thorns.
+
+### The prompt and fights
+
+- Clicking the prompt right after switching targets hands your new target
+  back.
+- Starting a fight just as the prompt changes no longer leaves it stuck on the
+  wrong person, taking your target.
+- Switching Manners off and on, or unlocking and locking it, during a fight no
+  longer loses track of the buff you just gave.
+- A warrior's shout no longer counts as repaying somebody who had just walked
+  out of earshot.
+- A buff you receive in a fight says it will be offered once the fight ends,
+  instead of saying it is already on the prompt.
+- Unlocking the prompt in a fight no longer says a press will cast when
+  nothing is armed.
+- A font from a media pack that fails to load no longer makes the prompt or
+  the favour ledger disappear. They fall back to the game's font.
+
+### Favours and names
+
+- **Players with long names and surnames in Cyrillic and other non-Latin
+  letters** are recognised, offered and recorded in the ledger.
+- Being buffed again after you die, or after the buff has run out, is noticed
+  and offered back.
+- Somebody you shift-right-click onto the never-offer list stays there if the
+  server then refuses your last cast on them.
+- After a loading screen, people who buffed you before it are no longer
+  offered as if they were still in range, while Drop people who are probably
+  gone is on (the default).
+- A damaged settings file no longer turns Manners off or wipes the favours you
+  still owed.
+- After your PC clock is set back, remembered favours no longer outlast the
+  window you set.
+- The snooze end time follows the minimap clock when it shows realm time.
+- `/manners never` and the profile list in the minimap menu are in
+  alphabetical order in every language.
+
+### The favour ledger and options
+
+- Today's summary is right on the days the clocks change, and on a busy day
+  it keeps counting after the oldest rows have been trimmed from the list.
+- The minimap button's tooltip no longer points you at the addon compartment
+  when another addon has hidden it.
+- The Font dropdown shows your chosen font, marked "not loaded", when its
+  media pack isn't loaded, instead of going blank.
+
+### Lighter
+
+- More room under the game's limits for addon code, the limit that stopped
+  1.0.0-beta.6 from loading.
+- Putting somebody on the never-offer list stays quick with a long list and
+  many favours owed, and the memory of who got which buff no longer grows
+  through a very long session.
+- New screenshots on the addon page, drawn from what the addon actually
+  builds: the prompt, the five reasons and their colours, the favour ledger,
+  the prompt in German, Russian and Chinese, and the colour-blind palette.
+
 ## 1.0.0-beta.8
 
 A redesigned favour ledger, a prompt that stays readable on any panel colour,

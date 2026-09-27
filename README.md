@@ -269,7 +269,11 @@ anybody else. Also *Share settings* (below) and the ledger.
   fight starts keeps `/targetlasttarget` for everybody until it ends.
 - *Say something*: off by default, and then only when returning a favour
   unless you say otherwise. Four sets of lines (Roleplay, Polite, Cheeky, Just
-  their name), editable. The line rides in the macro the button runs, because
+  their name), editable, and a fifth, *In character: your race and faction*,
+  which picks the line when you click: thanks for a favour, an answer to a
+  request, an offer to a stranger or your group, in the voice of your people
+  (a dwarf's brogue, an orc's Lok'tar, a Forsaken's gallows humour), with
+  Alliance or Horde pride and a greeting for your own kin. The line rides in the macro the button runs, because
   the game refuses addon-sent `/say` and `/yell` outside instances, which is
   exactly where somebody buffs you in passing. How long a line may be depends
   on the name and on whether your target is handed back. An empty box goes
