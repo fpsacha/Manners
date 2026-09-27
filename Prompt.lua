@@ -242,7 +242,9 @@ local function FinishDrag()
 	local point, _, relPoint, x, y = button:GetPoint()
 	local p = ns.db.profile.prompt
 	-- The client returns the offsets in the frame's scaled units; the profile
-	-- keeps UIParent's. The frame's own scale is the one it was moved at.
+	-- keeps UIParent's. The frame's own scale is the one it was moved at, not
+	-- p.scale, which can be ahead of the frame: a Scale slider moved in a fight
+	-- waits for the fight to end before ApplyStyle applies it.
 	local okScale, s = pcall(button.GetScale, button)
 	if not okScale or type(s) ~= "number" or s <= 0 then s = p.scale end
 	p.point, p.relPoint = point, relPoint
@@ -279,7 +281,9 @@ end
 
 -- What the macro on the button is aimed at: { targeted, selfCast, aimedAt },
 -- or nil. PostClick copies it onto the pending click, so the settle handler
--- judges the press by what actually went out. Set beside appliedKey.
+-- judges the press by what actually went out. Set beside appliedKey. This
+-- client does not name a cast's recipient, so a /target of ours aimed at this
+-- person is the only thing tying a press to a person.
 local armed
 
 -- Amber for a favour returned, the case worth noticing; the others stay quiet.
@@ -480,7 +484,8 @@ end
 -- the limit, so Prompt.lua failed to load at all (beta.6).
 
 -- PreClick runs before the secure handler reads the attributes, so out of
--- combat the target is re-resolved at the last moment. Every mouse button
+-- combat the target is re-resolved at the last moment: a nameplate token may
+-- since have been recycled to somebody else. Every mouse button
 -- arrives ("AnyDown"); only the left one casts.
 local function OnPreClick(self, mouseButton)
 	if mouseButton and mouseButton ~= "LeftButton" then return end
@@ -637,7 +642,9 @@ local function OnPostClick(self, mouseButton, down)
 		Prompt:StopAttention()
 		-- Held shift makes it "never": onto the never-offer list. Nothing here
 		-- touches the button (type2 is "none"), so it is as safe in a fight as
-		-- the skip.
+		-- the skip. The block above still matters: it takes them off the panel
+		-- now, not after the hold and the fuse. The list itself reaches the
+		-- queue at its next rebuild, which in a fight is when the fight ends.
 		if IsShiftKeyDown and ns.plain(IsShiftKeyDown()) then
 			-- The repaint comes with the listing: see the wrapper below
 			-- Prompt:Refresh.
@@ -697,7 +704,8 @@ local function OnPostClick(self, mouseButton, down)
 	-- later whether anything was cast. What the macro was aimed at and the old
 	-- rotation pointer ride along. Anything already parked is abandoned first,
 	-- since one slot cannot match two records to their events, and before
-	-- ns.lastGave is read, because abandoning restores it.
+	-- ns.lastGave is read, because abandoning restores it. And it is read here,
+	-- above the rotation write below, the last point it holds the old value.
 	ns.AbandonPendingClick()
 	ns.pendingClick = { name = current.name, at = GetTime(),
 		buffKey = current.buff and current.buff.key,
@@ -1258,7 +1266,8 @@ function Prompt:BuildAnimations()
 end
 
 -- Whether the extra motion is wanted: the landing burst, the shine, the shake
--- and the outro. "Calm" keeps only the fades and the favour glow.
+-- and the outro. "Calm" drops those four; everything else (the fades, the rise
+-- in, the text cross-fade, the stripe sweep, the favour glow) still plays.
 local function FullEffects()
 	local p = ns.db and ns.db.profile.prompt
 	return p ~= nil and p.effects ~= "calm"
@@ -2066,9 +2075,10 @@ end
 function Prompt:ReasonText(entry)
 	local p = ns.db.profile.prompt
 	local template = p[REASON_KEY[entry.reason] or "reasonNearby"] or ""
-	-- The sub-line must be true without hovering: a top-up and an unreadable
-	-- aura get their own wording, swapped in whole since reason lines are free
-	-- text. Not for owed or asked, whose reason is the line worth reading.
+	-- The sub-line must be true without hovering: a top-up gets its own
+	-- wording, and so does an unreadable aura except for owed or asked, whose
+	-- reason is the line worth reading. Swapped in whole, since reason lines
+	-- are free text. One chain on purpose, so both can never apply.
 	if RemainingText(entry.remaining) then
 		template = p.reasonRefresh or template
 	elseif entry.checked and entry.known == nil and entry.reason ~= "owed"
@@ -2156,7 +2166,8 @@ ns.TargetCommand = TargetCommand
 
 -- The shape of the macro for this person. There is deliberately one targeting
 -- strategy: /cast [@Name] works only for group members, cannot be tested here
--- and fails silently, while targeting reaches ungrouped strangers everywhere.
+-- and fails silently (a retail 12.0 restriction), and [@nameplateN] resolves
+-- nowhere. Targeting reaches ungrouped strangers everywhere.
 local function StrategyFor(entry)
 	if entry.buff and entry.buff.selfCast then return "selfcast" end
 	return "target"
@@ -2275,7 +2286,9 @@ function Prompt:ApplyTarget(entry)
 	if InCombatLockdown() then
 		-- Frozen until the fight ends. `current` may only be cleared: a disarm
 		-- must take effect, and pointing it at somebody new would file
-		-- bookkeeping under a name the macro does not hold.
+		-- bookkeeping under a name the macro does not hold. appliedKey stays:
+		-- it says what is on the button, which the fight froze, and the
+		-- unconditional clear path below disarms it after the fight.
 		if not entry then current = nil end
 		return
 	end
@@ -2605,7 +2618,8 @@ end
 
 -- What a branch paints when the fight would not let the prompt go. The two
 -- shapes -- inert, or still armed by the fight -- are read off the attribute
--- PostClick warns about, so the two agree.
+-- PostClick warns about, so the two agree. Callers pass whole sentences, not a
+-- reason word: a translator needs the sentence the word agrees with.
 function Prompt:PaintHeldInert(whyFrozen, whyInert)
 	local frozen = button:GetAttribute("macrotext1")
 	SetLine(nameText, frozen and "|cffff8080" .. L["still armed by the fight"] .. "|r"
@@ -2889,7 +2903,8 @@ function Prompt:RefreshPanel()
 	if not top then
 		-- An empty queue in a crowd is usually a gap, so the first empty scan
 		-- lights a short fuse and a refill puts it out. Nobody retired gets
-		-- one.
+		-- one. Nothing is disarmed while it burns: a panel on screen must stay
+		-- clickable for the person it names.
 		local retired = Retired(current, now)
 
 		if self:OutcomeLive() then
