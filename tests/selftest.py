@@ -2800,7 +2800,7 @@ mutate("Core.lua",
 
 # A reload restarting the window from the login rather than the favour.
 mutate("Core.lua",
-       "\t\t\tlocal left = math.min(entry.expires, entry.at + window) - wall\n",
+       "\t\t\tlocal left = math.min(entry.expires, at + window) - wall\n",
        "\t\t\tlocal left = math.min(entry.expires - wall, window)\n",
        "a reload restarting the window",
        expect="a debt older than the window does not survive a reload",

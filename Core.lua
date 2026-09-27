@@ -1378,10 +1378,11 @@ end
 ns.FirstName = FirstName
 
 -- Names go into macro text, so anything that could break out of the [@target]
--- clause is rejected outright.
+-- clause is rejected outright. The length cap fits the longest key there is: a
+-- name and a surname of 12 letters each, 4 bytes a letter at most, and a space.
 local function SafeForMacro(name)
 	if type(name) ~= "string" or name == "" then return false end
-	if #name > 48 then return false end
+	if #name > 97 then return false end
 	if name:find("[%[%]\n\r;|]") then return false end
 	return true
 end
@@ -1672,14 +1673,17 @@ local function RestoreDebts()
 		if type(entry) == "table" and type(entry.expires) == "number"
 			and type(entry.at) == "number" and SafeForMacro(name) then
 			-- Clamped to the window as it stands now, counted from the favour
-			-- as LiveExpiry does.
-			local left = math.min(entry.expires, entry.at + window) - wall
+			-- as LiveExpiry does. A stamp from the future (the clock set back
+			-- since it was written) counts as now, or the skew would be added
+			-- to the window.
+			local at = math.min(entry.at, wall)
+			local left = math.min(entry.expires, at + window) - wall
 			if left > 0 then
 				-- `at` goes negative just after a reboot, correctly: now - at
 				-- is still the real age of the debt.
 				owed[name] = {
 					expires = now + left,
-					at = now - (wall - entry.at),
+					at = now - (wall - at),
 					class = type(entry.class) == "string" and entry.class or nil,
 				}
 			end
@@ -1808,6 +1812,21 @@ local function SameName(a, b)
 	return a:lower() == b:lower()
 end
 
+-- Whether a sorts before b, case folded the same way SameName folds it, so a
+-- name typed in small letters sorts among the capitalised ones in any script.
+-- Not full collation (Ё still sorts apart from Е). Ties fall back to lower and
+-- then to bytes, so the order is total, which table.sort needs.
+local function NameBefore(a, b)
+	local fold = _G.strcmputf8i
+	if type(fold) == "function" then
+		local ok, cmp = pcall(fold, a, b)
+		if ok and type(cmp) == "number" and cmp ~= 0 then return cmp < 0 end
+	end
+	local la, lb = a:lower(), b:lower()
+	if la ~= lb then return la < lb end
+	return a < b
+end
+
 -- What the list walk has already answered, by name: the entry, or false. The
 -- scan asks about everybody 2.5 times a second, two case-folded compares per
 -- entry. Checked against a copy of the list rather than cleared by an editor,
@@ -1910,7 +1929,7 @@ function ns.NeverList()
 	for name, flag in pairs(NeverSet() or {}) do
 		if flag == true then names[#names + 1] = name end
 	end
-	table.sort(names, function(a, b) return a:lower() < b:lower() end)
+	table.sort(names, NameBefore)
 	return names
 end
 
@@ -1932,8 +1951,10 @@ function ns.PutOnNeverList(name)
 	if not listed then return nil end
 
 	local forgiven = false
+	-- Matched against the one entry just listed, by ListedAs' rule, rather than
+	-- walking the whole list once per favour.
 	for key in pairs(owed) do
-		if ListedAs(key) == listed then
+		if SameName(listed, key) or SameName(listed, ShortName(key)) then
 			owed[key] = nil
 			forgiven = true
 			-- The ledger's row goes with the debt: its own sweep walks the

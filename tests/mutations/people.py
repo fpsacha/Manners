@@ -47,8 +47,8 @@ mutate("Prompt.lua",
 # The favour kept when an owed person is shift-right-clicked, so they come
 # straight back.
 mutate("Core.lua",
-       "\t\tif ListedAs(key) == listed then\n\t\t\towed[key] = nil\n",
-       "\t\tif ListedAs(key) == listed then\n",
+       "\t\tif SameName(listed, key) or SameName(listed, ShortName(key)) then\n\t\t\towed[key] = nil\n",
+       "\t\tif SameName(listed, key) or SameName(listed, ShortName(key)) then\n",
        "owed person shift-right-clicked keeps the debt",
        expect="a never-listed person who buffs you is still offered",
        script="runscenarios.py")
@@ -156,8 +156,8 @@ mutate("Core.lua",
 # The favour kept for somebody already on the list, which is how the loop sat
 # before: below the early return for "already there".
 mutate("Core.lua",
-       "\t\tif ListedAs(key) == listed then\n",
-       "\t\tif not already and ListedAs(key) == listed then\n",
+       "\t\tif SameName(listed, key) or SameName(listed, ShortName(key)) then\n",
+       "\t\tif not already and (SameName(listed, key) or SameName(listed, ShortName(key))) then\n",
        "already-listed owed person keeps the debt",
        expect="an owed person already on the list lets the favour go",
        script="runscenarios.py")
