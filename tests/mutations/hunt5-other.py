@@ -19,7 +19,13 @@ mutate("Buffs.lua",
        expect="hunt5-other: talent-only buffs are marked on Forever", script=S)
 
 mutate("Buffs.lua",
-       "\t\t\tmanaOnly = true,\n\t\t\ttalent = true,\n",
-       "\t\t\tmanaOnly = true,\n",
+       "\t\t\tgroup = { 27681 },\n\t\t\tmanaOnly = true,\n\t\t\ttalent = true,\n",
+       "\t\t\tgroup = { 27681 },\n\t\t\tmanaOnly = true,\n",
        "hunt5-other: Divine Spirit not marked as a talent",
        expect="hunt5-other: talent-only buffs are marked on Forever", script=S)
+
+mutate("Buffs.lua",
+       "\t\t\tranks = { 369459 },\n\t\t\tmanaOnly = true,\n\t\t\ttalent = true,\n",
+       "\t\t\tranks = { 369459 },\n\t\t\tmanaOnly = true,\n",
+       "hunt5-other: Source of Magic not marked as a talent",
+       expect="hunt5-other: Source of Magic is a talent on retail", script=S)

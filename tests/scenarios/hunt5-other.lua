@@ -33,6 +33,30 @@ do
 	end
 end
 
+-- On retail, Source of Magic is an evoker talent and the Blessing of the
+-- Bronze is not: the field means the same in every set, so it is filled in
+-- wherever it is true.
+do
+	local scenario = "hunt5-other: Source of Magic is a talent on retail"
+	Mock.reset()
+	Mock.interface = 120100
+	local ns = load(scenario)
+	if ns then
+		local source = ns.FindBuff("EVOKER", "sourceofmagic")
+		local bronze = ns.FindBuff("EVOKER", "bronze")
+		if not (source and bronze) then
+			fail(scenario, "the retail evoker is missing a buff")
+		else
+			if source.talent ~= true then
+				fail(scenario, "Source of Magic has talent = " .. tostring(source.talent))
+			end
+			if bronze.talent ~= nil then
+				fail(scenario, "Blessing of the Bronze marked as a talent")
+			end
+		end
+	end
+end
+
 -- Mists made Kings baseline, so there it is nobody's talent.
 do
 	local scenario = "hunt5-other: Kings is baseline on Mists"
