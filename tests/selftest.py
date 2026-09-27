@@ -1471,8 +1471,8 @@ mutate("Prompt.lua",
 
 # 77. the one place the number really is per person, taken back off the page.
 mutate("Options.lua",
-       ' down your buffs works at all. Right-click the prompt to skip somebody',
-       ' down your buffs works at all. There is another way to skip somebody',
+       ' Divine Spirit. Right-clicking the prompt skips the whole person for this long."]',
+       ' Divine Spirit. There is another way to skip the whole person."]',
        "the per-person half left unmentioned",
        expect="is nowhere on the page",
        script="runscenarios.py")
@@ -1508,8 +1508,8 @@ mutate("Options.lua",
 # 80. the description that named three reason colours out of four, leaving out
 #     the one most people see most often.
 mutate("Options.lua",
-       'or L["Pale blue for somebody you targeted yourself, amber when returning a',
-       'or L["Amber when returning a',
+       'or L["Pale blue for your own target, amber for a favour owed',
+       'or L["Amber for a favour owed',
        "a reason colour the page never names",
        expect="reason colours and the description names",
        script="runscenarios.py")
@@ -1572,9 +1572,8 @@ mutate("Options.lua",
 #     somebody, which is a thing nothing in the addon can notice. It runs from
 #     their buff -- the one instant they were provably in range.
 mutate("Options.lua",
-       'desc = L["How long after somebody buffs you that counts as proof they were in range.'
-       ' It runs from their buff, not from the moment they walk off: nothing here can see'
-       ' them go."],',
+       'desc = L["How long somebody counts as in range after they buff you.'
+       ' It runs from their buff, not from when they walk off."],',
        'desc = "How long a favour stays offerable once we can no longer see them.",',
        "a window timed from an event nothing sees",
        expect="the page does not say so",
@@ -2447,8 +2446,8 @@ mutate("Options.lua",
 # The minimap button's own click, which is the other way the switch is thrown
 # from outside the page it has a checkbox on.
 mutate("Options.lua",
-       "\t-- ticked over an addon that is off.\n\tns.RepaintOptions()\n",
-       "\t-- ticked over an addon that is off.\n",
+       "\t-- on their own.\n\tns.RepaintOptions()\n",
+       "\t-- on their own.\n",
        "the minimap click leaving the page stale",
        expect="options page drawing the old value",
        script="runscenarios.py")
@@ -2457,10 +2456,10 @@ mutate("Options.lua",
 # nothing reads and calls Show on a button that was never registered: a control
 # that ticks, saves, and does nothing whatever.
 mutate("Options.lua",
-       """					-- a disabled control would be telling anybody.
+       """						-- button for a greyed-out control to be about.
 						hidden = function() return not HasMinimapButton() end,
 """,
-       "					-- a disabled control would be telling anybody.\n",
+       "						-- button for a greyed-out control to be about.\n",
        "a checkbox for a button that does not exist",
        expect="on the page with no library behind it",
        script="runscenarios.py")
@@ -2479,9 +2478,9 @@ mutate("Options.lua",
 # And the same control hidden always, which satisfies everything the absence
 # scenario asks for while quietly taking the minimap button off everybody's page.
 mutate("Options.lua",
-       """					-- a disabled control would be telling anybody.
+       """						-- button for a greyed-out control to be about.
 						hidden = function() return not HasMinimapButton() end,""",
-       """					-- a disabled control would be telling anybody.
+       """						-- button for a greyed-out control to be about.
 						hidden = function() return true end,""",
        "the minimap control hidden from everybody",
        expect="hidden on a client that has both",
@@ -3048,9 +3047,9 @@ mutate("Core.lua",
 # The When you click tab saying nothing in a fight.
 mutate("Options.lua",
        "\t\t\t\t\t\thidden = function() return not InCombatLockdown() end,\n"
-       "\t\t\t\t\t\tname = L[\"|cffffd100In combat.|r Blizzard freezes the macro",
+       "\t\t\t\t\t\tname = L[\"|cffffd100In combat.|r Blizzard freezes the prompt's macro",
        "\t\t\t\t\t\thidden = function() return true end,\n"
-       "\t\t\t\t\t\tname = L[\"|cffffd100In combat.|r Blizzard freezes the macro",
+       "\t\t\t\t\t\tname = L[\"|cffffd100In combat.|r Blizzard freezes the prompt's macro",
        "click tab silent in a fight",
        expect="the When you click tab says nothing about the fight",
        script="runscenarios.py")
@@ -3439,9 +3438,9 @@ mutate("Options.lua",
 # The targeting note naming /targetlasttarget whatever the switch above says.
 mutate("Options.lua",
        "\t\t\t\t\t\t\tif F().restoreTarget then\n"
-       "\t\t\t\t\t\t\t\ttext = L[\"The prompt runs |cffffd100%s|r, then the cast, then |cffffd100%s|r",
+       "\t\t\t\t\t\t\t\ttext = L[\"The prompt runs |cffffd100%s|r, the cast, then |cffffd100%s|r",
        "\t\t\t\t\t\t\tif true then\n"
-       "\t\t\t\t\t\t\t\ttext = L[\"The prompt runs |cffffd100%s|r, then the cast, then |cffffd100%s|r",
+       "\t\t\t\t\t\t\t\ttext = L[\"The prompt runs |cffffd100%s|r, the cast, then |cffffd100%s|r",
        "targeting note ignores the hand-back switch",
        expect="with the switch off the note promises /targetlasttarget",
        script="runscenarios.py")
@@ -3450,8 +3449,7 @@ mutate("Options.lua",
 mutate("Options.lua",
        "\t\t\t\t\t.. \"\\n\\n\"\n"
        "\t\t\t\t\t.. L[\"Not while |cffffd100If they already have the buff|r is set to Always"
-       " offer, under When: nothing is read then, so your target is ranked by"
-       " why they are on the list like anybody else.\"]\n",
+       " offer, under When, since nothing is read then.\"]\n",
        "",
        "target switch silent about Always offer",
        expect="the target switch's description does not say that Always offer",
@@ -3459,9 +3457,9 @@ mutate("Options.lua",
 
 # ...the pale-blue colour the same...
 mutate("Options.lua",
-       " I have targeted comes first|r is on, under Who to buff, and never while"
-       " |cffffd100If they already have the buff|r is set to Always offer, under When.\"]",
-       " I have targeted comes first|r is on, under Who to buff.\"]",
+       " I have targeted comes first|r is on and"
+       " |cffffd100If they already have the buff|r is not Always offer.\"]",
+       " I have targeted comes first|r is on.\"]",
        "reason colour silent about Always offer",
        expect="the colour switch's description does not say that Always offer",
        script="runscenarios.py")
@@ -3471,8 +3469,7 @@ mutate("Options.lua",
        "Expect to be spending mana.\"]\n"
        "\t\t\t\t\t\t\t.. \"|r\\n\\n|cff888888\"\n"
        "\t\t\t\t\t\t\t.. L[\"Nothing is read in this mode, so |cffffd100Whoever I have"
-       " targeted comes first|r has nothing to go on: your target is ranked by"
-       " why they are on the list like anybody else.\"]\n"
+       " targeted comes first|r has no effect.\"]\n"
        "\t\t\t\t\t\t\t.. \"|r\",\n",
        "Expect to be spending mana.\"]\n"
        "\t\t\t\t\t\t\t.. \"|r\",\n",
@@ -3482,8 +3479,7 @@ mutate("Options.lua",
 
 # "Remember a buff for" saying nothing of the grace that ends it sooner.
 mutate("Options.lua",
-       " sooner if |cffffd100Let them go after|r is shorter, while"
-       " |cffffd100Drop people who are probably gone|r is on, under Who to buff.\"],\n",
+       " sooner by |cffffd100Drop people who are probably gone|r, under Who to buff.\"],\n",
        " sooner.\"],\n",
        "remember window silent about the grace",
        expect="the slider says people stay on the prompt this long",
@@ -3528,8 +3524,7 @@ mutate("Options.lua",
 
 # ...and the top-up slider the same.
 mutate("Options.lua",
-       "is left alone -- unless they buffed you, in which case they are offered the favour back"
-       " anyway.\"],\n",
+       "is left alone, unless they buffed you.\"],\n",
        "is left alone.\"],\n",
        "top-up slider hides the favour exception",
        expect="the top-up slider's description never says somebody who buffed you",
@@ -3610,8 +3605,8 @@ mutate("Options.lua",
 
 # "Stay quiet in combat" promising a green flash nothing paints.
 mutate("Options.lua",
-       " happened -- red if it failed. With this on it does not -- the panel",
-       " happened -- green or red. With this on it does not -- the panel",
+       " happened -- red if it failed. With this on it stays dimmed",
+       " happened -- green or red. With this on it stays dimmed",
        "quiet-in-combat promises a green flash",
        expect="the switch promises a green flash the prompt never paints",
        script="runscenarios.py")
@@ -3787,8 +3782,8 @@ mutate("Core.lua",
 
 # The Targeting note promising your own target stays targeted in a fight too.
 mutate("Options.lua",
-       "|r -- except, outside a fight, for somebody who is already your target, who stays",
-       "|r -- except for somebody who is already your target, who stays",
+       "|r, except outside a fight for somebody already your target, who stays targeted.",
+       "|r, except for somebody already your target, who stays targeted.",
        "Targeting note forgets the fight",
        expect="the Targeting note says your own target stays targeted",
        script="runscenarios.py")
