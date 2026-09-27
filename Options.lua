@@ -1833,13 +1833,46 @@ local function BuildOptions()
 						-- another tab. And the switch has a condition of its own,
 						-- on a third: with Always offer nothing is read, so no
 						-- target is ever promoted and the pale blue never shows.
-						desc = L["Pale blue for somebody you targeted yourself, amber when returning a favour, deeper blue for your group, grey for passers-by. That is also the order they are offered in."]
-							.. "\n\n|cff888888"
-							.. L["The first of those only ever appears while |cffffd100Whoever I have targeted comes first|r is on, under Who to buff, and never while |cffffd100If they already have the buff|r is set to Always offer, under When."]
-							.. "|r",
+						--
+						-- A function, because the colours it names are the
+						-- palette's, and the colour-blind one below changes
+						-- all four.
+						desc = function()
+							local colours = P().reasonPalette == "colourblind"
+								and L["Pale yellow for somebody you targeted yourself, orange when returning a favour, sky blue for your group, violet for passers-by. That is also the order they are offered in."]
+								or L["Pale blue for somebody you targeted yourself, amber when returning a favour, deeper blue for your group, grey for passers-by. That is also the order they are offered in."]
+							return colours
+								.. "\n\n|cff888888"
+								.. L["The first of those only ever appears while |cffffd100Whoever I have targeted comes first|r is on, under Who to buff, and never while |cffffd100If they already have the buff|r is set to Always offer, under When."]
+								.. "|r"
+						end,
 						order = 12,
 						width = "full",
 						get = pGet,
+						set = pSet,
+					},
+					-- Which four colours, for somebody the standard four fail.
+					-- Off by default: the standard set is the look everybody
+					-- already knows, and a palette nobody asked for is a change
+					-- nobody can account for. Greyed out wherever the reason
+					-- colours are not drawn, like the accent colour below is
+					-- wherever they are.
+					reasonPalette = {
+						type = "select",
+						name = L["Reason colours"],
+						desc = L["The colour-blind set keeps the four reasons apart for red-green colour blindness (protanopia and deuteranopia): pale yellow, orange, sky blue and violet, which differ in lightness as well as in hue."],
+						order = 12.2,
+						values = {
+							standard = L["Standard"],
+							colourblind = L["Colour-blind friendly"],
+						},
+						sorting = { "standard", "colourblind" },
+						disabled = function()
+							return not P().accentByReason or (P().accentMode or "icon") == "off"
+						end,
+						-- Whatever a hand-edited file holds, the dropdown shows
+						-- the palette the prompt is actually drawn with.
+						get = function() return P().reasonPalette == "colourblind" and "colourblind" or "standard" end,
 						set = pSet,
 					},
 					-- Shown only when the colour above has nowhere left to go. "Off"
@@ -2246,7 +2279,19 @@ local function BuildOptions()
 						set = pSet,
 					},
 					fontSize = { type = "range", name = L["Font size"], order = 51, min = 6, max = 32, step = 1, get = pGet, set = pSet },
-					fontColor = { type = "color", name = L["Text colour"], order = 52, hasAlpha = true, get = pGetColor, set = pSetColor },
+					-- The prompt picks light or dark text for the panel colour
+					-- only while this is left at its default, and says so here,
+					-- because otherwise the text changing colour when the panel
+					-- does reads as the setting being ignored.
+					fontColor = {
+						type = "color",
+						name = L["Text colour"],
+						desc = L["Left at white, the text turns dark by itself on a light panel colour. Any other colour is used exactly as you pick it."],
+						order = 52,
+						hasAlpha = true,
+						get = pGetColor,
+						set = pSetColor,
+					},
 					classColor = { type = "toggle", name = L["Colour names by class"], order = 53, width = "full", get = pGet, set = pSet },
 
 					iconHeader = { type = "header", name = L["Icon and queue"], order = 60 },

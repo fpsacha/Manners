@@ -420,6 +420,41 @@ local REASON_COLOR = {
 local REASON_KEY = { target = "reasonTarget", owed = "reasonOwed",
 	group = "reasonGroup", nearby = "reasonNearby" }
 
+-- The same four reasons for somebody the set above still fails: pale yellow,
+-- orange, sky blue and violet. The set above keeps group and nearby apart by
+-- hue and saturation alone and target and owed by little more, and with the
+-- common red-green colour blindness those are the differences that go.
+--
+-- Found by search rather than by eye: each colour held to its own family of
+-- hues, owed held vivid, all four held light enough to carry on a near-black
+-- panel, and the set chosen whose closest pair is furthest apart -- measured
+-- as CIE76 distance, with normal sight and with protanopia and deuteranopia
+-- simulated (Machado, Oliveira and Fernandes, 2009, at full severity). The
+-- closest pair comes out at 33 under deuteranopia, 38 under protanopia and 62
+-- with normal sight; the standard set's closest are 30, 32 and 36. The warm
+-- pair is told from the cool pair by blue against yellow, the one opposition
+-- red-green colour blindness leaves intact, and within each pair the two are
+-- far apart in lightness. tests/scenarios/look2.lua holds the set to that.
+--
+-- Chosen under Prompt > Style, and off unless asked for: the standard set is
+-- the look everybody else already knows.
+local REASON_COLOR_CVD = {
+	target = { 0.98, 0.96, 0.56 },
+	owed = { 0.92, 0.48, 0.08 },
+	group = { 0.42, 0.78, 1.00 },
+	nearby = { 0.80, 0.20, 1.00 },
+}
+local REASON_PALETTES = { standard = REASON_COLOR, colourblind = REASON_COLOR_CVD }
+
+-- The colour for a reason in the palette the player picked. Anything that is
+-- not a palette -- a hand-edited file, an import from a later version with a
+-- third one -- reads as the standard set rather than as no colour at all.
+local function ReasonColor(reason)
+	local p = ns.db and ns.db.profile.prompt
+	local set = REASON_PALETTES[p and p.reasonPalette] or REASON_COLOR
+	return set[reason or "nearby"] or set.nearby
+end
+
 -- Whole minutes, because the refresh threshold is set in minutes and a countdown
 -- ticking under the cursor reads as urgency the prompt does not mean. Under a
 -- minute is the one case where seconds say something a "0m" cannot.
@@ -1735,10 +1770,242 @@ local function unpackColor(c, fallback)
 	return c[1] or 1, c[2] or 1, c[3] or 1, c[4] == nil and 1 or c[4]
 end
 
+---------------------------------------------------------------------------
+-- legible text
+---------------------------------------------------------------------------
+
+-- What ApplyStyle worked out about the ground the text stands on, kept for the
+-- painters that run between two of its calls. One table rather than a local
+-- apiece, because this file's main chunk already holds well over half of the
+-- two hundred locals Lua 5.1 allows one.
+--
+--   light   the text wants to be light: a dark panel, or no panel at all
+--   lo, hi  the luminance of the panel at the dark and the light end of its
+--           gradient, as it lands over the world
+--   codes   colour codes already made legible on this ground, by code
+local ink = { light = true, lo = 0, hi = 0, codes = {} }
+
+-- The world is not ours to read, so a see-through panel is judged over a
+-- dusky grey: dark far more often than not, which is what the old white text
+-- assumed too, but not black, so a panel at a third of its opacity is not
+-- judged as though the floor under it were a hole.
+local WORLD_GREY = 0.15
+
+-- Coloured text is held to 3:1 against the panel, the figure the web's
+-- accessibility rules give large text. The class colours clear it on the
+-- default panel -- the death knight's red, the deepest of them, only just --
+-- so nobody who kept the dark panel sees a colour move; on a light panel
+-- none of them was ever meant to be read, and all of them get darker -- to
+-- 4.5:1, the figure for body text, once they have to move at all (see
+-- LegibleCode). The plain lines are held to 4.5:1 throughout, since they are
+-- small and are the ones actually read.
+local CODE_CONTRAST, TEXT_CONTRAST = 3, 4.5
+
+-- Relative luminance as the web's contrast rules define it: the sRGB curve
+-- taken off first, then weighted. The Rec. 601 weights the border uses are
+-- the right question for "is this panel light" and the wrong one for "can
+-- this be read on it", which is about light, not about the signal.
+local function Linear(c)
+	if c <= 0.03928 then return c / 12.92 end
+	return ((c + 0.055) / 1.055) ^ 2.4
+end
+
+local function Luminance(r, g, b)
+	return 0.2126 * Linear(r) + 0.7152 * Linear(g) + 0.0722 * Linear(b)
+end
+
+local function Ratio(a, b)
+	if a < b then a, b = b, a end
+	return (a + 0.05) / (b + 0.05)
+end
+
+-- Against the worse of the panel's two ends, because the name sits near the
+-- light top and the reason line near the dark bottom, and light text is
+-- hardest to read at one end and dark text at the other.
+local function Contrast(r, g, b)
+	local l = Luminance(r, g, b)
+	return math.min(Ratio(l, ink.lo), Ratio(l, ink.hi))
+end
+
+-- A colour moved towards whichever of white and black the ground wants, by
+-- `t` of the way. Towards black by scaling, so a class colour darkened for a
+-- light panel keeps its hue rather than going grey.
+local function Toward(r, g, b, t)
+	if ink.light then
+		return r + (1 - r) * t, g + (1 - g) * t, b + (1 - b) * t
+	end
+	return r * (1 - t), g * (1 - t), b * (1 - t)
+end
+
+-- The colour itself if it already reads on this panel, and otherwise the
+-- nearest colour on the way to white or black that does. Nearest, so a colour
+-- that needs a nudge gets a nudge: the name of the class and the warmth of
+-- the reason line both survive it.
+local function Legible(r, g, b, minimum)
+	r = math.max(0, math.min(1, r))
+	g = math.max(0, math.min(1, g))
+	b = math.max(0, math.min(1, b))
+	if Contrast(r, g, b) >= minimum then return r, g, b end
+	local lo, hi = 0, 1
+	for _ = 1, 12 do
+		local t = (lo + hi) / 2
+		if Contrast(Toward(r, g, b, t)) >= minimum then hi = t else lo = t end
+	end
+	return Toward(r, g, b, hi)
+end
+
+-- One |cAARRGGBB code, made legible on this panel. Cached per code, and the
+-- cache emptied by ApplyStyle, because the same dozen codes -- the class
+-- colours, the outcome words -- are rewritten on every repaint.
+local function LegibleCode(a, r, g, b)
+	local key = a .. r .. g .. b
+	local hit = ink.codes[key]
+	if hit then return hit end
+	-- Left alone if it clears 3:1, and taken all the way to the body text's
+	-- 4.5:1 if it has to move at all. Stopped at 3:1, a priest's white on a
+	-- cream panel came out a mid grey fainter than the plain text beside it:
+	-- legible by the letter of the rule and still the weakest thing there.
+	local fr, fg, fb = tonumber(r, 16) / 255, tonumber(g, 16) / 255, tonumber(b, 16) / 255
+	local nr, ng, nb = fr, fg, fb
+	if Contrast(fr, fg, fb) < CODE_CONTRAST then
+		nr, ng, nb = Legible(fr, fg, fb, TEXT_CONTRAST)
+	end
+	hit = ("|c%s%02x%02x%02x"):format(a, math.floor(nr * 255 + 0.5),
+		math.floor(ng * 255 + 0.5), math.floor(nb * 255 + 0.5))
+	ink.codes[key] = hit
+	return hit
+end
+
+-- Every colour code in a line of the panel's text, made legible. The lines
+-- carry colours of their own -- the class colour on a name, the white of a
+-- name in "could not buff", the gold of "Drag to move" -- all picked for the
+-- dark panel, and on a light one they were white words on cream whatever the
+-- text colour said. A secret string is passed through untouched: it cannot
+-- be read, and it did not come with codes of ours in it.
+local function LegibleText(text)
+	if type(text) ~= "string" or (issecretvalue and issecretvalue(text)) then return text end
+	return (text:gsub("|c(%x%x)(%x%x)(%x%x)(%x%x)", LegibleCode))
+end
+
+-- How the name and the reason line are laid out, kept by ApplyStyle for the
+-- painters: the font each was given, the size each is drawn at now, where
+-- they start and how far short of the right-hand edge they stop -- which is
+-- further while the count chip is up beside them than while it is not.
+local fit = { path = nil, flags = "", base = {}, size = {}, width = 0, textX = 0,
+	chipRoom = 10, right = nil, twoLine = false }
+
+-- The inset from the right-hand edge when nothing is beside the lines.
+local EDGE_ROOM = 10
+
+-- How wide a line's text is, or nil when the client will not say. Measured
+-- without the bound the anchors put on it where the client can, because a
+-- bounded width is the width after the ellipsis, which always fits. Guarded
+-- and made plain: a name that arrived secret makes its width secret too, and
+-- a secret throws on the comparison that follows.
+local function TextWidth(fs)
+	local measure = fs.GetUnboundedStringWidth or fs.GetStringWidth
+	if not measure then return nil end
+	local ok, w = pcall(measure, fs)
+	w = ok and ns.plain(w) or nil
+	return type(w) == "number" and w or nil
+end
+
+-- A line too long for its room is drawn a little smaller before the client is
+-- left to cut it. The German and the Russian for most of the panel's lines
+-- are a third longer than the English, and the reason line lost exactly the
+-- words that said why: "cast -- this client will not confirm who to" had its
+-- "who to" cut off in German, which is the half that matters. A point or two is
+-- nearly invisible and usually enough; four fifths of the size is the least
+-- it goes to, because past that it stops reading as the same panel, and a
+-- line that still does not fit is cut with an ellipsis as it always was.
+local function FitLine(fs)
+	local base = fit.base[fs]
+	if not base or not fit.path then return end
+	if fit.size[fs] ~= base then
+		fs:SetFont(fit.path, base, fit.flags)
+		fit.size[fs] = base
+	end
+	local room = fit.width - fit.textX - (fit.right or EDGE_ROOM)
+	local least = math.max(7, math.floor(base * 0.8 + 0.5))
+	local size = base
+	while size > least do
+		local w = TextWidth(fs)
+		if not w or w <= room + 0.5 then break end
+		size = size - 1
+		fs:SetFont(fit.path, size, fit.flags)
+	end
+	fit.size[fs] = size
+end
+
+-- The one way text goes onto the name and the reason line: its colours made
+-- legible on this panel, and the line fitted to its room.
+local function SetLine(fs, text)
+	fs:SetText(LegibleText(text))
+	FitLine(fs)
+end
+
+-- Where the name and the reason line end on the right: clear of the count chip
+-- while it is up, and at the panel's inset while it is not. The chip is down
+-- for every outcome, every held panel and every single person -- nearly all
+-- the time -- and the eighteen points it kept for itself were exactly what a
+-- longer translation of those lines was missing.
+local function PlaceLines(chipUp)
+	local right = chipUp and fit.chipRoom or EDGE_ROOM
+	if fit.right == right then return end
+	fit.right = right
+	nameText:ClearAllPoints()
+	subText:ClearAllPoints()
+	if fit.twoLine then
+		nameText:SetPoint("TOPLEFT", fit.textX, -8)
+		nameText:SetPoint("RIGHT", -right, 0)
+		subText:SetPoint("BOTTOMLEFT", fit.textX, 8)
+		subText:SetPoint("RIGHT", -right, 0)
+	else
+		nameText:SetPoint("LEFT", fit.textX, 0)
+		nameText:SetPoint("RIGHT", -right, 0)
+	end
+	FitLine(nameText)
+	FitLine(subText)
+end
+
+-- The count chip up or down, and the lines beside it given their room.
+local function ShowChip(on)
+	countChip:SetShown(on and true or false)
+	PlaceLines(on)
+end
+
+-- Whether the player picked the text colour, or left it at the default. AceDB
+-- strips a value equal to its default when it saves, so white chosen on
+-- purpose and white never touched are the same thing on disk, and only the
+-- second can be meant: nobody picks white text for a cream panel. Any other
+-- colour is theirs and is drawn as it is.
+local function ChosenTextColor(c)
+	local d = ns.defaults and ns.defaults.profile.prompt.fontColor or { 1, 1, 1, 1 }
+	if type(c) ~= "table" then return false end
+	for i = 1, 3 do
+		if math.abs((c[i] or 1) - (d[i] or 1)) > 0.002 then return true end
+	end
+	return false
+end
+
+-- The shadow that goes with a text colour: black under light text, as it
+-- always was, and none under dark text. A black one there only thickens the
+-- letters into a smudge, and a light one was tried and drawn: a pixel of pale
+-- behind small dark letters reads as a second, blurred copy of the word.
+local function ShadowFor(fs, r, g, b, strength)
+	if Ratio(Luminance(r, g, b), 0) >= Ratio(Luminance(r, g, b), 1) then
+		fs:SetShadowColor(0, 0, 0, strength)
+		fs:SetShadowOffset(1, -1)
+	else
+		fs:SetShadowColor(0, 0, 0, 0)
+		fs:SetShadowOffset(0, 0)
+	end
+end
+
 function Prompt:AccentColor(reason)
 	local p = ns.db.profile.prompt
 	if not p.accentByReason then return unpackColor(p.accentColor, { 0.45, 0.4, 0.9, 1 }) end
-	local c = REASON_COLOR[reason or "nearby"] or REASON_COLOR.nearby
+	local c = ReasonColor(reason)
 	return c[1], c[2], c[3], 1
 end
 
@@ -1747,6 +2014,111 @@ end
 -- page with its own figure is how "at least 34 pixels" outlived the 34.
 function ns.TwoLineHeight(fontSize)
 	return 16 + fontSize + math.max(7, fontSize - 3)
+end
+
+-- The greys of the lines under the name, for a panel and for no panel. With a
+-- panel they are the greys the prompt always had, darkened where the panel is
+-- too light for them. With none they are brighter: the Minimal look's lines
+-- lay dim grey on the world, and the world is as often a lit field as a dark
+-- floor. The outline carries them over the bright one, and the brightness
+-- over the dark.
+local GREYS = {
+	panel = { sub = { 0.60, 0.61, 0.68 }, count = { 0.72, 0.73, 0.80 }, row = { 0.62, 0.63, 0.70 } },
+	bare = { sub = { 0.86, 0.87, 0.92 }, count = { 0.92, 0.93, 0.96 }, row = { 0.86, 0.87, 0.92 } },
+}
+
+-- Everything about the text that depends on what it is drawn on: which way the
+-- colours go, the fonts and their outline, the colours and shadows of every
+-- line, and where the name and the reason line stop. Out of ApplyStyle, which
+-- sits near the sixty upvalues Lua 5.1 allows a function.
+--
+-- The panel colour is the player's, and until this the text was white on it
+-- whatever it was: cream, pale grey or yellow all gave white words nobody
+-- could read, and the class colour on a priest's name was white on top of
+-- that. So the ground is measured -- both ends of the panel's gradient, over
+-- the world where the panel lets it through -- and the text goes light or
+-- dark by whichever reads better on the worse of the two ends.
+local function StyleText(p, style, fontPath, textX, chipRoom, twoLine, countSize)
+	local br, bg, bb, ba = unpackColor(p.bgColor, { 0.04, 0.04, 0.06, 0.88 })
+	local bare = style == "minimal"
+	if bare then
+		local w = Luminance(WORLD_GREY, WORLD_GREY, WORLD_GREY)
+		ink.lo, ink.hi = w, w
+	else
+		-- The same two stops the panel's gradient is drawn with.
+		local function over(c, k) return c * k * ba + WORLD_GREY * (1 - ba) end
+		ink.lo = Luminance(over(br, 0.62), over(bg, 0.62), over(bb, 0.72))
+		ink.hi = Luminance(over(br, 1), over(bg, 1), over(bb, 1))
+	end
+	local onWhite = math.min(Ratio(1, ink.lo), Ratio(1, ink.hi))
+	local onBlack = math.min(Ratio(0, ink.lo), Ratio(0, ink.hi))
+	ink.light = onWhite >= onBlack
+	ink.codes = {}
+	-- A grey warmed towards the reason colour reads on a dark ground and loses
+	-- the contrast the plain grey had on a light one.
+	tintSub = ink.light
+
+	local outline = bare and "OUTLINE" or ""
+	local greys = bare and GREYS.bare or GREYS.panel
+	local subSize = math.max(7, p.fontSize - 3)
+
+	fit.path, fit.flags = fontPath, outline
+	fit.width, fit.textX, fit.chipRoom, fit.twoLine = p.width, textX, chipRoom, twoLine
+	fit.base[nameText], fit.base[subText] = p.fontSize, subSize
+	fit.size = {}
+	nameText:SetFont(fontPath, p.fontSize, outline)
+	subText:SetFont(fontPath, subSize, outline)
+	fit.size[nameText], fit.size[subText] = p.fontSize, subSize
+
+	-- The name in the colour the player picked, as it is. Left at the default,
+	-- white or near-black, whichever this ground wants.
+	local r, g, b, a
+	if ChosenTextColor(p.fontColor) then
+		r, g, b, a = unpackColor(p.fontColor, { 1, 1, 1, 1 })
+	else
+		local _, _, _, alpha = unpackColor(p.fontColor, { 1, 1, 1, 1 })
+		if ink.light then r, g, b = 1, 1, 1 else r, g, b = 0.08, 0.08, 0.10 end
+		a = alpha
+	end
+	nameText:SetTextColor(r, g, b, a)
+
+	local sr, sg, sb = Legible(greys.sub[1], greys.sub[2], greys.sub[3], TEXT_CONTRAST)
+	ink.sub = { sr, sg, sb }
+	subText:SetTextColor(sr, sg, sb, 1)
+	local cr, cg, cb = Legible(greys.count[1], greys.count[2], greys.count[3], TEXT_CONTRAST)
+	countText:SetFont(fontPath, countSize, outline)
+	countText:SetTextColor(cr, cg, cb, 1)
+	local qr, qg, qb = Legible(greys.row[1], greys.row[2], greys.row[3], TEXT_CONTRAST)
+	for _, fs in ipairs(queueRows) do
+		fs:SetFont(fontPath, subSize, outline)
+		fs:SetTextColor(qr, qg, qb, 1)
+	end
+
+	-- Shadows. With no panel, a full black one under the outline: the two
+	-- together are what the game's own floating text uses to stay readable on
+	-- snow and on shadow alike. On a panel, one that suits the text colour.
+	-- The count sits on its own chip on a panel and never had a shadow there.
+	if bare then
+		for _, fs in ipairs({ nameText, subText, countText }) do
+			fs:SetShadowColor(0, 0, 0, 1)
+			fs:SetShadowOffset(1, -1)
+		end
+		for _, fs in ipairs(queueRows) do
+			fs:SetShadowColor(0, 0, 0, 1)
+			fs:SetShadowOffset(1, -1)
+		end
+	else
+		ShadowFor(nameText, r, g, b, 0.9)
+		ShadowFor(subText, sr, sg, sb, 0.8)
+		countText:SetShadowOffset(0, 0)
+		for _, fs in ipairs(queueRows) do ShadowFor(fs, qr, qg, qb, 0.9) end
+	end
+
+	subText:SetShown(twoLine and true or false)
+	-- Placed afresh: the inset, the fonts or the second line may all have
+	-- changed under the anchors the lines already had.
+	fit.right = nil
+	PlaceLines(countChip:IsShown())
 end
 
 function Prompt:ApplyStyle()
@@ -1817,11 +2189,6 @@ function Prompt:ApplyStyle()
 	-- apparent brightness, so an average calls a saturated blue panel mid-grey
 	-- and lands the edge on top of it -- the one case this is here to prevent.
 	local lighten = (0.299 * br + 0.587 * bg + 0.114 * bb) <= 0.5
-	-- The same question decides whether the reason line can carry a tint: on a
-	-- dark panel a grey warmed towards the reason colour still reads, on a
-	-- light one it loses the contrast the plain grey had. With no panel at all
-	-- the world is behind it, which is dark far more often than not.
-	tintSub = lighten or style == "minimal"
 	local function edgeOf(c, amount)
 		if lighten then return c + (1 - c) * amount end
 		return c * (1 - amount)
@@ -1851,7 +2218,6 @@ function Prompt:ApplyStyle()
 	sweepFrame:SetShown(showAccent)
 
 	local fontPath = LSM:Fetch("font", p.font) or STANDARD_TEXT_FONT
-	local outline = style == "minimal" and "OUTLINE" or ""
 
 	-- icon
 	local textX = 10
@@ -1987,9 +2353,10 @@ function Prompt:ApplyStyle()
 	countChip:SetShown(false)
 	Gradient(countChip, "VERTICAL", 1, 1, 1, 0.03, 1, 1, 1, 0.09)
 
-	-- What the name and sub-line have to keep clear: the chip itself, the 7px it
-	-- is inset from the right edge, and a point of gap so the two do not touch.
-	local countRoom = p.showCount and (chipWidth + 8) or 10
+	-- What the name and sub-line have to keep clear while the chip is up: the
+	-- chip itself, the 7px it is inset from the right edge, and a point of gap
+	-- so the two do not touch. While it is down they run to the panel's inset.
+	local chipRoom = p.showCount and (chipWidth + 8) or EDGE_ROOM
 
 	-- text
 	-- The arithmetic the constant 34 stood in for. Two lines need both fonts
@@ -1997,34 +2364,15 @@ function Prompt:ApplyStyle()
 	-- so the sub-line silently vanished at sizes the page happily offers.
 	local twoLine = p.showSub and p.height >= ns.TwoLineHeight(p.fontSize)
 
-	nameText:ClearAllPoints()
-	subText:ClearAllPoints()
-	nameText:SetFont(fontPath, p.fontSize, outline)
-	nameText:SetTextColor(unpackColor(p.fontColor, { 1, 1, 1, 1 }))
-	subText:SetFont(fontPath, math.max(7, p.fontSize - 3), outline)
-	subText:SetTextColor(0.60, 0.61, 0.68, 1)
+	countText:ClearAllPoints()
+	countText:SetPoint("CENTER", countChip, "CENTER", 0, 0)
+	-- Fonts, colours, shadows and the lines' anchors, from the panel colour.
+	-- The count's font is the same number the chip was just sized from: two
+	-- expressions of one size is how they came apart in the first place.
+	StyleText(p, style, fontPath, textX, chipRoom, twoLine, countSize)
 	-- The grey just written over the reason line's tint, and the ring and the
 	-- stripe may have changed shape: the next PaintAccent paints in full.
 	accentPainted = nil
-
-	if twoLine then
-		nameText:SetPoint("TOPLEFT", textX, -8)
-		nameText:SetPoint("RIGHT", -countRoom, 0)
-		subText:SetPoint("BOTTOMLEFT", textX, 8)
-		subText:SetPoint("RIGHT", -countRoom, 0)
-		subText:Show()
-	else
-		nameText:SetPoint("LEFT", textX, 0)
-		nameText:SetPoint("RIGHT", -countRoom, 0)
-		subText:Hide()
-	end
-
-	countText:ClearAllPoints()
-	countText:SetPoint("CENTER", countChip, "CENTER", 0, 0)
-	-- The same number the chip was just sized from. Two expressions of one size
-	-- is how they came apart in the first place.
-	countText:SetFont(fontPath, countSize, outline)
-	countText:SetTextColor(0.72, 0.73, 0.80, 1)
 
 	-- Anchoring a row by both TOPLEFT and RIGHT fights over its vertical
 	-- centre, so the rows get one anchor and an explicit width instead.
@@ -2048,12 +2396,11 @@ function Prompt:ApplyStyle()
 		else
 			fs:SetPoint("TOPLEFT", art, "BOTTOMLEFT", textX, -4 - (i - 1) * rowHeight)
 		end
+		-- The font and the colour are StyleText's, above. The grey is a little
+		-- brighter than it was: these rows sit on their own background now
+		-- instead of on the world, so they no longer have to be dim enough to
+		-- survive a bright one.
 		fs:SetWidth(math.max(20, p.width - textX - 8))
-		fs:SetFont(fontPath, math.max(7, p.fontSize - 3), outline)
-		-- A little brighter than it was. These rows sit on their own background
-		-- now instead of on the world, so they no longer have to be dim enough
-		-- to survive a bright one.
-		fs:SetTextColor(0.62, 0.63, 0.70, 1)
 
 		-- Anchored to its own row, so the bar follows the list whichever way it
 		-- hangs and whatever the font size is.
@@ -2084,7 +2431,13 @@ function Prompt:ApplyStyle()
 	-- reads as belonging to the prompt without competing with it. The hairline
 	-- is the same bevel trick used along the top of the panel itself: one pixel
 	-- of light is what stops two stacked rectangles reading as one.
-	queueBack:SetVertexColor(br * 0.55, bg * 0.55, bb * 0.66, math.min(1, ba * 0.9))
+	--
+	-- Only a shade on a light panel. Taken down to half, cream went to a
+	-- muddy mid-grey that neither the light nor the dark text could be read
+	-- on, and the rows are coloured for the panel above them.
+	local shade = ink.light and 0.55 or 0.90
+	queueBack:SetVertexColor(br * shade, bg * shade, bb * (ink.light and 0.66 or 0.92),
+		math.min(1, ba * 0.9))
 	queueHair:SetVertexColor(1, 1, 1, 0.07)
 
 	self:Refresh()
@@ -2127,9 +2480,15 @@ function Prompt:PaintAccent(reason)
 	-- the grey it always was: it is the second line, and it must not compete
 	-- with the name. Not where the player asked for no accent, and not on a
 	-- light panel, where the tint costs the grey its contrast.
+	--
+	-- The grey is StyleText's for this panel, and the tinted grey is held to
+	-- the same contrast the plain one is: warmed towards a deep blue, the grey
+	-- of a panel that is only just dark enough for light text went under it.
 	local mix = (tintSub and mode ~= "off") and 0.35 or 0
-	subText:SetTextColor(0.60 + (r - 0.60) * mix, 0.61 + (g - 0.61) * mix,
-		0.68 + (b - 0.68) * mix, 1)
+	local base = ink.sub or GREYS.panel.sub
+	local sr, sg, sb = Legible(base[1] + (r - base[1]) * mix, base[2] + (g - base[2]) * mix,
+		base[3] + (b - base[3]) * mix, TEXT_CONTRAST)
+	subText:SetTextColor(sr, sg, sb, 1)
 end
 
 ---------------------------------------------------------------------------
@@ -2933,10 +3292,10 @@ function Prompt:PaintOutcome()
 		Gradient(iconBack, "VERTICAL", 0.62, 0.16, 0.14, 0.95, 1.0, 0.36, 0.30, 0.95)
 		accentPainted = nil
 	end
-	nameText:SetText(lead)
+	SetLine(nameText, lead)
 	outcomePainted = outcomeName
-	if subText:IsShown() then subText:SetText(sub or "") end
-	countChip:Hide()
+	if subText:IsShown() then SetLine(subText, sub or "") end
+	ShowChip(false)
 	countText:SetText("")
 end
 
@@ -2973,15 +3332,15 @@ end
 -- warning cannot come apart.
 function Prompt:PaintHeldInert(whyFrozen, whyInert)
 	local frozen = button:GetAttribute("macrotext1")
-	nameText:SetText(frozen and "|cffff8080" .. L["still armed by the fight"] .. "|r"
+	SetLine(nameText, frozen and "|cffff8080" .. L["still armed by the fight"] .. "|r"
 		or "|cff909098" .. L["nothing to buff"] .. "|r")
 	outcomePainted = nil
 	if subText:IsShown() then
-		subText:SetText(("|cffb0b0b0%s|r"):format(frozen and whyFrozen or whyInert))
+		SetLine(subText, ("|cffb0b0b0%s|r"):format(frozen and whyFrozen or whyInert))
 	end
 	-- Every other claim on the panel goes with the name: a count of a queue that
 	-- is not being offered, and the wash of colour from a click that is over.
-	countChip:Hide()
+	ShowChip(false)
 	countText:SetText("")
 	resultFill:Hide()
 	self:PaintAccent("nearby")
@@ -2999,11 +3358,11 @@ function Prompt:PaintQueue(rows)
 	for i, fs in ipairs(queueRows) do
 		local row = rows and rows[i]
 		if row then
-			fs:SetText(row.text)
+			fs:SetText(LegibleText(row.text))
 			-- Three pixels of the reason colour. Priority is the one thing
 			-- about this list worth knowing at a glance, and reading four words
 			-- of grey text to find it out is not a glance.
-			local c = REASON_COLOR[row.reason or "nearby"] or REASON_COLOR.nearby
+			local c = ReasonColor(row.reason)
 			queueBars[i]:SetVertexColor(c[1], c[2], c[3], 0.9)
 			queueBars[i]:Show()
 			shown = shown + 1
@@ -3046,13 +3405,13 @@ end
 function Prompt:Paint(entry, extra)
 	local p = ns.db.profile.prompt
 
-	nameText:SetText(self:RenderPrimary(entry, extra))
+	SetLine(nameText, self:RenderPrimary(entry, extra))
 	-- The name line is the entry's again, so a press follows the entry.
 	outcomePainted = nil
-	if subText:IsShown() then subText:SetText(self:ReasonText(entry)) end
+	if subText:IsShown() then SetLine(subText, self:ReasonText(entry)) end
 
 	local showCount = p.showCount and extra > 0
-	countChip:SetShown(showCount)
+	ShowChip(showCount)
 	countText:SetText(showCount and tostring(extra) or "")
 
 	self:PaintAccent(entry.reason)
@@ -3223,10 +3582,10 @@ function Prompt:RefreshPanel()
 		HideQueue()
 		ClearHold()
 		if SetPanelShown(true) then
-			nameText:SetText("|cffffd100" .. L["Drag to move"] .. "|r")
+			SetLine(nameText, "|cffffd100" .. L["Drag to move"] .. "|r")
 			outcomePainted = nil
-			if subText:IsShown() then subText:SetText("|cffff8080" .. L["not buffing while unlocked"] .. "|r") end
-			countChip:Hide()
+			if subText:IsShown() then SetLine(subText, "|cffff8080" .. L["not buffing while unlocked"] .. "|r") end
+			ShowChip(false)
 			countText:SetText("")
 			resultFill:Hide()
 			self:PaintAccent("owed")
@@ -3310,20 +3669,20 @@ function Prompt:RefreshPanel()
 			-- and `current` is the macro's identity: in combat ApplyTarget can
 			-- only clear it, never point it at somebody new.
 			if current then
-				nameText:SetText(self:RenderPrimary(current, 0))
+				SetLine(nameText, self:RenderPrimary(current, 0))
 				outcomePainted = nil
 				-- The ring as well: a refusal turned it red, and the name
 				-- line is not the only thing the flash wrote over.
 				self:PaintAccent(current.reason)
 				if subText:IsShown() then
-					subText:SetText("|cffb0b0b0" .. L["held -- in combat"] .. "|r")
+					SetLine(subText, "|cffb0b0b0" .. L["held -- in combat"] .. "|r")
 				end
 				-- Nobody, rather than the number the fight started with. The
 				-- count is a claim about a queue this branch has just blanked for
 				-- being unaimable, so it goes with the list and the line rather
 				-- than outliving both of them on its own -- and the panel then
 				-- looks the same whether or not a flash has been over it.
-				countChip:Hide()
+				ShowChip(false)
 				countText:SetText("")
 			else
 				-- And the commonest way into this branch at all, which had no
@@ -3551,7 +3910,7 @@ function Prompt:SayWaiting(left)
 	-- Rounded up: "ready in 0.0s" over a press that was just refused for not
 	-- being ready reads as the addon contradicting itself.
 	ns.Guard("waiting line", function()
-		subText:SetText("|cffb8b8c7" .. L["ready in %.1fs"]:format(
+		SetLine(subText, "|cffb8b8c7" .. L["ready in %.1fs"]:format(
 			math.max(0.1, math.ceil((left or 0) * 10) / 10)) .. "|r")
 	end)
 end

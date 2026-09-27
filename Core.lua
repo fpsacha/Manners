@@ -286,6 +286,8 @@ local defaults = {
 
 			style = "glass",
 			accentByReason = true,
+			-- standard | colourblind: which four reason colours (Prompt.lua).
+			reasonPalette = "standard",
 			accentMode = "icon", -- icon | stripe | both | off
 			flashStyle = "pulse", -- pulse | once | off
 			-- full | calm. Full adds the motion: a ring and a band of light
@@ -5766,6 +5768,7 @@ function ns.ClampSettings()
 	if p.style == "blizzard" then p.style = "framed" end
 	oneOf(p, "style", { glass = true, framed = true, minimal = true }, "glass")
 	oneOf(p, "accentMode", { icon = true, stripe = true, both = true, off = true }, "icon")
+	oneOf(p, "reasonPalette", { standard = true, colourblind = true }, "standard")
 	oneOf(p, "flashStyle", { pulse = true, once = true, off = true }, "pulse")
 	oneOf(p, "effects", { full = true, calm = true }, "full")
 	boolean(p, "showCooldown", true)

@@ -911,7 +911,7 @@ mutate("Core.lua",
 #     on every pass and the name line was not, so a past-tense headline about
 #     one person became the title over a macro aimed at another.
 mutate("Prompt.lua",
-       "\t\t\t\tnameText:SetText(self:RenderPrimary(current, 0))\n",
+       "\t\t\t\tSetLine(nameText, self:RenderPrimary(current, 0))\n",
        "",
        "a confirmation left as the panel's title",
        expect="became the panel's title for the rest of the fight",
@@ -1148,8 +1148,8 @@ mutate("Options.lua",
 # 80. the description that named three reason colours out of four, leaving out
 #     the one most people see most often.
 mutate("Options.lua",
-       'desc = L["Pale blue for somebody you targeted yourself, amber when returning a',
-       'desc = L["Amber when returning a',
+       'or L["Pale blue for somebody you targeted yourself, amber when returning a',
+       'or L["Amber when returning a',
        "a reason colour the page never names",
        expect="reason colours and the description names",
        script="runscenarios.py")
@@ -2170,8 +2170,8 @@ mutate("Prompt.lua",
 # And the room reserved beside it, which was the other fixed number: a chip that
 # grows under a name that was never told to move over.
 mutate("Prompt.lua",
-       "\tlocal countRoom = p.showCount and (chipWidth + 8) or 10",
-       "\tlocal countRoom = p.showCount and 28 or 10",
+       "\tlocal chipRoom = p.showCount and (chipWidth + 8) or EDGE_ROOM",
+       "\tlocal chipRoom = p.showCount and 28 or EDGE_ROOM",
        "a name that runs under the count chip",
        expect="so the two overlap",
        script="runscenarios.py")

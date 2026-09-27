@@ -88,8 +88,17 @@ animation group and cooldown the addon makes.
 python tools/render_prompt.py --out renders          # every state, plus sheet.png
 python tools/render_prompt.py --states owed,refused  # just those
 python tools/render_prompt.py --addon ../old --out before   # an older build
+python tools/render_prompt.py --locale deDE --out de         # as a German client
 python tools/render_prompt.py --compare before after compare.png
 ```
+
+`--locale` loads the addon as a client in that language (the mock's
+`Mock.locale`), which is how a German or Russian line that runs off the panel
+is found without the game. The addon measures its lines to fit them, and the
+renderer answers those measurements with the font it draws in, so a line the
+addon shrank to fit is drawn fitting. A state can ask for a bright world
+behind it (`backdrop = "bright"` in `render_prompt.lua`) where dusk would flatter
+the text.
 
 `--addon` draws another checkout of the addon with today's renderer, which is
 the fair way to put a before and an after side by side. Needs lupa, Pillow and
