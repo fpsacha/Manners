@@ -481,11 +481,12 @@ do
 			if not first:find("|cff40c7eb", 1, true) then
 				fail(scenario, "a mage's name is not in the mage's colour: " .. first)
 			end
-			if not (rows[1].detail:GetText() or ""):find(L.TEXT.STATE_OWED, 1, true) then
-				fail(scenario, "the owed row does not say so: " .. tostring(rows[1].detail:GetText()))
+			-- The state is the row's badge, a string of its own on a plate.
+			if rows[1].badge:GetText() ~= L.TEXT.STATE_OWED then
+				fail(scenario, "the owed row does not say so: " .. tostring(rows[1].badge:GetText()))
 			end
-			if not (rows[2].detail:GetText() or ""):find(L.TEXT.STATE_RETURNED, 1, true) then
-				fail(scenario, "the returned row does not say so: " .. tostring(rows[2].detail:GetText()))
+			if rows[2].badge:GetText() ~= L.TEXT.STATE_RETURNED then
+				fail(scenario, "the returned row does not say so: " .. tostring(rows[2].badge:GetText()))
 			end
 			if rows[3]:IsShown() then fail(scenario, "a third row is showing for two entries") end
 			if rows[2].when:GetText() ~= "2 min ago" then

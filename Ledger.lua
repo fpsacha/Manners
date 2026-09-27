@@ -945,44 +945,64 @@ end
 local WHITE = "Interface\\Buttons\\WHITE8X8"
 local LOGO = "Interface\\AddOns\\Manners\\Textures\\Manners64"
 
--- Top to bottom: the title band, today's headline and the line under it, the
--- all-time numbers as four tiles, the tabs, seven rows, and a footer with the
--- position in the list and Clear. Seven rather than more because the window has
--- to fit a small UI scale, where the whole screen is under eight hundred units
--- tall; the wheel does the rest.
-local WIDTH, HEIGHT = 360, 438
+-- Top to bottom: the title band, today's headline and up to two lines under
+-- it, the all-time numbers as four tiles, the tabs, seven rows, and a footer
+-- with the position in the list and Clear. Seven rather than more because the
+-- window has to fit a small UI scale, where the whole screen is under eight
+-- hundred units tall; the wheel does the rest.
+--
+-- Every string here is hung by two points on the same edge -- TOPLEFT and
+-- TOPRIGHT, never TOPLEFT and RIGHT. An edge and a centre on one axis make the
+-- client size the string from the distance between them, and the first window
+-- was built that way: its headline was drawn in the middle of the list and
+-- every row's name on top of the line under it (tools/render_ledger.py shows
+-- both, and a scenario in tests/scenarios/ledgerui.lua keeps it from coming
+-- back).
+local WIDTH, HEIGHT = 360, 456
 local PAD = 12
 local ROWS = 7
 local ROW_HEIGHT = 34
-local STATS_TOP = -92
-local TABS_TOP = -134
-local LIST_TOP = -164
+local HEADLINE_TOP = -40
+local SUBLINE_TOP = -60
+local STATS_TOP = -108
+local STAT_HEIGHT = 32
+local TABS_TOP = -150
+local TAB_HEIGHT = 22
+local LIST_TOP = -180
+local FOOTER = 34
+-- Where the text of a row starts, clear of its stripe and icon.
+local ROW_TEXT_X = 40
+-- The widest a state badge's plate grows: a long translation of its word is cut
+-- inside it rather than leaving no room for what follows.
+local BADGE_MAX = 120
 local DEFAULT_POINT, DEFAULT_X, DEFAULT_Y = "LEFT", 40, 40
 local CLEAR_SECONDS = 3
 -- How often an open window redraws for "5 min ago" to become "6 min ago".
 local TICK_SECONDS = 15
 
--- Each state's colour: the prompt's own amber for a favour owed and its group
--- blue for a gift to the group, so a colour means the same thing in both
--- places.
+-- Each state's colour, taken from the prompt so a colour means the same thing
+-- in both places: its amber for a favour owed, its group blue for a gift to
+-- the group, and its slate for a stranger nearby, a step lighter so it reads
+-- as a word on the dark rows. Returned is green, which the prompt has no use
+-- for, so it can mean nothing else here. Let go
+-- is plain grey, and its row is dimmed besides, which is what keeps it apart
+-- from the slate.
 local COLOUR = {
 	owed = { 1.00, 0.78, 0.30 },
 	returned = { 0.40, 0.86, 0.50 },
-	letgo = { 0.50, 0.52, 0.58 },
+	letgo = { 0.56, 0.56, 0.58 },
 	group = { 0.34, 0.60, 0.96 },
-	stranger = { 0.66, 0.56, 0.94 },
+	stranger = { 0.64, 0.68, 0.82 },
 }
+-- The text colours the window uses over and over: the body, the quieter
+-- second voice, and the quietest, for captions.
+local INK = { 0.92, 0.92, 0.94 }
+local INK_SOFT = { 0.70, 0.70, 0.73 }
+local INK_FAINT = { 0.55, 0.55, 0.58 }
+-- Clear, armed: the one colour on the window that means "careful".
+local DANGER = { 1.00, 0.45, 0.35 }
 
 local window, rows, offset, filter, lastTop, tickAt, clearArmedUntil
-
-local function Hex(c)
-	return ("%02x%02x%02x"):format(math.floor(c[1] * 255 + 0.5),
-		math.floor(c[2] * 255 + 0.5), math.floor(c[3] * 255 + 0.5))
-end
-
-local function Badge(label, colour)
-	return ("|cff%s%s|r"):format(Hex(colour), label)
-end
 
 local function Font()
 	local LSM = LibStub and LibStub("LibSharedMedia-3.0", true)
@@ -997,15 +1017,42 @@ local function Solid(parent, layer, sublevel)
 	return t
 end
 
-local function Text(parent, size, layer)
+-- One line, cut with an ellipsis where it meets the edge it is hung to, in a
+-- colour said out loud: a font string made without a template has whatever
+-- colour the client defaults to, and the window should not depend on that.
+local function Text(parent, size, colour, layer)
 	local fs = parent:CreateFontString(nil, layer or "OVERLAY")
 	fs:SetFont(Font(), size, "")
 	fs:SetJustifyH("LEFT")
 	fs:SetWordWrap(false)
 	fs:SetShadowColor(0, 0, 0, 0.9)
 	fs:SetShadowOffset(1, -1)
+	colour = colour or INK
+	fs:SetTextColor(colour[1], colour[2], colour[3])
 	fs.size = size
 	return fs
+end
+
+-- Up to `lines` lines, wrapped at the width the string is hung to. Asked for
+-- rather than assumed, like the rest of the client's frame API here.
+local function Wrap(fs, lines)
+	fs:SetWordWrap(true)
+	if fs.SetMaxLines then fs:SetMaxLines(lines) end
+end
+
+-- How wide a string's text is. The unbounded width where the client has it,
+-- because GetStringWidth answers no wider than a width the string was given;
+-- and where it has neither, as the test client does not, half an em a byte,
+-- which errs wide for any language and so never packs things tighter than
+-- they fit.
+local function TextWidth(fs)
+	local measure = fs.GetUnboundedStringWidth or fs.GetStringWidth
+	if measure then
+		local ok, w = pcall(measure, fs)
+		if ok and type(w) == "number" and not Secret(w) and w == w then return w end
+	end
+	local text = tostring(fs.GetText and fs:GetText() or ""):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
+	return #text * (fs.size or 12) * 0.5
 end
 
 local function Accent()
@@ -1014,30 +1061,51 @@ local function Accent()
 	return { 0.45, 0.4, 0.9, 1 }
 end
 
--- A flat button: a faint plate that brightens under the mouse, and a label.
-local function FlatButton(parent, label, width, height)
+local function FlatEnter(self)
+	self.plate:SetVertexColor(1, 1, 1, self.selected and 0.2 or self.rest + 0.07)
+	if self.tip then
+		GameTooltip:SetOwner(self, "ANCHOR_TOP")
+		GameTooltip:AddLine(self.tip, 1, 1, 1, true)
+		GameTooltip:Show()
+	end
+end
+
+local function FlatLeave(self)
+	self.plate:SetVertexColor(1, 1, 1, self.selected and 0.16 or self.rest)
+	if self.tip then GameTooltip:Hide() end
+end
+
+-- A flat button: a faint plate that brightens under the mouse, and a label
+-- hung across its whole width, inset, so a long translation is cut with an
+-- ellipsis inside the button rather than spilling out of it.
+local function FlatButton(parent, label, width, height, rest)
 	local b = CreateFrame("Button", nil, parent)
 	b:SetSize(width, height)
+	b.rest = rest or 0.06
 	b.plate = Solid(b, "BACKGROUND")
 	b.plate:SetAllPoints()
-	b.plate:SetVertexColor(1, 1, 1, 0.06)
-	b.label = Text(b, 11)
-	b.label:SetPoint("CENTER")
+	b.plate:SetVertexColor(1, 1, 1, b.rest)
+	b.label = Text(b, 11, INK)
+	b.label:SetPoint("LEFT", b, "LEFT", 4, 0)
+	b.label:SetPoint("RIGHT", b, "RIGHT", -4, 0)
 	b.label:SetJustifyH("CENTER")
 	b.label:SetText(label)
-	b:SetScript("OnEnter", function(self)
-		self.plate:SetVertexColor(1, 1, 1, self.selected and 0.2 or 0.13)
-		if self.tip then
-			GameTooltip:SetOwner(self, "ANCHOR_TOP")
-			GameTooltip:AddLine(self.tip, 1, 1, 1, true)
-			GameTooltip:Show()
-		end
-	end)
-	b:SetScript("OnLeave", function(self)
-		self.plate:SetVertexColor(1, 1, 1, self.selected and 0.16 or 0.06)
-		if self.tip then GameTooltip:Hide() end
-	end)
+	b:SetScript("OnEnter", FlatEnter)
+	b:SetScript("OnLeave", FlatLeave)
 	return b
+end
+
+-- The width a button needs for the longest of its labels, between a floor
+-- that keeps short words from making a button a sliver and a ceiling that
+-- keeps a long translation from pushing its neighbours off the window.
+local function FitWidth(fs, texts, floor, ceiling)
+	local was, widest = fs:GetText(), 0
+	for _, text in ipairs(texts) do
+		fs:SetText(text)
+		widest = math.max(widest, TextWidth(fs))
+	end
+	fs:SetText(was)
+	return math.min(ceiling, math.max(floor, math.ceil(widest) + 20))
 end
 
 local function SavePosition()
@@ -1065,27 +1133,28 @@ local function Place()
 	end
 end
 
+-- A row's badge, the words after it, and its colour. The badge is drawn as a
+-- tinted plate of its own, so the two are handed back apart.
 local function Detail(e)
 	if e.kind == "given" then
 		local spell = SpellName(e.spell) or TEXT.UNKNOWN_SPELL
 		local colour = e.to == "group" and COLOUR.group or COLOUR.stranger
 		local rest = (e.to == "group" and TEXT.GAVE_GROUP or TEXT.GAVE_STRANGER):format(spell)
-		return Badge(TEXT.STATE_GAVE, colour) .. "  " .. rest, colour
+		return TEXT.STATE_GAVE, rest, colour
 	end
 	local theirs = {}
 	for _, id in ipairs(e.spells) do theirs[#theirs + 1] = SpellName(id) or TEXT.UNKNOWN_SPELL end
 	local spells = #theirs > 0 and table.concat(theirs, ", ") or TEXT.UNKNOWN_SPELL
 	if e.state == "owed" then
-		return Badge(TEXT.STATE_OWED, COLOUR.owed) .. "  " .. spells, COLOUR.owed
+		return TEXT.STATE_OWED, spells, COLOUR.owed
 	elseif e.state == "returned" then
 		local gave = SpellName(e.gave)
-		return Badge(TEXT.STATE_RETURNED, COLOUR.returned)
-			.. (gave and ("  " .. TEXT.RETURNED_WITH:format(gave)) or ""), COLOUR.returned
+		return TEXT.STATE_RETURNED, gave and TEXT.RETURNED_WITH:format(gave) or "", COLOUR.returned
 	end
 	local why = e.why == "useless" and TEXT.LETGO_USELESS
 		or e.why == "notkept" and TEXT.LETGO_NOTKEPT
 		or e.why == "never" and TEXT.LETGO_NEVER or TEXT.LETGO_EXPIRED
-	return Badge(TEXT.STATE_LETGO, COLOUR.letgo) .. "  " .. why, COLOUR.letgo
+	return TEXT.STATE_LETGO, why, COLOUR.letgo
 end
 
 -- What an owed row says in place of "the prompt offers them" while the prompt
@@ -1176,32 +1245,43 @@ local function BuildRow(i)
 	row.back:SetVertexColor(1, 1, 1, i % 2 == 1 and 0.035 or 0.015)
 
 	row.stripe = Solid(row, "BORDER")
-	row.stripe:SetWidth(3)
+	row.stripe:SetWidth(2)
 	row.stripe:SetPoint("TOPLEFT")
 	row.stripe:SetPoint("BOTTOMLEFT")
 
+	-- The spell, in a dark well a pixel bigger than it, as the prompt draws
+	-- its own.
 	row.iconBack = Solid(row, "BORDER")
-	row.iconBack:SetSize(24, 24)
-	row.iconBack:SetPoint("LEFT", row, "LEFT", 9, 0)
+	row.iconBack:SetSize(26, 26)
+	row.iconBack:SetPoint("LEFT", row, "LEFT", 8, 0)
 	row.iconBack:SetVertexColor(0, 0, 0, 0.85)
 	row.icon = row:CreateTexture(nil, "ARTWORK")
-	row.icon:SetSize(22, 22)
+	row.icon:SetSize(24, 24)
 	row.icon:SetPoint("CENTER", row.iconBack, "CENTER")
 	row.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
 
-	row.when = Text(row, 10)
+	-- Line one: who, and when, the when pushed to the right and the name cut
+	-- where it meets it.
+	row.when = Text(row, 10, INK_FAINT)
 	row.when:SetJustifyH("RIGHT")
-	row.when:SetPoint("TOPRIGHT", row, "TOPRIGHT", -6, -4)
-	row.when:SetTextColor(0.6, 0.6, 0.62)
+	row.when:SetPoint("TOPRIGHT", row, "TOPRIGHT", -8, -4)
 
 	row.name = Text(row, 12)
-	row.name:SetPoint("TOPLEFT", row, "TOPLEFT", 40, -3)
-	row.name:SetPoint("RIGHT", row, "RIGHT", -70, 0)
+	row.name:SetPoint("TOPLEFT", row, "TOPLEFT", ROW_TEXT_X, -3)
+	row.name:SetPoint("TOPRIGHT", row.when, "TOPLEFT", -8, 1)
 
-	row.detail = Text(row, 11)
-	row.detail:SetPoint("BOTTOMLEFT", row, "BOTTOMLEFT", 40, 3)
-	row.detail:SetPoint("RIGHT", row, "RIGHT", -6, 0)
-	row.detail:SetTextColor(0.82, 0.82, 0.84)
+	-- Line two: the state as a badge -- its word on a plate of its colour,
+	-- sized to the word when the row is painted -- and then what happened.
+	row.badgePlate = Solid(row, "BORDER", 1)
+	row.badgePlate:SetHeight(13)
+	row.badgePlate:SetPoint("BOTTOMLEFT", row, "BOTTOMLEFT", ROW_TEXT_X, 3)
+	row.badge = Text(row, 10)
+	row.badge:SetPoint("CENTER", row.badgePlate, "CENTER", 0, 0)
+	row.badge:SetJustifyH("CENTER")
+
+	row.detail = Text(row, 11, INK_SOFT)
+	row.detail:SetPoint("BOTTOMLEFT", row.badgePlate, "BOTTOMRIGHT", 6, 1)
+	row.detail:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", -8, 4)
 
 	-- A wash of the row's colour when something new arrives at the top, so the
 	-- entry that just happened is the one the eye lands on.
@@ -1241,7 +1321,15 @@ local function Paint(row, e, now)
 	row.icon:SetTexture(SpellIcon(id))
 	row.name:SetText(Coloured(e.name, e.class))
 	row.when:SetText(Ledger.Ago(now - e.at))
-	local detail, colour = Detail(e)
+	local badge, detail, colour = Detail(e)
+	row.badge:SetText(badge)
+	row.badge:SetTextColor(colour[1], colour[2], colour[3])
+	-- The plate is the word and a few pixels either side, and never so wide
+	-- that a long translation of it leaves no room for what follows.
+	local plate = math.min(BADGE_MAX, math.ceil(TextWidth(row.badge)) + 10)
+	row.badgePlate:SetWidth(plate)
+	row.badge:SetWidth(plate - 6)
+	row.badgePlate:SetVertexColor(colour[1], colour[2], colour[3], 0.16)
 	row.detail:SetText(detail)
 	row.stripe:SetVertexColor(colour[1], colour[2], colour[3], 0.9)
 	row.flash:SetVertexColor(colour[1], colour[2], colour[3], 1)
@@ -1260,16 +1348,35 @@ local function SetFilter(key)
 	offset, lastTop = 0, nil
 	for _, tab in ipairs(window.tabs) do
 		tab.selected = tab.key == filter
-		tab.plate:SetVertexColor(1, 1, 1, tab.selected and 0.16 or 0.06)
+		tab.plate:SetVertexColor(1, 1, 1, tab.selected and 0.16 or tab.rest)
 		tab.underline:SetShown(tab.selected)
-		tab.label:SetTextColor(tab.selected and 1 or 0.7, tab.selected and 1 or 0.7,
-			tab.selected and 1 or 0.72)
+		local c = tab.selected and INK or INK_SOFT
+		tab.label:SetTextColor(c[1], c[2], c[3])
 	end
 end
 
 local function DisarmClear()
 	clearArmedUntil = nil
-	if window then window.clear.label:SetText(TEXT.CLEAR) end
+	if window then
+		window.clear.label:SetText(TEXT.CLEAR)
+		window.clear.label:SetTextColor(INK[1], INK[2], INK[3])
+	end
+end
+
+-- The first press of Clear: the label turns to the second-press question, in
+-- the one colour that means careful, and the second press inside a few
+-- seconds empties the list. Two presses rather than a confirmation dialog: the
+-- list is the only thing it takes, and a dialog over a window this small is
+-- more ceremony than the loss deserves.
+local function ClearClicked(self)
+	if clearArmedUntil and GetTime() <= clearArmedUntil then
+		DisarmClear()
+		Ledger.Clear()
+	else
+		clearArmedUntil = GetTime() + CLEAR_SECONDS
+		self.label:SetText(TEXT.CLEAR_ARMED)
+		self.label:SetTextColor(DANGER[1], DANGER[2], DANGER[3])
+	end
 end
 
 -- What an empty tab says: how a row would come to be there, or, while none can,
@@ -1309,8 +1416,16 @@ function Render()
 		end
 	end
 
+	-- The empty list: the addon's mark, faded, over what would put a row here,
+	-- or -- in a warmer colour, because it is something the player can change
+	-- -- why nothing can.
 	window.empty:SetShown(#list == 0)
-	window.empty:SetText(EmptyText(filter))
+	window.emptyIcon:SetShown(#list == 0)
+	local text = EmptyText(filter)
+	window.empty:SetText(text)
+	local ordinary = text == TEXT.EMPTY_ALL or text == TEXT.EMPTY_FAVOURS or text == TEXT.EMPTY_GIVEN
+	local c = ordinary and INK_SOFT or COLOUR.owed
+	window.empty:SetTextColor(c[1], c[2], c[3])
 
 	-- The scroll bar: a thumb the share of the track the rows on screen are of
 	-- the whole list, only when there is more than one screen of it.
@@ -1339,6 +1454,165 @@ end
 function Ledger.Scroll(delta)
 	offset = (offset or 0) + (delta or 0)
 	Render()
+end
+
+-- The pieces of the window, each built by a function of its own at file
+-- level: the game's Lua lets one function reach at most sixty locals of the
+-- file around it, closures inside it included, and Build doing all of this
+-- itself would be most of the way there.
+
+local function CloseClicked()
+	if window then window:Hide() end
+end
+
+local function TabClicked(self)
+	SetFilter(self.key)
+	Render()
+end
+
+-- The title band's contents, and today's summary under it, which is the
+-- first thing the window says: the headline in the prompt's gold and at the
+-- largest size on the window, and the line of what is still owed and what was
+-- given under it, allowed a second line because in German and Russian its two
+-- sentences do not share one.
+local function BuildHeader()
+	local logo = window:CreateTexture(nil, "ARTWORK")
+	logo:SetTexture(LOGO)
+	logo:SetSize(18, 18)
+	logo:SetPoint("TOPLEFT", window, "TOPLEFT", PAD - 2, -6)
+
+	local close = FlatButton(window, TEXT.CLOSE, 22, 20, 0)
+	close:SetPoint("TOPRIGHT", window, "TOPRIGHT", -5, -5)
+	close.label:SetTextColor(INK_SOFT[1], INK_SOFT[2], INK_SOFT[3])
+	close.tip = TEXT.CLOSE_TIP
+	close:SetScript("OnClick", CloseClicked)
+	window.close = close
+
+	local title = Text(window, 12, INK)
+	title:SetPoint("LEFT", logo, "RIGHT", 6, 0)
+	title:SetPoint("RIGHT", close, "LEFT", -6, 0)
+	title:SetText(TEXT.TITLE)
+	window.title = title
+
+	window.headline = Text(window, 15, { 1, 0.82, 0 })
+	window.headline:SetPoint("TOPLEFT", window, "TOPLEFT", PAD, HEADLINE_TOP)
+	window.headline:SetPoint("TOPRIGHT", window, "TOPRIGHT", -PAD, HEADLINE_TOP)
+	window.subline = Text(window, 11, INK_SOFT)
+	window.subline:SetPoint("TOPLEFT", window, "TOPLEFT", PAD, SUBLINE_TOP)
+	window.subline:SetPoint("TOPRIGHT", window, "TOPRIGHT", -PAD, SUBLINE_TOP)
+	Wrap(window.subline, 2)
+end
+
+-- The all-time numbers, as four tiles rather than a sentence: a line carrying
+-- four counts does not fit the width once the numbers grow, and a number is
+-- read faster standing on its own. Each tile's number takes the colour its
+-- rows use below, and its label is hung across the tile so a long translation
+-- is cut inside it rather than running into the next.
+local function BuildStats()
+	local caption = Text(window, 9, INK_FAINT)
+	caption:SetPoint("BOTTOMLEFT", window, "TOPLEFT", PAD, STATS_TOP + 3)
+	caption:SetText(TEXT.ALL_TIME)
+	window.stats = {}
+	local gap = 4
+	local tileWidth = (WIDTH - 2 * PAD - 3 * gap) / 4
+	for i, def in ipairs({
+		{ key = "received", label = TEXT.STAT_RECEIVED, colour = COLOUR.owed },
+		{ key = "returned", label = TEXT.STAT_RETURNED, colour = COLOUR.returned },
+		{ key = "group", label = TEXT.STAT_GROUP, colour = COLOUR.group },
+		{ key = "strangers", label = TEXT.STAT_STRANGERS, colour = COLOUR.stranger },
+	}) do
+		local x = PAD + (i - 1) * (tileWidth + gap)
+		local plate = Solid(window, "BORDER")
+		plate:SetSize(tileWidth, STAT_HEIGHT)
+		plate:SetPoint("TOPLEFT", window, "TOPLEFT", x, STATS_TOP)
+		plate:SetVertexColor(1, 1, 1, 0.04)
+		local tick = Solid(window, "BORDER", 1)
+		tick:SetSize(tileWidth, 1)
+		tick:SetPoint("TOPLEFT", plate, "TOPLEFT")
+		tick:SetVertexColor(def.colour[1], def.colour[2], def.colour[3], 0.7)
+		local value = Text(window, 15, def.colour)
+		value:SetPoint("TOPLEFT", plate, "TOPLEFT", 3, -3)
+		value:SetPoint("TOPRIGHT", plate, "TOPRIGHT", -3, -3)
+		value:SetJustifyH("CENTER")
+		local label = Text(window, 9, INK_SOFT)
+		label:SetPoint("BOTTOMLEFT", plate, "BOTTOMLEFT", 3, 3)
+		label:SetPoint("BOTTOMRIGHT", plate, "BOTTOMRIGHT", -3, 3)
+		label:SetJustifyH("CENTER")
+		label:SetText(def.label)
+		window.stats[i] = { key = def.key, value = value, label = label, plate = plate }
+	end
+end
+
+-- The tabs, each as wide as its label and a little more, so "Buffs you gave"
+-- and a word of four letters are not given the same box. Should the three not
+-- fit across the window in some language, all three are narrowed alike and
+-- their labels cut inside them.
+local function BuildTabs()
+	window.tabs = {}
+	local widths, total, gap = {}, 0, 4
+	for i, def in ipairs({
+		{ key = "all", label = TEXT.TAB_ALL },
+		{ key = "favours", label = TEXT.TAB_FAVOURS },
+		{ key = "given", label = TEXT.TAB_GIVEN },
+	}) do
+		local tab = FlatButton(window, def.label, 80, TAB_HEIGHT)
+		tab.key = def.key
+		tab.underline = Solid(tab, "BORDER", 2)
+		tab.underline:SetPoint("BOTTOMLEFT")
+		tab.underline:SetPoint("BOTTOMRIGHT")
+		tab.underline:SetHeight(2)
+		tab:SetScript("OnClick", TabClicked)
+		widths[i] = FitWidth(tab.label, { def.label }, 70, 160)
+		total = total + widths[i]
+		window.tabs[i] = tab
+	end
+	local room = WIDTH - 2 * PAD - gap * (#widths - 1)
+	local shrink = total > room and room / total or 1
+	local x = PAD
+	for i, tab in ipairs(window.tabs) do
+		local w = math.floor(widths[i] * shrink)
+		tab:SetWidth(w)
+		tab:SetPoint("TOPLEFT", window, "TOPLEFT", x, TABS_TOP)
+		x = x + w + gap
+	end
+end
+
+-- What an empty list shows in its place: the addon's mark, faded, and under
+-- it the line EmptyText picks, wrapped to the middle of the list.
+local function BuildEmpty()
+	local icon = window:CreateTexture(nil, "ARTWORK")
+	icon:SetTexture(LOGO)
+	icon:SetSize(32, 32)
+	icon:SetPoint("TOP", window, "TOP", 0, LIST_TOP - 40)
+	if icon.SetDesaturated then icon:SetDesaturated(true) end
+	icon:SetAlpha(0.35)
+	window.emptyIcon = icon
+	window.empty = Text(window, 12, INK_SOFT)
+	window.empty:SetPoint("TOP", icon, "BOTTOM", 0, -12)
+	window.empty:SetWidth(WIDTH - 2 * PAD - 48)
+	window.empty:SetJustifyH("CENTER")
+	Wrap(window.empty, 6)
+end
+
+-- The footer: where the rows on screen sit in the list, and Clear, as wide as
+-- the longer of its two labels.
+local function BuildFooter()
+	local rule = Solid(window, "BORDER")
+	rule:SetHeight(1)
+	rule:SetPoint("BOTTOMLEFT", window, "BOTTOMLEFT", PAD, FOOTER)
+	rule:SetPoint("BOTTOMRIGHT", window, "BOTTOMRIGHT", -PAD, FOOTER)
+	rule:SetVertexColor(1, 1, 1, 0.07)
+
+	local clear = FlatButton(window, TEXT.CLEAR, 100, 20)
+	clear:SetWidth(FitWidth(clear.label, { TEXT.CLEAR, TEXT.CLEAR_ARMED }, 90, 180))
+	clear:SetPoint("BOTTOMRIGHT", window, "BOTTOMRIGHT", -PAD, 8)
+	clear.tip = TEXT.CLEAR_TIP
+	clear:SetScript("OnClick", ClearClicked)
+	window.clear = clear
+
+	window.showing = Text(window, 10, INK_FAINT)
+	window.showing:SetPoint("BOTTOMLEFT", window, "BOTTOMLEFT", PAD, 13)
+	window.showing:SetPoint("BOTTOMRIGHT", clear, "BOTTOMLEFT", -8, 5)
 end
 
 local function Build()
@@ -1391,100 +1665,15 @@ local function Build()
 	window.accent:SetPoint("TOPRIGHT", window, "TOPRIGHT", 0, -30)
 	window.accent:SetHeight(1)
 
-	local logo = window:CreateTexture(nil, "ARTWORK")
-	logo:SetTexture(LOGO)
-	logo:SetSize(18, 18)
-	logo:SetPoint("TOPLEFT", window, "TOPLEFT", PAD - 2, -6)
-	local title = Text(window, 13)
-	title:SetPoint("LEFT", logo, "RIGHT", 6, 0)
-	title:SetText(TEXT.TITLE)
-	title:SetTextColor(1, 0.82, 0)
-
-	local close = FlatButton(window, TEXT.CLOSE, 22, 20)
-	close:SetPoint("TOPRIGHT", window, "TOPRIGHT", -5, -5)
-	close.plate:SetVertexColor(1, 1, 1, 0)
-	close.tip = TEXT.CLOSE_TIP
-	close:SetScript("OnClick", function() window:Hide() end)
-	window.close = close
-
-	window.headline = Text(window, 14)
-	window.headline:SetPoint("TOPLEFT", window, "TOPLEFT", PAD, -42)
-	window.headline:SetPoint("RIGHT", window, "RIGHT", -PAD, 0)
-	window.subline = Text(window, 11)
-	window.subline:SetPoint("TOPLEFT", window.headline, "BOTTOMLEFT", 0, -4)
-	window.subline:SetPoint("RIGHT", window, "RIGHT", -PAD, 0)
-	window.subline:SetTextColor(0.7, 0.7, 0.72)
-
-	-- The all-time numbers, as four tiles rather than a sentence: a line
-	-- carrying four counts does not fit the width once the numbers grow, and a
-	-- number is read faster standing on its own. Each tile's number takes the
-	-- colour its rows use below.
-	local caption = Text(window, 9)
-	caption:SetPoint("BOTTOMLEFT", window, "TOPLEFT", PAD, STATS_TOP + 3)
-	caption:SetText(TEXT.ALL_TIME)
-	caption:SetTextColor(0.55, 0.55, 0.58)
-	window.stats = {}
-	local gap = 4
-	local tileWidth = (WIDTH - 2 * PAD - 3 * gap) / 4
-	for i, def in ipairs({
-		{ key = "received", label = TEXT.STAT_RECEIVED, colour = COLOUR.owed },
-		{ key = "returned", label = TEXT.STAT_RETURNED, colour = COLOUR.returned },
-		{ key = "group", label = TEXT.STAT_GROUP, colour = COLOUR.group },
-		{ key = "strangers", label = TEXT.STAT_STRANGERS, colour = COLOUR.stranger },
-	}) do
-		local x = PAD + (i - 1) * (tileWidth + gap)
-		local plate = Solid(window, "BORDER")
-		plate:SetSize(tileWidth, 34)
-		plate:SetPoint("TOPLEFT", window, "TOPLEFT", x, STATS_TOP)
-		plate:SetVertexColor(1, 1, 1, 0.04)
-		local tick = Solid(window, "BORDER", 1)
-		tick:SetSize(tileWidth, 1)
-		tick:SetPoint("TOPLEFT", plate, "TOPLEFT")
-		tick:SetVertexColor(def.colour[1], def.colour[2], def.colour[3], 0.7)
-		local value = Text(window, 15)
-		value:SetPoint("TOP", plate, "TOP", 0, -3)
-		value:SetJustifyH("CENTER")
-		value:SetTextColor(def.colour[1], def.colour[2], def.colour[3])
-		local label = Text(window, 9)
-		label:SetPoint("BOTTOM", plate, "BOTTOM", 0, 3)
-		label:SetJustifyH("CENTER")
-		label:SetText(def.label)
-		label:SetTextColor(0.62, 0.62, 0.65)
-		window.stats[i] = { key = def.key, value = value }
-	end
-
-	window.tabs = {}
-	local tabX = PAD
-	for _, def in ipairs({
-		{ key = "all", label = TEXT.TAB_ALL, width = 92 },
-		{ key = "favours", label = TEXT.TAB_FAVOURS, width = 82 },
-		{ key = "given", label = TEXT.TAB_GIVEN, width = 120 },
-	}) do
-		local tab = FlatButton(window, def.label, def.width, 20)
-		tab:SetPoint("TOPLEFT", window, "TOPLEFT", tabX, TABS_TOP)
-		tab.key = def.key
-		tab.underline = Solid(tab, "BORDER", 2)
-		tab.underline:SetPoint("BOTTOMLEFT")
-		tab.underline:SetPoint("BOTTOMRIGHT")
-		tab.underline:SetHeight(2)
-		tab:SetScript("OnClick", function(self)
-			SetFilter(self.key)
-			Render()
-		end)
-		window.tabs[#window.tabs + 1] = tab
-		tabX = tabX + def.width + 4
-	end
+	BuildHeader()
+	BuildStats()
+	BuildTabs()
 
 	rows = {}
 	for i = 1, ROWS do rows[i] = BuildRow(i) end
 	window.rows = rows
 
-	window.empty = Text(window, 12)
-	window.empty:SetPoint("TOPLEFT", window, "TOPLEFT", PAD + 16, LIST_TOP - 40)
-	window.empty:SetPoint("RIGHT", window, "RIGHT", -PAD - 16, 0)
-	window.empty:SetJustifyH("CENTER")
-	window.empty:SetWordWrap(true)
-	window.empty:SetTextColor(0.6, 0.6, 0.64)
+	BuildEmpty()
 
 	window.track = Solid(window, "BORDER")
 	window.track:SetWidth(3)
@@ -1494,32 +1683,7 @@ local function Build()
 	window.thumb = Solid(window, "ARTWORK")
 	window.thumb:SetWidth(3)
 
-	-- The footer: where the rows on screen sit in the list, and Clear.
-	local rule = Solid(window, "BORDER")
-	rule:SetHeight(1)
-	rule:SetPoint("BOTTOMLEFT", window, "BOTTOMLEFT", PAD, 34)
-	rule:SetPoint("BOTTOMRIGHT", window, "BOTTOMRIGHT", -PAD, 34)
-	rule:SetVertexColor(1, 1, 1, 0.07)
-	window.showing = Text(window, 10)
-	window.showing:SetPoint("BOTTOMLEFT", window, "BOTTOMLEFT", PAD, 14)
-	window.showing:SetTextColor(0.55, 0.55, 0.58)
-
-	local clear = FlatButton(window, TEXT.CLEAR, 132, 20)
-	clear:SetPoint("BOTTOMRIGHT", window, "BOTTOMRIGHT", -PAD, 9)
-	clear.tip = TEXT.CLEAR_TIP
-	-- Two presses, the second inside a few seconds of the first, rather than a
-	-- confirmation dialog: the list is the only thing it takes, and a dialog
-	-- over a window this small is more ceremony than the loss deserves.
-	clear:SetScript("OnClick", function(self)
-		if clearArmedUntil and GetTime() <= clearArmedUntil then
-			DisarmClear()
-			Ledger.Clear()
-		else
-			clearArmedUntil = GetTime() + CLEAR_SECONDS
-			self.label:SetText(TEXT.CLEAR_ARMED)
-		end
-	end)
-	window.clear = clear
+	BuildFooter()
 
 	window:SetScript("OnDragStart", function(self) self:StartMoving() end)
 	window:SetScript("OnDragStop", function(self)

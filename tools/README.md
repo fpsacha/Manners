@@ -103,6 +103,28 @@ rather than restated here. Where a region is anchored by an edge and a centre
 on the same axis, it is drawn from the edge and a note says so: which of the
 two the client uses is not settled here.
 
+## render_ledger.py
+
+The same for the favour ledger window (`/manners ledger`), importing
+`render_prompt.py`'s drawing code. `render_ledger.lua` fills the ledger through
+`Ledger.lua`'s own entry points with days of play -- favours owed, returned and
+let go for each reason, gifts to the group and to strangers, a long name, a name
+with a realm, enough rows to scroll -- and opens the window on each tab, empty
+and switched off too. Every state is drawn in English, German and Russian, and
+the addon measures its text with the renderer's font, so a label sized to its
+text is sized to what the picture draws. Strings the window cuts are listed on
+stdout.
+
+```
+python tools/render_ledger.py --out renders                       # every state, en/de/ru
+python tools/render_ledger.py --states all,empty --locales deDE
+python tools/render_ledger.py --compare before after compare.png
+```
+
+Where a region is hung by an edge and a centre on one axis, this one sizes it
+from both, as the client does, rather than drawing it from the edge -- that is
+how the first ledger window's misplaced headline and rows showed up.
+
 ## make-glow.py
 
 `Textures/Glow.tga` and `Textures/GlowRound.tga`, the soft glows the prompt
