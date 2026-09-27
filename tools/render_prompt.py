@@ -17,6 +17,7 @@ of that is read from what the addon told the frames, never restated here.
     python tools/render_prompt.py                      # every state, to a temp folder
     python tools/render_prompt.py --out DIR --states owed,refused
     python tools/render_prompt.py --addon OTHER_TREE   # draw an older build
+    python tools/render_prompt.py --locale deDE        # as a German client
     python tools/render_prompt.py --compare BEFORE AFTER OUT.png
 
 Needs lupa and Pillow (and numpy, which Pillow users nearly always have).
@@ -70,14 +71,21 @@ def to_py(v):
     return {k: to_py(val) for k, val in items}
 
 
-def load_states(addon_dir):
+def load_states(addon_dir, locale=None):
     lua = lupa.LuaRuntime(unpack_returned_tuples=True)
     printed = []
     lua.globals().print = lambda *a: printed.append(" ".join(str(x) for x in a))
-    run = lua.eval("function(path, dir, addon) "
-                   "local f = assert(loadfile(path)) return f(dir, addon) end")
+    run = lua.eval("function(path, dir, addon, locale) "
+                   "local f = assert(loadfile(path)) return f(dir, addon, locale) end")
     fwd = lambda p: p.replace("\\", "/")
-    R = run(fwd(os.path.join(ROOT, "tools", "render_prompt.lua")), fwd(ROOT), fwd(addon_dir))
+    R = run(fwd(os.path.join(ROOT, "tools", "render_prompt.lua")), fwd(ROOT), fwd(addon_dir),
+            locale or "")
+    # The addon measures its lines to fit them, and what it is told has to be
+    # the width this draws, or a line it shrank to fit is drawn not fitting.
+    # Measured at four times the size and scaled back, because a font rounded
+    # to a whole pixel at 10 is a tenth out either way.
+    lua.globals().FrameTree.measure = lambda text, size: (
+        get_font(float(size) * 4).getlength(plain_text(text)) / 4)
     return R
 
 
@@ -388,12 +396,22 @@ class Canvas:
         self.w, self.h = w, h
         self.rgb = np.zeros((h, w, 3), np.float32)
 
-    def backdrop(self, seed=7):
+    def backdrop(self, kind=None, seed=7):
         # Dusk over rough ground: enough texture that transparency shows, dark
         # enough that the panel's own darkness is still judged fairly.
+        #
+        # "bright" is snow under a pale sky with dark rocks through it, the
+        # other half of what text with no panel has to survive: white text
+        # that reads over dusk can vanish here, and the rocks are there so a
+        # remedy that only works on white is caught too.
+        bright = kind == "bright"
         yy = np.linspace(0, 1, self.h, dtype=np.float32)[:, None, None]
-        top = np.array([0.20, 0.24, 0.30], np.float32)
-        bottom = np.array([0.16, 0.14, 0.10], np.float32)
+        if bright:
+            top = np.array([0.80, 0.86, 0.94], np.float32)
+            bottom = np.array([0.93, 0.92, 0.89], np.float32)
+        else:
+            top = np.array([0.20, 0.24, 0.30], np.float32)
+            bottom = np.array([0.16, 0.14, 0.10], np.float32)
         self.rgb[:] = top * (1 - yy) + bottom * yy
         rng = np.random.default_rng(seed)
         blobs = Image.new("L", (self.w, self.h), 0)
@@ -401,10 +419,14 @@ class Canvas:
         for _ in range(40):
             x, y = rng.uniform(0, self.w), rng.uniform(self.h * 0.35, self.h)
             r = rng.uniform(self.w * 0.02, self.w * 0.08)
-            d.ellipse((x - r, y - r * 0.4, x + r, y + r * 0.4), fill=int(rng.uniform(10, 40)))
+            fill = int(rng.uniform(60, 200)) if bright else int(rng.uniform(10, 40))
+            d.ellipse((x - r, y - r * 0.4, x + r, y + r * 0.4), fill=fill)
         blobs = blobs.filter(ImageFilter.GaussianBlur(self.w * 0.012))
         b = np.asarray(blobs).astype(np.float32)[..., None] / 255
-        self.rgb += b * np.array([0.25, 0.22, 0.12], np.float32)
+        if bright:
+            self.rgb *= 1 - b * np.array([0.80, 0.80, 0.78], np.float32)
+        else:
+            self.rgb += b * np.array([0.25, 0.22, 0.12], np.float32)
 
     def composite(self, x0, y0, src, alpha, blend):
         """src: HxWx3, alpha: HxW, placed with its top-left at x0, y0."""
@@ -459,7 +481,7 @@ def draw_state(snap, px=ZOOM * SUPER, hover=False):
         cx, cy = snap["screen"]["width"] / 2, 322
     left, top = cx - TILE_W / 2, cy + TILE_H * 0.18 + 22
     canvas = Canvas(int(TILE_W * px), int(TILE_H * px))
-    canvas.backdrop()
+    canvas.backdrop(snap.get("backdrop"))
 
     def to_px(x, y):
         return (x - left) * px, (top - y) * px
@@ -812,8 +834,8 @@ def sheet(images, cols, pad=8, bg=(14, 14, 16), heading=None):
     return out
 
 
-def render(addon_dir, out_dir, keys=None, label=""):
-    R = load_states(addon_dir)
+def render(addon_dir, out_dir, keys=None, label="", locale=None):
+    R = load_states(addon_dir, locale)
     all_keys = list(to_py(R["keys"]()))
     keys = keys or all_keys
     os.makedirs(out_dir, exist_ok=True)
@@ -878,13 +900,18 @@ def main():
     ap.add_argument("--addon", default=ROOT, help="the addon tree to draw (default: this one)")
     ap.add_argument("--states", default="", help="comma-separated state keys (default: all)")
     ap.add_argument("--label", default="")
+    # The client language, as GetLocale() spells it. The prompt's lines are
+    # the translations', so this is how a German or Russian line that runs off
+    # the panel is found without the game.
+    ap.add_argument("--locale", default="", help="client language to load the addon as, e.g. deDE")
     ap.add_argument("--compare", nargs=3, metavar=("BEFORE", "AFTER", "OUT"))
     args = ap.parse_args()
     if args.compare:
         compare(*args.compare)
         return
     keys = [k for k in args.states.split(",") if k] or None
-    render(os.path.abspath(args.addon), os.path.abspath(args.out), keys, args.label)
+    label = args.label or args.locale
+    render(os.path.abspath(args.addon), os.path.abspath(args.out), keys, label, args.locale or None)
 
 
 if __name__ == "__main__":

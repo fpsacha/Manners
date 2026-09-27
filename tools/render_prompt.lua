@@ -10,12 +10,21 @@
 -- the last thing the state did. A pulse is drawn near its brightest and a flash
 -- a moment after it starts, because a still of an effect at its first frame is
 -- a still of nothing.
+--
+-- `backdrop` is the world behind the picture: dusk unless it says "bright".
+-- Text that reads over dusk has only passed the easy half of the test.
 
 -- `dir` holds the mock and the recorder; `addonDir` holds the addon being
 -- drawn. They differ when an older build is drawn with today's renderer, which
 -- is the only fair way to put a before and an after side by side.
-local dir, addonDir = ...
+--
+-- `locale` is the client language the addon is loaded as, "deDE" or "ruRU"
+-- say, or nil for English. The longer translations are where a line that fits
+-- in English runs off the panel, and the only way to see that without the
+-- game is to draw the prompt in them.
+local dir, addonDir, locale = ...
 addonDir = addonDir or dir
+if locale == "" or locale == "enUS" then locale = nil end
 
 dofile(dir .. "/tests/mockapi.lua")
 dofile(dir .. "/tests/frametree.lua")
@@ -46,6 +55,9 @@ end
 
 local function load()
 	Mock.reset()
+	-- After the reset, which puts the client back to English, and before the
+	-- files load, because Locales/Init.lua reads the language once at load.
+	Mock.locale = locale
 	UnitExists = realUnitExists
 	UnitInParty, UnitInSubgroup = realInParty, realInSubgroup
 	FrameTree.uninstall()
@@ -236,6 +248,65 @@ R.states = {
 		p.bgColor = { 0.86, 0.84, 0.78, 0.92 }
 		p.fontColor = { 0.10, 0.10, 0.12, 1 }
 	end) },
+	-- The same panel with the text colour left alone, which is what nearly
+	-- everybody who picks a light panel does: the text has to find its own way
+	-- to dark.
+	{ key = "lightauto", title = "Light panel, text colour untouched", at = 0.85,
+		setup = withPrompt(function(p)
+			p.bgColor = { 0.86, 0.84, 0.78, 0.92 }
+		end) },
+	-- Neither light nor dark: the panel colour where the choice between light
+	-- and dark text is closest.
+	{ key = "midpanel", title = "A mid-blue panel", at = 0.85, setup = withPrompt(function(p)
+		p.bgColor = { 0.30, 0.45, 0.80, 0.92 }
+	end) },
+	-- No panel over a bright world: snow, a lit field, a white wall. The dusk
+	-- behind every other picture is the easy case for white text.
+	{ key = "minimal-bright", title = "Look: minimal, over a bright world", at = 0.85,
+		backdrop = "bright", setup = withPrompt(function(p)
+			p.style = "minimal"
+		end) },
+	-- No panel with the list up, over both worlds: the words after each name
+	-- carry a grey of their own, and it is the one the look has to reach.
+	{ key = "minimal-list", title = "Look: minimal, list shown", at = 0.85, setup = function(ns)
+		Mock.groupSize = 2
+		partyIsParty()
+		boot(ns, { party1 = { "Gwen", "Hollow" }, nameplate1 = { "Anna", "Aim" },
+			nameplate2 = { "Brannoc", "Vale" }, nameplate3 = { "Corwin", "Ash" } })
+		ns.db.profile.prompt.style = "minimal"
+		ns.db.profile.prompt.showQueue = true
+		ns.db.profile.prompt.queueRows = 3
+		ns.Prompt:ApplyStyle()
+		owe(ns, "Anna Aim")
+		tick(ns)
+	end },
+	{ key = "minimal-list-bright", title = "Look: minimal, list shown, bright world", at = 0.85,
+		backdrop = "bright", setup = function(ns)
+		Mock.groupSize = 2
+		partyIsParty()
+		boot(ns, { party1 = { "Gwen", "Hollow" }, nameplate1 = { "Anna", "Aim" },
+			nameplate2 = { "Brannoc", "Vale" }, nameplate3 = { "Corwin", "Ash" } })
+		ns.db.profile.prompt.style = "minimal"
+		ns.db.profile.prompt.showQueue = true
+		ns.db.profile.prompt.queueRows = 3
+		ns.Prompt:ApplyStyle()
+		owe(ns, "Anna Aim")
+		tick(ns)
+	end },
+	-- The colour-blind palette, with the list up so three reasons are on
+	-- screen at once.
+	{ key = "palette", title = "Colour-blind palette, list shown", at = 0.85, setup = function(ns)
+		Mock.groupSize = 2
+		partyIsParty()
+		boot(ns, { party1 = { "Gwen", "Hollow" }, nameplate1 = { "Anna", "Aim" },
+			nameplate2 = { "Brannoc", "Vale" } })
+		ns.db.profile.prompt.showQueue = true
+		ns.db.profile.prompt.queueRows = 3
+		ns.db.profile.prompt.reasonPalette = "colourblind"
+		ns.Prompt:ApplyStyle()
+		owe(ns, "Anna Aim")
+		tick(ns)
+	end },
 	{ key = "round", title = "Round icon", at = 0.85, setup = withPrompt(function(p)
 		p.roundIcon = true
 	end) },
@@ -277,6 +348,8 @@ function R.run(key)
 		button = button and button._serial,
 		now = Mock.now + (state.at or 0),
 		title = state.title,
+		locale = locale,
+		backdrop = state.backdrop,
 		screen = { width = 1600, height = Mock.screenHeight or 1000 },
 		errors = ns.errors and #ns.errors or 0,
 		firstError = ns.errors and ns.errors[1] and (tostring(ns.errors[1].where) .. " -> "

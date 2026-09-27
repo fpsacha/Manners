@@ -254,11 +254,21 @@ instrument = function(f, kind, parent, layer, sublevel)
 	f.SetShadowColor = function(self, r, g, b, a) self._shadowColor = { r, g, b, a } return self end
 	f.SetShadowOffset = function(self, x, y) self._shadowOffset = { x, y } return self end
 	f.SetWordWrap = function(self, v) self._wordWrap = v return self end
+	-- How wide the text is. The renderer hands in FT.measure, which asks the
+	-- font it draws with, so a line the addon shrank to fit is the line the
+	-- picture shows fitting. Without it, half the font's size a character --
+	-- Friz Quadrata's average, near enough -- counted in characters rather
+	-- than bytes, or every Cyrillic or accented line measured twice its width.
 	f.GetStringWidth = function(self)
 		local text = tostring(self._text or ""):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
 		local size = self._font and self._font.size or 12
-		return #text * size * 0.5
+		if FT.measure then return FT.measure(text, size) end
+		local chars = text:gsub("[\128-\191]", "")
+		return #chars * size * 0.5
 	end
+	-- The client's other measure, the one that ignores the width the anchors
+	-- put on the string. Nothing here wraps or cuts, so the two are the same.
+	f.GetUnboundedStringWidth = f.GetStringWidth
 
 	-- Points kept whole, and SetAllPoints turned into the two points it is, so
 	-- the renderer has one shape to lay out. Through the mock's own wrappers,
@@ -439,6 +449,10 @@ function FT.snapshot(root)
 				desaturated = r._desaturated,
 				text = r._text, font = r._font, textColor = r._textColor,
 				justifyH = r._justifyH, justifyV = r._justifyV,
+				-- Whether the client would cut a long line with an ellipsis
+				-- rather than let it run on: without it, the renderer drew
+				-- every overlong line straight off the edge of the panel.
+				wordWrap = r._wordWrap,
 				shadowColor = r._shadowColor, shadowOffset = r._shadowOffset,
 				cooldown = r._cooldown, swipeColor = r._swipeColor, reverse = r._reverse,
 				swipeTexture = r._swipeTexture,

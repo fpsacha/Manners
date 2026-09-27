@@ -11620,6 +11620,10 @@ if ns then
 	local function chipAt(fontSize)
 		p.fontSize = fontSize
 		ns.Prompt:ApplyStyle()
+		-- Somebody with two more behind them, so the chip is up: the lines give
+		-- its room back while it is down, and the room is only owed while it
+		-- is there to collide with.
+		ns.Prompt:Paint({ name = "Anna Aim", short = "Anna Aim", reason = "owed" }, 2)
 		local r = ns.Prompt:Regions()
 		local inset
 		for _, point in ipairs(r.name and r.name.points or {}) do
