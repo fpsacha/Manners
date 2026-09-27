@@ -3311,7 +3311,7 @@ mutate("Prompt.lua",
 
 # ...and ending without telling it.
 mutate("Prompt.lua",
-       "\t-- \"Preview\" again. Does nothing with the window shut.\n"
+       "\t-- options page that its button reads \"Preview\" again.\n"
        "\tif ns.RepaintOptions then ns.RepaintOptions() end\n",
        "",
        "a preview stopped under a stale options page",
@@ -3371,8 +3371,8 @@ mutate("Prompt.lua",
 
 # The reason colours' comment going back to greys they do not have.
 mutate("Prompt.lua",
-       "-- four come out at 0.83, 0.79, 0.56 and 0.54 -- target, owed, group, nearby.\n",
-       "-- four come out at 0.86, 0.78, 0.63 and 0.54 -- target, owed, group, nearby.\n",
+       "-- Rec.601 greys: target 0.83, owed 0.79, group 0.56, nearby 0.54.\n",
+       "-- Rec.601 greys: target 0.86, owed 0.78, group 0.63, nearby 0.54.\n",
        "reason colour greys misstated",
        expect="the comment gives grey",
        script="runscenarios.py")
