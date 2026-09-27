@@ -7,18 +7,15 @@
 --
 -- It is a record and never a decision. Core.lua tells it what happened at the
 -- four moments a favour changes hands -- noticed, repaid, refused after all, and
--- let go, the never-offer list included -- and nothing anywhere reads a
--- ledger entry to decide what to offer
--- or whom to cast at. That is on purpose: the debt table in Core.lua is what the
--- prompt works from, and a second opinion about who is owed would be exactly the
--- kind of drift the rest of this addon has spent rounds removing. So everything
--- here is allowed to be wrong in one way only -- by missing something -- and a
--- ledger that throws takes nothing with it, because Core calls it through Guard.
+-- let go -- and nothing reads a ledger entry to decide what to offer or whom to
+-- cast at: the debt table in Core.lua is the one opinion about who is owed. So
+-- the ledger may only ever be wrong by missing something, and one that throws
+-- takes nothing with it, because Core calls it through Guard.
 --
 -- The window is plain UI with no secure frame anywhere in it, so unlike the
 -- prompt it can be opened, scrolled, cleared and dragged in a fight.
 
-local ADDON, ns = ...
+local _, ns = ...
 -- Player-facing text, in the client's language: see Locales/Init.lua.
 local L = ns.L
 
@@ -26,10 +23,8 @@ local Ledger = {}
 ns.Ledger = Ledger
 
 local GetTime = _G.GetTime
--- Read once at load, like Core's own copy. Asked directly rather than through
--- Core's helper because a name is kept for good here: that helper answers
--- whether a value may be looked at now, and this is the same question asked
--- about the one thing this file writes to disk.
+-- Read once at load, like Core's own copy, and asked directly: a name kept
+-- here goes to disk, and a secret must never get that far.
 local issecretvalue = _G.issecretvalue
 
 ---------------------------------------------------------------------------
@@ -97,13 +92,11 @@ local TEXT = {
 	CLEAR_ARMED = L["Click again to clear"],
 	CLEAR_TIP = L["Empties the list, and today's count with it. Favours you still owe stay, and the all-time totals are kept."],
 
-	-- The badge at the front of a row's second line, and what follows it. A
-	-- row reads "badge  detail": the badge is a coloured status word, then two
-	-- spaces, then one of the details below, so each detail finishes the
-	-- badge's phrase without repeating it. The badges are separate keys because
-	-- a returned favour with no spell to name shows its badge alone, and
-	-- because the badge takes its own colour; a detail that needs its words in
-	-- another order has them all in its own key.
+	-- A row's second line reads "badge  detail": a coloured status word, two
+	-- spaces, then one of the details below, which finishes the badge's phrase
+	-- without repeating it. The badge is its own key because it takes its own
+	-- colour and can stand alone (a returned favour with no spell to name). A
+	-- detail whose words need another order has them all in its own key.
 	--
 	-- Badges: a favour owed to the row's player; one returned; one let go
 	-- unreturned; and a buff you gave them unprompted, when nobody owed it.
@@ -143,22 +136,21 @@ local TEXT = {
 	-- holds it to.
 	TIP_LETGO_NOTKEPT = L["Let go: \"Remember them across a reload\" (When tab, under Timing) is off, so it was forgotten when you logged out or reloaded."],
 	TIP_LETGO_NEVER = L["Let go: you put them on your never-offer list."],
-	-- In place of TIP_OWED while the prompt cannot offer them, which is the
-	-- rule Quiet() below keeps for the empty list: the window never promises
-	-- what cannot come. The toggle is quoted by the name it has on the Who to
-	-- buff tab, and %s is the time the snooze ends, on the player's clock.
+	-- In place of TIP_OWED while the prompt cannot offer them, the rule Quiet()
+	-- below keeps for the empty list: the window never promises what cannot
+	-- come. The toggle is quoted by the name it has on the Who to buff tab, and
+	-- %s is the time the snooze ends, on the player's clock.
 	TIP_OWED_OFF = L["Still owed, but Manners is switched off, so the prompt will not offer them."],
 	TIP_OWED_SOURCE_OFF = L["Still owed, but the prompt is not offering favours while \"People who buffed me\" is off."],
 	TIP_OWED_NOTHING = L["Still owed, but there is nothing on this character the prompt can cast."],
 	TIP_OWED_SNOOZED = L["Still owed. The prompt is snoozed until %s, so it offers them only if the snooze ends before the time to return it runs out."],
 	TIP_OWED_MOUNTED = L["Still owed. The prompt stays away while you are mounted, and offers them once you get off, until the time to return it runs out."],
-	-- The same two for a favour only your party can return, as TIP_OWED_PARTY
-	-- and TIP_OWED_SUBGROUP say it: the snooze or the ride ending is not
-	-- enough while they are outside your party.
-	TIP_OWED_SNOOZED_PARTY = L["Still owed. What you cast reaches only your own party, so the prompt offers them only while they are in it, and it is snoozed until %s: they are offered only if the snooze ends before the time to return it runs out."],
-	TIP_OWED_SNOOZED_SUBGROUP = L["Still owed. What you cast reaches only your own party -- in a raid, your own subgroup -- so the prompt offers them only while they are in it, and it is snoozed until %s: they are offered only if the snooze ends before the time to return it runs out."],
-	TIP_OWED_MOUNTED_PARTY = L["Still owed. What you cast reaches only your own party, so the prompt offers them only while they are in it, and it stays away while you are mounted: they are offered once you get off, if they are in it, until the time to return it runs out."],
-	TIP_OWED_MOUNTED_SUBGROUP = L["Still owed. What you cast reaches only your own party -- in a raid, your own subgroup -- so the prompt offers them only while they are in it, and it stays away while you are mounted: they are offered once you get off, if they are in it, until the time to return it runs out."],
+	-- The same two for a favour only your party can return: the snooze or the
+	-- ride ending is not enough while they are outside your party.
+	TIP_OWED_SNOOZED_PARTY = L["Still owed. What you cast reaches only your own party, so the prompt offers them only while they are in it, and it is snoozed until %s, so only if time is left then."],
+	TIP_OWED_SNOOZED_SUBGROUP = L["Still owed. What you cast reaches only your own party -- in a raid, your own subgroup -- so the prompt offers them only while they are in it, and it is snoozed until %s, so only if time is left then."],
+	TIP_OWED_MOUNTED_PARTY = L["Still owed. What you cast reaches only your own party, so the prompt offers them only while they are in it, once you are no longer mounted, until the time runs out."],
+	TIP_OWED_MOUNTED_SUBGROUP = L["Still owed. What you cast reaches only your own party -- in a raid, your own subgroup -- so the prompt offers them only while they are in it, once you are no longer mounted, until the time runs out."],
 	TIP_GAVE = L["You buffed them with %s, %s."],
 	TIP_GAVE_GROUP = L["They were in your group and had not buffed you."],
 	TIP_GAVE_STRANGER = L["They were not in your group and had not buffed you."],
@@ -184,10 +176,8 @@ Ledger.TEXT = TEXT
 -- kilobytes in the saved file; the lifetime counts are kept separately and are
 -- never trimmed.
 local MAX_ENTRIES = 200
--- Of which buffs given unprompted may take at most half. A mage walking through
--- a city buffs a stranger every few seconds, and without a share of their own
--- those would push every favour off the end of the list inside an hour -- the
--- favours being the reason the list exists.
+-- Of which buffs given unprompted may take at most half, so a mage buffing a
+-- city's strangers cannot push every favour off the end of the list.
 local MAX_GIVEN = 100
 -- The spells one favour remembers. A priest lands three buffs at once, and that
 -- is one favour with three names on it rather than three rows.
@@ -219,12 +209,10 @@ local function Secret(v)
 	return issecretvalue ~= nil and issecretvalue(v) == true
 end
 
--- A name that may be kept, or nil. The same rules the debt table's names pass,
--- restated because this is the other place a name goes to disk, and because the
--- window prints it: a secret, anything too long to be a character's name, and
--- anything carrying a chat escape or macro punctuation are all refused. A name
--- never comes back out of here as something other than the plain string it
--- went in as.
+-- A name that may be kept, or nil: the debt table's rules, restated because
+-- this is the other place a name goes to disk and the window prints it. A
+-- secret, anything too long for a character's name, and anything carrying a
+-- chat escape or macro punctuation are refused.
 local function CleanName(name)
 	if Secret(name) or type(name) ~= "string" then return nil end
 	if name == "" or #name > 48 then return nil end
@@ -317,9 +305,8 @@ local function Duration(seconds)
 end
 
 -- Local midnight, on this computer's clock. date("*t") is the only thing that
--- knows the time zone; where it will not answer with a table -- nothing this
--- addon runs on, but the fallback has to be something -- "today" is the last
--- day's worth of seconds rather than nothing at all.
+-- knows the time zone; should it not answer with a table, "today" is the last
+-- day's worth of seconds.
 local function StartOfToday(now)
 	local ok, t = pcall(_G.date, "*t", now)
 	if ok and type(t) == "table" and type(t.hour) == "number"
@@ -365,10 +352,8 @@ local function CleanEntry(e)
 				if id then spells[#spells + 1] = id end
 			end
 		end
-		-- A state nobody wrote is a favour whose outcome is unknown, and the
-		-- one outcome that cannot be wrong about it is that it is over. Calling
-		-- it owed would put a row on screen promising the prompt is offering
-		-- somebody it has never heard of.
+		-- A missing state is read as over: called owed, the row would promise
+		-- an offer for somebody the prompt has never heard of.
 		local state = STATES[e.state] and e.state or "letgo"
 		local out = { kind = "received", name = name, class = class, at = at,
 			spells = spells, times = math.max(1, Count(e.times)), state = state }
@@ -381,9 +366,9 @@ local function CleanEntry(e)
 	return nil
 end
 
--- Oldest out first, but never a favour still owed: its settle is on its way,
--- and a settle that finds no row makes one and counts the favour a second time.
--- Those are bounded anyway, by how many people can owe you at once.
+-- Oldest out first, but never a favour still owed: a settle that finds no row
+-- makes one and counts the favour twice. Owed rows are bounded anyway, by how
+-- many people can owe you at once.
 local function Trim(s)
 	local entries = s.entries
 	local given = 0
@@ -409,10 +394,9 @@ local function Trim(s)
 	end
 end
 
--- Whatever is on disk, made into something every reader below can trust: a
--- profile from before the ledger existed has nothing here, and a file somebody
--- edited, or a crash wrote half of, can have anything at all. Rebuilt rather
--- than patched, so no key this file does not know survives into the next save.
+-- Whatever is on disk, made into something every reader below can trust: an
+-- old profile has nothing here, and a hand-edited or half-written file can
+-- have anything. Rebuilt rather than patched, so no unknown key survives.
 local function Repair(char)
 	local s = char.ledger
 	if type(s) ~= "table" then
@@ -546,11 +530,10 @@ local Render -- the window's, defined with it below
 local function Changed()
 	if Render then Render() end
 	-- The General tab prints the same numbers, and AceConfig only asks for
-	-- them while it is drawing. Only while that tab is the one on screen: a
-	-- repaint rebuilds the whole page, and one on every favour in a busy city
-	-- redrew the dropdowns and edit boxes of the Prompt tab under the player
-	-- tuning them, to refresh a line they could not see. A tab nobody can name
-	-- -- a library without the status table -- is repainted as it always was.
+	-- them while it is drawing. Repainted only while that tab is on screen,
+	-- because a repaint rebuilds the whole page, controls the player may be
+	-- using included. A tab nobody can name (a library without the status
+	-- table) is always repainted.
 	if ns.OptionsOpen and ns.OptionsOpen() and ns.RefreshOptionsDisplay then
 		local tab = ns.OptionsTab and ns.OptionsTab()
 		if tab == nil or tab == "general" then
@@ -563,10 +546,9 @@ end
 -- what Core tells it
 ---------------------------------------------------------------------------
 
--- At login, after Core has put back the debts it kept. A favour the list still
--- has as owed, with no debt behind it any more, ran out while you were away --
--- or was never kept, when the setting to keep debts is off -- and saying it is
--- still owed would be a row contradicting the prompt.
+-- At login, after Core has put back the debts it kept. An owed row with no
+-- debt behind it any more ran out while you were away, or was not kept (the
+-- setting is off), and is let go so the row agrees with the prompt.
 function Ledger.Load()
 	local s = Store()
 	local now = Wall()
@@ -589,12 +571,9 @@ function Ledger.Load()
 end
 
 -- Somebody buffed you. `seen` is the record NoteFavour files: name, class and
--- the spell id under `key`. `useless` is the favour NoteFavour turns away
--- because nothing this character casts is any use to them -- a favour all the
--- same, and let go in the moment it arrived. `partyOnly` is a favour only a
--- buff that reaches your own party could return, so the prompt offers them only
--- while they are in it; the row's tooltip says so rather than promising an
--- offer that is waiting on them.
+-- the spell id under `key`. `useless` is a favour nothing this character casts
+-- could return: recorded, and let go the moment it arrives. `partyOnly` is a
+-- favour only a party-wide buff could return, which the row's tooltip says.
 function Ledger.Received(seen, useless, partyOnly)
 	local s, now = Store(), Wall()
 	if not s or not now or type(seen) ~= "table" then return end
@@ -615,9 +594,8 @@ function Ledger.Received(seen, useless, partyOnly)
 	else
 		into = FindOpen(s, name)
 	end
-	-- The latest word on it wins: what reaches somebody is a question about
-	-- their class and yours, and the newest buff was read with the most to go
-	-- on.
+	-- The newest buff's reading of partyOnly wins: it was read with the most
+	-- to go on.
 	partyOnly = (not useless and partyOnly == true) or nil
 	if into then
 		into.times = into.times + 1
@@ -673,9 +651,8 @@ function Ledger.Settled(name, wasOwed, pending, spellId)
 	if wasOwed then
 		local e = FindOpen(s, name)
 		if not e then
-			-- A debt the ledger never saw: kept from a session before the
-			-- ledger existed. It is a favour received all the same, and when it
-			-- was done is on the debt.
+			-- A debt the ledger never saw (kept from before the ledger
+			-- existed): a favour received all the same, dated from the debt.
 			local at = now
 			if type(wasOwed) == "table" and type(wasOwed.at) == "number" then
 				at = now - math.max(0, clock - wasOwed.at)
@@ -696,8 +673,7 @@ function Ledger.Settled(name, wasOwed, pending, spellId)
 		Append(s, e)
 		Bump(s, to == "group" and "group" or "strangers")
 		-- Counted for today apart from the list, which keeps only MAX_GIVEN of
-		-- these: counted off the list, a mage in a city read "You gave 100
-		-- buffs unprompted today" from the hundredth one until midnight.
+		-- these and so cannot count a busy day past a hundred.
 		local day = StartOfToday(now)
 		if not (s.today and s.today.day == day) then s.today = { day = day, given = 0 } end
 		s.today.given = s.today.given + 1
@@ -721,12 +697,10 @@ function Ledger.Refused(name, clock)
 		end
 	end
 	if not undo then return end
-	-- The row the settle wrote may be gone by now: Clear takes every row but
-	-- the favours still owed, and it can be pressed in the second between a
-	-- settle and its refusal. The counts are taken back all the same, since
-	-- Clear keeps those, and a favour Core has just put back gets its owed row
-	-- back with it -- left out, the next return found no row, made one, and
-	-- counted the one favour a second time.
+	-- The row the settle wrote may be gone: Clear can be pressed between a
+	-- settle and its refusal. The counts, which Clear keeps, are taken back all
+	-- the same, and a favour Core has just put back gets its owed row back, or
+	-- the next return would make a row and count the favour twice.
 	local e = undo.entry
 	if undo.to then
 		Remove(s, e)
@@ -742,12 +716,9 @@ function Ledger.Refused(name, clock)
 			Remove(s, e)
 			Bump(s, "received", -1)
 		else
-			-- Somebody repaid and then buffing you again before the refusal
-			-- arrived already has an owed row for the new buff. Reopening this
-			-- one beside it put two rows on screen for the one debt Core keeps,
-			-- and only one of them would ever be closed. So the two are folded
-			-- into one favour, counted once, as a second buff from somebody
-			-- already owed always is.
+			-- Somebody who buffed you again before the refusal arrived already
+			-- has an owed row, and Core keeps one debt per person, so the two
+			-- are folded into one favour, counted once.
 			local open = FindOpen(s, e.name)
 			if open and open ~= e then
 				open.times = open.times + e.times
@@ -765,11 +736,9 @@ function Ledger.Refused(name, clock)
 	Changed()
 end
 
--- The debt was let go before it was returned. `why` is one of WHY: "never" for
--- a favour the player let go by putting its giver on the never-offer list,
--- which is on purpose and must not read as time running out. Anything else,
--- nothing included, is the sweep's case -- the time ran out -- because that is
--- the caller that passes no reason.
+-- The debt was let go before it was returned. `why` is one of WHY; "never" is
+-- the never-offer list, which must not read as time running out. No reason is
+-- the expiry sweep's case, the time ran out.
 function Ledger.LetGo(name, why)
 	local s, now = Store(), Wall()
 	name = CleanName(name)
@@ -783,15 +752,10 @@ function Ledger.LetGo(name, why)
 end
 
 -- Everything but the favours still owed, and today's count of buffs given with
--- the list, as the button's tooltip says. Those favours stay because the debt
--- behind each one is still live on the prompt, and because a settle that found
--- no row would count the favour a second time.
---
--- The settles kept for a refusal stay too. A refusal can still arrive for one
--- the list no longer shows, and Core puts that debt back either way; forgetting
--- the settle here left the return counted and the favour with no row, so the
--- next return counted it again. Refused copes with a row that is gone, and the
--- list of settles prunes itself.
+-- the list, as the button's tooltip says. Those favours stay because each debt
+-- is still live on the prompt, and a settle that found no row would count the
+-- favour twice. The settles kept for a refusal stay too: a refusal can still
+-- arrive for a row that is gone, and Refused copes with that.
 function Ledger.Clear()
 	local s = Store()
 	if not s then return end
@@ -804,10 +768,8 @@ function Ledger.Clear()
 	Changed()
 end
 
--- Whether Clear would take anything: a row other than a favour still owed, or
--- a count of buffs given today. The window hides Clear when not, so its
--- warning about losing entries is never raised over a list it cannot change.
--- Every tab at once, because Clear empties every tab.
+-- Whether Clear would take anything, on any tab: a row other than a favour
+-- still owed, or a count of buffs given today. The window hides Clear when not.
 function Ledger.Clearable()
 	local s = Store()
 	if not s then return false end
@@ -841,10 +803,10 @@ end
 
 -- Why nothing new can reach the list right now, or nil when it can: "off" for
 -- an addon switched off, "nothing" for a character the prompt has nothing to
--- cast on, "owedoff" for favours not being watched for. The gates NoteFavour
--- and the prompt pass before this file hears of anything, asked the same way,
--- so the window never promises a row that cannot come. Asked, never stored:
--- every one of them is a setting or a spell book that can change under it.
+-- cast on, "owedoff" for favours not being watched for. The same gates
+-- NoteFavour and the prompt pass, so the window never promises a row that
+-- cannot come. Asked, never stored: each is a setting or a spell book that can
+-- change under it.
 local function Quiet()
 	local p = ns.db and ns.db.profile
 	if type(p) ~= "table" then return nil end
@@ -858,7 +820,6 @@ local function Quiet()
 	if type(p.sources) == "table" and not p.sources.owed then return "owedoff" end
 	return nil
 end
-Ledger.Quiet = Quiet
 
 -- Today's numbers from the list, the lifetime ones from the counts. A favour
 -- nothing you cast could return is counted apart from the rest, `useless`, and
@@ -883,8 +844,8 @@ function Ledger.Summary()
 		end
 	end
 	-- The list keeps only MAX_GIVEN buffs given, so on a busy day the count
-	-- kept apart from it is the one that is right. The larger of the two,
-	-- because a list from before that count existed has rows it never saw.
+	-- kept apart from it is the right one. The larger of the two, because a
+	-- list saved before that count existed has rows it never saw.
 	if s.today and s.today.day == today then out.given = math.max(out.given, s.today.given) end
 	for _, key in ipairs(TOTALS) do out.totals[key] = s.totals[key] or 0 end
 	return out
@@ -927,12 +888,9 @@ function Ledger.OptionsText()
 end
 
 -- For the minimap button's tooltip. AddLine only: every broker display offers
--- that, and not every one offers anything else.
---
--- Left out on a character that is recording nothing and never has: a rogue's
--- tooltip under "Nothing to do" gained a line of zeros and a headline about
--- favours it will never hear of. Kept for one with a history, switched off or
--- not, because those numbers are still true and still theirs.
+-- that, and not every one offers anything else. Left out on a character that
+-- is recording nothing and never has (a rogue gets no line of zeros); kept for
+-- one with a history, switched off or not, because those numbers are theirs.
 function Ledger.AddTooltip(tooltip)
 	if not (tooltip and tooltip.AddLine) or not Store() then return end
 	local sum = Ledger.Summary()
@@ -960,20 +918,15 @@ local LOGO = "Interface\\AddOns\\Manners\\Textures\\Manners64"
 
 -- Top to bottom: the title band, today's headline and up to two lines under
 -- it, the all-time numbers as four tiles, the tabs, seven rows, and a footer
--- with the position in the list and Clear. Seven rather than more because the
--- window has to fit a small UI scale, where the whole screen is under eight
--- hundred units tall; the wheel does the rest.
+-- with the position in the list and Clear. Seven rows so the window fits a
+-- small UI scale, where the screen is under eight hundred units tall.
 --
 -- Every string here is hung by two points on the same edge -- TOPLEFT and
--- TOPRIGHT, never TOPLEFT and RIGHT. With an edge and a centre on one axis the
--- client could take the string's height from its text or from the distance
--- between the two points, and which one it does is not settled: the prompt
--- and addons known to work on this client use that pairing without trouble,
--- which points to the text, but nobody has checked. Two points on one edge put
--- the string in the same place under either reading, so the window avoids the
--- question on purpose, and a scenario in tests/scenarios/ledgerui.lua keeps
--- it that way. tools/render_ledger.py draws the pairing by the other reading,
--- so a string that leans on it stands out in the pictures.
+-- TOPRIGHT, never TOPLEFT and RIGHT. With an edge and a centre on one axis it
+-- is unverified whether this client sizes the string from its text or from the
+-- distance between the points; two points on one edge place it the same under
+-- either reading. tests/scenarios/ledgerui.lua keeps it that way, and
+-- tools/render_ledger.py draws the other reading so a lapse shows.
 local WIDTH, HEIGHT = 360, 456
 local PAD = 12
 local ROWS = 7
@@ -997,12 +950,9 @@ local CLEAR_SECONDS = 3
 local TICK_SECONDS = 15
 
 -- Each state's colour, taken from the prompt so a colour means the same thing
--- in both places: its amber for a favour owed, its group blue for a gift to
--- the group, and its slate for a stranger nearby, a step lighter so it reads
--- as a word on the dark rows. Returned is green, which the prompt has no use
--- for, so it can mean nothing else here. Let go
--- is plain grey, and its row is dimmed besides, which is what keeps it apart
--- from the slate.
+-- in both places: amber for a favour owed, group blue, and a stranger's slate
+-- a step lighter so it reads on the dark rows. Returned is green, which the
+-- prompt never uses; let go is grey on a dimmed row, apart from the slate.
 local COLOUR = {
 	owed = { 1.00, 0.78, 0.30 },
 	returned = { 0.40, 0.86, 0.50 },
@@ -1058,9 +1008,8 @@ end
 
 -- How wide a string's text is. The unbounded width where the client has it,
 -- because GetStringWidth answers no wider than a width the string was given;
--- and where it has neither, as the test client does not, half an em a byte,
--- which errs wide for any language and so never packs things tighter than
--- they fit.
+-- with neither (the test client), half an em a byte, which errs wide for any
+-- language.
 local function TextWidth(fs)
 	local measure = fs.GetUnboundedStringWidth or fs.GetStringWidth
 	if measure then
@@ -1140,11 +1089,9 @@ local function Place()
 	if w then
 		window:SetPoint(w.point, UIParent, w.relPoint, w.x, w.y)
 	else
-		-- Off to the left rather than centred. The prompt's own default spot
-		-- is the bottom centre, and at a small UI scale a centred window this
-		-- tall reached down over it -- in a higher strata, taking the clicks --
-		-- so somebody who opened the ledger to watch favours come in could no
-		-- longer see or press the prompt that returns them.
+		-- Off to the left rather than centred: at a small UI scale a centred
+		-- window this tall covers the prompt's default spot at the bottom
+		-- centre, in a higher strata, taking its clicks.
 		window:SetPoint(DEFAULT_POINT, UIParent, DEFAULT_POINT, DEFAULT_X, DEFAULT_Y)
 	end
 end
@@ -1175,16 +1122,11 @@ end
 
 -- What an owed row says in place of "the prompt offers them" while the prompt
 -- cannot, or nil while it can. Asked at the moment of hovering, like Quiet(),
--- because every one of these is a switch, a timer or a mount that changes
--- under a window left open. Each question is asked through pcall: this is a
--- tooltip, and a helper that throws must cost the caveat, not the tooltip.
---
--- A snooze and a mount only hold the offer back for a while, so their lines
--- say when it comes. For a favour only a party buff can return it also waits
--- on the giver being in your party, and a line that left that out promised an
--- offer at the end of the snooze or the ride that never came for somebody
--- outside it. Those rows get lines that say both. Switched off, not watching
--- for favours or nothing to cast is no offer at all, party or not.
+-- because each is a switch, a timer or a mount that changes under an open
+-- window, and each through pcall, so a helper that throws costs the caveat and
+-- not the tooltip. A snooze or a mount only holds the offer back for a while;
+-- a party-only favour also waits on the giver being in your party, and its
+-- lines say both.
 local function OwedHeldBack(e)
 	local ok, quiet = pcall(Quiet)
 	quiet = ok and quiet or nil
@@ -1317,10 +1259,9 @@ local function BuildRow(i)
 	if hl then hl:SetVertexColor(1, 1, 1, 0.05) end
 	row:SetScript("OnEnter", RowTooltip)
 	row:SetScript("OnLeave", function() GameTooltip:Hide() end)
-	-- The wheel over a row scrolls the list, as it does over the gaps between
-	-- them. Asked for on the row itself rather than left to reach the window:
-	-- the rows cover nearly all of the list, and a wheel that only worked in
-	-- the two-pixel seams between them would read as no wheel at all.
+	-- The wheel over a row scrolls the list. Asked for on the row itself, not
+	-- left to reach the window, so it works over the rows and not only in the
+	-- seams between them.
 	row:EnableMouseWheel(true)
 	row:SetScript("OnMouseWheel", function(_, delta) Ledger.Scroll(-(delta or 0)) end)
 	row:Hide()
@@ -1329,9 +1270,8 @@ end
 
 local function Paint(row, e, now)
 	row.entry = e
-	-- Not `a and b or c`: a gift whose spell the client would not name has a
-	-- nil `spell`, and the collapse then reached for a favour's spell list on a
-	-- row that has none.
+	-- Not `a and b or c`: a gift's `spell` can be nil, and the `or` would then
+	-- read a favour's spell list on a row that has none.
 	local id
 	if e.kind == "given" then id = e.spell else id = e.spells[1] end
 	row.icon:SetTexture(SpellIcon(id))
@@ -1379,11 +1319,9 @@ local function DisarmClear()
 	end
 end
 
--- The first press of Clear: the label turns to the second-press question, in
--- the one colour that means careful, and the second press inside a few
--- seconds empties the list. Two presses rather than a confirmation dialog: the
--- list is the only thing it takes, and a dialog over a window this small is
--- more ceremony than the loss deserves.
+-- The first press of Clear arms it (the label asks again, in the colour that
+-- means careful); a second press within a few seconds empties the list. Two
+-- presses rather than a dialog, which is more ceremony than the loss deserves.
 local function ClearClicked(self)
 	if clearArmedUntil and GetTime() <= clearArmedUntil then
 		DisarmClear()
@@ -1478,10 +1416,9 @@ function Ledger.Scroll(delta)
 	Render()
 end
 
--- The pieces of the window, each built by a function of its own at file
--- level: the game's Lua lets one function reach at most sixty locals of the
--- file around it, closures inside it included, and Build doing all of this
--- itself would be most of the way there.
+-- The pieces of the window, each built by a file-level function of its own:
+-- Lua 5.1 lets one function capture at most sixty upvalues, closures inside it
+-- included, and Build doing all of this itself would come close.
 
 local function CloseClicked()
 	if window then window:Hide() end
@@ -1492,11 +1429,9 @@ local function TabClicked(self)
 	Render()
 end
 
--- The title band's contents, and today's summary under it, which is the
--- first thing the window says: the headline in the prompt's gold and at the
--- largest size on the window, and the line of what is still owed and what was
--- given under it, allowed a second line because in German and Russian its two
--- sentences do not share one.
+-- The title band's contents, and today's summary under it: the headline in
+-- the prompt's gold, and the line of what is owed and given, allowed a second
+-- line because in German and Russian its two sentences do not share one.
 local function BuildHeader()
 	local logo = window:CreateTexture(nil, "ARTWORK")
 	logo:SetTexture(LOGO)
@@ -1525,11 +1460,9 @@ local function BuildHeader()
 	Wrap(window.subline, 2)
 end
 
--- The all-time numbers, as four tiles rather than a sentence: a line carrying
--- four counts does not fit the width once the numbers grow, and a number is
--- read faster standing on its own. Each tile's number takes the colour its
--- rows use below, and its label is hung across the tile so a long translation
--- is cut inside it rather than running into the next.
+-- The all-time numbers, as four tiles rather than a sentence that stops
+-- fitting once the numbers grow. Each number takes its rows' colour, and each
+-- label is hung across its tile so a long translation is cut inside it.
 local function BuildStats()
 	local caption = Text(window, 9, INK_FAINT)
 	caption:SetPoint("BOTTOMLEFT", window, "TOPLEFT", PAD, STATS_TOP + 3)
@@ -1641,11 +1574,9 @@ local function Build()
 	window = CreateFrame("Frame", "MannersLedger", UIParent)
 	window:SetSize(WIDTH, HEIGHT)
 	window:SetFrameStrata("HIGH")
-	-- Comes to the front of its strata when clicked, and Show raises it, so
-	-- another window in the same strata that was opened first does not keep
-	-- it underneath. The options button shuts the addon's own options window
-	-- before opening this one; this covers whatever else is up. Asked for
-	-- rather than assumed, as the rest of the client's frame API is here.
+	-- Comes to the front of its strata when clicked, and Show raises it, so a
+	-- window opened first in the same strata does not keep it underneath.
+	-- Asked for rather than assumed, like the rest of the frame API here.
 	if window.SetToplevel then window:SetToplevel(true) end
 	window:SetClampedToScreen(true)
 	window:SetMovable(true)
@@ -1710,9 +1641,8 @@ local function Build()
 	window:SetScript("OnDragStart", function(self) self:StartMoving() end)
 	window:SetScript("OnDragStop", function(self)
 		self:StopMovingOrSizing()
-		-- The position is this file's to keep, in the ledger. Left user-placed,
-		-- the client's layout cache would keep a second copy of it and the two
-		-- could disagree about where the window belongs.
+		-- The position is kept in the ledger only; left user-placed, the
+		-- client's layout cache would keep a second copy that can disagree.
 		self:SetUserPlaced(false)
 		SavePosition()
 	end)
