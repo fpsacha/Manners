@@ -266,6 +266,33 @@ R.states = {
 		backdrop = "bright", setup = withPrompt(function(p)
 			p.style = "minimal"
 		end) },
+	-- No panel with the list up, over both worlds: the words after each name
+	-- carry a grey of their own, and it is the one the look has to reach.
+	{ key = "minimal-list", title = "Look: minimal, list shown", at = 0.85, setup = function(ns)
+		Mock.groupSize = 2
+		partyIsParty()
+		boot(ns, { party1 = { "Gwen", "Hollow" }, nameplate1 = { "Anna", "Aim" },
+			nameplate2 = { "Brannoc", "Vale" }, nameplate3 = { "Corwin", "Ash" } })
+		ns.db.profile.prompt.style = "minimal"
+		ns.db.profile.prompt.showQueue = true
+		ns.db.profile.prompt.queueRows = 3
+		ns.Prompt:ApplyStyle()
+		owe(ns, "Anna Aim")
+		tick(ns)
+	end },
+	{ key = "minimal-list-bright", title = "Look: minimal, list shown, bright world", at = 0.85,
+		backdrop = "bright", setup = function(ns)
+		Mock.groupSize = 2
+		partyIsParty()
+		boot(ns, { party1 = { "Gwen", "Hollow" }, nameplate1 = { "Anna", "Aim" },
+			nameplate2 = { "Brannoc", "Vale" }, nameplate3 = { "Corwin", "Ash" } })
+		ns.db.profile.prompt.style = "minimal"
+		ns.db.profile.prompt.showQueue = true
+		ns.db.profile.prompt.queueRows = 3
+		ns.Prompt:ApplyStyle()
+		owe(ns, "Anna Aim")
+		tick(ns)
+	end },
 	-- The colour-blind palette, with the list up so three reasons are on
 	-- screen at once.
 	{ key = "palette", title = "Colour-blind palette, list shown", at = 0.85, setup = function(ns)

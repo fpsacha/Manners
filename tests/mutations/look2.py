@@ -123,3 +123,30 @@ mutate("Prompt.lua",
        "a shrunk line never regrows",
        expect="stayed shrunk",
        script="runscenarios.py")
+
+# The list's words after the name in the panel's dim grey in Minimal too: the
+# row brightened under a code that overrides it.
+mutate("Prompt.lua",
+       '\t\treason = "|cffbdbfd1" },\n',
+       '\t\treason = "|cff707078" },\n',
+       "minimal list words left dim",
+       expect="bright after the name too",
+       script="runscenarios.py")
+
+# The coloured words held to body-text contrast: the list's grey and the
+# deepest class colours all redrawn on the default panel.
+mutate("Prompt.lua",
+       "local CODE_CONTRAST, TEXT_CONTRAST = 3, 4.5\n",
+       "local CODE_CONTRAST, TEXT_CONTRAST = 4.6, 4.5\n",
+       "default panel's near-line colours moved",
+       expect="leaves the colours near its contrast line alone",
+       script="runscenarios.py")
+
+# The palette greyed out wherever the ring is off, though the list's bars,
+# the glow and a press's wash still draw it.
+mutate("Options.lua",
+       "\t\t\t\t\t\t\treturn not p.accentByReason and not p.showQueue\n",
+       "\t\t\t\t\t\t\treturn not p.accentByReason or (p.accentMode or \"icon\") == \"off\"\n",
+       "reason palette locked with the ring off",
+       expect="the Reason colours control is greyed out",
+       script="runscenarios.py")

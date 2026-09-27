@@ -1854,9 +1854,15 @@ local function BuildOptions()
 					-- Which four colours, for somebody the standard four fail.
 					-- Off by default: the standard set is the look everybody
 					-- already knows, and a palette nobody asked for is a change
-					-- nobody can account for. Greyed out wherever the reason
-					-- colours are not drawn, like the accent colour below is
-					-- wherever they are.
+					-- nobody can account for.
+					--
+					-- Greyed out only where nothing is drawn in the reason
+					-- colours: "Colour it by reason" off and the list hidden.
+					-- The list's bars take the palette whatever the accent says,
+					-- and with the accent at Neither the glow and the wash of a
+					-- press still come in the reason colour -- so greying it out
+					-- there locked somebody who turned the ring off, and reads
+					-- the list's bars, out of the palette meant for them.
 					reasonPalette = {
 						type = "select",
 						name = L["Reason colours"],
@@ -1868,7 +1874,8 @@ local function BuildOptions()
 						},
 						sorting = { "standard", "colourblind" },
 						disabled = function()
-							return not P().accentByReason or (P().accentMode or "icon") == "off"
+							local p = P()
+							return not p.accentByReason and not p.showQueue
 						end,
 						-- Whatever a hand-edited file holds, the dropdown shows
 						-- the palette the prompt is actually drawn with.
@@ -2282,11 +2289,14 @@ local function BuildOptions()
 					-- The prompt picks light or dark text for the panel colour
 					-- only while this is left at its default, and says so here,
 					-- because otherwise the text changing colour when the panel
-					-- does reads as the setting being ignored.
+					-- does reads as the setting being ignored. And it names the
+					-- one exception, the class colour on a name, which is the
+					-- biggest word on the panel: somebody who picks red and sees
+					-- the name stay a priest's white takes the setting for broken.
 					fontColor = {
 						type = "color",
 						name = L["Text colour"],
-						desc = L["Left at white, the text turns dark by itself on a light panel colour. Any other colour is used exactly as you pick it."],
+						desc = L["Left at white, the text turns dark by itself on a light panel colour. Any other colour is used exactly as you pick it, except on names while |cffffd100Colour names by class|r is on."],
 						order = 52,
 						hasAlpha = true,
 						get = pGetColor,

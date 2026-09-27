@@ -165,6 +165,44 @@ do
 	end)
 end
 
+-- The priest's white above cannot catch a coloured word moving on the dark
+-- panel: on a dark ground the only way a colour moves is towards white, and
+-- white is already there. The colours that could move are the ones only just
+-- clear of the 3:1 line on this panel -- the list's own 707078 behind each
+-- name, and the deepest class colours: the death knight's red, the demon
+-- hunter's purple and the shaman's blue. Each goes through the same pass every
+-- line does, and has to come out as it went in.
+do
+	local scenario = "the default panel leaves the colours near its contrast line alone"
+	withTree(scenario, { nameplate1 = { "Anna", "Aim" }, nameplate2 = { "Corwin", "Ash" },
+		nameplate3 = { "Dara", "Fenn" } }, nil, function(ns)
+		freshPrompt(ns, scenario)
+		local p = ns.db.profile.prompt
+		p.showQueue, p.queueRows = true, 3
+		ns.Prompt:ApplyStyle()
+		owe(ns, "Anna Aim")
+		ns.addon:Tick()
+		local r = ns.Prompt:Regions()
+		local row = tostring(r.rows[1]._text or "")
+		if row == "" then
+			fail(scenario, "SKIPPED -- three people and an empty list")
+		elseif not row:find("|cff707078", 1, true) then
+			fail(scenario, "the list's grey behind a name was redrawn on the default panel: " .. row)
+		end
+		local deep = { "|cffc41e3aDeath knight|r", "|cffa330c9Demon hunter|r", "|cff0070ddShaman|r" }
+		local rows = {}
+		for i, text in ipairs(deep) do rows[i] = { text = text, reason = "group" } end
+		ns.Prompt:PaintQueue(rows)
+		for i, text in ipairs(deep) do
+			local got = tostring(r.rows[i]._text or "")
+			if got ~= text then
+				fail(scenario, ("%s was redrawn as %s on the default panel, where it reads as it is")
+					:format(text, got))
+			end
+		end
+	end)
+end
+
 -- ------------------------------------------------------------------ look2 3
 -- A text colour the player picked is drawn as it is.
 --
@@ -241,6 +279,35 @@ do
 	end)
 end
 
+-- And the list under it. Each row's words after the name carry a colour code
+-- of their own, which the row's text colour cannot reach: brightening the row
+-- brightened the two spaces between the name and the words, and the words
+-- stayed the list's dim grey over the world.
+do
+	local scenario = "the minimal look's list rows are bright after the name too"
+	withTree(scenario, { nameplate1 = { "Anna", "Aim" }, nameplate2 = { "Corwin", "Ash" },
+		nameplate3 = { "Dara", "Fenn" } }, nil, function(ns)
+		freshPrompt(ns, scenario)
+		local p = ns.db.profile.prompt
+		p.style, p.showQueue, p.queueRows = "minimal", true, 3
+		ns.Prompt:ApplyStyle()
+		owe(ns, "Anna Aim")
+		ns.addon:Tick()
+		local r = ns.Prompt:Regions()
+		local row = tostring(r.rows[1]._text or "")
+		-- The last code in the row is the one on the words after the name.
+		local code = hexColour(row:match(".*(|c%x%x%x%x%x%x%x%x)"))
+		if row == "" then
+			fail(scenario, "SKIPPED -- three people and an empty list")
+		elseif not code then
+			fail(scenario, "SKIPPED -- the row carries no colour to measure: " .. row)
+		elseif lum(code[1], code[2], code[3]) < 0.5 then
+			fail(scenario, ("the words after the name are %.2f %.2f %.2f over the world -- the"
+				.. " list's dim grey: %s"):format(code[1], code[2], code[3], row))
+		end
+	end)
+end
+
 -- ------------------------------------------------------------------ look2 5
 -- The colour-blind palette: off by default, a real choice on the page,
 -- clamped, applied everywhere the reason colour goes, and actually apart for
@@ -304,6 +371,25 @@ do
 			if type(option.order) ~= "number" or option.order < 10 or option.order >= 20 then
 				fail(scenario, "the Reason colours control is not under Style")
 			end
+			-- Greyed out only where nothing is drawn in the reason colours.
+			-- The list's bars take the palette whatever the accent says, and
+			-- with the accent at Neither the glow and a press's wash still do.
+			local cases = {
+				{ true, "off", true, false, "the accent at Neither and the list up" },
+				{ false, "icon", true, false, "Colour it by reason off and the list up" },
+				{ true, "off", false, false, "the accent at Neither, where the glow still uses it" },
+				{ false, "icon", false, true, "Colour it by reason off and the list hidden" },
+			}
+			local saved = { p.accentByReason, p.accentMode, p.showQueue }
+			for _, c in ipairs(cases) do
+				p.accentByReason, p.accentMode, p.showQueue = c[1], c[2], c[3]
+				local off = type(option.disabled) == "function" and option.disabled() or false
+				if (off and true or false) ~= c[4] then
+					fail(scenario, ("the Reason colours control is %s with %s"):format(
+						off and "greyed out" or "live", c[5]))
+				end
+			end
+			p.accentByReason, p.accentMode, p.showQueue = saved[1], saved[2], saved[3]
 			option.set({ "reasonPalette" }, "colourblind")
 		end
 		if p.reasonPalette ~= "colourblind" then p.reasonPalette = "colourblind" end

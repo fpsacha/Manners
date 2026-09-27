@@ -2022,9 +2022,18 @@ end
 -- lay dim grey on the world, and the world is as often a lit field as a dark
 -- floor. The outline carries them over the bright one, and the brightness
 -- over the dark.
+--
+-- `reason` is the dimmer grey of the words after a name in the list. It goes
+-- into the row as a colour code of its own, which the row's text colour cannot
+-- reach -- so it has to change with the look here, or Minimal brightens only
+-- the two spaces between the name and the words. The panel's is the 707078
+-- the list always had, as a code, so LegibleText still darkens it for a light
+-- panel and nobody on the dark one sees it move.
 local GREYS = {
-	panel = { sub = { 0.60, 0.61, 0.68 }, count = { 0.72, 0.73, 0.80 }, row = { 0.62, 0.63, 0.70 } },
-	bare = { sub = { 0.86, 0.87, 0.92 }, count = { 0.92, 0.93, 0.96 }, row = { 0.86, 0.87, 0.92 } },
+	panel = { sub = { 0.60, 0.61, 0.68 }, count = { 0.72, 0.73, 0.80 }, row = { 0.62, 0.63, 0.70 },
+		reason = "|cff707078" },
+	bare = { sub = { 0.86, 0.87, 0.92 }, count = { 0.92, 0.93, 0.96 }, row = { 0.86, 0.87, 0.92 },
+		reason = "|cffbdbfd1" },
 }
 
 -- Everything about the text that depends on what it is drawn on: which way the
@@ -2089,6 +2098,7 @@ local function StyleText(p, style, fontPath, textX, chipRoom, twoLine, countSize
 	countText:SetFont(fontPath, countSize, outline)
 	countText:SetTextColor(cr, cg, cb, 1)
 	local qr, qg, qb = Legible(greys.row[1], greys.row[2], greys.row[3], TEXT_CONTRAST)
+	ink.rowReason = greys.reason
 	for _, fs in ipairs(queueRows) do
 		fs:SetFont(fontPath, subSize, outline)
 		fs:SetTextColor(qr, qg, qb, 1)
@@ -3358,7 +3368,14 @@ function Prompt:PaintQueue(rows)
 	for i, fs in ipairs(queueRows) do
 		local row = rows and rows[i]
 		if row then
-			fs:SetText(LegibleText(row.text))
+			-- The words after the name in the look's own dimmer grey, joined
+			-- here rather than by Tick, so the code is the one for the look the
+			-- row is drawn in.
+			local text = row.text
+			if row.detail then
+				text = text .. "  " .. (ink.rowReason or GREYS.panel.reason) .. row.detail .. "|r"
+			end
+			fs:SetText(LegibleText(text))
 			-- Three pixels of the reason colour. Priority is the one thing
 			-- about this list worth knowing at a glance, and reading four words
 			-- of grey text to find it out is not a glance.
@@ -3798,9 +3815,11 @@ function Prompt:RefreshPanel()
 		else
 			others = others + 1
 			if #rows < wanted then
+				-- The name and the words apart: PaintQueue colours the words
+				-- for the look it is painting in.
 				rows[#rows + 1] = {
-					text = Substitute("{name}", entry, 0) .. "  |cff707078"
-						.. self:ReasonText(entry) .. "|r",
+					text = Substitute("{name}", entry, 0),
+					detail = self:ReasonText(entry),
 					reason = entry.reason,
 				}
 			end
