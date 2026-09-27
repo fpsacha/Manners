@@ -2003,184 +2003,150 @@ end
 -- read as "not a friend" and the person is ranked like everybody else.
 ---------------------------------------------------------------------------
 
--- How long an answer about one person is kept. A friends list or a guild
--- roster changes on the scale of minutes, and the scan asks about everybody in
--- front of you two and a half times a second.
-local CLOSE_SECONDS = 10
-local closeCache = {}
--- The friends list read off the list itself, by lower-cased name and by GUID,
--- and when it was read.
-local friendNames, friendGuids, friendsReadAt = {}, {}, nil
+-- The section's two entry points. Everything else is private to the block
+-- below, whose locals are released at its end: the main chunk is close to
+-- the 200 locals Lua 5.1 allows one function.
+local SweepCloseness, Closeness
+do
+	-- How long an answer about one person is kept: a friends list changes over
+	-- minutes, and the scan asks about everybody two and a half times a second.
+	local CLOSE_SECONDS = 10
+	local closeCache = {}
+	-- The friends list by lower-cased name and by GUID, and when it was read.
+	local friendNames, friendGuids, friendsReadAt = {}, {}, nil
 
--- The fallback for a client whose C_FriendList has no IsFriend: the list read
--- by index, the way the addons known to work on this client read it.
-local function ReadFriendsList(now)
-	if friendsReadAt and now - friendsReadAt < CLOSE_SECONDS then return end
-	friendsReadAt = now
-	wipe(friendNames)
-	wipe(friendGuids)
-	local list = _G.C_FriendList
-	if type(list) ~= "table" then return end
-	local count = safecall(list.GetNumFriends)
-	if type(count) ~= "number" then return end
-	-- The game caps a friends list well below this; the bound is there so a
-	-- nonsense count cannot turn one scan into a very long one.
-	for i = 1, math.min(count, 200) do
-		local info = safecall(list.GetFriendInfoByIndex, i)
-		if type(info) == "table" then
-			local name, guid = plain(info.name), plain(info.guid)
-			if type(name) == "string" then friendNames[name:lower()] = true end
-			if type(guid) == "string" then friendGuids[guid] = true end
-		end
-	end
-end
-
--- Old answers go, so the cache holds the people around you now rather than
--- everybody met since login.
---
--- Once per lifetime of an answer rather than on every scan: Closeness reads an
--- answer's age before trusting it, so a stale one left standing a little longer
--- is never used, only kept.
-local closeSweptAt
-
-local function SweepCloseness(now)
-	if closeSweptAt and now >= closeSweptAt and now - closeSweptAt < CLOSE_SECONDS then return end
-	closeSweptAt = now
-	for name, answer in pairs(closeCache) do
-		if now - answer.at >= CLOSE_SECONDS then closeCache[name] = nil end
-	end
-end
-
--- GetGuildInfo's realm as something to compare: "" for your own realm, which
--- it answers as nil, and nil for a realm withheld as a secret or nonsense,
--- which matches nothing -- a withheld realm read as your own would be the
--- same-name mistake all over again.
-local function GuildRealm(realm)
-	if issecretvalue and issecretvalue(realm) then return nil end
-	if realm == nil then return "" end
-	if type(realm) ~= "string" then return nil end
-	return realm
-end
-
--- "friend", "guild", or nil for neither and for could-not-tell alike.
---
--- The GUID goes to the client exactly as the client handed it over, secret or
--- not: a withheld GUID may still be one the friends API is allowed to take, and
--- safecall is what stands between a refusal and the scan. It is never compared
--- or read here, because a secret throws on both.
---
--- A friend is asked about before the guild, because a friend is the more
--- particular thing to say about somebody on the tooltip.
-local function Closeness(unit, full, now)
-	local cached = closeCache[full]
-	if cached and now - cached.at < CLOSE_SECONDS then return cached.kind or nil end
-
-	local kind
-	local rawGuid = UnitGUID(unit)
-	local list, bnet = _G.C_FriendList, _G.C_BattleNet
-	if type(list) == "table" and safecall(list.IsFriend, rawGuid) == true then
-		kind = "friend"
-	elseif type(bnet) == "table"
-		and type(safecall(bnet.GetGameAccountInfoByGUID, rawGuid)) == "table" then
-		-- Answers for Battle.net friends and nobody else; the Camelot social
-		-- addon accepts group invites from friends on exactly this.
-		kind = "friend"
-	else
-		ReadFriendsList(now)
-		local guid = plain(rawGuid)
-		if (type(guid) == "string" and friendGuids[guid])
-			or friendNames[full:lower()]
-			or friendNames[(ns.TargetName(full) or full):lower()] then
-			kind = "friend"
-		end
-	end
-
-	if not kind then
-		local inMine
-		if type(_G.UnitIsInMyGuild) == "function" then
-			local ok, answer = pcall(_G.UnitIsInMyGuild, unit)
-			if ok then inMine = plain(answer) end
-		end
-		if inMine == true then
-			kind = "guild"
-		elseif inMine == nil then
-			-- Only where UnitIsInMyGuild gave no answer -- missing, refused, or
-			-- withheld -- the two guild names, compared only when both are
-			-- readable and there is a guild to compare. A plain no is an answer,
-			-- and the names used to overrule it.
-			--
-			-- With the realms, which is GetGuildInfo's fourth return (nil for
-			-- your own realm): a guild's name is only unique on its realm, so
-			-- somebody from another one whose guild shares yours was ranked a
-			-- guildmate and their tooltip said "In your guild." Called directly
-			-- rather than through safecall, which keeps three returns.
-			local okTheirs, theirs, _, _, theirRealm = pcall(_G.GetGuildInfo, unit)
-			local okOurs, ours, _, _, ourRealm = pcall(_G.GetGuildInfo, "player")
-			theirs, ours = plain(theirs), plain(ours)
-			theirRealm, ourRealm = GuildRealm(theirRealm), GuildRealm(ourRealm)
-			if okTheirs and okOurs and type(theirs) == "string" and theirs ~= ""
-				and theirs == ours and theirRealm and theirRealm == ourRealm then
-				kind = "guild"
+	-- The fallback for a client whose C_FriendList has no IsFriend: the list read
+	-- by index, the way the addons known to work on this client read it.
+	local function ReadFriendsList(now)
+		if friendsReadAt and now - friendsReadAt < CLOSE_SECONDS then return end
+		friendsReadAt = now
+		wipe(friendNames)
+		wipe(friendGuids)
+		local list = _G.C_FriendList
+		if type(list) ~= "table" then return end
+		local count = safecall(list.GetNumFriends)
+		if type(count) ~= "number" then return end
+		-- The game caps a friends list well below this; the bound is there so a
+		-- nonsense count cannot turn one scan into a very long one.
+		for i = 1, math.min(count, 200) do
+			local info = safecall(list.GetFriendInfoByIndex, i)
+			if type(info) == "table" then
+				local name, guid = plain(info.name), plain(info.guid)
+				if type(name) == "string" then friendNames[name:lower()] = true end
+				if type(guid) == "string" then friendGuids[guid] = true end
 			end
 		end
 	end
 
-	closeCache[full] = { at = now, kind = kind or false }
-	return kind
+	-- Old answers go, once per lifetime of an answer: Closeness checks an answer's
+	-- age before trusting it, so one left standing a little longer is never used.
+	local closeSweptAt
+
+	function SweepCloseness(now)
+		if closeSweptAt and now >= closeSweptAt and now - closeSweptAt < CLOSE_SECONDS then return end
+		closeSweptAt = now
+		for name, answer in pairs(closeCache) do
+			if now - answer.at >= CLOSE_SECONDS then closeCache[name] = nil end
+		end
+	end
+
+	-- GetGuildInfo's realm as something to compare: "" for your own realm, which
+	-- it answers as nil, and nil (matching nothing) for a secret or nonsense.
+	local function GuildRealm(realm)
+		if issecretvalue and issecretvalue(realm) then return nil end
+		if realm == nil then return "" end
+		if type(realm) ~= "string" then return nil end
+		return realm
+	end
+
+	-- "friend", "guild", or nil for neither and for could-not-tell alike; a
+	-- friend is the more particular thing for the tooltip to say, so first.
+	-- The GUID goes to the client as handed over, secret or not (the friends
+	-- API may still take it); it is never compared or read here, because a
+	-- secret throws on both.
+	function Closeness(unit, full, now)
+		local cached = closeCache[full]
+		if cached and now - cached.at < CLOSE_SECONDS then return cached.kind or nil end
+
+		local kind
+		local rawGuid = UnitGUID(unit)
+		local list, bnet = _G.C_FriendList, _G.C_BattleNet
+		if type(list) == "table" and safecall(list.IsFriend, rawGuid) == true then
+			kind = "friend"
+		elseif type(bnet) == "table"
+			and type(safecall(bnet.GetGameAccountInfoByGUID, rawGuid)) == "table" then
+			-- Answers for Battle.net friends and nobody else; the Camelot social
+			-- addon accepts group invites from friends on exactly this.
+			kind = "friend"
+		else
+			ReadFriendsList(now)
+			local guid = plain(rawGuid)
+			if (type(guid) == "string" and friendGuids[guid])
+				or friendNames[full:lower()]
+				or friendNames[(ns.TargetName(full) or full):lower()] then
+				kind = "friend"
+			end
+		end
+
+		if not kind then
+			local inMine
+			if type(_G.UnitIsInMyGuild) == "function" then
+				local ok, answer = pcall(_G.UnitIsInMyGuild, unit)
+				if ok then inMine = plain(answer) end
+			end
+			if inMine == true then
+				kind = "guild"
+			elseif inMine == nil then
+				-- Only where UnitIsInMyGuild gave no answer (a plain no is an
+				-- answer): the two guild names, when both are readable, and their
+				-- realms, since a guild's name is only unique on its realm. pcall
+				-- rather than safecall, which keeps only three returns and the
+				-- realm is the fourth.
+				local okTheirs, theirs, _, _, theirRealm = pcall(_G.GetGuildInfo, unit)
+				local okOurs, ours, _, _, ourRealm = pcall(_G.GetGuildInfo, "player")
+				theirs, ours = plain(theirs), plain(ours)
+				theirRealm, ourRealm = GuildRealm(theirRealm), GuildRealm(ourRealm)
+				if okTheirs and okOurs and type(theirs) == "string" and theirs ~= ""
+					and theirs == ours and theirRealm and theirRealm == ourRealm then
+					kind = "guild"
+				end
+			end
+		end
+
+		closeCache[full] = { at = now, kind = kind or false }
+		return kind
+	end
 end
 
 -- Tell the favour ledger (Ledger.lua) what just happened to a favour. One way
--- only: nothing in this file reads the ledger back, so it can never change who
--- is offered what. Guarded because it is a record of the decision rather than
--- part of it, and a ledger that throws must not take a settle or a sweep with
--- it. Absent entirely is a toc that lost the file, and costs nothing but the
--- record.
---
--- Not a global: this assigns the local declared above the never-offer list.
+-- only, so it never changes who is offered what, and guarded so a ledger that
+-- throws cannot take a settle or a sweep with it. Not a global: this assigns
+-- the local declared above the never-offer list.
 function TellLedger(event, ...)
 	local ledger = ns.Ledger
 	local fn = ledger and ledger[event]
 	if type(fn) == "function" then ns.Guard("ledger " .. event, fn, ...) end
-	-- The launcher counts the favours waiting to be returned, and these are
-	-- the moments that count changes.
+	-- The launcher counts the favours waiting to be returned.
 	if ns.RefreshBrokerText then ns.Guard("broker text", ns.RefreshBrokerText) end
 end
 
--- Somebody who asked for your buff comes after the people who buffed you and
--- before your group: a request is a person saying they want it, which is more
--- than a gap read off their auras, and less than a favour already done. One and
--- a half rather than a renumbering, so every number the others have had since
--- the start -- in the sort, in the prompt's hold and in bug reports -- still
--- means what it did.
+-- Somebody who asked comes after the people who buffed you and before your
+-- group. One and a half rather than a renumbering, so the other numbers keep
+-- meaning what they mean in the sort, the prompt's hold and bug reports.
 local PRIORITY = { target = 0, owed = 1, asked = 1.5, group = 2, nearby = 3 }
 
 -- The group's unit tokens, spelled out once rather than joined on every scan.
--- Forty is a raid; anything past it, which no client produces, is joined as
--- it always was. Filed under their prefix, one local for both lists.
 local GROUP_TOKENS = { raid = {}, party = {} }
 for i = 1, 40 do
 	GROUP_TOKENS.raid[i] = "raid" .. i
 	GROUP_TOKENS.party[i] = "party" .. i
 end
 
--- fn(unit, pointed). `pointed` is the second argument because one caller has to
--- tell a unit the player deliberately picked out from one the world happened to
--- put a nameplate on, and the list of which tokens are which belongs here,
--- beside the list itself, rather than being spelled out again at the call site.
---
--- Target and focus only. Both are a deliberate, standing act of pointing at
--- somebody, and both survive until the player changes them. Mouseover is not:
--- it is wherever the cursor happens to be this tenth of a second, and at a scan
--- every four tenths a distant stranger brushed on the way across the screen
--- would flash onto the prompt. That is the same argument that keeps mouseover
--- out of the target promotion below, and it applies with more force here --
--- the whole point of a proximity setting is that far-away people stop
--- appearing.
---
--- Which is also why focus moved above mouseover. One verdict is reached per
--- person per scan, on whichever token reaches them first, so with mouseover
--- going first the moment your cursor crossed your own focus they were judged
--- as a passer-by and the focus visit was deduplicated away.
+-- fn(unit, pointed). `pointed` marks a unit the player deliberately picked out:
+-- target and focus, which stand until the player changes them. Mouseover is
+-- wherever the cursor happens to be, and counting it would flash distant
+-- strangers onto the prompt. Focus comes before mouseover because one verdict
+-- is reached per person per scan, on whichever token reaches them first.
 local function IterateUnits(fn)
 	fn("target", true)
 	fn("focus", true)
@@ -2222,11 +2188,10 @@ local function IterateUnits(fn)
 	end
 end
 
--- Whether "Not while mounted" is keeping the prompt away right now. One
--- answer, asked by the queue, by a keypress on the empty prompt and by
--- /manners debug, so the three cannot disagree about why nothing is offered.
--- IsMounted is asked for rather than assumed, and a withheld answer counts as
--- not mounted: the switch exists to hide the prompt, never to lose it.
+-- Whether "Not while mounted" is keeping the prompt away right now: one answer
+-- for the queue, a keypress on the empty prompt and /manners debug. A withheld
+-- answer counts as not mounted, so the switch can hide the prompt but never
+-- lose it.
 function ns.HiddenWhileMounted()
 	local db = addon.db and addon.db.profile
 	if not (db and db.filters and db.filters.hideMounted == true) then return false end
@@ -2235,8 +2200,7 @@ function ns.HiddenWhileMounted()
 end
 
 -- PickBuffFor's two callbacks for the queue, at file level so that no person
--- costs a closure. QueueBlocked reads who and when off the options the main
--- path fills in; the tokenless path has no aura to read, and says so.
+-- costs a closure. The tokenless path has no aura to read, hence NoReading.
 local function QueueBlocked(candidate, opts)
 	return ns.IsBlocked(opts.name, candidate.key, opts.now)
 end
@@ -2262,49 +2226,37 @@ function ns.BuildQueue()
 	local now = GetTime()
 	local seen, queue = {}, {}
 	-- Anybody the main path looked at and turned down. The owed fallback below
-	-- holds no unit token and so cannot repeat those judgements for itself;
-	-- without this it re-adds the person at priority 1 moments after the main
-	-- path decided against them.
+	-- holds no unit token and cannot repeat those judgements, so it reads this.
 	local rejected = {}
 	local f = db.filters
 
-	-- Per scan, so /manners debug and the options page report the crowd that is
-	-- actually in front of the player rather than a total since login. The
-	-- run-of-silence count that demotes a source is deliberately not reset here:
-	-- it is about a source that never answers, and forty units spread over ten
-	-- scans is the same evidence as forty in one.
+	-- Per scan, so /manners debug and the options page report the crowd in
+	-- front of the player now. The run-of-silence count that demotes a source
+	-- is deliberately not reset: forty units over ten scans is the same
+	-- evidence as forty in one.
 	prox.asked, prox.answered = 0, 0
 
-	-- Once per scan. This used to run for every unit examined.
+	-- Everything below until the walk is asked once per scan, not per person.
 	local candidates = ns.CastableBuffs()
 	if #candidates == 0 then return {} end
-	-- Once per scan as well. A warrior's shout reaches the group and nobody
-	-- else, so PickBuffFor turns every passer-by down -- but only after the
-	-- distance check below had measured them, which filled the proximity counts
-	-- with strangers who can never be offered anything and, on a client whose
-	-- duel prompt says nothing about strangers, dropped that rung for silence.
-	-- Handed the list just made rather than making its own.
+	-- A warrior's shout reaches the group and nobody else, so passers-by are
+	-- dropped before the distance check rather than measured for nothing
+	-- (which would fill the proximity counts with people never offered).
 	local groupOnly = ns.OnlyReachesGroup(candidates)
-	-- And whether the player is in a raid, which SameParty asked afresh for
-	-- every person it was asked about.
 	local inRaid = plain(IsInRaid and IsInRaid()) == true
-	-- The never-offer list's answers so far, checked against the list once
-	-- here rather than walked for each person; see NeverVerdicts.
+	-- The never-offer list's answers so far; see NeverVerdicts.
 	local neverVerdict = NeverVerdicts()
 
-	-- Once per scan as well: whether passers-by are to be left alone because
-	-- the player is out in the world rather than in a city or an inn. Only a
-	-- definite "not resting" does it; could-not-tell offers them as before.
+	-- Passers-by left alone out in the world, when asked: only a definite "not
+	-- resting" does it, and could-not-tell offers them.
 	local notResting = f.restingOnly == true and Resting() == false
-	-- And whether friends and guildmates are to be picked out at all. Nobody is
-	-- asked about when this is off, which is most of the cost of it.
+	-- Nobody is asked about friends when Who comes first is off, which is most
+	-- of its cost.
 	local friendsFirst = db.priority.friends == true
 	if friendsFirst then SweepCloseness(now) end
 
-	-- Offering a buff that cannot be paid for is a button that fails -- but
-	-- only classes with a mana bar can run out of it. A warrior's current mana
-	-- is a readable, permanent 0, so an unconditional check here meant every
-	-- warrior was offered nobody, ever.
+	-- A buff that cannot be paid for is a button that fails -- but only classes
+	-- with a mana bar can run out: a warrior's mana reads a permanent 0.
 	local myMax = plain(UnitPowerMax("player", MANA))
 	if myMax and myMax > 0 then
 		local myMana = plain(UnitPower("player", MANA))
@@ -2312,16 +2264,15 @@ function ns.BuildQueue()
 	end
 
 	-- What PickBuffFor is told about the person in hand, one table reused for
-	-- everybody the walk reaches; see where it is filled.
+	-- everybody the walk reaches.
 	local opts = {}
 
 	local function visit(unit, pointed)
 		local ok, person = IsBuffableUnit(unit, f)
 		if not ok then
-			-- Someone we hold a token for and have just turned down must not
-			-- walk back in through the fallback, which cannot check any of
-			-- this. The name costs a call, so only pay for it when there is a
-			-- debt outstanding that could resurface.
+			-- Somebody turned down here must not walk back in through the
+			-- fallback, which cannot check any of this. The name costs a call,
+			-- so only when a debt outstanding could resurface.
 			if person and next(owed) then
 				local bad = ns.UnitFullName(unit)
 				if bad then rejected[bad] = true end
@@ -2331,11 +2282,8 @@ function ns.BuildQueue()
 
 		local full = ns.UnitFullName(unit)
 		if not full then return end
-		-- One verdict per person per scan, whichever way it went. Somebody
-		-- standing in front of you is commonly both your target and a
-		-- nameplate, and only the queued half used to be deduplicated -- so a
-		-- person who was turned down had every rejection, including the range
-		-- check and its three API calls, paid for twice.
+		-- One verdict per person per scan, whichever way it went: somebody in
+		-- front of you is commonly both your target and a nameplate.
 		if seen[full] or rejected[full] then return end
 		-- The whole-person block: a right-press skip, or a press that reached
 		-- nobody, so we do not march down the list failing at each buff.
@@ -2344,69 +2292,42 @@ function ns.BuildQueue()
 		local inGroup = plain(UnitInParty and UnitInParty(unit)) or plain(UnitInRaid and UnitInRaid(unit))
 		local isOwed = db.sources.owed and owed[full] and LiveExpiry(owed[full]) > now
 
-		-- The never-offer list, for everybody but a person owed a favour.
-		--
-		-- That exception is the decision, and the options page says it in so
-		-- many words: returning a favour is what this addon is for, and somebody
-		-- who has just buffed you has done the one thing that earns an offer
-		-- whatever list they are on. Shift-right-clicking them lets the favour
-		-- go as well, so the list never keeps somebody on the prompt that the
-		-- player has just asked to be rid of.
-		--
-		-- Written into `rejected` like every other refusal here -- one verdict
-		-- per person per scan -- and safe to write for the reason the distance
-		-- check below gives: nobody reaching this line is owed anything the
-		-- fallback could offer, because the fallback asks the same two questions
-		-- isOwed just did.
+		-- The never-offer list, for everybody but a person owed a favour. That
+		-- exception is a decision (STATUS.md), and the options page says so:
+		-- returning a favour is what the addon is for. Safe to write into
+		-- `rejected`: nobody reaching this line is owed anything the fallback
+		-- could offer, since it asks the same two questions isOwed just did.
 		if not isOwed and ns.IsNeverOffered(full) then
 			rejected[full] = true
 			return
 		end
 
-		-- Somebody who asked for your buff in chat, as the spells they asked for
-		-- that this character would cast -- nil for nobody, and for anybody
-		-- owed, whose favour is the better reason to give. Below the never-offer
-		-- list on purpose: asking is not the exception buffing you is.
+		-- What they asked for in chat, of what this character casts; nil for
+		-- nobody and for anybody owed, whose favour is the better reason.
+		-- Below the never-offer list on purpose: asking is not the exception
+		-- buffing you is.
 		local asked = not isOwed and ns.AskedFor(unit, full, now, candidates) or nil
 
 		-- Decide whether we would offer this person at all before reading any
-		-- auras, which is the expensive part.
-		--
-		-- A request is a source of its own, so the group and passer-by switches
-		-- below do not apply to it, and neither do the checks on how near a
-		-- passer-by is or whether you are in a city: they asked, and a unit
-		-- the scan walks is them. Casting range still applies, further down.
+		-- auras, which is the expensive part. A request is a source of its own:
+		-- the group and passer-by switches, the nearness and city checks do
+		-- not apply to it. Casting range still does, further down.
 		local reason = isOwed and "owed" or (asked and "asked") or (inGroup and "group" or "nearby")
 		if reason == "group" and not db.sources.group then return end
 		if reason == "nearby" and not db.sources.strangers then return end
 		if reason == "nearby" and groupOnly then return end
 
-		-- Passers-by only in a city or an inn, when that is asked for. Exempt
-		-- exactly who the distance check below exempts, for the same reason: a
-		-- stranger you have targeted or focused you picked on purpose.
+		-- Passers-by only in a city or an inn, when that is asked for. A stranger
+		-- you targeted or focused you picked on purpose, and is exempt.
 		if reason == "nearby" and not pointed and notResting then
 			rejected[full] = true
 			return
 		end
 
-		-- A passer-by has to be near, not merely castable on.
-		--
-		-- This reason and no other. The three that are left all carry their own
-		-- evidence of nearness and none of them filled the queue: somebody who
-		-- buffed you was close enough moments ago, your group is your group, and
-		-- a unit you are pointing at you chose on purpose -- which is what
-		-- `pointed` says, and why a targeted or focused stranger is exempt even
-		-- though the reason on their card still reads as a passer-by.
-		--
-		-- Above the aura read on purpose. The expensive half of a scan is
-		-- reading everybody's buffs, and in the crowd this exists for that is
-		-- most of the work: dropping somebody here costs one distance check
-		-- instead of a walk down their aura list.
-		--
-		-- Written into `rejected` for the same reason every other refusal here
-		-- is -- one verdict per person per scan -- and safe to write because
-		-- nobody reaching this line is owed anything: an outstanding debt would
-		-- have made the reason "owed" three lines up.
+		-- A passer-by has to be near, not merely castable on. The other reasons
+		-- carry their own evidence of nearness, and so does a pointed unit. Above
+		-- the aura read on purpose: in a crowd, one distance check is much
+		-- cheaper than a walk down somebody's auras.
 		if reason == "nearby" and not pointed and ns.NearEnough(unit) == false then
 			rejected[full] = true
 			return
@@ -2417,31 +2338,18 @@ function ns.BuildQueue()
 		local whenBuffed = f.whenBuffed or "skip"
 		local checked = whenBuffed ~= "always"
 
-		-- The client's answer, and nothing else. This used to answer false for
-		-- anybody we owed -- not because anything had been read, but because
-		-- the policy is to offer them regardless -- and PickBuffFor read that
-		-- fabricated false as the client saying outright that nothing landed.
-		-- A policy written as a reading is a lie told one function away, and it
-		-- is the whole of the paladin bug: a blessing given, then read back as
-		-- absent, then replaced by the next one down the list.
+		-- The client's answer, and nothing else: a policy (offer the owed
+		-- regardless) must never be written as a reading, or PickBuffFor takes
+		-- it for the client saying nothing landed. Choosing not to look answers
+		-- nil, not false, since the walk stops at the first definite gap.
 		local function auraState(buff)
-			-- Choosing not to look is not the same as looking and finding
-			-- nothing. Answering false here made "offer them anyway" mean
-			-- "offer them the first buff on the list, forever": the walk stops
-			-- at the first definite gap, and this invented one at the top.
 			if not checked then return nil end
 			return UnitHasBuff(unit, buff, guid)
 		end
 
-		-- Only what they asked for, when they asked. Whether it does them any
-		-- good is theirs to judge -- a warrior may want Intellect -- so the
-		-- relevance filter is off for them. Whether they already have it is
-		-- not: somebody answered by another mage, or by a cast you made by
-		-- hand, is covered, and offering them it again above your whole group
-		-- is the one thing a request must not lead to. So unlike a favour owed
-		-- there is no offering anyway, and a covered asker drops off.
-		-- One table for the whole scan, every field written for every person:
-		-- PickBuffFor reads it and keeps nothing of it.
+		-- Every field written for every person; PickBuffFor keeps nothing.
+		-- Somebody who asked gets only what they asked for, relevant to them or
+		-- not (a warrior may want Intellect), but never when already covered.
 		opts.hasMana = hasMana
 		opts.inGroup = inGroup
 		-- Who a shout reaches, which in a raid is not the group: see
@@ -2451,9 +2359,8 @@ function ns.BuildQueue()
 		opts.whenBuffed = whenBuffed
 		opts.refreshUnder = f.refreshUnder
 		opts.name = full
-		-- The policy, said as a policy. Owing somebody means offering them
-		-- even when they are covered, which is a decision about who gets an
-		-- offer and says nothing whatever about what their auras read.
+		-- Owing somebody means offering them even when covered: a decision about
+		-- who gets an offer, saying nothing about what their auras read.
 		opts.offerAnyway = isOwed
 		-- Blocked for this person and this buff; reads name and now off opts.
 		opts.blocked = QueueBlocked
@@ -2464,37 +2371,18 @@ function ns.BuildQueue()
 		if not checked then has = nil end
 
 		local ranged = InRange(unit, buff)
-		-- A shout has no range for InRange to measure, so the client says
-		-- nothing about it and nil let everybody through. Where anything can
-		-- say how far off they are, that is asked instead -- and the answer
-		-- rides on the entry to the press, because a shout nothing measured is
-		-- not taken as repaying anybody.
+		-- A shout has no range for InRange to measure, so whatever can say how
+		-- far off they are is asked instead, and the answer rides on the entry
+		-- to the press: a shout nothing measured repays nobody.
 		if ranged == nil and buff.selfCast then ranged = ShoutReach(unit) end
 		if f.requireInRange and ranged == false then rejected[full] = true return end
 
-		-- A deliberate target is the plainest statement of intent there is, so
-		-- it outranks a debt -- but only once we have read their auras and found
-		-- the buff genuinely missing. Promoting a guess would put somebody who
-		-- already has it above a person who really did buff you. Mouseover is
-		-- left out on purpose: at a 0.4 s scan the prompt would flicker as the
-		-- cursor crossed the screen.
-		--
-		-- The isOwed test now means what it says. It used to be load-bearing
-		-- for a different reason: an owed person's aura state was fabricated as
-		-- false before it got here, so without this every debt that happened to
-		-- be targeted was promoted on a reading nobody had taken. The reading is
-		-- real now, and this stays as the plain preference it reads as -- being
-		-- owed is a better thing to say about somebody than being targeted, and
-		-- it is the line the user reads on the prompt.
-		--
-		-- Switchable, because it is a preference about somebody else's queue
-		-- order rather than a fact: a player who targets to inspect rather than
-		-- to buff wants the debts back on top, and with this off a target is
-		-- ranked by why they are on the list like anybody else.
-		--
-		-- Somebody who asked and is targeted is moved to the top as well, but
-		-- keeps "asked for it": that is the truer line, and the prompt's words
-		-- and colour come from the reason, the order from the priority.
+		-- A deliberate target outranks a debt, but only once their auras were
+		-- read and the buff found missing; promoting a guess would put somebody
+		-- covered above a person who really buffed you. Being owed stays the
+		-- better line for the prompt to say, so an owed target keeps it, and so
+		-- does somebody who asked (the order comes from the priority, the words
+		-- from the reason). Switchable: some players target to inspect.
 		local priority = PRIORITY[reason]
 		if unit == "target" and db.priority.target
 			and not isOwed and checked and has == false then
@@ -2502,10 +2390,8 @@ function ns.BuildQueue()
 			priority = PRIORITY.target
 		end
 
-		-- Asked last, of the people who made it this far and nobody else: the
-		-- answer only orders the queue, so nobody turned down above is worth a
-		-- question. Not for a favour owed or your target, who already outrank
-		-- everybody it could move them past.
+		-- Asked last, since the answer only orders the queue, and not for a
+		-- favour owed or your target, who outrank everybody it could pass.
 		local close
 		if friendsFirst and (reason == "group" or reason == "nearby") then
 			close = Closeness(unit, full, now)
@@ -2524,77 +2410,57 @@ function ns.BuildQueue()
 			buff = buff,
 			reason = reason,
 			-- Whether they are in the group, which `reason` stops saying once
-			-- they are owed or targeted. The favour ledger files a buff given
-			-- unprompted under the group or under strangers by it.
+			-- they are owed or targeted; the ledger files by it.
 			inGroup = not not inGroup,
 			priority = priority,
 			ranged = ranged,
 			known = has,
-			-- How long what they are already carrying has left to run, set only
-			-- for a top-up. It is the whole answer to "why is somebody who
-			-- already has it being offered it", and the refresh mode is the only
-			-- thing that puts them there.
+			-- How long what they carry has left, set only for a top-up.
 			remaining = remaining,
 			-- false when we chose not to look, as opposed to looked and were
 			-- refused. Only the second is the client's doing.
 			checked = checked,
-			-- "friend" or "guild" where Who comes first asked and got an answer,
-			-- nil otherwise. The sort reads it, and so does the tooltip.
+			-- "friend" or "guild" where Who comes first asked; the sort and the
+			-- tooltip read it.
 			close = close,
 		}
 	end
 
-	-- The never-offer list's answers are handed to ns.IsNeverOffered for the
-	-- length of the walk and not a moment longer: they are checked against the
-	-- list once, here, and nothing edits the list while the units are walked --
-	-- but anybody asking between two scans may have just edited it. So the
-	-- walk is protected and the answers withdrawn whichever way it ends, and a
-	-- failure goes on exactly as it would have.
+	-- The never-offer list's answers stand for the length of the walk only:
+	-- the list may be edited between two scans. So the walk is protected, the
+	-- answers withdrawn whichever way it ends, and a failure goes on as before.
 	neverSeen.scan = neverVerdict
 	local walked, walkError = pcall(IterateUnits, visit)
 	neverSeen.scan = nil
 	if not walked then error(walkError, 0) end
 
-	-- Someone who buffed you and is not currently a unit we hold a token for is
-	-- the ordinary case, not the exception: a passing stranger is rarely your
-	-- target, your mouseover or showing a nameplate. The macro's /target line
-	-- still reaches them; an [@Name] clause would not, since that resolves only
-	-- for members of your group.
-	--
-	-- Requiring a token here is what "only people I can reach" used to mean,
-	-- and it silently threw away the main case. They were demonstrably within
-	-- casting range the moment they buffed you, so that moment is the evidence
-	-- we use instead: offer them for a short grace window, then let them go.
+	-- Somebody who buffed you and holds no token we can see is the ordinary
+	-- case: a passing stranger rarely shows a nameplate. The macro's /target
+	-- line still reaches them ([@Name] would not: it resolves only for group
+	-- members), and buffing you proved they were in range, so they are offered
+	-- for a short grace window and then let go.
 	if db.sources.owed then
 		local grace = db.timing.graceSeconds or 45
-		-- One table for every favour below, as on the main path; only what
-		-- differs between two people is written inside the loop.
+		-- One table for every favour below; only what differs between two
+		-- people is written inside the loop.
 		local tokenless = {
-			-- No token, so there is no telling whether they are in the
-			-- group; a party-only buff would be a button that fails.
+			-- No token, so no telling whether they are in the group; a
+			-- party-only buff would be a button that fails.
 			inGroup = false,
 			inParty = false,
 			relevantOnly = f.relevantOnly,
-			-- No aura truth either, so never rotate past what they may
+			-- No aura reading either, so never rotate past what they may
 			-- already be carrying.
 			whenBuffed = "skip",
-			-- Said as the option it is. It used to be spelled as an
-			-- aura reading of false for every buff, which is the same
-			-- untruth the main path told: nothing here has read
-			-- anything, and the comment above says so two lines up.
 			rotate = false,
 		}
 		for full, entry in pairs(owed) do
 			local fresh = not db.filters.reachableOnly or (now - entry.at) <= grace
 			if LiveExpiry(entry) > now and fresh and not seen[full] and not rejected[full]
 				and SafeForMacro(full) and not ns.IsBlocked(full, nil, now) then
-				-- Resolved per person, like the main path, rather than once for
-				-- everybody: a single resolve with mana assumed offered the
-				-- warrior a mana buff and ignored the buffs the user switched
-				-- off, because it never consulted the filters at all. Class is
-				-- all this path has -- a genuinely tokenless entry can never be
-				-- level- or death-checked, which is the price of having no
-				-- unit rather than something left out.
+				-- Resolved per person, through the same filters as the main
+				-- path. Class is all this path has; a tokenless entry can never
+				-- be level- or death-checked.
 				local hasMana
 				if entry.class then hasMana = MANA_CLASSES[entry.class] == true end
 
@@ -2602,54 +2468,23 @@ function ns.BuildQueue()
 				tokenless.name = full
 				local buff = ns.PickBuffFor(candidates, tokenless, NoReading)
 
-				-- One buff per favour: the per-buff block rejects the whole
-				-- entry rather than moving the walk along, because nothing here
-				-- can verify that the first one ever landed.
-				--
-				-- selfCast stays excluded, and now for a sharper reason than
-				-- when it was written. The settle path judges a selfCast click
-				-- on "our spell went out" and on whether the main path measured
-				-- the person inside the shout's reach when it was pressed --
-				-- being seen through a unit token was once taken for that on
-				-- its own, and it is not: a raider in another subgroup, or a
-				-- party member sixty yards off, has a token too. Here there is
-				-- no token and nothing to measure, so the press would mark the
-				-- debt repaid to somebody who may be a zone away and heard none
-				-- of it. The main path's exclusion was the one that had to go;
-				-- this one had to stay.
+				-- One buff per favour: nothing here can verify the first landed.
+				-- selfCast is excluded: a shout is judged repaid on whether the
+				-- press measured them inside its reach, and with no token here
+				-- there is nothing to measure -- they may be a zone away.
 				if buff and not buff.selfCast and not ns.IsBlocked(full, buff.key, now) then
 					queue[#queue + 1] = {
 						name = full,
 						short = ShortName(full),
-						-- From the key, because this path has no unit token to
-						-- ask -- which is the reason ns.TargetName takes a name
-						-- rather than a unit.
+						-- From the key, since this path has no unit to ask.
 						targetName = ns.TargetName(full),
 						class = entry.class,
 						buff = buff,
 						reason = "owed",
 						priority = PRIORITY.owed,
-						-- ranged and known are nil here, and left unwritten
-						-- rather than written as nil: a constructor sizes the
-						-- table for every field it names, nil or not, and ten
-						-- names make a table twice the size of eight -- for
-						-- every favour outstanding, on every scan.
-
-						-- Left out entirely, which read as false -- and false
-						-- here means one specific thing: "we chose not to look,
-						-- and you are the one who chose". So the tooltip told
-						-- somebody whose options say to check that the addon
-						-- was not checking, on their instruction. Nothing was
-						-- checked on this path, but not for that reason: there
-						-- is no unit token to read, which is the client's
-						-- doing and not theirs. That is `checked` with a `known`
-						-- of nil, and the tooltip already has the honest line
-						-- for it.
-						--
-						-- The user's own answer is still the one that decides
-						-- it, exactly as on the main path: somebody who has
-						-- turned checking off is being told the truth by the
-						-- other branch.
+						-- ranged and known are left unwritten: a constructor sizes
+						-- the table for every field it names. No token means nothing
+						-- read, the client's doing, so `checked` follows the setting.
 						checked = (f.whenBuffed or "skip") ~= "always",
 					}
 				end
@@ -2662,15 +2497,9 @@ function ns.BuildQueue()
 		local ar = a.ranged == true and 0 or (a.ranged == nil and 1 or 2)
 		local br = b.ranged == true and 0 or (b.ranged == nil and 1 or 2)
 		if ar ~= br then return ar < br end
-		-- Inside a kind of offer, never across one: a friend passing by comes
-		-- ahead of the other passers-by and behind your group, and a guildmate
-		-- in your group ahead of the rest of it. Only set with Who comes first
-		-- switched on, so with it off this is a tie and nothing moves.
-		--
-		-- Below the range key, not above it. With "Hide players known to be out
-		-- of range" off, a friend the client says is out of reach is still
-		-- queued, and putting them first led the prompt with a cast that fails
-		-- over somebody it would land on.
+		-- Friends first inside a kind of offer, never across one, and below the
+		-- range key: a friend out of reach must not lead with a cast that fails
+		-- (STATUS.md). With Who comes first off this is always a tie.
 		if (a.close ~= nil) ~= (b.close ~= nil) then return a.close ~= nil end
 		return (a.name or "") < (b.name or "")
 	end)
@@ -2681,72 +2510,35 @@ end
 ---------------------------------------------------------------------------
 -- people who ask for a buff
 --
--- "int pls", "fort?", "can I get motw", "buffs please" -- said in /say or
--- /yell near you, in your party, raid or instance group, or whispered. A
--- message that asks for a buff this character casts puts whoever said it on
--- the prompt, reading "asked for it", for a minute. Nothing is ever said back.
+-- "int pls", "fort?", "can I get motw", "buffs please" -- said in /say, /yell,
+-- your group's chat or a whisper -- put whoever said it on the prompt, reading
+-- "asked for it", for a minute. Nothing is ever said back. The rules are kept
+-- simple enough to say on the options page, and err towards silence:
 --
--- What counts as asking is kept deliberately simple, so that it can be said in
--- a sentence on the options page and so that it errs towards silence. A message
--- asks for one of your buffs when all of these hold:
+--   * eight words at most; anything longer is a conversation.
+--   * it names the buff in whole words, by a name players use (ASK_NAMES) or
+--     the spell's own name on this client, which covers other languages.
+--     "buff" or "buffs" names every buff you have.
+--   * nothing in it says no.
+--   * it reads as a request: a please or "need" anywhere, an opener (can, any,
+--     anyone...), or nothing but the name and filler ("int me"). A buff's name
+--     (not a looser word, not "buff") is also asked for by a closing question
+--     mark, unless the message opens as a question about it ("who has int?").
 --
---   * it is short: eight words at most. Anything longer is a conversation that
---     happens to mention a buff.
---   * it names the buff in whole words -- "int" is Arcane Intellect, "intro" is
---     not -- by one of the names players use for it below, or by the spell's
---     own name as this client spells it, which is how a German or a Korean
---     client is covered. "buff" or "buffs" names every buff you have.
---   * nothing in it says no: no, not, don't, stop.
---   * it reads as a request: a please (pls, plz, bitte...) or "need" anywhere,
---     or it opens with can, could, may, any, anyone, someone or got, or it is
---     nothing but the buff's name and a word or two like "me" or "mage". A
---     buff's name -- not the looser words below, and not "buff" -- is also
---     asked for by a question mark at the end, unless the message opens like a
---     question about it ("is int worth it?", "who has int?").
+-- A one-word nickname and "buff" are everyday words too ("int" is an
+-- interrupt), so beside one every other word must be a small one. The looser
+-- words (might, mark, shout...) need a please or to stand alone, and never
+-- count in group chat, where "mark pls" is about raid markers.
 --
--- A one-word nickname -- int, ai, fort, stam, bok -- and "buff" itself are
--- also everyday words: "int" is an interrupt, "ai" is Portuguese for "there",
--- "need int ring" is loot and "rogues need a buff" is class talk. So beside
--- one of those, every other word has to be a small one: a please, an opener,
--- "me", "mage", "get", "can", "you". "int pls" and "can I get int" ask; "int
--- the healer pls" and "any int plate drop?" do not. A buff's full name, or the
--- spell's own name, is plain enough to be asked for in a longer sentence.
+-- Chat text and senders can be secret values on this client; a secret is
+-- never compared, matched or kept, so an unreadable message is no request.
 --
--- The looser words are the ones English uses for other things -- might, mark,
--- wisdom, spirit, shadow, shout. "might be lag?" asks for nothing, so those
--- need a please or to stand alone, with nothing but small words beside them,
--- and never count in party, raid or instance chat at all, where "mark pls" is
--- a call for raid markers and "shout" is a pull.
+-- A request names a person, not a unit: the queue matches it against every
+-- unit it walks, and there is no tokenless fallback (a whisper, unlike a
+-- favour, is no evidence of range). It is offered only while they lack it.
 --
--- Nor does anybody of your own class ask: they cast it themselves, and "anyone
--- need int?" from another mage is an offer, not a request.
---
--- Chat text and senders can be secret values on this client. A secret is
--- never compared, matched or kept: a message whose text or sender cannot be
--- read is not a request. Nor is anything you said yourself.
---
--- A request names a person, not a unit, so nothing is resolved when it
--- arrives. It waits, and the queue asks about it for every unit it walks --
--- your target, focus, mouseover, your group and the nameplates around you. So
--- somebody whispering from across the zone is offered only if they turn up
--- before the minute is out, and never by name alone: there is no tokenless
--- fallback for a request, as there is for a favour, because a favour is
--- evidence they were in range and a whisper is not.
---
--- Somebody who asked is offered what they asked for only while they lack it,
--- as anybody else is: when another mage answers first, or you cast it by hand,
--- they drop off the prompt on the next scan.
---
--- Fights. What people say in one is tactics -- "int pls" there is an
--- interrupt -- so a message heard in a fight is not a request, unless it was
--- whispered. A request standing when a fight starts, and a whisper made in
--- one, cannot be offered during it, so each is held until it is over and then
--- has its minute -- once. A request already held through one fight is not
--- held through the next, so pulls chained back to back never keep it alive.
---
--- Everything here sits inside one do-block and hangs its entry points off ns.
--- This file's main chunk is close to the two hundred locals Lua 5.1 allows one
--- function, and a block's locals are released at its end.
+-- The section sits in one do-block, hanging its entry points off ns, because
+-- the main chunk is close to the 200 locals Lua 5.1 allows a function.
 ---------------------------------------------------------------------------
 
 do
@@ -2757,12 +2549,9 @@ do
 	local ASK_MOST_WORDS = 8
 
 	-- The names players type for each buff, lower case, by the buff's key in
-	-- Buffs.lua. Only the buffs this character knows are ever looked up, so a
-	-- priest reading "int pls" finds nothing. A leading ~ marks a word English
-	-- uses for other things, which needs a please or to stand alone, and never
-	-- counts in group chat. A name of one word is a nickname, which only small
-	-- words may stand beside. Spaces separate the words of a name; "pw f" is how
-	-- "pw:f" reads once punctuation is gone.
+	-- Buffs.lua; only the buffs this character knows are looked up. A leading ~
+	-- marks a looser word; a one-word name is a nickname. "pw f" is how "pw:f"
+	-- reads once punctuation is gone.
 	local ASK_NAMES = {
 		intellect = { "int", "intellect", "ai", "arcane intellect", "brilliance",
 			"arcane brilliance" },
@@ -2796,9 +2585,8 @@ do
 		return out
 	end
 
-	-- The small words the rules above are made of, one table so this block
-	-- spends one local on them rather than six. Apostrophes are dropped before
-	-- anything is looked up, so "don't" is "dont".
+	-- The small words the rules are made of, in one table to spend one local.
+	-- Apostrophes are dropped before any lookup, so "don't" is "dont".
 	local ASK = {
 		-- Any of every buff you cast.
 		generic = Set({ "buff", "buffs" }),
@@ -2821,10 +2609,8 @@ do
 		filler = Set({ "me", "us", "i", "a", "an", "the", "some", "for", "to",
 			"mage", "mages", "priest", "priests", "druid", "druids", "paladin",
 			"paladins", "pala", "pally", "pallys", "warrior", "warlock", "lock" }),
-		-- What else may stand beside a nickname or "buff", on top of the filler,
-		-- the pleases and the openers: "can I get int", "can you buff me",
-		-- "int pls ty". Not filler itself, because "have int" or "thanks for the
-		-- int" on their own ask for nothing.
+		-- What else may stand beside a nickname or "buff": "can I get int",
+		-- "int pls ty". Not filler, since "thanks for the int" asks for nothing.
 		aside = Set({ "get", "have", "give", "can", "you", "u", "ty", "thx", "thanks",
 			"again", "too", "also" }),
 		-- Where the looser words are tactics, not buffs: raid markers, a shout
@@ -2851,15 +2637,12 @@ do
 	ns.askScan = { heard = 0, unreadable = 0, own = 0, fight = 0, noted = 0 }
 
 	-- A message as words, lower case, with the chat frame's escapes out of the
-	-- way. A spell linked into chat arrives as |Hspell:...|h[Arcane Intellect]|h,
-	-- and the bracketed name is what is kept. Letters, digits and every byte of
-	-- a multibyte character count as a word; everything else separates words.
+	-- way (a linked spell keeps its bracketed name). Letters, digits and every
+	-- byte of a multibyte character make words; everything else separates them.
 	--
 	-- A to Z spelled out rather than %w and string.lower, which follow the C
-	-- locale: under a Western one they take the lead byte of a Cyrillic or
-	-- Chinese character for an accented Latin letter, and lower-casing it
-	-- breaks the character in two. Other scripts are compared by SameWord, and
-	-- looked up in the word lists by Among.
+	-- locale and can split a Cyrillic or Chinese character in two. Other
+	-- scripts are compared by SameWord and looked up by Among.
 	local function Words(text)
 		text = text:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
 			:gsub("|H.-|h(.-)|h", "%1"):gsub("|T.-|t", ""):gsub("[A-Z]", string.lower)
@@ -2883,11 +2666,9 @@ do
 		return ok and cmp == 0
 	end
 
-	-- Whether `word` is one of `set`. A plain lookup, except for a word in
-	-- another script, which Words left in whatever case it was typed: "Не" at
-	-- the start of a Russian sentence is still "не", and "Пожалуйста" is still
-	-- a please. Only chat events come here, so walking a list of forty words
-	-- for the odd Cyrillic one costs nothing that matters.
+	-- Whether `word` is one of `set`: a plain lookup, except that a word in
+	-- another script, left in its typed case, is compared caselessly ("Не" is
+	-- "не"). Only chat events come here, so the walk costs nothing that matters.
 	local function Among(set, word)
 		if set[word] then return true end
 		if not word:find("[\128-\255]") then return false end
@@ -2930,10 +2711,9 @@ do
 				strength = "strict"
 			elseif #ownWords == 1 and not ownWords[1]:find("[A-Za-z0-9]") and #ownWords[1] >= 6
 				and lowered:find(ownWords[1], 1, true) then
-				-- A name with no Latin letters and no spaces in it, which is to
-				-- say Chinese: the message has no spaces either, so the name is
-				-- inside a longer "word" and can only be found by looking for it.
-				-- Two characters at least, so it is a name and not a syllable.
+				-- A Chinese name: the message has no spaces either, so the name
+				-- is found inside a longer "word". Two characters at least, so it
+				-- is a name and not a syllable.
 				strength = "strict"
 			end
 		end
@@ -2948,10 +2728,9 @@ do
 		return strength
 	end
 
-	-- The buffs a message asks for, as a set of keys -- ASK.ANY for "buff pls"
-	-- -- or nil for a message that asks for nothing of yours. The rules are the
-	-- ones at the top of this section, in the same order. `channel` is where it
-	-- was said, which decides whether the looser words count at all.
+	-- The buffs a message asks for, as a set of keys (ASK.ANY for "buff pls"),
+	-- or nil: the rules at the top of this section, in order. `channel` decides
+	-- whether the looser words count at all.
 	local function Asks(text, channel)
 		local words, lowered = Words(text)
 		if #words == 0 or #words > ASK_MOST_WORDS then return nil end
@@ -3015,11 +2794,10 @@ do
 		return keys
 	end
 
-	-- Whether a message is your own: true, false, or nil for could not tell --
-	-- which is treated as yours, so a message is never taken for somebody
-	-- else's on a guess. The GUID decides where both are readable; the name
-	-- only where it is not, and then only the whole of it, so another Mort on
-	-- a client with surnames is not taken for you.
+	-- Whether a message is your own: true, false, or nil for could not tell,
+	-- which callers treat as yours. The GUID decides where both are readable;
+	-- otherwise the whole name, so another Mort on a client with surnames is
+	-- not taken for you.
 	local function Mine(sender, guid)
 		local me = plain(UnitGUID("player"))
 		if guid and type(me) == "string" then return guid == me end
@@ -3039,10 +2817,9 @@ do
 		end
 	end
 
-	-- Whether a request was made by the person behind this unit. The GUID where
-	-- both sides have one; the name where either does not, against the name
-	-- they are filed under and against its first word, because a chat sender
-	-- on the client with surnames may be either.
+	-- Whether a request was made by the person behind this unit: the GUID
+	-- where both sides have one, else the name or its first word, since a chat
+	-- sender on the client with surnames may be either.
 	local function Made(request, guid, short, first)
 		if request.guid and guid then return request.guid == guid end
 		if SameName(request.short, short) then return true end
@@ -3069,10 +2846,8 @@ do
 		end
 		local keys = Asks(text, channel)
 		if not keys then return end
-		-- Said in a fight, where "int pls" is an interrupt and "can someone
-		-- int?" is who takes the caster. A buff asked for in one is asked for
-		-- again after it. A whisper is the exception: nobody whispers a call to
-		-- interrupt, so one made in a fight is held until the fight is over.
+		-- In a fight "int pls" is an interrupt, so only a whisper counts, and
+		-- it is held until the fight is over.
 		local fighting = InCombatLockdown() and true or nil
 		if fighting and channel ~= "WHISPER" then
 			ns.askScan.fight = ns.askScan.fight + 1
@@ -3098,15 +2873,9 @@ do
 	end
 
 	-- What the person behind `unit`, filed as `full`, asked for, as the part
-	-- of `candidates` -- the queue's castable list -- that answers it, or nil.
-	--
-	-- A pin still means only ever that one spell: somebody asking for Kings
-	-- from a paladin pinned to Might has asked for nothing this paladin will
-	-- offer, and is ranked as whatever else they are.
-	--
-	-- Nobody of your own class has asked: they cast it themselves, so their
-	-- "anyone need int?" is the same offer you would make. A class that cannot
-	-- be read is not taken for yours.
+	-- of `candidates` (the queue's castable list) that answers it, or nil. A
+	-- pin still means only that one spell. Nobody of your own class has asked;
+	-- a class that cannot be read is not taken for yours.
 	function ns.AskedFor(unit, full, now, candidates)
 		if #requests == 0 then return nil end
 		local db = addon.db and addon.db.profile
@@ -3147,11 +2916,9 @@ do
 		end
 	end
 
-	-- The two ends of a fight. Every request standing when one starts is held
-	-- through it, and when it ends each held one gets its minute from then --
-	-- once. One already given a minute after a fight runs out in the next like
-	-- anything else, or pulls chained less than a minute apart would keep a
-	-- single "int pls" standing for the whole dungeon.
+	-- The two ends of a fight: requests standing at the start are held through
+	-- it and get their minute from its end -- once, or chained pulls would keep
+	-- one "int pls" standing for the whole dungeon.
 	function ns.HoldRequestsForFight()
 		local now = GetTime()
 		for _, request in ipairs(requests) do
@@ -3209,10 +2976,9 @@ do
 	end
 end
 
--- The channels a request can arrive in. Every one of them is registered on this
--- client by addons known to work on it (EnhanceQoL's chat and ignore modules),
--- and each hands over the text, the sender and, twelfth, the sender's GUID.
--- CHAT_MSG_WHISPER is only ever a whisper to you; your own go out as
+-- The channels a request can arrive in, each registered on this client by
+-- addons known to work on it (EnhanceQoL). Each hands over the text, the
+-- sender and, twelfth, the sender's GUID. Your own whispers arrive as
 -- WHISPER_INFORM, which is not listened to.
 function addon:CHAT_MSG_SAY(_, text, sender, ...)
 	ns.Guard("request", ns.NoteRequest, "SAY", text, sender, (select(10, ...)))
@@ -3245,815 +3011,534 @@ function addon:CHAT_MSG_WHISPER(_, text, sender, ...)
 end
 
 ---------------------------------------------------------------------------
--- events
----------------------------------------------------------------------------
-
-
----------------------------------------------------------------------------
 -- noticing that somebody buffed you
 --
 -- WoW Forever does not give addons the combat log: COMBAT_LOG_EVENT_UNFILTERED
--- never fires here, which is why the Camelot damage meter uses C_DamageMeter
--- instead. So a favour is spotted the other way round -- by watching your own
--- buffs appear and reading who cast each one.
---
--- aura.sourceUnit is a unit token, so it only resolves for somebody the client
--- currently has a token for. A stranger with no nameplate shows up as nil and
--- cannot be identified at all; that is a hard limit, not an oversight.
+-- never fires here. So a favour is spotted by watching your own buffs appear
+-- and reading who cast each one. aura.sourceUnit only resolves for somebody
+-- the client has a token for; a stranger with no nameplate is nil and cannot
+-- be identified at all, which is a hard limit.
 ---------------------------------------------------------------------------
 
--- What the baseline is holding: instance id -> the spell sitting under that
--- number, or `true` where the spell could not be read.
---
--- The number on its own is not an identity. This file already says instance ids
--- are recycled here, and the prune below deliberately leaves an expired entry
--- in place for a second reading, so there is a whole scan in which a different
--- aura can arrive under a dead number. Keyed on the number alone it was matched
--- against the corpse and the favour was never seen.
-local knownAuras = {}
--- When each filed cast was due to end, where the client would say so. Read in
--- exactly one place -- IsNew -- and for exactly one question; see the comment
--- there, because it is the only thing that separates two readings that are
--- otherwise identical.
-local knownUntil = {}
-local auraScanPrimed = false
--- What the last scan of your own buffs made of itself, for /manners debug. The
--- gate in ScanOwnBuffs can switch this whole source off without a word -- no
--- error, no print, just a prompt that never mentions anybody again -- and a
--- silent stop is the one failure this addon has no way to notice on its own.
--- One reused table: this runs on every UNIT_AURA.
---
--- It starts doubted on purpose. "0 read, baseline 0" is exactly what a healthy
--- quiet session prints, so handing that to somebody asking why the prompt never
--- mentions anybody is the reassuring answer to the one question this line
--- exists to ask -- and it was what a scanner that had never run once printed.
-ns.auraScan = { read = 0, held = 0, doubt = "never scanned", primed = false }
--- Reused rather than rebuilt: this runs on every UNIT_AURA for the player, and
--- a fresh forty-slot table per event is pure churn. Wiped at the top of the
--- scan, never at the bottom, so a re-entrant call -- NoteFavour prints, and
--- another addon can hook chat -- sees a clean table rather than a half-built one.
-local present = {}
--- ...and when each of them was due to end, alongside it rather than inside it
--- so neither table has to allocate a record per slot.
-local presentUntil = {}
--- What the scan before this one read, and whether there was one at all. Nothing
--- in the baseline moves on a single reading; see ScanOwnBuffs for why.
-local lastPresent = {}
-local haveLastScan = false
-
--- Who cast each aura that has been read but not yet filed, resolved at the
--- moment the slot was read.
---
--- aura.sourceUnit is a unit token, and nameplate tokens are recycled: the token
--- that meant one player when the buff landed can mean a different one a scan
--- later. So the caster is not a question that can be asked late. A scan that
--- throws itself away for doubting its own reading hands the aura to the next
--- scan to notice it, and that scan asks the client who "nameplate3" is now --
--- which is how the debt, the chat line, the amber prompt and the /say the click
--- speaks could all be filed against somebody standing nearby who did nothing.
--- The /say is the one output of this addon another human reads.
---
--- Keyed by instance id and holding the identity it was read under, so a
--- recycled number cannot inherit the previous aura's caster either.
-local sighted = {}
-
--- Settling a baseline takes two readings that agree, and the second one used to
--- be whatever UNIT_AURA the client happened to send next. On a character
--- standing still that is minutes away, and everything landing in between is
--- filed as something the player was already carrying. The length of that gap is
--- the length of the hole, so the second reading is asked for rather than waited
--- for.
---
--- The interval is the hole. The count bounds what a client that never settles
--- costs: past it the baseline goes back to waiting for an event, which is where
--- it was before this existed. Both are reset by a zone change, which is the only
--- thing that unprimes a baseline.
-local SETTLE_INTERVAL = 0.2
-local SETTLE_TRIES = 20
-local settleTries = 0
-local settlePending = false
-
-local function ScheduleSettle()
-	if settlePending or settleTries >= SETTLE_TRIES then return end
-	if not (C_Timer and C_Timer.After) then return end
-	settleTries = settleTries + 1
-	settlePending = true
-	C_Timer.After(SETTLE_INTERVAL, function()
-		settlePending = false
-		-- Guarded: a scan that throws inside a timer callback takes nothing
-		-- with it that anybody would ever see, and the baseline would then sit
-		-- unsettled for the rest of the session without a word.
-		ns.Guard("settle aura baseline", ns.ScanOwnBuffs)
-	end)
-end
-
--- A loading screen can hand back an aura list that is not readable yet. A
--- baseline taken from that is an empty baseline, and everything already on
--- you then arrives looking like a favour.
---
--- The previous reading is dropped with it. It was taken before the zone
--- renumbered every instance id, so a scan agreeing with it would be agreeing
--- about nothing. The sightings go for the same reason twice over: the numbers
--- they are filed under mean nothing now, and neither do the unit tokens they
--- were read from.
-function ns.ResetAuraBaseline()
-	wipe(knownAuras)
-	wipe(knownUntil)
-	wipe(lastPresent)
-	wipe(sighted)
-	haveLastScan = false
-	auraScanPrimed = false
-	settleTries = 0
-end
-
--- Read the caster off a slot at the moment the slot is read, and keep it under
--- the aura it belongs to.
---
--- The class is captured with the name because neither can be recovered later:
--- the whole point of this record is the person who walked off without leaving a
--- unit token behind, and the fallback queue has to decide what to offer them.
---
--- A sighting with nobody in it is still a sighting, and that is the point. It
--- records that this aura was looked at and no name could be read off it, so a
--- later scan does not go back to the token and take whoever is behind it by
--- then. An aura whose caster could not be read is nobody's favour: a nameless
--- favour is not better than none, and a favour spoken at the wrong player is
--- considerably worse.
-local function Sight(instanceId, key, aura)
-	local seen = sighted[instanceId]
-	-- A different aura under the same number is a different sighting.
-	if seen and seen.key == key then return end
-
-	seen = { key = key }
-	sighted[instanceId] = seen
-
-	local source = plain(aura.sourceUnit)
-	if not source or source == "player" then return end
-	if plain(UnitIsUnit(source, "player")) then return end
-	if plain(UnitIsPlayer(source)) ~= true then return end
-
-	local full = ns.UnitFullName(source)
-	if not full then return end
-
-	seen.name = full
-	seen.guid = plain(UnitGUID(source))
-	seen.class = plain(select(2, UnitClass(source)))
-	-- Asked of the token while it still means them, for the same reason as the
-	-- name: what NoteFavour promises depends on whether a shout reaches them and
-	-- whether a mana buff is any use to them, and by then the token may be
-	-- somebody else's.
-	seen.sameParty = SameParty(source)
-	seen.hasMana = UnitHasMana(source)
-end
-
--- What the queue would offer somebody -- nil for nothing -- asked with nothing
--- but what NoteFavour knows about them: whether they have mana, and whether a
--- shout reaches them. Everything else is set the way the queue sets it for a
--- debt, so this and the queue cannot disagree about whether a favour can be
--- returned: offered even when covered, no rotation, no aura reading.
-function ns.CouldOffer(hasMana, inParty)
-	local db = addon.db and addon.db.profile
-	if not db then return nil end
-	return ns.PickBuffFor(ns.CastableBuffs(), {
-		hasMana = hasMana,
-		inGroup = inParty,
-		inParty = inParty,
-		relevantOnly = db.filters.relevantOnly,
-		whenBuffed = "always",
-		offerAnyway = true,
-		rotate = false,
-	}, NoReading)
-end
-
--- One favour, filed against the person who was holding the token when the aura
--- was read. `seen` comes from Sight and nothing is re-derived from the aura
--- here: by now the token may mean somebody else.
-local function NoteFavour(seen)
-	local db = addon.db and addon.db.profile
-	if not db then return end
-
-	-- The prompt is the only thing that ever pays a favour back, and with this
-	-- source switched off nothing written here can reach it: BuildQueue's owed
-	-- lookup and the grace-window fallback are both gated on the same setting.
-	-- The scan asks the same question before it reads a caster at all, so this
-	-- is the second gate on one decision rather than the only one: it stays
-	-- because the setting can be switched off between the sighting and here.
-	--
-	-- A switched-off addon is the same lie told louder: Refresh hides the
-	-- button and clears the target, so there is no prompt at all -- and this
-	-- still wrote the debt to SavedVariables and said out loud that returning
-	-- the favour was on it.
-	if not db.enabled or not db.sources.owed then return end
-
-	-- And a character with nothing it can offer anybody is the same lie again:
-	-- no prompt will ever offer this person anything, and it was written to
-	-- disk and announced as "on the prompt" all the same -- a rogue, a class
-	-- that has not learned its buff yet. Asked the way the queue asks it, not
-	-- as "knows some spell": every spell switched off, or a pin on one not
-	-- learned, leaves the queue with nothing for anybody while the character
-	-- knows plenty.
-	if #ns.CastableBuffs() == 0 then return end
-	local pinned = ns.PinnedBuff()
-	if pinned and not ns.IsBuffKnown(pinned) then return end
-
-	-- Then the same question about this person. Neither half can be asked of a
-	-- token now -- see Sight -- so it is what was read off one when the aura
-	-- was, and for the combat log, which never had a token, the class and the
-	-- name.
-	local hasMana = seen.hasMana
-	if hasMana == nil and seen.class then hasMana = MANA_CLASSES[seen.class] == true end
-	local inParty = seen.sameParty
-	if inParty == nil then inParty = SameParty(seen.name) end
-
-	-- Nothing we cast is any use to them, and the queue will say so on every
-	-- scan for as long as the debt lasts: a warrior's shout, to a mage whose
-	-- only buff is intellect. Recording that was a pulsing prompt the queue
-	-- could never fill and a line promising it would.
-	if not ns.CouldOffer(hasMana, true) then
-		-- A favour all the same, and let go in the moment it arrived.
-		TellLedger("Received", seen, true)
-		if db.verbose then
-			-- The option's name comes in through its own key, the same one the
-			-- options page shows, so a translated line always quotes the
-			-- checkbox the player can actually find.
-			addon:Print(L["|cff80ff80%s buffed you|r -- nothing you cast is any use to them (\"%s\" is on)"]:format(seen.name, L["Skip players the buff does nothing for"]))
-		end
-		return
-	end
-
-	owed[seen.name] = { expires = GetTime() + db.timing.reciprocateWindow, at = GetTime(),
-		guid = seen.guid, class = seen.class }
-	-- Whether only a buff that reaches your own party could return it, asked
-	-- as if they were outside it: a question about their class and yours, not
-	-- about where they stand now, so the ledger's row stays true after they
-	-- join or leave.
-	TellLedger("Received", seen, nil, ns.CouldOffer(hasMana, false) == nil)
-	if db.verbose then
-		-- A warrior's shout reaches the party and nobody else, so a stranger who
-		-- buffed one is kept -- they may yet join the group -- but is not on the
-		-- prompt, and the line says which. In a raid "the party" is the
-		-- warrior's own subgroup, which is why this asks SameParty and not
-		-- whether they are in the raid at all.
-		--
-		-- And the line names the subgroup where that is the limit. A raider
-		-- from another subgroup is in the group already, and "offered if they
-		-- join it" gave the player nothing to act on.
-		local reachable = ns.CouldOffer(hasMana, inParty) ~= nil
-		-- "On the prompt" only when a prompt can show it. A snooze runs for up
-		-- to half an hour and the favour is kept for two minutes by default,
-		-- and Not while mounted keeps the prompt away for as long as the
-		-- mount lasts, so in both the line promised something that usually
-		-- never happened.
-		local snoozeEnds = reachable and ns.SnoozeLeft() and ns.SnoozeEndsAt()
-		if snoozeEnds then
-			addon:Print(L["|cff80ff80%s buffed you|r -- the prompt is snoozed until %s, so returning it is offered only if the snooze ends before the favour runs out"]
-				:format(seen.name, snoozeEnds))
-		elseif reachable and not db.prompt.locked then
-			-- An unlocked prompt is on screen to be dragged and arms nobody, so
-			-- the favour waits for the lock. Ahead of the mount, since locking
-			-- is the step the player has to take; getting off a mount happens
-			-- on its own.
-			addon:Print(L["|cff80ff80%s buffed you|r -- returning the favour is on the prompt once you lock it"]
-				:format(seen.name))
-		elseif reachable and ns.HiddenWhileMounted() then
-			addon:Print(L["|cff80ff80%s buffed you|r -- returning the favour is on the prompt once you get off your mount"]
-				:format(seen.name))
-		else
-			addon:Print((reachable
-				and L["|cff80ff80%s buffed you|r -- returning the favour is on the prompt"]
-				or ns.PARTY_IS_SUBGROUP and L["|cff80ff80%s buffed you|r -- what you cast reaches only your own party -- in a raid, your own subgroup -- so they are offered if they join it"]
-				or L["|cff80ff80%s buffed you|r -- what you cast reaches your group only, so they are offered if they join it"]):format(seen.name))
-		end
-	end
-	-- Written through rather than left to the logout hook: a favour is rare
-	-- enough to afford it, and correctness then does not depend on a callback
-	-- firing at all.
-	SaveDebts()
-end
-
--- Whether the combat log is actually running as a second favour source.
---
--- Not the same question as caps.combatLog, which is what this client is believed
--- to allow. This is what happened when it was asked, and the two come apart on a
--- client nobody here has ever started. Everything that behaves differently for
--- having two sources reads this one.
+-- Whether the combat log is actually running as a second favour source: what
+-- happened when it was asked, not caps.combatLog's belief about the client.
+-- Set by OnEnable, so it lives outside the block below.
 local combatLogArmed = false
 
--- One buff landing, seen by two sources that cannot see each other.
---
--- The aura scan's own guard against announcing the same aura twice is `filed` on
--- the sighting, keyed by instance id -- and a combat log line has no instance id
--- to key anything on. So the two sources agree on the only thing both of them
--- know: who cast it, and what.
---
--- A mark is claimed by whichever source gets there first and CONSUMED by the
--- other, rather than left standing until it times out. That is the whole reason
--- this is not a suppression window: once the second source has taken the mark
--- away, a genuine recast by the same person -- which really is a second favour
--- -- finds nothing and is announced. A window would have swallowed it.
---
--- The lifetime is only for the mark nobody comes to consume, and that is the
--- ordinary case rather than the exception: the log's whole reason for existing
--- is the stranger with no nameplate, and the aura scan can never see that person
--- at all. Ten seconds is far longer than the gap between a landing and the scan
--- that reads it, and far shorter than any interval a person recasts an hour-long
--- buff over.
--- How long after one source reports a favour the other one may still be
--- reporting the SAME landing.
---
--- It is not a "remember this person" window. A mark the second source never
--- consumes -- which is the normal case for the stranger with no unit token,
--- the one the combat log was added for -- sits here until it expires, and for
--- that whole time a genuine re-buff from the same person reads as the
--- duplicate and is dropped. So the window has to be long enough to cover the
--- slowest honest disagreement between the two sources and no longer.
---
--- The aura scan is the slow one: when its baseline is unsettled it defers a
--- landing by up to SETTLE_INTERVAL * SETTLE_TRIES. This is that, plus a tick.
--- It was ten seconds, which is more than twice the worst case and swallowed
--- real recasts to buy nothing.
-local NOTE_MEMORY = (SETTLE_INTERVAL * SETTLE_TRIES) + 1
-local notedFavours = {}
+-- Everything else in this section and the next is private to the block below,
+-- for the same Lua 5.1 local limit as the friends section's.
+do
+	-- What the baseline holds: instance id -> the spell under that number, or
+	-- `true` where the spell could not be read. Instance ids are recycled here, so
+	-- the number alone is not an identity.
+	local knownAuras = {}
+	-- When each filed cast was due to end, where the client says so. Read only by
+	-- IsNew; see there.
+	local knownUntil = {}
+	local auraScanPrimed = false
+	-- What the last scan of your own buffs made of itself, for /manners debug:
+	-- the gate in ScanOwnBuffs can switch this source off without a word, and a
+	-- silent stop is the one failure the addon cannot notice on its own. It
+	-- starts doubted, because "0 read, baseline 0" is also what a quiet healthy
+	-- session prints.
+	ns.auraScan = { read = 0, held = 0, doubt = "never scanned", primed = false }
+	-- Reused on every UNIT_AURA rather than rebuilt. Wiped at the top of the scan,
+	-- never at the bottom, so a re-entrant call (NoteFavour prints, and another
+	-- addon can hook chat) sees a clean table rather than a half-built one.
+	local present = {}
+	-- ...and when each was due to end, beside it so no record is allocated per slot.
+	local presentUntil = {}
+	-- What the scan before this one read, and whether there was one. Nothing in
+	-- the baseline moves on a single reading; see ScanOwnBuffs.
+	local lastPresent = {}
+	local haveLastScan = false
 
-local function ClaimFavour(name, spellKey)
-	-- One source running, so there is nothing to deduplicate and the sighting's
-	-- own `filed` flag is the whole guard. Said as a gate rather than left to
-	-- fall out of the arithmetic: with one source a mark is set and never
-	-- consumed, so it would suppress a genuine recast inside the window -- a
-	-- behaviour change on the one client anybody here can test, for a problem
-	-- that does not exist there.
-	if not combatLogArmed then return true end
-	if type(name) ~= "string" then return true end
+	-- Who cast each aura read but not yet filed, keyed by instance id with the
+	-- identity it was read under. Resolved when the slot is read, because
+	-- nameplate tokens are recycled: asked a scan later, "nameplate3" may be a
+	-- bystander, and the debt, the chat line and the /say would go to them.
+	local sighted = {}
 
-	local now = GetTime()
-	local key = name .. "\0" .. tostring(spellKey)
-	local claimed = notedFavours[key]
+	-- A baseline settles on two readings that agree, and the second is asked for
+	-- on a timer rather than waited for: on a character standing still the next
+	-- UNIT_AURA can be minutes away, and anything landing meanwhile would be filed
+	-- as already carried. The count bounds what a client that never settles
+	-- costs. Both reset on a zone change, the only thing that unprimes a baseline.
+	local SETTLE_INTERVAL = 0.2
+	local SETTLE_TRIES = 20
+	local settleTries = 0
+	local settlePending = false
 
-	-- Swept from here rather than on a timer of its own: there is one entry per
-	-- favour and a favour is rare, so the walk costs nothing where it happens
-	-- and there is no second clock to keep in step with this one. Read above the
-	-- sweep, so an entry this call is about to judge cannot be swept out from
-	-- under it.
-	for k, at in pairs(notedFavours) do
-		if now - at > NOTE_MEMORY then notedFavours[k] = nil end
+	local function ScheduleSettle()
+		if settlePending or settleTries >= SETTLE_TRIES then return end
+		if not (C_Timer and C_Timer.After) then return end
+		settleTries = settleTries + 1
+		settlePending = true
+		C_Timer.After(SETTLE_INTERVAL, function()
+			settlePending = false
+			-- Guarded: a throw inside a timer callback would leave the baseline
+			-- unsettled for the session without a word.
+			ns.Guard("settle aura baseline", ns.ScanOwnBuffs)
+		end)
 	end
 
-	if claimed and now - claimed <= NOTE_MEMORY then
-		notedFavours[key] = nil
-		return false
-	end
-	notedFavours[key] = now
-	return true
-end
-
--- One slot of your own aura list: the aura, and whether the client can be shown
--- to have refused this slot.
---
--- Three different answers arrive as nothing -- the slot is empty, the client
--- withheld it, and the call threw. Two of those are a refusal, and only two of
--- them say so: a throw is a refusal outright, and so is a value we are not
--- allowed to look at. A plain nil says nothing at all. It is what an empty slot
--- looks like, and it is also what a refusal looks like on a client that refuses
--- that way, and nothing in this addon can tell those two apart from one slot.
---
--- So this reports proof of a refusal and never claims the opposite: the second
--- return is "the client said no", not "the client answered honestly". Which
--- shape this client actually uses has never been established, so the scan below
--- reads the walk as a whole rather than resting on any one slot's silence.
-local function ReadAuraSlot(index)
-	local ok, value = pcall(C_UnitAuras.GetAuraDataByIndex, "player", index, "HELPFUL")
-	if not ok then return nil, true end
-	-- The end of the list, a gap in it, or a refusal wearing either's clothes.
-	if value == nil then return nil, false end
-	local aura = plain(value)
-	if type(aura) ~= "table" then return nil, true end
-	return aura, false
-end
-
--- Do two readings of the aura list name the same auras? Membership both ways
--- rather than a count: two scans can read the same number of slots and still
--- not be reading the same list. The spell is compared with the number, so a
--- number handed to a different aura between two readings is a disagreement and
--- not a match.
-local function SameAuraSet(a, b)
-	for id, key in pairs(a) do if b[id] ~= key then return false end end
-	for id, key in pairs(b) do if a[id] ~= key then return false end end
-	return true
-end
-
--- Is the aura in this slot one the baseline has not filed?
---
--- The number cannot answer that on its own, because the number is reused. Two
--- things are carried beside it:
---
---   * the spell. A different spell under a recycled number is a different aura
---     outright, and there is nothing to weigh up.
---   * when the cast we filed was due to end -- consulted only for an entry the
---     previous reading did not show, which is the single scan of grace the
---     prune gives a vanished aura and nothing else.
---
--- That grace scan is the whole difficulty. An aura absent from one reading and
--- back in the next is either a cast that ran out and was replaced under its own
--- number, or one the client declined to report and has now handed back -- and
--- those two readings are identical, slot for slot. Announcing on the shape of
--- the absence is exactly the mistake that invented favours out of a refusal of
--- the trailing slots. The one place the client does tell them apart is the
--- clock: a cast that replaced another ends later than the one it replaced, and
--- a refusal hands back the same aura with the same ending. So that, and nothing
--- else, is asked -- and an ending that is missing or unreadable at either end
--- claims nothing at all and leaves the aura filed.
-local function IsNew(instanceId, key, expires)
-	local known = knownAuras[instanceId]
-	if known == nil or known ~= key then return true end
-	if lastPresent[instanceId] == key then return false end
-	local was = knownUntil[instanceId]
-	return (was ~= nil and expires ~= nil and expires > was) or false
-end
-
-function ns.ScanOwnBuffs()
-	wipe(present)
-	wipe(presentUntil)
-
-	-- What the baseline held a moment ago, counted before anything touches it.
-	-- This is the one thing the scan knows that did not come from the client.
-	local held = 0
-	for _ in pairs(knownAuras) do held = held + 1 end
-
-	local scan = ns.auraScan
-
-	-- No scanner at all: this client does not have the API the whole source is
-	-- built on. Recorded rather than returned from in silence -- the line in
-	-- /manners debug exists for exactly this failure and could not see it,
-	-- because this returned above every write to ns.auraScan and the command
-	-- then printed the same untroubled "0 read, baseline 0" it prints for a
-	-- scanner that is running fine and finding nothing.
-	if not (C_UnitAuras and C_UnitAuras.GetAuraDataByIndex) then
-		scan.read, scan.held, scan.doubt = 0, held, "no aura api"
-		scan.primed = auraScanPrimed
-		return
+	-- A loading screen can hand back an aura list that is not readable yet, and a
+	-- baseline taken from it makes everything already on you look like a favour.
+	-- The previous reading and the sightings go too: the zone renumbered every
+	-- instance id, and the tokens they were read from mean nothing now.
+	function ns.ResetAuraBaseline()
+		wipe(knownAuras)
+		wipe(knownUntil)
+		wipe(lastPresent)
+		wipe(sighted)
+		haveLastScan = false
+		auraScanPrimed = false
+		settleTries = 0
 	end
 
-	-- Read before the walk: whether a new aura is a favour or part of the first
-	-- baseline is a fact about the scans that came before this one, and this
-	-- scan may set the flag itself further down.
-	local primed = auraScanPrimed
+	-- Read the caster off a slot at the moment the slot is read, and keep it with
+	-- the class under the aura: neither can be recovered later, and the fallback
+	-- queue needs the class. A sighting with nobody in it still records that no
+	-- name could be read, so a later scan never takes whoever holds the token by
+	-- then: a favour spoken at the wrong player is worse than none.
+	local function Sight(instanceId, key, aura)
+		local seen = sighted[instanceId]
+		-- A different aura under the same number is a different sighting.
+		if seen and seen.key == key then return end
 
-	local db = addon.db and addon.db.profile
-	-- The class-buff filter is a setting, and was previously hardcoded at the
-	-- announcement -- the toggle read nothing at all.
-	local classOnly = not db or db.sources.owedClassBuffsOnly ~= false
-	-- Whether anything read in this scan could become a favour at all. Nothing
-	-- is announced off an unsettled baseline and nothing is announced with the
-	-- source switched off, so reading a caster in either case is four unit
-	-- lookups per slot, on every UNIT_AURA, for a name nobody will ever use.
-	local watching = primed and db and db.enabled and db.sources.owed and true or false
+		seen = { key = key }
+		sighted[instanceId] = seen
 
-	local read = 0
-	local refused = false  -- a slot said outright that it would not answer
-	local silence = false  -- a slot handed back nothing, with the walk still going
-	local hole = false     -- ...and an aura was found behind it
-	-- The instance ids the baseline has not filed. Judged after the walk,
-	-- because whether this scan may be believed at all is not known until it
-	-- ends. Built fresh each time rather than reused like `present`: it is
-	-- walked after the fact, and NoteFavour prints -- another addon can hook
-	-- chat -- so a re-entrant scan would otherwise wipe it under that walk. The
-	-- allocation only happens on a scan that actually found something new.
-	--
-	-- Numbers rather than the aura tables: everything the announcement needs is
-	-- already filed under the number, in `present` and in `sighted`, and this
-	-- runs on every UNIT_AURA.
-	local fresh
+		local source = plain(aura.sourceUnit)
+		if not source or source == "player" then return end
+		if plain(UnitIsUnit(source, "player")) then return end
+		if plain(UnitIsPlayer(source)) ~= true then return end
 
-	-- Every slot, every time, and no early exit on a run of slots that will not
-	-- read. Stopping was the bug: the end of the list and a hole punched in the
-	-- middle of one look exactly alike from the first silent slot, and stopping
-	-- there picks whichever of them suits it. Walking to the end costs forty
-	-- calls on a UNIT_AURA and buys an aura sitting behind the silence, which
-	-- is the one refusal that shows on the reading itself. It is also why
-	-- `present` is a whole reading rather than a running total: the scan below
-	-- is compared against the one before it slot for slot.
-	for i = 1, 40 do
-		local aura, slotRefused = ReadAuraSlot(i)
-		if slotRefused then refused = true end
-		if not aura then
-			silence = true
-		else
-			-- The list is handed over packed from slot one, so silence with an
-			-- aura behind it was never the end of anything.
-			if silence then hole = true end
-			read = read + 1
+		local full = ns.UnitFullName(source)
+		if not full then return end
 
-			local instanceId = plain(aura.auraInstanceID)
-			if instanceId then
-				-- The spell is read here rather than at the announcement
-				-- because it is half of the aura's identity and not merely a
-				-- filter on it.
-				local spellId = plain(aura.spellId)
-				local key = spellId or true
-				local expires = plain(aura.expirationTime)
-				present[instanceId] = key
-				presentUntil[instanceId] = expires
-				if IsNew(instanceId, key, expires) then
-					fresh = fresh or {}
-					fresh[#fresh + 1] = instanceId
-					-- Who cast it, read now, while the token still means what
-					-- it meant when this slot was read. Only for an aura that
-					-- could ever be announced: everything else is unit lookups
-					-- spent on a name that is thrown away below.
-					if watching and spellId
-						and (not classOnly or ns.ALL_BUFF_IDS[spellId]) then
-						Sight(instanceId, key, aura)
+		seen.name = full
+		seen.guid = plain(UnitGUID(source))
+		seen.class = plain(select(2, UnitClass(source)))
+		-- Asked of the token while it still means them, like the name.
+		seen.sameParty = SameParty(source)
+		seen.hasMana = UnitHasMana(source)
+	end
+
+	-- What the queue would offer somebody (nil for nothing) knowing only whether
+	-- they have mana and whether a shout reaches them. The rest is set as the
+	-- queue sets it for a debt, so the two cannot disagree.
+	function ns.CouldOffer(hasMana, inParty)
+		local db = addon.db and addon.db.profile
+		if not db then return nil end
+		return ns.PickBuffFor(ns.CastableBuffs(), {
+			hasMana = hasMana,
+			inGroup = inParty,
+			inParty = inParty,
+			relevantOnly = db.filters.relevantOnly,
+			whenBuffed = "always",
+			offerAnyway = true,
+			rotate = false,
+		}, NoReading)
+	end
+
+	-- One favour, filed against the person who was holding the token when the aura
+	-- was read. `seen` comes from Sight and nothing is re-derived from the aura
+	-- here: by now the token may mean somebody else.
+	local function NoteFavour(seen)
+		local db = addon.db and addon.db.profile
+		if not db then return end
+
+		-- With this source off, or the addon off, nothing written here could ever
+		-- reach a prompt; the scan checks too, but the setting can change between
+		-- the sighting and here.
+		if not db.enabled or not db.sources.owed then return end
+
+		-- Nor with nothing castable for anybody (a rogue, a buff not learned, every
+		-- spell switched off, a pin on one not learned): asked as the queue asks it.
+		if #ns.CastableBuffs() == 0 then return end
+		local pinned = ns.PinnedBuff()
+		if pinned and not ns.IsBuffKnown(pinned) then return end
+
+		-- Then the same question about this person, from what Sight read off the
+		-- token (the combat log, which never had one, has the class and the name).
+		local hasMana = seen.hasMana
+		if hasMana == nil and seen.class then hasMana = MANA_CLASSES[seen.class] == true end
+		local inParty = seen.sameParty
+		if inParty == nil then inParty = SameParty(seen.name) end
+
+		-- Nothing we cast is any use to them, so no debt the queue could never fill.
+		if not ns.CouldOffer(hasMana, true) then
+			-- A favour all the same, and let go in the moment it arrived.
+			TellLedger("Received", seen, true)
+			if db.verbose then
+				-- Translators: the option's name comes in through its own key, so a
+				-- translated line quotes the checkbox the player can find.
+				addon:Print(L["|cff80ff80%s buffed you|r -- nothing you cast is any use to them (\"%s\" is on)"]:format(seen.name, L["Skip players the buff does nothing for"]))
+			end
+			return
+		end
+
+		owed[seen.name] = { expires = GetTime() + db.timing.reciprocateWindow, at = GetTime(),
+			guid = seen.guid, class = seen.class }
+		-- Whether only a buff that reaches your own party could return it: asked
+		-- as if they were outside it, about classes rather than where they stand,
+		-- so the ledger's row stays true after they join or leave.
+		TellLedger("Received", seen, nil, ns.CouldOffer(hasMana, false) == nil)
+		if db.verbose then
+			-- A warrior's shout reaches the party (in a raid, the subgroup) and
+			-- nobody else, so a stranger who buffed one is kept but not on the
+			-- prompt, and the line says so, naming the subgroup where that is the limit.
+			local reachable = ns.CouldOffer(hasMana, inParty) ~= nil
+			-- "On the prompt" only when a prompt can show it: not through a snooze,
+			-- an unlocked prompt or Not while mounted.
+			local snoozeEnds = reachable and ns.SnoozeLeft() and ns.SnoozeEndsAt()
+			if snoozeEnds then
+				addon:Print(L["|cff80ff80%s buffed you|r -- the prompt is snoozed until %s, so returning it is offered only if the snooze ends before the favour runs out"]
+					:format(seen.name, snoozeEnds))
+			elseif reachable and not db.prompt.locked then
+				-- An unlocked prompt arms nobody. Ahead of the mount, since locking
+				-- is the step the player has to take.
+				addon:Print(L["|cff80ff80%s buffed you|r -- returning the favour is on the prompt once you lock it"]
+					:format(seen.name))
+			elseif reachable and ns.HiddenWhileMounted() then
+				addon:Print(L["|cff80ff80%s buffed you|r -- returning the favour is on the prompt once you get off your mount"]
+					:format(seen.name))
+			else
+				addon:Print((reachable
+					and L["|cff80ff80%s buffed you|r -- returning the favour is on the prompt"]
+					or ns.PARTY_IS_SUBGROUP and L["|cff80ff80%s buffed you|r -- what you cast reaches only your own party -- in a raid, your own subgroup -- so they are offered if they join it"]
+					or L["|cff80ff80%s buffed you|r -- what you cast reaches your group only, so they are offered if they join it"]):format(seen.name))
+			end
+		end
+		-- Written through rather than left to the logout hook: favours are rare.
+		SaveDebts()
+	end
+
+	-- One buff landing, seen by two sources that cannot see each other (a log line
+	-- has no instance id), agreed on who cast what. A mark is claimed by the
+	-- first source and CONSUMED by the other, so a genuine recast afterwards is
+	-- still announced (STATUS.md). A mark nobody consumes (the stranger only the
+	-- log sees) suppresses a real recast until it expires, so the window is the
+	-- aura scan's longest deferral, SETTLE_INTERVAL * SETTLE_TRIES, plus a tick.
+	local NOTE_MEMORY = (SETTLE_INTERVAL * SETTLE_TRIES) + 1
+	local notedFavours = {}
+
+	local function ClaimFavour(name, spellKey)
+		-- One source running: the sighting's own `filed` flag is the whole guard,
+		-- and a mark never consumed would only suppress genuine recasts.
+		if not combatLogArmed then return true end
+		if type(name) ~= "string" then return true end
+
+		local now = GetTime()
+		local key = name .. "\0" .. tostring(spellKey)
+		local claimed = notedFavours[key]
+
+		-- Swept here rather than on a timer: favours are rare. Read above the
+		-- sweep, so the entry about to be judged cannot be swept out from under it.
+		for k, at in pairs(notedFavours) do
+			if now - at > NOTE_MEMORY then notedFavours[k] = nil end
+		end
+
+		if claimed and now - claimed <= NOTE_MEMORY then
+			notedFavours[key] = nil
+			return false
+		end
+		notedFavours[key] = now
+		return true
+	end
+
+	-- One slot of your own aura list: the aura, and whether the client provably
+	-- refused it. A throw or a secret value is a refusal; a plain nil is what an
+	-- empty slot looks like and possibly a refusal too, and one slot cannot tell
+	-- them apart. So this reports proof of a refusal and never claims honesty,
+	-- and the scan reads the walk as a whole.
+	local function ReadAuraSlot(index)
+		local ok, value = pcall(C_UnitAuras.GetAuraDataByIndex, "player", index, "HELPFUL")
+		if not ok then return nil, true end
+		-- The end of the list, a gap in it, or a refusal wearing either's clothes.
+		if value == nil then return nil, false end
+		local aura = plain(value)
+		if type(aura) ~= "table" then return nil, true end
+		return aura, false
+	end
+
+	-- Do two readings of the aura list name the same auras? Membership both ways,
+	-- spell with number, so a recycled number is a disagreement.
+	local function SameAuraSet(a, b)
+		for id, key in pairs(a) do if b[id] ~= key then return false end end
+		for id, key in pairs(b) do if a[id] ~= key then return false end end
+		return true
+	end
+
+	-- Is the aura in this slot one the baseline has not filed? The number is
+	-- reused, so the spell is compared too. And for an entry the previous reading
+	-- did not show (the one scan of grace the prune gives a vanished aura), the
+	-- ending decides: a cast that ran out and was replaced under its own number
+	-- ends later, while a refusal handed back returns the same ending. The two
+	-- readings are otherwise identical slot for slot. An ending missing or
+	-- unreadable at either end claims nothing and leaves the aura filed.
+	local function IsNew(instanceId, key, expires)
+		local known = knownAuras[instanceId]
+		if known == nil or known ~= key then return true end
+		if lastPresent[instanceId] == key then return false end
+		local was = knownUntil[instanceId]
+		return (was ~= nil and expires ~= nil and expires > was) or false
+	end
+
+	function ns.ScanOwnBuffs()
+		wipe(present)
+		wipe(presentUntil)
+
+		-- What the baseline held a moment ago: the one thing the scan knows that
+		-- did not come from the client.
+		local held = 0
+		for _ in pairs(knownAuras) do held = held + 1 end
+
+		local scan = ns.auraScan
+
+		-- No aura API on this client: recorded, so /manners debug says so rather
+		-- than printing a healthy "0 read, baseline 0".
+		if not (C_UnitAuras and C_UnitAuras.GetAuraDataByIndex) then
+			scan.read, scan.held, scan.doubt = 0, held, "no aura api"
+			scan.primed = auraScanPrimed
+			return
+		end
+
+		-- Read before the walk, which may set the flag itself further down.
+		local primed = auraScanPrimed
+
+		local db = addon.db and addon.db.profile
+		local classOnly = not db or db.sources.owedClassBuffsOnly ~= false
+		-- Whether anything read now could become a favour at all; if not, no
+		-- caster is read (four unit lookups per slot, on every UNIT_AURA).
+		local watching = primed and db and db.enabled and db.sources.owed and true or false
+
+		local read = 0
+		local refused = false  -- a slot said outright that it would not answer
+		local silence = false  -- a slot handed back nothing, with the walk still going
+		local hole = false     -- ...and an aura was found behind it
+		-- The instance ids the baseline has not filed, judged after the walk once
+		-- the scan is known to be believable. Fresh each time, unlike `present`,
+		-- because NoteFavour can re-enter the scan while this is walked; allocated
+		-- only when something new is found.
+		local fresh
+
+		-- Every slot, every time: the end of the list and a hole in the middle of
+		-- it look alike from the first silent slot, and an aura behind the silence
+		-- is the one refusal that shows on the reading itself.
+		for i = 1, 40 do
+			local aura, slotRefused = ReadAuraSlot(i)
+			if slotRefused then refused = true end
+			if not aura then
+				silence = true
+			else
+				-- The list is packed from slot one, so silence with an aura behind
+				-- it was never the end.
+				if silence then hole = true end
+				read = read + 1
+
+				local instanceId = plain(aura.auraInstanceID)
+				if instanceId then
+					-- The spell is half of the aura's identity, not only a filter.
+					local spellId = plain(aura.spellId)
+					local key = spellId or true
+					local expires = plain(aura.expirationTime)
+					present[instanceId] = key
+					presentUntil[instanceId] = expires
+					if IsNew(instanceId, key, expires) then
+						fresh = fresh or {}
+						fresh[#fresh + 1] = instanceId
+						-- Who cast it, read while the token still means them, and
+						-- only for an aura that could ever be announced.
+						if watching and spellId
+							and (not classOnly or ns.ALL_BUFF_IDS[spellId]) then
+							Sight(instanceId, key, aura)
+						end
 					end
 				end
 			end
 		end
-	end
 
-	-- Evidence that this particular scan is worthless, collected because it is
-	-- free and because it is real when it turns up. It is not what makes the
-	-- section below safe, and nothing here asks what shape a refusal takes:
-	--   * refused -- a slot said so outright, by throwing or by handing back a
-	--     value we are not allowed to look at.
-	--   * hole -- an aura was found behind silence, so the list was not handed
-	--     over whole.
-	--   * nothing read at all while the baseline held something a moment ago.
-	--     Buffs do not all leave between two frames.
-	-- A client that refuses with plain silence at the end of the list, or with
-	-- plain silence before a baseline exists, trips none of these. That is the
-	-- point: recognising a refusal was tried twice and cannot be made to work,
-	-- because a withheld value, a throw and a plain nil are all possible and
-	-- nothing establishes which this client uses. Corroboration below does not
-	-- care.
-	local doubt
-	if refused then doubt = "refused"
-	elseif hole then doubt = "hole"
-	elseif read == 0 and held > 0 then doubt = "empty" end
+		-- Evidence that this scan is worthless, free to collect and real when it
+		-- shows. It is not what keeps the section below safe, which is
+		-- corroboration (STATUS.md): a refusal cannot be recognised, since a secret,
+		-- a throw and a plain nil are all possible here.
+		--   * refused -- a slot threw or handed back a secret.
+		--   * hole -- an aura behind silence: the list was not handed over whole.
+		--   * nothing read while the baseline held something a moment ago.
+		local doubt
+		if refused then doubt = "refused"
+		elseif hole then doubt = "hole"
+		elseif read == 0 and held > 0 then doubt = "empty" end
 
-	-- Recorded either way, including the clear: the three reasons mean
-	-- different things about the client, and a scan that stops being believed
-	-- for good is otherwise indistinguishable from nobody buffing you.
-	scan.read, scan.held, scan.doubt = read, held, doubt
-	scan.primed = auraScanPrimed
-	if doubt then
-		-- A doubted reading is not one of the two and settles nothing, so an
-		-- unsettled baseline asks for another reading from here as well. Left
-		-- to the client, a blackout that outlasts the next UNIT_AURA leaves the
-		-- baseline unsettled for as long as the client stays quiet afterwards.
-		if not primed then ScheduleSettle() end
-		return
-	end
-
-	-- Everything below turns on one question, and it is not "was that a
-	-- refusal" -- it is "has a second scan said the same thing". A reading on
-	-- its own moves nothing.
-	local agrees = haveLastScan and SameAuraSet(present, lastPresent)
-
-	if not primed then
-		-- PLAYER_ENTERING_WORLD wipes the baseline and scans in the same breath,
-		-- so `held` is zero there and the "we held things a moment ago" term
-		-- above cannot fire. On a loading screen that scan read nothing, doubted
-		-- nothing, and primed off a list it had never been shown -- and every
-		-- buff the player was already carrying was announced as a brand-new
-		-- favour the moment the list came back: printed, pulsed at a bystander
-		-- as an amber priority-1 prompt, and written through to SavedVariables.
-		--
-		-- A blacked-out list followed by a real one disagrees, so it does not
-		-- prime. A character who really is carrying nothing reads empty twice
-		-- and primes on the second scan -- which is the case the old count gate
-		-- was reaching for and got wrong, since it could only ask about one.
-		if agrees then
-			for instanceId, key in pairs(present) do
-				knownAuras[instanceId] = key
-				knownUntil[instanceId] = presentUntil[instanceId]
-			end
-			auraScanPrimed = true
-			scan.primed = true
-		else
-			-- And the reading that has to agree is asked for on the clock. The
-			-- gap between these two is the whole of the loss below, so it is
-			-- ours to keep short rather than the client's to choose.
-			ScheduleSettle()
-		end
-	else
-		-- An aura that really did run out has to leave, or it is still "known"
-		-- when it is cast at you again and the second favour is swallowed --
-		-- instance ids are recycled here, a zone renumbers them, so a recast can
-		-- arrive under the number the old one had.
-		--
-		-- But a refusal of the trailing slots leaves no readable aura behind the
-		-- silence, so none of the evidence above can see it, and pruning on that
-		-- one reading dropped precisely the auras the scan had failed to read --
-		-- then announced every one of them as a favour when they read back. So
-		-- an entry leaves only once two scans running have failed to find it.
-		--
-		-- "Find it" is the aura and not the number. A reading that shows a
-		-- different spell under that number has not found this aura either, and
-		-- said so from the client rather than by silence.
-		for instanceId, key in pairs(knownAuras) do
-			if present[instanceId] ~= key and lastPresent[instanceId] ~= key then
-				knownAuras[instanceId] = nil
-				knownUntil[instanceId] = nil
-			end
+		-- Recorded either way, including the clear, for /manners debug.
+		scan.read, scan.held, scan.doubt = read, held, doubt
+		scan.primed = auraScanPrimed
+		if doubt then
+			-- A doubted reading settles nothing, so an unsettled baseline asks for
+			-- another reading rather than waiting on the client.
+			if not primed then ScheduleSettle() end
+			return
 		end
 
-		-- Which is most of what makes the announcement safe, and it needs no
-		-- second rule of its own: an entry can only be missing from the baseline
-		-- here if two consecutive scans agreed it was gone, so "not filed"
-		-- already means "absent from the last two readings". A buff that
-		-- genuinely just landed was in neither and is announced on the scan it
-		-- arrives in. The rest of it is IsNew, which covers the one thing that
-		-- rule cannot see -- something arriving under a number the baseline is
-		-- still holding for an aura that has died.
-		if fresh then
-			for i = 1, #fresh do
-				local instanceId = fresh[i]
-				local key = present[instanceId]
-				if key ~= nil then
+		-- Everything below turns on whether a second scan said the same thing; a
+		-- reading on its own moves nothing.
+		local agrees = haveLastScan and SameAuraSet(present, lastPresent)
+
+		if not primed then
+			-- Primed only on two readings that agree. PLAYER_ENTERING_WORLD wipes
+			-- the baseline and scans at once, so `held` is zero and cannot doubt a
+			-- blacked-out list; priming on that would announce everything already
+			-- carried as a favour. A character really carrying nothing reads empty
+			-- twice and primes on the second scan.
+			if agrees then
+				for instanceId, key in pairs(present) do
 					knownAuras[instanceId] = key
 					knownUntil[instanceId] = presentUntil[instanceId]
-					local seen = sighted[instanceId]
-					-- The name is the one read when the slot was read, and it
-					-- is the only name there will be. A sighting that could
-					-- not read anybody -- no token, a token that is not a
-					-- player, a name the client would not spell -- ends here
-					-- rather than being asked again of a token that may since
-					-- have been handed to somebody else.
-					--
-					-- `filed` is the guard against one aura being announced
-					-- twice, and it has to live on the sighting: the baseline
-					-- cannot be the guard, because an aura that ran out and
-					-- came back under its own number is in the baseline
-					-- already and is exactly what this loop is here for.
-					--
-					-- The claim is the other half of that guard, and it covers
-					-- the thing `filed` cannot see: where the client has a
-					-- combat log, the same landing has already been through
-					-- here once under a different number -- none at all.
-					if seen and seen.key == key and seen.name and not seen.filed then
-						seen.filed = true
-						if ClaimFavour(seen.name, key) then NoteFavour(seen) end
+				end
+				auraScanPrimed = true
+				scan.primed = true
+			else
+				-- And the reading that has to agree is asked for on the clock.
+				ScheduleSettle()
+			end
+		else
+			-- An aura that ran out has to leave, or a recast under its recycled
+			-- number is swallowed. But a refusal of the trailing slots is invisible
+			-- to the evidence above, so an entry leaves only once two scans running
+			-- have failed to find the aura (the spell under the number, not the
+			-- number alone).
+			for instanceId, key in pairs(knownAuras) do
+				if present[instanceId] ~= key and lastPresent[instanceId] ~= key then
+					knownAuras[instanceId] = nil
+					knownUntil[instanceId] = nil
+				end
+			end
+
+			-- So "not filed" already means "absent from the last two readings", and
+			-- a buff that just landed is announced on the scan it arrives in. IsNew
+			-- covers the rest: an arrival under a number held for a dead aura.
+			if fresh then
+				for i = 1, #fresh do
+					local instanceId = fresh[i]
+					local key = present[instanceId]
+					if key ~= nil then
+						knownAuras[instanceId] = key
+						knownUntil[instanceId] = presentUntil[instanceId]
+						local seen = sighted[instanceId]
+						-- The name read with the slot is the only one there will be;
+						-- a sighting that read nobody ends here, never asked again of
+						-- a token that may have changed hands. `filed` lives on the
+						-- sighting because an aura that came back under its own
+						-- number is in the baseline already. The claim covers the
+						-- combat log having seen the same landing with no number.
+						if seen and seen.key == key and seen.name and not seen.filed then
+							seen.filed = true
+							if ClaimFavour(seen.name, key) then NoteFavour(seen) end
+						end
 					end
 				end
 			end
 		end
-	end
 
-	-- Sightings belong to auras the baseline has not filed yet. One goes when
-	-- the baseline takes the aura over, and when the aura stops being read at
-	-- all -- otherwise the table grows for the session, and the next aura handed
-	-- that instance id inherits a caster who had nothing to do with it. Here
-	-- rather than above the doubt check: a reading that is not believed is not
-	-- evidence that an aura has gone.
-	for instanceId, seen in pairs(sighted) do
-		if present[instanceId] ~= seen.key or knownAuras[instanceId] == seen.key then
-			sighted[instanceId] = nil
+		-- A sighting goes when the baseline files its aura or the aura stops being
+		-- read, or a recycled instance id inherits a caster. Below the doubt check:
+		-- a reading that is not believed is no evidence that an aura has gone.
+		for instanceId, seen in pairs(sighted) do
+			if present[instanceId] ~= seen.key or knownAuras[instanceId] == seen.key then
+				sighted[instanceId] = nil
+			end
 		end
+
+		-- This scan becomes the reading the next one has to agree with; a doubted
+		-- one returned above and never does.
+		wipe(lastPresent)
+		for instanceId, key in pairs(present) do lastPresent[instanceId] = key end
+		haveLastScan = true
+
+		-- The price of never guessing what a refusal looks like (STATUS.md): a
+		-- refusal that repeats identically across two scans is indistinguishable
+		-- from holding nothing, and is left as it is. Likewise a buff landing
+		-- between the first true reading and the one corroborating it is filed as
+		-- already carried and never announced -- better unheard than filed against
+		-- a bystander. The settle timer keeps that gap at SETTLE_INTERVAL. A scan
+		-- the evidence above can see through never becomes one of the two readings,
+		-- which narrows the residue to shapes nothing can see; nothing closes it.
 	end
 
-	-- This scan becomes the reading the next one has to agree with. A doubted
-	-- scan returned above and never gets here, so it is never one of the two.
-	wipe(lastPresent)
-	for instanceId, key in pairs(present) do lastPresent[instanceId] = key end
-	haveLastScan = true
-
-	-- What this costs, stated plainly, because it is the price of never asking
-	-- what a refusal looks like. A refusal that repeats -- the same blackout, or
-	-- the same trailing slots, across two scans running -- is corroborated by
-	-- its own repetition and is indistinguishable from the truth: two scans
-	-- agreeing you hold nothing is exactly what a character holding nothing
-	-- looks like. There is no reading of the client that separates them, so the
-	-- residue is left where it is rather than guessed at.
+	---------------------------------------------------------------------------
+	-- the combat log, on the clients that still have one
 	--
-	-- Settling the baseline costs the same kind of thing, and it is worth saying
-	-- plainly rather than leaving somebody to find it. A buff that lands between
-	-- the first reading that shows the real list and the reading that
-	-- corroborates it is in both of them, so it is filed as something the player
-	-- was already carrying and is never announced. Nothing here can tell that
-	-- from the truth: "you were already holding this" and "somebody buffed you
-	-- while the screen was black" produce the same pair of readings, and the only
-	-- thing that would separate them is a guess about the shape of a refusal --
-	-- which is the guess this whole scan exists to stop making. A favour nobody
-	-- hears about is much better than one filed against a bystander, so it stays
-	-- unheard.
+	-- Classic Era, TBC and Mists hand addons COMBAT_LOG_EVENT_UNFILTERED; Retail
+	-- 12.0+ and Forever refuse the registration, so none of this runs unless
+	-- OnEnable got it through.
 	--
-	-- What is not left to the client is how long that lasts. The corroborating
-	-- reading is asked for on a timer rather than waited for, so the gap is
-	-- SETTLE_INTERVAL -- a fifth of a second -- and not "however long until the
-	-- client next sends a UNIT_AURA", which on a character standing still is
-	-- minutes. That is a statement about the interval, which is ours. It is
-	-- deliberately not a statement about how long a loading screen on this client
-	-- takes, or about what one "actually does" to the aura list: nothing in this
-	-- tree establishes either, and the sentence that used to stand here claimed
-	-- both.
-	--
-	-- Which is the remaining use of the evidence above, and why it short-
-	-- circuits rather than just being recorded: a scan it can see through never
-	-- reaches this line, so it never becomes one of the two readings and a
-	-- refusal it recognises cannot corroborate itself however long it lasts.
-	-- That narrows the residue to the shapes nothing can see. It does not close
-	-- it, and nothing can.
-end
+	-- An addition, never a replacement (STATUS.md): the aura scan is the spine and
+	-- the only source on Forever. The log adds what the scan cannot do anywhere:
+	-- SPELL_AURA_APPLIED carries the caster's GUID, and GetPlayerInfoByGUID names
+	-- a stranger with no unit token. A log line is an event, not a reading that
+	-- might be wrong, so none of the scan's corroboration applies; the policy
+	-- gates still do, in NoteFavour.
+	---------------------------------------------------------------------------
 
----------------------------------------------------------------------------
--- the combat log, on the clients that still have one
---
--- Classic Era, TBC and Mists hand addons COMBAT_LOG_EVENT_UNFILTERED. Retail
--- 12.0+ and Forever do not -- registering it there is refused outright, which is
--- the same class of failure that once stopped the scanner from ever starting --
--- so none of this runs unless OnEnable got the registration through.
---
--- It is an addition and never a replacement. The aura scan is the spine: it is
--- the only source on Forever and on retail, it runs on all five clients, and it
--- is the one that has been tested. What the log adds is the one thing the scan
--- cannot do on any flavour. aura.sourceUnit is a unit token everywhere, so a
--- stranger the client holds no token for reads as nobody; SPELL_AURA_APPLIED
--- carries the caster's GUID instead, and GetPlayerInfoByGUID turns a GUID into a
--- name and a class with no token at all. So somebody who buffs you from behind,
--- with no nameplate up, can be thanked.
---
--- A log line is an event and not a poll, so none of the corroboration the scan
--- is wrapped in belongs here: there is no second reading to wait for and no
--- doubt to settle. Those exist because a scan can misread its own list. The
--- policy gates are a different thing and are not skipped -- a switched-off addon
--- and a switched-off source mean exactly what they mean to the scan, and both
--- are asked in NoteFavour, which every favour still goes through.
----------------------------------------------------------------------------
+	-- What this source has made of itself, for /manners debug, as ns.auraScan.
+	ns.logScan = { armed = false, applied = 0, noted = 0 }
 
--- What this source has made of itself, for /manners debug, and for the reason
--- ns.auraScan exists: a source that quietly stops saying anything is otherwise
--- indistinguishable from nobody having buffed you.
-ns.logScan = { armed = false, applied = 0, noted = 0 }
+	local function ReadCombatLogFavour()
+		local _, subevent, _, sourceGUID, _, _, _, destGUID, _, _, _,
+			spellId, _, _, auraType = CombatLogGetCurrentEventInfo()
 
-local function ReadCombatLogFavour()
-	local _, subevent, _, sourceGUID, _, _, _, destGUID, _, _, _,
-		spellId, _, _, auraType = CombatLogGetCurrentEventInfo()
+		-- Cheapest question first: every swing, tick and proc within fifty yards
+		-- arrives here, and most cost two string compares.
+		if plain(subevent) ~= "SPELL_AURA_APPLIED" then return end
+		if plain(auraType) ~= "BUFF" then return end
 
-	-- Cheapest question first, then in order of how much each one throws away.
-	-- Every swing, tick and proc within fifty yards arrives here, so what this
-	-- costs for the overwhelming majority of them is two string compares.
-	if plain(subevent) ~= "SPELL_AURA_APPLIED" then return end
-	if plain(auraType) ~= "BUFF" then return end
+		-- Landed on us, and not by our own hand.
+		destGUID, sourceGUID = plain(destGUID), plain(sourceGUID)
+		if destGUID == nil or destGUID ~= playerGUID then return end
+		if sourceGUID == nil or sourceGUID == playerGUID then return end
 
-	-- Landed on us, and not by our own hand. A buff we cast on ourselves is not
-	-- a favour, and neither is one we cast on somebody else.
-	destGUID, sourceGUID = plain(destGUID), plain(sourceGUID)
-	if destGUID == nil or destGUID ~= playerGUID then return end
-	if sourceGUID == nil or sourceGUID == playerGUID then return end
+		-- Asked here too so a switched-off source does no per-event work;
+		-- NoteFavour's check is the gate.
+		local db = addon.db and addon.db.profile
+		if not db or not db.enabled or not db.sources.owed then return end
 
-	-- Asked before the identity lookup rather than left to NoteFavour, which
-	-- asks the same two questions at the other end. Here it is what stops a
-	-- switched-off source doing per-event work for an answer nobody will use;
-	-- there it is the gate, because the setting can be changed in between.
-	local db = addon.db and addon.db.profile
-	if not db or not db.enabled or not db.sources.owed then return end
+		spellId = plain(spellId)
+		if spellId == nil then return end
+		-- The aura scan's filter, from the same setting: every class's buffs, since
+		-- the buff a stranger puts on you is one of theirs.
+		if db.sources.owedClassBuffsOnly ~= false and not ns.ALL_BUFF_IDS[spellId] then
+			return
+		end
 
-	spellId = plain(spellId)
-	if spellId == nil then return end
-	-- The same filter the aura scan applies to a slot, from the same setting: a
-	-- shield, a heal-over-time or a trinket proc is not a favour owed. It is
-	-- every class's buffs and not this character's -- the buff a stranger puts
-	-- on you is one of theirs.
-	if db.sources.owedClassBuffsOnly ~= false and not ns.ALL_BUFF_IDS[spellId] then
-		return
+		ns.logScan.applied = ns.logScan.applied + 1
+
+		-- A name and a class out of a GUID, with no unit token: the reason this
+		-- source exists. It answers nothing for an NPC, a pet or a totem, so it
+		-- doubles as the is-a-player check without reading possibly withheld flags.
+		if type(GetPlayerInfoByGUID) ~= "function" then return end
+		local _, class, _, _, _, name, realm = GetPlayerInfoByGUID(sourceGUID)
+		-- The aura scan's join, so both sources file one person under one key.
+		local full = JoinName(plain(name), plain(realm))
+		if not full then return end
+
+		if not ClaimFavour(full, spellId) then return end
+		ns.logScan.noted = ns.logScan.noted + 1
+		-- The shape Sight produces, so NoteFavour has one kind of record.
+		NoteFavour({ key = spellId, name = full, guid = sourceGUID, class = plain(class) })
 	end
 
-	ns.logScan.applied = ns.logScan.applied + 1
-
-	-- The one thing this source has that the aura scan does not, and the whole
-	-- reason it is worth having: a name and a class out of a GUID, with no unit
-	-- token anywhere in it.
-	--
-	-- It doubles as the check that the caster was a player at all. The object
-	-- flags carry that too, but reading them means bit.band over a value the
-	-- client may withhold, and this answers nothing for an NPC, a pet or a
-	-- totem -- the same question, asked of the call that has to be made anyway.
-	if type(GetPlayerInfoByGUID) ~= "function" then return end
-	local _, class, _, _, _, name, realm = GetPlayerInfoByGUID(sourceGUID)
-	-- Through the same join the aura scan's names go through, so the two sources
-	-- file one person under one key.
-	local full = JoinName(plain(name), plain(realm))
-	if not full then return end
-
-	if not ClaimFavour(full, spellId) then return end
-	ns.logScan.noted = ns.logScan.noted + 1
-	-- The shape Sight produces, so NoteFavour has one kind of record to file
-	-- rather than one per source.
-	NoteFavour({ key = spellId, name = full, guid = sourceGUID, class = plain(class) })
-end
-
-function addon:COMBAT_LOG_EVENT_UNFILTERED()
-	-- Guarded like everything else, and the pcall is the whole of what it costs
-	-- on the path that returns two compares later. A handler that throws is
-	-- removed by nothing and reported by nothing; it simply stops being a source.
-	ns.Guard("combat log", ReadCombatLogFavour)
+	function addon:COMBAT_LOG_EVENT_UNFILTERED()
+		-- Guarded: an unguarded handler that throws simply stops being a source.
+		ns.Guard("combat log", ReadCombatLogFavour)
+	end
 end
 
 function addon:UNIT_AURA(_, unit)
 	if unit == "player" then ns.Guard("ScanOwnBuffs", ns.ScanOwnBuffs) end
 
-	-- One assignment, and only for somebody already cached. The key is the guid
-	-- and never the unit token: a nameplate token gets recycled to a different
-	-- player, and a cache keyed on one would hand you their auras.
+	-- Keyed by GUID, never the unit token: nameplate tokens are recycled.
 	ForgetUnitAuras(plain(UnitGUID(unit)))
 end
 
@@ -4061,11 +3546,8 @@ function addon:PLAYER_ENTERING_WORLD()
 	playerGUID = plain(UnitGUID("player"))
 	wipe(ns.nameplateUnits)
 	ns.Guard("ProbeCapabilities", ns.ProbeCapabilities)
-	-- Take a baseline of your own buffs now. Waiting for the next UNIT_AURA
-	-- means whatever arrives first gets mistaken for something you already had.
-	-- The old baseline is dropped first: aura instance ids are renumbered
-	-- across a zone, so keeping it would make everything you still hold look
-	-- new the moment the next scan runs.
+	-- A fresh baseline of your own buffs now, the old one dropped: instance
+	-- ids are renumbered across a zone.
 	ns.Guard("prime aura baseline", function()
 		ns.ResetAuraBaseline()
 		ns.ScanOwnBuffs()
@@ -4089,44 +3571,26 @@ end
 -- The game reports on casts directly. UNIT_SPELLCAST_SENT firing at all means
 -- the macro resolved a target and tried; its absence means no clause matched.
 -- UI_ERROR_MESSAGE carries a reason for something, not necessarily for ours.
--- A click parks its debt in ns.pendingClick rather than clearing it; these
--- resolve it from what the game actually did.
---
--- Four ways out of that slot, and they are four because the outcomes are four:
--- a cast event settles it, an error rewinds what it wrote, a second press
--- abandons it as unknown, and the clock running out is the one statement that
--- nothing was cast at all.
+-- A click parks its debt in ns.pendingClick, and one of four outcomes resolves
+-- it: a cast event settles it, an error rewinds what it wrote, a second press
+-- abandons it as unknown, and the clock running out says nothing was cast.
 
--- How long a parked click waits for the game to answer. A cast the client
--- accepted reports in the same frame, so this is latency plus a wide margin
--- rather than a guess. One number, because the settle, the abandon and the
--- sweep all have to agree about when a record is dead -- two of them disagreeing
--- is a record judged twice or not at all.
+-- How long a parked click waits for the game to answer: latency plus a wide
+-- margin. One number, so the settle, the abandon and the sweep agree on when
+-- a record is dead.
 local SETTLE_SECONDS = 2
 
--- How late a cast event can still be this press's own answer. The client
--- reports a cast it accepted in the same frame, and a queued one inside the
--- spell-queue window at most -- four tenths of a second -- so anything later is
--- somebody's hand on the action bar. On this client that event names nobody, so
--- judged against the press it settled the favour on the bare fact that the
--- spell matched: a refused press followed a second later by a hand-cast
--- Arcane Intellect on somebody else was counted as repaid. Not a replacement
--- for SETTLE_SECONDS, which still decides when a record is dead.
+-- How late a cast event can still be this press's own answer: an accepted
+-- cast reports in the same frame, a queued one within the spell-queue window
+-- (0.4 s). Anything later is a hand on the action bar, and on this client
+-- that event names nobody. SETTLE_SECONDS still decides when a record is dead.
 local SENT_SECONDS = 0.5
 
--- Said the same way wherever a click comes to nothing, so the user is not
--- reading three different sentences for one outcome.
---
--- "Still owed" only about somebody who is: every one of these paths used to
--- say it of whoever the press was aimed at, so a stranger, a target or a
--- party member who never buffed you was announced as owed a favour -- the
--- mirror of the untruth the settle path takes care never to tell.
---
--- And "was not buffed" only where something says so. `unknown` is the line for
--- somebody not owed when nothing does -- a format string handed their name --
--- because the one caller that passes it, a press abandoned before the game
--- answered, knows nothing about the outcome, and in a fight that press's
--- queued cast often lands on them a moment later.
+-- Said the same way wherever a click comes to nothing. "Still owed" only of
+-- somebody who is; "was not buffed" only where something says so. `unknown`
+-- (a format string handed the name) is the line for somebody not owed when
+-- nothing does: a press abandoned before the game answered, whose queued cast
+-- may yet land.
 local function SayStillOwed(name, why, unknown)
 	local db = addon.db and addon.db.profile
 	if not (db and db.verbose) then return end
@@ -4140,161 +3604,82 @@ local function SayStillOwed(name, why, unknown)
 	end
 end
 
--- Everything below already works out what a click turned into; until now all of
--- it went into a chat line the user has to be watching for, or nowhere at all
--- when verbose is off. The panel is the thing they are looking at, so it says
--- so too.
---
--- The three kinds are not decoration, they are the three answers this file can
--- honestly give, and they are kept apart on purpose: "cast" is the game naming
--- the person we aimed at, "sent" is our spell going out with the client
--- refusing to say who received it, and "failed" is a reason to believe nothing
--- reached them. A tick over an inference would be the prompt claiming something
--- the settle path deliberately stops short of.
---
--- Guarded rather than called: this is cosmetic, and a panel that throws must
--- not take the settle with it -- the debt is the part that matters.
+-- The outcome of a click on the panel as well as in chat. Three honest kinds:
+-- "cast" is the game naming the person we aimed at, "sent" is our spell going
+-- out with the client not saying who got it, and "failed" is reason to believe
+-- nothing reached them. Guarded: cosmetic, and must not take the settle with it.
 local function ShowOutcome(kind, name, detail)
 	if not (ns.Prompt and ns.Prompt.ShowOutcome and name) then return end
 	ns.Guard("prompt outcome", ns.Prompt.ShowOutcome, ns.Prompt, kind, name, detail)
 end
 
--- Did the id the game reported belong to the buff we armed? Every rank counts,
--- and so does the raid-wide version: casting that by hand still leaves them
--- holding the buff, so it is the same favour. nil means the client would not
--- say, which has to settle -- unverifiable must never mean "never clear the
--- debt", or one secret value makes every favour permanent.
+-- Did the id the game reported belong to the buff we armed? Every rank and the
+-- raid-wide version count. nil (the client would not say) settles: one secret
+-- value must not make every favour permanent.
 local function SpellIsOurs(spellId, buffKey)
 	if spellId == nil or not buffKey then return true end
 	local buff = ns.FindBuff(caps.class, buffKey)
 	if not buff then return true end
-	-- Every rank and the raid-wide version map to the same entry, so this is
-	-- the same question as "is that id one of this buff's" without the walk.
 	return ns.BUFF_BY_ID[spellId] == buff
 end
 
--- A spell id as somebody reads it. The chat line and the panel both said "116
--- went out instead", which is a number only the client knows the meaning of;
--- the id stays as the fallback for a client that will not name it.
+-- A spell id as somebody reads it; the number where the client will not name it.
 local function SpellLabel(spellId)
 	return SpellNameFor(spellId) or tostring(spellId)
 end
 
--- Nothing reached them, so neither of the blocks a click optimistically wrote
--- may stand at its full length. The whole person for two seconds, so the prompt
--- does not immediately march down the rest of their list -- and the per-buff
--- cooldown PostClick wrote for a buff that was never delivered, cut to the same
--- two. One owner for both, because the two branches that need this had a copy
--- each and only one of them was ever rewound: a refused cast left twelve
--- seconds standing on a buff that never went out, so three seconds later the
--- prompt offered that person their *next* buff, which failed the same way, and
--- so on until they had been walked off the list entirely.
+-- Nothing reached them, so what the click optimistically wrote is cut back:
+-- the whole-person block to two seconds (so the prompt does not march down
+-- their list), the per-buff cooldown to the same, and the rotation pointer
+-- put back. One owner for all three, or a refused cast walks somebody off
+-- their own buff list.
 local function RewindClick(pending)
-	-- Extends only. This is the one writer of a whole-person block that is not
-	-- a deliberate refusal, and a right-press skip written moments earlier at
-	-- the full retry cooldown has to outlive it: a pending click still sitting
-	-- there from a left press before the skip used to settle as failed, cut the
-	-- block back to two seconds, and hand the person straight back to the
-	-- prompt -- undoing, from behind, the one instruction the user gave
-	-- explicitly.
+	-- Extends only, so a right-press skip written moments earlier outlives it.
 	ns.BlockPerson(pending.name, 2, true)
-	-- Not extend-only: the per-buff block being cut back is the twelve seconds
-	-- this same click wrote a moment ago on the assumption it landed, and
-	-- cutting it is the entire point. Nothing else ever writes that key.
+	-- Not extend-only: cutting back what this click wrote is the point.
 	ns.MarkAttempted(pending.name, pending.buffKey, 2)
-	-- PostClick moved the rotation pointer alongside those two blocks, and on a
-	-- client that will not show auras that pointer is what walks somebody down
-	-- their buff list -- so leaving it forward does by a second route the exact
-	-- thing the comment above says this function exists to prevent. The two
-	-- blocks were rewound and this was not, which is why a refused cast still
-	-- cost an unreadable person their place. Put back what the click found;
-	-- nil for a first one, and nil is what belongs there.
-	--
-	-- Through the same gate the click went through. On a class that does not
-	-- rotate, both sides of this are nil and the write would be invisible --
-	-- but "never written for that class" is meant to be true of the table
-	-- rather than true by luck of what it was restoring.
+	-- The rotation pointer as the click found it (nil for a first one), behind
+	-- the gate the click went through.
 	if ns.RotatesBuffs() then ns.lastGave[pending.name] = pending.gave end
 end
 
--- There was a first-name fallback here, and it is gone on purpose. It counted
--- casts that reached nobody and, after a run of them, switched that person's
--- macro to `/target <first name>` on the theory that this client resolves a
--- bare first name where it will not resolve a full one. Nothing ever showed
--- that it does: the addon was confirmed working in game at a point when the
--- macro emitted only the full name, so the full name resolves and the failure
--- the fallback existed for was never once observed. What it did produce was a
--- defect in three consecutive rounds -- unreachable when it mattered, set by
--- casts that were not ours, set for macros with no /target in them, never
--- cleared -- and its failure mode is the worst one on offer here: a cast and a
--- spoken line aimed at a different player who happens to share a first name.
--- A cast that does not land is now noticed and reported, so the case it was
--- built for degrades to a visible "that did not work" instead of a silent one.
--- The CHANGELOG line for 1.3.0 that asks for both spellings is the only thing
--- that ever argued for it; do not rebuild it from there.
+-- The first-name fallback is gone on purpose (STATUS.md). It switched a
+-- macro to `/target <first name>` after failed casts, but the full name was
+-- confirmed to resolve in game, and its failure mode is the worst on offer: a
+-- cast and a spoken line aimed at another player sharing a first name. A cast
+-- that does not land is now reported instead. CHANGELOG 1.3.0 asks for both
+-- spellings; do not rebuild it from there.
 
--- Retiring a record whose window has run out, wherever that is noticed.
---
--- Three callers used to answer this state by clearing the slot and returning,
--- each on a comment saying the sweep had it or would get it. It could not: the
--- sweep reads ns.pendingClick, so nilling the slot is precisely what stops it
--- from ever running. What the click wrote on the assumption it landed -- the
--- twelve-second per-buff cooldown, the rotation pointer -- then stood at its
--- full length over a cast that never happened, and the person was walked down
--- their own buff list by presses that cast nothing. The rule the rest of this
--- file works to is that a record is never discarded silently, and one owner for
--- the discard is the only way that can be true.
---
--- What the user is told is the caller's, because the four of them do not know
--- the same thing. Three arrive at a record that simply ran out and the default
--- says so. The settle path arrives holding a cast event, which is an answer to
--- *something* -- it is only too late to be an answer to this press -- so
--- letting it borrow "nothing at all was cast" filed the one event that proves a
--- spell went out as proof that none did.
---
--- The panel is not written from here: see SweepPendingClick, which is the only
--- caller that is watching the window run out rather than finding it long run
--- out.
+-- Retiring a record whose window has run out, wherever that is noticed. One
+-- owner, because a slot simply cleared stops the sweep from ever rewinding
+-- what the click wrote; a record is never discarded silently. What the user
+-- is told is the caller's (`why`): the settle path holds a late cast event,
+-- which proves a spell went out, just not this press's. The panel is written
+-- only by SweepPendingClick, the one caller watching the window run out.
 local function ExpirePendingClick(pending, why)
 	ns.pendingClick = nil
-	-- An error inside the window has already rewound this record and already
-	-- said so, on the panel and in chat, in the game's own words. RewindClick
-	-- writes its blocks from now, so running it again was not a no-op: one
-	-- out-of-range press blocked the person for four seconds instead of two,
-	-- and the chat line claimed the game had answered with nothing at all.
+	-- An error inside the window already rewound this record and said so;
+	-- RewindClick writes from now, so running it twice doubles the block.
 	if pending.answered then return end
 	RewindClick(pending)
 	SayStillOwed(pending.name, why or L["the game answered that press with nothing at all"])
 end
 
--- A second press while the first is still waiting for the game.
---
--- There is one slot and nothing on it says which press it belongs to, so the
--- next cast event is judged against the newest record whichever press produced
--- it -- and then every consequence lands on the wrong person: the block rewind,
--- the rotation rewind and the settle itself. PostClick's quarter-second
--- debounce is no help; two presses three tenths of a second apart are two full
--- records, and the first was simply overwritten.
---
--- Discarding it silently is the part that cannot stand. What that press did is
--- genuinely unknown, and unknown is not the same as failed: so what it wrote on
--- the assumption of success is put back and the debt stays standing. Wrong in
--- that direction costs one extra offer; wrong in the other loses the favour
--- outright.
+-- A second press while the first is still waiting for the game. There is one
+-- slot, and the next cast event would be judged against the newest record, so
+-- the first is abandoned: what it did is unknown, not failed, so what it wrote
+-- is put back and the debt stays. Wrong that way costs one extra offer; wrong
+-- the other way loses the favour.
 local function AbandonPendingClick()
 	local pending = ns.pendingClick
 	if not pending then return end
-	-- Answered already, by an error that rewound it and said so. There is
-	-- nothing unknown about it left to put back.
+	-- Answered already, by an error that rewound it and said so.
 	if pending.answered then
 		ns.pendingClick = nil
 		return
 	end
-	-- Past its window this is not an unknown outcome at all, it is the known
-	-- one, and the only reason it has not been acted on is that the tick has
-	-- not come round: at a two-second scan interval a record can outlive its
-	-- window by another two before the sweep looks. The slot is about to be
-	-- reused, and after that nothing can put back what that press wrote.
+	-- Past its window the outcome is known, and only the tick has not come
+	-- round yet; the slot is about to be reused, so it is retired now.
 	if GetTime() - pending.at > SETTLE_SECONDS then
 		ExpirePendingClick(pending)
 		return
@@ -4306,37 +3691,17 @@ local function AbandonPendingClick()
 end
 ns.AbandonPendingClick = AbandonPendingClick
 
--- An error the game raised in the moment after a click.
---
--- It is evidence that something failed and no evidence whatever about what:
--- this event carries everything the game shouts -- a full bag, an item not
--- ready, a spell out of range for something else entirely -- and nothing here
--- tests that it has any connection to our cast. So it does what an unexplained
--- failure warrants and no more, which is to take back what the click wrote on
--- the assumption the buff landed.
---
--- The record stays parked rather than being cleared. If the cast went out after
--- all -- an inventory error a frame before it -- UNIT_SPELLCAST_SENT still
--- settles it normally, and that settle puts back the writes taken away here and
--- takes back, in chat, the line said here. If
--- it did not, the sweep runs the clock out on it -- quietly, because this is
--- where the press was answered, and the answer is said here once, in the
--- game's words, rather than again two seconds later as "nothing at all".
---
--- Returns the name it rewound, so the caller can put the game's own words on
--- the panel. Nothing is returned for an error that arrived with no click parked
--- or with a dead one: the great majority of what this event carries is not
--- ours, and flashing the prompt red for somebody's full bags would be a worse
--- lie than the silence it replaces. Nor for a second error about the same
--- press: it has had its rewind and its flash.
+-- An error the game raised in the moment after a click: evidence that
+-- something failed, none about what (it carries full bags and all the rest),
+-- so it takes back what the click wrote and no more. The record stays parked:
+-- a cast going out after all still settles it and takes the chat line back;
+-- otherwise the sweep runs the clock out quietly. Returns the name it rewound,
+-- for the panel; nothing without a live click parked, or for a second error.
 local function FailPendingClick(message)
 	local pending = ns.pendingClick
 	if not pending then return nil end
-	-- Past its window this error cannot be about that click -- but the record
-	-- is still parked, which means the tick has not swept it, and dropping it
-	-- here leaves nothing that ever will. So it is retired properly, and nil
-	-- still comes back: the panel must not put the game's words about somebody
-	-- else's bags over a press that was already dead when they arrived.
+	-- Past its window this error cannot be about that click, but the record
+	-- still needs retiring; the panel gets nothing.
 	if GetTime() - pending.at > SETTLE_SECONDS then
 		ExpirePendingClick(pending)
 		return nil
@@ -4350,48 +3715,27 @@ local function FailPendingClick(message)
 	return pending.name
 end
 
--- The clock running out on a parked click. The game answers a cast it accepted
--- in the same frame, so a record that has sat here for the whole window saw no
--- cast event at all -- which is the one statement this file can make that
--- nothing went out.
---
--- Swept on the tick rather than noticed on the next event, because for the case
--- this exists for there is no next event.
+-- The clock running out on a parked click: a record that sat the whole window
+-- saw no cast event, the one proof that nothing went out. Swept on the tick,
+-- because in this case there is no next event.
 local function SweepPendingClick(now)
 	local pending = ns.pendingClick
 	if not pending then return end
 	if now - pending.at <= SETTLE_SECONDS then return end
 	ExpirePendingClick(pending)
 	-- An error answered this press inside its window, and the panel flashed
-	-- the game's own words then. A second flash now said "nothing was cast"
-	-- over a button long since armed at somebody else.
+	-- the game's own words then.
 	if pending.answered then return end
-	-- The panel, and only from here. This is the one path that notices the
-	-- window running out at the moment it runs out, so it is the one that can
-	-- honestly flash half a second of red about it -- and it is the case with
-	-- no event behind it at all, the one the user is likeliest to be confused
-	-- by: the prompt was clicked, the game said nothing, and until this existed
-	-- the panel said nothing either.
-	--
-	-- The other three callers find the record already dead. By then the panel
-	-- has moved on to whatever came after, and flashing there would be red over
-	-- a press the user has stopped thinking about -- or, from inside PostClick,
-	-- a repaint in the middle of arming the next one. What those three owe is
-	-- the rewind, which is what they were not doing.
+	-- The panel only from here: this is the one path that notices the window
+	-- running out as it happens. The other callers find the record long dead,
+	-- with the panel moved on (or mid-arming, inside PostClick).
 	ShowOutcome("failed", pending.name, L["nothing was cast"])
 end
 
--- What an inferred settle is inferring, said once and read by both the chat
--- line and the panel, so the two cannot end up making different claims about
--- the same press. `said` finishes "X counted as repaid -- "; `sub` goes under
--- the name on the prompt, where there is room for a clause and not a sentence.
---
--- `said` is a format string handed the spell's name. The selfcast one used to
--- say "a selfCast buff", which is the name of a field in Buffs.lua, printed on
--- every repayment a warrior makes with verbose on -- the default.
---
--- There is no entry for a confirmed settle on purpose: that one is the client
--- naming the person we aimed at, and it has nothing to qualify.
+-- What an inferred settle is inferring, read by both the chat line and the
+-- panel so they make the same claim. `said` finishes "X counted as repaid --
+-- " and is handed the spell's name; `sub` goes under the name on the prompt.
+-- A confirmed settle (the client naming the person) has nothing to qualify.
 local SETTLE_INFERENCE = {
 	targeted = {
 		said = L["our spell went out and the macro aimed at them, but this client would not say who received it"],
@@ -4407,34 +3751,13 @@ local SETTLE_INFERENCE = {
 -- oldest first. See UnsettleLateRefusal.
 local settledRecent = {}
 
--- This was one slot and a timestamp, and the timestamp was standing in for a
--- question it could not answer: not "did something settle recently" but "which
--- press is this refusal about". With two settles inside one window it threw
--- both records away, which is the buff walk working as designed -- press, next
--- buff, press -- being treated as a stutter.
---
--- The identity was there the whole time. The client hands a cast guid to both
--- events: UNIT_SPELLCAST_SENT carries it third, UNIT_SPELLCAST_FAILED second,
--- and both handlers discarded it into an underscore. Carried through, a refusal
--- is matched to the cast it answers and two presses in a second cost nothing.
---
--- And it is the only thing that may. A refusal with no guid on one side or the
--- other used to be matched anyway whenever exactly one record in the window
--- was for the spell it named, on the theory that only that record could be
--- meant. The theory was wrong: a refusal need not be about any record at all.
--- A second press mashed in a fight, which the frozen macro sends whatever the
--- addon decided, or the same buff pressed on an action bar inside the global
--- cooldown, is refused with nothing parked -- and that refusal was read as the
--- answer to the press before it, which had landed. The debt came back, the
--- blocks were cut to two seconds, chat said the game had refused the cast, and
--- the person was offered and cast at again. A spell id cannot tell a new
--- attempt from an old one; only the guid names a cast. So no guid is no
--- evidence, and on this side no evidence has to mean no action -- the rule
--- that once kept a failure the client would not put a spell id on from
--- reopening a repaid debt, applied to the guid instead. Nothing here has
--- established that this client fills the guid in, so what it may cost is a real
--- late refusal going unnoticed and the favour staying marked repaid: quieter,
--- and never a false sentence about somebody who was in fact buffed.
+-- A refusal is matched to the cast it answers by the cast guid, and only by
+-- it: UNIT_SPELLCAST_SENT carries it third, UNIT_SPELLCAST_FAILED second. A
+-- spell id cannot tell a new attempt (a mashed press, the same buff from an
+-- action bar) from the answer to one that landed, so no guid is no evidence,
+-- and no evidence means no action. Whether this client fills the guid in is
+-- untested (STATUS.md); if not, a real late refusal goes unnoticed and the
+-- favour stays repaid -- quieter, never a false sentence.
 local function PruneSettled(now)
 	now = now or GetTime()
 	for i = #settledRecent, 1, -1 do
@@ -4465,123 +3788,67 @@ end
 local function SettlePendingClick(landedOn, spellId, castGUID)
 	local pending = ns.pendingClick
 	if not pending then return end
-	-- This cast belongs to something else: the client answers one it accepted
-	-- in the same frame, and that frame is long gone. The record is still
-	-- parked only because the tick has not swept it, so the outcome the window
-	-- running out establishes is still owed and is filed here. What must not
-	-- happen is this cast being judged against a press it has nothing to do
-	-- with, which is why the record is retired rather than settled.
-	--
-	-- The sentence is spelled out rather than left to the default, which says
-	-- nothing at all was cast. Something was: this event. It is only too late to
-	-- be an answer to this press, and filing the one event that proves a spell
-	-- went out as proof none did is a plain untruth in the user's chat.
+	-- Past the window this cast belongs to something else (an accepted cast
+	-- answers in the same frame), so the record is retired, not settled -- with
+	-- its own sentence, since something was cast, just too late to be this.
 	if GetTime() - pending.at > SETTLE_SECONDS then
 		ExpirePendingClick(pending,
 			L["the game never answered that press, and this cast came too late to be its answer"])
 		return
 	end
 
-	-- Inside the window, and still too late to be this press's answer: see
-	-- SENT_SECONDS. It is not evidence either way, so the record is left
-	-- exactly as it is and the sweep still owns it.
+	-- Inside the window, but too late to be this press's answer (SENT_SECONDS):
+	-- no evidence either way, so the sweep still owns the record.
 	if GetTime() - pending.at > SENT_SECONDS then return end
 
-	-- Asked once, because three of the branches below want the answer.
 	local ours = SpellIsOurs(spellId, pending.buffKey)
 
-	-- why is the reason this favour is still owed, and nil means it is not.
-	-- inferred is nil where the client itself named the person and otherwise
-	-- names which inference is carrying the settle, because the two are not the
-	-- same claim and the panel and the chat line both have to say which one
-	-- they are making. The branches are in the order they can be decided: what
-	-- the macro was is known for certain, who the spell reached is usually
-	-- known, and which spell it was is known last of all.
+	-- `why` is the reason this favour is still owed, nil if it is not.
+	-- `inferred` is nil where the client itself named the person, otherwise
+	-- which inference carries the settle: the panel and chat say which.
 	local why, inferred
-	-- Set where our shout went out and nothing measured the person inside its
-	-- reach when the prompt was pressed. See below.
+	-- Our shout went out, but nothing measured them inside its reach.
 	local unheard = false
 	if pending.selfCast then
-		-- A selfCast buff's macro has no /target line and cannot have one: the
-		-- spell lands on the caster and reaches the party from there. So "did
-		-- it go to the person we offered" has no true answer for this click,
-		-- and asking it anyway meant the debt was never once settled -- the
-		-- same person came back on the prompt every two seconds, the line
-		-- announced they were still owed in the moment they had just been
-		-- buffed, and their name was blamed for a /target that was never in
-		-- the macro. Battle Shout is the whole of what a warrior has to give,
-		-- so this was every repayment a warrior can make.
-		--
-		-- Whether our own spell went out is the only thing left to check, and
-		-- the only thing that needs checking.
+		-- A selfCast buff's macro has no /target line: the spell lands on the
+		-- caster and reaches the party from there, so whether our own spell
+		-- went out is the only thing to check. (This is every repayment a
+		-- warrior can make.)
 		if not ours then
 			why = L["|cffffffff%s|r went out instead"]:format(SpellLabel(spellId))
 		else
-			-- Settled, and inferred -- which this used to skip, taking the
-			-- confirmed tick instead. That was the strongest claim the panel
-			-- can make sitting on the weakest evidence in this function: the
-			-- targeted branch below at least has a /target of ours aimed at
-			-- this person, recorded at press time. Here there is no /target by
-			-- construction, no recipient in the cast event, and nothing
-			-- anywhere tying the spell to the person named -- Battle Shout
-			-- going out says a shout happened, and that it reached the person
-			-- we offered it to is an assumption about where they were
-			-- standing. Strictly less evidence cannot mean a stronger claim.
+			-- Inferred, never confirmed: nothing ties the shout to the person
+			-- but where they were standing. Where no signal measured them within
+			-- reach, the press counts but the favour is kept.
 			inferred = "selfcast"
-			-- And where they were standing is something the scan may have
-			-- measured. Where it did not -- no signal on this client answered
-			-- about them -- the shout going out says nothing about whether they
-			-- heard it, and a debt cleared on it is cleared for somebody who may
-			-- be a zone away. The press still counts as a press; the favour is
-			-- kept.
 			unheard = not pending.withinShout
 		end
-	-- A /target for a name the game cannot resolve is a no-op: it leaves your
-	-- existing target in place, so the cast goes to whoever that was. Settling
-	-- on "something was cast" alone marked the favour repaid to a stranger who
-	-- never received anything.
-	--
-	-- Four spellings are accepted because four can legitimately come back. The
-	-- first is the one the macro actually aimed at, handed over by the builder
-	-- rather than reconstructed here -- it is the same string as the key on
-	-- Camelot and drops the realm off a cross-realm name anywhere else. The
-	-- other three are what the client may hold instead: the name it is filed
-	-- under, the bare first name, and one without a cross-realm suffix. None of
-	-- those is somebody else.
+	-- A /target for a name the game cannot resolve is a no-op, and the cast
+	-- goes to whoever was already targeted. Four spellings are accepted as the
+	-- person: the one the macro aimed at, the key, the bare first name and
+	-- the name without a cross-realm suffix.
 	elseif landedOn and landedOn ~= pending.aimedAt
 		and landedOn ~= pending.name
 		and landedOn ~= (ns.FirstName and ns.FirstName(pending.name))
 		and landedOn ~= (ns.ShortName and ns.ShortName(pending.name)) then
-		-- Somebody else entirely got it, which means our own /target did
-		-- nothing and the spell went to whoever was already targeted.
+		-- Somebody else got it: our /target did nothing.
 		why = L["it went to |cffffffff%s|r"]:format(tostring(landedOn))
 	elseif not ours then
 		-- Right person, wrong spell: anything else on a bar can beat the
 		-- macro's own /cast to the click.
 		why = L["|cffffffff%s|r went out instead"]:format(SpellLabel(spellId))
 	elseif landedOn then
-		-- Our spell, and the client named the person we aimed at. The only
-		-- branch here where the favour is confirmed rather than inferred, which
-		-- is why it is empty and has to stay: leaving `why` and `inferred` both
-		-- nil is the settle, and folding it into the branch below would put a
-		-- "this client would not confirm who to" on the one press where it did.
+		-- Our spell, and the client named the person we aimed at: the one
+		-- confirmed settle, empty on purpose (`why` and `inferred` both nil).
 	elseif pending.targeted then
-		-- Our spell, and the client would not say who received it -- which on
-		-- this client is the ordinary answer rather than the exception.
-		--
-		-- Refusing to settle on it would make every favour permanent on a
-		-- client that never names a recipient, so something has to carry the
-		-- inference. What carries it is the macro: it had a /target of ours in
-		-- it, aimed at this person, recorded at press time rather than guessed
-		-- at now. That is not proof the spell reached them, and the verbose
-		-- line below says so instead of implying otherwise.
+		-- Our spell, and the client would not say who got it, which is the
+		-- ordinary answer here. The macro's /target of ours at this person,
+		-- recorded at press time, carries the inference; the verbose line
+		-- says it is one.
 		inferred = "targeted"
 	else
-		-- Our spell went out, the client will not say to whom, and the macro
-		-- carried nothing aimed at this person -- a /manners try template is
-		-- the shape that gets here. There is no thread at all between the
-		-- press and the person, so settling would be settling on the bare fact
-		-- that a spell was cast.
+		-- Our spell went out to nobody known, and the macro aimed at nobody (a
+		-- /manners try template): nothing ties the press to the person.
 		why = L["this client would not say who received it, and the macro aimed at nobody"]
 	end
 
@@ -4589,22 +3856,17 @@ local function SettlePendingClick(landedOn, spellId, castGUID)
 		SayStillOwed(pending.name, why)
 		RewindClick(pending)
 		ns.pendingClick = nil
-		-- The same sentence the chat line uses, so the panel and the log cannot
-		-- disagree about what happened. Its colour codes come out: the sub-line
-		-- is already tinted, and a nested one renders as literal text.
+		-- The chat line's sentence, without colour codes: the sub-line is
+		-- already tinted, and a nested one renders as literal text.
 		ShowOutcome("failed", pending.name, (why:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")))
 		return
 	end
 
-	-- Read before SettleFavour clears it, because the undo below has to put back
-	-- the entry that stood rather than a fresh one: it carries when the favour
-	-- was done as well as when it expires, and the grace window reads that.
+	-- Read before SettleFavour clears it: an undo puts back the entry that
+	-- stood, including when the favour was done, which the grace window reads.
 	local wasOwed = owed[pending.name]
 
-	-- Only where there was a favour to repay, and only when asked for: a click
-	-- on somebody who simply looked short of a buff owes nothing and settles
-	-- nothing, so saying "counted as repaid" about them would be its own small
-	-- untruth.
+	-- Only where there was a favour to repay.
 	if unheard and wasOwed and pending.outOfShout then
 		SayStillOwed(pending.name, L["the shout went out, but they were too far away to hear it"])
 	elseif unheard and wasOwed then
@@ -4617,16 +3879,9 @@ local function SettlePendingClick(landedOn, spellId, castGUID)
 				SETTLE_INFERENCE[inferred].said:format(buff and ns.BuffName(buff) or L["the spell"])))
 		end
 	elseif pending.answered then
-		-- An error inside the window already told chat, in the game's words,
-		-- that this person was not buffed or is still owed -- and this is the
-		-- cast that went out after it, so the error was about something else.
-		-- Neither branch above speaks for a stranger or for somebody the client
-		-- itself named, so that line was left standing as the last word about a
-		-- buff that landed and a debt this settle is about to clear. Only where
-		-- it was said: without verbose there is nothing to take back.
-		--
-		-- Worded to the evidence, as everything else here is: "was buffed" only
-		-- where the client named them, and otherwise only that the spell went.
+		-- An error inside the window already told chat this person was not
+		-- buffed; this cast went out after it, so take that back, worded to
+		-- the evidence. Only with verbose, where it was said.
 		local db = addon.db and addon.db.profile
 		if db and db.verbose then
 			local line = wasOwed and L["|cffffd100%s counted as repaid after all|r -- the error before it was about something else."]
@@ -4636,25 +3891,12 @@ local function SettlePendingClick(landedOn, spellId, castGUID)
 		end
 	end
 
-	-- Confirmed and inferred are kept apart here for the same reason the verbose
-	-- wording above distinguishes them. "cast" is the client naming the person
-	-- we aimed at, and it is the only thing in this function that is not an
-	-- inference. "sent" is everything that is: our spell went out and something
-	-- other than the client's word connects it to the person named.
+	-- "cast" only where the client named the person; "sent" for an inference.
 	local how = inferred and SETTLE_INFERENCE[inferred]
 	ShowOutcome(how and "sent" or "cast", pending.name, how and how.sub)
 
-	-- Put back what PostClick wrote, because something may have taken it away.
-	-- An error inside the window rewinds the per-buff cooldown to two seconds
-	-- and the rotation pointer to where the press found it, and then leaves the
-	-- record parked on purpose so a cast arriving after it can still settle.
-	-- This is that cast. Nothing restored either write, so a buff that really
-	-- did go out came back onto the prompt two seconds later -- the rewind
-	-- outliving the doubt that justified it.
-	--
-	-- Written unconditionally rather than only after a rewind: these are the two
-	-- values a landed cast is supposed to leave behind, and asserting them here
-	-- costs one table write against remembering which of four paths got here.
+	-- Put back what PostClick wrote, which an error inside the window may have
+	-- rewound; written unconditionally, as what a landed cast leaves behind.
 	ns.MarkAttempted(pending.name, pending.buffKey)
 	if pending.buffKey and ns.RotatesBuffs() then
 		ns.lastGave[pending.name] = pending.buffKey
@@ -4663,8 +3905,7 @@ local function SettlePendingClick(landedOn, spellId, castGUID)
 	if not unheard then ns.SettleFavour(pending.name) end
 	-- And whatever they asked for is answered, on the same evidence.
 	if not unheard then ns.ServeRequest(pending.name) end
-	-- The ledger follows the same gate: a shout nobody measured them hearing is
-	-- not recorded either way, so the debt stands and so does its row.
+	-- The ledger follows the same gate as the debt.
 	if not unheard then TellLedger("Settled", pending.name, wasOwed, pending, spellId) end
 	-- The client sent the cast; the server has not answered yet. Keep the
 	-- record so a refusal arriving a moment from now has something to be about.
@@ -4673,67 +3914,28 @@ local function SettlePendingClick(landedOn, spellId, castGUID)
 	ns.pendingClick = nil
 end
 
--- A refusal that arrives after the settle has already let the record go.
---
--- UNIT_SPELLCAST_SENT is the client saying it sent the cast, not the server
--- saying it took it. The refusal -- out of range, line of sight, they moved,
--- they died -- comes back a moment later, and by then the slot is empty and the
--- failure handler returns on its first line. So the whole of it was dropped:
--- no red flash, no chat line, a tick left standing over a cast the server threw
--- away, the debt cleared, and the twelve-second block holding -- which is to
--- say the one press the user made was filed as a favour repaid and that person
--- was not offered again for the rest of the window.
---
--- The record is kept for exactly as long as a parked one would have lived.
--- That number is deliberately not a new one: the reason SETTLE_SECONDS is a
--- single constant is that everything judging a record has to agree about when
--- it is dead, and a fourth reader with its own idea is a record judged twice or
--- not at all.
---
--- It runs from UNIT_SPELLCAST_FAILED alone. UI_ERROR_MESSAGE drove it too for
--- one round and could not: that event carries no spell id, so there was nothing
--- to check and any complaint the game made inside the window undid the settle.
--- What it still cannot do either way is repeat the game's own words -- out of
--- range, line of sight, not enough mana -- because those arrive only on the
--- error, with nothing but the clock connecting one to the other. The panel says
--- the cast was refused and stops there.
---
--- Returns the name, so the caller can flash the panel for it.
+-- A refusal that arrives after the settle has already let the record go:
+-- UNIT_SPELLCAST_SENT is the client sending the cast, not the server taking
+-- it, and out of range or line of sight come back a moment later. The record
+-- is kept for SETTLE_SECONDS. Driven by UNIT_SPELLCAST_FAILED alone, since
+-- UI_ERROR_MESSAGE carries no spell id, so the game's own words cannot be
+-- repeated. Returns the name, for the panel.
 local function UnsettleLateRefusal(castGUID)
 	PruneSettled()
-	-- Somebody else's cast failing, a new attempt being refused, or a failure
-	-- the client would not put a guid on. None of those is evidence about a
-	-- cast that settled, and this is the direction where no evidence has to
-	-- mean do nothing.
+	-- No match is no evidence about a cast that settled, and does nothing.
 	local index = MatchSettled(castGUID)
 	if not index then return nil end
 
-	-- Consumed before anything is undone with it. A refusal is one event about
-	-- one cast, and a record left lying here would let the next unrelated
-	-- failure paint red over whatever the panel has since moved on to. The
-	-- rejections above deliberately leave every record alone: a spell of
-	-- somebody else's failing is nobody's answer, and the real one may still
-	-- arrive.
+	-- Consumed before anything is undone with it: one refusal, one cast.
 	local settled = table.remove(settledRecent, index)
 
-	-- A switched-off addon is the same lie told louder, which is the rule
-	-- NoteFavour keeps at the other end of this same write. Only `enabled`,
-	-- though: gating this on the owed source as well threw the whole refusal
-	-- away -- the red flash and the rewound blocks with it -- when all that
-	-- source decides is whether a debt existed to put back, and NoteFavour has
-	-- already declined to record one, so `settled.owed` is nil anyway.
+	-- Nothing for a switched-off addon. Only `enabled`: the owed source
+	-- decides only whether there was a debt, and settled.owed says that.
 	local db = addon.db and addon.db.profile
 	if not db or not db.enabled then return nil end
 
-	-- Out through the same door SettleFavour went: it wrote the clearing to
-	-- disk, so putting the debt back in memory alone would restore the favour
-	-- for this session and lose it again at the next login.
-	--
-	-- Unless they have buffed you again since, which files a debt of its own
-	-- inside the same few seconds. That one is the newer favour and runs out
-	-- later, and writing the older one over it moved its end back to the first
-	-- favour's, so it left the prompt before its own window was up. Whichever
-	-- lasts longer is the one kept: the refusal only means you still owe them.
+	-- Written to disk, as SettleFavour's clearing was. A newer favour filed
+	-- since is kept if it lasts longer: the refusal only means you still owe.
 	if settled.owed then
 		local standing = owed[settled.name]
 		if not standing or LiveExpiry(standing) < LiveExpiry(settled.owed) then
@@ -4741,59 +3943,39 @@ local function UnsettleLateRefusal(castGUID)
 		end
 		SaveDebts()
 	end
-	-- The ledger wrote the settle down too, stamped with the same clock as this
-	-- record, and takes it back the same way.
+	-- The ledger takes back its settle by the same clock.
 	TellLedger("Refused", settled.name, settled.at)
-	-- And the blocks and the rotation pointer the click wrote on the assumption
-	-- it landed, which the settle deliberately let stand.
+	-- And what the click wrote, which the settle let stand.
 	RewindClick(settled)
 	SayStillOwed(settled.name, L["the game refused the cast after sending it"])
 	return settled.name
 end
 
 -- The global cooldown, read where the client will say and tracked where not.
---
--- Reading it means naming a spell whose cooldown IS the global one. This file
--- used to say which spell that is differs by class and by client, and tracked
--- it instead -- which armed a second and a half of "not ready" after every cast
--- the player sent, a healthstone, a potion, a trinket or Counterspell as much
--- as a Frostbolt. A press made a moment after one was held for nothing; and
--- in a fight, where the frozen macro goes out whatever is decided here, the
--- press was set aside as turned away while its cast landed, so nothing was
--- filed and the person was cast at again after the fight. The premise was
--- wrong: on the retail line this client descends from, spell 61304 is the
--- global cooldown itself, the same for every class, and addons running on this
--- very client read it (EnhanceQoL's GCD bar and its cooldown panels).
---
--- It may still be withheld, a fight being where this client withholds most.
--- So the tracking stays, as the fallback: the moment a cast is sent, nothing
--- else can be cast for about a second and a half. Ask the client for the real
--- figure where it will answer, and fall back to the value that has been 1.5
--- seconds since the game shipped.
+-- On the retail line this client descends from, spell 61304 IS the global
+-- cooldown for every class, and addons on this client read it (EnhanceQoL's
+-- GCD bar). It may be withheld, in a fight most of all, so the fallback
+-- tracks it: once a cast is sent, nothing else casts for about 1.5 seconds.
 local GCD_FALLBACK = 1.5
 local GCD_SPELL = 61304
 local castBlockedUntil = 0
--- When the tracked block above began, so the prompt's cooldown sweep can be
--- drawn from it where the client will not give its own figure.
+-- When the tracked block began, for the prompt's sweep where the client
+-- gives no figure.
 local castBlockedFrom = 0
 
 local function NoteCastWentOut(spellId)
 	local now = GetTime()
 	local seconds = GCD_FALLBACK
 
-	-- C_Spell.GetSpellCooldown answers with a table on a modern client. Its
-	-- duration for an instant buff IS the global cooldown, which is the number
-	-- wanted here -- but only when it is readable and sane, because a secret
-	-- or a zero would unblock the button immediately and put the column of
-	-- refusals straight back.
+	-- C_Spell.GetSpellCooldown answers with a table, whose duration for an
+	-- instant buff IS the global cooldown -- used only when readable and sane,
+	-- since a secret or a zero would unblock the button at once.
 	local get = C_Spell and C_Spell.GetSpellCooldown
 	if get and spellId then
 		local ok, info = pcall(get, spellId)
 		if ok and type(info) == "table" then
-			-- Unless it says outright that this spell does not trigger the
-			-- global cooldown at all. Then there is nothing to track: the
-			-- guess would hold the prompt for a cooldown that is not running.
-			-- Only a readable false counts -- nil is the client saying nothing.
+			-- A readable false says this spell triggers no global cooldown;
+			-- nil is the client saying nothing.
 			if plain(info.isOnGCD) == false then return end
 			local duration = plain(info.duration)
 			if type(duration) == "number" and duration > 0 and duration <= 3 then
@@ -4802,33 +3984,18 @@ local function NoteCastWentOut(spellId)
 		end
 	end
 
-	-- Extended, never shortened. A second cast event inside a running cooldown
-	-- can report a smaller figure of its own -- an off-cooldown spell's -- and
-	-- overwriting reopened the button under a cooldown that was still running.
+	-- Extended, never shortened: a second cast event inside a running cooldown
+	-- can report a smaller figure of its own.
 	if now + seconds > castBlockedUntil then
 		castBlockedUntil = now + seconds
 		castBlockedFrom = now
 	end
 end
 
--- Whether a press right now could reach the server at all, and how long until
--- it could. Published because the prompt has to say so rather than let
--- somebody click into silence.
---
--- The global cooldown is not the only thing a press can land in. A spell with a
--- cast time -- Conjure Water, Conjure Food, a Hearthstone -- goes on after it,
--- and the client refuses a /cast for as long as it does: from a second and a
--- half into a three-second conjure the guard reported ready, and the refusal
--- was filed against the person offered exactly as it was before the guard
--- existed. So the player's own cast is read as well, where the client will say.
--- Channels are left alone: a new cast interrupts one rather than being refused.
 -- How long before the global cooldown ends the client will accept a /cast and
--- hold it, rather than refuse it. It then casts on its own the moment the
--- cooldown runs out -- so a press in that window is a press that lands, not
--- one that is turned away.
---
--- Read from the client's own setting where it will say, because players tune
--- it; 400 ms is the default on the retail line this client descends from.
+-- hold it, casting on its own when the cooldown runs out: a press in that
+-- window lands. The client's own setting, since players tune it; 400 ms is
+-- the default on the retail line this client descends from.
 function ns.SpellQueueWindow()
 	local get = _G.GetCVar
 	if type(get) == "function" then
@@ -4840,9 +4007,7 @@ function ns.SpellQueueWindow()
 end
 
 -- What is left of the global cooldown by the client's own figure, or nil where
--- it will not give one. 61304 reads nothing running -- a zero start and
--- duration -- when the cooldown is idle, so an idle one is a readable zero
--- rather than a missing answer.
+-- it gives none. An idle 61304 reads a zero start and duration: a readable 0.
 local function GlobalCooldownLeft(now)
 	local get = C_Spell and C_Spell.GetSpellCooldown
 	if not get then return nil end
@@ -4856,13 +4021,8 @@ local function GlobalCooldownLeft(now)
 end
 
 -- The global cooldown as a start and a length, for the sweep the prompt draws
--- over its icon, or nil when none is running. The same three sources as
--- CastReady below: the client's own figure where it gives one, the tracked
--- block where it does not, and the player's own cast in progress, which keeps
--- a press from going through for as long as it runs. With only the first two
--- the sweep ended a second and a half into a three-second conjure, over a
--- button that answered "ready in 1.0s" -- the sweep and the "ready in" line
--- have to agree about when the button is ready.
+-- over its icon, or nil when none is running. The same sources as CastReady,
+-- so the sweep and the "ready in" line agree about when the button is ready.
 local function GcdSpan(now)
 	local get = C_Spell and C_Spell.GetSpellCooldown
 	if get then
@@ -4884,8 +4044,7 @@ end
 function ns.GlobalCooldownSpan(now)
 	now = now or GetTime()
 	local start, duration = GcdSpan(now)
-	-- Read exactly as CastReady reads it. Channels are left out there, so they
-	-- are here: a new cast interrupts one rather than being refused.
+	-- The player's own cast, read exactly as CastReady reads it.
 	local casting = _G.UnitCastingInfo
 	if type(casting) == "function" then
 		local ok, _, _, _, startMS, endMS = pcall(casting, "player")
@@ -4899,12 +4058,14 @@ function ns.GlobalCooldownSpan(now)
 	return start, duration
 end
 
+-- Whether a press right now could reach the server, and how long until it
+-- could, so the prompt can say so. A spell with a cast time (a conjure, a
+-- Hearthstone) blocks a /cast past the global cooldown, so the player's own
+-- cast is read too. Channels are left out: a new cast interrupts one.
 function ns.CastReady()
 	local now = GetTime()
 	-- The client's figure where it gives one, in place of the tracked guess
-	-- rather than alongside it: the guess is what a cast off the global
-	-- cooldown arms wrongly, so keeping the longer of the two would keep the
-	-- whole fault.
+	-- (which a cast off the global cooldown arms wrongly), not beside it.
 	local left = GlobalCooldownLeft(now) or (castBlockedUntil - now)
 	local casting = _G.UnitCastingInfo
 	if type(casting) == "function" then
@@ -4965,16 +4126,14 @@ function addon:UNIT_SPELLCAST_INTERRUPTED(_, unit)
 	SyncSweep()
 end
 
--- Pushback: being hit while casting moves the cast's end later, and this is
--- the only event that says so. CastReady reads the new end live, so without
--- this the sweep stopped at the old one while a press was still refused.
+-- Pushback: being hit while casting moves the cast's end later, and only this
+-- event says so.
 function addon:UNIT_SPELLCAST_DELAYED(_, unit)
 	if unit ~= "player" then return end
 	SyncSweep()
 end
 
--- Any change to the cooldowns, the global one included -- which is how a
--- cooldown handed back without a failure of ours reaches the sweep.
+-- Any change to the cooldowns, the global one included.
 function addon:SPELL_UPDATE_COOLDOWN()
 	SyncSweep()
 end
@@ -4982,23 +4141,13 @@ end
 function addon:UNIT_SPELLCAST_FAILED(_, unit, castGUID, spellId)
 	if unit ~= "player" then return end
 	-- First: a refusal after SENT has the client take back the global
-	-- cooldown it started on the cast's word, and the sweep drawn from it went
-	-- on running for up to a second and a half over a button a press already
-	-- went through on.
+	-- cooldown the sweep is drawn from.
 	SyncSweep()
 	spellId = plain(spellId)
 	castGUID = plain(castGUID)
-	-- The server refusing a cast the client already reported sending. Only when
-	-- no record is parked: one that is has not settled yet, is inside its
-	-- window, and is UI_ERROR_MESSAGE's to answer -- two rewinders for one
-	-- outcome is the shape that left one of them never running in the first
-	-- place.
-	--
-	-- Of the two events that carry a refusal this is the only one that can be
-	-- checked at all: it names the cast, so the refusal of the very cast that
-	-- settled is told apart from anything else on the bar failing, and from a
-	-- new attempt at the same spell being turned away. That is why it is the
-	-- only one allowed to undo a settle.
+	-- The server refusing a cast the client already reported sending. Only
+	-- with no record parked: a parked one is UI_ERROR_MESSAGE's to answer. This
+	-- event names the cast, which is why only it may undo a settle.
 	if not ns.pendingClick then
 		local late = UnsettleLateRefusal(castGUID)
 		if late then ShowOutcome("failed", late, L["the game refused the cast"]) end
@@ -5008,25 +4157,15 @@ function addon:UNIT_SPELLCAST_FAILED(_, unit, castGUID, spellId)
 	end
 end
 
--- Only errors that arrive in the moment after our own click, and only when
--- asked for. Hooking this event reports everything the game raises -- item
--- errors, action-in-progress, rest state -- none of which is ours, and all of
--- which is noise in somebody's chat.
+-- Only errors in the moment after our own click, and printed only when asked
+-- for: this event carries everything the game raises.
 function addon:UI_ERROR_MESSAGE(_, _, message)
 	message = plain(message)
-	-- An error in the moment after a click is a reason to doubt the cast, so
-	-- whoever we owed is still owed and what the click wrote comes back out.
-	--
-	-- A record still parked is the only thing this event may be read against:
-	-- that is a click the game has not answered, and doubt is all this can add
-	-- to it. It used to reach past that into a settle that had already happened
-	-- and undo it, on an event carrying no spell id -- see UnsettleLateRefusal.
+	-- A reason to doubt a click still parked, and nothing more: it carries no
+	-- spell id, so it never undoes a settle (see UnsettleLateRefusal).
 	local failed = FailPendingClick(message)
-	-- Only where a click was actually parked, so the panel flashes for an error
-	-- that arrived inside our own window and stays quiet for the rest of what
-	-- this event carries. The game's own words go on the sub-line: they are
-	-- localised and frequently the only thing that says *why* -- out of range,
-	-- line of sight, not enough mana -- and none of it reached the user before.
+	-- The game's own words go on the panel's sub-line: localised, and often
+	-- the only thing that says why.
 	if failed then
 		ShowOutcome("failed", failed, type(message) == "string" and message or nil)
 	end
@@ -5036,14 +4175,9 @@ function addon:UI_ERROR_MESSAGE(_, _, message)
 	self:Print(L["|cffff4040after our cast:|r %s"]:format(tostring(message)))
 end
 
--- SPELLS_CHANGED fires often, so the probe is rate-limited rather than run on
--- every single one.
---
--- With a trailing edge. A burst -- spells bought from a trainer one after
--- another, a talent change landing on the heels of another spell event -- used
--- to lose everything after its first event: nothing came back for the rest, so
--- a buff learned in the middle of it stayed unknown, never offered and greyed
--- out on the options page, until some unrelated event or a loading screen.
+-- SPELLS_CHANGED fires often, so the probe is rate-limited -- with a trailing
+-- edge, so a buff learned in the middle of a burst (a trainer visit) is still
+-- noticed.
 local probeQueued = false
 function addon:SPELLS_CHANGED()
 	local now = GetTime()
@@ -5066,60 +4200,40 @@ function addon:PLAYER_DEAD() if ns.Prompt then ns.Prompt:Refresh() end end
 function addon:PLAYER_ALIVE() if ns.Prompt then ns.Prompt:Refresh() end end
 function addon:PLAYER_UNGHOST() if ns.Prompt then ns.Prompt:Refresh() end end
 
--- Combat freezes the secure attributes, so from here until the fight ends the
--- macro on the button is whatever it was when the fight started: the same
--- person, the same buff, however long they have since been out of range or
--- already buffed by somebody else. The panel kept painting that frozen entry at
--- full brightness with a live queue listed underneath it, which is the one
--- state where everything it says is stale and nothing about it looks stale.
---
--- Refresh does the whole job -- it is the function that knows about lockdown --
--- but not from inside this handler. The client fires it just before lockdown
--- begins, so InCombatLockdown() is still false here: other addons on this
--- client call protected methods from this very event. A Refresh run now takes
--- the out-of-combat path, which is worth having -- it re-aims the macro while
--- attributes can still be written -- and paints no hold at all. The hold is
--- painted by a second Refresh on the next frame, once lockdown is on, rather
--- than waiting up to two seconds for the next scan.
+-- Combat freezes the secure attributes: until the fight ends the button runs
+-- whatever macro it had when the fight started, and the panel must show that
+-- hold. The client fires this just before lockdown begins (InCombatLockdown()
+-- is still false; other addons call protected methods from it), so a Refresh
+-- now re-aims the macro while it still can, and a second one next frame,
+-- under lockdown, paints the hold.
 function addon:PLAYER_REGEN_DISABLED()
 	-- First, while the button can still be touched: a drag held into the pull
 	-- is let go of and its position kept, rather than released in the fight.
 	if ns.Prompt then ns.Guard("drag at fight start", ns.Prompt.FinishDragForFight, ns.Prompt) end
 	-- Somebody who asked for a buff is not let go while you cannot offer it.
 	ns.Guard("requests at fight start", ns.HoldRequestsForFight)
-	-- The macro this Refresh arms is the one every press in the fight runs,
-	-- whatever the player targets meanwhile, so it is built to hand the target
-	-- back even for somebody who is the target now. See STRATEGIES.target.
+	-- The macro armed now serves every press in the fight whatever the player
+	-- targets meanwhile, so it hands the target back even for somebody who is
+	-- the target now. See STRATEGIES.target.
 	if ns.Prompt then ns.Prompt.armedForFight = true end
 	if ns.Prompt then ns.Guard("combat hold", ns.Prompt.Refresh, ns.Prompt) end
 	C_Timer.After(0, function()
 		if ns.Prompt then ns.Guard("combat hold", ns.Prompt.Refresh, ns.Prompt) end
 	end)
-	-- Every control on the Prompt tab is a secure attribute or a texture on a
-	-- secure frame, and ApplyStyle gives up and returns for the length of the
-	-- fight. The tab says so, but only while it is being drawn -- so the page
-	-- has to be asked to draw itself again at both ends of the fight.
+	-- The Prompt tab's controls cannot act in a fight and the tab says so while
+	-- drawn, so it is redrawn at both ends of the fight.
 	ns.RepaintOptions()
 end
 
 function addon:PLAYER_REGEN_ENABLED()
-	-- Secure frames cannot be restyled or retargeted in combat, so anything
-	-- deferred while locked down gets flushed here -- and only then. ApplyStyle
-	-- sets the flag itself when it has to give up, and it walks every texture
-	-- and font on the panel; doing all of that because a fight ended, rather
-	-- than because something was actually put off, is work for nothing.
-	--
-	-- The other branch is not a tidy-up. ApplyStyle ends in a Refresh, so when
-	-- something was deferred the hold comes off with it; when nothing was, the
-	-- panel would sit dimmed and reading "held -- in combat" until the next
-	-- scan tick noticed the fight was over.
-	--
-	-- The macro can follow the target again, so it stops being built for a
-	-- fight -- first, so the Refresh below rebuilds it without the hand-back
-	-- for somebody who is already the target.
+	-- Secure frames cannot be restyled or retargeted in combat, so what was
+	-- deferred is flushed here. ApplyStyle ends in a Refresh; with nothing
+	-- deferred, a Refresh alone takes the hold off now rather than at the next
+	-- scan. The macro stops being built for a fight first, so that Refresh
+	-- drops the hand-back for somebody already the target.
 	if ns.Prompt then ns.Prompt.armedForFight = false end
-	-- Requests held through the fight get their minute from now -- before the
-	-- Refresh below, so the one it builds can offer them.
+	-- Requests held through the fight get their minute from now, before the
+	-- Refresh below so it can offer them.
 	ns.Guard("requests after the fight", ns.RequestsAfterFight)
 	if ns.Prompt and ns.Prompt.pendingStyle then
 		ns.Prompt:ApplyStyle()
@@ -5127,15 +4241,11 @@ function addon:PLAYER_REGEN_ENABLED()
 		ns.Guard("combat release", ns.Prompt.Refresh, ns.Prompt)
 	end
 
-	-- And the notice on the Prompt tab comes off. Without this it stands over
-	-- controls that work again, which is the same lie as the one it was added
-	-- to stop, told the other way round.
+	-- And the notice on the Prompt tab comes off, over controls that work again.
 	ns.RepaintOptions()
 
-	-- The one place a first greeting that could not go out gets another go.
-	-- Logging straight into a pull is the case: the prompt cannot be put on
-	-- screen during lockdown, so the greeting stood down rather than spend
-	-- itself on a panel nobody would see. Free on every other fight in the
+	-- A first greeting stood down by a fight (the prompt cannot be shown in
+	-- lockdown) gets another go; free on every other fight in the
 	-- character's life -- the flag is read first and this returns at once.
 	ns.Guard("Welcome", ns.Welcome)
 	-- And the old macro, for the same reason: it cannot be edited in a fight.
@@ -5151,23 +4261,18 @@ function ns.WriteProbe()
 		at = date("%Y-%m-%d %H:%M:%S"),
 		version = (GetBuildInfo()),
 		toc = select(4, GetBuildInfo()),
-		-- The same identity /manners debug prints, written where it can be read
-		-- off disk. A bug report that arrives as a copy of SavedVariables and
-		-- not as a transcript is the common case, and it used to carry the
-		-- interface number without anything saying what this addon made of it.
+		-- The identity /manners debug prints, for a report that arrives as a
+		-- copy of SavedVariables.
 		flavour = caps.flavour,
 		family = caps.family,
-		-- Which spell tables the flavour was turned into, which is a separate
-		-- question: several flavours share a set, and an unrecognised client
-		-- gets one by guess.
+		-- Which spell tables the flavour was given: flavours share sets, and an
+		-- unrecognised client gets one by guess.
 		buffData = ns.BUFFS_SOURCE,
 		buffDataMissing = ns.BUFFS_MISSING,
 		combatLog = caps.combatLog,
 		combatLogProbe = caps.combatLogProbe,
 		-- What the second source actually did, beside what the client was
-		-- thought to allow. A report saying "it never notices anybody" is
-		-- answered by these three and the aura line together: the log armed and
-		-- silent is a different bug from the log never arming.
+		-- thought to allow: armed and silent is a different bug from never armed.
 		combatLogArmed = ns.logScan.armed,
 		combatLogSeen = ns.logScan.applied,
 		combatLogFiled = ns.logScan.noted,
@@ -5193,9 +4298,8 @@ function ns.WriteProbe()
 			topRank = info.topRank,
 			readable = info.readable,
 			secrecy = info.secrecy,
-			-- The ids this client does not have. Written down rather than
-			-- counted: the numbers are the whole of what makes the report
-			-- actionable, since fixing it means editing exactly those.
+			-- The ids this client does not have, listed: fixing it means editing
+			-- exactly those.
 			unresolved = info.unresolved,
 		}
 	end
@@ -5206,17 +4310,14 @@ end
 -- click macro
 --
 -- A macro containing /click is the route the options page leads with: the
--- macro system delivers the click itself, the same way the native CLICK
--- binding does, and a macro can be dragged between bars without asking the
--- player to find the key bindings window. CreateMacro and EditMacro are both
--- protected during combat.
+-- macro system delivers the click as the native CLICK binding does, and it can
+-- be dragged between bars. CreateMacro and EditMacro are protected in combat.
 ---------------------------------------------------------------------------
 
 local MACRO_NAME = "Manners"
--- Button name and down flag, both required. /click with neither delivers an up
--- click, and the secure button only acts on the way down -- so the macro read
--- correctly, clicked, and cast nothing. This is the form the buttons that do
--- work on this client are driven with.
+-- Button name and down flag, both required: /click with neither delivers an up
+-- click, and the secure button only acts on the way down. This is the form the
+-- buttons that work on this client are driven with.
 local MACRO_BODY = "/click MannersPrompt LeftButton 1"
 
 function ns.CreateClickMacro()
@@ -5252,9 +4353,7 @@ function ns.CreateClickMacro()
 end
 
 -- What 0.9.x's /manners macro wrote: an up click, which the button no longer
--- acts on. The macro is already on somebody's bar and only /manners macro ever
--- rewrote it, so an upgrade left a key that pressed nothing -- the same
--- silence as a binding that does not work, with nothing to say why.
+-- acts on, sitting on somebody's bar.
 local OLD_MACRO_BODY = "/click MannersPrompt"
 
 -- Once a login, out of combat: EditMacro is protected in a fight. Only that
@@ -5273,9 +4372,8 @@ function ns.RepairOldMacro()
 	return true
 end
 
--- Asked from the login line and again at the end of every fight until it has
--- had its one look. A repair that throws is not asked again: it would throw
--- after every pull for the rest of the session.
+-- Asked at login and after every fight until it has had its one look. A
+-- repair that throws is not asked again.
 local macroSettled = false
 function ns.SettleOldMacro()
 	if macroSettled then return end
@@ -5287,82 +4385,44 @@ end
 ---------------------------------------------------------------------------
 -- first run
 --
--- Installing this addon used to do nothing you could see. No line saying what
--- it was for, nothing on screen, and no prompt until -- at some unpredictable
--- later moment -- a stranger buffed you and a panel appeared somewhere. From
--- the user's side that is the same experience as an addon that does not work,
--- and it is why people uninstall.
+-- A greeting, once: what the addon does, what it looks like and where, and the
+-- one thing it cannot do for you -- otherwise nothing shows until a stranger
+-- buffs you, which reads as an addon that does not work.
 --
--- Three things, once: what it does, what it looks like and where, and the one
--- thing it cannot do for you.
---
--- Stored in db.char rather than the profile, and that is not a coin toss.
--- OnInitialize builds the AceDB with a shared default profile -- the `true`
--- third argument -- so every character on the account starts life on the one
--- profile named "Default". A flag kept there would greet whichever character
--- logged in first and no other, ever, which is the exact silence this is here
--- to fix. And what it asks for is per character anyway: a macro dragged onto
--- this character's bars, or a key bound for it. AceDB partitions db.char
--- inside the one saved file, so there is no second SavedVariables line to add
--- and it survives a /reload the same way the stored debts do.
+-- The flag lives in db.char, not the profile: every character starts on the
+-- shared "Default" profile, so a profile flag would greet only the first
+-- character. What it asks for (a macro, a key) is per character anyway.
 ---------------------------------------------------------------------------
 
--- The honest sentence for a character that will never have anything to offer,
--- named once. /manners debug has printed it for as long as it has existed and
--- the greeting owes the same person the same words; two copies of it drift.
---
--- Except that the greeting and the login line say it as the end of a longer
--- sentence, and a translation cannot glue a standalone sentence onto another
--- one's clause. So those two carry their own copy of the words inside their
--- own key, and the copies have to be kept in step with this one by hand.
+-- The sentence for a character that will never have anything to offer, shared
+-- by /manners debug and the greeting. Translators: the greeting and the login
+-- line carry their own copy inside a longer key, kept in step by hand.
 ns.NO_CLASS_BUFFS = L["this class has no buffs to cast on other players."]
 
--- Returns true once it has said its piece, false while it is still waiting.
---
--- Every reason to wait below is a state that ends -- a probe with no answer
--- yet, a fight -- so nothing is written down in those cases and the next
--- attempt tries again. `force` is /manners welcome: somebody asked for it, so
--- it plays whatever the flag says. `offSaid` is the login line having just
--- said the profile is switched off, one line above.
+-- Returns true once it has said its piece, false while it is still waiting
+-- (for a probe answer, or a fight to end). `force` is /manners welcome;
+-- `offSaid` is the login line having just said the profile is switched off.
 function ns.Welcome(force, offSaid)
 	local store = addon.db and addon.db.char
 	if type(store) ~= "table" then return false end
 	if store.welcomed and not force then return true end
 
-	-- The probe's verdict on this character, which is both of the things that
-	-- decide the greeting: which one it is, and whether there is one yet.
-	--
-	-- Indexed off caps.class rather than asked separately, so a class the probe
-	-- has not read at all -- nil, which on this client is one secret value away
-	-- -- comes out as "not on the list" and lands in the gate below with
-	-- everything else that is not an answer.
+	-- The probe's verdict on this character. Indexed off caps.class, so a
+	-- class not read (one secret value away on this client) is "not on the
+	-- list" and meets the gate below with everything else that is no answer.
 	local nothingToGive = caps.class ~= nil and ns.CLASSES_WITHOUT_BUFFS ~= nil
 		and ns.CLASSES_WITHOUT_BUFFS[caps.class] == true
 
-	-- Not until the probe has produced an answer -- one gate, because the
-	-- states that arrive here without one are not distinguishable and all get
-	-- the same treatment.
-	--
-	-- hasClassBuffs is false for three different characters: a rogue, a mage
-	-- whose class the client would not name, and a class the buff data has
-	-- never heard of -- which is what an unrecognised client's guessed table
-	-- produces. Only the first of those has been told anything. Greeting the
-	-- other two with "this class has no buffs to cast on other players" would
-	-- be stating a guess as a fact, on the one screenful somebody reads before
-	-- deciding whether to keep the addon. So nothing is said and nothing is
-	-- written down, and the next login asks again; ns.BUFFS_MISSING already
-	-- shouts at load when the data is the problem, and /manners debug says
-	-- which of the three this is.
+	-- Not until the probe has an answer. hasClassBuffs is false for a rogue,
+	-- for a class the client would not name, and for one an unrecognised
+	-- client's guessed buff data does not know; greeting the last two with
+	-- "no buffs" would state a guess as fact. Nothing is written down and the
+	-- next login asks again; /manners debug says which case it is.
 	if not (caps.hasClassBuffs or nothingToGive) then return false end
 
-	-- Not in the middle of a fight. Half of this is putting the real prompt on
-	-- screen, and a protected frame cannot be shown during lockdown at all --
-	-- so firing here would spend the one time this ever happens on a greeting
-	-- pointing at nothing. PLAYER_REGEN_ENABLED comes back for it.
-	--
-	-- Except for the class that gets no picture: that greeting is two lines of
-	-- words, and words work in a fight. Made to wait, it would arrive at the
-	-- end of the pull instead, attached to nothing.
+	-- Not in a fight: a protected frame cannot be shown during lockdown, and
+	-- PLAYER_REGEN_ENABLED comes back for it. Except for the class with no
+	-- picture: words work in a fight.
 	if InCombatLockdown() and not nothingToGive then
 		if force then
 			addon:Print(L["|cffff8080not during a fight|r -- the prompt cannot be put on screen while one is on. Try again when it ends."])
@@ -5370,26 +4430,20 @@ function ns.Welcome(force, offSaid)
 		return false
 	end
 
-	-- Written down before a word is printed, not after. If one of the lines
-	-- below throws, this order costs a greeting that came out short; the other
-	-- order costs a greeting that comes out short on every login this
-	-- character ever has.
+	-- Written down before a word is printed: a line that throws then costs a
+	-- short greeting once rather than on every login.
 	store.welcomed = true
 
 	if nothingToGive then
-		-- No preview and no macro for a class that can never fill the prompt:
-		-- that would be a tour of something that is not going to happen.
+		-- No preview and no macro for a class that can never fill the prompt.
 		addon:Print(L["|cffffd100Manners|r is installed, but this class has no buffs to cast on other players."])
 		addon:Print(L["It is still worth keeping for an alt that does -- it will say hello again there."])
 		return true
 	end
 
-	-- Spells learned, and nothing any prompt will ever offer: every one of them
-	-- switched off, or a pin on one this character has not learned. The tour
-	-- below promised "a small prompt" and put up a preview of one that was
-	-- never going to appear, so this names the setting in the way instead. Not
-	-- for a character with nothing learned yet: that one is worth the tour, and
-	-- learns its first spell in a level or two.
+	-- Spells learned, but nothing any prompt will offer (all switched off, or
+	-- a pin on one not learned): name the setting instead of the tour. Not for
+	-- a character with nothing learned yet, who will learn a spell soon.
 	if caps.anyKnown and not ns.ResolveBuff(true) then
 		addon:Print(L["|cffffd100Manners|r is installed, but nothing will be offered to anybody: %s."]
 			:format(ns.NothingToCast()))
@@ -5397,10 +4451,7 @@ function ns.Welcome(force, offSaid)
 		return true
 	end
 
-	-- A class whose buffs reach the party and nobody else has no passer-by to
-	-- offer anything to, and the page this points at says so; telling a warrior
-	-- about "any stranger nearby" was a promise the queue refuses on its first
-	-- line.
+	-- A class whose buffs reach only the party has no passer-by to offer to.
 	if ns.OnlyReachesGroup() then
 		local buff = ns.ResolveBuff(true)
 		if buff then
@@ -5412,38 +4463,19 @@ function ns.Welcome(force, offSaid)
 	else
 		addon:Print(L["|cffffd100Manners|r puts anybody who buffs you -- and any stranger nearby who is missing one of yours -- on a small prompt. Clicking the prompt buffs them."])
 	end
-	addon:Print(L["The one thing that is not automatic: |cffffd100/manners macro|r makes a macro to drag onto a bar -- the |cffffd100Create the macro|r button on the options page does the same -- or bind a key under Options > Keybindings > Manners."])
+	addon:Print(L["The one thing that is not automatic: |cffffd100/manners macro|r or |cffffd100Create the macro|r in the options makes a macro for your bars, or bind a key under Options > Keybindings > Manners."])
 
-	-- Switched off, and this character never touched the switch: the profile
-	-- is shared, so an alt of somebody who turned the addon off is greeted by
-	-- an explanation of something that is not going to happen. The prompt will
-	-- not appear, and the reason is a setting rather than a fault -- so name
-	-- the setting, the same way /manners unlock does. Unless the login line
-	-- said exactly that one line above.
+	-- Switched off (perhaps by another character, on the shared profile): name
+	-- the setting, unless the login line said so one line above.
 	if addon.db.profile and not addon.db.profile.enabled and not offSaid then
 		addon:Print(L["|cffff8080It is switched off on this profile|r, so no prompt will appear -- |cffffd100/manners on|r when you want it."])
 	end
 
-	-- In a city the prompt may already have somebody real on it. Refresh drops
-	-- a mock-up the moment an actual person is waiting, and rightly so -- but
-	-- that means starting a preview here would print "preview on", then
-	-- "preview off -- somebody real turned up" a tick later, and leave the
-	-- greeting pointing at a panel it did not put there. So look first, and
-	-- point at whichever one is going to be on screen.
-	--
-	-- Only somebody who can actually be on the panel counts. The queue does not
-	-- know about the switch or the lock, so on a profile that is switched off,
-	-- or unlocked, a crowd produced "the prompt is on screen now, with somebody
-	-- real on it" straight after "no prompt will appear" -- over a hidden
-	-- button, or one reading "Drag to move". The preview is what those two
-	-- states can show, and the preview runs in both.
-	--
-	-- Nor about a snooze, which hides the button while the queue goes on
-	-- filling: a snoozed character with a stranger nearby was told the prompt
-	-- was on screen with somebody on it, and never shown the preview -- the
-	-- greeting is written down as done, so it never came back. The preview
-	-- runs while snoozed, so a snooze takes that path like the switch and the
-	-- lock.
+	-- Point at whichever panel will be on screen: somebody real already queued,
+	-- or the preview (which Refresh drops the moment a real person waits). Only
+	-- somebody who can actually be on the panel counts: switched off, unlocked
+	-- or snoozed, the queue still fills but the button shows no one, and the
+	-- preview runs in all three.
 	local queued = 0
 	local profile = addon.db.profile
 	if profile and profile.enabled and profile.prompt.locked and not ns.SnoozeLeft() then
@@ -5454,19 +4486,9 @@ function ns.Welcome(force, offSaid)
 	if queued > 0 then
 		addon:Print(L["The prompt is on screen now, with somebody real on it already. |cffffd100/manners welcome|r brings this back."])
 	else
-		-- The existing preview rather than a second path to the same picture:
-		-- it is the real panel in its real place, and it already knows how to
-		-- time itself out and how to stand aside for a real person.
-		--
-		-- Asked whether one is already running first, because ToggleTest is a
-		-- toggle and this wants the preview *on*. /manners welcome typed while
-		-- a preview is up would otherwise take the picture away in the same
-		-- breath as the line promising it -- and so would the combat retry,
-		-- landing on a preview that was started during the fight.
-		--
-		-- The nil test is inside the guard, not outside it: ns.Prompt is nil
-		-- when Prompt.lua did not load, and indexing it for the method would
-		-- throw before Guard ever saw the call.
+		-- The existing preview: the real panel in its real place. ToggleTest is
+		-- a toggle, so only when none is running. The nil test is inside the
+		-- guard: ns.Prompt is nil when Prompt.lua did not load.
 		ns.Guard("welcome preview", function()
 			if ns.Prompt and not ns.Prompt:InTest() then ns.Prompt:ToggleTest() end
 		end)
@@ -5478,13 +4500,10 @@ end
 ---------------------------------------------------------------------------
 -- test console
 --
--- Everything here exists because iterating on this client means one guess per
--- /reload otherwise. /manners try arms arbitrary macro text on the prompt, so
--- any casting approach can be tested in seconds; /manners look dumps every API
--- answer for a unit, including which ones come back as secret values.
---
--- Whatever these print also lands in SavedVariables, so a session can be read
--- off disk afterwards without anyone transcribing chat.
+-- Iterating on this client otherwise means one guess per /reload. /manners
+-- try arms arbitrary macro text on the prompt; /manners look dumps every API
+-- answer for a unit, including which come back as secret values. Everything
+-- printed also lands in SavedVariables, to be read off disk afterwards.
 ---------------------------------------------------------------------------
 
 ns.console = {}
@@ -5553,10 +4572,7 @@ function ns.InspectUnit(unit)
 	if buff then
 		local info = ns.BuffInfo(buff)
 		local id = info and info.topRank
-		-- Taken before the `and` can collapse them: raw() returns ok plus the
-		-- value, and `id and raw(...)` keeps only the first, so this line
-		-- reported nil however the client answered -- in the one command whose
-		-- entire job is reporting what the client answered.
+		-- Taken before an `and` could collapse raw()'s two returns into one.
 		local okById, byId
 		if id then okById, byId = raw(C_Spell and C_Spell.IsSpellInRange, id, unit) end
 		say("  %s  %s",
@@ -5564,10 +4580,6 @@ function ns.InspectUnit(unit)
 			show("inRangeByName", raw(C_Spell and C_Spell.IsSpellInRange, ns.BuffName(buff), unit)))
 		if C_UnitAuras and C_UnitAuras.GetUnitAuraBySpellID then
 			-- Refusals kept apart from absence, the way UnitHasBuff keeps them.
-			-- A read that threw or came back secret, or an id the client
-			-- declared secret, used to fall through to the same white "false" as
-			-- a readable "not carrying it" -- in the command that exists to tell
-			-- those two apart.
 			local found
 			local withheld = {}
 			local unreadable = info and info.readable == false
@@ -5592,25 +4604,16 @@ function ns.InspectUnit(unit)
 
 	say("  %s", show("isNameplate", true, ns.nameplateUnits[unit] and true or false))
 
-	-- Both halves, because they answer different complaints. `nearEnough` is
-	-- the verdict on this one person; the summary is what took it and how often
-	-- it manages to. This command is what the author ran on the player who
-	-- prompted the whole setting, and it printed inRangeById=true with nothing
-	-- to say about whether that was anywhere near.
+	-- The verdict on this person, and which source took it and how often it
+	-- answers.
 	say("  %s", show("nearEnough", true, ns.NearEnough(unit, true)))
 	say("  proximity: %s", tostring(ns.ProximitySummary()))
 end
 
 -- Tokens so a test can name the current candidate without typing its name.
---
--- "target" stands in only when there is no candidate at all. With one, falling
--- back to it wrote "/target target" -- which keeps whatever you have targeted
--- -- for anybody whose name has no second word to take {first} from, and
--- "[@target]" for anybody reached without a unit token, which BuildQueue calls
--- the ordinary case for somebody who buffed you. Either way the cast went to
--- the wrong person while the tooltip named the right one. A {unit} that cannot
--- be filled is not guessed at: this hands back nil and the reason, and the
--- prompt leaves the button empty and says why.
+-- "target" stands in only when there is no candidate at all. A {unit} that
+-- cannot be filled is not guessed at: this returns nil and the reason, and
+-- the prompt leaves the button empty and says why.
 function ns.ExpandTokens(text)
 	local entry = ns.lastTopEntry
 	local buff = entry and entry.buff or ns.ResolveBuff(true)
@@ -5621,20 +4624,14 @@ function ns.ExpandTokens(text)
 			tostring(entry.targetName or entry.name))
 	end
 
-	-- Through Swap, like every other substitution in the addon: what goes into
-	-- the replacement is a name or a spell name from the client, and gsub reads
-	-- a string replacement as a template in which % is an escape.
+	-- Through Swap: gsub reads a replacement string as a template, and a name
+	-- could hold a %.
 	text = ns.Swap(text, "{unit}", (entry and entry.unit) or "target")
 	text = ns.Swap(text, "{name}", (entry and entry.name) or "target")
-	-- The spelling a targeting line wants, which off Camelot is the name with
-	-- the realm taken off. {name} stays the identity, because that is what a
-	-- debt is filed under and what a conditional would be handed -- and telling
-	-- those two apart on a client nobody here can start is the console's whole
-	-- job, so it must not have to guess which one {name} meant today.
+	-- {aim} is the spelling a targeting line wants (off Camelot, without the
+	-- realm); {name} stays the identity a debt is filed under.
 	text = ns.Swap(text, "{aim}", (entry and (entry.targetName or entry.name)) or "target")
-	-- FirstName answers nil for a name that is one word already, which is the
-	-- whole name then: a same-realm player off Camelot, or a Camelot character
-	-- with no surname.
+	-- FirstName answers nil for a one-word name, which is then the whole name.
 	text = ns.Swap(text, "{first}", entry
 		and (ns.FirstName(entry.name) or entry.targetName or entry.name) or "target")
 	text = ns.Swap(text, "{spell}", buff and ns.BuffName(buff))
@@ -5646,22 +4643,16 @@ end
 -- lifecycle
 ---------------------------------------------------------------------------
 
--- A profile can be hand-edited, or carried over from a version whose limits
--- were different. Anything out of range here would otherwise show up as a
--- prompt sized zero, or a scan running every frame.
+-- A profile can be hand-edited, or carried over from a version with other
+-- limits; out of range, it means a prompt sized zero or a scan every frame.
 local VALID_ANCHORS = {
 	TOP = true, BOTTOM = true, LEFT = true, RIGHT = true, CENTER = true,
 	TOPLEFT = true, TOPRIGHT = true, BOTTOMLEFT = true, BOTTOMRIGHT = true,
 }
 
--- Somewhere to put the prompt that is not the unlock, drag, lock dance. Three
--- places rather than a grid of nine: the whole point of a preset is that it is
--- already right, and each of these is anchored to the screen edge it belongs
--- to so it stays where it was put at any resolution -- which a CENTER offset
--- does not.
---
--- A list rather than a table keyed by name, because the dropdown needs an
--- order and a set of anchors has none.
+-- Somewhere to put the prompt without the unlock, drag, lock dance. Each is
+-- anchored to its own screen edge so it stays put at any resolution. A list,
+-- because the dropdown needs an order.
 ns.POSITION_PRESETS = {
 	{ key = "bars", name = L["Above the action bars"],
 		point = "BOTTOM", relPoint = "BOTTOM", x = 0, y = 300 },
@@ -5671,10 +4662,8 @@ ns.POSITION_PRESETS = {
 		point = "CENTER", relPoint = "CENTER", x = 0, y = -140 },
 }
 
--- Which preset the prompt is sitting on, or nil once it has been dragged
--- somewhere of its own. Asked rather than remembered, so a dropdown showing
--- "Above the action bars" over a prompt that was since dragged across the
--- screen is not a state this can get into.
+-- Which preset the prompt is sitting on, or nil once dragged elsewhere: asked
+-- rather than remembered, so it cannot go stale.
 function ns.CurrentPositionPreset()
 	local p = addon.db and addon.db.profile.prompt
 	if not p then return nil end
@@ -5693,8 +4682,7 @@ function ns.ApplyPositionPreset(key)
 	for _, preset in ipairs(ns.POSITION_PRESETS) do
 		if preset.key == key then
 			p.point, p.relPoint, p.x, p.y = preset.point, preset.relPoint, preset.x, preset.y
-			-- Nothing here touches `locked`. Moving the prompt is not a reason
-			-- to unlock it, and an unlocked prompt is the one that cannot cast.
+			-- Never touches `locked`: an unlocked prompt cannot cast.
 			ns.Prompt:ApplyStyle()
 			return true
 		end
@@ -5719,9 +4707,8 @@ local LIMITS = {
 }
 
 -- The largest icon a prompt of this size can hold: eight pixels shorter than
--- the panel and sixty narrower, never under the slider's own floor. One
--- answer, asked by the clamp below and by the notice on the options page that
--- explains it -- the notice used to work it out from the height alone.
+-- the panel and sixty narrower, never under the slider's floor. Asked by the
+-- clamp below and by the notice on the options page.
 function ns.IconCeiling(p)
 	local d = ns.defaults.profile.prompt
 	local height = type(p.height) == "number" and p.height or d.height
@@ -5745,15 +4732,9 @@ function ns.ClampSettings()
 	end
 
 	local p = profile.prompt
-	-- Every wording that goes through the same substitution, not just the
-	-- first line. A number in any of these throws inside the swap on every
-	-- repaint -- which in game is a caught error every 0.4s and a prompt frozen
-	-- on its last paint, for a value the options page can produce.
-	--
-	-- Only the first line has to say something: a prompt whose name line is
-	-- empty names nobody, and its setter snaps back the same way. An empty
-	-- reason line is a wish -- no second line for passers-by -- and it used to
-	-- be granted for the session and quietly taken back at the next login.
+	-- Every wording that goes through the substitution must be a string, or
+	-- the swap throws on every repaint. Only the first line has to say
+	-- something; an empty reason line is a wish (no second line) and is kept.
 	if not ns.UsableFormat(p.format) then p.format = ns.defaults.profile.prompt.format end
 	for _, key in ipairs({ "reasonTarget", "reasonOwed", "reasonGroup",
 		"reasonNearby", "reasonAsked", "reasonRefresh", "reasonUnknown" }) do
@@ -5762,43 +4743,26 @@ function ns.ClampSettings()
 		end
 	end
 
-	-- skipIfBuffed became a three-way choice, and this keeps whatever somebody
-	-- already had. It used to live in OnInitialize, which meant it ran once, on
-	-- whichever profile happened to be active at login -- so a second profile
-	-- kept the stale key, and it fired the next time that profile was the one
-	-- loaded, overwriting a choice made in between. It belongs here with the
-	-- other carry-overs for the reason the phrase repair above already gives.
+	-- skipIfBuffed became a three-way choice. Here rather than OnInitialize
+	-- so every profile is carried over when it becomes active, not only the
+	-- one active at login.
 	local filters = profile.filters
 	if filters and filters.skipIfBuffed ~= nil then
 		if filters.skipIfBuffed == false then filters.whenBuffed = "always" end
 		filters.skipIfBuffed = nil
 	end
 
-	-- The icon is bound to the panel, not to a constant. The slider's own range
-	-- ran to 64 against a height that runs down to 20, so an icon could be set
-	-- three times the height of the thing it sits in: it overhangs both
-	-- hairlines, pushes the text off the right-hand edge, and there is nothing
-	-- on the page to say why. Clamped here as well as in the slider because a
+	-- The icon is bound to the panel by both dimensions, or it overhangs it
+	-- and pushes the name off; clamped here as well as in the slider, since a
 	-- profile written under a taller prompt survives the height being lowered.
-	-- Bound by both dimensions. Height alone left a wide icon on a narrow panel
-	-- pushing the name's LEFT inset past the panel's right edge, where LEFT and
-	-- RIGHT cross and the name has nowhere to draw.
 	local iconMax = ns.IconCeiling(p)
 	if p.iconSize > iconMax then p.iconSize = iconMax end
 	if not ns.CHANNEL_COMMANDS[profile.speech.channel] then profile.speech.channel = "SAY" end
 
-	-- There was a carry-over here for group and passer-by having shipped the
-	-- same wording, "needs {buff}". It could never match a profile that version
-	-- wrote: that string was the default then, and AceDB strips a value equal to
-	-- its default at logout. The only way it is ever stored is somebody typing
-	-- it -- often to get the old shared wording back -- and that is exactly the
-	-- case it overwrote, on every login and every nudge of the height slider.
 
-	-- The same class of repair as the two above, and it cannot live in
-	-- OnInitialize: a new, copied or reset profile only comes back through
-	-- RefreshConfig, so the box stayed empty while the dropdown still named a
-	-- set. Refilled from that dropdown rather than a hardcoded set so the two
-	-- agree; PhraseSetText returns nil for a set that no longer exists.
+	-- An empty phrase box refilled from the set the dropdown names, so the two
+	-- agree (nil for a set that no longer exists). Here, not OnInitialize: a
+	-- new, copied or reset profile only comes back through RefreshConfig.
 	local speech = profile.speech
 	if type(speech.phrases) ~= "string" or speech.phrases:match("^%s*$") then
 		speech.phrases = ns.PhraseSetText(speech.presetChoice) or ns.PhraseSetText("roleplay")
@@ -5810,26 +4774,20 @@ function ns.ClampSettings()
 	local translatedSet = englishSet and ns.PhraseSetText(englishSet)
 	if translatedSet and translatedSet ~= speech.phrases then speech.phrases = translatedSet end
 
-	-- Everything with a fixed set of values, checked against that set. A
-	-- profile can outlive the version that wrote it, and an unrecognised value
-	-- falls through every branch that handles it into whatever the last else
-	-- happens to be.
+	-- Everything with a fixed set of values, checked against that set: an
+	-- unrecognised value falls through every branch that handles it.
 	local function oneOf(tbl, key, allowed, fallback)
 		if not allowed[tbl[key]] then tbl[key] = fallback end
 	end
 
-	-- The same repair for a plain yes or no. Worth its own helper for the same
-	-- reason oneOf is: a string where a boolean belongs is truthy, so a profile
-	-- carrying one reads as switched on for the rest of time and the control
-	-- that would show otherwise is a checkbox with no way to display "banana".
+	-- The same for a plain yes or no: a string there is truthy forever, and a
+	-- checkbox cannot show it.
 	local function boolean(tbl, key, fallback)
 		if type(tbl[key]) ~= "boolean" then tbl[key] = fallback end
 	end
 
 	oneOf(profile.filters, "whenBuffed", { skip = true, refresh = true, always = true }, "skip")
-	-- Built from the tier list rather than written out again, so adding a
-	-- fourth distance cannot leave the repair rejecting it as nonsense and
-	-- quietly handing the user back the default.
+	-- Built from the tier list, so a new distance is never rejected here.
 	local proximities = {}
 	for _, tier in ipairs(PROXIMITY) do proximities[tier.key] = true end
 	oneOf(profile.filters, "proximity", proximities, "near")
@@ -5837,20 +4795,15 @@ function ns.ClampSettings()
 	boolean(profile.filters, "hideMounted", false)
 	boolean(profile.sound, "owedOnly", true)
 	boolean(profile.timing, "keepDebts", true)
-	-- Only replaced when it is genuinely not a table: AceDB fills the section
-	-- from the defaults, so the only way here is a profile written by hand or
-	-- by something else entirely.
+	-- Only replaced when not a table (AceDB fills the section from defaults).
 	if type(profile.priority) ~= "table" then profile.priority = {} end
 	boolean(profile.priority, "target", true)
 	boolean(profile.priority, "friends", true)
 	boolean(profile.filters, "restingOnly", false)
 
-	-- The never-offer list is read on every scan, so a profile carrying
-	-- something other than a table there would take the whole queue down with
-	-- it. Anything inside that is not a name set to true is dropped rather than
-	-- repaired: there is no telling who a number or an empty string was meant to
-	-- be, and a stray key would sit on the options page as a person nobody put
-	-- there.
+	-- The never-offer list is read on every scan, so it must be a table. An
+	-- entry that is not a name set to true is dropped: there is no telling who
+	-- it was meant to be.
 	if type(profile.never) ~= "table" then profile.never = {} end
 	for name, flag in pairs(profile.never) do
 		if type(name) ~= "string" or not name:find("%S") or flag ~= true then
@@ -5858,16 +4811,10 @@ function ns.ClampSettings()
 		end
 	end
 
-	-- The set of switched-off spells. Indexed on every scan by CastableBuffs,
-	-- and a non-table there would take the whole queue down with it.
+	-- The set of switched-off spells, indexed on every scan by CastableBuffs.
 	if type(profile.buff.skip) ~= "table" then profile.buff.skip = {} end
-	-- A look called "blizzard" that never applied a backdrop, a border or an
-	-- atlas: it was the flat panel with the bevel and the shadow taken off, and
-	-- the dropdown named it after the one thing in it that did not exist. It
-	-- has a border now and is called what it is -- and this carries anybody
-	-- holding the old name across to it, because the oneOf below would
-	-- otherwise read it as nonsense and hand them the default look instead of
-	-- the one they picked.
+	-- The look once called "blizzard" is "framed" now; carried across rather
+	-- than reset to the default by the oneOf below.
 	if p.style == "blizzard" then p.style = "framed" end
 	oneOf(p, "style", { glass = true, framed = true, minimal = true }, "glass")
 	oneOf(p, "accentMode", { icon = true, stripe = true, both = true, off = true }, "icon")
@@ -5876,26 +4823,12 @@ function ns.ClampSettings()
 	oneOf(p, "effects", { full = true, calm = true }, "full")
 	boolean(p, "showCooldown", true)
 
-	-- 0.9.x anchored the prompt to the middle of the screen and beta.1 moved
-	-- the default anchor to the bottom edge without carrying anybody across.
-	-- AceDB strips a value equal to its default at logout, so a 0.9.x prompt
-	-- dragged somewhere whose nearest anchor was the middle had only its two
-	-- offsets on disk -- and read against the new anchor, a prompt dropped below
-	-- the middle of the screen landed below the bottom edge, where clamping
-	-- pinned it over the action bars and the position dropdown showed nothing.
-	--
-	-- A negative offset from the bottom edge is taken to be that, though it is
-	-- not the only way to get one. No drag produces it -- the prompt is clamped
-	-- to the screen -- but the Y slider does, anywhere down to -2000, and on
-	-- beta.1 to beta.3 the default anchor was already the bottom edge. A prompt
-	-- slid a little below it, which clamping kept flush with the edge, is
-	-- carried too, and lands that far below the middle of the screen. Nothing
-	-- on disk tells the two apart: AceDB strips both anchors as defaults. So
-	-- the move stands and the player is told it happened, and how to put the
-	-- prompt back if it was not wanted. A positive offset cannot be told from a
-	-- drag made since, and is left alone. Once per profile, stamped in a key
-	-- with no default so AceDB never strips the stamp -- a copied or reset
-	-- profile comes back through here and gets the same treatment.
+	-- Beta.1 moved the default anchor from the middle of the screen to the
+	-- bottom edge; AceDB strips values equal to their default, so a 0.9.x
+	-- prompt on the middle kept only its offsets, and a negative one lands off
+	-- screen. It is carried back to the middle. A beta.1-3 Y slider setting
+	-- looks the same on disk, so the player is told how to undo it. Once per
+	-- profile, stamped in a key with no default so AceDB never strips it.
 	if p.anchorCarried ~= true then
 		if p.point == "BOTTOM" and p.relPoint == "BOTTOM"
 			and type(p.y) == "number" and p.y < 0 then
@@ -5905,15 +4838,10 @@ function ns.ClampSettings()
 		p.anchorCarried = true
 	end
 
-	-- Up to beta.4 the offsets were handed to SetPoint after the scale was
-	-- set, so the client read them in scaled units and a drag saved them the
-	-- same way. They are UIParent's units now (ApplyStyle, FinishDrag), which
-	-- means a prompt dragged at any scale but 1 has to have its offsets
-	-- multiplied by that scale once, or it jumps on the first login after.
-	-- One sitting on a preset is left there: the dropdown has named that
-	-- preset all along, and the preset is where it now goes. Stamped in a key
-	-- with no default, like the carry-over above, so the conversion is never
-	-- applied to offsets it has already converted.
+	-- Up to beta.4 offsets were in scaled units; they are UIParent's now
+	-- (ApplyStyle, FinishDrag), so a prompt dragged at any scale but 1 has its
+	-- offsets multiplied by that scale once. One on a preset is left there.
+	-- Stamped like the carry-over above.
 	if p.offsetsUnscaled ~= true then
 		if p.scale ~= 1 and not ns.CurrentPositionPreset()
 			and type(p.x) == "number" and type(p.y) == "number" then
@@ -5923,13 +4851,9 @@ function ns.ClampSettings()
 	end
 	oneOf(p, "point", VALID_ANCHORS, "CENTER")
 	oneOf(p, "relPoint", VALID_ANCHORS, "CENTER")
-	-- An offset no screen has. A drag cannot write one -- the button is
-	-- clamped to the screen -- but a hand-edited file can, and SetPoint takes
-	-- it without complaint: a prompt a million pixels away is one nobody can
-	-- see or drag back. Far wider than the widest screen at the smallest UI
-	-- scale, so no real position is ever touched. The whole position goes back
-	-- to the default, anchor and all, since half of one is nowhere in
-	-- particular.
+	-- An offset no screen has, which only a hand-edited file can write and
+	-- SetPoint takes without complaint, leaving the prompt nowhere. The whole
+	-- position goes back to the default, since half of one is meaningless.
 	local function offset(v)
 		return type(v) == "number" and v == v and v <= 10000 and v >= -10000
 	end
@@ -5938,33 +4862,22 @@ function ns.ClampSettings()
 		p.point, p.relPoint, p.x, p.y = d.point, d.relPoint, d.x, d.y
 	end
 
-	-- Only a sound key that is not a string is repaired. One that is not
-	-- registered is left alone: a sound pack that sorts after this addon --
-	-- SharedMedia, WeakAuras -- has not registered anything when this runs at
-	-- load, so a sound chosen from it was rewritten to ours on every login, and
-	-- stripped from disk as the default. PlayPromptSound falls back to ours when
-	-- the key is not there by the time a sound is wanted.
+	-- Only a sound key that is not a string is repaired: a sound pack loading
+	-- after this addon has not registered its sounds yet. PlayPromptSound
+	-- falls back to ours when the key is missing at play time.
 	local snd = profile.sound
 	if type(snd.file) ~= "string" then snd.file = ns.SOUND_KEY end
 
-	-- A pin nobody's class has is nonsense and goes. One belonging to another
-	-- class stays: the profile is shared by every character on the account, and
-	-- an alt logging in used to reset the pin for everybody, so the character
-	-- who set it came back to Automatic. PickBuffFor reads a pin this class
-	-- does not have as Automatic, which is what the reset was standing in for.
+	-- A pin nobody's class has goes. Another class's pin stays, since the
+	-- profile is shared by every character; PickBuffFor reads it as Automatic.
 	local choice = profile.buff.choice
 	if choice ~= "auto" and not ns.AnyClassHasBuff(choice) then
 		profile.buff.choice = "auto"
 	end
 
-	-- Colours are read as four numbers without checking.
-	--
-	-- Repaired with a copy of the default, never the default itself. That
-	-- table is the one AceDB holds as the default: at a profile switch the
-	-- library strips every value equal to its default from the profile being
-	-- left, and with the two being one table it stripped the default bare --
-	-- every profile after that was filled from an empty colour, which reads
-	-- as white, until the next /reload.
+	-- Colours are read as four numbers without checking. Repaired with a copy
+	-- of the default, never the default table itself: AceDB strips values
+	-- equal to their default at a profile switch, and would strip it bare.
 	for _, key in ipairs({ "fontColor", "bgColor", "accentColor" }) do
 		local c = p[key]
 		if type(c) ~= "table" or type(c[1]) ~= "number" or type(c[2]) ~= "number"
@@ -5975,15 +4888,9 @@ function ns.ClampSettings()
 	end
 end
 
--- The line for a prompt the anchor carry-over above has just moved. Said
--- apart from the clamp because the clamp runs at load, before the default
--- chat frame exists, and anything printed then is printed to nobody: at login
--- it waits for the build line, and on a profile switch it is said straight
--- after the clamp. Once, whichever gets there first.
---
--- The advice turns on what the player meant, not on where the prompt sat: the
--- prompts this rescues sat on the bottom edge too, pinned over the action bars
--- by accident, and "if it used to sit on the bottom edge" told them to undo it.
+-- The line for a prompt the anchor carry-over has just moved. Not said by the
+-- clamp, which runs at load before the chat frame exists: at login it waits
+-- for the build line, on a profile switch it follows the clamp. Once.
 function ns.SayAnchorCarried()
 	if not ns.anchorCarriedNote then return end
 	ns.anchorCarriedNote = nil
@@ -5998,23 +4905,17 @@ function addon:OnInitialize()
 	self.db.RegisterCallback(self, "OnProfileChanged", "RefreshConfig")
 	self.db.RegisterCallback(self, "OnProfileCopied", "RefreshConfig")
 	self.db.RegisterCallback(self, "OnProfileReset", "RefreshConfig")
-	-- Deleting a profile changes nothing on the one you are on, so it is not a
-	-- refresh: it only ends an import's undo that was made on the deleted one.
+	-- Deleting a profile only ends an import's undo made on the deleted one.
 	self.db.RegisterCallback(self, "OnProfileDeleted", "ProfileDeleted")
 	self.db.RegisterCallback(self, "OnDatabaseShutdown", "SaveDebts")
 
-	-- Probe first: ClampSettings validates the pinned buff against caps.class,
-	-- which the probe is what sets. The other way round, caps.class was always
-	-- nil and every pinned choice was silently reset to Automatic on login.
+	-- Probe first: ClampSettings validates the pinned buff against caps.class.
 	ns.Guard("ProbeCapabilities", ns.ProbeCapabilities)
 	ns.ClampSettings()
-	-- After the clamp, so a stored debt is measured against a reciprocate
-	-- window that has already been validated. Once per session and not from
-	-- PLAYER_ENTERING_WORLD: that fires on every zone and instance door, and
-	-- would resurrect debts this session had already settled.
+	-- After the clamp, so debts meet a validated window. Once per session, not
+	-- on PLAYER_ENTERING_WORLD, which would resurrect debts already settled.
 	ns.Guard("RestoreDebts", RestoreDebts)
-	-- After the debts are back, so a favour the ledger still lists as owed can
-	-- be checked against whether its debt survived the logout.
+	-- After the debts are back, so the ledger can check its owed rows.
 	TellLedger("Load")
 	ns.Guard("SetupOptions", ns.SetupOptions)
 	ns.Guard("Prompt:Create", function() ns.Prompt:Create() end)
@@ -6024,16 +4925,13 @@ function addon:OnInitialize()
 end
 
 function addon:OnEnable()
-	-- Registering an event the client does not have throws, and that would
-	-- abort the rest of this function -- taking the scanner with it, which is
-	-- the single thing that makes the prompt appear at all.
+	-- Registering an event the client does not have throws; each is guarded
+	-- so one cannot abort the rest, the scanner with it.
 	for _, event in ipairs({
 		"UNIT_AURA",
 		"PLAYER_ENTERING_WORLD",
 		"PLAYER_REGEN_ENABLED",
-		-- The prompt freezes when a fight starts and goes on looking live, so
-		-- it has to be told when it does rather than up to a scan later -- a
-		-- frame later, in fact, since the event arrives just before lockdown.
+		-- The prompt freezes when a fight starts and must show it at once.
 		"PLAYER_REGEN_DISABLED",
 		"SPELLS_CHANGED",
 		"NAME_PLATE_UNIT_ADDED",
@@ -6041,9 +4939,8 @@ function addon:OnEnable()
 		"UNIT_SPELLCAST_SENT",
 		"UNIT_SPELLCAST_SUCCEEDED",
 		"UNIT_SPELLCAST_FAILED",
-		-- The sweep over the prompt's icon, which has to follow a cast that
-		-- starts, one pushed back, one that stops early, and a cooldown the
-		-- client takes back.
+		-- The sweep over the prompt's icon follows casts starting, pushed back,
+		-- stopped early, and cooldowns the client takes back.
 		"UNIT_SPELLCAST_START",
 		"UNIT_SPELLCAST_DELAYED",
 		"UNIT_SPELLCAST_INTERRUPTED",
@@ -6052,10 +4949,8 @@ function addon:OnEnable()
 		"PLAYER_UNGHOST",
 		"PLAYER_ALIVE",
 		"PLAYER_DEAD",
-		-- People asking for a buff: see "people who ask for a buff". Registered
-		-- whether or not that source is on, because the handler's first question
-		-- is the switch, and a registration that followed the switch would be one
-		-- more thing a profile change has to remember.
+		-- People asking for a buff. Registered whether that source is on or
+		-- not: the handler asks the switch first.
 		"CHAT_MSG_SAY",
 		"CHAT_MSG_YELL",
 		"CHAT_MSG_PARTY",
@@ -6069,21 +4964,10 @@ function addon:OnEnable()
 		ns.Guard("RegisterEvent " .. event, function() self:RegisterEvent(event) end)
 	end
 
-	-- The combat log is asked for separately, and only where the client is
-	-- believed to have one.
-	--
-	-- On Forever and on retail 12.0+ this registration is forbidden. Put in the
-	-- list above it would be caught like the rest and cost nothing but a red
-	-- line -- but it would be a red line on every login on two of the five
-	-- clients, for a capability the addon already knows it does not have and
-	-- does not need. The probe asked once, at load, and that is the one time
-	-- anything should be asking.
-	--
-	-- Armed from inside the guard and after the call, so the flag says the
-	-- registration went through rather than that it was attempted. Everything
-	-- that behaves differently for having a second source reads the flag and not
-	-- caps.combatLog, because a client that refuses here is a client with one
-	-- source however it was classified.
+	-- The combat log only where the client is believed to have one: Forever
+	-- and retail 12.0+ forbid the registration, and asking there would print
+	-- a red line on every login. Armed only once the call went through, and
+	-- everything that cares reads the flag, not caps.combatLog.
 	if caps.combatLog then
 		ns.Guard("RegisterEvent COMBAT_LOG_EVENT_UNFILTERED", function()
 			self:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
@@ -6095,18 +4979,14 @@ function addon:OnEnable()
 	ns.Guard("StartScanner", function() self:StartScanner() end)
 	ns.Guard("ApplyStyle", function() ns.Prompt:ApplyStyle() end)
 
-	-- Say so out loud. Silence has been indistinguishable from failure.
+	-- Say so out loud: silence is indistinguishable from failure.
 	C_Timer.After(2, function()
 		local buff = ns.ResolveBuff(true)
-		-- A class with nothing to cast gets the sentence the greeting and
-		-- /manners debug already give it. "No buff learned" suggested there
-		-- was one to learn, on every login, to a rogue.
+		-- A class with nothing to cast gets the greeting's sentence, not "no
+		-- buff learned".
 		local nothingToGive = caps.class ~= nil and ns.CLASSES_WITHOUT_BUFFS ~= nil
 			and ns.CLASSES_WITHOUT_BUFFS[caps.class] == true
-		-- The profile is shared, so /manners off on one character is off on
-		-- every alt -- and this line said "watching for buffs" to all of them
-		-- at every login, while nothing was being watched and no prompt would
-		-- ever appear.
+		-- The profile is shared, so off on one character is off on every alt.
 		local off = not self.db.profile.enabled
 		if not buff and nothingToGive then
 			self:Print(L["build |cffffd100%s|r -- this class has no buffs to cast on other players."]:format(tostring(ns.BUILD)))
@@ -6117,9 +4997,8 @@ function addon:OnEnable()
 			self:Print(L["build |cffffd100%s|r watching for buffs. Ready to cast |cffffd100%s|r."]:format(
 				tostring(ns.BUILD), ns.BuffName(buff)))
 		else
-			-- Its own sentence rather than "nothing -- why" dropped into the slot
-			-- above: that slot is written for a spell's name, and a translator
-			-- who is given the object of "cast" cannot also fit a reason there.
+			-- Translators: its own sentence, since the slot above takes a
+			-- spell's name and a reason does not fit there in every language.
 			self:Print(L["build |cffffd100%s|r watching for buffs. Ready to cast |cffffd100nothing -- %s|r."]:format(
 				tostring(ns.BUILD), ns.NothingToCast()))
 		end
@@ -6127,13 +5006,10 @@ function addon:OnEnable()
 		ns.SayAnchorCarried()
 		-- The macro an older version made, while nothing else is going on.
 		ns.SettleOldMacro()
-		-- And, on this character's very first login, what the thing is for.
-		-- Hung off the same delay as the line above and for the same reason:
-		-- anything printed before the default chat frame exists is printed to
-		-- nobody. Guarded because a greeting that throws must not take the
-		-- build line -- the only other evidence the addon loaded -- with it.
-		-- Told whether that line has just said the profile is switched off, so
-		-- the greeting does not say it again directly underneath.
+		-- And, on this character's first login, what the thing is for: on the
+		-- same delay, since nothing printed before the chat frame exists is
+		-- seen. Guarded so it cannot take the build line with it; told whether
+		-- that line just said the profile is off.
 		ns.Guard("Welcome", ns.Welcome, false, off)
 	end)
 end
@@ -6145,16 +5021,14 @@ end
 
 function addon:Tick()
 	-- A repeating timer whose function errors simply stops running, silently.
-	-- That is what "the prompt never appeared" looks like from the outside.
 	ns.Guard("Tick", addon.TickBody, self)
 end
 
 function addon:TickBody()
 	local now = GetTime()
 	SweepAuraCache(now)
-	-- Here rather than on an event, because the case it decides is the one
-	-- where no event ever arrives: a /target that resolves nobody leaves the
-	-- /cast with nothing to aim at, and the game says nothing to anybody.
+	-- On the tick, because the case it decides has no event: a /target that
+	-- resolves nobody leaves the /cast with no aim, and the game says nothing.
 	SweepPendingClick(now)
 	for name, entry in pairs(owed) do
 		if LiveExpiry(entry) <= now then
@@ -6165,8 +5039,7 @@ function addon:TickBody()
 	for key, expiry in pairs(tried) do
 		if expiry <= now then tried[key] = nil end
 	end
-	-- Before the repaint, so the scan that notices the snooze is over is the
-	-- one that puts the prompt back.
+	-- Before the repaint, which then puts the prompt back.
 	ns.EndSnoozeIfDue(now)
 	ns.Prompt:Refresh()
 end
@@ -6178,29 +5051,24 @@ end
 -- `event` is AceDB's, and nil when an import or its undo calls this itself.
 function addon:RefreshConfig(event)
 	ns.ClampSettings()
-	-- A switch or copy onto a profile no version since the carry-over has
-	-- loaded is moved the same way, and said here, where chat already exists.
+	-- A profile switched to may just have been carried over; chat exists now.
 	ns.SayAnchorCarried()
 	ns.Prompt:ApplyStyle()
 	ns.Prompt:InvalidateMacro()
-	-- Guarded: the function is nil if Options.lua failed to load, and a throw
-	-- here would take StartScanner with it -- the one call that makes the
-	-- prompt appear at all.
+	-- Guarded: nil if Options.lua failed to load, and a throw here would take
+	-- StartScanner with it.
 	ns.Guard("RefreshMinimapButton", ns.RefreshMinimapButton)
-	-- The undo an import keeps belongs to the profile it was made on, and
-	-- ProfileChangedForUndo decides what a switch, copy or reset does to it.
-	-- Called by an import or its undo, it goes; an import sets it again after
-	-- calling this.
+	-- An import's undo belongs to the profile it was made on:
+	-- ProfileChangedForUndo decides what a switch, copy or reset does to it,
+	-- and an import or its undo calling this ends it (an import sets it again).
 	if event == nil then
 		ns.ForgetImportUndo()
 	else
 		ns.ProfileChangedForUndo(event)
 	end
 	self:StartScanner()
-	-- A switch, copy or reset changes every setting at once, the on switch
-	-- among them, and the launcher's text is only ever put back from here. It
-	-- went on saying "Manners off" over a profile that was on, or the reverse,
-	-- until the next fight or /manners on.
+	-- Every setting changed at once, the on switch among them, and the
+	-- launcher's text is only put back from here.
 	ns.RepaintOptions()
 end
 
@@ -6208,26 +5076,20 @@ end
 -- snooze
 --
 -- Keeping the prompt away for a while without switching the addon off. Off is
--- a decision that lasts: it is saved in the profile, and every alt on the
--- account wakes up to it. A snooze is for the next quarter of an hour -- a
--- boss, a queue, a crowd that will not stop buffing you -- so it lives in this
--- session only, and a /reload ends it. Nothing else stops while it runs:
--- favours are still noticed, so somebody who buffs you in its last minute is
--- still offered when it ends.
+-- saved in the profile for every alt; a snooze lives in this session only, and
+-- a /reload ends it. Favours are still noticed meanwhile.
 --
 -- The prompt is a secure frame and cannot be taken down in a fight, so a
--- snooze started in one takes effect when the fight ends -- the same rule
--- "Stay quiet in combat" follows. Prompt:Refresh reads it below its combat
--- branch, which is what makes that true rather than promised.
+-- snooze started in one takes effect when the fight ends: Prompt:Refresh reads
+-- it below its combat branch.
 ---------------------------------------------------------------------------
 
 ns.SNOOZE_CHOICES = { 5, 15, 30 }
 ns.SNOOZE_DEFAULT = 15
 ns.SNOOZE_MAX = 240
 
--- On the scan's clock rather than the wall's. GetTime is what every other
--- expiry in this file is measured on, and the wall clock only comes in where
--- the player reads the answer.
+-- On GetTime's clock, like every other expiry here; the wall clock only
+-- where the player reads the answer.
 local snoozeUntil
 
 -- Seconds of snooze left, or nil when there is none.
@@ -6238,10 +5100,8 @@ function ns.SnoozeLeft(now)
 	return left
 end
 
--- Whether the player's clock is a 12-hour one. The game clock by the minimap
--- reads this setting, and a snooze "until 21:45" is a sum to do for somebody
--- whose clock says 9:40 PM. A client that will not answer gets the 24-hour
--- clock, which is at least never ambiguous.
+-- Whether the player's clock is a 12-hour one, as the game clock by the
+-- minimap reads it. A client that will not answer gets the 24-hour clock.
 local function TwelveHourClock()
 	local get = _G.GetCVar
 	if type(get) ~= "function" then return false end
@@ -6261,15 +5121,13 @@ function ns.SnoozeEndsAt()
 	return date("%H:%M", at)
 end
 
--- "5 minutes", with the one case English spells differently spelt out as a
--- whole string of its own rather than an "s" glued on.
+-- Translators: "1 minute" is a whole string of its own, not an "s" glued on.
 function ns.MinutesText(minutes)
 	if minutes == 1 then return L["1 minute"] end
 	return L["%d minutes"]:format(minutes)
 end
 
--- The one thing every route into a snooze says, so the slash command, the
--- minimap menu and the options page cannot describe it three ways.
+-- What every route into a snooze says (slash command, minimap, options page).
 local function SaySnoozeStarted(minutes)
 	local db = addon.db.profile
 	if not db.enabled then
@@ -6277,14 +5135,11 @@ local function SaySnoozeStarted(minutes)
 		addon:Print(L["snoozed for %s, until %s -- though Manners is switched off, so no prompt appears either way."]
 			:format(ns.MinutesText(minutes), ns.SnoozeEndsAt()))
 	elseif InCombatLockdown() then
-		-- Not "it goes when the fight ends": a panel the fight found empty is
-		-- already gone, and one it found up is what this sentence is for.
+		-- Not "it goes when the fight ends": a panel the fight found up stays.
 		addon:Print(L["snoozed for %s, until %s. In a fight the prompt stays as the fight found it, and follows the snooze once this one ends. |cffffd100/manners snooze off|r ends it early."]
 			:format(ns.MinutesText(minutes), ns.SnoozeEndsAt()))
 	elseif not db.prompt.locked then
-		-- An unlocked prompt stays up through a snooze as something to drag --
-		-- /manners unlock during one has to show you what you are moving -- so
-		-- "no prompt until" was false for exactly as long as it stayed unlocked.
+		-- An unlocked prompt stays up through a snooze as something to drag.
 		addon:Print(L["snoozed for %s, until %s. The prompt is unlocked, so it stays up to be dragged and casts nothing; once you lock it, it stays away until the snooze ends. |cffffd100/manners snooze off|r ends it early."]
 			:format(ns.MinutesText(minutes), ns.SnoozeEndsAt()))
 	else
@@ -6293,9 +5148,8 @@ local function SaySnoozeStarted(minutes)
 	end
 end
 
--- The line for a snooze that has ended, however it ended. What the prompt does
--- next depends on the fight and the switch, not on the snooze, so the line
--- says whichever is true now.
+-- The line for a snooze that has ended, however it ended, saying what the
+-- prompt does next.
 local function SnoozeOverText()
 	local db = addon.db.profile
 	if not db.enabled then
@@ -6306,10 +5160,7 @@ local function SnoozeOverText()
 	return L["the snooze is over -- the prompt can appear again."]
 end
 
--- Units a length can be typed in, as minutes each. People write a length the
--- way they would say it -- "15", "15m", "15 minutes", "1h", "2 hours" -- and a
--- snooze that answers "15 minutes" with "snooze takes a number of
--- minutes" is correcting them for using the unit it asked for.
+-- Units a length can be typed in, as minutes each: "15", "15m", "1h".
 local SNOOZE_UNITS = {
 	[""] = 1, m = 1, min = 1, mins = 1, minute = 1, minutes = 1,
 	h = 60, hr = 60, hrs = 60, hour = 60, hours = 60,
@@ -6368,528 +5219,482 @@ end
 --
 -- /manners export hands over the current profile as one line of text, and
 -- /manners import (or the box on the General tab) reads one back. Only
--- differences from the defaults are written, so an untouched profile is a
--- dozen characters and a typical one fits in a chat line.
+-- differences from the defaults are written.
 --
--- The format is plain text read with string functions and nothing else. It
--- is never handed to loadstring or anything like it: this is text a stranger
--- pasted into a forum, and a settings string that could run code would be a
--- way of making somebody run it. Every name is looked up in a list built from
--- the defaults table, and every value has to have the type its default has;
--- anything else is refused before a single setting is touched, and whatever
--- survives then goes through ClampSettings, the same repair a saved profile
--- gets at login.
+-- Plain text read with string functions, never loadstring: this is text a
+-- stranger pasted into a forum. Every name is looked up in a list built from
+-- the defaults, every value must have its default's type, anything else is
+-- refused before a setting is touched, and what survives goes through
+-- ClampSettings like a saved profile at login.
 --
 --   MNR1:prompt.width=260;prompt.fontColor=1,0.8,0,1;buff.skip=wisdom:5f3a9c
 --
--- A version number, the name=value pairs, and a checksum over both, so a
--- string cut short by a chat line or a copy that missed the end is refused as
--- incomplete rather than half applied.
+-- A version, the name=value pairs, and a checksum over both, so a string cut
+-- short is refused rather than half applied.
 ---------------------------------------------------------------------------
 
 ns.SHARE_PREFIX = "MNR1:"
 local SHARE_VERSION = 1
--- A ceiling on how much work a hostile string can ask for, and on nothing
--- else: reading one is a single pass over it, so the bound is on memory and
--- time, not on what a real profile may hold. It used to be 8000, which a phrase
--- box of ninety-odd lines outgrows -- nothing caps the box or the export -- and
--- then the player's own export would not import back and the undo an import
--- keeps, which is an export, could not be read. /manners export says so when a
--- profile outgrows even this.
+-- A ceiling on the work a hostile string can ask for, set well above what a
+-- real profile holds (a long phrase box included), so the player's own export
+-- and an import's undo always read back. /manners export warns past it.
 local SHARE_MAX = 64000
 
--- Never shared. Whether the addon is on is a state rather than a taste, the
--- click logger is a diagnostic, and the minimap button's place is about this
--- screen, not about how the addon behaves.
-local SHARE_SKIP = { enabled = true, debugClicks = true, minimap = true }
+-- Everything below is private to this block and reached through ns, for the
+-- same Lua 5.1 local limit as the friends section's.
+do
+	-- Never shared: the on switch is a state, not a taste; the click logger is a
+	-- diagnostic; the minimap button's place is about this screen.
+	local SHARE_SKIP = { enabled = true, debugClicks = true, minimap = true }
 
--- The same, for settings further down than the top of the profile. The lock
--- is a state like the on switch, and the worst one to carry: a string copied
--- while its owner had the prompt unlocked to drag it -- the obvious moment to
--- be on the options page -- would unlock the prompt of everybody who pasted
--- it, and an unlocked prompt never casts. Where the prompt sits is about the
--- screen it sits on, as the minimap button's place is.
-local SHARE_SKIP_NAMES = {
-	["prompt.locked"] = true,
-	["prompt.point"] = true,
-	["prompt.relPoint"] = true,
-	["prompt.x"] = true,
-	["prompt.y"] = true,
-}
+	-- The same further down. The lock is a state, and a string copied while the
+	-- prompt was unlocked would unlock everybody's, and an unlocked prompt never
+	-- casts. Where the prompt sits is about the screen.
+	local SHARE_SKIP_NAMES = {
+		["prompt.locked"] = true,
+		["prompt.point"] = true,
+		["prompt.relPoint"] = true,
+		["prompt.x"] = true,
+		["prompt.y"] = true,
+	}
 
--- Imported only when the player already has it on. Speaking a line when you
--- buff talks to other players, and a string from somebody else must never be
--- able to switch that on -- /yell included -- behind a single paste.
-local SHARE_KEEP_MINE = { ["speech.enabled"] = true }
+	-- Imported only when the player already has it on: a pasted string must never
+	-- switch on speaking to other players.
+	local SHARE_KEEP_MINE = { ["speech.enabled"] = true }
 
--- What is said and where, kept as the player has it whenever speaking is
--- already on. Keeping the switch alone is not enough: somebody who speaks a
--- quiet "thanks" in /say would otherwise start yelling a stranger's words at
--- everybody they buff, the moment they pasted. With speaking off these change
--- nothing anybody hears, so they travel -- and are waiting, as the string's
--- author wrote them, for the day the player switches it on themselves.
-local SHARE_SPEECH = {
-	["speech.channel"] = true,
-	["speech.phrases"] = true,
-	["speech.presetChoice"] = true,
-	["speech.onlyWhenReturning"] = true,
-}
+	-- What is said and where, kept as the player has it whenever speaking is on,
+	-- so a paste cannot start yelling a stranger's words. With speaking off they
+	-- travel, changing nothing anybody hears.
+	local SHARE_SPEECH = {
+		["speech.channel"] = true,
+		["speech.phrases"] = true,
+		["speech.presetChoice"] = true,
+		["speech.onlyWhenReturning"] = true,
+	}
 
--- Defaults that are not a constant. The phrase box is filled from the chosen
--- set at load, so a profile nobody has touched holds six lines of Roleplay --
--- which is a default in every sense but the table's, and not worth sharing.
-local SHARE_DEFAULT = {
-	["speech.phrases"] = function(profile)
-		local speech = profile.speech or {}
-		return ns.PhraseSetText(speech.presetChoice) or ns.PhraseSetText("roleplay")
-	end,
-}
+	-- Defaults that are not a constant: the phrase box is filled from the chosen
+	-- set at load.
+	local SHARE_DEFAULT = {
+		["speech.phrases"] = function(profile)
+			local speech = profile.speech or {}
+			return ns.PhraseSetText(speech.presetChoice) or ns.PhraseSetText("roleplay")
+		end,
+	}
 
-local shareFields
+	local shareFields
 
--- Every setting that can be shared, walked out of the defaults table so a new
--- setting is shareable the moment it has a default and no list has to be kept
--- in step by hand.
-local function ShareFields()
-	if shareFields then return shareFields end
-	local fields = {}
-	local function walk(defs, path, prefix)
-		for key, value in pairs(defs) do
-			if type(key) == "string" and not (prefix == "" and SHARE_SKIP[key])
-				and not SHARE_SKIP_NAMES[prefix .. key] then
-				local name = prefix .. key
-				local kind
-				if type(value) == "table" then
-					if type(value[1]) == "number" then
-						kind = "colour"
-					elseif name == "buff.skip" then
-						kind = "set"
-					else
-						local inner = {}
-						for i = 1, #path do inner[i] = path[i] end
-						inner[#inner + 1] = key
-						walk(value, inner, name .. ".")
+	-- Every setting that can be shared, walked out of the defaults table, so a
+	-- new setting is shareable as soon as it has a default.
+	local function ShareFields()
+		if shareFields then return shareFields end
+		local fields = {}
+		local function walk(defs, path, prefix)
+			for key, value in pairs(defs) do
+				if type(key) == "string" and not (prefix == "" and SHARE_SKIP[key])
+					and not SHARE_SKIP_NAMES[prefix .. key] then
+					local name = prefix .. key
+					local kind
+					if type(value) == "table" then
+						if type(value[1]) == "number" then
+							kind = "colour"
+						elseif name == "buff.skip" then
+							kind = "set"
+						else
+							local inner = {}
+							for i = 1, #path do inner[i] = path[i] end
+							inner[#inner + 1] = key
+							walk(value, inner, name .. ".")
+						end
+					elseif type(value) == "boolean" or type(value) == "number"
+						or type(value) == "string" then
+						kind = type(value)
 					end
-				elseif type(value) == "boolean" or type(value) == "number"
-					or type(value) == "string" then
-					kind = type(value)
-				end
-				if kind then
-					fields[#fields + 1] = { name = name, kind = kind, path = path, key = key,
-						default = value }
+					if kind then
+						fields[#fields + 1] = { name = name, kind = kind, path = path, key = key,
+							default = value }
+					end
 				end
 			end
 		end
+		walk(ns.defaults.profile, {}, "")
+		-- The phrase set's dropdown has no default (nil reads as Roleplay), so the
+		-- walk cannot find it.
+		fields[#fields + 1] = { name = "speech.presetChoice", kind = "string",
+			path = { "speech" }, key = "presetChoice" }
+		table.sort(fields, function(a, b) return a.name < b.name end)
+		shareFields = fields
+		return fields
 	end
-	walk(ns.defaults.profile, {}, "")
-	-- The phrase set's dropdown has no default -- nil reads as Roleplay -- so
-	-- the walk cannot find it, and without it an imported set of phrases
-	-- arrives under whatever set the importer's dropdown happened to name.
-	fields[#fields + 1] = { name = "speech.presetChoice", kind = "string",
-		path = { "speech" }, key = "presetChoice" }
-	table.sort(fields, function(a, b) return a.name < b.name end)
-	shareFields = fields
-	return fields
-end
 
--- The table a field lives in, made on the way if asked to.
-local function Holder(profile, path, create)
-	local t = profile
-	for _, seg in ipairs(path) do
-		if type(t[seg]) ~= "table" then
-			if not create then return nil end
-			t[seg] = {}
+	-- The table a field lives in, made on the way if asked to.
+	local function Holder(profile, path, create)
+		local t = profile
+		for _, seg in ipairs(path) do
+			if type(t[seg]) ~= "table" then
+				if not create then return nil end
+				t[seg] = {}
+			end
+			t = t[seg]
 		end
-		t = t[seg]
+		return t
 	end
-	return t
-end
 
-local function Finite(n)
-	return type(n) == "number" and n == n and n ~= math.huge and n ~= -math.huge
-end
-
-local function NumberText(n)
-	return ("%.10g"):format(n)
-end
-
--- Anything but letters, digits and a little punctuation is written as %XX, and
--- a space as +. Nothing that separates the format -- ; = : , -- and nothing
--- the chat box treats specially, like |, survives unescaped, and the whole
--- string has no spaces in it, so a line break a text box inserts can be
--- stripped on the way back in without losing anything.
-local function EncodeText(s)
-	return (s:gsub("[^%w_%.%-!%?'%(%){}/ ]", function(c)
-		return ("%%%02X"):format(c:byte())
-	end):gsub(" ", "+"))
-end
-
-local function DecodeText(s)
-	-- Every % has to open a pair of hex digits. A lone one is not something
-	-- EncodeText writes, so it is a string somebody has been at.
-	if s:gsub("%%%x%x", ""):find("%", 1, true) then return nil end
-	local text = s:gsub("%+", " "):gsub("%%(%x%x)", function(hex)
-		return string.char(tonumber(hex, 16))
-	end)
-	-- Control characters have no business in a setting. A line break does --
-	-- the phrase box is one phrase per line -- and so does a tab, which a
-	-- text box will take and ExportSettings will therefore write.
-	for i = 1, #text do
-		local b = text:byte(i)
-		if (b < 32 and b ~= 10 and b ~= 9) or b == 127 then return nil end
+	local function Finite(n)
+		return type(n) == "number" and n == n and n ~= math.huge and n ~= -math.huge
 	end
-	return text
-end
 
-local function ReadNumber(s)
-	if not s:match("^[%d%.%-%+eE]+$") then return nil end
-	local n = tonumber(s)
-	if not Finite(n) then return nil end
-	return n
-end
+	local function NumberText(n)
+		return ("%.10g"):format(n)
+	end
 
-local function DefaultOf(field, profile)
-	local fn = SHARE_DEFAULT[field.name]
-	if fn then return fn(profile) end
-	return field.default
-end
+	-- Anything but letters, digits and a little punctuation is written as %XX, and
+	-- a space as +: no separator (; = : ,) or chat escape (|) survives, and with
+	-- no spaces a line break a text box inserts can be stripped on the way in.
+	local function EncodeText(s)
+		return (s:gsub("[^%w_%.%-!%?'%(%){}/ ]", function(c)
+			return ("%%%02X"):format(c:byte())
+		end):gsub(" ", "+"))
+	end
 
--- A field's value as text, or nil when it is the default and need not travel.
-local function EncodeValue(field, value, profile)
-	local kind = field.kind
-	if kind == "boolean" then
-		if type(value) ~= "boolean" or value == field.default then return nil end
-		return value and "1" or "0"
-	elseif kind == "number" then
-		if not Finite(value) or value == field.default then return nil end
-		return NumberText(value)
-	elseif kind == "string" then
-		if type(value) ~= "string" or value == DefaultOf(field, profile) then return nil end
-		return EncodeText(value)
-	elseif kind == "colour" then
-		if type(value) ~= "table" then return nil end
-		local parts, same = {}, true
-		for i = 1, 4 do
-			local c = value[i]
-			if c == nil and i == 4 then break end
-			if not Finite(c) then return nil end
-			parts[i] = NumberText(c)
-			if c ~= field.default[i] then same = false end
+	local function DecodeText(s)
+		-- Every % has to open a pair of hex digits; EncodeText never writes a lone one.
+		if s:gsub("%%%x%x", ""):find("%", 1, true) then return nil end
+		local text = s:gsub("%+", " "):gsub("%%(%x%x)", function(hex)
+			return string.char(tonumber(hex, 16))
+		end)
+		-- No control characters, except a line break (one phrase per line) and a
+		-- tab, which a text box takes and ExportSettings therefore writes.
+		for i = 1, #text do
+			local b = text:byte(i)
+			if (b < 32 and b ~= 10 and b ~= 9) or b == 127 then return nil end
 		end
-		if same and #parts == #field.default then return nil end
-		return table.concat(parts, ",")
-	elseif kind == "set" then
-		if type(value) ~= "table" then return nil end
-		local keys = {}
-		for key, on in pairs(value) do
-			if on == true and type(key) == "string" and key:match("^[%w_]+$") then
-				keys[#keys + 1] = key
+		return text
+	end
+
+	local function ReadNumber(s)
+		if not s:match("^[%d%.%-%+eE]+$") then return nil end
+		local n = tonumber(s)
+		if not Finite(n) then return nil end
+		return n
+	end
+
+	local function DefaultOf(field, profile)
+		local fn = SHARE_DEFAULT[field.name]
+		if fn then return fn(profile) end
+		return field.default
+	end
+
+	-- A field's value as text, or nil when it is the default and need not travel.
+	local function EncodeValue(field, value, profile)
+		local kind = field.kind
+		if kind == "boolean" then
+			if type(value) ~= "boolean" or value == field.default then return nil end
+			return value and "1" or "0"
+		elseif kind == "number" then
+			if not Finite(value) or value == field.default then return nil end
+			return NumberText(value)
+		elseif kind == "string" then
+			if type(value) ~= "string" or value == DefaultOf(field, profile) then return nil end
+			return EncodeText(value)
+		elseif kind == "colour" then
+			if type(value) ~= "table" then return nil end
+			local parts, same = {}, true
+			for i = 1, 4 do
+				local c = value[i]
+				if c == nil and i == 4 then break end
+				if not Finite(c) then return nil end
+				parts[i] = NumberText(c)
+				if c ~= field.default[i] then same = false end
+			end
+			if same and #parts == #field.default then return nil end
+			return table.concat(parts, ",")
+		elseif kind == "set" then
+			if type(value) ~= "table" then return nil end
+			local keys = {}
+			for key, on in pairs(value) do
+				if on == true and type(key) == "string" and key:match("^[%w_]+$") then
+					keys[#keys + 1] = key
+				end
+			end
+			if #keys == 0 then return nil end
+			table.sort(keys)
+			return table.concat(keys, ",")
+		end
+	end
+
+	-- Text back into a value of the field's own type, or nil for anything that is
+	-- not one.
+	local function DecodeValue(field, raw)
+		local kind = field.kind
+		if kind == "boolean" then
+			if raw == "1" then return true elseif raw == "0" then return false end
+			return nil
+		elseif kind == "number" then
+			return ReadNumber(raw)
+		elseif kind == "string" then
+			return DecodeText(raw)
+		elseif kind == "colour" then
+			local out = {}
+			for part in (raw .. ","):gmatch("([^,]*),") do
+				local n = ReadNumber(part)
+				if not n or #out >= 4 then return nil end
+				out[#out + 1] = math.max(0, math.min(1, n))
+			end
+			if #out < 3 then return nil end
+			return out
+		elseif kind == "set" then
+			local out, count = {}, 0
+			for part in (raw .. ","):gmatch("([^,]*),") do
+				if not part:match("^[%w_]+$") then return nil end
+				count = count + 1
+				if count > 64 then return nil end
+				out[part] = true
+			end
+			return out
+		end
+	end
+
+	local function Checksum(text)
+		local h = 0
+		for i = 1, #text do h = (h * 31 + text:byte(i)) % 16777213 end
+		return ("%06x"):format(h)
+	end
+
+	-- The current profile as a settings string.
+	function ns.ExportSettings()
+		local profile = addon.db and addon.db.profile
+		if not profile then return nil end
+		local parts = {}
+		for _, field in ipairs(ShareFields()) do
+			local holder = Holder(profile, field.path)
+			local text = holder and EncodeValue(field, holder[field.key], profile)
+			if text then parts[#parts + 1] = field.name .. "=" .. text end
+		end
+		local signed = ns.SHARE_PREFIX .. table.concat(parts, ";")
+		return signed .. ":" .. Checksum(signed)
+	end
+
+	-- Why a string was refused, one sentence each, each one something the player
+	-- can act on.
+	ns.SHARE_ERRORS = {
+		empty = L["there is nothing to import -- paste a settings string that starts with MNR1:."],
+		notOurs = L["that is not a Manners settings string -- one starts with MNR1:."],
+		tooLong = L["that is far longer than any Manners settings string, so it was not read."],
+		newer = L["that string was made by a newer version of Manners -- update the addon to read it."],
+		incomplete = L["that string is incomplete or has been changed -- copy it again in one piece, and paste a long one into the box under Share settings on the General tab of the options."],
+		malformed = L["that string is damaged -- part of it is not a setting Manners can read. Copy it again in one piece."],
+		badValue = L["that string gives %s a value it cannot have, so nothing was changed."],
+	}
+
+	-- Read a settings string without touching anything. Returns the values keyed
+	-- by field name and how many names this version does not know, or nil and the
+	-- sentence saying why not. `cap` is the longest string it will read.
+	local function Parse(text, cap)
+		if type(text) ~= "string" then return nil, ns.SHARE_ERRORS.empty end
+		if #text > cap * 2 then return nil, ns.SHARE_ERRORS.tooLong end
+		-- No setting's text holds whitespace (a space travels as +), so any here
+		-- was added on the way: a wrapped line, or blanks around a paste.
+		text = text:gsub("%s+", "")
+		if text == "" then return nil, ns.SHARE_ERRORS.empty end
+		if #text > cap then return nil, ns.SHARE_ERRORS.tooLong end
+
+		local version, body, sum = text:match("^MNR(%d+):(.*):(%x+)$")
+		if not version then
+			if text:sub(1, 3) == "MNR" then return nil, ns.SHARE_ERRORS.incomplete end
+			return nil, ns.SHARE_ERRORS.notOurs
+		end
+		if tonumber(version) ~= SHARE_VERSION then
+			if (tonumber(version) or 0) > SHARE_VERSION then return nil, ns.SHARE_ERRORS.newer end
+			return nil, ns.SHARE_ERRORS.notOurs
+		end
+		if Checksum("MNR" .. version .. ":" .. body) ~= sum:lower() then
+			return nil, ns.SHARE_ERRORS.incomplete
+		end
+
+		local byName = {}
+		for _, field in ipairs(ShareFields()) do byName[field.name] = field end
+		local values, unknown, count = {}, 0, 0
+		if body ~= "" then
+			for pair in (body .. ";"):gmatch("([^;]*);") do
+				local name, raw = pair:match("^([%w_%.]+)=(.*)$")
+				if not name then return nil, ns.SHARE_ERRORS.malformed end
+				local field = byName[name]
+				if field then
+					local value = DecodeValue(field, raw)
+					if value == nil then return nil, ns.SHARE_ERRORS.badValue:format(name) end
+					if values[name] == nil then count = count + 1 end
+					values[name] = value
+				else
+					-- A setting a later version added: skipped, not refused.
+					unknown = unknown + 1
+				end
 			end
 		end
-		if #keys == 0 then return nil end
-		table.sort(keys)
-		return table.concat(keys, ",")
+		return { values = values, unknown = unknown, count = count }
 	end
-end
 
--- Text back into a value of the field's own type, or nil for anything that is
--- not one.
-local function DecodeValue(field, raw)
-	local kind = field.kind
-	if kind == "boolean" then
-		if raw == "1" then return true elseif raw == "0" then return false end
+	-- Anything pasted or typed is read under the ceiling.
+	function ns.ParseSettings(text)
+		return Parse(text, SHARE_MAX)
+	end
+
+	-- The settings the last import replaced, as a settings string, for this
+	-- session, and the profile they came off: its table (AceDB hands back the same
+	-- table on returning to a profile) and its name, for the line that says so.
+	local lastImportUndo, undoProfile, undoProfileName
+
+	local function ProfileName()
+		local db = addon.db
+		if not db or type(db.GetCurrentProfile) ~= "function" then return nil end
+		local ok, name = pcall(db.GetCurrentProfile, db)
+		if ok and type(name) == "string" then return name end
 		return nil
-	elseif kind == "number" then
-		return ReadNumber(raw)
-	elseif kind == "string" then
-		return DecodeText(raw)
-	elseif kind == "colour" then
-		local out = {}
-		for part in (raw .. ","):gmatch("([^,]*),") do
-			local n = ReadNumber(part)
-			if not n or #out >= 4 then return nil end
-			out[#out + 1] = math.max(0, math.min(1, n))
-		end
-		if #out < 3 then return nil end
-		return out
-	elseif kind == "set" then
-		local out, count = {}, 0
-		for part in (raw .. ","):gmatch("([^,]*),") do
-			if not part:match("^[%w_]+$") then return nil end
-			count = count + 1
-			if count > 64 then return nil end
-			out[part] = true
-		end
-		return out
-	end
-end
-
-local function Checksum(text)
-	local h = 0
-	for i = 1, #text do h = (h * 31 + text:byte(i)) % 16777213 end
-	return ("%06x"):format(h)
-end
-
--- The current profile as a settings string.
-function ns.ExportSettings()
-	local profile = addon.db and addon.db.profile
-	if not profile then return nil end
-	local parts = {}
-	for _, field in ipairs(ShareFields()) do
-		local holder = Holder(profile, field.path)
-		local text = holder and EncodeValue(field, holder[field.key], profile)
-		if text then parts[#parts + 1] = field.name .. "=" .. text end
-	end
-	local signed = ns.SHARE_PREFIX .. table.concat(parts, ";")
-	return signed .. ":" .. Checksum(signed)
-end
-
--- Why a string was refused, one sentence each, each one something the player
--- can act on.
-ns.SHARE_ERRORS = {
-	empty = L["there is nothing to import -- paste a settings string that starts with MNR1:."],
-	notOurs = L["that is not a Manners settings string -- one starts with MNR1:."],
-	tooLong = L["that is far longer than any Manners settings string, so it was not read."],
-	newer = L["that string was made by a newer version of Manners -- update the addon to read it."],
-	incomplete = L["that string is incomplete or has been changed -- copy it again in one piece. A chat line holds 255 characters, so paste a longer one into the box under Share settings on the General tab of the options."],
-	malformed = L["that string is damaged -- part of it is not a setting Manners can read. Copy it again in one piece."],
-	badValue = L["that string gives %s a value it cannot have, so nothing was changed."],
-}
-
--- Read a settings string without touching anything. Returns the values keyed
--- by field name and how many names this version does not know, or nil and the
--- sentence saying why not. `cap` is the longest string it will read.
-local function Parse(text, cap)
-	if type(text) ~= "string" then return nil, ns.SHARE_ERRORS.empty end
-	if #text > cap * 2 then return nil, ns.SHARE_ERRORS.tooLong end
-	-- No setting's text holds whitespace -- a space travels as + -- so any
-	-- that is here was added on the way: a text box wrapping the line, or the
-	-- blank either side of a paste.
-	text = text:gsub("%s+", "")
-	if text == "" then return nil, ns.SHARE_ERRORS.empty end
-	if #text > cap then return nil, ns.SHARE_ERRORS.tooLong end
-
-	local version, body, sum = text:match("^MNR(%d+):(.*):(%x+)$")
-	if not version then
-		if text:sub(1, 3) == "MNR" then return nil, ns.SHARE_ERRORS.incomplete end
-		return nil, ns.SHARE_ERRORS.notOurs
-	end
-	if tonumber(version) ~= SHARE_VERSION then
-		if (tonumber(version) or 0) > SHARE_VERSION then return nil, ns.SHARE_ERRORS.newer end
-		return nil, ns.SHARE_ERRORS.notOurs
-	end
-	if Checksum("MNR" .. version .. ":" .. body) ~= sum:lower() then
-		return nil, ns.SHARE_ERRORS.incomplete
 	end
 
-	local byName = {}
-	for _, field in ipairs(ShareFields()) do byName[field.name] = field end
-	local values, unknown, count = {}, 0, 0
-	if body ~= "" then
-		for pair in (body .. ";"):gmatch("([^;]*);") do
-			local name, raw = pair:match("^([%w_%.]+)=(.*)$")
-			if not name then return nil, ns.SHARE_ERRORS.malformed end
-			local field = byName[name]
-			if field then
-				local value = DecodeValue(field, raw)
-				if value == nil then return nil, ns.SHARE_ERRORS.badValue:format(name) end
-				if values[name] == nil then count = count + 1 end
-				values[name] = value
-			else
-				-- A setting a later version added. Skipped rather than refused,
-				-- so a string from somebody a release ahead still carries
-				-- everything this version understands.
-				unknown = unknown + 1
+	function ns.ForgetImportUndo()
+		lastImportUndo, undoProfile, undoProfileName = nil, nil, nil
+	end
+
+	-- What a change of profile does to the undo. A switch leaves it with the
+	-- profile it was made on, waiting for the player to come back. A copy or reset
+	-- of that profile, or deleting it, ends it, and so does arriving at its name
+	-- with a different table: the profile made again from nothing.
+	function ns.ProfileChangedForUndo(event, name)
+		if not lastImportUndo then return end
+		local here = addon.db and addon.db.profile
+		if event == "OnProfileChanged" then
+			if here ~= undoProfile and undoProfileName and ProfileName() == undoProfileName then
+				ns.ForgetImportUndo()
 			end
-		end
-	end
-	return { values = values, unknown = unknown, count = count }
-end
-
--- Anything pasted or typed is read under the ceiling.
-function ns.ParseSettings(text)
-	return Parse(text, SHARE_MAX)
-end
-
--- The settings the last import replaced, as a settings string, for this
--- session, and the profile they came off: its table, which is what says the
--- profile is the same one -- AceDB hands back the same table when you return
--- to a profile -- and its name, for the line that sends the player back to it.
-local lastImportUndo, undoProfile, undoProfileName
-
-local function ProfileName()
-	local db = addon.db
-	if not db or type(db.GetCurrentProfile) ~= "function" then return nil end
-	local ok, name = pcall(db.GetCurrentProfile, db)
-	if ok and type(name) == "string" then return name end
-	return nil
-end
-
-function ns.ForgetImportUndo()
-	lastImportUndo, undoProfile, undoProfileName = nil, nil, nil
-end
-
--- What a change of profile does to the undo. A switch leaves it alone: it
--- stays with the profile it was made on and waits for the player to come
--- back, where it used to be thrown away by the first switch, so a visit to an
--- alt's profile and back left "nothing to undo". A copy or a reset rewrites
--- the profile it is on in place, and when that is the import's own profile
--- there is nothing left for the undo to be an undo of. Deleting that profile
--- ends it too. And arriving at the import's profile name with a different
--- table is that profile made again from nothing, which the old settings do not
--- belong to either.
-function ns.ProfileChangedForUndo(event, name)
-	if not lastImportUndo then return end
-	local here = addon.db and addon.db.profile
-	if event == "OnProfileChanged" then
-		if here ~= undoProfile and undoProfileName and ProfileName() == undoProfileName then
+		elseif event == "OnProfileDeleted" then
+			if name ~= nil and name == undoProfileName then ns.ForgetImportUndo() end
+		elseif here == undoProfile then
 			ns.ForgetImportUndo()
 		end
-	elseif event == "OnProfileDeleted" then
-		if name ~= nil and name == undoProfileName then ns.ForgetImportUndo() end
-	elseif here == undoProfile then
-		ns.ForgetImportUndo()
 	end
-end
 
-local function CopyValue(v)
-	if type(v) ~= "table" then return v end
-	local out = {}
-	for k, inner in pairs(v) do out[k] = inner end
-	return out
-end
+	local function CopyValue(v)
+		if type(v) ~= "table" then return v end
+		local out = {}
+		for k, inner in pairs(v) do out[k] = inner end
+		return out
+	end
 
-local function SameValue(a, b)
-	if type(a) ~= "table" or type(b) ~= "table" then return a == b end
-	for k, v in pairs(a) do if b[k] ~= v then return false end end
-	for k, v in pairs(b) do if a[k] ~= v then return false end end
-	return true
-end
+	local function SameValue(a, b)
+		if type(a) ~= "table" or type(b) ~= "table" then return a == b end
+		for k, v in pairs(a) do if b[k] ~= v then return false end end
+		for k, v in pairs(b) do if a[k] ~= v then return false end end
+		return true
+	end
 
--- Write a parsed string over the current profile. Everything it does not name
--- goes back to its default, so the profile that comes out is the one that
--- went in. `own` is for the player's own settings coming back -- the undo --
--- which were never somebody else's words and are put back exactly; anything
--- else keeps speaking as the player has it. Returns what was kept back.
-local function ApplySettings(profile, parsed, own)
-	local speaking = profile.speech and profile.speech.enabled == true
-	local kept = { switch = false, words = false }
-	for _, field in ipairs(ShareFields()) do
-		local holder = Holder(profile, field.path, true)
-		local value = parsed.values[field.name]
-		if value == nil then value = CopyValue(field.default) end
-		if not own and SHARE_KEEP_MINE[field.name] then
-			if value == true and holder[field.key] ~= true then kept.switch = true end
-		elseif not own and speaking and SHARE_SPEECH[field.name] then
-			-- A string that names nothing here leaves nothing to keep: the
-			-- default a missing name stands for is not a word from anybody.
-			if parsed.values[field.name] ~= nil
-				and not SameValue(parsed.values[field.name], holder[field.key]) then
-				kept.words = true
+	-- Write a parsed string over the current profile; everything it does not name
+	-- goes back to its default. `own` is the undo, the player's own settings put
+	-- back exactly; anything else keeps speaking as the player has it. Returns
+	-- what was kept back.
+	local function ApplySettings(profile, parsed, own)
+		local speaking = profile.speech and profile.speech.enabled == true
+		local kept = { switch = false, words = false }
+		for _, field in ipairs(ShareFields()) do
+			local holder = Holder(profile, field.path, true)
+			local value = parsed.values[field.name]
+			if value == nil then value = CopyValue(field.default) end
+			if not own and SHARE_KEEP_MINE[field.name] then
+				if value == true and holder[field.key] ~= true then kept.switch = true end
+			elseif not own and speaking and SHARE_SPEECH[field.name] then
+				-- Only what the string actually names counts as kept back.
+				if parsed.values[field.name] ~= nil
+					and not SameValue(parsed.values[field.name], holder[field.key]) then
+					kept.words = true
+				end
+			else
+				holder[field.key] = value
 			end
+		end
+		-- What a profile switch runs, since every setting changed at once. Safe in
+		-- a fight: ApplyStyle waits for the fight to end. It also forgets the
+		-- undo, which each caller then sets as it needs.
+		addon:RefreshConfig()
+		return kept
+	end
+
+	-- Replace the current profile's shareable settings with the ones in `text`.
+	-- Returns whether it applied and the line to say.
+	function ns.ImportSettings(text)
+		local profile = addon.db and addon.db.profile
+		if not profile then return false, ns.SHARE_ERRORS.empty end
+		local parsed, err = ns.ParseSettings(text)
+		if not parsed then return false, err end
+
+		local undo = ns.ExportSettings()
+		local kept = ApplySettings(profile, parsed, false)
+		lastImportUndo, undoProfile, undoProfileName = undo, profile, ProfileName()
+
+		-- Translators: whole sentences for each count, not an "s" glued on.
+		local lines = {}
+		if parsed.count == 0 then
+			lines[1] = L["settings imported -- every one of them is the default."]
+		elseif parsed.count == 1 then
+			lines[1] = L["settings imported -- 1 differs from the defaults."]
 		else
-			holder[field.key] = value
+			lines[1] = L["settings imported -- %d differ from the defaults."]:format(parsed.count)
 		end
-	end
-	-- What a profile switch runs, for the same reason: every setting changed
-	-- at once. It is safe in a fight -- ApplyStyle puts itself off until the
-	-- fight ends -- which the line the callers print says. It also forgets the
-	-- undo, which each caller then sets as it needs.
-	addon:RefreshConfig()
-	return kept
-end
-
--- Replace the current profile's shareable settings with the ones in `text`.
--- Returns whether it applied and the line to say.
-function ns.ImportSettings(text)
-	local profile = addon.db and addon.db.profile
-	if not profile then return false, ns.SHARE_ERRORS.empty end
-	local parsed, err = ns.ParseSettings(text)
-	if not parsed then return false, err end
-
-	local undo = ns.ExportSettings()
-	local kept = ApplySettings(profile, parsed, false)
-	lastImportUndo, undoProfile, undoProfileName = undo, profile, ProfileName()
-
-	-- Whole sentences for each count rather than an "s" glued on, so each can
-	-- be translated as it stands.
-	local lines = {}
-	if parsed.count == 0 then
-		lines[1] = L["settings imported -- every one of them is the default."]
-	elseif parsed.count == 1 then
-		lines[1] = L["settings imported -- 1 differs from the defaults."]
-	else
-		lines[1] = L["settings imported -- %d differ from the defaults."]:format(parsed.count)
-	end
-	if parsed.unknown == 1 then
-		lines[#lines + 1] = L["1 setting from a newer version of Manners was left out."]
-	elseif parsed.unknown > 1 then
-		lines[#lines + 1] = L["%d settings from a newer version of Manners were left out."]
-			:format(parsed.unknown)
-	end
-	if kept.switch then
-		lines[#lines + 1] = L["The string had speaking a line when you buff switched on. That is left off, because it talks to other players: switch it on under When you click if you want it."]
-	end
-	if kept.words then
-		lines[#lines + 1] = L["What you say when you buff, and where, is kept as you had it, because you have speaking switched on."]
-	end
-	if InCombatLockdown() then
-		lines[#lines + 1] = L["The prompt's look changes when this fight ends."]
-	end
-	lines[#lines + 1] = L["|cffffd100/manners import undo|r puts your old settings back."]
-	return true, table.concat(lines, " ")
-end
-
--- Put back the settings the last import replaced, this session. Once: the
--- undo is used up, so a second one says there is nothing left rather than
--- putting the import back.
-function ns.UndoImport()
-	local profile = addon.db and addon.db.profile
-	if not lastImportUndo or not profile then
-		return false, L["nothing to undo -- no settings have been imported on this profile this session."]
-	end
-	-- Made on another profile: kept for when the player goes back there, and
-	-- this one left alone -- one profile's old settings laid over another's
-	-- would be a second import nobody asked for.
-	if profile ~= undoProfile then
-		if undoProfileName then
-			return false, L["nothing to undo on this profile -- the last import was made on profile %s. Switch back to it to undo it."]
-				:format(undoProfileName)
+		if parsed.unknown == 1 then
+			lines[#lines + 1] = L["1 setting from a newer version of Manners was left out."]
+		elseif parsed.unknown > 1 then
+			lines[#lines + 1] = L["%d settings from a newer version of Manners were left out."]
+				:format(parsed.unknown)
 		end
-		return false, L["nothing to undo on this profile -- the last import was made on another one. Switch back to it to undo it."]
+		if kept.switch then
+			lines[#lines + 1] = L["The string had speaking a line when you buff switched on. That is left off, because it talks to other players: switch it on under When you click if you want it."]
+		end
+		if kept.words then
+			lines[#lines + 1] = L["What you say when you buff, and where, is kept as you had it, because you have speaking switched on."]
+		end
+		if InCombatLockdown() then
+			lines[#lines + 1] = L["The prompt's look changes when this fight ends."]
+		end
+		lines[#lines + 1] = L["|cffffd100/manners import undo|r puts your old settings back."]
+		return true, table.concat(lines, " ")
 	end
-	-- Read back through the same checks as any string, though it never left
-	-- this session: one path in, and nothing that skips it. All but the length:
-	-- the ceiling is there for strings from strangers, and this is the player's
-	-- own profile written out a moment ago, which nothing caps. Under the
-	-- ceiling, a long phrase box made the undo unreadable and the settings it
-	-- held were lost.
-	local parsed = Parse(lastImportUndo, math.huge)
-	lastImportUndo = nil
-	if not parsed then
-		-- Not "nothing to undo": there was an import, and this is the one
-		-- place that knows its undo could not be read.
-		return false, L["your settings from before the import could not be read back, so they were not restored."]
+
+	-- Put back the settings the last import replaced, this session. Once.
+	function ns.UndoImport()
+		local profile = addon.db and addon.db.profile
+		if not lastImportUndo or not profile then
+			return false, L["nothing to undo -- no settings have been imported on this profile this session."]
+		end
+		-- Made on another profile: kept for when the player goes back there.
+		if profile ~= undoProfile then
+			if undoProfileName then
+				return false, L["nothing to undo on this profile -- the last import was made on profile %s. Switch back to it to undo it."]
+					:format(undoProfileName)
+			end
+			return false, L["nothing to undo on this profile -- the last import was made on another one. Switch back to it to undo it."]
+		end
+		-- Read back through the same checks as any string, except the length
+		-- ceiling, which is for strings from strangers.
+		local parsed = Parse(lastImportUndo, math.huge)
+		lastImportUndo = nil
+		if not parsed then
+			-- Not "nothing to undo": there was one, and it could not be read.
+			return false, L["your settings from before the import could not be read back, so they were not restored."]
+		end
+		ApplySettings(profile, parsed, true)
+		if InCombatLockdown() then
+			return true, L["your settings from before the import are back. The prompt's look changes when this fight ends."]
+		end
+		return true, L["your settings from before the import are back."]
 	end
-	ApplySettings(profile, parsed, true)
-	if InCombatLockdown() then
-		return true, L["your settings from before the import are back. The prompt's look changes when this fight ends."]
-	end
-	return true, L["your settings from before the import are back."]
 end
 
 ---------------------------------------------------------------------------
 -- slash
 ---------------------------------------------------------------------------
 
--- Every command, in the order the help prints them. One list rather than a
--- help block and an if/elseif chain that have to be kept in step by hand: that
--- is how "restore" came to be advertised for a release without existing, and it
--- is what the scenario walks to prove none of them falls through to the help.
---
--- Grouped by what somebody is trying to do when they type one, because
--- eighteen lines in the order they were written is a list nobody reads past
--- the fourth. The groups print in the order of COMMAND_GROUPS.
+-- Every command, in the order the help prints them: one list that HandleSlash,
+-- the help and the scenario that walks it all read, so nothing is advertised
+-- without existing. Grouped by what somebody is trying to do, printed in the
+-- order of COMMAND_GROUPS.
 ns.COMMAND_GROUPS = {
 	{ key = "everyday", title = L["Everyday"] },
 	{ key = "setup", title = L["Setting it up"] },
@@ -6897,9 +5702,9 @@ ns.COMMAND_GROUPS = {
 	{ key = "trouble", title = L["When something is wrong"] },
 }
 
--- `word` and `args` stay in English: the word is what HandleSlash matches, and
--- the arguments mix placeholders with keywords it matches too -- off, undo --
--- which a translated help line would teach somebody to type wrong.
+-- Translators: `word` and `args` stay in English. The word is what
+-- HandleSlash matches, and the arguments mix placeholders with keywords it
+-- matches too (off, undo).
 ns.COMMANDS = {
 	{ word = "options", group = "everyday", help = L["open the options window"] },
 	{ word = "on", group = "everyday", help = L["turn the addon on"] },
@@ -6907,9 +5712,7 @@ ns.COMMANDS = {
 	{ word = "snooze", group = "everyday", args = " [minutes|off]",
 		help = L["hide the prompt for a while -- 15 minutes unless you say"] },
 	{ word = "test", group = "everyday", help = L["preview the prompt with a mock candidate"] },
-	-- "ledger" and not "log", which HandleSlash still takes: listed a line
-	-- from "clicks", whose help says "log what the button does", "log" sent
-	-- somebody after the click log to a different window.
+	-- "ledger", not "log" (still taken), which reads like the click log.
 	{ word = "ledger", group = "everyday",
 		help = L["the favour ledger: who buffed you, what you gave back, and who you buffed"] },
 	{ word = "welcome", group = "setup",
@@ -6917,9 +5720,7 @@ ns.COMMANDS = {
 	{ word = "macro", group = "setup", help = L["make a /click macro for your action bar"] },
 	{ word = "unlock", group = "setup", help = L["unlock the prompt so it can be dragged"] },
 	{ word = "lock", group = "setup", help = L["lock it again -- an unlocked prompt never casts"] },
-	-- Both of these flip a setting that starts on. Written as actions, the way
-	-- they were, somebody who typed one to get what it described on a fresh
-	-- profile switched that very thing off.
+	-- Both of these flip a setting that starts on, so they say "switch".
 	{ word = "never", group = "everyday", args = " [name]",
 		help = L["list who is never offered anything, or put somebody on that list"] },
 	{ word = "allow", group = "everyday", args = " <name>",
@@ -6931,16 +5732,23 @@ ns.COMMANDS = {
 		help = L["use settings somebody exported, or undo the last import"] },
 	{ word = "debug", group = "trouble", help = L["what your class and this build allow"] },
 	{ word = "errors", group = "trouble", help = L["the last few things that broke"] },
-	{ word = "clicks", group = "trouble", help = L["log what the button does when clicked"] },
-	{ word = "try", group = "trouble", args = " <macro>", help = L["run any macro text from the prompt"] },
-	{ word = "look", group = "trouble", args = " [unit]", help = L["dump every API answer for a unit"] },
-	{ word = "forms", group = "trouble", help = L["example macros to try"] },
+	{ word = "dev", group = "trouble",
+		help = L["tools for testing the addon on this client: the click log, try, look and forms"] },
 }
 
--- Other words that reach a command, for somebody who types what they expect
--- rather than what the list says. The help itself is not in COMMANDS: it is
--- what an unknown word falls through to, and the scenario that walks the list
--- tells an advertised command from a missing one by whether the help appears.
+-- The in-game diagnosis for clients and classes nobody here can play, listed by
+-- /manners dev rather than the help. They keep working under their own words,
+-- which bug reports quote.
+ns.DEV_COMMANDS = {
+	{ word = "clicks", help = L["log what the button does when clicked"] },
+	{ word = "try", args = " <macro>", help = L["run any macro text from the prompt"] },
+	{ word = "look", args = " [unit]", help = L["dump every API answer for a unit"] },
+	{ word = "forms", help = L["example macros to try"] },
+}
+
+-- Other words that reach a command. The help itself is not in COMMANDS: it is
+-- what an unknown word falls through to, which is how the scenario that walks
+-- the list tells a missing branch.
 ns.COMMAND_ALIASES = { config = "options", help = "help", ["?"] = "help", log = "ledger" }
 
 -- The whole list, one line per command under its group's heading. The first
@@ -6960,9 +5768,7 @@ local function PrintHelp()
 end
 
 -- How many slips of a finger turn one word into the other: a letter missed,
--- added or changed, or two neighbours swapped. The swap counts as one because
--- that is how it happens at a keyboard -- "tset" is one slip from "test", not
--- the two a plain letter count makes it.
+-- added or changed, or two neighbours swapped ("tset" is one slip from "test").
 local function EditDistance(a, b)
 	if a == b then return 0 end
 	local rows = {}
@@ -6982,21 +5788,16 @@ local function EditDistance(a, b)
 	return rows[#a][#b]
 end
 
--- The command somebody most likely meant by a word that is not one, or nil
--- when nothing is close enough to be worth suggesting. Close means one slip,
--- or two in a word long enough that two slips still leave most of it -- in a
--- five-letter word two changes turn "reset" into "test", which is a guess, not
--- a correction -- or the start of exactly one command.
---
--- Never the word itself. A word that is a command and still reached the
--- fallback is a command with no branch, and "did you mean /manners forms?" in
--- answer to /manners forms would hide that from the player and from the
--- scenario that walks the list looking for it.
+-- The command somebody most likely meant by a word that is not one, or nil:
+-- one slip, two in a word of six letters or more, or the start of exactly
+-- one command. Never the word itself: a command that reached the fallback has
+-- no branch, and saying "did you mean" would hide that.
 function ns.ClosestCommand(word)
 	word = tostring(word or ""):lower()
 	if word == "" then return nil end
 	local words = {}
 	for _, command in ipairs(ns.COMMANDS) do words[#words + 1] = command.word end
+	for _, command in ipairs(ns.DEV_COMMANDS) do words[#words + 1] = command.word end
 	for alias in pairs(ns.COMMAND_ALIASES) do
 		if alias:match("^%a+$") then words[#words + 1] = alias end
 	end
@@ -7027,26 +5828,11 @@ function ns.ClosestCommand(word)
 	return best
 end
 
--- Commands that write a setting the options page has a control for.
---
--- A list rather than a call in each branch, so it can be read against the page
--- in one go: every word here has a checkbox or a toggle somewhere in
--- Options.lua, and a control drawn from a value the command has just changed is
--- a control showing the wrong thing until somebody closes the window and opens
--- it again. /manners off with the page open was the visible one -- Enable
--- still ticked, and the red notice written for that exact moment still hidden.
---
--- `try`, `look`, `forms`, `macro`, `debug` and `errors` are deliberately absent:
--- they change nothing the page draws. `test` and `welcome` do -- the Preview
--- button is labelled from whether one is running -- but they are absent too,
--- because the preview repaints the page itself whenever it starts or stops
--- (ToggleTest and ExitTest), which also covers the clock and the page's own
--- button.
---
--- `snooze` is here for the launcher, whose text says a snooze is running and
--- until when. StartSnooze and StopSnooze repaint as well, because the minimap
--- menu and the options page reach them without coming through here; asking
--- twice costs nothing. `import` repaints through RefreshConfig.
+-- Commands that write a setting the options page has a control for, so an
+-- open page is redrawn. Commands that change nothing it draws are absent;
+-- `test` and `welcome` too, because the preview repaints the page itself.
+-- `snooze` is here for the launcher's text; `import` repaints through
+-- RefreshConfig.
 local REPAINT_AFTER = {
 	on = true, off = true, verbose = true, clicks = true,
 	restore = true, lock = true, unlock = true, snooze = true,
@@ -7056,19 +5842,15 @@ local REPAINT_AFTER = {
 
 -- Every command that changes what a press does says, in a fight, that it
 -- "takes effect when this fight ends; until then a press runs the macro
--- already on the button." The macro on the button is a secure attribute,
--- frozen for the length of a fight, so a change made in one is kept and
--- applied when it ends -- and until then the press runs whatever the fight
--- froze, which chat used to say nothing about. The clause is written out in
--- each whole sentence rather than glued onto the start of one, so each can be
--- translated as it stands; keep the copies in step when the wording changes.
+-- already on the button": the macro is a secure attribute, frozen for the
+-- fight. Translators: the clause is written into each whole sentence; keep
+-- the copies in step.
 
 function addon:HandleSlash(rawInput)
 	rawInput = (rawInput or ""):match("^%s*(.-)%s*$")
 
-	-- The command word is matched case-insensitively, but the remainder is
-	-- kept verbatim: macro text is case- and punctuation-sensitive and must
-	-- not be mangled on its way through here.
+	-- The command word is matched case-insensitively; the rest is kept
+	-- verbatim, since macro text is case- and punctuation-sensitive.
 	local word, rest = rawInput:match("^(%S+)%s*(.*)$")
 	local input = (word or ""):lower()
 	rest = rest or ""
@@ -7088,8 +5870,7 @@ function addon:HandleSlash(rawInput)
 			ns.Prompt:InvalidateMacro()
 			ns.Say(L["try armed: |cff80ff80%s|r"], (ns.tryMacro:gsub("\n", " | ")))
 			local expanded, unfilled = ns.ExpandTokens(ns.tryMacro)
-			-- The same answer the button gets, so the line quoted here cannot be
-			-- one the button was left empty instead of running.
+			-- The same answer the button gets.
 			if not expanded then
 				ns.Say("  " .. L["|cffff8080not armed for now:|r %s."], unfilled)
 				expanded = ""
@@ -7097,29 +5878,14 @@ function addon:HandleSlash(rawInput)
 				ns.Say("  " .. L["expands to: |cffffffff%s|r"], (expanded:gsub("\n", " | ")))
 			end
 
-			-- Measured against the same budget every other macro in this addon
-			-- is measured against. What goes on the button is the expansion, and
-			-- the client truncates a macro body over the limit without saying a
-			-- word -- so the line printed above was presented as what will run
-			-- while the button quietly held a cut-off version of it. On a
-			-- console whose entire purpose is one experiment per reload, that is
-			-- the experiment silently answering a different question.
-			--
-			-- Said, not refused. /manners try is the only way anybody probes
-			-- this client, and a console that declines to arm what it was handed
-			-- is worse than one that arms it and says it will be cut.
-			--
-			-- The length is for the candidate on the prompt right now, because
-			-- that is whose name the tokens just expanded to. A longer name
-			-- later moves it, which is why this quotes the number rather than
-			-- promising it fits.
+			-- The client truncates a macro body over the limit without a word,
+			-- so the expansion (for the candidate on the prompt now) is measured.
+			-- Said, not refused: this console is the only way to probe the client.
 			if #expanded > ns.MACRO_LIMIT then
 				ns.Say("  |cffff4040" .. L["%d characters -- %d over the %d a macro body holds. The client will cut it, and what runs is not what is printed above."]
 					.. "|r", #expanded, #expanded - ns.MACRO_LIMIT, ns.MACRO_LIMIT)
 			end
-			-- Attributes are frozen for the fight, so the button still holds the
-			-- macro it was armed with when the fight began. "Click the prompt to
-			-- run it" sent a press to that one instead -- which may /yell.
+			-- Attributes are frozen for the fight, so a press runs the old macro.
 			if InCombatLockdown() then
 				self:Print(L["It takes effect when this fight ends; until then a press runs the macro already on the button. |cffffd100/manners try|r with nothing clears it."])
 			elseif unfilled then
@@ -7131,23 +5897,18 @@ function addon:HandleSlash(rawInput)
 		return
 	elseif input == "look" then
 		ns.Guard("InspectUnit", ns.InspectUnit, rest ~= "" and rest or nil)
-		-- Flushed to SavedVariables straight away, so a session spent hunting
-		-- one of this client's secrets can be read off disk afterwards rather
-		-- than copied out of the chat frame by hand.
+		-- Flushed to SavedVariables at once, to be read off disk afterwards.
 		ns.Guard("WriteProbe", ns.WriteProbe)
 		return
 	elseif input == "forms" then
 		self:Print("|cffffd100" .. L["Targeting forms, for /manners try:"] .. "|r")
 		self:Print("  /manners try /cast [@{unit}] {spell}")
 		self:Print("  /manners try /cast [@{name}] {spell}")
-		-- {aim} rather than {name} on the targeting line, and the command the
-		-- addon itself would write. This list is read by somebody working out
-		-- what resolves on a client nobody here can start, and an example that
-		-- is wrong for their client wastes the one experiment they will run.
+		-- {aim} on the targeting line, with the command the addon itself would
+		-- write on this client.
 		self:Print(("  /manners try %s {aim}\\n/cast {spell}"):format(
 			(ns.TargetCommand and ns.TargetCommand()) or "/target"))
-		-- The examples themselves are macro text and stay as the client reads
-		-- them; only the note beside one is words.
+		-- Translators: the examples are macro text; only the note is words.
 		self:Print(("  /manners try /cast {spell}                 %s"):format(L["(on yourself)"]))
 		self:Print("  /manners try /cast [@party1] {spell}")
 		self:Print(L["Tokens: |cffffd100{unit} {name} {aim} {first} {spell} {id}|r. {name} is what a debt is filed under, {aim} is what a targeting line wants. Use \\n for a new line."])
@@ -7158,13 +5919,10 @@ function addon:HandleSlash(rawInput)
 	if input == "" or input == "config" or input == "options" then
 		ns.OpenOptions()
 	elseif input == "welcome" then
-		-- Forced, so it plays for somebody who has already seen it -- which is
-		-- the whole reason the command exists. Somebody will want to find the
-		-- prompt again after moving it, or show a guildmate what it looks like.
+		-- Forced, so it plays for somebody who has already seen it.
 		ns.Guard("welcome", ns.Welcome, true)
 	elseif input == "ledger" or input == "log" then
-		-- Plain UI with nothing secure in it, so unlike the prompt it opens in
-		-- a fight as readily as out of one.
+		-- Plain UI with nothing secure in it, so it opens in a fight too.
 		if ns.Ledger then
 			ns.Guard("ledger window", ns.Ledger.Toggle)
 		else
@@ -7173,18 +5931,10 @@ function addon:HandleSlash(rawInput)
 	elseif input == "unlock" then
 		db.prompt.locked = false
 		ns.Prompt:ApplyStyle()
-		-- Refresh reads `enabled` before it reads `locked`, and rightly so: an
-		-- unlocked prompt that ignores /manners off is a button sitting on
-		-- screen after you were told the addon is off. It does mean unlocking
-		-- while off puts nothing on screen, and the old line then sent you to
-		-- drag something that is not there. Switching the addon on for you would
-		-- be the worse half of the choice: /manners off is a decision, and a
-		-- command about where the prompt sits must not quietly undo it.
-		--
-		-- In a fight there is nothing to drag either: the prompt is a secure
-		-- frame, the client refuses to move it until the fight ends, and the
-		-- panel says "a press still casts what the fight froze" rather than
-		-- "Drag to move" for exactly that reason. Chat has to agree with it.
+		-- Unlocking while off puts nothing on screen (Refresh reads `enabled`
+		-- first), and the command must not quietly switch the addon on. In a
+		-- fight the secure prompt cannot be moved, and chat agrees with the
+		-- panel about that.
 		if db.enabled and InCombatLockdown() then
 			self:Print(L["unlocked -- it can be dragged once this fight ends; until then a press still casts what the fight froze. Then |cffffd100/manners lock|r."])
 		elseif db.enabled then
@@ -7203,8 +5953,7 @@ function addon:HandleSlash(rawInput)
 	elseif input == "restore" then
 		db.filters.restoreTarget = not db.filters.restoreTarget
 		ns.Prompt:InvalidateMacro()
-		-- One whole line per state, the on and off inside it: which word goes
-		-- where, and what it agrees with, is the translator's to decide.
+		-- Translators: one whole line per state, the on and off inside it.
 		if InCombatLockdown() then
 			self:Print(db.filters.restoreTarget
 				and L["hand your target back after buffing: |cff00ff00on|r -- takes effect when this fight ends; until then a press runs the macro already on the button."]
@@ -7219,16 +5968,8 @@ function addon:HandleSlash(rawInput)
 		self:Print(db.debugClicks and L["click logging: |cff00ff00on|r"] or L["click logging: |cffff0000off|r"])
 	elseif input == "verbose" then
 		db.verbose = not db.verbose
-		-- "Announce" read as though it talks to other players, which is the one
-		-- thing this addon never does without a click. It prints to your own
-		-- chat frame and nowhere else.
-		--
-		-- And it is not only the favour line. Six other places print through
-		-- this switch -- a click that failed or left somebody owed, above all --
-		-- so saying only the first of them here left the option's best use
-		-- unadvertised in both of the two places that describe it. Not "what
-		-- each click turned into", which it once said: a cast that worked prints
-		-- nothing unless it repaid a favour.
+		-- It prints to your own chat frame only, and covers more than the favour
+		-- line: failed clicks and people left owed above all.
 		self:Print(db.verbose
 			and L["verbose: |cff00ff00on|r -- a line in your own chat when somebody buffs you, when a favour is counted as repaid, and when a click fails, is skipped, or leaves somebody owed"]
 			or L["verbose: |cffff0000off|r"])
@@ -7240,8 +5981,7 @@ function addon:HandleSlash(rawInput)
 		ns.Prompt:Refresh()
 		self:Print(L["disabled."])
 	elseif input == "never" then
-		-- The name is `rest`, kept as typed: a surname or a realm is part of it,
-		-- and the list matches regardless of case anyway.
+		-- The name is `rest`, kept as typed: a surname or a realm is part of it.
 		if rest == "" then
 			local names = ns.NeverList()
 			if #names == 0 then
@@ -7280,18 +6020,15 @@ function addon:HandleSlash(rawInput)
 			end
 		end
 	elseif input == "export" then
-		-- Into a box, not into chat: nothing printed to the chat frame can be
-		-- selected and copied. Printed only when there is no box to put it in,
-		-- because a string that can be read off the screen still beats none.
+		-- Into a box, since chat text cannot be copied; printed only when there
+		-- is no box.
 		if ns.ShowShareBox and ns.ShowShareBox("export") then
 			self:Print(L["your settings are in the box under |cffffd100Share settings|r on the General tab of the options -- click in it, select all and copy."])
 		else
 			self:Print(tostring(ns.ExportSettings()))
 		end
-		-- A string longer than an import will read is handed over all the same
-		-- -- it is still the settings -- but not without saying it will not go
-		-- back in. The phrase box is the setting that grows that far in
-		-- practice; the prompt's lines are free text too, so "usually".
+		-- A string longer than an import will read is handed over all the same,
+		-- with a warning.
 		local export = ns.ExportSettings()
 		if type(export) == "string" and #export:gsub("%s+", "") > SHARE_MAX then
 			self:Print(L["this string is too long to be imported back -- a very long phrase box under When you click is the usual cause. Shorten it if you want to share these settings."])
@@ -7310,26 +6047,25 @@ function addon:HandleSlash(rawInput)
 			local _, message = ns.ImportSettings(rest)
 			self:Print(message)
 		end
+	elseif input == "dev" then
+		self:Print("|cffffd100" .. L["Tools for testing Manners on this client:"] .. "|r")
+		for _, command in ipairs(ns.DEV_COMMANDS) do
+			self:Print(("  |cffffd100/manners %s%s|r  %s"):format(
+				command.word, command.args or "", command.help))
+		end
 	elseif input == "errors" then
-		-- Guard names every failure it catches but only says each one out loud
-		-- once. This is the rest of them, and the only way to see a failure
-		-- that happened before anyone was looking at chat.
+		-- Guard says each failure out loud only once; this lists the rest.
 		if #ns.errors == 0 then
 			self:Print(L["nothing has broken this session."])
 			return
 		end
-		-- Two different numbers, and this used to print the wrong one for both.
-		-- `#ns.errors` is how many are still in the ring, which stops at thirty;
-		-- `ns.errorCount` is how many there have ever been. "The last 5 of 30"
-		-- read identically whether thirty things had broken or thirty thousand
-		-- had -- and those are not the same report. One is a bug worth sending
-		-- in; the other is a handler throwing on every frame, which is a client
-		-- being ground to a halt by this addon and wants a /reload, not a note.
+		-- `#ns.errors` is how many the ring still holds (at most thirty);
+		-- `ns.errorCount` how many there have ever been, which tells a bug from
+		-- a handler throwing on every frame.
 		local kept = #ns.errors
 		local total = ns.errorCount or kept
 		local from = math.max(1, kept - 4)
-		-- The size of the ring is only worth a reader's attention once it has
-		-- started dropping things; until then it is the same number twice.
+		-- The ring's size only once it has started dropping things.
 		if total > kept then
 			self:Print(L["|cffffd100the last %d of %d|r |cff808080(%d kept)|r:"]:format(kept - from + 1, total, kept))
 		else
@@ -7341,18 +6077,9 @@ function addon:HandleSlash(rawInput)
 				tostring(e.at), tostring(e.where), tostring(e.err)))
 		end
 	elseif input == "debug" then
-		-- The client first, and above the early return below.
-		--
-		-- Four of the five clients this addon claims to support cannot be
-		-- tested by anybody who works on it, so one user running one command
-		-- is the cheapest evidence available -- and it is only evidence if it
-		-- says which client it came from. A class with nothing to cast is
-		-- exactly the report that used to arrive without that line.
-		--
-		-- Guarded because the failure this line is most needed for is the one
-		-- where Flavour.lua did not load at all -- a toc that lost it from its
-		-- file list -- and a debug command that throws on the way to saying so
-		-- takes the last diagnostic with it.
+		-- The client first, above the early return below: a report is only
+		-- evidence if it says which client it came from. Guarded, since this
+		-- line is most needed when Flavour.lua did not load at all.
 		self:Print("client: |cffffffff"
 			.. (ns.FlavourSummary and ns.FlavourSummary()
 				or "|cffff4040" .. L["Flavour.lua did not load -- check the toc's file list"] .. "|r")
@@ -7365,25 +6092,17 @@ function addon:HandleSlash(rawInput)
 			tostring(caps.combatLog), tostring(caps.combatLogProbe),
 			tostring(caps.secretRestrictions),
 			caps.unitNameIsSurname and "surname" or "realm"))
-		-- Whether the second favour source is actually running, which is not the
-		-- same question as whether the client has a log: the registration is
-		-- guarded, and a client that refused it has one source and no red line
-		-- to say so. Absent entirely where there is no log, because "0 filed"
-		-- about a source that cannot exist here is a question the reader then
-		-- has to go and answer.
+		-- Whether the second favour source is actually running (a refused
+		-- registration leaves no red line). Absent where there is no log.
 		if caps.combatLog then
 			self:Print(("  combat log favours: armed=%s, %d seen, %d filed"):format(
 				tostring(ns.logScan.armed), ns.logScan.applied, ns.logScan.noted))
 		end
-		-- Which set of spells this client was handed, and whether that was a
-		-- match or a guess. A report saying "my priest is never offered Divine
-		-- Spirit" is answered by this line alone on four of the five clients,
-		-- where the spell does not exist any more.
+		-- Which set of spells this client was handed, matched or guessed.
 		self:Print(("  buff data: |cffffffff%s|r"):format(tostring(ns.BUFFS_SOURCE)))
 
-		-- A buff table that never arrived says so before anything else, since
-		-- every line under it would then be describing an empty list and
-		-- reading as "this class has nothing", which is a different bug.
+		-- A buff table that never arrived says so first, or the lines below
+		-- read as "this class has nothing".
 		if ns.BUFFS_MISSING then
 			self:Print("|cffff4040" .. ns.BUFFS_MISSING .. "|r")
 		end
@@ -7396,13 +6115,9 @@ function addon:HandleSlash(rawInput)
 		self:Print("C_Secrets: " .. tostring(caps.hasSecrets)
 			.. " | auras secret now: " .. tostring(caps.aurasSecretNow)
 			.. " | nameplates: " .. tostring(caps.namePlates))
-		-- What is measuring nearness, and whether it is answering.
-		--
-		-- The one line without which this feature cannot be debugged from the
-		-- outside: a proximity filter that has silently stopped measuring
-		-- offers the whole square exactly as it did before, and a proximity
-		-- filter measuring something far tighter than its label offers nobody.
-		-- Both look from the prompt like an ordinary evening.
+		-- What is measuring nearness, and whether it is answering: a proximity
+		-- filter that has silently stopped measuring looks like an ordinary
+		-- evening from the prompt.
 		self:Print("  proximity: " .. tostring(ns.ProximitySummary()))
 		for _, buff in ipairs(ns.GetClassBuffs(caps.class) or {}) do
 			local info = caps.buffs[buff.key]
@@ -7411,17 +6126,15 @@ function addon:HandleSlash(rawInput)
 				tostring(info and info.name),
 				info and tostring(info.known) or "?",
 				info and tostring(info.readable) or "?"))
-			-- The one failure in this file with no other symptom: an id that
-			-- does not exist here is a buff that is silently never offered and
-			-- never noticed. Saying it here is the whole of the noticing.
+			-- An id this client does not have is a buff silently never offered;
+			-- this line is the only symptom.
 			if info and info.unresolved and #info.unresolved > 0 then
 				self:Print(("    " .. L["|cffff4040this client has never heard of %s|r -- Manners has the wrong spell ids for %s on %s. Please report this line."]):format(
 					table.concat(info.unresolved, ", "), buff.key,
 					tostring(ns.BUFFS_SOURCE)))
 			end
 		end
-		-- Separating "we never saw the buff" from "we saw it but cannot reach
-		-- them" is the difference between a detection bug and a targeting one.
+		-- Tells a detection bug ("never saw the buff") from a targeting one.
 		local now = GetTime()
 		local pending = 0
 		for name, entry in pairs(owed) do
@@ -7432,10 +6145,7 @@ function addon:HandleSlash(rawInput)
 					name, math.floor(expires - now), math.floor(now - entry.at)))
 			end
 		end
-		-- Only a claim about the world while something is looking. With the
-		-- addon or the favour source switched off nothing is ever filed, so
-		-- "nobody has buffed you" was printed straight after somebody had --
-		-- in the output the bug-report template asks players to paste.
+		-- "Nobody has buffed you" only while something is looking.
 		if pending == 0 then
 			if not db.enabled then
 				self:Print("  " .. L["not watching for favours -- Manners is switched off."])
@@ -7445,42 +6155,32 @@ function addon:HandleSlash(rawInput)
 				self:Print("  " .. L["nobody has buffed you recently."])
 			end
 		end
-		-- The third source, which reads chat: whether it is listening, how much
-		-- it has read and set aside, and who is waiting on it. "Somebody asked
-		-- and was never offered" is answered by whether their message was
-		-- counted at all, and then by whether it is still standing here.
+		-- The third source, which reads chat: listening or not, what it read and
+		-- set aside, and who is waiting.
 		for _, line in ipairs(ns.RequestLines()) do self:Print("  " .. line) end
 
-		-- And whether that is because nobody has, or because the last look at
-		-- your own buffs was not one this addon was willing to believe.
+		-- And whether the last look at your own buffs was believed.
 		local scan = ns.auraScan
 		if scan.doubt then
 			self:Print(("  " .. L["|cffff8080own buffs: last scan not believed (%s)|r -- %d read, baseline %d"])
 				:format(scan.doubt, scan.read, scan.held))
 		elseif not scan.primed then
-			-- Believed, and still not acting on anything: the baseline is only
-			-- taken once two scans running agree, and nothing counts as a favour
-			-- before it is. Silence from here means "waiting", not "nobody has
-			-- buffed you", and those look identical from the prompt.
+			-- Believed, but the baseline waits for two scans that agree:
+			-- silence here means "waiting", not "nobody has buffed you".
 			self:Print(("  " .. L["|cffffd100own buffs: baseline not settled|r -- %d read, waiting for a second scan to agree"])
 				:format(scan.read))
 		else
 			self:Print(("  " .. L["own buffs: %d read, baseline %d"]):format(scan.read, scan.held))
 		end
 
-		-- Beside the unlocked line and for the same reason: a switch that stops
-		-- the prompt appearing, which the rest of this output does not show.
-		-- BuildQueue does not read it, so the count below went on reading like
-		-- a healthy queue behind a prompt that was never going to be drawn.
+		-- The states that keep the prompt off screen while the queue below
+		-- still counts people (BuildQueue does not read them).
 		if not db.enabled then
 			self:Print("|cffff8080" .. L["switched OFF on this profile -- nothing is recorded or offered; /manners on"] .. "|r")
 		end
 		if not db.prompt.locked then
 			self:Print("|cffff8080" .. L["prompt is UNLOCKED -- it will not buff anyone until you /manners lock"] .. "|r")
 		end
-		-- The other two things that keep the prompt off the screen with the
-		-- queue below still counting people, for the same reason as the two
-		-- above.
 		if ns.SnoozeLeft() then
 			self:Print(L["|cffffd100snoozed until %s|r -- no prompt until then; /manners snooze off ends it"]
 				:format(ns.SnoozeEndsAt()))
@@ -7496,24 +6196,26 @@ function addon:HandleSlash(rawInput)
 		self:Print((db.enabled and L["queue now: %d"] or L["queue if switched on: %d"]):format(#ns.BuildQueue()))
 		ns.Guard("WriteProbe", ns.WriteProbe)
 	else
-		-- A word that is nearly a command gets that command named, rather
-		-- than twenty lines to find it in. Anything else -- help itself
-		-- included -- gets the whole list, whose header is the marker the
-		-- scenario looks for: falling through to here is the one outcome an
-		-- advertised command must never have.
+		-- A word that is nearly a command gets that command named. Anything
+		-- else, help included, gets the whole list, whose header is the marker
+		-- the scenario looks for.
 		local closest = ns.COMMAND_ALIASES[input] == nil and ns.ClosestCommand(input)
 		if closest then
-			self:Print(L["there is no |cffffd100/manners %s|r -- did you mean |cffffd100/manners %s|r? |cffffd100/manners help|r lists them all."]
-				-- Doubled, so a | somebody typed is shown rather than read by
-				-- the chat frame as the start of a colour code.
-				:format((input:gsub("|", "||")), closest))
+			-- The help leaves the developer tools out, so a guess that is one
+			-- of them points at the list that does have it.
+			local line = L["there is no |cffffd100/manners %s|r -- did you mean |cffffd100/manners %s|r? |cffffd100/manners help|r lists them all."]
+			for _, command in ipairs(ns.DEV_COMMANDS) do
+				if command.word == closest then
+					line = L["there is no |cffffd100/manners %s|r -- did you mean |cffffd100/manners %s|r? |cffffd100/manners dev|r lists the testing tools."]
+				end
+			end
+			-- Doubled, so a typed | is shown, not read as a colour code.
+			self:Print(line:format((input:gsub("|", "||")), closest))
 		else
 			PrintHelp()
 		end
 	end
 
-	-- After the chain rather than inside seven branches of it: whatever the one
-	-- that ran wrote, the page and the launcher are both still drawn from the
-	-- value it had before.
+	-- After the chain rather than inside each branch.
 	if REPAINT_AFTER[input] then ns.RepaintOptions() end
 end

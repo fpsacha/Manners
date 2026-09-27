@@ -2175,7 +2175,11 @@ if ns then
 	if #(ns.COMMANDS or {}) == 0 then
 		fail("every advertised command exists", "there is no command list to walk")
 	end
-	for _, command in ipairs(ns.COMMANDS or {}) do
+	-- The developer tools that /manners dev lists as well as the help's own.
+	local every = {}
+	for _, command in ipairs(ns.COMMANDS or {}) do every[#every + 1] = command end
+	for _, command in ipairs(ns.DEV_COMMANDS or {}) do every[#every + 1] = command end
+	for _, command in ipairs(every) do
 		Mock.printed = {}
 		if not pcall(function() ns.addon:HandleSlash(command.word) end) then
 			fail("every advertised command exists", command.word .. " threw")

@@ -94,17 +94,24 @@ mutate("Core.lua",
        expect="an old reading of somebody's buffs is replaced by a new one",
        script="runscenarios.py")
 
-# Ten more file-level locals in Core.lua, the size of the next fix or two, which
-# still loads but leaves too little room for the one after. Core.lua has 15
-# free as this is written; if later work frees more than five, this has to add
-# more to stay caught. The per-function limits section objects to the same
-# change in its own words, so the expect is this section's wording alone: with
-# "TOO FULL  Core.lua" either section's line counted, and switching this one
-# off still read as CAUGHT.
+# Seventy-two more file-level locals in Core.lua, which still loads but leaves
+# 3 free against validate's floor of 10. Core.lua has 75 free as this is
+# written (its do-blocks and grouped tables); if later work frees more, this
+# has to add more to stay caught, and it cannot add more than are free, or
+# Core.lua fails to compile and the headroom check has nothing to count. The
+# per-function limits section objects to the same change in its own words, so
+# the expect is this section's wording alone.
 mutate("Core.lua",
        "local PRIORITY = { target = 0, owed = 1, asked = 1.5, group = 2, nearby = 3 }\n",
        "local PRIORITY = { target = 0, owed = 1, asked = 1.5, group = 2, nearby = 3 }\n"
-       "local m1, m2, m3, m4, m5, m6, m7, m8, m9, m10\n",
-       "Core.lua's main chunk ten locals fuller",
+       "local m1, m2, m3, m4, m5, m6, m7, m8, m9, m10\n"
+       "local m11, m12, m13, m14, m15, m16, m17, m18, m19, m20\n"
+       "local m21, m22, m23, m24, m25, m26, m27, m28, m29, m30\n"
+       "local m31, m32, m33, m34, m35, m36, m37, m38, m39, m40\n"
+       "local m41, m42, m43, m44, m45, m46, m47, m48, m49, m50\n"
+       "local m51, m52, m53, m54, m55, m56, m57, m58, m59, m60\n"
+       "local m61, m62, m63, m64, m65, m66, m67, m68, m69, m70\n"
+       "local m71, m72\n",
+       "Core.lua's main chunk seventy-two locals fuller",
        expect="free, want 10 -- put helpers",
        script="validate.py")

@@ -176,6 +176,15 @@ mutate("Core.lua",
        expect="was answered with a guess",
        script="runscenarios.py")
 
+# A guess at a developer tool that still says the help lists it, which the help
+# does not.
+mutate("Core.lua",
+       "\t\t\t\tif command.word == closest then\n",
+       "\t\t\t\tif false then\n",
+       "a guess at a developer tool sent to the help",
+       expect="did not point at the list that has it",
+       script="runscenarios.py")
+
 # Two slips allowed in a five-letter word, which makes "reset" into "test".
 mutate("Core.lua",
        "\tlocal allowed = #word >= 6 and 2 or 1\n",
@@ -263,8 +272,10 @@ mutate("Core.lua",
 # replaced as a new undo, so a second undo puts the import back -- and the
 # first says "settings imported" and tells the player to undo it.
 mutate("Core.lua",
-       "\tlocal parsed = Parse(lastImportUndo, math.huge)\n\tlastImportUndo = nil\n",
-       "\tdo return ns.ImportSettings(lastImportUndo) end\n\tlocal parsed\n",
+       "\t\tlocal parsed = Parse(lastImportUndo, math.huge)\n"
+       "\t\tlastImportUndo = nil\n",
+       "\t\tdo return ns.ImportSettings(lastImportUndo) end\n"
+       "\t\tlocal parsed\n",
        "an undo that can be run twice",
        expect="a second /manners import undo",
        script="runscenarios.py")
@@ -313,9 +324,9 @@ mutate("Core.lua",
 
 # The repair skipped, so a value no slider can reach is kept.
 mutate("Core.lua",
-       "\t-- undo, which each caller then sets as it needs.\n"
-       "\taddon:RefreshConfig()\n",
-       "\t-- undo, which each caller then sets as it needs.\n",
+       "\t\t-- undo, which each caller then sets as it needs.\n"
+       "\t\taddon:RefreshConfig()\n",
+       "\t\t-- undo, which each caller then sets as it needs.\n",
        "an import that is never repaired",
        expect="outside what the page allows survived",
        script="runscenarios.py")
@@ -333,4 +344,29 @@ mutate("Options.lua",
        "or L[\"Copy my settings\"]\n",
        "a button that says it copies",
        expect="copies nothing",
+       script="runscenarios.py")
+
+# /manners dev advertised by the help with no branch behind it.
+mutate("Core.lua",
+       "\telseif input == \"dev\" then\n",
+       "\telseif input == \"developer\" then\n",
+       "the dev command falling through to the help",
+       expect="/manners dev fell through to the help",
+       script="runscenarios.py")
+
+# /manners dev answering with nothing listed under its heading.
+mutate("Core.lua",
+       "\t\tfor _, command in ipairs(ns.DEV_COMMANDS) do\n\t\t\tself:Print(",
+       "\t\tfor _, command in ipairs({}) do\n\t\t\tself:Print(",
+       "the dev command listing no tools",
+       expect="is a developer tool /manners dev never mentions",
+       script="runscenarios.py")
+
+# A developer tool's word left out of the guesses, so a slip gets the whole
+# help, which does not list it.
+mutate("Core.lua",
+       "\tfor _, command in ipairs(ns.DEV_COMMANDS) do words[#words + 1] = command.word end\n",
+       "",
+       "no did-you-mean for a developer tool",
+       expect="did not suggest /manners clicks",
        script="runscenarios.py")
