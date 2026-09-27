@@ -47,6 +47,50 @@ for f in OURS:
     if lua_ok(p):
         print("  ok  %-12s %d lines" % (f, sum(1 for _ in open(p, encoding="utf-8"))))
 
+# Lua 5.1 allows the main chunk of a file 200 locals, and a file past them does
+# not load at all -- the whole addon with it, as beta.6 did over 60 upvalues.
+# The house rule makes every handler a file-level local, so the big files creep
+# towards the limit one fix at a time, and two branches that each pass alone
+# can cross it together. Counted by prepending dummy locals until the file no
+# longer compiles, and failed with room still left, so it is the merge that
+# goes red and not the players' game.
+LOCALS_MIN_FREE = 10
+
+
+def locals_free(src):
+    def fits(k):
+        if k == 0:
+            return check(src) is None
+        names = ", ".join("__slot%d" % i for i in range(k))
+        # On the first line, so the file's own line numbers stay as they are.
+        return check("local %s; %s" % (names, src)) is None
+    if not fits(0):
+        return None
+    lo, hi = 0, 201
+    while hi - lo > 1:
+        mid = (lo + hi) // 2
+        if fits(mid):
+            lo = mid
+        else:
+            hi = mid
+    return lo
+
+
+print("\n== room left for file-level locals (Lua 5.1 allows 200) ==")
+for f in OURS:
+    p = os.path.join(ROOT, f)
+    if not os.path.exists(p):
+        continue
+    free = locals_free(open(p, encoding="utf-8-sig").read())
+    if free is None:
+        continue
+    if free < LOCALS_MIN_FREE:
+        print("  TOO FULL  %-12s %d free, want %d -- put helpers only one function"
+              " reads in a do ... end block with it" % (f, free, LOCALS_MIN_FREE))
+        fail += 1
+    else:
+        print("  ok  %-12s %d free" % (f, free))
+
 # Libs/ is gitignored: .pkgmeta declares the libraries as build-time externals,
 # so a checkout legitimately has none. Check them when present, do not demand
 # them.

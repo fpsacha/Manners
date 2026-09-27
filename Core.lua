@@ -731,295 +731,300 @@ function ns.PinnedBuff()
 	return ns.FindBuff(playerClass, choice)
 end
 
--- The walk's questions about one candidate, split in two because the exclusive
--- branch of PickBuffFor needs the halves apart: "this spell is wrong for this
--- person" is permanent for the scan, while "we tried it on them a moment ago"
--- is a cooldown, and that branch has to read the auras of a blessing it may not
--- offer.
---
--- inParty rather than inGroup: in a raid "in the group" is all forty and the
--- shout reaches the caster's subgroup of five. See SameParty.
-local function Castable(opts, buff)
-	if opts.relevantOnly and buff.manaOnly and opts.hasMana == false then return false end
-	if buff.partyOnly and not opts.inParty then return false end
-	return true
-end
-
--- opts.blocked is handed opts as well, so the caller's answer can be a
--- file-level function reading the person off it rather than a closure made for
--- each of them.
-local function Blocked(opts, buff)
-	if not opts.blocked then return false end
-	return opts.blocked(buff, opts) == true
-end
-
-local function Eligible(opts, buff)
-	return Castable(opts, buff) and not Blocked(opts, buff)
-end
-
--- The candidate list a pin reduces the walk to, one table rewritten for every
--- call rather than one made per person. Only the walk inside a call reads it.
-local PINNED_ONLY = {}
-
--- Which of their buffs this person should be offered, or nil for none.
---
--- The addon used to resolve exactly one buff per class and check only that
--- one, which meant a priest never offered Divine Spirit or Shadow Protection
--- and a druid never offered Thorns. Worse, the default "leave them alone if
--- they have it" then dropped the person from the queue entirely the moment
--- they held the first buff in the list -- so being partly buffed made you
--- invisible to the addon.
---
--- `candidates` comes from CastableBuffs. `has(buff)` answers the aura question
--- and returns has, remaining, mine -- the last one whether what they hold is
--- the player's own cast, nil where nothing says. It answers only that
--- question: whatever the caller's policy is about who deserves an offer, it
--- does not belong in a reading of somebody's auras.
---
--- Two of the options say so out loud, because both used to arrive disguised as
--- a reading instead:
---
---   offerAnyway  offer this person even when they are covered -- we owe them a
---                favour, and the point of a debt is to give something back.
---                What is offered is then something they already hold, which is
---                a refresh and takes nothing away.
---   rotate       false where there is no walk to move along: the tokenless
---                owed path has one buff per favour and nothing that could
---                verify the first one ever landed.
---
--- Returns the buff, whether they were found to be holding it -- true, false, or
--- nil for "nobody could tell", which callers must keep apart from false -- and,
--- for a top-up, how long what they have left to run.
-function ns.PickBuffFor(candidates, opts, has)
-	local db = addon.db and addon.db.profile
-	if not db or #candidates == 0 then return nil end
-
-	-- A pin means "only ever this one". No walk.
+-- PickBuffFor in a block of its own, with the helpers only it reads: Lua 5.1
+-- allows the main chunk of a file 200 locals, Core.lua is not far off them, and
+-- a file past them does not load at all. tests/validate.py counts what is left.
+do
+	-- The walk's questions about one candidate, split in two because the exclusive
+	-- branch of PickBuffFor needs the halves apart: "this spell is wrong for this
+	-- person" is permanent for the scan, while "we tried it on them a moment ago"
+	-- is a cooldown, and that branch has to read the auras of a blessing it may not
+	-- offer.
 	--
-	-- Unless it is not one of this class's at all, which on a profile every
-	-- character shares means it is somebody else's: a priest's Divine Spirit,
-	-- read by the mage alt. That reads as Automatic here. It used to read as
-	-- "offer nothing", which is why the pin was reset on login -- for every
-	-- character, the priest who set it included.
-	local pinned = ns.PinnedBuff()
-	if pinned then
-		if not ns.IsBuffKnown(pinned) then return nil end
-		PINNED_ONLY[1] = pinned
-		candidates = PINNED_ONLY
+	-- inParty rather than inGroup: in a raid "in the group" is all forty and the
+	-- shout reaches the caster's subgroup of five. See SameParty.
+	local function Castable(opts, buff)
+		if opts.relevantOnly and buff.manaOnly and opts.hasMana == false then return false end
+		if buff.partyOnly and not opts.inParty then return false end
+		return true
 	end
 
-	-- The three questions about one candidate are the file-level Castable,
-	-- Blocked and Eligible above, handed `opts`, rather than closures made here:
-	-- this runs for every person in the queue and every favour outstanding, two
-	-- and a half times a second, and three closures a call were most of the
-	-- garbage a scan left behind.
+	-- opts.blocked is handed opts as well, so the caller's answer can be a
+	-- file-level function reading the person off it rather than a closure made for
+	-- each of them.
+	local function Blocked(opts, buff)
+		if not opts.blocked then return false end
+		return opts.blocked(buff, opts) == true
+	end
 
-	-- Blessings overwrite each other, so holding any one of yours counts as
-	-- covered. Walking would replace what they already have.
+	local function Eligible(opts, buff)
+		return Castable(opts, buff) and not Blocked(opts, buff)
+	end
+
+	-- The candidate list a pin reduces the walk to, one table rewritten for every
+	-- call rather than one made per person. Only the walk inside a call reads it.
+	local PINNED_ONLY = {}
+
+	-- Which of their buffs this person should be offered, or nil for none.
 	--
-	-- One of *yours*: blessings from different paladins stack, so another
-	-- paladin's Kings covers nothing of ours -- it only means Kings is not
-	-- ours to give. It used to count as covered, because the aura read never
-	-- asked who had cast what it found: a warrior wearing somebody else's Kings
-	-- was never offered Might, and a paladin we owed, wearing a third paladin's
-	-- Kings, was "repaid" with Kings instead of the Wisdom they lacked. An aura
-	-- that names nobody we can read is still taken as covered -- guessing "not
-	-- mine" there is how our own blessing would be walked over.
+	-- The addon used to resolve exactly one buff per class and check only that
+	-- one, which meant a priest never offered Divine Spirit or Shadow Protection
+	-- and a druid never offered Thorns. Worse, the default "leave them alone if
+	-- they have it" then dropped the person from the queue entirely the moment
+	-- they held the first buff in the list -- so being partly buffed made you
+	-- invisible to the addon.
 	--
-	-- Which is also the answer to "why does this branch never consult
-	-- ns.lastGave": rotating is a cure for a list that cannot be read, and here
-	-- it would be worse than the disease. Give Might, rotate to Wisdom on the
-	-- next click, and that click has taken the Might away again -- on a client
-	-- that cannot show us auras, with no way to notice. The same blessing
-	-- offered twice merely refreshes it. So this class is handed the first
-	-- eligible blessing and keeps being handed it, deliberately, and
-	-- ns.RotatesBuffs says so to the writers of that table.
-	if ns.EXCLUSIVE_BUFFS[playerClass] then
-		local pick, allRead, onCooldown = nil, true, false
-		-- The first blessing they carry from another paladin, kept for a debt
-		-- with nothing else left to give: see the end of this branch.
-		local theirs
-		for _, buff in ipairs(candidates) do
-			-- castable rather than eligible: a blessing we tried moments ago is
-			-- exactly the one they are most likely to be carrying, and skipping
-			-- the read of it was how a blessing that had just landed stayed
-			-- invisible -- so the next one down was offered over the top of it.
-			if Castable(opts, buff) then
-				-- Both returns. The second one was dropped here and read
-				-- everywhere else, which is how the refresh mode came to be
-				-- switched on, described in the options, and dead for the one
-				-- class it is safest on -- see the top-up below.
-				local held, remaining, mine = has(buff)
-				if held == true and mine == false then
-					-- Another paladin's. Not covered, and not ours to offer
-					-- either: ours of the same kind would only replace theirs.
-					-- So the walk moves on to a kind they lack -- unless we
-					-- offered this one moments ago, which is the cooldown rule
-					-- below and still means "wait".
-					if Blocked(opts, buff) then
-						onCooldown = true
-					elseif not theirs then
-						theirs = buff
-					end
-				elseif held == true then
-					-- Covered, and for this class that is the end of it:
-					-- anything else offered replaces what they are carrying.
-					--
-					-- Unless we owe them, in which case the policy is to offer
-					-- anyway -- and the only offer that costs them nothing is
-					-- the blessing they already hold, which is refreshed. That
-					-- policy used to reach this branch disguised as an aura
-					-- reading manufactured one function away, so `held` was
-					-- false for every blessing and this line was unreachable
-					-- for anybody we owed: the walk below then handed them the
-					-- next blessing down and took away the one just given.
-					--
-					-- Except when we have just offered it. A blessing on
-					-- cooldown means this person was offered one moments ago,
-					-- and the answer to that is to wait, not to reach for a
-					-- different one. First, because it outranks both of the
-					-- reasons below for offering somebody a buff they hold.
-					if Blocked(opts, buff) then return nil, true end
+	-- `candidates` comes from CastableBuffs. `has(buff)` answers the aura question
+	-- and returns has, remaining, mine -- the last one whether what they hold is
+	-- the player's own cast, nil where nothing says. It answers only that
+	-- question: whatever the caller's policy is about who deserves an offer, it
+	-- does not belong in a reading of somebody's auras.
+	--
+	-- Two of the options say so out loud, because both used to arrive disguised as
+	-- a reading instead:
+	--
+	--   offerAnyway  offer this person even when they are covered -- we owe them a
+	--                favour, and the point of a debt is to give something back.
+	--                What is offered is then something they already hold, which is
+	--                a refresh and takes nothing away.
+	--   rotate       false where there is no walk to move along: the tokenless
+	--                owed path has one buff per favour and nothing that could
+	--                verify the first one ever landed.
+	--
+	-- Returns the buff, whether they were found to be holding it -- true, false, or
+	-- nil for "nobody could tell", which callers must keep apart from false -- and,
+	-- for a top-up, how long what they have left to run.
+	function ns.PickBuffFor(candidates, opts, has)
+		local db = addon.db and addon.db.profile
+		if not db or #candidates == 0 then return nil end
 
-					-- The top-up, which this branch managed to miss twice over:
-					-- the timer was thrown away with the second return, and
-					-- whenBuffed was never consulted at all -- so "offer a
-					-- top-up when it is running out" did nothing whatever for a
-					-- paladin. It is the one class where topping up is the
-					-- safest thing the addon can do: recasting the blessing
-					-- somebody already holds replaces it with itself, where
-					-- every other offer this branch could make replaces it with
-					-- a different one.
-					--
-					-- Ahead of the debt below, which is how the ordinary path
-					-- orders the same two answers: `expiring` is returned there
-					-- before `offerAnyway and firstHeld`. A timer running out is
-					-- the more urgent thing to say, and it is the only one of
-					-- the two the queue can say at all -- `remaining` is what
-					-- puts the top-up wording on the prompt, and a favour is
-					-- already named by its own reason line.
-					if opts.whenBuffed == "refresh" and remaining
-						and remaining <= (opts.refreshUnder or 5) * 60 then
-						return buff, true, remaining
-					end
-
-					-- Ours, or nobody's we can name -- never another paladin's,
-					-- which the branch above has already walked past: recasting
-					-- that would replace their blessing, not refresh ours. A debt
-					-- owed to somebody wearing only other paladins' blessings is
-					-- repaid with the first kind they lack, below -- or, with none
-					-- left, with the first of theirs, at the end of the branch.
-					if not opts.offerAnyway then return nil, true end
-					return buff, true
-				else
-					-- "They are carrying none of mine" is established only once
-					-- every one of them has read back a definite no. Claiming it
-					-- on an answer that never came promotes a guess over a real
-					-- debt in BuildQueue, which gates that promotion on has ==
-					-- false for exactly this reason, and suppresses the
-					-- unverified wording on the prompt. For this class that was
-					-- every single pick.
-					if held ~= false then allRead = false end
-					if Blocked(opts, buff) then
-						onCooldown = true
-					elseif not pick then
-						pick = buff
-					end
-				end
-			end
-		end
-		-- The rotation again, arriving by the other door. The per-buff cooldown
-		-- is there so a priest's walk can reach Divine Spirit while Fortitude
-		-- settles; for a class whose buffs overwrite each other it did the one
-		-- thing the comment above forbids -- click Wisdom, be offered Might
-		-- four tenths of a second later, and take the Wisdom away. A blessing
-		-- on cooldown means this person was just offered one, so the answer is
-		-- to leave them alone until it lifts.
+		-- A pin means "only ever this one". No walk.
 		--
-		-- It used to read `onCooldown and not allRead`, which closed the
-		-- unreadable route and left the readable one open. A client that
-		-- answers is not the safeguard that carve-out took it for: the aura
-		-- cache is three seconds deep and the blessing was armed a fraction of
-		-- a second ago, so the definite "they hold none of yours" being read
-		-- here is, in the ordinary case, the reading taken *before* the cast --
-		-- evidence about the moment before the click, offered as evidence about
-		-- the click. Acting on it walks the paladin off the blessing just given
-		-- by the one door still open.
-		if onCooldown then return nil, nil end
-		-- A debt, and every blessing we could give is already on them from
-		-- another paladin: a young paladin who knows only Might, owing somebody
-		-- who wears somebody else's. The walk above found no kind they lack, and
-		-- ending there offered nobody anything while chat had said the favour
-		-- was on the prompt. The policy for a debt is to offer anyway, even
-		-- what they already have, and ours of the same kind only replaces
-		-- theirs -- which is what that policy means for every other class.
-		if not pick and opts.offerAnyway and theirs then return theirs, true end
-		-- Spelled out rather than collapsed: `allRead and false or nil` is nil
-		-- either way, because false loses the and-branch to the or -- and the
-		-- whole subject here is the difference between false and nil.
-		if allRead then return pick, false end
-		return pick, nil
-	end
+		-- Unless it is not one of this class's at all, which on a profile every
+		-- character shares means it is somebody else's: a priest's Divine Spirit,
+		-- read by the mage alt. That reads as Automatic here. It used to read as
+		-- "offer nothing", which is why the pin was reset on login -- for every
+		-- character, the priest who set it included.
+		local pinned = ns.PinnedBuff()
+		if pinned then
+			if not ns.IsBuffKnown(pinned) then return nil end
+			PINNED_ONLY[1] = pinned
+			candidates = PINNED_ONLY
+		end
 
-	-- Three answers per candidate, and they do not mean the same thing: they
-	-- have it, they definitely do not, and the client would not say. Something
-	-- lacked outright beats everything else, in list order.
-	local expiring, expiringRemaining
-	-- Where the rotation below starts, and what it falls back to, gathered on
-	-- the way past. Two upvalues rather than a list of the unknown ones: this
-	-- runs for every person in range, two and a half times a second.
-	local last = ns.lastGave and ns.lastGave[opts.name]
-	local firstUnknown, afterLast, seenLast
-	-- The first thing they are known to be carrying, kept for the one caller
-	-- that wants it: we owe this person, so they are offered even when covered,
-	-- and a buff they already hold is the offer that takes nothing away.
-	local firstHeld
-	for _, buff in ipairs(candidates) do
-		if Eligible(opts, buff) then
-			local held, remaining = has(buff)
-			if held == false then return buff, false end
-			if held ~= true then
-				if not firstUnknown then firstUnknown = buff end
-				if seenLast and not afterLast then afterLast = buff end
-				if buff.key == last then seenLast = true end
-			else
-				if not firstHeld then firstHeld = buff end
-				if opts.whenBuffed == "refresh" and remaining
-					and remaining <= (opts.refreshUnder or 5) * 60 and not expiring then
-					expiring, expiringRemaining = buff, remaining
+		-- The three questions about one candidate are Castable, Blocked and
+		-- Eligible above, made once and handed `opts`, rather than closures made here:
+		-- this runs for every person in the queue and every favour outstanding, two
+		-- and a half times a second, and three closures a call were most of the
+		-- garbage a scan left behind.
+
+		-- Blessings overwrite each other, so holding any one of yours counts as
+		-- covered. Walking would replace what they already have.
+		--
+		-- One of *yours*: blessings from different paladins stack, so another
+		-- paladin's Kings covers nothing of ours -- it only means Kings is not
+		-- ours to give. It used to count as covered, because the aura read never
+		-- asked who had cast what it found: a warrior wearing somebody else's Kings
+		-- was never offered Might, and a paladin we owed, wearing a third paladin's
+		-- Kings, was "repaid" with Kings instead of the Wisdom they lacked. An aura
+		-- that names nobody we can read is still taken as covered -- guessing "not
+		-- mine" there is how our own blessing would be walked over.
+		--
+		-- Which is also the answer to "why does this branch never consult
+		-- ns.lastGave": rotating is a cure for a list that cannot be read, and here
+		-- it would be worse than the disease. Give Might, rotate to Wisdom on the
+		-- next click, and that click has taken the Might away again -- on a client
+		-- that cannot show us auras, with no way to notice. The same blessing
+		-- offered twice merely refreshes it. So this class is handed the first
+		-- eligible blessing and keeps being handed it, deliberately, and
+		-- ns.RotatesBuffs says so to the writers of that table.
+		if ns.EXCLUSIVE_BUFFS[playerClass] then
+			local pick, allRead, onCooldown = nil, true, false
+			-- The first blessing they carry from another paladin, kept for a debt
+			-- with nothing else left to give: see the end of this branch.
+			local theirs
+			for _, buff in ipairs(candidates) do
+				-- castable rather than eligible: a blessing we tried moments ago is
+				-- exactly the one they are most likely to be carrying, and skipping
+				-- the read of it was how a blessing that had just landed stayed
+				-- invisible -- so the next one down was offered over the top of it.
+				if Castable(opts, buff) then
+					-- Both returns. The second one was dropped here and read
+					-- everywhere else, which is how the refresh mode came to be
+					-- switched on, described in the options, and dead for the one
+					-- class it is safest on -- see the top-up below.
+					local held, remaining, mine = has(buff)
+					if held == true and mine == false then
+						-- Another paladin's. Not covered, and not ours to offer
+						-- either: ours of the same kind would only replace theirs.
+						-- So the walk moves on to a kind they lack -- unless we
+						-- offered this one moments ago, which is the cooldown rule
+						-- below and still means "wait".
+						if Blocked(opts, buff) then
+							onCooldown = true
+						elseif not theirs then
+							theirs = buff
+						end
+					elseif held == true then
+						-- Covered, and for this class that is the end of it:
+						-- anything else offered replaces what they are carrying.
+						--
+						-- Unless we owe them, in which case the policy is to offer
+						-- anyway -- and the only offer that costs them nothing is
+						-- the blessing they already hold, which is refreshed. That
+						-- policy used to reach this branch disguised as an aura
+						-- reading manufactured one function away, so `held` was
+						-- false for every blessing and this line was unreachable
+						-- for anybody we owed: the walk below then handed them the
+						-- next blessing down and took away the one just given.
+						--
+						-- Except when we have just offered it. A blessing on
+						-- cooldown means this person was offered one moments ago,
+						-- and the answer to that is to wait, not to reach for a
+						-- different one. First, because it outranks both of the
+						-- reasons below for offering somebody a buff they hold.
+						if Blocked(opts, buff) then return nil, true end
+
+						-- The top-up, which this branch managed to miss twice over:
+						-- the timer was thrown away with the second return, and
+						-- whenBuffed was never consulted at all -- so "offer a
+						-- top-up when it is running out" did nothing whatever for a
+						-- paladin. It is the one class where topping up is the
+						-- safest thing the addon can do: recasting the blessing
+						-- somebody already holds replaces it with itself, where
+						-- every other offer this branch could make replaces it with
+						-- a different one.
+						--
+						-- Ahead of the debt below, which is how the ordinary path
+						-- orders the same two answers: `expiring` is returned there
+						-- before `offerAnyway and firstHeld`. A timer running out is
+						-- the more urgent thing to say, and it is the only one of
+						-- the two the queue can say at all -- `remaining` is what
+						-- puts the top-up wording on the prompt, and a favour is
+						-- already named by its own reason line.
+						if opts.whenBuffed == "refresh" and remaining
+							and remaining <= (opts.refreshUnder or 5) * 60 then
+							return buff, true, remaining
+						end
+
+						-- Ours, or nobody's we can name -- never another paladin's,
+						-- which the branch above has already walked past: recasting
+						-- that would replace their blessing, not refresh ours. A debt
+						-- owed to somebody wearing only other paladins' blessings is
+						-- repaid with the first kind they lack, below -- or, with none
+						-- left, with the first of theirs, at the end of the branch.
+						if not opts.offerAnyway then return nil, true end
+						return buff, true
+					else
+						-- "They are carrying none of mine" is established only once
+						-- every one of them has read back a definite no. Claiming it
+						-- on an answer that never came promotes a guess over a real
+						-- debt in BuildQueue, which gates that promotion on has ==
+						-- false for exactly this reason, and suppresses the
+						-- unverified wording on the prompt. For this class that was
+						-- every single pick.
+						if held ~= false then allRead = false end
+						if Blocked(opts, buff) then
+							onCooldown = true
+						elseif not pick then
+							pick = buff
+						end
+					end
+				end
+			end
+			-- The rotation again, arriving by the other door. The per-buff cooldown
+			-- is there so a priest's walk can reach Divine Spirit while Fortitude
+			-- settles; for a class whose buffs overwrite each other it did the one
+			-- thing the comment above forbids -- click Wisdom, be offered Might
+			-- four tenths of a second later, and take the Wisdom away. A blessing
+			-- on cooldown means this person was just offered one, so the answer is
+			-- to leave them alone until it lifts.
+			--
+			-- It used to read `onCooldown and not allRead`, which closed the
+			-- unreadable route and left the readable one open. A client that
+			-- answers is not the safeguard that carve-out took it for: the aura
+			-- cache is three seconds deep and the blessing was armed a fraction of
+			-- a second ago, so the definite "they hold none of yours" being read
+			-- here is, in the ordinary case, the reading taken *before* the cast --
+			-- evidence about the moment before the click, offered as evidence about
+			-- the click. Acting on it walks the paladin off the blessing just given
+			-- by the one door still open.
+			if onCooldown then return nil, nil end
+			-- A debt, and every blessing we could give is already on them from
+			-- another paladin: a young paladin who knows only Might, owing somebody
+			-- who wears somebody else's. The walk above found no kind they lack, and
+			-- ending there offered nobody anything while chat had said the favour
+			-- was on the prompt. The policy for a debt is to offer anyway, even
+			-- what they already have, and ours of the same kind only replaces
+			-- theirs -- which is what that policy means for every other class.
+			if not pick and opts.offerAnyway and theirs then return theirs, true end
+			-- Spelled out rather than collapsed: `allRead and false or nil` is nil
+			-- either way, because false loses the and-branch to the or -- and the
+			-- whole subject here is the difference between false and nil.
+			if allRead then return pick, false end
+			return pick, nil
+		end
+
+		-- Three answers per candidate, and they do not mean the same thing: they
+		-- have it, they definitely do not, and the client would not say. Something
+		-- lacked outright beats everything else, in list order.
+		local expiring, expiringRemaining
+		-- Where the rotation below starts, and what it falls back to, gathered on
+		-- the way past. Two upvalues rather than a list of the unknown ones: this
+		-- runs for every person in range, two and a half times a second.
+		local last = ns.lastGave and ns.lastGave[opts.name]
+		local firstUnknown, afterLast, seenLast
+		-- The first thing they are known to be carrying, kept for the one caller
+		-- that wants it: we owe this person, so they are offered even when covered,
+		-- and a buff they already hold is the offer that takes nothing away.
+		local firstHeld
+		for _, buff in ipairs(candidates) do
+			if Eligible(opts, buff) then
+				local held, remaining = has(buff)
+				if held == false then return buff, false end
+				if held ~= true then
+					if not firstUnknown then firstUnknown = buff end
+					if seenLast and not afterLast then afterLast = buff end
+					if buff.key == last then seenLast = true end
+				else
+					if not firstHeld then firstHeld = buff end
+					if opts.whenBuffed == "refresh" and remaining
+						and remaining <= (opts.refreshUnder or 5) * 60 and not expiring then
+						expiring, expiringRemaining = buff, remaining
+					end
 				end
 			end
 		end
+
+		-- Nothing they are definitely missing, but something nobody could read --
+		-- the client will not show their auras, or the mode says not to look. There
+		-- is no truth to go on, so rotate past whatever was given last rather than
+		-- offering the top of the list forever: the per-buff cooldown moves the walk
+		-- along for twelve seconds and then hands it straight back.
+		--
+		-- This sat below the loop and could not be reached from it, because the loop
+		-- returned on anything that was not a hard true -- so ns.lastGave was written
+		-- on every click and read by nothing.
+		if firstUnknown then
+			-- Where there is no walk, there is nothing to move along. The tokenless
+			-- owed path gives one buff per favour and can verify none of it, so it
+			-- asks for the first thing it could cast and not the next one down.
+			if opts.rotate == false then return firstUnknown, nil end
+			return afterLast or firstUnknown, nil
+		end
+
+		if expiring then return expiring, true, expiringRemaining end
+
+		-- Nothing missing, nothing running out -- and a favour outstanding. The
+		-- policy is to offer them anyway; what it is not is a claim that they are
+		-- missing something, which is how it used to be spelled and what walked a
+		-- paladin off the blessing just given. Offering what they already hold is
+		-- honest about both halves: they are being offered because of the debt, and
+		-- `true` says the client told us they are covered.
+		if opts.offerAnyway and firstHeld then return firstHeld, true end
+
+		return nil, true
 	end
-
-	-- Nothing they are definitely missing, but something nobody could read --
-	-- the client will not show their auras, or the mode says not to look. There
-	-- is no truth to go on, so rotate past whatever was given last rather than
-	-- offering the top of the list forever: the per-buff cooldown moves the walk
-	-- along for twelve seconds and then hands it straight back.
-	--
-	-- This sat below the loop and could not be reached from it, because the loop
-	-- returned on anything that was not a hard true -- so ns.lastGave was written
-	-- on every click and read by nothing.
-	if firstUnknown then
-		-- Where there is no walk, there is nothing to move along. The tokenless
-		-- owed path gives one buff per favour and can verify none of it, so it
-		-- asks for the first thing it could cast and not the next one down.
-		if opts.rotate == false then return firstUnknown, nil end
-		return afterLast or firstUnknown, nil
-	end
-
-	if expiring then return expiring, true, expiringRemaining end
-
-	-- Nothing missing, nothing running out -- and a favour outstanding. The
-	-- policy is to offer them anyway; what it is not is a claim that they are
-	-- missing something, which is how it used to be spelled and what walked a
-	-- paladin off the blessing just given. Offering what they already hold is
-	-- honest about both halves: they are being offered because of the debt, and
-	-- `true` says the client told us they are covered.
-	if opts.offerAnyway and firstHeld then return firstHeld, true end
-
-	return nil, true
 end
 
 -- hasMana is passed in rather than read here so the caller can reuse it.
@@ -2360,50 +2365,54 @@ function ns.BlockPerson(name, seconds, keepLonger)
 	Block(name .. "\0*", seconds, keepLonger)
 end
 
--- The keys one person's blocks are filed under, the same strings Block writes,
--- built once per person and kept: IsBlocked is asked for every person the scan
--- reaches, every favour outstanding and each buff the walk considers, and
--- joining the same two strings again every time was most of what it did. The
--- whole-person key sits under a key no buff can have, beside the per-buff
--- ones, which are filed under the buff's own key.
-local blockKeys, blockKeyCount = {}, 0
-local WHOLE_PERSON = {}
+-- In a block of its own for the same reason as PickBuffFor: the main chunk's
+-- 200 locals.
+do
+	-- The keys one person's blocks are filed under, the same strings Block writes,
+	-- built once per person and kept: IsBlocked is asked for every person the scan
+	-- reaches, every favour outstanding and each buff the walk considers, and
+	-- joining the same two strings again every time was most of what it did. The
+	-- whole-person key sits under a key no buff can have, beside the per-buff
+	-- ones, which are filed under the buff's own key.
+	local blockKeys, blockKeyCount = {}, 0
+	local WHOLE_PERSON = {}
 
-local function BlockKeys(name)
-	local keys = blockKeys[name]
-	if keys then return keys end
-	-- Bounded: a city puts hundreds of people through the scan in a session.
-	if blockKeyCount >= 500 then
-		wipe(blockKeys)
-		blockKeyCount = 0
+	local function BlockKeys(name)
+		local keys = blockKeys[name]
+		if keys then return keys end
+		-- Bounded: a city puts hundreds of people through the scan in a session.
+		if blockKeyCount >= 500 then
+			wipe(blockKeys)
+			blockKeyCount = 0
+		end
+		keys = { [WHOLE_PERSON] = name .. "\0*" }
+		blockKeys[name] = keys
+		blockKeyCount = blockKeyCount + 1
+		return keys
 	end
-	keys = { [WHOLE_PERSON] = name .. "\0*" }
-	blockKeys[name] = keys
-	blockKeyCount = blockKeyCount + 1
-	return keys
-end
 
--- Whether this person, or this one buff for this person, is inside a block.
--- The whole-person key is always consulted: it exists precisely to stop the
--- walk marching down the list when nothing reached them at all.
---
--- Nearly always asked of a table with nothing in it, which answers without a
--- key being looked at.
-function ns.IsBlocked(name, buffKey, now)
-	if not name then return false end
-	if next(tried) == nil then return false end
-	now = now or GetTime()
-	local keys = BlockKeys(name)
-	local person = tried[keys[WHOLE_PERSON]]
-	if person and person > now then return true end
-	if not buffKey then return false end
-	local key = keys[buffKey]
-	if not key then
-		key = name .. "\0" .. buffKey
-		keys[buffKey] = key
+	-- Whether this person, or this one buff for this person, is inside a block.
+	-- The whole-person key is always consulted: it exists precisely to stop the
+	-- walk marching down the list when nothing reached them at all.
+	--
+	-- Nearly always asked of a table with nothing in it, which answers without a
+	-- key being looked at.
+	function ns.IsBlocked(name, buffKey, now)
+		if not name then return false end
+		if next(tried) == nil then return false end
+		now = now or GetTime()
+		local keys = BlockKeys(name)
+		local person = tried[keys[WHOLE_PERSON]]
+		if person and person > now then return true end
+		if not buffKey then return false end
+		local key = keys[buffKey]
+		if not key then
+			key = name .. "\0" .. buffKey
+			keys[buffKey] = key
+		end
+		local one = tried[key]
+		return one ~= nil and one > now
 	end
-	local one = tried[key]
-	return one ~= nil and one > now
 end
 
 -- The debt is paid. Written through, because the only thing worse than losing
@@ -2482,8 +2491,14 @@ end
 -- work at all, and BuildQueue makes it once a scan rather than once a person.
 -- The fold function is part of what an answer depends on, so a client handing
 -- over a different one throws the answers away too.
-local NEVER_VERDICTS_MAX = 1000
-local neverSeen = { list = nil, fold = nil, size = 0, copy = {}, verdict = {}, count = 0 }
+--
+-- `max` bounds the answers kept; `scan` is the answers while BuildQueue is
+-- walking the units, and nil at every other moment (see the walk). Fields of
+-- one table rather than locals of their own, for the main chunk's 200 locals.
+local neverSeen = {
+	list = nil, fold = nil, size = 0, copy = {}, verdict = {}, count = 0,
+	max = 1000, scan = nil,
+}
 
 -- The answers, valid for the list as it stands now. nil when there is no list.
 local function NeverVerdicts()
@@ -2534,7 +2549,7 @@ local function ListedAs(name, verdict)
 	if verdict then
 		-- Bounded like the other per-person caches: a city puts hundreds of
 		-- people through here in a session.
-		if neverSeen.count >= NEVER_VERDICTS_MAX then
+		if neverSeen.count >= neverSeen.max then
 			wipe(verdict)
 			neverSeen.count = 0
 		end
@@ -2544,12 +2559,10 @@ local function ListedAs(name, verdict)
 	return found
 end
 
--- NeverVerdicts' table while BuildQueue is walking the units, and nil at every
--- other moment; see the walk.
-local scanNever
-
+-- neverSeen.scan is NeverVerdicts' table while BuildQueue is walking the units,
+-- and nil at every other moment; see the walk.
 function ns.IsNeverOffered(name)
-	return ListedAs(name, scanNever) ~= nil
+	return ListedAs(name, neverSeen.scan) ~= nil
 end
 
 -- Puts somebody on the list. Returns the spelling now on it, and whether they
@@ -2838,11 +2851,11 @@ local PRIORITY = { target = 0, owed = 1, group = 2, nearby = 3 }
 
 -- The group's unit tokens, spelled out once rather than joined on every scan.
 -- Forty is a raid; anything past it, which no client produces, is joined as
--- it always was.
-local RAID_TOKENS, PARTY_TOKENS = {}, {}
+-- it always was. Filed under their prefix, one local for both lists.
+local GROUP_TOKENS = { raid = {}, party = {} }
 for i = 1, 40 do
-	RAID_TOKENS[i] = "raid" .. i
-	PARTY_TOKENS[i] = "party" .. i
+	GROUP_TOKENS.raid[i] = "raid" .. i
+	GROUP_TOKENS.party[i] = "party" .. i
 end
 
 -- fn(unit, pointed). `pointed` is the second argument because one caller has to
@@ -2871,8 +2884,8 @@ local function IterateUnits(fn)
 	local n = plain(GetNumGroupMembers and GetNumGroupMembers()) or 0
 	if n > 0 then
 		local inRaid = plain(IsInRaid and IsInRaid()) == true
-		local tokens = inRaid and RAID_TOKENS or PARTY_TOKENS
 		local prefix = inRaid and "raid" or "party"
+		local tokens = GROUP_TOKENS[prefix]
 		local count = inRaid and n or (n - 1)
 		for i = 1, count do
 			fn(tokens[i] or (prefix .. i))
@@ -3208,9 +3221,9 @@ function ns.BuildQueue()
 	-- but anybody asking between two scans may have just edited it. So the
 	-- walk is protected and the answers withdrawn whichever way it ends, and a
 	-- failure goes on exactly as it would have.
-	scanNever = neverVerdict
+	neverSeen.scan = neverVerdict
 	local walked, walkError = pcall(IterateUnits, visit)
-	scanNever = nil
+	neverSeen.scan = nil
 	if not walked then error(walkError, 0) end
 
 	-- Someone who buffed you and is not currently a unit we hold a token for is

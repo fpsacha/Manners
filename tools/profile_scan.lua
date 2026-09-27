@@ -25,7 +25,7 @@
 -- not in the crowd -- a hundred by default, which is the stress case; a busy
 -- evening is nearer five.
 
-local dir, mode, class, friendsApi, owedCount = ...
+local dir, mode, class, friendsApi, owedCount, neverCount = ...
 mode = mode or "time"
 class = class or "MAGE"
 friendsApi = friendsApi or "list"
@@ -57,7 +57,7 @@ do
 end
 
 local RAID, PLATES, OVERLAP = 40, 40, 10
-local OWED, NEVER, FRIENDS = tonumber(owedCount) or 100, 200, 100
+local OWED, NEVER, FRIENDS = tonumber(owedCount) or 100, tonumber(neverCount) or 200, 100
 
 Mock.class = class
 Mock.unitClass = "PRIEST"
@@ -228,11 +228,15 @@ end
 owe()
 
 -- The never-offer list: two hundred names nobody here answers to, and a few
--- that match the crowd, one of them in another case.
-for i = 1, NEVER do db.never["Nobody" .. i .. " Here"] = true end
-db.never["Passer15 By15"] = true
-db.never["passer16 by16"] = true
-db.never["Raider20 Of20"] = true
+-- that match the crowd, one of them in another case. --never 0 is no list at
+-- all, which is most players: what the scan costs them is not what it costs
+-- somebody with a long one.
+if NEVER > 0 then
+	for i = 1, NEVER do db.never["Nobody" .. i .. " Here"] = true end
+	db.never["Passer15 By15"] = true
+	db.never["passer16 by16"] = true
+	db.never["Raider20 Of20"] = true
+end
 
 -- ------------------------------------------------------------------ the work
 

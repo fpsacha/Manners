@@ -153,7 +153,11 @@ which of the addon's functions ran most often, by file.
 ```
 python tools/profile_scan.py
 python tools/profile_scan.py --class PRIEST --owed 5 --friends isfriend
+python tools/profile_scan.py --owed 5 --never 0   # what most players stand in
 ```
+
+The never-offer list is most of what the worst case costs, and most players
+have none, so measure `--never 0` as well before claiming a gain for everybody.
 
 The times are the mock's, whose API is Lua where the game's is C, so they are
 for comparing two versions of the addon on one machine; the call counts and the

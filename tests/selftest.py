@@ -982,10 +982,10 @@ mutate("Core.lua",
 #     branch -- so the refresh mode was switched on, described in the options,
 #     and dead for the one class it is safest on.
 mutate("Core.lua",
-       """				-- class it is safest on -- see the top-up below.
-				local held, remaining, mine = has(buff)""",
-       """				-- class it is safest on -- see the top-up below.
-				local held, _, mine = has(buff)""",
+       """					-- class it is safest on -- see the top-up below.
+					local held, remaining, mine = has(buff)""",
+       """					-- class it is safest on -- see the top-up below.
+					local held, _, mine = has(buff)""",
        "a top-up with the timer thrown away",
        expect="was offered no top-up at all",
        script="runscenarios.py")
@@ -994,8 +994,8 @@ mutate("Core.lua",
 #     to everybody covered is the same branch failing in the other direction:
 #     a setting that says "leave them alone" ignored.
 mutate("Core.lua",
-       '\t\t\t\t\tif opts.whenBuffed == "refresh" and remaining\n',
-       "\t\t\t\t\tif remaining\n",
+       '\t\t\t\t\t\tif opts.whenBuffed == "refresh" and remaining\n',
+       "\t\t\t\t\t\tif remaining\n",
        "a top-up offered with the mode switched off",
        expect="the top-up mode is switched off",
        script="runscenarios.py")

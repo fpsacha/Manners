@@ -4,6 +4,7 @@
     python tools/profile_scan.py --class PRIEST  # three buffs to walk instead of one
     python tools/profile_scan.py --friends isfriend
     python tools/profile_scan.py --owed 5        # a busy evening rather than the worst
+    python tools/profile_scan.py --never 0       # no never-offer list, as most players
 
 Builds the worst place to stand on the mock client -- forty nameplates, a
 forty-player raid, forty buffs on the player, a hundred favours outstanding, a
@@ -53,7 +54,7 @@ def run(mode, args):
     L.globals().print = lambda *a: None
     chunk = L.eval("function(path) local f, err = loadfile(path) "
                    "if not f then error(err) end return f end")(PROBE)
-    out = chunk(ADDON_DIR.replace("\\", "/"), mode, args.klass, args.friends, args.owed)
+    out = chunk(ADDON_DIR.replace("\\", "/"), mode, args.klass, args.friends, args.owed, args.never)
     return str(out).splitlines()
 
 
@@ -63,6 +64,8 @@ def main():
     parser.add_argument("--friends", choices=("list", "isfriend"), default="list")
     parser.add_argument("--owed", type=int, default=100,
                         help="favours outstanding from people not in the crowd")
+    parser.add_argument("--never", type=int, default=200,
+                        help="names on the never-offer list; 0 for none, as most players have")
     parser.add_argument("--top", type=int, default=25, help="how many API and function rows")
     args = parser.parse_args()
 

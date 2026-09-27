@@ -32,7 +32,7 @@ mutate("Core.lua",
 # The scan's answers left with ns.IsNeverOffered after the walk, for whoever
 # asks next -- straight after an edit, among them.
 mutate("Core.lua",
-       "\tscanNever = nil\n",
+       "\tneverSeen.scan = nil\n",
        "",
        "never-list answers outlive the scan",
        expect="the never-offer list asked between scans reads the list",
@@ -48,8 +48,8 @@ mutate("Core.lua",
 
 # The empty-table shortcut backwards: no block is ever read.
 mutate("Core.lua",
-       "\tif next(tried) == nil then return false end\n",
-       "\tif next(tried) ~= nil then return false end\n",
+       "\t\tif next(tried) == nil then return false end\n",
+       "\t\tif next(tried) ~= nil then return false end\n",
        "blocks not read at all",
        expect="a block is read the moment it is written, buff by buff",
        script="runscenarios.py")
@@ -57,14 +57,14 @@ mutate("Core.lua",
 # One kept key per person rather than one per buff, so the first buff asked
 # about answers for all of them.
 mutate("Core.lua",
-       "\tlocal key = keys[buffKey]\n"
-       "\tif not key then\n"
-       "\t\tkey = name .. \"\\0\" .. buffKey\n"
-       "\t\tkeys[buffKey] = key\n",
-       "\tlocal key = keys[1]\n"
-       "\tif not key then\n"
-       "\t\tkey = name .. \"\\0\" .. buffKey\n"
-       "\t\tkeys[1] = key\n",
+       "\t\tlocal key = keys[buffKey]\n"
+       "\t\tif not key then\n"
+       "\t\t\tkey = name .. \"\\0\" .. buffKey\n"
+       "\t\t\tkeys[buffKey] = key\n",
+       "\t\tlocal key = keys[1]\n"
+       "\t\tif not key then\n"
+       "\t\t\tkey = name .. \"\\0\" .. buffKey\n"
+       "\t\t\tkeys[1] = key\n",
        "one block key answers for every buff",
        expect="a block is read the moment it is written, buff by buff",
        script="runscenarios.py")
@@ -93,3 +93,15 @@ mutate("Core.lua",
        "an old aura reading kept under a new time",
        expect="an old reading of somebody's buffs is replaced by a new one",
        script="runscenarios.py")
+
+# Ten more file-level locals in Core.lua, the size of the next fix or two, which
+# still loads but leaves too little room for the one after. Core.lua has 15
+# free as this is written; if later work frees more than five, this has to add
+# more to stay caught.
+mutate("Core.lua",
+       "local PRIORITY = { target = 0, owed = 1, group = 2, nearby = 3 }\n",
+       "local PRIORITY = { target = 0, owed = 1, group = 2, nearby = 3 }\n"
+       "local m1, m2, m3, m4, m5, m6, m7, m8, m9, m10\n",
+       "Core.lua's main chunk ten locals fuller",
+       expect="TOO FULL  Core.lua",
+       script="validate.py")
