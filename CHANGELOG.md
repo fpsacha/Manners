@@ -1,5 +1,76 @@
 # Changelog
 
+## Unreleased
+
+A redesigned favour ledger, a prompt that stays readable on any panel colour,
+a colour-blind palette, an option to buff people who ask for it in chat, and a
+lighter scan in crowds.
+
+### The favour ledger
+
+- **Redesigned.** Today's summary is the first and largest thing on the
+  window, and the tabs, buttons and labels fit in German and Russian too.
+- Each row shows who (in their class colour), when, a coloured badge for what
+  happened (Still owed, Returned, Let go or Gave), then the details.
+- An empty ledger shows the Manners mark and says how entries get there, or,
+  in amber, why nothing is being recorded right now.
+- Clear turns red while it waits for the second click, and only shows when
+  there is something for it to clear.
+
+### Easier to read
+
+- **The text follows the panel.** Pick a light panel colour and leave Text
+  colour at white, and the text turns dark by itself. Class-coloured names that
+  would vanish on it, such as a priest's white, are darkened too. On the
+  default dark panel nothing changes.
+- A text colour you pick yourself is used exactly as you chose it, except on
+  names while "Colour names by class" is on. Set it back to white to let the
+  prompt choose again.
+- **The Minimal look is outlined and brighter**, so it stays readable over snow
+  as well as in dark places, including every row of the list of who is next.
+- **Colour-blind friendly reason colours**, under Prompt > Style > Reason
+  colours. The four reasons become pale yellow (your target), orange (buffed
+  you), sky blue (your group) and violet (passers-by). Off by default.
+- Long lines in German, Russian and other longer languages, and a few English
+  ones, are drawn slightly smaller before they get cut off, and use the space
+  beside the name whenever the count badge is hidden.
+
+### New: people who ask for your buff
+
+- **People who ask me for it**, under Who to buff, off by default. When
+  somebody asks for your buff in /say, /yell, your group's chat (party, raid or
+  instance) or a whisper, they go on the prompt for a minute, reading "asked
+  for it" in a pink of its own. "int pls", "fort?", "can I get motw", "buffs
+  please" and the spell's name in your language all count.
+- They come after people who buffed you and before your group. They are
+  offered it only while they don't have it: if somebody else buffs them first,
+  or you cast it by hand, they leave the prompt.
+- Only short messages that actually ask count, with the buff named as a whole
+  word and nothing saying no or not. "int pls" and "can I get int" ask; "int
+  the healer pls", "need int ring" and "rogues need a buff" don't. Words
+  English uses for other things (might, mark, wisdom, spirit, shadow, shout)
+  need a please or to stand alone, and never count in group chat.
+- Players of your own class never count as asking: another mage saying
+  "anyone need int?" is offering it.
+- What is said during a fight is taken as tactics ("int" there means
+  interrupt) and ignored, except a whisper. A request still waiting when a
+  fight starts waits until it ends, once.
+- You're only offered buffs you can cast, a pinned spell stays the only one
+  offered, and the never-offer list still applies. Somebody who asks from out
+  of sight is offered only if they turn up before the minute is out. Nothing is
+  ever said back to them.
+- The minimap tooltip and its Who's next menu say "asked for it" too, and
+  `/manners debug` shows who has asked, where, and how long each request has
+  left.
+
+### Lighter in crowds
+
+- Each scan leaves less than half the garbage it used to.
+- A long never-offer list no longer slows the scan down. Every name on it used
+  to be compared with everybody in sight on every scan; the answers are now
+  remembered until the list changes.
+- None of this changes who is offered what, or in which order.
+
 ## 1.0.0-beta.7
 
 A fix for 1.0.0-beta.6, which did not load.

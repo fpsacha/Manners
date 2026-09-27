@@ -112,6 +112,18 @@ somebody in range. Switch it off under *Who comes first*.
 default: out in the world, strangers walking past are left alone, while your
 group, anybody who buffed you and whoever you target are still offered.
 
+**People who ask me for it** is a choice under *Who to buff*, off by default
+because reading chat is guesswork. Somebody who asks for your buff in `/say`,
+`/yell`, your group's chat or a whisper — "int pls", "fort?", "can I get motw",
+or the spell's name in your language — is offered it for the next minute,
+after people who buffed you and before your group, reading "asked for it".
+Only short messages that plainly ask count: a nickname like *int* only with
+small words beside it, words English uses for other things (*might*, *mark*)
+never in group chat, nobody of your own class, and nothing said in a fight
+unless it was whispered. They must still lack the buff and be somebody the
+game can see, the never-offer list still applies, and nothing is said back.
+`/manners debug` lists the requests still standing.
+
 **How near a passer-by has to be** is its own setting, because being in range
 is not the same as being near: Arcane Intellect reaches about thirty yards,
 which in a city is everybody on the screen. Choose *anywhere I can cast*
@@ -246,6 +258,14 @@ light crosses the panel; a refused one gives the text a small shake and turns
 the ring red. Somebody who buffs you makes the panel catch the light once, and
 after your last buff the prompt fades out rather than blinking off. The icon
 shows the global cooldown sweep, like an action bar.
+
+Left at white, the text picks light or dark for the panel behind it, so a
+light panel colour stays readable, and a class-coloured name that would vanish
+on it is darkened; any other text colour is used exactly as picked. Minimal
+outlines its text so it reads over snow as well as in the dark. *Reason
+colours*, under *Style*, swaps the four reason colours for a colour-blind
+friendly set — pale yellow, orange, sky blue and violet — that stays apart
+under red-green colour blindness.
 
 *Effects* on the *Prompt* tab turns all that movement down to *Calm*, and the
 sweep has its own switch under *Icon and queue*. *Stay quiet in combat* keeps

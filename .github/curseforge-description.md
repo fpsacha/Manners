@@ -49,6 +49,12 @@ still come first.
 keeps it away while you ride, and *only in cities and inns* leaves strangers
 alone out in the world. The last two are off by default.
 
+**People who ask for it.** Off by default: tick *People who ask me for it* and
+somebody who asks for your buff in chat — "int pls", "fort?", "can I get
+motw" — goes on the prompt for a minute, right after people who buffed you.
+Only short messages that plainly ask count, and nothing said in a fight unless
+it was whispered.
+
 ### How near is near
 
 Being in range is not the same as being near. Arcane Intellect reaches about
@@ -95,6 +101,10 @@ Three looks, full colour and font control, and LibSharedMedia support. When a
 buff lands a ring pops out of the icon and light crosses the panel; a refused
 one gives a small shake. The icon shows the global cooldown sweep like an
 action bar. Set *Effects* to *Calm* if you would rather it kept still.
+
+Left at white, the text turns dark by itself on a light panel colour, and
+*Reason colours* under *Style* has a colour-blind friendly set: pale yellow,
+orange, sky blue and violet.
 
 ### The minimap button
 
