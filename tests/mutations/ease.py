@@ -176,6 +176,15 @@ mutate("Core.lua",
        expect="was answered with a guess",
        script="runscenarios.py")
 
+# A guess at a developer tool that still says the help lists it, which the help
+# does not.
+mutate("Core.lua",
+       "\t\t\t\tif command.word == closest then\n",
+       "\t\t\t\tif false then\n",
+       "a guess at a developer tool sent to the help",
+       expect="did not point at the list that has it",
+       script="runscenarios.py")
+
 # Two slips allowed in a five-letter word, which makes "reset" into "test".
 mutate("Core.lua",
        "\tlocal allowed = #word >= 6 and 2 or 1\n",

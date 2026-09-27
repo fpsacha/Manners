@@ -675,6 +675,19 @@ do
 			if out:find("Manners commands:", 1, true) then
 				fail(scenario, "/manners " .. typed .. " printed the whole list under its suggestion")
 			end
+			-- The help leaves the developer tools out, so a guess at one of them
+			-- has to send the player to /manners dev, where it is listed, and
+			-- any other guess to the help.
+			local dev = false
+			for _, command in ipairs(ns.DEV_COMMANDS or {}) do
+				if command.word == meant then dev = true end
+			end
+			local pointsAt = dev and "/manners dev|r lists" or "/manners help|r lists"
+			local wrong = dev and "/manners help|r lists" or "/manners dev|r lists"
+			if not out:find(pointsAt, 1, true) or out:find(wrong, 1, true) then
+				fail(scenario, ("/manners %s suggested %s but did not point at the list that has it: %s")
+					:format(typed, meant, out))
+			end
 		end
 		-- "reset" is two changes from "test", and a player typing it wants their
 		-- settings back, not a preview: a guess that far out is worse than the list.

@@ -6194,7 +6194,7 @@ do
 		notOurs = L["that is not a Manners settings string -- one starts with MNR1:."],
 		tooLong = L["that is far longer than any Manners settings string, so it was not read."],
 		newer = L["that string was made by a newer version of Manners -- update the addon to read it."],
-		incomplete = L["that string is incomplete or has been changed -- copy it again in one piece, and paste a long one into the box under Share settings on the General tab."],
+		incomplete = L["that string is incomplete or has been changed -- copy it again in one piece, and paste a long one into the box under Share settings on the General tab of the options."],
 		malformed = L["that string is damaged -- part of it is not a setting Manners can read. Copy it again in one piece."],
 		badValue = L["that string gives %s a value it cannot have, so nothing was changed."],
 	}
@@ -6914,9 +6914,16 @@ function addon:HandleSlash(rawInput)
 		-- the scenario looks for.
 		local closest = ns.COMMAND_ALIASES[input] == nil and ns.ClosestCommand(input)
 		if closest then
-			self:Print(L["there is no |cffffd100/manners %s|r -- did you mean |cffffd100/manners %s|r? |cffffd100/manners help|r lists them all."]
-				-- Doubled, so a typed | is shown, not read as a colour code.
-				:format((input:gsub("|", "||")), closest))
+			-- The help leaves the developer tools out, so a guess that is one
+			-- of them points at the list that does have it.
+			local line = L["there is no |cffffd100/manners %s|r -- did you mean |cffffd100/manners %s|r? |cffffd100/manners help|r lists them all."]
+			for _, command in ipairs(ns.DEV_COMMANDS) do
+				if command.word == closest then
+					line = L["there is no |cffffd100/manners %s|r -- did you mean |cffffd100/manners %s|r? |cffffd100/manners dev|r lists the testing tools."]
+				end
+			end
+			-- Doubled, so a typed | is shown, not read as a colour code.
+			self:Print(line:format((input:gsub("|", "||")), closest))
 		else
 			PrintHelp()
 		end
