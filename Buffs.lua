@@ -9,7 +9,7 @@
 --   ranks     the castable spells, highest first. The macro casts by name, so
 --             the game picks the best rank you know; the list is for aura
 --             matching and for "do you know this at all". Only vanilla has
---             more than one (ranks went game-wide in 4.0.1).
+--             more than one (ranks were removed game-wide in 4.0.1).
 --   group     every other id that counts as this buff already being there:
 --             the raid-wide version on vanilla, or the thirteen per-class
 --             auras Blessing of the Bronze applies on retail. Matched exactly
@@ -295,7 +295,7 @@ local MAINLINE_SET = {
 	exclusive = {},
 	auto = {},
 	without = {
-		PALADIN = true,      -- Kings, Might and Wisdom died in 7.0.3
+		PALADIN = true,      -- Kings, Might and Wisdom died in 7.0.3, Blessing of the Seasons in 12.0.0
 		DEATHKNIGHT = true,  -- Horn of Winter removed in 11.2.0
 		MONK = true,
 		DEMONHUNTER = true,

@@ -95,7 +95,8 @@ local TEXT = {
 	-- A row's second line reads "badge  detail": a coloured status word, two
 	-- spaces, then one of the details below, which finishes the badge's phrase
 	-- without repeating it. The badge is its own key because it takes its own
-	-- colour and can stand alone (a returned favour with no spell to name).
+	-- colour and can stand alone (a returned favour with no spell to name). A
+	-- detail whose words need another order has them all in its own key.
 	--
 	-- Badges: a favour owed to the row's player; one returned; one let go
 	-- unreturned; and a buff you gave them unprompted, when nobody owed it.
@@ -146,10 +147,10 @@ local TEXT = {
 	TIP_OWED_MOUNTED = L["Still owed. The prompt stays away while you are mounted, and offers them once you get off, until the time to return it runs out."],
 	-- The same two for a favour only your party can return: the snooze or the
 	-- ride ending is not enough while they are outside your party.
-	TIP_OWED_SNOOZED_PARTY = L["Still owed. What you cast reaches only your own party, so the prompt offers them only while they are in it, and it is snoozed until %s."],
-	TIP_OWED_SNOOZED_SUBGROUP = L["Still owed. What you cast reaches only your own party -- in a raid, your own subgroup -- so the prompt offers them only while they are in it, and it is snoozed until %s."],
-	TIP_OWED_MOUNTED_PARTY = L["Still owed. What you cast reaches only your own party, so the prompt offers them only while they are in it, and not while you are mounted."],
-	TIP_OWED_MOUNTED_SUBGROUP = L["Still owed. What you cast reaches only your own party -- in a raid, your own subgroup -- so the prompt offers them only while they are in it, and not while you are mounted."],
+	TIP_OWED_SNOOZED_PARTY = L["Still owed. What you cast reaches only your own party, so the prompt offers them only while they are in it, and it is snoozed until %s, so only if time is left then."],
+	TIP_OWED_SNOOZED_SUBGROUP = L["Still owed. What you cast reaches only your own party -- in a raid, your own subgroup -- so the prompt offers them only while they are in it, and it is snoozed until %s, so only if time is left then."],
+	TIP_OWED_MOUNTED_PARTY = L["Still owed. What you cast reaches only your own party, so the prompt offers them only while they are in it, once you are no longer mounted, until the time runs out."],
+	TIP_OWED_MOUNTED_SUBGROUP = L["Still owed. What you cast reaches only your own party -- in a raid, your own subgroup -- so the prompt offers them only while they are in it, once you are no longer mounted, until the time runs out."],
 	TIP_GAVE = L["You buffed them with %s, %s."],
 	TIP_GAVE_GROUP = L["They were in your group and had not buffed you."],
 	TIP_GAVE_STRANGER = L["They were not in your group and had not buffed you."],
