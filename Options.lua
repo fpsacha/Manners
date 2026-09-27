@@ -1649,9 +1649,10 @@ local function BuildOptions()
 					reasonPalette = {
 						type = "select",
 						name = L["Reason colours"],
-						-- Names no hues and counts none, so it stays true whatever
-						-- reasons the prompt gives a colour of their own.
-						desc = L["The colour-blind set keeps every reason apart for red-green colour blindness, in colours that differ in lightness too."],
+						-- Names no hues and counts none. The colour-blind set has no
+						-- colour for a request, so ReasonColor draws askers as
+						-- passers-by; hunt5-options.lua holds this sentence to that.
+						desc = L["The colour-blind set keeps the reasons apart for red-green colour blindness, in colours that differ in lightness too. People who asked in chat share the passers-by colour."],
 						order = 12.2,
 						values = {
 							standard = L["Standard"],
@@ -2814,9 +2815,8 @@ end
 
 -- Profile names in alphabetical order in any language: the client's
 -- strcmputf8i folds every script's capitals, where string.lower folds only
--- A-Z. Core's own copy when it has one, so both lists sort alike.
+-- A-Z.
 local function NameBefore(a, b)
-	if type(ns.NameBefore) == "function" then return ns.NameBefore(a, b) end
 	local fold = _G.strcmputf8i
 	if type(fold) == "function" then
 		local ok, order = pcall(fold, a, b)

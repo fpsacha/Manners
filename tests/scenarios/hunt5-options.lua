@@ -166,6 +166,35 @@ do
 	Mock.reset()
 end
 
+-- It claims no more than the palette does: every reason the queue writes is
+-- read back in the colour-blind set, and askers drawn in the passers-by colour
+-- must be owned up to, while askers given a colour of their own must not be
+-- said to share one.
+Mock.reset()
+do
+	local scenario = "hunt5-options: the colour-blind description admits the colours it shares"
+	local ns = load(scenario)
+	if ns then
+		local option = findOption(ns.optionsTable, "reasonPalette")
+		local desc = option and option.desc
+		if type(desc) == "function" then desc = desc() end
+		local p = ns.db.profile.prompt
+		p.accentByReason, p.reasonPalette = true, "colourblind"
+		local function colour(reason) return { ns.Prompt:AccentColor(reason) } end
+		local asked, nearby = colour("asked"), colour("nearby")
+		local shared = math.abs(asked[1] - nearby[1]) + math.abs(asked[2] - nearby[2])
+			+ math.abs(asked[3] - nearby[3]) < 0.05
+		if type(desc) ~= "string" then
+			fail(scenario, "no Reason colours description to read")
+		elseif shared and (desc:find("every", 1, true) or not desc:find("asked", 1, true)) then
+			fail(scenario, "askers share the passers-by colour, yet the description reads: " .. desc)
+		elseif not shared and desc:find("share", 1, true) then
+			fail(scenario, "askers have a colour of their own, yet the description reads: " .. desc)
+		end
+	end
+	Mock.reset()
+end
+
 -- ------------------------------------------------------------------ profiles
 -- The same menu shape minimap.lua hands the generator.
 local function newMenu(text, fn)

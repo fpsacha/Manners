@@ -27,10 +27,17 @@ mutate("Options.lua",
 
 # ------------------------------------------------- cvd-palette-desc-four-colours
 mutate("Options.lua",
-       "The colour-blind set keeps every reason apart for red-green colour blindness, in colours that differ in lightness too.",
+       "The colour-blind set keeps the reasons apart for red-green colour blindness, in colours that differ in lightness too. People who asked in chat share the passers-by colour.",
        "The colour-blind set keeps the four reasons apart for red-green colour blindness: pale yellow, orange, sky blue and violet, which differ in lightness too.",
        "hunt5-options: the colour-blind description counts four colours",
        expect="hunt5-options: the colour-blind description counts no colours", script=S)
+
+# ------------------------------------------------- cvd-palette-desc-every-reason
+mutate("Options.lua",
+       "The colour-blind set keeps the reasons apart for red-green colour blindness, in colours that differ in lightness too. People who asked in chat share the passers-by colour.",
+       "The colour-blind set keeps every reason apart for red-green colour blindness, in colours that differ in lightness too.",
+       "hunt5-options: the colour-blind description claims every reason apart",
+       expect="askers share the passers-by colour, yet the description reads", script=S)
 
 # ------------------------------------------------- profile-menu-sort-ascii-lower
 mutate("Options.lua",
