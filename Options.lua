@@ -16,16 +16,12 @@ local LDB = LibStub("LibDataBroker-1.1", true)
 local LDBIcon = LibStub("LibDBIcon-1.0", true)
 
 -- The logo tools/make-icon.py draws, and the same file the toc's IconTexture
--- names, so the minimap button and the addon list show one picture. It was a
--- Blizzard spell icon while the TGA shipped in every zip with nothing pointing
--- at it. No extension: the client finds the .tga itself.
+-- names, so the minimap button and the addon list show one picture. No
+-- extension: the client finds the .tga itself.
 local ICON = "Interface\\AddOns\\Manners\\Textures\\Manners64"
 
--- Whether there is a minimap button at all.
---
--- It takes both libraries and SetupOptions only registers one when it has both:
--- LibDataBroker makes the data object, LibDBIcon is what puts it on the
--- minimap. Either missing and there is nothing on the minimap to show or hide.
+-- Whether there is a minimap button at all: LibDataBroker makes the data
+-- object and LibDBIcon puts it on the minimap, so it takes both.
 local function HasMinimapButton()
 	return LDB ~= nil and LDBIcon ~= nil
 end
@@ -42,29 +38,18 @@ local function Enabled()
 	return ns.db ~= nil and ns.db.profile ~= nil and ns.db.profile.enabled == true
 end
 
--- Whether an unlocked prompt is up to be dragged. Prompt:RefreshPanel takes the
--- panel down for a character with nothing it can cast, then for /manners off,
--- and only after both reads the lock -- so the lock alone put "up to be
--- dragged" into the tooltip, Who's next and the snooze note of a rogue, of a
--- mage who has not learned Arcane Intellect, and of an addon switched off, none
--- of which has anything on screen.
+-- Whether an unlocked prompt is up to be dragged. Prompt:RefreshPanel hides the
+-- panel for a character with nothing it can cast and for /manners off before
+-- it reads the lock, so the lock alone is not the answer.
 local function DragPanelUp()
 	return Enabled() and ns.db.profile.prompt.locked == false
 		and ns.caps ~= nil and ns.caps.anyKnown == true
 end
 
--- How many people who buffed you are still waiting for one back.
---
--- The favours, and not the whole queue. A crowd in a city puts a dozen
--- strangers missing a buff into the queue on every scan, and a bar reading
--- "12 waiting" all evening is a number nobody reads twice; somebody who buffed
--- you is the one kind of person actually waiting for something. Counted by the
--- debt's live expiry, the one every other reader of the debts asks.
---
--- And none at all while "People who buffed me" is switched off. The debts
--- filed before it was turned off stay until they expire, but the queue ignores
--- every one of them, so counting them would have the bar promise a return the
--- addon is never going to offer.
+-- How many people who buffed you are still waiting for one back: the favours,
+-- not the whole queue, since a city crowd would keep that number meaningless.
+-- Counted by the debt's live expiry, and none at all while "People who buffed
+-- me" is off, because the queue then ignores every debt still on file.
 local function WaitingCount()
 	local profile = ns.db and ns.db.profile
 	if not (profile and profile.sources and profile.sources.owed) then return 0 end
@@ -80,27 +65,18 @@ local function WaitingCount()
 	return n
 end
 
--- What the launcher says it is.
---
--- It used to say "Manners" and nothing else, which on a broker display is the
--- addon's name written next to the addon's icon -- so the only way to find out
--- whether it was switched on was to right-click it and read chat, and that
--- changes the answer. Off is the state worth carrying: the prompt simply never
--- appears, and from the outside that is exactly what a broken addon looks like.
+-- What the launcher says it is: off and snoozed are worth carrying, because
+-- from the outside a prompt that never appears looks like a broken addon.
 --
 -- Each state is one whole phrase with the addon's name passed in, so a
 -- translation sees what the word describes and can put it, and its colour,
 -- where its own grammar wants them. The name itself is never translated.
 local function BrokerText()
-	-- A snooze is the other state in which no prompt appears on purpose, and
-	-- the end of it is the part worth reading off a bar. Only while on: off
-	-- outranks it, since a snooze ending brings nothing back while off.
+	-- Off outranks a snooze, since a snooze ending brings nothing back while off.
 	local ends = Enabled() and ns.SnoozeEndsAt and ns.SnoozeEndsAt()
 	if ends then return L["%s |cffffd100snoozed until %s|r"]:format("Manners", ends) end
 	if not Enabled() then return L["%s |cffff8080off|r"]:format("Manners") end
-	-- Then the favours still to return, which is the number worth glancing at
-	-- a bar for. Nothing at all when there are none, so a quiet evening reads
-	-- as the name and nothing else, as it always has.
+	-- Then the favours still to return; with none, just the name.
 	local waiting = WaitingCount()
 	if waiting == 1 then return L["%s |cff80e0801 waiting|r"]:format("Manners") end
 	if waiting > 1 then return L["%s |cff80e080%d waiting|r"]:format("Manners", waiting) end
@@ -108,17 +84,9 @@ local function BrokerText()
 end
 
 -- The colour the launcher's icon is drawn in: dimmed while snoozed, darker
--- still while switched off, as it is otherwise. The icon is the only part of
--- the launcher on the minimap that is always in view -- the text is only on a
--- broker bar, and the tooltip only on a hover -- so it is the one place a
--- glance can tell a resting addon from a working one.
---
--- Brightness only, never a hue. The icon is a gold arrow over a blue one, and
--- the amber the snooze used to multiply it by left the gold as it was and
--- turned the blue arrow olive: at minimap size it read as a different icon
--- rather than a resting one. Scaled evenly, both arrows keep their colours and
--- the three states read in order -- working, resting, off -- with the text and
--- the tooltip saying which.
+-- still while switched off. The icon is the one part of the launcher always in
+-- view on the minimap. Brightness only, never a hue: a tint turns the icon's
+-- blue arrow olive and it reads as a different icon at minimap size.
 local function IconTint()
 	if not Enabled() then return 0.4, 0.4, 0.4 end
 	if ns.SnoozeLeft and ns.SnoozeLeft() then return 0.7, 0.7, 0.7 end
@@ -129,13 +97,9 @@ end
 -- get/set helpers
 --
 -- Each group binds to one table in the profile and uses the option's own key,
--- so adding an option is a one-liner rather than a pair of closures.
---
--- Where a control has moved between tabs its key has deliberately not changed,
--- and where it had to -- the three sound controls, which now sit beside the
--- flash setting on a tab that has its own `enabled` -- the get and set name the
--- profile field outright instead of reading it off the option's key. Moving a
--- setting must never be a setting reset.
+-- so adding an option is a one-liner rather than a pair of closures. A control
+-- whose option key differs from its profile field (the sound controls) names
+-- the field outright: moving a setting must never reset it.
 ---------------------------------------------------------------------------
 
 local function bind(pathFn, after)
@@ -163,16 +127,11 @@ local function restyleAndMacro()
 	ns.Prompt:ApplyStyle()
 end
 
--- Redraw the page once a run of slider ticks has stopped.
---
--- For the Width and Height sliders, which shrink the icon to fit and so change
--- what another slider on the page should be showing. The dialog redraws a
--- slider when a drag is let go, but a mouse wheel never lets go of anything, so
--- without this a wheel left the Icon size slider showing a value the prompt was
--- no longer using. Held back rather than immediate because a redraw rebuilds
--- the slider being dragged under the pointer; each call replaces the one
--- before, so a wheel or a drag ends with a single redraw. C_Timer.After cannot
--- be cancelled, hence the token.
+-- Redraw the page once a run of slider ticks has stopped, for the Width and
+-- Height sliders, which shrink the icon and so change the Icon size slider.
+-- The dialog redraws on letting go of a drag, but a mouse wheel never lets go.
+-- Held back because a redraw rebuilds the slider under the pointer; the token
+-- is there because C_Timer.After cannot be cancelled.
 local repaintToken = 0
 local function RepaintSoon()
 	repaintToken = repaintToken + 1
@@ -206,7 +165,8 @@ local fGet, fSet = bind(F)
 local fGetMacro, fSetMacro = bind(F, remacro)
 local tGet, tSet = bind(T, rescan)
 local spGet, spSet = bind(SP, remacro)
-local bGet, bSet = bind(B, restyleAndMacro)
+-- The buff dropdown reads the pin through its own get, so only the setter.
+local bSet = select(2, bind(B, restyleAndMacro))
 local prGet, prSet = bind(PR)
 
 ---------------------------------------------------------------------------
@@ -228,12 +188,8 @@ local function BuffChoices()
 	return values
 end
 
--- The named distances, read off the list Core.lua measures with.
---
--- Both built from the one table rather than written out here as well: a
--- dropdown that has its own copy of the choices is a dropdown that can offer a
--- setting nothing implements, and an ordering with its own copy is one that
--- silently drops a new entry off the end.
+-- The named distances, read off the list Core.lua measures with, so the
+-- dropdown cannot offer a setting nothing implements.
 local function ProximityChoices()
 	local values = {}
 	for _, tier in ipairs(ns.PROXIMITY) do
@@ -243,9 +199,7 @@ local function ProximityChoices()
 end
 
 -- AceConfig sorts a select's values by their labels unless it is given an
--- order, and alphabetically these read "Anywhere I can cast", "Nearby", "Right
--- beside me" -- which is loosest to tightest by luck rather than by design. One
--- rename would scramble them.
+-- order, and a translation would scramble loosest-to-tightest.
 local function ProximityOrder()
 	local keys = {}
 	for _, tier in ipairs(ns.PROXIMITY) do
@@ -255,13 +209,8 @@ local function ProximityOrder()
 end
 
 -- The spell's name, with the one thing about it that changes who it is offered
--- to. A priest reading "Divine Spirit" has no way to know from the page that a
--- warrior will never see it.
---
--- Unless "Skip players the buff does nothing for" is off, which is the only
--- thing that holds a mana-only spell back from a warrior. With it off the
--- warrior is offered Divine Spirit, and the qualifier was a promise about a
--- filter that was not running.
+-- to. "Mana users only" only while "Skip players the buff does nothing for" is
+-- on, since that filter is what holds a mana-only spell back.
 local function BuffLabel(buff)
 	local label = ns.BuffName(buff)
 	if buff.manaOnly and F().relevantOnly then
@@ -272,21 +221,13 @@ local function BuffLabel(buff)
 end
 
 -- What "Automatic" will actually do, for this character, as it is configured
--- right now.
---
--- It used to name Wisdom and Might and nothing else -- the single class whose
--- auto pick depends on who is standing there -- so every other class read an
--- explanation of somebody else's spells. Automatic is a walk down the class
--- list now rather than one resolved choice, so the list in the order it is
--- walked is the answer, and it is taken from the same function the scan uses so
--- the two cannot drift.
+-- right now: the list in the order it is walked, taken from the same function
+-- the scan uses so the two cannot drift.
 local function AutoExplanation()
 	local castable = ns.CastableBuffs()
 	if #castable == 0 then
-		-- Three ways to have nothing to offer, and they are three different
-		-- problems with three different answers. One line saying "nothing is
-		-- switched on" would be wrong for two of them, and wrong in the
-		-- direction that sends somebody looking at the switches.
+		-- Each way to have nothing to offer gets its own answer, so nobody is
+		-- sent looking at switches that are already on.
 		if not HasClassBuffs() then
 			return L["This character has nothing it can cast on another player."]
 		end
@@ -299,11 +240,8 @@ local function AutoExplanation()
 				.. L["You have not learned any of these yet, so nobody will be offered anything."]
 				.. "|r"
 		end
-		-- A fourth way, which arrived with the per-flavour tables: everything
-		-- learned and switched on, and the only thing learned is one Automatic
-		-- deliberately never reaches for -- a Mists warlock with Unending Breath
-		-- and no Dark Intent yet. Both answers above would be false, and the one
-		-- below would send somebody hunting for a switch that is already on.
+		-- The only thing learned is one Automatic never reaches for -- a Mists
+		-- warlock with Unending Breath and no Dark Intent yet.
 		for _, buff in ipairs(ns.GetClassBuffs(ns.caps.class) or {}) do
 			if buff.neverAuto and ns.IsBuffKnown(buff) and not B().skip[buff.key] then
 				return "|cffff8080"
@@ -313,11 +251,9 @@ local function AutoExplanation()
 					.. L["Pin it in the dropdown above if you want it given out anyway."]
 			end
 		end
-		-- Everything learned is switched off -- but the spells not learned yet
-		-- are still ticked below, and learning one of them brings the prompt
-		-- back without anybody touching a switch. "Every spell" and "never" are
-		-- only both true once those are unticked as well. A neverAuto spell is
-		-- left out: learning it would bring nothing back.
+		-- Everything learned is switched off, but a spell not learned yet is
+		-- still ticked, and learning it brings the prompt back. A neverAuto
+		-- spell is left out: learning it would bring nothing back.
 		for _, buff in ipairs(ns.GetClassBuffs(ns.caps.class) or {}) do
 			if not buff.neverAuto and not ns.IsBuffKnown(buff) and not B().skip[buff.key] then
 				return "|cffff8080"
@@ -335,19 +271,13 @@ local function AutoExplanation()
 	end
 	local list = table.concat(names, ", ")
 
-	-- Blessings overwrite one another, so for these classes Automatic is not a
-	-- walk at all: it gives one and stops. Saying "the first of these they are
-	-- missing" here would promise a rotation that would take away what the last
-	-- click gave.
+	-- Blessings overwrite one another, so for these classes Automatic gives one
+	-- and stops. "Left alone" rests on reading what they carry: "Always offer"
+	-- chooses not to look and a client that hides a blessing's aura cannot, and
+	-- either way the first blessing that suits them can replace one of yours
+	-- (deliberately, see PickBuffFor).
 	--
-	-- "Left alone" rests on reading what they carry, and two things stop the
-	-- reading: "Always offer" chooses not to look, and a client that hides a
-	-- blessing's aura cannot. Either way the walk hands out the first blessing
-	-- that suits them -- deliberately, see PickBuffFor -- and for a mana user
-	-- wearing your Might that is Wisdom, which takes the Might away. The note
-	-- said it could not happen.
-	--
-	-- Three whole sentences rather than one with a clause bolted on, so that a
+	-- Whole sentences rather than one with a clause bolted on, so that a
 	-- translation can put the exception wherever its own grammar wants it.
 	if ns.EXCLUSIVE_BUFFS[ns.caps.class] then
 		local hidden = false
@@ -356,13 +286,13 @@ local function AutoExplanation()
 			if not (info and info.readable) then hidden = true end
 		end
 		if F().whenBuffed == "always" then
-			return L["Your blessings replace one another, so Automatic gives one and stops: the first of %s that suits them. Anybody already carrying one of yours is left alone rather than handed a different one -- except with |cffffd100Always offer|r chosen, which does not look: then the first that suits them is offered, and it can replace one of yours."]
+			return L["Your blessings replace one another, so Automatic gives only the first of %s that suits them. |cffffd100Always offer|r does not check what they carry, so it can replace one of yours."]
 				:format(list)
 		elseif hidden then
-			return L["Your blessings replace one another, so Automatic gives one and stops: the first of %s that suits them. Anybody already carrying one of yours is left alone rather than handed a different one -- except where the game won't show which blessing they carry: then the first that suits them is offered, and it can replace one of yours."]
+			return L["Your blessings replace one another, so Automatic gives only the first of %s that suits them. Where the game hides which blessing somebody carries, it can replace one of yours."]
 				:format(list)
 		end
-		return L["Your blessings replace one another, so Automatic gives one and stops: the first of %s that suits them. Anybody already carrying one of yours is left alone rather than handed a different one."]
+		return L["Your blessings replace one another, so Automatic gives only the first of %s that suits them. Anybody already carrying one of yours is left alone."]
 			:format(list)
 	end
 
@@ -377,36 +307,28 @@ local function AutoExplanation()
 end
 
 -- What pinning one spell means, and the one case where pinning is a silent
--- switch-off.
---
--- A pinned buff you have not learned is not a fallback: the scan resolves the
--- pin, finds it unlearned and offers that person nothing, and it does that for
--- everybody -- so the addon goes quiet with nothing anywhere saying why. The
--- pin is deliberately not reset for you (a failed spell probe must not rewrite
--- a setting), which is exactly why it has to be said out loud here.
+-- switch-off: a pinned buff you have not learned is offered to nobody. The pin
+-- is deliberately not reset for you (a failed spell probe must not rewrite a
+-- setting), which is why it has to be said out loud here.
 local function PinExplanation()
 	local choice = B().choice
 	local buff = ns.FindBuff(ns.caps.class, choice)
 	local name = buff and ns.BuffName(buff) or tostring(choice)
 
 	if buff and ns.IsBuffKnown(buff) then
-		return L["Only |cffffffff%s|r is ever offered, to everybody, whatever else they are missing. The per-spell switches above apply to Automatic and are left alone while one spell is pinned."]
+		return L["Only |cffffffff%s|r is offered, to everybody, whatever else they are missing. The per-spell switches come back with Automatic."]
 			:format(name)
 	end
 
 	return "|cffff8080"
 		.. L["You have pinned %s, which you have not learned."]:format(name)
 		.. "|r\n\n"
-		.. L["Nothing will be offered to anybody until you learn it or switch back to Automatic -- a pinned spell is the only one considered, so there is nothing to fall back to."]
+		.. L["Nothing will be offered to anybody until you learn it or switch back to Automatic."]
 end
 
--- One toggle per spell the class can put on somebody else.
---
--- Built once, with the page: which spells a class has never changes during a
--- session -- only whether each is learned, which the label asks for live.
--- Sparse on the way in as well as out: switched on is the *absence* of a key,
--- so a profile nobody has touched stores nothing at all and every existing one
--- arrives with the whole list on.
+-- One toggle per spell the class can put on somebody else, built once with the
+-- page (only whether each is learned changes, and the label asks that live).
+-- Switched on is the *absence* of a key, so an untouched profile stores nothing.
 local function AddBuffToggles(args)
 	local buffs = ns.GetClassBuffs(ns.caps.class) or {}
 	-- One spell is not a choice. The walk has nothing to walk, and a lone
@@ -446,24 +368,16 @@ local function AddBuffToggles(args)
 end
 
 -- Whether everything this character could offer reaches its party and nobody
--- else -- a warrior's Battle Shout. For these classes the strangers toggle is a
--- switch with nothing behind it. Core's answer, which the greeting and the
--- favour line read as well; a copy here is how the three would come to
--- disagree.
+-- else -- a warrior's Battle Shout -- which leaves the strangers toggle with
+-- nothing behind it. Core's answer, so the greeting and favour line agree.
 local function OnlyReachesGroup()
 	return ns.OnlyReachesGroup()
 end
 
 -- Whether nothing this character can offer takes a target at all -- a warrior,
--- whose Battle Shout is cast on himself and heard by the party.
---
--- CastLines builds no /target line for a selfCast buff and returns restore =
--- false with it, so for these classes the whole Targeting section is about a
--- line the macro will never contain: a toggle that does nothing and a note
--- explaining a /target that is not there. Computed the same way
--- OnlyReachesGroup is, and for the same reason -- it follows the per-spell
--- switches and a pin, so a warrior who learns something targetable gets the
--- control back on its own.
+-- whose Battle Shout is cast on himself. CastLines builds no /target line for a
+-- selfCast buff, so the Targeting section has nothing to say. Follows the
+-- per-spell switches and a pin, like OnlyReachesGroup.
 local function NeverTargets()
 	local castable = ns.CastableBuffs()
 	if #castable == 0 then return false end
@@ -474,17 +388,9 @@ local function NeverTargets()
 end
 
 -- Which of the two things that can carry the reason colour is actually on
--- screen, given every setting that silently takes one away.
---
--- Both are switched off somewhere other than the dropdown that asks for them,
--- and neither says so: ApplyStyle refuses the stripe on the framed look, and
--- the ring is a texture *behind* the icon, so hiding the icon takes it -- and so
--- does rounding the icon off, which swaps that texture for a mask. Pick the
--- ring, round the icon, and the setting above reads "Ring around the icon" over
--- a prompt with no reason colour anywhere on it.
---
--- Returns two booleans rather than one, because the interesting answer is which
--- one is left, not merely whether any is.
+-- screen (ring, stripe). ApplyStyle refuses the stripe on the framed look, and
+-- the ring is a texture *behind* the icon, so hiding the icon or rounding it
+-- off (which swaps that texture for a mask) takes the ring away.
 local function AccentCarriers()
 	local p = P()
 	local mode = p.accentMode or "icon"
@@ -493,11 +399,8 @@ local function AccentCarriers()
 	return ring == true, stripe == true
 end
 
--- Whether the copy-for-a-bug-report box is open.
---
--- A file local rather than a setting: it is a state of the window rather than
--- of the profile, and one that has no business surviving the window being shut.
--- Put back in OpenOptions and when the Settings page hides; see there.
+-- Whether the copy-for-a-bug-report box is open: a state of the window, not of
+-- the profile, put back in OpenOptions and when the Settings page hides.
 local reportOpen = false
 -- And the box holding these settings as text, for the same reasons.
 local shareOpen = false
@@ -508,9 +411,8 @@ local shareOpen = false
 local function BugReport()
 	local lines = { ("Manners %s"):format(tostring(ns.BUILD)) }
 
-	-- Guarded, not assumed. This is read from a `get`, which nothing wraps, and
-	-- a client without GetBuildInfo would otherwise take the whole page down at
-	-- the moment somebody is trying to report that something is broken.
+	-- Guarded: this is read from a `get`, which nothing wraps, and must not take
+	-- the page down while somebody is reporting a bug.
 	local ok, version, build, _, toc = pcall(GetBuildInfo)
 	if ok and version then
 		lines[#lines + 1] = ("client %s (%s), interface %s")
@@ -521,9 +423,8 @@ local function BugReport()
 	lines[#lines + 1] = ("class %s | secrets %s | auras secret now %s | nameplates %s")
 		:format(tostring(caps.class), tostring(caps.hasSecrets),
 			tostring(caps.aurasSecretNow), tostring(caps.namePlates))
-	-- Which spell tables this client was handed. Without it, a report about a
-	-- spell that is never offered cannot be told from a report about a spell
-	-- that no longer exists on the reporter's client.
+	-- Which spell tables this client was handed, so a spell never offered can be
+	-- told from one that does not exist on the reporter's client.
 	lines[#lines + 1] = ("buff data %s%s"):format(tostring(ns.BUFFS_SOURCE),
 		ns.BUFFS_MISSING and (" -- " .. tostring(ns.BUFFS_MISSING)) or "")
 
@@ -549,9 +450,8 @@ local function BugReport()
 		tostring(db.sources.owed), tostring(db.sources.group), tostring(db.sources.strangers),
 		tostring(db.filters.whenBuffed), tostring(db.priority.target),
 		tostring(db.timing.keepDebts))
-	-- Who is ordered and who is held back, as opposed to who is on the list at
-	-- all. A report of "my friend is never offered" is answered by the last
-	-- number here more often than by anything else.
+	-- Who is ordered and who is held back: "my friend is never offered" is most
+	-- often answered by the last number here.
 	lines[#lines + 1] = ("friendsFirst=%s restingOnly=%s neverOffered=%d"):format(
 		tostring(db.priority.friends), tostring(db.filters.restingOnly), #ns.NeverList())
 
@@ -559,10 +459,8 @@ local function BugReport()
 	lines[#lines + 1] = ("own buffs: %s read, baseline %s, primed=%s, doubt=%s"):format(
 		tostring(scan.read), tostring(scan.held), tostring(scan.primed), tostring(scan.doubt))
 
-	-- The second favour source, where the client has one. Left out entirely
-	-- rather than reported as zeroes on a client with no combat log: a line
-	-- about a source that cannot exist there is a question the person reading
-	-- the report has to go and answer before they can ignore it.
+	-- The second favour source, left out entirely on a client with no combat
+	-- log rather than reported as zeroes.
 	if caps.combatLog then
 		local log = ns.logScan
 		lines[#lines + 1] = ("combat log: armed=%s, %s seen, %s filed"):format(
@@ -572,11 +470,8 @@ local function BugReport()
 	if #ns.errors == 0 then
 		lines[#lines + 1] = "errors: none this session"
 	else
-		-- How many have happened, then how many are still here to read. The ring
-		-- holds thirty, so its length was never the count this line claimed to
-		-- print: "errors: 30 this session" is what a handler throwing on every
-		-- frame looks like and what three unrelated bugs look like, and the
-		-- person receiving this report cannot ask which.
+		-- How many have happened, then how many are still here to read: the
+		-- ring holds thirty, so its length is not the count.
 		lines[#lines + 1] = ("errors: %d this session (%d kept), last five:")
 			:format(ns.errorCount or #ns.errors, #ns.errors)
 		for i = math.max(1, #ns.errors - 4), #ns.errors do
@@ -589,14 +484,12 @@ local function BugReport()
 	return table.concat(lines, "\n")
 end
 
--- Who is picked in the never-offer dropdown, waiting for Take them off. A file
--- local for the reason reportOpen is one: it is a state of the window, not of
--- the profile.
+-- Who is picked in the never-offer dropdown, waiting for Take them off; a state
+-- of the window, like reportOpen.
 local neverPicked
 
--- The never-offer list as dropdown choices, built fresh each time the page asks,
--- because a shift-right-click on the prompt or /manners never can add to it
--- while the page is open.
+-- The never-offer list as dropdown choices, built fresh each time, because a
+-- shift-right-click or /manners never can add to it while the page is open.
 local function NeverChoices()
 	local values = {}
 	for _, name in ipairs(ns.NeverList()) do values[name] = name end
@@ -607,7 +500,10 @@ end
 -- options table
 ---------------------------------------------------------------------------
 
-local function BuildOptions()
+-- The "Who to buff" tab, built apart from the rest so that no one function
+-- captures every file-level local the page uses: Lua 5.1 allows a function 60
+-- upvalues, and a file past that does not load.
+local function WhoToBuffGroup()
 	local who = {
 		type = "group",
 		name = L["Who to buff"],
@@ -652,12 +548,8 @@ local function BuildOptions()
 				order = 10.5,
 				hidden = function()
 					local s = S()
-					-- A source this class cannot use does not count as switched
-					-- on. A warrior's Battle Shout reaches the group and nobody
-					-- else, so the page hides "passers-by" -- and this used to
-					-- read the hidden toggle's leftover true and stay silent,
-					-- in exactly the case where the prompt really was dead and
-					-- no visible control could explain it.
+					-- A source this class cannot use (passers-by, for a warrior)
+					-- does not count as switched on: its toggle is hidden.
 					return s.owed or s.group or s.asked or (s.strangers and not OnlyReachesGroup())
 				end,
 				name = "|cffff8080"
@@ -666,15 +558,9 @@ local function BuildOptions()
 			owed = {
 				type = "toggle",
 				name = L["People who buffed me"],
-				-- A function, because the second sentence is not true of every
-				-- class. A warrior's shout reaches the group and nobody else, so
-				-- a stranger who buffed him is turned down until they join --
-				-- which is what the favour line in chat says, and what the
-				-- strangers note a few lines down says too.
-				--
-				-- In a raid on the older flavours that group is the warrior's
-				-- own subgroup, and saying "group" there told somebody already in
-				-- the raid to join it.
+				-- A function: a warrior's shout reaches only his group (his own
+				-- subgroup in a raid on the older flavours), so a stranger who
+				-- buffed him is turned down until they join.
 				desc = function()
 					if OnlyReachesGroup() then
 						if ns.PARTY_IS_SUBGROUP then
@@ -710,16 +596,13 @@ local function BuildOptions()
 			strangers = {
 				type = "toggle",
 				name = L["Nearby players not in my group"],
-				-- Four tokens are walked, not three: IterateUnits asks target,
-				-- mouseover and focus before it touches a single nameplate.
-				-- Leaving focus out made a genuine way of reaching somebody
-				-- look like it was not one.
+				-- IterateUnits asks target, mouseover and focus before it
+				-- touches a single nameplate.
 				desc = L["Offer passers-by who are missing the buff. Seen through nameplates, your target, your focus and your mouseover."],
 				order = 14,
 				width = "full",
-				-- Hidden, not disabled: a disabled control is one you could
-				-- have if something else were different, and there is nothing
-				-- on this page that would ever make a shout reach a stranger.
+				-- Hidden, not disabled: nothing on this page could ever make a
+				-- shout reach a stranger.
 				hidden = OnlyReachesGroup,
 				get = sGet,
 				set = sSet,
@@ -732,18 +615,16 @@ local function BuildOptions()
 					.. L["Everything you can offer is cast on yourself and heard by your party, so there is nothing to give a passer-by."]
 					.. "|r",
 			},
-			-- The source that reads chat. The rule is spelled out here in full,
-			-- because it is the whole of what decides whether somebody is put on
-			-- the prompt, and "why did it offer them" has no other answer the
-			-- player can see. The section in Core.lua is the same rule in code.
+			-- The source that reads chat. The full rule for what counts as asking
+			-- is in README.md; the section in Core.lua is the rule in code.
 			asked = {
 				type = "toggle",
 				name = L["People who ask me for it"],
-				desc = L["Somebody who asks for your buff in /say, /yell, your group's chat or a whisper is offered it for the next minute, if the game can see them in that time and they do not have it yet -- \"int pls\", \"fort?\", \"can I get motw\", \"buffs please\", or the spell's own name in your language. They come after people who buffed you and before your group. Nothing is said back to them, and nobody of your own class is taken for asking."]
+				desc = L["For a minute, offer your buff to somebody who asks for it in /say, /yell, group chat or a whisper -- \"int pls\", \"fort?\", \"buffs please\"."]
 					.. "\n\n"
-					.. L["Only short messages that ask count: eight words at most, the buff named as a whole word, nothing saying no or not, and a please, a question mark, an opening like \"can I\" or \"anyone\", or nothing but the buff's name. Beside a nickname like int or fort, or beside \"buff\", only small words like \"me\", \"get\" or \"pls\" may stand, so \"int the healer\" and \"need int ring\" ask for nothing. Words English uses for other things -- might, mark, wisdom, spirit, shadow -- need a please or to stand alone, and never count in your group's chat."]
+					.. L["Only short requests count, and in a fight only whispers. Nothing is said back to them."]
 					.. "\n\n|cff888888"
-					.. L["Off at first, because reading chat is guesswork: now and then somebody only talking about a buff will be offered one. What is said in a fight is taken for tactics and ignored, except a whisper; a request still waiting when a fight starts waits until it ends."]
+					.. L["Off at first: reading chat is guesswork, so now and then somebody only talking about a buff is offered one."]
 					.. "|r",
 				order = 14.6,
 				width = "full",
@@ -761,21 +642,19 @@ local function BuildOptions()
 			},
 
 			-- Not a source: everybody here is already on the list by one of the
-			-- three above. This decides who reaches the top of it, which is its
-			-- own question and used to have no answer on the page at all.
+			-- sources above. This decides who reaches the top of it.
 			firstHeader = { type = "header", name = L["Who comes first"], order = 15 },
 			target = {
 				type = "toggle",
 				name = L["Whoever I have targeted comes first"],
-				-- The second condition is the same one as the first, arriving
-				-- from the When tab: Always offer means nobody's buffs are read,
-				-- so there is never a reading to promote a target on. The
-				-- switch stayed ticked and did nothing, and nothing said why.
-				desc = L["Targeting somebody is the plainest way of saying you mean them, so they outrank a favour owed -- but only when the game lets us read that they are genuinely missing the buff. Switched off, a target is ranked by why they are on the list like anybody else."]
+				-- The second condition is the first one arriving from the When
+				-- tab: Always offer means nobody's buffs are read, so there is
+				-- never a reading to promote a target on.
+				desc = L["Your target outranks a favour owed, but only when the game can read that they are missing the buff."]
 					.. "\n\n"
-					.. L["Not while |cffffd100If they already have the buff|r is set to Always offer, under When: nothing is read then, so your target is ranked by why they are on the list like anybody else."]
+					.. L["Not while |cffffd100If they already have the buff|r is set to Always offer, under When, since nothing is read then."]
 					.. "\n\n|cff888888"
-					.. L["Mouseover is deliberately left out: at a scan every four tenths of a second the prompt would flicker as the cursor crossed the screen."]
+					.. L["Mouseover is left out: the prompt would flicker as the cursor crossed the screen."]
 					.. "|r",
 				order = 16,
 				width = "full",
@@ -786,13 +665,8 @@ local function BuildOptions()
 				type = "toggle",
 				name = L["My friends and guildmates come before the others"],
 				-- Inside a kind of offer and never across one, which is what the
-				-- sort does; see BuildQueue. Saying "ahead of strangers" alone
-				-- would promise a friend passing by a place above your group.
-				-- Your target is named only where it is true: a target is put
-				-- first by the switch above, which needs their buffs readable,
-				-- and a stranger's often are not. Otherwise a targeted stranger
-				-- is a passer-by like any other, and a friend goes ahead of them.
-				desc = L["A friend or guildmate passing by comes ahead of the other passers-by, and one in your group ahead of the rest of your group. People who buffed you still come first, and so does your target whenever |cffffd100Whoever I have targeted comes first|r puts them there. Nobody is added or left out by this -- it only changes the order."]
+				-- sort does; see BuildQueue.
+				desc = L["A friend or guildmate goes ahead of the other passers-by, or of the rest of your group. It only changes the order; nobody is added or left out."]
 					.. "\n\n|cff888888"
 					.. L["Friends include Battle.net friends. When the game will not say whether somebody is a friend, they are ranked like anybody else."]
 					.. "|r",
@@ -813,9 +687,7 @@ local function BuildOptions()
 				set = fSet,
 			},
 			requireInRange = {
-				-- It was called "Only players in range", which is what people
-				-- read and is not what it does -- its own description said so
-				-- one line below. The label has to be the promise.
+				-- The label is the promise: only a known out-of-range is hidden.
 				type = "toggle",
 				name = L["Hide players known to be out of range"],
 				desc = L["When the game will not tell us the range -- common on this client -- they are still offered."],
@@ -827,26 +699,23 @@ local function BuildOptions()
 			proximity = {
 				type = "select",
 				name = L["How near a passer-by has to be"],
-				-- The yardage is here rather than in the choices themselves:
-				-- what somebody picks is a feeling, and nobody can judge ten
-				-- yards from inside the game -- but they will want to know
-				-- roughly what they just asked for.
-				desc = L["Being in range is not the same as being near. Arcane Intellect and its like reach about thirty yards, which in a city is everybody on the screen."]
+				-- The yardage is here rather than in the choices: what somebody
+				-- picks is a feeling, but they will want to know roughly what
+				-- they just asked for.
+				desc = L["Being in range is not the same as being near: Arcane Intellect and its like reach about thirty yards, which in a city is everybody on the screen."]
 					.. "\n\n" .. L["|cffffd100Anywhere I can cast|r -- about thirty yards, as it was."]
 					.. "\n" .. L["|cffffd100Nearby|r -- about ten yards."]
 					.. "\n" .. L["|cffffd100Right beside me|r -- about five yards."]
 					.. "\n\n"
-					.. L["This only applies to passers-by. Somebody who buffed you was close enough a moment ago, your group is your group, and whoever you have targeted or focused you picked on purpose -- none of them are measured."]
+					.. L["Only passers-by are measured; not somebody who buffed you, your group, or whoever you targeted or focused."]
 					.. "\n\n|cff888888"
-					.. L["The game will not say how far away somebody is, so this is measured with whatever this client offers and lands on the nearest step it has. When it cannot measure at all, everybody in casting range is offered, as before."]
+					.. L["The game gives no exact distance, so this is measured as closely as the client allows. When it cannot measure at all, everybody in casting range is offered."]
 					.. "|r",
 				order = 22.5,
 				width = "full",
 				values = ProximityChoices,
 				sorting = ProximityOrder,
-				-- The setting is about passers-by and nothing else, so it is
-				-- hidden exactly where the passer-by toggle is and switched off
-				-- exactly when that toggle is.
+				-- About passers-by only, so it follows the passer-by toggle.
 				hidden = OnlyReachesGroup,
 				disabled = function() return not S().strangers end,
 				get = fGet,
@@ -858,12 +727,9 @@ local function BuildOptions()
 				hidden = function()
 					return OnlyReachesGroup() or F().proximity == "cast"
 				end,
-				-- Where the promise is kept. A distance filter that has quietly
-				-- stopped measuring offers the same crowded queue it always
-				-- did, and a user who has just turned it on has no way to tell
-				-- that from nobody being nearby -- so the page says which
-				-- signal is doing the work and how often it answers, in the
-				-- one place they are already looking.
+				-- Which signal is doing the measuring and how often it answers,
+				-- since a filter that has quietly stopped measuring looks the
+				-- same as nobody being nearby.
 				name = function()
 					return "|cff888888" .. tostring(ns.ProximitySummary()) .. "|r"
 				end,
@@ -871,9 +737,7 @@ local function BuildOptions()
 			restingOnly = {
 				type = "toggle",
 				name = L["Only offer passers-by in cities and inns"],
-				-- Hidden and disabled exactly where the distance setting above
-				-- is, and for the same reasons: it is about passers-by and
-				-- nothing else.
+				-- Hidden and disabled like the distance setting above.
 				desc = L["Out in the world, passers-by are left alone; they are offered only where the game shows you as resting, which is in a city or an inn."]
 					.. "\n\n"
 					.. L["Somebody who buffed you, your group, and whoever you have targeted or focused are offered anywhere."]
@@ -890,27 +754,21 @@ local function BuildOptions()
 			reachableOnly = {
 				type = "toggle",
 				name = L["Drop people who are probably gone"],
-				desc = L["Somebody who buffed you is rarely your target or showing a nameplate, so there is usually no way to range-check them. What we do know is that they were within casting range the moment they buffed you. With this on, that counts for a short while and then they are let go."],
+				desc = L["Somebody who buffed you can rarely be range-checked afterwards. With this on, they count as in range for a while after their buff, then are let go."],
 				order = 23,
 				width = "full",
 				get = fGet,
 				set = fSet,
 			},
 			graceSeconds = {
-				-- Named so it stands on its own. It used to read "...after this
-				-- long", which only makes sense directly under the toggle above
-				-- -- and directly under it is exactly where a duplicate order
-				-- number stopped putting it.
+				-- Named so it stands on its own, not only directly under the
+				-- toggle above.
 				type = "range",
 				name = L["Let them go after (seconds)"],
-				-- It said "once we can no longer see the player", which is not the
-				-- clock this runs on. BuildQueue measures from the moment they
-				-- buffed you -- that moment is the whole of the evidence, because
-				-- it is the one instant they were provably in casting range -- and
-				-- nothing anywhere notices a player walking off. Somebody who
-				-- buffed you two minutes ago and has not moved is let go on exactly
-				-- the same schedule as somebody who left at once.
-				desc = L["How long after somebody buffs you that counts as proof they were in range. It runs from their buff, not from the moment they walk off: nothing here can see them go."],
+				-- BuildQueue measures from the moment they buffed you, the one
+				-- instant they were provably in range; nothing notices a player
+				-- walking off.
+				desc = L["How long somebody counts as in range after they buff you. It runs from their buff, not from when they walk off."],
 				order = 23.5,
 				min = 10,
 				max = 180,
@@ -922,7 +780,7 @@ local function BuildOptions()
 			minLevel = {
 				type = "range",
 				name = L["Minimum level"],
-				desc = L["Players below this are never offered. The level is read off the unit, so somebody we only know by name -- the usual case for a passer-by who buffed you -- cannot be level-checked at all and is offered anyway."],
+				desc = L["Players below this are never offered. Somebody known only by name cannot be level-checked and is offered anyway."],
 				order = 24,
 				min = 1,
 				max = 60,
@@ -941,14 +799,13 @@ local function BuildOptions()
 					if count == 0 then
 						return L["Nobody is on the list. Shift-right-click the prompt to put whoever it is showing on it, or add a name below."]
 					end
-					-- The exception is the decision this section rests on, so it
-					-- is said every time the list is, rather than once in a
-					-- tooltip nobody hovers.
+					-- The favour exception (STATUS.md) is said every time the list
+					-- is, rather than in a tooltip nobody hovers.
 					local text = count == 1
 						and L["One person is on the list. They are never offered anything as a passer-by or as a member of your group."]
 						or L["%d people are on the list. They are never offered anything as passers-by or as members of your group."]:format(count)
 					return text .. "\n\n"
-						.. L["Somebody on it who buffs you is still offered the favour back: returning a favour is what Manners is for. Shift-right-click them on the prompt to let that favour go."]
+						.. L["Somebody on it who buffs you is still offered the favour back. Shift-right-click them on the prompt to let that favour go."]
 				end,
 			},
 			neverAdd = {
@@ -969,8 +826,7 @@ local function BuildOptions()
 				values = NeverChoices,
 				disabled = function() return #ns.NeverList() == 0 end,
 				-- Only somebody still on the list: the pick outlives a removal
-				-- made from chat, and a dropdown showing a name that is no
-				-- longer there offers a Remove that does nothing.
+				-- made from chat.
 				get = function()
 					if neverPicked and ns.IsNeverOffered(neverPicked) then return neverPicked end
 					return nil
@@ -1007,6 +863,11 @@ local function BuildOptions()
 		},
 	}
 	AddBuffToggles(who.args)
+	return who
+end
+
+local function BuildOptions()
+	local who = WhoToBuffGroup()
 
 	return {
 		type = "group",
@@ -1029,13 +890,9 @@ local function BuildOptions()
 						set = function(_, v)
 							ns.db.profile.enabled = v
 							ns.Prompt:Refresh()
-							-- The launcher's text carries this switch too, and it
-							-- is the one reader of it that is not on the page
-							-- AceConfig is about to redraw by itself. Through the
-							-- shared call rather than straight at the data object:
-							-- that one is guarded, and what runs on the far side of
-							-- the assignment is a display frame belonging to some
-							-- other addon.
+							-- The launcher's text carries this switch too. Through
+							-- the guarded shared call, because what runs on the far
+							-- side is another addon's display frame.
 							ns.RepaintOptions()
 						end,
 					},
@@ -1055,10 +912,8 @@ local function BuildOptions()
 						fontSize = "medium",
 						hidden = HasClassBuffs,
 						-- "Your class has none" and "we could not work out what
-						-- you can cast" look identical from hasClassBuffs alone,
-						-- and telling those two apart is most of the work on
-						-- this client. The list of classes that genuinely have
-						-- nothing to give exists precisely so this can say which.
+						-- you can cast" look identical from hasClassBuffs alone;
+						-- CLASSES_WITHOUT_BUFFS is what tells them apart.
 						name = function()
 							if ns.caps.class and ns.CLASSES_WITHOUT_BUFFS[ns.caps.class] then
 								return "\n|cffff8080"
@@ -1083,7 +938,7 @@ local function BuildOptions()
 						fontSize = "medium",
 						hidden = function() return not HasClassBuffs() end,
 						name = "\n|cffffd100" .. L["How this works"] .. "|r\n"
-							.. L["Blizzard does not let an addon cast a spell by itself, so this one does everything except the keypress: it works out who deserves a buff and puts them on the prompt. Click the prompt and it casts."]
+							.. L["Blizzard does not let an addon cast a spell by itself, so Manners works out who deserves a buff and puts them on the prompt. Click the prompt and it casts."]
 							.. "\n\n|cffffd100" .. L["Putting it on a key"] .. "|r\n"
 							.. L["Make the macro below and drag it onto a bar, or bind a key under Options > Keybindings > Manners."]
 							.. "\n",
@@ -1119,29 +974,23 @@ local function BuildOptions()
 						name = function()
 							local ends = ns.SnoozeEndsAt()
 							-- The page is repainted at both ends of a fight, so this
-							-- is only shown while it is true.
+							-- is only shown while it is true. Worded for a snooze
+							-- started in the fight and one started before it.
 							if ends and InCombatLockdown() then
-								-- Worded for both ways into this: a snooze started in the
-								-- fight, over a panel that is still up, and one started
-								-- before it, over a panel that is already gone.
 								return L["|cffffd100Snoozed until %s.|r In a fight the prompt stays as the fight found it, and follows the snooze once the fight ends."]
 									:format(ends)
 							elseif ends and DragPanelUp() then
-								-- An unlocked prompt stays on screen to be dragged for
-								-- the whole snooze -- the lock is read before the snooze
-								-- -- so "no prompt" would be false while it is there.
-								-- Only where there is one: switched off, or with nothing
-								-- to cast, there is no panel, and "no prompt" is true.
-								return L["|cffffd100Snoozed until %s.|r The prompt is unlocked, so it stays up to be dragged and casts nothing; once you lock it, it stays away until the snooze ends."]
+								-- The lock is read before the snooze, so an unlocked
+								-- prompt stays on screen for the whole snooze.
+								return L["|cffffd100Snoozed until %s.|r The prompt is unlocked, so it stays up to be dragged, casting nothing, until you lock it."]
 									:format(ends)
 							elseif ends then
 								-- Not "offered when it ends": a favour is remembered for
-								-- as long as the When tab says, which is usually shorter
-								-- than a snooze.
+								-- as long as the When tab says, usually less than a snooze.
 								return L["|cffffd100Snoozed until %s.|r No prompt until then, though who buffs you is still noticed."]
 									:format(ends)
 							end
-							return L["Keep the prompt out of the way for a while without switching Manners off. It comes back by itself when the time is up, and a %s ends a snooze as well. One started in a fight takes effect when the fight ends."]
+							return L["Keep the prompt out of the way for a while without switching Manners off. It comes back when the time is up, or after a %s."]
 								:format("/reload")
 						end,
 					},
@@ -1189,14 +1038,8 @@ local function BuildOptions()
 								return L["Manners stays in the addon compartment under the minimap either way."]
 							end
 						end,
-						-- Gone entirely where the libraries are not, rather than
-						-- greyed out. Without this the checkbox writes a setting
-						-- nothing reads and calls Show or Hide on a button that
-						-- was never registered -- a control that ticks, saves,
-						-- and does nothing at all, which is indistinguishable
-						-- from the addon being broken. There is no minimap
-						-- button to explain the absence of, so there is nothing
-						-- a disabled control would be telling anybody.
+						-- Gone entirely where the libraries are not: there is no
+						-- button for a greyed-out control to be about.
 						hidden = function() return not HasMinimapButton() end,
 						get = function() return not ns.db.profile.minimap.hide end,
 						set = function(_, v)
@@ -1207,31 +1050,18 @@ local function BuildOptions()
 						end,
 					},
 
-					-- Its own header rather than a line under Diagnostics. It
-					-- was called "Announce every buff it sees", filed beside the
-					-- click logger, and on by default -- three things that
-					-- together read as an addon that talks to other players.
+					-- Its own header rather than a line under Diagnostics, so it
+					-- does not read as an addon that talks to other players.
 					chatHeader = { type = "header", name = L["Chat"], order = 30 },
 					verbose = {
 						type = "toggle",
-						-- It said "when someone buffs me", which is one of seven
-						-- things this switch prints. The others are the ones worth
-						-- having: a debt that survived a click, a cast counted as
-						-- repaid, a cast the game refused, a person skipped, a
-						-- sound that would not play, and a press that may have cast
-						-- from a macro the fight would not let us disarm. Somebody
-						-- reading the old label had no reason to switch it on to
-						-- find out why a buff went nowhere, which is the question
-						-- it answers best.
-						--
-						-- Those, and not "what each click turned into", which it
-						-- used to promise: a cast that worked prints nothing
-						-- unless it repaid a favour, so somebody switching this on
-						-- to watch their casts saw silence and took it for broken.
+						-- A cast that worked prints nothing unless it repaid a
+						-- favour, so the label promises what it is doing, not a
+						-- line per click.
 						name = L["Tell me in chat what the addon is doing"],
 						desc = L["A line when somebody buffs you, when a favour is counted as repaid, and when a click fails, is skipped, or leaves somebody owed."]
 							.. "\n\n"
-							.. L["Only you see any of it; nothing is ever said to anybody else from here. Use it to tell 'the buff was never noticed' apart from 'it was noticed but they could not be reached' -- two very different problems."],
+							.. L["Only you see these lines. They tell a buff that was never noticed apart from somebody who could not be reached."],
 						order = 31,
 						width = "full",
 						get = function() return ns.db.profile.verbose end,
@@ -1246,7 +1076,7 @@ local function BuildOptions()
 						type = "description",
 						order = 41,
 						fontSize = "medium",
-						name = L["Copy these settings as one line of text, to keep or to give to somebody, or paste one you were given. Whether Manners is on, whether the prompt is locked, where it sits, the click log and the minimap button stay as they are. A pasted line never switches on speaking when you buff, and while you have it on, what you say and where stays yours too."],
+						name = L["Copy these settings as one line of text, or paste one you were given. A paste leaves your on switch, lock, prompt position and minimap button alone, and never switches on speaking."],
 					},
 					shareCopy = {
 						type = "execute",
@@ -1263,10 +1093,8 @@ local function BuildOptions()
 					},
 					shareText = {
 						type = "input",
-						-- On the page rather than in the button's tooltip: the game
-						-- has no way to put text on the clipboard for the player,
-						-- and somebody who pasted after clicking a button that said
-						-- "Copy" pasted whatever they had copied before.
+						-- On the page rather than in a tooltip: the game has no way
+						-- to put text on the clipboard for the player.
 						name = L["Click in the box, press Ctrl+A to select it all, then Ctrl+C to copy (Cmd on a Mac)."],
 						order = 43,
 						multiline = 3,
@@ -1316,14 +1144,12 @@ local function BuildOptions()
 					ledgerOpen = {
 						type = "execute",
 						name = L["Open the ledger"],
-						desc = L["A window listing who buffed you and with what, whether you returned it, and who you buffed without being asked. Also %s, or shift-click the minimap button."]
+						desc = L["Who buffed you and with what, whether you returned it, and who you buffed unasked. Also %s, or shift-click the minimap button."]
 							:format("/manners ledger"),
 						order = 52,
 						hidden = function() return not ns.Ledger end,
-						-- This window shut first. It sits in a higher strata
-						-- than the ledger and both are centred on the screen,
-						-- so the ledger opened underneath it with only its
-						-- title showing, and the button seemed to do nothing.
+						-- This window shut first: it sits in a higher strata than
+						-- the ledger, which would open hidden underneath it.
 						func = function()
 							ns.CloseOptions()
 							ns.Ledger.Show()
@@ -1336,9 +1162,7 @@ local function BuildOptions()
 			who = who,
 
 			---------------------------------------------------------------
-			-- Split off "Who to buff", which was doing four jobs. Everything
-			-- here is a question about timing, and two of the four duplicate
-			-- order numbers were between the two halves.
+			-- Everything here is a question about timing.
 			when = {
 				type = "group",
 				-- The key list gives translators this one word and nothing
@@ -1354,11 +1178,8 @@ local function BuildOptions()
 						type = "select",
 						name = L["If they already have the buff"],
 						-- The favour exception is said here and on the choice
-						-- itself because it is a policy none of the three choices
-						-- touches: BuildQueue offers a debt regardless, and what it
-						-- offers is the buff they already hold, which is a refresh
-						-- and takes nothing away. Left unsaid, the one person the
-						-- prompt did offer under "Leave them alone" read as a bug.
+						-- itself because none of the three choices touches it:
+						-- BuildQueue offers a debt regardless.
 						desc = L["Reading whether somebody has a buff needs the game's permission. See the Diagnostics tab for which of your buffs qualify."]
 							.. "\n\n"
 							.. L["Somebody who buffed you is offered the favour back whichever you choose, even if they already have it."],
@@ -1375,7 +1196,7 @@ local function BuildOptions()
 					refreshUnder = {
 						type = "range",
 						name = L["Top up when under (minutes) are left"],
-						desc = L["Only offer a refresh once their remaining time drops below this. Somebody whose buff timer cannot be read is left alone -- unless they buffed you, in which case they are offered the favour back anyway."],
+						desc = L["Only offer a refresh once their remaining time drops below this. Somebody whose timer cannot be read is left alone, unless they buffed you."],
 						order = 3,
 						min = 1,
 						max = 60,
@@ -1394,7 +1215,7 @@ local function BuildOptions()
 						name = "|cffff8080"
 							.. L["Everyone nearby will be offered constantly, including people whose buff has barely ticked down. Expect to be spending mana."]
 							.. "|r\n\n|cff888888"
-							.. L["Nothing is read in this mode, so |cffffd100Whoever I have targeted comes first|r has nothing to go on: your target is ranked by why they are on the list like anybody else."]
+							.. L["Nothing is read in this mode, so |cffffd100Whoever I have targeted comes first|r has no effect."]
 							.. "|r",
 					},
 
@@ -1406,12 +1227,10 @@ local function BuildOptions()
 					reciprocateWindow = {
 						type = "range",
 						name = L["Remember a buff for (seconds)"],
-						-- It said this was how long somebody stays on the prompt,
-						-- and for the ordinary favour -- a passer-by with no
-						-- nameplate -- it is not: BuildQueue lets them go once the
-						-- grace on the Who to buff tab runs out, forty-five seconds
-						-- against this one's hundred and twenty at the defaults.
-						desc = L["How long a favour is remembered. Somebody the game can still see stays on the prompt this long. Somebody it cannot see is let go sooner if |cffffd100Let them go after|r is shorter, while |cffffd100Drop people who are probably gone|r is on, under Who to buff."],
+						-- For a passer-by with no nameplate BuildQueue lets go once
+						-- the grace on the Who to buff tab runs out, which is
+						-- shorter at the defaults.
+						desc = L["How long a favour is remembered. Somebody the game cannot see may be let go sooner by |cffffd100Drop people who are probably gone|r, under Who to buff."],
 						order = 11,
 						min = 15,
 						max = 600,
@@ -1422,7 +1241,7 @@ local function BuildOptions()
 					keepDebts = {
 						type = "toggle",
 						name = L["Remember them across a reload"],
-						desc = L["A favour noticed a minute before a disconnect is the case this is for. The clock keeps running while you are away, so somebody whose time ran out in the meantime is not brought back."]
+						desc = L["Keep favours owed through a reload or a disconnect. The clock keeps running meanwhile, so a favour that ran out is not brought back."]
 							.. "\n\n|cff888888"
 							.. L["Stored against this character, never shared between profiles. Switching it off deletes what has already been stored."]
 							.. "|r",
@@ -1431,36 +1250,21 @@ local function BuildOptions()
 						get = tGet,
 						set = function(info, value)
 							tSet(info, value)
-							-- Off means gone, now. Leaving the file behind means
-							-- the next login restores debts from a setting that
-							-- says not to -- and SaveDebts is the one function
-							-- that owns that file, so it does the erasing too.
+							-- Off means gone, now. SaveDebts owns the stored debts,
+							-- so it does the erasing too.
 							ns.addon:SaveDebts()
 						end,
 					},
-					-- It read "Wait before re-offering", over "how long before the
-					-- same player can come back up" -- a promise about the person,
-					-- from a click that blocks one spell. For a class with two
-					-- buffs the setting did not do what it said.
-					--
-					-- The label follows the code rather than the other way round,
-					-- because the code is right. The walk is the headline feature,
-					-- and PickBuffFor is built on this block being per spell: it is
-					-- what moves a priest off Fortitude and onto Divine Spirit on
-					-- the very next scan. Making the setting mean what it said
-					-- would have put twelve seconds between the two halves of the
-					-- one thing the addon is for.
-					--
-					-- Both readings are true of something, which is the other half
-					-- of why this went unnoticed: the same number is what a
-					-- right-press blocks the whole person for. That is now said
-					-- here rather than left to be discovered.
+					-- Per spell, deliberately: PickBuffFor is built on it, and it
+					-- is what moves a priest off Fortitude and onto Divine Spirit
+					-- on the very next scan. A right-press blocks the whole person
+					-- for the same number.
 					retryCooldown = {
 						type = "range",
 						name = L["Wait before offering the same spell again (seconds)"],
 						desc = L["After you click, how long before that spell is offered to that player again. Covers casts that failed out of sight."]
 							.. "\n\n|cff888888"
-							.. L["Per spell, not per person: cast Fortitude and the next scan can still offer them Divine Spirit, which is how the walk down your buffs works at all. Right-click the prompt to skip somebody and the same number applies to the whole person -- nothing is offered to them until it lifts."]
+							.. L["Per spell, not per person: after Fortitude the next scan can still offer them Divine Spirit. Right-clicking the prompt skips the whole person for this long."]
 							.. "|r",
 						order = 12,
 						min = 3,
@@ -1481,18 +1285,16 @@ local function BuildOptions()
 						set = tSet,
 					},
 
-					-- Only the mount has a switch. Dead, a taxi and a vehicle
-					-- are places nothing can be cast from, and the queue has
-					-- always been empty there; a mount is a place the cast
-					-- works and costs you the mount, which is a trade some
-					-- players want to make.
+					-- Only the mount has a switch: dead, a taxi and a vehicle are
+					-- places nothing can be cast from, while a cast from a mount
+					-- works and costs you the mount, a trade some players want.
 					wayHeader = { type = "header", name = L["Out of the way"], order = 20 },
 					hideMounted = {
 						type = "toggle",
 						name = L["Not while mounted"],
-						desc = L["Keep the prompt away while you are on a mount, since casting would take you off it. It comes back when you get off, if there is somebody to buff."]
+						desc = L["Keep the prompt away while you are on a mount, since casting would take you off it. It comes back when you get off."]
 							.. "\n\n|cff888888"
-							.. L["It already stays away while you are dead, on a flight path or in a vehicle, where nothing can be cast. In a fight the prompt stays as the fight found it, and follows this once the fight ends."]
+							.. L["It already stays away while you are dead, on a flight path or in a vehicle. In a fight the prompt stays as the fight found it until the fight ends."]
 							.. "|r",
 						order = 21,
 						width = "full",
@@ -1503,40 +1305,34 @@ local function BuildOptions()
 			},
 
 			---------------------------------------------------------------
-			-- Everything that happens at the moment of the press. Handing your
-			-- target back is a line in the macro rather than a filter on the
-			-- queue, and it spent four releases filed under Filters.
+			-- Everything that happens at the moment of the press: lines in the
+			-- macro rather than filters on the queue.
 			click = {
 				type = "group",
 				name = L["When you click"],
 				order = 4,
 				hidden = function() return not HasClassBuffs() end,
 				args = {
-					-- Everything on this tab is a line in the macro, and the macro
-					-- is a secure attribute the fight has frozen. The settings are
-					-- kept and the macro rebuilt when the fight ends, but until then
-					-- a press runs the old one -- a /yell you have just switched
-					-- off among them -- and the Prompt tab's own notice is scoped
-					-- to that tab, so nothing here said so.
+					-- Everything on this tab is a line in the macro, a secure
+					-- attribute the fight has frozen: the macro is rebuilt when the
+					-- fight ends, and until then a press runs the old one.
 					combatNotice = {
 						type = "description",
 						order = 0.5,
 						fontSize = "medium",
 						hidden = function() return not InCombatLockdown() end,
-						name = L["|cffffd100In combat.|r Blizzard freezes the macro on the prompt for the length of a fight, so these settings apply once it ends. Until then a press runs the macro already on the button."]
+						name = L["|cffffd100In combat.|r Blizzard freezes the prompt's macro during a fight, so these settings apply once it ends."]
 							.. "\n",
 					},
 					targetingHeader = { type = "header", name = L["Targeting"], order = 1 },
 					restoreTarget = {
 						type = "toggle",
 						name = L["Hand my target back afterwards"],
-						desc = L["Buffing somebody means targeting them first -- a named conditional only reaches your own party or raid, and this prompt is mostly for passers-by. With this on, your previous target is restored immediately after the cast."],
+						desc = L["Buffing a passer-by means targeting them first. With this on, your previous target is restored right after the cast."],
 						order = 2,
 						width = "full",
-						-- Hidden, not disabled, for the same reason the strangers
-						-- toggle is: a disabled control is one you could have if
-						-- something else were different, and nothing on this page
-						-- would ever put a /target in a Battle Shout macro.
+						-- Hidden, not disabled, like the strangers toggle: nothing
+						-- on this page would put a /target in a Battle Shout macro.
 						hidden = NeverTargets,
 						get = fGetMacro,
 						set = fSetMacro,
@@ -1553,23 +1349,14 @@ local function BuildOptions()
 						order = 3,
 						hidden = NeverTargets,
 						-- A function, so it names the command the macro is really
-						-- built with, asked of the builder itself. That is /target
-						-- today on every client -- /targetexact is probed for but
-						-- deliberately not used, see TargetCommand -- and a fixed
-						-- string here would be a second opinion about the macro,
-						-- wrong the day the builder changes its mind.
+						-- built with, asked of the builder itself (/targetexact is
+						-- probed for but deliberately not used, see TargetCommand),
+						-- and follows the switch above. The strategy drops
+						-- /targetlasttarget for somebody already your target,
+						-- except in a fight, where the macro armed at the pull keeps
+						-- it: nothing can rebuild the macro to follow them.
 						--
-						-- For the same reason it reads the switch directly above
-						-- it. It used to name /targetlasttarget whatever that
-						-- switch said, and the strategy drops the line when it is
-						-- off -- and for somebody who is already your target, who
-						-- has nobody before them worth handing back. Except in a
-						-- fight, where the macro armed at the pull keeps the line
-						-- for everybody: the player may target the mob afterwards,
-						-- and nothing can rebuild the macro to follow them.
-						--
-						-- Two whole sentences rather than one with the ending
-						-- spliced in, so a translation can order each as its
+						-- Whole sentences, so a translation can order each as its
 						-- language needs. The commands and the conditional are
 						-- arguments, not part of the text: they are macro syntax,
 						-- and a translated /targetlasttarget or [@name] would name
@@ -1578,10 +1365,10 @@ local function BuildOptions()
 							local cmd = (ns.TargetCommand and ns.TargetCommand()) or "/target"
 							local text
 							if F().restoreTarget then
-								text = L["The prompt runs |cffffd100%s|r, then the cast, then |cffffd100%s|r -- except, outside a fight, for somebody who is already your target, who stays targeted. A conditional -- %s -- resolves only for somebody already in your party or raid, and this prompt is mostly for passers-by, so the macro takes your target rather than aiming past it."]
+								text = L["The prompt runs |cffffd100%s|r, the cast, then |cffffd100%s|r; outside a fight, your own target stays targeted. A %s conditional only reaches your party or raid, so passers-by must be targeted."]
 									:format(cmd, "/targetlasttarget", "[@name]")
 							else
-								text = L["The prompt runs |cffffd100%s|r, then the cast, and leaves them targeted. A conditional -- %s -- resolves only for somebody already in your party or raid, and this prompt is mostly for passers-by, so the macro takes your target rather than aiming past it."]
+								text = L["The prompt runs |cffffd100%s|r, then the cast, and leaves them targeted. A %s conditional only reaches your party or raid, so passers-by must be targeted."]
 									:format(cmd, "[@name]")
 							end
 							return "|cff888888" .. text .. "|r\n"
@@ -1595,7 +1382,7 @@ local function BuildOptions()
 						fontSize = "medium",
 						name = L["Say something when you buff somebody. The line is added to the macro the prompt runs, so it goes out as you talking rather than as an addon."]
 							.. "\n\n|cff888888"
-							.. L["This matters: the game refuses addon-sent %s and %s outside instances, which is exactly where somebody buffs you in passing. Going through the macro sidesteps that."]:format("/say", "/yell")
+							.. L["The game refuses addon-sent %s and %s outside instances, so going through the macro is what lets them work."]:format("/say", "/yell")
 							.. "|r\n",
 					},
 					enabled = {
@@ -1633,10 +1420,7 @@ local function BuildOptions()
 						desc = L["Replaces the lines below. Edit them afterwards as much as you like."],
 						order = 21,
 						disabled = function() return not SP().enabled end,
-						-- It overwrites a box somebody may have spent ten
-						-- minutes filling, with no undo anywhere in the addon --
-						-- while "Reset position", which is undone by dragging the
-						-- prompt back, was the one control that asked.
+						-- It overwrites hand-written lines with no undo.
 						confirm = function(_, value)
 							return L["Replace everything in the box below with the %s lines?"]:format(
 								(ns.PHRASE_SETS[value] and ns.PHRASE_SETS[value].label)
@@ -1651,10 +1435,8 @@ local function BuildOptions()
 						end,
 						sorting = function() return ns.PHRASE_SET_ORDER end,
 						-- Blank once the box has been edited. AceGUI's dropdown only
-						-- fires when the item clicked becomes checked, so showing the
-						-- last set loaded over lines that are no longer it made that
-						-- one set the only one that could not be picked -- somebody
-						-- wanting the Roleplay lines back got nothing at all.
+						-- fires when the item clicked becomes checked, so a set shown
+						-- as chosen could not be picked again to reload it.
 						get = function()
 							local choice = SP().presetChoice or "roleplay"
 							if SP().phrases == ns.PhraseSetText(choice) then return choice end
@@ -1673,7 +1455,7 @@ local function BuildOptions()
 						order = 22,
 						name = L["One per line -- a random one is picked each time the prompt changes target. Tokens: |cff888888{name}|r the player, |cff888888{buff}|r the spell."]
 							.. "\n|cff888888"
-							.. L["The whole macro cannot exceed 255 characters, so how long a line may be depends on the name and on whether your target is handed back. One that will not fit is dropped rather than cut off -- |cffffd100Roll a few|r shows what would really go out. An empty box goes back to the chosen set -- switch off |cffffd100Say something|r to stay quiet."]
+							.. L["A macro holds 255 characters, so a line that will not fit is dropped, not cut off -- |cffffd100Roll a few|r shows what would go out. An empty box goes back to the chosen set."]
 							.. "|r",
 					},
 					phrases = {
@@ -1684,13 +1466,9 @@ local function BuildOptions()
 						width = "full",
 						disabled = function() return not SP().enabled end,
 						get = spGet,
-						-- An empty box snaps back to the set the dropdown names,
-						-- the way the First line does. It used to be kept as
-						-- typed: nothing was said and the box looked empty, until
-						-- the load-time repair refilled it -- which also runs from
-						-- the Width, Height and Icon size sliders, so the deleted
-						-- lines came back on a nudge of one of those, or at the
-						-- next login. What the box shows is now what is kept.
+						-- An empty box snaps back to the set the dropdown names, the
+						-- way the First line does, since the load-time repair would
+						-- refill it anyway: what the box shows is what is kept.
 						set = function(info, value)
 							if type(value) ~= "string" or value:match("^%s*$") then
 								value = ns.PhraseSetText(SP().presetChoice) or ns.PhraseSetText("roleplay")
@@ -1716,8 +1494,7 @@ local function BuildOptions()
 							}
 							for _ = 1, 3 do
 								-- The same budget the cast path measures, for a
-								-- representative name, rather than a constant
-								-- that promised lines the macro then dropped.
+								-- representative name.
 								ns.addon:Print(ns.PickPhrase(fake, ns.PhraseBudget(fake))
 									or "|cffff8080" .. L["(nothing -- speech off, or no usable lines)"] .. "|r")
 							end
@@ -1727,7 +1504,7 @@ local function BuildOptions()
 						type = "description",
 						order = 25,
 						name = "\n|cff888888"
-							.. L["A macro cannot exceed 255 characters, so an over-long line is dropped rather than truncated. The message goes out when you click, so it is sent even if the cast then fails out of range or line of sight."]
+							.. L["A line goes out when you click, even if the cast then fails out of range or line of sight."]
 							.. "|r",
 					},
 				},
@@ -1740,17 +1517,14 @@ local function BuildOptions()
 				order = 5,
 				args = {
 					-- Everything on this tab is a secure attribute or a texture
-					-- on a secure frame, and ApplyStyle gives up and returns the
-					-- moment it is called in combat. The values are kept and
-					-- flushed when the fight ends; what was missing was anything
-					-- saying so, so every control on the tab silently did
-					-- nothing for the length of a fight.
+					-- on a secure frame, and ApplyStyle returns at once in combat;
+					-- the values are kept and flushed when the fight ends.
 					combatNotice = {
 						type = "description",
 						order = 0.5,
 						fontSize = "medium",
 						hidden = function() return not InCombatLockdown() end,
-						name = L["|cffffd100In combat.|r Blizzard freezes secure frames, so the prompt cannot be restyled or re-aimed until the fight ends. Anything you change here is saved and appears the moment you leave combat."]
+						name = L["|cffffd100In combat.|r Blizzard freezes secure frames, so changes here are saved and appear once the fight ends."]
 							.. "\n",
 					},
 					-- First on the tab, because everything under it is something
@@ -1763,19 +1537,15 @@ local function BuildOptions()
 						name = function()
 							return ns.Prompt:InTest() and L["Stop preview"] or L["Preview"]
 						end,
-						-- What happens after the window is shut was missing, and it
-						-- is the half somebody meets by surprise: the preview is
-						-- not still running when they go back to the game. Both
-						-- exits are held off while this window is open -- see
-						-- Refresh, where the expiry is pushed forward rather than
-						-- read -- so the sentence order here is the rule.
-						desc = L["Show a sample entry so you can style the prompt without waiting for one. It stays for as long as this window is open; once you close it, twenty seconds more, or until somebody real turns up."],
+						-- Both exits are held off while this window is open (see
+						-- Refresh, where the expiry is pushed forward), so the
+						-- sentence order here is the rule.
+						desc = L["Show a sample entry to style the prompt by. It stays while this window is open, then twenty seconds more or until somebody real turns up."],
 						order = 1,
 						-- Greyed out in a fight, where ToggleTest refuses to start
-						-- one: a preview there is painted on a panel the fight may
-						-- have hidden, or over a macro it froze at somebody real.
-						-- One already running can still be stopped. The page is
-						-- repainted at both ends of a fight, so this follows it.
+						-- one: the fight may have hidden the panel or frozen its
+						-- macro at somebody real. One already running can still be
+						-- stopped.
 						disabled = function()
 							return InCombatLockdown() and not ns.Prompt:InTest()
 						end,
@@ -1787,11 +1557,9 @@ local function BuildOptions()
 						desc = L["Unlock to drag the prompt. It will not cast while unlocked."],
 						order = 2,
 						get = pGet,
-						-- Its own setter rather than the shared one, for the same
-						-- reason /manners unlock has its own line: the prompt is
-						-- hidden by `enabled` before `locked` is ever read, so
-						-- unlocking while the addon is off leaves nothing on
-						-- screen to drag and no clue as to why.
+						-- Its own setter, like /manners unlock: the prompt is hidden
+						-- by `enabled` before `locked` is read, so unlocking while
+						-- off leaves nothing on screen to drag.
 						set = function(info, value)
 							pSet(info, value)
 							if not value and not ns.db.profile.enabled then
@@ -1802,10 +1570,8 @@ local function BuildOptions()
 					reset = {
 						type = "execute",
 						name = L["Reset position"],
-						-- No confirmation. It is undone by dragging the prompt
-						-- back or picking a preset, and it was the only control
-						-- in the addon that asked -- while the one that wipes
-						-- hand-written phrases did not.
+						-- No confirmation: it is undone by dragging the prompt back
+						-- or picking a preset.
 						order = 3,
 						func = function()
 							local d, p = ns.defaults.profile.prompt, P()
@@ -1815,9 +1581,8 @@ local function BuildOptions()
 					},
 
 					styleHeader = { type = "header", name = L["Style"], order = 10 },
-					-- Where the colour goes comes first, because the two colour
-					-- pickers under it are the things it governs -- it used to
-					-- sit below both of them.
+					-- Where the colour goes comes first: it governs the two colour
+					-- pickers under it.
 					accentMode = {
 						type = "select",
 						name = L["Where the reason colour goes"],
@@ -1836,41 +1601,20 @@ local function BuildOptions()
 						set = pSet,
 					},
 					accentByReason = {
-						-- It was called "Colour the stripe by reason" while
-						-- defaulting to colouring the ring, so the label was
-						-- wrong for everybody who had not changed the setting
-						-- above.
 						type = "toggle",
 						name = L["Colour it by reason"],
-						-- There are four reasons and this named three, leaving out
-						-- the one most people see most often: pale blue is what a
-						-- target you picked yourself gets, and that priority is on
-						-- by default. Listed in the order the queue ranks them, so
-						-- the list doubles as the ordering.
-						--
-						-- Pale blue, not green: the target colour moved to a pale
-						-- cyan so it survives colour blindness beside the amber,
-						-- and this went on promising a green ring nobody would ever
-						-- see. It sits beside the group's deeper blue and is told
-						-- from it by lightness, which is why both are qualified.
-						--
-						-- The target is the only one with a condition on it,
-						-- because "target" is the only reason BuildQueue will not
-						-- write unless a switch is on -- and the switch is on
-						-- another tab. And the switch has a condition of its own,
-						-- on a third: with Always offer nothing is read, so no
-						-- target is ever promoted and the pale blue never shows.
-						--
-						-- A function, because the colours it names are the
-						-- palette's, and the colour-blind one below changes
-						-- all four.
+						-- All four reasons, in the order the queue ranks them, in
+						-- the chosen palette's colours. The target is the only one
+						-- with a condition: BuildQueue writes that reason only with
+						-- the switch on, and never under Always offer, which reads
+						-- nothing.
 						desc = function()
 							local colours = P().reasonPalette == "colourblind"
-								and L["Pale yellow for somebody you targeted yourself, orange when returning a favour, sky blue for your group, violet for passers-by. That is also the order they are offered in."]
-								or L["Pale blue for somebody you targeted yourself, amber when returning a favour, deeper blue for your group, grey for passers-by. That is also the order they are offered in."]
+								and L["Pale yellow for your own target, orange for a favour owed, sky blue for your group, violet for passers-by -- the order they are offered in."]
+								or L["Pale blue for your own target, amber for a favour owed, deeper blue for your group, grey for passers-by -- the order they are offered in."]
 							return colours
 								.. "\n\n|cff888888"
-								.. L["The first of those only ever appears while |cffffd100Whoever I have targeted comes first|r is on, under Who to buff, and never while |cffffd100If they already have the buff|r is set to Always offer, under When."]
+								.. L["The first of those appears only while |cffffd100Whoever I have targeted comes first|r is on and |cffffd100If they already have the buff|r is not Always offer."]
 								.. "|r"
 						end,
 						order = 12,
@@ -1879,21 +1623,13 @@ local function BuildOptions()
 						set = pSet,
 					},
 					-- Which four colours, for somebody the standard four fail.
-					-- Off by default: the standard set is the look everybody
-					-- already knows, and a palette nobody asked for is a change
-					-- nobody can account for.
-					--
 					-- Greyed out only where nothing is drawn in the reason
-					-- colours: "Colour it by reason" off and the list hidden.
-					-- The list's bars take the palette whatever the accent says,
-					-- and with the accent at Neither the glow and the wash of a
-					-- press still come in the reason colour -- so greying it out
-					-- there locked somebody who turned the ring off, and reads
-					-- the list's bars, out of the palette meant for them.
+					-- colours: the list's bars, the glow and the wash of a press
+					-- take the palette whatever the accent says.
 					reasonPalette = {
 						type = "select",
 						name = L["Reason colours"],
-						desc = L["The colour-blind set keeps the four reasons apart for red-green colour blindness (protanopia and deuteranopia): pale yellow, orange, sky blue and violet, which differ in lightness as well as in hue."],
+						desc = L["The colour-blind set keeps the four reasons apart for red-green colour blindness: pale yellow, orange, sky blue and violet, which differ in lightness too."],
 						order = 12.2,
 						values = {
 							standard = L["Standard"],
@@ -1921,13 +1657,9 @@ local function BuildOptions()
 							return ring or stripe
 						end,
 						-- Every carrier the mode asked for and did not get, not just
-						-- the first: "Both" on a framed prompt with a rounded icon
-						-- loses two, and naming one of them sends somebody to undo
-						-- the wrong setting.
-						--
-						-- Each combination is a sentence of its own, not reasons
-						-- joined with ", and", because a joined list is English
-						-- grammar a translation cannot rearrange.
+						-- the first. Each combination is a sentence of its own,
+						-- because a list joined with ", and" is English grammar a
+						-- translation cannot rearrange.
 						name = function()
 							local p = P()
 							local mode = p.accentMode or "icon"
@@ -1973,15 +1705,9 @@ local function BuildOptions()
 						type = "select",
 						name = L["Look"],
 						order = 14,
-						-- The middle one used to read "Blizzard -- default UI
-						-- border" and no part of the addon has ever applied a
-						-- backdrop, a border or an atlas: picking it took the
-						-- shadow, the bevel and the stripe off and left a bare
-						-- rectangle, which is the one thing the hairlines exist
-						-- to prevent. It draws its own border now, out of the
-						-- same white texture as the rest of the panel, and says
-						-- so. Profiles holding the old name are carried across
-						-- in ClampSettings.
+						-- Framed draws its own border out of the panel's white
+						-- texture; profiles holding its old name are carried
+						-- across in ClampSettings.
 						values = {
 							glass = L["Glass -- dark panel, soft shadow"],
 							framed = L["Framed -- flat panel, thin border"],
@@ -2000,23 +1726,20 @@ local function BuildOptions()
 						set = pSetColor,
 					},
 
-					-- The flash and the sound are the same job and were two tabs
-					-- apart, which is how they came to disagree about who is
-					-- worth interrupting for.
+					-- The flash and the sound are one job, kept together so they
+					-- agree about who is worth interrupting for.
 					attentionHeader = { type = "header", name = L["Getting your attention"], order = 20 },
 					flashStyle = {
 						type = "select",
 						name = L["When someone buffs you"],
 						desc = L["Pulse keeps breathing until you have returned the favour or they are gone. Flash once is easy to miss if you were looking elsewhere."]
 							.. "\n\n|cff888888"
-							.. L["It lights up round the spell icon and sweeps the stripe, and with Effects on Full the panel catches the light the moment they buff you. With the icon hidden, no stripe showing and no light either -- Effects on Calm, or the Minimal look, which has no panel -- there is nothing for it to do."]
+							.. L["It lights the spell icon, sweeps the stripe, and with Effects on Full the panel catches the light. With none of those showing it has nothing to do."]
 							.. "|r",
 						order = 21,
-						-- A setting with nothing to act on reads as one that is
-						-- broken, which is what accentDead exists to prevent for
-						-- the colour. The glow lives on the icon, the sweep on the
-						-- stripe and the light on arrival on the panel, and with
-						-- none of them this does nothing.
+						-- The glow lives on the icon, the sweep on the stripe and
+						-- the light on arrival on the panel; with none of them this
+						-- does nothing, and a live control would read as broken.
 						disabled = function()
 							local _, stripe = AccentCarriers()
 							local noLight = P().effects == "calm" or P().style == "minimal"
@@ -2030,22 +1753,16 @@ local function BuildOptions()
 						get = pGet,
 						set = pSet,
 					},
-					-- The motion added with the new look, and a way to have the
-					-- prompt without it. Next to the flash because they are the
-					-- same kind of thing: how much the prompt moves to get your
-					-- attention. The description names each effect and the
-					-- condition it has, so none of it is a promise the panel then
-					-- breaks -- the ring needs the icon, the light on arrival
-					-- needs the setting above, and a fight with Stay quiet in
-					-- combat on gets none of the outcome motion.
+					-- How much the prompt moves to get your attention, so next to
+					-- the flash.
 					effects = {
 						type = "select",
 						name = L["Effects"],
-						desc = L["Full: when a buff lands, light crosses the panel and a ring pops out of the spell icon, if it is shown; a refused buff makes the text give a small shake; somebody who buffs you makes the panel catch the light, unless the setting above is Nothing; and after your last buff the prompt fades out instead of vanishing."]
+						desc = L["Full: light crosses the panel when a buff lands, a refused buff shakes the text, and the prompt fades out after your last buff."]
 							.. "\n\n"
 							.. L["Calm: none of that movement. The prompt still fades in, and the glow set above still works."]
 							.. "\n\n|cff888888"
-							.. L["The Minimal look has no panel, so no light crosses it. The cooldown sweep on the icon has its own switch, under Icon and queue. In a fight, Stay quiet in combat keeps the outcome still as well."]
+							.. L["The Minimal look has no panel, so no light crosses it. In a fight, Stay quiet in combat keeps the outcome still as well."]
 							.. "|r",
 						order = 21.5,
 						values = {
@@ -2070,8 +1787,7 @@ local function BuildOptions()
 						order = 23,
 						disabled = function() return not SND().enabled end,
 						-- HashTable maps key -> file, and AceConfig shows the
-						-- value as the label, so this listed one entry whose
-						-- name was "1".
+						-- value as the label, so the key is copied into both.
 						values = function()
 							local list = {}
 							for key in pairs(LSM:HashTable("sound")) do list[key] = key end
@@ -2088,15 +1804,13 @@ local function BuildOptions()
 						get = function() return SND().file end,
 						set = function(_, value)
 							SND().file = value
-							-- Picking a sound you cannot hear is how the
-							-- silent default went unnoticed for so long.
+							-- Picking a sound plays it.
 							ns.Guard("sound preview", ns.PlayPromptSound, value)
 						end,
 					},
 					soundOwedOnly = {
-						-- The flash fires only for a favour owed; the sound
-						-- fired for everybody, so a passer-by got the noise and
-						-- the person who actually buffed you got the pulse.
+						-- The flash fires only for a favour owed; this lets the
+						-- sound agree with it.
 						type = "toggle",
 						name = L["Only when somebody buffed me"],
 						desc = L["Off, every new person on the prompt makes a noise -- including strangers you happen to walk past."],
@@ -2153,11 +1867,8 @@ local function BuildOptions()
 						max = 500,
 						step = 1,
 						get = pGet,
-						-- The same setter the height has, for the same reason: the
-						-- icon is bound by the width as well. Narrowing the prompt
-						-- left a big icon in place, and the name, inset past the
-						-- icon on the left and short of the edge on the right, had
-						-- nowhere left to draw.
+						-- The same setter the height has: the icon is bound by the
+						-- width as well.
 						set = function(info, value)
 							local icon = P().iconSize
 							pSet(info, value)
@@ -2175,11 +1886,8 @@ local function BuildOptions()
 						step = 1,
 						get = pGet,
 						-- Its own setter because the icon's maximum is bound to
-						-- this. Lowering the height under an icon already larger
-						-- than it would otherwise leave the icon overhanging both
-						-- hairlines and the slider showing a number it would no
-						-- longer accept. Repainted when that happens; see
-						-- RepaintSoon.
+						-- this: ClampSettings shrinks the icon, and RepaintSoon
+						-- redraws its slider.
 						set = function(info, value)
 							local icon = P().iconSize
 							pSet(info, value)
@@ -2190,32 +1898,17 @@ local function BuildOptions()
 					},
 					scale = { type = "range", name = L["Scale"], order = 36, min = 0.5, max = 3, step = 0.05, get = pGet, set = pSet },
 					alpha = { type = "range", name = L["Opacity"], order = 37, min = 0.1, max = 1, step = 0.05, isPercent = true, get = pGet, set = pSet },
-					-- It was called "Hide in combat" and it hides nothing. The one
-					-- call that ever acted on it -- a button:Hide() inside the
-					-- combat branch -- was a protected method on a protected frame,
-					-- so Blizzard refused it every single time it was made, and it
-					-- has since been deleted rather than guarded. A secure
-					-- visibility driver could hide it -- only the conditionals
-					-- that name a unit, [@Name], are restricted on this client,
-					-- and [combat] resolves -- but a hidden secure button still
-					-- fires from its key binding and from /click, casting the
-					-- frozen macro out of sight. So the panel stays up on
-					-- purpose, and the page says that rather than "cannot".
-					--
-					-- What is left is real and worth a switch, so the switch stays
-					-- and the label moves to it. In a fight the panel is frozen at
-					-- whoever it was holding, and a click still casts that frozen
-					-- macro -- so the confirmation flash for that click is the one
-					-- thing on the panel that still changes. This decides whether
-					-- it does.
-					--
-					-- The flash is the reason's own colour and turns red only for
-					-- a failure; nothing paints it green, which this used to
-					-- promise.
+					-- The key keeps its old name, "hide in combat", but it hides
+					-- nothing: Hide() on the protected button is refused in combat,
+					-- and a secure visibility driver ([combat] resolves here) would
+					-- leave a hidden button that still fires from its key binding
+					-- and /click, casting the frozen macro out of sight. So the
+					-- panel stays up on purpose, and this decides whether the
+					-- confirmation flash of a click in a fight still shows.
 					hideInCombat = {
 						type = "toggle",
 						name = L["Stay quiet in combat"],
-						desc = L["A click still casts in combat, and the prompt still flashes to say what happened -- red if it failed. With this on it does not -- the panel simply sits there dimmed for the length of the fight, with no cooldown sweep on the icon."]
+						desc = L["A click still casts in combat, and the prompt flashes to say what happened -- red if it failed. With this on it stays dimmed and still for the fight."]
 							.. "\n\n|cff888888"
 							.. L["It stays on screen in a fight on purpose: your key binding would still cast the frozen macro if it were hidden."]
 							.. "|r",
@@ -2233,10 +1926,9 @@ local function BuildOptions()
 						order = 41,
 						width = "full",
 						get = pGet,
-						-- An empty first line is a prompt that names nobody. The
-						-- box took one for the session and the load-time repair
-						-- put the default back at the next login; it snaps back
-						-- here instead, so what the box shows is what is kept.
+						-- An empty first line is a prompt that names nobody, and the
+						-- load-time repair would put the default back anyway: it
+						-- snaps back here, so what the box shows is what is kept.
 						set = function(info, value)
 							if not ns.UsableFormat(value) then
 								value = ns.defaults.profile.prompt.format
@@ -2248,9 +1940,7 @@ local function BuildOptions()
 						type = "toggle",
 						name = L["Show a second line"],
 						-- Worked out from the font, by the same function ApplyStyle
-						-- decides it with. It said 34 after the prompt stopped using
-						-- 34, so at 34 to 38 pixels the page said there was room and
-						-- the line was silently missing.
+						-- decides it with, never a constant.
 						desc = function()
 							return L["Needs a prompt at least %d pixels tall at this font size."]
 								:format(ns.TwoLineHeight(P().fontSize))
@@ -2272,7 +1962,7 @@ local function BuildOptions()
 					reasonTarget = {
 						type = "input",
 						name = L["Wording: your target"],
-						desc = L["Somebody you targeted yourself outranks everyone else, including a favour owed -- but only when the game lets us see they are missing it, and only while that is switched on under Who to buff."],
+						desc = L["Your target outranks everyone, including a favour owed, while that is switched on under Who to buff and the game can see they lack it."],
 						order = 44,
 						get = pGet,
 						set = pSet,
@@ -2283,7 +1973,7 @@ local function BuildOptions()
 					reasonRefresh = {
 						type = "input",
 						name = L["Wording: topping one up"],
-						desc = L["Used instead of the four above when they already have the buff and it is about to run out, which only the refresh mode offers. |cffffd100{time}|r is how long theirs has left."],
+						desc = L["Used instead of the four above when their buff is about to run out, which only the refresh mode offers. |cffffd100{time}|r is how long theirs has left."],
 						order = 48,
 						get = pGet,
 						set = pSet,
@@ -2300,10 +1990,8 @@ local function BuildOptions()
 						type = "select",
 						name = L["Font"],
 						order = 50,
-						-- Keys, not files. HashTable maps key -> file and AceConfig
-						-- shows the value as the label, so this listed font paths,
-						-- sorted by path: the bug the sound list below had fixed,
-						-- left in this one.
+						-- Keys, not files, as in the sound list: AceConfig shows the
+						-- value as the label.
 						values = function()
 							local list = {}
 							for key in pairs(LSM:HashTable("font")) do list[key] = key end
@@ -2314,16 +2002,13 @@ local function BuildOptions()
 					},
 					fontSize = { type = "range", name = L["Font size"], order = 51, min = 6, max = 32, step = 1, get = pGet, set = pSet },
 					-- The prompt picks light or dark text for the panel colour
-					-- only while this is left at its default, and says so here,
-					-- because otherwise the text changing colour when the panel
-					-- does reads as the setting being ignored. And it names the
-					-- one exception, the class colour on a name, which is the
-					-- biggest word on the panel: somebody who picks red and sees
-					-- the name stay a priest's white takes the setting for broken.
+					-- only while this is left at its default, and the class
+					-- colour on a name overrides it; both are said here so
+					-- neither reads as the setting being ignored.
 					fontColor = {
 						type = "color",
 						name = L["Text colour"],
-						desc = L["Left at white, the text turns dark by itself on a light panel colour. Any other colour is used exactly as you pick it, except on names while |cffffd100Colour names by class|r is on."],
+						desc = L["Left at white, text turns dark on a light panel by itself. Other colours are used as picked, except for names while |cffffd100Colour names by class|r is on."],
 						order = 52,
 						hasAlpha = true,
 						get = pGetColor,
@@ -2336,17 +2021,10 @@ local function BuildOptions()
 					iconSize = {
 						type = "range",
 						name = L["Icon size"],
-						-- The icon must fit inside the panel: the range runs to 64
-						-- against a height that runs down to 20, so it could be set
-						-- three times the height of the thing it sits in, over both
-						-- hairlines and pushing the text off the right-hand edge.
-						--
-						-- The bound cannot live here. AceConfigRegistry types min
-						-- and max as "number or nil" and rejects the whole options
-						-- table if either is a function -- not this control, the
-						-- whole table, so the page cannot be drawn at all. It is
-						-- enforced in ClampSettings instead, which is where every
-						-- other cross-setting repair already lives.
+						-- The icon must fit inside the panel, but the bound cannot
+						-- live here: AceConfigRegistry types min and max as "number
+						-- or nil" and rejects the whole options table if either is a
+						-- function. ClampSettings enforces it instead.
 						desc = L["Kept inside the prompt -- make it taller or wider first for a bigger icon."],
 						order = 62,
 						min = 12,
@@ -2356,25 +2034,13 @@ local function BuildOptions()
 						get = pGet,
 						set = function(info, value)
 							pSet(info, value)
-							-- The bound, applied. It lives in ClampSettings because
-							-- it cannot live on the control (see above) -- and this
-							-- setter never called it, so dragging the slider to 64
-							-- on a 44-high prompt left the icon exactly there,
-							-- overhanging both hairlines and pushing the text off
-							-- the right-hand edge, until something unrelated
-							-- happened to clamp. The notice below said "the icon is
-							-- held at 64 to fit a prompt 44 high" while it was held
-							-- at nothing. Written the same way the height slider
-							-- writes it, which is the other half of the same rule.
+							-- The bound, applied (see above), as the height slider
+							-- applies it.
 							ns.ClampSettings()
 							restyle()
-							-- Repainted only when the clamp actually moved it. The
-							-- dialog redraws when a drag is let go, but a mouse
-							-- wheel never lets go of anything, so a wheel tick past
-							-- the limit left the slider showing a value the prompt
-							-- was not using. Asking every time rebuilt the slider
-							-- under a dragging finger; asking only when the kept
-							-- value differs from the one set does neither.
+							-- Repainted only when the clamp actually moved it: a
+							-- mouse wheel never lets go of the slider, and a repaint
+							-- every time would rebuild it under a dragging finger.
 							if P().iconSize ~= value and ns.RefreshOptionsDisplay then
 								ns.Guard("icon repaint", ns.RefreshOptionsDisplay)
 							end
@@ -2385,13 +2051,8 @@ local function BuildOptions()
 						order = 62.5,
 						hidden = function()
 							local p = P()
-							-- Shown only when the icon is sitting on the ceiling,
-							-- which is the case where the slider will not go any
-							-- further and nothing else on the page explains why.
-							-- The same ceiling ClampSettings enforces: it is bound
-							-- by the width as well as the height, and a notice that
-							-- only knew the height stayed hidden, or named the
-							-- wrong one, whenever the width was the limit.
+							-- Shown only when the icon sits on the ceiling
+							-- ClampSettings enforces, bound by width and height.
 							return not p.showIcon or p.iconSize < ns.IconCeiling(p)
 						end,
 						name = function()
@@ -2409,14 +2070,12 @@ local function BuildOptions()
 					roundIcon = {
 						type = "toggle",
 						name = L["Round the icon off"],
-						-- The second sentence is the one that was missing. The ring
-						-- is a texture sitting behind a square icon, and the mask
-						-- that rounds the icon is put there instead of it -- so
-						-- this quietly switches off "Ring around the icon" above,
-						-- which is the default place the reason colour goes.
+						-- The ring is a texture behind the square icon, and the mask
+						-- that rounds it goes there instead, so this switches off
+						-- "Ring around the icon".
 						desc = L["Masks the icon into a circle. Reads more like a portrait than a spell, so it is off by default."]
 							.. "\n\n|cff888888"
-							.. L["The mask goes where the ring was, so a rounded icon has no ring to colour -- move the reason colour to the stripe if you want both. The glow when somebody buffs you follows the circle."]
+							.. L["The mask replaces the ring, so move the reason colour to the stripe if you want both. The glow when somebody buffs you follows the circle."]
 							.. "|r",
 						order = 63,
 						width = "full",
@@ -2429,7 +2088,7 @@ local function BuildOptions()
 					showCooldown = {
 						type = "toggle",
 						name = L["Show the global cooldown on the icon"],
-						desc = L["Sweeps the spell icon while the global cooldown runs after a cast, the way your action bars do, so you can see when the next press will go through."]
+						desc = L["Sweeps the spell icon while the global cooldown runs, like your action bars, so you can see when the next press will go through."]
 							.. "\n\n|cff888888"
 							.. L["Not in a fight while Stay quiet in combat is on."]
 							.. "|r",
@@ -2456,10 +2115,7 @@ local function BuildOptions()
 			},
 
 			---------------------------------------------------------------
-			-- Its own tab. The capability dump was buried at the bottom of
-			-- General under a header shared with two toggles that are not
-			-- diagnostics at all, and the errors the addon had already caught
-			-- appeared nowhere on the page.
+			-- What this client allows, what has broken, and a bug report.
 			diagnostics = {
 				type = "group",
 				name = L["Diagnostics"],
@@ -2468,7 +2124,7 @@ local function BuildOptions()
 					debugClicks = {
 						type = "toggle",
 						name = L["Log every click to chat"],
-						desc = L["Prints what the button was actually holding at the moment you clicked it, and what the game did with it. Noisy; for working out why a cast did not happen."],
+						desc = L["Prints what the button held when you clicked and what the game did with it. Noisy; for working out why a cast did not happen."],
 						order = 1,
 						width = "full",
 						get = function() return ns.db.profile.debugClicks end,
@@ -2496,20 +2152,11 @@ local function BuildOptions()
 										or L["learned: |cff808080no|r"],
 									(info and info.readable) and L["missing-check: |cff00ff00works|r"]
 										or L["missing-check: |cffff8080blocked|r"])
-								-- Manners being wrong about the game, rather
-								-- than the game withholding something. The two
-								-- read identically from the line above -- both
-								-- are a spell that is never offered -- and only
-								-- one of them is fixable by the people reading
-								-- this page's bug reports.
-								--
-								-- "Never offer" only where it is true. The list
-								-- holds the group version as well as the ranks,
-								-- and a group id the client lacks -- Arcane
-								-- Brilliance -- costs only the check of whether
-								-- somebody is wearing it: Arcane Intellect is
-								-- still learned, offered and cast. Said as "never
-								-- offer", right under "learned: yes".
+								-- Manners being wrong about the game, rather than
+								-- the game withholding something. "Never offer"
+								-- only where no rank resolves: a missing group id
+								-- (Arcane Brilliance) costs only the check of
+								-- whether somebody is wearing it.
 								if info and info.unresolved and #info.unresolved > 0 then
 									local missing = {}
 									for _, id in ipairs(info.unresolved) do missing[id] = true end
@@ -2524,14 +2171,14 @@ local function BuildOptions()
 											.. "|r"
 									else
 										lines[#lines + 1] = "|cffff4040    "
-											.. L["this client doesn't know spell %s, so Manners can't see that version on anyone -- somebody already carrying it may be offered this anyway. That is a mistake in Manners -- please report it."]
+											.. L["this client doesn't know spell %s, so somebody already carrying that version may be offered this anyway. That is a mistake in Manners -- please report it."]
 												:format(table.concat(info.unresolved, ", "))
 											.. "|r"
 									end
 								end
 							end
 							lines[#lines + 1] = "\n|cff888888"
-								.. L["Where the missing-check is blocked, the game will not let addons read that aura. Players are still offered, but some may already have the buff."]
+								.. L["Where the missing-check is blocked, addons cannot read that aura: players are still offered, but some may already have the buff."]
 								.. "|r"
 							return table.concat(lines, "\n")
 						end,
@@ -2546,10 +2193,8 @@ local function BuildOptions()
 							.. "|r",
 					},
 
-					-- ns.Guard catches everything that can throw and says each
-					-- label out loud once. The rest of them existed only in
-					-- /manners errors, which nobody reads while they are looking
-					-- at the options page wondering why nothing works.
+					-- What ns.Guard caught, on the page where somebody is looking
+					-- when nothing works.
 					errorsHeader = { type = "header", name = L["What has broken"], order = 20 },
 					errorList = {
 						type = "description",
@@ -2563,10 +2208,7 @@ local function BuildOptions()
 								lines[#lines + 1] = ("|cff808080%s|r %s -- |cffff8080%s|r"):format(
 									tostring(e.at), tostring(e.where), tostring(e.err))
 							end
-							-- The count, not the ring's length. The ring holds thirty,
-							-- so this said thirty whether thirty things had broken or
-							-- thirty thousand -- the reading /manners errors and the
-							-- bug report were both corrected away from.
+							-- The count, not the ring's length: the ring holds thirty.
 							if #ns.errors > 5 then
 								-- Two whole sentences, and the command an argument:
 								-- it is what the player types, in any language.
@@ -2597,10 +2239,7 @@ local function BuildOptions()
 						type = "description",
 						order = 31,
 						fontSize = "medium",
-						-- The build number appeared nowhere on this page, so the
-						-- first question on every bug report was the one the
-						-- reporter could not answer from the screen they were
-						-- looking at.
+						-- The first question on every bug report.
 						name = function()
 							return ("Manners |cffffffff%s|r"):format(tostring(ns.BUILD))
 						end,
@@ -2608,7 +2247,7 @@ local function BuildOptions()
 					copyReport = {
 						type = "execute",
 						name = function() return reportOpen and L["Hide the report"] or L["Copy for a bug report"] end,
-						desc = L["Opens a box with the build number, what this client allows, the settings that change what it does and anything that has broken -- ready to select and paste."],
+						desc = L["Opens a box with the build, what this client allows, the settings that matter and anything that has broken, ready to copy."],
 						order = 32,
 						func = function()
 							reportOpen = not reportOpen
@@ -2624,9 +2263,7 @@ local function BuildOptions()
 						hidden = function() return not reportOpen end,
 						get = function() return BugReport() end,
 						-- Read-only in the only way AceConfig offers: anything
-						-- typed in is discarded, and the box repaints from the
-						-- addon the next time it is opened. It exists to be
-						-- copied out of, not written into.
+						-- typed in is discarded.
 						set = function() end,
 					},
 				},
@@ -2645,13 +2282,7 @@ end
 -- only the ID is something Settings.OpenToCategory can find the page by.
 local blizCategory, blizCategoryID
 
--- The minimap button's right-click menu.
---
--- A right-click used to switch the addon off and on and do nothing else, which
--- spent the one free click on the thing least often wanted and left a snooze,
--- the preview and the options three different commands away. The switch is
--- the first line here, so it is still one click and a choice -- and the middle
--- button now throws it outright.
+-- The minimap button's right-click menu; the middle button throws the switch.
 --
 -- MenuUtil is the client's own context menu, and the addons known to work on
 -- this client open theirs the same way. Asked for at the moment of the click:
@@ -2694,12 +2325,9 @@ local function WhatBuff(entry)
 end
 
 -- Who the prompt is armed at and who comes after them, in that order, with
--- nobody twice. The first answer is nil when no prompt is up.
---
--- Read, never acted on: the queue is built the same way the scan builds it,
--- and nothing here arms, clicks or repaints anything. The one on the prompt
--- comes from the prompt itself, because in a fight it stays whoever the fight
--- found there while the queue under it goes on changing.
+-- nobody twice; the second answer is nil when no prompt is up. Read, never
+-- acted on. The one on the prompt comes from the prompt itself, because in a
+-- fight it stays whoever the fight found there while the queue moves on.
 local function WhoIsWaiting(limit)
 	local showing = ns.Prompt and ns.Prompt.Showing and ns.Prompt:Showing() or nil
 	local list, seen = {}, {}
@@ -2719,23 +2347,7 @@ local function WhoIsWaiting(limit)
 	return list, showing
 end
 
--- Whether a prompt can appear at all right now, and the line that says so:
--- watching, then the line with its colour and whether it wraps.
---
--- Which is why "on" is not enough to say "watching". A rogue, a mage who has
--- not learned Arcane Intellect and a priest with every spell switched off are
--- all switched on, and none of them will ever see a prompt -- so "Watching for
--- people to buff" was the one line that made the missing prompt look like a
--- bug. Told apart as the greeting tells them apart: a class with nothing to
--- give, a class the buff data has no table for, nothing learned yet, and a
--- setting in the way.
---
--- One answer for the tooltip and the menu's Who's next, so the hover and the
--- menu cannot give two different accounts of the same moment.
---
--- A seventh answer, `heldOnly`, is true while a fight holds a prompt that a
--- snooze or the lock will take down once it ends: the one on it is still armed
--- and still worth a Skip, and nobody after them is going to be offered.
+-- The entry a fight holds on the prompt, if there is one.
 local function HeldInFight()
 	if not InCombatLockdown() then return nil end
 	local ok, showing = pcall(function()
@@ -2755,6 +2367,15 @@ local function ArmedButtonLeft()
 	return ok and armed == true
 end
 
+-- Whether a prompt can appear at all right now, and the line that says so:
+-- watching, then the line with its colour and whether it wraps. "On" is not
+-- enough to say "watching": a class with nothing to give, nothing learned yet
+-- and a setting in the way are told apart as the greeting tells them apart.
+-- One answer for the tooltip and the menu's Who's next, so they agree.
+--
+-- A seventh answer, `heldOnly`, is true while a fight holds a prompt that a
+-- snooze or the lock will take down once it ends: the one on it is still armed
+-- and still worth a Skip, and nobody after them is going to be offered.
 local function LauncherState()
 	local class = ns.caps and ns.caps.class
 	local snoozeLeft = ns.SnoozeLeft and ns.SnoozeLeft()
@@ -2770,18 +2391,12 @@ local function LauncherState()
 		return false, L["Switched off -- no prompt will appear."], 1, 0.5, 0.5
 	elseif DragPanelUp() then
 		-- Ahead of the snooze, as the prompt reads them: an unlocked prompt is
-		-- up to be dragged whatever else is true, and casts nothing. Only where
-		-- there is a panel at all, though -- nothing castable takes it down
-		-- before the lock is read, and then the class and learned lines below
-		-- are the true ones.
+		-- up to be dragged and casts nothing.
 		--
-		-- Except in a fight. /manners unlock is taken there, but the macro on
-		-- the button is frozen with the rest, so a press still casts at whoever
-		-- the fight found on it. Until the next pass the prompt still names
-		-- them, and they are listed with their Skip and nobody after them, as
-		-- for a snooze started in the fight; after it the name is cleared and
-		-- only the macro is left, which is said as /manners off in a fight says
-		-- it.
+		-- Except in a fight, where the macro on the button is frozen and a
+		-- press still casts at whoever the fight found on it: while the prompt
+		-- still names them they are listed with their Skip, and once the name
+		-- is cleared only the macro is left, said as /manners off says it.
 		if held then
 			return true, L["Unlocked, but in this fight the prompt stays as the fight found it, and a press still casts it; it can be dragged once the fight ends."],
 				1, 0.82, 0, true, true
@@ -2790,7 +2405,7 @@ local function LauncherState()
 				1, 0.82, 0, true
 		end
 		if snoozeLeft then
-			return false, L["Unlocked, and snoozed until %s -- the prompt stays up to be dragged and casts nothing; once you lock it, it stays away until the snooze ends."]
+			return false, L["Unlocked, and snoozed until %s -- the prompt stays up to be dragged, casting nothing, until you lock it."]
 				:format(ns.SnoozeEndsAt()), 1, 0.82, 0, true
 		end
 		return false, L["Unlocked -- the prompt is up to be dragged and casts nothing until you lock it (%s)."]
@@ -2816,12 +2431,10 @@ local function LauncherState()
 		end
 		return false, L["Nothing learned to cast yet."], 1, 0.82, 0
 	elseif not held and ns.HiddenWhileMounted and ns.HiddenWhileMounted() then
-		-- The queue offers nobody while this is true, so "watching" over a
-		-- count of people waiting read as a prompt that had broken. The queue,
-		-- the keypress and /manners debug all name the mount; so does this.
-		-- Not over a prompt a fight holds, which is still up and still armed.
-		-- The option and its tab go in by their own keys, as the keypress's line
-		-- puts them, so a translation names the labels the window shows.
+		-- The queue offers nobody while this is true, so name the mount -- but
+		-- not over a prompt a fight holds, which is still up and armed. The
+		-- option and its tab go in by their own keys, so a translation names
+		-- the labels the window shows.
 		return false, L["Kept away while you are mounted -- %s, on the %s tab."]
 			:format(L["Not while mounted"], L["When"]), 1, 0.82, 0, true
 	end
@@ -2833,8 +2446,7 @@ end
 local function FillLauncherTooltip(tooltip)
 	tooltip:AddLine("Manners")
 	-- The state, said here as well as in the text, because a broker display is
-	-- free to show the icon on its own -- and then this tooltip is the only
-	-- place left that can say why no prompt has appeared all evening.
+	-- free to show the icon on its own.
 	local watching, line, r, g, b, wrap, heldOnly = LauncherState()
 	tooltip:AddLine(line, r, g, b, wrap)
 
@@ -2846,11 +2458,9 @@ local function FillLauncherTooltip(tooltip)
 		-- under them nor the count of favours waiting is anything to read.
 		if heldOnly then list = showing and { showing } or {} end
 
-		-- In a fight the prompt keeps whoever it had when the fight began, and
-		-- a press still casts at them; the list under it stops moving. Said
-		-- beside the state because "watching" alone would promise a prompt that
-		-- follows the queue, which in a fight it cannot -- and only while there
-		-- is a prompt up to be held, or it describes one nobody can see.
+		-- In a fight the prompt keeps whoever it had when the fight began, so
+		-- "watching" alone would promise a prompt that follows the queue. Only
+		-- while there is a prompt up to be held.
 		if showing and InCombatLockdown() then
 			tooltip:AddLine(L["Held in combat -- the prompt moves on once the fight ends."], 1, 0.82, 0, true)
 		end
@@ -2890,9 +2500,8 @@ local function FillLauncherTooltip(tooltip)
 	-- that throws must not take the lines above with it.
 	if ns.Ledger then ns.Guard("ledger tooltip", ns.Ledger.AddTooltip, tooltip) end
 
-	-- What each click will do, not what the button is for. "Enable or disable"
-	-- is true of every press and tells you nothing about the one you are about
-	-- to make. Grey, under everything else: they are the part read once.
+	-- What each click will do, not what the button is for. Grey, under
+	-- everything else: they are the part read once.
 	tooltip:AddLine(L["Left click: options"], 0.6, 0.6, 0.6)
 	if ns.Ledger then
 		tooltip:AddLine(L["Shift-click: favour ledger"], 0.6, 0.6, 0.6)
@@ -2909,14 +2518,9 @@ local function FillLauncherTooltip(tooltip)
 	end
 end
 
--- The switch, thrown in one press. What a right-click always did where there
--- is no menu, and what the middle button does everywhere.
---
--- Off is said with the way back in it. It is saved in the profile, so it lasts
--- across logins, and the button takes any mouse button -- a wheel pressed on
--- the minimap's edge throws it as surely as a deliberate click. The dimmed icon
--- is the only other sign, so "disabled." alone left somebody who never meant
--- to press it with an addon that had stopped and no idea why.
+-- The switch, thrown in one press: the right-click where there is no menu,
+-- and the middle button everywhere. Off is said with the way back in it,
+-- because it lasts across logins and a stray wheel press can throw it.
 local function ToggleEnabled(mouseButton)
 	ns.db.profile.enabled = not ns.db.profile.enabled
 	ns.Prompt:Refresh()
@@ -2927,10 +2531,8 @@ local function ToggleEnabled(mouseButton)
 	else
 		ns.addon:Print(L["switched off from the launcher -- middle-click it again, or type |cffffd100/manners on|r, to switch it back."])
 	end
-	-- The switch this click just threw has a checkbox on the options page and
-	-- a word in the launcher's own text, and neither re-reads the profile on
-	-- its own. Without this, clicking with the window open leaves Enable
-	-- ticked over an addon that is off.
+	-- The Enable checkbox and the launcher's text do not re-read the profile
+	-- on their own.
 	ns.RepaintOptions()
 end
 
@@ -3007,15 +2609,10 @@ local function Divider(parent)
 end
 
 -- Not now, from the menu: the same block a right-press on the prompt writes,
--- and the same repaint after it, which knows about the fight and moves the
--- panel on only where it may. Said in chat every time, unlike the press on the
--- prompt: somebody further down the list leaves nothing on screen changed.
---
--- Except for the one on the prompt in a fight. The button cannot be pointed at
--- anybody else until the fight ends, so the panel goes on naming them and a
--- press still casts at them -- and a line saying only "skipping" had the
--- player buff the person they had just skipped. The skip is still written, for
--- whatever of it is left when the fight ends.
+-- and the same repaint after it, which moves the panel on only where the fight
+-- allows. Said in chat every time, since skipping somebody further down the
+-- list changes nothing on screen -- and for the one on the prompt in a fight,
+-- that a press still casts at them.
 local function SkipFromMenu(entry)
 	ns.BlockPerson(entry.name)
 	local showing = ns.Prompt.Showing and ns.Prompt:Showing()
@@ -3031,25 +2628,15 @@ local function SkipFromMenu(entry)
 end
 
 -- Never, from the menu: the never-offer list, as a shift-right-press on the
--- prompt puts them there, with the line that says how to undo it.
---
--- With the same block first, as that press writes it. The list alone reaches
--- the panel only after the hold and the fuse have run, so for a second and a
--- half the person just listed stayed armed and a keypress cast at them; the
--- block is what takes them off the panel at once. The attention pulse stops
--- with them, as it does for a skip.
---
--- The line in chat is PutOnNeverList's own, and it knows nothing of the fight:
--- "will not be offered anything again" over a prompt that cannot move off them
--- had the player buff the person they had just listed. So in a fight, for the
--- one on the prompt, a second line says what the skip's line says.
+-- prompt puts them there. With the same block first, as that press writes it:
+-- the list alone reaches the panel only after the hold and the fuse have run,
+-- and the block takes them off it at once.
 local function NeverFromMenu(entry)
 	ns.BlockPerson(entry.name)
 	local showing = ns.Prompt.Showing and ns.Prompt:Showing()
 	if showing and showing.name == entry.name then ns.Prompt:StopAttention() end
-	-- Says the fight's warning itself when they are the one the prompt
-	-- holds, and the prompt repaints around it, for every route onto the
-	-- list alike -- a line said here as well was said twice.
+	-- Says the fight's warning itself and repaints the prompt, for every route
+	-- onto the list alike, so nothing is said here as well.
 	ns.PutOnNeverList(entry.name)
 end
 
@@ -3060,22 +2647,17 @@ local function Nobody(parent, text)
 end
 
 -- The people the prompt would offer, and only while it would offer anybody:
--- the same test the tooltip makes, so a snoozed addon or a class with nothing
--- to cast does not list people with a Skip beside them that no prompt is
--- going to show.
---
--- Except the one a fight holds on the prompt after a snooze or an unlock in
--- it: a press still casts at them until the fight ends, so they are listed
--- with their Skip, and nobody after them is.
+-- the same test the tooltip makes. Except the one a fight holds on the prompt
+-- after a snooze or an unlock in it: a press still casts at them until the
+-- fight ends, so they are listed with their Skip, and nobody after them is.
 local function FillWhoIsNext(parent)
 	local watching, line, _, _, _, _, heldOnly = LauncherState()
 	if not Enabled() then
 		Nobody(parent, L["Nobody -- Manners is switched off"])
 		return
 	end
-	-- The lock before the snooze, as LauncherState reads them: an unlocked
-	-- prompt is on screen to be dragged, and "snoozed" alone denied it. Not
-	-- over the one a fight still holds on it, who is listed below.
+	-- The lock before the snooze, as LauncherState reads them, except over the
+	-- one a fight still holds.
 	if DragPanelUp() and not heldOnly then
 		Nobody(parent, line)
 		return
@@ -3097,9 +2679,8 @@ local function FillWhoIsNext(parent)
 		list, showing = WhoIsWaiting(MENU_QUEUE_ROWS)
 	end
 	if #list == 0 then
-		-- Favours can be live while the queue offers none of them -- skipped,
-		-- dead, on a taxi, out of mana, out of reach -- and "Nobody is waiting"
-		-- under a bar counting them was the menu contradicting the launcher.
+		-- Favours can be live while the queue offers none of them (skipped,
+		-- dead, out of reach), and the launcher's text counts them.
 		local waiting = WaitingCount()
 		if waiting == 1 then
 			Nobody(parent, L["Nobody can be offered right now -- 1 favour is waiting"])
@@ -3130,12 +2711,9 @@ local function FillWhoIsNext(parent)
 		local person = parent:CreateButton(label:format(WhoIs(entry), WhatBuff(entry)))
 		person:CreateButton(L["Skip for now"], Act(function() SkipFromMenu(entry) end))
 		-- Somebody already on the list is in the queue only because they are
-		-- owed, and for them the same act lets the favour go -- which is what
-		-- it says, as the prompt's own tooltip does. But the one on the prompt
-		-- comes from the prompt, and in a fight it goes on naming somebody just
-		-- put on the list whether they owe anything or not; for them there is
-		-- no favour to let go, and the click only said they were listed
-		-- already. Owed is asked as the queue asks it.
+		-- owed, and for them the same act lets the favour go. The one a fight
+		-- holds on the prompt may owe nothing, so owed is asked as the queue
+		-- asks it.
 		local listed = ns.IsNeverOffered and ns.IsNeverOffered(entry.name)
 		local ok, owedNow = pcall(function()
 			local debt = ns.owed and ns.owed[entry.name]
@@ -3206,13 +2784,9 @@ local function FillPromptMenu(parent, fight)
 	end
 end
 
--- AceDB's profiles, when the database can list them. Switching one changes
--- where the prompt sits and what it is armed with, so it waits for the fight
--- to end like the lock does.
---
--- Only with a second profile to switch to. Most players have the one, and a
--- submenu holding a single radio that is already ticked is an entry that does
--- nothing.
+-- AceDB's profiles, when the database can list them and there is a second one
+-- to switch to. Switching changes where the prompt sits and what it is armed
+-- with, so it waits for the fight to end like the lock does.
 local function AddProfiles(root, fight)
 	local db = ns.db
 	if not (db.GetProfiles and db.GetCurrentProfile and db.SetProfile) then return end
@@ -3267,11 +2841,8 @@ local function FillLauncherMenu(root)
 	-- Greyed out in a fight as it is on the options page: ToggleTest refuses to
 	-- start one there. One already running can still be stopped.
 	local inTest = ns.Prompt:InTest()
-	--
-	-- Each entry does only what its label says. The menu is built once, when it
-	-- opens, and /manners test is a toggle: a preview that timed out under an
-	-- open menu left "End the preview" standing, and clicking it started a new
-	-- one.
+	-- Each entry does only what its label says: the menu is built once, and a
+	-- preview can time out under it while /manners test is a toggle.
 	local preview
 	if inTest then
 		preview = root:CreateButton(L["End the preview"], Act(function()
@@ -3329,9 +2900,8 @@ local function LauncherClick(owner, mouseButton, later)
 		ToggleEnabled(mouseButton)
 		return
 	end
-	-- Shift with the left button opens the ledger. The plain click
-	-- stays the options window, which is what everybody who has
-	-- used this button before expects of it.
+	-- Shift with the left button opens the ledger; the plain click stays the
+	-- options window.
 	if mouseButton ~= "RightButton" and ns.Ledger
 		and IsShiftKeyDown and IsShiftKeyDown() then
 		ns.Guard("ledger window", ns.Ledger.Toggle)
@@ -3369,15 +2939,11 @@ local function HideLauncherTooltip(owner)
 end
 
 -- The addon compartment: the drop-down under the minimap that lists every
--- addon, which this client has. The minimap button can be hidden, and a broker
--- display is another addon; this is the one launcher that is always there, so
--- hiding the button no longer hides the menu with it.
+-- addon, which this client has, and the one launcher that is always there.
 --
 -- Registered here rather than through the toc's AddonCompartmentFunc fields,
--- which name global functions: this keeps the whole launcher in one file, and a
--- client without the frame is one check rather than a toc of dead names.
--- Directly rather than through LibDBIcon's copy, which only adds a button it
--- is also showing on the minimap and writes that choice into the profile.
+-- which name global functions, and directly rather than through LibDBIcon's
+-- copy, which only adds a button it is also showing on the minimap.
 local compartment
 local function RegisterCompartment()
 	local frame = _G.AddonCompartmentFrame
@@ -3414,11 +2980,9 @@ function ns.SetupOptions()
 
 	AceConfig:RegisterOptionsTable(ADDON, options)
 	blizCategory, blizCategoryID = AceConfigDialog:AddToBlizOptions(ADDON, "Manners")
-	-- The bug-report box shuts with the page. The standalone window is only
-	-- ever opened through OpenOptions, which shuts it there; this is the other
-	-- route in. OnHide rather than a check inside the box's own `hidden`,
-	-- because that is only asked while the page is being drawn -- which is
-	-- exactly when the page is open.
+	-- The bug-report box shuts with the Settings page (OpenOptions shuts it
+	-- for the standalone window). OnHide, because the box's own `hidden` is
+	-- only asked while the page is being drawn.
 	if blizCategory and blizCategory.HookScript then
 		blizCategory:HookScript("OnHide", function() reportOpen = false end)
 		blizCategory:HookScript("OnHide", function() shareOpen = false end)
@@ -3442,28 +3006,17 @@ function ns.SetupOptions()
 end
 
 -- Put the current state back into the launcher's text and its icon's colour.
---
 -- LibDataBroker fires its own change callback when a field on a data object is
--- assigned, so every display showing this launcher repaints from one line here.
--- Called through ns.RepaintOptions, alongside the options page, because the two
--- are stale for the same reason and at the same moments -- and by Core each
--- time a favour is filed, settled or let go, which is when the count changes.
---
--- Everything is checked: the library is optional, the object is only built when
--- it is there, and a launcher whose text is a release behind is not worth
--- taking down the command that changed the setting.
+-- assigned, so every display showing this launcher repaints from here. Called
+-- through ns.RepaintOptions, and by Core whenever the favour count changes.
 function ns.RefreshBrokerText()
 	local text = BrokerText()
-	-- The compartment's line reads the same, since it is the launcher left
-	-- for somebody who hid the minimap button. The compartment builds its menu
-	-- from the registered tables each time it opens, so a plain assignment is
-	-- all it takes -- and it is there with or without a broker.
+	-- The compartment builds its menu from the registered tables each time it
+	-- opens, so a plain assignment is all it takes.
 	if compartment then compartment.text = text end
 	if not broker then return end
-	-- Only when it has actually changed. Assigning to a data object wakes every
-	-- display showing it, and this is reached at both ends of every fight --
-	-- so writing the same string back would be a call into somebody else's
-	-- layout code on every pull, in a city, for nothing.
+	-- Only when it has actually changed: assigning wakes every display showing
+	-- it, and this is reached at both ends of every fight.
 	if broker.text ~= text then broker.text = text end
 	-- The tint the same way, one channel at a time: LibDBIcon repaints the
 	-- icon on each of the three.
@@ -3473,17 +3026,10 @@ function ns.RefreshBrokerText()
 	if broker.iconB ~= b then broker.iconB = b end
 end
 
--- Repaint whatever is on screen from the values as they stand now.
---
--- Most of this page is static, but three things on it are answers to questions
--- with a current answer -- whether we are in combat, what has broken, and
--- whether the bug-report box is open -- and AceConfig only asks a `hidden` or a
--- `name` function while it is drawing. Without this, leaving combat with the
--- window open leaves the combat notice standing over controls that work again.
---
--- Optional at both ends: the library is asked for silently and the method is
--- checked, because failing to repaint a panel must never be the thing that
--- takes down the event handler it is called from.
+-- Repaint whatever is on screen from the values as they stand now: AceConfig
+-- only asks a `hidden` or a `name` function while it is drawing, and some
+-- answers (combat, errors, open boxes) change under it. Optional at both ends,
+-- because failing to repaint must never take down the handler it is called from.
 function ns.RefreshOptionsDisplay()
 	if AceConfigRegistry and AceConfigRegistry.NotifyChange then
 		AceConfigRegistry:NotifyChange(ADDON)
@@ -3501,30 +3047,16 @@ function ns.RefreshMinimapButton()
 end
 
 -- Whether the window somebody would be styling the prompt from is on screen.
---
--- Asked rather than subscribed to. AceConfigDialog keeps the frames it has open
--- in a table keyed by addon name, so this is a question with a current answer;
--- a close callback would be a second piece of state to keep in step, and the
--- one thing this must never do is leave a preview running because a notification
--- went missing.
---
--- Everything is checked for existence and every answer defaults to "no": a
--- library version without the table, or a Blizzard panel handle without the
--- method, has to mean the preview times out as it always did rather than
--- throwing inside the scan.
+-- Asked rather than subscribed to, so a missed notification can never leave a
+-- preview running; every answer defaults to "no", so the preview times out.
 function ns.OptionsOpen()
 	local frames = AceConfigDialog and AceConfigDialog.OpenFrames
 	if type(frames) == "table" and frames[ADDON] ~= nil then return true end
 
-	-- The other route in: the canvas frame AddToBlizOptions made for the game's
-	-- Settings window. Asked whether it is visible, not whether it is shown.
-	-- Shutting the Settings window hides the window, not the canvas inside it,
-	-- and the client only clears the canvas's own shown flag when another page
-	-- takes its place -- so IsShown went on answering yes after the window was
-	-- shut, and a preview started from that page pushed its clock forward and
-	-- stood in front of real people until the window was next opened.
-	-- AceConfigDialog asks its own Settings pages the same way, for the same
-	-- reason.
+	-- The other route in: the Settings window's canvas. IsVisible, not IsShown:
+	-- shutting the Settings window hides the window, not the canvas, whose own
+	-- shown flag stays set until another page takes its place. AceConfigDialog
+	-- asks its own Settings pages the same way.
 	if blizCategory then
 		local ok, visible = pcall(function() return blizCategory:IsVisible() end)
 		if ok and visible then return true end
@@ -3554,38 +3086,20 @@ function ns.OptionsTab()
 end
 
 function ns.OpenOptions()
-	-- The bug-report box starts shut. Only its own button ever changed it, so
-	-- shutting the window and opening it again found the fourteen-line box
-	-- still open and the button reading "Hide the report". Left alone when the
-	-- window is already up, where this is a click on the minimap button rather
-	-- than an opening, and shutting the box under somebody copying it would be
-	-- the surprise.
+	-- The boxes start shut when the window opens, but are left alone when it
+	-- is already up, where somebody may be copying out of one.
 	if not ns.OptionsOpen() then reportOpen = false end
 	if not ns.OptionsOpen() then shareOpen = false end
 
-	-- The standalone dialog, first and by default.
-	--
-	-- This used to try Settings.OpenToCategory first and fall back to here, on
-	-- the reasoning that the game's own panel is the more familiar home. It
-	-- cannot work that way round: OpenToCategory does not raise when it fails
-	-- to find the category, it opens the Settings window at whatever page it
-	-- was last on and returns cleanly -- so the pcall reports success and this
-	-- function returns, having shown somebody the Controls page. On the client
-	-- this addon is actually used on, that is what clicking the minimap button
-	-- did.
-	--
-	-- A pcall cannot tell the difference, and there is nothing else to ask, so
-	-- the route that either works or errors goes first.
+	-- The standalone dialog, first and by default. Settings.OpenToCategory
+	-- does not raise when it fails to find the category: on this client it
+	-- opens the Settings window at whatever page it was last on and returns
+	-- cleanly, so only the route that either works or errors can go first.
 	local ok = pcall(AceConfigDialog.Open, AceConfigDialog, ADDON)
 	if ok then return end
 
-	-- Only if that is somehow unavailable, and only as a last resort, since it
-	-- may well land on the wrong page.
-	--
-	-- By the ID AddToBlizOptions returned, not the canvas frame's own GetID.
-	-- Nothing sets a frame ID on that canvas, so it answered 0, which is no
-	-- category at all, and the Settings window came up on whatever page it was
-	-- last on every time this ran.
+	-- A last resort, by the ID AddToBlizOptions returned: the canvas frame's
+	-- own GetID answers 0, which is no category at all.
 	if Settings and Settings.OpenToCategory and blizCategoryID ~= nil then
 		pcall(Settings.OpenToCategory, blizCategoryID)
 	end
