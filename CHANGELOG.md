@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.0.0-beta.8
 
 A redesigned favour ledger, a prompt that stays readable on any panel colour,
 a colour-blind palette, an option to buff people who ask for it in chat, and a
