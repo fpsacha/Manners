@@ -39,15 +39,15 @@ mutate("Prompt.lua",
 # The macro's key no longer notices the target changing, so the fuse's press
 # runs the macro armed while she was still the target.
 mutate("Prompt.lua",
-       "\t\ttostring(StillTargeted(entry)) }, \"\\1\")\n",
-       "\t\t\"\" }, \"\\1\")\n",
+       "\t\ttostring(StillTargeted(entry)), tostring(speak) }, \"\\1\")\n",
+       "\t\t\"\", tostring(speak) }, \"\\1\")\n",
        "macro key blind to a change of target",
        expect="prompt5: a press after your target changed hands it back (fused)",
        script="runscenarios.py")
 
 # The fuse's press is no longer re-keyed before it goes out.
 mutate("Prompt.lua",
-       "\t\tPrompt:ApplyTarget(current)\n\t\tpressKey = appliedKey\n",
+       "\t\tPrompt:ApplyTarget(current, OutOfReachNow(current))\n\t\tpressKey = appliedKey\n",
        "\t\tpressKey = appliedKey\n",
        "fused press not re-keyed",
        expect="prompt5: a press after your target changed hands it back (fused)",

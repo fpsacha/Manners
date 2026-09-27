@@ -84,6 +84,16 @@ are not in English.
   nothing is armed.
 - A font from a media pack that fails to load no longer makes the prompt or
   the favour ledger disappear. They fall back to the game's font.
+- **Your character no longer speaks to somebody out of range.** The spoken
+  line is left out for anybody the game says is too far away, checked again
+  the moment you press. After the game refuses a cast on somebody, nothing is
+  said to them for half a minute, or until a buff on them lands. Where the
+  game can't tell the range, the line is said as before.
+- **Somebody the game won't let you buff stops coming back.** Each refusal in
+  a row keeps them off the prompt for longer: a moment, then half a minute,
+  then five minutes, with one line in chat saying so. Somebody who buffed you
+  is kept off for a minute at most, and you still owe them. Target them to try
+  again at once; `/manners debug` lists who is waiting and for how long.
 
 ### Favours and names
 

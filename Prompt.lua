@@ -183,6 +183,9 @@ local outcomeGen = 0
 -- The spoken line settled for the candidate on the button, and its key, so the
 -- tooltip quotes the roll the press will cast.
 local phraseKey, phraseText
+-- Whether that line is on the button now: it is kept but left out for somebody
+-- out of reach or just refused (see ApplyTarget), and the tooltip must agree.
+local phraseArmed
 
 -- Which side of the panel the queue list hangs off. Decided in ApplyStyle,
 -- because the only things that move the prompt come back through it.
@@ -502,6 +505,18 @@ end
 -- against the function it sits in, and written inline they took Create() past
 -- the limit, so Prompt.lua failed to load at all (beta.6).
 
+-- Whether the person the macro is about to be aimed at is known to be out of
+-- reach at this moment, for PreClick to leave the spoken line out. The scan
+-- that armed the macro can be a tick old, and a macro runs every line even
+-- when its /cast fails (beta.8: two thank-yous, no buff). Only a unit token
+-- still naming them is asked; a recycled one says nothing about them, and an
+-- unknown answer keeps the line, as the scan's does.
+local function OutOfReachNow(entry)
+	if not (entry and entry.unit and entry.buff and entry.name) then return false end
+	if ns.UnitFullName(entry.unit) ~= entry.name then return false end
+	return ns.ReachNow(entry.unit, entry.buff) == false
+end
+
 -- PreClick runs before the secure handler reads the attributes, so out of
 -- combat the target is re-resolved at the last moment: a nameplate token may
 -- since have been recycled to somebody else. Every mouse button
@@ -509,6 +524,9 @@ end
 local function OnPreClick(self, mouseButton)
 	if mouseButton and mouseButton ~= "LeftButton" then return end
 	local now = GetTime()
+	-- The macro's own /target and hand-back are not the player choosing
+	-- anybody; Core's PLAYER_TARGET_CHANGED ignores changes this close to it.
+	ns.pressAt = now
 
 	-- Asked before the combat return: in combat the frozen macro still goes
 	-- out, and the bookkeeping can still be refused where the macro cannot.
@@ -519,6 +537,9 @@ local function OnPreClick(self, mouseButton)
 	if InCombatLockdown() and not ready and left <= ns.SpellQueueWindow() then
 		ready = true
 	end
+	-- Then the combat return: in combat nothing below can change the macro,
+	-- since the attributes are frozen, so neither the target nor the spoken
+	-- line (range, a refusal) is looked at again until the fight ends.
 	cooldownPressAt = (not ready) and now or nil
 	if InCombatLockdown() then
 		pressStale = nil
@@ -601,8 +622,9 @@ local function OnPreClick(self, mouseButton)
 		pressStale = true
 		-- Re-keyed rather than rebuilt: whether the macro hands your target back
 		-- depends on who is targeted now, which can have changed since the
-		-- repaint that armed it.
-		Prompt:ApplyTarget(current)
+		-- repaint that armed it. Their range is asked again too: this entry's
+		-- reading is the oldest there is.
+		Prompt:ApplyTarget(current, OutOfReachNow(current))
 		pressKey = appliedKey
 		return
 	end
@@ -632,7 +654,9 @@ local function OnPreClick(self, mouseButton)
 	end
 
 	appliedKey = nil
-	Prompt:ApplyTarget(top)
+	-- A held entry's range reading is from an overruled scan, and even a fresh
+	-- one is a tick old, so it is asked once more right before the macro runs.
+	Prompt:ApplyTarget(top, OutOfReachNow(top))
 	pressKey = appliedKey
 end
 
@@ -2356,7 +2380,7 @@ function Prompt:ClickSummary(entry)
 		end
 	end
 
-	if phraseText then
+	if phraseText and phraseArmed then
 		-- Quoted without its slash command: the channel is a setting, and what
 		-- it says is the part worth reading.
 		out[#out + 1] = L["Says: |cffffffff%s|r"]:format((phraseText:gsub("^/%S+%s*", "")))
@@ -2364,7 +2388,9 @@ function Prompt:ClickSummary(entry)
 	return out
 end
 
-function Prompt:ApplyTarget(entry)
+-- `silent` leaves the spoken line out whatever the entry says: PreClick's
+-- last-moment range reading.
+function Prompt:ApplyTarget(entry, silent)
 	if InCombatLockdown() then
 		-- Frozen until the fight ends. `current` may only be cleared: a disarm
 		-- must take effect, and pointing it at somebody new would file
@@ -2398,7 +2424,7 @@ function Prompt:ApplyTarget(entry)
 		armed = nil
 		-- Same reasoning for the spoken line: there is no macro, so there is no
 		-- line, and the tooltip must not still be quoting the last one.
-		phraseKey, phraseText = nil, nil
+		phraseKey, phraseText, phraseArmed = nil, nil, nil
 		return
 	end
 
@@ -2408,12 +2434,22 @@ function Prompt:ApplyTarget(entry)
 	ns.lastTopEntry = entry
 	ns.lastTopUnit = entry.unit
 
+	-- Whether a spoken line may go in. Not for somebody known to be out of
+	-- reach: the macro runs on past a /cast that fails, and the line went out
+	-- over a buff that never landed (beta.8). Nor for a while after the game
+	-- refused a cast on them (ns.SpeechHeld), so pressing at somebody it will
+	-- not let you reach does not keep talking. An unknown reading (nil, or a
+	-- secret) keeps the line: some clients never report range, and silencing
+	-- everybody there would take the feature away rather than fix it.
+	local speak = not silent and entry.ranged ~= false and not ns.SpeechHeld(entry.name)
+
 	-- Everything the macro is built from, so it is not rebuilt at 2.5 Hz. Other
 	-- inputs come through InvalidateMacro; the unit is here for try's {unit},
-	-- and armedForFight and who is targeted for the hand-back.
+	-- armedForFight and who is targeted for the hand-back, and whether the line
+	-- is armed so a change of range or a refusal re-arms it (out of combat).
 	local key = table.concat({ entry.name, tostring(entry.unit), entry.buff.key,
 		tostring(entry.reason), tostring(ns.tryMacro), tostring(Prompt.armedForFight),
-		tostring(StillTargeted(entry)) }, "\1")
+		tostring(StillTargeted(entry)), tostring(speak) }, "\1")
 	if key == appliedKey then return end
 
 	-- /manners try: arbitrary macro text, expanded against the candidate, so
@@ -2459,7 +2495,10 @@ function Prompt:ApplyTarget(entry)
 	if phraseKey ~= phraseIdentity or (phraseText and #phraseText > budget) then
 		phraseKey, phraseText = phraseIdentity, ns.PickPhrase(entry, budget)
 	end
-	local phrase = phraseText
+	-- Rolled whether or not it is said, so the roll the tooltip quoted is
+	-- the one said once the line is armed again.
+	local phrase = speak and phraseText or nil
+	phraseArmed = phrase ~= nil
 	if phrase then lines[#lines + 1] = phrase end
 
 	-- Last, always: it is what hands your target back, and the client reads the

@@ -11791,6 +11791,9 @@ local function clearClicks(ns)
 	Mock.advance(60)
 	wipe(ns.owed)
 	wipe(ns.tried)
+	-- The refusal memory is a block too, and it counts refusals in a row: a
+	-- scenario's second pass is not the second refusal of its first.
+	wipe(ns.refusals)
 	ns.pendingClick = nil
 	for unit in pairs(Mock.unitNames or {}) do
 		if unit:find("^nameplate") then ns.nameplateUnits[unit] = true end

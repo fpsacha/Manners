@@ -974,6 +974,17 @@ local function ShoutReach(unit)
 	return nil
 end
 
+-- Whether the buff reaches this unit right now, asked the way the scan asks it
+-- for entry.ranged. The prompt's press asks again just before its macro runs:
+-- the scan can be a tick old, and somebody who walked off since would still be
+-- spoken to over a /cast that fails.
+function ns.ReachNow(unit, buff)
+	if not (unit and buff) then return nil end
+	local ranged = InRange(unit, buff)
+	if ranged == nil and buff.selfCast then ranged = ShoutReach(unit) end
+	return ranged
+end
+
 ---------------------------------------------------------------------------
 -- how near is near
 --
@@ -1611,6 +1622,12 @@ local owed = {}
 -- that reached nobody), so somebody behind a pillar does not walk the list.
 local tried = {}
 
+-- [name] = what the game has been refusing on this person (see NoteRefusal).
+-- In memory only, on purpose: a /reload or a new login is a fresh start, and
+-- whatever the server held against them (a phase, a duel, a rule nobody
+-- names) rarely outlives one.
+local refusals = {}
+
 ns.lastGave = {} -- [name] = buffKey, for rotating when auras cannot be read
 
 -- Whether the buff walk reads ns.lastGave back for this character. Not for a
@@ -1620,7 +1637,7 @@ function ns.RotatesBuffs()
 	return not ns.EXCLUSIVE_BUFFS[playerClass]
 end
 
-ns.owed, ns.tried = owed, tried
+ns.owed, ns.tried, ns.refusals = owed, tried, refusals
 
 -- When a debt really runs out: the stamp it was filed with, or its age against
 -- the window as it stands now, whichever comes first -- so lowering "Remember a
@@ -1755,11 +1772,14 @@ do
 	end
 
 	-- Whether this person, or this one buff for this person, is inside a block.
-	-- The whole-person key is always consulted.
+	-- The whole-person key is always consulted, and so is a back-off after
+	-- refusals in a row, which is a block on the whole person as well.
 	function ns.IsBlocked(name, buffKey, now)
 		if not name then return false end
-		if next(tried) == nil then return false end
 		now = now or GetTime()
+		local refused = refusals[name]
+		if refused and refused.blockUntil > now then return true end
+		if next(tried) == nil then return false end
 		local keys = BlockKeys(name)
 		local person = tried[keys[WHOLE_PERSON]]
 		if person and person > now then return true end
@@ -1771,6 +1791,175 @@ do
 		end
 		local one = tried[key]
 		return one ~= nil and one > now
+	end
+end
+
+-- What the game keeps refusing, per person, and the two things that follow
+-- from it. The spoken line is held for a while after any refusal: a macro runs
+-- every line even when its /cast fails, so a thank-you went out over a buff
+-- that never landed, once per press (beta.8). And the person backs off further
+-- with each refusal in a row: somebody the game will never let you buff (the
+-- server does not say why) came straight back after two seconds, forever. A
+-- cast on them that lands forgets all of it (PruneSettled). A block of its own
+-- for the main chunk's 200 locals.
+do
+	-- How long each refusal in a row keeps the person off the prompt. The first
+	-- is the two seconds RewindClick has always written, so one stray refusal
+	-- costs nothing new. Somebody who buffed you backs off more gently:
+	-- returning the favour is the point, and the favour itself stays owed.
+	local STEPS = { 2, 30, 300 }
+	local OWED_STEPS = { 2, 20, 60 }
+	-- The refusal in a row that says so in chat, once per run.
+	local TELL_AT = 3
+	local QUIET_SECONDS = 30
+	-- A run of refusals this long over is forgotten, and the sweep lets the
+	-- person go: somebody never seen again must not be kept all session.
+	local FORGET_SECONDS = 600
+	local CAP = 200
+	-- How close an error line and a refusal must be to be about the same cast.
+	local ERROR_SECONDS = 1
+
+	local lastError, lastErrorAt = nil, 0
+	-- Who the newest refusal was about, for an error line arriving just after.
+	local newest
+
+	-- Errors about the caster rather than the person (out of mana, moving, the
+	-- cooldown): they hold the spoken line, since nothing landed, but say nothing
+	-- about whether the game will refuse this person next time. Named by the
+	-- client's own global strings, since the text is localised.
+	local CASTER_SIDE = { "ERR_OUT_OF_MANA", "SPELL_FAILED_MOVING", "SPELL_FAILED_NOT_READY",
+		"ERR_SPELL_COOLDOWN", "ERR_ABILITY_COOLDOWN", "SPELL_FAILED_SPELL_IN_PROGRESS",
+		"SPELL_FAILED_SILENCED", "SPELL_FAILED_STUNNED", "SPELL_FAILED_CASTER_DEAD",
+		"SPELL_FAILED_INTERRUPTED" }
+
+	local function AboutTheCaster(message)
+		if type(message) ~= "string" then return false end
+		local bare = message:gsub("%.$", "")
+		for _, key in ipairs(CASTER_SIDE) do
+			local text = plain(_G[key])
+			if type(text) == "string" and text:gsub("%.$", "") == bare then return true end
+		end
+		return false
+	end
+
+	-- Said whether or not chat lines are on: it is the only thing that says
+	-- why somebody vanished from the prompt.
+	local function Tell(name, why)
+		if type(why) == "string" then
+			addon:Print(L["|cffff8080the game keeps refusing buffs on %s|r (it said: %s) -- they will not be offered for a while; target them to try again."]
+				:format(name, (why:gsub("%.$", ""))))
+		else
+			addon:Print(L["|cffff8080the game keeps refusing buffs on %s|r -- they will not be offered for a while; target them to try again."]
+				:format(name))
+		end
+	end
+
+	function ns.SweepRefusals(now)
+		for name, r in pairs(refusals) do
+			if r.blockUntil <= now and r.quietUntil <= now and now - r.last > FORGET_SECONDS then
+				refusals[name] = nil
+			end
+		end
+	end
+
+	-- One person's record, room made for it first. Counted here rather than
+	-- kept in a tally: a new record is one refusal, so this is rare, and a
+	-- count cannot drift from the table.
+	local function Record(name, now)
+		local r = refusals[name]
+		if r then return r end
+		local held, oldest, at = 0, nil, nil
+		for who, rec in pairs(refusals) do
+			held = held + 1
+			if not at or rec.last < at then oldest, at = who, rec.last end
+		end
+		-- Full even so: the person refused longest ago goes.
+		if held >= CAP then refusals[oldest] = nil end
+		r = { count = 0, last = now, blockUntil = 0, quietUntil = 0 }
+		refusals[name] = r
+		return r
+	end
+
+	-- Every error line the game raises. One arriving just after a refusal that
+	-- had no reason of its own is taken as that reason.
+	function ns.NoteGameError(message)
+		if type(message) ~= "string" then return end
+		local now = GetTime()
+		lastError, lastErrorAt = message, now
+		local r = newest and refusals[newest]
+		if r and r.why == nil and now - r.last <= ERROR_SECONDS and not AboutTheCaster(message) then
+			r.why = message
+		end
+	end
+
+	-- A press on this person came to nothing: an error inside the press's
+	-- window, or a refusal after it was sent. `why` is the game's own words
+	-- where the caller has them. `quietOnly` holds the spoken line and no more,
+	-- for a press the game never answered at all: nothing refused anybody
+	-- there, so it is no evidence the game will refuse them next time.
+	function ns.NoteRefusal(name, why, quietOnly)
+		if not name then return end
+		local now = GetTime()
+		if why == nil and lastError and now - lastErrorAt <= ERROR_SECONDS then why = lastError end
+		local r = Record(name, now)
+		r.quietUntil = now + QUIET_SECONDS
+		newest = name
+		if quietOnly or AboutTheCaster(why) then
+			r.last = now
+			return
+		end
+		-- A run long over was swept (SweepRefusals), so this starts again at one.
+		r.last = now
+		r.count = r.count + 1
+		r.why = type(why) == "string" and why or nil
+		local debt = owed[name]
+		local steps = (debt and LiveExpiry(debt) > now) and OWED_STEPS or STEPS
+		local seconds = steps[math.min(r.count, #steps)]
+		if now + seconds > r.blockUntil then r.blockUntil = now + seconds end
+		if r.count >= TELL_AT and not r.said then
+			r.said = true
+			if r.why or not (C_Timer and C_Timer.After) then
+				Tell(name, r.why)
+			else
+				-- The error line can arrive a moment after the refusal it explains.
+				C_Timer.After(0.3, function() ns.Guard("refusal line", Tell, name, r.why) end)
+			end
+		end
+	end
+
+	-- A cast on them landed: nothing the game refused before stands.
+	function ns.NoteLanded(name)
+		if name then refusals[name] = nil end
+	end
+
+	-- Whether the spoken line is held for this person.
+	function ns.SpeechHeld(name, now)
+		local r = name and refusals[name]
+		return r ~= nil and r.quietUntil > (now or GetTime())
+	end
+
+	-- The player pointed at them on purpose (PLAYER_TARGET_CHANGED): the
+	-- back-off lifts, the count stays, so another refusal backs off again.
+	function ns.LiftBackoff(name)
+		local r = name and refusals[name]
+		if r then r.blockUntil = 0 end
+	end
+
+	-- For /manners debug: who is backed off or kept quiet, and for how long.
+	-- Seconds rather than a clock time: the minimap clock may be the realm's.
+	function ns.RefusalLines(now)
+		local out = {}
+		for name, r in pairs(refusals) do
+			if r.blockUntil > now then
+				out[#out + 1] = L["backed off for %ds more: |cffffffff%s|r -- refused %d times in a row"]
+					:format(math.ceil(r.blockUntil - now), name, r.count)
+			elseif r.quietUntil > now then
+				out[#out + 1] = L["no spoken line for %ds more: |cffffffff%s|r -- the game refused a cast on them"]
+					:format(math.ceil(r.quietUntil - now), name)
+			end
+		end
+		table.sort(out)
+		return out
 	end
 end
 
@@ -3794,6 +3983,9 @@ local function ExpirePendingClick(pending, why)
 	-- RewindClick writes from now, so running it twice doubles the block.
 	if pending.answered then return end
 	RewindClick(pending)
+	-- Nothing reached them, so the spoken line (which the macro ran anyway) is
+	-- held; no back-off, since nothing here says the game refused them.
+	ns.NoteRefusal(pending.name, nil, true)
 	SayStillOwed(pending.name, why or L["the game answered that press with nothing at all"])
 end
 
@@ -3844,6 +4036,7 @@ local function FailPendingClick(message)
 	SayStillOwed(pending.name, type(message) == "string"
 		and L["the game said: %s"]:format((message:gsub("%.$", ""))) or L["the game refused it"])
 	RewindClick(pending)
+	ns.NoteRefusal(pending.name, message)
 	return pending.name
 end
 
@@ -3893,8 +4086,14 @@ local settledRecent = {}
 local function PruneSettled(now)
 	now = now or GetTime()
 	for i = #settledRecent, 1, -1 do
-		if now - settledRecent[i].at > SETTLE_SECONDS then
+		local record = settledRecent[i]
+		if now - record.at > SETTLE_SECONDS then
 			table.remove(settledRecent, i)
+			-- Nothing refused it inside the window, so it landed, and whatever the
+			-- game refused on this person before is over. Not at the settle
+			-- itself: SENT is the client sending, and the refusal that repeats
+			-- comes after it.
+			if record.landed then ns.NoteLanded(record.name) end
 		end
 	end
 end
@@ -4045,7 +4244,9 @@ local function SettlePendingClick(landedOn, spellId, castGUID)
 	-- ignores (STATUS.md); only a listing after the settle lets it go.
 	RememberSettled({ name = pending.name, buffKey = pending.buffKey,
 		gave = pending.gave, at = GetTime(), owed = wasOwed, castGUID = castGUID,
-		listedAtSettle = ListedAs(pending.name) ~= nil })
+		listedAtSettle = ListedAs(pending.name) ~= nil,
+		-- A shout nothing measured them inside of is not a cast on them.
+		landed = not unheard })
 	ns.pendingClick = nil
 end
 
@@ -4093,6 +4294,9 @@ local function UnsettleLateRefusal(castGUID)
 	TellLedger("Refused", settled.name, settled.at)
 	-- And what the click wrote, which the settle let stand.
 	RewindClick(settled)
+	-- This is the refusal that repeats for somebody the game will never let
+	-- you buff (beta.8): every press settles on SENT and comes back here.
+	ns.NoteRefusal(settled.name)
 	SayStillOwed(settled.name, L["the game refused the cast after sending it"])
 	return settled.name
 end
@@ -4310,6 +4514,9 @@ function addon:UI_ERROR_MESSAGE(_, _, message)
 	-- A reason to doubt a click still parked, and nothing more: it carries no
 	-- spell id, so it never undoes a settle (see UnsettleLateRefusal).
 	local failed = FailPendingClick(message)
+	-- After the line above, which hands its refusal the words itself; this is
+	-- for a refusal that arrived first, with none (UNIT_SPELLCAST_FAILED).
+	ns.NoteGameError(message)
 	-- The game's own words go on the panel's sub-line: localised, and often
 	-- the only thing that says why.
 	if failed then
@@ -4340,6 +4547,16 @@ function addon:SPELLS_CHANGED()
 	end
 	lastProbe = now
 	ns.Guard("ProbeCapabilities", ns.ProbeCapabilities)
+end
+
+-- A deliberate choice of somebody backed off (see NoteRefusal) tries them
+-- again: the back-off must never keep the player from somebody they point at.
+-- The prompt's own macro targets and hands back inside a press, and those are
+-- not choices, so a change this close to a press is ignored.
+function addon:PLAYER_TARGET_CHANGED()
+	local at = ns.pressAt
+	if at and GetTime() - at < 0.5 then return end
+	ns.LiftBackoff(ns.UnitFullName("target"))
 end
 
 function addon:PLAYER_DEAD() if ns.Prompt then ns.Prompt:Refresh() end end
@@ -5107,6 +5324,8 @@ function addon:OnEnable()
 		"UNIT_SPELLCAST_INTERRUPTED",
 		"SPELL_UPDATE_COOLDOWN",
 		"UI_ERROR_MESSAGE",
+		-- A back-off lifts when the player targets that person themselves.
+		"PLAYER_TARGET_CHANGED",
 		"PLAYER_UNGHOST",
 		"PLAYER_ALIVE",
 		"PLAYER_DEAD",
@@ -5191,6 +5410,10 @@ function addon:TickBody()
 	-- On the tick, because the case it decides has no event: a /target that
 	-- resolves nobody leaves the /cast with no aim, and the game says nothing.
 	SweepPendingClick(now)
+	-- Casts that went out and were not refused in their window have landed,
+	-- which is what forgets a person's refusals.
+	PruneSettled(now)
+	ns.SweepRefusals(now)
 	for name, entry in pairs(owed) do
 		if LiveExpiry(entry) <= now then
 			owed[name] = nil
@@ -6345,6 +6568,9 @@ function addon:HandleSlash(rawInput)
 		-- The third source, which reads chat: listening or not, what it read and
 		-- set aside, and who is waiting.
 		for _, line in ipairs(ns.RequestLines()) do self:Print("  " .. line) end
+		-- Who the game keeps refusing, since they are missing from the prompt
+		-- with nothing else on screen to say why.
+		for _, line in ipairs(ns.RefusalLines(now)) do self:Print("  " .. line) end
 
 		-- And whether the last look at your own buffs was believed.
 		local scan = ns.auraScan

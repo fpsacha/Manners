@@ -674,9 +674,11 @@ mutate("Prompt.lua",
 #     later has nothing left to settle and the favour stays owed.
 mutate("Core.lua",
        """	RewindClick(pending)
+	ns.NoteRefusal(pending.name, message)
 	return pending.name
 end""",
        """	RewindClick(pending)
+	ns.NoteRefusal(pending.name, message)
 	ns.pendingClick = nil
 	return pending.name
 end""",

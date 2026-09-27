@@ -75,6 +75,8 @@ for _, e in ipairs({
   -- Registered on this client by BetterBlizzFrames' forever build.
   "UNIT_SPELLCAST_START", "UNIT_SPELLCAST_INTERRUPTED", "SPELL_UPDATE_COOLDOWN",
   "UNIT_SPELLCAST_DELAYED",
+  -- The default target frame runs on it, in every client since the first.
+  "PLAYER_TARGET_CHANGED",
   -- Registered on this client by EnhanceQoL's chat and ignore modules.
   "CHAT_MSG_SAY", "CHAT_MSG_YELL", "CHAT_MSG_PARTY", "CHAT_MSG_PARTY_LEADER",
   "CHAT_MSG_RAID", "CHAT_MSG_RAID_LEADER", "CHAT_MSG_WHISPER",
