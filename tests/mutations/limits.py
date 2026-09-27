@@ -8,8 +8,8 @@
 # 56 upvalues: the closure reads 56 locals of the function around it.
 _names = ["m%d" % i for i in range(56)]
 mutate("Flavour.lua",
-       "local ADDON, ns = ...\n",
-       "local ADDON, ns = ...\n"
+       "local _, ns = ...\n",
+       "local _, ns = ...\n"
        "local function tooManyUpvalues()\n"
        "\tlocal " + ", ".join(_names) + "\n"
        "\treturn function() return { " + ", ".join(_names) + " } end\n"
@@ -20,8 +20,8 @@ mutate("Flavour.lua",
 
 # 191 locals active at once in one function.
 mutate("Flavour.lua",
-       "local ADDON, ns = ...\n",
-       "local ADDON, ns = ...\n"
+       "local _, ns = ...\n",
+       "local _, ns = ...\n"
        "local function tooManyLocals()\n"
        + "".join("\tlocal l%d = %d\n" % (i, i) for i in range(191)) +
        "end\n",
