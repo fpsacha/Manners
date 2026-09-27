@@ -1623,15 +1623,15 @@ local function BuildOptions()
 					accentByReason = {
 						type = "toggle",
 						name = L["Colour it by reason"],
-						-- All four reasons, in the order the queue ranks them, in
+						-- All five reasons, in the order the queue ranks them, in
 						-- the chosen palette's colours. The target is the only one
 						-- with a condition: BuildQueue writes that reason only with
 						-- the switch on, and never under Always offer, which reads
 						-- nothing.
 						desc = function()
 							local colours = P().reasonPalette == "colourblind"
-								and L["Pale yellow for your own target, orange for a favour owed, sky blue for your group, violet for passers-by -- the order they are offered in."]
-								or L["Pale blue for your own target, amber for a favour owed, deeper blue for your group, grey for passers-by -- the order they are offered in."]
+								and L["Pale yellow for your own target, orange for a favour owed, deep pink for somebody who asked, sky blue for your group, violet for passers-by -- the order they are offered in."]
+								or L["Pale blue for your own target, amber for a favour owed, pink for somebody who asked, deeper blue for your group, grey for passers-by -- the order they are offered in."]
 							return colours
 								.. "\n\n|cff888888"
 								.. L["The first of those appears only while |cffffd100Whoever I have targeted comes first|r is on and |cffffd100If they already have the buff|r is not Always offer."]
@@ -1649,10 +1649,10 @@ local function BuildOptions()
 					reasonPalette = {
 						type = "select",
 						name = L["Reason colours"],
-						-- Names no hues and counts none. The colour-blind set has no
-						-- colour for a request, so ReasonColor draws askers as
-						-- passers-by; hunt5-options.lua holds this sentence to that.
-						desc = L["The colour-blind set keeps the reasons apart for red-green colour blindness, in colours that differ in lightness too. People who asked in chat share the passers-by colour."],
+						-- Names no hues and counts none: Colour it by reason names
+						-- them. Every reason has a colour of its own in both sets,
+						-- and hunt5-options.lua holds this sentence to that.
+						desc = L["The colour-blind set keeps the reasons apart for red-green colour blindness, in colours that differ in lightness too."],
 						order = 12.2,
 						values = {
 							standard = L["Standard"],
