@@ -2339,8 +2339,8 @@ mutate("Core.lua",
 # A partyOnly buff judged on "in the group", which in a raid is all forty:
 # Battle Shout offered to thirty-five raiders it cannot reach.
 mutate("Core.lua",
-       "\t\tif buff.partyOnly and not opts.inParty then return false end\n",
-       "\t\tif buff.partyOnly and not opts.inGroup then return false end\n",
+       "\tif buff.partyOnly and not opts.inParty then return false end\n",
+       "\tif buff.partyOnly and not opts.inGroup then return false end\n",
        "a shout offered to the whole raid",
        expect="Battle Shout in a raid reaches the warrior's own subgroup",
        script="runscenarios.py")

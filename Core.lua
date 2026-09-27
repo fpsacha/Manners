@@ -708,8 +708,11 @@ end
 -- else is back to offering strangers on their own. Here rather than on the
 -- options page, where it started, because the greeting and the favour line say
 -- the same thing and have to agree with the page about it.
-function ns.OnlyReachesGroup()
-	local castable = ns.CastableBuffs()
+--
+-- `castable` is CastableBuffs' answer when the caller already has it, which the
+-- scan does.
+function ns.OnlyReachesGroup(castable)
+	castable = castable or ns.CastableBuffs()
 	if #castable == 0 then return false end
 	for _, buff in ipairs(castable) do
 		if not buff.partyOnly then return false end
@@ -727,6 +730,36 @@ function ns.PinnedBuff()
 	if not choice or choice == "auto" then return nil end
 	return ns.FindBuff(playerClass, choice)
 end
+
+-- The walk's questions about one candidate, split in two because the exclusive
+-- branch of PickBuffFor needs the halves apart: "this spell is wrong for this
+-- person" is permanent for the scan, while "we tried it on them a moment ago"
+-- is a cooldown, and that branch has to read the auras of a blessing it may not
+-- offer.
+--
+-- inParty rather than inGroup: in a raid "in the group" is all forty and the
+-- shout reaches the caster's subgroup of five. See SameParty.
+local function Castable(opts, buff)
+	if opts.relevantOnly and buff.manaOnly and opts.hasMana == false then return false end
+	if buff.partyOnly and not opts.inParty then return false end
+	return true
+end
+
+-- opts.blocked is handed opts as well, so the caller's answer can be a
+-- file-level function reading the person off it rather than a closure made for
+-- each of them.
+local function Blocked(opts, buff)
+	if not opts.blocked then return false end
+	return opts.blocked(buff, opts) == true
+end
+
+local function Eligible(opts, buff)
+	return Castable(opts, buff) and not Blocked(opts, buff)
+end
+
+-- The candidate list a pin reduces the walk to, one table rewritten for every
+-- call rather than one made per person. Only the walk inside a call reads it.
+local PINNED_ONLY = {}
 
 -- Which of their buffs this person should be offered, or nil for none.
 --
@@ -771,29 +804,15 @@ function ns.PickBuffFor(candidates, opts, has)
 	local pinned = ns.PinnedBuff()
 	if pinned then
 		if not ns.IsBuffKnown(pinned) then return nil end
-		candidates = { pinned }
+		PINNED_ONLY[1] = pinned
+		candidates = PINNED_ONLY
 	end
 
-	-- Split in two because the exclusive branch below needs the halves apart:
-	-- "this spell is wrong for this person" is permanent for the scan, while
-	-- "we tried it on them a moment ago" is a cooldown, and that branch has to
-	-- read the auras of a blessing it may not offer.
-	-- inParty rather than inGroup: in a raid "in the group" is all forty and the
-	-- shout reaches the caster's subgroup of five. See SameParty.
-	local function castable(buff)
-		if opts.relevantOnly and buff.manaOnly and opts.hasMana == false then return false end
-		if buff.partyOnly and not opts.inParty then return false end
-		return true
-	end
-
-	local function blocked(buff)
-		if not opts.blocked then return false end
-		return opts.blocked(buff) == true
-	end
-
-	local function eligible(buff)
-		return castable(buff) and not blocked(buff)
-	end
+	-- The three questions about one candidate are the file-level Castable,
+	-- Blocked and Eligible above, handed `opts`, rather than closures made here:
+	-- this runs for every person in the queue and every favour outstanding, two
+	-- and a half times a second, and three closures a call were most of the
+	-- garbage a scan left behind.
 
 	-- Blessings overwrite each other, so holding any one of yours counts as
 	-- covered. Walking would replace what they already have.
@@ -825,7 +844,7 @@ function ns.PickBuffFor(candidates, opts, has)
 			-- exactly the one they are most likely to be carrying, and skipping
 			-- the read of it was how a blessing that had just landed stayed
 			-- invisible -- so the next one down was offered over the top of it.
-			if castable(buff) then
+			if Castable(opts, buff) then
 				-- Both returns. The second one was dropped here and read
 				-- everywhere else, which is how the refresh mode came to be
 				-- switched on, described in the options, and dead for the one
@@ -837,7 +856,7 @@ function ns.PickBuffFor(candidates, opts, has)
 					-- So the walk moves on to a kind they lack -- unless we
 					-- offered this one moments ago, which is the cooldown rule
 					-- below and still means "wait".
-					if blocked(buff) then
+					if Blocked(opts, buff) then
 						onCooldown = true
 					elseif not theirs then
 						theirs = buff
@@ -860,7 +879,7 @@ function ns.PickBuffFor(candidates, opts, has)
 					-- and the answer to that is to wait, not to reach for a
 					-- different one. First, because it outranks both of the
 					-- reasons below for offering somebody a buff they hold.
-					if blocked(buff) then return nil, true end
+					if Blocked(opts, buff) then return nil, true end
 
 					-- The top-up, which this branch managed to miss twice over:
 					-- the timer was thrown away with the second return, and
@@ -901,7 +920,7 @@ function ns.PickBuffFor(candidates, opts, has)
 					-- unverified wording on the prompt. For this class that was
 					-- every single pick.
 					if held ~= false then allRead = false end
-					if blocked(buff) then
+					if Blocked(opts, buff) then
 						onCooldown = true
 					elseif not pick then
 						pick = buff
@@ -956,7 +975,7 @@ function ns.PickBuffFor(candidates, opts, has)
 	-- and a buff they already hold is the offer that takes nothing away.
 	local firstHeld
 	for _, buff in ipairs(candidates) do
-		if eligible(buff) then
+		if Eligible(opts, buff) then
 			local held, remaining = has(buff)
 			if held == false then return buff, false end
 			if held ~= true then
@@ -1177,7 +1196,14 @@ local function UnitHasBuff(unit, buff, guid)
 			auraCache[guid] = perUnit
 			auraCacheCount = auraCacheCount + 1
 		end
-		perUnit[buff.key] = { at = now, has = has, expires = expires, mine = mine }
+		-- A reading that went stale is rewritten where it stands rather than
+		-- replaced: nothing outside this function holds one, and a crowd
+		-- turns every one of them over every three seconds.
+		if cached then
+			cached.at, cached.has, cached.expires, cached.mine = now, has, expires, mine
+		else
+			perUnit[buff.key] = { at = now, has = has, expires = expires, mine = mine }
+		end
 	end
 	return has, expires and (expires - now) or nil, mine
 end
@@ -1271,9 +1297,13 @@ end
 --
 -- Only where the buff set says so. The later flavours made their shouts
 -- raid-wide, and there everybody in the raid is inside one.
-local function SameParty(unit)
+--
+-- `inRaid` is the scan's own reading of IsInRaid, asked once for everybody;
+-- nil asks here.
+local function SameParty(unit, inRaid)
 	if not unit then return false end
-	if plain(IsInRaid and IsInRaid()) ~= true then
+	if inRaid == nil then inRaid = plain(IsInRaid and IsInRaid()) == true end
+	if not inRaid then
 		return plain(UnitInParty and UnitInParty(unit)) == true
 	end
 	if not ns.PARTY_IS_SUBGROUP then
@@ -2330,16 +2360,49 @@ function ns.BlockPerson(name, seconds, keepLonger)
 	Block(name .. "\0*", seconds, keepLonger)
 end
 
+-- The keys one person's blocks are filed under, the same strings Block writes,
+-- built once per person and kept: IsBlocked is asked for every person the scan
+-- reaches, every favour outstanding and each buff the walk considers, and
+-- joining the same two strings again every time was most of what it did. The
+-- whole-person key sits under a key no buff can have, beside the per-buff
+-- ones, which are filed under the buff's own key.
+local blockKeys, blockKeyCount = {}, 0
+local WHOLE_PERSON = {}
+
+local function BlockKeys(name)
+	local keys = blockKeys[name]
+	if keys then return keys end
+	-- Bounded: a city puts hundreds of people through the scan in a session.
+	if blockKeyCount >= 500 then
+		wipe(blockKeys)
+		blockKeyCount = 0
+	end
+	keys = { [WHOLE_PERSON] = name .. "\0*" }
+	blockKeys[name] = keys
+	blockKeyCount = blockKeyCount + 1
+	return keys
+end
+
 -- Whether this person, or this one buff for this person, is inside a block.
 -- The whole-person key is always consulted: it exists precisely to stop the
 -- walk marching down the list when nothing reached them at all.
+--
+-- Nearly always asked of a table with nothing in it, which answers without a
+-- key being looked at.
 function ns.IsBlocked(name, buffKey, now)
 	if not name then return false end
+	if next(tried) == nil then return false end
 	now = now or GetTime()
-	local person = tried[name .. "\0*"]
+	local keys = BlockKeys(name)
+	local person = tried[keys[WHOLE_PERSON]]
 	if person and person > now then return true end
 	if not buffKey then return false end
-	local one = tried[name .. "\0" .. buffKey]
+	local key = keys[buffKey]
+	if not key then
+		key = name .. "\0" .. buffKey
+		keys[buffKey] = key
+	end
+	local one = tried[key]
 	return one ~= nil and one > now
 end
 
@@ -2406,21 +2469,87 @@ local function SameName(a, b)
 	return a:lower() == b:lower()
 end
 
-local function ListedAs(name)
+-- What the walk below has already answered, by name: the entry that names them,
+-- or false for nobody. The scan asks about everybody in front of the player two
+-- and a half times a second, and the walk is two case-folded compares per
+-- entry. Forty nameplates against a two-hundred-name list was twenty-five
+-- thousand of them a scan, for a list that had not changed since the last one.
+--
+-- Checked against the list rather than cleared by whoever edits it, because
+-- not everybody who edits it comes through this file: an import, a profile
+-- switch or reset, and the scenarios all write the table directly. The check is
+-- a walk comparing each entry with a copy, a table lookup apiece and no string
+-- work at all, and BuildQueue makes it once a scan rather than once a person.
+-- The fold function is part of what an answer depends on, so a client handing
+-- over a different one throws the answers away too.
+local NEVER_VERDICTS_MAX = 1000
+local neverSeen = { list = nil, fold = nil, size = 0, copy = {}, verdict = {}, count = 0 }
+
+-- The answers, valid for the list as it stands now. nil when there is no list.
+local function NeverVerdicts()
+	local never = NeverSet()
+	if not never then return nil end
+	local copy, fold = neverSeen.copy, _G.strcmputf8i
+	local fresh = neverSeen.list == never and neverSeen.fold == fold
+	if fresh then
+		local size = 0
+		for key, flag in pairs(never) do
+			if copy[key] ~= flag then fresh = false break end
+			size = size + 1
+		end
+		if size ~= neverSeen.size then fresh = false end
+	end
+	if not fresh then
+		wipe(copy)
+		local size = 0
+		for key, flag in pairs(never) do
+			copy[key] = flag
+			size = size + 1
+		end
+		neverSeen.list, neverSeen.fold, neverSeen.size = never, fold, size
+		wipe(neverSeen.verdict)
+		neverSeen.count = 0
+	end
+	return neverSeen.verdict
+end
+
+-- `verdict` is NeverVerdicts' table, passed only by a caller that has just
+-- asked for it; anybody else walks the list, which is what every caller but
+-- the scan does and can afford to.
+local function ListedAs(name, verdict)
 	local never = NeverSet()
 	if not never or type(name) ~= "string" or next(never) == nil then return nil end
 	if never[name] == true then return name end
+	if verdict then
+		local known = verdict[name]
+		if known ~= nil then return known or nil end
+	end
 	local short = ShortName(name)
+	local found
 	for key in pairs(never) do
 		if type(key) == "string" then
-			if SameName(key, name) or SameName(key, short) then return key end
+			if SameName(key, name) or SameName(key, short) then found = key break end
 		end
 	end
-	return nil
+	if verdict then
+		-- Bounded like the other per-person caches: a city puts hundreds of
+		-- people through here in a session.
+		if neverSeen.count >= NEVER_VERDICTS_MAX then
+			wipe(verdict)
+			neverSeen.count = 0
+		end
+		verdict[name] = found or false
+		neverSeen.count = neverSeen.count + 1
+	end
+	return found
 end
 
+-- NeverVerdicts' table while BuildQueue is walking the units, and nil at every
+-- other moment; see the walk.
+local scanNever
+
 function ns.IsNeverOffered(name)
-	return ListedAs(name) ~= nil
+	return ListedAs(name, scanNever) ~= nil
 end
 
 -- Puts somebody on the list. Returns the spelling now on it, and whether they
@@ -2596,7 +2725,15 @@ end
 
 -- Old answers go, so the cache holds the people around you now rather than
 -- everybody met since login.
+--
+-- Once per lifetime of an answer rather than on every scan: Closeness reads an
+-- answer's age before trusting it, so a stale one left standing a little longer
+-- is never used, only kept.
+local closeSweptAt
+
 local function SweepCloseness(now)
+	if closeSweptAt and now >= closeSweptAt and now - closeSweptAt < CLOSE_SECONDS then return end
+	closeSweptAt = now
 	for name, answer in pairs(closeCache) do
 		if now - answer.at >= CLOSE_SECONDS then closeCache[name] = nil end
 	end
@@ -2699,6 +2836,15 @@ end
 
 local PRIORITY = { target = 0, owed = 1, group = 2, nearby = 3 }
 
+-- The group's unit tokens, spelled out once rather than joined on every scan.
+-- Forty is a raid; anything past it, which no client produces, is joined as
+-- it always was.
+local RAID_TOKENS, PARTY_TOKENS = {}, {}
+for i = 1, 40 do
+	RAID_TOKENS[i] = "raid" .. i
+	PARTY_TOKENS[i] = "party" .. i
+end
+
 -- fn(unit, pointed). `pointed` is the second argument because one caller has to
 -- tell a unit the player deliberately picked out from one the world happened to
 -- put a nameplate on, and the list of which tokens are which belongs here,
@@ -2725,10 +2871,11 @@ local function IterateUnits(fn)
 	local n = plain(GetNumGroupMembers and GetNumGroupMembers()) or 0
 	if n > 0 then
 		local inRaid = plain(IsInRaid and IsInRaid()) == true
+		local tokens = inRaid and RAID_TOKENS or PARTY_TOKENS
 		local prefix = inRaid and "raid" or "party"
 		local count = inRaid and n or (n - 1)
 		for i = 1, count do
-			fn(prefix .. i)
+			fn(tokens[i] or (prefix .. i))
 		end
 	end
 
@@ -2769,6 +2916,17 @@ function ns.HiddenWhileMounted()
 	return plain(safecall(IsMounted)) == true
 end
 
+-- PickBuffFor's two callbacks for the queue, at file level so that no person
+-- costs a closure. QueueBlocked reads who and when off the options the main
+-- path fills in; the tokenless path has no aura to read, and says so.
+local function QueueBlocked(candidate, opts)
+	return ns.IsBlocked(opts.name, candidate.key, opts.now)
+end
+
+local function NoReading()
+	return nil
+end
+
 function ns.BuildQueue()
 	local db = addon.db and addon.db.profile
 	if not db or not caps.anyKnown then return {} end
@@ -2807,7 +2965,14 @@ function ns.BuildQueue()
 	-- distance check below had measured them, which filled the proximity counts
 	-- with strangers who can never be offered anything and, on a client whose
 	-- duel prompt says nothing about strangers, dropped that rung for silence.
-	local groupOnly = ns.OnlyReachesGroup()
+	-- Handed the list just made rather than making its own.
+	local groupOnly = ns.OnlyReachesGroup(candidates)
+	-- And whether the player is in a raid, which SameParty asked afresh for
+	-- every person it was asked about.
+	local inRaid = plain(IsInRaid and IsInRaid()) == true
+	-- The never-offer list's answers so far, checked against the list once
+	-- here rather than walked for each person; see NeverVerdicts.
+	local neverVerdict = NeverVerdicts()
 
 	-- Once per scan as well: whether passers-by are to be left alone because
 	-- the player is out in the world rather than in a city or an inn. Only a
@@ -2828,7 +2993,11 @@ function ns.BuildQueue()
 		if myMana ~= nil and myMana <= 0 then return {} end
 	end
 
-	IterateUnits(function(unit, pointed)
+	-- What PickBuffFor is told about the person in hand, one table reused for
+	-- everybody the walk reaches; see where it is filled.
+	local opts = {}
+
+	local function visit(unit, pointed)
 		local ok, person = IsBuffableUnit(unit, f)
 		if not ok then
 			-- Someone we hold a token for and have just turned down must not
@@ -2935,22 +3104,25 @@ function ns.BuildQueue()
 			return UnitHasBuff(unit, buff, guid)
 		end
 
-		local buff, has, remaining = ns.PickBuffFor(candidates, {
-			hasMana = hasMana,
-			inGroup = inGroup,
-			-- Who a shout reaches, which in a raid is not the group: see
-			-- SameParty. inGroup stays the reason on the card.
-			inParty = SameParty(unit),
-			relevantOnly = f.relevantOnly,
-			whenBuffed = whenBuffed,
-			refreshUnder = f.refreshUnder,
-			name = full,
-			-- The policy, said as a policy. Owing somebody means offering them
-			-- even when they are covered, which is a decision about who gets an
-			-- offer and says nothing whatever about what their auras read.
-			offerAnyway = isOwed,
-			blocked = function(candidate) return ns.IsBlocked(full, candidate.key, now) end,
-		}, auraState)
+		-- One table for the whole scan, every field written for every person:
+		-- PickBuffFor reads it and keeps nothing of it.
+		opts.hasMana = hasMana
+		opts.inGroup = inGroup
+		-- Who a shout reaches, which in a raid is not the group: see
+		-- SameParty. inGroup stays the reason on the card.
+		opts.inParty = SameParty(unit, inRaid)
+		opts.relevantOnly = f.relevantOnly
+		opts.whenBuffed = whenBuffed
+		opts.refreshUnder = f.refreshUnder
+		opts.name = full
+		-- The policy, said as a policy. Owing somebody means offering them
+		-- even when they are covered, which is a decision about who gets an
+		-- offer and says nothing whatever about what their auras read.
+		opts.offerAnyway = isOwed
+		-- Blocked for this person and this buff; reads name and now off opts.
+		opts.blocked = QueueBlocked
+		opts.now = now
+		local buff, has, remaining = ns.PickBuffFor(candidates, opts, auraState)
 
 		if not buff then rejected[full] = true return end
 		if not checked then has = nil end
@@ -3028,7 +3200,18 @@ function ns.BuildQueue()
 			-- nil otherwise. The sort reads it, and so does the tooltip.
 			close = close,
 		}
-	end)
+	end
+
+	-- The never-offer list's answers are handed to ns.IsNeverOffered for the
+	-- length of the walk and not a moment longer: they are checked against the
+	-- list once, here, and nothing edits the list while the units are walked --
+	-- but anybody asking between two scans may have just edited it. So the
+	-- walk is protected and the answers withdrawn whichever way it ends, and a
+	-- failure goes on exactly as it would have.
+	scanNever = neverVerdict
+	local walked, walkError = pcall(IterateUnits, visit)
+	scanNever = nil
+	if not walked then error(walkError, 0) end
 
 	-- Someone who buffed you and is not currently a unit we hold a token for is
 	-- the ordinary case, not the exception: a passing stranger is rarely your
@@ -3042,6 +3225,23 @@ function ns.BuildQueue()
 	-- we use instead: offer them for a short grace window, then let them go.
 	if db.sources.owed then
 		local grace = db.timing.graceSeconds or 45
+		-- One table for every favour below, as on the main path; only what
+		-- differs between two people is written inside the loop.
+		local tokenless = {
+			-- No token, so there is no telling whether they are in the
+			-- group; a party-only buff would be a button that fails.
+			inGroup = false,
+			inParty = false,
+			relevantOnly = f.relevantOnly,
+			-- No aura truth either, so never rotate past what they may
+			-- already be carrying.
+			whenBuffed = "skip",
+			-- Said as the option it is. It used to be spelled as an
+			-- aura reading of false for every buff, which is the same
+			-- untruth the main path told: nothing here has read
+			-- anything, and the comment above says so two lines up.
+			rotate = false,
+		}
 		for full, entry in pairs(owed) do
 			local fresh = not db.filters.reachableOnly or (now - entry.at) <= grace
 			if LiveExpiry(entry) > now and fresh and not seen[full] and not rejected[full]
@@ -3056,23 +3256,9 @@ function ns.BuildQueue()
 				local hasMana
 				if entry.class then hasMana = MANA_CLASSES[entry.class] == true end
 
-				local buff = ns.PickBuffFor(candidates, {
-					hasMana = hasMana,
-					-- No token, so there is no telling whether they are in the
-					-- group; a party-only buff would be a button that fails.
-					inGroup = false,
-					inParty = false,
-					relevantOnly = f.relevantOnly,
-					-- No aura truth either, so never rotate past what they may
-					-- already be carrying.
-					whenBuffed = "skip",
-					name = full,
-					-- Said as the option it is. It used to be spelled as an
-					-- aura reading of false for every buff, which is the same
-					-- untruth the main path told: nothing here has read
-					-- anything, and the comment above says so two lines up.
-					rotate = false,
-				}, function() return nil end)
+				tokenless.hasMana = hasMana
+				tokenless.name = full
+				local buff = ns.PickBuffFor(candidates, tokenless, NoReading)
 
 				-- One buff per favour: the per-buff block rejects the whole
 				-- entry rather than moving the walk along, because nothing here
@@ -3101,8 +3287,12 @@ function ns.BuildQueue()
 						buff = buff,
 						reason = "owed",
 						priority = PRIORITY.owed,
-						ranged = nil,
-						known = nil,
+						-- ranged and known are nil here, and left unwritten
+						-- rather than written as nil: a constructor sizes the
+						-- table for every field it names, nil or not, and ten
+						-- names make a table twice the size of eight -- for
+						-- every favour outstanding, on every scan.
+
 						-- Left out entirely, which read as false -- and false
 						-- here means one specific thing: "we chose not to look,
 						-- and you are the one who chose". So the tooltip told
@@ -3324,7 +3514,7 @@ function ns.CouldOffer(hasMana, inParty)
 		whenBuffed = "always",
 		offerAnyway = true,
 		rotate = false,
-	}, function() return nil end)
+	}, NoReading)
 end
 
 -- One favour, filed against the person who was holding the token when the aura

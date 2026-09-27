@@ -138,3 +138,25 @@ images were designed against and falling back through DejaVu and Arial. It says
 so on stderr when it falls back, because an image that silently rendered in the
 bitmap default would look broken for a reason nobody could guess from looking
 at it.
+
+## profile_scan.py
+
+What the scan costs in a crowd. It loads the addon on the mock client from
+`tests/` (Lua 5.1, through lupa), stands the player in the worst place there is
+— forty nameplates, a forty-player raid, forty buffs on the player, a hundred
+favours outstanding, a two-hundred-name never-offer list, a hundred friends —
+and reports, per call of `BuildQueue`, `Tick`, the prompt's repaint, the
+player's own aura scan and another unit's `UNIT_AURA`: microseconds, and
+kilobytes allocated. Then, per tick, how often each client API was asked and
+which of the addon's functions ran most often, by file.
+
+```
+python tools/profile_scan.py
+python tools/profile_scan.py --class PRIEST --owed 5 --friends isfriend
+```
+
+The times are the mock's, whose API is Lua where the game's is C, so they are
+for comparing two versions of the addon on one machine; the call counts and the
+allocations carry over. The crowd itself is in `profile_scan.lua`. To compare
+against an older version, `git archive` it into a scratch folder, copy both
+`profile_scan` files into its `tools/`, and run it there.
