@@ -7,7 +7,7 @@
 -- motion: a missing atlas or art file renders as a green placeholder, and a
 -- solid texture cannot fail.
 
-local ADDON, ns = ...
+local _, ns = ...
 -- Player-facing text, in the client's language: see Locales/Init.lua.
 local L = ns.L
 
@@ -284,8 +284,8 @@ local armed
 
 -- Amber for a favour returned, the case worth noticing; the others stay quiet.
 -- Picked to survive the commonest colour blindness: target and group differ in
--- lightness, owed and target are amber against blue. Rec.601
--- greys: target 0.83, owed 0.79, group 0.56, nearby 0.54.
+-- lightness, owed and target are amber against blue.
+-- Rec.601 greys: target 0.83, owed 0.79, group 0.56, nearby 0.54.
 local REASON_COLOR = {
 	target = { 0.62, 0.90, 1.00 },
 	owed = { 1.00, 0.78, 0.30 },
@@ -452,12 +452,6 @@ end
 local function PaintHalo(halo, r, g, b, alpha)
 	for _, t in ipairs(halo.strips) do t:SetVertexColor(r, g, b, alpha) end
 	halo.round:SetVertexColor(r, g, b, alpha)
-end
-
-local function AtlasExists(name)
-	if not C_Texture or not C_Texture.GetAtlasInfo then return false end
-	local ok, info = pcall(C_Texture.GetAtlasInfo, name)
-	return ok and info ~= nil
 end
 
 ---------------------------------------------------------------------------
@@ -733,6 +727,155 @@ local function OnPostClick(self, mouseButton, down)
 	Prompt:StopAttention()
 end
 
+-- The button's other scripts, and the list Create() sets them from. A do
+-- block, so their names cost the main chunk one local rather than five.
+local BUTTON_SCRIPTS
+do
+	local function OnDragStart(self)
+		if ns.db.profile.prompt.locked or InCombatLockdown() then return end
+		self:StartMoving()
+		dragging = true
+	end
+
+	-- Only a drag that started has anything to end: the release arrives for the
+	-- refused ones too. A drag still held when a fight starts was ended then
+	-- (FinishDragForFight), so one released in combat only forgets itself.
+	local function OnDragStop()
+		if not dragging then return end
+		if InCombatLockdown() then
+			dragging = nil
+			return
+		end
+		FinishDrag()
+	end
+
+	local function OnEnter(self)
+		-- Nothing armed is nothing to describe, and a tooltip left from the
+		-- last person goes with it.
+		if not current or not current.buff then
+			if GameTooltip:IsOwned(self) then GameTooltip:Hide() end
+			return
+		end
+		-- In combat the macro is frozen at whoever it held when the fight
+		-- started, and a detailed tooltip about somebody stale is worse than
+		-- none.
+		if InCombatLockdown() then return end
+		GameTooltip:SetOwner(self, "ANCHOR_TOP")
+		GameTooltip:AddLine("Manners")
+		GameTooltip:AddDoubleLine(current.short or current.name, ns.BuffName(current.buff),
+			1, 1, 1, 0.8, 0.8, 0.8)
+		-- A top-up reads as one, and "missing it" only where it was read as
+		-- missing; "Always offer" and unreadable auras get the plain reason.
+		local left = RemainingText(current.remaining)
+		local why
+		if current.reason == "owed" then
+			why = L["Buffed you -- return the favour."]
+		elseif current.reason == "asked" then
+			why = L["Asked you for it in chat."]
+		elseif left then
+			why = current.reason == "group" and L["In your group, and theirs is running out."]
+				or current.reason == "target" and L["Your target, and theirs is running out."]
+				or L["Nearby, and theirs is running out."]
+		elseif current.known == false then
+			why = current.reason == "group" and L["In your group and missing it."]
+				or current.reason == "target" and L["Your target, and missing it."]
+				or L["Nearby and missing it."]
+		else
+			why = current.reason == "group" and L["In your group."]
+				or current.reason == "target" and L["Your target."]
+				or L["Nearby."]
+		end
+		GameTooltip:AddLine(why, 0.7, 0.7, 0.7, true)
+		-- Why they are ahead of the others like them, where Who comes first
+		-- put them there. Only ever set for a group member or a passer-by.
+		if current.close == "friend" then
+			GameTooltip:AddLine(L["On your friends list."], 0.7, 0.7, 0.7, true)
+		elseif current.close == "guild" then
+			GameTooltip:AddLine(L["In your guild."], 0.7, 0.7, 0.7, true)
+		end
+		if left then
+			GameTooltip:AddLine(L["Theirs expires in %s."]:format(left), 0.7, 0.7, 0.7, true)
+		end
+		if current.checked and current.known == nil then
+			GameTooltip:AddLine(L["Buff state unreadable on this build -- they may already have it."],
+				1, 0.5, 0.5, true)
+		elseif not current.checked then
+			GameTooltip:AddLine(L["Not checking whether they have it -- set by your options."],
+				0.7, 0.7, 0.7, true)
+		end
+		GameTooltip:AddLine(" ")
+		-- Plain English first; the raw macro only with /manners clicks, below.
+		-- ClickSummary quotes the settled roll.
+		for _, line in ipairs(Prompt:ClickSummary(current)) do
+			GameTooltip:AddLine(line, 0.62, 0.78, 0.62, true)
+		end
+		GameTooltip:AddLine(" ")
+		-- The raw macro is a debugging tool and reads like one, so it goes
+		-- where the other debugging tools are. /manners clicks turns it back
+		-- on.
+		if ns.db.profile.debugClicks and ns.lastMacro then
+			GameTooltip:AddLine(L["Will run:"], 0.5, 0.5, 0.5)
+			for line in ns.lastMacro:gmatch("[^\r\n]+") do
+				GameTooltip:AddLine("  " .. line, 0.4, 0.8, 0.4)
+			end
+			GameTooltip:AddLine(" ")
+		end
+		-- The command goes in as an argument, as it does in PreClick's lines:
+		-- it is typed in English whatever the client's language.
+		GameTooltip:AddLine(L["Click to cast. %s for options."]:format("|cffffd100/manners|r"),
+			0.5, 0.5, 0.5)
+		-- A gesture nobody can discover is not a feature.
+		GameTooltip:AddLine(L["Right-click to skip this one."], 0.5, 0.5, 0.5)
+		-- Somebody already on the list is only here because they are owed, and
+		-- for them the same press lets that favour go.
+		if ns.IsNeverOffered and ns.IsNeverOffered(current.name) then
+			GameTooltip:AddLine(L["Shift-right-click to let this favour go."], 0.5, 0.5, 0.5)
+		else
+			GameTooltip:AddLine(L["Shift-right-click to put them on your never-offer list."], 0.5, 0.5, 0.5)
+		end
+		GameTooltip:Show()
+	end
+
+	local function OnLeave()
+		GameTooltip:Hide()
+	end
+
+	-- Keep the tooltip honest if the entry changes while it is open, checked a
+	-- few times a second.
+	local function OnUpdate(self, elapsed)
+		self.sinceCheck = (self.sinceCheck or 0) + elapsed
+		if self.sinceCheck < 0.2 then return end
+		self.sinceCheck = 0
+		if not GameTooltip:IsOwned(self) then return end
+		if not (current and current.buff) then
+			self.tooltipFor = nil
+			GameTooltip:Hide()
+			return
+		end
+		-- Keyed on everything the tooltip says, not the name alone: the same
+		-- person can move to another buff, become owed, or get a re-rolled
+		-- line.
+		local shown = table.concat({ current.name, current.buff.key, tostring(current.reason),
+			tostring(phraseText), tostring(appliedKey) }, "\1")
+		if self.tooltipFor ~= shown then
+			self.tooltipFor = shown
+			local onEnter = self:GetScript("OnEnter")
+			if onEnter then onEnter(self) end
+		end
+	end
+
+	-- In the order Create() always set them.
+	BUTTON_SCRIPTS = {
+		{ "OnDragStart", OnDragStart },
+		{ "OnDragStop", OnDragStop },
+		{ "PreClick", OnPreClick },
+		{ "PostClick", OnPostClick },
+		{ "OnEnter", OnEnter },
+		{ "OnLeave", OnLeave },
+		{ "OnUpdate", OnUpdate },
+	}
+end
+
 function Prompt:Create()
 	if button then return end
 
@@ -931,139 +1074,9 @@ function Prompt:Create()
 
 	self:BuildAnimations()
 
-	button:SetScript("OnDragStart", function(self)
-		if ns.db.profile.prompt.locked or InCombatLockdown() then return end
-		self:StartMoving()
-		dragging = true
-	end)
-
-	-- Only a drag that started has anything to end: the release arrives for the
-	-- refused ones too. A drag still held when a fight starts was ended then
-	-- (FinishDragForFight), so one released in combat only forgets itself.
-	button:SetScript("OnDragStop", function()
-		if not dragging then return end
-		if InCombatLockdown() then
-			dragging = nil
-			return
-		end
-		FinishDrag()
-	end)
-
-	button:SetScript("PreClick", OnPreClick)
-
-	button:SetScript("PostClick", OnPostClick)
-
-	button:SetScript("OnEnter", function(self)
-		-- Nothing armed is nothing to describe, and a tooltip left from the
-		-- last person goes with it.
-		if not current or not current.buff then
-			if GameTooltip:IsOwned(self) then GameTooltip:Hide() end
-			return
-		end
-		-- In combat the macro is frozen at whoever it held when the fight
-		-- started, and a detailed tooltip about somebody stale is worse than
-		-- none.
-		if InCombatLockdown() then return end
-		GameTooltip:SetOwner(self, "ANCHOR_TOP")
-		GameTooltip:AddLine("Manners")
-		GameTooltip:AddDoubleLine(current.short or current.name, ns.BuffName(current.buff),
-			1, 1, 1, 0.8, 0.8, 0.8)
-		-- A top-up reads as one, and "missing it" only where it was read as
-		-- missing; "Always offer" and unreadable auras get the plain reason.
-		local left = RemainingText(current.remaining)
-		local why
-		if current.reason == "owed" then
-			why = L["Buffed you -- return the favour."]
-		elseif current.reason == "asked" then
-			why = L["Asked you for it in chat."]
-		elseif left then
-			why = current.reason == "group" and L["In your group, and theirs is running out."]
-				or current.reason == "target" and L["Your target, and theirs is running out."]
-				or L["Nearby, and theirs is running out."]
-		elseif current.known == false then
-			why = current.reason == "group" and L["In your group and missing it."]
-				or current.reason == "target" and L["Your target, and missing it."]
-				or L["Nearby and missing it."]
-		else
-			why = current.reason == "group" and L["In your group."]
-				or current.reason == "target" and L["Your target."]
-				or L["Nearby."]
-		end
-		GameTooltip:AddLine(why, 0.7, 0.7, 0.7, true)
-		-- Why they are ahead of the others like them, where Who comes first
-		-- put them there. Only ever set for a group member or a passer-by.
-		if current.close == "friend" then
-			GameTooltip:AddLine(L["On your friends list."], 0.7, 0.7, 0.7, true)
-		elseif current.close == "guild" then
-			GameTooltip:AddLine(L["In your guild."], 0.7, 0.7, 0.7, true)
-		end
-		if left then
-			GameTooltip:AddLine(L["Theirs expires in %s."]:format(left), 0.7, 0.7, 0.7, true)
-		end
-		if current.checked and current.known == nil then
-			GameTooltip:AddLine(L["Buff state unreadable on this build -- they may already have it."],
-				1, 0.5, 0.5, true)
-		elseif not current.checked then
-			GameTooltip:AddLine(L["Not checking whether they have it -- set by your options."],
-				0.7, 0.7, 0.7, true)
-		end
-		GameTooltip:AddLine(" ")
-		-- Plain English first; the raw macro only with /manners clicks, below.
-		-- ClickSummary quotes the settled roll.
-		for _, line in ipairs(Prompt:ClickSummary(current)) do
-			GameTooltip:AddLine(line, 0.62, 0.78, 0.62, true)
-		end
-		GameTooltip:AddLine(" ")
-		-- The raw macro is a debugging tool and reads like one, so it goes
-		-- where the other debugging tools are. /manners clicks turns it back
-		-- on.
-		if ns.db.profile.debugClicks and ns.lastMacro then
-			GameTooltip:AddLine(L["Will run:"], 0.5, 0.5, 0.5)
-			for line in ns.lastMacro:gmatch("[^\r\n]+") do
-				GameTooltip:AddLine("  " .. line, 0.4, 0.8, 0.4)
-			end
-			GameTooltip:AddLine(" ")
-		end
-		-- The command goes in as an argument, as it does in PreClick's lines:
-		-- it is typed in English whatever the client's language.
-		GameTooltip:AddLine(L["Click to cast. %s for options."]:format("|cffffd100/manners|r"),
-			0.5, 0.5, 0.5)
-		-- A gesture nobody can discover is not a feature.
-		GameTooltip:AddLine(L["Right-click to skip this one."], 0.5, 0.5, 0.5)
-		-- Somebody already on the list is only here because they are owed, and
-		-- for them the same press lets that favour go.
-		if ns.IsNeverOffered and ns.IsNeverOffered(current.name) then
-			GameTooltip:AddLine(L["Shift-right-click to let this favour go."], 0.5, 0.5, 0.5)
-		else
-			GameTooltip:AddLine(L["Shift-right-click to put them on your never-offer list."], 0.5, 0.5, 0.5)
-		end
-		GameTooltip:Show()
-	end)
-	button:SetScript("OnLeave", function() GameTooltip:Hide() end)
-
-	-- Keep the tooltip honest if the entry changes while it is open, checked a
-	-- few times a second.
-	button:SetScript("OnUpdate", function(self, elapsed)
-		self.sinceCheck = (self.sinceCheck or 0) + elapsed
-		if self.sinceCheck < 0.2 then return end
-		self.sinceCheck = 0
-		if not GameTooltip:IsOwned(self) then return end
-		if not (current and current.buff) then
-			self.tooltipFor = nil
-			GameTooltip:Hide()
-			return
-		end
-		-- Keyed on everything the tooltip says, not the name alone: the same
-		-- person can move to another buff, become owed, or get a re-rolled
-		-- line.
-		local shown = table.concat({ current.name, current.buff.key, tostring(current.reason),
-			tostring(phraseText), tostring(appliedKey) }, "\1")
-		if self.tooltipFor ~= shown then
-			self.tooltipFor = shown
-			local onEnter = self:GetScript("OnEnter")
-			if onEnter then onEnter(self) end
-		end
-	end)
+	for _, script in ipairs(BUTTON_SCRIPTS) do
+		button:SetScript(script[1], script[2])
+	end
 
 	button:Hide()
 end

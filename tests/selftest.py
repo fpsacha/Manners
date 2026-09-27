@@ -3011,8 +3011,8 @@ mutate("Prompt.lua",
 
 # The reason colours' comment going back to greys they do not have.
 mutate("Prompt.lua",
-       "-- greys: target 0.83, owed 0.79, group 0.56, nearby 0.54.\n",
-       "-- greys: target 0.86, owed 0.78, group 0.63, nearby 0.54.\n",
+       "-- Rec.601 greys: target 0.83, owed 0.79, group 0.56, nearby 0.54.\n",
+       "-- Rec.601 greys: target 0.86, owed 0.78, group 0.63, nearby 0.54.\n",
        "reason colour greys misstated",
        expect="the comment gives grey",
        script="runscenarios.py")
