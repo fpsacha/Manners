@@ -8,7 +8,7 @@ yours.
 [![Wago](https://img.shields.io/badge/Wago-Manners-c1272d)](https://addons.wago.io/addons/rNkgzlNa)
 [![Licence: MIT](https://img.shields.io/badge/licence-MIT-blue)](LICENSE)
 
-<img src=".github/media/screenshot-prompt.png" alt="The prompt: a small panel naming a player, the buff they are missing, and why they are on it" width="640">
+<img src=".github/media/manners-prompt.png" alt="The prompt: a dark panel naming Elowen Thistledown, who buffed you, with a gold glow round the spell icon" width="640">
 
 A priest buffs you in passing. By the time you have picked them out of a dozen
 nameplates, they are gone.
@@ -23,6 +23,8 @@ minute of squinting at names.
 **Languages:** English, German, Spanish (Spain and Mexico), French, Italian,
 Korean, Brazilian Portuguese, Russian, Simplified and Traditional Chinese —
 whichever your client runs in. Slash commands are English in all of them.
+
+<img src=".github/media/manners-languages.png" alt="The prompt and its list in German, Russian and Simplified Chinese" width="640">
 
 ## Installing
 
@@ -151,7 +153,7 @@ and the General tab have it too. It lasts until the time is up or you reload.
 away while you ride. Press the key while either is hiding the prompt and chat
 says which.
 
-<img src=".github/media/screenshot-reasons.png" alt="Four prompts, each a different colour, showing the four reasons somebody appears" width="640">
+<img src=".github/media/manners-reasons.png" alt="Five prompts, each a different colour: your target, somebody who buffed you, somebody who asked in chat, a group member and a passer-by" width="640">
 
 <details>
 <summary><strong>Which buffs each class offers, per client</strong></summary>
@@ -250,6 +252,8 @@ General tab. It keeps the last 200 entries per character; Clear empties the
 list but keeps favours still owed and the all-time counts. It opens in combat
 and never says anything in chat.
 
+<img src=".github/media/manners-ledger.png" alt="The favour ledger: today's count and all-time totals, then rows of favours still owed, returned and let go, and buffs given to the group and to strangers" width="640">
+
 ## The prompt's look
 
 Three looks — glass, framed and minimal — with full colour and font control
@@ -266,6 +270,8 @@ outlines its text so it reads over snow as well as in the dark. *Reason
 colours*, under *Style*, swaps the four reason colours for a colour-blind
 friendly set — pale yellow, orange, sky blue and violet — that stays apart
 under red-green colour blindness.
+
+<img src=".github/media/manners-palette.png" alt="The same prompt and list in the standard reason colours and in the colour-blind friendly set" width="640">
 
 *Effects* on the *Prompt* tab turns all that movement down to *Calm*, and the
 sweep has its own switch under *Icon and queue*. *Stay quiet in combat* keeps
@@ -457,9 +463,12 @@ before any release. See `tests/README.md`.
 ## Listing images
 
 The CurseForge icon and the screenshots are generated, not captured — see
-`tools/README.md`. They read the prompt's real defaults out of `Core.lua` and
-its colours out of `Prompt.lua`, and CI fails if any of those can no longer be
-found, so they cannot advertise a layout the addon does not draw.
+`tools/README.md`. The screenshots are the addon itself, loaded on the mock
+client, put into each scene through its own entry points and drawn by
+`tools/render_prompt.py` and `tools/render_ledger.py`. CI refuses to draw one
+that would show something other than what its caption says — the wrong person
+on the prompt, a line cut short, a translation still in English — so they
+cannot advertise a prompt the addon does not build.
 
 ## Licence
 

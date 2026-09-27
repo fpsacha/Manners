@@ -113,6 +113,13 @@ source. `.github/DESCRIPTION.md` holds the summary-field options.
 The images are generated rather than captured: `python tools/make-icon.py` and
 `python tools/make-screenshots.py`. See `tools/README.md`.
 
+The five screenshots -- `manners-prompt.png`, `manners-reasons.png`,
+`manners-ledger.png`, `manners-languages.png` and `manners-palette.png` in
+`.github/media/` -- go into the CurseForge and Wago galleries by hand; neither
+upload in the release workflow carries images. Their order, titles and
+descriptions are in `.github/DESCRIPTION.md`. When they are regenerated,
+replace the gallery copies too.
+
 ## Moderation
 
 A new CurseForge project is not publicly visible until a moderator approves it,

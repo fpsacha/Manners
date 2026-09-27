@@ -3747,20 +3747,22 @@ mutate("README.md",
        expect="already released",
        script="validate.py")
 
-# The screenshot generator drawing from fallbacks under --strict and exiting 0.
-mutate("tools/make-screenshots.py",
-       "if fallbacks and STRICT:",
-       "if False:",
-       "screenshots drawn from fallbacks in CI",
-       expect="drew with prompt.width missing",
+# The listing images drawn in CI without --strict, so a picture of something
+# the addon no longer builds is written and passes.
+mutate(".github/workflows/ci.yml",
+       "python tools/make-screenshots.py --strict\n",
+       "python tools/make-screenshots.py\n",
+       "listing images drawn without --strict in CI",
+       expect="does not run make-screenshots.py --strict",
        script="validate.py")
 
-# The target colour's fallback back to the green the addon no longer draws.
-mutate("tools/make-screenshots.py",
-       "reason_colour(\"target\", (158, 230, 255))",
-       "reason_colour(\"target\", (140, 235, 153))",
-       "stale target colour in the screenshots",
-       expect="fallback for target",
+# The CI step that shows --strict refusing an emptied translation taken out,
+# so a strict run that can no longer refuse anything goes unnoticed.
+mutate(".github/workflows/ci.yml",
+       "grep -q \"still in English\" refused.txt",
+       "grep -q \"refusing to draw\" refused.txt",
+       "strict refusal no longer shown in CI",
+       expect="no longer shows --strict refusing",
        script="validate.py")
 
 # Your own target's macro frozen for a fight without the hand-back, so tabbing

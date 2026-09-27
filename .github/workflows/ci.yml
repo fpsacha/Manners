@@ -71,7 +71,15 @@ jobs:
         with:
           python-version: '3.12'
 
-      - run: pip install Pillow
+      - run: pip install Pillow numpy lupa
+
+      # The listing images draw a Chinese prompt, and nothing on the runner has
+      # the glyphs for it; make-screenshots.py --strict refuses rather than draw
+      # boxes. DejaVu is named because the renderers fall back to it.
+      - name: Fonts for the listing images
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends fonts-noto-cjk fonts-dejavu-core
 
       # This used to assert the committed icon was byte-identical to what the
       # generator produces here, on the reasoning that the icon is pure
@@ -97,17 +105,41 @@ jobs:
           EOF
           git checkout -- .github/media
 
-      # The screenshots draw text, and the faces they were designed against are
-      # Segoe UI, which is not installed here and is not ours to install. On
-      # this runner fonts.py falls back to DejaVu and the output is legitimately
-      # different, so byte equality is not a check that could ever pass. What is
-      # still worth knowing is that the generator runs at all against Core.lua's
-      # defaults and Prompt.lua's colours. Without --strict a value it cannot
-      # find falls back quietly and the run still exits 0, so a renamed or
-      # restructured setting would pass here; with it, that fails the step.
-      - name: The screenshot generator still runs against current defaults
+      # The listing images are drawn by tools/render_prompt.py and
+      # render_ledger.py from the addon itself, loaded on the mock client, so
+      # they cannot show a layout it no longer builds. Byte equality is still
+      # not available: the faces here are DejaVu and Noto, not the Candara and
+      # Segoe UI they were drawn with. What --strict adds is that a picture
+      # which would show something other than what it claims -- a state the
+      # addon cannot reach, a guarded error, the wrong person or reason on the
+      # prompt, a translation still in English, a script the face cannot draw
+      # -- fails the step instead of being drawn.
+      - name: The listing images still draw from the addon
         run: |
           python tools/make-screenshots.py --strict
-          test -s .github/media/screenshot-prompt.png
-          test -s .github/media/screenshot-reasons.png
+          python - <<'EOF'
+          from PIL import Image
+          for name in ("prompt", "reasons", "ledger", "languages", "palette"):
+              im = Image.open(".github/media/manners-%s.png" % name)
+              assert im.width == 1280 and im.height >= 300, (name, im.size)
+              print("ok", name, im.size)
+          EOF
           git checkout -- .github/media
+
+      # A --strict that can never refuse passes every run, so it is shown
+      # refusing: the same addon with its German emptied must stop the German
+      # picture from being drawn in English, and write nothing at all.
+      - name: A strict run refuses a picture it cannot vouch for
+        run: |
+          stale="$RUNNER_TEMP/stale"
+          mkdir -p "$stale"
+          git archive HEAD | tar -x -C "$stale"
+          echo "-- emptied" > "$stale/Locales/deDE.lua"
+          if python tools/make-screenshots.py --strict --addon "$stale" --out "$stale/out" 2> refused.txt; then
+            echo "::error::make-screenshots.py --strict drew a German picture from an addon with no German"
+            exit 1
+          fi
+          cat refused.txt
+          grep -q "refusing to draw" refused.txt
+          grep -q "still in English" refused.txt
+          test ! -e "$stale/out"
