@@ -30,6 +30,20 @@ end
 -- in step from outside SetupOptions, which runs once and then never again.
 local broker
 
+-- The addon compartment's entry, once RegisterCompartment has made it. Up here
+-- so the minimap switch, built earlier in the file, can ask about it.
+local compartment
+
+-- Whether the compartment is a way in right now: Manners is registered there
+-- and the compartment is on screen. BetterBlizzFrames and EnhanceQoL hide it.
+local function CompartmentShown()
+	local frame = _G.AddonCompartmentFrame
+	if not compartment or type(frame) ~= "table" then return false end
+	if type(frame.IsShown) ~= "function" then return true end
+	local ok, shown = pcall(frame.IsShown, frame)
+	return ok and shown and true or false
+end
+
 -- Asked with a net under it: the tooltip and the launcher text are read by
 -- other addons' display frames, on their own schedule, and one of them asking
 -- before AceDB has handed us a profile must not throw inside somebody else's
@@ -1032,11 +1046,13 @@ local function BuildOptions()
 						name = L["Show minimap button"],
 						order = 21,
 						-- Said where the choice is made, because hiding the button
-						-- loses nothing only on a client that has the compartment.
+						-- loses nothing only while the compartment holds Manners
+						-- and is itself on screen.
 						desc = function()
-							if _G.AddonCompartmentFrame then
+							if CompartmentShown() then
 								return L["Manners stays in the addon compartment under the minimap either way."]
 							end
+							return L["Without it, |cffffd100/manners|r and the AddOns page in the game's options are the way in."]
 						end,
 						-- Gone entirely where the libraries are not: there is no
 						-- button for a greyed-out control to be about.
@@ -1626,14 +1642,16 @@ local function BuildOptions()
 						get = pGet,
 						set = pSet,
 					},
-					-- Which four colours, for somebody the standard four fail.
+					-- Which colours, for somebody the standard set fails.
 					-- Greyed out only where nothing is drawn in the reason
 					-- colours: the list's bars, the glow and the wash of a press
 					-- take the palette whatever the accent says.
 					reasonPalette = {
 						type = "select",
 						name = L["Reason colours"],
-						desc = L["The colour-blind set keeps the four reasons apart for red-green colour blindness: pale yellow, orange, sky blue and violet, which differ in lightness too."],
+						-- Names no hues and counts none, so it stays true whatever
+						-- reasons the prompt gives a colour of their own.
+						desc = L["The colour-blind set keeps every reason apart for red-green colour blindness, in colours that differ in lightness too."],
 						order = 12.2,
 						values = {
 							standard = L["Standard"],
@@ -1999,6 +2017,12 @@ local function BuildOptions()
 						values = function()
 							local list = {}
 							for key in pairs(LSM:HashTable("font")) do list[key] = key end
+							-- The chosen font even when unregistered, as in the sound
+							-- list: koKR, zhCN and zhTW never register the default.
+							local chosen = P().font
+							if type(chosen) == "string" and not list[chosen] then
+								list[chosen] = L["%s |cff808080(not loaded)|r"]:format(chosen)
+							end
 							return list
 						end,
 						get = pGet,
@@ -2788,6 +2812,21 @@ local function FillPromptMenu(parent, fight)
 	end
 end
 
+-- Profile names in alphabetical order in any language: the client's
+-- strcmputf8i folds every script's capitals, where string.lower folds only
+-- A-Z. Core's own copy when it has one, so both lists sort alike.
+local function NameBefore(a, b)
+	if type(ns.NameBefore) == "function" then return ns.NameBefore(a, b) end
+	local fold = _G.strcmputf8i
+	if type(fold) == "function" then
+		local ok, order = pcall(fold, a, b)
+		if ok and type(order) == "number" and order ~= 0 then return order < 0 end
+	end
+	local la, lb = a:lower(), b:lower()
+	if la ~= lb then return la < lb end
+	return a < b
+end
+
 -- AceDB's profiles, when the database can list them and there is a second one
 -- to switch to. Switching changes where the prompt sits and what it is armed
 -- with, so it waits for the fight to end like the lock does.
@@ -2801,7 +2840,7 @@ local function AddProfiles(root, fight)
 			if type(name) == "string" then names[#names + 1] = name end
 		end
 	end)
-	table.sort(names, function(a, b) return a:lower() < b:lower() end)
+	table.sort(names, NameBefore)
 	if not ok or #names < 2 then return end
 	local parent = root:CreateButton(L["Profiles"])
 	for _, name in ipairs(names) do
@@ -2948,7 +2987,6 @@ end
 -- Registered here rather than through the toc's AddonCompartmentFunc fields,
 -- which name global functions, and directly rather than through LibDBIcon's
 -- copy, which only adds a button it is also showing on the minimap.
-local compartment
 local function RegisterCompartment()
 	local frame = _G.AddonCompartmentFrame
 	if compartment or type(frame) ~= "table" or type(frame.RegisterAddon) ~= "function" then

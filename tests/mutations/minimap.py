@@ -157,7 +157,7 @@ mutate("Options.lua",
        expect="the compartment line does not say Manners is off", script=S)
 
 mutate("Options.lua",
-       "\t\t\tif _G.AddonCompartmentFrame then\n",
+       "\t\t\tif CompartmentShown() then\n",
        "\t\t\tif false then\n",
        "minimap: the minimap toggle silent about the compartment",
        expect="Show minimap button does not say Manners stays in the compartment", script=S)
