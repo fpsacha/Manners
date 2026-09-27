@@ -7,14 +7,12 @@ local _, ns = ...
 --
 -- A string with no translation for the client's language comes back as its
 -- own key, so English needs no file of its own and a string added after the
--- last translation pass still reads correctly, in English, rather than as a
--- blank or an error.
+-- last translation pass reads in English rather than as a blank or an error.
 --
--- The locale files after this one each fill the table only when the client
--- runs in their language. They set values and nothing else; tests/validate.py
--- checks that every translation keeps its format specifiers, {tokens} and
--- colour codes in the same order as the English, because a translation that
--- drops a %s throws in string.format at the moment the line is printed.
+-- The locale files after this one fill the table only in their own language,
+-- and set values and nothing else. tests/validate.py checks that every
+-- translation keeps its format specifiers, {tokens} and colour codes in the
+-- English order, because a dropped %s throws in string.format when printed.
 ns.LOCALE = type(GetLocale) == "function" and GetLocale() or "enUS"
 ns.L = setmetatable({}, {
 	__index = function(_, key) return key end,

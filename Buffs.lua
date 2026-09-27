@@ -1,34 +1,29 @@
 -- Manners -- what each class can put on somebody else.
 --
--- Five clients run this addon and they do not agree about a single spell. The
--- tables below are therefore per flavour, and the one the client gets is chosen
--- at the bottom of this file from ns.Flavour -- which is why Flavour.lua is
--- named before this file in every toc.
+-- The clients do not agree about a single spell, so the tables are per
+-- flavour, chosen at the bottom of this file from ns.Flavour (Flavour.lua is
+-- named before this file in every toc).
 --
 -- The fields, which mean the same thing in every set:
 --
 --   ranks     the castable spells, highest first. The macro casts by name, so
---             the game picks the best rank you know; the list is here for aura
---             matching and for "do you know this at all". Ranks were removed
---             game-wide in 4.0.1, so only the vanilla set has more than one.
---   group     every other id that counts as this buff already being there. On
---             vanilla that is the raid-wide version -- a player carrying Gift
---             of the Wild already has Mark of the Wild. On retail it is the
---             thirteen per-class auras Blessing of the Bronze applies, which
---             share no id with the spell that casts them. Either way these are
---             matched exactly as the ranks are: ns.BuildBuffLookups pours both
---             lists into buff.auraIds and every reader walks that.
+--             the game picks the best rank you know; the list is for aura
+--             matching and for "do you know this at all". Only vanilla has
+--             more than one (ranks went game-wide in 4.0.1).
+--   group     every other id that counts as this buff already being there:
+--             the raid-wide version on vanilla, or the thirteen per-class
+--             auras Blessing of the Bronze applies on retail. Matched exactly
+--             as the ranks are, through buff.auraIds.
 --   manaOnly  only worth giving somebody with a mana bar.
 --   partyOnly reaches your party and nobody else.
 --   selfCast  cast on yourself, not on them, so the macro takes no target.
 --   neverAuto offerable, but never what "Automatic" reaches for.
 --
--- Only buffs worth giving a passer-by are listed. Blessing of Freedom and
--- Protection are emergency spells, not courtesies, and are deliberately absent;
--- so is anything that moves somebody -- Slow Fall, Levitate, Water Walking --
--- for the same reason.
+-- Only buffs worth giving a passer-by are listed: emergency spells (Blessing
+-- of Freedom, Protection) and anything that moves somebody (Slow Fall,
+-- Levitate, Water Walking) are deliberately absent.
 
-local ADDON, ns = ...
+local _, ns = ...
 -- Player-facing text, in the client's language: see Locales/Init.lua.
 local L = ns.L
 
@@ -36,10 +31,8 @@ local L = ns.L
 -- vanilla content: Classic Era, Burning Crusade Classic, and WoW Forever
 ---------------------------------------------------------------------------
 
--- This data must not move. Forever is the only client anybody working on this
--- addon can test, it runs vanilla content on a modern engine, and these tables
--- are the ones confirmed working there in game. Everything else in this file
--- was added around them.
+-- This data must not move: these are the tables confirmed working in game on
+-- Forever, the one client anybody here can test.
 
 local VANILLA = {
 	MAGE = {
@@ -138,15 +131,12 @@ local VANILLA = {
 local VANILLA_SET = {
 	name = "vanilla",
 	buffs = VANILLA,
-	-- Classes whose buffs overwrite one another, so a target can only ever
-	-- carry one of yours. Walking the list for these would mean replacing a
-	-- blessing somebody already has, which is worse than doing nothing.
+	-- Classes whose buffs overwrite one another, so a target carries only one
+	-- of yours and walking the list would replace a blessing they have.
 	exclusive = { PALADIN = true },
-	-- Which buff "auto" should reach for. Paladins are the only class where the
-	-- right answer depends on who is standing there.
+	-- Which buff "auto" reaches for, where it depends on who is standing there.
 	auto = { PALADIN = { mana = "wisdom", other = "might" } },
-	-- Classes with nothing to give. Listed explicitly so the options screen can
-	-- say so plainly rather than looking broken.
+	-- Classes with nothing to give, so the options screen can say so plainly.
 	without = {
 		HUNTER = true,
 		ROGUE = true,
@@ -162,19 +152,14 @@ local VANILLA_SET = {
 -- Mists of Pandaria Classic
 ---------------------------------------------------------------------------
 
--- 5.0.4 consolidated the buffs: the raid-wide versions were folded into the
--- single-target spells, the duplicates within a class were deleted outright
--- (Divine Spirit, Shadow Protection, Thorns, the lesser Blessings), and ranks
--- had already gone in 4.0.1. So every list here is one id long.
+-- 5.0.4 folded the raid-wide versions into the single-target spells and
+-- deleted the duplicates within a class, so every list here is one id long.
 --
--- One thing about this set is NOT established, and pretending otherwise would
--- be the expensive kind of quiet: 5.0.4 also made these buffs apply to the
--- whole party or raid at once, and whether the cast still reaches a friendly
--- player who is in neither has not been verified on a live Mists client by
--- anybody here. If it does not, every entry below wants partyOnly and this
--- addon has nothing to offer a stranger on Mists. The honest failure is the
--- cheap one -- a buff cast that lands on the caster's own group instead of the
--- passer-by -- so they are listed as targetable until somebody can say.
+-- NOT established: 5.0.4 also made these buffs apply to the whole party or
+-- raid at once, and whether the cast still reaches a stranger has not been
+-- verified on a live Mists client. If it does not, every entry wants
+-- partyOnly. Listed as targetable until somebody can say, because that
+-- failure is the cheap one (the cast lands on the caster's own group).
 local MISTS = {
 	MAGE = {
 		{
@@ -204,9 +189,8 @@ local MISTS = {
 		{ key = "might", ranks = { 19740 } },
 	},
 
-	-- A class this file has never had. The two Legacies are different buff
-	-- categories -- 5% stats and 5% crit -- so a monk gives both rather than
-	-- choosing, which is why MONK is deliberately absent from `exclusive`.
+	-- The two Legacies are different buff categories (5% stats, 5% crit), so
+	-- a monk gives both, and MONK is deliberately absent from `exclusive`.
 	MONK = {
 		{ key = "emperor", ranks = { 115921 } },    -- Legacy of the Emperor
 		{ key = "whitetiger", ranks = { 116781 } }, -- Legacy of the White Tiger
@@ -223,12 +207,9 @@ local MISTS = {
 		{ key = "battleshout", ranks = { 6673 }, selfCast = true, partyOnly = true },
 	},
 
-	-- Horn of Winter is the death knight's Battle Shout and is here for the
-	-- same reason that is: no target, party only, and the one courteous thing
-	-- the class can offer back. It is the only entry in this file that the
-	-- round's research did not name -- it was listed by omission, as a class
-	-- retail is said to have "removed" -- so it is the first thing to check if
-	-- a Mists death knight reports the wrong spell.
+	-- Horn of Winter is the death knight's Battle Shout: no target, party
+	-- only. Its id is the least certain in this file, so it is the first thing
+	-- to check if a Mists death knight reports the wrong spell.
 	DEATHKNIGHT = {
 		{ key = "hornofwinter", ranks = { 57330 }, selfCast = true, partyOnly = true },
 	},
@@ -240,9 +221,8 @@ local MISTS_SET = {
 	-- Still one blessing per paladin in 5.5, so the walk would take away what
 	-- the last click gave.
 	exclusive = { PALADIN = true },
-	-- Nothing here depends on who is standing there any more: Blessing of
-	-- Wisdom is gone, and Kings suits everybody. An empty table rather than a
-	-- missing one, so ns.CLASS_AUTO is a table on every client.
+	-- Nothing depends on who is standing there (Wisdom is gone, Kings suits
+	-- everybody). An empty table, so ns.CLASS_AUTO is a table on every client.
 	auto = {},
 	without = {
 		HUNTER = true,
@@ -255,20 +235,16 @@ local MISTS_SET = {
 -- retail: Midnight 12.1
 ---------------------------------------------------------------------------
 
--- Five class buffs are left in the game, one per class, each an hour long and
--- each castable on somebody who is not in your group. Three classes that used
--- to be the backbone of this addon now have nothing at all: the Blessings died
--- in 7.0.3 and Blessing of the Seasons in 12.0.0, and Horn of Winter went in
--- 11.2.0. They are named in `without` so the options page can say so.
+-- Five class buffs are left, one per class, each an hour long and castable on
+-- somebody outside your group. Paladins and death knights have nothing left,
+-- and are named in `without` so the options page can say so.
 local MAINLINE = {
 	MAGE = {
 		{
 			key = "intellect",
 			ranks = { 1459 },
-			-- Not manaOnly here. Arcane Intellect is intellect and a mana
-			-- pool's worth of nothing to a rogue on vanilla, but on retail it
-			-- is one of five raid buffs everybody carries, and filtering it by
-			-- who has a mana bar would silently skip most of the game.
+			-- Not manaOnly here: on retail it is one of five raid buffs
+			-- everybody carries, whether or not they have a mana bar.
 		},
 	},
 
@@ -289,24 +265,18 @@ local MAINLINE = {
 		{
 			key = "bronze",
 			ranks = { 364342 },
-			-- The thirteen auras one cast can apply, one per class. The spell
-			-- that casts it shares an id with none of them, so without this
-			-- list a target carrying the buff reads as missing it and every
-			-- evoker in the game rebuffs the same person forever. All thirteen
-			-- are here rather than a guess about which maps to which class:
-			-- matching the wrong one is the same silence as matching none.
+			-- The thirteen auras one cast can apply, one per class, none
+			-- sharing the cast's id: without them a buffed target reads as
+			-- missing it. All thirteen, rather than a guess at the mapping.
 			group = {
 				381732, 381741, 381746, 381748, 381749, 381750, 381751,
 				381752, 381753, 381754, 381756, 381757, 381758,
 			},
 		},
 		{
-			-- Talent-gated, so it is gated on `known` like every other spell in
-			-- this file rather than on the class: the probe asks the client
-			-- whether this character has it, and an evoker who has not taken it
-			-- simply never offers it. Second in the list on purpose -- only one
-			-- ally can carry it, so Automatic must reach for the Blessing first
-			-- and never pull this off somebody's healer.
+			-- Talent-gated, so gated on `known` like every spell here: an
+			-- evoker without it never offers it. Second on purpose -- only one
+			-- ally can carry it, so Automatic reaches for the Blessing first.
 			key = "sourceofmagic",
 			ranks = { 369459 },
 			manaOnly = true,
@@ -321,8 +291,7 @@ local MAINLINE = {
 local MAINLINE_SET = {
 	name = "mainline",
 	buffs = MAINLINE,
-	-- Nothing overwrites anything any more, and nothing depends on who is
-	-- standing there.
+	-- Nothing overwrites anything, and nothing depends on who is there.
 	exclusive = {},
 	auto = {},
 	without = {
@@ -344,27 +313,22 @@ local SETS = {
 	vanilla = VANILLA_SET,
 	tbc = VANILLA_SET,
 	-- Forever runs vanilla content, and the vanilla tables are the ones
-	-- verified there in game. This line is the whole reason the flavour
-	-- detector tries the 16xxx band before the 11xxx one.
+	-- verified there in game.
 	camelot = VANILLA_SET,
 	mists = MISTS_SET,
 	mainline = MAINLINE_SET,
 }
 
--- A client whose interface number matched no band still has somebody sitting in
--- front of it. Flavour.lua always leaves a family behind -- that is its job --
--- so an unrecognised client is handed the set for the family it was classified
--- into rather than nothing at all. It is a guess, and ns.BUFFS_SOURCE says so
--- in /manners debug so a bug report from that client is readable.
+-- A client whose interface number matched no band gets the set for the family
+-- Flavour.lua classified it into. It is a guess, and ns.BUFFS_SOURCE says so
+-- in /manners debug.
 local BY_FAMILY = { classic = VANILLA_SET, modern = MAINLINE_SET }
 
 local function ChooseSet()
 	local flavour = ns.Flavour
 	if type(flavour) ~= "table" then
-		-- Flavour.lua is named before this file in every toc and validate.py
-		-- fails a build whose toc lost it, so this is not reachable from a
-		-- release. It is reachable from a hand-assembled addon folder, and the
-		-- complaint below is the only thing that would ever say so.
+		-- Unreachable from a release (validate.py checks the toc), but not
+		-- from a hand-assembled addon folder.
 		return nil, L["Flavour.lua did not load, so there is nothing to choose from"]
 	end
 
@@ -401,21 +365,11 @@ end
 ns.ALL_BUFF_IDS = {}
 ns.BUFF_BY_ID = {}
 
--- A function rather than a bare loop at file scope, for one reason: so the
--- case where there is no table to walk has somewhere to be reported from.
---
--- ipairs over nil throws, and a file that throws while loading does not leave a
--- broken addon behind -- it leaves no addon at all. No frame, no slash command,
--- no error anybody without script errors turned on will ever see. From the
--- user's side that is indistinguishable from never having installed it, and
--- the bug report is "it does nothing", which is the least actionable sentence
--- in this project's history.
---
--- Reachable now that the data is split: a client that matches no flavour and no
--- family gets nil. The three tables beside ns.BUFFS are defended the same way
--- and for the same reason -- Core.lua indexes ns.EXCLUSIVE_BUFFS and
--- ns.CLASS_AUTO without asking, and the options page indexes
--- ns.CLASSES_WITHOUT_BUFFS, so a nil there throws somewhere unrelated.
+-- A function rather than a bare loop, so a client with no table to walk (no
+-- flavour and no family matched) is reported rather than thrown on: a file
+-- that throws while loading leaves no addon at all, silently. The three tables
+-- beside ns.BUFFS are defaulted for the same reason, since Core.lua and the
+-- options page index them without asking.
 function ns.BuildBuffLookups()
 	wipe(ns.ALL_BUFF_IDS)
 	wipe(ns.BUFF_BY_ID)
@@ -428,9 +382,8 @@ function ns.BuildBuffLookups()
 		ns.BUFFS = {}
 		ns.BUFFS_MISSING = L["no buff data for this client -- %s"]:format(
 			(ns.FlavourSummary and ns.FlavourSummary()) or L["flavour unknown"])
-		-- Said out loud here as well as from /manners debug. This runs during
-		-- load, before the addon has a Print of its own, and a user who never
-		-- opens the options screen would otherwise be told nothing at all.
+		-- Printed here too: this runs during load, before the addon has a
+		-- Print of its own, and not every user opens /manners debug.
 		if type(print) == "function" then
 			print("|cffff4040Manners:|r " .. L["%s -- nobody will be offered a buff. Please report this, with the output of /manners debug."]:format(ns.BUFFS_MISSING))
 		end
