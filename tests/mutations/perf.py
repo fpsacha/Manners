@@ -94,17 +94,20 @@ mutate("Core.lua",
        expect="an old reading of somebody's buffs is replaced by a new one",
        script="runscenarios.py")
 
-# Forty more file-level locals in Core.lua, which still loads but leaves too
-# little room for the next fix. Core.lua has 48 free as this is written (the
-# do-blocks in its second half); if later work frees more than eight, this has
-# to add more to stay caught.
+# Forty-five more file-level locals in Core.lua, which still loads but leaves
+# too little room for the next fix. Core.lua has 48 free as this is written (the
+# do-blocks in its second half), so this leaves 3 against validate's floor of
+# 10: if later work frees seven or more, this has to add more to stay caught.
+# It cannot add 49 or more, because Core.lua then fails to compile and the
+# headroom check has nothing to count.
 mutate("Core.lua",
        "local PRIORITY = { target = 0, owed = 1, asked = 1.5, group = 2, nearby = 3 }\n",
        "local PRIORITY = { target = 0, owed = 1, asked = 1.5, group = 2, nearby = 3 }\n"
        "local m1, m2, m3, m4, m5, m6, m7, m8, m9, m10\n"
        "local m11, m12, m13, m14, m15, m16, m17, m18, m19, m20\n"
        "local m21, m22, m23, m24, m25, m26, m27, m28, m29, m30\n"
-       "local m31, m32, m33, m34, m35, m36, m37, m38, m39, m40\n",
-       "Core.lua's main chunk forty locals fuller",
+       "local m31, m32, m33, m34, m35, m36, m37, m38, m39, m40\n"
+       "local m41, m42, m43, m44, m45\n",
+       "Core.lua's main chunk forty-five locals fuller",
        expect="TOO FULL  Core.lua",
        script="validate.py")
