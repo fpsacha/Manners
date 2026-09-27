@@ -34,12 +34,28 @@ mutate("Phrases.lua",
        expect="rp: reasons pick their own lines",
        script="runscenarios.py")
 
-# A group member hears none of their people's offers.
+# A group member of a people with no group lines hears none of its offers.
 mutate("Phrases.lua",
        '\t\treturn tbl[kind] or (kind == "group" and tbl.offer) or nil\n',
        "\t\treturn tbl[kind]\n",
        "no race lines in a group",
        expect="rp: reasons pick their own lines",
+       script="runscenarios.py")
+
+# A group member hears the people's offers to a stranger, not its group lines.
+mutate("Phrases.lua",
+       "\t\tlocal own = race and race[kind]\n",
+       '\t\tlocal own = race and race[kind == "group" and "offer" or kind]\n',
+       "rp people's group lines never heard",
+       expect="rp: reasons pick their own lines",
+       script="runscenarios.py")
+
+# ...and a people without them offers to its group at full weight.
+mutate("Phrases.lua",
+       '\t\t\tadd(PoolFor(race, kind), weight.race / 2, "race")\n',
+       '\t\t\tadd(PoolFor(race, kind), weight.race, "race")\n',
+       "rp offers to a group at full weight",
+       expect="rp: pools are weighed as documented",
        script="runscenarios.py")
 
 # The friendlier group lines never said.
@@ -60,8 +76,8 @@ mutate("Phrases.lua",
 
 # A people's own lines weighed no more than anybody's.
 mutate("Phrases.lua",
-       "\trace = 8, kin = 8,",
-       "\trace = 1, kin = 8,",
+       "\trace = 7, kin = 6,",
+       "\trace = 1, kin = 6,",
        "race lines not weighted highest",
        expect="rp: a dwarf of the Alliance thanks like one",
        script="runscenarios.py")
@@ -332,12 +348,20 @@ mutate("Phrases.lua",
        expect="rp: lines for where you are",
        script="runscenarios.py")
 
-# A battleground read as the wilds.
+# A scenario read as the wilds.
 mutate("Phrases.lua",
-       '\t\t\tif what == "party" or what == "raid" then return "instance" end\n'
+       '\t\t\tif what == "pvp" or what == "arena" then return "battle" end\n'
        "\t\t\treturn nil\n",
-       '\t\t\tif what == "party" or what == "raid" then return "instance" end\n',
-       "rp a battleground is the wilds",
+       '\t\t\tif what == "pvp" or what == "arena" then return "battle" end\n',
+       "rp a scenario is the wilds",
+       expect="rp: lines for where you are",
+       script="runscenarios.py")
+
+# An arena not taken for a battlefield.
+mutate("Phrases.lua",
+       '\t\t\tif what == "pvp" or what == "arena" then return "battle" end\n',
+       '\t\t\tif what == "pvp" then return "battle" end\n',
+       "rp an arena is no battlefield",
        expect="rp: lines for where you are",
        script="runscenarios.py")
 
@@ -374,7 +398,7 @@ mutate("Phrases.lua",
 
 # Nothing said about the hour.
 mutate("Phrases.lua",
-       '\t\tadd(RP.TIME[RP.Hour()], weight.time, "time")\n',
+       '\t\tadd(RP.TIME[hour], weight.time, "time")\n',
        "",
        "rp no time lines",
        expect="rp: lines for the hour",
@@ -382,9 +406,17 @@ mutate("Phrases.lua",
 
 # Nothing said about the class being helped.
 mutate("Phrases.lua",
-       '\t\tadd(RP.TARGET[RP.Target(entry, class)], weight.target, "target")\n',
+       '\t\tadd(helped == "sameclass" and RP.SAME[class] or RP.TARGET[helped], weight.target, "target")\n',
        "",
        "rp no target lines",
+       expect="rp: lines for the class being helped",
+       script="runscenarios.py")
+
+# Two mages meeting hear what any two of a kind would.
+mutate("Phrases.lua",
+       '\t\tadd(helped == "sameclass" and RP.SAME[class] or RP.TARGET[helped], weight.target, "target")\n',
+       '\t\tadd(RP.TARGET[helped], weight.target, "target")\n',
+       "rp same class not by class",
        expect="rp: lines for the class being helped",
        script="runscenarios.py")
 
@@ -492,4 +524,53 @@ mutate("Phrases.lua",
        "\tEVOKR = {\n",
        "rp target lines misfiled",
        expect="rp: every moment the set knows has lines",
+       script="runscenarios.py")
+
+# ------------------------------------------- the gift, the hour, the memory
+
+# Nothing said about what the gift does.
+mutate("Phrases.lua",
+       '\t\tif gift then add(RP.GIFT[RP.GiftKey(entry)], weight.gift, "trade") end\n',
+       "",
+       "rp no gift lines",
+       expect="rp: a favour is thanked for by the spell it was",
+       script="runscenarios.py")
+
+# The gift's key never found from the debt's spell.
+mutate("Phrases.lua",
+       '\t\t\tkey = type(buff) == "table" and buff.key or nil\n',
+       "\t\t\tkey = nil\n",
+       "rp gift key never found",
+       expect="rp: a favour is thanked for by the spell it was",
+       script="runscenarios.py")
+
+# A people's own hour never heard.
+mutate("Phrases.lua",
+       '\t\tadd(race and hour and race[hour], weight.hour, "hour")\n',
+       "",
+       "rp no people's hour",
+       expect="rp: a people's own hour",
+       script="runscenarios.py")
+
+# No memory: the same line twice in a row.
+mutate("Phrases.lua",
+       "\t\t\t\tif latelyCount[texts[i]] then weights[i] = 0 end\n",
+       "",
+       "rp lines repeat",
+       expect="rp: no line twice in a row",
+       script="runscenarios.py")
+
+mutate("Phrases.lua",
+       "\t\tRemember(texts[chosen])\n",
+       "",
+       "rp nothing remembered",
+       expect="rp: no line twice in a row",
+       script="runscenarios.py")
+
+# The memory silences the set once everything that fits was said lately.
+mutate("Phrases.lua",
+       "\t\tif fresh > 0 and fresh < total then\n",
+       "\t\tif fresh < total then\n",
+       "rp memory silences",
+       expect="rp: no line twice in a row",
        script="runscenarios.py")
