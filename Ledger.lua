@@ -804,6 +804,19 @@ function Ledger.Clear()
 	Changed()
 end
 
+-- Whether Clear would take anything: a row other than a favour still owed, or
+-- a count of buffs given today. The window hides Clear when not, so its
+-- warning about losing entries is never raised over a list it cannot change.
+-- Every tab at once, because Clear empties every tab.
+function Ledger.Clearable()
+	local s = Store()
+	if not s then return false end
+	for _, e in ipairs(s.entries) do
+		if not (e.kind == "received" and e.state == "owed") then return true end
+	end
+	return s.today ~= nil and (s.today.given or 0) > 0
+end
+
 ---------------------------------------------------------------------------
 -- reading it back
 ---------------------------------------------------------------------------
@@ -952,12 +965,15 @@ local LOGO = "Interface\\AddOns\\Manners\\Textures\\Manners64"
 -- hundred units tall; the wheel does the rest.
 --
 -- Every string here is hung by two points on the same edge -- TOPLEFT and
--- TOPRIGHT, never TOPLEFT and RIGHT. An edge and a centre on one axis make the
--- client size the string from the distance between them, and the first window
--- was built that way: its headline was drawn in the middle of the list and
--- every row's name on top of the line under it (tools/render_ledger.py shows
--- both, and a scenario in tests/scenarios/ledgerui.lua keeps it from coming
--- back).
+-- TOPRIGHT, never TOPLEFT and RIGHT. With an edge and a centre on one axis the
+-- client could take the string's height from its text or from the distance
+-- between the two points, and which one it does is not settled: the prompt
+-- and addons known to work on this client use that pairing without trouble,
+-- which points to the text, but nobody has checked. Two points on one edge put
+-- the string in the same place under either reading, so the window avoids the
+-- question on purpose, and a scenario in tests/scenarios/ledgerui.lua keeps
+-- it that way. tools/render_ledger.py draws the pairing by the other reading,
+-- so a string that leans on it stands out in the pictures.
 local WIDTH, HEIGHT = 360, 456
 local PAD = 12
 local ROWS = 7
@@ -1426,6 +1442,12 @@ function Render()
 	local ordinary = text == TEXT.EMPTY_ALL or text == TEXT.EMPTY_FAVOURS or text == TEXT.EMPTY_GIVEN
 	local c = ordinary and INK_SOFT or COLOUR.owed
 	window.empty:SetTextColor(c[1], c[2], c[3])
+
+	-- Clear only while there is something for it to take, and put back to its
+	-- first press when it goes, so it never comes back already armed.
+	local clearable = Ledger.Clearable()
+	if not clearable and clearArmedUntil then DisarmClear() end
+	window.clear:SetShown(clearable)
 
 	-- The scroll bar: a thumb the share of the track the rows on screen are of
 	-- the whole list, only when there is more than one screen of it.

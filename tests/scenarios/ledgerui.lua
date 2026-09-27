@@ -1,15 +1,19 @@
 -- The ledger window as it is drawn: where everything sits, whether it fits,
 -- what an empty list shows, and what each tab lists.
 --
--- The window was built without anybody seeing it, and its first layout hung
--- the headline and every row's name by an edge and a centre on the same axis
--- (TOPLEFT and RIGHT). The client sizes such a string from the distance
--- between the two, so the headline was drawn in the middle of the list and each
--- name on top of the line under it -- and against the mock, which draws
--- nothing, every scenario passed. These run on the recording CreateFrame in
--- tests/frametree.lua and work the layout out the way the client does, so a
--- string in the wrong place is a string in the wrong place here too.
--- tools/render_ledger.py draws the same thing as pictures.
+-- The window was built without anybody seeing it, and against the mock, which
+-- draws nothing, a string in the wrong place passes every other scenario.
+-- These run on the recording CreateFrame in tests/frametree.lua and work the
+-- layout out from the anchors, so overlap, overflow and a missing empty state
+-- show up here. tools/render_ledger.py draws the same thing as pictures.
+--
+-- One case is not settled: a region hung by an edge and a centre on the same
+-- axis (TOPLEFT and RIGHT). The client may take its height from its text or
+-- from the distance between the two points, and nobody has looked; the prompt
+-- and addons known to work on this client use the pairing, which points to
+-- the text. The window's first layout used it for the headline and the row
+-- names. The window now avoids it, and the layout here takes the other
+-- reading, so a string that leaned on it would be caught under either one.
 
 local dir, H = ...
 local fail, load, drive = H.fail, H.load, H.drive
@@ -124,9 +128,10 @@ local function open(ns, tab)
 end
 
 -- ---------------------------------------------------------------- layout
--- Where a region sits, worked out from its anchors the way the client does:
--- two edges on an axis give its extent, one edge and a size the rest, and one
--- edge and a centre make it twice as long as the distance between them. A font
+-- Where a region sits, worked out from its anchors: two edges on an axis give
+-- its extent, one edge and a size the rest, and one edge and a centre make it
+-- twice as long as the distance between them -- the unsettled reading (see the
+-- top of this file), taken so that leaning on it shows as overlap. A font
 -- string with nothing else to size it is as wide as its text and as tall as
 -- its lines.
 
@@ -256,8 +261,9 @@ local LOCALES = { "enUS", "deDE", "ruRU" }
 
 -- ------------------------------------------------------------------ ledgerui 1
 -- Every string and plate on the window is hung by edges, never by an edge and
--- a centre on the same axis. The first window was, and in the client its
--- headline sat in the middle of the list and every name on the line under it.
+-- a centre on the same axis: where the client puts such a string is not
+-- settled (see the top of this file), and two points on one edge put it in the
+-- same place whichever way the client reads them.
 for _, locale in ipairs(LOCALES) do
 	local scenario = "ledgerui: the window is hung by edges, never an edge and a centre (" .. locale .. ")"
 	withWindow(scenario, locale, function(ns)
@@ -271,8 +277,8 @@ for _, locale in ipairs(LOCALES) do
 			local axis = mixedAxis(r)
 			if axis then
 				local what = r._kind == "FontString" and ("the string " .. say(r)) or ("a " .. tostring(r._kind))
-				fail(scenario, ("%s is hung by an edge and a centre on the %s axis, which the client"
-					.. " sizes from the distance between them"):format(what, axis))
+				fail(scenario, ("%s is hung by an edge and a centre on the %s axis, whose size in"
+					.. " the client is not settled; hang it by two points on one edge"):format(what, axis))
 			end
 		end
 	end)
@@ -581,6 +587,48 @@ do
 			fail(scenario, "SKIPPED -- the gifts tab does not show a gift of each kind")
 		elseif colours.group == colours.stranger then
 			fail(scenario, "a gift to the group and one to a stranger are badged in the same colour")
+		end
+	end)
+end
+
+-- ------------------------------------------------------------------ ledgerui 6
+-- Clear shows only while it has something to take. On an empty ledger, or one
+-- holding nothing but favours still owed, which Clear keeps, its first press
+-- would warn about losing entries over a list it cannot change. It comes back
+-- with the first row it could take, and not already armed from before.
+do
+	local scenario = "ledgerui: Clear shows only when there is something to clear"
+	withWindow(scenario, "enUS", function(ns)
+		local T = ns.Ledger.TEXT
+		local window = open(ns, "all")
+		if not (window and window:IsShown()) then
+			fail(scenario, "SKIPPED -- /manners ledger did not open the window")
+			return
+		end
+		if shown(window.clear) then fail(scenario, "Clear shows on an empty ledger") end
+
+		ns.Ledger.Received({ name = "Anna Aim", class = "PRIEST", key = 21562 })
+		if shown(window.clear) then
+			fail(scenario, "Clear shows with only a favour still owed, which it would keep")
+		end
+
+		ns.Ledger.Settled("Gwen Hollow", nil, { inGroup = true, class = "PRIEST" }, 1459)
+		if not shown(window.clear) then
+			fail(scenario, "Clear is hidden with a buff given in the list")
+		end
+
+		-- Armed, then emptied from elsewhere: it hides, and comes back unarmed.
+		window.clear.scripts.OnClick(window.clear)
+		if window.clear.label:GetText() ~= T.CLEAR_ARMED then
+			fail(scenario, "SKIPPED -- the first press of Clear did not arm it")
+		end
+		ns.Ledger.Clear()
+		if shown(window.clear) then fail(scenario, "Clear still shows once the list is cleared") end
+		ns.Ledger.Settled("Gwen Hollow", nil, { inGroup = true, class = "PRIEST" }, 1459)
+		if not shown(window.clear) then
+			fail(scenario, "Clear does not come back with a new buff given")
+		elseif window.clear.label:GetText() ~= T.CLEAR then
+			fail(scenario, "Clear comes back still armed: " .. say(window.clear.label))
 		end
 	end)
 end

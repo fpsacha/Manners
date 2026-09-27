@@ -122,8 +122,12 @@ python tools/render_ledger.py --compare before after compare.png
 ```
 
 Where a region is hung by an edge and a centre on one axis, this one sizes it
-from both, as the client does, rather than drawing it from the edge -- that is
-how the first ledger window's misplaced headline and rows showed up.
+from both points rather than drawing it from the edge. That is the reading
+`render_prompt.py` leaves open, and it is not known to be the client's: the
+prompt and addons known to work on this client use the pairing without
+trouble. It is taken on purpose, so that a ledger string leaning on the
+unsettled case shows as out of place; the window hangs every string by two
+points on one edge, which lands the same either way.
 
 ## make-glow.py
 

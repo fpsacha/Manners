@@ -6,8 +6,10 @@
 
 S = "runscenarios.py"
 
-# Hung by an edge and a centre: the first window's bug, which put the headline
-# in the middle of the list and each name over the line under it.
+# Hung by an edge and a centre, as the first window was: where the client puts
+# such a string is not settled, so the window avoids the pairing on purpose,
+# and a string that leans on it must be caught whichever reading the client
+# turns out to use.
 mutate("Ledger.lua",
        "\trow.name:SetPoint(\"TOPRIGHT\", row.when, \"TOPLEFT\", -8, 1)\n",
        "\trow.name:SetPoint(\"RIGHT\", row, \"RIGHT\", -70, 0)\n",
@@ -78,3 +80,20 @@ mutate("Ledger.lua",
        "\tstranger = { 0.34, 0.60, 0.96 },\n",
        "ledgerui: strangers badged as the group",
        expect="ledgerui: each tab lists its own rows", script=S)
+
+# Clear only while it has something to take, and never back already armed.
+mutate("Ledger.lua",
+       "\twindow.clear:SetShown(clearable)\n",
+       "",
+       "ledgerui: Clear shown over an empty list",
+       expect="ledgerui: Clear shows only when there is something to clear", script=S)
+mutate("Ledger.lua",
+       "\tif not clearable and clearArmedUntil then DisarmClear() end\n",
+       "",
+       "ledgerui: Clear comes back armed",
+       expect="ledgerui: Clear shows only when there is something to clear", script=S)
+mutate("Ledger.lua",
+       "\t\tif not (e.kind == \"received\" and e.state == \"owed\") then return true end\n",
+       "\t\treturn true\n",
+       "ledgerui: Clear offered over favours it would keep",
+       expect="ledgerui: Clear shows only when there is something to clear", script=S)

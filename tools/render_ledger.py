@@ -57,12 +57,15 @@ rp.SPELL_ICONS.update({
 
 
 class Tree(rp.Tree):
-    """render_prompt's layout, with one rule the ledger needs settled: a
-    region given one edge and a centre on the same axis -- TOPLEFT and RIGHT,
-    say -- is as tall as twice the distance between them, as the client works
-    it out, and not drawn from the edge alone. render_prompt draws from the
-    edge and says so; the first ledger hung every row's name that way, and its
-    text sat in the middle of the row, on top of the line under it."""
+    """render_prompt's layout, with the other reading of the one case it
+    leaves open: a region given one edge and a centre on the same axis --
+    TOPLEFT and RIGHT, say -- is drawn as long as twice the distance between
+    them, not from the edge and its text. Which the client does is not
+    settled; the prompt and addons known to work on this client use the
+    pairing without trouble, which points to render_prompt's reading. This one
+    is taken on purpose so that a ledger string leaning on the unsettled case
+    shows up as out of place; the window hangs every string by two points on
+    one edge, which lands the same under both readings."""
 
     def __init__(self, snap):
         super().__init__(snap)
@@ -333,10 +336,14 @@ def render(addon_dir, out_dir, keys=None, locales=None, label=""):
             rp.sheet(tiles, 4, heading="Manners ledger -- %s%s" % (loc, " -- " + label if label else "")
                      ).save(os.path.join(out_dir, "sheet-%s.png" % loc))
     for n in rp.notes:
-        # This renderer settles the edge-and-centre case (see Tree above), so
-        # render_prompt's note that it drew those from the edge is not true here.
+        # This renderer takes the other reading of the edge-and-centre case
+        # (see Tree above), so render_prompt's note that it drew those from the
+        # edge is not true here. The prompt's own strings can land in this list
+        # because the whole addon is loaded; they are drawn the other way here,
+        # not shown to be wrong.
         if "edge and a centre" in n:
-            n = n.replace("drawn from the edge", "sized from both, as the client does")
+            n = n.replace("drawn from the edge",
+                          "sized from both points here, a reading the client is not known to use")
         print("  note: " + n)
 
 
