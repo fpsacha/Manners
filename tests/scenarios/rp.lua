@@ -574,10 +574,20 @@ do
 		long.targetName = ns.TargetName(long.name)
 		long.unit = "nameplate1"
 		long.reason = "owed"
+		-- The longest name any buff on any client has, standing in for the
+		-- spell going out -- the /cast line grows with it, so the room shrinks
+		-- -- and for what they gave.
+		local gift = "Legacy of the White Tiger"
+		for _, buffs in pairs(ns.BUFFS or {}) do
+			for _, buff in ipairs(buffs) do
+				local named = ns.BuffName(buff)
+				if type(named) == "string" and #named > #gift then gift = named end
+			end
+		end
+		local realName = ns.BuffName
+		ns.BuffName = function() return gift end
 		local budget = ns.PhraseBudget(long)
 		local spell = ns.BuffName(long.buff)
-		-- The longest name any buff here has, standing in for what they gave.
-		local gift = "Legacy of the White Tiger"
 		for _, text in ipairs(everyLine(RP)) do
 			local said = ns.Swap(ns.Swap(ns.Swap(text, "{name}", long.short), "{buff}", spell), "{gift}", gift)
 			if #("/emote " .. said) > budget then
@@ -616,13 +626,20 @@ do
 				end
 			end
 		end
+		ns.BuffName = realName
 		noErrors(scenario, ns)
 	end)
 end
 
 -- ------------------------------------------------------------------ rp-11
 -- What players will read: short, safe in a macro, in character, not doubled
--- up, and every pool of the moment holding more than one line.
+-- up -- not even as the same words punctuated differently -- and every pool
+-- of the moment holding more than one line, bar the classes helped, where one
+-- line is allowed and heard a third as often.
+--
+-- Doubled lines are looked for in the file as well as in the pools, so a line
+-- pasted into a table the engine never reads is caught too. RP.LEGACY is left
+-- out: it repeats beta.9's lines on purpose.
 do
 	local scenario = "rp: the lines are short and safe in a macro"
 	with(scenario, "Alliance", nil, function()
@@ -630,17 +647,23 @@ do
 		if not ns then return end
 		local RP = ns.InCharacter
 		local lines = everyLine(RP)
-		if #lines < 250 then
+		if #lines < 800 then
 			fail(scenario, #lines .. " lines in all, fewer than the set was written with")
 		end
 		local trade = {}
 		for _, text in ipairs(RP.TRADE) do trade[text] = true end
-		local seen = {}
+		local seen, words = {}, {}
 		for _, text in ipairs(lines) do
-			-- A twelve-letter name and a long spell, given and returned.
+			-- A twelve-letter name and a long spell, given and returned: one
+			-- breath, as the lines were written to.
 			local said = text:gsub("{name}", "Bartholomewz"):gsub("{buff}", "Power Word: Fortitude")
 				:gsub("{gift}", "Power Word: Fortitude")
-			if #said > 90 then fail(scenario, #said .. " characters: " .. said) end
+			if #said > 85 then fail(scenario, #said .. " characters: " .. said) end
+			local bareWords = text:gsub("{%a+}", ""):lower():gsub("[^%a]", "")
+			if words[bareWords] and not seen[text] then
+				fail(scenario, "written twice in other words: |" .. words[bareWords] .. "| and |" .. text .. "|")
+			end
+			words[bareWords] = text
 			if text:find("[|%[%]\r\n]") or text:find("^%s*/") or text:match("^%s*$") then
 				fail(scenario, "not safe in a macro: " .. text)
 			end
@@ -656,9 +679,31 @@ do
 			seen[text] = true
 		end
 		for where, pool in pairs(contextPools(RP)) do
-			if type(pool) ~= "table" or #pool < 2 then
-				fail(scenario, where .. " has fewer than two lines")
+			local least = where:find("^TARGET%.%u+$") and where ~= "TARGET.sameclass" and 1 or 2
+			if type(pool) ~= "table" or #pool < least then
+				fail(scenario, where .. " has fewer than " .. least .. " lines")
 			end
+		end
+		-- Every L["..."] in the file, outside RP.LEGACY.
+		local file = io.open(dir .. "/Phrases.lua", "rb")
+		local source = file and file:read("*a") or ""
+		if file then file:close() end
+		local from, to = source:find("\nRP%.LEGACY = {.-\n}\n")
+		if not from then
+			fail(scenario, "SKIPPED -- RP.LEGACY is not in Phrases.lua to leave out")
+		else
+			source = source:sub(1, from) .. source:sub(to)
+		end
+		-- Comments name L["..."] as the shape a line takes; they are not lines.
+		source = ("\n" .. source):gsub("\n[ \t]*%-%-[^\n]*", "\n")
+		local literals, count = {}, 0
+		for text in source:gmatch('L%["(.-)"%]') do
+			count = count + 1
+			if literals[text] then fail(scenario, "written twice in Phrases.lua: " .. text) end
+			literals[text] = true
+		end
+		if count < #lines then
+			fail(scenario, ("only %d literals found in Phrases.lua for %d lines"):format(count, #lines))
 		end
 		noErrors(scenario, ns)
 	end)
@@ -1394,7 +1439,9 @@ do
 		local cases = {
 			{ "a warrior on the entry", { class = "WARRIOR" }, "WARRIOR" },
 			{ "a mage helping a mage", { class = "MAGE" }, "sameclass" },
-			{ "a class with no lines", { class = "SHAMAN" }, nil },
+			-- Every class the client has is written for; a token of one it may
+			-- add later is not.
+			{ "a class with no lines", { class = "ADVENTURER" }, nil },
 			{ "a secret class", { class = Mock.SECRET }, nil },
 			{ "read off the token", { unit = "nameplate1" }, "WARRIOR" },
 			{ "a token now holding somebody else", { unit = "nameplate1", name = "Somebody Else" }, nil },
@@ -1571,6 +1618,93 @@ do
 			speech.phrases = RP.Examples("troll", "Horde", class)
 			if not RP.Active(speech) then fail(scenario, "a troll " .. class .. "'s box counts as edited") end
 		end
+		noErrors(scenario, ns)
+	end)
+end
+
+-- ------------------------------------------------------------------ rp-27
+-- Every people, class, spell, place, hour and class helped that the set can
+-- meet has lines of its own -- enough of them for a full share of the draw
+-- (RP.SPREAD) -- and nothing is filed under a name the engine never asks for,
+-- where a misspelt key would make a pool nobody hears.
+do
+	local scenario = "rp: every moment the set knows has lines"
+	with(scenario, "Alliance", nil, function()
+		local ns = ready(scenario, "Human")
+		if not ns then return end
+		local RP = ns.InCharacter
+		local full = RP.SPREAD
+		local function has(pool, where, least)
+			local n = type(pool) == "table" and #pool or 0
+			if n < least then fail(scenario, ("%s has %d lines, fewer than %d"):format(where, n, least)) end
+		end
+		local function known(tbl, allowed, what)
+			for key in pairs(tbl) do
+				if not allowed[key] then fail(scenario, what .. " lines filed under " .. tostring(key)) end
+			end
+		end
+		local function set(list)
+			local out = {}
+			for _, key in ipairs(list) do out[key] = true end
+			return out
+		end
+
+		-- Every people a race speaks as, the Haranir aside.
+		local families = {}
+		for _, family in pairs(RP.FAMILY) do families[family] = true end
+		for family in pairs(families) do
+			if family ~= "haranir" then
+				for _, kind in ipairs({ "thanks", "asked", "offer", "kin" }) do
+					has(RP.RACE[family] and RP.RACE[family][kind], family .. "." .. kind, full)
+				end
+			end
+		end
+		known(RP.RACE, families, "people's")
+		for _, side in ipairs({ "Alliance", "Horde", "Neutral" }) do
+			for _, kind in ipairs({ "thanks", "asked", "offer", "group" }) do
+				has(RP.FACTION[side][kind], side .. "." .. kind, full)
+			end
+		end
+		for _, kind in ipairs({ "thanks", "asked", "offer", "group" }) do
+			has(RP.GENERAL[kind], "general." .. kind, full)
+		end
+
+		-- Every class with something to give on this client speaks as itself,
+		-- and every spell it gives has lines about it.
+		local CLASSES = set({ "WARRIOR", "PALADIN", "HUNTER", "ROGUE", "PRIEST", "DEATHKNIGHT", "SHAMAN",
+			"MAGE", "WARLOCK", "MONK", "DRUID", "DEMONHUNTER", "EVOKER" })
+		local givers, keys = { MAGE = true, PRIEST = true, DRUID = true, PALADIN = true, WARLOCK = true,
+			WARRIOR = true }, {}
+		for class, buffs in pairs(ns.BUFFS or {}) do
+			if #buffs > 0 then givers[class] = true end
+			for _, buff in ipairs(buffs) do keys[buff.key] = true end
+		end
+		for class in pairs(givers) do
+			for _, kind in ipairs({ "thanks", "asked", "offer", "group" }) do
+				has(RP.CLASS[class] and RP.CLASS[class][kind], class .. "." .. kind, full)
+			end
+		end
+		known(RP.CLASS, CLASSES, "class")
+		if not next(keys) then fail(scenario, "SKIPPED -- no buffs on this client to check the spells against") end
+		for key in pairs(keys) do has(RP.SPELL[key], "spell " .. key, full) end
+		known(RP.SPELL, keys, "spell")
+
+		-- The moments.
+		has(RP.TRADE, "trade", full)
+		known(RP.HISTORY, set({ "again", "regular" }), "history")
+		has(RP.HISTORY.again, "history.again", full)
+		has(RP.HISTORY.regular, "history.regular", full)
+		known(RP.PLACE, set({ "city", "wild", "instance" }), "place")
+		for _, place in ipairs({ "city", "wild", "instance" }) do has(RP.PLACE[place], "place." .. place, full) end
+		known(RP.TIME, set({ "morning", "night" }), "hour")
+		for _, hour in ipairs({ "morning", "night" }) do has(RP.TIME[hour], "time." .. hour, full) end
+
+		-- Whoever is helped, whatever their class.
+		has(RP.TARGET.sameclass, "target.sameclass", full)
+		for class in pairs(CLASSES) do has(RP.TARGET[class], "target." .. class, 1) end
+		local targets = set({ "sameclass" })
+		for class in pairs(CLASSES) do targets[class] = true end
+		known(RP.TARGET, targets, "target")
 		noErrors(scenario, ns)
 	end)
 end

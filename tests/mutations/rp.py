@@ -451,3 +451,45 @@ mutate("Phrases.lua",
        "rp beta.9 box not repaired",
        expect="rp: the box shows the moment, and beta.9's box still counts",
        script="runscenarios.py")
+
+# The same line written into two pools.
+mutate("Phrases.lua",
+       '\t\tL["You were not prepared, {name}. Now you are."],\n',
+       '\t\tL["You were not prepared, {name}. Now you are."],\n'
+       '\t\tL["Tell the bear this is for them too, {name}."],\n',
+       "rp a line written twice",
+       expect="rp: the lines are short and safe in a macro",
+       script="runscenarios.py")
+
+# The same words again, punctuated differently.
+mutate("Phrases.lua",
+       '\t\tL["You were not prepared, {name}. Now you are."],\n',
+       '\t\tL["You were not prepared, {name}. Now you are."],\n'
+       '\t\tL["Tell the bear: this is for them, too, {name}!"],\n',
+       "rp a line written twice in other words",
+       expect="rp: the lines are short and safe in a macro",
+       script="runscenarios.py")
+
+# A line longer than one breath.
+mutate("Phrases.lua",
+       '\t\tL["Quick, {name}, before you vanish again."],\n',
+       '\t\tL["Quick, {name}, before you vanish again into whatever shadow you came out of this time."],\n',
+       "rp a line too long to say",
+       expect="rp: the lines are short and safe in a macro",
+       script="runscenarios.py")
+
+# A spell's lines filed under a key no buff has.
+mutate("Phrases.lua",
+       "\tthorns = {\n",
+       "\tthorn = {\n",
+       "rp spell lines misfiled",
+       expect="rp: every moment the set knows has lines",
+       script="runscenarios.py")
+
+# A class helped whose lines are filed under a token no class has.
+mutate("Phrases.lua",
+       "\tEVOKER = {\n",
+       "\tEVOKR = {\n",
+       "rp target lines misfiled",
+       expect="rp: every moment the set knows has lines",
+       script="runscenarios.py")
