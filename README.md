@@ -1,7 +1,7 @@
 # Manners
 
-**One click to buff back whoever just buffed you** — and nearby players missing
-yours.
+**One click to buff back whoever just buffed you, and nearby players missing
+yours.**
 
 [![CI](https://github.com/fpsacha/Manners/actions/workflows/ci.yml/badge.svg)](https://github.com/fpsacha/Manners/actions/workflows/ci.yml)
 [![CurseForge](https://img.shields.io/badge/CurseForge-Manners-f16436)](https://wow.curseforge.com/projects/1705364)
@@ -14,288 +14,304 @@ A priest buffs you in passing. By the time you have picked them out of a dozen
 nameplates, they are gone.
 
 Manners notices, works out what you owe them, and puts one button on screen.
-Click it, they get their buff, and your own target is handed straight back.
+Click it, they get their buff, and your own target is handed straight back. It
+also offers your group, people who ask for your buff in chat, and nearby
+players who are missing it, so being the person who buffs strangers costs one
+click instead of a minute of squinting at names.
 
-It also offers nearby players who are missing yours — not to optimise a raid,
-just so being the person who buffs strangers costs one click instead of a
-minute of squinting at names.
+Built for **WoW Forever** (Interface 16001), and shipped for that client only.
 
-**Languages:** English, German, Spanish (Spain and Mexico), French, Italian,
-Korean, Brazilian Portuguese, Russian, Simplified and Traditional Chinese —
-whichever your client runs in. Slash commands are English in all of them.
+## How sure is it
 
-<img src=".github/media/manners-languages.png" alt="The prompt and its list in German, Russian and Simplified Chinese" width="640">
+This is a **beta**. The code is finished and the test suites are green, but
+**one class has actually been played**. Everything else is tested against a
+mock client, and a mock agrees with whoever wrote it.
+
+| Class | How far it has been taken |
+|---|---|
+| **Mage** | cast in game, repeatedly, against real players |
+| Priest, Druid, Paladin, Warlock, Warrior | implemented, spell data corroborated against other addons on this client, every cast path exercised by the suite, **never cast in game** |
+| Hunter, Rogue, Shaman | nothing to cast on another player, and Manners says so rather than looking broken |
+
+Getting one spell to cast on this client took ten attempts. Every class uses
+that same path, but "the tests pass" is not "somebody used it". If you play
+anything but a mage, please
+[say how it went](https://github.com/fpsacha/Manners/issues/new/choose),
+either way: **"it worked"** is the report that moves a class off this list.
+
+Retail, Mists Classic and Classic Era are implemented too, but nobody working
+on this can launch those clients, so they are not shipped.
 
 ## Installing
 
-**[Wago](https://addons.wago.io/addons/rNkgzlNa)** — and through **WowUp**,
-which reads Wago. Search *Manners* and install.
+- **[Wago](https://addons.wago.io/addons/rNkgzlNa)**, and through it
+  **WowUp**: search *Manners* and install. WowUp dropped CurseForge when
+  Overwolf cut off third-party clients, so Wago is the one it reads.
+- **[CurseForge](https://wow.curseforge.com/projects/1705364)**, and the
+  CurseForge app.
+- **By hand**: take a zip from
+  [Releases](https://github.com/fpsacha/Manners/releases) and unzip it into
+  `Interface/AddOns`.
 
-**[CurseForge](https://wow.curseforge.com/projects/1705364)** — and the
-CurseForge app.
-
-Both get the same build from the same tag. Wago is the one to use if you manage
-addons with WowUp: it dropped CurseForge support when Overwolf cut off
-third-party clients, so an addon published only to CurseForge never appears
-there.
-
-To install by hand, take a release zip from
-[Releases](https://github.com/fpsacha/Manners/releases) and unzip it into
-`Interface/AddOns`.
+All three carry the same build from the same tag.
 
 > **Do not install from a clone of this repository.** `Libs/` is deliberately
-> not committed — the 14 libraries are fetched at build time — so a zip
-> made from a checkout has none of them and will not load. Use a release.
+> not committed (the libraries are fetched at build time), so a zip made from
+> a checkout has none of them and will not load. Use a release.
 
-## Which client, and how sure
+## First steps
 
-This is a **beta**, and the reason is worth a sentence before you rely on it:
-the code is finished and the suites are green, but **one class on one client
-has actually been played**. Everything else is tested against a mock, and a
-mock agrees with whoever wrote it.
+1. **Put the prompt on a key.** Bind one under
+   **Options > Keybindings > Manners** ("Buff the prompted player"), or make a
+   macro with `/manners macro` (or *Create the macro* on the General tab) and
+   drag it onto a bar. The macro is `/click MannersPrompt LeftButton 1`; the
+   trailing `1` matters, because the secure button only casts on the way
+   down.
+2. **Look at it.** `/manners test` shows a sample prompt. `/manners unlock`
+   lets you drag it, and it locks again when you let go. The *Put it* setting
+   on the Prompt tab has three ready-made places.
+3. **Open the options** with `/manners`, or click the minimap button.
 
-| | How far it has been taken |
-|---|---|
-| **Mage, on WoW Forever** | cast in game, repeatedly, against real players |
-| Priest, Druid, Paladin, Warlock, Warrior — WoW Forever | spell data corroborated against other addons running on this client, every cast path exercised by the suite, never cast in game |
-| Retail, Mists Classic, Classic Era — every class | implemented and exercised by the suite, spell data from the patch notes and the wiki — but nobody involved can launch those clients, so **they are not shipped yet** |
-
-Getting one spell to cast here took ten attempts, on a client that documents
-none of its restrictions. Every class uses that same path and their macros are
-checked automatically — but "the tests pass" is not "somebody used it". Treat
-anything but Mage as unproven, and please
-[say so either way](https://github.com/fpsacha/Manners/issues/new/choose):
-**it worked** is the more useful report, because it is what moves a class off
-this list.
-
-If a buff is never offered, `/manners debug` names any spell id the client does
-not actually have, and reports which client it decided it is on.
-
-Hunters and rogues have nothing to cast on another player, and Manners says so
-plainly rather than sitting there looking broken.
+The first login on each character says what the addon does and what it needs
+from you, once, and shows the prompt so you can see where it is.
+`/manners welcome` says it again.
 
 ## What it does
 
-- **Somebody you targeted yourself** → outranks everyone, including a favour
-  owed, but only when the game will confirm they are missing it. A guess does
-  not get to jump the queue, and with *always offer* chosen nothing is checked,
-  so your target waits their turn like anybody else.
-- **Someone buffs you** → they go to the top of the queue, tagged as a favour
-  owed. It is spotted by watching your own buffs appear and reading who cast
-  them, which works on strangers, but only while they are someone the game will
-  still name for you. On Classic Era, Burning Crusade and Mists the combat log
-  is read as well, and that one can name somebody who has no nameplate at all —
-  Forever and retail do not hand addons a combat log, so there the buff watch is
-  all there is. The debt is stored per character and survives a reload or a
-  disconnect.
-- **Your party or raid** → anyone missing your buff.
-- **Passers-by** → nearby players missing your buff, seen through nameplates,
-  your target, your focus and your mouseover.
-
-Skips the dead, the out-of-range, anyone you just tried, and anyone the buff
-does nothing for — Arcane Intellect is wasted on a rogue. Right-click the
-prompt to skip somebody without marking their favour repaid.
-
-**Never offer.** Shift-right-click the prompt to put the person on it on a
-list of people who are never offered anything, as a passer-by or as a member
-of your group. Chat says how to undo it; the list is also on the *Who to buff*
-tab, where names can be added, taken off one at a time or cleared. Somebody on
-the list who buffs you is still offered the favour back — returning a favour is
-the point — and shift-right-clicking them then lets that favour go as well.
-
-**Who comes first.** A friend (Battle.net friends included) or guildmate
-passing by goes ahead of the other passers-by, and one in your group ahead of
-the rest of your group. It only changes the order: people who buffed you still
-come first, so does your target whenever *Whoever I have targeted comes first*
-puts them there, and somebody the game says is out of range stays behind
-somebody in range. Switch it off under *Who comes first*.
-
-**Passers-by only in cities and inns** is a choice under *Who to skip*, off by
-default: out in the world, strangers walking past are left alone, while your
-group, anybody who buffed you and whoever you target are still offered.
-
-**People who ask me for it** is a choice under *Who to buff*, off by default
-because reading chat is guesswork. Somebody who asks for your buff in `/say`,
-`/yell`, your group's chat or a whisper — "int pls", "fort?", "can I get motw",
-or the spell's name in your language — is offered it for the next minute,
-after people who buffed you and before your group, reading "asked for it".
-Only short messages that plainly ask count: a nickname like *int* only with
-small words beside it, words English uses for other things (*might*, *mark*)
-never in group chat, nobody of your own class, and nothing said in a fight
-unless it was whispered. They must still lack the buff and be somebody the
-game can see, the never-offer list still applies, and nothing is said back.
-`/manners debug` lists the requests still standing.
-
-**How near a passer-by has to be** is its own setting, because being in range
-is not the same as being near: Arcane Intellect reaches about thirty yards,
-which in a city is everybody on the screen. Choose *anywhere I can cast*
-(thirty yards, as it was), *nearby* (about ten, the default) or *right beside
-me* (about five). It applies to passers-by only — somebody who buffed you was
-close enough a moment ago, your group is your group, and whoever you have
-targeted or focused you picked on purpose.
-
-The game will not say how far away a player is, so this is measured with
-whatever the client offers — LibRangeCheck if it is there, the client's own
-interact distance otherwise — and lands on the nearest step that has. Where
-nothing can measure at all, everybody in casting range is offered as before.
-`/manners debug` says which of those is in use and how often it answers.
-
-**If they already have it**, you choose: leave them alone, offer a top-up once
-their timer drops below a threshold you set, or always offer regardless.
-Somebody who buffed you is offered the favour back either way, even if they
-already have it — recasting it only refreshes it.
-
-**Snooze** hides the prompt for a while without switching Manners off:
-`/manners snooze` for 15 minutes, `/manners snooze 5` or `snooze 1h` for your
-own length (up to four hours), `snooze off` to end it early. The minimap menu
-and the General tab have it too. It lasts until the time is up or you reload.
-**Not while mounted**, on the *When* tab and off by default, keeps the prompt
-away while you ride. Press the key while either is hiding the prompt and chat
-says which.
-
 <img src=".github/media/manners-reasons.png" alt="Five prompts, each a different colour: your target, somebody who buffed you, somebody who asked in chat, a group member and a passer-by" width="640">
 
-<details>
-<summary><strong>Which buffs each class offers, per client</strong></summary>
+Everybody who could use your buff is queued, in this order:
 
-Which spells exist depends on the client, so the tables do too. `/manners debug`
-prints the set it chose, and the Diagnostics tab lists what your class has.
+1. **Your target**, when the game can confirm they are missing it. A guess
+   does not get to jump the queue.
+2. **Somebody who buffed you.** Spotted by watching your own buffs appear and
+   reading who cast them, which works on strangers too, as long as the game
+   can still name them for you. The favour survives a reload or a
+   disconnect.
+3. **Somebody who asked for it in chat**, if you switch that on (see below).
+4. **Your party or raid**, anyone missing your buff.
+5. **Passers-by** missing your buff, seen through nameplates, your target,
+   your focus and your mouseover.
 
-**Vanilla content** — Classic Era, Burning Crusade Classic, WoW Forever:
+It skips the dead, the out-of-range, anyone you just tried, and anyone the buff
+does nothing for (Arcane Intellect is wasted on a rogue).
 
-| Class | Buffs offered |
-|---|---|
-| Mage | Arcane Intellect |
-| Priest | Power Word: Fortitude, Divine Spirit, Shadow Protection |
-| Druid | Mark of the Wild, Thorns |
-| Paladin | Wisdom, Might, Kings, Salvation, Light, Sanctuary |
-| Warlock | Unending Breath |
-| Warrior | Battle Shout (party only) |
+**On the prompt:** left-click (or your key) casts. **Right-click** skips that
+person for now without marking their favour repaid. **Shift-right-click** puts
+them on the never-offer list.
 
-**Mists of Pandaria Classic** — 5.0.4 deleted the duplicates within each class
-and folded the raid-wide versions in, so every class has one or two:
+**Never offer.** People on the list are never offered anything, as passers-by
+or as group members. Somebody on it who buffs you is still offered the favour
+back, because returning a favour is the point; shift-right-click them again to
+let that favour go. The list is on the *Who to buff* tab, and `/manners never`
+and `/manners allow <name>` work from chat. In a fight the prompt cannot move
+off the person it is showing, so a press still casts at them until the fight
+ends, and chat says so.
 
-| Class | Buffs offered |
-|---|---|
-| Mage | Arcane Brilliance |
-| Priest | Power Word: Fortitude |
-| Druid | Mark of the Wild |
-| Paladin | Kings, Might |
-| Monk | Legacy of the Emperor, Legacy of the White Tiger |
-| Warlock | Dark Intent (Unending Breath is offered only if you pin it) |
-| Warrior | Battle Shout (party only) |
-| Death Knight | Horn of Winter (party only) |
+**Friends and guildmates first.** A friend (Battle.net friends included) or
+guildmate goes ahead of the other passers-by, or of the rest of your group. It
+only changes the order: people who buffed you still come first, and somebody
+known to be out of range never leads over somebody in range.
 
-**Retail** — Midnight. Five class buffs are left in the game, and paladins,
-death knights, monks and warlocks have nothing they can put on a passer-by:
+**People who ask me for it.** Off by default, because reading chat is
+guesswork. Somebody who asks for your buff in `/say`, `/yell`, group chat or a
+whisper ("int pls", "fort?", "can I get motw", or the spell's name in your
+language) is offered it for the next minute, after people who buffed you and
+before your group. Nothing is ever said back. What counts:
 
-| Class | Buffs offered |
-|---|---|
-| Mage | Arcane Intellect |
-| Priest | Power Word: Fortitude |
-| Druid | Mark of the Wild |
-| Shaman | Skyfury |
-| Evoker | Blessing of the Bronze, Source of Magic (if talented) |
-| Warrior | Battle Shout (party only) |
+- eight words at most, naming the buff as a whole word, with nothing like
+  *no* or *not* in it;
+- a please, a question mark, an opener like *can I* or *anyone*, or nothing
+  but the buff's name;
+- beside a nickname (*int*, *fort*) or *buff*, only small words like *me*,
+  *get* or *pls*, so "int the healer" asks for nothing;
+- words English uses for other things (*might*, *mark*, *wisdom*, *spirit*,
+  *shadow*) need a please or to stand alone, and never count in group chat;
+- nobody of your own class counts as asking (another mage saying "anyone need
+  int?" is offering it), and nothing said in a fight counts unless it was
+  whispered. A request still waiting when a fight starts waits until it ends.
 
-Where a class has more than one, the prompt offers whichever they are actually
-missing, in list order: a priest walks Fortitude, then Divine Spirit, then
-Shadow Protection. Somebody holding the first is still offered the second
-rather than dropping off the list. Individual buffs can be switched off, or one
-pinned so that is the only thing ever cast.
+They must still lack the buff and be somebody the game can see.
+`/manners debug` lists the requests still standing.
 
-Paladins are the exception. Blessings overwrite one another, so holding any one
-of yours counts as covered and walking the list would mean replacing a blessing
-somebody already has. The automatic pick is Wisdom for anyone with a mana bar
-and Might for everyone else.
-
-Battle Shout reaches your party and nobody else, so a warrior outside a group
-is offered nobody. That is deliberate rather than a fault.
-
-</details>
-
-## Why a button and not automatic
-
-Blizzard does not let an addon cast a spell on its own — `CastSpellByName` is
-protected and only runs from a hardware event. This has been true since patch
-2.0 and no addon gets around it.
-
-So Manners does everything except the keypress. It decides who deserves the
-buff and writes that decision onto a secure button; the *game* casts when you
-click. That split is deliberate on Blizzard's part and it is why the prompt
-also freezes during combat.
-
-## Speech
-
-Optionally say something when you buff somebody, with a randomised phrase list.
-
-The line rides along in the macro the button runs rather than going through the
-chat API — the game refuses addon-sent `/say` outside instances, which is
-exactly where someone buffs you in passing. Through the macro it counts as you
-talking.
-
-Off by default, and when on it defaults to speaking only when returning a
-favour.
+**Snooze and Not while mounted.** `/manners snooze` hides the prompt for 15
+minutes; `snooze 5`, `snooze 1h` (up to four hours) or `snooze off` for your
+own. The minimap menu and the General tab have it too. Favours are still
+noticed while snoozed. A `/reload` ends a snooze, and one started in a fight
+takes effect when the fight ends. *Not while mounted* (When tab, off by
+default) keeps the prompt away while you ride and brings it back when you get
+off. Press the key while either is hiding the prompt and chat says which.
 
 ## The favour ledger
 
-A small window listing who buffed you, with what and when, whether you
-returned it and with what, and who you buffed without being asked — newest
-first. Today's count ("Returned 12 of 14 favours today") and the all-time
-totals sit at the top, then tabs for everything, favours, and buffs you gave.
-A favour you did not return says why: the time ran out, nothing you cast helps
-them, or you put them on the never-offer list. A favour nothing you cast could
-return (a warrior's shout, to a mage) is listed but left out of today's count.
-
-`/manners ledger`, a shift-click on the minimap button, or the button on the
-General tab. It keeps the last 200 entries per character; Clear empties the
-list but keeps favours still owed and the all-time counts. It opens in combat
-and never says anything in chat.
-
 <img src=".github/media/manners-ledger.png" alt="The favour ledger: today's count and all-time totals, then rows of favours still owed, returned and let go, and buffs given to the group and to strangers" width="640">
+
+Who buffed you, with what and when, whether you returned it, and who you
+buffed without being asked, newest first. Today's count ("Returned 12 of 14
+favours today") and the all-time totals sit at the top, then tabs for
+everything, favours, and buffs you gave. A favour you did not return says why:
+the time ran out, nothing you cast helps them, or you put them on the
+never-offer list. Hover a favour still owed and it says whether the prompt will
+offer it, and when.
+
+`/manners ledger`, a shift-click on the minimap button, or *Open the ledger* on
+the General tab. It keeps the last 200 entries per character; *Clear* empties
+the list and today's count but keeps favours still owed and the all-time
+totals. It opens in combat and never says anything in chat.
 
 ## The prompt's look
 
-Three looks — glass, framed and minimal — with full colour and font control
-and LibSharedMedia support. When a buff lands, a ring pops out of the icon and
-light crosses the panel; a refused one gives the text a small shake and turns
-the ring red. Somebody who buffs you makes the panel catch the light once, and
-after your last buff the prompt fades out rather than blinking off. The icon
-shows the global cooldown sweep, like an action bar.
+Three looks (glass, framed and minimal), your own colours and fonts, and
+LibSharedMedia support. When a buff lands, a ring pops out of the icon and
+light crosses the panel; a refused one gives the text a small shake. Somebody
+who buffs you makes the panel catch the light, and the prompt fades out after
+your last buff. The icon shows the global cooldown sweep, like an action bar.
 
-Left at white, the text picks light or dark for the panel behind it, so a
-light panel colour stays readable, and a class-coloured name that would vanish
-on it is darkened; any other text colour is used exactly as picked. Minimal
-outlines its text so it reads over snow as well as in the dark. *Reason
-colours*, under *Style*, swaps the four reason colours for a colour-blind
-friendly set — pale yellow, orange, sky blue and violet — that stays apart
-under red-green colour blindness.
+**Text follows the panel.** Leave the text colour at white and it turns dark
+by itself on a light panel colour, and class-coloured names that would vanish
+on it are darkened too. Any other text colour is used exactly as picked. The
+minimal look outlines its text so it reads over snow as well as in the dark.
+
+**A colour-blind palette.** *Reason colours*, under Prompt > Style, swaps the
+four reason colours for pale yellow, orange, sky blue and violet, which stay
+apart under protanopia and deuteranopia.
 
 <img src=".github/media/manners-palette.png" alt="The same prompt and list in the standard reason colours and in the colour-blind friendly set" width="640">
 
-*Effects* on the *Prompt* tab turns all that movement down to *Calm*, and the
-sweep has its own switch under *Icon and queue*. *Stay quiet in combat* keeps
-it still in a fight.
+Set *Effects* to *Calm* for none of that movement. *Stay quiet in combat* keeps
+the prompt dimmed and still for a fight.
 
 ## The minimap button
 
-A click opens the options, a shift-click the favour ledger, and a middle click
-switches Manners on or off. Right-click it for a menu: on or off, snooze
-(5 minutes to an hour), preview, the ledger, who is waiting next (skip one, or
-never offer them anything), the prompt's lock, position, sound and effects,
-the chat lines, and your profiles (when you have more than one). In a fight the
-entries that would move the prompt wait until it ends.
+A click opens the options, a shift-click the ledger, and a middle click
+switches Manners on or off. Right-click for a menu: on or off, snooze (5
+minutes to an hour), who is next (skip one, or never offer them anything), the
+ledger, a preview, the prompt's lock, position, sound and effects, the chat
+lines, and your profiles when you have more than one. In a fight the entries
+that would move the prompt wait until it ends.
 
-The icon dims while Manners is snoozed and goes darker still while it is off,
-and a broker display shows how many people who buffed you are still waiting
-for one back. The same launcher is in the addon compartment under the minimap,
-and its line there says off, snoozed or waiting just as the button's text
-does, so hiding the button loses nothing.
+The icon dims while snoozed and goes darker still while off. A broker display
+shows how many people who buffed you are still waiting. The same launcher is in
+the **addon compartment** under the minimap, so hiding the button loses
+nothing.
 
-## Usage
+## The options
+
+Seven tabs. Most settings explain themselves; this is what their tooltips no
+longer have room for.
+
+**General.** On or off, *Create the macro*, snooze buttons (5, 15 and 30
+minutes), the minimap button, and *Tell me in chat what the addon is doing*:
+a line in your own chat when somebody buffs you, when a favour is repaid, and
+when a click fails. Use it to tell "the buff was never noticed" from "it was
+noticed but they could not be reached"; nothing from it is ever said to
+anybody else. Also *Share settings* (below) and the ledger.
+
+**Who to buff.**
+
+- *Buff to cast*: automatic, or pin one spell. A pinned spell is the only one
+  considered, so if you have not learned it there is nothing to fall back to.
+  Where a class has several buffs, automatic offers whichever one they are
+  missing, in list order: a priest walks Fortitude, then Divine Spirit, then
+  Shadow Protection.
+- *Automatic for paladins*: blessings overwrite one another, so anybody
+  already carrying one of yours is left alone rather than handed a different
+  one. The pick is Wisdom for anyone with a mana bar and Might for everyone
+  else. Under *Always offer*, or where the game hides which blessing they
+  carry, the first blessing that suits them is offered, and it can replace
+  yours.
+- *Sources*: people who buffed you, your party and raid, nearby players, and
+  people who ask.
+- *Whoever I have targeted comes first*: with it off, or under *Always
+  offer* (nothing is read then), your target is ranked by why they are on the
+  list like anybody else. A targeted stranger whose buffs cannot be read
+  counts as a passer-by, so a friend goes ahead of them.
+- *How near a passer-by has to be*: *anywhere I can cast* (about thirty
+  yards), *nearby* (about ten, the default) or *right beside me* (about five).
+  Only passers-by are measured: somebody who buffed you was close enough a
+  moment ago, and your group and whoever you targeted or focused were picked on
+  purpose. The game gives no exact distance, so this lands on the nearest step
+  the client can measure (LibRangeCheck, or the client's interact distance);
+  where nothing can measure, everybody in casting range is offered.
+- *Only offer passers-by in cities and inns*: off by default. Out in the
+  world strangers are left alone; everybody else is still offered.
+- *Drop people who are probably gone* and *Let them go after* (45 seconds):
+  somebody who buffed you is rarely your target or on a nameplate, so all that
+  is known is that they were in range when they buffed you. The clock runs
+  from their buff, because nothing can see a player walk off.
+- *Minimum level*: read off the unit, so somebody known only by name (the
+  usual case for a passer-by who buffed you) cannot be checked and is offered
+  anyway.
+
+**When.**
+
+- *If they already have the buff*: leave them alone, offer a top-up once
+  their timer drops below a number of minutes, or always offer. Somebody who
+  buffed you is offered the favour back whichever you pick.
+- *Remember a buff for* (120 seconds): somebody the game can still see stays
+  on the prompt this long; somebody it cannot see is let go sooner, when *Let
+  them go after* is shorter.
+- *Remember them across a reload*: for a favour noticed a minute before a
+  disconnect. The clock keeps running while you are away.
+- *Wait before offering the same spell again*: per spell, so after
+  Fortitude the next scan can still offer Divine Spirit. A right-click skip
+  blocks the whole person for the same time.
+- *Not while mounted*: dead, on a flight path or in a vehicle the prompt
+  already stays away, because nothing can be cast there.
+
+**When you click.**
+
+- *Hand my target back afterwards*: the prompt targets everybody it buffs,
+  group members too, because a named conditional (`[@name]`) only reaches your
+  own party or raid and most people on the prompt are passers-by. With this
+  on, the macro ends with `/targetlasttarget`, except outside a fight for
+  somebody already your target, who stays targeted. The macro armed when a
+  fight starts keeps `/targetlasttarget` for everybody until it ends.
+- *Say something*: off by default, and then only when returning a favour
+  unless you say otherwise. Four sets of lines (Roleplay, Polite, Cheeky, Just
+  their name), editable. The line rides in the macro the button runs, because
+  the game refuses addon-sent `/say` and `/yell` outside instances, which is
+  exactly where somebody buffs you in passing. How long a line may be depends
+  on the name and on whether your target is handed back. An empty box goes
+  back to the chosen set, so switch *Say something* off to stay quiet.
+
+**Prompt.** Preview, lock and position, look and colours, sound, text and
+icon.
+
+- *Effects*: on *Full*, the ring pops out of the spell icon only if the icon
+  is shown, and the panel catches the light unless *When someone buffs you* is
+  *Nothing*. With the icon hidden, no stripe and no light (Effects on *Calm*,
+  or the minimal look), *When someone buffs you* has nothing to do and is
+  greyed out. The cooldown sweep has its own switch under *Icon and queue*.
+- *Stay quiet in combat*: the icon also shows no cooldown sweep for the fight.
+- *Reason colours*: the target colour appears only while *Whoever I have
+  targeted comes first* is on and *If they already have the buff* is not
+  *Always offer*.
+
+**Diagnostics.** What your class has and whether the game lets addons read
+each buff, what has broken this session, and *Copy for a bug report*. "This
+client doesn't know spell N" means Manners cannot see that version on anyone,
+which only affects telling whether somebody already carries it.
+
+**Profiles.** The usual Ace profiles; the minimap menu switches between them.
+
+## Sharing settings
+
+`/manners export` puts your settings in a box under *Share settings* on the
+General tab, as one line of text to keep or hand to somebody. Paste one into
+the box beside it, or after `/manners import`, to use it. A chat line holds
+only 255 characters, so a longer string has to go in the box. Only what
+differs from the defaults is written, a damaged line is refused before
+anything changes, and `/manners import undo` puts your own settings back.
+
+A pasted line never carries whether Manners is on, the lock, where the prompt
+sits, the click log or the minimap button. It never switches speaking on, and
+while you have it on, what you say and where stays yours.
+
+## Commands
 
 ```
-/manners                    options (so does /manners options)
+/manners                    the options (also /manners options)
 
 Everyday
 /manners on | off           switch it on or off
@@ -309,7 +325,7 @@ Setting it up
 /manners welcome            what it does, and the one thing it needs from you
 /manners macro              make a /click macro for your action bar
 /manners unlock             drag the prompt; it locks again when you let go
-/manners lock               lock it again -- an unlocked prompt never casts
+/manners lock               lock it again (an unlocked prompt never casts)
 /manners restore            switch handing your target back on or off
 /manners verbose            switch the chat lines about who buffed you on or off
 
@@ -328,9 +344,9 @@ When something is wrong
 `/mnr` works in place of `/manners` in all of them. A word it does not
 recognise suggests the closest command, or lists them all.
 
-`/manners dev` lists four tools for finding out what this client allows, kept
-out of the help because only somebody reporting a problem needs them. They
-still work when typed directly, and bug reports quote them:
+`/manners dev` lists four tools for finding out what this client allows. Only
+somebody chasing a problem needs them, so they are kept out of the help, but
+they work when typed directly and bug reports quote them:
 
 ```
 /manners clicks             log what the button does when clicked
@@ -339,27 +355,41 @@ still work when typed directly, and bug reports quote them:
 /manners forms              example macros to try
 ```
 
-The first login on a character says what `/manners welcome` says by itself,
-once, and puts the prompt on screen so you can see where it is. It is kept per
-character rather than per profile: every character starts on the one shared
-profile, so a flag there would greet whoever logged in first and nobody else —
-and what it asks for (a macro on this character's bars, or a key bound) is per
-character too.
+## Languages
 
-Put it on a bar with a macro containing `/click MannersPrompt LeftButton 1`
-(`/manners macro` makes one), or keybind under
-**Options → Keybindings → Manners** ("Buff the prompted player"). The trailing `1` is the down flag: the
-secure button only casts on the way down.
+<img src=".github/media/manners-languages.png" alt="The prompt and its list in German, Russian and Simplified Chinese" width="640">
 
-**Sharing settings.** `/manners export` puts your settings in a box on the
-General tab as one line of text, to keep or to hand to somebody; paste one into
-the box beside it, or after `/manners import`, to use it. A chat line holds
-only 255 characters, so a longer string has to go in that box, under Share
-settings on the General tab of the options. Only what differs from the
-defaults is written, a damaged line is refused before anything
-changes, and `/manners import undo` puts your own settings back. A pasted line
-never switches on speaking to other players, and never touches your on switch,
-the prompt's lock or position, or the minimap button.
+English, German, Spanish (Spain and Mexico), French, Italian, Korean,
+Brazilian Portuguese, Russian, Simplified and Traditional Chinese, whichever
+your client runs in. Slash commands are English in all of them.
+
+## Which buffs each class offers
+
+| Class | Buffs offered |
+|---|---|
+| Mage | Arcane Intellect |
+| Priest | Power Word: Fortitude, Divine Spirit, Shadow Protection |
+| Druid | Mark of the Wild, Thorns |
+| Paladin | Wisdom, Might, Kings, Salvation, Light, Sanctuary |
+| Warlock | Unending Breath |
+| Warrior | Battle Shout (your own party only) |
+
+Individual buffs can be switched off on the *Who to buff* tab, or one pinned so
+it is the only thing ever cast. Battle Shout reaches your own party (in a raid,
+your own subgroup) and nobody else, so a warrior outside a group is offered
+nobody. That is deliberate rather than a fault.
+
+## Why a button and not automatic
+
+Blizzard does not let an addon cast a spell on its own: casting is protected
+and only runs from a hardware event. This has been true since patch 2.0 and no
+addon gets around it.
+
+So Manners does everything except the keypress. It decides who deserves the
+buff and writes that decision onto a secure button; the *game* casts when you
+click. That split is deliberate on Blizzard's part, and it is why the prompt
+freezes during combat: whoever it shows when a fight starts stays on it until
+the fight ends.
 
 ## Notes on WoW Forever
 
@@ -392,27 +422,28 @@ person have mana" cannot be read directly. Class is used instead, which is
 accurate for every vanilla class.
 
 **`UnitName` returns a surname, not a realm**, in its second value. Joining
-them with a hyphen produces names that no targeting call resolves. Surnames are
-this client's alone: on the other four that second value is the realm, present
-only for a cross-realm player, and there the two join with a hyphen — a space
-would make a name nothing can find. The addon branches on the flavour for this,
-because both values are plain strings and neither says which it is.
+them with a hyphen produces names that no targeting call resolves, so here the
+two are joined with a space.
 
 **Nameplate unit tokens are secret** when read off the frame via
 `C_NamePlate.GetNamePlates()`. The token passed to `NAME_PLATE_UNIT_ADDED` is
 not, so that is what to track.
 
 **There is no combat log.** Registering `COMBAT_LOG_EVENT_UNFILTERED` is
-refused here; Blizzard ships `C_DamageMeter` instead. That is not a Forever
-quirk — retail 12.0+ refuses it too, and only Classic Era, Burning Crusade and
-Mists still have one. So a favour is spotted by watching your own buffs appear
-and reading `aura.sourceUnit`, which is a unit token: somebody with no
-nameplate who is not your target cannot be identified at all. Nothing can be
-done about that from an addon here. Where there *is* a log, Manners registers
-it as a second source and that person can be named after all —
-`SPELL_AURA_APPLIED` carries their GUID, and `GetPlayerInfoByGUID` turns a GUID
-into a name and a class with no unit token. The aura scan stays the spine
-either way; the log only ever adds.
+refused here, as it is on retail 12.0. So a favour is spotted by watching your
+own buffs appear and reading `aura.sourceUnit`, which is a unit token:
+somebody with no nameplate who is not your target cannot be identified at all.
+Nothing can be done about that from an addon here.
+
+## Reporting a bug
+
+Open an issue from
+[the templates](https://github.com/fpsacha/Manners/issues/new/choose):
+*Something misbehaved* for a bug, *A class cast, or did not* for how a class
+other than Mage went. The Diagnostics tab's *Copy for a bug report* button
+gives you the build, what this client allows, the settings that matter and
+anything that has broken, ready to paste. `/manners debug` and `/manners
+errors` say much of the same in chat.
 
 ## Building a release
 
@@ -440,18 +471,17 @@ off.
 `.github/workflows/release.yml` runs the test suites, fails the build if any
 check has stopped being able to detect the fault it exists for, then packages
 and publishes a GitHub release and uploads to **CurseForge and Wago** from the
-one tag.
+one tag. A destination needs both a token in the repository secrets and a
+project id in the toc; missing either skips that upload in a way that reads
+exactly like success, so the build log names which half is absent.
 
-A destination needs both a token in the repository secrets (`CF_API_KEY`,
-`WAGO_API_TOKEN`, `WOWI_API_TOKEN`) and a project id in the toc
-(`X-Curse-Project-ID`, `X-Wago-ID`, `X-WoWI-ID`). Missing either skips that
-upload in a way that reads exactly like success, so the build log names which
-half is absent.
+The listing text is in `.github/`: see [.github/DESCRIPTION.md](.github/DESCRIPTION.md)
+for which file is pasted where.
 
 ## Tests
 
 ```
-python tests/validate.py       structure, syntax, and version consistency
+python tests/validate.py       structure, syntax, Lua 5.1 limits and version consistency
 python tests/runharness.py     load the addon against a mock client
 python tests/runscenarios.py   adversarial scenarios
 python tests/selftest.py       confirm the suites can still go red
@@ -466,9 +496,8 @@ The CurseForge icon and the screenshots are generated, not captured — see
 `tools/README.md`. The screenshots are the addon itself, loaded on the mock
 client, put into each scene through its own entry points and drawn by
 `tools/render_prompt.py` and `tools/render_ledger.py`. CI refuses to draw one
-that would show something other than what its caption says — the wrong person
-on the prompt, a line cut short, a translation still in English — so they
-cannot advertise a prompt the addon does not build.
+that would show something other than what its caption says, so they cannot
+advertise a prompt the addon does not build.
 
 ## Licence
 

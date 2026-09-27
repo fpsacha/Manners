@@ -1,21 +1,28 @@
-# CurseForge listing copy
+# Listing copy: what goes where
 
-Paste-ready. Keep it matching the toc: it says Mage is tested and the rest are
-not, and the listing should not quietly claim more.
+Nothing in this file is pasted anywhere as a whole. It says which file holds
+the paste-ready text for each site, and holds the gallery captions both sites
+share.
 
----
+| Site | Field | Paste from |
+|---|---|---|
+| CurseForge | Summary (the one line under the name in search results and in the app) | [curseforge-description.md](curseforge-description.md), *Summary field* |
+| CurseForge | Description (the project page body, Markdown) | [curseforge-description.md](curseforge-description.md), between the BEGIN and END markers |
+| Wago | Description (Markdown, shorter) | [wago-description.md](wago-description.md), between the BEGIN and END markers |
+| CurseForge and Wago | Image gallery | the five files below, uploaded by hand |
 
-## Summary (the one-line field, shown in search results)
+The GitHub page is the [README](../README.md), written for somebody who has
+found the source; the listings are written for somebody deciding whether to
+install.
 
-This appears under the name in search results and in WowUp. Lead with what it
-does; a reader scanning twenty addons gives it about two seconds.
+Keep all three agreeing with `Manners.toc`: Mage is tested in game and the
+other classes are not, and no listing should quietly claim more.
 
-**Recommended:**
+## Summary alternates
 
-> One click to buff back whoever just buffed you — and nearby players missing
-> yours.
-
-Alternates, depending on the tone you want:
+The summary in use is in `curseforge-description.md`, and matches the toc's
+`## Notes`. A reader scanning twenty addons gives it about two seconds, so it
+leads with what the addon does. If the tone should change:
 
 | | |
 |---|---|
@@ -24,36 +31,18 @@ Alternates, depending on the tone you want:
 | shortest | Never forget to buff somebody back. |
 | a little warmer | For people who like buffing strangers, and keep losing them in the crowd. |
 
-An earlier draft read *"Someone buffs you in passing — Manners notices, works
-out what you owe them, and puts one button on screen. You click it."* It tells
-a story instead of saying what the addon does, and puts the function in the
-third clause. Not that.
-
-## Description (the project page body)
-
-The body lives in [curseforge-description.md](curseforge-description.md) and
-nowhere else. It used to be repeated here in full, which meant every edit to
-the listing had to be made twice or the two copies drifted apart -- and the one
-that drifts is always the one nobody pastes from.
-
-Paste that file whole into CurseForge's editor. Its rich-text editor takes
-markdown formatting directly: headings, bold and tables all survive.
-
-Before pasting, check it still agrees with `Manners.toc`. The listing says Mage
-is tested in game and the other five classes are not, and it should never
-quietly claim more than that.
-
 ## Screenshots (the gallery)
 
 CurseForge and Wago each keep an image gallery beside the page body, uploaded
 by hand, with a title and a description for every image. These five, in this
-order -- the first is the one the listing leads with. They are made by
+order: the first is the one the listing leads with. They are made by
 `tools/make-screenshots.py` into `.github/media/`; upload them again whenever
 they are regenerated, or the gallery shows a prompt the addon no longer draws.
 
-The body in `curseforge-description.md` does not embed them. The gallery sits
-on the same page, and a copy in the body would be a second set to keep in step
--- the drift this file was split to stop.
+The descriptions also embed them, from
+`https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/`, so
+the page shows them inline once `master` is pushed. The gallery copies are
+still needed: they are what the sites show as the listing's images.
 
 | File | Title | Description |
 |---|---|---|
