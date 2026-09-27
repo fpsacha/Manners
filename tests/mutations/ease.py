@@ -334,3 +334,28 @@ mutate("Options.lua",
        "a button that says it copies",
        expect="copies nothing",
        script="runscenarios.py")
+
+# /manners dev advertised by the help with no branch behind it.
+mutate("Core.lua",
+       "\telseif input == \"dev\" then\n",
+       "\telseif input == \"developer\" then\n",
+       "the dev command falling through to the help",
+       expect="/manners dev fell through to the help",
+       script="runscenarios.py")
+
+# /manners dev answering with nothing listed under its heading.
+mutate("Core.lua",
+       "\t\tfor _, command in ipairs(ns.DEV_COMMANDS) do\n\t\t\tself:Print(",
+       "\t\tfor _, command in ipairs({}) do\n\t\t\tself:Print(",
+       "the dev command listing no tools",
+       expect="is a developer tool /manners dev never mentions",
+       script="runscenarios.py")
+
+# A developer tool's word left out of the guesses, so a slip gets the whole
+# help, which does not list it.
+mutate("Core.lua",
+       "\tfor _, command in ipairs(ns.DEV_COMMANDS) do words[#words + 1] = command.word end\n",
+       "",
+       "no did-you-mean for a developer tool",
+       expect="did not suggest /manners clicks",
+       script="runscenarios.py")

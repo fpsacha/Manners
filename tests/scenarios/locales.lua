@@ -65,6 +65,7 @@ for _, file in ipairs(localeFiles()) do
 			-- translated format strings.
 			local words = { "help", "snoze", "" }
 			for _, command in ipairs(ns.COMMANDS or {}) do words[#words + 1] = command.word end
+			for _, command in ipairs(ns.DEV_COMMANDS or {}) do words[#words + 1] = command.word end
 			for _, word in ipairs(words) do
 				local ok, err = pcall(ns.addon.HandleSlash, ns.addon, word)
 				if not ok then

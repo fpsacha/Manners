@@ -6449,10 +6449,18 @@ ns.COMMANDS = {
 		help = L["use settings somebody exported, or undo the last import"] },
 	{ word = "debug", group = "trouble", help = L["what your class and this build allow"] },
 	{ word = "errors", group = "trouble", help = L["the last few things that broke"] },
-	{ word = "clicks", group = "trouble", help = L["log what the button does when clicked"] },
-	{ word = "try", group = "trouble", args = " <macro>", help = L["run any macro text from the prompt"] },
-	{ word = "look", group = "trouble", args = " [unit]", help = L["dump every API answer for a unit"] },
-	{ word = "forms", group = "trouble", help = L["example macros to try"] },
+	{ word = "dev", group = "trouble",
+		help = L["tools for testing the addon on this client: the click log, try, look and forms"] },
+}
+
+-- The in-game diagnosis for clients and classes nobody here can play, listed by
+-- /manners dev rather than the help. They keep working under their own words,
+-- which bug reports quote.
+ns.DEV_COMMANDS = {
+	{ word = "clicks", help = L["log what the button does when clicked"] },
+	{ word = "try", args = " <macro>", help = L["run any macro text from the prompt"] },
+	{ word = "look", args = " [unit]", help = L["dump every API answer for a unit"] },
+	{ word = "forms", help = L["example macros to try"] },
 }
 
 -- Other words that reach a command. The help itself is not in COMMANDS: it is
@@ -6506,6 +6514,7 @@ function ns.ClosestCommand(word)
 	if word == "" then return nil end
 	local words = {}
 	for _, command in ipairs(ns.COMMANDS) do words[#words + 1] = command.word end
+	for _, command in ipairs(ns.DEV_COMMANDS) do words[#words + 1] = command.word end
 	for alias in pairs(ns.COMMAND_ALIASES) do
 		if alias:match("^%a+$") then words[#words + 1] = alias end
 	end
@@ -6754,6 +6763,12 @@ function addon:HandleSlash(rawInput)
 		else
 			local _, message = ns.ImportSettings(rest)
 			self:Print(message)
+		end
+	elseif input == "dev" then
+		self:Print("|cffffd100" .. L["Tools for testing Manners on this client:"] .. "|r")
+		for _, command in ipairs(ns.DEV_COMMANDS) do
+			self:Print(("  |cffffd100/manners %s%s|r  %s"):format(
+				command.word, command.args or "", command.help))
 		end
 	elseif input == "errors" then
 		-- Guard says each failure out loud only once; this lists the rest.

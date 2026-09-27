@@ -563,9 +563,11 @@ do
 end
 
 -- ------------------------------------------------------------------ help
--- Every word the dispatcher answers to is in the help, read out of the
--- dispatcher's own source so the two cannot drift: a branch added without a
--- line in COMMANDS fails here. Grouped under headings, one line each.
+-- Every word the dispatcher answers to is in the help, or in /manners dev for
+-- the developer tools, read out of the dispatcher's own source so the lists
+-- cannot drift: a branch added without a line in COMMANDS or DEV_COMMANDS
+-- fails here. Grouped under headings, one line each. The developer tools stay
+-- out of the help, which is the reason /manners dev exists.
 do
 	local scenario = "ease: help lists every real command"
 	Mock.reset()
@@ -585,12 +587,37 @@ do
 			if not help:find("Manners commands:", 1, true) then
 				fail(scenario, "/manners help printed no list: " .. help)
 			end
+			Mock.printed = {}
+			ns.addon:HandleSlash("dev")
+			local dev = said()
+			if dev:find("Manners commands:", 1, true) then
+				fail(scenario, "/manners dev fell through to the help: " .. dev)
+			end
+			local function lists(text, word)
+				return text:find("/manners " .. word .. "|r", 1, true)
+					or text:find("/manners " .. word .. " ", 1, true)
+			end
+			local devWord = {}
+			for _, command in ipairs(ns.DEV_COMMANDS or {}) do devWord[command.word] = true end
+			for _, word in ipairs({ "clicks", "try", "look", "forms" }) do
+				if not devWord[word] then
+					fail(scenario, "/manners " .. word .. " is not among the developer tools")
+				end
+			end
 			local count = 0
 			for word in pairs(words) do
 				if word ~= "" and not ns.COMMAND_ALIASES[word] then
 					count = count + 1
-					if not help:find("/manners " .. word .. "|r", 1, true)
-						and not help:find("/manners " .. word .. " ", 1, true) then
+					if devWord[word] then
+						if not lists(dev, word) then
+							fail(scenario, "/manners " .. word .. " is a developer tool /manners dev"
+								.. " never mentions")
+						end
+						if lists(help, word) then
+							fail(scenario, "/manners " .. word .. " is a developer tool, but the help"
+								.. " lists it")
+						end
+					elseif not lists(help, word) then
 						fail(scenario, "/manners " .. word .. " is a real command the help never"
 							.. " mentions")
 					end
@@ -615,6 +642,11 @@ do
 					fail(scenario, "/manners " .. command.word .. " takes more than one line")
 				end
 			end
+			for _, command in ipairs(ns.DEV_COMMANDS or {}) do
+				if command.help:find("\n", 1, true) then
+					fail(scenario, "/manners " .. command.word .. " takes more than one line")
+				end
+			end
 		end
 	end
 	Mock.reset()
@@ -628,9 +660,11 @@ do
 	local ns = load(scenario)
 	if ns then
 		drive(scenario, ns)
+		-- The developer tools as well: left out of the help, but still words
+		-- that work and that bug reports quote.
 		for typed, meant in pairs({ snoze = "snooze", exprot = "export", optoins = "options",
 			imp = "import", verbos = "verbose", loc = "lock", tset = "test", snoozr = "snooze",
-			weclome = "welcome" }) do
+			weclome = "welcome", clikcs = "clicks", froms = "forms", dve = "dev" }) do
 			Mock.printed = {}
 			ns.addon:HandleSlash(typed)
 			local out = said()
@@ -659,7 +693,10 @@ do
 		-- means its branch is missing, and "did you mean /manners forms?" in
 		-- answer to /manners forms hides that from the player and from the
 		-- scenario that walks the list, which looks for the full help.
-		for _, command in ipairs(ns.COMMANDS) do
+		local every = {}
+		for _, command in ipairs(ns.COMMANDS) do every[#every + 1] = command end
+		for _, command in ipairs(ns.DEV_COMMANDS or {}) do every[#every + 1] = command end
+		for _, command in ipairs(every) do
 			local guess = ns.ClosestCommand(command.word)
 			if guess then
 				fail(scenario, ("/manners %s, a real command, would be answered with a guess of"
@@ -668,11 +705,11 @@ do
 		end
 
 		-- Every suggestion is something that works.
-		for _, command in ipairs(ns.COMMANDS) do
+		for _, command in ipairs(every) do
 			local guess = ns.ClosestCommand(command.word .. "x")
 			if guess and guess ~= command.word and not ns.COMMAND_ALIASES[guess] then
 				local real = false
-				for _, other in ipairs(ns.COMMANDS) do
+				for _, other in ipairs(every) do
 					if other.word == guess then real = true end
 				end
 				if not real then fail(scenario, "suggested /manners " .. guess .. ", which is no command") end
