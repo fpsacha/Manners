@@ -14,7 +14,7 @@ local strangers, freshPrompt, owe = H.strangers, H.freshPrompt, H.owe
 local pressAndSend, findOption = H.pressAndSend, H.findOption
 
 local TOUCHED = { "IsSpellKnown", "IsPlayerSpell", "UnitInParty", "GetNumGroupMembers",
-	"C_Spell", "issecretvalue", "strcmputf8i" }
+	"C_Spell", "issecretvalue", "strcmputf8i", "UnitPowerMax", "MenuUtil" }
 local original = {}
 for _, name in ipairs(TOUCHED) do original[name] = rawget(_G, name) end
 
@@ -77,7 +77,8 @@ local function knowing(class, keys)
 end
 
 local CHANNELS = { "CHAT_MSG_SAY", "CHAT_MSG_YELL", "CHAT_MSG_PARTY", "CHAT_MSG_PARTY_LEADER",
-	"CHAT_MSG_RAID", "CHAT_MSG_RAID_LEADER", "CHAT_MSG_WHISPER" }
+	"CHAT_MSG_RAID", "CHAT_MSG_RAID_LEADER", "CHAT_MSG_INSTANCE_CHAT",
+	"CHAT_MSG_INSTANCE_CHAT_LEADER", "CHAT_MSG_WHISPER" }
 
 -- ------------------------------------------------------------------ asked 1
 -- Every channel a request can arrive in puts the asker on the prompt, and the
@@ -173,6 +174,11 @@ do
 			"is int worth it?", "int is great", "nice buffs", "who buffed me?",
 			"i was wondering whether anyone here could spare some int please",
 			"fort pls", "kings?",
+			-- The same rules with the buff's full name, which the rule on
+			-- nicknames below does not reach: a question about it, a no, and
+			-- a mention that asks for nothing.
+			"is arcane intellect worth it?", "who has arcane intellect?",
+			"no arcane intellect please", "arcane intellect is great",
 		}) do
 			hear(ns, "CHAT_MSG_SAY", text, "Anna Aim", "Player-1-nameplate1")
 			local anna = entryFor(ns, "Anna Aim")
@@ -345,37 +351,74 @@ end
 Mock.reset()
 
 -- ------------------------------------------------------------------ asked 8
--- A request made in a fight, or standing when one starts, is offered after it.
+-- Fights. A request standing when one starts, and a whisper made in one, are
+-- offered after it, for a minute, once. Anything else said in a fight is
+-- tactics -- "ai pls" in /party there is an interrupt -- and is let go.
+--
+-- Anna asks before the fight, Bert says "ai pls" in /party during it and Cara
+-- whispers "int pls" during it. After the fight Anna and Cara have their
+-- minute and Bert has nothing. Then a second pull half a minute later lasts
+-- longer than what is left of that minute: neither is held through it again,
+-- so chained pulls cannot keep one "int pls" standing all dungeon long.
 Mock.reset()
 do
 	local scenario = "a request in a fight is offered after it"
-	local restoreUnits = strangers({ nameplate1 = { "Anna", "Aim" }, nameplate2 = { "Bert", "Beside" } })
+	local restoreUnits = strangers({ nameplate1 = { "Anna", "Aim" }, nameplate2 = { "Bert", "Beside" },
+		nameplate3 = { "Cara", "Crew" } })
 	with(scenario, {}, function()
 		local ns = load(scenario)
 		if not ns then return end
 		ready(ns, scenario)
+		local function fight(seconds)
+			-- The client sends this just before lockdown begins.
+			ns.addon:PLAYER_REGEN_DISABLED()
+			Mock.inCombat = true
+			Mock.advance(seconds)
+			Mock.inCombat = false
+			ns.addon:PLAYER_REGEN_ENABLED()
+		end
 		hear(ns, "CHAT_MSG_SAY", "int pls", "Anna Aim", "Player-1-nameplate1")
 		Mock.advance(50)
-		-- The client sends this just before lockdown begins.
 		ns.addon:PLAYER_REGEN_DISABLED()
 		Mock.inCombat = true
 		hear(ns, "CHAT_MSG_PARTY", "ai pls", "Bert Beside", "Player-1-nameplate2")
+		hear(ns, "CHAT_MSG_WHISPER", "int pls", "Cara Crew", "Player-1-nameplate3")
 		Mock.advance(120)
 		Mock.inCombat = false
 		ns.addon:PLAYER_REGEN_ENABLED()
 		if not entryFor(ns, "Anna Aim") then
 			fail(scenario, "Anna asked before the fight and was let go during it")
 		end
-		if not entryFor(ns, "Bert Beside") then
-			fail(scenario, "Bert asked during the fight and was not offered after it")
+		if not entryFor(ns, "Cara Crew") then
+			fail(scenario, "Cara whispered during the fight and was not offered after it")
+		end
+		local bert = entryFor(ns, "Bert Beside")
+		if bert and bert.reason == "asked" then
+			fail(scenario, "\"ai pls\" said in /party during a fight was taken for a request")
+		end
+		if ns.askScan.fight ~= 1 then
+			fail(scenario, ("expected one message let go for the fight, counted %d")
+				:format(ns.askScan.fight))
 		end
 		Mock.advance(59)
-		if not (entryFor(ns, "Anna Aim") and entryFor(ns, "Bert Beside")) then
+		if not (entryFor(ns, "Anna Aim") and entryFor(ns, "Cara Crew")) then
 			fail(scenario, "the minute after the fight was cut short")
 		end
 		Mock.advance(2)
-		if entryFor(ns, "Anna Aim") or entryFor(ns, "Bert Beside") then
+		if entryFor(ns, "Anna Aim") or entryFor(ns, "Cara Crew") then
 			fail(scenario, "a request held through a fight never ran out after it")
+		end
+
+		-- Chained pulls: asked, held through one, then a second begins before
+		-- the minute after the first is out, and ends after it would have.
+		Mock.advance(61)
+		hear(ns, "CHAT_MSG_SAY", "int pls", "Anna Aim", "Player-1-nameplate1")
+		Mock.advance(10)
+		fight(40)
+		Mock.advance(30)
+		fight(45)
+		if entryFor(ns, "Anna Aim") then
+			fail(scenario, "a request was held through a second fight and outlived both")
 		end
 		noErrors(scenario, ns)
 	end)
@@ -392,6 +435,8 @@ Mock.reset()
 do
 	local scenario = "a class only hears requests for its own buffs"
 	Mock.class = "PRIEST"
+	-- Not a priest: one would cast it themselves, and asked 15 says so.
+	Mock.unitClass = "WARRIOR"
 	local restoreUnits = strangers({ nameplate1 = { "Anna", "Aim" } })
 	with(scenario, knowing("PRIEST", { "fortitude" }), function()
 		local ns = load(scenario)
@@ -479,7 +524,7 @@ Mock.reset()
 Mock.reset()
 do
 	local scenario = "a request in the client's own language is heard"
-	local function foldCh(s) return (s:gsub("Ч", "ч")) end
+	local function foldCh(s) return (s:gsub("Ч", "ч"):gsub("Н", "н"):gsub("П", "п")) end
 	local cases = {
 		{ locale = "deDE", name = "Arkane Intelligenz",
 			yes = { "Arkane Intelligenz bitte", "arkane intelligenz?", "int pls" },
@@ -488,9 +533,12 @@ do
 			yes = { "求奥术智慧", "奥术智慧", "奥术智慧？" },
 			no = { "奥术智慧很好" } },
 		{ locale = "ruRU", name = "Чародейский интеллект",
-			yes = { "чародейский интеллект пж", "Чародейский интеллект?" },
-			no = { "чародейский интеллект не нужен пж" },
-			-- The client's own comparison, folding the one capital in play.
+			-- The last of each: a please, and a no, with a capital at the start
+			-- of the sentence, which Words leaves as typed outside A to Z.
+			yes = { "чародейский интеллект пж", "Чародейский интеллект?",
+				"Пожалуйста, чародейский интеллект" },
+			no = { "чародейский интеллект не нужен пж", "Не нужен чародейский интеллект?" },
+			-- The client's own comparison, folding the capitals in play.
 			fold = function(a, b) return foldCh(a) == foldCh(b) and 0 or 1 end },
 	}
 	for _, case in ipairs(cases) do
@@ -659,5 +707,411 @@ do
 		end
 		noErrors(scenario, ns)
 	end)
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ asked 14
+-- What somebody who asked is offered: what they asked for whether or not it
+-- does them any good, in the request's own words even when their auras cannot
+-- be read -- and nothing once they have it.
+--
+-- Anna is a warrior here, with no mana bar, and "Hide buffs that do nothing
+-- for them" is on: she asked for Intellect, so she is offered it. With her
+-- auras unreadable the prompt still says she asked, not "unverified". And once
+-- she is wearing it -- another mage answered first, or you cast it by hand --
+-- she is off the prompt, although nothing was clicked to serve her request.
+Mock.reset()
+do
+	local scenario = "somebody who asked is offered it until they have it"
+	local restoreUnits = strangers({ nameplate1 = { "Anna", "Aim" } })
+	with(scenario, {
+		UnitPowerMax = function(unit, ...)
+			if unit == "nameplate1" then return 0 end
+			return original.UnitPowerMax(unit, ...)
+		end,
+	}, function()
+		local ns = load(scenario)
+		if not ns then return end
+		ready(ns, scenario)
+		ns.db.profile.filters.relevantOnly = true
+		hear(ns, "CHAT_MSG_SAY", "int pls", "Anna Aim", "Player-1-nameplate1")
+		local anna = entryFor(ns, "Anna Aim")
+		if not (anna and anna.reason == "asked" and anna.buff.key == "intellect") then
+			fail(scenario, "a warrior who asked for Intellect was not offered it")
+		end
+
+		Mock.advance(4)
+		Mock.auraReadRefuse = { [1459] = "secret" }
+		anna = entryFor(ns, "Anna Aim")
+		if not anna then
+			fail(scenario, "somebody who asked was dropped when their auras could not be read")
+		elseif anna.known ~= nil then
+			fail(scenario, "SKIPPED -- the aura read was not refused: " .. tostring(anna.known))
+		else
+			local line = ns.Prompt:ReasonText(anna)
+			if line ~= "asked for it" then
+				fail(scenario, "with their auras unreadable the prompt reads " .. tostring(line))
+			end
+		end
+		Mock.auraReadRefuse = nil
+
+		Mock.advance(4)
+		Mock.held = { [1459] = true }
+		anna = entryFor(ns, "Anna Aim")
+		if anna then
+			fail(scenario, ("Anna is wearing what she asked for and is still offered it, as %s")
+				:format(tostring(anna.reason)))
+		end
+		noErrors(scenario, ns)
+	end)
+	restoreUnits()
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ asked 15
+-- Chat that is not asking for a buff, though it names one.
+--
+-- An interrupt call, loot talk, class talk and Portuguese "aí" all use a
+-- nickname for Intellect. Beside a nickname only small words may stand, so
+-- none of these is a request -- in /party, where they are said. Another mage
+-- offering theirs ("anyone need int?") is asking nothing of you either. And a
+-- druid's "mark" is a raid marker in group chat, where the looser words never
+-- count, and needs a please or to stand alone anywhere else.
+Mock.reset()
+do
+	local scenario = "tactical chat is not a request"
+	local restoreUnits = strangers({ nameplate1 = { "Anna", "Aim" } })
+	with(scenario, {}, function()
+		local ns = load(scenario)
+		if not ns then return end
+		ready(ns, scenario)
+		for _, text in ipairs({
+			"can someone int the caster", "need int on caster", "int the healer pls",
+			"whos on int?", "who has int?", "kick/int pls", "who needs int?",
+			"any int plate drop?", "need int ring", "can i roll on the int ring?",
+			"anyone selling int gear", "rogues need a buff", "can you buff arcane pls",
+			"any buffs on the boss?", "e ai?", "ta ai?", "vc ta ai?", "can ai do this?",
+		}) do
+			hear(ns, "CHAT_MSG_PARTY", text, "Anna Aim", "Player-1-nameplate1")
+			local anna = entryFor(ns, "Anna Aim")
+			if anna then
+				fail(scenario, ("%q put Anna on the prompt as %s"):format(text, tostring(anna.reason)))
+			end
+			Mock.advance(61)
+		end
+
+		-- A mage offering theirs. Heard, and the request stands -- it is who
+		-- said it that decides, so the same line from a priest is a request.
+		Mock.unitClass = "MAGE"
+		hear(ns, "CHAT_MSG_PARTY", "anyone need int?", "Anna Aim", "Player-1-nameplate1")
+		if entryFor(ns, "Anna Aim") then
+			fail(scenario, "another mage offering Intellect was taken for asking for it")
+		end
+		Mock.unitClass = "PRIEST"
+		local anna = entryFor(ns, "Anna Aim")
+		if not (anna and anna.reason == "asked") then
+			fail(scenario, "SKIPPED -- \"anyone need int?\" from a priest was not a request")
+		end
+		noErrors(scenario, ns)
+	end)
+	restoreUnits()
+end
+Mock.reset()
+do
+	local scenario = "tactical chat is not a request"
+	Mock.class = "DRUID"
+	local restoreUnits = strangers({ nameplate1 = { "Anna", "Aim" } })
+	with(scenario, knowing("DRUID", { "motw" }), function()
+		local ns = load(scenario)
+		if not ns then return end
+		ready(ns, scenario)
+		local cases = {
+			{ "CHAT_MSG_PARTY", "mark pls", false }, { "CHAT_MSG_PARTY", "can someone mark?", false },
+			{ "CHAT_MSG_RAID", "mark skull pls", false }, { "CHAT_MSG_INSTANCE_CHAT", "mark?", false },
+			{ "CHAT_MSG_SAY", "can someone mark?", false }, { "CHAT_MSG_SAY", "mark the caster pls", false },
+			{ "CHAT_MSG_PARTY", "motw pls", true }, { "CHAT_MSG_SAY", "mark pls", true },
+		}
+		for _, case in ipairs(cases) do
+			hear(ns, case[1], case[2], "Anna Aim", "Player-1-nameplate1")
+			local anna = entryFor(ns, "Anna Aim")
+			local asked = anna and anna.reason == "asked" and anna.buff.key == "motw"
+			if case[3] and not asked then
+				fail(scenario, ("a druid did not hear %q in %s as a request"):format(case[2], case[1]))
+			elseif not case[3] and anna then
+				fail(scenario, ("a druid heard %q in %s as a request"):format(case[2], case[1]))
+			end
+			Mock.advance(61)
+		end
+		noErrors(scenario, ns)
+	end)
+	restoreUnits()
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ asked 16
+-- One standing request per person, and thirty at most.
+--
+-- Asking again replaces the first request: one line for Anna in /manners
+-- debug, and the minute starts again. Thirty-one people asking at once keep
+-- the thirty most recent.
+Mock.reset()
+do
+	local scenario = "requests are one per person, thirty at most"
+	local restoreUnits = strangers({ nameplate1 = { "Anna", "Aim" } })
+	with(scenario, {}, function()
+		local ns = load(scenario)
+		if not ns then return end
+		ready(ns, scenario)
+		-- Lines about a request, which start "asked in"; the first line is the
+		-- counters.
+		local function linesWith(text)
+			local n = 0
+			for _, line in ipairs(ns.RequestLines()) do
+				if line:find("^asked in ") and line:find(text, 1, true) then n = n + 1 end
+			end
+			return n
+		end
+		hear(ns, "CHAT_MSG_SAY", "int pls", "Anna Aim", "Player-1-nameplate1")
+		Mock.advance(40)
+		hear(ns, "CHAT_MSG_WHISPER", "ai?", "Anna Aim", "Player-1-nameplate1")
+		if linesWith("Anna Aim") ~= 1 then
+			fail(scenario, ("asking twice left %d requests standing for Anna"):format(linesWith("Anna Aim")))
+		end
+		Mock.advance(30)
+		if not entryFor(ns, "Anna Aim") then
+			fail(scenario, "asking again did not start the minute again")
+		end
+
+		Mock.advance(61)
+		for i = 1, 31 do
+			hear(ns, "CHAT_MSG_SAY", "int pls", ("Ask%02d Er"):format(i), nil)
+		end
+		if linesWith("asked in ") ~= 30 then
+			fail(scenario, ("thirty-one people asking left %d requests"):format(linesWith("asked in ")))
+		end
+		if linesWith("Ask01 Er") ~= 0 or linesWith("Ask31 Er") ~= 1 then
+			fail(scenario, "the request let go for the thirty-first was not the oldest")
+		end
+		noErrors(scenario, ns)
+	end)
+	restoreUnits()
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ asked 17
+-- Two people with the same name are told apart by their GUIDs.
+--
+-- A whisper from another Anna Aim -- another realm, the same name -- is not a
+-- request from the one standing beside you, and does not replace hers.
+Mock.reset()
+do
+	local scenario = "two people with one name are told apart by GUID"
+	local restoreUnits = strangers({ nameplate1 = { "Anna", "Aim" } })
+	with(scenario, {}, function()
+		local ns = load(scenario)
+		if not ns then return end
+		ready(ns, scenario)
+		hear(ns, "CHAT_MSG_WHISPER", "int pls", "Anna Aim", "Player-2-faraway")
+		if entryFor(ns, "Anna Aim") then
+			fail(scenario, "another Anna's whisper put the one beside you on the prompt")
+		end
+		hear(ns, "CHAT_MSG_SAY", "int pls", "Anna Aim", "Player-1-nameplate1")
+		if not entryFor(ns, "Anna Aim") then
+			fail(scenario, "SKIPPED -- the Anna beside you was not offered when she asked")
+		end
+		local standing = 0
+		for _, line in ipairs(ns.RequestLines()) do
+			if line:find("Anna Aim", 1, true) then standing = standing + 1 end
+		end
+		if standing ~= 2 then
+			fail(scenario, ("two Annas asked and %d requests stand"):format(standing))
+		end
+		noErrors(scenario, ns)
+	end)
+	restoreUnits()
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ asked 18
+-- Nothing is heard while Manners is switched off, and nothing heard then turns
+-- up when it is switched back on.
+Mock.reset()
+do
+	local scenario = "nothing is heard while Manners is off"
+	local restoreUnits = strangers({ nameplate1 = { "Anna", "Aim" } })
+	with(scenario, {}, function()
+		local ns = load(scenario)
+		if not ns then return end
+		ready(ns, scenario)
+		ns.db.profile.enabled = false
+		hear(ns, "CHAT_MSG_SAY", "int pls", "Anna Aim", "Player-1-nameplate1")
+		ns.db.profile.enabled = true
+		if ns.askScan.heard ~= 0 or entryFor(ns, "Anna Aim") then
+			fail(scenario, "a request made while Manners was off was kept for when it came back on")
+		end
+		noErrors(scenario, ns)
+	end)
+	restoreUnits()
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ asked 19
+-- Your target comes first, somebody who asked included.
+--
+-- With "your target first" on, targeting somebody who asked puts them above a
+-- favour owed, as it does anybody targeted and missing the buff -- still
+-- reading "asked for it". With it off they are where a request goes.
+Mock.reset()
+do
+	local scenario = "a targeted asker comes first"
+	local restoreUnits = strangers({ target = { "Anna", "Aim" }, nameplate2 = { "Bert", "Beside" } })
+	with(scenario, {}, function()
+		local ns = load(scenario)
+		if not ns then return end
+		ready(ns, scenario)
+		local db = ns.db.profile
+		db.priority.target = true
+		owe(ns, "Bert Beside")
+		hear(ns, "CHAT_MSG_SAY", "int pls", "Anna Aim", "Player-1-target")
+		local function order()
+			local names = {}
+			for _, entry in ipairs(ns.BuildQueue()) do
+				names[#names + 1] = ("%s/%s/%s"):format(entry.name, tostring(entry.reason),
+					tostring(entry.priority))
+			end
+			return table.concat(names, ", ")
+		end
+		local got = order()
+		if got ~= "Anna Aim/asked/0, Bert Beside/owed/1" then
+			fail(scenario, "targeting somebody who asked did not put them first: " .. got)
+		end
+		db.priority.target = false
+		got = order()
+		if got ~= "Bert Beside/owed/1, Anna Aim/asked/1.5" then
+			fail(scenario, "with the target not first, a request is not where it belongs: " .. got)
+		end
+		noErrors(scenario, ns)
+	end)
+	restoreUnits()
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ asked 20
+-- A saved wording for a request that is not text is put back at login, as
+-- every other wording is: a number there throws on every repaint.
+Mock.reset()
+do
+	local scenario = "a broken saved wording for a request is repaired"
+	with(scenario, {}, function()
+		if not H.savedProfile(scenario, function(profile)
+			profile.prompt = profile.prompt or {}
+			profile.prompt.reasonAsked = 5
+		end) then
+			fail(scenario, "SKIPPED -- no saved profile to break")
+			return
+		end
+		local ns = load(scenario)
+		if not ns then return end
+		freshPrompt(ns, scenario)
+		if ns.db.profile.prompt.reasonAsked ~= "asked for it" then
+			fail(scenario, "a number saved as the wording survived login: "
+				.. tostring(ns.db.profile.prompt.reasonAsked))
+		end
+	end)
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ asked 21
+-- The warning that nothing is switched on counts this source: with only it on,
+-- the prompt can appear, and the page does not say it never will.
+Mock.reset()
+do
+	local scenario = "the empty-sources warning counts requests"
+	with(scenario, {}, function()
+		local ns = load(scenario)
+		if not ns then return end
+		freshPrompt(ns, scenario)
+		local warning = findOption(ns.optionsTable, "emptyWarning")
+		if not (warning and type(warning.hidden) == "function") then
+			fail(scenario, "SKIPPED -- no warning on the page")
+			return
+		end
+		local s = ns.db.profile.sources
+		s.owed, s.group, s.strangers, s.asked = false, false, false, true
+		if not warning.hidden() then
+			fail(scenario, "with only requests on, the page says the prompt will never appear")
+		end
+		s.asked = false
+		if warning.hidden() then
+			fail(scenario, "SKIPPED -- the warning stays hidden with everything off")
+		end
+		noErrors(scenario, ns)
+	end)
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ asked 22
+-- The launcher says why somebody who asked is there: its tooltip and its
+-- Who's next read "asked for it", as the prompt does, and not "nearby".
+Mock.reset()
+do
+	local scenario = "the launcher says who asked"
+	local function newMenu(text)
+		local d = { text = text, items = {} }
+		local function add(item)
+			d.items[#d.items + 1] = item
+			return item
+		end
+		function d:CreateTitle(t) return add(newMenu(t)) end
+		function d:CreateDivider() return add(newMenu()) end
+		function d:CreateButton(t) return add(newMenu(t)) end
+		function d:CreateCheckbox(t) return add(newMenu(t)) end
+		function d:CreateRadio(t) return add(newMenu(t)) end
+		function d:SetEnabled() end
+		function d:SetTooltip() end
+		return d
+	end
+	local opened
+	local restoreUnits = strangers({ nameplate1 = { "Anna", "Aim" } })
+	with(scenario, {
+		MenuUtil = {
+			CreateContextMenu = function(owner, generator)
+				opened = newMenu()
+				generator(owner, opened)
+				return opened
+			end,
+		},
+	}, function()
+		local ns = load(scenario)
+		if not ns then return end
+		ready(ns, scenario)
+		hear(ns, "CHAT_MSG_SAY", "int pls", "Anna Aim", "Player-1-nameplate1")
+		ns.addon:Tick()
+		local broker = Mock.broker
+		if not (broker and broker.OnTooltipShow and ns.Prompt:PanelName() == "Anna Aim") then
+			fail(scenario, "SKIPPED -- no launcher, or Anna is not on the prompt")
+			return
+		end
+		local lines = {}
+		broker.OnTooltipShow({ AddLine = function(_, text) lines[#lines + 1] = tostring(text) end })
+		local tip = table.concat(lines, "\n")
+		if not tip:find("Anna Aim|r -- Arcane Intellect, asked for it", 1, true) then
+			fail(scenario, "the launcher's tooltip does not say Anna asked: " .. tip)
+		end
+		broker.OnClick({}, "RightButton")
+		local label
+		for _, item in ipairs(opened and opened.items or {}) do
+			if item.text == "Who's next" then
+				for _, person in ipairs(item.items) do
+					if tostring(person.text):find("^Anna Aim %-%- ") then label = person.text end
+				end
+			end
+		end
+		if not (label and label:find("(asked for it)", 1, true)) then
+			fail(scenario, "Who's next does not say Anna asked: " .. tostring(label))
+		end
+		noErrors(scenario, ns)
+	end)
+	restoreUnits()
 end
 Mock.reset()

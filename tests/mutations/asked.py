@@ -18,6 +18,14 @@ mutate("Core.lua",
        expect="a request in any channel is offered, for a minute",
        script="runscenarios.py")
 
+# A group made by the group finder talks in instance chat, never heard.
+mutate("Core.lua",
+       "\t\t\"CHAT_MSG_INSTANCE_CHAT\",\n",
+       "",
+       "instance chat never registered",
+       expect="a request in any channel is offered, for a minute",
+       script="runscenarios.py")
+
 # A request that never runs out.
 mutate("Core.lua",
        "\t\treturn request.fight or request.expires > now\n",
@@ -58,17 +66,17 @@ mutate("Core.lua",
        expect="only whole words and real requests count",
        script="runscenarios.py")
 
-# Any mention of a buff taken for a request.
+# Any mention of a buff by its full name taken for a request.
 mutate("Core.lua",
-       "\t\t\tif pleased or opens or only or (strength == \"strict\" and questioned) then\n",
-       "\t\t\tif true then\n",
+       "\t\t\t\tcounts = asking or questioned\n",
+       "\t\t\t\tcounts = true\n",
        "every mention is a request",
        expect="only whole words and real requests count",
        script="runscenarios.py")
 
-# "no int pls" heard as asking.
+# "no arcane intellect please" heard as asking.
 mutate("Core.lua",
-       "\t\t\tif ASK.never[word] then return nil end\n",
+       "\t\t\tif Among(ASK.never, word) then return nil end\n",
        "\t\t\tif false then return nil end\n",
        "a message saying no still asks",
        expect="only whole words and real requests count",
@@ -76,18 +84,58 @@ mutate("Core.lua",
 
 # A question about a buff taken for a question asking for it.
 mutate("Core.lua",
-       "\t\tlocal questioned = not ASK.question[words[1]]\n",
+       "\t\tlocal questioned = not Among(ASK.question, words[1])\n",
        "\t\tlocal questioned = true\n",
        "questions about a buff ask for it",
        expect="only whole words and real requests count",
        script="runscenarios.py")
 
-# The loose words given the question mark as well: "might be lag?".
+# "who has arcane intellect?" read as asking for it.
 mutate("Core.lua",
-       "\t\t\tif pleased or opens or only or (strength == \"strict\" and questioned) then\n",
-       "\t\t\tif pleased or opens or only or (strength and questioned) then\n",
-       "loose words asked for by a question mark",
-       expect="a paladin is offered what was asked for, within its pin",
+       "\t\t\t\"who\", \"whos\", \"wants\", \"needs\" }),\n",
+       "\t\t\t}),\n",
+       "who has it read as asking for it",
+       expect="only whole words and real requests count",
+       script="runscenarios.py")
+
+# A nickname counted whatever stands beside it: "int the healer pls".
+mutate("Core.lua",
+       "\t\t\t\tcounts = small and (asking or questioned)\n",
+       "\t\t\t\tcounts = asking or questioned\n",
+       "a nickname beside any words asks",
+       expect="tactical chat is not a request",
+       script="runscenarios.py")
+
+# "buff" counted whatever stands beside it: "rogues need a buff".
+mutate("Core.lua",
+       "\t\tif not keys and generic and small and asking then keys = ASK.ANY end\n",
+       "\t\tif not keys and generic and asking then keys = ASK.ANY end\n",
+       "buff beside any words asks",
+       expect="tactical chat is not a request",
+       script="runscenarios.py")
+
+# "mark pls" in party chat taken for Mark of the Wild.
+mutate("Core.lua",
+       "\t\t\t\tcounts = small and (pleased or only) and not ASK.group[channel]\n",
+       "\t\t\t\tcounts = small and (pleased or only)\n",
+       "loose words count in group chat",
+       expect="tactical chat is not a request",
+       script="runscenarios.py")
+
+# The looser words asked for by an opener: "can someone mark?".
+mutate("Core.lua",
+       "\t\t\t\tcounts = small and (pleased or only) and not ASK.group[channel]\n",
+       "\t\t\t\tcounts = small and (pleased or opens or only) and not ASK.group[channel]\n",
+       "loose words asked for by an opener",
+       expect="tactical chat is not a request",
+       script="runscenarios.py")
+
+# Another mage's "anyone need int?" taken for asking you for it.
+mutate("Core.lua",
+       "\t\tif plain(select(2, UnitClass(unit))) == playerClass then return nil end\n",
+       "",
+       "your own class taken for asking",
+       expect="tactical chat is not a request",
        script="runscenarios.py")
 
 # What was asked for ignored: Kings asked, Might offered.
@@ -122,11 +170,43 @@ mutate("Core.lua",
        expect="a request in the client's own language is heard",
        script="runscenarios.py")
 
+# The word lists looked up byte for byte: "Не" at the start is not "не".
+mutate("Core.lua",
+       "\t\t\tif SameWord(word, entry) then return true end\n",
+       "",
+       "word lists not case-folded",
+       expect="a request in the client's own language is heard",
+       script="runscenarios.py")
+
+# Anything said in a fight kept for afterwards: interrupt calls offered.
+mutate("Core.lua",
+       "\t\tif fighting and channel ~= \"WHISPER\" then\n",
+       "\t\tif false then\n",
+       "requests made in a fight kept",
+       expect="a request in a fight is offered after it",
+       script="runscenarios.py")
+
+# A whisper in a fight let go with the rest.
+mutate("Core.lua",
+       "\t\tif fighting and channel ~= \"WHISPER\" then\n",
+       "\t\tif fighting then\n",
+       "whispers in a fight let go",
+       expect="a request in a fight is offered after it",
+       script="runscenarios.py")
+
 # A request standing when the fight starts let go during it.
 mutate("Core.lua",
-       "\t\t\tif Live(request, now) then request.fight = true end\n",
+       "\t\t\tif Live(request, now) and not request.held then request.fight = true end\n",
        "",
        "requests run out in a fight",
+       expect="a request in a fight is offered after it",
+       script="runscenarios.py")
+
+# Held through every fight, so chained pulls keep a request alive forever.
+mutate("Core.lua",
+       "\t\t\tif Live(request, now) and not request.held then request.fight = true end\n",
+       "\t\t\tif Live(request, now) then request.fight = true end\n",
+       "requests held through every fight",
        expect="a request in a fight is offered after it",
        script="runscenarios.py")
 
@@ -154,6 +234,78 @@ mutate("Core.lua",
        expect="a buff that lands serves the request",
        script="runscenarios.py")
 
+# Somebody who asked offered what they already wear, above your group.
+mutate("Core.lua",
+       "\t\t\tofferAnyway = isOwed,\n",
+       "\t\t\tofferAnyway = isOwed or asked ~= nil,\n",
+       "an asker offered what they have",
+       expect="somebody who asked is offered it until they have it",
+       script="runscenarios.py")
+
+# A warrior asking for Intellect turned down as having no use for it.
+mutate("Core.lua",
+       "\t\t\trelevantOnly = f.relevantOnly and not asked,\n",
+       "\t\t\trelevantOnly = f.relevantOnly,\n",
+       "what they asked for judged irrelevant",
+       expect="somebody who asked is offered it until they have it",
+       script="runscenarios.py")
+
+# The prompt reading "unverified" for somebody who asked.
+mutate("Prompt.lua",
+       "\t\tand entry.reason ~= \"asked\" then\n",
+       "\t\tthen\n",
+       "a request read as unverified",
+       expect="somebody who asked is offered it until they have it",
+       script="runscenarios.py")
+
+# Every message from one person kept, not the last.
+mutate("Core.lua",
+       "\t\t\tif Made(requests[i], guid, short, nil) then table.remove(requests, i) end\n",
+       "",
+       "asking again adds a request",
+       expect="requests are one per person, thirty at most",
+       script="runscenarios.py")
+
+# No cap on how many requests are kept.
+mutate("Core.lua",
+       "\t\twhile #requests > ASK_KEEP do table.remove(requests, 1) end\n",
+       "",
+       "requests kept without a cap",
+       expect="requests are one per person, thirty at most",
+       script="runscenarios.py")
+
+# Matched by name alone: another realm's Anna is the one beside you.
+mutate("Core.lua",
+       "\t\tif request.guid and guid then return request.guid == guid end\n",
+       "",
+       "requests matched by name alone",
+       expect="two people with one name are told apart by GUID",
+       script="runscenarios.py")
+
+# Heard while Manners is switched off.
+mutate("Core.lua",
+       "\t\tif not (db and db.enabled and db.sources.asked) then return end\n",
+       "\t\tif not (db and db.sources.asked) then return end\n",
+       "heard while switched off",
+       expect="nothing is heard while Manners is off",
+       script="runscenarios.py")
+
+# Targeting somebody who asked leaves them below every favour.
+mutate("Core.lua",
+       "\t\t\tpriority = PRIORITY.target\n",
+       "",
+       "a targeted asker not moved up",
+       expect="a targeted asker comes first",
+       script="runscenarios.py")
+
+# A targeted asker read as "your target" rather than as having asked.
+mutate("Core.lua",
+       "\t\t\tif not asked then reason = \"target\" end\n",
+       "\t\t\treason = \"target\"\n",
+       "a targeted asker loses their reason",
+       expect="a targeted asker comes first",
+       script="runscenarios.py")
+
 # A request ranked below your group.
 mutate("Core.lua",
        "local PRIORITY = { target = 0, owed = 1, asked = 1.5, group = 2, nearby = 3 }\n",
@@ -176,4 +328,28 @@ mutate("Prompt.lua",
        "\tgroup = \"reasonGroup\", nearby = \"reasonNearby\" }\n",
        "no wording of its own for a request",
        expect="somebody who asked comes after a favour and before your group",
+       script="runscenarios.py")
+
+# A saved wording that is not text kept, to throw on every repaint.
+mutate("Core.lua",
+       "\t\t\"reasonNearby\", \"reasonAsked\", \"reasonRefresh\", \"reasonUnknown\" }) do\n",
+       "\t\t\"reasonNearby\", \"reasonRefresh\", \"reasonUnknown\" }) do\n",
+       "a broken request wording kept",
+       expect="a broken saved wording for a request is repaired",
+       script="runscenarios.py")
+
+# The page saying the prompt will never appear with requests switched on.
+mutate("Options.lua",
+       "\t\t\t\t\treturn s.owed or s.group or s.asked or (s.strangers and not OnlyReachesGroup())\n",
+       "\t\t\t\t\treturn s.owed or s.group or (s.strangers and not OnlyReachesGroup())\n",
+       "requests not counted as a source",
+       expect="the empty-sources warning counts requests",
+       script="runscenarios.py")
+
+# The launcher calling somebody who asked a passer-by.
+mutate("Options.lua",
+       "\tif reason == \"asked\" then return asked end\n",
+       "",
+       "the launcher reads a request as nearby",
+       expect="the launcher says who asked",
        script="runscenarios.py")
