@@ -1444,6 +1444,9 @@ local function BuildOptions()
 						get = function()
 							local choice = SP().presetChoice or "roleplay"
 							if SP().phrases == ns.PhraseSetText(choice) then return choice end
+							-- In character is untouched on every character sharing the
+							-- profile, though each one's examples differ.
+							if ns.InCharacter and ns.InCharacter.Active(SP()) then return choice end
 							return nil
 						end,
 						set = function(_, value)
@@ -1462,6 +1465,15 @@ local function BuildOptions()
 							.. L["A macro holds 255 characters, so a line that will not fit is dropped, not cut off -- |cffffd100Roll a few|r shows what would go out. An empty box goes back to the chosen set."]
 							.. "|r",
 					},
+					inCharacterNote = {
+						type = "description",
+						order = 22.5,
+						hidden = function() return not (ns.InCharacter and ns.InCharacter.Active(SP())) end,
+						name = function()
+							return "\n|cffffd100" .. L["In character: the line is picked when you click, to fit your race, your faction and the moment -- thanks for a favour, an answer to a request, or an offer. Below are a few of this character's lines; edit them and they become your own lines instead."]
+								.. "|r\n"
+						end,
+					},
 					phrases = {
 						type = "input",
 						name = "",
@@ -1469,7 +1481,14 @@ local function BuildOptions()
 						multiline = 10,
 						width = "full",
 						disabled = function() return not SP().enabled end,
-						get = spGet,
+						-- In character shows the examples of whoever is logged in,
+						-- whichever character's the shared profile was saved with.
+						get = function(info)
+							if ns.InCharacter and ns.InCharacter.Active(SP()) then
+								return ns.PhraseSetText("incharacter")
+							end
+							return spGet(info)
+						end,
 						-- An empty box snaps back to the set the dropdown names, the
 						-- way the First line does, since the load-time repair would
 						-- refill it anyway: what the box shows is what is kept.
@@ -1485,6 +1504,12 @@ local function BuildOptions()
 						name = L["Roll a few"],
 						order = 24,
 						func = function()
+							-- In character speaks differently for each reason, so
+							-- it rolls one line per reason.
+							if ns.InCharacter and ns.InCharacter.Active(SP()) then
+								ns.InCharacter.Roll(L["Somebody"])
+								return
+							end
 							-- reason "owed" so the sample survives the
 							-- only-when-returning filter either way. The
 							-- stand-in name is read in the lines printed, so it

@@ -1478,6 +1478,8 @@ ns.PHRASE_SETS = {
 	},
 }
 
+-- Phrases.lua puts "incharacter" second, after the set it is the per-character
+-- version of.
 ns.PHRASE_SET_ORDER = { "roleplay", "polite", "cheeky", "quiet" }
 
 -- The sets as builds up to 1.0.0-beta.5 stored them in every profile, in
@@ -1534,6 +1536,8 @@ end
 function ns.PhraseSetText(key)
 	local set = ns.PHRASE_SETS[key]
 	if not set then return nil end
+	-- A set written per character ("In character", Phrases.lua) makes its own.
+	if set.text then return set.text() end
 	return table.concat(set.lines, "\n")
 end
 
@@ -1565,6 +1569,12 @@ do
 
 		local command = ns.CHANNEL_COMMANDS[db.speech.channel]
 		if not command then return nil end
+
+		-- "In character" chooses for this person and moment, not from the box.
+		local inCharacter = ns.InCharacter
+		if inCharacter and inCharacter.Active(db.speech) then
+			return inCharacter.Pick(entry, command, budget)
+		end
 
 		local pool = {}
 		for line in tostring(db.speech.phrases or ""):gmatch("[^\r\n]+") do
