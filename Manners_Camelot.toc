@@ -32,6 +32,7 @@ Locales\Locales.xml
 Flavour.lua
 Buffs.lua
 Core.lua
+Phrases.lua
 Ledger.lua
 Prompt.lua
 Options.lua

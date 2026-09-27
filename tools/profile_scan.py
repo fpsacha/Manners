@@ -31,7 +31,7 @@ from lupa import lua51 as lupa
 ADDON_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PROBE = os.path.join(ADDON_DIR, "tools", "profile_scan.lua")
 
-ADDON_FILES = ("Core.lua", "Prompt.lua", "Options.lua", "Ledger.lua", "Buffs.lua", "Flavour.lua")
+ADDON_FILES = ("Core.lua", "Phrases.lua", "Prompt.lua", "Options.lua", "Ledger.lua", "Buffs.lua", "Flavour.lua")
 _sources = {}
 
 
