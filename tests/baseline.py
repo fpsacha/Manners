@@ -11,7 +11,10 @@ to be redirected and compared:
 import os
 import sys
 
-import lupa
+# Lua 5.1, because that is what the game runs. On the newer default the
+# suites passed a build that could not load in game: 5.1 allows a function
+# 60 upvalues where 5.4 allows 255, and Prompt:Create() had 69 (beta.6).
+from lupa import lua51 as lupa
 
 ADDON_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASELINE = os.path.join(ADDON_DIR, "tests", "baseline.lua")

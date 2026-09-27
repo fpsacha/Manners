@@ -5,7 +5,10 @@ Paths are resolved relative to this file so it runs anywhere -- on a developer
 machine, and on a CI runner that has never heard of the game.
 """
 import glob, os, re, sys, xml.etree.ElementTree as ET
-import lupa
+# Lua 5.1, because that is what the game runs. On the newer default the
+# suites passed a build that could not load in game: 5.1 allows a function
+# 60 upvalues where 5.4 allows 255, and Prompt:Create() had 69 (beta.6).
+from lupa import lua51 as lupa
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "tools"))
@@ -19,7 +22,8 @@ OURS = ["Flavour.lua", "Buffs.lua", "Core.lua", "Ledger.lua", "Prompt.lua", "Opt
 TOCS = [maketocs.SOURCE] + sorted(maketocs.expected())
 
 L = lupa.LuaRuntime()
-check = L.eval("function(s) local f, err = load(s) return err end")
+# loadstring: 5.1's load takes a reader function, not source text.
+check = L.eval("function(s) local f, err = loadstring(s) return err end")
 fail = 0
 
 

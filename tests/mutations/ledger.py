@@ -41,7 +41,7 @@ mutate("Ledger.lua",
 
 # The group flag, carried from the queue through the press to the settle.
 mutate("Prompt.lua",
-       "\t\t\tinGroup = current.inGroup,\n",
+       "\t\tinGroup = current.inGroup,\n",
        "",
        "ledger: every gift filed under strangers",
        expect="buffs given unprompted are filed under group or strangers", script=S)

@@ -559,7 +559,7 @@ local function newFrame()
 	-- scaled units. A scenario models the drag by writing the anchor the
 	-- client would have left behind.
 	f.GetPoint = function(self)
-		if Mock.geometry and self.points[1] then return table.unpack(self.points[1], 1, 5) end
+		if Mock.geometry and self.points[1] then return (table.unpack or unpack)(self.points[1], 1, 5) end
 		return "CENTER", nil, "CENTER", 0, 0
 	end
 	f.GetHighlightTexture = function() return newFrame() end

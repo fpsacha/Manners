@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.0-beta.7
+
+A fix for 1.0.0-beta.6, which did not load.
+
+- Manners loads again. In 1.0.0-beta.6 part of the addon failed to load with
+  the error "function at line 604 has more than 60 upvalues", so the prompt
+  never appeared and a second error followed. Thank you to jackflagg84 and
+  Xangandu for reporting it, and to Xangandu for tracking down the cause.
+
 ## 1.0.0-beta.6
 
 A feature release: a favour ledger, a never-offer list, a snooze, a menu on

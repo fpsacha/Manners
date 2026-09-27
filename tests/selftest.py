@@ -299,7 +299,7 @@ mutate("Core.lua",
 #     wrote on the assumption it landed stays standing, with nothing left that
 #     could ever take it back.
 mutate("Prompt.lua",
-       "\t\tns.AbandonPendingClick()\n",
+       "\tns.AbandonPendingClick()\n",
        "",
        "a pending click discarded silently",
        expect="a second press does not bury the first",
@@ -381,8 +381,8 @@ mutate("Prompt.lua",
 #      disarms it -- so the click does nothing and says nothing, which is the
 #      silent failure the fuse was added to avoid, arriving by the other door.
 mutate("Prompt.lua",
-       "		if not top and current and not Retired(current, now) and named == current.name then\n",
-       "		if false then\n",
+       "\tif not top and current and not Retired(current, now) and named == current.name then\n",
+       "\tif false then\n",
        "a press that disarms a visible prompt",
        expect="a press while the prompt was still naming Ana disarmed it",
        script="runscenarios.py")
@@ -1103,8 +1103,8 @@ mutate("Options.lua",
 #     alone and the click made to block the person, which is what the old
 #     wording described and what would stop the buff walk dead.
 mutate("Prompt.lua",
-       "\t\t\tns.MarkAttempted(current.name, current.buff.key)",
-       "\t\t\tns.BlockPerson(current.name)",
+       "\t\tns.MarkAttempted(current.name, current.buff.key)",
+       "\t\tns.BlockPerson(current.name)",
        "a click blocking the person the label denies",
        expect="blocks the whole person while the page says",
        script="runscenarios.py")
@@ -2200,8 +2200,8 @@ mutate("Options.lua",
 # press fired their macro with nothing filed -- so the refused press's parked
 # record was settled by somebody else's cast.
 mutate("Prompt.lua",
-       "\t\t\telseif appliedKey ~= pressKey then\n\t\t\t\tPrompt:ApplyTarget(nil)\n",
-       "\t\t\telseif false then\n\t\t\t\tPrompt:ApplyTarget(nil)\n",
+       "\t\telseif appliedKey ~= pressKey then\n\t\t\tPrompt:ApplyTarget(nil)\n",
+       "\t\telseif false then\n\t\t\tPrompt:ApplyTarget(nil)\n",
        "a debounced press firing what it never armed",
        expect="the second half of a press fires only what the first half armed",
        script="runscenarios.py")
@@ -2218,8 +2218,8 @@ mutate("Core.lua",
 # The cooldown asked after the fight is: in combat the macro cannot be disarmed,
 # and a press inside the cooldown was filed against the frozen person.
 mutate("Prompt.lua",
-       "\t\tcooldownPressAt = (not ready) and now or nil\n\t\tif InCombatLockdown() then return end\n",
-       "\t\tif InCombatLockdown() then cooldownPressAt = nil return end\n\t\tcooldownPressAt = (not ready) and now or nil\n",
+       "\tcooldownPressAt = (not ready) and now or nil\n\tif InCombatLockdown() then return end\n",
+       "\tif InCombatLockdown() then cooldownPressAt = nil return end\n\tcooldownPressAt = (not ready) and now or nil\n",
        "a press in the cooldown filed during a fight",
        expect="in a fight, a press inside the cooldown is not filed",
        script="runscenarios.py")
@@ -2227,8 +2227,8 @@ mutate("Prompt.lua",
 # A press the cooldown turned away kept its PreClick stamp, and the press after
 # it -- the cooldown ends mid-click as often as not -- was swallowed.
 mutate("Prompt.lua",
-       "\t\t\tlastPreClickAt = nil\n\t\t\tguardedEntry = current\n",
-       "\t\t\tguardedEntry = current\n",
+       "\t\tlastPreClickAt = nil\n\t\tguardedEntry = current\n",
+       "\t\tguardedEntry = current\n",
        "a guarded press swallowing the next one",
        expect="a press the cooldown turned away does not swallow the next one",
        script="runscenarios.py")
@@ -2272,7 +2272,7 @@ mutate("Core.lua",
 # A combat press in the spell-queue window goes out when the cooldown ends,
 # and dropping its bookkeeping left the person owed for a buff that landed.
 mutate("Prompt.lua",
-       "left <= ns.SpellQueueWindow() then\n\t\t\tready = true\n",
+       "left <= ns.SpellQueueWindow() then\n\t\tready = true\n",
        "left <= ns.SpellQueueWindow() then\n",
        "a queued combat press treated as refused",
        expect="a press the client queues was treated as refused",
@@ -2803,8 +2803,8 @@ mutate("Prompt.lua",
 
 # A right-click under the flash skipping whoever is armed underneath it.
 mutate("Prompt.lua",
-       "\t\t\tlocal victim = Prompt:PanelName() or (current and current.name)\n",
-       "\t\t\tlocal victim = current and current.name\n",
+       "\t\tlocal victim = Prompt:PanelName() or (current and current.name)\n",
+       "\t\tlocal victim = current and current.name\n",
        "a right-click skipping the person under the flash",
        expect="skipped Bert instead",
        script="runscenarios.py")
@@ -2812,9 +2812,8 @@ mutate("Prompt.lua",
 # The press asking the fuse's clock rather than the panel, so a press before
 # any scan lit the fuse, or after it burnt out, disarmed a named prompt.
 mutate("Prompt.lua",
-       "\t\tif not top and current and not Retired(current, now) and named == current.name then\n",
-       "\t\tif not top and emptyAt and (now - emptyAt) < EMPTY_FUSE_SECONDS"
-       " and not Retired(current, now) then\n",
+       "\tif not top and current and not Retired(current, now) and named == current.name then\n",
+       "\tif not top and emptyAt and (now - emptyAt) < EMPTY_FUSE_SECONDS and not Retired(current, now) then\n",
        "a press on a named prompt going nowhere",
        expect="did nothing and said nothing",
        script="runscenarios.py")
@@ -2830,10 +2829,8 @@ mutate("Prompt.lua",
 
 # A press while switched off answered with "nobody to buff".
 mutate("Prompt.lua",
-       "\t\t\tif db and not db.enabled then\n"
-       "\t\t\t\tns.addon:Print(L[\"Manners is |cffff8080switched off|r",
-       "\t\t\tif false then\n"
-       "\t\t\t\tns.addon:Print(L[\"Manners is |cffff8080switched off|r",
+       "\t\tif db and not db.enabled then\n\t\t\tns.addon:Print(L[\"Manners is |cffff8080switched off|r",
+       "\t\tif false then\n\t\t\tns.addon:Print(L[\"Manners is |cffff8080switched off|r",
        "a press while switched off saying nobody to buff",
        expect="never said Manners is switched off",
        script="runscenarios.py")
@@ -2892,7 +2889,7 @@ mutate("Prompt.lua",
 # The roll wiped by the cooldown guard's disarm and rolled again on the re-arm,
 # so the press after it said a line the tooltip never quoted.
 mutate("Prompt.lua",
-       "\t\t\t\tphraseKey, phraseText = guardedPhraseKey, guardedPhraseText\n",
+       "\t\t\tphraseKey, phraseText = guardedPhraseKey, guardedPhraseText\n",
        "",
        "a guarded press re-rolling the spoken line",
        expect="was turned away, and the next press said",

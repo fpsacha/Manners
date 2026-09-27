@@ -21,16 +21,16 @@ mutate("Core.lua",
 
 # Shift ignored, so shift-right-click is only the skip.
 mutate("Prompt.lua",
-       "\t\t\tif IsShiftKeyDown and ns.plain(IsShiftKeyDown()) then\n",
-       "\t\t\tif false then\n",
+       "\t\tif IsShiftKeyDown and ns.plain(IsShiftKeyDown()) then\n",
+       "\t\tif false then\n",
        "shift-right-click only skips",
        expect="shift-right-click never offers them again",
        script="runscenarios.py")
 
 # Shift read as held on every right-click, so the skip fills the list.
 mutate("Prompt.lua",
-       "\t\t\tif IsShiftKeyDown and ns.plain(IsShiftKeyDown()) then\n",
-       "\t\t\tif true then\n",
+       "\t\tif IsShiftKeyDown and ns.plain(IsShiftKeyDown()) then\n",
+       "\t\tif true then\n",
        "plain right-click puts them on the list",
        expect="shift-right-click never offers them again",
        script="runscenarios.py")
@@ -38,8 +38,8 @@ mutate("Prompt.lua",
 # The shifted press re-silencing the right button, which is a protected call
 # and is refused in a fight.
 mutate("Prompt.lua",
-       "\t\t\t\tns.PutOnNeverList(victim)\n",
-       "\t\t\t\tns.PutOnNeverList(victim)\n\t\t\t\tself:SetAttribute(\"type2\", \"none\")\n",
+       "\t\t\tns.PutOnNeverList(victim)\n",
+       "\t\t\tns.PutOnNeverList(victim)\n\t\t\tself:SetAttribute(\"type2\", \"none\")\n",
        "shift-right-click touches the button in a fight",
        expect="the never list is safe in combat",
        script="runscenarios.py")

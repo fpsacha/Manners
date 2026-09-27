@@ -53,8 +53,8 @@ mutate("Core.lua",
 
 # A keypress on the snoozed prompt told "nobody to buff".
 mutate("Prompt.lua",
-       "\t\t\telseif ns.SnoozeLeft(now) then\n",
-       "\t\t\telseif false then\n",
+       "\t\telseif ns.SnoozeLeft(now) then\n",
+       "\t\telseif false then\n",
        "a keypress while snoozed saying nobody to buff",
        expect="did not say it is snoozed",
        script="runscenarios.py")

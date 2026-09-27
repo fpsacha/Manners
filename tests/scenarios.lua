@@ -16214,7 +16214,7 @@ if ns then
 	drive(scenario, ns)
 	ns.Prompt:ExitTest()
 	local file = io.open(dir .. "/Prompt.lua", "r")
-	local source = file and file:read("a") or ""
+	local source = file and file:read("*a") or ""
 	if file then file:close() end
 	-- The unbroken run of comment lines straight above the table.
 	local before = source:match("(.-)\nlocal REASON_COLOR = {")
@@ -17134,7 +17134,7 @@ ns = load("the key binding is where the greeting says")
 if ns then
 	local scenario = "the key binding is where the greeting says"
 	local file = io.open(dir .. "/Bindings.xml", "r")
-	local xml = file and file:read("a") or ""
+	local xml = file and file:read("*a") or ""
 	if file then file:close() end
 	local category = xml:match('category="([^"]*)"')
 	local said = firstLogin(ns)
@@ -17183,7 +17183,7 @@ if ns then
 	end
 	for _, toc in ipairs({ "Manners.toc", "Manners_Camelot.toc" }) do
 		local file = io.open(dir .. "/" .. toc, "r")
-		local text = file and file:read("a") or ""
+		local text = file and file:read("*a") or ""
 		if file then file:close() end
 		local icon = text:match("\n## IconTexture:%s*([^\r\n]+)")
 		if not onDisk(icon) then
@@ -17397,7 +17397,7 @@ if ns then
 	else
 		local said = table.concat(Mock.printed, "\n")
 		local file = io.open(dir .. "/README.md", "r")
-		local text = file and file:read("a") or ""
+		local text = file and file:read("*a") or ""
 		if file then file:close() end
 		local para = ""
 		for block in (text .. "\n\n"):gmatch("(.-)\n\n") do

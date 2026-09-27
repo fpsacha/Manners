@@ -109,7 +109,7 @@ local queueTextX = 0
 -- Goes into every click line. A log that does not say which build produced it
 -- can be diagnosed for an hour before anyone notices the game never loaded the
 -- file being read.
-ns.BUILD = "1.0.0-beta.6"
+ns.BUILD = "1.0.0-beta.7"
 
 local current, testMode, testExpiry, lastTop, appliedKey, lastClickAt, lastPreClickAt, lastSkipAt
 -- Why the last painted person was on the panel, beside lastTop's who.
@@ -601,6 +601,381 @@ local function PromptIsLive()
 	return true
 end
 
+-- The prompt's PreClick and PostClick, written here rather than inside
+-- Prompt:Create(): WoW runs Lua 5.1, where a function may reach at most 60
+-- outside locals, and a closure's count towards the function it sits in.
+-- Written inline, these two took Create() past the limit and Prompt.lua
+-- failed to load at all (beta.6). They use nothing of Create()'s own, only
+-- `self` -- the button -- and the file's locals above this point.
+
+-- Remember that we tried this person so the queue moves on even if the
+-- cast failed for reasons we cannot see: line of sight, range, immunity.
+-- MountActions does the same thing: PreClick runs before the secure handler
+-- reads the attributes, and out of combat it may still change them. So the
+-- target is re-resolved at the last possible moment, and a nameplate token
+-- that has since been handed to somebody else can never be cast at.
+-- RegisterForClicks("AnyDown") is what makes the secure handler act at all
+-- on this client, but it means every mouse button reaches these handlers.
+-- Only the left button casts; a right-press to turn the camera used to
+-- burn the candidate: retry cooldown set, favour cleared, nothing cast.
+local function OnPreClick(self, mouseButton)
+	if mouseButton and mouseButton ~= "LeftButton" then return end
+	local now = GetTime()
+
+	-- Asked before the fight is, because the fight does not stop the global
+	-- cooldown mattering. In combat the macro is frozen and nothing here can
+	-- disarm it, so a press inside the cooldown still goes out and is still
+	-- refused -- and PostClick used to file it against the frozen person,
+	-- which is the very blame the guard below was written to stop. The
+	-- bookkeeping can still be refused where the macro cannot.
+	local ready, left = ns.CastReady()
+	-- In combat the frozen macro goes out whatever this decides, and one
+	-- pressed in the last stretch of the cooldown is not refused: the client
+	-- queues it and casts it when the cooldown ends. Treating that as turned
+	-- away dropped the bookkeeping for a buff that actually landed, so the
+	-- person stayed owed and was offered -- and cast at -- again. Only a
+	-- press too early to be queued is one the game refuses.
+	--
+	-- Out of combat the whole cooldown is still held back: there the macro
+	-- CAN be disarmed, and a queued /cast would fire after /targetlasttarget
+	-- has already handed the old target back.
+	if InCombatLockdown() and not ready and left <= ns.SpellQueueWindow() then
+		ready = true
+	end
+	cooldownPressAt = (not ready) and now or nil
+	if InCombatLockdown() then return end
+
+	-- Down and up both land here; one rebuild per press is enough -- but only
+	-- while the button still holds what that rebuild armed. Between the two
+	-- halves an error can repaint the prompt onto somebody else, and a cast
+	-- can start the cooldown, and in either case what is sitting on the
+	-- button is not something this press resolved.
+	if lastPreClickAt and (now - lastPreClickAt) < 0.25 then
+		if not ready then
+			guardedEntry = current
+			guardedPhraseKey, guardedPhraseText = phraseKey, phraseText
+			Prompt:ApplyTarget(nil)
+		elseif appliedKey ~= pressKey then
+			Prompt:ApplyTarget(nil)
+		end
+		return
+	end
+	lastPreClickAt = now
+	pressKey = nil
+
+	-- A keypress with an empty prompt is otherwise indistinguishable from a
+	-- binding that does not work, which is what this one was. Says it here
+	-- rather than in Bindings.xml because the macro route lands here too.
+	--
+	-- And it says why the panel is empty where that is the addon's own
+	-- doing. A key pressed after /manners off used to hear "nobody to buff"
+	-- -- often untrue, since the queue is built whatever the switch says --
+	-- and nothing about the switch that actually took the panel away.
+	--
+	-- The commands go in as arguments rather than as part of the sentence:
+	-- they are what the player has to type, in English in every language,
+	-- and a translator should never be handed them to translate. The option
+	-- and tab names go in the same way, through the keys the options window
+	-- shows them with, so the sentence names the labels the player will find.
+	if not self:IsShown() then
+		local db = ns.db and ns.db.profile
+		if db and not db.enabled then
+			ns.addon:Print(L["Manners is |cffff8080switched off|r -- %s to start again."]
+				:format("|cffffd100/manners on|r"))
+		elseif ns.SnoozeLeft(now) then
+			ns.addon:Print(L["Manners is snoozed until %s -- %s brings the prompt back now."]
+				:format(ns.SnoozeEndsAt(), "|cffffd100/manners snooze off|r"))
+		elseif ns.HiddenWhileMounted() then
+			ns.addon:Print(L["the prompt stays away while you are mounted -- get off, or switch off %s on the %s tab."]
+				:format("|cffffd100" .. L["Not while mounted"] .. "|r", L["When"]))
+		elseif not ns.caps.anyKnown then
+			local class = ns.caps.class
+			if class and ns.CLASSES_WITHOUT_BUFFS and ns.CLASSES_WITHOUT_BUFFS[class] then
+				ns.addon:Print(ns.NO_CLASS_BUFFS)
+			else
+				ns.addon:Print(L["nothing learned to cast yet."])
+			end
+		else
+			ns.addon:Print(L["nobody to buff right now."])
+		end
+		Prompt:ApplyTarget(nil)
+		return
+	end
+
+	-- An unlocked or disabled prompt must not cast, and PreClick is the
+	-- last chance to make sure of it: it runs after Refresh has decided
+	-- what to show but before the secure handler reads the attributes.
+	if not PromptIsLive() then
+		Prompt:ApplyTarget(nil)
+		return
+	end
+
+	-- Nor may a press during the global cooldown. Disarming here is what
+	-- stops it reaching the server: a cast sent inside that second and a
+	-- half is refused, and the refusal used to be filed against the person
+	-- it was aimed at -- so they were marked tried and dropped, and the
+	-- one thing the user actually wanted never happened. Nothing is cast,
+	-- nothing is recorded, and the panel says why.
+	--
+	-- And it does not count as a press. Its stamp is taken back, so a press
+	-- a moment later -- the cooldown ends mid-click as often as not -- is
+	-- resolved properly rather than swallowed by the debounce above, which
+	-- either did nothing or fired whatever a scan had re-armed with no
+	-- record filed for it.
+	if not ready then
+		lastPreClickAt = nil
+		guardedEntry = current
+		guardedPhraseKey, guardedPhraseText = phraseKey, phraseText
+		Prompt:ApplyTarget(nil)
+		Prompt:SayWaiting(left)
+		return
+	end
+
+	local queue = ns.BuildQueue()
+	local top = Prompt:PickTop(queue, queue[1])
+	local named = Prompt:PanelName()
+	-- An empty queue under a panel still naming somebody is the panel
+	-- showing a person it has not given up on yet, and the press has to
+	-- agree with what is on screen. Re-resolving to nobody here would disarm
+	-- a prompt that is visible and naming a person, so the click would do
+	-- nothing at all and say nothing about it -- the silent failure the fuse
+	-- was added to avoid, arriving by the other door.
+	--
+	-- Asked of the panel rather than of the fuse's clock. Only a scan lights
+	-- the fuse, so a press between somebody stepping out of range and the
+	-- next scan noticing found no fuse at all; and one after the fuse had
+	-- burnt out found the panel still up until the repaint came to take it
+	-- down. Both disarmed a prompt still naming them. The worst this can do
+	-- instead is send a cast the game refuses, and that says so in red.
+	--
+	-- Unless that person was retired: a right-click skip leaves them named
+	-- on the panel until the repaint, and this must not keep them armed for
+	-- a left press to cast at, and speak at, somebody just declined. Nor
+	-- when a flash about somebody else is written over their name: the
+	-- press follows the words on the panel, never the entry under them.
+	if not top and current and not Retired(current, now) and named == current.name then
+		LightFuse(now)
+		pressKey = appliedKey
+		return
+	end
+
+	-- And the press goes to whoever the panel is naming, not to whoever the
+	-- queue has just promoted. PickTop hands the panel to somebody strictly
+	-- better at once, which is right for the next repaint and wrong for a
+	-- press made on this one: a target picked up a tenth of a second ago
+	-- was cast at, and spoken to, under a panel still naming somebody else.
+	-- The same goes for a red flash about a refused press, which sits over a
+	-- button the refusal has already re-armed at the next person.
+	if top and named and top.name ~= named then
+		local fresh
+		for _, candidate in ipairs(queue) do
+			if candidate.name == named then fresh = candidate break end
+		end
+		if not fresh then
+			Prompt:MovedOn(top)
+			return
+		end
+		top = fresh
+	end
+
+	appliedKey = nil
+	Prompt:ApplyTarget(top)
+	pressKey = appliedKey
+end
+
+local function OnPostClick(self, mouseButton, down)
+	-- Nothing below casts anything -- the secure handler has already had its
+	-- turn -- but all of it is bookkeeping about a cast this addon asked for,
+	-- and switched off, unlocked or previewing it asked for none. Hiding the
+	-- button was never a guard: a CLICK binding is delivered to a hidden
+	-- frame, so a disabled addon went on settling debts and blocking people
+	-- for every press of the key.
+	--
+	-- In combat the macro cannot be disarmed, so the press may genuinely have
+	-- cast from an attribute armed before the addon was switched off.
+	-- Refusing the bookkeeping is the honest answer to that -- the debt stays
+	-- standing, because none of what we meant to do happened -- and the line
+	-- says so rather than leaving somebody to wonder why a buff went out. Its
+	-- own stamp, because down and up both land here.
+	local db = ns.db and ns.db.profile
+	if not PromptIsLive() then
+		local now = GetTime()
+		-- Only a press that could have cast gets the warning. type2 to
+		-- type5 are "none", so the secure handler matches nothing for the
+		-- right button however stale the macro sitting on the attributes
+		-- is -- and this guard is above the right-button branch, so it was
+		-- telling somebody who pressed to skip that a buff may have gone
+		-- out when provably none did. A keybinding arrives with no button
+		-- at all and is treated as a left press, which is the same reading
+		-- the cast path below takes.
+		local couldCast = mouseButton == nil or mouseButton == "LeftButton"
+		if couldCast and db and db.verbose and InCombatLockdown() and self:GetAttribute("macrotext1")
+			and not (lastStaleAt and (now - lastStaleAt) < 0.25) then
+			lastStaleAt = now
+			ns.addon:Print(L["|cffff8080that may still have cast|r -- the prompt cannot be disarmed in combat, and nothing was recorded for it."])
+		end
+		return
+	end
+
+	-- A right-press says "not this one", which is not a repayment: the debt
+	-- stands, nothing is cast, and only the offer is postponed. The block is
+	-- on the person rather than the buff, because declining is about who is
+	-- being offered, not which spell they would have got.
+	if mouseButton == "RightButton" then
+		-- Its own stamp: sharing the cast path's would let a right-press
+		-- swallow a real left click landing just after it.
+		local now = GetTime()
+		if lastSkipAt and (now - lastSkipAt) < 0.25 then return end
+		lastSkipAt = now
+		-- Whoever the panel names, which the left press was already made to
+		-- follow. Under a red flash that is the person the flash is about,
+		-- while `current` is the next one the refusal re-armed underneath --
+		-- so the skip declined somebody still out of sight for the full
+		-- cooldown, and the one on screen came back two seconds later. With
+		-- nobody underneath at all it did nothing and said nothing.
+		local victim = Prompt:PanelName() or (current and current.name)
+		if not victim then
+			ns.addon:Print(L["nobody to skip right now."])
+			return
+		end
+		local db = ns.db and ns.db.profile
+		-- The retry cooldown, not the two seconds a failed cast writes:
+		-- that would put them straight back on the prompt.
+		ns.BlockPerson(victim)
+		Prompt:StopAttention()
+		-- Held shift makes it "never", not "not now": onto the never-offer
+		-- list, with a line saying how to undo it. The block above is still
+		-- wanted -- it is what takes them off the panel at once rather than
+		-- after the hold and the fuse -- and nothing else here differs from
+		-- the skip, so the secure side cannot tell the two apart: type2 is
+		-- "none", no shift- attribute is ever set, and the shifted press
+		-- matches nothing exactly as the plain one does.
+		--
+		-- Nothing in this branch touches the button, so it is as safe in a
+		-- fight as the skip. The list reaches the queue at its next rebuild,
+		-- which in a fight is when it ends.
+		if IsShiftKeyDown and ns.plain(IsShiftKeyDown()) then
+			-- The repaint comes with the listing: see the wrapper below
+			-- Prompt:Refresh.
+			ns.PutOnNeverList(victim)
+			return
+		end
+		if db and db.verbose then
+			local shown = (current and current.name == victim and current.short)
+				or (ns.ShortName and ns.ShortName(victim)) or victim
+			ns.addon:Print(L["skipping |cffffffff%s|r for now."]:format(shown))
+		end
+		-- And the panel moves on now rather than at the next scan. Until it
+		-- did, the declined person stayed named and armed for up to a scan --
+		-- longer with the fuse burning -- and a left press in that time cast
+		-- at them. Refresh knows about the fight and about an empty queue.
+		ns.Guard("skip repaint", Prompt.Refresh, Prompt)
+		return
+	end
+	if mouseButton and mouseButton ~= "LeftButton" then return end
+
+	local now = GetTime()
+	-- A press the cooldown turned away is not a press: nothing reached the
+	-- server, so nothing is filed, and it takes no stamp that would swallow
+	-- the next one. Out of combat PreClick disarmed it and this puts back
+	-- what it found, so a fight starting now finds the prompt armed. In
+	-- combat the frozen macro went out and was refused, and refusing the
+	-- bookkeeping is the whole of what is left to do.
+	if cooldownPressAt == now then
+		cooldownPressAt = nil
+		local found = guardedEntry
+		guardedEntry = nil
+		if found and not InCombatLockdown() then
+			-- The line it was carrying goes back with it, so the macro is
+			-- rebuilt around the roll the tooltip has been quoting rather than
+			-- a new one.
+			phraseKey, phraseText = guardedPhraseKey, guardedPhraseText
+			Prompt:ApplyTarget(found)
+		end
+		guardedPhraseKey, guardedPhraseText = nil, nil
+		if ns.db and ns.db.profile.debugClicks then
+			ns.addon:Print("|cffffd100CLICK|r " .. L["held back -- the cooldown was still running"])
+		end
+		return
+	end
+
+	-- One press delivers both a down and an up; count and settle once.
+	if lastClickAt and (now - lastClickAt) < 0.25 then return end
+	lastClickAt = now
+
+	-- Lets the error and cast handlers tell our own outcome apart from
+	-- everything else the game is shouting about.
+	ns.lastClickTime = now
+	-- Only assembled when asked for: /manners clicks. The build stamp stays
+	-- because a log that does not say which build produced it can be
+	-- diagnosed for an hour before anyone notices the game never loaded
+	-- the file being read.
+	if ns.db and ns.db.profile.debugClicks then
+		ns.addon:Print(("|cffffd100CLICK|r build=%s macro=%s"):format(
+			tostring(ns.BUILD),
+			tostring(button:GetAttribute("macrotext1") or "nil"):gsub("%s+", " ")))
+	end
+	if not (current and current.name) then return end
+
+	-- Hold the debt rather than clearing it outright. The game says a few
+	-- hundred milliseconds later whether anything was actually cast, and
+	-- clearing here meant a cast blocked by range or line of sight counted
+	-- as a favour returned.
+	--
+	-- What the macro was aimed at rides along, and so does the rotation
+	-- pointer as it stood before this press moved it. The settle handler
+	-- reads both: the first so a name is only ever judged on a /target that
+	-- was really there, the second so a cast that went nowhere can put the
+	-- pointer back instead of walking this person off their own buff list.
+	-- gave is read here, above the write below, which is the only place it
+	-- is still the old value.
+	--
+	-- And before any of that, whatever is already parked is dealt with. One
+	-- slot with no identity on it means the record about to be overwritten
+	-- cannot be matched to the event that will arrive for it -- so the next
+	-- cast event would be read against this press whichever press it
+	-- belongs to. Above the read of ns.lastGave as well as the write,
+	-- because abandoning the old record puts that pointer back and this
+	-- record has to carry the value that is there afterwards.
+	ns.AbandonPendingClick()
+	ns.pendingClick = { name = current.name, at = GetTime(),
+		buffKey = current.buff and current.buff.key,
+		selfCast = armed ~= nil and armed.selfCast == true,
+		targeted = armed and armed.targeted,
+		-- The spelling the macro aimed at, straight from the builder. The
+		-- settle path compares it against whoever the client says was hit,
+		-- and taking it from here is what stops that comparison being a
+		-- second opinion about text the builder already had in hand.
+		aimedAt = armed and armed.aimedAt,
+		-- Whether the scan measured them inside a shout's reach. A selfCast
+		-- press has nothing else tying it to the person named, so the
+		-- settle clears a debt on it only where this is true.
+		withinShout = current.ranged == true,
+		-- And whether it measured them outside it, which is a different
+		-- reason for the same kept debt: with "Hide players known to be out
+		-- of range" off they are still offered, and the line has to say the
+		-- answer was no rather than that nothing answered.
+		outOfShout = current.ranged == false,
+		-- For the favour ledger, which records who a buff went to and
+		-- whether they were in the group; nothing on the settle path reads
+		-- either.
+		class = current.class,
+		inGroup = current.inGroup,
+		gave = ns.lastGave[current.name] }
+	-- Per buff, so casting Fortitude does not stop the walk reaching
+	-- Divine Spirit on the next click.
+	if current.buff then
+		ns.MarkAttempted(current.name, current.buff.key)
+		-- Only where the walk will read it back. A paladin's blessings
+		-- overwrite one another, so PickBuffFor deliberately never rotates
+		-- them -- and a pointer written for a walk that will not happen is
+		-- a record of nothing, which is exactly how this one came to be
+		-- believed as a feature.
+		if ns.RotatesBuffs() then ns.lastGave[current.name] = current.buff.key end
+	end
+	Prompt:StopAttention()
+end
+
 function Prompt:Create()
 	if button then return end
 
@@ -843,373 +1218,9 @@ function Prompt:Create()
 		FinishDrag()
 	end)
 
-	-- Remember that we tried this person so the queue moves on even if the
-	-- cast failed for reasons we cannot see: line of sight, range, immunity.
-	-- MountActions does the same thing: PreClick runs before the secure handler
-	-- reads the attributes, and out of combat it may still change them. So the
-	-- target is re-resolved at the last possible moment, and a nameplate token
-	-- that has since been handed to somebody else can never be cast at.
-	-- RegisterForClicks("AnyDown") is what makes the secure handler act at all
-	-- on this client, but it means every mouse button reaches these handlers.
-	-- Only the left button casts; a right-press to turn the camera used to
-	-- burn the candidate: retry cooldown set, favour cleared, nothing cast.
-	button:SetScript("PreClick", function(self, mouseButton)
-		if mouseButton and mouseButton ~= "LeftButton" then return end
-		local now = GetTime()
+	button:SetScript("PreClick", OnPreClick)
 
-		-- Asked before the fight is, because the fight does not stop the global
-		-- cooldown mattering. In combat the macro is frozen and nothing here can
-		-- disarm it, so a press inside the cooldown still goes out and is still
-		-- refused -- and PostClick used to file it against the frozen person,
-		-- which is the very blame the guard below was written to stop. The
-		-- bookkeeping can still be refused where the macro cannot.
-		local ready, left = ns.CastReady()
-		-- In combat the frozen macro goes out whatever this decides, and one
-		-- pressed in the last stretch of the cooldown is not refused: the client
-		-- queues it and casts it when the cooldown ends. Treating that as turned
-		-- away dropped the bookkeeping for a buff that actually landed, so the
-		-- person stayed owed and was offered -- and cast at -- again. Only a
-		-- press too early to be queued is one the game refuses.
-		--
-		-- Out of combat the whole cooldown is still held back: there the macro
-		-- CAN be disarmed, and a queued /cast would fire after /targetlasttarget
-		-- has already handed the old target back.
-		if InCombatLockdown() and not ready and left <= ns.SpellQueueWindow() then
-			ready = true
-		end
-		cooldownPressAt = (not ready) and now or nil
-		if InCombatLockdown() then return end
-
-		-- Down and up both land here; one rebuild per press is enough -- but only
-		-- while the button still holds what that rebuild armed. Between the two
-		-- halves an error can repaint the prompt onto somebody else, and a cast
-		-- can start the cooldown, and in either case what is sitting on the
-		-- button is not something this press resolved.
-		if lastPreClickAt and (now - lastPreClickAt) < 0.25 then
-			if not ready then
-				guardedEntry = current
-				guardedPhraseKey, guardedPhraseText = phraseKey, phraseText
-				Prompt:ApplyTarget(nil)
-			elseif appliedKey ~= pressKey then
-				Prompt:ApplyTarget(nil)
-			end
-			return
-		end
-		lastPreClickAt = now
-		pressKey = nil
-
-		-- A keypress with an empty prompt is otherwise indistinguishable from a
-		-- binding that does not work, which is what this one was. Says it here
-		-- rather than in Bindings.xml because the macro route lands here too.
-		--
-		-- And it says why the panel is empty where that is the addon's own
-		-- doing. A key pressed after /manners off used to hear "nobody to buff"
-		-- -- often untrue, since the queue is built whatever the switch says --
-		-- and nothing about the switch that actually took the panel away.
-		--
-		-- The commands go in as arguments rather than as part of the sentence:
-		-- they are what the player has to type, in English in every language,
-		-- and a translator should never be handed them to translate. The option
-		-- and tab names go in the same way, through the keys the options window
-		-- shows them with, so the sentence names the labels the player will find.
-		if not self:IsShown() then
-			local db = ns.db and ns.db.profile
-			if db and not db.enabled then
-				ns.addon:Print(L["Manners is |cffff8080switched off|r -- %s to start again."]
-					:format("|cffffd100/manners on|r"))
-			elseif ns.SnoozeLeft(now) then
-				ns.addon:Print(L["Manners is snoozed until %s -- %s brings the prompt back now."]
-					:format(ns.SnoozeEndsAt(), "|cffffd100/manners snooze off|r"))
-			elseif ns.HiddenWhileMounted() then
-				ns.addon:Print(L["the prompt stays away while you are mounted -- get off, or switch off %s on the %s tab."]
-					:format("|cffffd100" .. L["Not while mounted"] .. "|r", L["When"]))
-			elseif not ns.caps.anyKnown then
-				local class = ns.caps.class
-				if class and ns.CLASSES_WITHOUT_BUFFS and ns.CLASSES_WITHOUT_BUFFS[class] then
-					ns.addon:Print(ns.NO_CLASS_BUFFS)
-				else
-					ns.addon:Print(L["nothing learned to cast yet."])
-				end
-			else
-				ns.addon:Print(L["nobody to buff right now."])
-			end
-			Prompt:ApplyTarget(nil)
-			return
-		end
-
-		-- An unlocked or disabled prompt must not cast, and PreClick is the
-		-- last chance to make sure of it: it runs after Refresh has decided
-		-- what to show but before the secure handler reads the attributes.
-		if not PromptIsLive() then
-			Prompt:ApplyTarget(nil)
-			return
-		end
-
-		-- Nor may a press during the global cooldown. Disarming here is what
-		-- stops it reaching the server: a cast sent inside that second and a
-		-- half is refused, and the refusal used to be filed against the person
-		-- it was aimed at -- so they were marked tried and dropped, and the
-		-- one thing the user actually wanted never happened. Nothing is cast,
-		-- nothing is recorded, and the panel says why.
-		--
-		-- And it does not count as a press. Its stamp is taken back, so a press
-		-- a moment later -- the cooldown ends mid-click as often as not -- is
-		-- resolved properly rather than swallowed by the debounce above, which
-		-- either did nothing or fired whatever a scan had re-armed with no
-		-- record filed for it.
-		if not ready then
-			lastPreClickAt = nil
-			guardedEntry = current
-			guardedPhraseKey, guardedPhraseText = phraseKey, phraseText
-			Prompt:ApplyTarget(nil)
-			Prompt:SayWaiting(left)
-			return
-		end
-
-		local queue = ns.BuildQueue()
-		local top = Prompt:PickTop(queue, queue[1])
-		local named = Prompt:PanelName()
-		-- An empty queue under a panel still naming somebody is the panel
-		-- showing a person it has not given up on yet, and the press has to
-		-- agree with what is on screen. Re-resolving to nobody here would disarm
-		-- a prompt that is visible and naming a person, so the click would do
-		-- nothing at all and say nothing about it -- the silent failure the fuse
-		-- was added to avoid, arriving by the other door.
-		--
-		-- Asked of the panel rather than of the fuse's clock. Only a scan lights
-		-- the fuse, so a press between somebody stepping out of range and the
-		-- next scan noticing found no fuse at all; and one after the fuse had
-		-- burnt out found the panel still up until the repaint came to take it
-		-- down. Both disarmed a prompt still naming them. The worst this can do
-		-- instead is send a cast the game refuses, and that says so in red.
-		--
-		-- Unless that person was retired: a right-click skip leaves them named
-		-- on the panel until the repaint, and this must not keep them armed for
-		-- a left press to cast at, and speak at, somebody just declined. Nor
-		-- when a flash about somebody else is written over their name: the
-		-- press follows the words on the panel, never the entry under them.
-		if not top and current and not Retired(current, now) and named == current.name then
-			LightFuse(now)
-			pressKey = appliedKey
-			return
-		end
-
-		-- And the press goes to whoever the panel is naming, not to whoever the
-		-- queue has just promoted. PickTop hands the panel to somebody strictly
-		-- better at once, which is right for the next repaint and wrong for a
-		-- press made on this one: a target picked up a tenth of a second ago
-		-- was cast at, and spoken to, under a panel still naming somebody else.
-		-- The same goes for a red flash about a refused press, which sits over a
-		-- button the refusal has already re-armed at the next person.
-		if top and named and top.name ~= named then
-			local fresh
-			for _, candidate in ipairs(queue) do
-				if candidate.name == named then fresh = candidate break end
-			end
-			if not fresh then
-				Prompt:MovedOn(top)
-				return
-			end
-			top = fresh
-		end
-
-		appliedKey = nil
-		Prompt:ApplyTarget(top)
-		pressKey = appliedKey
-	end)
-
-	button:SetScript("PostClick", function(self, mouseButton, down)
-		-- Nothing below casts anything -- the secure handler has already had its
-		-- turn -- but all of it is bookkeeping about a cast this addon asked for,
-		-- and switched off, unlocked or previewing it asked for none. Hiding the
-		-- button was never a guard: a CLICK binding is delivered to a hidden
-		-- frame, so a disabled addon went on settling debts and blocking people
-		-- for every press of the key.
-		--
-		-- In combat the macro cannot be disarmed, so the press may genuinely have
-		-- cast from an attribute armed before the addon was switched off.
-		-- Refusing the bookkeeping is the honest answer to that -- the debt stays
-		-- standing, because none of what we meant to do happened -- and the line
-		-- says so rather than leaving somebody to wonder why a buff went out. Its
-		-- own stamp, because down and up both land here.
-		local db = ns.db and ns.db.profile
-		if not PromptIsLive() then
-			local now = GetTime()
-			-- Only a press that could have cast gets the warning. type2 to
-			-- type5 are "none", so the secure handler matches nothing for the
-			-- right button however stale the macro sitting on the attributes
-			-- is -- and this guard is above the right-button branch, so it was
-			-- telling somebody who pressed to skip that a buff may have gone
-			-- out when provably none did. A keybinding arrives with no button
-			-- at all and is treated as a left press, which is the same reading
-			-- the cast path below takes.
-			local couldCast = mouseButton == nil or mouseButton == "LeftButton"
-			if couldCast and db and db.verbose and InCombatLockdown() and self:GetAttribute("macrotext1")
-				and not (lastStaleAt and (now - lastStaleAt) < 0.25) then
-				lastStaleAt = now
-				ns.addon:Print(L["|cffff8080that may still have cast|r -- the prompt cannot be disarmed in combat, and nothing was recorded for it."])
-			end
-			return
-		end
-
-		-- A right-press says "not this one", which is not a repayment: the debt
-		-- stands, nothing is cast, and only the offer is postponed. The block is
-		-- on the person rather than the buff, because declining is about who is
-		-- being offered, not which spell they would have got.
-		if mouseButton == "RightButton" then
-			-- Its own stamp: sharing the cast path's would let a right-press
-			-- swallow a real left click landing just after it.
-			local now = GetTime()
-			if lastSkipAt and (now - lastSkipAt) < 0.25 then return end
-			lastSkipAt = now
-			-- Whoever the panel names, which the left press was already made to
-			-- follow. Under a red flash that is the person the flash is about,
-			-- while `current` is the next one the refusal re-armed underneath --
-			-- so the skip declined somebody still out of sight for the full
-			-- cooldown, and the one on screen came back two seconds later. With
-			-- nobody underneath at all it did nothing and said nothing.
-			local victim = Prompt:PanelName() or (current and current.name)
-			if not victim then
-				ns.addon:Print(L["nobody to skip right now."])
-				return
-			end
-			local db = ns.db and ns.db.profile
-			-- The retry cooldown, not the two seconds a failed cast writes:
-			-- that would put them straight back on the prompt.
-			ns.BlockPerson(victim)
-			Prompt:StopAttention()
-			-- Held shift makes it "never", not "not now": onto the never-offer
-			-- list, with a line saying how to undo it. The block above is still
-			-- wanted -- it is what takes them off the panel at once rather than
-			-- after the hold and the fuse -- and nothing else here differs from
-			-- the skip, so the secure side cannot tell the two apart: type2 is
-			-- "none", no shift- attribute is ever set, and the shifted press
-			-- matches nothing exactly as the plain one does.
-			--
-			-- Nothing in this branch touches the button, so it is as safe in a
-			-- fight as the skip. The list reaches the queue at its next rebuild,
-			-- which in a fight is when it ends.
-			if IsShiftKeyDown and ns.plain(IsShiftKeyDown()) then
-				-- The repaint comes with the listing: see the wrapper below
-				-- Prompt:Refresh.
-				ns.PutOnNeverList(victim)
-				return
-			end
-			if db and db.verbose then
-				local shown = (current and current.name == victim and current.short)
-					or (ns.ShortName and ns.ShortName(victim)) or victim
-				ns.addon:Print(L["skipping |cffffffff%s|r for now."]:format(shown))
-			end
-			-- And the panel moves on now rather than at the next scan. Until it
-			-- did, the declined person stayed named and armed for up to a scan --
-			-- longer with the fuse burning -- and a left press in that time cast
-			-- at them. Refresh knows about the fight and about an empty queue.
-			ns.Guard("skip repaint", Prompt.Refresh, Prompt)
-			return
-		end
-		if mouseButton and mouseButton ~= "LeftButton" then return end
-
-		local now = GetTime()
-		-- A press the cooldown turned away is not a press: nothing reached the
-		-- server, so nothing is filed, and it takes no stamp that would swallow
-		-- the next one. Out of combat PreClick disarmed it and this puts back
-		-- what it found, so a fight starting now finds the prompt armed. In
-		-- combat the frozen macro went out and was refused, and refusing the
-		-- bookkeeping is the whole of what is left to do.
-		if cooldownPressAt == now then
-			cooldownPressAt = nil
-			local found = guardedEntry
-			guardedEntry = nil
-			if found and not InCombatLockdown() then
-				-- The line it was carrying goes back with it, so the macro is
-				-- rebuilt around the roll the tooltip has been quoting rather than
-				-- a new one.
-				phraseKey, phraseText = guardedPhraseKey, guardedPhraseText
-				Prompt:ApplyTarget(found)
-			end
-			guardedPhraseKey, guardedPhraseText = nil, nil
-			if ns.db and ns.db.profile.debugClicks then
-				ns.addon:Print("|cffffd100CLICK|r " .. L["held back -- the cooldown was still running"])
-			end
-			return
-		end
-
-		-- One press delivers both a down and an up; count and settle once.
-		if lastClickAt and (now - lastClickAt) < 0.25 then return end
-		lastClickAt = now
-
-		-- Lets the error and cast handlers tell our own outcome apart from
-		-- everything else the game is shouting about.
-		ns.lastClickTime = now
-		-- Only assembled when asked for: /manners clicks. The build stamp stays
-		-- because a log that does not say which build produced it can be
-		-- diagnosed for an hour before anyone notices the game never loaded
-		-- the file being read.
-		if ns.db and ns.db.profile.debugClicks then
-			ns.addon:Print(("|cffffd100CLICK|r build=%s macro=%s"):format(
-				tostring(ns.BUILD),
-				tostring(button:GetAttribute("macrotext1") or "nil"):gsub("%s+", " ")))
-		end
-		if not (current and current.name) then return end
-
-		-- Hold the debt rather than clearing it outright. The game says a few
-		-- hundred milliseconds later whether anything was actually cast, and
-		-- clearing here meant a cast blocked by range or line of sight counted
-		-- as a favour returned.
-		--
-		-- What the macro was aimed at rides along, and so does the rotation
-		-- pointer as it stood before this press moved it. The settle handler
-		-- reads both: the first so a name is only ever judged on a /target that
-		-- was really there, the second so a cast that went nowhere can put the
-		-- pointer back instead of walking this person off their own buff list.
-		-- gave is read here, above the write below, which is the only place it
-		-- is still the old value.
-		--
-		-- And before any of that, whatever is already parked is dealt with. One
-		-- slot with no identity on it means the record about to be overwritten
-		-- cannot be matched to the event that will arrive for it -- so the next
-		-- cast event would be read against this press whichever press it
-		-- belongs to. Above the read of ns.lastGave as well as the write,
-		-- because abandoning the old record puts that pointer back and this
-		-- record has to carry the value that is there afterwards.
-		ns.AbandonPendingClick()
-		ns.pendingClick = { name = current.name, at = GetTime(),
-			buffKey = current.buff and current.buff.key,
-			selfCast = armed ~= nil and armed.selfCast == true,
-			targeted = armed and armed.targeted,
-			-- The spelling the macro aimed at, straight from the builder. The
-			-- settle path compares it against whoever the client says was hit,
-			-- and taking it from here is what stops that comparison being a
-			-- second opinion about text the builder already had in hand.
-			aimedAt = armed and armed.aimedAt,
-			-- Whether the scan measured them inside a shout's reach. A selfCast
-			-- press has nothing else tying it to the person named, so the
-			-- settle clears a debt on it only where this is true.
-			withinShout = current.ranged == true,
-			-- And whether it measured them outside it, which is a different
-			-- reason for the same kept debt: with "Hide players known to be out
-			-- of range" off they are still offered, and the line has to say the
-			-- answer was no rather than that nothing answered.
-			outOfShout = current.ranged == false,
-			-- For the favour ledger, which records who a buff went to and
-			-- whether they were in the group; nothing on the settle path reads
-			-- either.
-			class = current.class,
-			inGroup = current.inGroup,
-			gave = ns.lastGave[current.name] }
-		-- Per buff, so casting Fortitude does not stop the walk reaching
-		-- Divine Spirit on the next click.
-		if current.buff then
-			ns.MarkAttempted(current.name, current.buff.key)
-			-- Only where the walk will read it back. A paladin's blessings
-			-- overwrite one another, so PickBuffFor deliberately never rotates
-			-- them -- and a pointer written for a walk that will not happen is
-			-- a record of nothing, which is exactly how this one came to be
-			-- believed as a feature.
-			if ns.RotatesBuffs() then ns.lastGave[current.name] = current.buff.key end
-		end
-		Prompt:StopAttention()
-	end)
+	button:SetScript("PostClick", OnPostClick)
 
 	button:SetScript("OnEnter", function(self)
 		-- Nothing armed is nothing to describe, and a tooltip already up from
