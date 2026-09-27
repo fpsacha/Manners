@@ -615,8 +615,8 @@ local function WhoToBuffGroup()
 					.. L["Everything you can offer is cast on yourself and heard by your party, so there is nothing to give a passer-by."]
 					.. "|r",
 			},
-			-- The source that reads chat. The full rule for what counts as asking
-			-- is in README.md; the section in Core.lua is the rule in code.
+			-- The source that reads chat. The tooltip gives the gist; the full rule
+			-- for what counts as asking lives in Core.lua, which is the rule in code.
 			asked = {
 				type = "toggle",
 				name = L["People who ask me for it"],
@@ -1076,7 +1076,9 @@ local function BuildOptions()
 						type = "description",
 						order = 41,
 						fontSize = "medium",
-						name = L["Copy these settings as one line of text, or paste one you were given. A paste leaves your on switch, lock, prompt position and minimap button alone, and never switches on speaking."],
+						name = L["Copy these settings as one line of text, or paste one you were given."]
+							.. " "
+							.. L["A paste leaves your on switch, lock, prompt position, click log and minimap button alone. It never switches on speaking, and while speaking is on, what you say and where stays yours."],
 					},
 					shareCopy = {
 						type = "execute",
@@ -1328,7 +1330,7 @@ local function BuildOptions()
 					restoreTarget = {
 						type = "toggle",
 						name = L["Hand my target back afterwards"],
-						desc = L["Buffing a passer-by means targeting them first. With this on, your previous target is restored right after the cast."],
+						desc = L["The prompt targets whoever it buffs, group members too. With this on, your previous target is restored right after the cast."],
 						order = 2,
 						width = "full",
 						-- Hidden, not disabled, like the strangers toggle: nothing
@@ -1365,12 +1367,14 @@ local function BuildOptions()
 							local cmd = (ns.TargetCommand and ns.TargetCommand()) or "/target"
 							local text
 							if F().restoreTarget then
-								text = L["The prompt runs |cffffd100%s|r, the cast, then |cffffd100%s|r; outside a fight, your own target stays targeted. A %s conditional only reaches your party or raid, so passers-by must be targeted."]
-									:format(cmd, "/targetlasttarget", "[@name]")
+								text = L["The prompt runs |cffffd100%s|r, the cast, then |cffffd100%s|r, except outside a fight for somebody already your target, who stays targeted."]
+									:format(cmd, "/targetlasttarget")
 							else
-								text = L["The prompt runs |cffffd100%s|r, then the cast, and leaves them targeted. A %s conditional only reaches your party or raid, so passers-by must be targeted."]
-									:format(cmd, "[@name]")
+								text = L["The prompt runs |cffffd100%s|r, then the cast, and leaves them targeted."]
+									:format(cmd)
 							end
+							text = text .. " " .. L["A %s conditional only reaches your party or raid, so the macro targets everybody it buffs."]
+								:format("[@name]")
 							return "|cff888888" .. text .. "|r\n"
 						end,
 					},

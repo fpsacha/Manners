@@ -3422,8 +3422,8 @@ mutate("Core.lua",
 
 # The Targeting note promising your own target stays targeted in a fight too.
 mutate("Options.lua",
-       "|r; outside a fight, your own target stays targeted.",
-       "|r; your own target stays targeted.",
+       "|r, except outside a fight for somebody already your target, who stays targeted.",
+       "|r, except for somebody already your target, who stays targeted.",
        "Targeting note forgets the fight",
        expect="the Targeting note says your own target stays targeted",
        script="runscenarios.py")
