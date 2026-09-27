@@ -1,8 +1,8 @@
 -- Prompt.lua fixes from the fifth bug hunt: what a press on a held or fused
 -- entry claims about range and the hand-back, a pull landing on the hold or the
 -- fuse, the bookkeeping after switching off and on inside one fight, a font the
--- client cannot load, the colour-blind palette's colour for askers, the reason
--- carried on a press, and the rotation pointers kept bounded.
+-- client cannot load, the colour-blind palette's colour for askers, and the
+-- rotation pointers kept bounded.
 --
 -- Every scenario name starts with "prompt5:" so the mutations in
 -- tests/mutations/hunt5-prompt.py can name the one that has to catch them.
@@ -368,53 +368,6 @@ end
 Mock.reset()
 
 -- ------------------------------------------------------------------ prompt5 8
--- The press carries why the person was offered, so the ledger can tell a buff
--- somebody asked for from one given unprompted.
-for _, case in ipairs({ { label = "asked", want = "asked" }, { label = "group", want = "group" } }) do
-	Mock.reset()
-	local restoreUnits
-	if case.label == "group" then
-		Mock.groupSize = 2
-		restoreUnits = strangers({ party1 = { "Anna", "Aim" } })
-	else
-		restoreUnits = strangers({ nameplate1 = { "Anna", "Aim" } })
-	end
-	local scenario = "prompt5: a press carries the reason it was offered (" .. case.label .. ")"
-	run(scenario, function()
-		local ns = load(scenario)
-		if not ns then return end
-		freshPrompt(ns, scenario)
-		local db = ns.db.profile
-		if case.label == "asked" then
-			db.sources.asked = true
-			db.sources.strangers = false
-			db.sources.group = false
-			ns.addon.CHAT_MSG_SAY(ns.addon, "CHAT_MSG_SAY", "int pls", "Anna Aim", "Common", "", "",
-				"", 0, 0, "", 0, 1, "Player-1-nameplate1")
-		end
-		ns.addon:Tick()
-		local shown = ns.Prompt:Showing()
-		if not (shown and shown.name == "Anna Aim" and shown.reason == case.want) then
-			fail(scenario, "SKIPPED -- Anna was not offered as " .. case.want .. ": "
-				.. tostring(shown and shown.reason))
-			return
-		end
-		Mock.advance(0.3)
-		ns.pendingClick = nil
-		pressButton(ns)
-		if not ns.pendingClick then
-			fail(scenario, "SKIPPED -- the press filed nothing")
-		elseif ns.pendingClick.reason ~= case.want then
-			fail(scenario, "the press was filed with reason " .. tostring(ns.pendingClick.reason)
-				.. ", not " .. case.want)
-		end
-		noErrors(scenario, ns)
-	end)
-	restoreUnits()
-end
-Mock.reset()
-
--- ------------------------------------------------------------------ prompt5 9
 -- The rotation pointers stay bounded over a long session of presses, and a
 -- second press on the same person still reads what the first gave.
 Mock.reset()

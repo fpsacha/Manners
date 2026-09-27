@@ -103,14 +103,6 @@ mutate("Prompt.lua",
        expect="prompt5: the colour-blind palette has its own colour for askers",
        script="runscenarios.py")
 
-# The press no longer says why the person was offered.
-mutate("Prompt.lua",
-       "\t\treason = current.reason,\n",
-       "",
-       "press filed without its reason",
-       expect="prompt5: a press carries the reason it was offered (asked)",
-       script="runscenarios.py")
-
 # The rotation pointers are never emptied.
 mutate("Prompt.lua",
        "\t\t\t\tif lastGaveCount >= LAST_GAVE_CAP then\n",

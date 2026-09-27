@@ -764,7 +764,6 @@ local function OnPostClick(self, mouseButton, down)
 		-- For the favour ledger only.
 		class = current.class,
 		inGroup = current.inGroup,
-		reason = current.reason,
 		gave = ns.lastGave[current.name] }
 	-- Per buff, so casting Fortitude does not stop the walk reaching
 	-- Divine Spirit on the next click.
