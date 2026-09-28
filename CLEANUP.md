@@ -2,9 +2,10 @@
 
 Working notes, not shipped (`.pkgmeta` leaves it out). Written 2026-09-25,
 after 1.0.0-beta.6, when Sacha asked whether the code was bloated. It is the
-plan to follow when Sacha asks for "the cleanup". Steps 0 to 5 have landed:
-step 0 in 1.0.0-beta.7, step 5 in beta.8, steps 1 to 4 in beta.9. Step 6,
-splitting Core.lua, came after, for 1.0.0.
+plan to follow when Sacha asks for "the cleanup". Steps 0 to 5 have landed,
+all but one sub-step of step 4 (see there): step 0 began in 1.0.0-beta.7
+(release.yml) and finished in beta.9 (07e03be); step 5 in beta.8; steps 1
+to 4 in beta.9. Step 6, splitting Core.lua, came after, for 1.0.0.
 
 **Goal:** a smaller addon that is quicker to test, with no change in behaviour.
 A trim, not a rewrite.
@@ -102,11 +103,13 @@ Done in 1.0.0-beta.9.
 
 ### 4. Dead and duplicate code
 
-Done in 1.0.0-beta.9.
+Done in 1.0.0-beta.9, except the validate.py extension, which is still a
+known gap.
 
-- [x] Remove only what a tool proves unused: extend validate.py's
+- [ ] Remove only what a tool proves unused: extend validate.py's
       "WRITE-ONLY ns.X" check to local functions nothing calls, and delete what
-      it finds.
+      it finds. Not built: validate.py still checks ns.X only. beta.9's dead
+      code was removed by hand instead (9800754, 7bf3070).
 - [x] Look for the same fix made twice from different files by parallel
       fixers (found twice already: the never-offer list's ledger row and its
       in-fight warning). Symptoms: a chat line said twice, a mutation that
