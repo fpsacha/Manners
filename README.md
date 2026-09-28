@@ -481,8 +481,8 @@ one tag. A destination needs both a token in the repository secrets and a
 project id in the toc; missing either skips that upload in a way that reads
 exactly like success, so the build log names which half is absent.
 
-The listing text is in `.github/`: see [.github/DESCRIPTION.md](.github/DESCRIPTION.md)
-for which file is pasted where.
+The listing text is in `.github/`, one file per field: see
+[RELEASING.md](RELEASING.md#the-listing) for which goes where.
 
 ## Tests
 

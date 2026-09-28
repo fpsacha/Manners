@@ -106,9 +106,21 @@ than taking it on the command line where it would land in your shell history.
 
 ## The listing
 
-The project page body is `.github/curseforge-description.md`, pasted whole into
-CurseForge's editor — not the README, which is written for people reading the
-source. `.github/DESCRIPTION.md` holds the summary-field options.
+Each listing file holds only what goes on the page, so it can be pasted whole
+and nothing meant for us ends up in public:
+
+| Site | Field | File |
+|---|---|---|
+| CurseForge | Summary | `.github/curseforge-summary.txt` |
+| CurseForge | Description (Markdown) | `.github/curseforge-description.md` |
+| Wago | Description (Markdown, shorter) | `.github/wago-description.md` |
+| Both | Gallery titles and descriptions | `.github/gallery.md` |
+
+The README is written for people reading the source, not for the listings.
+Keep every listing agreeing with `Manners.toc`: Mage is tested in game and the
+other classes are not, and no listing claims more. The descriptions embed the
+images from `https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/`,
+so they show inline only once `master` holds them.
 
 The images are generated rather than captured: `python tools/make-icon.py` and
 `python tools/make-screenshots.py`. See `tools/README.md`.
@@ -117,7 +129,7 @@ The five screenshots -- `manners-prompt.png`, `manners-reasons.png`,
 `manners-ledger.png`, `manners-languages.png` and `manners-palette.png` in
 `.github/media/` -- go into the CurseForge and Wago galleries by hand; neither
 upload in the release workflow carries images. Their order, titles and
-descriptions are in `.github/DESCRIPTION.md`. When they are regenerated,
+descriptions are in `.github/gallery.md`. When they are regenerated,
 replace the gallery copies too.
 
 ## Moderation

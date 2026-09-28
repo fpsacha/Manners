@@ -1,22 +1,3 @@
-# Wago listing (paste-ready)
-
-Wago's description field takes markdown. Copy from the raw file, everything
-between the two marker lines (not the markers themselves). It is kept shorter
-than the CurseForge page, which is in
-[curseforge-description.md](curseforge-description.md); when a feature
-changes, change both.
-
-The images also go into Wago's own gallery, uploaded by hand, in the order and
-with the titles in [DESCRIPTION.md](DESCRIPTION.md). The one below loads from
-GitHub, so it appears only once `master` with it is pushed.
-
-If Wago asks for a one-line summary, use the same line as CurseForge's:
-
-```
-One click to buff back whoever just buffed you, and nearby players missing yours.
-```
-
-<!-- ======== BEGIN WAGO DESCRIPTION ======== -->
 **One click to buff back whoever just buffed you, and nearby players missing yours.**
 
 ![The prompt: a dark panel naming Elowen Thistledown, who buffed you, with a gold glow round the spell icon](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-prompt.png)
@@ -45,4 +26,3 @@ Built for **WoW Forever** (Interface 16001) only.
 Blizzard does not let an addon cast on its own, so Manners does everything except the keypress: it decides who deserves the buff, and the game casts when you click.
 
 Free, MIT licensed. Full documentation and bug reports on [GitHub](https://github.com/fpsacha/Manners).
-<!-- ======== END WAGO DESCRIPTION ======== -->

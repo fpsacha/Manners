@@ -1,29 +1,3 @@
-# CurseForge listing (paste-ready)
-
-Two fields on the project's settings page. Copy each from the raw file, not
-from GitHub's rendered view, so the markdown comes across as written.
-
-Before pasting, check it still agrees with `Manners.toc`: Mage is tested in
-game and the other classes are not, and the listing must never claim more.
-
-The five images the description shows also go into CurseForge's own image
-gallery, uploaded by hand, with the titles and captions in
-[DESCRIPTION.md](DESCRIPTION.md). The description loads them from GitHub
-(`https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/`),
-so they appear on the page only once `master` with those files is pushed.
-
-## Summary field
-
-```
-One click to buff back whoever just buffed you, and nearby players missing yours.
-```
-
-## Description field
-
-Set the editor to Markdown if it asks, and paste everything between the two
-marker lines (not the markers themselves).
-
-<!-- ======== BEGIN CURSEFORGE DESCRIPTION ======== -->
 **One click to buff back whoever just buffed you, and nearby players missing yours.**
 
 ![The prompt: a dark panel naming Elowen Thistledown, who buffed you, with a gold glow round the spell icon](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-prompt.png)
@@ -130,4 +104,3 @@ On WoW Forever conditional targeting (`[@unit]`, `[@mouseover]`, `[@focus]`) doe
 Use [the issue templates on GitHub](https://github.com/fpsacha/Manners/issues/new/choose). The Diagnostics tab has a *Copy for a bug report* button that gathers the build, what your client allows and anything that has broken.
 
 Also on [Wago](https://addons.wago.io/addons/rNkgzlNa), which is the one WowUp reads. Free, MIT licensed, [source on GitHub](https://github.com/fpsacha/Manners).
-<!-- ======== END CURSEFORGE DESCRIPTION ======== -->
