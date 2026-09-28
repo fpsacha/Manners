@@ -23,9 +23,9 @@ Built for **WoW Forever** (Interface 16001), and shipped for that client only.
 
 ## How sure is it
 
-This is a **beta**. The code is finished and the test suites are green, but
-**one class has actually been played**. Everything else is tested against a
-mock client, and a mock agrees with whoever wrote it.
+The code is finished and the test suites are green, but **one class has
+actually been played**. Everything else is tested against a mock client, and
+a mock agrees with whoever wrote it.
 
 | Class | How far it has been taken |
 |---|---|
@@ -284,11 +284,19 @@ anybody else. Also *Share settings* (below) and the ledger.
   line for your group -- and what is happening: the spell you give, a trade
   for the one they gave you, how often you two have swapped, an inn or a
   dungeon, the hour, somebody of your own class or people. It does not repeat
-  itself, and a context the game will not reveal is left out. The line rides in the macro the button runs, because
-  the game refuses addon-sent `/say` and `/yell` outside instances, which is
-  exactly where somebody buffs you in passing. How long a line may be depends
-  on the name and on whether your target is handed back. An empty box goes
-  back to the chosen set, so switch *Say something* off to stay quiet.
+  itself, and a context the game will not reveal is left out. The line rides
+  in the macro the button runs, because the game refuses addon-sent `/say`
+  and `/yell` outside instances, which is exactly where somebody buffs you in
+  passing. How long a line may be depends on the name and on whether your
+  target is handed back. An empty box goes back to the chosen set, so switch
+  *Say something* off to stay quiet.
+- *Channel*: say, yell, party, raid, emote, or *Whisper them*, which reaches
+  the person you buff and nobody else. A whisper goes only when the chat box
+  cannot send it to somebody else by mistake. On Camelot that means a
+  two-word name whose surname is plain letters or digits; a one-word name or an
+  accented surname gets the buff with no line. Somebody from your own realm
+  who is out of sight is whispered only while the game can still name them,
+  so not after a `/reload`. Not yet tried in game.
 
 **Prompt.** Preview, lock and position, look and colours, sound, text and
 icon.
@@ -298,6 +306,13 @@ icon.
   *Nothing*. With the icon hidden, no stripe and no light (Effects on *Calm*,
   or the minimal look), *When someone buffs you* has nothing to do and is
   greyed out. The cooldown sweep has its own switch under *Icon and queue*.
+- *Thank them with an emote*: off by default. When somebody buffs you and the
+  prompt can return it, you `/thank` them, and everybody near sees it. Never
+  in a fight or in any instance, at most once per person every five minutes
+  and once every ten seconds in all, so a raid buffing you on the pull is one
+  thank. Greyed out while *People who buffed me* is off. Not yet tried in
+  game: `/manners debug` shows the last thank, or why the last one was
+  skipped, and a report of either is welcome.
 - *Stay quiet in combat*: the icon also shows no cooldown sweep for the fight.
 - *Reason colours*: the target colour appears only while *Whoever I have
   targeted comes first* is on and *If they already have the buff* is not
@@ -473,11 +488,13 @@ Write the notes under `## Unreleased` in `CHANGELOG.md`, set the version, push
 master, and once CI is green tag it and let the workflow build it:
 
 ```
-python tests/setversion.py X.Y.Z-beta.N
-git commit -am "Manners X.Y.Z-beta.N"
+python tests/setversion.py X.Y.Z
+git commit -am "Manners X.Y.Z"
 git push origin master
-git tag vX.Y.Z-beta.N && git push origin vX.Y.Z-beta.N
+git tag vX.Y.Z && git push origin vX.Y.Z
 ```
+
+A `-beta.N` or `-alpha.N` on the version marks the build as a pre-release.
 
 A tag pushed without notes, or pushed together with master before CI has
 passed, fails its build and stays on origin; RELEASING.md says how to take it

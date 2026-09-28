@@ -1,5 +1,74 @@
 # Changelog
 
+## 1.0.0
+
+Manners 1.0, the first stable release. When somebody buffs you in passing,
+Manners notices, works out what you owe them, and puts one button on screen:
+click it, they get their buff back, and your own target is handed straight
+back. It also offers your group, people who ask in chat, and nearby players
+missing your buff. Mage is the class that has been played in game; priest,
+druid, paladin, warlock and warrior are implemented and tested but not yet
+played, so if you play one, please say how it went -- "it worked" helps as
+much as a bug.
+
+### New since the last beta
+
+- **Titles for your manners.** Favours you return now earn you a title:
+  Well Brought Up at 10, then Well Mannered (25), Courteous (50), Gracious
+  (100), Magnanimous (250), Paragon of Etiquette (500) and, at 1,000, The Very
+  Soul of Courtesy.
+- Your title sits at the top of the favour ledger, with how far you are from
+  the next ("37 of 50 to Courteous") and a small progress bar. Hover it for its
+  line of flavour. The minimap tooltip shows it too.
+- A new title gets one line in chat, once, even with chat lines off. It comes
+  a few seconds after the favour that earned it, once the game has taken the
+  cast; if the cast is refused, nothing is said until you really earn it.
+- Favours you returned before this update count: you simply have the title
+  you earned, with no burst of announcements. Clear keeps your title, as it
+  keeps the all-time totals.
+- **Whisper them**, a new choice under When you click > Speech > Channel,
+  says your line to the person you buff and nobody else. It only goes when the
+  whisper can't reach somebody else by mistake. When the name is not certain
+  (on Camelot, a one-word name or a surname with accents; somebody from your
+  own realm who is out of sight after a /reload), they get the buff with no
+  line.
+- **Thank them with an emote**, under Prompt > Getting your attention, off by
+  default: when somebody buffs you and the prompt can return it, you /thank
+  them. Never in a fight or in a dungeon, raid, battleground or arena, at most
+  once per person every five minutes, and once every ten seconds in all, so a
+  raid buffing you on the pull is one thank. `/manners debug` shows the last
+  thank, or why the last one was skipped.
+- Whisper and the emote have not been tried in game yet. If either misbehaves,
+  a report is very welcome.
+
+### Highlights
+
+What eleven betas built, for anyone meeting Manners for the first time:
+
+- **The prompt, and why somebody is on it.** Your target, somebody who
+  buffed you, somebody who asked in chat, your group, and passers-by, in that
+  order, each in its own colour, with a colour-blind friendly set. Right-click
+  skips somebody for now. The favour survives a reload.
+- **The favour ledger.** `/manners ledger` or a shift-click on the minimap
+  button: who buffed you and with what, whether you returned it (and if not,
+  why), who you buffed unasked, and today's count ("Returned 12 of 14 favours
+  today").
+- **A never-offer list, and friends first.** Shift-right-click somebody on
+  the prompt and they are never offered anything again, unless they buff you.
+  Friends, Battle.net friends and guildmates go ahead of other passers-by and
+  the rest of your group.
+- **Snooze.** `/manners snooze` hides the prompt for 15 minutes, or as long as
+  you say, and Not while mounted keeps it away while you ride.
+- **The minimap menu.** Right-click the button to snooze, preview, skip or
+  never offer whoever is next, lock and place the prompt, and switch
+  profiles. It is in the addon compartment too.
+- **In character.** An optional phrase set of over a thousand lines, picked
+  when you click to fit your people, your class and the moment: the spell you
+  give, a trade for the one they gave you, an inn, a dungeon, the small
+  hours. It doesn't repeat itself.
+- **Nine languages:** English, German, Spanish, French, Italian, Korean,
+  Brazilian Portuguese, and Simplified and Traditional Chinese.
+
 ## 1.0.0-beta.11
 
 - French: the ledger's Clear button asks "Vraiment effacer ?" before it
@@ -799,7 +868,7 @@ goes to 1.0.0 when the other five have been used by somebody.
 - Both new checks were mutation-tested: breaking the selfCast branch or
   swapping the Paladin mapping makes them fail.
 
-## 1.6.0
+## 1.6.0 (early numbering, before 0.9)
 
 Casting works, so the scaffolding built to find out why it did not has been
 taken out. 371 lines removed.
@@ -841,7 +910,7 @@ taken out. 371 lines removed.
   reports loudly when a refactor has moved the code a check depended on. All
   five still go red on demand.
 
-## 1.5.0
+## 1.5.0 (early numbering, before 0.9)
 
 It casts. Confirmed in game against four different players in ten seconds,
 with the build stamp and form label proving which code ran:
@@ -877,7 +946,7 @@ read off disk without transcribing chat.
 - Click logging is off by default now that casting is proven. `/manners clicks`
   turns it back on.
 
-## 1.4.1
+## 1.4.1 (early numbering, before 0.9)
 
 Findings from a 109-agent investigation across the client corpus.
 
@@ -916,7 +985,7 @@ Findings from a 109-agent investigation across the client corpus.
   empty -- several assertions were skipping while reporting green. Scenarios
   that cannot run now fail loudly instead of passing vacuously.
 
-## 1.4.0
+## 1.4.0 (early numbering, before 0.9)
 
 ### It casts
 
@@ -957,7 +1026,7 @@ Only naming somebody else was.
   and the button independently of any targeting question.
 - `/manners restore` toggles handing your target back.
 
-## 1.3.0
+## 1.3.0 (early numbering, before 0.9)
 
 ### The cast, again
 
@@ -1024,7 +1093,7 @@ route does not exist as an alternative.
 - The garbage-profile scenario was mutation-tested: removing a validation makes
   it fail, which is the only evidence that a passing test means anything.
 
-## 1.2.0
+## 1.2.0 (early numbering, before 0.9)
 
 ### The cast
 
@@ -1079,7 +1148,7 @@ Now registers `"AnyUp", "AnyDown"` with `pressAndHoldAction = false`.
   `tests/selftest.py` reintroduces each one to prove the harness still detects
   it.
 
-## 1.1.0
+## 1.1.0 (early numbering, before 0.9)
 
 Everything below came out of testing against a live client; several were faults
 that could not be found by reading the code.
@@ -1111,6 +1180,6 @@ that could not be found by reading the code.
 - Attention pulse that continues until the favour is returned.
 - Self-recording diagnostics written to SavedVariables.
 
-## 1.0.0
+## 1.0.0 (early numbering, before 0.9)
 
 First release.

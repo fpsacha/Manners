@@ -6,7 +6,7 @@ A priest buffs you in passing. By the time you have picked them out of a dozen n
 
 Manners notices, works out what you owe them, and puts one button on screen. Click it, they get their buff, and your own target is handed straight back. It also offers your group, people who ask for your buff in chat, and nearby players missing it, so buffing a stranger costs one click instead of a minute of squinting at names.
 
-> **A beta, and the honest reason.** The code is finished and the test suite is green, but **only Mage has been played in game**. Priest, Druid, Paladin, Warlock and Warrior are implemented and tested against a mock client, but nobody has cast with them yet. If you play one, please [say how it went](https://github.com/fpsacha/Manners/issues/new/choose): **"it worked"** is the report that moves a class off the untested list.
+> **Only Mage has been played in game.** Priest, Druid, Paladin, Warlock and Warrior are implemented and tested against a mock client, but nobody has cast with them yet. If you play one, please [say how it went](https://github.com/fpsacha/Manners/issues/new/choose): **"it worked"** is the report that moves a class off the untested list.
 
 Built for **WoW Forever** (Interface 16001), and shipped for that client only.
 
@@ -28,6 +28,7 @@ It skips the dead, the out of range, anyone you just tried, and anyone the buff 
 - **How near is near.** Arcane Intellect reaches thirty yards, which in a city is everybody on screen, so passers-by can be limited to *nearby* (about ten yards, the default) or *right beside me*, or offered only in cities and inns.
 - **If they already have it**: leave them alone, offer a top-up when it runs low, or always offer.
 - **Out of the way when you want it.** `/manners snooze` hides the prompt for 15 minutes (or `snooze 5`, `snooze 1h`, `snooze off`), and *Not while mounted* keeps it away while you ride.
+- **Thank them with an emote.** Off by default. When somebody buffs you and you have something to give back, you `/thank` them -- never in a fight or an instance, and at most once per person every five minutes. New, and not yet tried in game.
 
 ### The favour ledger
 
@@ -47,7 +48,7 @@ Leave the text colour at white and it turns dark by itself on a light panel. *Re
 
 ### Say something
 
-Optional, and off until you turn it on: a line when you buff somebody, from four sets (Roleplay, Polite, Cheeky, or just their name) that you can edit. It goes out through the button's macro, so it counts as you talking.
+Optional, and off until you turn it on: a line when you buff somebody, from four sets (Roleplay, Polite, Cheeky, or just their name) that you can edit. It goes out through the button's macro, so it counts as you talking. Say it, yell it, tell your group, or *whisper them* so nobody else hears; a whisper goes only when there is no doubt who it reaches.
 
 Or pick **In character: your race and faction**: over a thousand lines, and the one you say is chosen when you click, to fit your people, your class and the moment. Thanks when you return a favour, an answer when somebody asked, an offer to a stranger, something warmer for your group -- and lines that only work right now: about the spell you are giving, a trade for the one they gave you, the third swap today, an inn, a dungeon, the small hours, somebody of your own class. Every race has its own voice (a dwarf's brogue, an orc's *Lok'tar ogar*, a Forsaken's gallows humour), and it does not repeat itself. In all nine languages.
 

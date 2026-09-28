@@ -3743,7 +3743,7 @@ mutate("RELEASING.md",
 
 # The README's example tagging a version that has already shipped.
 mutate("README.md",
-       "git tag vX.Y.Z-beta.N && git push origin vX.Y.Z-beta.N",
+       "git tag vX.Y.Z && git push origin vX.Y.Z",
        "git tag v1.0.0-beta.3 && git push origin v1.0.0-beta.3",
        "README example tags a released version",
        expect="already released",

@@ -4,7 +4,7 @@
 
 Somebody buffs you in passing; Manners puts them on one button, and a click buffs them back and hands your own target straight back. It also offers your group, people who ask for your buff in chat, and nearby players missing it.
 
-> **Beta.** Only Mage has been played in game. Priest, Druid, Paladin, Warlock and Warrior are implemented and tested against a mock client, but nobody has cast with them yet. If you play one, please [say how it went](https://github.com/fpsacha/Manners/issues/new/choose): "it worked" is the most useful report.
+> **Only Mage has been played in game.** Priest, Druid, Paladin, Warlock and Warrior are implemented and tested against a mock client, but nobody has cast with them yet. If you play one, please [say how it went](https://github.com/fpsacha/Manners/issues/new/choose): "it worked" is the most useful report.
 
 Built for **WoW Forever** (Interface 16001) only.
 
@@ -15,10 +15,12 @@ Built for **WoW Forever** (Interface 16001) only.
 - **How near is near:** limit passers-by to about ten yards, or to cities and inns.
 - **Snooze** with `/manners snooze`, and **Not while mounted**.
 - **The favour ledger:** who buffed you, whether you returned it, and who you buffed unasked. `/manners ledger`.
+- **Titles for your manners**, from *Well Brought Up* at 10 favours returned to *The Very Soul of Courtesy* at 1,000, shown in the ledger with your progress and in the minimap tooltip.
 - **Three looks**, effects you can calm down, text that stays readable on any panel colour, LibSharedMedia fonts and sounds.
 - **Minimap button and addon compartment**, with a right-click menu for snooze, preview, who's next and more.
 - **Share settings** as one line of text with `/manners export` and `/manners import`.
 - **Say something in character** (off by default): over a thousand funny lines, picked for your race, class and faction and for the moment -- the spell you give, what they gave you, how often you two swap, where you are, the hour -- in every people's own voice, never repeating.
+- **Whisper them** as the channel for your line, so only the person you buff hears it, and an optional `/thank` emote when somebody buffs you (off by default, not yet tried in game).
 - **Nine languages:** English, German, Spanish (Spain and Mexico), French, Italian, Korean, Brazilian Portuguese, Simplified and Traditional Chinese.
 
 **Getting started:** bind a key under Options > Keybindings > Manners, or `/manners macro` for a macro on your bars. `/manners` opens the options and `/manners help` lists every command.
