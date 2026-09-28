@@ -1401,6 +1401,19 @@ function addon:HandleSlash(rawInput)
 		else
 			self:Print(("  " .. L["own buffs: %d read, baseline %d"]):format(scan.read, scan.held))
 		end
+		-- The emote is untested in game (Favours.lua), so what it last did and
+		-- what it last passed over, with why, is the only report there is.
+		self:Print("  " .. (db.prompt.thankEmote and L["thank with an emote: |cff00ff00on|r"]
+			or L["thank with an emote: |cffff0000off|r"]))
+		local thanks = ns.thankLog or {}
+		if thanks.thanked then
+			self:Print(("    " .. L["last thanked: |cffffffff%s|r, %ds ago (the game answered %s)"]):format(
+				thanks.thanked.name, math.floor(now - thanks.thanked.at), thanks.thanked.answer))
+		end
+		if thanks.skipped then
+			self:Print(("    " .. L["last not thanked: |cffffffff%s|r, %ds ago (%s)"]):format(
+				thanks.skipped.name, math.floor(now - thanks.skipped.at), thanks.skipped.why))
+		end
 
 		-- The states that keep the prompt off screen while the queue below
 		-- still counts people (BuildQueue does not read them).

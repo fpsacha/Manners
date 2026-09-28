@@ -1804,6 +1804,23 @@ local function BuildOptions()
 						get = pGet,
 						set = pSet,
 					},
+					-- The other answer to a favour arriving, so under the flash.
+					-- Its own get and set: pSet restyles the prompt, and this
+					-- changes nothing on it.
+					thankEmote = {
+						type = "toggle",
+						name = L["Thank them with an emote"],
+						desc = L["When somebody buffs you and returning it is on the prompt, you /thank them, and everybody near sees it."]
+							.. "\n\n|cff888888"
+							.. L["Never in a fight, in a dungeon, raid, battleground or arena. At most once per person every five minutes, and once every ten seconds in all, so a raid full of buffs is one thank."]
+							.. "|r",
+						order = 21.2,
+						width = "full",
+						-- Nobody is noticed buffing you with that source off.
+						disabled = function() return not S().owed end,
+						get = function() return P().thankEmote end,
+						set = function(_, v) P().thankEmote = v end,
+					},
 					-- How much the prompt moves to get your attention, so next to
 					-- the flash.
 					effects = {
