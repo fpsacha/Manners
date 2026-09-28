@@ -116,8 +116,9 @@ local TEXT = {
 	-- After "Gave": %s is the spell you gave the row's player.
 	GAVE_GROUP = L["%s, in your group"],
 	GAVE_STRANGER = L["%s, to a stranger"],
-	-- A group cast: %s is the spell, %d how many people the one cast reached.
-	GAVE_COVERED = L["%s, to %d in your group"],
+	-- A group cast: %s is the spell, %d how many the queue had lined up for it,
+	-- which is not everybody in the party, only those who needed it.
+	GAVE_COVERED = L["%s, to %d who needed it"],
 	-- In place of a spell name the client could not give.
 	UNKNOWN_SPELL = L["a buff"],
 
@@ -160,7 +161,7 @@ local TEXT = {
 	-- with the rest but not counted as given unprompted.
 	TIP_GAVE_ASKED = L["They asked for it in chat."],
 	-- Under TIP_GAVE_GROUP for a group cast, which is counted as one buff.
-	TIP_GAVE_COVERED = L["One cast reached %d people in their party or class, and counts as one buff given."],
+	TIP_GAVE_COVERED = L["One cast gave it to %d who needed it in their party or class, and counts as one buff given."],
 
 	JUST_NOW = L["just now"],
 	MINUTES_AGO = L["%d min ago"],

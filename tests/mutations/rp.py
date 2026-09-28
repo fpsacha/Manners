@@ -270,7 +270,7 @@ mutate("Phrases.lua",
 
 # "Your Arcane Intellect for my Arcane Intellect."
 mutate("Phrases.lua",
-       "\t\tif gift ~= nil and gift == buff then gift = nil end\n",
+       "\t\tif gift ~= nil and gift == single then gift = nil end\n",
        "",
        "rp a spell traded for itself",
        expect="rp: a favour is thanked for by the spell it was",

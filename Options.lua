@@ -623,7 +623,8 @@ local function WhoToBuffGroup()
 			groupBuffsUse = {
 				type = "toggle",
 				name = L["Use group buffs"],
-				desc = L["When enough people in one party are missing your buff and you carry the reagent, offer one group cast -- Arcane Brilliance, Prayer of Fortitude, Gift of the Wild or a Greater Blessing -- instead of buffing them one at a time."],
+				-- Worded for this class and the group spells it has learned.
+				desc = function() return (ns.GroupBuffDescriptions()) end,
 				order = 13.1,
 				width = "full",
 				hidden = function() return not (ns.ClassHasGroupBuffs and ns.ClassHasGroupBuffs()) end,
@@ -635,8 +636,10 @@ local function WhoToBuffGroup()
 			},
 			groupBuffsAtLeast = {
 				type = "range",
-				name = L["When at least this many are missing"],
-				desc = L["How many people in one party (for a Greater Blessing, of one class) have to be missing the buff before the group version is offered."],
+				-- Says what happens at the number, so it reads on its own
+				-- wherever the page puts it.
+				name = L["Group buff once this many need it"],
+				desc = function() return select(2, ns.GroupBuffDescriptions()) end,
 				order = 13.2,
 				min = 2,
 				max = 5,
@@ -2429,12 +2432,15 @@ local function ByReason(entry, owed, group, target, nearby, asked)
 	return nearby
 end
 
+-- As the prompt says it: a group cast is "Your party" and its group spell,
+-- not the one person it is aimed at and the single buff.
 local function WhoIs(entry)
-	return tostring(entry.short or entry.name)
+	return tostring(entry.display or entry.short or entry.name)
 end
 
 local function WhatBuff(entry)
-	return tostring(ns.BuffName and ns.BuffName(entry.buff) or "?")
+	return tostring(ns.EntrySpellName and ns.EntrySpellName(entry)
+		or ns.BuffName and ns.BuffName(entry.buff) or "?")
 end
 
 -- Who the prompt is armed at and who comes after them, in that order, with
@@ -2728,14 +2734,18 @@ end
 -- that a press still casts at them.
 local function SkipFromMenu(entry)
 	ns.BlockPerson(entry.name)
+	-- A group cast is skipped whole, as a right-press on it is.
+	if ns.SkipGroupCast then ns.SkipGroupCast(entry) end
 	local showing = ns.Prompt.Showing and ns.Prompt:Showing()
 	local onPrompt = showing and showing.name == entry.name
 	if onPrompt then ns.Prompt:StopAttention() end
+	-- Inside a sentence a group cast is "your party", not the panel's title.
+	local who = entry.groupCast and entry.groupCast.label or WhoIs(entry)
 	if onPrompt and InCombatLockdown() then
 		ns.addon:Print(L["skipping |cffffffff%s|r for now -- but the prompt cannot move off them in a fight, and a press still casts at them."]
-			:format(WhoIs(entry)))
+			:format(who))
 	else
-		ns.addon:Print(L["skipping |cffffffff%s|r for now."]:format(WhoIs(entry)))
+		ns.addon:Print(L["skipping |cffffffff%s|r for now."]:format(who))
 	end
 	ns.Guard("skip repaint", ns.Prompt.Refresh, ns.Prompt)
 end
@@ -2746,6 +2756,9 @@ end
 -- and the block takes them off it at once.
 local function NeverFromMenu(entry)
 	ns.BlockPerson(entry.name)
+	-- Only the one it is aimed at is listed; the rest of a group cast are
+	-- skipped, as a shift-right-press on it does.
+	if ns.SkipGroupCast then ns.SkipGroupCast(entry) end
 	local showing = ns.Prompt.Showing and ns.Prompt:Showing()
 	if showing and showing.name == entry.name then ns.Prompt:StopAttention() end
 	-- Says the fight's warning itself and repaints the prompt, for every route

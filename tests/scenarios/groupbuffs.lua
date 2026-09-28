@@ -68,7 +68,7 @@ local function install(env)
 		IsSpellKnown = IsSpellKnown, IsPlayerSpell = IsPlayerSpell, UnitClass = UnitClass,
 		UnitPowerMax = UnitPowerMax, UnitInParty = UnitInParty,
 		GetItemCount = rawget(_G, "GetItemCount"), GetItemInfo = rawget(_G, "GetItemInfo"),
-		C_UnitAuras = rawget(_G, "C_UnitAuras"),
+		C_UnitAuras = rawget(_G, "C_UnitAuras"), C_Spell = rawget(_G, "C_Spell"),
 	}
 	local known = {}
 	for _, id in ipairs(env.known or {}) do known[id] = true end
@@ -104,10 +104,24 @@ local function install(env)
 			local carrying = env.held[unit]
 			local source = carrying and carrying[spellId]
 			if not source then return nil end
-			return { spellId = spellId, expirationTime = Mock.now + 3600,
+			-- env.expires[unit]: seconds left on what they carry, for a top-up.
+			local left = env.expires and env.expires[unit] or 3600
+			return { spellId = spellId, expirationTime = Mock.now + left, duration = 3600,
 				sourceUnit = type(source) == "string" and source or "player" }
 		end,
 	}, { __index = base }))
+	-- The group spell's own icon, told apart from every other spell's.
+	-- Read through _G, which builds the mock's C_Spell if nothing has yet.
+	local spells = env.groupIcon and C_Spell
+	if type(spells) == "table" then
+		local realTexture = spells.GetSpellTexture
+		rawset(_G, "C_Spell", setmetatable({
+			GetSpellTexture = function(id)
+				if id == BRILLIANCE then return env.groupIcon end
+				return realTexture and realTexture(id)
+			end,
+		}, { __index = spells }))
+	end
 	-- Once only, and from Mock.reset as well: the runner resets after a file
 	-- that threw, and these globals must not leak into the files after it.
 	local realReset, undone = Mock.reset, false
@@ -120,6 +134,7 @@ local function install(env)
 		rawset(_G, "GetItemCount", saved.GetItemCount)
 		rawset(_G, "GetItemInfo", saved.GetItemInfo)
 		rawset(_G, "C_UnitAuras", saved.C_UnitAuras)
+		rawset(_G, "C_Spell", saved.C_Spell)
 	end
 	Mock.reset = function(...)
 		undo()
@@ -240,11 +255,11 @@ do
 			end
 			local line = ns.Prompt:RenderPrimary(group, 0)
 			local sub = ns.Prompt:ReasonText(group)
-			if not line:find("party", 1, true) or not sub:find("Arcane Brilliance -- 4 missing", 1, true) then
+			if line ~= "Your party" or not sub:find("Arcane Brilliance -- 4 missing", 1, true) then
 				fail(scenario, "the panel does not name the party and the count: " .. line .. " / " .. sub)
 			end
 			local summary = table.concat(ns.Prompt:ClickSummary(group), " / ")
-			if not summary:find("on their whole party", 1, true) then
+			if not summary:find("casts |cffffffffArcane Brilliance|r on everybody in your party.", 1, true) then
 				fail(scenario, "the click summary does not say it covers the party: " .. summary)
 			end
 			-- {buff} in a spoken line is the spell that goes out.
@@ -278,8 +293,11 @@ do
 			fail(scenario, "SKIPPED -- the tooltip is not about the group cast: " .. said)
 		elseif not said:find("Uses one Arcane Powder -- you have 20.", 1, true) then
 			fail(scenario, "the tooltip does not count the reagent: " .. said)
-		elseif not said:find("4 in their party are missing Arcane Intellect", 1, true) then
+		elseif not said:find("4 in your party are missing Arcane Intellect.", 1, true) then
 			fail(scenario, "the tooltip does not say how many are missing it: " .. said)
+		elseif not (said:find("Right-click to skip this group buff for now.", 1, true)
+			and said:find("Shift-right-click to put Bram Oake on your never-offer list.", 1, true)) then
+			fail(scenario, "the tooltip does not say what a right-click does to a group cast: " .. said)
 		end
 		guarded(scenario, ns)
 		restore()
@@ -321,11 +339,15 @@ for _, case in ipairs({
 	{ label = "no reagent", env = { known = join(MAGE_SINGLE, { BRILLIANCE }), bags = {} } },
 	{ label = "switched off", env = mage({ setup = function(ns) ns.db.profile.groupBuffs.use = false end }) },
 	{ label = "the client says it cannot be cast", env = mage(), unusable = true },
+	{ label = "mana enough only for the single spell", env = mage(), noMana = true },
 }) do
 	local scenario = "groupbuffs: " .. case.label .. ", they are buffed one by one"
 	local realUsable = rawget(_G, "IsUsableSpell")
 	if case.unusable then
 		IsUsableSpell = function(id) if id == BRILLIANCE then return false, false end return true, false end
+	elseif case.noMana then
+		-- The client's "not for want of mana": the group spell costs more.
+		IsUsableSpell = function(id) if id == BRILLIANCE then return false, true end return true, false end
 	end
 	local ns, restore = session(scenario, case.env)
 	if ns then
@@ -483,8 +505,13 @@ do
 			if not flat(macro(ns)):find("/cast Greater Blessing of Might", 1, true) then
 				fail(scenario, "the macro does not cast Greater Blessing of Might: " .. flat(macro(ns)))
 			end
-			if not ns.Prompt:RenderPrimary(group, 0):find("every Warrior", 1, true) then
+			if ns.Prompt:RenderPrimary(group, 0) ~= "Every Warrior" then
 				fail(scenario, "the panel does not name the class: " .. ns.Prompt:RenderPrimary(group, 0))
+			end
+			-- A paladin reads about classes, not parties.
+			local _, slider = ns.GroupBuffDescriptions()
+			if not tostring(slider):find("of one class", 1, true) then
+				fail(scenario, "a paladin's threshold does not say it counts one class: " .. tostring(slider))
 			end
 			local mage4 = all["Raider4 Stone"]
 			if not (mage4 and mage4.buff.key == "wisdom" and not mage4.groupCast) then
@@ -958,8 +985,23 @@ do
 				fail(scenario, "the toggle stays live with My party and raid off")
 			end
 			ns.db.profile.sources.group = true
-			if #tostring(toggle.desc or "") < 40 or #tostring(slider.desc or "") < 40 then
+			local function said(option)
+				local desc = option.desc
+				if type(desc) == "function" then desc = desc() end
+				return tostring(desc or "")
+			end
+			if #said(toggle) < 40 or #said(slider) < 40 then
 				fail(scenario, "a control has no description")
+			end
+			-- Worded for a mage: the spell learned, and parties, not classes.
+			if not said(toggle):find("Arcane Brilliance", 1, true) or said(toggle):find("Greater Blessing", 1, true) then
+				fail(scenario, "the toggle does not name the mage's own group spell: " .. said(toggle))
+			end
+			if not said(slider):find("one raid group", 1, true) then
+				fail(scenario, "the threshold does not say it counts one party or raid group: " .. said(slider))
+			end
+			if slider.name ~= "Group buff once this many need it" then
+				fail(scenario, "the threshold's name does not say what happens at the number: " .. tostring(slider.name))
 			end
 		end
 		guarded(scenario, ns)
@@ -978,5 +1020,520 @@ do
 		end
 		guarded(scenario2, ns2)
 		restore2()
+	end
+end
+
+-- ------------------------------------------------------------ groupbuffs-20
+-- The spoken line follows the spell: when the party drops under the threshold
+-- the same person goes from the group cast to a single one, and back, and the
+-- line must name what the macro casts each time.
+do
+	local scenario = "groupbuffs: the spoken line follows the spell between group and single"
+	local env = mage()
+	local ns, restore = session(scenario, env)
+	if ns then
+		local speech = ns.db.profile.speech
+		speech.enabled, speech.onlyWhenReturning, speech.channel = true, false, "SAY"
+		speech.phrases = "Here is {buff}, {name}."
+		ns.Prompt:InvalidateMacro()
+		ns.addon:Tick()
+		local before = macro(ns)
+		if not (before and before:find("/cast Arcane Brilliance\n/say Here is Arcane Brilliance", 1, true)) then
+			fail(scenario, "SKIPPED -- the group cast is not armed with its line: " .. flat(before))
+		else
+			-- Somebody else buffs two of them: two left is under three.
+			env.held.party3 = { [10157] = "raid9" }
+			env.held.party4 = { [10157] = "raid9" }
+			Mock.advance(5)
+			ns.addon:Tick()
+			local single = macro(ns)
+			if not (single and single:find("/cast Arcane Intellect", 1, true)) then
+				fail(scenario, "SKIPPED -- the prompt did not go back to a single cast: " .. flat(single))
+			elseif not single:find("/say Here is Arcane Intellect", 1, true) then
+				fail(scenario, "the spoken line kept the group spell for a single cast: " .. flat(single))
+			end
+			env.held.party3, env.held.party4 = nil, nil
+			Mock.advance(5)
+			ns.addon:Tick()
+			local again = macro(ns)
+			if again and again:find("/cast Arcane Brilliance", 1, true)
+				and not again:find("/say Here is Arcane Brilliance", 1, true) then
+				fail(scenario, "the spoken line kept the single spell for a group cast: " .. flat(again))
+			end
+		end
+		guarded(scenario, ns)
+		restore()
+	end
+end
+
+-- ------------------------------------------------------------ groupbuffs-21
+-- The in-character set names the spell that goes out as well, and leaves out
+-- a line that names the single spell outright ("Mark of the Wild, {name}.")
+-- when the cast is Gift of the Wild.
+for _, case in ipairs({
+	{ label = "Arcane Brilliance", env = mage(), wrong = "Arcane Intellect", right = "Arcane Brilliance" },
+	{ label = "Gift of the Wild", env = { class = "DRUID",
+		known = { 9885, 9884, 8907, 5234, 6756, 5232, 1126, 21849 }, bags = { [WILD_BERRIES] = 5 } },
+		wrong = "Mark of the Wild", right = "Gift of the Wild" },
+}) do
+	local scenario = "groupbuffs: an in-character line names the group spell (" .. case.label .. ")"
+	local ns, restore = session(scenario, case.env)
+	if ns then
+		local speech = ns.db.profile.speech
+		speech.enabled, speech.onlyWhenReturning, speech.channel = true, false, "SAY"
+		local preset = H.findOption(ns.optionsTable, "preset")
+		local group = groupCast(ns)
+		if not (preset and preset.set and group) then
+			fail(scenario, "SKIPPED -- no preset control or no group cast")
+		else
+			preset.set({ "preset" }, "incharacter")
+			local wrong, right = 0, 0
+			local sample
+			for _ = 1, 2000 do
+				local line = ns.PickPhrase(group, 255) or ""
+				if line:find(case.wrong, 1, true) then
+					wrong = wrong + 1
+					sample = sample or line
+				end
+				if line:find(case.right, 1, true) then right = right + 1 end
+			end
+			if wrong > 0 then
+				fail(scenario, wrong .. " in-character lines named the single spell over a group cast: " .. sample)
+			elseif right == 0 then
+				fail(scenario, "no in-character line in 2000 named " .. case.right)
+			end
+		end
+		guarded(scenario, ns)
+		restore()
+	end
+end
+
+-- ------------------------------------------------------------ groupbuffs-22
+-- A favour owed at the head of the party: the cast returns it, and the cast
+-- itself is still one buff given, reaching four -- whoever it was aimed at.
+-- A late refusal takes that row back with the favour.
+do
+	local scenario = "groupbuffs: a group cast aimed at a favour still counts as one buff given"
+	local ns, restore = session(scenario, mage())
+	if ns then
+		H.owe(ns, "Cora Vell")
+		ns.Prompt:InvalidateMacro()
+		ns.addon:Tick()
+		local before = ns.Ledger.Summary()
+		local rows = #ns.Ledger.Entries("given")
+		local ran = pressAndCast(ns, BRILLIANCE, "Cast-G7")
+		if not (ran and ran:find("/target Cora Vell", 1, true) and ran:find("Arcane Brilliance", 1, true)) then
+			fail(scenario, "SKIPPED -- the press was not the group cast at Cora: " .. flat(ran))
+		else
+			local after = ns.Ledger.Summary()
+			if after.given - before.given ~= 1 or after.totals.group - before.totals.group ~= 1 then
+				fail(scenario, ("a group cast aimed at a favour counted as %d given today, %d to the group")
+					:format(after.given - before.given, after.totals.group - before.totals.group))
+			end
+			local given = ns.Ledger.Entries("given")[1]
+			if #ns.Ledger.Entries("given") ~= rows + 1 or not (given and given.covered == 4
+				and given.spell == BRILLIANCE and given.name ~= "Cora Vell") then
+				fail(scenario, "no row says one Arcane Brilliance reached four: " .. tostring(given and given.name))
+			end
+			ns.addon:UNIT_SPELLCAST_FAILED(nil, "player", "Cast-G7", BRILLIANCE)
+			local undone = ns.Ledger.Summary()
+			if #ns.Ledger.Entries("given") ~= rows or undone.given ~= before.given then
+				fail(scenario, "a late refusal left the group cast counted as given")
+			end
+			if not ns.owed["Cora Vell"] then
+				fail(scenario, "a late refusal did not put Cora's favour back")
+			end
+		end
+		guarded(scenario, ns)
+		restore()
+	end
+end
+
+-- ------------------------------------------------------------ groupbuffs-23
+-- The ledger row keeps its count through a reload, when every saved row goes
+-- through the ledger's repair.
+do
+	local scenario = "groupbuffs: the ledger row keeps its count through a reload"
+	local ns, restore = session(scenario, mage())
+	if ns then
+		local ran = pressAndCast(ns, BRILLIANCE, "Cast-G8")
+		if not (ran and ran:find("Arcane Brilliance", 1, true)) then
+			fail(scenario, "SKIPPED -- the press did not cast the group spell: " .. flat(ran))
+		else
+			-- A fresh table is what a reload hands the ledger: it is repaired
+			-- row by row before anything reads it.
+			local saved = ns.db.char.ledger
+			local copy = {}
+			for k, v in pairs(saved) do copy[k] = v end
+			ns.db.char.ledger = copy
+			ns.Ledger.Load()
+			local given = ns.Ledger.Entries("given")[1]
+			if not (given and given.covered == 4) then
+				fail(scenario, "after a reload the row no longer says how many it reached: "
+					.. tostring(given and given.covered))
+			end
+		end
+		-- A client that withholds the id of what went out: the row still
+		-- names the group spell, which is what the macro cast.
+		Mock.advance(20)
+		ns.Prompt:InvalidateMacro()
+		ns.addon:Tick()
+		local again = pressAndCast(ns, Mock.SECRET, "Cast-G11")
+		if again and again:find("Arcane Brilliance", 1, true) then
+			local given = ns.Ledger.Entries("given")[1]
+			if not (given and given.spell == BRILLIANCE) then
+				fail(scenario, "with the id withheld the row names " .. tostring(given and given.spell)
+					.. ", not the group spell")
+			end
+		else
+			fail(scenario, "SKIPPED -- no second group cast to press: " .. flat(again))
+		end
+		guarded(scenario, ns)
+		restore()
+	end
+end
+
+-- ------------------------------------------------------------ groupbuffs-24
+-- Not now, on a group cast: the whole party is skipped, not the one it was
+-- aimed at, and chat says so. It all comes back after the retry cooldown.
+do
+	local scenario = "groupbuffs: not now on a group cast skips the whole party"
+	local ns, restore = session(scenario, mage())
+	if ns then
+		if not groupCast(ns) then
+			fail(scenario, "SKIPPED -- no group cast to skip")
+		else
+			Mock.printed = {}
+			H.pressButton(ns, "RightButton")
+			ns.addon:Tick()
+			local _, left = offers(ns, "intellect")
+			if left ~= 0 then
+				fail(scenario, left .. " offers of Arcane Intellect came straight back after skipping the party")
+			end
+			local said = table.concat(Mock.printed, "\n")
+			if not said:find("skipping |cffffffffyour party|r for now.", 1, true) then
+				fail(scenario, "chat does not say the party was skipped: " .. said)
+			end
+			Mock.advance(13)
+			local back = groupCast(ns)
+			if not back or covered(back) ~= "Bram Oake, Cora Vell, Dain Moor, Gwen Hale" then
+				fail(scenario, "the party did not come back after the cooldown")
+			end
+		end
+		guarded(scenario, ns)
+		restore()
+	end
+end
+
+-- Never, on a group cast: only the one it was aimed at goes on the list, the
+-- rest are skipped for now, and chat says both.
+do
+	local scenario = "groupbuffs: never on a group cast lists one and skips the rest"
+	local ns, restore = session(scenario, mage())
+	if ns then
+		local group = groupCast(ns)
+		if not group then
+			fail(scenario, "SKIPPED -- no group cast")
+		else
+			local realShift = rawget(_G, "IsShiftKeyDown")
+			IsShiftKeyDown = function() return true end
+			Mock.printed = {}
+			H.pressButton(ns, "RightButton")
+			rawset(_G, "IsShiftKeyDown", realShift)
+			ns.addon:Tick()
+			if not ns.IsNeverOffered(group.name) then
+				fail(scenario, "the one the cast was aimed at is not on the never-offer list")
+			end
+			for _, name in ipairs(group.groupCast.members) do
+				if ns.IsNeverOffered(name) then fail(scenario, name .. " was listed with the one aimed at") end
+			end
+			local _, left = offers(ns, "intellect")
+			if left ~= 0 then
+				fail(scenario, left .. " of the rest came straight back after never")
+			end
+			if not table.concat(Mock.printed, "\n"):find("The rest of your party is skipped for now.", 1, true) then
+				fail(scenario, "chat does not say the rest were skipped: " .. table.concat(Mock.printed, "\n"))
+			end
+		end
+		guarded(scenario, ns)
+		restore()
+	end
+end
+
+-- The launcher says what the prompt says: the party and the group spell, in
+-- the tooltip and in Who's next, and Skip for now there skips the party.
+do
+	local scenario = "groupbuffs: the launcher names the group cast and skips it whole"
+	local ns, restore = session(scenario, mage())
+	if ns then
+		local broker = Mock.broker
+		if not (groupCast(ns) and broker and broker.OnTooltipShow and broker.OnClick) then
+			fail(scenario, "SKIPPED -- no group cast or no launcher")
+		else
+			local lines = {}
+			broker.OnTooltipShow({ AddLine = function(_, text) lines[#lines + 1] = tostring(text) end })
+			local tip = table.concat(lines, "\n")
+			if not tip:find("On the prompt: |cffffffffYour party|r -- Arcane Brilliance", 1, true) then
+				fail(scenario, "the launcher's tooltip does not name the group cast: " .. tip)
+			end
+			local function newMenu(text, fn)
+				local d = { text = text, fn = fn, items = {} }
+				local function add(item) d.items[#d.items + 1] = item return item end
+				function d:CreateTitle(t) return add({ text = t, items = {} }) end
+				function d:CreateDivider() return add({ items = {} }) end
+				function d:CreateButton(t, f) return add(newMenu(t, f)) end
+				function d:CreateCheckbox(t) return add(newMenu(t)) end
+				function d:CreateRadio(t) return add(newMenu(t)) end
+				function d:SetEnabled() end
+				function d:SetTooltip() end
+				return d
+			end
+			local function child(root, pattern)
+				for _, item in ipairs(root and root.items or {}) do
+					if item.text and tostring(item.text):find(pattern) then return item end
+				end
+			end
+			local realMenu, opened = rawget(_G, "MenuUtil"), nil
+			MenuUtil = { CreateContextMenu = function(owner, generator)
+				opened = newMenu()
+				generator(owner, opened)
+				return opened
+			end }
+			local ok, err = pcall(broker.OnClick, {}, "RightButton")
+			rawset(_G, "MenuUtil", realMenu)
+			local person = ok and child(child(opened, "^Who's next$"), "^Your party %-%- Arcane Brilliance")
+			local skip = person and child(person, "^Skip for now$")
+			if not skip then
+				fail(scenario, "Who's next does not list the group cast as the prompt names it: " .. tostring(err))
+			else
+				Mock.printed = {}
+				skip.fn()
+				ns.addon:Tick()
+				local _, left = offers(ns, "intellect")
+				if left ~= 0 then
+					fail(scenario, left .. " offers came straight back after Skip for now on the party")
+				end
+				if not table.concat(Mock.printed, "\n"):find("skipping |cffffffffyour party|r", 1, true) then
+					fail(scenario, "Skip for now does not say the party was skipped")
+				end
+			end
+		end
+		guarded(scenario, ns)
+		restore()
+	end
+end
+
+-- ------------------------------------------------------------ groupbuffs-25
+-- A party member who asked in chat is answered by the group cast aimed at
+-- somebody else: their request is closed, not offered again once the
+-- cooldown is out.
+do
+	local scenario = "groupbuffs: a group cast answers a member who asked in chat"
+	local ns, restore = session(scenario, mage({ setup = function(ns)
+		ns.db.profile.sources.asked = true
+	end }))
+	if ns then
+		local function hear(text, sender, guid)
+			ns.addon.CHAT_MSG_PARTY(ns.addon, "CHAT_MSG_PARTY", text, sender, "Common", "", "", "", 0, 0, "", 0, 1, guid)
+		end
+		-- Two ask, so the cast is aimed at one of them (Cora, by name) and
+		-- Dain's request can only be answered as somebody it covered.
+		hear("int pls", "Cora Vell", "Player-1-party3")
+		hear("int pls", "Dain Moor", "Player-1-party4")
+		local function reasonOfDain()
+			local use = ns.db.profile.groupBuffs.use
+			ns.db.profile.groupBuffs.use = false
+			local all = offers(ns, "intellect")
+			ns.db.profile.groupBuffs.use = use
+			return all["Dain Moor"] and all["Dain Moor"].reason
+		end
+		ns.Prompt:InvalidateMacro()
+		ns.addon:Tick()
+		local group = groupCast(ns)
+		if reasonOfDain() ~= "asked" or not group or group.name == "Dain Moor" then
+			fail(scenario, "SKIPPED -- Dain's request is not standing behind a group cast at somebody else: "
+				.. tostring(reasonOfDain()) .. " / " .. tostring(group and group.name))
+		else
+			local ran = pressAndCast(ns, BRILLIANCE, "Cast-G9")
+			if not (ran and ran:find("Arcane Brilliance", 1, true)) then
+				fail(scenario, "SKIPPED -- the press did not cast the group spell: " .. flat(ran))
+			else
+				Mock.advance(13)
+				if reasonOfDain() == "asked" then
+					fail(scenario, "Dain's request still stands after the group cast covered him")
+				end
+			end
+		end
+		guarded(scenario, ns)
+		restore()
+	end
+end
+
+-- ------------------------------------------------------------ groupbuffs-26
+-- A late refusal after somebody it covered was put on the never-offer list
+-- since the settle: their favour is let go, not owed again, as the anchor's is.
+do
+	local scenario = "groupbuffs: a late refusal lets go a favour listed since the settle"
+	local ns, restore = session(scenario, mage())
+	if ns then
+		H.owe(ns, "Cora Vell")
+		H.owe(ns, "Dain Moor")
+		-- Dain's favour in the ledger as a buff landing files it, so there is
+		-- a row for the refusal to put back and the listing to let go.
+		ns.Ledger.Received({ name = "Dain Moor", key = 10157, class = "MAGE" })
+		ns.Prompt:InvalidateMacro()
+		ns.addon:Tick()
+		local ran = pressAndCast(ns, BRILLIANCE, "Cast-G10")
+		if not (ran and ran:find("/target Cora Vell", 1, true)) or ns.owed["Dain Moor"] then
+			fail(scenario, "SKIPPED -- the group cast at Cora did not settle Dain's favour: " .. flat(ran))
+		else
+			ns.PutOnNeverList("Dain Moor")
+			ns.addon:UNIT_SPELLCAST_FAILED(nil, "player", "Cast-G10", BRILLIANCE)
+			if ns.owed["Dain Moor"] then
+				fail(scenario, "a favour listed since the settle is owed again after the refusal")
+			end
+			local state = "no row"
+			for _, e in ipairs(ns.Ledger.Entries("favours")) do
+				if e.name == "Dain Moor" then state = tostring(e.state) end
+			end
+			if state ~= "letgo" then
+				fail(scenario, "the ledger shows Dain's favour " .. state .. ", not let go")
+			end
+		end
+		guarded(scenario, ns)
+		restore()
+	end
+end
+
+-- ------------------------------------------------------------ groupbuffs-27
+-- The panel's icon is the group spell's own.
+do
+	local scenario = "groupbuffs: the panel shows the group spell's icon"
+	local ns, restore = session(scenario, mage({ groupIcon = 777001 }))
+	if ns then
+		local group = groupCast(ns)
+		local icon = ns.Prompt:Regions().icon
+		if not (group and icon) then
+			fail(scenario, "SKIPPED -- no group cast or no icon")
+		else
+			local shown
+			local realSet = icon.SetTexture
+			icon.SetTexture = function(self, file, ...)
+				shown = file
+				return realSet(self, file, ...)
+			end
+			ns.Prompt:Paint(group, 0)
+			icon.SetTexture = realSet
+			if shown ~= 777001 then
+				fail(scenario, "the panel shows icon " .. tostring(shown) .. ", not the group spell's")
+			end
+		end
+		guarded(scenario, ns)
+		restore()
+	end
+end
+
+-- ------------------------------------------------------------ groupbuffs-28
+-- Who it is for, as players say it: in a raid, your own subgroup is "Your
+-- group" and another is "Group 2"; the tooltip says the same.
+do
+	local names = {}
+	for i = 1, 10 do names["raid" .. i] = { "Raider" .. i, "Stone" } end
+	local scenario = "groupbuffs: in a raid the panel names the raid group"
+	-- Everybody in both subgroups missing it: two group casts.
+	local ns, restore = session(scenario, mage({ raid = { size = 10, player = 1 }, names = names }))
+	if ns then
+		local seen = {}
+		for _, entry in ipairs(ns.BuildQueue()) do
+			if entry.groupCast then seen[#seen + 1] = ns.Prompt:RenderPrimary(entry, 0) end
+		end
+		table.sort(seen)
+		if table.concat(seen, ", ") ~= "Group 2, Your group" then
+			fail(scenario, "the raid's group casts are not named by raid group: " .. table.concat(seen, ", "))
+		end
+		guarded(scenario, ns)
+		restore()
+	end
+end
+
+-- ------------------------------------------------------------ groupbuffs-29
+-- Missing and running out, told apart: a top-up before a pull says "running
+-- out", not "missing", and a mix says how many need it.
+do
+	local scenario = "groupbuffs: running out is not called missing"
+	local env = mage({
+		held = { party1 = { [10157] = true }, party2 = { [10157] = true },
+			party3 = { [10157] = true }, party4 = { [10157] = true } },
+		expires = { party1 = 120, party2 = 120, party3 = 120, party4 = 120 },
+		setup = function(ns) ns.db.profile.filters.whenBuffed = "refresh" end,
+	})
+	local ns, restore = session(scenario, env)
+	if ns then
+		local group = groupCast(ns)
+		if not group then
+			fail(scenario, "SKIPPED -- no group cast for four running out")
+		else
+			local sub = ns.Prompt:ReasonText(group)
+			if sub ~= "Arcane Brilliance -- 4 running out" then
+				fail(scenario, "four running out reads: " .. sub)
+			end
+			env.held.party3, env.held.party4 = nil, nil
+			Mock.advance(4)
+			local mixed = groupCast(ns)
+			local text = mixed and ns.Prompt:ReasonText(mixed) or "nothing"
+			if text ~= "Arcane Brilliance -- 4 need it" then
+				fail(scenario, "two missing and two running out reads: " .. text)
+			end
+			if mixed then
+				ns.Prompt:ApplyTarget(nil)
+				ns.Prompt:InvalidateMacro()
+				ns.addon:Tick()
+				local button = ns.Prompt:GetButton()
+				Mock.tooltip = {}
+				if button.scripts.OnEnter then button.scripts.OnEnter(button) end
+				local tip = table.concat(Mock.tooltip, " / ")
+				if not (tip:find("2 in your party are missing Arcane Intellect.", 1, true)
+					and tip:find("2 more are running out.", 1, true)) then
+					fail(scenario, "the tooltip does not tell missing from running out: " .. tip)
+				end
+			end
+		end
+		guarded(scenario, ns)
+		restore()
+	end
+end
+
+-- ------------------------------------------------------------ groupbuffs-30
+-- A heads-up while there is time to buy more: once, when a cast takes the
+-- count down to five or fewer. Not for a count that went up (a few bought, or
+-- the bags at login), which is nothing spent.
+do
+	local scenario = "groupbuffs: a heads-up when the reagent runs low"
+	-- Empty through the load, whose chat the session clears, so the three
+	-- bought below are heard.
+	local env = mage({ bags = { [ARCANE_POWDER] = 0 } })
+	local ns, restore = session(scenario, env)
+	if ns then
+		Mock.printed = {}
+		env.bags[ARCANE_POWDER] = 3
+		ns.addon:Tick()
+		local said = table.concat(Mock.printed, "\n")
+		if said:find("Arcane Powder left", 1, true) then
+			fail(scenario, "the heads-up came at login, before anything was spent")
+		end
+		env.bags[ARCANE_POWDER] = 7
+		ns.addon:Tick()
+		Mock.printed = {}
+		env.bags[ARCANE_POWDER] = 5
+		ns.addon:Tick()
+		env.bags[ARCANE_POWDER] = 4
+		ns.addon:Tick()
+		said = table.concat(Mock.printed, "\n")
+		local _, notes = said:gsub("Arcane Powder left", "")
+		if notes ~= 1 or not said:find("5 Arcane Powder left", 1, true) then
+			fail(scenario, ("the heads-up was said %d times: %s"):format(notes, said))
+		end
+		guarded(scenario, ns)
+		restore()
 	end
 end

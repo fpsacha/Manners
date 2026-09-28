@@ -699,6 +699,10 @@ local function OnPostClick(self, mouseButton, down)
 		-- The retry cooldown, not the two seconds a failed cast writes:
 		-- that would put them straight back on the prompt.
 		ns.BlockPerson(victim)
+		-- A group cast on the panel: the skip is of the whole party, or the
+		-- cast re-forms around the next of them on the next scan.
+		local group = current and current.name == victim and current.groupCast and current or nil
+		if group and ns.SkipGroupCast then ns.SkipGroupCast(group) end
 		Prompt:StopAttention()
 		-- Held shift makes it "never": onto the never-offer list. Nothing here
 		-- touches the button (type2 is "none"), so it is as safe in a fight as
@@ -707,12 +711,17 @@ local function OnPostClick(self, mouseButton, down)
 		-- queue at its next rebuild, which in a fight is when the fight ends.
 		if IsShiftKeyDown and ns.plain(IsShiftKeyDown()) then
 			-- The repaint comes with the listing: see the wrapper below
-			-- Prompt:Refresh.
+			-- Prompt:Refresh. Only the person the cast was aimed at is listed,
+			-- which the listing's own line names; the rest are skipped.
 			ns.PutOnNeverList(victim)
+			if group and db and db.verbose then
+				ns.addon:Print(L["The rest of %s is skipped for now."]:format(group.groupCast.label or "?"))
+			end
 			return
 		end
 		if db and db.verbose then
-			local shown = (current and current.name == victim and current.short)
+			local shown = (group and group.groupCast.label)
+				or (current and current.name == victim and current.short)
 				or (ns.ShortName and ns.ShortName(victim)) or victim
 			ns.addon:Print(L["skipping |cffffffff%s|r for now."]:format(shown))
 		end
@@ -875,13 +884,24 @@ end
 -- favour it returns on the way, and the reagent it eats, counted now.
 local function GroupTooltipLines(entry, group)
 	local single = ns.BuffName(entry.buff)
+	local missing, low = group.missing or 0, group.low or 0
+	-- Missing and running out apart: "missing" after a wipe means something
+	-- different from a top-up before a pull.
+	local count
 	if group.class then
-		GameTooltip:AddLine(L["%d of their class in your group are missing %s. One cast gives it to everybody of that class."]
-			:format(group.missing, single), 0.7, 0.7, 0.7, true)
+		count = missing > 0 and L["%d of that class in your party or raid are missing %s."]:format(missing, single)
+			or L["%d of that class in your party or raid are running out of %s."]:format(low, single)
 	else
-		GameTooltip:AddLine(L["%d in their party are missing %s. One cast gives it to the whole party."]
-			:format(group.missing, single), 0.7, 0.7, 0.7, true)
+		count = missing > 0 and L["%d in %s are missing %s."]:format(missing, group.label or "?", single)
+			or L["%d in %s are running out of %s."]:format(low, group.label or "?", single)
 	end
+	GameTooltip:AddLine(count, 0.7, 0.7, 0.7, true)
+	if missing > 0 and low > 0 then
+		GameTooltip:AddLine(L["%d more are running out."]:format(low), 0.7, 0.7, 0.7, true)
+	end
+	GameTooltip:AddLine(group.class
+		and L["One cast gives it to %s in your party or raid."]:format(group.label or "?")
+		or L["One cast gives it to everybody in %s."]:format(group.label or "?"), 0.7, 0.7, 0.7, true)
 	-- Whoever of them buffed you: this cast returns their favour too.
 	local now, owedNames = GetTime(), {}
 	local function Note(name)
@@ -969,11 +989,19 @@ do
 		GameTooltip:AddLine(L["Click to cast. %s for options."]:format("|cffffd100/manners|r"),
 			0.5, 0.5, 0.5)
 		-- A gesture nobody can discover is not a feature.
-		GameTooltip:AddLine(L["Right-click to skip this one."], 0.5, 0.5, 0.5)
+		-- A group cast is skipped whole, and "never" lists only the person it
+		-- is aimed at (OnPostClick), which the lines say rather than leave to
+		-- a guess.
+		local group = current.groupCast
+		GameTooltip:AddLine(group and L["Right-click to skip this group buff for now."]
+			or L["Right-click to skip this one."], 0.5, 0.5, 0.5)
 		-- Somebody already on the list is only here because they are owed, and
 		-- for them the same press lets that favour go.
 		if ns.IsNeverOffered and ns.IsNeverOffered(current.name) then
 			GameTooltip:AddLine(L["Shift-right-click to let this favour go."], 0.5, 0.5, 0.5)
+		elseif group then
+			GameTooltip:AddLine(L["Shift-right-click to put %s on your never-offer list."]
+				:format(current.short or current.name or "?"), 0.5, 0.5, 0.5)
 		else
 			GameTooltip:AddLine(L["Shift-right-click to put them on your never-offer list."], 0.5, 0.5, 0.5)
 		end
@@ -2225,7 +2253,11 @@ function Prompt:ReasonText(entry)
 	-- reason line the player wrote can say.
 	local group = entry.groupCast
 	if group then
-		return L["%s -- %d missing"]:format(ns.EntrySpellName(entry), group.missing)
+		local missing, low = group.missing or 0, group.low or 0
+		local spell = ns.EntrySpellName(entry)
+		if low == 0 then return L["%s -- %d missing"]:format(spell, missing) end
+		if missing == 0 then return L["%s -- %d running out"]:format(spell, low) end
+		return L["%s -- %d need it"]:format(spell, missing + low)
 	end
 	local template = p[REASON_KEY[entry.reason] or "reasonNearby"] or ""
 	-- The sub-line must be true without hovering: a top-up gets its own
@@ -2437,8 +2469,8 @@ function Prompt:ClickSummary(entry)
 		if group and target then
 			-- Who the one cast reaches besides the person it is aimed at.
 			out[#out + 1] = group.class
-				and L["Targets |cffffffff%s|r, casts |cffffffff%s|r on everybody of their class in your group."]:format(target, spell)
-				or L["Targets |cffffffff%s|r, casts |cffffffff%s|r on their whole party."]:format(target, spell)
+				and L["Targets |cffffffff%s|r, casts |cffffffff%s|r on %s in your party or raid."]:format(target, spell, group.label or "?")
+				or L["Targets |cffffffff%s|r, casts |cffffffff%s|r on everybody in %s."]:format(target, spell, group.label or "?")
 		else
 			out[#out + 1] = target
 				and L["Targets |cffffffff%s|r, casts |cffffffff%s|r."]:format(target, spell)
@@ -2568,8 +2600,10 @@ function Prompt:ApplyTarget(entry, silent)
 	-- line the press will cast; InvalidateMacro clears it, PreClick does not. A
 	-- kept line that no longer fits the room is rolled again, or the client
 	-- would cut the hand-back off the macro.
+	-- The group spell too, as in the macro's key: the line names the spell, and
+	-- one kept from a single cast would name the wrong one under a group cast.
 	local phraseIdentity = table.concat({ entry.name, entry.buff.key, tostring(entry.reason),
-		tostring(ns.tryMacro) }, "\1")
+		tostring(entry.groupCast and entry.groupCast.spell), tostring(ns.tryMacro) }, "\1")
 	local budget = ns.PhraseBudget(entry)
 	if phraseKey ~= phraseIdentity or (phraseText and #phraseText > budget) then
 		phraseKey, phraseText = phraseIdentity, ns.PickPhrase(entry, budget)

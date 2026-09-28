@@ -47,26 +47,46 @@ end
 ns.ReagentName = ReagentName
 
 -- The client's own word on whether the spell can be cast: it says no without
--- the reagent, which checks the pairing in Buffs.lua against the game. Only a
--- definite no that is not about mana counts; the queue already turns away a
--- player with none, and a client that will not say is taken at the table's word.
+-- the reagent, which checks the pairing in Buffs.lua against the game. A no
+-- for want of mana counts too: the group spell costs far more than the single
+-- one, and a player who can afford only the single one is better offered it
+-- than a group cast that fails on every press. A client that will not say is
+-- taken at the table's word.
 local function Usable(spellId)
 	local check = C_Spell and C_Spell.IsSpellUsable
 	if type(check) ~= "function" then check = _G.IsUsableSpell end
-	local usable, noMana = safecall(check, spellId)
-	return not (usable == false and noMana ~= true)
+	local usable = safecall(check, spellId)
+	return usable ~= false
 end
 
--- Reagents seen in the bags this session, and those whose running out has
--- been said. Said once a session: it is news the first time and nagging after.
-local stocked, told = {}, {}
+-- Reagents seen in the bags this session, the count last seen of each, and
+-- which notes have been said. Each note once a session: news the first time,
+-- nagging after.
+local stocked, told, lastSeen, warnedLow = {}, {}, {}, {}
 
--- The gentle note, the moment the last reagent goes: without it the prompt
+-- Running low: said once the count drops to this many, while a vendor can
+-- still be reached before the next pull.
+local LOW_STOCK = 5
+
+-- A heads-up when a cast takes the count down to a handful, and the gentle
+-- note the moment the last reagent goes: without the second the prompt
 -- quietly goes back to one person at a time and looks broken.
 local function NoteStock(info, count, db)
 	local item = info.groupReagent
+	local before = lastSeen[item]
+	lastSeen[item] = count
 	if count and count > 0 then
 		stocked[item] = true
+		-- Only on a drop, so logging in with a few in the bags says nothing:
+		-- it is the cast that just spent one that makes it news.
+		if count <= LOW_STOCK and before and count < before and not warnedLow[item] then
+			warnedLow[item] = true
+			local what = ReagentName(item)
+			if db.verbose and what then
+				addon:Print(L["%d %s left -- the prompt goes back to one person at a time when they run out."]
+					:format(count, what))
+			end
+		end
 		return
 	end
 	if count ~= 0 or not stocked[item] or told[item] then return end
@@ -145,10 +165,15 @@ end
 ---------------------------------------------------------------------------
 
 -- Who counts towards the threshold: read as missing the buff, or as running
--- out of it (a top-up). A reading nobody could make is not counted -- a reagent
--- spent on people who may be covered is wasted -- though the cast covers them.
-local function Counts(entry)
-	return entry.known == false or (entry.known == true and entry.remaining ~= nil)
+-- out of it (a top-up), told apart so the panel can say which. A reading
+-- nobody could make is neither -- a reagent spent on people who may be
+-- covered is wasted -- though the cast covers them.
+local function Missing(entry)
+	return entry.known == false
+end
+
+local function RunningLow(entry)
+	return entry.known == true and entry.remaining ~= nil
 end
 
 -- Which of a party the macro aims at: the one the queue ranks highest, then
@@ -159,10 +184,27 @@ local function Better(a, b)
 	return (a.name or "") < (b.name or "")
 end
 
+-- Who the cast is for, the way players say it: the panel's title ("Your
+-- party", "Group 3", "Every Warrior") and the same inside a sentence. The
+-- party is always yours outside a raid; in one, people call the subgroups by
+-- number, and yours is "your group".
+local function Names(bucket, byClass, inRaid, ownSubgroup)
+	if byClass then
+		local class = ClassName(bucket.where)
+		return L["Every %s"]:format(class), L["every %s"]:format(class)
+	elseif not inRaid or type(bucket.where) ~= "number" then
+		-- Outside a raid, or a raid group nothing numbered: the party.
+		return L["Your party"], L["your party"]
+	elseif bucket.where == ownSubgroup then
+		return L["Your group"], L["your group"]
+	end
+	return L["Group %d"]:format(bucket.where), L["group %d"]:format(bucket.where)
+end
+
 -- The one entry for a bucket that has reached the threshold, or nil. Built on
 -- a copy of the anchor's own entry, so everything that reads an entry reads
 -- this one the same way.
-local function Build(bucket, byClass, inRaid)
+local function Build(bucket, byClass, inRaid, ownSubgroup)
 	local anchor
 	for _, entry in ipairs(bucket.entries) do
 		-- Somebody measured out of reach cannot be the target; the cast still
@@ -181,34 +223,37 @@ local function Build(bucket, byClass, inRaid)
 		if not ClassSafe(bucket.where, bucket.buff.key, offered, inRaid) then return nil end
 	end
 
-	local members, priority = {}, anchor.priority
+	-- The anchor is the best of those in reach (Better asks priority first),
+	-- so a favour owed in the party puts the cast where that favour would
+	-- stand. One measured out of reach does not lift it: nothing says the
+	-- cast gets to them.
+	local members = {}
 	for _, entry in ipairs(bucket.entries) do
 		if entry ~= anchor then members[#members + 1] = entry.name end
-		if entry.priority < priority then priority = entry.priority end
 	end
 
 	local info = bucket.ready.info
 	local group = {}
 	for field, value in pairs(anchor) do group[field] = value end
-	-- The best of them: a favour owed in the party lifts the whole cast.
-	group.priority = priority
+	local display, label = Names(bucket, byClass, inRaid, ownSubgroup)
 	group.groupCast = {
 		spell = info.groupRank,
 		spellName = info.groupName or ns.BuffName(bucket.buff),
 		icon = info.groupIcon,
 		reagent = info.groupReagent,
 		reagents = bucket.ready.have,
+		-- Apart, so the panel says "4 missing" after a wipe and "4 running
+		-- out" before a pull; the threshold is on the two together.
 		missing = bucket.missing,
+		low = bucket.low,
 		-- Everybody else the queue had lined up that this covers, by name.
 		members = members,
 		class = byClass and bucket.where or nil,
+		-- Who it is for, inside a sentence ("your party", "group 3").
+		label = label,
 	}
 	-- What the panel's first line says in place of the anchor's name.
-	if byClass then
-		group.display = L["every %s"]:format(ClassName(bucket.where))
-	else
-		group.display = L["%s's party"]:format(anchor.short or anchor.name or "?")
-	end
+	group.display = display
 	return group
 end
 
@@ -256,20 +301,26 @@ function ns.GroupCasts(queue, db, candidates, inRaid)
 				local key = buff.key .. "\0" .. tostring(where)
 				local bucket = buckets[key]
 				if not bucket then
-					bucket = { entries = {}, missing = 0, ready = r, buff = buff, where = where }
+					bucket = { entries = {}, missing = 0, low = 0, ready = r, buff = buff, where = where }
 					buckets[key] = bucket
 					order[#order + 1] = bucket
 				end
 				bucket.entries[#bucket.entries + 1] = entry
-				if Counts(entry) then bucket.missing = bucket.missing + 1 end
+				if Missing(entry) then
+					bucket.missing = bucket.missing + 1
+				elseif RunningLow(entry) then
+					bucket.low = bucket.low + 1
+				end
 			end
 		end
 	end
 
+	-- The player's own subgroup, so theirs is "your group" and not a number.
+	local ownSubgroup = inRaid and not byClass and RaidSubgroup("player") or nil
 	local absorbed, made
 	for _, bucket in ipairs(order) do
-		if bucket.missing >= atLeast then
-			local group = Build(bucket, byClass, inRaid)
+		if bucket.missing + bucket.low >= atLeast then
+			local group = Build(bucket, byClass, inRaid, ownSubgroup)
 			if group then
 				absorbed = absorbed or {}
 				made = made or {}
@@ -294,6 +345,43 @@ function ns.EntrySpellName(entry)
 	if entry and entry.groupCast and entry.groupCast.spellName then return entry.groupCast.spellName end
 	-- BuffName's own answer otherwise, "?" for no buff at all included.
 	return ns.BuffName(entry and entry.buff)
+end
+
+-- "Not now" on a group cast is about the whole party: the anchor is blocked by
+-- whoever skipped, and this puts everybody else it covered on the same retry
+-- cooldown for that buff, or the next scan re-forms the cast around the next
+-- of them (or, under the threshold, offers them one by one). Only that buff:
+-- the skip was of this cast, and a priest's Divine Spirit for them stands.
+-- keepLonger, so a longer block already standing is never cut short.
+function ns.SkipGroupCast(entry)
+	local group = entry and entry.groupCast
+	if not (group and entry.buff) then return end
+	for _, name in ipairs(group.members) do
+		ns.MarkAttempted(name, entry.buff.key, nil, true)
+	end
+end
+
+-- The options page's two descriptions, for this character's class: a
+-- paladin's Greater Blessings go by class across the whole group, everybody
+-- else's by party (in a raid, raid group), and the spells named are the ones
+-- this character has learned. Read each time the page is drawn.
+function ns.GroupBuffDescriptions()
+	if ns.GROUP_BY_CLASS[ns.PlayerClass()] == true then
+		return L["When enough people of one class need your blessing and you carry the reagent, the prompt offers one Greater Blessing for that whole class instead of blessing them one at a time."],
+			L["How many people of one class in your party or raid must need the blessing before a Greater Blessing is offered."]
+	end
+	local names = {}
+	for _, buff in ipairs(ns.GetClassBuffs(ns.PlayerClass()) or {}) do
+		local info = buff.groupCast and ns.BuffInfo(buff)
+		if info and info.groupName then names[#names + 1] = info.groupName end
+	end
+	local slider = L["How many people in one party (in a raid, one raid group) must need the buff before the group version is offered."]
+	if #names == 0 then
+		return L["When enough people in one party (in a raid, one raid group) need your buff and you carry the reagent, the prompt offers the group version once you have learned it, instead of buffing them one at a time."],
+			slider
+	end
+	return L["When enough people in one party (in a raid, one raid group) need your buff and you carry the reagent, the prompt offers one %s instead of buffing them one at a time."]
+		:format(table.concat(names, " / ")), slider
 end
 
 -- Whether this character has a group version of any of its buffs in the

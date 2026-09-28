@@ -2155,10 +2155,17 @@ do
 		local family, faction, class = RP.Player()
 		local kind = KIND[entry.reason] or "offer"
 		local name = entry.short or entry.name
-		local buff = entry.buff and ns.BuffName(entry.buff)
+		local single = entry.buff and ns.BuffName(entry.buff)
+		-- {buff} is the spell that goes out: a group cast's own name
+		-- (GroupBuffs.lua), which the macro casts.
+		local buff = entry.groupCast and ns.EntrySpellName and ns.EntrySpellName(entry) or single
+		-- A line that names the single spell outright ("Mark of the Wild,
+		-- {name}.") would be wrong under Gift of the Wild, so it sits out.
+		local notSaying = entry.groupCast and single ~= buff and single or nil
 		local gift = kind == "thanks" and RP.Gift(entry) or nil
-		-- "Your Fortitude for my Fortitude" is no trade.
-		if gift ~= nil and gift == buff then gift = nil end
+		-- "Your Fortitude for my Fortitude" is no trade: like with like, the
+		-- single names on both sides.
+		if gift ~= nil and gift == single then gift = nil end
 		local weight, spread = RP.WEIGHT, RP.SPREAD
 
 		local lines, weights, tags, texts, total = {}, {}, {}, {}, 0
@@ -2173,6 +2180,7 @@ do
 					and (name or not text:find("{name}", 1, true))
 					and (buff or not text:find("{buff}", 1, true))
 					and (gift or not text:find("{gift}", 1, true))
+					and not (notSaying and text:find(notSaying, 1, true))
 				if usable then
 					local said = ns.Swap(ns.Swap(ns.Swap(text, "{name}", name), "{buff}", buff), "{gift}", gift)
 					said = said:gsub("[\r\n]", " "):gsub("%s+", " "):match("^%s*(.-)%s*$")

@@ -29,13 +29,13 @@ mutate("Queue.lua",
        "groupbuffs: the queue never asks",
        expect="no group cast was offered for four people missing the buff", script=S)
 mutate("GroupBuffs.lua",
-       "\t\tif bucket.missing >= atLeast then\n",
-       "\t\tif bucket.missing > atLeast then\n",
+       "\t\tif bucket.missing + bucket.low >= atLeast then\n",
+       "\t\tif bucket.missing + bucket.low > atLeast then\n",
        "groupbuffs: the threshold is one too high",
        expect="no group cast for two missing it with the threshold set to two", script=S)
 mutate("GroupBuffs.lua",
-       "\treturn entry.known == false or (entry.known == true and entry.remaining ~= nil)\n",
-       "\treturn entry.known ~= true or entry.remaining ~= nil\n",
+       "\treturn entry.known == false\n",
+       "\treturn entry.known ~= true\n",
        "groupbuffs: an unread aura counts as missing",
        expect="a group cast was offered for people nobody read as missing it", script=S)
 mutate("GroupBuffs.lua",
@@ -44,7 +44,7 @@ mutate("GroupBuffs.lua",
        "groupbuffs: no reagent is no obstacle",
        expect="groupbuffs: no reagent, they are buffed one by one", script=S)
 mutate("GroupBuffs.lua",
-       "\treturn not (usable == false and noMana ~= true)\n",
+       "\treturn usable ~= false\n",
        "\treturn true\n",
        "groupbuffs: the client's no is not asked",
        expect="groupbuffs: the client says it cannot be cast, they are buffed one by one", script=S)
@@ -110,8 +110,8 @@ mutate("GroupBuffs.lua",
 
 # ------------------------------------------------ the prompt
 mutate("Prompt.lua",
-       "\t\treturn L[\"%s -- %d missing\"]:format(ns.EntrySpellName(entry), group.missing)\n",
-       "\t\tgroup = nil\n",
+       "\tlocal group = entry.groupCast\n\tif group then\n",
+       "\tlocal group = entry.groupCast\n\tif false then\n",
        "groupbuffs: the second line is a person's",
        expect="the panel does not name the party and the count", script=S)
 mutate("Prompt.lua",
@@ -147,8 +147,8 @@ mutate("Prompt.lua",
        "groupbuffs: the press blocks only the anchor",
        expect="of the people it covered were offered again while the press waited for the game", script=S)
 mutate("Clicks.lua",
-       "\tlocal members = pending.group and SettleGroup(pending, spellId) or nil\n",
-       "\tlocal members = nil\n",
+       "\tif pending.group then members, givenAs = SettleGroup(pending, spellId, wasOwed ~= nil) end\n",
+       "",
        "groupbuffs: the settle repays only the anchor",
        expect="a favour the group cast covered is still owed", script=S)
 mutate("Clicks.lua",
@@ -223,3 +223,169 @@ mutate("GroupBuffs.lua",
        "\t\treturn true\n",
        "groupbuffs: every class is shown the setting",
        expect="a warlock is shown a setting for group buffs", script=S)
+
+# ------------------------------------------------ review round: the spell said
+mutate("Prompt.lua",
+       "\t\ttostring(entry.groupCast and entry.groupCast.spell), tostring(ns.tryMacro) }, \"\\1\")\n",
+       "\t\ttostring(ns.tryMacro) }, \"\\1\")\n",
+       "groupbuffs: the spoken line is kept across a change of spell",
+       expect="the spoken line kept the group spell for a single cast", script=S)
+mutate("Phrases.lua",
+       "\t\tlocal buff = entry.groupCast and ns.EntrySpellName and ns.EntrySpellName(entry) or single\n",
+       "\t\tlocal buff = single\n",
+       "groupbuffs: in character names the single spell",
+       expect="in-character lines named the single spell over a group cast", script=S)
+mutate("Phrases.lua",
+       "\t\t\t\t\tand not (notSaying and text:find(notSaying, 1, true))\n",
+       "",
+       "groupbuffs: in character says Mark of the Wild over Gift of the Wild",
+       expect="in-character lines named the single spell over a group cast", script=S)
+
+# ------------------------------------------------ review round: mana
+mutate("GroupBuffs.lua",
+       "\tlocal usable = safecall(check, spellId)\n\treturn usable ~= false\n",
+       "\tlocal usable, noMana = safecall(check, spellId)\n\treturn not (usable == false and noMana ~= true)\n",
+       "groupbuffs: too little mana for the group spell is no obstacle",
+       expect="groupbuffs: mana enough only for the single spell, they are buffed one by one", script=S)
+
+# ------------------------------------------------ review round: the ledger
+mutate("Clicks.lua",
+       "\t\t\t\tTellLedger(\"Settled\", givenAs, nil, covered, spellId)\n",
+       "",
+       "groupbuffs: a group cast at a favour is not counted as given",
+       expect="a group cast aimed at a favour counted as", script=S)
+mutate("Clicks.lua",
+       "\tif settled.givenAs then TellLedger(\"Refused\", settled.givenAs, settled.at) end\n",
+       "",
+       "groupbuffs: a late refusal keeps the group cast's given row",
+       expect="a late refusal left the group cast counted as given", script=S)
+mutate("Ledger.lua",
+       "\t\tif covered > 1 then out.covered = covered end\n",
+       "",
+       "groupbuffs: a reload drops the count",
+       expect="after a reload the row no longer says how many it reached", script=S)
+mutate("Ledger.lua",
+       "\tid = group and CleanSpell(group.spell)\n",
+       "\tid = nil\n",
+       "groupbuffs: a withheld id is filed as the single spell",
+       expect="with the id withheld the row names", script=S)
+
+# ------------------------------------------------ review round: the settle
+mutate("Clicks.lua",
+       "\t\tns.ServeRequest(name, pending.buffKey)\n\t\trecords[",
+       "\t\trecords[",
+       "groupbuffs: a member's request is not answered",
+       expect="Dain's request still stands after the group cast covered him", script=S)
+mutate("Clicks.lua",
+       "\t\t\t\tTellLedger(\"LetGo\", member.name, \"never\")\n",
+       "",
+       "groupbuffs: a member listed since the settle is owed again",
+       expect="the ledger shows Dain's favour", script=S)
+
+# ------------------------------------------------ review round: skipping
+mutate("Prompt.lua",
+       "\t\tif group and ns.SkipGroupCast then ns.SkipGroupCast(group) end\n",
+       "",
+       "groupbuffs: not now skips only the anchor",
+       expect="offers of Arcane Intellect came straight back after skipping the party", script=S)
+mutate("GroupBuffs.lua",
+       "\t\tns.MarkAttempted(name, entry.buff.key, nil, true)\n",
+       "",
+       "groupbuffs: skipping a group cast blocks nobody",
+       expect="offers of Arcane Intellect came straight back after skipping the party", script=S)
+mutate("Prompt.lua",
+       "\t\t\tlocal shown = (group and group.groupCast.label)\n\t\t\t\tor ",
+       "\t\t\tlocal shown = ",
+       "groupbuffs: the skip line names the anchor",
+       expect="chat does not say the party was skipped", script=S)
+mutate("Prompt.lua",
+       "\t\t\t\tns.addon:Print(L[\"The rest of %s is skipped for now.\"]:format(group.groupCast.label or \"?\"))\n",
+       "",
+       "groupbuffs: never on a group cast says nothing of the rest",
+       expect="chat does not say the rest were skipped", script=S)
+mutate("Options.lua",
+       "\t-- A group cast is skipped whole, as a right-press on it is.\n\tif ns.SkipGroupCast then ns.SkipGroupCast(entry) end\n",
+       "",
+       "groupbuffs: the menu's skip skips only the anchor",
+       expect="offers came straight back after Skip for now on the party", script=S)
+mutate("Options.lua",
+       "\treturn tostring(entry.display or entry.short or entry.name)\n",
+       "\treturn tostring(entry.short or entry.name)\n",
+       "groupbuffs: the launcher names the anchor",
+       expect="the launcher's tooltip does not name the group cast", script=S)
+mutate("Options.lua",
+       "\treturn tostring(ns.EntrySpellName and ns.EntrySpellName(entry)\n\t\tor ns.BuffName",
+       "\treturn tostring(ns.BuffName",
+       "groupbuffs: the launcher names the single spell",
+       expect="the launcher's tooltip does not name the group cast", script=S)
+mutate("Prompt.lua",
+       "\t\tGameTooltip:AddLine(group and L[\"Right-click to skip this group buff for now.\"]\n\t\t\tor L[",
+       "\t\tGameTooltip:AddLine(L[",
+       "groupbuffs: the tooltip's skip line is a person's",
+       expect="the tooltip does not say what a right-click does to a group cast", script=S)
+
+# ------------------------------------------------ review round: the panel
+mutate("Prompt.lua",
+       "\t\tlocal groupIcon = entry.groupCast and entry.groupCast.icon\n",
+       "\t\tlocal groupIcon = nil\n",
+       "groupbuffs: the panel shows the single spell's icon",
+       expect="the panel shows icon", script=S)
+mutate("GroupBuffs.lua",
+       "\telseif bucket.where == ownSubgroup then\n",
+       "\telseif false then\n",
+       "groupbuffs: your own raid group is called by number",
+       expect="the raid's group casts are not named by raid group", script=S)
+mutate("GroupBuffs.lua",
+       "\tlocal ownSubgroup = inRaid and not byClass and RaidSubgroup(\"player\") or nil\n",
+       "\tlocal ownSubgroup = nil\n",
+       "groupbuffs: the player's own raid group is never read",
+       expect="the raid's group casts are not named by raid group", script=S)
+mutate("GroupBuffs.lua",
+       "\t\t\t\tif Missing(entry) then\n",
+       "\t\t\t\tif Missing(entry) or RunningLow(entry) then\n",
+       "groupbuffs: running out is counted as missing",
+       expect="four running out reads", script=S)
+mutate("Prompt.lua",
+       "\t\tif low == 0 then return L[\"%s -- %d missing\"]:format(spell, missing) end\n",
+       "\t\tif true then return L[\"%s -- %d missing\"]:format(spell, missing + low) end\n",
+       "groupbuffs: the second line calls everybody missing",
+       expect="four running out reads", script=S)
+mutate("Prompt.lua",
+       "\tif missing > 0 and low > 0 then\n",
+       "\tif false then\n",
+       "groupbuffs: the tooltip hides who is running out",
+       expect="the tooltip does not tell missing from running out", script=S)
+
+# ------------------------------------------------ review round: running low
+mutate("GroupBuffs.lua",
+       "\t\tif count <= LOW_STOCK and before and count < before and not warnedLow[item] then\n",
+       "\t\tif count <= LOW_STOCK and not warnedLow[item] then\n",
+       "groupbuffs: the heads-up comes at login",
+       expect="the heads-up came at login", script=S)
+mutate("GroupBuffs.lua",
+       "\t\tif count <= LOW_STOCK and before and count < before and not warnedLow[item] then\n",
+       "\t\tif count <= LOW_STOCK and before and count < before then\n",
+       "groupbuffs: the heads-up nags",
+       expect="the heads-up was said", script=S)
+mutate("GroupBuffs.lua",
+       "local LOW_STOCK = 5\n",
+       "local LOW_STOCK = 0\n",
+       "groupbuffs: the heads-up never comes",
+       expect="the heads-up was said", script=S)
+
+# ------------------------------------------------ review round: the settings
+mutate("Options.lua",
+       "\t\t\t\tname = L[\"Group buff once this many need it\"],\n",
+       "\t\t\t\tname = L[\"When at least this many are missing\"],\n",
+       "groupbuffs: the threshold's name does not stand on its own",
+       expect="the threshold's name does not say", script=S)
+mutate("GroupBuffs.lua",
+       "\t\tif info and info.groupName then names[#names + 1] = info.groupName end\n",
+       "",
+       "groupbuffs: the toggle does not name the class's spell",
+       expect="the toggle does not name the mage's own group spell", script=S)
+mutate("GroupBuffs.lua",
+       "\tif ns.GROUP_BY_CLASS[ns.PlayerClass()] == true then\n\t\treturn L[",
+       "\tif false then\n\t\treturn L[",
+       "groupbuffs: a paladin reads about parties",
+       expect="a paladin's threshold does not say it counts one class", script=S)
