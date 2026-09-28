@@ -190,10 +190,24 @@ do
 		-- A realm withheld as a secret is filed as the bare name (JoinName), and
 		-- a whisper to that finds somebody on your own realm instead. Asked of
 		-- the unit again, since the filed name no longer shows it.
-		local secret = _G.issecretvalue
-		if entry.unit and secret then
-			local ok, first, second = pcall(_G.UnitName, entry.unit)
-			if not ok or secret(first) or secret(second) then return nil end
+		if entry.unit then
+			local secret = _G.issecretvalue
+			if secret then
+				local ok, first, second = pcall(_G.UnitName, entry.unit)
+				if not ok or secret(first) or secret(second) then return nil end
+			end
+		elseif entry.targetName ~= nil and not name:find("[%s%-]") then
+			-- With no unit (the tokenless fallback) a bare name cannot say whether
+			-- a realm was dropped, so the client is asked by the debt's GUID and
+			-- the bare name goes out only if it says plainly: this name, your own
+			-- realm. A debt back from disk has no GUID and gets no line. Roll a
+			-- few's stand-in (no targetName) has nobody to ask. Through plain(),
+			-- so a secret half is nil and fails the match.
+			local debt = ns.owed and ns.owed[name]
+			local guid = debt and debt.guid
+			if not guid then return nil end
+			local ok, _, _, _, _, _, who, realm = pcall(_G.GetPlayerInfoByGUID, guid)
+			if not (ok and ns.plain(who) == name and ns.plain(realm) == "") then return nil end
 		end
 		return name
 	end

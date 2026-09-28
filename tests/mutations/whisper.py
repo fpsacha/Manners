@@ -44,9 +44,60 @@ mutate("Speech.lua",
 
 # A secret realm not noticed: the whisper goes to the bare name, on your realm.
 mutate("Speech.lua",
-       "\t\t\tif not ok or secret(first) or secret(second) then return nil end\n",
-       "\t\t\tif not ok or secret(first) then return nil end\n",
+       "\t\t\t\tif not ok or secret(first) or secret(second) then return nil end\n",
+       "\t\t\t\tif not ok or secret(first) then return nil end\n",
        "secret realm whispered bare",
+       expect="whisper: a secret or unsafe name says nothing",
+       script="runscenarios.py")
+
+# The same with no unit: a bare name off the tokenless fallback whispered
+# without asking the GUID whether a realm was withheld.
+mutate("Speech.lua",
+       "\t\telseif entry.targetName ~= nil and not name:find(\"[%s%-]\") then\n",
+       "\t\telseif false then\n",
+       "tokenless bare name never asked of its GUID",
+       expect="whisper: a secret or unsafe name says nothing",
+       script="runscenarios.py")
+
+# The GUID asked but its realm not read: a secret realm passes.
+mutate("Speech.lua",
+       "\t\t\tif not (ok and ns.plain(who) == name and ns.plain(realm) == \"\") then return nil end\n",
+       "\t\t\tif not (ok and ns.plain(who) == name) then return nil end\n",
+       "tokenless realm not read from the GUID",
+       expect="whisper: a secret or unsafe name says nothing",
+       script="runscenarios.py")
+
+# The GUID's name not compared: whoever it names now is taken for them.
+mutate("Speech.lua",
+       "\t\t\tif not (ok and ns.plain(who) == name and ns.plain(realm) == \"\") then return nil end\n",
+       "\t\t\tif not (ok and ns.plain(realm) == \"\") then return nil end\n",
+       "tokenless name not read from the GUID",
+       expect="whisper: a secret or unsafe name says nothing",
+       script="runscenarios.py")
+
+# Nothing accepted at all: the own-realm control gets no line either.
+mutate("Speech.lua",
+       "\t\t\tif not (ok and ns.plain(who) == name and ns.plain(realm) == \"\") then return nil end\n",
+       "\t\t\treturn nil\n",
+       "tokenless bare name never whispered",
+       expect="whisper: a secret or unsafe name says nothing",
+       script="runscenarios.py")
+
+# The stand-in exemption gone here too: Roll a few's one-word "Somebody" has no
+# debt to ask, so Camelot's preview shows no whisper.
+mutate("Speech.lua",
+       "\t\telseif entry.targetName ~= nil and not name:find(\"[%s%-]\") then\n",
+       "\t\telseif not name:find(\"[%s%-]\") then\n",
+       "tokenless GUID check asked of stand-ins",
+       expect="whisper: Camelot whispers name and surname, and nothing it would misread",
+       script="runscenarios.py")
+
+# A realm counted as missing whatever the name holds: every tokenless
+# cross-realm name must now be vouched for by a GUID, and the control has none.
+mutate("Speech.lua",
+       "\t\telseif entry.targetName ~= nil and not name:find(\"[%s%-]\") then\n",
+       "\t\telseif entry.targetName ~= nil then\n",
+       "tokenless GUID check asked of a name with its realm",
        expect="whisper: a secret or unsafe name says nothing",
        script="runscenarios.py")
 

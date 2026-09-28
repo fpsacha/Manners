@@ -174,15 +174,20 @@ end
 -- What the client says about regional names is what decides, since it is what
 -- its own chat box asks: a client with them on reads "/w Brom Thanks ..." as
 -- Brom Thanks, and one with them off reads "/w Munin Hugins ..." as Munin.
+-- Each name is also whispered under the other answer, so the answer is what
+-- decides, not a whisper that never goes out.
 do
 	local scenario = "whisper: the client's regional-names answer decides the parse"
 	local real = _G.RegionalUniqueNamesEnabled
 	local cases = {
-		{ "mainline", { "Brom" }, "Brom", true },
-		{ nil, { "Munin", "Hugins" }, "Munin Hugins", false },
+		{ "mainline", { "Brom" }, "Brom", true, nil },
+		{ "mainline", { "Brom" }, "Brom", false, "/w Brom Thanks for the buff, Brom." },
+		{ nil, { "Munin", "Hugins" }, "Munin Hugins", false, nil },
+		{ nil, { "Munin", "Hugins" }, "Munin Hugins", true,
+			"/w Munin Hugins Thanks for the buff, Munin Hugins." },
 	}
 	for _, case in ipairs(cases) do
-		local flavour, names, key, answer = case[1], case[2], case[3], case[4]
+		local flavour, names, key, answer, want = case[1], case[2], case[3], case[4], case[5]
 		_G.RegionalUniqueNamesEnabled = function() return answer end
 		local ns, restore = session(scenario, flavour, names, key, function(ns)
 			ns.db.profile.speech.phrases = "Thanks for the buff, {name}."
@@ -191,9 +196,9 @@ do
 		local ok, text = armedAt(ns, key)
 		if not ok then
 			fail(scenario, "SKIPPED -- " .. key .. " is not armed: " .. flat(text))
-		elseif spoken(text) ~= nil then
-			fail(scenario, ("%s with regional names %s: a whisper the chat box would send"
-				.. " elsewhere went in: %s"):format(key, tostring(answer), flat(text)))
+		elseif spoken(text) ~= want then
+			fail(scenario, ("%s with regional names %s: the spoken line is %s, wanted %s: %s"):format(
+				key, tostring(answer), tostring(spoken(text)), tostring(want), flat(text)))
 		end
 		guarded(scenario, ns)
 		restore()
@@ -204,10 +209,25 @@ end
 -- ------------------------------------------------------------------ whisper-5
 -- A secret name is no line at all, and so is a realm withheld as a secret: the
 -- name is then filed bare, and a whisper to it would reach somebody on your own
--- realm. A name that could break the macro is no line either.
+-- realm. That holds with no unit too (the tokenless fallback), where a bare name
+-- goes out only when the debt's GUID says own realm. A name that could break
+-- the macro is no line either. Each refusal has its control beside it: the same
+-- setup with the name plain does whisper.
 do
 	local scenario = "whisper: a secret or unsafe name says nothing"
-	local ns, restore = session(scenario, "mainline", { "Brom", Mock.SECRET }, "Brom")
+	local ns, restore = session(scenario, "mainline", { "Brom", "Ravencrest" }, "Brom-Ravencrest")
+	if ns then
+		local ok, text = armedAt(ns, "/target Brom")
+		if not ok then
+			fail(scenario, "SKIPPED -- Brom-Ravencrest is not armed: " .. flat(text))
+		elseif spoken(text) ~= "/w Brom-Ravencrest Thanks, Brom." then
+			fail(scenario, "control: the plain realm is not whispered: " .. flat(text))
+		end
+		guarded(scenario, ns)
+		restore()
+	end
+
+	ns, restore = session(scenario, "mainline", { "Brom", Mock.SECRET }, "Brom")
 	if ns then
 		local ok, text = armedAt(ns, "Brom")
 		if not ok then
@@ -217,7 +237,15 @@ do
 		end
 
 		local buff = ns.ResolveBuff(true)
-		local names = { Mock.SECRET, "Bad;Name", "Bad]Name", "Bad|Name", "Bad\nName", "Bad\1Name", "" }
+		local control = { name = "Brom-Ravencrest", short = "Brom", targetName = "Brom", reason = "owed", buff = buff }
+		local line = ns.PickPhrase(control, 200)
+		if line ~= "/w Brom-Ravencrest Thanks, Brom." then
+			fail(scenario, "control: a safe name gets no whisper: " .. tostring(line))
+		end
+		-- Shaped like the control, realm and all, so the tokenless GUID check
+		-- (which a bare name would meet first) cannot be what stops them.
+		local names = { Mock.SECRET, "Bad;Name-Ravencrest", "Bad]Name-Ravencrest", "Bad|Name-Ravencrest",
+			"Bad\nName-Ravencrest", "Bad\1Name-Ravencrest", "" }
 		for _, name in ipairs(names) do
 			local entry = { name = name, short = "Brom", targetName = "Brom", reason = "owed", buff = buff }
 			local called, line = pcall(ns.PickPhrase, entry, 200)
@@ -230,6 +258,53 @@ do
 		guarded(scenario, ns)
 		restore()
 	end
+
+	-- No nameplate: Brom is offered from the tokenless fallback, filed bare.
+	-- What the client says of the debt's GUID decides: own realm is the control,
+	-- a secret realm, a GUID that now names somebody else, or no GUID at all (a
+	-- debt back from disk) is no line.
+	Mock.reset()
+	Mock.setFlavour("mainline")
+	restore = H.strangers({})
+	ns = load(scenario)
+	if ns then
+		H.freshPrompt(ns, scenario)
+		local speech = ns.db.profile.speech
+		speech.enabled, speech.onlyWhenReturning = true, false
+		speech.channel, speech.phrases = "WHISPER", "Thanks, {name}."
+		local guid = "Player-1-BROM"
+		local cases = {
+			{ "Brom", "", guid, "/w Brom Thanks, Brom." },
+			{ "Brom", Mock.SECRET, guid, nil },
+			{ "Bram", "", guid, nil },
+			{ "Brom", "", nil, nil },
+		}
+		for _, case in ipairs(cases) do
+			local now, realm, owner, want = case[1], case[2], case[3], case[4]
+			Mock.guids = { [guid] = { class = "PRIEST", name = now, realm = realm } }
+			wipe(ns.owed)
+			H.owe(ns, "Brom")
+			ns.owed.Brom.guid = owner
+			ns.pendingClick = nil
+			ns.Prompt:InvalidateMacro()
+			ns.addon:Tick()
+			local ok, text = armedAt(ns, "Brom")
+			local entry = H.inQueue(ns).Brom
+			local label = ("tokenless, GUID %s names %s, realm %s"):format(
+				tostring(owner), now, realm == "" and "own" or "secret")
+			if not ok then
+				fail(scenario, "SKIPPED -- " .. label .. ": Brom is not armed: " .. flat(text))
+			elseif entry and entry.unit ~= nil then
+				fail(scenario, "SKIPPED -- " .. label .. ": Brom has a unit: " .. tostring(entry.unit))
+			elseif spoken(text) ~= want then
+				fail(scenario, ("%s: the spoken line is %s, wanted %s: %s"):format(
+					label, tostring(spoken(text)), tostring(want), flat(text)))
+			end
+		end
+		Mock.guids = nil
+		guarded(scenario, ns)
+	end
+	restore()
 end
 
 -- ------------------------------------------------------------------ whisper-6
@@ -316,7 +391,10 @@ do
 	end)
 	if ns then
 		local buff = ns.ResolveBuff(true)
-		local stranger = { name = "Brom", short = "Brom", targetName = "Brom", reason = "nearby", buff = buff }
+		-- On the nameplate, as the queue has them: a bare name with no unit is
+		-- the tokenless case whisper-5 covers.
+		local stranger = { name = "Brom", short = "Brom", targetName = "Brom", unit = "nameplate1",
+			reason = "nearby", buff = buff }
 		if ns.PickPhrase(stranger, 200) ~= nil then
 			fail(scenario, "a whisper went to somebody who never buffed you")
 		end
