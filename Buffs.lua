@@ -375,8 +375,8 @@ ns.BUFF_BY_ID = {}
 -- A function rather than a bare loop, so a client with no table to walk (no
 -- flavour and no family matched) is reported rather than thrown on: a file
 -- that throws while loading leaves no addon at all, silently. The three tables
--- beside ns.BUFFS are defaulted for the same reason, since Core.lua and the
--- options page index them without asking.
+-- beside ns.BUFFS are defaulted for the same reason, since Core.lua, the
+-- files after it and the options page index them without asking.
 function ns.BuildBuffLookups()
 	wipe(ns.ALL_BUFF_IDS)
 	wipe(ns.BUFF_BY_ID)

@@ -236,7 +236,7 @@ function's upvalue count and the deepest overlap of its locals' live ranges
 straight from the compiler's own bookkeeping.
 
 ```
-python tools/lua51_limits.py Core.lua Prompt.lua Options.lua   # the twenty tightest
+python tools/lua51_limits.py Core.lua Queue.lua Prompt.lua Options.lua   # the twenty tightest
 ```
 
 `tests/validate.py` uses it to fail any function in a shipped file over 55

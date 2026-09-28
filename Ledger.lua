@@ -5,10 +5,10 @@
 -- asked. The recent entries are listed in a small window (/manners ledger), under
 -- the lifetime counts, which the minimap tooltip and the General tab repeat.
 --
--- It is a record and never a decision. Core.lua tells it what happened at the
+-- It is a record and never a decision. Core tells it what happened at the
 -- four moments a favour changes hands -- noticed, repaid, refused after all, and
 -- let go -- and nothing reads a ledger entry to decide what to offer or whom to
--- cast at: the debt table in Core.lua is the one opinion about who is owed. So
+-- cast at: the debt table in Queue.lua is the one opinion about who is owed. So
 -- the ledger may only ever be wrong by missing something, and one that throws
 -- takes nothing with it, because Core calls it through Guard.
 --

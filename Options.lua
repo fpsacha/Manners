@@ -202,7 +202,7 @@ local function BuffChoices()
 	return values
 end
 
--- The named distances, read off the list Core.lua measures with, so the
+-- The named distances, read off the list Range.lua measures with, so the
 -- dropdown cannot offer a setting nothing implements.
 local function ProximityChoices()
 	local values = {}
@@ -630,7 +630,7 @@ local function WhoToBuffGroup()
 					.. "|r",
 			},
 			-- The source that reads chat. The tooltip gives the gist; the full rule
-			-- for what counts as asking lives in Core.lua, which is the rule in code.
+			-- for what counts as asking lives in Requests.lua, which is the rule in code.
 			asked = {
 				type = "toggle",
 				name = L["People who ask me for it"],

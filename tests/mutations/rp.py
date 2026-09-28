@@ -3,7 +3,7 @@
 # tests/scenarios/rp.lua that names it.
 
 # The hook in ns.PickPhrase never taken: the set speaks its examples as lines.
-mutate("Core.lua",
+mutate("Speech.lua",
        "\t\tif inCharacter and inCharacter.Active(db.speech) then\n",
        "\t\tif false then\n",
        "in character never asked by PickPhrase",
@@ -11,7 +11,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # A set that writes its own text, read as a list of lines it does not have.
-mutate("Core.lua",
+mutate("Speech.lua",
        "\tif set.text then return set.text() end\n",
        "",
        "a per-character set read as a list",
@@ -193,7 +193,7 @@ mutate("Phrases.lua",
 
 # The set spared the only-when-returning check, as a merge that moved its
 # hook above that line would leave it: strangers and the group are spoken to.
-mutate("Core.lua",
+mutate("Speech.lua",
        "\t\tif db.speech.onlyWhenReturning and entry.reason ~= \"owed\" then return nil end\n",
        "\t\tif db.speech.onlyWhenReturning and entry.reason ~= \"owed\""
        " and not ns.InCharacter.Active(db.speech) then return nil end\n",
@@ -253,7 +253,7 @@ mutate("Phrases.lua",
        script="runscenarios.py")
 
 # The debt forgets which spell they gave.
-mutate("Core.lua",
+mutate("Favours.lua",
        '\t\t\tspell = type(seen.key) == "number" and seen.key or nil }\n',
        "\t\t\tspell = nil }\n",
        "rp debt forgets the spell",
@@ -285,7 +285,7 @@ mutate("Phrases.lua",
        script="runscenarios.py")
 
 # Core never tells the set what happened, so nobody is ever met again.
-mutate("Core.lua",
+mutate("Queue.lua",
        '\tif type(heard) == "function" then ns.Guard("in character " .. event, heard, event, ...) end\n',
        "",
        "rp exchanges never heard",

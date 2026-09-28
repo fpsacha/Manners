@@ -31,6 +31,13 @@ Locales\Locales.xml
 Flavour.lua
 Buffs.lua
 Core.lua
+Range.lua
+Speech.lua
+Queue.lua
+Requests.lua
+Favours.lua
+Clicks.lua
+Commands.lua
 Phrases.lua
 Ledger.lua
 Prompt.lua

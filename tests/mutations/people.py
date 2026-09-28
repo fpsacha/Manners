@@ -4,7 +4,7 @@
 # that names it.
 
 # The never-offer list not consulted at all.
-mutate("Core.lua",
+mutate("Queue.lua",
        "\t\tif not isOwed and ns.IsNeverOffered(full) then\n",
        "\t\tif false then\n",
        "never-offer list ignored by the queue",
@@ -12,7 +12,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # The list applied to somebody who buffed you, against what the page says.
-mutate("Core.lua",
+mutate("Queue.lua",
        "\t\tif not isOwed and ns.IsNeverOffered(full) then\n",
        "\t\tif ns.IsNeverOffered(full) then\n",
        "never-offer list turns away a favour owed",
@@ -46,7 +46,7 @@ mutate("Prompt.lua",
 
 # The favour kept when an owed person is shift-right-clicked, so they come
 # straight back.
-mutate("Core.lua",
+mutate("Queue.lua",
        "\t\tif SameName(listed, key) or SameName(listed, ShortName(key)) then\n\t\t\towed[key] = nil\n",
        "\t\tif SameName(listed, key) or SameName(listed, ShortName(key)) then\n",
        "owed person shift-right-clicked keeps the debt",
@@ -54,7 +54,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # A name typed in another case not matched.
-mutate("Core.lua",
+mutate("Queue.lua",
        "\treturn a:lower() == b:lower()\n",
        "\treturn a == b\n",
        "never-offer list matches exact case only",
@@ -62,7 +62,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # Taking somebody off the list leaving them on it.
-mutate("Core.lua",
+mutate("Queue.lua",
        "\tNeverSet()[listed] = nil\n",
        "\tlocal _ = NeverSet()[listed]\n",
        "taking somebody off the list does nothing",
@@ -78,7 +78,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # The sort no longer puts friends and guildmates first.
-mutate("Core.lua",
+mutate("Queue.lua",
        "\t\tif (a.close ~= nil) ~= (b.close ~= nil) then return a.close ~= nil end\n",
        "",
        "friends and guildmates not put first",
@@ -86,7 +86,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # The switch not honoured, so friends are looked up and put first regardless.
-mutate("Core.lua",
+mutate("Queue.lua",
        "\tlocal friendsFirst = db.priority.friends == true\n",
        "\tlocal friendsFirst = true\n",
        "friends first ignores its switch",
@@ -94,7 +94,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # Friends put ahead across kinds of offer: a friend passing by above your group.
-mutate("Core.lua",
+mutate("Queue.lua",
        "\t\tif a.priority ~= b.priority then return a.priority < b.priority end\n"
        "\t\tlocal ar",
        "\t\tif (a.close ~= nil) ~= (b.close ~= nil) then return a.close ~= nil end\n"
@@ -105,7 +105,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # The friends API called bare, so a refusal throws into the scan.
-mutate("Core.lua",
+mutate("Queue.lua",
        "safecall(list.IsFriend, rawGuid) == true",
        "list.IsFriend(rawGuid) == true",
        "friends API called without a net",
@@ -113,7 +113,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # A withheld Battle.net answer read as a friend.
-mutate("Core.lua",
+mutate("Queue.lua",
        "and type(safecall(bnet.GetGameAccountInfoByGUID, rawGuid)) == \"table\" then",
        "and bnet.GetGameAccountInfoByGUID and pcall(bnet.GetGameAccountInfoByGUID, rawGuid) then",
        "a refused Battle.net answer read as a friend",
@@ -121,7 +121,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # The friends list read by index dropped, so the fallback finds nobody.
-mutate("Core.lua",
+mutate("Queue.lua",
        "\t\t\tif type(name) == \"string\" then friendNames[name:lower()] = true end\n",
        "",
        "friends list fallback finds nobody",
@@ -129,7 +129,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # Passers-by offered out in the world with the setting on.
-mutate("Core.lua",
+mutate("Queue.lua",
        "\t\tif reason == \"nearby\" and not pointed and notResting then\n",
        "\t\tif false then\n",
        "resting-only setting ignored",
@@ -137,7 +137,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # The target not exempt, against what the option text says.
-mutate("Core.lua",
+mutate("Queue.lua",
        "\t\tif reason == \"nearby\" and not pointed and notResting then\n",
        "\t\tif reason == \"nearby\" and notResting then\n",
        "resting-only drops your target",
@@ -145,7 +145,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # A resting answer withheld as a secret read as "not resting".
-mutate("Core.lua",
+mutate("Range.lua",
        "\tif issecretvalue and issecretvalue(value) then return nil end\n"
        "\treturn value == true or value == 1\n",
        "\treturn value == true or value == 1\n",
@@ -155,7 +155,7 @@ mutate("Core.lua",
 
 # The favour kept for somebody already on the list, which is how the loop sat
 # before: below the early return for "already there".
-mutate("Core.lua",
+mutate("Queue.lua",
        "\t\tif SameName(listed, key) or SameName(listed, ShortName(key)) then\n",
        "\t\tif not already and (SameName(listed, key) or SameName(listed, ShortName(key))) then\n",
        "already-listed owed person keeps the debt",
@@ -171,7 +171,7 @@ mutate("Prompt.lua",
        script="runscenarios.py")
 
 # Friends put ahead of the range key, so an out-of-range friend leads.
-mutate("Core.lua",
+mutate("Queue.lua",
        "\t\tif ar ~= br then return ar < br end\n",
        "\t\tif (a.close ~= nil) ~= (b.close ~= nil) then return a.close ~= nil end\n"
        "\t\tif ar ~= br then return ar < br end\n",
@@ -180,7 +180,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # The distance summary silent about resting-only, back to "nobody measured yet".
-mutate("Core.lua",
+mutate("Range.lua",
        "\tif db.filters.restingOnly == true and Resting() == false then\n",
        "\tif false then\n",
        "distance summary says nothing about resting-only",
@@ -188,7 +188,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # The client's UTF-8 fold not used, so an accented capital never matches.
-mutate("Core.lua",
+mutate("Queue.lua",
        "\tlocal fold = _G.strcmputf8i\n",
        "\tlocal fold = nil\n",
        "never-offer list folds ASCII only",

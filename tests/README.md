@@ -10,7 +10,8 @@ first time CI ran them on a machine that was not this one.
 
 ## `runharness.py` — load the addon for real
 
-Loads `harness.lua`, a mock WoW API, then loads all four addon files and drives
+Loads `harness.lua`, a mock WoW API, then loads every addon file `Manners.toc`
+names, in its order (`tests/addonfiles.lua` reads the list), and drives
 the main paths: `OnInitialize`, `OnEnable`, `PLAYER_ENTERING_WORLD`,
 `BuildQueue`, `Tick`, the aura handler that stands in for the combat log this
 client does not have, `ScanOwnBuffs`, `ApplyStyle`, `Refresh`, and the slash
@@ -18,8 +19,9 @@ commands.
 
 Catches:
 
-- **calls to names that do not exist** — a function local to `Core.lua` called
-  from `Prompt.lua` is a nil global, and throws only when that line runs
+- **calls to names that do not exist** — a function local to one file
+  (`Queue.lua`, say) called from another that took no copy of it off `ns` is
+  a nil global, and throws only when that line runs
 - **handlers registered for events this client lacks** — the mock knows which
   events exist, and registering anything else fails. This is what stopped the
   scanner from ever starting.
@@ -142,7 +144,9 @@ mock's own `CreateFrame` back. `tests/scenarios/look.lua` uses it, and so does
 
 Lua syntax for every file including bundled libraries, XML well-formedness,
 that every path in `embeds.xml` and the `.toc` resolves, and that no stale name
-survives a rename.
+survives a rename. Our own files are the `.lua` files `Manners.toc` names,
+read from it, so a file split out of another is checked the moment it is
+listed; each has to keep 10 of the 200 file-level locals Lua 5.1 allows free.
 
 It also reads Lua 5.1's two per-function limits out of the bytecode
 (`tools/lua51_limits.py`, from `string.dump` in `lupa.lua51`): the game allows
@@ -155,10 +159,11 @@ merge to cross can be seen coming.
 ## `bughunt.py` — patterns
 
 Greps for fault shapes seen here: `a and b or c` where `b` can legitimately be
-false, cross-file local calls, event handlers whose first parameter is not the
-event name, registered events with no handler and vice versa, unit APIs
-compared without passing through `plain()`, and arithmetic on settings with no
-default.
+false, cross-file local calls (a name local to one of the toc's files, called
+from another without a copy of its own), event handlers whose first parameter
+is not the event name, registered events with no handler and vice versa, unit
+APIs compared without passing through `plain()`, and arithmetic on settings
+with no default.
 
 It reports some known false positives — `0` and `28` are truthy in Lua, so
 those collapses are correct, and `UnitInParty and UnitInParty(unit)` is an

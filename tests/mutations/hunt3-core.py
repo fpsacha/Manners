@@ -5,7 +5,7 @@
 
 # core-1: a favour let go through the never-offer list, never told to the
 # ledger -- the row stays owed and swallows the next favour.
-mutate("Core.lua",
+mutate("Queue.lua",
        "\t\t\tTellLedger(\"LetGo\", key, \"never\")\n",
        "",
        "never-offer list leaves the ledger row owed",
@@ -14,7 +14,7 @@ mutate("Core.lua",
 
 # core-2: the never-offer line never noticing the fight -- it promises the
 # person the frozen prompt still casts at will not be offered anything.
-mutate("Core.lua",
+mutate("Queue.lua",
        "\tif InCombatLockdown() and ns.Prompt and ns.Prompt.Showing then\n\t\tns.Guard(\"never-offer prompt check\"",
        "\tif false then\n\t\tns.Guard(\"never-offer prompt check\"",
        "never-offer line silent about the fight",
@@ -22,7 +22,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # core-3: a late refusal writing the older debt over a newer favour's.
-mutate("Core.lua",
+mutate("Clicks.lua",
        "\t\tif not standing or LiveExpiry(standing) < LiveExpiry(settled.owed) then\n",
        "\t\tif true then\n",
        "late refusal overwrites the newer debt",
@@ -30,7 +30,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # core-4: UnitIsInMyGuild's plain no overruled by the guild names.
-mutate("Core.lua",
+mutate("Queue.lua",
        "\t\telseif inMine == nil then\n",
        "\t\telse\n",
        "guild names overrule a definite no",
@@ -38,7 +38,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # core-4: the guild names compared without the realms.
-mutate("Core.lua",
+mutate("Queue.lua",
        "\t\t\t\tand theirs == ours and theirRealm and theirRealm == ourRealm then\n",
        "\t\t\t\tand theirs == ours then\n",
        "guild names compared across realms",
@@ -46,7 +46,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # core-5: the old ceiling, which a 90-line phrase box outgrows.
-mutate("Core.lua",
+mutate("Commands.lua",
        "local SHARE_MAX = 64000\n",
        "local SHARE_MAX = 8000\n",
        "settings strings capped at 8000 again",
@@ -54,7 +54,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # core-5: the undo read back under the ceiling meant for strangers' strings.
-mutate("Core.lua",
+mutate("Commands.lua",
        "\tlocal parsed = Parse(lastImportUndo, math.huge)\n",
        "\tlocal parsed = Parse(lastImportUndo, SHARE_MAX)\n",
        "import undo read under the paste ceiling",
@@ -62,7 +62,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # core-5: an export too long to import back handed over without a word.
-mutate("Core.lua",
+mutate("Commands.lua",
        "\t\tif type(export) == \"string\" and #export:gsub(\"%s+\", \"\") > SHARE_MAX then\n",
        "\t\tif false then\n",
        "overlong export said nothing",
@@ -78,7 +78,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # core-6: a reset or copy of the import's own profile leaving the undo alive.
-mutate("Core.lua",
+mutate("Commands.lua",
        "\t\telseif here == undoProfile then\n\t\t\tns.ForgetImportUndo()\n",
        "\t\telseif false then\n\t\t\tns.ForgetImportUndo()\n",
        "import undo outlives a reset of its profile",
@@ -86,7 +86,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # core-6: deleting the import's profile leaving the undo alive.
-mutate("Core.lua",
+mutate("Commands.lua",
        "\t\tif name ~= nil and name == undoProfileName then ns.ForgetImportUndo() end\n",
        "",
        "import undo outlives its deleted profile",
@@ -94,7 +94,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # core-7: the snooze line saying "no prompt" over an unlocked prompt.
-mutate("Core.lua",
+mutate("Commands.lua",
        "\telseif not db.prompt.locked then\n\t\t-- An unlocked prompt stays up through a snooze",
        "\telseif false then\n\t\t-- An unlocked prompt stays up through a snooze",
        "snooze line ignores the unlocked prompt",
@@ -102,7 +102,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # core-8: the greeting counting the queue through a snooze.
-mutate("Core.lua",
+mutate("Commands.lua",
        "\tif profile and profile.enabled and profile.prompt.locked and not ns.SnoozeLeft() then\n",
        "\tif profile and profile.enabled and profile.prompt.locked then\n",
        "greeting ignores the snooze",
@@ -110,7 +110,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # core-9: the favour line promising the prompt while snoozed.
-mutate("Core.lua",
+mutate("Favours.lua",
        "\tlocal snoozeEnds = reachable and ns.SnoozeLeft() and ns.SnoozeEndsAt()\n",
        "\tlocal snoozeEnds = nil\n",
        "favour line ignores the snooze",
@@ -118,7 +118,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # core-9: the favour line promising the prompt while the mount keeps it away.
-mutate("Core.lua",
+mutate("Favours.lua",
        "\telseif reachable and ns.HiddenWhileMounted() then\n",
        "\telseif false then\n",
        "favour line ignores the mount",
@@ -126,7 +126,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # core-9: the favour line promising the prompt while it is unlocked.
-mutate("Core.lua",
+mutate("Favours.lua",
        "\telseif reachable and not db.prompt.locked then\n",
        "\telseif false then\n",
        "favour line ignores the unlocked prompt",
@@ -134,7 +134,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # core-10: a refusal leaving the sweep running.
-mutate("Core.lua",
+mutate("Clicks.lua",
        "\t-- cooldown the sweep is drawn from.\n\tSyncSweep()\n",
        "\t-- cooldown the sweep is drawn from.\n",
        "sweep not re-read on a refused cast",
@@ -142,7 +142,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # core-10: the client's own word that the cooldowns changed, ignored.
-mutate("Core.lua",
+mutate("Clicks.lua",
        "function addon:SPELL_UPDATE_COOLDOWN()\n\tSyncSweep()\nend\n",
        "function addon:SPELL_UPDATE_COOLDOWN()\nend\n",
        "sweep not re-read on a cooldown update",
@@ -150,7 +150,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # core-10: an interrupted cast leaving the sweep running.
-mutate("Core.lua",
+mutate("Clicks.lua",
        "function addon:UNIT_SPELLCAST_INTERRUPTED(_, unit)\n\tif unit ~= \"player\" then return end\n\tSyncSweep()\n",
        "function addon:UNIT_SPELLCAST_INTERRUPTED(_, unit)\n\tif unit ~= \"player\" then return end\n",
        "sweep not re-read on an interrupted cast",
@@ -158,7 +158,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # core-11: the sweep reading the global cooldown alone, not the player's cast.
-mutate("Core.lua",
+mutate("Clicks.lua",
        "\t\tif type(endMS) == \"number\" and endMS / 1000 > now\n\t\t\tand (not start",
        "\t\tif false\n\t\t\tand (not start",
        "sweep ignores the player's own cast",
@@ -167,7 +167,7 @@ mutate("Core.lua",
 
 # core-11: START not re-reading the sweep. UnitCastingInfo is empty at SENT,
 # so this is the one moment a cast-time spell reaches it.
-mutate("Core.lua",
+mutate("Clicks.lua",
        "function addon:UNIT_SPELLCAST_START(_, unit)\n\tif unit ~= \"player\" then return end\n\tSyncSweep()\n",
        "function addon:UNIT_SPELLCAST_START(_, unit)\n\tif unit ~= \"player\" then return end\n",
        "sweep not re-read when a cast starts",
@@ -175,7 +175,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # core-11: pushback ignored -- the sweep stops at the cast's old end.
-mutate("Core.lua",
+mutate("Clicks.lua",
        "function addon:UNIT_SPELLCAST_DELAYED(_, unit)\n\tif unit ~= \"player\" then return end\n\tSyncSweep()\n",
        "function addon:UNIT_SPELLCAST_DELAYED(_, unit)\n\tif unit ~= \"player\" then return end\n",
        "sweep not re-read on pushback",
@@ -221,7 +221,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # core-12: the English copy drifting from the set it stands for.
-mutate("Core.lua",
+mutate("Speech.lua",
        "\t\t\"Cheers, {name}!\",\n",
        "\t\t\"Cheers, {name}.\",\n",
        "English phrase copy drifts from its set",

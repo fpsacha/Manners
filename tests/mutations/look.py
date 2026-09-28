@@ -78,7 +78,7 @@ mutate("Prompt.lua",
        script="runscenarios.py")
 
 # The sweep never told a cast went out.
-mutate("Core.lua",
+mutate("Clicks.lua",
        "\tNoteCastWentOut(plain(spellId))\n"
        "\t-- The sweep over the prompt's icon starts with the cooldown this cast\n"
        "\t-- began, whichever button sent it.\n"
@@ -92,7 +92,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # No fallback where the client withholds the cooldown.
-mutate("Core.lua",
+mutate("Clicks.lua",
        "\tif castBlockedUntil > now and castBlockedUntil > castBlockedFrom then\n",
        "\tif false then\n",
        "cooldown sweep has no tracked fallback",

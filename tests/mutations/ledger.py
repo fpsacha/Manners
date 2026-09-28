@@ -6,17 +6,17 @@
 S = "runscenarios.py"
 
 # The four moments Core tells the ledger about, and the login that reconciles it.
-mutate("Core.lua",
+mutate("Favours.lua",
        "\tTellLedger(\"Received\", seen, nil, ns.CouldOffer(hasMana, false) == nil)\n",
        "",
        "ledger: a favour is never written down",
        expect="a favour appears in the ledger", script=S)
-mutate("Core.lua",
+mutate("Clicks.lua",
        "\tif not unheard then TellLedger(\"Settled\", pending.name, wasOwed, pending, spellId) end\n",
        "",
        "ledger: a repayment is never written down",
        expect="a favour repaid is marked returned", script=S)
-mutate("Core.lua",
+mutate("Clicks.lua",
        "\t-- The ledger takes back its settle by the same clock.\n\tTellLedger(\"Refused\", settled.name, settled.at)\n",
        "",
        "ledger: a late refusal leaves the row repaid",
@@ -27,7 +27,7 @@ mutate("Core.lua",
        "ledger: an expired debt stays owed in the list",
        expect="a favour that runs out is let go", script=S)
 mutate("Core.lua",
-       "\tTellLedger(\"Load\")\n",
+       "\tns.TellLedger(\"Load\")\n",
        "",
        "ledger: login never checks owed rows",
        expect="a favour owed at logout is let go", script=S)
@@ -100,7 +100,7 @@ mutate("Ledger.lua",
        expect="the ledger window lists entries", script=S)
 
 # The slash command reaches the window.
-mutate("Core.lua",
+mutate("Commands.lua",
        "\telseif input == \"ledger\" or input == \"log\" then\n",
        "\telseif input == \"nolog\" then\n",
        "ledger: /manners ledger does nothing",
@@ -141,7 +141,7 @@ mutate("Ledger.lua",
        expect="the ledger says why nothing is being recorded", script=S)
 
 # A favour only a party buff can return waits on them being in the party.
-mutate("Core.lua",
+mutate("Favours.lua",
        "\tTellLedger(\"Received\", seen, nil, ns.CouldOffer(hasMana, false) == nil)\n",
        "\tTellLedger(\"Received\", seen)\n",
        "ledger: party-only favours not marked",

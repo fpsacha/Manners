@@ -568,7 +568,7 @@ mutate("Prompt.lua",
        script="runscenarios.py")
 
 # 7. a debt written in GetTime() units, which mean nothing after a reload
-mutate("Core.lua",
+mutate("Queue.lua",
        "	local wall = plain(time and time())",
        "	local wall = GetTime()",
        "debts saved on a clock that restarts",
@@ -578,7 +578,7 @@ mutate("Core.lua",
 # 8. the aura baseline reused without being emptied. The reuse is a deliberate
 #    optimisation -- this runs on every UNIT_AURA -- and the wipe is the only
 #    thing that keeps it from becoming a list of everything you have ever held.
-mutate("Core.lua",
+mutate("Favours.lua",
        "\tfunction ns.ScanOwnBuffs()\n\t\twipe(present)\n",
        "\tfunction ns.ScanOwnBuffs()\n",
        "an aura baseline that never forgets",
@@ -603,7 +603,7 @@ mutate("Core.lua",
 #     player is carrying as a favour when the list reads back. It cannot be
 #     caught by recognising the refusal: a plain nil is also exactly what an
 #     empty slot looks like, so only a second scan agreeing catches it.
-mutate("Core.lua",
+mutate("Favours.lua",
        "\t\tif agrees then\n",
        "\t\tif true then\n",
        "an aura baseline primed off one scan",
@@ -615,7 +615,7 @@ mutate("Core.lua",
 #     evidence of it anywhere in the reading; pruning on that one scan drops
 #     precisely the auras it failed to read and invents a favour out of each of
 #     them the moment they come back.
-mutate("Core.lua",
+mutate("Favours.lua",
        "\t\t\tif present[instanceId] ~= key and lastPresent[instanceId] ~= key then\n",
        "\t\t\tif present[instanceId] ~= key then\n",
        "an aura baseline pruned off one scan",
@@ -629,7 +629,7 @@ mutate("Core.lua",
 #     that have to agree, so a recognisable blackout can last all day without
 #     ever agreeing with itself; without this it corroborates its own refusal on
 #     the second scan and empties the baseline.
-mutate("Core.lua",
+mutate("Favours.lua",
        "\t\t\tif not primed then ScheduleSettle() end\n\t\t\treturn\n\t\tend\n",
        "\t\t\tif not primed then ScheduleSettle() end\n\t\tend\n",
        "a refusal that corroborates itself",
@@ -641,7 +641,7 @@ mutate("Core.lua",
 #     spelled as "the client says they have none of these", and PickBuffFor
 #     believed it -- so the blessing somebody was carrying read back as absent
 #     and the walk offered the next one down, over the top of it.
-mutate("Core.lua",
+mutate("Queue.lua",
        "\t\tlocal function auraState(buff)\n",
        "\t\tlocal function auraState(buff)\n\t\t\tif isOwed then return false end\n",
        "a policy disguised as an aura reading",
@@ -672,7 +672,7 @@ mutate("Prompt.lua",
 # 16. the regression: any error the game raises settling our click outright.
 #     The record is thrown away, so the cast that really did go out a frame
 #     later has nothing left to settle and the favour stays owed.
-mutate("Core.lua",
+mutate("Clicks.lua",
        """	RewindClick(pending)
 	ns.NoteRefusal(pending.name, message)
 	return pending.name
@@ -691,7 +691,7 @@ end""",
 #      leaves the record parked. When the cast turns up anyway, nothing put
 #      either back -- so a buff that was delivered was offered again two
 #      seconds later.
-mutate("Core.lua",
+mutate("Clicks.lua",
        """	ns.MarkAttempted(pending.name, pending.buffKey)
 	if pending.buffKey and ns.RotatesBuffs() then
 		ns.lastGave[pending.name] = pending.buffKey
@@ -705,7 +705,7 @@ mutate("Core.lua",
 # 17. a recipient the client would not name, read as "nothing contradicting who
 #     it went to". Any cast of the offered buff inside the window then repays
 #     that person, whoever actually received it.
-mutate("Core.lua",
+mutate("Clicks.lua",
        "\telseif pending.targeted then\n",
        "\telseif true then\n",
        "a debt settled on a cast nothing connects to it",
@@ -798,7 +798,7 @@ mutate("Prompt.lua",
 #     difference between the client naming the person we aimed at and the client
 #     refusing to name anybody, and this is the panel throwing that care away --
 #     which is worse than the silence it replaced, because it is believed.
-mutate("Core.lua",
+mutate("Clicks.lua",
        '\tlocal how = inferred and SETTLE_INFERENCE[inferred]\n'
        '\tShowOutcome(how and "sent" or "cast", pending.name, how and how.sub)\n',
        '\tShowOutcome("cast", pending.name)\n',
@@ -809,7 +809,7 @@ mutate("Core.lua",
 # 23. the game's own reason for the failure never reaching the panel. It is
 #     localised, it is frequently the only thing that says *why* -- out of
 #     range, line of sight -- and it went nowhere unless click debugging was on.
-mutate("Core.lua",
+mutate("Clicks.lua",
        '\t\tShowOutcome("failed", failed, type(message) == "string" and message or nil)\n',
        "",
        "the game's reason kept off the panel",
@@ -1000,7 +1000,7 @@ mutate("Options.lua",
 
 # 40. the target rule ignoring the switch that was added for it. It is a
 #     preference about somebody else's queue order, not a fact about them.
-mutate("Core.lua",
+mutate("Queue.lua",
        '		if unit == "target" and db.priority.target',
        '		if unit == "target"',
        "the target rule with no way off",
@@ -1011,7 +1011,7 @@ mutate("Core.lua",
 # 42. read back by one that was. The file outlives the setting -- a profile is
 #     switched between logins, or changed on another character sharing it -- so
 #     both ends have to honour it.
-mutate("Core.lua",
+mutate("Queue.lua",
        """	if addon.db.profile and addon.db.profile.timing.keepDebts == false then
 		store.debts = nil
 		return
@@ -1023,7 +1023,7 @@ mutate("Core.lua",
        expect="debts can be told not to outlive the session",
        script="runscenarios.py")
 
-mutate("Core.lua",
+mutate("Queue.lua",
        """	if addon.db.profile and addon.db.profile.timing.keepDebts == false then
 		store.debts = nil
 		return
@@ -1104,7 +1104,7 @@ mutate("Options.lua",
 #     now. The debt, the chat line, the amber prompt and the /say the click
 #     speaks then all name a bystander. It also puts a name on an aura that had
 #     none when it was seen, which is the same lie from the other end.
-mutate("Core.lua",
+mutate("Favours.lua",
        "\t\t-- A different aura under the same number is a different sighting.\n"
        "\t\tif seen and seen.key == key then return end\n",
        "",
@@ -1118,7 +1118,7 @@ mutate("Core.lua",
 #     the second reading is whatever the client sends next, which on a character
 #     who zones in and stands still is minutes -- and everything landing in that
 #     window is filed as something they were already carrying.
-mutate("Core.lua",
+mutate("Favours.lua",
        "\t\t\telse\n"
        "\t\t\t\t-- And the reading that has to agree is asked for on the clock.",
        "\t\t\telseif false then\n"
@@ -1131,7 +1131,7 @@ mutate("Core.lua",
 #     the prune leaves an expired entry in the baseline for one more reading, so
 #     there is a whole scan in which a different aura arrives under a dead
 #     number and is matched against the corpse.
-mutate("Core.lua",
+mutate("Favours.lua",
        "\tif known == nil or known ~= key then return true end\n",
        "\tif known == nil then return true end\n",
        "an aura identified by its number alone",
@@ -1143,7 +1143,7 @@ mutate("Core.lua",
 #     number matches, the spell matches, and the only thing left that separates
 #     "it ran out and was cast again" from "the client withheld it for one
 #     reading" is that a replacement ends later than what it replaced.
-mutate("Core.lua",
+mutate("Favours.lua",
        "\treturn (was ~= nil and expires ~= nil and expires > was) or false\n",
        "\treturn false\n",
        "a re-buff told apart by nothing",
@@ -1154,7 +1154,7 @@ mutate("Core.lua",
 #     inside the last one is a chain, and a client that never answers is a
 #     chain that never ends -- a forty-slot aura walk every fifth of a second
 #     for the rest of the session, for a baseline that is not going to settle.
-mutate("Core.lua",
+mutate("Favours.lua",
        "\tif settlePending or settleTries >= SETTLE_TRIES then return end\n",
        "\tif settlePending then return end\n",
        "a settling chain with no end to it",
@@ -1166,7 +1166,7 @@ mutate("Core.lua",
 #     the staleness test, so the sweep it defers to can never see the record
 #     again, and the twelve-second cooldown and the rotation pointer that press
 #     wrote both stand over a cast that never happened.
-mutate("Core.lua",
+mutate("Clicks.lua",
        """	if GetTime() - pending.at > SETTLE_SECONDS then
 		ExpirePendingClick(pending)
 		return
@@ -1183,7 +1183,7 @@ mutate("Core.lua",
 # 54. and by the other two doors. A cast event or an error arriving after the
 #     window is not about that press, but the press is still owed its undoing,
 #     and clearing the slot is what guarantees nobody ever does it.
-mutate("Core.lua",
+mutate("Clicks.lua",
        """	if GetTime() - pending.at > SETTLE_SECONDS then
 		ExpirePendingClick(pending,
 			L["the game never answered that press, and this cast came too late to be its answer"])
@@ -1201,7 +1201,7 @@ mutate("Core.lua",
 #     has no /target by construction, no recipient in the cast event, and
 #     nothing anywhere tying the spell to the person named -- strictly less
 #     than the targeted branch, which deliberately stops at "sent".
-mutate("Core.lua",
+mutate("Clicks.lua",
        '\t\t\tinferred = "selfcast"\n',
        "\t\t\tinferred = nil\n",
        "a selfCast buff claimed as confirmed",
@@ -1212,7 +1212,7 @@ mutate("Core.lua",
 #     settle has let the record go by then, so the failure handler returned on
 #     its first line: no red flash, no chat line, and a tick left standing over
 #     a cast that was thrown away.
-mutate("Core.lua",
+mutate("Clicks.lua",
        """	if not ns.pendingClick then
 		local late = UnsettleLateRefusal(castGUID)
 		if late then ShowOutcome("failed", late, L["the game refused the cast"]) end
@@ -1229,7 +1229,7 @@ mutate("Core.lua",
 #     that comparison a confirmed buff is undone by somebody else's miss. (This
 #     was a spell-id check until only the guid was allowed to match; the fault
 #     is the same, re-anchored.)
-mutate("Core.lua",
+mutate("Clicks.lua",
        "\t\tif record.castGUID == castGUID then return i end",
        "\t\treturn i",
        "a refusal credited to the wrong spell",
@@ -1242,7 +1242,7 @@ mutate("Core.lua",
 #      to mean no action, and borrowing that leniency reopens a repaid debt on
 #      every failure the client will not name. Two withheld guids compare equal,
 #      which is exactly that leniency in the form it takes now.
-mutate("Core.lua",
+mutate("Clicks.lua",
        "\tif castGUID == nil then return nil end\n\tfor i, record in ipairs(settledRecent) do",
        "\tfor i, record in ipairs(settledRecent) do",
        "an unnamed failure treated as ours",
@@ -1261,7 +1261,7 @@ mutate("Core.lua",
 # 57e. a debt raised, written to disk and announced with the addon switched
 #      off. NoteFavour refuses to do exactly that at the other end of the same
 #      write, calling it the same lie told louder.
-mutate("Core.lua",
+mutate("Clicks.lua",
        """	local db = addon.db and addon.db.profile
 	if not db or not db.enabled then return nil end
 """,
@@ -1307,7 +1307,7 @@ mutate("Prompt.lua",
 # 61. the grace-window entry built without the field that says whether anybody
 #     chose not to look. Missing reads as false, and false is the line that
 #     blames the user's own options for a reading no unit token existed to take.
-mutate("Core.lua",
+mutate("Queue.lua",
        '\t\t\t\t\t\tchecked = (f.whenBuffed or "skip") ~= "always",\n',
        "",
        "a tokenless favour blamed on the options",
@@ -1585,7 +1585,7 @@ mutate("Options.lua",
 # a refusal had already consumed went on suppressing the next press for the
 # rest of the window -- and two presses inside it, which is the buff walk
 # working as designed, threw both records away.
-mutate("Core.lua",
+mutate("Clicks.lua",
        """local function RememberSettled(record)
 \tPruneSettled(record.at)
 \tsettledRecent[#settledRecent + 1] = record
@@ -1606,7 +1606,7 @@ end""",
 # into an underscore -- which is the identity the timestamp above was trying to
 # reconstruct from the clock. Since the guid became the only thing allowed to
 # match, ignoring it means no refusal is ever matched at all.
-mutate("Core.lua",
+mutate("Clicks.lua",
        "\tif castGUID == nil then return nil end\n\tfor i, record in ipairs(settledRecent) do",
        "\tdo return nil end\n\tfor i, record in ipairs(settledRecent) do",
        "the cast guid ignored, the way both handlers used to",
@@ -1716,7 +1716,7 @@ mutate("Core.lua",
 # Identity and spelling collapsed back into one string: the queue stops carrying
 # the spelling and the builder falls back to the key, which is the shape this
 # whole split exists to prevent.
-mutate("Core.lua",
+mutate("Queue.lua",
        "\t\t\ttargetName = ns.TargetName(full),\n\t\t\tunit = unit,",
        "\t\t\tunit = unit,",
        "the queue stops carrying the spelling to aim at",
@@ -1727,7 +1727,7 @@ mutate("Core.lua",
 # what the macro aimed at. Off Camelot the game names the person by the spelling
 # the macro used, which is not the key -- so every cross-realm favour is reported
 # as having gone to a stranger and never settles.
-mutate("Core.lua",
+mutate("Clicks.lua",
        "\telseif landedOn and landedOn ~= pending.aimedAt\n\t\tand landedOn ~= pending.name",
        "\telseif landedOn and landedOn ~= pending.name",
        "the settle path guesses at what the macro aimed at",
@@ -1750,7 +1750,7 @@ mutate("Prompt.lua",
 # working out what resolves on a client nobody here can start, so a token that
 # sometimes means the key and sometimes the spelling makes every experiment run
 # on it ambiguous -- and the answer would be reported back as fact.
-mutate("Core.lua",
+mutate("Commands.lua",
        '\ttext = ns.Swap(text, "{aim}", (entry and (entry.targetName or entry.name)) or "target")',
        '\ttext = ns.Swap(text, "{aim}", (entry and entry.name) or "target")',
        "the console's {aim} token handing back the key",
@@ -1796,7 +1796,7 @@ mutate("Core.lua",
 # The early return back above the lines that name the build, which is where it
 # was: a class with nothing to cast filed a report that never said which client
 # it came from.
-mutate("Core.lua",
+mutate("Commands.lua",
        '\t\tself:Print("client: |cffffffff"',
        """\t\tif not caps.hasClassBuffs then return end
 \t\tself:Print("client: |cffffffff\"""",
@@ -1807,7 +1807,7 @@ mutate("Core.lua",
 # The file list trap from the other side: Flavour.lua missing from a toc leaves
 # ns.FlavourSummary nil, and an unguarded call to it takes down the one command
 # that could have said which file never loaded.
-mutate("Core.lua",
+mutate("Commands.lua",
        """\t\t\t.. (ns.FlavourSummary and ns.FlavourSummary()
 \t\t\t\tor "|cffff4040" .. L["Flavour.lua did not load -- check the toc's file list"] .. "|r")""",
        "\t\t\t.. ns.FlavourSummary()",
@@ -1979,10 +1979,10 @@ mutate("Core.lua",
 mutate("Core.lua",
        """\t\tns.Guard("RegisterEvent COMBAT_LOG_EVENT_UNFILTERED", function()
 \t\t\tself:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
-\t\t\tcombatLogArmed = true
+\t\t\tns.combatLogArmed = true
 \t\t\tns.logScan.armed = true
 \t\tend)""",
-       """\t\tcombatLogArmed = true
+       """\t\tns.combatLogArmed = true
 \t\tns.logScan.armed = true
 \t\tns.Guard("RegisterEvent COMBAT_LOG_EVENT_UNFILTERED", function()
 \t\t\tself:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
@@ -1992,8 +1992,8 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # No agreement between the two sources at all: one cast, two announcements.
-mutate("Core.lua",
-       "\tif not combatLogArmed then return true end",
+mutate("Favours.lua",
+       "\tif not ns.combatLogArmed then return true end",
        "\tif true then return true end",
        "two sources announcing one landing",
        expect="one landing seen twice",
@@ -2001,7 +2001,7 @@ mutate("Core.lua",
 
 # The mark left standing instead of consumed, which turns the agreement into a
 # suppression window and swallows the next real favour inside it.
-mutate("Core.lua",
+mutate("Favours.lua",
        "\t\tif claimed and now - claimed <= NOTE_MEMORY then\n"
        "\t\t\tnotedFavours[key] = nil\n"
        "\t\t\treturn false\n"
@@ -2015,7 +2015,7 @@ mutate("Core.lua",
 
 # The aura scan going round the agreement, which is the same duplicate arriving
 # from the other side.
-mutate("Core.lua",
+mutate("Favours.lua",
        "\t\t\t\t\t\tif ClaimFavour(seen.name, key) then NoteFavour(seen) end",
        "\t\t\t\t\t\tNoteFavour(seen)",
        "the aura scan filing past the claim",
@@ -2024,7 +2024,7 @@ mutate("Core.lua",
 
 # A debt filed by hand rather than through NoteFavour -- a prompt that works and
 # a user who is never told why, plus nothing written to disk.
-mutate("Core.lua",
+mutate("Favours.lua",
        "\tNoteFavour({ key = spellId, name = full, guid = sourceGUID, class = plain(class) })",
        """\tns.owed[full] = { expires = GetTime() + 120, at = GetTime(),
 \t\tguid = sourceGUID, class = plain(class) }""",
@@ -2035,7 +2035,7 @@ mutate("Core.lua",
 # Spelled by a rule of its own rather than by the join both sources share, so
 # the same person is filed under two keys and each debt is unpayable by the
 # other source.
-mutate("Core.lua",
+mutate("Favours.lua",
        "\tlocal full = JoinName(plain(name), plain(realm))",
        '\tlocal full = tostring(plain(name)) .. "-" .. tostring(plain(realm))',
        "the log spelling a name its own way",
@@ -2043,7 +2043,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # A line the log cannot name a player for, carried on into the machinery.
-mutate("Core.lua",
+mutate("Favours.lua",
        "\t\tif not full then return end\n"
        "\n"
        "\t\tif not ClaimFavour(full, spellId) then return end",
@@ -2055,7 +2055,7 @@ mutate("Core.lua",
 # The class taken from the localized return instead of the English one. The two
 # are the same word on an English client and the mock is deliberately not, since
 # the tokenless fallback branches on the English one.
-mutate("Core.lua",
+mutate("Favours.lua",
        "\tlocal _, class, _, _, _, name, realm = GetPlayerInfoByGUID(sourceGUID)",
        "\tlocal class, _, _, _, _, name, realm = GetPlayerInfoByGUID(sourceGUID)",
        "the localized class read as the English one",
@@ -2065,7 +2065,7 @@ mutate("Core.lua",
 # Routed through the aura scan's settled baseline. The corroboration exists
 # because a scan can misread its own list; a log line has nothing to doubt, and
 # a client that never shows the aura list would otherwise silence both sources.
-mutate("Core.lua",
+mutate("Favours.lua",
        "\tns.logScan.applied = ns.logScan.applied + 1",
        "\tif not ns.auraScan.primed then return end\n\tns.logScan.applied = ns.logScan.applied + 1",
        "the log waiting on the aura baseline",
@@ -2074,35 +2074,35 @@ mutate("Core.lua",
 
 # The four filters, each dropped on its own. The log carries every event within
 # fifty yards, so each of these is the difference between a favour and noise.
-mutate("Core.lua",
+mutate("Favours.lua",
        '\tif plain(subevent) ~= "SPELL_AURA_APPLIED" then return end',
        "\tif false then return end",
        "every subevent treated as an aura landing",
        expect="the log ignores a subevent that is not an aura landing",
        script="runscenarios.py")
 
-mutate("Core.lua",
+mutate("Favours.lua",
        '\tif plain(auraType) ~= "BUFF" then return end',
        "\tif false then return end",
        "a debuff counted as a favour",
        expect="the log ignores a debuff",
        script="runscenarios.py")
 
-mutate("Core.lua",
+mutate("Favours.lua",
        "\tif destGUID == nil or destGUID ~= playerGUID then return end",
        "\tif destGUID == nil then return end",
        "somebody else's buff counted as ours",
        expect="the log ignores a buff that landed on somebody else",
        script="runscenarios.py")
 
-mutate("Core.lua",
+mutate("Favours.lua",
        "\tif sourceGUID == nil or sourceGUID == playerGUID then return end",
        "\tif sourceGUID == nil then return end",
        "our own buff counted as a favour owed",
        expect="the log ignores our own buff on ourselves",
        script="runscenarios.py")
 
-mutate("Core.lua",
+mutate("Favours.lua",
        "\t\tif db.sources.owedClassBuffsOnly ~= false and not ns.ALL_BUFF_IDS[spellId] then\n"
        "\t\t\treturn\n"
        "\t\tend",
@@ -2158,7 +2158,7 @@ mutate("Buffs.lua",
        expect="a retail deathknight has nothing to offer",
        script="runscenarios.py")
 
-mutate("Core.lua",
+mutate("Favours.lua",
        "\t\tlocal ok, value = pcall(C_UnitAuras.GetAuraDataByIndex, \"player\", index, \"HELPFUL\")\n"
        "\t\tif not ok then return nil, true end",
        "\t\tlocal ok, value = pcall(C_UnitAuras.GetAuraDataByIndex, \"player\", index, \"HELPFUL\")\n"
@@ -2180,7 +2180,7 @@ mutate("Core.lua",
 # The bug the author reported from a city square: everybody the game would let
 # him cast on got a card. Reintroduced as the plainest version of itself -- the
 # distance is measured and the answer thrown away.
-mutate("Core.lua",
+mutate("Queue.lua",
        '\t\tif reason == "nearby" and not pointed and ns.NearEnough(unit) == false then',
        "\t\tif false then",
        "a passer-by offered on spell range alone",
@@ -2190,7 +2190,7 @@ mutate("Core.lua",
 # The same filter applied to the three who carry their own evidence of being
 # near. This is the failure worth more than the bug: a deliberate target
 # vanishing off the prompt because a coarse distance estimate disagreed.
-mutate("Core.lua",
+mutate("Queue.lua",
        "and not pointed and ns.NearEnough(unit) == false",
        "and ns.NearEnough(unit) == false",
        "distance applied to a deliberate target",
@@ -2200,7 +2200,7 @@ mutate("Core.lua",
 # Accepting whatever bucket edge the library offers. A two-yard checker standing
 # in for "nearby" is the other way to empty the queue, and it reports itself as
 # working the whole time.
-mutate("Core.lua",
+mutate("Range.lua",
        "if want > PROX_LOOSE_FROM and edge * 2 < want then return nil end",
        "if false then return nil end",
        "a bucket edge far tighter than the setting",
@@ -2209,7 +2209,7 @@ mutate("Core.lua",
 
 # A signal that resolves and then answers nothing, kept forever. The queue is
 # exactly as crowded as it was and the setting says otherwise.
-mutate("Core.lua",
+mutate("Range.lua",
        "if silent > PROX_BLIND_LIMIT then",
        "if false then",
        "a signal that never answers, never dropped",
@@ -2293,7 +2293,7 @@ mutate("Core.lua",
 
 # It fires, and forgets. The flag is the whole of "once", and this client makes
 # you /reload for every settings change.
-mutate("Core.lua",
+mutate("Commands.lua",
        "\tstore.welcomed = true\n",
        "\tlocal welcomed = true\n",
        "a greeting that is never written down",
@@ -2301,7 +2301,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # Written down, and never read back.
-mutate("Core.lua",
+mutate("Commands.lua",
        "\tif store.welcomed and not force then return true end\n",
        "",
        "a greeting that never checks whether it has run",
@@ -2312,7 +2312,7 @@ mutate("Core.lua",
 # account shares one profile here, so this greets whoever logs in first and
 # nobody else -- and it is invisible to a reload test, which is why there is a
 # scenario with an alt in it.
-mutate("Core.lua",
+mutate("Commands.lua",
        "function ns.Welcome(force, offSaid)\n\tlocal store = addon.db and addon.db.char",
        "function ns.Welcome(force, offSaid)\n\tlocal store = addon.db and addon.db.profile",
        "the flag kept in the shared profile",
@@ -2332,7 +2332,7 @@ mutate("tests/mockapi.lua",
 # it exactly as it is for a rogue, and only one of the two has been told
 # anything -- so this states a guess as a fact on the one screenful somebody
 # reads before deciding whether to keep the addon.
-mutate("Core.lua",
+mutate("Commands.lua",
        "\tif not (caps.hasClassBuffs or nothingToGive) then return false end",
        "\tif false then return false end",
        "greeting a character it could not read",
@@ -2340,7 +2340,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # Selling a macro to a class that can never have anybody on the prompt.
-mutate("Core.lua",
+mutate("Commands.lua",
        "\tif nothingToGive then\n",
        "\tif false then\n",
        "a tour for a class with nothing to cast",
@@ -2349,7 +2349,7 @@ mutate("Core.lua",
 
 # Greeting during a fight, where a protected frame cannot be shown at all: the
 # one greeting this character ever gets, spent on a picture nobody sees.
-mutate("Core.lua",
+mutate("Commands.lua",
        "\tif InCombatLockdown() and not nothingToGive then\n\t\tif force then",
        "\tif false then\n\t\tif force then",
        "a greeting spent on a fight",
@@ -2359,7 +2359,7 @@ mutate("Core.lua",
 # The words-only greeting made to wait for a fight as well, which would attach
 # it to the end of a pull instead of to the login it belongs to. There is no
 # picture in that one, and nothing about words needs the lockdown to lift.
-mutate("Core.lua",
+mutate("Commands.lua",
        "\tif InCombatLockdown() and not nothingToGive then",
        "\tif InCombatLockdown() then",
        "words made to wait for a picture",
@@ -2378,7 +2378,7 @@ mutate("Core.lua",
 # A mock-up put in front of a real person who is waiting. Refresh takes it
 # straight back down again, so the greeting ends up pointing at a panel it did
 # not put there -- in a city, which is where this addon is used.
-mutate("Core.lua",
+mutate("Commands.lua",
        "\tif queued > 0 then",
        "\tif false then",
        "a mock-up over somebody real",
@@ -2388,7 +2388,7 @@ mutate("Core.lua",
 # Explaining the prompt to an alt of somebody who switched the addon off. The
 # profile is shared across the account, so that alt never touched the switch and
 # has no way to know a setting is why nothing appears.
-mutate("Core.lua",
+mutate("Commands.lua",
        "\tif addon.db.profile and not addon.db.profile.enabled and not offSaid then",
        "\tif false then",
        "a greeting that hides the off switch",
@@ -2398,7 +2398,7 @@ mutate("Core.lua",
 # The preview treated as a toggle rather than as a thing to switch on. Typing
 # the command twice then takes the picture away in the same breath as the line
 # promising it.
-mutate("Core.lua",
+mutate("Commands.lua",
        "\t\t\tif ns.Prompt and not ns.Prompt:InTest() then ns.Prompt:ToggleTest() end",
        "\t\t\tif ns.Prompt then ns.Prompt:ToggleTest() end",
        "the command undoing its own preview",
@@ -2408,7 +2408,7 @@ mutate("Core.lua",
 # A setting written from a slash command, with the options page open behind it.
 # AceConfig only reads a control while it is drawing, so without this /manners
 # off leaves Enable ticked and the red notice written for that moment hidden.
-mutate("Core.lua",
+mutate("Commands.lua",
        "\tif REPAINT_AFTER[input] then ns.RepaintOptions() end\n",
        "",
        "a command that changes a page it leaves stale",
@@ -2491,7 +2491,7 @@ mutate("Options.lua",
 # /manners try arming macro text nobody measured. The client truncates a body
 # over the limit in silence, so the expansion echoed to chat a line earlier is
 # not what the button holds -- and this command exists to run one experiment.
-mutate("Core.lua",
+mutate("Commands.lua",
        """			if #expanded > ns.MACRO_LIMIT then
 				ns.Say("  |cffff4040" .. L["%d characters -- %d over the %d a macro body holds. The client will cut it, and what runs is not what is printed above."]
 					.. "|r", #expanded, #expanded - ns.MACRO_LIMIT, ns.MACRO_LIMIT)
@@ -2540,7 +2540,7 @@ mutate("Prompt.lua",
 # The ring's length reported as the session's failure count. "The last 5 of 30"
 # reads the same whether thirty things broke or thirty thousand did, and those
 # want opposite responses.
-mutate("Core.lua",
+mutate("Commands.lua",
        "\t\tlocal total = ns.errorCount or kept",
        "\t\tlocal total = kept",
        "the ring's size printed as the failure count",
@@ -2569,7 +2569,7 @@ mutate("Prompt.lua",
 
 # A cast event a second after a refused press read as that press landing. On a
 # client that names no recipient, a hand-cast on somebody else repaid the debt.
-mutate("Core.lua",
+mutate("Clicks.lua",
        "\tif GetTime() - pending.at > SENT_SECONDS then return end\n",
        "",
        "a late cast event settling a refused press",
@@ -2596,7 +2596,7 @@ mutate("Prompt.lua",
 
 # The library's edge read through GetRange, which turns a client that will not
 # answer about a stranger into "everybody is outside".
-mutate("Core.lua",
+mutate("Range.lua",
        "\t\t\tlocal direct = DirectCheck(lib, edge)\n",
        "\t\t\tlocal direct = nil\n",
        "a refusal read through the library as outside",
@@ -2605,7 +2605,7 @@ mutate("Core.lua",
 
 # A rung that cannot tell about somebody offering them outright, with a working
 # rung underneath that could have measured them.
-mutate("Core.lua",
+mutate("Range.lua",
        "\t\t\tif near ~= nil then\n\t\t\t\tverdict = near\n\t\t\t\tbreak\n\t\t\tend\n",
        "\t\t\tverdict = near\n\t\t\tbreak\n",
        "a rung's silence letting a passer-by through",
@@ -2623,7 +2623,7 @@ mutate("Core.lua",
 
 # An error answered the press, and the window running out answered it again:
 # a second rewind, a second red flash, and "nothing at all" in chat.
-mutate("Core.lua",
+mutate("Clicks.lua",
        "\t-- the game's own words then.\n\tif pending.answered then return end\n",
        "\t-- the game's own words then.\n",
        "a refused press flashed twice",
@@ -2641,7 +2641,7 @@ mutate("Prompt.lua",
 
 # The player's own queue window ignored: a press too early to be queued was
 # filed against whoever the frozen macro named.
-mutate("Core.lua",
+mutate("Clicks.lua",
        "\t\tif value and value >= 0 and value <= 1000 then return value / 1000 end\n",
        "",
        "the player's queue window ignored",
@@ -2660,7 +2660,7 @@ mutate("embeds.xml",
 
 # LibStub called through safecall, which refuses the callable table the real
 # LibStub is -- so the library rung was never built in the game.
-mutate("Core.lua",
+mutate("Range.lua",
        "\t\t\t\tlocal stub = _G.LibStub\n"
        "\t\t\t\tlocal lib = type(stub) == \"table\" and type(stub.GetLibrary) == \"function\"\n"
        "\t\t\t\t\tand safecall(stub.GetLibrary, stub, \"LibRangeCheck-3.0\", true) or nil\n",
@@ -2671,7 +2671,7 @@ mutate("Core.lua",
 
 # The duel prompt reported at eight yards whatever the race, where a tauren's is
 # six and an undead's seven.
-mutate("Core.lua",
+mutate("Range.lua",
        "\treturn INTERACT_DUEL_RACE[race] or 8\n",
        "\treturn 8\n",
        "the duel prompt at eight yards for every race",
@@ -2680,7 +2680,7 @@ mutate("Core.lua",
 
 # A warrior's scan measuring strangers it can never offer anything, which fed
 # the counts and dropped a silent rung.
-mutate("Core.lua",
+mutate("Queue.lua",
        "\t\tif reason == \"nearby\" and groupOnly then return end\n",
        "",
        "a warrior's scan measuring strangers",
@@ -2688,7 +2688,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # The summary describing a stranger filter to a class that never reaches one.
-mutate("Core.lua",
+mutate("Range.lua",
        "\t\tif ns.OnlyReachesGroup() then\n"
        "\t\t\treturn L[\"%s -- your buffs reach only your group, so nobody is measured\"]:format(out)\n"
        "\t\tend\n",
@@ -2725,17 +2725,17 @@ mutate("Core.lua",
 
 # The favour line asking whether they are in the raid rather than whether the
 # shout reaches them.
-mutate("Core.lua",
+mutate("Favours.lua",
        "\t\tlocal inParty = seen.sameParty\n"
        "\t\tif inParty == nil then inParty = SameParty(seen.name) end\n",
-       "\t\tlocal inParty = type(safecall(_G.UnitInRaid, seen.name)) == \"number\"\n",
+       "\t\tlocal inParty = type(ns.safecall(_G.UnitInRaid, seen.name)) == \"number\"\n",
        "a raider in another subgroup promised the prompt",
        expect="a favour from another subgroup was announced as on the prompt",
        script="runscenarios.py")
 
 # A shout's reach left to IsSpellInRange, which has nothing to say about a spell
 # with no target: a party member sixty yards off is offered it.
-mutate("Core.lua",
+mutate("Queue.lua",
        "\t\tif ranged == nil and buff.selfCast then ranged = ShoutReach(unit) end\n",
        "",
        "a shout offered at any distance",
@@ -2743,7 +2743,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # A shout nothing measured taken as repaying the person named.
-mutate("Core.lua",
+mutate("Clicks.lua",
        "\tif not unheard then ns.SettleFavour(pending.name) end\n",
        "\tns.SettleFavour(pending.name)\n",
        "an unmeasured shout counted as repaid",
@@ -2751,7 +2751,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # A favour recorded and promised when nothing we cast is any use to them.
-mutate("Core.lua",
+mutate("Favours.lua",
        "\tif not ns.CouldOffer(hasMana, true) then\n",
        "\tif false then\n",
        "a useless favour recorded",
@@ -2759,7 +2759,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # A favour announced by a character with every spell switched off.
-mutate("Core.lua",
+mutate("Favours.lua",
        "\tif #ns.CastableBuffs() == 0 then return end\n",
        "",
        "a favour noted with every spell off",
@@ -2767,7 +2767,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # A favour announced by a character whose pinned spell is not learned.
-mutate("Core.lua",
+mutate("Favours.lua",
        "\t\tlocal pinned = ns.PinnedBuff()\n"
        "\t\tif pinned and not ns.IsBuffKnown(pinned) then return end\n",
        "",
@@ -2777,7 +2777,7 @@ mutate("Core.lua",
 
 # A debt read on the stamp it was filed with, so a shorter window changes
 # nothing until a reload.
-mutate("Core.lua",
+mutate("Queue.lua",
        "\treturn math.min(entry.expires, entry.at + window)\n",
        "\treturn entry.expires\n",
        "a shorter window ignored by live debts",
@@ -2785,7 +2785,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # One reader going back to the stamp: the queue.
-mutate("Core.lua",
+mutate("Queue.lua",
        "owed[full] and LiveExpiry(owed[full]) > now",
        "owed[full] and owed[full].expires > now",
        "the queue reading a debt's first stamp",
@@ -2793,7 +2793,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # And /manners debug.
-mutate("Core.lua",
+mutate("Commands.lua",
        "\t\t\tlocal expires = LiveExpiry(entry)\n\t\t\tif expires > now then\n\t\t\t\tpending",
        "\t\t\tlocal expires = entry.expires\n\t\t\tif expires > now then\n\t\t\t\tpending",
        "the debug listing reading a debt's first stamp",
@@ -2801,7 +2801,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # A reload restarting the window from the login rather than the favour.
-mutate("Core.lua",
+mutate("Queue.lua",
        "\t\t\tlocal left = math.min(entry.expires, at + window) - wall\n",
        "\t\t\tlocal left = math.min(entry.expires - wall, window)\n",
        "a reload restarting the window",
@@ -2836,7 +2836,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # And greeted with a tour of a prompt that will never appear.
-mutate("Core.lua",
+mutate("Commands.lua",
        "\tif caps.anyKnown and not ns.ResolveBuff(true) then\n",
        "\tif false then\n",
        "a greeting promising a prompt nothing fills",
@@ -2926,7 +2926,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # And the greeting saying it again, one line under the login line.
-mutate("Core.lua",
+mutate("Commands.lua",
        "\tif addon.db.profile and not addon.db.profile.enabled and not offSaid then",
        "\tif addon.db.profile and not addon.db.profile.enabled then",
        "switched off said twice at a first login",
@@ -2967,7 +2967,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # /manners debug saying "nobody has buffed you" while switched off...
-mutate("Core.lua",
+mutate("Commands.lua",
        "\t\t\tif not db.enabled then\n\t\t\t\tself:Print(\"  \" .. L[\"not watching for favours",
        "\t\t\tif false then\n\t\t\t\tself:Print(\"  \" .. L[\"not watching for favours",
        "debug claiming nobody buffed you while off",
@@ -2975,7 +2975,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # ...and while the favour source is unticked...
-mutate("Core.lua",
+mutate("Commands.lua",
        "\t\t\telseif not db.sources.owed then\n",
        "\t\t\telseif false then\n",
        "debug claiming nobody buffed you, source off",
@@ -2983,7 +2983,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # ...and never naming the off switch at all.
-mutate("Core.lua",
+mutate("Commands.lua",
        "\t\tif not db.enabled then\n\t\t\tself:Print(\"|cffff8080\" .. L[\"switched OFF",
        "\t\tif false then\n\t\t\tself:Print(\"|cffff8080\" .. L[\"switched OFF",
        "debug silent about the off switch",
@@ -2991,7 +2991,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # /manners try guessing "target" for a {unit} the person has not got...
-mutate("Core.lua",
+mutate("Commands.lua",
        "\tif entry and not entry.unit and text:find(\"{unit}\", 1, true) then\n",
        "\tif false then\n",
        "try {unit} falling back to your target",
@@ -2999,7 +2999,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # ...and {first} for a name that is one word already.
-mutate("Core.lua",
+mutate("Commands.lua",
        "(ns.FirstName(entry.name) or entry.targetName or entry.name) or \"target\")",
        "(ns.FirstName(entry.name)) or \"target\")",
        "try {first} falling back to your target",
@@ -3015,7 +3015,7 @@ mutate("Prompt.lua",
        script="runscenarios.py")
 
 # /manners look printing a withheld aura check as a readable no.
-mutate("Core.lua",
+mutate("Commands.lua",
        "\t\t\tif not found and (unreadable or #withheld > 0) then\n",
        "\t\t\tif false then\n",
        "look printing a withheld check as false",
@@ -3023,7 +3023,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # The help describing a switch that starts on as the thing it does.
-mutate("Core.lua",
+mutate("Commands.lua",
        "help = L[\"switch handing your target back after buffing on or off\"]",
        "help = L[\"hand your target back after buffing\"]",
        "help describing restore as an action",
@@ -3031,7 +3031,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # /manners restore in a fight, silent about the frozen macro...
-mutate("Core.lua",
+mutate("Commands.lua",
        "\t\tif InCombatLockdown() then\n\t\t\tself:Print(db.filters.restoreTarget\n",
        "\t\tif false then\n\t\t\tself:Print(db.filters.restoreTarget\n",
        "restore in a fight silent about the freeze",
@@ -3039,7 +3039,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # ...and /manners try sending a press to it.
-mutate("Core.lua",
+mutate("Commands.lua",
        "\t\t\tif InCombatLockdown() then\n\t\t\t\tself:Print(L[\"It takes effect when this fight ends",
        "\t\t\tif false then\n\t\t\t\tself:Print(L[\"It takes effect when this fight ends",
        "try in a fight sending a press to the old macro",
@@ -3057,7 +3057,7 @@ mutate("Options.lua",
        script="runscenarios.py")
 
 # /manners unlock in a fight sending you to drag.
-mutate("Core.lua",
+mutate("Commands.lua",
        "\t\tif db.enabled and InCombatLockdown() then\n",
        "\t\tif false then\n",
        "unlock in a fight saying drag",
@@ -3078,7 +3078,7 @@ mutate("Core.lua",
 # A refusal with a guid missing on one side matched to the only settle in the
 # window. A new attempt refused with nothing parked -- a mashed press in a
 # fight, the same buff on an action bar -- undid a press that had landed.
-mutate("Core.lua",
+mutate("Clicks.lua",
        "\tif castGUID == nil then return nil end\n"
        "\tfor i, record in ipairs(settledRecent) do\n"
        "\t\t-- Both sides named the cast. That is an answer, not a guess, and a\n"
@@ -3100,7 +3100,7 @@ mutate("Core.lua",
 
 # The settle after an error inside the window saying nothing, so chat is left
 # on "was not buffed" about a buff that went out.
-mutate("Core.lua",
+mutate("Clicks.lua",
        "\telseif pending.answered then\n",
        "\telseif false then\n",
        "an error's line left standing after the settle",
@@ -3109,7 +3109,7 @@ mutate("Core.lua",
 
 # The global cooldown tracked and never read, so every cast -- a healthstone,
 # Counterspell -- arms a second and a half of "not ready".
-mutate("Core.lua",
+mutate("Clicks.lua",
        "\tlocal left = GlobalCooldownLeft(now) or (castBlockedUntil - now)\n",
        "\tlocal left = castBlockedUntil - now\n",
        "the global cooldown guessed where it can be read",
@@ -3118,7 +3118,7 @@ mutate("Core.lua",
 
 # And a spell the client says is off the global cooldown arming the guess
 # anyway, where 61304 will not answer.
-mutate("Core.lua",
+mutate("Clicks.lua",
        "\t\t\tif plain(info.isOnGCD) == false then return end\n",
        "",
        "an off-GCD spell arming the fallback",
@@ -3126,7 +3126,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # An abandoned press announced as "was not buffed", though nothing says so.
-mutate("Core.lua",
+mutate("Clicks.lua",
        '\tSayStillOwed(pending.name, L["another press arrived before the game answered that one"],\n'
        '\t\tL["no answer yet for the press on |cffffffff%s|r -- another press arrived first."])\n',
        '\tSayStillOwed(pending.name, L["another press arrived before the game answered that one"])\n',
@@ -3135,7 +3135,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # The repaid line for a shout printing a field name from Buffs.lua.
-mutate("Core.lua",
+mutate("Clicks.lua",
        '\t\tsaid = L["%s is cast on you, not on them, so whether it reached them depends on'
        ' where they were standing"],\n',
        '\t\tsaid = L["our spell went out, but a selfCast buff has no target at all -- whether'
@@ -3561,7 +3561,7 @@ mutate("Options.lua",
        script="runscenarios.py")
 
 # ...and /manners verbose saying the same.
-mutate("Core.lua",
+mutate("Commands.lua",
        "a line in your own chat when somebody buffs you, when a favour is counted as"
        " repaid, and when a click fails, is skipped, or leaves somebody owed\"]",
        "a line in your own chat when somebody buffs you, and for what each click"
@@ -3614,7 +3614,7 @@ mutate("Options.lua",
        script="runscenarios.py")
 
 # The greeting sending the player to a Game Menu entry this client lacks.
-mutate("Core.lua",
+mutate("Commands.lua",
        " makes a macro for your bars, or bind a key under Options > Keybindings >"
        " Manners.\"])\n",
        " makes a macro for your bars, or bind a key under Game Menu > Key Bindings >"
@@ -3830,7 +3830,7 @@ mutate("README.md",
        script="runscenarios.py")
 
 # A raider in another subgroup told to join a group they are in.
-mutate("Core.lua",
+mutate("Favours.lua",
        "or ns.PARTY_IS_SUBGROUP and L[\"|cff80ff80%s buffed you|r -- what you cast reaches only your own party",
        "or false and L[\"|cff80ff80%s buffed you|r -- what you cast reaches only your own party",
        "favour line says group, not subgroup",
@@ -3846,7 +3846,7 @@ mutate("Options.lua",
        script="runscenarios.py")
 
 # A shout measured out of earshot reported as one nothing measured.
-mutate("Core.lua",
+mutate("Clicks.lua",
        "\tif unheard and wasOwed and pending.outOfShout then",
        "\tif false then",
        "out-of-earshot shout said to be unmeasured",

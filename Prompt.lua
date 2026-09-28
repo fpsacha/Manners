@@ -2294,7 +2294,7 @@ end
 
 -- Target them, cast, and optionally hand the player's own target back. One
 -- targeting line with one spelling: with two, /targetlasttarget hands back
--- what the first found, not the player's target. The account is in Core.
+-- what the first found, not the player's target. The account is in Clicks.lua.
 STRATEGIES.target = function(entry, spell)
 	-- targetName is the spelling, entry.name the identity; they differ only for
 	-- a cross-realm player off Camelot. The fallback covers made-up entries

@@ -1,7 +1,10 @@
 import re, os
 
 D = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-FILES = ["Flavour.lua", "Buffs.lua", "Core.lua", "Phrases.lua", "Ledger.lua", "Prompt.lua", "Options.lua"]
+# Every .lua Manners.toc names directly, in its order (the translations come in
+# through Locales.xml and are not code).
+FILES = [l.strip().replace("\\", "/") for l in open(os.path.join(D, "Manners.toc"), encoding="utf-8")
+         if not l.startswith("#") and l.strip().lower().endswith(".lua")]
 src = {f: open(os.path.join(D, f), encoding="utf-8").read() for f in FILES}
 
 findings = []
@@ -25,12 +28,19 @@ for f in FILES:
             add("and/or collapse", f, i, line)
 
 # ---------------------------------------------------------------- 2
-# Calling a name that is local to another file -- the `plain` bug.
-core_locals = set(re.findall(r"^local function (\w+)", src["Core.lua"], re.M))
-core_locals |= set(re.findall(r"^local (\w+) =", src["Core.lua"], re.M))
+# Calling a name that is local to another file -- the `plain` bug. Core.lua
+# and the files split out of it share a good many helpers, each file taking its
+# own local copy off ns; one that calls the name without taking the copy is
+# calling nothing.
+file_locals = {}
 for f in FILES:
-    if f == "Core.lua":
-        continue
+    file_locals[f] = set(re.findall(r"^local function (\w+)", src[f], re.M))
+    file_locals[f] |= set(re.findall(r"^local (\w+) =", src[f], re.M))
+for f in FILES:
+    others = set()
+    for g in FILES:
+        if g != f:
+            others |= file_locals[g]
     own = set(re.findall(r"local ([\w, ]+)", src[f]))
     own_names = set()
     for grp in own:
@@ -43,7 +53,7 @@ for f in FILES:
     own_names |= set(re.findall(r"local function (\w+)", src[f]))
     for i, line in lines(f):
         for call in re.findall(r"(?<![\w.:])(\w+)\(", line):
-            if call in core_locals and call not in own_names:
+            if call in others and call not in own_names:
                 add("cross-file local", f, i, line)
 
 # ---------------------------------------------------------------- 3
@@ -56,10 +66,11 @@ for f in FILES:
             add("handler arg offset", f, i, line)
 
 # ---------------------------------------------------------------- 4
-# Registered events must have a handler, and vice versa.
-registered = set(re.findall(r'"([A-Z][A-Z_]+)",?\s*$', src["Core.lua"], re.M))
-registered |= set(re.findall(r'RegisterEvent\("([A-Z_]+)"\)', src["Core.lua"]))
-handlers = set(re.findall(r"function addon:([A-Z_]+)\(", src["Core.lua"]))
+# Registered events must have a handler, and vice versa. Core.lua registers
+# them (OnEnable); the handlers are in whichever file the event belongs to.
+handlers = set()
+for f in FILES:
+    handlers |= set(re.findall(r"function addon:([A-Z_]+)\(", src[f]))
 reg_block = re.search(r"for _, event in ipairs\(\{(.*?)\}\)", src["Core.lua"], re.S)
 reg_list = set(re.findall(r'"([A-Z_]+)"', reg_block.group(1))) if reg_block else set()
 for ev in sorted(reg_list - handlers):

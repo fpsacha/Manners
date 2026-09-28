@@ -3,7 +3,7 @@
 # caught by the scenario in tests/scenarios/asked.lua that names it.
 
 # The queue never asks whether somebody asked.
-mutate("Core.lua",
+mutate("Queue.lua",
        "\t\tlocal asked = not isOwed and ns.AskedFor(unit, full, now, candidates) or nil\n",
        "\t\tlocal asked = nil\n",
        "requests never reach the queue",
@@ -27,7 +27,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # A request that never runs out.
-mutate("Core.lua",
+mutate("Requests.lua",
        "\t\treturn request.fight or request.expires > now\n",
        "\t\treturn true\n",
        "requests never expire",
@@ -35,7 +35,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # Chat values used as they arrive, secrets included.
-mutate("Core.lua",
+mutate("Requests.lua",
        "\t\ttext, sender, guid = plain(text), plain(sender), plain(guid)\n",
        "",
        "secret chat text and senders looked at",
@@ -43,7 +43,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # Your own messages taken for somebody else's.
-mutate("Core.lua",
+mutate("Requests.lua",
        "\t\tif Mine(sender, guid) ~= false then\n",
        "\t\tif false then\n",
        "own messages heard as requests",
@@ -51,7 +51,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # The GUID read from the wrong argument, so the player's own GUID is missed.
-mutate("Core.lua",
+mutate("Requests.lua",
        "\tns.Guard(\"request\", ns.NoteRequest, \"PARTY\", text, sender, (select(10, ...)))\n",
        "\tns.Guard(\"request\", ns.NoteRequest, \"PARTY\", text, sender, (select(9, ...)))\n",
        "sender GUID read from the wrong argument",
@@ -59,7 +59,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # A buff's name found inside other words: "intro" read as "int".
-mutate("Core.lua",
+mutate("Requests.lua",
        "\t\t\t\tif not SameWord(words[i + j - 1], name[j]) then all = false break end\n",
        "\t\t\t\tif not words[i + j - 1]:find(name[j], 1, true) then all = false break end\n",
        "names matched inside other words",
@@ -67,7 +67,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # Any mention of a buff by its full name taken for a request.
-mutate("Core.lua",
+mutate("Requests.lua",
        "\t\t\t\tcounts = asking or questioned\n",
        "\t\t\t\tcounts = true\n",
        "every mention is a request",
@@ -75,7 +75,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # "no arcane intellect please" heard as asking.
-mutate("Core.lua",
+mutate("Requests.lua",
        "\t\t\tif Among(ASK.never, word) then return nil end\n",
        "\t\t\tif false then return nil end\n",
        "a message saying no still asks",
@@ -83,7 +83,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # A question about a buff taken for a question asking for it.
-mutate("Core.lua",
+mutate("Requests.lua",
        "\t\tlocal questioned = marked and not Among(ASK.question, words[1])\n",
        "\t\tlocal questioned = marked\n",
        "questions about a buff ask for it",
@@ -91,7 +91,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # "who has arcane intellect?" read as asking for it.
-mutate("Core.lua",
+mutate("Requests.lua",
        "\t\t\t\"who\", \"whos\", \"wants\", \"needs\",\n",
        "",
        "who has it read as asking for it",
@@ -99,7 +99,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # A nickname counted whatever stands beside it: "int the healer pls".
-mutate("Core.lua",
+mutate("Requests.lua",
        "\t\t\t\tcounts = small and (asking or questioned)\n",
        "\t\t\t\tcounts = asking or questioned\n",
        "a nickname beside any words asks",
@@ -107,7 +107,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # "buff" counted whatever stands beside it: "rogues need a buff".
-mutate("Core.lua",
+mutate("Requests.lua",
        "\t\tif not keys and generic and small and asking then keys = ASK.ANY end\n",
        "\t\tif not keys and generic and asking then keys = ASK.ANY end\n",
        "buff beside any words asks",
@@ -115,7 +115,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # "mark pls" in party chat taken for Mark of the Wild.
-mutate("Core.lua",
+mutate("Requests.lua",
        "\t\t\t\tcounts = small and (pleased or only) and not ASK.group[channel]\n",
        "\t\t\t\tcounts = small and (pleased or only)\n",
        "loose words count in group chat",
@@ -123,7 +123,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # The looser words asked for by an opener: "can someone mark?".
-mutate("Core.lua",
+mutate("Requests.lua",
        "\t\t\t\tcounts = small and (pleased or only) and not ASK.group[channel]\n",
        "\t\t\t\tcounts = small and (pleased or opens or only) and not ASK.group[channel]\n",
        "loose words asked for by an opener",
@@ -131,15 +131,15 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # Another mage's "anyone need int?" taken for asking you for it.
-mutate("Core.lua",
-       "\t\tif plain(select(2, UnitClass(unit))) == playerClass then return nil end\n",
+mutate("Requests.lua",
+       "\t\tif plain(select(2, UnitClass(unit))) == ns.PlayerClass() then return nil end\n",
        "",
        "your own class taken for asking",
        expect="tactical chat is not a request",
        script="runscenarios.py")
 
 # What was asked for ignored: Kings asked, Might offered.
-mutate("Core.lua",
+mutate("Requests.lua",
        "\t\t\t\t\tif (request.keys == ASK.ANY or request.keys[buff.key])\n",
        "\t\t\t\t\tif true\n",
        "the asked-for spell ignored",
@@ -147,7 +147,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # The spell's own name, as the client spells it, never looked for.
-mutate("Core.lua",
+mutate("Requests.lua",
        "\t\t\tif Mark(words, ownWords, covered) then\n",
        "\t\t\tif false then\n",
        "the client's own spell name not heard",
@@ -155,7 +155,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # A Chinese name inside a message with no spaces never found.
-mutate("Core.lua",
+mutate("Requests.lua",
        "\t\t\t\tand lowered:find(ownWords[1], 1, true) then\n",
        "\t\t\t\tand false then\n",
        "a name without spaces never found",
@@ -163,7 +163,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # Words in other scripts compared byte for byte, so case matters.
-mutate("Core.lua",
+mutate("Requests.lua",
        "\t\tlocal caseless = _G.strcmputf8i\n\t\tif type(caseless) ~= \"function\" then return false end\n",
        "\t\tdo return false end\n",
        "no case folding outside A to Z",
@@ -171,7 +171,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # The word lists looked up byte for byte: "Не" at the start is not "не".
-mutate("Core.lua",
+mutate("Requests.lua",
        "\t\t\tif SameWord(word, entry) then return true end\n",
        "",
        "word lists not case-folded",
@@ -179,7 +179,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # Anything said in a fight kept for afterwards: interrupt calls offered.
-mutate("Core.lua",
+mutate("Requests.lua",
        "\t\tif fighting and channel ~= \"WHISPER\" then\n",
        "\t\tif false then\n",
        "requests made in a fight kept",
@@ -187,7 +187,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # A whisper in a fight let go with the rest.
-mutate("Core.lua",
+mutate("Requests.lua",
        "\t\tif fighting and channel ~= \"WHISPER\" then\n",
        "\t\tif fighting then\n",
        "whispers in a fight let go",
@@ -195,7 +195,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # A request standing when the fight starts let go during it.
-mutate("Core.lua",
+mutate("Requests.lua",
        "\t\t\tif Live(request, now) and not request.held then request.fight = true end\n",
        "",
        "requests run out in a fight",
@@ -203,7 +203,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # Held through every fight, so chained pulls keep a request alive forever.
-mutate("Core.lua",
+mutate("Requests.lua",
        "\t\t\tif Live(request, now) and not request.held then request.fight = true end\n",
        "\t\t\tif Live(request, now) then request.fight = true end\n",
        "requests held through every fight",
@@ -211,7 +211,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # Held through the fight, then given no time after it.
-mutate("Core.lua",
+mutate("Requests.lua",
        "\t\t\t\trequest.expires = now + ASK_SECONDS\n",
        "",
        "no minute after the fight",
@@ -219,7 +219,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # A buff landing does not answer the request.
-mutate("Core.lua",
+mutate("Clicks.lua",
        "\tif not unheard then ns.ServeRequest(pending.name, pending.buffKey) end\n",
        "",
        "a request is never served",
@@ -227,7 +227,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # Serving one person's request serves everybody's.
-mutate("Core.lua",
+mutate("Requests.lua",
        "\t\t\tif request.full == name or SameName(request.short, short) then\n",
        "\t\t\tif true then\n",
        "serving one request serves them all",
@@ -235,7 +235,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # Somebody who asked offered what they already wear, above your group.
-mutate("Core.lua",
+mutate("Queue.lua",
        "\t\topts.offerAnyway = isOwed\n",
        "\t\topts.offerAnyway = isOwed or asked ~= nil\n",
        "an asker offered what they have",
@@ -243,7 +243,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # A warrior asking for Intellect turned down as having no use for it.
-mutate("Core.lua",
+mutate("Queue.lua",
        "\t\topts.relevantOnly = f.relevantOnly and not asked\n",
        "\t\topts.relevantOnly = f.relevantOnly\n",
        "what they asked for judged irrelevant",
@@ -259,7 +259,7 @@ mutate("Prompt.lua",
        script="runscenarios.py")
 
 # Every message from one person kept, not the last.
-mutate("Core.lua",
+mutate("Requests.lua",
        "\t\t\tif Made(requests[i], guid, short, nil) then table.remove(requests, i) end\n",
        "",
        "asking again adds a request",
@@ -267,7 +267,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # No cap on how many requests are kept.
-mutate("Core.lua",
+mutate("Requests.lua",
        "\t\twhile #requests > ASK_KEEP do table.remove(requests, 1) end\n",
        "",
        "requests kept without a cap",
@@ -275,7 +275,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # Matched by name alone: another realm's Anna is the one beside you.
-mutate("Core.lua",
+mutate("Requests.lua",
        "\t\tif request.guid and guid then return request.guid == guid end\n",
        "",
        "requests matched by name alone",
@@ -283,7 +283,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # Heard while Manners is switched off.
-mutate("Core.lua",
+mutate("Requests.lua",
        "\t\tif not (db and db.enabled and db.sources.asked) then return end\n",
        "\t\tif not (db and db.sources.asked) then return end\n",
        "heard while switched off",
@@ -291,7 +291,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # Targeting somebody who asked leaves them below every favour.
-mutate("Core.lua",
+mutate("Queue.lua",
        "\t\t\tpriority = PRIORITY.target\n",
        "",
        "a targeted asker not moved up",
@@ -299,7 +299,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # A targeted asker read as "your target" rather than as having asked.
-mutate("Core.lua",
+mutate("Queue.lua",
        "\t\t\tif not asked then reason = \"target\" end\n",
        "\t\t\treason = \"target\"\n",
        "a targeted asker loses their reason",
@@ -307,7 +307,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # A request ranked below your group.
-mutate("Core.lua",
+mutate("Queue.lua",
        "local PRIORITY = { target = 0, owed = 1, asked = 1.5, group = 2, nearby = 3 }\n",
        "local PRIORITY = { target = 0, owed = 1, asked = 2.5, group = 2, nearby = 3 }\n",
        "requests ranked below the group",
@@ -315,7 +315,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # A standing request still offered once the source is switched off.
-mutate("Core.lua",
+mutate("Requests.lua",
        "\t\tif not (db and db.sources.asked) then return nil end\n",
        "",
        "requests offered with the source off",
