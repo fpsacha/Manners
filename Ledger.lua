@@ -171,7 +171,7 @@ local TEXT = {
 
 	-- The title the favours you have returned earn you (TITLES below): at the
 	-- top of the window, the title on the left and the way to the next on the
-	-- right, "37 of 50 to Gracious" -- the favours returned, where the next
+	-- right, "37 of 50 to Courteous" -- the favours returned, where the next
 	-- title comes, and its name.
 	UNTITLED = L["Untitled, for now"],
 	RANK_PROGRESS = L["%d of %d to %s"],
@@ -227,6 +227,11 @@ local FOLD_SECONDS = 10
 -- for its SETTLE_SECONDS and only ever calls back inside that; this is a
 -- generous bound on a list that would otherwise grow for the session.
 local UNDO_SECONDS = 30
+-- How long a new title waits before it is said: Core's SETTLE_SECONDS, in
+-- which a refusal can still take back the favour that earned it, and a second
+-- over for the refusal's event to arrive.
+local PROMOTE_SECONDS = 3
+Ledger.PROMOTE_SECONDS = PROMOTE_SECONDS
 
 local STATES = { owed = true, returned = true, letgo = true }
 -- Why a favour was let go: its time ran out, nothing you cast is any use to
@@ -524,7 +529,7 @@ local function Repair(char)
 		s.title = TitleLevel(totals.returned)
 	end
 
-	s.filter =FILTERS[s.filter] and s.filter or "all"
+	s.filter = FILTERS[s.filter] and s.filter or "all"
 
 	-- Today's counts, kept apart from the list: see Summary. Kept only with a
 	-- day that is a time and a count of gifts that is whole; any other count
@@ -564,15 +569,48 @@ local function Bump(s, key, by)
 	s.totals[key] = math.max(0, (s.totals[key] or 0) + (by or 1))
 end
 
--- After a favour returned: a title the count has just reached, and none before
--- it has, gets its one line in chat. Said whether or not chat lines are on,
--- because it happens a handful of times in a character's life.
-local function Promote(s)
+-- A title the count has reached, and none before it has, gets its one line in
+-- chat. Said whether or not chat lines are on, because it happens a handful of
+-- times in a character's life.
+local function Announce(s)
 	local level = TitleLevel(s.totals.returned)
 	if level <= (s.title or 0) then return end
 	s.title = level
 	local t = TITLES[level]
 	if ns.addon and ns.addon.Print then ns.addon:Print(TEXT.EARNED:format(t.name, t.flavour)) end
+end
+
+-- When the latest favour that could earn a title was settled, while its
+-- announcement waits; nil when none waits.
+local promoteAt
+
+-- The wait is over unless a later favour has moved it on, in which case that
+-- favour gets its own full wait.
+local function PromoteDue()
+	local left = promoteAt and promoteAt + PROMOTE_SECONDS - GetTime()
+	if left and left > 0 then
+		C_Timer.After(left, function() ns.Guard("ledger title", PromoteDue) end)
+		return
+	end
+	promoteAt = nil
+	local s = Store()
+	if s then Announce(s) end
+end
+
+-- After a favour returned. Core settles when the cast is sent, and the server
+-- can refuse it a moment later, taking the favour back: a title said at once
+-- would stand in chat while the window took it away, and the favour that then
+-- really earned it would be silent. So the title waits out the refusal, and
+-- is said only if the count still holds it. Without a timer to wait on, it is
+-- said at once.
+local function Promote(s)
+	if TitleLevel(s.totals.returned) <= (s.title or 0) then return end
+	if not (C_Timer and C_Timer.After) then return Announce(s) end
+	local waiting = promoteAt ~= nil
+	promoteAt = GetTime()
+	if not waiting then
+		C_Timer.After(PROMOTE_SECONDS, function() ns.Guard("ledger title", PromoteDue) end)
+	end
 end
 
 -- Today's counts, counted apart from the list, which keeps only MAX_ENTRIES

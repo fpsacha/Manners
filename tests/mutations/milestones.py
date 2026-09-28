@@ -44,6 +44,30 @@ mutate("Ledger.lua",
        "\tif level <= (s.title or 0) then return end\n",
        "milestones: the title announced is not remembered",
        expect="milestones: a title taken back and earned again is not said twice", script=S)
+
+# The wait before a title is said: Core settles when the cast is sent, and a
+# refusal can still take the favour back.
+mutate("Ledger.lua",
+       "\tif not (C_Timer and C_Timer.After) then return Announce(s) end\n",
+       "\tif true then return Announce(s) end\n",
+       "milestones: a title said before the refusal can come",
+       expect="milestones: a title waits out the refusal of the cast that earned it", script=S)
+mutate("Ledger.lua",
+       "\tif not (C_Timer and C_Timer.After) then return Announce(s) end\n",
+       "\tif not (C_Timer and C_Timer.After) then return end\n",
+       "milestones: no timer, no title said",
+       expect="milestones: without a timer a title is said at once", script=S)
+mutate("Ledger.lua",
+       "\tif left and left > 0 then\n\t\tC_Timer.After(left, function() ns.Guard(\"ledger title\", PromoteDue) end)\n"
+       "\t\treturn\n\tend\n",
+       "",
+       "milestones: a later favour does not get its own wait",
+       expect="milestones: a title taken back and earned again is not said twice", script=S)
+mutate("Ledger.lua",
+       "\tpromoteAt = nil\n\tlocal s = Store()\n",
+       "\tlocal s = Store()\n",
+       "milestones: the wait never ends, no later title said",
+       expect="milestones: a title taken back and earned again is not said twice", script=S)
 mutate("Ledger.lua",
        "\ts.entries = kept\n\ts.today = nil\n\tChanged()\n",
        "\ts.entries = kept\n\ts.today = nil\n\ts.title = 0\n\tChanged()\n",
