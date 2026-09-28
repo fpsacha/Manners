@@ -87,9 +87,12 @@ local function favour(ns, unit, spell)
 end
 
 -- The favour from `unit` was noticed at all, or the scenario proves nothing.
+-- The "buffed you" line, or the favour filed: inside a raid the line is not
+-- said (Favours.lua, QuietHere), and the filing is what it would report.
 local function noticed(scenario, ns, unit, text)
 	local name = ns.UnitFullName(unit)
-	if not (name and text:find(name, 1, true) and text:find("buffed you", 1, true)) then
+	local said = name and text:find(name, 1, true) and text:find("buffed you", 1, true)
+	if not (said or (name and ns.owed[name])) then
 		fail(scenario, "SKIPPED -- the favour from " .. unit .. " was not noticed: " .. text)
 		return false
 	end

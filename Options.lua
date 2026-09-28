@@ -478,6 +478,15 @@ local function BugReport()
 		tostring(db.priority.friends), tostring(db.filters.restingOnly), #ns.NeverList())
 	lines[#lines + 1] = ("groupBuffs=%s atLeast=%s"):format(
 		tostring(db.groupBuffs.use), tostring(db.groupBuffs.atLeast))
+	-- The dungeon and raid settings, each of which leaves people out or moves
+	-- them up: the raid groups as the ones switched off.
+	local skipped = {}
+	for group = 1, 8 do
+		if db.filters.skipRaidGroups[group] then skipped[#skipped + 1] = tostring(group) end
+	end
+	lines[#lines + 1] = ("manaFloor=%s readyCheckFirst=%s revivedFirst=%s raidGroupsOff=%s"):format(
+		tostring(db.filters.manaFloor), tostring(db.priority.readyCheck),
+		tostring(db.priority.revived), #skipped > 0 and table.concat(skipped, ",") or "none")
 
 	local scan = ns.auraScan
 	lines[#lines + 1] = ("own buffs: %s read, baseline %s, primed=%s, doubt=%s"):format(
@@ -517,6 +526,14 @@ local neverPicked
 local function NeverChoices()
 	local values = {}
 	for _, name in ipairs(ns.NeverList()) do values[name] = name end
+	return values
+end
+
+-- The eight raid groups as checkbox labels, keyed by group number, which is
+-- what the profile stores.
+local function RaidGroupChoices()
+	local values = {}
+	for group = 1, 8 do values[group] = L["Group %d"]:format(group) end
 	return values
 end
 
@@ -746,7 +763,8 @@ local function WhoToBuffGroup()
 				-- The label is the promise: only a known out-of-range is hidden.
 				type = "toggle",
 				name = L["Hide players known to be out of range"],
-				desc = L["When the game will not tell us the range -- common on this client -- they are still offered."],
+				desc = L["When the game will not tell us the range -- common on this client -- they are still offered."]
+					.. " " .. L["Group members the game cannot see at all -- still in town, or far off in the instance -- count as out of range."],
 				order = 22,
 				width = "full",
 				get = fGet,
@@ -843,6 +861,61 @@ local function WhoToBuffGroup()
 				step = 1,
 				get = fGet,
 				set = fSet,
+			},
+			manaFloor = {
+				type = "range",
+				name = L["Percent of my mana to keep for myself"],
+				-- The two kinds that are never held back are named, since the
+				-- rule is about who asked rather than about who they are.
+				desc = L["Below this percent of your mana, only people who buffed you or asked you for it are offered; your group, your target and passers-by wait until you have 5 percent more than this. 0 turns it off."],
+				order = 24.5,
+				min = 0,
+				max = 90,
+				step = 5,
+				-- A class with no mana bar has nothing to keep.
+				hidden = function()
+					local class = ns.caps and ns.caps.class
+					return class ~= nil and ns.MANA_CLASSES[class] ~= true
+				end,
+				get = fGet,
+				set = fSet,
+			},
+
+			-- Everything a dungeon or a raid adds, together where somebody
+			-- setting up for one will look.
+			raidHeader = { type = "header", name = L["Dungeons and raids"], order = 25 },
+			readyCheck = {
+				type = "toggle",
+				name = L["Party or raid comes first at a ready check"],
+				desc = L["From a ready check until the pull (or a minute after everybody has answered), everybody in your party or raid who is missing your buff goes to the front of the queue."],
+				order = 25.1,
+				width = "full",
+				get = prGet,
+				set = prSet,
+			},
+			revived = {
+				type = "toggle",
+				name = L["Somebody just back from the dead comes first"],
+				desc = L["Dying costs every buff, so for two minutes after a group member is brought back to life, they go to the front of the queue if they are missing yours."],
+				order = 25.2,
+				width = "full",
+				get = prGet,
+				set = prSet,
+			},
+			skipRaidGroups = {
+				type = "multiselect",
+				name = L["Raid groups I buff"],
+				-- Somebody told "groups 1 to 4" should be able to untick the
+				-- rest and forget about it.
+				desc = L["In a raid, only members of the groups ticked here are offered your buff, the way a raid leader hands out groups to each buffer. Somebody who buffed you or asked, and whoever you target, is offered whatever their group. Outside a raid this does nothing."],
+				order = 25.3,
+				values = RaidGroupChoices,
+				-- Stored as the groups switched off, so a new profile buffs all
+				-- eight and the box shows them ticked.
+				get = function(_, group) return F().skipRaidGroups[group] ~= true end,
+				set = function(_, group, on)
+					F().skipRaidGroups[group] = (not on) or nil
+				end,
 			},
 
 			neverHeader = { type = "header", name = L["Never offer"], order = 30 },

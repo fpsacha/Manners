@@ -1430,6 +1430,25 @@ function addon:HandleSlash(rawInput)
 		if ns.HiddenWhileMounted() then
 			self:Print(L["|cffffd100mounted|r -- Not while mounted keeps the prompt away until you get off"])
 		end
+		-- The queue below leaves out everybody nobody asked for while this
+		-- holds, which looks like a broken queue unless it is said.
+		local _, resume = ns.SavingMana()
+		if resume then
+			self:Print(L["|cffffd100saving mana|r -- until you are back to %d%% mana, only people who buffed you or asked are offered"]
+				:format(resume))
+		end
+		if ns.ReadyCheckRunning() then
+			self:Print(L["|cffffd100ready check|r -- your party or raid comes first until the pull"])
+		end
+		-- Always, not only in a raid: groups unticked for last week's
+		-- assignment are what leaves somebody out next week with no sign why,
+		-- and this is where to check before the raid.
+		local groups = ns.BuffedRaidGroups()
+		if groups then
+			self:Print(L["|cffffd100raid groups|r -- in a raid, only groups %s are offered unasked"]:format(groups))
+		elseif groups == false then
+			self:Print(L["|cffffd100raid groups|r -- every group is unticked, so in a raid nobody is offered unasked"])
+		end
 		self:Print(("  build |cffffffff%s|r"):format(tostring(ns.BUILD)))
 		if ns.tryMacro then
 			self:Print(("  " .. L["|cffff8080/manners try is armed:|r %s -- clear it with a bare /manners try"]):format(
