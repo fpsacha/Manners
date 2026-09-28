@@ -24,10 +24,10 @@ local playerGUID
 -- thanking them with an emote
 --
 -- "Thank them with an emote" (off by default): a favour NoteFavour files for
--- the prompt is answered with DoEmote("THANK", <their token>), so the game says
--- "You thank Anna." to you and everybody near. No addon on this client calls
--- DoEmote, so this is UNTESTED IN GAME: whether it takes a nameplate token, and
--- whether it is held back like SendChatMessage, are assumptions. Every doubt
+-- the prompt is answered with C_ChatInfo.PerformEmote("THANK", <their token>),
+-- so the game says "You thank Anna." to you and everybody near. This is
+-- UNTESTED IN GAME: the API documents a target name, not a unit token, and
+-- whether it is held back like SendChatMessage is an assumption. Every doubt
 -- therefore ends in no emote rather than a guess, and a throw is swallowed.
 ---------------------------------------------------------------------------
 
@@ -95,6 +95,15 @@ do
 		return unit
 	end
 
+	-- C_ChatInfo.PerformEmote, which Blizzard's own chat box calls. The global
+	-- DoEmote is a deprecation shim, loaded only with the CVar
+	-- loadDeprecationFallbacks on and due to go at the next expansion.
+	local function EmoteCall()
+		local chat = _G.C_ChatInfo
+		if chat and type(chat.PerformEmote) == "function" then return chat.PerformEmote end
+		return _G.DoEmote
+	end
+
 	local function Skip(name, now, why)
 		ns.thankLog.skipped = { name = name, at = now, why = why }
 	end
@@ -116,17 +125,28 @@ do
 			return Skip(name, now, L["thanked somebody a moment ago"])
 		end
 
-		-- pcall covers both a DoEmote that throws and one that is not there.
-		if not pcall(_G.DoEmote, "THANK", unit) then
+		-- pcall covers both an emote call that throws and one that is not there.
+		local ok, answer = pcall(EmoteCall(), "THANK", unit)
+		if not ok then
 			return Skip(name, now, L["the game would not do it"])
 		end
+		-- The call reached the game, so both limits are armed whatever it
+		-- answered: if the answer below is read backwards, a refusal costs one
+		-- thank, where not arming would emote at every favour that came.
 		lastAt = now
 		-- Swept here rather than on a timer: an emote is rarer than a favour.
 		for who, at in pairs(thankedAt) do
 			if now - at >= PER_PERSON then thankedAt[who] = nil end
 		end
 		thankedAt[name] = now
-		ns.thankLog.thanked = { name = name, at = now }
+		-- Read the way Blizzard's chat box reads it: true means the emote was
+		-- restricted and did not go. The API docs name the same value
+		-- "success", so the raw answer goes to /manners debug to settle it.
+		answer = plain(answer)
+		if answer == true then
+			return Skip(name, now, L["the game said it was restricted"])
+		end
+		ns.thankLog.thanked = { name = name, at = now, answer = tostring(answer) }
 	end
 end
 

@@ -1407,8 +1407,8 @@ function addon:HandleSlash(rawInput)
 			or L["thank with an emote: |cffff0000off|r"]))
 		local thanks = ns.thankLog or {}
 		if thanks.thanked then
-			self:Print(("    " .. L["last thanked: |cffffffff%s|r, %ds ago"]):format(
-				thanks.thanked.name, math.floor(now - thanks.thanked.at)))
+			self:Print(("    " .. L["last thanked: |cffffffff%s|r, %ds ago (the game answered %s)"]):format(
+				thanks.thanked.name, math.floor(now - thanks.thanked.at), thanks.thanked.answer))
 		end
 		if thanks.skipped then
 			self:Print(("    " .. L["last not thanked: |cffffffff%s|r, %ds ago (%s)"]):format(

@@ -1,8 +1,9 @@
 -- "Thank them with an emote": a favour the prompt can return answered with
--- DoEmote("THANK", <their token>), and every reason it is not -- off, a fight,
--- an instance, chat held back, a token that no longer holds them, the two
--- throttles, a favour the chat line does not put on the prompt, and a DoEmote
--- that is missing or throws.
+-- C_ChatInfo.PerformEmote("THANK", <their token>) -- DoEmote where the client
+-- has only that -- and every reason it is not: off, a fight, an instance, chat
+-- held back, a token that no longer holds them, the two throttles, a favour the
+-- chat line does not put on the prompt, an emote call that is missing or
+-- throws, and one the game answers was restricted.
 --
 -- Every scenario name starts with "thank:" so the mutations in
 -- tests/mutations/thank.py can name the one that has to catch them.
@@ -149,7 +150,8 @@ do
 		if not said():find("thank with an emote: |cff00ff00on", 1, true) then
 			fail(scenario, "/manners debug does not say the emote is on: " .. said())
 		end
-		if not said():find("last thanked: |cffffffff" .. bo .. "|r, 7s ago", 1, true) then
+		if not said():find("last thanked: |cffffffff" .. bo
+			.. "|r, 7s ago (the game answered nil)", 1, true) then
 			fail(scenario, "/manners debug does not name the last thank: " .. said())
 		end
 	end)
@@ -454,9 +456,9 @@ for _, case in ipairs({
 	end)
 end
 
--- ------------------------------------------------------------------ DoEmote
--- No addon on this client calls it, so it may be missing or refuse: skipped
--- without a word, and a refusal holds nobody back.
+-- ------------------------------------------------------------------ the emote call
+-- DoEmote is a deprecation shim that may not be loaded, and either call may
+-- throw: skipped without a word, and a call that never went holds nobody back.
 for _, case in ipairs({
 	{ label = "missing", fn = false },
 	{ label = "throws", fn = function() error("DoEmote refused") end },
@@ -481,6 +483,95 @@ for _, case in ipairs({
 		favour(ns, "nameplate1")
 		if thanked("nameplate1") ~= 1 then
 			fail(scenario, "an emote that never went held the next one back")
+		end
+	end)
+end
+
+-- C_ChatInfo.PerformEmote is the live call and is taken over DoEmote whenever
+-- the client has it: alone (the shim not loaded), or with DoEmote beside it.
+for _, case in ipairs({
+	{ label = "without DoEmote", doEmote = false },
+	{ label = "beside DoEmote", doEmote = true },
+}) do
+	local scenario = "thank: PerformEmote is the call made (" .. case.label .. ")"
+	local shim = {}
+	with(scenario, { globals = {
+		C_ChatInfo = { PerformEmote = record },
+		DoEmote = case.doEmote and function(...) shim[#shim + 1] = { ... } end or false,
+	} }, function(ns)
+		if not noticed(scenario, ns, "nameplate1", favour(ns, "nameplate1")) then return end
+		if #shim > 0 then fail(scenario, "DoEmote was called with PerformEmote there") end
+		if #emotes ~= 1 or emotes[1][1] ~= "THANK" or emotes[1][2] ~= "nameplate1" then
+			fail(scenario, ("PerformEmote made %d emotes, not THANK at the token"):format(#emotes))
+		end
+		if not (ns.thankLog.thanked and ns.thankLog.thanked.name == ns.UnitFullName("nameplate1")) then
+			fail(scenario, "the thank through PerformEmote was not written down")
+		end
+	end)
+end
+
+-- What the game answers, read the way Blizzard's chat box reads it: true is a
+-- restricted emote that did not go, and is not written down as a thank; the
+-- limits hold anyway, in case that reading is backwards. Anything else went,
+-- and the answer is shown in /manners debug so the reading can be settled.
+do
+	local scenario = "thank: an emote the game says was restricted is not a thank"
+	local answer = true
+	local function perform(emote, target)
+		record(emote, target)
+		return answer
+	end
+	with(scenario, { globals = { C_ChatInfo = { PerformEmote = perform } } }, function(ns)
+		local text = favour(ns, "nameplate1")
+		if not noticed(scenario, ns, "nameplate1", text) then return end
+		if #emotes ~= 1 then
+			fail(scenario, "SKIPPED -- the emote was never tried")
+			return
+		end
+		if text:find("thank", 1, true) or text:find("restricted", 1, true) then
+			fail(scenario, "something was said about the emote: " .. text)
+		end
+		if ns.thankLog.thanked then
+			fail(scenario, "an emote the game said was restricted was recorded as made")
+		end
+		local log = ns.thankLog.skipped
+		if not (log and log.why == "the game said it was restricted") then
+			fail(scenario, "the restricted answer was not written down for /manners debug")
+		end
+		Mock.advance(3)
+		favour(ns, "nameplate2")
+		if thanked("nameplate2") ~= 0 then
+			fail(scenario, "a restricted answer did not hold the gap, which read backwards emotes at every favour")
+		end
+		answer = false
+		Mock.advance(11)
+		favour(ns, "nameplate3")
+		if thanked("nameplate3") ~= 1 then
+			fail(scenario, "SKIPPED -- the favour after the gap was not tried")
+			return
+		end
+		Mock.advance(2)
+		Mock.printed = {}
+		ns.addon:HandleSlash("debug")
+		if not said():find("last thanked: |cffffffff" .. ns.UnitFullName("nameplate3")
+			.. "|r, 2s ago (the game answered false)", 1, true) then
+			fail(scenario, "/manners debug does not show what the game answered: " .. said())
+		end
+	end)
+end
+
+-- A secret answer is no answer, so not true: counted as went, shown as nil.
+do
+	local scenario = "thank: a secret answer is read safely"
+	with(scenario, { globals = { C_ChatInfo = { PerformEmote = function(emote, target)
+		record(emote, target)
+		return Mock.SECRET
+	end } } }, function(ns)
+		if not noticed(scenario, ns, "nameplate1", favour(ns, "nameplate1")) then return end
+		local log = ns.thankLog.thanked
+		if not (log and log.answer == "nil") then
+			fail(scenario, "a secret answer was not read through plain: "
+				.. tostring(log and log.answer))
 		end
 	end)
 end

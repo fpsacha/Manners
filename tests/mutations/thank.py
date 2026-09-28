@@ -52,25 +52,63 @@ mutate("Favours.lua",
        "thank: the token is not the one the buff came from",
        expect="thank: a favour is thanked at the token it came from", script=S)
 mutate("Favours.lua",
-       "\t\tif not pcall(_G.DoEmote, \"THANK\", unit) then\n",
-       "\t\tif not pcall(_G.DoEmote, \"THANK\", name) then\n",
+       "\t\tlocal ok, answer = pcall(EmoteCall(), \"THANK\", unit)\n",
+       "\t\tlocal ok, answer = pcall(EmoteCall(), \"THANK\", name)\n",
        "thank: the emote goes to a name",
        expect="the token the buff came from", script=S)
 mutate("Favours.lua",
-       "\t\tif not pcall(_G.DoEmote, \"THANK\", unit) then\n",
-       "\t\tif not pcall(_G.DoEmote, \"CHEER\", unit) then\n",
+       "\t\tlocal ok, answer = pcall(EmoteCall(), \"THANK\", unit)\n",
+       "\t\tlocal ok, answer = pcall(EmoteCall(), \"CHEER\", unit)\n",
        "thank: the wrong emote",
        expect="the emote made was", script=S)
 mutate("Favours.lua",
-       "\t\tif not pcall(_G.DoEmote, \"THANK\", unit) then\n",
-       "\t\tif not (_G.DoEmote(\"THANK\", unit) or true) then\n",
-       "thank: a DoEmote that throws is not caught",
+       "\t\tlocal ok, answer = pcall(EmoteCall(), \"THANK\", unit)\n",
+       "\t\tlocal ok, answer = true, EmoteCall()(\"THANK\", unit)\n",
+       "thank: an emote call that throws is not caught",
        expect="thank: DoEmote throws is skipped silently", script=S)
 mutate("Favours.lua",
-       "\t\tns.thankLog.thanked = { name = name, at = now }\n",
+       "\t\tns.thankLog.thanked = { name = name, at = now, answer = tostring(answer) }\n",
        "",
        "thank: the thank is not written down",
        expect="the thank was not written down for /manners debug", script=S)
+
+# ------------------------------------------------ which call, and its answer
+mutate("Favours.lua",
+       "\t\tif chat and type(chat.PerformEmote) == \"function\" then return chat.PerformEmote end\n",
+       "",
+       "thank: PerformEmote is never called",
+       expect="thank: PerformEmote is the call made (without DoEmote)", script=S)
+mutate("Favours.lua",
+       "\t\tif chat and type(chat.PerformEmote) == \"function\" then return chat.PerformEmote end\n",
+       "\t\tif chat and type(chat.PerformEmote) == \"function\" and not _G.DoEmote then return chat.PerformEmote end\n",
+       "thank: the DoEmote shim is taken over PerformEmote",
+       expect="DoEmote was called with PerformEmote there", script=S)
+mutate("Favours.lua",
+       "\t\treturn _G.DoEmote\n",
+       "\t\treturn nil\n",
+       "thank: no DoEmote on a client without PerformEmote",
+       expect="thank: a favour is thanked at the token it came from", script=S)
+mutate("Favours.lua",
+       "\t\tif answer == true then\n",
+       "\t\tif false then\n",
+       "thank: the game's answer is not read",
+       expect="an emote the game said was restricted was recorded as made", script=S)
+mutate("Favours.lua",
+       "\t\tanswer = plain(answer)\n",
+       "",
+       "thank: a secret answer is read unguarded",
+       expect="thank: a secret answer is read safely", script=S)
+mutate("Favours.lua",
+       "\t\tif not ok then\n",
+       "\t\tif not ok or plain(answer) == true then\n"
+       "\t\t\tif ok then return Skip(name, now, L[\"the game said it was restricted\"]) end\n",
+       "thank: a restricted answer does not hold the limits",
+       expect="a restricted answer did not hold the gap", script=S)
+mutate("Commands.lua",
+       "\t\t\t\tthanks.thanked.name, math.floor(now - thanks.thanked.at), thanks.thanked.answer))\n",
+       "\t\t\t\tthanks.thanked.name, math.floor(now - thanks.thanked.at), \"?\"))\n",
+       "thank: debug does not show the game's answer",
+       expect="/manners debug does not show what the game answered", script=S)
 mutate("Favours.lua",
        "\t\tns.thankLog.skipped = { name = name, at = now, why = why }\n",
        "\t\tns.thankLog.skipped = { name = name, at = now }\n",
@@ -199,15 +237,10 @@ mutate("Favours.lua",
        "thank: the gap is a minute",
        expect="a favour eleven seconds after the last thank was not thanked", script=S)
 mutate("Favours.lua",
-       "\t\tif not pcall(_G.DoEmote, \"THANK\", unit) then\n"
-       "\t\t\treturn Skip(name, now, L[\"the game would not do it\"])\n"
-       "\t\tend\n"
-       "\t\tlastAt = now\n",
+       "\t\tlocal ok, answer = pcall(EmoteCall(), \"THANK\", unit)\n",
        "\t\tlastAt = now\n"
        "\t\tthankedAt[name] = now\n"
-       "\t\tif not pcall(_G.DoEmote, \"THANK\", unit) then\n"
-       "\t\t\treturn Skip(name, now, L[\"the game would not do it\"])\n"
-       "\t\tend\n",
+       "\t\tlocal ok, answer = pcall(EmoteCall(), \"THANK\", unit)\n",
        "thank: an emote that never went holds the next back",
        expect="an emote that never went held the next one back", script=S)
 
@@ -218,8 +251,8 @@ mutate("Commands.lua",
        "thank: debug always says on",
        expect="/manners debug does not say the emote is off", script=S)
 mutate("Commands.lua",
-       "\t\t\t\tthanks.thanked.name, math.floor(now - thanks.thanked.at)))\n",
-       "\t\t\t\tthanks.thanked.name, math.floor(thanks.thanked.at)))\n",
+       "\t\t\t\tthanks.thanked.name, math.floor(now - thanks.thanked.at), thanks.thanked.answer))\n",
+       "\t\t\t\tthanks.thanked.name, math.floor(thanks.thanked.at), thanks.thanked.answer))\n",
        "thank: debug gives the wrong age",
        expect="/manners debug does not name the last thank", script=S)
 mutate("Commands.lua",
