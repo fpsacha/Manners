@@ -1,6 +1,7 @@
 -- Manners -- noticing that somebody buffed you: your own auras watched for a
 -- new buff and whoever cast it, and the combat log where the client allows
--- it. What is noticed becomes a debt on Queue.lua's owed table.
+-- it. What is noticed becomes a debt on Queue.lua's owed table, and, for a
+-- player who switched it on, a /thank.
 
 local ns = select(2, ...)
 -- Player-facing text, in the client's language: see Locales/Init.lua.
@@ -18,6 +19,116 @@ local owed, SaveDebts, TellLedger, NoReading = ns.owed, ns.SaveDebts, ns.TellLed
 -- The player's own GUID, read on PLAYER_ENTERING_WORLD (below). The combat log
 -- compares both ends of every aura against it.
 local playerGUID
+
+---------------------------------------------------------------------------
+-- thanking them with an emote
+--
+-- "Thank them with an emote" (off by default): a favour NoteFavour files for
+-- the prompt is answered with DoEmote("THANK", <their token>), so the game says
+-- "You thank Anna." to you and everybody near. No addon on this client calls
+-- DoEmote, so this is UNTESTED IN GAME: whether it takes a nameplate token, and
+-- whether it is held back like SendChatMessage, are assumptions. Every doubt
+-- therefore ends in no emote rather than a guess, and a throw is swallowed.
+---------------------------------------------------------------------------
+
+local ThankFavour
+do
+	-- Once per person in five minutes, and once for anybody in ten seconds: a
+	-- raid buffing you on the pull is not twenty emotes. Only an emote that
+	-- went counts; a favour skipped for either is never thanked later.
+	local PER_PERSON = 300
+	local GAP = 10
+	local thankedAt = {} -- [filed name] = GetTime() of the thank
+	local lastAt
+
+	-- For /manners debug, since nothing else shows an emote that never came:
+	-- the last one made and the last one skipped, with why.
+	ns.thankLog = {}
+
+	-- One answer from the client, where a missing function, a throw or a
+	-- secret is no answer (nil): pcall covers the first two.
+	local function Answer(fn, ...)
+		local ok, value = pcall(fn, ...)
+		if not ok then return nil end
+		return plain(value)
+	end
+
+	-- Why the client would not want an emote from addon code now, or nil.
+	-- Retail 12.x holds chat from addon code back in an encounter; which
+	-- instance does it when, nobody here has seen, so every instance is out,
+	-- and so is a client that will not say whether this is one. Then the two
+	-- checks other addons on this client make before chatting (EnhanceQoL,
+	-- Prat): the messaging lockdown and the Chat restriction state.
+	local function Held()
+		if InCombatLockdown() then return L["in a fight"] end
+		local inside = Answer(_G.IsInInstance)
+		if inside ~= false then return L["in an instance"] end
+		local encounter = _G.C_InstanceEncounter
+		if Answer(encounter and encounter.IsEncounterInProgress) == true
+			or Answer(_G.IsEncounterInProgress) == true then
+			return L["during an encounter"]
+		end
+		local chat = _G.C_ChatInfo
+		if chat and chat.InChatMessagingLockdown
+			and Answer(chat.InChatMessagingLockdown) ~= false then
+			return L["chat is restricted"]
+		end
+		local actions, enum = _G.C_RestrictedActions, _G.Enum
+		local kind = enum and enum.AddOnRestrictionType and enum.AddOnRestrictionType.Chat
+		local idle = enum and enum.AddOnRestrictionState and enum.AddOnRestrictionState.Inactive
+		if kind ~= nil and idle ~= nil and actions and actions.GetAddOnRestrictionState
+			and Answer(actions.GetAddOnRestrictionState, kind) ~= idle then
+			return L["chat is restricted"]
+		end
+		return nil
+	end
+
+	-- The token Sight read them under, while it still holds them: it may be
+	-- a nameplate handed to a bystander since. Never a name, which /thank
+	-- could match to somebody else.
+	local function Holding(seen)
+		local unit = seen.unit
+		if type(unit) ~= "string" or unit == "" then return nil end
+		if Answer(UnitExists, unit) ~= true then return nil end
+		if Answer(ns.UnitFullName, unit) ~= seen.name then return nil end
+		if seen.guid ~= nil and Answer(UnitGUID, unit) ~= seen.guid then return nil end
+		return unit
+	end
+
+	local function Skip(name, now, why)
+		ns.thankLog.skipped = { name = name, at = now, why = why }
+	end
+
+	ThankFavour = function(seen)
+		local db = addon.db and addon.db.profile
+		if not (db and db.prompt.thankEmote) then return end
+		local now, name = GetTime(), seen.name
+
+		local why = Held()
+		if why then return Skip(name, now, why) end
+		local unit = Holding(seen)
+		if not unit then return Skip(name, now, L["no unit for them"]) end
+		local last = thankedAt[name]
+		if last and now - last < PER_PERSON then
+			return Skip(name, now, L["thanked them a moment ago"])
+		end
+		if lastAt and now - lastAt < GAP then
+			return Skip(name, now, L["thanked somebody a moment ago"])
+		end
+
+		-- pcall covers both a DoEmote that throws and one that is not there.
+		if not pcall(_G.DoEmote, "THANK", unit) then
+			return Skip(name, now, L["the game would not do it"])
+		end
+		lastAt = now
+		-- Swept here rather than on a timer: an emote is rarer than a favour.
+		for who, at in pairs(thankedAt) do
+			if now - at >= PER_PERSON then thankedAt[who] = nil end
+		end
+		thankedAt[name] = now
+		ns.thankLog.thanked = { name = name, at = now }
+	end
+end
 
 ---------------------------------------------------------------------------
 -- noticing that somebody buffed you
@@ -138,6 +249,9 @@ do
 		-- Asked of the token while it still means them, like the name.
 		seen.sameParty = SameParty(source)
 		seen.hasMana = UnitHasMana(source)
+		-- Kept only for the emote, which asks again that it still holds them
+		-- (ThankFavour): nothing else may trust a token read a scan ago.
+		seen.unit = source
 	end
 
 	-- What the queue would offer somebody (nil for nothing) knowing only whether
@@ -211,11 +325,12 @@ do
 		-- as if they were outside it, about classes rather than where they stand,
 		-- so the ledger's row stays true after they join or leave.
 		TellLedger("Received", seen, nil, ns.CouldOffer(hasMana, false) == nil)
+		-- A warrior's shout reaches the party (in a raid, the subgroup) and
+		-- nobody else, so a stranger who buffed one is kept but not on the
+		-- prompt, and the line says so, naming the subgroup where that is the
+		-- limit. The emote below asks the same.
+		local reachable = ns.CouldOffer(hasMana, inParty) ~= nil
 		if db.verbose then
-			-- A warrior's shout reaches the party (in a raid, the subgroup) and
-			-- nobody else, so a stranger who buffed one is kept but not on the
-			-- prompt, and the line says so, naming the subgroup where that is the limit.
-			local reachable = ns.CouldOffer(hasMana, inParty) ~= nil
 			-- "On the prompt" only when a prompt can show it: not through a snooze,
 			-- an unlocked prompt or Not while mounted.
 			local snoozeEnds = reachable and ns.SnoozeLeft() and ns.SnoozeEndsAt()
@@ -244,6 +359,11 @@ do
 		end
 		-- Written through rather than left to the logout hook: favours are rare.
 		SaveDebts()
+		-- Only a favour the prompt can return, as the chat line has it: the
+		-- useless one returned above, and one only your party could be
+		-- reached with is not thanked either. Guarded and last, so nothing
+		-- in it can cost the debt.
+		if reachable then ns.Guard("thank emote", ThankFavour, seen) end
 	end
 
 	-- One buff landing, seen by two sources that cannot see each other (a log line

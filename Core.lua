@@ -231,6 +231,9 @@ local defaults = {
 			reasonPalette = "standard",
 			accentMode = "icon", -- icon | stripe | both | off
 			flashStyle = "pulse", -- pulse | once | off
+			-- /thank somebody who buffs you (Favours.lua). Off: an emote is
+			-- seen by everybody nearby, so the player chooses to make one.
+			thankEmote = false,
 			-- full | calm: calm is the prompt without the animations.
 			effects = "full",
 			-- The global cooldown swept over the spell icon.
@@ -1286,6 +1289,7 @@ function ns.ClampSettings()
 	oneOf(p, "accentMode", { icon = true, stripe = true, both = true, off = true }, "icon")
 	oneOf(p, "reasonPalette", { standard = true, colourblind = true }, "standard")
 	oneOf(p, "flashStyle", { pulse = true, once = true, off = true }, "pulse")
+	boolean(p, "thankEmote", false)
 	oneOf(p, "effects", { full = true, calm = true }, "full")
 	boolean(p, "showCooldown", true)
 
