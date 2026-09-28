@@ -92,6 +92,12 @@ local function RewindClick(pending)
 	-- The rotation pointer as the click found it (nil for a first one), behind
 	-- the gate the click went through.
 	if ns.RotatesBuffs() then ns.lastGave[pending.name] = pending.gave end
+	-- A group cast blocked everybody it covered; none of them got it either.
+	if pending.group then
+		for _, name in ipairs(pending.group.members) do
+			ns.MarkAttempted(name, pending.buffKey, 2)
+		end
+	end
 end
 
 -- The first-name fallback is gone on purpose (STATUS.md). It switched a
@@ -248,6 +254,54 @@ local function MatchSettled(castGUID)
 	return nil
 end
 
+-- Everybody else a group cast covered, on the same evidence as the person it
+-- was aimed at: a favour any of them did you is returned by it, whatever they
+-- asked for is answered, and they wait out the cooldown. Only the favours go
+-- to the ledger, which files the cast itself once, under the anchor. Returns
+-- what a late refusal needs to undo it.
+local function SettleGroup(pending, spellId)
+	local records, repaid = {}, {}
+	local covered = { buffKey = pending.buffKey, group = pending.group, inGroup = true }
+	for _, name in ipairs(pending.group.members) do
+		local debt = owed[name]
+		ns.MarkAttempted(name, pending.buffKey)
+		if debt then
+			ns.SettleFavour(name)
+			TellLedger("Settled", name, debt, covered, spellId)
+			repaid[#repaid + 1] = ns.ShortName(name)
+		end
+		ns.ServeRequest(name, pending.buffKey)
+		records[#records + 1] = { name = name, owed = debt,
+			listedAtSettle = debt ~= nil and ListedAs(name) ~= nil }
+	end
+	local db = addon.db and addon.db.profile
+	if #repaid > 0 and db and db.verbose then
+		addon:Print(L["|cffffd100%s|r returned the favour to %s as well."]:format(
+			SpellLabel(pending.group.spell), table.concat(repaid, ", ")))
+	end
+	return records
+end
+
+-- A late refusal of a group cast: the favours it returned are owed again, as
+-- the anchor's is, and the ledger takes back each by the settle's clock.
+local function UnsettleGroup(settled)
+	for _, member in ipairs(settled.members or {}) do
+		if member.owed then
+			TellLedger("Refused", member.name, settled.at)
+			if not member.listedAtSettle and ListedAs(member.name) then
+				-- Listed since: let go, as the anchor's is (see below).
+				TellLedger("LetGo", member.name, "never")
+			else
+				local standing = owed[member.name]
+				if not standing or LiveExpiry(standing) < LiveExpiry(member.owed) then
+					owed[member.name] = member.owed
+				end
+			end
+		end
+	end
+	SaveDebts()
+end
+
 local function SettlePendingClick(landedOn, spellId, castGUID)
 	local pending = ns.pendingClick
 	if not pending then return end
@@ -373,6 +427,9 @@ local function SettlePendingClick(landedOn, spellId, castGUID)
 	if not unheard then ns.ServeRequest(pending.name, pending.buffKey) end
 	-- The ledger follows the same gate as the debt.
 	if not unheard then TellLedger("Settled", pending.name, wasOwed, pending, spellId) end
+	-- A group cast settles everybody else it covered with the same evidence.
+	-- A shout is never one, so `unheard` cannot be true here.
+	local members = pending.group and SettleGroup(pending, spellId) or nil
 	-- The client sent the cast; the server has not answered yet. Keep the
 	-- record so a refusal arriving a moment from now has something to be about.
 	-- Whether they were on the never-offer list already, which a favour owed
@@ -381,7 +438,8 @@ local function SettlePendingClick(landedOn, spellId, castGUID)
 		gave = pending.gave, at = GetTime(), owed = wasOwed, castGUID = castGUID,
 		listedAtSettle = ListedAs(pending.name) ~= nil,
 		-- A shout nothing measured them inside of is not a cast on them.
-		landed = not unheard })
+		landed = not unheard,
+		group = pending.group, members = members })
 	ns.pendingClick = nil
 end
 
@@ -404,6 +462,10 @@ local function UnsettleLateRefusal(castGUID)
 	-- decides only whether there was a debt, and settled.owed says that.
 	local db = addon.db and addon.db.profile
 	if not db or not db.enabled then return nil end
+
+	-- Everybody else a group cast covered, whichever way the anchor goes
+	-- below; RewindClick puts back their cooldowns with the anchor's.
+	if settled.members then UnsettleGroup(settled) end
 
 	-- A shift-right-click since the settle let this favour go, and a refusal
 	-- must not bring it back: owed people are exempt from the list. The row

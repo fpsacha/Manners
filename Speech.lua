@@ -242,7 +242,9 @@ do
 		-- Through Swap, so a "%" in a name cannot throw from inside gsub.
 		local phrase = pool[math.random(#pool)]
 		phrase = ns.Swap(phrase, "{name}", entry.short or entry.name)
-		phrase = ns.Swap(phrase, "{buff}", entry.buff and ns.BuffName(entry.buff))
+		-- The spell that goes out: a group cast's own name (GroupBuffs.lua).
+		local spell = entry.groupCast and entry.groupCast.spellName
+		phrase = ns.Swap(phrase, "{buff}", spell or (entry.buff and ns.BuffName(entry.buff)))
 		phrase = SanitizePhrase(phrase)
 		if not phrase then return nil end
 

@@ -21,6 +21,11 @@
 --   talent    learned from a talent, so not everybody of the class knows it.
 --             Data only: ns.AskedFor still turns away every ask from your own
 --             class, talent or not, until it is taught to read this.
+--   groupCast the version one cast puts on a whole party (or, for a paladin,
+--             on everybody of one class), as { id, reagent } per rank, highest
+--             first. Only the rank the player knows best is ever used, because
+--             the macro casts by name and the game picks that rank. Offered in
+--             place of single casts by GroupBuffs.lua.
 --
 -- Only buffs worth giving a passer-by are listed: emergency spells (Blessing
 -- of Freedom, Protection) and anything that moves somebody (Slow Fall,
@@ -37,6 +42,28 @@ local L = ns.L
 -- This data must not move: these are the tables confirmed working in game on
 -- Forever, the one client anybody here can test.
 
+-- The reagents the group versions eat, one per cast. The item ids and names
+-- were checked against QuestieDB_Camelot (the Forever client's own item data:
+-- 17020 Arcane Powder, 17021 Wild Berries, 17026 Wild Thornroot, 17029 Sacred
+-- Candle, 21177 Symbol of Kings) and Questie's list of what reagent vendors
+-- sell to each class. Which rank eats which is the 1.12 spell data, not in any
+-- file here: the ranks learned at 60 and the 50/56 ones agree except Gift of
+-- the Wild, whose first rank takes Wild Berries and whose second Thornroot.
+-- GroupBuffs.lua also asks the client whether the spell is usable, which is
+-- false without its reagent, so a wrong pairing costs an offer, not a cast.
+local ARCANE_POWDER, WILD_BERRIES, WILD_THORNROOT = 17020, 17021, 17026
+local SACRED_CANDLE, SYMBOL_OF_KINGS = 17029, 21177
+
+-- A paladin's Greater Blessing, highest rank first: every one of them takes a
+-- Symbol of Kings.
+local function Greater(...)
+	local out = {}
+	for i = 1, select("#", ...) do
+		out[i] = { id = (select(i, ...)), reagent = SYMBOL_OF_KINGS }
+	end
+	return out
+end
+
 local VANILLA = {
 	MAGE = {
 		{
@@ -44,6 +71,8 @@ local VANILLA = {
 			ranks = { 10157, 10156, 1461, 1460, 1459 },
 			group = { 23028 },
 			manaOnly = true,
+			-- Arcane Brilliance.
+			groupCast = { { id = 23028, reagent = ARCANE_POWDER } },
 		},
 	},
 
@@ -52,6 +81,8 @@ local VANILLA = {
 			key = "fortitude",
 			ranks = { 10938, 10937, 2791, 1245, 1244, 1243 },
 			group = { 21564, 21562 },
+			-- Prayer of Fortitude.
+			groupCast = { { id = 21564, reagent = SACRED_CANDLE }, { id = 21562, reagent = SACRED_CANDLE } },
 		},
 		{
 			key = "spirit",
@@ -59,11 +90,15 @@ local VANILLA = {
 			group = { 27681 },
 			manaOnly = true,
 			talent = true,
+			-- Prayer of Spirit.
+			groupCast = { { id = 27681, reagent = SACRED_CANDLE } },
 		},
 		{
 			key = "shadow",
 			ranks = { 10958, 10957, 976 },
 			group = { 27683 },
+			-- Prayer of Shadow Protection.
+			groupCast = { { id = 27683, reagent = SACRED_CANDLE } },
 		},
 	},
 
@@ -72,6 +107,8 @@ local VANILLA = {
 			key = "motw",
 			ranks = { 9885, 9884, 8907, 5234, 6756, 5232, 1126 },
 			group = { 21850, 21849 },
+			-- Gift of the Wild: each rank its own reagent.
+			groupCast = { { id = 21850, reagent = WILD_THORNROOT }, { id = 21849, reagent = WILD_BERRIES } },
 		},
 		{
 			key = "thorns",
@@ -85,33 +122,39 @@ local VANILLA = {
 			ranks = { 25290, 19854, 19853, 19852, 19850, 19742 },
 			group = { 25918, 25894 },
 			manaOnly = true,
+			groupCast = Greater(25918, 25894),
 		},
 		{
 			key = "might",
 			ranks = { 25291, 19838, 19837, 19836, 19835, 19834, 19740 },
 			group = { 25916, 25782 },
+			groupCast = Greater(25916, 25782),
 		},
 		{
 			key = "kings",
 			ranks = { 20217 },
 			group = { 25898 },
 			talent = true,
+			groupCast = Greater(25898),
 		},
 		{
 			key = "salvation",
 			ranks = { 1038 },
 			group = { 25895 },
+			groupCast = Greater(25895),
 		},
 		{
 			key = "light",
 			ranks = { 19979, 19978, 19977 },
 			group = { 25890 },
+			groupCast = Greater(25890),
 		},
 		{
 			key = "sanctuary",
 			ranks = { 20914, 20913, 20912, 20911 },
 			group = { 25899 },
 			talent = true,
+			groupCast = Greater(25899),
 		},
 	},
 
@@ -152,6 +195,9 @@ local VANILLA_SET = {
 	-- else in it. Vanilla's Battle Shout is party-wide in a raid, not raid-wide;
 	-- the later sets made their shouts reach the whole raid, and leave this out.
 	partyIsSubgroup = true,
+	-- Classes whose groupCast reaches everybody of the target's class in the
+	-- raid or party rather than the target's party: the Greater Blessings.
+	groupByClass = { PALADIN = true },
 }
 
 ---------------------------------------------------------------------------
@@ -361,6 +407,7 @@ if chosen then
 	ns.CLASS_AUTO = chosen.auto
 	ns.CLASSES_WITHOUT_BUFFS = chosen.without
 	ns.PARTY_IS_SUBGROUP = chosen.partyIsSubgroup == true
+	ns.GROUP_BY_CLASS = chosen.groupByClass
 end
 
 ---------------------------------------------------------------------------
@@ -384,6 +431,7 @@ function ns.BuildBuffLookups()
 	if type(ns.EXCLUSIVE_BUFFS) ~= "table" then ns.EXCLUSIVE_BUFFS = {} end
 	if type(ns.CLASS_AUTO) ~= "table" then ns.CLASS_AUTO = {} end
 	if type(ns.CLASSES_WITHOUT_BUFFS) ~= "table" then ns.CLASSES_WITHOUT_BUFFS = {} end
+	if type(ns.GROUP_BY_CLASS) ~= "table" then ns.GROUP_BY_CLASS = {} end
 
 	if type(ns.BUFFS) ~= "table" then
 		ns.BUFFS = {}

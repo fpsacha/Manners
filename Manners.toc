@@ -40,6 +40,7 @@ Core.lua
 Range.lua
 Speech.lua
 Queue.lua
+GroupBuffs.lua
 Requests.lua
 Favours.lua
 Clicks.lua

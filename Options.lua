@@ -453,6 +453,14 @@ local function BugReport()
 			lines[#lines + 1] = ("    no such spell on this client: %s"):format(
 				table.concat(info.unresolved, ", "))
 		end
+		-- The group version the prompt would cast, and the reagent it would
+		-- eat as the bags hold it now: "never offers the group buff" is most
+		-- often answered here.
+		if info and info.groupRank then
+			lines[#lines + 1] = ("    group spell %s, reagent %s x%s"):format(
+				tostring(info.groupRank), tostring(info.groupReagent),
+				tostring(ns.ReagentCount and ns.ReagentCount(info.groupReagent)))
+		end
 	end
 
 	-- The settings that change what it does, rather than how it looks. A report
@@ -468,6 +476,8 @@ local function BugReport()
 	-- often answered by the last number here.
 	lines[#lines + 1] = ("friendsFirst=%s restingOnly=%s neverOffered=%d"):format(
 		tostring(db.priority.friends), tostring(db.filters.restingOnly), #ns.NeverList())
+	lines[#lines + 1] = ("groupBuffs=%s atLeast=%s"):format(
+		tostring(db.groupBuffs.use), tostring(db.groupBuffs.atLeast))
 
 	local scan = ns.auraScan
 	lines[#lines + 1] = ("own buffs: %s read, baseline %s, primed=%s, doubt=%s"):format(
@@ -606,6 +616,35 @@ local function WhoToBuffGroup()
 				width = "full",
 				get = sGet,
 				set = sSet,
+			},
+			-- Group buffs (GroupBuffs.lua), under the source they change: they
+			-- only ever replace offers to your party. Shown to the classes that
+			-- have a group version at all, learned yet or not.
+			groupBuffsUse = {
+				type = "toggle",
+				name = L["Use group buffs"],
+				desc = L["When enough people in one party are missing your buff and you carry the reagent, offer one group cast -- Arcane Brilliance, Prayer of Fortitude, Gift of the Wild or a Greater Blessing -- instead of buffing them one at a time."],
+				order = 13.1,
+				width = "full",
+				hidden = function() return not (ns.ClassHasGroupBuffs and ns.ClassHasGroupBuffs()) end,
+				disabled = function() return not S().group end,
+				get = function() return ns.db.profile.groupBuffs.use end,
+				-- The next scan (a fraction of a second) folds or unfolds the
+				-- party, and the macro follows it.
+				set = function(_, v) ns.db.profile.groupBuffs.use = v end,
+			},
+			groupBuffsAtLeast = {
+				type = "range",
+				name = L["When at least this many are missing"],
+				desc = L["How many people in one party (for a Greater Blessing, of one class) have to be missing the buff before the group version is offered."],
+				order = 13.2,
+				min = 2,
+				max = 5,
+				step = 1,
+				hidden = function() return not (ns.ClassHasGroupBuffs and ns.ClassHasGroupBuffs()) end,
+				disabled = function() return not (S().group and ns.db.profile.groupBuffs.use) end,
+				get = function() return ns.db.profile.groupBuffs.atLeast end,
+				set = function(_, v) ns.db.profile.groupBuffs.atLeast = math.floor(v) end,
 			},
 			strangers = {
 				type = "toggle",

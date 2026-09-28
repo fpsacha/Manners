@@ -174,6 +174,18 @@ local defaults = {
 			friends = true,
 		},
 
+		-- One cast for a whole party (GroupBuffs.lua). On, because it only
+		-- ever happens for somebody who has learned the group version and is
+		-- carrying its reagent -- which nobody does except to use it -- and it
+		-- saves them the mana and the presses of buffing the party one by one.
+		groupBuffs = {
+			use = true,
+			-- How many of one party (or, for a Greater Blessing, one class)
+			-- must be missing the buff. Three: fewer is as quick one by one,
+			-- and not worth a reagent.
+			atLeast = 3,
+		},
+
 		-- People never to offer anything to, as a set of filed names. Somebody
 		-- on it who buffs you is still offered the favour back (STATUS.md).
 		never = {},
@@ -331,6 +343,16 @@ do
 		for _, id in ipairs(buff.group or {}) do
 			if safecall(_G.IsSpellKnown, id) == true or safecall(_G.IsPlayerSpell, id) == true then
 				info.knownGroup = true
+			end
+		end
+		-- The one-cast-for-the-party version: the best rank known, since the
+		-- macro casts by name and the game picks that one, and so its reagent.
+		for _, rank in ipairs(buff.groupCast or {}) do
+			if safecall(_G.IsSpellKnown, rank.id) == true or safecall(_G.IsPlayerSpell, rank.id) == true then
+				info.groupRank, info.groupReagent = rank.id, rank.reagent
+				info.groupName = SpellNameFor(rank.id)
+				info.groupIcon = safecall(C_Spell and C_Spell.GetSpellTexture, rank.id)
+				break
 			end
 		end
 
@@ -1160,6 +1182,8 @@ local LIMITS = {
 	{ "prompt", "fontSize", 6, 32 },
 	{ "prompt", "iconSize", 12, 64 },
 	{ "prompt", "queueRows", 1, 5 },
+	-- Two is the least a group cast can beat, five a whole party.
+	{ "groupBuffs", "atLeast", 2, 5 },
 }
 
 -- The largest icon a prompt of this size can hold: eight pixels shorter than
@@ -1270,6 +1294,10 @@ function ns.ClampSettings()
 	boolean(profile.priority, "target", true)
 	boolean(profile.priority, "friends", true)
 	boolean(profile.filters, "restingOnly", false)
+	boolean(profile.groupBuffs, "use", true)
+	-- A count of people, so a whole one: a hand-edited 2.5 is a number the
+	-- slider cannot show, and the page would say something the scan does not do.
+	profile.groupBuffs.atLeast = math.floor(profile.groupBuffs.atLeast)
 
 	-- The never-offer list is read on every scan; the repair at the top made
 	-- it a table. An entry that is not a name set to true is dropped: there is
@@ -1693,6 +1721,9 @@ function ns.WriteProbe()
 			name = info.name,
 			known = info.known,
 			knownGroup = info.knownGroup,
+			-- The group version the prompt would cast, and what it eats.
+			groupRank = info.groupRank,
+			groupReagent = info.groupReagent,
 			topRank = info.topRank,
 			readable = info.readable,
 			secrecy = info.secrecy,

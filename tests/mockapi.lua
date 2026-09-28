@@ -1422,6 +1422,20 @@ local SPELL_NAMES = {
 	[20914] = "Blessing of Sanctuary",
 	[5697] = "Unending Breath",
 	[25289] = "Battle Shout",
+	-- The group versions (tests/scenarios/groupbuffs.lua), which a macro casts
+	-- by these names. 21562, Prayer of Fortitude's first rank here, is left to
+	-- the retail list below: that client reuses the id for the single buff.
+	[23028] = "Arcane Brilliance",
+	[21564] = "Prayer of Fortitude",
+	[27681] = "Prayer of Spirit",
+	[27683] = "Prayer of Shadow Protection",
+	[21850] = "Gift of the Wild",
+	[21849] = "Gift of the Wild",
+	[25918] = "Greater Blessing of Wisdom",
+	[25894] = "Greater Blessing of Wisdom",
+	[25916] = "Greater Blessing of Might",
+	[25782] = "Greater Blessing of Might",
+	[25898] = "Greater Blessing of Kings",
 
 	-- Mists of Pandaria
 	[61316] = "Dalaran Brilliance",

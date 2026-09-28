@@ -1138,11 +1138,24 @@ function ns.BuildQueue()
 		end
 	end
 
+	-- A party's single casts folded into one group cast where the player has
+	-- the group version and its reagent (GroupBuffs.lua), before the sort, so
+	-- the group cast takes its place by the best of the people it covers.
+	-- Guarded: a fault there costs the group cast, never the single ones.
+	if ns.GroupCasts then
+		ns.Guard("group buffs", function()
+			queue = ns.GroupCasts(queue, db, candidates, inRaid)
+		end)
+	end
+
 	table.sort(queue, function(a, b)
 		if a.priority ~= b.priority then return a.priority < b.priority end
 		local ar = a.ranged == true and 0 or (a.ranged == nil and 1 or 2)
 		local br = b.ranged == true and 0 or (b.ranged == nil and 1 or 2)
 		if ar ~= br then return ar < br end
+		-- A group cast ahead of single casts of its kind: one press covers a
+		-- party, so it clears the queue fastest.
+		if (a.groupCast ~= nil) ~= (b.groupCast ~= nil) then return a.groupCast ~= nil end
 		-- Friends first inside a kind of offer, never across one, and below the
 		-- range key: a friend out of reach must not lead with a cast that fails
 		-- (STATUS.md). With Who comes first off this is always a tie.

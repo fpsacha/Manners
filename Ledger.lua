@@ -116,6 +116,8 @@ local TEXT = {
 	-- After "Gave": %s is the spell you gave the row's player.
 	GAVE_GROUP = L["%s, in your group"],
 	GAVE_STRANGER = L["%s, to a stranger"],
+	-- A group cast: %s is the spell, %d how many people the one cast reached.
+	GAVE_COVERED = L["%s, to %d in your group"],
 	-- In place of a spell name the client could not give.
 	UNKNOWN_SPELL = L["a buff"],
 
@@ -157,6 +159,8 @@ local TEXT = {
 	-- Under either of those for a buff somebody asked for, which is listed
 	-- with the rest but not counted as given unprompted.
 	TIP_GAVE_ASKED = L["They asked for it in chat."],
+	-- Under TIP_GAVE_GROUP for a group cast, which is counted as one buff.
+	TIP_GAVE_COVERED = L["One cast reached %d people in their party or class, and counts as one buff given."],
 
 	JUST_NOW = L["just now"],
 	MINUTES_AGO = L["%d min ago"],
@@ -415,9 +419,14 @@ local function CleanEntry(e)
 	local class = CleanClass(e.class)
 
 	if e.kind == "given" then
-		return { kind = "given", name = name, class = class, at = at,
+		local out = { kind = "given", name = name, class = class, at = at,
 			spell = CleanSpell(e.spell), to = e.to == "group" and "group" or "stranger",
 			asked = e.asked == true or nil }
+		-- How many one group cast reached, never more than a raid holds;
+		-- nothing for a single cast.
+		local covered = math.min(Count(e.covered), 40)
+		if covered > 1 then out.covered = covered end
+		return out
 	elseif e.kind == "received" then
 		local spells = {}
 		if type(e.spells) == "table" then
@@ -775,6 +784,10 @@ end
 local function GaveSpell(pending, spellId)
 	local id = CleanSpell(spellId)
 	if id then return id end
+	-- A group cast went out as its own spell, whatever the client reported.
+	local group = type(pending) == "table" and type(pending.group) == "table" and pending.group
+	id = group and CleanSpell(group.spell)
+	if id then return id end
 	local key = type(pending) == "table" and pending.buffKey
 	local class = ns.caps and ns.caps.class
 	local buff = key and ns.FindBuff and ns.FindBuff(class, key)
@@ -833,6 +846,12 @@ function Ledger.Settled(name, wasOwed, pending, spellId)
 		local asked = type(pending) == "table" and pending.reason == "asked"
 		local e = { kind = "given", name = name, at = now, spell = gave, to = to, asked = asked or nil,
 			class = CleanClass(type(pending) == "table" and pending.class or nil) }
+		-- One cast that covered a party is one buff given, counted once like
+		-- any cast, and the row says how many it reached.
+		local group = type(pending) == "table" and type(pending.group) == "table" and pending.group
+		if group and type(group.members) == "table" and #group.members > 0 then
+			e.covered = #group.members + 1
+		end
 		Append(s, e)
 		Bump(s, to == "group" and "group" or "strangers")
 		if not asked then today.given = today.given + 1 end
@@ -1305,6 +1324,7 @@ local function Detail(e)
 		local spell = SpellName(e.spell) or TEXT.UNKNOWN_SPELL
 		local colour = e.to == "group" and COLOUR.group or COLOUR.stranger
 		local rest = (e.to == "group" and TEXT.GAVE_GROUP or TEXT.GAVE_STRANGER):format(spell)
+		if e.covered then rest = TEXT.GAVE_COVERED:format(spell, e.covered) end
 		return TEXT.STATE_GAVE, rest, colour
 	end
 	local theirs = {}
@@ -1366,6 +1386,7 @@ local function RowTooltip(row)
 		GameTooltip:AddLine(e.to == "group" and TEXT.TIP_GAVE_GROUP or TEXT.TIP_GAVE_STRANGER,
 			0.7, 0.7, 0.7, true)
 		if e.asked then GameTooltip:AddLine(TEXT.TIP_GAVE_ASKED, 0.7, 0.7, 0.7, true) end
+		if e.covered then GameTooltip:AddLine(TEXT.TIP_GAVE_COVERED:format(e.covered), 0.7, 0.7, 0.7, true) end
 	else
 		local theirs = {}
 		for _, id in ipairs(e.spells) do theirs[#theirs + 1] = SpellName(id) or TEXT.UNKNOWN_SPELL end

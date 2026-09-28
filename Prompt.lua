@@ -788,7 +788,22 @@ local function OnPostClick(self, mouseButton, down)
 		-- For the favour ledger only.
 		class = current.class,
 		inGroup = current.inGroup,
-		gave = ns.lastGave[current.name] }
+		gave = ns.lastGave[current.name],
+		-- A group cast (GroupBuffs.lua): the spell, and everybody else it
+		-- covers, whom the settle repays and the ledger counts with this one.
+		group = current.groupCast and {
+			spell = current.groupCast.spell,
+			members = current.groupCast.members,
+			class = current.groupCast.class,
+		} or nil }
+	-- Everybody the group cast covers waits out the same cooldown as the
+	-- person it is aimed at, or they come straight back as single offers
+	-- while their auras still read the buff as missing.
+	if current.groupCast and current.buff then
+		for _, name in ipairs(current.groupCast.members) do
+			ns.MarkAttempted(name, current.buff.key)
+		end
+	end
 	-- Per buff, so casting Fortitude does not stop the walk reaching
 	-- Divine Spirit on the next click.
 	if current.buff then
@@ -810,6 +825,82 @@ local function OnPostClick(self, mouseButton, down)
 		end
 	end
 	Prompt:StopAttention()
+end
+
+-- The tooltip's lines about one person: why they are offered, and what the
+-- game would say about the buff on them.
+local function PersonTooltipLines(entry)
+	-- A top-up reads as one, and "missing it" only where it was read as
+	-- missing; "Always offer" and unreadable auras get the plain reason.
+	local left = RemainingText(entry.remaining)
+	local why
+	if entry.reason == "owed" then
+		why = L["Buffed you -- return the favour."]
+	elseif entry.reason == "asked" then
+		why = L["Asked you for it in chat."]
+	elseif left then
+		why = entry.reason == "group" and L["In your group, and theirs is running out."]
+			or entry.reason == "target" and L["Your target, and theirs is running out."]
+			or L["Nearby, and theirs is running out."]
+	elseif entry.known == false then
+		why = entry.reason == "group" and L["In your group and missing it."]
+			or entry.reason == "target" and L["Your target, and missing it."]
+			or L["Nearby and missing it."]
+	else
+		why = entry.reason == "group" and L["In your group."]
+			or entry.reason == "target" and L["Your target."]
+			or L["Nearby."]
+	end
+	GameTooltip:AddLine(why, 0.7, 0.7, 0.7, true)
+	-- Why they are ahead of the others like them, where Who comes first
+	-- put them there. Only ever set for a group member or a passer-by.
+	if entry.close == "friend" then
+		GameTooltip:AddLine(L["On your friends list."], 0.7, 0.7, 0.7, true)
+	elseif entry.close == "guild" then
+		GameTooltip:AddLine(L["In your guild."], 0.7, 0.7, 0.7, true)
+	end
+	if left then
+		GameTooltip:AddLine(L["Theirs expires in %s."]:format(left), 0.7, 0.7, 0.7, true)
+	end
+	if entry.checked and entry.known == nil then
+		GameTooltip:AddLine(L["Buff state unreadable on this build -- they may already have it."],
+			1, 0.5, 0.5, true)
+	elseif not entry.checked then
+		GameTooltip:AddLine(L["Not checking whether they have it -- set by your options."],
+			0.7, 0.7, 0.7, true)
+	end
+end
+
+-- The tooltip's lines about a group cast (GroupBuffs.lua): who it is for, any
+-- favour it returns on the way, and the reagent it eats, counted now.
+local function GroupTooltipLines(entry, group)
+	local single = ns.BuffName(entry.buff)
+	if group.class then
+		GameTooltip:AddLine(L["%d of their class in your group are missing %s. One cast gives it to everybody of that class."]
+			:format(group.missing, single), 0.7, 0.7, 0.7, true)
+	else
+		GameTooltip:AddLine(L["%d in their party are missing %s. One cast gives it to the whole party."]
+			:format(group.missing, single), 0.7, 0.7, 0.7, true)
+	end
+	-- Whoever of them buffed you: this cast returns their favour too.
+	local now, owedNames = GetTime(), {}
+	local function Note(name)
+		local debt = name and ns.owed and ns.owed[name]
+		if debt and ns.DebtExpiry(debt) > now then owedNames[#owedNames + 1] = ns.ShortName(name) end
+	end
+	Note(entry.name)
+	for _, name in ipairs(group.members) do Note(name) end
+	if #owedNames > 0 then
+		GameTooltip:AddLine(L["It returns the favour to %s as well."]:format(table.concat(owedNames, ", ")),
+			1, 0.78, 0.3, true)
+	end
+	local have = ns.ReagentCount(group.reagent) or group.reagents
+	local item = ns.ReagentName(group.reagent)
+	if item then
+		GameTooltip:AddLine(L["Uses one %s -- you have %d."]:format(item, have), 0.7, 0.7, 0.7, true)
+	else
+		GameTooltip:AddLine(L["Uses one reagent -- you have %d."]:format(have), 0.7, 0.7, 0.7, true)
+	end
 end
 
 -- The button's other scripts, and the list Create() sets them from. A do
@@ -847,46 +938,14 @@ do
 		if InCombatLockdown() then return end
 		GameTooltip:SetOwner(self, "ANCHOR_TOP")
 		GameTooltip:AddLine("Manners")
-		GameTooltip:AddDoubleLine(current.short or current.name, ns.BuffName(current.buff),
-			1, 1, 1, 0.8, 0.8, 0.8)
-		-- A top-up reads as one, and "missing it" only where it was read as
-		-- missing; "Always offer" and unreadable auras get the plain reason.
-		local left = RemainingText(current.remaining)
-		local why
-		if current.reason == "owed" then
-			why = L["Buffed you -- return the favour."]
-		elseif current.reason == "asked" then
-			why = L["Asked you for it in chat."]
-		elseif left then
-			why = current.reason == "group" and L["In your group, and theirs is running out."]
-				or current.reason == "target" and L["Your target, and theirs is running out."]
-				or L["Nearby, and theirs is running out."]
-		elseif current.known == false then
-			why = current.reason == "group" and L["In your group and missing it."]
-				or current.reason == "target" and L["Your target, and missing it."]
-				or L["Nearby and missing it."]
+		GameTooltip:AddDoubleLine(current.display or current.short or current.name,
+			ns.EntrySpellName(current), 1, 1, 1, 0.8, 0.8, 0.8)
+		-- One cast for many says who it covers and what it costs; the one
+		-- person's reading is not the story there.
+		if current.groupCast then
+			GroupTooltipLines(current, current.groupCast)
 		else
-			why = current.reason == "group" and L["In your group."]
-				or current.reason == "target" and L["Your target."]
-				or L["Nearby."]
-		end
-		GameTooltip:AddLine(why, 0.7, 0.7, 0.7, true)
-		-- Why they are ahead of the others like them, where Who comes first
-		-- put them there. Only ever set for a group member or a passer-by.
-		if current.close == "friend" then
-			GameTooltip:AddLine(L["On your friends list."], 0.7, 0.7, 0.7, true)
-		elseif current.close == "guild" then
-			GameTooltip:AddLine(L["In your guild."], 0.7, 0.7, 0.7, true)
-		end
-		if left then
-			GameTooltip:AddLine(L["Theirs expires in %s."]:format(left), 0.7, 0.7, 0.7, true)
-		end
-		if current.checked and current.known == nil then
-			GameTooltip:AddLine(L["Buff state unreadable on this build -- they may already have it."],
-				1, 0.5, 0.5, true)
-		elseif not current.checked then
-			GameTooltip:AddLine(L["Not checking whether they have it -- set by your options."],
-				0.7, 0.7, 0.7, true)
+			PersonTooltipLines(current)
 		end
 		GameTooltip:AddLine(" ")
 		-- Plain English first; the raw macro only with /manners clicks, below.
@@ -2148,10 +2207,12 @@ local Swap = ns.Swap
 
 local function Substitute(template, entry, extra)
 	local out = template or ""
-	out = Swap(out, "{name}", entry.short or entry.name or "?")
+	-- A group cast names the party it is for ("Gwen's party") in the name's
+	-- place, and the group spell in the buff's.
+	out = Swap(out, "{name}", entry.display or entry.short or entry.name or "?")
 	out = Swap(out, "{count}", tostring(extra or 0))
 	out = Swap(out, "{class}", entry.class)
-	out = Swap(out, "{buff}", entry.buff and ns.BuffName(entry.buff) or "")
+	out = Swap(out, "{buff}", entry.buff and ns.EntrySpellName(entry) or "")
 	-- Empty for everybody who is simply missing the buff: only a top-up has a
 	-- timer to quote, and the queue sets `remaining` for nobody else.
 	out = Swap(out, "{time}", RemainingText(entry.remaining))
@@ -2160,6 +2221,12 @@ end
 
 function Prompt:ReasonText(entry)
 	local p = ns.db.profile.prompt
+	-- A group cast's second line is what it is and for how many, which no
+	-- reason line the player wrote can say.
+	local group = entry.groupCast
+	if group then
+		return L["%s -- %d missing"]:format(ns.EntrySpellName(entry), group.missing)
+	end
 	local template = p[REASON_KEY[entry.reason] or "reasonNearby"] or ""
 	-- The sub-line must be true without hovering: a top-up gets its own
 	-- wording, and so does an unreadable aura except for owed or asked, whose
@@ -2317,7 +2384,8 @@ end
 -- The cast half of the macro, as a list, so the room left for a spoken line can
 -- be measured.
 local function CastLines(entry)
-	return STRATEGIES[StrategyFor(entry)](entry, ns.BuffName(entry.buff))
+	-- A group cast is the same /target and /cast, with the group spell.
+	return STRATEGIES[StrategyFor(entry)](entry, ns.EntrySpellName(entry))
 end
 
 -- How many characters a spoken line has left for this person. Asked by the
@@ -2337,7 +2405,7 @@ end
 function Prompt:ClickSummary(entry)
 	local out = {}
 	if not (entry and entry.buff) then return out end
-	local spell = ns.BuffName(entry.buff)
+	local spell = ns.EntrySpellName(entry)
 	-- No name at all is rare, and gets sentences of its own: "them" takes a
 	-- different form in each position in plenty of languages.
 	local who = entry.short or entry.name
@@ -2365,9 +2433,17 @@ function Prompt:ClickSummary(entry)
 		-- The spelling the targeting line will carry, which differs from the
 		-- filed or shortened name for a cross-realm player off Camelot.
 		local target = entry.targetName or entry.name or who
-		out[#out + 1] = target
-			and L["Targets |cffffffff%s|r, casts |cffffffff%s|r."]:format(target, spell)
-			or L["Targets |cffffffffthem|r, casts |cffffffff%s|r."]:format(spell)
+		local group = entry.groupCast
+		if group and target then
+			-- Who the one cast reaches besides the person it is aimed at.
+			out[#out + 1] = group.class
+				and L["Targets |cffffffff%s|r, casts |cffffffff%s|r on everybody of their class in your group."]:format(target, spell)
+				or L["Targets |cffffffff%s|r, casts |cffffffff%s|r on their whole party."]:format(target, spell)
+		else
+			out[#out + 1] = target
+				and L["Targets |cffffffff%s|r, casts |cffffffff%s|r."]:format(target, spell)
+				or L["Targets |cffffffffthem|r, casts |cffffffff%s|r."]:format(spell)
+		end
 		-- What the strategy decided, not the setting it started from: the two
 		-- differ for your own target, whose macro hands nothing back.
 		local _, restore = CastLines(entry)
@@ -2447,7 +2523,10 @@ function Prompt:ApplyTarget(entry, silent)
 	-- inputs come through InvalidateMacro; the unit is here for try's {unit},
 	-- armedForFight and who is targeted for the hand-back, and whether the line
 	-- is armed so a change of range or a refusal re-arms it (out of combat).
+	-- The group spell too: the same person moves between a single cast and
+	-- their party's group cast as the others come and go.
 	local key = table.concat({ entry.name, tostring(entry.unit), entry.buff.key,
+		tostring(entry.groupCast and entry.groupCast.spell),
 		tostring(entry.reason), tostring(ns.tryMacro), tostring(Prompt.armedForFight),
 		tostring(StillTargeted(entry)), tostring(speak) }, "\1")
 	if key == appliedKey then return end
@@ -2828,7 +2907,8 @@ function Prompt:Paint(entry, extra)
 
 	if p.showIcon then
 		local info = ns.BuffInfo(entry.buff)
-		icon:SetTexture((info and info.icon) or 135932)
+		local groupIcon = entry.groupCast and entry.groupCast.icon
+		icon:SetTexture(groupIcon or (info and info.icon) or 135932)
 	end
 end
 

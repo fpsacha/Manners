@@ -3268,8 +3268,8 @@ mutate("Prompt.lua",
 
 # "Missing it" for anybody without a countdown, read or not.
 mutate("Prompt.lua",
-       "\t\telseif current.known == false then\n",
-       "\t\telseif true then\n",
+       "\telseif entry.known == false then\n",
+       "\telseif true then\n",
        "a tooltip saying missing about an unread aura",
        expect="about somebody nothing was read for",
        script="runscenarios.py")
