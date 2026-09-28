@@ -1646,6 +1646,8 @@ function addon:PLAYER_REGEN_DISABLED()
 	if ns.Prompt then ns.Guard("drag at fight start", ns.Prompt.FinishDragForFight, ns.Prompt) end
 	-- Somebody who asked for a buff is not let go while you cannot offer it.
 	ns.Guard("requests at fight start", ns.HoldRequestsForFight)
+	-- The pull ends the sweep a ready check started; before the repaint below.
+	ns.Guard("ready check at fight start", ns.EndReadyCheck)
 	-- The macro armed now serves every press in the fight whatever the player
 	-- targets meanwhile, so it hands the target back even for somebody who is
 	-- the target now. See STRATEGIES.target.

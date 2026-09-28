@@ -845,15 +845,24 @@ end
 -- How long a ready check counts as running when the client names no time, or
 -- a nonsense one: the game's own lasts 35 seconds.
 local READY_CHECK_SECONDS = 35
+-- How long the group stays first once everybody has answered: the check is
+-- where the pre-pull sweep starts, not all of it, and everybody answers in a
+-- few seconds. The pull ends it sooner.
+local READY_CHECK_AFTER = 60
 -- How long somebody back from the dead stays at the front: long enough to be
 -- rezzed, to stand up and to be buffed, short enough to be about the death.
 local REVIVED_SECONDS = 120
+-- Once mana is being saved, how far past the floor it must climb before the
+-- group comes back, so that one cast dipping under it and the regen climbing
+-- back do not blink the group on and off the prompt between casts.
+local MANA_MARGIN = 5
 
--- readyUntil: when the running ready check ends, or nil. down: [unit token] =
--- the name read when it was seen dead (false when none could be read). revived:
--- [name] = GetTime() they were seen alive again. prefix: which tokens `down`
--- is about. One table for the main chunk's 200 locals.
-local sweep = { readyUntil = nil, down = {}, revived = {}, prefix = nil }
+-- readyUntil: when the group stops coming first for a ready check, or nil.
+-- down: [unit token] = the name read when it was seen dead (false when none
+-- could be read). revived: [name] = GetTime() they were seen alive again.
+-- prefix: which tokens `down` is about. saving: true while the mana floor is
+-- holding offers back. One table for the main chunk's 200 locals.
+local sweep = { readyUntil = nil, down = {}, revived = {}, prefix = nil, saving = nil }
 
 -- READY_CHECK hands over who started it and the seconds it runs for. Either
 -- end of the check repaints at once rather than at the next scan: a ready
@@ -865,9 +874,23 @@ function addon:READY_CHECK(_, _, timeLeft)
 	if ns.Prompt then ns.Guard("ready check", ns.Prompt.Refresh, ns.Prompt) end
 end
 
+-- Everybody has answered, which in an organised raid takes seconds: the buffing
+-- before the pull has only started, so the group stays first a while longer.
+-- An end heard with no check running (a reload in the middle of one) starts
+-- nothing.
 function addon:READY_CHECK_FINISHED()
-	sweep.readyUntil = nil
+	local now = GetTime()
+	if ns.ReadyCheckRunning(now) then
+		sweep.readyUntil = now + READY_CHECK_AFTER
+	else
+		sweep.readyUntil = nil
+	end
 	if ns.Prompt then ns.Guard("ready check over", ns.Prompt.Refresh, ns.Prompt) end
+end
+
+-- The pull is the real end of the sweep before it; called as the fight starts.
+function ns.EndReadyCheck()
+	sweep.readyUntil = nil
 end
 
 function ns.ReadyCheckRunning(now)
@@ -905,6 +928,11 @@ function ns.WatchGroupDeaths(now)
 	for i = 1, count do
 		local unit = tokens[i]
 		local dead = plain(UnitIsDeadOrGhost(unit))
+		-- A hunter's Feign Death reads as dead here, and standing up from it
+		-- costs no buffs: taken as no answer, so nothing about them changes.
+		if dead == true and plain(safecall(_G.UnitIsFeignDeath, unit)) == true then
+			dead = nil
+		end
 		if dead == true then
 			if down[unit] == nil then down[unit] = ns.UnitFullName(unit) or false end
 		elseif dead == false and down[unit] ~= nil then
@@ -943,18 +971,42 @@ local function RaidGroupOf(unit)
 	return group
 end
 
--- The share of your mana "Keep this much mana for yourself" keeps back, while
--- it is holding back offers nobody asked for; nil when it is not (off, a class
--- with no mana bar, or a reading the client withheld, which offers as before).
+-- The raid groups still ticked, as "1, 2, 3", for /manners debug: nil when all
+-- eight are (the setting changes nothing), false when none are.
+function ns.BuffedRaidGroups()
+	local db = addon.db and addon.db.profile
+	local skip = db and db.filters and db.filters.skipRaidGroups
+	if type(skip) ~= "table" or next(skip) == nil then return nil end
+	local ticked = {}
+	for group = 1, 8 do
+		if not skip[group] then ticked[#ticked + 1] = tostring(group) end
+	end
+	if #ticked == 0 then return false end
+	return table.concat(ticked, ", ")
+end
+
+-- While the mana floor is holding back offers nobody asked for: the floor, and
+-- the share of your mana at which the group comes back. nil when it is not
+-- (off, a class with no mana bar, or a reading the client withheld, which
+-- offers as before). Saving starts under the floor and lasts until
+-- MANA_MARGIN past it.
 function ns.SavingMana()
 	local db = addon.db and addon.db.profile
 	local floor = db and db.filters and db.filters.manaFloor
-	if type(floor) ~= "number" or floor <= 0 then return nil end
+	if type(floor) ~= "number" or floor <= 0 then
+		sweep.saving = nil
+		return nil
+	end
 	local most = plain(UnitPowerMax("player", MANA))
-	if type(most) ~= "number" or most <= 0 then return nil end
 	local mana = plain(UnitPower("player", MANA))
-	if type(mana) ~= "number" then return nil end
-	if mana * 100 < floor * most then return floor end
+	if type(most) ~= "number" or most <= 0 or type(mana) ~= "number" then
+		sweep.saving = nil
+		return nil
+	end
+	local resume = math.min(floor + MANA_MARGIN, 100)
+	local limit = sweep.saving and resume or floor
+	sweep.saving = mana * 100 < limit * most or nil
+	if sweep.saving then return floor, resume end
 	return nil
 end
 

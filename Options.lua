@@ -721,7 +721,8 @@ local function WhoToBuffGroup()
 				-- The label is the promise: only a known out-of-range is hidden.
 				type = "toggle",
 				name = L["Hide players known to be out of range"],
-				desc = L["When the game will not tell us the range -- common on this client -- they are still offered."],
+				desc = L["When the game will not tell us the range -- common on this client -- they are still offered."]
+					.. " " .. L["Group members the game cannot see at all -- still in town, or far off in the instance -- count as out of range."],
 				order = 22,
 				width = "full",
 				get = fGet,
@@ -821,10 +822,10 @@ local function WhoToBuffGroup()
 			},
 			manaFloor = {
 				type = "range",
-				name = L["Keep this much mana for myself"],
+				name = L["Percent of my mana to keep for myself"],
 				-- The two kinds that are never held back are named, since the
 				-- rule is about who asked rather than about who they are.
-				desc = L["Below this share of your mana, only people who buffed you or asked you for it are offered; your group, your target and passers-by wait until you have more. 0 turns it off."],
+				desc = L["Below this percent of your mana, only people who buffed you or asked you for it are offered; your group, your target and passers-by wait until you have 5 percent more than this. 0 turns it off."],
 				order = 24.5,
 				min = 0,
 				max = 90,
@@ -843,8 +844,8 @@ local function WhoToBuffGroup()
 			raidHeader = { type = "header", name = L["Dungeons and raids"], order = 25 },
 			readyCheck = {
 				type = "toggle",
-				name = L["My group comes first during a ready check"],
-				desc = L["While a ready check runs, group members missing your buff go to the front of the queue, since that is when you buff everybody before the pull."],
+				name = L["Party or raid comes first at a ready check"],
+				desc = L["From a ready check until the pull (or a minute after everybody has answered), everybody in your party or raid who is missing your buff goes to the front of the queue."],
 				order = 25.1,
 				width = "full",
 				get = prGet,
@@ -875,7 +876,7 @@ local function WhoToBuffGroup()
 				end,
 			},
 
-			neverHeader ={ type = "header", name = L["Never offer"], order = 30 },
+			neverHeader = { type = "header", name = L["Never offer"], order = 30 },
 			neverNote = {
 				type = "description",
 				order = 31,

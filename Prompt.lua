@@ -587,8 +587,9 @@ local function OnPreClick(self, mouseButton)
 		elseif ns.SavingMana() then
 			-- The option goes in by its own key, so a translation names the
 			-- label the window shows.
-			ns.addon:Print(L["nobody to buff right now -- you are below the %d%% of your mana that %s keeps for you, so only people who buffed you or asked are offered."]
-				:format(ns.SavingMana(), "|cffffd100" .. L["Keep this much mana for myself"] .. "|r"))
+			local _, resume = ns.SavingMana()
+			ns.addon:Print(L["nobody to buff right now -- saving mana until %d%% (%s), so only people who buffed you or asked are offered."]
+				:format(resume, "|cffffd100" .. L["Percent of my mana to keep for myself"] .. "|r"))
 		else
 			ns.addon:Print(L["nobody to buff right now."])
 		end
@@ -885,7 +886,7 @@ do
 		end
 		-- Why they are ahead of everybody but your target.
 		if current.sweep == "readycheck" then
-			GameTooltip:AddLine(L["A ready check is running, so your group comes first."], 0.7, 0.7, 0.7, true)
+			GameTooltip:AddLine(L["A ready check was called, so your party or raid comes first until the pull."], 0.7, 0.7, 0.7, true)
 		elseif current.sweep == "revived" then
 			GameTooltip:AddLine(L["Just came back from the dead, which costs every buff."], 0.7, 0.7, 0.7, true)
 		end
@@ -893,10 +894,10 @@ do
 			GameTooltip:AddLine(L["Theirs expires in %s."]:format(left), 0.7, 0.7, 0.7, true)
 		end
 		-- And why the rest of the group is missing from the queue, when it is.
-		local kept = ns.SavingMana and ns.SavingMana()
+		local kept, resume = ns.SavingMana()
 		if kept then
-			GameTooltip:AddLine(L["Saving mana: below %d%% of your mana, only people who buffed you or asked are offered."]
-				:format(kept), 1, 0.82, 0, true)
+			GameTooltip:AddLine(L["Saving mana: until you are back to %d%% mana, only people who buffed you or asked are offered."]
+				:format(resume), 1, 0.82, 0, true)
 		end
 		if current.checked and current.known == nil then
 			GameTooltip:AddLine(L["Buff state unreadable on this build -- they may already have it."],
@@ -959,9 +960,10 @@ do
 		-- line.
 		local shown = table.concat({ current.name, current.buff.key, tostring(current.reason),
 			tostring(phraseText), tostring(appliedKey) }, "\1")
-		-- And whether a ready check or a death put them first, which comes and
-		-- goes while they stay on the panel.
-		shown = shown .. "\1" .. tostring(current.sweep)
+		-- And whether a ready check or a death put them first, and whether
+		-- mana is being saved: both come and go while the same person stays
+		-- on the panel, since the owed and the asked are never held back.
+		shown = shown .. "\1" .. tostring(current.sweep) .. "\1" .. tostring((ns.SavingMana()))
 		if self.tooltipFor ~= shown then
 			self.tooltipFor = shown
 			local onEnter = self:GetScript("OnEnter")

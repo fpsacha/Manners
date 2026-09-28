@@ -22,12 +22,44 @@ mutate("Queue.lua",
        expect="a ready check put the group first with the switch off",
        script="runscenarios.py")
 
-# The end of the check never heard.
+# Everybody answering ends the sweep at once, a few casts in.
 mutate("Queue.lua",
-       "function addon:READY_CHECK_FINISHED()\n\tsweep.readyUntil = nil\n",
-       "function addon:READY_CHECK_FINISHED()\n",
-       "ready check never ends",
-       expect="the group stayed first after the ready check ended",
+       "\t\tsweep.readyUntil = now + READY_CHECK_AFTER\n",
+       "\t\tsweep.readyUntil = nil\n",
+       "ready check ends as everybody answers",
+       expect="the ready check stopped putting the group first as soon as everybody answered",
+       script="runscenarios.py")
+
+# The minute after the answers never runs out.
+mutate("Queue.lua",
+       "\t\tsweep.readyUntil = now + READY_CHECK_AFTER\n",
+       "\t\tsweep.readyUntil = math.huge\n",
+       "ready check lasts until the pull or forever",
+       expect="the group stayed first a minute after the ready check ended",
+       script="runscenarios.py")
+
+# The end of a check nobody called starts one.
+mutate("Queue.lua",
+       "\tif ns.ReadyCheckRunning(now) then\n\t\tsweep.readyUntil = now + READY_CHECK_AFTER\n",
+       "\tif true then\n\t\tsweep.readyUntil = now + READY_CHECK_AFTER\n",
+       "ready check end starts one",
+       expect="the end of a ready check nobody called put the group first",
+       script="runscenarios.py")
+
+# The pull does not end it.
+mutate("Queue.lua",
+       "function ns.EndReadyCheck()\n\tsweep.readyUntil = nil\nend\n",
+       "function ns.EndReadyCheck()\nend\n",
+       "pull does not end the ready check",
+       expect="the group stayed first after the pull",
+       script="runscenarios.py")
+
+# Nor is it asked to at the start of a fight.
+mutate("Core.lua",
+       "\tns.Guard(\"ready check at fight start\", ns.EndReadyCheck)\n",
+       "",
+       "fight start leaves the ready check running",
+       expect="the group stayed first after the pull",
        script="runscenarios.py")
 
 # A check the client never ended runs forever.
@@ -88,6 +120,14 @@ mutate("Queue.lua",
        expect="somebody back from the dead was not put first",
        script="runscenarios.py")
 
+# Feign Death taken for dying.
+mutate("Queue.lua",
+       "\t\t\tdead = nil\n\t\tend\n\t\tif dead == true then\n",
+       "\t\tend\n\t\tif dead == true then\n",
+       "feign death taken for dying",
+       expect="a hunter standing up from Feign Death was taken for just revived",
+       script="runscenarios.py")
+
 # The two minutes never run out.
 mutate("Queue.lua",
        "\tif at and now - at < REVIVED_SECONDS then return \"revived\" end\n",
@@ -128,6 +168,38 @@ mutate("Queue.lua",
        "\t\tif skipGroups and (reason == \"group\" or reason == \"owed\") and not pointed then\n",
        "raid groups hold back a favour owed",
        expect="a favour owed by somebody outside your raid groups was not offered",
+       script="runscenarios.py")
+
+# A token with no raid number (mouseover, a nameplate) never placed in a group.
+mutate("Queue.lua",
+       "\tlocal index = tonumber(unit:match(\"^raid(%d+)$\")) or plain(UnitInRaid and UnitInRaid(unit))\n",
+       "\tlocal index = tonumber(unit:match(\"^raid(%d+)$\"))\n",
+       "raid group only read off raid tokens",
+       expect="a raid member outside your raid groups was offered under the mouse",
+       script="runscenarios.py")
+
+# A request held back by it.
+mutate("Queue.lua",
+       "\t\tif skipGroups and reason == \"group\" and not pointed then\n",
+       "\t\tif skipGroups and (reason == \"group\" or reason == \"asked\") and not pointed then\n",
+       "raid groups hold back a request",
+       expect="a raid member outside your raid groups who asked for your buff was not offered",
+       script="runscenarios.py")
+
+# /manners debug silent about the groups still ticked.
+mutate("Commands.lua",
+       "\t\tif groups then\n",
+       "\t\tif false then\n",
+       "debug silent about raid groups",
+       expect="/manners debug does not name the raid groups still ticked",
+       script="runscenarios.py")
+
+# Nor when none are.
+mutate("Commands.lua",
+       "\t\telseif groups == false then\n",
+       "\t\telseif false then\n",
+       "debug silent about every raid group unticked",
+       expect="/manners debug does not say every raid group is unticked",
        script="runscenarios.py")
 
 # Your own target held back by it.
@@ -184,18 +256,26 @@ mutate("Queue.lua",
 
 # Said anyway.
 mutate("Favours.lua",
-       "\t\tif db.verbose and not QuietInFight() then\n",
+       "\t\tif db.verbose and not QuietHere() then\n",
        "\t\tif db.verbose then\n",
-       "favour line said in an instance fight",
-       expect="a favour in a fight inside an instance was announced in chat",
+       "favour line said in an instance",
+       expect="a favour was announced in chat where it should be quiet",
        script="runscenarios.py")
 
-# Held out of a fight too.
+# Said in a raid out of a fight, once per buffer between pulls.
 mutate("Favours.lua",
-       "\t\tif not InCombatLockdown() then return false end\n\t\tlocal ok, inside, kind = pcall(_G.IsInInstance)\n",
-       "\t\tlocal ok, inside, kind = pcall(_G.IsInInstance)\n",
-       "favour line held out of a fight",
-       expect="a favour outside an instance fight was not announced",
+       "\t\tif kind == \"raid\" then return true end\n",
+       "\t\tif kind == \"raid\" then return InCombatLockdown() and true or false end\n",
+       "favour line said in a raid between pulls",
+       expect="a favour was announced in chat where it should be quiet",
+       script="runscenarios.py")
+
+# Held in a dungeon out of a fight too.
+mutate("Favours.lua",
+       "\t\treturn InCombatLockdown() and true or false\n\tend\n",
+       "\t\treturn true\n\tend\n",
+       "favour line held in a dungeon out of a fight",
+       expect="a favour was not announced where it should be",
        script="runscenarios.py")
 
 # --- mana floor ---
@@ -218,15 +298,15 @@ mutate("Queue.lua",
 
 # The comparison the wrong way round.
 mutate("Queue.lua",
-       "\tif mana * 100 < floor * most then return floor end\n",
-       "\tif mana * 100 > floor * most then return floor end\n",
+       "\tsweep.saving = mana * 100 < limit * most or nil\n",
+       "\tsweep.saving = mana * 100 > limit * most or nil\n",
        "mana floor compared the wrong way",
        expect="somebody was offered unasked while saving mana",
        script="runscenarios.py")
 
 # A withheld reading taken as empty.
 mutate("Queue.lua",
-       "\tlocal mana = plain(UnitPower(\"player\", MANA))\n\tif type(mana) ~= \"number\" then return nil end\n",
+       "\tlocal mana = plain(UnitPower(\"player\", MANA))\n",
        "\tlocal mana = plain(UnitPower(\"player\", MANA)) or 0\n",
        "withheld mana taken as empty",
        expect="a withheld mana reading held the group back",
@@ -234,18 +314,42 @@ mutate("Queue.lua",
 
 # A class with no mana bar read as out of mana.
 mutate("Queue.lua",
-       "\tif type(most) ~= \"number\" or most <= 0 then return nil end\n",
-       "\tif type(most) ~= \"number\" then return nil end\n\tif most <= 0 then return floor end\n",
+       "\tif type(most) ~= \"number\" or most <= 0 or type(mana) ~= \"number\" then\n",
+       "\tif type(most) == \"number\" and most <= 0 then return floor end\n\tif type(most) ~= \"number\" or type(mana) ~= \"number\" then\n",
        "no mana bar read as saving mana",
        expect="a character with no mana bar was taken to be saving mana",
        script="runscenarios.py")
 
 # The tooltip silent about it.
 mutate("Prompt.lua",
-       "\t\tlocal kept = ns.SavingMana and ns.SavingMana()\n",
-       "\t\tlocal kept = nil\n",
+       "\t\tlocal kept, resume = ns.SavingMana()\n",
+       "\t\tlocal kept, resume = nil, nil\n",
        "tooltip silent about saving mana",
        expect="the tooltip does not say mana is being saved",
+       script="runscenarios.py")
+
+# Once saving, back the moment mana reaches the floor again: the blink.
+mutate("Queue.lua",
+       "\tlocal limit = sweep.saving and resume or floor\n",
+       "\tlocal limit = floor\n",
+       "mana floor without a margin",
+       expect="the group came back 2 points past the mana floor",
+       script="runscenarios.py")
+
+# The margin applied from above as well, which moves the floor up.
+mutate("Queue.lua",
+       "\tlocal limit = sweep.saving and resume or floor\n",
+       "\tlocal limit = resume\n",
+       "mana floor raised by its margin",
+       expect="the group was held back just above the floor without having gone under it",
+       script="runscenarios.py")
+
+# An open tooltip not rebuilt when mana crosses the floor.
+mutate("Prompt.lua",
+       " .. \"\\1\" .. tostring((ns.SavingMana()))",
+       "",
+       "open tooltip deaf to the mana floor",
+       expect="an open tooltip went on saying mana is being saved after it came back",
        script="runscenarios.py")
 
 # An empty press says nothing about it.

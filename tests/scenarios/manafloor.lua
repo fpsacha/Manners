@@ -1,4 +1,4 @@
--- "Keep this much mana for myself": below the floor, offers nobody asked for
+-- "Percent of my mana to keep for myself": below the floor, offers nobody asked for
 -- (your group, your target, passers-by) wait, while a favour owed and a request
 -- from chat are still offered; the prompt says why, and so do an empty press
 -- and /manners debug. A class with no mana bar, and a reading the client
@@ -113,6 +113,48 @@ do
 			fail(scenario, "/manners debug does not say mana is being saved")
 		end
 
+		-- An open tooltip follows the mana across the floor while the prompt
+		-- stays on the same person, as it does for somebody owed.
+		do
+			local owner
+			local realSetOwner, realIsOwned, realHide = GameTooltip.SetOwner, GameTooltip.IsOwned,
+				GameTooltip.Hide
+			GameTooltip.SetOwner = function(_, frame) owner = frame Mock.tooltip = {} end
+			GameTooltip.IsOwned = function(_, frame) return owner ~= nil and owner == frame end
+			GameTooltip.Hide = function() owner = nil end
+			button.scripts.OnEnter(button)
+			button.scripts.OnUpdate(button, 0.3)
+			mana = 500
+			button.scripts.OnUpdate(button, 0.3)
+			local stale = table.concat(Mock.tooltip, "\n"):find("Saving mana", 1, true)
+			mana = 200
+			button.scripts.OnUpdate(button, 0.3)
+			local late = not table.concat(Mock.tooltip, "\n"):find("Saving mana", 1, true)
+			GameTooltip.SetOwner, GameTooltip.IsOwned, GameTooltip.Hide = realSetOwner, realIsOwned,
+				realHide
+			if stale then
+				fail(scenario, "an open tooltip went on saying mana is being saved after it came back")
+			elseif late then
+				fail(scenario, "an open tooltip did not say mana is being saved once it dropped under the floor")
+			end
+		end
+
+		-- Once saving, the group comes back only five points past the floor, so
+		-- one cast and a regen tick do not blink it on and off the prompt; from
+		-- above, the floor itself is the line.
+		mana = 320
+		if offered(ns)[CARA] then
+			fail(scenario, "the group came back 2 points past the mana floor")
+		end
+		mana = 350
+		if not offered(ns)[CARA] then
+			fail(scenario, "the group stayed held back 5 points past the mana floor")
+		end
+		mana = 320
+		if not offered(ns)[CARA] then
+			fail(scenario, "the group was held back just above the floor without having gone under it")
+		end
+
 		-- Above the floor, everybody is back, and the tooltip says nothing of it.
 		mana = 500
 		local plenty = offered(ns)
@@ -172,7 +214,7 @@ do
 		Mock.printed = {}
 		H.pressButton(ns)
 		local said = table.concat(Mock.printed, "\n")
-		if not said:find("Keep this much mana for myself", 1, true) then
+		if not said:find("Percent of my mana to keep for myself", 1, true) then
 			fail(scenario, "an empty press while saving mana does not say why: " .. said)
 		end
 		noErrors(scenario, ns)
@@ -201,7 +243,7 @@ do
 		end
 		local option = findOption(ns.optionsTable, "manaFloor")
 		if not option then
-			fail(scenario, "no Keep this much mana for myself option on the page")
+			fail(scenario, "no Percent of my mana to keep for myself option on the page")
 		else
 			local class = ns.caps.class
 			ns.caps.class = "WARRIOR"

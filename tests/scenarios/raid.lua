@@ -13,7 +13,7 @@ local fail, load = H.fail, H.load
 local strangers, freshPrompt, owe, findOption = H.strangers, H.freshPrompt, H.owe, H.findOption
 
 local TOUCHED = { "UnitIsDeadOrGhost", "UnitInParty", "UnitInRaid", "UnitIsVisible",
-	"IsInInstance", "GetNumGroupMembers" }
+	"IsInInstance", "GetNumGroupMembers", "UnitIsFeignDeath" }
 local original = {}
 for _, name in ipairs(TOUCHED) do original[name] = rawget(_G, name) end
 
@@ -59,6 +59,12 @@ local function party(ns, scenario)
 	ns.db.profile.sources.strangers = false
 end
 
+-- Chat as the client delivers it (see asked.lua): the event, the text, the
+-- sender, nine more, and the GUID.
+local function hear(ns, event, text, sender, guid)
+	ns.addon[event](ns.addon, event, text, sender, "Common", "", "", "", 0, 0, "", 0, 1, guid)
+end
+
 local function hover(ns)
 	local button = ns.Prompt:GetButton()
 	Mock.tooltip = {}
@@ -99,7 +105,7 @@ do
 		end
 		-- The handler repainted the prompt onto the first of them.
 		local tip = hover(ns)
-		if not tip:find("A ready check is running", 1, true) then
+		if not tip:find("A ready check was called", 1, true) then
 			fail(scenario, "the tooltip does not say a ready check is running: " .. tip)
 		end
 		ns.addon:HandleSlash("debug")
@@ -107,9 +113,34 @@ do
 			fail(scenario, "/manners debug does not say a ready check is running")
 		end
 
+		-- Everybody answered in seconds: the sweep before the pull goes on,
+		-- and the pull ends it.
+		Mock.advance(5)
+		ns.addon:READY_CHECK_FINISHED("READY_CHECK_FINISHED")
+		Mock.advance(30)
+		if order(ns)[1] == ZED then
+			fail(scenario, "the ready check stopped putting the group first as soon as everybody answered")
+		end
+		ns.addon:PLAYER_REGEN_DISABLED()
+		if order(ns)[1] ~= ZED then
+			fail(scenario, "the group stayed first after the pull")
+		end
+		ns.addon:PLAYER_REGEN_ENABLED()
+
+		-- Answered, and nobody pulls: a minute later it lets go. The favour is
+		-- owed afresh so that it outlasts the wait.
+		ns.addon:READY_CHECK("READY_CHECK", ANNA, 35)
+		ns.addon:READY_CHECK_FINISHED("READY_CHECK_FINISHED")
+		Mock.advance(61)
+		owe(ns, ZED)
+		if order(ns)[1] ~= ZED then
+			fail(scenario, "the group stayed first a minute after the ready check ended")
+		end
+
+		-- An end heard with no check running starts nothing.
 		ns.addon:READY_CHECK_FINISHED("READY_CHECK_FINISHED")
 		if order(ns)[1] ~= ZED then
-			fail(scenario, "the group stayed first after the ready check ended")
+			fail(scenario, "the end of a ready check nobody called put the group first")
 		end
 
 		ns.addon:READY_CHECK("READY_CHECK", ANNA, 35)
@@ -150,12 +181,15 @@ do
 	local scenario = "raid: somebody just back from the dead comes first"
 	local names = partyNames()
 	local restoreUnits = strangers(names)
-	local dead = {}
+	local dead, feigning = {}, {}
 	local function deadOrGhost(unit)
 		if unit == "player" then return Mock.dead end
 		return dead[unit] == true
 	end
-	with(scenario, { UnitIsDeadOrGhost = deadOrGhost }, function()
+	local function feignDeath(unit)
+		return feigning[unit] == true
+	end
+	with(scenario, { UnitIsDeadOrGhost = deadOrGhost, UnitIsFeignDeath = feignDeath }, function()
 		local ns = load(scenario)
 		if not ns then return end
 		party(ns, scenario)
@@ -222,6 +256,19 @@ do
 		end
 		ns.db.profile.priority.revived = true
 
+		-- A hunter's Feign Death reads as dead, and standing up from it is not
+		-- coming back from the dead: they lost nothing.
+		dead.party1, feigning.party1 = true, true
+		ns.addon:Tick()
+		dead.party1, feigning.party1 = nil, nil
+		ns.addon:Tick()
+		local anna = entryFor(ns, ANNA)
+		if not anna then
+			fail(scenario, "SKIPPED -- Anna was not offered after feigning death")
+		elseif anna.sweep ~= nil then
+			fail(scenario, "a hunter standing up from Feign Death was taken for just revived")
+		end
+
 		-- The token handed to somebody else while they were down: the one
 		-- standing there now did not die.
 		Mock.advance(121)
@@ -256,6 +303,7 @@ do
 	local realInRaid = UnitInRaid
 	local function inRaid(unit)
 		if unit == "target" and names.target then return 8 end
+		if unit == "mouseover" and names.mouseover then return 7 end
 		return realInRaid(unit)
 	end
 	with(scenario, { UnitInRaid = inRaid }, function()
@@ -289,6 +337,22 @@ do
 			fail(scenario, "a raid member in your own raid groups was not offered")
 		end
 
+		-- The same member under the cursor, reached before their raid token:
+		-- the group is asked of UnitInRaid, since mouseover carries no number.
+		names.mouseover = { "Raider7", "Stone" }
+		if entryFor(ns, "Raider7 Stone") then
+			fail(scenario, "a raid member outside your raid groups was offered under the mouse")
+		end
+		names.mouseover = nil
+
+		-- Asking in chat is a reason of its own, whatever the group.
+		ns.db.profile.sources.asked = true
+		hear(ns, "CHAT_MSG_WHISPER", "int pls", "Raider9 Stone", "Player-1-raid9")
+		local raider9 = entryFor(ns, "Raider9 Stone")
+		if not (raider9 and raider9.unit and raider9.reason == "asked") then
+			fail(scenario, "a raid member outside your raid groups who asked for your buff was not offered")
+		end
+
 		-- Through their token: the fallback for a favour nobody can see would
 		-- offer them anyway, with nothing measured.
 		owe(ns, "Raider7 Stone")
@@ -303,6 +367,22 @@ do
 			fail(scenario, "your target in another raid group was not offered")
 		end
 		names.target = nil
+
+		-- /manners debug names the groups still ticked, and says so when none are.
+		Mock.printed = {}
+		ns.addon:HandleSlash("debug")
+		if not table.concat(Mock.printed, "\n"):find("only groups 1, 3, 4, 5, 6, 7, 8 are offered", 1, true) then
+			fail(scenario, "/manners debug does not name the raid groups still ticked")
+		end
+		for group = 1, 8 do ns.db.profile.filters.skipRaidGroups[group] = true end
+		Mock.printed = {}
+		ns.addon:HandleSlash("debug")
+		if not table.concat(Mock.printed, "\n"):find("every group is unticked", 1, true) then
+			fail(scenario, "/manners debug does not say every raid group is unticked")
+		end
+		for group = 1, 8 do ns.db.profile.filters.skipRaidGroups[group] = nil end
+		ns.db.profile.filters.skipRaidGroups[2] = true
+		Mock.printed = {}
 
 		option.set(nil, 2, true)
 		if ns.db.profile.filters.skipRaidGroups[2] ~= nil or not entryFor(ns, "Raider7 Stone") then
@@ -390,13 +470,15 @@ end
 Mock.reset()
 
 -- ------------------------------------------------------------------ raid 5
--- In a fight inside a dungeon or a raid, a favour is filed without its
--- "buffed you" line; outside an instance, and out of the fight, it is said.
+-- Inside a raid, and in a fight inside a dungeon, a favour is filed and
+-- offered without its "buffed you" line; outdoors, and in a dungeon out of the
+-- fight, it is said.
 for _, case in ipairs({
 	{ label = "a raid, in a fight", inside = "raid", fighting = true, quiet = true },
 	{ label = "a dungeon, in a fight", inside = "party", fighting = true, quiet = true },
 	{ label = "outdoors, in a fight", fighting = true },
-	{ label = "a raid, out of a fight", inside = "raid" },
+	{ label = "a raid, out of a fight", inside = "raid", quiet = true },
+	{ label = "a dungeon, out of a fight", inside = "party" },
 }) do
 	Mock.reset()
 	local scenario = "raid: a favour in an instance fight is filed quietly (" .. case.label .. ")"
@@ -419,12 +501,15 @@ for _, case in ipairs({
 		end
 		local text = H.favourFrom(ns, "nameplate1", 1459, 4101)
 		Mock.inCombat = false
+		if case.fighting then ns.addon:PLAYER_REGEN_ENABLED() end
 		if not ns.owed[ANNA] then
 			fail(scenario, "SKIPPED -- no favour was filed")
 		elseif case.quiet and text:find("buffed you", 1, true) then
-			fail(scenario, "a favour in a fight inside an instance was announced in chat: " .. text)
+			fail(scenario, "a favour was announced in chat where it should be quiet: " .. text)
 		elseif not case.quiet and not text:find("buffed you", 1, true) then
-			fail(scenario, "a favour outside an instance fight was not announced: " .. text)
+			fail(scenario, "a favour was not announced where it should be: " .. text)
+		elseif not entryFor(ns, ANNA) then
+			fail(scenario, "a favour filed quietly was not offered")
 		end
 		noErrors(scenario, ns)
 	end)

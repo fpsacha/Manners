@@ -299,16 +299,19 @@ do
 		return ok and type(showing) == "table" and showing.name == name
 	end
 
-	-- A fight in a dungeon or a raid, where buffs land by the dozen and chat
-	-- belongs to the fight: the "buffed you" line is not said there. The favour
-	-- is filed all the same, and the prompt offers it once the fight ends. A
-	-- client that will not say where you are gets the line.
-	local function QuietInFight()
-		if not InCombatLockdown() then return false end
+	-- Where the "buffed you" line is not said: a fight in a dungeon or a raid,
+	-- where chat belongs to the fight, and anywhere inside a raid, where every
+	-- buffer sweeps the raid between pulls and each would get a line. Nobody
+	-- in a raid instance is a stranger, so the prompt offers them anyway. The
+	-- favour is filed all the same. A client that will not say where you are
+	-- gets the line.
+	local function QuietHere()
 		local ok, inside, kind = pcall(_G.IsInInstance)
 		if not ok or plain(inside) ~= true then return false end
 		kind = plain(kind)
-		return kind == "party" or kind == "raid"
+		if kind == "raid" then return true end
+		if kind ~= "party" then return false end
+		return InCombatLockdown() and true or false
 	end
 
 	-- One favour, filed against the person who was holding the token when the aura
@@ -362,7 +365,7 @@ do
 		-- prompt, and the line says so, naming the subgroup where that is the
 		-- limit. The emote below asks the same.
 		local reachable = ns.CouldOffer(hasMana, inParty) ~= nil
-		if db.verbose and not QuietInFight() then
+		if db.verbose and not QuietHere() then
 			-- "On the prompt" only when a prompt can show it: not through a snooze,
 			-- an unlocked prompt or Not while mounted.
 			local snoozeEnds = reachable and ns.SnoozeLeft() and ns.SnoozeEndsAt()
