@@ -134,6 +134,9 @@ ns.CHANNEL_COMMANDS = {
 	PARTY = "party",
 	RAID = "raid",
 	EMOTE = "emote",
+	-- To the person being buffed and nobody else. PickPhrase writes their name
+	-- after it, so it takes more of the macro than the others.
+	WHISPER = "w",
 }
 
 ns.MACRO_LIMIT = 255
@@ -149,14 +152,66 @@ do
 		return text
 	end
 
-	function ns.PickPhrase(entry, budget)
-		local db = addon.db and addon.db.profile
-		if not db or not db.speech.enabled then return nil end
-		if db.speech.onlyWhenReturning and entry.reason ~= "owed" then return nil end
+	-- Whether the chat box splits a "/w" line into name and message the way
+	-- regional unique names need (below). Asked of the client, which is what its
+	-- own parser asks; a client that will not say is judged by its flavour, since
+	-- Camelot is where those names are.
+	local function RegionalNames()
+		local on = ns.safecall(_G.RegionalUniqueNamesEnabled)
+		if on == nil then on = (ns.Flavour and ns.Flavour.flavour) == "camelot" end
+		return on == true
+	end
 
-		local command = ns.CHANNEL_COMMANDS[db.speech.channel]
-		if not command then return nil end
+	-- Who the client will whisper, given what follows "/w", walked as its
+	-- ExtractTellTarget walks it (Blizzard_ChatFrameBase, forever branch): words
+	-- come off the end while what is left still looks like more than a name.
+	-- With regional unique names a name is two words ("Petra Stonewell"), so it
+	-- walks while a separator, a word and a space remain; elsewhere while any
+	-- space does. Its autocomplete stop is left out: no name it knows begins with
+	-- a whole name and a word of the line.
+	local function WhisperTargetOf(text, regional)
+		local target = type(text) == "string" and text:match("^%s*(.*)") or ""
+		local more = regional and "[%s-](%w+)%s" or "%s"
+		if not target:find(more) or target:sub(1, 1) == "|" then return nil end
+		while target and target:find(more) do
+			target = target:match("(.+)%s+[^%s]*")
+		end
+		return target
+	end
 
+	-- The name a whisper carries: the whole filed name, realm and all, since a
+	-- whisper (unlike /target) needs "Mort-Ravencrest" to find somebody from
+	-- another realm; on Camelot, name and surname. Nothing for a secret, or for
+	-- what SafeForMacro keeps off the /target line.
+	local function WhisperName(entry)
+		local name = ns.plain(entry.name)
+		if not (ns.SafeForMacro and ns.SafeForMacro(name)) then return nil end
+		if name:find("%c") then return nil end
+		-- A realm withheld as a secret is filed as the bare name (JoinName), and
+		-- a whisper to that finds somebody on your own realm instead. Asked of
+		-- the unit again, since the filed name no longer shows it.
+		local secret = _G.issecretvalue
+		if entry.unit and secret then
+			local ok, first, second = pcall(_G.UnitName, entry.unit)
+			if not ok or secret(first) or secret(second) then return nil end
+		end
+		return name
+	end
+
+	-- The spoken line with its channel command taken off, and for a whisper the
+	-- name the client will send it to: the part somebody actually reads.
+	function ns.SpokenText(line)
+		if type(line) ~= "string" then return line end
+		local command, rest = line:match("^/(%S+)%s*(.*)$")
+		if not command then return line end
+		if command == ns.CHANNEL_COMMANDS.WHISPER then
+			local target = WhisperTargetOf(rest, RegionalNames())
+			if target then rest = rest:sub(#target + 2) end
+		end
+		return rest
+	end
+
+	local function Roll(db, entry, command, budget)
 		-- "In character" chooses for this person and moment, not from the box.
 		local inCharacter = ns.InCharacter
 		if inCharacter and inCharacter.Active(db.speech) then
@@ -179,6 +234,36 @@ do
 
 		local line = "/" .. command .. " " .. phrase
 		if #line > budget then return nil end
+		return line
+	end
+
+	function ns.PickPhrase(entry, budget)
+		local db = addon.db and addon.db.profile
+		if not db or not db.speech.enabled then return nil end
+		if db.speech.onlyWhenReturning and entry.reason ~= "owed" then return nil end
+
+		local command = ns.CHANNEL_COMMANDS[db.speech.channel]
+		if not command then return nil end
+
+		-- A whisper names who it goes to, so the name is part of the command, and
+		-- of every length either roll measures against the budget.
+		local whisperTo
+		if db.speech.channel == "WHISPER" then
+			whisperTo = WhisperName(entry)
+			if not whisperTo then return nil end
+			command = command .. " " .. whisperTo
+		end
+
+		local line = Roll(db, entry, command, budget)
+		-- A whisper the chat box would read as going to somebody else, or would
+		-- drop, says nothing: "/w Petra Cheers mate" is Petra Cheers on Camelot,
+		-- where names have surnames. Not asked of the stand-ins the Roll a few
+		-- buttons make, which carry no targetName (Queue.lua writes one for
+		-- everybody real) and a name in the reader's language.
+		if line and whisperTo and entry.targetName ~= nil
+			and WhisperTargetOf(line:match("^/%S+(.*)$"), RegionalNames()) ~= whisperTo then
+			return nil
+		end
 		return line
 	end
 end

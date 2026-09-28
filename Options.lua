@@ -1416,9 +1416,11 @@ local function BuildOptions()
 					channel = {
 						type = "select",
 						name = L["Channel"],
+						desc = L["Who hears the line: Say and Emote reach players near you, Yell a wider area, Party and Raid your group. Whisper them sends it to the person you buff and nobody else."],
 						order = 13,
 						disabled = function() return not SP().enabled end,
-						values = { SAY = L["Say"], YELL = L["Yell"], PARTY = L["Party"], RAID = L["Raid"], EMOTE = L["Emote"] },
+						values = { SAY = L["Say"], YELL = L["Yell"], PARTY = L["Party"], RAID = L["Raid"], EMOTE = L["Emote"],
+							WHISPER = L["Whisper them"] },
 						get = spGet,
 						set = spSet,
 					},

@@ -2381,9 +2381,9 @@ function Prompt:ClickSummary(entry)
 	end
 
 	if phraseText and phraseArmed then
-		-- Quoted without its slash command: the channel is a setting, and what
-		-- it says is the part worth reading.
-		out[#out + 1] = L["Says: |cffffffff%s|r"]:format((phraseText:gsub("^/%S+%s*", "")))
+		-- Quoted without its slash command (or a whisper's name): the channel is
+		-- a setting, and what it says is the part worth reading.
+		out[#out + 1] = L["Says: |cffffffff%s|r"]:format(ns.SpokenText(phraseText))
 	end
 	return out
 end
