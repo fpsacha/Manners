@@ -168,8 +168,43 @@ local TEXT = {
 	HOURS = L["%d hr"],
 
 	OPTIONS_EMPTY = L["Nothing has been recorded on this character yet."],
+
+	-- The title the favours you have returned earn you (TITLES below): at the
+	-- top of the window, the title on the left and the way to the next on the
+	-- right, "37 of 50 to Gracious" -- the favours returned, where the next
+	-- title comes, and its name.
+	UNTITLED = L["Untitled, for now"],
+	RANK_PROGRESS = L["%d of %d to %s"],
+	RANK_TOP = L["every title earned"],
+	-- Hovering it: what the title is for, and where the next one is.
+	RANK_TIP_NEXT = L["Titles come from the favours you return. The next, %s, comes at %d."],
+	RANK_TIP_TOP = L["Every title there is, and all of them earned. Nobody has better manners."],
+	-- The same in the minimap tooltip, one line each.
+	BROKER_TITLED = L["Title: %s -- %d of %d to %s"],
+	BROKER_TOP = L["Title: %s -- every title earned"],
+	BROKER_FIRST = L["%d of %d favours returned to your first title, %s"],
+	-- The one chat line a new title gets: its name, then its line of flavour.
+	EARNED = L["A new title for your manners: |cffffd100%s|r. %s"],
 }
 Ledger.TEXT = TEXT
+
+-- The titles, earned by favours returned: the lifetime count, which Clear keeps,
+-- so a title once earned stays. Returned rather than received, because a title
+-- for being buffed a lot would be a title for standing in Stormwind. Each has a
+-- line of flavour, said once in chat when it is earned and again on hovering it.
+local TITLES = {
+	{ at = 10, name = L["Well Brought Up"], flavour = L["Somebody raised you right."] },
+	{ at = 25, name = L["Well Mannered"], flavour = L["You would hold the door, if dungeons had doors."] },
+	{ at = 50, name = L["Courteous"], flavour = L["Innkeepers have started to nod when you come in."] },
+	{ at = 100, name = L["Gracious"], flavour = L["You bow a little when you cast now. People have noticed."] },
+	{ at = 250, name = L["Magnanimous"], flavour = L["Strangers argue over who gets to buff you first."] },
+	{ at = 500, name = L["Paragon of Etiquette"], flavour = L["Somewhere, a butler weeps with pride."] },
+	{ at = 1000, name = L["The Very Soul of Courtesy"], flavour = L["Azeroth has never been buffed so politely."] },
+}
+Ledger.TITLES = TITLES
+-- A title's colour wherever one is named: a paler gold than the headline's, so
+-- the two do not read as one line in the window.
+local RANK_INK = { 0.96, 0.84, 0.52 }
 
 ---------------------------------------------------------------------------
 -- bounds
@@ -253,6 +288,16 @@ end
 
 local function Whole(v)
 	return type(v) == "number" and v >= 0 and v == math.floor(v) and v ~= math.huge
+end
+
+-- Which of TITLES this many favours returned earns, 0 for none yet. Seven
+-- comparisons, asked only when a favour is returned or something is drawn.
+local function TitleLevel(returned)
+	local level = 0
+	for i, t in ipairs(TITLES) do
+		if Count(returned) >= t.at then level = i end
+	end
+	return level
 end
 
 -- The wall clock. Everything stored is on it, for the reason Core's debts are:
@@ -349,6 +394,7 @@ end
 --       state = owed | returned | letgo, why, doneAt, gave, partyOnly }
 --     { kind = "given", name, class, spell, at, to = group | stranger, asked }
 --   ledger.totals   lifetime counts, never trimmed and kept by Clear
+--   ledger.title    the highest of TITLES announced in chat, so none is twice
 --   ledger.today    { day = local midnight, given, received, returned, useless }:
 --                   today's counts, which the trim cannot touch and Clear resets
 --   ledger.filter   the window's tab
@@ -466,7 +512,19 @@ local function Repair(char)
 	end
 	s.totals = totals
 
-	s.filter = FILTERS[s.filter] and s.filter or "all"
+	-- A ledger from before titles, or one whose mark is damaged, takes the
+	-- title its count already earns without a word: a player with three hundred
+	-- favours behind them is not greeted by five announcements at once. A mark
+	-- above what the count earns is kept -- a late refusal can take back the
+	-- favour that earned a title -- so no title is ever announced twice.
+	local title = s.title
+	if Whole(title) then
+		s.title = math.min(title, #TITLES)
+	else
+		s.title = TitleLevel(totals.returned)
+	end
+
+	s.filter =FILTERS[s.filter] and s.filter or "all"
 
 	-- Today's counts, kept apart from the list: see Summary. Kept only with a
 	-- day that is a time and a count of gifts that is whole; any other count
@@ -504,6 +562,17 @@ end
 
 local function Bump(s, key, by)
 	s.totals[key] = math.max(0, (s.totals[key] or 0) + (by or 1))
+end
+
+-- After a favour returned: a title the count has just reached, and none before
+-- it has, gets its one line in chat. Said whether or not chat lines are on,
+-- because it happens a handful of times in a character's life.
+local function Promote(s)
+	local level = TitleLevel(s.totals.returned)
+	if level <= (s.title or 0) then return end
+	s.title = level
+	local t = TITLES[level]
+	if ns.addon and ns.addon.Print then ns.addon:Print(TEXT.EARNED:format(t.name, t.flavour)) end
 end
 
 -- Today's counts, counted apart from the list, which keeps only MAX_ENTRIES
@@ -714,6 +783,7 @@ function Ledger.Settled(name, wasOwed, pending, spellId)
 		end
 		e.state, e.doneAt, e.gave = "returned", now, gave
 		Bump(s, "returned")
+		Promote(s)
 		-- Today's headline scores the favours received today, so a return
 		-- counts for today only when the favour does.
 		if StartOfToday(e.at) == today.day then today.returned = today.returned + 1 end
@@ -922,6 +992,27 @@ function Ledger.Lifetime(sum)
 	return TEXT.LIFETIME:format(t.received, t.returned, t.group, t.strangers)
 end
 
+-- Where the favours returned stand among TITLES, worked out from the count and
+-- nothing else: the title held (nil for none yet), the next (nil past the
+-- last), the count, and the count the title held began at.
+function Ledger.Rank(sum)
+	local returned = Count((sum or Ledger.Summary()).totals.returned)
+	local level = TitleLevel(returned)
+	return { level = level, title = TITLES[level], next = TITLES[level + 1], returned = returned,
+		from = level > 0 and TITLES[level].at or 0 }
+end
+
+-- The minimap tooltip's line: the title and the way to the next, one sentence.
+function Ledger.RankText(sum)
+	local rank = Ledger.Rank(sum)
+	if not rank.title then
+		return TEXT.BROKER_FIRST:format(rank.returned, rank.next.at, rank.next.name)
+	elseif not rank.next then
+		return TEXT.BROKER_TOP:format(rank.title.name)
+	end
+	return TEXT.BROKER_TITLED:format(rank.title.name, rank.returned, rank.next.at, rank.next.name)
+end
+
 -- The line under the headline: what is still owed and what was given today,
 -- each its own sentence, or nothing.
 local function Subline(sum)
@@ -958,6 +1049,7 @@ function Ledger.AddTooltip(tooltip)
 	end
 	tooltip:AddLine(Ledger.Headline(sum), 1, 0.82, 0)
 	tooltip:AddLine(Ledger.Lifetime(sum), 0.62, 0.62, 0.62, true)
+	tooltip:AddLine(Ledger.RankText(sum), RANK_INK[1], RANK_INK[2], RANK_INK[3], true)
 end
 
 ---------------------------------------------------------------------------
@@ -973,10 +1065,11 @@ end
 local WHITE = "Interface\\Buttons\\WHITE8X8"
 local LOGO = "Interface\\AddOns\\Manners\\Textures\\Manners64"
 
--- Top to bottom: the title band, today's headline and up to two lines under
--- it, the all-time numbers as four tiles, the tabs, seven rows, and a footer
--- with the position in the list and Clear. Seven rows so the window fits a
--- small UI scale, where the screen is under eight hundred units tall.
+-- Top to bottom: the title band, the title your manners have earned over a bar
+-- of the way to the next, today's headline and up to two lines under it, the
+-- all-time numbers as four tiles, the tabs, seven rows, and a footer with the
+-- position in the list and Clear. Seven rows so the window fits a small UI
+-- scale, where the screen is under eight hundred units tall.
 --
 -- Every string here is hung by two points on the same edge -- TOPLEFT and
 -- TOPRIGHT, never TOPLEFT and RIGHT. With an edge and a centre on one axis it
@@ -984,17 +1077,22 @@ local LOGO = "Interface\\AddOns\\Manners\\Textures\\Manners64"
 -- distance between the points; two points on one edge place it the same under
 -- either reading. tests/scenarios/ledgerui.lua keeps it that way, and
 -- tools/render_ledger.py draws the other reading so a lapse shows.
-local WIDTH, HEIGHT = 360, 456
+local WIDTH, HEIGHT = 360, 480
 local PAD = 12
 local ROWS = 7
 local ROW_HEIGHT = 34
-local HEADLINE_TOP = -40
-local SUBLINE_TOP = -60
-local STATS_TOP = -108
+local RANK_TOP = -37
+local RANK_HEIGHT = 20
+local HEADLINE_TOP = -66
+local SUBLINE_TOP = -86
+local STATS_TOP = -132
 local STAT_HEIGHT = 32
-local TABS_TOP = -150
+local TABS_TOP = -174
 local TAB_HEIGHT = 22
-local LIST_TOP = -180
+local LIST_TOP = -204
+-- The widest the way to the next title grows, so a long translation of it
+-- leaves the title itself room.
+local RANK_PROGRESS_MAX = 200
 local FOOTER = 34
 -- Where the text of a row starts, clear of its stripe and icon.
 local ROW_TEXT_X = 40
@@ -1412,6 +1510,29 @@ local function EmptyText(key)
 	return key == "favours" and TEXT.EMPTY_FAVOURS or TEXT.EMPTY_ALL
 end
 
+-- The title at the top: its name, the way to the next sized to its words and
+-- never so wide the name has no room, and the bar filled for the stretch
+-- between the title held and the next.
+local function PaintRank(sum)
+	local rank = Ledger.Rank(sum)
+	local r = window.rank
+	r.name:SetText(rank.title and rank.title.name or TEXT.UNTITLED)
+	local c = rank.title and RANK_INK or INK_FAINT
+	r.name:SetTextColor(c[1], c[2], c[3])
+	r.progress:SetText(rank.next and TEXT.RANK_PROGRESS:format(rank.returned, rank.next.at, rank.next.name)
+		or TEXT.RANK_TOP)
+	r.progress:SetWidth(math.min(RANK_PROGRESS_MAX, math.ceil(TextWidth(r.progress)) + 2))
+	local share = 1
+	if rank.next then
+		share = (rank.returned - rank.from) / (rank.next.at - rank.from)
+	end
+	share = math.min(1, math.max(0, share))
+	-- A texture cannot be drawn no wide, so an empty bar is a hidden one.
+	r.fill:SetShown(share > 0)
+	r.fill:SetWidth(math.max(1, (WIDTH - 2 * PAD) * share))
+	r.standing = rank
+end
+
 function Render()
 	if not (window and window:IsShown()) then return end
 	local now = Wall()
@@ -1419,6 +1540,7 @@ function Render()
 	local list = Ledger.Entries(filter)
 	local sum = Ledger.Summary()
 
+	PaintRank(sum)
 	window.headline:SetText(Ledger.Headline(sum))
 	window.subline:SetText(Subline(sum))
 	for _, stat in ipairs(window.stats) do
@@ -1525,6 +1647,55 @@ local function BuildHeader()
 	window.subline:SetPoint("TOPLEFT", window, "TOPLEFT", PAD, SUBLINE_TOP)
 	window.subline:SetPoint("TOPRIGHT", window, "TOPRIGHT", -PAD, SUBLINE_TOP)
 	Wrap(window.subline, 2)
+end
+
+-- Hovering the title: its line of flavour, and what titles are and where the
+-- next one is, which the window has no room to say.
+local function RankTooltip(self)
+	local rank = self.standing
+	if not rank then return end
+	GameTooltip:SetOwner(self, "ANCHOR_BOTTOM")
+	if rank.title then
+		GameTooltip:AddLine(rank.title.name, RANK_INK[1], RANK_INK[2], RANK_INK[3])
+		GameTooltip:AddLine(rank.title.flavour, 1, 1, 1, true)
+	else
+		GameTooltip:AddLine(TEXT.UNTITLED, INK_SOFT[1], INK_SOFT[2], INK_SOFT[3])
+	end
+	GameTooltip:AddLine(rank.next and TEXT.RANK_TIP_NEXT:format(rank.next.name, rank.next.at)
+		or TEXT.RANK_TIP_TOP, 0.7, 0.7, 0.7, true)
+	GameTooltip:Show()
+end
+
+-- The title, under the title band: a frame of its own so it can be hovered,
+-- the name on the left cut where it meets the way to the next on the right,
+-- and a hairline bar along the bottom in the colour of favours returned, which
+-- is what fills it.
+local function BuildRank()
+	local r = CreateFrame("Button", nil, window)
+	r:SetHeight(RANK_HEIGHT)
+	r:SetPoint("TOPLEFT", window, "TOPLEFT", PAD, RANK_TOP)
+	r:SetPoint("TOPRIGHT", window, "TOPRIGHT", -PAD, RANK_TOP)
+
+	r.progress = Text(r, 10, INK_SOFT)
+	r.progress:SetJustifyH("RIGHT")
+	r.progress:SetPoint("TOPRIGHT", r, "TOPRIGHT", 0, -2)
+	r.name = Text(r, 12, RANK_INK)
+	r.name:SetPoint("TOPLEFT", r, "TOPLEFT", 0, 0)
+	r.name:SetPoint("TOPRIGHT", r.progress, "TOPLEFT", -8, 2)
+
+	r.track = Solid(r, "BORDER")
+	r.track:SetHeight(2)
+	r.track:SetPoint("BOTTOMLEFT", r, "BOTTOMLEFT", 0, 0)
+	r.track:SetPoint("BOTTOMRIGHT", r, "BOTTOMRIGHT", 0, 0)
+	r.track:SetVertexColor(1, 1, 1, 0.07)
+	r.fill = Solid(r, "ARTWORK")
+	r.fill:SetHeight(2)
+	r.fill:SetPoint("BOTTOMLEFT", r, "BOTTOMLEFT", 0, 0)
+	r.fill:SetVertexColor(COLOUR.returned[1], COLOUR.returned[2], COLOUR.returned[3], 0.85)
+
+	r:SetScript("OnEnter", RankTooltip)
+	r:SetScript("OnLeave", function() GameTooltip:Hide() end)
+	window.rank = r
 end
 
 -- The all-time numbers, as four tiles rather than a sentence that stops
@@ -1686,6 +1857,7 @@ local function Build()
 	window.accent:SetHeight(1)
 
 	BuildHeader()
+	BuildRank()
 	BuildStats()
 	BuildTabs()
 

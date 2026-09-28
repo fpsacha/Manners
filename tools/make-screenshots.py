@@ -362,6 +362,11 @@ end
 
 table.insert(R.states, { key = "shot-ledger", title = "shot-ledger", setup = function(ns)
 	day(ns)
+	-- Months of play behind the day, so the title at the top is one worth
+	-- showing: the lifetime counts are kept apart from the list, which holds
+	-- only its last 200 rows, so these stand beside it as they would in game.
+	local t = ns.db.char.ledger.totals
+	t.received, t.returned, t.letGo, t.group, t.strangers = 164, 137, 21, 58, 212
 	ns.addon:HandleSlash("ledger")
 end })
 """
