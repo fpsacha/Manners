@@ -61,7 +61,7 @@ mutate("Prompt.lua",
        script="runscenarios.py")
 
 # The error inside the press's window not noted as a refusal.
-mutate("Core.lua",
+mutate("Clicks.lua",
        "\tRewindClick(pending)\n\tns.NoteRefusal(pending.name, message)\n",
        "\tRewindClick(pending)\n",
        "error refusal not noted",
@@ -69,7 +69,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # The hold never running out.
-mutate("Core.lua",
+mutate("Queue.lua",
        "\tlocal QUIET_SECONDS = 30\n",
        "\tlocal QUIET_SECONDS = 3000\n",
        "line held for ever",
@@ -77,7 +77,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # A cast that lands forgetting nothing.
-mutate("Core.lua",
+mutate("Clicks.lua",
        "\t\t\tif record.landed then ns.NoteLanded(record.name) end\n",
        "",
        "landed cast does not clear the hold",
@@ -94,7 +94,7 @@ mutate("Prompt.lua",
 
 # A press the settle path calls a failure (the cast went to somebody else)
 # holding nothing: the next press thanks them again.
-mutate("Core.lua",
+mutate("Clicks.lua",
        "\t\t-- went, so it is held; no back-off, since the game refused nobody.\n\t\tns.NoteRefusal(pending.name, nil, true)\n",
        "\t\t-- went, so it is held; no back-off, since the game refused nobody.\n",
        "settle failure does not hold the line",

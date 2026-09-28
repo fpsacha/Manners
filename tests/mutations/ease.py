@@ -23,7 +23,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # The end of a snooze said to somebody who switched chat output off.
-mutate("Core.lua",
+mutate("Commands.lua",
        "\tif addon.db.profile.verbose then addon:Print(SnoozeOverText()) end\n",
        "\taddon:Print(SnoozeOverText())\n",
        "the snooze's end said with chat output off",
@@ -32,7 +32,7 @@ mutate("Core.lua",
 
 # The obvious way to write a snooze: take the button down straight away. In a
 # fight that is a protected call the client refuses.
-mutate("Core.lua",
+mutate("Commands.lua",
        "\tsnoozeUntil = GetTime() + minutes * 60\n"
        "\t-- Refresh decides for itself what it may do in a fight, and in one it\n"
        "\t-- leaves the panel exactly as the fight found it.\n"
@@ -44,7 +44,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # A snooze started in a fight described as though it had already taken effect.
-mutate("Core.lua",
+mutate("Commands.lua",
        "\telseif InCombatLockdown() then\n\t\t-- Not \"it goes when the fight ends\"",
        "\telseif false then\n\t\t-- Not \"it goes when the fight ends\"",
        "a snooze in a fight silent about the wait",
@@ -68,14 +68,14 @@ mutate("Options.lua",
        script="runscenarios.py")
 
 # The unit the help itself uses, refused.
-mutate("Core.lua",
+mutate("Commands.lua",
        "\t[\"\"] = 1, m = 1, min = 1, mins = 1, minute = 1, minutes = 1,\n",
        "\t[\"\"] = 1, m = 1, min = 1, mins = 1,\n",
        "a snooze that refuses 15 minutes",
        expect="/manners snooze 15 minutes snoozed for",
        script="runscenarios.py")
 
-mutate("Core.lua",
+mutate("Commands.lua",
        "\th = 60, hr = 60, hrs = 60, hour = 60, hours = 60,\n",
        "",
        "a snooze that refuses hours",
@@ -83,7 +83,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # A 24-hour time for somebody whose clock says PM.
-mutate("Core.lua",
+mutate("Commands.lua",
        "\treturn ok and plain(value) == \"0\"\n",
        "\treturn false\n",
        "a snooze end on a clock not the player's",
@@ -92,7 +92,7 @@ mutate("Core.lua",
 
 # ------------------------------------------------------------------ mounted
 
-mutate("Core.lua",
+mutate("Queue.lua",
        "\tif ns.HiddenWhileMounted() then return {} end\n",
        "",
        "Not while mounted that hides nothing",
@@ -113,7 +113,7 @@ mutate("Core.lua",
        expect="survived the repair",
        script="runscenarios.py")
 
-mutate("Core.lua",
+mutate("Queue.lua",
        "\treturn plain(safecall(IsMounted)) == true\n",
        "\treturn plain(IsMounted()) == true\n",
        "a throwing IsMounted taking the queue down",
@@ -146,7 +146,7 @@ mutate("Options.lua",
 # ------------------------------------------------------------------ help
 
 # A command the dispatcher answers to, dropped from the list the help prints.
-mutate("Core.lua",
+mutate("Commands.lua",
        "\t{ word = \"export\", group = \"share\", help = L[\"copy these settings as one line of text\"] },\n",
        "",
        "a real command missing from the help",
@@ -154,14 +154,14 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # A group missing, so every command in it goes unprinted.
-mutate("Core.lua",
+mutate("Commands.lua",
        "\t{ key = \"trouble\", title = L[\"When something is wrong\"] },\n",
        "",
        "a help group nobody prints",
        expect="ease: help lists every real command",
        script="runscenarios.py")
 
-mutate("Core.lua",
+mutate("Commands.lua",
        "\t\tif closest then\n",
        "\t\tif false then\n",
        "no did-you-mean",
@@ -169,7 +169,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # A guess for anything at all.
-mutate("Core.lua",
+mutate("Commands.lua",
        "\tlocal allowed = #word >= 6 and 2 or 1\n",
        "\tlocal allowed = 99\n",
        "a did-you-mean that always guesses",
@@ -178,7 +178,7 @@ mutate("Core.lua",
 
 # A guess at a developer tool that still says the help lists it, which the help
 # does not.
-mutate("Core.lua",
+mutate("Commands.lua",
        "\t\t\t\tif command.word == closest then\n",
        "\t\t\t\tif false then\n",
        "a guess at a developer tool sent to the help",
@@ -186,7 +186,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # Two slips allowed in a five-letter word, which makes "reset" into "test".
-mutate("Core.lua",
+mutate("Commands.lua",
        "\tlocal allowed = #word >= 6 and 2 or 1\n",
        "\tlocal allowed = #word <= 4 and 1 or 2\n",
        "a did-you-mean that guesses test for reset",
@@ -194,7 +194,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # Two letters swapped counted as two slips, so "tset" finds nothing.
-mutate("Core.lua",
+mutate("Commands.lua",
        "\t\t\t\tbest = math.min(best, rows[i - 2][j - 2] + 1)\n",
        "\t\t\t\tbest = best\n",
        "a did-you-mean blind to swapped letters",
@@ -202,7 +202,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # A command suggested to itself: the guess a missing branch hides behind.
-mutate("Core.lua",
+mutate("Commands.lua",
        "\tfor _, candidate in ipairs(words) do\n\t\tif candidate == word then return nil end\n\tend\n",
        "",
        "a command suggested to itself",
@@ -211,7 +211,7 @@ mutate("Core.lua",
 
 # An advertised command with no branch. The walk in the main file finds it by
 # the full help it falls through to, which a guess of itself used to replace.
-mutate("Core.lua",
+mutate("Commands.lua",
        "\telseif input == \"forms\" then\n",
        "\telseif false then\n",
        "an advertised command with no branch",
@@ -222,7 +222,7 @@ mutate("Core.lua",
 
 # The separators left unescaped, so a line of text with ; or = in it breaks the
 # string it is written into.
-mutate("Core.lua",
+mutate("Commands.lua",
        "\treturn (s:gsub(\"[^%w_%.%-!%?'%(%){}/ ]\", function(c)\n",
        "\treturn (s:gsub(\"[^%w_%.%-!%?'%(%){}/ ;=]\", function(c)\n",
        "an export that does not escape its separators",
@@ -231,14 +231,14 @@ mutate("Core.lua",
 
 # Everything the string does not name left as it was, so an import is a merge
 # and its undo leaves the imported settings behind.
-mutate("Core.lua",
+mutate("Commands.lua",
        "\t\tif value == nil then value = CopyValue(field.default) end\n",
        "\t\tif value == nil then value = holder[field.key] end\n",
        "an import that does not reset what it leaves out",
        expect="did not put the old settings back",
        script="runscenarios.py")
 
-mutate("Core.lua",
+mutate("Commands.lua",
        "\t\tif not own and SHARE_KEEP_MINE[field.name] then\n",
        "\t\tif false then\n",
        "an import that switches speech on",
@@ -247,21 +247,21 @@ mutate("Core.lua",
 
 # The switch kept and everything behind it handed over: the player who says
 # "thanks" in /say starts yelling a stranger's words.
-mutate("Core.lua",
+mutate("Commands.lua",
        "\t\telseif not own and speaking and SHARE_SPEECH[field.name] then\n",
        "\t\telseif false then\n",
        "an import that rewrites a speaker's words",
        expect="changed what a player who speaks says",
        script="runscenarios.py")
 
-mutate("Core.lua",
+mutate("Commands.lua",
        "\t[\"prompt.locked\"] = true,\n",
        "",
        "an import that unlocks the prompt",
        expect="unlocked this one",
        script="runscenarios.py")
 
-mutate("Core.lua",
+mutate("Commands.lua",
        "\t[\"prompt.x\"] = true,\n",
        "",
        "an import that moves the prompt",
@@ -271,7 +271,7 @@ mutate("Core.lua",
 # The undo run as an import, the way it first was: it keeps the settings it
 # replaced as a new undo, so a second undo puts the import back -- and the
 # first says "settings imported" and tells the player to undo it.
-mutate("Core.lua",
+mutate("Commands.lua",
        "\t\tlocal parsed = Parse(lastImportUndo, math.huge)\n"
        "\t\tlastImportUndo = nil\n",
        "\t\tdo return ns.ImportSettings(lastImportUndo) end\n"
@@ -283,7 +283,7 @@ mutate("Core.lua",
 # The undo landing on the wrong profile. It outlives a switch on purpose, so
 # the player who comes back can still use it; what stops it is UndoImport
 # asking whether this is the profile it was made on.
-mutate("Core.lua",
+mutate("Commands.lua",
        "\tif profile ~= undoProfile then\n",
        "\tif false then\n",
        "an undo that follows a profile switch",
@@ -297,14 +297,14 @@ mutate("Core.lua",
        expect="an offset of 1e300 survived the repair",
        script="runscenarios.py")
 
-mutate("Core.lua",
+mutate("Commands.lua",
        "\tif Checksum(\"MNR\" .. version .. \":\" .. body) ~= sum:lower() then\n",
        "\tif false then\n",
        "an import that ignores the checksum",
        expect="ease: malformed and hostile import strings are rejected",
        script="runscenarios.py")
 
-mutate("Core.lua",
+mutate("Commands.lua",
        "\t\t\t\tif value == nil then return nil, ns.SHARE_ERRORS.badValue:format(name) end\n",
        "",
        "an import that takes a value of the wrong type",
@@ -315,7 +315,7 @@ mutate("Core.lua",
 # so still writes none of them -- that is the second guard, and the scenario
 # checks the profile too -- but the player is no longer told that a newer
 # version's settings were left out.
-mutate("Core.lua",
+mutate("Commands.lua",
        "\t\t\tlocal field = byName[name]\n",
        "\t\t\tlocal field = byName[name] or { name = name, kind = \"string\", path = {}, key = name }\n",
        "an import that takes unknown names for settings",
@@ -323,7 +323,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # The repair skipped, so a value no slider can reach is kept.
-mutate("Core.lua",
+mutate("Commands.lua",
        "\t\t-- undo, which each caller then sets as it needs.\n"
        "\t\taddon:RefreshConfig()\n",
        "\t\t-- undo, which each caller then sets as it needs.\n",
@@ -347,7 +347,7 @@ mutate("Options.lua",
        script="runscenarios.py")
 
 # /manners dev advertised by the help with no branch behind it.
-mutate("Core.lua",
+mutate("Commands.lua",
        "\telseif input == \"dev\" then\n",
        "\telseif input == \"developer\" then\n",
        "the dev command falling through to the help",
@@ -355,7 +355,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # /manners dev answering with nothing listed under its heading.
-mutate("Core.lua",
+mutate("Commands.lua",
        "\t\tfor _, command in ipairs(ns.DEV_COMMANDS) do\n\t\t\tself:Print(",
        "\t\tfor _, command in ipairs({}) do\n\t\t\tself:Print(",
        "the dev command listing no tools",
@@ -364,7 +364,7 @@ mutate("Core.lua",
 
 # A developer tool's word left out of the guesses, so a slip gets the whole
 # help, which does not list it.
-mutate("Core.lua",
+mutate("Commands.lua",
        "\tfor _, command in ipairs(ns.DEV_COMMANDS) do words[#words + 1] = command.word end\n",
        "",
        "no did-you-mean for a developer tool",

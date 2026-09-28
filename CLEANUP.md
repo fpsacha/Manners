@@ -2,8 +2,9 @@
 
 Working notes, not shipped (`.pkgmeta` leaves it out). Written 2026-09-25,
 after 1.0.0-beta.6, when Sacha asked whether the code was bloated. It is the
-plan to follow when Sacha asks for "the cleanup". Nothing in it has been done
-yet; tick steps off here as they land.
+plan to follow when Sacha asks for "the cleanup". Steps 0 to 5 have landed:
+step 0 in 1.0.0-beta.7, step 5 in beta.8, steps 1 to 4 in beta.9. Step 6,
+splitting Core.lua, came after, for 1.0.0.
 
 **Goal:** a smaller addon that is quicker to test, with no change in behaviour.
 A trim, not a rewrite.
@@ -62,11 +63,13 @@ Everything after this step is paid for by it, and so is every future release.
 
 ### 1. Shorten the long texts
 
-- [ ] The 30 strings over 200 characters: cut each to one or two sentences a
+Done in 1.0.0-beta.9.
+
+- [x] The 30 strings over 200 characters: cut each to one or two sentences a
       player acts on; move the detail to README.md. List them with:
       `python -c "import sys; sys.path.insert(0,'tools'); import locale_keys as lk; k,_=lk.keys(); [print(len(x), v[0], x[:80]) for x,v in sorted(k.items(), key=lambda i: -len(i[0])) if len(x)>200]"`
-- [ ] Also look at option descriptions between 120 and 200 characters.
-- [ ] Changed keys drop out of every locale file (tools/build_locale.py drops
+- [x] Also look at option descriptions between 120 and 200 characters.
+- [x] Changed keys drop out of every locale file (tools/build_locale.py drops
       keys no longer asked for). Top them up: `tools/locale_keys.py --missing
       <code>` per language, translate with the glossaries (kept in the session
       scratchpad of the translation run -- if gone, write a short one per
@@ -77,7 +80,9 @@ Everything after this step is paid for by it, and so is every future release.
 
 ### 2. Developer tools out of the player's way
 
-- [ ] `/manners try`, `look`, `forms`, `clicks` (and the click log) leave the
+Done in 1.0.0-beta.9.
+
+- [x] `/manners try`, `look`, `forms`, `clicks` (and the click log) leave the
       help list and move under one `/manners dev` (which lists them). Keep
       them working: they are the only in-game diagnosis for the classes nobody
       has played. Update ns.COMMANDS, the did-you-mean list, README and the
@@ -85,7 +90,9 @@ Everything after this step is paid for by it, and so is every future release.
 
 ### 3. Trim the comments
 
-- [ ] Cut history narration ("this used to do X, which broke Y ...") down to
+Done in 1.0.0-beta.9.
+
+- [x] Cut history narration ("this used to do X, which broke Y ...") down to
       the rule that holds now and why. Keep every comment that explains a
       client quirk, a secret-value rule, a combat restriction or a deliberate
       decision (STATUS.md "Worth knowing about").
@@ -95,10 +102,12 @@ Everything after this step is paid for by it, and so is every future release.
 
 ### 4. Dead and duplicate code
 
-- [ ] Remove only what a tool proves unused: extend validate.py's
+Done in 1.0.0-beta.9.
+
+- [x] Remove only what a tool proves unused: extend validate.py's
       "WRITE-ONLY ns.X" check to local functions nothing calls, and delete what
       it finds.
-- [ ] Look for the same fix made twice from different files by parallel
+- [x] Look for the same fix made twice from different files by parallel
       fixers (found twice already: the never-offer list's ledger row and its
       in-fight warning). Symptoms: a chat line said twice, a mutation that
       goes MISSED after a merge.
@@ -106,10 +115,54 @@ Everything after this step is paid for by it, and so is every future release.
 
 ### 5. Measure CPU in a crowd
 
-- [ ] Profile a scan with 40 nameplates, a full raid, many auras, a long
+Done in 1.0.0-beta.8, with `tools/profile_scan.py`: a scan in a crowd leaves
+less than half the garbage it did, and the never-offer list's answers are kept
+until the list changes.
+
+- [x] Profile a scan with 40 nameplates, a full raid, many auras, a long
       never-offer list and a friends list of 100 (a lupa probe on the mock).
       Report time per BuildQueue/Tick and table allocations per tick; fix only
       what is actually expensive, with English behaviour identical.
+
+### 6. Split Core.lua (1.0.0)
+
+- [x] Core.lua was 6,652 lines, one file for the whole engine. It is now eight,
+      loaded in this order from Manners.toc, straight after Buffs.lua and
+      before Phrases.lua:
+
+      | File | Lines | What |
+      |---|---|---|
+      | Core.lua | ~1,700 | addon object, secret-safe access, failure handling, defaults and ClampSettings, capability probe, which buff for which person, unit inspection, names, lifecycle and the general events |
+      | Range.lua | ~400 | how near is near |
+      | Speech.lua | ~180 | phrase sets, the spoken line |
+      | Queue.lua | ~1,150 | debts, refusals, never-offer list, friends, BuildQueue |
+      | Requests.lua | ~580 | people who ask in chat |
+      | Favours.lua | ~610 | noticing a buff (auras, combat log) |
+      | Clicks.lua | ~740 | the pending click and its settle, GCD, click macro |
+      | Commands.lua | ~1,450 | first run, test console, snooze, sharing, slash |
+
+- How it was done, so the next split can do the same: every piece is a range
+  of the old file's lines, copied verbatim. What runs at load keeps its old
+  order; the pieces moved earlier (the lifecycle, the names, the general
+  events) only define functions and tables. A local one file needs from
+  another is put on ns where it is defined (`ns.SameParty = SameParty`); a
+  file that loads later copies it into a local at load (`local SameParty =
+  ns.SameParty`), and the lifecycle in Core.lua, which loads first, reads what
+  later files define off ns inside the function (TickBody's first lines). Two
+  locals could not be copied, because they are reassigned after load: the
+  player's class, read through `ns.PlayerClass()`, and whether the combat log
+  is armed, now `ns.combatLogArmed`.
+- No behaviour change: `tests/baseline.py` byte-identical, every suite clean,
+  and all 815 mutations still caught (294 s on 8 workers). 286 were
+  re-pointed at the file their anchor moved to, by the line it held in the old
+  file; four whose line the split had to edit were rewritten on the line as it
+  reads now; one whose replacement called Core.lua's `safecall` from what is
+  now Favours.lua calls `ns.safecall`; and the headroom mutation fills Core.lua
+  to 5 free locals rather than 3.
+- validate.py, bughunt.py and profile_scan.py read the file list from
+  Manners.toc now, so a file split out later is checked without being named.
+- Out of scope, still: Prompt.lua (~3,250) and Options.lua (~3,200) are as
+  long, and Prompt.lua has the least room for file-level locals (38 free).
 
 ## Out of scope
 

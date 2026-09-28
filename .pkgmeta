@@ -42,7 +42,7 @@ externals:
     url: https://repos.curseforge.com/wow/libdbicon-1-0/trunk/LibDBIcon-1.0
   # The only thing on any of these clients that answers "how far away is this
   # player" in steps rather than yes or no, which is what a proximity setting
-  # needs. Fetched with the rest, and optional at run time: Core.lua asks
+  # needs. Fetched with the rest, and optional at run time: Range.lua asks
   # LibStub for it with the silent flag and drops to CheckInteractDistance, and
   # then to offering everybody in casting range, if it is not there.
   # Not on CurseForge's SVN -- that path 404s, the same way LibDataBroker's

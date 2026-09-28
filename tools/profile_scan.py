@@ -31,7 +31,11 @@ from lupa import lua51 as lupa
 ADDON_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PROBE = os.path.join(ADDON_DIR, "tools", "profile_scan.lua")
 
-ADDON_FILES = ("Core.lua", "Phrases.lua", "Prompt.lua", "Options.lua", "Ledger.lua", "Buffs.lua", "Flavour.lua")
+# The addon's own files, each with a table of its busiest functions: every .lua
+# Manners.toc names directly, so a file split out of another is counted too.
+with open(os.path.join(ADDON_DIR, "Manners.toc"), encoding="utf-8") as _toc:
+    ADDON_FILES = tuple(l.strip().replace("\\", "/") for l in _toc
+                        if not l.startswith("#") and l.strip().lower().endswith(".lua"))
 _sources = {}
 
 

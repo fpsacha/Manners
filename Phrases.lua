@@ -20,7 +20,7 @@
 --
 -- It is active while "In character" is the chosen set and the box still holds
 -- the examples it put there; editing the box makes the lines the player's own,
--- as editing any set does. Core's ns.PickPhrase and ns.PhraseSetText ask this
+-- as editing any set does. Speech.lua's ns.PickPhrase and ns.PhraseSetText ask this
 -- file, and do exactly what they did before whenever it is not the chosen set,
 -- or not loaded at all.
 --

@@ -2852,7 +2852,7 @@ if ns then
 end
 
 -- 55 was the first-name fallback being learned from a run of failed casts. The
--- mechanism is gone -- see the account in Core, above ExpirePendingClick -- and
+-- mechanism is gone -- see the account in Clicks.lua, above ExpirePendingClick -- and
 -- the one thing this scenario checked that was not about it, that the macro
 -- carries exactly one /target line spelling the full name, moved into check 15,
 -- where it is asserted for every class and buff rather than one.
@@ -7980,7 +7980,7 @@ if ns then
 		-- A press the game never answered. Nobody buffed anybody here, so
 		-- anything printed is by definition not the favour line. Run out by
 		-- the tick, the way the addon itself notices it: the function that
-		-- does the expiring is local to Core, and asking ns for it called nil.
+		-- does the expiring is Clicks.lua's, and the tick is what calls it.
 		ns.pendingClick = { name = "Ana Field", at = GetTime() - 30, buffKey = "intellect" }
 		ns.addon:Tick()
 		local said = table.concat(Mock.printed, " | ")
@@ -8624,8 +8624,9 @@ do
 	-- files after it read ns.L while they load -- the key-binding label, the
 	-- default wording -- so a list without it fails on a file other than the
 	-- one this is about.
-	for _, file in ipairs({ "Locales/Init.lua", "Buffs.lua", "Core.lua", "Ledger.lua",
-		"Prompt.lua", "Options.lua" }) do
+	for _, file in ipairs({ "Locales/Init.lua", "Buffs.lua", "Core.lua", "Range.lua",
+		"Speech.lua", "Queue.lua", "Requests.lua", "Favours.lua", "Clicks.lua",
+		"Commands.lua", "Ledger.lua", "Prompt.lua", "Options.lua" }) do
 		local chunk, err = loadfile(dir .. "/" .. file)
 		if not chunk then
 			fail(scenario, "load " .. file .. ": " .. tostring(err))

@@ -160,9 +160,9 @@ function IsMounted() return false end
 -- ------------------------------------------------------------------ counting
 
 -- Every client API the mock provides, wrapped to count its calls. Wrapped
--- before the addon loads, because Core.lua keeps its own copies of a few of
--- them. Only in count mode: a wrapper per call is exactly the overhead the
--- timing run must not carry.
+-- before the addon loads, because Core.lua and the files after it keep their
+-- own copies of a few of them. Only in count mode: a wrapper per call is
+-- exactly the overhead the timing run must not carry.
 local apiCalls = {}
 local counting = false
 local BUILTIN = {

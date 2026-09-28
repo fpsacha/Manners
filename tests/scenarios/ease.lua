@@ -574,10 +574,10 @@ do
 	local ns = load(scenario)
 	if ns then
 		drive(scenario, ns)
-		local source = assert(io.open(dir .. "/Core.lua", "r")):read("*a")
+		local source = assert(io.open(dir .. "/Commands.lua", "r")):read("*a")
 		local body = source:match("function addon:HandleSlash%(rawInput%)(.-)\nend\n")
 		if not body then
-			fail(scenario, "SKIPPED -- the dispatcher could not be found in Core.lua")
+			fail(scenario, "SKIPPED -- the dispatcher could not be found in Commands.lua")
 		else
 			local words = {}
 			for word in body:gmatch('input == "([^"]*)"') do words[word] = true end

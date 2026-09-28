@@ -14,12 +14,18 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "tools"))
 import maketocs
 
-OURS = ["Flavour.lua", "Buffs.lua", "Core.lua", "Phrases.lua", "Ledger.lua", "Prompt.lua", "Options.lua"]
-
 # Manners.toc is the hand-edited source and the fallback for a client that does
 # not honour a suffixed name; every per-flavour toc (tools/maketocs.py's
 # FLAVOURS, one today) is generated from it.
 TOCS = [maketocs.SOURCE] + sorted(maketocs.expected())
+
+# Our own Lua files, in the order Manners.toc loads them: every .lua it names
+# directly (the translations come in through Locales.xml and are counted on
+# their own below). Read from the toc, so a file split out of another is
+# checked the moment it is listed, rather than when somebody remembers this.
+OURS = [l.strip().replace("\\", "/")
+        for l in open(os.path.join(ROOT, maketocs.SOURCE), encoding="utf-8")
+        if not l.startswith("#") and l.strip().lower().endswith(".lua")]
 
 L = lupa.LuaRuntime()
 # loadstring: 5.1's load takes a reader function, not source text.
@@ -197,8 +203,9 @@ for b in ET.parse(os.path.join(ROOT, "Bindings.xml")).getroot().iter("Binding"):
     if not bad:
         print("  ok  <Binding name=\"%s\">" % name)
 
-core_src = open(os.path.join(ROOT, "Core.lua"), encoding="utf-8").read()
-macro_body = re.search(r'MACRO_BODY\s*=\s*"([^"]*)"', core_src)
+# The click macro is Clicks.lua's.
+clicks_src = open(os.path.join(ROOT, "Clicks.lua"), encoding="utf-8").read()
+macro_body = re.search(r'MACRO_BODY\s*=\s*"([^"]*)"', clicks_src)
 if macro_body and re.match(r"/click\s+MannersPrompt\s+LeftButton\s+1\s*$", macro_body.group(1)):
     print("  ok  MACRO_BODY %s" % macro_body.group(1))
 else:
