@@ -96,8 +96,8 @@ mutate("Prompt.lua",
 
 # The tooltip silent about the ready check.
 mutate("Prompt.lua",
-       "\t\tif current.sweep == \"readycheck\" then\n",
-       "\t\tif false then\n",
+       "\tif entry.sweep == \"readycheck\" then\n",
+       "\tif false then\n",
        "tooltip silent about the ready check",
        expect="the tooltip does not say a ready check is running",
        script="runscenarios.py")
@@ -322,8 +322,8 @@ mutate("Queue.lua",
 
 # The tooltip silent about it.
 mutate("Prompt.lua",
-       "\t\tlocal kept, resume = ns.SavingMana()\n",
-       "\t\tlocal kept, resume = nil, nil\n",
+       "\tlocal kept, resume = ns.SavingMana()\n",
+       "\tlocal kept, resume = nil, nil\n",
        "tooltip silent about saving mana",
        expect="the tooltip does not say mana is being saved",
        script="runscenarios.py")
