@@ -144,7 +144,7 @@ off. Press the key while either is hiding the prompt and chat says which.
 
 ## The favour ledger
 
-<img src=".github/media/manners-ledger.png" alt="The favour ledger: today's count and all-time totals, then rows of favours still owed, returned and let go, and buffs given to the group and to strangers" width="640">
+<img src=".github/media/manners-ledger.png" alt="The favour ledger: the title your manners have earned, today's count and all-time totals, then rows of favours still owed, returned and let go, and buffs given to the group and to strangers" width="640">
 
 Who buffed you, with what and when, whether you returned it, and who you
 buffed without being asked, newest first. Today's count ("Returned 12 of 14
@@ -154,10 +154,19 @@ the time ran out, nothing you cast helps them, or you put them on the
 never-offer list. Hover a favour still owed and it says whether the prompt will
 offer it, and when.
 
+**Titles.** Favours you return earn you a title: *Well Brought Up* at 10, then
+*Well Mannered*, *Courteous*, *Gracious* at 100, *Magnanimous*, *Paragon of
+Etiquette* and, at 1,000, *The Very Soul of Courtesy*. The one you hold sits at
+the top of the ledger with how far you are from the next ("37 of 50 to
+Courteous"), and in the minimap tooltip. A new title gets one line in chat,
+once, even with chat lines off; a character that had earned some before titles
+existed simply has them.
+
 `/manners ledger`, a shift-click on the minimap button, or *Open the ledger* on
 the General tab. It keeps the last 200 entries per character; *Clear* empties
-the list and today's count but keeps favours still owed and the all-time
-totals. It opens in combat and never says anything in chat.
+the list and today's count but keeps favours still owed, the all-time totals
+and your title. It opens in combat, and the only thing it ever says in chat is
+a new title.
 
 ## The prompt's look
 

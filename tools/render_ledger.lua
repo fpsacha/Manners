@@ -225,6 +225,18 @@ R.states = {
 		ns.Ledger.Scroll(100)
 	end },
 	{ key = "few", title = "Two rows", setup = function(ns) few(ns) open(ns, "all") end },
+	-- A character well into the titles, and one with every title there is: the
+	-- count stands in for months of play the list no longer holds.
+	{ key = "titled", title = "A title held", setup = function(ns)
+		busy(ns)
+		ns.db.char.ledger.totals.returned = 137
+		open(ns, "all")
+	end },
+	{ key = "every-title", title = "Every title earned", setup = function(ns)
+		few(ns)
+		ns.db.char.ledger.totals.returned = 1204
+		open(ns, "all")
+	end },
 	{ key = "empty", title = "Nothing yet", setup = function(ns) open(ns, "all") end },
 	{ key = "empty-given", title = "Nothing given yet", setup = function(ns)
 		few(ns)

@@ -347,7 +347,8 @@ for _, locale in ipairs(LOCALES) do
 		-- Top to bottom: the summary, the tiles, the tabs, the list, the footer.
 		local list = rect(window.rows[1])
 		local last = rowRects[#rowRects]
-		local above = { { "headline", window.headline }, { "summary line", window.subline } }
+		local above = { { "title", window.rank }, { "headline", window.headline },
+			{ "summary line", window.subline } }
 		for _, stat in ipairs(window.stats) do above[#above + 1] = { "tile", stat.plate } end
 		for _, tab in ipairs(window.tabs) do above[#above + 1] = { "tab", tab } end
 		for _, a in ipairs(above) do
@@ -367,6 +368,25 @@ for _, locale in ipairs(LOCALES) do
 		local head = rect(window.headline)
 		if head and sub and overlaps(head, sub) then
 			fail(scenario, "the headline and the summary line overlap")
+		end
+		-- The title over its bar, the band above it and the headline below, and
+		-- its name and the way to the next apart on their line.
+		local rank = window.rank and rect(window.rank)
+		if rank and head and overlaps(rank, head) then
+			fail(scenario, "the title and the headline overlap")
+		end
+		if rank and rank[4] > win[4] - 30 + 0.01 then
+			fail(scenario, "the title reaches up into the title band")
+		end
+		local name, progress = window.rank and rect(window.rank.name), window.rank and rect(window.rank.progress)
+		if name and progress and overlaps(name, progress) then
+			fail(scenario, ("the title %s and the way to the next %s overlap"):format(
+				say(window.rank.name), say(window.rank.progress)))
+		end
+		for _, part in ipairs({ name, progress }) do
+			if rank and not inside(part, rank) then
+				fail(scenario, "the title's line reaches outside its own frame")
+			end
 		end
 		for i = 1, #window.tabs - 1 do
 			local a, b = rect(window.tabs[i]), rect(window.tabs[i + 1])

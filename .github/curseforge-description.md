@@ -31,9 +31,11 @@ It skips the dead, the out of range, anyone you just tried, and anyone the buff 
 
 ### The favour ledger
 
-![The favour ledger: today's count and all-time totals, then rows of favours still owed, returned and let go, and buffs given to the group and to strangers](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-ledger.png)
+![The favour ledger: the title your manners have earned, today's count and all-time totals, then rows of favours still owed, returned and let go, and buffs given to the group and to strangers](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-ledger.png)
 
-Who buffed you and with what, whether you returned it (and if not, why), and who you buffed without being asked, with today's count ("Returned 12 of 14 favours today") and your all-time totals. `/manners ledger` or shift-click the minimap button. It never says anything in chat.
+Who buffed you and with what, whether you returned it (and if not, why), and who you buffed without being asked, with today's count ("Returned 12 of 14 favours today") and your all-time totals. `/manners ledger` or shift-click the minimap button.
+
+Favours you return also earn you a title, from *Well Brought Up* at 10 to *The Very Soul of Courtesy* at 1,000. It sits at the top of the ledger with how far you are from the next ("37 of 50 to Courteous"), and in the minimap tooltip. The only thing the ledger ever says in chat is a new title, once.
 
 ### The prompt
 
