@@ -584,6 +584,11 @@ local function OnPreClick(self, mouseButton)
 			else
 				ns.addon:Print(L["nothing learned to cast yet."])
 			end
+		elseif ns.SavingMana() then
+			-- The option goes in by its own key, so a translation names the
+			-- label the window shows.
+			ns.addon:Print(L["nobody to buff right now -- you are below the %d%% of your mana that %s keeps for you, so only people who buffed you or asked are offered."]
+				:format(ns.SavingMana(), "|cffffd100" .. L["Keep this much mana for myself"] .. "|r"))
 		else
 			ns.addon:Print(L["nobody to buff right now."])
 		end
@@ -878,8 +883,20 @@ do
 		elseif current.close == "guild" then
 			GameTooltip:AddLine(L["In your guild."], 0.7, 0.7, 0.7, true)
 		end
+		-- Why they are ahead of everybody but your target.
+		if current.sweep == "readycheck" then
+			GameTooltip:AddLine(L["A ready check is running, so your group comes first."], 0.7, 0.7, 0.7, true)
+		elseif current.sweep == "revived" then
+			GameTooltip:AddLine(L["Just came back from the dead, which costs every buff."], 0.7, 0.7, 0.7, true)
+		end
 		if left then
 			GameTooltip:AddLine(L["Theirs expires in %s."]:format(left), 0.7, 0.7, 0.7, true)
+		end
+		-- And why the rest of the group is missing from the queue, when it is.
+		local kept = ns.SavingMana and ns.SavingMana()
+		if kept then
+			GameTooltip:AddLine(L["Saving mana: below %d%% of your mana, only people who buffed you or asked are offered."]
+				:format(kept), 1, 0.82, 0, true)
 		end
 		if current.checked and current.known == nil then
 			GameTooltip:AddLine(L["Buff state unreadable on this build -- they may already have it."],
@@ -942,6 +959,9 @@ do
 		-- line.
 		local shown = table.concat({ current.name, current.buff.key, tostring(current.reason),
 			tostring(phraseText), tostring(appliedKey) }, "\1")
+		-- And whether a ready check or a death put them first, which comes and
+		-- goes while they stay on the panel.
+		shown = shown .. "\1" .. tostring(current.sweep)
 		if self.tooltipFor ~= shown then
 			self.tooltipFor = shown
 			local onEnter = self:GetScript("OnEnter")
@@ -2164,8 +2184,12 @@ function Prompt:ReasonText(entry)
 	-- The sub-line must be true without hovering: a top-up gets its own
 	-- wording, and so does an unreadable aura except for owed or asked, whose
 	-- reason is the line worth reading. Swapped in whole, since reason lines
-	-- are free text. One chain on purpose, so both can never apply.
-	if RemainingText(entry.remaining) then
+	-- are free text. One chain on purpose, so both can never apply. A group
+	-- member a ready check or a death put first says that instead: it is why
+	-- they are at the front, and the queue only does it for a reading.
+	if entry.sweep and entry.reason == "group" then
+		template = entry.sweep == "readycheck" and L["ready check"] or L["just revived"]
+	elseif RemainingText(entry.remaining) then
 		template = p.reasonRefresh or template
 	elseif entry.checked and entry.known == nil and entry.reason ~= "owed"
 		and entry.reason ~= "asked" then

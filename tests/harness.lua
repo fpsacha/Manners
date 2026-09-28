@@ -81,6 +81,9 @@ for _, e in ipairs({
   "CHAT_MSG_SAY", "CHAT_MSG_YELL", "CHAT_MSG_PARTY", "CHAT_MSG_PARTY_LEADER",
   "CHAT_MSG_RAID", "CHAT_MSG_RAID_LEADER", "CHAT_MSG_WHISPER",
   "CHAT_MSG_INSTANCE_CHAT", "CHAT_MSG_INSTANCE_CHAT_LEADER",
+  -- Registered on this client by EnhanceQoL's group frames and class-buff
+  -- reminder.
+  "READY_CHECK", "READY_CHECK_FINISHED",
 }) do KNOWN_EVENTS[e] = true end
 
 -- Ace3 stand-ins
@@ -318,6 +321,9 @@ else
     -- not be there, which is exactly the class of failure this file exists for.
     { "PLAYER_REGEN_DISABLED", function() addon:PLAYER_REGEN_DISABLED() end },
     { "PLAYER_REGEN_ENABLED", function() addon:PLAYER_REGEN_ENABLED() end },
+    -- A ready check's two ends, each of which repaints the prompt.
+    { "READY_CHECK", function() addon:READY_CHECK(nil, "Anna", 35) end },
+    { "READY_CHECK_FINISHED", function() addon:READY_CHECK_FINISHED() end },
     { "slash debug", function() addon:HandleSlash("debug") end },
     { "slash help", function() addon:HandleSlash("") end },
   }

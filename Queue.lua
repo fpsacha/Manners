@@ -775,6 +775,9 @@ ns.TellLedger = TellLedger
 -- group. One and a half rather than a renumbering, so the other numbers keep
 -- meaning what they mean in the sort, the prompt's hold and bug reports.
 local PRIORITY = { target = 0, owed = 1, asked = 1.5, group = 2, nearby = 3 }
+-- A group member put first by a ready check or by coming back from the dead:
+-- behind your deliberate target, ahead of everybody else.
+PRIORITY.sweep = 0.5
 
 -- The group's unit tokens, spelled out once rather than joined on every scan.
 local GROUP_TOKENS = { raid = {}, party = {} }
@@ -827,6 +830,132 @@ local function IterateUnits(fn)
 			end
 		end
 	end
+end
+
+---------------------------------------------------------------------------
+-- dungeons and raids
+--
+-- Two moments put a group member missing your buff at the front: a ready
+-- check, which is when a buffer sweeps the group before a pull, and coming
+-- back from the dead, which costs every buff. And two limits on offers nobody
+-- asked for: the mana you keep for yourself, and the raid groups you were
+-- given. A favour owed and a request from chat are never held back by either.
+---------------------------------------------------------------------------
+
+-- How long a ready check counts as running when the client names no time, or
+-- a nonsense one: the game's own lasts 35 seconds.
+local READY_CHECK_SECONDS = 35
+-- How long somebody back from the dead stays at the front: long enough to be
+-- rezzed, to stand up and to be buffed, short enough to be about the death.
+local REVIVED_SECONDS = 120
+
+-- readyUntil: when the running ready check ends, or nil. down: [unit token] =
+-- the name read when it was seen dead (false when none could be read). revived:
+-- [name] = GetTime() they were seen alive again. prefix: which tokens `down`
+-- is about. One table for the main chunk's 200 locals.
+local sweep = { readyUntil = nil, down = {}, revived = {}, prefix = nil }
+
+-- READY_CHECK hands over who started it and the seconds it runs for. Either
+-- end of the check repaints at once rather than at the next scan: a ready
+-- check lasts seconds, and the prompt should move as it starts.
+function addon:READY_CHECK(_, _, timeLeft)
+	local seconds = plain(timeLeft)
+	if type(seconds) ~= "number" or seconds <= 0 or seconds > 120 then seconds = READY_CHECK_SECONDS end
+	sweep.readyUntil = GetTime() + seconds
+	if ns.Prompt then ns.Guard("ready check", ns.Prompt.Refresh, ns.Prompt) end
+end
+
+function addon:READY_CHECK_FINISHED()
+	sweep.readyUntil = nil
+	if ns.Prompt then ns.Guard("ready check over", ns.Prompt.Refresh, ns.Prompt) end
+end
+
+function ns.ReadyCheckRunning(now)
+	local untilAt = sweep.readyUntil
+	return untilAt ~= nil and untilAt > (now or GetTime())
+end
+
+-- Who in the group has just come back from the dead. Walked on every scan tick
+-- rather than on UNIT_HEALTH, which in a raid fires hundreds of times a second
+-- in a fight: forty yes-or-no questions every 0.4 seconds is cheaper, and the
+-- tick runs in fights and while you are dead yourself, which the queue's walk
+-- does not. A withheld answer (a secret) is no answer, so nothing changes on
+-- it. The name is read only when somebody dies or stands up, and checked
+-- again then, since a roster change can hand the token to somebody else.
+function ns.WatchGroupDeaths(now)
+	local db = addon.db and addon.db.profile
+	local down, revived = sweep.down, sweep.revived
+	local n = plain(GetNumGroupMembers and GetNumGroupMembers()) or 0
+	if not (db and db.priority.revived == true) or n <= 0 then
+		sweep.prefix = nil
+		if next(down) then wipe(down) end
+		if next(revived) then wipe(revived) end
+		return
+	end
+
+	local inRaid = plain(IsInRaid and IsInRaid()) == true
+	local prefix = inRaid and "raid" or "party"
+	-- A party that became a raid renumbered everybody.
+	if prefix ~= sweep.prefix then
+		wipe(down)
+		sweep.prefix = prefix
+	end
+	local tokens = GROUP_TOKENS[prefix]
+	local count = math.min(inRaid and n or (n - 1), 40)
+	for i = 1, count do
+		local unit = tokens[i]
+		local dead = plain(UnitIsDeadOrGhost(unit))
+		if dead == true then
+			if down[unit] == nil then down[unit] = ns.UnitFullName(unit) or false end
+		elseif dead == false and down[unit] ~= nil then
+			local was = down[unit]
+			down[unit] = nil
+			if was and ns.UnitFullName(unit) == was then revived[was] = now end
+		end
+	end
+	-- Tokens past the end of a group that shrank.
+	for unit in pairs(down) do
+		local index = tonumber(unit:match("(%d+)$"))
+		if not index or index > count then down[unit] = nil end
+	end
+	for name, at in pairs(revived) do
+		if now - at >= REVIVED_SECONDS then revived[name] = nil end
+	end
+end
+
+-- Why this group member goes to the front now, or nil: "readycheck" or
+-- "revived". `ready` is the scan's reading of the ready check.
+local function SweepReason(name, now, ready, db)
+	if ready then return "readycheck" end
+	local at = db.priority.revived == true and sweep.revived[name]
+	if at and now - at < REVIVED_SECONDS then return "revived" end
+	return nil
+end
+
+-- The raid group (1-8) a unit is in, or nil when it cannot be told. A raid
+-- token's number is its place on the roster; any other token asks UnitInRaid,
+-- as SameParty does.
+local function RaidGroupOf(unit)
+	local index = tonumber(unit:match("^raid(%d+)$")) or plain(UnitInRaid and UnitInRaid(unit))
+	if type(index) ~= "number" then return nil end
+	local _, _, group = safecall(_G.GetRaidRosterInfo, index)
+	if type(group) ~= "number" then return nil end
+	return group
+end
+
+-- The share of your mana "Keep this much mana for yourself" keeps back, while
+-- it is holding back offers nobody asked for; nil when it is not (off, a class
+-- with no mana bar, or a reading the client withheld, which offers as before).
+function ns.SavingMana()
+	local db = addon.db and addon.db.profile
+	local floor = db and db.filters and db.filters.manaFloor
+	if type(floor) ~= "number" or floor <= 0 then return nil end
+	local most = plain(UnitPowerMax("player", MANA))
+	if type(most) ~= "number" or most <= 0 then return nil end
+	local mana = plain(UnitPower("player", MANA))
+	if type(mana) ~= "number" then return nil end
+	if mana * 100 < floor * most then return floor end
+	return nil
 end
 
 -- Whether "Not while mounted" is keeping the prompt away right now: one answer
@@ -888,6 +1017,16 @@ function ns.BuildQueue()
 	local inRaid = plain(IsInRaid and IsInRaid()) == true
 	-- The never-offer list's answers so far; see NeverVerdicts.
 	local neverVerdict = NeverVerdicts()
+
+	-- Offers nobody asked for, held back while you keep your mana and, in a
+	-- raid, for the groups you were not given; and whether a ready check has
+	-- the group first. See "dungeons and raids". Once per scan.
+	local savingMana = ns.SavingMana() ~= nil
+	local skipGroups
+	if inRaid and type(f.skipRaidGroups) == "table" and next(f.skipRaidGroups) ~= nil then
+		skipGroups = f.skipRaidGroups
+	end
+	local readyCheck = db.priority.readyCheck == true and ns.ReadyCheckRunning(now)
 
 	-- Passers-by left alone out in the world, when asked: only a definite "not
 	-- resting" does it, and could-not-tell offers them.
@@ -958,6 +1097,24 @@ function ns.BuildQueue()
 		if reason == "group" and not db.sources.group then return end
 		if reason == "nearby" and not db.sources.strangers then return end
 		if reason == "nearby" and groupOnly then return end
+
+		-- Nobody asked for these, so they wait while you keep your mana. A
+		-- favour owed or a request never reaches here as group or nearby.
+		if savingMana and (reason == "group" or reason == "nearby") then return end
+		-- In a raid, only the groups you buff. Whoever you picked out on
+		-- purpose is exempt, as from the city rule below; a group that cannot
+		-- be read is offered.
+		if skipGroups and reason == "group" and not pointed then
+			local group = RaidGroupOf(unit)
+			if group and skipGroups[group] then return end
+		end
+		-- A group member the game says is out of sight -- still in town while
+		-- the raid is inside, or a long way off in it -- is out of range for
+		-- certain, which this client's range check often will not say.
+		if reason == "group" and f.requireInRange
+			and plain(UnitIsVisible and UnitIsVisible(unit)) == false then
+			return
+		end
 
 		-- Passers-by only in a city or an inn, when that is asked for. A stranger
 		-- you targeted or focused you picked on purpose, and is exempt.
@@ -1032,6 +1189,16 @@ function ns.BuildQueue()
 			priority = PRIORITY.target
 		end
 
+		-- A group member put first by a ready check or by coming back from the
+		-- dead -- but, as for a target, only once their auras were read and the
+		-- buff found missing or running out: a guess must not jump the queue.
+		-- The reason stays, so somebody owed still says so.
+		local swept
+		if inGroup and checked and (has == false or remaining ~= nil) then
+			swept = SweepReason(full, now, readyCheck, db)
+			if swept and priority > PRIORITY.sweep then priority = PRIORITY.sweep end
+		end
+
 		-- Asked last, since the answer only orders the queue, and not for a
 		-- favour owed or your target, who outrank everybody it could pass.
 		local close
@@ -1065,6 +1232,9 @@ function ns.BuildQueue()
 			-- "friend" or "guild" where Who comes first asked; the sort and the
 			-- tooltip read it.
 			close = close,
+			-- "readycheck" or "revived" when that put them first; the reason
+			-- line and the tooltip say so.
+			sweep = swept,
 		}
 	end
 

@@ -172,6 +172,12 @@ local defaults = {
 			-- Friends and guildmates ahead of the rest of their kind. On,
 			-- because it only reorders people who were offered anyway.
 			friends = true,
+			-- Group members missing your buff go to the front while a ready
+			-- check runs, and so does somebody just back from the dead. On:
+			-- both only reorder people who were offered anyway, at the moment
+			-- a buffer sweeps the group.
+			readyCheck = true,
+			revived = true,
 		},
 
 		-- People never to offer anything to, as a set of filed names. Somebody
@@ -196,6 +202,13 @@ local defaults = {
 			-- buffing from the saddle may want. Dead, taxi and vehicle need no
 			-- switch: nothing can be cast there, so BuildQueue offers nobody.
 			hideMounted = false,
+			-- The share of your mana (0-90) kept for yourself: below it, only
+			-- a favour owed or a request from chat is offered. 0 is off.
+			manaFloor = 0,
+			-- The raid groups (1-8) switched off, as a sparse set (absent =
+			-- on): in a raid, members of those groups are offered nothing
+			-- unasked.
+			skipRaidGroups = {},
 		},
 
 		timing = {
@@ -1153,6 +1166,7 @@ local LIMITS = {
 	{ "timing", "graceSeconds", 10, 180 },
 	{ "filters", "minLevel", 1, 60 },
 	{ "filters", "refreshUnder", 1, 60 },
+	{ "filters", "manaFloor", 0, 90 },
 	{ "prompt", "width", 80, 500 },
 	{ "prompt", "height", 20, 120 },
 	{ "prompt", "scale", 0.5, 3 },
@@ -1270,6 +1284,21 @@ function ns.ClampSettings()
 	boolean(profile.priority, "target", true)
 	boolean(profile.priority, "friends", true)
 	boolean(profile.filters, "restingOnly", false)
+	boolean(profile.priority, "readyCheck", true)
+	boolean(profile.priority, "revived", true)
+
+	-- The raid groups switched off, read on every scan in a raid. Anything but
+	-- a group number set to true is dropped: there is no telling what it meant.
+	local skipGroups = profile.filters.skipRaidGroups
+	if type(skipGroups) ~= "table" then
+		skipGroups = {}
+		profile.filters.skipRaidGroups = skipGroups
+	end
+	for group, flag in pairs(skipGroups) do
+		if type(group) ~= "number" or group < 1 or group > 8 or group % 1 ~= 0 or flag ~= true then
+			skipGroups[group] = nil
+		end
+	end
 
 	-- The never-offer list is read on every scan; the repair at the top made
 	-- it a table. An entry that is not a name set to true is dropped: there is
@@ -1434,6 +1463,10 @@ function addon:OnEnable()
 		"CHAT_MSG_INSTANCE_CHAT",
 		"CHAT_MSG_INSTANCE_CHAT_LEADER",
 		"CHAT_MSG_WHISPER",
+		-- A ready check puts the group first while it runs (Queue.lua).
+		-- The events the Camelot group frames listen to for it.
+		"READY_CHECK",
+		"READY_CHECK_FINISHED",
 	}) do
 		ns.Guard("RegisterEvent " .. event, function() self:RegisterEvent(event) end)
 	end
@@ -1521,6 +1554,9 @@ function addon:TickBody()
 	for key, expiry in pairs(tried) do
 		if expiry <= now then tried[key] = nil end
 	end
+	-- Every tick, fights included, since that is where people die; guarded so
+	-- a failure there cannot stop the repaint below.
+	ns.Guard("death watch", ns.WatchGroupDeaths, now)
 	-- Before the repaint, which then puts the prompt back.
 	ns.EndSnoozeIfDue(now)
 	ns.Prompt:Refresh()

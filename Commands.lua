@@ -1430,6 +1430,16 @@ function addon:HandleSlash(rawInput)
 		if ns.HiddenWhileMounted() then
 			self:Print(L["|cffffd100mounted|r -- Not while mounted keeps the prompt away until you get off"])
 		end
+		-- The queue below leaves out everybody nobody asked for while this
+		-- holds, which looks like a broken queue unless it is said.
+		local kept = ns.SavingMana()
+		if kept then
+			self:Print(L["|cffffd100saving mana|r -- below %d%% of your mana only people who buffed you or asked are offered"]
+				:format(kept))
+		end
+		if ns.ReadyCheckRunning() then
+			self:Print(L["|cffffd100ready check|r -- your group comes first until it ends"])
+		end
 		self:Print(("  build |cffffffff%s|r"):format(tostring(ns.BUILD)))
 		if ns.tryMacro then
 			self:Print(("  " .. L["|cffff8080/manners try is armed:|r %s -- clear it with a bare /manners try"]):format(
