@@ -368,7 +368,12 @@ do
 			if option.get() ~= "standard" then
 				fail(scenario, "the Reason colours control reads " .. tostring(option.get()))
 			end
-			if type(option.order) ~= "number" or option.order < 10 or option.order >= 20 then
+			-- Between the Style header and the one after it, whatever the
+			-- numbers are.
+			local look = ns.optionsTable.args.appearance.args
+			local first, last = look.styleHeader and look.styleHeader.order, look.attentionHeader and look.attentionHeader.order
+			if type(option.order) ~= "number" or not (first and last)
+				or option.order < first or option.order >= last then
 				fail(scenario, "the Reason colours control is not under Style")
 			end
 			-- Greyed out only where nothing is drawn in the reason colours.

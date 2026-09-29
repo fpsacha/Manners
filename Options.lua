@@ -2127,8 +2127,7 @@ local function BuildLookTab()
 				order = 0.5,
 				fontSize = "medium",
 				hidden = function() return not InCombatLockdown() end,
-				name = L["|cffffd100In combat.|r Blizzard freezes secure frames, so changes here are saved and appear once the fight ends."]
-					.. "\n",
+				name = "|cffffd100" .. L["In combat: changes here show once the fight ends."] .. "|r\n",
 			},
 			-- First on the tab, because everything under it is something
 			-- you want to see while you change it, and on a live prompt
@@ -2140,10 +2139,7 @@ local function BuildLookTab()
 				name = function()
 					return ns.Prompt:InTest() and L["Stop preview"] or L["Preview"]
 				end,
-				-- Both exits are held off while this window is open (see
-				-- Refresh, where the expiry is pushed forward), so the
-				-- sentence order here is the rule.
-				desc = L["Show a sample entry to style the prompt by. It stays while this window is open, then twenty seconds more or until somebody real turns up."],
+				desc = L["Shows a sample prompt to style; it stays while this window is open."],
 				order = 1,
 				-- Greyed out in a fight, where ToggleTest refuses to start
 				-- one: the fight may have hidden the panel or frozen its
@@ -2156,8 +2152,8 @@ local function BuildLookTab()
 			},
 			locked = {
 				type = "toggle",
-				name = L["Locked"],
-				desc = L["Unlock to drag the prompt. It will not cast while unlocked."],
+				name = L["Lock position"],
+				desc = L["Unlock to drag the prompt; it will not cast until you lock it again."],
 				order = 2,
 				get = pGet,
 				-- Its own setter, like /manners unlock: the prompt is hidden
@@ -2170,57 +2166,118 @@ local function BuildLookTab()
 					end
 				end,
 			},
-			reset = {
-				type = "execute",
-				name = L["Reset position"],
-				-- No confirmation: it is undone by dragging the prompt back
-				-- or picking a preset.
+			-- Moving the prompt otherwise means unlock, find it, drag it,
+			-- lock it -- four steps and a mode you can forget you are in,
+			-- because an unlocked prompt is also one that will not cast.
+			-- The default place is on the list, so it doubles as the reset.
+			posPreset = {
+				type = "select",
+				name = L["Quick position"],
+				desc = L["Dragging the prompt afterwards sets this to Where I dragged it."],
 				order = 3,
-				func = function()
-					local d, p = ns.defaults.profile.prompt, P()
-					p.point, p.relPoint, p.x, p.y = d.point, d.relPoint, d.x, d.y
-					restyle()
+				-- "custom" only while the prompt is on none of the presets,
+				-- so it can be shown but never picked.
+				values = function()
+					local out = {}
+					for _, preset in ipairs(ns.POSITION_PRESETS) do
+						out[preset.key] = preset.key == "bars"
+							and L["Above the action bars (default)"] or preset.name
+					end
+					if not ns.CurrentPositionPreset() then out.custom = L["Where I dragged it"] end
+					return out
+				end,
+				-- The list has a meaning order -- top of the screen to
+				-- bottom -- and a dropdown sorted alphabetically loses it.
+				sorting = function()
+					local out = {}
+					for i, preset in ipairs(ns.POSITION_PRESETS) do out[i] = preset.key end
+					if not ns.CurrentPositionPreset() then out[#out + 1] = "custom" end
+					return out
+				end,
+				get = function() return ns.CurrentPositionPreset() or "custom" end,
+				set = function(_, value)
+					if value ~= "custom" then ns.ApplyPositionPreset(value) end
 				end,
 			},
 
-			styleHeader = { type = "header", name = L["Style"], order = 10 },
-			-- Where the colour goes comes first: it governs the two colour
-			-- pickers under it.
-			accentMode = {
+			posHeader = { type = "header", name = L["Size"], order = 10 },
+			scale = { type = "range", name = L["Scale"], order = 11, min = 0.5, max = 3, step = 0.05, get = pGet, set = pSet },
+			alpha = { type = "range", name = L["Opacity"], order = 12, min = 0.1, max = 1, step = 0.05, isPercent = true, get = pGet, set = pSet },
+			width = {
+				type = "range",
+				name = L["Width"],
+				order = 13,
+				min = 80,
+				max = 500,
+				step = 1,
+				get = pGet,
+				-- The same setter the height has: the icon is bound by the
+				-- width as well.
+				set = function(info, value)
+					local icon = P().iconSize
+					pSet(info, value)
+					ns.ClampSettings()
+					restyle()
+					if P().iconSize ~= icon then RepaintSoon() end
+				end,
+			},
+			height = {
+				type = "range",
+				name = L["Height"],
+				order = 14,
+				min = 20,
+				max = 120,
+				step = 1,
+				get = pGet,
+				-- Its own setter because the icon's maximum is bound to
+				-- this: ClampSettings shrinks the icon, and RepaintSoon
+				-- redraws its slider.
+				set = function(info, value)
+					local icon = P().iconSize
+					pSet(info, value)
+					ns.ClampSettings()
+					restyle()
+					if P().iconSize ~= icon then RepaintSoon() end
+				end,
+			},
+
+			styleHeader = { type = "header", name = L["Style"], order = 20 },
+			style = {
 				type = "select",
-				name = L["Where the reason colour goes"],
-				desc = L["A ring around the icon reads better than a stripe at the panel edge, which ends up competing with the icon rather than framing it."]
-					.. "\n\n|cff888888"
-					.. L["The framed look has no stripe at all -- it would run down the inside of its border -- so on it the stripe settings do nothing."]
-					.. "|r",
-				order = 11,
+				name = L["Panel style"],
+				order = 21,
+				-- Framed draws its own border out of the panel's white
+				-- texture; profiles holding its old name are carried
+				-- across in ClampSettings.
 				values = {
-					icon = L["Ring around the icon"],
-					stripe = L["Stripe down the left edge"],
-					both = L["Both"],
-					off = L["Neither"],
+					glass = L["Glass -- dark panel, soft shadow"],
+					framed = L["Framed -- flat panel, thin border"],
+					minimal = L["Minimal -- text only, no panel"],
 				},
 				get = pGet,
 				set = pSet,
 			},
+			bgColor = {
+				type = "color",
+				name = L["Panel colour"],
+				order = 22,
+				hasAlpha = true,
+				disabled = function() return P().style == "minimal" end,
+				get = pGetColor,
+				set = pSetColor,
+			},
 			accentByReason = {
 				type = "toggle",
-				name = L["Colour it by reason"],
+				name = L["Colour marker by reason"],
 				-- All five reasons, in the order the queue ranks them, in
-				-- the chosen palette's colours. The target is the only one
-				-- with a condition: BuildQueue writes that reason only with
-				-- the switch on, and never under Always offer, which reads
-				-- nothing.
+				-- the chosen palette's colours.
 				desc = function()
 					local colours = P().reasonPalette == "colourblind"
 						and L["Pale yellow for your own target, orange for a favour owed, deep pink for somebody who asked, sky blue for your group, violet for passers-by -- the order they are offered in."]
 						or L["Pale blue for your own target, amber for a favour owed, pink for somebody who asked, deeper blue for your group, grey for passers-by -- the order they are offered in."]
-					return colours
-						.. "\n\n|cff888888"
-						.. L["The first of those appears only while |cffffd100Whoever I have targeted comes first|r is on and |cffffd100If they already have the buff|r is not Always offer."]
-						.. "|r"
+					return L["A colour that shows why this person is on the prompt."] .. "\n\n" .. colours
 				end,
-				order = 12,
+				order = 23,
 				width = "full",
 				get = pGet,
 				set = pSet,
@@ -2228,15 +2285,15 @@ local function BuildLookTab()
 			-- Which colours, for somebody the standard set fails.
 			-- Greyed out only where nothing is drawn in the reason
 			-- colours: the list's bars, the glow and the wash of a press
-			-- take the palette whatever the accent says.
+			-- take the palette whatever the marker says.
 			reasonPalette = {
 				type = "select",
 				name = L["Reason colours"],
-				-- Names no hues and counts none: Colour it by reason names
-				-- them. Every reason has a colour of its own in both sets,
-				-- and hunt5-options.lua holds this sentence to that.
+				-- Names no hues and counts none: Colour marker by reason
+				-- names them. Every reason has a colour of its own in both
+				-- sets, and hunt5-options.lua holds this sentence to that.
 				desc = L["The colour-blind set keeps the reasons apart for red-green colour blindness, in colours that differ in lightness too."],
-				order = 12.2,
+				order = 24,
 				values = {
 					standard = L["Standard"],
 					colourblind = L["Colour-blind friendly"],
@@ -2251,12 +2308,39 @@ local function BuildLookTab()
 				get = function() return P().reasonPalette == "colourblind" and "colourblind" or "standard" end,
 				set = pSet,
 			},
+			-- Hidden rather than greyed out: with the colour by reason on,
+			-- this picker has no say at all.
+			accentColor = {
+				type = "color",
+				name = L["Marker colour"],
+				desc = L["Used when Colour marker by reason is off."],
+				order = 25,
+				hasAlpha = true,
+				hidden = function() return P().accentByReason end,
+				get = pGetColor,
+				set = pSetColor,
+			},
+			accentMode = {
+				type = "select",
+				name = L["Colour marker"],
+				desc = L["Framed panels have no stripe."],
+				order = 26,
+				values = {
+					icon = L["Ring around the icon"],
+					stripe = L["Stripe on the left edge"],
+					both = L["Both"],
+					off = L["None"],
+				},
+				sorting = { "icon", "stripe", "both", "off" },
+				get = pGet,
+				set = pSet,
+			},
 			-- Shown only when the colour above has nowhere left to go. "Off"
 			-- is excluded: that is somebody asking for no accent, and a
 			-- warning about getting what you asked for is noise.
 			accentDead = {
 				type = "description",
-				order = 12.5,
+				order = 26.5,
 				hidden = function()
 					if (P().accentMode or "icon") == "off" then return true end
 					local ring, stripe = AccentCarriers()
@@ -2297,52 +2381,15 @@ local function BuildLookTab()
 					return "|cffffd100" .. text .. "|r"
 				end,
 			},
-			accentColor = {
-				type = "color",
-				name = L["Accent colour"],
-				desc = L["Used for the ring, the stripe, or both -- whichever the setting above asks for."],
-				order = 13,
-				hasAlpha = true,
-				disabled = function() return P().accentByReason end,
-				get = pGetColor,
-				set = pSetColor,
-			},
-			style = {
-				type = "select",
-				name = L["Look"],
-				order = 14,
-				-- Framed draws its own border out of the panel's white
-				-- texture; profiles holding its old name are carried
-				-- across in ClampSettings.
-				values = {
-					glass = L["Glass -- dark panel, soft shadow"],
-					framed = L["Framed -- flat panel, thin border"],
-					minimal = L["Minimal -- text only, no panel"],
-				},
-				get = pGet,
-				set = pSet,
-			},
-			bgColor = {
-				type = "color",
-				name = L["Panel colour"],
-				order = 15,
-				hasAlpha = true,
-				disabled = function() return P().style == "minimal" end,
-				get = pGetColor,
-				set = pSetColor,
-			},
 
 			-- The flash and the sound are one job, kept together so they
 			-- agree about who is worth interrupting for.
-			attentionHeader = { type = "header", name = L["Getting your attention"], order = 20 },
+			attentionHeader = { type = "header", name = L["Getting my attention"], order = 30 },
 			flashStyle = {
 				type = "select",
-				name = L["When someone buffs you"],
-				desc = L["Pulse keeps breathing until you have returned the favour or they are gone. Flash once is easy to miss if you were looking elsewhere."]
-					.. "\n\n|cff888888"
-					.. L["It lights the spell icon, sweeps the stripe, and with Effects on Full the panel catches the light. With none of those showing it has nothing to do."]
-					.. "|r",
-				order = 21,
+				name = L["Flash when someone buffs me"],
+				desc = L["Needs the icon, the stripe or Full animations."],
+				order = 31,
 				-- The glow lives on the icon, the sweep on the stripe and
 				-- the light on arrival on the panel; with none of them this
 				-- does nothing, and a live control would read as broken.
@@ -2352,10 +2399,11 @@ local function BuildLookTab()
 					return not P().showIcon and not stripe and noLight
 				end,
 				values = {
-					pulse = L["Pulse until dealt with"],
+					pulse = L["Pulse until I buff them back"],
 					once = L["Flash once"],
-					off = L["Nothing"],
+					off = L["None"],
 				},
+				sorting = { "pulse", "once", "off" },
 				get = pGet,
 				set = pSet,
 			},
@@ -2363,17 +2411,12 @@ local function BuildLookTab()
 			-- the flash.
 			effects = {
 				type = "select",
-				name = L["Effects"],
-				desc = L["Full: light crosses the panel when a buff lands, a refused buff shakes the text, and the prompt fades out after your last buff."]
-					.. "\n\n"
-					.. L["Calm: none of that movement. The prompt still fades in, and the glow set above still works."]
-					.. "\n\n|cff888888"
-					.. L["The Minimal look has no panel, so no light crosses it. In a fight, Stay quiet in combat keeps the outcome still as well."]
-					.. "|r",
-				order = 21.5,
+				name = L["Animations"],
+				desc = L["Calm drops the light sweep, the shake and the fade-out."],
+				order = 32,
 				values = {
 					full = L["Full"],
-					calm = L["Calm -- less movement"],
+					calm = L["Calm (less movement)"],
 				},
 				sorting = { "full", "calm" },
 				get = pGet,
@@ -2382,26 +2425,31 @@ local function BuildLookTab()
 			soundEnabled = {
 				type = "toggle",
 				name = L["Play a sound"],
-				desc = L["Play a sound when somebody new reaches the top of the queue."],
-				order = 22,
+				desc = L["When a new person appears on the prompt."],
+				order = 33,
 				get = function() return SND().enabled end,
 				set = function(_, v) SND().enabled = v end,
 			},
 			soundFile = {
 				type = "select",
 				name = L["Sound"],
-				order = 23,
+				order = 34,
 				disabled = function() return not SND().enabled end,
 				-- HashTable maps key -> file, and AceConfig shows the
 				-- value as the label, so the key is copied into both.
+				-- "None" is left out: Play a sound is the off switch. It
+				-- stays only while it is the stored value (an older
+				-- profile, a paste), so the box never goes blank.
 				values = function()
+					local chosen = SND().file
 					local list = {}
-					for key in pairs(LSM:HashTable("sound")) do list[key] = key end
+					for key in pairs(LSM:HashTable("sound")) do
+						if key ~= "None" or chosen == "None" then list[key] = key end
+					end
 					-- The chosen sound, even when its pack has not
 					-- registered it, so the box still says what was
 					-- picked rather than going blank. It plays ours
 					-- until the pack is there.
-					local chosen = SND().file
 					if type(chosen) == "string" and not list[chosen] then
 						list[chosen] = L["%s |cff808080(not loaded)|r"]:format(chosen)
 					end
@@ -2418,9 +2466,9 @@ local function BuildLookTab()
 				-- The flash fires only for a favour owed; this lets the
 				-- sound agree with it.
 				type = "toggle",
-				name = L["Only when somebody buffed me"],
-				desc = L["Off, every new person on the prompt makes a noise -- including strangers you happen to walk past."],
-				order = 24,
+				name = L["Only for people who buff me"],
+				desc = L["Off, every new person makes a sound, passers-by included."],
+				order = 35,
 				width = "full",
 				disabled = function() return not SND().enabled end,
 				get = function() return SND().owedOnly end,
@@ -2428,7 +2476,7 @@ local function BuildLookTab()
 			},
 			noSound = {
 				type = "description",
-				order = 24.5,
+				order = 35.5,
 				hidden = function() return not SND().enabled or SND().file ~= "None" end,
 				-- "None" is the name the sound list shows, which is a
 				-- LibSharedMedia key and never translated. It goes in as
@@ -2437,91 +2485,11 @@ local function BuildLookTab()
 				name = "|cffff8080" .. L["%s is silent. Pick a sound above."]:format("None") .. "|r",
 			},
 
-			posHeader = { type = "header", name = L["Position and size"], order = 30 },
-			-- Moving the prompt otherwise means unlock, find it, drag it,
-			-- lock it -- four steps and a mode you can forget you are in,
-			-- because an unlocked prompt is also one that will not cast.
-			posPreset = {
-				type = "select",
-				name = L["Put it"],
-				desc = L["Three places that are already right. Dragging the prompt afterwards leaves this blank, because it is then not on one of them."],
-				order = 31,
-				values = function()
-					local out = {}
-					for _, preset in ipairs(ns.POSITION_PRESETS) do
-						out[preset.key] = preset.name
-					end
-					return out
-				end,
-				-- The list has a meaning order -- top of the screen to
-				-- bottom -- and a dropdown sorted alphabetically loses it.
-				sorting = function()
-					local out = {}
-					for i, preset in ipairs(ns.POSITION_PRESETS) do out[i] = preset.key end
-					return out
-				end,
-				get = function() return ns.CurrentPositionPreset() end,
-				set = function(_, value) ns.ApplyPositionPreset(value) end,
-			},
-			width = {
-				type = "range",
-				name = L["Width"],
-				order = 34,
-				min = 80,
-				max = 500,
-				step = 1,
-				get = pGet,
-				-- The same setter the height has: the icon is bound by the
-				-- width as well.
-				set = function(info, value)
-					local icon = P().iconSize
-					pSet(info, value)
-					ns.ClampSettings()
-					restyle()
-					if P().iconSize ~= icon then RepaintSoon() end
-				end,
-			},
-			height = {
-				type = "range",
-				name = L["Height"],
-				order = 35,
-				min = 20,
-				max = 120,
-				step = 1,
-				get = pGet,
-				-- Its own setter because the icon's maximum is bound to
-				-- this: ClampSettings shrinks the icon, and RepaintSoon
-				-- redraws its slider.
-				set = function(info, value)
-					local icon = P().iconSize
-					pSet(info, value)
-					ns.ClampSettings()
-					restyle()
-					if P().iconSize ~= icon then RepaintSoon() end
-				end,
-			},
-			scale = { type = "range", name = L["Scale"], order = 36, min = 0.5, max = 3, step = 0.05, get = pGet, set = pSet },
-			alpha = { type = "range", name = L["Opacity"], order = 37, min = 0.1, max = 1, step = 0.05, isPercent = true, get = pGet, set = pSet },
-
 			textHeader = { type = "header", name = L["Text"], order = 40 },
-			showSub = {
-				type = "toggle",
-				name = L["Show a second line"],
-				-- Worked out from the font, by the same function ApplyStyle
-				-- decides it with, never a constant.
-				desc = function()
-					return L["Needs a prompt at least %d pixels tall at this font size."]
-						:format(ns.TwoLineHeight(P().fontSize))
-				end,
-				order = 42,
-				width = "full",
-				get = pGet,
-				set = pSet,
-			},
 			font = {
 				type = "select",
 				name = L["Font"],
-				order = 50,
+				order = 41,
 				-- Keys, not files, as in the sound list: AceConfig shows the
 				-- value as the label.
 				values = function()
@@ -2538,7 +2506,7 @@ local function BuildLookTab()
 				get = pGet,
 				set = pSet,
 			},
-			fontSize = { type = "range", name = L["Font size"], order = 51, min = 6, max = 32, step = 1, get = pGet, set = pSet },
+			fontSize = { type = "range", name = L["Font size"], order = 42, min = 6, max = 32, step = 1, get = pGet, set = pSet },
 			-- The prompt picks light or dark text for the panel colour
 			-- only while this is left at its default, and the class
 			-- colour on a name overrides it; both are said here so
@@ -2546,16 +2514,30 @@ local function BuildLookTab()
 			fontColor = {
 				type = "color",
 				name = L["Text colour"],
-				desc = L["Left at white, text turns dark on a light panel by itself. Other colours are used as picked, except for names while |cffffd100Colour names by class|r is on."],
-				order = 52,
+				desc = L["Left at white, text turns dark on a light panel by itself. Other colours are used as picked, except for names while this is on:"]
+					.. " " .. Ref(L["Colour names by class"], TAB.appearance),
+				order = 43,
 				hasAlpha = true,
 				get = pGetColor,
 				set = pSetColor,
 			},
-			classColor = { type = "toggle", name = L["Colour names by class"], order = 53, width = "full", get = pGet, set = pSet },
+			classColor = { type = "toggle", name = L["Colour names by class"], order = 44, width = "full", get = pGet, set = pSet },
+			showSub = {
+				type = "toggle",
+				name = L["Show a second line"],
+				-- Worked out from the font, by the same function ApplyStyle
+				-- decides it with, never a constant: 39 at the default size.
+				desc = function()
+					return L["Needs a prompt at least %d pixels tall."]:format(ns.TwoLineHeight(P().fontSize))
+				end,
+				order = 45,
+				width = "full",
+				get = pGet,
+				set = pSet,
+			},
 
-			iconHeader = { type = "header", name = L["Icon and queue"], order = 60 },
-			showIcon = { type = "toggle", name = L["Show spell icon"], order = 61, get = pGet, set = pSet },
+			iconHeader = { type = "header", name = L["Icon and waiting list"], order = 50 },
+			showIcon = { type = "toggle", name = L["Show spell icon"], order = 51, get = pGet, set = pSet },
 			iconSize = {
 				type = "range",
 				name = L["Icon size"],
@@ -2564,7 +2546,7 @@ local function BuildLookTab()
 				-- or nil" and rejects the whole options table if either is a
 				-- function. ClampSettings enforces it instead.
 				desc = L["Kept inside the prompt -- make it taller or wider first for a bigger icon."],
-				order = 62,
+				order = 52,
 				min = 12,
 				max = 64,
 				step = 1,
@@ -2586,7 +2568,7 @@ local function BuildLookTab()
 			},
 			iconSizeCapped = {
 				type = "description",
-				order = 62.5,
+				order = 52.5,
 				hidden = function()
 					local p = P()
 					-- Shown only when the icon sits on the ceiling
@@ -2605,17 +2587,13 @@ local function BuildLookTab()
 					return "|cffffd100" .. text .. "|r"
 				end,
 			},
+			-- The mask that rounds the icon replaces the ring behind it;
+			-- accentDead says so when that leaves the marker nowhere.
 			roundIcon = {
 				type = "toggle",
 				name = L["Round the icon off"],
-				-- The ring is a texture behind the square icon, and the mask
-				-- that rounds it goes there instead, so this switches off
-				-- "Ring around the icon".
-				desc = L["Masks the icon into a circle. Reads more like a portrait than a spell, so it is off by default."]
-					.. "\n\n|cff888888"
-					.. L["The mask replaces the ring, so move the reason colour to the stripe if you want both. The glow when somebody buffs you follows the circle."]
-					.. "|r",
-				order = 63,
+				desc = L["Masks the icon into a circle. Reads more like a portrait than a spell, so it is off by default."],
+				order = 53,
 				width = "full",
 				disabled = function() return not P().showIcon end,
 				get = pGet,
@@ -2627,21 +2605,20 @@ local function BuildLookTab()
 				type = "toggle",
 				name = L["Show the global cooldown on the icon"],
 				desc = L["Sweeps the spell icon while the global cooldown runs, like your action bars, so you can see when the next press will go through."]
-					.. "\n\n|cff888888"
-					.. L["Not in a fight while Stay quiet in combat is on."]
-					.. "|r",
-				order = 63.5,
+					.. "\n\n|cff888888" .. L["Not in a fight while this is on:"] .. "|r "
+					.. Ref(L["Keep the prompt dim and still in combat"], TAB.when),
+				order = 54,
 				width = "full",
 				disabled = function() return not P().showIcon end,
 				get = pGet,
 				set = pSet,
 			},
-			showCount = { type = "toggle", name = L["Show how many are waiting"], order = 64, width = "full", get = pGet, set = pSet },
-			showQueue = { type = "toggle", name = L["List the next few below"], order = 65, width = "full", get = pGet, set = pSet },
+			showCount = { type = "toggle", name = L["Show how many are waiting"], order = 55, width = "full", get = pGet, set = pSet },
+			showQueue = { type = "toggle", name = L["List the next few below"], order = 56, width = "full", get = pGet, set = pSet },
 			queueRows = {
 				type = "range",
 				name = L["How many to list"],
-				order = 66,
+				order = 57,
 				min = 1,
 				max = 5,
 				step = 1,

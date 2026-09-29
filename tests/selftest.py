@@ -1061,9 +1061,9 @@ mutate("Options.lua",
 #     of these as well now, and it comes first in the file.
 mutate("Options.lua",
        "hidden = function() return not InCombatLockdown() end,\n"
-       "\t\t\t\tname = L[\"|cffffd100In combat.|r Blizzard freezes secure frames",
+       "\t\t\t\tname = \"|cffffd100\" .. L[\"In combat: changes here show once the fight ends.\"]",
        "hidden = function() return true end,\n"
-       "\t\t\t\tname = L[\"|cffffd100In combat.|r Blizzard freezes secure frames",
+       "\t\t\t\tname = \"|cffffd100\" .. L[\"In combat: changes here show once the fight ends.\"]",
        "a frozen tab that looks like a working one",
        expect="in combat, and the tab reads as though everything on it works",
        script="runscenarios.py")
@@ -3422,8 +3422,8 @@ mutate("Options.lua",
 # Height shrinking the icon without asking for a repaint...
 mutate("Options.lua",
        "\t\t\t\t\tif P().iconSize ~= icon then RepaintSoon() end\n"
-       "\t\t\t\tend,\n\t\t\t},\n\t\t\tscale = {",
-       "\t\t\t\tend,\n\t\t\t},\n\t\t\tscale = {",
+       "\t\t\t\tend,\n\t\t\t},\n\n\t\t\tstyleHeader = {",
+       "\t\t\t\tend,\n\t\t\t},\n\n\t\t\tstyleHeader = {",
        "height never repaints the icon slider",
        expect="wheeling Height to 30 held the icon at 22",
        script="runscenarios.py")
