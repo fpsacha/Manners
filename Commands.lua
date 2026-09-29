@@ -275,6 +275,9 @@ function ns.InspectUnit(unit)
 		show("level", raw(UnitLevel, unit)),
 		show("powerMax", raw(UnitPowerMax, unit, MANA)),
 		show("power", raw(UnitPower, unit, MANA)))
+	say("  %s  %s",
+		show("pvp", raw(UnitIsPVP, unit)),
+		show("pvpFreeForAll", raw(UnitIsPVPFreeForAll, unit)))
 
 	if C_Secrets and C_Secrets.ShouldUnitIdentityBeSecret then
 		say("  %s", show("identitySecret", raw(C_Secrets.ShouldUnitIdentityBeSecret, unit)))
@@ -1560,6 +1563,9 @@ function addon:HandleSlash(rawInput)
 				(ns.tryMacro:gsub("%s+", " "))))
 		end
 		self:Print((db.enabled and L["queue now: %d"] or L["queue if switched on: %d"]):format(#ns.BuildQueue()))
+		-- Who that scan held back for PvP: missing from the prompt with
+		-- nothing on screen to say why.
+		for _, line in ipairs(ns.PvPLines()) do self:Print("  " .. line) end
 		ns.Guard("WriteProbe", ns.WriteProbe)
 	else
 		-- A word that is nearly a command gets that command named. Anything

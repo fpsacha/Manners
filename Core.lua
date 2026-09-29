@@ -234,6 +234,10 @@ local defaults = {
 			-- buffing from the saddle may want. Dead, taxi and vehicle need no
 			-- switch: nothing can be cast there, so BuildQueue offers nobody.
 			hideMounted = false,
+			-- Nobody flagged for PvP, while you are not flagged yourself
+			-- (Queue.lua, "flagged for PvP"). On: a buff on them flags you
+			-- too, for minutes, which nobody asked for by buffing back.
+			skipPvP = true,
 			-- The share of your mana (0-90) kept for yourself: below it, only
 			-- a favour owed or a request from chat is offered. 0 is off.
 			manaFloor = 0,
@@ -1753,6 +1757,9 @@ function ns.ClampSettings()
 	boolean(profile.priority, "target", true)
 	boolean(profile.priority, "friends", true)
 	boolean(profile.filters, "restingOnly", false)
+	-- Read on every scan as a switch that only a plain true turns on, so
+	-- anything else a damaged file holds would switch it off unseen.
+	boolean(profile.filters, "skipPvP", true)
 	boolean(profile.groupBuffs, "use", true)
 	-- A count of people, so a whole one: a hand-edited 2.5 is a number the
 	-- slider cannot show, and the page would say something the scan does not do.

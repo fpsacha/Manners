@@ -22,8 +22,9 @@ local prox, Resting = ns.proximity, ns.Resting
 -- candidate queue
 ---------------------------------------------------------------------------
 
--- People who buffed us: [name] = { expires, at, guid?, class? }. `at` is when
--- the favour was noticed, which the grace window and LiveExpiry count from.
+-- People who buffed us: [name] = { expires, at, guid?, class?, pvp? }. `at` is
+-- when the favour was noticed, which the grace window and LiveExpiry count
+-- from; `pvp` the PvP flag last read off them (see "flagged for PvP").
 local owed = {}
 
 -- [name .. "\0" .. buffKey] = expiry for a buff we just tried on them, so
@@ -72,12 +73,14 @@ local function SaveDebts()
 		local expires = LiveExpiry(entry)
 		if expires > now then
 			out = out or {}
-			-- The class is all the tokenless fallback has to judge by. The guid
-			-- is not kept: nothing reads it back.
+			-- The class is all the tokenless fallback has to judge by, with the
+			-- PvP flag last read off them. The guid is not kept: nothing reads
+			-- it back.
 			out[name] = {
 				expires = wall + (expires - now),
 				at = wall - (now - entry.at),
 				class = entry.class,
+				pvp = entry.pvp == true or nil,
 			}
 		end
 	end
@@ -116,6 +119,7 @@ local function RestoreDebts()
 					expires = now + left,
 					at = now - (wall - at),
 					class = type(entry.class) == "string" and entry.class or nil,
+					pvp = entry.pvp == true or nil,
 				}
 			end
 		end
@@ -1038,6 +1042,151 @@ function ns.HiddenWhileMounted()
 end
 
 ---------------------------------------------------------------------------
+-- flagged for PvP
+--
+-- A buff on somebody flagged for PvP flags you too, for minutes, out where
+-- anybody of the other faction may then set on you -- and a group spell or a
+-- shout that lands on one flagged member of your party does the same. So
+-- while "Skip players flagged for PvP" is on and you are not flagged yourself,
+-- nobody who reads as flagged is offered anything, whatever the reason: a
+-- favour owed, a request, your group, a passer-by, your target, a ready check
+-- or somebody just revived. While you are flagged -- a battleground, /pvp, an
+-- enemy town -- buffing them costs you nothing more, and the rule stands
+-- aside. You are never judged by it: your own entry (SelfEntry) never passes
+-- through it.
+--
+-- A flag the game will not show (a secret, a call that is missing or throws)
+-- is "cannot tell", and the person is offered, as everywhere else here.
+-- Somebody no token reaches -- a favour from a stranger, a passer-by
+-- remembered -- is judged on the flag last read off them, kept on the debt and
+-- on the memory. A favour owed to somebody flagged stays owed, to be returned
+-- once the flag drops.
+--
+-- War Mode: this client has Retail's C_PvP war mode calls but no way to switch
+-- it on (Camelot's talent frame has no War Mode button, Retail's has), and on a
+-- client where it is on, a player in it reads as flagged anyway -- which is
+-- all that is read here. So nothing asks about War Mode.
+---------------------------------------------------------------------------
+
+-- Whether a unit is flagged, the free-for-all flag included: true, false, or
+-- nil when the game will not say.
+local function PvPFlag(unit)
+	local pvp = safecall(_G.UnitIsPVP, unit)
+	local ffa = safecall(_G.UnitIsPVPFreeForAll, unit)
+	if pvp == true or ffa == true then return true end
+	if pvp == false and ffa == false then return false end
+	return nil
+end
+ns.PvPFlag = PvPFlag
+
+-- Whether you are flagged, which stands the rule aside. Your own flag withheld
+-- counts as not flagged -- except in a battleground or an arena, where
+-- everybody is -- because the two mistakes are not alike: taking you for
+-- unflagged costs an offer to somebody the game says is flagged, where the
+-- other way round costs you the very flag the setting exists to spare you.
+local function YouAreFlagged()
+	local mine = PvPFlag("player")
+	if mine ~= nil then return mine end
+	local inside, kind = safecall(_G.IsInInstance)
+	return inside == true and (kind == "pvp" or kind == "arena")
+end
+
+-- Whether the rule stands right now: the setting on and you not flagged.
+local function PvPRuleStands(db)
+	return db.filters.skipPvP == true and not YouAreFlagged()
+end
+
+-- Whether the rule would hold back somebody whose flag reads `flag`: for the
+-- favour's chat line (Favours.lua), which is said before any scan.
+function ns.PvPHoldsBack(flag)
+	local db = addon.db and addon.db.profile
+	return flag == true and db ~= nil and PvPRuleStands(db)
+end
+
+-- What the last scan made of it, for the prompt (HeldForPvP), /manners debug
+-- and Diagnostics: `names` everybody held back, `groups` the group casts and
+-- shouts held back ({ spell, label, name } each), `stands` whether the rule
+-- stood, `you` whether it stood aside because you are flagged. Every scan
+-- starts it again.
+local pvpScan = { names = {}, groups = {} }
+
+-- The record of the scan under way while the rule stands in it, nil while
+-- it does not: GroupCasts writes the group casts it holds back into it.
+function ns.PvPRecord()
+	if pvpScan.stands then return pvpScan end
+	return nil
+end
+
+-- Whether the prompt must let go of this entry for PvP: the last scan held
+-- its person back -- which the prompt, having just scanned, is asking about
+-- this moment -- or it is a group cast or a shout, which lands on the whole
+-- party, and somebody in it reads as flagged now. The panel's hold and a press
+-- both ask, so neither outlasts a flag raised since the paint.
+function ns.HeldForPvP(entry)
+	if not (entry and entry.name and pvpScan.stands) then return false end
+	if pvpScan.names[entry.name] then return true end
+	if entry.groupCast then return ns.GroupCastFlagged(entry) ~= nil end
+	if entry.buff and entry.buff.selfCast then return ns.ShoutFlagged() ~= nil end
+	return false
+end
+
+-- For /manners debug and Diagnostics: who the rule is holding back, in the
+-- words the rest of those lines use. `scan` scans first, for a page that is not
+-- repainted by one.
+function ns.PvPLines(scan)
+	if scan then ns.Guard("PvP lines", ns.BuildQueue) end
+	local out = {}
+	if pvpScan.you then
+		out[1] = L["|cffffd100you are flagged for PvP|r -- players flagged for PvP are offered until you are not"]
+		return out
+	end
+	local names = {}
+	for name in pairs(pvpScan.names) do names[#names + 1] = name end
+	table.sort(names)
+	-- A handful by name, then a count: a battleground crowd is forty.
+	for i, name in ipairs(names) do
+		if i > 5 then
+			out[#out + 1] = L["...and %d more flagged for PvP"]:format(#names - 5)
+			break
+		end
+		out[#out + 1] = L["|cffffffff%s|r: flagged for PvP -- buffing them would flag you"]:format(name)
+	end
+	for _, held in ipairs(pvpScan.groups) do
+		out[#out + 1] = L["no %s for %s: |cffffffff%s|r is flagged for PvP, and it would land on them too"]
+			:format(held.spell, held.label, held.name)
+	end
+	return out
+end
+
+-- A shout lands on your whole party (in a raid, your subgroup), whoever the
+-- prompt names, so while the rule stands one member flagged among them holds
+-- back every shout, as a group cast is held back (GroupBuffs.lua): the queue
+-- without them, each a verdict, since none is offered this scan. The party is
+-- walked only when a shout is queued at all.
+local function HoldShoutsForPvP(queue, rejected, inRaid)
+	local shout
+	for _, entry in ipairs(queue) do
+		if entry.buff and entry.buff.selfCast then
+			shout = entry.buff
+			break
+		end
+	end
+	local flagged = shout and ns.ShoutFlagged(inRaid)
+	if not flagged then return queue end
+	pvpScan.groups[#pvpScan.groups + 1] = { spell = ns.BuffName(shout),
+		label = inRaid and L["your group"] or L["your party"], name = flagged }
+	local kept = {}
+	for _, entry in ipairs(queue) do
+		if entry.buff and entry.buff.selfCast then
+			rejected[entry.name] = true
+		else
+			kept[#kept + 1] = entry
+		end
+	end
+	return kept
+end
+
+---------------------------------------------------------------------------
 -- passers-by, remembered
 --
 -- Friendly nameplates are off by default, so for most players a stranger is
@@ -1080,13 +1229,14 @@ local LINGER_SECONDS = 10
 local LINGER_CAP = 40
 
 -- [name] = { seen, reason, within, buff, class, targetName, hasMana, known,
--- checked, expires, close }: `seen` is the last moment a token reached them
--- (near enough, for a passer-by), `reason` why they were offered then --
+-- checked, expires, close, pvp }: `seen` is the last moment a token reached
+-- them (near enough, for a passer-by), `reason` why they were offered then --
 -- "nearby" or "asked" -- and `within` the "Passers-by within" step that
 -- judged a passer-by near. The rest is what their queue entry said then,
 -- `expires` being the top-up's remaining time as a moment on the clock, so it
--- counts down while they are unseen, and `hasMana` what the walk read for
--- "Only buffs they can use".
+-- counts down while they are unseen, `hasMana` what the walk read for "Only
+-- buffs they can use", and `pvp` their PvP flag as last read (nil when the
+-- setting is off, which reads none).
 local passing = {}
 ns.passersBy = passing
 
@@ -1108,6 +1258,7 @@ local function RememberPasserBy(entry, now, within, hasMana)
 	memo.seen, memo.reason, memo.within = now, entry.reason, within
 	memo.buff, memo.class, memo.targetName = entry.buff, entry.class, entry.targetName
 	memo.hasMana = hasMana
+	memo.pvp = entry.pvp
 	-- The reading as well, so the panel keeps saying what it said while they
 	-- had a token: "needs" does not turn into "unverified" as the cursor
 	-- leaves them.
@@ -1142,6 +1293,8 @@ end
 -- (see visit). `drop` is a reason that turns every passer-by down, but not
 -- somebody who asked: a request is a source of its own, which the passer-by
 -- switch, saving mana and the city rule leave alone, as the walk does.
+-- Somebody last read as flagged for PvP is let go the same way while the
+-- rule stands, and written into the scan's record (see "flagged for PvP").
 --
 -- Letting somebody go on a verdict writes it into `rejected` too, which
 -- BuildQueue hands the prompt: the cursor holding the panel on them must not
@@ -1150,6 +1303,11 @@ local function OfferPassersBy(queue, seen, rejected, now, db, candidates, drop)
 	for name, memo in pairs(passing) do
 		local debt = db.sources.owed and owed[name]
 		local nearby = memo.reason == "nearby"
+		-- Remembered while you were flagged yourself, and flagged when last
+		-- read: held back like anybody a token finds flagged, and so let go,
+		-- a verdict. A token reaching them again reads the flag afresh.
+		local flagged = pvpScan.stands and memo.pvp == true
+		if flagged then pvpScan.names[name] = true end
 		-- Let go for good on any of these. Near by a "Passers-by within" step
 		-- that no longer stands is not near, so narrowing it applies at once.
 		-- One block test covers a right-press skip and a press that reached
@@ -1160,6 +1318,7 @@ local function OfferPassersBy(queue, seen, rejected, now, db, candidates, drop)
 			or (not nearby and not ns.StillAsked(name, memo.buff.key, now))
 			or (ns.zonedAt and memo.seen < ns.zonedAt)
 			or rejected[name] == true
+			or flagged
 			or not StillCastable(memo, candidates, db.filters)
 			or ns.IsBlocked(name, memo.buff.key, now)
 			or ns.IsNeverOffered(name)
@@ -1365,6 +1524,10 @@ end
 -- or remembered passer-by would ask for one.
 function ns.BuildQueue(watch)
 	local db = addon.db and addon.db.profile
+	-- What this scan holds back for PvP, started again whichever way it ends.
+	wipe(pvpScan.names)
+	wipe(pvpScan.groups)
+	pvpScan.stands, pvpScan.you = false, nil
 	-- Nothing learned to cast on anybody, yourself included.
 	if not db or not ns.CanCastAnything() then return {}, true end
 
@@ -1410,6 +1573,19 @@ function ns.BuildQueue(watch)
 		skipGroups = f.skipRaidGroups
 	end
 	local readyCheck = db.priority.readyCheck == true and ns.ReadyCheckRunning(now)
+
+	-- Flagged for PvP (see above). Flags are read only with the setting on,
+	-- but then even while you are flagged yourself and the rule stands aside,
+	-- so the flags kept on debts and memories are current the moment you are
+	-- not. `pvpHeld` is where the walk writes who it holds back, and nil
+	-- while the rule does not stand.
+	local pvpRead = f.skipPvP == true
+	local pvpHeld
+	if pvpRead then
+		pvpScan.you = YouAreFlagged() or nil
+		if not pvpScan.you then pvpHeld = pvpScan.names end
+		pvpScan.stands = pvpHeld ~= nil
+	end
 
 	-- Passers-by left alone out in the world, when asked: only a definite "not
 	-- resting" does it, and could-not-tell offers them.
@@ -1460,6 +1636,22 @@ function ns.BuildQueue(watch)
 		-- One verdict per person per scan, whichever way it went: somebody in
 		-- front of you is commonly both your target and a nameplate.
 		if seen[full] or rejected[full] then return end
+
+		-- Flagged for PvP, for every reason alike -- a favour, a request, the
+		-- group, your target -- and first, since two flags cost less than
+		-- anything below. A verdict, so the cursor's hold lets them go. What
+		-- was read goes on their debt, for the owed fallback, which has no
+		-- token to ask; the debt itself stays.
+		local flag
+		if pvpRead then
+			flag = PvPFlag(unit)
+			if owed[full] then owed[full].pvp = flag end
+			if pvpHeld and flag == true then
+				rejected[full] = true
+				pvpHeld[full] = true
+				return
+			end
+		end
 		-- The whole-person block: a right-press skip, or a press that reached
 		-- nobody, so we do not march down the list failing at each buff.
 		if ns.IsBlocked(full, nil, now) then return end
@@ -1639,6 +1831,9 @@ function ns.BuildQueue(watch)
 			-- "readycheck" or "revived" when that put them first; the reason
 			-- line and the tooltip say so.
 			sweep = swept,
+			-- Their PvP flag as read this scan (nil with the setting off),
+			-- which the memory of them keeps (RememberPasserBy).
+			pvp = flag,
 		}
 		-- Remembered for when the token goes, which for the cursor is the
 		-- moment the player moves it to the prompt. Not somebody pointed at:
@@ -1697,35 +1892,45 @@ function ns.BuildQueue(watch)
 				or ((not ns.zonedAt or entry.at >= ns.zonedAt) and (now - entry.at) <= grace)
 			if LiveExpiry(entry) > now and fresh and not seen[full] and not rejected[full]
 				and SafeForMacro(full) and not ns.IsBlocked(full, nil, now) then
-				-- Resolved per person, through the same filters as the main
-				-- path. Class is all this path has; a tokenless entry can never
-				-- be level- or death-checked.
-				local hasMana
-				if entry.class then hasMana = MANA_CLASSES[entry.class] == true end
+				-- Flagged when last read, and the rule stands: held back, a
+				-- verdict like the walk's, and still owed, to be returned once
+				-- a token reads the flag gone (or you are flagged yourself).
+				if pvpHeld and entry.pvp == true then
+					rejected[full] = true
+					pvpHeld[full] = true
+				else
+					-- Resolved per person, through the same filters as the
+					-- main path. Class is all this path has; a tokenless entry
+					-- can never be level- or death-checked.
+					local hasMana
+					if entry.class then hasMana = MANA_CLASSES[entry.class] == true end
 
-				tokenless.hasMana = hasMana
-				tokenless.name = full
-				local buff = ns.PickBuffFor(candidates, tokenless, NoReading)
+					tokenless.hasMana = hasMana
+					tokenless.name = full
+					local buff = ns.PickBuffFor(candidates, tokenless, NoReading)
 
-				-- One buff per favour: nothing here can verify the first landed.
-				-- selfCast is excluded: a shout is judged repaid on whether the
-				-- press measured them inside its reach, and with no token here
-				-- there is nothing to measure -- they may be a zone away.
-				if buff and not buff.selfCast and not ns.IsBlocked(full, buff.key, now) then
-					queue[#queue + 1] = {
-						name = full,
-						short = ShortName(full),
-						-- From the key, since this path has no unit to ask.
-						targetName = ns.TargetName(full),
-						class = entry.class,
-						buff = buff,
-						reason = "owed",
-						priority = PRIORITY.owed,
-						-- ranged and known are left unwritten: a constructor sizes
-						-- the table for every field it names. No token means nothing
-						-- read, the client's doing, so `checked` follows the setting.
-						checked = (f.whenBuffed or "skip") ~= "always",
-					}
+					-- One buff per favour: nothing here can verify the first
+					-- landed. selfCast is excluded: a shout is judged repaid on
+					-- whether the press measured them inside its reach, and with
+					-- no token here there is nothing to measure -- they may be a
+					-- zone away.
+					if buff and not buff.selfCast and not ns.IsBlocked(full, buff.key, now) then
+						queue[#queue + 1] = {
+							name = full,
+							short = ShortName(full),
+							-- From the key, since this path has no unit to ask.
+							targetName = ns.TargetName(full),
+							class = entry.class,
+							buff = buff,
+							reason = "owed",
+							priority = PRIORITY.owed,
+							-- ranged and known are left unwritten: a constructor
+							-- sizes the table for every field it names. No token
+							-- means nothing read, the client's doing, so `checked`
+							-- follows the setting.
+							checked = (f.whenBuffed or "skip") ~= "always",
+						}
+					end
 				end
 			end
 		end
@@ -1737,6 +1942,9 @@ function ns.BuildQueue(watch)
 	-- mana, a city-only rule out in the world.
 	OfferPassersBy(queue, seen, rejected, now, db, candidates,
 		not db.sources.strangers or groupOnly or savingMana or notResting)
+
+	-- A shout lands on the whole party, flagged members and all.
+	if pvpHeld then queue = HoldShoutsForPvP(queue, rejected, inRaid) end
 
 	-- And you, once everybody else is in: before the fold below, so a group
 	-- cast counts you among your party.

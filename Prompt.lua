@@ -248,9 +248,13 @@ local function ListedWithoutDebt(name, now)
 end
 
 -- Whether this entry was deliberately retired: blocked (the retry cooldown a
--- click wrote, or a right-press refusal) or on the never-offer list with
--- nothing owed. The repaint and the press both ask this and must agree.
+-- click wrote, or a right-press refusal), on the never-offer list with
+-- nothing owed, or held back for PvP -- flagged since the paint, or in a
+-- party a group cast or a shout would land on (Queue.lua, HeldForPvP). The
+-- repaint and the press both ask this and must agree: a press on an empty
+-- queue otherwise casts at whoever the panel still names.
 local function Retired(entry, now)
+	if ns.HeldForPvP(entry) then return true end
 	return entry ~= nil and entry.name ~= nil
 		and (ns.IsBlocked(entry.name, entry.buff and entry.buff.key, now)
 			or ListedWithoutDebt(entry.name, now))
@@ -2450,12 +2454,14 @@ end
 
 -- Whether the last candidate painted is still entitled to the panel. It
 -- expires, it never holds off somebody strictly better (PickTop checks that),
--- and it never holds somebody deliberately retired (see Retired).
+-- and it never holds somebody deliberately retired (see Retired) -- not even
+-- inside HOLD_SECONDS, which a press may land in.
 local function HoldStillStands(now)
 	if not (heldEntry and heldAt) then return false end
 	-- Longer while the cursor is on the panel (see CursorHolds).
 	if now - heldAt >= HOLD_SECONDS and not CursorHolds(heldEntry, now) then return false end
 	if ListedWithoutDebt(heldEntry.name, now) then return false end
+	if ns.HeldForPvP(heldEntry) then return false end
 	return not ns.IsBlocked(heldEntry.name, heldEntry.buff and heldEntry.buff.key, now)
 end
 

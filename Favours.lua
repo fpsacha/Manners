@@ -269,6 +269,9 @@ do
 		-- Asked of the token while it still means them, like the name.
 		seen.sameParty = SameParty(source)
 		seen.hasMana = UnitHasMana(source)
+		-- And their PvP flag, which goes on the debt: the owed fallback, with
+		-- no token to ask, judges them on it (Queue.lua, "flagged for PvP").
+		seen.pvp = ns.PvPFlag(source)
 		-- Kept only for the emote, which asks again that it still holds them
 		-- (ThankFavour): nothing else may trust a token read a scan ago.
 		seen.unit = source
@@ -354,7 +357,7 @@ do
 		-- The spell rides along for "In character" (Phrases.lua), which thanks
 		-- them by it; the newest favour's, like the class. In memory only.
 		owed[seen.name] = { expires = GetTime() + db.timing.reciprocateWindow, at = GetTime(),
-			guid = seen.guid, class = seen.class,
+			guid = seen.guid, class = seen.class, pvp = seen.pvp,
 			spell = type(seen.key) == "number" and seen.key or nil }
 		-- Whether only a buff that reaches your own party could return it: asked
 		-- as if they were outside it, about classes rather than where they stand,
@@ -369,7 +372,11 @@ do
 			-- "On the prompt" only when a prompt can show it: not through a snooze,
 			-- an unlocked prompt or Not while mounted.
 			local snoozeEnds = reachable and ns.SnoozeLeft() and ns.SnoozeEndsAt()
-			if snoozeEnds then
+			if reachable and ns.PvPHoldsBack(seen.pvp) then
+				-- First: whatever else holds the prompt back, this would too.
+				addon:Print(L["|cff80ff80%s buffed you|r -- they are flagged for PvP, and buffing them would flag you, so returning it waits until they are not"]
+					:format(seen.name))
+			elseif snoozeEnds then
 				addon:Print(L["|cff80ff80%s buffed you|r -- the prompt is snoozed until %s, so returning it is offered only if the snooze ends before the favour runs out"]
 					:format(seen.name, snoozeEnds))
 			elseif reachable and not db.prompt.locked then

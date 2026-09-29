@@ -245,6 +245,12 @@ function Mock.reset()
 	-- people sixty yards away.
 	Mock.rangeless = nil
 	Mock.inRange = true
+	-- Who is flagged for PvP, by unit token ("player" is you), as true, false,
+	-- Mock.SECRET or "throw": e.g. { nameplate1 = true }. nil is nobody at all,
+	-- which is what every scenario written before this assumed. pvpFFA is the
+	-- free-for-all flag the same way.
+	Mock.pvp = nil
+	Mock.pvpFFA = nil
 	-- Exceptions to Mock.inRange by unit token, e.g. { nameplate1 = false }:
 	-- one person walking off while somebody else stays in reach.
 	Mock.rangeByUnit = nil
@@ -1046,6 +1052,16 @@ function UnitIsDeadOrGhost(u)
 end
 function UnitCanAssist() return maybeSecret(true) end
 function UnitIsConnected() return maybeSecret(true) end
+-- Who is flagged for PvP (Mock.pvp) and for free-for-all PvP (Mock.pvpFFA),
+-- by unit token, "player" being you. Absent is a definite no.
+local function pvpFlag(set, unit)
+	local value = set and set[unit]
+	if value == nil then return maybeSecret(false) end
+	if value == "throw" then error("refused", 0) end
+	return value
+end
+function UnitIsPVP(unit) return pvpFlag(Mock.pvp, unit) end
+function UnitIsPVPFreeForAll(unit) return pvpFlag(Mock.pvpFFA, unit) end
 function UnitIsCharmed() return false end
 function UnitInVehicle() return false end
 function UnitOnTaxi() return false end

@@ -205,6 +205,8 @@ function UnitIsUnit(a, b) return a == b end
 function UnitIsDeadOrGhost() return false end
 function UnitCanAssist() return true end
 function UnitIsConnected() return true end
+function UnitIsPVP() return false end
+function UnitIsPVPFreeForAll() return false end
 function UnitIsCharmed() return false end
 function UnitInVehicle() return false end
 function UnitOnTaxi() return false end

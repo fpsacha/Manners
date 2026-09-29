@@ -168,6 +168,52 @@ local function ClassSafe(class, key, offered, inRaid)
 	return true
 end
 
+-- Who of everybody a party-wide spell lands on reads as flagged for PvP (see
+-- "flagged for PvP" in Queue.lua): the first one's name, "?" when the game
+-- will not name them, or nil. `where` is a bucket's -- a class for a Greater
+-- Blessing, a raid subgroup, or "party" -- and everybody in it counts, not
+-- only those the queue offered: somebody flagged was never queued at all.
+-- Nobody's reach is asked, so one flagged anywhere in it holds the cast back.
+-- Somebody whose class or subgroup cannot be read, or whose flag cannot, is
+-- no reason to (cannot tell). You are never counted.
+local function FlaggedAmong(where, byClass, inRaid)
+	local n = plain(GetNumGroupMembers and GetNumGroupMembers()) or 0
+	local tokens = inRaid and TOKENS.raid or TOKENS.party
+	-- The party's other four, or the whole raid, whose tokens hold you too.
+	local last = math.min(inRaid and n or (n - 1), 40)
+	for i = 1, last do
+		local unit = tokens[i]
+		if plain(UnitExists(unit)) and plain(UnitIsUnit(unit, "player")) ~= true then
+			local inside = true
+			if byClass then
+				inside = plain(select(2, UnitClass(unit))) == where
+			elseif inRaid then
+				inside = RaidSubgroup(unit) == where
+			end
+			if inside and ns.PvPFlag(unit) == true then return ns.UnitFullName(unit) or "?" end
+		end
+	end
+	return nil
+end
+
+-- The same for a group cast already made (the prompt's hold and its press
+-- ask, Queue.lua's HeldForPvP), read again now.
+function ns.GroupCastFlagged(entry)
+	local group = entry and entry.groupCast
+	if not (group and group.where) then return nil end
+	return FlaggedAmong(group.where, group.class ~= nil, plain(IsInRaid and IsInRaid()) == true)
+end
+
+-- And for a shout, which lands on your own party -- in a raid, your own
+-- subgroup, and nobody when that cannot be read.
+function ns.ShoutFlagged(inRaid)
+	if inRaid == nil then inRaid = plain(IsInRaid and IsInRaid()) == true end
+	if not inRaid then return FlaggedAmong("party", false, false) end
+	local own = RaidSubgroup("player")
+	if not own then return nil end
+	return FlaggedAmong(own, false, true)
+end
+
 -- The class's name as the game spells it, for "every Warrior".
 local function ClassName(class)
 	local names = _G.LOCALIZED_CLASS_NAMES_MALE
@@ -225,8 +271,9 @@ end
 
 -- The one entry for a bucket that has reached the threshold, or nil. Built on
 -- a copy of the anchor's own entry, so everything that reads an entry reads
--- this one the same way.
-local function Build(bucket, byClass, inRaid, ownSubgroup)
+-- this one the same way. `pvp` is Queue.lua's record of the scan while the
+-- PvP rule stands, nil while it does not.
+local function Build(bucket, byClass, inRaid, ownSubgroup, pvp)
 	local anchor
 	for _, entry in ipairs(bucket.entries) do
 		-- Somebody measured out of reach cannot be the target; the cast still
@@ -237,6 +284,20 @@ local function Build(bucket, byClass, inRaid, ownSubgroup)
 	-- Only you in reach (see Better): a reagent spent on yourself alone,
 	-- which the single buff does for nothing.
 	if anchor.reason == "self" then return nil end
+
+	-- Flagged for PvP: the spell lands on every one of them, so one flagged
+	-- member keeps it back while you are not flagged, said in /manners debug.
+	-- Those who are not flagged are still offered one at a time: nothing
+	-- here takes their single casts out of the queue.
+	if pvp then
+		local flagged = FlaggedAmong(bucket.where, byClass, inRaid)
+		if flagged then
+			local _, label = Names(bucket, byClass, inRaid, ownSubgroup)
+			pvp.groups[#pvp.groups + 1] = { name = flagged, label = label,
+				spell = bucket.ready.info.groupName or ns.BuffName(bucket.buff) }
+			return nil
+		end
+	end
 
 	if byClass then
 		local offered = {}
@@ -281,6 +342,9 @@ local function Build(bucket, byClass, inRaid, ownSubgroup)
 		-- Everybody else the queue had lined up that this covers, by name.
 		members = members,
 		class = byClass and bucket.where or nil,
+		-- The party, subgroup or class it lands on, asked again for PvP flags
+		-- while the prompt holds it (GroupCastFlagged).
+		where = bucket.where,
 		-- Who it is for, inside a sentence ("your party", "group 3").
 		label = label,
 		asked = asked or nil,
@@ -351,12 +415,15 @@ function ns.GroupCasts(queue, db, candidates, inRaid)
 		end
 	end
 
+	-- The scan's PvP record while the rule stands in it (Queue.lua), which
+	-- a group cast held back for a flagged member is written into.
+	local pvp = ns.PvPRecord()
 	-- The player's own subgroup, so theirs is "your group" and not a number.
 	local ownSubgroup = inRaid and not byClass and RaidSubgroup("player") or nil
 	local absorbed, made
 	for _, bucket in ipairs(order) do
 		if bucket.missing + bucket.low >= atLeast then
-			local group = Build(bucket, byClass, inRaid, ownSubgroup)
+			local group = Build(bucket, byClass, inRaid, ownSubgroup, pvp)
 			if group then
 				absorbed = absorbed or {}
 				made = made or {}

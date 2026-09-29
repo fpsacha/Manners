@@ -624,8 +624,9 @@ local function BugReport()
 		#picks > 0 and table.concat(picks, " ") or "none known")
 	-- Who is ordered and who is held back: "my friend is never offered" is most
 	-- often answered by the last number here.
-	lines[#lines + 1] = ("friendsFirst=%s restingOnly=%s neverOffered=%d"):format(
-		tostring(db.priority.friends), tostring(db.filters.restingOnly), #ns.NeverList())
+	lines[#lines + 1] = ("friendsFirst=%s restingOnly=%s skipPvP=%s neverOffered=%d"):format(
+		tostring(db.priority.friends), tostring(db.filters.restingOnly),
+		tostring(db.filters.skipPvP), #ns.NeverList())
 	lines[#lines + 1] = ("groupBuffs=%s atLeast=%s"):format(
 		tostring(db.groupBuffs.use), tostring(db.groupBuffs.atLeast))
 	-- The dungeon and raid settings, each of which leaves people out or moves
@@ -2106,6 +2107,18 @@ local function BuildWhoTab()
 				get = fGet,
 				set = fSet,
 			},
+			-- For everybody, a favour owed included: see "flagged for PvP" in
+			-- Queue.lua. The exception is the one a player would ask about,
+			-- so it is in the tooltip.
+			skipPvP = {
+				type = "toggle",
+				name = L["Skip players flagged for PvP"],
+				desc = L["Buffing somebody flagged for PvP flags you too. Ignored while you are flagged yourself, as in a battleground."],
+				order = 43,
+				width = "full",
+				get = fGet,
+				set = fSet,
+			},
 
 			-------------------------------------------------- never offer
 			neverHeader = { type = "header", name = L["Never offer"], order = 50 },
@@ -3494,6 +3507,19 @@ local function BuildDiagnosticsTab()
 				hidden = function() return #ns.MyselfLines(GetTime()) == 0 end,
 				name = function()
 					return "|cffffffff" .. L["Myself"] .. "|r\n" .. table.concat(ns.MyselfLines(GetTime()), "\n")
+				end,
+			},
+			-- Who "Skip players flagged for PvP" is holding back, in the
+			-- words /manners debug uses (ns.PvPLines): somebody missing
+			-- from the prompt for it has nothing else on screen to say why.
+			-- A scan of its own, since the page is not repainted by one.
+			pvpDiag = {
+				type = "description",
+				order = 11.8,
+				fontSize = "medium",
+				hidden = function() return #ns.PvPLines(true) == 0 end,
+				name = function()
+					return "|cffffffff" .. L["Flagged for PvP"] .. "|r\n" .. table.concat(ns.PvPLines(true), "\n")
 				end,
 			},
 			-- What is measuring how near a passer-by is, and how often it
