@@ -367,20 +367,21 @@ end
 -- this character has learned. Read each time the page is drawn.
 function ns.GroupBuffDescriptions()
 	if ns.GROUP_BY_CLASS[ns.PlayerClass()] == true then
-		return L["When enough people of one class need your blessing and you carry the reagent, the prompt offers one Greater Blessing for that whole class instead of blessing them one at a time."],
-			L["How many people of one class in your party or raid must need the blessing before a Greater Blessing is offered."]
+		return L["Cast one Greater Blessing for a whole class when enough of that class need it and you carry the reagent."],
+			L["How many of one class in your party or raid must be missing it first."]
 	end
 	local names = {}
 	for _, buff in ipairs(ns.GetClassBuffs(ns.PlayerClass()) or {}) do
 		local info = buff.groupCast and ns.BuffInfo(buff)
 		if info and info.groupName then names[#names + 1] = info.groupName end
 	end
-	local slider = L["How many people in one party (in a raid, one raid group) must need the buff before the group version is offered."]
+	-- "One party" is a raid group in a raid, which is what the fold counts.
+	local slider = L["How many in one party must be missing it first."]
 	if #names == 0 then
-		return L["When enough people in one party (in a raid, one raid group) need your buff and you carry the reagent, the prompt offers the group version once you have learned it, instead of buffing them one at a time."],
+		return L["Cast your class's group version, once learned, when enough of one party need it and you carry the reagent."],
 			slider
 	end
-	return L["When enough people in one party (in a raid, one raid group) need your buff and you carry the reagent, the prompt offers one %s instead of buffing them one at a time."]
+	return L["Cast one %s when enough of one party need it and you carry the reagent."]
 		:format(table.concat(names, " / ")), slider
 end
 

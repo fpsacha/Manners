@@ -192,7 +192,7 @@ local function HasClassBuffs()
 end
 
 local function BuffChoices()
-	local values = { auto = L["Automatic"] }
+	local values = { auto = L["Automatic (whatever they are missing)"] }
 	for _, buff in ipairs(ns.GetClassBuffs(ns.caps.class) or {}) do
 		local info = ns.BuffInfo(buff)
 		local label = (info and info.name) or buff.key
@@ -203,11 +203,13 @@ local function BuffChoices()
 end
 
 -- The named distances, read off the list Range.lua measures with, so the
--- dropdown cannot offer a setting nothing implements.
+-- dropdown cannot offer a setting nothing implements. Each with its rough
+-- yardage, since what somebody picks is a feeling but they will want to know
+-- roughly what they just asked for.
 local function ProximityChoices()
 	local values = {}
 	for _, tier in ipairs(ns.PROXIMITY) do
-		values[tier.key] = tier.name
+		values[tier.key] = tier.about and ("%s (%s)"):format(tier.name, tier.about) or tier.name
 	end
 	return values
 end
@@ -223,7 +225,7 @@ local function ProximityOrder()
 end
 
 -- The spell's name, with the one thing about it that changes who it is offered
--- to. "Mana users only" only while "Skip players the buff does nothing for" is
+-- to. "Mana users only" only while "Skip players it does nothing for" is
 -- on, since that filter is what holds a mana-only spell back.
 local function BuffLabel(buff)
 	local label = ns.BuffName(buff)
@@ -262,7 +264,7 @@ local function AutoExplanation()
 					.. L["Automatic never offers %s -- nobody standing in a city wants it -- so nobody will be offered anything."]
 						:format(ns.BuffName(buff))
 					.. "|r\n\n"
-					.. L["Pin it in the dropdown above if you want it given out anyway."]
+					.. L["Pick it in Buff to offer if you want it given out anyway."]
 			end
 		end
 		-- Everything learned is switched off, but a spell not learned yet is
@@ -310,11 +312,11 @@ local function AutoExplanation()
 			:format(list)
 	end
 
-	local text = L["Automatic offers the first of these they are missing, in this order: %s."]
+	local text = L["Automatic may offer, in this order: %s. Each person gets the first one they are missing."]
 		:format(list)
 	if ns.RotatesBuffs() then
 		text = text .. "\n|cff888888"
-			.. L["Where the game will not say what somebody is carrying, it moves down the list each time instead of offering the same one over and over."]
+			.. L["When the game hides what someone has, it tries the next one each time."]
 			.. "|r"
 	end
 	return text
@@ -335,9 +337,9 @@ local function PinExplanation()
 	end
 
 	return "|cffff8080"
-		.. L["You have pinned %s, which you have not learned."]:format(name)
+		.. L["You picked %s in Buff to offer, but have not learned it, so nothing is offered."]:format(name)
 		.. "|r\n\n"
-		.. L["Nothing will be offered to anybody until you learn it or switch back to Automatic."]
+		.. L["Learn it or set Buff to offer back to Automatic."]
 end
 
 -- One toggle per spell the class can put on somebody else, built once with the
@@ -359,10 +361,10 @@ local function AddBuffToggles(args)
 				end
 				return label
 			end,
-			desc = L["Switched off, this one is never offered to anybody and Automatic walks straight past it. Everything else carries on as before."],
+			desc = L["Untick to never offer this buff."],
 			-- Sub-one steps so the whole block sits between the buff dropdown
-			-- and the Sources header whatever the class has, and in the order
-			-- the walk visits them.
+			-- and "Skip players it does nothing for" (4.9) whatever the class
+			-- has, and in the order the walk visits them.
 			order = 4 + index / 10,
 			width = "full",
 			-- A pinned spell is the only one considered, so these would be
@@ -1118,19 +1120,70 @@ end
 -- every file-level local the page uses: Lua 5.1 allows a function 60
 -- upvalues, and a file past that does not load. Every tab has its own
 -- builder for the same reason.
+--
+-- Four questions, top to bottom: what to cast, who it goes to (with the group
+-- and raid settings under their own heading), who comes first, and who is
+-- skipped or never offered.
 local function BuildWhoTab()
+	-- The dropdown in the order the per-spell switches are drawn, Automatic
+	-- first: AceConfig would otherwise sort it by the translated names.
+	local function BuffOrder()
+		local keys = { "auto" }
+		for _, buff in ipairs(ns.GetClassBuffs(ns.caps.class) or {}) do
+			keys[#keys + 1] = buff.key
+		end
+		return keys
+	end
+
+	-- Whether the group buff settings mean anything for this class at all.
+	local function NoGroupBuffs()
+		return not (ns.ClassHasGroupBuffs and ns.ClassHasGroupBuffs())
+	end
+
+	-- One line per reagent the group spells this character would cast eat, as
+	-- the bags hold it now: a group buff that is never offered is most often a
+	-- bag with no candles in it, and nothing else on the page says so.
+	local function ReagentLines()
+		local lines, seen = {}, {}
+		for _, buff in ipairs(ns.CastableBuffs()) do
+			local info = ns.BuffInfo(buff)
+			local item = info and info.groupReagent
+			if item and not seen[item] then
+				seen[item] = true
+				local name = (ns.ReagentName and ns.ReagentName(item)) or tostring(item)
+				local count = ns.ReagentCount and ns.ReagentCount(item)
+				if count == nil then
+					lines[#lines + 1] = "|cff888888"
+						.. L["%s: the game does not say how many you carry."]:format(name) .. "|r"
+				elseif count > 0 then
+					lines[#lines + 1] = L["%s: %d in your bags"]:format(name, count)
+				else
+					lines[#lines + 1] = "|cffff8080"
+						.. L["%s: none in your bags, so group buffs are not offered."]:format(name)
+						.. "|r"
+				end
+			end
+		end
+		if #lines == 0 then
+			return "|cff888888" .. L["You have not learned a group version of your buffs yet."] .. "|r"
+		end
+		return table.concat(lines, "\n")
+	end
+
 	local who = {
 		type = "group",
 		name = TAB.who,
 		order = 2,
 		hidden = function() return not HasClassBuffs() end,
 		args = {
-			buffsHeader = { type = "header", name = L["Buffs"], order = 1 },
+			-------------------------------------------------- what to cast
+			buffsHeader = { type = "header", name = L["What to cast"], order = 1 },
 			choice = {
 				type = "select",
-				name = L["Buff to cast"],
+				name = L["Buff to offer"],
 				order = 2,
 				values = BuffChoices,
+				sorting = BuffOrder,
 				-- What the walk is honouring, rather than what is stored. The
 				-- profile is shared, so a pin can be another class's, and read
 				-- raw the dropdown was blank over a walk that was Automatic.
@@ -1146,8 +1199,19 @@ local function BuildWhoTab()
 				hidden = function() return ns.PinnedBuff() ~= nil end,
 				name = function() return AutoExplanation() end,
 			},
+			-- The per-spell switches (AddBuffToggles) sit at 4.1, 4.2, ... and
+			-- this one after them: all three decide what is cast.
+			relevantOnly = {
+				type = "toggle",
+				name = L["Skip players it does nothing for"],
+				desc = L["Mana-only buffs like Divine Spirit are not offered to warriors and rogues."],
+				order = 4.9,
+				width = "full",
+				get = fGet,
+				set = fSet,
+			},
 			-- Below the per-spell switches, because when it is red the thing it
-			-- is about is the dropdown two controls up rather than the switches.
+			-- is about is the dropdown at the top rather than the switches.
 			pinNote = {
 				type = "description",
 				order = 5,
@@ -1155,9 +1219,11 @@ local function BuildWhoTab()
 				hidden = function() return ns.PinnedBuff() == nil end,
 				name = function() return PinExplanation() end,
 			},
-			sourcesHeader = { type = "header", name = L["Sources"], order = 10 },
-			-- Three toggles, all off, and the only symptom is a prompt that
-			-- never appears -- which is what a broken addon looks like.
+
+			-------------------------------------------------- who it goes to
+			sourcesHeader = { type = "header", name = L["Offer my buff to"], order = 10 },
+			-- Every source off, and the only symptom is a prompt that never
+			-- appears -- which is what a broken addon looks like.
 			emptyWarning = {
 				type = "description",
 				order = 10.5,
@@ -1168,7 +1234,7 @@ local function BuildWhoTab()
 					return s.owed or s.group or s.asked or (s.strangers and not OnlyReachesGroup())
 				end,
 				name = "|cffff8080"
-					.. L["Nothing below is switched on, so the prompt will never appear."] .. "|r",
+					.. L["Nothing is ticked here, so the prompt will never appear."] .. "|r",
 			},
 			owed = {
 				type = "toggle",
@@ -1179,11 +1245,11 @@ local function BuildWhoTab()
 				desc = function()
 					if OnlyReachesGroup() then
 						if ns.PARTY_IS_SUBGROUP then
-							return L["Watch for buffs cast on you and offer to return them. What you cast reaches only your own party -- in a raid, your own subgroup -- so somebody outside it is offered once they join."]
+							return L["Offer a buff back to anyone who buffs you. Yours reaches only your own party (in a raid, your subgroup), so someone outside it is offered once they join."]
 						end
-						return L["Watch for buffs cast on you and offer to return them. What you cast reaches your group only, so somebody outside it is offered once they join."]
+						return L["Offer a buff back to anyone who buffs you. Yours reaches only your group, so someone outside it is offered once they join."]
 					end
-					return L["Watch for buffs cast on you and offer to return them. Works on strangers who are not in your group."]
+					return L["Offer a buff back to anyone who buffs you, in your group or not."]
 				end,
 				order = 11,
 				width = "full",
@@ -1193,50 +1259,18 @@ local function BuildWhoTab()
 			group = {
 				type = "toggle",
 				name = L["My party and raid"],
-				order = 13,
+				order = 12,
 				width = "full",
 				get = sGet,
 				set = sSet,
 			},
-			-- Group buffs (GroupBuffs.lua), under the source they change: they
-			-- only ever replace offers to your party. Shown to the classes that
-			-- have a group version at all, learned yet or not.
-			groupBuffsUse = {
-				type = "toggle",
-				name = L["Use group buffs"],
-				-- Worded for this class and the group spells it has learned.
-				desc = function() return (ns.GroupBuffDescriptions()) end,
-				order = 13.1,
-				width = "full",
-				hidden = function() return not (ns.ClassHasGroupBuffs and ns.ClassHasGroupBuffs()) end,
-				disabled = function() return not S().group end,
-				get = function() return ns.db.profile.groupBuffs.use end,
-				-- The next scan (a fraction of a second) folds or unfolds the
-				-- party, and the macro follows it.
-				set = function(_, v) ns.db.profile.groupBuffs.use = v end,
-			},
-			groupBuffsAtLeast = {
-				type = "range",
-				-- Says what happens at the number, so it reads on its own
-				-- wherever the page puts it.
-				name = L["Group buff once this many need it"],
-				desc = function() return select(2, ns.GroupBuffDescriptions()) end,
-				order = 13.2,
-				min = 2,
-				max = 5,
-				step = 1,
-				hidden = function() return not (ns.ClassHasGroupBuffs and ns.ClassHasGroupBuffs()) end,
-				disabled = function() return not (S().group and ns.db.profile.groupBuffs.use) end,
-				get = function() return ns.db.profile.groupBuffs.atLeast end,
-				set = function(_, v) ns.db.profile.groupBuffs.atLeast = math.floor(v) end,
-			},
 			strangers = {
 				type = "toggle",
-				name = L["Nearby players not in my group"],
+				name = L["Passers-by (players near me, not in my group)"],
 				-- IterateUnits asks target, mouseover and focus before it
 				-- touches a single nameplate.
-				desc = L["Offer passers-by who are missing the buff. Seen through nameplates, your target, your focus and your mouseover."],
-				order = 14,
+				desc = L["Seen through nameplates, your target, focus and mouseover."],
+				order = 13,
 				width = "full",
 				-- Hidden, not disabled: nothing on this page could ever make a
 				-- shout reach a stranger.
@@ -1246,181 +1280,105 @@ local function BuildWhoTab()
 			},
 			strangersNote = {
 				type = "description",
-				order = 14.5,
+				order = 13.1,
 				hidden = function() return not OnlyReachesGroup() end,
 				name = "|cff888888"
-					.. L["Everything you can offer is cast on yourself and heard by your party, so there is nothing to give a passer-by."]
+					.. L["Everything you can offer is cast on yourself and reaches only your party, so there is nothing for passers-by."]
 					.. "|r",
 			},
-			-- The source that reads chat. The tooltip gives the gist; the full rule
-			-- for what counts as asking lives in Requests.lua, which is the rule in code.
+			-- The two passer-by settings, right under the switch they narrow
+			-- and greyed while it is off. Which signal is measuring, and how
+			-- well, is on Diagnostics.
+			proximity = {
+				type = "select",
+				name = L["Passers-by within"],
+				desc = L["Only passers-by are measured, and only roughly: the game gives no exact distance."],
+				order = 13.2,
+				width = "full",
+				values = ProximityChoices,
+				sorting = ProximityOrder,
+				hidden = OnlyReachesGroup,
+				disabled = function() return not S().strangers end,
+				get = fGet,
+				set = fSet,
+			},
+			restingOnly = {
+				type = "toggle",
+				name = L["Only in cities and inns"],
+				desc = L["Out in the world, passers-by are left alone; your group and people who buff you are offered anywhere."],
+				order = 13.3,
+				width = "full",
+				hidden = OnlyReachesGroup,
+				disabled = function() return not S().strangers end,
+				get = fGet,
+				set = fSet,
+			},
+			-- The source that reads chat. The full rule for what counts as
+			-- asking lives in Requests.lua, which is the rule in code.
 			asked = {
 				type = "toggle",
-				name = L["People who ask me for it"],
-				desc = L["For a minute, offer your buff to somebody who asks for it in /say, /yell, group chat or a whisper -- \"int pls\", \"fort?\", \"buffs please\"."]
-					.. "\n\n"
-					.. L["Only short requests count, and in a fight only whispers. Nothing is said back to them."]
-					.. "\n\n|cff888888"
-					.. L["Off at first: reading chat is guesswork, so now and then somebody only talking about a buff is offered one."]
-					.. "|r",
-				order = 14.6,
+				name = L["People who ask me in chat"],
+				desc = L["For a minute, offer your buff to someone who asks for it (\"fort pls\"); off by default because chat is guesswork."],
+				order = 14,
 				width = "full",
 				get = sGet,
 				set = sSet,
 			},
 
-			-- Not a source: everybody here is already on the list by one of the
-			-- sources above. This decides who reaches the top of it.
-			firstHeader = { type = "header", name = L["Who comes first"], order = 15 },
-			target = {
+			-------------------------------------------------- group and raid
+			-- Group buffs (GroupBuffs.lua) only ever replace offers to your
+			-- party, so they follow My party and raid. Shown to the classes that
+			-- have a group version at all, learned yet or not.
+			groupHeader = { type = "header", name = L["My group and raid"], order = 20 },
+			groupBuffsUse = {
 				type = "toggle",
-				name = L["Whoever I have targeted comes first"],
-				-- The second condition is the first one arriving from the When
-				-- tab: Always offer means nobody's buffs are read, so there is
-				-- never a reading to promote a target on.
-				desc = L["Your target outranks a favour owed, but only when the game can read that they are missing the buff."]
-					.. "\n\n"
-					.. L["Not while |cffffd100If they already have the buff|r is set to Always offer, under When, since nothing is read then."]
-					.. "\n\n|cff888888"
-					.. L["Mouseover is left out: the prompt would flicker as the cursor crossed the screen."]
-					.. "|r",
-				order = 16,
-				width = "full",
-				get = prGet,
-				set = prSet,
-			},
-			friends = {
-				type = "toggle",
-				name = L["My friends and guildmates come before the others"],
-				-- Inside a kind of offer and never across one, which is what the
-				-- sort does; see BuildQueue.
-				desc = L["A friend or guildmate goes ahead of the other passers-by, or of the rest of your group. It only changes the order; nobody is added or left out."]
-					.. "\n\n|cff888888"
-					.. L["Friends include Battle.net friends. When the game will not say whether somebody is a friend, they are ranked like anybody else."]
-					.. "|r",
-				order = 17,
-				width = "full",
-				get = prGet,
-				set = prSet,
-			},
-
-			skipHeader = { type = "header", name = L["Who to skip"], order = 20 },
-			relevantOnly = {
-				type = "toggle",
-				name = L["Skip players the buff does nothing for"],
-				desc = L["Mana-only buffs such as Arcane Intellect, Wisdom and Divine Spirit are wasted on warriors and rogues."],
+				name = L["Use group buffs"],
+				-- Worded for this class and the group spells it has learned.
+				desc = function() return (ns.GroupBuffDescriptions()) end,
 				order = 21,
 				width = "full",
-				get = fGet,
-				set = fSet,
+				hidden = NoGroupBuffs,
+				disabled = function() return not S().group end,
+				get = function() return ns.db.profile.groupBuffs.use end,
+				-- The next scan (a fraction of a second) folds or unfolds the
+				-- party, and the macro follows it.
+				set = function(_, v) ns.db.profile.groupBuffs.use = v end,
 			},
-			requireInRange = {
-				-- The label is the promise: only a known out-of-range is hidden.
-				type = "toggle",
-				name = L["Hide players known to be out of range"],
-				desc = L["When the game will not tell us the range -- common on this client -- they are still offered."]
-					.. " " .. L["Group members the game cannot see at all -- still in town, or far off in the instance -- count as out of range."],
-				order = 22,
-				width = "full",
-				get = fGet,
-				set = fSet,
-			},
-			proximity = {
-				type = "select",
-				name = L["How near a passer-by has to be"],
-				-- The yardage is here rather than in the choices: what somebody
-				-- picks is a feeling, but they will want to know roughly what
-				-- they just asked for.
-				desc = L["Being in range is not the same as being near: Arcane Intellect and its like reach about thirty yards, which in a city is everybody on the screen."]
-					.. "\n\n" .. L["|cffffd100Anywhere I can cast|r -- about thirty yards, as it was."]
-					.. "\n" .. L["|cffffd100Nearby|r -- about ten yards."]
-					.. "\n" .. L["|cffffd100Right beside me|r -- about five yards."]
-					.. "\n\n"
-					.. L["Only passers-by are measured; not somebody who buffed you, your group, or whoever you targeted or focused."]
-					.. "\n\n|cff888888"
-					.. L["The game gives no exact distance, so this is measured as closely as the client allows. When it cannot measure at all, everybody in casting range is offered."]
-					.. "|r",
-				order = 22.5,
-				width = "full",
-				values = ProximityChoices,
-				sorting = ProximityOrder,
-				-- About passers-by only, so it follows the passer-by toggle.
-				hidden = OnlyReachesGroup,
-				disabled = function() return not S().strangers end,
-				get = fGet,
-				set = fSet,
-			},
-			proximityNote = {
-				type = "description",
-				order = 22.6,
-				hidden = function()
-					return OnlyReachesGroup() or F().proximity == "cast"
-				end,
-				-- Which signal is doing the measuring and how often it answers,
-				-- since a filter that has quietly stopped measuring looks the
-				-- same as nobody being nearby.
-				name = function()
-					return "|cff888888" .. tostring(ns.ProximitySummary()) .. "|r"
-				end,
-			},
-			restingOnly = {
-				type = "toggle",
-				name = L["Only offer passers-by in cities and inns"],
-				-- Hidden and disabled like the distance setting above.
-				desc = L["Out in the world, passers-by are left alone; they are offered only where the game shows you as resting, which is in a city or an inn."]
-					.. "\n\n"
-					.. L["Somebody who buffed you, your group, and whoever you have targeted or focused are offered anywhere."]
-					.. "\n\n|cff888888"
-					.. L["If the game will not say whether you are resting, passers-by are offered as usual."]
-					.. "|r",
-				order = 22.7,
-				width = "full",
-				hidden = OnlyReachesGroup,
-				disabled = function() return not S().strangers end,
-				get = fGet,
-				set = fSet,
-			},
-			minLevel = {
+			groupBuffsAtLeast = {
 				type = "range",
-				name = L["Minimum level"],
-				desc = L["Players below this are never offered. Somebody known only by name cannot be level-checked and is offered anyway."],
-				order = 24,
-				min = 1,
-				max = 60,
+				name = L["When this many need it"],
+				desc = function() return select(2, ns.GroupBuffDescriptions()) end,
+				order = 22,
+				min = 2,
+				max = 5,
 				step = 1,
-				get = fGet,
-				set = fSet,
+				hidden = NoGroupBuffs,
+				disabled = function() return not (S().group and ns.db.profile.groupBuffs.use) end,
+				get = function() return ns.db.profile.groupBuffs.atLeast end,
+				set = function(_, v) ns.db.profile.groupBuffs.atLeast = math.floor(v) end,
 			},
-
-			-- Everything a dungeon or a raid adds, together where somebody
-			-- setting up for one will look.
-			raidHeader = { type = "header", name = L["Dungeons and raids"], order = 25 },
-			readyCheck = {
-				type = "toggle",
-				name = L["Party or raid comes first at a ready check"],
-				desc = L["From a ready check until the pull (or a minute after everybody has answered), everybody in your party or raid who is missing your buff goes to the front of the queue."],
-				order = 25.1,
-				width = "full",
-				get = prGet,
-				set = prSet,
-			},
-			revived = {
-				type = "toggle",
-				name = L["Somebody just back from the dead comes first"],
-				desc = L["Dying costs every buff, so for two minutes after a group member is brought back to life, they go to the front of the queue if they are missing yours."],
-				order = 25.2,
-				width = "full",
-				get = prGet,
-				set = prSet,
+			reagentNote = {
+				type = "description",
+				order = 22.5,
+				hidden = function()
+					return NoGroupBuffs() or not (S().group and ns.db.profile.groupBuffs.use)
+				end,
+				-- Guarded: a `name` is read by AceConfig with nothing around
+				-- it, and an item API that throws must not take the page down.
+				name = function()
+					local ok, text = pcall(ReagentLines)
+					return ok and text or ""
+				end,
 			},
 			skipRaidGroups = {
 				type = "multiselect",
 				name = L["Raid groups I buff"],
 				-- Somebody told "groups 1 to 4" should be able to untick the
 				-- rest and forget about it.
-				desc = L["In a raid, only members of the groups ticked here are offered your buff, the way a raid leader hands out groups to each buffer. Somebody who buffed you or asked, and whoever you target, is offered whatever their group. Outside a raid this does nothing."],
-				order = 25.3,
+				desc = L["In a raid, only these groups are offered your buff; people who buff you or ask are offered anyway."],
+				order = 23,
 				values = RaidGroupChoices,
+				disabled = function() return not S().group end,
 				-- Stored as the groups switched off, so a new profile buffs all
 				-- eight and the box shows them ticked.
 				get = function(_, group) return F().skipRaidGroups[group] ~= true end,
@@ -1429,15 +1387,94 @@ local function BuildWhoTab()
 				end,
 			},
 
-			neverHeader = { type = "header", name = L["Never offer"], order = 30 },
+			-------------------------------------------------- who comes first
+			-- Not a source: everybody here is already on the list by one of the
+			-- sources above. This decides who reaches the top of it.
+			firstHeader = { type = "header", name = L["Who comes first"], order = 30 },
+			target = {
+				type = "toggle",
+				name = L["My target first"],
+				-- Always offer (When to offer) reads nobody's buffs, so there is
+				-- never a reading to promote a target on. The switch greys out
+				-- then, and says why only while it is grey.
+				desc = function()
+					local text = L["Your target goes ahead of everyone when the game can see they lack the buff."]
+					if F().whenBuffed == "always" then
+						text = text .. "\n\n"
+							.. L["Greyed out while |cffffd100Always offer|r is chosen on %s: nothing is read then."]:format(TAB.when)
+					end
+					return text
+				end,
+				order = 31,
+				width = "full",
+				disabled = function() return F().whenBuffed == "always" end,
+				get = prGet,
+				set = prSet,
+			},
+			friends = {
+				type = "toggle",
+				name = L["Friends and guildmates first"],
+				-- Inside a kind of offer and never across one, which is what the
+				-- sort does; see BuildQueue.
+				desc = L["Only changes the order; nobody is added or left out."],
+				order = 32,
+				width = "full",
+				get = prGet,
+				set = prSet,
+			},
+			readyCheck = {
+				type = "toggle",
+				name = L["My group first at a ready check"],
+				desc = L["From a ready check until the pull, group members missing your buff go first."],
+				order = 33,
+				width = "full",
+				get = prGet,
+				set = prSet,
+			},
+			revived = {
+				type = "toggle",
+				name = L["Group members just revived first"],
+				desc = L["For two minutes after someone is brought back, they go first if they lack your buff."],
+				order = 34,
+				width = "full",
+				get = prGet,
+				set = prSet,
+			},
+
+			-------------------------------------------------- who to skip
+			skipHeader = { type = "header", name = L["Who to skip"], order = 40 },
+			minLevel = {
+				type = "range",
+				name = L["Skip players below level"],
+				desc = L["Someone known only by name is offered anyway."],
+				order = 41,
+				min = 1,
+				max = 60,
+				step = 1,
+				get = fGet,
+				set = fSet,
+			},
+			requireInRange = {
+				-- The label is the promise: only a known out-of-range is hidden.
+				type = "toggle",
+				name = L["Skip players out of range"],
+				desc = L["If the game cannot tell the range they are still offered."],
+				order = 42,
+				width = "full",
+				get = fGet,
+				set = fSet,
+			},
+
+			-------------------------------------------------- never offer
+			neverHeader = { type = "header", name = L["Never offer"], order = 50 },
 			neverNote = {
 				type = "description",
-				order = 31,
+				order = 51,
 				fontSize = "medium",
 				name = function()
 					local count = #ns.NeverList()
 					if count == 0 then
-						return L["Nobody is on the list. Shift-right-click the prompt to put whoever it is showing on it, or add a name below."]
+						return L["Nobody is on the list. Shift-right-click the prompt to add the person it shows, or type a name below."]
 					end
 					-- The favour exception (STATUS.md) is said every time the list
 					-- is, rather than in a tooltip nobody hovers.
@@ -1450,9 +1487,9 @@ local function BuildWhoTab()
 			},
 			neverAdd = {
 				type = "input",
-				name = L["Add somebody by name"],
-				desc = L["Spelled the way the prompt shows them. Capitals do not matter."],
-				order = 32,
+				name = L["Add a name"],
+				desc = L["Type it as the prompt shows it and press Enter."],
+				order = 52,
 				width = "full",
 				-- Always empty: it is a box to type into, not a setting with a
 				-- value to show back.
@@ -1461,8 +1498,8 @@ local function BuildWhoTab()
 			},
 			neverPick = {
 				type = "select",
-				name = L["On the list"],
-				order = 33,
+				name = L["Pick a name"],
+				order = 53,
 				values = NeverChoices,
 				disabled = function() return #ns.NeverList() == 0 end,
 				-- Only somebody still on the list: the pick outlives a removal
@@ -1475,8 +1512,8 @@ local function BuildWhoTab()
 			},
 			neverRemove = {
 				type = "execute",
-				name = L["Take them off"],
-				order = 34,
+				name = L["Remove from list"],
+				order = 54,
 				disabled = function()
 					return not (neverPicked and ns.IsNeverOffered(neverPicked))
 				end,
@@ -1491,7 +1528,7 @@ local function BuildWhoTab()
 			neverClear = {
 				type = "execute",
 				name = L["Clear the list"],
-				order = 35,
+				order = 55,
 				disabled = function() return #ns.NeverList() == 0 end,
 				confirm = true,
 				confirmText = L["Take everybody off the never-offer list?"],
