@@ -2028,6 +2028,12 @@ do
 		local victim = english.RACE.dwarf.thanks[1]
 		local silent = {}
 		for _, text in ipairs(english.RACE.dwarf.group) do silent[text] = true end
+		-- And one line of a pool the draw reaches another way -- a spell on a
+		-- class it does little for -- so every kind of pool is thinned, not
+		-- only the ones the shipped translations happen to leave gaps in.
+		local onto = english.ONTO and english.ONTO.intellect and english.ONTO.intellect.WARRIOR
+		local ontoVictim = onto and onto[1]
+		if ontoVictim then silent[ontoVictim] = true end
 		local lines = everyLine(english)
 		local realL, realLocale = ns.L, ns.LOCALE
 		local function reload(locale, translations)
@@ -2085,6 +2091,16 @@ do
 		end
 		if RP.RACE.dwarf.group ~= nil then
 			fail(scenario, "a pool with nothing translated still joins the draw on deDE")
+		end
+		if not ontoVictim then
+			fail(scenario, "SKIPPED -- no Intellect-on-a-warrior lines to leave untranslated")
+		else
+			local left = RP.ONTO and RP.ONTO.intellect and RP.ONTO.intellect.WARRIOR
+			for _, text in ipairs(left or {}) do
+				if text == ontoVictim then
+					fail(scenario, "an untranslated line for a spell on a class stayed in its pool on deDE")
+				end
+			end
 		end
 		for line in RP.Text():gmatch("[^\n]+") do
 			if line:sub(1, 5) ~= "[de] " then fail(scenario, "the box shows an untranslated example on deDE: " .. line) end

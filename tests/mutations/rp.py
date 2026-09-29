@@ -734,5 +734,5 @@ mutate("Phrases.lua",
        '\t\t\t"HISTORY", "PLACE", "TIME", "TARGET", "SAME", "ONTO" }) do\n',
        '\t\t\t"HISTORY", "PLACE", "TIME", "TARGET", "SAME" }) do\n',
        "rp spell on a class never thinned",
-       expect="rp: every language keeps a line for every moment",
+       expect="an untranslated line for a spell on a class stayed in its pool",
        script="runscenarios.py")

@@ -1,5 +1,26 @@
 # Changelog
 
+## 1.3.0
+
+*In character* more than doubles: from about a thousand lines to over two
+thousand, in every people's own voice, and in all nine languages.
+
+- **Forsaken first.** Nearly four times as many lines, from new angles --
+  the Dark Lady, the apothecaries, Undercity's sewers, bits falling off,
+  bats, eternity's boredom -- and a handful heard only in Undercity itself.
+  *"Repaid at once. We Forsaken never carry debts. They rot."*
+- **Every other people** roughly doubles: thanks, answers, offers, lines for
+  your own kind and for your group, and more for the hours each people keeps.
+- **More for the moment:** your class, the spell you are giving, what they
+  gave you, the third swap today, a city, the wild, a dungeon, a battleground,
+  the small hours, and the class of the person you are helping.
+- **Your own people speak up more.** A character now sounds like their people
+  more often, and a thank-you sounds like a thank-you rather than a remark
+  about the spell.
+- A translation that has not arrived yet is never said: on a client in
+  another language, a line without a translation is left out rather than
+  spoken in English.
+
 ## 1.2.0
 
 Manners 1.2 looks after you too, as somebody asked on CurseForge. When you

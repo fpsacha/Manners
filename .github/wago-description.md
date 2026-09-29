@@ -22,7 +22,7 @@ Built for **WoW Forever** (Interface 16001) only.
 - **Three looks**, effects you can calm down, text that stays readable on any panel colour, LibSharedMedia fonts and sounds.
 - **Minimap button and addon compartment**, with a right-click menu for snooze, preview, who's next and more.
 - **Share settings** as one line of text with `/manners export` and `/manners import`.
-- **Say something in character** (off by default): over a thousand funny lines, picked for your race, class and faction and for the moment -- the spell you give, what they gave you, how often you two swap, where you are, the hour -- in every people's own voice, never repeating.
+- **Say something in character** (off by default): over two thousand funny lines, picked for your race, class and faction and for the moment -- the spell you give, what they gave you, how often you two swap, where you are, the hour -- in every people's own voice, never repeating.
 - **Whisper them** as the channel for your line, so only the person you buff hears it, and an optional `/thank` emote when somebody buffs you (off by default, not yet tried in game).
 - **Nine languages:** English, German, Spanish (Spain and Mexico), French, Italian, Korean, Brazilian Portuguese, Simplified and Traditional Chinese.
 

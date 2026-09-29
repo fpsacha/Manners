@@ -429,7 +429,7 @@ settings into a profile named after this one.
 - *Say a line when I buff someone*: off by default, and then only when you
   buff someone back unless you untick *Only when I buff someone back*. Four
   line sets (Fantasy (general), Polite, Cheeky, Just their name), editable,
-  and a fifth, *In character (fits your race and class)*: over a thousand
+  and a fifth, *In character (fits your race and class)*: over two thousand
   lines, picked when you click to fit your people, your class, your faction
   and the moment -- thanks, an answer to a request, an offer, a line for your
   group -- and what is happening: the spell you give (the group spell, for a
