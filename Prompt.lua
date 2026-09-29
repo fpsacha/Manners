@@ -148,6 +148,14 @@ local HOLD_SECONDS = 1.5
 -- Shorter than the hold: "there is nobody" should be believed quickly.
 local EMPTY_FUSE_SECONDS = 0.75
 
+-- How long the cursor on the panel keeps somebody the queue no longer has,
+-- from the last scan that had them (heldAt). Reaching the panel and reading it
+-- takes a second or two, and a passer-by the cursor found is kept by the
+-- queue itself for ten seconds after it leaves them (Queue.lua), so this only
+-- has to cover the last stretch. Past it the cursor is resting on the panel,
+-- not reaching for it, and whoever the panel names has been gone as long.
+local HOVER_SECONDS = 10
+
 -- The floor between two sounds. Without it the sound is tied to the name
 -- changing, and the name changing is exactly what churns.
 local SOUND_FLOOR_SECONDS = 3
@@ -161,6 +169,21 @@ local OUTCOME_SECONDS = 0.6
 local heldEntry, heldAt
 -- When the queue first came back empty, cleared the moment it refills.
 local emptyAt
+-- Whether the cursor is on the panel: set by OnEnter, cleared by OnLeave and
+-- by ClearHold. While it is, the hold and the fuse keep their clocks but not
+-- their verdicts: the player is reaching for what the panel names, and
+-- neither an empty scan nor somebody no better may pull it out from under the
+-- cursor. Somebody strictly better still takes it, and a retired entry still
+-- goes (a right-press skip, the never-offer list, a press resolved). Only a
+-- token lost is forgiven, and for HOVER_SECONDS: see CursorHolds.
+local hovering
+-- The name on the panel a scan turned down (see NoteVerdicts), which the
+-- cursor then no longer holds. Kept rather than asked of each scan: the
+-- verdict is written by the scan that reached it -- a token finding them
+-- covered, the memory letting them go -- and the next scan, with no token to
+-- them, has nothing to say about them. Cleared when the panel is painted from
+-- the queue again, and by ClearHold.
+local heldTurnedDown
 local lastSoundAt
 -- Whether the panel is dimmed for combat, so the alpha is written once per
 -- transition.
@@ -193,9 +216,12 @@ local queueAbove
 
 -- Everything the hysteresis holds, dropped whenever the prompt goes down for a
 -- reason of its own (switched off, unlocked, nothing learned), so coming back
--- up is a fresh start.
+-- up is a fresh start. The cursor with it: a panel that comes back up under a
+-- cursor that has not moved is held again only once OnEnter says so, which
+-- errs towards the ordinary hysteresis rather than a hold nothing ends.
 local function ClearHold()
 	heldEntry, heldAt, emptyAt = nil, nil, nil
+	hovering, heldTurnedDown = nil, nil
 end
 
 -- Lights the fuse on an empty queue, once, and asks for a repaint when it has
@@ -228,6 +254,34 @@ local function Retired(entry, now)
 	return entry ~= nil and entry.name ~= nil
 		and (ns.IsBlocked(entry.name, entry.buff and entry.buff.key, now)
 			or ListedWithoutDebt(entry.name, now))
+end
+
+-- Called with BuildQueue's second return by every pass that builds a queue to
+-- pick from, before it picks: true when the scan refused the whole queue for
+-- your own state (mounted with "Hide the prompt while I'm mounted", dead, on a
+-- taxi), otherwise [name] = true for everybody it turned down (found dead,
+-- covered, out of range, held back while you save mana, let go from memory).
+-- A verdict on whoever the panel holds -- the entry last painted, which is
+-- the one armed -- ends the cursor's hold on them. A stubbed queue hands back
+-- nothing, which is no verdict.
+local function NoteVerdicts(verdicts)
+	local entry = heldEntry or current
+	local name = entry and entry.name
+	if not (name and verdicts) then return end
+	if verdicts == true or (type(verdicts) == "table" and verdicts[name] == true) then
+		heldTurnedDown = name
+	end
+end
+
+-- The cursor's hold (see hovering), which lets the ordinary hold and the fuse
+-- run past their time. It forgives a token lost -- the cursor leaving the
+-- person it found, a target cleared -- for HOVER_SECONDS, and nothing else:
+-- somebody a scan found dead must not stay on the panel, and the press cast at
+-- them, because the cursor happened to be resting on it (see NoteVerdicts).
+local function CursorHolds(entry, now)
+	if not (hovering and entry and entry.name and heldAt) then return false end
+	if heldTurnedDown == entry.name then return false end
+	return now - heldAt < HOVER_SECONDS
 end
 
 -- The list and its background live outside the panel, so hiding the button
@@ -627,7 +681,8 @@ local function OnPreClick(self, mouseButton)
 		return
 	end
 
-	local queue = ns.BuildQueue()
+	local queue, verdicts = ns.BuildQueue(hovering)
+	NoteVerdicts(verdicts)
 	local top = Prompt:PickTop(queue, queue[1])
 	local named = Prompt:PanelName()
 	-- An empty queue under a panel still naming somebody: the press agrees with
@@ -1001,6 +1056,10 @@ do
 	end
 
 	local function OnEnter(self)
+		-- First, whatever the tooltip does: the cursor is on the panel, and
+		-- the hold and the fuse wait for it (see hovering). OnUpdate calls
+		-- this again only while the tooltip is ours, so still hovering.
+		hovering = true
 		-- Nothing armed is nothing to describe, and a tooltip left from the
 		-- last person goes with it.
 		if not current or not current.buff then
@@ -1069,6 +1128,15 @@ do
 
 	local function OnLeave()
 		GameTooltip:Hide()
+		-- The hold and the fuse kept their clocks while the cursor was on the
+		-- panel, so whatever ran out meanwhile is put right now rather than at
+		-- the next scan. Next frame rather than here: the client sends this
+		-- as a repaint hides the button, from inside that repaint.
+		if not hovering then return end
+		hovering = nil
+		if C_Timer and C_Timer.After then
+			C_Timer.After(0, function() ns.Guard("leave repaint", Prompt.Refresh, Prompt) end)
+		end
 	end
 
 	-- Keep the tooltip honest if the entry changes while it is open, checked a
@@ -2378,7 +2446,8 @@ end
 -- and it never holds somebody deliberately retired (see Retired).
 local function HoldStillStands(now)
 	if not (heldEntry and heldAt) then return false end
-	if now - heldAt >= HOLD_SECONDS then return false end
+	-- Longer while the cursor is on the panel (see CursorHolds).
+	if now - heldAt >= HOLD_SECONDS and not CursorHolds(heldEntry, now) then return false end
 	if ListedWithoutDebt(heldEntry.name, now) then return false end
 	return not ns.IsBlocked(heldEntry.name, heldEntry.buff and heldEntry.buff.key, now)
 end
@@ -3249,7 +3318,10 @@ function Prompt:RefreshPanel()
 		return
 	end
 
-	local queue = ns.BuildQueue()
+	-- With the cursor on the panel, every verdict written down (see
+	-- BuildQueue), so the cursor's hold can tell the dead from the unseen.
+	local queue, verdicts = ns.BuildQueue(hovering)
+	NoteVerdicts(verdicts)
 	local top = self:PickTop(queue, queue[1])
 
 	if not top then
@@ -3284,6 +3356,11 @@ function Prompt:RefreshPanel()
 		-- the dropped person's macro for the whole fight.
 		if button:IsShown() and current and not retired and not ArmingForFight() then
 			LightFuse(now)
+			-- Nor does it burn out under the cursor (see hovering): the
+			-- player is on the way to clicking it. OnLeave repaints. Not
+			-- when the queue emptied on a verdict, theirs or your own state
+			-- (see CursorHolds).
+			if CursorHolds(current, now) then return end
 			if now - emptyAt < EMPTY_FUSE_SECONDS then return end
 		end
 
@@ -3347,8 +3424,10 @@ function Prompt:RefreshPanel()
 
 	-- Stamped where the panel is painted, not where the pick is made (PreClick
 	-- picks too). Renewed by paints from the queue, never by a paint the hold
-	-- itself produced, or somebody long gone would own the prompt.
-	if inQueue or not heldEntry then heldAt = now end
+	-- itself produced, or somebody long gone would own the prompt. A paint
+	-- from the queue is a fresh start for the cursor's hold as well: whoever
+	-- a scan turned down is back (see heldTurnedDown).
+	if inQueue or not heldEntry then heldAt, heldTurnedDown = now, nil end
 	heldEntry = top
 
 	self:Paint(top, others)

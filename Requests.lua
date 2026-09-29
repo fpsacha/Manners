@@ -459,6 +459,25 @@ do
 		return nil
 	end
 
+	-- Whether somebody still has a request standing that asks for this buff,
+	-- for an asker Queue.lua remembers after the cursor has left them, who has
+	-- no unit to match: by the name AskedFor wrote on it when a token matched
+	-- it, or by name as ServeRequest closes one (asking again replaces the
+	-- request, and the new one has not been matched yet). The pin and the
+	-- switches are the queue's to check, against its castable list.
+	function ns.StillAsked(full, buffKey, now)
+		local db = addon.db and addon.db.profile
+		if not (db and db.sources.asked) or type(full) ~= "string" then return false end
+		local short = ShortName(full)
+		for _, request in ipairs(requests) do
+			if Live(request, now) and (request.full == full or SameName(request.short, short))
+				and (request.keys == ASK.ANY or request.keys[buffKey]) then
+				return true
+			end
+		end
+		return false
+	end
+
 	-- A buff landed on them. Called from the settle, beside the favour being
 	-- settled, with the buff's key. A request is answered buff by buff: the one
 	-- that landed comes off it, and it closes once nothing it asked for is

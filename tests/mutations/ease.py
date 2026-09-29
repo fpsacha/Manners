@@ -93,7 +93,7 @@ mutate("Commands.lua",
 # ------------------------------------------------------------------ mounted
 
 mutate("Queue.lua",
-       "\tif ns.HiddenWhileMounted() then return {} end\n",
+       "\tif ns.HiddenWhileMounted() then return {}, true end\n",
        "",
        "Not while mounted that hides nothing",
        expect="ease: not while mounted",
