@@ -2600,18 +2600,22 @@ local function BuildDiagnosticsTab()
 		name = TAB.diagnostics,
 		order = 7,
 		args = {
-			-- Its own header rather than a line under Diagnostics, so it
-			-- does not read as an addon that talks to other players.
-			chatHeader = { type = "header", name = L["Chat"], order = 1 },
+			-- Lines printed to your own chat frame, never said aloud: the
+			-- header says so, so it does not read as an addon that talks
+			-- to other players.
+			chatHeader = { type = "header", name = L["Messages in chat"], order = 1 },
 			verbose = {
 				type = "toggle",
 				-- A cast that worked prints nothing unless it repaid a
 				-- favour, so the label promises what it is doing, not a
 				-- line per click.
-				name = L["Tell me in chat what the addon is doing"],
+				name = L["Tell me in chat what Manners is doing"],
+				-- What it prints first: a cast that worked prints only
+				-- "repaid", and somebody who switched it on to watch
+				-- their casts took the silence for a broken switch.
 				desc = L["A line when somebody buffs you, when a favour is counted as repaid, and when a click fails, is skipped, or leaves somebody owed."]
 					.. "\n\n"
-					.. L["Only you see these lines. They tell a buff that was never noticed apart from somebody who could not be reached."],
+					.. L["Only you see these; they show whether a buff was missed or someone could not be reached."],
 				order = 2,
 				width = "full",
 				get = function() return ns.db.profile.verbose end,
@@ -2619,15 +2623,15 @@ local function BuildDiagnosticsTab()
 			},
 			debugClicks = {
 				type = "toggle",
-				name = L["Log every click to chat"],
-				desc = L["Prints what the button held when you clicked and what the game did with it. Noisy; for working out why a cast did not happen."],
+				name = L["Log every click (noisy)"],
+				desc = L["Prints what the prompt held and what the game did, to work out why a cast failed."],
 				order = 3,
 				width = "full",
 				get = function() return ns.db.profile.debugClicks end,
 				set = function(_, v) ns.db.profile.debugClicks = v end,
 			},
 
-			capsHeader = { type = "header", name = L["What this client allows"], order = 10 },
+			capsHeader = { type = "header", name = L["What Manners can see"], order = 10 },
 			diag = {
 				type = "description",
 				order = 11,
@@ -2635,8 +2639,12 @@ local function BuildDiagnosticsTab()
 				hidden = function() return not HasClassBuffs() end,
 				name = function()
 					-- The class is the client's own token, MAGE and the
-					-- like, and is shown as the game spells it.
-					local lines = { L["Class: |cffffffff%s|r"]:format(tostring(ns.caps.class)) .. "\n" }
+					-- like; shown in the player's language where the
+					-- client names it, and as the token where it does not.
+					local class = ns.caps.class
+					local names = _G.LOCALIZED_CLASS_NAMES_MALE
+					local shown = (names and class and names[class]) or class
+					local lines = { L["Class: |cffffffff%s|r"]:format(tostring(shown)) .. "\n" }
 					for _, buff in ipairs(ns.GetClassBuffs(ns.caps.class) or {}) do
 						local info = ns.BuffInfo(buff)
 						-- Each field is one key with its label, so the
@@ -2646,8 +2654,8 @@ local function BuildDiagnosticsTab()
 							(info and info.name) or buff.key,
 							(info and info.known) and L["learned: |cff00ff00yes|r"]
 								or L["learned: |cff808080no|r"],
-							(info and info.readable) and L["missing-check: |cff00ff00works|r"]
-								or L["missing-check: |cffff8080blocked|r"])
+							(info and info.readable) and L["can see who has it: |cff00ff00yes|r"]
+								or L["can see who has it: |cffff8080no|r"])
 						-- Manners being wrong about the game, rather than
 						-- the game withholding something. "Never offer"
 						-- only where no rank resolves: a missing group id
@@ -2674,9 +2682,23 @@ local function BuildDiagnosticsTab()
 						end
 					end
 					lines[#lines + 1] = "\n|cff888888"
-						.. L["Where the missing-check is blocked, addons cannot read that aura: players are still offered, but some may already have the buff."]
+						.. L["Where Manners cannot see a buff, people are still offered, but some may already have it."]
 						.. "|r"
 					return table.concat(lines, "\n")
+				end,
+			},
+			-- What is measuring how near a passer-by is, and how often it
+			-- answers: a filter that has quietly stopped measuring looks
+			-- the same as nobody being nearby. The only place it is shown.
+			proximityDiag = {
+				type = "description",
+				order = 12,
+				fontSize = "medium",
+				hidden = OnlyReachesGroup,
+				name = function()
+					return "|cff888888"
+						.. L["Passer-by distance: %s"]:format(tostring(ns.ProximitySummary()))
+						.. "|r"
 				end,
 			},
 			noDiag = {
@@ -2691,7 +2713,7 @@ local function BuildDiagnosticsTab()
 
 			-- What ns.Guard caught, on the page where somebody is looking
 			-- when nothing works.
-			errorsHeader = { type = "header", name = L["What has broken"], order = 20 },
+			errorsHeader = { type = "header", name = L["Errors this session"], order = 20 },
 			errorList = {
 				type = "description",
 				order = 21,
@@ -2727,7 +2749,7 @@ local function BuildDiagnosticsTab()
 				order = 21.5,
 				fontSize = "medium",
 				hidden = function() return #ns.errors > 0 end,
-				name = L["Nothing has broken this session."],
+				name = L["Nothing has gone wrong this session."],
 			},
 
 			reportHeader = { type = "header", name = L["Reporting a bug"], order = 30 },
