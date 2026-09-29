@@ -113,8 +113,8 @@ mutate("Options.lua",
        expect="with a preview up, the button reads", script=S)
 
 mutate("Options.lua",
-       "\t\t\t\t\treturn InCombatLockdown() and not ns.Prompt:InTest()\n\t\t\t\tend,\n\t\t\t\tfunc = function() ns.Prompt:ToggleTest() end,\n\t\t\t},\n\t\t\tstartPos",
-       "\t\t\t\t\treturn false\n\t\t\t\tend,\n\t\t\t\tfunc = function() ns.Prompt:ToggleTest() end,\n\t\t\t},\n\t\t\tstartPos",
+       "\t\t\t\t\treturn not ns.Prompt:InTest() and InCombatLockdown()\n",
+       "\t\t\t\t\treturn false\n",
        "start here: preview startable in a fight",
        expect="the preview can be started in a fight", script=S)
 

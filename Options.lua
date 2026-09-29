@@ -1102,7 +1102,7 @@ local function BuildStartTab()
 				-- As on Look: ToggleTest refuses to start one in a fight, and
 				-- one already running can still be stopped.
 				disabled = function()
-					return InCombatLockdown() and not ns.Prompt:InTest()
+					return not ns.Prompt:InTest() and InCombatLockdown()
 				end,
 				func = function() ns.Prompt:ToggleTest() end,
 			},
