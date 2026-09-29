@@ -1617,8 +1617,27 @@ local function BuildWhenTab()
 	}
 end
 
--- What I say: the thanks and the lines that go out with a cast.
+-- What I say: the social replies to a buff, the /thank and the line that goes
+-- out with a cast. Targeting is on Advanced.
 local function BuildSpeechTab()
+	-- The dropdown's own names for two sets, where the set's label alone does
+	-- not say what it is. Every other set keeps the label ns.PHRASE_SETS gives.
+	local SET_LABEL = {
+		roleplay = L["Roleplay (general)"],
+		incharacter = L["In character (fits your race and faction)"],
+	}
+	-- Loading a set: what picking it in the dropdown does, and what Go back to
+	-- In character does without asking.
+	local function loadSet(value)
+		SP().presetChoice = value
+		SP().phrases = ns.PhraseSetText(value) or SP().phrases
+		ns.Prompt:InvalidateMacro()
+		ns.addon:Print(L["loaded the %s lines."]:format(
+			ns.PHRASE_SETS[value] and ns.PHRASE_SETS[value].label or value))
+	end
+	-- The Lines section is only there while a line is said at all.
+	local function speechOff() return not SP().enabled end
+	local function inCharacter() return ns.InCharacter and ns.InCharacter.Active(SP()) end
 	return {
 		type = "group",
 		name = TAB.click,
@@ -1633,31 +1652,24 @@ local function BuildSpeechTab()
 				order = 0.5,
 				fontSize = "medium",
 				hidden = function() return not InCombatLockdown() end,
-				name = L["|cffffd100In combat.|r Blizzard freezes the prompt's macro during a fight, so these settings apply once it ends."]
-					.. "\n",
+				name = "|cffffd100" .. L["In combat: changes here apply once the fight ends."] .. "|r\n",
 			},
-
-			speechHeader = { type = "header", name = L["Speech"], order = 10 },
 			intro = {
 				type = "description",
-				order = 11,
+				order = 1,
 				fontSize = "medium",
-				name = L["Say something when you buff somebody. The line is added to the macro the prompt runs, so it goes out as you talking rather than as an addon."]
-					.. "\n\n|cff888888"
-					.. L["The game refuses addon-sent %s and %s outside instances, so going through the macro is what lets them work."]:format("/say", "/yell")
-					.. "|r\n",
+				name = L["Optional: thank people, or say a line, when you buff them. %s also has quick choices for this."]
+					:format(TAB.general) .. "\n",
 			},
-			-- The other answer to a favour arriving, so under the flash.
-			-- Its own get and set: pSet restyles the prompt, and this
-			-- changes nothing on it.
+
+			speechHeader = { type = "header", name = L["Thanks and speech"], order = 10 },
+			-- The other answer to a favour arriving. Its own get and set:
+			-- pSet restyles the prompt, and this changes nothing on it.
 			thankEmote = {
 				type = "toggle",
-				name = L["Thank them with an emote"],
-				desc = L["When somebody buffs you and returning it is on the prompt, you /thank them, and everybody near sees it."]
-					.. "\n\n|cff888888"
-					.. L["Never in a fight, in a dungeon, raid, battleground or arena. At most once per person every five minutes, and once every ten seconds in all, so a raid full of buffs is one thank."]
-					.. "|r",
-				order = 21.2,
+				name = L["/thank people who buff me"],
+				desc = L["Everyone near you sees it; never in combat or instances, and at most once per person every five minutes."],
+				order = 11,
 				width = "full",
 				-- Nobody is noticed buffing you with that source off.
 				disabled = function() return not S().owed end,
@@ -1666,7 +1678,7 @@ local function BuildSpeechTab()
 			},
 			enabled = {
 				type = "toggle",
-				name = L["Say something"],
+				name = L["Say a line when I buff someone"],
 				order = 12,
 				width = "full",
 				get = spGet,
@@ -1674,33 +1686,53 @@ local function BuildSpeechTab()
 			},
 			channel = {
 				type = "select",
-				name = L["Channel"],
-				desc = L["Who hears the line: Say and Emote reach players near you, Yell a wider area, Party and Raid your group. Whisper them sends it to the person you buff and nobody else."],
+				name = L["Where to say it"],
+				desc = L["Whisper them sends it only to the person you buff."],
 				order = 13,
-				disabled = function() return not SP().enabled end,
-				values = { SAY = L["Say"], YELL = L["Yell"], PARTY = L["Party"], RAID = L["Raid"], EMOTE = L["Emote"],
-					WHISPER = L["Whisper them"] },
+				disabled = speechOff,
+				values = {
+					SAY = L["Say"],
+					WHISPER = L["Whisper them"],
+					EMOTE = L["Emote"],
+					PARTY = L["Party"],
+					RAID = L["Raid"],
+					YELL = L["Yell"],
+				},
+				sorting = { "SAY", "WHISPER", "EMOTE", "PARTY", "RAID", "YELL" },
 				get = spGet,
 				set = spSet,
 			},
 			onlyWhenReturning = {
 				type = "toggle",
-				name = L["Only when returning a favour"],
-				desc = L["Speak only when buffing somebody who buffed you first. Leave this on unless you want to announce every stranger you buff."],
+				name = L["Only when I buff someone back"],
+				desc = L["Off, you also speak when you buff someone first."],
 				order = 14,
 				width = "full",
-				disabled = function() return not SP().enabled end,
+				disabled = speechOff,
 				get = spGet,
 				set = spSet,
 			},
+			onlyNote = {
+				type = "description",
+				order = 14.5,
+				hidden = function() return not (SP().enabled and SP().onlyWhenReturning) end,
+				name = "|cff888888" .. L["You will only hear a line when you return a favour."] .. "|r\n",
+			},
 
-			phrasesHeader = { type = "header", name = L["Phrases"], order = 20 },
+			-- In place of the Lines section while nothing is said.
+			linesOff = {
+				type = "description",
+				order = 19.5,
+				hidden = function() return not speechOff() end,
+				name = "\n|cff888888" .. L["Tick Say a line to choose what you say."] .. "|r\n",
+			},
+			phrasesHeader = { type = "header", name = L["Lines"], order = 20, hidden = speechOff },
 			preset = {
 				type = "select",
-				name = L["Load a set"],
-				desc = L["Replaces the lines below. Edit them afterwards as much as you like."],
+				name = L["Line set"],
+				desc = L["Replaces the lines below."],
 				order = 21,
-				disabled = function() return not SP().enabled end,
+				hidden = speechOff,
 				-- It overwrites hand-written lines with no undo.
 				confirm = function(_, value)
 					return L["Replace everything in the box below with the %s lines?"]:format(
@@ -1710,7 +1742,7 @@ local function BuildSpeechTab()
 				values = function()
 					local out = {}
 					for _, key in ipairs(ns.PHRASE_SET_ORDER) do
-						out[key] = ns.PHRASE_SETS[key].label
+						out[key] = SET_LABEL[key] or ns.PHRASE_SETS[key].label
 					end
 					return out
 				end,
@@ -1726,39 +1758,41 @@ local function BuildSpeechTab()
 					if ns.InCharacter and ns.InCharacter.Active(SP()) then return choice end
 					return nil
 				end,
-				set = function(_, value)
-					SP().presetChoice = value
-					SP().phrases = ns.PhraseSetText(value) or SP().phrases
-					ns.Prompt:InvalidateMacro()
-					ns.addon:Print(L["loaded the %s lines."]:format(
-						ns.PHRASE_SETS[value] and ns.PHRASE_SETS[value].label or value))
-				end,
+				set = function(_, value) loadSet(value) end,
 			},
 			phrasesHelp = {
 				type = "description",
 				order = 22,
-				name = L["One per line -- a random one is picked each time the prompt changes target. Tokens: |cff888888{name}|r the player, |cff888888{buff}|r the spell."]
+				hidden = speechOff,
+				name = L["One line is picked at random. Placeholders: {name} their name, {buff} the spell."]
 					.. "\n|cff888888"
-					.. L["A macro holds 255 characters, so a line that will not fit is dropped, not cut off -- |cffffd100Roll a few|r shows what would go out. An empty box goes back to the chosen set."]
+					.. L["A line too long for a macro is skipped; Try a few shows what would go out."]
 					.. "|r",
 			},
 			inCharacterNote = {
 				type = "description",
 				order = 22.5,
-				hidden = function() return not (ns.InCharacter and ns.InCharacter.Active(SP())) end,
+				hidden = function() return speechOff() or not inCharacter() end,
 				name = function()
-					return "\n|cffffd100" .. L["In character: the line is picked when you click, to fit your race, your faction and the moment -- thanks for a favour, an answer to a request, or an offer. Below are a few of this character's lines; edit them and they become your own lines instead."]
-						.. " " .. L["It notices more than that: your class, the spell, what they gave you, how often you two have met this session, where you are and the hour."]
+					return "\n|cffffd100" .. L["In character picks a line when you click, to fit your race, faction, class and the moment. Editing the lines below turns it off."]
 						.. "|r\n"
 				end,
 			},
 			phrases = {
 				type = "input",
-				name = "",
+				name = L["Your lines (one per line)"],
 				order = 23,
 				multiline = 10,
 				width = "full",
-				disabled = function() return not SP().enabled end,
+				hidden = speechOff,
+				-- Typing over In character's examples makes them your own
+				-- lines, and In character stops picking.
+				confirm = function()
+					if ns.InCharacter and ns.InCharacter.Active(SP()) then
+						return L["Editing these turns In character off and uses only your lines. Continue?"]
+					end
+					return false
+				end,
 				-- In character shows the examples of whoever is logged in,
 				-- whichever character's the shared profile was saved with.
 				get = function(info)
@@ -1777,10 +1811,23 @@ local function BuildSpeechTab()
 					spSet(info, value)
 				end,
 			},
+			-- The way back from edited lines to In character, which the
+			-- dropdown cannot give: it shows the set still chosen as blank.
+			backToInCharacter = {
+				type = "execute",
+				name = L["Go back to In character"],
+				order = 23.5,
+				hidden = function()
+					return speechOff() or SP().presetChoice ~= "incharacter" or inCharacter()
+				end,
+				func = function() loadSet("incharacter") end,
+			},
 			roll = {
 				type = "execute",
-				name = L["Roll a few"],
+				name = L["Try a few lines"],
+				desc = L["Prints sample lines in your chat; only you see them."],
 				order = 24,
+				hidden = speechOff,
 				func = function()
 					-- In character speaks differently for each reason, so
 					-- it rolls one line per reason.
@@ -1810,6 +1857,7 @@ local function BuildSpeechTab()
 			limits = {
 				type = "description",
 				order = 25,
+				hidden = speechOff,
 				name = "\n|cff888888"
 					.. L["A line goes out when you click, even if the cast then fails out of range or line of sight."]
 					.. "|r",

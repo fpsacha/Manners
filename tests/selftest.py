@@ -3048,10 +3048,18 @@ mutate("Commands.lua",
 
 # The When you click tab saying nothing in a fight.
 mutate("Options.lua",
-       "\t\t\t\thidden = function() return not InCombatLockdown() end,\n"
-       "\t\t\t\tname = L[\"|cffffd100In combat.|r Blizzard freezes the prompt's macro",
-       "\t\t\t\thidden = function() return true end,\n"
-       "\t\t\t\tname = L[\"|cffffd100In combat.|r Blizzard freezes the prompt's macro",
+       "\t\t\t-- fight ends, and until then a press runs the old one.\n"
+       "\t\t\tcombatNotice = {\n"
+       "\t\t\t\ttype = \"description\",\n"
+       "\t\t\t\torder = 0.5,\n"
+       "\t\t\t\tfontSize = \"medium\",\n"
+       "\t\t\t\thidden = function() return not InCombatLockdown() end,\n",
+       "\t\t\t-- fight ends, and until then a press runs the old one.\n"
+       "\t\t\tcombatNotice = {\n"
+       "\t\t\t\ttype = \"description\",\n"
+       "\t\t\t\torder = 0.5,\n"
+       "\t\t\t\tfontSize = \"medium\",\n"
+       "\t\t\t\thidden = function() return true end,\n",
        "click tab silent in a fight",
        expect="the When you click tab says nothing about the fight",
        script="runscenarios.py")

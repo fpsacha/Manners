@@ -460,7 +460,7 @@ do
 			fail(scenario, "the Channel dropdown has no Whisper them")
 		end
 		local desc = channel and H.optionText(channel.desc) or ""
-		if not desc:find("Whisper them sends it to the person you buff and nobody else", 1, true) then
+		if not desc:find("Whisper them sends it only to the person you buff", 1, true) then
 			fail(scenario, "the Channel dropdown does not say who hears a whisper: " .. desc)
 		end
 
