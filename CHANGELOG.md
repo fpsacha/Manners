@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.1.2
 
 - **Fixed: picking "In character" on Start here made your character speak
   only when returning a favour**, so buffing a passer-by, somebody who asked
