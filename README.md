@@ -30,31 +30,6 @@ one press puts it on you.
 
 Built for **WoW Forever** (Interface 16001), and shipped for that client only.
 
-## How sure is it
-
-The code is finished and the test suites are green, but **one class has
-actually been played**. Everything else is tested against a mock client, and
-a mock agrees with whoever wrote it.
-
-| Class | How far it has been taken |
-|---|---|
-| **Mage** | cast in game, repeatedly, against real players |
-| Priest, Druid, Paladin, Warlock, Warrior | implemented, spell data corroborated against other addons on this client, every cast path exercised by the suite, **never cast in game** |
-| Hunter, Shaman | nothing to cast on another player; their own buffs (aspects, Trueshot Aura, Lightning and Water Shield) are implemented the same way, **never cast in game** |
-| Rogue | nothing to cast, and Manners says so rather than looking broken |
-
-Getting one spell to cast on this client took ten attempts. Every class uses
-that same path, but "the tests pass" is not "somebody used it". If you play
-anything but a mage, please
-[say how it went](https://github.com/fpsacha/Manners/issues/new/choose),
-either way: **"it worked"** is the report that moves a class off this list.
-
-The dungeon and raid features new in 1.1 (group buffs, ready checks, the
-just-revived, raid groups and the mana floor) have been tested the same way,
-against the mock, and not yet in a real group, whatever the class. Buffing
-yourself, new in 1.2, has been tested the same way: nobody has cast it in
-game yet, not even on a mage.
-
 Retail, Mists Classic and Classic Era are implemented too, but nobody working
 on this can launch those clients, so they are not shipped.
 

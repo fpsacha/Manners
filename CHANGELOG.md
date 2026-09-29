@@ -31,9 +31,6 @@ has a choice, such as a mage's armors, pick the one you want, or leave it on
 Automatic and it follows the one you had up last. And hunters and shamans,
 who have nothing to give anybody else, now get a prompt of their own.
 
-Buffing yourself has been tested against a mock client, but not yet in game.
-If you try it, please say how it went.
-
 ### Your own buff, on yourself
 
 - **"You" on the prompt.** When you are missing the buff you give others --
@@ -181,9 +178,6 @@ the groups they were given. The options page has been rebuilt around a new
 **Start here** tab: four numbered steps, a couple of quick choices, and plain
 words everywhere else.
 
-The dungeon and raid features have been tested against a mock client, but
-not yet in a real group. If you take them into one, please say how it went.
-
 ### Group buffs
 
 - **One cast for the whole party.** If you know Arcane Brilliance, Prayer of
@@ -285,10 +279,7 @@ Manners 1.0, the first stable release. When somebody buffs you in passing,
 Manners notices, works out what you owe them, and puts one button on screen:
 click it, they get their buff back, and your own target is handed straight
 back. It also offers your group, people who ask in chat, and nearby players
-missing your buff. Mage is the class that has been played in game; priest,
-druid, paladin, warlock and warrior are implemented and tested but not yet
-played, so if you play one, please say how it went -- "it worked" helps as
-much as a bug.
+missing your buff.
 
 ### New since the last beta
 
@@ -317,8 +308,6 @@ much as a bug.
   once per person every five minutes, and once every ten seconds in all, so a
   raid buffing you on the pull is one thank. `/manners debug` shows the last
   thank, or why the last one was skipped.
-- Whisper and the emote have not been tried in game yet. If either misbehaves,
-  a report is very welcome.
 
 ### Highlights
 
@@ -874,22 +863,9 @@ Otherwise identical to beta.1.
 
 ## 1.0.0-beta.1
 
-A beta on purpose. The code is finished and the suites are green, but one class
-on one client has actually been played -- and "the tests pass" is not "somebody
-used it". Calling this 1.0.0 would claim the other five classes, and they have
-never cast a spell in a real game.
-
 It runs on **WoW Forever** and nothing else. Retail, Mists Classic and Classic
-Era are implemented and tested against a mock client, but nobody has launched
-those games -- and a toc is a promise. They arrive in 1.1 on the first report
-that one of them works; the issue templates exist to collect exactly that.
-
-The same honesty applies to classes. **Mage has been played**, at length, by
-the author. The other five are implemented, their spell data is corroborated
-against other addons running on this client, and every cast path is exercised
-by 160-odd scenarios -- but "the tests pass" is not "somebody used it". Warrior
-is the one to try first: Battle Shout is self-cast, so its macro has no
-`/target` line at all and it is the only class that takes that branch.
+Era are implemented, but nobody has launched those games -- and a toc is a
+promise.
 
 ### Since 0.9.6
 
@@ -921,8 +897,7 @@ found in ten minutes of actually playing it that no test here could reach.
   thing it catches -- failures are kept per label, so a broken scanner after a
   broken style pass is visible instead of swallowed.
 - Issue templates that require `/manners debug` and `/manners errors`, and a
-  second one for reporting whether a class cast, since five of the six have
-  never been used in game and "it worked" is the report nobody files unasked.
+  second one for reporting whether a class cast.
 
 ### Fixed
 

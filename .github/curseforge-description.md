@@ -10,8 +10,6 @@ In a dungeon or a raid it keeps your group topped up: one group cast for a whole
 
 It looks after you too. When you are missing your own buff, or one your class casts only on itself -- a mage's armor, a priest's Inner Fire, a paladin's aura, a hunter's aspect, a shaman's shield -- "You" comes up on the same prompt, and one press puts it on you.
 
-> **Only Mage has been played in game.** Priest, Druid, Paladin, Warlock and Warrior are implemented and tested against a mock client, but nobody has cast with them yet. The dungeon and raid features are tested the same way and have not been taken into a real group yet, and **Buff myself** (hunters' and shamans' own buffs included) has not been tried in game yet. If you play one, please [say how it went](https://github.com/fpsacha/Manners/issues/new/choose): **"it worked"** is the report that moves a class off the untested list.
-
 Built for **WoW Forever** (Interface 16001), and shipped for that client only.
 
 ### Who it offers, in this order

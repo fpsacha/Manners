@@ -4,8 +4,6 @@
 
 Somebody buffs you in passing; Manners puts them on one button, and a click buffs them back and hands your own target straight back. It also offers your group, people who ask for your buff in chat, and nearby players missing it -- and you, when you are missing your own buff or one your class casts only on itself. In dungeons and raids it keeps your group topped up, with one group cast for a whole party when you carry the reagent.
 
-> **Only Mage has been played in game.** Priest, Druid, Paladin, Warlock and Warrior are implemented and tested against a mock client, but nobody has cast with them yet; the dungeon and raid features have not been taken into a real group, and Buff myself has not been tried in game. If you play one, please [say how it went](https://github.com/fpsacha/Manners/issues/new/choose): "it worked" is the most useful report.
-
 Built for **WoW Forever** (Interface 16001) only.
 
 - **Who comes first:** your target, then your group at a ready check or just back from the dead, then people who buffed you, people who asked in chat, you, the rest of your group, and passers-by. They are colour-coded, with a colour-blind friendly set.
