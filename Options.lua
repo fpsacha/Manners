@@ -903,9 +903,15 @@ function Quick.VoiceSummary()
 	return text
 end
 
--- Start here: switching Manners on, the first steps, the snooze and the
--- ledger. Ledger.lua repaints this tab by its key, "general".
+-- Start here: switching Manners on, then four numbered steps (who to buff, a
+-- key, seeing the prompt, what to say), the snooze and the ledger. Ledger.lua
+-- repaints this tab by its key, "general".
 local function BuildStartTab()
+	-- The steps and the snooze are about a prompt; a class with nothing to
+	-- cast gets the noBuffs text instead.
+	local function noClassBuffs() return not HasClassBuffs() end
+	local function grey(text) return "|cff888888" .. text .. "|r" end
+
 	return {
 		type = "group",
 		name = TAB.general,
@@ -913,7 +919,7 @@ local function BuildStartTab()
 		args = {
 			enabled = {
 				type = "toggle",
-				name = L["Enable"],
+				name = L["Manners is on"],
 				order = 1,
 				width = "full",
 				get = function() return ns.db.profile.enabled end,
@@ -962,30 +968,214 @@ local function BuildStartTab()
 						.. "\n"
 				end,
 			},
+			-- One definition of the word every other tab uses. Putting it on
+			-- a key is step 2's job, not a paragraph's.
 			howItWorks = {
 				type = "description",
 				order = 3,
 				fontSize = "medium",
-				hidden = function() return not HasClassBuffs() end,
-				name = "\n|cffffd100" .. L["How this works"] .. "|r\n"
-					.. L["Blizzard does not let an addon cast a spell by itself, so Manners works out who deserves a buff and puts them on the prompt. Click the prompt and it casts."]
-					.. "\n\n|cffffd100" .. L["Putting it on a key"] .. "|r\n"
-					.. L["Make the macro below and drag it onto a bar, or bind a key under Options > Keybindings > Manners."]
+				hidden = noClassBuffs,
+				name = L["Manners shows a small button, the prompt, with the next person to buff. Click it, or press your key, and it casts on them; the game does not let addons cast by themselves."]
 					.. "\n",
 			},
+			-- An unlocked prompt is a drag panel and casts nothing (Prompt.lua
+			-- reads the lock before anything else), which from the outside
+			-- looks like an addon that does not work. Said at the top, with
+			-- the fix beside it.
+			lockNotice = {
+				type = "description",
+				order = 4,
+				fontSize = "medium",
+				hidden = function() return P().locked or not HasClassBuffs() end,
+				name = "|cffff8080" .. L["The prompt is unlocked, so it will not cast."] .. "|r",
+			},
+			-- ApplyStyle holds off in a fight and catches up when it ends, so
+			-- this never touches the secure button in combat.
+			lockNow = {
+				type = "execute",
+				name = L["Lock it"],
+				order = 4.1,
+				hidden = function() return P().locked or not HasClassBuffs() end,
+				func = function()
+					P().locked = true
+					ns.Prompt:ApplyStyle()
+					ns.RefreshOptionsDisplay()
+				end,
+			},
 
-			startHeader = { type = "header", name = L["Getting started"], order = 10 },
+			-- Step 1. A preset, with the sentence that says what it came to;
+			-- the switches themselves are on Who to buff.
+			whoHeader = {
+				type = "header", name = L["1. Who to buff"], order = 10,
+				hidden = noClassBuffs,
+			},
+			quickWho = {
+				type = "select",
+				name = L["Offer my buff to"],
+				desc = L["A starting point; fine-tune it on Who to buff."],
+				order = 11,
+				width = "full",
+				hidden = noClassBuffs,
+				values = function() return Quick.Values(Quick.WHO) end,
+				sorting = function() return Quick.Order(Quick.WHO) end,
+				get = function() return Quick.Match(Quick.WHO) end,
+				set = function(_, v) Quick.Apply(Quick.WHO, v) end,
+				confirm = function(_, v) return Quick.Confirm(Quick.WHO, v) end,
+			},
+			quickWhoSummary = {
+				type = "description",
+				order = 12,
+				hidden = noClassBuffs,
+				name = function() return grey(Quick.WhoSummary()) end,
+			},
+
+			-- Step 2. The binding is the game's, not the profile's: Setup
+			-- saves it with the binding set, so it follows every profile.
+			keyHeader = {
+				type = "header", name = L["2. Put it on a key"], order = 20,
+				hidden = noClassBuffs,
+			},
+			bindKey = {
+				type = "keybinding",
+				name = L["Key that buffs the prompted player"],
+				desc = L["Saved with your game key bindings, so it works on every profile."],
+				order = 21,
+				hidden = function() return not HasClassBuffs() or not Setup.CanBind() end,
+				-- SetBinding is refused in a fight.
+				disabled = function() return InCombatLockdown() end,
+				get = function() return Setup.Key() or "" end,
+				set = function(_, v) Setup.SetKey(v) end,
+			},
+			openBindings = {
+				type = "execute",
+				name = L["Open key bindings"],
+				desc = L["Opens the game's key bindings; Manners has its own section there."],
+				order = 22,
+				hidden = function() return not HasClassBuffs() or not Setup.CanOpenBindings() end,
+				disabled = function() return InCombatLockdown() end,
+				func = function() Setup.OpenBindings() end,
+			},
 			makeMacro = {
 				type = "execute",
-				name = L["Create the macro"],
-				-- The macro's text is handed in: it is what CreateClickMacro
-				-- really writes, and a translated copy would describe a
-				-- macro that does not exist.
-				desc = L["Adds a macro called Manners containing %s. Drag it onto an action bar and it fires the prompt."]
-					:format("/click MannersPrompt LeftButton 1"),
-				order = 11,
-				hidden = function() return not HasClassBuffs() end,
-				func = function() ns.CreateClickMacro() end,
+				name = L["Make a macro"],
+				desc = L["Adds a macro named Manners; put it on an action bar and pressing it clicks the prompt."],
+				order = 23,
+				hidden = noClassBuffs,
+				-- Repainted so the line under it moves on to "made".
+				func = function()
+					ns.CreateClickMacro()
+					ns.RefreshOptionsDisplay()
+				end,
+			},
+			bindStatus = {
+				type = "description",
+				order = 24,
+				fontSize = "medium",
+				hidden = noClassBuffs,
+				name = function()
+					local key = Setup.Key()
+					if key then
+						local shown = type(GetBindingText) == "function" and GetBindingText(key) or key
+						return "|cff80e080" .. L["Ready: %s buffs whoever the prompt shows."]
+							:format(tostring(shown)) .. "|r"
+					elseif Setup.MacroMade() then
+						return "|cffffd100" .. L["Your Manners macro is made; drag it onto an action bar."] .. "|r"
+					end
+					return "|cffff8080" .. L["No key yet: pick one above, make the macro, or just click the prompt."] .. "|r"
+				end,
+			},
+
+			-- Step 3. The preview, where it sits, and the lock, so the prompt
+			-- can be seen and placed without going to Look.
+			tryHeader = {
+				type = "header", name = L["3. See it"], order = 30,
+				hidden = noClassBuffs,
+			},
+			previewStart = {
+				type = "execute",
+				name = function()
+					return ns.Prompt:InTest() and L["Stop preview"] or L["Show me the prompt"]
+				end,
+				desc = L["Shows a sample prompt so you can see it and put it where you want."],
+				order = 31,
+				hidden = noClassBuffs,
+				-- As on Look: ToggleTest refuses to start one in a fight, and
+				-- one already running can still be stopped.
+				disabled = function()
+					return InCombatLockdown() and not ns.Prompt:InTest()
+				end,
+				func = function() ns.Prompt:ToggleTest() end,
+			},
+			startPos = {
+				type = "select",
+				name = L["Where it sits"],
+				order = 32,
+				hidden = noClassBuffs,
+				-- "Where I dragged it" only while the prompt is on none of
+				-- the presets: shown, never picked.
+				values = function()
+					local out = {}
+					for _, preset in ipairs(ns.POSITION_PRESETS) do
+						out[preset.key] = preset.key == "bars"
+							and L["Above the action bars (default)"] or preset.name
+					end
+					if not ns.CurrentPositionPreset() then out.custom = L["Where I dragged it"] end
+					return out
+				end,
+				sorting = function()
+					local keys = {}
+					for i, preset in ipairs(ns.POSITION_PRESETS) do keys[i] = preset.key end
+					if not ns.CurrentPositionPreset() then keys[#keys + 1] = "custom" end
+					return keys
+				end,
+				get = function() return ns.CurrentPositionPreset() or "custom" end,
+				set = function(_, v)
+					if v == "custom" then return end
+					ns.ApplyPositionPreset(v)
+					restyle()
+				end,
+			},
+			-- Look > Locked's setter, written out: pSet would write the
+			-- option's key, and this one's is not "locked".
+			startLocked = {
+				type = "toggle",
+				name = L["Lock position"],
+				desc = L["Unlock to drag the prompt; it will not cast until you lock it again."],
+				order = 33,
+				hidden = noClassBuffs,
+				get = function() return P().locked end,
+				set = function(_, value)
+					P().locked = value
+					restyle()
+					if not value and not ns.db.profile.enabled then
+						ns.addon:Print(L["unlocked, but the addon is |cffff8080off|r so there is no prompt to drag -- switch it on first."])
+					end
+				end,
+			},
+
+			-- Step 4. What is said, as a preset; the words are on What I say.
+			voiceHeader = {
+				type = "header", name = L["4. Say thanks (optional)"], order = 40,
+				hidden = noClassBuffs,
+			},
+			quickVoice = {
+				type = "select",
+				name = L["When I buff someone back"],
+				desc = L["Change the words and channel on What I say."],
+				order = 41,
+				width = "full",
+				hidden = noClassBuffs,
+				values = function() return Quick.Values(Quick.VOICE) end,
+				sorting = function() return Quick.Order(Quick.VOICE) end,
+				get = function() return Quick.Match(Quick.VOICE) end,
+				set = function(_, v) Quick.Apply(Quick.VOICE, v) end,
+				confirm = function(_, v) return Quick.Confirm(Quick.VOICE, v) end,
+			},
+			quickVoiceSummary = {
+				type = "description",
+				order = 42,
+				hidden = noClassBuffs,
+				name = function() return grey(Quick.VoiceSummary()) end,
 			},
 
 			-- The three lengths in ns.SNOOZE_CHOICES. The minimap menu
@@ -993,14 +1183,14 @@ local function BuildStartTab()
 			-- through ns.StartSnooze, as /manners snooze does, so every
 			-- way in says the same thing in chat.
 			snoozeHeader = {
-				type = "header", name = L["Snooze"], order = 15,
-				hidden = function() return not HasClassBuffs() end,
+				type = "header", name = L["Snooze"], order = 50,
+				hidden = noClassBuffs,
 			},
 			snoozeNote = {
 				type = "description",
-				order = 15.5,
+				order = 50.5,
 				fontSize = "medium",
-				hidden = function() return not HasClassBuffs() end,
+				hidden = noClassBuffs,
 				name = function()
 					local ends = ns.SnoozeEndsAt()
 					-- The page is repainted at both ends of a fight, so this
@@ -1020,47 +1210,72 @@ local function BuildStartTab()
 						return L["|cffffd100Snoozed until %s.|r No prompt until then, though who buffs you is still noticed."]
 							:format(ends)
 					end
-					return L["Keep the prompt out of the way for a while without switching Manners off. It comes back when the time is up, or after a %s."]
-						:format("/reload")
+					return L["Hide the prompt for a while without turning Manners off."]
 				end,
 			},
 			snooze5 = {
 				type = "execute",
-				name = function() return ns.MinutesText(ns.SNOOZE_CHOICES[1]) end,
-				order = 16,
-				hidden = function() return not HasClassBuffs() end,
+				name = function() return L["Snooze %s"]:format(ns.MinutesText(ns.SNOOZE_CHOICES[1])) end,
+				order = 51,
+				hidden = noClassBuffs,
 				func = function() ns.StartSnooze(ns.SNOOZE_CHOICES[1]) end,
 			},
 			snooze15 = {
 				type = "execute",
-				name = function() return ns.MinutesText(ns.SNOOZE_CHOICES[2]) end,
-				order = 17,
-				hidden = function() return not HasClassBuffs() end,
+				name = function() return L["Snooze %s"]:format(ns.MinutesText(ns.SNOOZE_CHOICES[2])) end,
+				order = 52,
+				hidden = noClassBuffs,
 				func = function() ns.StartSnooze(ns.SNOOZE_CHOICES[2]) end,
 			},
 			snooze30 = {
 				type = "execute",
-				name = function() return ns.MinutesText(ns.SNOOZE_CHOICES[3]) end,
-				order = 18,
-				hidden = function() return not HasClassBuffs() end,
+				name = function() return L["Snooze %s"]:format(ns.MinutesText(ns.SNOOZE_CHOICES[3])) end,
+				order = 53,
+				hidden = noClassBuffs,
 				func = function() ns.StartSnooze(ns.SNOOZE_CHOICES[3]) end,
 			},
 			snoozeStop = {
 				type = "execute",
 				name = L["Stop snoozing"],
-				order = 19,
+				order = 54,
 				hidden = function() return not ns.SnoozeLeft() end,
 				func = function() ns.StopSnooze() end,
 			},
 
-			miscHeader = {
-				type = "header", name = L["Minimap"], order = 20,
-				hidden = function() return not HasMinimapButton() end,
+			-- What the addon has done, rather than a setting. Here
+			-- because Start here is the page people land on, and the
+			-- window is otherwise only a slash command away.
+			ledgerHeader = {
+				type = "header", name = L["Favour ledger"], order = 60,
+				hidden = function() return not ns.Ledger end,
 			},
+			ledgerSummary = {
+				type = "description",
+				order = 61,
+				fontSize = "medium",
+				hidden = function() return not ns.Ledger end,
+				name = function() return ns.Ledger and ns.Ledger.OptionsText() or "" end,
+			},
+			ledgerOpen = {
+				type = "execute",
+				name = L["Open the ledger"],
+				desc = L["Who buffed you, whether you returned it, and who you buffed first."],
+				order = 62,
+				hidden = function() return not ns.Ledger end,
+				-- This window shut first: it sits in a higher strata than
+				-- the ledger, which would open hidden underneath it.
+				func = function()
+					ns.CloseOptions()
+					ns.Ledger.Show()
+				end,
+			},
+
+			-- Last and without a header of its own: it is about where the
+			-- way back in lives, not about buffing.
 			minimap = {
 				type = "toggle",
 				name = L["Show minimap button"],
-				order = 21,
+				order = 70,
 				-- Said where the choice is made, because hiding the button
 				-- loses nothing only while the compartment holds Manners
 				-- and is itself on screen.
@@ -1068,7 +1283,8 @@ local function BuildStartTab()
 					if CompartmentShown() then
 						return L["Manners stays in the addon compartment under the minimap either way."]
 					end
-					return L["Without it, |cffffd100/manners|r and the AddOns page in the game's options are the way in."]
+					return L["Without it, open these settings with %s or Options > AddOns."]
+						:format("|cffffd100/manners|r")
 				end,
 				-- Gone entirely where the libraries are not: there is no
 				-- button for a greyed-out control to be about.
@@ -1079,35 +1295,6 @@ local function BuildStartTab()
 					if LDBIcon then
 						if v then LDBIcon:Show(ADDON) else LDBIcon:Hide(ADDON) end
 					end
-				end,
-			},
-
-			-- What the addon has done, rather than a setting. Here
-			-- because General is the page people land on, and the
-			-- window is otherwise only a slash command away.
-			ledgerHeader = {
-				type = "header", name = L["Favour ledger"], order = 50,
-				hidden = function() return not ns.Ledger end,
-			},
-			ledgerSummary = {
-				type = "description",
-				order = 51,
-				fontSize = "medium",
-				hidden = function() return not ns.Ledger end,
-				name = function() return ns.Ledger and ns.Ledger.OptionsText() or "" end,
-			},
-			ledgerOpen = {
-				type = "execute",
-				name = L["Open the ledger"],
-				desc = L["Who buffed you and with what, whether you returned it, and who you buffed unasked. Also %s, or shift-click the minimap button."]
-					:format("/manners ledger"),
-				order = 52,
-				hidden = function() return not ns.Ledger end,
-				-- This window shut first: it sits in a higher strata than
-				-- the ledger, which would open hidden underneath it.
-				func = function()
-					ns.CloseOptions()
-					ns.Ledger.Show()
 				end,
 			},
 		},
