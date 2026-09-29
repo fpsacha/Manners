@@ -48,10 +48,10 @@ mutate("Queue.lua",
 
 # The loading screen dropping favours with "Drop people who are probably gone" off.
 mutate("Queue.lua",
-       "\t\t\tlocal fresh = not db.filters.reachableOnly\n"
+       "\t\t\tlocal fresh = not db.filters.reachableOnly or near\n"
        "\t\t\t\tor ((not ns.zonedAt or entry.at >= ns.zonedAt) and (now - entry.at) <= grace)\n",
        "\t\t\tlocal fresh = (not ns.zonedAt or entry.at >= ns.zonedAt)\n"
-       "\t\t\t\tand (not db.filters.reachableOnly or (now - entry.at) <= grace)\n",
+       "\t\t\t\tand (not db.filters.reachableOnly or near or (now - entry.at) <= grace)\n",
        "loading screen drops people with the option off",
        expect="core2: a stranger left behind by a loading screen is not offered (a loading screen, keeping people who are probably gone)",
        script="runscenarios.py")

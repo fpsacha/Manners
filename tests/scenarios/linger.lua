@@ -9,6 +9,12 @@
 -- by name for a few seconds after the last token reached them (Queue.lua), and
 -- the prompt holds still while the cursor is on it (Prompt.lua).
 --
+-- And what review found after: the cursor's hold forgives a token lost and
+-- nothing else, for ten seconds at most (a person found dead, covered or out
+-- of range, or your own state, still moves the panel on); somebody who asked
+-- in chat, and an older favour, found under the cursor stay on the same way;
+-- and a remembered buff the settings have since ruled out is let go.
+--
 -- Every scenario name starts with "linger:" so tests/mutations/linger.py can
 -- name the one that has to catch each fault.
 
@@ -21,7 +27,9 @@ local ANNA, BERT, ZED = "Anna Aim", "Bert Beside", "Zed Far"
 
 -- Globals a scenario below replaces for its own length, and puts back. The
 -- spellbook pair is knowShout's, which Mock.reset does not own.
-local TOUCHED = { "UnitIsDeadOrGhost", "IsResting", "IsSpellKnown", "IsPlayerSpell" }
+local TOUCHED = { "UnitIsDeadOrGhost", "IsResting", "IsSpellKnown", "IsPlayerSpell",
+	"UnitIsVisible", "IsMounted", "UnitOnTaxi", "UnitInVehicle", "UnitIsCharmed",
+	"UnitPower", "UnitPowerMax" }
 local original = {}
 for _, name in ipairs(TOUCHED) do original[name] = rawget(_G, name) end
 
@@ -419,8 +427,9 @@ do
 		end
 
 		local buff = ns.CastableBuffs()[1]
-		ns.passersBy["Bert]Beside"] = { seen = GetTime(), within = ns.db.profile.filters.proximity,
-			buff = buff, class = "PRIEST", targetName = "Bert]Beside", known = false, checked = true }
+		ns.passersBy["Bert]Beside"] = { seen = GetTime(), reason = "nearby",
+			within = ns.db.profile.filters.proximity, buff = buff, class = "PRIEST",
+			targetName = "Bert]Beside", known = false, checked = true }
 		if offered(ns, "Bert]Beside") then
 			fail(scenario, "a remembered name that could break out of the macro was offered")
 		end
@@ -452,8 +461,9 @@ do
 			fail(scenario, "SKIPPED -- the warrior's buffs do not reach only the group")
 			return
 		end
-		ns.passersBy[ANNA] = { seen = GetTime(), within = ns.db.profile.filters.proximity,
-			buff = shout, class = "PRIEST", targetName = ANNA, known = false, checked = true }
+		ns.passersBy[ANNA] = { seen = GetTime(), reason = "nearby",
+			within = ns.db.profile.filters.proximity, buff = shout, class = "PRIEST",
+			targetName = ANNA, known = false, checked = true }
 		if offered(ns, ANNA) or ns.passersBy[ANNA] then
 			fail(scenario, "a warrior's shout was offered to a passer-by remembered")
 		end
@@ -864,6 +874,624 @@ for _, case in ipairs({ { label = "with Bert waiting", bert = true }, { label = 
 		end
 		Mock.inCombat = false
 		ns.addon:PLAYER_REGEN_ENABLED()
+		noErrors(scenario, ns)
+	end)
+	restoreUnits()
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ helpers
+-- For the scenarios below.
+
+-- Who is dead, by unit token, over the mock's answer for the player.
+local function deathsIn(dead)
+	return function(unit)
+		if unit == "player" then return Mock.dead end
+		return dead[unit] == true
+	end
+end
+
+-- A mana bar for the player and for nobody else: a stranger read as having
+-- none, as a warrior would.
+local function noManaBarButMine(unit, ...)
+	if unit == "player" then return original.UnitPowerMax(unit, ...) end
+	return 0
+end
+
+-- One chat line as the client delivers it: the event name, the text, the
+-- sender, then languageName, channelName, target, flags, zoneChannelID,
+-- channelIndex, channelBaseName, languageID, lineID -- and the GUID.
+local function hear(ns, event, text, sender, guid)
+	ns.addon[event](ns.addon, event, text, sender, "Common", "", "", "", 0, 0, "", 0, 1, guid)
+end
+
+-- A priest who knows Fortitude and Shadow Protection and nothing else, set
+-- after the load (the ranks come from its buff table) and before the probe
+-- fresh() runs. Put back by run() with the rest of TOUCHED.
+local function knowFortAndShadow(ns)
+	local known = {}
+	for _, key in ipairs({ "fortitude", "shadow" }) do
+		for _, id in ipairs(ns.FindBuff("PRIEST", key).ranks) do known[id] = true end
+	end
+	local fn = function(id) return known[id] == true end
+	rawset(_G, "IsSpellKnown", fn)
+	rawset(_G, "IsPlayerSpell", fn)
+end
+
+-- ------------------------------------------------------------------ linger 17
+-- The cursor's hold forgives a token lost, not a verdict. In a party of two
+-- missing your buff, one is on the panel with the cursor on it and the other
+-- waits; then a token reaches the one on the panel and turns them down --
+-- dead, out of casting range with "Skip players out of range" on, out of
+-- sight. The panel must move to the one waiting as it would with the cursor
+-- elsewhere, and the macro with it: the press would otherwise cast at somebody
+-- dead or out of reach while the other waited.
+
+-- Who of the party is on the panel, by name and token, and who waits. Which
+-- one the lifecycle leaves there is its business, not these scenarios'.
+local function partyPanel(ns)
+	local painted, other, unit = ns.Prompt:PanelName(), nil, nil
+	for _, entry in ipairs(ns.BuildQueue()) do
+		if entry.name == painted then unit = entry.unit else other = entry.name end
+	end
+	return painted, unit, other
+end
+
+for _, case in ipairs({
+	{ label = "dead" },
+	{ label = "out of casting range" },
+	{ label = "out of sight" },
+}) do
+	Mock.reset()
+	Mock.groupSize = 3
+	local scenario = "linger: under the cursor a group member turned down yields the panel (" .. case.label .. ")"
+	local names = { party1 = { "Anna", "Aim" }, party2 = { "Bert", "Beside" } }
+	local restoreUnits = strangers(names)
+	local dead, visible = {}, {}
+	local function isVisible(unit) return visible[unit] ~= false end
+	run(scenario, { UnitIsDeadOrGhost = deathsIn(dead), UnitIsVisible = isVisible }, function()
+		local ns = load(scenario)
+		if not ns then return end
+		fresh(ns, scenario)
+		ns.addon:Tick()
+		local painted, unit, other = partyPanel(ns)
+		if not (unit and other) then
+			fail(scenario, "SKIPPED -- the party was not both offered with one on the panel: "
+				.. tostring(painted))
+			return
+		end
+		enter(ns)
+		scan(ns, 1)
+		if case.label == "dead" then
+			dead[unit] = true
+		elseif case.label == "out of casting range" then
+			Mock.rangeByUnit = { [unit] = false }
+		else
+			visible[unit] = false
+		end
+		scan(ns, 3)
+		if offered(ns, painted) then
+			fail(scenario, "SKIPPED -- the queue still offered " .. painted .. " " .. case.label)
+			return
+		end
+		if ns.Prompt:PanelName() ~= other then
+			fail(scenario, "a group member turned down stayed on the panel under the cursor while "
+				.. other .. " waited: " .. tostring(ns.Prompt:PanelName()))
+		end
+		local ran = tostring(pressButton(ns) or "")
+		if ran:find(painted, 1, true) or not ran:find(other, 1, true) then
+			fail(scenario, "the press under the cursor did not go to " .. other .. ": " .. oneLine(ran))
+		end
+		noErrors(scenario, ns)
+	end)
+	restoreUnits()
+end
+Mock.reset()
+
+-- The press asks the same question itself: made the moment after the one on
+-- the panel died, with no scan in between, it must not cast at them either.
+-- The ordinary hold has run out, so only the cursor could have kept them.
+Mock.reset()
+Mock.groupSize = 3
+do
+	local scenario = "linger: a press under the cursor does not cast at a group member just found dead"
+	local names = { party1 = { "Anna", "Aim" }, party2 = { "Bert", "Beside" } }
+	local restoreUnits = strangers(names)
+	local dead = {}
+	run(scenario, { UnitIsDeadOrGhost = deathsIn(dead) }, function()
+		local ns = load(scenario)
+		if not ns then return end
+		fresh(ns, scenario)
+		ns.addon:Tick()
+		local painted, unit, other = partyPanel(ns)
+		if not (unit and other) then
+			fail(scenario, "SKIPPED -- the party was not both offered with one on the panel: "
+				.. tostring(painted))
+			return
+		end
+		enter(ns)
+		scan(ns, 1)
+		dead[unit] = true
+		Mock.advance(2)
+		local ran = tostring(pressButton(ns) or "")
+		if ran:find(painted, 1, true) then
+			fail(scenario, "a press under the cursor cast at a group member found dead: " .. oneLine(ran))
+		end
+		noErrors(scenario, ns)
+	end)
+	restoreUnits()
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ linger 18
+-- The same with nobody else to offer: the cursor does not keep the prompt up
+-- on the last person once a verdict took them off the queue. A remembered
+-- stranger a nameplate finds covered, a group member who dies, and saving
+-- mana -- the walk's verdict on a group member, the memory's on a passer-by.
+for _, case in ipairs({
+	{ label = "a remembered stranger a nameplate finds buffed", stranger = true, buffed = true },
+	{ label = "a remembered stranger while you save mana", stranger = true, mana = true },
+	{ label = "a group member alone who dies", dies = true },
+	{ label = "a group member alone while you save mana", mana = true },
+}) do
+	Mock.reset()
+	if not case.stranger then Mock.groupSize = 2 end
+	local scenario = "linger: under the cursor the prompt still comes down for " .. case.label
+	local names = case.stranger and {} or { party1 = { "Anna", "Aim" } }
+	local restoreUnits = strangers(names)
+	local dead = {}
+	run(scenario, { UnitIsDeadOrGhost = deathsIn(dead) }, function()
+		local ns = load(scenario)
+		if not ns then return end
+		fresh(ns, scenario)
+		if case.stranger then
+			-- Past the three seconds an aura reading is kept for.
+			foundThenLeft(ns, names, 4)
+		else
+			ns.addon:Tick()
+		end
+		if ns.Prompt:PanelName() ~= ANNA or not shown(ns) then
+			fail(scenario, "SKIPPED -- Anna was not on the prompt")
+			return
+		end
+		enter(ns)
+		scan(ns, 1)
+		if case.buffed then
+			plate(ns, names, "nameplate1", "Anna", "Aim")
+			Mock.held = { [1459] = true }
+		elseif case.dies then
+			dead.party1 = true
+		else
+			ns.db.profile.filters.manaFloor = 60
+		end
+		scan(ns, 2)
+		if offered(ns, ANNA) then
+			fail(scenario, "SKIPPED -- the queue still offered Anna")
+			return
+		end
+		if shown(ns) then
+			fail(scenario, "the prompt stayed up under the cursor on somebody the scan had turned down")
+		end
+		noErrors(scenario, ns)
+	end)
+	restoreUnits()
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ linger 19
+-- Even a token merely lost is forgiven for ten seconds and no longer: past
+-- that the cursor is resting on the panel, not reaching for it. Your focus,
+-- whom nothing remembers, cleared under the cursor with nobody else about.
+Mock.reset()
+do
+	local scenario = "linger: the cursor holds somebody gone for ten seconds at most"
+	local names = { focus = { "Anna", "Aim" } }
+	local restoreUnits = strangers(names)
+	run(scenario, nil, function()
+		local ns = load(scenario)
+		if not ns then return end
+		fresh(ns, scenario)
+		ns.addon:Tick()
+		if ns.Prompt:PanelName() ~= ANNA then
+			fail(scenario, "SKIPPED -- your focus was not on the prompt")
+			return
+		end
+		enter(ns)
+		names.focus = nil
+		scan(ns, 6)
+		if not (shown(ns) and ns.Prompt:PanelName() == ANNA) then
+			fail(scenario, "SKIPPED -- the cursor did not hold Anna for six seconds")
+			return
+		end
+		scan(ns, 5)
+		if shown(ns) then
+			fail(scenario, "the cursor held somebody gone for longer than ten seconds")
+		end
+		noErrors(scenario, ns)
+	end)
+	restoreUnits()
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ linger 20
+-- The queue emptied for your own state -- mounted with "Hide the prompt while
+-- I'm mounted", dead, on a taxi, in a vehicle, charmed, nothing left to cast,
+-- no mana -- is no token lost either: the cursor resting on the panel must not
+-- keep it up, armed, over a setting or a state that says it goes.
+for _, case in ipairs({
+	{ label = "mounted with the switch on",
+		globals = { IsMounted = function() return true end },
+		apply = function(ns) ns.db.profile.filters.hideMounted = true end },
+	{ label = "dead", apply = function() Mock.dead = true end },
+	{ label = "on a taxi",
+		apply = function() rawset(_G, "UnitOnTaxi", function(unit) return unit == "player" end) end },
+	{ label = "in a vehicle",
+		apply = function() rawset(_G, "UnitInVehicle", function(unit) return unit == "player" end) end },
+	{ label = "charmed",
+		apply = function() rawset(_G, "UnitIsCharmed", function(unit) return unit == "player" end) end },
+	{ label = "with nothing left to cast",
+		apply = function(ns)
+			local buff = ns.db.profile.buff
+			buff.skip = buff.skip or {}
+			buff.skip.intellect = true
+		end },
+	{ label = "out of mana",
+		apply = function()
+			rawset(_G, "UnitPower", function(unit, ...)
+				if unit == "player" then return 0 end
+				return original.UnitPower(unit, ...)
+			end)
+		end },
+}) do
+	Mock.reset()
+	local scenario = "linger: under the cursor the prompt still goes for your own state (" .. case.label .. ")"
+	local names = { focus = { "Anna", "Aim" } }
+	local restoreUnits = strangers(names)
+	run(scenario, case.globals, function()
+		local ns = load(scenario)
+		if not ns then return end
+		fresh(ns, scenario)
+		ns.addon:Tick()
+		if ns.Prompt:PanelName() ~= ANNA or not shown(ns) then
+			fail(scenario, "SKIPPED -- your focus was not on the prompt")
+			return
+		end
+		enter(ns)
+		case.apply(ns)
+		scan(ns, 2)
+		if #ns.BuildQueue() > 0 then
+			fail(scenario, "SKIPPED -- the queue was not emptied " .. case.label)
+			return
+		end
+		if shown(ns) then
+			fail(scenario, "the prompt stayed up under the cursor with the queue refused for your own state: "
+				.. oneLine(macroOf(ns)))
+		end
+		noErrors(scenario, ns)
+	end)
+	restoreUnits()
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ linger 21
+-- Somebody who asked in chat and is found under the cursor stays on offer as
+-- the cursor leaves them, as somebody who asked -- the same priority, the same
+-- words -- and is let go ten seconds after. Passers-by are switched off here,
+-- which must not take a request with it, and the asker has no mana bar, which
+-- "Only buffs they can use" does not hold against somebody who asked.
+Mock.reset()
+Mock.unitClass = "WARRIOR"
+do
+	local scenario = "linger: somebody who asked, found under the cursor, stays offered once it leaves them"
+	local names = {}
+	local restoreUnits = strangers(names)
+	run(scenario, { UnitPowerMax = noManaBarButMine }, function()
+		local ns = load(scenario)
+		if not ns then return end
+		fresh(ns, scenario)
+		ns.db.profile.sources.asked = true
+		ns.db.profile.sources.strangers = false
+		ns.db.profile.filters.relevantOnly = true
+		hear(ns, "CHAT_MSG_SAY", "int pls", ANNA, "Player-1-mouseover")
+		names.mouseover = { "Anna", "Aim" }
+		ns.addon:Tick()
+		local first = entriesFor(ns, ANNA)[1]
+		if not (first and first.unit == "mouseover" and first.reason == "asked") then
+			fail(scenario, "SKIPPED -- Anna asking under the cursor was not offered as asking")
+			return
+		end
+		names.mouseover = nil
+		scan(ns, 2)
+		local later = entriesFor(ns, ANNA)
+		if #later ~= 1 then
+			fail(scenario, "somebody who asked was not offered once the cursor left her: "
+				.. #later .. " entries")
+		else
+			if later[1].reason ~= "asked" or later[1].unit ~= nil then
+				fail(scenario, ("a remembered asker was offered as %s through %s")
+					:format(tostring(later[1].reason), tostring(later[1].unit)))
+			end
+			if later[1].priority ~= first.priority then
+				fail(scenario, ("a remembered asker was offered at priority %s, not %s as through the cursor")
+					:format(tostring(later[1].priority), tostring(first.priority)))
+			end
+		end
+		if not (shown(ns) and ns.Prompt:PanelName() == ANNA) then
+			fail(scenario, "the prompt came down after the cursor left somebody who asked")
+		end
+		scan(ns, 9)
+		if offered(ns, ANNA) or ns.passersBy[ANNA] then
+			fail(scenario, "somebody who asked, not reached by a token for ten seconds, was still offered")
+		end
+		noErrors(scenario, ns)
+	end)
+	restoreUnits()
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ linger 22
+-- A remembered asker is offered while the request stands, and no longer: it
+-- answered (the buff landed), requests switched off, or the request's minute
+-- ran out while they were remembered (asked 55 seconds before the cursor
+-- found them). Asking again keeps them -- the new request replaces the old,
+-- not yet matched to anybody.
+for _, case in ipairs({
+	{ label = "the request answered", keep = false,
+		apply = function(ns) ns.ServeRequest(ANNA, "intellect") end },
+	{ label = "requests switched off", keep = false,
+		apply = function(ns) ns.db.profile.sources.asked = false end },
+	{ label = "the request ran out", keep = false, askedAgo = 55,
+		apply = function() Mock.advance(5) end },
+	{ label = "asking again", keep = true,
+		apply = function(ns) hear(ns, "CHAT_MSG_SAY", "int pls", ANNA, "Player-1-mouseover") end },
+}) do
+	Mock.reset()
+	Mock.unitClass = "WARRIOR"
+	local scenario = "linger: a remembered asker after " .. case.label
+	local names = {}
+	local restoreUnits = strangers(names)
+	run(scenario, nil, function()
+		local ns = load(scenario)
+		if not ns then return end
+		fresh(ns, scenario)
+		ns.db.profile.sources.asked = true
+		ns.db.profile.sources.strangers = false
+		hear(ns, "CHAT_MSG_SAY", "int pls", ANNA, "Player-1-mouseover")
+		if case.askedAgo then Mock.advance(case.askedAgo) end
+		names.mouseover = { "Anna", "Aim" }
+		ns.addon:Tick()
+		names.mouseover = nil
+		scan(ns, 1)
+		local before = entriesFor(ns, ANNA)[1]
+		if not (before and before.reason == "asked" and before.unit == nil) then
+			fail(scenario, "SKIPPED -- Anna was not remembered as asking once the cursor left her")
+			return
+		end
+		case.apply(ns)
+		local after = entriesFor(ns, ANNA)[1]
+		if case.keep and not (after and after.reason == "asked") then
+			fail(scenario, "a remembered asker who asked again was let go")
+		elseif not case.keep and after then
+			fail(scenario, "a remembered asker was still offered after " .. case.label)
+		end
+		noErrors(scenario, ns)
+	end)
+	restoreUnits()
+end
+Mock.reset()
+
+-- Asking for something else is a new request, and the buff remembered is not
+-- in it: a priest's asker, found wanting Fortitude, who then asks for Shadow
+-- Protection.
+Mock.reset()
+Mock.class = "PRIEST"
+Mock.unitClass = "WARRIOR"
+do
+	local scenario = "linger: a remembered asker who asks for something else is let go"
+	local names = {}
+	local restoreUnits = strangers(names)
+	run(scenario, nil, function()
+		local ns = load(scenario)
+		if not ns then return end
+		knowFortAndShadow(ns)
+		fresh(ns, scenario)
+		ns.db.profile.sources.asked = true
+		ns.db.profile.sources.strangers = false
+		hear(ns, "CHAT_MSG_SAY", "fort pls", ANNA, "Player-1-mouseover")
+		names.mouseover = { "Anna", "Aim" }
+		ns.addon:Tick()
+		names.mouseover = nil
+		scan(ns, 1)
+		local before = entriesFor(ns, ANNA)[1]
+		if not (before and before.reason == "asked" and before.unit == nil
+			and before.buff.key == "fortitude") then
+			fail(scenario, "SKIPPED -- Anna was not remembered as asking for Fortitude")
+			return
+		end
+		hear(ns, "CHAT_MSG_SAY", "shadow prot pls", ANNA, "Player-1-mouseover")
+		local after = entriesFor(ns, ANNA)[1]
+		if after then
+			fail(scenario, "a remembered asker who asked for something else was still offered "
+				.. tostring(after.buff and after.buff.key))
+		end
+		noErrors(scenario, ns)
+	end)
+	restoreUnits()
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ linger 23
+-- Somebody who buffed you longer ago than "Let them go after" is offered only
+-- while a token reaches them. Found under the cursor, they stay on offer as it
+-- leaves them -- a moment ago is as good a sign they are about as a fresh
+-- favour -- for ten seconds after the last token reached them.
+Mock.reset()
+do
+	local scenario = "linger: an older favour found under the cursor stays offered once it leaves them"
+	local names = {}
+	local restoreUnits = strangers(names)
+	run(scenario, nil, function()
+		local ns = load(scenario)
+		if not ns then return end
+		fresh(ns, scenario)
+		ns.db.profile.filters.reachableOnly = true
+		owe(ns, ANNA)
+		ns.owed[ANNA].at = GetTime() - (ns.db.profile.timing.graceSeconds or 45) - 15
+		if offered(ns, ANNA) then
+			fail(scenario, "SKIPPED -- the older favour was offered with no token")
+			return
+		end
+		names.mouseover = { "Anna", "Aim" }
+		ns.addon:Tick()
+		local first = entriesFor(ns, ANNA)[1]
+		if not (first and first.unit == "mouseover" and first.reason == "owed") then
+			fail(scenario, "SKIPPED -- the older favour under the cursor was not offered")
+			return
+		end
+		names.mouseover = nil
+		scan(ns, 2)
+		local later = entriesFor(ns, ANNA)
+		if #later ~= 1 or later[1].reason ~= "owed" or later[1].unit ~= nil then
+			fail(scenario, "an older favour found under the cursor was not offered once it left her: "
+				.. #later .. " entries")
+		end
+		if not (shown(ns) and ns.Prompt:PanelName() == ANNA) then
+			fail(scenario, "the prompt came down after the cursor left somebody owed an older favour")
+		end
+		scan(ns, 9)
+		if offered(ns, ANNA) then
+			fail(scenario, "an older favour no token had reached for ten seconds was still offered")
+		end
+		noErrors(scenario, ns)
+	end)
+	restoreUnits()
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ linger 24
+-- And let go at once on a verdict: a token finding them dead since, or a
+-- loading screen.
+for _, case in ipairs({ { label = "a token finds her dead" }, { label = "a loading screen" } }) do
+	Mock.reset()
+	local scenario = "linger: an older favour found under the cursor is let go after " .. case.label
+	local names, dead = {}, {}
+	local restoreUnits = strangers(names)
+	run(scenario, { UnitIsDeadOrGhost = deathsIn(dead) }, function()
+		local ns = load(scenario)
+		if not ns then return end
+		fresh(ns, scenario)
+		ns.db.profile.filters.reachableOnly = true
+		owe(ns, ANNA)
+		ns.owed[ANNA].at = GetTime() - (ns.db.profile.timing.graceSeconds or 45) - 15
+		names.mouseover = { "Anna", "Aim" }
+		ns.addon:Tick()
+		names.mouseover = nil
+		scan(ns, 1)
+		if not offered(ns, ANNA) then
+			fail(scenario, "SKIPPED -- the older favour was not offered once the cursor left her")
+			return
+		end
+		if case.label == "a loading screen" then
+			Mock.advance(1)
+			ns.addon:PLAYER_ENTERING_WORLD("PLAYER_ENTERING_WORLD", false, false)
+			Mock.advance(1)
+		else
+			plate(ns, names, "nameplate1", "Anna", "Aim")
+			dead.nameplate1 = true
+			ns.addon:Tick()
+			unplate(ns, names, "nameplate1")
+			dead.nameplate1 = nil
+		end
+		if offered(ns, ANNA) then
+			fail(scenario, "an older favour found under the cursor was still offered after " .. case.label)
+		end
+		noErrors(scenario, ns)
+	end)
+	restoreUnits()
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ linger 25
+-- The buff remembered for a passer-by is checked against the settings on
+-- every scan, as the walk would check it: switched off, another spell pinned,
+-- or "Only buffs they can use" turned on for somebody with no mana bar, and
+-- they are let go rather than offered what the settings now rule out.
+for _, case in ipairs({
+	{ label = "the spell is switched off", priest = true,
+		apply = function(ns)
+			local buff = ns.db.profile.buff
+			buff.skip = buff.skip or {}
+			buff.skip.fortitude = true
+		end },
+	{ label = "another spell is pinned", priest = true,
+		apply = function(ns) ns.db.profile.buff.choice = "shadow" end },
+	{ label = "only buffs they can use is switched on",
+		apply = function(ns) ns.db.profile.filters.relevantOnly = true end },
+}) do
+	Mock.reset()
+	if case.priest then Mock.class = "PRIEST" end
+	local scenario = "linger: a remembered stranger is let go when " .. case.label
+	local names = {}
+	local restoreUnits = strangers(names)
+	local globals = not case.priest and { UnitPowerMax = noManaBarButMine } or nil
+	run(scenario, globals, function()
+		local ns = load(scenario)
+		if not ns then return end
+		if case.priest then knowFortAndShadow(ns) end
+		fresh(ns, scenario)
+		ns.db.profile.filters.relevantOnly = false
+		local first = foundThenLeft(ns, names, 1)
+		local want = case.priest and "fortitude" or "intellect"
+		local later = entriesFor(ns, ANNA)[1]
+		if not (first and later and later.unit == nil and later.buff.key == want) then
+			fail(scenario, "SKIPPED -- Anna was not remembered for " .. want)
+			return
+		end
+		case.apply(ns)
+		later = entriesFor(ns, ANNA)[1]
+		if later and later.buff.key == want then
+			fail(scenario, "a remembered stranger was still offered " .. want .. " after " .. case.label)
+		end
+		noErrors(scenario, ns)
+	end)
+	restoreUnits()
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ linger 26
+-- A verdict ends the cursor's hold on the entry it was about, not on the name
+-- for good: your focus read as dead for a scan and fine at the next is painted
+-- from the queue afresh, and the cursor holds them again once the focus is
+-- then cleared.
+Mock.reset()
+do
+	local scenario = "linger: somebody turned down and back is held under the cursor again"
+	local names = { focus = { "Anna", "Aim" } }
+	local restoreUnits = strangers(names)
+	local dead = {}
+	run(scenario, { UnitIsDeadOrGhost = deathsIn(dead) }, function()
+		local ns = load(scenario)
+		if not ns then return end
+		fresh(ns, scenario)
+		ns.addon:Tick()
+		if ns.Prompt:PanelName() ~= ANNA then
+			fail(scenario, "SKIPPED -- your focus was not on the prompt")
+			return
+		end
+		enter(ns)
+		dead.focus = true
+		ns.addon:Tick()
+		dead.focus = nil
+		ns.addon:Tick()
+		if not (offered(ns, ANNA) and shown(ns) and ns.Prompt:PanelName() == ANNA) then
+			fail(scenario, "SKIPPED -- Anna was not back on the prompt from the queue")
+			return
+		end
+		names.focus = nil
+		scan(ns, 3)
+		if not (shown(ns) and ns.Prompt:PanelName() == ANNA) then
+			fail(scenario, "somebody back from a verdict was not held under the cursor again")
+		end
 		noErrors(scenario, ns)
 	end)
 	restoreUnits()

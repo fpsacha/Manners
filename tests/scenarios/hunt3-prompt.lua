@@ -175,10 +175,12 @@ do
 			fail(scenario, "SKIPPED -- the panel named " .. tostring(ns.Prompt:PanelName()) .. " to start with")
 			return
 		end
-		-- She steps out of sight for a scan.
+		-- She steps out of sight for a scan, and past the few seconds a token
+		-- finding her keeps an older favour on offer (`near`, Queue.lua).
 		Mock.advance(0.1)
 		seen.nameplate1 = nil
 		ns.nameplateUnits.nameplate1 = nil
+		ns.owed["Anna Aim"].near = nil
 		local empty = #ns.BuildQueue() == 0
 		if not empty then
 			fail(scenario, "SKIPPED -- the queue still had somebody in it with nobody in sight")

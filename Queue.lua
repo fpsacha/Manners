@@ -1040,6 +1040,15 @@ end
 -- cast on somebody who has walked off is refused, and the refusal back-off
 -- (NoteRefusal) lets them go. Only plain data is kept, never a unit token:
 -- by the time it is read the token may name somebody else.
+--
+-- The same trip to the prompt loses anybody else only the cursor found, so
+-- the memory is not for passers-by alone. Somebody who asked in chat is
+-- remembered the same way, with what they asked for, as long as the request
+-- stands: a request names a person, not a unit, and has no tokenless path of
+-- its own. Somebody who buffed you longer ago than "Let them go after" is
+-- offered by the owed fallback again for the same few seconds after a token
+-- last reached them (see `near` on the debt), since being found is evidence
+-- of reach as good as a fresh favour.
 ---------------------------------------------------------------------------
 
 -- How long after the last token reached them. Getting the cursor across the
@@ -1054,17 +1063,21 @@ local LINGER_SECONDS = 10
 -- ones seen longest ago make room.
 local LINGER_CAP = 40
 
--- [name] = { seen, within, buff, class, targetName, known, checked, expires,
--- close }: `seen` is the last moment a token reached them near enough, and
--- `within` the "Passers-by within" step that judged it. The rest is what their
--- queue entry said then, `expires` being the top-up's remaining time as a
--- moment on the clock, so it counts down while they are unseen.
+-- [name] = { seen, reason, within, buff, class, targetName, hasMana, known,
+-- checked, expires, close }: `seen` is the last moment a token reached them
+-- (near enough, for a passer-by), `reason` why they were offered then --
+-- "nearby" or "asked" -- and `within` the "Passers-by within" step that
+-- judged a passer-by near. The rest is what their queue entry said then,
+-- `expires` being the top-up's remaining time as a moment on the clock, so it
+-- counts down while they are unseen, and `hasMana` what the walk read for
+-- "Only buffs they can use".
 local passing = {}
 ns.passersBy = passing
 
--- Written by the walk for every passer-by it offers through a token nobody
--- pointed at, from the entry it just queued. Somebody new makes room first.
-local function RememberPasserBy(entry, now, within)
+-- Written by the walk for every passer-by or asker it offers through a token
+-- nobody pointed at, from the entry it just queued. Somebody new makes room
+-- first.
+local function RememberPasserBy(entry, now, within, hasMana)
 	local memo = passing[entry.name]
 	if not memo then
 		local held, oldest, at = 0, nil, nil
@@ -1076,8 +1089,9 @@ local function RememberPasserBy(entry, now, within)
 		memo = {}
 		passing[entry.name] = memo
 	end
-	memo.seen, memo.within = now, within
+	memo.seen, memo.reason, memo.within = now, entry.reason, within
 	memo.buff, memo.class, memo.targetName = entry.buff, entry.class, entry.targetName
+	memo.hasMana = hasMana
 	-- The reading as well, so the panel keeps saying what it said while they
 	-- had a token: "needs" does not turn into "unverified" as the cursor
 	-- leaves them.
@@ -1085,31 +1099,58 @@ local function RememberPasserBy(entry, now, within)
 	memo.expires = entry.remaining and (now + entry.remaining) or nil
 end
 
--- The walk's second half for passers-by: everybody remembered whom no token
--- reached this scan, offered by name until LINGER_SECONDS after one last did.
+-- Whether the buff they were offered is still one the walk would offer them:
+-- still switched on and learned (the scan's `candidates`), still the pin where
+-- one is set, and, for a passer-by with "Only buffs they can use" on, still of
+-- use to them (a request asks for what it asks for). Not re-picked when it is
+-- not: without a token nothing says what else they lack, and the reading kept
+-- is about this buff alone.
+local function StillCastable(memo, candidates, f)
+	local key = memo.buff.key
+	local pinned = ns.PinnedBuff()
+	if pinned and pinned.key ~= key then return false end
+	for _, buff in ipairs(candidates) do
+		if buff.key == key then
+			return not (f.relevantOnly and memo.reason ~= "asked"
+				and buff.manaOnly and memo.hasMana == false)
+		end
+	end
+	return false
+end
+
+-- The walk's second half for the remembered: everybody whom no token reached
+-- this scan, offered by name until LINGER_SECONDS after one last did.
 -- `rejected` is the walk's, where true is a verdict about the person -- they
 -- carry the buff, are dead, out of casting range, listed, outside a city --
 -- and lets them go at once; "far" is only the nearness check, which does not
--- (see visit). `drop` is a reason that turns every passer-by down.
-local function OfferPassersBy(queue, seen, rejected, now, db, drop)
-	if drop then
-		if next(passing) then wipe(passing) end
-		return
-	end
+-- (see visit). `drop` is a reason that turns every passer-by down, but not
+-- somebody who asked: a request is a source of its own, which the passer-by
+-- switch, saving mana and the city rule leave alone, as the walk does.
+--
+-- Letting somebody go on a verdict writes it into `rejected` too, which
+-- BuildQueue hands the prompt: the cursor holding the panel on them must not
+-- outlast it (see hovering in Prompt.lua). Running out of time is no verdict.
+local function OfferPassersBy(queue, seen, rejected, now, db, candidates, drop)
 	for name, memo in pairs(passing) do
 		local debt = db.sources.owed and owed[name]
+		local nearby = memo.reason == "nearby"
 		-- Let go for good on any of these. Near by a "Passers-by within" step
 		-- that no longer stands is not near, so narrowing it applies at once.
 		-- One block test covers a right-press skip and a press that reached
 		-- nobody (the whole person), the retry cooldown a press on this buff
-		-- wrote, and the back-off after refusals.
-		if now - memo.seen >= LINGER_SECONDS
-			or memo.within ~= db.filters.proximity
+		-- wrote, and the back-off after refusals. A request answered, lapsed
+		-- or switched off is no reason left to offer them.
+		if (nearby and (drop or memo.within ~= db.filters.proximity))
+			or (not nearby and not ns.StillAsked(name, memo.buff.key, now))
 			or (ns.zonedAt and memo.seen < ns.zonedAt)
 			or rejected[name] == true
+			or not StillCastable(memo, candidates, db.filters)
 			or ns.IsBlocked(name, memo.buff.key, now)
 			or ns.IsNeverOffered(name)
 			or not SafeForMacro(name) then
+			passing[name] = nil
+			if not seen[name] then rejected[name] = true end
+		elseif now - memo.seen >= LINGER_SECONDS then
 			passing[name] = nil
 		elseif not seen[name] and not (debt and LiveExpiry(debt) > now) then
 			-- Neither a token this scan nor a favour, whose paths offer them.
@@ -1119,9 +1160,9 @@ local function OfferPassersBy(queue, seen, rejected, now, db, drop)
 				targetName = memo.targetName,
 				class = memo.class,
 				buff = memo.buff,
-				reason = "nearby",
+				reason = memo.reason,
 				inGroup = false,
-				priority = PRIORITY.nearby,
+				priority = PRIORITY[memo.reason],
 				-- ranged is left unwritten, as on the owed fallback: nothing
 				-- measured them this scan.
 				known = memo.known,
@@ -1144,19 +1185,28 @@ local function NoReading()
 end
 ns.NoReading = NoReading
 
-function ns.BuildQueue()
+-- The queue, sorted, and what the scan turned down: [name] = true for
+-- everybody a token reached and found covered, dead, out of range, out of
+-- sight, listed or held back while you save mana (and the remembered let go
+-- on a verdict), or true for the whole queue refused for your own state --
+-- dead, on a taxi, mounted with "Hide the prompt while I'm mounted", nothing
+-- to cast. The prompt reads it to tell a verdict from a token merely lost (see
+-- hovering in Prompt.lua). `watch` is its say that it holds somebody the queue
+-- may not: a verdict about the dead then costs a name read even when no debt
+-- or remembered passer-by would ask for one.
+function ns.BuildQueue(watch)
 	local db = addon.db and addon.db.profile
-	if not db or not caps.anyKnown then return {} end
+	if not db or not caps.anyKnown then return {}, true end
 
 	-- Nothing can be cast while dead, in a vehicle, or on a taxi, so offering
 	-- somebody would just be a button that fails.
-	if plain(UnitIsDeadOrGhost("player")) == true then return {} end
-	if plain(UnitIsCharmed and UnitIsCharmed("player")) == true then return {} end
-	if UnitInVehicle and plain(UnitInVehicle("player")) == true then return {} end
-	if UnitOnTaxi and plain(UnitOnTaxi("player")) == true then return {} end
+	if plain(UnitIsDeadOrGhost("player")) == true then return {}, true end
+	if plain(UnitIsCharmed and UnitIsCharmed("player")) == true then return {}, true end
+	if UnitInVehicle and plain(UnitInVehicle("player")) == true then return {}, true end
+	if UnitOnTaxi and plain(UnitOnTaxi("player")) == true then return {}, true end
 	-- A mount is different: the cast works and takes you off it. So it is
 	-- the player's call, and only asked when they have made it.
-	if ns.HiddenWhileMounted() then return {} end
+	if ns.HiddenWhileMounted() then return {}, true end
 
 	local now = GetTime()
 	local seen, queue = {}, {}
@@ -1173,7 +1223,7 @@ function ns.BuildQueue()
 
 	-- Everything below until the walk is asked once per scan, not per person.
 	local candidates = ns.CastableBuffs()
-	if #candidates == 0 then return {} end
+	if #candidates == 0 then return {}, true end
 	-- A warrior's shout reaches the group and nobody else, so passers-by are
 	-- dropped before the distance check rather than measured for nothing
 	-- (which would fill the proximity counts with people never offered).
@@ -1205,7 +1255,7 @@ function ns.BuildQueue()
 	local myMax = plain(UnitPowerMax("player", MANA))
 	if myMax and myMax > 0 then
 		local myMana = plain(UnitPower("player", MANA))
-		if myMana ~= nil and myMana <= 0 then return {} end
+		if myMana ~= nil and myMana <= 0 then return {}, true end
 	end
 
 	-- What PickBuffFor is told about the person in hand, one table reused for
@@ -1216,10 +1266,11 @@ function ns.BuildQueue()
 		local ok, person = IsBuffableUnit(unit, f)
 		if not ok then
 			-- Somebody turned down here must not walk back in through the
-			-- fallbacks, which cannot check any of this. The name costs a call,
-			-- so only when a debt outstanding or a passer-by remembered could
-			-- resurface.
-			if person and (next(owed) or next(passing)) then
+			-- fallbacks, which cannot check any of this, nor be held on the
+			-- panel by the cursor. The name costs a call, so only when a debt
+			-- outstanding or a passer-by remembered could resurface, or the
+			-- caller is watching (see above).
+			if person and (watch or next(owed) or next(passing)) then
 				local bad = ns.UnitFullName(unit)
 				if bad then rejected[bad] = true end
 			end
@@ -1265,7 +1316,11 @@ function ns.BuildQueue()
 
 		-- Nobody asked for these, so they wait while you keep your mana. A
 		-- favour owed or a request never reaches here as group or nearby.
-		if savingMana and (reason == "group" or reason == "nearby") then return end
+		-- Written down as a verdict: your own mana, not a token lost.
+		if savingMana and (reason == "group" or reason == "nearby") then
+			rejected[full] = true
+			return
+		end
 		-- In a raid, only the groups you buff. Whoever you picked out on
 		-- purpose is exempt, as from the city rule below; a group that cannot
 		-- be read is offered.
@@ -1278,6 +1333,7 @@ function ns.BuildQueue()
 		-- certain, which this client's range check often will not say.
 		if reason == "group" and f.requireInRange
 			and plain(UnitIsVisible and UnitIsVisible(unit)) == false then
+			rejected[full] = true
 			return
 		end
 
@@ -1408,8 +1464,15 @@ function ns.BuildQueue()
 		}
 		-- Remembered for when the token goes, which for the cursor is the
 		-- moment the player moves it to the prompt. Not somebody pointed at:
-		-- a target or focus stands until the player changes it.
-		if reason == "nearby" and not pointed then RememberPasserBy(queue[#queue], now, f.proximity) end
+		-- a target or focus stands until the player changes it. A favour is
+		-- remembered on the debt itself, which the owed fallback reads.
+		if not pointed then
+			if reason == "nearby" or reason == "asked" then
+				RememberPasserBy(queue[#queue], now, f.proximity, hasMana)
+			elseif isOwed then
+				owed[full].near = now
+			end
+		end
 	end
 
 	-- The never-offer list's answers stand for the length of the walk only:
@@ -1441,10 +1504,18 @@ function ns.BuildQueue()
 			rotate = false,
 		}
 		for full, entry in pairs(owed) do
+			-- A token nobody pointed at found them a moment ago (`near`, written
+			-- by the walk): as good a sign they are about as a fresh favour, so
+			-- the cursor leaving them for the prompt does not take an older one
+			-- off it (see "passers-by, remembered"). A token turning them down
+			-- since takes it back.
+			if rejected[full] == true then entry.near = nil end
+			local near = entry.near and now - entry.near < LINGER_SECONDS
+				and not (ns.zonedAt and entry.near < ns.zonedAt)
 			-- And only for a favour noticed since the last loading screen (see
 			-- PLAYER_ENTERING_WORLD); the debt stays, for a token to find them.
 			-- Both are "probably gone", so neither applies with that option off.
-			local fresh = not db.filters.reachableOnly
+			local fresh = not db.filters.reachableOnly or near
 				or ((not ns.zonedAt or entry.at >= ns.zonedAt) and (now - entry.at) <= grace)
 			if LiveExpiry(entry) > now and fresh and not seen[full] and not rejected[full]
 				and SafeForMacro(full) and not ns.IsBlocked(full, nil, now) then
@@ -1482,11 +1553,11 @@ function ns.BuildQueue()
 		end
 	end
 
-	-- Passers-by no token reached this scan, for a few seconds after one last
-	-- did. Everything that turns passers-by down as a kind turns the
-	-- remembered ones down for good: the switch off, a shout, saving mana, a
-	-- city-only rule out in the world.
-	OfferPassersBy(queue, seen, rejected, now, db,
+	-- Passers-by and askers no token reached this scan, for a few seconds
+	-- after one last did. Everything that turns passers-by down as a kind
+	-- turns the remembered ones down for good: the switch off, a shout, saving
+	-- mana, a city-only rule out in the world.
+	OfferPassersBy(queue, seen, rejected, now, db, candidates,
 		not db.sources.strangers or groupOnly or savingMana or notResting)
 
 	-- A party's single casts folded into one group cast where the player has
@@ -1514,5 +1585,5 @@ function ns.BuildQueue()
 		return (a.name or "") < (b.name or "")
 	end)
 
-	return queue
+	return queue, rejected
 end
