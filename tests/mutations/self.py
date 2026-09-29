@@ -150,10 +150,17 @@ mutate("Speech.lua",
        expect="the macro reads", script=S)
 
 mutate("Prompt.lua",
-       "\t\tonSelf = armed ~= nil and armed.onSelf == true,\n",
+       "\t\tonSelf = (armed ~= nil and armed.onSelf == true) or current.reason == \"self\",\n",
        "",
        "self: press not parked as yours",
        expect="the press was not parked as one on yourself", script=S)
+
+# A /manners try macro arms no record, so only the entry says it is you.
+mutate("Prompt.lua",
+       "\t\tonSelf = (armed ~= nil and armed.onSelf == true) or current.reason == \"self\",\n",
+       "\t\tonSelf = armed ~= nil and armed.onSelf == true,\n",
+       "self: a try press on you files a gift",
+       expect="a /manners try press on yourself wrote", script=S)
 
 # Settled as a press on somebody else: the ledger writes a row under you.
 mutate("Clicks.lua",
@@ -309,3 +316,109 @@ mutate("Commands.lua",
        "\t\tif true then\n",
        "self: debug says the switch is off",
        expect="/manners debug does not say your own buff is offered", script=S)
+
+# --- saving mana keeps your own buff, and says so ---
+
+mutate("Prompt.lua",
+       "\t\tGameTooltip:AddLine((ns.OffersSelf()\n",
+       "\t\tGameTooltip:AddLine((false\n",
+       "self: saving-mana tooltip leaves you out",
+       expect="the tooltip under your own buff says", script=S)
+
+mutate("Commands.lua",
+       "\t\t\tself:Print((ns.OffersSelf()\n",
+       "\t\t\tself:Print((false\n",
+       "self: saving-mana debug leaves you out",
+       expect="/manners debug while saving mana leaves your own buff out", script=S)
+
+mutate("Prompt.lua",
+       "\t\t\tlocal line = ns.OffersSelf()\n",
+       "\t\t\tlocal line = false\n",
+       "self: saving-mana empty press leaves you out",
+       expect="an empty press while saving mana leaves your own buff out", script=S)
+
+mutate("Options.lua",
+       "\t\t\t\t\treturn OffersSelf() and L[\"Below this, only your own buff",
+       "\t\t\t\t\treturn false and L[\"Below this, only your own buff",
+       "self: mana floor description leaves you out",
+       expect="the mana floor's description leaves your own buff out", script=S)
+
+mutate("Options.lua",
+       "\t\t\t\t\telseif OffersSelf() then\n",
+       "\t\t\t\t\telseif false then\n",
+       "self: mana note leaves you out",
+       expect="the mana note leaves your own buff out", script=S)
+
+# The switch not asked: every line keeps your own buff with it off.
+mutate("Core.lua",
+       "\treturn db ~= nil and db.sources.self == true and #ns.SelfBuffs() > 0\n",
+       "\treturn db ~= nil and #ns.SelfBuffs() > 0\n",
+       "self: saving-mana lines ignore the switch",
+       expect="with Myself off, a line still keeps your own buff", script=S)
+
+# --- Start here ---
+
+mutate("Options.lua",
+       "\t\t[\"filters.whenBuffed\"] = \"skip\", [\"sources.self\"] = false,\n",
+       "\t\t[\"filters.whenBuffed\"] = \"skip\",\n",
+       "self: Only people who buff me offers you",
+       expect="Only people who buff me left you offered", script=S)
+
+mutate("Options.lua",
+       "\t\t[\"filters.whenBuffed\"] = \"skip\", [\"sources.self\"] = false,\n\t}, applyOnly = { [\"sources.self\"] = true } },\n",
+       "\t\t[\"filters.whenBuffed\"] = \"skip\", [\"sources.self\"] = false,\n\t} },\n",
+       "self: an old profile shows Custom",
+       expect="a profile from before 1.2 shows", script=S)
+
+mutate("Options.lua",
+       "\t\t[\"filters.whenBuffed\"] = \"skip\", [\"sources.self\"] = true,\n",
+       "\t\t[\"filters.whenBuffed\"] = \"skip\",\n",
+       "self: moving on from favours leaves you out",
+       expect="moving on from Only people who buff me to group left you out", script=S)
+
+mutate("Options.lua",
+       "\t\t[\"sources.self\"] = true,\n\t}, applyOnly = { [\"filters.proximity\"] = true, [\"sources.self\"] = true } },\n",
+       "\t\t[\"sources.self\"] = true,\n\t}, applyOnly = { [\"filters.proximity\"] = true } },\n",
+       "self: switching yourself off leaves the preset",
+       expect="switching Myself off on nearby shows", script=S)
+
+# --- the other lines about a press on you ---
+
+mutate("Prompt.lua",
+       "\tif top.reason == \"self\" then\n",
+       "\tif false then\n",
+       "self: moved-on names you like a stranger",
+       expect="the moved-on line reads", script=S)
+
+# `unknown` asked before you, as it was.
+mutate("Clicks.lua",
+       "\telseif ns.IsPlayerName(name) then\n\t\t-- A press on yourself",
+       "\telseif unknown then\n\t\taddon:Print(unknown:format(name))\n\telseif ns.IsPlayerName(name) then\n\t\t-- A press on yourself",
+       "self: abandoned press names you like a stranger",
+       expect="the abandoned press reads", script=S)
+
+mutate("Clicks.lua",
+       ",\n\t\tL[\"no answer yet for the press on yourself -- another press arrived first.\"])\n",
+       ")\n",
+       "self: abandoned press says you were not buffed",
+       expect="the abandoned press reads", script=S)
+
+mutate("Queue.lua",
+       "\t\tif ns.IsPlayerName(name) then\n\t\t\taddon:Print(type(why) == \"string\"\n",
+       "\t\tif false then\n\t\t\taddon:Print(type(why) == \"string\"\n",
+       "self: back-off names you like a stranger",
+       expect="the back-off line reads", script=S)
+
+mutate("Clicks.lua",
+       "\tif pending.answered then\n\t\tlocal db = addon.db and addon.db.profile\n\t\tif db and db.verbose then\n\t\t\taddon:Print(L[\"|cffffd100you were buffed after all|r",
+       "\tif false then\n\t\tlocal db = addon.db and addon.db.profile\n\t\tif db and db.verbose then\n\t\t\taddon:Print(L[\"|cffffd100you were buffed after all|r",
+       "self: not buffed never taken back",
+       expect="after an error and the cast going out, chat reads", script=S)
+
+# --- a Greater Blessing and your own other blessing ---
+
+mutate("GroupBuffs.lua",
+       "\tif class == ns.PlayerClass() then\n\t\tlocal name = ns.UnitFullName(\"player\")\n",
+       "\tif false then\n\t\tlocal name = ns.UnitFullName(\"player\")\n",
+       "self: Greater Blessing over your own Kings",
+       expect="was offered over your own Kings", script=S)

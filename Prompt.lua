@@ -595,8 +595,12 @@ local function OnPreClick(self, mouseButton)
 			-- The option goes in by its own key, so a translation names the
 			-- label the window shows.
 			local _, resume = ns.SavingMana()
-			ns.addon:Print(L["nobody to buff right now -- saving mana until you are back to %d%%, so only people who buffed you or asked are offered. The floor is %s on the %s tab."]
-				:format(resume, "|cffffd100" .. L["Save mana: stop below (% mana)"] .. "|r", L["When to offer"]))
+			-- Your own buff is kept while saving (Queue.lua, SelfEntry), so the
+			-- sentence names it wherever "Myself" is on.
+			local line = ns.OffersSelf()
+				and L["nobody to buff right now -- saving mana until you are back to %d%%, so only your own buff and people who buffed you or asked are offered. The floor is %s on the %s tab."]
+				or L["nobody to buff right now -- saving mana until you are back to %d%%, so only people who buffed you or asked are offered. The floor is %s on the %s tab."]
+			ns.addon:Print(line:format(resume, "|cffffd100" .. L["Save mana: stop below (% mana)"] .. "|r", L["When to offer"]))
 		else
 			ns.addon:Print(L["nobody to buff right now."])
 		end
@@ -810,7 +814,10 @@ local function OnPostClick(self, mouseButton, down)
 		buffKey = current.buff and current.buff.key,
 		selfCast = armed ~= nil and armed.selfCast == true,
 		-- Your own buff: settled with nothing filed (Clicks.lua, SettleSelf).
-		onSelf = armed ~= nil and armed.onSelf == true,
+		-- Read off the entry as well as the record: a /manners try macro arms
+		-- no record, and the game naming you as the one it reached would
+		-- otherwise file a gift to yourself in the ledger.
+		onSelf = (armed ~= nil and armed.onSelf == true) or current.reason == "self",
 		targeted = armed and armed.targeted,
 		-- The spelling the macro aimed at, straight from the builder, for the
 		-- settle path to compare against whoever the client says was hit.
@@ -912,7 +919,11 @@ local function PersonTooltipLines(entry)
 	-- And why the rest of the group is missing from the queue, when it is.
 	local kept, resume = ns.SavingMana()
 	if kept then
-		GameTooltip:AddLine(L["Saving mana: until you are back to %d%% mana, only people who buffed you or asked are offered."]
+		-- Your own buff among what is kept, where "Myself" is on: this line
+		-- may be under your own entry.
+		GameTooltip:AddLine((ns.OffersSelf()
+			and L["Saving mana: until you are back to %d%% mana, only your own buff and people who buffed you or asked are offered."]
+			or L["Saving mana: until you are back to %d%% mana, only people who buffed you or asked are offered."])
 			:format(resume), 1, 0.82, 0, true)
 	end
 	if entry.checked and entry.known == nil then
@@ -2868,6 +2879,12 @@ function Prompt:MovedOn(top)
 	if resultFill then resultFill:Hide() end
 	ns.Guard("prompt moved on", Prompt.Refresh, self)
 	self:ApplyTarget(nil)
+	-- Your own buff by what it is: your name in the third person reads as
+	-- somebody else who shares it.
+	if top.reason == "self" then
+		ns.addon:Print(L["the prompt has moved on to your own buff -- press again to buff yourself."])
+		return
+	end
 	ns.addon:Print(L["the prompt has moved on to |cffffffff%s|r -- press again to buff them."]
 		:format(tostring(top.short or top.name)))
 end

@@ -253,6 +253,16 @@ do
 	-- Said whether or not chat lines are on: it is the only thing that says
 	-- why somebody vanished from the prompt.
 	local function Tell(name, why)
+		-- Your own buff (SelfEntry) by what it is: your name in the third
+		-- person reads as somebody else who shares it. Targeting yourself
+		-- lifts it, as targeting anybody does (LiftBackoff).
+		if ns.IsPlayerName(name) then
+			addon:Print(type(why) == "string"
+				and L["|cffff8080the game keeps refusing your own buff|r (it said: %s) -- it will not be offered to you for a while; target yourself to try again."]
+					:format((why:gsub("%.$", "")))
+				or L["|cffff8080the game keeps refusing your own buff|r -- it will not be offered to you for a while; target yourself to try again."])
+			return
+		end
 		if type(why) == "string" then
 			addon:Print(L["|cffff8080the game keeps refusing buffs on %s|r (it said: %s) -- they will not be offered for a while; target them to try again."]
 				:format(name, (why:gsub("%.$", ""))))

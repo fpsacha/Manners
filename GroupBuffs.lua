@@ -123,6 +123,20 @@ local function RaidSubgroup(unit)
 	return subgroup
 end
 
+-- Whether `unit` carries a blessing of ours other than `key`, or cannot be
+-- read: either way a Greater Blessing of `key` may take one of ours off them.
+-- `mine` is the player's own blessings.
+local function CarriesAnother(unit, key, mine)
+	local guid = plain(UnitGUID(unit))
+	for _, buff in ipairs(mine) do
+		if buff.key ~= key then
+			local has, _, ours = ns.UnitHasBuff(unit, buff, guid)
+			if has == nil or (has == true and ours ~= false) then return true end
+		end
+	end
+	return false
+end
+
 -- Whether a Greater Blessing for everybody of `class` takes nothing of ours
 -- away. Blessings from one paladin replace one another, and the Greater one
 -- lands on the whole class, the people the queue never offered included --
@@ -138,16 +152,18 @@ local function ClassSafe(class, key, offered, inRaid)
 		if plain(UnitExists(unit)) and plain(UnitIsUnit(unit, "player")) ~= true
 			and plain(select(2, UnitClass(unit))) == class then
 			local name = ns.UnitFullName(unit)
-			if not (name and offered[name]) then
-				local guid = plain(UnitGUID(unit))
-				for _, buff in ipairs(mine) do
-					if buff.key ~= key then
-						local has, _, ours = ns.UnitHasBuff(unit, buff, guid)
-						if has == nil or (has == true and ours ~= false) then return false end
-					end
-				end
-			end
+			if not (name and offered[name]) and CarriesAnother(unit, key, mine) then return false end
 		end
+	end
+	-- You, when it is your own class: the Greater Blessing lands on the
+	-- caster as on anybody of the class, and the walk above never reads you
+	-- (a party's tokens never hold you, and a raid's is skipped). Wearing
+	-- another of your own blessings keeps your own entry off the queue
+	-- (Queue.lua, SelfEntry), so nothing else would; an entry of yours, when
+	-- there is one, was read already.
+	if class == ns.PlayerClass() then
+		local name = ns.UnitFullName("player")
+		if not (name and offered[name]) and CarriesAnother("player", key, mine) then return false end
 	end
 	return true
 end

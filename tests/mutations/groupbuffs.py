@@ -71,8 +71,8 @@ mutate("GroupBuffs.lua",
        "groupbuffs: a Greater Blessing replaces another of ours",
        expect="a Greater Blessing of Might was offered over our own Kings on a warrior", script=S)
 mutate("GroupBuffs.lua",
-       "\t\t\t\t\t\tif has == nil or (has == true and ours ~= false) then return false end\n",
-       "\t\t\t\t\t\tif has == nil then return false end\n",
+       "\t\t\tif has == nil or (has == true and ours ~= false) then return true end\n",
+       "\t\t\tif has == nil then return true end\n",
        "groupbuffs: our other blessing on the class is not read",
        expect="a Greater Blessing of Might was offered over our own Kings on a warrior", script=S)
 mutate("GroupBuffs.lua",

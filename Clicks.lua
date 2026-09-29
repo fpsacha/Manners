@@ -41,19 +41,19 @@ local SENT_SECONDS = 0.5
 -- somebody who is; "was not buffed" only where something says so. `unknown`
 -- (a format string handed the name) is the line for somebody not owed when
 -- nothing does: a press abandoned before the game answered, whose queued cast
--- may yet land.
-local function SayStillOwed(name, why, unknown)
+-- may yet land. `unknownSelf` is that line for a press on yourself.
+local function SayStillOwed(name, why, unknown, unknownSelf)
 	local db = addon.db and addon.db.profile
 	if not (db and db.verbose) then return end
 	local debt = owed[name]
 	if debt and LiveExpiry(debt) > GetTime() then
 		addon:Print(L["|cffff8080%s is still owed|r -- %s."]:format(name, why))
-	elseif unknown then
-		addon:Print(unknown:format(name))
 	elseif ns.IsPlayerName(name) then
 		-- A press on yourself: your name in the third person reads as somebody
-		-- else who shares it.
-		addon:Print(L["|cffff8080you were not buffed|r -- %s."]:format(why))
+		-- else who shares it. Asked before `unknown`, which names the person.
+		addon:Print(unknown and unknownSelf or L["|cffff8080you were not buffed|r -- %s."]:format(why))
+	elseif unknown then
+		addon:Print(unknown:format(name))
 	else
 		addon:Print(L["|cffff8080%s was not buffed|r -- %s."]:format(name, why))
 	end
@@ -150,7 +150,8 @@ local function AbandonPendingClick()
 	end
 	ns.pendingClick = nil
 	SayStillOwed(pending.name, L["another press arrived before the game answered that one"],
-		L["no answer yet for the press on |cffffffff%s|r -- another press arrived first."])
+		L["no answer yet for the press on |cffffffff%s|r -- another press arrived first."],
+		L["no answer yet for the press on yourself -- another press arrived first."])
 	RewindClick(pending)
 end
 ns.AbandonPendingClick = AbandonPendingClick
@@ -344,6 +345,16 @@ local function SettleSelf(pending, spellId, castGUID)
 	ns.MarkAttempted(pending.name, pending.buffKey)
 	-- Behind the same gate as everybody's: a paladin's walk never reads it.
 	if ns.RotatesBuffs() and pending.buffKey then ns.lastGave[pending.name] = pending.buffKey end
+	-- An error inside the window told chat you were not buffed
+	-- (FailPendingClick); the cast went out after it, so that is taken back,
+	-- as it is for anybody, or chat and the panel disagree. Only with
+	-- verbose, where it was said.
+	if pending.answered then
+		local db = addon.db and addon.db.profile
+		if db and db.verbose then
+			addon:Print(L["|cffffd100you were buffed after all|r -- the error before it was about something else."])
+		end
+	end
 	RememberSettled({ name = pending.name, buffKey = pending.buffKey,
 		gave = pending.gave, at = GetTime(), castGUID = castGUID,
 		landed = true, onSelf = true })

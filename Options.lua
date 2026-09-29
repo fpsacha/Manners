@@ -398,9 +398,10 @@ local function NothingForSelf()
 end
 
 -- Whether "Myself" is on and has something to offer: read by the warning that
--- nothing is ticked and by the summary on Start here, so they agree.
+-- nothing is ticked and by the summary on Start here, through the same answer
+-- as the lines about saving mana (Core.lua), so they all agree.
 local function OffersSelf()
-	return S().self == true and not NothingForSelf()
+	return ns.OffersSelf()
 end
 
 -- Whether nothing this character can offer takes a target at all -- a warrior,
@@ -764,24 +765,33 @@ end
 -- `applyOnly` fields are written when the choice is picked and then left to the
 -- player: changing one is fine-tuning the choice, not leaving it, so the
 -- dropdown does not turn to Custom over it.
+--
+-- "Myself" (sources.self) is one of them in every choice. "Only people who buff
+-- me" switches it off, which is what its name says; the others switch it on,
+-- so moving on from that one does not lose it. Never compared: a profile from
+-- before 1.2 gains the switch on by default with nothing changed by hand, and
+-- must not turn to "Custom (changed by hand)"; the summary under the dropdown
+-- says whether you are offered.
 Quick.WHO = {
 	{ key = "favours", name = L["Only people who buff me"], set = {
 		["sources.owed"] = true, ["sources.group"] = false, ["sources.strangers"] = false,
-		["filters.whenBuffed"] = "skip",
-	} },
+		["filters.whenBuffed"] = "skip", ["sources.self"] = false,
+	}, applyOnly = { ["sources.self"] = true } },
 	{ key = "group", name = L["People who buff me, and my group"], set = {
 		["sources.owed"] = true, ["sources.group"] = true, ["sources.strangers"] = false,
-		["filters.whenBuffed"] = "skip",
-	} },
+		["filters.whenBuffed"] = "skip", ["sources.self"] = true,
+	}, applyOnly = { ["sources.self"] = true } },
 	-- How far "near" reaches is what the dropdown's tooltip invites tuning.
 	{ key = "nearby", name = L["Everyone near me"], set = {
 		["sources.owed"] = true, ["sources.group"] = true, ["sources.strangers"] = true,
 		["filters.whenBuffed"] = "skip", ["filters.proximity"] = "near",
-	}, applyOnly = { ["filters.proximity"] = true } },
+		["sources.self"] = true,
+	}, applyOnly = { ["filters.proximity"] = true, ["sources.self"] = true } },
 	{ key = "raid", name = L["My group, kept topped up (dungeons and raids)"], set = {
 		["sources.owed"] = true, ["sources.group"] = true, ["sources.strangers"] = false,
+		["sources.self"] = true,
 		["filters.whenBuffed"] = "refresh",
-	} },
+	}, applyOnly = { ["sources.self"] = true } },
 }
 
 -- What to say. An entry with `lines` also loads that phrase set. Whether a
@@ -2041,8 +2051,13 @@ local function BuildWhenTab()
 				type = "range",
 				name = L["Save mana: stop below (% mana)"],
 				-- The two kinds that are never held back are named, since the
-				-- rule is about who asked rather than about who they are.
-				desc = L["Below this, only people who buffed you or asked are offered."],
+				-- rule is about who asked rather than about who they are; and
+				-- your own buff, which is kept too (Queue.lua, SelfEntry),
+				-- wherever "Myself" is on.
+				desc = function()
+					return OffersSelf() and L["Below this, only your own buff and people who buffed you or asked are offered."]
+						or L["Below this, only people who buffed you or asked are offered."]
+				end,
 				order = 13,
 				min = 0,
 				max = 90,
@@ -2063,6 +2078,10 @@ local function BuildWhenTab()
 					local text
 					if floor <= 0 then
 						text = L["Off: buffs are offered at any mana."]
+					elseif OffersSelf() then
+						-- Your own buff is kept as well (see the slider's desc).
+						text = L["Below %d%% only favours, requests and your own buff are offered; the rest come back at %d%%."]
+							:format(floor, floor + 5)
 					else
 						text = L["Below %d%% only favours and requests are offered; the rest come back at %d%%."]
 							:format(floor, floor + 5)

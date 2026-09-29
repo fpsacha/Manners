@@ -1446,7 +1446,11 @@ function addon:HandleSlash(rawInput)
 		-- holds, which looks like a broken queue unless it is said.
 		local _, resume = ns.SavingMana()
 		if resume then
-			self:Print(L["|cffffd100saving mana|r -- until you are back to %d%% mana, only people who buffed you or asked are offered"]
+			-- Your own buff is kept too (Queue.lua, SelfEntry), where "Myself"
+			-- is on, and a line leaving it out would contradict the queue.
+			self:Print((ns.OffersSelf()
+				and L["|cffffd100saving mana|r -- until you are back to %d%% mana, only your own buff and people who buffed you or asked are offered"]
+				or L["|cffffd100saving mana|r -- until you are back to %d%% mana, only people who buffed you or asked are offered"])
 				:format(resume))
 		end
 		if ns.ReadyCheckRunning() then

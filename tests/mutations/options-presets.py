@@ -30,8 +30,8 @@ mutate("Options.lua",
 
 # A Who choice writing the group settings again, as the raid one did.
 mutate("Options.lua",
-       "\t\t[\"filters.whenBuffed\"] = \"refresh\",\n\t} },\n",
-       "\t\t[\"filters.whenBuffed\"] = \"refresh\", [\"groupBuffs.use\"] = true,\n\t} },\n",
+       "\t\t[\"filters.whenBuffed\"] = \"refresh\",\n\t}, applyOnly",
+       "\t\t[\"filters.whenBuffed\"] = \"refresh\", [\"groupBuffs.use\"] = true,\n\t}, applyOnly",
        "presets: raid turns group buffs back on",
        expect="switched group buffs or a priority back on", script=S)
 

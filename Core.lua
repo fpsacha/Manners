@@ -615,6 +615,15 @@ function ns.SelfBuffs(castable)
 	return out
 end
 
+-- Whether "Myself" is on and has something behind it. One answer for every
+-- sentence that says who is still offered -- the options page, and the lines
+-- about saving mana, which keeps your own buff (Queue.lua, SelfEntry) -- so
+-- none of them leaves you out while the queue keeps you in.
+function ns.OffersSelf()
+	local db = addon.db and addon.db.profile
+	return db ~= nil and db.sources.self == true and #ns.SelfBuffs() > 0
+end
+
 -- The spell pinned for this character, or nil for Automatic (and for another
 -- class's pin). Shared by the walk and the options page so they agree.
 function ns.PinnedBuff()

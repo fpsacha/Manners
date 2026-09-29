@@ -66,7 +66,7 @@ end
 
 -- Globals a scenario may replace, put back after each: Mock.reset owns none.
 local TOUCHED = { "IsSpellKnown", "IsPlayerSpell", "DoEmote", "IsShiftKeyDown",
-	"GetItemCount", "GetItemInfo", "C_UnitAuras", "MenuUtil" }
+	"GetItemCount", "GetItemInfo", "C_UnitAuras", "MenuUtil", "UnitPower", "UnitPowerMax" }
 
 -- One scenario: nobody else about (the target, focus, mouseover and nameplates
 -- hold only the people `opts.people` names), the lifecycle driven, and you
@@ -976,6 +976,295 @@ do
 		if never and never.fn then never.fn() end
 		if ns.db.profile.sources.self ~= false or #ns.NeverList() > 0 then
 			fail(scenario, "Never offer on you did not switch your own buff off")
+		end
+	end)
+end
+
+-- ------------------------------------------------------------------ self 20
+-- A /manners try macro arms no record of its own, but a press of it on your own
+-- entry is still a press on yourself: the game naming you as the one it
+-- reached files no gift to you, counts nothing, and settles nothing.
+Mock.reset()
+do
+	local scenario = "self: a /manners try press on yourself files nothing"
+	with(scenario, {}, function(ns)
+		ns.db.char.ledger = nil
+		ns.Ledger.Load()
+		ns.Prompt:Refresh()
+		if not (ns.Prompt:Showing() and ns.Prompt:Showing().reason == "self") then
+			fail(scenario, "SKIPPED -- the prompt is not on you")
+			return
+		end
+		ns.addon:HandleSlash("try /target {name}\\n/cast {spell}")
+		ns.Prompt:Refresh()
+		local pressed = H.pressButton(ns)
+		ns.addon:HandleSlash("try")
+		if not (pressed and pressed:find("/target " .. ME, 1, true) and ns.pendingClick) then
+			fail(scenario, "SKIPPED -- the try macro did not go out on you: " .. flat(pressed))
+			return
+		end
+		ns.addon:UNIT_SPELLCAST_SENT(nil, "player", ME, "Cast-try-1", 1459)
+		local s = ns.db.char.ledger
+		if s and #s.entries > 0 then
+			fail(scenario, ("a /manners try press on yourself wrote %d ledger rows, the first a %s row under %s")
+				:format(#s.entries, tostring(s.entries[1].kind), tostring(s.entries[1].name)))
+		end
+		if s and (s.totals.group ~= 0 or s.totals.strangers ~= 0) then
+			fail(scenario, "a /manners try press on yourself was counted as a buff given")
+		end
+		if ns.pendingClick then fail(scenario, "the try press was never settled") end
+		local lead = tostring(ns.Prompt:Regions().name:GetText())
+		if not lead:find("yourself", 1, true) then
+			fail(scenario, "after a try press on you the panel reads " .. lead)
+		end
+	end)
+end
+
+-- ------------------------------------------------------------------ self 21
+-- Saving mana keeps your own buff (Queue.lua, SelfEntry), so every line that
+-- says who is still offered names it -- the tooltip on your own entry,
+-- /manners debug, an empty press, the slider and the note under it -- and
+-- none of them does with "Myself" off.
+Mock.reset()
+do
+	local scenario = "self: saving mana, the lines say your own buff is kept"
+	with(scenario, {}, function(ns)
+		UnitPower = function(unit) return unit == "player" and 100 or 1000 end
+		UnitPowerMax = function() return 1000 end
+		ns.db.profile.filters.manaFloor = 30
+		local KEPT = "only your own buff and people who buffed you or asked are offered"
+		local OLD = "only people who buffed you or asked are offered"
+		if not ns.SavingMana() then
+			fail(scenario, "SKIPPED -- not saving mana at a tenth of it")
+			return
+		end
+		if not mine(ns) then
+			fail(scenario, "your own buff was held back while saving mana")
+			return
+		end
+		ns.Prompt:Refresh()
+		local tip = hover(ns)
+		if not tip:find("Saving mana: until you are back to 35% mana, " .. KEPT, 1, true) then
+			fail(scenario, "the tooltip under your own buff says " .. tip)
+		end
+		Mock.printed = {}
+		ns.addon:HandleSlash("debug")
+		if not said():find(KEPT, 1, true) then
+			fail(scenario, "/manners debug while saving mana leaves your own buff out: " .. flat(said()))
+		end
+		local root = ns.optionsTable
+		local floor, note = findOption(root, "manaFloor"), findOption(root, "manaNote")
+		local desc = floor and (type(floor.desc) == "function" and floor.desc() or floor.desc) or ""
+		if not tostring(desc):find("only your own buff and people who buffed you or asked are offered", 1, true) then
+			fail(scenario, "the mana floor's description leaves your own buff out: " .. tostring(desc))
+		end
+		local noted = note and (type(note.name) == "function" and note.name() or note.name) or ""
+		if not tostring(noted):find("only favours, requests and your own buff are offered", 1, true) then
+			fail(scenario, "the mana note leaves your own buff out: " .. tostring(noted))
+		end
+
+		-- Wearing it, nobody is left: an empty press says what is kept.
+		wear(ns, set(1459))
+		for _ = 1, 3 do
+			Mock.advance(2)
+			ns.Prompt:Refresh()
+		end
+		if ns.Prompt:GetButton():IsShown() then
+			fail(scenario, "SKIPPED -- the prompt is still up with nobody to offer")
+		else
+			Mock.printed = {}
+			H.pressButton(ns)
+			if not said():find(KEPT, 1, true) then
+				fail(scenario, "an empty press while saving mana leaves your own buff out: " .. flat(said()))
+			end
+		end
+
+		-- "Myself" off: the old sentences, which are true again.
+		ns.db.profile.sources.self = false
+		owe(ns, "Zed Far")
+		ns.Prompt:Refresh()
+		tip = hover(ns)
+		Mock.printed = {}
+		ns.addon:HandleSlash("debug")
+		desc = floor and (type(floor.desc) == "function" and floor.desc() or floor.desc) or ""
+		noted = note and (type(note.name) == "function" and note.name() or note.name) or ""
+		if tip:find("your own buff", 1, true) or not tip:find(OLD, 1, true)
+			or said():find("your own buff and", 1, true) or tostring(desc):find("your own buff", 1, true)
+			or tostring(noted):find("your own buff", 1, true) then
+			fail(scenario, "with Myself off, a line still keeps your own buff: " .. tip .. " / " .. flat(said())
+				.. " / " .. tostring(desc) .. " / " .. tostring(noted))
+		end
+	end)
+end
+
+-- ------------------------------------------------------------------ self 22
+-- Start here: "Only people who buff me" leaves you out, as it says, and the
+-- other choices put you back. Ticking yourself back on is fine-tuning, not
+-- Custom -- nor is a profile from before 1.2, which gains the switch on
+-- without anybody touching it.
+Mock.reset()
+do
+	local scenario = "self: Only people who buff me leaves you out"
+	with(scenario, {}, function(ns)
+		local quick, s = ns.QuickSetup, ns.db.profile.sources
+		-- A 1.1 profile on that choice: the new switch at its default.
+		s.owed, s.group, s.strangers, s.self = true, false, false, true
+		ns.db.profile.filters.whenBuffed = "skip"
+		if quick.Match(quick.WHO) ~= "favours" then
+			fail(scenario, "a profile from before 1.2 shows " .. tostring(quick.Match(quick.WHO))
+				.. " rather than Only people who buff me")
+		end
+		quick.Apply(quick.WHO, "favours")
+		if s.self ~= false or mine(ns) then
+			fail(scenario, "Only people who buff me left you offered your own buff")
+		end
+		if quick.WhoSummary():find("myself", 1, true) then
+			fail(scenario, "after Only people who buff me the summary names you: " .. quick.WhoSummary())
+		end
+		s.self = true
+		if quick.Match(quick.WHO) ~= "favours" then
+			fail(scenario, "ticking Myself back on shows " .. tostring(quick.Match(quick.WHO)))
+		end
+		for _, key in ipairs({ "group", "nearby", "raid" }) do
+			quick.Apply(quick.WHO, "favours")
+			quick.Apply(quick.WHO, key)
+			if s.self ~= true then
+				fail(scenario, "moving on from Only people who buff me to " .. key .. " left you out")
+			end
+			s.self = false
+			if quick.Match(quick.WHO) ~= key then
+				fail(scenario, "switching Myself off on " .. key .. " shows " .. tostring(quick.Match(quick.WHO)))
+			end
+		end
+	end)
+end
+
+-- ------------------------------------------------------------------ self 23
+-- The other lines a press on yourself can bring: the prompt moving on to you,
+-- a second press before the game answered the first, and the game refusing
+-- your own buff three times in a row. Each says you, never your name as if you
+-- were somebody else who shares it.
+Mock.reset()
+do
+	local scenario = "self: the other lines about a press on you say you"
+	with(scenario, {}, function(ns)
+		local me = mine(ns)
+		if not me then
+			fail(scenario, "SKIPPED -- not offered to begin with")
+			return
+		end
+		Mock.printed = {}
+		ns.Prompt:MovedOn(me)
+		if not said():find("the prompt has moved on to your own buff", 1, true) or said():find("Mort", 1, true) then
+			fail(scenario, "the moved-on line reads " .. flat(said()))
+		end
+
+		ns.Prompt:Refresh()
+		if not (H.pressButton(ns) and ns.pendingClick) then
+			fail(scenario, "SKIPPED -- the press on you did not go out")
+			return
+		end
+		Mock.advance(0.5)
+		Mock.printed = {}
+		ns.AbandonPendingClick()
+		if not said():find("no answer yet for the press on yourself", 1, true) or said():find("Mort", 1, true) then
+			fail(scenario, "the abandoned press reads " .. flat(said()))
+		end
+
+		Mock.printed = {}
+		for _ = 1, 3 do
+			Mock.advance(1)
+			ns.NoteRefusal(ME, "Can't do that while mounted.")
+		end
+		if not said():find("the game keeps refusing your own buff", 1, true) or said():find("Mort", 1, true) then
+			fail(scenario, "the back-off line reads " .. flat(said()))
+		end
+	end)
+end
+
+-- ------------------------------------------------------------------ self 24
+-- An error inside the window says you were not buffed; the cast going out
+-- after it takes that back in chat, as it does for anybody, so chat and the
+-- panel ("buffed yourself") agree.
+Mock.reset()
+do
+	local scenario = "self: a cast after an error takes back that you were not buffed"
+	with(scenario, {}, function(ns)
+		ns.Prompt:Refresh()
+		if not (H.pressButton(ns) and ns.pendingClick) then
+			fail(scenario, "SKIPPED -- the press on you did not go out")
+			return
+		end
+		Mock.printed = {}
+		ns.addon:UI_ERROR_MESSAGE(nil, 0, "Your bags are full")
+		if not said():find("you were not buffed", 1, true) then
+			fail(scenario, "SKIPPED -- the error did not say you were not buffed: " .. flat(said()))
+			return
+		end
+		ns.addon:UNIT_SPELLCAST_SENT(nil, "player", ME, "Cast-self-after", 1459)
+		if not said():find("you were buffed after all", 1, true) or said():find("Mort", 1, true) then
+			fail(scenario, "after an error and the cast going out, chat reads " .. flat(said()))
+		end
+		local lead = tostring(ns.Prompt:Regions().name:GetText())
+		if not lead:find("buffed", 1, true) or not lead:find("yourself", 1, true) then
+			fail(scenario, "after the cast went out the panel reads " .. lead)
+		end
+	end)
+end
+
+-- ------------------------------------------------------------------ self 25
+-- A Greater Blessing lands on the paladin casting it when the class is their
+-- own, so it must not take another of their own blessings off them either:
+-- wearing their own Kings (which keeps their own entry off the queue), three
+-- paladins missing Might make no Greater Blessing of Might. Missing Might
+-- themselves, or wearing it, it forms as before.
+Mock.reset()
+do
+	local scenario = "self: a Greater Blessing never replaces your own other blessing"
+	local KINGS = 20217
+	with(scenario, { class = "PALADIN", groupSize = 5, known = { 19740, KINGS, 25782 },
+		people = { party1 = { "Anna", "Aim" }, party2 = { "Bert", "Beside" },
+			party3 = { "Cara", "Close" }, party4 = { "Dora", "Deep" } } }, function(ns)
+		Mock.unitClass = "PALADIN"
+		ns.db.profile.sources.strangers = false
+		ns.db.profile.groupBuffs.use, ns.db.profile.groupBuffs.atLeast = true, 3
+		GetItemCount = function(id) return id == 21177 and 20 or 0 end
+		GetItemInfo = function(id) return id == 21177 and "Symbol of Kings" or nil end
+		local might = set(unpack(ns.FindBuff("PALADIN", "might").ranks))
+		auras({ party4 = might })
+		ns.Guard("probe", ns.ProbeCapabilities)
+		local function greater()
+			for _, entry in ipairs(ns.BuildQueue()) do
+				if entry.groupCast then return entry end
+			end
+		end
+
+		wear(ns, {})
+		local group = greater()
+		if not (group and group.buff.key == "might" and group.groupCast.class == "PALADIN") then
+			fail(scenario, "SKIPPED -- no Greater Blessing of Might for four paladins and you missing it: "
+				.. names(ns.BuildQueue()))
+			return
+		end
+		wear(ns, might)
+		if not greater() then
+			fail(scenario, "wearing your own Might, three paladins missing it made no Greater Blessing")
+		end
+
+		wear(ns, set(KINGS))
+		if mine(ns) then
+			fail(scenario, "SKIPPED -- wearing your own Kings, you were offered " .. tostring(mine(ns).buff.key))
+			return
+		end
+		group = greater()
+		if group then
+			fail(scenario, "a Greater Blessing of " .. tostring(group.buff.key)
+				.. " was offered over your own Kings, for " .. tostring(group.groupCast.label))
+		end
+		ns.db.profile.sources.self = false
+		wear(ns, set(KINGS))
+		if greater() then
+			fail(scenario, "with Myself off, a Greater Blessing was offered over your own Kings")
 		end
 	end)
 end

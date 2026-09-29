@@ -3137,7 +3137,8 @@ mutate("Clicks.lua",
 # An abandoned press announced as "was not buffed", though nothing says so.
 mutate("Clicks.lua",
        '\tSayStillOwed(pending.name, L["another press arrived before the game answered that one"],\n'
-       '\t\tL["no answer yet for the press on |cffffffff%s|r -- another press arrived first."])\n',
+       '\t\tL["no answer yet for the press on |cffffffff%s|r -- another press arrived first."],\n'
+       '\t\tL["no answer yet for the press on yourself -- another press arrived first."])\n',
        '\tSayStillOwed(pending.name, L["another press arrived before the game answered that one"])\n',
        "an unanswered press called a miss",
        expect="a press the game had not answered yet was announced as a miss",
