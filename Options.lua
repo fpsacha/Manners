@@ -791,11 +791,15 @@ Quick.VOICE = {
 }
 -- Phrases.lua loads before this file; without it there is no such set. Named
 -- as What I say's Line set names it, so the two read as one set.
+-- It speaks every time, unlike the two thank-you choices: the set has lines for
+-- answering a request, offering to a stranger and buffing your group, and with
+-- "only when I buff someone back" on none of them was ever heard -- a player
+-- who picked it buffed a passer-by and their character said nothing.
 if ns.InCharacter then
 	table.insert(Quick.VOICE, 4, { key = "incharacter", name = L["In character (fits your race and class)"],
 		lines = "incharacter", set = {
 			["speech.enabled"] = true, ["speech.channel"] = "SAY",
-			["speech.onlyWhenReturning"] = true, ["prompt.thankEmote"] = false,
+			["speech.onlyWhenReturning"] = false, ["prompt.thankEmote"] = false,
 		}, applyOnly = { ["speech.onlyWhenReturning"] = true } })
 end
 
@@ -1309,6 +1313,20 @@ local function BuildStartTab()
 				get = function() return Quick.Match(Quick.VOICE) end,
 				set = function(_, v) Quick.Apply(Quick.VOICE, v) end,
 				confirm = function(_, v) return Quick.Confirm(Quick.VOICE, v) end,
+			},
+			-- What I say's own switch, beside the choice that sets it: the
+			-- choices set it one way or the other, and a player who wants it
+			-- otherwise should not have to find it on another tab. Nothing to
+			-- switch while nothing is said.
+			onlyWhenReturning = {
+				type = "toggle",
+				name = L["Only when I buff someone back"],
+				desc = L["Off, you also speak when you buff someone first."],
+				order = 41.5,
+				width = "full",
+				hidden = function() return noClassBuffs() or not SP().enabled end,
+				get = spGet,
+				set = spSet,
 			},
 			quickVoiceSummary = {
 				type = "description",

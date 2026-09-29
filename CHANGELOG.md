@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **Fixed: picking "In character" on Start here made your character speak
+  only when returning a favour**, so buffing a passer-by, somebody who asked
+  or your group said nothing -- and the lines written for those moments were
+  never heard. In character now speaks whenever you buff somebody. The two
+  thank-you choices still speak only when you buff someone back, and the
+  *Only when I buff someone back* switch now sits right under the choice on
+  Start here.
 - Buttons and drop-downs on the options page are now as wide as their words,
   so "Put these back to default" and "Above the action bars (default)" are no
   longer cut off with "...", in English or in the longer translations.
