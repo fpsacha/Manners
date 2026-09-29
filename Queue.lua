@@ -253,6 +253,16 @@ do
 	-- Said whether or not chat lines are on: it is the only thing that says
 	-- why somebody vanished from the prompt.
 	local function Tell(name, why)
+		-- Your own buff (SelfEntry) by what it is: your name in the third
+		-- person reads as somebody else who shares it. Targeting yourself
+		-- lifts it, as targeting anybody does (LiftBackoff).
+		if ns.IsPlayerName(name) then
+			addon:Print(type(why) == "string"
+				and L["|cffff8080the game keeps refusing your own buff|r (it said: %s) -- it will not be offered to you for a while; target yourself to try again."]
+					:format((why:gsub("%.$", "")))
+				or L["|cffff8080the game keeps refusing your own buff|r -- it will not be offered to you for a while; target yourself to try again."])
+			return
+		end
 		if type(why) == "string" then
 			addon:Print(L["|cffff8080the game keeps refusing buffs on %s|r (it said: %s) -- they will not be offered for a while; target them to try again."]
 				:format(name, (why:gsub("%.$", ""))))
@@ -778,6 +788,12 @@ local PRIORITY = { target = 0, owed = 1, asked = 1.5, group = 2, nearby = 3 }
 -- A group member put first by a ready check or by coming back from the dead:
 -- behind your deliberate target, ahead of everybody else.
 PRIORITY.sweep = 0.5
+-- Your own buff: behind everybody who is waiting on you for something -- the
+-- person you picked out, a ready check or a death, a favour to return, a
+-- request -- since they may walk off and you will not. Ahead of your group and
+-- passers-by, since what you carry yourself is what you fight with, and your
+-- group can be swept once you are done.
+PRIORITY.self = 1.75
 
 -- The group's unit tokens, spelled out once rather than joined on every scan.
 local GROUP_TOKENS = { raid = {}, party = {} }
@@ -1185,6 +1201,159 @@ local function NoReading()
 end
 ns.NoReading = NoReading
 
+-- Why nothing at all is offered to you right now, whatever you are missing,
+-- or nil and your name. One answer for both kinds of your own buff -- your
+-- group buff and your class's own -- so there is one rule for "You" on the
+-- prompt, and /manners debug and the options page say it the same way:
+--   "switch"   "Myself" is switched off
+--   "fight"    in a fight: the pull's own repaint arms the macro every press
+--              of the fight runs, and it must not be a buff on yourself
+--   "resting"  in a city or an inn, with "Also in cities and inns" off
+--   "skipped"  a right-press skip, the press just made, or the game refusing
+--              you; asked once here rather than per buff, which the walk
+--              would answer the same way, so a skipped you costs no aura read
+--   "noname"   the game will not say your name
+-- Resting as the city rule for passers-by reads it: only a definite yes
+-- holds back, and could-not-tell offers.
+function ns.MyselfHeldBack(db, now)
+	if db.sources.self ~= true then return "switch" end
+	if InCombatLockdown() or safecall(_G.UnitAffectingCombat, "player") == true then return "fight" end
+	if not (db.ownBuffs and db.ownBuffs.inCities == true) and Resting() == true then return "resting" end
+	local full = ns.UnitFullName("player")
+	if not full then return "noname" end
+	if ns.IsBlocked(full, nil, now or GetTime()) then return "skipped" end
+	return nil, full
+end
+
+-- The first of your class's own families that comes up missing (Core.lua,
+-- OwnVerdict), in the table's order, as your entry: the spell, the reading,
+-- and the time left for a top-up. nil when none does.
+local function OwnPick(db, full, now)
+	local ctx = { name = full, now = now, whenBuffed = db.filters.whenBuffed,
+		refreshUnder = db.filters.refreshUnder }
+	for _, family in ipairs(ns.KnownOwnFamilies()) do
+		local spell, has, remaining = ns.OwnVerdict(family, ctx)
+		if spell then return spell, has, remaining end
+	end
+	return nil
+end
+
+-- Your own group buff, when you are missing it or (with top-ups on) it is
+-- running low: the buff, the reading and the time left, or nil. `mine` is
+-- what of the scan's candidates goes on yourself (ns.SelfBuffs).
+local function SelfBuff(db, mine, full, now)
+	local f = db.filters
+	local guid = plain(UnitGUID("player"))
+	-- Your auras are always read, whatever "When they already have it" says:
+	-- Always offer is for people the game hides theirs on, and offering you
+	-- one you are wearing would come back every retry cooldown all evening.
+	-- The setting still asks for a top-up, which is all PickBuffFor reads it
+	-- for.
+	local function reading(buff)
+		return UnitHasBuff("player", buff, guid)
+	end
+	-- The same walk everybody gets: the switches, the pin, a paladin's one
+	-- blessing at a time, and the per-buff retry cooldown.
+	local buff, has, remaining = ns.PickBuffFor(mine, {
+		hasMana = UnitHasMana("player"),
+		inGroup = (plain(GetNumGroupMembers and GetNumGroupMembers()) or 0) > 0,
+		-- The caster is always inside their own party.
+		inParty = true,
+		relevantOnly = f.relevantOnly,
+		whenBuffed = f.whenBuffed,
+		refreshUnder = f.refreshUnder,
+		name = full,
+		blocked = QueueBlocked,
+		now = now,
+	}, reading)
+	-- A pin replaces the list the walk was handed, so a pinned shout still
+	-- has to be turned away here.
+	if not ns.CastsOnSelf(buff) then return nil end
+	-- Only on a reading: missing, or running low for a top-up. A client that
+	-- will not say is no reason to offer you what you may be wearing -- your
+	-- own buff bar says it better.
+	if not (has == false or remaining ~= nil) then return nil end
+	return buff, has, remaining
+end
+
+-- The group buff SelfEntry would put you on the prompt for right now, ahead
+-- of your class's own, or nil: for /manners debug and Diagnostics, whose line
+-- per family would otherwise call a spell "the one to cast" while the prompt
+-- is on your Intellect (Commands.lua, MyselfLines).
+function ns.SelfBuffFirst(db, now)
+	local held, full = ns.MyselfHeldBack(db, now)
+	if held then return nil end
+	local mine = ns.SelfBuffs()
+	if #mine == 0 then return nil end
+	return (SelfBuff(db, mine, full, now))
+end
+
+-- Your own buff, when you are missing it or (with top-ups on) it is running
+-- low: the one entry BuildQueue makes for you, after the walk, since
+-- IsBuffableUnit turns "player" away on every other path. `candidates` is
+-- CastableBuffs' answer for the scan, and `verdict` the never-offer list's
+-- answers for it (NeverVerdicts). Returns the entry, or nil.
+--
+-- One entry for you at a time, and your group buff first: it is the one your
+-- group sees you missing, and the class's own come after it in the order
+-- Buffs.lua lists them (a mage's Intellect, then the armor).
+--
+-- Not held back while saving mana, unlike the group: the floor keeps your mana
+-- for yourself, and a buff on yourself is exactly that -- one cheap cast you
+-- always want. Nor by the raid groups you were given, which are about whom
+-- you buff. Your own name on the never-offer list is honoured, though "never"
+-- on the prompt switches this source off instead (StopOfferingSelf): the
+-- list's own sentences are about other people.
+local function SelfEntry(db, candidates, now, verdict)
+	local held, full = ns.MyselfHeldBack(db, now)
+	if held then return nil end
+	-- A shout already covers you, and a few spells refuse the caster.
+	local mine = ns.SelfBuffs(candidates)
+	local buff, has, remaining
+	if #mine > 0 then buff, has, remaining = SelfBuff(db, mine, full, now) end
+	if not buff then buff, has, remaining = OwnPick(db, full, now) end
+	if not buff then return nil end
+	-- Last, so the list is walked only for an offer about to be made, and
+	-- through the scan's answers, which a list edit alone sets walking again.
+	if ListedAs(full, verdict) then return nil end
+
+	return {
+		name = full,
+		short = ShortName(full),
+		-- What the first line and the list under it say in your name's place.
+		display = L["You"],
+		-- The spelling the macro's /target line carries: you are targeted by
+		-- name like anybody else (STRATEGIES.self in Prompt.lua says why).
+		targetName = ns.TargetName(full),
+		unit = "player",
+		class = caps.class,
+		buff = buff,
+		reason = "self",
+		-- In a party or raid a group cast counts you and covers you
+		-- (GroupBuffs.lua), as it does anybody in it.
+		inGroup = (plain(GetNumGroupMembers and GetNumGroupMembers()) or 0) > 0,
+		priority = PRIORITY.self,
+		-- A spell on yourself is always within reach.
+		ranged = true,
+		known = has,
+		remaining = remaining,
+		checked = true,
+	}
+end
+
+-- "Never" for yourself, from a shift-right-press on the prompt or the
+-- launcher's menu: the never-offer list is a list of other people, so this
+-- source goes off instead, and the line says where it comes back. Said
+-- whatever Tell me in chat is set to, as a listing is. The caller repaints.
+function ns.StopOfferingSelf()
+	local db = addon.db and addon.db.profile
+	if not db then return end
+	db.sources.self = false
+	addon:Print(L["your own buff will not be offered to you any more -- tick %s on the %s tab to have it back."]
+		:format("|cffffd100" .. L["Myself, when I'm missing my own buff"] .. "|r", L["Who to buff"]))
+	ns.RepaintOptions()
+end
+
 -- The queue, sorted, and what the scan turned down: [name] = true for
 -- everybody a token reached and found covered, dead, out of range, out of
 -- sight, listed or held back while you save mana (and the remembered let go
@@ -1196,7 +1365,8 @@ ns.NoReading = NoReading
 -- or remembered passer-by would ask for one.
 function ns.BuildQueue(watch)
 	local db = addon.db and addon.db.profile
-	if not db or not caps.anyKnown then return {}, true end
+	-- Nothing learned to cast on anybody, yourself included.
+	if not db or not ns.CanCastAnything() then return {}, true end
 
 	-- Nothing can be cast while dead, in a vehicle, or on a taxi, so offering
 	-- somebody would just be a button that fails.
@@ -1223,7 +1393,6 @@ function ns.BuildQueue(watch)
 
 	-- Everything below until the walk is asked once per scan, not per person.
 	local candidates = ns.CastableBuffs()
-	if #candidates == 0 then return {}, true end
 	-- A warrior's shout reaches the group and nobody else, so passers-by are
 	-- dropped before the distance check rather than measured for nothing
 	-- (which would fill the proximity counts with people never offered).
@@ -1256,6 +1425,15 @@ function ns.BuildQueue(watch)
 	if myMax and myMax > 0 then
 		local myMana = plain(UnitPower("player", MANA))
 		if myMana ~= nil and myMana <= 0 then return {}, true end
+	end
+
+	-- Nothing to give anybody else -- a hunter, whose own aspects are all
+	-- there is, or every spell of yours switched off -- leaves you alone to
+	-- offer, and no walk: every person it reached would be turned down.
+	if #candidates == 0 then
+		local own = SelfEntry(db, candidates, now, neverVerdict)
+		if own then return { own }, {} end
+		return {}, true
 	end
 
 	-- What PickBuffFor is told about the person in hand, one table reused for
@@ -1559,6 +1737,19 @@ function ns.BuildQueue(watch)
 	-- mana, a city-only rule out in the world.
 	OfferPassersBy(queue, seen, rejected, now, db, candidates,
 		not db.sources.strangers or groupOnly or savingMana or notResting)
+
+	-- And you, once everybody else is in: before the fold below, so a group
+	-- cast counts you among your party.
+	local mine = SelfEntry(db, candidates, now, neverVerdict)
+	if mine then
+		queue[#queue + 1] = mine
+	elseif watch then
+		-- Not offered to you, for whatever reason: a verdict on you, never a
+		-- token lost, so a cursor resting on the prompt does not hold "You"
+		-- there after you buffed yourself by hand (see hovering in Prompt.lua).
+		local me = ns.UnitFullName("player")
+		if me then rejected[me] = true end
+	end
 
 	-- A party's single casts folded into one group cast where the player has
 	-- the group version and its reagent (GroupBuffs.lua), before the sort, so

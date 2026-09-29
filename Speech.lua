@@ -262,6 +262,12 @@ do
 	function ns.PickPhrase(entry, budget)
 		local db = addon.db and addon.db.profile
 		if not db or not db.speech.enabled then return nil end
+		-- Your own buff says nothing, whatever the settings: a line to
+		-- yourself, out loud to everybody near, is the one thing worse than
+		-- silence. Here rather than in the macro, so the tooltip never quotes
+		-- a line, and "In character" spends none of its memory of lines said
+		-- lately on one that never is.
+		if entry.reason == "self" then return nil end
 		if db.speech.onlyWhenReturning and entry.reason ~= "owed" then return nil end
 
 		local command = ns.CHANNEL_COMMANDS[db.speech.channel]

@@ -8,7 +8,9 @@ Manners notices, works out what you owe them, and puts one button on screen. Cli
 
 In a dungeon or a raid it keeps your group topped up: one group cast for a whole party when you carry the reagent, your group first at a ready check and after a wipe, and only the raid groups you were given. Setting it up takes one page: **Start here**, four numbered steps.
 
-> **Only Mage has been played in game.** Priest, Druid, Paladin, Warlock and Warrior are implemented and tested against a mock client, but nobody has cast with them yet. The dungeon and raid features are tested the same way and have not been taken into a real group yet. If you play one, please [say how it went](https://github.com/fpsacha/Manners/issues/new/choose): **"it worked"** is the report that moves a class off the untested list.
+It looks after you too. When you are missing your own buff, or one your class casts only on itself -- a mage's armor, a priest's Inner Fire, a paladin's aura, a hunter's aspect, a shaman's shield -- "You" comes up on the same prompt, and one press puts it on you.
+
+> **Only Mage has been played in game.** Priest, Druid, Paladin, Warlock and Warrior are implemented and tested against a mock client, but nobody has cast with them yet. The dungeon and raid features are tested the same way and have not been taken into a real group yet, and **Buff myself** (hunters' and shamans' own buffs included) has not been tried in game yet. If you play one, please [say how it went](https://github.com/fpsacha/Manners/issues/new/choose): **"it worked"** is the report that moves a class off the untested list.
 
 Built for **WoW Forever** (Interface 16001), and shipped for that client only.
 
@@ -20,8 +22,9 @@ Built for **WoW Forever** (Interface 16001), and shipped for that client only.
 2. **Your party or raid at a ready check, or just back from the dead.**
 3. **Somebody who buffed you.** Works on strangers, and the favour survives a reload or a disconnect.
 4. **Somebody who asked for it in chat**, if you switch that on.
-5. **Your party or raid**, anyone missing your buff.
-6. **Passers-by** missing your buff: nameplates, your target, focus and mouseover.
+5. **You**, when you are missing your own buff or one of your class's own (see *Buff myself* below).
+6. **Your party or raid**, anyone missing your buff.
+7. **Passers-by** missing your buff: nameplates, your target, focus and mouseover.
 
 It skips the dead, the out of range, anyone you just tried, and anyone the buff does nothing for (Arcane Intellect is wasted on a rogue). Right-click the prompt to skip somebody for now; shift-right-click to never offer them anything.
 
@@ -33,13 +36,22 @@ It skips the dead, the out of range, anyone you just tried, and anyone the buff 
 - **Out of the way when you want it.** `/manners snooze` hides the prompt for 15 minutes (or `snooze 5`, `snooze 1h`, `snooze off`), and *Hide the prompt while I'm mounted* keeps it away while you ride.
 - **Thank them with an emote.** Off by default. When somebody buffs you and you have something to give back, you `/thank` them -- never in a fight or an instance, and at most once per person every five minutes. Not yet tried in game.
 
+### Buff myself
+
+- **Your own buff.** Missing the buff you give everybody else? "You" comes up on the prompt with "your own Arcane Intellect" under it, and a press casts it on you: your target is left alone and nothing is said.
+- **Your class's own buffs**, once you have learned them: a mage's Frost Armor (Ice Armor from level 30) or Mage Armor; a priest's Inner Fire, Touch of Weakness and Shadowguard; a warlock's Demon Skin (Demon Armor from level 20); a paladin's aura and Righteous Fury; a hunter's aspect and Trueshot Aura; a shaman's Lightning Shield or Water Shield; a druid's Omen of Clarity.
+- **Automatic, or your choice.** Where your class has several of one kind -- armors, auras, aspects, shields -- pick the one you want, or leave it on *Automatic*, which follows the one you had up last and says which. Until you have had one up, a mage gets Mage Armor in a dungeon or raid and Frost Armor everywhere else. *Don't remind me* turns one off.
+- **Only when it matters.** Only when none of a kind is up, so the armor or aura you chose is never swapped for another; never in a fight; and not in cities and inns unless you tick *Also in cities and inns*. Righteous Fury only while your group role is tank, unless you set it to *Always*.
+- **Hunters and shamans**, who have nothing to give anybody else, now get a prompt for their own buffs.
+- One switch for all of it: *Myself, when I'm missing my own buff* on the Who to buff tab, on by default.
+
 ### Dungeons and raids
 
 - **One cast for the whole party.** Once you know Arcane Brilliance, a Prayer, Gift of the Wild or a Greater Blessing and carry its reagent, a party with 3 or more people who need your buff gets one group cast instead of one each (a Greater Blessing goes by class). The prompt says who it is for ("Your party", "Group 2", "Every Warrior") and why ("Arcane Brilliance -- 4 missing"), and the tooltip counts your reagents. Short of mana for it, you get the single buff; out of reagents, it goes back to one at a time.
 - **Ready checks.** From a ready check until the pull, your party or raid goes to the front of the queue.
 - **Back from the dead.** For two minutes after somebody is brought back, they go to the front. Feign Death doesn't count.
 - **Raid groups I buff.** Untick the groups you weren't assigned; people who buffed you or asked are still offered.
-- **Save mana.** Below the level you set, only people who buffed you or asked are offered, until your mana climbs back.
+- **Save mana.** Below the level you set, only your own buffs and people who buffed you or asked are offered, until your mana climbs back.
 - **Quieter raids.** No "buffed you" chat line inside a raid, or during a fight in a dungeon. The favour is still remembered.
 
 ### The favour ledger
@@ -93,16 +105,20 @@ The first login on each character says what it does and shows you the prompt onc
 
 ### Classes
 
-| Class | Buffs |
-|---|---|
-| Mage | Arcane Intellect |
-| Priest | Power Word: Fortitude, Divine Spirit, Shadow Protection |
-| Druid | Mark of the Wild, Thorns |
-| Paladin | Wisdom, Might, Kings, Salvation, Light, Sanctuary |
-| Warlock | Unending Breath |
-| Warrior | Battle Shout (your own party only) |
+| Class | Buffs for others | On yourself as well |
+|---|---|---|
+| Mage | Arcane Intellect | Frost Armor (Ice Armor from 30) or Mage Armor |
+| Priest | Power Word: Fortitude, Divine Spirit, Shadow Protection | Inner Fire, Touch of Weakness, Shadowguard |
+| Druid | Mark of the Wild, Thorns | Omen of Clarity |
+| Paladin | Wisdom, Might, Kings, Salvation, Light, Sanctuary | an aura, Righteous Fury |
+| Warlock | Unending Breath | Demon Skin (Demon Armor from 20) |
+| Warrior | Battle Shout (your own party only) | none |
+| Hunter | none | an aspect, Trueshot Aura |
+| Shaman | none | Lightning Shield or Water Shield |
 
-Where a class has several, the prompt offers whichever one they are missing: a priest walks Fortitude, then Divine Spirit, then Shadow Protection. Paladin blessings overwrite one another, so anybody holding one of yours is left alone, and the automatic pick is Wisdom for mana users and Might for everyone else. You can switch buffs off, or pin one and only ever cast that. Mages, priests, druids and paladins also get the group version (Arcane Brilliance, the Prayers, Gift of the Wild, the Greater Blessings) once they have learned it and carry its reagent. Hunters, rogues and shamans have nothing to cast on another player, and Manners says so.
+Where a class has several, the prompt offers whichever one they are missing: a priest walks Fortitude, then Divine Spirit, then Shadow Protection. Paladin blessings overwrite one another, so anybody holding one of yours is left alone, and the automatic pick is Wisdom for mana users and Might for everyone else. You can switch buffs off, or pin one and only ever cast that. Mages, priests, druids and paladins also get the group version (Arcane Brilliance, the Prayers, Gift of the Wild, the Greater Blessings) once they have learned it and carry its reagent.
+
+**Buff myself** offers you the buff you give others too, and everything in the last column once you have learned it. A warrior's shout already covers him, and nobody needs Unending Breath on dry land, so those two never are. Hunters and shamans have nothing to cast on another player, so their prompt is for their own buffs. Rogues have nothing to cast at all, and Manners says so.
 
 ### Languages
 

@@ -123,6 +123,20 @@ local function RaidSubgroup(unit)
 	return subgroup
 end
 
+-- Whether `unit` carries a blessing of ours other than `key`, or cannot be
+-- read: either way a Greater Blessing of `key` may take one of ours off them.
+-- `mine` is the player's own blessings.
+local function CarriesAnother(unit, key, mine)
+	local guid = plain(UnitGUID(unit))
+	for _, buff in ipairs(mine) do
+		if buff.key ~= key then
+			local has, _, ours = ns.UnitHasBuff(unit, buff, guid)
+			if has == nil or (has == true and ours ~= false) then return true end
+		end
+	end
+	return false
+end
+
 -- Whether a Greater Blessing for everybody of `class` takes nothing of ours
 -- away. Blessings from one paladin replace one another, and the Greater one
 -- lands on the whole class, the people the queue never offered included --
@@ -138,16 +152,18 @@ local function ClassSafe(class, key, offered, inRaid)
 		if plain(UnitExists(unit)) and plain(UnitIsUnit(unit, "player")) ~= true
 			and plain(select(2, UnitClass(unit))) == class then
 			local name = ns.UnitFullName(unit)
-			if not (name and offered[name]) then
-				local guid = plain(UnitGUID(unit))
-				for _, buff in ipairs(mine) do
-					if buff.key ~= key then
-						local has, _, ours = ns.UnitHasBuff(unit, buff, guid)
-						if has == nil or (has == true and ours ~= false) then return false end
-					end
-				end
-			end
+			if not (name and offered[name]) and CarriesAnother(unit, key, mine) then return false end
 		end
+	end
+	-- You, when it is your own class: the Greater Blessing lands on the
+	-- caster as on anybody of the class, and the walk above never reads you
+	-- (a party's tokens never hold you, and a raid's is skipped). Wearing
+	-- another of your own blessings keeps your own entry off the queue
+	-- (Queue.lua, SelfEntry), so nothing else would; an entry of yours, when
+	-- there is one, was read already.
+	if class == ns.PlayerClass() then
+		local name = ns.UnitFullName("player")
+		if not (name and offered[name]) and CarriesAnother("player", key, mine) then return false end
 	end
 	return true
 end
@@ -179,6 +195,12 @@ end
 -- Which of a party the macro aims at: the one the queue ranks highest, then
 -- somebody measured in range, then by name so the choice holds still.
 local function Better(a, b)
+	-- Never you while anybody else is in reach. You count towards the
+	-- threshold and the cast covers you, but it is aimed at one of the others,
+	-- so the macro, the spoken line and the ledger are about a person as they
+	-- always were, and nothing a press on yourself leaves out (Clicks.lua,
+	-- SettleSelf) is left out of a group cast.
+	if (a.reason == "self") ~= (b.reason == "self") then return b.reason == "self" end
 	if a.priority ~= b.priority then return a.priority < b.priority end
 	if (a.ranged == true) ~= (b.ranged == true) then return a.ranged == true end
 	return (a.name or "") < (b.name or "")
@@ -212,6 +234,9 @@ local function Build(bucket, byClass, inRaid, ownSubgroup)
 		if entry.ranged ~= false and (not anchor or Better(entry, anchor)) then anchor = entry end
 	end
 	if not anchor then return nil end
+	-- Only you in reach (see Better): a reagent spent on yourself alone,
+	-- which the single buff does for nothing.
+	if anchor.reason == "self" then return nil end
 
 	if byClass then
 		local offered = {}
@@ -228,8 +253,15 @@ local function Build(bucket, byClass, inRaid, ownSubgroup)
 	-- stand. One measured out of reach does not lift it: nothing says the
 	-- cast gets to them.
 	local members = {}
+	-- Whether every one of them asked for it in chat. An asker outranks the
+	-- party (PRIORITY), so the anchor is the asker whenever anybody in it
+	-- asked, and the anchor's reason alone would file the whole cast as
+	-- asked for -- and leave it out of the day's gifts (Ledger.Settled) --
+	-- when it reached everybody else unprompted.
+	local asked = true
 	for _, entry in ipairs(bucket.entries) do
 		if entry ~= anchor then members[#members + 1] = entry.name end
+		if entry.reason ~= "asked" then asked = false end
 	end
 
 	local info = bucket.ready.info
@@ -251,6 +283,7 @@ local function Build(bucket, byClass, inRaid, ownSubgroup)
 		class = byClass and bucket.where or nil,
 		-- Who it is for, inside a sentence ("your party", "group 3").
 		label = label,
+		asked = asked or nil,
 	}
 	-- What the panel's first line says in place of the anchor's name.
 	group.display = display
@@ -287,7 +320,10 @@ function ns.GroupCasts(queue, db, candidates, inRaid)
 		local buff = entry.buff
 		local r = buff and ready[buff.key]
 		-- Only people read through a unit token in the group: the tokenless
-		-- favours have no party anybody can name.
+		-- favours have no party anybody can name. You among them, when you are
+		-- missing it too: your own entry (Queue.lua) holds the "player" token,
+		-- which the party's tokens never do, and the group version lands on
+		-- the caster as on the rest of the party (or class).
 		if r and entry.unit and entry.inGroup then
 			local where
 			if byClass then

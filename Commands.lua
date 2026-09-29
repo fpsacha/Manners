@@ -27,6 +27,71 @@ local owed, LiveExpiry = ns.owed, ns.DebtExpiry
 -- character. What it asks for (a macro, a key) is per character anyway.
 ---------------------------------------------------------------------------
 
+-- What "Myself" is doing, for /manners debug and the Diagnostics tab: first
+-- what holds everything on yourself back right now, if anything, then your
+-- group buff when it is the one on the prompt (one entry for you at a time,
+-- and it goes first: Queue.lua, SelfEntry), then a line per family of your
+-- class's own buffs you know, from the answers the queue reads (Core.lua,
+-- OwnVerdict), so the two cannot disagree. Nothing when "Myself" is off: the
+-- line about the switch says that. Whole sentences per case, for the
+-- translators.
+do
+	local HELD = {
+		fight = L["your own buffs: held back -- you are in a fight."],
+		skipped = L["your own buffs: held back -- skipped for now."],
+		noname = L["your own buffs: held back -- the game will not say your name."],
+	}
+
+	local function FamilyLine(family, ctx)
+		local label = ns.OwnFamilyLabel(family)
+		local spell, has, _, why, about = ns.OwnVerdict(family, ctx)
+		local name = about and ns.BuffName(about)
+		if spell and has then
+			return L["%s: %s is running low -- a top-up is due."]:format(label, ns.BuffName(spell))
+		elseif spell then
+			return L["%s: none up -- %s is the one to cast."]:format(label, ns.BuffName(spell))
+		elseif why == "off" then
+			return L["%s: switched off (Don't remind me)."]:format(label)
+		elseif why == "up" then
+			return L["%s: %s is up."]:format(label, name or "?")
+		elseif why == "notank" then
+			return L["%s: Automatic, and your group role is not tank, so it is not offered."]:format(label)
+		elseif why == "tried" then
+			return L["%s: %s was pressed or skipped a moment ago."]:format(label, name or "?")
+		elseif why == "unusable" then
+			return L["%s: the game says %s cannot be cast right now."]:format(label, name or "?")
+		elseif why == "none" then
+			return L["%s: Automatic has nothing it would pick."]:format(label)
+		end
+		return L["%s: the game will not say whether it is up, so it is not offered."]:format(label)
+	end
+
+	function ns.MyselfLines(now)
+		local db = addon.db and addon.db.profile
+		local out = {}
+		if not db or db.sources.self ~= true then return out end
+		local families = ns.KnownOwnFamilies()
+		if #families == 0 and #ns.SelfBuffs() == 0 then return out end
+		local held = ns.MyselfHeldBack(db, now)
+		if held == "resting" then
+			out[#out + 1] = L["your own buffs: held back -- you are in a city or an inn, and %s is off."]
+				:format("|cffffd100" .. L["Also in cities and inns"] .. "|r")
+		elseif held then
+			out[#out + 1] = HELD[held]
+		end
+		-- Your group buff is due: the lines below wait behind it.
+		local first = #families > 0 and ns.SelfBuffFirst(db, now)
+		if first then
+			out[#out + 1] = L["your own %s comes first -- the buffs below wait until it has been cast."]
+				:format(ns.BuffName(first))
+		end
+		local ctx = { name = ns.UnitFullName("player"), now = now,
+			whenBuffed = db.filters.whenBuffed, refreshUnder = db.filters.refreshUnder }
+		for _, family in ipairs(families) do out[#out + 1] = FamilyLine(family, ctx) end
+		return out
+	end
+end
+
 -- The sentence for a character that will never have anything to offer, shared
 -- by /manners debug and the greeting. Translators: the greeting and the login
 -- line carry their own copy inside a longer key, kept in step by hand.
@@ -45,13 +110,17 @@ function ns.Welcome(force, offSaid)
 	-- list" and meets the gate below with everything else that is no answer.
 	local nothingToGive = caps.class ~= nil and ns.CLASSES_WITHOUT_BUFFS ~= nil
 		and ns.CLASSES_WITHOUT_BUFFS[caps.class] == true
+	-- ...and of those, a hunter or a shaman with a buff of his own learned,
+	-- whose prompt reminds him of it: greeted with the prompt, not sent off.
+	local ownOnly = nothingToGive and caps.anyOwnKnown == true
+	if ownOnly then nothingToGive = false end
 
 	-- Not until the probe has an answer. hasClassBuffs is false for a rogue,
 	-- for a class the client would not name, and for one an unrecognised
 	-- client's guessed buff data does not know; greeting the last two with
 	-- "no buffs" would state a guess as fact. Nothing is written down and the
 	-- next login asks again; /manners debug says which case it is.
-	if not (caps.hasClassBuffs or nothingToGive) then return false end
+	if not (caps.hasClassBuffs or nothingToGive or ownOnly) then return false end
 
 	-- Not in a fight: a protected frame cannot be shown during lockdown, and
 	-- PLAYER_REGEN_ENABLED comes back for it. Except for the class with no
@@ -76,16 +145,26 @@ function ns.Welcome(force, offSaid)
 
 	-- Spells learned, but nothing any prompt will offer (all switched off, or
 	-- a pin on one not learned): name the setting instead of the tour. Not for
-	-- a character with nothing learned yet, who will learn a spell soon.
-	if caps.anyKnown and not ns.ResolveBuff(true) then
+	-- a character with nothing learned yet, who will learn a spell soon; nor
+	-- for one whose own buffs still put a prompt up, who gets the tour for it.
+	local othersOff = caps.anyKnown and not ns.ResolveBuff(true)
+	local ownLive = ns.OwnBuffsLive()
+	if othersOff and not ownLive then
 		addon:Print(L["|cffffd100Manners|r is installed, but nothing will be offered to anybody: %s."]
 			:format(ns.NothingToCast()))
 		addon:Print(L["|cffffd100/manners welcome|r brings the rest of this back once that changes."])
 		return true
 	end
 
-	-- A class whose buffs reach only the party has no passer-by to offer to.
-	if ns.OnlyReachesGroup() then
+	-- A class whose buffs reach only the party has no passer-by to offer to,
+	-- and one with nothing for anybody else has only itself.
+	if ownOnly then
+		addon:Print(L["|cffffd100Manners|r puts your own buffs on a small prompt when none of them is up -- your class has none for other players. Clicking the prompt casts it on you."])
+	elseif othersOff then
+		-- Your spells for others all switched off, and yours still offered.
+		addon:Print(L["|cffffd100Manners|r puts your own buffs on a small prompt when none of them is up; nothing is offered to anybody else: %s. Clicking the prompt casts it on you."]
+			:format(ns.NothingToCast()))
+	elseif ns.OnlyReachesGroup() then
 		local buff = ns.ResolveBuff(true)
 		if buff then
 			addon:Print(L["|cffffd100Manners|r puts anybody in your group who is missing your |cffffd100%s|r -- or who has just buffed you -- on a small prompt. Clicking the prompt casts it."]
@@ -1336,6 +1415,12 @@ function addon:HandleSlash(rawInput)
 		self:Print("class: |cffffffff" .. tostring(caps.class) .. "|r")
 		if not caps.hasClassBuffs then
 			self:Print(ns.NO_CLASS_BUFFS)
+			-- A hunter or a shaman still has a prompt, for his own buffs.
+			if caps.anyOwnKnown and not db.sources.self then
+				self:Print("  " .. L["your own buff: not offered -- %s is switched off."]
+					:format("|cffffd100" .. L["Myself, when I'm missing my own buff"] .. "|r"))
+			end
+			for _, line in ipairs(ns.MyselfLines(GetTime())) do self:Print("  " .. line) end
 			return
 		end
 		self:Print("C_Secrets: " .. tostring(caps.hasSecrets)
@@ -1384,6 +1469,22 @@ function addon:HandleSlash(rawInput)
 		-- The third source, which reads chat: listening or not, what it read and
 		-- set aside, and who is waiting.
 		for _, line in ipairs(ns.RequestLines()) do self:Print("  " .. line) end
+		-- And yourself, so a prompt that reads "You" is explained by a switch
+		-- rather than taken for the addon mistaking you for somebody else.
+		if not db.sources.self then
+			-- The switch by its own key, so a translation names the label
+			-- the window shows.
+			self:Print("  " .. L["your own buff: not offered -- %s is switched off."]
+				:format("|cffffd100" .. L["Myself, when I'm missing my own buff"] .. "|r"))
+		elseif #ns.SelfBuffs() > 0 then
+			self:Print("  " .. L["your own buff: offered to you when you are missing it."])
+		elseif #ns.KnownOwnFamilies() == 0 then
+			self:Print("  " .. L["your own buff: nothing you cast goes on yourself alone."])
+		end
+		-- (Your class's own buffs alone -- a warlock's armor -- are said by
+		-- their own lines below.)
+		-- Where you are held back, and each of your class's own buffs.
+		for _, line in ipairs(ns.MyselfLines(now)) do self:Print("  " .. line) end
 		-- Who the game keeps refusing, since they are missing from the prompt
 		-- with nothing else on screen to say why.
 		for _, line in ipairs(ns.RefusalLines(now)) do self:Print("  " .. line) end
@@ -1434,7 +1535,11 @@ function addon:HandleSlash(rawInput)
 		-- holds, which looks like a broken queue unless it is said.
 		local _, resume = ns.SavingMana()
 		if resume then
-			self:Print(L["|cffffd100saving mana|r -- until you are back to %d%% mana, only people who buffed you or asked are offered"]
+			-- Your own buff is kept too (Queue.lua, SelfEntry), where "Myself"
+			-- is on, and a line leaving it out would contradict the queue.
+			self:Print((ns.OffersSelf()
+				and L["|cffffd100saving mana|r -- until you are back to %d%% mana, only your own buff and people who buffed you or asked are offered"]
+				or L["|cffffd100saving mana|r -- until you are back to %d%% mana, only people who buffed you or asked are offered"])
 				:format(resume))
 		end
 		if ns.ReadyCheckRunning() then

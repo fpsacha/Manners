@@ -89,7 +89,7 @@ local resultFill
 local queueBack, queueHair, queueBars
 local queueTextX = 0
 -- Goes into every click line, so a log says which build produced it.
-ns.BUILD = "1.1.1"
+ns.BUILD = "1.2.0"
 
 local current, testMode, testExpiry, lastTop, appliedKey, lastClickAt, lastPreClickAt, lastSkipAt
 -- Why the last painted person was on the panel, beside lastTop's who.
@@ -373,6 +373,8 @@ local REASON_COLOR = {
 
 local REASON_KEY = { target = "reasonTarget", owed = "reasonOwed",
 	group = "reasonGroup", nearby = "reasonNearby", asked = "reasonAsked" }
+-- Your own buff (Queue.lua, SelfEntry).
+REASON_KEY.self = "reasonSelf"
 
 -- For somebody the set above still fails: chosen by search so the closest pair
 -- is furthest apart in CIE76 under normal sight, protanopia and deuteranopia
@@ -389,6 +391,11 @@ local REASON_COLOR_CVD = {
 	-- ways of seeing.
 	asked = { 0.72, 0.20, 0.34 },
 }
+-- Your own buff wears your group's colour in both sets rather than a sixth of
+-- its own: five already strain what colour-blind sight can tell apart, and the
+-- words ("You") say which it is. It is also where you stand: in the group.
+REASON_COLOR.self = REASON_COLOR.group
+REASON_COLOR_CVD.self = REASON_COLOR_CVD.group
 local REASON_PALETTES = { standard = REASON_COLOR, colourblind = REASON_COLOR_CVD }
 
 -- The colour for a reason in the player's palette; anything unknown reads as
@@ -547,10 +554,10 @@ local function PromptIsLive()
 	-- Unlocked is drag mode, and a prompt being dragged must not cast.
 	if not db.prompt.locked then return false end
 	if testMode then return false end
-	-- Belt and braces: BuildQueue already returns nothing without anyKnown, so
-	-- no mutation of this line can go red. It keeps the click path stating the
-	-- same condition the panel does.
-	if not ns.caps.anyKnown then return false end
+	-- Belt and braces: BuildQueue already returns nothing with nothing to
+	-- cast, so no mutation of this line can go red. It keeps the click path
+	-- stating the same condition the panel does.
+	if not ns.CanCastAnything() then return false end
 	return true
 end
 
@@ -631,7 +638,7 @@ local function OnPreClick(self, mouseButton)
 		elseif ns.HiddenWhileMounted() then
 			ns.addon:Print(L["the prompt stays away while you are mounted -- get off, or switch off %s on the %s tab."]
 				:format("|cffffd100" .. L["Hide the prompt while I'm mounted"] .. "|r", L["When to offer"]))
-		elseif not ns.caps.anyKnown then
+		elseif not ns.CanCastAnything() then
 			local class = ns.caps.class
 			if class and ns.CLASSES_WITHOUT_BUFFS and ns.CLASSES_WITHOUT_BUFFS[class] then
 				ns.addon:Print(ns.NO_CLASS_BUFFS)
@@ -642,8 +649,12 @@ local function OnPreClick(self, mouseButton)
 			-- The option goes in by its own key, so a translation names the
 			-- label the window shows.
 			local _, resume = ns.SavingMana()
-			ns.addon:Print(L["nobody to buff right now -- saving mana until you are back to %d%%, so only people who buffed you or asked are offered. The floor is %s on the %s tab."]
-				:format(resume, "|cffffd100" .. L["Save mana: stop below (% mana)"] .. "|r", L["When to offer"]))
+			-- Your own buff is kept while saving (Queue.lua, SelfEntry), so the
+			-- sentence names it wherever "Myself" is on.
+			local line = ns.OffersSelf()
+				and L["nobody to buff right now -- saving mana until you are back to %d%%, so only your own buff and people who buffed you or asked are offered. The floor is %s on the %s tab."]
+				or L["nobody to buff right now -- saving mana until you are back to %d%%, so only people who buffed you or asked are offered. The floor is %s on the %s tab."]
+			ns.addon:Print(line:format(resume, "|cffffd100" .. L["Save mana: stop below (% mana)"] .. "|r", L["When to offer"]))
 		else
 			ns.addon:Print(L["nobody to buff right now."])
 		end
@@ -764,7 +775,17 @@ local function OnPostClick(self, mouseButton, down)
 		-- cast re-forms around the next of them on the next scan.
 		local group = current and current.name == victim and current.groupCast and current or nil
 		if group and ns.SkipGroupCast then ns.SkipGroupCast(group) end
+		-- Your own buff, by the name rather than the entry: under the flash
+		-- of a press on yourself the entry armed may already be the next one.
+		local own = ns.IsPlayerName(victim)
 		Prompt:StopAttention()
+		-- "Never" for yourself is the switch (StopOfferingSelf): the list is
+		-- of other people, and every line it says is about somebody else.
+		if IsShiftKeyDown and ns.plain(IsShiftKeyDown()) and own then
+			ns.StopOfferingSelf()
+			ns.Guard("own buff repaint", Prompt.Refresh, Prompt)
+			return
+		end
 		-- Held shift makes it "never": onto the never-offer list. Nothing here
 		-- touches the button (type2 is "none"), so it is as safe in a fight as
 		-- the skip. The block above still matters: it takes them off the panel
@@ -780,7 +801,9 @@ local function OnPostClick(self, mouseButton, down)
 			end
 			return
 		end
-		if db and db.verbose then
+		if db and db.verbose and own then
+			ns.addon:Print(L["skipping your own buff for now."])
+		elseif db and db.verbose then
 			local shown = (group and group.groupCast.label)
 				or (current and current.name == victim and current.short)
 				or (ns.ShortName and ns.ShortName(victim)) or victim
@@ -845,6 +868,11 @@ local function OnPostClick(self, mouseButton, down)
 	ns.pendingClick = { name = current.name, at = GetTime(),
 		buffKey = current.buff and current.buff.key,
 		selfCast = armed ~= nil and armed.selfCast == true,
+		-- Your own buff: settled with nothing filed (Clicks.lua, SettleSelf).
+		-- Read off the entry as well as the record: a /manners try macro arms
+		-- no record, and the game naming you as the one it reached would
+		-- otherwise file a gift to yourself in the ledger.
+		onSelf = (armed ~= nil and armed.onSelf == true) or current.reason == "self",
 		targeted = armed and armed.targeted,
 		-- The spelling the macro aimed at, straight from the builder, for the
 		-- settle path to compare against whoever the client says was hit.
@@ -855,9 +883,12 @@ local function OnPostClick(self, mouseButton, down)
 		-- ...and outside it, so the line can say the answer was no rather than
 		-- that nothing answered.
 		outOfShout = (not stale and current.ranged == false) or nil,
-		-- For the favour ledger only.
+		-- For the favour ledger only. The reason too: a buff somebody asked
+		-- for in chat is listed as asked and left out of the day's gifts
+		-- (Ledger.Settled), which it can only tell from the record.
 		class = current.class,
 		inGroup = current.inGroup,
+		reason = current.reason,
 		gave = ns.lastGave[current.name],
 		-- A group cast (GroupBuffs.lua): the spell, and everybody else it
 		-- covers, whom the settle repays and the ledger counts with this one.
@@ -865,6 +896,10 @@ local function OnPostClick(self, mouseButton, down)
 			spell = current.groupCast.spell,
 			members = current.groupCast.members,
 			class = current.groupCast.class,
+			-- Whether everybody it covers asked for it in chat (GroupBuffs.lua):
+			-- the ledger files a group cast as asked only then, whatever
+			-- `reason` the anchor carries.
+			asked = current.groupCast.asked,
 		} or nil }
 	-- Everybody the group cast covers waits out the same cooldown as the
 	-- person it is aimed at, or they come straight back as single offers
@@ -906,6 +941,10 @@ local function PersonTooltipLines(entry)
 	local why
 	if entry.reason == "owed" then
 		why = L["Buffed you -- return the favour."]
+	elseif entry.reason == "self" then
+		-- Offered to you only on a reading (Queue.lua): missing, or low.
+		why = left and L["Your own buff, and yours is running out."]
+			or L["Your own buff, and you are missing it."]
 	elseif entry.reason == "asked" then
 		why = L["Asked you for it in chat."]
 	elseif left then
@@ -936,12 +975,17 @@ local function PersonTooltipLines(entry)
 		GameTooltip:AddLine(L["Just came back from the dead, which costs every buff."], 0.7, 0.7, 0.7, true)
 	end
 	if left then
-		GameTooltip:AddLine(L["Theirs expires in %s."]:format(left), 0.7, 0.7, 0.7, true)
+		GameTooltip:AddLine(entry.reason == "self" and L["Yours expires in %s."]:format(left)
+			or L["Theirs expires in %s."]:format(left), 0.7, 0.7, 0.7, true)
 	end
 	-- And why the rest of the group is missing from the queue, when it is.
 	local kept, resume = ns.SavingMana()
 	if kept then
-		GameTooltip:AddLine(L["Saving mana: until you are back to %d%% mana, only people who buffed you or asked are offered."]
+		-- Your own buff among what is kept, where "Myself" is on: this line
+		-- may be under your own entry.
+		GameTooltip:AddLine((ns.OffersSelf()
+			and L["Saving mana: until you are back to %d%% mana, only your own buff and people who buffed you or asked are offered."]
+			or L["Saving mana: until you are back to %d%% mana, only people who buffed you or asked are offered."])
 			:format(resume), 1, 0.82, 0, true)
 	end
 	if entry.checked and entry.known == nil then
@@ -1073,12 +1117,16 @@ do
 		GameTooltip:AddLine(group and L["Right-click to skip this group buff for now."]
 			or L["Right-click to skip this one."], 0.5, 0.5, 0.5)
 		-- Somebody already on the list is only here because they are owed, and
-		-- for them the same press lets that favour go.
+		-- for them the same press lets that favour go. You never are: your
+		-- own name on the list takes your own buff off (Queue.lua).
 		if ns.IsNeverOffered and ns.IsNeverOffered(current.name) then
 			GameTooltip:AddLine(L["Shift-right-click to let this favour go."], 0.5, 0.5, 0.5)
 		elseif group then
 			GameTooltip:AddLine(L["Shift-right-click to put %s on your never-offer list."]
 				:format(current.short or current.name or "?"), 0.5, 0.5, 0.5)
+		elseif current.reason == "self" then
+			-- The switch, since the list is of other people (StopOfferingSelf).
+			GameTooltip:AddLine(L["Shift-right-click to stop offering you your own buff."], 0.5, 0.5, 0.5)
 		else
 			GameTooltip:AddLine(L["Shift-right-click to put them on your never-offer list."], 0.5, 0.5, 0.5)
 		end
@@ -2465,6 +2513,7 @@ ns.TargetCommand = TargetCommand
 -- and fails silently (a retail 12.0 restriction), and [@nameplateN] resolves
 -- nowhere. Targeting reaches ungrouped strangers everywhere.
 local function StrategyFor(entry)
+	if entry.reason == "self" then return "self" end
 	if entry.buff and entry.buff.selfCast then return "selfcast" end
 	return "target"
 end
@@ -2474,6 +2523,7 @@ end
 --
 --   targeted  the macro carries a targeting line of ours, aimed at this person
 --   selfCast  the spell lands on the caster and reaches the party from there
+--   onSelf    the spell is for the caster alone: your own buff
 --   aimedAt   the exact spelling that went onto the targeting line
 local STRATEGIES = {}
 
@@ -2490,6 +2540,21 @@ end
 STRATEGIES.selfcast = function(entry, spell)
 	return { "/cast " .. spell }, false,
 		{ targeted = false, selfCast = true, aimedAt = nil }
+end
+
+-- Your own buff: you are targeted by name, the spell cast, and your target
+-- handed back -- the shape every other press takes, because it is the one
+-- shape known to work on WoW Forever. Not [@player]: conditional targeting
+-- does not resolve on that client at all ([@unit], [@focus], [@mouseover] and
+-- the secure unit attribute all fail -- the README's client notes), and
+-- nobody has cast [@player] there. Not a bare /cast either: with a friendly
+-- player targeted it lands on them. No spoken line: there is nobody to say it
+-- to (ns.PickPhrase). The record stays one on yourself, which is how the press
+-- is settled (Clicks.lua).
+STRATEGIES.self = function(entry, spell)
+	local lines, restore = STRATEGIES.target(entry, spell)
+	return lines, restore,
+		{ targeted = true, selfCast = false, onSelf = true, aimedAt = entry.targetName or entry.name }
 end
 
 -- Target them, cast, and optionally hand the player's own target back. One
@@ -2559,7 +2624,10 @@ function Prompt:ClickSummary(entry)
 		return out
 	end
 
-	if entry.buff.selfCast then
+	if entry.reason == "self" then
+		-- Nothing about targets: the macro never touches yours.
+		out[#out + 1] = L["Casts |cffffffff%s|r on you."]:format(spell)
+	elseif entry.buff.selfCast then
 		out[#out + 1] = L["Casts |cffffffff%s|r on you; it reaches your party from there."]
 			:format(spell)
 	else
@@ -2657,8 +2725,13 @@ function Prompt:ApplyTarget(entry, silent)
 	-- armedForFight and who is targeted for the hand-back, and whether the line
 	-- is armed so a change of range or a refusal re-arms it (out of combat).
 	-- The group spell too: the same person moves between a single cast and
-	-- their party's group cast as the others come and go.
+	-- their party's group cast as the others come and go. And the name the
+	-- macro casts by, which the key alone does not pin down: the trainer that
+	-- teaches Ice Armor renames the Frost Armor line (Core.lua, ProbeBuff)
+	-- under an entry that has not moved, and a key without it kept "/cast
+	-- Frost Armor" armed for as long as that entry stayed up.
 	local key = table.concat({ entry.name, tostring(entry.unit), entry.buff.key,
+		ns.EntrySpellName(entry),
 		tostring(entry.groupCast and entry.groupCast.spell),
 		tostring(entry.reason), tostring(ns.tryMacro), tostring(Prompt.armedForFight),
 		tostring(StillTargeted(entry)), tostring(speak) }, "\1")
@@ -2892,6 +2965,12 @@ function Prompt:MovedOn(top)
 	if resultFill then resultFill:Hide() end
 	ns.Guard("prompt moved on", Prompt.Refresh, self)
 	self:ApplyTarget(nil)
+	-- Your own buff by what it is: your name in the third person reads as
+	-- somebody else who shares it.
+	if top.reason == "self" then
+		ns.addon:Print(L["the prompt has moved on to your own buff -- press again to buff yourself."])
+		return
+	end
 	ns.addon:Print(L["the prompt has moved on to |cffffffff%s|r -- press again to buff them."]
 		:format(tostring(top.short or top.name)))
 end
@@ -2902,6 +2981,8 @@ function Prompt:PaintOutcome()
 	-- No name is rare, and each headline has its own "them" sentence for it,
 	-- for the same reason as in ClickSummary.
 	local who = ns.ShortName and ns.ShortName(outcomeName) or outcomeName
+	-- A press on yourself says so, rather than naming you like a stranger.
+	local own = ns.IsPlayerName(outcomeName)
 
 	local r, g, b = self:AccentColor(current and current.reason or "owed")
 	local lead, sub
@@ -2910,7 +2991,8 @@ function Prompt:PaintOutcome()
 		-- Red, with the game's own localised words underneath: often the only
 		-- thing that says why (range, line of sight, mana).
 		r, g, b = 0.90, 0.26, 0.22
-		lead = who and L["|cffff8080could not buff|r |cffffffff%s|r"]:format(who)
+		lead = own and L["|cffff8080could not buff|r |cffffffffyourself|r"]
+			or who and L["|cffff8080could not buff|r |cffffffff%s|r"]:format(who)
 			or L["|cffff8080could not buff|r |cffffffffthem|r"]
 		sub = outcomeDetail
 	elseif outcomeKind == "sent" then
@@ -2921,6 +3003,11 @@ function Prompt:PaintOutcome()
 		lead = who and L["|cffe8e0a0sent to|r |cffffffff%s|r"]:format(who)
 			or L["|cffe8e0a0sent to|r |cffffffffthem|r"]
 		sub = outcomeDetail or L["cast -- this client will not confirm who to"]
+	elseif own then
+		-- [@player] can land nowhere else, so our spell going out is the
+		-- whole answer (Clicks.lua, SettleSelf).
+		lead = L["|cff8ce88cbuffed|r |cffffffffyourself|r"]
+		sub = L["cast on you"]
 	else
 		lead = who and L["|cff8ce88cbuffed|r |cffffffff%s|r"]:format(who)
 			or L["|cff8ce88cbuffed|r |cffffffffthem|r"]
@@ -3082,7 +3169,9 @@ function Prompt:RefreshPanel()
 	-- lockdown is.
 	if not InCombatLockdown() then self:SetCombatHold(false) end
 
-	if not ns.caps.anyKnown and not testMode then
+	-- Nothing to cast on anybody, yourself included: a hunter with an aspect
+	-- learned has a prompt, for his own.
+	if not ns.CanCastAnything() and not testMode then
 		self:StopAttention()
 		HideQueue()
 		lastTop = nil

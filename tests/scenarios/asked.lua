@@ -1037,7 +1037,8 @@ do
 			return
 		end
 		local s = ns.db.profile.sources
-		s.owed, s.group, s.strangers, s.asked = false, false, false, true
+		-- Yourself off as well, which counts on its own (self.lua).
+		s.owed, s.group, s.strangers, s.asked, s.self = false, false, false, true, false
 		if not warning.hidden() then
 			fail(scenario, "with only requests on, the page says the prompt will never appear")
 		end
@@ -1109,6 +1110,53 @@ do
 		end
 		if not (label and label:find("(asked for it)", 1, true)) then
 			fail(scenario, "Who's next does not say Anna asked: " .. tostring(label))
+		end
+		noErrors(scenario, ns)
+	end)
+	restoreUnits()
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ asked 23
+-- A buff given to somebody who asked is filed in the ledger as asked for:
+-- listed, and left out of the day's count of buffs given unprompted. The
+-- ledger reads it off the press's record (Ledger.Settled), which never carried
+-- the reason, so every request answered was counted as a gift.
+Mock.reset()
+do
+	local scenario = "a buff given to somebody who asked is filed as asked"
+	local restoreUnits = strangers({ nameplate1 = { "Anna", "Aim" } })
+	with(scenario, {}, function()
+		local ns = load(scenario)
+		if not ns then return end
+		ready(ns, scenario)
+		ns.db.char.ledger = nil
+		ns.Ledger.Load()
+		hear(ns, "CHAT_MSG_SAY", "int pls", "Anna Aim", "Player-1-nameplate1")
+		ns.Prompt:Refresh()
+		local showing = ns.Prompt:Showing()
+		if not (showing and showing.name == "Anna Aim" and showing.reason == "asked") then
+			fail(scenario, "SKIPPED -- Anna is not on the prompt as somebody who asked")
+			return
+		end
+		local ran = H.pressButton(ns)
+		if not (ran and ns.pendingClick) then
+			fail(scenario, "SKIPPED -- the press on Anna did not go out")
+			return
+		end
+		ns.addon:UNIT_SPELLCAST_SENT(nil, "player", "Anna Aim", "Cast-asked-1", 1459)
+		local s = ns.db.char.ledger
+		local row = s and s.entries[#s.entries]
+		if not (row and row.kind == "given" and row.name == "Anna Aim") then
+			fail(scenario, "SKIPPED -- the press filed no given row under Anna")
+			return
+		end
+		if row.asked ~= true then
+			fail(scenario, "the buff Anna asked for was filed as given unprompted")
+		end
+		local sum = ns.Ledger.Summary()
+		if sum.given ~= 0 then
+			fail(scenario, "the buff Anna asked for counts among today's " .. tostring(sum.given) .. " given unprompted")
 		end
 		noErrors(scenario, ns)
 	end)

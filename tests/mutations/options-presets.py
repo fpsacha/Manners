@@ -30,8 +30,8 @@ mutate("Options.lua",
 
 # A Who choice writing the group settings again, as the raid one did.
 mutate("Options.lua",
-       "\t\t[\"filters.whenBuffed\"] = \"refresh\",\n\t} },\n",
-       "\t\t[\"filters.whenBuffed\"] = \"refresh\", [\"groupBuffs.use\"] = true,\n\t} },\n",
+       "\t\t[\"filters.whenBuffed\"] = \"refresh\",\n\t}, applyOnly",
+       "\t\t[\"filters.whenBuffed\"] = \"refresh\", [\"groupBuffs.use\"] = true,\n\t}, applyOnly",
        "presets: raid turns group buffs back on",
        expect="switched group buffs or a priority back on", script=S)
 
@@ -273,3 +273,20 @@ mutate("Options.lua",
        "\treturn true\n",
        "setup: the key bindings button with no way there",
        expect="a client with no way to the key bindings offers the button", script=S)
+
+# "In character" back to thanks only: its lines for strangers, requests and the
+# group never heard, and a passer-by buffed in silence.
+mutate("Options.lua",
+       '\t\t\t["speech.onlyWhenReturning"] = false, ["prompt.thankEmote"] = false,\n',
+       '\t\t\t["speech.onlyWhenReturning"] = true, ["prompt.thankEmote"] = false,\n',
+       "In character speaks only when returning",
+       expect="presets: In character speaks when you buff a stranger",
+       script="runscenarios.py")
+
+# The switch left on What I say only.
+mutate("Options.lua",
+       "\t\t\t\thidden = function() return noClassBuffs() or not SP().enabled end,\n",
+       "\t\t\t\thidden = function() return true end,\n",
+       "Start here without the returning switch",
+       expect="presets: In character speaks when you buff a stranger",
+       script="runscenarios.py")

@@ -306,12 +306,12 @@ do
 			or quick.WhoSummary():find("passers-by", 1, true) then
 			fail(scenario, "the summary does not follow the preset: " .. quick.WhoSummary())
 		end
-		db.sources.owed, db.sources.group = false, false
+		db.sources.owed, db.sources.group, db.sources.self = false, false, false
 		if not quick.WhoSummary():find("nobody", 1, true) then
 			fail(scenario, "with every source off the summary does not say nobody: "
 				.. quick.WhoSummary())
 		end
-		db.sources.owed, db.sources.group = true, true
+		db.sources.owed, db.sources.group, db.sources.self = true, true, true
 
 		quick.Apply(quick.VOICE, "silent")
 		if quick.VoiceSummary() ~= "Silent." then
@@ -386,6 +386,9 @@ do
 	if ns then
 		local quick = ns.QuickSetup
 		local db = ns.db.profile
+		-- Yourself off, so the sentence names only the people who buff
+		-- you; tests/scenarios/self.lua reads it with you in.
+		db.sources.self = false
 		quick.Apply(quick.WHO, "favours")
 		local who = quick.WhoSummary()
 		if who ~= "Offering to: people who buff me." then
@@ -701,5 +704,50 @@ do
 		rawset(_G, "ShowMacroFrame", nil)
 		ns.CloseOptions = realClose
 		noErrors(scenario, ns)
+	end
+end
+
+-- ------------------------------------------------------------------ voice 4
+-- "In character" speaks to everybody it buffs. Picked on Start here it used to
+-- switch "Only when I buff someone back" on, so its lines for a request, a
+-- stranger or the group were never heard: a player picked it, buffed a
+-- passer-by, and their character said nothing. The thank-you choices still
+-- speak only when returning a favour, and the switch itself sits under the
+-- choice on Start here, where the player just made it.
+do
+	local scenario = "presets: In character speaks when you buff a stranger"
+	Mock.reset()
+	local restore = H.strangers({ nameplate1 = { "Munin", "Hugins" } })
+	local ns = load(scenario)
+	if ns then
+		H.freshPrompt(ns, scenario)
+		local quick = ns.QuickSetup
+		local sp = ns.db.profile.speech
+		if not (ns.InCharacter and quick.Find(quick.VOICE, "incharacter")) then
+			fail(scenario, "SKIPPED -- there is no In character choice")
+		else
+			quick.Apply(quick.VOICE, "incharacter")
+			if sp.onlyWhenReturning ~= false then
+				fail(scenario, "In character switched Only when I buff someone back on")
+			end
+			ns.Prompt:InvalidateMacro()
+			ns.addon:Tick()
+			local text = ns.Prompt:GetButton():GetAttribute("macrotext1")
+			if not (text and text:find("/cast", 1, true)) then
+				fail(scenario, "SKIPPED -- nobody is on the prompt: " .. tostring(text))
+			elseif not text:find("\n/say ", 1, true) then
+				fail(scenario, "a press on a passer-by says nothing: "
+					.. (tostring(text):gsub("\n", " / ")))
+			end
+			local toggle = ns.optionsTable.args.general.args.onlyWhenReturning
+			if not toggle or toggle.hidden() then
+				fail(scenario, "Start here has no Only when I buff someone back under the choice")
+			end
+			quick.Apply(quick.VOICE, "polite")
+			if sp.onlyWhenReturning ~= true then
+				fail(scenario, "A polite line speaks to everybody you buff")
+			end
+		end
+		restore()
 	end
 end

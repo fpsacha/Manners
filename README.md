@@ -23,6 +23,11 @@ In a dungeon or a raid it keeps the group topped up: one group cast for a
 whole party when you carry the reagent, your group first at a ready check and
 after a wipe, and only the raid groups you were given.
 
+It looks after you too. When you are missing your own buff, or one your class
+casts only on itself (a mage's armor, a priest's Inner Fire, a paladin's aura,
+a hunter's aspect, a shaman's shield), "You" comes up on the same prompt and
+one press puts it on you.
+
 Built for **WoW Forever** (Interface 16001), and shipped for that client only.
 
 ## How sure is it
@@ -35,7 +40,8 @@ a mock agrees with whoever wrote it.
 |---|---|
 | **Mage** | cast in game, repeatedly, against real players |
 | Priest, Druid, Paladin, Warlock, Warrior | implemented, spell data corroborated against other addons on this client, every cast path exercised by the suite, **never cast in game** |
-| Hunter, Rogue, Shaman | nothing to cast on another player, and Manners says so rather than looking broken |
+| Hunter, Shaman | nothing to cast on another player; their own buffs (aspects, Trueshot Aura, Lightning and Water Shield) are implemented the same way, **never cast in game** |
+| Rogue | nothing to cast, and Manners says so rather than looking broken |
 
 Getting one spell to cast on this client took ten attempts. Every class uses
 that same path, but "the tests pass" is not "somebody used it". If you play
@@ -45,7 +51,9 @@ either way: **"it worked"** is the report that moves a class off this list.
 
 The dungeon and raid features new in 1.1 (group buffs, ready checks, the
 just-revived, raid groups and the mana floor) have been tested the same way,
-against the mock, and not yet in a real group, whatever the class.
+against the mock, and not yet in a real group, whatever the class. Buffing
+yourself, new in 1.2, has been tested the same way: nobody has cast it in
+game yet, not even on a mage.
 
 Retail, Mists Classic and Classic Era are implemented too, but nobody working
 on this can launch those clients, so they are not shipped.
@@ -105,8 +113,10 @@ Everybody who could use your buff is queued, in this order:
    can still name them for you. The favour survives a reload or a
    disconnect.
 4. **Somebody who asked for it in chat**, if you switch that on (see below).
-5. **Your party or raid**, anyone missing your buff.
-6. **Passers-by** missing your buff, seen through nameplates, your target,
+5. **You**, when you are missing your own buff or one of your class's own
+   (see *Buffing yourself* below).
+6. **Your party or raid**, anyone missing your buff.
+7. **Passers-by** missing your buff, seen through nameplates, your target,
    your focus and your mouseover.
 
 It skips the dead, the out-of-range, anyone you just tried, and anyone the buff
@@ -115,6 +125,45 @@ does nothing for (Arcane Intellect is wasted on a rogue).
 **On the prompt:** left-click (or your key) casts. **Right-click** skips that
 person for now without marking their favour repaid. **Shift-right-click** puts
 them on the never-offer list.
+
+**Buffing yourself.** When you are missing the buff you give others, "You"
+comes up on the prompt with "your own Arcane Intellect" under it, and a press
+casts it on you and hands your target back: nothing is said, and nothing goes
+in the ledger. With it come the buffs your class casts only on itself, once
+you have learned them: a mage's armor, a priest's Inner Fire, a warlock's
+Demon Skin or Armor, a paladin's aura and Righteous Fury, a hunter's aspect
+and Trueshot Aura, a shaman's shield, a druid's Omen of Clarity (the full list
+is under *Which buffs each class offers*).
+
+- One at a time, your buff for others first: a mage missing both is offered
+  Arcane Intellect, then the armor.
+- Only when **none** of a kind is up, so the armor, aura or aspect you chose
+  is never swapped for another. Only yours count: another paladin's aura on
+  you does not stop the reminder.
+- Where your class has several of one kind, you pick one, or leave it on
+  *Automatic*, which reminds you of the one you had up last (read from your
+  own buffs, even if you changed it in a fight or in town). Until you have had
+  one up, a mage gets Mage Armor in a dungeon or raid and Frost or Ice Armor
+  elsewhere, a paladin Devotion Aura and a hunter Aspect of the Hawk.
+  Automatic never picks the Cheetah or the Pack, but with either up you are
+  not reminded. Righteous Fury on Automatic waits until your group role is
+  tank.
+- Never in a fight, and not in cities and inns unless you tick *Also in
+  cities and inns*; that goes for your buff for others too. Nothing is offered
+  while the game says the spell cannot be cast (a druid in cat form, a priest
+  in Shadowform, a mage out of mana).
+- With *Offer a top-up when it runs low*, a buff with a timer is also offered
+  when it is running out; an aura or an aspect never is.
+- *Save mana* never holds you back, and nor does *Raid groups I buff*. In a
+  party you count towards a group buff, and the group cast covers you.
+- A warrior's Battle Shout already covers the warrior and nobody needs Unending Breath
+  on dry land, so neither is offered to you. A paladin wearing one of their
+  own blessings is not offered another.
+- Right-click "You" to skip it for now. Shift-right-click switches *Myself*
+  off, since the never-offer list is for other people, and chat says where to
+  switch it back on.
+- `/manners debug` and the Diagnostics tab say which of your own buffs is up,
+  which is due, and why one is not being offered.
 
 **Group buffs.** Once you know the group version of your buff (Arcane
 Brilliance, Prayer of Fortitude, Prayer of Spirit, Prayer of Shadow
@@ -149,11 +198,11 @@ learned a group buff and carry its reagent.
   their members are offered only if they buffed you, asked, or you target or
   focus them. `/manners debug` lists the groups still ticked, even outside a
   raid, so you can check before the pull.
-- *Save mana: stop below (% mana)*, off by default: below it, only people who
-  buffed you or asked are offered, and your group, your target and passers-by
-  wait until your mana is 5 points above it, so the prompt does not flicker
-  between casts. The tooltip, a press on the empty prompt and `/manners
-  debug` say when they come back.
+- *Save mana: stop below (% mana)*, off by default: below it, only your own
+  buffs and people who buffed you or asked are offered, and your group, your
+  target and passers-by wait until your mana is 5 points above it, so the
+  prompt does not flicker between casts. The tooltip, a press on the empty
+  prompt and `/manners debug` say when they come back.
 - Inside a raid the "buffed you" chat line is not printed, and in a dungeon
   it waits out the fight. The favour is still noticed and offered.
 
@@ -275,9 +324,13 @@ themselves; this is what their tooltips no longer have room for.
   defaults); or *My group, kept topped up (dungeons and raids)*, which also
   offers a top-up when a buff runs low. Each sets a few switches on *Who to
   buff* and *When to offer*, and the grey line under it says what they add up
-  to. It never touches *People who ask me in chat*, the group buffs or who
-  comes first. When the switches match none of the four, it reads *Custom
-  (changed by hand)*.
+  to. *Only people who buff me* also switches *Myself* off, and the other three
+  switch it on. It never touches *People who ask me in chat*, the group buffs
+  or who comes first. When the switches match none of the four, it reads
+  *Custom (changed by hand)*. A hunter or a shaman, with nothing to give
+  anybody else, gets no choice here, just a line naming the buffs of their own
+  the prompt reminds them of; steps 2 and 3 and the snooze are the same for
+  them, and step 4 is left out.
 - *2. Put it on a key*: the key is saved with your game key bindings, so it
   follows every profile. *Make a macro* also opens the macro window, so the
   macro is there to drag. The line under them says whether you are ready.
@@ -322,6 +375,17 @@ settings into a profile named after this one.
   nothing can measure, everybody in casting range is offered.
 - *Only in cities and inns*: off by default. Out in the world passers-by are
   left alone; everybody else is still offered.
+- *Myself* (see *Buffing yourself* above): *Myself, when I'm missing my own
+  buff*, on by default, switches everything on yourself on or off. Under it,
+  one control for each of your class's own buffs you have learned: a
+  drop-down where there is a choice (a mage's *Armor*, a paladin's *Aura*, a
+  hunter's *Aspect*, a shaman's *Shield*) with *Automatic*, each spell you
+  know and *Don't remind me*, and a checkbox for a buff on its own. Automatic
+  says what it would pick right now, such as *Automatic (Mage Armor, the one
+  you had up last)*. Righteous Fury's is *Automatic (only while I'm the
+  tank)*, *Always* or *Don't remind me*. Last, *Also in cities and inns*, off
+  by default. A warrior or a rogue, with nothing to put on himself alone,
+  does not see this part; a hunter or a shaman sees only this part of the tab.
 - *My group and raid*: *Use group buffs* and *When this many need it* (see
   *Group buffs* above), with how many reagents are in your bags, shown only
   to classes with a group buff; and *Raid groups I buff*.
@@ -344,11 +408,14 @@ settings into a profile named after this one.
 
 - *If they already have it*: *Skip them*, *Offer a top-up when it runs low*
   (then *Top up when less than this is left (minutes)*), or *Always offer*.
-  Somebody who buffed you is offered the favour back whichever you pick.
+  Somebody who buffed you is offered the favour back whichever you pick. Your
+  own buffs are always read, so you are never offered one you are wearing;
+  a top-up reaches them too, but never an aura or an aspect.
 - *Hide the prompt while I'm mounted*: dead, on a flight path or in a vehicle
   the prompt already stays away, because nothing can be cast there.
 - *Save mana: stop below (% mana)*: 0 is off (see *Dungeons and raids*
-  above). Classes without mana do not see it.
+  above). Classes without mana do not see it, and nor do hunters and shamans,
+  whose prompt is for their own buffs alone.
 
 **What I say.**
 
@@ -423,11 +490,12 @@ restores this tab without moving the prompt.
   somebody already your target, who stays targeted. The macro armed when a
   fight starts keeps `/targetlasttarget` for everybody until it ends.
 - *Exact position* and *Prompt wording*: the prompt's place in numbers, and
-  what its two lines say.
+  what its two lines say (*Reason text: my own buff* is the line under
+  "You").
 
 **Diagnostics.** *Log every click (noisy)*, what your class has and whether
-the game lets addons read each buff, what has broken this session, and *Copy
-for a bug report*. "This client doesn't know spell N" means Manners cannot see
+the game lets addons read each buff, what *Myself* is doing and why, what has
+broken this session, and *Copy for a bug report*. "This client doesn't know spell N" means Manners cannot see
 that version on anyone, which only affects telling whether somebody already
 carries it.
 
@@ -524,6 +592,23 @@ once they have learned it and carry its reagent: Arcane Brilliance (Arcane
 Powder), the three Prayers (Sacred Candle), Gift of the Wild (Wild Berries or
 Wild Thornroot, by rank) and the Greater Blessings (Symbol of Kings). Thorns
 has none.
+
+**On yourself.** With *Myself* on, you are offered the buff you give others
+too, except Battle Shout (it already covers you) and Unending Breath (nobody
+needs it on dry land). And these, which your class casts only on itself, once
+you have learned them:
+
+| Class | Your own buffs |
+|---|---|
+| Mage | *Armor*: Frost Armor (Ice Armor from level 30) or Mage Armor |
+| Priest | Inner Fire; Touch of Weakness and Shadowguard, if you have learned them |
+| Warlock | Demon Skin (Demon Armor from level 20) |
+| Paladin | *Aura*: Devotion, Retribution, Concentration, Shadow, Frost or Fire Resistance; and Righteous Fury |
+| Hunter | *Aspect*: Hawk, Monkey, Wild or Beast (Cheetah and Pack count as up, but are never suggested); and Trueshot Aura |
+| Shaman | *Shield*: Lightning Shield or Water Shield |
+| Druid | Omen of Clarity |
+
+Warriors and rogues have nothing of their own to be reminded of.
 
 ## Why a button and not automatic
 

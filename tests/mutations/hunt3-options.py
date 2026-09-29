@@ -100,7 +100,7 @@ mutate("Options.lua",
 # ------------------------------------------------------------------ review-2
 # The lock alone, where nothing castable or /manners off keeps the panel down.
 mutate("Options.lua",
-       "\t\tand ns.caps ~= nil and ns.caps.anyKnown == true\n",
+       "\t\tand ns.caps ~= nil and ns.CanCastAnything()\n",
        "\t\tand true\n",
        "hunt3-options: drag panel with nothing to cast",
        expect="a rogue, unlocked, is told there is a prompt to drag", script=S)

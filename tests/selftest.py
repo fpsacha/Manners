@@ -2332,7 +2332,7 @@ mutate("tests/mockapi.lua",
 # anything -- so this states a guess as a fact on the one screenful somebody
 # reads before deciding whether to keep the addon.
 mutate("Commands.lua",
-       "\tif not (caps.hasClassBuffs or nothingToGive) then return false end",
+       "\tif not (caps.hasClassBuffs or nothingToGive or ownOnly) then return false end",
        "\tif false then return false end",
        "greeting a character it could not read",
        expect="an unknown class is not told it has nothing",
@@ -2470,7 +2470,7 @@ mutate("Options.lua",
 # and a class with nothing to cast is where the Snooze heading would be alone.
 mutate("Options.lua",
        """				type = "header", name = L["Snooze"], order = 50,
-				hidden = noClassBuffs,
+				hidden = noPrompt,
 """,
        """				type = "header", name = L["Snooze"], order = 50,
 """,
@@ -2838,8 +2838,8 @@ mutate("Core.lua",
 
 # And greeted with a tour of a prompt that will never appear.
 mutate("Commands.lua",
-       "\tif caps.anyKnown and not ns.ResolveBuff(true) then\n",
-       "\tif false then\n",
+       "\tlocal othersOff = caps.anyKnown and not ns.ResolveBuff(true)\n",
+       "\tlocal othersOff = false\n",
        "a greeting promising a prompt nothing fills",
        expect="the greeting promised a prompt nothing will ever fill",
        script="runscenarios.py")
@@ -3137,7 +3137,8 @@ mutate("Clicks.lua",
 # An abandoned press announced as "was not buffed", though nothing says so.
 mutate("Clicks.lua",
        '\tSayStillOwed(pending.name, L["another press arrived before the game answered that one"],\n'
-       '\t\tL["no answer yet for the press on |cffffffff%s|r -- another press arrived first."])\n',
+       '\t\tL["no answer yet for the press on |cffffffff%s|r -- another press arrived first."],\n'
+       '\t\tL["no answer yet for the press on yourself -- another press arrived first."])\n',
        '\tSayStillOwed(pending.name, L["another press arrived before the game answered that one"])\n',
        "an unanswered press called a miss",
        expect="a press the game had not answered yet was announced as a miss",
@@ -3532,8 +3533,8 @@ mutate("Options.lua",
 # "If they already have the buff" silent about the favour exception...
 mutate("Options.lua",
        "L[\"Someone who buffed you is always offered a buff back; Diagnostics shows"
-       " which buffs Manners can see on others.\"],\n",
-       "L[\"Diagnostics shows which buffs Manners can see on others.\"],\n",
+       " which buffs Manners can see on others.\"]\n",
+       "L[\"Diagnostics shows which buffs Manners can see on others.\"]\n",
        "already-buffed dropdown hides the favour exception",
        expect="the dropdown's description never says somebody who buffed you",
        script="runscenarios.py")

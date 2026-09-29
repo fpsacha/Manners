@@ -1934,6 +1934,10 @@ ns = load("the client is asked once, not once per token")
 if ns then
 	drive("the client is asked once, not once per token", ns)
 	Mock.advance(60)
+	-- The count is of the person in front of you. Your own reading is cached
+	-- apart and forgotten by your own UNIT_AURA, which tests/scenarios/self.lua
+	-- holds to the same rule.
+	ns.db.profile.sources.self = false
 	-- Two nameplates on top of target/mouseover/focus, all the same person.
 	ns.nameplateUnits["nameplate1"] = true
 	ns.nameplateUnits["nameplate2"] = true
@@ -5827,11 +5831,12 @@ if ns then
 			fail(scenario, "the empty-sources warning is showing with the sources switched on")
 		end
 		local s = ns.db.profile.sources
-		s.owed, s.group, s.strangers = false, false, false
+		-- Yourself too: with only it on, the prompt still appears (self.lua).
+		s.owed, s.group, s.strangers, s.self = false, false, false, false
 		if warning.hidden() then
 			fail(scenario, "all three sources are off and the page says nothing")
 		end
-		s.owed, s.group, s.strangers = true, true, true
+		s.owed, s.group, s.strangers, s.self = true, true, true, true
 	end
 
 	-- 2. the addon itself off
