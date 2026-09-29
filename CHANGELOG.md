@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Buttons and drop-downs on the options page are now as wide as their words,
+  so "Put these back to default" and "Above the action bars (default)" are no
+  longer cut off with "...", in English or in the longer translations.
+
 ## 1.1.1
 
 - **Fixed: the prompt for somebody nearby vanished before you could click
