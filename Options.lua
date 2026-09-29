@@ -2766,13 +2766,23 @@ local function BuildDiagnosticsTab()
 	}
 end
 
--- The Profiles tab: AceDBOptions' own table, with the share boxes added to it.
--- The library's strings and orders are its own; ours start at 100.
+-- The Profiles tab: AceDBOptions' own table, with a line on what a profile is
+-- above it and the share boxes added under it. The library's strings and
+-- orders are its own; the intro sits at 0.5, above its `desc` (order 1), and
+-- the share boxes start at 100.
 local function BuildProfilesTab()
 	local t = AceDBOptions:GetOptionsTable(ns.db)
 	t.order = 90
 	t.args = t.args or {}
 	for key, option in pairs({
+		-- What a profile is for, in the player's words, before the
+		-- library's own paragraph: most players never need a second one.
+		profilesIntro = {
+			type = "description",
+			order = 0.5,
+			fontSize = "medium",
+			name = L["Every character uses the Default profile unless you pick another here; make one per character for different settings."],
+		},
 		-- Two boxes rather than one that does both: a box that shows
 		-- your settings and also applies whatever is typed into it
 		-- is one stray keypress from replacing them.
@@ -2781,16 +2791,14 @@ local function BuildProfilesTab()
 			type = "description",
 			order = 101,
 			fontSize = "medium",
-			name = L["Copy these settings as one line of text, or paste one you were given."]
-				.. " "
-				.. L["A paste leaves your on switch, lock, prompt position, click log and minimap button alone. It never switches on speaking, and while speaking is on, what you say and where stays yours."],
+			name = L["Copy your settings as text to share, or paste text someone gave you. Pasting keeps your own on/off, lock, position, minimap button and chat options, and never turns on Say a line."],
 		},
 		shareCopy = {
 			type = "execute",
 			name = function()
 				return shareOpen and L["Hide the text"] or L["Show my settings as text"]
 			end,
-			desc = L["Shows these settings as one line of text in a box below, ready to select and copy. %s opens it too."]
+			desc = L["Shows your settings as text below, ready to copy; %s does the same."]
 				:format("|cffffd100/manners export|r"),
 			order = 102,
 			func = function()
@@ -2814,8 +2822,8 @@ local function BuildProfilesTab()
 		},
 		sharePaste = {
 			type = "input",
-			name = L["Paste settings to use them"],
-			desc = L["Replaces the settings on this profile with the ones in the text. %s puts yours back."]
+			name = L["Paste settings here, then press Accept"],
+			desc = L["Replaces this profile's settings; %s puts yours back."]
 				:format("|cffffd100/manners import undo|r"),
 			order = 104,
 			multiline = 3,
