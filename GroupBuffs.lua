@@ -179,6 +179,12 @@ end
 -- Which of a party the macro aims at: the one the queue ranks highest, then
 -- somebody measured in range, then by name so the choice holds still.
 local function Better(a, b)
+	-- Never you while anybody else is in reach. You count towards the
+	-- threshold and the cast covers you, but it is aimed at one of the others,
+	-- so the macro, the spoken line and the ledger are about a person as they
+	-- always were, and nothing a press on yourself leaves out (Clicks.lua,
+	-- SettleSelf) is left out of a group cast.
+	if (a.reason == "self") ~= (b.reason == "self") then return b.reason == "self" end
 	if a.priority ~= b.priority then return a.priority < b.priority end
 	if (a.ranged == true) ~= (b.ranged == true) then return a.ranged == true end
 	return (a.name or "") < (b.name or "")
@@ -212,6 +218,9 @@ local function Build(bucket, byClass, inRaid, ownSubgroup)
 		if entry.ranged ~= false and (not anchor or Better(entry, anchor)) then anchor = entry end
 	end
 	if not anchor then return nil end
+	-- Only you in reach (see Better): a reagent spent on yourself alone,
+	-- which the single buff does for nothing.
+	if anchor.reason == "self" then return nil end
 
 	if byClass then
 		local offered = {}
@@ -287,7 +296,10 @@ function ns.GroupCasts(queue, db, candidates, inRaid)
 		local buff = entry.buff
 		local r = buff and ready[buff.key]
 		-- Only people read through a unit token in the group: the tokenless
-		-- favours have no party anybody can name.
+		-- favours have no party anybody can name. You among them, when you are
+		-- missing it too: your own entry (Queue.lua) holds the "player" token,
+		-- which the party's tokens never do, and the group version lands on
+		-- the caster as on the rest of the party (or class).
 		if r and entry.unit and entry.inGroup then
 			local where
 			if byClass then

@@ -390,6 +390,19 @@ local function OnlyReachesGroup()
 	return ns.OnlyReachesGroup()
 end
 
+-- Whether nothing this character can offer goes on themselves -- a warrior,
+-- whose shout already covers him -- which leaves "Myself" with nothing behind
+-- it. Follows the per-spell switches, as the scan does (ns.SelfBuffs).
+local function NothingForSelf()
+	return #ns.SelfBuffs() == 0
+end
+
+-- Whether "Myself" is on and has something to offer: read by the warning that
+-- nothing is ticked and by the summary on Start here, so they agree.
+local function OffersSelf()
+	return S().self == true and not NothingForSelf()
+end
+
 -- Whether nothing this character can offer takes a target at all -- a warrior,
 -- whose Battle Shout is cast on himself. CastLines builds no /target line for a
 -- selfCast buff, so the Targeting section has nothing to say. Follows the
@@ -468,10 +481,11 @@ local function BugReport()
 	-- The settings that change what it does, rather than how it looks. A report
 	-- that leaves these out is a report about the defaults.
 	local db = ns.db.profile
-	lines[#lines + 1] = ("enabled=%s buff=%s sources owed/group/strangers=%s/%s/%s"
+	lines[#lines + 1] = ("enabled=%s buff=%s sources owed/group/strangers/self=%s/%s/%s/%s"
 		.. " whenBuffed=%s targetFirst=%s keepDebts=%s"):format(
 		tostring(db.enabled), tostring(db.buff.choice),
 		tostring(db.sources.owed), tostring(db.sources.group), tostring(db.sources.strangers),
+		tostring(db.sources.self),
 		tostring(db.filters.whenBuffed), tostring(db.priority.target),
 		tostring(db.timing.keepDebts))
 	-- Who is ordered and who is held back: "my friend is never offered" is most
@@ -921,6 +935,9 @@ function Quick.WhoSummary()
 		end
 		who[#who + 1] = about and L["passers-by within %s"]:format(about) or L["passers-by"]
 	end
+	-- Last, as the queue ranks you behind every favour and request.
+	local own = OffersSelf()
+	if own then who[#who + 1] = L["myself"] end
 	local list = #who > 0 and table.concat(who, ", ") or L["nobody"]
 	local buffed = f.whenBuffed == "refresh" and L["topped up when low"]
 		or f.whenBuffed == "always" and L["offered anyway"]
@@ -928,7 +945,8 @@ function Quick.WhoSummary()
 	local text
 	if s.owed and not (s.group or s.asked or (s.strangers and not ns.OnlyReachesGroup())) then
 		-- Favours only: BuildQueue offers a favour back whatever they carry,
-		-- so "already buffed" has nobody to be about.
+		-- so "already buffed" has nobody to be about. Yourself included:
+		-- yours is offered only once it is missing, which the list says.
 		text = L["Offering to: %s."]:format(list)
 	else
 		text = L["Offering to: %s. Already buffed: %s."]:format(list, buffed)
@@ -1611,9 +1629,11 @@ local function BuildWhoTab()
 				order = 10.5,
 				hidden = function()
 					local s = S()
-					-- A source this class cannot use (passers-by, for a warrior)
-					-- does not count as switched on: its toggle is hidden.
+					-- A source this class cannot use (passers-by, or yourself,
+					-- for a warrior) does not count as switched on: its toggle
+					-- is hidden.
 					return s.owed or s.group or s.asked or (s.strangers and not OnlyReachesGroup())
+						or OffersSelf()
 				end,
 				name = "|cffff8080"
 					.. L["Nothing is ticked here, so the prompt will never appear."] .. "|r",
@@ -1703,6 +1723,19 @@ local function BuildWhoTab()
 				desc = L["For a minute, offer your buff to someone who asks for it (\"fort pls\"); off by default because chat is guesswork."],
 				order = 14,
 				width = "full",
+				get = sGet,
+				set = sSet,
+			},
+			-- You, last, as the queue ranks you: behind favours and requests,
+			-- ahead of your group. Hidden, not disabled, like the passer-by
+			-- switch: nothing on this page makes a shout go on you alone.
+			self = {
+				type = "toggle",
+				name = L["Myself, when I'm missing my own buff"],
+				desc = L["Offer your own buff to you too, when you are missing it or, with top-ups on, it is running low. It is cast on you, with no target and nothing said."],
+				order = 15,
+				width = "full",
+				hidden = NothingForSelf,
 				get = sGet,
 				set = sSet,
 			},
@@ -2875,6 +2908,7 @@ local function BuildAdvancedTab()
 		{ "prompt", "reasonTarget" },
 		{ "prompt", "reasonOwed" },
 		{ "prompt", "reasonAsked" },
+		{ "prompt", "reasonSelf" },
 		{ "prompt", "reasonGroup" },
 		{ "prompt", "reasonNearby" },
 		{ "prompt", "reasonRefresh" },
@@ -3086,6 +3120,15 @@ local function BuildAdvancedTab()
 				name = L["Reason text: asked in chat"],
 				desc = L["Shown for someone who asked in chat."],
 				order = 55,
+				get = pGet,
+				set = pSet,
+			},
+			-- Between the two it sits between in the queue.
+			reasonSelf = {
+				type = "input",
+				name = L["Reason text: my own buff"],
+				desc = L["Shown when the prompt offers you your own buff."],
+				order = 55.5,
 				get = pGet,
 				set = pSet,
 			},
@@ -3426,16 +3469,17 @@ local TOOLTIP_QUEUE_ROWS = 3
 
 -- Picks the line for why somebody is being offered a buff.
 --
--- The caller writes out all five lines, one whole sentence per reason, rather
+-- The caller writes out all six lines, one whole sentence per reason, rather
 -- than slotting a word for the reason into one sentence: "buffed you" slotted
 -- into three different sentences is a word a translation has to make agree
 -- with a subject it never sees.
-local function ByReason(entry, owed, group, target, nearby, asked)
+local function ByReason(entry, owed, group, target, nearby, asked, own)
 	local reason = entry and entry.reason
 	if reason == "owed" then return owed end
 	if reason == "group" then return group end
 	if reason == "target" then return target end
 	if reason == "asked" then return asked end
+	if reason == "self" then return own end
 	return nearby
 end
 
@@ -3607,7 +3651,8 @@ local function FillLauncherTooltip(tooltip)
 					L["On the prompt: |cffffffff%s|r -- %s, in your group"],
 					L["On the prompt: |cffffffff%s|r -- %s, your target"],
 					L["On the prompt: |cffffffff%s|r -- %s, nearby"],
-					L["On the prompt: |cffffffff%s|r -- %s, asked for it"]
+					L["On the prompt: |cffffffff%s|r -- %s, asked for it"],
+					L["On the prompt: |cffffffff%s|r -- %s, your own buff"]
 				):format(WhoIs(entry), WhatBuff(entry)), 1, 0.82, 0, true)
 			elseif i <= TOOLTIP_QUEUE_ROWS + (showing and 1 or 0) then
 				tooltip:AddLine(ByReason(entry,
@@ -3615,7 +3660,8 @@ local function FillLauncherTooltip(tooltip)
 					L["Next: |cffffffff%s|r -- %s, in your group"],
 					L["Next: |cffffffff%s|r -- %s, your target"],
 					L["Next: |cffffffff%s|r -- %s, nearby"],
-					L["Next: |cffffffff%s|r -- %s, asked for it"]
+					L["Next: |cffffffff%s|r -- %s, asked for it"],
+					L["Next: |cffffffff%s|r -- %s, your own buff"]
 				):format(WhoIs(entry), WhatBuff(entry)), 0.8, 0.8, 0.8, true)
 			end
 		end
@@ -3748,6 +3794,13 @@ local function SkipFromMenu(entry)
 	if onPrompt then ns.Prompt:StopAttention() end
 	-- Inside a sentence a group cast is "your party", not the panel's title.
 	local who = entry.groupCast and entry.groupCast.label or WhoIs(entry)
+	-- "You" is the panel's word, not a name to slot into a sentence. No word
+	-- about a fight: a press held there casts your own buff on you, harmless.
+	if entry.reason == "self" then
+		ns.addon:Print(L["skipping your own buff for now."])
+		ns.Guard("own buff repaint", ns.Prompt.Refresh, ns.Prompt)
+		return
+	end
 	if onPrompt and InCombatLockdown() then
 		ns.addon:Print(L["skipping |cffffffff%s|r for now -- but the prompt cannot move off them in a fight, and a press still casts at them."]
 			:format(who))
@@ -3768,6 +3821,12 @@ local function NeverFromMenu(entry)
 	if ns.SkipGroupCast then ns.SkipGroupCast(entry) end
 	local showing = ns.Prompt.Showing and ns.Prompt:Showing()
 	if showing and showing.name == entry.name then ns.Prompt:StopAttention() end
+	-- Never for yourself is the switch, as a shift-right-press makes it.
+	if entry.reason == "self" then
+		ns.StopOfferingSelf()
+		ns.Guard("own buff repaint", ns.Prompt.Refresh, ns.Prompt)
+		return
+	end
 	-- Says the fight's warning itself and repaints the prompt, for every route
 	-- onto the list alike, so nothing is said here as well.
 	ns.PutOnNeverList(entry.name)
@@ -3832,14 +3891,16 @@ local function FillWhoIsNext(parent)
 				L["%s -- %s (in your group), on the prompt"],
 				L["%s -- %s (your target), on the prompt"],
 				L["%s -- %s (nearby), on the prompt"],
-				L["%s -- %s (asked for it), on the prompt"])
+				L["%s -- %s (asked for it), on the prompt"],
+				L["%s -- %s (your own buff), on the prompt"])
 		else
 			label = ByReason(entry,
 				L["%s -- %s (buffed you)"],
 				L["%s -- %s (in your group)"],
 				L["%s -- %s (your target)"],
 				L["%s -- %s (nearby)"],
-				L["%s -- %s (asked for it)"])
+				L["%s -- %s (asked for it)"],
+				L["%s -- %s (your own buff)"])
 		end
 		local person = parent:CreateButton(label:format(WhoIs(entry), WhatBuff(entry)))
 		person:CreateButton(L["Skip for now"], Act(function() SkipFromMenu(entry) end))

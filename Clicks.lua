@@ -50,6 +50,10 @@ local function SayStillOwed(name, why, unknown)
 		addon:Print(L["|cffff8080%s is still owed|r -- %s."]:format(name, why))
 	elseif unknown then
 		addon:Print(unknown:format(name))
+	elseif ns.IsPlayerName(name) then
+		-- A press on yourself: your name in the third person reads as somebody
+		-- else who shares it.
+		addon:Print(L["|cffff8080you were not buffed|r -- %s."]:format(why))
 	else
 		addon:Print(L["|cffff8080%s was not buffed|r -- %s."]:format(name, why))
 	end
@@ -280,7 +284,9 @@ local function SettleGroup(pending, spellId, anchorOwed)
 	local givenAs
 	if anchorOwed then
 		for _, record in ipairs(records) do
-			if not record.owed then
+			-- Never under your own name: the cast covered you too, but a buff
+			-- on yourself is no gift to anybody (see SettleSelf).
+			if not record.owed and not ns.IsPlayerName(record.name) then
 				givenAs = record.name
 				TellLedger("Settled", givenAs, nil, covered, spellId)
 				break
@@ -317,6 +323,32 @@ local function UnsettleGroup(settled)
 	SaveDebts()
 end
 
+-- A press on yourself ([@player]): there is nobody else it can have reached,
+-- so our spell going out is the whole answer. Nothing is filed. A buff on
+-- yourself is no favour returned and no gift, so the ledger (and with it the
+-- milestones and In character's memory of whom you have met), the favours
+-- owed and the requests are not told; the retry cooldown and the rotation
+-- pointer are, as for anybody. Kept for a late refusal like any settle, which
+-- finds no debt and no ledger row to take back, and backs you off as it
+-- would anybody the game keeps refusing.
+local function SettleSelf(pending, spellId, castGUID)
+	ns.pendingClick = nil
+	if not SpellIsOurs(spellId, pending.buffKey) then
+		local why = L["|cffffffff%s|r went out instead"]:format(SpellLabel(spellId))
+		SayStillOwed(pending.name, why)
+		RewindClick(pending)
+		ShowOutcome("failed", pending.name, (why:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")))
+		return
+	end
+	ShowOutcome("cast", pending.name)
+	ns.MarkAttempted(pending.name, pending.buffKey)
+	-- Behind the same gate as everybody's: a paladin's walk never reads it.
+	if ns.RotatesBuffs() and pending.buffKey then ns.lastGave[pending.name] = pending.buffKey end
+	RememberSettled({ name = pending.name, buffKey = pending.buffKey,
+		gave = pending.gave, at = GetTime(), castGUID = castGUID,
+		landed = true, onSelf = true })
+end
+
 local function SettlePendingClick(landedOn, spellId, castGUID)
 	local pending = ns.pendingClick
 	if not pending then return end
@@ -332,6 +364,8 @@ local function SettlePendingClick(landedOn, spellId, castGUID)
 	-- Inside the window, but too late to be this press's answer (SENT_SECONDS):
 	-- no evidence either way, so the sweep still owns the record.
 	if GetTime() - pending.at > SENT_SECONDS then return end
+
+	if pending.onSelf then return SettleSelf(pending, spellId, castGUID) end
 
 	local ours = SpellIsOurs(spellId, pending.buffKey)
 

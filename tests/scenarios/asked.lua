@@ -1037,7 +1037,8 @@ do
 			return
 		end
 		local s = ns.db.profile.sources
-		s.owed, s.group, s.strangers, s.asked = false, false, false, true
+		-- Yourself off as well, which counts on its own (self.lua).
+		s.owed, s.group, s.strangers, s.asked, s.self = false, false, false, true, false
 		if not warning.hidden() then
 			fail(scenario, "with only requests on, the page says the prompt will never appear")
 		end

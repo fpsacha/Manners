@@ -1384,6 +1384,18 @@ function addon:HandleSlash(rawInput)
 		-- The third source, which reads chat: listening or not, what it read and
 		-- set aside, and who is waiting.
 		for _, line in ipairs(ns.RequestLines()) do self:Print("  " .. line) end
+		-- And yourself, so a prompt that reads "You" is explained by a switch
+		-- rather than taken for the addon mistaking you for somebody else.
+		if not db.sources.self then
+			-- The switch by its own key, so a translation names the label
+			-- the window shows.
+			self:Print("  " .. L["your own buff: not offered -- %s is switched off."]
+				:format("|cffffd100" .. L["Myself, when I'm missing my own buff"] .. "|r"))
+		elseif #ns.SelfBuffs() == 0 then
+			self:Print("  " .. L["your own buff: nothing you cast goes on yourself alone."])
+		else
+			self:Print("  " .. L["your own buff: offered to you when you are missing it."])
+		end
 		-- Who the game keeps refusing, since they are missing from the prompt
 		-- with nothing else on screen to say why.
 		for _, line in ipairs(ns.RefusalLines(now)) do self:Print("  " .. line) end

@@ -137,6 +137,13 @@ function Mock.reset()
 	-- { [23028] = "secret" }. A refusal at the moment of reading, where
 	-- secretAuraIds is one the probe was told about in advance.
 	Mock.auraReadRefuse = nil
+	-- What the player is wearing of their own, as a set of spell ids, read by
+	-- the offer of your own buff (Queue.lua). nil is everything: a mage with
+	-- their own Intellect on, which is the ordinary evening, so no scenario
+	-- about other people finds the player queued ahead of them. {} is
+	-- nothing at all. playerHeldFor is how long theirs has left.
+	Mock.playerHeld = nil
+	Mock.playerHeldFor = nil
 	Mock.auraBlackout = false
 	Mock.noAuras = false
 	Mock.extraAura = false
@@ -1552,11 +1559,19 @@ setmetatable(_G, { __index = function(_, key)
 		local api = {
 			-- Mock.held is a set of spell ids the unit is carrying, so a
 			-- scenario can put somebody halfway through a buff set.
-			GetUnitAuraBySpellID = function(_, spellId)
+			GetUnitAuraBySpellID = function(unit, spellId)
 				Mock.counts.auraRead = Mock.counts.auraRead + 1
 				local refuse = Mock.auraReadRefuse and Mock.auraReadRefuse[spellId]
 				if refuse == "throw" then error("aura read refused for " .. tostring(spellId)) end
 				if refuse == "secret" then return SECRET end
+				-- The player's own, apart from everybody else's: see
+				-- Mock.playerHeld.
+				if unit == "player" then
+					local mine = Mock.playerHeld
+					if mine ~= nil and not mine[spellId] then return nil end
+					return { spellId = spellId, expirationTime = Mock.now + (Mock.playerHeldFor or 3600),
+						sourceUnit = "player" }
+				end
 				if Mock.held and Mock.held[spellId] then
 					return { spellId = spellId, expirationTime = Mock.now + (Mock.heldFor or 3600),
 						sourceUnit = Mock.heldSource and Mock.heldSource[spellId] or nil }

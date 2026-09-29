@@ -101,6 +101,12 @@ local function install(env)
 		GetUnitAuraBySpellID = function(unit, spellId)
 			-- A unit whose auras the client withholds, every one of them.
 			if env.unreadable and env.unreadable[unit] then return Mock.SECRET end
+			-- The player wears their own, as in the shared mock, unless the
+			-- scenario says what they carry: tests/scenarios/self.lua counts
+			-- them into a group cast.
+			if unit == "player" and env.held.player == nil then
+				return base.GetUnitAuraBySpellID(unit, spellId)
+			end
 			local carrying = env.held[unit]
 			local source = carrying and carrying[spellId]
 			if not source then return nil end

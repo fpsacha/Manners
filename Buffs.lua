@@ -18,6 +18,8 @@
 --   partyOnly reaches your party and nobody else.
 --   selfCast  cast on yourself, not on them, so the macro takes no target.
 --   neverAuto offerable, but never what "Automatic" reaches for.
+--   notSelf   the game will not let you cast it on yourself, so "Myself"
+--             (Queue.lua) never offers it to you.
 --   talent    learned from a talent, so not everybody of the class knows it.
 --             Data only: ns.AskedFor still turns away every ask from your own
 --             class, talent or not, until it is taught to read this.
@@ -333,6 +335,8 @@ local MAINLINE = {
 			ranks = { 369459 },
 			manaOnly = true,
 			talent = true,
+			-- It goes to another player, never the evoker casting it.
+			notSelf = true,
 		},
 	},
 

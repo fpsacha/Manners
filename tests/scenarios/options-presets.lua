@@ -306,12 +306,12 @@ do
 			or quick.WhoSummary():find("passers-by", 1, true) then
 			fail(scenario, "the summary does not follow the preset: " .. quick.WhoSummary())
 		end
-		db.sources.owed, db.sources.group = false, false
+		db.sources.owed, db.sources.group, db.sources.self = false, false, false
 		if not quick.WhoSummary():find("nobody", 1, true) then
 			fail(scenario, "with every source off the summary does not say nobody: "
 				.. quick.WhoSummary())
 		end
-		db.sources.owed, db.sources.group = true, true
+		db.sources.owed, db.sources.group, db.sources.self = true, true, true
 
 		quick.Apply(quick.VOICE, "silent")
 		if quick.VoiceSummary() ~= "Silent." then
@@ -386,6 +386,9 @@ do
 	if ns then
 		local quick = ns.QuickSetup
 		local db = ns.db.profile
+		-- Yourself off, so the sentence names only the people who buff
+		-- you; tests/scenarios/self.lua reads it with you in.
+		db.sources.self = false
 		quick.Apply(quick.WHO, "favours")
 		local who = quick.WhoSummary()
 		if who ~= "Offering to: people who buff me." then

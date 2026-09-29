@@ -164,6 +164,11 @@ local defaults = {
 			-- People who ask for your buff in chat. Off, because reading chat is
 			-- guesswork, so the player should choose it.
 			asked = false,
+			-- Yourself, when you are missing your own buff (or, with top-ups on,
+			-- running low). On: a buff on yourself costs nobody anything, reads
+			-- your own auras (which the game does not hide from you), and is
+			-- the one offer nobody could mind.
+			self = true,
 		},
 
 		-- The order of the queue, not who is on it.
@@ -287,6 +292,8 @@ local defaults = {
 			reasonGroup = L["in your group"],
 			reasonNearby = L["needs {buff}"],
 			reasonAsked = L["asked for it"],
+			-- Under "You" on the first line: which of your own buffs is off.
+			reasonSelf = L["your own {buff}"],
 			-- A top-up gets its own line rather than qualifying the player's
 			-- text. {time} is what their current aura has left.
 			reasonRefresh = L["expires in {time}"],
@@ -586,6 +593,26 @@ function ns.OnlyReachesGroup(castable)
 		if not buff.partyOnly then return false end
 	end
 	return true
+end
+
+-- Whether a buff can go on the caster. A shout (selfCast) is cast on you for
+-- your party and already covers you, so offering it to you alone would only
+-- nag a solo warrior every time it ran out; notSelf is a spell the game will
+-- not let you put on yourself (Buffs.lua).
+function ns.CastsOnSelf(buff)
+	return buff ~= nil and not buff.selfCast and not buff.notSelf
+end
+
+-- The buffs "Myself" can offer, out of CastableBuffs' answer (asked here when
+-- the caller does not have it): shared by the scan and the options page, which
+-- hides the switch from a class that has none.
+function ns.SelfBuffs(castable)
+	castable = castable or ns.CastableBuffs()
+	local out = {}
+	for _, buff in ipairs(castable) do
+		if ns.CastsOnSelf(buff) then out[#out + 1] = buff end
+	end
+	return out
 end
 
 -- The spell pinned for this character, or nil for Automatic (and for another
@@ -1119,6 +1146,13 @@ function ns.UnitFullName(unit)
 	return JoinName(plain(rawName), plain(rawSecond))
 end
 
+-- Whether a filed name is the player's own. The offer of your own buff
+-- (Queue.lua) is filed under it, and a group cast that covers you lists it
+-- among the people it reached, where the ledger must not file a gift to you.
+function ns.IsPlayerName(name)
+	return name ~= nil and name == ns.UnitFullName("player")
+end
+
 -- The spelling that goes on the /target line, from the filed name (the
 -- tokenless fallback has nothing else). On Camelot the key unchanged: its join
 -- is the only form verified there. Elsewhere the realm comes off, on the
@@ -1243,7 +1277,7 @@ function ns.ClampSettings()
 	-- the swap throws on every repaint. Only the first line has to say
 	-- something; an empty reason line is a wish (no second line) and is kept.
 	if not ns.UsableFormat(p.format) then p.format = ns.defaults.profile.prompt.format end
-	for _, key in ipairs({ "reasonTarget", "reasonOwed", "reasonGroup",
+	for _, key in ipairs({ "reasonTarget", "reasonOwed", "reasonGroup", "reasonSelf",
 		"reasonNearby", "reasonAsked", "reasonRefresh", "reasonUnknown" }) do
 		if type(p[key]) ~= "string" then
 			p[key] = ns.defaults.profile.prompt[key]
@@ -1315,6 +1349,9 @@ function ns.ClampSettings()
 
 	boolean(profile.priority, "readyCheck", true)
 	boolean(profile.priority, "revived", true)
+	-- Read on every scan as a switch: a string there would be on forever, and
+	-- the checkbox could not show it.
+	boolean(profile.sources, "self", true)
 
 	-- The raid groups switched off, read on every scan in a raid. Anything but
 	-- a group number set to true is dropped: there is no telling what it meant.
