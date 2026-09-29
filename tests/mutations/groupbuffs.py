@@ -375,7 +375,7 @@ mutate("GroupBuffs.lua",
 
 # ------------------------------------------------ review round: the settings
 mutate("Options.lua",
-       "\t\t\t\tname = L[\"Group buff once this many need it\"],\n",
+       "\t\t\t\tname = L[\"When this many need it\"],\n",
        "\t\t\t\tname = L[\"When at least this many are missing\"],\n",
        "groupbuffs: the threshold's name does not stand on its own",
        expect="the threshold's name does not say", script=S)

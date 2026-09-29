@@ -929,7 +929,7 @@ end
 
 -- ------------------------------------------------------------ groupbuffs-19
 -- The settings: on by default with a threshold of three, repaired when a file
--- holds nonsense, and on the Who to buff tab beside "My party and raid",
+-- holds nonsense, and on the Who to buff tab under "My group and raid",
 -- shown to a class with a group version and hidden from one without.
 do
 	local scenario = "groupbuffs: the settings"
@@ -961,9 +961,11 @@ do
 		if not (toggle and slider) then
 			fail(scenario, "the Who to buff tab has no group buff controls")
 		else
-			if not (toggle.order > H.findOption(ns.optionsTable, "group").order and slider.order > toggle.order
-				and slider.order < H.findOption(ns.optionsTable, "strangers").order) then
-				fail(scenario, "the group buff controls are not right under My party and raid")
+			local header = H.findOption(ns.optionsTable, "groupHeader")
+			local raidGroups = H.findOption(ns.optionsTable, "skipRaidGroups")
+			if not (header and raidGroups and toggle.order > header.order and slider.order > toggle.order
+				and slider.order < raidGroups.order) then
+				fail(scenario, "the group buff controls are not right under My group and raid")
 			end
 			if toggle.hidden() or slider.hidden() then
 				fail(scenario, "the controls are hidden from a mage")
@@ -997,10 +999,10 @@ do
 			if not said(toggle):find("Arcane Brilliance", 1, true) or said(toggle):find("Greater Blessing", 1, true) then
 				fail(scenario, "the toggle does not name the mage's own group spell: " .. said(toggle))
 			end
-			if not said(slider):find("one raid group", 1, true) then
+			if not said(slider):find("one party", 1, true) then
 				fail(scenario, "the threshold does not say it counts one party or raid group: " .. said(slider))
 			end
-			if slider.name ~= "Group buff once this many need it" then
+			if slider.name ~= "When this many need it" then
 				fail(scenario, "the threshold's name does not say what happens at the number: " .. tostring(slider.name))
 			end
 		end

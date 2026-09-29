@@ -960,7 +960,7 @@ mutate("Core.lua",
 #     there -- so a priest read an explanation of a paladin's spells, and with
 #     the walk shipped it does not describe even the paladin any more.
 mutate("Options.lua",
-       """	local text = L["Automatic offers the first of these they are missing, in this order: %s."]
+       """	local text = L["Automatic may offer, in this order: %s. Each person gets the first one they are missing."]
 		:format(list)""",
        '	local text = "Automatic uses the first buff you have learned."',
        "the auto note naming no spells at all",
@@ -1554,8 +1554,8 @@ mutate("Prompt.lua",
 
 # 85. the source list that named three of the four unit tokens the scan walks.
 mutate("Options.lua",
-       ' Seen through nameplates, your target, your focus and your mouseover."],',
-       ' Seen through nameplates, your target and your mouseover."],',
+       'L["Seen through nameplates, your target, focus and mouseover."],',
+       'L["Seen through nameplates, your target and mouseover."],',
        "a way of reaching somebody left off the page",
        expect="does not mention it",
        script="runscenarios.py")
@@ -3449,10 +3449,10 @@ mutate("Options.lua",
 
 # The target switch silent about Always offer...
 mutate("Options.lua",
-       "\t\t\t\t\t.. \"\\n\\n\"\n"
-       "\t\t\t\t\t.. L[\"Not while |cffffd100If they already have the buff|r is set to Always"
-       " offer, under When, since nothing is read then.\"]\n",
-       "",
+       "\t\t\t\t\tif F().whenBuffed == \"always\" then\n"
+       "\t\t\t\t\t\ttext = text .. \"\\n\\n\"\n",
+       "\t\t\t\t\tif false then\n"
+       "\t\t\t\t\t\ttext = text .. \"\\n\\n\"\n",
        "target switch silent about Always offer",
        expect="the target switch's description does not say that Always offer",
        script="runscenarios.py")
@@ -3494,7 +3494,9 @@ mutate("Options.lua",
        "\t\t\t\t\tif false then\n"
        "\t\t\t\t\t\tif ns.PARTY_IS_SUBGROUP then\n",
        "favour switch promises a warrior strangers",
-       expect="a class whose spells reach its group only is told the favour switch works on strangers",
+       # Judged in tests/scenarios/options-who.lua since the redesign reworded
+       # the sentence scenario 256 looks for.
+       expect="People who buff me does not tell a warrior outsiders wait until they join",
        script="runscenarios.py")
 
 # "(mana users only)" with the filter that makes it true switched off.
