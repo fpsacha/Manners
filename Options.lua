@@ -2360,36 +2360,97 @@ local function BuildLookTab()
 end
 
 -- The tuning knobs: favours, timing, targeting, exact position and the
--- prompt's wording. Every control keeps its own key and get/set.
+-- prompt's wording. Every control keeps its own key and get/set, so moving it
+-- here left its profile field where it was.
 local function BuildAdvancedTab()
+	-- What "Put these back to default" puts back: every field this tab
+	-- writes, by its section in the profile. Nothing else on the page.
+	local resetFields = {
+		{ "sources", "owedClassBuffsOnly" },
+		{ "timing", "reciprocateWindow" },
+		{ "filters", "reachableOnly" },
+		{ "timing", "graceSeconds" },
+		{ "timing", "keepDebts" },
+		{ "timing", "retryCooldown" },
+		{ "timing", "scanInterval" },
+		{ "filters", "restoreTarget" },
+		{ "prompt", "x" },
+		{ "prompt", "y" },
+		{ "prompt", "point" },
+		{ "prompt", "relPoint" },
+		{ "prompt", "format" },
+		{ "prompt", "reasonTarget" },
+		{ "prompt", "reasonOwed" },
+		{ "prompt", "reasonAsked" },
+		{ "prompt", "reasonGroup" },
+		{ "prompt", "reasonNearby" },
+		{ "prompt", "reasonRefresh" },
+		{ "prompt", "reasonUnknown" },
+	}
+	local function ResetAdvanced()
+		ns.Guard("reset advanced", function()
+			local defaults, profile = ns.defaults.profile, ns.db.profile
+			for _, field in ipairs(resetFields) do
+				profile[field[1]][field[2]] = defaults[field[1]][field[2]]
+			end
+			-- keepDebts can only go from off to on here, which deletes
+			-- nothing; SaveDebts is still what its setter runs, so the two
+			-- ways of switching it on leave the file the same.
+			ns.addon:SaveDebts()
+			rescan()
+			-- Both hold off in combat and catch up when the fight ends, so
+			-- this never touches the secure button mid-fight.
+			restyleAndMacro()
+			ns.RefreshOptionsDisplay()
+		end)
+	end
+
 	return {
 		type = "group",
 		name = TAB.advanced,
 		order = 6,
 		hidden = function() return not HasClassBuffs() end,
 		args = {
+			advIntro = {
+				type = "description",
+				order = 0.5,
+				name = L["The defaults suit most players; change these only if something bothers you."] .. "\n",
+			},
+			advCombatNotice = {
+				type = "description",
+				order = 0.6,
+				hidden = function() return not InCombatLockdown() end,
+				name = "|cffffd100" .. L["In combat: targeting changes apply once the fight ends."] .. "|r\n",
+			},
+			resetAdvanced = {
+				type = "execute",
+				name = L["Put these back to default"],
+				order = 0.7,
+				confirm = true,
+				confirmText = L["Put every setting on this tab back to its default?"],
+				func = ResetAdvanced,
+			},
+
+			favoursHeader = { type = "header", name = L["Favours"], order = 10 },
 			owedClassBuffsOnly = {
 				type = "toggle",
-				name = L["Only count real class buffs"],
-				desc = L["A shield, a heal-over-time or a trinket proc is not a favour owed. Leave this on unless you want every incoming aura to count."],
+				name = L["Ignore shields, heals and trinket procs"],
+				desc = L["Only class buffs such as Fortitude count as a favour to return."],
 				order = 11,
 				width = "full",
 				disabled = function() return not S().owed end,
 				get = sGet,
 				set = sSet,
 			},
-			-- Every one of these is a number of seconds except the
-			-- top-up threshold, which is minutes. There is no suffix
-			-- field on an AceConfig range, so the unit goes in the name
-			-- or it is nowhere.
+			-- Every one of these is a number of seconds. There is no suffix
+			-- field on an AceConfig range, so the unit goes in the name or it
+			-- is nowhere.
 			reciprocateWindow = {
 				type = "range",
-				name = L["Remember a buff for (seconds)"],
-				-- For a passer-by with no nameplate BuildQueue lets go once
-				-- the grace on the Who to buff tab runs out, which is
-				-- shorter at the defaults.
-				desc = L["How long a favour is remembered. Somebody the game cannot see may be let go sooner by |cffffd100Drop people who are probably gone|r, under Who to buff."],
+				name = L["Offer a buff back for (seconds)"],
+				desc = L["How long someone who buffed you stays on offer."],
 				order = 12,
+				width = "double",
 				min = 15,
 				max = 600,
 				step = 5,
@@ -2398,37 +2459,33 @@ local function BuildAdvancedTab()
 			},
 			reachableOnly = {
 				type = "toggle",
-				name = L["Drop people who are probably gone"],
-				desc = L["Somebody who buffed you can rarely be range-checked afterwards. With this on, they count as in range for a while after their buff, then are let go."],
+				name = L["Stop sooner if they are probably gone"],
+				desc = L["Someone who buffed you rarely can be range-checked, so they are let go after the time below."],
 				order = 13,
 				width = "full",
 				get = fGet,
 				set = fSet,
 			},
 			graceSeconds = {
-				-- Named so it stands on its own, not only directly under the
-				-- toggle above.
-				type = "range",
-				name = L["Let them go after (seconds)"],
 				-- BuildQueue measures from the moment they buffed you, the one
 				-- instant they were provably in range; nothing notices a player
 				-- walking off.
-				desc = L["How long somebody counts as in range after they buff you. It runs from their buff, not from when they walk off."],
+				type = "range",
+				name = L["Let them go after (seconds)"],
+				desc = L["Counted from their buff, not from when they walked off."],
 				order = 14,
 				min = 10,
 				max = 180,
 				step = 5,
+				width = "double",
 				disabled = function() return not F().reachableOnly end,
 				get = tGet,
 				set = tSet,
 			},
 			keepDebts = {
 				type = "toggle",
-				name = L["Remember them across a reload"],
-				desc = L["Keep favours owed through a reload or a disconnect. The clock keeps running meanwhile, so a favour that ran out is not brought back."]
-					.. "\n\n|cff888888"
-					.. L["Stored against this character, never shared between profiles. Switching it off deletes what has already been stored."]
-					.. "|r",
+				name = L["Keep favours through a /reload"],
+				desc = L["Turning it off forgets what is already kept."],
 				order = 15,
 				width = "full",
 				get = tGet,
@@ -2447,12 +2504,10 @@ local function BuildAdvancedTab()
 			-- for the same number.
 			retryCooldown = {
 				type = "range",
-				name = L["Wait before offering the same spell again (seconds)"],
-				desc = L["After you click, how long before that spell is offered to that player again. Covers casts that failed out of sight."]
-					.. "\n\n|cff888888"
-					.. L["Per spell, not per person: after Fortitude the next scan can still offer them Divine Spirit. Right-clicking the prompt skips the whole person for this long."]
-					.. "|r",
+				name = L["Don't repeat a spell on someone for (seconds)"],
+				desc = L["In case the cast failed; right-clicking the prompt skips the person for this long."],
 				order = 21,
+				width = "double",
 				min = 3,
 				max = 60,
 				step = 1,
@@ -2461,9 +2516,10 @@ local function BuildAdvancedTab()
 			},
 			scanInterval = {
 				type = "range",
-				name = L["Scan every (seconds)"],
-				desc = L["Lower is more responsive and slightly heavier."],
+				name = L["Check for people every (seconds)"],
+				desc = L["Lower reacts faster and uses a little more CPU."],
 				order = 22,
+				width = "double",
 				min = 0.1,
 				max = 2,
 				step = 0.1,
@@ -2475,7 +2531,7 @@ local function BuildAdvancedTab()
 			restoreTarget = {
 				type = "toggle",
 				name = L["Hand my target back afterwards"],
-				desc = L["The prompt targets whoever it buffs, group members too. With this on, your previous target is restored right after the cast."],
+				desc = L["The prompt has to target someone to buff them; this puts your old target back."],
 				order = 31,
 				width = "full",
 				-- Hidden, not disabled, like the strangers toggle: nothing
@@ -2491,55 +2547,24 @@ local function BuildAdvancedTab()
 				name = "|cff888888" .. L["Everything you can offer is cast on yourself and heard by your party, so the prompt never takes your target and has none to hand back."]
 					.. "|r\n",
 			},
-			targetingNote = {
-				type = "description",
-				order = 32,
-				hidden = NeverTargets,
-				-- A function, so it names the command the macro is really
-				-- built with, asked of the builder itself (/targetexact is
-				-- probed for but deliberately not used, see TargetCommand),
-				-- and follows the switch above. The strategy drops
-				-- /targetlasttarget for somebody already your target,
-				-- except in a fight, where the macro armed at the pull keeps
-				-- it: nothing can rebuild the macro to follow them.
-				--
-				-- Whole sentences, so a translation can order each as its
-				-- language needs. The commands and the conditional are
-				-- arguments, not part of the text: they are macro syntax,
-				-- and a translated /targetlasttarget or [@name] would name
-				-- something the game does not have.
-				name = function()
-					local cmd = (ns.TargetCommand and ns.TargetCommand()) or "/target"
-					local text
-					if F().restoreTarget then
-						text = L["The prompt runs |cffffd100%s|r, the cast, then |cffffd100%s|r, except outside a fight for somebody already your target, who stays targeted."]
-							:format(cmd, "/targetlasttarget")
-					else
-						text = L["The prompt runs |cffffd100%s|r, then the cast, and leaves them targeted."]
-							:format(cmd)
-					end
-					text = text .. " " .. L["A %s conditional only reaches your party or raid, so the macro targets everybody it buffs."]
-						:format("[@name]")
-					return "|cff888888" .. text .. "|r\n"
-				end,
-			},
 
-			x = { type = "range", name = L["X offset"], order = 41, min = -2000, max = 2000, step = 1, get = pGet, set = pSet },
-			y = { type = "range", name = L["Y offset"], order = 42, min = -2000, max = 2000, step = 1, get = pGet, set = pSet },
+			exactPosHeader = { type = "header", name = L["Exact position"], order = 40 },
+			x = { type = "range", name = L["Left / right"], order = 41, min = -2000, max = 2000, step = 1, get = pGet, set = pSet },
+			y = { type = "range", name = L["Up / down"], order = 42, min = -2000, max = 2000, step = 1, get = pGet, set = pSet },
 
+			wordingHeader = { type = "header", name = L["Prompt wording"], order = 50 },
+			-- Above the box it explains, so it is read first.
 			formatHelp = {
 				type = "description",
 				order = 51,
-				name = L["|cff888888{name}|r who   |cff888888{reason}|r why   |cff888888{count}|r how many more   |cff888888{class}|r their class   |cff888888{buff}|r the spell"]
-					.. "\n"
-					.. L["|cff888888{time}|r what theirs has left, on a top-up and nowhere else"]
-					.. "\n"
-					.. L["The second line always shows the reason."],
+				name = L["Placeholders: {name} their name, {reason} why, {count} how many others are waiting, {class} their class, {buff} the spell, {time} time left on their buff (top-ups only)."]
+					.. "\n|cff888888"
+					.. L["The second line always shows the reason."]
+					.. "|r\n",
 			},
 			format = {
 				type = "input",
 				name = L["First line"],
-				desc = L["Tokens: {name} {reason} {count} {class} {buff} {time}"],
 				order = 52,
 				width = "full",
 				get = pGet,
@@ -2553,38 +2578,38 @@ local function BuildAdvancedTab()
 					pSet(info, value)
 				end,
 			},
+			-- The second line, in the order the queue ranks people.
 			reasonTarget = {
 				type = "input",
-				name = L["Wording: your target"],
-				desc = L["Your target outranks everyone, including a favour owed, while that is switched on under Who to buff and the game can see they lack it."],
+				name = L["Reason text: my target"],
+				desc = L["Shown when your target is first in line."],
 				order = 53,
 				get = pGet,
 				set = pSet,
 			},
-			reasonOwed = { type = "input", name = L["Wording: buffed you"], order = 54, get = pGet, set = pSet },
+			reasonOwed = { type = "input", name = L["Reason text: buffed me"], order = 54, get = pGet, set = pSet },
 			reasonAsked = {
 				type = "input",
-				name = L["Wording: asked for it"],
-				desc = L["The prompt's second line for somebody who asked for the buff in chat."],
+				name = L["Reason text: asked in chat"],
+				desc = L["Shown for someone who asked in chat."],
 				order = 55,
-				disabled = function() return not S().asked end,
 				get = pGet,
 				set = pSet,
 			},
-			reasonGroup = { type = "input", name = L["Wording: in your group"], order = 56, get = pGet, set = pSet },
-			reasonNearby = { type = "input", name = L["Wording: nearby"], order = 57, get = pGet, set = pSet },
+			reasonGroup = { type = "input", name = L["Reason text: my group"], order = 56, get = pGet, set = pSet },
+			reasonNearby = { type = "input", name = L["Reason text: passer-by"], order = 57, get = pGet, set = pSet },
 			reasonRefresh = {
 				type = "input",
-				name = L["Wording: topping one up"],
-				desc = L["Used instead of the four above when their buff is about to run out, which only the refresh mode offers. |cffffd100{time}|r is how long theirs has left."],
+				name = L["Reason text: top-up"],
+				desc = L["{time} is how long theirs has left."],
 				order = 58,
 				get = pGet,
 				set = pSet,
 			},
 			reasonUnknown = {
 				type = "input",
-				name = L["Wording: state unknown"],
-				desc = L["Used when the game will not let addons read whether they already have it."],
+				name = L["Reason text: can't tell"],
+				desc = L["Shown when the game hides whether they already have it."],
 				order = 59,
 				get = pGet,
 				set = pSet,
