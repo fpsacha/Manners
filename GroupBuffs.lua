@@ -171,7 +171,8 @@ end
 -- Who of everybody a party-wide spell lands on reads as flagged for PvP (see
 -- "flagged for PvP" in Queue.lua): the first one's name, "?" when the game
 -- will not name them, or nil. `where` is a bucket's -- a class for a Greater
--- Blessing, a raid subgroup, or "party" -- and everybody in it counts, not
+-- Blessing, a raid subgroup, or "party" -- or "raid" for everybody in the
+-- raid (a shout where shouts are raid-wide), and everybody in it counts, not
 -- only those the queue offered: somebody flagged was never queued at all.
 -- Nobody's reach is asked, so one flagged anywhere in it holds the cast back.
 -- Somebody whose class or subgroup cannot be read, or whose flag cannot, is
@@ -187,7 +188,7 @@ local function FlaggedAmong(where, byClass, inRaid)
 			local inside = true
 			if byClass then
 				inside = plain(select(2, UnitClass(unit))) == where
-			elseif inRaid then
+			elseif inRaid and where ~= "raid" then
 				inside = RaidSubgroup(unit) == where
 			end
 			if inside and ns.PvPFlag(unit) == true then return ns.UnitFullName(unit) or "?" end
@@ -204,11 +205,16 @@ function ns.GroupCastFlagged(entry)
 	return FlaggedAmong(group.where, group.class ~= nil, plain(IsInRaid and IsInRaid()) == true)
 end
 
--- And for a shout, which lands on your own party -- in a raid, your own
--- subgroup, and nobody when that cannot be read.
+-- And for a shout, which lands where SameParty (Core.lua) says it reaches:
+-- your own party, and in a raid the whole raid where the client's shouts are
+-- raid-wide (ns.PARTY_IS_SUBGROUP false: the Mists and retail sets), else
+-- your own subgroup -- nobody when that cannot be read, since cannot tell
+-- offers. Asked of your subgroup alone on a raid-wide client, a raider
+-- flagged in another one was left out while the shout was offered to all.
 function ns.ShoutFlagged(inRaid)
 	if inRaid == nil then inRaid = plain(IsInRaid and IsInRaid()) == true end
 	if not inRaid then return FlaggedAmong("party", false, false) end
+	if not ns.PARTY_IS_SUBGROUP then return FlaggedAmong("raid", false, true) end
 	local own = RaidSubgroup("player")
 	if not own then return nil end
 	return FlaggedAmong(own, false, true)

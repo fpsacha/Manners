@@ -2108,12 +2108,13 @@ local function BuildWhoTab()
 				set = fSet,
 			},
 			-- For everybody, a favour owed included: see "flagged for PvP" in
-			-- Queue.lua. The exception is the one a player would ask about,
-			-- so it is in the tooltip.
+			-- Queue.lua. The exception, and the countdown that is no
+			-- exception, are what a player would ask about, so they are in
+			-- the tooltip.
 			skipPvP = {
 				type = "toggle",
 				name = L["Skip players flagged for PvP"],
-				desc = L["Buffing somebody flagged for PvP flags you too. Ignored while you are flagged yourself, as in a battleground."],
+				desc = L["Buffing somebody flagged for PvP flags you too. Ignored while you are flagged yourself, as in a battleground, but not while your own flag is running out."],
 				order = 43,
 				width = "full",
 				get = fGet,

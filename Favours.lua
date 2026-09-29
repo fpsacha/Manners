@@ -374,7 +374,10 @@ do
 			local snoozeEnds = reachable and ns.SnoozeLeft() and ns.SnoozeEndsAt()
 			if reachable and ns.PvPHoldsBack(seen.pvp) then
 				-- First: whatever else holds the prompt back, this would too.
-				addon:Print(L["|cff80ff80%s buffed you|r -- they are flagged for PvP, and buffing them would flag you, so returning it waits until they are not"]
+				-- Said as the snooze line says it: a flag lasts five minutes
+				-- after the last fight, longer than a favour is kept by
+				-- default, so the return is a maybe, not a promise.
+				addon:Print(L["|cff80ff80%s buffed you|r -- they are flagged for PvP, and buffing them would flag you, so returning it is offered only if their flag drops before the favour runs out"]
 					:format(seen.name))
 			elseif snoozeEnds then
 				addon:Print(L["|cff80ff80%s buffed you|r -- the prompt is snoozed until %s, so returning it is offered only if the snooze ends before the favour runs out"]

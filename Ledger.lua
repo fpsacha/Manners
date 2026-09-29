@@ -149,6 +149,10 @@ local TEXT = {
 	TIP_OWED_OFF = L["Still owed, but Manners is switched off, so the prompt will not offer them."],
 	TIP_OWED_SOURCE_OFF = L["Still owed, but the prompt is not offering favours while \"People who buff me\" is off."],
 	TIP_OWED_NOTHING = L["Still owed, but there is nothing on this character the prompt can cast."],
+	-- Flagged for PvP when last read, while "Skip players flagged for PvP"
+	-- holds them back (Queue.lua, "flagged for PvP"). Worded as the snooze
+	-- line is: a flag often outlasts the favour.
+	TIP_OWED_PVP = L["Still owed. They are flagged for PvP, and buffing them would flag you, so the prompt offers them only if their flag drops before the time to return it runs out."],
 	TIP_OWED_SNOOZED = L["Still owed. The prompt is snoozed until %s, so it offers them only if the snooze ends before the time to return it runs out."],
 	TIP_OWED_MOUNTED = L["Still owed. The prompt stays away while you are mounted, and offers them once you get off, until the time to return it runs out."],
 	-- The same two for a favour only your party can return: the snooze or the
@@ -1351,17 +1355,25 @@ end
 
 -- What an owed row says in place of "the prompt offers them" while the prompt
 -- cannot, or nil while it can. Asked at the moment of hovering, like Quiet(),
--- because each is a switch, a timer or a mount that changes under an open
--- window, and each through pcall, so a helper that throws costs the caveat and
--- not the tooltip. A snooze or a mount only holds the offer back for a while;
--- a party-only favour also waits on the giver being in your party, and its
--- lines say both.
+-- because each is a switch, a timer, a flag or a mount that changes under an
+-- open window, and each through pcall, so a helper that throws costs the
+-- caveat and not the tooltip. A snooze or a mount only holds the offer back
+-- for a while; a party-only favour also waits on the giver being in your
+-- party, and its lines say both. A PvP flag comes first of the passing ones,
+-- as in the favour's chat line: whatever else holds the prompt back, so
+-- would the flag, and it is the one that most often outlasts the favour.
 local function OwedHeldBack(e)
 	local ok, quiet = pcall(Quiet)
 	quiet = ok and quiet or nil
 	if quiet == "off" then return TEXT.TIP_OWED_OFF end
 	if quiet == "owedoff" then return TEXT.TIP_OWED_SOURCE_OFF end
 	if quiet == "nothing" then return TEXT.TIP_OWED_NOTHING end
+	-- The flag last read, kept on the debt, as the owed fallback reads it.
+	local okPvP, flagged = pcall(function()
+		local debt = ns.owed and ns.owed[e.name]
+		return debt ~= nil and ns.PvPHoldsBack(debt.pvp)
+	end)
+	if okPvP and flagged == true then return TEXT.TIP_OWED_PVP end
 	local snoozeLine, mountLine = TEXT.TIP_OWED_SNOOZED, TEXT.TIP_OWED_MOUNTED
 	if e.partyOnly then
 		if ns.PARTY_IS_SUBGROUP then

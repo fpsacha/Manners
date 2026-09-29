@@ -3,7 +3,8 @@
 -- yourself, nobody who reads as flagged is offered anything, whatever the
 -- reason, and no group spell or shout that would land on them either
 -- (Queue.lua, "flagged for PvP"; GroupBuffs.lua). The prompt lets go of them,
--- a press does not cast at them, and /manners debug and Diagnostics say why.
+-- a press does not cast at them, /manners debug and Diagnostics say why, and
+-- neither the favour's line nor the ledger promises their favour back.
 --
 -- Every scenario name starts with "pvp:" so the mutations in
 -- tests/mutations/pvp.py can name the one that has to catch them.
@@ -17,7 +18,8 @@ local ANNA, BERT = "Anna Aim", "Bert Beside"
 
 -- Globals a scenario may replace, put back after each: Mock.reset owns none.
 local TOUCHED = { "IsSpellKnown", "IsPlayerSpell", "IsInInstance", "UnitClass", "UnitPowerMax",
-	"GetItemCount", "GetItemInfo", "C_UnitAuras", "UnitIsPVP", "UnitIsPVPFreeForAll" }
+	"GetItemCount", "GetItemInfo", "C_UnitAuras", "UnitIsPVP", "UnitIsPVPFreeForAll",
+	"IsPVPTimerRunning", "IsResting" }
 
 local function noErrors(scenario, ns)
 	for _, e in ipairs(ns.errors or {}) do
@@ -143,12 +145,19 @@ end
 -- offered: flagged, flagged for free-for-all, or with your own flag withheld
 -- inside a battleground or an arena, where everybody is. Your flag withheld
 -- anywhere else counts as not flagged, deliberately (Queue.lua, YouAreFlagged).
+-- So does your flag running out, outside a battleground: buffing somebody
+-- flagged would start the countdown again -- and /manners debug says why the
+-- rule stands while you are flagged. A countdown the game will not show is
+-- no countdown.
 for _, case in ipairs({
 	{ label = "flagged", pvp = { player = true } },
 	{ label = "flagged for free-for-all", ffa = { player = true } },
 	{ label = "your flag withheld in a battleground", pvp = { player = "secret" }, instance = "pvp" },
 	{ label = "your flag withheld in an arena", pvp = { player = "secret" }, instance = "arena" },
 	{ label = "your flag withheld out in the world", pvp = { player = "secret" }, held = true },
+	{ label = "your flag running out", pvp = { player = true }, timer = true, held = true },
+	{ label = "your flag running out in a battleground", pvp = { player = true }, timer = true, instance = "pvp" },
+	{ label = "your countdown withheld", pvp = { player = true }, timer = "secret" },
 }) do
 	local scenario = "pvp: whether you are flagged yourself (" .. case.label .. ")"
 	with(scenario, { people = { nameplate1 = { "Anna", "Aim" } } }, function(ns)
@@ -164,11 +173,29 @@ for _, case in ipairs({
 		if case.instance then
 			rawset(_G, "IsInInstance", function() return true, case.instance end)
 		end
+		if case.timer then
+			local answer = case.timer == "secret" and Mock.SECRET or true
+			rawset(_G, "IsPVPTimerRunning", function() return answer end)
+		end
 		local anna = offered(ns, ANNA)
+		-- Each message written here, in the body, where selftest.py's trace
+		-- finds the scenario it belongs to (not in the table above, which
+		-- runs before any of them).
 		if case.held and anna then
-			fail(scenario, "your own flag withheld out in the world stood the rule aside")
+			if case.timer then
+				fail(scenario, "your own flag running out stood the rule aside")
+			else
+				fail(scenario, "your own flag withheld out in the world stood the rule aside")
+			end
 		elseif not case.held and not anna then
 			fail(scenario, "a flagged passer-by was not offered while you are flagged too")
+		end
+		if case.held and case.timer then
+			local lines = pvpLines(ns)
+			if not (lines:find("your PvP flag is running out", 1, true) and lines:find(ANNA, 1, true)) then
+				fail(scenario, "/manners debug does not say your flag running out keeps the rule standing: "
+					.. flat(lines))
+			end
 		end
 	end)
 end
@@ -185,6 +212,38 @@ do
 		end
 		if #ns.PvPLines(true) > 0 then
 			fail(scenario, "/manners debug speaks of PvP with the setting off: " .. pvpLines(ns))
+		end
+	end)
+end
+
+-- /manners debug and Diagnostics name only people the rule itself holds back.
+-- Somebody no source would offer anyway -- a passer-by with Passers-by off,
+-- or out in the world while passers-by are left for cities -- named as held
+-- back for PvP reads as the rule being why they are missing.
+for _, case in ipairs({
+	{ label = "Passers-by off", set = function(ns) ns.db.profile.sources.strangers = false end },
+	{ label = "out in the world with passers-by left for cities", set = function(ns)
+		ns.db.profile.filters.restingOnly = true
+		rawset(_G, "IsResting", function() return false end)
+	end },
+}) do
+	local scenario = "pvp: /manners debug names only people a source would offer (" .. case.label .. ")"
+	with(scenario, { people = { nameplate1 = { "Anna", "Aim" } } }, function(ns)
+		Mock.pvp = { nameplate1 = true }
+		if not pvpLines(ns):find(ANNA, 1, true) then
+			fail(scenario, "SKIPPED -- the flagged passer-by was not named with every source on")
+			return
+		end
+		case.set(ns)
+		Mock.pvp = nil
+		if offered(ns, ANNA) then
+			fail(scenario, "SKIPPED -- the passer-by was offered unflagged with " .. case.label)
+			return
+		end
+		Mock.pvp = { nameplate1 = true }
+		local lines = pvpLines(ns)
+		if lines:find(ANNA, 1, true) then
+			fail(scenario, "somebody no source would offer is named as held back for PvP: " .. flat(lines))
 		end
 	end)
 end
@@ -232,6 +291,9 @@ do
 		end
 		if not line:find("they are flagged for PvP", 1, true) then
 			fail(scenario, "the favour's line does not say returning it waits on the flag: " .. flat(line))
+		elseif not line:find("only if their flag drops before the favour runs out", 1, true) then
+			-- A flag lasts five minutes after the last fight, a favour two.
+			fail(scenario, "the favour's line promises a return the favour's time may not allow: " .. flat(line))
 		end
 		-- No token: the fallback, on the flag the favour was read with.
 		names.nameplate1 = nil
@@ -266,6 +328,71 @@ do
 		end
 		if not ns.owed[ANNA] then
 			fail(scenario, "SKIPPED -- the favour ran out during the scenario")
+		end
+	end)
+end
+
+-- The favour's line speaks of the flag only while the rule stands: not with
+-- the setting off, nor while you are flagged yourself -- but while your own
+-- flag is running out it does, since the rule stands then.
+for _, case in ipairs({
+	{ label = "the setting off", off = true },
+	{ label = "you flagged yourself", you = true },
+	{ label = "your own flag running out", you = true, timer = true, says = true },
+}) do
+	local scenario = "pvp: the favour's line speaks of the flag only while the rule stands (" .. case.label .. ")"
+	with(scenario, { people = { nameplate1 = { "Anna", "Aim" } } }, function(ns)
+		H.primeAuras(ns)
+		if case.off then ns.db.profile.filters.skipPvP = false end
+		if case.timer then rawset(_G, "IsPVPTimerRunning", function() return true end) end
+		Mock.pvp = { nameplate1 = true, player = case.you }
+		local line = H.favourFrom(ns, "nameplate1", 1459, 4101)
+		if not ns.owed[ANNA] then
+			fail(scenario, "SKIPPED -- no favour from Anna was filed: " .. flat(line))
+			return
+		end
+		local speaks = line:find("they are flagged for PvP", 1, true) ~= nil
+		if case.says and not speaks then
+			fail(scenario, "with your own flag running out, the favour's line does not say the flag holds it back: "
+				.. flat(line))
+		elseif not case.says and speaks then
+			fail(scenario, "the favour's line says the flag holds it back with " .. case.label .. ": " .. flat(line))
+		end
+	end)
+end
+
+-- The ledger's owed row says the same: while the rule holds the favour back
+-- it does not promise the prompt offers them, and with the setting off it
+-- does not speak of the flag. The window never promises what cannot come.
+for _, case in ipairs({ { label = "while the rule stands", holds = true }, { label = "with the setting off" } }) do
+	local scenario = "pvp: the ledger's owed row says the flag holds the favour back (" .. case.label .. ")"
+	with(scenario, { people = { nameplate1 = { "Anna", "Aim" } } }, function(ns)
+		ns.db.char.ledger = nil
+		ns.Ledger.Load()
+		H.primeAuras(ns)
+		Mock.pvp = { nameplate1 = true }
+		local line = H.favourFrom(ns, "nameplate1", 1459, 4101)
+		if not ns.owed[ANNA] then
+			fail(scenario, "SKIPPED -- no favour from Anna was filed: " .. flat(line))
+			return
+		end
+		if not case.holds then ns.db.profile.filters.skipPvP = false end
+		ns.addon:HandleSlash("ledger")
+		local window = ns.Ledger.Window()
+		local row = window and window.rows and window.rows[1]
+		if not (row and row.entry and row.entry.name == ANNA and row.entry.state == "owed") then
+			fail(scenario, "SKIPPED -- the ledger's first row is not Anna's favour owed")
+			return
+		end
+		Mock.tooltip = {}
+		row.scripts.OnEnter(row)
+		local tip = table.concat(Mock.tooltip, "\n")
+		local T = ns.Ledger.TEXT
+		local speaks = T.TIP_OWED_PVP ~= nil and tip:find(T.TIP_OWED_PVP, 1, true) ~= nil
+		if case.holds and not speaks then
+			fail(scenario, "the ledger promises a favour the PvP rule holds back: " .. flat(tip))
+		elseif not case.holds and (speaks or not tip:find(T.TIP_OWED, 1, true)) then
+			fail(scenario, "with the setting off the ledger's row still speaks of the flag: " .. flat(tip))
 		end
 	end)
 end
@@ -498,6 +625,71 @@ do
 	end)
 end
 
+-- And only while the rule stands: with the setting off, or flagged yourself,
+-- the same press casts the group spell as it would have before.
+for _, case in ipairs({
+	{ label = "the setting off", set = function(ns) ns.db.profile.filters.skipPvP = false end },
+	{ label = "you flagged yourself", set = function() Mock.pvp.player = true end },
+}) do
+	local scenario = "pvp: while the rule stands aside a press casts the group spell over a flagged member ("
+		.. case.label .. ")"
+	local env = mageParty()
+	with(scenario, { groupSize = 5, people = PARTY, before = function() groupClient(env) end }, function(ns)
+		ns.addon:Tick()
+		if not macro(ns):find("/cast Arcane Brilliance", 1, true) then
+			fail(scenario, "SKIPPED -- the prompt was not armed with the group cast: " .. flat(macro(ns)))
+			return
+		end
+		for token in pairs(PARTY) do env.held[token] = { [10157] = true } end
+		for token in pairs(PARTY) do ns.ForgetUnitAuras(ns.plain(UnitGUID(token))) end
+		Mock.pvp = { party4 = true }
+		case.set(ns)
+		Mock.advance(0.5)
+		local ran = tostring(pressButton(ns) or "")
+		if not ran:find("Arcane Brilliance", 1, true) then
+			fail(scenario, "the press held the group spell back for a flagged member with " .. case.label .. ": "
+				.. flat(ran))
+		end
+	end)
+end
+
+-- A Greater Blessing on the panel, then every warrior covered (the queue
+-- empty) and one of them flagged since the paint: the press asks the class
+-- again, not a raid subgroup, and does not bless them.
+do
+	local scenario = "pvp: a press does not cast a Greater Blessing over a member of the class flagged since the paint"
+	local names, classes = {}, {}
+	for i = 1, 10 do names["raid" .. i] = { "Raider" .. i, "Stone" } end
+	for _, i in ipairs({ 2, 3, 6, 7 }) do classes["raid" .. i] = "WARRIOR" end
+	for _, i in ipairs({ 4, 8 }) do classes["raid" .. i] = "MAGE" end
+	for _, i in ipairs({ 5, 9, 10 }) do classes["raid" .. i] = "PRIEST" end
+	-- Everybody but the warriors wears our Wisdom, so the warriors' Might is
+	-- all there is to cast.
+	local held = {}
+	for _, i in ipairs({ 4, 5, 8, 9, 10 }) do held["raid" .. i] = { [25290] = true } end
+	local env = { known = PALADIN, bags = { [21177] = 10 }, itemName = "Symbol of Kings", classes = classes,
+		held = held }
+	with(scenario, { class = "PALADIN", raid = { size = 10, player = 1 }, people = names,
+		before = function() groupClient(env) end }, function(ns)
+		ns.addon:Tick()
+		local armed = macro(ns)
+		if not armed:find("Greater Blessing of Might", 1, true) then
+			fail(scenario, "SKIPPED -- the prompt was not armed with the Greater Blessing: " .. flat(armed))
+			return
+		end
+		for _, i in ipairs({ 2, 3, 6, 7 }) do
+			env.held["raid" .. i] = { [25291] = true, [25916] = true }
+			ns.ForgetUnitAuras(ns.plain(UnitGUID("raid" .. i)))
+		end
+		Mock.pvp = { raid7 = true }
+		Mock.advance(0.5)
+		local ran = tostring(pressButton(ns) or "")
+		if ran:find("Greater Blessing", 1, true) then
+			fail(scenario, "the press cast a Greater Blessing over a warrior flagged for PvP: " .. flat(ran))
+		end
+	end)
+end
+
 -- ------------------------------------------------------------------ pvp 7
 -- A passer-by remembered while you were flagged yourself, flagged too, is not
 -- offered from memory once you are not: the memory keeps the flag it read.
@@ -526,6 +718,12 @@ for _, case in ipairs({ { label = "flagged", flagged = true }, { label = "not fl
 			end
 			if ns.passersBy[ANNA] then
 				fail(scenario, "a passer-by last read as flagged is still remembered")
+			end
+			-- The lines of the scan that let her go: the next has nobody to name.
+			local lines = table.concat(ns.PvPLines(), "\n")
+			if not lines:find(ANNA, 1, true) then
+				fail(scenario, "a passer-by let go from memory for the flag is not named in /manners debug: "
+					.. flat(lines))
 			end
 		elseif not anna then
 			fail(scenario, "a passer-by remembered unflagged was not offered from memory")
@@ -626,6 +824,8 @@ do
 		end
 		if not tostring(toggle.desc):find("Ignored while you are flagged yourself", 1, true) then
 			fail(scenario, "the tooltip does not say it stands aside while you are flagged: " .. tostring(toggle.desc))
+		elseif not tostring(toggle.desc):find("not while your own flag is running out", 1, true) then
+			fail(scenario, "the tooltip does not say a flag running out is no exception: " .. tostring(toggle.desc))
 		end
 		if not (a.skipHeader and a.neverHeader and toggle.order > a.skipHeader.order
 			and toggle.order < a.neverHeader.order) then
@@ -729,6 +929,53 @@ do
 		local ran = tostring(pressButton(ns) or "")
 		if ran:find("Battle Shout", 1, true) then
 			fail(scenario, "the press shouted over a party member flagged for PvP: " .. flat(ran))
+		end
+	end)
+end
+
+-- In a raid a shout lands where SameParty says it reaches: the whole raid
+-- where shouts are raid-wide (the Mists and retail sets), your own subgroup
+-- where they are not (vanilla, and so Camelot). One flagged where it lands
+-- holds it back; one flagged in another subgroup holds back only a raid-wide
+-- shout. The raid is ten, you raid1: subgroup 1 is raid1-5, 2 is raid6-10.
+for _, case in ipairs({
+	{ label = "raid-wide, flagged in another subgroup", wide = true, flagged = "raid8", held = true },
+	{ label = "raid-wide, flagged in your own subgroup", wide = true, flagged = "raid3", held = true },
+	{ label = "your subgroup only, flagged in another", flagged = "raid8" },
+	{ label = "your subgroup only, flagged in your own", flagged = "raid3", held = true },
+}) do
+	local scenario = "pvp: in a raid a flagged member holds back a shout where it lands (" .. case.label .. ")"
+	local names = {}
+	for i = 1, 10 do names["raid" .. i] = { "Raider" .. i, "Stone" } end
+	with(scenario, { class = "WARRIOR", raid = { size = 10, player = 1 }, people = names,
+		before = function(ns) H.knowShout(ns) end }, function(ns)
+		ns.PARTY_IS_SUBGROUP = not case.wide
+		local function shouts()
+			local n = 0
+			for _, entry in ipairs(ns.BuildQueue()) do
+				if entry.buff and entry.buff.selfCast then n = n + 1 end
+			end
+			return n
+		end
+		if shouts() == 0 then
+			fail(scenario, "SKIPPED -- nobody in the raid was offered the shout with nobody flagged")
+			return
+		end
+		Mock.pvp = { [case.flagged] = true }
+		local n = shouts()
+		local who = names[case.flagged][1] .. " " .. names[case.flagged][2]
+		if case.held and n > 0 then
+			fail(scenario, "the shout was offered " .. n .. " times though it would land on " .. who
+				.. ", flagged for PvP")
+		elseif not case.held and n == 0 then
+			fail(scenario, "a raider flagged in another subgroup held back a shout that reaches only your own")
+		end
+		if case.held then
+			local lines = pvpLines(ns)
+			local label = case.wide and "for your raid" or "for your group"
+			if not (lines:find(label, 1, true) and lines:find(who, 1, true)) then
+				fail(scenario, "/manners debug does not say why the shout is held back in a raid: " .. flat(lines))
+			end
 		end
 	end)
 end

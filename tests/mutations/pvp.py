@@ -2,9 +2,9 @@
 # the owed fallback and the memory of passers-by (Queue.lua), the group casts
 # and shouts that land on a whole party (GroupBuffs.lua, Queue.lua), the flag
 # read with a favour (Favours.lua), the prompt's hold and press (Prompt.lua),
-# the setting and its repair (Core.lua, Options.lua) and what /manners debug
-# says (Commands.lua). Each is caught by the scenario in
-# tests/scenarios/pvp.lua that names it.
+# the setting and its repair (Core.lua, Options.lua), what /manners debug says
+# (Commands.lua) and what the ledger's owed row says (Ledger.lua). Each is
+# caught by the scenario in tests/scenarios/pvp.lua that names it.
 #
 # Run by selftest.py with mutate() in scope.
 
@@ -58,8 +58,8 @@ mutate("Queue.lua",
 
 # The rule never stands aside while you are flagged yourself.
 mutate("Queue.lua",
-       "\t\tpvpScan.you = YouAreFlagged() or nil\n",
-       "\t\tpvpScan.you = nil\n",
+       "\t\tlocal you, countdown = YouAreFlagged()\n",
+       "\t\tlocal you, countdown = nil, nil\n",
        "pvp: never stands aside",
        expect="a flagged passer-by was not offered while you are flagged too", script=S)
 
@@ -88,17 +88,71 @@ mutate("Queue.lua",
 
 # A battleground or arena not taken for flagged when your flag is withheld.
 mutate("Queue.lua",
-       "\treturn inside == true and (kind == \"pvp\" or kind == \"arena\")\n",
-       "\treturn false\n",
+       "\tlocal battle = inside == true and (kind == \"pvp\" or kind == \"arena\")\n",
+       "\tlocal battle = false\n",
        "pvp: a battleground not counted",
        expect="a flagged passer-by was not offered while you are flagged too", script=S)
 
 # Your own flag withheld anywhere taken for flagged.
 mutate("Queue.lua",
-       "\treturn inside == true and (kind == \"pvp\" or kind == \"arena\")\n",
-       "\treturn true\n",
+       "\tif mine == nil or battle then return battle end\n",
+       "\tif mine == nil or battle then return true end\n",
        "pvp: your withheld flag taken for flagged",
        expect="your own flag withheld out in the world stood the rule aside", script=S)
+
+# Your flag running out taken for flagged: the rule steps aside just as a buff
+# on somebody flagged would start the countdown again (the owner's report).
+mutate("Queue.lua",
+       "\tif safecall(_G.IsPVPTimerRunning) == true then return false, true end\n",
+       "",
+       "pvp: a countdown taken for flagged",
+       expect="your own flag running out stood the rule aside", script=S)
+
+# The countdown asked inside a battleground too, where everybody is flagged
+# and buffing them costs nothing.
+mutate("Queue.lua",
+       "\tif mine == nil or battle then return battle end\n",
+       "\tif mine == nil then return battle end\n",
+       "pvp: a countdown in a battleground",
+       expect="a flagged passer-by was not offered while you are flagged too", script=S)
+
+# Flagged, and the rule standing all the same, with nothing to say why.
+mutate("Queue.lua",
+       "\tif pvpScan.countdown then\n",
+       "\tif false then\n",
+       "pvp: a countdown unsaid",
+       expect="does not say your flag running out keeps the rule standing", script=S)
+
+mutate("Queue.lua",
+       "\t\tpvpScan.you, pvpScan.countdown = you or nil, countdown or nil\n",
+       "\t\tpvpScan.you, pvpScan.countdown = you or nil, nil\n",
+       "pvp: a countdown not recorded",
+       expect="does not say your flag running out keeps the rule standing", script=S)
+
+mutate("Options.lua",
+       ", but not while your own flag is running out.\"],",
+       ".\"],",
+       "pvp: the tooltip leaves the countdown out",
+       expect="the tooltip does not say a flag running out is no exception", script=S)
+
+# ------------------------------------------------ who is named
+
+# Named as held back before the sources are asked, as the check once sat:
+# somebody the Passers-by switch or the city rule keeps off anyway is listed
+# in /manners debug as though the flag were why.
+mutate("Queue.lua",
+       "\t\tif seen[full] or rejected[full] then return end\n\n\t\t-- The whole-person block",
+       "\t\tif seen[full] or rejected[full] then return end\n"
+       "\t\tif pvpHeld and PvPFlag(unit) == true then pvpHeld[full] = true end\n\n\t\t-- The whole-person block",
+       "pvp: named before the sources are asked",
+       expect="somebody no source would offer is named as held back for PvP", script=S)
+
+# A remembered passer-by let go for the flag and not named.
+mutate("Queue.lua",
+       "\t\tif flagged then pvpScan.names[name] = true end\n",
+       "",
+       "pvp: a remembered passer-by let go unnamed",
+       expect="a passer-by let go from memory for the flag is not named", script=S)
 
 # ------------------------------------------------ nobody's token
 
@@ -144,6 +198,35 @@ mutate("Favours.lua",
        "\t\t\tif false then\n",
        "pvp: the favour's line",
        expect="the favour's line does not say returning it waits on the flag", script=S)
+
+# The favour's line promising the return, which a flag lasting longer than
+# the favour is kept for mostly makes untrue.
+mutate("Favours.lua",
+       "so returning it is offered only if their flag drops before the favour runs out\"]",
+       "so returning it waits until they are not\"]",
+       "pvp: the favour's line promises the return",
+       expect="the favour's line promises a return the favour's time may not allow", script=S)
+
+# The favour's line (and the ledger's row) speaking of the flag with the
+# setting off or while you are flagged yourself.
+mutate("Queue.lua",
+       "\treturn flag == true and db ~= nil and PvPRuleStands(db)\n",
+       "\treturn flag == true and db ~= nil\n",
+       "pvp: the favour's line ignores the rule",
+       expect="the favour's line says the flag holds it back with", script=S)
+
+# The ledger's owed row promising a favour the rule holds back.
+mutate("Ledger.lua",
+       "\tif okPvP and flagged == true then return TEXT.TIP_OWED_PVP end\n",
+       "",
+       "pvp: the ledger promises a held favour",
+       expect="the ledger promises a favour the PvP rule holds back", script=S)
+
+mutate("Ledger.lua",
+       "\t\treturn debt ~= nil and ns.PvPHoldsBack(debt.pvp)\n",
+       "\t\treturn debt ~= nil and debt.pvp == true\n",
+       "pvp: the ledger ignores the rule",
+       expect="with the setting off the ledger's row still speaks of the flag", script=S)
 
 # The debt's flag lost on the way out, and on the way back in.
 mutate("Queue.lua",
@@ -222,6 +305,35 @@ mutate("Queue.lua",
        "pvp: shout over a flagged member",
        expect="Anna was offered a shout that would land on Bert", script=S)
 
+# A raid-wide shout (Mists, retail) asked of your own subgroup alone, so a
+# raider flagged in another one is shouted over.
+mutate("GroupBuffs.lua",
+       "\tif not ns.PARTY_IS_SUBGROUP then return FlaggedAmong(\"raid\", false, true) end\n",
+       "",
+       "pvp: a raid-wide shout asks your subgroup",
+       expect="though it would land on raider8 stone", script=S)
+
+# The whole raid asked for as a subgroup nobody is in.
+mutate("GroupBuffs.lua",
+       "\t\t\telseif inRaid and where ~= \"raid\" then\n",
+       "\t\t\telseif inRaid then\n",
+       "pvp: the whole raid never walked",
+       expect="though it would land on raider8 stone", script=S)
+
+# A shout for your subgroup (vanilla, Camelot) asking nobody.
+mutate("GroupBuffs.lua",
+       "\treturn FlaggedAmong(own, false, true)\n",
+       "\treturn nil\n",
+       "pvp: a subgroup shout asks nobody",
+       expect="though it would land on raider3 stone", script=S)
+
+# A raid-wide shout said to be held back for your group.
+mutate("Queue.lua",
+       "\t\tor ns.PARTY_IS_SUBGROUP and L[\"your group\"] or L[\"your raid\"]\n",
+       "\t\tor L[\"your group\"]\n",
+       "pvp: a raid-wide shout named for your group",
+       expect="does not say why the shout is held back in a raid", script=S)
+
 # ------------------------------------------------ the prompt
 
 # The press on an empty queue follows the panel onto somebody flagged.
@@ -258,6 +370,22 @@ mutate("GroupBuffs.lua",
        "pvp: a group cast forgets whom it lands on",
        expect="the press cast the group spell over a party member flagged for PvP", script=S)
 
+# A Greater Blessing on the panel asked again as though it were for a raid
+# subgroup, which no class name is: nobody is ever found.
+mutate("GroupBuffs.lua",
+       "\treturn FlaggedAmong(group.where, group.class ~= nil, plain(IsInRaid and IsInRaid()) == true)\n",
+       "\treturn FlaggedAmong(group.where, false, plain(IsInRaid and IsInRaid()) == true)\n",
+       "pvp: a held Greater Blessing asked by subgroup",
+       expect="the press cast a Greater Blessing over a warrior flagged for PvP", script=S)
+
+# The prompt holding a group cast back for a flagged member while the rule
+# stands aside: the setting off, or you flagged yourself.
+mutate("Queue.lua",
+       "\tif not (entry and entry.name and pvpScan.stands) then return false end\n",
+       "\tif not (entry and entry.name) then return false end\n",
+       "pvp: the prompt holds back while the rule stands aside",
+       expect="the press held the group spell back for a flagged member", script=S)
+
 # A shout on the panel not asked again of the party it lands on.
 mutate("Queue.lua",
        "\tif entry.buff and entry.buff.selfCast then return ns.ShoutFlagged() ~= nil end\n",
@@ -287,8 +415,8 @@ mutate("Core.lua",
        expect="a saved skipPvP of yes came back as", script=S)
 
 mutate("Options.lua",
-       "as in a battleground.\"],\n\t\t\t\torder = 43,\n",
-       "as in a battleground.\"],\n\t\t\t\torder = 53,\n",
+       "own flag is running out.\"],\n\t\t\t\torder = 43,\n",
+       "own flag is running out.\"],\n\t\t\t\torder = 53,\n",
        "pvp: the switch out of place",
        expect="the switch is not under Who to skip", script=S)
 

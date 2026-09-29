@@ -1052,15 +1052,18 @@ end
 -- favour owed, a request, your group, a passer-by, your target, a ready check
 -- or somebody just revived. While you are flagged -- a battleground, /pvp, an
 -- enemy town -- buffing them costs you nothing more, and the rule stands
--- aside. You are never judged by it: your own entry (SelfEntry) never passes
--- through it.
+-- aside. Not while your own flag is running out, though (see YouAreFlagged):
+-- a buff on somebody flagged starts that countdown again. You are never
+-- judged by it: your own entry (SelfEntry) never passes through it.
 --
 -- A flag the game will not show (a secret, a call that is missing or throws)
 -- is "cannot tell", and the person is offered, as everywhere else here.
 -- Somebody no token reaches -- a favour from a stranger, a passer-by
 -- remembered -- is judged on the flag last read off them, kept on the debt and
--- on the memory. A favour owed to somebody flagged stays owed, to be returned
--- once the flag drops.
+-- on the memory. A favour owed to somebody flagged stays owed, and is offered
+-- if the flag drops while the favour is still remembered. A flag lasts five
+-- minutes after the last fight and a favour is kept two by default, so that
+-- is the lesser case, and nothing that talks to the player promises it.
 --
 -- War Mode: this client has Retail's C_PvP war mode calls but no way to switch
 -- it on (Camelot's talent frame has no War Mode button, Retail's has), and on a
@@ -1079,16 +1082,27 @@ local function PvPFlag(unit)
 end
 ns.PvPFlag = PvPFlag
 
--- Whether you are flagged, which stands the rule aside. Your own flag withheld
--- counts as not flagged -- except in a battleground or an arena, where
--- everybody is -- because the two mistakes are not alike: taking you for
--- unflagged costs an offer to somebody the game says is flagged, where the
--- other way round costs you the very flag the setting exists to spare you.
+-- Whether you are flagged, which stands the rule aside, and as a second answer
+-- whether the rule stands only because your flag is running out. Your own
+-- flag withheld counts as not flagged -- except in a battleground or an
+-- arena, where everybody is -- because the two mistakes are not alike: taking
+-- you for unflagged costs an offer to somebody the game says is flagged, where
+-- the other way round costs you the very flag the setting exists to spare you.
+--
+-- Flagged with the countdown running (after /pvp off, a flagged player
+-- buffed, an enemy town left) counts as not flagged, outside a
+-- battleground or arena: you are waiting the flag out, and every flagged
+-- player buffed starts the five minutes again -- the owner's own report, one
+-- buff back flagging him and the prompt then offering the next flagged
+-- player. A countdown the game will not show is no countdown.
 local function YouAreFlagged()
 	local mine = PvPFlag("player")
-	if mine ~= nil then return mine end
+	if mine == false then return false end
 	local inside, kind = safecall(_G.IsInInstance)
-	return inside == true and (kind == "pvp" or kind == "arena")
+	local battle = inside == true and (kind == "pvp" or kind == "arena")
+	if mine == nil or battle then return battle end
+	if safecall(_G.IsPVPTimerRunning) == true then return false, true end
+	return true
 end
 
 -- Whether the rule stands right now: the setting on and you not flagged.
@@ -1106,8 +1120,9 @@ end
 -- What the last scan made of it, for the prompt (HeldForPvP), /manners debug
 -- and Diagnostics: `names` everybody held back, `groups` the group casts and
 -- shouts held back ({ spell, label, name } each), `stands` whether the rule
--- stood, `you` whether it stood aside because you are flagged. Every scan
--- starts it again.
+-- stood, `you` whether it stood aside because you are flagged, `countdown`
+-- whether it stood only because your flag is running out. Every scan starts
+-- it again.
 local pvpScan = { names = {}, groups = {} }
 
 -- The record of the scan under way while the rule stands in it, nil while
@@ -1140,6 +1155,11 @@ function ns.PvPLines(scan)
 		out[1] = L["|cffffd100you are flagged for PvP|r -- players flagged for PvP are offered until you are not"]
 		return out
 	end
+	-- Flagged, and yet the rule stands: said, or the list below reads as
+	-- the tooltip's "ignored while you are flagged" broken.
+	if pvpScan.countdown then
+		out[1] = L["|cffffd100your PvP flag is running out|r -- players flagged for PvP are not offered, since buffing one would start it again"]
+	end
 	local names = {}
 	for name in pairs(pvpScan.names) do names[#names + 1] = name end
 	table.sort(names)
@@ -1158,11 +1178,12 @@ function ns.PvPLines(scan)
 	return out
 end
 
--- A shout lands on your whole party (in a raid, your subgroup), whoever the
--- prompt names, so while the rule stands one member flagged among them holds
--- back every shout, as a group cast is held back (GroupBuffs.lua): the queue
--- without them, each a verdict, since none is offered this scan. The party is
--- walked only when a shout is queued at all.
+-- A shout lands on your whole party (in a raid, your subgroup, or the whole
+-- raid where shouts reach it: see ShoutFlagged), whoever the prompt names, so
+-- while the rule stands one member flagged among them holds back every shout,
+-- as a group cast is held back (GroupBuffs.lua): the queue without them, each
+-- a verdict, since none is offered this scan. The party is walked only when a
+-- shout is queued at all.
 local function HoldShoutsForPvP(queue, rejected, inRaid)
 	local shout
 	for _, entry in ipairs(queue) do
@@ -1173,8 +1194,9 @@ local function HoldShoutsForPvP(queue, rejected, inRaid)
 	end
 	local flagged = shout and ns.ShoutFlagged(inRaid)
 	if not flagged then return queue end
-	pvpScan.groups[#pvpScan.groups + 1] = { spell = ns.BuffName(shout),
-		label = inRaid and L["your group"] or L["your party"], name = flagged }
+	local label = not inRaid and L["your party"]
+		or ns.PARTY_IS_SUBGROUP and L["your group"] or L["your raid"]
+	pvpScan.groups[#pvpScan.groups + 1] = { spell = ns.BuffName(shout), label = label, name = flagged }
 	local kept = {}
 	for _, entry in ipairs(queue) do
 		if entry.buff and entry.buff.selfCast then
@@ -1527,7 +1549,7 @@ function ns.BuildQueue(watch)
 	-- What this scan holds back for PvP, started again whichever way it ends.
 	wipe(pvpScan.names)
 	wipe(pvpScan.groups)
-	pvpScan.stands, pvpScan.you = false, nil
+	pvpScan.stands, pvpScan.you, pvpScan.countdown = false, nil, nil
 	-- Nothing learned to cast on anybody, yourself included.
 	if not db or not ns.CanCastAnything() then return {}, true end
 
@@ -1582,7 +1604,8 @@ function ns.BuildQueue(watch)
 	local pvpRead = f.skipPvP == true
 	local pvpHeld
 	if pvpRead then
-		pvpScan.you = YouAreFlagged() or nil
+		local you, countdown = YouAreFlagged()
+		pvpScan.you, pvpScan.countdown = you or nil, countdown or nil
 		if not pvpScan.you then pvpHeld = pvpScan.names end
 		pvpScan.stands = pvpHeld ~= nil
 	end
@@ -1637,21 +1660,6 @@ function ns.BuildQueue(watch)
 		-- front of you is commonly both your target and a nameplate.
 		if seen[full] or rejected[full] then return end
 
-		-- Flagged for PvP, for every reason alike -- a favour, a request, the
-		-- group, your target -- and first, since two flags cost less than
-		-- anything below. A verdict, so the cursor's hold lets them go. What
-		-- was read goes on their debt, for the owed fallback, which has no
-		-- token to ask; the debt itself stays.
-		local flag
-		if pvpRead then
-			flag = PvPFlag(unit)
-			if owed[full] then owed[full].pvp = flag end
-			if pvpHeld and flag == true then
-				rejected[full] = true
-				pvpHeld[full] = true
-				return
-			end
-		end
 		-- The whole-person block: a right-press skip, or a press that reached
 		-- nobody, so we do not march down the list failing at each buff.
 		if ns.IsBlocked(full, nil, now) then return end
@@ -1712,6 +1720,28 @@ function ns.BuildQueue(watch)
 		if reason == "nearby" and not pointed and notResting then
 			rejected[full] = true
 			return
+		end
+
+		-- Flagged for PvP, for every reason alike -- a favour, a request, the
+		-- group, your target. Below everything above, each of which keeps
+		-- somebody off the prompt whatever their flag, so /manners debug
+		-- names only people the rule itself holds back; above everything
+		-- below, since two flags cost less than a distance or an aura read.
+		-- A verdict, so the cursor's hold lets them go, and a passer-by
+		-- remembered with it -- where "far", below, would not. What was read
+		-- goes on their debt, for the owed fallback, which has no token to
+		-- ask; the debt itself stays. Of the tests above, somebody owed meets
+		-- only the whole-person block, which the fallback honours as well, so
+		-- every token that finds them offerable refreshes it.
+		local flag
+		if pvpRead then
+			flag = PvPFlag(unit)
+			if owed[full] then owed[full].pvp = flag end
+			if pvpHeld and flag == true then
+				rejected[full] = true
+				pvpHeld[full] = true
+				return
+			end
 		end
 
 		-- A passer-by has to be near, not merely castable on. The other reasons
@@ -1893,8 +1923,9 @@ function ns.BuildQueue(watch)
 			if LiveExpiry(entry) > now and fresh and not seen[full] and not rejected[full]
 				and SafeForMacro(full) and not ns.IsBlocked(full, nil, now) then
 				-- Flagged when last read, and the rule stands: held back, a
-				-- verdict like the walk's, and still owed, to be returned once
-				-- a token reads the flag gone (or you are flagged yourself).
+				-- verdict like the walk's, and still owed, to be returned if a
+				-- token reads the flag gone (or you are flagged yourself)
+				-- before the favour runs out.
 				if pvpHeld and entry.pvp == true then
 					rejected[full] = true
 					pvpHeld[full] = true
