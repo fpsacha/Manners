@@ -168,7 +168,7 @@ mutate("Ledger.lua",
 
 # The General tab's button shuts the options window the ledger would sit under.
 mutate("Options.lua",
-       "\t\t\t\t\t\t\tns.CloseOptions()\n",
+       "\t\t\t\t\tns.CloseOptions()\n",
        "",
        "ledger: opens under the options window",
        expect="the ledger summary counts are right", script=S)

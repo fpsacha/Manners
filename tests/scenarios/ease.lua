@@ -1190,7 +1190,7 @@ do
 		if not copy or copy.hidden() then
 			fail(scenario, "/manners export left the box with the settings in it shut")
 		end
-		if not said():find("Share settings", 1, true) then
+		if not said():find("Share as text", 1, true) then
 			fail(scenario, "/manners export did not say where the settings are: " .. said())
 		end
 		-- The game cannot copy for the player, so nothing on the page may say

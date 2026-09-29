@@ -541,13 +541,587 @@ end
 -- options table
 ---------------------------------------------------------------------------
 
--- The "Who to buff" tab, built apart from the rest so that no one function
--- captures every file-level local the page uses: Lua 5.1 allows a function 60
--- upvalues, and a file past that does not load.
-local function WhoToBuffGroup()
+-- The page is a setup flow: Start here takes a new player from nothing to a
+-- prompt on a key, and every other tab is for fine-tuning, in the order a
+-- player thinks about it. One builder per tab, each a function of its own so
+-- that none of them captures every file-level local the page uses: Lua 5.1
+-- allows a function 60 upvalues, and a file past that does not load. The
+-- shared helpers live in three tables (TAB, Setup, Quick) rather than loose
+-- locals, since the main chunk has 200 locals in all.
+
+-- Each tab's name, used for its own title and wherever text on another tab
+-- points at it, so renaming a tab cannot leave a sentence naming the old one.
+-- The keys are the group keys, which never change: Ledger.lua repaints by
+-- "general", and the tests and bug reports name tabs by them.
+local TAB = {
+	general = L["Start here"],
+	who = L["Who to buff"],
+	when = L["When to offer"],
+	click = L["What I say"],
+	appearance = L["Look"],
+	advanced = L["Advanced"],
+	diagnostics = L["Diagnostics"],
+}
+
+-- Text that points at a control somewhere else: the control's name in gold,
+-- the tab it is on in plain text. Where the dependency can be a `disabled` or
+-- a `hidden` instead, it should be.
+local function Ref(control, tab)
+	return ("|cffffd100%s|r (%s)"):format(control, tab)
+end
+
+---------------------------------------------------------------------------
+-- Setup: the key, the macro and the game's key bindings window
+---------------------------------------------------------------------------
+
+local Setup = {}
+ns.Setup = Setup
+
+-- The binding Bindings.xml declares: a click on the prompt's secure button.
+Setup.COMMAND = "CLICK MannersPrompt:LeftButton"
+
+function Setup.CanBind()
+	return type(GetBindingKey) == "function" and type(SetBinding) == "function"
+		and type(SaveBindings) == "function"
+end
+
+-- Every key on the command, in the order the game lists them.
+function Setup.Keys()
+	if type(GetBindingKey) ~= "function" then return {} end
+	local ok, keys = pcall(function() return { GetBindingKey(Setup.COMMAND) } end)
+	if not ok or type(keys) ~= "table" then return {} end
+	local out = {}
+	for _, key in ipairs(keys) do
+		if type(key) == "string" and key ~= "" then out[#out + 1] = key end
+	end
+	return out
+end
+
+-- The first key that buffs the prompted player, or nil.
+function Setup.Key()
+	return Setup.Keys()[1]
+end
+
+-- Put the command on one key, or on none for "" or nil. Key bindings are the
+-- game's, saved with its binding set rather than in the profile, so this works
+-- on every profile. SetBinding is refused in combat, so nothing happens there;
+-- the control that calls this is greyed out in combat anyway.
+function Setup.SetKey(key)
+	if InCombatLockdown() or not Setup.CanBind() then return false end
+	return ns.Guard("key binding", function()
+		for _, old in ipairs(Setup.Keys()) do SetBinding(old) end
+		if type(key) == "string" and key ~= "" then
+			local was = type(GetBindingAction) == "function" and GetBindingAction(key) or ""
+			if type(was) == "string" and was ~= "" and was ~= Setup.COMMAND then
+				ns.addon:Print(L["%s was bound to %s; it now buffs the prompted player."]
+					:format(key, tostring(_G["BINDING_NAME_" .. was] or was)))
+			end
+			SetBinding(key, Setup.COMMAND)
+		end
+		SaveBindings(GetCurrentBindingSet and GetCurrentBindingSet() or 1)
+		ns.RefreshOptionsDisplay()
+	end)
+end
+
+-- Unverified on the Camelot client: whether Settings.KEYBINDINGS_CATEGORY_ID
+-- exists there. Without either route the button hides itself, and the key
+-- control on Start here still does the job.
+function Setup.CanOpenBindings()
+	if type(Settings) == "table" and type(Settings.OpenToCategory) == "function"
+		and Settings.KEYBINDINGS_CATEGORY_ID ~= nil then
+		return true
+	end
+	return type(KeyBindingFrame_LoadUI) == "function"
+end
+
+-- The game's key bindings, where Manners has a section of its own. The
+-- standalone options window is shut first: it sits above the Settings window,
+-- as it does above the ledger. Refused in combat. Answers whether it opened.
+function Setup.OpenBindings()
+	if InCombatLockdown() then return false end
+	ns.CloseOptions()
+	if type(Settings) == "table" and type(Settings.OpenToCategory) == "function"
+		and Settings.KEYBINDINGS_CATEGORY_ID ~= nil
+		and pcall(Settings.OpenToCategory, Settings.KEYBINDINGS_CATEGORY_ID) then
+		return true
+	end
+	if type(KeyBindingFrame_LoadUI) == "function" then
+		return (pcall(function()
+			KeyBindingFrame_LoadUI()
+			ShowUIPanel(KeyBindingFrame)
+		end))
+	end
+	return false
+end
+
+-- Whether the macro Make a macro writes is there.
+function Setup.MacroMade()
+	if type(GetMacroIndexByName) ~= "function" then return false end
+	local ok, index = pcall(GetMacroIndexByName, ns.CLICK_MACRO_NAME or "Manners")
+	return ok and type(index) == "number" and index > 0
+end
+
+---------------------------------------------------------------------------
+-- Quick: the presets on Start here
+--
+-- Each preset writes plain profile fields, the same ones the controls on the
+-- other tabs write, then runs the hooks their setters run. InvalidateMacro and
+-- ApplyStyle already hold off in combat and catch up when the fight ends, so a
+-- preset picked in combat never touches the secure button.
+---------------------------------------------------------------------------
+
+local Quick = {}
+ns.QuickSetup = Quick
+
+-- A field by its path from the profile, "sources.owed" style.
+function Quick.Get(path)
+	local node = ns.db.profile
+	for part in path:gmatch("[^%.]+") do
+		if type(node) ~= "table" then return nil end
+		node = node[part]
+	end
+	return node
+end
+
+function Quick.Set(path, value)
+	local node = ns.db.profile
+	local parts = {}
+	for part in path:gmatch("[^%.]+") do parts[#parts + 1] = part end
+	for i = 1, #parts - 1 do
+		if type(node[parts[i]]) ~= "table" then node[parts[i]] = {} end
+		node = node[parts[i]]
+	end
+	node[parts[#parts]] = value
+end
+
+-- Who to offer to. Never touches sources.asked (reading chat is its own
+-- opt-in), the buff, the speech or the look. "nearby" is a new profile's
+-- defaults, so a fresh profile shows it; the entries are ordered so that
+-- exactly one can match.
+Quick.WHO = {
+	{ key = "favours", name = L["Only people who buff me"], set = {
+		["sources.owed"] = true, ["sources.group"] = false, ["sources.strangers"] = false,
+		["filters.whenBuffed"] = "skip",
+	} },
+	{ key = "group", name = L["People who buff me, and my group"], set = {
+		["sources.owed"] = true, ["sources.group"] = true, ["sources.strangers"] = false,
+		["filters.whenBuffed"] = "skip",
+	} },
+	{ key = "nearby", name = L["Everyone near me"], set = {
+		["sources.owed"] = true, ["sources.group"] = true, ["sources.strangers"] = true,
+		["filters.whenBuffed"] = "skip", ["filters.proximity"] = "near",
+	} },
+	{ key = "raid", name = L["Dungeon and raid buffer"], set = {
+		["sources.owed"] = true, ["sources.group"] = true, ["sources.strangers"] = false,
+		["filters.whenBuffed"] = "refresh", ["groupBuffs.use"] = true,
+		["priority.readyCheck"] = true, ["priority.revived"] = true,
+	} },
+}
+
+-- What to say. An entry with `lines` also loads that phrase set.
+Quick.VOICE = {
+	{ key = "silent", name = L["Stay silent"], set = {
+		["speech.enabled"] = false, ["prompt.thankEmote"] = false,
+	} },
+	{ key = "thank", name = L["Just /thank them"], set = {
+		["speech.enabled"] = false, ["prompt.thankEmote"] = true,
+	} },
+	{ key = "polite", name = L["A polite line"], lines = "polite", set = {
+		["speech.enabled"] = true, ["speech.channel"] = "SAY",
+		["speech.onlyWhenReturning"] = true, ["prompt.thankEmote"] = false,
+	} },
+	{ key = "whisper", name = L["Whisper them a thank-you"], lines = "polite", set = {
+		["speech.enabled"] = true, ["speech.channel"] = "WHISPER",
+		["speech.onlyWhenReturning"] = true, ["prompt.thankEmote"] = false,
+	} },
+}
+-- Phrases.lua loads before this file; without it there is no such set.
+if ns.InCharacter then
+	table.insert(Quick.VOICE, 4, { key = "incharacter", name = L["Roleplay, in character"],
+		lines = "incharacter", set = {
+			["speech.enabled"] = true, ["speech.channel"] = "SAY",
+			["speech.onlyWhenReturning"] = true, ["prompt.thankEmote"] = false,
+		} })
+end
+
+function Quick.Find(list, key)
+	for _, entry in ipairs(list) do
+		if entry.key == key then return entry end
+	end
+	return nil
+end
+
+-- Paths a class cannot use: a warrior's shout never reaches a passer-by, so the
+-- passer-by switches are left out of the comparison (and of the choices).
+function Quick.Ignored(list, path)
+	return list == Quick.WHO and ns.OnlyReachesGroup()
+		and (path == "sources.strangers" or path == "filters.proximity")
+end
+
+-- Whether every field the entry sets holds its value now, and for an entry
+-- with lines, that the set is chosen and its lines are unedited.
+function Quick.Matches(list, entry)
+	for path, value in pairs(entry.set) do
+		if not Quick.Ignored(list, path) and Quick.Get(path) ~= value then return false end
+	end
+	if entry.lines then
+		local sp = SP()
+		if sp.presetChoice ~= entry.lines then return false end
+		if entry.lines == "incharacter" then
+			return ns.InCharacter ~= nil and ns.InCharacter.Active(sp) == true
+		end
+		return sp.phrases == ns.PhraseSetText(entry.lines)
+	end
+	return true
+end
+
+-- The key of the entry the profile matches, or "custom".
+function Quick.Match(list)
+	for _, entry in ipairs(list) do
+		if Quick.Offered(list, entry) and Quick.Matches(list, entry) then return entry.key end
+	end
+	return "custom"
+end
+
+function Quick.Offered(list, entry)
+	return not (list == Quick.WHO and entry.key == "nearby" and ns.OnlyReachesGroup())
+end
+
+-- The dropdown's choices: "Custom" only while nothing matches, so it can never
+-- be picked, only shown.
+function Quick.Values(list)
+	local out = {}
+	for _, entry in ipairs(list) do
+		if Quick.Offered(list, entry) then out[entry.key] = entry.name end
+	end
+	if Quick.Match(list) == "custom" then out.custom = L["Custom (changed by hand)"] end
+	return out
+end
+
+function Quick.Order(list)
+	local values = Quick.Values(list)
+	local keys = {}
+	for _, entry in ipairs(list) do
+		if values[entry.key] then keys[#keys + 1] = entry.key end
+	end
+	if values.custom then keys[#keys + 1] = "custom" end
+	return keys
+end
+
+function Quick.Apply(list, key)
+	return ns.Guard("quick setup", function()
+		local entry = Quick.Find(list, key)
+		if entry then
+			for path, value in pairs(entry.set) do Quick.Set(path, value) end
+			if entry.lines then
+				local sp = SP()
+				sp.presetChoice = entry.lines
+				sp.phrases = ns.PhraseSetText(entry.lines) or sp.phrases
+			end
+			-- The hooks the individual setters run; both hold off in combat.
+			ns.Prompt:InvalidateMacro()
+			ns.Prompt:ApplyStyle()
+			ns.addon:Print(L["Set up: %s."]:format(entry.name))
+		end
+		-- The broker text too: the favour count follows People who buff me.
+		ns.RepaintOptions()
+	end)
+end
+
+-- The confirm question for picking `key`, or false. Who: only over choices made
+-- by hand. Voice: only when the box holds lines somebody wrote.
+function Quick.Confirm(list, key)
+	local entry = Quick.Find(list, key)
+	if not entry then return false end
+	if list == Quick.WHO then
+		if Quick.Match(list) == "custom" then
+			return L["This replaces your own choices on Who to buff and When to offer. Continue?"]
+		end
+		return false
+	end
+	if entry.lines then
+		local sp = SP()
+		local edited = sp.phrases ~= ns.PhraseSetText(sp.presetChoice or "roleplay")
+		local inCharacter = ns.InCharacter and ns.InCharacter.Active(sp)
+		if edited and not inCharacter then
+			return L["This replaces the lines you wrote with the %s lines. Continue?"]:format(entry.name)
+		end
+	end
+	return false
+end
+
+-- One live sentence about who is offered, from the values as they stand,
+-- whatever the preset: on Custom it says what the custom mix is.
+function Quick.WhoSummary()
+	local s, f = S(), F()
+	local who = {}
+	if s.owed then who[#who + 1] = L["people who buff me"] end
+	if s.group then who[#who + 1] = L["my group"] end
+	if s.strangers and not ns.OnlyReachesGroup() then
+		local about
+		for _, tier in ipairs(ns.PROXIMITY) do
+			if tier.key == f.proximity then about = tier.about end
+		end
+		who[#who + 1] = about and L["passers-by within %s"]:format(about) or L["passers-by"]
+	end
+	local list = #who > 0 and table.concat(who, ", ") or L["nobody"]
+	local buffed = f.whenBuffed == "refresh" and L["topped up when low"]
+		or f.whenBuffed == "always" and L["offered anyway"]
+		or L["skipped"]
+	local text = L["Offering to: %s. Already buffed: %s."]:format(list, buffed)
+	if s.asked then text = text .. " " .. L["People who ask in chat: on."] end
+	return text
+end
+
+-- And one about what is said.
+function Quick.VoiceSummary()
+	local sp = SP()
+	local thanks = P().thankEmote
+	if not sp.enabled then
+		return thanks and L["Only /thank."] or L["Silent."]
+	end
+	local set = ns.PHRASE_SETS[sp.presetChoice or "roleplay"]
+	local label
+	if ns.InCharacter and ns.InCharacter.Active(sp) then
+		label = set and set.label
+	elseif set and sp.phrases == ns.PhraseSetText(sp.presetChoice or "roleplay") then
+		label = set.label
+	end
+	local where = sp.channel == "WHISPER" and L["a whisper"]
+		or "/" .. tostring(ns.CHANNEL_COMMANDS[sp.channel] or "say")
+	local text
+	if label then
+		text = sp.onlyWhenReturning
+			and L["Says a %s line in %s when you buff someone back."]:format(label, where)
+			or L["Says a %s line in %s when you buff someone."]:format(label, where)
+	else
+		text = sp.onlyWhenReturning
+			and L["Says one of your own lines in %s when you buff someone back."]:format(where)
+			or L["Says one of your own lines in %s when you buff someone."]:format(where)
+	end
+	if thanks then text = text .. " " .. L["Also /thanks people who buff you."] end
+	return text
+end
+
+-- Start here: switching Manners on, the first steps, the snooze and the
+-- ledger. Ledger.lua repaints this tab by its key, "general".
+local function BuildStartTab()
+	return {
+		type = "group",
+		name = TAB.general,
+		order = 1,
+		args = {
+			enabled = {
+				type = "toggle",
+				name = L["Enable"],
+				order = 1,
+				width = "full",
+				get = function() return ns.db.profile.enabled end,
+				set = function(_, v)
+					ns.db.profile.enabled = v
+					ns.Prompt:Refresh()
+					-- The launcher's text carries this switch too. Through
+					-- the guarded shared call, because what runs on the far
+					-- side is another addon's display frame.
+					ns.RepaintOptions()
+				end,
+			},
+			-- Switched off, every other page still reads as a working
+			-- addon being configured. The prompt simply never appears.
+			offNotice = {
+				type = "description",
+				order = 1.5,
+				hidden = function() return ns.db.profile.enabled end,
+				name = "|cffff8080"
+					.. L["Manners is switched off, so the prompt will never appear. Everything below is still saved."]
+					.. "|r",
+			},
+			noBuffs = {
+				type = "description",
+				order = 2,
+				fontSize = "medium",
+				hidden = HasClassBuffs,
+				-- "Your class has none" and "we could not work out what
+				-- you can cast" look identical from hasClassBuffs alone;
+				-- CLASSES_WITHOUT_BUFFS is what tells them apart.
+				name = function()
+					if ns.caps.class and ns.CLASSES_WITHOUT_BUFFS[ns.caps.class] then
+						return "\n|cffff8080"
+							.. L["Your class has no buffs it can cast on another player."]
+							.. "|r\n\n"
+							.. L["Manners has nothing to offer here. It is still worth keeping installed on an alt that does."]
+							.. "\n"
+					end
+					-- The command is handed in rather than written into the
+					-- sentence, so no translation can turn it into a word the
+					-- slash handler does not know.
+					return "\n|cffff8080" .. L["Manners could not work out what you can cast."]
+						.. "|r\n\n"
+						.. L["Either your class has nothing for other players, or the spell probe came back empty -- %s says which."]
+							:format("|cffffd100/manners debug|r")
+						.. "\n"
+				end,
+			},
+			howItWorks = {
+				type = "description",
+				order = 3,
+				fontSize = "medium",
+				hidden = function() return not HasClassBuffs() end,
+				name = "\n|cffffd100" .. L["How this works"] .. "|r\n"
+					.. L["Blizzard does not let an addon cast a spell by itself, so Manners works out who deserves a buff and puts them on the prompt. Click the prompt and it casts."]
+					.. "\n\n|cffffd100" .. L["Putting it on a key"] .. "|r\n"
+					.. L["Make the macro below and drag it onto a bar, or bind a key under Options > Keybindings > Manners."]
+					.. "\n",
+			},
+
+			startHeader = { type = "header", name = L["Getting started"], order = 10 },
+			makeMacro = {
+				type = "execute",
+				name = L["Create the macro"],
+				-- The macro's text is handed in: it is what CreateClickMacro
+				-- really writes, and a translated copy would describe a
+				-- macro that does not exist.
+				desc = L["Adds a macro called Manners containing %s. Drag it onto an action bar and it fires the prompt."]
+					:format("/click MannersPrompt LeftButton 1"),
+				order = 11,
+				hidden = function() return not HasClassBuffs() end,
+				func = function() ns.CreateClickMacro() end,
+			},
+
+			-- The three lengths in ns.SNOOZE_CHOICES. The minimap menu
+			-- keeps its own list, with an hour added; all of them go
+			-- through ns.StartSnooze, as /manners snooze does, so every
+			-- way in says the same thing in chat.
+			snoozeHeader = {
+				type = "header", name = L["Snooze"], order = 15,
+				hidden = function() return not HasClassBuffs() end,
+			},
+			snoozeNote = {
+				type = "description",
+				order = 15.5,
+				fontSize = "medium",
+				hidden = function() return not HasClassBuffs() end,
+				name = function()
+					local ends = ns.SnoozeEndsAt()
+					-- The page is repainted at both ends of a fight, so this
+					-- is only shown while it is true. Worded for a snooze
+					-- started in the fight and one started before it.
+					if ends and InCombatLockdown() then
+						return L["|cffffd100Snoozed until %s.|r In a fight the prompt stays as the fight found it, and follows the snooze once the fight ends."]
+							:format(ends)
+					elseif ends and DragPanelUp() then
+						-- The lock is read before the snooze, so an unlocked
+						-- prompt stays on screen for the whole snooze.
+						return L["|cffffd100Snoozed until %s.|r The prompt is unlocked, so it stays up to be dragged, casting nothing, until you lock it."]
+							:format(ends)
+					elseif ends then
+						-- Not "offered when it ends": a favour is remembered for
+						-- as long as the When tab says, usually less than a snooze.
+						return L["|cffffd100Snoozed until %s.|r No prompt until then, though who buffs you is still noticed."]
+							:format(ends)
+					end
+					return L["Keep the prompt out of the way for a while without switching Manners off. It comes back when the time is up, or after a %s."]
+						:format("/reload")
+				end,
+			},
+			snooze5 = {
+				type = "execute",
+				name = function() return ns.MinutesText(ns.SNOOZE_CHOICES[1]) end,
+				order = 16,
+				hidden = function() return not HasClassBuffs() end,
+				func = function() ns.StartSnooze(ns.SNOOZE_CHOICES[1]) end,
+			},
+			snooze15 = {
+				type = "execute",
+				name = function() return ns.MinutesText(ns.SNOOZE_CHOICES[2]) end,
+				order = 17,
+				hidden = function() return not HasClassBuffs() end,
+				func = function() ns.StartSnooze(ns.SNOOZE_CHOICES[2]) end,
+			},
+			snooze30 = {
+				type = "execute",
+				name = function() return ns.MinutesText(ns.SNOOZE_CHOICES[3]) end,
+				order = 18,
+				hidden = function() return not HasClassBuffs() end,
+				func = function() ns.StartSnooze(ns.SNOOZE_CHOICES[3]) end,
+			},
+			snoozeStop = {
+				type = "execute",
+				name = L["Stop snoozing"],
+				order = 19,
+				hidden = function() return not ns.SnoozeLeft() end,
+				func = function() ns.StopSnooze() end,
+			},
+
+			miscHeader = {
+				type = "header", name = L["Minimap"], order = 20,
+				hidden = function() return not HasMinimapButton() end,
+			},
+			minimap = {
+				type = "toggle",
+				name = L["Show minimap button"],
+				order = 21,
+				-- Said where the choice is made, because hiding the button
+				-- loses nothing only while the compartment holds Manners
+				-- and is itself on screen.
+				desc = function()
+					if CompartmentShown() then
+						return L["Manners stays in the addon compartment under the minimap either way."]
+					end
+					return L["Without it, |cffffd100/manners|r and the AddOns page in the game's options are the way in."]
+				end,
+				-- Gone entirely where the libraries are not: there is no
+				-- button for a greyed-out control to be about.
+				hidden = function() return not HasMinimapButton() end,
+				get = function() return not ns.db.profile.minimap.hide end,
+				set = function(_, v)
+					ns.db.profile.minimap.hide = not v
+					if LDBIcon then
+						if v then LDBIcon:Show(ADDON) else LDBIcon:Hide(ADDON) end
+					end
+				end,
+			},
+
+			-- What the addon has done, rather than a setting. Here
+			-- because General is the page people land on, and the
+			-- window is otherwise only a slash command away.
+			ledgerHeader = {
+				type = "header", name = L["Favour ledger"], order = 50,
+				hidden = function() return not ns.Ledger end,
+			},
+			ledgerSummary = {
+				type = "description",
+				order = 51,
+				fontSize = "medium",
+				hidden = function() return not ns.Ledger end,
+				name = function() return ns.Ledger and ns.Ledger.OptionsText() or "" end,
+			},
+			ledgerOpen = {
+				type = "execute",
+				name = L["Open the ledger"],
+				desc = L["Who buffed you and with what, whether you returned it, and who you buffed unasked. Also %s, or shift-click the minimap button."]
+					:format("/manners ledger"),
+				order = 52,
+				hidden = function() return not ns.Ledger end,
+				-- This window shut first: it sits in a higher strata than
+				-- the ledger, which would open hidden underneath it.
+				func = function()
+					ns.CloseOptions()
+					ns.Ledger.Show()
+				end,
+			},
+		},
+	}
+end
+
+-- Who to buff, built apart from the rest so that no one function captures
+-- every file-level local the page uses: Lua 5.1 allows a function 60
+-- upvalues, and a file past that does not load. Every tab has its own
+-- builder for the same reason.
+local function BuildWhoTab()
 	local who = {
 		type = "group",
-		name = L["Who to buff"],
+		name = TAB.who,
 		order = 2,
 		hidden = function() return not HasClassBuffs() end,
 		args = {
@@ -598,7 +1172,7 @@ local function WhoToBuffGroup()
 			},
 			owed = {
 				type = "toggle",
-				name = L["People who buffed me"],
+				name = L["People who buff me"],
 				-- A function: a warrior's shout reaches only his group (his own
 				-- subgroup in a raid on the older flavours), so a stranger who
 				-- buffed him is turned down until they join.
@@ -613,16 +1187,6 @@ local function WhoToBuffGroup()
 				end,
 				order = 11,
 				width = "full",
-				get = sGet,
-				set = sSet,
-			},
-			owedClassBuffsOnly = {
-				type = "toggle",
-				name = L["Only count real class buffs"],
-				desc = L["A shield, a heal-over-time or a trinket proc is not a favour owed. Leave this on unless you want every incoming aura to count."],
-				order = 12,
-				width = "full",
-				disabled = function() return not S().owed end,
 				get = sGet,
 				set = sSet,
 			},
@@ -703,15 +1267,6 @@ local function WhoToBuffGroup()
 				width = "full",
 				get = sGet,
 				set = sSet,
-			},
-			reasonAsked = {
-				type = "input",
-				name = L["Wording: asked for it"],
-				desc = L["The prompt's second line for somebody who asked for the buff in chat."],
-				order = 14.7,
-				disabled = function() return not S().asked end,
-				get = pGet,
-				set = pSet,
 			},
 
 			-- Not a source: everybody here is already on the list by one of the
@@ -825,32 +1380,6 @@ local function WhoToBuffGroup()
 				get = fGet,
 				set = fSet,
 			},
-			reachableOnly = {
-				type = "toggle",
-				name = L["Drop people who are probably gone"],
-				desc = L["Somebody who buffed you can rarely be range-checked afterwards. With this on, they count as in range for a while after their buff, then are let go."],
-				order = 23,
-				width = "full",
-				get = fGet,
-				set = fSet,
-			},
-			graceSeconds = {
-				-- Named so it stands on its own, not only directly under the
-				-- toggle above.
-				type = "range",
-				name = L["Let them go after (seconds)"],
-				-- BuildQueue measures from the moment they buffed you, the one
-				-- instant they were provably in range; nothing notices a player
-				-- walking off.
-				desc = L["How long somebody counts as in range after they buff you. It runs from their buff, not from when they walk off."],
-				order = 23.5,
-				min = 10,
-				max = 180,
-				step = 5,
-				disabled = function() return not F().reachableOnly end,
-				get = tGet,
-				set = tSet,
-			},
 			minLevel = {
 				type = "range",
 				name = L["Minimum level"],
@@ -859,24 +1388,6 @@ local function WhoToBuffGroup()
 				min = 1,
 				max = 60,
 				step = 1,
-				get = fGet,
-				set = fSet,
-			},
-			manaFloor = {
-				type = "range",
-				name = L["Percent of my mana to keep for myself"],
-				-- The two kinds that are never held back are named, since the
-				-- rule is about who asked rather than about who they are.
-				desc = L["Below this percent of your mana, only people who buffed you or asked you for it are offered; your group, your target and passers-by wait until you have 5 percent more than this. 0 turns it off."],
-				order = 24.5,
-				min = 0,
-				max = 90,
-				step = 5,
-				-- A class with no mana bar has nothing to keep.
-				hidden = function()
-					local class = ns.caps and ns.caps.class
-					return class ~= nil and ns.MANA_CLASSES[class] ~= true
-				end,
 				get = fGet,
 				set = fSet,
 			},
@@ -995,1468 +1506,1353 @@ local function WhoToBuffGroup()
 	return who
 end
 
-local function BuildOptions()
-	local who = WhoToBuffGroup()
+-- When to offer, and when the prompt holds back.
+local function BuildWhenTab()
+	return {
+		type = "group",
+		name = TAB.when,
+		order = 3,
+		hidden = function() return not HasClassBuffs() end,
+		args = {
+			buffedHeader = { type = "header", name = L["Already buffed"], order = 1 },
+			whenBuffed = {
+				type = "select",
+				name = L["If they already have the buff"],
+				-- The favour exception is said here and on the choice
+				-- itself because none of the three choices touches it:
+				-- BuildQueue offers a debt regardless.
+				desc = L["Reading whether somebody has a buff needs the game's permission. See the Diagnostics tab for which of your buffs qualify."]
+					.. "\n\n"
+					.. L["Somebody who buffed you is offered the favour back whichever you choose, even if they already have it."],
+				order = 2,
+				width = "full",
+				values = {
+					skip = L["Leave them alone (unless they buffed you)"],
+					refresh = L["Offer a top-up when it is running out"],
+					always = L["Always offer, whatever they have"],
+				},
+				get = fGet,
+				set = fSet,
+			},
+			refreshUnder = {
+				type = "range",
+				name = L["Top up when under (minutes) are left"],
+				desc = L["Only offer a refresh once their remaining time drops below this. Somebody whose timer cannot be read is left alone, unless they buffed you."],
+				order = 3,
+				min = 1,
+				max = 60,
+				step = 1,
+				hidden = function() return F().whenBuffed ~= "refresh" end,
+				get = fGet,
+				set = fSet,
+			},
+			alwaysNote = {
+				type = "description",
+				order = 4,
+				hidden = function() return F().whenBuffed ~= "always" end,
+				-- The second sentence is a setting on another tab going
+				-- quiet. A target is promoted only on a reading that they
+				-- lack the buff, and this mode takes no readings.
+				name = "|cffff8080"
+					.. L["Everyone nearby will be offered constantly, including people whose buff has barely ticked down. Expect to be spending mana."]
+					.. "|r\n\n|cff888888"
+					.. L["Nothing is read in this mode, so |cffffd100Whoever I have targeted comes first|r has no effect."]
+					.. "|r",
+			},
 
+			-- Only the mount has a switch: dead, a taxi and a vehicle are
+			-- places nothing can be cast from, while a cast from a mount
+			-- works and costs you the mount, a trade some players want.
+			wayHeader = { type = "header", name = L["Out of the way"], order = 20 },
+			hideMounted = {
+				type = "toggle",
+				name = L["Not while mounted"],
+				desc = L["Keep the prompt away while you are on a mount, since casting would take you off it. It comes back when you get off."]
+					.. "\n\n|cff888888"
+					.. L["It already stays away while you are dead, on a flight path or in a vehicle. In a fight the prompt stays as the fight found it until the fight ends."]
+					.. "|r",
+				order = 21,
+				width = "full",
+				get = fGet,
+				set = fSet,
+			},
+			-- The key keeps its old name, "hide in combat", but it hides
+			-- nothing: Hide() on the protected button is refused in combat,
+			-- and a secure visibility driver ([combat] resolves here) would
+			-- leave a hidden button that still fires from its key binding
+			-- and /click, casting the frozen macro out of sight. So the
+			-- panel stays up on purpose, and this decides whether the
+			-- confirmation flash of a click in a fight still shows.
+			hideInCombat = {
+				type = "toggle",
+				name = L["Keep the prompt dim and still in combat"],
+				desc = L["A click still casts in combat, and the prompt flashes to say what happened -- red if it failed. With this on it stays dimmed and still for the fight."]
+					.. "\n\n|cff888888"
+					.. L["It stays on screen in a fight on purpose: your key binding would still cast the frozen macro if it were hidden."]
+					.. "|r",
+				order = 38,
+				width = "full",
+				get = pGet,
+				set = pSet,
+			},
+			manaFloor = {
+				type = "range",
+				name = L["Percent of my mana to keep for myself"],
+				-- The two kinds that are never held back are named, since the
+				-- rule is about who asked rather than about who they are.
+				desc = L["Below this percent of your mana, only people who buffed you or asked you for it are offered; your group, your target and passers-by wait until you have 5 percent more than this. 0 turns it off."],
+				order = 24.5,
+				min = 0,
+				max = 90,
+				step = 5,
+				-- A class with no mana bar has nothing to keep.
+				hidden = function()
+					local class = ns.caps and ns.caps.class
+					return class ~= nil and ns.MANA_CLASSES[class] ~= true
+				end,
+				get = fGet,
+				set = fSet,
+			},
+		},
+	}
+end
+
+-- What I say: the thanks and the lines that go out with a cast.
+local function BuildSpeechTab()
+	return {
+		type = "group",
+		name = TAB.click,
+		order = 4,
+		hidden = function() return not HasClassBuffs() end,
+		args = {
+			-- Everything on this tab is a line in the macro, a secure
+			-- attribute the fight has frozen: the macro is rebuilt when the
+			-- fight ends, and until then a press runs the old one.
+			combatNotice = {
+				type = "description",
+				order = 0.5,
+				fontSize = "medium",
+				hidden = function() return not InCombatLockdown() end,
+				name = L["|cffffd100In combat.|r Blizzard freezes the prompt's macro during a fight, so these settings apply once it ends."]
+					.. "\n",
+			},
+
+			speechHeader = { type = "header", name = L["Speech"], order = 10 },
+			intro = {
+				type = "description",
+				order = 11,
+				fontSize = "medium",
+				name = L["Say something when you buff somebody. The line is added to the macro the prompt runs, so it goes out as you talking rather than as an addon."]
+					.. "\n\n|cff888888"
+					.. L["The game refuses addon-sent %s and %s outside instances, so going through the macro is what lets them work."]:format("/say", "/yell")
+					.. "|r\n",
+			},
+			-- The other answer to a favour arriving, so under the flash.
+			-- Its own get and set: pSet restyles the prompt, and this
+			-- changes nothing on it.
+			thankEmote = {
+				type = "toggle",
+				name = L["Thank them with an emote"],
+				desc = L["When somebody buffs you and returning it is on the prompt, you /thank them, and everybody near sees it."]
+					.. "\n\n|cff888888"
+					.. L["Never in a fight, in a dungeon, raid, battleground or arena. At most once per person every five minutes, and once every ten seconds in all, so a raid full of buffs is one thank."]
+					.. "|r",
+				order = 21.2,
+				width = "full",
+				-- Nobody is noticed buffing you with that source off.
+				disabled = function() return not S().owed end,
+				get = function() return P().thankEmote end,
+				set = function(_, v) P().thankEmote = v end,
+			},
+			enabled = {
+				type = "toggle",
+				name = L["Say something"],
+				order = 12,
+				width = "full",
+				get = spGet,
+				set = spSet,
+			},
+			channel = {
+				type = "select",
+				name = L["Channel"],
+				desc = L["Who hears the line: Say and Emote reach players near you, Yell a wider area, Party and Raid your group. Whisper them sends it to the person you buff and nobody else."],
+				order = 13,
+				disabled = function() return not SP().enabled end,
+				values = { SAY = L["Say"], YELL = L["Yell"], PARTY = L["Party"], RAID = L["Raid"], EMOTE = L["Emote"],
+					WHISPER = L["Whisper them"] },
+				get = spGet,
+				set = spSet,
+			},
+			onlyWhenReturning = {
+				type = "toggle",
+				name = L["Only when returning a favour"],
+				desc = L["Speak only when buffing somebody who buffed you first. Leave this on unless you want to announce every stranger you buff."],
+				order = 14,
+				width = "full",
+				disabled = function() return not SP().enabled end,
+				get = spGet,
+				set = spSet,
+			},
+
+			phrasesHeader = { type = "header", name = L["Phrases"], order = 20 },
+			preset = {
+				type = "select",
+				name = L["Load a set"],
+				desc = L["Replaces the lines below. Edit them afterwards as much as you like."],
+				order = 21,
+				disabled = function() return not SP().enabled end,
+				-- It overwrites hand-written lines with no undo.
+				confirm = function(_, value)
+					return L["Replace everything in the box below with the %s lines?"]:format(
+						(ns.PHRASE_SETS[value] and ns.PHRASE_SETS[value].label)
+							or tostring(value))
+				end,
+				values = function()
+					local out = {}
+					for _, key in ipairs(ns.PHRASE_SET_ORDER) do
+						out[key] = ns.PHRASE_SETS[key].label
+					end
+					return out
+				end,
+				sorting = function() return ns.PHRASE_SET_ORDER end,
+				-- Blank once the box has been edited. AceGUI's dropdown only
+				-- fires when the item clicked becomes checked, so a set shown
+				-- as chosen could not be picked again to reload it.
+				get = function()
+					local choice = SP().presetChoice or "roleplay"
+					if SP().phrases == ns.PhraseSetText(choice) then return choice end
+					-- In character is untouched on every character sharing the
+					-- profile, though each one's examples differ.
+					if ns.InCharacter and ns.InCharacter.Active(SP()) then return choice end
+					return nil
+				end,
+				set = function(_, value)
+					SP().presetChoice = value
+					SP().phrases = ns.PhraseSetText(value) or SP().phrases
+					ns.Prompt:InvalidateMacro()
+					ns.addon:Print(L["loaded the %s lines."]:format(
+						ns.PHRASE_SETS[value] and ns.PHRASE_SETS[value].label or value))
+				end,
+			},
+			phrasesHelp = {
+				type = "description",
+				order = 22,
+				name = L["One per line -- a random one is picked each time the prompt changes target. Tokens: |cff888888{name}|r the player, |cff888888{buff}|r the spell."]
+					.. "\n|cff888888"
+					.. L["A macro holds 255 characters, so a line that will not fit is dropped, not cut off -- |cffffd100Roll a few|r shows what would go out. An empty box goes back to the chosen set."]
+					.. "|r",
+			},
+			inCharacterNote = {
+				type = "description",
+				order = 22.5,
+				hidden = function() return not (ns.InCharacter and ns.InCharacter.Active(SP())) end,
+				name = function()
+					return "\n|cffffd100" .. L["In character: the line is picked when you click, to fit your race, your faction and the moment -- thanks for a favour, an answer to a request, or an offer. Below are a few of this character's lines; edit them and they become your own lines instead."]
+						.. " " .. L["It notices more than that: your class, the spell, what they gave you, how often you two have met this session, where you are and the hour."]
+						.. "|r\n"
+				end,
+			},
+			phrases = {
+				type = "input",
+				name = "",
+				order = 23,
+				multiline = 10,
+				width = "full",
+				disabled = function() return not SP().enabled end,
+				-- In character shows the examples of whoever is logged in,
+				-- whichever character's the shared profile was saved with.
+				get = function(info)
+					if ns.InCharacter and ns.InCharacter.Active(SP()) then
+						return ns.PhraseSetText("incharacter")
+					end
+					return spGet(info)
+				end,
+				-- An empty box snaps back to the set the dropdown names, the
+				-- way the First line does, since the load-time repair would
+				-- refill it anyway: what the box shows is what is kept.
+				set = function(info, value)
+					if type(value) ~= "string" or value:match("^%s*$") then
+						value = ns.PhraseSetText(SP().presetChoice) or ns.PhraseSetText("roleplay")
+					end
+					spSet(info, value)
+				end,
+			},
+			roll = {
+				type = "execute",
+				name = L["Roll a few"],
+				order = 24,
+				func = function()
+					-- In character speaks differently for each reason, so
+					-- it rolls one line per reason.
+					if ns.InCharacter and ns.InCharacter.Active(SP()) then
+						ns.InCharacter.Roll(L["Somebody"])
+						return
+					end
+					-- reason "owed" so the sample survives the
+					-- only-when-returning filter either way. The
+					-- stand-in name is read in the lines printed, so it
+					-- is in the player's language like the lines are.
+					local somebody = L["Somebody"]
+					local fake = {
+						short = somebody,
+						name = somebody,
+						reason = "owed",
+						buff = ns.ResolveBuff(true),
+					}
+					for _ = 1, 3 do
+						-- The same budget the cast path measures, for a
+						-- representative name.
+						ns.addon:Print(ns.PickPhrase(fake, ns.PhraseBudget(fake))
+							or "|cffff8080" .. L["(nothing -- speech off, or no usable lines)"] .. "|r")
+					end
+				end,
+			},
+			limits = {
+				type = "description",
+				order = 25,
+				name = "\n|cff888888"
+					.. L["A line goes out when you click, even if the cast then fails out of range or line of sight."]
+					.. "|r",
+			},
+		},
+	}
+end
+
+-- How the prompt looks, where it sits and how it gets your attention.
+local function BuildLookTab()
+	return {
+		type = "group",
+		name = TAB.appearance,
+		order = 5,
+		args = {
+			-- Everything on this tab is a secure attribute or a texture
+			-- on a secure frame, and ApplyStyle returns at once in combat;
+			-- the values are kept and flushed when the fight ends.
+			combatNotice = {
+				type = "description",
+				order = 0.5,
+				fontSize = "medium",
+				hidden = function() return not InCombatLockdown() end,
+				name = L["|cffffd100In combat.|r Blizzard freezes secure frames, so changes here are saved and appear once the fight ends."]
+					.. "\n",
+			},
+			-- First on the tab, because everything under it is something
+			-- you want to see while you change it, and on a live prompt
+			-- most of it is invisible until somebody happens to walk past.
+			test = {
+				type = "execute",
+				-- A button labelled "Preview" whichever thing it was about
+				-- to do is a button you press twice to find out.
+				name = function()
+					return ns.Prompt:InTest() and L["Stop preview"] or L["Preview"]
+				end,
+				-- Both exits are held off while this window is open (see
+				-- Refresh, where the expiry is pushed forward), so the
+				-- sentence order here is the rule.
+				desc = L["Show a sample entry to style the prompt by. It stays while this window is open, then twenty seconds more or until somebody real turns up."],
+				order = 1,
+				-- Greyed out in a fight, where ToggleTest refuses to start
+				-- one: the fight may have hidden the panel or frozen its
+				-- macro at somebody real. One already running can still be
+				-- stopped.
+				disabled = function()
+					return InCombatLockdown() and not ns.Prompt:InTest()
+				end,
+				func = function() ns.Prompt:ToggleTest() end,
+			},
+			locked = {
+				type = "toggle",
+				name = L["Locked"],
+				desc = L["Unlock to drag the prompt. It will not cast while unlocked."],
+				order = 2,
+				get = pGet,
+				-- Its own setter, like /manners unlock: the prompt is hidden
+				-- by `enabled` before `locked` is read, so unlocking while
+				-- off leaves nothing on screen to drag.
+				set = function(info, value)
+					pSet(info, value)
+					if not value and not ns.db.profile.enabled then
+						ns.addon:Print(L["unlocked, but the addon is |cffff8080off|r so there is no prompt to drag -- switch it on first."])
+					end
+				end,
+			},
+			reset = {
+				type = "execute",
+				name = L["Reset position"],
+				-- No confirmation: it is undone by dragging the prompt back
+				-- or picking a preset.
+				order = 3,
+				func = function()
+					local d, p = ns.defaults.profile.prompt, P()
+					p.point, p.relPoint, p.x, p.y = d.point, d.relPoint, d.x, d.y
+					restyle()
+				end,
+			},
+
+			styleHeader = { type = "header", name = L["Style"], order = 10 },
+			-- Where the colour goes comes first: it governs the two colour
+			-- pickers under it.
+			accentMode = {
+				type = "select",
+				name = L["Where the reason colour goes"],
+				desc = L["A ring around the icon reads better than a stripe at the panel edge, which ends up competing with the icon rather than framing it."]
+					.. "\n\n|cff888888"
+					.. L["The framed look has no stripe at all -- it would run down the inside of its border -- so on it the stripe settings do nothing."]
+					.. "|r",
+				order = 11,
+				values = {
+					icon = L["Ring around the icon"],
+					stripe = L["Stripe down the left edge"],
+					both = L["Both"],
+					off = L["Neither"],
+				},
+				get = pGet,
+				set = pSet,
+			},
+			accentByReason = {
+				type = "toggle",
+				name = L["Colour it by reason"],
+				-- All five reasons, in the order the queue ranks them, in
+				-- the chosen palette's colours. The target is the only one
+				-- with a condition: BuildQueue writes that reason only with
+				-- the switch on, and never under Always offer, which reads
+				-- nothing.
+				desc = function()
+					local colours = P().reasonPalette == "colourblind"
+						and L["Pale yellow for your own target, orange for a favour owed, deep pink for somebody who asked, sky blue for your group, violet for passers-by -- the order they are offered in."]
+						or L["Pale blue for your own target, amber for a favour owed, pink for somebody who asked, deeper blue for your group, grey for passers-by -- the order they are offered in."]
+					return colours
+						.. "\n\n|cff888888"
+						.. L["The first of those appears only while |cffffd100Whoever I have targeted comes first|r is on and |cffffd100If they already have the buff|r is not Always offer."]
+						.. "|r"
+				end,
+				order = 12,
+				width = "full",
+				get = pGet,
+				set = pSet,
+			},
+			-- Which colours, for somebody the standard set fails.
+			-- Greyed out only where nothing is drawn in the reason
+			-- colours: the list's bars, the glow and the wash of a press
+			-- take the palette whatever the accent says.
+			reasonPalette = {
+				type = "select",
+				name = L["Reason colours"],
+				-- Names no hues and counts none: Colour it by reason names
+				-- them. Every reason has a colour of its own in both sets,
+				-- and hunt5-options.lua holds this sentence to that.
+				desc = L["The colour-blind set keeps the reasons apart for red-green colour blindness, in colours that differ in lightness too."],
+				order = 12.2,
+				values = {
+					standard = L["Standard"],
+					colourblind = L["Colour-blind friendly"],
+				},
+				sorting = { "standard", "colourblind" },
+				disabled = function()
+					local p = P()
+					return not p.accentByReason and not p.showQueue
+				end,
+				-- Whatever a hand-edited file holds, the dropdown shows
+				-- the palette the prompt is actually drawn with.
+				get = function() return P().reasonPalette == "colourblind" and "colourblind" or "standard" end,
+				set = pSet,
+			},
+			-- Shown only when the colour above has nowhere left to go. "Off"
+			-- is excluded: that is somebody asking for no accent, and a
+			-- warning about getting what you asked for is noise.
+			accentDead = {
+				type = "description",
+				order = 12.5,
+				hidden = function()
+					if (P().accentMode or "icon") == "off" then return true end
+					local ring, stripe = AccentCarriers()
+					return ring or stripe
+				end,
+				-- Every carrier the mode asked for and did not get, not just
+				-- the first. Each combination is a sentence of its own,
+				-- because a list joined with ", and" is English grammar a
+				-- translation cannot rearrange.
+				name = function()
+					local p = P()
+					local mode = p.accentMode or "icon"
+					local ring
+					if mode == "icon" or mode == "both" then
+						if not p.showIcon then
+							ring = "hidden"
+						elseif p.roundIcon then
+							ring = "round"
+						end
+					end
+					local stripe = (mode == "stripe" or mode == "both") and p.style == "framed"
+					local text
+					if ring == "hidden" and stripe then
+						text = L["There is nothing left to colour: the ring is drawn behind the icon, which is switched off, and the framed look has no stripe."]
+					elseif ring == "round" and stripe then
+						text = L["There is nothing left to colour: rounding the icon off replaces the ring with a mask, and the framed look has no stripe."]
+					elseif ring == "hidden" then
+						text = L["There is nothing left to colour: the ring is drawn behind the icon, which is switched off."]
+					elseif ring == "round" then
+						text = L["There is nothing left to colour: rounding the icon off replaces the ring with a mask."]
+					elseif stripe then
+						text = L["There is nothing left to colour: the framed look has no stripe."]
+					else
+						-- Nothing was lost, so the notice is hidden and
+						-- has nothing to say.
+						return ""
+					end
+					return "|cffffd100" .. text .. "|r"
+				end,
+			},
+			accentColor = {
+				type = "color",
+				name = L["Accent colour"],
+				desc = L["Used for the ring, the stripe, or both -- whichever the setting above asks for."],
+				order = 13,
+				hasAlpha = true,
+				disabled = function() return P().accentByReason end,
+				get = pGetColor,
+				set = pSetColor,
+			},
+			style = {
+				type = "select",
+				name = L["Look"],
+				order = 14,
+				-- Framed draws its own border out of the panel's white
+				-- texture; profiles holding its old name are carried
+				-- across in ClampSettings.
+				values = {
+					glass = L["Glass -- dark panel, soft shadow"],
+					framed = L["Framed -- flat panel, thin border"],
+					minimal = L["Minimal -- text only, no panel"],
+				},
+				get = pGet,
+				set = pSet,
+			},
+			bgColor = {
+				type = "color",
+				name = L["Panel colour"],
+				order = 15,
+				hasAlpha = true,
+				disabled = function() return P().style == "minimal" end,
+				get = pGetColor,
+				set = pSetColor,
+			},
+
+			-- The flash and the sound are one job, kept together so they
+			-- agree about who is worth interrupting for.
+			attentionHeader = { type = "header", name = L["Getting your attention"], order = 20 },
+			flashStyle = {
+				type = "select",
+				name = L["When someone buffs you"],
+				desc = L["Pulse keeps breathing until you have returned the favour or they are gone. Flash once is easy to miss if you were looking elsewhere."]
+					.. "\n\n|cff888888"
+					.. L["It lights the spell icon, sweeps the stripe, and with Effects on Full the panel catches the light. With none of those showing it has nothing to do."]
+					.. "|r",
+				order = 21,
+				-- The glow lives on the icon, the sweep on the stripe and
+				-- the light on arrival on the panel; with none of them this
+				-- does nothing, and a live control would read as broken.
+				disabled = function()
+					local _, stripe = AccentCarriers()
+					local noLight = P().effects == "calm" or P().style == "minimal"
+					return not P().showIcon and not stripe and noLight
+				end,
+				values = {
+					pulse = L["Pulse until dealt with"],
+					once = L["Flash once"],
+					off = L["Nothing"],
+				},
+				get = pGet,
+				set = pSet,
+			},
+			-- How much the prompt moves to get your attention, so next to
+			-- the flash.
+			effects = {
+				type = "select",
+				name = L["Effects"],
+				desc = L["Full: light crosses the panel when a buff lands, a refused buff shakes the text, and the prompt fades out after your last buff."]
+					.. "\n\n"
+					.. L["Calm: none of that movement. The prompt still fades in, and the glow set above still works."]
+					.. "\n\n|cff888888"
+					.. L["The Minimal look has no panel, so no light crosses it. In a fight, Stay quiet in combat keeps the outcome still as well."]
+					.. "|r",
+				order = 21.5,
+				values = {
+					full = L["Full"],
+					calm = L["Calm -- less movement"],
+				},
+				sorting = { "full", "calm" },
+				get = pGet,
+				set = pSet,
+			},
+			soundEnabled = {
+				type = "toggle",
+				name = L["Play a sound"],
+				desc = L["Play a sound when somebody new reaches the top of the queue."],
+				order = 22,
+				get = function() return SND().enabled end,
+				set = function(_, v) SND().enabled = v end,
+			},
+			soundFile = {
+				type = "select",
+				name = L["Sound"],
+				order = 23,
+				disabled = function() return not SND().enabled end,
+				-- HashTable maps key -> file, and AceConfig shows the
+				-- value as the label, so the key is copied into both.
+				values = function()
+					local list = {}
+					for key in pairs(LSM:HashTable("sound")) do list[key] = key end
+					-- The chosen sound, even when its pack has not
+					-- registered it, so the box still says what was
+					-- picked rather than going blank. It plays ours
+					-- until the pack is there.
+					local chosen = SND().file
+					if type(chosen) == "string" and not list[chosen] then
+						list[chosen] = L["%s |cff808080(not loaded)|r"]:format(chosen)
+					end
+					return list
+				end,
+				get = function() return SND().file end,
+				set = function(_, value)
+					SND().file = value
+					-- Picking a sound plays it.
+					ns.Guard("sound preview", ns.PlayPromptSound, value)
+				end,
+			},
+			soundOwedOnly = {
+				-- The flash fires only for a favour owed; this lets the
+				-- sound agree with it.
+				type = "toggle",
+				name = L["Only when somebody buffed me"],
+				desc = L["Off, every new person on the prompt makes a noise -- including strangers you happen to walk past."],
+				order = 24,
+				width = "full",
+				disabled = function() return not SND().enabled end,
+				get = function() return SND().owedOnly end,
+				set = function(_, v) SND().owedOnly = v end,
+			},
+			noSound = {
+				type = "description",
+				order = 24.5,
+				hidden = function() return not SND().enabled or SND().file ~= "None" end,
+				-- "None" is the name the sound list shows, which is a
+				-- LibSharedMedia key and never translated. It goes in as
+				-- an argument so a translation cannot rename it to an
+				-- entry the list does not have.
+				name = "|cffff8080" .. L["%s is silent. Pick a sound above."]:format("None") .. "|r",
+			},
+
+			posHeader = { type = "header", name = L["Position and size"], order = 30 },
+			-- Moving the prompt otherwise means unlock, find it, drag it,
+			-- lock it -- four steps and a mode you can forget you are in,
+			-- because an unlocked prompt is also one that will not cast.
+			posPreset = {
+				type = "select",
+				name = L["Put it"],
+				desc = L["Three places that are already right. Dragging the prompt afterwards leaves this blank, because it is then not on one of them."],
+				order = 31,
+				values = function()
+					local out = {}
+					for _, preset in ipairs(ns.POSITION_PRESETS) do
+						out[preset.key] = preset.name
+					end
+					return out
+				end,
+				-- The list has a meaning order -- top of the screen to
+				-- bottom -- and a dropdown sorted alphabetically loses it.
+				sorting = function()
+					local out = {}
+					for i, preset in ipairs(ns.POSITION_PRESETS) do out[i] = preset.key end
+					return out
+				end,
+				get = function() return ns.CurrentPositionPreset() end,
+				set = function(_, value) ns.ApplyPositionPreset(value) end,
+			},
+			width = {
+				type = "range",
+				name = L["Width"],
+				order = 34,
+				min = 80,
+				max = 500,
+				step = 1,
+				get = pGet,
+				-- The same setter the height has: the icon is bound by the
+				-- width as well.
+				set = function(info, value)
+					local icon = P().iconSize
+					pSet(info, value)
+					ns.ClampSettings()
+					restyle()
+					if P().iconSize ~= icon then RepaintSoon() end
+				end,
+			},
+			height = {
+				type = "range",
+				name = L["Height"],
+				order = 35,
+				min = 20,
+				max = 120,
+				step = 1,
+				get = pGet,
+				-- Its own setter because the icon's maximum is bound to
+				-- this: ClampSettings shrinks the icon, and RepaintSoon
+				-- redraws its slider.
+				set = function(info, value)
+					local icon = P().iconSize
+					pSet(info, value)
+					ns.ClampSettings()
+					restyle()
+					if P().iconSize ~= icon then RepaintSoon() end
+				end,
+			},
+			scale = { type = "range", name = L["Scale"], order = 36, min = 0.5, max = 3, step = 0.05, get = pGet, set = pSet },
+			alpha = { type = "range", name = L["Opacity"], order = 37, min = 0.1, max = 1, step = 0.05, isPercent = true, get = pGet, set = pSet },
+
+			textHeader = { type = "header", name = L["Text"], order = 40 },
+			showSub = {
+				type = "toggle",
+				name = L["Show a second line"],
+				-- Worked out from the font, by the same function ApplyStyle
+				-- decides it with, never a constant.
+				desc = function()
+					return L["Needs a prompt at least %d pixels tall at this font size."]
+						:format(ns.TwoLineHeight(P().fontSize))
+				end,
+				order = 42,
+				width = "full",
+				get = pGet,
+				set = pSet,
+			},
+			font = {
+				type = "select",
+				name = L["Font"],
+				order = 50,
+				-- Keys, not files, as in the sound list: AceConfig shows the
+				-- value as the label.
+				values = function()
+					local list = {}
+					for key in pairs(LSM:HashTable("font")) do list[key] = key end
+					-- The chosen font even when unregistered, as in the sound
+					-- list: koKR, zhCN and zhTW never register the default.
+					local chosen = P().font
+					if type(chosen) == "string" and not list[chosen] then
+						list[chosen] = L["%s |cff808080(not loaded)|r"]:format(chosen)
+					end
+					return list
+				end,
+				get = pGet,
+				set = pSet,
+			},
+			fontSize = { type = "range", name = L["Font size"], order = 51, min = 6, max = 32, step = 1, get = pGet, set = pSet },
+			-- The prompt picks light or dark text for the panel colour
+			-- only while this is left at its default, and the class
+			-- colour on a name overrides it; both are said here so
+			-- neither reads as the setting being ignored.
+			fontColor = {
+				type = "color",
+				name = L["Text colour"],
+				desc = L["Left at white, text turns dark on a light panel by itself. Other colours are used as picked, except for names while |cffffd100Colour names by class|r is on."],
+				order = 52,
+				hasAlpha = true,
+				get = pGetColor,
+				set = pSetColor,
+			},
+			classColor = { type = "toggle", name = L["Colour names by class"], order = 53, width = "full", get = pGet, set = pSet },
+
+			iconHeader = { type = "header", name = L["Icon and queue"], order = 60 },
+			showIcon = { type = "toggle", name = L["Show spell icon"], order = 61, get = pGet, set = pSet },
+			iconSize = {
+				type = "range",
+				name = L["Icon size"],
+				-- The icon must fit inside the panel, but the bound cannot
+				-- live here: AceConfigRegistry types min and max as "number
+				-- or nil" and rejects the whole options table if either is a
+				-- function. ClampSettings enforces it instead.
+				desc = L["Kept inside the prompt -- make it taller or wider first for a bigger icon."],
+				order = 62,
+				min = 12,
+				max = 64,
+				step = 1,
+				disabled = function() return not P().showIcon end,
+				get = pGet,
+				set = function(info, value)
+					pSet(info, value)
+					-- The bound, applied (see above), as the height slider
+					-- applies it.
+					ns.ClampSettings()
+					restyle()
+					-- Repainted only when the clamp actually moved it: a
+					-- mouse wheel never lets go of the slider, and a repaint
+					-- every time would rebuild it under a dragging finger.
+					if P().iconSize ~= value and ns.RefreshOptionsDisplay then
+						ns.Guard("icon repaint", ns.RefreshOptionsDisplay)
+					end
+				end,
+			},
+			iconSizeCapped = {
+				type = "description",
+				order = 62.5,
+				hidden = function()
+					local p = P()
+					-- Shown only when the icon sits on the ceiling
+					-- ClampSettings enforces, bound by width and height.
+					return not p.showIcon or p.iconSize < ns.IconCeiling(p)
+				end,
+				name = function()
+					local p = P()
+					local byWidth = (p.width - 60) < (p.height - 8)
+					local text
+					if byWidth then
+						text = L["The icon is held at %d to fit a prompt %d wide."]:format(p.iconSize, p.width)
+					else
+						text = L["The icon is held at %d to fit a prompt %d high."]:format(p.iconSize, p.height)
+					end
+					return "|cffffd100" .. text .. "|r"
+				end,
+			},
+			roundIcon = {
+				type = "toggle",
+				name = L["Round the icon off"],
+				-- The ring is a texture behind the square icon, and the mask
+				-- that rounds it goes there instead, so this switches off
+				-- "Ring around the icon".
+				desc = L["Masks the icon into a circle. Reads more like a portrait than a spell, so it is off by default."]
+					.. "\n\n|cff888888"
+					.. L["The mask replaces the ring, so move the reason colour to the stripe if you want both. The glow when somebody buffs you follows the circle."]
+					.. "|r",
+				order = 63,
+				width = "full",
+				disabled = function() return not P().showIcon end,
+				get = pGet,
+				set = pSet,
+			},
+			-- Greyed out with the icon hidden, since the sweep is drawn on
+			-- it and there is then nothing for this to do.
+			showCooldown = {
+				type = "toggle",
+				name = L["Show the global cooldown on the icon"],
+				desc = L["Sweeps the spell icon while the global cooldown runs, like your action bars, so you can see when the next press will go through."]
+					.. "\n\n|cff888888"
+					.. L["Not in a fight while Stay quiet in combat is on."]
+					.. "|r",
+				order = 63.5,
+				width = "full",
+				disabled = function() return not P().showIcon end,
+				get = pGet,
+				set = pSet,
+			},
+			showCount = { type = "toggle", name = L["Show how many are waiting"], order = 64, width = "full", get = pGet, set = pSet },
+			showQueue = { type = "toggle", name = L["List the next few below"], order = 65, width = "full", get = pGet, set = pSet },
+			queueRows = {
+				type = "range",
+				name = L["How many to list"],
+				order = 66,
+				min = 1,
+				max = 5,
+				step = 1,
+				disabled = function() return not P().showQueue end,
+				get = pGet,
+				set = pSet,
+			},
+		},
+	}
+end
+
+-- The tuning knobs: favours, timing, targeting, exact position and the
+-- prompt's wording. Every control keeps its own key and get/set.
+local function BuildAdvancedTab()
+	return {
+		type = "group",
+		name = TAB.advanced,
+		order = 6,
+		hidden = function() return not HasClassBuffs() end,
+		args = {
+			owedClassBuffsOnly = {
+				type = "toggle",
+				name = L["Only count real class buffs"],
+				desc = L["A shield, a heal-over-time or a trinket proc is not a favour owed. Leave this on unless you want every incoming aura to count."],
+				order = 11,
+				width = "full",
+				disabled = function() return not S().owed end,
+				get = sGet,
+				set = sSet,
+			},
+			-- Every one of these is a number of seconds except the
+			-- top-up threshold, which is minutes. There is no suffix
+			-- field on an AceConfig range, so the unit goes in the name
+			-- or it is nowhere.
+			reciprocateWindow = {
+				type = "range",
+				name = L["Remember a buff for (seconds)"],
+				-- For a passer-by with no nameplate BuildQueue lets go once
+				-- the grace on the Who to buff tab runs out, which is
+				-- shorter at the defaults.
+				desc = L["How long a favour is remembered. Somebody the game cannot see may be let go sooner by |cffffd100Drop people who are probably gone|r, under Who to buff."],
+				order = 12,
+				min = 15,
+				max = 600,
+				step = 5,
+				get = tGet,
+				set = tSet,
+			},
+			reachableOnly = {
+				type = "toggle",
+				name = L["Drop people who are probably gone"],
+				desc = L["Somebody who buffed you can rarely be range-checked afterwards. With this on, they count as in range for a while after their buff, then are let go."],
+				order = 13,
+				width = "full",
+				get = fGet,
+				set = fSet,
+			},
+			graceSeconds = {
+				-- Named so it stands on its own, not only directly under the
+				-- toggle above.
+				type = "range",
+				name = L["Let them go after (seconds)"],
+				-- BuildQueue measures from the moment they buffed you, the one
+				-- instant they were provably in range; nothing notices a player
+				-- walking off.
+				desc = L["How long somebody counts as in range after they buff you. It runs from their buff, not from when they walk off."],
+				order = 14,
+				min = 10,
+				max = 180,
+				step = 5,
+				disabled = function() return not F().reachableOnly end,
+				get = tGet,
+				set = tSet,
+			},
+			keepDebts = {
+				type = "toggle",
+				name = L["Remember them across a reload"],
+				desc = L["Keep favours owed through a reload or a disconnect. The clock keeps running meanwhile, so a favour that ran out is not brought back."]
+					.. "\n\n|cff888888"
+					.. L["Stored against this character, never shared between profiles. Switching it off deletes what has already been stored."]
+					.. "|r",
+				order = 15,
+				width = "full",
+				get = tGet,
+				set = function(info, value)
+					tSet(info, value)
+					-- Off means gone, now. SaveDebts owns the stored debts,
+					-- so it does the erasing too.
+					ns.addon:SaveDebts()
+				end,
+			},
+
+			timingHeader = { type = "header", name = L["Timing"], order = 20 },
+			-- Per spell, deliberately: PickBuffFor is built on it, and it
+			-- is what moves a priest off Fortitude and onto Divine Spirit
+			-- on the very next scan. A right-press blocks the whole person
+			-- for the same number.
+			retryCooldown = {
+				type = "range",
+				name = L["Wait before offering the same spell again (seconds)"],
+				desc = L["After you click, how long before that spell is offered to that player again. Covers casts that failed out of sight."]
+					.. "\n\n|cff888888"
+					.. L["Per spell, not per person: after Fortitude the next scan can still offer them Divine Spirit. Right-clicking the prompt skips the whole person for this long."]
+					.. "|r",
+				order = 21,
+				min = 3,
+				max = 60,
+				step = 1,
+				get = tGet,
+				set = tSet,
+			},
+			scanInterval = {
+				type = "range",
+				name = L["Scan every (seconds)"],
+				desc = L["Lower is more responsive and slightly heavier."],
+				order = 22,
+				min = 0.1,
+				max = 2,
+				step = 0.1,
+				get = tGet,
+				set = tSet,
+			},
+
+			targetingHeader = { type = "header", name = L["Targeting"], order = 30 },
+			restoreTarget = {
+				type = "toggle",
+				name = L["Hand my target back afterwards"],
+				desc = L["The prompt targets whoever it buffs, group members too. With this on, your previous target is restored right after the cast."],
+				order = 31,
+				width = "full",
+				-- Hidden, not disabled, like the strangers toggle: nothing
+				-- on this page would put a /target in a Battle Shout macro.
+				hidden = NeverTargets,
+				get = fGetMacro,
+				set = fSetMacro,
+			},
+			noTargetNote = {
+				type = "description",
+				order = 31.5,
+				hidden = function() return not NeverTargets() end,
+				name = "|cff888888" .. L["Everything you can offer is cast on yourself and heard by your party, so the prompt never takes your target and has none to hand back."]
+					.. "|r\n",
+			},
+			targetingNote = {
+				type = "description",
+				order = 32,
+				hidden = NeverTargets,
+				-- A function, so it names the command the macro is really
+				-- built with, asked of the builder itself (/targetexact is
+				-- probed for but deliberately not used, see TargetCommand),
+				-- and follows the switch above. The strategy drops
+				-- /targetlasttarget for somebody already your target,
+				-- except in a fight, where the macro armed at the pull keeps
+				-- it: nothing can rebuild the macro to follow them.
+				--
+				-- Whole sentences, so a translation can order each as its
+				-- language needs. The commands and the conditional are
+				-- arguments, not part of the text: they are macro syntax,
+				-- and a translated /targetlasttarget or [@name] would name
+				-- something the game does not have.
+				name = function()
+					local cmd = (ns.TargetCommand and ns.TargetCommand()) or "/target"
+					local text
+					if F().restoreTarget then
+						text = L["The prompt runs |cffffd100%s|r, the cast, then |cffffd100%s|r, except outside a fight for somebody already your target, who stays targeted."]
+							:format(cmd, "/targetlasttarget")
+					else
+						text = L["The prompt runs |cffffd100%s|r, then the cast, and leaves them targeted."]
+							:format(cmd)
+					end
+					text = text .. " " .. L["A %s conditional only reaches your party or raid, so the macro targets everybody it buffs."]
+						:format("[@name]")
+					return "|cff888888" .. text .. "|r\n"
+				end,
+			},
+
+			x = { type = "range", name = L["X offset"], order = 41, min = -2000, max = 2000, step = 1, get = pGet, set = pSet },
+			y = { type = "range", name = L["Y offset"], order = 42, min = -2000, max = 2000, step = 1, get = pGet, set = pSet },
+
+			formatHelp = {
+				type = "description",
+				order = 51,
+				name = L["|cff888888{name}|r who   |cff888888{reason}|r why   |cff888888{count}|r how many more   |cff888888{class}|r their class   |cff888888{buff}|r the spell"]
+					.. "\n"
+					.. L["|cff888888{time}|r what theirs has left, on a top-up and nowhere else"]
+					.. "\n"
+					.. L["The second line always shows the reason."],
+			},
+			format = {
+				type = "input",
+				name = L["First line"],
+				desc = L["Tokens: {name} {reason} {count} {class} {buff} {time}"],
+				order = 52,
+				width = "full",
+				get = pGet,
+				-- An empty first line is a prompt that names nobody, and the
+				-- load-time repair would put the default back anyway: it
+				-- snaps back here, so what the box shows is what is kept.
+				set = function(info, value)
+					if not ns.UsableFormat(value) then
+						value = ns.defaults.profile.prompt.format
+					end
+					pSet(info, value)
+				end,
+			},
+			reasonTarget = {
+				type = "input",
+				name = L["Wording: your target"],
+				desc = L["Your target outranks everyone, including a favour owed, while that is switched on under Who to buff and the game can see they lack it."],
+				order = 53,
+				get = pGet,
+				set = pSet,
+			},
+			reasonOwed = { type = "input", name = L["Wording: buffed you"], order = 54, get = pGet, set = pSet },
+			reasonAsked = {
+				type = "input",
+				name = L["Wording: asked for it"],
+				desc = L["The prompt's second line for somebody who asked for the buff in chat."],
+				order = 55,
+				disabled = function() return not S().asked end,
+				get = pGet,
+				set = pSet,
+			},
+			reasonGroup = { type = "input", name = L["Wording: in your group"], order = 56, get = pGet, set = pSet },
+			reasonNearby = { type = "input", name = L["Wording: nearby"], order = 57, get = pGet, set = pSet },
+			reasonRefresh = {
+				type = "input",
+				name = L["Wording: topping one up"],
+				desc = L["Used instead of the four above when their buff is about to run out, which only the refresh mode offers. |cffffd100{time}|r is how long theirs has left."],
+				order = 58,
+				get = pGet,
+				set = pSet,
+			},
+			reasonUnknown = {
+				type = "input",
+				name = L["Wording: state unknown"],
+				desc = L["Used when the game will not let addons read whether they already have it."],
+				order = 59,
+				get = pGet,
+				set = pSet,
+			},
+		},
+	}
+end
+
+-- What this client allows, what has broken, and a bug report.
+local function BuildDiagnosticsTab()
+	return {
+		type = "group",
+		name = TAB.diagnostics,
+		order = 7,
+		args = {
+			-- Its own header rather than a line under Diagnostics, so it
+			-- does not read as an addon that talks to other players.
+			chatHeader = { type = "header", name = L["Chat"], order = 1 },
+			verbose = {
+				type = "toggle",
+				-- A cast that worked prints nothing unless it repaid a
+				-- favour, so the label promises what it is doing, not a
+				-- line per click.
+				name = L["Tell me in chat what the addon is doing"],
+				desc = L["A line when somebody buffs you, when a favour is counted as repaid, and when a click fails, is skipped, or leaves somebody owed."]
+					.. "\n\n"
+					.. L["Only you see these lines. They tell a buff that was never noticed apart from somebody who could not be reached."],
+				order = 2,
+				width = "full",
+				get = function() return ns.db.profile.verbose end,
+				set = function(_, v) ns.db.profile.verbose = v end,
+			},
+			debugClicks = {
+				type = "toggle",
+				name = L["Log every click to chat"],
+				desc = L["Prints what the button held when you clicked and what the game did with it. Noisy; for working out why a cast did not happen."],
+				order = 3,
+				width = "full",
+				get = function() return ns.db.profile.debugClicks end,
+				set = function(_, v) ns.db.profile.debugClicks = v end,
+			},
+
+			capsHeader = { type = "header", name = L["What this client allows"], order = 10 },
+			diag = {
+				type = "description",
+				order = 11,
+				fontSize = "medium",
+				hidden = function() return not HasClassBuffs() end,
+				name = function()
+					-- The class is the client's own token, MAGE and the
+					-- like, and is shown as the game spells it.
+					local lines = { L["Class: |cffffffff%s|r"]:format(tostring(ns.caps.class)) .. "\n" }
+					for _, buff in ipairs(ns.GetClassBuffs(ns.caps.class) or {}) do
+						local info = ns.BuffInfo(buff)
+						-- Each field is one key with its label, so the
+						-- translator sees what "yes" or "blocked" answers
+						-- and can make the words agree.
+						lines[#lines + 1] = ("|cffffffff%s|r  --  %s   %s"):format(
+							(info and info.name) or buff.key,
+							(info and info.known) and L["learned: |cff00ff00yes|r"]
+								or L["learned: |cff808080no|r"],
+							(info and info.readable) and L["missing-check: |cff00ff00works|r"]
+								or L["missing-check: |cffff8080blocked|r"])
+						-- Manners being wrong about the game, rather than
+						-- the game withholding something. "Never offer"
+						-- only where no rank resolves: a missing group id
+						-- (Arcane Brilliance) costs only the check of
+						-- whether somebody is wearing it.
+						if info and info.unresolved and #info.unresolved > 0 then
+							local missing = {}
+							for _, id in ipairs(info.unresolved) do missing[id] = true end
+							local rankResolves = false
+							for _, id in ipairs(buff.ranks) do
+								if not missing[id] then rankResolves = true end
+							end
+							if not info.known and not rankResolves then
+								lines[#lines + 1] = "|cffff4040    "
+									.. L["this client has never heard of spell %s, so Manners will never offer this one. That is a mistake in Manners -- please report it."]
+										:format(table.concat(info.unresolved, ", "))
+									.. "|r"
+							else
+								lines[#lines + 1] = "|cffff4040    "
+									.. L["this client doesn't know spell %s, so somebody already carrying that version may be offered this anyway. That is a mistake in Manners -- please report it."]
+										:format(table.concat(info.unresolved, ", "))
+									.. "|r"
+							end
+						end
+					end
+					lines[#lines + 1] = "\n|cff888888"
+						.. L["Where the missing-check is blocked, addons cannot read that aura: players are still offered, but some may already have the buff."]
+						.. "|r"
+					return table.concat(lines, "\n")
+				end,
+			},
+			noDiag = {
+				type = "description",
+				order = 11.5,
+				fontSize = "medium",
+				hidden = HasClassBuffs,
+				name = "|cffff8080"
+					.. L["Nothing to report: this character has no buffs it can put on another player."]
+					.. "|r",
+			},
+
+			-- What ns.Guard caught, on the page where somebody is looking
+			-- when nothing works.
+			errorsHeader = { type = "header", name = L["What has broken"], order = 20 },
+			errorList = {
+				type = "description",
+				order = 21,
+				fontSize = "medium",
+				hidden = function() return #ns.errors == 0 end,
+				name = function()
+					local lines = {}
+					for i = math.max(1, #ns.errors - 4), #ns.errors do
+						local e = ns.errors[i]
+						lines[#lines + 1] = ("|cff808080%s|r %s -- |cffff8080%s|r"):format(
+							tostring(e.at), tostring(e.where), tostring(e.err))
+					end
+					-- The count, not the ring's length: the ring holds thirty.
+					if #ns.errors > 5 then
+						-- Two whole sentences, and the command an argument:
+						-- it is what the player types, in any language.
+						local total = ns.errorCount or #ns.errors
+						local text
+						if total > #ns.errors then
+							text = L["(%d in all this session, %d kept -- |cffffd100%s|r)"]
+								:format(total, #ns.errors, "/manners errors")
+						else
+							text = L["(%d in all this session -- |cffffd100%s|r)"]
+								:format(total, "/manners errors")
+						end
+						lines[#lines + 1] = "|cff888888" .. text .. "|r"
+					end
+					return table.concat(lines, "\n")
+				end,
+			},
+			noErrors = {
+				type = "description",
+				order = 21.5,
+				fontSize = "medium",
+				hidden = function() return #ns.errors > 0 end,
+				name = L["Nothing has broken this session."],
+			},
+
+			reportHeader = { type = "header", name = L["Reporting a bug"], order = 30 },
+			buildNote = {
+				type = "description",
+				order = 31,
+				fontSize = "medium",
+				-- The first question on every bug report.
+				name = function()
+					return ("Manners |cffffffff%s|r"):format(tostring(ns.BUILD))
+				end,
+			},
+			copyReport = {
+				type = "execute",
+				name = function() return reportOpen and L["Hide the report"] or L["Copy for a bug report"] end,
+				desc = L["Opens a box with the build, what this client allows, the settings that matter and anything that has broken, ready to copy."],
+				order = 32,
+				func = function()
+					reportOpen = not reportOpen
+					ns.RefreshOptionsDisplay()
+				end,
+			},
+			report = {
+				type = "input",
+				name = "",
+				order = 33,
+				multiline = 14,
+				width = "full",
+				hidden = function() return not reportOpen end,
+				get = function() return BugReport() end,
+				-- Read-only in the only way AceConfig offers: anything
+				-- typed in is discarded.
+				set = function() end,
+			},
+		},
+	}
+end
+
+-- The Profiles tab: AceDBOptions' own table, with the share boxes added to it.
+-- The library's strings and orders are its own; ours start at 100.
+local function BuildProfilesTab()
+	local t = AceDBOptions:GetOptionsTable(ns.db)
+	t.order = 90
+	t.args = t.args or {}
+	for key, option in pairs({
+		-- Two boxes rather than one that does both: a box that shows
+		-- your settings and also applies whatever is typed into it
+		-- is one stray keypress from replacing them.
+		shareHeader = { type = "header", name = L["Share as text"], order = 100 },
+		shareNote = {
+			type = "description",
+			order = 101,
+			fontSize = "medium",
+			name = L["Copy these settings as one line of text, or paste one you were given."]
+				.. " "
+				.. L["A paste leaves your on switch, lock, prompt position, click log and minimap button alone. It never switches on speaking, and while speaking is on, what you say and where stays yours."],
+		},
+		shareCopy = {
+			type = "execute",
+			name = function()
+				return shareOpen and L["Hide the text"] or L["Show my settings as text"]
+			end,
+			desc = L["Shows these settings as one line of text in a box below, ready to select and copy. %s opens it too."]
+				:format("|cffffd100/manners export|r"),
+			order = 102,
+			func = function()
+				shareOpen = not shareOpen
+				ns.RefreshOptionsDisplay()
+			end,
+		},
+		shareText = {
+			type = "input",
+			-- On the page rather than in a tooltip: the game has no way
+			-- to put text on the clipboard for the player.
+			name = L["Click in the box, press Ctrl+A to select it all, then Ctrl+C to copy (Cmd on a Mac)."],
+			order = 103,
+			multiline = 3,
+			width = "full",
+			hidden = function() return not shareOpen end,
+			get = function() return ns.ExportSettings() or "" end,
+			-- Read-only the way the bug report is: anything typed in
+			-- is discarded, and the box repaints from the profile.
+			set = function() end,
+		},
+		sharePaste = {
+			type = "input",
+			name = L["Paste settings to use them"],
+			desc = L["Replaces the settings on this profile with the ones in the text. %s puts yours back."]
+				:format("|cffffd100/manners import undo|r"),
+			order = 104,
+			multiline = 3,
+			width = "full",
+			get = function() return "" end,
+			-- Refused here with the reason, before anything changes.
+			-- The dialog shows the sentence and keeps what was pasted,
+			-- so it can be fixed rather than pasted again.
+			validate = function(_, value)
+				local parsed, err = ns.ParseSettings(value)
+				if not parsed then return err end
+				return true
+			end,
+			set = function(_, value)
+				local _, message = ns.ImportSettings(value)
+				ns.addon:Print(message)
+			end,
+		},
+	}) do
+		t.args[key] = option
+	end
+	return t
+end
+
+local function BuildOptions()
 	return {
 		type = "group",
 		name = "Manners",
 		childGroups = "tab",
 		args = {
-
-			---------------------------------------------------------------
-			general = {
-				type = "group",
-				name = L["General"],
-				order = 1,
-				args = {
-					enabled = {
-						type = "toggle",
-						name = L["Enable"],
-						order = 1,
-						width = "full",
-						get = function() return ns.db.profile.enabled end,
-						set = function(_, v)
-							ns.db.profile.enabled = v
-							ns.Prompt:Refresh()
-							-- The launcher's text carries this switch too. Through
-							-- the guarded shared call, because what runs on the far
-							-- side is another addon's display frame.
-							ns.RepaintOptions()
-						end,
-					},
-					-- Switched off, every other page still reads as a working
-					-- addon being configured. The prompt simply never appears.
-					offNotice = {
-						type = "description",
-						order = 1.5,
-						hidden = function() return ns.db.profile.enabled end,
-						name = "|cffff8080"
-							.. L["Manners is switched off, so the prompt will never appear. Everything below is still saved."]
-							.. "|r",
-					},
-					noBuffs = {
-						type = "description",
-						order = 2,
-						fontSize = "medium",
-						hidden = HasClassBuffs,
-						-- "Your class has none" and "we could not work out what
-						-- you can cast" look identical from hasClassBuffs alone;
-						-- CLASSES_WITHOUT_BUFFS is what tells them apart.
-						name = function()
-							if ns.caps.class and ns.CLASSES_WITHOUT_BUFFS[ns.caps.class] then
-								return "\n|cffff8080"
-									.. L["Your class has no buffs it can cast on another player."]
-									.. "|r\n\n"
-									.. L["Manners has nothing to offer here. It is still worth keeping installed on an alt that does."]
-									.. "\n"
-							end
-							-- The command is handed in rather than written into the
-							-- sentence, so no translation can turn it into a word the
-							-- slash handler does not know.
-							return "\n|cffff8080" .. L["Manners could not work out what you can cast."]
-								.. "|r\n\n"
-								.. L["Either your class has nothing for other players, or the spell probe came back empty -- %s says which."]
-									:format("|cffffd100/manners debug|r")
-								.. "\n"
-						end,
-					},
-					howItWorks = {
-						type = "description",
-						order = 3,
-						fontSize = "medium",
-						hidden = function() return not HasClassBuffs() end,
-						name = "\n|cffffd100" .. L["How this works"] .. "|r\n"
-							.. L["Blizzard does not let an addon cast a spell by itself, so Manners works out who deserves a buff and puts them on the prompt. Click the prompt and it casts."]
-							.. "\n\n|cffffd100" .. L["Putting it on a key"] .. "|r\n"
-							.. L["Make the macro below and drag it onto a bar, or bind a key under Options > Keybindings > Manners."]
-							.. "\n",
-					},
-
-					startHeader = { type = "header", name = L["Getting started"], order = 10 },
-					makeMacro = {
-						type = "execute",
-						name = L["Create the macro"],
-						-- The macro's text is handed in: it is what CreateClickMacro
-						-- really writes, and a translated copy would describe a
-						-- macro that does not exist.
-						desc = L["Adds a macro called Manners containing %s. Drag it onto an action bar and it fires the prompt."]
-							:format("/click MannersPrompt LeftButton 1"),
-						order = 11,
-						hidden = function() return not HasClassBuffs() end,
-						func = function() ns.CreateClickMacro() end,
-					},
-
-					-- The three lengths in ns.SNOOZE_CHOICES. The minimap menu
-					-- keeps its own list, with an hour added; all of them go
-					-- through ns.StartSnooze, as /manners snooze does, so every
-					-- way in says the same thing in chat.
-					snoozeHeader = {
-						type = "header", name = L["Snooze"], order = 15,
-						hidden = function() return not HasClassBuffs() end,
-					},
-					snoozeNote = {
-						type = "description",
-						order = 15.5,
-						fontSize = "medium",
-						hidden = function() return not HasClassBuffs() end,
-						name = function()
-							local ends = ns.SnoozeEndsAt()
-							-- The page is repainted at both ends of a fight, so this
-							-- is only shown while it is true. Worded for a snooze
-							-- started in the fight and one started before it.
-							if ends and InCombatLockdown() then
-								return L["|cffffd100Snoozed until %s.|r In a fight the prompt stays as the fight found it, and follows the snooze once the fight ends."]
-									:format(ends)
-							elseif ends and DragPanelUp() then
-								-- The lock is read before the snooze, so an unlocked
-								-- prompt stays on screen for the whole snooze.
-								return L["|cffffd100Snoozed until %s.|r The prompt is unlocked, so it stays up to be dragged, casting nothing, until you lock it."]
-									:format(ends)
-							elseif ends then
-								-- Not "offered when it ends": a favour is remembered for
-								-- as long as the When tab says, usually less than a snooze.
-								return L["|cffffd100Snoozed until %s.|r No prompt until then, though who buffs you is still noticed."]
-									:format(ends)
-							end
-							return L["Keep the prompt out of the way for a while without switching Manners off. It comes back when the time is up, or after a %s."]
-								:format("/reload")
-						end,
-					},
-					snooze5 = {
-						type = "execute",
-						name = function() return ns.MinutesText(ns.SNOOZE_CHOICES[1]) end,
-						order = 16,
-						hidden = function() return not HasClassBuffs() end,
-						func = function() ns.StartSnooze(ns.SNOOZE_CHOICES[1]) end,
-					},
-					snooze15 = {
-						type = "execute",
-						name = function() return ns.MinutesText(ns.SNOOZE_CHOICES[2]) end,
-						order = 17,
-						hidden = function() return not HasClassBuffs() end,
-						func = function() ns.StartSnooze(ns.SNOOZE_CHOICES[2]) end,
-					},
-					snooze30 = {
-						type = "execute",
-						name = function() return ns.MinutesText(ns.SNOOZE_CHOICES[3]) end,
-						order = 18,
-						hidden = function() return not HasClassBuffs() end,
-						func = function() ns.StartSnooze(ns.SNOOZE_CHOICES[3]) end,
-					},
-					snoozeStop = {
-						type = "execute",
-						name = L["Stop snoozing"],
-						order = 19,
-						hidden = function() return not ns.SnoozeLeft() end,
-						func = function() ns.StopSnooze() end,
-					},
-
-					miscHeader = {
-						type = "header", name = L["Minimap"], order = 20,
-						hidden = function() return not HasMinimapButton() end,
-					},
-					minimap = {
-						type = "toggle",
-						name = L["Show minimap button"],
-						order = 21,
-						-- Said where the choice is made, because hiding the button
-						-- loses nothing only while the compartment holds Manners
-						-- and is itself on screen.
-						desc = function()
-							if CompartmentShown() then
-								return L["Manners stays in the addon compartment under the minimap either way."]
-							end
-							return L["Without it, |cffffd100/manners|r and the AddOns page in the game's options are the way in."]
-						end,
-						-- Gone entirely where the libraries are not: there is no
-						-- button for a greyed-out control to be about.
-						hidden = function() return not HasMinimapButton() end,
-						get = function() return not ns.db.profile.minimap.hide end,
-						set = function(_, v)
-							ns.db.profile.minimap.hide = not v
-							if LDBIcon then
-								if v then LDBIcon:Show(ADDON) else LDBIcon:Hide(ADDON) end
-							end
-						end,
-					},
-
-					-- Its own header rather than a line under Diagnostics, so it
-					-- does not read as an addon that talks to other players.
-					chatHeader = { type = "header", name = L["Chat"], order = 30 },
-					verbose = {
-						type = "toggle",
-						-- A cast that worked prints nothing unless it repaid a
-						-- favour, so the label promises what it is doing, not a
-						-- line per click.
-						name = L["Tell me in chat what the addon is doing"],
-						desc = L["A line when somebody buffs you, when a favour is counted as repaid, and when a click fails, is skipped, or leaves somebody owed."]
-							.. "\n\n"
-							.. L["Only you see these lines. They tell a buff that was never noticed apart from somebody who could not be reached."],
-						order = 31,
-						width = "full",
-						get = function() return ns.db.profile.verbose end,
-						set = function(_, v) ns.db.profile.verbose = v end,
-					},
-
-					-- Two boxes rather than one that does both: a box that shows
-					-- your settings and also applies whatever is typed into it
-					-- is one stray keypress from replacing them.
-					shareHeader = { type = "header", name = L["Share settings"], order = 40 },
-					shareNote = {
-						type = "description",
-						order = 41,
-						fontSize = "medium",
-						name = L["Copy these settings as one line of text, or paste one you were given."]
-							.. " "
-							.. L["A paste leaves your on switch, lock, prompt position, click log and minimap button alone. It never switches on speaking, and while speaking is on, what you say and where stays yours."],
-					},
-					shareCopy = {
-						type = "execute",
-						name = function()
-							return shareOpen and L["Hide the text"] or L["Show my settings as text"]
-						end,
-						desc = L["Shows these settings as one line of text in a box below, ready to select and copy. %s opens it too."]
-							:format("|cffffd100/manners export|r"),
-						order = 42,
-						func = function()
-							shareOpen = not shareOpen
-							ns.RefreshOptionsDisplay()
-						end,
-					},
-					shareText = {
-						type = "input",
-						-- On the page rather than in a tooltip: the game has no way
-						-- to put text on the clipboard for the player.
-						name = L["Click in the box, press Ctrl+A to select it all, then Ctrl+C to copy (Cmd on a Mac)."],
-						order = 43,
-						multiline = 3,
-						width = "full",
-						hidden = function() return not shareOpen end,
-						get = function() return ns.ExportSettings() or "" end,
-						-- Read-only the way the bug report is: anything typed in
-						-- is discarded, and the box repaints from the profile.
-						set = function() end,
-					},
-					sharePaste = {
-						type = "input",
-						name = L["Paste settings to use them"],
-						desc = L["Replaces the settings on this profile with the ones in the text. %s puts yours back."]
-							:format("|cffffd100/manners import undo|r"),
-						order = 44,
-						multiline = 3,
-						width = "full",
-						get = function() return "" end,
-						-- Refused here with the reason, before anything changes.
-						-- The dialog shows the sentence and keeps what was pasted,
-						-- so it can be fixed rather than pasted again.
-						validate = function(_, value)
-							local parsed, err = ns.ParseSettings(value)
-							if not parsed then return err end
-							return true
-						end,
-						set = function(_, value)
-							local _, message = ns.ImportSettings(value)
-							ns.addon:Print(message)
-						end,
-					},
-					-- What the addon has done, rather than a setting. Here
-					-- because General is the page people land on, and the
-					-- window is otherwise only a slash command away.
-					ledgerHeader = {
-						type = "header", name = L["Favour ledger"], order = 50,
-						hidden = function() return not ns.Ledger end,
-					},
-					ledgerSummary = {
-						type = "description",
-						order = 51,
-						fontSize = "medium",
-						hidden = function() return not ns.Ledger end,
-						name = function() return ns.Ledger and ns.Ledger.OptionsText() or "" end,
-					},
-					ledgerOpen = {
-						type = "execute",
-						name = L["Open the ledger"],
-						desc = L["Who buffed you and with what, whether you returned it, and who you buffed unasked. Also %s, or shift-click the minimap button."]
-							:format("/manners ledger"),
-						order = 52,
-						hidden = function() return not ns.Ledger end,
-						-- This window shut first: it sits in a higher strata than
-						-- the ledger, which would open hidden underneath it.
-						func = function()
-							ns.CloseOptions()
-							ns.Ledger.Show()
-						end,
-					},
-				},
-			},
-
-			---------------------------------------------------------------
-			who = who,
-
-			---------------------------------------------------------------
-			-- Everything here is a question about timing.
-			when = {
-				type = "group",
-				-- The key list gives translators this one word and nothing
-				-- else, and some languages split "when" in two: it is the
-				-- question "when?", the tab of settings about timing, never
-				-- the "when" that opens a condition.
-				name = L["When"],
-				order = 3,
-				hidden = function() return not HasClassBuffs() end,
-				args = {
-					buffedHeader = { type = "header", name = L["Already buffed"], order = 1 },
-					whenBuffed = {
-						type = "select",
-						name = L["If they already have the buff"],
-						-- The favour exception is said here and on the choice
-						-- itself because none of the three choices touches it:
-						-- BuildQueue offers a debt regardless.
-						desc = L["Reading whether somebody has a buff needs the game's permission. See the Diagnostics tab for which of your buffs qualify."]
-							.. "\n\n"
-							.. L["Somebody who buffed you is offered the favour back whichever you choose, even if they already have it."],
-						order = 2,
-						width = "full",
-						values = {
-							skip = L["Leave them alone (unless they buffed you)"],
-							refresh = L["Offer a top-up when it is running out"],
-							always = L["Always offer, whatever they have"],
-						},
-						get = fGet,
-						set = fSet,
-					},
-					refreshUnder = {
-						type = "range",
-						name = L["Top up when under (minutes) are left"],
-						desc = L["Only offer a refresh once their remaining time drops below this. Somebody whose timer cannot be read is left alone, unless they buffed you."],
-						order = 3,
-						min = 1,
-						max = 60,
-						step = 1,
-						hidden = function() return F().whenBuffed ~= "refresh" end,
-						get = fGet,
-						set = fSet,
-					},
-					alwaysNote = {
-						type = "description",
-						order = 4,
-						hidden = function() return F().whenBuffed ~= "always" end,
-						-- The second sentence is a setting on another tab going
-						-- quiet. A target is promoted only on a reading that they
-						-- lack the buff, and this mode takes no readings.
-						name = "|cffff8080"
-							.. L["Everyone nearby will be offered constantly, including people whose buff has barely ticked down. Expect to be spending mana."]
-							.. "|r\n\n|cff888888"
-							.. L["Nothing is read in this mode, so |cffffd100Whoever I have targeted comes first|r has no effect."]
-							.. "|r",
-					},
-
-					timingHeader = { type = "header", name = L["Timing"], order = 10 },
-					-- Every one of these is a number of seconds except the
-					-- top-up threshold, which is minutes. There is no suffix
-					-- field on an AceConfig range, so the unit goes in the name
-					-- or it is nowhere.
-					reciprocateWindow = {
-						type = "range",
-						name = L["Remember a buff for (seconds)"],
-						-- For a passer-by with no nameplate BuildQueue lets go once
-						-- the grace on the Who to buff tab runs out, which is
-						-- shorter at the defaults.
-						desc = L["How long a favour is remembered. Somebody the game cannot see may be let go sooner by |cffffd100Drop people who are probably gone|r, under Who to buff."],
-						order = 11,
-						min = 15,
-						max = 600,
-						step = 5,
-						get = tGet,
-						set = tSet,
-					},
-					keepDebts = {
-						type = "toggle",
-						name = L["Remember them across a reload"],
-						desc = L["Keep favours owed through a reload or a disconnect. The clock keeps running meanwhile, so a favour that ran out is not brought back."]
-							.. "\n\n|cff888888"
-							.. L["Stored against this character, never shared between profiles. Switching it off deletes what has already been stored."]
-							.. "|r",
-						order = 11.5,
-						width = "full",
-						get = tGet,
-						set = function(info, value)
-							tSet(info, value)
-							-- Off means gone, now. SaveDebts owns the stored debts,
-							-- so it does the erasing too.
-							ns.addon:SaveDebts()
-						end,
-					},
-					-- Per spell, deliberately: PickBuffFor is built on it, and it
-					-- is what moves a priest off Fortitude and onto Divine Spirit
-					-- on the very next scan. A right-press blocks the whole person
-					-- for the same number.
-					retryCooldown = {
-						type = "range",
-						name = L["Wait before offering the same spell again (seconds)"],
-						desc = L["After you click, how long before that spell is offered to that player again. Covers casts that failed out of sight."]
-							.. "\n\n|cff888888"
-							.. L["Per spell, not per person: after Fortitude the next scan can still offer them Divine Spirit. Right-clicking the prompt skips the whole person for this long."]
-							.. "|r",
-						order = 12,
-						min = 3,
-						max = 60,
-						step = 1,
-						get = tGet,
-						set = tSet,
-					},
-					scanInterval = {
-						type = "range",
-						name = L["Scan every (seconds)"],
-						desc = L["Lower is more responsive and slightly heavier."],
-						order = 13,
-						min = 0.1,
-						max = 2,
-						step = 0.1,
-						get = tGet,
-						set = tSet,
-					},
-
-					-- Only the mount has a switch: dead, a taxi and a vehicle are
-					-- places nothing can be cast from, while a cast from a mount
-					-- works and costs you the mount, a trade some players want.
-					wayHeader = { type = "header", name = L["Out of the way"], order = 20 },
-					hideMounted = {
-						type = "toggle",
-						name = L["Not while mounted"],
-						desc = L["Keep the prompt away while you are on a mount, since casting would take you off it. It comes back when you get off."]
-							.. "\n\n|cff888888"
-							.. L["It already stays away while you are dead, on a flight path or in a vehicle. In a fight the prompt stays as the fight found it until the fight ends."]
-							.. "|r",
-						order = 21,
-						width = "full",
-						get = fGet,
-						set = fSet,
-					},
-				},
-			},
-
-			---------------------------------------------------------------
-			-- Everything that happens at the moment of the press: lines in the
-			-- macro rather than filters on the queue.
-			click = {
-				type = "group",
-				name = L["When you click"],
-				order = 4,
-				hidden = function() return not HasClassBuffs() end,
-				args = {
-					-- Everything on this tab is a line in the macro, a secure
-					-- attribute the fight has frozen: the macro is rebuilt when the
-					-- fight ends, and until then a press runs the old one.
-					combatNotice = {
-						type = "description",
-						order = 0.5,
-						fontSize = "medium",
-						hidden = function() return not InCombatLockdown() end,
-						name = L["|cffffd100In combat.|r Blizzard freezes the prompt's macro during a fight, so these settings apply once it ends."]
-							.. "\n",
-					},
-					targetingHeader = { type = "header", name = L["Targeting"], order = 1 },
-					restoreTarget = {
-						type = "toggle",
-						name = L["Hand my target back afterwards"],
-						desc = L["The prompt targets whoever it buffs, group members too. With this on, your previous target is restored right after the cast."],
-						order = 2,
-						width = "full",
-						-- Hidden, not disabled, like the strangers toggle: nothing
-						-- on this page would put a /target in a Battle Shout macro.
-						hidden = NeverTargets,
-						get = fGetMacro,
-						set = fSetMacro,
-					},
-					noTargetNote = {
-						type = "description",
-						order = 2.5,
-						hidden = function() return not NeverTargets() end,
-						name = "|cff888888" .. L["Everything you can offer is cast on yourself and heard by your party, so the prompt never takes your target and has none to hand back."]
-							.. "|r\n",
-					},
-					targetingNote = {
-						type = "description",
-						order = 3,
-						hidden = NeverTargets,
-						-- A function, so it names the command the macro is really
-						-- built with, asked of the builder itself (/targetexact is
-						-- probed for but deliberately not used, see TargetCommand),
-						-- and follows the switch above. The strategy drops
-						-- /targetlasttarget for somebody already your target,
-						-- except in a fight, where the macro armed at the pull keeps
-						-- it: nothing can rebuild the macro to follow them.
-						--
-						-- Whole sentences, so a translation can order each as its
-						-- language needs. The commands and the conditional are
-						-- arguments, not part of the text: they are macro syntax,
-						-- and a translated /targetlasttarget or [@name] would name
-						-- something the game does not have.
-						name = function()
-							local cmd = (ns.TargetCommand and ns.TargetCommand()) or "/target"
-							local text
-							if F().restoreTarget then
-								text = L["The prompt runs |cffffd100%s|r, the cast, then |cffffd100%s|r, except outside a fight for somebody already your target, who stays targeted."]
-									:format(cmd, "/targetlasttarget")
-							else
-								text = L["The prompt runs |cffffd100%s|r, then the cast, and leaves them targeted."]
-									:format(cmd)
-							end
-							text = text .. " " .. L["A %s conditional only reaches your party or raid, so the macro targets everybody it buffs."]
-								:format("[@name]")
-							return "|cff888888" .. text .. "|r\n"
-						end,
-					},
-
-					speechHeader = { type = "header", name = L["Speech"], order = 10 },
-					intro = {
-						type = "description",
-						order = 11,
-						fontSize = "medium",
-						name = L["Say something when you buff somebody. The line is added to the macro the prompt runs, so it goes out as you talking rather than as an addon."]
-							.. "\n\n|cff888888"
-							.. L["The game refuses addon-sent %s and %s outside instances, so going through the macro is what lets them work."]:format("/say", "/yell")
-							.. "|r\n",
-					},
-					enabled = {
-						type = "toggle",
-						name = L["Say something"],
-						order = 12,
-						width = "full",
-						get = spGet,
-						set = spSet,
-					},
-					channel = {
-						type = "select",
-						name = L["Channel"],
-						desc = L["Who hears the line: Say and Emote reach players near you, Yell a wider area, Party and Raid your group. Whisper them sends it to the person you buff and nobody else."],
-						order = 13,
-						disabled = function() return not SP().enabled end,
-						values = { SAY = L["Say"], YELL = L["Yell"], PARTY = L["Party"], RAID = L["Raid"], EMOTE = L["Emote"],
-							WHISPER = L["Whisper them"] },
-						get = spGet,
-						set = spSet,
-					},
-					onlyWhenReturning = {
-						type = "toggle",
-						name = L["Only when returning a favour"],
-						desc = L["Speak only when buffing somebody who buffed you first. Leave this on unless you want to announce every stranger you buff."],
-						order = 14,
-						width = "full",
-						disabled = function() return not SP().enabled end,
-						get = spGet,
-						set = spSet,
-					},
-
-					phrasesHeader = { type = "header", name = L["Phrases"], order = 20 },
-					preset = {
-						type = "select",
-						name = L["Load a set"],
-						desc = L["Replaces the lines below. Edit them afterwards as much as you like."],
-						order = 21,
-						disabled = function() return not SP().enabled end,
-						-- It overwrites hand-written lines with no undo.
-						confirm = function(_, value)
-							return L["Replace everything in the box below with the %s lines?"]:format(
-								(ns.PHRASE_SETS[value] and ns.PHRASE_SETS[value].label)
-									or tostring(value))
-						end,
-						values = function()
-							local out = {}
-							for _, key in ipairs(ns.PHRASE_SET_ORDER) do
-								out[key] = ns.PHRASE_SETS[key].label
-							end
-							return out
-						end,
-						sorting = function() return ns.PHRASE_SET_ORDER end,
-						-- Blank once the box has been edited. AceGUI's dropdown only
-						-- fires when the item clicked becomes checked, so a set shown
-						-- as chosen could not be picked again to reload it.
-						get = function()
-							local choice = SP().presetChoice or "roleplay"
-							if SP().phrases == ns.PhraseSetText(choice) then return choice end
-							-- In character is untouched on every character sharing the
-							-- profile, though each one's examples differ.
-							if ns.InCharacter and ns.InCharacter.Active(SP()) then return choice end
-							return nil
-						end,
-						set = function(_, value)
-							SP().presetChoice = value
-							SP().phrases = ns.PhraseSetText(value) or SP().phrases
-							ns.Prompt:InvalidateMacro()
-							ns.addon:Print(L["loaded the %s lines."]:format(
-								ns.PHRASE_SETS[value] and ns.PHRASE_SETS[value].label or value))
-						end,
-					},
-					phrasesHelp = {
-						type = "description",
-						order = 22,
-						name = L["One per line -- a random one is picked each time the prompt changes target. Tokens: |cff888888{name}|r the player, |cff888888{buff}|r the spell."]
-							.. "\n|cff888888"
-							.. L["A macro holds 255 characters, so a line that will not fit is dropped, not cut off -- |cffffd100Roll a few|r shows what would go out. An empty box goes back to the chosen set."]
-							.. "|r",
-					},
-					inCharacterNote = {
-						type = "description",
-						order = 22.5,
-						hidden = function() return not (ns.InCharacter and ns.InCharacter.Active(SP())) end,
-						name = function()
-							return "\n|cffffd100" .. L["In character: the line is picked when you click, to fit your race, your faction and the moment -- thanks for a favour, an answer to a request, or an offer. Below are a few of this character's lines; edit them and they become your own lines instead."]
-								.. " " .. L["It notices more than that: your class, the spell, what they gave you, how often you two have met this session, where you are and the hour."]
-								.. "|r\n"
-						end,
-					},
-					phrases = {
-						type = "input",
-						name = "",
-						order = 23,
-						multiline = 10,
-						width = "full",
-						disabled = function() return not SP().enabled end,
-						-- In character shows the examples of whoever is logged in,
-						-- whichever character's the shared profile was saved with.
-						get = function(info)
-							if ns.InCharacter and ns.InCharacter.Active(SP()) then
-								return ns.PhraseSetText("incharacter")
-							end
-							return spGet(info)
-						end,
-						-- An empty box snaps back to the set the dropdown names, the
-						-- way the First line does, since the load-time repair would
-						-- refill it anyway: what the box shows is what is kept.
-						set = function(info, value)
-							if type(value) ~= "string" or value:match("^%s*$") then
-								value = ns.PhraseSetText(SP().presetChoice) or ns.PhraseSetText("roleplay")
-							end
-							spSet(info, value)
-						end,
-					},
-					roll = {
-						type = "execute",
-						name = L["Roll a few"],
-						order = 24,
-						func = function()
-							-- In character speaks differently for each reason, so
-							-- it rolls one line per reason.
-							if ns.InCharacter and ns.InCharacter.Active(SP()) then
-								ns.InCharacter.Roll(L["Somebody"])
-								return
-							end
-							-- reason "owed" so the sample survives the
-							-- only-when-returning filter either way. The
-							-- stand-in name is read in the lines printed, so it
-							-- is in the player's language like the lines are.
-							local somebody = L["Somebody"]
-							local fake = {
-								short = somebody,
-								name = somebody,
-								reason = "owed",
-								buff = ns.ResolveBuff(true),
-							}
-							for _ = 1, 3 do
-								-- The same budget the cast path measures, for a
-								-- representative name.
-								ns.addon:Print(ns.PickPhrase(fake, ns.PhraseBudget(fake))
-									or "|cffff8080" .. L["(nothing -- speech off, or no usable lines)"] .. "|r")
-							end
-						end,
-					},
-					limits = {
-						type = "description",
-						order = 25,
-						name = "\n|cff888888"
-							.. L["A line goes out when you click, even if the cast then fails out of range or line of sight."]
-							.. "|r",
-					},
-				},
-			},
-
-			---------------------------------------------------------------
-			appearance = {
-				type = "group",
-				name = L["Prompt"],
-				order = 5,
-				args = {
-					-- Everything on this tab is a secure attribute or a texture
-					-- on a secure frame, and ApplyStyle returns at once in combat;
-					-- the values are kept and flushed when the fight ends.
-					combatNotice = {
-						type = "description",
-						order = 0.5,
-						fontSize = "medium",
-						hidden = function() return not InCombatLockdown() end,
-						name = L["|cffffd100In combat.|r Blizzard freezes secure frames, so changes here are saved and appear once the fight ends."]
-							.. "\n",
-					},
-					-- First on the tab, because everything under it is something
-					-- you want to see while you change it, and on a live prompt
-					-- most of it is invisible until somebody happens to walk past.
-					test = {
-						type = "execute",
-						-- A button labelled "Preview" whichever thing it was about
-						-- to do is a button you press twice to find out.
-						name = function()
-							return ns.Prompt:InTest() and L["Stop preview"] or L["Preview"]
-						end,
-						-- Both exits are held off while this window is open (see
-						-- Refresh, where the expiry is pushed forward), so the
-						-- sentence order here is the rule.
-						desc = L["Show a sample entry to style the prompt by. It stays while this window is open, then twenty seconds more or until somebody real turns up."],
-						order = 1,
-						-- Greyed out in a fight, where ToggleTest refuses to start
-						-- one: the fight may have hidden the panel or frozen its
-						-- macro at somebody real. One already running can still be
-						-- stopped.
-						disabled = function()
-							return InCombatLockdown() and not ns.Prompt:InTest()
-						end,
-						func = function() ns.Prompt:ToggleTest() end,
-					},
-					locked = {
-						type = "toggle",
-						name = L["Locked"],
-						desc = L["Unlock to drag the prompt. It will not cast while unlocked."],
-						order = 2,
-						get = pGet,
-						-- Its own setter, like /manners unlock: the prompt is hidden
-						-- by `enabled` before `locked` is read, so unlocking while
-						-- off leaves nothing on screen to drag.
-						set = function(info, value)
-							pSet(info, value)
-							if not value and not ns.db.profile.enabled then
-								ns.addon:Print(L["unlocked, but the addon is |cffff8080off|r so there is no prompt to drag -- switch it on first."])
-							end
-						end,
-					},
-					reset = {
-						type = "execute",
-						name = L["Reset position"],
-						-- No confirmation: it is undone by dragging the prompt back
-						-- or picking a preset.
-						order = 3,
-						func = function()
-							local d, p = ns.defaults.profile.prompt, P()
-							p.point, p.relPoint, p.x, p.y = d.point, d.relPoint, d.x, d.y
-							restyle()
-						end,
-					},
-
-					styleHeader = { type = "header", name = L["Style"], order = 10 },
-					-- Where the colour goes comes first: it governs the two colour
-					-- pickers under it.
-					accentMode = {
-						type = "select",
-						name = L["Where the reason colour goes"],
-						desc = L["A ring around the icon reads better than a stripe at the panel edge, which ends up competing with the icon rather than framing it."]
-							.. "\n\n|cff888888"
-							.. L["The framed look has no stripe at all -- it would run down the inside of its border -- so on it the stripe settings do nothing."]
-							.. "|r",
-						order = 11,
-						values = {
-							icon = L["Ring around the icon"],
-							stripe = L["Stripe down the left edge"],
-							both = L["Both"],
-							off = L["Neither"],
-						},
-						get = pGet,
-						set = pSet,
-					},
-					accentByReason = {
-						type = "toggle",
-						name = L["Colour it by reason"],
-						-- All five reasons, in the order the queue ranks them, in
-						-- the chosen palette's colours. The target is the only one
-						-- with a condition: BuildQueue writes that reason only with
-						-- the switch on, and never under Always offer, which reads
-						-- nothing.
-						desc = function()
-							local colours = P().reasonPalette == "colourblind"
-								and L["Pale yellow for your own target, orange for a favour owed, deep pink for somebody who asked, sky blue for your group, violet for passers-by -- the order they are offered in."]
-								or L["Pale blue for your own target, amber for a favour owed, pink for somebody who asked, deeper blue for your group, grey for passers-by -- the order they are offered in."]
-							return colours
-								.. "\n\n|cff888888"
-								.. L["The first of those appears only while |cffffd100Whoever I have targeted comes first|r is on and |cffffd100If they already have the buff|r is not Always offer."]
-								.. "|r"
-						end,
-						order = 12,
-						width = "full",
-						get = pGet,
-						set = pSet,
-					},
-					-- Which colours, for somebody the standard set fails.
-					-- Greyed out only where nothing is drawn in the reason
-					-- colours: the list's bars, the glow and the wash of a press
-					-- take the palette whatever the accent says.
-					reasonPalette = {
-						type = "select",
-						name = L["Reason colours"],
-						-- Names no hues and counts none: Colour it by reason names
-						-- them. Every reason has a colour of its own in both sets,
-						-- and hunt5-options.lua holds this sentence to that.
-						desc = L["The colour-blind set keeps the reasons apart for red-green colour blindness, in colours that differ in lightness too."],
-						order = 12.2,
-						values = {
-							standard = L["Standard"],
-							colourblind = L["Colour-blind friendly"],
-						},
-						sorting = { "standard", "colourblind" },
-						disabled = function()
-							local p = P()
-							return not p.accentByReason and not p.showQueue
-						end,
-						-- Whatever a hand-edited file holds, the dropdown shows
-						-- the palette the prompt is actually drawn with.
-						get = function() return P().reasonPalette == "colourblind" and "colourblind" or "standard" end,
-						set = pSet,
-					},
-					-- Shown only when the colour above has nowhere left to go. "Off"
-					-- is excluded: that is somebody asking for no accent, and a
-					-- warning about getting what you asked for is noise.
-					accentDead = {
-						type = "description",
-						order = 12.5,
-						hidden = function()
-							if (P().accentMode or "icon") == "off" then return true end
-							local ring, stripe = AccentCarriers()
-							return ring or stripe
-						end,
-						-- Every carrier the mode asked for and did not get, not just
-						-- the first. Each combination is a sentence of its own,
-						-- because a list joined with ", and" is English grammar a
-						-- translation cannot rearrange.
-						name = function()
-							local p = P()
-							local mode = p.accentMode or "icon"
-							local ring
-							if mode == "icon" or mode == "both" then
-								if not p.showIcon then
-									ring = "hidden"
-								elseif p.roundIcon then
-									ring = "round"
-								end
-							end
-							local stripe = (mode == "stripe" or mode == "both") and p.style == "framed"
-							local text
-							if ring == "hidden" and stripe then
-								text = L["There is nothing left to colour: the ring is drawn behind the icon, which is switched off, and the framed look has no stripe."]
-							elseif ring == "round" and stripe then
-								text = L["There is nothing left to colour: rounding the icon off replaces the ring with a mask, and the framed look has no stripe."]
-							elseif ring == "hidden" then
-								text = L["There is nothing left to colour: the ring is drawn behind the icon, which is switched off."]
-							elseif ring == "round" then
-								text = L["There is nothing left to colour: rounding the icon off replaces the ring with a mask."]
-							elseif stripe then
-								text = L["There is nothing left to colour: the framed look has no stripe."]
-							else
-								-- Nothing was lost, so the notice is hidden and
-								-- has nothing to say.
-								return ""
-							end
-							return "|cffffd100" .. text .. "|r"
-						end,
-					},
-					accentColor = {
-						type = "color",
-						name = L["Accent colour"],
-						desc = L["Used for the ring, the stripe, or both -- whichever the setting above asks for."],
-						order = 13,
-						hasAlpha = true,
-						disabled = function() return P().accentByReason end,
-						get = pGetColor,
-						set = pSetColor,
-					},
-					style = {
-						type = "select",
-						name = L["Look"],
-						order = 14,
-						-- Framed draws its own border out of the panel's white
-						-- texture; profiles holding its old name are carried
-						-- across in ClampSettings.
-						values = {
-							glass = L["Glass -- dark panel, soft shadow"],
-							framed = L["Framed -- flat panel, thin border"],
-							minimal = L["Minimal -- text only, no panel"],
-						},
-						get = pGet,
-						set = pSet,
-					},
-					bgColor = {
-						type = "color",
-						name = L["Panel colour"],
-						order = 15,
-						hasAlpha = true,
-						disabled = function() return P().style == "minimal" end,
-						get = pGetColor,
-						set = pSetColor,
-					},
-
-					-- The flash and the sound are one job, kept together so they
-					-- agree about who is worth interrupting for.
-					attentionHeader = { type = "header", name = L["Getting your attention"], order = 20 },
-					flashStyle = {
-						type = "select",
-						name = L["When someone buffs you"],
-						desc = L["Pulse keeps breathing until you have returned the favour or they are gone. Flash once is easy to miss if you were looking elsewhere."]
-							.. "\n\n|cff888888"
-							.. L["It lights the spell icon, sweeps the stripe, and with Effects on Full the panel catches the light. With none of those showing it has nothing to do."]
-							.. "|r",
-						order = 21,
-						-- The glow lives on the icon, the sweep on the stripe and
-						-- the light on arrival on the panel; with none of them this
-						-- does nothing, and a live control would read as broken.
-						disabled = function()
-							local _, stripe = AccentCarriers()
-							local noLight = P().effects == "calm" or P().style == "minimal"
-							return not P().showIcon and not stripe and noLight
-						end,
-						values = {
-							pulse = L["Pulse until dealt with"],
-							once = L["Flash once"],
-							off = L["Nothing"],
-						},
-						get = pGet,
-						set = pSet,
-					},
-					-- The other answer to a favour arriving, so under the flash.
-					-- Its own get and set: pSet restyles the prompt, and this
-					-- changes nothing on it.
-					thankEmote = {
-						type = "toggle",
-						name = L["Thank them with an emote"],
-						desc = L["When somebody buffs you and returning it is on the prompt, you /thank them, and everybody near sees it."]
-							.. "\n\n|cff888888"
-							.. L["Never in a fight, in a dungeon, raid, battleground or arena. At most once per person every five minutes, and once every ten seconds in all, so a raid full of buffs is one thank."]
-							.. "|r",
-						order = 21.2,
-						width = "full",
-						-- Nobody is noticed buffing you with that source off.
-						disabled = function() return not S().owed end,
-						get = function() return P().thankEmote end,
-						set = function(_, v) P().thankEmote = v end,
-					},
-					-- How much the prompt moves to get your attention, so next to
-					-- the flash.
-					effects = {
-						type = "select",
-						name = L["Effects"],
-						desc = L["Full: light crosses the panel when a buff lands, a refused buff shakes the text, and the prompt fades out after your last buff."]
-							.. "\n\n"
-							.. L["Calm: none of that movement. The prompt still fades in, and the glow set above still works."]
-							.. "\n\n|cff888888"
-							.. L["The Minimal look has no panel, so no light crosses it. In a fight, Stay quiet in combat keeps the outcome still as well."]
-							.. "|r",
-						order = 21.5,
-						values = {
-							full = L["Full"],
-							calm = L["Calm -- less movement"],
-						},
-						sorting = { "full", "calm" },
-						get = pGet,
-						set = pSet,
-					},
-					soundEnabled = {
-						type = "toggle",
-						name = L["Play a sound"],
-						desc = L["Play a sound when somebody new reaches the top of the queue."],
-						order = 22,
-						get = function() return SND().enabled end,
-						set = function(_, v) SND().enabled = v end,
-					},
-					soundFile = {
-						type = "select",
-						name = L["Sound"],
-						order = 23,
-						disabled = function() return not SND().enabled end,
-						-- HashTable maps key -> file, and AceConfig shows the
-						-- value as the label, so the key is copied into both.
-						values = function()
-							local list = {}
-							for key in pairs(LSM:HashTable("sound")) do list[key] = key end
-							-- The chosen sound, even when its pack has not
-							-- registered it, so the box still says what was
-							-- picked rather than going blank. It plays ours
-							-- until the pack is there.
-							local chosen = SND().file
-							if type(chosen) == "string" and not list[chosen] then
-								list[chosen] = L["%s |cff808080(not loaded)|r"]:format(chosen)
-							end
-							return list
-						end,
-						get = function() return SND().file end,
-						set = function(_, value)
-							SND().file = value
-							-- Picking a sound plays it.
-							ns.Guard("sound preview", ns.PlayPromptSound, value)
-						end,
-					},
-					soundOwedOnly = {
-						-- The flash fires only for a favour owed; this lets the
-						-- sound agree with it.
-						type = "toggle",
-						name = L["Only when somebody buffed me"],
-						desc = L["Off, every new person on the prompt makes a noise -- including strangers you happen to walk past."],
-						order = 24,
-						width = "full",
-						disabled = function() return not SND().enabled end,
-						get = function() return SND().owedOnly end,
-						set = function(_, v) SND().owedOnly = v end,
-					},
-					noSound = {
-						type = "description",
-						order = 24.5,
-						hidden = function() return not SND().enabled or SND().file ~= "None" end,
-						-- "None" is the name the sound list shows, which is a
-						-- LibSharedMedia key and never translated. It goes in as
-						-- an argument so a translation cannot rename it to an
-						-- entry the list does not have.
-						name = "|cffff8080" .. L["%s is silent. Pick a sound above."]:format("None") .. "|r",
-					},
-
-					posHeader = { type = "header", name = L["Position and size"], order = 30 },
-					-- Moving the prompt otherwise means unlock, find it, drag it,
-					-- lock it -- four steps and a mode you can forget you are in,
-					-- because an unlocked prompt is also one that will not cast.
-					posPreset = {
-						type = "select",
-						name = L["Put it"],
-						desc = L["Three places that are already right. Dragging the prompt afterwards leaves this blank, because it is then not on one of them."],
-						order = 31,
-						values = function()
-							local out = {}
-							for _, preset in ipairs(ns.POSITION_PRESETS) do
-								out[preset.key] = preset.name
-							end
-							return out
-						end,
-						-- The list has a meaning order -- top of the screen to
-						-- bottom -- and a dropdown sorted alphabetically loses it.
-						sorting = function()
-							local out = {}
-							for i, preset in ipairs(ns.POSITION_PRESETS) do out[i] = preset.key end
-							return out
-						end,
-						get = function() return ns.CurrentPositionPreset() end,
-						set = function(_, value) ns.ApplyPositionPreset(value) end,
-					},
-					x = { type = "range", name = L["X offset"], order = 32, min = -2000, max = 2000, step = 1, get = pGet, set = pSet },
-					y = { type = "range", name = L["Y offset"], order = 33, min = -2000, max = 2000, step = 1, get = pGet, set = pSet },
-					width = {
-						type = "range",
-						name = L["Width"],
-						order = 34,
-						min = 80,
-						max = 500,
-						step = 1,
-						get = pGet,
-						-- The same setter the height has: the icon is bound by the
-						-- width as well.
-						set = function(info, value)
-							local icon = P().iconSize
-							pSet(info, value)
-							ns.ClampSettings()
-							restyle()
-							if P().iconSize ~= icon then RepaintSoon() end
-						end,
-					},
-					height = {
-						type = "range",
-						name = L["Height"],
-						order = 35,
-						min = 20,
-						max = 120,
-						step = 1,
-						get = pGet,
-						-- Its own setter because the icon's maximum is bound to
-						-- this: ClampSettings shrinks the icon, and RepaintSoon
-						-- redraws its slider.
-						set = function(info, value)
-							local icon = P().iconSize
-							pSet(info, value)
-							ns.ClampSettings()
-							restyle()
-							if P().iconSize ~= icon then RepaintSoon() end
-						end,
-					},
-					scale = { type = "range", name = L["Scale"], order = 36, min = 0.5, max = 3, step = 0.05, get = pGet, set = pSet },
-					alpha = { type = "range", name = L["Opacity"], order = 37, min = 0.1, max = 1, step = 0.05, isPercent = true, get = pGet, set = pSet },
-					-- The key keeps its old name, "hide in combat", but it hides
-					-- nothing: Hide() on the protected button is refused in combat,
-					-- and a secure visibility driver ([combat] resolves here) would
-					-- leave a hidden button that still fires from its key binding
-					-- and /click, casting the frozen macro out of sight. So the
-					-- panel stays up on purpose, and this decides whether the
-					-- confirmation flash of a click in a fight still shows.
-					hideInCombat = {
-						type = "toggle",
-						name = L["Stay quiet in combat"],
-						desc = L["A click still casts in combat, and the prompt flashes to say what happened -- red if it failed. With this on it stays dimmed and still for the fight."]
-							.. "\n\n|cff888888"
-							.. L["It stays on screen in a fight on purpose: your key binding would still cast the frozen macro if it were hidden."]
-							.. "|r",
-						order = 38,
-						width = "full",
-						get = pGet,
-						set = pSet,
-					},
-
-					textHeader = { type = "header", name = L["Text"], order = 40 },
-					format = {
-						type = "input",
-						name = L["First line"],
-						desc = L["Tokens: {name} {reason} {count} {class} {buff} {time}"],
-						order = 41,
-						width = "full",
-						get = pGet,
-						-- An empty first line is a prompt that names nobody, and the
-						-- load-time repair would put the default back anyway: it
-						-- snaps back here, so what the box shows is what is kept.
-						set = function(info, value)
-							if not ns.UsableFormat(value) then
-								value = ns.defaults.profile.prompt.format
-							end
-							pSet(info, value)
-						end,
-					},
-					showSub = {
-						type = "toggle",
-						name = L["Show a second line"],
-						-- Worked out from the font, by the same function ApplyStyle
-						-- decides it with, never a constant.
-						desc = function()
-							return L["Needs a prompt at least %d pixels tall at this font size."]
-								:format(ns.TwoLineHeight(P().fontSize))
-						end,
-						order = 42,
-						width = "full",
-						get = pGet,
-						set = pSet,
-					},
-					formatHelp = {
-						type = "description",
-						order = 43,
-						name = L["|cff888888{name}|r who   |cff888888{reason}|r why   |cff888888{count}|r how many more   |cff888888{class}|r their class   |cff888888{buff}|r the spell"]
-							.. "\n"
-							.. L["|cff888888{time}|r what theirs has left, on a top-up and nowhere else"]
-							.. "\n"
-							.. L["The second line always shows the reason."],
-					},
-					reasonTarget = {
-						type = "input",
-						name = L["Wording: your target"],
-						desc = L["Your target outranks everyone, including a favour owed, while that is switched on under Who to buff and the game can see they lack it."],
-						order = 44,
-						get = pGet,
-						set = pSet,
-					},
-					reasonOwed = { type = "input", name = L["Wording: buffed you"], order = 45, get = pGet, set = pSet },
-					reasonGroup = { type = "input", name = L["Wording: in your group"], order = 46, get = pGet, set = pSet },
-					reasonNearby = { type = "input", name = L["Wording: nearby"], order = 47, get = pGet, set = pSet },
-					reasonRefresh = {
-						type = "input",
-						name = L["Wording: topping one up"],
-						desc = L["Used instead of the four above when their buff is about to run out, which only the refresh mode offers. |cffffd100{time}|r is how long theirs has left."],
-						order = 48,
-						get = pGet,
-						set = pSet,
-					},
-					reasonUnknown = {
-						type = "input",
-						name = L["Wording: state unknown"],
-						desc = L["Used when the game will not let addons read whether they already have it."],
-						order = 49,
-						get = pGet,
-						set = pSet,
-					},
-					font = {
-						type = "select",
-						name = L["Font"],
-						order = 50,
-						-- Keys, not files, as in the sound list: AceConfig shows the
-						-- value as the label.
-						values = function()
-							local list = {}
-							for key in pairs(LSM:HashTable("font")) do list[key] = key end
-							-- The chosen font even when unregistered, as in the sound
-							-- list: koKR, zhCN and zhTW never register the default.
-							local chosen = P().font
-							if type(chosen) == "string" and not list[chosen] then
-								list[chosen] = L["%s |cff808080(not loaded)|r"]:format(chosen)
-							end
-							return list
-						end,
-						get = pGet,
-						set = pSet,
-					},
-					fontSize = { type = "range", name = L["Font size"], order = 51, min = 6, max = 32, step = 1, get = pGet, set = pSet },
-					-- The prompt picks light or dark text for the panel colour
-					-- only while this is left at its default, and the class
-					-- colour on a name overrides it; both are said here so
-					-- neither reads as the setting being ignored.
-					fontColor = {
-						type = "color",
-						name = L["Text colour"],
-						desc = L["Left at white, text turns dark on a light panel by itself. Other colours are used as picked, except for names while |cffffd100Colour names by class|r is on."],
-						order = 52,
-						hasAlpha = true,
-						get = pGetColor,
-						set = pSetColor,
-					},
-					classColor = { type = "toggle", name = L["Colour names by class"], order = 53, width = "full", get = pGet, set = pSet },
-
-					iconHeader = { type = "header", name = L["Icon and queue"], order = 60 },
-					showIcon = { type = "toggle", name = L["Show spell icon"], order = 61, get = pGet, set = pSet },
-					iconSize = {
-						type = "range",
-						name = L["Icon size"],
-						-- The icon must fit inside the panel, but the bound cannot
-						-- live here: AceConfigRegistry types min and max as "number
-						-- or nil" and rejects the whole options table if either is a
-						-- function. ClampSettings enforces it instead.
-						desc = L["Kept inside the prompt -- make it taller or wider first for a bigger icon."],
-						order = 62,
-						min = 12,
-						max = 64,
-						step = 1,
-						disabled = function() return not P().showIcon end,
-						get = pGet,
-						set = function(info, value)
-							pSet(info, value)
-							-- The bound, applied (see above), as the height slider
-							-- applies it.
-							ns.ClampSettings()
-							restyle()
-							-- Repainted only when the clamp actually moved it: a
-							-- mouse wheel never lets go of the slider, and a repaint
-							-- every time would rebuild it under a dragging finger.
-							if P().iconSize ~= value and ns.RefreshOptionsDisplay then
-								ns.Guard("icon repaint", ns.RefreshOptionsDisplay)
-							end
-						end,
-					},
-					iconSizeCapped = {
-						type = "description",
-						order = 62.5,
-						hidden = function()
-							local p = P()
-							-- Shown only when the icon sits on the ceiling
-							-- ClampSettings enforces, bound by width and height.
-							return not p.showIcon or p.iconSize < ns.IconCeiling(p)
-						end,
-						name = function()
-							local p = P()
-							local byWidth = (p.width - 60) < (p.height - 8)
-							local text
-							if byWidth then
-								text = L["The icon is held at %d to fit a prompt %d wide."]:format(p.iconSize, p.width)
-							else
-								text = L["The icon is held at %d to fit a prompt %d high."]:format(p.iconSize, p.height)
-							end
-							return "|cffffd100" .. text .. "|r"
-						end,
-					},
-					roundIcon = {
-						type = "toggle",
-						name = L["Round the icon off"],
-						-- The ring is a texture behind the square icon, and the mask
-						-- that rounds it goes there instead, so this switches off
-						-- "Ring around the icon".
-						desc = L["Masks the icon into a circle. Reads more like a portrait than a spell, so it is off by default."]
-							.. "\n\n|cff888888"
-							.. L["The mask replaces the ring, so move the reason colour to the stripe if you want both. The glow when somebody buffs you follows the circle."]
-							.. "|r",
-						order = 63,
-						width = "full",
-						disabled = function() return not P().showIcon end,
-						get = pGet,
-						set = pSet,
-					},
-					-- Greyed out with the icon hidden, since the sweep is drawn on
-					-- it and there is then nothing for this to do.
-					showCooldown = {
-						type = "toggle",
-						name = L["Show the global cooldown on the icon"],
-						desc = L["Sweeps the spell icon while the global cooldown runs, like your action bars, so you can see when the next press will go through."]
-							.. "\n\n|cff888888"
-							.. L["Not in a fight while Stay quiet in combat is on."]
-							.. "|r",
-						order = 63.5,
-						width = "full",
-						disabled = function() return not P().showIcon end,
-						get = pGet,
-						set = pSet,
-					},
-					showCount = { type = "toggle", name = L["Show how many are waiting"], order = 64, width = "full", get = pGet, set = pSet },
-					showQueue = { type = "toggle", name = L["List the next few below"], order = 65, width = "full", get = pGet, set = pSet },
-					queueRows = {
-						type = "range",
-						name = L["How many to list"],
-						order = 66,
-						min = 1,
-						max = 5,
-						step = 1,
-						disabled = function() return not P().showQueue end,
-						get = pGet,
-						set = pSet,
-					},
-				},
-			},
-
-			---------------------------------------------------------------
-			-- What this client allows, what has broken, and a bug report.
-			diagnostics = {
-				type = "group",
-				name = L["Diagnostics"],
-				order = 6,
-				args = {
-					debugClicks = {
-						type = "toggle",
-						name = L["Log every click to chat"],
-						desc = L["Prints what the button held when you clicked and what the game did with it. Noisy; for working out why a cast did not happen."],
-						order = 1,
-						width = "full",
-						get = function() return ns.db.profile.debugClicks end,
-						set = function(_, v) ns.db.profile.debugClicks = v end,
-					},
-
-					capsHeader = { type = "header", name = L["What this client allows"], order = 10 },
-					diag = {
-						type = "description",
-						order = 11,
-						fontSize = "medium",
-						hidden = function() return not HasClassBuffs() end,
-						name = function()
-							-- The class is the client's own token, MAGE and the
-							-- like, and is shown as the game spells it.
-							local lines = { L["Class: |cffffffff%s|r"]:format(tostring(ns.caps.class)) .. "\n" }
-							for _, buff in ipairs(ns.GetClassBuffs(ns.caps.class) or {}) do
-								local info = ns.BuffInfo(buff)
-								-- Each field is one key with its label, so the
-								-- translator sees what "yes" or "blocked" answers
-								-- and can make the words agree.
-								lines[#lines + 1] = ("|cffffffff%s|r  --  %s   %s"):format(
-									(info and info.name) or buff.key,
-									(info and info.known) and L["learned: |cff00ff00yes|r"]
-										or L["learned: |cff808080no|r"],
-									(info and info.readable) and L["missing-check: |cff00ff00works|r"]
-										or L["missing-check: |cffff8080blocked|r"])
-								-- Manners being wrong about the game, rather than
-								-- the game withholding something. "Never offer"
-								-- only where no rank resolves: a missing group id
-								-- (Arcane Brilliance) costs only the check of
-								-- whether somebody is wearing it.
-								if info and info.unresolved and #info.unresolved > 0 then
-									local missing = {}
-									for _, id in ipairs(info.unresolved) do missing[id] = true end
-									local rankResolves = false
-									for _, id in ipairs(buff.ranks) do
-										if not missing[id] then rankResolves = true end
-									end
-									if not info.known and not rankResolves then
-										lines[#lines + 1] = "|cffff4040    "
-											.. L["this client has never heard of spell %s, so Manners will never offer this one. That is a mistake in Manners -- please report it."]
-												:format(table.concat(info.unresolved, ", "))
-											.. "|r"
-									else
-										lines[#lines + 1] = "|cffff4040    "
-											.. L["this client doesn't know spell %s, so somebody already carrying that version may be offered this anyway. That is a mistake in Manners -- please report it."]
-												:format(table.concat(info.unresolved, ", "))
-											.. "|r"
-									end
-								end
-							end
-							lines[#lines + 1] = "\n|cff888888"
-								.. L["Where the missing-check is blocked, addons cannot read that aura: players are still offered, but some may already have the buff."]
-								.. "|r"
-							return table.concat(lines, "\n")
-						end,
-					},
-					noDiag = {
-						type = "description",
-						order = 11.5,
-						fontSize = "medium",
-						hidden = HasClassBuffs,
-						name = "|cffff8080"
-							.. L["Nothing to report: this character has no buffs it can put on another player."]
-							.. "|r",
-					},
-
-					-- What ns.Guard caught, on the page where somebody is looking
-					-- when nothing works.
-					errorsHeader = { type = "header", name = L["What has broken"], order = 20 },
-					errorList = {
-						type = "description",
-						order = 21,
-						fontSize = "medium",
-						hidden = function() return #ns.errors == 0 end,
-						name = function()
-							local lines = {}
-							for i = math.max(1, #ns.errors - 4), #ns.errors do
-								local e = ns.errors[i]
-								lines[#lines + 1] = ("|cff808080%s|r %s -- |cffff8080%s|r"):format(
-									tostring(e.at), tostring(e.where), tostring(e.err))
-							end
-							-- The count, not the ring's length: the ring holds thirty.
-							if #ns.errors > 5 then
-								-- Two whole sentences, and the command an argument:
-								-- it is what the player types, in any language.
-								local total = ns.errorCount or #ns.errors
-								local text
-								if total > #ns.errors then
-									text = L["(%d in all this session, %d kept -- |cffffd100%s|r)"]
-										:format(total, #ns.errors, "/manners errors")
-								else
-									text = L["(%d in all this session -- |cffffd100%s|r)"]
-										:format(total, "/manners errors")
-								end
-								lines[#lines + 1] = "|cff888888" .. text .. "|r"
-							end
-							return table.concat(lines, "\n")
-						end,
-					},
-					noErrors = {
-						type = "description",
-						order = 21.5,
-						fontSize = "medium",
-						hidden = function() return #ns.errors > 0 end,
-						name = L["Nothing has broken this session."],
-					},
-
-					reportHeader = { type = "header", name = L["Reporting a bug"], order = 30 },
-					buildNote = {
-						type = "description",
-						order = 31,
-						fontSize = "medium",
-						-- The first question on every bug report.
-						name = function()
-							return ("Manners |cffffffff%s|r"):format(tostring(ns.BUILD))
-						end,
-					},
-					copyReport = {
-						type = "execute",
-						name = function() return reportOpen and L["Hide the report"] or L["Copy for a bug report"] end,
-						desc = L["Opens a box with the build, what this client allows, the settings that matter and anything that has broken, ready to copy."],
-						order = 32,
-						func = function()
-							reportOpen = not reportOpen
-							ns.RefreshOptionsDisplay()
-						end,
-					},
-					report = {
-						type = "input",
-						name = "",
-						order = 33,
-						multiline = 14,
-						width = "full",
-						hidden = function() return not reportOpen end,
-						get = function() return BugReport() end,
-						-- Read-only in the only way AceConfig offers: anything
-						-- typed in is discarded.
-						set = function() end,
-					},
-				},
-			},
+			general = BuildStartTab(),
+			who = BuildWhoTab(),
+			when = BuildWhenTab(),
+			click = BuildSpeechTab(),
+			appearance = BuildLookTab(),
+			advanced = BuildAdvancedTab(),
+			diagnostics = BuildDiagnosticsTab(),
 		},
 	}
 end
@@ -2956,7 +3352,7 @@ local function FillPromptMenu(parent, fight)
 	-- These three are drawing and sound, never where the button is or what it
 	-- casts: the style is put back after the fight by ApplyStyle itself, so
 	-- they stay open in one.
-	Check(parent, L["Stay quiet in combat"], function() return ns.db.profile.prompt.hideInCombat end,
+	Check(parent, L["Keep the prompt dim and still in combat"], function() return ns.db.profile.prompt.hideInCombat end,
 		Act(function()
 			local now = ns.db.profile.prompt
 			now.hideInCombat = not now.hideInCombat
@@ -3183,8 +3579,7 @@ end
 
 function ns.SetupOptions()
 	local options = BuildOptions()
-	options.args.profiles = AceDBOptions:GetOptionsTable(ns.db)
-	options.args.profiles.order = 90
+	options.args.profiles = BuildProfilesTab()
 	-- Kept so a control can be read back afterwards. A dropdown that lists the
 	-- right entries under the wrong labels renders perfectly and is invisible
 	-- to every other check we have.
@@ -3317,7 +3712,7 @@ function ns.OpenOptions()
 	end
 end
 
--- Open the options on the General tab, where the share boxes are, with the
+-- Open the options on the Profiles tab, where the share boxes are, with the
 -- box of this profile's settings showing when that is what was asked for.
 -- For /manners export and a bare /manners import. Answers whether there is a
 -- page to send them to at all; SelectGroup is asked for because a library
@@ -3326,7 +3721,7 @@ function ns.ShowShareBox(which)
 	ns.OpenOptions()
 	if which == "export" then shareOpen = true end
 	if AceConfigDialog.SelectGroup then
-		pcall(AceConfigDialog.SelectGroup, AceConfigDialog, ADDON, "general")
+		pcall(AceConfigDialog.SelectGroup, AceConfigDialog, ADDON, "profiles")
 	end
 	ns.RefreshOptionsDisplay()
 	return true

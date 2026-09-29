@@ -691,8 +691,8 @@ do
 		if not ns then return end
 		freshPrompt(ns, scenario)
 		local who = ns.optionsTable and ns.optionsTable.args.who
-		local toggle = who and who.args.asked
-		local wording = who and who.args.reasonAsked
+		local toggle = who and H.findOption(ns.optionsTable, "asked")
+		local wording = who and H.findOption(ns.optionsTable, "reasonAsked")
 		if not (toggle and toggle.type == "toggle" and wording and wording.type == "input") then
 			fail(scenario, "the switch or its wording is missing from the Who to buff tab")
 			return

@@ -956,13 +956,13 @@ do
 		g.use, g.atLeast = true, 3
 
 		local who = ns.optionsTable and ns.optionsTable.args.who
-		local toggle = who and who.args.groupBuffsUse
-		local slider = who and who.args.groupBuffsAtLeast
+		local toggle = who and H.findOption(ns.optionsTable, "groupBuffsUse")
+		local slider = who and H.findOption(ns.optionsTable, "groupBuffsAtLeast")
 		if not (toggle and slider) then
 			fail(scenario, "the Who to buff tab has no group buff controls")
 		else
-			if not (toggle.order > who.args.group.order and slider.order > toggle.order
-				and slider.order < who.args.strangers.order) then
+			if not (toggle.order > H.findOption(ns.optionsTable, "group").order and slider.order > toggle.order
+				and slider.order < H.findOption(ns.optionsTable, "strangers").order) then
 				fail(scenario, "the group buff controls are not right under My party and raid")
 			end
 			if toggle.hidden() or slider.hidden() then
@@ -1012,7 +1012,7 @@ do
 	local ns2, restore2 = session(scenario2, { class = "WARLOCK", known = { 5697 } })
 	if ns2 then
 		local who = ns2.optionsTable and ns2.optionsTable.args.who
-		local toggle = who and who.args.groupBuffsUse
+		local toggle = who and H.findOption(ns2.optionsTable, "groupBuffsUse")
 		if not toggle then
 			fail(scenario2, "SKIPPED -- no group buff toggle to hide")
 		elseif not toggle.hidden() then

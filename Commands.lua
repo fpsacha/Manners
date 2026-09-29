@@ -436,7 +436,7 @@ end
 -- sharing settings
 --
 -- /manners export hands over the current profile as one line of text, and
--- /manners import (or the box on the General tab) reads one back. Only
+-- /manners import (or the box on the Profiles tab) reads one back. Only
 -- differences from the defaults are written.
 --
 -- Plain text read with string functions, never loadstring: this is text a
@@ -699,7 +699,7 @@ do
 		notOurs = L["that is not a Manners settings string -- one starts with MNR1:."],
 		tooLong = L["that is far longer than any Manners settings string, so it was not read."],
 		newer = L["that string was made by a newer version of Manners -- update the addon to read it."],
-		incomplete = L["that string is incomplete or has been changed -- copy it again in one piece, and paste a long one into the box under Share settings on the General tab of the options."],
+		incomplete = L["that string is incomplete or has been changed -- copy it again in one piece, and paste a long one into the box under Share as text on the Profiles tab of the options."],
 		malformed = L["that string is damaged -- part of it is not a setting Manners can read. Copy it again in one piece."],
 		badValue = L["that string gives %s a value it cannot have, so nothing was changed."],
 	}
@@ -863,7 +863,7 @@ do
 				:format(parsed.unknown)
 		end
 		if kept.switch then
-			lines[#lines + 1] = L["The string had speaking a line when you buff switched on. That is left off, because it talks to other players: switch it on under When you click if you want it."]
+			lines[#lines + 1] = L["The string had speaking a line when you buff switched on. That is left off, because it talks to other players: switch it on under What I say if you want it."]
 		end
 		if kept.words then
 			lines[#lines + 1] = L["What you say when you buff, and where, is kept as you had it, because you have speaking switched on."]
@@ -1249,7 +1249,7 @@ function addon:HandleSlash(rawInput)
 		-- Into a box, since chat text cannot be copied; printed only when there
 		-- is no box.
 		if ns.ShowShareBox and ns.ShowShareBox("export") then
-			self:Print(L["your settings are in the box under |cffffd100Share settings|r on the General tab of the options -- click in it, select all and copy."])
+			self:Print(L["your settings are in the box under |cffffd100Share as text|r on the Profiles tab of the options -- click in it, select all and copy."])
 		else
 			self:Print(tostring(ns.ExportSettings()))
 		end
@@ -1257,12 +1257,12 @@ function addon:HandleSlash(rawInput)
 		-- with a warning.
 		local export = ns.ExportSettings()
 		if type(export) == "string" and #export:gsub("%s+", "") > SHARE_MAX then
-			self:Print(L["this string is too long to be imported back -- a very long phrase box under When you click is the usual cause. Shorten it if you want to share these settings."])
+			self:Print(L["this string is too long to be imported back -- a very long phrase box under What I say is the usual cause. Shorten it if you want to share these settings."])
 		end
 	elseif input == "import" then
 		if rest == "" then
 			if ns.ShowShareBox and ns.ShowShareBox("import") then
-				self:Print(L["paste the settings string into the box under |cffffd100Share settings|r on the General tab, or type |cffffd100/manners import|r followed by it."])
+				self:Print(L["paste the settings string into the box under |cffffd100Share as text|r on the Profiles tab, or type |cffffd100/manners import|r followed by it."])
 			else
 				self:Print(L["type |cffffd100/manners import|r followed by a settings string."])
 			end
@@ -1376,7 +1376,7 @@ function addon:HandleSlash(rawInput)
 			if not db.enabled then
 				self:Print("  " .. L["not watching for favours -- Manners is switched off."])
 			elseif not db.sources.owed then
-				self:Print("  " .. L["not watching for favours -- |cffffd100People who buffed me|r is switched off."])
+				self:Print("  " .. L["not watching for favours -- |cffffd100People who buff me|r is switched off."])
 			else
 				self:Print("  " .. L["nobody has buffed you recently."])
 			end

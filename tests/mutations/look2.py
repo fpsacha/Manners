@@ -145,8 +145,8 @@ mutate("Prompt.lua",
 # The palette greyed out wherever the ring is off, though the list's bars,
 # the glow and a press's wash still draw it.
 mutate("Options.lua",
-       "\t\t\t\t\t\t\treturn not p.accentByReason and not p.showQueue\n",
-       "\t\t\t\t\t\t\treturn not p.accentByReason or (p.accentMode or \"icon\") == \"off\"\n",
+       "\t\t\t\t\treturn not p.accentByReason and not p.showQueue\n",
+       "\t\t\t\t\treturn not p.accentByReason or (p.accentMode or \"icon\") == \"off\"\n",
        "reason palette locked with the ring off",
        expect="the Reason colours control is greyed out",
        script="runscenarios.py")

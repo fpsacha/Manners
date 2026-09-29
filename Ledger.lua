@@ -86,7 +86,7 @@ local TEXT = {
 	-- keeping. The owed toggle stops favours only; buffs given still arrive.
 	EMPTY_OFF = L["Nothing is recorded while Manners is switched off."],
 	EMPTY_NOTHING = L["Nothing is recorded while the prompt has nothing to cast on this character."],
-	EMPTY_OWED_OFF = L["Favours are not recorded while \"People who buffed me\" is off, on the Who to buff tab."],
+	EMPTY_OWED_OFF = L["Favours are not recorded while \"People who buff me\" is off, on the Who to buff tab."],
 
 	CLEAR = L["Clear"],
 	CLEAR_ARMED = L["Click again to clear"],
@@ -144,7 +144,7 @@ local TEXT = {
 	-- come. The toggle is quoted by the name it has on the Who to buff tab, and
 	-- %s is the time the snooze ends, on the player's clock.
 	TIP_OWED_OFF = L["Still owed, but Manners is switched off, so the prompt will not offer them."],
-	TIP_OWED_SOURCE_OFF = L["Still owed, but the prompt is not offering favours while \"People who buffed me\" is off."],
+	TIP_OWED_SOURCE_OFF = L["Still owed, but the prompt is not offering favours while \"People who buff me\" is off."],
 	TIP_OWED_NOTHING = L["Still owed, but there is nothing on this character the prompt can cast."],
 	TIP_OWED_SNOOZED = L["Still owed. The prompt is snoozed until %s, so it offers them only if the snooze ends before the time to return it runs out."],
 	TIP_OWED_MOUNTED = L["Still owed. The prompt stays away while you are mounted, and offers them once you get off, until the time to return it runs out."],

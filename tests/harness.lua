@@ -324,6 +324,27 @@ else
     -- A ready check's two ends, each of which repaints the prompt.
     { "READY_CHECK", function() addon:READY_CHECK(nil, "Anna", 35) end },
     { "READY_CHECK_FINISHED", function() addon:READY_CHECK_FINISHED() end },
+    -- The quick choices on Start here, every one of them, and the sentences
+    -- that describe the result: each writes the profile and repaints, which
+    -- is a hop into the prompt and the page.
+    { "QuickSetup", function()
+      local quick = ns.QuickSetup
+      for _, list in ipairs({ quick.WHO, quick.VOICE }) do
+        for _, entry in ipairs(list) do quick.Apply(list, entry.key) end
+        quick.Values(list)
+        quick.Order(list)
+      end
+      quick.WhoSummary()
+      quick.VoiceSummary()
+    end },
+    -- The key and macro helpers on a client that has none of the binding API.
+    { "Setup", function()
+      local setup = ns.Setup
+      setup.Key()
+      setup.SetKey("F")
+      setup.MacroMade()
+      setup.CanOpenBindings()
+    end },
     { "slash debug", function() addon:HandleSlash("debug") end },
     { "slash help", function() addon:HandleSlash("") end },
   }

@@ -107,6 +107,10 @@ function Mock.reset()
 	Mock.class = "MAGE"
 	Mock.dead = false
 	Mock.inCombat = false
+	Mock.bindings = {}
+	Mock.bindingsSaved = 0
+	Mock.bindingSet = nil
+	Mock.macros = nil
 	Mock.allSecret = false
 	Mock.stripped = false
 	Mock.unitName = { "Petra", "Stonewell" }
@@ -1268,7 +1272,35 @@ SecureCmdList = {
 }
 SLASH_TARGET_EXACT1 = "/targetexact"
 function GetNumMacros() return 0, 0 end
-function GetMacroIndexByName() return 0 end
+-- The macro Make a macro writes, once a scenario has made it: its name, or nil.
+function GetMacroIndexByName(name)
+	if Mock.macros and Mock.macros[name] then return Mock.macros[name] end
+	return 0
+end
+-- Key bindings as the game keeps them: key -> command. Mock.bindings is
+-- wiped by Mock.reset; Mock.bindingsSaved counts SaveBindings calls, and
+-- Mock.bindingSet what the last one was handed.
+function GetBindingKey(command)
+	local keys = {}
+	for key, bound in pairs(Mock.bindings or {}) do
+		if bound == command then keys[#keys + 1] = key end
+	end
+	table.sort(keys)
+	return (table.unpack or unpack)(keys)
+end
+function GetBindingAction(key)
+	return (Mock.bindings or {})[key] or ""
+end
+function SetBinding(key, command)
+	Mock.bindings = Mock.bindings or {}
+	Mock.bindings[key] = command
+	return true
+end
+function SaveBindings(which)
+	Mock.bindingsSaved = (Mock.bindingsSaved or 0) + 1
+	Mock.bindingSet = which
+end
+function GetCurrentBindingSet() return 2 end
 function CreateMacro() return 1 end
 function EditMacro() end
 -- Recorded rather than dropped: "the toggle is on and nothing is audible" is

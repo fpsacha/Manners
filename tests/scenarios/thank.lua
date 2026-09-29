@@ -581,18 +581,17 @@ end
 
 -- ------------------------------------------------------------------ the setting
 do
-	local scenario = "thank: the setting on the Prompt tab, and repaired"
+	local scenario = "thank: the setting on the What I say tab, and repaired"
 	with(scenario, { off = true }, function(ns)
-		local appearance = ns.optionsTable and ns.optionsTable.args.appearance
-		local control = appearance and appearance.args.thankEmote
+		local control = H.findOption(ns.optionsTable, "thankEmote")
 		if not control then
-			fail(scenario, "no Thank them with an emote on the Prompt tab")
+			fail(scenario, "no Thank them with an emote on the page")
 			return
 		end
-		local flash = appearance.args.flashStyle
-		if control.type ~= "toggle" or not (control.order > flash.order
-			and control.order < appearance.args.effects.order) then
-			fail(scenario, "the toggle is not beside When someone buffs you")
+		-- With the other ways of answering a favour: the lines you say.
+		local speech = ns.optionsTable.args.click
+		if control.type ~= "toggle" or not (speech and speech.args.thankEmote == control) then
+			fail(scenario, "the toggle is not on the What I say tab, beside the lines")
 		end
 		control.set({ "thankEmote" }, true)
 		if ns.db.profile.prompt.thankEmote ~= true or control.get({ "thankEmote" }) ~= true then

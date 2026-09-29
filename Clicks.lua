@@ -750,6 +750,8 @@ end
 ---------------------------------------------------------------------------
 
 local MACRO_NAME = "Manners"
+-- The options page asks whether it has been made.
+ns.CLICK_MACRO_NAME = MACRO_NAME
 -- Button name and down flag, both required: /click with neither delivers an up
 -- click, and the secure button only acts on the way down. This is the form the
 -- buttons that work on this client are driven with.

@@ -60,6 +60,22 @@ local function load(scenario)
 	return ns
 end
 
+-- A control anywhere on the options page, by its key: controls move between
+-- tabs, and a test that names the tab breaks when one does.
+local function findOption(node, key)
+	if type(node) ~= "table" or type(node.args) ~= "table" then return nil end
+	if node.args[key] then return node.args[key] end
+	for _, child in pairs(node.args) do
+		local found = findOption(child, key)
+		if found then return found end
+	end
+end
+-- And a table that answers any control's key the same way, for a test that
+-- reads several controls.
+local function optionsByKey(root)
+	return setmetatable({}, { __index = function(_, key) return findOption(root, key) end })
+end
+
 local function drive(scenario, ns, extra)
 	local steps = {
 		{ "OnInitialize", function() ns.addon:OnInitialize() end },
@@ -251,7 +267,7 @@ if ns then
 			.. " walking their own list")
 	end
 	-- And the options page reads it the same way: Automatic, not a blank box.
-	local choice = ns.optionsTable and ns.optionsTable.args.who.args.choice
+	local choice = findOption(ns.optionsTable, "choice")
 	if choice and choice.get and choice.get({ "choice" }) ~= "auto" then
 		fail(scenario, "the dropdown shows " .. tostring(choice.get({ "choice" }))
 			.. " for a pin the walk is not honouring")
@@ -1401,7 +1417,7 @@ if ns then
 	-- one job -- getting you to look up -- and being two tabs apart is how they
 	-- came to disagree about who is worth interrupting for.
 	local panel = ns.optionsTable and ns.optionsTable.args and ns.optionsTable.args.appearance
-	local file = panel and panel.args and panel.args.soundFile
+	local file = panel and panel.args and findOption(ns.optionsTable, "soundFile")
 	if not (file and file.values) then
 		fail("ticking play a sound makes a sound", "SKIPPED -- no sound dropdown to read")
 	else
@@ -5147,7 +5163,7 @@ if ns then
 	-- either is a function -- not the control, the table -- so binding the max
 	-- to the height here would stop the page drawing at all. The bound lives in
 	-- ClampSettings, which is asserted above.
-	local slider = ns.optionsTable and ns.optionsTable.args.appearance.args.iconSize
+	local slider = findOption(ns.optionsTable, "iconSize")
 	if not slider then
 		fail(scenario, "the icon slider is not on the options table at all")
 	elseif type(slider.max) ~= "number" then
@@ -5159,7 +5175,7 @@ if ns then
 
 	-- And the page must say so when the clamp has bitten, or the slider reads
 	-- back a number the prompt is not using with nothing to explain it.
-	local notice = ns.optionsTable and ns.optionsTable.args.appearance.args.iconSizeCapped
+	local notice = findOption(ns.optionsTable, "iconSizeCapped")
 	if notice then
 		p.height, p.iconSize = 30, 22
 		if notice.hidden and notice.hidden() then
@@ -5175,7 +5191,7 @@ if ns then
 	-- height slider has to take the icon down with it.
 	p.height = 120
 	p.iconSize = 60
-	local height = ns.optionsTable and ns.optionsTable.args.appearance.args.height
+	local height = findOption(ns.optionsTable, "height")
 	if height and height.set then
 		height.set({ "height" }, 40)
 		if p.iconSize > 32 then
@@ -5198,7 +5214,7 @@ if ns then
 			fail(scenario, "dragging the icon slider left an icon taller than the prompt: "
 				.. tostring(p.iconSize) .. " in " .. tostring(p.height))
 		end
-		local capped = ns.optionsTable and ns.optionsTable.args.appearance.args.iconSizeCapped
+		local capped = findOption(ns.optionsTable, "iconSizeCapped")
 		if capped and capped.hidden and not capped.hidden()
 			and not tostring(capped.name and capped.name() or ""):find(tostring(p.iconSize), 1, true) then
 			fail(scenario, "the page says the icon is held at a size it is not: "
@@ -5291,7 +5307,7 @@ if ns then
 			ns.BuildQueue = function() return {} end
 		end
 
-		local test = ns.optionsTable and ns.optionsTable.args.appearance.args.test
+		local test = findOption(ns.optionsTable, "test")
 		local label = test and (type(test.name) == "function" and test.name() or test.name)
 		if label ~= "Stop preview" then
 			fail(scenario, "the button still reads " .. tostring(label)
@@ -5472,18 +5488,17 @@ if ns then
 	drive(scenario, ns)
 
 	local wanted = {
-		{ group = "when", key = "reciprocateWindow", unit = "second" },
-		{ group = "when", key = "retryCooldown", unit = "second" },
-		{ group = "when", key = "scanInterval", unit = "second" },
-		{ group = "when", key = "refreshUnder", unit = "minute" },
-		{ group = "who", key = "graceSeconds", unit = "second" },
+		{ key = "reciprocateWindow", unit = "second" },
+		{ key = "retryCooldown", unit = "second" },
+		{ key = "scanInterval", unit = "second" },
+		{ key = "refreshUnder", unit = "minute" },
+		{ key = "graceSeconds", unit = "second" },
 	}
 	for _, want in ipairs(wanted) do
-		local group = ns.optionsTable and ns.optionsTable.args[want.group]
-		local option = group and group.args[want.key]
+		local option = findOption(ns.optionsTable, want.key)
 		local name = option and (type(option.name) == "function" and option.name() or option.name)
 		if type(name) ~= "string" then
-			fail(scenario, "no slider called " .. want.key .. " on the " .. want.group .. " tab")
+			fail(scenario, "no slider called " .. want.key .. " on the page")
 		elseif not name:lower():find(want.unit, 1, true) then
 			fail(scenario, ("%s reads \"%s\", which does not say it is in %ss"):format(
 				want.key, name, want.unit))
@@ -5494,7 +5509,7 @@ if ns then
 	-- above it -- which only reads as anything at all while the two are
 	-- adjacent, and adjacency is exactly what a duplicate order number took
 	-- away.
-	local grace = ns.optionsTable and ns.optionsTable.args.who.args.graceSeconds
+	local grace = findOption(ns.optionsTable, "graceSeconds")
 	local graceName = grace and (type(grace.name) == "function" and grace.name() or grace.name)
 	if type(graceName) == "string" and graceName:find("^%s*%.%.%.") then
 		fail(scenario, "the grace slider still reads as a continuation of the control above it: "
@@ -5515,7 +5530,7 @@ if ns then
 	Mock.advance(60)
 
 	local panel = ns.optionsTable and ns.optionsTable.args.appearance
-	if not (panel and panel.args.flashStyle and panel.args.soundEnabled) then
+	if not (panel and findOption(ns.optionsTable, "flashStyle") and findOption(ns.optionsTable, "soundEnabled")) then
 		fail(scenario, "the flash and the sound are still on different tabs")
 	end
 
@@ -5600,8 +5615,8 @@ if ns then
 	ns.Guard("probe", ns.ProbeCapabilities)
 
 	local who = ns.optionsTable and ns.optionsTable.args.who
-	local toggle = who and who.args["offer_spirit"]
-	local note = who and who.args.autoNote
+	local toggle = who and findOption(ns.optionsTable, "offer_spirit")
+	local note = who and findOption(ns.optionsTable, "autoNote")
 	if not (toggle and toggle.get and toggle.set) then
 		fail(scenario, "SKIPPED -- there is no per-spell switch to test")
 	else
@@ -5710,7 +5725,7 @@ if ns then
 	drive(scenario, ns)
 	ns.Guard("probe", ns.ProbeCapabilities)
 
-	local note = ns.optionsTable and ns.optionsTable.args.who.args.autoNote
+	local note = findOption(ns.optionsTable, "autoNote")
 	local text = note and note.name() or ""
 	if text:find("the first of these they are missing", 1, true) then
 		fail(scenario, "the page promises a paladin a walk down the blessing list, which would"
@@ -5743,7 +5758,7 @@ if ns then
 	ns.Guard("probe", ns.ProbeCapabilities)
 
 	local who = ns.optionsTable and ns.optionsTable.args.who
-	local strangers = who and who.args.strangers
+	local strangers = who and findOption(ns.optionsTable, "strangers")
 	if not (strangers and strangers.hidden) then
 		fail(scenario, "a warrior is still offered a toggle for people it can never reach")
 	elseif not strangers.hidden() then
@@ -5754,7 +5769,7 @@ if ns then
 	if ns.db.profile.sources.strangers ~= true then
 		fail(scenario, "hiding the control also switched it off")
 	end
-	local note = who and who.args.strangersNote
+	local note = who and findOption(ns.optionsTable, "strangersNote")
 	if not (note and note.hidden and not note.hidden()) then
 		fail(scenario, "the toggle vanished with nothing in its place saying why")
 	end
@@ -5771,7 +5786,7 @@ ns = load("a switch with something behind it stays")
 if ns then
 	local scenario = "a switch with something behind it stays"
 	drive(scenario, ns)
-	local strangers = ns.optionsTable and ns.optionsTable.args.who.args.strangers
+	local strangers = findOption(ns.optionsTable, "strangers")
 	if strangers and strangers.hidden and strangers.hidden() then
 		fail(scenario, "a mage cannot switch on the strangers its whole job is to buff")
 	end
@@ -5799,7 +5814,7 @@ if ns then
 	local who = ns.optionsTable and ns.optionsTable.args.who
 
 	-- 1. every source off
-	local warning = who and who.args.emptyWarning
+	local warning = who and findOption(ns.optionsTable, "emptyWarning")
 	if not (warning and warning.hidden) then
 		fail(scenario, "nothing under Sources says anything when they are all off")
 	else
@@ -5815,7 +5830,7 @@ if ns then
 	end
 
 	-- 2. the addon itself off
-	local off = general and general.args.offNotice
+	local off = general and findOption(ns.optionsTable, "offNotice")
 	if not (off and off.hidden) then
 		fail(scenario, "nothing says the addon is switched off")
 	else
@@ -5833,7 +5848,7 @@ if ns then
 	-- pin is the only spell considered, so there is nothing to fall back to and
 	-- nobody is offered anything -- and the pin is deliberately not reset for
 	-- you, because a failed spell probe must not rewrite a setting.
-	local pinNote = who and who.args.pinNote
+	local pinNote = who and findOption(ns.optionsTable, "pinNote")
 	ns.db.profile.buff.choice = "shadow"
 	ns.ClampSettings()
 	Mock.advance(10)
@@ -5855,7 +5870,7 @@ if ns then
 	end
 
 	-- And the note about Automatic is not shown over a pinned spell.
-	local autoNote = who and who.args.autoNote
+	local autoNote = who and findOption(ns.optionsTable, "autoNote")
 	if autoNote and autoNote.hidden and not autoNote.hidden() then
 		fail(scenario, "the page explains Automatic while a spell is pinned")
 	end
@@ -5934,8 +5949,7 @@ if ns then
 	if not (Mock.sv.char.debts and Mock.sv.char.debts["Yorick Vane"]) then
 		fail(scenario, "SKIPPED -- nothing was written to begin with")
 	else
-		local option = ns.optionsTable and ns.optionsTable.args["when"]
-			and ns.optionsTable.args["when"].args.keepDebts
+		local option = findOption(ns.optionsTable, "keepDebts")
 		if not (option and option.set) then
 			fail(scenario, "there is no way to switch it off")
 		else
@@ -5997,7 +6011,7 @@ if ns then
 	if not diag then
 		fail(scenario, "SKIPPED -- there is no diagnostics tab")
 	else
-		local list, none = diag.args.errorList, diag.args.noErrors
+		local list, none = findOption(ns.optionsTable, "errorList"), findOption(ns.optionsTable, "noErrors")
 		if not (list and none) then
 			fail(scenario, "the page still cannot show an error")
 		else
@@ -6024,8 +6038,8 @@ if ns then
 
 		-- The build number, which appeared nowhere on this page, and the block
 		-- somebody is meant to paste into a report.
-		local report = diag.args.report
-		local button = diag.args.copyReport
+		local report = findOption(ns.optionsTable, "report")
+		local button = findOption(ns.optionsTable, "copyReport")
 		if not (report and button and button.func) then
 			fail(scenario, "there is nothing to copy for a bug report")
 		else
@@ -6118,7 +6132,7 @@ if ns then
 	drive(scenario, ns)
 
 	local click = ns.optionsTable and ns.optionsTable.args.click
-	local preset = click and click.args.preset
+	local preset = click and findOption(ns.optionsTable, "preset")
 	if not preset then
 		fail(scenario, "SKIPPED -- there is no phrase set dropdown")
 	elseif not preset.confirm then
@@ -6134,7 +6148,7 @@ if ns then
 		end
 	end
 
-	local reset = ns.optionsTable and ns.optionsTable.args.appearance.args.reset
+	local reset = findOption(ns.optionsTable, "reset")
 	if reset and reset.confirm then
 		fail(scenario, "moving the prompt back to where it started still asks for confirmation,"
 			.. " while overwriting hand-written text did not")
@@ -7062,7 +7076,7 @@ if ns then
 	local db = ns.db.profile
 	local regions = ns.Prompt:Regions()
 	local appearance = ns.optionsTable and ns.optionsTable.args.appearance
-	local look = appearance and appearance.args.style
+	local look = appearance and findOption(ns.optionsTable, "style")
 	if not (look and look.values) then
 		fail(scenario, "SKIPPED -- there is no Look dropdown to read")
 	else
@@ -7480,8 +7494,7 @@ if ns then
 	Mock.advance(60)
 	ns.Guard("probe", ns.ProbeCapabilities)
 
-	local option = ns.optionsTable and ns.optionsTable.args["when"]
-		and ns.optionsTable.args["when"].args.retryCooldown
+	local option = findOption(ns.optionsTable, "retryCooldown")
 	local entry = ns.BuildQueue()[1]
 	if not option then
 		fail(scenario, "SKIPPED -- there is no retry cooldown control to read")
@@ -7589,7 +7602,7 @@ if ns then
 	mustNotThrow("entering combat", function() ns.addon:PLAYER_REGEN_DISABLED() end)
 
 	local appearance = ns.optionsTable and ns.optionsTable.args.appearance
-	local slider = appearance and appearance.args.iconSize
+	local slider = appearance and findOption(ns.optionsTable, "iconSize")
 	if not (slider and slider.set) then
 		fail(scenario, "SKIPPED -- there is no icon slider whose setter to call")
 	else
@@ -7606,7 +7619,7 @@ if ns then
 
 	-- The other execute that repaints the page from a button press.
 	local report = ns.optionsTable and ns.optionsTable.args.diagnostics
-		and ns.optionsTable.args.diagnostics.args.copyReport
+		and findOption(ns.optionsTable, "copyReport")
 	if report and report.func then
 		mustNotThrow("opening the bug-report box", report.func)
 		mustNotThrow("shutting the bug-report box", report.func)
@@ -7658,7 +7671,7 @@ if ns then
 		painted[family(r, g, b)] = true
 	end
 
-	local toggle = ns.optionsTable and ns.optionsTable.args.appearance.args.accentByReason
+	local toggle = findOption(ns.optionsTable, "accentByReason")
 	local desc = toggle and (type(toggle.desc) == "function" and toggle.desc() or toggle.desc)
 	if type(desc) ~= "string" then
 		fail(scenario, "SKIPPED -- the reason-colour toggle has no description to read")
@@ -7684,7 +7697,7 @@ if ns then
 	end
 
 	-- And the note that has to appear when the colour has nowhere left to go.
-	local note = ns.optionsTable and ns.optionsTable.args.appearance.args.accentDead
+	local note = findOption(ns.optionsTable, "accentDead")
 	local regions = ns.Prompt:Regions()
 	if not (note and note.hidden and regions.iconBack) then
 		fail(scenario, "SKIPPED -- no dead-accent note, or no ring to watch")
@@ -7783,9 +7796,9 @@ for _, case in ipairs({
 
 		local entry = ns.BuildQueue()[1]
 		local click = ns.optionsTable and ns.optionsTable.args.click
-		local toggle = click and click.args.restoreTarget
-		local note = click and click.args.noTargetNote
-		local explain = click and click.args.targetingNote
+		local toggle = click and findOption(ns.optionsTable, "restoreTarget")
+		local note = click and findOption(ns.optionsTable, "noTargetNote")
+		local explain = click and findOption(ns.optionsTable, "targetingNote")
 		if not (entry and entry.buff) then
 			fail(label, "SKIPPED -- nobody to build a macro for")
 		elseif not (toggle and note and explain) then
@@ -7850,7 +7863,7 @@ if ns then
 	Mock.advance(60)
 
 	local template = ns.BuildQueue()[1]
-	local toggle = ns.optionsTable and ns.optionsTable.args.appearance.args.hideInCombat
+	local toggle = findOption(ns.optionsTable, "hideInCombat")
 	if not (template and template.buff) then
 		fail(scenario, "SKIPPED -- nobody to click on")
 	elseif not toggle then
@@ -7957,7 +7970,7 @@ if ns then
 	for _, row in ipairs(ns.BuildQueue()) do
 		if row.name == "Iris Quill" then onFocus = true end
 	end
-	local strangers = ns.optionsTable and ns.optionsTable.args.who.args.strangers
+	local strangers = findOption(ns.optionsTable, "strangers")
 	local sources = strangers and tostring(type(strangers.desc) == "function"
 		and strangers.desc() or strangers.desc):lower()
 	if not sources then
@@ -7971,7 +7984,7 @@ if ns then
 	end
 
 	-- The chat switch, judged by what it prints rather than by its own word.
-	local verbose = ns.optionsTable and ns.optionsTable.args.general.args.verbose
+	local verbose = findOption(ns.optionsTable, "verbose")
 	if not verbose then
 		fail(scenario, "SKIPPED -- the chat switch is not on the page")
 	else
@@ -8038,7 +8051,7 @@ if ns then
 		return false
 	end
 
-	local option = ns.optionsTable and ns.optionsTable.args.who.args.graceSeconds
+	local option = findOption(ns.optionsTable, "graceSeconds")
 	local desc = option and tostring(type(option.desc) == "function"
 		and option.desc() or option.desc):lower()
 	if not desc then
@@ -8832,7 +8845,7 @@ if ns then
 	end
 
 	local page = ns.optionsTable and ns.optionsTable.args.general
-		and ns.optionsTable.args.general.args.noBuffs
+		and findOption(ns.optionsTable, "noBuffs")
 	if not page then
 		fail(scenario, "SKIPPED -- the page has nothing to say about a class with nothing")
 	else
@@ -8972,7 +8985,7 @@ if ns then
 		-- switched off" and "you have not learned any" are both false here, and
 		-- both send somebody looking at controls that are already right.
 		local note = ns.optionsTable and ns.optionsTable.args.who
-			and ns.optionsTable.args.who.args.autoNote
+			and findOption(ns.optionsTable, "autoNote")
 		if not note then
 			fail(scenario, "SKIPPED -- the page has no explanation of Automatic")
 		else
@@ -9049,7 +9062,7 @@ if ns then
 		-- And on the page, for the far larger number of people who will never
 		-- type a slash command.
 		local diag = ns.optionsTable and ns.optionsTable.args.diagnostics
-			and ns.optionsTable.args.diagnostics.args.diag
+			and findOption(ns.optionsTable, "diag")
 		if not diag then
 			fail(scenario, "SKIPPED -- there is no diagnostics text to read")
 		elseif not diag.name():find("462854", 1, true) then
@@ -10283,7 +10296,7 @@ for _, want in ipairs({
 		end
 
 		local page = ns.optionsTable and ns.optionsTable.args.general
-			and ns.optionsTable.args.general.args.noBuffs
+			and findOption(ns.optionsTable, "noBuffs")
 		if not page then
 			fail(scenario, "SKIPPED -- the page has nothing to say about a class with nothing")
 		elseif not page.name():find("no buffs it can cast", 1, true) then
@@ -11364,7 +11377,7 @@ if ns then
 	-- notice that has become the one thing on the tab worth reading.
 	local general = ns.optionsTable and ns.optionsTable.args.general
 	local enable = general and general.args.enabled
-	local notice = general and general.args.offNotice
+	local notice = general and findOption(ns.optionsTable, "offNotice")
 	if not (enable and enable.get and notice and notice.hidden) then
 		fail(scenario, "SKIPPED -- no Enable box and no switched-off notice to read,"
 			.. " so the repaints counted above are not shown to matter")
@@ -11488,8 +11501,8 @@ if ns then
 	ns.Prompt:ExitTest()
 
 	local general = ns.optionsTable and ns.optionsTable.args.general
-	local toggle = general and general.args.minimap
-	local header = general and general.args.miscHeader
+	local toggle = general and findOption(ns.optionsTable, "minimap")
+	local header = general and findOption(ns.optionsTable, "miscHeader")
 	if not toggle then
 		fail(scenario, "SKIPPED -- there is no minimap control to look for")
 	else
@@ -11525,7 +11538,7 @@ if ns then
 	ns.Prompt:ExitTest()
 
 	local general = ns.optionsTable and ns.optionsTable.args.general
-	local toggle = general and general.args.minimap
+	local toggle = general and findOption(ns.optionsTable, "minimap")
 	if not toggle then
 		fail(scenario, "SKIPPED -- there is no minimap control to look for")
 	elseif toggle.hidden and toggle.hidden() then
@@ -11749,7 +11762,7 @@ if ns then
 		-- The same two numbers in the block somebody pastes into a bug report,
 		-- where whoever reads it cannot ask a follow-up question.
 		local diagnostics = ns.optionsTable and ns.optionsTable.args.diagnostics
-		local report = diagnostics and diagnostics.args.report
+		local report = diagnostics and findOption(ns.optionsTable, "report")
 		if not (report and report.get) then
 			fail(scenario, "SKIPPED -- no bug-report box to read")
 		else
@@ -12542,8 +12555,8 @@ if ns then
 	drive(scenario, ns)
 	settle(ns)
 	local who = ns.optionsTable and ns.optionsTable.args.who
-	local control = who and who.args.proximity
-	local note = who and who.args.proximityNote
+	local control = who and findOption(ns.optionsTable, "proximity")
+	local note = who and findOption(ns.optionsTable, "proximityNote")
 	if not (control and control.set and note and type(note.name) == "function") then
 		fail(scenario, "SKIPPED -- no proximity dropdown and note to read")
 	else
@@ -12744,7 +12757,7 @@ ns = load("the wording boxes keep what they were given")
 if ns then
 	local scenario = "the wording boxes keep what they were given"
 	drive(scenario, ns)
-	local app = ns.optionsTable and ns.optionsTable.args.appearance.args
+	local app = ns.optionsTable and optionsByKey(ns.optionsTable)
 	if not (app and app.format and app.reasonNearby and app.reasonGroup and app.height) then
 		fail(scenario, "SKIPPED -- the wording boxes are not on the page")
 	else
@@ -12794,7 +12807,7 @@ if ns then
 	local LSM = LibStub("LibSharedMedia-3.0")
 	LSM:Register("font", "Friz Quadrata TT", [[Fonts\FRIZQT__.TTF]])
 	LSM:Register("font", "Arial Narrow", [[Fonts\ARIALN.TTF]])
-	local control = ns.optionsTable and ns.optionsTable.args.appearance.args.font
+	local control = findOption(ns.optionsTable, "font")
 	if not (control and control.values) then
 		fail(scenario, "SKIPPED -- no font dropdown to read")
 	else
@@ -12825,7 +12838,7 @@ if ns then
 	local scenario = "the size controls say what the prompt really does"
 	drive(scenario, ns)
 	ns.Prompt:ExitTest()
-	local app = ns.optionsTable and ns.optionsTable.args.appearance.args
+	local app = ns.optionsTable and optionsByKey(ns.optionsTable)
 	local p = ns.db.profile.prompt
 	if not (app and app.showSub and app.height and app.width and app.iconSize and app.iconSizeCapped) then
 		fail(scenario, "SKIPPED -- the size controls are not on the page")
@@ -12896,7 +12909,7 @@ if ns then
 		end
 		r.sweep.anim.Play = realPlay
 
-		local control = ns.optionsTable and ns.optionsTable.args.appearance.args.flashStyle
+		local control = findOption(ns.optionsTable, "flashStyle")
 		if control and control.disabled then
 			if control.disabled() then
 				fail(scenario, "the flash control is disabled while the stripe can show it")
@@ -12940,8 +12953,8 @@ if ns then
 	local scenario = "the options page keeps up with what is happening"
 	drive(scenario, ns)
 	ns.Prompt:ExitTest()
-	local diag = ns.optionsTable and ns.optionsTable.args.diagnostics.args
-	local app = ns.optionsTable and ns.optionsTable.args.appearance.args
+	local diag = ns.optionsTable and optionsByKey(ns.optionsTable)
+	local app = ns.optionsTable and optionsByKey(ns.optionsTable)
 
 	Mock.optionsRepaints = 0
 	ns.Guard("a label nothing has used", function() error("boom", 0) end)
@@ -12989,7 +13002,7 @@ ns = load("load a set can load the set it is showing")
 if ns then
 	local scenario = "load a set can load the set it is showing"
 	drive(scenario, ns)
-	local click = ns.optionsTable and ns.optionsTable.args.click.args
+	local click = ns.optionsTable and optionsByKey(ns.optionsTable)
 	if not (click and click.preset and click.phrases) then
 		fail(scenario, "SKIPPED -- the phrase controls are not on the page")
 	else
@@ -13916,14 +13929,6 @@ Mock.reset()
 -- Roll a few and {spell}. And a priest with all three spells learned and all
 -- three switched off was told "no buff learned" -- and greeted with a promise
 -- of a prompt and a preview of one that would never appear.
-local function findOption(node, key)
-	if type(node) ~= "table" or type(node.args) ~= "table" then return nil end
-	if node.args[key] then return node.args[key] end
-	for _, child in pairs(node.args) do
-		local found = findOption(child, key)
-		if found then return found end
-	end
-end
 
 -- What the addon says it is about to cast everywhere but the queue: {spell} in
 -- the test console, and a line from Roll a few.
@@ -14589,7 +14594,7 @@ for _, case in ipairs({
 			if case.off and said:find("queue now:", 1, true) then
 				fail(scenario, "debug gave a live queue count for a switched-off prompt")
 			end
-			if case.owedOff and not said:find("People who buffed me", 1, true) then
+			if case.owedOff and not said:find("People who buff me", 1, true) then
 				fail(scenario, "debug never said favours are not being watched: " .. said)
 			end
 		end
@@ -15957,7 +15962,7 @@ if ns then
 				.. tostring(ns.Prompt:PanelName()))
 		end
 		-- The options page's button is the same command by another door.
-		local test = ns.optionsTable and ns.optionsTable.args.appearance.args.test
+		local test = findOption(ns.optionsTable, "test")
 		if not (test and type(test.disabled) == "function" and test.disabled()) then
 			fail(scenario, "the options page still offers Preview in the middle of a fight")
 		end
@@ -16017,7 +16022,7 @@ if ns then
 	drive(scenario, ns)
 	ns.Prompt:ExitTest()
 	Mock.advance(60)
-	local test = ns.optionsTable and ns.optionsTable.args.appearance.args.test
+	local test = findOption(ns.optionsTable, "test")
 	local registry = LibStub("AceConfigRegistry-3.0")
 	if not (test and type(test.name) == "function" and registry and registry.NotifyChange) then
 		fail(scenario, "SKIPPED -- no Preview button or no repaint to watch")
@@ -16080,7 +16085,7 @@ if ns then
 	Mock.geometry = { width = 1366, height = 768 }
 	local button = ns.Prompt:GetButton()
 	local p = ns.db.profile.prompt
-	local app = ns.optionsTable and ns.optionsTable.args.appearance.args
+	local app = ns.optionsTable and optionsByKey(ns.optionsTable)
 	local function round(v) return math.floor(v + 0.5) end
 	local function bottomEdge()
 		local _, bottom = Mock.rectUI(button)
@@ -16432,8 +16437,8 @@ if ns then
 	local scenario = "the bug-report box starts shut"
 	drive(scenario, ns)
 	local diag = ns.optionsTable and ns.optionsTable.args.diagnostics
-	local report = diag and diag.args.report
-	local button = diag and diag.args.copyReport
+	local report = diag and findOption(ns.optionsTable, "report")
+	local button = diag and findOption(ns.optionsTable, "copyReport")
 	if not (report and button and button.func and type(button.name) == "function") then
 		fail(scenario, "SKIPPED -- no bug-report box on the page")
 	else
@@ -16489,7 +16494,7 @@ if ns then
 	drive(scenario, ns)
 	ns.Prompt:ExitTest()
 	Mock.runTimers(10)
-	local app = ns.optionsTable and ns.optionsTable.args.appearance.args
+	local app = ns.optionsTable and optionsByKey(ns.optionsTable)
 	local registry = LibStub("AceConfigRegistry-3.0")
 	if not (app and app.width and app.height and app.iconSize and app.iconSizeCapped
 		and registry and registry.NotifyChange) then
@@ -16568,8 +16573,8 @@ if ns then
 	drive(scenario, ns)
 	Mock.advance(60)
 	local click = ns.optionsTable and ns.optionsTable.args.click
-	local toggle = click and click.args.restoreTarget
-	local note = click and click.args.targetingNote
+	local toggle = click and findOption(ns.optionsTable, "restoreTarget")
+	local note = click and findOption(ns.optionsTable, "targetingNote")
 	-- Somebody reached through a nameplate: your own target is never handed
 	-- back, whatever the switch says, so they would prove nothing. Every mock
 	-- unit is the same person and the target token is walked first, so the
@@ -16618,9 +16623,9 @@ ns = load("always offer says it stops the target coming first")
 if ns then
 	local scenario = "always offer says it stops the target coming first"
 	drive(scenario, ns)
-	local target = ns.optionsTable and ns.optionsTable.args.who.args.target
-	local always = ns.optionsTable and ns.optionsTable.args.when.args.alwaysNote
-	local accent = ns.optionsTable and ns.optionsTable.args.appearance.args.accentByReason
+	local target = findOption(ns.optionsTable, "target")
+	local always = findOption(ns.optionsTable, "alwaysNote")
+	local accent = findOption(ns.optionsTable, "accentByReason")
 	if not (target and always and accent) then
 		fail(scenario, "SKIPPED -- the target switch, the Always note or the colour switch is missing")
 	else
@@ -16654,7 +16659,7 @@ ns = load("remember a buff for names the grace that ends it sooner")
 if ns then
 	local scenario = "remember a buff for names the grace that ends it sooner"
 	drive(scenario, ns)
-	local window = ns.optionsTable and ns.optionsTable.args.when.args.reciprocateWindow
+	local window = findOption(ns.optionsTable, "reciprocateWindow")
 	if not window then
 		fail(scenario, "SKIPPED -- no Remember a buff for slider")
 	elseif not optionText(window.desc):find("Drop people who are probably gone", 1, true) then
@@ -16692,7 +16697,7 @@ for _, case in ipairs({
 		drive(scenario, ns)
 		ns.Guard("probe", ns.ProbeCapabilities)
 
-		local owed = ns.optionsTable and ns.optionsTable.args.who.args.owed
+		local owed = findOption(ns.optionsTable, "owed")
 		if not owed then
 			fail(scenario, "SKIPPED -- no People who buffed me switch")
 		elseif ns.OnlyReachesGroup() == case.strangers then
@@ -16739,9 +16744,9 @@ if ns then
 	ns.Guard("probe", ns.ProbeCapabilities)
 
 	local who = ns.optionsTable and ns.optionsTable.args.who
-	local note = who and who.args.autoNote
-	local toggle = who and who.args.offer_spirit
-	local skip = who and who.args.relevantOnly
+	local note = who and findOption(ns.optionsTable, "autoNote")
+	local toggle = who and findOption(ns.optionsTable, "offer_spirit")
+	local skip = who and findOption(ns.optionsTable, "relevantOnly")
 	if not (note and toggle and skip and skip.set) then
 		fail(scenario, "SKIPPED -- no Automatic note, Divine Spirit switch or relevance switch")
 	elseif not ns.FindBuff("PRIEST", "spirit").manaOnly then
@@ -16790,7 +16795,7 @@ if ns then
 	drive(scenario, ns)
 	ns.Guard("probe", ns.ProbeCapabilities)
 
-	local note = ns.optionsTable and ns.optionsTable.args.who.args.autoNote
+	local note = findOption(ns.optionsTable, "autoNote")
 	local skip = ns.db.profile.buff.skip
 	local ALL_OFF = "Every spell below is switched off"
 	if not note then
@@ -16834,8 +16839,8 @@ if ns then
 	local scenario = "leave them alone names the favour exception"
 	drive(scenario, ns)
 	local when = ns.optionsTable and ns.optionsTable.args.when
-	local choice = when and when.args.whenBuffed
-	local refresh = when and when.args.refreshUnder
+	local choice = when and findOption(ns.optionsTable, "whenBuffed")
+	local refresh = when and findOption(ns.optionsTable, "refreshUnder")
 	if not (choice and refresh) then
 		fail(scenario, "SKIPPED -- no If they already have the buff dropdown or top-up slider")
 	else
@@ -16912,7 +16917,7 @@ for _, case in ipairs({
 		end
 		local replaced = handed ~= nil and handed.key ~= "might"
 
-		local note = ns.optionsTable and ns.optionsTable.args.who.args.autoNote
+		local note = findOption(ns.optionsTable, "autoNote")
 		local text = note and optionText(note.name) or ""
 		local EXCEPTION = "replace one of yours"
 		if not note then
@@ -16951,7 +16956,7 @@ ns = load("the chat switch lists what it prints")
 if ns then
 	local scenario = "the chat switch lists what it prints"
 	drive(scenario, ns)
-	local verbose = ns.optionsTable and ns.optionsTable.args.general.args.verbose
+	local verbose = findOption(ns.optionsTable, "verbose")
 	if not verbose then
 		fail(scenario, "SKIPPED -- the chat switch is not on the page")
 	else
@@ -17013,7 +17018,7 @@ for _, case in ipairs({
 			if entry.buff and entry.buff.key == case.key then offered = true end
 		end
 		local diag = ns.optionsTable and ns.optionsTable.args.diagnostics
-			and ns.optionsTable.args.diagnostics.args.diag
+			and findOption(ns.optionsTable, "diag")
 		local text = diag and optionText(diag.name) or ""
 		if not ns.FindBuff(case.class, case.key) then
 			fail(scenario, "SKIPPED -- this client has no " .. case.key .. " to get wrong")
@@ -17117,7 +17122,7 @@ ns = load("stay quiet in combat gives the true reason")
 if ns then
 	local scenario = "stay quiet in combat gives the true reason"
 	drive(scenario, ns)
-	local toggle = ns.optionsTable and ns.optionsTable.args.appearance.args.hideInCombat
+	local toggle = findOption(ns.optionsTable, "hideInCombat")
 	if not toggle then
 		fail(scenario, "SKIPPED -- the combat switch is not on the page")
 	else
@@ -17145,7 +17150,7 @@ ns = load("stay quiet in combat promises no green")
 if ns then
 	local scenario = "stay quiet in combat promises no green"
 	drive(scenario, ns)
-	local toggle = ns.optionsTable and ns.optionsTable.args.appearance.args.hideInCombat
+	local toggle = findOption(ns.optionsTable, "hideInCombat")
 	if not toggle then
 		fail(scenario, "SKIPPED -- the combat switch is not on the page")
 	else
@@ -17179,7 +17184,7 @@ if ns then
 	if file then file:close() end
 	local category = xml:match('category="([^"]*)"')
 	local said = firstLogin(ns)
-	local how = ns.optionsTable and ns.optionsTable.args.general.args.howItWorks
+	local how = findOption(ns.optionsTable, "howItWorks")
 	if not said then
 		fail(scenario, "the first session would not start at all")
 	elseif not how then
@@ -17278,7 +17283,7 @@ if ns then
 		end
 		-- The Targeting note promised your own target stays targeted, with no
 		-- word about the fight where it does not.
-		local note = ns.optionsTable and ns.optionsTable.args.click.args.targetingNote
+		local note = findOption(ns.optionsTable, "targetingNote")
 		local says = note and tostring(type(note.name) == "function" and note.name() or note.name)
 		if not says then
 			fail(scenario, "SKIPPED -- the Targeting note is not on the page")
@@ -17489,7 +17494,7 @@ if ns then
 	elseif not said:find("subgroup", 1, true) then
 		fail(scenario, "a raider already in the group was told to join it: " .. said)
 	end
-	local owed = ns.optionsTable and ns.optionsTable.args.who.args.owed
+	local owed = findOption(ns.optionsTable, "owed")
 	local desc = owed and tostring(type(owed.desc) == "function" and owed.desc() or owed.desc)
 	if not desc then
 		fail(scenario, "SKIPPED -- the owed toggle has no description to read")
@@ -17647,7 +17652,7 @@ local H = {
 	firstLogin = firstLogin, strangers = strangers, clearClicks = clearClicks,
 	freshPrompt = freshPrompt, pressButton = pressButton, owe = owe,
 	knowShout = knowShout, primeAuras = primeAuras, favourFrom = favourFrom,
-	pressAndSend = pressAndSend, findOption = findOption, namedSpell = namedSpell,
+	pressAndSend = pressAndSend, findOption = findOption, optionsByKey = optionsByKey, namedSpell = namedSpell,
 	savedProfile = savedProfile, tryAgainst = tryAgainst, optionText = optionText,
 }
 if extras then

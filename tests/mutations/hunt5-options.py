@@ -20,8 +20,8 @@ mutate("Options.lua",
 
 # ------------------------------------------------- font-dropdown-blank-unregistered-key
 mutate("Options.lua",
-       "\t\t\t\t\t\t\tlocal chosen = P().font\n\t\t\t\t\t\t\tif type(chosen) == \"string\" and not list[chosen] then\n",
-       "\t\t\t\t\t\t\tlocal chosen = P().font\n\t\t\t\t\t\t\tif false then\n",
+       "\t\t\t\t\tlocal chosen = P().font\n\t\t\t\t\tif type(chosen) == \"string\" and not list[chosen] then\n",
+       "\t\t\t\t\tlocal chosen = P().font\n\t\t\t\t\tif false then\n",
        "hunt5-options: the Font dropdown drops an unregistered font",
        expect="the chosen font is missing from the Font dropdown", script=S)
 

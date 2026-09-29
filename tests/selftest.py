@@ -902,8 +902,8 @@ mutate("Prompt.lua",
 #     dropdown it has nothing to do with -- which is what "...after this long"
 #     did under "If they already have the buff" for four releases.
 mutate("Options.lua",
-       "order = 23.5,",
-       "order = 23,",
+       "\t\t\t\torder = 14,\n\t\t\t\tmin = 10,\n",
+       "\t\t\t\torder = 13,\n\t\t\t\tmin = 10,\n",
        "two controls at the same order",
        expect="are both at order",
        script="runscenarios.py")
@@ -913,10 +913,10 @@ mutate("Options.lua",
 #     profile field off that key instead of naming it is a silent settings reset
 #     for everybody who already had a sound chosen.
 mutate("Options.lua",
-       """						set = function(_, value)
-							SND().file = value""",
-       """						set = function(info, value)
-							SND()[info[#info]] = value""",
+       """				set = function(_, value)
+					SND().file = value""",
+       """				set = function(info, value)
+					SND()[info[#info]] = value""",
        "a moved control losing its stored value",
        expect="ticking play a sound makes a sound",
        script="runscenarios.py")
@@ -1061,9 +1061,9 @@ mutate("Options.lua",
 #     of these as well now, and it comes first in the file.
 mutate("Options.lua",
        "hidden = function() return not InCombatLockdown() end,\n"
-       "\t\t\t\t\t\tname = L[\"|cffffd100In combat.|r Blizzard freezes secure frames",
+       "\t\t\t\tname = L[\"|cffffd100In combat.|r Blizzard freezes secure frames",
        "hidden = function() return true end,\n"
-       "\t\t\t\t\t\tname = L[\"|cffffd100In combat.|r Blizzard freezes secure frames",
+       "\t\t\t\tname = L[\"|cffffd100In combat.|r Blizzard freezes secure frames",
        "a frozen tab that looks like a working one",
        expect="in combat, and the tab reads as though everything on it works",
        script="runscenarios.py")
@@ -1085,11 +1085,11 @@ mutate("Core.lua",
 #     phrase set, which overwrites a box somebody filled by hand with no undo
 #     anywhere in the addon, did not.
 mutate("Options.lua",
-       """						confirm = function(_, value)
-							return L["Replace everything in the box below with the %s lines?"]:format(
-								(ns.PHRASE_SETS[value] and ns.PHRASE_SETS[value].label)
-									or tostring(value))
-						end,
+       """				confirm = function(_, value)
+					return L["Replace everything in the box below with the %s lines?"]:format(
+						(ns.PHRASE_SETS[value] and ns.PHRASE_SETS[value].label)
+							or tostring(value))
+				end,
 """,
        "",
        "hand-written phrases wiped without asking",
@@ -1318,8 +1318,8 @@ mutate("Queue.lua",
 #     the old bug: the entry existed, the addon drew no border of any kind, and
 #     nothing anywhere could tell the difference.
 mutate("Options.lua",
-       '\t\t\t\t\t\t\tframed = L["Framed -- flat panel, thin border"],',
-       '\t\t\t\t\t\t\tblizzard = L["Blizzard -- default UI border"],',
+       '\t\t\t\t\tframed = L["Framed -- flat panel, thin border"],',
+       '\t\t\t\t\tblizzard = L["Blizzard -- default UI border"],',
        "a look the addon draws nothing for",
        expect="the dropdown still offers a name the addon draws nothing for",
        script="runscenarios.py")
@@ -1487,8 +1487,8 @@ mutate("Options.lua",
 #     redraws itself when the slider is let go -- so the check now sits on the
 #     one control that still repaints the page from a press: the bug report.
 mutate("Options.lua",
-       "\t\t\t\t\t\t\treportOpen = not reportOpen\n\t\t\t\t\t\t\tns.RefreshOptionsDisplay()",
-       "\t\t\t\t\t\t\treportOpen = not reportOpen\n\t\t\t\t\t\t\tAceConfigRegistry:NotifyChange(ADDON)",
+       "\t\t\t\t\treportOpen = not reportOpen\n\t\t\t\t\tns.RefreshOptionsDisplay()",
+       "\t\t\t\t\treportOpen = not reportOpen\n\t\t\t\t\tAceConfigRegistry:NotifyChange(ADDON)",
        "a control calling a library that may be absent",
        expect="opening the bug-report box threw",
        script="runscenarios.py")
@@ -1501,8 +1501,8 @@ mutate("Options.lua",
        # Anchored on the comment that follows it: the height slider's setter is
        # the same three lines, sits earlier in the file, and would otherwise be
        # the one this replaced -- which is a mutation of a different check.
-       "\t\t\t\t\t\t\tns.ClampSettings()\n\t\t\t\t\t\t\trestyle()\n\t\t\t\t\t\t\t-- Repainted only",
-       "\t\t\t\t\t\t\t-- Repainted only",
+       "\t\t\t\t\tns.ClampSettings()\n\t\t\t\t\trestyle()\n\t\t\t\t\t-- Repainted only",
+       "\t\t\t\t\t-- Repainted only",
        "an icon slider that outgrows its panel",
        expect="dragging the icon slider left an icon taller",
        script="runscenarios.py")
@@ -1528,8 +1528,8 @@ mutate("Options.lua",
 
 # 82. the targeting switch offered to a class whose macro never takes a target.
 mutate("Options.lua",
-       "\t\t\t\t\t\thidden = NeverTargets,\n\t\t\t\t\t\tget = fGetMacro,",
-       "\t\t\t\t\t\tget = fGetMacro,",
+       "\t\t\t\thidden = NeverTargets,\n\t\t\t\tget = fGetMacro,",
+       "\t\t\t\tget = fGetMacro,",
        "handing back a target that is never taken",
        expect="hand back a target the macro never takes",
        script="runscenarios.py")
@@ -1537,7 +1537,7 @@ mutate("Options.lua",
 # 83. "Hide in combat" over a panel that cannot be hidden. The call that read
 #     it was protected and refused every time it ran, and it is gone.
 mutate("Options.lua",
-       'name = L["Stay quiet in combat"],',
+       'name = L["Keep the prompt dim and still in combat"],',
        'name = L["Hide in combat"],',
        "a switch named for something it cannot do",
        expect="is still called",
@@ -1947,10 +1947,10 @@ mutate("Core.lua",
 # And the same finding kept off the options page, where far more people will see
 # it than will ever type a slash command.
 mutate("Options.lua",
-       """\t\t\t\t\t\t\t\tif info and info.unresolved and #info.unresolved > 0 then
-\t\t\t\t\t\t\t\t\tlocal missing = {}""",
-       """\t\t\t\t\t\t\t\tif false then
-\t\t\t\t\t\t\t\t\tlocal missing = {}""",
+       """\t\t\t\t\t\tif info and info.unresolved and #info.unresolved > 0 then
+\t\t\t\t\t\t\tlocal missing = {}""",
+       """\t\t\t\t\t\tif false then
+\t\t\t\t\t\t\tlocal missing = {}""",
        "wrong spell data reported to the console and nowhere else",
        expect="a spell id this client has never heard of",
        script="runscenarios.py")
@@ -2458,21 +2458,21 @@ mutate("Options.lua",
 # nothing reads and calls Show on a button that was never registered: a control
 # that ticks, saves, and does nothing whatever.
 mutate("Options.lua",
-       """						-- button for a greyed-out control to be about.
-						hidden = function() return not HasMinimapButton() end,
+       """				-- button for a greyed-out control to be about.
+				hidden = function() return not HasMinimapButton() end,
 """,
-       "						-- button for a greyed-out control to be about.\n",
+       "				-- button for a greyed-out control to be about.\n",
        "a checkbox for a button that does not exist",
        expect="on the page with no library behind it",
        script="runscenarios.py")
 
 # The header over it, which would otherwise be a heading with nothing under it.
 mutate("Options.lua",
-       """					miscHeader = {
-						type = "header", name = L["Minimap"], order = 20,
-						hidden = function() return not HasMinimapButton() end,
-					},""",
-       """					miscHeader = { type = "header", name = L["Minimap"], order = 20 },""",
+       """			miscHeader = {
+				type = "header", name = L["Minimap"], order = 20,
+				hidden = function() return not HasMinimapButton() end,
+			},""",
+       """			miscHeader = { type = "header", name = L["Minimap"], order = 20 },""",
        "a Minimap header over an empty space",
        expect="drawn over nothing at all",
        script="runscenarios.py")
@@ -2480,10 +2480,10 @@ mutate("Options.lua",
 # And the same control hidden always, which satisfies everything the absence
 # scenario asks for while quietly taking the minimap button off everybody's page.
 mutate("Options.lua",
-       """						-- button for a greyed-out control to be about.
-						hidden = function() return not HasMinimapButton() end,""",
-       """						-- button for a greyed-out control to be about.
-						hidden = function() return true end,""",
+       """				-- button for a greyed-out control to be about.
+				hidden = function() return not HasMinimapButton() end,""",
+       """				-- button for a greyed-out control to be about.
+				hidden = function() return true end,""",
        "the minimap control hidden from everybody",
        expect="hidden on a client that has both",
        script="runscenarios.py")
@@ -2944,8 +2944,8 @@ mutate("Core.lua",
 
 # An emptied phrase box kept as typed, and refilled later by a size slider.
 mutate("Options.lua",
-       "\t\t\t\t\t\t\tif type(value) ~= \"string\" or value:match(\"^%s*$\") then\n",
-       "\t\t\t\t\t\t\tif false then\n",
+       "\t\t\t\t\tif type(value) ~= \"string\" or value:match(\"^%s*$\") then\n",
+       "\t\t\t\t\tif false then\n",
        "an emptied phrase box kept empty",
        expect="the box went on showing",
        script="runscenarios.py")
@@ -3048,10 +3048,10 @@ mutate("Commands.lua",
 
 # The When you click tab saying nothing in a fight.
 mutate("Options.lua",
-       "\t\t\t\t\t\thidden = function() return not InCombatLockdown() end,\n"
-       "\t\t\t\t\t\tname = L[\"|cffffd100In combat.|r Blizzard freezes the prompt's macro",
-       "\t\t\t\t\t\thidden = function() return true end,\n"
-       "\t\t\t\t\t\tname = L[\"|cffffd100In combat.|r Blizzard freezes the prompt's macro",
+       "\t\t\t\thidden = function() return not InCombatLockdown() end,\n"
+       "\t\t\t\tname = L[\"|cffffd100In combat.|r Blizzard freezes the prompt's macro",
+       "\t\t\t\thidden = function() return true end,\n"
+       "\t\t\t\tname = L[\"|cffffd100In combat.|r Blizzard freezes the prompt's macro",
        "click tab silent in a fight",
        expect="the When you click tab says nothing about the fight",
        script="runscenarios.py")
@@ -3285,8 +3285,8 @@ mutate("Prompt.lua",
 
 # The options page's button still offering it.
 mutate("Options.lua",
-       "\t\t\t\t\t\t\treturn InCombatLockdown() and not ns.Prompt:InTest()\n",
-       "\t\t\t\t\t\t\treturn false\n",
+       "\t\t\t\t\treturn InCombatLockdown() and not ns.Prompt:InTest()\n",
+       "\t\t\t\t\treturn false\n",
        "the page offering Preview in a fight",
        expect="still offers Preview in the middle of a fight",
        script="runscenarios.py")
@@ -3413,18 +3413,18 @@ mutate("Options.lua",
 
 # Height shrinking the icon without asking for a repaint...
 mutate("Options.lua",
-       "\t\t\t\t\t\t\tif P().iconSize ~= icon then RepaintSoon() end\n"
-       "\t\t\t\t\t\tend,\n\t\t\t\t\t},\n\t\t\t\t\tscale = {",
-       "\t\t\t\t\t\tend,\n\t\t\t\t\t},\n\t\t\t\t\tscale = {",
+       "\t\t\t\t\tif P().iconSize ~= icon then RepaintSoon() end\n"
+       "\t\t\t\tend,\n\t\t\t},\n\t\t\tscale = {",
+       "\t\t\t\tend,\n\t\t\t},\n\t\t\tscale = {",
        "height never repaints the icon slider",
        expect="wheeling Height to 30 held the icon at 22",
        script="runscenarios.py")
 
 # ...and Width the same.
 mutate("Options.lua",
-       "\t\t\t\t\t\t\tif P().iconSize ~= icon then RepaintSoon() end\n"
-       "\t\t\t\t\t\tend,\n\t\t\t\t\t},\n\t\t\t\t\theight = {",
-       "\t\t\t\t\t\tend,\n\t\t\t\t\t},\n\t\t\t\t\theight = {",
+       "\t\t\t\t\tif P().iconSize ~= icon then RepaintSoon() end\n"
+       "\t\t\t\tend,\n\t\t\t},\n\t\t\theight = {",
+       "\t\t\t\tend,\n\t\t\t},\n\t\t\theight = {",
        "width never repaints the icon slider",
        expect="wheeling Width to 80 held the icon at 20",
        script="runscenarios.py")
@@ -3439,10 +3439,10 @@ mutate("Options.lua",
 
 # The targeting note naming /targetlasttarget whatever the switch above says.
 mutate("Options.lua",
-       "\t\t\t\t\t\t\tif F().restoreTarget then\n"
-       "\t\t\t\t\t\t\t\ttext = L[\"The prompt runs |cffffd100%s|r, the cast, then |cffffd100%s|r",
-       "\t\t\t\t\t\t\tif true then\n"
-       "\t\t\t\t\t\t\t\ttext = L[\"The prompt runs |cffffd100%s|r, the cast, then |cffffd100%s|r",
+       "\t\t\t\t\tif F().restoreTarget then\n"
+       "\t\t\t\t\t\ttext = L[\"The prompt runs |cffffd100%s|r, the cast, then |cffffd100%s|r",
+       "\t\t\t\t\tif true then\n"
+       "\t\t\t\t\t\ttext = L[\"The prompt runs |cffffd100%s|r, the cast, then |cffffd100%s|r",
        "targeting note ignores the hand-back switch",
        expect="with the switch off the note promises /targetlasttarget",
        script="runscenarios.py")
@@ -3469,12 +3469,12 @@ mutate("Options.lua",
 # ...and the note under Always offer itself.
 mutate("Options.lua",
        "Expect to be spending mana.\"]\n"
-       "\t\t\t\t\t\t\t.. \"|r\\n\\n|cff888888\"\n"
-       "\t\t\t\t\t\t\t.. L[\"Nothing is read in this mode, so |cffffd100Whoever I have"
+       "\t\t\t\t\t.. \"|r\\n\\n|cff888888\"\n"
+       "\t\t\t\t\t.. L[\"Nothing is read in this mode, so |cffffd100Whoever I have"
        " targeted comes first|r has no effect.\"]\n"
-       "\t\t\t\t\t\t\t.. \"|r\",\n",
+       "\t\t\t\t\t.. \"|r\",\n",
        "Expect to be spending mana.\"]\n"
-       "\t\t\t\t\t\t\t.. \"|r\",\n",
+       "\t\t\t\t\t.. \"|r\",\n",
        "Always note silent about the target",
        expect="the note under Always offer does not say that Always offer",
        script="runscenarios.py")
@@ -3516,8 +3516,8 @@ mutate("Options.lua",
 # "If they already have the buff" silent about the favour exception...
 mutate("Options.lua",
        "qualify.\"]\n"
-       "\t\t\t\t\t\t\t.. \"\\n\\n\"\n"
-       "\t\t\t\t\t\t\t.. L[\"Somebody who buffed you is offered the favour back whichever you"
+       "\t\t\t\t\t.. \"\\n\\n\"\n"
+       "\t\t\t\t\t.. L[\"Somebody who buffed you is offered the favour back whichever you"
        " choose, even if they already have it.\"],\n",
        "qualify.\"],\n",
        "already-buffed dropdown hides the favour exception",
@@ -3573,8 +3573,8 @@ mutate("Commands.lua",
 # Diagnostics saying "never offer" about a spell whose group id alone is
 # missing, while the queue offers it.
 mutate("Options.lua",
-       "\t\t\t\t\t\t\t\t\tif not info.known and not rankResolves then\n",
-       "\t\t\t\t\t\t\t\t\tif true then\n",
+       "\t\t\t\t\t\t\tif not info.known and not rankResolves then\n",
+       "\t\t\t\t\t\t\tif true then\n",
        "diagnostics says never offer for a group id",
        expect="the page says Manners will never offer a spell the queue is offering",
        script="runscenarios.py")
