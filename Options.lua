@@ -948,11 +948,15 @@ Quick.VOICE = {
 }
 -- Phrases.lua loads before this file; without it there is no such set. Named
 -- as What I say's Line set names it, so the two read as one set.
+-- It speaks every time, unlike the two thank-you choices: the set has lines for
+-- answering a request, offering to a stranger and buffing your group, and with
+-- "only when I buff someone back" on none of them was ever heard -- a player
+-- who picked it buffed a passer-by and their character said nothing.
 if ns.InCharacter then
 	table.insert(Quick.VOICE, 4, { key = "incharacter", name = L["In character (fits your race and class)"],
 		lines = "incharacter", set = {
 			["speech.enabled"] = true, ["speech.channel"] = "SAY",
-			["speech.onlyWhenReturning"] = true, ["prompt.thankEmote"] = false,
+			["speech.onlyWhenReturning"] = false, ["prompt.thankEmote"] = false,
 		}, applyOnly = { ["speech.onlyWhenReturning"] = true } })
 end
 
@@ -1506,6 +1510,20 @@ local function BuildStartTab()
 				get = function() return Quick.Match(Quick.VOICE) end,
 				set = function(_, v) Quick.Apply(Quick.VOICE, v) end,
 				confirm = function(_, v) return Quick.Confirm(Quick.VOICE, v) end,
+			},
+			-- What I say's own switch, beside the choice that sets it: the
+			-- choices set it one way or the other, and a player who wants it
+			-- otherwise should not have to find it on another tab. Nothing to
+			-- switch while nothing is said.
+			onlyWhenReturning = {
+				type = "toggle",
+				name = L["Only when I buff someone back"],
+				desc = L["Off, you also speak when you buff someone first."],
+				order = 41.5,
+				width = "full",
+				hidden = function() return noClassBuffs() or not SP().enabled end,
+				get = spGet,
+				set = spSet,
 			},
 			quickVoiceSummary = {
 				type = "description",
@@ -4442,9 +4460,92 @@ local function RegisterCompartment()
 	return true
 end
 
+-- Buttons and dropdowns sized to their words. AceConfigDialog gives a control
+-- 170 pixels unless told otherwise. AceGUI keeps 15 of them clear either side
+-- of a button's label, so "Put these back to default" was cut to "Put these
+-- back to de..."; a dropdown's text gets 36 fewer than the control, so "Above
+-- the action bars (default)" showed as "Above the action bars (d...". The
+-- German for most of these runs a third longer. Every button and dropdown
+-- without a width of its own is measured whenever the page is drawn -- a
+-- button against the label it shows then (a snooze button's changes with the
+-- choice), a dropdown against the longest of its choices -- in the font each
+-- draws with, and widened in quarter steps, never below the default, so short
+-- controls keep the rows' rhythm.
+local CONTROL_UNIT = 170
+local BUTTON_PAD = 30 + 6
+local SELECT_PAD = 36 + 6
+local measureText
+
+-- How wide `label` is in `font`, or nil when the client will not say.
+local function LabelWidth(label, font)
+	if type(label) ~= "string" or label == "" then return nil end
+	if not measureText then
+		measureText = UIParent:CreateFontString(nil, "ARTWORK")
+		if not measureText then return nil end
+		measureText:Hide()
+	end
+	if measureText.SetFontObject and _G[font] then measureText:SetFontObject(_G[font]) end
+	measureText:SetText(label)
+	local measure = measureText.GetUnboundedStringWidth or measureText.GetStringWidth
+	local ok, w = pcall(measure, measureText)
+	w = ok and ns.plain(w) or nil
+	return type(w) == "number" and w or nil
+end
+
+local function ControlWidth(w, pad)
+	if not w then return nil end
+	local units = math.ceil((w + pad) / CONTROL_UNIT * 4) / 4
+	if units <= 1 then return nil end
+	-- Past three it would not sit beside anything anyway.
+	if units > 3 then return "full" end
+	return units
+end
+
+-- AceConfigDialog asks for a width with the option in info.option; a label or
+-- a list of choices that is a function is asked the same way the page asks it.
+local function Asked(value, info)
+	if type(value) ~= "function" then return value end
+	local ok, answer = pcall(value, info)
+	return ok and answer or nil
+end
+
+local function FitButton(info)
+	local option = type(info) == "table" and info.option
+	return ControlWidth(LabelWidth(option and Asked(option.name, info), "GameFontNormal"), BUTTON_PAD)
+end
+
+local function FitSelect(info)
+	local option = type(info) == "table" and info.option
+	local values = option and Asked(option.values, info)
+	if type(values) ~= "table" then return nil end
+	local widest
+	for _, label in pairs(values) do
+		local w = LabelWidth(label, "GameFontHighlightSmall")
+		if w and (not widest or w > widest) then widest = w end
+	end
+	return ControlWidth(widest, SELECT_PAD)
+end
+
+-- Radio lists and the media pickers (a dialogControl) lay out otherwise.
+local function FitControls(node)
+	if type(node) ~= "table" then return end
+	if node.width == nil then
+		if node.type == "execute" then
+			node.width = FitButton
+		elseif node.type == "select" and node.style ~= "radio" and not node.dialogControl then
+			node.width = FitSelect
+		end
+	end
+	if type(node.args) == "table" then
+		for _, child in pairs(node.args) do FitControls(child) end
+	end
+end
+
 function ns.SetupOptions()
 	local options = BuildOptions()
 	options.args.profiles = BuildProfilesTab()
+	-- Last, so the profiles tab's controls are fitted too.
+	FitControls(options)
 	-- Kept so a control can be read back afterwards. A dropdown that lists the
 	-- right entries under the wrong labels renders perfectly and is invisible
 	-- to every other check we have.

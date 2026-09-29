@@ -167,3 +167,36 @@ mutate("Prompt.lua",
        "list rows with no base size",
        expect="a long row in the list is drawn smaller to fit",
        script="runscenarios.py")
+
+# The options page's buttons left at AceConfigDialog's 170 pixels, whatever
+# their label: "Put these back to de...".
+mutate("Options.lua",
+       '\t\tif node.type == "execute" then\n\t\t\tnode.width = FitButton\n',
+       '\t\tif node.type == "execute" then\n\t\t\tnode.width = nil\n',
+       "options buttons not fitted",
+       expect="every options button and dropdown holds its words (enUS): button",
+       script="runscenarios.py")
+
+# ...and the dropdowns: "Above the action bars (d...".
+mutate("Options.lua",
+       "\t\t\tnode.width = FitSelect\n",
+       "\t\t\tnode.width = nil\n",
+       "options dropdowns not fitted",
+       expect="every options button and dropdown holds its words (enUS): dropdown",
+       script="runscenarios.py")
+
+# Measured without the room AceGUI keeps beside a button's label.
+mutate("Options.lua",
+       "local BUTTON_PAD = 30 + 6\n",
+       "local BUTTON_PAD = 0\n",
+       "options buttons fitted without the padding",
+       expect="every options button and dropdown holds its words",
+       script="runscenarios.py")
+
+# ...or beside a dropdown's text.
+mutate("Options.lua",
+       "local SELECT_PAD = 36 + 6\n",
+       "local SELECT_PAD = 0\n",
+       "options dropdowns fitted without the padding",
+       expect="every options button and dropdown holds its words",
+       script="runscenarios.py")

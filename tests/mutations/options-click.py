@@ -55,10 +55,16 @@ mutate("Options.lua",
        "click: no note under only-when-returning",
        expect="the note repeating Only when I buff someone back is still on the tab", script=S)
 
-# Re-anchored from the same note: the switch it sat under, relabelled.
+# Re-anchored from the same note: the switch it sat under, relabelled. Pinned
+# to What I say's switch by its order: Start here carries the same label
+# under its "When I buff someone" choice, earlier in the file.
 mutate("Options.lua",
-       "\t\t\t\tname = L[\"Only when I buff someone back\"],\n",
-       "\t\t\t\tname = L[\"Only when I return a favour\"],\n",
+       "\t\t\t\tname = L[\"Only when I buff someone back\"],\n"
+       "\t\t\t\tdesc = L[\"Off, you also speak when you buff someone first.\"],\n"
+       "\t\t\t\torder = 14,\n",
+       "\t\t\t\tname = L[\"Only when I return a favour\"],\n"
+       "\t\t\t\tdesc = L[\"Off, you also speak when you buff someone first.\"],\n"
+       "\t\t\t\torder = 14,\n",
        "click: only-when-returning note with speech off",
        expect="onlyWhenReturning is labelled", script=S)
 

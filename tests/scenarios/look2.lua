@@ -613,3 +613,72 @@ do
 		end
 	end)
 end
+
+-- ------------------------------------------------------------------ look2 8
+-- Every button and dropdown on the options page holds its words.
+--
+-- AceConfigDialog gives a control 170 pixels unless the option names a width,
+-- and none did: "Put these back to default" showed as "Put these back to
+-- de..." and "Above the action bars (default)" as "Above the action bars
+-- (d..." (a player's screenshots), and the German runs longer still. Every
+-- button and dropdown, in English and in German, is asked for its width the way
+-- AceConfigDialog asks, and has to hold its label (a button, with the 15
+-- pixels AceGUI keeps clear either side) or its longest choice (a dropdown,
+-- whose text gets 36 fewer than the control). Measured the recorder's way:
+-- half the font's size a character, at the 12 a font string has before
+-- anything sets one.
+local function controlsOf(node, out)
+	if type(node) ~= "table" then return out end
+	if node.type == "execute"
+		or (node.type == "select" and node.style ~= "radio" and not node.dialogControl) then
+		out[#out + 1] = node
+	end
+	if type(node.args) == "table" then
+		for _, child in pairs(node.args) do controlsOf(child, out) end
+	end
+	return out
+end
+
+local function chars(text)
+	return select(2, tostring(text):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""):gsub("[^\128-\191]", ""))
+end
+
+for _, locale in ipairs({ "enUS", "deDE" }) do
+	local scenario = "every options button and dropdown holds its words (" .. locale .. ")"
+	withTree(scenario, {}, locale, function(ns)
+		freshPrompt(ns, scenario)
+		local controls = controlsOf(ns.optionsTable, {})
+		if #controls < 20 then
+			fail(scenario, ("SKIPPED -- only %d buttons and dropdowns found on the options page")
+				:format(#controls))
+			return
+		end
+		for _, node in ipairs(controls) do
+			local info = { option = node }
+			local width = node.width
+			if type(width) == "function" then width = width(info) end
+			if width ~= "full" then
+				local units = type(width) == "number" and width
+					or (width == "double" and 2) or (width == "half" and 0.5) or 1
+				local text, needed
+				if node.type == "execute" then
+					text = node.name
+					if type(text) == "function" then text = text(info) end
+					needed = type(text) == "string" and chars(text) * 6 + 30 or nil
+				else
+					local values = node.values
+					if type(values) == "function" then values = values(info) end
+					for _, label in pairs(type(values) == "table" and values or {}) do
+						local w = chars(label) * 6 + 36
+						if not needed or w > needed then needed, text = w, label end
+					end
+				end
+				if needed and units * 170 < needed then
+					fail(scenario, ("%s %q is %d wide and needs %d -- the game cuts it with an"
+						.. " ellipsis"):format(node.type == "execute" and "button" or "dropdown",
+						tostring(text), units * 170, needed))
+				end
+			end
+		end
+	end)
+end

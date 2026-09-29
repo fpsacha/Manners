@@ -1,7 +1,35 @@
 # Changelog
 
-## Unreleased
+## 1.1.2
 
+- **Fixed: picking "In character" on Start here made your character speak
+  only when returning a favour**, so buffing a passer-by, somebody who asked
+  or your group said nothing -- and the lines written for those moments were
+  never heard. In character now speaks whenever you buff somebody. The two
+  thank-you choices still speak only when you buff someone back, and the
+  *Only when I buff someone back* switch now sits right under the choice on
+  Start here.
+- Buttons and drop-downs on the options page are now as wide as their words,
+  so "Put these back to default" and "Above the action bars (default)" are no
+  longer cut off with "...", in English or in the longer translations.
+
+## 1.1.1
+
+- **Fixed: the prompt for somebody nearby vanished before you could click
+  it.** Somebody found under your cursor or on a nameplate now stays on offer
+  for about ten seconds after you stop pointing at them, and a click still
+  reaches them by name. The same goes for people who asked you in chat and
+  people who buffed you a while ago.
+- **Fixed:** with friendly nameplates on, somebody standing right at the edge
+  of *Passers-by within* no longer blinks on and off the prompt.
+- While your mouse is over the prompt, it holds still on the person it shows.
+  It still moves on at once if they turn out to be dead, already buffed, out
+  of range or out of sight, if somebody who buffed you comes along, or if you
+  mount (with *Hide the prompt while I'm mounted* on), die or take a taxi.
+  Right-click and shift-right-click work as before, and after ten seconds it
+  lets go of somebody who has simply gone.
+- Somebody remembered this way is let go at once if you switch off, or pin
+  away from, the buff they were offered.
 - A long row in the list under the prompt, such as a long name that needs
   Arcane Intellect, is now drawn a little smaller so it fits, instead of
   being cut off with "...".
