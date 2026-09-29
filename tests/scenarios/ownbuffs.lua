@@ -36,6 +36,13 @@ local function flat(text) return (tostring(text):gsub("\n", " / ")) end
 
 local function macro(ns) return ns.Prompt:GetButton():GetAttribute("macrotext1") end
 
+-- What a press on yourself arms: you targeted by name, the spell, and your
+-- target handed back -- the one shape known to work on WoW Forever, where
+-- conditional targeting does not resolve and [@player] was never tried.
+local function onMe(ns, spell)
+	return "/target " .. ns.TargetName(ns.UnitFullName("player")) .. "\n/cast " .. spell .. "\n/targetlasttarget"
+end
+
 local function list(...)
 	local out = {}
 	for i = 1, select("#", ...) do
@@ -362,7 +369,7 @@ do
 	end
 	with(scenario, { known = { INTELLECT, 168 } }, function(ns)
 		ns.Prompt:Refresh()
-		if macro(ns) ~= "/cast [@player] Frost Armor" then
+		if macro(ns) ~= onMe(ns, "Frost Armor") then
 			fail(scenario, "a mage knowing only Frost Armor rank 1 arms " .. flat(macro(ns)))
 		end
 		if key(ns.Prompt:Showing()) ~= "frostarmor" then
@@ -372,7 +379,7 @@ do
 		train(ns, { INTELLECT, 168, 7300, 7301, ICE1 })
 		if key(ns.Prompt:Showing()) ~= "frostarmor" then
 			fail(scenario, "SKIPPED -- the prompt left the armor at the trainer: " .. key(ns.Prompt:Showing()))
-		elseif macro(ns) ~= "/cast [@player] Ice Armor" then
+		elseif macro(ns) ~= onMe(ns, "Ice Armor") then
 			fail(scenario, "a mage who has learned Ice Armor arms " .. flat(macro(ns)))
 		end
 		-- The icon follows the name.
@@ -383,11 +390,11 @@ do
 	-- A warlock's Demon Skin becomes Demon Armor at 20 in the same way.
 	with(scenario, { class = "WARLOCK", known = { 5697, 687, 696 } }, function(ns)
 		ns.Prompt:Refresh()
-		if macro(ns) ~= "/cast [@player] Demon Skin" then
+		if macro(ns) ~= onMe(ns, "Demon Skin") then
 			fail(scenario, "a warlock knowing Demon Skin arms " .. flat(macro(ns)))
 		end
 		train(ns, { 5697, 687, 696, 706 })
-		if macro(ns) ~= "/cast [@player] Demon Armor" then
+		if macro(ns) ~= onMe(ns, "Demon Armor") then
 			fail(scenario, "a warlock who has learned Demon Armor arms " .. flat(macro(ns)))
 		end
 	end)
@@ -502,7 +509,7 @@ do
 			fail(scenario, "with the Monkey dropped, offered " .. key(mine(ns)) .. " rather than the aspect last up")
 		end
 		ns.Prompt:Refresh()
-		if not ns.Prompt:GetButton():IsShown() or macro(ns) ~= "/cast [@player] Aspect of the Monkey" then
+		if not ns.Prompt:GetButton():IsShown() or macro(ns) ~= onMe(ns, "Aspect of the Monkey") then
 			fail(scenario, "the hunter's prompt is not up on his aspect: " .. flat(macro(ns)))
 		end
 		local broker = Mock.broker
@@ -573,7 +580,7 @@ do
 end
 
 -- ------------------------------------------------------------------ own 9
--- The press casts on you by [@player] and the spell's own name, with nothing
+-- The press targets you by name and casts the spell's own name, with nothing
 -- said whatever the speech settings, and files nothing; the game naming
 -- another spell instead is not the armor.
 Mock.reset()
@@ -587,7 +594,7 @@ do
 		ns.Ledger.Load()
 		ns.Prompt:InvalidateMacro()
 		ns.Prompt:Refresh()
-		if macro(ns) ~= "/cast [@player] Ice Armor" then
+		if macro(ns) ~= onMe(ns, "Ice Armor") then
 			fail(scenario, "the macro reads " .. flat(macro(ns)))
 		end
 		local pressed = H.pressButton(ns)
@@ -945,7 +952,7 @@ do
 				.. " rather than the shield up last")
 		end
 		ns.Prompt:Refresh()
-		if macro(ns) ~= "/cast [@player] Water Shield" then
+		if macro(ns) ~= onMe(ns, "Water Shield") then
 			fail(scenario, "the prompt arms " .. flat(macro(ns)))
 		end
 		local shield = findOption(ns.optionsTable, "own_shield")
@@ -1126,7 +1133,7 @@ do
 	end
 	with(scenario, { class = "WARLOCK", known = { 687 } }, function(ns)
 		ns.Prompt:Refresh()
-		if not ns.Prompt:GetButton():IsShown() or macro(ns) ~= "/cast [@player] Demon Skin" then
+		if not ns.Prompt:GetButton():IsShown() or macro(ns) ~= onMe(ns, "Demon Skin") then
 			fail(scenario, "SKIPPED -- a warlock with only Demon Skin has no prompt on it: " .. flat(macro(ns)))
 			return
 		end

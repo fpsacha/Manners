@@ -1,5 +1,122 @@
 # Changelog
 
+## 1.2.0
+
+Manners 1.2 looks after you too, as somebody asked on CurseForge. When you
+are missing your own buff, or one your class casts only on itself -- a mage's
+armor, a priest's Inner Fire, a paladin's aura, a hunter's aspect -- "You"
+comes up on the same prompt, and one press puts it on you. Where your class
+has a choice, such as a mage's armors, pick the one you want, or leave it on
+Automatic and it follows the one you had up last. And hunters and shamans,
+who have nothing to give anybody else, now get a prompt of their own.
+
+Buffing yourself has been tested against a mock client, but not yet in game.
+If you try it, please say how it went.
+
+### Your own buff, on yourself
+
+- **"You" on the prompt.** When you are missing the buff you give others --
+  Arcane Intellect, Fortitude, Mark of the Wild, a blessing -- the prompt
+  offers it to you, with "your own Arcane Intellect" under it. With *Offer a
+  top-up when it runs low*, also when yours is running out.
+- A press casts it on you and hands your target straight back, as it does for
+  anybody else. Nothing is said, and nothing goes in the favour ledger.
+- **Where you come in the queue:** behind your target, your group at a ready
+  check or just back from the dead, people who buffed you and people who
+  asked; ahead of the rest of your group and passers-by.
+- On by default: *Myself, when I'm missing my own buff*, under the new
+  **Myself** heading on Who to buff. Right-click "You" to skip it for now;
+  shift-right-click switches it off, and chat says where to switch it back on.
+- On Start here, *Only people who buff me* now switches Myself off, and the
+  other three choices switch it on. If you picked *Only people who buff me*
+  before 1.2, pick it again (or untick Myself) to keep yourself off the
+  prompt.
+- *Save mana* never holds back your own buffs: below the floor you are still
+  offered, along with people who buffed you or asked, and the tooltip,
+  `/manners debug` and the setting itself say so.
+- In a party you count towards a group buff, and the group cast covers you.
+- A paladin already wearing one of their own blessings is not offered another
+  on top of it.
+- A warrior's Battle Shout already covers the warrior, and nobody needs
+  Unending Breath on dry land, so neither is offered to you.
+- The line under "You" can be reworded on Advanced: *Reason text: my own
+  buff*.
+
+### Your class's own buffs
+
+The buffs your class casts only on itself, shown under Myself once you have
+learned them:
+
+- **Mage:** Frost Armor (Ice Armor from level 30) or Mage Armor.
+- **Priest:** Inner Fire, and Touch of Weakness and Shadowguard if you have
+  learned them.
+- **Warlock:** Demon Skin (Demon Armor from level 20).
+- **Paladin:** an aura (Devotion, Retribution, Concentration, or Shadow, Frost
+  or Fire Resistance) and Righteous Fury.
+- **Hunter:** an aspect (Hawk, Monkey, Wild or Beast; Cheetah and Pack count
+  as up) and Trueshot Aura.
+- **Shaman:** Lightning Shield or Water Shield.
+- **Druid:** Omen of Clarity.
+
+You are offered one at a time, your buff for others first: a mage missing
+both gets Arcane Intellect, then the armor. Learn Ice Armor or Demon Armor at
+the trainer and the prompt casts the new one straight away.
+
+### Automatic, or pick your own
+
+- Where your class has several of one kind -- a mage's armors, a paladin's
+  auras, a hunter's aspects, a shaman's shields -- Who to buff has a
+  drop-down: **Automatic**, each one you know, or **Don't remind me**. A buff
+  on its own is a simple checkbox.
+- **Automatic** reminds you of the one you had up last, even if you changed
+  it in a fight or in town, and the drop-down says which: "Automatic (Mage
+  Armor, the one you had up last)".
+- Until you have had one up, a mage is offered Mage Armor in a dungeon or raid
+  and Frost or Ice Armor everywhere else (the same armor everywhere until Mage
+  Armor is learned), a paladin Devotion Aura, and a hunter Aspect of the Hawk
+  (the Monkey before that).
+- Automatic never picks Aspect of the Cheetah or of the Pack, but with either
+  up you are not reminded.
+- **Righteous Fury:** *Automatic (only while I'm the tank)* reminds you only
+  while your group role is tank, *Always* whenever it is not up, and *Don't
+  remind me* never.
+
+### When you are reminded
+
+- Only when **none** of a kind is up. Any armor, aura or aspect of yours
+  counts, so the one you chose is never swapped for another. Only yours
+  count: another paladin's aura on you does not stop the reminder.
+- Never in a fight.
+- Not in cities and inns, unless you tick **Also in cities and inns** (off by
+  default: nobody needs Inner Fire at the auction house). This goes for your
+  own buff for others too.
+- Not while the game says the spell cannot be cast: a druid in cat form, a
+  priest in Shadowform, a mage out of mana.
+- With *Offer a top-up when it runs low*, a buff with a timer, such as Inner
+  Fire or an armor, is also offered when it is running out. An aura or an
+  aspect never is.
+- `/manners debug` and the Diagnostics tab say which of your own buffs is up,
+  which is due, and why one is not being offered.
+
+### Hunters and shamans
+
+- Manners used to have nothing for a hunter or a shaman, who have no buff to
+  give anybody else. Now the prompt is theirs, for their own aspect, Trueshot
+  Aura or shield.
+- Who to buff shows them just the Myself settings. Start here has the key,
+  the preview and snooze, and When to offer has the top-up choice and *Hide
+  the prompt while I'm mounted*.
+- Their greeting (`/manners welcome`) says what the prompt does for them.
+
+### Fixed
+
+- **The favour ledger** filed a buff you gave somebody who asked in chat as a
+  gift given unprompted, and counted it in "You gave ... buffs unprompted
+  today". It is now marked as asked for, and left out of that count. A group
+  cast counts as asked for only when everybody it reached had asked.
+- A paladin's Greater Blessing for their own class is no longer offered when
+  it would replace a different blessing of theirs that they are wearing.
+
 ## 1.1.2
 
 - **Fixed: picking "In character" on Start here made your character speak

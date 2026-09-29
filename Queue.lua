@@ -1322,6 +1322,9 @@ local function SelfEntry(db, candidates, now, verdict)
 		short = ShortName(full),
 		-- What the first line and the list under it say in your name's place.
 		display = L["You"],
+		-- The spelling the macro's /target line carries: you are targeted by
+		-- name like anybody else (STRATEGIES.self in Prompt.lua says why).
+		targetName = ns.TargetName(full),
 		unit = "player",
 		class = caps.class,
 		buff = buff,

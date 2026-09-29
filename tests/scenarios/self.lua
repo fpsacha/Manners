@@ -1,7 +1,7 @@
 -- Buff myself (1.2.0): "Myself, when I'm missing my own buff" puts you on the
 -- prompt when you are missing one of your own buffs, or with top-ups on it is
 -- running low. Queue.lua's SelfEntry makes the offer, Prompt.lua casts it with
--- /cast [@player] and nothing said, Clicks.lua settles it with nothing filed,
+-- a /cast aimed at you by name and nothing said, Clicks.lua settles it with nothing filed,
 -- and GroupBuffs.lua counts you into your party's group cast.
 --
 -- Every scenario name starts with "self:" so the mutations in
@@ -29,6 +29,13 @@ local function said() return table.concat(Mock.printed, "\n") end
 local function flat(text) return (tostring(text):gsub("\n", " / ")) end
 
 local function macro(ns) return ns.Prompt:GetButton():GetAttribute("macrotext1") end
+
+-- What a press on yourself arms: you targeted by name, the spell, and your
+-- target handed back -- the one shape known to work on WoW Forever, where
+-- conditional targeting does not resolve and [@player] was never tried.
+local function onMe(ns, spell)
+	return "/target " .. ns.TargetName(ns.UnitFullName("player")) .. "\n/cast " .. spell .. "\n/targetlasttarget"
+end
 
 local function noErrors(scenario, ns)
 	for _, e in ipairs(ns.errors or {}) do
@@ -277,12 +284,12 @@ do
 end
 
 -- ------------------------------------------------------------------ self 5
--- The press casts on you by [@player]: no /target, nothing handed back, and no
+-- The press targets you by name and hands your target back, and says no
 -- spoken line whatever the speech settings say -- said, whispered, or only
 -- when returning a favour.
 Mock.reset()
 do
-	local scenario = "self: the macro casts on you with no target and nothing said"
+	local scenario = "self: the macro targets you by name and says nothing"
 	with(scenario, {}, function(ns)
 		local speech = ns.db.profile.speech
 		speech.enabled, speech.onlyWhenReturning, speech.channel = true, false, "SAY"
@@ -299,24 +306,24 @@ do
 		ns.Prompt:InvalidateMacro()
 		ns.Prompt:Refresh()
 		local ran = macro(ns)
-		if ran ~= "/cast [@player] Arcane Intellect" then
+		if ran ~= onMe(ns, "Arcane Intellect") then
 			fail(scenario, "the macro reads " .. flat(ran))
 		end
 		speech.channel = "WHISPER"
 		ns.Prompt:InvalidateMacro()
 		ns.Prompt:Refresh()
-		if macro(ns) ~= "/cast [@player] Arcane Intellect" then
+		if macro(ns) ~= onMe(ns, "Arcane Intellect") then
 			fail(scenario, "whispering on, the macro reads " .. flat(macro(ns)))
 		end
 		if hover(ns):find("Says:", 1, true) then
 			fail(scenario, "the tooltip quotes a line for you: " .. hover(ns))
 		end
 		local pressed = H.pressButton(ns)
-		if pressed ~= "/cast [@player] Arcane Intellect" then
+		if pressed ~= onMe(ns, "Arcane Intellect") then
 			fail(scenario, "the press ran " .. flat(pressed))
 		end
 		local pending = ns.pendingClick
-		if not (pending and pending.onSelf == true and not pending.targeted) then
+		if not (pending and pending.onSelf == true) then
 			fail(scenario, "the press was not parked as one on yourself")
 		end
 	end)
@@ -339,7 +346,7 @@ do
 		wear(ns, {})
 		ns.Prompt:Refresh()
 		local pressed = H.pressButton(ns)
-		if not (pressed and pressed:find("[@player]", 1, true) and ns.pendingClick) then
+		if not (pressed and pressed:find("/cast Arcane Intellect", 1, true) and ns.pendingClick) then
 			fail(scenario, "SKIPPED -- the press on yourself did not go out: " .. flat(pressed))
 			return
 		end

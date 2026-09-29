@@ -2,13 +2,14 @@
 
 ![The prompt: a dark panel naming Elowen Thistledown, who buffed you, with a gold glow round the spell icon](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-prompt.png)
 
-Somebody buffs you in passing; Manners puts them on one button, and a click buffs them back and hands your own target straight back. It also offers your group, people who ask for your buff in chat, and nearby players missing it. In dungeons and raids it keeps your group topped up, with one group cast for a whole party when you carry the reagent.
+Somebody buffs you in passing; Manners puts them on one button, and a click buffs them back and hands your own target straight back. It also offers your group, people who ask for your buff in chat, and nearby players missing it -- and you, when you are missing your own buff or one your class casts only on itself. In dungeons and raids it keeps your group topped up, with one group cast for a whole party when you carry the reagent.
 
-> **Only Mage has been played in game.** Priest, Druid, Paladin, Warlock and Warrior are implemented and tested against a mock client, but nobody has cast with them yet, and the dungeon and raid features have not been taken into a real group. If you play one, please [say how it went](https://github.com/fpsacha/Manners/issues/new/choose): "it worked" is the most useful report.
+> **Only Mage has been played in game.** Priest, Druid, Paladin, Warlock and Warrior are implemented and tested against a mock client, but nobody has cast with them yet; the dungeon and raid features have not been taken into a real group, and Buff myself has not been tried in game. If you play one, please [say how it went](https://github.com/fpsacha/Manners/issues/new/choose): "it worked" is the most useful report.
 
 Built for **WoW Forever** (Interface 16001) only.
 
-- **Who comes first:** your target, then your group at a ready check or just back from the dead, then people who buffed you, people who asked in chat, the rest of your group, and passers-by. Each has its own colour, with a colour-blind friendly set.
+- **Who comes first:** your target, then your group at a ready check or just back from the dead, then people who buffed you, people who asked in chat, you, the rest of your group, and passers-by. They are colour-coded, with a colour-blind friendly set.
+- **Buff myself:** missing your own buff, or one your class casts only on itself -- a mage's armor, a priest's Inner Fire, a warlock's Demon Armor, a paladin's aura or Righteous Fury, a hunter's aspect, a shaman's shield -- and "You" comes up on the prompt; one press puts it on you. Pick your armor, aura or aspect, or let *Automatic* follow the one you had up last. Only when none of a kind is up, never in a fight, and not in cities and inns unless you want it. Hunters and shamans now get a prompt of their own.
 - **Group buffs:** with Arcane Brilliance, a Prayer, Gift of the Wild or a Greater Blessing learned and its reagent in your bags, 3 or more of a party who need your buff get one cast instead of one each. The prompt says who it is for ("Your party", "Group 2", "Every Warrior") and counts your reagents.
 - **Dungeons and raids:** tick only the **raid groups you buff**, **save mana** below a level you set, and no "buffed you" chat line inside a raid.
 - **Never offer:** shift-right-click somebody on the prompt and they are never offered anything again, unless they buff you.

@@ -131,16 +131,24 @@ mutate("Prompt.lua",
 
 # --- the press ---
 
+# Retired: "self: macro targets you" dropped the self strategy, which since
+# the press targets you by name (not [@player]) arms the same macro as the
+# target strategy, and the press is still parked as yours from the entry's
+# reason. Nothing observable changes, so there is nothing to catch; the two
+# mutations below are what the strategy now guards against.
+
+# A bare /cast: with a friendly player targeted, it lands on them.
 mutate("Prompt.lua",
-       "\tif entry.reason == \"self\" then return \"self\" end\n",
-       "",
-       "self: macro targets you",
+       "\tlocal lines, restore = STRATEGIES.target(entry, spell)\n",
+       "\tlocal lines, restore = { \"/cast \" .. spell }, false\n",
+       "self: cast with no unit",
        expect="the macro reads", script=S)
 
+# [@player]: conditional targeting does not resolve on WoW Forever.
 mutate("Prompt.lua",
-       "\treturn { \"/cast [@player] \" .. spell }, false,\n",
-       "\treturn { \"/cast \" .. spell }, false,\n",
-       "self: cast with no unit",
+       "\tlocal lines, restore = STRATEGIES.target(entry, spell)\n",
+       "\tlocal lines, restore = { \"/cast [@player] \" .. spell }, false\n",
+       "self: cast by [@player]",
        expect="the macro reads", script=S)
 
 mutate("Speech.lua",

@@ -89,7 +89,7 @@ local resultFill
 local queueBack, queueHair, queueBars
 local queueTextX = 0
 -- Goes into every click line, so a log says which build produced it.
-ns.BUILD = "1.1.2"
+ns.BUILD = "1.2.0"
 
 local current, testMode, testExpiry, lastTop, appliedKey, lastClickAt, lastPreClickAt, lastSkipAt
 -- Why the last painted person was on the panel, beside lastTop's who.
@@ -2542,14 +2542,19 @@ STRATEGIES.selfcast = function(entry, spell)
 		{ targeted = false, selfCast = true, aimedAt = nil }
 end
 
--- Your own buff: cast on you by the [@player] condition, which every client
--- here resolves (it names no other player, so the retail 12.0 limit on [@Name]
--- does not reach it). No /target and nothing to hand back, so your target is
--- never touched, and no spoken line: there is nobody to say it to
--- (ns.PickPhrase).
+-- Your own buff: you are targeted by name, the spell cast, and your target
+-- handed back -- the shape every other press takes, because it is the one
+-- shape known to work on WoW Forever. Not [@player]: conditional targeting
+-- does not resolve on that client at all ([@unit], [@focus], [@mouseover] and
+-- the secure unit attribute all fail -- the README's client notes), and
+-- nobody has cast [@player] there. Not a bare /cast either: with a friendly
+-- player targeted it lands on them. No spoken line: there is nobody to say it
+-- to (ns.PickPhrase). The record stays one on yourself, which is how the press
+-- is settled (Clicks.lua).
 STRATEGIES.self = function(entry, spell)
-	return { "/cast [@player] " .. spell }, false,
-		{ targeted = false, selfCast = false, onSelf = true, aimedAt = nil }
+	local lines, restore = STRATEGIES.target(entry, spell)
+	return lines, restore,
+		{ targeted = true, selfCast = false, onSelf = true, aimedAt = entry.targetName or entry.name }
 end
 
 -- Target them, cast, and optionally hand the player's own target back. One

@@ -1939,11 +1939,11 @@ local function BuildWhoTab()
 					-- A hunter gives nobody anything, so his are the ones
 					-- below alone.
 					if #ns.KnownOwnFamilies() > 0 and #ns.SelfBuffs() == 0 then
-						return L["Offer your own buffs to you when one is not up: the ones below. They are cast on you, with no target and nothing said."]
+						return L["Offer your own buffs to you when one is not up: the ones below. They are cast on you, your target is handed back, and nothing is said."]
 					elseif #ns.KnownOwnFamilies() > 0 then
-						return L["Offer your own buffs to you too, when one is not up: the ones below, and the buff you give others. They are cast on you, with no target and nothing said."]
+						return L["Offer your own buffs to you too, when one is not up: the ones below, and the buff you give others. They are cast on you, your target is handed back, and nothing is said."]
 					end
-					return L["Offer your own buff to you too, when you are missing it or, with top-ups on, it is running low. It is cast on you, with no target and nothing said."]
+					return L["Offer your own buff to you too, when you are missing it or, with top-ups on, it is running low. It is cast on you, your target is handed back, and nothing is said."]
 				end,
 				order = 15.1,
 				width = "full",
