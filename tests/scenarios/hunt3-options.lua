@@ -755,15 +755,15 @@ do
 		freshPrompt(ns, scenario)
 		ns.db.profile.filters.hideMounted = true
 		owe(ns, "Anna Aim")
-		ns.L["Not while mounted"] = "TRANSLATED-MOUNT-LABEL"
-		ns.L["When"] = "TRANSLATED-WHEN-TAB"
+		ns.L["Hide the prompt while I'm mounted"] = "TRANSLATED-MOUNT-LABEL"
+		ns.L["When to offer"] = "TRANSLATED-WHEN-TAB"
 		ns.addon:Tick()
 		local tip = tooltipLines()
 		if not (tip:find("TRANSLATED-MOUNT-LABEL", 1, true) and tip:find("TRANSLATED-WHEN-TAB", 1, true)) then
 			fail(scenario, "the mount line does not take the option and tab names from their own keys: " .. tip)
 		end
-		ns.L["Not while mounted"] = nil
-		ns.L["When"] = nil
+		ns.L["Hide the prompt while I'm mounted"] = nil
+		ns.L["When to offer"] = nil
 		guarded(scenario, ns)
 	end
 	IsMounted = realMounted

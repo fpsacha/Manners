@@ -926,8 +926,8 @@ mutate("Options.lua",
 #     it: "Remember a buff for: 120" and "Top up when under: 5" read as the same
 #     kind of number.
 mutate("Options.lua",
-       "Remember a buff for (seconds)",
-       "Remember a buff for",
+       "Offer a buff back for (seconds)",
+       "Offer a buff back for",
        "a time slider showing a bare number",
        expect="the time sliders say what they are counting",
        script="runscenarios.py")
@@ -1453,10 +1453,9 @@ mutate("Prompt.lua",
 # 75. the label that promised a per-player wait over a click that blocks one
 #     spell. The wording is the bug here, so the wording is what goes back.
 mutate("Options.lua",
-       'desc = L["After you click, how long before that spell is offered to that player again.'
-       ' Covers casts that failed out of sight."]',
-       'desc = L["After you click, how long before the same player can come back up.'
-       ' Covers casts that failed out of sight."]',
+       'desc = L["In case the cast failed; right-clicking the prompt skips the person for this long."]',
+       'desc = L["How long before the same player can come back up;'
+       ' right-clicking the prompt skips the person for this long."]',
        "a per-spell wait sold as a per-player one",
        expect="the same player can come back up",
        script="runscenarios.py")
@@ -1473,8 +1472,8 @@ mutate("Prompt.lua",
 
 # 77. the one place the number really is per person, taken back off the page.
 mutate("Options.lua",
-       ' Divine Spirit. Right-clicking the prompt skips the whole person for this long."]',
-       ' Divine Spirit. There is another way to skip the whole person."]',
+       '; right-clicking the prompt skips the person for this long."]',
+       '."]',
        "the per-person half left unmentioned",
        expect="is nowhere on the page",
        script="runscenarios.py")
@@ -1574,8 +1573,7 @@ mutate("Options.lua",
 #     somebody, which is a thing nothing in the addon can notice. It runs from
 #     their buff -- the one instant they were provably in range.
 mutate("Options.lua",
-       'desc = L["How long somebody counts as in range after they buff you.'
-       ' It runs from their buff, not from when they walk off."],',
+       'desc = L["Counted from their buff, not from when they walked off."],',
        'desc = "How long a favour stays offerable once we can no longer see them.",',
        "a window timed from an event nothing sees",
        expect="the page does not say so",
@@ -2466,13 +2464,15 @@ mutate("Options.lua",
        expect="on the page with no library behind it",
        script="runscenarios.py")
 
-# The header over it, which would otherwise be a heading with nothing under it.
+# A heading with nothing under it. The Minimap header this was written for is
+# gone; options-headers.lua holds every header on the page to the same rule,
+# and a class with nothing to cast is where the Snooze heading would be alone.
 mutate("Options.lua",
-       """			miscHeader = {
-				type = "header", name = L["Minimap"], order = 20,
-				hidden = function() return not HasMinimapButton() end,
-			},""",
-       """			miscHeader = { type = "header", name = L["Minimap"], order = 20 },""",
+       """				type = "header", name = L["Snooze"], order = 50,
+				hidden = noClassBuffs,
+""",
+       """				type = "header", name = L["Snooze"], order = 50,
+""",
        "a Minimap header over an empty space",
        expect="drawn over nothing at all",
        script="runscenarios.py")
@@ -3445,14 +3445,15 @@ mutate("Options.lua",
        expect="a drag from 44 to 30 redrew the page",
        script="runscenarios.py")
 
-# The targeting note naming /targetlasttarget whatever the switch above says.
-mutate("Options.lua",
-       "\t\t\t\t\tif F().restoreTarget then\n"
-       "\t\t\t\t\t\ttext = L[\"The prompt runs |cffffd100%s|r, the cast, then |cffffd100%s|r",
-       "\t\t\t\t\tif true then\n"
-       "\t\t\t\t\t\ttext = L[\"The prompt runs |cffffd100%s|r, the cast, then |cffffd100%s|r",
+# The macro handing a target back whatever "Hand my target back afterwards"
+# says. (The targeting note this once caught saying so is gone from the page.)
+mutate("Prompt.lua",
+       "\tlocal restore = ns.db.profile.filters.restoreTarget == true\n"
+       "\t\tand (not StillTargeted(entry) or Prompt.armedForFight == true)\n",
+       "\tlocal restore = true\n"
+       "\t\tand (not StillTargeted(entry) or Prompt.armedForFight == true)\n",
        "targeting note ignores the hand-back switch",
-       expect="with the switch off the note promises /targetlasttarget",
+       expect="with the switch off the macro still carries /targetlasttarget",
        script="runscenarios.py")
 
 # The target switch silent about Always offer...
@@ -3465,13 +3466,13 @@ mutate("Options.lua",
        expect="the target switch's description does not say that Always offer",
        script="runscenarios.py")
 
-# ...the pale-blue colour the same...
+# ...the switch dropping the condition Always offer never meets. (The
+# pale-blue colour's own sentence about it went with the Look redesign.)
 mutate("Options.lua",
-       " I have targeted comes first|r is on and"
-       " |cffffd100If they already have the buff|r is not Always offer.\"]",
-       " I have targeted comes first|r is on.\"]",
+       "L[\"Your target goes ahead of everyone when the game can see they lack the buff.\"]",
+       "L[\"Your target goes ahead of everyone.\"]",
        "reason colour silent about Always offer",
-       expect="the colour switch's description does not say that Always offer",
+       expect="the target switch no longer says it waits until the game sees",
        script="runscenarios.py")
 
 # ...and the note under Always offer itself.
@@ -3486,10 +3487,15 @@ mutate("Options.lua",
        expect="the note under Always offer does not say that Always offer",
        script="runscenarios.py")
 
-# "Remember a buff for" saying nothing of the grace that ends it sooner.
+# "Offer a buff back for" with the switch that ends it sooner moved away from
+# it. It used to name the switch; now the switch is the next control down.
 mutate("Options.lua",
-       " sooner by |cffffd100Drop people who are probably gone|r, under Who to buff.\"],\n",
-       " sooner.\"],\n",
+       "\t\t\t\tname = L[\"Stop sooner if they are probably gone\"],\n"
+       "\t\t\t\tdesc = L[\"Someone who buffed you rarely can be range-checked, so they are let go after the time below.\"],\n"
+       "\t\t\t\torder = 13,\n",
+       "\t\t\t\tname = L[\"Stop sooner if they are probably gone\"],\n"
+       "\t\t\t\tdesc = L[\"Someone who buffed you rarely can be range-checked, so they are let go after the time below.\"],\n"
+       "\t\t\t\torder = 15.5,\n",
        "remember window silent about the grace",
        expect="the slider says people stay on the prompt this long",
        script="runscenarios.py")
@@ -3628,10 +3634,10 @@ mutate("Commands.lua",
        expect="the key binding is where the greeting says",
        script="runscenarios.py")
 
-# The same path on the General tab.
+# The same path on Start here, in the Open key bindings button's tooltip.
 mutate("Options.lua",
-       "Options > Keybindings > Manners.\"]",
-       "Game Menu > Key Bindings > Manners.\"]",
+       "Opens Options > Keybindings > Manners, the game's own key bindings.\"]",
+       "Opens Game Menu > Key Bindings > Manners, the game's own key bindings.\"]",
        "How this works names the Game Menu key bindings",
        expect="the key binding is where the greeting says",
        script="runscenarios.py")
@@ -3789,12 +3795,16 @@ mutate("Core.lua",
        expect="after the fight the macro for your own target still hands it",
        script="runscenarios.py")
 
-# The Targeting note promising your own target stays targeted in a fight too.
-mutate("Options.lua",
-       "|r, except outside a fight for somebody already your target, who stays targeted.",
-       "|r, except for somebody already your target, who stays targeted.",
+# The prompt's tooltip promising your own target stays targeted when the
+# macro hands it back -- in a fight, the one place that happens. (The Targeting
+# note this was written for is gone from the page.)
+mutate("Prompt.lua",
+       "\t\tif restore then\n"
+       "\t\t\tout[#out + 1] = L[\"Hands your own target back afterwards.\"]\n",
+       "\t\tif restore then\n"
+       "\t\t\tout[#out + 1] = L[\"They are already your target, so they stay targeted.\"]\n",
        "Targeting note forgets the fight",
-       expect="the Targeting note says your own target stays targeted",
+       expect="the tooltip says your own target stays targeted",
        script="runscenarios.py")
 
 # A settled line kept after the room it was rolled for has gone.

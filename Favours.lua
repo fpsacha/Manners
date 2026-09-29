@@ -346,7 +346,7 @@ do
 			if db.verbose then
 				-- Translators: the option's name comes in through its own key, so a
 				-- translated line quotes the checkbox the player can find.
-				addon:Print(L["|cff80ff80%s buffed you|r -- nothing you cast is any use to them (\"%s\" is on)"]:format(seen.name, L["Skip players the buff does nothing for"]))
+				addon:Print(L["|cff80ff80%s buffed you|r -- nothing you cast is any use to them (\"%s\" is on)"]:format(seen.name, L["Skip players it does nothing for"]))
 			end
 			return
 		end

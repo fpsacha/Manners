@@ -10,15 +10,37 @@ S = "runscenarios.py"
 # The default place not marked as the default, so nothing says it is the way
 # back now that Reset position is gone.
 mutate("Options.lua",
+       "\t\t\t\t-- so it can be shown but never picked.\n"
+       "\t\t\t\tvalues = function()\n"
+       "\t\t\t\t\tlocal out = {}\n"
+       "\t\t\t\t\tfor _, preset in ipairs(ns.POSITION_PRESETS) do\n"
        "\t\t\t\t\t\tout[preset.key] = preset.key == \"bars\"\n"
        "\t\t\t\t\t\t\tand L[\"Above the action bars (default)\"] or preset.name\n",
+       "\t\t\t\t-- so it can be shown but never picked.\n"
+       "\t\t\t\tvalues = function()\n"
+       "\t\t\t\t\tlocal out = {}\n"
+       "\t\t\t\t\tfor _, preset in ipairs(ns.POSITION_PRESETS) do\n"
        "\t\t\t\t\t\tout[preset.key] = preset.name\n",
        "look: default place unmarked",
        expect="the default place is not marked", script=S)
 
 # Where I dragged it offered while the prompt sits on a preset.
 mutate("Options.lua",
+       "\t\t\t\t-- so it can be shown but never picked.\n"
+       "\t\t\t\tvalues = function()\n"
+       "\t\t\t\t\tlocal out = {}\n"
+       "\t\t\t\t\tfor _, preset in ipairs(ns.POSITION_PRESETS) do\n"
+       "\t\t\t\t\t\tout[preset.key] = preset.key == \"bars\"\n"
+       "\t\t\t\t\t\t\tand L[\"Above the action bars (default)\"] or preset.name\n"
+       "\t\t\t\t\tend\n"
        "\t\t\t\t\tif not ns.CurrentPositionPreset() then out.custom = L[\"Where I dragged it\"] end\n",
+       "\t\t\t\t-- so it can be shown but never picked.\n"
+       "\t\t\t\tvalues = function()\n"
+       "\t\t\t\t\tlocal out = {}\n"
+       "\t\t\t\t\tfor _, preset in ipairs(ns.POSITION_PRESETS) do\n"
+       "\t\t\t\t\t\tout[preset.key] = preset.key == \"bars\"\n"
+       "\t\t\t\t\t\t\tand L[\"Above the action bars (default)\"] or preset.name\n"
+       "\t\t\t\t\tend\n"
        "\t\t\t\t\tout.custom = L[\"Where I dragged it\"]\n",
        "look: Where I dragged it always offered",
        expect="Where I dragged it is offered while the prompt sits on a preset", script=S)
@@ -32,7 +54,9 @@ mutate("Options.lua",
 
 # A dragged prompt reads as nothing: the box goes blank.
 mutate("Options.lua",
+       "\t\t\t\t\treturn out\n\t\t\t\tend,\n"
        "\t\t\t\tget = function() return ns.CurrentPositionPreset() or \"custom\" end,\n",
+       "\t\t\t\t\treturn out\n\t\t\t\tend,\n"
        "\t\t\t\tget = function() return ns.CurrentPositionPreset() end,\n",
        "look: dragged prompt reads blank",
        expect="a dragged prompt reads as", script=S)

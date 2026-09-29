@@ -137,7 +137,10 @@ local TEXT = {
 	TIP_LETGO_USELESS = L["Let go: nothing you can cast is any use to them."],
 	-- Quotes the setting by the name it has on the When tab, which a scenario
 	-- holds it to.
-	TIP_LETGO_NOTKEPT = L["Let go: \"Remember them across a reload\" (When tab, under Timing) is off, so it was forgotten when you logged out or reloaded."],
+	-- The setting's own name and place, through the same keys the options
+	-- page uses, so a translation names what the player will find there.
+	TIP_LETGO_NOTKEPT = L["Let go: \"%s\" (%s tab, under %s) is off, so it was forgotten when you logged out or reloaded."]
+		:format(L["Keep favours through a /reload"], L["Advanced"], L["Favours"]),
 	TIP_LETGO_NEVER = L["Let go: you put them on your never-offer list."],
 	-- In place of TIP_OWED while the prompt cannot offer them, the rule Quiet()
 	-- below keeps for the empty list: the window never promises what cannot

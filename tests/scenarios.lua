@@ -1421,6 +1421,9 @@ if ns then
 	if not (file and file.values) then
 		fail("ticking play a sound makes a sound", "SKIPPED -- no sound dropdown to read")
 	else
+		-- None is listed only while it is the stored value: offered to nobody
+		-- else, and never shown as a blank for somebody who has it.
+		ns.db.profile.sound.file = "None"
 		local values = file.values()
 		if values["None"] ~= "None" then
 			fail("ticking play a sound makes a sound",
@@ -5392,7 +5395,7 @@ local REQUIRED_OPTIONS = {
 	"relevantOnly", "requireInRange", "reachableOnly", "graceSeconds", "minLevel",
 	"whenBuffed", "refreshUnder", "reciprocateWindow", "retryCooldown", "scanInterval",
 	"restoreTarget", "channel", "onlyWhenReturning", "preset", "phrases", "roll",
-	"test", "locked", "reset", "style", "accentByReason", "accentColor", "bgColor",
+	"test", "locked", "style", "accentByReason", "accentColor", "bgColor",
 	"accentMode", "flashStyle", "posPreset", "x", "y", "width", "height", "scale",
 	"alpha", "hideInCombat", "format", "showSub", "reasonTarget", "reasonOwed",
 	"reasonGroup", "reasonNearby", "reasonRefresh", "reasonUnknown", "font",
@@ -5437,17 +5440,8 @@ if ns then
 			end
 		end
 
-		-- The one ordering that was wrong rather than merely tied: the setting
-		-- that decides where the reason colour goes sat *below* the two colour
-		-- pickers it governs, so the page explained itself backwards.
-		local style = options.args.appearance and options.args.appearance.args
-		if style then
-			if not (style.accentMode.order < style.accentByReason.order
-				and style.accentMode.order < style.accentColor.order) then
-				fail(scenario, "the control that decides where the accent goes still sits below"
-					.. " the colours it governs")
-			end
-		end
+		-- Where Colour marker sits against the colours it carries is the Look
+		-- tab's setup order now, held by tests/scenarios/options-appearance.lua.
 	end
 
 	IsSpellKnown = realKnown
@@ -7539,8 +7533,9 @@ if ns then
 			end
 		else
 			-- Per person. Legitimate, but then the label must not sell a walk
-			-- it has just stopped.
-			if text:find("per spell", 1, true) then
+			-- it has just stopped. The label says "a spell" now ("Don't repeat
+			-- a spell on someone"), so any mention of the spell is the promise.
+			if text:find("spell", 1, true) then
 				fail(scenario, "the click blocks the whole person while the page says the"
 					.. " block is per spell: " .. text)
 			end
@@ -7798,10 +7793,9 @@ for _, case in ipairs({
 		local click = ns.optionsTable and ns.optionsTable.args.click
 		local toggle = click and findOption(ns.optionsTable, "restoreTarget")
 		local note = click and findOption(ns.optionsTable, "noTargetNote")
-		local explain = click and findOption(ns.optionsTable, "targetingNote")
 		if not (entry and entry.buff) then
 			fail(label, "SKIPPED -- nobody to build a macro for")
-		elseif not (toggle and note and explain) then
+		elseif not (toggle and note) then
 			fail(label, "SKIPPED -- the targeting controls are not on the page")
 		else
 			-- What the macro really contains, so the page is judged against the
@@ -7821,13 +7815,6 @@ for _, case in ipairs({
 						.. " hidden")
 				elseif not targets and not hidden then
 					fail(label, "the page offers to hand back a target the macro never takes")
-				end
-				-- And the explanation goes the same way as the toggle, or one
-				-- of the two describes the other class.
-				local explained = explain.hidden and explain.hidden() and true or false
-				if explained ~= hidden then
-					fail(label, "the targeting note and the switch it explains disagree"
-						.. " about whether this class targets anybody")
 				end
 				local saidWhy = note.hidden and note.hidden() and true or false
 				if saidWhy == not targets then
@@ -11009,9 +10996,14 @@ if ns then
 		if not said:find("/manners macro", 1, true) then
 			fail(scenario, "never named the command that makes the macro: " .. said)
 		end
-		if not said:find("Create the macro", 1, true) then
+		-- By the name the button really has, so the two cannot drift apart.
+		local button = findOption(ns.optionsTable, "makeMacro")
+		local buttonName = button and (type(button.name) == "function" and button.name() or button.name)
+		if type(buttonName) ~= "string" then
+			fail(scenario, "SKIPPED -- no Make a macro button on the options page")
+		elseif not said:find(buttonName, 1, true) then
 			fail(scenario, "never named the button on the options page that does"
-				.. " the same thing: " .. said)
+				.. " the same thing (" .. buttonName .. "): " .. said)
 		end
 		if not said:find("Keybindings", 1, true) then
 			fail(scenario, "never mentioned the keybinding: " .. said)
@@ -12556,7 +12548,8 @@ if ns then
 	settle(ns)
 	local who = ns.optionsTable and ns.optionsTable.args.who
 	local control = who and findOption(ns.optionsTable, "proximity")
-	local note = who and findOption(ns.optionsTable, "proximityNote")
+	-- The line lives on Diagnostics now, under the name of what it measures.
+	local note = who and findOption(ns.optionsTable, "proximityDiag")
 	if not (control and control.set and note and type(note.name) == "function") then
 		fail(scenario, "SKIPPED -- no proximity dropdown and note to read")
 	else
@@ -16109,15 +16102,16 @@ if ns then
 			.. " not 1346,548"):format(round(right), round(top)))
 	end
 
-	if not (app and app.reset and app.scale) then
-		fail(scenario, "SKIPPED -- no Reset position button or Scale slider on the page")
+	-- Quick position is what puts the prompt back now; Reset position is gone.
+	if not (app and app.posPreset and app.posPreset.set and app.scale) then
+		fail(scenario, "SKIPPED -- no Quick position dropdown or Scale slider on the page")
 	else
 		p.scale = 2
 		ns.ApplyPositionPreset("centre")
-		app.reset.func()
+		app.posPreset.set({ "posPreset" }, "bars")
 		if bottomEdge() ~= 300 then
-			fail(scenario, ("at Scale 2 Reset position put the bottom edge at %d, not 300")
-				:format(bottomEdge()))
+			fail(scenario, ("at Scale 2 Quick position \"Above the action bars\" put the bottom"
+				.. " edge at %d, not 300"):format(bottomEdge()))
 		end
 
 		-- Moved with the slider, from where the default puts it.
@@ -16558,23 +16552,19 @@ local function optionText(value)
 end
 
 -- ------------------------------------------------------------------ 253
--- The targeting note follows "Hand my target back afterwards".
+-- "Hand my target back afterwards" decides what the macro does.
 --
--- The note on the When you click tab always said the prompt runs the target
--- line, then the cast, then /targetlasttarget. It hid itself only for a class
--- that never targets anybody and never read the switch directly above it, so
--- with that switch off it described a line the macro no longer carried -- in
--- the one place its own comment says must not be a second opinion about the
--- macro.
+-- There was a note under it saying what the macro runs, and it once described
+-- a /targetlasttarget the switch had taken away. The note is gone -- the switch
+-- says what it does in one line -- so what is held here is the switch and the
+-- macro agreeing, which is the promise the one line makes.
 Mock.reset()
-ns = load("the targeting note follows the hand-back switch")
+ns = load("the hand-back switch decides what the macro does")
 if ns then
-	local scenario = "the targeting note follows the hand-back switch"
+	local scenario = "the hand-back switch decides what the macro does"
 	drive(scenario, ns)
 	Mock.advance(60)
-	local click = ns.optionsTable and ns.optionsTable.args.click
-	local toggle = click and findOption(ns.optionsTable, "restoreTarget")
-	local note = click and findOption(ns.optionsTable, "targetingNote")
+	local toggle = findOption(ns.optionsTable, "restoreTarget")
 	-- Somebody reached through a nameplate: your own target is never handed
 	-- back, whatever the switch says, so they would prove nothing. Every mock
 	-- unit is the same person and the target token is walked first, so the
@@ -16586,22 +16576,20 @@ if ns then
 		for k, v in pairs(first) do entry[k] = v end
 		entry.unit = "nameplate1"
 	end
-	if not (toggle and toggle.set and note and entry) then
-		fail(scenario, "SKIPPED -- no targeting switch, no note, or nobody to build a macro for")
+	if not (toggle and toggle.set and entry) then
+		fail(scenario, "SKIPPED -- no targeting switch, or nobody to build a macro for")
+	elseif not optionText(toggle.desc):find("old target back", 1, true) then
+		fail(scenario, "the switch no longer says it puts your old target back: "
+			.. optionText(toggle.desc))
 	else
 		for _, on in ipairs({ true, false }) do
 			toggle.set({ "restoreTarget" }, on)
 			ns.Prompt:InvalidateMacro()
 			ns.Prompt:ApplyTarget(entry)
 			local restores = tostring(ns.lastMacro or ""):find("/targetlasttarget", 1, true) ~= nil
-			local says = optionText(note.name):find("/targetlasttarget", 1, true) ~= nil
 			if restores ~= on then
-				fail(scenario, ("SKIPPED -- with the switch %s the macro %s /targetlasttarget")
-					:format(on and "on" or "off", restores and "carries" or "lacks"))
-			elseif says ~= restores then
-				fail(scenario, ("with the switch %s the note %s /targetlasttarget and the macro %s")
-					:format(on and "on" or "off", says and "promises" or "leaves out",
-						restores and "carries it" or "has none"))
+				fail(scenario, ("with the switch %s the macro %s /targetlasttarget")
+					:format(on and "on" or "off", restores and "still carries" or "lacks"))
 			end
 		end
 		toggle.set({ "restoreTarget" }, true)
@@ -16632,7 +16620,6 @@ if ns then
 		ns.db.profile.filters.whenBuffed = "always"
 		local texts = {
 			{ "the target switch's description", optionText(target.desc), "Always offer" },
-			{ "the colour switch's description", optionText(accent.desc), "Always offer" },
 			{ "the note under Always offer", optionText(always.name), "target" },
 		}
 		for _, t in ipairs(texts) do
@@ -16641,7 +16628,14 @@ if ns then
 					.. " first: %s"):format(t[1], t[2]))
 			end
 		end
+		-- The colour legend dropped its sentence about the target; the switch
+		-- keeps the condition itself, so the grey line has something to follow.
 		ns.db.profile.filters.whenBuffed = "skip"
+		local plain = optionText(target.desc)
+		if not plain:find("lack the buff", 1, true) then
+			fail(scenario, "the target switch no longer says it waits until the game sees the"
+				.. " buff missing, which is what Always offer never reads: " .. plain)
+		end
 	end
 end
 Mock.reset()
@@ -16660,11 +16654,24 @@ if ns then
 	local scenario = "remember a buff for names the grace that ends it sooner"
 	drive(scenario, ns)
 	local window = findOption(ns.optionsTable, "reciprocateWindow")
-	if not window then
-		fail(scenario, "SKIPPED -- no Remember a buff for slider")
-	elseif not optionText(window.desc):find("Drop people who are probably gone", 1, true) then
-		fail(scenario, "the slider says people stay on the prompt this long and never mentions"
-			.. " the setting that lets them go sooner: " .. optionText(window.desc))
+	local sooner = findOption(ns.optionsTable, "reachableOnly")
+	local tab = ns.optionsTable and ns.optionsTable.args.advanced
+	if not (window and sooner and tab) then
+		fail(scenario, "SKIPPED -- no Offer a buff back for slider or no switch to let them go sooner")
+	else
+		-- The next control down the page, whatever its number.
+		local nextKey, nextOrder
+		for key, option in pairs(tab.args) do
+			if type(option) == "table" and type(option.order) == "number"
+				and option.order > window.order and (not nextOrder or option.order < nextOrder) then
+				nextKey, nextOrder = key, option.order
+			end
+		end
+		if nextKey ~= "reachableOnly" then
+			fail(scenario, "the slider says people stay on the prompt this long and the setting"
+				.. " that lets them go sooner is not directly under it (next is "
+				.. tostring(nextKey) .. ")")
+		end
 	end
 end
 Mock.reset()
@@ -16704,7 +16711,7 @@ for _, case in ipairs({
 			fail(scenario, "SKIPPED -- this class was expected to reach "
 				.. (case.strangers and "strangers" or "its group only") .. " and does not")
 		else
-			local promises = optionText(owed.desc):find("Works on strangers", 1, true) ~= nil
+			local promises = optionText(owed.desc):find("in your group or not", 1, true) ~= nil
 			if promises and not case.strangers then
 				fail(scenario, "a class whose spells reach its group only is told the favour"
 					.. " switch works on strangers: " .. optionText(owed.desc))
@@ -17184,16 +17191,18 @@ if ns then
 	if file then file:close() end
 	local category = xml:match('category="([^"]*)"')
 	local said = firstLogin(ns)
-	local how = findOption(ns.optionsTable, "howItWorks")
+	-- On the page it is the Open key bindings button's tooltip that names the
+	-- path: How it works is one sentence about the prompt now.
+	local how = findOption(ns.optionsTable, "openBindings")
 	if not said then
 		fail(scenario, "the first session would not start at all")
 	elseif not how then
-		fail(scenario, "SKIPPED -- the How this works text is not on the page")
+		fail(scenario, "SKIPPED -- the Open key bindings button is not on the page")
 	elseif category ~= "Manners" then
 		fail(scenario, "Bindings.xml files the binding under " .. tostring(category)
 			.. ", so the Keybindings page has no section called Manners")
 	else
-		local texts = { greeting = said, ["How this works"] = optionText(how.name) }
+		local texts = { greeting = said, ["Open key bindings tooltip"] = optionText(how.desc) }
 		for where, text in pairs(texts) do
 			if text:find("Game Menu", 1, true) then
 				fail(scenario, "the " .. where .. " sends the player to a Game Menu entry"
@@ -17281,15 +17290,18 @@ if ns then
 			fail(scenario, "the macro frozen for the fight cannot hand back a target changed"
 				.. " during it: " .. (frozen:gsub("\n", " / ")))
 		end
-		-- The Targeting note promised your own target stays targeted, with no
-		-- word about the fight where it does not.
-		local note = findOption(ns.optionsTable, "targetingNote")
-		local says = note and tostring(type(note.name) == "function" and note.name() or note.name)
-		if not says then
-			fail(scenario, "SKIPPED -- the Targeting note is not on the page")
-		elseif says:find("stays targeted", 1, true) and not says:find("fight", 1, true) then
-			fail(scenario, "the Targeting note says your own target stays targeted, and in a"
-				.. " fight the macro hands it back: " .. says)
+		-- What the prompt's tooltip says a press does. The Targeting note that
+		-- once promised your own target stays targeted is gone; the tooltip is
+		-- the one place left that says it, and in a fight it must not.
+		local top = ns.BuildQueue()[1]
+		if not (top and top.buff) then
+			fail(scenario, "SKIPPED -- nobody on the prompt in the fight to read a tooltip for")
+		else
+			local says = table.concat(ns.Prompt:ClickSummary(top), "\n")
+			if says:find("stay targeted", 1, true) or not says:find("target back", 1, true) then
+				fail(scenario, "the tooltip says your own target stays targeted, and in a"
+					.. " fight the macro hands it back: " .. says)
+			end
 		end
 
 		-- And out of the fight the target keeps its own macro again.

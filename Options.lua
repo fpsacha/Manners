@@ -1051,7 +1051,7 @@ local function BuildStartTab()
 			openBindings = {
 				type = "execute",
 				name = L["Open key bindings"],
-				desc = L["Opens the game's key bindings; Manners has its own section there."],
+				desc = L["Opens Options > Keybindings > Manners, the game's own key bindings."],
 				order = 22,
 				hidden = function() return not HasClassBuffs() or not Setup.CanOpenBindings() end,
 				disabled = function() return InCombatLockdown() end,
@@ -3350,7 +3350,7 @@ local function LauncherState()
 		-- option and its tab go in by their own keys, so a translation names
 		-- the labels the window shows.
 		return false, L["Kept away while you are mounted -- %s, on the %s tab."]
-			:format(L["Not while mounted"], L["When"]), 1, 0.82, 0, true
+			:format(L["Hide the prompt while I'm mounted"], L["When to offer"]), 1, 0.82, 0, true
 	end
 	return true, L["Watching for people to buff."], 0.4, 0.9, 0.4
 end
@@ -3794,7 +3794,7 @@ local function FillLauncherMenu(root)
 	end
 	if fight and not inTest then HeldForFight(preview) end
 	FillPromptMenu(root:CreateButton(L["Prompt"]), fight)
-	Check(root, L["Tell me in chat what the addon is doing"], function() return ns.db.profile.verbose end,
+	Check(root, L["Tell me in chat what Manners is doing"], function() return ns.db.profile.verbose end,
 		Act(function() ns.addon:HandleSlash("verbose") end))
 	AddProfiles(root, fight)
 

@@ -247,7 +247,7 @@ do
 				local ledger = child(menu, "^Open the ledger$")
 				local next = child(menu, "^Who's next$")
 				local prompt = child(menu, "^Prompt$")
-				local chat = child(menu, "^Tell me in chat what the addon is doing$")
+				local chat = child(menu, "^Tell me in chat what Manners is doing$")
 				local profiles = child(menu, "^Profiles$")
 				local options = child(menu, "^Options$")
 				local missing = {}
@@ -269,7 +269,7 @@ do
 				end
 				shape = table.concat(shape, " / ")
 				local want = "Manners / Enable / Snooze / | / Who's next / Open the ledger / | / "
-					.. "Preview the prompt / Prompt / Tell me in chat what the addon is doing / Profiles / | / Options"
+					.. "Preview the prompt / Prompt / Tell me in chat what Manners is doing / Profiles / | / Options"
 				if shape ~= want then
 					fail(scenario, "the menu is not grouped as it should be: " .. shape)
 				end

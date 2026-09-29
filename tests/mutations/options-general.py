@@ -119,7 +119,21 @@ mutate("Options.lua",
        expect="the preview can be started in a fight", script=S)
 
 mutate("Options.lua",
+       "\t\t\t\t-- the presets: shown, never picked.\n"
+       "\t\t\t\tvalues = function()\n"
+       "\t\t\t\t\tlocal out = {}\n"
+       "\t\t\t\t\tfor _, preset in ipairs(ns.POSITION_PRESETS) do\n"
+       "\t\t\t\t\t\tout[preset.key] = preset.key == \"bars\"\n"
+       "\t\t\t\t\t\t\tand L[\"Above the action bars (default)\"] or preset.name\n"
+       "\t\t\t\t\tend\n"
        "\t\t\t\t\tif not ns.CurrentPositionPreset() then out.custom = L[\"Where I dragged it\"] end\n",
+       "\t\t\t\t-- the presets: shown, never picked.\n"
+       "\t\t\t\tvalues = function()\n"
+       "\t\t\t\t\tlocal out = {}\n"
+       "\t\t\t\t\tfor _, preset in ipairs(ns.POSITION_PRESETS) do\n"
+       "\t\t\t\t\t\tout[preset.key] = preset.key == \"bars\"\n"
+       "\t\t\t\t\t\t\tand L[\"Above the action bars (default)\"] or preset.name\n"
+       "\t\t\t\t\tend\n"
        "\t\t\t\t\tout.custom = L[\"Where I dragged it\"]\n",
        "start here: Where I dragged it always offered",
        expect="Where I dragged it is offered while the prompt is on a preset", script=S)
@@ -137,7 +151,9 @@ mutate("Options.lua",
        expect="picking Under the minimap did not move the prompt", script=S)
 
 mutate("Options.lua",
+       "\t\t\t\t\treturn keys\n\t\t\t\tend,\n"
        "\t\t\t\tget = function() return ns.CurrentPositionPreset() or \"custom\" end,\n",
+       "\t\t\t\t\treturn keys\n\t\t\t\tend,\n"
        "\t\t\t\tget = function() return ns.CurrentPositionPreset() or \"bars\" end,\n",
        "start here: dragged prompt shown on a preset",
        expect="dragged off the presets, the dropdown still names one", script=S)

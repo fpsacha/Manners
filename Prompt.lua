@@ -576,7 +576,7 @@ local function OnPreClick(self, mouseButton)
 				:format(ns.SnoozeEndsAt(), "|cffffd100/manners snooze off|r"))
 		elseif ns.HiddenWhileMounted() then
 			ns.addon:Print(L["the prompt stays away while you are mounted -- get off, or switch off %s on the %s tab."]
-				:format("|cffffd100" .. L["Not while mounted"] .. "|r", L["When"]))
+				:format("|cffffd100" .. L["Hide the prompt while I'm mounted"] .. "|r", L["When to offer"]))
 		elseif not ns.caps.anyKnown then
 			local class = ns.caps.class
 			if class and ns.CLASSES_WITHOUT_BUFFS and ns.CLASSES_WITHOUT_BUFFS[class] then
@@ -588,8 +588,8 @@ local function OnPreClick(self, mouseButton)
 			-- The option goes in by its own key, so a translation names the
 			-- label the window shows.
 			local _, resume = ns.SavingMana()
-			ns.addon:Print(L["nobody to buff right now -- saving mana until %d%% (%s), so only people who buffed you or asked are offered."]
-				:format(resume, "|cffffd100" .. L["Percent of my mana to keep for myself"] .. "|r"))
+			ns.addon:Print(L["nobody to buff right now -- saving mana until you are back to %d%%, so only people who buffed you or asked are offered. The floor is %s on the %s tab."]
+				:format(resume, "|cffffd100" .. L["Save mana: stop below (% mana)"] .. "|r", L["When to offer"]))
 		else
 			ns.addon:Print(L["nobody to buff right now."])
 		end

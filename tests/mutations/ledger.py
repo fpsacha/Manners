@@ -154,8 +154,8 @@ mutate("Ledger.lua",
 
 # The row forgotten at a reload names the setting as the options name it.
 mutate("Ledger.lua",
-       "\"Let go: \\\"Remember them across a reload\\\" (When tab",
-       "\"Let go: \\\"Remember favours across a reload\\\" (When tab",
+       ":format(L[\"Keep favours through a /reload\"], L[\"Advanced\"], L[\"Favours\"])",
+       ":format(L[\"Keep favours across a reload\"], L[\"Advanced\"], L[\"Favours\"])",
        "ledger: not-kept row names a missing setting",
        expect="a favour forgotten at a reload names the setting", script=S)
 

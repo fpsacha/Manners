@@ -214,7 +214,7 @@ do
 		Mock.printed = {}
 		H.pressButton(ns)
 		local said = table.concat(Mock.printed, "\n")
-		if not said:find("Percent of my mana to keep for myself", 1, true) then
+		if not said:find("Save mana: stop below", 1, true) then
 			fail(scenario, "an empty press while saving mana does not say why: " .. said)
 		end
 		noErrors(scenario, ns)

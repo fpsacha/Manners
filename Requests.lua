@@ -514,7 +514,7 @@ do
 		local db = addon.db and addon.db.profile
 		local lines = {}
 		if not (db and db.sources.asked) then
-			lines[1] = L["not listening for requests -- |cffffd100People who ask me for it|r is switched off."]
+			lines[1] = L["not listening for requests -- %s is switched off."]:format("|cffffd100" .. L["People who ask me in chat"] .. "|r")
 			return lines
 		end
 		local now = GetTime()

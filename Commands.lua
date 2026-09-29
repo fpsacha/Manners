@@ -96,7 +96,7 @@ function ns.Welcome(force, offSaid)
 	else
 		addon:Print(L["|cffffd100Manners|r puts anybody who buffs you -- and any stranger nearby who is missing one of yours -- on a small prompt. Clicking the prompt buffs them."])
 	end
-	addon:Print(L["The one thing that is not automatic: |cffffd100/manners macro|r or |cffffd100Create the macro|r in the options makes a macro for your bars, or bind a key under Options > Keybindings > Manners."])
+	addon:Print(L["The one thing that is not automatic: |cffffd100/manners macro|r or |cffffd100Make a macro|r in the options makes a macro for your bars, or bind a key under Options > Keybindings > Manners."])
 
 	-- Switched off (perhaps by another character, on the shared profile): name
 	-- the setting, unless the login line said so one line above.
