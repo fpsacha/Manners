@@ -1,5 +1,112 @@
 # Changelog
 
+## 1.1.0
+
+Manners 1.1 is about dungeons and raids, and about getting started. With the
+reagent in your bags, one press can now buff a whole party. Your group goes to
+the front at a ready check and after a wipe, and a raid buffer can stick to
+the groups they were given. The options page has been rebuilt around a new
+**Start here** tab: four numbered steps, a couple of quick choices, and plain
+words everywhere else.
+
+The dungeon and raid features have been tested against a mock client, but
+not yet in a real group. If you take them into one, please say how it went.
+
+### Group buffs
+
+- **One cast for the whole party.** If you know Arcane Brilliance, Prayer of
+  Fortitude, Prayer of Spirit, Prayer of Shadow Protection or Gift of the
+  Wild and carry its reagent, then when at least 3 people in your party need
+  your buff, the prompt offers one group cast instead of buffing them one at
+  a time. In a raid it counts each raid group on its own, because that is what
+  the spell reaches.
+- **Greater Blessings** work the same way, by class. A Greater Blessing is
+  held back while anybody of that class carries another of your blessings,
+  because it would replace it.
+- The prompt names who it is for the way you would say it: "Your party",
+  "Your group", "Group 2" or "Every Warrior". The second line says why:
+  "Arcane Brilliance -- 4 missing" after a wipe, "4 running out" before a pull.
+  The tooltip counts your reagents.
+- Right-click skips the group buff for the whole group. Shift-right-click puts
+  only the person it is aimed at on your never-offer list and skips the rest
+  for now.
+- Without the mana for the group spell, you are offered the single buff
+  instead. With the chat lines on (they are by default), you get a warning
+  when a cast leaves you with 5 reagents or fewer, and another when you run
+  out. The prompt then goes back to one person at a time.
+- Spoken lines name the spell you are actually casting. The ledger counts a
+  group cast as one buff given, and every favour it returned is marked
+  returned.
+- On by default, under Who to buff > My group and raid: *Use group buffs*,
+  and *When this many need it* (2 to 5). Nothing changes until you have
+  learned a group buff and carry its reagent.
+
+### Dungeons and raids
+
+- **Ready checks.** From a ready check until the pull, everybody in your party
+  or raid who is missing your buff goes to the front, behind only your own
+  target. The prompt says "ready check".
+- **Back from the dead.** For two minutes after somebody in your group is
+  brought back, they go to the front if they are missing your buff, and the
+  prompt says "just revived". A hunter getting up from Feign Death doesn't
+  count.
+- Both are on by default, under Who to buff > Who comes first, and only change
+  the order: nobody is added.
+- **Raid groups I buff.** Untick the groups you were not assigned. In a raid,
+  their members are offered only if they buffed you, asked, or you target
+  them. `/manners debug` lists the groups you still buff, even before the raid.
+- **Save mana.** *Save mana: stop below (% mana)*, on When to offer, is off by
+  default. Below that level, only people who buffed you or asked are offered.
+  Your group, your target and passers-by come back once your mana is 5 points
+  above it, so the prompt doesn't flicker between casts.
+- **Quieter raids.** Inside a raid the "buffed you" chat line is no longer
+  printed. In a dungeon it keeps quiet during a fight. Either way the favour
+  is still remembered and offered.
+- **Out of sight, out of the queue.** With *Skip players out of range* on, the
+  prompt no longer offers group members the game cannot see at all, such as
+  those still in town or far off in the instance.
+
+### Easier setup: Start here
+
+- The options now open on **Start here**, in four numbered steps: 1. Who to
+  buff, 2. Put it on a key, 3. See it, 4. Say thanks (optional).
+- **Offer my buff to** is one quick choice: *Only people who buff me*,
+  *People who buff me, and my group*, *Everyone near me*, or *My group, kept
+  topped up (dungeons and raids)*. A grey line under it says in plain words
+  what you picked. Fine-tune it on Who to buff.
+- Set your key right there, or press **Make a macro**, which also opens the
+  macro window so you can drag it onto a bar. The line underneath says
+  whether you are ready.
+- **Show me the prompt**, **Where it sits** and **Lock position** are there
+  to place the prompt without leaving the page.
+- **When I buff someone** is the quick choice for what you say: *Stay
+  silent*, *Just /thank them*, *A polite line*, *In character* or *Whisper
+  them a thank-you*.
+- Snooze, the favour ledger, the minimap button and the chat lines are there
+  too. When your other characters share these settings, Start here says so.
+  **Give this character its own settings** copies them into a profile of its
+  own.
+
+### A clearer options page
+
+- The tabs are now Start here, Who to buff, When to offer, What I say, Look,
+  Advanced, Diagnostics and Profiles. Things moved to where you would look for
+  them:
+  - */thank people who buff me* is on What I say;
+  - *Keep the prompt dim and still in combat* is on Look;
+  - favour timings, targeting, exact position and prompt wording are on
+    Advanced;
+  - *Share as text* is on Profiles.
+- Plain labels throughout, such as *Buff to offer*, *Passers-by within*,
+  *Skip players below level*, *Hide the prompt while I'm mounted*,
+  *Animations* and *Flash when someone buffs me*.
+- A class with a single buff simply reads "You offer Arcane Intellect."
+  instead of a dropdown with one choice.
+- The phrase sets are now called Fantasy (general), In character (fits your
+  race and class), Polite, Cheeky and Just their name. The lines stay out of
+  the way until you tick *Say a line when I buff someone*.
+- Your settings carry over, and nothing was reset.
+
 ## 1.0.0
 
 Manners 1.0, the first stable release. When somebody buffs you in passing,

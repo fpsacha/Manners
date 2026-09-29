@@ -19,6 +19,10 @@ also offers your group, people who ask for your buff in chat, and nearby
 players who are missing it, so being the person who buffs strangers costs one
 click instead of a minute of squinting at names.
 
+In a dungeon or a raid it keeps the group topped up: one group cast for a
+whole party when you carry the reagent, your group first at a ready check and
+after a wipe, and only the raid groups you were given.
+
 Built for **WoW Forever** (Interface 16001), and shipped for that client only.
 
 ## How sure is it
@@ -38,6 +42,10 @@ that same path, but "the tests pass" is not "somebody used it". If you play
 anything but a mage, please
 [say how it went](https://github.com/fpsacha/Manners/issues/new/choose),
 either way: **"it worked"** is the report that moves a class off this list.
+
+The dungeon and raid features new in 1.1 (group buffs, ready checks, the
+just-revived, raid groups and the mana floor) have been tested the same way,
+against the mock, and not yet in a real group, whatever the class.
 
 Retail, Mists Classic and Classic Era are implemented too, but nobody working
 on this can launch those clients, so they are not shipped.
@@ -61,16 +69,21 @@ All three carry the same build from the same tag.
 
 ## First steps
 
-1. **Put the prompt on a key.** Bind one under
-   **Options > Keybindings > Manners** ("Buff the prompted player"), or make a
-   macro with `/manners macro` (or *Create the macro* on the General tab) and
-   drag it onto a bar. The macro is `/click MannersPrompt LeftButton 1`; the
-   trailing `1` matters, because the secure button only casts on the way
-   down.
-2. **Look at it.** `/manners test` shows a sample prompt. `/manners unlock`
-   lets you drag it, and it locks again when you let go. The *Put it* setting
-   on the Prompt tab has three ready-made places.
-3. **Open the options** with `/manners`, or click the minimap button.
+Open the options with `/manners`, or click the minimap button. They open on
+**Start here**, which walks through the setup in four numbered steps:
+
+1. **Who to buff.** One quick choice, *Offer my buff to*, with a line under
+   it saying what that comes to. The rest is on the *Who to buff* tab.
+2. **Put it on a key.** Set the key right there, or bind one under
+   **Options > Keybindings > Manners** ("Buff the prompted player"). Or press
+   *Make a macro* (or type `/manners macro`) and drag the macro onto a bar.
+   The macro is `/click MannersPrompt LeftButton 1`; the trailing `1`
+   matters, because the secure button only casts on the way down.
+3. **See it.** *Show me the prompt* (or `/manners test`) shows a sample.
+   *Where it sits* has three ready-made places. `/manners unlock` lets you
+   drag it, and it locks again when you let go; *Lock position* is the same
+   switch by hand.
+4. **Say thanks (optional).** Stay silent, `/thank` them, or say a line.
 
 The first login on each character says what the addon does and what it needs
 from you, once, and shows the prompt so you can see where it is.
@@ -84,13 +97,16 @@ Everybody who could use your buff is queued, in this order:
 
 1. **Your target**, when the game can confirm they are missing it. A guess
    does not get to jump the queue.
-2. **Somebody who buffed you.** Spotted by watching your own buffs appear and
+2. **Your party or raid at a ready check, or just back from the dead**, when
+   they are read as missing your buff or running low on it (see *Dungeons
+   and raids* below).
+3. **Somebody who buffed you.** Spotted by watching your own buffs appear and
    reading who cast them, which works on strangers too, as long as the game
    can still name them for you. The favour survives a reload or a
    disconnect.
-3. **Somebody who asked for it in chat**, if you switch that on (see below).
-4. **Your party or raid**, anyone missing your buff.
-5. **Passers-by** missing your buff, seen through nameplates, your target,
+4. **Somebody who asked for it in chat**, if you switch that on (see below).
+5. **Your party or raid**, anyone missing your buff.
+6. **Passers-by** missing your buff, seen through nameplates, your target,
    your focus and your mouseover.
 
 It skips the dead, the out-of-range, anyone you just tried, and anyone the buff
@@ -99,6 +115,47 @@ does nothing for (Arcane Intellect is wasted on a rogue).
 **On the prompt:** left-click (or your key) casts. **Right-click** skips that
 person for now without marking their favour repaid. **Shift-right-click** puts
 them on the never-offer list.
+
+**Group buffs.** Once you know the group version of your buff (Arcane
+Brilliance, Prayer of Fortitude, Prayer of Spirit, Prayer of Shadow
+Protection, Gift of the Wild) and carry its reagent, a party with enough
+people missing it gets one cast instead of one each. Three is the default,
+and *When this many need it* sets 2 to 5. In a raid each raid group is
+counted on its own, because that is what the spell reaches. A paladin's
+Greater Blessings go by class across the group instead, and are held back
+while anybody of that class carries another of your blessings, which the
+Greater one would replace. The prompt names who it is for ("Your party",
+"Your group", "Group 2", "Every Warrior") and why ("Arcane Brilliance -- 4
+missing", "4 running out"), and the tooltip counts your reagents. A
+right-click skips the cast for the whole group; a shift-right-click puts only
+the person it is aimed at on the never-offer list. Short of mana for the
+group spell, you are offered the single one. With the chat lines on, chat
+says when you are down to 5 reagents and when you run out, after which the
+prompt goes back to one person at a time. Nothing changes until you have
+learned a group buff and carry its reagent.
+
+**Dungeons and raids.**
+
+- *My group first at a ready check*: from the check until the pull (or a
+  minute after everybody has answered, if nobody pulls), your party or raid
+  goes to the front, behind only your own target. The prompt says "ready
+  check".
+- *Group members just revived first*: for two minutes after somebody in your
+  group is brought back, they go to the front. A hunter getting up from Feign
+  Death does not count.
+- Both are on by default and only change the order: nobody is added, and
+  only somebody whose buffs were read goes forward.
+- *Raid groups I buff*: untick the groups you were not assigned. In a raid,
+  their members are offered only if they buffed you, asked, or you target or
+  focus them. `/manners debug` lists the groups still ticked, even outside a
+  raid, so you can check before the pull.
+- *Save mana: stop below (% mana)*, off by default: below it, only people who
+  buffed you or asked are offered, and your group, your target and passers-by
+  wait until your mana is 5 points above it, so the prompt does not flicker
+  between casts. The tooltip, a press on the empty prompt and `/manners
+  debug` say when they come back.
+- Inside a raid the "buffed you" chat line is not printed, and in a dungeon
+  it waits out the fight. The favour is still noticed and offered.
 
 **Never offer.** People on the list are never offered anything, as passers-by
 or as group members. Somebody on it who buffs you is still offered the favour
@@ -134,13 +191,14 @@ before your group. Nothing is ever said back. What counts:
 They must still lack the buff and be somebody the game can see.
 `/manners debug` lists the requests still standing.
 
-**Snooze and Not while mounted.** `/manners snooze` hides the prompt for 15
-minutes; `snooze 5`, `snooze 1h` (up to four hours) or `snooze off` for your
-own. The minimap menu and the General tab have it too. Favours are still
-noticed while snoozed. A `/reload` ends a snooze, and one started in a fight
-takes effect when the fight ends. *Not while mounted* (When tab, off by
-default) keeps the prompt away while you ride and brings it back when you get
-off. Press the key while either is hiding the prompt and chat says which.
+**Snooze, and hiding while mounted.** `/manners snooze` hides the prompt for
+15 minutes; `snooze 5`, `snooze 1h` (up to four hours) or `snooze off` for
+your own. The minimap menu and the Start here tab have it too. Favours are
+still noticed while snoozed. A `/reload` ends a snooze, and one started in a
+fight takes effect when the fight ends. *Hide the prompt while I'm mounted*
+(When to offer tab, off by default) keeps the prompt away while you ride and
+brings it back when you get off. Press the key while either is hiding the
+prompt and chat says which.
 
 ## The favour ledger
 
@@ -152,7 +210,8 @@ favours today") and the all-time totals sit at the top, then tabs for
 everything, favours, and buffs you gave. A favour you did not return says why:
 the time ran out, nothing you cast helps them, or you put them on the
 never-offer list. Hover a favour still owed and it says whether the prompt will
-offer it, and when.
+offer it, and when. A group buff counts as one buff given and says how many
+who needed it got it; the favours it returned are marked returned.
 
 **Titles.** Favours you return earn you a title: *Well Brought Up* at 10, then
 *Well Mannered*, *Courteous*, *Gracious* at 100, *Magnanimous*, *Paragon of
@@ -163,7 +222,7 @@ once, even with chat lines off; a character that had earned some before titles
 existed simply has them.
 
 `/manners ledger`, a shift-click on the minimap button, or *Open the ledger* on
-the General tab. It keeps the last 200 entries per character; *Clear* empties
+the Start here tab. It keeps the last 200 entries per character; *Clear* empties
 the list and today's count but keeps favours still owed, the all-time totals
 and your title. It opens in combat, and the only thing it ever says in chat is
 a new title.
@@ -181,14 +240,14 @@ by itself on a light panel colour, and class-coloured names that would vanish
 on it are darkened too. Any other text colour is used exactly as picked. The
 minimal look outlines its text so it reads over snow as well as in the dark.
 
-**A colour-blind palette.** *Reason colours*, under Prompt > Style, swaps the
+**A colour-blind palette.** *Reason colours*, under Look > Style, swaps the
 four reason colours for pale yellow, orange, sky blue and violet, which stay
 apart under protanopia and deuteranopia.
 
 <img src=".github/media/manners-palette.png" alt="The same prompt and list in the standard reason colours and in the colour-blind friendly set" width="640">
 
-Set *Effects* to *Calm* for none of that movement. *Stay quiet in combat* keeps
-the prompt dimmed and still for a fight.
+Set *Animations* to *Calm* for none of that movement. *Keep the prompt dim and
+still in combat* does what it says for a fight.
 
 ## The minimap button
 
@@ -206,133 +265,184 @@ nothing.
 
 ## The options
 
-Seven tabs. Most settings explain themselves; this is what their tooltips no
-longer have room for.
+Eight tabs, and `/manners` opens on the first. Most settings explain
+themselves; this is what their tooltips no longer have room for.
 
-**General.** On or off, *Create the macro*, snooze buttons (5, 15 and 30
-minutes), the minimap button, and *Tell me in chat what the addon is doing*:
-a line in your own chat when somebody buffs you, when a favour is repaid, and
-when a click fails. Use it to tell "the buff was never noticed" from "it was
-noticed but they could not be reached"; nothing from it is ever said to
-anybody else. Also *Share settings* (below) and the ledger.
+**Start here.** On or off, and the setup in four numbered steps.
+
+- *1. Who to buff*: *Offer my buff to* is a quick choice. *Only people who buff
+  me*; *People who buff me, and my group*; *Everyone near me* (a new profile's
+  defaults); or *My group, kept topped up (dungeons and raids)*, which also
+  offers a top-up when a buff runs low. Each sets a few switches on *Who to
+  buff* and *When to offer*, and the grey line under it says what they add up
+  to. It never touches *People who ask me in chat*, the group buffs or who
+  comes first. When the switches match none of the four, it reads *Custom
+  (changed by hand)*.
+- *2. Put it on a key*: the key is saved with your game key bindings, so it
+  follows every profile. *Make a macro* also opens the macro window, so the
+  macro is there to drag. The line under them says whether you are ready.
+- *3. See it*: *Show me the prompt*, *Where it sits* and *Lock position*, so
+  the prompt can be seen and placed without going to *Look*.
+- *4. Say thanks (optional)*: *When I buff someone* is *Stay silent*, *Just
+  /thank them*, *A polite line*, *In character (fits your race and class)* or
+  *Whisper them a thank-you*. The words and the channel are on *What I say*.
+
+Below the steps: snooze buttons (5, 15 and 30 minutes), the favour ledger,
+and *Minimap and chat*: the minimap button, and *Tell me in chat what Manners
+is doing*. That is a line in your own chat when somebody buffs you, when a
+favour is repaid, and when a click fails. Use it to tell "the buff was never
+noticed" from "it was noticed but they could not be reached"; nothing from it
+is ever said to anybody else. When another character uses the same profile, a
+grey line says so, and *Give this character its own settings* copies the
+settings into a profile named after this one.
 
 **Who to buff.**
 
-- *Buff to cast*: automatic, or pin one spell. A pinned spell is the only one
+- *Buff to offer*: automatic, or pin one spell. A pinned spell is the only one
   considered, so if you have not learned it there is nothing to fall back to.
   Where a class has several buffs, automatic offers whichever one they are
   missing, in list order: a priest walks Fortitude, then Divine Spirit, then
-  Shadow Protection.
+  Shadow Protection. Under it, one switch per buff; untick one to never offer
+  it. A class with a single buff reads "You offer Arcane Intellect." instead
+  of a dropdown.
 - *Automatic for paladins*: blessings overwrite one another, so anybody
   already carrying one of yours is left alone rather than handed a different
   one. The pick is Wisdom for anyone with a mana bar and Might for everyone
   else. Under *Always offer*, or where the game hides which blessing they
   carry, the first blessing that suits them is offered, and it can replace
   yours.
-- *Sources*: people who buffed you, your party and raid, nearby players, and
-  people who ask.
-- *Whoever I have targeted comes first*: with it off, or under *Always
-  offer* (nothing is read then), your target is ranked by why they are on the
-  list like anybody else. A targeted stranger whose buffs cannot be read
-  counts as a passer-by, so a friend goes ahead of them.
-- *How near a passer-by has to be*: *anywhere I can cast* (about thirty
-  yards), *nearby* (about ten, the default) or *right beside me* (about five).
-  Only passers-by are measured: somebody who buffed you was close enough a
-  moment ago, and your group and whoever you targeted or focused were picked on
-  purpose. The game gives no exact distance, so this lands on the nearest step
-  the client can measure (LibRangeCheck, or the client's interact distance);
-  where nothing can measure, everybody in casting range is offered.
-- *Only offer passers-by in cities and inns*: off by default. Out in the
-  world strangers are left alone; everybody else is still offered.
-- *Drop people who are probably gone* and *Let them go after* (45 seconds):
-  somebody who buffed you is rarely your target or on a nameplate, so all that
-  is known is that they were in range when they buffed you. The clock runs
-  from their buff, because nothing can see a player walk off.
-- *Minimum level*: read off the unit, so somebody known only by name (the
-  usual case for a passer-by who buffed you) cannot be checked and is offered
-  anyway.
+- *Offer my buff to*: *People who buff me*, *My party and raid*, *Passers-by
+  (players near me, not in my group)* and *People who ask me in chat*.
+- *Passers-by within*: *Anywhere I can cast* (about thirty yards), *Nearby*
+  (about ten, the default) or *Right beside me* (about five). Only passers-by
+  are measured: somebody who buffed you was close enough a moment ago, and
+  your group and whoever you targeted or focused were picked on purpose. The
+  game gives no exact distance, so this lands on the nearest step the client
+  can measure (LibRangeCheck, or the client's interact distance); where
+  nothing can measure, everybody in casting range is offered.
+- *Only in cities and inns*: off by default. Out in the world passers-by are
+  left alone; everybody else is still offered.
+- *My group and raid*: *Use group buffs* and *When this many need it* (see
+  *Group buffs* above), with how many reagents are in your bags, shown only
+  to classes with a group buff; and *Raid groups I buff*.
+- *Who comes first*: *My target first*, *Friends and guildmates first*, *My
+  group first at a ready check* and *Group members just revived first*. With
+  *My target first* off, or under *Always offer* (nothing is read then), your
+  target is ranked by why they are on the list like anybody else. A targeted
+  stranger whose buffs cannot be read counts as a passer-by, so a friend goes
+  ahead of them.
+- *Skip players below level*: read off the unit, so somebody known only by
+  name (the usual case for a passer-by who buffed you) cannot be checked and
+  is offered anyway.
+- *Skip players out of range*: where the game cannot tell, they are still
+  offered. A group member the game cannot see at all (still in town, or far
+  off in the instance) is left out.
+- *Never offer*: the list, with a box to add a name and buttons to take one
+  off or clear it.
 
-**When.**
+**When to offer.**
 
-- *If they already have the buff*: leave them alone, offer a top-up once
-  their timer drops below a number of minutes, or always offer. Somebody who
-  buffed you is offered the favour back whichever you pick.
-- *Remember a buff for* (120 seconds): somebody the game can still see stays
-  on the prompt this long; somebody it cannot see is let go sooner, when *Let
-  them go after* is shorter.
-- *Remember them across a reload*: for a favour noticed a minute before a
+- *If they already have it*: *Skip them*, *Offer a top-up when it runs low*
+  (then *Top up when less than this is left (minutes)*), or *Always offer*.
+  Somebody who buffed you is offered the favour back whichever you pick.
+- *Hide the prompt while I'm mounted*: dead, on a flight path or in a vehicle
+  the prompt already stays away, because nothing can be cast there.
+- *Save mana: stop below (% mana)*: 0 is off (see *Dungeons and raids*
+  above). Classes without mana do not see it.
+
+**What I say.**
+
+- */thank people who buff me*: off by default. When somebody buffs you and the
+  prompt can return it, you `/thank` them, and everybody near sees it. Never
+  in a fight or in any instance, at most once per person every five minutes
+  and once every ten seconds in all, so a raid buffing you on the pull is one
+  thank. Greyed out while *People who buff me* is off. Not yet tried in game:
+  `/manners debug` shows the last thank, or why the last one was skipped, and
+  a report of either is welcome.
+- *Say a line when I buff someone*: off by default, and then only when you
+  buff someone back unless you untick *Only when I buff someone back*. Four
+  line sets (Fantasy (general), Polite, Cheeky, Just their name), editable,
+  and a fifth, *In character (fits your race and class)*: over a thousand
+  lines, picked when you click to fit your people, your class, your faction
+  and the moment -- thanks, an answer to a request, an offer, a line for your
+  group -- and what is happening: the spell you give (the group spell, for a
+  group cast), a trade for the one they gave you, how often you two have
+  swapped, an inn or a dungeon, the hour, somebody of your own class or
+  people. It does not repeat itself, and a context the game will not reveal
+  is left out. The line rides in the macro the button runs, because the game
+  refuses addon-sent `/say` and `/yell` outside instances, which is exactly
+  where somebody buffs you in passing. How long a line may be depends on the
+  name and on whether your target is handed back. An empty box goes back to
+  the chosen set, so untick *Say a line when I buff someone* to stay quiet.
+  The lines stay hidden until it is ticked.
+- *Where to say it*: say, yell, party, raid, emote, or *Whisper them*, which
+  reaches the person you buff and nobody else. A whisper goes only when the
+  chat box cannot send it to somebody else by mistake. On Camelot that means
+  a two-word name whose surname is plain letters or digits; a one-word name or
+  an accented surname gets the buff with no line. Somebody from your own realm
+  who is out of sight is whispered only while the game can still name them,
+  so not after a `/reload`. Not yet tried in game.
+
+**Look.** Preview, lock and where it sits, size, style and colours, getting
+your attention (flash, animations, sound), text, and the icon and waiting
+list.
+
+- *Animations*: on *Full*, the ring pops out of the spell icon only if the
+  icon is shown, and the panel catches the light unless *Flash when someone
+  buffs me* is *None*. With the icon hidden, no stripe and no light
+  (Animations on *Calm*, or the minimal look), *Flash when someone buffs me*
+  has nothing to do and is greyed out. The cooldown sweep has its own switch
+  under *Icon and waiting list*.
+- *Keep the prompt dim and still in combat*: the prompt stays on screen,
+  because your key would still cast, but the flashes stop, and the icon shows
+  no cooldown sweep for the fight.
+- *Reason colours*: the target colour appears only while *My target first* is
+  on and *If they already have it* is not *Always offer*.
+
+**Advanced.** The defaults suit most players, and *Put these back to default*
+restores this tab without moving the prompt.
+
+- *Ignore shields, heals and trinket procs*: only class buffs such as
+  Fortitude count as a favour to return.
+- *Offer a buff back for (seconds)* (120): somebody the game can still see
+  stays on the prompt this long; somebody it cannot see is let go sooner, when
+  *Let them go after* is shorter.
+- *Stop sooner if they are probably gone* and *Let them go after (seconds)*
+  (45): somebody who buffed you is rarely your target or on a nameplate, so
+  all that is known is that they were in range when they buffed you. The
+  clock runs from their buff, because nothing can see a player walk off.
+- *Keep favours through a /reload*: for a favour noticed a minute before a
   disconnect. The clock keeps running while you are away.
-- *Wait before offering the same spell again*: per spell, so after
+- *Don't repeat a spell on someone for (seconds)*: per spell, so after
   Fortitude the next scan can still offer Divine Spirit. A right-click skip
   blocks the whole person for the same time.
-- *Not while mounted*: dead, on a flight path or in a vehicle the prompt
-  already stays away, because nothing can be cast there.
-
-**When you click.**
-
 - *Hand my target back afterwards*: the prompt targets everybody it buffs,
   group members too, because a named conditional (`[@name]`) only reaches your
   own party or raid and most people on the prompt are passers-by. With this
   on, the macro ends with `/targetlasttarget`, except outside a fight for
   somebody already your target, who stays targeted. The macro armed when a
   fight starts keeps `/targetlasttarget` for everybody until it ends.
-- *Say something*: off by default, and then only when returning a favour
-  unless you say otherwise. Four sets of lines (Roleplay, Polite, Cheeky, Just
-  their name), editable, and a fifth, *In character: your race and faction*:
-  over a thousand lines, picked when you click to fit your people, your class,
-  your faction and the moment -- thanks, an answer to a request, an offer, a
-  line for your group -- and what is happening: the spell you give, a trade
-  for the one they gave you, how often you two have swapped, an inn or a
-  dungeon, the hour, somebody of your own class or people. It does not repeat
-  itself, and a context the game will not reveal is left out. The line rides
-  in the macro the button runs, because the game refuses addon-sent `/say`
-  and `/yell` outside instances, which is exactly where somebody buffs you in
-  passing. How long a line may be depends on the name and on whether your
-  target is handed back. An empty box goes back to the chosen set, so switch
-  *Say something* off to stay quiet.
-- *Channel*: say, yell, party, raid, emote, or *Whisper them*, which reaches
-  the person you buff and nobody else. A whisper goes only when the chat box
-  cannot send it to somebody else by mistake. On Camelot that means a
-  two-word name whose surname is plain letters or digits; a one-word name or an
-  accented surname gets the buff with no line. Somebody from your own realm
-  who is out of sight is whispered only while the game can still name them,
-  so not after a `/reload`. Not yet tried in game.
+- *Exact position* and *Prompt wording*: the prompt's place in numbers, and
+  what its two lines say.
 
-**Prompt.** Preview, lock and position, look and colours, sound, text and
-icon.
+**Diagnostics.** *Log every click (noisy)*, what your class has and whether
+the game lets addons read each buff, what has broken this session, and *Copy
+for a bug report*. "This client doesn't know spell N" means Manners cannot see
+that version on anyone, which only affects telling whether somebody already
+carries it.
 
-- *Effects*: on *Full*, the ring pops out of the spell icon only if the icon
-  is shown, and the panel catches the light unless *When someone buffs you* is
-  *Nothing*. With the icon hidden, no stripe and no light (Effects on *Calm*,
-  or the minimal look), *When someone buffs you* has nothing to do and is
-  greyed out. The cooldown sweep has its own switch under *Icon and queue*.
-- *Thank them with an emote*: off by default. When somebody buffs you and the
-  prompt can return it, you `/thank` them, and everybody near sees it. Never
-  in a fight or in any instance, at most once per person every five minutes
-  and once every ten seconds in all, so a raid buffing you on the pull is one
-  thank. Greyed out while *People who buffed me* is off. Not yet tried in
-  game: `/manners debug` shows the last thank, or why the last one was
-  skipped, and a report of either is welcome.
-- *Stay quiet in combat*: the icon also shows no cooldown sweep for the fight.
-- *Reason colours*: the target colour appears only while *Whoever I have
-  targeted comes first* is on and *If they already have the buff* is not
-  *Always offer*.
-
-**Diagnostics.** What your class has and whether the game lets addons read
-each buff, what has broken this session, and *Copy for a bug report*. "This
-client doesn't know spell N" means Manners cannot see that version on anyone,
-which only affects telling whether somebody already carries it.
-
-**Profiles.** The usual Ace profiles; the minimap menu switches between them.
+**Profiles.** The usual Ace profiles, with *Share as text* at the bottom; the
+minimap menu switches between them.
 
 ## Sharing settings
 
-`/manners export` puts your settings in a box under *Share settings* on the
-General tab, as one line of text to keep or hand to somebody. Paste one into
-the box beside it, or after `/manners import`, to use it. A chat line holds
-only 255 characters, so a longer string has to go in the box. Only what
-differs from the defaults is written, a damaged line is refused before
-anything changes, and `/manners import undo` puts your own settings back.
+`/manners export`, or *Show my settings as text* under *Share as text* on the
+Profiles tab, puts your settings in a box as one line of text to keep or hand
+to somebody. Paste one into *Paste settings here, then press Accept*, or after
+`/manners import`, to use it. A chat line holds only 255 characters, so a
+longer string has to go in the box. Only what differs from the defaults is
+written, a damaged line is refused before anything changes, and `/manners
+import undo` puts your own settings back.
 
 A pasted line never carries whether Manners is on, the lock, where the prompt
 sits, the click log or the minimap button. It never switches speaking on, and
@@ -408,6 +518,12 @@ Individual buffs can be switched off on the *Who to buff* tab, or one pinned so
 it is the only thing ever cast. Battle Shout reaches your own party (in a raid,
 your own subgroup) and nobody else, so a warrior outside a group is offered
 nobody. That is deliberate rather than a fault.
+
+Mages, priests, druids and paladins also cast the group version of a buff
+once they have learned it and carry its reagent: Arcane Brilliance (Arcane
+Powder), the three Prayers (Sacred Candle), Gift of the Wild (Wild Berries or
+Wild Thornroot, by rank) and the Greater Blessings (Symbol of Kings). Thorns
+has none.
 
 ## Why a button and not automatic
 

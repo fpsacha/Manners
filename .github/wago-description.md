@@ -2,18 +2,20 @@
 
 ![The prompt: a dark panel naming Elowen Thistledown, who buffed you, with a gold glow round the spell icon](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-prompt.png)
 
-Somebody buffs you in passing; Manners puts them on one button, and a click buffs them back and hands your own target straight back. It also offers your group, people who ask for your buff in chat, and nearby players missing it.
+Somebody buffs you in passing; Manners puts them on one button, and a click buffs them back and hands your own target straight back. It also offers your group, people who ask for your buff in chat, and nearby players missing it. In dungeons and raids it keeps your group topped up, with one group cast for a whole party when you carry the reagent.
 
-> **Only Mage has been played in game.** Priest, Druid, Paladin, Warlock and Warrior are implemented and tested against a mock client, but nobody has cast with them yet. If you play one, please [say how it went](https://github.com/fpsacha/Manners/issues/new/choose): "it worked" is the most useful report.
+> **Only Mage has been played in game.** Priest, Druid, Paladin, Warlock and Warrior are implemented and tested against a mock client, but nobody has cast with them yet, and the dungeon and raid features have not been taken into a real group. If you play one, please [say how it went](https://github.com/fpsacha/Manners/issues/new/choose): "it worked" is the most useful report.
 
 Built for **WoW Forever** (Interface 16001) only.
 
-- **Who comes first:** your target, then people who buffed you, people who asked in chat, your group, and passers-by. Each has its own colour, with a colour-blind friendly set.
+- **Who comes first:** your target, then your group at a ready check or just back from the dead, then people who buffed you, people who asked in chat, the rest of your group, and passers-by. Each has its own colour, with a colour-blind friendly set.
+- **Group buffs:** with Arcane Brilliance, a Prayer, Gift of the Wild or a Greater Blessing learned and its reagent in your bags, 3 or more of a party who need your buff get one cast instead of one each. The prompt says who it is for ("Your party", "Group 2", "Every Warrior") and counts your reagents.
+- **Dungeons and raids:** tick only the **raid groups you buff**, **save mana** below a level you set, and no "buffed you" chat line inside a raid.
 - **Never offer:** shift-right-click somebody on the prompt and they are never offered anything again, unless they buff you.
 - **Friends and guildmates first** among passers-by and within your group.
-- **People who ask me for it** (off by default): "int pls", "fort?" or "can I get motw" in say, yell, group chat or a whisper puts them on the prompt for a minute.
+- **People who ask me in chat** (off by default): "int pls", "fort?" or "can I get motw" in say, yell, group chat or a whisper puts them on the prompt for a minute.
 - **How near is near:** limit passers-by to about ten yards, or to cities and inns.
-- **Snooze** with `/manners snooze`, and **Not while mounted**.
+- **Snooze** with `/manners snooze`, and **hide the prompt while you're mounted**.
 - **The favour ledger:** who buffed you, whether you returned it, and who you buffed unasked. `/manners ledger`.
 - **Titles for your manners**, from *Well Brought Up* at 10 favours returned to *The Very Soul of Courtesy* at 1,000, shown in the ledger with your progress and in the minimap tooltip.
 - **Three looks**, effects you can calm down, text that stays readable on any panel colour, LibSharedMedia fonts and sounds.
@@ -23,7 +25,7 @@ Built for **WoW Forever** (Interface 16001) only.
 - **Whisper them** as the channel for your line, so only the person you buff hears it, and an optional `/thank` emote when somebody buffs you (off by default, not yet tried in game).
 - **Nine languages:** English, German, Spanish (Spain and Mexico), French, Italian, Korean, Brazilian Portuguese, Simplified and Traditional Chinese.
 
-**Getting started:** bind a key under Options > Keybindings > Manners, or `/manners macro` for a macro on your bars. `/manners` opens the options and `/manners help` lists every command.
+**Getting started:** `/manners` opens the options on **Start here**, four numbered steps: who to buff (one quick choice), a key or a macro for your bars, where the prompt sits, and whether to say thanks. `/manners help` lists every command.
 
 Blizzard does not let an addon cast on its own, so Manners does everything except the keypress: it decides who deserves the buff, and the game casts when you click.
 
