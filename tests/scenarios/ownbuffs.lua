@@ -344,21 +344,35 @@ end
 
 -- ------------------------------------------------------------------ own 4
 -- Frost Armor becomes Ice Armor at 30, a new name for the same line: the
--- macro casts the name of the best rank you know, not the first rank's.
+-- macro casts the name of the best rank you know, not the first rank's --
+-- and learning it at the trainer re-arms the prompt already up on the armor,
+-- through the game's own SPELLS_CHANGED, with nothing else moving.
 Mock.reset()
 do
 	local scenario = "own: Frost Armor is cast by name at low level and Ice Armor once known"
-	local known
+	-- What a trainer visit looks like from here: the spellbook changes, the
+	-- probe runs (rate-limited, so the clock moves first), and the next tick
+	-- repaints the prompt, which never left the armor.
+	local function train(ns, ids)
+		know(ids)
+		Mock.advance(10)
+		ns.addon:SPELLS_CHANGED()
+		Mock.runTimers(6)
+		ns.Prompt:Refresh()
+	end
 	with(scenario, { known = { INTELLECT, 168 } }, function(ns)
 		ns.Prompt:Refresh()
 		if macro(ns) ~= "/cast [@player] Frost Armor" then
 			fail(scenario, "a mage knowing only Frost Armor rank 1 arms " .. flat(macro(ns)))
 		end
-		known = know({ INTELLECT, 168, 7300, 7301, ICE1 })
-		ns.Guard("probe", ns.ProbeCapabilities)
-		ns.Prompt:InvalidateMacro()
-		ns.Prompt:Refresh()
-		if macro(ns) ~= "/cast [@player] Ice Armor" then
+		if key(ns.Prompt:Showing()) ~= "frostarmor" then
+			fail(scenario, "SKIPPED -- the prompt is not on the armor: " .. key(ns.Prompt:Showing()))
+			return
+		end
+		train(ns, { INTELLECT, 168, 7300, 7301, ICE1 })
+		if key(ns.Prompt:Showing()) ~= "frostarmor" then
+			fail(scenario, "SKIPPED -- the prompt left the armor at the trainer: " .. key(ns.Prompt:Showing()))
+		elseif macro(ns) ~= "/cast [@player] Ice Armor" then
 			fail(scenario, "a mage who has learned Ice Armor arms " .. flat(macro(ns)))
 		end
 		-- The icon follows the name.
@@ -372,10 +386,7 @@ do
 		if macro(ns) ~= "/cast [@player] Demon Skin" then
 			fail(scenario, "a warlock knowing Demon Skin arms " .. flat(macro(ns)))
 		end
-		know({ 5697, 687, 696, 706 })
-		ns.Guard("probe", ns.ProbeCapabilities)
-		ns.Prompt:InvalidateMacro()
-		ns.Prompt:Refresh()
+		train(ns, { 5697, 687, 696, 706 })
 		if macro(ns) ~= "/cast [@player] Demon Armor" then
 			fail(scenario, "a warlock who has learned Demon Armor arms " .. flat(macro(ns)))
 		end
@@ -912,3 +923,344 @@ do
 		if not mine(ns) then fail(scenario, "a client that will not say kept the armor back") end
 	end)
 end
+
+-- ------------------------------------------------------------------ own 17
+-- A shaman's shields are one family: only one Elemental Shield may be up on
+-- Forever, so a Restoration shaman wearing Water Shield has chosen, and is
+-- never told to put Lightning Shield over it. The one up last is the one
+-- that comes back, and a shaman who never learned Water Shield is not
+-- offered it.
+Mock.reset()
+do
+	local scenario = "own: a shaman wearing Water Shield is not told to cast Lightning Shield"
+	local LIGHTNING, WATER = { 324, 325 }, 408510
+	with(scenario, { class = "SHAMAN", known = list(LIGHTNING, WATER),
+		wearing = { { id = WATER, left = 600 } } }, function(ns)
+		if mine(ns) then
+			fail(scenario, "wearing Water Shield, you were offered " .. key(mine(ns)))
+		end
+		wear(ns, {})
+		if key(mine(ns)) ~= "watershield" then
+			fail(scenario, "with the Water Shield gone, you were offered " .. key(mine(ns))
+				.. " rather than the shield up last")
+		end
+		ns.Prompt:Refresh()
+		if macro(ns) ~= "/cast [@player] Water Shield" then
+			fail(scenario, "the prompt arms " .. flat(macro(ns)))
+		end
+		local shield = findOption(ns.optionsTable, "own_shield")
+		local values = shield and shield.values and shield.values() or {}
+		if not (shield and not shield.hidden() and shield.name() == "Shield")
+			or values.watershield ~= "Water Shield" or values.lightningshield ~= "Lightning Shield" then
+			fail(scenario, "the shield dropdown reads " .. tostring(values.lightningshield) .. " / "
+				.. tostring(values.watershield))
+		end
+		wear(ns, { { id = 325, left = 600 } })
+		if mine(ns) then fail(scenario, "wearing Lightning Shield, you were offered " .. key(mine(ns))) end
+	end)
+	-- Never learned: Lightning Shield, and no Water Shield to choose.
+	with(scenario, { class = "SHAMAN", known = LIGHTNING }, function(ns)
+		if key(mine(ns)) ~= "lightningshield" then
+			fail(scenario, "a shaman with no shield up was offered " .. key(mine(ns)))
+		end
+		local shield = findOption(ns.optionsTable, "own_shield")
+		if shield and shield.values().watershield then
+			fail(scenario, "Water Shield is a choice for a shaman who has not learned it")
+		end
+	end)
+end
+
+-- ------------------------------------------------------------------ own 18
+-- A warlock's one buff for others is Unending Breath, which is nothing to be
+-- reminded of on dry land: missing both, he is offered his Demon Skin, never
+-- the water breathing -- which is still offered to everybody else.
+Mock.reset()
+do
+	local scenario = "own: a warlock missing both is offered Demon Skin, never Unending Breath"
+	with(scenario, { class = "WARLOCK", known = { 5697, 687 } }, function(ns)
+		Mock.playerHeld = {}
+		ns.ForgetUnitAuras(ns.plain(UnitGUID("player")))
+		if key(mine(ns)) ~= "demonarmor" then
+			fail(scenario, "missing both, a warlock was offered " .. key(mine(ns)) .. " rather than Demon Skin")
+		end
+		local offered = false
+		for _, buff in ipairs(ns.CastableBuffs()) do
+			if buff.key == "breath" then offered = true end
+		end
+		if not offered then fail(scenario, "Unending Breath is no longer offered to anybody else") end
+		Mock.printed = {}
+		ns.addon:HandleSlash("debug")
+		if not said():find("Demon Skin: none up -- Demon Skin is the one to cast.", 1, true)
+			or said():find("comes first", 1, true)
+			or said():find("nothing you cast goes on yourself alone", 1, true) then
+			fail(scenario, "/manners debug does not say Demon Skin is the one: " .. flat(said()))
+		end
+		wear(ns, { { id = 687, left = 1800 } })
+		if mine(ns) then fail(scenario, "with Demon Skin up, a warlock was offered " .. key(mine(ns))) end
+	end)
+end
+
+-- ------------------------------------------------------------------ own 19
+-- Before Mage Armor is learned, Automatic has one armor for everywhere, and
+-- says so the same way inside a dungeon and out -- never "outside dungeons
+-- and raids", which promises something else inside.
+Mock.reset()
+do
+	local scenario = "own: Automatic says the same inside and out before Mage Armor"
+	with(scenario, { known = list(INTELLECT, FROST) }, function(ns)
+		local armor = findOption(ns.optionsTable, "own_armor")
+		local want = "Automatic (Frost Armor, until you have put one up)"
+		for _, place in ipairs({ { false }, { true, "party" }, { true, "raid" } }) do
+			IsInInstance = function() return place[1], place[2] end
+			local where = place[1] and ("in a " .. place[2]) or "outside"
+			local auto = armor and armor.values and armor.values().auto
+			if auto ~= want then fail(scenario, where .. " Automatic reads " .. tostring(auto)) end
+			if key(mine(ns)) ~= "frostarmor" then fail(scenario, where .. " you were offered " .. key(mine(ns))) end
+		end
+	end)
+end
+
+-- ------------------------------------------------------------------ own 20
+-- "The one you had up last" is written from your auras whenever they change,
+-- in a fight and in town too, where nothing is offered to you: the paladin who
+-- switched to Concentration Aura in a fight and died is reminded of
+-- Concentration, and the options page in a city names the aura worn there.
+Mock.reset()
+do
+	local scenario = "own: the one up last is remembered in a fight and in town"
+	local PALADIN = { 19740, DEVOTION, RETRIBUTION, CONCENTRATION }
+	with(scenario, { class = "PALADIN", known = PALADIN, wearing = { { id = DEVOTION } } }, function(ns)
+		-- Whatever the lifecycle's own aura event left to read, read now.
+		ns.addon:Tick()
+		if ns.db.char.ownLast.aura ~= "devotionaura" then
+			fail(scenario, "SKIPPED -- Devotion Aura up was not remembered: " .. tostring(ns.db.char.ownLast.aura))
+			return
+		end
+		-- The fight: nothing is offered you, and the aura changes under it.
+		Mock.inCombat = true
+		wear(ns, { { id = CONCENTRATION } })
+		ns.addon:UNIT_AURA(nil, "player")
+		ns.addon:Tick()
+		if ns.db.char.ownLast.aura ~= "concentrationaura" then
+			fail(scenario, "Concentration Aura put up in a fight was not remembered: "
+				.. tostring(ns.db.char.ownLast.aura))
+		end
+		-- Dead, the aura gone, the fight over.
+		Mock.inCombat = false
+		wear(ns, {})
+		ns.addon:UNIT_AURA(nil, "player")
+		ns.addon:Tick()
+		if key(mine(ns)) ~= "concentrationaura" then
+			fail(scenario, "after the fight you were offered " .. key(mine(ns)) .. " rather than the aura the fight had up")
+		end
+		-- A city: nothing is offered, and the aura worn there is remembered.
+		IsResting = function() return true end
+		wear(ns, { { id = RETRIBUTION } })
+		ns.addon:UNIT_AURA(nil, "player")
+		ns.addon:Tick()
+		if ns.db.char.ownLast.aura ~= "retributionaura" then
+			fail(scenario, "Retribution Aura put up in a city was not remembered: " .. tostring(ns.db.char.ownLast.aura))
+		end
+		local aura = findOption(ns.optionsTable, "own_aura")
+		local auto = aura and aura.values and aura.values().auto
+		if auto ~= "Automatic (Retribution Aura, the one you had up last)" then
+			fail(scenario, "in a city Automatic reads " .. tostring(auto))
+		end
+	end)
+end
+
+-- ------------------------------------------------------------------ own 21
+-- While your group buff is the one on the prompt, /manners debug and the
+-- Diagnostics tab say so above the armor's line, which would otherwise call
+-- the armor the one to cast while the prompt reads Arcane Intellect.
+Mock.reset()
+do
+	local scenario = "own: debug says your group buff comes first"
+	with(scenario, { known = MAGE }, function(ns)
+		Mock.playerHeld = {}
+		ns.ForgetUnitAuras(ns.plain(UnitGUID("player")))
+		if key(mine(ns)) ~= "intellect" then
+			fail(scenario, "SKIPPED -- missing both, you were not offered your Intellect: " .. key(mine(ns)))
+			return
+		end
+		local first = "your own Arcane Intellect comes first -- the buffs below wait until it has been cast."
+		Mock.printed = {}
+		ns.addon:HandleSlash("debug")
+		local text = said()
+		local at = text:find(first, 1, true)
+		local armor = text:find("Armor: none up -- Ice Armor is the one to cast.", 1, true)
+		if not (at and armor and at < armor) then
+			fail(scenario, "/manners debug does not say your Intellect comes before the armor: " .. flat(text))
+		end
+		local diag = findOption(ns.optionsTable, "ownDiag")
+		local shown = diag and not diag.hidden() and tostring(diag.name()) or ""
+		if not shown:find(first, 1, true) then
+			fail(scenario, "Diagnostics does not say your Intellect comes first: " .. flat(shown))
+		end
+		-- Your Intellect up: the armor is the one, and nothing says otherwise.
+		Mock.playerHeld = nil
+		ns.ForgetUnitAuras(ns.plain(UnitGUID("player")))
+		Mock.printed = {}
+		ns.addon:HandleSlash("debug")
+		if said():find("comes first", 1, true) then
+			fail(scenario, "with your Intellect up, /manners debug still says it comes first")
+		end
+	end)
+end
+
+-- ------------------------------------------------------------------ own 22
+-- A class with buffs for others and none of them to offer -- a warlock before
+-- Unending Breath, a mage with her Intellect switched off -- still has a
+-- prompt, for its own: the launcher says it is watching and lists "You", and
+-- the login line and the greeting say what the prompt is for, not "nothing".
+Mock.reset()
+do
+	local scenario = "own: nothing for others, and the launcher and the login say the prompt is yours"
+	local function tooltip()
+		local broker = Mock.broker
+		local lines = {}
+		if broker and broker.OnTooltipShow then
+			broker.OnTooltipShow({ AddLine = function(_, text) lines[#lines + 1] = tostring(text) end })
+		end
+		return table.concat(lines, " / ")
+	end
+	with(scenario, { class = "WARLOCK", known = { 687 } }, function(ns)
+		ns.Prompt:Refresh()
+		if not ns.Prompt:GetButton():IsShown() or macro(ns) ~= "/cast [@player] Demon Skin" then
+			fail(scenario, "SKIPPED -- a warlock with only Demon Skin has no prompt on it: " .. flat(macro(ns)))
+			return
+		end
+		local text = tooltip()
+		if not text:find("Watching your own buffs; nothing is offered to anybody else: no buff learned.", 1, true) then
+			fail(scenario, "the launcher tells a warlock with only Demon Skin " .. text)
+		end
+		if not text:find("On the prompt: |cffffffffYou|r -- Demon Skin, your own buff", 1, true) then
+			fail(scenario, "the launcher does not list you on the prompt: " .. text)
+		end
+		-- The login line, on a fresh install.
+		Mock.sv = {}
+		local again = load(scenario)
+		if not again then return end
+		wear(again, {})
+		local login = tostring(H.firstLogin(again))
+		if not login:find("watching your own buffs; nothing is offered to anybody else: no buff learned.", 1, true) then
+			fail(scenario, "the login line tells a warlock with only Demon Skin " .. flat(login))
+		end
+	end)
+	-- A mage with her Intellect switched off: the greeting too.
+	with(scenario, { known = MAGE }, function(ns)
+		ns.db.profile.buff.skip.intellect = true
+		ns.Prompt:Refresh()
+		if key(ns.Prompt:Showing()) ~= "frostarmor" then
+			fail(scenario, "SKIPPED -- with her Intellect switched off, the prompt is not on her armor: "
+				.. key(ns.Prompt:Showing()))
+			return
+		end
+		local off = "nothing is offered to anybody else: every spell you know is switched off under Who to buff."
+		local text = tooltip()
+		if not text:find("Watching your own buffs; " .. off, 1, true) then
+			fail(scenario, "the launcher tells a mage with her Intellect switched off " .. text)
+		end
+		Mock.sv = {}
+		if not H.savedProfile(scenario, function(profile) profile.buff.skip.intellect = true end) then return end
+		local again = load(scenario)
+		if not again then return end
+		wear(again, {})
+		local login = tostring(H.firstLogin(again))
+		if not login:find("puts your own buffs on a small prompt when none of them is up; " .. off, 1, true)
+			or login:find("nothing will be offered to anybody", 1, true) then
+			fail(scenario, "the greeting tells a mage with her Intellect switched off " .. flat(login))
+		end
+		if not login:find("watching your own buffs; " .. off, 1, true) then
+			fail(scenario, "the login line tells a mage with her Intellect switched off " .. flat(login))
+		end
+	end)
+end
+
+-- ------------------------------------------------------------------ own 23
+-- A warrior has nothing for "Myself": no heading, no switch, no Also in
+-- cities and inns. And with Myself off, Also in cities and inns is greyed out
+-- like the families under it.
+Mock.reset()
+do
+	local scenario = "own: Myself's heading and cities follow the switch"
+	-- AceConfig reads a missing `hidden` or `disabled` as shown and live.
+	local function asks(control, field)
+		return control ~= nil and type(control[field]) == "function" and control[field]() == true
+	end
+	with(scenario, { class = "WARRIOR", known = { 6673 } }, function(ns)
+		local a = ns.optionsTable.args.who.args
+		for _, k in ipairs({ "myselfHeader", "self", "ownCities" }) do
+			if not asks(a[k], "hidden") then fail(scenario, k .. " is shown to a warrior") end
+		end
+	end)
+	with(scenario, { known = MAGE }, function(ns)
+		local a = ns.optionsTable.args.who.args
+		if asks(a.myselfHeader, "hidden") or asks(a.ownCities, "hidden") then
+			fail(scenario, "SKIPPED -- a mage is not shown Myself's heading or Also in cities and inns")
+			return
+		end
+		if asks(a.ownCities, "disabled") then fail(scenario, "Also in cities and inns is greyed out with Myself on") end
+		ns.db.profile.sources.self = false
+		if not asks(a.ownCities, "disabled") then
+			fail(scenario, "Also in cities and inns stays live with Myself off")
+		end
+	end)
+end
+
+-- ------------------------------------------------------------------ own 24
+-- A hunter's prompt hides while he is mounted when that is ticked, and the
+-- launcher sends him to When to offer to change it: the tab is there, with
+-- what is about him on it and nothing about other people.
+Mock.reset()
+do
+	local scenario = "own: a hunter has the When to offer tab for his own prompt"
+	with(scenario, { class = "HUNTER", known = { HAWK, MONKEY } }, function(ns)
+		local when = ns.optionsTable.args.when
+		if not when or when.hidden() then
+			fail(scenario, "When to offer is hidden from a hunter, whose launcher sends him there")
+			return
+		end
+		local a = when.args
+		local function shown(control)
+			return control ~= nil and not (type(control.hidden) == "function" and control.hidden())
+		end
+		if not (shown(a.hideMounted) and shown(a.whenBuffed)) then
+			fail(scenario, "a hunter is not shown Hide the prompt while I'm mounted or If they already have it")
+		end
+		ns.db.profile.filters.whenBuffed = "always"
+		for _, k in ipairs({ "manaFloor", "manaNote", "favoursHeader", "favoursNote", "alwaysNote" }) do
+			if shown(a[k]) then fail(scenario, k .. " is shown to a hunter") end
+		end
+		local desc = H.optionText(a.whenBuffed.desc)
+		if desc:find("buffed you", 1, true) or not desc:find("Your own buffs", 1, true) then
+			fail(scenario, "If they already have it tells a hunter " .. desc)
+		end
+	end)
+end
+
+-- ------------------------------------------------------------------ own 25
+-- Burning Crusade Classic shares the vanilla buffs for others, but not the
+-- class's own: every family there has a member this table lacks (Molten
+-- Armor, Fel Armor, Earth Shield), and one of those up would read as none of
+-- the family up and be replaced.
+Mock.reset()
+do
+	local scenario = "own: Burning Crusade has none of the vanilla families"
+	Mock.setFlavour("tbc")
+	local ns = load(scenario)
+	if ns then
+		if ns.GetOwnFamilies("MAGE") or next(ns.OWN_BUFFS) ~= nil then
+			fail(scenario, "a Burning Crusade client was given the vanilla families of a class's own buffs")
+		end
+		if not ns.FindBuff("MAGE", "intellect") then
+			fail(scenario, "a Burning Crusade client lost the vanilla buffs for others")
+		end
+	end
+	Mock.reset()
+	ns = load(scenario)
+	if ns and not ns.GetOwnFamilies("MAGE") then
+		fail(scenario, "SKIPPED -- Forever has no mage armor either")
+	end
+end
+Mock.reset()

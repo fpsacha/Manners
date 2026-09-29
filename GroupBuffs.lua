@@ -253,8 +253,15 @@ local function Build(bucket, byClass, inRaid, ownSubgroup)
 	-- stand. One measured out of reach does not lift it: nothing says the
 	-- cast gets to them.
 	local members = {}
+	-- Whether every one of them asked for it in chat. An asker outranks the
+	-- party (PRIORITY), so the anchor is the asker whenever anybody in it
+	-- asked, and the anchor's reason alone would file the whole cast as
+	-- asked for -- and leave it out of the day's gifts (Ledger.Settled) --
+	-- when it reached everybody else unprompted.
+	local asked = true
 	for _, entry in ipairs(bucket.entries) do
 		if entry ~= anchor then members[#members + 1] = entry.name end
+		if entry.reason ~= "asked" then asked = false end
 	end
 
 	local info = bucket.ready.info
@@ -276,6 +283,7 @@ local function Build(bucket, byClass, inRaid, ownSubgroup)
 		class = byClass and bucket.where or nil,
 		-- Who it is for, inside a sentence ("your party", "group 3").
 		label = label,
+		asked = asked or nil,
 	}
 	-- What the panel's first line says in place of the anchor's name.
 	group.display = display

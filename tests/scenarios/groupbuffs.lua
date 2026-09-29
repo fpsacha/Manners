@@ -1545,3 +1545,57 @@ do
 		restore()
 	end
 end
+
+-- ------------------------------------------------------------ groupbuffs-31
+-- A group cast aimed at somebody who asked for it in chat. An asker outranks
+-- the party, so the cast is aimed at them whenever one of the party asked --
+-- and filed under their reason alone, it was listed as asked for and left out
+-- of the day's gifts, though it reached the rest of the party unprompted. It
+-- is asked for only when everybody it covered asked.
+do
+	local scenario = "groupbuffs: a group cast aimed at somebody who asked is still a gift"
+	local function ask(ns, token)
+		local names = PARTY[token]
+		ns.addon:CHAT_MSG_PARTY("CHAT_MSG_PARTY", "int pls", names[1] .. " " .. names[2], "Common", "",
+			"", "", 0, 0, "", 0, 1, "Player-1-" .. token)
+	end
+	for _, case in ipairs({
+		{ askers = { "party3" }, asked = false, label = "one of four asked" },
+		{ askers = { "party1", "party2", "party3", "party4" }, asked = true, label = "all four asked" },
+	}) do
+		local ns, restore = session(scenario, mage({
+			setup = function(ns) ns.db.profile.sources.asked = true end,
+		}))
+		if ns then
+			ns.db.char.ledger = nil
+			ns.Ledger.Load()
+			for _, token in ipairs(case.askers) do ask(ns, token) end
+			ns.Prompt:InvalidateMacro()
+			ns.addon:Tick()
+			local group = groupCast(ns)
+			local showing = ns.Prompt:Showing()
+			if not (group and showing and showing.groupCast and showing.reason == "asked") then
+				fail(scenario, "SKIPPED -- " .. case.label .. ", and the group cast is not aimed at an asker: "
+					.. tostring(showing and showing.name) .. " " .. tostring(showing and showing.reason))
+			else
+				local ran = pressAndCast(ns, BRILLIANCE, "Cast-G31-" .. #case.askers)
+				local row = ns.Ledger.Entries("given")[1]
+				if not (ran and ran:find("Arcane Brilliance", 1, true) and row and row.covered == 4) then
+					fail(scenario, "SKIPPED -- " .. case.label .. ", and the group cast filed no row: " .. flat(ran))
+				elseif case.asked and row.asked ~= true then
+					fail(scenario, "everybody it covered asked, and the group cast was filed as given unprompted")
+				elseif not case.asked and row.asked then
+					fail(scenario, "a group cast aimed at the one who asked was filed as asked for")
+				else
+					local given = ns.Ledger.Summary().given
+					if given ~= (case.asked and 0 or 1) then
+						fail(scenario, ("%s, and the group cast counts as %d of today's gifts")
+							:format(case.label, given))
+					end
+				end
+			end
+			guarded(scenario, ns)
+			restore()
+		end
+	end
+end

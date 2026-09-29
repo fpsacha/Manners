@@ -20,6 +20,10 @@
 --   neverAuto offerable, but never what "Automatic" reaches for.
 --   notSelf   the game will not let you cast it on yourself, so "Myself"
 --             (Queue.lua) never offers it to you.
+--   neverSelf castable on yourself, but never offered to you by "Myself": a
+--             buff you want only for a reason the prompt cannot see (Unending
+--             Breath, under water), which would come back every time it ran
+--             out, all evening. Offers to others are untouched.
 --   talent    learned from a talent, so not everybody of the class knows it.
 --             Data only: ns.AskedFor still turns away every ask from your own
 --             class, talent or not, until it is taught to read this.
@@ -164,6 +168,10 @@ local VANILLA = {
 		{
 			key = "breath",
 			ranks = { 5697 },
+			-- Water breathing is nothing to be reminded of on dry land, and a
+			-- ten-minute buff on yourself would come back all evening, ahead
+			-- of your Demon Skin or Armor.
+			neverSelf = true,
 		},
 	},
 
@@ -192,7 +200,8 @@ local VANILLA = {
 -- Per class, a list of families, in the order they are offered (your own
 -- group buff, from the tables above, always comes first). A family is the
 -- buffs of which only one of yours can be up at once -- a mage's armors, a
--- paladin's auras, a hunter's aspects -- and a spell alone is a family of one.
+-- paladin's auras, a hunter's aspects, a shaman's shields -- and a spell alone
+-- is a family of one.
 --
 --   key       the family's name in the profile (ownBuffs.pick) and in the
 --             character's memory of the one last up. Unique across every
@@ -216,8 +225,15 @@ local VANILLA = {
 -- SpellRankData_Camelot, generated from build 1.60.1.69913) and Wowhead
 -- Classic. Forever added ranks of its own to two spells (Aspect of the Beast
 -- and Trueshot Aura, the 1299xxx ids), which no other vanilla client has; they
--- only ever fail to be known there. A spell is "known" by these ids alone, so
--- a wrong id costs the reminder, never a nag.
+-- only ever fail to be known there. Water Shield, one rank and so not in that
+-- data, was checked against Wowhead Classic and the Forever build of
+-- EnhanceQoL's buff reminder, which puts it in the shaman's one shield family.
+-- A spell is "known" by these ids alone, so a wrong id costs the reminder,
+-- never a nag.
+--
+-- Vanilla content only: Burning Crusade gave most of these families a member
+-- this table does not have (Molten and Fel Armor, Earth Shield, Aspect of the
+-- Viper, Crusader Aura), so the tbc set below leaves it out.
 local VANILLA_OWN = {
 	MAGE = {
 		{
@@ -236,8 +252,13 @@ local VANILLA_OWN = {
 
 	PRIEST = {
 		{ key = "innerfire", spells = { { key = "innerfire", ranks = { 10952, 10951, 1006, 602, 7128, 588 } } } },
-		-- The two racials: an undead priest's and a troll priest's. Nobody
-		-- else knows either, so nobody else is shown them.
+		-- An undead priest's and a troll priest's racials in 1.12. Whether
+		-- Forever keeps them racial, the guides disagree; it does not matter
+		-- here, since each is shown and offered only to a priest who has
+		-- learned it. On by default like the rest, as the approved design has
+		-- it: a priest who trains a charge-spent shield wants it back after a
+		-- fight, and one who does not is never asked. Kept apart rather than
+		-- as one family: nothing says one replaces the other.
 		{ key = "touchofweakness",
 			spells = { { key = "touchofweakness", ranks = { 19266, 19265, 19264, 19262, 19261, 2652 } } } },
 		{ key = "shadowguard",
@@ -265,6 +286,8 @@ local VANILLA_OWN = {
 				{ key = "shadowresaura", ranks = { 19896, 19895, 19876 } },
 				{ key = "frostresaura", ranks = { 19898, 19897, 19888 } },
 				{ key = "fireresaura", ranks = { 19900, 19899, 19891 } },
+				-- Classic Era's talent. Forever took it out of the game, so
+				-- there it is never known, never shown and never offered.
 				{ key = "sanctityaura", ranks = { 20218 }, talent = true },
 			},
 			toggle = true,
@@ -302,8 +325,20 @@ local VANILLA_OWN = {
 	},
 
 	SHAMAN = {
-		{ key = "lightningshield",
-			spells = { { key = "lightningshield", ranks = { 10432, 10431, 8134, 945, 905, 325, 324 } } } },
+		{
+			key = "shield",
+			label = L["Shield"],
+			spells = {
+				{ key = "lightningshield", ranks = { 10432, 10431, 8134, 945, 905, 325, 324 } },
+				-- Forever's own: a Restoration talent (the Season of Discovery
+				-- rune's id, as Forever's Lava Burst and Riptide are), and "only
+				-- one Elemental Shield" may be up, so a healer wearing it has
+				-- chosen and is never told to put Lightning Shield over it. Not
+				-- in Forever's rank data (one rank); a wrong id only means it is
+				-- never known here, and then never read as up either.
+				{ key = "watershield", ranks = { 408510 }, talent = true },
+			},
+		},
 	},
 
 	DRUID = {
@@ -337,6 +372,14 @@ local VANILLA_SET = {
 	-- raid or party rather than the target's party: the Greater Blessings.
 	groupByClass = { PALADIN = true },
 }
+
+-- Burning Crusade Classic: the vanilla set in everything but the class's own
+-- buffs. There every family above has a member vanilla lacks (Molten Armor,
+-- Fel Armor, Earth Shield, Aspect of the Viper, Crusader Aura), and with one
+-- of those up "Myself" would read none of the family as up and offer a spell
+-- that replaces it. Empty, as on Mists, until somebody can check the ids; the
+-- name stays "vanilla", which is the set its buffs for others come from.
+local TBC_SET = setmetatable({ own = {} }, { __index = VANILLA_SET })
 
 ---------------------------------------------------------------------------
 -- Mists of Pandaria Classic
@@ -390,7 +433,7 @@ local MISTS = {
 		{ key = "darkintent", ranks = { 109773 } },
 		-- Kept because somebody might want it, and kept away from Automatic
 		-- because nobody standing in a city wants to be handed water breathing.
-		{ key = "breath", ranks = { 5697 }, neverAuto = true },
+		{ key = "breath", ranks = { 5697 }, neverAuto = true, neverSelf = true },
 	},
 
 	WARRIOR = {
@@ -510,7 +553,7 @@ local MAINLINE_SET = {
 
 local SETS = {
 	vanilla = VANILLA_SET,
-	tbc = VANILLA_SET,
+	tbc = TBC_SET,
 	-- Forever runs vanilla content, and the vanilla tables are the ones
 	-- verified there in game.
 	camelot = VANILLA_SET,

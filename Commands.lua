@@ -28,11 +28,13 @@ local owed, LiveExpiry = ns.owed, ns.DebtExpiry
 ---------------------------------------------------------------------------
 
 -- What "Myself" is doing, for /manners debug and the Diagnostics tab: first
--- what holds everything on yourself back right now, if anything, then a line
--- per family of your class's own buffs you know, from the answers the queue
--- reads (Core.lua, OwnVerdict), so the two cannot disagree. Nothing when
--- "Myself" is off: the line about the switch says that. Whole sentences per
--- case, for the translators.
+-- what holds everything on yourself back right now, if anything, then your
+-- group buff when it is the one on the prompt (one entry for you at a time,
+-- and it goes first: Queue.lua, SelfEntry), then a line per family of your
+-- class's own buffs you know, from the answers the queue reads (Core.lua,
+-- OwnVerdict), so the two cannot disagree. Nothing when "Myself" is off: the
+-- line about the switch says that. Whole sentences per case, for the
+-- translators.
 do
 	local HELD = {
 		fight = L["your own buffs: held back -- you are in a fight."],
@@ -76,6 +78,12 @@ do
 				:format("|cffffd100" .. L["Also in cities and inns"] .. "|r")
 		elseif held then
 			out[#out + 1] = HELD[held]
+		end
+		-- Your group buff is due: the lines below wait behind it.
+		local first = #families > 0 and ns.SelfBuffFirst(db, now)
+		if first then
+			out[#out + 1] = L["your own %s comes first -- the buffs below wait until it has been cast."]
+				:format(ns.BuffName(first))
 		end
 		local ctx = { name = ns.UnitFullName("player"), now = now,
 			whenBuffed = db.filters.whenBuffed, refreshUnder = db.filters.refreshUnder }
@@ -137,8 +145,11 @@ function ns.Welcome(force, offSaid)
 
 	-- Spells learned, but nothing any prompt will offer (all switched off, or
 	-- a pin on one not learned): name the setting instead of the tour. Not for
-	-- a character with nothing learned yet, who will learn a spell soon.
-	if caps.anyKnown and not ns.ResolveBuff(true) then
+	-- a character with nothing learned yet, who will learn a spell soon; nor
+	-- for one whose own buffs still put a prompt up, who gets the tour for it.
+	local othersOff = caps.anyKnown and not ns.ResolveBuff(true)
+	local ownLive = ns.OwnBuffsLive()
+	if othersOff and not ownLive then
 		addon:Print(L["|cffffd100Manners|r is installed, but nothing will be offered to anybody: %s."]
 			:format(ns.NothingToCast()))
 		addon:Print(L["|cffffd100/manners welcome|r brings the rest of this back once that changes."])
@@ -149,6 +160,10 @@ function ns.Welcome(force, offSaid)
 	-- and one with nothing for anybody else has only itself.
 	if ownOnly then
 		addon:Print(L["|cffffd100Manners|r puts your own buffs on a small prompt when none of them is up -- your class has none for other players. Clicking the prompt casts it on you."])
+	elseif othersOff then
+		-- Your spells for others all switched off, and yours still offered.
+		addon:Print(L["|cffffd100Manners|r puts your own buffs on a small prompt when none of them is up; nothing is offered to anybody else: %s. Clicking the prompt casts it on you."]
+			:format(ns.NothingToCast()))
 	elseif ns.OnlyReachesGroup() then
 		local buff = ns.ResolveBuff(true)
 		if buff then
@@ -1461,11 +1476,13 @@ function addon:HandleSlash(rawInput)
 			-- the window shows.
 			self:Print("  " .. L["your own buff: not offered -- %s is switched off."]
 				:format("|cffffd100" .. L["Myself, when I'm missing my own buff"] .. "|r"))
-		elseif #ns.SelfBuffs() == 0 then
-			self:Print("  " .. L["your own buff: nothing you cast goes on yourself alone."])
-		else
+		elseif #ns.SelfBuffs() > 0 then
 			self:Print("  " .. L["your own buff: offered to you when you are missing it."])
+		elseif #ns.KnownOwnFamilies() == 0 then
+			self:Print("  " .. L["your own buff: nothing you cast goes on yourself alone."])
 		end
+		-- (Your class's own buffs alone -- a warlock's armor -- are said by
+		-- their own lines below.)
 		-- Where you are held back, and each of your class's own buffs.
 		for _, line in ipairs(ns.MyselfLines(now)) do self:Print("  " .. line) end
 		-- Who the game keeps refusing, since they are missing from the prompt

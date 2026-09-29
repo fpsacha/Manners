@@ -845,14 +845,17 @@ function Ledger.Settled(name, wasOwed, pending, spellId)
 		undo.entry = e
 	else
 		local to = type(pending) == "table" and pending.inGroup == true and "group" or "stranger"
+		local group = type(pending) == "table" and type(pending.group) == "table" and pending.group
 		-- A buff somebody asked for in chat is listed, but it was not given
-		-- unprompted, which is what today's count of gifts says.
+		-- unprompted, which is what today's count of gifts says. A group cast
+		-- only when everybody it covered asked (GroupBuffs.lua): aimed at an
+		-- asker, it still reached the rest of the party unprompted.
 		local asked = type(pending) == "table" and pending.reason == "asked"
+			and (not group or group.asked == true)
 		local e = { kind = "given", name = name, at = now, spell = gave, to = to, asked = asked or nil,
 			class = CleanClass(type(pending) == "table" and pending.class or nil) }
 		-- One cast that covered a party is one buff given, counted once like
 		-- any cast, and the row says how many it reached.
-		local group = type(pending) == "table" and type(pending.group) == "table" and pending.group
 		if group and type(group.members) == "table" and #group.members > 0 then
 			e.covered = #group.members + 1
 		end

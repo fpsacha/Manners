@@ -667,12 +667,13 @@ function ns.OnlyReachesGroup(castable)
 	return true
 end
 
--- Whether a buff can go on the caster. A shout (selfCast) is cast on you for
--- your party and already covers you, so offering it to you alone would only
--- nag a solo warrior every time it ran out; notSelf is a spell the game will
--- not let you put on yourself (Buffs.lua).
+-- Whether "Myself" may put a buff on the caster. A shout (selfCast) is cast
+-- on you for your party and already covers you, so offering it to you alone
+-- would only nag a solo warrior every time it ran out; notSelf is a spell the
+-- game will not let you put on yourself, and neverSelf one nobody wants to be
+-- reminded of on dry land (Buffs.lua: a warlock's Unending Breath).
 function ns.CastsOnSelf(buff)
-	return buff ~= nil and not buff.selfCast and not buff.notSelf
+	return buff ~= nil and not buff.selfCast and not buff.notSelf and not buff.neverSelf
 end
 
 -- The buffs "Myself" can offer, out of CastableBuffs' answer (asked here when
@@ -695,6 +696,17 @@ function ns.OffersSelf()
 	local db = addon.db and addon.db.profile
 	return db ~= nil and db.sources.self == true
 		and (#ns.SelfBuffs() > 0 or ns.OwnFamiliesOn() > 0)
+end
+
+-- Whether "Myself" has one of your class's own buffs to remind you of: on,
+-- and a family you know not switched off. That alone keeps a prompt on a
+-- character with nothing for anybody else -- a hunter, a warlock before
+-- Unending Breath, a mage whose Intellect is switched off -- so every line
+-- that would say "nothing will be offered" (the launcher, the login line, the
+-- greeting) asks this first.
+function ns.OwnBuffsLive()
+	local db = addon.db and addon.db.profile
+	return db ~= nil and db.sources.self == true and ns.OwnFamiliesOn() > 0
 end
 
 -- The spell pinned for this character, or nil for Automatic (and for another
@@ -986,6 +998,10 @@ do
 	--              had one up; "world" its first other spell outside one
 	--   "first"    the first you know, before you have had one up
 	-- nil and nil for a family you know nothing of.
+	--
+	-- The dungeon pick splits the answer in two only once it is learned: a
+	-- mage below 34 gets the same armor inside and out, and is told so as
+	-- "first" in both places, never as a choice between two that is not one.
 	function ns.OwnAutoPick(family)
 		if family.tank then
 			if not Tanking() then return nil, "notank" end
@@ -994,13 +1010,10 @@ do
 		local last = Remembered(family)
 		if last then return last, "last" end
 		local preferred = family.dungeon and ns.FindOwnSpell(family.dungeon)
-		if preferred then
-			if InDungeon() then
-				if Known(preferred) then return preferred, "dungeon" end
-			else
-				for _, spell in ipairs(family.spells) do
-					if spell ~= preferred and Known(spell) and not spell.neverAuto then return spell, "world" end
-				end
+		if preferred and Known(preferred) then
+			if InDungeon() then return preferred, "dungeon" end
+			for _, spell in ipairs(family.spells) do
+				if spell ~= preferred and Known(spell) and not spell.neverAuto then return spell, "world" end
 			end
 		end
 		local first = FirstKnown(family, true)
@@ -1172,6 +1185,22 @@ do
 		if ns.IsBlocked(ctx.name, spell.key, ctx.now) then return nil, up, left, "tried", spell end
 		if not Usable(spell) then return nil, up, left, "unusable", spell end
 		return spell, up, up and left or nil
+	end
+
+	-- "The one you had up last", kept up to date whatever the queue is doing.
+	-- The queue reads your families only when it could offer you one, so a
+	-- fight, a city, your group buff being due or an earlier family missing
+	-- would leave the memory on the aura of an hour ago -- and Automatic, and
+	-- its words on the options page, on the wrong spell: the paladin who
+	-- switched to Concentration mid-fight and died would be reminded of
+	-- Devotion. Your auras changing (UNIT_AURA on you, Favours.lua) asks for
+	-- one reading of each family you know on the next tick, which is what
+	-- writes the memory (ReadOwnFamily); a reading the client refuses writes
+	-- nothing. Asked once at load too, for what you logged in wearing.
+	ns.ownAurasChanged = true
+	function ns.RememberOwnBuffs()
+		ns.ownAurasChanged = false
+		for _, family in ipairs(ns.KnownOwnFamilies()) do ns.ReadOwnFamily(family) end
 	end
 end
 
@@ -1965,10 +1994,12 @@ function addon:OnEnable()
 			and ns.CLASSES_WITHOUT_BUFFS[caps.class] == true
 		-- The profile is shared, so off on one character is off on every alt.
 		local off = not self.db.profile.enabled
-		-- A hunter or a shaman with one of their own buffs learned has nothing
-		-- for anybody else, and still a prompt to remind them of their own.
-		local ownOnly = not buff and nothingToGive and caps.anyOwnKnown
-		if not buff and nothingToGive and not ownOnly then
+		-- Nothing for anybody else, and one of your own buffs to remind you
+		-- of: a hunter or a shaman, whose class has nothing for others, or a
+		-- class that has but not yet (a warlock before Unending Breath) or
+		-- not now (every spell switched off). Still a prompt, for yourself.
+		local ownLive = not buff and ns.OwnBuffsLive()
+		if not buff and nothingToGive and not ownLive then
 			self:Print(L["build |cffffd100%s|r -- this class has no buffs to cast on other players."]:format(tostring(ns.BUILD)))
 		elseif off then
 			self:Print(L["build |cffffd100%s|r -- |cffff8080switched off on this profile|r; |cffffd100/manners on|r to start."]
@@ -1976,9 +2007,13 @@ function addon:OnEnable()
 		elseif buff then
 			self:Print(L["build |cffffd100%s|r watching for buffs. Ready to cast |cffffd100%s|r."]:format(
 				tostring(ns.BUILD), ns.BuffName(buff)))
-		elseif ownOnly then
+		elseif ownLive and nothingToGive then
 			self:Print(L["build |cffffd100%s|r -- this class has no buffs for other players, so Manners reminds you of your own."]
 				:format(tostring(ns.BUILD)))
+		elseif ownLive then
+			-- Translators: its own sentence, like the one below it.
+			self:Print(L["build |cffffd100%s|r watching your own buffs; nothing is offered to anybody else: %s."]
+				:format(tostring(ns.BUILD), ns.NothingToCast()))
 		else
 			-- Translators: its own sentence, since the slot above takes a
 			-- spell's name and a reason does not fit there in every language.
@@ -2033,6 +2068,9 @@ function addon:TickBody()
 	-- Every tick, fights included, since that is where people die; guarded so
 	-- a failure there cannot stop the repaint below.
 	ns.Guard("death watch", ns.WatchGroupDeaths, now)
+	-- Your own auras changed since the last tick: what Automatic remembers,
+	-- in a fight and in town too (see RememberOwnBuffs), ahead of the repaint.
+	if ns.ownAurasChanged then ns.Guard("remember own buffs", ns.RememberOwnBuffs) end
 	-- Before the repaint, which then puts the prompt back.
 	ns.EndSnoozeIfDue(now)
 	ns.Prompt:Refresh()

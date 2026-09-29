@@ -729,7 +729,12 @@ do
 end
 
 function addon:UNIT_AURA(_, unit)
-	if unit == "player" then ns.Guard("ScanOwnBuffs", ns.ScanOwnBuffs) end
+	if unit == "player" then
+		ns.Guard("ScanOwnBuffs", ns.ScanOwnBuffs)
+		-- Read on the next tick rather than here: a fight fires this on you
+		-- many times a second (Core.lua, RememberOwnBuffs).
+		ns.ownAurasChanged = true
+	end
 
 	-- Keyed by GUID, never the unit token: nameplate tokens are recycled.
 	ForgetUnitAuras(plain(UnitGUID(unit)))

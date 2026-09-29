@@ -1276,6 +1276,18 @@ local function SelfBuff(db, mine, full, now)
 	return buff, has, remaining
 end
 
+-- The group buff SelfEntry would put you on the prompt for right now, ahead
+-- of your class's own, or nil: for /manners debug and Diagnostics, whose line
+-- per family would otherwise call a spell "the one to cast" while the prompt
+-- is on your Intellect (Commands.lua, MyselfLines).
+function ns.SelfBuffFirst(db, now)
+	local held, full = ns.MyselfHeldBack(db, now)
+	if held then return nil end
+	local mine = ns.SelfBuffs()
+	if #mine == 0 then return nil end
+	return (SelfBuff(db, mine, full, now))
+end
+
 -- Your own buff, when you are missing it or (with top-ups on) it is running
 -- low: the one entry BuildQueue makes for you, after the walk, since
 -- IsBuffableUnit turns "player" away on every other path. `candidates` is

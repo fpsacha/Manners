@@ -25,8 +25,8 @@ mutate("Options.lua",
        expect="When to offer does not point at how long a favour waits", script=S)
 
 mutate("Options.lua",
-       "\t\t\t\torder = 21,\n\t\t\t\thidden = function() return not S().owed end,\n",
-       "\t\t\t\torder = 21,\n",
+       "\t\t\t\torder = 21,\n\t\t\t\thidden = function() return not S().owed or not HasClassBuffs() end,\n",
+       "\t\t\t\torder = 21,\n\t\t\t\thidden = function() return not HasClassBuffs() end,\n",
        "when tab: favour pointer with favours off",
        expect="the favours pointer stays up with People who buff me off", script=S)
 
@@ -48,8 +48,8 @@ mutate("Options.lua",
 
 # The Always note shown whatever is chosen.
 mutate("Options.lua",
-       "\t\t\t\thidden = function() return F().whenBuffed ~= \"always\" end,\n",
-       "\t\t\t\thidden = function() return false end,\n",
+       "\t\t\t\thidden = function() return F().whenBuffed ~= \"always\" or not HasClassBuffs() end,\n",
+       "\t\t\t\thidden = function() return not HasClassBuffs() end,\n",
        "when tab: Always note always shown",
        expect="chosen, the Always note is shown", script=S)
 

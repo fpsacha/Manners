@@ -119,8 +119,11 @@ mutate("Prompt.lua",
        "\treturn STRATEGIES[StrategyFor(entry)](entry, ns.BuffName(entry.buff))\n",
        "groupbuffs: the macro casts the single spell",
        expect="the macro does not target one of them and cast Arcane Brilliance", script=S)
+# Both parts of the macro's key that follow the group spell: its id, and the
+# name the macro casts by (which "own: the macro keeps the old rank's name"
+# takes away on its own).
 mutate("Prompt.lua",
-       "\t\ttostring(entry.groupCast and entry.groupCast.spell),\n",
+       "\t\tns.EntrySpellName(entry),\n\t\ttostring(entry.groupCast and entry.groupCast.spell),\n",
        "",
        "groupbuffs: the macro is not rebuilt for the group cast",
        expect="the macro still casts the single buff at a party", script=S)
@@ -389,3 +392,24 @@ mutate("GroupBuffs.lua",
        "\tif false then\n\t\treturn L[",
        "groupbuffs: a paladin reads about parties",
        expect="a paladin's threshold does not say it counts one class", script=S)
+
+# ------------------------------------------------ review round: asked for
+# A group cast aimed at somebody who asked is filed as asked for, and left
+# out of the day's gifts, though it reached the rest of the party unprompted.
+mutate("GroupBuffs.lua",
+       "\t\tif entry.reason ~= \"asked\" then asked = false end\n",
+       "",
+       "groupbuffs: a group cast for one asker filed as asked",
+       expect="a group cast aimed at the one who asked was filed as asked for", script=S)
+mutate("Ledger.lua",
+       "\t\tlocal asked = type(pending) == \"table\" and pending.reason == \"asked\"\n"
+       "\t\t\tand (not group or group.asked == true)\n",
+       "\t\tlocal asked = type(pending) == \"table\" and pending.reason == \"asked\"\n",
+       "groupbuffs: the ledger files a group cast by its anchor",
+       expect="a group cast aimed at the one who asked was filed as asked for", script=S)
+# ...and one everybody asked for filed as a gift.
+mutate("Prompt.lua",
+       "\t\t\tasked = current.groupCast.asked,\n",
+       "",
+       "groupbuffs: the press forgets that everybody asked",
+       expect="everybody it covered asked, and the group cast was filed as given unprompted", script=S)

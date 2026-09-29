@@ -46,15 +46,15 @@ mutate("Queue.lua",
 
 # A shout offered to the warrior alone.
 mutate("Core.lua",
-       "\treturn buff ~= nil and not buff.selfCast and not buff.notSelf\n",
-       "\treturn buff ~= nil and not buff.notSelf\n",
+       "\treturn buff ~= nil and not buff.selfCast and not buff.notSelf and not buff.neverSelf\n",
+       "\treturn buff ~= nil and not buff.notSelf and not buff.neverSelf\n",
        "self: shout offered to yourself",
        expect="a solo warrior was offered his own shout", script=S)
 
 # A spell the game keeps off its caster offered to the caster.
 mutate("Core.lua",
-       "\treturn buff ~= nil and not buff.selfCast and not buff.notSelf\n",
-       "\treturn buff ~= nil and not buff.selfCast\n",
+       "\treturn buff ~= nil and not buff.selfCast and not buff.notSelf and not buff.neverSelf\n",
+       "\treturn buff ~= nil and not buff.selfCast and not buff.neverSelf\n",
        "self: notSelf ignored",
        expect="while wearing the Blessing", script=S)
 
@@ -294,8 +294,8 @@ mutate("Options.lua",
        expect="the summary on Start here leaves you out", script=S)
 
 mutate("Options.lua",
-       "\t\t\t\thidden = NothingForSelf,\n",
-       "",
+       "\t\t\t\torder = 15.1,\n\t\t\t\twidth = \"full\",\n\t\t\t\thidden = NothingForSelf,\n",
+       "\t\t\t\torder = 15.1,\n\t\t\t\twidth = \"full\",\n",
        "self: switch shown to a warrior",
        expect="the Myself switch is shown to a warrior", script=S)
 

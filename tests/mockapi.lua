@@ -1539,6 +1539,7 @@ for name, ids in pairs({
 	["Aspect of the Pack"] = { 13159 },
 	["Trueshot Aura"] = { 1299346, 1299348, 19506, 20905, 20906 },
 	["Lightning Shield"] = { 324, 325, 905, 945, 8134, 10431, 10432 },
+	["Water Shield"] = { 408510 },
 	["Omen of Clarity"] = { 16864 },
 }) do
 	for _, id in ipairs(ids) do SPELL_NAMES[id] = name end

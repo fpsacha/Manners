@@ -896,6 +896,10 @@ local function OnPostClick(self, mouseButton, down)
 			spell = current.groupCast.spell,
 			members = current.groupCast.members,
 			class = current.groupCast.class,
+			-- Whether everybody it covers asked for it in chat (GroupBuffs.lua):
+			-- the ledger files a group cast as asked only then, whatever
+			-- `reason` the anchor carries.
+			asked = current.groupCast.asked,
 		} or nil }
 	-- Everybody the group cast covers waits out the same cooldown as the
 	-- person it is aimed at, or they come straight back as single offers
@@ -2716,8 +2720,13 @@ function Prompt:ApplyTarget(entry, silent)
 	-- armedForFight and who is targeted for the hand-back, and whether the line
 	-- is armed so a change of range or a refusal re-arms it (out of combat).
 	-- The group spell too: the same person moves between a single cast and
-	-- their party's group cast as the others come and go.
+	-- their party's group cast as the others come and go. And the name the
+	-- macro casts by, which the key alone does not pin down: the trainer that
+	-- teaches Ice Armor renames the Frost Armor line (Core.lua, ProbeBuff)
+	-- under an entry that has not moved, and a key without it kept "/cast
+	-- Frost Armor" armed for as long as that entry stayed up.
 	local key = table.concat({ entry.name, tostring(entry.unit), entry.buff.key,
+		ns.EntrySpellName(entry),
 		tostring(entry.groupCast and entry.groupCast.spell),
 		tostring(entry.reason), tostring(ns.tryMacro), tostring(Prompt.armedForFight),
 		tostring(StillTargeted(entry)), tostring(speak) }, "\1")

@@ -2838,8 +2838,8 @@ mutate("Core.lua",
 
 # And greeted with a tour of a prompt that will never appear.
 mutate("Commands.lua",
-       "\tif caps.anyKnown and not ns.ResolveBuff(true) then\n",
-       "\tif false then\n",
+       "\tlocal othersOff = caps.anyKnown and not ns.ResolveBuff(true)\n",
+       "\tlocal othersOff = false\n",
        "a greeting promising a prompt nothing fills",
        expect="the greeting promised a prompt nothing will ever fill",
        script="runscenarios.py")
@@ -3533,8 +3533,8 @@ mutate("Options.lua",
 # "If they already have the buff" silent about the favour exception...
 mutate("Options.lua",
        "L[\"Someone who buffed you is always offered a buff back; Diagnostics shows"
-       " which buffs Manners can see on others.\"],\n",
-       "L[\"Diagnostics shows which buffs Manners can see on others.\"],\n",
+       " which buffs Manners can see on others.\"]\n",
+       "L[\"Diagnostics shows which buffs Manners can see on others.\"]\n",
        "already-buffed dropdown hides the favour exception",
        expect="the dropdown's description never says somebody who buffed you",
        script="runscenarios.py")

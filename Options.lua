@@ -2176,15 +2176,21 @@ end
 local function BuildWhenTab()
 	-- A class with no mana bar has nothing to keep: the floor and the line
 	-- under it go together. An unknown class (before the probe) shows both.
+	-- The floor keeps mana back from other people, and the favours are other
+	-- people's too: neither means anything to a class with nothing for them
+	-- (a hunter, a shaman), whose prompt is for its own buffs alone.
 	local function noManaBar()
 		local class = ns.caps and ns.caps.class
-		return class ~= nil and ns.MANA_CLASSES[class] ~= true
+		return (class ~= nil and ns.MANA_CLASSES[class] ~= true) or not HasClassBuffs()
 	end
 	return {
 		type = "group",
 		name = TAB.when,
 		order = 3,
-		hidden = function() return not HasClassBuffs() end,
+		-- A hunter's prompt too, for his own buffs: the mount is still where
+		-- it is hidden (the launcher and a press on a hidden prompt send him
+		-- here), and a shaman's Lightning Shield is topped up from here.
+		hidden = function() return not HasPrompt() end,
 		args = {
 			buffedHeader = { type = "header", name = L["Already buffed"], order = 1 },
 			whenBuffed = {
@@ -2192,8 +2198,14 @@ local function BuildWhenTab()
 				name = L["If they already have it"],
 				-- The favour exception is said here because none of the
 				-- three choices touches it: BuildQueue offers a debt
-				-- regardless of this setting.
-				desc = L["Someone who buffed you is always offered a buff back; Diagnostics shows which buffs Manners can see on others."],
+				-- regardless of this setting. For a class with nothing for
+				-- anybody else, what the choice does to its own buffs.
+				desc = function()
+					if not HasClassBuffs() then
+						return L["Your own buffs are offered when none is up; with Offer a top-up when it runs low, also when one is running out (never an aura or an aspect)."]
+					end
+					return L["Someone who buffed you is always offered a buff back; Diagnostics shows which buffs Manners can see on others."]
+				end,
 				order = 2,
 				width = "full",
 				values = {
@@ -2223,7 +2235,8 @@ local function BuildWhenTab()
 			alwaysNote = {
 				type = "description",
 				order = 4,
-				hidden = function() return F().whenBuffed ~= "always" end,
+				-- About offers to other people, which a hunter makes none of.
+				hidden = function() return F().whenBuffed ~= "always" or not HasClassBuffs() end,
 				-- The second sentence is a setting on another tab going
 				-- quiet. A target is promoted only on a reading that they
 				-- lack the buff, and this mode takes no readings.
@@ -2297,12 +2310,12 @@ local function BuildWhenTab()
 			-- stays with the other favour timings on Advanced.
 			favoursHeader = {
 				type = "header", name = L["Favours"], order = 20,
-				hidden = function() return not S().owed end,
+				hidden = function() return not S().owed or not HasClassBuffs() end,
 			},
 			favoursNote = {
 				type = "description",
 				order = 21,
-				hidden = function() return not S().owed end,
+				hidden = function() return not S().owed or not HasClassBuffs() end,
 				name = "|cff888888"
 					.. L["How long someone who buffed you stays on offer: %s."]
 						:format(Ref(L["Offer a buff back for (seconds)"], TAB.advanced))
@@ -3831,14 +3844,19 @@ local function LauncherState()
 		-- the prompt has nothing left to be for.
 		return false, L["Nothing to do: your own buffs are switched off under %s."]
 			:format(L["Myself"]), 1, 0.82, 0
-	elseif ownOnly then
-		-- Nothing for anybody else, but a prompt for your own buffs: past
-		-- the lines below, which are about buffs for other people.
+	elseif ownOnly or (ns.OwnBuffsLive() and not ns.ResolveBuff(true)) then
+		-- Nothing for anybody else, but a prompt for your own buffs: a hunter,
+		-- a warlock before Unending Breath, a mage with her Intellect switched
+		-- off. Past the lines below, which would say nothing is offered while
+		-- the prompt is up on you; and watching, so the tooltip and the menu
+		-- list "You" and its Skip.
 		if not held and ns.HiddenWhileMounted and ns.HiddenWhileMounted() then
 			return false, L["Kept away while you are mounted -- %s, on the %s tab."]
 				:format(L["Hide the prompt while I'm mounted"], L["When to offer"]), 1, 0.82, 0, true
 		end
-		return true, L["Watching your own buffs."], 0.4, 0.9, 0.4
+		if ownOnly then return true, L["Watching your own buffs."], 0.4, 0.9, 0.4 end
+		return true, L["Watching your own buffs; nothing is offered to anybody else: %s."]
+			:format(ns.NothingToCast()), 0.4, 0.9, 0.4, true
 	elseif class and ns.CLASSES_WITHOUT_BUFFS and ns.CLASSES_WITHOUT_BUFFS[class] then
 		return false, L["Nothing to do: %s"]:format(ns.NO_CLASS_BUFFS), 1, 0.82, 0
 	elseif not HasClassBuffs() then

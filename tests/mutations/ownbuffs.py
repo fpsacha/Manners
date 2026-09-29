@@ -92,8 +92,8 @@ mutate("Core.lua",
        expect="Aspect of the Cheetah was remembered", script=S)
 
 mutate("Core.lua",
-       "\t\t\tif InDungeon() then\n",
-       "\t\t\tif false then\n",
+       "\t\t\tif InDungeon() then return preferred",
+       "\t\t\tif false then return preferred",
        "own: a dungeon not noticed",
        expect="in a dungeon Automatic offered", script=S)
 
@@ -376,8 +376,8 @@ mutate("Options.lua",
        expect="is shown to a hunter", script=S)
 
 mutate("Options.lua",
-       "\t\thidden = function() return not HasPrompt() end,\n",
-       "\t\thidden = function() return not HasClassBuffs() end,\n",
+       "(ForOthersOnly).\n\t\thidden = function() return not HasPrompt() end,\n",
+       "(ForOthersOnly).\n\t\thidden = function() return not HasClassBuffs() end,\n",
        "own: Who to buff hidden from a hunter",
        expect="Who to buff is hidden from a hunter", script=S)
 
@@ -443,3 +443,178 @@ mutate("Commands.lua",
        "\t\telseif false then\n",
        "own: debug quiet about what cannot be cast",
        expect="/manners debug does not say the armor cannot be cast", script=S)
+
+# --- review round: the findings on the class's own buffs ---
+
+# A shaman's Water Shield outside the shield family: wearing it reads as no
+# shield up, and Lightning Shield is put over it.
+mutate("Buffs.lua",
+       "\t\t\t\t{ key = \"watershield\", ranks = { 408510 }, talent = true },\n",
+       "",
+       "own: Water Shield not a shield",
+       expect="wearing Water Shield, you were offered", script=S)
+
+# Unending Breath offered to the warlock himself, ahead of his armor.
+mutate("Buffs.lua",
+       "\t\t\t-- of your Demon Skin or Armor.\n\t\t\tneverSelf = true,\n",
+       "\t\t\t-- of your Demon Skin or Armor.\n",
+       "own: Unending Breath on yourself",
+       expect="rather than Demon Skin", script=S)
+
+mutate("Core.lua",
+       " and not buff.notSelf and not buff.neverSelf\n",
+       " and not buff.notSelf\n",
+       "own: neverSelf ignored",
+       expect="rather than Demon Skin", script=S)
+
+# /manners debug telling a warlock nothing he casts goes on himself.
+mutate("Commands.lua",
+       "\t\telseif #ns.KnownOwnFamilies() == 0 then\n",
+       "\t\telse\n",
+       "own: debug says nothing goes on a warlock",
+       expect="/manners debug does not say Demon Skin is the one", script=S)
+
+# The macro's key without the name it casts by: learning Ice Armor at the
+# trainer leaves "/cast Frost Armor" armed under the same entry.
+mutate("Prompt.lua",
+       "\t\tns.EntrySpellName(entry),\n",
+       "",
+       "own: the macro keeps the old rank's name",
+       expect="a mage who has learned Ice Armor arms", script=S)
+
+# Burning Crusade handed the vanilla families.
+mutate("Buffs.lua",
+       "\ttbc = TBC_SET,\n",
+       "\ttbc = VANILLA_SET,\n",
+       "own: Burning Crusade given the vanilla families",
+       expect="was given the vanilla families", script=S)
+
+# /manners debug naming the armor as the one to cast while the prompt is on
+# your Intellect.
+mutate("Commands.lua",
+       "\t\tif first then\n\t\t\tout[#out + 1] = L[\"your own %s comes first",
+       "\t\tif false then\n\t\t\tout[#out + 1] = L[\"your own %s comes first",
+       "own: debug quiet about your group buff first",
+       expect="does not say your Intellect comes before the armor", script=S)
+
+mutate("Queue.lua",
+       "\treturn (SelfBuff(db, mine, full, now))\n",
+       "\treturn nil\n",
+       "own: your group buff first never found",
+       expect="does not say your Intellect comes before the armor", script=S)
+
+# The launcher, the login line and the greeting saying nothing is offered
+# while the prompt is up on your own buff.
+mutate("Options.lua",
+       "\telseif ownOnly or (ns.OwnBuffsLive() and not ns.ResolveBuff(true)) then\n",
+       "\telseif ownOnly then\n",
+       "own: the launcher says nothing to a warlock with Demon Skin",
+       expect="the launcher tells a warlock with only Demon Skin", script=S)
+
+mutate("Options.lua",
+       "\t\tif ownOnly then return true, L[\"Watching your own buffs.\"], 0.4, 0.9, 0.4 end\n",
+       "\t\tif true then return true, L[\"Watching your own buffs.\"], 0.4, 0.9, 0.4 end\n",
+       "own: the launcher does not say others get nothing",
+       expect="the launcher tells a warlock with only Demon Skin", script=S)
+
+mutate("Core.lua",
+       "\treturn db ~= nil and db.sources.self == true and ns.OwnFamiliesOn() > 0\n",
+       "\treturn false\n",
+       "own: your own buffs never live",
+       expect="the launcher tells a warlock with only Demon Skin", script=S)
+
+mutate("Core.lua",
+       "\t\telseif ownLive then\n",
+       "\t\telseif false then\n",
+       "own: the login line says nothing to a warlock with Demon Skin",
+       expect="the login line tells a warlock with only Demon Skin", script=S)
+
+mutate("Commands.lua",
+       "\tif othersOff and not ownLive then\n",
+       "\tif othersOff then\n",
+       "own: the greeting says nothing will be offered",
+       expect="the greeting tells a mage with her Intellect switched off", script=S)
+
+mutate("Commands.lua",
+       "\telseif othersOff then\n",
+       "\telseif false then\n",
+       "own: the greeting does not say the prompt is yours",
+       expect="the greeting tells a mage with her Intellect switched off", script=S)
+
+# "The one you had up last" written only when the queue reads you.
+mutate("Favours.lua",
+       "\t\t-- many times a second (Core.lua, RememberOwnBuffs).\n\t\tns.ownAurasChanged = true\n",
+       "\t\t-- many times a second (Core.lua, RememberOwnBuffs).\n",
+       "own: your auras changing not noticed",
+       expect="Concentration Aura put up in a fight was not remembered", script=S)
+
+mutate("Core.lua",
+       "\tif ns.ownAurasChanged then ns.Guard(\"remember own buffs\", ns.RememberOwnBuffs) end\n",
+       "",
+       "own: the tick never remembers",
+       expect="Concentration Aura put up in a fight was not remembered", script=S)
+
+mutate("Core.lua",
+       "\t\tfor _, family in ipairs(ns.KnownOwnFamilies()) do ns.ReadOwnFamily(family) end\n",
+       "",
+       "own: the memory read reads nothing",
+       expect="Concentration Aura put up in a fight was not remembered", script=S)
+
+# The dungeon pick taken before it is learned.
+mutate("Core.lua",
+       "\t\tif preferred and Known(preferred) then\n",
+       "\t\tif preferred then\n",
+       "own: Automatic promises Mage Armor before it is learned",
+       expect="outside Automatic reads", script=S)
+
+# Myself's heading and Also in cities and inns shown to a warrior, and the
+# latter live with Myself off.
+mutate("Options.lua",
+       "order = 15, hidden = NothingForSelf },",
+       "order = 15 },",
+       "own: Myself's heading shown to a warrior",
+       expect="myselfHeader is shown to a warrior", script=S)
+
+mutate("Options.lua",
+       "\t\t\t\torder = 15.9,\n\t\t\t\twidth = \"full\",\n\t\t\t\thidden = NothingForSelf,\n",
+       "\t\t\t\torder = 15.9,\n\t\t\t\twidth = \"full\",\n",
+       "own: Also in cities and inns shown to a warrior",
+       expect="ownCities is shown to a warrior", script=S)
+
+mutate("Options.lua",
+       "\t\t\t\tdisabled = function() return not S().self end,\n"
+       "\t\t\t\tget = function() return ns.db.profile.ownBuffs.inCities == true end,\n",
+       "\t\t\t\tget = function() return ns.db.profile.ownBuffs.inCities == true end,\n",
+       "own: Also in cities and inns live with Myself off",
+       expect="Also in cities and inns stays live with Myself off", script=S)
+
+# When to offer for a hunter: there, and only what is about him.
+mutate("Options.lua",
+       "topped up from here.\n\t\thidden = function() return not HasPrompt() end,\n",
+       "topped up from here.\n\t\thidden = function() return not HasClassBuffs() end,\n",
+       "own: When to offer hidden from a hunter",
+       expect="When to offer is hidden from a hunter", script=S)
+
+mutate("Options.lua",
+       "\t\treturn (class ~= nil and ns.MANA_CLASSES[class] ~= true) or not HasClassBuffs()\n",
+       "\t\treturn (class ~= nil and ns.MANA_CLASSES[class] ~= true)\n",
+       "own: a hunter shown the mana floor",
+       expect="manaFloor is shown to a hunter", script=S)
+
+mutate("Options.lua",
+       "order = 20,\n\t\t\t\thidden = function() return not S().owed or not HasClassBuffs() end,\n",
+       "order = 20,\n\t\t\t\thidden = function() return not S().owed end,\n",
+       "own: a hunter shown the favours",
+       expect="favoursHeader is shown to a hunter", script=S)
+
+mutate("Options.lua",
+       "F().whenBuffed ~= \"always\" or not HasClassBuffs() end,\n",
+       "F().whenBuffed ~= \"always\" end,\n",
+       "own: a hunter shown the always note",
+       expect="alwaysNote is shown to a hunter", script=S)
+
+mutate("Options.lua",
+       "\t\t\t\t\tif not HasClassBuffs() then\n\t\t\t\t\t\treturn L[\"Your own buffs are offered when none",
+       "\t\t\t\t\tif false then\n\t\t\t\t\t\treturn L[\"Your own buffs are offered when none",
+       "own: a hunter told about favours on When to offer",
+       expect="If they already have it tells a hunter", script=S)
