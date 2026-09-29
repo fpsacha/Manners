@@ -81,6 +81,20 @@ mutate("Options.lua",
        expect="does not say to press Accept", script=S)
 
 # Anything let through the paste box.
+# The tab opening with the same paragraph twice.
+mutate("Options.lua",
+       "\tif type(t.args.desc) == \"table\" then t.args.desc.hidden = true end\n",
+       "",
+       "profiles: the library's paragraph repeats the intro",
+       expect="the library's own paragraph repeats the profiles intro", script=S)
+
+# The share boxes, under the library's controls, not pointed at.
+mutate("Options.lua",
+       "\t\t\t\t.. \" \" .. L[\"To share settings as text, see Share as text at the bottom.\"] .. \"\\n\",\n",
+       "\t\t\t\t.. \"\\n\",\n",
+       "profiles: share boxes not pointed at",
+       expect="the profiles intro does not say Share as text", script=S)
+
 mutate("Options.lua",
        "\t\t\t\tif not parsed then return err end\n",
        "",

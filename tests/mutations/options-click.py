@@ -45,17 +45,22 @@ mutate("Options.lua",
        "click: only-when-returning live with speech off",
        expect="Only when I buff someone back is live with speech off", script=S)
 
+# Re-anchored: the note under the switch is gone (it only repeated it, and
+# said "hear" for "say"), so the fault now is the note coming back.
 mutate("Options.lua",
-       "\t\t\t\thidden = function() return not (SP().enabled and SP().onlyWhenReturning) end,\n",
-       "\t\t\t\thidden = function() return true end,\n",
+       "\t\t\t-- In place of the Lines section while nothing is said.\n",
+       "\t\t\tonlyNote = {\n\t\t\t\ttype = \"description\",\n\t\t\t\torder = 14.5,\n"
+       "\t\t\t\tname = L[\"You will only hear a line when you return a favour.\"],\n\t\t\t},\n"
+       "\t\t\t-- In place of the Lines section while nothing is said.\n",
        "click: no note under only-when-returning",
-       expect="the note under Only when I buff someone back is missing", script=S)
+       expect="the note repeating Only when I buff someone back is still on the tab", script=S)
 
+# Re-anchored from the same note: the switch it sat under, relabelled.
 mutate("Options.lua",
-       "\t\t\t\thidden = function() return not (SP().enabled and SP().onlyWhenReturning) end,\n",
-       "\t\t\t\thidden = function() return not SP().onlyWhenReturning end,\n",
+       "\t\t\t\tname = L[\"Only when I buff someone back\"],\n",
+       "\t\t\t\tname = L[\"Only when I return a favour\"],\n",
        "click: only-when-returning note with speech off",
-       expect="the note under Only when I buff someone back shows with speech off", script=S)
+       expect="onlyWhenReturning is labelled", script=S)
 
 mutate("Options.lua",
        "\t\t\t\thidden = function() return not speechOff() end,\n",
@@ -122,16 +127,23 @@ mutate("Options.lua",
 # --- the Line set names ---
 
 mutate("Options.lua",
-       "\t\troleplay = L[\"Roleplay (general)\"],\n",
+       "\t\troleplay = L[\"Fantasy (general)\"],\n",
        "",
        "click: roleplay keeps its bare name",
-       expect="the Roleplay set is not named Roleplay (general)", script=S)
+       expect="the general set is not named Fantasy (general)", script=S)
 
 mutate("Options.lua",
-       "\t\tincharacter = L[\"In character (fits your race and faction)\"],\n",
+       "\t\tincharacter = L[\"In character (fits your race and class)\"],\n",
        "",
        "click: in character keeps its bare name",
        expect="the In character set is named", script=S)
+
+# Start here's quick choice named apart from the Line set it loads.
+mutate("Options.lua",
+       "\ttable.insert(Quick.VOICE, 4, { key = \"incharacter\", name = L[\"In character (fits your race and class)\"],\n",
+       "\ttable.insert(Quick.VOICE, 4, { key = \"incharacter\", name = L[\"Roleplay, in character\"],\n",
+       "click: in character named twice",
+       expect="Start here names the In character set differently", script=S)
 
 mutate("Options.lua",
        "\t\t\t\t\t\tout[key] = SET_LABEL[key] or ns.PHRASE_SETS[key].label\n",

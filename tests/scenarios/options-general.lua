@@ -95,7 +95,7 @@ do
 				end
 			end
 		end
-		for _, gone in ipairs({ "startHeader", "miscHeader", "chatHeader", "verbose",
+		for _, gone in ipairs({ "startHeader", "miscHeader", "chatHeader",
 			"shareHeader", "shareNote", "shareCopy", "shareText", "sharePaste" }) do
 			if a[gone] then fail(scenario, gone .. " is still on Start here") end
 		end
@@ -108,6 +108,41 @@ do
 		end
 		if not (a.minimap and a.minimap.order > a.ledgerOpen.order) then
 			fail(scenario, "the minimap switch is not last, under the ledger")
+		end
+		noErrors(scenario, ns)
+	end
+end
+
+-- ------------------------------------------------------------------ 1b
+-- The minimap button and the chat lines, last, under a header of their own:
+-- without one the minimap switch read as a ledger setting, and the chat
+-- switch people reach for when the lines annoy them was hidden on Diagnostics.
+do
+	local scenario = "start here: minimap and chat under their own header"
+	local ns, a = session(scenario)
+	if ns then
+		local header, minimap, verbose = a.minimapHeader, a.minimap, a.verbose
+		if not (header and header.type == "header" and text(header.name) == "Minimap and chat") then
+			fail(scenario, "there is no Minimap and chat header")
+		elseif not (minimap and verbose and header.order > a.ledgerOpen.order
+			and minimap.order > header.order and verbose.order > minimap.order) then
+			fail(scenario, "the minimap and chat switches are not under their header, after the ledger")
+		end
+		if verbose then
+			if text(verbose.name) ~= "Tell me in chat what Manners is doing" then
+				fail(scenario, "the verbose switch reads " .. text(verbose.name))
+			end
+			if not text(verbose.desc):find("Only you see these", 1, true) then
+				fail(scenario, "the verbose switch does not say only you see it: " .. text(verbose.desc))
+			end
+			-- The same saved key as ever.
+			local profile = ns.db.profile
+			local was = profile.verbose
+			verbose.set({ "verbose" }, not was)
+			if profile.verbose ~= not was or verbose.get({ "verbose" }) ~= not was then
+				fail(scenario, "the verbose switch does not write profile.verbose")
+			end
+			verbose.set({ "verbose" }, was)
 		end
 		noErrors(scenario, ns)
 	end

@@ -207,3 +207,45 @@ mutate("Options.lua",
        "\t\t\t\t\tlocal ok, text = true, ReagentLines()\n",
        "who tab: the reagent line unguarded",
        expect="the reagent line threw", script=S)
+
+# --- one spell, and the mana-only switch ---
+
+# A mage asked to choose between Automatic and his one spell.
+mutate("Options.lua",
+       "\t\t\t\thidden = function() return OneBuff() and ns.PinnedBuff() == nil end,\n",
+       "\t\t\t\thidden = function() return false end,\n",
+       "who tab: one spell offered as a choice",
+       expect="a mage is offered Buff to offer", script=S)
+
+# ...and, once pinned, left with no way back to Automatic.
+mutate("Options.lua",
+       "\t\t\t\thidden = function() return OneBuff() and ns.PinnedBuff() == nil end,\n",
+       "\t\t\t\thidden = function() return OneBuff() end,\n",
+       "who tab: a pinned single spell stuck",
+       expect="a mage with a pin has no way back to Automatic", script=S)
+
+# The one-spell rule reaching a class with more than one.
+mutate("Options.lua",
+       "\t\treturn #buffs == 1 and not buffs[1].neverAuto\n",
+       "\t\treturn #buffs >= 1 and not buffs[1].neverAuto\n",
+       "who tab: a priest not asked to choose",
+       expect="a priest is not offered Buff to offer", script=S)
+
+mutate("Options.lua",
+       "\t\t\t\tif OneBuff() and #castable == 1 then\n",
+       "\t\t\t\tif false then\n",
+       "who tab: one spell described as Automatic",
+       expect="a mage is not told the one spell they offer", script=S)
+
+# The tooltip naming another class's spell again.
+mutate("Options.lua",
+       "\t\t\t\t\t\treturn L[\"%s is not offered to players without mana, such as warriors and rogues.\"]:format(names[1])\n",
+       "\t\t\t\t\t\treturn L[\"%s is not offered to players without mana, such as warriors and rogues.\"]:format(\"Divine Spirit\")\n",
+       "who tab: mana-only tooltip names a priest spell",
+       expect="a mage's tooltip reads", script=S)
+
+mutate("Options.lua",
+       "\t\t\t\thidden = function() return #ManaOnlyNames() == 0 end,\n",
+       "",
+       "who tab: mana-only switch for a warrior",
+       expect="a warrior is shown Skip players it does nothing for", script=S)

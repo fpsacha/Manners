@@ -63,7 +63,6 @@ do
 			{ "enabled", 12, "Say a line when I buff someone" },
 			{ "channel", 13, "Where to say it" },
 			{ "onlyWhenReturning", 14, "Only when I buff someone back" },
-			{ "onlyNote", 14.5 },
 			{ "linesOff", 19.5 },
 			{ "phrasesHeader", 20, "Lines" },
 			{ "preset", 21, "Line set" },
@@ -94,6 +93,10 @@ do
 		end
 		for _, key in ipairs({ "targetingHeader", "restoreTarget", "noTargetNote", "targetingNote" }) do
 			if click.args[key] then fail(scenario, key .. " is still on What I say, not Advanced") end
+		end
+		-- It only repeated the switch above it, and said "hear" for "say".
+		if click.args.onlyNote then
+			fail(scenario, "the note repeating Only when I buff someone back is still on the tab")
 		end
 		local intro = optionText(click.args.intro and click.args.intro.name)
 		if not intro:find("Optional: thank people, or say a line, when you buff them.", 1, true)
@@ -163,9 +166,6 @@ do
 		if live(a.onlyWhenReturning) then
 			fail(scenario, "Only when I buff someone back is live with speech off")
 		end
-		if shown(a.onlyNote) then
-			fail(scenario, "the note under Only when I buff someone back shows with speech off")
-		end
 		if a.preset and a.preset.disabled ~= nil then
 			fail(scenario, "the Line set dropdown still has a disabled rule of its own")
 		end
@@ -178,15 +178,7 @@ do
 		if not (live(a.channel) and live(a.onlyWhenReturning)) then
 			fail(scenario, "the speech controls stay greyed with speech on")
 		end
-		if not shown(a.onlyNote) then
-			fail(scenario, "the note under Only when I buff someone back is missing")
-		elseif not optionText(a.onlyNote.name):find("You will only hear a line when you return a favour.", 1, true) then
-			fail(scenario, "the note reads: " .. optionText(a.onlyNote.name))
-		end
 		speech.onlyWhenReturning = false
-		if shown(a.onlyNote) then
-			fail(scenario, "the note under Only when I buff someone back shows with the switch off")
-		end
 		noErrors(scenario, ns)
 	end
 end
@@ -226,11 +218,19 @@ do
 	if preset then
 		local values = preset.values
 		if type(values) == "function" then values = values() end
-		if values.roleplay ~= "Roleplay (general)" then
-			fail(scenario, "the Roleplay set is not named Roleplay (general): " .. tostring(values.roleplay))
+		-- Not "Roleplay": beside In character, a roleplayer could not tell
+		-- which of the two they had.
+		if values.roleplay ~= "Fantasy (general)" then
+			fail(scenario, "the general set is not named Fantasy (general): " .. tostring(values.roleplay))
 		end
-		if ns.InCharacter and values.incharacter ~= "In character (fits your race and faction)" then
+		if ns.InCharacter and values.incharacter ~= "In character (fits your race and class)" then
 			fail(scenario, "the In character set is named " .. tostring(values.incharacter))
+		end
+		-- One name for one set: the quick choice on Start here reads the same.
+		local quick = ns.QuickSetup and ns.QuickSetup.Find(ns.QuickSetup.VOICE, "incharacter")
+		if ns.InCharacter and not (quick and quick.name == values.incharacter) then
+			fail(scenario, "Start here names the In character set differently: "
+				.. tostring(quick and quick.name))
 		end
 		for _, key in ipairs(ns.PHRASE_SET_ORDER) do
 			if key ~= "roleplay" and key ~= "incharacter" and values[key] ~= ns.PHRASE_SETS[key].label then

@@ -66,11 +66,17 @@ do
 					.. tostring(intro.order) .. ")")
 			end
 			local text = optionText(intro.name)
-			for _, want in ipairs({ "Default profile", "per character" }) do
+			for _, want in ipairs({ "Default profile", "per character", "Share as text" }) do
 				if not tostring(text):find(want, 1, true) then
 					fail(scenario, "the profiles intro does not say " .. want .. ": " .. tostring(text))
 				end
 			end
+		end
+		-- The library's paragraph says the same thing, so the tab would open
+		-- with it twice.
+		local libDesc = tab.args.desc
+		if libDesc and libDesc.hidden ~= true then
+			fail(scenario, "the library's own paragraph repeats the profiles intro")
 		end
 		noErrors(scenario, ns)
 	end

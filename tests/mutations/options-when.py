@@ -7,14 +7,28 @@ S = "runscenarios.py"
 
 # --- the layout ---
 
-# The combat switch left at its old place, after the mana floor.
+# The combat switch, now on Look next to Animations, drifted out of Getting my
+# attention (re-anchored from its old place on this tab).
 mutate("Options.lua",
        "red if it failed.\"],\n"
-       "\t\t\t\torder = 12,\n",
+       "\t\t\t\torder = 32.5,\n",
        "red if it failed.\"],\n"
        "\t\t\t\torder = 38,\n",
        "when tab: combat switch out of its section",
-       expect="the section order is wrong", script=S)
+       expect="is out of order: it comes before hideInCombat", script=S)
+
+# The favour timing pointer: gone, or up with favours off.
+mutate("Options.lua",
+       ":format(Ref(L[\"Offer a buff back for (seconds)\"], TAB.advanced))\n",
+       ":format(L[\"Offer a buff back for (seconds)\"])\n",
+       "when tab: favour time points nowhere",
+       expect="When to offer does not point at how long a favour waits", script=S)
+
+mutate("Options.lua",
+       "\t\t\t\torder = 21,\n\t\t\t\thidden = function() return not S().owed end,\n",
+       "\t\t\t\torder = 21,\n",
+       "when tab: favour pointer with favours off",
+       expect="the favours pointer stays up with People who buff me off", script=S)
 
 # The choices listed in the alphabet's order rather than least mana first.
 mutate("Options.lua",
@@ -51,12 +65,12 @@ mutate("Options.lua",
 # Moved here and bound to the filters table, so the saved setting is lost.
 mutate("Options.lua",
        "red if it failed.\"],\n"
-       "\t\t\t\torder = 12,\n"
+       "\t\t\t\torder = 32.5,\n"
        "\t\t\t\twidth = \"full\",\n"
        "\t\t\t\tget = pGet,\n"
        "\t\t\t\tset = pSet,\n",
        "red if it failed.\"],\n"
-       "\t\t\t\torder = 12,\n"
+       "\t\t\t\torder = 32.5,\n"
        "\t\t\t\twidth = \"full\",\n"
        "\t\t\t\tget = fGet,\n"
        "\t\t\t\tset = fSet,\n",

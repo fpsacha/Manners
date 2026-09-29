@@ -21,12 +21,13 @@ mutate("Options.lua",
        "advanced: the reset forgets a wording",
        expect="advanced reset: prompt.reasonUnknown was not put back", script=S)
 
-# The anchor the offsets are measured from left where it was.
+# Re-anchored: the reset used to put the anchor back, and now keeps where the
+# prompt sits. The fault is the anchor swept up with the rest again.
 mutate("Options.lua",
-       "\t\t{ \"prompt\", \"point\" },\n",
-       "",
+       "\t\t{ \"prompt\", \"format\" },\n",
+       "\t\t{ \"prompt\", \"point\" },\n\t\t{ \"prompt\", \"format\" },\n",
        "advanced: the reset leaves the anchor",
-       expect="advanced reset: prompt.point was not put back", script=S)
+       expect="advanced reset: moved the prompt", script=S)
 
 # A setting from another tab swept up with this one.
 mutate("Options.lua",
@@ -73,10 +74,17 @@ mutate("Options.lua",
 
 # No question before resetting.
 mutate("Options.lua",
-       "\t\t\t\tconfirm = true,\n\t\t\t\tconfirmText = L[\"Put every setting on this tab back to its default?\"],\n",
+       "\t\t\t\tconfirm = true,\n\t\t\t\tconfirmText = L[\"Put every setting on this tab back to its default? This also restores what the prompt says; where it sits is kept.\"],\n",
        "",
        "advanced: the reset does not ask",
        expect="Put these back to default does not ask before it resets", script=S)
+
+# The question not saying the wording goes back too.
+mutate("Options.lua",
+       "L[\"Put every setting on this tab back to its default? This also restores what the prompt says; where it sits is kept.\"]",
+       "L[\"Put every setting on this tab back to its default?\"]",
+       "advanced: the reset hides what it restores",
+       expect="the reset does not say it restores the wording and keeps the position", script=S)
 
 # --- what greys out and hides ---
 

@@ -904,7 +904,14 @@ local function getLibrary(name, silent)
 			Mock.optionsRepaints = (Mock.optionsRepaints or 0) + 1
 		end
 	elseif name == "AceDBOptions-3.0" then
-		lib.GetOptionsTable = function() return { type = "group", name = "p", args = {} } end
+		-- With the library's own opening paragraph, its `desc` at order 1,
+		-- which the page hides in favour of its own.
+		lib.GetOptionsTable = function()
+			return { type = "group", name = "p", args = {
+				desc = { type = "description", order = 1,
+					name = "You can change the active database profile, so you can have different settings for every character." },
+			} }
+		end
 	elseif name == "LibSharedMedia-3.0" then
 		-- Real enough to tell a registered sound from a missing one. The
 		-- shipped library has exactly one sound, "None", whose value is the

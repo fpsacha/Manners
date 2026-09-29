@@ -663,6 +663,50 @@ function Setup.MacroMade()
 	return ok and type(index) == "number" and index > 0
 end
 
+-- The game's macro window, so the macro just made is there to drag. Out of
+-- combat only, and this window shut first, as for the key bindings.
+function Setup.OpenMacros()
+	if InCombatLockdown() or type(ShowMacroFrame) ~= "function" then return false end
+	ns.CloseOptions()
+	return (pcall(ShowMacroFrame))
+end
+
+-- How many other characters use the profile this one is on, from AceDB's own
+-- record of who uses which. 0 where the database cannot say.
+function Setup.SharedWith()
+	local db = ns.db
+	local sv, keys = db and db.sv, db and db.keys
+	if type(sv) ~= "table" or type(sv.profileKeys) ~= "table" or type(keys) ~= "table"
+		or type(db.GetCurrentProfile) ~= "function" then
+		return 0
+	end
+	local current = db:GetCurrentProfile()
+	local n = 0
+	for char, profile in pairs(sv.profileKeys) do
+		if profile == current and char ~= keys.char then n = n + 1 end
+	end
+	return n
+end
+
+-- A profile of this character's own, named after it, starting as a copy of
+-- the shared one. A profile switch moves the prompt and rewrites its macro, so
+-- it waits for the fight to end, as the minimap menu's switch does.
+function Setup.OwnProfile()
+	local db = ns.db
+	if InCombatLockdown() or not (db.SetProfile and db.CopyProfile and db.GetCurrentProfile
+		and type(db.keys) == "table" and db.keys.char) then
+		return false
+	end
+	return ns.Guard("own profile", function()
+		local shared, mine = db:GetCurrentProfile(), db.keys.char
+		if shared == mine then return end
+		db:SetProfile(mine)
+		db:CopyProfile(shared)
+		ns.addon:Print(L["This character now has its own settings (profile: %s)."]:format(mine))
+		ns.RefreshOptionsDisplay()
+	end)
+end
+
 ---------------------------------------------------------------------------
 -- Quick: the presets on Start here
 --
@@ -697,9 +741,15 @@ function Quick.Set(path, value)
 end
 
 -- Who to offer to. Never touches sources.asked (reading chat is its own
--- opt-in), the buff, the speech or the look. "nearby" is a new profile's
--- defaults, so a fresh profile shows it; the entries are ordered so that
--- exactly one can match.
+-- opt-in), the buff, the speech or the look -- nor the group buffs and the
+-- ready-check and revived priorities, which are fine-tuning on Who to buff that
+-- every choice leaves as it found them. "nearby" is a new profile's defaults,
+-- so a fresh profile shows it; the entries are ordered so that exactly one can
+-- match.
+--
+-- `applyOnly` fields are written when the choice is picked and then left to the
+-- player: changing one is fine-tuning the choice, not leaving it, so the
+-- dropdown does not turn to Custom over it.
 Quick.WHO = {
 	{ key = "favours", name = L["Only people who buff me"], set = {
 		["sources.owed"] = true, ["sources.group"] = false, ["sources.strangers"] = false,
@@ -709,18 +759,20 @@ Quick.WHO = {
 		["sources.owed"] = true, ["sources.group"] = true, ["sources.strangers"] = false,
 		["filters.whenBuffed"] = "skip",
 	} },
+	-- How far "near" reaches is what the dropdown's tooltip invites tuning.
 	{ key = "nearby", name = L["Everyone near me"], set = {
 		["sources.owed"] = true, ["sources.group"] = true, ["sources.strangers"] = true,
 		["filters.whenBuffed"] = "skip", ["filters.proximity"] = "near",
-	} },
-	{ key = "raid", name = L["Dungeon and raid buffer"], set = {
+	}, applyOnly = { ["filters.proximity"] = true } },
+	{ key = "raid", name = L["My group, kept topped up (dungeons and raids)"], set = {
 		["sources.owed"] = true, ["sources.group"] = true, ["sources.strangers"] = false,
-		["filters.whenBuffed"] = "refresh", ["groupBuffs.use"] = true,
-		["priority.readyCheck"] = true, ["priority.revived"] = true,
+		["filters.whenBuffed"] = "refresh",
 	} },
 }
 
--- What to say. An entry with `lines` also loads that phrase set.
+-- What to say. An entry with `lines` also loads that phrase set. Whether a
+-- line also goes to people you buff first is the player's to tune, and the
+-- summary says which it is.
 Quick.VOICE = {
 	{ key = "silent", name = L["Stay silent"], set = {
 		["speech.enabled"] = false, ["prompt.thankEmote"] = false,
@@ -731,19 +783,20 @@ Quick.VOICE = {
 	{ key = "polite", name = L["A polite line"], lines = "polite", set = {
 		["speech.enabled"] = true, ["speech.channel"] = "SAY",
 		["speech.onlyWhenReturning"] = true, ["prompt.thankEmote"] = false,
-	} },
+	}, applyOnly = { ["speech.onlyWhenReturning"] = true } },
 	{ key = "whisper", name = L["Whisper them a thank-you"], lines = "polite", set = {
 		["speech.enabled"] = true, ["speech.channel"] = "WHISPER",
 		["speech.onlyWhenReturning"] = true, ["prompt.thankEmote"] = false,
-	} },
+	}, applyOnly = { ["speech.onlyWhenReturning"] = true } },
 }
--- Phrases.lua loads before this file; without it there is no such set.
+-- Phrases.lua loads before this file; without it there is no such set. Named
+-- as What I say's Line set names it, so the two read as one set.
 if ns.InCharacter then
-	table.insert(Quick.VOICE, 4, { key = "incharacter", name = L["Roleplay, in character"],
+	table.insert(Quick.VOICE, 4, { key = "incharacter", name = L["In character (fits your race and class)"],
 		lines = "incharacter", set = {
 			["speech.enabled"] = true, ["speech.channel"] = "SAY",
 			["speech.onlyWhenReturning"] = true, ["prompt.thankEmote"] = false,
-		} })
+		}, applyOnly = { ["speech.onlyWhenReturning"] = true } })
 end
 
 function Quick.Find(list, key)
@@ -761,10 +814,12 @@ function Quick.Ignored(list, path)
 end
 
 -- Whether every field the entry sets holds its value now, and for an entry
--- with lines, that the set is chosen and its lines are unedited.
+-- with lines, that the set is chosen and its lines are unedited. Its applyOnly
+-- fields are not asked.
 function Quick.Matches(list, entry)
+	local loose = entry.applyOnly or {}
 	for path, value in pairs(entry.set) do
-		if not Quick.Ignored(list, path) and Quick.Get(path) ~= value then return false end
+		if not loose[path] and not Quick.Ignored(list, path) and Quick.Get(path) ~= value then return false end
 	end
 	if entry.lines then
 		local sp = SP()
@@ -870,38 +925,94 @@ function Quick.WhoSummary()
 	local buffed = f.whenBuffed == "refresh" and L["topped up when low"]
 		or f.whenBuffed == "always" and L["offered anyway"]
 		or L["skipped"]
-	local text = L["Offering to: %s. Already buffed: %s."]:format(list, buffed)
+	local text
+	if s.owed and not (s.group or s.asked or (s.strangers and not ns.OnlyReachesGroup())) then
+		-- Favours only: BuildQueue offers a favour back whatever they carry,
+		-- so "already buffed" has nobody to be about.
+		text = L["Offering to: %s."]:format(list)
+	else
+		text = L["Offering to: %s. Already buffed: %s."]:format(list, buffed)
+		if s.owed then text = text .. " " .. L["People who buff me are always offered one back."] end
+	end
 	if s.asked then text = text .. " " .. L["People who ask in chat: on."] end
+	if s.group then
+		-- Guarded: the reagent count is an item API, and a summary is a
+		-- `name` AceConfig reads with nothing around it.
+		local ok, extra = pcall(Quick.GroupSummary)
+		if ok and extra ~= "" then text = text .. " " .. extra end
+	end
 	return text
 end
 
--- And one about what is said.
+-- What My party and raid brings with it while it is on: the group buffs (for
+-- a class that has learned one) and who goes first. Each only while its own
+-- switch on Who to buff is on.
+function Quick.GroupSummary()
+	local parts = {}
+	local gb = ns.db.profile.groupBuffs
+	if gb.use and ns.ClassHasGroupBuffs and ns.ClassHasGroupBuffs() then
+		for _, buff in ipairs(ns.CastableBuffs()) do
+			local info = ns.BuffInfo(buff)
+			-- GroupBuffs.lua casts one only with both a group rank and its reagent.
+			if info and info.groupRank and info.groupReagent and #parts == 0 then
+				local name = (ns.ReagentName and ns.ReagentName(info.groupReagent)) or tostring(info.groupReagent)
+				local count = ns.ReagentCount and ns.ReagentCount(info.groupReagent)
+				if count == 0 then
+					parts[1] = L["%s: none in your bags, so group buffs are not offered."]:format(name)
+				elseif count then
+					parts[1] = L["Group buffs when %d of a party need it (%s: %d in bags)."]
+						:format(gb.atLeast, name, count)
+				else
+					parts[1] = L["Group buffs when %d of a party need it."]:format(gb.atLeast)
+				end
+			end
+		end
+	end
+	local pr = PR()
+	if pr.readyCheck and pr.revived then
+		parts[#parts + 1] = L["Ready checks and the just-revived go first."]
+	elseif pr.readyCheck then
+		parts[#parts + 1] = L["At a ready check, your group goes first."]
+	elseif pr.revived then
+		parts[#parts + 1] = L["The just-revived go first."]
+	end
+	return table.concat(parts, " ")
+end
+
+-- And one about what is said. A set is named by its own summary phrase ("a
+-- polite line"), never by the dropdown's label dropped into a sentence.
 function Quick.VoiceSummary()
 	local sp = SP()
 	local thanks = P().thankEmote
+	-- The /thank answers somebody buffing you, and with People who buff me
+	-- off nobody is noticed doing it: What I say greys the switch out then.
+	local thankLine = thanks and (S().owed and L["Also /thanks people who buff you."]
+		or L["The /thank waits for %s to be on."]:format(Ref(L["People who buff me"], TAB.who)))
 	if not sp.enabled then
-		return thanks and L["Only /thank."] or L["Silent."]
+		if not thanks then return L["Silent."] end
+		if S().owed then return L["Only /thank."] end
+		return L["Only /thank."] .. " " .. thankLine
 	end
 	local set = ns.PHRASE_SETS[sp.presetChoice or "roleplay"]
-	local label
+	local phrase
 	if ns.InCharacter and ns.InCharacter.Active(sp) then
-		label = set and set.label
+		phrase = set and set.summary
 	elseif set and sp.phrases == ns.PhraseSetText(sp.presetChoice or "roleplay") then
-		label = set.label
+		phrase = set.summary
 	end
 	local where = sp.channel == "WHISPER" and L["a whisper"]
 		or "/" .. tostring(ns.CHANNEL_COMMANDS[sp.channel] or "say")
 	local text
-	if label then
+	if phrase then
 		text = sp.onlyWhenReturning
-			and L["Says a %s line in %s when you buff someone back."]:format(label, where)
-			or L["Says a %s line in %s when you buff someone."]:format(label, where)
+			and L["Says %s in %s when you buff someone back."]:format(phrase, where)
+			or L["Says %s in %s when you buff someone."]:format(phrase, where)
 	else
 		text = sp.onlyWhenReturning
 			and L["Says one of your own lines in %s when you buff someone back."]:format(where)
 			or L["Says one of your own lines in %s when you buff someone."]:format(where)
 	end
-	if thanks then text = text .. " " .. L["Also /thanks people who buff you."] end
+	if thankLine then text = text .. " " .. thankLine end
 	return text
 end
 
@@ -1005,6 +1116,29 @@ local function BuildStartTab()
 				end,
 			},
 
+			-- Every character starts on the shared Default profile, so a
+			-- setup made here reaches the alts too. Said before step 1, and
+			-- only while another character is actually on this profile.
+			sharedNote = {
+				type = "description",
+				order = 8,
+				hidden = function() return Setup.SharedWith() == 0 end,
+				name = function()
+					local name = ns.db.GetCurrentProfile and ns.db:GetCurrentProfile() or "Default"
+					return grey(L["These settings are shared by your other characters (profile: %s)."]:format(tostring(name))
+						.. " " .. L["The Profiles tab also copies settings as text to share."])
+				end,
+			},
+			ownProfile = {
+				type = "execute",
+				name = L["Give this character its own settings"],
+				desc = L["Copies these settings into a profile named after this character; changes made after that stay on this character."],
+				order = 8.1,
+				hidden = function() return Setup.SharedWith() == 0 end,
+				disabled = function() return InCombatLockdown() end,
+				func = function() Setup.OwnProfile() end,
+			},
+
 			-- Step 1. A preset, with the sentence that says what it came to;
 			-- the switches themselves are on Who to buff.
 			whoHeader = {
@@ -1063,9 +1197,11 @@ local function BuildStartTab()
 				desc = L["Adds a macro named Manners; put it on an action bar and pressing it clicks the prompt."],
 				order = 23,
 				hidden = noClassBuffs,
-				-- Repainted so the line under it moves on to "made".
+				-- Repainted so the line under it moves on to "made", and the
+				-- macro window opened so the macro is there to drag.
 				func = function()
 					ns.CreateClickMacro()
+					if Setup.MacroMade() then Setup.OpenMacros() end
 					ns.RefreshOptionsDisplay()
 				end,
 			},
@@ -1081,7 +1217,7 @@ local function BuildStartTab()
 						return "|cff80e080" .. L["Ready: %s buffs whoever the prompt shows."]
 							:format(tostring(shown)) .. "|r"
 					elseif Setup.MacroMade() then
-						return "|cffffd100" .. L["Your Manners macro is made; drag it onto an action bar."] .. "|r"
+						return "|cffffd100" .. L["Your Manners macro is made: open the macro window (/macro) and drag it onto an action bar."] .. "|r"
 					end
 					return "|cffff8080" .. L["No key yet: pick one above, make the macro, or just click the prompt."] .. "|r"
 				end,
@@ -1111,6 +1247,7 @@ local function BuildStartTab()
 			startPos = {
 				type = "select",
 				name = L["Where it sits"],
+				desc = L["Pick Above the action bars to put it back where it started."],
 				order = 32,
 				hidden = noClassBuffs,
 				-- "Where I dragged it" only while the prompt is on none of
@@ -1162,7 +1299,7 @@ local function BuildStartTab()
 			},
 			quickVoice = {
 				type = "select",
-				name = L["When I buff someone back"],
+				name = L["When I buff someone"],
 				desc = L["Change the words and channel on What I say."],
 				order = 41,
 				width = "full",
@@ -1272,8 +1409,9 @@ local function BuildStartTab()
 				end,
 			},
 
-			-- Last and without a header of its own: it is about where the
-			-- way back in lives, not about buffing.
+			-- Last, under a header of its own: where the way back in lives,
+			-- and the chat lines people reach for when they want quiet.
+			minimapHeader = { type = "header", name = L["Minimap and chat"], order = 69 },
 			minimap = {
 				type = "toggle",
 				name = L["Show minimap button"],
@@ -1299,6 +1437,26 @@ local function BuildStartTab()
 					end
 				end,
 			},
+			-- Lines printed to your own chat frame, never said aloud. On by
+			-- default, and the switch people look for when the lines annoy
+			-- them, so here rather than on Diagnostics.
+			verbose = {
+				type = "toggle",
+				-- A cast that worked prints nothing unless it repaid a
+				-- favour, so the label promises what it is doing, not a
+				-- line per click.
+				name = L["Tell me in chat what Manners is doing"],
+				-- What it prints first: a cast that worked prints only
+				-- "repaid", and somebody who switched it on to watch
+				-- their casts took the silence for a broken switch.
+				desc = L["A line when somebody buffs you, when a favour is counted as repaid, and when a click fails, is skipped, or leaves somebody owed."]
+					.. "\n\n"
+					.. L["Only you see these; they show whether a buff was missed or someone could not be reached."],
+				order = 71,
+				width = "full",
+				get = function() return ns.db.profile.verbose end,
+				set = function(_, v) ns.db.profile.verbose = v end,
+			},
 		},
 	}
 end
@@ -1320,6 +1478,24 @@ local function BuildWhoTab()
 			keys[#keys + 1] = buff.key
 		end
 		return keys
+	end
+
+	-- A class with one spell to give has nothing to choose between, the rule
+	-- AddBuffToggles already follows. Except where Automatic never reaches for
+	-- that one spell: the dropdown is then the only way to offer it at all.
+	local function OneBuff()
+		local buffs = ns.GetClassBuffs(ns.caps.class) or {}
+		return #buffs == 1 and not buffs[1].neverAuto
+	end
+
+	-- The class's own spells that "Skip players it does nothing for" holds
+	-- back, by name, so the tooltip names what the switch acts on here.
+	local function ManaOnlyNames()
+		local names = {}
+		for _, buff in ipairs(ns.GetClassBuffs(ns.caps.class) or {}) do
+			if buff.manaOnly then names[#names + 1] = ns.BuffName(buff) end
+		end
+		return names
 	end
 
 	-- Whether the group buff settings mean anything for this class at all.
@@ -1371,6 +1547,8 @@ local function BuildWhoTab()
 				order = 2,
 				values = BuffChoices,
 				sorting = BuffOrder,
+				-- Shown again for a pin, so there is a way back to Automatic.
+				hidden = function() return OneBuff() and ns.PinnedBuff() == nil end,
 				-- What the walk is honouring, rather than what is stored. The
 				-- profile is shared, so a pin can be another class's, and read
 				-- raw the dropdown was blank over a walk that was Automatic.
@@ -1384,16 +1562,33 @@ local function BuildWhoTab()
 				type = "description",
 				order = 3,
 				hidden = function() return ns.PinnedBuff() ~= nil end,
-				name = function() return AutoExplanation() end,
+				-- One spell and it is castable: just which one. Anything else
+				-- (not learned, switched off) keeps Automatic's warning.
+				name = function()
+					local castable = ns.CastableBuffs()
+					if OneBuff() and #castable == 1 then
+						return "|cff888888" .. L["You offer %s."]:format("|cffffffff" .. BuffLabel(castable[1]) .. "|r") .. "|r"
+					end
+					return AutoExplanation()
+				end,
 			},
 			-- The per-spell switches (AddBuffToggles) sit at 4.1, 4.2, ... and
-			-- this one after them: all three decide what is cast.
+			-- this one after them: all three decide what is cast. Only for a
+			-- class with a mana-only spell, which is all it holds back.
 			relevantOnly = {
 				type = "toggle",
 				name = L["Skip players it does nothing for"],
-				desc = L["Mana-only buffs like Divine Spirit are not offered to warriors and rogues."],
+				desc = function()
+					local names = ManaOnlyNames()
+					if #names == 1 then
+						return L["%s is not offered to players without mana, such as warriors and rogues."]:format(names[1])
+					end
+					return L["%s are not offered to players without mana, such as warriors and rogues."]
+						:format(table.concat(names, ", "))
+				end,
 				order = 4.9,
 				width = "full",
+				hidden = function() return #ManaOnlyNames() == 0 end,
 				get = fGet,
 				set = fSet,
 			},
@@ -1809,23 +2004,6 @@ local function BuildWhenTab()
 				get = fGet,
 				set = fSet,
 			},
-			-- The key keeps its old name, "hide in combat", but it hides
-			-- nothing: Hide() on the protected button is refused in combat,
-			-- and a secure visibility driver ([combat] resolves here) would
-			-- leave a hidden button that still fires from its key binding
-			-- and /click, casting the frozen macro out of sight. So the
-			-- panel stays up on purpose, and this decides whether the
-			-- confirmation flash of a click in a fight still shows. It
-			-- writes the prompt's own table, so pGet/pSet (restyle).
-			hideInCombat = {
-				type = "toggle",
-				name = L["Keep the prompt dim and still in combat"],
-				desc = L["It stays on screen in combat because your key binding would still cast; this only stops the flashes that say what a click did, red if it failed."],
-				order = 12,
-				width = "full",
-				get = pGet,
-				set = pSet,
-			},
 			manaFloor = {
 				type = "range",
 				name = L["Save mana: stop below (% mana)"],
@@ -1859,6 +2037,23 @@ local function BuildWhenTab()
 					return "|cff888888" .. text .. "|r"
 				end,
 			},
+
+			-- How long a favour waits is the question somebody who only
+			-- returns buffs asks first, and they ask it here. The control
+			-- stays with the other favour timings on Advanced.
+			favoursHeader = {
+				type = "header", name = L["Favours"], order = 20,
+				hidden = function() return not S().owed end,
+			},
+			favoursNote = {
+				type = "description",
+				order = 21,
+				hidden = function() return not S().owed end,
+				name = "|cff888888"
+					.. L["How long someone who buffed you stays on offer: %s."]
+						:format(Ref(L["Offer a buff back for (seconds)"], TAB.advanced))
+					.. "|r",
+			},
 		},
 	}
 end
@@ -1869,8 +2064,9 @@ local function BuildSpeechTab()
 	-- The dropdown's own names for two sets, where the set's label alone does
 	-- not say what it is. Every other set keeps the label ns.PHRASE_SETS gives.
 	local SET_LABEL = {
-		roleplay = L["Roleplay (general)"],
-		incharacter = L["In character (fits your race and faction)"],
+		roleplay = L["Fantasy (general)"],
+		-- The same words as Start here's quick choice for it.
+		incharacter = L["In character (fits your race and class)"],
 	}
 	-- Loading a set: what picking it in the dropdown does, and what Go back to
 	-- In character does without asking.
@@ -1957,12 +2153,6 @@ local function BuildSpeechTab()
 				disabled = speechOff,
 				get = spGet,
 				set = spSet,
-			},
-			onlyNote = {
-				type = "description",
-				order = 14.5,
-				hidden = function() return not (SP().enabled and SP().onlyWhenReturning) end,
-				name = "|cff888888" .. L["You will only hear a line when you return a favour."] .. "|r\n",
 			},
 
 			-- In place of the Lines section while nothing is said.
@@ -2170,10 +2360,13 @@ local function BuildLookTab()
 			-- lock it -- four steps and a mode you can forget you are in,
 			-- because an unlocked prompt is also one that will not cast.
 			-- The default place is on the list, so it doubles as the reset.
+			-- Named as on Start here: one setting, one name.
 			posPreset = {
 				type = "select",
-				name = L["Quick position"],
-				desc = L["Dragging the prompt afterwards sets this to Where I dragged it."],
+				name = L["Where it sits"],
+				desc = L["Pick Above the action bars to put it back where it started."]
+					.. " " .. L["Dragging the prompt afterwards sets this to Where I dragged it."]
+					.. "\n\n" .. L["Exact numbers: %s."]:format(Ref(L["Exact position"], TAB.advanced)),
 				order = 3,
 				-- "custom" only while the prompt is on none of the presets,
 				-- so it can be shown but never picked.
@@ -2422,6 +2615,26 @@ local function BuildLookTab()
 				get = pGet,
 				set = pSet,
 			},
+			-- Next to Animations, because that is what it is: the flashes of
+			-- a click in a fight, not whether anybody is offered.
+			--
+			-- The key keeps its old name, "hide in combat", but it hides
+			-- nothing: Hide() on the protected button is refused in combat,
+			-- and a secure visibility driver ([combat] resolves here) would
+			-- leave a hidden button that still fires from its key binding
+			-- and /click, casting the frozen macro out of sight. So the
+			-- panel stays up on purpose, and this decides whether the
+			-- confirmation flash of a click in a fight still shows. It
+			-- writes the prompt's own table, so pGet/pSet (restyle).
+			hideInCombat = {
+				type = "toggle",
+				name = L["Keep the prompt dim and still in combat"],
+				desc = L["It stays on screen in combat because your key binding would still cast; this only stops the flashes that say what a click did, red if it failed."],
+				order = 32.5,
+				width = "full",
+				get = pGet,
+				set = pSet,
+			},
 			soundEnabled = {
 				type = "toggle",
 				name = L["Play a sound"],
@@ -2535,6 +2748,17 @@ local function BuildLookTab()
 				get = pGet,
 				set = pSet,
 			},
+			-- The words themselves are on Advanced; said here, where the
+			-- font and size are, since this is where people look for them.
+			wordingNote = {
+				type = "description",
+				order = 46,
+				-- Advanced is not there for a class with nothing to cast.
+				hidden = function() return not HasClassBuffs() end,
+				name = "|cff888888"
+					.. L["Change what the prompt says: %s."]:format(Ref(L["Prompt wording"], TAB.advanced))
+					.. "|r",
+			},
 
 			iconHeader = { type = "header", name = L["Icon and waiting list"], order = 50 },
 			showIcon = { type = "toggle", name = L["Show spell icon"], order = 51, get = pGet, set = pSet },
@@ -2606,7 +2830,7 @@ local function BuildLookTab()
 				name = L["Show the global cooldown on the icon"],
 				desc = L["Sweeps the spell icon while the global cooldown runs, like your action bars, so you can see when the next press will go through."]
 					.. "\n\n|cff888888" .. L["Not in a fight while this is on:"] .. "|r "
-					.. Ref(L["Keep the prompt dim and still in combat"], TAB.when),
+					.. "|cffffd100" .. L["Keep the prompt dim and still in combat"] .. "|r",
 				order = 54,
 				width = "full",
 				disabled = function() return not P().showIcon end,
@@ -2635,7 +2859,9 @@ end
 -- here left its profile field where it was.
 local function BuildAdvancedTab()
 	-- What "Put these back to default" puts back: every field this tab
-	-- writes, by its section in the profile. Nothing else on the page.
+	-- writes, by its section in the profile. Nothing else on the page, and
+	-- not where the prompt sits: that is a place somebody dragged it to, not
+	-- a tuning knob, and Where it sits (Look, Start here) puts it back.
 	local resetFields = {
 		{ "sources", "owedClassBuffsOnly" },
 		{ "timing", "reciprocateWindow" },
@@ -2645,10 +2871,6 @@ local function BuildAdvancedTab()
 		{ "timing", "retryCooldown" },
 		{ "timing", "scanInterval" },
 		{ "filters", "restoreTarget" },
-		{ "prompt", "x" },
-		{ "prompt", "y" },
-		{ "prompt", "point" },
-		{ "prompt", "relPoint" },
 		{ "prompt", "format" },
 		{ "prompt", "reasonTarget" },
 		{ "prompt", "reasonOwed" },
@@ -2698,7 +2920,7 @@ local function BuildAdvancedTab()
 				name = L["Put these back to default"],
 				order = 0.7,
 				confirm = true,
-				confirmText = L["Put every setting on this tab back to its default?"],
+				confirmText = L["Put every setting on this tab back to its default? This also restores what the prompt says; where it sits is kept."],
 				func = ResetAdvanced,
 			},
 
@@ -2898,25 +3120,9 @@ local function BuildDiagnosticsTab()
 		args = {
 			-- Lines printed to your own chat frame, never said aloud: the
 			-- header says so, so it does not read as an addon that talks
-			-- to other players.
+			-- to other players. The everyday switch, Tell me in chat, is on
+			-- Start here; this one is for working out a failed cast.
 			chatHeader = { type = "header", name = L["Messages in chat"], order = 1 },
-			verbose = {
-				type = "toggle",
-				-- A cast that worked prints nothing unless it repaid a
-				-- favour, so the label promises what it is doing, not a
-				-- line per click.
-				name = L["Tell me in chat what Manners is doing"],
-				-- What it prints first: a cast that worked prints only
-				-- "repaid", and somebody who switched it on to watch
-				-- their casts took the silence for a broken switch.
-				desc = L["A line when somebody buffs you, when a favour is counted as repaid, and when a click fails, is skipped, or leaves somebody owed."]
-					.. "\n\n"
-					.. L["Only you see these; they show whether a buff was missed or someone could not be reached."],
-				order = 2,
-				width = "full",
-				get = function() return ns.db.profile.verbose end,
-				set = function(_, v) ns.db.profile.verbose = v end,
-			},
 			debugClicks = {
 				type = "toggle",
 				name = L["Log every click (noisy)"],
@@ -3092,14 +3298,20 @@ local function BuildProfilesTab()
 	local t = AceDBOptions:GetOptionsTable(ns.db)
 	t.order = 90
 	t.args = t.args or {}
+	-- The library's own opening paragraph says what profilesIntro says, so the
+	-- tab would open with the same thing twice.
+	if type(t.args.desc) == "table" then t.args.desc.hidden = true end
 	for key, option in pairs({
-		-- What a profile is for, in the player's words, before the
+		-- What a profile is for, in the player's words, in place of the
 		-- library's own paragraph: most players never need a second one.
+		-- With the way to the share boxes, which sit under the library's
+		-- controls.
 		profilesIntro = {
 			type = "description",
 			order = 0.5,
 			fontSize = "medium",
-			name = L["Every character uses the Default profile unless you pick another here; make one per character for different settings."],
+			name = L["Every character uses the Default profile unless you pick another here; make one per character for different settings."]
+				.. " " .. L["To share settings as text, see Share as text at the bottom."] .. "\n",
 		},
 		-- Two boxes rather than one that does both: a box that shows
 		-- your settings and also applies whatever is typed into it

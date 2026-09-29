@@ -99,10 +99,70 @@ mutate("Options.lua",
        expect="with a key bound, the status reads", script=S)
 
 mutate("Options.lua",
-       "\t\t\t\t\tns.CreateClickMacro()\n\t\t\t\t\tns.RefreshOptionsDisplay()\n",
-       "\t\t\t\t\tns.RefreshOptionsDisplay()\n",
+       "\t\t\t\t\tns.CreateClickMacro()\n\t\t\t\t\tif Setup.MacroMade() then Setup.OpenMacros() end\n",
+       "\t\t\t\t\tif Setup.MacroMade() then Setup.OpenMacros() end\n",
        "start here: Make a macro makes nothing",
        expect="Make a macro made nothing", script=S)
+
+# The macro made, and the macro window left shut.
+mutate("Options.lua",
+       "\t\t\t\t\tif Setup.MacroMade() then Setup.OpenMacros() end\n",
+       "",
+       "start here: macro window not opened",
+       expect="Make a macro did not open the macro window", script=S)
+
+mutate("Options.lua",
+       "\tif InCombatLockdown() or type(ShowMacroFrame) ~= \"function\" then return false end\n",
+       "\tif type(ShowMacroFrame) ~= \"function\" then return false end\n",
+       "start here: macro window opened in combat",
+       expect="the macro window opened in combat", script=S)
+
+# The made-macro line not saying where the macro is.
+mutate("Options.lua",
+       "L[\"Your Manners macro is made: open the macro window (/macro) and drag it onto an action bar.\"]",
+       "L[\"Your Manners macro is made; drag it onto an action bar.\"]",
+       "start here: made macro, nowhere to drag from",
+       expect="the made-macro line does not say where to drag it from", script=S)
+
+# --- minimap and chat ---
+
+mutate("Options.lua",
+       "\t\t\tminimapHeader = { type = \"header\", name = L[\"Minimap and chat\"], order = 69 },\n",
+       "",
+       "start here: minimap switch under the ledger header",
+       expect="there is no Minimap and chat header", script=S)
+
+mutate("Options.lua",
+       "\t\t\t\torder = 71,\n\t\t\t\twidth = \"full\",\n\t\t\t\tget = function() return ns.db.profile.verbose end,\n",
+       "\t\t\t\torder = 65,\n\t\t\t\twidth = \"full\",\n\t\t\t\tget = function() return ns.db.profile.verbose end,\n",
+       "start here: chat switch out of its section",
+       expect="the minimap and chat switches are not under their header", script=S)
+
+# --- the shared profile ---
+
+mutate("Options.lua",
+       "\t\t\t\torder = 8,\n\t\t\t\thidden = function() return Setup.SharedWith() == 0 end,\n",
+       "\t\t\t\torder = 8,\n\t\t\t\thidden = function() return true end,\n",
+       "start here: a shared profile not said",
+       expect="a profile two characters share is not said", script=S)
+
+mutate("Options.lua",
+       "\t\tif profile == current and char ~= keys.char then n = n + 1 end\n",
+       "\t\tif profile == current then n = n + 1 end\n",
+       "start here: a profile of its own counted as shared",
+       expect="the shared-profile line shows with nobody else on the profile", script=S)
+
+mutate("Options.lua",
+       "\tif InCombatLockdown() or not (db.SetProfile and db.CopyProfile and db.GetCurrentProfile\n",
+       "\tif not (db.SetProfile and db.CopyProfile and db.GetCurrentProfile\n",
+       "start here: own profile made in combat",
+       expect="the profile was switched in combat", script=S)
+
+mutate("Options.lua",
+       "\t\tdb:CopyProfile(shared)\n",
+       "",
+       "start here: own profile starts from the defaults",
+       expect="the button did not give this character a copy", script=S)
 
 # --- step 3 ---
 

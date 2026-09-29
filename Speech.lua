@@ -17,9 +17,12 @@ local addon = ns.addon
 -- Ready-made phrase sets, loadable from the options: faction-neutral, short
 -- enough for a 255-character macro, and in the player's language. The box they
 -- fill is saved as text, so a loaded set stays in the language it was loaded in.
+-- `summary` is how Start here's sentence names the set ("Says a polite line
+-- in /say"): a phrase of its own, never the label dropped into one.
 ns.PHRASE_SETS = {
 	roleplay = {
-		label = L["Roleplay"],
+		label = L["Fantasy"],
+		summary = L["a fantasy line"],
 		lines = {
 			L["May the Light watch over you, {name}."],
 			L["The arcane favours you, {name}."],
@@ -37,6 +40,7 @@ ns.PHRASE_SETS = {
 	},
 	polite = {
 		label = L["Polite"],
+		summary = L["a polite line"],
 		lines = {
 			L["Thanks for the buff, {name}!"],
 			L["Returning the favour, {name}."],
@@ -48,6 +52,7 @@ ns.PHRASE_SETS = {
 	},
 	cheeky = {
 		label = L["Cheeky"],
+		summary = L["a cheeky line"],
 		lines = {
 			L["You dropped this, {name}."],
 			L["Buffed. You're welcome, {name}."],
@@ -59,6 +64,7 @@ ns.PHRASE_SETS = {
 	},
 	quiet = {
 		label = L["Just their name"],
+		summary = L["just their name"],
 		lines = { L["{name}."], L["For you, {name}."], L["{name} \\o"] },
 	},
 }

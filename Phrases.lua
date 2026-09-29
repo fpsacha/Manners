@@ -2461,7 +2461,8 @@ end
 
 -- On the list after Roleplay, which it is the per-character version of.
 ns.PHRASE_SETS.incharacter = {
-	label = L["In character: your race and faction"],
+	label = L["In character"],
+	summary = L["an in-character line"],
 	text = RP.Text,
 }
 table.insert(ns.PHRASE_SET_ORDER, 2, "incharacter")

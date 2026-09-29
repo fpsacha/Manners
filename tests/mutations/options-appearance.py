@@ -68,14 +68,14 @@ mutate("Options.lua",
        "look: Where I dragged it moves the prompt",
        expect="picking Where I dragged it moved the prompt", script=S)
 
-# Quick position back down under Size, where it sat before.
+# Where it sits (once Quick position) back down under Size, where it sat before.
 mutate("Options.lua",
-       "\t\t\t\tdesc = L[\"Dragging the prompt afterwards sets this to Where I dragged it.\"],\n"
+       ":format(Ref(L[\"Exact position\"], TAB.advanced)),\n"
        "\t\t\t\torder = 3,\n",
-       "\t\t\t\tdesc = L[\"Dragging the prompt afterwards sets this to Where I dragged it.\"],\n"
+       ":format(Ref(L[\"Exact position\"], TAB.advanced)),\n"
        "\t\t\t\torder = 15,\n",
        "look: Quick position under Size",
-       expect="Quick position is not at the top of the tab", script=S)
+       expect="Where it sits is not at the top of the tab", script=S)
 
 # --- Style ---
 
@@ -146,10 +146,25 @@ mutate("Options.lua",
 
 # The cooldown sweep silent about the combat setting that stills it.
 mutate("Options.lua",
-       "\t\t\t\t\t.. Ref(L[\"Keep the prompt dim and still in combat\"], TAB.when),\n",
+       "\t\t\t\t\t.. \"|cffffd100\" .. L[\"Keep the prompt dim and still in combat\"] .. \"|r\",\n",
        "\t\t\t\t\t.. L[\"Keep the prompt dim and still in combat\"],\n",
        "look: cooldown points nowhere",
        expect="Show the global cooldown does not point at Keep the prompt dim", script=S)
+
+# Look's text section silent about where the wording is.
+mutate("Options.lua",
+       "\t\t\t\t\t.. L[\"Change what the prompt says: %s.\"]:format(Ref(L[\"Prompt wording\"], TAB.advanced))\n",
+       "\t\t\t\t\t.. L[\"Change what the prompt says: %s.\"]:format(L[\"Prompt wording\"])\n",
+       "look: text section points nowhere",
+       expect="Text does not point at Prompt wording", script=S)
+
+# Where it sits silent about how to put the prompt back.
+mutate("Options.lua",
+       "\t\t\t\tdesc = L[\"Pick Above the action bars to put it back where it started.\"]\n"
+       "\t\t\t\t\t.. \" \" .. L[\"Dragging",
+       "\t\t\t\tdesc = L[\"Dragging",
+       "look: no way back named",
+       expect="posPreset says", script=S)
 
 # The second line's height a constant rather than worked out from the font.
 mutate("Options.lua",

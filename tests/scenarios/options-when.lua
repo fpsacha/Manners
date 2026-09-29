@@ -38,8 +38,11 @@ do
 	if ns and not tab then
 		fail(scenario, "no When to offer tab on the page")
 	elseif tab then
+		-- The combat switch went to Look: it only stops the flashes, and
+		-- among the switches that stop offers it read as one of them.
 		local ORDER = { "buffedHeader", "whenBuffed", "refreshUnder", "alwaysNote",
-			"wayHeader", "hideMounted", "hideInCombat", "manaFloor", "manaNote" }
+			"wayHeader", "hideMounted", "manaFloor", "manaNote",
+			"favoursHeader", "favoursNote" }
 		local last
 		for _, key in ipairs(ORDER) do
 			local control = tab.args[key]
@@ -68,6 +71,24 @@ do
 		end
 		if tab.order ~= 3 then
 			fail(scenario, "the tab is at order " .. tostring(tab.order) .. " rather than third")
+		end
+		-- How long a favour waits is asked here first, and answered with the
+		-- way to the control on Advanced; with favours off it has nothing to
+		-- be about.
+		local note = tab.args.favoursNote
+		if note then
+			local text = optionText(note.name)
+			if not text:find("|cffffd100Offer a buff back for (seconds)|r (Advanced)", 1, true) then
+				fail(scenario, "When to offer does not point at how long a favour waits: " .. text)
+			end
+			ns.db.profile.sources.owed = false
+			local function hidden(option)
+				return type(option.hidden) == "function" and option.hidden() or option.hidden == true
+			end
+			if not (hidden(note) and hidden(tab.args.favoursHeader)) then
+				fail(scenario, "the favours pointer stays up with People who buff me off")
+			end
+			ns.db.profile.sources.owed = true
 		end
 		noErrors(scenario, ns)
 	end
@@ -119,27 +140,30 @@ do
 end
 
 -- ------------------------------------------------------------------ when 3
--- The combat switch writes the prompt's own table, under the key it always had.
+-- The combat switch, now on Look next to Animations, writes the prompt's own
+-- table, under the key it always had.
 do
-	local scenario = "when tab: hideInCombat writes the prompt's setting"
+	local scenario = "look tab: hideInCombat writes the prompt's setting"
 	local ns = session(scenario)
-	local tab = ns and whenTab(ns)
-	if tab then
-		local toggle = tab.args.hideInCombat
+	local look = ns and ns.optionsTable and ns.optionsTable.args.appearance
+	local toggle = look and look.args.hideInCombat
+	if ns and not toggle then
+		fail(scenario, "hideInCombat is not on the Look tab")
+	elseif toggle then
 		local p, f = ns.db.profile.prompt, ns.db.profile.filters
 		local before = p.hideInCombat
 		f.hideInCombat = nil
-		toggle.set({ "when", "hideInCombat" }, not before)
+		toggle.set({ "appearance", "hideInCombat" }, not before)
 		if p.hideInCombat ~= not before then
 			fail(scenario, "hideInCombat writes prompt.hideInCombat no longer")
 		end
 		if f.hideInCombat ~= nil then
 			fail(scenario, "hideInCombat wrote into the filters table")
 		end
-		if toggle.get({ "when", "hideInCombat" }) ~= p.hideInCombat then
+		if toggle.get({ "appearance", "hideInCombat" }) ~= p.hideInCombat then
 			fail(scenario, "hideInCombat does not read prompt.hideInCombat")
 		end
-		toggle.set({ "when", "hideInCombat" }, before)
+		toggle.set({ "appearance", "hideInCombat" }, before)
 		f.hideInCombat = nil
 		noErrors(scenario, ns)
 	end

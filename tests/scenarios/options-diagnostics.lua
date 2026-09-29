@@ -76,36 +76,27 @@ do
 			end
 		end
 
-		local verbose, clicks = t.args.verbose, t.args.debugClicks
-		if not (verbose and clicks) then
-			fail(scenario, "the chat switches are not on the Diagnostics tab")
+		-- The everyday chat switch is on Start here, where people look for
+		-- it when the lines annoy them; only the click log is kept here.
+		if t.args.verbose then
+			fail(scenario, "Tell me in chat is still on Diagnostics, a tab normal players never open")
+		end
+		local clicks = t.args.debugClicks
+		if not clicks then
+			fail(scenario, "the click log is not on the Diagnostics tab")
 		else
-			if text(verbose.name) ~= "Tell me in chat what Manners is doing" then
-				fail(scenario, "the verbose switch reads " .. text(verbose.name))
-			end
-			if not text(verbose.desc):find("Only you see these", 1, true) then
-				fail(scenario, "the verbose switch does not say only you see it: "
-					.. text(verbose.desc))
-			end
 			if text(clicks.name) ~= "Log every click (noisy)" then
 				fail(scenario, "the click log reads " .. text(clicks.name))
 			end
 			if not text(clicks.desc):find("why a cast failed", 1, true) then
 				fail(scenario, "the click log does not say what it is for: " .. text(clicks.desc))
 			end
-			if not (verbose.order > 1 and verbose.order < 10 and clicks.order > verbose.order
-				and clicks.order < 10) then
-				fail(scenario, "the chat switches are not under Messages in chat")
+			if not (clicks.order > 1 and clicks.order < 10) then
+				fail(scenario, "the click log is not under Messages in chat")
 			end
 
-			-- The same saved keys as ever.
+			-- The same saved key as ever.
 			local profile = ns.db.profile
-			local was = profile.verbose
-			verbose.set({ "verbose" }, not was)
-			if profile.verbose ~= not was or verbose.get({ "verbose" }) ~= not was then
-				fail(scenario, "the verbose switch does not write profile.verbose")
-			end
-			verbose.set({ "verbose" }, was)
 			clicks.set({ "debugClicks" }, true)
 			if profile.debugClicks ~= true or clicks.get({ "debugClicks" }) ~= true then
 				fail(scenario, "the click log does not write profile.debugClicks")

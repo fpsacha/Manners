@@ -10,10 +10,30 @@ S = "runscenarios.py"
 
 # Every field treated as matching: the first preset always shows.
 mutate("Options.lua",
-       "\t\tif not Quick.Ignored(list, path) and Quick.Get(path) ~= value then return false end\n",
+       "\t\tif not loose[path] and not Quick.Ignored(list, path) and Quick.Get(path) ~= value then return false end\n",
        "\t\tif false then return false end\n",
        "presets: every preset matches",
        expect="a new profile matches", script=S)
+
+# Fine-tuning a choice counted as leaving it.
+mutate("Options.lua",
+       "\t\tif not loose[path] and not Quick.Ignored(list, path) and Quick.Get(path) ~= value then return false end\n",
+       "\t\tif not Quick.Ignored(list, path) and Quick.Get(path) ~= value then return false end\n",
+       "presets: fine-tuning shows Custom",
+       expect="a passer-by distance changed by hand shows", script=S)
+
+mutate("Options.lua",
+       "\t}, applyOnly = { [\"speech.onlyWhenReturning\"] = true } },\n\t{ key = \"whisper\"",
+       "\t} },\n\t{ key = \"whisper\"",
+       "presets: speaking first leaves A polite line",
+       expect="speaking to people buffed first shows", script=S)
+
+# A Who choice writing the group settings again, as the raid one did.
+mutate("Options.lua",
+       "\t\t[\"filters.whenBuffed\"] = \"refresh\",\n\t} },\n",
+       "\t\t[\"filters.whenBuffed\"] = \"refresh\", [\"groupBuffs.use\"] = true,\n\t} },\n",
+       "presets: raid turns group buffs back on",
+       expect="switched group buffs or a priority back on", script=S)
 
 # Lines edited by hand still counted as the set.
 mutate("Options.lua",
@@ -131,6 +151,76 @@ mutate("Options.lua",
        "\telseif set then\n",
        "presets: lines written by hand described as a set",
        expect="lines written by hand are described as a set", script=S)
+
+# The dropdown's label dropped into the sentence again.
+mutate("Options.lua",
+       "\t\tphrase = set.summary\n",
+       "\t\tphrase = set.label\n",
+       "presets: the set's label in the sentence",
+       expect="presets: every line set reads as English in the summary", script=S)
+
+# Favours only still told what happens to people already buffed.
+mutate("Options.lua",
+       "\tif s.owed and not (s.group or s.asked or (s.strangers and not ns.OnlyReachesGroup())) then\n",
+       "\tif false then\n",
+       "presets: favours only told about already buffed",
+       expect="favours only reads", script=S)
+
+mutate("Options.lua",
+       "\t\tif s.owed then text = text .. \" \" .. L[\"People who buff me are always offered one back.\"] end\n",
+       "",
+       "presets: favours not said to be always returned",
+       expect="does not say favours are always returned", script=S)
+
+# The group's extras said with the group off, or left out.
+mutate("Options.lua",
+       "\tif s.group then\n\t\t-- Guarded: the reagent count",
+       "\tif true then\n\t\t-- Guarded: the reagent count",
+       "presets: group extras with the group off",
+       expect="with the group off, the summary still talks about the group", script=S)
+
+mutate("Options.lua",
+       "\t\tparts[#parts + 1] = L[\"Ready checks and the just-revived go first.\"]\n",
+       "",
+       "presets: who goes first left out",
+       expect="the summary leaves out who goes first", script=S)
+
+mutate("Options.lua",
+       "\tif pr.readyCheck and pr.revived then\n",
+       "\tif pr.readyCheck or pr.revived then\n",
+       "presets: ready check alone said as both",
+       expect="the ready check alone is not said", script=S)
+
+mutate("Options.lua",
+       "\tif gb.use and ns.ClassHasGroupBuffs and ns.ClassHasGroupBuffs() then\n",
+       "\tif ns.ClassHasGroupBuffs and ns.ClassHasGroupBuffs() then\n",
+       "presets: group buffs said while off",
+       expect="group buffs are said with Use group buffs off", script=S)
+
+mutate("Options.lua",
+       "\t\t\t\tif count == 0 then\n\t\t\t\t\tparts[1] = L[",
+       "\t\t\t\tif false then\n\t\t\t\t\tparts[1] = L[",
+       "presets: an empty bag said as a count",
+       expect="an empty bag is not said", script=S)
+
+mutate("Options.lua",
+       "\t\t\t\t\tparts[1] = L[\"Group buffs when %d of a party need it (%s: %d in bags).\"]\n",
+       "\t\t\t\t\tparts[1] = L[\"Group buffs when %d of a party need it.\"]\n",
+       "presets: group buffs without their reagent",
+       expect="the group buffs and their reagent are not said", script=S)
+
+# A /thank that cannot fire summed up as if it could.
+mutate("Options.lua",
+       "\t\tif S().owed then return L[\"Only /thank.\"] end\n",
+       "\t\tdo return L[\"Only /thank.\"] end\n",
+       "presets: a /thank waiting on favours said as working",
+       expect="with People who buff me off, Just /thank them reads", script=S)
+
+mutate("Options.lua",
+       "\tlocal thankLine = thanks and (S().owed and L[\"Also /thanks people who buff you.\"]\n",
+       "\tlocal thankLine = thanks and (true and L[\"Also /thanks people who buff you.\"]\n",
+       "presets: a line and a /thank waiting on favours",
+       expect="with People who buff me off, a line and a /thank reads", script=S)
 
 # --- the key ---
 

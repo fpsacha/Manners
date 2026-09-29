@@ -61,9 +61,9 @@ local ORDER = {
 	"posHeader", "scale", "alpha", "width", "height",
 	"styleHeader", "style", "bgColor", "accentByReason", "reasonPalette", "accentColor",
 	"accentMode", "accentDead",
-	"attentionHeader", "flashStyle", "effects", "soundEnabled", "soundFile",
+	"attentionHeader", "flashStyle", "effects", "hideInCombat", "soundEnabled", "soundFile",
 	"soundOwedOnly", "noSound",
-	"textHeader", "font", "fontSize", "fontColor", "classColor", "showSub",
+	"textHeader", "font", "fontSize", "fontColor", "classColor", "showSub", "wordingNote",
 	"iconHeader", "showIcon", "iconSize", "iconSizeCapped", "roundIcon", "showCooldown",
 	"showCount", "showQueue", "queueRows",
 }
@@ -92,10 +92,10 @@ do
 			end
 		end
 		if args.posPreset and args.posPreset.order >= args.posHeader.order then
-			fail(scenario, "Quick position is not at the top of the tab")
+			fail(scenario, "Where it sits is not at the top of the tab")
 		end
 		-- Moved to other tabs, not deleted from the page.
-		for _, key in ipairs({ "x", "y", "hideInCombat", "thankEmote", "format", "reset" }) do
+		for _, key in ipairs({ "x", "y", "thankEmote", "format", "reset" }) do
 			if args[key] then fail(scenario, key .. " is still on the Look tab") end
 		end
 
@@ -109,10 +109,11 @@ do
 			end
 		end
 		local names = {
-			locked = "Lock position", posPreset = "Quick position", alpha = "Opacity",
+			locked = "Lock position", posPreset = "Where it sits", alpha = "Opacity",
 			style = "Panel style", bgColor = "Panel colour", accentByReason = "Colour marker by reason",
 			reasonPalette = "Reason colours", accentColor = "Marker colour", accentMode = "Colour marker",
 			flashStyle = "Flash when someone buffs me", effects = "Animations",
+			hideInCombat = "Keep the prompt dim and still in combat",
 			soundEnabled = "Play a sound", soundFile = "Sound", soundOwedOnly = "Only for people who buff me",
 			fontColor = "Text colour", classColor = "Colour names by class", showSub = "Show a second line",
 			showCount = "Show how many are waiting", showQueue = "List the next few below",
@@ -330,7 +331,9 @@ do
 			effects = "Calm drops the light sweep, the shake and the fade-out.",
 			soundEnabled = "When a new person appears on the prompt.",
 			soundOwedOnly = "Off, every new person makes a sound, passers-by included.",
-			posPreset = "Dragging the prompt afterwards sets this to Where I dragged it.",
+			posPreset = "Pick Above the action bars to put it back where it started."
+				.. " Dragging the prompt afterwards sets this to Where I dragged it."
+				.. "\n\nExact numbers: |cffffd100Exact position|r (Advanced).",
 		}
 		for key, want in pairs(descs) do
 			if text(args[key].desc) ~= want then
@@ -386,8 +389,15 @@ do
 			fail(scenario, "Text colour does not end by pointing at Colour names by class: " .. desc)
 		end
 		desc = text(args.showCooldown.desc)
-		if not desc:find("|cffffd100Keep the prompt dim and still in combat|r (When to offer)", 1, true) then
+		-- On this tab now, so named without a tab.
+		if not desc:find("|cffffd100Keep the prompt dim and still in combat|r", 1, true)
+			or desc:find("(When to offer)", 1, true) then
 			fail(scenario, "Show the global cooldown does not point at Keep the prompt dim: " .. desc)
+		end
+		-- The wording moved to Advanced; Text, where people look for it, says so.
+		local wording = text(args.wordingNote and args.wordingNote.name)
+		if not wording:find("|cffffd100Prompt wording|r (Advanced)", 1, true) then
+			fail(scenario, "Text does not point at Prompt wording: " .. wording)
 		end
 		desc = text(args.roundIcon.desc)
 		if desc:find("|cff888888", 1, true) then

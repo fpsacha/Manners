@@ -924,10 +924,11 @@ mutate("Options.lua",
 # 34. the unit dropped back out of a slider's name. Four of the five are seconds
 #     and the fifth is minutes, and an AceConfig range has nowhere else to put
 #     it: "Remember a buff for: 120" and "Top up when under: 5" read as the same
-#     kind of number.
+#     kind of number. Anchored on the slider's own name line: When to offer
+#     names it too, in the pointer to it, and that comes first in the file.
 mutate("Options.lua",
-       "Offer a buff back for (seconds)",
-       "Offer a buff back for",
+       "\t\t\t\tname = L[\"Offer a buff back for (seconds)\"],\n",
+       "\t\t\t\tname = L[\"Offer a buff back for\"],\n",
        "a time slider showing a bare number",
        expect="the time sliders say what they are counting",
        script="runscenarios.py")

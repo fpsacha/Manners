@@ -87,12 +87,15 @@ local FIELDS = {
 	{ "reasonUnknown", "prompt", "reasonUnknown" },
 }
 
--- What the reset puts back, beyond the controls: the anchor the two offsets
--- are measured from.
-local RESET = {}
-for _, f in ipairs(FIELDS) do RESET[#RESET + 1] = { f[2], f[3] } end
-RESET[#RESET + 1] = { "prompt", "point" }
-RESET[#RESET + 1] = { "prompt", "relPoint" }
+-- What the reset puts back: every control's field but where the prompt sits,
+-- which is a place somebody dragged it to. KEPT is that place, the two offsets
+-- and the anchor they are measured from.
+local RESET, KEPT = {}, {
+	{ "prompt", "x" }, { "prompt", "y" }, { "prompt", "point" }, { "prompt", "relPoint" },
+}
+for _, f in ipairs(FIELDS) do
+	if f[2] ~= "prompt" or (f[3] ~= "x" and f[3] ~= "y") then RESET[#RESET + 1] = { f[2], f[3] } end
+end
 
 -- A value that is not the default, whatever the field's type.
 local function other(value, name)
@@ -147,11 +150,15 @@ do
 		if help and not optionText(help.name):find("The second line always shows the reason.", 1, true) then
 			fail(scenario, "the placeholder help no longer says the second line shows the reason")
 		end
-		-- The reset asks first.
+		-- The reset asks first, and says the wording goes back with it.
 		local reset = adv.args.resetAdvanced
 		if reset and not (reset.type == "execute" and reset.confirm
-			and optionText(reset.confirmText) == "Put every setting on this tab back to its default?") then
+			and optionText(reset.confirmText):find("Put every setting on this tab back to its default?", 1, true)) then
 			fail(scenario, "Put these back to default does not ask before it resets")
+		end
+		if reset and not optionText(reset.confirmText):find("restores what the prompt says; where it sits is kept", 1, true) then
+			fail(scenario, "the reset does not say it restores the wording and keeps the position: "
+				.. optionText(reset.confirmText))
 		end
 		noErrors(scenario, ns)
 	end
@@ -308,6 +315,11 @@ do
 		for _, f in ipairs(RESET) do
 			profile[f[1]][f[2]] = other(defaults[f[1]][f[2]], f[2])
 		end
+		local kept = {}
+		for i, f in ipairs(KEPT) do
+			kept[i] = other(defaults[f[1]][f[2]], f[2])
+			profile[f[1]][f[2]] = kept[i]
+		end
 		-- Two settings from other tabs, which must be left as they are.
 		profile.prompt.scale = 1.25
 		profile.sources.owed = false
@@ -337,6 +349,12 @@ do
 			if profile[f[1]][f[2]] ~= defaults[f[1]][f[2]] then
 				fail(scenario, ("advanced reset: %s.%s was not put back (%s, default %s)")
 					:format(f[1], f[2], tostring(profile[f[1]][f[2]]), tostring(defaults[f[1]][f[2]])))
+			end
+		end
+		for i, f in ipairs(KEPT) do
+			if profile[f[1]][f[2]] ~= kept[i] then
+				fail(scenario, ("advanced reset: moved the prompt (%s.%s is %s)")
+					:format(f[1], f[2], tostring(profile[f[1]][f[2]])))
 			end
 		end
 		if profile.prompt.scale ~= 1.25 or profile.sources.owed ~= false then
@@ -373,7 +391,8 @@ do
 		fail(scenario, "SKIPPED -- no reset button or no prompt")
 	elseif ns then
 		local profile, defaults = ns.db.profile, ns.defaults.profile
-		profile.prompt.x = defaults.prompt.x + 40
+		profile.prompt.format = "changed {name}"
+		profile.filters.restoreTarget = not defaults.filters.restoreTarget
 		ns.Prompt:ApplyStyle()
 		Mock.protect(button)
 		Mock.inCombat = true
@@ -383,7 +402,8 @@ do
 			fail(scenario, "advanced reset in a fight called " .. table.concat(Mock.protectedCalls, ", ")
 				.. " on the secure button")
 		end
-		if profile.prompt.x ~= defaults.prompt.x then
+		if profile.prompt.format ~= defaults.prompt.format
+			or profile.filters.restoreTarget ~= defaults.filters.restoreTarget then
 			fail(scenario, "advanced reset in a fight was not saved")
 		end
 		Mock.inCombat = false

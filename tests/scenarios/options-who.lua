@@ -389,3 +389,73 @@ do
 		restore3()
 	end
 end
+
+-- ------------------------------------------------------------------ who: one spell
+-- One spell to give is not a choice: the dropdown and Automatic's list are
+-- replaced by one line saying which spell, the rule the per-spell switches
+-- already follow. A pin brings the dropdown back, as the way to Automatic.
+do
+	local scenario = "who tab: a class with one spell is not asked to choose"
+	local ns, restore = session(scenario, { class = "MAGE", known = MAGE })
+	if ns then
+		local choice, note = findOption(ns.optionsTable, "choice"), findOption(ns.optionsTable, "autoNote")
+		if shown(choice) then
+			fail(scenario, "a mage is offered Buff to offer, with nothing to choose between")
+		end
+		local text = optionText(note.name)
+		if not shown(note) or not text:find("You offer ", 1, true) or not text:find("Arcane Intellect", 1, true)
+			or text:find("Automatic", 1, true) then
+			fail(scenario, "a mage is not told the one spell they offer: " .. text)
+		end
+		ns.db.profile.buff.choice = "intellect"
+		if not shown(choice) then
+			fail(scenario, "a mage with a pin has no way back to Automatic")
+		end
+		ns.db.profile.buff.choice = "auto"
+		noErrors(scenario, ns)
+		restore()
+	end
+
+	local scenario2 = "who tab: a priest still chooses between spells"
+	local ns2, restore2 = session(scenario2, { class = "PRIEST", known = priestKnown() })
+	if ns2 then
+		local choice, note = findOption(ns2.optionsTable, "choice"), findOption(ns2.optionsTable, "autoNote")
+		if not shown(choice) then
+			fail(scenario2, "a priest is not offered Buff to offer")
+		end
+		if not optionText(note.name):find("Automatic may offer", 1, true) then
+			fail(scenario2, "a priest is not told what Automatic offers: " .. optionText(note.name))
+		end
+		noErrors(scenario2, ns2)
+		restore2()
+	end
+end
+
+-- ------------------------------------------------------------------ who: mana-only
+-- The tooltip names the class's own mana-only spells, never another class's,
+-- and the switch is not shown to a class with none, where it does nothing.
+do
+	local scenario = "who tab: Skip players it does nothing for names this class's spells"
+	local ns, restore = session(scenario, { class = "MAGE", known = MAGE })
+	if ns then
+		local toggle = findOption(ns.optionsTable, "relevantOnly")
+		local desc = optionText(toggle.desc)
+		if not shown(toggle) or not desc:find("Arcane Intellect is not offered", 1, true)
+			or desc:find("Divine Spirit", 1, true) then
+			fail(scenario, "a mage's tooltip reads " .. desc)
+		end
+		noErrors(scenario, ns)
+		restore()
+	end
+
+	local scenario2 = "who tab: no mana-only switch for a class without mana-only spells"
+	local ns2, restore2 = session(scenario2, { class = "WARRIOR", known = { 6673 } })
+	if ns2 then
+		local toggle = findOption(ns2.optionsTable, "relevantOnly")
+		if toggle and shown(toggle) then
+			fail(scenario2, "a warrior is shown Skip players it does nothing for, which does nothing for him")
+		end
+		noErrors(scenario2, ns2)
+		restore2()
+	end
+end

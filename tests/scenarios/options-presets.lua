@@ -311,6 +311,7 @@ do
 			fail(scenario, "with every source off the summary does not say nobody: "
 				.. quick.WhoSummary())
 		end
+		db.sources.owed, db.sources.group = true, true
 
 		quick.Apply(quick.VOICE, "silent")
 		if quick.VoiceSummary() ~= "Silent." then
@@ -322,8 +323,7 @@ do
 		end
 		quick.Apply(quick.VOICE, "polite")
 		local voice = quick.VoiceSummary()
-		if not (voice:find("Polite", 1, true) and voice:find("/say", 1, true)
-			and voice:find("back", 1, true)) then
+		if voice ~= "Says a polite line in /say when you buff someone back." then
 			fail(scenario, "A polite line reads " .. voice)
 		end
 		quick.Apply(quick.VOICE, "whisper")
@@ -334,6 +334,268 @@ do
 		if not quick.VoiceSummary():find("your own lines", 1, true) then
 			fail(scenario, "lines written by hand are described as a set: " .. quick.VoiceSummary())
 		end
+		noErrors(scenario, ns)
+	end
+end
+
+-- ------------------------------------------------------------------ summaries 2
+-- Every set is named by a phrase of its own, never by the dropdown's label
+-- dropped into "a %s line": "Says a In character: your race and faction line"
+-- was the first thing a roleplayer read.
+do
+	local scenario = "presets: every line set reads as English in the summary"
+	local ns = session(scenario)
+	if ns then
+		local quick = ns.QuickSetup
+		local sp = ns.db.profile.speech
+		sp.enabled, sp.channel, sp.onlyWhenReturning = true, "SAY", true
+		local want = {
+			roleplay = "Says a fantasy line in /say when you buff someone back.",
+			polite = "Says a polite line in /say when you buff someone back.",
+			cheeky = "Says a cheeky line in /say when you buff someone back.",
+			quiet = "Says just their name in /say when you buff someone back.",
+			incharacter = "Says an in-character line in /say when you buff someone back.",
+		}
+		for _, key in ipairs(ns.PHRASE_SET_ORDER) do
+			sp.presetChoice = key
+			sp.phrases = ns.PhraseSetText(key)
+			local got = quick.VoiceSummary()
+			if want[key] and got ~= want[key] then
+				fail(scenario, key .. " reads " .. got)
+			elseif not want[key] then
+				fail(scenario, "no expected summary for the " .. key .. " set: " .. got)
+			end
+		end
+		sp.presetChoice = "polite"
+		sp.phrases = ns.PhraseSetText("polite")
+		sp.onlyWhenReturning = false
+		if quick.VoiceSummary() ~= "Says a polite line in /say when you buff someone." then
+			fail(scenario, "speaking to everyone you buff reads " .. quick.VoiceSummary())
+		end
+		noErrors(scenario, ns)
+	end
+end
+
+-- ------------------------------------------------------------------ summaries 3
+-- The first page must not contradict the queue: a favour is offered back
+-- whatever the person already carries, and group buffs and who goes first are
+-- said while they are on.
+do
+	local scenario = "presets: the Who summary says what favours and the group bring"
+	local ns = session(scenario)
+	if ns then
+		local quick = ns.QuickSetup
+		local db = ns.db.profile
+		quick.Apply(quick.WHO, "favours")
+		local who = quick.WhoSummary()
+		if who ~= "Offering to: people who buff me." then
+			fail(scenario, "favours only reads " .. who)
+		end
+		quick.Apply(quick.WHO, "group")
+		who = quick.WhoSummary()
+		if not who:find("Already buffed: skipped. People who buff me are always offered one back.", 1, true) then
+			fail(scenario, "with the group on, the summary does not say favours are always returned: " .. who)
+		end
+		db.priority.readyCheck, db.priority.revived = true, true
+		if not quick.WhoSummary():find("Ready checks and the just-revived go first.", 1, true) then
+			fail(scenario, "the summary leaves out who goes first: " .. quick.WhoSummary())
+		end
+		db.priority.readyCheck, db.priority.revived = false, false
+		if quick.WhoSummary():find("go first", 1, true) then
+			fail(scenario, "the summary says somebody goes first with both switches off: " .. quick.WhoSummary())
+		end
+		db.priority.readyCheck = true
+		if not quick.WhoSummary():find("At a ready check, your group goes first.", 1, true) then
+			fail(scenario, "the ready check alone is not said: " .. quick.WhoSummary())
+		end
+		db.priority.readyCheck, db.priority.revived = true, true
+		quick.Apply(quick.WHO, "favours")
+		if quick.WhoSummary():find("go first", 1, true) then
+			fail(scenario, "with the group off, the summary still talks about the group: " .. quick.WhoSummary())
+		end
+
+		-- A group buff this character has learned, with its reagent in the
+		-- bags. Stood in for only while the summary is read.
+		quick.Apply(quick.WHO, "raid")
+		local realHas, realCastable, realInfo, realCount = ns.ClassHasGroupBuffs, ns.CastableBuffs,
+			ns.BuffInfo, ns.ReagentCount
+		local buff = { key = "intellect" }
+		local count = 5
+		ns.ClassHasGroupBuffs = function() return true end
+		ns.CastableBuffs = function() return { buff } end
+		ns.BuffInfo = function() return { groupRank = 23028, groupReagent = 17020 } end
+		ns.ReagentCount = function() return count end
+		db.groupBuffs.use, db.groupBuffs.atLeast = true, 3
+		who = quick.WhoSummary()
+		if not who:find("Group buffs when 3 of a party need it (", 1, true)
+			or not who:find(": 5 in bags).", 1, true) then
+			fail(scenario, "the group buffs and their reagent are not said: " .. who)
+		end
+		count = 0
+		if not quick.WhoSummary():find("none in your bags, so group buffs are not offered.", 1, true) then
+			fail(scenario, "an empty bag is not said: " .. quick.WhoSummary())
+		end
+		db.groupBuffs.use = false
+		if quick.WhoSummary():find("roup buffs", 1, true) then
+			fail(scenario, "group buffs are said with Use group buffs off: " .. quick.WhoSummary())
+		end
+		ns.ClassHasGroupBuffs, ns.CastableBuffs, ns.BuffInfo, ns.ReagentCount =
+			realHas, realCastable, realInfo, realCount
+		db.groupBuffs.use = true
+		noErrors(scenario, ns)
+	end
+end
+
+-- ------------------------------------------------------------------ summaries 4
+-- The /thank answers somebody buffing you; with People who buff me off it can
+-- be picked, and the summary says what it is waiting on.
+do
+	local scenario = "presets: a /thank that cannot fire says why"
+	local ns = session(scenario)
+	if ns then
+		local quick = ns.QuickSetup
+		ns.db.profile.sources.owed = false
+		quick.Apply(quick.VOICE, "thank")
+		local voice = quick.VoiceSummary()
+		if voice == "Only /thank." or not voice:find("|cffffd100People who buff me|r (Who to buff)", 1, true) then
+			fail(scenario, "with People who buff me off, Just /thank them reads " .. voice)
+		end
+		quick.Apply(quick.VOICE, "polite")
+		ns.db.profile.prompt.thankEmote = true
+		voice = quick.VoiceSummary()
+		if voice:find("Also /thanks", 1, true) or not voice:find("People who buff me", 1, true) then
+			fail(scenario, "with People who buff me off, a line and a /thank reads " .. voice)
+		end
+		ns.db.profile.sources.owed = true
+		if not quick.VoiceSummary():find("Also /thanks people who buff you.", 1, true) then
+			fail(scenario, "with People who buff me on, the /thank is not said: " .. quick.VoiceSummary())
+		end
+		noErrors(scenario, ns)
+	end
+end
+
+-- ------------------------------------------------------------------ tuning
+-- Fine-tuning a choice is not leaving it: a passer-by distance changed by
+-- hand, or speaking to people buffed first, keeps the dropdown on the choice.
+do
+	local scenario = "presets: fine-tuning a choice keeps it"
+	local ns = session(scenario)
+	if ns then
+		local quick = ns.QuickSetup
+		local db = ns.db.profile
+		quick.Apply(quick.WHO, "nearby")
+		local far
+		for _, tier in ipairs(ns.PROXIMITY) do
+			if tier.key ~= "near" then far = tier.key end
+		end
+		db.filters.proximity = far
+		if quick.Match(quick.WHO) ~= "nearby" then
+			fail(scenario, "a passer-by distance changed by hand shows " .. tostring(quick.Match(quick.WHO)))
+		end
+		if quick.Confirm(quick.WHO, "group") then
+			fail(scenario, "moving on from a tuned Everyone near me asks as if it were Custom")
+		end
+		quick.Apply(quick.WHO, "nearby")
+		if db.filters.proximity ~= "near" then
+			fail(scenario, "picking Everyone near me did not set the distance")
+		end
+
+		quick.Apply(quick.VOICE, "polite")
+		db.speech.onlyWhenReturning = false
+		if quick.Match(quick.VOICE) ~= "polite" then
+			fail(scenario, "speaking to people buffed first shows " .. tostring(quick.Match(quick.VOICE)))
+		end
+		quick.Apply(quick.VOICE, "polite")
+		if db.speech.onlyWhenReturning ~= true then
+			fail(scenario, "picking A polite line did not set Only when I buff someone back")
+		end
+		noErrors(scenario, ns)
+	end
+end
+
+-- ------------------------------------------------------------------ group settings
+-- The group buffs and the two priorities are Who to buff's fine-tuning, and no
+-- Who choice writes them: one that did turned reagent-eating group buffs back
+-- on without asking, and one that did not left them on under another name.
+do
+	local scenario = "presets: no Who choice touches group buffs or who goes first"
+	local ns = session(scenario)
+	if ns then
+		local quick = ns.QuickSetup
+		local db = ns.db.profile
+		quick.Apply(quick.WHO, "group")
+		db.groupBuffs.use, db.priority.readyCheck, db.priority.revived = false, false, false
+		if quick.Match(quick.WHO) ~= "group" then
+			fail(scenario, "switching group buffs off by hand shows " .. tostring(quick.Match(quick.WHO)))
+		end
+		for _, entry in ipairs(quick.WHO) do
+			quick.Apply(quick.WHO, entry.key)
+			if db.groupBuffs.use ~= false or db.priority.readyCheck ~= false or db.priority.revived ~= false then
+				fail(scenario, entry.key .. " switched group buffs or a priority back on")
+				db.groupBuffs.use, db.priority.readyCheck, db.priority.revived = false, false, false
+			end
+		end
+		noErrors(scenario, ns)
+	end
+end
+
+-- ------------------------------------------------------------------ shared profile
+-- Every character starts on the shared Default profile. Start here says so
+-- while another character is on it, and offers this one its own copy.
+do
+	local scenario = "setup: a shared profile is said, and can be made this character's own"
+	local ns = session(scenario)
+	if ns then
+		local general = ns.optionsTable.args.general.args
+		local note, own = general.sharedNote, general.ownProfile
+		local db = ns.db
+		local profiles = { Default = db.profile }
+		local current = "Default"
+		db.keys = { char = "Mort Defrette - Realm" }
+		db.sv = { profileKeys = { ["Mort Defrette - Realm"] = "Default" } }
+		db.GetCurrentProfile = function() return current end
+		local realSet = db.SetProfile
+		db.SetProfile = function(self, name)
+			current = name
+			profiles[name] = profiles[name] or {}
+			self.sv.profileKeys[self.keys.char] = name
+		end
+		local copiedFrom
+		db.CopyProfile = function(_, name) copiedFrom = name end
+		if not (note and own) then
+			fail(scenario, "Start here has no shared-profile line or button")
+		else
+			if not (note.hidden() and own.hidden()) then
+				fail(scenario, "the shared-profile line shows with nobody else on the profile")
+			end
+			db.sv.profileKeys["Anna - Realm"] = "Default"
+			if note.hidden() or own.hidden() then
+				fail(scenario, "a profile two characters share is not said")
+			elseif not note.name():find("These settings are shared by your other characters (profile: Default).", 1, true) then
+				fail(scenario, "the shared-profile line reads " .. note.name())
+			end
+			if not (note.order < general.whoHeader.order) then
+				fail(scenario, "the shared-profile line is not above step 1")
+			end
+			Mock.inCombat = true
+			if not own.disabled() then fail(scenario, "the own-settings button is live in combat") end
+			ns.Setup.OwnProfile()
+			if current ~= "Default" then fail(scenario, "the profile was switched in combat") end
+			Mock.inCombat = false
+			Mock.printed = {}
+			own.func()
+			if current ~= "Mort Defrette - Realm" or copiedFrom ~= "Default" then
+				fail(scenario, "the button did not give this character a copy of the shared settings: "
+					.. tostring(current) .. " from " .. tostring(copiedFrom))
+			end
+			if not said():find("its own settings", 1, true) then
+				fail(scenario, "making a profile of its own said nothing: " .. said())
+			end
+			if not (note.hidden() and own.hidden()) then
+				fail(scenario, "the shared-profile line stays up on a profile of its own")
+			end
+		end
+		db.SetProfile, db.CopyProfile, db.GetCurrentProfile, db.keys, db.sv = realSet, nil, nil, nil, nil
 		noErrors(scenario, ns)
 	end
 end
@@ -415,6 +677,28 @@ do
 			fail(scenario, "the options window stayed up over the key bindings")
 		end
 		rawset(_G, "Settings", realSettings)
+
+		-- Make a macro opens the game's macro window, so the macro is there
+		-- to drag; never in a fight.
+		local shownMacros = 0
+		rawset(_G, "ShowMacroFrame", function() shownMacros = shownMacros + 1 end)
+		Mock.inCombat = true
+		if setup.OpenMacros() or shownMacros > 0 then fail(scenario, "the macro window opened in combat") end
+		Mock.inCombat = false
+		local make = ns.optionsTable.args.general.args.makeMacro
+		local realCreate = ns.CreateClickMacro
+		ns.CreateClickMacro = function() Mock.macros = { Manners = 3 } end
+		Mock.macros = {}
+		make.func()
+		if shownMacros ~= 1 then
+			fail(scenario, "Make a macro did not open the macro window")
+		end
+		local status = H.optionText(ns.optionsTable.args.general.args.bindStatus.name)
+		if not status:find("open the macro window (/macro) and drag it onto an action bar", 1, true) then
+			fail(scenario, "the made-macro line does not say where to drag it from: " .. status)
+		end
+		ns.CreateClickMacro = realCreate
+		rawset(_G, "ShowMacroFrame", nil)
 		ns.CloseOptions = realClose
 		noErrors(scenario, ns)
 	end
