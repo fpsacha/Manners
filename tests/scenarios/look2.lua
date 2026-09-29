@@ -569,3 +569,45 @@ do
 		end
 	end)
 end
+
+-- ------------------------------------------------------------------ look2 7
+-- A long row in the list under the prompt is drawn smaller before it is cut.
+--
+-- The rows had a width and nothing else: "Sable Harrow  needs Arcane
+-- Intellect" ran a fifth past a 220-wide prompt's row and the client cut it
+-- to "needs Arcane Inte...", which only the listing pictures noticed, on the
+-- one machine whose font ran wide. The rows now go through the same fitting
+-- as the panel's lines, into their own width. Half the font's size a
+-- character: 36 characters at 10 is 180, at 9 it is 162, the row's room.
+do
+	local scenario = "a long row in the list is drawn smaller to fit"
+	withTree(scenario, { nameplate1 = { "Bo", "Ash" }, nameplate2 = { "Sable", "Harrow" } },
+		"enUS", function(ns)
+		freshPrompt(ns, scenario)
+		local p = ns.db.profile.prompt
+		p.width, p.showQueue, p.queueRows = 220, true, 3
+		ns.Prompt:ApplyStyle()
+		ns.addon:Tick()
+		local row
+		for _, fs in ipairs(ns.Prompt:Regions().rows) do
+			if tostring(fs._text or ""):find("Sable Harrow", 1, true) then row = fs end
+		end
+		if not row then
+			fail(scenario, "SKIPPED -- Sable Harrow is not in the list")
+			return
+		end
+		local width, room = row:GetStringWidth(), row._width
+		local size = row._font and row._font.size
+		if not (width and room and size) then
+			fail(scenario, "SKIPPED -- the row's width, room or font could not be read")
+			return
+		end
+		if size >= p.fontSize - 3 then
+			fail(scenario, ("the row is %d wide in a room of %d and was left at size %d,"
+				.. " so the client cuts it"):format(width, room, size))
+		elseif width > room + 0.5 then
+			fail(scenario, ("the row is %d wide in a room of %d at size %d -- cut off"
+				.. " by the client"):format(width, room, size))
+		end
+	end)
+end

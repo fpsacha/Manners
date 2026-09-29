@@ -150,3 +150,20 @@ mutate("Options.lua",
        "reason palette locked with the ring off",
        expect="the Reason colours control is greyed out",
        script="runscenarios.py")
+
+# The list's rows set straight onto the font string again, never fitted: a
+# long name and a long spell name cut off by the client.
+mutate("Prompt.lua",
+       "\t\t\tSetLine(fs, text)\n",
+       "\t\t\tfs:SetText(LegibleText(text))\n",
+       "list rows not fitted",
+       expect="a long row in the list is drawn smaller to fit",
+       script="runscenarios.py")
+
+# The rows given no size to fit from, so FitLine leaves them alone.
+mutate("Prompt.lua",
+       "\t\tfit.base[fs], fit.size[fs] = subSize, subSize\n",
+       "",
+       "list rows with no base size",
+       expect="a long row in the list is drawn smaller to fit",
+       script="runscenarios.py")

@@ -1719,7 +1719,7 @@ end
 -- How the name and reason line are laid out, kept by ApplyStyle for the
 -- painters: fonts, current sizes, start, and the room kept at the right (more
 -- while the count chip is up).
-local fit = { path = nil, flags = "", base = {}, size = {}, width = 0, textX = 0,
+local fit = { path = nil, flags = "", base = {}, size = {}, room = {}, width = 0, textX = 0,
 	chipRoom = 10, right = nil, twoLine = false }
 
 -- The inset from the right-hand edge when nothing is beside the lines.
@@ -1746,7 +1746,9 @@ local function SafeFont(fs, path, size, flags)
 end
 
 -- A line too long for its room is drawn up to a fifth smaller before the
--- client cuts it: German and Russian run a third longer than English.
+-- client cuts it: German runs a third longer than English, and a list row
+-- with a long name and a long spell name is longer still. A list row has a
+-- width of its own; the panel's two lines end where PlaceLines put them.
 local function FitLine(fs)
 	local base = fit.base[fs]
 	if not base or not fit.path then return end
@@ -1754,7 +1756,7 @@ local function FitLine(fs)
 		SafeFont(fs, fit.path, base, fit.flags)
 		fit.size[fs] = base
 	end
-	local room = fit.width - fit.textX - (fit.right or EDGE_ROOM)
+	local room = fit.room[fs] or (fit.width - fit.textX - (fit.right or EDGE_ROOM))
 	local least = math.max(7, math.floor(base * 0.8 + 0.5))
 	local size = base
 	while size > least do
@@ -1906,6 +1908,7 @@ local function StyleText(p, style, fontPath, textX, chipRoom, twoLine, countSize
 	ink.rowReason = greys.reason
 	for _, fs in ipairs(queueRows) do
 		SafeFont(fs, fontPath, subSize, outline)
+		fit.base[fs], fit.size[fs] = subSize, subSize
 		fs:SetTextColor(qr, qg, qb, 1)
 	end
 
@@ -2164,8 +2167,11 @@ function Prompt:ApplyStyle()
 		else
 			fs:SetPoint("TOPLEFT", art, "BOTTOMLEFT", textX, -4 - (i - 1) * rowHeight)
 		end
-		-- The font and the colour are StyleText's.
-		fs:SetWidth(math.max(20, p.width - textX - 8))
+		-- The font and the colour are StyleText's; the width is the room
+		-- FitLine shrinks a long row into.
+		local width = math.max(20, p.width - textX - 8)
+		fs:SetWidth(width)
+		fit.room[fs] = width
 
 		-- Anchored to its own row, so the bar follows the list whichever way it
 		-- hangs and whatever the font size is.
@@ -2920,7 +2926,7 @@ function Prompt:PaintQueue(rows)
 			if row.detail then
 				text = text .. "  " .. (ink.rowReason or GREYS.panel.reason) .. row.detail .. "|r"
 			end
-			fs:SetText(LegibleText(text))
+			SetLine(fs, text)
 			-- Three pixels of the reason colour.
 			local c = ReasonColor(row.reason)
 			queueBars[i]:SetVertexColor(c[1], c[2], c[3], 0.9)

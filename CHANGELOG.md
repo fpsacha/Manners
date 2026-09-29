@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- A long row in the list under the prompt, such as a long name that needs
+  Arcane Intellect, is now drawn a little smaller so it fits, instead of
+  being cut off with "...".
+
 ## 1.1.0
 
 Manners 1.1 is about dungeons and raids, and about getting started. With the
