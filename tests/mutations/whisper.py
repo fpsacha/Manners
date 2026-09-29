@@ -175,14 +175,14 @@ mutate("Prompt.lua",
 
 # The dropdown without the choice, or without saying who hears it.
 mutate("Options.lua",
-       "\t\t\t\t\tWHISPER = L[\"Whisper them\"] },\n",
-       "\t\t\t\t\t},\n",
+       "\t\t\t\t\tWHISPER = L[\"Whisper them\"],\n",
+       "",
        "no Whisper them in the dropdown",
        expect="whisper: other channels unchanged",
        script="runscenarios.py")
 
 mutate("Options.lua",
-       "\t\t\t\tdesc = L[\"Who hears the line: Say and Emote reach players near you, Yell a wider area, Party and Raid your group. Whisper them sends it to the person you buff and nobody else.\"],\n",
+       "\t\t\t\tdesc = L[\"Whisper them sends it only to the person you buff.\"],\n",
        "",
        "Channel dropdown does not say who hears it",
        expect="whisper: other channels unchanged",
