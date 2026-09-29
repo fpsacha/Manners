@@ -369,8 +369,8 @@ mutate("Queue.lua",
        expect="linger: under the cursor the prompt still goes for your own state (charmed)", script=S)
 
 mutate("Queue.lua",
-       "\tif #candidates == 0 then return {}, true end\n",
-       "\tif #candidates == 0 then return {} end\n",
+       "\t\tif own then return { own }, {} end\n\t\treturn {}, true\n",
+       "\t\tif own then return { own }, {} end\n\t\treturn {}\n",
        "linger: nothing to cast is no verdict",
        expect="linger: under the cursor the prompt still goes for your own state (with nothing left to cast)", script=S)
 

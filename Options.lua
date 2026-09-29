@@ -57,7 +57,7 @@ end
 -- it reads the lock, so the lock alone is not the answer.
 local function DragPanelUp()
 	return Enabled() and ns.db.profile.prompt.locked == false
-		and ns.caps ~= nil and ns.caps.anyKnown == true
+		and ns.caps ~= nil and ns.CanCastAnything()
 end
 
 -- How many people who buffed you are still waiting for one back: the favours,
@@ -391,10 +391,133 @@ local function OnlyReachesGroup()
 end
 
 -- Whether nothing this character can offer goes on themselves -- a warrior,
--- whose shout already covers him -- which leaves "Myself" with nothing behind
--- it. Follows the per-spell switches, as the scan does (ns.SelfBuffs).
+-- whose shout already covers him and who has no buff of his own -- which
+-- leaves "Myself" with nothing behind it. Follows the per-spell switches, as
+-- the scan does (ns.SelfBuffs), and counts every family of the class's own
+-- buffs you know, switched off or not: their switches live under it.
 local function NothingForSelf()
-	return #ns.SelfBuffs() == 0
+	return #ns.SelfBuffs() == 0 and #ns.KnownOwnFamilies() == 0
+end
+
+-- Whether there is a prompt on this character at all: a buff for somebody
+-- else, or one of the class's own learned (a hunter's aspects). Start here's
+-- key and preview steps and the Who to buff tab follow it.
+local function HasPrompt()
+	return ns.caps.hasClassBuffs == true or ns.OwnBuffsOnly()
+end
+
+-- The family dropdown's Automatic, saying what it would pick right now, in
+-- plain words, from the same answer the scan uses (ns.OwnAutoPick).
+local function OwnAutoLabel(family)
+	local spell, why = ns.OwnAutoPick(family)
+	if why == "tank" or why == "notank" then return L["Automatic (only while I'm the tank)"] end
+	local name = spell and ns.BuffName(spell)
+	if not name then return L["Automatic"] end
+	if why == "last" then return L["Automatic (%s, the one you had up last)"]:format(name) end
+	if why == "dungeon" then return L["Automatic (%s, in a dungeon or raid)"]:format(name) end
+	if why == "world" then return L["Automatic (%s, outside dungeons and raids)"]:format(name) end
+	return L["Automatic (%s, until you have put one up)"]:format(name)
+end
+
+-- One control per family of your class's own buffs, under "Myself" on Who to
+-- buff: a dropdown where there is a choice (Automatic, each spell you know,
+-- Don't remind me), a checkbox for a spell alone. Made for every family of
+-- every class on this client and hidden but for your class's and the ones you
+-- know, so learning an aspect mid-session shows it without a reload.
+local function AddOwnControls(args)
+	local order = 15.2
+	local classes = {}
+	for class in pairs(ns.OWN_BUFFS or {}) do classes[#classes + 1] = class end
+	table.sort(classes)
+	for _, class in ipairs(classes) do
+		for _, family in ipairs(ns.OWN_BUFFS[class]) do
+			order = order + 0.01
+			local pick = function() return (ns.OwnPick(family)) end
+			local write = function(_, value)
+				ns.db.profile.ownBuffs.pick[family.key] = value
+				-- The prompt follows at once rather than at the next scan.
+				ns.Guard("own buff repaint", ns.Prompt.Refresh, ns.Prompt)
+			end
+			local control = {
+				order = order,
+				width = "full",
+				hidden = function()
+					for _, known in ipairs(ns.KnownOwnFamilies()) do
+						if known == family then return false end
+					end
+					return true
+				end,
+				disabled = function() return not S().self end,
+			}
+			if #family.spells > 1 or family.tank then
+				control.type = "select"
+				control.name = function() return ns.OwnFamilyLabel(family) end
+				control.desc = function()
+					if family.tank then
+						return L["Automatic reminds you only while your group role is tank; Always reminds you whenever it is not up."]
+					end
+					local text = L["Reminds you when none of these is up. Automatic takes the one you had up last."]
+					-- A mage before any armor has been up: where Automatic
+					-- goes, both ways, while that is what it is doing.
+					local dungeon = family.dungeon and ns.FindOwnSpell(family.dungeon)
+					local _, why = ns.OwnAutoPick(family)
+					if dungeon and ns.OwnSpellKnown(dungeon) and (why == "dungeon" or why == "world") then
+						for _, spell in ipairs(family.spells) do
+							if spell ~= dungeon and ns.OwnSpellKnown(spell) and not spell.neverAuto then
+								return text .. " " .. L["Until you have had one up: %s in a dungeon or raid, %s elsewhere."]
+									:format(ns.BuffName(dungeon), ns.BuffName(spell))
+							end
+						end
+					end
+					return text
+				end
+				control.values = function()
+					local values = { auto = OwnAutoLabel(family), off = L["Don't remind me"] }
+					for _, spell in ipairs(family.spells) do
+						if ns.OwnSpellKnown(spell) then
+							values[spell.key] = family.tank and L["Always"] or ns.BuffName(spell)
+						end
+					end
+					return values
+				end
+				-- Automatic, the spells in the table's order, Don't remind me:
+				-- AceConfig would sort them by their translated names.
+				control.sorting = function()
+					local sorted = { "auto" }
+					for _, spell in ipairs(family.spells) do
+						if ns.OwnSpellKnown(spell) then sorted[#sorted + 1] = spell.key end
+					end
+					sorted[#sorted + 1] = "off"
+					return sorted
+				end
+				control.get = pick
+				control.set = write
+			else
+				control.type = "toggle"
+				control.name = function() return ns.OwnFamilyLabel(family) end
+				control.desc = L["Reminds you when it is not up."]
+				control.get = function() return pick() ~= "off" end
+				control.set = function(info, value) write(info, value and "auto" or "off") end
+			end
+			args["own_" .. family.key] = control
+		end
+	end
+end
+
+-- Everything on Who to buff but "Myself", hidden from a class with nothing
+-- for anybody else (a hunter, a shaman): their tab is their own buffs alone.
+-- Each control keeps its own rule on top.
+local function ForOthersOnly(args)
+	for key, arg in pairs(args) do
+		if not (key == "myselfHeader" or key == "self" or key == "ownCities" or key:find("^own_")) then
+			local was = arg.hidden
+			arg.hidden = function(...)
+				if not HasClassBuffs() then return true end
+				if type(was) == "function" then return was(...) end
+				return was
+			end
+		end
+	end
 end
 
 -- Whether "Myself" is on and has something to offer: read by the warning that
@@ -489,6 +612,16 @@ local function BugReport()
 		tostring(db.sources.self),
 		tostring(db.filters.whenBuffed), tostring(db.priority.target),
 		tostring(db.timing.keepDebts))
+	-- "Myself": where, and per family you know its pick and the one last up
+	-- (key=pick/last), which is what Automatic reads.
+	local picks = {}
+	local memory = type(ns.db.char) == "table" and ns.db.char.ownLast
+	for _, family in ipairs(ns.KnownOwnFamilies()) do
+		picks[#picks + 1] = ("%s=%s/%s"):format(family.key, tostring((ns.OwnPick(family))),
+			tostring(type(memory) == "table" and memory[family.key] or nil))
+	end
+	lines[#lines + 1] = ("own inCities=%s %s"):format(tostring(db.ownBuffs.inCities),
+		#picks > 0 and table.concat(picks, " ") or "none known")
 	-- Who is ordered and who is held back: "my friend is never offered" is most
 	-- often answered by the last number here.
 	lines[#lines + 1] = ("friendsFirst=%s restingOnly=%s neverOffered=%d"):format(
@@ -945,9 +1078,13 @@ function Quick.WhoSummary()
 		end
 		who[#who + 1] = about and L["passers-by within %s"]:format(about) or L["passers-by"]
 	end
-	-- Last, as the queue ranks you behind every favour and request.
+	-- Last, as the queue ranks you behind every favour and request; and
+	-- where, since nothing is offered to you in a city unless asked for.
 	local own = OffersSelf()
-	if own then who[#who + 1] = L["myself"] end
+	if own then
+		who[#who + 1] = ns.db.profile.ownBuffs.inCities == true and L["myself"]
+			or L["myself (outside cities and inns)"]
+	end
 	local list = #who > 0 and table.concat(who, ", ") or L["nobody"]
 	local buffed = f.whenBuffed == "refresh" and L["topped up when low"]
 		or f.whenBuffed == "always" and L["offered anyway"]
@@ -968,6 +1105,29 @@ function Quick.WhoSummary()
 		-- `name` AceConfig reads with nothing around it.
 		local ok, extra = pcall(Quick.GroupSummary)
 		if ok and extra ~= "" then text = text .. " " .. extra end
+	end
+	return text
+end
+
+-- Step 1 for a class with nothing for anybody else (a hunter, a shaman): what
+-- the prompt is for instead, from the answers the scan reads.
+function Quick.OwnOnlySummary()
+	if not S().self then
+		return L["Your class has no buffs for other players, and %s is off, so the prompt never appears."]
+			:format(Ref(L["Myself, when I'm missing my own buff"], TAB.who))
+	end
+	local names = {}
+	for _, family in ipairs(ns.KnownOwnFamilies()) do
+		if ns.OwnPick(family) ~= "off" then names[#names + 1] = ns.OwnFamilyLabel(family) end
+	end
+	if #names == 0 then
+		return L["Your class has no buffs for other players, and your own are all switched off on %s, so the prompt never appears."]
+			:format(TAB.who)
+	end
+	local text = L["Your class has no buffs for other players, so the prompt reminds you of your own: %s."]
+		:format(table.concat(names, ", "))
+	if ns.db.profile.ownBuffs.inCities ~= true then
+		text = text .. " " .. L["Not in cities and inns."]
 	end
 	return text
 end
@@ -1051,6 +1211,10 @@ local function BuildStartTab()
 	-- The steps and the snooze are about a prompt; a class with nothing to
 	-- cast gets the noBuffs text instead.
 	local function noClassBuffs() return not HasClassBuffs() end
+	-- The steps about the prompt itself -- a key, seeing it, the snooze --
+	-- are for a hunter with an aspect learned too, whose prompt is for his
+	-- own buffs; the steps about other people are not.
+	local function noPrompt() return not HasPrompt() end
 	local function grey(text) return "|cff888888" .. text .. "|r" end
 
 	return {
@@ -1087,7 +1251,7 @@ local function BuildStartTab()
 				type = "description",
 				order = 2,
 				fontSize = "medium",
-				hidden = HasClassBuffs,
+				hidden = HasPrompt,
 				-- "Your class has none" and "we could not work out what
 				-- you can cast" look identical from hasClassBuffs alone;
 				-- CLASSES_WITHOUT_BUFFS is what tells them apart.
@@ -1127,7 +1291,7 @@ local function BuildStartTab()
 				type = "description",
 				order = 4,
 				fontSize = "medium",
-				hidden = function() return P().locked or not HasClassBuffs() end,
+				hidden = function() return P().locked or not HasPrompt() end,
 				name = "|cffff8080" .. L["The prompt is unlocked, so it will not cast."] .. "|r",
 			},
 			-- ApplyStyle holds off in a fight and catches up when it ends, so
@@ -1136,7 +1300,7 @@ local function BuildStartTab()
 				type = "execute",
 				name = L["Lock it"],
 				order = 4.1,
-				hidden = function() return P().locked or not HasClassBuffs() end,
+				hidden = function() return P().locked or not HasPrompt() end,
 				func = function()
 					P().locked = true
 					ns.Prompt:ApplyStyle()
@@ -1171,7 +1335,7 @@ local function BuildStartTab()
 			-- the switches themselves are on Who to buff.
 			whoHeader = {
 				type = "header", name = L["1. Who to buff"], order = 10,
-				hidden = noClassBuffs,
+				hidden = noPrompt,
 			},
 			quickWho = {
 				type = "select",
@@ -1186,25 +1350,30 @@ local function BuildStartTab()
 				set = function(_, v) Quick.Apply(Quick.WHO, v) end,
 				confirm = function(_, v) return Quick.Confirm(Quick.WHO, v) end,
 			},
+			-- For a hunter, what the prompt is for, since the choice above
+			-- is about other people and is not shown.
 			quickWhoSummary = {
 				type = "description",
 				order = 12,
-				hidden = noClassBuffs,
-				name = function() return grey(Quick.WhoSummary()) end,
+				hidden = noPrompt,
+				name = function()
+					if not HasClassBuffs() then return grey(Quick.OwnOnlySummary()) end
+					return grey(Quick.WhoSummary())
+				end,
 			},
 
 			-- Step 2. The binding is the game's, not the profile's: Setup
 			-- saves it with the binding set, so it follows every profile.
 			keyHeader = {
 				type = "header", name = L["2. Put it on a key"], order = 20,
-				hidden = noClassBuffs,
+				hidden = noPrompt,
 			},
 			bindKey = {
 				type = "keybinding",
 				name = L["Key that buffs the prompted player"],
 				desc = L["Saved with your game key bindings, so it works on every profile."],
 				order = 21,
-				hidden = function() return not HasClassBuffs() or not Setup.CanBind() end,
+				hidden = function() return not HasPrompt() or not Setup.CanBind() end,
 				-- SetBinding is refused in a fight.
 				disabled = function() return InCombatLockdown() end,
 				get = function() return Setup.Key() or "" end,
@@ -1215,7 +1384,7 @@ local function BuildStartTab()
 				name = L["Open key bindings"],
 				desc = L["Opens Options > Keybindings > Manners, the game's own key bindings."],
 				order = 22,
-				hidden = function() return not HasClassBuffs() or not Setup.CanOpenBindings() end,
+				hidden = function() return not HasPrompt() or not Setup.CanOpenBindings() end,
 				disabled = function() return InCombatLockdown() end,
 				func = function() Setup.OpenBindings() end,
 			},
@@ -1224,7 +1393,7 @@ local function BuildStartTab()
 				name = L["Make a macro"],
 				desc = L["Adds a macro named Manners; put it on an action bar and pressing it clicks the prompt."],
 				order = 23,
-				hidden = noClassBuffs,
+				hidden = noPrompt,
 				-- Repainted so the line under it moves on to "made", and the
 				-- macro window opened so the macro is there to drag.
 				func = function()
@@ -1237,7 +1406,7 @@ local function BuildStartTab()
 				type = "description",
 				order = 24,
 				fontSize = "medium",
-				hidden = noClassBuffs,
+				hidden = noPrompt,
 				name = function()
 					local key = Setup.Key()
 					if key then
@@ -1255,7 +1424,7 @@ local function BuildStartTab()
 			-- can be seen and placed without going to Look.
 			tryHeader = {
 				type = "header", name = L["3. See it"], order = 30,
-				hidden = noClassBuffs,
+				hidden = noPrompt,
 			},
 			previewStart = {
 				type = "execute",
@@ -1264,7 +1433,7 @@ local function BuildStartTab()
 				end,
 				desc = L["Shows a sample prompt so you can see it and put it where you want."],
 				order = 31,
-				hidden = noClassBuffs,
+				hidden = noPrompt,
 				-- As on Look: ToggleTest refuses to start one in a fight, and
 				-- one already running can still be stopped.
 				disabled = function()
@@ -1277,7 +1446,7 @@ local function BuildStartTab()
 				name = L["Where it sits"],
 				desc = L["Pick Above the action bars to put it back where it started."],
 				order = 32,
-				hidden = noClassBuffs,
+				hidden = noPrompt,
 				-- "Where I dragged it" only while the prompt is on none of
 				-- the presets: shown, never picked.
 				values = function()
@@ -1309,7 +1478,7 @@ local function BuildStartTab()
 				name = L["Lock position"],
 				desc = L["Unlock to drag the prompt; it will not cast until you lock it again."],
 				order = 33,
-				hidden = noClassBuffs,
+				hidden = noPrompt,
 				get = function() return P().locked end,
 				set = function(_, value)
 					P().locked = value
@@ -1351,13 +1520,13 @@ local function BuildStartTab()
 			-- way in says the same thing in chat.
 			snoozeHeader = {
 				type = "header", name = L["Snooze"], order = 50,
-				hidden = noClassBuffs,
+				hidden = noPrompt,
 			},
 			snoozeNote = {
 				type = "description",
 				order = 50.5,
 				fontSize = "medium",
-				hidden = noClassBuffs,
+				hidden = noPrompt,
 				name = function()
 					local ends = ns.SnoozeEndsAt()
 					-- The page is repainted at both ends of a fight, so this
@@ -1384,21 +1553,21 @@ local function BuildStartTab()
 				type = "execute",
 				name = function() return L["Snooze %s"]:format(ns.MinutesText(ns.SNOOZE_CHOICES[1])) end,
 				order = 51,
-				hidden = noClassBuffs,
+				hidden = noPrompt,
 				func = function() ns.StartSnooze(ns.SNOOZE_CHOICES[1]) end,
 			},
 			snooze15 = {
 				type = "execute",
 				name = function() return L["Snooze %s"]:format(ns.MinutesText(ns.SNOOZE_CHOICES[2])) end,
 				order = 52,
-				hidden = noClassBuffs,
+				hidden = noPrompt,
 				func = function() ns.StartSnooze(ns.SNOOZE_CHOICES[2]) end,
 			},
 			snooze30 = {
 				type = "execute",
 				name = function() return L["Snooze %s"]:format(ns.MinutesText(ns.SNOOZE_CHOICES[3])) end,
 				order = 53,
-				hidden = noClassBuffs,
+				hidden = noPrompt,
 				func = function() ns.StartSnooze(ns.SNOOZE_CHOICES[3]) end,
 			},
 			snoozeStop = {
@@ -1565,7 +1734,8 @@ local function BuildWhoTab()
 		type = "group",
 		name = TAB.who,
 		order = 2,
-		hidden = function() return not HasClassBuffs() end,
+		-- A hunter has "Myself" here and nothing else (ForOthersOnly).
+		hidden = function() return not HasPrompt() end,
 		args = {
 			-------------------------------------------------- what to cast
 			buffsHeader = { type = "header", name = L["What to cast"], order = 1 },
@@ -1736,18 +1906,47 @@ local function BuildWhoTab()
 				get = sGet,
 				set = sSet,
 			},
+			-------------------------------------------------- myself
 			-- You, last, as the queue ranks you: behind favours and requests,
-			-- ahead of your group. Hidden, not disabled, like the passer-by
-			-- switch: nothing on this page makes a shout go on you alone.
+			-- ahead of your group. Its own heading, with everything about you
+			-- under the one switch: your group buff, then only your class's
+			-- own buffs you know (AddOwnControls), then where. Hidden, not
+			-- disabled, like the passer-by switch: nothing on this page makes
+			-- a shout go on you alone.
+			myselfHeader = { type = "header", name = L["Myself"], order = 15, hidden = NothingForSelf },
 			self = {
 				type = "toggle",
 				name = L["Myself, when I'm missing my own buff"],
-				desc = L["Offer your own buff to you too, when you are missing it or, with top-ups on, it is running low. It is cast on you, with no target and nothing said."],
-				order = 15,
+				desc = function()
+					-- A hunter gives nobody anything, so his are the ones
+					-- below alone.
+					if #ns.KnownOwnFamilies() > 0 and #ns.SelfBuffs() == 0 then
+						return L["Offer your own buffs to you when one is not up: the ones below. They are cast on you, with no target and nothing said."]
+					elseif #ns.KnownOwnFamilies() > 0 then
+						return L["Offer your own buffs to you too, when one is not up: the ones below, and the buff you give others. They are cast on you, with no target and nothing said."]
+					end
+					return L["Offer your own buff to you too, when you are missing it or, with top-ups on, it is running low. It is cast on you, with no target and nothing said."]
+				end,
+				order = 15.1,
 				width = "full",
 				hidden = NothingForSelf,
 				get = sGet,
 				set = sSet,
+			},
+			-- The families sit at 15.2x (AddOwnControls), and this under them.
+			ownCities = {
+				type = "toggle",
+				name = L["Also in cities and inns"],
+				desc = L["Off: nothing is offered to you while the game calls you resting, in a city or an inn."],
+				order = 15.9,
+				width = "full",
+				hidden = NothingForSelf,
+				disabled = function() return not S().self end,
+				get = function() return ns.db.profile.ownBuffs.inCities == true end,
+				set = function(_, value)
+					ns.db.profile.ownBuffs.inCities = value
+					ns.Guard("own buff repaint", ns.Prompt.Refresh, ns.Prompt)
+				end,
 			},
 
 			-------------------------------------------------- group and raid
@@ -1965,6 +2164,9 @@ local function BuildWhoTab()
 		},
 	}
 	AddBuffToggles(who.args)
+	AddOwnControls(who.args)
+	-- Last, over everything above and the per-spell switches alike.
+	ForOthersOnly(who.args)
 	return who
 end
 
@@ -3251,6 +3453,18 @@ local function BuildDiagnosticsTab()
 					return table.concat(lines, "\n")
 				end,
 			},
+			-- "Myself": what holds it back and each of your own buffs, in
+			-- the words /manners debug uses (ns.MyselfLines), since "why am I
+			-- not reminded" is asked here as often as there.
+			ownDiag = {
+				type = "description",
+				order = 11.7,
+				fontSize = "medium",
+				hidden = function() return #ns.MyselfLines(GetTime()) == 0 end,
+				name = function()
+					return "|cffffffff" .. L["Myself"] .. "|r\n" .. table.concat(ns.MyselfLines(GetTime()), "\n")
+				end,
+			},
 			-- What is measuring how near a passer-by is, and how often it
 			-- answers: a filter that has quietly stopped measuring looks
 			-- the same as nobody being nearby. The only place it is shown.
@@ -3569,6 +3783,8 @@ local function LauncherState()
 	local class = ns.caps and ns.caps.class
 	local snoozeLeft = ns.SnoozeLeft and ns.SnoozeLeft()
 	local held = HeldInFight()
+	-- A hunter or a shaman with one of their own buffs learned.
+	local ownOnly = ns.OwnBuffsOnly()
 	if not Enabled() then
 		-- Switched off in a fight leaves the panel the fight froze on screen,
 		-- and a press on it still casts. "No prompt will appear" is false for
@@ -3610,6 +3826,19 @@ local function LauncherState()
 		-- compares with a raid timer, and the minutes are what they asked for.
 		return false, L["Snoozed until %s, %s from now -- no prompt until then."]
 			:format(ns.SnoozeEndsAt(), ns.MinutesText(math.ceil(snoozeLeft / 60))), 1, 0.82, 0, true
+	elseif ownOnly and not ns.OffersSelf() then
+		-- A hunter with "Myself" or every one of his own buffs switched off:
+		-- the prompt has nothing left to be for.
+		return false, L["Nothing to do: your own buffs are switched off under %s."]
+			:format(L["Myself"]), 1, 0.82, 0
+	elseif ownOnly then
+		-- Nothing for anybody else, but a prompt for your own buffs: past
+		-- the lines below, which are about buffs for other people.
+		if not held and ns.HiddenWhileMounted and ns.HiddenWhileMounted() then
+			return false, L["Kept away while you are mounted -- %s, on the %s tab."]
+				:format(L["Hide the prompt while I'm mounted"], L["When to offer"]), 1, 0.82, 0, true
+		end
+		return true, L["Watching your own buffs."], 0.4, 0.9, 0.4
 	elseif class and ns.CLASSES_WITHOUT_BUFFS and ns.CLASSES_WITHOUT_BUFFS[class] then
 		return false, L["Nothing to do: %s"]:format(ns.NO_CLASS_BUFFS), 1, 0.82, 0
 	elseif not HasClassBuffs() then

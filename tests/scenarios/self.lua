@@ -803,9 +803,15 @@ do
 		s.owed, s.group, s.strangers, s.self = true, true, true, true
 
 		local summary = ns.QuickSetup.WhoSummary()
-		if not summary:find(", myself.", 1, true) then
+		if not summary:find(", myself (outside cities and inns).", 1, true) then
 			fail(scenario, "the summary on Start here leaves you out: " .. summary)
 		end
+		-- Also in cities and inns ticked, you are offered everywhere.
+		ns.db.profile.ownBuffs.inCities = true
+		if not ns.QuickSetup.WhoSummary():find(", myself.", 1, true) then
+			fail(scenario, "with Also in cities and inns ticked the summary reads " .. ns.QuickSetup.WhoSummary())
+		end
+		ns.db.profile.ownBuffs.inCities = false
 		s.self = false
 		if ns.QuickSetup.WhoSummary():find("myself", 1, true) then
 			fail(scenario, "the summary names you with the switch off")
@@ -1266,5 +1272,43 @@ do
 		if greater() then
 			fail(scenario, "with Myself off, a Greater Blessing was offered over your own Kings")
 		end
+	end)
+end
+
+-- ------------------------------------------------------------------ self 26
+-- The cursor resting on the panel holds it for a token lost, never for a
+-- verdict (see hovering in Prompt.lua). Buffed by hand while the cursor is on
+-- "You", the scan no longer offers you, and that is a verdict on you: the
+-- panel goes as it would with the cursor elsewhere, rather than holding your
+-- own buff up for the cursor's ten seconds.
+Mock.reset()
+do
+	local scenario = "self: a hovered You moves on once you buff yourself by hand"
+	with(scenario, {}, function(ns)
+		local button = ns.Prompt:GetButton()
+		local function scan(seconds)
+			for _ = 1, math.floor(seconds / 0.4 + 0.5) do
+				Mock.runTimers(0.4)
+				ns.addon:Tick()
+			end
+		end
+		ns.Prompt:Refresh()
+		if not (ns.Prompt:Showing() and ns.Prompt:Showing().reason == "self") then
+			fail(scenario, "SKIPPED -- the prompt is not on you")
+			return
+		end
+		button.scripts.OnEnter(button)
+		scan(1)
+		if not button:IsShown() then
+			fail(scenario, "SKIPPED -- the prompt went while you were still missing your buff")
+			button.scripts.OnLeave(button)
+			return
+		end
+		wear(ns, set(1459))
+		scan(3)
+		if button:IsShown() then
+			fail(scenario, "buffed by hand with the cursor on the panel, \"You\" stayed up for the cursor")
+		end
+		button.scripts.OnLeave(button)
 	end)
 end

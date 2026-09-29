@@ -171,6 +171,21 @@ local defaults = {
 			self = true,
 		},
 
+		-- The rest of "Myself": the buffs only your class puts on itself
+		-- (Buffs.lua, VANILLA_OWN), and where you are reminded of any of it.
+		ownBuffs = {
+			-- Off: nobody needs Inner Fire at the auction house, and a prompt
+			-- that nags in town teaches you to ignore it. One rule for
+			-- everything on yourself, your group buff included (SelfEntry):
+			-- two rules for one "You" on the prompt would be a puzzle.
+			inCities = false,
+			-- Per family, by its key: "auto" (Automatic, or ticked for a
+			-- family of one), a spell's key (always that one), or "off"
+			-- (Don't remind me). Filled in below from the table, so every
+			-- family has its default and a settings string carries each.
+			pick = {},
+		},
+
 		-- The order of the queue, not who is on it.
 		priority = {
 			target = true, -- a deliberate target outranks a favour owed
@@ -315,6 +330,12 @@ local defaults = {
 	},
 }
 ns.defaults = defaults
+-- Every family of every class Automatic, so a profile shared by a mage and a
+-- priest holds both, and no family's default is missing for the repair, the
+-- reset or a settings string. Buffs.lua loads first.
+for _, families in pairs(ns.OWN_BUFFS or {}) do
+	for _, family in ipairs(families) do defaults.profile.ownBuffs.pick[family.key] = "auto" end
+end
 
 -- Whether the prompt's first line says anything at all; shared by the repair at
 -- load and the box's setter so they agree on what an empty line is.
@@ -358,6 +379,16 @@ do
 			if safecall(_G.IsSpellKnown, id) == true or safecall(_G.IsPlayerSpell, id) == true then
 				info.known = true
 				info.topRank = info.topRank or id
+				-- For your own buffs, every name a rank you know goes by: the
+				-- reading on yourself matches by them too (ReadOwnFamily), so
+				-- a rank missing from the table cannot read as never up.
+				if buff.own then
+					local name = SpellNameFor(id)
+					if name then
+						info.names = info.names or {}
+						info.names[name] = true
+					end
+				end
 			end
 		end
 		for _, id in ipairs(buff.group or {}) do
@@ -376,10 +407,15 @@ do
 			end
 		end
 
-		-- The name resolves whether or not we know the rank, and every rank shares
-		-- it, so the macro can cast by name and let the game pick the best one.
-		info.name = SpellNameFor(buff.ranks[1])
-		info.icon = safecall(C_Spell and C_Spell.GetSpellTexture, buff.ranks[1])
+		-- The macro casts by name and lets the game pick the best rank of it,
+		-- so the name is the best rank's you know: one spell line can change
+		-- its name on the way up (Frost Armor is Ice Armor from 30, Demon
+		-- Skin Demon Armor from 20), and "/cast Frost Armor" would cast rank 3
+		-- forever. With nothing known, the top rank's, which resolves whether
+		-- or not you know it.
+		local named = info.topRank or buff.ranks[1]
+		info.name = SpellNameFor(named)
+		info.icon = safecall(C_Spell and C_Spell.GetSpellTexture, named)
 
 		-- Ids this client has never heard of. A wrong id has no symptom but silence,
 		-- so the mismatch is named in /manners debug and on the Diagnostics page.
@@ -527,12 +563,48 @@ do
 
 		caps.hasClassBuffs = ns.GetClassBuffs(playerClass) ~= nil
 
+		-- The class's own buffs (Buffs.lua, VANILLA_OWN), probed the same way
+		-- but kept in a table of their own: caps.buffs stays the list of what
+		-- you can give, which /manners debug, the bug report and the options
+		-- walk as such. Known only by a rank the client says you know AND a
+		-- name it can give that rank: the macro casts by that name.
+		caps.own = {}
+		caps.anyOwnKnown = false
+		for _, family in ipairs(ns.GetOwnFamilies(playerClass) or {}) do
+			for _, spell in ipairs(family.spells) do
+				local info = ProbeBuff(spell)
+				info.known = info.known == true and info.name ~= nil
+				caps.own[spell.key] = info
+				if info.known then caps.anyOwnKnown = true end
+			end
+		end
+
 		return caps
 	end
 end
 
+-- Whether this character has anything the prompt could cast: a buff for
+-- somebody else, or one of its own. The one test for "is there a prompt at
+-- all", so a hunter, with nothing to give anybody, still has one for his
+-- aspects.
+function ns.CanCastAnything()
+	return caps.anyKnown == true or caps.anyOwnKnown == true
+end
+
+-- A class with nothing for anybody else and something of its own learned: a
+-- hunter with an aspect, a shaman with Lightning Shield. Everything about
+-- other people is left off the options page for it, and "Myself" is shown.
+function ns.OwnBuffsOnly()
+	return not caps.hasClassBuffs and caps.anyOwnKnown == true
+end
+
+-- Your own buffs' answers sit apart (caps.own); every key is unique across
+-- both tables (Buffs.lua), so one lookup serves the name, icon and macro of
+-- either kind.
 function ns.BuffInfo(buff)
-	return buff and caps.buffs[buff.key]
+	if not buff then return nil end
+	if buff.own then return caps.own and caps.own[buff.key] end
+	return caps.buffs[buff.key]
 end
 
 function ns.BuffName(buff)
@@ -621,7 +693,8 @@ end
 -- none of them leaves you out while the queue keeps you in.
 function ns.OffersSelf()
 	local db = addon.db and addon.db.profile
-	return db ~= nil and db.sources.self == true and #ns.SelfBuffs() > 0
+	return db ~= nil and db.sources.self == true
+		and (#ns.SelfBuffs() > 0 or ns.OwnFamiliesOn() > 0)
 end
 
 -- The spell pinned for this character, or nil for Automatic (and for another
@@ -799,6 +872,306 @@ do
 		if opts.offerAnyway and firstHeld then return firstHeld, true end
 
 		return nil, true
+	end
+end
+
+---------------------------------------------------------------------------
+-- your own buffs
+--
+-- The buffs only your class puts on itself (Buffs.lua, VANILLA_OWN), a family
+-- at a time: which of it you know, which one to remind you of (your pick, or
+-- Automatic: the one you had up last), and whether any of it is on you now.
+-- Queue.lua's SelfEntry offers the first family that comes up missing, and
+-- /manners debug and the options page ask the same questions here, so none of
+-- them can say something the queue does not do.
+---------------------------------------------------------------------------
+
+-- In a block of its own for the main chunk's 200 locals.
+do
+	local function Known(spell)
+		local info = caps.own and caps.own[spell.key]
+		return info ~= nil and info.known == true
+	end
+	ns.OwnSpellKnown = Known
+
+	-- The first spell of the family you know, in table order; `auto` passes
+	-- over the ones Automatic never picks.
+	local function FirstKnown(family, auto)
+		for _, spell in ipairs(family.spells) do
+			if Known(spell) and not (auto and spell.neverAuto) then return spell end
+		end
+		return nil
+	end
+
+	-- The families of your class you know anything of, in the order they are
+	-- offered. Nothing else is read, offered or shown on the options page.
+	function ns.KnownOwnFamilies()
+		local out = {}
+		for _, family in ipairs(ns.GetOwnFamilies(playerClass) or {}) do
+			if FirstKnown(family) then out[#out + 1] = family end
+		end
+		return out
+	end
+
+	-- What a family is called on the page and in chat: its own word for a
+	-- family of several ("Armor"), the spell's name for one alone.
+	function ns.OwnFamilyLabel(family)
+		if family.label then return family.label end
+		return ns.BuffName(FirstKnown(family) or family.spells[1])
+	end
+
+	-- The pick for a family: "off", "auto", or the key of a spell you know,
+	-- with the spell second. A spell you do not know -- the profile is shared
+	-- with an alt who does -- reads as Automatic, as another class's pin does
+	-- for the buffs you give.
+	function ns.OwnPick(family)
+		local db = addon.db and addon.db.profile
+		local picks = db and db.ownBuffs and db.ownBuffs.pick
+		local pick = type(picks) == "table" and picks[family.key] or nil
+		if pick == "off" then return "off" end
+		local spell = ns.FindOwnSpell(pick)
+		if spell and spell.family == family and Known(spell) then return spell.key, spell end
+		return "auto"
+	end
+
+	-- How many of the families you know are not switched off.
+	function ns.OwnFamiliesOn()
+		local count = 0
+		for _, family in ipairs(ns.KnownOwnFamilies()) do
+			if ns.OwnPick(family) ~= "off" then count = count + 1 end
+		end
+		return count
+	end
+
+	-- The one you had up last, per character (db.char): what one character
+	-- runs says nothing about an alt sharing the profile.
+	local function Remembered(family)
+		local char = addon.db and addon.db.char
+		local memory = type(char) == "table" and char.ownLast
+		local spell = type(memory) == "table" and ns.FindOwnSpell(memory[family.key]) or nil
+		if spell and spell.family == family and not spell.neverAuto and Known(spell) then return spell end
+		return nil
+	end
+
+	-- Written only from a reading of your own auras (ReadOwnFamily), never
+	-- from a guess or a press: a press the game refuses has put nothing up.
+	local function Remember(family, spell)
+		if spell.neverAuto then return end
+		local char = addon.db and addon.db.char
+		if type(char) ~= "table" then return end
+		if type(char.ownLast) ~= "table" then char.ownLast = {} end
+		char.ownLast[family.key] = spell.key
+	end
+
+	-- Whether you are the tank: only a role the game names, in a group. Solo,
+	-- or with no role set, nobody is.
+	local function Tanking()
+		if (plain(GetNumGroupMembers and GetNumGroupMembers()) or 0) <= 0 then return false end
+		return safecall(_G.UnitGroupRolesAssigned, "player") == "TANK"
+	end
+
+	-- In a dungeon or a raid, by the game's word. A battleground is not one.
+	local function InDungeon()
+		local ok, inside, kind = pcall(_G.IsInInstance)
+		if not ok then return false end
+		inside, kind = plain(inside), plain(kind)
+		return (inside == true or inside == 1) and (kind == "party" or kind == "raid")
+	end
+
+	-- What Automatic reminds you of in this family right now, and why:
+	--   "tank"     a family for the tank, and your group role is tank
+	--   "notank"   it is not, so nothing (the spell is nil)
+	--   "last"     the one you had up last
+	--   "dungeon"  the family's pick for a dungeon or raid, before you have
+	--              had one up; "world" its first other spell outside one
+	--   "first"    the first you know, before you have had one up
+	-- nil and nil for a family you know nothing of.
+	function ns.OwnAutoPick(family)
+		if family.tank then
+			if not Tanking() then return nil, "notank" end
+			return FirstKnown(family, true), "tank"
+		end
+		local last = Remembered(family)
+		if last then return last, "last" end
+		local preferred = family.dungeon and ns.FindOwnSpell(family.dungeon)
+		if preferred then
+			if InDungeon() then
+				if Known(preferred) then return preferred, "dungeon" end
+			else
+				for _, spell in ipairs(family.spells) do
+					if spell ~= preferred and Known(spell) and not spell.neverAuto then return spell, "world" end
+				end
+			end
+		end
+		local first = FirstKnown(family, true)
+		return first, first and "first" or nil
+	end
+
+	-- The spell of the active shapeshift form. A paladin's auras are forms on
+	-- this client, and the form is yours whatever another paladin's aura on
+	-- you says. pcall rather than safecall, which keeps three returns: the
+	-- spell is the fourth.
+	local function ActiveForm()
+		local count = safecall(_G.GetNumShapeshiftForms)
+		if type(count) ~= "number" or type(_G.GetShapeshiftFormInfo) ~= "function" then return nil end
+		for i = 1, math.min(count, 10) do
+			local ok, _, active, _, spellId = pcall(_G.GetShapeshiftFormInfo, i)
+			if ok and plain(active) then return plain(spellId) end
+		end
+		return nil
+	end
+
+	-- Whether an aura on you is yours: false only for somebody else's --
+	-- another paladin's aura, another hunter's Aspect of the Pack -- which
+	-- says nothing about your own; nil for one naming nobody we can read,
+	-- which counts as yours, since reading it as missing could only nag.
+	local function FromYou(aura)
+		local source = plain(aura.sourceUnit)
+		if type(source) ~= "string" then return nil end
+		local same = safecall(UnitIsUnit, source, "player")
+		if same == nil then return nil end
+		return same == true
+	end
+
+	-- A value the client will not let us look at: a refusal, never absence.
+	local function Withheld(value)
+		return issecretvalue ~= nil and issecretvalue(value) == true
+	end
+
+	-- Seconds left, nil for no timer: a toggle, or one the game hides.
+	local function Left(aura, now)
+		local expires = plain(aura.expirationTime)
+		if type(expires) == "number" and expires > 0 then return expires - now end
+		return nil
+	end
+
+	-- The family by the names of the ranks you know (ProbeBuff), for a rank
+	-- the table lacks: the client's own lookup by name where it has one, else
+	-- your aura list walked. The spell and its time left, or nil and whether
+	-- the client refused to say.
+	local function ByName(family, now)
+		local api = C_UnitAuras
+		local lookup = api and api.GetAuraDataBySpellName
+		local walk = api and api.GetAuraDataByIndex
+		local refused = false
+		for _, spell in ipairs(family.spells) do
+			local info = caps.own and caps.own[spell.key]
+			for name in pairs(Known(spell) and info.names or {}) do
+				if type(lookup) == "function" then
+					local ok, aura = pcall(lookup, "player", name, "HELPFUL")
+					if not ok or Withheld(aura) then
+						refused = true
+					elseif type(aura) == "table" and FromYou(aura) ~= false then
+						return spell, Left(aura, now)
+					end
+				elseif type(walk) == "function" then
+					for i = 1, 40 do
+						local ok, aura = pcall(walk, "player", i, "HELPFUL")
+						if not ok or Withheld(aura) then
+							refused = true
+							break
+						end
+						if type(aura) ~= "table" then break end
+						if plain(aura.name) == name and FromYou(aura) ~= false then
+							return spell, Left(aura, now)
+						end
+					end
+				else
+					refused = true
+				end
+			end
+		end
+		return nil, nil, refused
+	end
+
+	-- Whether any of the family is up on you, and yours: true with the spell
+	-- and its time left, false for definitely none, nil for the client would
+	-- not say (never a reason to offer). By the ids AND by the names of the
+	-- ranks you know, so a rank missing from the table cannot read as never
+	-- up. Only the spells you know are read. The one found up is remembered
+	-- for Automatic: the only place "the one you had up last" is written.
+	function ns.ReadOwnFamily(family)
+		local now = GetTime()
+		local form = ActiveForm()
+		local formSpell = form and ns.OWN_BY_ID[form]
+		if formSpell and formSpell.family == family then
+			Remember(family, formSpell)
+			return true, formSpell, nil
+		end
+		local api = C_UnitAuras
+		local byId = api and api.GetUnitAuraBySpellID
+		if type(byId) ~= "function" then return nil end
+		local refused = false
+		for _, spell in ipairs(family.spells) do
+			if Known(spell) then
+				for _, id in ipairs(spell.auraIds) do
+					local ok, aura = pcall(byId, "player", id)
+					if not ok or Withheld(aura) then
+						refused = true
+					elseif type(aura) == "table" and FromYou(aura) ~= false then
+						Remember(family, spell)
+						return true, spell, Left(aura, now)
+					end
+				end
+			end
+		end
+		local named, left, nameRefused = ByName(family, now)
+		if named then
+			Remember(family, named)
+			return true, named, left
+		end
+		if refused or nameRefused then return nil end
+		return false
+	end
+
+	-- The client's word on whether it can be cast now: a druid in cat form,
+	-- a priest in Shadowform or a mage out of mana is not reminded of a press
+	-- that would fail. A client that will not say is taken at its word.
+	local function Usable(spell)
+		local info = caps.own and caps.own[spell.key]
+		local check = C_Spell and C_Spell.IsSpellUsable
+		if type(check) ~= "function" then check = _G.IsUsableSpell end
+		return safecall(check, info and info.topRank or spell.ranks[1]) ~= false
+	end
+
+	-- One family's answer, for the queue and for everything that explains it:
+	-- the spell to offer (nil for none), the reading (true, false or nil),
+	-- the time left for a top-up, and why nothing is offered, with the spell
+	-- concerned where there is one:
+	--   "off"       Don't remind me
+	--   "unread"    the client would not say whether any of it is up
+	--   "notank"    Automatic, for a tank's family, and you are not one
+	--   "none"      Automatic has nothing it would pick
+	--   "up"        one of it is up (and is no top-up)
+	--   "tried"     pressed or skipped a moment ago
+	--   "unusable"  the game says it cannot be cast now
+	-- Reminded only when none of the family is up; a timed buff (never a
+	-- toggle) also when it runs low with top-ups on, as for anybody. `ctx` is
+	-- the scan's: name, now, whenBuffed, refreshUnder.
+	function ns.OwnVerdict(family, ctx)
+		local pick, spell = ns.OwnPick(family)
+		if pick == "off" then return nil, nil, nil, "off" end
+		local up, upSpell, left = ns.ReadOwnFamily(family)
+		if up == nil then return nil, nil, nil, "unread" end
+		if not spell then
+			local why
+			spell, why = ns.OwnAutoPick(family)
+			if why == "notank" then return nil, up, nil, "notank" end
+		end
+		if up then
+			if family.toggle or ctx.whenBuffed ~= "refresh" or not left
+				or left > (ctx.refreshUnder or 5) * 60 then
+				return nil, true, left, "up", upSpell
+			end
+			-- The top-up is of the one you are wearing, whatever the pick.
+			spell = upSpell
+		end
+		-- Only spells Automatic never picks are known (a hunter with nothing
+		-- but the Cheetah): nothing to remind you of.
+		if not spell then return nil, up, nil, "none" end
+		if ns.IsBlocked(ctx.name, spell.key, ctx.now) then return nil, up, left, "tried", spell end
+		if not Usable(spell) then return nil, up, left, "unusable", spell end
+		return spell, up, up and left or nil
 	end
 end
 
@@ -1362,6 +1735,28 @@ function ns.ClampSettings()
 	-- the checkbox could not show it.
 	boolean(profile.sources, "self", true)
 
+	-- Your own buffs, read on every scan. "Also in cities and inns" is a
+	-- switch like the one above. A family's pick is "auto", "off" or a spell
+	-- of that family; anything else -- a hand-edited file, a spell that has
+	-- moved to another family -- is Automatic, and a family this client has
+	-- no data for goes, since nothing could ever read it. Written, not
+	-- cleared: AceDB puts a default back only at the next load.
+	local own = profile.ownBuffs
+	boolean(own, "inCities", false)
+	if type(own.pick) ~= "table" then own.pick = {} end
+	for key, value in pairs(own.pick) do
+		local family = ns.FindOwnFamily(key)
+		local spell = ns.FindOwnSpell(value)
+		if not family then
+			own.pick[key] = nil
+		elseif value ~= "auto" and value ~= "off" and not (spell and spell.family == family) then
+			own.pick[key] = "auto"
+		end
+	end
+	for key in pairs(ns.defaults.profile.ownBuffs.pick) do
+		if own.pick[key] == nil then own.pick[key] = "auto" end
+	end
+
 	-- The raid groups switched off, read on every scan in a raid. Anything but
 	-- a group number set to true is dropped: there is no telling what it meant.
 	local skipGroups = profile.filters.skipRaidGroups
@@ -1570,7 +1965,10 @@ function addon:OnEnable()
 			and ns.CLASSES_WITHOUT_BUFFS[caps.class] == true
 		-- The profile is shared, so off on one character is off on every alt.
 		local off = not self.db.profile.enabled
-		if not buff and nothingToGive then
+		-- A hunter or a shaman with one of their own buffs learned has nothing
+		-- for anybody else, and still a prompt to remind them of their own.
+		local ownOnly = not buff and nothingToGive and caps.anyOwnKnown
+		if not buff and nothingToGive and not ownOnly then
 			self:Print(L["build |cffffd100%s|r -- this class has no buffs to cast on other players."]:format(tostring(ns.BUILD)))
 		elseif off then
 			self:Print(L["build |cffffd100%s|r -- |cffff8080switched off on this profile|r; |cffffd100/manners on|r to start."]
@@ -1578,6 +1976,9 @@ function addon:OnEnable()
 		elseif buff then
 			self:Print(L["build |cffffd100%s|r watching for buffs. Ready to cast |cffffd100%s|r."]:format(
 				tostring(ns.BUILD), ns.BuffName(buff)))
+		elseif ownOnly then
+			self:Print(L["build |cffffd100%s|r -- this class has no buffs for other players, so Manners reminds you of your own."]
+				:format(tostring(ns.BUILD)))
 		else
 			-- Translators: its own sentence, since the slot above takes a
 			-- spell's name and a reason does not fit there in every language.

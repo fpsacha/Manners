@@ -1510,6 +1510,40 @@ local SPELL_NAMES = {
 	[5504] = "Conjure Water",
 }
 
+-- The buffs a class puts on itself alone (Buffs.lua, VANILLA_OWN), every rank
+-- named: the macro casts the best rank you know by that rank's own name, and
+-- a mock naming them all "Arcane Intellect" could not tell Frost Armor from the
+-- Ice Armor it becomes at 30.
+for name, ids in pairs({
+	["Frost Armor"] = { 168, 7300, 7301 },
+	["Ice Armor"] = { 7302, 7320, 10219, 10220 },
+	["Mage Armor"] = { 6117, 22782, 22783 },
+	["Inner Fire"] = { 588, 7128, 602, 1006, 10951, 10952 },
+	["Touch of Weakness"] = { 2652, 19261, 19262, 19264, 19265, 19266 },
+	["Shadowguard"] = { 18137, 19308, 19309, 19310, 19311, 19312 },
+	["Demon Skin"] = { 687, 696 },
+	["Demon Armor"] = { 706, 1086, 11733, 11734, 11735 },
+	["Devotion Aura"] = { 465, 10290, 643, 10291, 1032, 10292, 10293 },
+	["Retribution Aura"] = { 7294, 10298, 10299, 10300, 10301 },
+	["Concentration Aura"] = { 19746 },
+	["Shadow Resistance Aura"] = { 19876, 19895, 19896 },
+	["Frost Resistance Aura"] = { 19888, 19897, 19898 },
+	["Fire Resistance Aura"] = { 19891, 19899, 19900 },
+	["Sanctity Aura"] = { 20218 },
+	["Righteous Fury"] = { 25780 },
+	["Aspect of the Hawk"] = { 13165, 14318, 14319, 14320, 14321, 14322, 25296 },
+	["Aspect of the Monkey"] = { 13163 },
+	["Aspect of the Wild"] = { 20043, 20190 },
+	["Aspect of the Beast"] = { 13161, 1299445, 1299446, 1299447 },
+	["Aspect of the Cheetah"] = { 5118 },
+	["Aspect of the Pack"] = { 13159 },
+	["Trueshot Aura"] = { 1299346, 1299348, 19506, 20905, 20906 },
+	["Lightning Shield"] = { 324, 325, 905, 945, 8134, 10431, 10432 },
+	["Omen of Clarity"] = { 16864 },
+}) do
+	for _, id in ipairs(ids) do SPELL_NAMES[id] = name end
+end
+
 -- Mock.inRange, unless Mock.rangeByUnit names this unit.
 function Mock.unitInRange(unit)
 	local by = Mock.rangeByUnit

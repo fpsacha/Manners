@@ -11,14 +11,14 @@ S = "runscenarios.py"
 
 # Never made at all.
 mutate("Queue.lua",
-       "\tif mine then queue[#queue + 1] = mine end\n",
-       "",
+       "\tif mine then\n\t\tqueue[#queue + 1] = mine\n",
+       "\tif mine then\n\t\tlocal _ = mine\n",
        "self: never offered",
        expect="you were not offered your own Intellect", script=S)
 
-# The switch ignored.
+# The switch ignored (for both kinds of your own buff, ns.MyselfHeldBack).
 mutate("Queue.lua",
-       "\tif db.sources.self ~= true then return nil end\n",
+       "\tif db.sources.self ~= true then return \"switch\" end\n",
        "",
        "self: switch ignored",
        expect="offered with the switch off", script=S)
@@ -244,7 +244,7 @@ mutate("Options.lua",
 
 # You never counted into your party: the fold only takes group members.
 mutate("Queue.lua",
-       "\t\tinGroup = grouped,\n\t\tpriority = PRIORITY.self,\n",
+       "\t\tinGroup = (plain(GetNumGroupMembers and GetNumGroupMembers()) or 0) > 0,\n\t\tpriority = PRIORITY.self,\n",
        "\t\tinGroup = false,\n\t\tpriority = PRIORITY.self,\n",
        "self: not counted into your party",
        expect="made no group cast", script=S)
@@ -288,8 +288,8 @@ mutate("Options.lua",
        expect="with only yourself on, the page says", script=S)
 
 mutate("Options.lua",
-       "\tif own then who[#who + 1] = L[\"myself\"] end\n",
-       "",
+       "\tif own then\n\t\twho[#who + 1] =",
+       "\tif false then\n\t\twho[#who + 1] =",
        "self: summary forgets you",
        expect="the summary on Start here leaves you out", script=S)
 
@@ -351,8 +351,8 @@ mutate("Options.lua",
 
 # The switch not asked: every line keeps your own buff with it off.
 mutate("Core.lua",
-       "\treturn db ~= nil and db.sources.self == true and #ns.SelfBuffs() > 0\n",
-       "\treturn db ~= nil and #ns.SelfBuffs() > 0\n",
+       "\treturn db ~= nil and db.sources.self == true\n\t\tand (#ns.SelfBuffs()",
+       "\treturn db ~= nil\n\t\tand (#ns.SelfBuffs()",
        "self: saving-mana lines ignore the switch",
        expect="with Myself off, a line still keeps your own buff", script=S)
 
@@ -422,3 +422,14 @@ mutate("GroupBuffs.lua",
        "\tif false then\n\t\tlocal name = ns.UnitFullName(\"player\")\n",
        "self: Greater Blessing over your own Kings",
        expect="was offered over your own Kings", script=S)
+
+# --- under the cursor ---
+
+# Not offered to you, and the cursor on the panel: no verdict written, so the
+# cursor holds "You" up after you buffed yourself by hand (the merge of the
+# linger work, BuildQueue).
+mutate("Queue.lua",
+       "\t\tif me then rejected[me] = true end\n",
+       "",
+       "self: a hovered You held for the cursor",
+       expect="stayed up for the cursor", script=S)

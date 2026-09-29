@@ -179,9 +179,145 @@ local VANILLA = {
 	},
 }
 
+---------------------------------------------------------------------------
+-- vanilla: what each class puts on itself alone
+---------------------------------------------------------------------------
+
+-- The buffs a class can only cast on itself, which "Myself" (Queue.lua,
+-- SelfEntry) reminds you of when none of a family is up. Kept apart from the
+-- tables above, whose every entry is something to give somebody else: nothing
+-- here is offered to anybody but the caster, walked by Automatic, asked for in
+-- chat or counted as a favour, and the fields above mean nothing here.
+--
+-- Per class, a list of families, in the order they are offered (your own
+-- group buff, from the tables above, always comes first). A family is the
+-- buffs of which only one of yours can be up at once -- a mage's armors, a
+-- paladin's auras, a hunter's aspects -- and a spell alone is a family of one.
+--
+--   key       the family's name in the profile (ownBuffs.pick) and in the
+--             character's memory of the one last up. Unique across every
+--             class, because the profile is shared by every character.
+--   label     what a family of several is called on the options page; a
+--             family of one goes by its spell's name.
+--   spells    each { key, ranks }: ranks highest first, as above, and the key
+--             unique across both kinds of table. One spell line may change its
+--             name between ranks (Frost Armor becomes Ice Armor at 30, Demon
+--             Skin becomes Demon Armor at 20): the macro casts the best rank
+--             known by that rank's own name (Core.lua, ProbeBuff).
+--             neverAuto on a spell: never what Automatic picks or remembers.
+--             talent on a spell: learned from a talent (data only).
+--   toggle    stays up until switched off, with no timer (auras, aspects), so
+--             never offered as a top-up.
+--   dungeon   Automatic's first pick in a dungeon or raid before you have had
+--             one up; elsewhere it is the first spell of the family you know.
+--   tank      Automatic reminds you only while your group role is tank.
+--
+-- Every id below was checked against Forever's own spell data (EnhanceQoL's
+-- SpellRankData_Camelot, generated from build 1.60.1.69913) and Wowhead
+-- Classic. Forever added ranks of its own to two spells (Aspect of the Beast
+-- and Trueshot Aura, the 1299xxx ids), which no other vanilla client has; they
+-- only ever fail to be known there. A spell is "known" by these ids alone, so
+-- a wrong id costs the reminder, never a nag.
+local VANILLA_OWN = {
+	MAGE = {
+		{
+			key = "armor",
+			label = L["Armor"],
+			spells = {
+				-- Frost Armor 1-3, then Ice Armor 1-4 from level 30: one line.
+				{ key = "frostarmor", ranks = { 10220, 10219, 7320, 7302, 7301, 7300, 168 } },
+				{ key = "magearmor", ranks = { 22783, 22782, 6117 } },
+			},
+			-- The mana back in a long fight; out in the world, and in a
+			-- battleground, the armor.
+			dungeon = "magearmor",
+		},
+	},
+
+	PRIEST = {
+		{ key = "innerfire", spells = { { key = "innerfire", ranks = { 10952, 10951, 1006, 602, 7128, 588 } } } },
+		-- The two racials: an undead priest's and a troll priest's. Nobody
+		-- else knows either, so nobody else is shown them.
+		{ key = "touchofweakness",
+			spells = { { key = "touchofweakness", ranks = { 19266, 19265, 19264, 19262, 19261, 2652 } } } },
+		{ key = "shadowguard",
+			spells = { { key = "shadowguard", ranks = { 19312, 19311, 19310, 19309, 19308, 18137 } } } },
+	},
+
+	WARLOCK = {
+		{
+			key = "demonarmor",
+			spells = {
+				-- Demon Skin 1-2, then Demon Armor 1-5 from level 20: one line.
+				{ key = "demonarmor", ranks = { 11735, 11734, 11733, 1086, 706, 696, 687 } },
+			},
+		},
+	},
+
+	PALADIN = {
+		{
+			key = "aura",
+			label = L["Aura"],
+			spells = {
+				{ key = "devotionaura", ranks = { 10293, 10292, 1032, 10291, 643, 10290, 465 } },
+				{ key = "retributionaura", ranks = { 10301, 10300, 10299, 10298, 7294 } },
+				{ key = "concentrationaura", ranks = { 19746 } },
+				{ key = "shadowresaura", ranks = { 19896, 19895, 19876 } },
+				{ key = "frostresaura", ranks = { 19898, 19897, 19888 } },
+				{ key = "fireresaura", ranks = { 19900, 19899, 19891 } },
+				{ key = "sanctityaura", ranks = { 20218 }, talent = true },
+			},
+			toggle = true,
+		},
+		{
+			key = "righteousfury",
+			spells = { { key = "righteousfury", ranks = { 25780 } } },
+			tank = true,
+		},
+	},
+
+	HUNTER = {
+		{
+			key = "aspect",
+			label = L["Aspect"],
+			spells = {
+				{ key = "aspecthawk", ranks = { 25296, 14322, 14321, 14320, 14319, 14318, 13165 } },
+				{ key = "aspectmonkey", ranks = { 13163 } },
+				{ key = "aspectwild", ranks = { 20190, 20043 } },
+				-- The three 1299xxx ranks are Forever's own.
+				{ key = "aspectbeast", ranks = { 1299447, 1299446, 1299445, 13161 } },
+				-- Up counts as your choice, so neither is ever nagged over; but
+				-- nobody wants to be reminded to run everywhere, so Automatic
+				-- never picks or remembers them.
+				{ key = "aspectcheetah", ranks = { 5118 }, neverAuto = true },
+				{ key = "aspectpack", ranks = { 13159 }, neverAuto = true },
+			},
+			toggle = true,
+		},
+		{
+			key = "trueshot",
+			-- The two 1299xxx ranks are Forever's own, below the talent's three.
+			spells = { { key = "trueshot", ranks = { 20906, 20905, 19506, 1299348, 1299346 }, talent = true } },
+		},
+	},
+
+	SHAMAN = {
+		{ key = "lightningshield",
+			spells = { { key = "lightningshield", ranks = { 10432, 10431, 8134, 945, 905, 325, 324 } } } },
+	},
+
+	DRUID = {
+		{ key = "omen", spells = { { key = "omen", ranks = { 16864 }, talent = true } } },
+	},
+
+	-- WARRIOR and ROGUE: nothing of their own that is a buff. Poisons and a
+	-- shaman's weapon imbues are weapon enchants, not auras.
+}
+
 local VANILLA_SET = {
 	name = "vanilla",
 	buffs = VANILLA,
+	own = VANILLA_OWN,
 	-- Classes whose buffs overwrite one another, so a target carries only one
 	-- of yours and walking the list would replace a blessing they have.
 	exclusive = { PALADIN = true },
@@ -272,6 +408,9 @@ local MISTS = {
 local MISTS_SET = {
 	name = "mists",
 	buffs = MISTS,
+	-- No class's own buffs yet: nobody here can check the ids a Mists client
+	-- uses, and a table empty is "Myself" offering your group buff alone.
+	own = {},
 	-- Still one blessing per paladin in 5.5, so the walk would take away what
 	-- the last click gave.
 	exclusive = { PALADIN = true },
@@ -348,6 +487,9 @@ local MAINLINE = {
 local MAINLINE_SET = {
 	name = "mainline",
 	buffs = MAINLINE,
+	-- Empty for the same reason as Mists': untested ids, and most of these
+	-- spells are gone from retail anyway.
+	own = {},
 	-- Nothing overwrites anything, and nothing depends on who is there.
 	exclusive = {},
 	auto = {},
@@ -412,6 +554,7 @@ if chosen then
 	ns.CLASSES_WITHOUT_BUFFS = chosen.without
 	ns.PARTY_IS_SUBGROUP = chosen.partyIsSubgroup == true
 	ns.GROUP_BY_CLASS = chosen.groupByClass
+	ns.OWN_BUFFS = chosen.own
 end
 
 ---------------------------------------------------------------------------
@@ -422,6 +565,36 @@ end
 -- heal-over-time or proc when deciding whether we owe somebody a favour.
 ns.ALL_BUFF_IDS = {}
 ns.BUFF_BY_ID = {}
+-- The same for the class's own buffs, apart: none of them is anybody's favour
+-- (ALL_BUFF_IDS decides that), and none of them is walked by Automatic.
+ns.OWN_BY_ID = {}
+ns.OWN_SPELL_BY_KEY = {}
+ns.OWN_FAMILY_BY_KEY = {}
+
+-- The own-buff lookups, a family and a spell knowing each other: a spell's
+-- `family` is what a press on it and the options page read back, and its
+-- auraIds are what the reading matches, as for the tables above.
+local function BuildOwnLookups()
+	wipe(ns.OWN_BY_ID)
+	wipe(ns.OWN_SPELL_BY_KEY)
+	wipe(ns.OWN_FAMILY_BY_KEY)
+	if type(ns.OWN_BUFFS) ~= "table" then ns.OWN_BUFFS = {} end
+	for class, families in pairs(ns.OWN_BUFFS) do
+		for index, family in ipairs(families) do
+			family.class, family.order = class, index
+			ns.OWN_FAMILY_BY_KEY[family.key] = family
+			for _, spell in ipairs(family.spells) do
+				spell.class, spell.family, spell.own = class, family, true
+				spell.auraIds = {}
+				for _, id in ipairs(spell.ranks) do
+					spell.auraIds[#spell.auraIds + 1] = id
+					ns.OWN_BY_ID[id] = spell
+				end
+				ns.OWN_SPELL_BY_KEY[spell.key] = spell
+			end
+		end
+	end
+end
 
 -- A function rather than a bare loop, so a client with no table to walk (no
 -- flavour and no family matched) is reported rather than thrown on: a file
@@ -436,6 +609,9 @@ function ns.BuildBuffLookups()
 	if type(ns.CLASS_AUTO) ~= "table" then ns.CLASS_AUTO = {} end
 	if type(ns.CLASSES_WITHOUT_BUFFS) ~= "table" then ns.CLASSES_WITHOUT_BUFFS = {} end
 	if type(ns.GROUP_BY_CLASS) ~= "table" then ns.GROUP_BY_CLASS = {} end
+	-- Ahead of the early return below: a client with no buffs for others
+	-- still has an (empty) table of its own buffs to index.
+	BuildOwnLookups()
 
 	if type(ns.BUFFS) ~= "table" then
 		ns.BUFFS = {}
@@ -481,6 +657,22 @@ function ns.FindBuff(class, key)
 	for _, buff in ipairs(ns.BUFFS[class] or {}) do
 		if buff.key == key then return buff end
 	end
+end
+
+-- The class's own-buff families (see VANILLA_OWN), or nil for a class with
+-- none on this client.
+function ns.GetOwnFamilies(class)
+	local families = ns.OWN_BUFFS[class or select(2, UnitClass("player"))]
+	if families and #families > 0 then return families end
+	return nil
+end
+
+function ns.FindOwnSpell(key)
+	return key and ns.OWN_SPELL_BY_KEY[key] or nil
+end
+
+function ns.FindOwnFamily(key)
+	return key and ns.OWN_FAMILY_BY_KEY[key] or nil
 end
 
 -- Whether any class on this client has a buff by that key. A pin lives in the

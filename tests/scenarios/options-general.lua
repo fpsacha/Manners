@@ -250,8 +250,9 @@ do
 			fail(scenario, "picking People who buff me, and my group did not set it up")
 		end
 		local summary = text(a.quickWhoSummary.name)
-		-- Yourself last, which a new profile offers (self.lua).
-		if not summary:find("Offering to: people who buff me, my group, myself.", 1, true) then
+		-- Yourself last, which a new profile offers (self.lua), and not in a
+		-- city or an inn until Also in cities and inns is ticked (ownbuffs.lua).
+		if not summary:find("Offering to: people who buff me, my group, myself (outside cities and inns).", 1, true) then
 			fail(scenario, "the summary under step 1 reads " .. summary)
 		end
 		ns.db.profile.sources.owed = false

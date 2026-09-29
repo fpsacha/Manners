@@ -2332,7 +2332,7 @@ mutate("tests/mockapi.lua",
 # anything -- so this states a guess as a fact on the one screenful somebody
 # reads before deciding whether to keep the addon.
 mutate("Commands.lua",
-       "\tif not (caps.hasClassBuffs or nothingToGive) then return false end",
+       "\tif not (caps.hasClassBuffs or nothingToGive or ownOnly) then return false end",
        "\tif false then return false end",
        "greeting a character it could not read",
        expect="an unknown class is not told it has nothing",
@@ -2470,7 +2470,7 @@ mutate("Options.lua",
 # and a class with nothing to cast is where the Snooze heading would be alone.
 mutate("Options.lua",
        """				type = "header", name = L["Snooze"], order = 50,
-				hidden = noClassBuffs,
+				hidden = noPrompt,
 """,
        """				type = "header", name = L["Snooze"], order = 50,
 """,

@@ -73,6 +73,13 @@ end
 -- value must not make every favour permanent.
 local function SpellIsOurs(spellId, buffKey)
 	if spellId == nil or not buffKey then return true end
+	-- One of your class's own (Buffs.lua, VANILLA_OWN): its ranks, or any
+	-- spell by the name the macro cast, since that is what the game picked
+	-- the rank by -- a rank the table lacks is still the press's own cast.
+	local own = ns.FindOwnSpell(buffKey)
+	if own then
+		return ns.OWN_BY_ID[spellId] == own or SpellNameFor(spellId) == ns.BuffName(own)
+	end
 	local buff = ns.FindBuff(caps.class, buffKey)
 	if not buff then return true end
 	return ns.BUFF_BY_ID[spellId] == buff

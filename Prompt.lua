@@ -554,10 +554,10 @@ local function PromptIsLive()
 	-- Unlocked is drag mode, and a prompt being dragged must not cast.
 	if not db.prompt.locked then return false end
 	if testMode then return false end
-	-- Belt and braces: BuildQueue already returns nothing without anyKnown, so
-	-- no mutation of this line can go red. It keeps the click path stating the
-	-- same condition the panel does.
-	if not ns.caps.anyKnown then return false end
+	-- Belt and braces: BuildQueue already returns nothing with nothing to
+	-- cast, so no mutation of this line can go red. It keeps the click path
+	-- stating the same condition the panel does.
+	if not ns.CanCastAnything() then return false end
 	return true
 end
 
@@ -638,7 +638,7 @@ local function OnPreClick(self, mouseButton)
 		elseif ns.HiddenWhileMounted() then
 			ns.addon:Print(L["the prompt stays away while you are mounted -- get off, or switch off %s on the %s tab."]
 				:format("|cffffd100" .. L["Hide the prompt while I'm mounted"] .. "|r", L["When to offer"]))
-		elseif not ns.caps.anyKnown then
+		elseif not ns.CanCastAnything() then
 			local class = ns.caps.class
 			if class and ns.CLASSES_WITHOUT_BUFFS and ns.CLASSES_WITHOUT_BUFFS[class] then
 				ns.addon:Print(ns.NO_CLASS_BUFFS)
@@ -883,9 +883,12 @@ local function OnPostClick(self, mouseButton, down)
 		-- ...and outside it, so the line can say the answer was no rather than
 		-- that nothing answered.
 		outOfShout = (not stale and current.ranged == false) or nil,
-		-- For the favour ledger only.
+		-- For the favour ledger only. The reason too: a buff somebody asked
+		-- for in chat is listed as asked and left out of the day's gifts
+		-- (Ledger.Settled), which it can only tell from the record.
 		class = current.class,
 		inGroup = current.inGroup,
+		reason = current.reason,
 		gave = ns.lastGave[current.name],
 		-- A group cast (GroupBuffs.lua): the spell, and everybody else it
 		-- covers, whom the settle repays and the ledger counts with this one.
@@ -3152,7 +3155,9 @@ function Prompt:RefreshPanel()
 	-- lockdown is.
 	if not InCombatLockdown() then self:SetCombatHold(false) end
 
-	if not ns.caps.anyKnown and not testMode then
+	-- Nothing to cast on anybody, yourself included: a hunter with an aspect
+	-- learned has a prompt, for his own.
+	if not ns.CanCastAnything() and not testMode then
 		self:StopAttention()
 		HideQueue()
 		lastTop = nil

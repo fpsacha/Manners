@@ -353,3 +353,12 @@ mutate("Options.lua",
        "the launcher reads a request as nearby",
        expect="the launcher says who asked",
        script="runscenarios.py")
+
+# The press's record without the reason: the ledger files a buff somebody
+# asked for as one given unprompted, and counts it among the day's gifts.
+mutate("Prompt.lua",
+       "\t\treason = current.reason,\n",
+       "",
+       "the press forgets the request",
+       expect="a buff given to somebody who asked is filed as asked",
+       script="runscenarios.py")
