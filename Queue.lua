@@ -1021,6 +1021,118 @@ function ns.HiddenWhileMounted()
 	return plain(safecall(IsMounted)) == true
 end
 
+---------------------------------------------------------------------------
+-- passers-by, remembered
+--
+-- Friendly nameplates are off by default, so for most players a stranger is
+-- found through the cursor and nothing else: "mouseover" is the one token
+-- that reaches them, and it goes the moment the cursor leaves them to go and
+-- click the prompt. The next scan had nobody, the empty-queue fuse took the
+-- prompt down, and the offer vanished in under a second on the way to being
+-- clicked, every time, whatever the settings (a CurseForge report on 1.1.0).
+-- With nameplates on, somebody pacing along the edge of "Passers-by within"
+-- blinked on and off the same way.
+--
+-- So a passer-by offered through a token nobody pointed at -- the cursor, a
+-- nameplate -- is remembered by name, and for a few seconds after the last
+-- token that reached them they are offered the way the owed fallback offers
+-- a favour: no token, reached by the macro's /target line, range unknown. A
+-- cast on somebody who has walked off is refused, and the refusal back-off
+-- (NoteRefusal) lets them go. Only plain data is kept, never a unit token:
+-- by the time it is read the token may name somebody else.
+---------------------------------------------------------------------------
+
+-- How long after the last token reached them. Getting the cursor across the
+-- screen to the prompt and reading it takes a second or two. Somebody found
+-- within ten yards and running straight off at seven yards a second leaves a
+-- buff's thirty yards in about three; somebody standing about or walking stays
+-- in reach far longer. Ten seconds covers the trip and the read, and whoever
+-- did run off costs one refused cast. Longer would leave the queue full of a
+-- crowd long gone.
+local LINGER_SECONDS = 10
+-- A city square puts dozens of people through the scan in ten seconds; the
+-- ones seen longest ago make room.
+local LINGER_CAP = 40
+
+-- [name] = { seen, within, buff, class, targetName, known, checked, expires,
+-- close }: `seen` is the last moment a token reached them near enough, and
+-- `within` the "Passers-by within" step that judged it. The rest is what their
+-- queue entry said then, `expires` being the top-up's remaining time as a
+-- moment on the clock, so it counts down while they are unseen.
+local passing = {}
+ns.passersBy = passing
+
+-- Written by the walk for every passer-by it offers through a token nobody
+-- pointed at, from the entry it just queued. Somebody new makes room first.
+local function RememberPasserBy(entry, now, within)
+	local memo = passing[entry.name]
+	if not memo then
+		local held, oldest, at = 0, nil, nil
+		for who, other in pairs(passing) do
+			held = held + 1
+			if not at or other.seen < at then oldest, at = who, other.seen end
+		end
+		if held >= LINGER_CAP then passing[oldest] = nil end
+		memo = {}
+		passing[entry.name] = memo
+	end
+	memo.seen, memo.within = now, within
+	memo.buff, memo.class, memo.targetName = entry.buff, entry.class, entry.targetName
+	-- The reading as well, so the panel keeps saying what it said while they
+	-- had a token: "needs" does not turn into "unverified" as the cursor
+	-- leaves them.
+	memo.known, memo.checked, memo.close = entry.known, entry.checked, entry.close
+	memo.expires = entry.remaining and (now + entry.remaining) or nil
+end
+
+-- The walk's second half for passers-by: everybody remembered whom no token
+-- reached this scan, offered by name until LINGER_SECONDS after one last did.
+-- `rejected` is the walk's, where true is a verdict about the person -- they
+-- carry the buff, are dead, out of casting range, listed, outside a city --
+-- and lets them go at once; "far" is only the nearness check, which does not
+-- (see visit). `drop` is a reason that turns every passer-by down.
+local function OfferPassersBy(queue, seen, rejected, now, db, drop)
+	if drop then
+		if next(passing) then wipe(passing) end
+		return
+	end
+	for name, memo in pairs(passing) do
+		local debt = db.sources.owed and owed[name]
+		-- Let go for good on any of these. Near by a "Passers-by within" step
+		-- that no longer stands is not near, so narrowing it applies at once.
+		-- One block test covers a right-press skip and a press that reached
+		-- nobody (the whole person), the retry cooldown a press on this buff
+		-- wrote, and the back-off after refusals.
+		if now - memo.seen >= LINGER_SECONDS
+			or memo.within ~= db.filters.proximity
+			or (ns.zonedAt and memo.seen < ns.zonedAt)
+			or rejected[name] == true
+			or ns.IsBlocked(name, memo.buff.key, now)
+			or ns.IsNeverOffered(name)
+			or not SafeForMacro(name) then
+			passing[name] = nil
+		elseif not seen[name] and not (debt and LiveExpiry(debt) > now) then
+			-- Neither a token this scan nor a favour, whose paths offer them.
+			queue[#queue + 1] = {
+				name = name,
+				short = ShortName(name),
+				targetName = memo.targetName,
+				class = memo.class,
+				buff = memo.buff,
+				reason = "nearby",
+				inGroup = false,
+				priority = PRIORITY.nearby,
+				-- ranged is left unwritten, as on the owed fallback: nothing
+				-- measured them this scan.
+				known = memo.known,
+				remaining = memo.expires and (memo.expires - now) or nil,
+				checked = memo.checked,
+				close = memo.close,
+			}
+		end
+	end
+end
+
 -- PickBuffFor's two callbacks for the queue, at file level so that no person
 -- costs a closure. The tokenless path has no aura to read, hence NoReading.
 local function QueueBlocked(candidate, opts)
@@ -1104,9 +1216,10 @@ function ns.BuildQueue()
 		local ok, person = IsBuffableUnit(unit, f)
 		if not ok then
 			-- Somebody turned down here must not walk back in through the
-			-- fallback, which cannot check any of this. The name costs a call,
-			-- so only when a debt outstanding could resurface.
-			if person and next(owed) then
+			-- fallbacks, which cannot check any of this. The name costs a call,
+			-- so only when a debt outstanding or a passer-by remembered could
+			-- resurface.
+			if person and (next(owed) or next(passing)) then
 				local bad = ns.UnitFullName(unit)
 				if bad then rejected[bad] = true end
 			end
@@ -1180,7 +1293,12 @@ function ns.BuildQueue()
 		-- the aura read on purpose: in a crowd, one distance check is much
 		-- cheaper than a walk down somebody's auras.
 		if reason == "nearby" and not pointed and ns.NearEnough(unit) == false then
-			rejected[full] = true
+			-- Marked "far" rather than true: a passer-by remembered (see
+			-- OfferPassersBy) is not let go for it, only no longer renewed.
+			-- Somebody pacing along the edge of the setting read near and far
+			-- on alternate scans and blinked on and off the prompt, and past
+			-- the edge the spell still reaches them three times as far out.
+			rejected[full] = "far"
 			return
 		end
 
@@ -1288,6 +1406,10 @@ function ns.BuildQueue()
 			-- line and the tooltip say so.
 			sweep = swept,
 		}
+		-- Remembered for when the token goes, which for the cursor is the
+		-- moment the player moves it to the prompt. Not somebody pointed at:
+		-- a target or focus stands until the player changes it.
+		if reason == "nearby" and not pointed then RememberPasserBy(queue[#queue], now, f.proximity) end
 	end
 
 	-- The never-offer list's answers stand for the length of the walk only:
@@ -1359,6 +1481,13 @@ function ns.BuildQueue()
 			end
 		end
 	end
+
+	-- Passers-by no token reached this scan, for a few seconds after one last
+	-- did. Everything that turns passers-by down as a kind turns the
+	-- remembered ones down for good: the switch off, a shout, saving mana, a
+	-- city-only rule out in the world.
+	OfferPassersBy(queue, seen, rejected, now, db,
+		not db.sources.strangers or groupOnly or savingMana or notResting)
 
 	-- A party's single casts folded into one group cast where the player has
 	-- the group version and its reagent (GroupBuffs.lua), before the sort, so

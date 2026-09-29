@@ -225,7 +225,10 @@ do
 			return
 		end
 		Mock.advance(0.3)
-		seen.nameplate1 = nil
+		-- Out of casting range, which drops her from the queue at once; her
+		-- nameplate going would not, since a passer-by is remembered for a few
+		-- seconds after (Queue.lua).
+		Mock.rangeByUnit = { nameplate1 = false }
 		ns.addon:Tick()
 		if ns.Prompt:PanelName() ~= "Anna Aim" or inQueue(ns)["Anna Aim"] or not inQueue(ns)["Bert Beside"] then
 			fail(scenario, "SKIPPED -- Anna was not held over Bert")

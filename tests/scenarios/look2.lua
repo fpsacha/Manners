@@ -524,6 +524,8 @@ do
 		wipe(Mock.unitNames)
 		Mock.unitNames.nameplate1 = { "Brannoc", "Vale" }
 		ns.nameplateUnits.nameplate2, ns.nameplateUnits.nameplate3 = nil, nil
+		-- Long gone, not just out of sight a moment (see passing in Queue.lua).
+		wipe(ns.passersBy)
 		ns.addon:Tick()
 		if r.chip:IsShown() then
 			fail(scenario, "SKIPPED -- the chip is still up with one person")

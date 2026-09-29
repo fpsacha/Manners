@@ -161,6 +161,13 @@ local OUTCOME_SECONDS = 0.6
 local heldEntry, heldAt
 -- When the queue first came back empty, cleared the moment it refills.
 local emptyAt
+-- Whether the cursor is on the panel: set by OnEnter, cleared by OnLeave and
+-- by ClearHold. While it is, the hold and the fuse keep their clocks but not
+-- their verdicts: the player is reaching for what the panel names, and
+-- neither an empty scan nor somebody no better may pull it out from under the
+-- cursor. Somebody strictly better still takes it, and a retired entry still
+-- goes (a right-press skip, the never-offer list, a press resolved).
+local hovering
 local lastSoundAt
 -- Whether the panel is dimmed for combat, so the alpha is written once per
 -- transition.
@@ -193,9 +200,12 @@ local queueAbove
 
 -- Everything the hysteresis holds, dropped whenever the prompt goes down for a
 -- reason of its own (switched off, unlocked, nothing learned), so coming back
--- up is a fresh start.
+-- up is a fresh start. The cursor with it: a panel that comes back up under a
+-- cursor that has not moved is held again only once OnEnter says so, which
+-- errs towards the ordinary hysteresis rather than a hold nothing ends.
 local function ClearHold()
 	heldEntry, heldAt, emptyAt = nil, nil, nil
+	hovering = nil
 end
 
 -- Lights the fuse on an empty queue, once, and asks for a repaint when it has
@@ -964,6 +974,10 @@ do
 	end
 
 	local function OnEnter(self)
+		-- First, whatever the tooltip does: the cursor is on the panel, and
+		-- the hold and the fuse wait for it (see hovering). OnUpdate calls
+		-- this again only while the tooltip is ours, so still hovering.
+		hovering = true
 		-- Nothing armed is nothing to describe, and a tooltip left from the
 		-- last person goes with it.
 		if not current or not current.buff then
@@ -1028,6 +1042,15 @@ do
 
 	local function OnLeave()
 		GameTooltip:Hide()
+		-- The hold and the fuse kept their clocks while the cursor was on the
+		-- panel, so whatever ran out meanwhile is put right now rather than at
+		-- the next scan. Next frame rather than here: the client sends this
+		-- as a repaint hides the button, from inside that repaint.
+		if not hovering then return end
+		hovering = nil
+		if C_Timer and C_Timer.After then
+			C_Timer.After(0, function() ns.Guard("leave repaint", Prompt.Refresh, Prompt) end)
+		end
 	end
 
 	-- Keep the tooltip honest if the entry changes while it is open, checked a
@@ -2337,7 +2360,8 @@ end
 -- and it never holds somebody deliberately retired (see Retired).
 local function HoldStillStands(now)
 	if not (heldEntry and heldAt) then return false end
-	if now - heldAt >= HOLD_SECONDS then return false end
+	-- Not while the cursor is on the panel (see hovering).
+	if now - heldAt >= HOLD_SECONDS and not hovering then return false end
 	if ListedWithoutDebt(heldEntry.name, now) then return false end
 	return not ns.IsBlocked(heldEntry.name, heldEntry.buff and heldEntry.buff.key, now)
 end
@@ -3214,6 +3238,9 @@ function Prompt:RefreshPanel()
 		-- the dropped person's macro for the whole fight.
 		if button:IsShown() and current and not retired and not ArmingForFight() then
 			LightFuse(now)
+			-- Nor does it burn out under the cursor (see hovering): the
+			-- player is on the way to clicking it. OnLeave repaints.
+			if hovering then return end
 			if now - emptyAt < EMPTY_FUSE_SECONDS then return end
 		end
 

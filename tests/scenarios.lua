@@ -101,6 +101,17 @@ local function drive(scenario, ns, extra)
 			local fn = ns.Prompt:GetButton().scripts.OnEnter
 			if fn then fn(ns.Prompt:GetButton()) end
 		end },
+		-- And off again: the cursor on the panel holds it up (see hovering in
+		-- Prompt.lua), which no scenario driven through here is about. The
+		-- repaint it asks for next frame is dropped: the next step repaints
+		-- anyway, and a timer left pending here would fire inside whatever a
+		-- scenario later runs the clock for -- a pull's own repaint, say.
+		{ "OnLeave", function()
+			local fn = ns.Prompt:GetButton().scripts.OnLeave
+			local queued = #Mock.timers
+			if fn then fn(ns.Prompt:GetButton()) end
+			for i = #Mock.timers, queued + 1, -1 do table.remove(Mock.timers, i) end
+		end },
 		{ "ToggleTest on", function() ns.Prompt:ToggleTest() end },
 		{ "Refresh in test", function() ns.Prompt:Refresh() end },
 		{ "ToggleTest off", function() ns.Prompt:ToggleTest() end },
@@ -11800,6 +11811,8 @@ local function clearClicks(ns)
 	-- The refusal memory is a block too, and it counts refusals in a row: a
 	-- scenario's second pass is not the second refusal of its first.
 	wipe(ns.refusals)
+	-- And the passers-by the lifecycle's scans remembered (Queue.lua).
+	wipe(ns.passersBy)
 	ns.pendingClick = nil
 	for unit in pairs(Mock.unitNames or {}) do
 		if unit:find("^nameplate") then ns.nameplateUnits[unit] = true end
@@ -15489,6 +15502,8 @@ if ns then
 		if tip:find("Hands your own target back", 1, true) then
 			fail(scenario, "the tooltip promises to hand back a target the macro keeps")
 		end
+		-- The cursor off the panel again, which holds Anna while it is there.
+		button.scripts.OnLeave(button)
 	end
 
 	-- A stranger off a nameplate is still handed back.
