@@ -24,7 +24,7 @@ Built for **WoW Forever** (Interface 16001), and shipped for that client only.
 6. **Your party or raid**, anyone missing your buff.
 7. **Passers-by** missing your buff: nameplates, your target, focus and mouseover.
 
-It skips the dead, the out of range, anyone you just tried, and anyone the buff does nothing for (Arcane Intellect is wasted on a rogue). Right-click the prompt to skip somebody for now; shift-right-click to never offer them anything.
+It skips the dead, the out of range, anyone you just tried, anyone the buff does nothing for (Arcane Intellect is wasted on a rogue), and, while you are not flagged yourself, anyone flagged for PvP -- buffing them would flag you too. Right-click the prompt to skip somebody for now; shift-right-click to never offer them anything.
 
 - **Never offer.** A list of people who are never offered anything, unless they buff you, because returning a favour is the point.
 - **Friends and guildmates first.** Battle.net friends included, they go ahead of other passers-by and the rest of your group.

@@ -94,8 +94,9 @@ Everybody who could use your buff is queued, in this order:
 7. **Passers-by** missing your buff, seen through nameplates, your target,
    your focus and your mouseover.
 
-It skips the dead, the out-of-range, anyone you just tried, and anyone the buff
-does nothing for (Arcane Intellect is wasted on a rogue).
+It skips the dead, the out-of-range, anyone you just tried, anyone the buff
+does nothing for (Arcane Intellect is wasted on a rogue), and, while you are not
+flagged yourself, anyone flagged for PvP, since buffing them would flag you.
 
 **On the prompt:** left-click (or your key) casts. **Right-click** skips that
 person for now without marking their favour repaid. **Shift-right-click** puts
@@ -376,6 +377,12 @@ settings into a profile named after this one.
 - *Skip players out of range*: where the game cannot tell, they are still
   offered. A group member the game cannot see at all (still in town, or far
   off in the instance) is left out.
+- *Skip players flagged for PvP* (on): buffing somebody flagged flags you too,
+  so while you are not flagged, nobody flagged is offered -- not even a favour
+  back, which waits for their flag to drop. It steps aside while you are
+  flagged yourself, as in a battleground, but not while your own flag is
+  running out, since a buff would start it again. A group spell or a shout
+  that would land on somebody flagged is held back too.
 - *Never offer*: the list, with a box to add a name and buttons to take one
   off or clear it.
 

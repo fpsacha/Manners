@@ -12,6 +12,7 @@ Built for **WoW Forever** (Interface 16001) only.
 - **Dungeons and raids:** tick only the **raid groups you buff**, **save mana** below a level you set, and no "buffed you" chat line inside a raid.
 - **Never offer:** shift-right-click somebody on the prompt and they are never offered anything again, unless they buff you.
 - **Friends and guildmates first** among passers-by and within your group.
+- **Never flags you for PvP:** while you are not flagged, players flagged for PvP are not offered, since buffing them would flag you too.
 - **People who ask me in chat** (off by default): "int pls", "fort?" or "can I get motw" in say, yell, group chat or a whisper puts them on the prompt for a minute.
 - **How near is near:** limit passers-by to about ten yards, or to cities and inns.
 - **Snooze** with `/manners snooze`, and **hide the prompt while you're mounted**.

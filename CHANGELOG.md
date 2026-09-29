@@ -1,5 +1,29 @@
 # Changelog
 
+## 1.4.0
+
+Buffing somebody flagged for PvP flags you too. Manners now keeps them off the
+prompt while you are not flagged yourself, as a player asked.
+
+- **Skip players flagged for PvP**, on by default under *Who to skip* on the
+  *Who to buff* tab. While you are not flagged, nobody flagged is offered
+  anything: not a favour back, a request from chat, your group, a passer-by
+  or your target.
+- While you are flagged yourself, as in a battleground, they are offered as
+  before. The one exception is while your own flag is running out: buffing
+  somebody flagged would start the five minutes again, so they stay off the
+  prompt until it has run out.
+- A group spell or a shout lands on everybody it reaches -- your party, your
+  raid group, or for a Greater Blessing the whole class -- so one flagged
+  person there holds it back, and everybody else is offered one at a time.
+- If somebody gets flagged while they are on the prompt, it moves on at once,
+  even with your cursor on it, and a click outside a fight never casts at
+  them.
+- A favour from somebody flagged stays owed, and is offered back if their
+  flag drops before the favour runs out. The chat line and the ledger say so.
+- `/manners debug` and the *Diagnostics* tab name who is being held back for
+  PvP, and `/manners look` shows a player's PvP flags.
+
 ## 1.3.0
 
 *In character* more than doubles: from about a thousand lines to over two
