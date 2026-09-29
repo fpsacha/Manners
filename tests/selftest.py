@@ -3468,13 +3468,12 @@ mutate("Options.lua",
 
 # ...and the note under Always offer itself.
 mutate("Options.lua",
-       "Expect to be spending mana.\"]\n"
-       "\t\t\t\t\t.. \"|r\\n\\n|cff888888\"\n"
-       "\t\t\t\t\t.. L[\"Nothing is read in this mode, so |cffffd100Whoever I have"
-       " targeted comes first|r has no effect.\"]\n"
-       "\t\t\t\t\t.. \"|r\",\n",
-       "Expect to be spending mana.\"]\n"
-       "\t\t\t\t\t.. \"|r\",\n",
+       "even with a fresh buff.\"]\n"
+       "\t\t\t\t\t\t.. \"|r\\n\\n|cff888888\"\n"
+       "\t\t\t\t\t\t.. L[\"%s does nothing in this mode.\"]:format(Ref(L[\"My target first\"], TAB.who))\n"
+       "\t\t\t\t\t\t.. \"|r\"\n",
+       "even with a fresh buff.\"]\n"
+       "\t\t\t\t\t\t.. \"|r\"\n",
        "Always note silent about the target",
        expect="the note under Always offer does not say that Always offer",
        script="runscenarios.py")
@@ -3517,19 +3516,17 @@ mutate("Options.lua",
 
 # "If they already have the buff" silent about the favour exception...
 mutate("Options.lua",
-       "qualify.\"]\n"
-       "\t\t\t\t\t.. \"\\n\\n\"\n"
-       "\t\t\t\t\t.. L[\"Somebody who buffed you is offered the favour back whichever you"
-       " choose, even if they already have it.\"],\n",
-       "qualify.\"],\n",
+       "L[\"Someone who buffed you is always offered a buff back; Diagnostics shows"
+       " which buffs Manners can see on others.\"],\n",
+       "L[\"Diagnostics shows which buffs Manners can see on others.\"],\n",
        "already-buffed dropdown hides the favour exception",
        expect="the dropdown's description never says somebody who buffed you",
        script="runscenarios.py")
 
 # ...and the top-up slider the same.
 mutate("Options.lua",
-       "is left alone, unless they buffed you.\"],\n",
-       "is left alone.\"],\n",
+       "is not offered a top-up, unless they buffed you.\"],\n",
+       "is not offered a top-up.\"],\n",
        "top-up slider hides the favour exception",
        expect="the top-up slider's description never says somebody who buffed you",
        script="runscenarios.py")
@@ -3599,18 +3596,16 @@ mutate("Options.lua",
 
 # "Stay quiet in combat" claiming the prompt cannot be hidden.
 mutate("Options.lua",
-       "L[\"It stays on screen in a fight on purpose: your key binding would still cast"
-       " the frozen macro if it were hidden.\"]",
-       "L[\"It cannot be hidden. Blizzard freezes secure frames, so a prompt the fight"
-       " finds on screen stays on screen until it ends, whatever this says.\"]",
+       "L[\"It stays on screen in combat because your key binding would still cast;",
+       "L[\"It cannot be hidden in combat because Blizzard freezes secure frames;",
        "quiet-in-combat says it cannot be hidden",
        expect="the switch still says the prompt cannot be hidden",
        script="runscenarios.py")
 
 # "Stay quiet in combat" promising a green flash nothing paints.
 mutate("Options.lua",
-       " happened -- red if it failed. With this on it stays dimmed",
-       " happened -- green or red. With this on it stays dimmed",
+       " say what a click did, red if it failed.\"]",
+       " say what a click did, green or red.\"]",
        "quiet-in-combat promises a green flash",
        expect="the switch promises a green flash the prompt never paints",
        script="runscenarios.py")

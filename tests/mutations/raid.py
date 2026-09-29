@@ -362,8 +362,8 @@ mutate("Prompt.lua",
 
 # The page shows the slider to a warrior.
 mutate("Options.lua",
-       "\t\t\t\t\treturn class ~= nil and ns.MANA_CLASSES[class] ~= true\n",
-       "\t\t\t\t\treturn false\n",
+       "\t\treturn class ~= nil and ns.MANA_CLASSES[class] ~= true\n",
+       "\t\treturn false\n",
        "mana floor on a warrior's page",
        expect="the mana floor is on a warrior's page",
        script="runscenarios.py")

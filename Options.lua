@@ -1730,8 +1730,16 @@ local function BuildWhoTab()
 	return who
 end
 
--- When to offer, and when the prompt holds back.
+-- When to offer, and when the prompt holds back. The four engine timings
+-- (how long a favour is remembered, the retry wait, the scan interval) live
+-- under Advanced; this tab only answers "offer now, or hold back?".
 local function BuildWhenTab()
+	-- A class with no mana bar has nothing to keep: the floor and the line
+	-- under it go together. An unknown class (before the probe) shows both.
+	local function noManaBar()
+		local class = ns.caps and ns.caps.class
+		return class ~= nil and ns.MANA_CLASSES[class] ~= true
+	end
 	return {
 		type = "group",
 		name = TAB.when,
@@ -1741,27 +1749,29 @@ local function BuildWhenTab()
 			buffedHeader = { type = "header", name = L["Already buffed"], order = 1 },
 			whenBuffed = {
 				type = "select",
-				name = L["If they already have the buff"],
-				-- The favour exception is said here and on the choice
-				-- itself because none of the three choices touches it:
-				-- BuildQueue offers a debt regardless.
-				desc = L["Reading whether somebody has a buff needs the game's permission. See the Diagnostics tab for which of your buffs qualify."]
-					.. "\n\n"
-					.. L["Somebody who buffed you is offered the favour back whichever you choose, even if they already have it."],
+				name = L["If they already have it"],
+				-- The favour exception is said here because none of the
+				-- three choices touches it: BuildQueue offers a debt
+				-- regardless of this setting.
+				desc = L["Someone who buffed you is always offered a buff back; Diagnostics shows which buffs Manners can see on others."],
 				order = 2,
 				width = "full",
 				values = {
-					skip = L["Leave them alone (unless they buffed you)"],
-					refresh = L["Offer a top-up when it is running out"],
-					always = L["Always offer, whatever they have"],
+					skip = L["Skip them (default)"],
+					refresh = L["Offer a top-up when it runs low"],
+					always = L["Always offer (costs a lot of mana)"],
 				},
+				-- Least to most mana, rather than the alphabet's order.
+				sorting = { "skip", "refresh", "always" },
 				get = fGet,
 				set = fSet,
 			},
 			refreshUnder = {
 				type = "range",
-				name = L["Top up when under (minutes) are left"],
-				desc = L["Only offer a refresh once their remaining time drops below this. Somebody whose timer cannot be read is left alone, unless they buffed you."],
+				name = L["Top up when less than this is left (minutes)"],
+				-- The favour exception again: a timer that cannot be read
+				-- holds back a top-up, never a buff owed.
+				desc = L["Someone whose time left cannot be read is not offered a top-up, unless they buffed you."],
 				order = 3,
 				min = 1,
 				max = 60,
@@ -1777,25 +1787,24 @@ local function BuildWhenTab()
 				-- The second sentence is a setting on another tab going
 				-- quiet. A target is promoted only on a reading that they
 				-- lack the buff, and this mode takes no readings.
-				name = "|cffff8080"
-					.. L["Everyone nearby will be offered constantly, including people whose buff has barely ticked down. Expect to be spending mana."]
-					.. "|r\n\n|cff888888"
-					.. L["Nothing is read in this mode, so |cffffd100Whoever I have targeted comes first|r has no effect."]
-					.. "|r",
+				name = function()
+					return "|cffff8080"
+						.. L["Everyone you offer to is offered again and again, even with a fresh buff."]
+						.. "|r\n\n|cff888888"
+						.. L["%s does nothing in this mode."]:format(Ref(L["My target first"], TAB.who))
+						.. "|r"
+				end,
 			},
 
 			-- Only the mount has a switch: dead, a taxi and a vehicle are
 			-- places nothing can be cast from, while a cast from a mount
 			-- works and costs you the mount, a trade some players want.
-			wayHeader = { type = "header", name = L["Out of the way"], order = 20 },
+			wayHeader = { type = "header", name = L["Hold back"], order = 10 },
 			hideMounted = {
 				type = "toggle",
-				name = L["Not while mounted"],
-				desc = L["Keep the prompt away while you are on a mount, since casting would take you off it. It comes back when you get off."]
-					.. "\n\n|cff888888"
-					.. L["It already stays away while you are dead, on a flight path or in a vehicle. In a fight the prompt stays as the fight found it until the fight ends."]
-					.. "|r",
-				order = 21,
+				name = L["Hide the prompt while I'm mounted"],
+				desc = L["Casting would dismount you; it is always hidden while dead, on a flight path or in a vehicle."],
+				order = 11,
 				width = "full",
 				get = fGet,
 				set = fSet,
@@ -1806,36 +1815,49 @@ local function BuildWhenTab()
 			-- leave a hidden button that still fires from its key binding
 			-- and /click, casting the frozen macro out of sight. So the
 			-- panel stays up on purpose, and this decides whether the
-			-- confirmation flash of a click in a fight still shows.
+			-- confirmation flash of a click in a fight still shows. It
+			-- writes the prompt's own table, so pGet/pSet (restyle).
 			hideInCombat = {
 				type = "toggle",
 				name = L["Keep the prompt dim and still in combat"],
-				desc = L["A click still casts in combat, and the prompt flashes to say what happened -- red if it failed. With this on it stays dimmed and still for the fight."]
-					.. "\n\n|cff888888"
-					.. L["It stays on screen in a fight on purpose: your key binding would still cast the frozen macro if it were hidden."]
-					.. "|r",
-				order = 38,
+				desc = L["It stays on screen in combat because your key binding would still cast; this only stops the flashes that say what a click did, red if it failed."],
+				order = 12,
 				width = "full",
 				get = pGet,
 				set = pSet,
 			},
 			manaFloor = {
 				type = "range",
-				name = L["Percent of my mana to keep for myself"],
+				name = L["Save mana: stop below (% mana)"],
 				-- The two kinds that are never held back are named, since the
 				-- rule is about who asked rather than about who they are.
-				desc = L["Below this percent of your mana, only people who buffed you or asked you for it are offered; your group, your target and passers-by wait until you have 5 percent more than this. 0 turns it off."],
-				order = 24.5,
+				desc = L["Below this, only people who buffed you or asked are offered."],
+				order = 13,
 				min = 0,
 				max = 90,
 				step = 5,
-				-- A class with no mana bar has nothing to keep.
-				hidden = function()
-					local class = ns.caps and ns.caps.class
-					return class ~= nil and ns.MANA_CLASSES[class] ~= true
-				end,
+				hidden = noManaBar,
 				get = fGet,
 				set = fSet,
+			},
+			-- What the floor does at its current value, said under it: off
+			-- at 0, otherwise where it stops and where the rest resume
+			-- (SavingMana lets go 5 points above the floor).
+			manaNote = {
+				type = "description",
+				order = 13.5,
+				hidden = noManaBar,
+				name = function()
+					local floor = tonumber(F().manaFloor) or 0
+					local text
+					if floor <= 0 then
+						text = L["Off: buffs are offered at any mana."]
+					else
+						text = L["Below %d%% only favours and requests are offered; the rest come back at %d%%."]
+							:format(floor, floor + 5)
+					end
+					return "|cff888888" .. text .. "|r"
+				end,
 			},
 		},
 	}
