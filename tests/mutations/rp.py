@@ -76,7 +76,7 @@ mutate("Phrases.lua",
 
 # A people's own lines weighed no more than anybody's.
 mutate("Phrases.lua",
-       "\trace = 7, kin = 6,",
+       "\trace = 9, kin = 6,",
        "\trace = 1, kin = 6,",
        "race lines not weighted highest",
        expect="rp: a dwarf of the Alliance thanks like one",
@@ -108,8 +108,8 @@ mutate("Phrases.lua",
 
 # Kin never greeted.
 mutate("Phrases.lua",
-       "\t\tif RP.IsKin(entry, family) then",
-       "\t\tif false then",
+       "\t\tlocal kin = RP.IsKin(entry, family)\n",
+       "\t\tlocal kin = false\n",
        "kin never greeted",
        expect="rp: kin is greeted as kin",
        script="runscenarios.py")
@@ -246,7 +246,7 @@ mutate("Phrases.lua",
 
 # Nothing said about the spell going out.
 mutate("Phrases.lua",
-       '\t\tadd(type(entry.buff) == "table" and RP.SPELL[entry.buff.key], weight.spell, "spell")\n',
+       '\t\tadd(key and RP.SPELL[key], weight.spell * aside, "spell")\n',
        "",
        "rp no spell lines",
        expect="rp: lines about the spell going out",
@@ -342,7 +342,7 @@ mutate("Phrases.lua",
 
 # Nothing said about where this is.
 mutate("Phrases.lua",
-       '\t\tadd(RP.PLACE[RP.Place()], weight.place, "place")\n',
+       '\t\t\tadd(RP.PLACE[place], weight.place * aside, "place")\n',
        "",
        "rp no place lines",
        expect="rp: lines for where you are",
@@ -398,7 +398,7 @@ mutate("Phrases.lua",
 
 # Nothing said about the hour.
 mutate("Phrases.lua",
-       '\t\tadd(RP.TIME[hour], weight.time, "time")\n',
+       '\t\tadd(RP.TIME[hour], weight.time * aside, "time")\n',
        "",
        "rp no time lines",
        expect="rp: lines for the hour",
@@ -406,7 +406,7 @@ mutate("Phrases.lua",
 
 # Nothing said about the class being helped.
 mutate("Phrases.lua",
-       '\t\tadd(helped == "sameclass" and RP.SAME[class] or RP.TARGET[helped], weight.target, "target")\n',
+       '\t\tadd(Both(them, onto and onto[helped]), weight.target * aside, "target")\n',
        "",
        "rp no target lines",
        expect="rp: lines for the class being helped",
@@ -414,8 +414,8 @@ mutate("Phrases.lua",
 
 # Two mages meeting hear what any two of a kind would.
 mutate("Phrases.lua",
-       '\t\tadd(helped == "sameclass" and RP.SAME[class] or RP.TARGET[helped], weight.target, "target")\n',
-       '\t\tadd(RP.TARGET[helped], weight.target, "target")\n',
+       '\t\tlocal them = helped == "sameclass" and RP.SAME[class] or RP.TARGET[helped]\n',
+       '\t\tlocal them = RP.TARGET[helped]\n',
        "rp same class not by class",
        expect="rp: lines for the class being helped",
        script="runscenarios.py")
@@ -613,4 +613,126 @@ mutate("Phrases.lua",
        "",
        "rp empty pool kept",
        expect="rp: an untranslated line is not said on another language's client",
+       script="runscenarios.py")
+
+# ------------------------------------- whose ears, where, and what for whom
+
+# A thank-you hears the spell, the place, the hour and whoever is helped in
+# full, so half of it says no thanks at all.
+mutate("Phrases.lua",
+       '\t\tlocal aside = kind == "thanks" and 0.5 or 1\n',
+       "\t\tlocal aside = 1\n",
+       "rp thanks hear the moment in full",
+       expect="rp: pools are weighed as documented",
+       script="runscenarios.py")
+
+# A party member hears the side's offers to a stranger on a road.
+mutate("Phrases.lua",
+       '\t\t\tif side.group then\n'
+       '\t\t\t\tadd(side.group, weight.group, "group")\n'
+       "\t\t\telse\n",
+       '\t\t\tdo\n'
+       '\t\t\t\tadd(side.group, weight.group, "group")\n'
+       "\t\t\tend do\n",
+       "rp side offers to the group",
+       expect="rp: reasons pick their own lines",
+       script="runscenarios.py")
+
+# ...and a side with no group lines says nothing of its own to the group.
+mutate("Phrases.lua",
+       '\t\t\telse\n'
+       '\t\t\t\tadd(side.offer, weight.faction, "faction")\n',
+       "",
+       "rp side silent to the group",
+       expect="rp: reasons pick their own lines",
+       script="runscenarios.py")
+
+# A Forsaken tells another Forsaken how the living take to the Forsaken.
+mutate("Phrases.lua",
+       "\t\t\tlocal outsider = not kin and not home and race.outsider\n",
+       "\t\t\tlocal outsider = not home and race.outsider\n",
+       "rp outsider lines said to kin",
+       expect="rp: lines for outsiders are not said to kin",
+       script="runscenarios.py")
+
+# ...and says it in Undercity, where nearly everybody is one.
+mutate("Phrases.lua",
+       "\t\t\tlocal outsider = not kin and not home and race.outsider\n",
+       "\t\t\tlocal outsider = not kin and race.outsider\n",
+       "rp outsider lines at home",
+       expect="rp: lines for outsiders are not said to kin",
+       script="runscenarios.py")
+
+# The lines for outsiders never said at all.
+mutate("Phrases.lua",
+       "\t\t\tlocal outsider = not kin and not home and race.outsider\n",
+       "\t\t\tlocal outsider = nil\n",
+       "rp outsider lines never said",
+       expect="rp: lines for outsiders are not said to kin",
+       script="runscenarios.py")
+
+# Two pools joined as the first alone.
+mutate("Phrases.lua",
+       "\t\tfor i = 1, #b do out[#a + i] = b[i] end\n",
+       "",
+       "rp pools joined lose the second",
+       expect="rp: a spell on a class it does little for",
+       script="runscenarios.py")
+
+# A people's own city never heard.
+mutate("Phrases.lua",
+       "\t\tlocal city = home and race and race.city\n",
+       "\t\tlocal city = nil\n",
+       "rp no home city",
+       expect="rp: a people's own city",
+       script="runscenarios.py")
+
+# Undercity's lines in every city and inn: the lift, in Orgrimmar.
+mutate("Phrases.lua",
+       '\t\tlocal home = place == "city" and RP.Home(family)\n',
+       '\t\tlocal home = place == "city"\n',
+       "rp home city in every city",
+       expect="rp: a people's own city",
+       script="runscenarios.py")
+
+# Undercity's lines next to the warm beds of anybody's city.
+mutate("Phrases.lua",
+       "\t\telse\n"
+       '\t\t\tadd(RP.PLACE[place], weight.place * aside, "place")\n',
+       "\t\tend do\n"
+       '\t\t\tadd(RP.PLACE[place], weight.place * aside, "place")\n',
+       "rp home city beside anybody's",
+       expect="rp: a people's own city",
+       script="runscenarios.py")
+
+# Undercity known only by Retail's map id, never found on WoW Forever's.
+mutate("Phrases.lua",
+       "\tforsaken = { [1458] = true, [90] = true },\n",
+       "\tforsaken = { [90] = true },\n",
+       "rp undercity not found on forever",
+       expect="rp: a people's own city",
+       script="runscenarios.py")
+
+# The map asked without a guard: a client that throws breaks the pick.
+mutate("Phrases.lua",
+       '\t\tlocal known, id = Read(C_Map.GetBestMapForUnit, "player")\n',
+       '\t\tlocal known, id = true, C_Map.GetBestMapForUnit("player")\n',
+       "rp map asked unguarded",
+       expect="rp: a people's own city",
+       script="runscenarios.py")
+
+# The spell on a class it does little for never heard.
+mutate("Phrases.lua",
+       "\t\tlocal onto = key and RP.ONTO[key]\n",
+       "\t\tlocal onto = nil\n",
+       "rp no spell on a class",
+       expect="rp: a spell on a class it does little for",
+       script="runscenarios.py")
+
+# ...and those lines said in English on a translated client.
+mutate("Phrases.lua",
+       '\t\t\t"HISTORY", "PLACE", "TIME", "TARGET", "SAME", "ONTO" }) do\n',
+       '\t\t\t"HISTORY", "PLACE", "TIME", "TARGET", "SAME" }) do\n',
+       "rp spell on a class never thinned",
+       expect="rp: every language keeps a line for every moment",
        script="runscenarios.py")

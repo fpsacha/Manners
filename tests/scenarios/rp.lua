@@ -5,8 +5,8 @@
 --
 -- Called by scenarios.lua with the addon directory and its helpers. The mock
 -- knows the player's race (Mock.playerRace) and class (Mock.class) and nothing
--- about factions, other people's races, instances, resting or the realm's
--- clock, so those are set here for the length of one scenario and put back
+-- about factions, other people's races, instances, resting, the map or the
+-- realm's clock, so those are set here for the length of one scenario and put back
 -- after it, rather than added to mockapi.lua.
 --
 -- math.random is swapped for a counter where the scenario counts lines: with a
@@ -21,7 +21,7 @@ local fail, load, drive = H.fail, H.load, H.drive
 local findOption, pressButton = H.findOption, H.pressButton
 
 local TOUCHED = { "UnitRace", "UnitFactionGroup", "UnitClass", "IsInInstance", "IsResting",
-	"GetGameTime" }
+	"GetGameTime", "C_Map" }
 local original = {}
 for _, name in ipairs(TOUCHED) do original[name] = rawget(_G, name) end
 local realRandom = math.random
@@ -167,6 +167,17 @@ local function contextPools(RP)
 	for key, pool in pairs(RP.PLACE) do out["PLACE." .. key] = pool end
 	for key, pool in pairs(RP.TIME) do out["TIME." .. key] = pool end
 	for key, pool in pairs(RP.TARGET) do out["TARGET." .. key] = pool end
+	for key, classes in pairs(RP.ONTO) do
+		for class, pool in pairs(classes) do out["ONTO." .. key .. "." .. class] = pool end
+	end
+	return out
+end
+
+-- A list of lines and another, as one.
+local function joined(a, b)
+	local out = {}
+	for _, text in ipairs(a or {}) do out[#out + 1] = text end
+	for _, text in ipairs(b or {}) do out[#out + 1] = text end
 	return out
 end
 
@@ -179,7 +190,8 @@ local function everyLine(RP)
 	end
 	for _, people in pairs(RP.RACE) do
 		take(people.thanks) take(people.asked) take(people.offer) take(people.kin)
-		take(people.group) take(people.night) take(people.morning)
+		take(people.group) take(people.night) take(people.morning) take(people.city)
+		for _, pool in pairs(people.outsider or {}) do take(pool) end
 	end
 	take(RP.KIN)
 	for _, side in pairs(RP.FACTION) do
@@ -194,7 +206,13 @@ end
 local function allPools(RP)
 	local out = contextPools(RP)
 	for family, people in pairs(RP.RACE) do
-		for kind, pool in pairs(people) do out["RACE." .. family .. "." .. kind] = pool end
+		for kind, pool in pairs(people) do
+			if kind == "outsider" then
+				for moment, lines in pairs(pool) do out["RACE." .. family .. ".outsider." .. moment] = lines end
+			else
+				out["RACE." .. family .. "." .. kind] = pool
+			end
+		end
 	end
 	out.KIN = RP.KIN
 	for side, pools in pairs(RP.FACTION) do
@@ -319,9 +337,9 @@ end
 
 -- ------------------------------------------------------------------ rp-4
 -- Each reason has its own lines: an answer is not a thank-you, and a group
--- member hears the people's own group lines, never their offers to a stranger
--- on the road, next to the side's group lines and offers. The class's lines
--- follow the reason too. A people with no group lines speaks its offers.
+-- member hears the people's own group lines and the side's, never either's
+-- offers to a stranger on the road. The class's lines follow the reason too.
+-- A people with no group lines speaks its offers, and so does a side.
 do
 	local scenario = "rp: reasons pick their own lines"
 	with(scenario, "Horde", nil, function()
@@ -335,7 +353,7 @@ do
 			{ reason = "target", pools = { RP.RACE.tauren.offer, RP.FACTION.Horde.offer, RP.GENERAL.offer,
 				mage.offer } },
 			{ reason = "group", pools = { RP.RACE.tauren.group, RP.FACTION.Horde.group,
-				RP.FACTION.Horde.offer, RP.GENERAL.group, mage.group } },
+				RP.GENERAL.group, mage.group } },
 			{ reason = "owed", pools = { RP.RACE.tauren.thanks, RP.FACTION.Horde.thanks, RP.GENERAL.thanks,
 				mage.thanks } },
 		}
@@ -365,6 +383,16 @@ do
 		RP.RACE.tauren.group = own
 		if not counts.offer then
 			fail(scenario, "a people with no group lines said nothing of its own to the group")
+		end
+		-- And a side with none (its translation still to come): its offers.
+		local sides = RP.FACTION.Horde.group
+		RP.FACTION.Horde.group = nil
+		offers = {}
+		render(ns, entry, RP.FACTION.Horde.offer, offers, "offer")
+		counts = tally(ns, entry, offers, 300)
+		RP.FACTION.Horde.group = sides
+		if not counts.offer then
+			fail(scenario, "a side with no group lines said nothing of its own to the group")
 		end
 		noErrors(scenario, ns)
 	end)
@@ -412,7 +440,6 @@ for _, faction in ipairs({ "Neutral", "absent" }) do
 			local kind = reason == "owed" and "thanks" or "group"
 			render(ns, entry, RP.PoolFor(RP.RACE.pandaren, kind), expected, "race")
 			render(ns, entry, RP.FACTION.Neutral[kind], expected, "faction")
-			render(ns, entry, RP.FACTION.Neutral.offer, expected, "faction")
 			render(ns, entry, RP.GENERAL[kind], expected, "general")
 			speaker(ns, entry, kind, expected)
 			counting()
@@ -1539,8 +1566,11 @@ end
 -- people's own lines stay the most heard of the ones about the speaker, and
 -- the rare moments made for this click (a trade, a gift, kin, a meeting
 -- again) outweigh the ones that are nearly always true, a meeting again most
--- of all. A people with no group lines speaks its offers to a group at half
--- its weight.
+-- of all, and what a gift does outweighs its name. Returning a favour, the
+-- pools that do not say thank you (the spell, the place, the hour, whoever is
+-- helped) weigh half; the spell on a class it does little for shares the
+-- pool of whoever is helped rather than adding to it. A people with no group
+-- lines speaks its offers to a group at half its weight.
 --
 -- The memory that keeps a line from being said twice in a row (RP.RECENT) is
 -- off here, since it bends every share on purpose; rp-28 checks it.
@@ -1559,14 +1589,18 @@ do
 		entry.name = ns.UnitFullName("nameplate1")
 		entry.class, entry.gift, entry.giftKey, entry.met = "WARRIOR", gift, "motw", 3
 		local W = RP.WEIGHT
+		-- A warrior helped: their lines, and the spell's on a warrior if it
+		-- has any, as one pool.
+		local onto = RP.ONTO[entry.buff.key]
+		local warrior = joined(RP.TARGET.WARRIOR, onto and onto.WARRIOR)
 		local pools = {
 			race = { RP.RACE.dwarf.thanks, W.race }, kin = { RP.RACE.dwarf.kin, W.kin },
 			faction = { RP.FACTION.Alliance.thanks, W.faction }, general = { RP.GENERAL.thanks, W.general },
-			class = { RP.CLASS.MAGE.thanks, W.class }, spell = { RP.SPELL[entry.buff.key], W.spell },
+			class = { RP.CLASS.MAGE.thanks, W.class }, spell = { RP.SPELL[entry.buff.key], W.spell / 2 },
 			trade = { RP.TRADE, W.trade }, gift = { RP.GIFT.motw, W.gift },
 			history = { RP.HISTORY.again, W.history },
-			place = { RP.PLACE.wild, W.place }, time = { RP.TIME.night, W.time },
-			target = { RP.TARGET.WARRIOR, W.target },
+			place = { RP.PLACE.wild, W.place / 2 }, time = { RP.TIME.night, W.time / 2 },
+			target = { warrior, W.target / 2 },
 		}
 		local expected, share, total = {}, {}, 0
 		for tag, p in pairs(pools) do
@@ -1591,7 +1625,7 @@ do
 		end
 		more("race", "class") more("race", "faction") more("race", "general")
 		more("trade", "place") more("trade", "time") more("trade", "spell")
-		more("gift", "place") more("gift", "time")
+		more("gift", "place") more("gift", "time") more("gift", "trade")
 		more("history", "place") more("history", "trade") more("history", "race")
 		more("kin", "general")
 
@@ -1607,7 +1641,7 @@ do
 			RP.TIME.night = pool
 			counting()
 			counts = tally(ns, entry, expected, N)
-			local s = W.time * math.min(case[2], RP.SPREAD)
+			local s = W.time / 2 * math.min(case[2], RP.SPREAD)
 			local want = s / (total - share.time + s)
 			if math.abs((counts.time or 0) / N - want) > 0.01 then
 				fail(scenario, ("%s heard %.1f%% of the time, not the %.1f%% its share gives")
@@ -1625,10 +1659,10 @@ do
 		RP.RACE.dwarf.group = nil
 		local group = {
 			race = { RP.RACE.dwarf.offer, W.race / 2 },
-			group = { RP.FACTION.Alliance.group, W.group }, faction = { RP.FACTION.Alliance.offer, W.faction },
+			group = { RP.FACTION.Alliance.group, W.group },
 			general = { RP.GENERAL.group, W.group }, class = { RP.CLASS.MAGE.group, W.class },
 			spell = { RP.SPELL[party.buff.key], W.spell }, place = { RP.PLACE.instance, W.place },
-			target = { RP.TARGET.WARRIOR, W.target },
+			target = { warrior, W.target },
 		}
 		expected, share, total = {}, {}, 0
 		for tag, p in pairs(group) do
@@ -1750,7 +1784,7 @@ do
 		-- A people's own hour is optional, but full when it is there, and a
 		-- people that has one keeps it: these are the hours written for, so a
 		-- batch of new lines pasted over a pool that drops one is caught.
-		local KINDS = set({ "thanks", "asked", "offer", "kin", "group", "night", "morning" })
+		local KINDS = set({ "thanks", "asked", "offer", "kin", "group", "night", "morning", "city", "outsider" })
 		local HOURS = {
 			dwarf = { "morning" }, nightelf = { "night", "morning" }, voidelf = { "night" },
 			gnome = { "morning" }, worgen = { "night", "morning" }, forsaken = { "night", "morning" },
@@ -1770,9 +1804,29 @@ do
 					has(RP.RACE[family][hour], family .. "." .. hour, full)
 				end
 				known(RP.RACE[family], KINDS, family .. "'s")
+				-- A city of its own is heard only where RP.HOME finds it, and
+				-- the lines for outsiders only for a moment that has lines.
+				local people = RP.RACE[family]
+				if people.city then
+					has(people.city, family .. ".city", full)
+					if type(RP.HOME[family]) ~= "table" or not next(RP.HOME[family]) then
+						fail(scenario, family .. " has city lines and no city to say them in")
+					end
+				end
+				if people.outsider then
+					known(people.outsider, set({ "thanks", "asked", "offer", "group" }), family .. "'s outsider")
+					for kind, pool in pairs(people.outsider) do
+						has(pool, family .. ".outsider." .. kind, 2)
+					end
+				end
 			end
 		end
 		known(RP.RACE, families, "people's")
+		for family in pairs(RP.HOME) do
+			if not (RP.RACE[family] and RP.RACE[family].city) then
+				fail(scenario, family .. " has a city in RP.HOME and no lines for it")
+			end
+		end
 		for _, side in ipairs({ "Alliance", "Horde", "Neutral" }) do
 			for _, kind in ipairs({ "thanks", "asked", "offer", "group" }) do
 				has(RP.FACTION[side][kind], side .. "." .. kind, full)
@@ -1826,6 +1880,13 @@ do
 		-- And two of the same class, for every class with something to give.
 		for class in pairs(givers) do has(RP.SAME[class], "same." .. class, full) end
 		known(RP.SAME, CLASSES, "same class")
+		-- A spell on a class it does little for: a spell somebody gives, and
+		-- a class the client has.
+		known(RP.ONTO, keys, "spell on a class")
+		for key, classes in pairs(RP.ONTO) do
+			known(classes, CLASSES, "spell " .. key .. " on a class")
+			for class, pool in pairs(classes) do has(pool, key .. " on " .. class, 2) end
+		end
 		noErrors(scenario, ns)
 	end)
 end
@@ -2058,7 +2119,11 @@ end
 -- The shipped translations, in every language they are in: whatever the set
 -- is left with there has a translation, and every pool that has lines in
 -- English still has some -- no people, side, class or moment falls silent in
--- a language because its newest lines are not translated yet.
+-- a language because its newest lines are not translated yet. The pools that
+-- only add to another may wait for their translations, since the moment still
+-- has its own there: a people's city (anybody's city lines), its lines for
+-- outsiders (its lines for the moment), a spell on a class it does little for
+-- (the lines for that class).
 do
 	local function localeCodes()
 		local f = io.open(dir .. "/Locales/Locales.xml", "r")
@@ -2085,7 +2150,9 @@ do
 			if not there then break end
 			local pools = allPools(there.InCharacter)
 			for where, pool in pairs(english) do
-				if type(pool) == "table" and #pool > 0 then
+				local adds = where:find("^RACE%.[^.]+%.city$") or where:find("^RACE%.[^.]+%.outsider%.")
+					or where:find("^ONTO%.")
+				if not adds and type(pool) == "table" and #pool > 0 then
 					local left = pools[where]
 					if type(left) ~= "table" or #left == 0 then
 						fail(scenario, where .. " has nothing left to say in " .. code)
@@ -2103,6 +2170,185 @@ do
 			noErrors(scenario, there)
 		end
 		Mock.locale = nil
+		noErrors(scenario, ns)
+	end)
+end
+
+-- A client map naming the player's; nil for none at all.
+local function onMap(id)
+	if id == nil then
+		rawset(_G, "C_Map", nil)
+		return
+	end
+	rawset(_G, "C_Map", { GetBestMapForUnit = function(unit)
+		if unit ~= "player" then return nil end
+		return id
+	end })
+end
+
+-- ------------------------------------------------------------------ rp-32
+-- A people's own city: a Forsaken resting in Undercity hears Undercity's lines
+-- in place of anybody's for a city, which were written for warm beds and
+-- mailbox queues. Anywhere else (Orgrimmar, an inn, outside the walls), for
+-- anybody else in Undercity, and whenever the map is unknown or a secret,
+-- the city is anybody's.
+do
+	local scenario = "rp: a people's own city"
+	with(scenario, "Horde", nil, function()
+		local ns = ready(scenario, "Scourge")
+		if not ns then return end
+		local RP = ns.InCharacter
+		local lines = {}
+		for _, reason in ipairs({ "nearby", "owed" }) do
+			local entry = person(ns, reason)
+			render(ns, entry, RP.PLACE.city, lines, "anybody's")
+			render(ns, entry, RP.RACE.forsaken.city, lines, "Undercity's")
+		end
+		local cases = {
+			{ "a Forsaken in Undercity", "Scourge", 1458, "city", "Undercity's" },
+			{ "a Forsaken in Orgrimmar", "Scourge", 1454, "city", "anybody's" },
+			{ "a Forsaken on no map", "Scourge", nil, "city", "anybody's" },
+			{ "a Forsaken on a secret map", "Scourge", Mock.SECRET, "city", "anybody's" },
+			{ "a troll in Undercity", "Troll", 1458, "city", "anybody's" },
+			{ "a Forsaken in Undercity, not resting", "Scourge", 1458, "wild", nil },
+		}
+		for _, case in ipairs(cases) do
+			Mock.playerRace = case[2]
+			world(case[4], 14)
+			onMap(case[3])
+			for _, reason in ipairs({ "nearby", "owed" }) do
+				local entry = person(ns, reason)
+				counting()
+				local heard = {}
+				for _ = 1, 200 do
+					local said = (ns.PickPhrase(entry, 250) or ""):match("^/say (.+)$")
+					local key = said and lines[said]
+					if key then heard[key] = true end
+				end
+				for key in pairs(heard) do
+					if key ~= case[5] then
+						fail(scenario, ("%s (%s) heard %s lines for a city"):format(case[1], reason, key))
+					end
+				end
+				if case[5] and not heard[case[5]] then
+					fail(scenario, ("%s (%s) never heard %s lines"):format(case[1], reason, case[5]))
+				end
+			end
+		end
+		-- A map lookup that throws is no map.
+		Mock.playerRace = "Scourge"
+		rawset(_G, "C_Map", { GetBestMapForUnit = function() error("no") end })
+		local ok, home = pcall(RP.Home, "forsaken")
+		if not ok or home then fail(scenario, "a map lookup that throws read as " .. tostring(home)) end
+		noErrors(scenario, ns)
+	end)
+end
+
+-- ------------------------------------------------------------------ rp-33
+-- A people's lines about how others take to it are for others: a Forsaken
+-- hears them for an orc, never for another Forsaken, and never in Undercity,
+-- where nearly everybody is one -- whether the one helped reads as kin or not.
+do
+	local scenario = "rp: lines for outsiders are not said to kin"
+	with(scenario, "Horde", { nameplate1 = "Scourge", nameplate2 = "Orc" }, function()
+		local ns = ready(scenario, "Scourge")
+		if not ns then return end
+		local RP = ns.InCharacter
+		Mock.unitNames = { nameplate1 = { "Bram" }, nameplate2 = { "Bram" } }
+		local outsider = RP.RACE.forsaken.outsider or {}
+		local tried = 0
+		for _, case in ipairs({ { "owed", "thanks" }, { "asked", "asked" }, { "nearby", "offer" } }) do
+			local reason, kind = case[1], case[2]
+			if outsider[kind] then
+				tried = tried + 1
+				local lines = {}
+				render(ns, person(ns, reason), outsider[kind], lines, true)
+				local function heard(unit, map)
+					world(map and "city" or "wild", 14)
+					onMap(map)
+					local entry = person(ns, reason, unit)
+					entry.name = ns.UnitFullName(unit)
+					counting()
+					local hits, which = 0, {}
+					for _ = 1, 400 do
+						local said = (ns.PickPhrase(entry, 250) or ""):match("^/say (.+)$")
+						if said and lines[said] then
+							hits = hits + 1
+							which[said] = true
+						end
+					end
+					return hits, which
+				end
+				local hits, which = heard("nameplate2")
+				if hits == 0 then fail(scenario, "an orc never heard a Forsaken's " .. kind .. " for outsiders") end
+				for line in pairs(lines) do
+					if not which[line] then fail(scenario, "never said to an orc: " .. line) end
+				end
+				if heard("nameplate1") > 0 then
+					fail(scenario, "a Forsaken heard the " .. kind .. " for outsiders from another")
+				end
+				if heard("nameplate2", 1458) > 0 then
+					fail(scenario, "the " .. kind .. " for outsiders was said in Undercity")
+				end
+				if heard("nameplate2", 1454) == 0 then
+					fail(scenario, "the " .. kind .. " for outsiders was never said in another city")
+				end
+			end
+		end
+		if tried < 3 then fail(scenario, "SKIPPED -- the Forsaken have outsider lines for only " .. tried .. " moments") end
+		noErrors(scenario, ns)
+	end)
+end
+
+-- ------------------------------------------------------------------ rp-34
+-- A spell on a class it does little for: Arcane Intellect on a warrior or a
+-- rogue, who have no mana, has lines of its own, heard with the lines for
+-- that class; on a priest it has none, and neither has Fortitude on a warrior.
+do
+	local scenario = "rp: a spell on a class it does little for"
+	with(scenario, "Alliance", nil, function()
+		local ns = ready(scenario, "Human")
+		if not ns then return end
+		local RP = ns.InCharacter
+		local intellect = ns.FindBuff("MAGE", "intellect")
+		local fortitude = ns.FindBuff("PRIEST", "fortitude")
+		if not (intellect and fortitude) then
+			fail(scenario, "SKIPPED -- no Arcane Intellect or Fortitude on this client")
+			return
+		end
+		local lines = {}
+		local stand = { short = "Bram", buff = intellect }
+		for key, classes in pairs(RP.ONTO) do
+			for class, pool in pairs(classes) do render(ns, stand, pool, lines, key .. " on " .. class) end
+		end
+		render(ns, stand, RP.TARGET.WARRIOR, lines, "for a warrior")
+		local cases = {
+			{ "Arcane Intellect on a warrior", intellect, "WARRIOR", "intellect on WARRIOR", true },
+			{ "Arcane Intellect on a rogue", intellect, "ROGUE", "intellect on ROGUE" },
+			{ "Arcane Intellect on a priest", intellect, "PRIEST", nil },
+			{ "Fortitude on a warrior", fortitude, "WARRIOR", nil, true },
+			{ "Arcane Intellect on somebody unknown", intellect, nil, nil },
+		}
+		for _, case in ipairs(cases) do
+			local entry = person(ns, "nearby")
+			entry.buff, entry.class = case[2], case[3]
+			counting()
+			local heard = {}
+			for _ = 1, 300 do
+				local said = (ns.PickPhrase(entry, 250) or ""):match("^/say (.+)$")
+				local key = said and lines[said]
+				if key then heard[key] = true end
+			end
+			for key in pairs(heard) do
+				if key ~= case[4] and key ~= "for a warrior" then
+					fail(scenario, case[1] .. " said a line for " .. key)
+				end
+			end
+			if case[4] and not heard[case[4]] then fail(scenario, case[1] .. " never said a line for it") end
+			if case[5] and not heard["for a warrior"] then
+				fail(scenario, case[1] .. " lost the lines for a warrior")
+			end
+		end
 		noErrors(scenario, ns)
 	end)
 end

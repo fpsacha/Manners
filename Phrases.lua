@@ -88,8 +88,11 @@ RP.FAMILY = {
 -- person you have fought beside for an hour -- and "kin" for somebody of the
 -- same people. A people with the hour in its bones (the night elves' night,
 -- the pandaren's breakfast) has "night" or "morning" lines too, heard next to
--- everybody's at that hour (RP.TIME). Every line is a whole literal so it can be
--- translated as a whole. A kin line joins whichever of the others is being
+-- everybody's at that hour (RP.TIME). A people with a city of its own in
+-- RP.HOME may have "city" lines, said there in place of anybody's (RP.PLACE),
+-- and "outsider" lines, by moment, about how other peoples take to it, which
+-- join that moment's lines for somebody who is not kin, away from home. Every
+-- line is a whole literal so it can be translated as a whole. A kin line joins whichever of the others is being
 -- said, so it greets nobody: "well met" is wrong to somebody who just buffed
 -- you. No line says "buff" either -- the set is in character, and {buff} is
 -- the spell's own name.
@@ -815,26 +818,25 @@ RP.RACE = {
 			L["You've added years to my life, {name}. Shame it already ended."],
 			L["I felt that, {name}, and I don't feel much these days. Here, feel this."],
 			L["I'd shake your hand, {name}, but I'm not sure mine is still attached."],
+			L["Thank you, {name}. I'd send a bat with a proper note, but they eat the notes."],
 			L["You've spoiled me, {name}. The pleasant kind of spoiled, for once."],
 			L["The last gift I got was the plague, {name}. Yours is a big improvement."],
 			L["Thank you, {name}. Nothing this fresh has touched me since Lordaeron fell."],
 			L["Sylvanas says we repay every debt, {name}. She rarely means the nice ones."],
-			L["Most folk greet a Forsaken with holy water, {name}. You're a welcome change."],
 			L["My posture's improved, {name}. It's been slumping since the Third War. Thanks."],
 			L["Repaid at once, {name}. We Forsaken never carry debts. They rot."],
-			L["Returned at once, {name}, before I forget. My memory has holes. Some literal."],
+			L["Thank you, {name}. Unpaid debts in Undercity end up in the canal. Not yours."],
 			L["Thank you, {name}. I'll keep this somewhere safe. My ribcage has room."],
 			L["Thank you, {name}. I'd bake you something, but everything I touch goes off."],
-			L["Few stop for a Forsaken, {name}. You did, and I noticed. Thank you."],
 			L["I'll mention you to the Dark Lady, {name}. She won't care, but I will."],
 			L["Kindness returned, {name}. Even the flies around me look impressed."],
 			L["In all my years with the Scourge, nobody once said this, {name}. Thank you."],
 			L["I'll drink to you tonight, {name}. It all leaks out, but it's the thought."],
 			L["The Dark Lady says trust no gift, {name}. I'll risk it, and send one back."],
 			L["Thank you, {name}. You've made my list of reasons to keep going. It's short."],
-			L["Thank you, {name}. Varimathras gave gifts too, but his came with a coup."],
+			L["Thank you, {name}. No contract, no fine print. Varimathras should take notes."],
 			L["Grave dirt and gratitude, {name}: all I own. You'll prefer the gratitude."],
-			L["I felt that to my toes, {name}. I counted, and most of them are still there."],
+			L["Thank you, {name}. Eternity drags; this was the best bit of the decade."],
 			L["Faranell would want notes on that reaction, {name}. I'll just return it."],
 			L["Thank you, {name}. Lordaeron had manners once. Glad somebody kept them."],
 			L["The Deathguard would salute you, {name}, but it's hard on their arms. Thanks."],
@@ -853,14 +855,12 @@ RP.RACE = {
 			L["Certainly, {name}. Hold still. My aim drifts when my eye does."],
 			L["In Undercity nobody says please, {name}. Mostly they gurgle. Here you are."],
 			L["Just {buff}, {name}? The apothecaries always want a sample too."],
-			L["Contrary to rumour, {name}, not everything a Forsaken hands out is a plague."],
 			L["I always rise when called, {name}. Unfortunate history. Here you are."],
 			L["Anything for you, {name}. Within reason, and what's left of mine."],
-			L["Somebody asked a Forsaken for help, {name}, and nobody fainted. Progress."],
+			L["Of course, {name}. I'd say 'over my dead body', but that's been tried."],
 			L["Right away, {name}. The dead don't dawdle. We shamble with purpose."],
 			L["Of course, {name}. Free will is a gift. I spend mine on things like this."],
-			L["Coming up, {name}. Apothecarium-tested. The tester kept the side effects."],
-			L["Forsaken can't be charmed, {name}, they say. Asking nicely works, though."],
+			L["Coming up, {name}. Quicker than a bat out of Undercity, and it doesn't bite."],
 			L["Of course, {name}. After a winter in the Plaguelands, this counts as a holiday."],
 			L["{buff}, {name}? Sorry, my good ear's in my other pocket."],
 			L["Of course, {name}. No sleep, no meals, no plans. I'm extremely available."],
@@ -879,22 +879,19 @@ RP.RACE = {
 			L["Hold on to yourself, {name}. Trust me, the pieces are hard to find later."],
 			L["Take this, {name}. The Plaguelands are full of people who didn't."],
 			L["A small kindness, {name}. My bat got the last one, and it never said thanks."],
-			L["Take this instead of small talk, {name}. Mine tends to unsettle people."],
-			L["They say the Forsaken have no friends, {name}. I'm recruiting."],
-			L["Take this, {name}. If anyone asks, the Forsaken were perfectly charming."],
 			L["Tirisfal fog gets into everything, {name}. So does this, but pleasantly."],
 			L["Here, {name}. I kept it cool for you. I keep everything cool. Can't help it."],
 			L["I've outlived everyone I knew, {name}. I'd rather not outlive you. Take this."],
 			L["Pardon me, {name}. I'm told I lurk. I'm trying to lurk helpfully."],
 			L["Out of my own pocket, {name}. What's left of the pocket, anyway."],
 			L["I've already had the worst day there is, {name}. Let's spare you yours."],
-			L["Keep your eyes open, {name}. And in, if you can. I've had trouble with that."],
+			L["Wind's off the Plaguelands, {name}. Take this, and breathe through your mouth."],
 			L["The crows have been watching you, {name}. Let's disappoint them."],
 			L["Here, {name}. Tirisfal grows nothing but pumpkins and grudges. This is neither."],
 			L["Take this, {name}. The only thing in Undercity that needn't be boiled first."],
-			L["My garden grows nothing but grudges and mould, {name}. I grew you this instead."],
+			L["Eternity is long, {name}, and I've spent a fair bit of it practising this."],
 			L["For the road, {name}. Undercity-made, so do keep it away from open flame."],
-			L["Take this, {name}. I'd tip my hat, but my head tends to come with it."],
+			L["Take this, {name}. It's odourless, which I'm told makes it my best feature."],
 			L["Forsaken are famously patient, {name}. I just couldn't wait to give you this."],
 			L["No strings attached, {name}. I cut mine when the Lich King lost his grip."],
 			L["Fresh from Tirisfal, {name}. Well, fresh for Tirisfal."],
@@ -906,16 +903,24 @@ RP.RACE = {
 			L["Lose a finger, {name}, and I've a spare. Forsaken share."],
 			L["Is your jaw clicking too, {name}, or is that just me?"],
 			L["Victory for Sylvanas, {name}. A small one this time, but it's ours."],
-			L["Another survivor of the Lich King's leash, {name}. We needn't talk about it."],
 			L["Brill or Deathknell, {name}? We all woke up somewhere. I got the damp crypt."],
-			L["Mind the apothecaries, {name}. They eye us both like unfinished experiments."],
 			L["When the Scourge comes calling, {name}, we won't be home. Not ever again."],
-			L["Free will looks good on you, {name}. It took us long enough to get it."],
 			L["The Bulwark still holds, {name}, and so do we. Held together, but holding."],
 			L["Lordaeron raised us twice, {name}: once as children, once as Forsaken."],
+			L["Somewhere in Northrend, {name}, the Lich King is sulking about us. Good."],
+			L["The Dark Lady needs us whole, {name}. Near enough will do."],
+			L["You smell of Tirisfal, {name}. From one of us, that's a compliment."],
+			L["We've both got forever, {name}. Let's not spend it all waiting for the lift."],
+			L["One Forsaken to another, {name}: the sewer shortcut is not a shortcut."],
+			L["If the Deathguard ask, {name}, we're on patrol. A very, very slow patrol."],
+			L["Our kind don't get many kindnesses, {name}. Let's keep them in the family."],
+			L["The bats in the Trade Quarter know us both by now, {name}. That's fame, nearly."],
+			L["Keep the faith, {name}. In each other, I mean. It answers more often."],
+			L["The dead look after the dead, {name}. The living could learn a thing or two."],
+			L["We've both seen the inside of a grave, {name}. Dreadful service. No view."],
 		},
 		group = {
-			L["Stay alive, {name}. I've tried the alternative, and I can't recommend it."],
+			L["Stay alive, {name}. Undercity's housing list is already very long."],
 			L["If I fall down, {name}, give it a minute. Old habit."],
 			L["I'll take the front, {name}. What's the worst that could happen? Again?"],
 			L["Keep upwind of me, {name}. It's better for morale."],
@@ -925,7 +930,7 @@ RP.RACE = {
 			L["If this goes badly, {name}, don't worry. I know the way back. Intimately."],
 			L["I've fought the Scourge from both sides, {name}. This side's better company."],
 			L["Stay close, {name}. I'm the one who won't scream at the ghouls. Old neighbours."],
-			L["Keep your wits, {name}. I've lost mine twice, and they're hard to replace."],
+			L["I've walked the Plaguelands at night, {name}. This is a stroll by comparison."],
 			L["The corpse at the back is me, {name}. Please don't loot it."],
 			L["Stay together, {name}. It's easier than putting somebody back together."],
 			L["Don't wait for me, {name}. I shamble, but I shamble forever. I'll catch up."],
@@ -947,15 +952,56 @@ RP.RACE = {
 			L["The living are all asleep, {name}. We Forsaken call this the quiet shift."],
 			L["Late, {name}? In Undercity, this is lunchtime."],
 			L["This is the hour the Scourge used to walk, {name}. Now it's ours."],
-			L["Night's my morning, {name}. Pardon the yawn; it's purely decorative."],
+			L["Night, {name}. The one time nobody can tell I'm pale."],
 			L["Dark as the Undercity, {name}. Finally, some proper lighting."],
 			L["Fog, moonlight and a hint of mildew, {name}. Proper Tirisfal weather."],
 			L["The banshees start singing about now, {name}. Relax. They're only practising."],
+			L["Stars over Tirisfal, {name}. The one thing up there that never rotted."],
+			L["Past midnight, {name}. The graveyards are quiet. The good ones, anyway."],
+			L["An owl just saw me and left, {name}. They're sensible birds."],
 		},
 		morning = {
 			L["Morning already, {name}? I've been up all night. And all of last decade."],
 			L["The sun's up, {name}. I'll stand in the shade, if you don't mind. Things peel."],
 			L["Early start, {name}. The dead never sleep in. Or at all, really."],
+			L["Sunrise, {name}. My least favourite colour. I'm off to find some shade."],
+			L["Dawn over Tirisfal, {name}: grey, then slightly less grey. Glorious."],
+			L["Morning, {name}. The Gallows' End porridge moved again. Have this instead."],
+			L["The roosters in Brill still crow, {name}. Nobody's had the heart to tell them."],
+			L["Morning, {name}. The Deathguard change shifts now. They just turn round."],
+		},
+		-- Said in Undercity alone (RP.HOME), in place of anybody's lines for a
+		-- city, which were written with Stormwind's warm beds in mind.
+		city = {
+			L["Take the lift slowly, {name}. The last man who rushed it is still coming down."],
+			L["Undercity has it all, {name}: a bank, an inn, and opinions in the sewers."],
+			L["Even the rats bow to the Dark Lady here, {name}. Take this before one asks."],
+			L["Mind the canal, {name}. It's green for a reason, and the reason isn't moss."],
+			L["Undercity's lovely this time of year, {name}. It's always this time of year."],
+			L["We moved into Lordaeron's cellar, {name}, and kept the good silver."],
+			L["The Royal Quarter's that way, {name}. Bow low; the banshees keep score."],
+			L["The bat handler swears they're friendly, {name}. Take this before you test it."],
+			L["Magic Quarter's that way, {name}. The glowing puddles aren't for drinking."],
+			L["The throne room's just upstairs, {name}. Nobody sits in it. Bad memories."],
+		},
+		-- Lines about how the living take to a Forsaken, which would be nonsense
+		-- to another one: RP.Pick adds them to the moment's own pool only for
+		-- somebody who is not kin, and never at home, where nearly everybody is.
+		outsider = {
+			thanks = {
+				L["Most folk greet a Forsaken with holy water, {name}. You're a welcome change."],
+				L["Few stop for a Forsaken, {name}. You did, and I noticed. Thank you."],
+			},
+			asked = {
+				L["Contrary to rumour, {name}, not everything a Forsaken hands out is a plague."],
+				L["Forsaken can't be charmed, {name}, they say. Asking nicely works, though."],
+			},
+			offer = {
+				L["Take this instead of small talk, {name}. Mine tends to unsettle people."],
+				L["They say the Forsaken have no friends, {name}. I'm recruiting."],
+				L["Take this, {name}. If anyone asks, the Forsaken were perfectly charming."],
+				L["Stay alive, {name}. I've tried the alternative, and I can't recommend it."],
+			},
 		},
 	},
 	tauren = {
@@ -1688,8 +1734,9 @@ RP.KIN = {
 
 -- Faction pride without a word about the other side. "Neutral" is a pandaren
 -- on the Wandering Isle or a dracthyr before choosing, and anybody whose
--- faction the client would not say. A group member hears a side's offers and
--- its group line together, so the two are not allowed to say the same thing.
+-- faction the client would not say. A group member hears a side's group
+-- lines, and its offers (said to a stranger on a road) only while it has
+-- none.
 RP.FACTION = {
 	Alliance = {
 		thanks = {
@@ -1992,12 +2039,12 @@ RP.CLASS = {
 			L["Gladly, {name}. Knowledge should be shared. The Kirin Tor say so, reluctantly."],
 			L["Certainly, {name}. I'll cast it slowly. The hand movements are the best part."],
 			L["Of course, {name}. Think of it as homework, and I've done it for you."],
-			L["Gladly, {name}. Asking a mage was clever. In a moment you'll be cleverer."],
+			L["Of course, {name}. Antonidas taught me this. He also taught me to duck."],
 			L["At once, {name}. Arcane, not fire. I did check. I always check. Nearly always."],
 			L["Certainly, {name}. It's this or a lecture on ley lines, and you've been kind."],
 			L["You asked a mage, {name}. The spell is instant; the explanation is not."],
 			L["I've cast this a thousand times, {name}. Nine hundred and ninety went well."],
-			L["Certainly, {name}. Think of a number. Now a bigger one. See? Working."],
+			L["Certainly, {name}. Stand still. Fidgeters have been known to end up woolly."],
 		},
 		offer = {
 			L["Here, {name}. I had a spare thought and nowhere to put it."],
@@ -2006,18 +2053,18 @@ RP.CLASS = {
 			L["Here, {name}. Most folk I point at turn into sheep. Today's your lucky day."],
 			L["Nothing on fire, nothing frozen, {name}. I'm branching out."],
 			L["For you, {name}. I was practising, and you happened to be the nearest head."],
-			L["If a riddle stops you on the road today, {name}, you're welcome."],
+			L["Here, {name}. I'd have portalled it over, but you were standing right there."],
 			L["Kings once hired Dalaran for this, {name}. You get it for nothing."],
 			L["Take this, {name}. It wears off, unlike my last experiment."],
 			L["For you, {name}: everything I learned in Dalaran, minus the essays."],
 			L["Here, {name}. Arcane magic is best shared, before it gets ideas of its own."],
-			L["Take this, {name}. Should a book talk back today, you'll win the argument."],
+			L["Evocation takes an age, {name}, so I spend my mana where it counts. Here."],
 			L["Here, {name}. A mage who walks past without helping is just a very tall hat."],
 		},
 		group = {
 			L["Now that you're clever, {name}, stand between me and the angry things."],
 			L["For the record, {name}, I only blink away when it's tactically sound."],
-			L["There, {name}. Wiser already: look, you're standing further from me."],
+			L["Water's on me after, {name}. Please don't ask for it mid-fight."],
 			L["Minds sharpened, {name}. I'll handle the fire, the frost and the panicking."],
 			L["Right, {name}: if I say 'Frost Nova', run. If I say 'run', also run."],
 			L["Pyroblast takes a while, {name}. Whatever interrupts it, I take personally."],
@@ -2025,7 +2072,7 @@ RP.CLASS = {
 			L["Portals home are on me after, {name}. Getting there alive is on all of us."],
 			L["Anything you'd rather not fight, {name}, point at it. It'll be wool by teatime."],
 			L["I'll drop a Blizzard on them, {name}. You're welcome to watch, from outside it."],
-			L["Now we're all clever, {name}, we can argue about the plan at a higher level."],
+			L["If I start counting under my breath, {name}, that's mana, not nerves."],
 			L["If I go quiet, {name}, it's Evocation, not sulking. Usually."],
 			L["If this goes badly, {name}, I've a teleport home. I'd never use it. Probably."],
 		},
@@ -2284,7 +2331,7 @@ RP.CLASS = {
 RP.SPELL = {
 	intellect = {
 		L["A sharper mind for you, {name}. Mine cost me an eyebrow in Dalaran."],
-		L["More mana for you, {name}. Try not to spend it all on one fireball."],
+		L["A clearer head for you, {name}. What you fill it with is your own affair."],
 		L["Thoughts humming, {name}? Normal. If they hum back, come and find me."],
 		L["A little arcane for your thoughts, {name}. Keep the change."],
 		L["Brilliance, bottled, {name}. The Kirin Tor would charge you for the bottle."],
@@ -2292,8 +2339,8 @@ RP.SPELL = {
 		L["Sharper wits, {name}. Spend them on spells, locks or riddles; I won't judge."],
 		L["On loan from the Violet Citadel, {name}. Late returns are fined in sheep."],
 		L["Clever enough to spot the trap now, {name}. Avoiding it is a separate spell."],
-		L["If you start correcting my spelling, {name}, it's working."],
-		L["Room for more thoughts now, {name}. Same head, so the new ones may queue."],
+		L["There, {name}. Wiser already: look, you're standing further from me."],
+		L["The one spell of mine that's never set anything alight, {name}. Enjoy."],
 		L["A gnome's instructions make sense now, {name}. Still don't follow them."],
 	},
 	fortitude = {
@@ -2478,13 +2525,16 @@ RP.TRADE = {
 	L["{gift} came like good news. {buff}, by return post."],
 	L["{gift}, meet {buff}. Do get along, you two."],
 	L["Trade you {buff} for {gift}? Ah, you've already paid."],
+	L["{gift} and {buff}. The inn will say we rehearsed."],
 }
 
 -- Thanks only, like RP.TRADE, and about what the spell they gave you does
 -- rather than its name: Arcane Intellect makes you clever, Thorns prickly, a
 -- shout loud. By that spell's buff key (Buffs.lua), found from the debt's
--- spell id; heard next to the trade lines, which stay the most varied way to
--- say it, since the same priest will give you Fortitude all evening.
+-- spell id; heard next to the trade lines and more often than them, since
+-- what a spell does is the part of the moment only this favour has. The
+-- trade lines stay the most varied, and the same priest will give you
+-- Fortitude all evening.
 RP.GIFT = {
 	intellect = {
 		L["{gift}! I just had three clever thoughts, {name}. This was one."],
@@ -2494,6 +2544,7 @@ RP.GIFT = {
 		L["{gift}! I understood a goblin contract, {name}. I'm appalled."],
 		L["{gift}! I finally get last week's mage joke, {name}. Thanks."],
 		L["I'll use your {gift} for more than arguing, {name}. Probably."],
+		L["Thank you, {name}. My next spell gets three extra syllables, just to show off."],
 	},
 	fortitude = {
 		L["{gift}, {name}? I'll stand at the front for once. Briefly."],
@@ -2502,6 +2553,9 @@ RP.GIFT = {
 		L["Nigh unbreakable now, {name}. Let's never test the 'nigh'. Thank you."],
 		L["{gift}! My healer owes you a letter, {name}. I owe you this."],
 		L["Every bruise I don't get today, {name}, I owe to your {gift}."],
+		L["I could lose an argument with an ogre now and live, {name}. Thank you."],
+		L["Thank you, {name}. I feel like a castle wall. A grateful one."],
+		L["Thank you, {name}. The next boar to charge me is in for a long afternoon."],
 	},
 	spirit = {
 		L["{gift}! My spirits are lifted, {name}. Literally, it seems."],
@@ -2509,6 +2563,8 @@ RP.GIFT = {
 		L["Your {gift} nearly made me sing, {name}. Take this. It's kinder."],
 		L["{gift}, {name}? I've forgiven three people already. Thank you."],
 		L["I was on fumes, {name}. Your {gift} was a hot meal and a hearth."],
+		L["I've stopped counting mana between fights, {name}. Thank you."],
+		L["My spirit's topped up, {name}, and the rest of me is grateful too."],
 	},
 	shadow = {
 		L["Shadow-proof, thanks to you, {name}. The whispers are furious."],
@@ -2524,12 +2580,16 @@ RP.GIFT = {
 		L["Thicker skin from your {gift}, {name}. Arrows and insults both."],
 		L["{gift}! A bird tried to nest on me, {name}. Thanks, I think."],
 		L["Half a tree now, {name}, the better half. Thanks for the {gift}."],
+		L["Thank you, {name}. I've an urge to stand in the rain and grow. I'll resist."],
+		L["Every bramble in the Barrens will think twice now, {name}. Thank you."],
+		L["Thank you, {name}. Even my boots feel like they've put down roots."],
 	},
 	thorns = {
 		L["{gift}, {name}! Nobody's hugging me today. Have this instead."],
 		L["Prickly now, thanks to you, {name}. More than usual, I mean."],
 		L["Your {gift}, {name}! Let the next kobold try for my candle."],
 		L["{gift}! I'm a thicket with opinions now, {name}. Thank you."],
+		L["Thank you, {name}. The next thing that bites me will need a moment to reflect."],
 	},
 	kings = {
 		L["{gift} from you, {name}? I'll try not to found a dynasty."],
@@ -2537,12 +2597,14 @@ RP.GIFT = {
 		L["Your {gift}! My first decree, {name}: thank you."],
 		L["{gift} on a commoner, {name}? I'll try to look regal."],
 		L["With your {gift} I could rule a small kingdom, {name}. Westfall."],
+		L["Thank you, {name}. I'm a little better at everything now, gratitude included."],
 	},
 	might = {
 		L["Stronger arms already, {name}. I'll try not to hug anyone. Thank you."],
 		L["With {gift} I could lift a kodo, {name}. I won't, but thank you."],
 		L["Your {gift} has my arms very confident, {name}. Thank you."],
 		L["{gift}! Opened a jar I've fought since Stranglethorn, {name}."],
+		L["Thank you, {name}. My next swing is dedicated to you. So is the dent."],
 	},
 	wisdom = {
 		L["{gift} from you, {name}, and my first wise act is this."],
@@ -2579,6 +2641,9 @@ RP.GIFT = {
 		L["I'll answer your {gift} quietly, {name}. Somebody should."],
 		L["Your {gift} nearly had me charging a wall, {name}. Here, calmly."],
 		L["All Azeroth heard your {gift}, {name}. Only I get to thank you."],
+		L["Your shout's still ringing, {name}, and so is my sword arm. Thank you."],
+		L["I didn't catch the words, {name}, but my arms did. Thank you!"],
+		L["Thank you, {name}. I'll hit the next thing twice as hard and blame you."],
 	},
 	breath = {
 		L["I can breathe underwater, {name}! I may never need to, but thank you."],
@@ -2640,7 +2705,8 @@ RP.HISTORY = {
 -- Where this is (RP.Place): "city" is resting, in a city or an inn; "wild" is
 -- outdoors; "instance" is a dungeon or a raid; "battle" is a battleground or
 -- an arena, where the lines keep to pride and say nothing of the other side.
--- A scenario is none of them.
+-- A scenario is none of them. A people's own city has its own lines
+-- (RP.RACE's "city"), said there in place of these.
 RP.PLACE = {
 	city = {
 		L["Safe walls, warm beds, and now {buff}. You're spoiled, {name}."],
@@ -2852,7 +2918,7 @@ RP.TARGET = {
 		L["Blink wherever you like, {name}. This comes too."],
 		L["Stand a little back from the fire you're about to start, {name}. Here."],
 		L["You keep us all fed and watered, {name}. Your turn to be looked after."],
-		L["Room in there for one more idea, {name}? This one's small and well behaved."],
+		L["Portal fees are steep, {name}. Call this a down payment on my next one."],
 	},
 	WARLOCK = {
 		L["Entirely demon-free, {name}. I checked."],
@@ -2921,6 +2987,7 @@ RP.SAME = {
 		L["Neither of us will admit which spells we still read off the page, {name}."],
 		L["One mage is a scholar, {name}. Two is an argument. Here's my opening point."],
 		L["We both know this spell backwards, {name}. Luckily I cast it forwards."],
+		L["More mana for you, {name}. Try not to spend it all on one fireball."],
 	},
 	PRIEST = {
 		L["Priest to priest, {name}: who blesses the blessers? Today, me."],
@@ -2974,6 +3041,35 @@ RP.SAME = {
 		L["Our trainer would be proud, {name}. He'd shout it, but he'd be proud."],
 		L["Fellow warrior? Then you know the blacksmith's first name too, {name}."],
 	},
+}
+
+-- A spell given to a class it does little for, by the spell's buff key and
+-- then the class helped (UnitClass's second return): Arcane Intellect fills
+-- mana, and a warrior or a rogue has none. Heard as part of RP.TARGET's pool
+-- for that class, so whoever is helped gets no more of the draw than before.
+-- The joke is on the spell or on the one casting it, never on the one who has
+-- no use for it.
+RP.ONTO = {
+	intellect = {
+		WARRIOR = {
+			L["No mana to fill, {name}. It'll just stand about being clever, like me."],
+			L["Intellect on a warrior, {name}. The Kirin Tor would call it research."],
+			L["I only know the one spell for friends, {name}. Rage or mana, you're getting it."],
+			L["Your rage doesn't need this, {name}, but I'd feel rude walking past you."],
+		},
+		ROGUE = {
+			L["No mana, I know, {name}. Use it on locks. They're only puzzles with opinions."],
+			L["It's meant for mana, {name}. You'll find a use. Rogues always find a use."],
+			L["Energy, not mana, I know, {name}. Call it a very clever lockpick."],
+		},
+	},
+}
+
+-- A people's own city, for its "city" lines, by the ids the client's maps
+-- name it with: Undercity is 1458 on WoW Forever's world (as on Classic's) and
+-- 90 on Retail's. A people with no city lines needs none.
+RP.HOME = {
+	forsaken = { [1458] = true, [90] = true },
 }
 
 -- The five lines beta.9 put in the box, frozen: a box saved with them is
@@ -3133,7 +3229,7 @@ do
 			return kept
 		end
 		for _, name in ipairs({ "RACE", "KIN", "FACTION", "GENERAL", "CLASS", "SPELL", "TRADE", "GIFT",
-			"HISTORY", "PLACE", "TIME", "TARGET", "SAME" }) do
+			"HISTORY", "PLACE", "TIME", "TARGET", "SAME", "ONTO" }) do
 			RP[name] = Keep(RP[name])
 		end
 	end
@@ -3146,23 +3242,29 @@ end
 -- than one of three, so writing more lines buys variety and never airtime.
 --
 -- A people's own lines weigh most of what is always there, so a dwarf sounds
--- like a dwarf over a session. The moments that are rare and made for this
--- very click (somebody met again, a gift to answer, kin) weigh as much or
--- more, so they come up when they apply; a third meeting is the one a player
--- notices most, so it weighs most of all. The moments that are nearly always
--- true (a place, the hour, the spell, whom you are helping) weigh little
--- each, since several apply at once; a people's own hour a little more than
--- everybody's. Worked through for full pools: a stranger outdoors at midday
--- hears their people a little under a third of the time; a favour whose
--- spell is known is answered about the gift nearly a third of the time and
--- with the people's own thanks a fifth; somebody met a third time hears about
--- it one pick in five. Kin weighs less than the people's lines because a kin
--- pool is small, and a small pool at full weight is the one heard over and
--- over. In a group the group lines are the point, so they outweigh the side's.
+-- like a dwarf over a session, and more than its class does: the spell goes
+-- out on every cast a mage makes, so the spell's lines and the class's would
+-- otherwise speak as often as the people. The moments that are rare and made
+-- for this very click (somebody met again, a gift to answer, kin) weigh a lot,
+-- so they come up when they apply; a third meeting is the one a player
+-- notices most, so it weighs most of all, and of a gift, what it does is said
+-- more than its name, which the trade lines can only play on. The moments
+-- that are nearly always true (a place, the hour, the spell, whom you are
+-- helping) weigh little each, since several apply at once, and half that when
+-- returning a favour (see RP.Pick), since none of them says thank you; a
+-- people's own hour and city a little more than everybody's. Worked through
+-- for full pools: a stranger outdoors at midday hears their people a little
+-- over a third of the time; a favour whose spell is known is answered about
+-- the gift a third of the time and with the people's own thanks nearly as
+-- often, and one whose spell is not with the people's own thanks nearly half
+-- the time; somebody met a third time hears about it one pick in four. Kin
+-- weighs less than the people's lines because a kin pool is small, and a small
+-- pool at full weight is the one heard over and over. In a group the group
+-- lines are the point, so they outweigh the side's.
 RP.WEIGHT = {
-	race = 7, kin = 6, class = 3, faction = 2, general = 1, group = 3,
-	spell = 4, trade = 6, gift = 4, history = 10, place = 3, time = 3,
-	hour = 4, target = 4,
+	race = 9, kin = 6, class = 3, faction = 2, general = 1, group = 3,
+	spell = 3, trade = 4, gift = 6, history = 10, place = 3, time = 3,
+	hour = 4, home = 4, target = 4,
 }
 RP.SPREAD = 3
 
@@ -3335,6 +3437,29 @@ do
 		return "wild"
 	end
 
+	-- Whether the player stands in their own people's city (RP.HOME), by the
+	-- map the client says they are on: false for a people with none, and
+	-- whenever the client will not say.
+	function RP.Home(family)
+		local maps = family and RP.HOME[family]
+		local C_Map = _G.C_Map
+		if type(maps) ~= "table" or type(C_Map) ~= "table" then return false end
+		local known, id = Read(C_Map.GetBestMapForUnit, "player")
+		return known and type(id) == "number" and maps[id] == true
+	end
+
+	-- Two lists of lines as one pool, so the moment can add to a pool without
+	-- adding to its share of the draw; either alone when the other is missing.
+	local function Both(a, b)
+		if type(a) == "string" then a = { a } end
+		if type(b) ~= "table" or b[1] == nil then return a end
+		if type(a) ~= "table" then return b end
+		local out = {}
+		for i = 1, #a do out[i] = a[i] end
+		for i = 1, #b do out[#a + i] = b[i] end
+		return out
+	end
+
 	-- The hour on the realm's clock, for RP.TIME and a people's own hour:
 	-- "morning" from five until eleven (5:00 to 10:59), "night" from ten at
 	-- night until five (22:00 to 4:59), nil in between and when the client
@@ -3497,18 +3622,29 @@ do
 
 		-- Who is speaking. A people with no group lines speaks its offers to
 		-- the group at half weight: some of them are for a stranger on a road.
+		-- Its lines about how other peoples take to it are the moment's own
+		-- too, for somebody who is not kin, away from home.
 		local race = RP.RACE[family]
+		local kin = RP.IsKin(entry, family)
+		local place = RP.Place()
+		local home = place == "city" and RP.Home(family)
 		local own = race and race[kind]
 		if own then
-			add(own, weight.race, "race")
+			local outsider = not kin and not home and race.outsider
+			add(Both(own, outsider and outsider[kind]), weight.race, "race")
 		else
 			add(PoolFor(race, kind), weight.race / 2, "race")
 		end
-		if RP.IsKin(entry, family) then add((race and race.kin) or RP.KIN, weight.kin, "kin") end
+		if kin then add((race and race.kin) or RP.KIN, weight.kin, "kin") end
 		local side = RP.FACTION[faction]
 		if kind == "group" then
-			add(side.group, weight.group, "group")
-			add(side.offer, weight.faction, "faction")
+			-- The side's offers are for a stranger on a road: said to the
+			-- group only while the side has no group lines to say.
+			if side.group then
+				add(side.group, weight.group, "group")
+			else
+				add(side.offer, weight.faction, "faction")
+			end
 			add(RP.GENERAL.group, weight.group, "group")
 		else
 			add(PoolFor(side, kind), weight.faction, "faction")
@@ -3516,18 +3652,31 @@ do
 		end
 		add(PoolFor(RP.CLASS[class], kind), weight.class, "class")
 
-		-- And the moment.
-		add(type(entry.buff) == "table" and RP.SPELL[entry.buff.key], weight.spell, "spell")
+		-- And the moment. Returning a favour, the pools that do not say thank
+		-- you -- the spell, the place, the hour, whoever is helped -- weigh
+		-- half, so a thank-you mostly sounds like one.
+		local aside = kind == "thanks" and 0.5 or 1
+		local key = type(entry.buff) == "table" and entry.buff.key
+		add(key and RP.SPELL[key], weight.spell * aside, "spell")
 		if gift then add(RP.TRADE, weight.trade, "trade") end
 		-- Filed with the trade lines, so Roll a few's favour row shows either.
 		if gift then add(RP.GIFT[RP.GiftKey(entry)], weight.gift, "trade") end
 		add(RP.HISTORY[RP.Familiar(entry, kind)], weight.history, "history")
-		add(RP.PLACE[RP.Place()], weight.place, "place")
+		-- At home, the people's own city in place of anybody's.
+		local city = home and race and race.city
+		if city then
+			add(city, weight.home, "home")
+		else
+			add(RP.PLACE[place], weight.place * aside, "place")
+		end
 		local hour = RP.Hour()
-		add(RP.TIME[hour], weight.time, "time")
+		add(RP.TIME[hour], weight.time * aside, "time")
 		add(race and hour and race[hour], weight.hour, "hour")
+		-- Whoever is helped, and the spell on a class it does little for.
 		local helped = RP.Target(entry, class)
-		add(helped == "sameclass" and RP.SAME[class] or RP.TARGET[helped], weight.target, "target")
+		local them = helped == "sameclass" and RP.SAME[class] or RP.TARGET[helped]
+		local onto = key and RP.ONTO[key]
+		add(Both(them, onto and onto[helped]), weight.target * aside, "target")
 		if total <= 0 then return nil end
 
 		local lean = entry.lean
