@@ -190,6 +190,20 @@ local function everyLine(RP)
 	return out
 end
 
+-- Every pool the picking reads, by name, the peoples' and sides' included.
+local function allPools(RP)
+	local out = contextPools(RP)
+	for family, people in pairs(RP.RACE) do
+		for kind, pool in pairs(people) do out["RACE." .. family .. "." .. kind] = pool end
+	end
+	out.KIN = RP.KIN
+	for side, pools in pairs(RP.FACTION) do
+		for kind, pool in pairs(pools) do out["FACTION." .. side .. "." .. kind] = pool end
+	end
+	for kind, pool in pairs(RP.GENERAL) do out["GENERAL." .. kind] = pool end
+	return out
+end
+
 -- ------------------------------------------------------------------ rp-1
 -- Every race the client has, and the people whose voice it speaks with. A
 -- race missing here speaks only the general lines, which reads as the set
@@ -662,7 +676,7 @@ do
 		if not ns then return end
 		local RP = ns.InCharacter
 		local lines = everyLine(RP)
-		if #lines < 800 then
+		if #lines < 2300 then
 			fail(scenario, #lines .. " lines in all, fewer than the set was written with")
 		end
 		-- The only lines {gift} is filled for.
@@ -1733,8 +1747,17 @@ do
 		-- Every people a race speaks as, the Haranir aside.
 		local families = {}
 		for _, family in pairs(RP.FAMILY) do families[family] = true end
-		-- A people's own hour is optional, but full when it is there.
+		-- A people's own hour is optional, but full when it is there, and a
+		-- people that has one keeps it: these are the hours written for, so a
+		-- batch of new lines pasted over a pool that drops one is caught.
 		local KINDS = set({ "thanks", "asked", "offer", "kin", "group", "night", "morning" })
+		local HOURS = {
+			dwarf = { "morning" }, nightelf = { "night", "morning" }, voidelf = { "night" },
+			gnome = { "morning" }, worgen = { "night", "morning" }, forsaken = { "night", "morning" },
+			tauren = { "morning", "night" }, troll = { "night" }, bloodelf = { "morning" },
+			nightborne = { "night", "morning" }, goblin = { "morning" }, vulpera = { "night" },
+			pandaren = { "morning", "night" },
+		}
 		for family in pairs(families) do
 			if family ~= "haranir" then
 				for _, kind in ipairs({ "thanks", "asked", "offer", "kin", "group" }) do
@@ -1742,6 +1765,9 @@ do
 				end
 				for _, hour in ipairs({ "night", "morning" }) do
 					if RP.RACE[family][hour] then has(RP.RACE[family][hour], family .. "." .. hour, full) end
+				end
+				for _, hour in ipairs(HOURS[family] or {}) do
+					has(RP.RACE[family][hour], family .. "." .. hour, full)
 				end
 				known(RP.RACE[family], KINDS, family .. "'s")
 			end
@@ -1808,7 +1834,8 @@ end
 -- No line twice in a row: one picked in the last RP.RECENT has no share
 -- while any other line still fits, so a party of five helped in turn hears
 -- five different lines. When every line that fits has been said lately --
--- here, the ten lines about meeting again, leaned on as Roll a few does --
+-- here, a few of the lines about meeting again, fewer than the memory holds,
+-- leaned on as Roll a few does --
 -- the set still speaks rather than falling silent.
 --
 -- The rolls here come from a fixed pseudo-random sequence, not the counter:
@@ -1852,19 +1879,20 @@ do
 		-- Every line that fits said lately: one of them again, not nothing.
 		local entry = person(ns, "nearby")
 		entry.lean, entry.met = "history", 2
+		local saved, few = RP.HISTORY.again, {}
+		for i = 1, math.min(#saved, keep - 2) do few[i] = saved[i] end
+		RP.HISTORY.again = few
 		local again = {}
-		render(ns, entry, RP.HISTORY.again, again, true)
-		if #RP.HISTORY.again >= keep then
-			fail(scenario, "SKIPPED -- the second meeting's lines outnumber the memory")
-		end
+		render(ns, entry, few, again, true)
 		for i = 1, keep + 5 do
 			local line = ns.PickPhrase(entry, 250)
 			local said = line and line:match("^/say (.+)$")
 			if not (said and again[said]) then
-				fail(scenario, "pick " .. i .. " leaning on " .. #RP.HISTORY.again .. " lines said " .. tostring(line))
+				fail(scenario, "pick " .. i .. " leaning on " .. #few .. " lines said " .. tostring(line))
 				break
 			end
 		end
+		RP.HISTORY.again = saved
 		noErrors(scenario, ns)
 	end)
 end
@@ -1912,6 +1940,169 @@ do
 				fail(scenario, ("a %s at %d o'clock never said a %s line"):format(case[1], case[2], case[3]))
 			end
 		end
+		noErrors(scenario, ns)
+	end)
+end
+
+-- ------------------------------------------------------------------ rp-30
+-- On a client in another language a line with no translation yet is left out,
+-- not said in English: never picked, never the box's example, never rolled by
+-- Try a few; a pool with none translated joins no draw (the dwarves' group
+-- lines here, so a group hears their offers, as for a people never given
+-- any). On an English client every line stays, and so it does on a client
+-- whose language has no translations at all, where thinning would leave the
+-- set nothing to say.
+--
+-- The "translation" is Phrases.lua run again into the same session over an
+-- ns.L filled the way Locales/<code>.lua fills it -- a value set on the table
+-- for each key -- for every line but the ones left out, each prefixed so a
+-- line said in English shows. The line left out is the first of the dwarves'
+-- thanks, which the box shows.
+do
+	local scenario = "rp: an untranslated line is not said on another language's client"
+	with(scenario, "Alliance", nil, function()
+		local ns = ready(scenario, "Dwarf")
+		if not ns then return end
+		local english = ns.InCharacter
+		local victim = english.RACE.dwarf.thanks[1]
+		local silent = {}
+		for _, text in ipairs(english.RACE.dwarf.group) do silent[text] = true end
+		local lines = everyLine(english)
+		local realL, realLocale = ns.L, ns.LOCALE
+		local function reload(locale, translations)
+			for i = #ns.PHRASE_SET_ORDER, 1, -1 do
+				if ns.PHRASE_SET_ORDER[i] == "incharacter" then table.remove(ns.PHRASE_SET_ORDER, i) end
+			end
+			local L = setmetatable({}, { __index = function(_, key) return key end })
+			if translations then
+				for _, text in ipairs(lines) do
+					if text ~= victim and not silent[text] then rawset(L, text, "[de] " .. text) end
+				end
+			end
+			ns.L, ns.LOCALE = L, locale
+			local chunk, err = loadfile(dir .. "/Phrases.lua")
+			local ok, runErr = false, err
+			if chunk then ok, runErr = pcall(chunk, "Manners", ns) end
+			ns.L, ns.LOCALE = realL, realLocale
+			if not ok then
+				fail(scenario, "Phrases.lua would not load as " .. locale .. ": " .. tostring(runErr))
+				return nil
+			end
+			-- The box as a player on this client has it: its own examples. The
+			-- English box filled above has the line left out as its first, and
+			-- would read as lines of the player's own.
+			ns.db.profile.speech.phrases = ns.InCharacter.Text()
+			return ns.InCharacter
+		end
+		-- Every line said, by the set and by Try a few, for each reason and
+		-- the moments Try a few leans on.
+		local function said(RP, n)
+			local out = {}
+			counting()
+			for _, reason in ipairs({ "owed", "asked", "group", "nearby" }) do
+				local entry = person(ns, reason)
+				for _ = 1, n do
+					local line = ns.PickPhrase(entry, 250)
+					out[#out + 1] = line and line:match("^/say (.+)$") or "(nothing for " .. reason .. ")"
+				end
+			end
+			for _ = 1, 10 do
+				Mock.printed = {}
+				RP.Roll("Bram")
+				for _, printed in ipairs(Mock.printed) do
+					local line = tostring(printed):match("|r /say (.+)$")
+					out[#out + 1] = line or tostring(printed)
+				end
+			end
+			return out
+		end
+
+		local RP = reload("deDE", true)
+		if not RP then return end
+		for _, text in ipairs(RP.RACE.dwarf.thanks or {}) do
+			if text == victim then fail(scenario, "an untranslated line stayed in its pool on deDE") end
+		end
+		if RP.RACE.dwarf.group ~= nil then
+			fail(scenario, "a pool with nothing translated still joins the draw on deDE")
+		end
+		for line in RP.Text():gmatch("[^\n]+") do
+			if line:sub(1, 5) ~= "[de] " then fail(scenario, "the box shows an untranslated example on deDE: " .. line) end
+		end
+		for _, line in ipairs(said(RP, 120)) do
+			if line:sub(1, 5) ~= "[de] " then
+				fail(scenario, "said in English on deDE: " .. line)
+				break
+			end
+		end
+
+		-- English, and a language nobody has translated: every line stays.
+		for _, case in ipairs({ { "enUS", true }, { "ruRU", false } }) do
+			RP = reload(case[1], case[2])
+			if not RP then return end
+			if RP.RACE.dwarf.thanks[1] ~= victim then
+				fail(scenario, "the first thanks line was taken away on " .. case[1])
+			end
+			if not RP.RACE.dwarf.group then fail(scenario, "the dwarves' group lines are gone on " .. case[1]) end
+			if not RP.Text():find(victim, 1, true) then
+				fail(scenario, "the box does not show the first thanks line on " .. case[1])
+			end
+			local heard = false
+			for _, line in ipairs(said(RP, 120)) do heard = heard or line == victim:gsub("{name}", "Bram") end
+			if not heard then fail(scenario, "the line was never said on " .. case[1]) end
+		end
+		noErrors(scenario, ns)
+	end)
+end
+
+-- ------------------------------------------------------------------ rp-31
+-- The shipped translations, in every language they are in: whatever the set
+-- is left with there has a translation, and every pool that has lines in
+-- English still has some -- no people, side, class or moment falls silent in
+-- a language because its newest lines are not translated yet.
+do
+	local function localeCodes()
+		local f = io.open(dir .. "/Locales/Locales.xml", "r")
+		if not f then return {} end
+		local body = f:read("*a")
+		f:close()
+		local codes = {}
+		for code in body:gmatch("<Script%s+file%s*=%s*\"(%a%a%a%a)%.lua\"") do
+			if code ~= "Init" then codes[#codes + 1] = code end
+		end
+		return codes
+	end
+	local scenario = "rp: every language keeps a line for every moment"
+	with(scenario, "Alliance", nil, function()
+		local ns = ready(scenario, "Human")
+		if not ns then return end
+		local english = allPools(ns.InCharacter)
+		local keys = {}
+		for _, text in ipairs(everyLine(ns.InCharacter)) do keys[text] = true end
+		for _, code in ipairs(localeCodes()) do
+			Mock.reset()
+			Mock.locale = code
+			local there = load(scenario)
+			if not there then break end
+			local pools = allPools(there.InCharacter)
+			for where, pool in pairs(english) do
+				if type(pool) == "table" and #pool > 0 then
+					local left = pools[where]
+					if type(left) ~= "table" or #left == 0 then
+						fail(scenario, where .. " has nothing left to say in " .. code)
+					end
+				end
+			end
+			for where, pool in pairs(pools) do
+				for _, text in ipairs(type(pool) == "table" and pool or {}) do
+					if keys[text] and rawget(there.L, text) == nil then
+						fail(scenario, where .. " says English in " .. code .. ": " .. text)
+						break
+					end
+				end
+			end
+			noErrors(scenario, there)
+		end
+		Mock.locale = nil
 		noErrors(scenario, ns)
 	end)
 end

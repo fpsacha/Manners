@@ -574,3 +574,43 @@ mutate("Phrases.lua",
        "rp memory silences",
        expect="rp: no line twice in a row",
        script="runscenarios.py")
+
+# A line with no translation said in English on a translated client.
+mutate("Phrases.lua",
+       "\t\t\t\tif key ~= nil and rawget(translated, key) ~= nil then kept[#kept + 1] = text end\n",
+       "\t\t\t\tif key ~= nil then kept[#kept + 1] = text end\n",
+       "rp untranslated lines said",
+       expect="rp: an untranslated line is not said on another language's client",
+       script="runscenarios.py")
+
+# The pools never thinned at all.
+mutate("Phrases.lua",
+       "\t\t\tRP[name] = Keep(RP[name])\n",
+       "",
+       "rp pools never thinned",
+       expect="rp: an untranslated line is not said on another language's client",
+       script="runscenarios.py")
+
+# An English client loses the lines no other language has yet.
+mutate("Phrases.lua",
+       '\tif locale ~= nil and locale ~= "enUS" and locale ~= "enGB"\n',
+       "\tif locale ~= nil\n",
+       "rp english thinned",
+       expect="rp: an untranslated line is not said on another language's client",
+       script="runscenarios.py")
+
+# A language with no translations at all left with nothing to say.
+mutate("Phrases.lua",
+       '\t\tand type(translated) == "table" and next(translated) ~= nil then\n',
+       '\t\tand type(translated) == "table" then\n',
+       "rp untranslated language silenced",
+       expect="rp: an untranslated line is not said on another language's client",
+       script="runscenarios.py")
+
+# A pool thinned to nothing still stands, so a group never hears the offers.
+mutate("Phrases.lua",
+       "\t\t\tif kept[1] == nil then return nil end\n",
+       "",
+       "rp empty pool kept",
+       expect="rp: an untranslated line is not said on another language's client",
+       script="runscenarios.py")
