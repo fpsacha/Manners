@@ -626,6 +626,19 @@ local function newFrame()
 			error("COMBAT_LOG_EVENT_UNFILTERED is not available to addons", 0)
 		end
 	end
+	-- The unit-filtered form, which the addon uses for the player's own casts:
+	-- the client hands the frame only those units' events. Checked like the Ace
+	-- object's route (an event this client lacks throws) and written down the
+	-- same way, so "never asked for" can still be told from "refused". The
+	-- units are kept on the frame, for a scenario to ask whom it listens to.
+	f.RegisterUnitEvent = function(self, event, ...)
+		if not KNOWN_EVENTS[event] then
+			error("registered unknown event: " .. tostring(event), 0)
+		end
+		Mock.registeredEvents[event] = true
+		self.unitEvents = self.unitEvents or {}
+		self.unitEvents[event] = { ... }
+	end
 	f.UnregisterEvent = function() end
 
 	-- Last, so it wraps whatever the two loops above left behind rather than

@@ -67,12 +67,14 @@ for f in FILES:
 
 # ---------------------------------------------------------------- 4
 # Registered events must have a handler, and vice versa. Core.lua registers
-# them (OnEnable); the handlers are in whichever file the event belongs to.
+# them (OnEnable), in more than one list: the player's own casts go on a frame
+# of their own. The handlers are in whichever file the event belongs to.
 handlers = set()
 for f in FILES:
     handlers |= set(re.findall(r"function addon:([A-Z_]+)\(", src[f]))
-reg_block = re.search(r"for _, event in ipairs\(\{(.*?)\}\)", src["Core.lua"], re.S)
-reg_list = set(re.findall(r'"([A-Z_]+)"', reg_block.group(1))) if reg_block else set()
+reg_list = set()
+for reg_block in re.findall(r"for _, event in ipairs\(\{(.*?)\}\)", src["Core.lua"], re.S):
+    reg_list |= set(re.findall(r'"([A-Z_]+)"', reg_block))
 for ev in sorted(reg_list - handlers):
     add("registered, no handler", "Core.lua", 0, ev)
 for h in sorted(handlers - reg_list):

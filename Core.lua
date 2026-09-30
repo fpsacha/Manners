@@ -2041,14 +2041,7 @@ function addon:OnEnable()
 		"SPELLS_CHANGED",
 		"NAME_PLATE_UNIT_ADDED",
 		"NAME_PLATE_UNIT_REMOVED",
-		"UNIT_SPELLCAST_SENT",
-		"UNIT_SPELLCAST_SUCCEEDED",
-		"UNIT_SPELLCAST_FAILED",
-		-- The sweep over the prompt's icon follows casts starting, pushed back,
-		-- stopped early, and cooldowns the client takes back.
-		"UNIT_SPELLCAST_START",
-		"UNIT_SPELLCAST_DELAYED",
-		"UNIT_SPELLCAST_INTERRUPTED",
+		-- Cooldowns the client takes back; the casts are below.
 		"SPELL_UPDATE_COOLDOWN",
 		"UI_ERROR_MESSAGE",
 		-- A back-off lifts when the player targets that person themselves.
@@ -2073,6 +2066,38 @@ function addon:OnEnable()
 		"READY_CHECK_FINISHED",
 	}) do
 		ns.Guard("RegisterEvent " .. event, function() self:RegisterEvent(event) end)
+	end
+
+	-- The player's own casts, on a frame of our own that asks the client for
+	-- the player's alone. Through AceEvent every cast by anybody in sight was
+	-- dispatched, 320-490 ns each, to a handler whose first line threw it away:
+	-- in a raid fight, a hundred and more a second, about as much as the whole
+	-- tick there. The handlers stay addon methods with their unit checks, for
+	-- a client without RegisterUnitEvent, where the frame hears everybody's.
+	-- The frame is made once, whatever calls OnEnable again.
+	for _, event in ipairs({
+		"UNIT_SPELLCAST_SENT",
+		"UNIT_SPELLCAST_SUCCEEDED",
+		"UNIT_SPELLCAST_FAILED",
+		-- The sweep over the prompt's icon follows casts starting, pushed back
+		-- and stopped early.
+		"UNIT_SPELLCAST_START",
+		"UNIT_SPELLCAST_DELAYED",
+		"UNIT_SPELLCAST_INTERRUPTED",
+	}) do
+		ns.Guard("RegisterEvent " .. event, function()
+			local casts = ns.castEvents
+			if not casts then
+				casts = CreateFrame("Frame")
+				casts:SetScript("OnEvent", function(_, event, ...) addon[event](addon, event, ...) end)
+				ns.castEvents = casts
+			end
+			if type(casts.RegisterUnitEvent) == "function" then
+				casts:RegisterUnitEvent(event, "player")
+			else
+				casts:RegisterEvent(event)
+			end
+		end)
 	end
 
 	-- The combat log only where the client is believed to have one: Forever

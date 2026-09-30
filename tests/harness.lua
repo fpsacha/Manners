@@ -16,7 +16,7 @@ local frameMethods = {
   "SetJustifyH", "SetWordWrap", "SetShadowColor", "SetShadowOffset", "SetShown",
   "CreateAnimationGroup", "CreateAnimation", "SetFromAlpha", "SetToAlpha",
   "SetDuration", "SetOrder", "SetSmoothing", "SetOffset", "SetLooping", "Play",
-  "Stop", "SetBackdrop", "SetBackdropBorderColor", "RegisterEvent",
+  "Stop", "SetBackdrop", "SetBackdropBorderColor", "RegisterEvent", "RegisterUnitEvent",
   "UnregisterEvent", "SetFrameStrata", "SetHighlightTexture", "EnableMouse",
   "StartMoving", "StopMovingOrSizing", "SetGradient", "CreateMaskTexture",
   "AddMaskTexture", "SetAtlas", "SetCountdownFormatter", "SetUserPlaced",
