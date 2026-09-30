@@ -3235,6 +3235,32 @@ do
 	end
 end
 
+-- How many lines the set can say here, counted once: every pool the pick
+-- reads, after the thinning above, so a translated client counts what it
+-- will say. What I say names it above the box, which holds only a handful of
+-- examples -- a player read those eight lines as all there was (1.5.0).
+local lineCount
+function RP.Count()
+	if lineCount then return lineCount end
+	local seen, n = {}, 0
+	local function walk(tbl)
+		if type(tbl) ~= "table" then return end
+		for _, v in pairs(tbl) do
+			if type(v) == "string" then
+				if not seen[v] then seen[v], n = true, n + 1 end
+			else
+				walk(v)
+			end
+		end
+	end
+	for _, name in ipairs({ "RACE", "KIN", "FACTION", "GENERAL", "CLASS", "SPELL", "TRADE", "GIFT",
+		"HISTORY", "PLACE", "TIME", "TARGET", "SAME", "ONTO", "HOME" }) do
+		walk(RP[name])
+	end
+	lineCount = n
+	return n
+end
+
 -- How much of the draw each pool gets. A pool's share is its weight times
 -- the number of its lines that fit, counted up to RP.SPREAD, split evenly
 -- between them: a pool of one line is heard a third as often as a full one

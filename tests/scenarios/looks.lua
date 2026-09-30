@@ -621,8 +621,9 @@ end)
 
 -- ------------------------------------------------------------------ 12
 -- The registry: every look offered, the stubs drawn as Luxe until written, a
--- saved stub kept, and Luxe the default for a profile that never chose.
-withTree("every look is offered, and Luxe is the default", {}, function(ns, scenario)
+-- saved stub kept, and Glass the default for a profile that never chose (Luxe was,
+-- in 1.5.0, until the game showed its tag white on white).
+withTree("every look is offered, and Glass is the default", {}, function(ns, scenario)
 	local values, sorting = ns.Looks.Choices()
 	for _, style in ipairs(STYLES) do
 		if type(values[style]) ~= "string" or values[style] == "" then
@@ -660,8 +661,8 @@ withTree("every look is offered, and Luxe is the default", {}, function(ns, scen
 		local chunk = assert(loadfile(dir .. "/" .. file))
 		chunk("Manners", shipped)
 	end
-	if shipped.defaults.profile.prompt.style ~= "luxe" then
-		fail(scenario, "the default look is " .. tostring(shipped.defaults.profile.prompt.style) .. ", not Luxe")
+	if shipped.defaults.profile.prompt.style ~= "glass" then
+		fail(scenario, "the default look is " .. tostring(shipped.defaults.profile.prompt.style) .. ", not Glass")
 	end
 end)
 

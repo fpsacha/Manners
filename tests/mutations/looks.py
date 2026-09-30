@@ -243,11 +243,11 @@ mutate("Looks/Luxe.lua",
 
 # --- the registry and the default -----------------------------------------
 
-# Glass the default again.
+# Luxe the default again (1.5.0's mistake).
 mutate("Core.lua",
-       "\t\t\tstyle = \"luxe\",\n",
        "\t\t\tstyle = \"glass\",\n",
-       "the default look not Luxe",
+       "\t\t\tstyle = \"luxe\",\n",
+       "the default look not Glass",
        expect="the default look is",
        script="runscenarios.py")
 

@@ -2587,8 +2587,10 @@ local function BuildSpeechTab()
 				order = 22.5,
 				hidden = function() return speechOff() or not inCharacter() end,
 				name = function()
-					return "\n|cffffd100" .. L["In character picks a line when you click, to fit your race, faction, class and the moment. Editing the lines below turns it off."]
-						.. "|r\n"
+					-- The count first: the box holds a handful of examples, and a
+					-- player took them for the whole set.
+					return "\n|cffffd100" .. L["In character picks one of its %d lines when you click, to fit your race, faction, class and the moment. The box below shows only a few examples; editing it turns In character off."]
+						:format(ns.InCharacter.Count()) .. "|r\n"
 				end,
 			},
 			phrases = {
