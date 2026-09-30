@@ -560,6 +560,14 @@ local function AccentCarriers()
 	return ring == true, stripe == true
 end
 
+-- The icon's size on a look that sizes it itself (Toast, from the height), or
+-- nil where the slider sets it.
+local function LookIconSize()
+	local p = P()
+	local look = ns.Looks.Get(p.style)
+	return look and look.IconSize and look.IconSize(p) or nil
+end
+
 -- Whether the copy-for-a-bug-report box is open: a state of the window, not of
 -- the profile, put back in OpenOptions and when the Settings page hides.
 local reportOpen = false
@@ -3148,7 +3156,9 @@ local function BuildLookTab()
 				min = 12,
 				max = 64,
 				step = 1,
-				disabled = function() return not P().showIcon end,
+				-- Kept for the other looks, but the notice below says this
+				-- one does not read it.
+				disabled = function() return not P().showIcon or LookIconSize() ~= nil end,
 				get = pGet,
 				set = function(info, value)
 					pSet(info, value)
@@ -3169,12 +3179,18 @@ local function BuildLookTab()
 				order = 52.5,
 				hidden = function()
 					local p = P()
+					-- Always on a look that sizes the icon itself.
+					if LookIconSize() then return not p.showIcon end
 					-- Shown only when the icon sits on the ceiling
 					-- ClampSettings enforces, bound by width and height.
 					return not p.showIcon or p.iconSize < ns.IconCeiling(p)
 				end,
 				name = function()
 					local p = P()
+					local own = LookIconSize()
+					if own then
+						return "|cffffd100" .. L["This look sizes the icon from the prompt's height: %d at %d high. Make the prompt taller for a bigger icon."]:format(own, p.height) .. "|r"
+					end
 					local byWidth = (p.width - 60) < (p.height - 8)
 					local text
 					if byWidth then

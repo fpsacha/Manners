@@ -21,7 +21,7 @@ mutate(TOAST,
        "\tlocal k = 1.35\n",
        "\tlocal k = 1.0\n",
        "the enamel no more saturated than the gold",
-       expect="the owed enamel is no more saturated",
+       expect="the owed enamel is not parted",
        script="runscenarios.py")
 
 mutate(TOAST,
@@ -147,8 +147,8 @@ mutate(TOAST,
 
 # The one bright thing left in a fight, turned to iron with the rest.
 mutate(TOAST,
-       "\tself.gold = { self.ring }\n",
-       "\tself.gold = { self.ring, self.band }\n",
+       "\tself.gold = { self.ring, self.jewelSet }\n",
+       "\tself.gold = { self.ring, self.jewelSet, self.band }\n",
        "the enamel turned to iron in a fight",
        expect="the enamel lost the reason's colour in a fight",
        script="runscenarios.py")
@@ -171,8 +171,8 @@ mutate(TOAST,
 
 # The design's own: "buffed Elowen" on the name line.
 mutate(TOAST,
-       "\tif word and who then\n\t\tkit.SetLine(kit.name, who)\n",
-       "\tif word and who then\n\t\tkit.SetLine(kit.name, lead)\n",
+       "\tif who and kit.sub:IsShown() then\n\t\tkit.SetLine(kit.name, who)\n",
+       "\tif who and kit.sub:IsShown() then\n\t\tkit.SetLine(kit.name, lead)\n",
        "the outcome rewrites the name line",
        expect="a landed buff moved the name on the toast",
        script="runscenarios.py")
@@ -252,7 +252,7 @@ mutate(TOAST,
        script="runscenarios.py")
 
 mutate(TOAST,
-       "\t\t\tself.clockW = nil\n\t\t\tself.ember:Hide()\n",
+       "\t\t\tself.clockW = nil\n\t\t\tself.ash:Hide()\n\t\t\tself.ember:Hide()\n",
        "\t\t\tself.clockW = nil\n",
        "the favour clock outlives the debt",
        expect="the favour clock stayed with nothing owed",
@@ -284,8 +284,8 @@ mutate(TOAST,
 
 # The design's own: the medallion up to 8 units taller than the button.
 mutate(TOAST,
-       "Clamp(p.iconSize / ICON_OF, BH * 0.9, H)",
-       "Clamp(p.iconSize / ICON_OF, BH * 0.9, H + 8)",
+       "\tlocal M = showIcon and H or 0\n",
+       "\tlocal M = showIcon and H + 8 or 0\n",
        "the medallion overhangs the button",
        expect="overhangs the button",
        script="runscenarios.py")
@@ -334,4 +334,179 @@ mutate(TOAST,
        "",
        "the toast left on screen under another look",
        expect="toast's region",
+       script="runscenarios.py")
+
+# --- round 15: the reviewers' findings --------------------------------------
+
+# A fight made the icon see-through, and the banner starts at its centre.
+mutate(TOAST,
+       "\tkit.icon:SetVertexColor(v, v, v)\n",
+       "\tkit.icon:SetAlpha(v)\n",
+       "the icon see-through in a fight",
+       expect="the icon turned see-through in a fight",
+       script="runscenarios.py")
+
+mutate(TOAST,
+       "\tself.well:SetShown(showIcon)\n",
+       "\tself.well:Hide()\n",
+       "nothing opaque under the icon",
+       expect="nothing opaque under the icon",
+       script="runscenarios.py")
+
+mutate(TOAST,
+       "\ticon:SetVertexColor(1, 1, 1)\n",
+       "",
+       "the fight's dim left on the icon for the next look",
+       expect="left the icon dimmed on glass",
+       script="runscenarios.py")
+
+# A medallion shorter than the banner shows the rails' ends above and below.
+mutate(TOAST,
+       "\tlocal M = showIcon and H or 0\n",
+       "\tlocal M = showIcon and Clamp(p.iconSize / ICON_OF, H * 0.8, H) or 0\n",
+       "the medallion shorter than the banner",
+       expect="is shorter than the banner",
+       script="runscenarios.py")
+
+# The owed gold as bright as the gold round it.
+mutate(TOAST,
+       "\tif er > 0.9 and eb < 0.3 and eg > 0.6 * er and eg < 0.9 * er then\n",
+       "\tif false then\n",
+       "the owed gold not fired deeper",
+       expect="the owed enamel is not parted",
+       script="runscenarios.py")
+
+mutate(TOAST,
+       "\tif er > 0.9 and eb < 0.3 and eg > 0.6 * er and eg < 0.9 * er then\n",
+       "\tif er > 0.9 then\n",
+       "every warm colour fired dark",
+       expect="fired dark like the owed gold",
+       script="runscenarios.py")
+
+# The light cut at its brightest column, a seam under the medallion.
+mutate(TOAST,
+       "\t\tt:SetTexCoord(0, 1, 0, 1)\n",
+       "\t\tt:SetTexCoord(0.30, 1, 0, 1)\n",
+       "the light cut under the medallion",
+       expect="a hard edge under the medallion",
+       script="runscenarios.py")
+
+# With the icon off, nothing carries the reason.
+mutate(TOAST,
+       "\tself.jewel:SetVertexColor(er, eg, eb, 1)\n",
+       "",
+       "the jewel in no colour",
+       expect="Toast carries the reason on a jewel",
+       script="runscenarios.py")
+
+mutate(TOAST,
+       "\tself.jewel:SetShown(not showIcon)\n",
+       "\tself.jewel:Show()\n",
+       "the jewel beside the medallion",
+       expect="the jewel shows beside the medallion",
+       script="runscenarios.py")
+
+mutate(TOAST,
+       "math.floor(jewelX + jewel / 2 + 7 + 0.5)",
+       "(C + 4)",
+       "the name written over the jewel",
+       expect="the name starts on the jewel",
+       script="runscenarios.py")
+
+# The verdict written nowhere when the second line is down.
+mutate(TOAST,
+       "\tif who and kit.sub:IsShown() then\n",
+       "\tif who then\n",
+       "the outcome lost with the second line down",
+       expect="not what happened",
+       script="runscenarios.py")
+
+# A German client's name line rewritten by the built-in headline.
+mutate(TOAST,
+       "\tif who and kit.sub:IsShown() then\n",
+       "\tif who and word and kit.sub:IsShown() then\n",
+       "a German client's name line rewritten",
+       expect="German client",
+       script="runscenarios.py")
+
+# The coin hung off the banner's end with no medallion to sit on.
+mutate(TOAST,
+       "\t\tif keyUp and self.M > 0 then\n",
+       "\t\tif keyUp then\n",
+       "the count's coin with no medallion",
+       expect="not beside the key's chip",
+       script="runscenarios.py")
+
+mutate(TOAST,
+       "\tif self.countMode == \"pair\" then inset = math.max(inset, self:PairRoom()) end\n",
+       "",
+       "the name under the count beside the key",
+       expect="the name runs under the count's chip beside the key's",
+       script="runscenarios.py")
+
+# A key bound anew, and the lines kept the old key's room.
+mutate(TOAST,
+       "\t\t\t-- lines again, beside it.\n\t\t\tkit.fit.right = nil\n",
+       "",
+       "the old key's room kept after a rebind",
+       expect="keeps the old key's room",
+       script="runscenarios.py")
+
+# The clock as one more gold rail.
+mutate(TOAST,
+       "\tself.ash:Show()\n",
+       "",
+       "the clock with no ash",
+       expect="no ash under the clock",
+       script="runscenarios.py")
+
+mutate(TOAST,
+       "\t\tself.ember:SetVertexColor(Mix(er, eg, eb, 0.35))\n",
+       "\t\tself.ember:SetVertexColor(er, eg, eb)\n",
+       "the clock in the enamel's colour",
+       expect="one more gold rail",
+       script="runscenarios.py")
+
+mutate(TOAST,
+       "\tself.bead:SetSize(self.clockH * 4.5, self.clockH * 2)\n",
+       "\tself.bead:SetSize(self.clockH * 3.2, self.clockH * 1.3)\n",
+       "the clock's spark too small",
+       expect="too small to see",
+       script="runscenarios.py")
+
+mutate(TOAST,
+       "\t\t\tself.ash:Hide()\n",
+       "",
+       "the clock's ash outlives the debt",
+       expect="the clock's ash stayed",
+       script="runscenarios.py")
+
+# The options page and the icon size the look ignores.
+mutate("Options.lua",
+       "disabled = function() return not P().showIcon or LookIconSize() ~= nil end,",
+       "disabled = function() return not P().showIcon end,",
+       "the icon slider live on Toast",
+       expect="the icon size slider is live",
+       script="runscenarios.py")
+
+mutate("Options.lua",
+       "\t\t\t\t\tif LookIconSize() then return not p.showIcon end\n",
+       "",
+       "nothing says how Toast sizes its icon",
+       expect="nothing on the options page says",
+       script="runscenarios.py")
+
+mutate(TOAST,
+       "\treturn math.floor(ICON_OF * (p.height or 44) + 0.5)\n",
+       "\treturn p.iconSize\n",
+       "the notice gives the slider's size, not the drawn one",
+       expect="the notice does not give the icon's size",
+       script="runscenarios.py")
+
+# A misnamed file: a solid box in the game, and nothing throws.
+mutate(TOAST,
+       "ART .. \"Shadow\", nil, true, keep)",
+       "ART .. \"Shadw\", nil, true, keep)",
+       "a misnamed Toast texture",
+       expect="which the package does not ship",
        script="runscenarios.py")

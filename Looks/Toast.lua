@@ -28,19 +28,25 @@
 --     hierarchy carried by size, ink and shadow;
 --   * the result as a verdict on the second line -- "buffed" with a tick, or
 --     the game's own words with a cross -- and the name left where it was;
---   * the favour clock: a thin ember in the reason colour along the bottom
---     rail, burning down as the time to return the favour runs out. Brought
+--   * the favour clock: a thin ember in the reason colour, hotter than the
+--     enamel, over a line of ash along the bottom rail, burning down as the
+--     time to return the favour runs out. Brought
 --     up to date on the scan's own repaint, never on a frame script; kept
 --     under Calm, because it is information, and in a fight, dimmed;
 --   * the bound key on a chip at the right, like the count's, when a key is
---     bound; the count then moves onto the medallion as a small coin. Either
---     chip steps aside for a paint in which the name would otherwise be cut;
+--     bound; the count then moves onto the medallion as a small coin, or
+--     with no medallion beside the key's chip. Either chip steps aside for a paint in which the name would otherwise be cut;
 --   * the owed pulse breathes three times and then holds still;
 --   * a fight turns the gold to iron and greys the icon, the text dims, and
 --     the enamel keeps its colour: the one bright thing left is the reason;
 --   * the medallion stays inside the button: the banner is drawn a few units
 --     inside the panel's height instead, so the whole look takes clicks and
---     the drag and the screen clamp see what the player sees;
+--     the drag and the screen clamp see what the player sees. The medallion
+--     is the panel's height, the icon most of it and the gold thin, so the
+--     icon is sized by the height (Options says so);
+--   * the owed gold fired to a honey amber, darker than the metal, since
+--     saturation alone did not part it from the gold at the game's scale;
+--   * with the icon off, a jewel at the banner's end carries the reason;
 --   * a class-coloured name is taken a third of the way to white.
 
 local _, ns = ...
@@ -57,7 +63,7 @@ local Toast = ns.Looks.Register("toast", {
 })
 
 -- The icon is this much of the medallion across (ICON_R in the generator).
-local ICON_OF = 0.578
+local ICON_OF = 0.63
 -- Where the rails run, in units in from the frame's edge for a 12-unit
 -- corner, scaled with the corner: the outer rail, the stud, and the favour
 -- clock's line, on the dark of the banner just inside the innermost rail --
@@ -95,10 +101,17 @@ function Toast.TwoLineHeight(fontSize)
 	return math.ceil(1.1 * fontSize + Gap(fontSize) + 1.1 * SubSize(fontSize) + 10)
 end
 
--- The enamel carries the reason, and with the icon off the light behind the
+-- The enamel carries the reason, and with the icon off the jewel at the
 -- banner's end does; nothing does with the marker off.
 function Toast.AccentCarriers(p)
 	return (p.accentMode or "icon") ~= "off", false
+end
+
+-- The medallion is the banner's height, never shorter (its rails run in under
+-- it), so the icon is sized by the height and not by the slider. Options says
+-- so with this.
+function Toast.IconSize(p)
+	return math.floor(ICON_OF * (p.height or 44) + 0.5)
 end
 
 -- More colourful than the palette's own: enamel is glass fired on metal, and
@@ -111,6 +124,22 @@ end
 
 local function Mix(r, g, b, t)
 	return r + (1 - r) * t, g + (1 - g) * t, b + (1 - b) * t
+end
+
+-- The enamel for a reason colour. A warm gold (the owed reason) is fired
+-- deeper, to a dark honey amber, about (0.75, 0.41, 0.10): saturation alone
+-- did not part it from the gold round it at the game's scale, where the two
+-- were one thick ring. At one pixel a unit its mean luminance is a third
+-- under the outer ring's, at 44 and at 36 high, and it still reads as the
+-- owed hue. The colour-blind set's orange and lemon are not warm golds and
+-- pass unchanged.
+local function Fired(r, g, b)
+	local er, eg, eb = Enamel(r, g, b)
+	if er > 0.9 and eb < 0.3 and eg > 0.6 * er and eg < 0.9 * er then
+		eg = eg * 0.70
+		er, eg, eb = er * 0.75, eg * 0.75, eb * 0.75
+	end
+	return er, eg, eb
 end
 
 -- Whether a stored colour is the default one: AceDB strips a value equal to its
@@ -284,6 +313,11 @@ function Toast:Build(kit)
 	self.shadow = Pieces(art, "BACKGROUND", -8, ART .. "Shadow", nil, true, keep)
 	self.drawerBody = tex(art, "BACKGROUND", -7, "Body")
 	self.body = tex(art, "BACKGROUND", -6, "Body")
+	-- An opaque well in the icon's shape, under it: the banner begins at the
+	-- medallion's centre, and whenever the icon or the panel is less than
+	-- opaque (a fight, the panel fading in and out) nothing behind it may
+	-- show, or the icon splits down the middle.
+	self.well = tex(art, "BACKGROUND", -5, "IconMask")
 	self.drawer = Pieces(art, "BORDER", -2, ART .. "Drawer", nil, false, keep)
 	self.border = Pieces(art, "BORDER", 2, ART .. "Border", nil, false, keep)
 
@@ -307,17 +341,23 @@ function Toast:Build(kit)
 	for i = 1, 4 do self.glints[i] = light("Glint", 6) end
 	self.twinkle = light("Spark", 7)
 
-	-- The favour clock, on the bottom rail.
+	-- The favour clock, on the bottom rail: the time spent as a line of dark
+	-- ash its whole length, the time left burning over it.
+	self.ash = tex(art, "ARTWORK", 1, "Ember")
+	self.ash:SetTexCoord(0.25, 0.75, 0, 1)
 	self.ember = tex(art, "ARTWORK", 2, "Ember", "ADD")
 	self.ember:SetTexCoord(0.25, 0.75, 0, 1)
 	self.bead = tex(art, "ARTWORK", 3, "Glint", "ADD")
 
-	-- The list's gems.
+	-- The list's gems, and with the icon off one at the banner's end, which
+	-- carries the reason in the medallion's place.
 	self.gems, self.gemSets = {}, {}
 	for i = 1, #kit.rows do
 		self.gems[i] = tex(art, "ARTWORK", 1, "Gem")
 		self.gemSets[i] = tex(art, "ARTWORK", 2, "GemSet")
 	end
+	self.jewel = tex(art, "ARTWORK", 1, "Gem")
+	self.jewelSet = tex(art, "ARTWORK", 2, "GemSet")
 
 	-- The medallion: the enamel and the gold, on a frame over the icon so it
 	-- can settle onto it as the panel arrives.
@@ -347,7 +387,7 @@ function Toast:Build(kit)
 	self.mask:SetTexture(ART .. "IconMask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
 
 	-- Everything gold, for the iron of a fight.
-	self.gold = { self.ring }
+	self.gold = { self.ring, self.jewelSet }
 	for _, s in ipairs({ self.border, self.drawer, self.chip, self.keyChip, self.gemSets }) do
 		for _, t in ipairs(s) do self.gold[#self.gold + 1] = t end
 	end
@@ -479,10 +519,18 @@ function Toast:Apply(p, above)
 	local BH = bottom - top
 	local slim = H < 40
 	local C = Clamp(math.floor(BH * 0.30 + 0.5), 8, 16)
-	local M = showIcon and Clamp(p.iconSize / ICON_OF, BH * 0.9, H) or 0
+	-- The medallion is the panel's height: the banner's rails and body run in
+	-- under it to its centre, so a medallion any shorter than the banner left
+	-- their ends showing above and below it. The icon is sized by the height
+	-- (Toast.IconSize), which Options says.
+	local M = showIcon and H or 0
 	local cx, cy = M / 2, H / 2
 	local left = showIcon and cx or 0
-	local textX = showIcon and (M + 6) or (C + 4)
+	-- With the icon off, a jewel at the banner's end carries the reason.
+	local jewel = sub + 8
+	-- Clear of the frame's inner rail.
+	local jewelX = C / 2 + 7
+	local textX = showIcon and (M + 6) or math.floor(jewelX + jewel / 2 + 7 + 0.5)
 	self.ov, self.top, self.bottom, self.C, self.M, self.cx, self.cy = ov, top, bottom, C, M, cx, cy
 	self.left, self.textX, self.slim = left, textX, slim
 
@@ -527,9 +575,11 @@ function Toast:Apply(p, above)
 	local studAt = (slim and RAIL.slimStud or RAIL.stud) * k
 
 	-- The light behind the medallion: from its centre, rightwards, never
-	-- above or below the banner.
+	-- above or below the banner. The whole file, which rises from nothing at
+	-- its left edge, so the light grows out from under the medallion and no
+	-- edge of it lies under the medallion to show through a fade.
 	for _, t in ipairs({ self.bloom, self.bloomPulse, self.bloomArrive }) do
-		t:SetTexCoord(0.30, 1, 0, 1)
+		t:SetTexCoord(0, 1, 0, 1)
 		t:ClearAllPoints()
 		t:SetPoint("LEFT", art, "TOPLEFT", left, -cy)
 		t:SetSize(2.03 * BH, BH - 3)
@@ -554,6 +604,10 @@ function Toast:Apply(p, above)
 	end
 	self.band:SetTexture(ART .. (round and "RingBand" or "SealBand"))
 	self.ring:SetTexture(ART .. (round and "Ring" or "Seal"))
+	self.well:SetTexture(maskFile)
+	self.well:SetVertexColor(WARM_BOTTOM[1], WARM_BOTTOM[2], WARM_BOTTOM[3], 1)
+	self.well:ClearAllPoints()
+	self.well:SetAllPoints(icon)
 	local iconSize = M * ICON_OF
 	self.medallion:ClearAllPoints()
 	self.medallion:SetPoint("CENTER", art, "TOPLEFT", cx, -cy)
@@ -614,10 +668,22 @@ function Toast:Apply(p, above)
 	self.ember:ClearAllPoints()
 	self.ember:SetPoint("LEFT", art, "TOPLEFT", self.clockX, -(bottom - clockAt))
 	self.ember:SetHeight(self.clockH)
+	self.ash:ClearAllPoints()
+	self.ash:SetPoint("LEFT", art, "TOPLEFT", self.clockX, -(bottom - clockAt))
+	self.ash:SetSize(self.clockLen, self.clockH)
+	self.ash:SetVertexColor(0.30, 0.12, 0.05, 0.55)
+	-- The burning end: a spark big enough to see at the game's own scale.
 	self.bead:ClearAllPoints()
 	self.bead:SetPoint("CENTER", self.ember, "RIGHT", 0, 0)
-	self.bead:SetSize(self.clockH * 3.2, self.clockH * 1.3)
+	self.bead:SetSize(self.clockH * 4.5, self.clockH * 2)
 	self.clockW = nil
+
+	-- The jewel at the banner's end, with the icon off.
+	for _, t in ipairs({ self.jewel, self.jewelSet }) do
+		t:ClearAllPoints()
+		t:SetPoint("CENTER", art, "TOPLEFT", jewelX, -cy)
+		t:SetSize(jewel, jewel)
+	end
 
 	-- The lines: centred as one block.
 	local gap = Gap(fs)
@@ -677,8 +743,12 @@ function Toast:Apply(p, above)
 		self.gemSets[i]:Hide()
 	end
 	self.glyph:Hide()
+	self.ash:Hide()
 	self.ember:Hide()
 	self.bead:Hide()
+	self.well:SetShown(showIcon)
+	self.jewel:SetShown(not showIcon)
+	self.jewelSet:SetShown(not showIcon)
 	for _, t in ipairs(self.chip) do t:Hide() end
 	for _, t in ipairs(self.keyChip) do t:Hide() end
 	self.keyText:Hide()
@@ -753,6 +823,7 @@ function Toast:Hide()
 	end
 	self.mask:Hide()
 	icon:SetAlpha(1)
+	icon:SetVertexColor(1, 1, 1)
 	icon:SetDesaturated(false)
 	if kit.cooldown then kit.cooldown:SetAlpha(1) end
 	kit.count:Show()
@@ -772,6 +843,7 @@ function Toast:PlaceLines(right)
 	local name, sub, fit = kit.name, kit.sub, kit.fit
 	local inset = math.max(right, 12)
 	if self.keyUp then inset = math.max(inset, self.keyRoom or 0) end
+	if self.countMode == "pair" then inset = math.max(inset, self:PairRoom()) end
 	self.inset = inset
 	self.lineRoom = math.max(20, self.W - self.textX - inset)
 	fit.room[name] = self.lineRoom
@@ -841,10 +913,16 @@ function Toast:KeyLabel()
 	return key
 end
 
+-- The room the lines leave at the right for the key's chip with the count's
+-- beside it: the key's room, a two-digit chip and the gap between them.
+function Toast:PairRoom()
+	return (self.keyRoom or 0) + (self.kit.fit.chipRoom or 0) - 5
+end
+
 -- Run on every repaint, which is also the clock's tick. The count's chip at
--- the right, or, with the key's chip there, as a coin on the medallion; the
--- key's chip when a key is bound. Either steps aside for a paint in which the
--- name would otherwise be cut.
+-- the right, or, with the key's chip there, as a coin on the medallion (with
+-- no medallion, a chip beside the key's); the key's chip when a key is bound.
+-- Either steps aside for a paint in which the name would otherwise be cut.
 function Toast:Chip(on)
 	local kit = self.kit
 	self:Clock()
@@ -860,6 +938,9 @@ function Toast:Chip(on)
 			self.keyText:SetText(key)
 			local w = math.max(self.chipH * 1.75, (kit.TextWidth(self.keyText) or self.sub) + 10)
 			self.keyW, self.keyRoom = w, math.ceil(w + 15)
+			-- A key bound anew is a chip of a new width: Prompt places the
+			-- lines again, beside it.
+			kit.fit.right = nil
 		end
 		keyUp = self:NameFits(self.keyRoom)
 	end
@@ -874,8 +955,12 @@ function Toast:Chip(on)
 
 	local mode
 	if on then
-		if keyUp then
+		if keyUp and self.M > 0 then
 			mode = "coin"
+		elseif keyUp then
+			-- No medallion to hold the coin, which would hang off the
+			-- banner's end: the count's chip beside the key's.
+			if self:NameFits(self:PairRoom()) then mode = "pair" end
 		elseif self:NameFits(kit.fit.chipRoom or 0) then
 			mode = "chip"
 		end
@@ -896,6 +981,8 @@ function Toast:Chip(on)
 			if mode == "coin" then
 				self.chipBox:SetPoint("CENTER", kit.art, "TOPLEFT", self.cx + 0.36 * self.M,
 					-(self.cy + 0.32 * self.M))
+			elseif mode == "pair" then
+				self.chipBox:SetPoint("RIGHT", self.keyBox, "LEFT", -4, 0)
 			else
 				self.chipBox:SetPoint("RIGHT", kit.art, "RIGHT", -9, 0)
 			end
@@ -908,8 +995,9 @@ function Toast:Chip(on)
 	self.countMode = mode
 	for _, t in ipairs(self.chip) do t:SetShown(mode ~= nil) end
 	kit.count:SetShown(mode ~= nil)
-	-- Only a chip at the right takes room from the lines.
-	return mode == "chip"
+	-- Only a chip at the right takes room from the lines; PlaceLines gives a
+	-- pair the room of both.
+	return mode == "chip" or mode == "pair"
 end
 
 -- The favour clock: how much of the time to return the favour is left, as a
@@ -933,6 +1021,7 @@ function Toast:Clock()
 	if not frac then
 		if self.clockW then
 			self.clockW = nil
+			self.ash:Hide()
 			self.ember:Hide()
 			self.bead:Hide()
 		end
@@ -943,6 +1032,7 @@ function Toast:Clock()
 		self.clockW = width
 		self.ember:SetWidth(width)
 	end
+	self.ash:Show()
 	self.ember:Show()
 	self.bead:Show()
 end
@@ -956,19 +1046,22 @@ end
 -- the click.
 function Toast:Tint(r, g, b, outcome)
 	local kit = self.kit
-	local er, eg, eb = Enamel(r, g, b)
+	local er, eg, eb = Fired(r, g, b)
 	self.band:SetVertexColor(er, eg, eb, 1)
+	self.jewel:SetVertexColor(er, eg, eb, 1)
 	-- Light added to a light panel only greys it, so there it is a hint.
-	local bloom = kit.ink.light and 0.38 or 0.15
+	local bloom = kit.ink.light and 0.32 or 0.13
 	self.bloom:SetVertexColor(r, g, b, bloom)
-	self.bloomPulse:SetVertexColor(r, g, b, 0.30)
-	self.bloomArrive:SetVertexColor(r, g, b, 0.50)
+	self.bloomPulse:SetVertexColor(r, g, b, 0.26)
+	self.bloomArrive:SetVertexColor(r, g, b, 0.43)
 	self.ringPulse:SetVertexColor(r, g, b, 0.22)
 	self.ringArrive:SetVertexColor(r, g, b, 0.45)
 	self.ringHover:SetVertexColor(r, g, b, 0.30)
 	self.burst:SetVertexColor(r, g, b, 1)
 	if not outcome then
-		self.ember:SetVertexColor(Enamel(r, g, b))
+		-- The time left burns hotter than the enamel, towards white, so it
+		-- is a live line over its ash and not one more gold rail.
+		self.ember:SetVertexColor(Mix(er, eg, eb, 0.35))
 		self.bead:SetVertexColor(Mix(r, g, b, 0.45))
 	end
 	-- The subtitle: warm grey taken most of the way to the reason, held to its
@@ -993,7 +1086,7 @@ function Toast:PaintReason(r, g, b, _, mode)
 	if mode == "off" then
 		-- Neutral enamel, and the light a warm white at half strength.
 		self:Tint(NEUTRAL[1], NEUTRAL[2], NEUTRAL[3])
-		self.bloom:SetVertexColor(1, 0.92, 0.80, (self.kit.ink.light and 0.19 or 0.08))
+		self.bloom:SetVertexColor(1, 0.92, 0.80, (self.kit.ink.light and 0.16 or 0.07))
 		self.ember:SetVertexColor(1, 0.86, 0.60, 0.9)
 	else
 		-- "stripe" is "both" here: the toast has no stripe, and the enamel is
@@ -1024,7 +1117,10 @@ function Toast:Combat(on)
 	self:Iron(on)
 	kit.textLayer:SetAlpha(on and TEXT_COMBAT or 1)
 	kit.icon:SetDesaturated(on or self.refused or false)
-	kit.icon:SetAlpha(on and ICON_COMBAT or 1)
+	-- Dimmed by its colour, never its alpha: a see-through icon showed the
+	-- world through one half and the banner through the other.
+	local v = on and ICON_COMBAT or 1
+	kit.icon:SetVertexColor(v, v, v)
 	if kit.cooldown then kit.cooldown:SetAlpha(on and ICON_COMBAT or 1) end
 	self.bloom:SetAlpha(on and 0 or 1)
 	self.ember:SetAlpha(on and 0.7 or 1)
@@ -1164,11 +1260,14 @@ function Toast:PaintOutcome(kind, lead, sub, who, stamp)
 	else
 		word = Known("buffed") and L["buffed"]
 	end
-	if word and who then
+	if who and kit.sub:IsShown() then
 		kit.SetLine(kit.name, who)
+		-- Not in this client's language yet: the built-in looks' second line,
+		-- which is, as the verdict. The name stays put in every language.
+		if not word then word = sub or "" end
 	else
-		-- Not in this client's language yet, or nobody to name: the built-in
-		-- looks' lines, which are.
+		-- Nobody to name, or no second line to hold the verdict: the built-in
+		-- looks' headline, which says both what happened and to whom.
 		kit.SetLine(kit.name, lead)
 		word = sub or ""
 	end

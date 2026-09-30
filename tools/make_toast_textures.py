@@ -380,12 +380,18 @@ def superellipse_rho(x, y, size, n):
 
 # Radii as a fraction of the medallion's half-width. The icon is ICON_R of it
 # across (Looks/Toast.lua's ICON_OF, which must agree).
-ICON_R = 0.578
-LIP = (0.552, 0.622)
-BAND = (0.622, 0.762)
-RING = (0.762, 0.918)
-EDGE = 0.948
-SEAM = 0.026   # the dark seam either side of the enamel, half-width
+#
+# The icon is most of the medallion and the gold is thin: a lip, a seam, the
+# enamel, a seam and the outer ring, about a quarter thinner than the design's.
+# The seams are dark and wide enough to survive the game's own scale (about
+# 1.2 units at a 44-unit medallion, 1 at 36): below a pixel they blur away and
+# the enamel reads as more gold.
+ICON_R = 0.63
+LIP = (0.605, 0.695)
+BAND = (0.695, 0.805)
+RING = (0.805, 0.945)
+EDGE = 0.975
+SEAM = 0.055   # the dark seam either side of the enamel, its width in rho
 
 
 def make_medallion(name, n):
@@ -400,10 +406,11 @@ def make_medallion(name, n):
     lip = (rho >= LIP[0]) & (rho <= LIP[1] - SEAM)
     h = np.where(lip, bevel((rho - LIP[0]) * tex, (LIP[1] - SEAM - LIP[0]) * tex, 2.4), h)
     ring = (rho >= RING[0] + SEAM) & (rho <= RING[1])
-    rh = bevel((rho - RING[0] - SEAM) * tex, (RING[1] - RING[0] - SEAM) * tex, 5.0)
-    # A coin edge: shallow grooves round the outer ring.
+    rh = bevel((rho - RING[0] - SEAM) * tex, (RING[1] - RING[0] - SEAM) * tex, 3.4)
+    # A coin edge: shallow grooves round the outer half of the ring.
     grooves = 0.5 + 0.5 * np.cos(ang * 40)
-    rh = rh - 0.55 * sstep(0.70, 1.0, grooves) * sstep(0.83, 0.88, rho)
+    mid = RING[0] + SEAM + 0.5 * (RING[1] - RING[0] - SEAM)
+    rh = rh - 0.45 * sstep(0.70, 1.0, grooves) * sstep(mid - 0.01, mid + 0.02, rho)
     h = np.where(ring, rh, h)
     grain = noise(size, size, 17 + n, scale=(2.5, 2.5), octaves=2)
     gold = shade_metal(h + grain * 0.05)
@@ -497,7 +504,11 @@ def make_bloom():
     dx = (xn - 0.30) / np.where(xn < 0.30, 0.26, 0.62)
     dy = (yn - 0.5) / 0.38
     a = np.exp(-(dx * dx + dy * dy) * 1.6)
-    a *= sstep(0.0, 0.18, np.minimum(yn, 1 - yn)) * sstep(0.0, 0.06, np.minimum(xn, 1 - xn))
+    a *= sstep(0.0, 0.18, np.minimum(yn, 1 - yn)) * sstep(0.0, 0.06, 1 - xn)
+    # Rising from nothing at its left edge, which sits under the medallion's
+    # centre: a hard edge there showed through as a seam while the panel
+    # faded in and out.
+    a *= sstep(0.0, 0.30, xn)
     save("Toast_Bloom", finish(white(a), a, w, h))
 
 
