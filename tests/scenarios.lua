@@ -13449,6 +13449,9 @@ local function favourFrom(ns, source, spellId, instanceId)
 	Mock.extraAuraSpell = spellId
 	Mock.extraAuraSource = source
 	ns.addon:UNIT_AURA(nil, "player")
+	-- In a fight the event only marks the walk due, and the tick makes it
+	-- (Favours.lua): made here, as the next tick would. Nothing, out of one.
+	ns.FlushOwnScan()
 	return table.concat(Mock.printed, "\n")
 end
 

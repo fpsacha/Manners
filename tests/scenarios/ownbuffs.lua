@@ -1271,3 +1271,159 @@ do
 	end
 end
 Mock.reset()
+
+-- A favour from Anna on a nameplate, landing on you in a fight: the setting
+-- for own 26 and 27. Hands back her name, and a count of the slots of your
+-- aura list read since, or nil once the scenario has said why it cannot run.
+local function fightFavour(scenario, ns)
+	H.primeAuras(ns)
+	if not ns.auraScan.primed then
+		fail(scenario, "SKIPPED -- the baseline of your own buffs never settled")
+		return nil
+	end
+	local anna = ns.UnitFullName("nameplate1")
+	local api = C_UnitAuras
+	local byIndex = api.GetAuraDataByIndex
+	local reads = { n = 0 }
+	rawset(api, "GetAuraDataByIndex", function(unit, ...)
+		if unit == "player" then reads.n = reads.n + 1 end
+		return byIndex(unit, ...)
+	end)
+	Mock.inCombat = true
+	Mock.printed = {}
+	Mock.extraAura, Mock.extraAuraSpell, Mock.extraAuraSource = 6101, 10938, "nameplate1"
+	return anna, reads
+end
+
+local function favourLines()
+	local n = 0
+	for _, line in ipairs(Mock.printed) do
+		if line:find("buffed you", 1, true) then n = n + 1 end
+	end
+	return n
+end
+
+-- ------------------------------------------------------------------ own 26
+-- In a fight, UNIT_AURA on you comes many times a second, and every walk of
+-- your aura list is forty slots behind a pcall apiece. The events only mark a
+-- walk due and the tick makes it: four events before a tick are one walk, not
+-- four, and the favour that landed among them is filed and said once. A tick
+-- with no event since walks nothing, and /manners debug counts both.
+Mock.reset()
+do
+	local scenario = "own: four aura events in a fight and a tick walk your buffs once"
+	with(scenario, { people = { nameplate1 = { "Anna", "Aim" } } }, function(ns)
+		local anna, reads = fightFavour(scenario, ns)
+		if not anna then return end
+		local events, walks = ns.auraScan.events, ns.auraScan.walks
+		for _ = 1, 4 do
+			Mock.advance(0.1)
+			ns.addon:UNIT_AURA(nil, "player")
+		end
+		if reads.n ~= 0 then
+			fail(scenario, ("the aura events in a fight walked your buffs themselves: %d slots read"
+				.. " before the tick"):format(reads.n))
+		end
+		ns.addon:Tick()
+		if reads.n ~= 40 then
+			fail(scenario, ("four aura events and a tick read %d slots of your aura list, not one"
+				.. " walk's 40"):format(reads.n))
+		end
+		if not ns.owed[anna] or favourLines() ~= 1 then
+			fail(scenario, ("the favour from the fight was %s and said %d times: %s"):format(
+				ns.owed[anna] and "filed" or "not filed", favourLines(), flat(said())))
+		end
+		Mock.advance(0.4)
+		ns.addon:Tick()
+		if reads.n ~= 40 then
+			fail(scenario, ("a tick with no aura event since walked your buffs again: %d slots read")
+				:format(reads.n))
+		end
+		if ns.auraScan.events - events ~= 4 or ns.auraScan.walks - walks ~= 1 then
+			fail(scenario, ("/manners debug counts %d aura events and %d walks for four and one")
+				:format(ns.auraScan.events - events, ns.auraScan.walks - walks))
+		end
+		Mock.printed = {}
+		ns.addon:HandleSlash("debug")
+		local line = ("%d changes to your auras this session, read in %d walks")
+			:format(ns.auraScan.events, ns.auraScan.walks)
+		if not said():find(line, 1, true) then
+			fail(scenario, "/manners debug does not count the aura events and walks: " .. flat(said()))
+		end
+	end)
+end
+
+-- ------------------------------------------------------------------ own 27
+-- A buff that lands after the fight's last tick is walked when the fight
+-- ends, before the repaint that takes the combat hold off: by the time that
+-- repaint asks who is owed, the favour is filed, and out in the world the
+-- prompt offers her as owed rather than as a passer-by. The walk is made out
+-- of the fight, but what it finds landed in it, so it is treated as the fight
+-- would have treated it: not thanked with an emote, and in a dungeon not said.
+local emotes = {}
+local function recordEmote(emote, target) emotes[#emotes + 1] = { emote, target } end
+for _, case in ipairs({
+	{ label = "out in the world", inside = false, kind = "none" },
+	{ label = "in a dungeon", inside = true, kind = "party" },
+}) do
+	Mock.reset()
+	local scenario = "own: a favour from the fight's last moments is filed before the repaint after it ("
+		.. case.label .. ")"
+	local realEmote = rawget(_G, "DoEmote")
+	emotes = {}
+	rawset(_G, "DoEmote", recordEmote)
+	with(scenario, { people = { nameplate1 = { "Anna", "Aim" } } }, function(ns)
+		IsInInstance = function() return case.inside, case.kind end
+		ns.db.profile.prompt.thankEmote = true
+		local anna, reads = fightFavour(scenario, ns)
+		if not anna then return end
+		Mock.advance(0.1)
+		ns.addon:UNIT_AURA(nil, "player")
+		if reads.n ~= 0 or ns.owed[anna] then
+			fail(scenario, "SKIPPED -- the aura event in a fight walked your buffs itself")
+			return
+		end
+		-- Who is owed when the fight's end repaints, whichever way it does.
+		local prompt = ns.Prompt
+		local refresh = prompt.Refresh
+		local owedAtRepaint
+		prompt.Refresh = function(self, ...)
+			if owedAtRepaint == nil then owedAtRepaint = ns.owed[anna] ~= nil end
+			return refresh(self, ...)
+		end
+		Mock.inCombat = false
+		local ok, err = pcall(ns.addon.PLAYER_REGEN_ENABLED, ns.addon)
+		prompt.Refresh = refresh
+		if not ok then
+			fail(scenario, "leaving the fight threw: " .. tostring(err))
+			return
+		end
+		if owedAtRepaint == nil then
+			fail(scenario, "SKIPPED -- leaving the fight did not repaint the prompt")
+		elseif not owedAtRepaint then
+			fail(scenario, "the repaint after the fight ran before the favour from its last moments was filed")
+		end
+		if #emotes > 0 then
+			fail(scenario, "the favour from the fight was thanked with an emote after it")
+		end
+		if case.inside then
+			if favourLines() > 0 then
+				fail(scenario, "the favour from a dungeon fight was said in chat after it: " .. flat(said()))
+			end
+			return
+		end
+		if favourLines() ~= 1 then
+			fail(scenario, ("SKIPPED -- the favour was said %d times out in the world: %s")
+				:format(favourLines(), flat(said())))
+		end
+		-- Offered as owed, not as a passer-by, which she would be anyway.
+		local showing = prompt:Showing()
+		if not (showing and showing.name == anna and showing.reason == "owed") then
+			fail(scenario, ("after the fight the prompt shows %s (%s), not %s as owed: %s"):format(
+				tostring(showing and showing.name), tostring(showing and showing.reason), anna,
+				flat(said())))
+		end
+	end)
+	rawset(_G, "DoEmote", realEmote)
+end
+Mock.reset()

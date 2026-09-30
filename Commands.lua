@@ -1512,6 +1512,10 @@ function addon:HandleSlash(rawInput)
 		else
 			self:Print(("  " .. L["own buffs: %d read, baseline %d"]):format(scan.read, scan.held))
 		end
+		-- In a fight the changes only mark a walk due and the tick makes it
+		-- (Favours.lua, UNIT_AURA), so after one this shows them gathered up.
+		self:Print(("    " .. L["%d changes to your auras this session, read in %d walks"])
+			:format(scan.events, scan.walks))
 		-- The emote is untested in game (Favours.lua), so what it last did and
 		-- what it last passed over, with why, is the only report there is.
 		self:Print("  " .. (db.prompt.thankEmote and L["thank with an emote: |cff00ff00on|r"]

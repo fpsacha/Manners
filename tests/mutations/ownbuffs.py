@@ -560,6 +560,62 @@ mutate("Core.lua",
        "own: the memory read reads nothing",
        expect="Concentration Aura put up in a fight was not remembered", script=S)
 
+# In a fight UNIT_AURA on you only marks the walk of your aura list due, and
+# the tick makes it (Favours.lua, FlushOwnScan): one walk a tick, not one an
+# event. Each end of that, broken.
+mutate("Favours.lua",
+       "\t\tif InCombatLockdown() then\n\t\t\t-- A walk is forty slots",
+       "\t\tif false then\n\t\t\t-- A walk is forty slots",
+       "own: every aura event in a fight walks",
+       expect="the aura events in a fight walked your buffs themselves", script=S)
+
+mutate("Core.lua",
+       "\t-- UNIT_AURA): one a tick however many came, and a favour filed first.\n"
+       "\tns.FlushOwnScan()\n",
+       "\t-- UNIT_AURA): one a tick however many came, and a favour filed first.\n",
+       "own: the tick never walks what a fight left due",
+       expect="four aura events and a tick read", script=S)
+
+mutate("Core.lua",
+       "\t-- is filed before the repaint below offers anybody.\n\tns.FlushOwnScan()\n",
+       "\t-- is filed before the repaint below offers anybody.\n",
+       "own: the fight's last favour filed after the repaint",
+       expect="the repaint after the fight ran before the favour", script=S)
+
+# What the walk made as the fight ends finds landed in the fight: never
+# thanked, and as quiet as a dungeon fight.
+mutate("Favours.lua",
+       "\t\t-- A favour from the fight, found by the walk made as it ended.\n"
+       "\t\tif walkAfterFight then return L[\"in a fight\"] end\n",
+       "",
+       "own: the fight's last favour thanked after it",
+       expect="the favour from the fight was thanked with an emote after it", script=S)
+
+mutate("Favours.lua",
+       "\t\t-- A favour from the fight, found by the walk made as it ended.\n"
+       "\t\tif walkAfterFight then return true end\n",
+       "",
+       "own: the fight's last favour said after a dungeon fight",
+       expect="the favour from a dungeon fight was said in chat after it", script=S)
+
+mutate("Favours.lua",
+       "\twalkAfterFight = not InCombatLockdown()\n",
+       "",
+       "own: the walk as a fight ends not the fight's",
+       expect="the favour from the fight was thanked with an emote after it", script=S)
+
+mutate("Favours.lua",
+       "\t\t-- (ns.FlushOwnScan) is answered by it too.\n\t\tns.ownScanDue = false\n",
+       "\t\t-- (ns.FlushOwnScan) is answered by it too.\n",
+       "own: a walk made leaves the next one due",
+       expect="a tick with no aura event since walked your buffs again", script=S)
+
+mutate("Favours.lua",
+       "\t\tscan.walks = scan.walks + 1\n",
+       "",
+       "own: debug counts no walks",
+       expect="/manners debug counts", script=S)
+
 # The dungeon pick taken before it is learned.
 mutate("Core.lua",
        "\t\tif preferred and Known(preferred) then\n",

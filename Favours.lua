@@ -20,6 +20,12 @@ local owed, SaveDebts, TellLedger, NoReading = ns.owed, ns.SaveDebts, ns.TellLed
 -- compares both ends of every aura against it.
 local playerGUID
 
+-- True while the walk of your own buffs that a fight's aura events left due is
+-- made after the fight has ended (ns.FlushOwnScan, from PLAYER_REGEN_ENABLED).
+-- What it finds landed in the fight, so it is kept as quiet and as unthanked
+-- as it would have been had the walk been made there.
+local walkAfterFight = false
+
 ---------------------------------------------------------------------------
 -- thanking them with an emote
 --
@@ -61,6 +67,8 @@ do
 	-- Prat): the messaging lockdown and the Chat restriction state.
 	local function Held()
 		if InCombatLockdown() then return L["in a fight"] end
+		-- A favour from the fight, found by the walk made as it ended.
+		if walkAfterFight then return L["in a fight"] end
 		local inside = Answer(_G.IsInInstance)
 		if inside ~= false then return L["in an instance"] end
 		local encounter = _G.C_InstanceEncounter
@@ -180,8 +188,10 @@ do
 	-- the gate in ScanOwnBuffs can switch this source off without a word, and a
 	-- silent stop is the one failure the addon cannot notice on its own. It
 	-- starts doubted, because "0 read, baseline 0" is also what a quiet healthy
-	-- session prints.
-	ns.auraScan = { read = 0, held = 0, doubt = "never scanned", primed = false }
+	-- session prints. `events` and `walks` count UNIT_AURA on you and the walks
+	-- of your aura list this session: in a fight the events only mark a walk due
+	-- (UNIT_AURA, below), so after one the first is well ahead of the second.
+	ns.auraScan = { read = 0, held = 0, doubt = "never scanned", primed = false, events = 0, walks = 0 }
 	-- Reused on every UNIT_AURA rather than rebuilt. Wiped at the top of the scan,
 	-- never at the bottom, so a re-entrant call (NoteFavour prints, and another
 	-- addon can hook chat) sees a clean table rather than a half-built one.
@@ -314,6 +324,8 @@ do
 		kind = plain(kind)
 		if kind == "raid" then return true end
 		if kind ~= "party" then return false end
+		-- A favour from the fight, found by the walk made as it ended.
+		if walkAfterFight then return true end
 		return InCombatLockdown() and true or false
 	end
 
@@ -448,14 +460,22 @@ do
 		return true
 	end
 
+	-- Read at load, as ns.plain reads it: absent on a client that never had
+	-- secrets. Inside the block, like the rest of this section's locals.
+	local issecretvalue = _G.issecretvalue
+
 	-- One slot of your own aura list: the aura, and whether the client provably
 	-- refused it. A throw or a secret value is a refusal; a plain nil is what an
 	-- empty slot looks like and possibly a refusal too, and one slot cannot tell
 	-- them apart. So this reports proof of a refusal and never claims honesty,
-	-- and the scan reads the walk as a whole.
+	-- and the scan reads the walk as a whole. The pcall stays: the client
+	-- restricts this read per aura, and a restricted read can throw.
 	local function ReadAuraSlot(index)
 		local ok, value = pcall(C_UnitAuras.GetAuraDataByIndex, "player", index, "HELPFUL")
 		if not ok then return nil, true end
+		-- A secret first, before anything compares it: comparing one throws,
+		-- and out here that throw would end the walk rather than mark a slot.
+		if issecretvalue and issecretvalue(value) then return nil, true end
 		-- The end of the list, a gap in it, or a refusal wearing either's clothes.
 		if value == nil then return nil, false end
 		local aura = plain(value)
@@ -492,6 +512,9 @@ do
 	function ns.ScanOwnBuffs()
 		wipe(present)
 		wipe(presentUntil)
+		-- Whatever asked for this reading, a walk a fight's events left due
+		-- (ns.FlushOwnScan) is answered by it too.
+		ns.ownScanDue = false
 
 		-- What the baseline held a moment ago: the one thing the scan knows that
 		-- did not come from the client.
@@ -507,6 +530,8 @@ do
 			scan.primed = auraScanPrimed
 			return
 		end
+		-- A walk of all forty slots from here on, counted for /manners debug.
+		scan.walks = scan.walks + 1
 
 		-- Read before the walk, which may set the flag itself further down.
 		local primed = auraScanPrimed
@@ -752,9 +777,36 @@ do
 	end
 end
 
+-- Whether UNIT_AURA on you has asked for a walk of your aura list that nothing
+-- has made yet. Set only in a fight; cleared by any walk (ScanOwnBuffs).
+ns.ownScanDue = false
+
+-- The walk a fight's aura events left due, made now: on the tick (Core.lua,
+-- TickBody), ahead of what Automatic remembers and the repaint, and when the
+-- fight ends, ahead of the repaint that takes the combat hold off.
+function ns.FlushOwnScan()
+	if not ns.ownScanDue then return end
+	-- Only a fight marks the walk due, so out of lockdown this is the fight's
+	-- end, and what the walk finds is the fight's (walkAfterFight, above).
+	walkAfterFight = not InCombatLockdown()
+	ns.Guard("ScanOwnBuffs", ns.ScanOwnBuffs)
+	walkAfterFight = false
+end
+
 function addon:UNIT_AURA(_, unit)
 	if unit == "player" then
-		ns.Guard("ScanOwnBuffs", ns.ScanOwnBuffs)
+		ns.auraScan.events = ns.auraScan.events + 1
+		if InCombatLockdown() then
+			-- A walk is forty slots behind a pcall apiece, and a fight sends
+			-- this many times a second: the walk waits for the next tick (0.4 s
+			-- by default), so a burst of events costs one. A favour that lands
+			-- in the fight is said that much later, and filed all the same.
+			ns.ownScanDue = true
+		else
+			-- Out of a fight at once: the events are few, and a favour's line
+			-- comes as the buff lands.
+			ns.Guard("ScanOwnBuffs", ns.ScanOwnBuffs)
+		end
 		-- Read on the next tick rather than here: a fight fires this on you
 		-- many times a second (Core.lua, RememberOwnBuffs).
 		ns.ownAurasChanged = true
