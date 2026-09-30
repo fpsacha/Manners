@@ -189,8 +189,9 @@ do
 	-- silent stop is the one failure the addon cannot notice on its own. It
 	-- starts doubted, because "0 read, baseline 0" is also what a quiet healthy
 	-- session prints. `events` and `walks` count UNIT_AURA on you and the walks
-	-- of your aura list this session: in a fight the events only mark a walk due
-	-- (UNIT_AURA, below), so after one the first is well ahead of the second.
+	-- of your aura list those events asked for this session: in a fight they
+	-- only mark a walk due (UNIT_AURA, below), so after one the first is well
+	-- ahead of the second, and it is never behind.
 	ns.auraScan = { read = 0, held = 0, doubt = "never scanned", primed = false, events = 0, walks = 0 }
 	-- Reused on every UNIT_AURA rather than rebuilt. Wiped at the top of the scan,
 	-- never at the bottom, so a re-entrant call (NoteFavour prints, and another
@@ -201,6 +202,9 @@ do
 	-- What the scan before this one read, and whether there was one. Nothing in
 	-- the baseline moves on a single reading; see ScanOwnBuffs.
 	local lastPresent = {}
+	-- ...and when each was due to end as that scan read it, which moves with a
+	-- refresh where knownUntil keeps the filed cast's. Read only by IsNew.
+	local lastUntil = {}
 	local haveLastScan = false
 	-- Set while a reading of nothing stands doubted: that scan returned before
 	-- rewriting lastPresent, so it still holds the buff from before it ran out,
@@ -246,6 +250,7 @@ do
 		wipe(knownAuras)
 		wipe(knownUntil)
 		wipe(lastPresent)
+		wipe(lastUntil)
 		wipe(sighted)
 		haveLastScan = false
 		auraScanPrimed = false
@@ -501,17 +506,37 @@ do
 	-- doubted reading of nothing (the last buff ran out, or death took them all)
 	-- the previous reading is stale, so the ending decides then too: a buff
 	-- recast under the number it had is new, the same one handed back is not.
+	-- One the previous reading showed is a refresh, unless the end that reading
+	-- saw has gone by and this one ends later: what it saw ran out, so this was
+	-- cast after. In a fight the reading that would have found it gone is never
+	-- taken -- the aura events there only mark a walk due and the tick makes it
+	-- (UNIT_AURA, below) -- so a buff that runs out and is recast under its own
+	-- number between two ticks comes here looking like a refresh. A refresh in
+	-- the last moments before the old end, read after it, is taken for a recast:
+	-- the two are that far apart, and either way somebody put your buff back.
+	-- An end of 0 is a buff with none, which never runs out.
 	local function IsNew(instanceId, key, expires)
 		local known = knownAuras[instanceId]
 		if known == nil or known ~= key then return true end
+		-- The end compared first: on nearly every slot it is the one last read.
+		local before = lastUntil[instanceId]
+		if before and expires and expires > before and before > 0 and before <= GetTime()
+			and lastPresent[instanceId] == key then
+			return true
+		end
 		if not sinceEmpty and lastPresent[instanceId] == key then return false end
 		local was = knownUntil[instanceId]
 		return (was ~= nil and expires ~= nil and expires > was) or false
 	end
 
-	function ns.ScanOwnBuffs()
+	-- `asked` is UNIT_AURA out of a fight, where a change to your auras walks at
+	-- once; the walk a fight's changes left due (ns.FlushOwnScan) is theirs too.
+	-- A login's walk and the settle timer's ask for none.
+	function ns.ScanOwnBuffs(asked)
 		wipe(present)
 		wipe(presentUntil)
+		-- Read before it is cleared, for the count below.
+		asked = asked or ns.ownScanDue
 		-- Whatever asked for this reading, a walk a fight's events left due
 		-- (ns.FlushOwnScan) is answered by it too.
 		ns.ownScanDue = false
@@ -530,8 +555,11 @@ do
 			scan.primed = auraScanPrimed
 			return
 		end
-		-- A walk of all forty slots from here on, counted for /manners debug.
-		scan.walks = scan.walks + 1
+		-- A walk of all forty slots from here on, counted for /manners debug
+		-- beside the changes to your auras when one of them asked for it. With
+		-- a login's and the settle timer's counted too, the walks could
+		-- outnumber the changes they are set beside.
+		if asked then scan.walks = scan.walks + 1 end
 
 		-- Read before the walk, which may set the flag itself further down.
 		local primed = auraScanPrimed
@@ -696,6 +724,10 @@ do
 		-- one returned above and never does.
 		wipe(lastPresent)
 		for instanceId, key in pairs(present) do lastPresent[instanceId] = key end
+		-- With the ends it read, so a refresh moves what the next reading
+		-- measures a recast against (IsNew).
+		wipe(lastUntil)
+		for instanceId, expires in pairs(presentUntil) do lastUntil[instanceId] = expires end
 		haveLastScan = true
 		sinceEmpty = false
 
@@ -798,14 +830,16 @@ function addon:UNIT_AURA(_, unit)
 		ns.auraScan.events = ns.auraScan.events + 1
 		if InCombatLockdown() then
 			-- A walk is forty slots behind a pcall apiece, and a fight sends
-			-- this many times a second: the walk waits for the next tick (0.4 s
-			-- by default), so a burst of events costs one. A favour that lands
-			-- in the fight is said that much later, and filed all the same.
+			-- this many times a second: the walk waits for the next tick (the
+			-- scan interval on the Advanced tab, 0.4 s by default and up to
+			-- 2 s), so a burst of events costs one. A favour that lands in the
+			-- fight is said up to that much later, and filed all the same; one
+			-- that runs out and is recast before the tick too (IsNew).
 			ns.ownScanDue = true
 		else
 			-- Out of a fight at once: the events are few, and a favour's line
-			-- comes as the buff lands.
-			ns.Guard("ScanOwnBuffs", ns.ScanOwnBuffs)
+			-- comes as the buff lands. Asked for by this change, so counted.
+			ns.Guard("ScanOwnBuffs", ns.ScanOwnBuffs, true)
 		end
 		-- Read on the next tick rather than here: a fight fires this on you
 		-- many times a second (Core.lua, RememberOwnBuffs).

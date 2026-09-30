@@ -1427,3 +1427,148 @@ for _, case in ipairs({
 	rawset(_G, "DoEmote", realEmote)
 end
 Mock.reset()
+
+-- ------------------------------------------------------------------ own 28
+-- core2-2 (hunt5-core2.lua) between two ticks of a fight. There the aura
+-- events only mark a walk due and the tick makes it (own 26), so a buff that
+-- runs out and is put back under its own instance id before the tick is never
+-- read gone: the walk finds the number it had, the spell it had and a later
+-- end, and the reading before held the same, which is what a refresh looks
+-- like. The end that reading saw having gone by is what tells them apart: a
+-- cast that ran out was cast again, not refreshed, and that is a favour
+-- whether or not it was your last buff. A refresh read before that end is not
+-- one, nor when read again after the end it replaced has gone by, nor is the
+-- same aura still read with the end it had, nor a buff with no end at all
+-- (a toggle, which never runs out) read later with one.
+for _, case in ipairs({
+	{ label = "beside your other buffs", others = 2, recast = true },
+	{ label = "your last buff", others = 0, recast = true },
+	{ label = "refreshed before it ran out", others = 2, refresh = true },
+	{ label = "still read with the end it had", others = 2 },
+	{ label = "no end, then one", others = 2, noEnd = true },
+}) do
+	local scenario = "own: a buff that runs out and is recast between two fight ticks is a favour ("
+		.. case.label .. ")"
+	with(scenario, { people = { nameplate1 = { "Anna", "Aim" } } }, function(ns)
+		-- Anna's Fortitude, on you before the fight and filed as carried.
+		Mock.auraCount = case.others
+		Mock.extraAura, Mock.extraAuraSpell, Mock.extraAuraSource = 4001, 10938, "nameplate1"
+		Mock.extraAuraUntil = case.noEnd and 0 or (Mock.now + 20)
+		ns.ResetAuraBaseline()
+		H.primeAuras(ns)
+		wipe(ns.owed)
+		if not ns.auraScan.primed then
+			fail(scenario, "SKIPPED -- the baseline of your own buffs never settled")
+			return
+		end
+		local anna = ns.UnitFullName("nameplate1")
+		local ends = Mock.extraAuraUntil
+		local api = C_UnitAuras
+		local byIndex = api.GetAuraDataByIndex
+		local reads = 0
+		rawset(api, "GetAuraDataByIndex", function(unit, ...)
+			if unit == "player" then reads = reads + 1 end
+			return byIndex(unit, ...)
+		end)
+		Mock.inCombat = true
+		Mock.printed = {}
+		if case.noEnd then
+			-- An end of 0 is none: read later with one, nothing it had ran out.
+			Mock.advance(2)
+			Mock.extraAuraUntil = Mock.now + 1800
+			ns.addon:UNIT_AURA(nil, "player")
+			ns.addon:Tick()
+			if ns.owed[anna] then
+				fail(scenario, "a buff with no end, read later with one, was taken for a recast: " .. flat(said()))
+			end
+			return
+		end
+		if case.refresh then
+			-- Put back with a later end while the first still had a while to run.
+			Mock.advance(2)
+			Mock.extraAuraUntil = Mock.now + 1800
+			ns.addon:UNIT_AURA(nil, "player")
+			ns.addon:Tick()
+			if ns.owed[anna] then
+				fail(scenario, "a refresh read before the end it replaced was taken for a favour: " .. flat(said()))
+				return
+			end
+			-- And read again once that end has gone by: the reading before saw
+			-- the new end, so nothing has run out.
+			Mock.advance(ends - Mock.now + 1)
+			ns.addon:UNIT_AURA(nil, "player")
+			ns.addon:Tick()
+			if ns.owed[anna] then
+				fail(scenario, "a refresh read again after the end it replaced had gone by was taken for a favour: "
+					.. flat(said()))
+			end
+			return
+		end
+		-- Its end goes by...
+		Mock.advance(ends - Mock.now + 0.5)
+		if not case.recast then
+			-- ...and the client has not taken it off yet: the same aura, the same end.
+			ns.addon:UNIT_AURA(nil, "player")
+			ns.addon:Tick()
+			if ns.owed[anna] then
+				fail(scenario, "the same aura read after its end with the end it had was taken for a favour: "
+					.. flat(said()))
+			end
+			return
+		end
+		-- ...it runs out, and Anna puts it back under the number it had, all
+		-- before the tick.
+		Mock.extraAura = false
+		ns.addon:UNIT_AURA(nil, "player")
+		Mock.advance(0.1)
+		Mock.extraAura, Mock.extraAuraUntil = 4001, Mock.now + 1800
+		ns.addon:UNIT_AURA(nil, "player")
+		if reads ~= 0 then
+			fail(scenario, "SKIPPED -- the aura events in the fight walked your buffs themselves")
+			return
+		end
+		ns.addon:Tick()
+		if not ns.owed[anna] then
+			fail(scenario, "the buff that ran out and was recast under its own number before the tick"
+				.. " was not taken for a favour: " .. flat(said()))
+		elseif favourLines() ~= 1 then
+			fail(scenario, ("the favour recast between two fight ticks was said %d times: %s")
+				:format(favourLines(), flat(said())))
+		end
+	end)
+end
+
+-- ------------------------------------------------------------------ own 29
+-- /manners debug sets the changes to your auras beside the walks of your aura
+-- list they cost: one each out of a fight, one a tick in a fight (own 26).
+-- Only a walk some change asked for is counted, so the walks never outnumber
+-- the changes they sit beside: the ones a login and the settle timer make of
+-- their own accord are nobody's.
+do
+	local scenario = "own: /manners debug counts only the walks a change to your auras asked for"
+	with(scenario, {}, function(ns)
+		H.primeAuras(ns)
+		local events, walks = ns.auraScan.events, ns.auraScan.walks
+		-- A reload's walk and the settle timer's after it: no change asked.
+		ns.addon:PLAYER_ENTERING_WORLD(nil, false, true)
+		Mock.runTimers(5)
+		if not ns.auraScan.primed then
+			fail(scenario, "SKIPPED -- the baseline of your own buffs never settled after the reload")
+			return
+		end
+		if ns.auraScan.walks ~= walks then
+			fail(scenario, ("a walk no change to your auras asked for was counted: %d walks, and no change")
+				:format(ns.auraScan.walks - walks))
+		end
+		-- Out of a fight each change walks at once, and each walk is counted.
+		for _ = 1, 3 do
+			Mock.advance(1)
+			ns.addon:UNIT_AURA(nil, "player")
+		end
+		if ns.auraScan.events - events ~= 3 or ns.auraScan.walks - walks ~= 3 then
+			fail(scenario, ("an aura event out of a fight was not counted as a walk: %d changes and %d walks,"
+				.. " for three and three"):format(ns.auraScan.events - events, ns.auraScan.walks - walks))
+		end
+	end)
+end
+Mock.reset()

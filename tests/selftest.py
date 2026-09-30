@@ -579,8 +579,8 @@ mutate("Queue.lua",
 #    optimisation -- this runs on every UNIT_AURA -- and the wipe is the only
 #    thing that keeps it from becoming a list of everything you have ever held.
 mutate("Favours.lua",
-       "\tfunction ns.ScanOwnBuffs()\n\t\twipe(present)\n",
-       "\tfunction ns.ScanOwnBuffs()\n",
+       "\tfunction ns.ScanOwnBuffs(asked)\n\t\twipe(present)\n",
+       "\tfunction ns.ScanOwnBuffs(asked)\n",
        "an aura baseline that never forgets",
        expect="the aura baseline forgets what fell off",
        script="runscenarios.py")
