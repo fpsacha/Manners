@@ -266,18 +266,14 @@ local function MatchSettled(castGUID)
 	return nil
 end
 
--- Everybody else a group cast covered, on the same evidence as the person it
--- was aimed at: a favour any of them did you is returned by it, whatever they
--- asked for is answered, and they wait out the cooldown. The favours go to the
--- ledger, and the cast itself once, as one buff given: under the anchor
--- normally, but where the anchor's own favour took that row (`anchorOwed`),
--- under the first it reached who was owed nothing -- or who was picked as the
--- anchor would decide whether a group cast counts. Returns what a late
--- refusal needs to undo it: the members, and whom the given row is under.
-local function SettleGroup(pending, spellId, anchorOwed)
+-- Everybody else one cast reached (`names`), on the same evidence as the
+-- person it was aimed at: a favour any of them did you is returned by it, the
+-- ledger filing each with `covered`, whatever they asked for is answered, and
+-- they wait out the cooldown. Returns what a late refusal needs to undo it,
+-- and the names repaid, for the line.
+local function SettleMembers(names, pending, covered, spellId)
 	local records, repaid = {}, {}
-	local covered = { buffKey = pending.buffKey, group = pending.group, inGroup = true }
-	for _, name in ipairs(pending.group.members) do
+	for _, name in ipairs(names) do
 		local debt = owed[name]
 		ns.MarkAttempted(name, pending.buffKey)
 		if debt then
@@ -289,6 +285,27 @@ local function SettleGroup(pending, spellId, anchorOwed)
 		records[#records + 1] = { name = name, owed = debt,
 			listedAtSettle = debt ~= nil and ListedAs(name) ~= nil }
 	end
+	return records, repaid
+end
+
+-- "<spell> returned the favour to them as well", where verbose says it.
+local function SayAlsoRepaid(spell, repaid)
+	local db = addon.db and addon.db.profile
+	if #repaid > 0 and db and db.verbose then
+		addon:Print(L["|cffffd100%s|r returned the favour to %s as well."]:format(
+			spell, table.concat(repaid, ", ")))
+	end
+end
+
+-- Everybody else a group cast covered (SettleMembers). The favours go to the
+-- ledger, and the cast itself once, as one buff given: under the anchor
+-- normally, but where the anchor's own favour took that row (`anchorOwed`),
+-- under the first it reached who was owed nothing -- or who was picked as the
+-- anchor would decide whether a group cast counts. Returns what a late
+-- refusal needs to undo it: the members, and whom the given row is under.
+local function SettleGroup(pending, spellId, anchorOwed)
+	local covered = { buffKey = pending.buffKey, group = pending.group, inGroup = true }
+	local records, repaid = SettleMembers(pending.group.members, pending, covered, spellId)
 	local givenAs
 	if anchorOwed then
 		for _, record in ipairs(records) do
@@ -301,20 +318,37 @@ local function SettleGroup(pending, spellId, anchorOwed)
 			end
 		end
 	end
-	local db = addon.db and addon.db.profile
-	if #repaid > 0 and db and db.verbose then
-		addon:Print(L["|cffffd100%s|r returned the favour to %s as well."]:format(
-			SpellLabel(pending.group.spell), table.concat(repaid, ", ")))
-	end
+	SayAlsoRepaid(SpellLabel(pending.group.spell), repaid)
 	return records, givenAs
 end
 
--- A late refusal of a group cast: the favours it returned are owed again, as
--- the anchor's is, and the ledger takes back each by the settle's clock.
+-- Everybody else a shout reached (SettleMembers): the party members the scan
+-- the press was made on measured inside its reach (Prompt.lua, PostClick). A
+-- shout lands on the whole party around you, so it returns every favour in
+-- earshot, not only the one it was aimed at -- left owed, they were offered a
+-- second shout, then let go as run out. Each goes to the ledger as a plain
+-- return, with no group of its own, and nobody gets a given row: one shout is
+-- one cast, counted under the anchor. Returns what a late refusal needs to
+-- undo it, as SettleGroup does.
+local function SettleShout(pending, spellId)
+	local records, repaid = SettleMembers(pending.shoutMembers, pending,
+		{ buffKey = pending.buffKey, inGroup = true }, spellId)
+	local buff = pending.buffKey and ns.FindBuff(caps.class, pending.buffKey)
+	SayAlsoRepaid((spellId and SpellNameFor(spellId)) or (buff and ns.BuffName(buff)) or L["the spell"],
+		repaid)
+	return records
+end
+
+-- A late refusal of a group cast or a shout: the favours it returned are owed
+-- again, as the anchor's is, and the ledger takes back each by the settle's
+-- clock.
 local function UnsettleGroup(settled)
 	-- The cast's own given row, where it was filed under one of them.
 	if settled.givenAs then TellLedger("Refused", settled.givenAs, settled.at) end
 	for _, member in ipairs(settled.members or {}) do
+		-- A shout's members were put on the retry cooldown by its settle, not
+		-- by the press, so RewindClick (which knows a group cast's) misses them.
+		if not settled.group then ns.MarkAttempted(member.name, settled.buffKey, 2) end
 		if member.owed then
 			TellLedger("Refused", member.name, settled.at)
 			if not member.listedAtSettle and ListedAs(member.name) then
@@ -498,6 +532,10 @@ local function SettlePendingClick(landedOn, spellId, castGUID)
 	-- A shout is never one, so `unheard` cannot be true here.
 	local members, givenAs
 	if pending.group then members, givenAs = SettleGroup(pending, spellId, wasOwed ~= nil) end
+	-- A shout settles everybody else measured inside its reach, even with the
+	-- one it was aimed at unheard: each was measured on their own. Our shout
+	-- went out, or `why` above returned.
+	if pending.selfCast and pending.shoutMembers then members = SettleShout(pending, spellId) end
 	-- The client sent the cast; the server has not answered yet. Keep the
 	-- record so a refusal arriving a moment from now has something to be about.
 	-- Whether they were on the never-offer list already, which a favour owed

@@ -29,8 +29,8 @@ mutate("Prompt.lua",
 # The hand-back decided from the token the scan recorded, not from who is
 # targeted now.
 mutate("Prompt.lua",
-       "\treturn entry.unit == \"target\" and entry.name ~= nil and ns.UnitFullName ~= nil\n"
-       "\t\tand ns.UnitFullName(\"target\") == entry.name\n",
+       "\treturn (entry.unit == \"target\" or entry.reason == \"self\") and entry.name ~= nil\n"
+       "\t\tand ns.UnitFullName ~= nil and ns.UnitFullName(\"target\") == entry.name\n",
        "\treturn entry.unit == \"target\"\n",
        "hand-back decided from the recorded token",
        expect="prompt5: a press after your target changed hands it back (held)",

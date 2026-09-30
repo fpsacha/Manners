@@ -256,8 +256,8 @@ mutate("Queue.lua",
 
 # Said anyway.
 mutate("Favours.lua",
-       "\t\tif db.verbose and not QuietHere() then\n",
-       "\t\tif db.verbose then\n",
+       "\t\tlocal speak = db.verbose and not QuietHere()\n",
+       "\t\tlocal speak = db.verbose\n",
        "favour line said in an instance",
        expect="a favour was announced in chat where it should be quiet",
        script="runscenarios.py")

@@ -165,8 +165,10 @@ local OUTCOME_SECONDS = 0.6
 
 -- The entry last painted and when, which the hold is measured against. The
 -- whole entry, because re-arming the macro needs the buff as well as the name
--- after the queue has dropped them.
-local heldEntry, heldAt
+-- after the queue has dropped them. And the queue the last pick was made
+-- from, which a shout's press reads for everybody else it reaches (PostClick);
+-- in a fight, the pull's own.
+local heldEntry, heldAt, pickedFrom
 -- When the queue first came back empty, cleared the moment it refills.
 local emptyAt
 -- Whether the cursor is on the panel: set by OnEnter, cleared by OnLeave and
@@ -688,6 +690,7 @@ local function OnPreClick(self, mouseButton)
 	local queue, verdicts = ns.BuildQueue(hovering)
 	NoteVerdicts(verdicts)
 	local top = Prompt:PickTop(queue, queue[1])
+	pickedFrom = queue
 	local named = Prompt:PanelName()
 	-- An empty queue under a panel still naming somebody: the press agrees with
 	-- the screen (at worst the game refuses the cast, in red) rather than
@@ -805,13 +808,21 @@ local function OnPostClick(self, mouseButton, down)
 			end
 			return
 		end
+		-- In a fight the macro stays frozen on `current` and the next press
+		-- still casts at them, so a skip of that person says so, verbose or
+		-- not, as the menu's skip does. Asked of `current`, not the panel: under
+		-- a flash about somebody else the plain line is the true one. Not for
+		-- your own buff: a held press there only casts it on you.
+		local frozenOnThem = not own and InCombatLockdown() and current and current.name == victim
 		if db and db.verbose and own then
 			ns.addon:Print(L["skipping your own buff for now."])
-		elseif db and db.verbose then
+		elseif frozenOnThem or (db and db.verbose) then
 			local shown = (group and group.groupCast.label)
 				or (current and current.name == victim and current.short)
 				or (ns.ShortName and ns.ShortName(victim)) or victim
-			ns.addon:Print(L["skipping |cffffffff%s|r for now."]:format(shown))
+			ns.addon:Print((frozenOnThem
+				and L["skipping |cffffffff%s|r for now -- but the prompt cannot move off them in a fight, and a press still casts at them."]
+				or L["skipping |cffffffff%s|r for now."]):format(shown))
 		end
 		-- The panel moves on now rather than at the next scan, so a left press
 		-- cannot cast at the person just declined. Refresh knows about the
@@ -905,6 +916,21 @@ local function OnPostClick(self, mouseButton, down)
 			-- `reason` the anchor carries.
 			asked = current.groupCast.asked,
 		} or nil }
+	-- A shout lands on everybody in the party close enough to hear it, not
+	-- only the one it was aimed at: whoever else the scan measured inside its
+	-- reach for the same shout is settled with them (Clicks.lua,
+	-- SettleShout). Never yourself, and nobody on an overruled reading.
+	if armed and armed.selfCast and not stale and current.buff then
+		local names
+		for _, entry in ipairs(pickedFrom or {}) do
+			if entry.name ~= current.name and entry.ranged == true and entry.reason ~= "self"
+				and entry.buff and entry.buff.selfCast and entry.buff.key == current.buff.key then
+				names = names or {}
+				names[#names + 1] = entry.name
+			end
+		end
+		ns.pendingClick.shoutMembers = names
+	end
 	-- Everybody the group cast covers waits out the same cooldown as the
 	-- person it is aimed at, or they come straight back as single offers
 	-- while their auras still read the buff as missing.
@@ -2487,10 +2513,18 @@ function Prompt:PickTop(queue, fallback)
 	-- the current pick while it is still in the queue.
 	if ArmingForFight() then return top end
 	if top.name == heldEntry.name then return top end
+	-- Judged by what this scan says of them, not by the copy painted: that
+	-- one keeps the priority they had then, so somebody retargeted away from,
+	-- or whose favour lapsed, still outranked everybody on it -- and, being in
+	-- the queue, renewed the hold on every paint (see RefreshPanel).
+	local held = heldEntry
+	for _, candidate in ipairs(queue) do
+		if candidate.name == heldEntry.name then held = candidate break end
+	end
 	-- Lower is better: a strict improvement (a favour owed over a passer-by) is
 	-- never held off.
-	if top.priority < heldEntry.priority then return top end
-	return heldEntry
+	if top.priority < held.priority then return top end
+	return held
 end
 
 -- Buttons 2 to 5 get a type the secure handler does not recognise, so they do
@@ -2534,11 +2568,12 @@ end
 local STRATEGIES = {}
 
 -- Whether this entry was reached through the target token and is still the
--- player's target at this moment. The strategy and the macro's key ask it the
--- same way, so a change of target rebuilds the macro.
+-- player's target at this moment -- or is your own buff, with yourself
+-- targeted. The strategy and the macro's key ask it the same way, so a change
+-- of target rebuilds the macro.
 local function StillTargeted(entry)
-	return entry.unit == "target" and entry.name ~= nil and ns.UnitFullName ~= nil
-		and ns.UnitFullName("target") == entry.name
+	return (entry.unit == "target" or entry.reason == "self") and entry.name ~= nil
+		and ns.UnitFullName ~= nil and ns.UnitFullName("target") == entry.name
 end
 
 -- No targeting line: the spell lands on you and reaches the party from there.
@@ -2557,8 +2592,16 @@ end
 -- player targeted it lands on them. No spoken line: there is nobody to say it
 -- to (ns.PickPhrase). The record stays one on yourself, which is how the press
 -- is settled (Clicks.lua).
+--
+-- Your target is handed back whatever "Hand my target back" says: that switch
+-- is about other people, and this press takes your target only because the
+-- client can cast on you no other way -- a hunter's aspect dropped the mob
+-- he had targeted. Not when you are your own target already, where
+-- /targetlasttarget would switch away; in a fight it stays, as for anybody
+-- (STRATEGIES.target).
 STRATEGIES.self = function(entry, spell)
-	local lines, restore = STRATEGIES.target(entry, spell)
+	local lines = STRATEGIES.target(entry, spell)
+	local restore = not StillTargeted(entry) or Prompt.armedForFight == true
 	return lines, restore,
 		{ targeted = true, selfCast = false, onSelf = true, aimedAt = entry.targetName or entry.name }
 end
@@ -2631,7 +2674,8 @@ function Prompt:ClickSummary(entry)
 	end
 
 	if entry.reason == "self" then
-		-- Nothing about targets: the macro never touches yours.
+		-- Nothing about targets: the macro hands your target back (see
+		-- STRATEGIES.self), whatever the switch for other people says.
 		out[#out + 1] = L["Casts |cffffffff%s|r on you."]:format(spell)
 	elseif entry.buff.selfCast then
 		out[#out + 1] = L["Casts |cffffffff%s|r on you; it reaches your party from there."]
@@ -2975,6 +3019,14 @@ function Prompt:MovedOn(top)
 	-- somebody else who shares it.
 	if top.reason == "self" then
 		ns.addon:Print(L["the prompt has moved on to your own buff -- press again to buff yourself."])
+		return
+	end
+	-- A group cast by whom it lands on and what it is: the entry is a copy of
+	-- one member, and the next press casts the group spell on them all, with
+	-- its reagent.
+	if top.groupCast then
+		ns.addon:Print(L["the prompt has moved on to |cffffffff%s|r -- press again to cast |cffffffff%s|r on them all."]
+			:format(top.groupCast.label or "?", ns.EntrySpellName(top)))
 		return
 	end
 	ns.addon:Print(L["the prompt has moved on to |cffffffff%s|r -- press again to buff them."]
@@ -3348,6 +3400,7 @@ function Prompt:RefreshPanel()
 	local queue, verdicts = ns.BuildQueue(hovering)
 	NoteVerdicts(verdicts)
 	local top = self:PickTop(queue, queue[1])
+	pickedFrom = queue
 
 	if not top then
 		-- An empty queue in a crowd is usually a gap, so the first empty scan
@@ -3409,7 +3462,9 @@ function Prompt:RefreshPanel()
 	local wanted = (p.showQueue and p.queueRows) or 0
 	for _, entry in ipairs(queue) do
 		if entry.name == top.name then
-			inQueue = true
+			-- The queue's own entry, not merely the name: a paint of the copy
+			-- the hold kept is never a paint from the queue.
+			inQueue = inQueue or entry == top
 		else
 			others = others + 1
 			if #rows < wanted then
@@ -3470,9 +3525,12 @@ function Prompt:RefreshPanel()
 
 	-- A floor under the sound as well as the name: a swapped name can be
 	-- ignored, a sound cannot. And the flash's filter: both exist to make you
-	-- look, so they agree about who is worth it.
+	-- look, so they agree about who is worth it -- where anybody can be owed:
+	-- a class with no buffs to give (a hunter's aspects) files no favour, and
+	-- "Only for people who buff me", on out of the box, silenced it for good.
 	if isNew and db.sound.enabled
-		and (not db.sound.owedOnly or top.reason == "owed")
+		and (not db.sound.owedOnly or top.reason == "owed"
+			or not (ns.caps and ns.caps.hasClassBuffs == true and db.sources.owed ~= false))
 		and not (lastSoundAt and (now - lastSoundAt) < SOUND_FLOOR_SECONDS) then
 		lastSoundAt = now
 		ns.Guard("prompt sound", ns.PlayPromptSound, db.sound.file)
