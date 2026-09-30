@@ -5,16 +5,21 @@
     python tools/perf_probe.py --json out.json --text out.txt
     python tools/perf_probe.py --situations raid,city --top 40
     python tools/perf_probe.py --compare before.json         # before -> after
+    python tools/perf_probe.py --situations citynever --never 200
 
 Loads the addon on the mock client from tests/ (Lua 5.1 through lupa, the way
 tests/runharness.py and tests/runscenarios.py do: tests/mockapi.lua, then the
 files tests/addonfiles.lua reads out of Manners.toc) and stands the player in
-four situations, each in a fresh Lua state:
+six situations, each in a fresh Lua state:
 
-  idle     alone out in the world: nobody targeted, no group, no nameplates
-  city     a capital: twenty strangers' nameplates, a target and a mouseover
-  dungeon  a five-player party between pulls, three mobs' nameplates up
-  raid     forty players, ten nameplates, a ready check running
+  idle       alone out in the world: nobody targeted, no group, no nameplates
+  city       a capital: twenty strangers' nameplates, a target and a mouseover
+  dungeon    a five-player party between pulls, three mobs' nameplates up
+  raid       forty players, ten nameplates, a ready check running
+  citynever  the city with a never-offer list of --never names (50) that
+             match nobody there, passers-by remembered
+  raidgc     the raid for a mage with Arcane Brilliance and Arcane Powder,
+             group casts for two of a party missing it
 
 In each, `--ticks` scans (addon:Tick, which ends in the prompt's repaint, which
 builds the queue), then as many again with UNIT_AURA arriving between them --
@@ -26,12 +31,24 @@ and fifty for the player. It reports, per scan and per event:
              before the addon loads); ns.safecall's and ns.Guard's own are
              among them, and their callers are listed separately
   safecall   calls of ns.safecall; Guard, calls of ns.Guard
+  api        calls of the client's functions (the mock's, or this probe's
+             stand-ins) made from outside the mock, each counted by name;
+             issecretvalue listed but not in the total, since ns.plain asks
+             it of every value it is handed; GetRaidRosterInfo on its own
   KB alloc   memory allocated, the collector held off (a full collection first)
   KB kept    what a full collection leaves of the phase, per scan
   us         os.clock time, the best of `--blocks` runs of the quiet phase
 
 and what one pcall, safecall and Guard cost in this Lua against a direct call,
 which turns a count into a share of the scan's time.
+
+And the queue each situation builds, as a fingerprint: per entry, in order,
+who, which buff, why, whether measured in range, and a group cast's party,
+after the warm-up and again after the counted run. --compare prints any
+difference from the earlier run's and exits 1 on one, so a change meant to
+cost less and do the same is shown doing the same. A situation that is not
+what it claims (a guard caught an error, raidgc formed no group cast,
+citynever remembered nobody) exits 1 as well.
 
 The time is the mock's, whose client API is Lua where the game's is C, so it is
 for comparing two versions of the addon on one machine and not a promise about
@@ -56,7 +73,7 @@ from lupa import lua51 as lupa
 HERE = os.path.dirname(os.path.abspath(__file__))
 PROBE = os.path.join(HERE, "perf_probe.lua")
 DEFAULT_ADDON = os.path.dirname(HERE)
-SITUATIONS = ("idle", "city", "dungeon", "raid")
+SITUATIONS = ("idle", "city", "dungeon", "raid", "citynever", "raidgc")
 
 # The buckets, in the order they are reported, and what each is divided by.
 ROWS = (
@@ -122,7 +139,7 @@ def probe(addon, situation, mode, args):
     cfg = L.table_from({
         "addon": addon.replace("\\", "/"), "files": files, "situation": situation,
         "mode": mode, "ticks": args.ticks, "blocks": args.blocks, "minSeconds": args.min_seconds,
-        "class": args.klass, "benchN": args.bench_n,
+        "class": args.klass, "benchN": args.bench_n, "never": args.never,
     })
     return to_python(chunk(cfg))
 
@@ -209,6 +226,8 @@ def summarise(addon, counted, timed, top):
             "guard": per(t["Guard"], n),
             "build_queue": per(t["BuildQueue"], n),
             "repaint": per(t["Refresh"], n),
+            "api": per(t.get("api", 0), n),
+            "roster": per((t.get("apiCalls") or {}).get("GetRaidRosterInfo", 0), n),
             "alloc_kb": per(tt.get("kb", 0.0), tn),
         }
         if key == "scan":
@@ -226,6 +245,7 @@ def summarise(addon, counted, timed, top):
         row["asked_sites"] = ranked(t["asked"], n, top, targets.get("asked", {}))
         row["safecall_sites"] = ranked(t["safeSites"], n, top, targets.get("safecall", {}))
         row["guard_sites"] = ranked(t["guardSites"], n, top, targets.get("Guard", {}))
+        row["api_calls"] = ranked(t.get("apiCalls") or {}, n, top)
         for listing in ("pcall_sites", "asked_sites", "safecall_sites"):
             for r in row[listing]:
                 r["text"] = source_line(addon, r["site"].split(" (")[0])
@@ -234,6 +254,11 @@ def summarise(addon, counted, timed, top):
         rows[key] = row
     return {
         "queue": as_list(counted.get("queue")),
+        # The queue after the warm-up and after the counted run, and the time
+        # run's after its warm-up, which has to be the same.
+        "fingerprint": as_list(counted.get("fingerprint")),
+        "fingerprint_after": as_list(counted.get("fingerprintAfter")),
+        "fingerprint_time_run": as_list(timed.get("fingerprint")),
         "tokens": counted.get("tokens"),
         "plates": counted.get("plates"),
         "rows": rows,
@@ -243,6 +268,7 @@ def summarise(addon, counted, timed, top):
         "scan_blocks_us": [round(v * 1e6, 1) for v in as_list(timed.get("scanBlocks"))],
         "storm_blocks_us": [round(v * 1e6, 1) for v in as_list(timed.get("stormBlocks"))],
         "errors": sorted(set(as_list(counted.get("errors")) + as_list(timed.get("errors")))),
+        "problems": sorted(set(as_list(counted.get("problems")) + as_list(timed.get("problems")))),
     }
 
 
@@ -297,7 +323,7 @@ def report(result, top):
     say("block); 'pcall us' is pcall's own overhead and 'wrap us' what safecall and Guard add around it, at")
     say("the prices measured in that situation's run, straight after its timing; 'share' is both against")
     say("'us': the most that removing every one of them could save there.")
-    say(f"  {'':<9}{'':<28}{'n':>5}{'pcall':>8}{'safecall':>9}{'Guard':>7}{'fails':>6}"
+    say(f"  {'':<11}{'':<28}{'n':>5}{'pcall':>8}{'safecall':>9}{'Guard':>7}{'fails':>6}{'api':>7}"
         f"{'KB alloc':>10}{'KB kept':>8}{'us':>9}{'pcall us':>9}{'wrap us':>8}{'share':>7}")
     for name in result["situations"]:
         s = result["situations"][name]
@@ -309,8 +335,9 @@ def report(result, top):
             us = row.get("us")
             p_us, w_us = protection_us(row, s.get("bench") or b)
             share = (p_us + w_us) / us * 100 if us else None
-            say(f"  {name if first else '':<9}{label:<28}{row['n']:>5}{fmt(row['pcall'], 8)}"
+            say(f"  {name if first else '':<11}{label:<28}{row['n']:>5}{fmt(row['pcall'], 8)}"
                 f"{fmt(row['safecall'], 9)}{fmt(row['guard'], 7)}{fmt(row['pcall_fails'], 6)}"
+                f"{fmt(row.get('api'), 7)}"
                 f"{fmt(row['alloc_kb'], 10, 2)}{fmt(row.get('kept_kb'), 8, 2)}{fmt(us, 9)}"
                 f"{fmt(p_us, 9, 2)}{fmt(w_us, 8, 2)}{fmt(share, 6)}{'%' if share is not None else ' '}")
             first = False
@@ -320,7 +347,7 @@ def report(result, top):
         row = result["situations"][name]["rows"].get("scan")
         if row:
             p_us, w_us = protection_us(row, result["situations"][name].get("bench") or b)
-            say(f"  {name:<9}{row['pcall'] * 2.5:>7.0f} pcalls/s   {(p_us + w_us) * 2.5:>7.1f} us/s"
+            say(f"  {name:<11}{row['pcall'] * 2.5:>7.0f} pcalls/s   {(p_us + w_us) * 2.5:>7.1f} us/s"
                 f"   of {row.get('us', 0) * 2.5 / 1000:.2f} ms/s scanning")
 
     for name in result["situations"]:
@@ -329,7 +356,11 @@ def report(result, top):
         say("=" * 100)
         queue = s["queue"]
         say(f"{name}: {s['tokens']} unit tokens, {s['plates']} nameplates; queue of {len(queue)}"
-            + (": " + ", ".join(queue[:6]) + (" ..." if len(queue) > 6 else "") if queue else ""))
+            + (" (name | buff | reason | measured in range | group cast)" if queue else ""))
+        for line in queue[:12]:
+            say(f"    {line}")
+        if len(queue) > 12:
+            say(f"    ... and {len(queue) - 12} more")
         for label, blocks in (("scan", s.get("scan_blocks_us")), ("scan in storm", s.get("storm_blocks_us"))):
             if blocks:
                 median = blocks[len(blocks) // 2]
@@ -359,6 +390,12 @@ def report(result, top):
                 say(f"    ns.Guard labels, per {unit}")
                 for r in row["guard_sites"][:limit]:
                     say(f"      {r['per']:>8.2f}  {r['site']}")
+            if row.get("api_calls") and key in SCAN_BUCKETS + ("READY_CHECK",):
+                roster = f" (GetRaidRosterInfo {row['roster']:.1f})" if row.get("roster") else ""
+                say(f"    client calls, {row['api']:.1f} per {unit}{roster}; the most asked"
+                    " (issecretvalue not in the total)")
+                for r in row["api_calls"][:min(limit, 12)]:
+                    say(f"      {r['per']:>8.2f}  {r['site']}")
             if row["missing_globals"]:
                 gaps = ", ".join(f"{k} {v:g}" for k, v in list(row["missing_globals"].items())[:12])
                 say(f"    read but not in the mock (mock cost, not the addon's), per {unit}: {gaps}")
@@ -367,10 +404,15 @@ def report(result, top):
             say("  GUARDED ERRORS (the situation is not what it claims until these are gone):")
             for e in s["errors"][:10]:
                 say(f"    {e}")
+        if s.get("problems"):
+            say("")
+            say("  NOT THE SITUATION IT CLAIMS:")
+            for e in s["problems"]:
+                say(f"    {e}")
     return "\n".join(out) + "\n"
 
 
-HEADLINE = ("pcall", "safecall", "guard", "pcall_fails", "alloc_kb", "us")
+HEADLINE = ("pcall", "safecall", "guard", "pcall_fails", "api", "roster", "alloc_kb", "us")
 
 
 def headline(result):
@@ -382,6 +424,33 @@ def headline(result):
     return out
 
 
+FINGERPRINTS = (("fingerprint", "after the warm-up"), ("fingerprint_after", "after the counted run"))
+
+
+def fingerprint_differences(old, new):
+    """Where this run's queues differ from an earlier run's, as lines to print.
+
+    Only situations both runs stood in are compared, and only fingerprints
+    both recorded (a run from before they existed has none)."""
+    lines = []
+    for name, s in new["situations"].items():
+        was = old.get("situations", {}).get(name)
+        if not was:
+            continue
+        for key, label in FINGERPRINTS:
+            a, b = was.get(key), s.get(key)
+            if a is None or b is None or list(a) == list(b):
+                continue
+            lines.append(f"  {name}, {label}: {len(a)} entries -> {len(b)}")
+            for i in range(max(len(a), len(b))):
+                x = a[i] if i < len(a) else "(none)"
+                y = b[i] if i < len(b) else "(none)"
+                if x != y:
+                    lines.append(f"    #{i + 1}  was  {x}")
+                    lines.append(f"    {'':<{len(str(i + 1)) + 1}}  now  {y}")
+    return lines
+
+
 def compare(old, new):
     """The headline of an earlier run beside this one's."""
     out = []
@@ -390,7 +459,7 @@ def compare(old, new):
     say("=" * 100)
     was = f"{os.path.basename(old.get('addon', '?'))}, {old.get('commit', '?')}, run {old.get('when', '?')}"
     say(f"Against {was}: before -> after, per scan or per event")
-    say(f"  {'':<9}{'':<28}{'pcall':>18}{'safecall':>18}{'Guard':>14}{'KB alloc':>18}{'us':>20}")
+    say(f"  {'':<11}{'':<28}{'pcall':>18}{'safecall':>18}{'Guard':>14}{'api':>18}{'KB alloc':>18}{'us':>20}")
     before = old.get("headline", {})
     for name, rows in headline(new).items():
         first = True
@@ -404,9 +473,24 @@ def compare(old, new):
                 if a is None or b is None:
                     return " " * (width - 1) + "-"
                 return f"{a:.{digits}f} -> {b:.{digits}f}".rjust(width)
-            say(f"  {name if first else '':<9}{label:<28}{pair('pcall', 18)}{pair('safecall', 18)}"
-                f"{pair('guard', 14)}{pair('alloc_kb', 18, 2)}{pair('us', 20)}")
+            say(f"  {name if first else '':<11}{label:<28}{pair('pcall', 18)}{pair('safecall', 18)}"
+                f"{pair('guard', 14)}{pair('api', 18)}{pair('alloc_kb', 18, 2)}{pair('us', 20)}")
             first = False
+        if rows.get("scan", {}).get("roster") or before.get(name, {}).get("scan", {}).get("roster"):
+            a = before.get(name, {}).get("scan", {}).get("roster")
+            b = rows.get("scan", {}).get("roster")
+            say(f"  {'':<11}{'GetRaidRosterInfo per scan':<28}"
+                + (f"{a:.1f} -> {b:.1f}" if a is not None and b is not None else "-").rjust(18))
+    say("")
+    differences = fingerprint_differences(old, new)
+    if differences:
+        say("THE QUEUES DIFFER (a change meant to cost less has changed what is offered):")
+        out.extend(differences)
+    else:
+        compared = [n for n in new["situations"] if n in old.get("situations", {})
+                    and old["situations"][n].get("fingerprint") is not None]
+        say("Queues: the same in every situation both runs stood in ("
+            + (", ".join(compared) if compared else "none recorded a fingerprint") + ").")
     return "\n".join(out) + "\n"
 
 
@@ -421,6 +505,8 @@ def main():
     parser.add_argument("--min-seconds", type=float, default=0.25,
                         help="the shortest run the clock is read around (os.clock is milliseconds on Windows)")
     parser.add_argument("--class", dest="klass", default="MAGE")
+    parser.add_argument("--never", type=int, default=50,
+                        help="names on the never-offer list in citynever (default 50)")
     parser.add_argument("--bench-n", type=int, default=1000000, help="calls per loop in the call-cost bench")
     parser.add_argument("--top", type=int, default=25, help="sites listed per scan bucket")
     parser.add_argument("--json", help="write everything measured here")
@@ -450,18 +536,25 @@ def main():
     for s in wanted:
         counted = probe(addon, s, "count", args)
         timed = probe(addon, s, "time", args)
-        result["situations"][s] = summarise(addon, counted, timed, max(args.top, 50))
-        failed = failed or bool(result["situations"][s]["errors"])
+        summary = summarise(addon, counted, timed, max(args.top, 50))
+        if summary["fingerprint"] != summary["fingerprint_time_run"]:
+            summary["problems"].append(s + ": the time run built a different queue from the count run")
+        result["situations"][s] = summary
+        failed = failed or bool(summary["errors"]) or bool(summary["problems"])
     # The prices for the header: each call's lowest across the runs, which is
     # the least disturbed reading of it.
     benches = [s["bench"] for s in result["situations"].values() if s.get("bench")]
     result["bench"] = {k: min(b[k] for b in benches) for k in benches[0]} if benches else {}
 
+    result["never"] = args.never
     result["headline"] = headline(result)
     text = report(result, args.top)
     if args.compare:
         with open(args.compare, encoding="utf-8") as f:
-            text += compare(json.load(f), result)
+            old = json.load(f)
+        text += compare(old, result)
+        if fingerprint_differences(old, result):
+            failed = True
     sys.stdout.write(text)
     if args.text:
         with open(args.text, "w", encoding="utf-8", newline="\n") as f:

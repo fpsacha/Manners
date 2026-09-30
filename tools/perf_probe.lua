@@ -6,11 +6,13 @@
 --   addon      the addon tree to load, forward slashes
 --   files      the addon's files in load order, or nil for that tree's own
 --              tests/addonfiles.lua
---   situation  "idle", "city", "dungeon" or "raid" (see SITUATIONS)
+--   situation  "idle", "city", "dungeon", "raid", "citynever" or "raidgc"
+--              (see SITUATIONS)
+--   never      names on the never-offer list in "citynever", 50
 --   mode       "count"  pcall and xpcall replaced by counting versions before
 --                       the addon loads, and a call hook on for the measured
---                       work to count ns.safecall, ns.Guard, BuildQueue and
---                       the prompt's repaint
+--                       work to count ns.safecall, ns.Guard, BuildQueue, the
+--                       prompt's repaint and every call of a client function
 --              "time"   nothing replaced: allocation with the collector held
 --                       off, and os.clock time
 --              "bench"  what one pcall, safecall and Guard cost in this state
@@ -37,6 +39,11 @@
 -- Every call made is charged to a bucket: "scan" (a quiet Tick), "scan in
 -- storm", "timers", "UNIT_AURA", "UNIT_AURA player", "READY_CHECK" and
 -- "READY_CHECK_FINISHED". The driver divides by how many of each there were.
+--
+-- Besides the numbers, the queue itself: a fingerprint of it after the warm-up
+-- and again after the counted phases (who, which buff, why, whether measured
+-- in range, and a group cast's party), so that a change meant to cost less
+-- and do the same is shown doing the same.
 
 local cfg = ...
 local dir = tostring(cfg.addon):gsub("\\", "/"):gsub("/$", "")
@@ -49,6 +56,15 @@ local STEP = 0.4
 local rawpcall, rawxpcall = pcall, xpcall
 local getinfo, getlocal, sethook = debug.getinfo, debug.getlocal, debug.sethook
 local clock = os.clock
+
+-- Lua's own functions, before the mock adds the client's, so that a count of
+-- client calls leaves out type(), pairs() and string.format.
+local builtin = {}
+for _, t in ipairs({ _G, string, table, math, os, io, debug, coroutine }) do
+	for _, v in pairs(t) do
+		if type(v) == "function" then builtin[v] = true end
+	end
+end
 
 dofile(dir .. "/tests/mockapi.lua")
 
@@ -65,7 +81,7 @@ local function tally(name)
 			steps = 0, pcall = 0, xpcall = 0, pfail = 0,
 			safecall = 0, Guard = 0, BuildQueue = 0, Refresh = 0,
 			sites = {}, asked = {}, fails = {}, safeSites = {}, guardSites = {}, missing = {},
-			kb = 0, retained = 0,
+			kb = 0, retained = 0, api = 0, apiCalls = {},
 		}
 		tallies[name] = t
 	end
@@ -199,6 +215,7 @@ end
 -- The namespaces the mock builds afresh on every read of the global (so that a
 -- scenario can strip them) are kept after the first read instead: nothing here
 -- strips anything, and a table per read is garbage the client does not make.
+local made = {}
 do
 	local mt = getmetatable(_G)
 	if not mt then
@@ -212,7 +229,6 @@ do
 	elseif type(build) ~= "function" then
 		build = function() return nil end
 	end
-	local made = {}
 	mt.__index = function(t, key)
 		local v = made[key]
 		if v == nil then
@@ -446,6 +462,29 @@ function strcmputf8i(a, b)
 end
 if type(C_Spell) == "table" then C_Spell.IsSpellUsable = function() return true, false end end
 
+-- The spells the player has learned, by id, where a situation names them in
+-- PROBE_KNOWN; the mock's own answer (Arcane Intellect's first rank and
+-- nothing else) where none does. PROBE_KNOWN in the environment, ids with
+-- anything between them ("1459,23028"), names them for any situation, for a
+-- run by hand.
+local PROBE_KNOWN
+local function knowSpells(ids)
+	local set = {}
+	for _, id in ipairs(ids) do set[id] = true end
+	function IsSpellKnown(id) return set[id] == true end
+	function IsPlayerSpell(id) return set[id] == true end
+end
+
+-- What the bags hold, by item id, for the group casts' reagents. Only a
+-- situation that carries some installs the item API, which the mock has none
+-- of, so the others read the client exactly as before.
+local bags = {}
+local function carry(item, count)
+	bags[item] = count
+	C_Item = { GetItemCount = function(id) return bags[id] or 0 end }
+	function GetItemCount(id) return bags[id] or 0 end
+end
+
 -- LibRangeCheck-3.0 ships in the zip (embeds.xml), so it is there in game.
 Mock.rangeCheck = {}
 Mock.class = cfg.class or "MAGE"
@@ -544,10 +583,40 @@ function SITUATIONS.raid()
 	end
 end
 
+-- The city with a never-offer list of `cfg.never` names (fifty unless the
+-- driver says) that match nobody there. The list is asked about everybody the
+-- walk meets and again about every passer-by it remembers, and the city has
+-- both; the run fails if nobody is remembered.
+function SITUATIONS.citynever()
+	SITUATIONS.city()
+	W.never = math.floor(tonumber(cfg.never) or 50)
+	W.wantPassersBy = true
+end
+
+-- The raid, for a mage who has learned Arcane Brilliance and carries Arcane
+-- Powder, with a group cast for two of a party missing the buff: each raid
+-- group short of it folds into one cast, which reads the roster and the PvP
+-- flags as it forms. The run fails if no group cast forms.
+function SITUATIONS.raidgc()
+	SITUATIONS.raid()
+	PROBE_KNOWN = { 1459, 23028 }
+	carry(17020, 20)
+	W.atLeast = 2
+	W.wantGroupCast = true
+end
+
 local setup = SITUATIONS[situation]
 if not setup then error("perf_probe: no such situation: " .. tostring(situation)) end
 setup()
 Mock.auraCount = W.auraCount
+do
+	local env = os.getenv("PROBE_KNOWN")
+	if env and env ~= "" then
+		PROBE_KNOWN = {}
+		for id in env:gmatch("%d+") do PROBE_KNOWN[#PROBE_KNOWN + 1] = tonumber(id) end
+	end
+	if PROBE_KNOWN then knowSpells(PROBE_KNOWN) end
+end
 
 -- ------------------------------------------------------------------ the addon
 
@@ -570,8 +639,20 @@ for _, token in ipairs(W.plates) do addon:NAME_PLATE_UNIT_ADDED(nil, token) end
 -- The greeting and the settled baseline of the player's own buffs.
 if Mock.runTimers then Mock.runTimers(3) else Mock.advance(3) end
 
+local profile = addon.db.profile
+-- A favour owed to somebody no token reaches ("Gone Away") is offered for
+-- graceSeconds after it arrived. Kept offered for the whole run, however long
+-- a mode runs, like every other favour here.
+profile.timing.graceSeconds = 1e9
+if W.atLeast then profile.groupBuffs.atLeast = W.atLeast end
+if W.never then
+	for i = 1, W.never do profile.never[("Listed%d Nobody"):format(i)] = true end
+end
+
 -- Favours owed, kept inside their window for the whole run so that every scan
--- describes the same crowd, however many of them a mode runs.
+-- describes the same crowd, however many of them a mode runs. Each arrives
+-- once: a favour whose arrival moved every scan would replay the prompt's
+-- shine for a new one on every repaint, which is not what standing there does.
 local function keepOwed()
 	local now = GetTime()
 	for _, o in ipairs(W.owed) do
@@ -580,7 +661,8 @@ local function keepOwed()
 			entry = { class = o.class }
 			ns.owed[o.name] = entry
 		end
-		entry.at, entry.expires = now, now + 600
+		entry.at = entry.at or now
+		entry.expires = now + 600
 	end
 end
 keepOwed()
@@ -599,13 +681,55 @@ end
 if type(ns.BuildQueue) == "function" then watched[ns.BuildQueue] = "BuildQueue" end
 if ns.Prompt and type(ns.Prompt.Refresh) == "function" then watched[ns.Prompt.Refresh] = "Refresh" end
 
--- The call hook: which of the watched functions each call is, and for the two
--- protectors where they were called from and what they were handed.
+-- The client's functions by name: every function in _G, or in one of its C_
+-- namespaces, that the mock or this probe stands in for the client with, Lua's
+-- own left out (and the counting pcall and xpcall above, which stand in for
+-- Lua's). Filled once the addon has loaded, from what it can reach.
+local apiName = {}
+local function nameClientFunctions()
+	local function note(fn, name)
+		if type(fn) == "function" and not builtin[fn] and apiName[fn] == nil and kindOf(fn) == "api"
+			and fn ~= pcall and fn ~= xpcall then
+			apiName[fn] = name
+		end
+	end
+	local function walk(key, v)
+		if type(key) ~= "string" then return end
+		if type(v) == "function" then
+			note(v, key)
+		elseif type(v) == "table" and key:find("^C_") then
+			for k, f in pairs(v) do
+				if type(k) == "string" then note(f, key .. "." .. k) end
+			end
+		end
+	end
+	for k, v in pairs(_G) do walk(k, v) end
+	for k, v in pairs(made) do walk(k, v) end
+end
+
+-- The call hook: a client function called from outside the mock (the mock's
+-- functions calling one another are not the addon asking), or which of the
+-- watched functions each call is, and for the two protectors where they were
+-- called from and what they were handed. issecretvalue is listed with the
+-- client's calls but kept out of their total: ns.plain asks it of every value
+-- it is handed, so it counts plain()s rather than questions put to the client.
 local function onCall()
 	local b = bucket
 	if not b then return end
 	local info = getinfo(2, "f")
-	local name = info and watched[info.func]
+	local fn = info and info.func
+	local api = fn and apiName[fn]
+	if api then
+		local from = getinfo(3, "S")
+		local src = from and shortSource(from.source)
+		if src ~= "tests/mockapi.lua" and src ~= "(probe)" then
+			local t = tally(b)
+			if api ~= "issecretvalue" then t.api = t.api + 1 end
+			t.apiCalls[api] = (t.apiCalls[api] or 0) + 1
+		end
+		return
+	end
+	local name = fn and watched[fn]
 	if not name then return end
 	local t = tally(b)
 	t[name] = t[name] + 1
@@ -670,21 +794,49 @@ local function run(steps)
 	end
 end
 
+-- The first login's twenty-second preview of the prompt, which would otherwise
+-- run through the warm-up and into the measured scans: nobody stands in a
+-- city watching it.
+if ns.Prompt and type(ns.Prompt.InTest) == "function" and ns.Prompt:InTest() then
+	ns.Prompt:ExitTest()
+end
+
 -- Warm the caches the way somebody standing here has them.
 for _ = 1, 10 do advance() tick() timers() end
 
-local out = { situation = situation, mode = mode, ticks = TICKS, tallies = tallies }
+local out = { situation = situation, mode = mode, ticks = TICKS, tallies = tallies, problems = {} }
+
+-- The queue as a fingerprint: per entry, in order, who, which buff, why,
+-- whether measured in range, and the party a group cast lands on. What a
+-- change meant to cost less and do the same must leave alone.
+local function fingerprint()
+	local q = ns.BuildQueue()
+	local rows, groupCasts = {}, 0
+	for i = 1, #q do
+		local e = q[i]
+		local where = "-"
+		if e.groupCast then
+			where = "group " .. tostring(e.groupCast.where)
+			groupCasts = groupCasts + 1
+		end
+		rows[i] = table.concat({ tostring(e.name), tostring(e.buff and e.buff.key), tostring(e.reason),
+			"ranged " .. tostring(e.ranged), where }, " | ")
+	end
+	return rows, groupCasts
+end
 
 -- The queue this situation produces, so a change that alters who is offered
 -- shows up here as well as in the suites.
 do
-	local q = ns.BuildQueue()
-	local rows = {}
-	for i = 1, #q do
-		local e = q[i]
-		rows[i] = tostring(e.name) .. " (" .. tostring(e.reason) .. (e.groupCast and ", group cast" or "") .. ")"
-	end
+	local rows, groupCasts = fingerprint()
 	out.queue = rows
+	out.fingerprint = rows
+	if W.wantGroupCast and groupCasts == 0 then
+		out.problems[#out.problems + 1] = situation .. ": no group cast formed"
+	end
+	if W.wantPassersBy and next(ns.passersBy or {}) == nil then
+		out.problems[#out.problems + 1] = situation .. ": nobody remembered as a passer-by"
+	end
 	local people = 0
 	for _ in pairs(tokens) do people = people + 1 end
 	out.tokens = people
@@ -737,6 +889,7 @@ local function benchmark()
 end
 
 if mode == "count" then
+	nameClientFunctions()
 	local function counted(steps)
 		sethook(onCall, "c")
 		for i = 1, #steps do
@@ -753,6 +906,9 @@ if mode == "count" then
 	counted(QUIET)
 	counted(STORM)
 	out.targets = targets
+	-- And the queue again at the end of the run, which has moved the clock on
+	-- through a ready check and a storm of auras.
+	out.fingerprintAfter = fingerprint()
 elseif mode == "time" then
 	-- Allocation: every step's growth with the collector held off, charged to
 	-- its bucket; then what a full collection leaves of the phase, which is

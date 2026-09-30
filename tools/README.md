@@ -234,13 +234,25 @@ paths, so that the answer is a count rather than an opinion either way.
 It loads the addon on the mock client the way the test runners do (Lua 5.1
 through lupa, `tests/mockapi.lua`, the files `tests/addonfiles.lua` reads from
 `Manners.toc`), with `pcall` and `xpcall` replaced by counting versions before
-the first file loads, and stands the player in four places, each in a fresh
+the first file loads, and stands the player in six places, each in a fresh
 Lua state:
 
 - **idle** — alone out in the world, nobody targeted, no nameplates
 - **city** — a capital: twenty strangers' nameplates, a target, a mouseover
 - **dungeon** — a five-player party between pulls, three mobs' nameplates
 - **raid** — forty players, ten nameplates, a ready check running
+- **citynever** — the city with a never-offer list of `--never` names (fifty)
+  that match nobody there, while the city's passers-by are remembered; the run
+  fails if nobody is
+- **raidgc** — the raid for a mage who has learned Arcane Brilliance (the
+  probe's `PROBE_KNOWN`) and carries Arcane Powder, group casts on for two of a
+  party missing the buff; the run fails if no group cast forms
+
+Every scan there describes the same crowd: a favour owed arrives once and is
+kept inside its window (and the "Let them go after" grace) for the whole run,
+and the first login's twenty-second preview of the prompt is ended before the
+warm-up. A favour arriving afresh every scan would replay the prompt's shine
+on every repaint, which is not what standing in a city costs.
 
 In each it runs a hundred scans (`addon:Tick`, which ends in the prompt's one
 repaint, which builds the queue), then a hundred more with `UNIT_AURA` arriving
@@ -249,10 +261,19 @@ group tokens — and fifty for the player. It reports per scan and per event the
 `pcall` count, each one charged to the line that made it
 (`debug.getinfo(2, "Sl")`) and again, for a `pcall` made inside `ns.safecall`
 or `ns.Guard`, to the line that asked for it; the `ns.safecall` and `ns.Guard`
-calls; the kilobytes allocated (collector held off, a full collection first)
-and kept; and `os.clock` time. A bench of one `pcall`, `safecall` and `Guard`
-against a direct call turns the counts into the most that removing them could
-save.
+calls; the client's own functions, by name, called from outside the mock
+(`GetRaidRosterInfo` given on its own; `issecretvalue` listed but kept out of
+the total, since `ns.plain` asks it of every value); the kilobytes allocated
+(collector held off, a full collection first) and kept; and `os.clock` time. A
+bench of one `pcall`, `safecall` and `Guard` against a direct call turns the
+counts into the most that removing them could save.
+
+And the queue each situation builds, as a fingerprint: per entry, in order, the
+name, the buff's key, the reason, whether it was measured in range, and the
+party a group cast lands on, taken after the warm-up and again after the
+counted run. `--compare` prints any difference from the earlier run's and exits
+1 on one, so a change that is meant to cost less and do the same is shown
+doing the same.
 
 ```
 python tools/perf_probe.py                                  # this tree
@@ -260,13 +281,16 @@ python tools/perf_probe.py --json before.json --text before.txt
 python tools/perf_probe.py --addon ../Manners-1.4.0         # another checkout
 python tools/perf_probe.py --compare before.json            # before -> after
 python tools/perf_probe.py --situations raid,city --top 40
+python tools/perf_probe.py --situations citynever --never 200
+PROBE_KNOWN=1459,23028 python tools/perf_probe.py --situations dungeon   # spells known, by id
 ```
 
 `--addon` runs the probe in this tree against the addon and the mock in that
 one, so an old version is measured by `git worktree add` or `git archive` into
 a scratch folder and nothing copied. It exits non-zero if any of the addon's
-guards caught an error, since a situation that throws is not the one it claims
-to be. The situations are in `perf_probe.lua`: the unit API is answered from a
+guards caught an error, if raidgc formed no group cast or citynever remembered
+nobody, or if the count run and the time run built different queues, since a
+situation like that is not the one it claims to be. The situations are in `perf_probe.lua`: the unit API is answered from a
 table of distinct people there, because the shared mock names every unit the
 same stranger and says every unit exists; and the few client globals the mock
 lacks and the scan reads are added there, each listed by the report when read
