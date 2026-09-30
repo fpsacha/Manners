@@ -265,8 +265,8 @@ mutate("Queue.lua",
 
 # The group cast offered over a flagged member.
 mutate("GroupBuffs.lua",
-       "\tif pvp then\n\t\tlocal flagged = FlaggedAmong(bucket.where, byClass, inRaid)\n",
-       "\tif false then\n\t\tlocal flagged = FlaggedAmong(bucket.where, byClass, inRaid)\n",
+       "\tif pvp then\n\t\tlocal flagged = FlaggedAmong(bucket.where, byClass, inRaid, memo)\n",
+       "\tif false then\n\t\tlocal flagged = FlaggedAmong(bucket.where, byClass, inRaid, memo)\n",
        "pvp: group cast over a flagged member",
        expect="a group cast was offered to a party with a member flagged for PvP", script=S)
 
@@ -286,14 +286,14 @@ mutate("GroupBuffs.lua",
 
 # Every raid subgroup counted, not the target's own.
 mutate("GroupBuffs.lua",
-       "\t\t\t\tinside = RaidSubgroup(unit) == where\n",
+       "\t\t\t\tinside = RaidSubgroup(unit, memo) == where\n",
        "\t\t\t\tinside = true\n",
        "pvp: every subgroup counted",
        expect="a raider flagged in another subgroup kept back this subgroup's group cast", script=S)
 
 # Every class counted for a Greater Blessing, not its own.
 mutate("GroupBuffs.lua",
-       "\t\t\t\tinside = plain(select(2, UnitClass(unit))) == where\n",
+       "\t\t\t\tinside = Asked(memo, \"class\", unit, ClassFile) == where\n",
        "\t\t\t\tinside = true\n",
        "pvp: every class counted",
        expect="a flagged mage kept back the warriors' Greater Blessing", script=S)

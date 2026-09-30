@@ -113,10 +113,50 @@ for i = 1, 40 do
 	TOKENS.party[i] = "party" .. i
 end
 
+-- One reading of the group per GroupCasts call. Every bucket that reaches the
+-- threshold asks FlaggedAmong about the whole raid, and each used to read
+-- every member's subgroup (or class) and PvP flag again: five group casts in
+-- a raid were two hundred roster reads a scan. Nothing about the raid changes
+-- inside one call, so the first bucket's answers serve the rest, by token.
+-- Wiped at the start of every call, so no answer outlives it, even in a call
+-- its Guard stopped part-way; the prompt's hold and its press
+-- (GroupCastFlagged, ShoutFlagged) hand in none and read afresh.
+local groupMemo = { subgroup = {}, class = {}, flag = {} }
+
+-- nil kept as an answer of its own, so "cannot tell" is not asked again.
+local NOTHING = {}
+
+-- read(unit), or the answer `memo` already holds for this unit, when a memo
+-- is handed in.
+local function Asked(memo, kind, unit, read)
+	if not memo then return read(unit) end
+	local kept = memo[kind]
+	local value = kept[unit]
+	if value == nil then
+		value = read(unit)
+		if value == nil then value = NOTHING end
+		kept[unit] = value
+	end
+	if value == NOTHING then return nil end
+	return value
+end
+
 -- The raid subgroup a unit is in, or nil where nothing says: Core's. A
 -- party-wide spell reaches the target's own subgroup of a raid and nobody
 -- else in it.
-local RaidSubgroup = ns.RaidSubgroup
+local CoreRaidSubgroup = ns.RaidSubgroup
+local function RaidSubgroup(unit, memo)
+	return Asked(memo, "subgroup", unit, CoreRaidSubgroup)
+end
+
+-- A unit's class file name ("WARRIOR"), and its PvP flag (Queue.lua's
+-- reading, looked up when asked), for Asked.
+local function ClassFile(unit)
+	return plain(select(2, UnitClass(unit)))
+end
+local function Flag(unit)
+	return ns.PvPFlag(unit)
+end
 
 -- Whether `unit` carries a blessing of ours other than `key`, or cannot be
 -- read: either way a Greater Blessing of `key` may take one of ours off them.
@@ -171,8 +211,10 @@ end
 -- only those the queue offered: somebody flagged was never queued at all.
 -- Nobody's reach is asked, so one flagged anywhere in it holds the cast back.
 -- Somebody whose class or subgroup cannot be read, or whose flag cannot, is
--- no reason to (cannot tell). You are never counted.
-local function FlaggedAmong(where, byClass, inRaid)
+-- no reason to (cannot tell). You are never counted. `memo` is GroupCasts',
+-- nil for a question asked afresh. Still the first one flagged in token
+-- order, whichever bucket read them first.
+local function FlaggedAmong(where, byClass, inRaid, memo)
 	local n = plain(GetNumGroupMembers and GetNumGroupMembers()) or 0
 	local tokens = inRaid and TOKENS.raid or TOKENS.party
 	-- The party's other four, or the whole raid, whose tokens hold you too.
@@ -182,11 +224,11 @@ local function FlaggedAmong(where, byClass, inRaid)
 		if plain(UnitExists(unit)) and plain(UnitIsUnit(unit, "player")) ~= true then
 			local inside = true
 			if byClass then
-				inside = plain(select(2, UnitClass(unit))) == where
+				inside = Asked(memo, "class", unit, ClassFile) == where
 			elseif inRaid and where ~= "raid" then
-				inside = RaidSubgroup(unit) == where
+				inside = RaidSubgroup(unit, memo) == where
 			end
-			if inside and ns.PvPFlag(unit) == true then return ns.UnitFullName(unit) or "?" end
+			if inside and Asked(memo, "flag", unit, Flag) == true then return ns.UnitFullName(unit) or "?" end
 		end
 	end
 	return nil
@@ -269,8 +311,9 @@ end
 -- The one entry for a bucket that has reached the threshold, or nil. Built on
 -- a copy of the anchor's own entry, so everything that reads an entry reads
 -- this one the same way. `pvp` is Queue.lua's record of the scan while the
--- PvP rule stands, nil while it does not.
-local function Build(bucket, byClass, inRaid, ownSubgroup, pvp)
+-- PvP rule stands, nil while it does not; `memo` is GroupCasts' reading of
+-- the group, shared by every bucket.
+local function Build(bucket, byClass, inRaid, ownSubgroup, pvp, memo)
 	local anchor
 	for _, entry in ipairs(bucket.entries) do
 		-- Somebody measured out of reach cannot be the target; the cast still
@@ -287,7 +330,7 @@ local function Build(bucket, byClass, inRaid, ownSubgroup, pvp)
 	-- Those who are not flagged are still offered one at a time: nothing
 	-- here takes their single casts out of the queue.
 	if pvp then
-		local flagged = FlaggedAmong(bucket.where, byClass, inRaid)
+		local flagged = FlaggedAmong(bucket.where, byClass, inRaid, memo)
 		if flagged then
 			local _, label = Names(bucket, byClass, inRaid, ownSubgroup)
 			pvp.groups[#pvp.groups + 1] = { name = flagged, label = label,
@@ -357,6 +400,14 @@ end
 -- cast lands on the whole party, so it is for players offering their party),
 -- and a buff has its group version learned, stocked and usable.
 function ns.GroupCasts(queue, db, candidates, inRaid)
+	-- This call's reading of the group, empty whatever the last call left
+	-- (and left alone when it already is, as it is for anybody with no group
+	-- version to cast).
+	local memo = groupMemo
+	if next(memo.subgroup) then wipe(memo.subgroup) end
+	if next(memo.class) then wipe(memo.class) end
+	if next(memo.flag) then wipe(memo.flag) end
+
 	local settings = db.groupBuffs
 	if not (settings and settings.use == true and db.sources.group) then return queue end
 	local atLeast = tonumber(settings.atLeast) or 3
@@ -390,7 +441,7 @@ function ns.GroupCasts(queue, db, candidates, inRaid)
 			if byClass then
 				where = entry.class
 			elseif inRaid then
-				where = RaidSubgroup(entry.unit)
+				where = RaidSubgroup(entry.unit, memo)
 			else
 				where = "party"
 			end
@@ -416,11 +467,11 @@ function ns.GroupCasts(queue, db, candidates, inRaid)
 	-- a group cast held back for a flagged member is written into.
 	local pvp = ns.PvPRecord()
 	-- The player's own subgroup, so theirs is "your group" and not a number.
-	local ownSubgroup = inRaid and not byClass and RaidSubgroup("player") or nil
+	local ownSubgroup = inRaid and not byClass and RaidSubgroup("player", memo) or nil
 	local absorbed, made
 	for _, bucket in ipairs(order) do
 		if bucket.missing + bucket.low >= atLeast then
-			local group = Build(bucket, byClass, inRaid, ownSubgroup, pvp)
+			local group = Build(bucket, byClass, inRaid, ownSubgroup, pvp, memo)
 			if group then
 				absorbed = absorbed or {}
 				made = made or {}
