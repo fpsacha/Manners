@@ -30,9 +30,10 @@ Two kinds of art:
   Toast_Shadow         128x128  9 pieces, cut 0.25: the soft drop shadow.
   Toast_Body           256x64   The banner's ground, grey for a warm gradient.
   Toast_Ring           128x128  The round medallion: gold rings, a dark seam
-  Toast_Seal           128x128  each side of the enamel, the icon's inner
-                                shadow, glass. Toast_Seal is the squircle, for
-                                the icon left square.
+  Toast_Seal           128x128  each side of the enamel, glass on the enamel;
+                                clear inside the lip, over the icon.
+                                Toast_Seal is the squircle, for the icon left
+                                square.
   Toast_RingBand       128x128  The enamel between the rings, grey for the
   Toast_SealBand       128x128  reason colour: bright and flat, as enamel is.
   Toast_IconMask        64x64   The icon's shape, round and squircle; also the
@@ -387,7 +388,7 @@ def superellipse_rho(x, y, size, n):
 # 1.2 units at a 44-unit medallion, 1 at 36): below a pixel they blur away and
 # the enamel reads as more gold.
 ICON_R = 0.63
-LIP = (0.605, 0.695)
+LIP = (0.617, 0.695)   # from just inside the icon's edge (0.63 * 0.985)
 BAND = (0.695, 0.805)
 RING = (0.805, 0.945)
 EDGE = 0.975
@@ -422,32 +423,32 @@ def make_medallion(name, n):
     dark_edge = cover((RING[1] - rho) * tex) * cover((rho - EDGE) * tex)
     rho_s = superellipse_rho(x, y - 0.035 * size, size, n)
     drop = np.clip(1 - (rho_s - EDGE) / (1.0 - EDGE + 0.02), 0, 1) ** 1.6 * (rho > EDGE - 0.01)
-    # The icon, set in: an inner shadow at its rim.
-    inner = sstep(0.36, ICON_R, rho) ** 1.8 * (rho < LIP[0] + 0.01)
+    # Nothing inside the lip: this file is drawn over the spell icon, and an
+    # inner shadow and a gloss across it (1.5.0) washed the icon out in the
+    # game. The icon is drawn clean; only the lip's edge touches it.
     # The seams: a near-black channel where the enamel meets each gold ring,
     # solid, so the enamel reads as set into the gold and never as more gold
     # (the judges' fix: the owed reason is gold, and it sat on gold).
     seam = cover((LIP[1] - SEAM - rho) * tex) * cover((rho - LIP[1] - 0.004) * tex) \
         + cover((RING[0] - 0.004 - rho) * tex) * cover((rho - RING[0] - SEAM) * tex)
-    dark_a = np.clip(dark_edge * 0.95 + drop * 0.55 + inner * 0.62 + seam, 0, 1)
+    dark_a = np.clip(dark_edge * 0.95 + drop * 0.55 + seam, 0, 1)
     dark = np.array([0.025, 0.014, 0.008], np.float32)
 
     alpha = np.clip(gold_a + dark_a * (1 - gold_a), 0, 1)
     rgb = (gold * gold_a[..., None] + dark * (dark_a * (1 - gold_a))[..., None]) \
         / np.maximum(alpha[..., None], 1e-5)
 
-    # Glass: a soft crescent of light across the top of the icon; and on the
-    # enamel a pale inner highlight -- a thin line along its inner third,
-    # brightest at the top -- and a catch-light low on the right. Enamel is
-    # glass on metal, and the white line is what says so.
+    # Glass on the enamel only: a pale inner highlight -- a thin line along
+    # its inner third, brightest at the top -- and a catch-light low on the
+    # right. Enamel is glass on metal, and the white line is what says so.
+    # Never on the icon.
     top = np.clip(-np.sin(ang), 0, 1)
-    gloss_icon = np.exp(-((rho - 0.40) / 0.10) ** 2) * top ** 3 * (rho < LIP[0]) * 0.16
     b0, b1 = LIP[1], RING[0]
     inner_line = np.exp(-((rho - (b0 + 0.30 * (b1 - b0))) / 0.011) ** 2) \
         * (0.30 + 0.70 * top ** 1.5) * 0.42
     catch = np.exp(-((rho - (b0 + b1) / 2) / 0.028) ** 2) \
         * np.clip(np.sin(ang - 0.3), 0, 1) ** 6 * 0.16
-    g = np.clip(gloss_icon + inner_line + catch, 0, 1)
+    g = np.clip(inner_line + catch, 0, 1) * (rho > LIP[1] - SEAM)
     rgb = rgb * (1 - g[..., None]) + np.array([1.0, 0.99, 0.96]) * g[..., None]
     alpha = np.clip(alpha + g * (1 - alpha), 0, 1)
     save(name, finish(rgb, alpha, size, size))
@@ -483,12 +484,15 @@ def make_mask(name, n):
 
 def make_ring_glow():
     """A soft ring of light round the medallion. Drawn 1.45 times the
-    medallion, so its crest sits just outside the gold."""
+    medallion, so its crest sits on the medallion's dark outer edge. Its
+    outer falloff is tight enough that it has gone before the text begins, a
+    few units past the medallion, even on the tallest panel: a wider one lit
+    the ground under the name."""
     size = 128
     x, y = grid(size, size)
     rho = superellipse_rho(x, y, size, 2)
-    crest = RING[1] / 1.45
-    a = np.exp(-((rho - crest) / 0.13) ** 2)
+    crest = EDGE / 1.45
+    a = np.exp(-((rho - crest) / 0.045) ** 2)
     a = np.where(rho < crest, np.exp(-((rho - crest) / 0.07) ** 2), a)
     a *= cover((rho - 0.99) * 64)
     save("Toast_RingGlow", finish(white(a), a, size, size))

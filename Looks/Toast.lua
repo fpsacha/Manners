@@ -1,11 +1,22 @@
 -- Manners -- the Toast look: a warm banner pinned by a round gilded medallion,
 -- in the grammar of the game's own achievement toasts.
 --
--- A dark, warm banner with a gilded rail and corner studs. A gold medallion
+-- A deep brown banner with a gilded rail and corner studs. A gold medallion
 -- pins its left end; the spell icon sits in the middle of it, inside a ring of
 -- enamel in the reason colour, and a soft light in the same colour comes from
 -- behind it. The name is the title, the reason the subtitle. It is still at
 -- rest; it moves when something happens.
+--
+-- Two rules it keeps since 1.5.1, when in the game it read gold on gold and
+-- the icon looked washed out (the preview renderer adds light far more gently
+-- than the client, so they are held by arithmetic, not by eye --
+-- tests/scenarios/readable-toast.lua):
+--   * the icon is drawn clean: nothing lies over it but the medallion's gold
+--     lip at its very edge, and the count never sits on it;
+--   * the text stands on dark: the body under the lines is a near-black brown
+--     at full strength, the gilding stays on the rails, and every light of
+--     the reason's -- the bloom, the washes, the ring's glow -- stops short of
+--     the lines.
 --
 -- Every region is a texture from Textures/Toast (tools/make_toast_textures.py).
 -- The gold is baked, because it is decoration; everything that means something
@@ -34,8 +45,9 @@
 --     up to date on the scan's own repaint, never on a frame script; kept
 --     under Calm, because it is information, and in a fight, dimmed;
 --   * the bound key on a chip at the right, like the count's, when a key is
---     bound; the count then moves onto the medallion as a small coin, or
---     with no medallion beside the key's chip. Either chip steps aside for a paint in which the name would otherwise be cut;
+--     bound; the count's chip then sits beside the key's (never on the
+--     medallion, where it covered the icon). Either chip steps aside for a
+--     paint in which the name would otherwise be cut;
 --   * the owed pulse breathes three times and then holds still;
 --   * a fight turns the gold to iron and greys the icon, the text dims, and
 --     the enamel keeps its colour: the one bright thing left is the reason;
@@ -70,8 +82,10 @@ local ICON_OF = 0.63
 -- on the gold itself the owed gold, which is nearly every clock, vanished.
 local RAIL = { outer = 1.35, clock = 5.4, stud = 3.3,
 	slimOuter = 1.25, slimClock = 3.4, slimStud = 3.05 }
--- The banner's own warm pair, for a panel colour nobody chose.
-local WARM_TOP, WARM_BOTTOM, WARM_ALPHA = { 0.205, 0.145, 0.100 }, { 0.070, 0.050, 0.042 }, 0.95
+-- The banner's own warm pair, for a panel colour nobody chose: a deep brown,
+-- opaque, so no world shows through under the text. Dark enough for the
+-- dimmest reason line at 4.5:1 (tests/scenarios/readable-toast.lua).
+local WARM_TOP, WARM_BOTTOM, WARM_ALPHA = { 0.080, 0.056, 0.042 }, { 0.040, 0.029, 0.024 }, 1
 local IVORY = { 1.00, 0.965, 0.90 }
 local WARM_GREY = { 0.80, 0.75, 0.66 }
 local PALE_GOLD = { 1.00, 0.86, 0.52 }
@@ -367,8 +381,8 @@ function Toast:Build(kit)
 	self.band = tex(self.medallion, "ARTWORK", 1, "RingBand")
 	self.ring = tex(self.medallion, "ARTWORK", 2, "Ring")
 
-	-- The chips: over the medallion, where the count's coin sits; their text
-	-- is on textLayer, over them.
+	-- The chips: over the banner, at its right end; their text is on
+	-- textLayer, over them.
 	self.chipFrame = keep(CreateFrame("Frame", nil, art))
 	self.chipFrame:SetFrameLevel(base + 3)
 	self.chipBox = keep(CreateFrame("Frame", nil, self.chipFrame))
@@ -577,15 +591,18 @@ function Toast:Apply(p, above)
 	-- The light behind the medallion: from its centre, rightwards, never
 	-- above or below the banner. The whole file, which rises from nothing at
 	-- its left edge, so the light grows out from under the medallion and no
-	-- edge of it lies under the medallion to show through a fade.
+	-- edge of it lies under the medallion to show through a fade. It ends
+	-- short of the text, as the washes do: light added under the lines
+	-- turned the banner gold behind gold words in the game.
+	local lightEnd = math.max(left + 4, textX - 2)
 	for _, t in ipairs({ self.bloom, self.bloomPulse, self.bloomArrive }) do
 		t:SetTexCoord(0, 1, 0, 1)
 		t:ClearAllPoints()
 		t:SetPoint("LEFT", art, "TOPLEFT", left, -cy)
-		t:SetSize(2.03 * BH, BH - 3)
+		t:SetSize(lightEnd - left, BH - 3)
 	end
 	for _, t in ipairs({ self.wash, self.hoverWash }) do
-		Box(t, art, left + 1, top + 1, W - 1, bottom - 1)
+		Box(t, art, left + 1, top + 1, lightEnd, bottom - 1)
 	end
 
 	-- The medallion and the icon in it.
@@ -672,10 +689,13 @@ function Toast:Apply(p, above)
 	self.ash:SetPoint("LEFT", art, "TOPLEFT", self.clockX, -(bottom - clockAt))
 	self.ash:SetSize(self.clockLen, self.clockH)
 	self.ash:SetVertexColor(0.30, 0.12, 0.05, 0.55)
-	-- The burning end: a spark big enough to see at the game's own scale.
-	self.bead:ClearAllPoints()
-	self.bead:SetPoint("CENTER", self.ember, "RIGHT", 0, 0)
-	self.bead:SetSize(self.clockH * 4.5, self.clockH * 2)
+	-- The burning end: a spark big enough to see at the game's own scale,
+	-- placed by Clock. Kept clear of the icon as the clock runs out, where
+	-- a spark centred on the line's end reached back over its corner.
+	local beadW = self.clockH * 4.5
+	self.bead:SetSize(beadW, self.clockH * 2)
+	self.clockY = -(bottom - clockAt)
+	self.beadMin = showIcon and (cx + iconSize / 2 + beadW / 2 + 0.5) or 0
 	self.clockW = nil
 
 	-- The jewel at the banner's end, with the icon off.
@@ -699,7 +719,6 @@ function Toast:Apply(p, above)
 	-- The chips.
 	local chipH = sub + 7
 	self.chipH = chipH
-	self.coinH = math.max(10, sub + 3)
 	PlaceThree(self.keyChip, self.keyBox, chipH)
 	self.keyBox:ClearAllPoints()
 	self.keyBox:SetPoint("RIGHT", art, "RIGHT", -9, 0)
@@ -920,8 +939,8 @@ function Toast:PairRoom()
 end
 
 -- Run on every repaint, which is also the clock's tick. The count's chip at
--- the right, or, with the key's chip there, as a coin on the medallion (with
--- no medallion, a chip beside the key's); the key's chip when a key is bound.
+-- the right, or, with the key's chip there, a chip beside the key's; the
+-- key's chip when a key is bound.
 -- Either steps aside for a paint in which the name would otherwise be cut.
 function Toast:Chip(on)
 	local kit = self.kit
@@ -955,11 +974,9 @@ function Toast:Chip(on)
 
 	local mode
 	if on then
-		if keyUp and self.M > 0 then
-			mode = "coin"
-		elseif keyUp then
-			-- No medallion to hold the coin, which would hang off the
-			-- banner's end: the count's chip beside the key's.
+		if keyUp then
+			-- The count's chip beside the key's, never on the medallion: a
+			-- coin there covered the spell icon.
 			if self:NameFits(self:PairRoom()) then mode = "pair" end
 		elseif self:NameFits(kit.fit.chipRoom or 0) then
 			mode = "chip"
@@ -969,19 +986,16 @@ function Toast:Chip(on)
 		local count = kit.count
 		local text = count:GetText()
 		if type(text) == "string" and text:match("^%d+$") then count:SetText("+" .. text) end
-		local h = mode == "coin" and self.coinH or self.chipH
+		local h = self.chipH
 		text = count:GetText()
 		if text ~= self.countText or mode ~= self.countMode then
 			self.countText = text
-			self.countW = math.max(h * 1.75, (kit.TextWidth(count) or self.sub) + (mode == "coin" and 6 or 10))
+			self.countW = math.max(h * 1.75, (kit.TextWidth(count) or self.sub) + 10)
 		end
 		local w = self.countW
 		if mode ~= self.countMode then
 			self.chipBox:ClearAllPoints()
-			if mode == "coin" then
-				self.chipBox:SetPoint("CENTER", kit.art, "TOPLEFT", self.cx + 0.36 * self.M,
-					-(self.cy + 0.32 * self.M))
-			elseif mode == "pair" then
+			if mode == "pair" then
 				self.chipBox:SetPoint("RIGHT", self.keyBox, "LEFT", -4, 0)
 			else
 				self.chipBox:SetPoint("RIGHT", kit.art, "RIGHT", -9, 0)
@@ -1031,6 +1045,9 @@ function Toast:Clock()
 	if not self.clockW or math.abs(width - self.clockW) >= 0.25 then
 		self.clockW = width
 		self.ember:SetWidth(width)
+		self.bead:ClearAllPoints()
+		self.bead:SetPoint("CENTER", self.kit.art, "TOPLEFT",
+			math.max(self.clockX + width, self.beadMin), self.clockY)
 	end
 	self.ash:Show()
 	self.ember:Show()
