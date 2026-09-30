@@ -290,17 +290,55 @@ one, so an old version is measured by `git worktree add` or `git archive` into
 a scratch folder and nothing copied. It exits non-zero if any of the addon's
 guards caught an error, if raidgc formed no group cast or citynever remembered
 nobody, or if the count run and the time run built different queues, since a
-situation like that is not the one it claims to be. The situations are in `perf_probe.lua`: the unit API is answered from a
-table of distinct people there, because the shared mock names every unit the
-same stranger and says every unit exists; and the few client globals the mock
-lacks and the scan reads are added there, each listed by the report when read
-("read but not in the mock").
+situation like that is not the one it claims to be.
+
+The situations are in `perf_world.lua`, which the probe takes from its own
+tree (never the measured one's) and the budget scenario below loads too. The
+unit API is answered from a table of distinct people there, because the shared
+mock names every unit the same stranger and says every unit exists; and the
+few client globals the mock lacks and the scan reads are added there, each
+listed by the report when read ("read but not in the mock"). Every global it
+replaces is kept and put back by `world.restore()`, since a scenario shares
+its Lua state with the ones after it.
 
 The times are the mock's, whose API is Lua where the game's is C (its
 `issecretvalue` too, so `ns.plain` and `ns.safecall` read high), and are for
 comparing two versions on one machine. The counts and allocations are the
 addon's own. `profile_scan.py` is the other half: time and client API calls
 per function, in one worst crowd.
+
+### The pcall budget
+
+`tests/scenarios/perf-budget.lua` holds a scan to what the protection policy
+at the top of `Core.lua`'s secret-safe section leaves standing. It stands a
+mage in four of the probe's situations through `perf_world.lua`, runs ten
+scans to fill the caches and counts fifty, with `pcall` (and `xpcall`)
+swapped for a counter around each `addon:Tick`. No addon file keeps a copy of
+`pcall` of its own, or the counter could not see it; the first scenario there
+checks that. A count under three per scan (the Guards alone make three) fails
+as a counter that is not counting, and a count over the ceiling fails with the
+measured figure and the five lines charged most.
+
+| situation | before the refactor | after | ceiling |
+|---|---:|---:|---:|
+| city | 89.3 | 9.3 | 12 |
+| raid | 160.9 | 22.2 | 30 |
+| citynever (fifty names) | 189.3 | 9.3 | 12 |
+| raidgc | 422.9 | 24.2 | 30 |
+
+Each ceiling is about a quarter above what was measured once the refactor
+landed, so ordinary work passes and one hot-path safecall put back does not:
+`tests/mutations/perf.py` puts the PvP flags back on `safecall` (80 more per
+raid scan) and `tests/mutations/perf-budget.py` the proximity ladder's rungs
+(18 more per city scan), and both are caught. What is left after the refactor
+is the aura reads the client restricts per spell (about two per city scan and
+fourteen per raid scan, behind the aura cache), the three Guards, the walk's
+own pcall, and a handful of once-per-scan calls (IsResting,
+UnitAffectingCombat, IsSpellUsable, the group spell's reagent).
+
+The same file checks that a cast by anybody else costs no Lua at all: the six
+`UNIT_SPELLCAST_*` events are registered on a frame of the addon's own for the
+player alone (`RegisterUnitEvent`), not through AceEvent.
 
 ## lua51_limits.py
 

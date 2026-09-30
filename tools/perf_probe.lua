@@ -1,13 +1,14 @@
--- What a scan costs in pcalls, allocations and time, in four places a player
--- stands. Driven by tools/perf_probe.py, which runs this once per situation and
+-- What a scan costs in pcalls, allocations and time, in the places a player
+-- stands (tools/perf_world.lua). Driven by tools/perf_probe.py, which runs this once per situation and
 -- mode in a fresh Lua 5.1 state and prints what comes back.
 --
 -- Called as chunk(cfg), cfg a table:
 --   addon      the addon tree to load, forward slashes
 --   files      the addon's files in load order, or nil for that tree's own
 --              tests/addonfiles.lua
+--   world      tools/perf_world.lua, from the probe's own tree
 --   situation  "idle", "city", "dungeon", "raid", "citynever" or "raidgc"
---              (see SITUATIONS)
+--              (see perf_world.lua)
 --   never      names on the never-offer list in "citynever", 50
 --   mode       "count"  pcall and xpcall replaced by counting versions before
 --                       the addon loads, and a call hook on for the measured
@@ -95,7 +96,7 @@ local function shortSource(source)
 	local s = shortNames[source]
 	if s then return s end
 	s = tostring(source):gsub("^@", ""):gsub("\\", "/")
-	if s:find("perf_probe%.lua$") then
+	if s:find("perf_probe%.lua$") or s:find("perf_world%.lua$") then
 		s = "(probe)"
 	elseif s:sub(1, #prefix):lower() == prefix then
 		s = s:sub(#prefix + 1)
@@ -208,415 +209,35 @@ if mode == "count" then
 	end
 end
 
--- Globals the addon reads that the mock does not define. Every one runs the
--- mock's metatable, which the client has no equivalent of, and a pcall of one
--- fails: both are the mock's cost rather than the addon's, and worth knowing.
---
--- The namespaces the mock builds afresh on every read of the global (so that a
--- scenario can strip them) are kept after the first read instead: nothing here
--- strips anything, and a table per read is garbage the client does not make.
-local made = {}
-do
-	local mt = getmetatable(_G)
-	if not mt then
-		mt = {}
-		setmetatable(_G, mt)
-	end
-	local build = mt.__index
-	if type(build) == "table" then
-		local t = build
-		build = function(_, key) return t[key] end
-	elseif type(build) ~= "function" then
-		build = function() return nil end
-	end
-	mt.__index = function(t, key)
-		local v = made[key]
-		if v == nil then
-			v = build(t, key)
-			if v ~= nil then
-				made[key] = v
-			elseif bucket and mode == "count" then
-				local miss = tally(bucket).missing
-				miss[key] = (miss[key] or 0) + 1
-			end
-		end
-		return v
-	end
-end
-
 -- ------------------------------------------------------------------ the world
 
--- Everybody the client can name, by unit token. The mock answers every token
--- with the same stranger and says every unit exists; a crowd of distinct
--- people, and nobody at all where there is nobody, is the whole point here, so
--- the unit API is answered from this table instead.
-local FIRST = {
-	"Aldric", "Brenna", "Cedric", "Dagna", "Elowen", "Fenwick", "Garrick", "Hilde", "Isolde", "Jorund",
-	"Kestrel", "Lysa", "Morwen", "Nils", "Orla", "Perrin", "Quilla", "Roderic", "Sable", "Tamsin",
-	"Ulric", "Vesna", "Wendel", "Yara", "Zoran", "Anselm", "Brisa", "Corwin", "Delia", "Emrys",
-	"Faela", "Gideon", "Hesper", "Ivo", "Juna", "Kael", "Liora", "Maddoc", "Nerys", "Osric",
-	"Petra", "Rowan", "Sorcha", "Tobin", "Una", "Varek", "Wilda", "Xander", "Ysolde", "Zelda",
-}
-local LAST = {
-	"Ashdown", "Blackwood", "Coldbrook", "Dunmore", "Emberly", "Frostvale", "Greymane", "Hollow",
-	"Ironside", "Kettleby", "Longmire", "Marsh", "Northcott", "Oakheart", "Pennywhistle", "Quarry",
-	"Ravenscar", "Stonewell", "Thistle", "Underhill",
-}
-local CLASSES = { "WARRIOR", "PRIEST", "MAGE", "ROGUE", "DRUID", "PALADIN", "HUNTER", "WARLOCK", "SHAMAN" }
-local MANA = { PRIEST = true, MAGE = true, DRUID = true, PALADIN = true, HUNTER = true, WARLOCK = true, SHAMAN = true }
-local POWER = { WARRIOR = { 1, "RAGE" }, ROGUE = { 3, "ENERGY" } }
-
-local ME = { name = "Mort", surname = "Defrette", class = Mock.class, guid = "Player-1-00000001", me = true,
-	level = 60, yards = 0 }
-local tokens = {}
-local W = {
-	resting = false, instance = nil, auraCount = 3,
-	raid = nil, party = nil,
-	others = {},       -- the tokens UNIT_AURA arrives for in the storm
-	plates = {},       -- nameplate tokens, announced with NAME_PLATE_UNIT_ADDED
-	owed = {},         -- names owed a favour, kept inside their window
-	readyCheck = false,
-}
-
-local serial = 1
-local function person(i, class, extra)
-	serial = serial + 1
-	local p = {
-		name = FIRST[(i - 1) % #FIRST + 1], surname = LAST[(i * 7 - 1) % #LAST + 1],
-		class = class or CLASSES[(i - 1) % #CLASSES + 1],
-		guid = ("Player-1-%08X"):format(serial), level = 60, yards = 10,
-		-- Every third person already carries what they would be offered.
-		buffed = i % 3 == 0,
-	}
-	if extra then for k, v in pairs(extra) do p[k] = v end end
-	return p
-end
-
-local function mob(i)
-	serial = serial + 1
-	return { name = "Scarlet Zealot", class = "WARRIOR", guid = ("Creature-0-1-1-1-%d-%08X"):format(1000 + i, serial),
-		npc = true, level = 61, yards = 20 }
-end
-
-Mock.yards, Mock.rangeByUnit = {}, {}
-local function bind(token, p)
-	tokens[token] = p
-	Mock.yards[token] = p.yards
-	-- The spell's own range answer, for a thirty-yard buff.
-	Mock.rangeByUnit[token] = p.yards <= 30
-end
-
-local function resolve(unit)
-	if unit == "player" then return ME end
-	return tokens[unit]
-end
-
-local function localized(class) return class:sub(1, 1) .. class:sub(2):lower() end
-
-function UnitExists(unit) return resolve(unit) ~= nil end
-function UnitIsPlayer(unit)
-	local p = resolve(unit)
-	return p ~= nil and not p.npc
-end
-function UnitName(unit)
-	local p = resolve(unit)
-	if not p then return nil end
-	if p.npc then return p.name end
-	return p.name, (Mock.surnames or Mock.crossRealm) and p.surname or nil
-end
-function UnitGUID(unit)
-	local p = resolve(unit)
-	return p and p.guid
-end
-function UnitClass(unit)
-	local p = resolve(unit)
-	if not p then return nil end
-	return localized(p.class), p.class
-end
-function UnitIsUnit(a, b)
-	local pa = resolve(a)
-	return pa ~= nil and pa == resolve(b)
-end
-function UnitIsDeadOrGhost(unit)
-	if unit == "player" then return Mock.dead end
-	local p = resolve(unit)
-	return p ~= nil and p.dead == true
-end
-function UnitCanAssist(_, unit)
-	local p = resolve(unit)
-	return p ~= nil and not p.npc
-end
-function UnitIsConnected(unit) return resolve(unit) ~= nil end
-function UnitIsVisible(unit) return resolve(unit) ~= nil end
-function UnitLevel(unit)
-	local p = resolve(unit)
-	return p and p.level or 0
-end
-function UnitIsPVP() return false end
-function UnitIsPVPFreeForAll() return false end
-function UnitIsFeignDeath() return false end
-function UnitAffectingCombat() return false end
-function UnitPowerType(unit)
-	local p = resolve(unit)
-	local power = p and POWER[p.class]
-	if power then return power[1], power[2] end
-	return 0, "MANA"
-end
-function UnitPowerMax(unit)
-	local p = resolve(unit)
-	if not p then return 0 end
-	if unit ~= "player" and not MANA[p.class] then return 0 end
-	return 5000
-end
-function UnitPower(unit)
-	local p = resolve(unit)
-	if not p then return 0 end
-	if unit ~= "player" and not MANA[p.class] then return 0 end
-	return 4000
-end
-
--- The group: W.raid is the roster in raid order (the player among them), and
--- W.party the other four.
-function GetNumGroupMembers()
-	if W.raid then return #W.raid end
-	if W.party then return #W.party + 1 end
-	return 0
-end
-function IsInRaid() return W.raid ~= nil end
-function IsInGroup() return W.raid ~= nil or W.party ~= nil end
-function UnitInRaid(unit)
-	local p = resolve(unit)
-	return p and p.raidIndex or nil
-end
-local function sameSubgroup(unit)
-	local p = resolve(unit)
-	if not p then return false end
-	if W.raid then return p.subgroup ~= nil and p.subgroup == ME.subgroup end
-	if W.party then return p.me == true or p.inParty == true end
-	return false
-end
-function UnitInParty(unit) return sameSubgroup(unit) end
-function UnitInSubgroup(unit) return sameSubgroup(unit) end
-function GetRaidRosterInfo(index)
-	local p = W.raid and W.raid[index]
-	if not p then return nil end
-	return p.name, 0, p.subgroup, p.level, localized(p.class), p.class
-end
-
-function IsResting() return W.resting end
-function IsInInstance()
-	if W.instance then return true, W.instance end
-	return false, "none"
-end
-function IsMounted() return false end
-function IsPVPTimerRunning() return false end
-
--- The friends list and the guild: a couple of friends and guildmates in each
--- crowd, asked the retail way (C_FriendList.IsFriend) as this client can.
-local friendGuid = {}
-C_FriendList = {
-	GetNumFriends = function() return 0 end,
-	GetFriendInfoByIndex = function() return nil end,
-	IsFriend = function(guid) return friendGuid[guid] == true end,
-}
-C_BattleNet = { GetGameAccountInfoByGUID = function() return nil end }
-function IsInGuild() return true end
-function UnitIsInMyGuild(unit)
-	local p = resolve(unit)
-	return p ~= nil and p.guild == true
-end
-function GetGuildInfo(unit)
-	local p = resolve(unit)
-	if p and (p.me or p.guild) then return "Mannered", "Member", 1, nil end
-	return nil
-end
-
--- Other people's auras: whoever is `buffed` carries whatever is asked about,
--- cast by `buffSource` (a token, or nothing the client can name). The
--- player's own stay the mock's.
-local auras = C_UnitAuras
-if type(auras) == "table" and type(auras.GetUnitAuraBySpellID) == "function" then
-	local playersOwn = auras.GetUnitAuraBySpellID
-	auras.GetUnitAuraBySpellID = function(unit, spellId)
-		if unit == "player" then return playersOwn(unit, spellId) end
-		local p = resolve(unit)
-		if p and p.buffed then
-			return { spellId = spellId, expirationTime = Mock.now + 1500, sourceUnit = p.buffSource }
-		end
-		return nil
-	end
-end
-
--- What the client has and the shared mock does not, found by the probe's own
--- count of globals read that are not there. Each would otherwise cost the mock's
--- metatable per read and, where the addon asks for it, turn a call the client
--- answers into one skipped. The class names the client localizes; its
--- case-folding compare, which the never-offer list asks; and whether a spell
--- can be cast now, the retail way.
-LOCALIZED_CLASS_NAMES_MALE = {}
-for _, class in ipairs(CLASSES) do LOCALIZED_CLASS_NAMES_MALE[class] = localized(class) end
-function strcmputf8i(a, b)
-	a, b = a:lower(), b:lower()
-	if a == b then return 0 end
-	return a < b and -1 or 1
-end
-if type(C_Spell) == "table" then C_Spell.IsSpellUsable = function() return true, false end end
-
--- The spells the player has learned, by id, where a situation names them in
--- PROBE_KNOWN; the mock's own answer (Arcane Intellect's first rank and
--- nothing else) where none does. PROBE_KNOWN in the environment, ids with
--- anything between them ("1459,23028"), names them for any situation, for a
--- run by hand.
-local PROBE_KNOWN
-local function knowSpells(ids)
-	local set = {}
-	for _, id in ipairs(ids) do set[id] = true end
-	function IsSpellKnown(id) return set[id] == true end
-	function IsPlayerSpell(id) return set[id] == true end
-end
-
--- What the bags hold, by item id, for the group casts' reagents. Only a
--- situation that carries some installs the item API, which the mock has none
--- of, so the others read the client exactly as before.
-local bags = {}
-local function carry(item, count)
-	bags[item] = count
-	C_Item = { GetItemCount = function(id) return bags[id] or 0 end }
-	function GetItemCount(id) return bags[id] or 0 end
-end
-
--- LibRangeCheck-3.0 ships in the zip (embeds.xml), so it is there in game.
-Mock.rangeCheck = {}
-Mock.class = cfg.class or "MAGE"
-ME.class = Mock.class
-
--- ------------------------------------------------------------------ situations
-
-local SITUATIONS = {}
-
--- Out in the world alone: no target, no focus, nothing under the cursor, no
--- group and no nameplate.
-function SITUATIONS.idle()
-	W.auraCount = 3
-end
-
--- A capital: twenty strangers' nameplates at every distance, one of them
--- targeted and another under the cursor; a friend and a guildmate among them,
--- one stranger owed a favour and one who buffed you and walked off.
-function SITUATIONS.city()
-	W.resting = true
-	W.auraCount = 5
-	local YARDS = { 4, 9, 15, 22, 28, 34, 41, 55 }
-	for i = 1, 20 do
-		local p = person(i, nil, { yards = YARDS[(i - 1) % #YARDS + 1] })
-		W.plates[#W.plates + 1] = "nameplate" .. i
-		bind("nameplate" .. i, p)
-	end
-	tokens.nameplate5.guild = true
-	friendGuid[tokens.nameplate11.guid] = true
-	bind("target", tokens.nameplate3)
-	bind("mouseover", tokens.nameplate8)
-	local owedHere = tokens.nameplate14
-	W.owed[#W.owed + 1] = { name = owedHere.name .. " " .. owedHere.surname, class = owedHere.class }
-	W.owed[#W.owed + 1] = { name = "Gone Away", class = "PRIEST" }
-	for _, token in ipairs(W.plates) do W.others[#W.others + 1] = token end
-	W.others[#W.others + 1] = "target"
-	W.others[#W.others + 1] = "mouseover"
-end
-
--- A five-player dungeon between pulls: a warrior, a priest, a rogue and a
--- hunter, the tank on focus, and three mobs' nameplates up with one of them
--- targeted. The priest buffed you on the way in.
-function SITUATIONS.dungeon()
-	W.instance = "party"
-	W.auraCount = 8
-	W.party = {}
-	local roles = { "WARRIOR", "PRIEST", "ROGUE", "HUNTER" }
-	for i = 1, 4 do
-		local p = person(i + 20, roles[i], { yards = 6 + i * 4, inParty = true, guild = i <= 2 })
-		W.party[i] = p
-		bind("party" .. i, p)
-		W.others[#W.others + 1] = "party" .. i
-	end
-	W.party[1].buffed = true
-	for i = 1, 3 do
-		W.plates[#W.plates + 1] = "nameplate" .. i
-		bind("nameplate" .. i, mob(i))
-		W.others[#W.others + 1] = "nameplate" .. i
-	end
-	bind("target", tokens.nameplate1)
-	bind("focus", W.party[1])
-	W.owed[#W.owed + 1] = { name = W.party[2].name .. " " .. W.party[2].surname, class = "PRIEST" }
-end
-
--- A forty-player raid at the pull: eight groups of five with the player in the
--- first, most of it close and the rest spread out, half of it guildmates and a
--- few friends; ten nameplates, six of them raid members (one person reached
--- through two tokens) and four mobs; the main tank targeted, the off tank on
--- focus, a healer under the cursor; a ready check running. Three people owed.
-function SITUATIONS.raid()
-	W.instance = "raid"
-	W.auraCount = 16
-	W.readyCheck = true
-	W.raid = {}
-	ME.raidIndex, ME.subgroup = 1, 1
-	W.raid[1] = ME
-	tokens.raid1 = ME
-	for i = 2, 40 do
-		local yards = (i % 5 == 0) and (32 + i) or (5 + (i * 3) % 25)
-		local p = person(i, nil, { yards = yards, raidIndex = i, subgroup = math.ceil(i / 5),
-			guild = i % 2 == 0, buffSource = "raid" .. ((i * 11) % 40 + 1) })
-		W.raid[i] = p
-		bind("raid" .. i, p)
-	end
-	friendGuid[W.raid[9].guid], friendGuid[W.raid[17].guid], friendGuid[W.raid[33].guid] = true, true, true
-	for i = 1, 40 do W.others[#W.others + 1] = "raid" .. i end
-	for i = 1, 10 do
-		W.plates[#W.plates + 1] = "nameplate" .. i
-		if i <= 6 then bind("nameplate" .. i, W.raid[i + 1]) else bind("nameplate" .. i, mob(i)) end
-	end
-	bind("target", W.raid[2])
-	bind("focus", W.raid[3])
-	bind("mouseover", W.raid[12])
-	for _, i in ipairs({ 4, 21, 38 }) do
-		W.owed[#W.owed + 1] = { name = W.raid[i].name .. " " .. W.raid[i].surname, class = W.raid[i].class }
-	end
-end
-
--- The city with a never-offer list of `cfg.never` names (fifty unless the
--- driver says) that match nobody there. The list is asked about everybody the
--- walk meets and again about every passer-by it remembers, and the city has
--- both; the run fails if nobody is remembered.
-function SITUATIONS.citynever()
-	SITUATIONS.city()
-	W.never = math.floor(tonumber(cfg.never) or 50)
-	W.wantPassersBy = true
-end
-
--- The raid, for a mage who has learned Arcane Brilliance and carries Arcane
--- Powder, with a group cast for two of a party missing the buff: each raid
--- group short of it folds into one cast, which reads the roster and the PvP
--- flags as it forms. The run fails if no group cast forms.
-function SITUATIONS.raidgc()
-	SITUATIONS.raid()
-	PROBE_KNOWN = { 1459, 23028 }
-	carry(17020, 20)
-	W.atLeast = 2
-	W.wantGroupCast = true
-end
-
-local setup = SITUATIONS[situation]
-if not setup then error("perf_probe: no such situation: " .. tostring(situation)) end
-setup()
-Mock.auraCount = W.auraCount
+-- The situations live in tools/perf_world.lua, which the budget scenario
+-- (tests/scenarios/perf-budget.lua) loads too, so both stand in the same
+-- crowds. Taken from this probe's own tree (cfg.world), never the measured
+-- one's: an older checkout has none. PROBE_KNOWN in the environment, spell ids
+-- with anything between them ("1459,23028"), says which spells the player has
+-- learned, in any situation, for a run by hand.
+local known
 do
 	local env = os.getenv("PROBE_KNOWN")
 	if env and env ~= "" then
-		PROBE_KNOWN = {}
-		for id in env:gmatch("%d+") do PROBE_KNOWN[#PROBE_KNOWN + 1] = tonumber(id) end
+		known = {}
+		for id in env:gmatch("%d+") do known[#known + 1] = tonumber(id) end
 	end
-	if PROBE_KNOWN then knowSpells(PROBE_KNOWN) end
 end
+local World = dofile((tostring(cfg.world):gsub("\\", "/")))
+local world = World.new({ situation = situation, class = cfg.class, never = cfg.never, known = known })
+local W = world.W
+-- Globals read that the mock does not have: each one runs the mock's
+-- metatable, which the client has no equivalent of, and a pcall of one fails.
+-- Both are the mock's cost rather than the addon's, and worth knowing.
+world.onMissing = function(key)
+	if bucket and mode == "count" then
+		local miss = tally(bucket).missing
+		miss[key] = (miss[key] or 0) + 1
+	end
+end
+world.install()
 
 -- ------------------------------------------------------------------ the addon
 
@@ -629,43 +250,9 @@ for _, file in ipairs(files) do
 	chunk("Manners", ns)
 end
 local addon = ns.addon
--- An older version with no ready check to hear has none run at it.
-W.readyCheck = W.readyCheck and type(addon.READY_CHECK) == "function"
-	and type(addon.READY_CHECK_FINISHED) == "function"
-addon:OnInitialize()
-addon:OnEnable()
-addon:PLAYER_ENTERING_WORLD(nil, true, false)
-for _, token in ipairs(W.plates) do addon:NAME_PLATE_UNIT_ADDED(nil, token) end
--- The greeting and the settled baseline of the player's own buffs.
-if Mock.runTimers then Mock.runTimers(3) else Mock.advance(3) end
-
-local profile = addon.db.profile
--- A favour owed to somebody no token reaches ("Gone Away") is offered for
--- graceSeconds after it arrived. Kept offered for the whole run, however long
--- a mode runs, like every other favour here.
-profile.timing.graceSeconds = 1e9
-if W.atLeast then profile.groupBuffs.atLeast = W.atLeast end
-if W.never then
-	for i = 1, W.never do profile.never[("Listed%d Nobody"):format(i)] = true end
-end
-
--- Favours owed, kept inside their window for the whole run so that every scan
--- describes the same crowd, however many of them a mode runs. Each arrives
--- once: a favour whose arrival moved every scan would replay the prompt's
--- shine for a new one on every repaint, which is not what standing there does.
-local function keepOwed()
-	local now = GetTime()
-	for _, o in ipairs(W.owed) do
-		local entry = ns.owed[o.name]
-		if not entry then
-			entry = { class = o.class }
-			ns.owed[o.name] = entry
-		end
-		entry.at = entry.at or now
-		entry.expires = now + 600
-	end
-end
-keepOwed()
+-- The lifecycle, the settings the situation needs, its favours owed, and the
+-- first login's preview ended (see perf_world.lua).
+world.start(ns)
 
 -- ------------------------------------------------------------------ the work
 
@@ -704,7 +291,7 @@ local function nameClientFunctions()
 		end
 	end
 	for k, v in pairs(_G) do walk(k, v) end
-	for k, v in pairs(made) do walk(k, v) end
+	for k, v in pairs(world.made) do walk(k, v) end
 end
 
 -- The call hook: a client function called from outside the mock (the mock's
@@ -747,10 +334,7 @@ local function onCall()
 	end
 end
 
-local function advance()
-	Mock.advance(STEP)
-	keepOwed()
-end
+local function advance() world.advance(STEP) end
 
 -- One step of a phase: what it is charged to, and what it does.
 local function tick() addon:Tick() end
@@ -794,13 +378,6 @@ local function run(steps)
 	end
 end
 
--- The first login's twenty-second preview of the prompt, which would otherwise
--- run through the warm-up and into the measured scans: nobody stands in a
--- city watching it.
-if ns.Prompt and type(ns.Prompt.InTest) == "function" and ns.Prompt:InTest() then
-	ns.Prompt:ExitTest()
-end
-
 -- Warm the caches the way somebody standing here has them.
 for _ = 1, 10 do advance() tick() timers() end
 
@@ -838,7 +415,7 @@ do
 		out.problems[#out.problems + 1] = situation .. ": nobody remembered as a passer-by"
 	end
 	local people = 0
-	for _ in pairs(tokens) do people = people + 1 end
+	for _ in pairs(world.tokens) do people = people + 1 end
 	out.tokens = people
 	out.plates = #W.plates
 	out.others = #W.others
@@ -950,7 +527,7 @@ elseif mode == "time" then
 		for _ = 1, n do advance() nothing() end
 		local spent = clock() - t0
 		Mock.now, Mock.epoch = now, epoch
-		keepOwed()
+		world.keepOwed()
 		return spent
 	end
 

@@ -53,7 +53,8 @@ citynever remembered nobody) exits 1 as well.
 The time is the mock's, whose client API is Lua where the game's is C, so it is
 for comparing two versions of the addon on one machine and not a promise about
 frame time. The counts and the allocations are the addon's own and carry over.
-The situations themselves are in tools/perf_probe.lua. tools/profile_scan.py is
+The situations themselves are in tools/perf_world.lua, which
+tests/scenarios/perf-budget.lua loads too. tools/profile_scan.py is
 the other half: time and client API calls per function, in one worst crowd.
 
 To measure an older version, check it out somewhere (`git worktree add`) and
@@ -72,6 +73,7 @@ from lupa import lua51 as lupa
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PROBE = os.path.join(HERE, "perf_probe.lua")
+WORLD = os.path.join(HERE, "perf_world.lua")
 DEFAULT_ADDON = os.path.dirname(HERE)
 SITUATIONS = ("idle", "city", "dungeon", "raid", "citynever", "raidgc")
 
@@ -138,6 +140,7 @@ def probe(addon, situation, mode, args):
         files = L.table_from(addon_files(addon))
     cfg = L.table_from({
         "addon": addon.replace("\\", "/"), "files": files, "situation": situation,
+        "world": WORLD.replace("\\", "/"),
         "mode": mode, "ticks": args.ticks, "blocks": args.blocks, "minSeconds": args.min_seconds,
         "class": args.klass, "benchN": args.bench_n, "never": args.never,
     })

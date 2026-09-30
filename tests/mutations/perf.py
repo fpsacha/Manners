@@ -94,6 +94,19 @@ mutate("Core.lua",
        expect="an old reading of somebody's buffs is replaced by a new one",
        script="runscenarios.py")
 
+# The PvP flags read through safecall again, as they were before the protection
+# policy: two pcalls for every person on every scan, 80 more per raid scan,
+# which the raid's pcall budget (tests/scenarios/perf-budget.lua) is there to
+# catch. The baseline before the refactor would fail it at 161.
+mutate("Queue.lua",
+       "\tif type(isPvP) == \"function\" then pvp = plain(isPvP(unit)) end\n"
+       "\tif type(isFFA) == \"function\" then ffa = plain(isFFA(unit)) end\n",
+       "\tpvp = safecall(isPvP, unit)\n"
+       "\tffa = safecall(isFFA, unit)\n",
+       "the PvP flags back on safecall",
+       expect="perf-budget: a raid scan makes at most 30 pcalls",
+       script="runscenarios.py")
+
 # A hundred and sixty more file-level locals in Core.lua, which still loads but
 # leaves 5 free against validate's floor of 10. Core.lua has 165 free as this is
 # written (since the split into Range.lua, Queue.lua and the rest); if later

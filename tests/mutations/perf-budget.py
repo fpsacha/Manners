@@ -1,0 +1,40 @@
+# Mutations for the pcall budget per scan and for the player's own casts
+# (tests/scenarios/perf-budget.lua): a protected call put back on a busy path,
+# and the cast events handed back to AceEvent's dispatch of everybody's.
+# Each is caught by the scenario that names it.
+#
+# Run by selftest.py with mutate() in scope. Its sibling in perf.py puts the
+# PvP flags back on safecall, which the raid's budget catches.
+
+S = "runscenarios.py"
+
+# The proximity ladder's rungs asked through safecall again, for every
+# passer-by on every scan: a pcall each, eighteen more per city scan than the
+# rungs that protect their own library call need.
+mutate("Range.lua",
+       "\t\t\tlocal near, answered = rung.ask(unit)\n",
+       "\t\t\tlocal near, answered = safecall(rung.ask, unit)\n",
+       "perf-budget: the ladder's rungs back on safecall",
+       expect="perf-budget: a city scan makes at most 12 pcalls", script=S)
+
+# The player's casts registered through AceEvent again, which hands every cast
+# in sight to a handler that throws it away.
+mutate("Core.lua",
+       "\t\t\tif type(casts.RegisterUnitEvent) == \"function\" then\n",
+       "\t\t\tif false then\n",
+       "perf-budget: cast events for everybody",
+       expect="is not registered for the player alone", script=S)
+
+mutate("Core.lua",
+       "\t\t\t\tcasts:RegisterUnitEvent(event, \"player\")\n",
+       "\t\t\t\tself:RegisterEvent(event)\n",
+       "perf-budget: cast events back on AceEvent",
+       expect="goes through AceEvent, which hands every cast in sight to the handler", script=S)
+
+# The frame's script handing the payload over without the event's name, which
+# every handler takes first (AceEvent's order).
+mutate("Core.lua",
+       "function(_, event, ...) addon[event](addon, event, ...) end",
+       "function(_, event, ...) addon[event](addon, ...) end",
+       "perf-budget: the cast frame drops the event name",
+       expect="the cast frame handed the event over as", script=S)
