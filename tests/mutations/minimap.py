@@ -9,7 +9,7 @@ S = "runscenarios.py"
 
 # ------------------------------------------------------------------ clicks
 
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "\tif mouseButton == \"MiddleButton\" then\n\t\tToggleEnabled(mouseButton)\n\t\treturn\n\tend\n",
        "",
        "minimap: a middle click that does nothing",
@@ -17,25 +17,25 @@ mutate("Options.lua",
 
 # ------------------------------------------------------------------ menu
 
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "local MENU_SNOOZE_MINUTES = { 5, 15, 30, 60 }\n",
        "local MENU_SNOOZE_MINUTES = { 5, 15, 30 }\n",
        "minimap: no hour on the snooze menu",
        expect="no hour-long snooze", script=S)
 
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "\tCheck(root, L[\"Enable\"], Enabled, Act(function()\n",
        "\tCheck(root, L[\"Enable\"], function() return true end, Act(function()\n",
        "minimap: an Enable checkbox that is always ticked",
        expect="the Enable checkbox does not read the switch as off", script=S)
 
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "\t\tlist, showing = WhoIsWaiting(MENU_QUEUE_ROWS)\n",
        "\t\tlist, showing = {}, nil\n",
        "minimap: who's next lists nobody",
        expect="who's next does not list the prompt and the queue", script=S)
 
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "\t\tRadio(effects, choice.label, function() return (ns.db.profile.prompt.effects or \"full\") == choice.key end,\n",
        "\t\tRadio(effects, choice.label, function() return choice.key == \"full\" end,\n",
        "minimap: the Effects radios read nothing",
@@ -43,19 +43,19 @@ mutate("Options.lua",
 
 # ------------------------------------------------------------------ combat
 
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "\tif description.SetEnabled then description:SetEnabled(false) end\n",
        "",
        "minimap: held entries not greyed out in a fight",
        expect="is not greyed out in a fight", script=S)
 
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "\t\tif InCombatLockdown() then\n\t\t\tns.addon:Print(L[\"that has to wait until after the fight",
        "\t\tif false then\n\t\t\tns.addon:Print(L[\"that has to wait until after the fight",
        "minimap: a held entry clicked in a fight runs",
        expect="Reset position ran in a fight", script=S)
 
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "\t\tif fight then HeldForFight(choice) end\n",
        "",
        "minimap: profiles open in a fight",
@@ -63,7 +63,7 @@ mutate("Options.lua",
 
 # ------------------------------------------------------------------ who's next
 
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "local function SkipFromMenu(entry)\n\tns.BlockPerson(entry.name)\n",
        "local function SkipFromMenu(entry)\n",
        "minimap: Skip for now that skips nobody",
@@ -71,13 +71,13 @@ mutate("Options.lua",
 
 # The obvious wrong way to take somebody off the prompt at once: hide it. In a
 # fight that is a protected call on the secure button.
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "\tns.Guard(\"skip repaint\", ns.Prompt.Refresh, ns.Prompt)\n",
        "\tns.Prompt:GetButton():Hide()\n",
        "minimap: Skip for now hides the secure button",
        expect="Skip for now touched the secure button in a fight", script=S)
 
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "\tns.PutOnNeverList(entry.name)\n",
        "",
        "minimap: Never offer that lists nobody",
@@ -85,19 +85,19 @@ mutate("Options.lua",
 
 # ------------------------------------------------------------------ tooltip
 
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "\t\t\tif entry == showing then\n\t\t\t\ttooltip:AddLine(",
        "\t\t\tif false then\n\t\t\t\ttooltip:AddLine(",
        "minimap: the tooltip never names the prompt",
        expect="the tooltip does not say who is on the prompt", script=S)
 
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "\t\tif showing and InCombatLockdown() then\n",
        "\t\tif false then\n",
        "minimap: the tooltip never says held",
        expect="the tooltip does not say the prompt is held in a fight", script=S)
 
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "\t\ttooltip:AddLine(Enabled() and L[\"Middle click: switch it off\"]\n"
        "\t\t\tor L[\"Middle click: switch it on\"], 0.6, 0.6, 0.6)\n",
        "",
@@ -106,19 +106,19 @@ mutate("Options.lua",
 
 # ------------------------------------------------------------------ at a glance
 
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "\tif broker.iconR ~= r then broker.iconR = r end\n",
        "",
        "minimap: an icon that never dims",
        expect="the icon is not dimmed while off", script=S)
 
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "\tif not Enabled() then return 0.4, 0.4, 0.4 end\n",
        "",
        "minimap: an icon that ignores the switch",
        expect="the icon is not dimmed while off", script=S)
 
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "\t\t\tif ok and type(ends) == \"number\" and ends > now then n = n + 1 end\n",
        "",
        "minimap: a launcher that counts no favours",
@@ -132,31 +132,31 @@ mutate("Queue.lua",
 
 # ------------------------------------------------------------------ compartment
 
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "\tns.Guard(\"addon compartment\", RegisterCompartment)\n",
        "",
        "minimap: never in the addon compartment",
        expect="never registered in the addon compartment", script=S)
 
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "\tif compartment or type(frame) ~= \"table\" or type(frame.RegisterAddon) ~= \"function\" then\n",
        "\tif compartment then\n",
        "minimap: the compartment assumed",
        expect="a client without the addon compartment loads clean", script=S)
 
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "\tif later and C_Timer and C_Timer.After then\n",
        "\tif false then\n",
        "minimap: the menu opened inside the compartment",
        expect="the menu opened inside the compartment's own click", script=S)
 
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "\tif compartment then compartment.text = text end\n",
        "",
        "minimap: a compartment line that never says the state",
        expect="the compartment line does not say Manners is off", script=S)
 
-mutate("Options.lua",
+mutate("Options/Start.lua",
        "\t\t\tif CompartmentShown() then\n",
        "\t\t\tif false then\n",
        "minimap: the minimap toggle silent about the compartment",
@@ -164,61 +164,61 @@ mutate("Options.lua",
 
 # ------------------------------------------------------------------ review round
 
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "\tif not (profile and profile.sources and profile.sources.owed) then return 0 end\n",
        "",
        "minimap: counting favours nobody will be offered",
        expect="with People who buffed me off, the launcher still counts favours", script=S)
 
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "\t\tif showing and InCombatLockdown() then\n",
        "\t\tif InCombatLockdown() then\n",
        "minimap: held in combat with no prompt up",
        expect="the tooltip says a prompt is held in a fight with no prompt up", script=S)
 
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "\tif onPrompt and InCombatLockdown() then\n",
        "\tif false then\n",
        "minimap: a skip in a fight that claims to have worked",
        expect="Skip for now on the prompt in a fight claimed the skip", script=S)
 
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "\telseif mouseButton == \"RightButton\" then\n",
        "\telseif false then\n",
        "minimap: the right click told to middle-click",
        expect="a right click that switched it off names another way back", script=S)
 
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "\tif reason == \"owed\" then return owed end\n",
        "",
        "minimap: every reason read as nearby",
        expect="does not say why Anna is there", script=S)
 
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "\tif ends and not heldOnly then\n\t\tNobody(parent, L[\"Nobody -- snoozed until %s\"]:format(ends))\n\t\treturn\n\tend\n",
        "",
        "minimap: who's next listing people while snoozed",
        expect="while snoozed, who's next lists people no prompt will offer", script=S)
 
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "\tif not watching then\n\t\tNobody(parent, line)\n",
        "\tif false then\n\t\tNobody(parent, line)\n",
        "minimap: who's next listing people with nothing to cast",
        expect="with nothing to cast, who's next still lists people", script=S)
 
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "\tif not ok or #names < 2 then return end\n",
        "\tif not ok or #names == 0 then return end\n",
        "minimap: a Profiles submenu with one profile",
        expect="the menu offers a Profiles submenu with one profile in it", script=S)
 
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "\tDivider(root)\n\tFillWhoIsNext(root:CreateButton(L[\"Who's next\"]))\n",
        "\tFillWhoIsNext(root:CreateButton(L[\"Who's next\"]))\n",
        "minimap: a menu in one run",
        expect="the menu is not grouped as it should be", script=S)
 
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "\tif ns.SnoozeLeft and ns.SnoozeLeft() then return 0.7, 0.7, 0.7 end\n",
        "\tif ns.SnoozeLeft and ns.SnoozeLeft() then return 1, 0.78, 0.35 end\n",
        "minimap: a snooze tint that changes the icon's colours",

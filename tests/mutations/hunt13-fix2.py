@@ -115,13 +115,13 @@ mutate("Prompt.lua",
        "fix2: owed-only sound ignored for a mage",
        expect="a group member made a sound with Only for people who buff me on", script=S)
 
-mutate("Options.lua",
+mutate("Options/Look.lua",
        "\t\t\t\torder = 35,\n\t\t\t\thidden = function() return not HasClassBuffs() end,\n",
        "\t\t\t\torder = 35,\n",
        "fix2: owed-only sound shown to a hunter",
        expect="soundOwedOnly is shown to a hunter", script=S)
 
-mutate("Options.lua",
+mutate("Options/Look.lua",
        "\t\t\t\torder = 31,\n\t\t\t\thidden = function() return not HasClassBuffs() end,\n",
        "\t\t\t\torder = 31,\n",
        "fix2: favour flash shown to a hunter",

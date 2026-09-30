@@ -232,19 +232,19 @@ mutate("Queue.lua",
        "self: stopping leaves the switch on",
        expect="shift-right-click left the switch on", script=S)
 
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "\tif reason == \"self\" then return own end\n",
        "",
        "self: launcher calls you nearby",
        expect="the launcher's tooltip reads", script=S)
 
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "\tif entry.reason == \"self\" then\n\t\tns.addon:Print(L[\"skipping your own buff for now.\"])\n",
        "\tif false then\n\t\tns.addon:Print(L[\"skipping your own buff for now.\"])\n",
        "self: menu skip names you like a stranger",
        expect="Skip for now on you reads", script=S)
 
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "\tif entry.reason == \"self\" then\n\t\tns.StopOfferingSelf()\n",
        "\tif false then\n\t\tns.StopOfferingSelf()\n",
        "self: menu never lists you",
@@ -291,31 +291,31 @@ mutate("Core.lua",
        "self: broken wording kept",
        expect="a broken wording was kept", script=S)
 
-mutate("Options.lua",
+mutate("Options/Who.lua",
        "\t\t\t\t\t\tor OffersSelf()\n",
        "",
        "self: warning forgets you",
        expect="with only yourself on, the page says", script=S)
 
-mutate("Options.lua",
+mutate("Options/Start.lua",
        "\tif own then\n\t\twho[#who + 1] =",
        "\tif false then\n\t\twho[#who + 1] =",
        "self: summary forgets you",
        expect="the summary on Start here leaves you out", script=S)
 
-mutate("Options.lua",
+mutate("Options/Who.lua",
        "\t\t\t\torder = 15.1,\n\t\t\t\twidth = \"full\",\n\t\t\t\thidden = NothingForSelf,\n",
        "\t\t\t\torder = 15.1,\n\t\t\t\twidth = \"full\",\n",
        "self: switch shown to a warrior",
        expect="the Myself switch is shown to a warrior", script=S)
 
-mutate("Options.lua",
+mutate("Options/Advanced.lua",
        "\t\t{ \"prompt\", \"reasonSelf\" },\n",
        "",
        "self: reset keeps your wording",
        expect="Put these back to default kept", script=S)
 
-mutate("Options.lua",
+mutate("Options/Diagnostics.lua",
        "\t\ttostring(db.sources.self),\n",
        "\t\t\"?\",\n",
        "self: bug report leaves the switch out",
@@ -347,13 +347,13 @@ mutate("Prompt.lua",
        "self: saving-mana empty press leaves you out",
        expect="an empty press while saving mana leaves your own buff out", script=S)
 
-mutate("Options.lua",
+mutate("Options/When.lua",
        "\t\t\t\t\treturn OffersSelf() and L[\"Below this, only your own buff",
        "\t\t\t\t\treturn false and L[\"Below this, only your own buff",
        "self: mana floor description leaves you out",
        expect="the mana floor's description leaves your own buff out", script=S)
 
-mutate("Options.lua",
+mutate("Options/When.lua",
        "\t\t\t\t\telseif OffersSelf() then\n",
        "\t\t\t\t\telseif false then\n",
        "self: mana note leaves you out",
@@ -368,25 +368,25 @@ mutate("Core.lua",
 
 # --- Start here ---
 
-mutate("Options.lua",
+mutate("Options/Start.lua",
        "\t\t[\"filters.whenBuffed\"] = \"skip\", [\"sources.self\"] = false,\n",
        "\t\t[\"filters.whenBuffed\"] = \"skip\",\n",
        "self: Only people who buff me offers you",
        expect="Only people who buff me left you offered", script=S)
 
-mutate("Options.lua",
+mutate("Options/Start.lua",
        "\t\t[\"filters.whenBuffed\"] = \"skip\", [\"sources.self\"] = false,\n\t}, applyOnly = { [\"sources.self\"] = true } },\n",
        "\t\t[\"filters.whenBuffed\"] = \"skip\", [\"sources.self\"] = false,\n\t} },\n",
        "self: an old profile shows Custom",
        expect="a profile from before 1.2 shows", script=S)
 
-mutate("Options.lua",
+mutate("Options/Start.lua",
        "\t\t[\"filters.whenBuffed\"] = \"skip\", [\"sources.self\"] = true,\n",
        "\t\t[\"filters.whenBuffed\"] = \"skip\",\n",
        "self: moving on from favours leaves you out",
        expect="moving on from Only people who buff me to group left you out", script=S)
 
-mutate("Options.lua",
+mutate("Options/Start.lua",
        "\t\t[\"sources.self\"] = true,\n\t}, applyOnly = { [\"filters.proximity\"] = true, [\"sources.self\"] = true } },\n",
        "\t\t[\"sources.self\"] = true,\n\t}, applyOnly = { [\"filters.proximity\"] = true } },\n",
        "self: switching yourself off leaves the preset",

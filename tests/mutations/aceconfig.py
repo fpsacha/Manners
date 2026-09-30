@@ -7,7 +7,7 @@ S = "runscenarios.py"
 
 # The 1.1.2 bug: a function in `width`, which AceConfigDialog reads but the
 # registry refuses, so the page would not open at all.
-mutate("Options.lua",
+mutate("Options/Register.lua",
        "\t\tnode.width = FITTERS[kind](info)\n",
        "\t\tnode.width = FITTERS[kind]\n",
        "aceconfig: a function for a width",
@@ -15,7 +15,7 @@ mutate("Options.lua",
        script=S)
 
 # A key the registry does not know, on a control every class sees.
-mutate("Options.lua",
+mutate("Options/Start.lua",
        "\t\t\t\tconfirm = function(_, v) return Quick.Confirm(Quick.VOICE, v) end,\n",
        "\t\t\t\tconfirm = function(_, v) return Quick.Confirm(Quick.VOICE, v) end,\n"
        "\t\t\t\ttooltip = \"not a key AceConfig knows\",\n",

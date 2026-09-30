@@ -21,12 +21,12 @@ mutate("Core.lua",
        "",
        "thank: a garbage setting is not repaired",
        expect="a setting that is not a yes or no was kept", script=S)
-mutate("Options.lua",
+mutate("Options/Say.lua",
        "\t\t\t\tset = function(_, v) P().thankEmote = v end,\n",
        "\t\t\t\tset = function(_, v) end,\n",
        "thank: the toggle writes nothing",
        expect="the toggle does not switch the setting on", script=S)
-mutate("Options.lua",
+mutate("Options/Say.lua",
        "\t\t\t\tdisabled = function() return not S().owed end,\n"
        "\t\t\t\tget = function() return P().thankEmote end,\n",
        "\t\t\t\tget = function() return P().thankEmote end,\n",

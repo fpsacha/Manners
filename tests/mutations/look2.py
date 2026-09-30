@@ -144,7 +144,7 @@ mutate("Prompt.lua",
 
 # The palette greyed out wherever the ring is off, though the list's bars,
 # the glow and a press's wash still draw it.
-mutate("Options.lua",
+mutate("Options/Look.lua",
        "\t\t\t\t\treturn not p.accentByReason and not p.showQueue\n",
        "\t\t\t\t\treturn not p.accentByReason or (p.accentMode or \"icon\") == \"off\"\n",
        "reason palette locked with the ring off",
@@ -170,7 +170,7 @@ mutate("Prompt.lua",
 
 # The options page's buttons left at AceConfigDialog's 170 pixels, whatever
 # their label: "Put these back to de...".
-mutate("Options.lua",
+mutate("Options/Register.lua",
        '\t\t\t\tkind = "button"\n',
        '\t\t\t\tkind = false\n',
        "options buttons not fitted",
@@ -178,7 +178,7 @@ mutate("Options.lua",
        script="runscenarios.py")
 
 # ...and the dropdowns: "Above the action bars (d...".
-mutate("Options.lua",
+mutate("Options/Register.lua",
        '\t\t\t\tkind = "select"\n',
        '\t\t\t\tkind = false\n',
        "options dropdowns not fitted",
@@ -186,7 +186,7 @@ mutate("Options.lua",
        script="runscenarios.py")
 
 # Measured without the room AceGUI keeps beside a button's label.
-mutate("Options.lua",
+mutate("Options/Register.lua",
        "local BUTTON_PAD = 30 + 6\n",
        "local BUTTON_PAD = 0\n",
        "options buttons fitted without the padding",
@@ -194,7 +194,7 @@ mutate("Options.lua",
        script="runscenarios.py")
 
 # ...or beside a dropdown's text.
-mutate("Options.lua",
+mutate("Options/Register.lua",
        "local SELECT_PAD = 36 + 6\n",
        "local SELECT_PAD = 0\n",
        "options dropdowns fitted without the padding",

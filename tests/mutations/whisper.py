@@ -174,14 +174,14 @@ mutate("Prompt.lua",
        script="runscenarios.py")
 
 # The dropdown without the choice, or without saying who hears it.
-mutate("Options.lua",
+mutate("Options/Say.lua",
        "\t\t\t\t\tWHISPER = L[\"Whisper them\"],\n",
        "",
        "no Whisper them in the dropdown",
        expect="whisper: other channels unchanged",
        script="runscenarios.py")
 
-mutate("Options.lua",
+mutate("Options/Say.lua",
        "\t\t\t\tdesc = L[\"Whisper them sends it only to the person you buff.\"],\n",
        "",
        "Channel dropdown does not say who hears it",

@@ -156,7 +156,7 @@ mutate("Phrases.lua",
        script="runscenarios.py")
 
 # The box shows the examples the profile was saved with, not this character's.
-mutate("Options.lua",
+mutate("Options/Say.lua",
        "\t\t\t\t\tif ns.InCharacter and ns.InCharacter.Active(SP()) then\n"
        "\t\t\t\t\t\treturn ns.PhraseSetText(\"incharacter\")\n",
        "\t\t\t\t\tif false then\n"
@@ -166,7 +166,7 @@ mutate("Options.lua",
        script="runscenarios.py")
 
 # The dropdown blank on a character sharing the profile.
-mutate("Options.lua",
+mutate("Options/Say.lua",
        "\t\t\t\t\tif ns.InCharacter and ns.InCharacter.Active(SP()) then return choice end\n",
        "",
        "dropdown blank on a shared profile",
@@ -174,7 +174,7 @@ mutate("Options.lua",
        script="runscenarios.py")
 
 # Roll a few rolls the box's examples as though they were the lines.
-mutate("Options.lua",
+mutate("Options/Say.lua",
        "\t\t\t\t\t\tns.InCharacter.Roll(L[\"Somebody\"])\n"
        "\t\t\t\t\t\treturn\n",
        "",

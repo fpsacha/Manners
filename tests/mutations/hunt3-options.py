@@ -6,71 +6,71 @@
 S = "runscenarios.py"
 
 # ------------------------------------------------------------------ options-2
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "\telseif snoozeLeft and held then\n",
        "\telseif snoozeLeft and false then\n",
        "hunt3-options: a snooze in a fight denies the held prompt",
        expect="snoozed in a fight, the tooltip denies the prompt it holds", script=S)
 
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "\t\tif heldOnly then list = showing and { showing } or {} end\n",
        "",
        "hunt3-options: a snooze in a fight lists the whole queue",
        expect="snoozed in a fight, the tooltip lists people the snooze will not offer", script=S)
 
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "\t\tif InCombatLockdown() and ArmedButtonLeft() then\n",
        "\t\tif false then\n",
        "hunt3-options: off in a fight denies the armed panel",
        expect="switched off in a fight, the tooltip denies the prompt still armed", script=S)
 
 # ------------------------------------------------------------------ options-3
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "\telseif not held and ns.HiddenWhileMounted and ns.HiddenWhileMounted() then\n",
        "\telseif false then\n",
        "hunt3-options: the launcher ignores the mount",
        expect="hunt3-options: the launcher names the mount", script=S)
 
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "\telseif DragPanelUp() then\n\t\t-- Ahead of the snooze",
        "\telseif false then\n\t\t-- Ahead of the snooze",
        "hunt3-options: the launcher ignores the lock",
        expect="unlocked, the tooltip says it is watching and names people", script=S)
 
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "\tif DragPanelUp() and not heldOnly then\n\t\tNobody(parent, line)\n",
        "\tif false then\n\t\tNobody(parent, line)\n",
        "hunt3-options: who's next puts the snooze before the lock",
        expect="snoozed while unlocked, who's next does not say the prompt is unlocked", script=S)
 
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "\t\tlocal waiting = WaitingCount()\n\t\tif waiting == 1 then\n\t\t\tNobody(",
        "\t\tlocal waiting = 0\n\t\tif waiting == 1 then\n\t\t\tNobody(",
        "hunt3-options: who's next denies the favours waiting",
        expect="hunt3-options: who's next does not deny favours it cannot offer", script=S)
 
 # ------------------------------------------------------------------ options-4
-mutate("Options.lua",
+mutate("Options/Start.lua",
        "elseif ends and DragPanelUp() then\n",
        "elseif false then\n",
        "hunt3-options: the snooze note ignores the lock",
        expect="hunt3-options: the snooze note knows the prompt is unlocked", script=S)
 
 # ------------------------------------------------------------------ options-5
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "\t\t\tif ns.Prompt:InTest() then\n\t\t\t\tns.addon:HandleSlash(\"test\")\n",
        "\t\t\tif true then\n\t\t\t\tns.addon:HandleSlash(\"test\")\n",
        "hunt3-options: End the preview toggles",
        expect="End the preview, clicked after it had ended, started a new one", script=S)
 
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "if not ns.Prompt:InTest() then ns.addon:HandleSlash(\"test\") end",
        "ns.addon:HandleSlash(\"test\")",
        "hunt3-options: Preview the prompt toggles",
        expect="Preview the prompt, clicked over a running preview, ended it", script=S)
 
 # ------------------------------------------------------------------ options-6
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "\t\tif listed and not owedNow then\n",
        "\t\tif false then\n",
        "hunt3-options: a favour to let go for nobody owed",
@@ -79,19 +79,19 @@ mutate("Options.lua",
 # ------------------------------------------------------------------ review-1
 # Unlocked in a fight: the tooltip and Who's next said "casts nothing" over a
 # macro the fight keeps armed, and dropped the held person's Skip.
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "\t\tif held then\n\t\t\treturn true, L[\"Unlocked, but",
        "\t\tif false then\n\t\t\treturn true, L[\"Unlocked, but",
        "hunt3-options: unlocked in a fight drops the held one",
        expect="unlocked in a fight, who's next drops the person a press still casts at", script=S)
 
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "\t\telseif InCombatLockdown() and ArmedButtonLeft() then\n\t\t\treturn false, L[\"Unlocked --",
        "\t\telseif false then\n\t\t\treturn false, L[\"Unlocked --",
        "hunt3-options: unlocked in a fight denies the macro",
        expect="after a pass the tooltip does not say a press still casts", script=S)
 
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "\tif heldOnly and DragPanelUp() then\n\t\tNobody(parent, L[\"Nobody else -- the prompt is unlocked\"])\n\telseif",
        "\tif false then\n\t\tNobody(parent, L[\"Nobody else -- the prompt is unlocked\"])\n\telseif",
        "hunt3-options: unlocked in a fight, nobody after unsaid",
@@ -99,20 +99,20 @@ mutate("Options.lua",
 
 # ------------------------------------------------------------------ review-2
 # The lock alone, where nothing castable or /manners off keeps the panel down.
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "\t\tand ns.caps ~= nil and ns.CanCastAnything()\n",
        "\t\tand true\n",
        "hunt3-options: drag panel with nothing to cast",
        expect="a rogue, unlocked, is told there is a prompt to drag", script=S)
 
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "\treturn Enabled() and ns.db.profile.prompt.locked == false\n",
        "\treturn ns.db.profile.prompt.locked == false\n",
        "hunt3-options: drag panel while switched off",
        expect="switched off, unlocked and snoozed, the snooze note offers a prompt to drag", script=S)
 
 # ------------------------------------------------------------------ review-4
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "L[\"Kept away while you are mounted -- %s, on the %s tab.\"]\n\t\t\t:format(L[\"Hide the prompt while I'm mounted\"], L[\"When to offer\"])",
        "L[\"Kept away while you are mounted -- Hide the prompt while I'm mounted, on the When to offer tab.\"]",
        "hunt3-options: the mount line hard-codes labels",
