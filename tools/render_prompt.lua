@@ -310,6 +310,59 @@ R.states = {
 	{ key = "round", title = "Round icon", at = 0.85, setup = withPrompt(function(p)
 		p.roundIcon = true
 	end) },
+	-- The looks from Looks/ are the default now; the one that was, drawn by
+	-- name so it is still seen.
+	{ key = "glass", title = "Look: glass", at = 0.85, setup = withPrompt(function(p)
+		p.style = "glass"
+	end) },
+	{ key = "hover", title = "The cursor on the panel", at = 0.3, setup = function(ns)
+		boot(ns, OWED)
+		owe(ns, "Anna Aim")
+		tick(ns)
+		local button = ns.Prompt:GetButton()
+		if button.scripts.OnEnter then button.scripts.OnEnter(button) end
+	end },
+	{ key = "list-above", title = "Queue list above the panel", at = 0.85, setup = function(ns)
+		Mock.groupSize = 2
+		partyIsParty()
+		-- Low on the screen, where the list hangs over the panel.
+		Mock.promptCentreY = 120
+		boot(ns, { party1 = { "Gwen", "Hollow" }, nameplate1 = { "Anna", "Aim" },
+			nameplate2 = { "Brannoc", "Vale" }, nameplate3 = { "Corwin", "Ash" } })
+		ns.db.profile.prompt.showQueue = true
+		ns.db.profile.prompt.queueRows = 3
+		ns.Prompt:ApplyStyle()
+		owe(ns, "Anna Aim")
+		tick(ns)
+	end },
+	{ key = "one-line", title = "Second line off", at = 0.85, setup = withPrompt(function(p)
+		p.showSub = false
+		p.height = 32
+	end) },
+	{ key = "no-icon", title = "Icon off", at = 0.85, setup = withPrompt(function(p)
+		p.showIcon = false
+	end) },
+	{ key = "small-size", title = "180 x 40, 11 pt, icon 26", at = 0.85, setup = withPrompt(function(p)
+		p.width, p.height, p.fontSize, p.iconSize = 180, 40, 11, 26
+	end) },
+	{ key = "large-size", title = "320 x 58, 17 pt, icon 40", at = 0.85, setup = withPrompt(function(p)
+		p.width, p.height, p.fontSize, p.iconSize = 320, 58, 17, 40
+	end) },
+	{ key = "combat-bright", title = "Held in combat, over a bright world", at = 0.85,
+		backdrop = "bright", setup = function(ns)
+		boot(ns, OWED)
+		owe(ns, "Anna Aim")
+		tick(ns)
+		Mock.inCombat = true
+		ns.addon:PLAYER_REGEN_DISABLED()
+		tick(ns)
+	end },
+	{ key = "calm-owed", title = "Somebody buffed you, Effects: Calm", at = 0.85, setup = function(ns)
+		boot(ns, OWED)
+		ns.db.profile.prompt.effects = "calm"
+		owe(ns, "Anna Aim")
+		tick(ns)
+	end },
 	{ key = "small", title = "Scale 0.7", at = 0.85, setup = withPrompt(function(p)
 		p.scale = 0.7
 	end) },

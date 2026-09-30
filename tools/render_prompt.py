@@ -379,16 +379,34 @@ def icon_tile(file, w, h):
     return np.asarray(img).astype(np.float32) / 255
 
 
+_art_cache = {}
+
+
 def load_image_file(file):
-    """An art file shipped with the addon, if the path points at one."""
+    """An art file shipped with the addon, if the path points at one: the
+    part after AddOns/Manners/ is where it sits in the tree, subfolders
+    (Textures/Luxe/...) included."""
     if not isinstance(file, str):
         return None
     if "Manners" in file and "Textures" in file:
-        path = os.path.join(ROOT, "Textures", os.path.basename(file.replace("\\", "/")))
+        rel = re.split(r"(?i)addons[\/]+manners[\/]+", file.replace("\\", "/"))[-1]
+        path = os.path.join(ROOT, *rel.split("/"))
         for candidate in (path, path + ".tga"):
             if os.path.exists(candidate):
-                return np.asarray(Image.open(candidate).convert("RGBA")).astype(np.float32) / 255
+                if candidate not in _art_cache:
+                    _art_cache[candidate] = np.asarray(
+                        Image.open(candidate).convert("RGBA")).astype(np.float32) / 255
+                return _art_cache[candidate]
     return None
+
+
+def art_alpha(file, w, h):
+    """A shipped file's alpha, stretched to w x h pixels, or None."""
+    art = load_image_file(file)
+    if art is None or w <= 0 or h <= 0:
+        return None
+    img = Image.fromarray((art[..., 3] * 255).astype(np.uint8), "L")
+    return np.asarray(img.resize((w, h), Image.LANCZOS)).astype(np.float32) / 255
 
 
 class Canvas:
@@ -671,8 +689,22 @@ def draw_texture(canvas, tree, r, box, alpha, px, to_px, place):
                 yy += iy0 + 0.5
                 ccx, ccy = (mx0 + mx1) / 2, (my0 + my1) / 2
                 rx, ry = max(1e-3, (mx1 - mx0) / 2), max(1e-3, (my1 - my0) / 2)
-                d = np.sqrt(((xx - ccx) / rx) ** 2 + ((yy - ccy) / ry) ** 2)
-                rgba[..., 3] *= np.clip((1 - d) * rx, 0, 1)
+                # A mask shipped with the addon is drawn from its own alpha;
+                # the client's portrait mask is the circle it is.
+                mw, mh = int(round(mx1 - mx0)), int(round(my1 - my0))
+                shape = art_alpha(m.get("file"), mw, mh)
+                if shape is not None:
+                    full = np.zeros((h, w), np.float32)
+                    ox, oy = int(round(mx0)) - ix0, int(round(my0)) - iy0
+                    sx0, sy0 = max(0, -ox), max(0, -oy)
+                    dx0, dy0 = max(0, ox), max(0, oy)
+                    dx1, dy1 = min(w, ox + mw), min(h, oy + mh)
+                    if dx0 < dx1 and dy0 < dy1:
+                        full[dy0:dy1, dx0:dx1] = shape[sy0:sy0 + dy1 - dy0, sx0:sx0 + dx1 - dx0]
+                    rgba[..., 3] *= full
+                else:
+                    d = np.sqrt(((xx - ccx) / rx) ** 2 + ((yy - ccy) / ry) ** 2)
+                    rgba[..., 3] *= np.clip((1 - d) * rx, 0, 1)
     canvas.composite(ix0, iy0, rgba[..., :3], rgba[..., 3] * cov * alpha, r.get("blend"))
 
 
@@ -701,7 +733,10 @@ def draw_cooldown(canvas, r, box, alpha, now):
     mask = np.asarray(m.resize((w, h), Image.LANCZOS)).astype(np.float32) / 255
     # The portrait mask as a swipe texture is how a round icon gets a round
     # sweep; anything else is the square default.
-    if "PortraitAlphaMask" in str(r.get("swipeTexture") or ""):
+    shipped = art_alpha(r.get("swipeTexture"), w, h)
+    if shipped is not None:
+        mask *= shipped
+    elif "PortraitAlphaMask" in str(r.get("swipeTexture") or ""):
         yy, xx = np.mgrid[0:h, 0:w].astype(np.float32)
         d = np.sqrt(((xx + 0.5 - w / 2) / (w / 2)) ** 2 + ((yy + 0.5 - h / 2) / (h / 2)) ** 2)
         mask *= np.clip((1 - d) * w / 2, 0, 1)

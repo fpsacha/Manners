@@ -57,6 +57,13 @@ local function load(scenario)
 			return nil
 		end
 	end
+	-- Every scenario written before the looks in Looks/ describes the glass
+	-- look, which was the default then; they go on describing it. The looks
+	-- of their own are held to their word in tests/scenarios/looks.lua, which
+	-- names the look it is about.
+	if ns.defaults and ns.defaults.profile and ns.defaults.profile.prompt then
+		ns.defaults.profile.prompt.style = "glass"
+	end
 	return ns
 end
 
@@ -8642,7 +8649,8 @@ do
 	-- one this is about.
 	for _, file in ipairs({ "Locales/Init.lua", "Buffs.lua", "Core.lua", "Range.lua",
 		"Speech.lua", "Queue.lua", "Requests.lua", "Favours.lua", "Clicks.lua",
-		"Commands.lua", "Ledger.lua", "Prompt.lua", "Options.lua" }) do
+		"Commands.lua", "Ledger.lua", "Looks/Looks.lua", "Looks/Luxe.lua", "Prompt.lua",
+		"Options.lua" }) do
 		local chunk, err = loadfile(dir .. "/" .. file)
 		if not chunk then
 			fail(scenario, "load " .. file .. ": " .. tostring(err))

@@ -88,6 +88,9 @@ local resultFill
 -- queueBars are the reason stripes down the left of each row.
 local queueBack, queueHair, queueBars
 local queueTextX = 0
+-- The look drawn from a file of its own (Looks/), or nil for the three drawn
+-- here. Looks/Looks.lua says what it is asked and when.
+local activeLook
 -- Goes into every click line, so a log says which build produced it.
 ns.BUILD = "1.4.0"
 
@@ -300,6 +303,7 @@ local function HideQueue()
 	end
 	queueBack:Hide()
 	queueHair:Hide()
+	if activeLook then activeLook:PaintQueue(nil, 0, queueAbove) end
 end
 
 -- Show and Hide are protected, and in combat the client refuses both silently.
@@ -1097,6 +1101,7 @@ do
 		-- the hold and the fuse wait for it (see hovering). OnUpdate calls
 		-- this again only while the tooltip is ours, so still hovering.
 		hovering = true
+		if activeLook then activeLook:Hover(true) end
 		-- Nothing armed is nothing to describe, and a tooltip left from the
 		-- last person goes with it.
 		if not current or not current.buff then
@@ -1165,6 +1170,7 @@ do
 
 	local function OnLeave()
 		GameTooltip:Hide()
+		if activeLook then activeLook:Hover(false) end
 		-- The hold and the fuse kept their clocks while the cursor was on the
 		-- panel, so whatever ran out meanwhile is put right now rather than at
 		-- the next scan. Next frame rather than here: the client sends this
@@ -1414,6 +1420,16 @@ function Prompt:Create()
 
 	self:BuildAnimations()
 
+	-- Everything only the three looks drawn here use, which a look from
+	-- Looks/ hides (ApplyLook) and ApplyStyle puts back.
+	local parts = { panel, sheen, hairTop, hairBottom, accentTop, accentBottom, sweepFrame,
+		glowFrame, iconBack, iconEdge, iconShade, burstFrame, shineFrame, countChip, resultFill,
+		queueBack, queueHair }
+	for _, list in ipairs({ shadows, edges, queueBars }) do
+		for _, part in ipairs(list) do parts[#parts + 1] = part end
+	end
+	self.builtinParts = parts
+
 	for _, script in ipairs(BUTTON_SCRIPTS) do
 		button:SetScript(script[1], script[2])
 	end
@@ -1609,7 +1625,7 @@ end
 -- art at zero, and every way back has to undo that.
 local function RestArtAlpha()
 	art.faded = nil
-	art:SetAlpha(combatHeld and 0.55 or 1)
+	art:SetAlpha(combatHeld and (activeLook and activeLook.combatArtAlpha or 0.55) or 1)
 end
 
 function Prompt:StopOutro()
@@ -1645,7 +1661,7 @@ end
 -- nil when no fade was running.
 function Prompt:ComeBack(from)
 	self:StopOutro()
-	local rest = combatHeld and 0.55 or 1
+	local rest = combatHeld and (activeLook and activeLook.combatArtAlpha or 0.55) or 1
 	if from == nil or math.abs(from - rest) < 0.02 then return end
 	if not (art.comeback and button:IsShown()) then return end
 	art.comeback:Stop()
@@ -1660,6 +1676,7 @@ function Prompt:StopFlourishes()
 	if burstFrame.anim and burstFrame.anim:IsPlaying() then burstFrame.anim:Stop() end
 	if shineFrame.anim and shineFrame.anim:IsPlaying() then shineFrame.anim:Stop() end
 	if textLayer.shake and textLayer.shake:IsPlaying() then textLayer.shake:Stop() end
+	if activeLook then activeLook:StopFlourishes() end
 end
 
 -- The band of light across the panel, brighter for a landed buff than for an
@@ -1702,6 +1719,7 @@ end
 function Prompt:StopAttention()
 	if glowFrame.pulse and glowFrame.pulse:IsPlaying() then glowFrame.pulse:Stop() end
 	glowFrame:SetAlpha(0)
+	if activeLook then activeLook:StopAttention() end
 end
 
 -- `isNew`: somebody owed has just become the one on the panel (the flash and
@@ -1710,6 +1728,11 @@ end
 function Prompt:StartAttention(isNew, arrived)
 	local p = ns.db.profile.prompt
 	local mode = p.flashStyle or "pulse"
+	-- A look of its own answers all of it; the light only on a favour just
+	-- done, never over an outcome.
+	if activeLook then
+		return activeLook:Attention(isNew, arrived and not self:OutcomeLive(), mode)
+	end
 	if mode == "off" then
 		self:StopAttention()
 		return
@@ -1912,6 +1935,7 @@ local function FitLine(fs)
 		SafeFont(fs, fit.path, size, fit.flags)
 	end
 	fit.size[fs] = size
+	if activeLook then activeLook:Fitted(fs) end
 end
 
 -- The one way text goes onto the name and the reason line: its colours made
@@ -1930,7 +1954,9 @@ local function PlaceLines(chipUp)
 	fit.right = right
 	nameText:ClearAllPoints()
 	subText:ClearAllPoints()
-	if fit.twoLine then
+	if activeLook then
+		activeLook:PlaceLines(right)
+	elseif fit.twoLine then
 		nameText:SetPoint("TOPLEFT", fit.textX, -8)
 		nameText:SetPoint("RIGHT", -right, 0)
 		subText:SetPoint("BOTTOMLEFT", fit.textX, 8)
@@ -1945,7 +1971,13 @@ end
 
 -- The count chip up or down, and the lines beside it given their room.
 local function ShowChip(on)
-	countChip:SetShown(on and true or false)
+	on = on and true or false
+	if activeLook then
+		-- A look may refuse it for this paint, so the name keeps its room.
+		on = activeLook:Chip(on) and true or false
+	else
+		countChip:SetShown(on)
+	end
 	PlaceLines(on)
 end
 
@@ -1983,7 +2015,10 @@ end
 
 -- How tall the prompt must be for a second line at this font size. Published
 -- so the options page states the same figure.
-function ns.TwoLineHeight(fontSize)
+function ns.TwoLineHeight(fontSize, style)
+	-- The look's own figure, for the look given or the one in use.
+	local look = ns.Looks.Get(style or (ns.db and ns.db.profile.prompt.style))
+	if look and look.TwoLineHeight then return look.TwoLineHeight(fontSize) end
 	return 16 + fontSize + math.max(7, fontSize - 3)
 end
 
@@ -2095,6 +2130,11 @@ function Prompt:ApplyStyle()
 	local p = ns.db.profile.prompt
 	local style = p.style or "glass"
 	local glass = style == "glass"
+	-- A look from Looks/, or nil for the three drawn here. The one it replaces
+	-- takes down everything it drew and gives back what it borrowed.
+	local look = ns.Looks.Get(style)
+	if activeLook and activeLook ~= look then activeLook:Hide() end
+	activeLook = look
 
 	button:SetSize(p.width, p.height)
 	button:SetScale(p.scale)
@@ -2103,6 +2143,15 @@ function Prompt:ApplyStyle()
 	-- Stored offsets are in UIParent's units and SetPoint reads the frame's own
 	-- scaled ones, so they are divided by the scale. FinishDrag converts back.
 	button:SetPoint(p.point, UIParent, p.relPoint, p.x / p.scale, p.y / p.scale)
+	if look then return self:ApplyLook(p, look) end
+
+	-- Put back what a look of its own hid: the three frames of light, and the
+	-- button's square highlight, which it draws rounded itself.
+	glowFrame:Show()
+	burstFrame:Show()
+	shineFrame:Show()
+	local hl = button:GetHighlightTexture()
+	if hl then hl:SetVertexColor(1, 1, 1, 0.045) end
 
 	local br, bg, bb, ba = unpackColor(p.bgColor, { 0.04, 0.04, 0.06, 0.88 })
 
@@ -2355,6 +2404,42 @@ function Prompt:ApplyStyle()
 	self:Refresh()
 end
 
+-- ApplyStyle for a look from Looks/: the regions only the three looks here
+-- use hidden, the shared ones handed over, the text styled as for any panel.
+-- Out of ApplyStyle, for its upvalues.
+function Prompt:ApplyLook(p, look)
+	if not look.kit then look:Build(self:LookKit()) end
+	for _, part in ipairs(self.builtinParts) do part:Hide() end
+	if iconMask then iconMask:Hide() end
+	local hl = button:GetHighlightTexture()
+	if hl then hl:SetVertexColor(1, 1, 1, 0) end
+	local above = QueueGoesAbove()
+	queueAbove = above
+	local textX, chipRoom = look:Apply(p, above)
+	local twoLine = p.showSub and p.height >= ns.TwoLineHeight(p.fontSize, p.style)
+	local fontPath = LSM:Fetch("font", p.font) or STANDARD_TEXT_FONT
+	StyleText(p, p.style, fontPath, textX, chipRoom or EDGE_ROOM, twoLine, math.max(7, p.fontSize - 3))
+	if look.Styled then look:Styled(p, twoLine) end
+	accentPainted = nil
+	self:SyncCooldown()
+	self:Refresh()
+end
+
+-- What a look is handed to draw with: see Looks/Looks.lua.
+function Prompt:LookKit()
+	if not self.kit then
+		self.kit = {
+			button = button, art = art, textLayer = textLayer, icon = icon, cooldown = cooldown,
+			name = nameText, sub = subText, count = countText, rows = queueRows,
+			fit = fit, ink = ink,
+			Gradient = Gradient, Legible = Legible, TextWidth = TextWidth,
+			SetLine = SetLine, FitLine = FitLine, FullEffects = FullEffects,
+			ReasonColor = ReasonColor, OUTCOME_SECONDS = OUTCOME_SECONDS,
+		}
+	end
+	return self.kit
+end
+
 function Prompt:PaintAccent(reason)
 	local p = ns.db.profile.prompt
 	local mode = p.accentMode or "icon"
@@ -2366,6 +2451,7 @@ function Prompt:PaintAccent(reason)
 	local key = ("%s:%.3f:%.3f:%.3f:%s"):format(mode, r, g, b, tostring(tintSub))
 	if key == accentPainted then return end
 	accentPainted = key
+	if activeLook then return activeLook:PaintReason(r, g, b, reason, mode) end
 
 	-- Brightest at the middle, fading towards both ends.
 	Gradient(accentTop, "VERTICAL", r, g, b, 1, r, g, b, 0.15)
@@ -2400,6 +2486,17 @@ local function ClassColored(entry, text)
 	if not ns.db.profile.prompt.classColor or not entry.class then return text end
 	local c = RAID_CLASS_COLORS and RAID_CLASS_COLORS[entry.class]
 	if not c or not c.colorStr then return text end
+	-- Taken towards white where the look asks, so a name never reads as a
+	-- reason colour.
+	local soften = activeLook and activeLook.classSoften
+	if soften then
+		-- From the code itself ("ffRRGGBB"), which every client fills in.
+		local function up(at)
+			local v = (tonumber(c.colorStr:sub(at, at + 1), 16) or 255) / 255
+			return math.floor((v + (1 - v) * soften) * 255 + 0.5)
+		end
+		return ("|cff%02x%02x%02x%s|r"):format(up(3), up(5), up(7), text)
+	end
 	return string.format("|c%s%s|r", c.colorStr, text)
 end
 
@@ -2951,6 +3048,11 @@ function Prompt:PlayOutcomeFlourish(kind)
 	if InCombatLockdown() and p.hideInCombat then return end
 	if not button:IsShown() then return end
 	self:StopFlourishes()
+	if activeLook then
+		activeLook:Flourish(kind)
+		if kind == "failed" and textLayer.shake then textLayer.shake:Play() end
+		return
+	end
 	if kind == "cast" then
 		-- Coloured here rather than by PaintAccent: the repaint that follows
 		-- is usually about the next person, and the ring belongs to this one.
@@ -2996,6 +3098,7 @@ function Prompt:OutcomeLive()
 	if GetTime() - outcomeAt <= OUTCOME_SECONDS then return true end
 	outcomeKind, outcomeAt, outcomeName, outcomeDetail = nil, nil, nil, nil
 	if resultFill then resultFill:Hide() end
+	if activeLook then activeLook:ClearOutcome() end
 	return false
 end
 
@@ -3013,6 +3116,7 @@ function Prompt:MovedOn(top)
 	outcomeKind, outcomeAt, outcomeName, outcomeDetail = nil, nil, nil, nil
 	outcomePainted = nil
 	if resultFill then resultFill:Hide() end
+	if activeLook then activeLook:ClearOutcome() end
 	ns.Guard("prompt moved on", Prompt.Refresh, self)
 	self:ApplyTarget(nil)
 	-- Your own buff by what it is: your name in the third person reads as
@@ -3072,6 +3176,16 @@ function Prompt:PaintOutcome()
 		sub = L["the game confirmed it"]
 	end
 
+	-- A look of its own writes the outcome its way; the count goes as here.
+	if activeLook then
+		activeLook:PaintOutcome(outcomeKind, lead, sub, own and L["You"] or who, outcomeAt)
+		accentPainted = nil
+		outcomePainted = outcomeName
+		ShowChip(false)
+		countText:SetText("")
+		return
+	end
+
 	-- A low-alpha wash over the whole panel, read without being looked at.
 	-- Lighter for a refusal, which the red words and ring already say, and
 	-- lightest for an unconfirmed cast.
@@ -3100,6 +3214,7 @@ function Prompt:SetCombatHold(on)
 	-- art, never the button: every visual in this file lives on art precisely
 	-- so that combat -- which is when this runs -- cannot refuse it.
 	RestArtAlpha()
+	if activeLook then activeLook:Combat(on) end
 	-- The sweep answers to the fight as well: see SyncCooldown.
 	self:SyncCooldown()
 end
@@ -3122,6 +3237,7 @@ function Prompt:PaintHeldInert(whyFrozen, whyInert)
 	ShowChip(false)
 	countText:SetText("")
 	resultFill:Hide()
+	if activeLook then activeLook:ClearOutcome() end
 	self:PaintAccent("nearby")
 	-- The same statement the held panel makes, for the same reason: nothing
 	-- here can be pointed at anybody until the fight ends.
@@ -3144,13 +3260,16 @@ function Prompt:PaintQueue(rows)
 			-- Three pixels of the reason colour.
 			local c = ReasonColor(row.reason)
 			queueBars[i]:SetVertexColor(c[1], c[2], c[3], 0.9)
-			queueBars[i]:Show()
+			queueBars[i]:SetShown(not activeLook)
 			shown = shown + 1
 		else
 			fs:SetText("")
 			queueBars[i]:Hide()
 		end
 	end
+
+	-- A look of its own lays the list out itself.
+	if activeLook then return activeLook:PaintQueue(rows, shown, queueAbove) end
 
 	-- Sized to the filled rows, not the slider.
 	local back = shown > 0 and p.style ~= "minimal"
@@ -3180,8 +3299,8 @@ function Prompt:Paint(entry, extra)
 	if subText:IsShown() then SetLine(subText, self:ReasonText(entry)) end
 
 	local showCount = p.showCount and extra > 0
-	ShowChip(showCount)
 	countText:SetText(showCount and tostring(extra) or "")
+	ShowChip(showCount)
 
 	self:PaintAccent(entry.reason)
 
@@ -3310,6 +3429,7 @@ function Prompt:RefreshPanel()
 			ShowChip(false)
 			countText:SetText("")
 			resultFill:Hide()
+			if activeLook then activeLook:ClearOutcome() end
 			self:PaintAccent("owed")
 		else
 			-- "Drag to move" is refused in a fight too (OnDragStart gives up on
@@ -3549,6 +3669,7 @@ function Prompt:RefreshPanel()
 		self:PaintOutcome()
 	else
 		resultFill:Hide()
+		if activeLook then activeLook:ClearOutcome() end
 	end
 end
 
@@ -3630,5 +3751,14 @@ function Prompt:Regions()
 		queueHair = queueHair,
 		rows = queueRows,
 		bars = queueBars,
+		-- The rest of what only the three looks here draw, and the look from
+		-- Looks/ in use (nil for those three), whose own regions are its `own`.
+		panel = panel,
+		hairTop = hairTop,
+		hairBottom = hairBottom,
+		accentBottom = accentBottom,
+		builtin = Prompt.builtinParts,
+		look = activeLook,
+		textLayer = textLayer,
 	}
 end

@@ -546,6 +546,14 @@ end
 -- off (which swaps that texture for a mask) takes the ring away.
 local function AccentCarriers()
 	local p = P()
+	-- A look from Looks/ says where it carries the colour; nothing said is
+	-- both.
+	local look = ns.Looks.Get(p.style)
+	if look then
+		if not look.AccentCarriers then return true, true end
+		local ring, stripe = look.AccentCarriers(p)
+		return ring == true, stripe == true
+	end
 	local mode = p.accentMode or "icon"
 	local ring = (mode == "icon" or mode == "both") and p.showIcon and not p.roundIcon
 	local stripe = (mode == "stripe" or mode == "both") and p.style ~= "framed"
@@ -2805,14 +2813,11 @@ local function BuildLookTab()
 				type = "select",
 				name = L["Panel style"],
 				order = 21,
-				-- Framed draws its own border out of the panel's white
-				-- texture; profiles holding its old name are carried
-				-- across in ClampSettings.
-				values = {
-					glass = L["Glass -- dark panel, soft shadow"],
-					framed = L["Framed -- flat panel, thin border"],
-					minimal = L["Minimal -- text only, no panel"],
-				},
+				-- Every look, the three Prompt.lua draws and the ones in
+				-- Looks/, from the registry, in its order; profiles holding
+				-- framed's old name are carried across in ClampSettings.
+				values = (ns.Looks.Choices()),
+				sorting = select(2, ns.Looks.Choices()),
 				get = pGet,
 				set = pSet,
 			},

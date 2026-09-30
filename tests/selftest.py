@@ -530,7 +530,7 @@ mutate("Core.lua",
 
 # 4. a setting left unvalidated -- a stale profile falls through every branch
 mutate("Core.lua",
-       '\toneOf(p, "style", { glass = true, framed = true, minimal = true }, "glass")',
+       '\toneOf(p, "style", ns.Looks.Allowed(), ns.defaults.profile.prompt.style)',
        "",
        "unvalidated enum setting",
        expect="garbage profile",
@@ -1323,9 +1323,9 @@ mutate("Queue.lua",
 # 62. the dropdown naming a thing the addon does not do. This is the whole of
 #     the old bug: the entry existed, the addon drew no border of any kind, and
 #     nothing anywhere could tell the difference.
-mutate("Options.lua",
-       '\t\t\t\t\tframed = L["Framed -- flat panel, thin border"],',
-       '\t\t\t\t\tblizzard = L["Blizzard -- default UI border"],',
+mutate("Looks/Looks.lua",
+       '\tframed = { name = L["Framed -- flat panel, thin border"], order = 11, native = true },',
+       '\tblizzard = { name = L["Blizzard -- default UI border"], order = 11, native = true },',
        "a look the addon draws nothing for",
        expect="the dropdown still offers a name the addon draws nothing for",
        script="runscenarios.py")

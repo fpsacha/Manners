@@ -221,6 +221,18 @@ instrument = function(f, kind, parent, layer, sublevel)
 	f.GetFrameStrata = function(self) return self._strata or (self._parent and self._parent.GetFrameStrata
 		and self._parent:GetFrameStrata()) or "MEDIUM" end
 	f.GetParent = function(self) return self._parent end
+	-- Moved under another frame, which is what it then draws with: a look
+	-- from Looks/ puts the reason line inside its tag.
+	wrap(f, "SetParent", function(self, parent)
+		local old = self._parent
+		if old and old._children then
+			for i, child in ipairs(old._children) do
+				if child == self then table.remove(old._children, i) break end
+			end
+		end
+		self._parent = parent
+		if parent and parent._children then parent._children[#parent._children + 1] = self end
+	end)
 	f.IsVisible = function(self) return FT.visible(self) end
 
 	-- Texture state. SetVertexColor after a gradient replaces it, as it does in
