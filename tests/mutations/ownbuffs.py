@@ -560,6 +560,128 @@ mutate("Core.lua",
        "own: the memory read reads nothing",
        expect="Concentration Aura put up in a fight was not remembered", script=S)
 
+# In a fight UNIT_AURA on you only marks the walk of your aura list due, and
+# the tick makes it (Favours.lua, FlushOwnScan): one walk a tick, not one an
+# event. Each end of that, broken.
+mutate("Favours.lua",
+       "\t\tif InCombatLockdown() then\n\t\t\t-- A walk is forty slots",
+       "\t\tif false then\n\t\t\t-- A walk is forty slots",
+       "own: every aura event in a fight walks",
+       expect="the aura events in a fight walked your buffs themselves", script=S)
+
+mutate("Core.lua",
+       "\t-- UNIT_AURA): one a tick however many came, and a favour filed first.\n"
+       "\tns.FlushOwnScan()\n",
+       "\t-- UNIT_AURA): one a tick however many came, and a favour filed first.\n",
+       "own: the tick never walks what a fight left due",
+       expect="four aura events and a tick read", script=S)
+
+mutate("Core.lua",
+       "\t-- is filed before the repaint below offers anybody.\n\tns.FlushOwnScan()\n",
+       "\t-- is filed before the repaint below offers anybody.\n",
+       "own: the fight's last favour filed after the repaint",
+       expect="the repaint after the fight ran before the favour", script=S)
+
+# What the walk made as the fight ends finds landed in the fight: never
+# thanked, and as quiet as a dungeon fight.
+mutate("Favours.lua",
+       "\t\t-- A favour from the fight, found by the walk made as it ended.\n"
+       "\t\tif walkAfterFight then return L[\"in a fight\"] end\n",
+       "",
+       "own: the fight's last favour thanked after it",
+       expect="the favour from the fight was thanked with an emote after it", script=S)
+
+mutate("Favours.lua",
+       "\t\t-- A favour from the fight, found by the walk made as it ended.\n"
+       "\t\tif walkAfterFight then return true end\n",
+       "",
+       "own: the fight's last favour said after a dungeon fight",
+       expect="the favour from a dungeon fight was said in chat after it", script=S)
+
+mutate("Favours.lua",
+       "\twalkAfterFight = not InCombatLockdown()\n",
+       "",
+       "own: the walk as a fight ends not the fight's",
+       expect="the favour from the fight was thanked with an emote after it", script=S)
+
+mutate("Favours.lua",
+       "\t\t-- (ns.FlushOwnScan) is answered by it too.\n\t\tns.ownScanDue = false\n",
+       "\t\t-- (ns.FlushOwnScan) is answered by it too.\n",
+       "own: a walk made leaves the next one due",
+       expect="a tick with no aura event since walked your buffs again", script=S)
+
+mutate("Favours.lua",
+       "\t\tif asked then scan.walks = scan.walks + 1 end\n",
+       "",
+       "own: debug counts no walks",
+       expect="/manners debug counts", script=S)
+
+# Only the walks a change to your auras asked for are counted, so /manners
+# debug never sets more walks than changes beside them.
+mutate("Favours.lua",
+       "\t\tif asked then scan.walks = scan.walks + 1 end\n",
+       "\t\tscan.walks = scan.walks + 1\n",
+       "own: debug counts a login's walks",
+       expect="a walk no change to your auras asked for was counted", script=S)
+
+mutate("Favours.lua",
+       "\t\t\tns.Guard(\"ScanOwnBuffs\", ns.ScanOwnBuffs, true)\n",
+       "\t\t\tns.Guard(\"ScanOwnBuffs\", ns.ScanOwnBuffs)\n",
+       "own: debug misses the walks out of a fight",
+       expect="an aura event out of a fight was not counted as a walk", script=S)
+
+mutate("Favours.lua",
+       "\t\tasked = asked or ns.ownScanDue\n",
+       "",
+       "own: debug misses the walks a fight left due",
+       expect="/manners debug counts", script=S)
+
+# A buff that runs out and is recast under its own number between two ticks
+# of a fight is never read gone, since the events there only mark a walk due:
+# it reaches IsNew looking like a refresh, and the end the last reading saw
+# having gone by is what tells the two apart.
+mutate("Favours.lua",
+       "\t\tif before and expires and expires > before and before > 0 and before <= GetTime()\n"
+       "\t\t\tand lastPresent[instanceId] == key then\n"
+       "\t\t\treturn true\n"
+       "\t\tend\n",
+       "",
+       "own: a recast between two fight ticks taken for a refresh",
+       expect="ran out and was recast under its own number before the tick", script=S)
+
+mutate("Favours.lua",
+       "\t\tfor instanceId, expires in pairs(presentUntil) do lastUntil[instanceId] = expires end\n",
+       "",
+       "own: the ends each reading saw not kept",
+       expect="ran out and was recast under its own number before the tick", script=S)
+
+# And each half of the test: any later end, the end the baseline filed
+# rather than the one last read (which a refresh moves), the same end, and an
+# end of 0, which is none.
+mutate("Favours.lua",
+       "expires > before and before > 0 and before <= GetTime()\n",
+       "expires > before and before > 0\n",
+       "own: every later end taken for a recast",
+       expect="a refresh read before the end it replaced was taken for a favour", script=S)
+
+mutate("Favours.lua",
+       "\t\tlocal before = lastUntil[instanceId]\n",
+       "\t\tlocal before = knownUntil[instanceId]\n",
+       "own: a recast measured against the filed end",
+       expect="a refresh read again after the end it replaced had gone by", script=S)
+
+mutate("Favours.lua",
+       "\t\tif before and expires and expires > before and",
+       "\t\tif before and expires and expires >= before and",
+       "own: the same end taken for a recast",
+       expect="the same aura read after its end with the end it had", script=S)
+
+mutate("Favours.lua",
+       "expires > before and before > 0 and before <= GetTime()\n",
+       "expires > before and before <= GetTime()\n",
+       "own: no end taken for one that ran out",
+       expect="a buff with no end, read later with one, was taken for a recast", script=S)
+
 # The dungeon pick taken before it is learned.
 mutate("Core.lua",
        "\t\tif preferred and Known(preferred) then\n",

@@ -2198,6 +2198,9 @@ function addon:TickBody()
 	-- Every tick, fights included, since that is where people die; guarded so
 	-- a failure there cannot stop the repaint below.
 	ns.Guard("death watch", ns.WatchGroupDeaths, now)
+	-- The walk of your own buffs a fight's aura events left due (Favours.lua,
+	-- UNIT_AURA): one a tick however many came, and a favour filed first.
+	ns.FlushOwnScan()
 	-- Your own auras changed since the last tick: what Automatic remembers,
 	-- in a fight and in town too (see RememberOwnBuffs), ahead of the repaint.
 	if ns.ownAurasChanged then ns.Guard("remember own buffs", ns.RememberOwnBuffs) end
@@ -2306,6 +2309,9 @@ function addon:PLAYER_REGEN_DISABLED()
 end
 
 function addon:PLAYER_REGEN_ENABLED()
+	-- A buff that landed after the fight's last tick, walked now so its favour
+	-- is filed before the repaint below offers anybody.
+	ns.FlushOwnScan()
 	-- Secure frames cannot be restyled or retargeted in combat, so what was
 	-- deferred is flushed here. ApplyStyle ends in a Refresh; with nothing
 	-- deferred, a Refresh alone takes the hold off now rather than at the next

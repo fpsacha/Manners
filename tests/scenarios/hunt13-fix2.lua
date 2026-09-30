@@ -272,9 +272,12 @@ for _, case in ipairs({
 		-- A buff that lands in the fight, under a number of its own; its
 		-- spell is as withheld as the rest.
 		if case.landing then Mock.extraAura, Mock.extraAuraSpell = 4002, 1459 end
+		-- Each event in the fight only marks the walk due, and the tick makes
+		-- it (Favours.lua): made here, so both readings are the fight's own.
 		for _ = 1, 2 do
 			Mock.advance(0.5)
 			ns.addon:UNIT_AURA(nil, "player")
+			ns.FlushOwnScan()
 		end
 		rawset(_G, "C_UnitAuras", nil)
 		Mock.inCombat = false

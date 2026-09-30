@@ -79,7 +79,8 @@ local function with(scenario, opts, body)
 end
 
 -- A buff landing from `unit`, under an instance id never used before, so each
--- is a favour of its own. Hands back what was said about it.
+-- is a favour of its own. Hands back what was said about it. In a fight,
+-- favourFrom makes the walk the event left for the tick (ns.FlushOwnScan).
 local nextId = 6000
 local function favour(ns, unit, spell)
 	nextId = nextId + 1

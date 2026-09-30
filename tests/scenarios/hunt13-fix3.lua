@@ -452,7 +452,11 @@ for _, locale in ipairs({ "enUS", "deDE", "frFR" }) do
 			return
 		end
 		for _, node in ipairs(nodes) do
-			if type(node.width) == "function" then
+			-- Fitted: a number of Options.lua's, or nil where one unit holds the
+			-- label (FitControls). A string width is the option's own. Once a
+			-- function, which the validator refused, so asking for one here
+			-- checked nothing at all.
+			if type(node.width) ~= "string" then
 				local text = optionText(node.name)
 				local needed = chars(text) * 6
 				if units(node) * 170 < needed then
