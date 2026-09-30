@@ -159,8 +159,8 @@ mutate("Looks/Luxe.lua",
 
 # The spine dimmed with the ink.
 mutate("Looks/Luxe.lua",
-       "\tfor _, t in ipairs({ self.shade, self.rim, kit.icon }) do t:SetAlpha(ink) end\n",
-       "\tfor _, t in ipairs({ self.shade, self.rim, kit.icon, self.spine }) do t:SetAlpha(ink) end\n",
+       "\tfor _, t in ipairs({ self.rim, kit.icon }) do t:SetAlpha(ink) end\n",
+       "\tfor _, t in ipairs({ self.rim, kit.icon, self.spine }) do t:SetAlpha(ink) end\n",
        "Luxe's spine dims in a fight",
        expect="the spine lost the reason's colour in a fight",
        script="runscenarios.py")

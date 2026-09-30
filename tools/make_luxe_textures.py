@@ -9,6 +9,10 @@ Every file is white, or black and white, with the shape in the alpha. The Lua
 colours it with SetVertexColor or a gradient, so one set of art serves all six
 reasons, the colour-blind set, a custom marker colour and the three outcomes.
 
+Nothing is drawn over the spell icon but its rim, which hugs the edge, and
+the ring outside it: 1.5.0 laid a shade over the icon and a gloss under the
+name, and both came out far stronger in the game than in any preview.
+
 Two texels per UI unit wherever a piece is drawn at a fixed size (corners, caps,
 hairlines), so a one-unit line stays crisp from 1080p to 4K.
 
@@ -19,7 +23,6 @@ hairlines), so a one-unit line stays crisp from 1080p to 4K.
   Luxe_Edge           64x64   9-slice, margin 16, placed as the bevel: the lit
                               inner line alone at full strength, for the
                               reason-lit top edge ("Reason colour: both", ADD).
-  Luxe_Gloss         256x64   Light on the top half of the card.
   Luxe_Wash          128x64   Reason light from the left edge (ADD).
   Luxe_Spine          16x64   The reason spine: a capsule, brightest in the
                               middle and 70% at the tips, so no gradient has to
@@ -35,7 +38,6 @@ hairlines), so a one-unit line stays crisp from 1080p to 4K.
   Luxe_IconRimRound   64x64   one unit outside the icon.
   Luxe_IconRing       64x64   The ring in the reason colour, just outside the
   Luxe_IconRingRound  64x64   seat: drawn 3 units outside a 30-unit icon.
-  Luxe_IconShade      64x64   Black: the icon's lower half and edges set in.
   Luxe_Dot            16x16   The list's reason dot.
   Luxe_Check          32x32   A tick, for a buff that landed.
   Luxe_Cross          32x32   A cross, for one that did not.
@@ -155,14 +157,6 @@ def edge():
     save("Luxe_Edge", 1.0, inner * lit)
 
 
-def gloss():
-    w, h = 256, 64
-    xx, yy = grid(w, h)
-    fall = (1 - smooth(yy / h)) ** 1.6
-    ends = smooth(xx / 18) * smooth((w - xx) / 18)
-    save("Luxe_Gloss", 1.0, fall * ends)
-
-
 def wash():
     # An ellipse of light from the left middle, zero at every edge.
     w, h = 128, 64
@@ -261,12 +255,6 @@ def icon_art():
     ring(rrect_sdf(xx, yy, edge, edge, n - edge, n - edge, radius), "Luxe_IconRing")
     ring(np.hypot(xx - n / 2, yy - n / 2) - (n / 2 - edge), "Luxe_IconRingRound")
 
-    # Black: darker at the bottom and a faint vignette at every edge. The
-    # icon's own mask shapes it.
-    bottom = 0.40 * smooth((yy / n - 0.45) / 0.55)
-    border = np.minimum(np.minimum(xx, n - xx), np.minimum(yy, n - yy))
-    save("Luxe_IconShade", 0.0, np.maximum(bottom, 0.22 * (1 - smooth(border / 7))))
-
 
 def dot():
     n = 16
@@ -294,7 +282,7 @@ def glyphs():
 
 def main():
     os.makedirs(OUT, exist_ok=True)
-    for make in (shadow, card, bevel, edge, gloss, wash, spine, spine_glow, sheen, glint, pill,
+    for make in (shadow, card, bevel, edge, wash, spine, spine_glow, sheen, glint, pill,
                  icon_art, dot, glyphs):
         make()
     for name, w, h in written:
