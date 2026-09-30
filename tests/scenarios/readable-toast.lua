@@ -839,9 +839,10 @@ end)
 --      darker line inside it, the frame thin (3.2 units at a 12-unit corner)
 --      and crisp: no light haloed round it;
 --   5. the medallion is round: every disc of it round, a gold ring 1.5 to 2.5
---      units wide hugging the icon (at most a unit of dark between), the
---      enamel just outside it, darkened from the reason colour; the icon
---      round when rounding is on and softly square inside the ring when off;
+--      units wide hugging the icon (at most a unit of dark between, along
+--      the axis as well as the diagonal), the enamel just outside it,
+--      darkened from the reason colour; the icon round at either setting of
+--      "Round the icon off" -- squared, it sat in a dark round hole;
 --   6. the body is a deep warm brown with a quiet vertical gradient baked in.
 
 local GOLD_MOST = 0.62
@@ -895,16 +896,25 @@ local function reach(img, diagonal)
 	return last
 end
 
-withTree("Toast's gold is old gold, thin and crisp", ANNA, function(ns, scenario)
+-- The medallion's rim must still read as gold: dimmed to a brown line, the
+-- enamel sat on a dark edge and the medallion lost its gilded bezel.
+local RIM_LEAST = 0.42
+-- And the frame's darker inner line must still be seen: at 0.15 it existed
+-- only in the file, and the rail read as a dim pencil line.
+local INNER_LEAST = 0.28
+
+withTree("Toast's gold is old gold, thin and crisp", CROWD, function(ns, scenario)
 	local r, p, look = upIn(ns, scenario)
 	if not isToast(look) then
 		fail(scenario, "SKIPPED -- Toast is not the look in use")
 		return
 	end
 	SetBinding("SHIFT-F", COMMAND)
-	local judged = 0
-	for _, size in ipairs({ { 220, 44, 13 }, { 180, 36, 11 } }) do
-		p.width, p.height, p.fontSize = size[1], size[2], size[3]
+	local judged, seen = 0, {}
+	-- Every piece of gold on show, the list's drawer and gems among them
+	-- (the crowd fills three rows), and with the icon off the jewel's setting.
+	for _, size in ipairs({ { 220, 44, 13, true }, { 180, 36, 11, true }, { 220, 44, 13, false } }) do
+		p.width, p.height, p.fontSize, p.showIcon = size[1], size[2], size[3], size[4]
 		p.showQueue, p.queueRows = true, 3
 		ns.Prompt:ApplyStyle()
 		tick(ns)
@@ -913,10 +923,16 @@ withTree("Toast's gold is old gold, thin and crisp", ANNA, function(ns, scenario
 			local img = t._shown ~= false and image(t._file)
 			if img then
 				judged = judged + 1
+				seen[t] = true
+				seen[tostring(t._file):match("_(%a+)$") or "?"] = true
 				local most = brightest(t, img)
 				if most > GOLD_MOST then
 					fail(scenario, ("%dx%d: %s is gold as bright as %.2f, over %.2f"):format(size[1], size[2],
 						tostring(t._file):match("[^\\]+$") or "?", most, GOLD_MOST))
+				end
+				if t == look.rim and most < RIM_LEAST then
+					fail(scenario, ("%dx%d: the medallion's rim is %.2f at its brightest, too dark to read as gold")
+						:format(size[1], size[2], most))
 				end
 			end
 		end
@@ -954,6 +970,9 @@ withTree("Toast's gold is old gold, thin and crisp", ANNA, function(ns, scenario
 			elseif runs[#runs].most > 0.8 * runs[1].most then
 				fail(scenario, ("%s: the frame's inner line (%.2f) is not darker than its rail (%.2f)")
 					:format(what, runs[#runs].most, runs[1].most))
+			elseif runs[#runs].most < INNER_LEAST then
+				fail(scenario, ("%s: the frame's inner line (%.2f) is too dark to see at the game's scale")
+					:format(what, runs[#runs].most))
 			end
 			local units = (deepest + 1) / (img.w / 4) * 12
 			if units > 3.2 then
@@ -967,6 +986,10 @@ withTree("Toast's gold is old gold, thin and crisp", ANNA, function(ns, scenario
 	end
 	SetBinding("SHIFT-F", nil)
 	if judged == 0 then fail(scenario, "no gold was judged") end
+	for _, want in ipairs({ { "Drawer", "the list's drawer" }, { "GemSet", "a gem's setting" },
+		{ look.jewelSet, "the jewel's setting" }, { look.rim, "the medallion's rim" } }) do
+		if not seen[want[1]] then fail(scenario, want[2] .. " was never judged") end
+	end
 end)
 
 withTree("Toast's medallion is round, its gold ring thin", ANNA, function(ns, scenario)
@@ -976,7 +999,6 @@ withTree("Toast's medallion is round, its gold ring thin", ANNA, function(ns, sc
 		return
 	end
 	local discs = { "medallion", "rim", "band", "ring", "well" }
-	local masks = {}
 	for _, round in ipairs({ false, true }) do
 		for _, size in ipairs(SIZES) do
 			p.roundIcon = round
@@ -1003,28 +1025,26 @@ withTree("Toast's medallion is round, its gold ring thin", ANNA, function(ns, sc
 				if t._blend == "ADD" then fail(scenario, what .. ": the medallion's " .. key .. " is additive") end
 				radius[key] = (t._width or 0) / 2 * reach(img)
 			end
-			-- The icon's reach from the centre: its edge, round, or its
-			-- corners, square.
+			-- The icon, round at either setting: its reach from the centre along
+			-- the axis and along the diagonal, which for a round icon agree.
 			local icon = r.icon
 			local mask = icon._mask and image(icon._mask._file)
 			if not mask then
 				fail(scenario, what .. ": the icon has no mask")
 				return
 			end
-			masks[round] = icon._mask._file
 			local corner = select(4, texel(mask, 0.12, 0.12))
-			if round and corner > 0.01 then
-				fail(scenario, what .. ": rounding is on and the icon is not round")
-			elseif not round and corner < 0.5 then
-				fail(scenario, what .. ": rounding is off and the icon is round all the same")
+			if corner > 0.01 then
+				fail(scenario, ("%s: rounding is %s and the icon is not round"):format(what, round and "on" or "off"))
 			end
-			local iconReach = (icon._width or 0) / 2 * reach(mask, not round)
-			local ring = radius.ring - math.max(radius.well, iconReach)
+			local axis = (icon._width or 0) / 2 * reach(mask, false)
+			local diagonal = (icon._width or 0) / 2 * reach(mask, true)
+			local ring = radius.ring - math.max(radius.well, axis, diagonal)
 			if ring < RING_LEAST - 0.05 or ring > RING_MOST + 0.05 then
 				fail(scenario, ("%s: the gold ring is %.2f units wide, not %.1f to %.1f")
 					:format(what, ring, RING_LEAST, RING_MOST))
 			end
-			local gap = radius.well - iconReach
+			local gap = radius.well - math.min(axis, diagonal)
 			if gap > 1.0 then
 				fail(scenario, ("%s: the gold ring stands %.2f units off the icon; it should hug it"):format(what, gap))
 			end
@@ -1035,7 +1055,6 @@ withTree("Toast's medallion is round, its gold ring thin", ANNA, function(ns, sc
 			end
 		end
 	end
-	if masks[true] == masks[false] then fail(scenario, "rounding the icon off changes nothing on Toast") end
 	-- The enamel is the reason colour darkened, never lit.
 	p.width, p.height, p.fontSize, p.roundIcon = 220, 44, 13, false
 	for _, palette in ipairs({ "standard", "colourblind" }) do

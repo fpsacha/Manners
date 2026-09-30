@@ -34,9 +34,10 @@ Two kinds of art:
     SetGradient, so one file serves all six reasons, the colour-blind set, a
     custom marker colour and the outcomes.
 
-  Toast_Border         256x256  8 pieces, cut 0.25: a thin old-gold rail, a dark
-                                channel, a darker inner line, and a small stud
-                                in each corner. From height 40 up.
+  Toast_Border         256x256  8 pieces, cut 0.25: a thin old-gold rail, gold
+                                across its width, a dark channel, a darker
+                                inner line, and a small flat gold diamond in
+                                each corner. From height 40 up.
   Toast_BorderSlim     256x256  The same, finer, below height 40.
   Toast_BorderGlow     256x256  The gilding blurred into light, for the flare
   Toast_BorderSlimGlow 256x256  when a buff lands (ADD, half a second).
@@ -48,17 +49,19 @@ Two kinds of art:
                                 edge, the dark well under the icon, the owed
                                 glow on the enamel and the cursor's light on
                                 the gold, each coloured by the Lua.
-  Toast_Gold           128x128  A round disc of old gold lit from the upper
-                                left: under the icon, it shows as the ring.
+  Toast_Gold           128x128  A round disc of old gold, a hint lighter at the
+                                upper left: under the icon, it shows as the
+                                ring, and under the enamel as the rim.
   Toast_Enamel         128x128  A round disc, grey, faintly lit: the enamel,
                                 in the reason colour darkened.
-  Toast_IconMask        64x64   The icon's shape, round and squircle; also the
-  Toast_SealMask        64x64   cooldown's swipe.
+  Toast_IconMask        64x64   The icon's shape, round; also the cooldown's
+                                swipe.
   Toast_RingGlow       128x128  A ring of light round the medallion (ADD, for
                                 the arrival and the landed buff only).
   Toast_Glint           64x16   A spark that runs along a rail (ADD).
   Toast_Chip            64x32   3 pieces: the count and key chips, gold-rimmed.
-  Toast_Gem             32x32   A list row's stone, grey for its reason colour,
+  Toast_Gem             32x32   A smooth stone, grey for its reason colour (a
+                                list row's, and the jewel with the icon off),
   Toast_GemSet          32x32   and its gold setting.
   Toast_Ember           64x16   The favour clock's line: a crisp core.
   Toast_Check           32x32   A tick, for a buff that landed.
@@ -94,8 +97,9 @@ GOLD_STOPS = [
 ]
 # The brightest any gold texel may be, as Rec.601 luma.
 GOLD_CAP = 0.60
-# A darker gold, for the line inside each rail and the medallion's outer rim.
-DARK_GOLD = 0.60
+# A darker gold, for the line inside each rail: dark enough to part from the
+# rail, light enough to be seen as gold at the game's scale.
+DARK_GOLD = 0.80
 
 # The medallion's discs: 50 % alpha at this fraction of the half-size, which
 # the Lua (DISC_FILL) sizes them by.
@@ -256,8 +260,8 @@ K = BORDER_CUT / BORDER_UNITS   # texels per UI unit in the border art
 # and radius, and the notch the inner line makes round it. Looks/Toast.lua's
 # RAIL table names where the rail and the clock run, and must agree.
 FRAMES = {
-    "double": dict(rail=(0.45, 1.70), inner=(2.25, 2.72), stud=(3.55, 0.95), notch=1.55, radius=2.2),
-    "slim": dict(rail=(0.40, 1.45), inner=(1.72, 2.08), stud=(2.95, 0.70), notch=1.15, radius=2.0),
+    "double": dict(rail=(0.45, 1.70), inner=(2.20, 2.95), stud=(3.55, 0.95), notch=1.55, radius=2.2),
+    "slim": dict(rail=(0.40, 1.45), inner=(1.70, 2.25), stud=(2.95, 0.70), notch=1.15, radius=2.0),
 }
 DARK = np.array([0.030, 0.019, 0.011], np.float32)
 
@@ -281,12 +285,12 @@ def border_parts(kind):
     iw = i1 - i0
     stud = np.abs(u - at) + np.abs(v - at) - sr               # a diamond
 
-    h = np.where((depth >= r0) & (depth <= r1), bevel((depth - r0) * k, (r1 - r0) * k, 0.55 * (r1 - r0) * k), 0)
+    h = np.where((depth >= r0) & (depth <= r1), bevel((depth - r0) * k, (r1 - r0) * k, 0.22 * (r1 - r0) * k), 0)
     grain = noise(size, size, 31, scale=(3.0, 3.0), octaves=2)
-    rail_rgb = shade_metal(h + grain * 0.10)
+    rail_rgb = shade_metal(h + grain * 0.10, lift=0.18)
     hi = bevel(-inner * k, iw * k, 0.5 * iw * k)
-    line_rgb = shade_metal(hi + grain * 0.06, lift=-0.05, dark=DARK_GOLD)
-    stud_rgb = shade_metal(np.maximum(-stud, 0) * k * 0.8, lift=-0.02)
+    line_rgb = shade_metal(hi * 0.4 + grain * 0.06, lift=0.05, dark=DARK_GOLD)
+    stud_rgb = shade_metal(np.maximum(-stud, 0) * k * 0.25, lift=0.15)
 
     rail_a = cover((r0 - depth) * k) * cover((depth - r1) * k)
     line_a = cover(-inner * k - iw * k) * cover(inner * k)
@@ -386,12 +390,14 @@ def make_discs():
     save("Toast_Disc", finish(white(a), a, size, size))
 
     # Old gold, lit by the angle round the ring and not by the radius, so the
-    # band the icon leaves showing is shaded the same at every height: the
-    # upper left catches the light, the lower right falls into shade, and a
-    # fine circular brushing runs round it.
+    # band the icon leaves showing is shaded the same at every height. Only a
+    # hint of light: the upper left a little brighter, the lower right a
+    # little darker, never a lit crescent (a bevel, which in the game read as
+    # a heavy frame) and never darker than the enamel beside it; and a fine
+    # circular brushing runs round it.
     lit = np.cos(ang - LIGHT_ANG)
     brush = noise(size, size, 23, scale=(4.0, 4.0), octaves=2)
-    t = 0.60 + 0.30 * lit + 0.03 * brush
+    t = 0.80 + 0.12 * lit + 0.03 * brush
     gold = capped(ramp(t, GOLD_STOPS))
     save("Toast_Gold", finish(gold, a, size, size))
 
@@ -467,20 +473,16 @@ def make_chip():
 
 
 def make_gem():
-    """A brilliant-cut stone in grey (the row's reason colour) and its gold
-    setting."""
+    """A smooth cabochon in grey (the reason colour) and its gold setting. Cut
+    facets showed at the jewel's size as blotches, a flickering flame; a
+    domed stone reads as one colour with a soft light on it."""
     s = 32
     x, y = grid(s, s)
     c = s / 2
     dx, dy = (x - c) / c, (y - c) / c
     r = np.sqrt(dx * dx + dy * dy)
-    ang = np.arctan2(dy, dx)
     stone_r = 0.62
-    facet = np.floor((ang + np.pi) / (np.pi / 4)).astype(int) % 8
-    facet_light = np.array([0.55, 0.72, 0.92, 1.0, 0.86, 0.66, 0.50, 0.44])[facet]
-    table = r < stone_r * 0.46
-    val = np.where(table, 0.95, facet_light)
-    val = val * (0.80 + 0.20 * (1 - r / stone_r))
+    val = 0.62 + 0.30 * np.clip(1 - r / stone_r, 0, 1) ** 0.7
     spec = np.exp(-(((dx + 0.22) / 0.10) ** 2 + ((dy + 0.24) / 0.10) ** 2))
     val = np.clip(val + spec * 0.4, 0, 1.0)
     a = cover((r - stone_r) * c)
@@ -527,7 +529,7 @@ def make_glyphs():
 
 # Files of earlier versions that this one no longer draws.
 RETIRED = ["Toast_Ring", "Toast_Seal", "Toast_RingBand", "Toast_SealBand", "Toast_Bloom",
-           "Toast_Wash", "Toast_Streak", "Toast_Spark"]
+           "Toast_Wash", "Toast_Streak", "Toast_Spark", "Toast_SealMask"]
 
 
 def main():
@@ -539,7 +541,6 @@ def main():
     make_body()
     make_discs()
     make_mask("Toast_IconMask", 2)
-    make_mask("Toast_SealMask", 6)
     make_ring_glow()
     make_glint()
     make_chip()

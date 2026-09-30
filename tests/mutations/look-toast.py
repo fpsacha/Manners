@@ -388,7 +388,7 @@ mutate(TOAST,
 
 # With the icon off, nothing carries the reason.
 mutate(TOAST,
-       "\tself.jewel:SetVertexColor(er, eg, eb, 1)\n",
+       "\tself.jewel:SetVertexColor((er + dr) / 2, (eg + dg) / 2, (eb + db) / 2, 1)\n",
        "",
        "the jewel in no colour",
        expect="Toast carries the reason on a jewel",
@@ -448,14 +448,14 @@ mutate(TOAST,
        script="runscenarios.py")
 
 mutate(TOAST,
-       "\t\tself.ember:SetVertexColor(er, eg, eb, 0.72)\n",
-       "\t\tself.ember:SetVertexColor(dr, dg, db, 0.72)\n",
+       "\t\tself.ember:SetVertexColor(er, eg, eb, 0.55)\n",
+       "\t\tself.ember:SetVertexColor(dr, dg, db, 0.55)\n",
        "the clock in the enamel's colour",
        expect="no lighter than the enamel",
        script="runscenarios.py")
 
 mutate(TOAST,
-       "\tlocal beadD = self.clockH * 2.6\n",
+       "\tlocal beadD = self.clockH * 2.0\n",
        "\tlocal beadD = self.clockH * 1.2\n",
        "the clock's spark too small",
        expect="too small to see",
@@ -541,4 +541,27 @@ mutate(TOAST,
        "\tg.down = Alpha(g, peak, 0, down, 2, nil, smoothing or \"OUT\")\n\tPark(g, region, 0.3)\n",
        "a flourish parked lit",
        expect="additive light at rest",
+       script="runscenarios.py")
+
+
+# --- round 18 review: a flourish once, the breathing let go on an outcome ----
+
+# The arrival's ring of light started on every repaint while somebody owed is
+# on top: lasting additive light, several plays a second.
+mutate(TOAST,
+       "\tif full and (arrived or (isNew and flashStyle == \"once\")) then PlayAll(self.arrive) end\n",
+       "\tif full then PlayAll(self.arrive) end\n",
+       "the arrival's light replayed on every repaint",
+       expect="replays on a repaint",
+       script="runscenarios.py")
+
+# The outcome leaves the owed pulse running: the enamel lit into a bright
+# ring of the outcome's colour.
+mutate(TOAST,
+       "\tself.outcomeOn = true\n\t-- The owed breathing is about the favour, not the click: it stops, and\n"
+       "\t-- the enamel is the outcome's dark band. Attention starts it again for\n"
+       "\t-- the next person owed.\n\tself:HoldPulse()\n",
+       "\tself.outcomeOn = true\n",
+       "the owed pulse runs on under an outcome",
+       expect="leaves the owed enamel breathing",
        script="runscenarios.py")

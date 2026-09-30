@@ -4,7 +4,8 @@
 -- A deep warm brown banner, framed by a thin rail of old gold with a darker
 -- line inside it and a small stud in each corner. A round medallion pins its
 -- left end: the spell icon, a thin gold ring hugging it, a band of enamel in
--- the reason colour (darkened, as fired enamel is), and a fine rim. The name
+-- the reason colour (darkened, as fired enamel is), and a fine gold rim, so
+-- the enamel lies between two lines of gold, as cloisonne does. The name
 -- is the title, the reason the subtitle. It is still at rest; it moves when
 -- something happens, and briefly.
 --
@@ -55,8 +56,10 @@
 --     player sees; the icon is sized by the height (Options says so);
 --   * the owed gold fired to a honey amber, so it never reads as more metal;
 --   * with the icon off, a jewel at the banner's end carries the reason;
---   * the icon left square (the default) is a softly squared icon inside the
---     round medallion, on a dark well; rounded, it fills the ring;
+--   * the icon is round whatever "Round the icon off" says, as "stripe" is
+--     "both" here: a squared icon in a round medallion sat in a dark hole,
+--     the ring round only its corners, and read as a square dropped into a
+--     porthole. Round, it fills the ring, which hugs it;
 --   * a class-coloured name is taken a third of the way to white.
 
 local _, ns = ...
@@ -73,11 +76,8 @@ local Toast = ns.Looks.Register("toast", {
 })
 
 -- The discs are drawn to this fraction of their file's half-size
--- (DISC_FILL in the generator), and the icon's masks to this.
+-- (DISC_FILL in the generator), and the icon's mask to this.
 local DISC_FILL, MASK_FILL = 0.98, 0.985
--- A squircle of order 6 reaches this far along its diagonal, as a fraction of
--- its half-size: 2 ^ (1/2 - 1/6).
-local SQUIRCLE_REACH = 1.26
 -- Where the rails run, in units in from the frame's edge for a 12-unit
 -- corner, scaled with the corner: the middle of the rail, for the glints, and
 -- the favour clock's line, on the dark of the banner just inside the inner
@@ -93,8 +93,9 @@ local IVORY = { 1.00, 0.965, 0.90 }
 local WARM_GREY = { 0.80, 0.75, 0.66 }
 local PALE_GOLD = { 1.00, 0.86, 0.52 }
 local IRON = { 0.62, 0.62, 0.64 }
--- The medallion's outer rim: the ring's gold, darker.
-local RIM = { 0.66, 0.62, 0.58 }
+-- The medallion's outer rim: the ring's gold, a shade darker, so the enamel
+-- lies between two fine lines of gold.
+local RIM = { 0.92, 0.92, 0.92 }
 -- The dark of the medallion's edge and of the well under the icon.
 local WELL = { 0.030, 0.020, 0.014 }
 -- The cursor's light on the gold ring: a paler gold laid over it (BLEND).
@@ -127,24 +128,18 @@ local function Gap(fontSize) return math.max(1.5, fontSize * 0.16) end
 
 -- The medallion for a panel `H` high, in UI units: its radius and the radius
 -- each disc is drawn to, from the outside in -- the dark edge, the rim, the
--- enamel, the gold ring, the well -- and the icon's size. Each ring is a set
--- width in units, growing a little with the panel and then holding, so the
--- gold is thin at every height.
-local function Medallion(H, round)
+-- enamel, the gold ring, the well -- and the icon's size, round. Each ring is
+-- a set width in units, growing a little with the panel and then holding, so
+-- the gold is thin at every height.
+local function Medallion(H)
 	local R = H / 2
 	local rim = R - Clamp(H * 0.014, 0.5, 1.0)
-	local enamel = rim - Clamp(H * 0.022, 0.8, 1.4)
+	local enamel = rim - Clamp(H * 0.030, 1.0, 1.5)
 	local ring = enamel - Clamp(H * 0.068, 2.3, 4.0)
 	local well = ring - Clamp(H * 0.045, 1.5, 2.5)
 	local seam = ring + Clamp(H * 0.012, 0.45, 0.8)
 	local iconR = well - Clamp(H * 0.012, 0.45, 0.8)
-	local icon
-	if round then
-		icon = 2 * iconR / MASK_FILL
-	else
-		-- The squared icon's corners just inside the well.
-		icon = 2 * (well - 0.35) / (MASK_FILL * SQUIRCLE_REACH)
-	end
+	local icon = 2 * iconR / MASK_FILL
 	return R, rim, enamel, ring, well, icon, seam
 end
 
@@ -162,7 +157,7 @@ end
 -- The medallion is the panel's height, so the icon is sized by the height and
 -- not by the slider. Options says so with this.
 function Toast.IconSize(p)
-	local _, _, _, _, _, icon = Medallion(p.height or 44, p.roundIcon)
+	local _, _, _, _, _, icon = Medallion(p.height or 44)
 	return math.floor(icon + 0.5)
 end
 
@@ -172,10 +167,6 @@ local function Enamel(r, g, b)
 	local l = 0.299 * r + 0.587 * g + 0.114 * b
 	local k = 1.35
 	return Clamp(l + (r - l) * k, 0, 1), Clamp(l + (g - l) * k, 0, 1), Clamp(l + (b - l) * k, 0, 1)
-end
-
-local function Mix(r, g, b, t)
-	return r + (1 - r) * t, g + (1 - g) * t, b + (1 - b) * t
 end
 
 -- The enamel for a reason colour. A warm gold (the owed reason) is fired
@@ -569,8 +560,8 @@ function Toast:Apply(p, above)
 	-- The medallion and the icon in it.
 	icon:ClearAllPoints()
 	icon:SetShown(showIcon)
-	local round = p.roundIcon and true or false
-	local maskFile = ART .. (round and "IconMask" or "SealMask")
+	-- Round at either setting of "Round the icon off" (see the top).
+	local maskFile = ART .. "IconMask"
 	self.mask:SetTexture(maskFile, "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
 	self.mask:ClearAllPoints()
 	self.mask:SetAllPoints(icon)
@@ -579,8 +570,8 @@ function Toast:Apply(p, above)
 		icon:AddMaskTexture(self.mask)
 		self.masked = true
 	end
-	local R, rRim, rEnamel, rRing, rWell, iconSize, rSeam = Medallion(math.max(1, M), round)
-	self.R, self.iconSize, self.ringWidth, self.enamelWidth = R, iconSize, rRing - rWell, rEnamel - rRing
+	local R, rRim, rEnamel, rRing, rWell, iconSize, rSeam = Medallion(math.max(1, M))
+	self.R, self.iconSize = R, iconSize
 	Disc(self.medallion, art, cx, cy, R)
 	Disc(self.rim, art, cx, cy, rRim)
 	Disc(self.band, art, cx, cy, rEnamel)
@@ -638,9 +629,10 @@ function Toast:Apply(p, above)
 	self.ash:SetPoint("LEFT", art, "TOPLEFT", self.clockX, self.clockY)
 	self.ash:SetSize(self.clockLen, self.clockH * 16 / 11.5)
 	self.ash:SetVertexColor(0.30, 0.13, 0.06, 0.60)
-	-- The burning end: a bead big enough to see at the game's own scale,
-	-- placed by Clock, and never back over the medallion.
-	local beadD = self.clockH * 2.6
+	-- The burning end: a bead big enough to see at the game's own scale (and
+	-- no bigger: it is the line's own colour, not a pearl), placed by Clock,
+	-- and never back over the medallion.
+	local beadD = self.clockH * 2.0
 	self.bead:SetSize(beadD, beadD)
 	self.beadMin = self.clockX + beadD / 2
 	self.clockW = nil
@@ -718,7 +710,7 @@ function Toast:Apply(p, above)
 	-- A fight's hold outlives a restyle: Prompt only says so again when it
 	-- changes, so the look puts it back itself.
 	local held = self.combat
-	self.combat, self.hovered, self.washFor, self.outcomeOn, self.refused = nil, nil, nil, nil, nil
+	self.combat, self.hovered, self.outcomeOn, self.refused = nil, nil, nil, nil
 	self.pulseSpent = nil
 	self:Iron(false)
 	if held then self:Combat(true) end
@@ -793,7 +785,7 @@ function Toast:Hide()
 	kit.fit.room[kit.name], kit.fit.room[kit.sub] = nil, nil
 	kit.textLayer:SetFrameLevel(kit.art:GetFrameLevel() + 1)
 	kit.textLayer:SetAlpha(1)
-	self.combat, self.hovered, self.washFor, self.outcomeOn = nil, nil, nil, nil
+	self.combat, self.hovered, self.outcomeOn = nil, nil, nil
 	self.listShown, self.countMode, self.keyUp = nil, nil, false
 end
 
@@ -1011,14 +1003,17 @@ function Toast:Tint(r, g, b, outcome)
 	local dr, dg, db = Dark(er, eg, eb)
 	self.band:SetVertexColor(dr, dg, db, 1)
 	self.glow:SetVertexColor(er, eg, eb, 1)
-	self.jewel:SetVertexColor(er, eg, eb, 1)
+	-- The jewel halfway between the enamel and the fired colour: it carries
+	-- the reason, with the enamel's restraint.
+	self.jewel:SetVertexColor((er + dr) / 2, (eg + dg) / 2, (eb + db) / 2, 1)
 	self.ringArrive:SetVertexColor(r, g, b, 0.55)
 	self.burst:SetVertexColor(r, g, b, 1)
 	if not outcome then
 		-- The time left in the fired colour, lighter than the dark enamel,
-		-- so it is a live line over its ash; quiet, never a lit rail.
-		self.ember:SetVertexColor(er, eg, eb, 0.72)
-		self.bead:SetVertexColor(Mix(er, eg, eb, 0.30))
+		-- so it is a live line over its ash; quiet, never a second rail, and
+		-- its bead in the same colour, never brighter than the gold.
+		self.ember:SetVertexColor(er, eg, eb, 0.55)
+		self.bead:SetVertexColor(er, eg, eb, 0.85)
 	end
 	-- The subtitle: warm grey taken most of the way to the reason, held to its
 	-- contrast; on a light panel the plain grey, which the tint would cost.
@@ -1225,7 +1220,10 @@ function Toast:PaintOutcome(kind, lead, sub, who, stamp)
 		word = sub or ""
 	end
 	self.outcomeOn = true
-	self.washFor = stamp
+	-- The owed breathing is about the favour, not the click: it stops, and
+	-- the enamel is the outcome's dark band. Attention starts it again for
+	-- the next person owed.
+	self:HoldPulse()
 	self:Tint(o[1], o[2], o[3], true)
 	-- The verdict in the outcome's colour, not the reason's.
 	local vr, vg, vb = kit.Legible(o[1], o[2], o[3], 4.5)
@@ -1244,7 +1242,6 @@ end
 
 function Toast:ClearOutcome()
 	self.outcomeOn = nil
-	self.washFor = nil
 end
 
 ---------------------------------------------------------------------------

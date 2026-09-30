@@ -78,7 +78,7 @@ mutate(TOAST,
 
 # The medallion's rim at the ring's full brightness and more: not old gold.
 mutate(TOAST,
-       "local RIM = { 0.66, 0.62, 0.58 }\n",
+       "local RIM = { 0.92, 0.92, 0.92 }\n",
        "local RIM = { 1.6, 1.4, 1.2 }\n",
        "the medallion's rim brightened",
        expect="is gold as bright as",
@@ -103,8 +103,8 @@ mutate(TOAST,
 
 # The icon shrunk inside the ring, which no longer hugs it.
 mutate(TOAST,
-       "\t\ticon = 2 * iconR / MASK_FILL\n",
-       "\t\ticon = 1.7 * iconR / MASK_FILL\n",
+       "\tlocal icon = 2 * iconR / MASK_FILL\n",
+       "\tlocal icon = 1.7 * iconR / MASK_FILL\n",
        "the ring standing off the icon",
        expect="it should hug it",
        script="runscenarios.py")
@@ -117,12 +117,30 @@ mutate(TOAST,
        expect="is not the reason colour darkened",
        script="runscenarios.py")
 
-# Icon rounding ignored: round whatever the setting.
+# The icon left square with rounding off (the default): a square in a dark
+# round hole, the ring round only its corners.
 mutate(TOAST,
-       "\tlocal maskFile = ART .. (round and \"IconMask\" or \"SealMask\")\n",
        "\tlocal maskFile = ART .. \"IconMask\"\n",
-       "icon rounding ignored",
-       expect="rounding is off and the icon is round",
+       "\tlocal maskFile = ART .. (p.roundIcon and \"IconMask\" or \"Body\")\n",
+       "the icon square with rounding off",
+       expect="rounding is off and the icon is not round",
+       script="runscenarios.py")
+
+# The medallion's rim dimmed to a brown line: the gilded bezel gone, the
+# enamel on a dark edge.
+mutate(TOAST,
+       "local RIM = { 0.92, 0.92, 0.92 }\n",
+       "local RIM = { 0.66, 0.62, 0.58 }\n",
+       "the medallion's rim dimmed",
+       expect="too dark to read as gold",
+       script="runscenarios.py")
+
+# The list's drawer drawn from a file of pure light: its rail a glowing line.
+mutate(TOAST,
+       "\tself.drawer = Pieces(art, \"BORDER\", -2, ART .. \"Drawer\", nil, false, keep)\n",
+       "\tself.drawer = Pieces(art, \"BORDER\", -2, ART .. \"BorderGlow\", nil, false, keep)\n",
+       "the drawer's rail drawn as light",
+       expect="is gold as bright as",
        script="runscenarios.py")
 
 # The olive-black body of 1.5.1's in the game: no warmth in it.

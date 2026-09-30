@@ -271,6 +271,54 @@ withTree("Toast's pulse breathes three times and holds", ANNA, function(ns, scen
 	end
 end)
 
+-- ------------------------------------------------------------------ 3b
+-- An outcome is about the click, not the favour: a return made while the
+-- owed enamel still breathes stops the breathing, and the enamel is the
+-- outcome's dark band -- in 1.6's first cut the pulse ran on under the
+-- outcome's colour and lit the enamel into a bright green, pale gold or red
+-- ring, wider and brighter than the gold beside it.
+local OUTCOME = { cast = { 0.52, 0.90, 0.52 }, failed = { 1.00, 0.40, 0.34 }, sent = { 0.91, 0.86, 0.60 } }
+
+withTree("Toast's outcome lets the owed breathing go", ANNA, function(ns, scenario)
+	local _, _, look = upIn(ns, scenario)
+	if not isToast(look) then
+		fail(scenario, "SKIPPED -- Toast is not the look in use")
+		return
+	end
+	for _, kind in ipairs({ "cast", "sent", "failed" }) do
+		wipe(ns.owed)
+		tick(ns)
+		owe(ns, "Anna Aim")
+		tick(ns)
+		if not look.pulse[1]._playing then
+			fail(scenario, "SKIPPED -- the owed enamel was not breathing before the " .. kind)
+			return
+		end
+		ns.Prompt:ShowOutcome(kind, "Anna Aim", "Out of range.")
+		-- The scan repaints on under the outcome, while it is on show.
+		for _ = 1, 2 do
+			Mock.advance(0.2)
+			tick(ns)
+		end
+		if not ns.Prompt:OutcomeLive() then
+			fail(scenario, "SKIPPED -- the " .. kind .. " outcome was not on show")
+			return
+		end
+		local o = OUTCOME[kind]
+		local dr, dg, db = enamel(o[1], o[2], o[3])
+		local band = look.band._color
+		if look.pulse[1]._playing or not near(look.glow._alpha or 0, 0) then
+			fail(scenario, ("a %s outcome leaves the owed enamel breathing (glow at %s)")
+				:format(kind, tostring(look.glow._alpha)))
+		end
+		if not (band and luminance(band[1], band[2], band[3]) <= luminance(dr, dg, db) + 0.002) then
+			fail(scenario, ("a %s outcome lights the enamel past its dark band"):format(kind))
+		end
+		Mock.advance(10)
+		tick(ns)
+	end
+end)
+
 -- ------------------------------------------------------------------ 4
 -- A fight: the gold goes to iron, the icon greys, the text dims; the enamel
 -- keeps the reason; the banner holds. And all of it comes back.
@@ -702,8 +750,13 @@ withTree("Toast carries the reason on a jewel with the icon off", ANNA, function
 			fail(scenario, "no jewel carries the reason with the icon off")
 			return
 		end
-		local er, eg, eb = fired(ns.Prompt:AccentColor(reason))
-		if not sameColour(c, er, eg, eb) then fail(scenario, "the jewel is not in " .. reason .. "'s colour") end
+		-- Halfway between the dark enamel and the fired colour: the reason,
+		-- with the enamel's restraint.
+		local fr, fg, fb = fired(ns.Prompt:AccentColor(reason))
+		local dr, dg, db = enamel(ns.Prompt:AccentColor(reason))
+		if not sameColour(c, (fr + dr) / 2, (fg + dg) / 2, (fb + db) / 2) then
+			fail(scenario, "the jewel is not in " .. reason .. "'s colour")
+		end
 		seen[#seen + 1] = c[1] + c[2] * 10 + c[3] * 100
 	end
 	if seen[1] == seen[2] or seen[2] == seen[3] then fail(scenario, "the jewel is one colour whatever the reason") end
@@ -900,7 +953,28 @@ withTree("Toast keeps no additive light at rest", CROWD, function(ns, scenario)
 	end
 	if groups == 0 then fail(scenario, "SKIPPED -- the toast has no additive flourish to judge") end
 
+	-- The plays asked of every group on an additive texture.
+	local function additivePlays()
+		local n = 0
+		for _, t in ipairs(look.own) do
+			if t._blend == "ADD" then
+				for _, g in ipairs(t._groups or {}) do n = n + (g._plays or 0) end
+			end
+		end
+		return n
+	end
+
 	local function check(what)
+		-- The scan repaints several times a second with nothing changed; a
+		-- flourish started again on each is lasting additive light.
+		local before = additivePlays()
+		for _ = 1, 3 do
+			ns.addon:Tick()
+			Mock.advance(0.3)
+		end
+		if additivePlays() > before then
+			fail(scenario, ("%s: an additive flourish replays on a repaint"):format(what))
+		end
 		Mock.advance(FLOURISH + 0.01)
 		FT.settle()
 		local lit = additiveLit(look)
