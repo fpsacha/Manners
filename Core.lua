@@ -323,7 +323,13 @@ local defaults = {
 			-- because renaming it would silently reset everyone's setting.
 			hideInCombat = false,
 
-			style = "glass",
+			-- Luxe (Looks/Luxe.lua) since 1.5: the default for everybody who
+			-- never picked a look. AceDB drops a value equal to its default
+			-- when it saves, and glass was the default until now, so nobody's
+			-- glass was ever saved: everybody on glass, chosen or not, moves
+			-- to Luxe and has to pick Glass again to keep it. A profile that
+			-- picked framed or minimal keeps it.
+			style = "luxe",
 			accentByReason = true,
 			-- standard | colourblind: which four reason colours (Prompt.lua).
 			reasonPalette = "standard",
@@ -1918,7 +1924,8 @@ function ns.ClampSettings()
 	-- The look once called "blizzard" is "framed" now; carried across rather
 	-- than reset to the default by the oneOf below.
 	if p.style == "blizzard" then p.style = "framed" end
-	oneOf(p, "style", { glass = true, framed = true, minimal = true }, "glass")
+	-- Every look Looks/ registered, the three Prompt.lua draws among them.
+	oneOf(p, "style", ns.Looks.Allowed(), ns.defaults.profile.prompt.style)
 	oneOf(p, "accentMode", { icon = true, stripe = true, both = true, off = true }, "icon")
 	oneOf(p, "reasonPalette", { standard = true, colourblind = true }, "standard")
 	oneOf(p, "flashStyle", { pulse = true, once = true, off = true }, "pulse")

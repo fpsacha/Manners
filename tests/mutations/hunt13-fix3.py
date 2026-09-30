@@ -149,4 +149,7 @@ mutate("Options.lua",
        "\t\treturn ControlWidth(LabelWidth(option and Asked(option.name, info), font), 6)\n",
        "\t\treturn ControlWidth(LabelWidth(option and Asked(option.name, info), font), -170)\n",
        "hunt13-fix3: sliders fitted a unit short",
-       expect="the game cuts it with an ellipsis", script=S)
+       # Caught by the three long labels left at one unit; the ellipsis check
+       # does not fire for it (the same on master), which selftest reported
+       # as WRONG CHECK.
+       expect="is left at 170 pixels", script=S)

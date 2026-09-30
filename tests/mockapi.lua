@@ -425,6 +425,10 @@ local frameMethods = {
 	"SetHighlightTexture", "EnableMouse", "StartMoving", "StopMovingOrSizing",
 	"SetGradient", "AddMaskTexture", "SetAtlas", "SetUserPlaced",
 	"RegisterForClicks", "SetGradientAlpha", "EnableMouseWheel",
+	-- A look from Looks/ reshapes the shared icon and moves the reason line
+	-- into its tag: every one a method the client has on these regions.
+	"RemoveMaskTexture", "SetParent", "SetStartDelay", "SetScaleFrom", "SetScaleTo",
+	"SetOrigin",
 }
 
 local KNOWN_EVENTS = {}
@@ -526,6 +530,11 @@ local function newFrame()
 	f.GetText = function(self) return self._text end
 	f.SetAlpha = function(self, alpha) self._alpha = alpha return self end
 	f.GetAlpha = function(self) return self._alpha or 1 end
+	-- Kept, like the alpha: a fight greys the icon and has to give it back.
+	f.SetDesaturated = function(self, on) self._desaturated = on and true or false return self end
+	f.IsDesaturated = function(self) return self._desaturated == true end
+	f.SetFrameLevel = function(self, level) self._level = level return self end
+	f.GetFrameLevel = function(self) return self._level or 1 end
 	f.SetVertexColor = function(self, r, g, b, a) self._color = { r, g, b, a } return self end
 	-- The text colour too. A line recoloured for one message and never put back
 	-- reads the same to every assertion as one that was, against a no-op.

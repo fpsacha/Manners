@@ -22,6 +22,10 @@ local frameMethods = {
   "AddMaskTexture", "SetAtlas", "SetCountdownFormatter", "SetUserPlaced",
   -- The prompt asks whether a font loaded, so it can fall back when not.
   "GetFont",
+  -- A look from Looks/ reshapes the shared icon and moves the reason line
+  -- into its tag.
+  "SetDesaturated", "RemoveMaskTexture", "SetParent", "SetFrameLevel", "SetStartDelay",
+  "SetScaleFrom", "SetScaleTo", "SetOrigin",
 }
 
 local function newFrame()
@@ -42,6 +46,9 @@ local function newFrame()
   -- skipped by its own guard.
   f.GetCenter = function() return 400, 500 end
   f.GetHeight = function() return 1000 end
+  f.GetFrameLevel = function() return 1 end
+  f.GetAlpha = function() return 1 end
+  f.GetText = function() return nil end
   f.GetHighlightTexture = function() return newFrame() end
   f.CreateTexture = function() return newFrame() end
   f.CreateFontString = function() return newFrame() end

@@ -13,6 +13,9 @@
 --
 -- `backdrop` is the world behind the picture: dusk unless it says "bright".
 -- Text that reads over dusk has only passed the easy half of the test.
+--
+-- `lift` moves the picture's view up by that many units, for a state whose
+-- panel carries something tall above it (the list hung over the panel).
 
 -- `dir` holds the mock and the recorder; `addonDir` holds the addon being
 -- drawn. They differ when an older build is drawn with today's renderer, which
@@ -22,9 +25,16 @@
 -- say, or nil for English. The longer translations are where a line that fits
 -- in English runs off the panel, and the only way to see that without the
 -- game is to draw the prompt in them.
-local dir, addonDir, locale = ...
+--
+-- `style` draws every state in that look (a state that names its own look
+-- keeps it), and `key` binds that key to the prompt first, as most players who
+-- use it have: the looks that show the key only show it with one bound.
+local dir, addonDir, locale, style, key = ...
 addonDir = addonDir or dir
 if locale == "" or locale == "enUS" then locale = nil end
+if style == "" then style = nil end
+if key == "" then key = nil end
+local COMMAND = "CLICK MannersPrompt:LeftButton"
 
 dofile(dir .. "/tests/mockapi.lua")
 dofile(dir .. "/tests/frametree.lua")
@@ -68,6 +78,7 @@ local function load()
 		if not chunk then error("load " .. file .. ": " .. tostring(err)) end
 		chunk("Manners", ns)
 	end
+	if style and ns.defaults then ns.defaults.profile.prompt.style = style end
 	return ns
 end
 
@@ -75,7 +86,9 @@ end
 -- cooldown, and the nameplates the state names registered with the scan.
 local function boot(ns, names)
 	people(names or {})
+	if key then Mock.bindings = { [key] = COMMAND } end
 	ns.addon:OnInitialize()
+	if style then ns.db.profile.prompt.style = style end
 	ns.addon:OnEnable()
 	ns.addon:PLAYER_ENTERING_WORLD()
 	Mock.runTimers(3)
@@ -100,6 +113,18 @@ local function tick(ns)
 	FrameTree.settle()
 end
 
+-- A fight starts and the picture is taken once it has settled: the fight's
+-- own one-shot fades (the text's swap, a flare) have run out by then, and a
+-- still of them mid-run would be brighter than the panel a player sees.
+local function fight(ns)
+	Mock.inCombat = true
+	ns.addon:PLAYER_REGEN_DISABLED()
+	tick(ns)
+	Mock.advance(2)
+	FrameTree.settle()
+	tick(ns)
+end
+
 local STRANGER = { nameplate1 = { "Brannoc", "Vale" } }
 local OWED = { nameplate1 = { "Anna", "Aim" } }
 
@@ -110,6 +135,26 @@ local function withPrompt(edit)
 		ns.Prompt:ApplyStyle()
 		owe(ns, "Anna Aim")
 		tick(ns)
+	end
+end
+
+-- The prompt in Arcane with Anna owed on top, 40 s into her 100: `edit` the
+-- settings, `names` the people about (a party among them makes a group), and
+-- `after` what happens next.
+local function arcane(edit, names, after)
+	return function(ns)
+		Mock.bindings = { F = COMMAND }
+		if names and names.party1 then
+			Mock.groupSize = 2
+			partyIsParty()
+		end
+		boot(ns, names or OWED)
+		ns.db.profile.prompt.style = "arcane"
+		if edit then edit(ns.db.profile.prompt, ns) end
+		ns.Prompt:ApplyStyle()
+		ns.owed["Anna Aim"] = { expires = GetTime() + 60, at = GetTime() - 40, class = "PRIEST" }
+		tick(ns)
+		if after then after(ns) end
 	end
 end
 
@@ -198,9 +243,7 @@ R.states = {
 		boot(ns, OWED)
 		owe(ns, "Anna Aim")
 		tick(ns)
-		Mock.inCombat = true
-		ns.addon:PLAYER_REGEN_DISABLED()
-		tick(ns)
+		fight(ns)
 	end },
 	{ key = "queue", title = "Queue list shown", at = 0.85, setup = function(ns)
 		Mock.groupSize = 2
@@ -310,6 +353,147 @@ R.states = {
 	{ key = "round", title = "Round icon", at = 0.85, setup = withPrompt(function(p)
 		p.roundIcon = true
 	end) },
+	-- The looks from Looks/ are the default now; the one that was, drawn by
+	-- name so it is still seen.
+	{ key = "glass", title = "Look: glass", at = 0.85, setup = withPrompt(function(p)
+		p.style = "glass"
+	end) },
+	-- Arcane, as a player who picks it sees it: a key bound for its keycap and
+	-- the favour's clock part-run. (--style arcane --key F draws every state
+	-- in it.)
+	{ key = "arcane", title = "Look: arcane", at = 0.85, setup = arcane() },
+	{ key = "arcane-round", title = "Look: arcane, round icon", at = 0.85, setup = arcane(function(p)
+		p.roundIcon = true
+	end) },
+	{ key = "arcane-combat", title = "Look: arcane, held in combat", at = 0.85, setup = arcane(nil, nil,
+		fight) },
+	{ key = "arcane-queue", title = "Look: arcane, list shown", at = 0.85, setup = arcane(function(p)
+		p.showQueue = true
+		p.queueRows = 3
+	end, { party1 = { "Gwen", "Hollow" }, nameplate1 = { "Anna", "Aim" },
+		nameplate2 = { "Brannoc", "Vale" }, nameplate3 = { "Corwin", "Ash" } }) },
+	{ key = "arcane-noicon", title = "Look: arcane, icon off, list shown", at = 0.85,
+		setup = arcane(function(p)
+			p.showIcon = false
+			p.showQueue = true
+			p.queueRows = 3
+		end, { party1 = { "Gwen", "Hollow" }, nameplate1 = { "Anna", "Aim" },
+			nameplate2 = { "Brannoc", "Vale" }, nameplate3 = { "Corwin", "Ash" } }) },
+	{ key = "arcane-light", title = "Look: arcane, a light panel, list shown", at = 0.85,
+		setup = arcane(function(p)
+			p.bgColor = { 0.86, 0.84, 0.78, 0.92 }
+			p.showQueue = true
+			p.queueRows = 3
+		end, { party1 = { "Gwen", "Hollow" }, nameplate1 = { "Anna", "Aim" },
+			nameplate2 = { "Brannoc", "Vale" }, nameplate3 = { "Corwin", "Ash" } }) },
+	{ key = "hover", title = "The cursor on the panel", at = 0.3, setup = function(ns)
+		boot(ns, OWED)
+		owe(ns, "Anna Aim")
+		tick(ns)
+		local button = ns.Prompt:GetButton()
+		if button.scripts.OnEnter then button.scripts.OnEnter(button) end
+	end },
+	{ key = "list-above", title = "Queue list above the panel", at = 0.85, lift = 34, setup = function(ns)
+		Mock.groupSize = 2
+		partyIsParty()
+		-- Low on the screen, where the list hangs over the panel.
+		Mock.promptCentreY = 120
+		boot(ns, { party1 = { "Gwen", "Hollow" }, nameplate1 = { "Anna", "Aim" },
+			nameplate2 = { "Brannoc", "Vale" }, nameplate3 = { "Corwin", "Ash" } })
+		ns.db.profile.prompt.showQueue = true
+		ns.db.profile.prompt.queueRows = 3
+		ns.Prompt:ApplyStyle()
+		owe(ns, "Anna Aim")
+		tick(ns)
+	end },
+	{ key = "one-line", title = "Second line off", at = 0.85, setup = withPrompt(function(p)
+		p.showSub = false
+		p.height = 32
+	end) },
+	{ key = "no-icon", title = "Icon off", at = 0.85, setup = withPrompt(function(p)
+		p.showIcon = false
+	end) },
+	{ key = "small-size", title = "180 x 40, 11 pt, icon 26", at = 0.85, setup = withPrompt(function(p)
+		p.width, p.height, p.fontSize, p.iconSize = 180, 40, 11, 26
+	end) },
+	{ key = "large-size", title = "320 x 58, 17 pt, icon 40", at = 0.85, setup = withPrompt(function(p)
+		p.width, p.height, p.fontSize, p.iconSize = 320, 58, 17, 40
+	end) },
+	-- A key bound to the prompt, which a look may show on the panel.
+	{ key = "keybound", title = "A key bound to the prompt", at = 0.85, setup = function(ns)
+		Mock.bindings = { ["SHIFT-F"] = "CLICK MannersPrompt:LeftButton" }
+		boot(ns, OWED)
+		owe(ns, "Anna Aim")
+		tick(ns)
+	end },
+	-- A favour most of the way to forgotten: the time left to return it.
+	{ key = "clock", title = "A favour with a third of its time left", at = 0.85, setup = function(ns)
+		boot(ns, OWED)
+		local window = ns.db.profile.timing.reciprocateWindow or 300
+		ns.owed["Anna Aim"] = { expires = GetTime() + window, at = GetTime() - window * 2, class = "PRIEST" }
+		ns.owed["Anna Aim"].expires = GetTime() + window / 3
+		ns.owed["Anna Aim"].at = GetTime() - window * 2 / 3
+		tick(ns)
+	end },
+	{ key = "combat-bright", title = "Held in combat, over a bright world", at = 0.85,
+		backdrop = "bright", setup = function(ns)
+		boot(ns, OWED)
+		owe(ns, "Anna Aim")
+		tick(ns)
+		fight(ns)
+	end },
+	-- A mage on the panel, and a mage's own buff: the class colour, softened
+	-- on the looks that ask, must not land on a reason's colour.
+	{ key = "mage-target", title = "A mage as your target, names by class", at = 0.85, setup = function(ns)
+		Mock.unitClass = "MAGE"
+		boot(ns, { target = { "Tamsin", "Reed" } })
+		tick(ns)
+	end },
+	{ key = "mage-self", title = "A mage's own buff", at = 0.85, setup = function(ns)
+		boot(ns, {})
+		Mock.playerHeld = {}
+		ns.ForgetUnitAuras(ns.plain(UnitGUID("player")))
+		tick(ns)
+	end },
+	-- One line with people waiting: the count chip on the one line.
+	{ key = "one-line-count", title = "Second line off, three more waiting", at = 0.85, setup = function(ns)
+		Mock.groupSize = 2
+		partyIsParty()
+		boot(ns, { party1 = { "Gwen", "Hollow" }, nameplate1 = { "Anna", "Aim" },
+			nameplate2 = { "Brannoc", "Vale" }, nameplate3 = { "Corwin", "Ash" } })
+		ns.db.profile.prompt.showSub = false
+		ns.db.profile.prompt.height = 32
+		ns.Prompt:ApplyStyle()
+		owe(ns, "Anna Aim")
+		tick(ns)
+	end },
+	-- One line, and the buff lands: the name line has to say so.
+	{ key = "one-line-success", title = "Second line off, a buff that landed", at = 0.28,
+		setup = function(ns)
+		boot(ns, OWED)
+		ns.db.profile.prompt.showSub = false
+		ns.db.profile.prompt.height = 32
+		ns.Prompt:ApplyStyle()
+		owe(ns, "Anna Aim")
+		tick(ns)
+		ns.Prompt:ShowOutcome("cast", "Anna Aim")
+		FrameTree.settle()
+	end },
+	-- 13 pt at 40 tall: two lines on glass, so two lines here as well.
+	{ key = "h40", title = "40 tall at 13 pt", at = 0.85, setup = withPrompt(function(p)
+		p.height = 40
+	end) },
+	-- A panel made nearly clear, over snow: the text has to carry itself.
+	{ key = "clear-bright", title = "A nearly clear panel over a bright world", at = 0.85,
+		backdrop = "bright", setup = withPrompt(function(p)
+			p.bgColor = { 0.04, 0.04, 0.06, 0.1 }
+		end) },
+	{ key = "calm-owed", title = "Somebody buffed you, Effects: Calm", at = 0.85, setup = function(ns)
+		boot(ns, OWED)
+		ns.db.profile.prompt.effects = "calm"
+		owe(ns, "Anna Aim")
+		tick(ns)
+	end },
 	{ key = "small", title = "Scale 0.7", at = 0.85, setup = withPrompt(function(p)
 		p.scale = 0.7
 	end) },
@@ -342,14 +526,22 @@ function R.run(key)
 	UnitExists = realUnitExists
 	UnitInParty, UnitInSubgroup = realInParty, realInSubgroup
 	if not ok then error("state " .. key .. ": " .. tostring(err)) end
+	-- The clock is taken to the moment of the picture and the one-shots that
+	-- have run out by then are finished, as the client finishes them: their
+	-- OnFinished parks each where the addon wants it. Left playing, the
+	-- renderer would draw them at their last frame instead -- a fade the
+	-- addon then sets somewhere else drawn brighter than it is.
+	Mock.advance(state.at or 0)
+	FrameTree.settle()
 	local button = ns.Prompt:GetButton()
 	return {
 		tree = FrameTree.snapshot(UIParent),
 		button = button and button._serial,
-		now = Mock.now + (state.at or 0),
+		now = Mock.now,
 		title = state.title,
 		locale = locale,
 		backdrop = state.backdrop,
+		lift = state.lift,
 		screen = { width = 1600, height = Mock.screenHeight or 1000 },
 		errors = ns.errors and #ns.errors or 0,
 		firstError = ns.errors and ns.errors[1] and (tostring(ns.errors[1].where) .. " -> "
