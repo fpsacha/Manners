@@ -639,6 +639,8 @@ function Toast:Apply(p, above)
 	self.keyBox:SetPoint("RIGHT", art, "RIGHT", -9, 0)
 	self.keyBox:SetSize(chipH * 1.75, chipH)
 	self.countMode, self.keyUp = nil, false
+	-- Measured again in the new font and size.
+	self.keyLabel, self.countText = nil, nil
 
 	-- The levels: the medallion over the icon's glows, the chips over the
 	-- medallion, the text over everything.
@@ -719,7 +721,6 @@ function Toast:Styled(p)
 		kit.name:SetShadowColor(0, 0, 0, 0.9)
 		kit.name:SetShadowOffset(1, -1)
 	end
-	local r, g, b = kit.Legible(PALE_GOLD[1], PALE_GOLD[2], PALE_GOLD[3], 4.5)
 	-- The chips are dark enamel whatever the panel, so their text is pale gold
 	-- as it is.
 	kit.count:SetTextColor(PALE_GOLD[1], PALE_GOLD[2], PALE_GOLD[3], 1)
@@ -731,7 +732,7 @@ function Toast:Styled(p)
 	self.keyText:SetTextColor(PALE_GOLD[1], PALE_GOLD[2], PALE_GOLD[3], 1)
 	self.keyText:SetShadowOffset(0, 0)
 	if ink.light then
-		r, g, b = kit.Legible(0.93, 0.90, 0.83, 4.5)
+		local r, g, b = kit.Legible(0.93, 0.90, 0.83, 4.5)
 		for _, fs in ipairs(kit.rows) do fs:SetTextColor(r, g, b, 1) end
 		ink.rowReason = "|cffa19685"
 	end
@@ -815,10 +816,11 @@ function Toast:Fitted(fs)
 end
 
 -- Whether the name, even at its smallest, fits beside `room` at the right.
+-- Its width is measured once a paint, by Chip.
 function Toast:NameFits(room)
 	local kit = self.kit
 	local name, fit = kit.name, kit.fit
-	local width, size, base = kit.TextWidth(name), fit.size[name], fit.base[name]
+	local width, size, base = self.nameWidth, fit.size[name], fit.base[name]
 	if not (width and size and base and size > 0) then return true end
 	local least = math.max(7, math.floor(base * 0.8 + 0.5))
 	return width * least / size <= self.W - self.textX - math.max(room, 12) + 0.5
@@ -846,13 +848,19 @@ end
 function Toast:Chip(on)
 	local kit = self.kit
 	self:Clock()
+	-- Measured here and nowhere else on the way through a paint; the chips'
+	-- own words only when they change.
+	self.nameWidth = kit.TextWidth(kit.name)
 
 	local key = self:KeyLabel()
 	local keyUp = false
 	if key then
-		self.keyText:SetText(key)
-		local w = math.max(self.chipH * 1.75, (kit.TextWidth(self.keyText) or self.sub) + 10)
-		self.keyW, self.keyRoom = w, math.ceil(w + 15)
+		if key ~= self.keyLabel then
+			self.keyLabel = key
+			self.keyText:SetText(key)
+			local w = math.max(self.chipH * 1.75, (kit.TextWidth(self.keyText) or self.sub) + 10)
+			self.keyW, self.keyRoom = w, math.ceil(w + 15)
+		end
 		keyUp = self:NameFits(self.keyRoom)
 	end
 	if keyUp ~= self.keyUp then
@@ -877,7 +885,12 @@ function Toast:Chip(on)
 		local text = count:GetText()
 		if type(text) == "string" and text:match("^%d+$") then count:SetText("+" .. text) end
 		local h = mode == "coin" and self.coinH or self.chipH
-		local w = math.max(h * 1.75, (kit.TextWidth(count) or self.sub) + (mode == "coin" and 6 or 10))
+		text = count:GetText()
+		if text ~= self.countText or mode ~= self.countMode then
+			self.countText = text
+			self.countW = math.max(h * 1.75, (kit.TextWidth(count) or self.sub) + (mode == "coin" and 6 or 10))
+		end
+		local w = self.countW
 		if mode ~= self.countMode then
 			self.chipBox:ClearAllPoints()
 			if mode == "coin" then
