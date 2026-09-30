@@ -254,7 +254,8 @@ a new title.
 
 ## The prompt's look
 
-Three looks (glass, framed and minimal), your own colours and fonts, and
+Six looks -- Luxe (the default), Toast, Arcane, Glass, Framed and Minimal,
+under Look > Style > *Panel style* -- your own colours and fonts, and
 LibSharedMedia support. When a buff lands, a ring pops out of the icon and
 light crosses the panel; a refused one gives the text a small shake. Somebody
 who buffs you makes the panel catch the light, and the prompt fades out after

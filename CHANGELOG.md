@@ -1,6 +1,28 @@
 # Changelog
 
-## Unreleased
+## 1.5.0
+
+The prompt gets three new looks, the options open again, and a big pass of
+fixes and trimming makes Manners lighter on your game.
+
+### Three new looks
+
+- Pick one under Look > Style > *Panel style*, beside Glass, Framed and
+  Minimal:
+  - **Luxe:** a slim dark card with a stripe in the reason colour, a rounded
+    icon in a ring, and the reason written as a small tag.
+  - **Toast:** a warm banner with a gilded medallion round the icon; the time
+    left to return a favour burns along its bottom edge as an ember.
+  - **Arcane:** smoked glass with a rim lit in the reason colour, the icon in a
+    slowly turning circle of runes, and a keycap showing the key you bound.
+- **Luxe is the new default.** If you never picked a look, you now see Luxe;
+  pick Glass again under Look > Style to go back. A look you chose yourself is
+  kept.
+- In the new looks the result of a click replaces the second line -- "buffed",
+  "could not buff" -- and the name stays where it is.
+- They keep the reason colour in a fight while the icon greys, and honour
+  Calm, the colour-blind palette, your colours, fonts and size, the count, the
+  list above or below, the second line and icon rounding.
 
 ### Fixed
 

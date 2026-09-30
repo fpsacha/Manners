@@ -355,6 +355,7 @@ L["your own buff: nothing you cast goes on yourself alone."] = "내 버프: 나 
 L["|cffff8080own buffs: last scan not believed (%s)|r -- %d read, baseline %d"] = "|cffff8080내 버프: 마지막 스캔을 신뢰하지 않음 (%s)|r -- %d개 읽음, 기준 %d개"
 L["|cffffd100own buffs: baseline not settled|r -- %d read, waiting for a second scan to agree"] = "|cffffd100내 버프: 기준 미확정|r -- %d개 읽음, 두 번째 스캔 결과가 일치하기를 기다리는 중"
 L["own buffs: %d read, baseline %d"] = "내 버프: %d개 읽음, 기준 %d개"
+L["%d changes to your auras this session, read in %d walks"] = "이번 세션에서 오라가 %d번 바뀌었고, %d번 훑어 읽었습니다"
 L["thank with an emote: |cff00ff00on|r"] = "감정 표현으로 감사 인사: |cff00ff00켜짐|r"
 L["thank with an emote: |cffff0000off|r"] = "감정 표현으로 감사 인사: |cffff0000꺼짐|r"
 L["last thanked: |cffffffff%s|r, %ds ago (the game answered %s)"] = "마지막 감사 인사: |cffffffff%s|r, %d초 전 (게임 응답: %s)"

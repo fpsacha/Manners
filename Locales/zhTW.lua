@@ -355,6 +355,7 @@ L["your own buff: nothing you cast goes on yourself alone."] = "自身增益：�
 L["|cffff8080own buffs: last scan not believed (%s)|r -- %d read, baseline %d"] = "|cffff8080自身增益：上次掃描結果不可信（%s）|r——讀到%d個，基準%d個"
 L["|cffffd100own buffs: baseline not settled|r -- %d read, waiting for a second scan to agree"] = "|cffffd100自身增益：基準尚未確立|r——讀到%d個，等待第二次掃描確認"
 L["own buffs: %d read, baseline %d"] = "自身增益：讀到%d個，基準%d個"
+L["%d changes to your auras this session, read in %d walks"] = "本次會話你的光環變化了%d次，共讀取%d輪"
 L["thank with an emote: |cff00ff00on|r"] = "用表情動作道謝：|cff00ff00開啟|r"
 L["thank with an emote: |cffff0000off|r"] = "用表情動作道謝：|cffff0000關閉|r"
 L["last thanked: |cffffffff%s|r, %ds ago (the game answered %s)"] = "上次道謝：|cffffffff%s|r，%d秒前（遊戲回應：%s）"

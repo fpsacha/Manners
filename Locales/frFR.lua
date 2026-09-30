@@ -355,6 +355,7 @@ L["your own buff: nothing you cast goes on yourself alone."] = "votre propre am�
 L["|cffff8080own buffs: last scan not believed (%s)|r -- %d read, baseline %d"] = "|cffff8080vos améliorations : dernière analyse non retenue (%s)|r -- %d lues, référence %d"
 L["|cffffd100own buffs: baseline not settled|r -- %d read, waiting for a second scan to agree"] = "|cffffd100vos améliorations : référence pas encore établie|r -- %d lues, en attente d'une deuxième analyse concordante"
 L["own buffs: %d read, baseline %d"] = "vos améliorations : %d lues, référence %d"
+L["%d changes to your auras this session, read in %d walks"] = "%d changements de vos auras cette session, lus en %d passages"
 L["thank with an emote: |cff00ff00on|r"] = "remerciement par une emote : |cff00ff00activé|r"
 L["thank with an emote: |cffff0000off|r"] = "remerciement par une emote : |cffff0000désactivé|r"
 L["last thanked: |cffffffff%s|r, %ds ago (the game answered %s)"] = "dernier remerciement : |cffffffff%s|r, il y a %d s (réponse du jeu : %s)"

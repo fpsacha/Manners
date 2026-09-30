@@ -355,6 +355,7 @@ L["your own buff: nothing you cast goes on yourself alone."] = "il tuo beneficio
 L["|cffff8080own buffs: last scan not believed (%s)|r -- %d read, baseline %d"] = "|cffff8080benefici su di te: ultima scansione non attendibile (%s)|r -- %d letti, riferimento %d"
 L["|cffffd100own buffs: baseline not settled|r -- %d read, waiting for a second scan to agree"] = "|cffffd100benefici su di te: riferimento non stabilito|r -- %d letti, in attesa di una seconda scansione che confermi"
 L["own buffs: %d read, baseline %d"] = "benefici su di te: %d letti, riferimento %d"
+L["%d changes to your auras this session, read in %d walks"] = "%d cambiamenti alle tue aure in questa sessione, letti in %d passaggi"
 L["thank with an emote: |cff00ff00on|r"] = "ringraziamento con emote: |cff00ff00attivato|r"
 L["thank with an emote: |cffff0000off|r"] = "ringraziamento con emote: |cffff0000disattivato|r"
 L["last thanked: |cffffffff%s|r, %ds ago (the game answered %s)"] = "ultimo ringraziamento: |cffffffff%s|r, %d s fa (risposta del gioco: %s)"
