@@ -21,7 +21,16 @@
 --     and the runes keep its colour while the icon greys and the light goes,
 --     where the design dimmed the whole panel and left a faint rim;
 --   * the outcome is a verdict on the second line, as on Luxe: the name stays
---     where it was, so the eye never has to find the person again;
+--     where it was, so the eye never has to find the person again (with no
+--     second line, the name line says it); a landed buff turns the rim green
+--     as a refusal turns it red;
+--   * a square icon sits in a square of runes that does not turn, where the
+--     design put it in the round circle and its frame covered the corners;
+--   * the icon follows the icon size setting and the circle is sized round
+--     it, where the design sized the icon from the circle and the top of the
+--     slider did nothing;
+--   * on a light or mid panel the runes, the clock and the wash are laid over
+--     the glass in a deeper shade of the reason instead of added to it;
 --   * no four-point sparkles (clip-art, and busy on every arrival); a new
 --     favour is a flare of the bloom, the rim and the runes, and light
 --     crossing once;
@@ -75,8 +84,14 @@ local RUNE_ALPHA = 0.6
 -- What a fight does to the ink: the icon and its lens, the text, the runes,
 -- the drain and the light from the icon.
 local COMBAT = { ink = 0.62, text = 0.80, runes = 0.35, drain = 0.60, light = 0.50 }
+-- How much deeper the reason is drawn on a light panel, where it is laid
+-- over rather than added.
+local DEEP = 0.7
 -- An icon frame texture holds the icon in its middle 96 of 128 texels.
 local ICON_FRAME = 0.75
+-- The icon's share of the rune circle at which its frame just clears the
+-- inner runes (RuneRing's and RuneRingSq's inner hairlines).
+local ICON_FIT = 0.69
 
 -- The rim is this look's stripe and always carries the reason, unless the
 -- marker is off; the ring and the runes are its icon marker.
@@ -172,26 +187,37 @@ local function Known(english)
 	return locale == "enUS" or locale == "enGB" or rawget(L, english) ~= nil
 end
 
--- The key as a keycap says it: modifiers to a letter, long names cut down.
--- GetBindingText's short form differs between clients, so it is not asked.
-local KEY_WORDS = {
-	SHIFT = "S", CTRL = "C", ALT = "A", META = "M",
-	BUTTON3 = "M3", BUTTON4 = "M4", BUTTON5 = "M5",
-	MOUSEWHEELUP = "MwU", MOUSEWHEELDOWN = "MwD",
-	SPACE = "Spc", ESCAPE = "Esc", BACKSPACE = "BkSp", ENTER = "Ent", TAB = "Tab",
-	CAPSLOCK = "Caps", INSERT = "Ins", DELETE = "Del", HOME = "Hm", END = "End",
-	PAGEUP = "PgU", PAGEDOWN = "PgD", UP = "Up", DOWN = "Dn", LEFT = "Lt", RIGHT = "Rt",
-}
+-- The key as a keycap says it: modifiers to a letter, long names cut down,
+-- each through L so a German keycap can say what a German keyboard does. Made
+-- when the binding changes, never per paint.
+local function KeyWords()
+	return {
+		SHIFT = L["S"], CTRL = L["C"], ALT = L["A"], META = L["M"],
+		BUTTON3 = L["M3"], BUTTON4 = L["M4"], BUTTON5 = L["M5"],
+		MOUSEWHEELUP = L["MwU"], MOUSEWHEELDOWN = L["MwD"],
+		SPACE = L["Spc"], ESCAPE = L["Esc"], BACKSPACE = L["BkSp"], ENTER = L["Ent"], TAB = L["Tab"],
+		CAPSLOCK = L["Caps"], INSERT = L["Ins"], DELETE = L["Del"], HOME = L["Hm"], END = L["End"],
+		PAGEUP = L["PgU"], PAGEDOWN = L["PgD"], UP = L["Up"], DOWN = L["Dn"], LEFT = L["Lt"],
+		RIGHT = L["Rt"],
+	}
+end
 
+-- The client's own short form first -- what the player's action bars print,
+-- in their language -- and ours where it gives none.
 local function KeyLabel(key)
 	if type(key) ~= "string" or key == "" then return nil end
+	if type(GetBindingText) == "function" then
+		local text = GetBindingText(key, true)
+		if type(text) == "string" and text ~= "" then return text end
+	end
 	local parts = {}
 	-- The last part is the key; a lone "-" is the minus key itself.
 	for part in key:gmatch("[^%-]+") do parts[#parts + 1] = part end
 	if key:sub(-1) == "-" then parts[#parts + 1] = "-" end
 	if #parts == 0 then return nil end
+	local words = KeyWords()
 	for i, part in ipairs(parts) do
-		parts[i] = KEY_WORDS[part] or part:gsub("^NUMPAD", "N")
+		parts[i] = words[part] or part:gsub("^NUMPAD", "N")
 	end
 	return table.concat(parts, "-")
 end
@@ -390,7 +416,11 @@ function Arcane:BuildAnimations()
 	self.checkAnim = Fade(self.check, 1, 0.12, "OUT")
 	self.checkAnim.fade:SetFromAlpha(0)
 	self.checkAnim.fade:SetToAlpha(1)
-	self.washAnim = Fade(self.wash, 0, self.kit.OUTCOME_SECONDS, "OUT")
+	-- The wash holds for the first two fifths, so an outcome is seen from the
+	-- corner of the eye, and fades over the rest.
+	local seconds = self.kit.OUTCOME_SECONDS
+	self.washAnim = Fade(self.wash, 0, seconds * 0.6, "OUT")
+	if self.washAnim.fade.SetStartDelay then self.washAnim.fade:SetStartDelay(seconds * 0.4) end
 	self.washAnim.fade:SetFromAlpha(1)
 	self.washAnim.fade:SetToAlpha(0)
 	-- The cursor's light, both ways; from and to are set for each play.
@@ -411,10 +441,23 @@ function Arcane:Apply(p, above)
 	local round = p.roundIcon and true or false
 
 	-- The lens: the rune circle's size, its gap from the edge, the icon in it.
-	local M = math.max(12, math.min(H - 6, p.iconSize * 1.45))
-	local gap = math.max(3, math.min((H - M) / 2, 6))
+	-- The circle wants the icon at 0.69 of it and room above and below (3
+	-- units on a short card, 5 on a tall one). When the icon asked for is more
+	-- than that room holds, it still grows with the slider, a third as fast,
+	-- and the circle takes a unit a side of its room: a bigger icon covers the
+	-- inner runes rather than the slider going dead.
+	local margin = math.max(3, math.min(5, math.floor(H / 11)))
+	local asked = math.max(8, math.min(p.iconSize, H - 8))
+	local M = math.max(12, math.min(H - 2 * margin, asked * 1.45))
+	local fits = M * ICON_FIT
+	local iconSize = asked
+	if asked > fits then
+		iconSize = fits + (asked - fits) * 0.35
+		M = math.max(M, math.min(H - 2 * margin + 2, iconSize / ICON_FIT))
+	end
+	iconSize = math.max(8, math.floor(iconSize + 0.5))
+	local gap = math.max(3, math.min((H - M) / 2, 7))
 	local cx = gap + M / 2
-	local iconSize = math.max(8, math.floor(M * 0.68 + 0.5))
 	local textX = showIcon and math.floor(cx + M / 2 + 6 + 0.5) or 12
 	local sub = math.max(7, fs - 3)
 	local lineGap = math.max(2, math.floor(fs * 0.22 + 0.5))
@@ -449,6 +492,14 @@ function Arcane:Apply(p, above)
 	-- white only greys it.
 	local lum = 0.299 * br + 0.587 * bg + 0.114 * bb
 	local clear = math.max(0, 1 - lum * 1.3)
+	-- The same for what carries the reason in light: added to a light or mid
+	-- panel the reason colour only whitens it, so there the runes, the clock
+	-- and the wash are laid over in a deeper shade of it instead (Tint).
+	self.lightGlass = clear < 0.55
+	local blend = self.lightGlass and "BLEND" or "ADD"
+	for _, t in ipairs({ self.runes, self.track, self.drain, self.spark, self.wash }) do
+		t:SetBlendMode(blend)
+	end
 	self.light:ClearAllPoints()
 	self.light:SetPoint("TOPLEFT", 1, -1)
 	self.light:SetSize(math.max(8, math.min(W - 2, 150)), H - 2)
@@ -470,6 +521,10 @@ function Arcane:Apply(p, above)
 
 	-- The lens, round the shared icon.
 	local cy = 0
+	-- A square icon has a circle of its own shape: a round one round it is
+	-- covered at the four corners by the icon's frame.
+	self.runes:SetTexture(ART .. (round and "RuneRing" or "RuneRingSq"))
+	self.round = round
 	for _, t in ipairs({ self.well, self.runes }) do
 		t:ClearAllPoints()
 		t:SetPoint("CENTER", art, "LEFT", cx, cy)
@@ -495,6 +550,9 @@ function Arcane:Apply(p, above)
 		t:ClearAllPoints()
 		t:SetAllPoints(icon)
 	end
+	-- The highlight is a lens catching the light: faint, or it whitens the
+	-- top of the spell's art (and of a greyed icon in a fight).
+	self.gloss:SetVertexColor(1, 1, 1, round and 0.20 or 0.16)
 	self.ring:ClearAllPoints()
 	self.ring:SetPoint("CENTER", icon, "CENTER", 0, 0)
 	self.ring:SetSize(iconSize / ICON_FRAME, iconSize / ICON_FRAME)
@@ -565,8 +623,11 @@ function Arcane:Apply(p, above)
 	PlaceSlice(self.keycap, self.keyBox, self.keyBox, 0, 0, 0, 0)
 	SliceColor(self.keycap, 1, 1, 1, 0.85)
 
-	-- The list's rows start at the text; their bead a little left of it.
-	local rowWidth = math.max(20, W - textX - 14)
+	-- The list's rows start at the text and their bead a little left of it,
+	-- both inside the list's glass (5 units in) when the icon is off.
+	self.dotX = math.max(textX - 8, 12)
+	self.rowX = math.max(textX, self.dotX + 8)
+	local rowWidth = math.max(20, W - self.rowX - 14)
 	for _, fs in ipairs(kit.rows) do
 		fs:SetWidth(rowWidth)
 		fit.room[fs] = rowWidth
@@ -593,7 +654,7 @@ function Arcane:Apply(p, above)
 	self.pulseAnim:Stop()
 	self.flareAnim:Stop()
 	self.liftFrame:SetAlpha(0)
-	self.keyLabel, self.keyRoom = nil, 0
+	self.keyLabel, self.keyRoom, self.keyOn = nil, 0, nil
 	self:ShowKey()
 	self:SetInk(false)
 	self:Spin()
@@ -617,8 +678,9 @@ function Arcane:Styled(p)
 	-- A shadow under dark letters on a light panel only smudges them.
 	self.keyText:SetShadowColor(0, 0, 0, kit.ink.light and 0.6 or 0)
 	self.keyText:SetShadowOffset(kit.ink.light and 1 or 0, kit.ink.light and -1 or 0)
-	r, g, b = kit.Legible(0.95, 0.95, 0.98, 4.5)
-	kit.count:SetTextColor(r, g, b, 1)
+	-- The count sits on its badge, a dark pill of its own on any panel: light,
+	-- whatever the panel's colour would make of it.
+	kit.count:SetTextColor(0.95, 0.95, 0.98, 1)
 	kit.count:SetShadowOffset(0, 0)
 	r, g, b = kit.Legible(0.92, 0.92, 0.95, 4.5)
 	for _, fs in ipairs(kit.rows) do fs:SetTextColor(r, g, b, 1) end
@@ -721,8 +783,21 @@ function Arcane:CheckKey()
 	end
 end
 
+-- Whether a press does anything: Prompt arms the button with a macro for
+-- whoever the panel names, and clears it when unlocked or when a fight left
+-- nothing armed. Read, never set. The preview arms nothing and shows the key
+-- anyway, to be styled.
+function Arcane:Armed()
+	if self.kit.button:GetAttribute("type1") then return true end
+	return ns.Prompt ~= nil and ns.Prompt:InTest()
+end
+
+-- The keycap, only where pressing it casts something: a key bound, no outcome
+-- over it, the button armed. Asked on every paint; drawn only on a change.
 function Arcane:ShowKey()
-	local on = self:KeyShown() and not self.outcome
+	local on = self:KeyShown() and not self.outcome and self:Armed() and true or false
+	if on == self.keyOn then return end
+	self.keyOn = on
 	SliceShown(self.keycap, on)
 	self.keyText:SetShown(on)
 end
@@ -816,13 +891,25 @@ function Arcane:Tint(r, g, b, ring, rest, neutral)
 	SliceColor(self.liftRim, r, g, b, 0.6)
 	SliceColor(self.hoverRim, r, g, b, 0.14)
 	self.light:SetVertexColor(r, g, b, neutral and 0.03 or rest[3])
-	self.track:SetVertexColor(r, g, b, 0.10)
-	self.drain:SetVertexColor(r, g, b, 0.85)
-	local sr, sg, sb = Mix(r, g, b, 0.5)
-	self.spark:SetVertexColor(sr, sg, sb, 0.9)
 	local lr, lg, lb = ring[1], ring[2], ring[3]
 	self.ring:SetVertexColor(lr, lg, lb, 1)
-	self.runes:SetVertexColor(lr, lg, lb, math.min(1, rest[2] / RUNE_ALPHA))
+	if self.lightGlass then
+		-- Laid over a light panel (BLEND, Apply) in a deeper shade: added,
+		-- the colour would only whiten it.
+		local dr, dg, db = r * DEEP, g * DEEP, b * DEEP
+		self.track:SetVertexColor(dr, dg, db, 0.22)
+		self.drain:SetVertexColor(dr, dg, db, 0.95)
+		self.spark:SetVertexColor(dr, dg, db, 0.9)
+		-- The runes at their full resting strength: thin dark lines on a light
+		-- panel are the faintest thing on it.
+		self.runes:SetVertexColor(lr * DEEP, lg * DEEP, lb * DEEP, 1)
+	else
+		self.track:SetVertexColor(r, g, b, 0.10)
+		self.drain:SetVertexColor(r, g, b, 0.85)
+		local sr, sg, sb = Mix(r, g, b, 0.5)
+		self.spark:SetVertexColor(sr, sg, sb, 0.9)
+		self.runes:SetVertexColor(lr, lg, lb, math.min(1, rest[2] / RUNE_ALPHA))
+	end
 	self.tint = { r, g, b }
 end
 
@@ -838,12 +925,25 @@ function Arcane:SubColor(r, g, b, plain)
 	kit.sub:SetTextColor(sr, sg, sb, 1)
 end
 
+-- Prompt skips this while the colour is the same, and with one marker colour
+-- every reason is the same colour: so the reason's resting light is kept
+-- apart (restFor) and Painted puts it right when only the reason changed.
 function Arcane:PaintReason(r, g, b, reason, mode)
-	mode = mode or "icon"
+	self.reasonArgs = { r, g, b, mode or "icon" }
+	self.restFor = reason
+	self:Retint()
+end
+
+-- The last reason painted, again: after PaintReason, and when the person's
+-- reason changes under the same colour.
+function Arcane:Retint()
+	local args = self.reasonArgs
+	if not args then return end
+	local r, g, b, mode = args[1], args[2], args[3], args[4]
 	local off = mode == "off"
 	if off then r, g, b = NEUTRAL[1], NEUTRAL[2], NEUTRAL[3] end
 	local ringOn = mode == "icon" or mode == "both"
-	self:Tint(r, g, b, ringOn and { r, g, b } or NEUTRAL, REST[reason] or REST.nearby, off)
+	self:Tint(r, g, b, ringOn and { r, g, b } or NEUTRAL, REST[self.restFor] or REST.nearby, off)
 	self:SubColor(r, g, b, off)
 	-- A refusal greyed the icon; a fight keeps it grey.
 	self.kit.icon:SetDesaturated(self.combat and true or false)
@@ -867,10 +967,14 @@ function Arcane:Combat(on)
 end
 
 -- The rune circle turns on Full out of a fight, and holds still otherwise.
+-- The square circle never turns: a square that turns wobbles. Stopped, not
+-- paused, so it stands square.
 function Arcane:Spin()
 	local spin = self.spinAnim
-	if self.kit.FullEffects() and not self.combat and self.showIcon then
+	if self.kit.FullEffects() and not self.combat and self.showIcon and self.round then
 		if not spin:IsPlaying() then spin:Play() end
+	elseif not self.round then
+		spin:Stop()
 	elseif spin:IsPlaying() then
 		if spin.Pause then spin:Pause() else spin:Stop() end
 	end
@@ -884,6 +988,11 @@ end
 -- time left to return a favour, as the drain's length.
 function Arcane:Painted(entry)
 	self:ReadKey()
+	self:ShowKey()
+	if entry and entry.reason ~= self.restFor then
+		self.restFor = entry.reason
+		self:Retint()
+	end
 	local left
 	if entry and entry.reason == "owed" then
 		local debt = ns.owed and ns.owed[entry.name]
@@ -970,6 +1079,9 @@ function Arcane:StopAttention()
 	if not self.flareAnim:IsPlaying() then self.liftFrame:SetAlpha(0) end
 	-- In a fight this is the favour gone or run out: its clock goes too.
 	if self.combat then self:SetDrain(nil) end
+	-- Unlocked, switched off or a fight with nothing armed: a press does
+	-- nothing, so the keycap goes.
+	self:ShowKey()
 end
 
 function Arcane:Shine(r, g, b, a)
@@ -1028,19 +1140,24 @@ function Arcane:PaintOutcome(kind, lead, sub, who, stamp)
 	else
 		word = Known("buffed") and L["buffed"]
 	end
-	if word and who then
+	if word and who and kit.sub:IsShown() then
 		kit.SetLine(kit.name, who)
 	else
-		-- Not in this client's language yet, or nobody to name: the built-in
-		-- looks' lines, which are.
+		-- Not in this client's language yet, nobody to name, or no second
+		-- line to write the verdict on: the built-in looks' lines, which say
+		-- it on the name line.
 		kit.SetLine(kit.name, lead)
 		word = sub or ""
 	end
 	self.outcome = kind
 	self:ShowKey()
-	self:SetDrain(nil)
-	if kind == "failed" then
-		-- Put back by the next PaintReason, which Prompt asks for.
+	-- The clock steps aside and keeps its time, so the outcome's end brings
+	-- it back, in a fight too (where nothing else would).
+	self:SetDrain(self.drainLeft)
+	if kind == "failed" or kind == "cast" then
+		-- The rim says it: red for a refusal, green for a buff that landed.
+		-- Put back by the next PaintReason, which Prompt asks for after
+		-- every outcome, in a fight too.
 		self:Tint(o[1], o[2], o[3], o, REST.owed)
 	end
 	kit.icon:SetDesaturated(kind == "failed" or self.combat or false)
@@ -1053,7 +1170,11 @@ function Arcane:PaintOutcome(kind, lead, sub, who, stamp)
 	-- The wash, once per click: a repaint during the outcome leaves it be.
 	if stamp ~= self.washFor then
 		self.washFor = stamp
-		self.wash:SetVertexColor(o[1], o[2], o[3], o[4])
+		if self.lightGlass then
+			self.wash:SetVertexColor(o[1] * DEEP, o[2] * DEEP, o[3] * DEEP, o[4])
+		else
+			self.wash:SetVertexColor(o[1], o[2], o[3], o[4])
+		end
 		self.washAnim:Stop()
 		self.wash:SetAlpha(1)
 		self.wash:Show()
@@ -1145,9 +1266,9 @@ function Arcane:PaintQueue(rows, shown, above)
 			y, edge = -(5 + (i - 1) * pitch + pitch / 2), "BOTTOMLEFT"
 		end
 		fs:ClearAllPoints()
-		fs:SetPoint("LEFT", art, edge, self.textX, y)
+		fs:SetPoint("LEFT", art, edge, self.rowX, y)
 		dot:ClearAllPoints()
-		dot:SetPoint("CENTER", art, edge, self.textX - 8, y)
-		dot:SetSize(10, 10)
+		dot:SetPoint("CENTER", art, edge, self.dotX, y)
+		dot:SetSize(12, 12)
 	end
 end

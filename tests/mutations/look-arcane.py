@@ -31,19 +31,19 @@ mutate(A, "\tif off then r, g, b = NEUTRAL[1], NEUTRAL[2], NEUTRAL[3] end\n", ""
        "Arcane ignores the marker switched off",
        expect="with the marker off", script=S)
 
-mutate(A, "REST[reason] or REST.nearby, off)", "REST.owed, off)",
+mutate(A, "REST[self.restFor] or REST.nearby, off)", "REST.owed, off)",
        "Arcane glows the same for every reason",
        expect="does not glow more than a passer-by", script=S)
 
 # --- motion ---------------------------------------------------------------
 
-mutate(A, "\tif self.kit.FullEffects() and not self.combat and self.showIcon then\n",
-       "\tif not self.combat and self.showIcon then\n",
+mutate(A, "\tif self.kit.FullEffects() and not self.combat and self.showIcon and self.round then\n",
+       "\tif not self.combat and self.showIcon and self.round then\n",
        "Arcane's runes turn on Calm",
        expect="the rune circle turns on Calm", script=S)
 
-mutate(A, "\tif self.kit.FullEffects() and not self.combat and self.showIcon then\n",
-       "\tif self.kit.FullEffects() and self.showIcon then\n",
+mutate(A, "\tif self.kit.FullEffects() and not self.combat and self.showIcon and self.round then\n",
+       "\tif self.kit.FullEffects() and self.showIcon and self.round then\n",
        "Arcane's runes turn in a fight",
        expect="keeps turning in a fight", script=S)
 
@@ -106,11 +106,11 @@ mutate(A, "\t\t\tleft = 0.62\n", "\t\t\tleft = nil\n",
 
 # --- the key --------------------------------------------------------------
 
-mutate(A, "\t\tparts[i] = KEY_WORDS[part] or part:gsub(\"^NUMPAD\", \"N\")\n", "",
+mutate(A, "\t\tparts[i] = words[part] or part:gsub(\"^NUMPAD\", \"N\")\n", "",
        "Arcane's keycap spells the key out",
        expect="does not say S-F", script=S)
 
-mutate(A, "\tself:ReadKey()\n\tlocal left\n", "\tlocal left\n",
+mutate(A, "\tself:ReadKey()\n\tself:ShowKey()\n\tif entry", "\tself:ShowKey()\n\tif entry",
        "Arcane's keycap never sees a rebinding",
        expect="a rebinding is not on the keycap", script=S)
 
@@ -118,7 +118,8 @@ mutate(A, "\tif yield ~= (self.keyYield or false) then\n", "\tif false then\n",
        "Arcane's keycap cuts the name",
        expect="cut a name that could not shrink", script=S)
 
-mutate(A, "\tlocal on = self:KeyShown() and not self.outcome\n", "\tlocal on = self:KeyShown()\n",
+mutate(A, "\tlocal on = self:KeyShown() and not self.outcome and self:Armed() and true or false\n",
+       "\tlocal on = self:KeyShown() and self:Armed() and true or false\n",
        "Arcane's keycap over an outcome",
        expect="the keycap stayed up over an outcome", script=S)
 
@@ -200,3 +201,111 @@ mutate(A, "\tfor _, anim in ipairs({ self.flareAnim, self.pulseAnim, self.spinAn
 mutate(A, "\tkit.textLayer:SetFrameLevel(kit.art:GetFrameLevel() + 1)\n", "",
        "textLayer left at Arcane's level",
        expect="textLayer kept Arcane's frame level", script=S)
+
+# --- round 15 review: the lens -------------------------------------------
+
+mutate(A, "\tself.gloss:SetVertexColor(1, 1, 1, round and 0.20 or 0.16)\n", "",
+       "Arcane's lens highlight at full strength",
+       expect="highlight is drawn at full strength", script=S)
+
+mutate(A, "\tself.runes:SetTexture(ART .. (round and \"RuneRing\" or \"RuneRingSq\"))\n",
+       "\tself.runes:SetTexture(ART .. \"RuneRing\")\n",
+       "Arcane's square icon in a round rune circle",
+       expect="the square icon sits in a round rune circle", script=S)
+
+mutate(A, "\tif self.kit.FullEffects() and not self.combat and self.showIcon and self.round then\n",
+       "\tif self.kit.FullEffects() and not self.combat and self.showIcon then\n",
+       "Arcane's square rune circle turns",
+       expect="the square rune circle turns", script=S)
+
+mutate(A, "\tlocal margin = math.max(3, math.min(5, math.floor(H / 11)))\n", "\tlocal margin = 3\n",
+       "Arcane's rune circle tight to the rim of a tall card",
+       expect="crowds the rim of a tall card", script=S)
+
+mutate(A, "\t\ticonSize = fits + (asked - fits) * 0.35\n", "\t\ticonSize = fits\n",
+       "Arcane's icon size slider dead at the top",
+       expect="stops mattering", script=S)
+
+# --- round 15 review: outcomes ---------------------------------------------
+
+mutate(A, "\tif word and who and kit.sub:IsShown() then\n", "\tif word and who then\n",
+       "Arcane's one-line outcome only names the person",
+       expect="only names the person", script=S)
+
+mutate(A, "\tif kind == \"failed\" or kind == \"cast\" then\n", "\tif kind == \"failed\" then\n",
+       "Arcane's landed buff leaves the rim as it was",
+       expect="left the rim as it was", script=S)
+
+mutate(A, "\tif self.washAnim.fade.SetStartDelay then self.washAnim.fade:SetStartDelay(seconds * 0.4) end\n", "",
+       "Arcane's wash fades from the first frame",
+       expect="starts fading at once", script=S)
+
+mutate(A, "\tself:SetDrain(self.drainLeft)\n\tif kind == \"failed\" or kind == \"cast\" then\n",
+       "\tself:SetDrain(nil)\n\tif kind == \"failed\" or kind == \"cast\" then\n",
+       "Arcane's click in a fight forgets the clock",
+       expect="took the favour's clock away", script=S)
+
+# --- round 15 review: the list ---------------------------------------------
+
+mutate(A, "\tself.dotX = math.max(textX - 8, 12)\n", "\tself.dotX = textX - 8\n",
+       "Arcane's beads outside the list's glass",
+       expect="hangs over the edge of its glass", script=S)
+
+mutate(A, "\tself.rowX = math.max(textX, self.dotX + 8)\n", "\tself.rowX = textX\n",
+       "Arcane's rows over their beads",
+       expect="run over its bead", script=S)
+
+mutate(A, "\t\tdot:SetSize(12, 12)\n", "\t\tdot:SetSize(10, 10)\n",
+       "Arcane's beads pin-pricks",
+       expect="pin-pricks", script=S)
+
+# --- round 15 review: the reason -------------------------------------------
+
+mutate(A, "\tif entry and entry.reason ~= self.restFor then\n", "\tif false then\n",
+       "Arcane's resting glow stuck with one marker colour",
+       expect="with one marker colour a favour owed glows", script=S)
+
+mutate(A, "\tself.lightGlass = clear < 0.55\n", "\tself.lightGlass = false\n",
+       "Arcane adds the reason to a light panel",
+       expect="which whitens it", script=S)
+
+mutate(A, "\t\tself.drain:SetVertexColor(dr, dg, db, 0.95)\n", "\t\tself.drain:SetVertexColor(r, g, b, 0.95)\n",
+       "Arcane's clock pale on a light panel",
+       expect="not a deeper shade", script=S)
+
+mutate(A, "\tkit.count:SetTextColor(0.95, 0.95, 0.98, 1)\n",
+       "\tkit.count:SetTextColor(kit.Legible(0.95, 0.95, 0.98, 4.5))\n",
+       "Arcane's count dark on its dark badge",
+       expect="count on its dark badge is not light", script=S)
+
+mutate(A, "local COMBAT = { ink = 0.62, text = 0.80,", "local COMBAT = { ink = 0.62, text = 1,",
+       "Arcane's text bright in a fight",
+       expect="the text does not dim in a fight", script=S)
+
+# --- round 15 review: the key ----------------------------------------------
+
+mutate(A, "\t-- nothing, so the keycap goes.\n\tself:ShowKey()\n", "\t-- nothing, so the keycap goes.\n",
+       "Arcane's keycap stays when the button is disarmed",
+       expect="unlocked, where a press casts nothing", script=S)
+
+mutate(A, "\treturn ns.Prompt ~= nil and ns.Prompt:InTest()\n", "\treturn false\n",
+       "Arcane's preview without a keycap",
+       expect="the preview has no keycap", script=S)
+
+mutate(A, "\t\tSHIFT = L[\"S\"], CTRL", "\t\tSHIFT = \"S\", CTRL",
+       "Arcane's keycap words not translated",
+       expect="do not follow the translations", script=S)
+
+mutate(A, "\t\tif type(text) == \"string\" and text ~= \"\" then return text end\n", "",
+       "Arcane's keycap ignores the client's short form",
+       expect="ignores the client's own short form", script=S)
+
+# --- round 15 review: room -------------------------------------------------
+
+mutate(A, "\tkit.fit.room[kit.name], kit.fit.room[kit.sub] = nil, nil\n", "",
+       "Arcane's room left on the name for the next look",
+       expect="the name kept Arcane's room", script=S)
+
+mutate(A, "\tif not showIcon then chipRoom = 10 + math.ceil(sub * 1.3 + 8) + 4 end\n", "",
+       "Arcane's name under the count with the icon off",
+       expect="runs under the count", script=S)

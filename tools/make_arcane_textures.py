@@ -35,13 +35,14 @@ relies on:
   Arcane_IconLight     256x64   Light from the icon across the glass; the wash.
   Arcane_Well          128x128  A dark disc: the lens sits in the glass.
   Arcane_RuneRing      256x256  Two hairlines, 18 glyphs, 72 ticks, glow (ADD).
+  Arcane_RuneRingSq    256x256  The same on a rounded square, round a square icon.
   Arcane_CircleMask    128x128  Mask and cooldown swipe: the round icon.
   Arcane_SquircleMask  128x128  Mask and cooldown swipe: the square icon.
   Arcane_IconRing      128x128  The frame round a round icon: seam, ring, glow.
   Arcane_IconRingSq    128x128  The same round a square one.
   Arcane_IconShade     128x128  Black: the lens's edge and lower third.
   Arcane_IconShadeSq   128x128  The same, square.
-  Arcane_IconGloss     128x128  The lens's highlight (ADD).
+  Arcane_IconGloss     128x128  The lens's highlight, a soft crescent (ADD).
   Arcane_Check          64x64   The tick over the icon for a buff that landed.
   Arcane_Keycap         64x64   9-slice, corner 16. The key the prompt is bound to.
   Arcane_Badge          64x64   3-slice, caps half the height. The count.
@@ -322,6 +323,106 @@ def rune_ring():
     save("RuneRing", 1.0, np.clip(line + glow * 0.45, 0, 1))
 
 
+def rune_ring_sq():
+    """The rune band on a rounded square, for the square icon: a round circle
+    round a square frame is covered by the frame's corners. Concentric with
+    Arcane_IconRingSq drawn at the lens's usual size (the icon 0.69 of the
+    lens): its corners are centred 0.359 of the half-width out, where the
+    frame's are, so the inner hairline clears the frame all the way round.
+    Glyphs and ticks are spaced along the path by its length. It does not
+    turn -- a square that turns is a square that wobbles."""
+    n, ss = 256, 4
+    N = n * ss
+    img = Image.new("L", (N, N), 0)
+    d = ImageDraw.Draw(img)
+    c = N / 2
+    half = N / 2
+    core = 0.359 * half          # the corners' centres, out from the middle
+    a_out, a_in = 0.968 * half, 0.795 * half
+
+    def path(a):
+        """(point, outward normal) at arc length s along a rounded square of
+        half-width a, clockwise from the top middle."""
+        r = a - core
+        total = 8 * core + 2 * np.pi * r
+
+        def at(s):
+            s = s % total
+            # Four (side, corner) pairs from the top side's left end, so the
+            # top middle is `core` in; the fifth side is the top's left half
+            # again, reached past the last corner.
+            s += core
+            for k in range(5):
+                straight = 2 * core
+                ang0 = -np.pi / 2 + (k % 4) * np.pi / 2    # the side's outward normal
+                nx, ny = np.cos(ang0), np.sin(ang0)
+                tx, ty = -ny, nx                             # clockwise in screen space
+                if s < straight:
+                    t = s - core
+                    return (c + nx * a + tx * t, c + ny * a + ty * t), (nx, ny)
+                s -= straight
+                arc = np.pi / 2 * r
+                if s < arc:
+                    phi = ang0 + s / r
+                    cxk = c + (nx + tx) * core
+                    cyk = c + (ny + ty) * core
+                    ox, oy = np.cos(phi), np.sin(phi)
+                    return (cxk + ox * r, cyk + oy * r), (ox, oy)
+                s -= arc
+            return (c, c - a), (0.0, -1.0)  # not reached
+        return at, total
+
+    def outline(a, width):
+        r = a - core
+        d.rounded_rectangle([c - a, c - a, c + a, c + a], radius=r, outline=255, width=int(width))
+
+    outline(a_out, 2.2 * ss)
+    outline(a_in, 2.0 * ss)
+    at_out, total_out = path(a_out - 2.5 * ss)
+    for k in range(72):
+        (px, py), (nx, ny) = at_out(k * total_out / 72)
+        length = (7 if k % 6 == 0 else 3.5) * ss
+        d.line([(px, py), (px - nx * length, py - ny * length)], fill=255, width=int(1.6 * ss))
+    rng = np.random.default_rng(1406)
+    mid = (a_out + a_in) / 2 - 1.0 * ss
+    gh = (a_out - a_in) * 0.50
+    gw = gh * 0.62
+    strokes = {
+        "bar": [((0, -1), (0, 1))],
+        "chev": [((-1, -1), (0, 1)), ((0, 1), (1, -1))],
+        "tri": [((-1, 1), (0, -1)), ((0, -1), (1, 1)), ((1, 1), (-1, 1))],
+        "cross": [((0, -1), (0, 1)), ((-1, 0), (1, 0))],
+        "fork": [((0, 1), (0, -0.2)), ((0, -0.2), (-0.9, -1)), ((0, -0.2), (0.9, -1))],
+        "hook": [((-0.8, -1), (0.6, -1)), ((0.6, -1), (0.6, 1)), ((0.6, 1), (-0.4, 0.4))],
+        "zig": [((-1, -1), (1, -0.3)), ((1, -0.3), (-1, 0.3)), ((-1, 0.3), (1, 1))],
+        "gate": [((-0.8, 1), (-0.8, -1)), ((-0.8, -1), (0.8, -1)), ((0.8, -1), (0.8, 1))],
+    }
+    keys = list(strokes)
+    at_mid, total_mid = path(mid)
+    count = 16
+    for k in range(count):
+        # Four to a side, between the corners, never on one.
+        (gx, gy), (rx, ry) = at_mid((k + 0.5) * total_mid / count)
+        tx, ty = -ry, rx
+        kind = keys[rng.integers(len(keys))]
+        mirror = -1 if rng.uniform() < 0.5 else 1
+
+        def pt(p, gx=gx, gy=gy, tx=tx, ty=ty, rx=rx, ry=ry, mirror=mirror):
+            px, py = p[0] * gw * mirror, -p[1] * gh
+            return (gx + px * tx + py * rx, gy + px * ty + py * ry)
+        for s0, s1 in strokes[kind]:
+            d.line([pt(s0), pt(s1)], fill=255, width=int(1.9 * ss))
+        if rng.uniform() < 0.45:
+            px, py = pt((1.7 * mirror, 0.0))
+            rr = 1.4 * ss
+            d.ellipse([px - rr, py - rr, px + rr, py + rr], fill=255)
+    line = np.asarray(img.resize((n, n), Image.LANCZOS), np.float64) / 255
+    line = np.clip(line * 1.15, 0, 1)
+    glow = blur(line, 3.0)
+    glow = glow / max(1e-9, glow.max())
+    save("RuneRingSq", 1.0, np.clip(line + glow * 0.45, 0, 1))
+
+
 # The icon fills the middle 96 of 128 texels in every frame texture: a frame
 # is drawn at icon size / 0.75, centred (ICON_FRAME in Arcane.lua).
 ICON_R = 48
@@ -370,8 +471,10 @@ def icon_gloss():
     x, y = grid(n, n)
     u, v = x / n - 0.5, y / n
     ell = (u / 0.46) ** 2 + ((v - 0.10) / 0.36) ** 2
+    # A soft crescent over the top, nothing hot in it: drawn at a fifth of its
+    # strength (Arcane.lua), it is a lens catching the light, not a white cap
+    # over the spell's art.
     a = (1 - smoothstep(0.55, 1.0, ell)) * (1 - smoothstep(0.05, 0.48, v)) * 0.9
-    a += np.exp(-(((u + 0.16) / 0.06) ** 2 + ((v - 0.16) / 0.04) ** 2)) * 0.6
     save("IconGloss", 1.0, np.clip(a, 0, 1))
 
 
@@ -456,10 +559,12 @@ def shine():
 
 
 def dot():
+    """The list's reason bead: a core half the file across and a glow, drawn
+    12 units square so a row's reason reads at a glance."""
     n = 32
     x, y = grid(n, n)
     r = np.hypot(x - n / 2, y - n / 2)
-    save("Dot", 1.0, np.clip(cover(r - 5.5) + np.exp(-(r / 7.0) ** 2) * 0.45, 0, 1))
+    save("Dot", 1.0, np.clip(cover(r - 8.0) + np.exp(-(r / 9.0) ** 2) * 0.55, 0, 1))
 
 
 def contact_sheet(path):
@@ -494,7 +599,7 @@ def main():
     args = ap.parse_args()
     os.makedirs(OUT, exist_ok=True)
     for make in (shadow, bloom, glass, glass_light, glint, rim, glass_hover, icon_light, well,
-                 rune_ring, masks, icon_gloss, check, keycap, badge, drain, spark, shine, dot):
+                 rune_ring, rune_ring_sq, masks, icon_gloss, check, keycap, badge, drain, spark, shine, dot):
         make()
     for round_ in (True, False):
         icon_ring(round_)

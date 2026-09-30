@@ -141,7 +141,8 @@ end)
 -- Calm leaves nothing looping; on Full the circle turns and somebody owed
 -- breathes, and nobody owed stops the breath.
 withTree("Arcane on Calm leaves nothing looping", CROWD, function(ns, scenario)
-	local _, p, look = upIn(ns, scenario)
+	-- The circle turns only round a round icon.
+	local _, p, look = upIn(ns, scenario, function(pp) pp.roundIcon = true end)
 	if not isArcane(look) then fail(scenario, "SKIPPED -- Arcane is not the look in use") return end
 	if not look.spinAnim._playing then fail(scenario, "on Full the rune circle does not turn") end
 	-- The arrival's flare first, then the breath.
@@ -181,7 +182,7 @@ end)
 -- A fight: the glass holds, the reason stays, the ink recedes and the circle
 -- stops; the end of the fight gives it all back.
 withTree("Arcane in a fight keeps the reason readable", ANNA, function(ns, scenario)
-	local r, _, look = upIn(ns, scenario)
+	local r, _, look = upIn(ns, scenario, function(pp) pp.roundIcon = true end)
 	if not isArcane(look) then fail(scenario, "SKIPPED -- Arcane is not the look in use") return end
 	local cr, cg, cb = ns.Prompt:AccentColor("owed")
 	Mock.inCombat = true
@@ -203,6 +204,12 @@ withTree("Arcane in a fight keeps the reason readable", ANNA, function(ns, scena
 	end
 	if look.spinAnim._playing then fail(scenario, "the rune circle keeps turning in a fight") end
 	if (look.bloom[1]._alpha or 1) > 0 then fail(scenario, "the bloom still glows in a fight") end
+	-- Settled, as the fight is seen: the text's own swap has run out.
+	Mock.advance(2)
+	FT.settle()
+	if not near(r.textLayer._alpha, 0.80, 0.02) then
+		fail(scenario, "the text does not dim in a fight: " .. tostring(r.textLayer._alpha))
+	end
 	Mock.inCombat = false
 	if ns.addon.PLAYER_REGEN_ENABLED then ns.addon:PLAYER_REGEN_ENABLED() end
 	ns.addon:Tick()
@@ -419,6 +426,9 @@ withTree("leaving Arcane gives back what it borrowed", ANNA, function(ns, scenar
 			if r.cooldown and r.cooldown._circular then
 				fail(scenario, "the cooldown kept Arcane's round edge on " .. style)
 			end
+			if style == "glass" and ns.Prompt:LookKit().fit.room[r.name] ~= nil then
+				fail(scenario, "the name kept Arcane's room on " .. style)
+			end
 		end
 	end
 end)
@@ -453,4 +463,245 @@ withTree("Arcane's preview shows the favour's clock", {}, function(ns, scenario)
 	end
 	ns.Prompt:ToggleTest()
 	Mock.optionsOpen = nil
+end)
+
+-- ------------------------------------------------------------------ 13
+-- The lens: a faint highlight, and a rune circle in the icon's own shape,
+-- sized round the icon with room above and below it.
+withTree("Arcane's lens has a faint highlight and a circle in the icon's shape", ANNA, function(ns, scenario)
+	local r, p, look = upIn(ns, scenario)
+	if not isArcane(look) then fail(scenario, "SKIPPED -- Arcane is not the look in use") return end
+	if not (look.gloss._color and look.gloss._color[4] <= 0.2) then
+		fail(scenario, "the lens's highlight is drawn at full strength")
+	end
+	if not tostring(look.runes._file):find("RuneRingSq", 1, true) then
+		fail(scenario, "the square icon sits in a round rune circle")
+	end
+	if look.spinAnim._playing then fail(scenario, "the square rune circle turns") end
+	if r.icon._width > look.runes._width * 0.72 then
+		fail(scenario, ("the icon (%s) covers the rune circle (%s) at the default size")
+			:format(tostring(r.icon._width), tostring(look.runes._width)))
+	end
+	p.roundIcon = true
+	ns.Prompt:ApplyStyle()
+	if tostring(look.runes._file):find("RuneRingSq", 1, true) then
+		fail(scenario, "the round icon sits in the square rune circle")
+	end
+	if not look.spinAnim._playing then fail(scenario, "the round rune circle does not turn on Full") end
+	p.width, p.height, p.fontSize, p.iconSize = 320, 58, 17, 40
+	ns.Prompt:ApplyStyle()
+	if look.runes._height > 58 - 8 then
+		fail(scenario, "the rune circle crowds the rim of a tall card: " .. tostring(look.runes._height))
+	end
+end)
+
+-- ------------------------------------------------------------------ 14
+-- The icon size setting does something over its whole range.
+withTree("Arcane's icon follows the icon size setting", ANNA, function(ns, scenario)
+	local r, p, look = upIn(ns, scenario)
+	if not isArcane(look) then fail(scenario, "SKIPPED -- Arcane is not the look in use") return end
+	local last
+	for _, size in ipairs({ 20, 26, 30, 36 }) do
+		p.iconSize = size
+		ns.Prompt:ApplyStyle()
+		local width = r.icon._width
+		if size == 20 and width ~= 20 then
+			fail(scenario, "an icon of 20, which the card has room for, is drawn at " .. tostring(width))
+		end
+		if last and not (width > last) then
+			fail(scenario, ("the icon size setting stops mattering at %d: drawn at %s"):format(size, tostring(width)))
+		end
+		if look.runes._height > p.height - 4 then
+			fail(scenario, ("the rune circle round an icon of %d runs into the rim"):format(size))
+		end
+		last = width
+	end
+end)
+
+-- ------------------------------------------------------------------ 15
+-- The second line off: the outcome says what the click did on the name line.
+withTree("Arcane with one line still says what the click did", ANNA, function(ns, scenario)
+	local r, _, look = upIn(ns, scenario, function(pp) pp.showSub = false end)
+	if not isArcane(look) then fail(scenario, "SKIPPED -- Arcane is not the look in use") return end
+	for _, case in ipairs({ { "failed", "could not buff" }, { "cast", "buffed" }, { "sent", "sent to" } }) do
+		ns.Prompt:ShowOutcome(case[1], "Anna Aim", case[1] == "failed" and "Out of range." or nil)
+		local named = tostring(r.name:GetText())
+		if not named:find(case[2], 1, true) then
+			fail(scenario, ("with the second line off a %s outcome only names the person: %s"):format(case[1], named))
+		end
+		Mock.advance(2)
+		ns.addon:Tick()
+		FT.settle()
+	end
+end)
+
+-- ------------------------------------------------------------------ 16
+-- A landed buff is as plain as a refusal: the rim turns green, and the wash
+-- holds before it fades.
+withTree("Arcane's landed buff turns the rim green and holds its wash", ANNA, function(ns, scenario)
+	local _, _, look = upIn(ns, scenario)
+	if not isArcane(look) then fail(scenario, "SKIPPED -- Arcane is not the look in use") return end
+	ns.Prompt:ShowOutcome("cast", "Anna Aim")
+	if not sameColour(look.rim[2]._color, 0.55, 0.91, 0.55) then fail(scenario, "a landed buff left the rim as it was") end
+	if not ((look.washAnim.fade._startDelay or 0) > 0) then
+		fail(scenario, "a landed buff's wash starts fading at once")
+	end
+	Mock.advance(2)
+	ns.addon:Tick()
+	FT.settle()
+	local cr, cg, cb = ns.Prompt:AccentColor("owed")
+	if not sameColour(look.rim[2]._color, cr, cg, cb) then fail(scenario, "the rim stayed green after the buff's moment") end
+end)
+
+-- ------------------------------------------------------------------ 17
+-- A click in a fight: the clock steps aside for the outcome and comes back,
+-- and the rim is the reason's again.
+withTree("Arcane keeps the favour's clock through a click in a fight", ANNA, function(ns, scenario)
+	local _, _, look = upIn(ns, scenario)
+	if not isArcane(look) then fail(scenario, "SKIPPED -- Arcane is not the look in use") return end
+	Mock.inCombat = true
+	ns.addon:PLAYER_REGEN_DISABLED()
+	ns.addon:Tick()
+	if not shown(look.drain) then fail(scenario, "the clock went when the fight started") end
+	ns.Prompt:ShowOutcome("failed", "Anna Aim", "Out of range.")
+	if shown(look.drain) then fail(scenario, "the clock stayed up over a refusal in a fight") end
+	Mock.advance(2)
+	ns.addon:Tick()
+	FT.settle()
+	if not shown(look.drain) then fail(scenario, "a click in a fight took the favour's clock away") end
+	local cr, cg, cb = ns.Prompt:AccentColor("owed")
+	if not sameColour(look.rim[2]._color, cr, cg, cb) then fail(scenario, "the rim stayed red in the fight") end
+	Mock.inCombat = false
+	if ns.addon.PLAYER_REGEN_ENABLED then ns.addon:PLAYER_REGEN_ENABLED() end
+end)
+
+-- ------------------------------------------------------------------ 18
+-- The list with the icon off: its beads inside its glass, big enough to read.
+withTree("Arcane keeps the list's beads inside its glass", CROWD, function(ns, scenario)
+	local r, _, look = upIn(ns, scenario, function(pp)
+		pp.showQueue, pp.queueRows, pp.showIcon = true, 3, false
+	end)
+	if not isArcane(look) then fail(scenario, "SKIPPED -- Arcane is not the look in use") return end
+	local dot = look.dots[1]
+	local x = xOf(dot.points[#dot.points])
+	if not (shown(dot) and x and x - (dot._width or 0) / 2 >= 5) then
+		fail(scenario, "with the icon off the list's bead hangs over the edge of its glass: " .. tostring(x))
+	end
+	if (dot._width or 0) < 12 then fail(scenario, "the list's beads are pin-pricks: " .. tostring(dot._width)) end
+	local row = r.rows[1]
+	local rx = xOf(row.points[#row.points])
+	if not (rx and x and rx >= x + (dot._width or 0) / 2) then
+		fail(scenario, "the row's words run over its bead: " .. tostring(rx))
+	end
+end)
+
+-- ------------------------------------------------------------------ 19
+-- One marker colour for every reason: the owed glow still follows the reason.
+withTree("Arcane's resting glow follows the reason with one marker colour", CROWD, function(ns, scenario)
+	local _, _, look = upIn(ns, scenario, function(pp) pp.accentByReason = false end)
+	if not isArcane(look) then fail(scenario, "SKIPPED -- Arcane is not the look in use") return end
+	local buff = ns.ResolveBuff(true)
+	ns.Prompt:Paint({ name = "Brannoc Vale", short = "Brannoc", reason = "nearby", buff = buff }, 0)
+	local passer = look.bloom[1]._color[4]
+	ns.Prompt:Paint({ name = "Anna Aim", short = "Anna", reason = "owed", buff = buff }, 0)
+	local owed = look.bloom[1]._color[4]
+	if not (owed > passer) then
+		fail(scenario, ("with one marker colour a favour owed glows %.2f, a passer-by %.2f"):format(owed, passer))
+	end
+end)
+
+-- ------------------------------------------------------------------ 20
+-- The keycap only where a press casts something; the preview shows it to
+-- be styled.
+withTree("Arcane shows the keycap only where a press casts", ANNA, function(ns, scenario)
+	Mock.bindings = { F = COMMAND }
+	local _, p, look = upIn(ns, scenario)
+	if not isArcane(look) then fail(scenario, "SKIPPED -- Arcane is not the look in use") return end
+	if not shown(look.keyText) then fail(scenario, "a key bound, somebody on the panel, and no keycap") end
+	p.locked = false
+	ns.Prompt:ApplyStyle()
+	ns.addon:Tick()
+	if shown(look.keyText) then fail(scenario, "unlocked, where a press casts nothing, and the keycap is up") end
+	p.locked = true
+	ns.Prompt:ApplyStyle()
+	ns.addon:Tick()
+	if not shown(look.keyText) then fail(scenario, "locked again and the keycap did not come back") end
+	-- Nothing armed (a fight that found nobody on the panel): no keycap.
+	local button = ns.Prompt:GetButton()
+	button:SetAttribute("type1", nil)
+	ns.Prompt:StopAttention()
+	if shown(look.keyText) then fail(scenario, "nothing armed and the keycap is up") end
+	ns.addon:Tick()
+	wipe(ns.owed)
+	ns.addon:Tick()
+	Mock.optionsOpen = true
+	ns.Prompt:ToggleTest()
+	if not shown(look.keyText) then fail(scenario, "the preview has no keycap to style") end
+	ns.Prompt:ToggleTest()
+	Mock.optionsOpen = nil
+end)
+
+-- ------------------------------------------------------------------ 21
+-- The keycap in the client's language: its own short form first, ours
+-- through the translations.
+withTree("Arcane's keycap speaks the client's language", ANNA, function(ns, scenario)
+	Mock.bindings = { ["SHIFT-F"] = COMMAND }
+	rawset(ns.L, "S", "U")
+	local _, _, look = upIn(ns, scenario)
+	if not isArcane(look) then fail(scenario, "SKIPPED -- Arcane is not the look in use") return end
+	if look.keyText:GetText() ~= "U-F" then
+		fail(scenario, "the keycap's words do not follow the translations: " .. tostring(look.keyText:GetText()))
+	end
+	local real = GetBindingText
+	GetBindingText = function(key, short) return short and key == "CTRL-F" and "Strg-F" or key end
+	Mock.bindings = { ["CTRL-F"] = COMMAND }
+	ns.addon:Tick()
+	local text = look.keyText:GetText()
+	GetBindingText = real
+	if text ~= "Strg-F" then
+		fail(scenario, "the keycap ignores the client's own short form of the key: " .. tostring(text))
+	end
+end)
+
+-- ------------------------------------------------------------------ 22
+-- A light panel: the reason is laid over the glass in a deeper shade, not
+-- added to it, and the count stays light on its dark badge.
+withTree("Arcane on a light panel keeps the reason's colour", CROWD, function(ns, scenario)
+	local r, p, look = upIn(ns, scenario, function(pp) pp.bgColor = { 0.86, 0.84, 0.78, 0.92 } end)
+	if not isArcane(look) then fail(scenario, "SKIPPED -- Arcane is not the look in use") return end
+	for _, part in ipairs({ { "runes", "runes" }, { "track", "clock's track" }, { "drain", "clock" },
+		{ "spark", "clock's bead" } }) do
+		if look[part[1]]._blend ~= "BLEND" then
+			fail(scenario, ("on a light panel the %s is added to it, which whitens it"):format(part[2]))
+		end
+	end
+	local cr = ns.Prompt:AccentColor("owed")
+	if not (look.drain._color[1] < cr - 0.05) then
+		fail(scenario, "on a light panel the clock is not a deeper shade of the reason")
+	end
+	local c = r.count._textColor
+	if not (shown(r.count) and c and c[1] > 0.9 and c[2] > 0.9 and c[3] > 0.9) then
+		fail(scenario, "on a light panel the count on its dark badge is not light")
+	end
+	p.bgColor = { 0.04, 0.04, 0.06, 0.88 }
+	ns.Prompt:ApplyStyle()
+	if look.drain._blend ~= "ADD" or look.runes._blend ~= "ADD" then
+		fail(scenario, "back on dark glass the clock and the runes are not lit again")
+	end
+end)
+
+-- ------------------------------------------------------------------ 23
+-- The icon off: the count stands at the right, and the name stops short of
+-- it and of the keycap.
+withTree("Arcane with the icon off keeps the name clear of the count", CROWD, function(ns, scenario)
+	Mock.bindings = { F = COMMAND }
+	local r, p, look = upIn(ns, scenario, function(pp) pp.showIcon = false end)
+	if not isArcane(look) then fail(scenario, "SKIPPED -- Arcane is not the look in use") return end
+	if not shown(r.count) then fail(scenario, "three more people waiting and no count") return end
+	local sub = math.max(7, p.fontSize - 3)
+	local chipRoom = 10 + math.ceil(sub * 1.3 + 8) + 4
+	local right = r.name.points[2]
+	if not (right and -(xOf(right) or 0) >= chipRoom + look.keyRoom - 0.5) then
+		fail(scenario, "with the icon off the name runs under the count or the keycap: " .. tostring(xOf(right)))
+	end
 end)
