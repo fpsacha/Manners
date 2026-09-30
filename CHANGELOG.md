@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- The minimap button now has a place of its own on the rim. It used to sit
+  on the spot every addon gets by default, right on top of other buttons
+  (Questie's, for one), so you saw theirs and got Manners' tooltip. A button
+  you have dragged stays where you put it.
+
 ## 1.5.1
 
 - **The new looks read properly in the game.** Luxe's reason tag could be

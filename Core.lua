@@ -390,7 +390,11 @@ local defaults = {
 
 		-- owedOnly, to match the flash, which only pulses for a favour owed.
 		sound = { enabled = false, file = ns.SOUND_KEY, owedOnly = true },
-		minimap = { hide = false },
+		-- A place of our own on the minimap's rim. With none, LibDBIcon puts
+		-- every addon at 225 degrees, and the button sat exactly on Questie's:
+		-- a player saw Questie's "!" and got Manners' tooltip (1.5.1). A
+		-- button somebody has dragged keeps where they put it.
+		minimap = { hide = false, minimapPos = 195 },
 	},
 }
 ns.defaults = defaults
