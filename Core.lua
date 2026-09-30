@@ -1503,8 +1503,9 @@ ns.InRange = InRange
 -- else in it, and "Raid groups I buff" goes by it too. The roster is asked
 -- directly: it is handed a plain number, which it answers (or answers nil
 -- for) and does not throw on, and a subgroup withheld is a secret, which
--- plain() makes "cannot tell".
-local function RaidSubgroup(unit)
+-- plain() makes "cannot tell". On ns alone, where Queue.lua and GroupBuffs.lua
+-- take it from, to spare the main chunk one of Lua 5.1's 200 locals.
+function ns.RaidSubgroup(unit)
 	local index = tonumber(unit:match("^raid(%d+)$")) or plain(UnitInRaid and UnitInRaid(unit))
 	if type(index) ~= "number" then return nil end
 	local roster = _G.GetRaidRosterInfo
@@ -1514,7 +1515,6 @@ local function RaidSubgroup(unit)
 	if type(subgroup) ~= "number" then return nil end
 	return subgroup
 end
-ns.RaidSubgroup = RaidSubgroup
 
 -- Whether a partyOnly buff the player casts reaches this unit. In a raid a
 -- vanilla shout reaches only the caster's subgroup (ns.PARTY_IS_SUBGROUP; later
@@ -1535,7 +1535,7 @@ local function SameParty(unit, inRaid)
 	if type(_G.UnitInSubgroup) == "function" then
 		return plain(_G.UnitInSubgroup(unit)) == true
 	end
-	local theirs, ours = RaidSubgroup(unit), RaidSubgroup("player")
+	local theirs, ours = ns.RaidSubgroup(unit), ns.RaidSubgroup("player")
 	return theirs ~= nil and theirs == ours
 end
 ns.SameParty = SameParty
