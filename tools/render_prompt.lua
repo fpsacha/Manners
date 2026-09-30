@@ -28,6 +28,10 @@
 local dir, addonDir, locale = ...
 addonDir = addonDir or dir
 if locale == "" or locale == "enUS" then locale = nil end
+-- `style` is the look drawn where a state does not pick one: the default a
+-- profile that never chose would have, so every state can be seen in it.
+local style = select(4, ...)
+if style == "" then style = nil end
 
 dofile(dir .. "/tests/mockapi.lua")
 dofile(dir .. "/tests/frametree.lua")
@@ -71,6 +75,7 @@ local function load()
 		if not chunk then error("load " .. file .. ": " .. tostring(err)) end
 		chunk("Manners", ns)
 	end
+	if style and ns.defaults then ns.defaults.profile.prompt.style = style end
 	return ns
 end
 
@@ -351,6 +356,22 @@ R.states = {
 	{ key = "large-size", title = "320 x 58, 17 pt, icon 40", at = 0.85, setup = withPrompt(function(p)
 		p.width, p.height, p.fontSize, p.iconSize = 320, 58, 17, 40
 	end) },
+	-- A key bound to the prompt, which a look may show on the panel.
+	{ key = "keybound", title = "A key bound to the prompt", at = 0.85, setup = function(ns)
+		Mock.bindings = { ["SHIFT-F"] = "CLICK MannersPrompt:LeftButton" }
+		boot(ns, OWED)
+		owe(ns, "Anna Aim")
+		tick(ns)
+	end },
+	-- A favour most of the way to forgotten: the time left to return it.
+	{ key = "clock", title = "A favour with a third of its time left", at = 0.85, setup = function(ns)
+		boot(ns, OWED)
+		local window = ns.db.profile.timing.reciprocateWindow or 300
+		ns.owed["Anna Aim"] = { expires = GetTime() + window, at = GetTime() - window * 2, class = "PRIEST" }
+		ns.owed["Anna Aim"].expires = GetTime() + window / 3
+		ns.owed["Anna Aim"].at = GetTime() - window * 2 / 3
+		tick(ns)
+	end },
 	{ key = "combat-bright", title = "Held in combat, over a bright world", at = 0.85,
 		backdrop = "bright", setup = function(ns)
 		boot(ns, OWED)
