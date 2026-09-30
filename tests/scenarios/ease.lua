@@ -762,7 +762,6 @@ local function snapshot(ns)
 		showQueue = p.prompt.showQueue,
 		proximity = p.filters.proximity,
 		hideMounted = p.filters.hideMounted,
-		verbose = p.verbose,
 		sound = p.sound.enabled,
 		reciprocate = p.timing.reciprocateWindow,
 		phrases = p.speech.phrases,
@@ -846,9 +845,11 @@ do
 			else
 				local same, why = sameAs(wanted, snapshot(ns))
 				if not same then fail(scenario, "the import did not give back what was exported: " .. why) end
-				if not p.enabled or not p.debugClicks then
-					fail(scenario, "the import touched the on switch or the click log, which are"
-						.. " not shared")
+				-- Tell me in chat went out as off and was trampled on: it stays
+				-- as this player has it, like the on switch and the click log.
+				if not p.enabled or not p.debugClicks or not p.verbose then
+					fail(scenario, "the import touched the on switch, the click log or the chat"
+						.. " lines, which are not shared")
 				end
 				if not tostring(message):find("undo", 1, true) then
 					fail(scenario, "the import never said how to undo it: " .. tostring(message))
@@ -1102,7 +1103,7 @@ do
 			{ "a word for a number", signed("prompt.width=banana"), "prompt.width" },
 			{ "an infinite number", signed("prompt.width=1e999"), "prompt.width" },
 			{ "a hex number", signed("prompt.width=0x10"), "prompt.width" },
-			{ "a word for a switch", signed("verbose=true"), "verbose" },
+			{ "a word for a switch", signed("prompt.showIcon=true"), "prompt.showIcon" },
 			{ "a broken escape", signed("prompt.format=%ZZ"), "prompt.format" },
 			{ "a control character", signed("prompt.format=a%01b"), "prompt.format" },
 			{ "a short colour", signed("prompt.fontColor=1,2"), "prompt.fontColor" },

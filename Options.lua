@@ -837,9 +837,35 @@ function Setup.SharedWith()
 	return n
 end
 
+-- Whether the profile named after this character is already in the saved
+-- file with something in it: made here once and left for a shared one since,
+-- or picked on the Profiles tab. AceDB's CopyProfile empties the profile it
+-- copies into before it copies, so going back to this one must never copy.
+-- An empty one counts as none: AceDB strips the defaults from a profile it
+-- leaves, so one nobody changed is empty, and copying into it loses nothing.
+function Setup.OwnProfileExists()
+	local db = ns.db
+	local sv, keys = db and db.sv, db and db.keys
+	if type(sv) ~= "table" or type(sv.profiles) ~= "table" or type(keys) ~= "table"
+		or keys.char == nil then
+		return false
+	end
+	local own = sv.profiles[keys.char]
+	return type(own) == "table" and next(own) ~= nil
+end
+
+-- Whether the button below has anything to do: somebody else is on this
+-- profile, and it is not the one named after this character. On that one it
+-- is the others who came here, and leaving is theirs to do on the Profiles tab.
+function Setup.CanOwnProfile()
+	local db = ns.db
+	return Setup.SharedWith() > 0 and db:GetCurrentProfile() ~= db.keys.char
+end
+
 -- A profile of this character's own, named after it, starting as a copy of
--- the shared one. A profile switch moves the prompt and rewrites its macro, so
--- it waits for the fight to end, as the minimap menu's switch does.
+-- the shared one -- or, when it already has one, back to that one as it was
+-- left. A profile switch moves the prompt and rewrites its macro, so it waits
+-- for the fight to end, as the minimap menu's switch does.
 function Setup.OwnProfile()
 	local db = ns.db
 	if InCombatLockdown() or not (db.SetProfile and db.CopyProfile and db.GetCurrentProfile
@@ -848,10 +874,28 @@ function Setup.OwnProfile()
 	end
 	return ns.Guard("own profile", function()
 		local shared, mine = db:GetCurrentProfile(), db.keys.char
-		if shared == mine then return end
+		if shared == mine then
+			-- Already on it: nothing to make, and a press that did nothing
+			-- without a word would read as broken. The button is hidden here,
+			-- so this is one left on a page drawn before a switch elsewhere,
+			-- and the redraw takes it away.
+			if Setup.SharedWith() > 0 then
+				ns.addon:Print(L["Your other characters are using this character's settings (profile: %s); they can pick their own on the Profiles tab."]:format(mine))
+			else
+				ns.addon:Print(L["This character now has its own settings (profile: %s)."]:format(mine))
+			end
+			ns.RefreshOptionsDisplay()
+			return
+		end
+		-- Asked before the switch, which makes the profile if it is not there.
+		local kept = Setup.OwnProfileExists()
 		db:SetProfile(mine)
-		db:CopyProfile(shared)
-		ns.addon:Print(L["This character now has its own settings (profile: %s)."]:format(mine))
+		if kept then
+			ns.addon:Print(L["This character is back on its own settings (profile: %s)."]:format(mine))
+		else
+			db:CopyProfile(shared)
+			ns.addon:Print(L["This character now has its own settings (profile: %s)."]:format(mine))
+		end
 		ns.RefreshOptionsDisplay()
 	end)
 end
@@ -1315,23 +1359,41 @@ local function BuildStartTab()
 
 			-- Every character starts on the shared Default profile, so a
 			-- setup made here reaches the alts too. Said before step 1, and
-			-- only while another character is actually on this profile.
+			-- only while another character is actually on this profile. That
+			-- can be this character's own, picked by an alt on the Profiles
+			-- tab, and the line then says the others are on it.
 			sharedNote = {
 				type = "description",
 				order = 8,
 				hidden = function() return Setup.SharedWith() == 0 end,
 				name = function()
-					local name = ns.db.GetCurrentProfile and ns.db:GetCurrentProfile() or "Default"
-					return grey(L["These settings are shared by your other characters (profile: %s)."]:format(tostring(name))
+					local db = ns.db
+					local name = db.GetCurrentProfile and db:GetCurrentProfile() or "Default"
+					local line = L["These settings are shared by your other characters (profile: %s)."]
+					if type(db.keys) == "table" and name == db.keys.char then
+						line = L["Your other characters are using this character's settings (profile: %s); they can pick their own on the Profiles tab."]
+					end
+					return grey(line:format(tostring(name))
 						.. " " .. L["The Profiles tab also copies settings as text to share."])
 				end,
 			},
+			-- Offered only where it does something (Setup.CanOwnProfile). A
+			-- character that already has a profile of its own is sent back to
+			-- it, never given a fresh copy over it: the button says so.
 			ownProfile = {
 				type = "execute",
-				name = L["Give this character its own settings"],
-				desc = L["Copies these settings into a profile named after this character; changes made after that stay on this character."],
+				name = function()
+					if Setup.OwnProfileExists() then return L["Go back to this character's own settings"] end
+					return L["Give this character its own settings"]
+				end,
+				desc = function()
+					if Setup.OwnProfileExists() then
+						return L["Switches back to the profile named after this character; nothing is copied or overwritten."]
+					end
+					return L["Copies these settings into a profile named after this character; changes made after that stay on this character."]
+				end,
 				order = 8.1,
-				hidden = function() return Setup.SharedWith() == 0 end,
+				hidden = function() return not Setup.CanOwnProfile() end,
 				disabled = function() return InCombatLockdown() end,
 				func = function() Setup.OwnProfile() end,
 			},
@@ -2663,9 +2725,14 @@ local function BuildLookTab()
 			posPreset = {
 				type = "select",
 				name = L["Where it sits"],
-				desc = L["Pick Above the action bars to put it back where it started."]
-					.. " " .. L["Dragging the prompt afterwards sets this to Where I dragged it."]
-					.. "\n\n" .. L["Exact numbers: %s."]:format(Ref(L["Exact position"], TAB.advanced)),
+				-- The pointer only where there is an Advanced tab to point at,
+				-- by the tab's own rule: a rogue has none.
+				desc = function()
+					local text = L["Pick Above the action bars to put it back where it started."]
+						.. " " .. L["Dragging the prompt afterwards sets this to Where I dragged it."]
+					if not HasPrompt() then return text end
+					return text .. "\n\n" .. L["Exact numbers: %s."]:format(Ref(L["Exact position"], TAB.advanced))
+				end,
 				order = 3,
 				-- "custom" only while the prompt is on none of the presets,
 				-- so it can be shown but never picked.
@@ -3054,8 +3121,9 @@ local function BuildLookTab()
 			wordingNote = {
 				type = "description",
 				order = 46,
-				-- Advanced is not there for a class with nothing to cast.
-				hidden = function() return not HasClassBuffs() end,
+				-- Advanced is there for a class with a prompt, a hunter's own
+				-- included, and not for one with none: the tab's own rule.
+				hidden = function() return not HasPrompt() end,
 				name = "|cff888888"
 					.. L["Change what the prompt says: %s."]:format(Ref(L["Prompt wording"], TAB.advanced))
 					.. "|r",
@@ -3159,6 +3227,12 @@ end
 -- prompt's wording. Every control keeps its own key and get/set, so moving it
 -- here left its profile field where it was.
 local function BuildAdvancedTab()
+	-- The tab is there for every class with a prompt; the knobs about other
+	-- people -- favours, their reason lines, handing a target back -- are
+	-- hidden from a class that only ever offers you your own buff (a hunter's
+	-- aspect), where they would be switches that change nothing.
+	local function NoOthers() return not HasClassBuffs() end
+
 	-- What "Put these back to default" puts back: every field this tab
 	-- writes, by its section in the profile. Nothing else on the page, and
 	-- not where the prompt sits: that is a place somebody dragged it to, not
@@ -3204,7 +3278,10 @@ local function BuildAdvancedTab()
 		type = "group",
 		name = TAB.advanced,
 		order = 6,
-		hidden = function() return not HasClassBuffs() end,
+		-- The same rule as When to offer: a hunter's own prompt has a first
+		-- line, a reason, a place and timings like anybody's. What is about
+		-- other people is hidden inside (NoOthers).
+		hidden = function() return not HasPrompt() end,
 		args = {
 			advIntro = {
 				type = "description",
@@ -3226,13 +3303,14 @@ local function BuildAdvancedTab()
 				func = ResetAdvanced,
 			},
 
-			favoursHeader = { type = "header", name = L["Favours"], order = 10 },
+			favoursHeader = { type = "header", name = L["Favours"], order = 10, hidden = NoOthers },
 			owedClassBuffsOnly = {
 				type = "toggle",
 				name = L["Ignore shields, heals and trinket procs"],
 				desc = L["Only class buffs such as Fortitude count as a favour to return."],
 				order = 11,
 				width = "full",
+				hidden = NoOthers,
 				disabled = function() return not S().owed end,
 				get = sGet,
 				set = sSet,
@@ -3246,6 +3324,7 @@ local function BuildAdvancedTab()
 				desc = L["How long someone who buffed you stays on offer."],
 				order = 12,
 				width = "double",
+				hidden = NoOthers,
 				min = 15,
 				max = 600,
 				step = 5,
@@ -3258,6 +3337,7 @@ local function BuildAdvancedTab()
 				desc = L["Someone who buffed you rarely can be range-checked, so they are let go after the time below."],
 				order = 13,
 				width = "full",
+				hidden = NoOthers,
 				get = fGet,
 				set = fSet,
 			},
@@ -3273,6 +3353,7 @@ local function BuildAdvancedTab()
 				max = 180,
 				step = 5,
 				width = "double",
+				hidden = NoOthers,
 				disabled = function() return not F().reachableOnly end,
 				get = tGet,
 				set = tSet,
@@ -3283,6 +3364,7 @@ local function BuildAdvancedTab()
 				desc = L["Turning it off forgets what is already kept."],
 				order = 15,
 				width = "full",
+				hidden = NoOthers,
 				get = tGet,
 				set = function(info, value)
 					tSet(info, value)
@@ -3322,7 +3404,7 @@ local function BuildAdvancedTab()
 				set = tSet,
 			},
 
-			targetingHeader = { type = "header", name = L["Targeting"], order = 30 },
+			targetingHeader = { type = "header", name = L["Targeting"], order = 30, hidden = NoOthers },
 			restoreTarget = {
 				type = "toggle",
 				name = L["Hand my target back afterwards"],
@@ -3331,7 +3413,10 @@ local function BuildAdvancedTab()
 				width = "full",
 				-- Hidden, not disabled, like the strangers toggle: nothing
 				-- on this page would put a /target in a Battle Shout macro.
-				hidden = NeverTargets,
+				-- A press on yourself always hands your target back
+				-- (STRATEGIES.self in Prompt.lua), so for a class whose only
+				-- prompt is "You" this would be a switch that changes nothing.
+				hidden = function() return NeverTargets() or NoOthers() end,
 				get = fGetMacro,
 				set = fSetMacro,
 			},
@@ -3379,15 +3464,17 @@ local function BuildAdvancedTab()
 				name = L["Reason text: my target"],
 				desc = L["Shown when your target is first in line."],
 				order = 53,
+				hidden = NoOthers,
 				get = pGet,
 				set = pSet,
 			},
-			reasonOwed = { type = "input", name = L["Reason text: buffed me"], order = 54, get = pGet, set = pSet },
+			reasonOwed = { type = "input", name = L["Reason text: buffed me"], order = 54, hidden = NoOthers, get = pGet, set = pSet },
 			reasonAsked = {
 				type = "input",
 				name = L["Reason text: asked in chat"],
 				desc = L["Shown for someone who asked in chat."],
 				order = 55,
+				hidden = NoOthers,
 				get = pGet,
 				set = pSet,
 			},
@@ -3400,8 +3487,8 @@ local function BuildAdvancedTab()
 				get = pGet,
 				set = pSet,
 			},
-			reasonGroup = { type = "input", name = L["Reason text: my group"], order = 56, get = pGet, set = pSet },
-			reasonNearby = { type = "input", name = L["Reason text: passer-by"], order = 57, get = pGet, set = pSet },
+			reasonGroup = { type = "input", name = L["Reason text: my group"], order = 56, hidden = NoOthers, get = pGet, set = pSet },
+			reasonNearby = { type = "input", name = L["Reason text: passer-by"], order = 57, hidden = NoOthers, get = pGet, set = pSet },
 			reasonRefresh = {
 				type = "input",
 				name = L["Reason text: top-up"],
@@ -3415,6 +3502,9 @@ local function BuildAdvancedTab()
 				name = L["Reason text: can't tell"],
 				desc = L["Shown when the game hides whether they already have it."],
 				order = 59,
+				-- Your own buffs are never offered on a reading the game
+				-- withholds, so this line is only ever about somebody else.
+				hidden = NoOthers,
 				get = pGet,
 				set = pSet,
 			},
@@ -4506,6 +4596,12 @@ end
 -- time the page opens, accepts only a string or a number: 1.1.2 to 1.4.0 put
 -- a function in and the options would not open at all ("width: expected a
 -- string or number"). tests/scenarios/aceconfig.lua now runs that validator.
+--
+-- Sliders and key bindings are measured too, against their label. It is one
+-- line across the top of the control, cut with an ellipsis at its edge: "Top
+-- up when less than this is left (minutes)" lost its unit, which was then only
+-- in the tooltip. A slider's label draws in GameFontNormal, a key binding's in
+-- GameFontHighlight.
 local CONTROL_UNIT = 170
 local BUTTON_PAD = 30 + 6
 local SELECT_PAD = 36 + 6
@@ -4549,6 +4645,15 @@ local function FitButton(info)
 	return ControlWidth(LabelWidth(option and Asked(option.name, info), "GameFontNormal"), BUTTON_PAD)
 end
 
+-- A slider's or a key binding's width, from its label in `font`. The label
+-- spans the whole control, with a few pixels to spare either side.
+local function FitLabel(font)
+	return function(info)
+		local option = type(info) == "table" and info.option
+		return ControlWidth(LabelWidth(option and Asked(option.name, info), font), 6)
+	end
+end
+
 local function FitSelect(info)
 	local option = type(info) == "table" and info.option
 	local values = option and Asked(option.values, info)
@@ -4561,8 +4666,16 @@ local function FitSelect(info)
 	return ControlWidth(widest, SELECT_PAD)
 end
 
--- Radio lists and the media pickers (a dialogControl) lay out otherwise.
--- Which controls this file sizes, and how ("button" or "select"; false for
+-- How each kind of control is measured. Radio lists and the media pickers (a
+-- dialogControl) lay out otherwise and are left alone.
+local FITTERS = {
+	button = FitButton,
+	select = FitSelect,
+	range = FitLabel("GameFontNormal"),
+	keybinding = FitLabel("GameFontHighlight"),
+}
+
+-- Which controls this file sizes, and how (a key of FITTERS; false for
 -- one that names its own width), so measuring again finds the same ones once
 -- their width holds a number of ours.
 local fitted = setmetatable({}, { __mode = "k" })
@@ -4577,6 +4690,10 @@ local function FitControls(node, key)
 				kind = "button"
 			elseif node.type == "select" and node.style ~= "radio" and not node.dialogControl then
 				kind = "select"
+			elseif node.type == "range" then
+				kind = "range"
+			elseif node.type == "keybinding" then
+				kind = "keybinding"
 			end
 		end
 		fitted[node] = kind
@@ -4584,7 +4701,7 @@ local function FitControls(node, key)
 	if kind then
 		-- Asked the way AceConfigDialog asks: the option, and its key last.
 		local info = { key, option = node }
-		node.width = (kind == "button" and FitButton or FitSelect)(info)
+		node.width = FITTERS[kind](info)
 	end
 	if type(node.args) == "table" then
 		for childKey, child in pairs(node.args) do FitControls(child, childKey) end

@@ -70,10 +70,10 @@ mutate("Options.lua",
 
 # Where it sits (once Quick position) back down under Size, where it sat before.
 mutate("Options.lua",
-       ":format(Ref(L[\"Exact position\"], TAB.advanced)),\n"
-       "\t\t\t\torder = 3,\n",
-       ":format(Ref(L[\"Exact position\"], TAB.advanced)),\n"
-       "\t\t\t\torder = 15,\n",
+       ":format(Ref(L[\"Exact position\"], TAB.advanced))\n"
+       "\t\t\t\tend,\n\t\t\t\torder = 3,\n",
+       ":format(Ref(L[\"Exact position\"], TAB.advanced))\n"
+       "\t\t\t\tend,\n\t\t\t\torder = 15,\n",
        "look: Quick position under Size",
        expect="Where it sits is not at the top of the tab", script=S)
 
@@ -160,9 +160,9 @@ mutate("Options.lua",
 
 # Where it sits silent about how to put the prompt back.
 mutate("Options.lua",
-       "\t\t\t\tdesc = L[\"Pick Above the action bars to put it back where it started.\"]\n"
-       "\t\t\t\t\t.. \" \" .. L[\"Dragging",
-       "\t\t\t\tdesc = L[\"Dragging",
+       "\t\t\t\t\tlocal text = L[\"Pick Above the action bars to put it back where it started.\"]\n"
+       "\t\t\t\t\t\t.. \" \" .. L[\"Dragging",
+       "\t\t\t\t\tlocal text = L[\"Dragging",
        "look: no way back named",
        expect="posPreset says", script=S)
 

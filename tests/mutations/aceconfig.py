@@ -8,8 +8,8 @@ S = "runscenarios.py"
 # The 1.1.2 bug: a function in `width`, which AceConfigDialog reads but the
 # registry refuses, so the page would not open at all.
 mutate("Options.lua",
-       "\t\tnode.width = (kind == \"button\" and FitButton or FitSelect)(info)\n",
-       "\t\tnode.width = (kind == \"button\" and FitButton or FitSelect)\n",
+       "\t\tnode.width = FITTERS[kind](info)\n",
+       "\t\tnode.width = FITTERS[kind]\n",
        "aceconfig: a function for a width",
        expect="expected a string or number, got 'function",
        script=S)

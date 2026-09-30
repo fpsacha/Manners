@@ -544,8 +544,10 @@ local SHARE_MAX = 64000
 -- same Lua 5.1 local limit as the friends section's.
 do
 	-- Never shared: the on switch is a state, not a taste; the click logger is a
-	-- diagnostic; the minimap button's place is about this screen.
-	local SHARE_SKIP = { enabled = true, debugClicks = true, minimap = true }
+	-- diagnostic; the minimap button's place is about this screen; the chat
+	-- lines are a personal noise preference, like the minimap button. The
+	-- Profiles tab promises a paste keeps all four.
+	local SHARE_SKIP = { enabled = true, debugClicks = true, minimap = true, verbose = true }
 
 	-- The same further down. The lock is a state, and a string copied while the
 	-- prompt was unlocked would unlock everybody's, and an unlocked prompt never
@@ -824,6 +826,11 @@ do
 					if value == nil then return nil, ns.SHARE_ERRORS.badValue:format(name) end
 					if values[name] == nil then count = count + 1 end
 					values[name] = value
+				elseif SHARE_SKIP[name:match("^[^%.]*")] or SHARE_SKIP_NAMES[name] then
+					-- A setting this version knows and keeps out of a paste,
+					-- dropped without a word: 1.4.0 wrote verbose=0 into its
+					-- strings, and calling that a newer version's setting is
+					-- a sentence the player can do nothing about.
 				else
 					-- A setting a later version added: skipped, not refused.
 					unknown = unknown + 1
