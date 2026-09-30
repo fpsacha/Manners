@@ -74,6 +74,10 @@
 --   ClearOutcome()  The outcome is over, or never was: its wash goes.
 --   Combat(on)      The fight holds the panel, or lets it go. Dim, but keep
 --                   the reason readable.
+--   Painted(entry)  Optional. After every paint of a person (Prompt:Paint),
+--                   which is the scan's tick: the queue entry on top, for
+--                   anything that follows the clock (Arcane's drain). Not
+--                   called while the fight holds the panel. No pcall here.
 --   Hover(on)       The cursor came onto the panel or left it.
 --   PaintQueue(rows, shown, above)  The list's text is written (kit.rows);
 --                   rows[i].reason is each row's reason. Place the rows, their

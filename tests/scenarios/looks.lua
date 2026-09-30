@@ -389,7 +389,7 @@ withTree("switching looks leaves no region of the old one showing", ANNA, functi
 					break
 				end
 			end
-			if round and now.icon._mask ~= luxe.mask then
+			if round and not (now.look and now.icon._mask == now.look.mask) then
 				fail(scenario, "switching back to " .. style .. " did not shape the icon again")
 			end
 		end
@@ -537,8 +537,11 @@ withTree("every look is offered, and Luxe is the default", {}, function(ns, scen
 		end
 	end
 	if sorting[1] ~= "luxe" then fail(scenario, "Luxe is not first in the dropdown: " .. tostring(sorting[1])) end
-	if ns.Looks.Get("toast") ~= ns.Looks.Get("luxe") or ns.Looks.Get("arcane") ~= ns.Looks.Get("luxe") then
-		fail(scenario, "a look not written yet does not draw as Luxe")
+	for _, style in ipairs(STYLES) do
+		local look = ns.Looks.list[style]
+		if look and look.fallback and ns.Looks.Get(style) ~= ns.Looks.Get(look.fallback) then
+			fail(scenario, "a look not written yet does not draw as Luxe")
+		end
 	end
 	if ns.Looks.Get("glass") ~= nil then fail(scenario, "glass is handed to Looks/ instead of Prompt.lua") end
 	freshPrompt(ns, scenario)
