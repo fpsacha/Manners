@@ -527,8 +527,14 @@ local function ListedAs(name, verdict)
 end
 ns.ListedAs = ListedAs
 
+-- The scan's answers while it walks; between scans the same answers, checked
+-- against the list as it stands now (NeverVerdicts does that on every call,
+-- with table lookups alone), so an edit is honoured at once. The prompt's
+-- repaint and the options page ask about the same few names over and over,
+-- and a walk of the list with a case-folded compare per entry for each ask
+-- was most of what a long list cost.
 function ns.IsNeverOffered(name)
-	return ListedAs(name, neverSeen.scan) ~= nil
+	return ListedAs(name, neverSeen.scan or NeverVerdicts()) ~= nil
 end
 
 -- Puts somebody on the list. Returns the spelling now on it, and whether they
@@ -1321,7 +1327,9 @@ end
 -- Letting somebody go on a verdict writes it into `rejected` too, which
 -- BuildQueue hands the prompt: the cursor holding the panel on them must not
 -- outlast it (see hovering in Prompt.lua). Running out of time is no verdict.
-local function OfferPassersBy(queue, seen, rejected, now, db, candidates, drop)
+-- `verdict` is the scan's never-offer answers (NeverVerdicts), which the walk
+-- has mostly filled for these very names already, as SelfEntry reads them.
+local function OfferPassersBy(queue, seen, rejected, now, db, candidates, verdict, drop)
 	for name, memo in pairs(passing) do
 		local debt = db.sources.owed and owed[name]
 		local nearby = memo.reason == "nearby"
@@ -1343,7 +1351,7 @@ local function OfferPassersBy(queue, seen, rejected, now, db, candidates, drop)
 			or flagged
 			or not StillCastable(memo, candidates, db.filters)
 			or ns.IsBlocked(name, memo.buff.key, now)
-			or ns.IsNeverOffered(name)
+			or ListedAs(name, verdict) ~= nil
 			or not SafeForMacro(name) then
 			passing[name] = nil
 			if not seen[name] then rejected[name] = true end
@@ -2015,7 +2023,7 @@ function ns.BuildQueue(watch)
 	-- after one last did. Everything that turns passers-by down as a kind
 	-- turns the remembered ones down for good: the switch off, a shout, saving
 	-- mana, a city-only rule out in the world.
-	OfferPassersBy(queue, seen, rejected, now, db, candidates,
+	OfferPassersBy(queue, seen, rejected, now, db, candidates, neverVerdict,
 		not db.sources.strangers or groupOnly or savingMana or notResting)
 
 	-- A shout lands on the whole party, flagged members and all.

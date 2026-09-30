@@ -98,14 +98,14 @@ mutate("Queue.lua",
        expect="a remembered stranger was still offered after the press on them", script=S)
 
 mutate("Queue.lua",
-       "\t\t\tor ns.IsNeverOffered(name)\n\t\t\tor not SafeForMacro(name) then\n",
+       "\t\t\tor ListedAs(name, verdict) ~= nil\n\t\t\tor not SafeForMacro(name) then\n",
        "\t\t\tor not SafeForMacro(name) then\n",
        "linger: the never-offer list is ignored",
        expect="a remembered stranger on the never-offer list was offered", script=S)
 
 mutate("Queue.lua",
-       "\t\t\tor ns.IsNeverOffered(name)\n\t\t\tor not SafeForMacro(name) then\n",
-       "\t\t\tor ns.IsNeverOffered(name) then\n",
+       "\t\t\tor ListedAs(name, verdict) ~= nil\n\t\t\tor not SafeForMacro(name) then\n",
+       "\t\t\tor ListedAs(name, verdict) ~= nil then\n",
        "linger: a name unsafe for the macro is offered",
        expect="a remembered name that could break out of the macro was offered", script=S)
 
