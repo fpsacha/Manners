@@ -18,6 +18,7 @@ of that is read from what the addon told the frames, never restated here.
     python tools/render_prompt.py --out DIR --states owed,refused
     python tools/render_prompt.py --addon OTHER_TREE   # draw an older build
     python tools/render_prompt.py --locale deDE        # as a German client
+    python tools/render_prompt.py --style toast        # a look other than the default
     python tools/render_prompt.py --compare BEFORE AFTER OUT.png
 
 Needs lupa and Pillow (and numpy, which Pillow users nearly always have).
@@ -71,15 +72,15 @@ def to_py(v):
     return {k: to_py(val) for k, val in items}
 
 
-def load_states(addon_dir, locale=None):
+def load_states(addon_dir, locale=None, style=None):
     lua = lupa.LuaRuntime(unpack_returned_tuples=True)
     printed = []
     lua.globals().print = lambda *a: printed.append(" ".join(str(x) for x in a))
-    run = lua.eval("function(path, dir, addon, locale) "
-                   "local f = assert(loadfile(path)) return f(dir, addon, locale) end")
+    run = lua.eval("function(path, dir, addon, locale, style) "
+                   "local f = assert(loadfile(path)) return f(dir, addon, locale, style) end")
     fwd = lambda p: p.replace("\\", "/")
     R = run(fwd(os.path.join(ROOT, "tools", "render_prompt.lua")), fwd(ROOT), fwd(addon_dir),
-            locale or "")
+            locale or "", style or "")
     # The addon measures its lines to fit them, and what it is told has to be
     # the width this draws, or a line it shrank to fit is drawn not fitting.
     # Measured at four times the size and scaled back, because a font rounded
@@ -869,8 +870,8 @@ def sheet(images, cols, pad=8, bg=(14, 14, 16), heading=None):
     return out
 
 
-def render(addon_dir, out_dir, keys=None, label="", locale=None):
-    R = load_states(addon_dir, locale)
+def render(addon_dir, out_dir, keys=None, label="", locale=None, style=None):
+    R = load_states(addon_dir, locale, style)
     all_keys = list(to_py(R["keys"]()))
     keys = keys or all_keys
     os.makedirs(out_dir, exist_ok=True)
@@ -939,14 +940,18 @@ def main():
     # the translations', so this is how a German or Russian line that runs off
     # the panel is found without the game.
     ap.add_argument("--locale", default="", help="client language to load the addon as, e.g. deDE")
+    # The look every state is drawn in, where the state does not pick one
+    # itself: the default for a profile that never chose, as Core.lua has it.
+    ap.add_argument("--style", default="", help="the look to draw, e.g. toast (default: the addon's)")
     ap.add_argument("--compare", nargs=3, metavar=("BEFORE", "AFTER", "OUT"))
     args = ap.parse_args()
     if args.compare:
         compare(*args.compare)
         return
     keys = [k for k in args.states.split(",") if k] or None
-    label = args.label or args.locale
-    render(os.path.abspath(args.addon), os.path.abspath(args.out), keys, label, args.locale or None)
+    label = args.label or " ".join(x for x in (args.style, args.locale) if x)
+    render(os.path.abspath(args.addon), os.path.abspath(args.out), keys, label, args.locale or None,
+           args.style or None)
 
 
 if __name__ == "__main__":

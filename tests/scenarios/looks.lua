@@ -363,6 +363,20 @@ withTree("switching looks leaves no region of the old one showing", ANNA, functi
 				end
 			end
 			if now.icon._mask == luxe.mask then fail(scenario, "Luxe's mask still shapes the icon on glass") end
+			-- And every other look from Looks/ that has been drawn.
+			for key, other in pairs(ns.Looks.list) do
+				if other ~= luxe and other.own then
+					for i, x in ipairs(other.own) do
+						if FT.visible(x) then
+							fail(scenario, ("%s's region %d still shows after switching to %s"):format(key, i, style))
+							break
+						end
+					end
+					if other.mask and now.icon._mask == other.mask then
+						fail(scenario, key .. "'s mask still shapes the icon on " .. style)
+					end
+				end
+			end
 			if now.icon._desaturated or not near(now.icon._alpha or 1, 1) then
 				fail(scenario, "the icon kept Luxe's dim after switching to glass")
 			end
@@ -389,8 +403,19 @@ withTree("switching looks leaves no region of the old one showing", ANNA, functi
 					break
 				end
 			end
-			if round and now.icon._mask ~= luxe.mask then
+			if round and now.icon._mask ~= (now.look and now.look.mask) then
 				fail(scenario, "switching back to " .. style .. " did not shape the icon again")
+			end
+			-- Nothing of any other look from Looks/ left under this one.
+			for key, other in pairs(ns.Looks.list) do
+				if other ~= now.look and other.own then
+					for i, x in ipairs(other.own) do
+						if FT.visible(x) then
+							fail(scenario, ("%s's region %d still shows under %s"):format(key, i, style))
+							break
+						end
+					end
+				end
 			end
 		end
 	end
@@ -537,8 +562,11 @@ withTree("every look is offered, and Luxe is the default", {}, function(ns, scen
 		end
 	end
 	if sorting[1] ~= "luxe" then fail(scenario, "Luxe is not first in the dropdown: " .. tostring(sorting[1])) end
-	if ns.Looks.Get("toast") ~= ns.Looks.Get("luxe") or ns.Looks.Get("arcane") ~= ns.Looks.Get("luxe") then
-		fail(scenario, "a look not written yet does not draw as Luxe")
+	-- Whichever looks are still stubs.
+	for key, look in pairs(ns.Looks.list) do
+		if look.fallback and ns.Looks.Get(key) ~= ns.Looks.Get(look.fallback) then
+			fail(scenario, "a look not written yet does not draw as Luxe")
+		end
 	end
 	if ns.Looks.Get("glass") ~= nil then fail(scenario, "glass is handed to Looks/ instead of Prompt.lua") end
 	freshPrompt(ns, scenario)
