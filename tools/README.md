@@ -244,9 +244,10 @@ Lua state:
 - **citynever** — the city with a never-offer list of `--never` names (fifty)
   that match nobody there, while the city's passers-by are remembered; the run
   fails if nobody is
-- **raidgc** — the raid for a mage who has learned Arcane Brilliance (the
-  probe's `PROBE_KNOWN`) and carries Arcane Powder, group casts on for two of a
-  party missing the buff; the run fails if no group cast forms
+- **raidgc** — the raid for a mage who has learned Arcane Brilliance (spells
+  1459 and 23028, as `PROBE_KNOWN` would name them) and carries Arcane Powder,
+  group casts on for two of a party missing the buff; the run fails if no group
+  cast forms
 
 Every scan there describes the same crowd: a favour owed arrives once and is
 kept inside its window (and the "Let them go after" grace) for the whole run,
