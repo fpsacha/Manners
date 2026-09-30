@@ -182,10 +182,10 @@ draws round its spell icon. Like `Manners64.tga` they ship in the zip. Needs
 Pillow; deterministic.
 
 `Glow.tga` is light falling off in every direction from its centre, and
-`Prompt.lua` cuts it into eight pieces round a square icon: the quarters are
+`Prompt/Prompt.lua` cuts it into eight pieces round a square icon: the quarters are
 the corners and a line through the middle is each side, so every join has the
 same brightness on both sides of it. `GlowRound.tga` is a ring for the rounded
-icon; `RING_AT` in the script and `GLOW_RING_AT` in `Prompt.lua` say where its
+icon; `RING_AT` in the script and `GLOW_RING_AT` in `Prompt/Prompt.lua` say where its
 rim is and have to agree. Both are white with the shape in the alpha, and the
 prompt colours them.
 
@@ -364,7 +364,7 @@ function's upvalue count and the deepest overlap of its locals' live ranges
 straight from the compiler's own bookkeeping.
 
 ```
-python tools/lua51_limits.py Core.lua Queue.lua Prompt.lua Options.lua   # the twenty tightest
+python tools/lua51_limits.py Core.lua Queue.lua Prompt/*.lua Options.lua   # the twenty tightest
 ```
 
 `tests/validate.py` uses it to fail any function in a shipped file over 55
