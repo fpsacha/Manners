@@ -1528,8 +1528,8 @@ mutate("Options.lua",
 
 # 82. the targeting switch offered to a class whose macro never takes a target.
 mutate("Options.lua",
-       "\t\t\t\thidden = NeverTargets,\n\t\t\t\tget = fGetMacro,",
-       "\t\t\t\tget = fGetMacro,",
+       "\t\t\t\thidden = function() return NeverTargets() or NoOthers() end,\n\t\t\t\tget = fGetMacro,",
+       "\t\t\t\thidden = NoOthers,\n\t\t\t\tget = fGetMacro,",
        "handing back a target that is never taken",
        expect="hand back a target the macro never takes",
        script="runscenarios.py")
