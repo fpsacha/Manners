@@ -1,11 +1,22 @@
--- Manners -- the Arcane look: a card of smoked, frosted glass whose rim is lit
--- in the reason colour, so the whole outline says why.
+-- Manners -- the Arcane look: a card of smoked glass whose rim is lit in the
+-- reason colour, so the whole outline says why.
 --
 -- On the left the spell icon sits in a lens -- a dark well, a seam, a ring
 -- lit from above -- inside a circle of runes. Along the bottom a hairline
 -- drains as the time to return a favour runs out, and a keycap on the right
 -- shows the key that presses the prompt. The rune circle turns once every two
 -- minutes on Full; everything else moves only when something happens.
+--
+-- Two rules the game holds this look to, which a preview render does not
+-- show (it lays added light on far more gently than the game):
+--   * the spell icon is drawn clean: nothing rests on it -- no gloss, shade,
+--     light or count -- only the ring hugging its edge, and a flourish that
+--     crosses the card starts right of it;
+--   * the text has a dark ground: a second coat of smoke under the lines
+--     (Smoke) keeps the name and the reason line at 4.5:1 over snow, in a
+--     fight too, where the text dims and the reason line comes up to meet
+--     it (FIGHT_LEAST); and no light or wash lies under them
+--     (tests/scenarios/readable-arcane.lua).
 --
 -- Every region is a texture from Textures/Arcane (tools/make_arcane_textures.py),
 -- white, grey or black, so the vertex colour carries every reason, both
@@ -41,9 +52,14 @@
 --     carries the reason unless the marker is off; the ring and the runes are
 --     its icon marker -- and "Round icon" is the player's own;
 --   * a class-coloured name is taken 55% of the way to white, as on Luxe, so
---     a rogue's yellow never reads as the owed gold on the rim;
+--     a rogue's yellow never reads as the owed gold on the rim; the preview's
+--     and the hints' gold is taken off the name, which is white;
 --   * about thirty fewer regions: the list shares the card's shadow, and the
---     flare, the breath and the hover share their light.
+--     flare, the breath and the hover share their light;
+--   * since 1.5.1 the lens has no highlight or shade over the icon, the glass
+--     no frost and no light from the icon, the cursor lights the rim only, an
+--     outcome's wash lights the lens rather than the glass under the verdict,
+--     and the count stands at the right of the lines, never on the icon.
 
 local _, ns = ...
 local L = ns.L
@@ -59,31 +75,39 @@ local Arcane = ns.Looks.Register("arcane", {
 	classSoften = 0.55,
 })
 
--- The reason with the marker off, and the cool white the frost is lit with.
+-- The reason with the marker off.
 local NEUTRAL = { 0.72, 0.74, 0.82 }
-local FROST = { 0.80, 0.86, 1.00 }
--- The outcomes: their colour and how strong their wash is.
+-- The outcomes: their colour and how strong their wash round the lens is.
 local OUTCOME = {
-	cast = { 0.55, 0.91, 0.55, 0.30 },
-	failed = { 0.93, 0.33, 0.28, 0.22 },
-	sent = { 0.91, 0.86, 0.60, 0.14 },
+	cast = { 0.55, 0.91, 0.55, 0.60 },
+	failed = { 0.93, 0.33, 0.28, 0.44 },
+	sent = { 0.91, 0.86, 0.60, 0.28 },
 }
--- The resting light for each reason: the bloom, the runes, the light the
--- icon throws. A favour owed glows a little more; a passer-by least.
+-- The resting light for each reason: the bloom and the runes. A favour owed
+-- glows a little more; a passer-by least.
 local REST = {
-	owed = { 0.22, 0.42, 0.07 },
-	target = { 0.16, 0.38, 0.06 },
-	asked = { 0.18, 0.40, 0.06 },
-	group = { 0.16, 0.38, 0.06 },
-	self = { 0.16, 0.38, 0.06 },
-	nearby = { 0.10, 0.30, 0.04 },
+	owed = { 0.22, 0.42 },
+	target = { 0.16, 0.38 },
+	asked = { 0.18, 0.40 },
+	group = { 0.16, 0.38 },
+	self = { 0.16, 0.38 },
+	nearby = { 0.10, 0.30 },
 }
+-- The second coat of smoke under the lines, as a share of the panel's own
+-- opacity: at the default 88% the name and the reason line keep 4.5:1 over
+-- snow. Only under light text; a light panel keeps its own colour.
+local SMOKE = 1
+-- The gold the preview and the hints put on the name line, taken off it.
+local GOLD = "|c[fF][fF][fF][fF][dD]100"
 -- The runes rest at this alpha so a flare has somewhere to go; their colour's
 -- alpha is the resting light over it.
 local RUNE_ALPHA = 0.6
 -- What a fight does to the ink: the icon and its lens, the text, the runes,
--- the drain and the light from the icon.
-local COMBAT = { ink = 0.62, text = 0.80, runes = 0.35, drain = 0.60, light = 0.50 }
+-- the drain.
+local COMBAT = { ink = 0.62, text = 0.80, runes = 0.35, drain = 0.60 }
+-- The contrast the reason line is held to in a fight, before the text dims:
+-- dimmed to COMBAT.text it still reads at 4.5:1 on the dark glass.
+local FIGHT_LEAST = 4.5 / (COMBAT.text * COMBAT.text)
 -- How much deeper the reason is drawn on a light panel, where it is laid
 -- over rather than added.
 local DEEP = 0.7
@@ -259,14 +283,13 @@ function Arcane:Build(kit)
 	self.trayRim = slice(art, "BACKGROUND", -6, "Rim", 128, 32, 8)
 	self.bloom = slice(art, "BACKGROUND", -5, "Bloom", 128, 32, 16, "ADD")
 	self.glass = slice(art, "BACKGROUND", -4, "Glass", 128, 32, 8)
-	-- In the glass: the icon's light, the frost, the top edge, the rim, an
-	-- outcome's wash, and the lens's well and runes (below the icon, which
-	-- is on ARTWORK).
-	self.light = tex(art, "BORDER", 0, "IconLight", "ADD")
-	self.frost = tex(art, "BORDER", 1, "GlassLight", "ADD")
+	-- In the glass: the second coat of smoke, the top edge, the rim, an
+	-- outcome's wash round the lens, and the lens's well and runes (below
+	-- the icon, which is on ARTWORK).
+	self.smoke = slice(art, "BORDER", 1, "Glass", 128, 32, 8)
 	self.glint = tex(art, "BORDER", 2, "Glint", "ADD")
 	self.rim = slice(art, "BORDER", 3, "Rim", 128, 32, 8)
-	self.wash = tex(art, "BORDER", 4, "IconLight", "ADD")
+	self.wash = tex(art, "BORDER", 4, "Dot", "ADD")
 	self.well = tex(art, "BORDER", 5, "Well")
 	self.runes = tex(art, "BORDER", 6, "RuneRing", "ADD")
 	-- Turned and slid without shimmering, where the client offers it.
@@ -276,10 +299,8 @@ function Arcane:Build(kit)
 	self.track = tex(art, "ARTWORK", 0, "Drain", "ADD")
 	self.drain = tex(art, "ARTWORK", 1, "Drain", "ADD")
 	self.spark = tex(art, "ARTWORK", 2, "Spark", "ADD")
-	-- The lens over the icon (the shared icon is ARTWORK 0), its frame, and
-	-- the tick for a buff that landed.
-	self.shade = tex(art, "ARTWORK", 1, "IconShade")
-	self.gloss = tex(art, "ARTWORK", 2, "IconGloss", "ADD")
+	-- Over the icon (the shared icon is ARTWORK 0) only its frame, which
+	-- hugs it from outside, and the tick for a buff that landed.
 	self.ring = tex(art, "ARTWORK", 3, "IconRing")
 	self.check = tex(art, "ARTWORK", 4, "Check")
 	self.dots = {}
@@ -289,26 +310,24 @@ function Arcane:Build(kit)
 		for _, t in ipairs(s) do self.glassParts[#self.glassParts + 1] = t end
 	end
 
-	-- The icon's shape, and its lens's. Not in `own`: Hide takes it off.
+	-- The icon's shape. Not in `own`: Hide takes it off.
 	self.mask = art:CreateMaskTexture()
-	self.shade:AddMaskTexture(self.mask)
-	self.gloss:AddMaskTexture(self.mask)
 
 	-- What lights up, each on a frame of its own: only a frame's alpha can
 	-- be animated as one. The lift is the bloom and the rim again, added: a
 	-- new favour flares it, the owed breath swells it, and it never loops on
-	-- Calm. It is hollow and on the edge, so it covers nothing it is over.
+	-- Calm. It is hollow and on the edge, so it covers nothing it is over;
+	-- so is the cursor's light, the rim alone.
 	self.liftFrame = frame(art)
 	self.liftBloom = slice(self.liftFrame, "BACKGROUND", 0, "Bloom", 128, 32, 16, "ADD")
 	self.liftRim = slice(self.liftFrame, "BORDER", 0, "Rim", 128, 32, 8, "ADD")
 	self.hoverFrame = frame(art)
-	self.hoverFill = tex(self.hoverFrame, "BORDER", 0, "GlassHover", "ADD")
 	self.hoverRim = slice(self.hoverFrame, "BORDER", 1, "Rim", 128, 32, 8, "ADD")
 	self.shineFrame = frame(art)
 	self.shine = tex(self.shineFrame, "OVERLAY", 0, "Shine", "ADD")
 
-	-- On textLayer, over everything and dimmed with the text: the count on
-	-- the lens, the keycap and its key.
+	-- On textLayer, over everything and dimmed with the text: the count's
+	-- coin, the keycap and its key.
 	self.badgeBox = keep(CreateFrame("Frame", nil, textLayer))
 	self.badge = {}
 	for i, cut in ipairs({ { 0, 0.5 }, { 0.49, 0.51 }, { 0.5, 1 } }) do
@@ -475,7 +494,7 @@ function Arcane:Apply(p, above)
 
 	-- Corners: 8 units, or half the height of a very short card.
 	local corner = math.min(8, H / 2)
-	for _, s in ipairs({ self.glass, self.rim, self.liftRim, self.hoverRim }) do s.corner = corner end
+	for _, s in ipairs({ self.glass, self.smoke, self.rim, self.liftRim, self.hoverRim }) do s.corner = corner end
 	for _, s in ipairs({ self.trayGlass, self.trayRim }) do s.corner = 8 end
 
 	-- The ground. Nearly clear glass has no shadow: a grey smudge would float
@@ -487,9 +506,12 @@ function Arcane:Apply(p, above)
 	PlaceSlice(self.liftBloom, art, art, 10, 10, 10, 10)
 	SliceColor(self.glass, br, bg, bb, ba)
 	PlaceSlice(self.glass, art, art, 0, 0, 0, 0)
-	for _, s in ipairs({ self.rim, self.liftRim, self.hoverRim }) do PlaceSlice(s, art, art, 0, 0, 0, 0) end
-	-- The frost and the top edge's light fade on a light panel, where added
-	-- white only greys it.
+	-- The smoke's strength waits for the text's colour (Styled).
+	for _, s in ipairs({ self.smoke, self.rim, self.liftRim, self.hoverRim }) do PlaceSlice(s, art, art, 0, 0, 0, 0) end
+	SliceColor(self.smoke, 0, 0, 0, 0)
+	self.smokeAlpha = SMOKE * ba
+	-- The top edge's light fades on a light panel, where added white only
+	-- greys it.
 	local lum = 0.299 * br + 0.587 * bg + 0.114 * bb
 	local clear = math.max(0, 1 - lum * 1.3)
 	-- The same for what carries the reason in light: added to a light or mid
@@ -500,16 +522,6 @@ function Arcane:Apply(p, above)
 	for _, t in ipairs({ self.runes, self.track, self.drain, self.spark, self.wash }) do
 		t:SetBlendMode(blend)
 	end
-	self.light:ClearAllPoints()
-	self.light:SetPoint("TOPLEFT", 1, -1)
-	self.light:SetSize(math.max(8, math.min(W - 2, 150)), H - 2)
-	self.wash:ClearAllPoints()
-	self.wash:SetPoint("TOPLEFT", 1, -1)
-	self.wash:SetSize(math.max(8, math.min(W - 2, 190)), H - 2)
-	self.frost:ClearAllPoints()
-	self.frost:SetPoint("TOPLEFT", 2, -2)
-	self.frost:SetPoint("BOTTOMRIGHT", -2, 2)
-	self.frost:SetVertexColor(FROST[1], FROST[2], FROST[3], 0.08 * clear)
 	self.glint:ClearAllPoints()
 	self.glint:SetPoint("TOPLEFT", 6, -0.6)
 	self.glint:SetPoint("TOPRIGHT", -6, -0.6)
@@ -542,17 +554,9 @@ function Arcane:Apply(p, above)
 		icon:AddMaskTexture(self.mask)
 		self.masked = true
 	end
-	self.shade:SetTexture(ART .. (round and "IconShade" or "IconShadeSq"))
 	self.ring:SetTexture(ART .. (round and "IconRing" or "IconRingSq"))
 	icon:SetSize(iconSize, iconSize)
 	icon:SetPoint("CENTER", art, "LEFT", cx, cy)
-	for _, t in ipairs({ self.shade, self.gloss }) do
-		t:ClearAllPoints()
-		t:SetAllPoints(icon)
-	end
-	-- The highlight is a lens catching the light: faint, or it whitens the
-	-- top of the spell's art (and of a greyed icon in a fight).
-	self.gloss:SetVertexColor(1, 1, 1, round and 0.20 or 0.16)
 	self.ring:ClearAllPoints()
 	self.ring:SetPoint("CENTER", icon, "CENTER", 0, 0)
 	self.ring:SetSize(iconSize / ICON_FRAME, iconSize / ICON_FRAME)
@@ -560,6 +564,11 @@ function Arcane:Apply(p, above)
 	self.check:SetPoint("CENTER", icon, "CENTER", 0, 0)
 	self.check:SetSize(iconSize * 0.86, iconSize * 0.86)
 	self.check:SetVertexColor(0.80, 1.00, 0.82, 1)
+	-- An outcome's wash lights the lens round the icon, under it, and stops
+	-- short of the text: the verdict is written on the glass beside it.
+	self.wash:ClearAllPoints()
+	self.wash:SetPoint("CENTER", art, "LEFT", cx, cy)
+	self.wash:SetSize(M + 10, M + 10)
 	local cooldown = kit.cooldown
 	if cooldown then
 		cooldown:ClearAllPoints()
@@ -584,21 +593,20 @@ function Arcane:Apply(p, above)
 	self.spark:SetSize(10, 5)
 	self.drainWidth = nil
 
-	-- The light that crosses: about a fifth of the card wide.
+	-- The light that crosses: about a fifth of the card wide, from the lens's
+	-- edge, so it never passes over the icon.
 	local band = math.max(16, math.min(48, math.floor(W * 0.18)))
+	local from = showIcon and math.floor(cx + M / 2 + 0.5) or 0
 	self.shineFrame:ClearAllPoints()
-	self.shineFrame:SetPoint("LEFT", art, "LEFT", 0, 0)
+	self.shineFrame:SetPoint("LEFT", art, "LEFT", from, 0)
 	self.shineFrame:SetSize(band, H - 2)
 	self.shine:ClearAllPoints()
 	self.shine:SetAllPoints(self.shineFrame)
-	self.shineAnim.move:SetOffset(W - band, 0)
+	self.shineAnim.move:SetOffset(math.max(0, W - band - from), 0)
 	for _, f in ipairs({ self.liftFrame, self.hoverFrame }) do
 		f:ClearAllPoints()
 		f:SetAllPoints(art)
 	end
-	self.hoverFill:ClearAllPoints()
-	self.hoverFill:SetAllPoints(self.hoverFrame)
-	self.hoverFill:SetVertexColor(1, 1, 1, 0.05 * math.max(0.3, clear))
 
 	-- The text over all of it.
 	local base = art:GetFrameLevel()
@@ -640,7 +648,7 @@ function Arcane:Apply(p, above)
 	SliceShown(self.shadow, self.shadowShown)
 	for _, s in ipairs({ self.trayGlass, self.trayRim }) do SliceShown(s, false) end
 	for _, d in ipairs(self.dots) do d:Hide() end
-	for _, t in ipairs({ self.well, self.runes, self.shade, self.gloss, self.ring }) do
+	for _, t in ipairs({ self.well, self.runes, self.ring }) do
 		t:SetShown(showIcon)
 	end
 	for _, t in ipairs({ self.track, self.drain, self.spark, self.check, self.wash }) do t:Hide() end
@@ -659,10 +667,9 @@ function Arcane:Apply(p, above)
 	self:SetInk(false)
 	self:Spin()
 
-	-- With the icon off the count stands at the right, and takes its room
+	-- The count stands at the right, never on the icon, and takes its room
 	-- from the lines while it is up.
-	local chipRoom = 10
-	if not showIcon then chipRoom = 10 + math.ceil(sub * 1.3 + 8) + 4 end
+	local chipRoom = 10 + math.ceil(sub * 1.3 + 8) + 4
 	return textX, chipRoom
 end
 
@@ -685,6 +692,9 @@ function Arcane:Styled(p)
 	r, g, b = kit.Legible(0.92, 0.92, 0.95, 4.5)
 	for _, fs in ipairs(kit.rows) do fs:SetTextColor(r, g, b, 1) end
 	kit.ink.rowReason = kit.ink.light and "|cff9a9cb0" or "|cff505058"
+	-- Light text gets its dark ground: the second coat of smoke. Dark text on
+	-- a light panel keeps the panel as the player coloured it.
+	SliceColor(self.smoke, 0, 0, 0, kit.ink.light and self.smokeAlpha or 0)
 	-- The key, now there is a font to measure it in.
 	self:ReadKey(true)
 end
@@ -826,15 +836,28 @@ function Arcane:ReadKey(force)
 end
 
 function Arcane:Fitted(fs)
-	if fs == self.kit.name then self:CheckKey() end
+	if fs == self.kit.name then
+		self:Whiten(fs)
+		self:CheckKey()
+	end
+end
+
+-- The name is white: the gold the preview and the hints put on it comes off,
+-- leaving the name's own colour. Only where that gold was kept, which is on
+-- dark glass (a light panel's is already darkened for it). The width is the
+-- same, so the fit holds. A secret name has no codes of ours.
+function Arcane:Whiten(fs)
+	local text = fs:GetText()
+	if type(text) ~= "string" or (issecretvalue and issecretvalue(text)) then return end
+	if text:find(GOLD) then fs:SetText((text:gsub(GOLD, ""))) end
 end
 
 function Arcane:ShowBadge(on)
 	for _, t in ipairs(self.badge) do t:SetShown(on) end
 end
 
--- The count as "+N" on the lens's lower right, never into the text; with the
--- icon off, at the right of the lines.
+-- The count as "+N" on its coin at the right of the lines, clear of the icon
+-- and of the keycap.
 function Arcane:Chip(on)
 	local kit = self.kit
 	on = on and not self.outcome and true or false
@@ -847,14 +870,8 @@ function Arcane:Chip(on)
 		local w = math.floor(math.max(h, (kit.TextWidth(kit.count) or self.sub) + 8) + 0.5)
 		self.badgeBox:SetWidth(w)
 		self.badgeBox:ClearAllPoints()
-		if self.showIcon then
-			local x = math.min(self.cx + self.iconSize * 0.36 - w / 2 + 3, self.cx + self.M / 2 + 2 - w)
-			local y = math.min(self.H / 2 + self.iconSize * 0.36 - h / 2 + 2, self.H - 2 - h)
-			self.badgeBox:SetPoint("TOPLEFT", kit.textLayer, "TOPLEFT", x, -y)
-		else
-			local right = self:KeyShown() and (8 + self.keyRoom + 1) or 8
-			self.badgeBox:SetPoint("RIGHT", kit.textLayer, "RIGHT", -right, 0)
-		end
+		local right = self:KeyShown() and (8 + self.keyRoom + 1) or 8
+		self.badgeBox:SetPoint("RIGHT", kit.textLayer, "RIGHT", -right, 0)
 	end
 	self:ShowBadge(on)
 	kit.count:SetShown(on)
@@ -865,23 +882,22 @@ end
 -- the reason
 ---------------------------------------------------------------------------
 
--- The ink's alpha, for the fight: the icon and its lens, the light, the
--- runes, the drain and the text dim; the glass, the rim and the ring hold.
+-- The ink's alpha, for the fight: the icon and its well, the runes, the
+-- drain and the text dim; the glass, the rim and the ring hold.
 function Arcane:SetInk(fight)
 	local kit = self.kit
 	local ink = fight and COMBAT.ink or 1
-	for _, t in ipairs({ kit.icon, self.shade, self.gloss, self.well }) do t:SetAlpha(ink) end
+	for _, t in ipairs({ kit.icon, self.well }) do t:SetAlpha(ink) end
 	if kit.cooldown then kit.cooldown:SetAlpha(ink) end
 	self.runes:SetAlpha((fight and COMBAT.runes or 1) * RUNE_ALPHA)
 	for _, t in ipairs({ self.track, self.drain, self.spark }) do t:SetAlpha(fight and COMBAT.drain or 1) end
-	self.light:SetAlpha(fight and COMBAT.light or 1)
 	-- The bloom is the one light that goes: a glowing card says "live".
 	SliceAlpha(self.bloom, fight and 0 or 1)
 	kit.textLayer:SetAlpha(fight and COMBAT.text or 1)
 end
 
 -- Every mark in its colour: the rim (the stripe) and the ring and runes (the
--- icon marker), the light, the drain and the reason line.
+-- icon marker), the bloom, the drain and the reason line.
 function Arcane:Tint(r, g, b, ring, rest, neutral)
 	local kit = self.kit
 	local rimA = neutral and 0.55 or 0.80
@@ -890,7 +906,6 @@ function Arcane:Tint(r, g, b, ring, rest, neutral)
 	SliceColor(self.liftBloom, r, g, b, 1)
 	SliceColor(self.liftRim, r, g, b, 0.6)
 	SliceColor(self.hoverRim, r, g, b, 0.14)
-	self.light:SetVertexColor(r, g, b, neutral and 0.03 or rest[3])
 	local lr, lg, lb = ring[1], ring[2], ring[3]
 	self.ring:SetVertexColor(lr, lg, lb, 1)
 	if self.lightGlass then
@@ -915,13 +930,14 @@ end
 
 -- The reason line: a grey carried most of the way to the reason colour on
 -- dark glass (a third of the way on a light panel, where the tint costs
--- contrast), held to 4.5:1.
+-- contrast), held to 4.5:1 -- as it is drawn, so harder in a fight, where
+-- the text dims: the reason keeps its hue and comes up to the dimming.
 function Arcane:SubColor(r, g, b, plain)
 	local kit = self.kit
 	local base = kit.ink.sub or { 0.60, 0.61, 0.68 }
 	local mix = plain and 0 or (kit.ink.light and 0.75 or 0.35)
 	local sr, sg, sb = kit.Legible(base[1] + (r - base[1]) * mix, base[2] + (g - base[2]) * mix,
-		base[3] + (b - base[3]) * mix, 4.5)
+		base[3] + (b - base[3]) * mix, self.combat and FIGHT_LEAST or 4.5)
 	kit.sub:SetTextColor(sr, sg, sb, 1)
 end
 
@@ -962,6 +978,9 @@ function Arcane:Combat(on)
 	else
 		self:SetInk(false)
 	end
+	-- The reason line comes up to the dimmed text, or down again after; a
+	-- verdict on it waits for the next paint, which is the reason's own.
+	if not self.outcome then self:Retint() end
 	self.kit.icon:SetDesaturated(on)
 	self:Spin()
 end
@@ -1091,7 +1110,9 @@ function Arcane:Shine(r, g, b, a)
 end
 
 function Arcane:Flourish(kind)
-	-- Nothing for a cast nobody confirmed: a flourish is a claim.
+	-- Nothing for a cast nobody confirmed: a flourish is a claim. No light
+	-- across the card either: it would cross the verdict, which is up for
+	-- barely longer than the light.
 	if kind ~= "cast" then return end
 	if self.showIcon and not self.combat then
 		self.runeFlareAnim:Stop()
@@ -1099,7 +1120,6 @@ function Arcane:Flourish(kind)
 		self.checkAnim:Stop()
 		self.checkAnim:Play()
 	end
-	self:Shine(1, 1, 1, 0.45)
 end
 
 function Arcane:StopFlourishes()
@@ -1164,7 +1184,7 @@ function Arcane:PaintOutcome(kind, lead, sub, who, stamp)
 	self.check:SetShown(kind == "cast" and self.showIcon)
 	if kit.sub:IsShown() then
 		kit.SetLine(kit.sub, word)
-		local r, g, b = kit.Legible(o[1], o[2], o[3], 4.5)
+		local r, g, b = kit.Legible(o[1], o[2], o[3], self.combat and FIGHT_LEAST or 4.5)
 		kit.sub:SetTextColor(r, g, b, 1)
 	end
 	-- The wash, once per click: a repaint during the outcome leaves it be.
@@ -1177,7 +1197,8 @@ function Arcane:PaintOutcome(kind, lead, sub, who, stamp)
 		end
 		self.washAnim:Stop()
 		self.wash:SetAlpha(1)
-		self.wash:Show()
+		-- Round the lens: with no icon there is none, and the rim says it.
+		self.wash:SetShown(self.showIcon)
 		if kit.FullEffects() then
 			self.washAnim.to = 0
 			self.washAnim:Play()
