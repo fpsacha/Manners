@@ -220,13 +220,9 @@ function ns.ShoutFlagged(inRaid)
 	return FlaggedAmong(own, false, true)
 end
 
--- The class's name as the game spells it, for "every Warrior".
-local function ClassName(class)
-	local names = _G.LOCALIZED_CLASS_NAMES_MALE
-	local name = type(names) == "table" and plain(names[class]) or nil
-	if type(name) == "string" then return name end
-	return class:sub(1, 1) .. class:sub(2):lower()
-end
+-- The class's name as the game spells it, for "every Warrior": Core's, which
+-- {class} on the prompt reads too, so the two cannot spell it differently.
+local ClassName = ns.ClassName
 
 ---------------------------------------------------------------------------
 -- the group cast in the queue

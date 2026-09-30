@@ -1535,6 +1535,37 @@ function ns.StopOfferingSelf()
 	ns.RepaintOptions()
 end
 
+-- CastableBuffs' answer less what the game says you cannot pay for right now,
+-- once per scan, for everything the scan offers from it: the walk, requests,
+-- favours out of sight, passers-by remembered, "Buff myself" and the group
+-- casts. A mage at 150 mana was offered an Intellect that costs more, and
+-- every press failed with "Not enough mana" -- the caster's fault, so nothing
+-- backed off: the prompt went round everybody, thanking each of them with
+-- speech on, and buffed nobody. Only a no for want of mana counts: a plain no
+-- can be a form (cat form, Shadowform) the macro may still get past, and a
+-- client that will not say keeps the buff. The zero-mana stop in BuildQueue
+-- stays for a client without the call. Your class's own buffs and the group
+-- spell ask for themselves (Core.lua, GroupBuffs.lua).
+local function Affordable(candidates)
+	local check = C_Spell and C_Spell.IsSpellUsable
+	if type(check) ~= "function" then check = _G.IsUsableSpell end
+	if type(check) ~= "function" then return candidates end
+	local pinned = ns.PinnedBuff()
+	local out = {}
+	for _, buff in ipairs(candidates) do
+		local info = ns.BuffInfo(buff)
+		local usable, noMana = safecall(check, (info and info.topRank) or (buff.ranks and buff.ranks[1]))
+		if not (usable == false and noMana == true) then
+			out[#out + 1] = buff
+		elseif pinned and pinned.key == buff.key then
+			-- A pin is "only ever this one": PickBuffFor swaps whatever list
+			-- it is handed for the pin, so one that is left would offer it.
+			return {}
+		end
+	end
+	return out
+end
+
 -- The queue, sorted, and what the scan turned down: [name] = true for
 -- everybody a token reached and found covered, dead, out of range, out of
 -- sight, listed or held back while you save mana (and the remembered let go
@@ -1577,7 +1608,9 @@ function ns.BuildQueue(watch)
 	prox.asked, prox.answered = 0, 0
 
 	-- Everything below until the walk is asked once per scan, not per person.
-	local candidates = ns.CastableBuffs()
+	-- Nothing you cannot pay for is offered to anybody (see Affordable); an
+	-- empty list is the "nothing to give anybody else" below.
+	local candidates = Affordable(ns.CastableBuffs())
 	-- A warrior's shout reaches the group and nobody else, so passers-by are
 	-- dropped before the distance check rather than measured for nothing
 	-- (which would fill the proximity counts with people never offered).
@@ -1619,7 +1652,9 @@ function ns.BuildQueue(watch)
 	if friendsFirst then SweepCloseness(now) end
 
 	-- A buff that cannot be paid for is a button that fails -- but only classes
-	-- with a mana bar can run out: a warrior's mana reads a permanent 0.
+	-- with a mana bar can run out: a warrior's mana reads a permanent 0. Empty
+	-- stops everything, your own buffs too, on any client; short of empty it
+	-- is the game's word per spell (Affordable), where the game gives one.
 	local myMax = plain(UnitPowerMax("player", MANA))
 	if myMax and myMax > 0 then
 		local myMana = plain(UnitPower("player", MANA))
@@ -1627,8 +1662,9 @@ function ns.BuildQueue(watch)
 	end
 
 	-- Nothing to give anybody else -- a hunter, whose own aspects are all
-	-- there is, or every spell of yours switched off -- leaves you alone to
-	-- offer, and no walk: every person it reached would be turned down.
+	-- there is, every spell of yours switched off, or none you can pay for
+	-- right now -- leaves you alone to offer (an armor costs less than an
+	-- Intellect), and no walk: every person it reached would be turned down.
 	if #candidates == 0 then
 		local own = SelfEntry(db, candidates, now, neverVerdict)
 		if own then return { own }, {} end
@@ -1708,8 +1744,15 @@ function ns.BuildQueue(watch)
 		end
 		-- A group member the game says is out of sight -- still in town while
 		-- the raid is inside, or a long way off in it -- is out of range for
-		-- certain, which this client's range check often will not say.
-		if reason == "group" and f.requireInRange
+		-- certain, which this client's range check often will not say. A
+		-- range rule, not a group one, so a favour owed and a request meet it
+		-- too: a raider who buffed you and then hearthed sat on top of the
+		-- prompt, every press failing out of range, for the whole favour.
+		-- Their debt and request stay; `rejected` keeps the owed fallback and
+		-- the memory of askers from offering them by name, and the next scan
+		-- that sees them offers them again. Only the group is asked: their
+		-- tokens are the ones that outlast sight.
+		if inGroup and f.requireInRange
 			and plain(UnitIsVisible and UnitIsVisible(unit)) == false then
 			rejected[full] = true
 			return
@@ -1731,8 +1774,9 @@ function ns.BuildQueue(watch)
 		-- remembered with it -- where "far", below, would not. What was read
 		-- goes on their debt, for the owed fallback, which has no token to
 		-- ask; the debt itself stays. Of the tests above, somebody owed meets
-		-- only the whole-person block, which the fallback honours as well, so
-		-- every token that finds them offerable refreshes it.
+		-- only the whole-person block and, in the group, the out-of-sight
+		-- test, which the fallback honours as well (the second through
+		-- `rejected`), so every token that finds them offerable refreshes it.
 		local flag
 		if pvpRead then
 			flag = PvPFlag(unit)

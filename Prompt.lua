@@ -2387,7 +2387,7 @@ local function Substitute(template, entry, extra)
 	-- place, and the group spell in the buff's.
 	out = Swap(out, "{name}", entry.display or entry.short or entry.name or "?")
 	out = Swap(out, "{count}", tostring(extra or 0))
-	out = Swap(out, "{class}", entry.class)
+	out = Swap(out, "{class}", ns.ClassName(entry.class))
 	out = Swap(out, "{buff}", entry.buff and ns.EntrySpellName(entry) or "")
 	-- Empty for everybody who is simply missing the buff: only a top-up has a
 	-- timer to quote, and the queue sets `remaining` for nobody else.

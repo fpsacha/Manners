@@ -238,8 +238,8 @@ mutate("Queue.lua",
 
 # Asked whatever the range switch says.
 mutate("Queue.lua",
-       "\t\tif reason == \"group\" and f.requireInRange\n",
-       "\t\tif reason == \"group\"\n",
+       "\t\tif inGroup and f.requireInRange\n",
+       "\t\tif inGroup\n",
        "out of sight ignores the range switch",
        expect="a group member out of sight was left out with the range switch off",
        script="runscenarios.py")

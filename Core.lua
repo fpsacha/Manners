@@ -1579,6 +1579,19 @@ function ns.TargetName(name)
 	return ShortName(name)
 end
 
+-- A class as the player reads it, from the token the game files it under:
+-- "Priester" for PRIEST on a German client, "Priest" where the client has no
+-- table of names. Everything that shows a class in words asks here -- {class}
+-- on the prompt, a paladin's "Every Warrior" -- so the two spell it alike; the
+-- colours and the mana test keep the token. nil for no class at all.
+function ns.ClassName(class)
+	if type(class) ~= "string" or class == "" then return nil end
+	local names = _G.LOCALIZED_CLASS_NAMES_MALE
+	local name = type(names) == "table" and plain(names[class]) or nil
+	if type(name) == "string" then return name end
+	return class:sub(1, 1) .. class:sub(2):lower()
+end
+
 ---------------------------------------------------------------------------
 -- lifecycle
 ---------------------------------------------------------------------------
