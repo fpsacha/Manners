@@ -97,8 +97,11 @@ RP.FAMILY = {
 -- you. No line says "buff" either -- the set is in character, and {buff} is
 -- the spell's own name.
 --
--- The first thanks, asked and offer line of each people went into the box as
--- examples; move them freely, RP.LEGACY keeps what beta.9 saved.
+-- The first few lines of a pool are the phrase box's examples (RP.Examples
+-- says how many of which), and a box players have saved is recognised by
+-- them: reword or reorder those and every box saved with them reads as the
+-- player's own lines, and In character stops. Add new lines after them.
+-- RP.LEGACY keeps the lines beta.9 saved, which have been rewritten since.
 RP.RACE = {
 	dwarf = {
 		thanks = {
@@ -3201,7 +3204,7 @@ RP.LEGACY = {
 -- Locales/<code>.lua set on ns.L itself, so rawget finds it where the English
 -- fallback, which lives in the metatable, is not found. Every pool the
 -- picking reads is thinned here, at load, so the box's examples (each pool's
--- first line), Roll a few and the prompt all keep to the same lines; a pool
+-- first lines), Roll a few and the prompt all keep to the same lines; a pool
 -- left with none is taken away and joins no draw, as one never written would
 -- not (a people with no group lines left speaks its offers, see RP.PoolFor).
 -- RP.LEGACY only recognises, and is left whole.
@@ -3757,71 +3760,101 @@ do
 		return lines[chosen]
 	end
 
-	-- The first line of a pool, or with english, as it read before
-	-- translation.
-	local function First(pool, english)
+	-- Line n of a pool, or with english, as it read before translation; a
+	-- pool of one line as a plain string has only a line 1. On a client in
+	-- another language the pools were thinned at load, so line n there is
+	-- the nth translated line, and the box shows no line the set would not
+	-- say.
+	local function Nth(pool, n, english)
 		local text = pool
-		if type(pool) == "table" then text = pool[1] end
+		if type(pool) == "table" then
+			text = pool[n]
+		elseif n ~= 1 then
+			return nil
+		end
 		if type(text) ~= "string" then return nil end
 		return english and ENGLISH[text] or text
 	end
 
-	-- The five lines the box opens with for a people and side, from the pools
-	-- as they are or, with frozen, from RP.LEGACY as beta.9 saved them.
-	local function Head(family, faction, english, frozen)
-		local out = {}
-		local function put(pool)
-			local text = First(pool, english)
-			if text then out[#out + 1] = text end
-		end
-		if frozen then
-			local race, side, general = RP.LEGACY.race[family], RP.LEGACY.side[faction] or {}, RP.LEGACY.general
-			if race then
-				put(race[1]) put(race[2]) put(race[3]) put(side[3]) put(general.group)
-			else
-				put(side[1]) put(side[2]) put(side[3]) put(general.thanks) put(general.offer)
+	-- A list of example lines, and put(pool, now, before) to add a pool's
+	-- first lines to it: `now` of them for the box as it is, or with older,
+	-- `before` of them (none when not given) for the box as beta.10 to 1.5.0
+	-- filled it, one line of each of fewer pools. Players still have that one
+	-- saved, and it must still read as the untouched set (RP.Active).
+	-- Today's box shows each line once, in case two lines were translated
+	-- alike; the older box never checked, and is rebuilt as it was.
+	local function Lines(english, older)
+		local out, seen = {}, {}
+		local function put(pool, now, before)
+			for i = 1, older and (before or 0) or now do
+				local text = Nth(pool, i, english)
+				if text == nil then return end
+				if older or not seen[text] then
+					seen[text] = true
+					out[#out + 1] = text
+				end
 			end
+		end
+		return out, put
+	end
+
+	-- The box begins with a people's lines and its side's: what a thank-you,
+	-- an answer and an offer sound like, then a group and kin. The people's
+	-- most, since the set speaks mostly as them; beta.10 to 1.5.0 showed a
+	-- line of each, the side's offer and the general group line. A people
+	-- with no lines of its own (the Haranir) has its side's lines in their
+	-- place and the general ones in the side's.
+	local function Head(put, family, faction)
+		local race, side, general = RP.RACE[family], RP.FACTION[faction] or {}, RP.GENERAL
+		if race then
+			put(race.thanks, 4, 1) put(race.asked, 3, 1) put(race.offer, 4, 1) put(side.offer, 2, 1)
+			put(race.group, 3) put(side.group, 2) put(general.group, 0, 1) put(race.kin or RP.KIN, 1)
 		else
-			local race, side = RP.RACE[family], RP.FACTION[faction] or {}
-			if race then
-				put(race.thanks) put(race.asked) put(race.offer) put(side.offer) put(RP.GENERAL.group)
-			else
-				put(side.thanks) put(side.asked) put(side.offer) put(RP.GENERAL.thanks) put(RP.GENERAL.offer)
-			end
+			put(side.thanks, 4, 1) put(side.asked, 3, 1) put(side.offer, 4, 1)
+			put(general.thanks, 2, 1) put(general.offer, 2, 1) put(side.group, 3) put(general.group, 2)
 		end
+	end
+
+	-- Then the set noticing the moment: the class's offers, somebody met
+	-- again, a dungeon, and the people's own hours where it has them.
+	local function Tail(put, class, family)
+		put(PoolFor(RP.CLASS[class], "offer"), 2, 1)
+		put(RP.HISTORY.again, 1, 1)
+		put(RP.PLACE.instance, 1, 1)
+		local race = RP.RACE[family]
+		if race then put(race.night, 1) put(race.morning, 1) end
+	end
+
+	-- What the phrase box shows for a people, side and class: the first few
+	-- lines of their pools, always the same ones, so the box can be
+	-- recognised as untouched. With english, the same lines as they read
+	-- before translation; with older, the box as beta.10 to 1.5.0 filled it.
+	local function Examples(family, faction, class, english, older)
+		local out, put = Lines(english, older)
+		Head(put, family, faction)
+		Tail(put, class, family)
 		return table.concat(out, "\n")
 	end
-
-	-- The lines after them that show the set noticing the moment: one of the
-	-- class's offers, somebody met again, and a dungeon.
-	local function Tail(class, english)
-		local out = {}
-		local function put(pool)
-			local text = First(pool, english)
-			if text then out[#out + 1] = text end
-		end
-		put(PoolFor(RP.CLASS[class], "offer"))
-		put(RP.HISTORY.again)
-		put(RP.PLACE.instance)
-		return table.concat(out, "\n")
-	end
-
-	local function Join(head, tail)
-		if tail == "" then return head end
-		if head == "" then return tail end
-		return head .. "\n" .. tail
-	end
-
-	-- What the phrase box shows for a people, side and class: a few lines of
-	-- each kind, always the same ones, so the box can be recognised as
-	-- untouched. With english, the same lines as they read before translation.
-	function RP.Examples(family, faction, class, english)
-		return Join(Head(family, faction, english), Tail(class, english))
-	end
+	RP.Examples = Examples
 
 	-- The examples for whoever is logged in.
 	function RP.Text()
-		return RP.Examples(RP.Player())
+		return Examples(RP.Player())
+	end
+
+	-- The five lines beta.9 put in the box for a people and side, from
+	-- RP.LEGACY, where they are kept as it saved them.
+	local function Frozen(family, faction, english)
+		local legacy = RP.LEGACY
+		local race, side, general = legacy.race[family], legacy.side[faction] or {}, legacy.general
+		local five = race and { race[1], race[2], race[3], side[3], general.group }
+			or { side[1], side[2], side[3], general.thanks, general.offer }
+		local out = {}
+		for i = 1, 5 do
+			local text = Nth(five[i], 1, english)
+			if text then out[#out + 1] = text end
+		end
+		return table.concat(out, "\n")
 	end
 
 	local FACTIONS = { "Alliance", "Horde", "Neutral" }
@@ -3829,22 +3862,30 @@ do
 
 	-- Whether text is the examples of any people, side and class, in the
 	-- client's language or, with english, as they read before translation;
-	-- with frozen, beta.9's five lines count too.
-	local function IsExamples(text, english, frozen)
-		local tails = { Tail(nil, english) }
-		for class in pairs(RP.CLASS) do tails[#tails + 1] = Tail(class, english) end
+	-- with older, the boxes earlier versions filled count too: the eight
+	-- lines of beta.10 to 1.5.0 and beta.9's five. Every class's examples
+	-- begin with their people's and side's, so only the classes of a
+	-- beginning the text has are tried.
+	local function IsExamples(text, english, older)
+		local classes = { false }
+		for class in pairs(RP.CLASS) do classes[#classes + 1] = class end
 		local families = { false }
 		for family in pairs(RP.RACE) do families[#families + 1] = family end
+		local forms = older and { false, true } or { false }
 		for _, faction in ipairs(FACTIONS) do
 			for _, family in ipairs(families) do
 				family = family or nil
-				local head = Head(family, faction, english)
-				if text:sub(1, #head) == head then
-					for _, tail in ipairs(tails) do
-						if text == Join(head, tail) then return true end
+				for _, form in ipairs(forms) do
+					local out, put = Lines(english, form)
+					Head(put, family, faction)
+					local head = table.concat(out, "\n")
+					if text:sub(1, #head) == head then
+						for _, class in ipairs(classes) do
+							if text == Examples(family, faction, class or nil, english, form) then return true end
+						end
 					end
 				end
-				if frozen and text == Head(family, faction, english, true) then return true end
+				if older and text == Frozen(family, faction, english) then return true end
 			end
 		end
 		return false
@@ -3856,7 +3897,8 @@ do
 	-- picked the set has not edited anything the orc warrior on the same
 	-- profile should lose. English examples count too, saved by a player who
 	-- picked the set before its lines were translated into their language, and
-	-- so do the five lines beta.9 saved.
+	-- so do the boxes earlier versions saved: beta.10 to 1.5.0's eight lines
+	-- and beta.9's five.
 	function RP.Active(speech)
 		if type(speech) ~= "table" or speech.presetChoice ~= "incharacter" then return false end
 		local text = speech.phrases
@@ -3868,10 +3910,11 @@ do
 	end
 
 	-- The load-time repair (Core's ClampSettings) for this set: examples saved
-	-- in English, or in beta.9's five lines, become this character's examples
-	-- as they read now in the client's language, as the fixed sets' English
-	-- text does, so the box and an export read like an untouched set. On an
-	-- English client an untouched box of today's is left as it is.
+	-- in English, or in an earlier version's shorter box, become this
+	-- character's examples as they read now in the client's language, as the
+	-- fixed sets' English text does, so the box and an export read like an
+	-- untouched set. On an English client an untouched box of today's is left
+	-- as it is.
 	function RP.Repair(speech)
 		if not RP.Active(speech) or IsExamples(speech.phrases) then return end
 		speech.phrases = RP.Text()
