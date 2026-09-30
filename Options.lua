@@ -4493,11 +4493,17 @@ end
 -- back to de..."; a dropdown's text gets 36 fewer than the control, so "Above
 -- the action bars (default)" showed as "Above the action bars (d...". The
 -- German for most of these runs a third longer. Every button and dropdown
--- without a width of its own is measured whenever the page is drawn -- a
--- button against the label it shows then (a snooze button's changes with the
--- choice), a dropdown against the longest of its choices -- in the font each
--- draws with, and widened in quarter steps, never below the default, so short
--- controls keep the rows' rhythm.
+-- without a width of its own is measured when the options are built and again
+-- each time they are opened -- a button against the label it shows then, a
+-- dropdown against the longest of its choices -- in the font each draws with,
+-- and widened in quarter steps, never below the default, so short controls
+-- keep the rows' rhythm.
+--
+-- The width is written as a plain number. AceConfigDialog would read a
+-- function there, but AceConfigRegistry's validator, which runs the first
+-- time the page opens, accepts only a string or a number: 1.1.2 to 1.4.0 put
+-- a function in and the options would not open at all ("width: expected a
+-- string or number"). tests/scenarios/aceconfig.lua now runs that validator.
 local CONTROL_UNIT = 170
 local BUTTON_PAD = 30 + 6
 local SELECT_PAD = 36 + 6
@@ -4554,17 +4560,32 @@ local function FitSelect(info)
 end
 
 -- Radio lists and the media pickers (a dialogControl) lay out otherwise.
-local function FitControls(node)
+-- Which controls this file sizes, and how ("button" or "select"; false for
+-- one that names its own width), so measuring again finds the same ones once
+-- their width holds a number of ours.
+local fitted = setmetatable({}, { __mode = "k" })
+
+local function FitControls(node, key)
 	if type(node) ~= "table" then return end
-	if node.width == nil then
-		if node.type == "execute" then
-			node.width = FitButton
-		elseif node.type == "select" and node.style ~= "radio" and not node.dialogControl then
-			node.width = FitSelect
+	local kind = fitted[node]
+	if kind == nil then
+		kind = false
+		if node.width == nil then
+			if node.type == "execute" then
+				kind = "button"
+			elseif node.type == "select" and node.style ~= "radio" and not node.dialogControl then
+				kind = "select"
+			end
 		end
+		fitted[node] = kind
+	end
+	if kind then
+		-- Asked the way AceConfigDialog asks: the option, and its key last.
+		local info = { key, option = node }
+		node.width = (kind == "button" and FitButton or FitSelect)(info)
 	end
 	if type(node.args) == "table" then
-		for _, child in pairs(node.args) do FitControls(child) end
+		for childKey, child in pairs(node.args) do FitControls(child, childKey) end
 	end
 end
 
@@ -4690,6 +4711,9 @@ function ns.OpenOptions()
 	-- is already up, where somebody may be copying out of one.
 	if not ns.OptionsOpen() then reportOpen = false end
 	if not ns.OptionsOpen() then shareOpen = false end
+	-- Measured again with today's labels: a snooze button's, a list of buffs
+	-- learned since login.
+	if ns.optionsTable then ns.Guard("fit controls", FitControls, ns.optionsTable) end
 
 	-- The standalone dialog, first and by default. Settings.OpenToCategory
 	-- does not raise when it fails to find the category: on this client it

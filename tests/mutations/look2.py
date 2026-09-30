@@ -171,16 +171,16 @@ mutate("Prompt.lua",
 # The options page's buttons left at AceConfigDialog's 170 pixels, whatever
 # their label: "Put these back to de...".
 mutate("Options.lua",
-       '\t\tif node.type == "execute" then\n\t\t\tnode.width = FitButton\n',
-       '\t\tif node.type == "execute" then\n\t\t\tnode.width = nil\n',
+       '\t\t\t\tkind = "button"\n',
+       '\t\t\t\tkind = false\n',
        "options buttons not fitted",
        expect="every options button and dropdown holds its words (enUS): button",
        script="runscenarios.py")
 
 # ...and the dropdowns: "Above the action bars (d...".
 mutate("Options.lua",
-       "\t\t\tnode.width = FitSelect\n",
-       "\t\t\tnode.width = nil\n",
+       '\t\t\t\tkind = "select"\n',
+       '\t\t\t\tkind = false\n',
        "options dropdowns not fitted",
        expect="every options button and dropdown holds its words (enUS): dropdown",
        script="runscenarios.py")

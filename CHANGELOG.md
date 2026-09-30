@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- **Fixed: the options would not open** ("AceConfigRegistry-3.0: ... width:
+  expected a string or number"), from 1.1.2 on. The buttons and drop-downs
+  are still sized to their words, now in a way the options library accepts.
+
 ## 1.4.0
 
 Buffing somebody flagged for PvP flags you too. Manners now keeps them off the
