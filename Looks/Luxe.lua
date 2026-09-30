@@ -65,6 +65,15 @@ local OUTCOME = {
 -- The ring is drawn this far outside a 30-unit icon, scaled with the icon:
 -- RING_PAD in tools/make_luxe_textures.py, which must agree.
 local RING_PAD = 3
+-- The tag's and the chip's fill: the colour taken down to a fifth, nearly
+-- solid. A pale tint at 0.15 came out light in the game, and the reason's
+-- words on it were white on white (1.5.0). In a fight the words dim with the
+-- rest of the text, so the ground under them goes darker still.
+local PILL_DARK, PILL_DARK_COMBAT, PILL_ALPHA = 0.2, 0.08, 0.9
+-- The light the cursor and an outcome lay over the card (ADD). The game draws
+-- added light brighter than it is written: the text above it keeps 4.5:1 with
+-- these counted twice, over snow (tests/scenarios/readable-luxe.lua).
+local HOVER_LIGHT, RESULT_LIGHT = 0.035, 0.07
 
 -- The tag's sizes, full or `tight`: a slimmer tag and a one-unit gap, for a
 -- panel with room for the built-in looks' two lines but not for these.
@@ -255,9 +264,10 @@ function Luxe:Build(kit)
 
 	-- The ground. On art itself, below the list's rows and the icon, which
 	-- are art's too: a frame of its own would draw over both.
+	-- No gloss: white laid over the top of the card is exactly where the name
+	-- sits, and the game drew it near-solid (1.5.0, "white on white").
 	self.shadow = NineSlice(art, "BACKGROUND", -8, ART .. "Shadow", 128, 40, 20)
 	self.card = NineSlice(art, "BACKGROUND", -6, ART .. "Card", 64, 16, 8)
-	self.gloss = tex(art, "BORDER", 0, "Gloss")
 	self.bevel = NineSlice(art, "BORDER", 1, ART .. "Bevel", 64, 16, 8)
 	-- The list's own card, hung from a box that PaintQueue sizes.
 	self.trayBox = keep(CreateFrame("Frame", nil, art))
@@ -270,13 +280,16 @@ function Luxe:Build(kit)
 		self.trayEdge }) do
 		for _, t in ipairs(s) do keep(t) end
 	end
-	self.ground = { self.gloss }
+	self.ground = {}
 	for _, s in ipairs({ self.shadow, self.card, self.bevel }) do
 		for _, t in ipairs(s) do self.ground[#self.ground + 1] = t end
 	end
 
-	-- The ink.
+	-- The ink. The washes lie under the icon (BORDER, the icon is ARTWORK) and
+	-- the cursor's is lit by its colour, not its frame: a frame of light
+	-- draws over everything on art, and the spell icon is drawn clean.
 	self.wash = tex(art, "BORDER", 2, "Wash", "ADD")
+	self.hoverWash = tex(art, "BORDER", 2, "Wash", "ADD")
 	self.glow = tex(art, "ARTWORK", 0, "SpineGlow", "ADD")
 	-- The spine on a frame of its own, over the frames of light: a glow added
 	-- on top of the core pushed it to lemon or white, and the mark lost the
@@ -284,17 +297,17 @@ function Luxe:Build(kit)
 	self.spineFrame = keep(CreateFrame("Frame", nil, art))
 	self.spineFrame:SetAllPoints(art)
 	self.spine = tex(self.spineFrame, "ARTWORK", 1, "Spine")
-	self.shade = tex(art, "ARTWORK", 1, "IconShade")
+	-- Over the icon only its setting: the rim hugs its edge and the ring sits
+	-- outside it. No shade over the spell itself.
 	self.rim = tex(art, "ARTWORK", 2, "IconRim")
 	self.ring = tex(art, "ARTWORK", 3, "IconRing")
 	self.dots = {}
 	for i = 1, #kit.rows do self.dots[i] = tex(art, "ARTWORK", 1, "Dot") end
 
-	-- The icon's shape, and its shade's. Not ours to keep in `own`: it is
-	-- taken off the icon in Hide.
+	-- The icon's shape. Not ours to keep in `own`: it is taken off the icon in
+	-- Hide.
 	self.mask = art:CreateMaskTexture()
 	self.mask:SetTexture(ART .. "IconMask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
-	self.shade:AddMaskTexture(self.mask)
 
 	-- What moves, each on a frame of its own: only a frame can be animated.
 	self.flareFrame = frame(art)
@@ -302,11 +315,10 @@ function Luxe:Build(kit)
 	self.pulseFrame = frame(art)
 	self.pulseGlow = tex(self.pulseFrame, "ARTWORK", 0, "SpineGlow", "ADD")
 	self.hoverFrame = frame(art)
-	self.hoverWash = tex(self.hoverFrame, "BORDER", 2, "Wash", "ADD")
 	self.hoverGlow = tex(self.hoverFrame, "ARTWORK", 0, "SpineGlow", "ADD")
 	self.hoverLight = NineSlice(self.hoverFrame, "BORDER", 3, ART .. "Card", 64, 16, 8, "ADD")
 	for _, t in ipairs(self.hoverLight) do keep(t) end
-	SliceColor(self.hoverLight, 1, 1, 1, 0.035)
+	SliceColor(self.hoverLight, 1, 1, 1, HOVER_LIGHT)
 	self.resultFrame = frame(art)
 	self.result = NineSlice(self.resultFrame, "ARTWORK", 5, ART .. "Card", 64, 16, 8, "ADD")
 	for _, t in ipairs(self.result) do keep(t) end
@@ -484,13 +496,6 @@ function Luxe:Apply(p, above)
 	self.trayShown = nil
 	SliceGradient(self.card, H, { br, bg, bb, ba }, { br * 0.62, bg * 0.62, bb * 0.72, ba }, kit.Gradient)
 	PlaceSlice(self.card, art, art, 0, 0, 0, 0)
-	-- The gloss fades on a light card, where added white only greys it out.
-	local lum = 0.299 * br + 0.587 * bg + 0.114 * bb
-	self.gloss:ClearAllPoints()
-	self.gloss:SetPoint("TOPLEFT", 1, -1)
-	self.gloss:SetPoint("TOPRIGHT", -1, -1)
-	self.gloss:SetHeight(math.max(8, math.floor(H * 0.55)))
-	self.gloss:SetVertexColor(1, 1, 1, 0.07 * ba * math.max(0, 1 - lum * 1.3))
 	PlaceSlice(self.bevel, art, art, 1, 1, 1, 1)
 	SliceColor(self.bevel, 1, 1, 1, 1)
 	PlaceSlice(self.edge, art, art, 1, 1, 1, 1)
@@ -506,21 +511,32 @@ function Luxe:Apply(p, above)
 	PlaceSlice(self.trayEdge, self.trayBox, self.trayBox, 1, 1, 1, 1)
 	SliceColor(self.trayBevel, 1, 1, 1, 0.8)
 
-	-- The ink.
+	-- The ink. The reason's light fades out before the text starts, so the
+	-- name and the tag stand on the card's own dark.
 	for _, t in ipairs({ self.wash, self.hoverWash }) do
 		t:ClearAllPoints()
 		t:SetPoint("TOPLEFT", 1, -1)
 		t:SetPoint("BOTTOMLEFT", 1, 1)
-		t:SetWidth(math.floor(W * 0.52))
+		t:SetWidth(math.min(math.floor(W * 0.52), textX + 1))
 	end
 	self.spine:ClearAllPoints()
 	self.spine:SetPoint("LEFT", SPINE_X, 0)
 	self.spine:SetSize(spineW, spineLen)
+	-- The bloom round the spine, cut where the icon (or, with none, the text)
+	-- begins: its frames draw over the icon, and its tail reached five units
+	-- onto the spell.
+	local half = spineW / 2 + 12
+	local reach = (showIcon and iconX or textX) - 1 - (SPINE_X + spineW / 2)
+	local glowW = half + math.max(spineW / 2, math.min(half, reach))
 	for _, t in ipairs({ self.glow, self.flare, self.pulseGlow, self.hoverGlow }) do
 		t:ClearAllPoints()
-		t:SetPoint("CENTER", self.spine, "CENTER", 0, 0)
-		t:SetSize(spineW + 24, spineLen + 24)
+		t:SetPoint("LEFT", self.spine, "CENTER", -half, 0)
+		t:SetSize(glowW, spineLen + 24)
+		t:SetTexCoord(0, glowW / (2 * half), 0, 1)
 	end
+	-- Where the light over the card may start: past the icon's ring.
+	local clearX = showIcon and math.ceil(iconX + iconSize + RING_PAD * iconSize / 30 + 1) or 0
+	self.clearX = clearX
 
 	-- The icon: the shared texture, placed and shaped for this look.
 	icon:ClearAllPoints()
@@ -543,8 +559,6 @@ function Luxe:Apply(p, above)
 	if showIcon then
 		icon:SetSize(iconSize, iconSize)
 		icon:SetPoint("LEFT", iconX, 0)
-		self.shade:ClearAllPoints()
-		self.shade:SetAllPoints(icon)
 		self.rim:ClearAllPoints()
 		self.rim:SetPoint("TOPLEFT", icon, "TOPLEFT", -rimPad, rimPad)
 		self.rim:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", rimPad, -rimPad)
@@ -564,24 +578,26 @@ function Luxe:Apply(p, above)
 		end
 	end
 
-	-- The light that crosses: about a fifth of the card wide.
+	-- The light that crosses: about a fifth of the card wide, from past the
+	-- icon to the far edge, its glint no wider than itself.
 	local band = math.max(24, math.floor(W * 0.22))
 	self.sheenFrame:ClearAllPoints()
-	self.sheenFrame:SetPoint("LEFT", art, "LEFT", 0, 0)
+	self.sheenFrame:SetPoint("LEFT", art, "LEFT", clearX, 0)
 	self.sheenFrame:SetSize(band, H - 2)
 	self.sheen:ClearAllPoints()
 	self.sheen:SetAllPoints(self.sheenFrame)
 	self.glint:ClearAllPoints()
 	self.glint:SetPoint("CENTER", self.sheenFrame, "TOP", 0, 1)
-	self.glint:SetSize(40, 4)
-	self.sheenAnim.move:SetOffset(W - band, 0)
+	self.glint:SetSize(math.min(40, band), 4)
+	self.sheenAnim.move:SetOffset(math.max(0, W - band - clearX), 0)
 
+	-- The cursor's and the outcome's light: over the card past the icon.
 	for _, f in ipairs({ self.hoverFrame, self.resultFrame }) do
 		f:ClearAllPoints()
 		f:SetAllPoints(art)
 	end
-	PlaceSlice(self.hoverLight, self.hoverFrame, self.hoverFrame, 0, 0, 0, 0)
-	PlaceSlice(self.result, self.resultFrame, self.resultFrame, 0, 0, 0, 0)
+	PlaceSlice(self.hoverLight, self.hoverFrame, self.hoverFrame, -clearX, 0, 0, 0)
+	PlaceSlice(self.result, self.resultFrame, self.resultFrame, -clearX, 0, 0, 0)
 
 	-- The tag, and the reason line moved into it.
 	local textLayer, subText = kit.textLayer, kit.sub
@@ -611,7 +627,11 @@ function Luxe:Apply(p, above)
 	self.chipBox:SetSize(chipH * 2, chipH)
 	PlaceThree(self.chipFill, self.chipBox, chipH)
 	PlaceThree(self.chipEdge, self.chipBox, chipH)
-	for _, t in ipairs(self.chipFill) do t:SetVertexColor(1, 1, 1, 0.075) end
+	-- A dark chip, as the tag: solid enough that however the game weighs its
+	-- alpha, the count stands on dark.
+	for _, t in ipairs(self.chipFill) do
+		t:SetVertexColor(NEUTRAL[1] * PILL_DARK, NEUTRAL[2] * PILL_DARK, NEUTRAL[3] * PILL_DARK, PILL_ALPHA)
+	end
 	for _, t in ipairs(self.chipEdge) do t:SetVertexColor(1, 1, 1, 0.12) end
 	kit.count:ClearAllPoints()
 	kit.count:SetPoint("CENTER", self.chipBox, "CENTER", 0, 0)
@@ -631,13 +651,16 @@ function Luxe:Apply(p, above)
 	if ba < 0.2 then SliceShown(self.shadow, false) end
 	self.both, self.pillHex, self.pillCode = nil, nil, nil
 	for _, d in ipairs(self.dots) do d:Hide() end
-	for _, t in ipairs({ self.shade, self.rim, self.ring }) do t:SetShown(showIcon) end
+	for _, t in ipairs({ self.rim, self.ring }) do t:SetShown(showIcon) end
 	self.burstFrame:SetShown(showIcon)
 	self.glyph:Hide()
 	self:Chip(false)
 	self.combat, self.hovered, self.washFor = nil, nil, nil
-	self.glow:SetAlpha(1)
-	self.wash:SetAlpha(1)
+	-- Shown and hidden, never given an alpha: on a texture the game keeps one
+	-- alpha, and SetAlpha(1) wrote over the faint one the colour set.
+	self.glow:Show()
+	self.wash:Show()
+	self:HoverWash()
 	self:SetInk(1, 1, 1)
 
 	-- The count's room: a two-digit count and the chip's caps.
@@ -738,17 +761,14 @@ end
 
 -- The tag's fill and edge: in the reason's colour, or in the colour the line
 -- brings with it (the red "not buffing while unlocked" is not a reason and
--- should not sit in a gold tag). On a nearly clear panel the fill is a dark
--- ground of its own under the coloured edge.
+-- should not sit in a gold tag). The fill is that colour taken dark, under an
+-- edge in the colour itself; on a nearly clear panel, black.
 function Luxe:PaintPill()
 	local c = self.pillCode or self.tint or NEUTRAL
 	local r, g, b = c[1], c[2], c[3]
 	for _, t in ipairs(self.pillEdge) do t:SetVertexColor(r, g, b, 0.50) end
-	if self.clear then
-		for _, t in ipairs(self.pillFill) do t:SetVertexColor(0, 0, 0, 0.55) end
-	else
-		for _, t in ipairs(self.pillFill) do t:SetVertexColor(r, g, b, 0.15) end
-	end
+	local k = (self.clear and 0) or (self.combat and PILL_DARK_COMBAT) or PILL_DARK
+	for _, t in ipairs(self.pillFill) do t:SetVertexColor(r * k, g * k, b * k, PILL_ALPHA) end
 end
 
 -- The tag hugs its words. The scan repaints the same line several times a
@@ -848,12 +868,12 @@ end
 -- the reason
 ---------------------------------------------------------------------------
 
--- The ink's alpha, for the fight: the icon, its shade and rim dim; the spine
--- and the ring keep their colour, so the reason still reads.
+-- The ink's alpha, for the fight: the icon and its rim dim; the spine and the
+-- ring keep their colour, so the reason still reads.
 function Luxe:SetInk(ink, ground, text)
 	local kit = self.kit
 	for _, t in ipairs(self.ground) do t:SetAlpha(ground) end
-	for _, t in ipairs({ self.shade, self.rim, kit.icon }) do t:SetAlpha(ink) end
+	for _, t in ipairs({ self.rim, kit.icon }) do t:SetAlpha(ink) end
 	if kit.cooldown then kit.cooldown:SetAlpha(ink) end
 	-- On the lines themselves, not on textLayer: Prompt's cross-fade plays
 	-- on textLayer, and an animation's alpha replaces its frame's own, so a
@@ -873,7 +893,6 @@ function Luxe:Tint(r, g, b, ring)
 	self.wash:SetVertexColor(r, g, b, 0.11)
 	self.flare:SetVertexColor(r, g, b, 1)
 	self.pulseGlow:SetVertexColor(r, g, b, 1)
-	self.hoverWash:SetVertexColor(r, g, b, 0.11)
 	self.hoverGlow:SetVertexColor(r, g, b, 0.35)
 	self.ring:SetVertexColor(r, g, b, 0.85)
 	self.ring:SetShown(ring and kit.icon:IsShown() and true or false)
@@ -883,6 +902,7 @@ function Luxe:Tint(r, g, b, ring)
 	local tint = self.tint or {}
 	tint[1], tint[2], tint[3] = r, g, b
 	self.tint = tint
+	self:HoverWash()
 	self:PaintPill()
 	local mr, mg, mb = Mix(r, g, b, kit.ink.light and 0.35 or 0)
 	local tr, tg, tb = kit.Legible(mr, mg, mb, 4.5)
@@ -911,18 +931,17 @@ function Luxe:Combat(on)
 		self:SetInk(INK_COMBAT, GROUND_COMBAT, TEXT_COMBAT)
 		self.pulseAnim:Stop()
 		self.pulseFrame:SetAlpha(0)
-		self.glow:SetAlpha(0)
-		self.wash:SetAlpha(0)
+		self.glow:Hide()
+		self.wash:Hide()
 		-- The tag keeps the reason round the fight's grey words.
-		if self.pillHex then
-			self.pillHex, self.pillCode = nil, nil
-			self:PaintPill()
-		end
+		self.pillHex, self.pillCode = nil, nil
 	else
 		self:SetInk(1, 1, 1)
-		self.glow:SetAlpha(1)
-		self.wash:SetAlpha(1)
+		self.glow:Show()
+		self.wash:Show()
 	end
+	-- Its ground darker in a fight, and back after.
+	self:PaintPill()
 	self.kit.icon:SetDesaturated(on)
 end
 
@@ -1000,10 +1019,18 @@ function Luxe:StopFlourishes()
 	self.sheenAnim:Stop()
 end
 
+-- The cursor's wash, under the icon: lit by its colour, at once, while the
+-- cursor is on the panel (the frame of light fades the rest).
+function Luxe:HoverWash()
+	local t = self.tint or NEUTRAL
+	self.hoverWash:SetVertexColor(t[1], t[2], t[3], self.hovered and 0.11 or 0)
+end
+
 function Luxe:Hover(on)
 	on = on and true or false
 	if self.hovered == on then return end
 	self.hovered = on
+	self:HoverWash()
 	local anim = self.hoverAnim
 	local from = self.hoverFrame:GetAlpha()
 	anim:Stop()
@@ -1063,7 +1090,7 @@ function Luxe:PaintOutcome(kind, lead, sub, who, stamp)
 		if kind == "sent" then
 			self.resultFrame:SetAlpha(0)
 		else
-			SliceColor(self.result, o[1], o[2], o[3], 0.16)
+			SliceColor(self.result, o[1], o[2], o[3], RESULT_LIGHT)
 			self.resultFrame:SetAlpha(1)
 			if kit.FullEffects() then
 				self.resultAnim.to = 0
