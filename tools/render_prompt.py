@@ -497,6 +497,8 @@ def draw_state(snap, px=ZOOM * SUPER, hover=False):
         cx, cy = (brect[0] + brect[2]) / 2, (brect[1] + brect[3]) / 2
     else:
         cx, cy = snap["screen"]["width"] / 2, 322
+    # A state with something tall over the panel asks for the view lifted.
+    cy += snap.get("lift") or 0
     left, top = cx - TILE_W / 2, cy + TILE_H * 0.18 + 22
     canvas = Canvas(int(TILE_W * px), int(TILE_H * px))
     canvas.backdrop(snap.get("backdrop"))

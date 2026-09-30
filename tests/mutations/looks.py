@@ -97,14 +97,6 @@ mutate("Prompt.lua",
        expect="in the full class colour on Luxe",
        script="runscenarios.py")
 
-# One height for two lines, whatever the look.
-mutate("Prompt.lua",
-       "\tif look and look.TwoLineHeight then return look.TwoLineHeight(fontSize) end\n",
-       "",
-       "the two-line height not the look's own",
-       expect="two lines need",
-       script="runscenarios.py")
-
 # --- motion ---------------------------------------------------------------
 
 # The owed pulse looping on Calm.
@@ -133,8 +125,8 @@ mutate("Prompt.lua",
 
 # A sent cast flourished like a landed one.
 mutate("Looks/Luxe.lua",
-       "\tif kind == \"cast\" then self:Sheen(1, 1, 1, 0.40) end\n",
-       "\tif kind == \"cast\" or kind == \"sent\" then self:Sheen(1, 1, 1, 0.40) end\n",
+       "\tif kind == \"cast\" then\n\t\tlocal o = OUTCOME.cast\n",
+       "\tif kind == \"cast\" or kind == \"sent\" then\n\t\tlocal o = OUTCOME.cast\n",
        "Luxe's light on an unconfirmed cast",
        expect="a cast nobody confirmed got Luxe's flourish",
        script="runscenarios.py")
@@ -177,8 +169,8 @@ mutate("Looks/Luxe.lua",
 
 # The verdict written over the name, as the glass look writes it.
 mutate("Looks/Luxe.lua",
-       "\t\tkit.SetLine(kit.name, who)\n",
-       "\t\tkit.SetLine(kit.name, lead)\n",
+       "\tkit.SetLine(kit.name, stays and who or lead)\n",
+       "\tkit.SetLine(kit.name, lead)\n",
        "Luxe's outcome moves the name",
        expect="a landed buff moved the name",
        script="runscenarios.py")
@@ -193,7 +185,7 @@ mutate("Looks/Luxe.lua",
 
 # The glyph kept after the verdict is gone.
 mutate("Looks/Luxe.lua",
-       "\tlocal glyph = self.glyphOn and self:ShowsVerdict()\n",
+       "\tlocal glyph = self.glyphOn and verdict\n",
        "\tlocal glyph = self.glyphOn\n",
        "Luxe's tick outlives the verdict",
        expect="the verdict stayed on the tag",
@@ -211,7 +203,7 @@ mutate("Looks/Luxe.lua",
 
 # The name cut to keep the chip.
 mutate("Looks/Luxe.lua",
-       "\t\t\tif width * least / size > self.W - self.textX - fit.chipRoom + 0.5 then on = false end\n",
+       "\t\t\tif width * least / size > self.W - self.textX - fit.chipRoom - 0.5 then on = false end\n",
        "",
        "Luxe's chip cuts a long name",
        expect="the count chip stayed up and cut a name",
@@ -235,8 +227,8 @@ mutate("Prompt.lua",
 
 # The tag kept up with the second line off.
 mutate("Looks/Luxe.lua",
-       "\tif not (kit.fit.twoLine and fs:IsShown() and type(text) == \"string\" and text ~= \"\") then\n",
-       "\tif not (type(text) == \"string\" and text ~= \"\") then\n",
+       "\tlocal shown = fit.twoLine and fs:IsShown() and (secret or",
+       "\tlocal shown = (secret or",
        "Luxe's tag up with one line",
        expect="the second line switched off and the tag is still up",
        script="runscenarios.py")
@@ -274,4 +266,166 @@ mutate("Looks/Looks.lua",
        "",
        "a stub look draws nothing",
        expect="a look not written yet does not draw as Luxe",
+       script="runscenarios.py")
+
+# --- the review's findings (round 16) -------------------------------------
+
+# The spine left level with the frames of light, which then draw over it.
+mutate("Looks/Luxe.lua",
+       "\tself.spineFrame:SetFrameLevel(base + 2)\n",
+       "",
+       "Luxe's light drawn over the spine",
+       expect="a frame of light is drawn over the spine",
+       script="runscenarios.py")
+
+# Class colours only half softened: a mage's name lands on the target colour.
+mutate("Looks/Luxe.lua",
+       "\tclassSoften = 0.85,\n",
+       "\tclassSoften = 0.55,\n",
+       "Luxe's class colours half softened",
+       expect="more than a tint on white",
+       script="runscenarios.py")
+
+# The name kept on one line, where no tag says the verdict.
+mutate("Looks/Luxe.lua",
+       "\tlocal stays = tag and who and word\n",
+       "\tlocal stays = who and word\n",
+       "Luxe's one-line outcome without its verdict",
+       expect="one line does not say so",
+       script="runscenarios.py")
+
+# A verdict too long for the tag drawn cut in it.
+mutate("Looks/Luxe.lua",
+       "\tif width > room + 0.5 then\n",
+       "\tif false then\n",
+       "Luxe's tag ends in an ellipsis",
+       expect="drawn cut in it",
+       script="runscenarios.py")
+
+# The dropped verdict never said on the name line.
+mutate("Looks/Luxe.lua",
+       "\t\tif stays and (dropped or self.dropped) then kit.SetLine(kit.name, lead) end\n",
+       "",
+       "Luxe's dropped verdict said nowhere",
+       expect="left the name line without it",
+       script="runscenarios.py")
+
+# The tag's room left behind for the built-in looks.
+mutate("Looks/Luxe.lua",
+       "\tkit.fit.room[kit.sub] = nil\n",
+       "",
+       "Luxe's reason-line room left after a switch",
+       expect="kept Luxe's room after switching",
+       script="runscenarios.py")
+
+# The chip at the two-line name's height on one line.
+mutate("Looks/Luxe.lua",
+       "\tself.chipBox:SetPoint(\"RIGHT\", kit.textLayer, \"RIGHT\", -8, twoLine and self.nameY or 0)\n",
+       "\tself.chipBox:SetPoint(\"RIGHT\", kit.textLayer, \"RIGHT\", -8, self.nameY)\n",
+       "Luxe's chip off the one-line name",
+       expect="on one line the count chip",
+       script="runscenarios.py")
+
+# Luxe's own two-line height, above glass's: a moved profile loses a line.
+mutate("Looks/Luxe.lua",
+       "\treturn math.max(ns.TwoLineHeight(fontSize, \"glass\"), BlockHeight(fontSize, true))\n",
+       "\treturn BlockHeight(fontSize)\n",
+       "Luxe needs more height than glass for two lines",
+       expect="lost the reason line on Luxe",
+       script="runscenarios.py")
+
+# Two lines allowed at glass's height, with the tag never drawn tight.
+mutate("Looks/Luxe.lua",
+       "\tlocal tight = H < BlockHeight(fs)\n",
+       "\tlocal tight = false\n",
+       "Luxe's tag never tight",
+       expect="the tag runs off the card",
+       script="runscenarios.py")
+
+# Glass's pulse left looping, hidden, under Luxe.
+mutate("Prompt.lua",
+       "\t\tif f.pulse then f.pulse:Stop() end\n",
+       "",
+       "glass's pulse loops on under Luxe",
+       expect="glass's pulse still loops under Luxe",
+       script="runscenarios.py")
+
+# "Both" drawn the same as "icon".
+mutate("Looks/Luxe.lua",
+       "\tSliceShown(self.edge, self.both)\n",
+       "",
+       "Luxe's \"both\" does nothing",
+       expect="does not light the card's top edge",
+       script="runscenarios.py")
+
+# A line's own colour ignored: red words in a gold tag.
+mutate("Looks/Luxe.lua",
+       "\tlocal c = self.pillCode or self.tint or NEUTRAL\n",
+       "\tlocal c = self.tint or NEUTRAL\n",
+       "Luxe's tag ignores the line's colour",
+       expect="sits in a tag of another colour",
+       script="runscenarios.py")
+
+# The fight's grey words given a grey tag.
+mutate("Looks/Luxe.lua",
+       "\tlocal hex = shown and not secret and not combat and not verdict",
+       "\tlocal hex = shown and not secret and not verdict",
+       "Luxe's tag loses the reason in a fight",
+       expect="in a fight the tag lost the reason's colour",
+       script="runscenarios.py")
+
+# The fight's dim on textLayer again, where the cross-fade overrides it.
+mutate("Looks/Luxe.lua",
+       "\tkit.name:SetAlpha(text)\n",
+       "\tkit.textLayer:SetAlpha(text)\n",
+       "Luxe dims textLayer in a fight",
+       expect="the lines are not dimmed in a fight",
+       script="runscenarios.py")
+
+# The lines left dim when another look takes over mid-fight.
+mutate("Looks/Luxe.lua",
+       "\tfor _, fs in ipairs({ kit.name, kit.sub, kit.count }) do fs:SetAlpha(1) end\n",
+       "",
+       "Luxe's fight dim left on the lines",
+       expect="the fight's dim stayed on the lines after switching",
+       script="runscenarios.py")
+
+# The khaki wash over a sent cast.
+mutate("Looks/Luxe.lua",
+       "\t\tif kind == \"sent\" then\n\t\t\tself.resultFrame:SetAlpha(0)\n",
+       "\t\tif false then\n\t\t\tself.resultFrame:SetAlpha(0)\n",
+       "Luxe washes a sent cast",
+       expect="a cast nobody confirmed washed the card",
+       script="runscenarios.py")
+
+# A nearly clear panel treated as the card.
+mutate("Looks/Luxe.lua",
+       "\tself.clear = ba < 0.35\n",
+       "\tself.clear = false\n",
+       "Luxe's text bare on a clear panel",
+       expect="is not outlined",
+       script="runscenarios.py")
+
+# The shadow drawn round nothing.
+mutate("Looks/Luxe.lua",
+       "\tif ba < 0.2 then SliceShown(self.shadow, false) end\n",
+       "",
+       "Luxe's shadow round a clear panel",
+       expect="the shadow is drawn round a clear panel",
+       script="runscenarios.py")
+
+# The chip measuring the name again on every repaint.
+mutate("Looks/Luxe.lua",
+       "fit.drawn[name] or kit.TextWidth(name), fit.size[name]",
+       "kit.TextWidth(name), fit.size[name]",
+       "Luxe's chip measures on every repaint",
+       expect="five repaints of the same panel measured",
+       script="runscenarios.py")
+
+# FitLine keeping no width for the looks.
+mutate("Prompt.lua",
+       "\tfit.drawn[fs] = w\n",
+       "",
+       "FitLine keeps no measured width",
+       expect="five repaints of the same panel measured",
        script="runscenarios.py")

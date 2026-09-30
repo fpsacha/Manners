@@ -16,6 +16,9 @@ hairlines), so a one-unit line stays crisp from 1080p to 4K.
   Luxe_Card           64x64   9-slice, margin 16. The card, radius 5 units.
   Luxe_Bevel          64x64   9-slice, margin 16, drawn 1 unit outside the card:
                               a dark outer hairline and a lit inner one.
+  Luxe_Edge           64x64   9-slice, margin 16, placed as the bevel: the lit
+                              inner line alone at full strength, for the
+                              reason-lit top edge ("Reason colour: both", ADD).
   Luxe_Gloss         256x64   Light on the top half of the card.
   Luxe_Wash          128x64   Reason light from the left edge (ADD).
   Luxe_Spine          16x64   The reason spine: a capsule, brightest in the
@@ -139,6 +142,19 @@ def bevel():
     save("Luxe_Bevel", rgb, np.maximum(outer * 0.62, inner * lit))
 
 
+def edge():
+    # The bevel's inner line, lit along the top at full strength and gone by
+    # the bottom, with no dark hairline: drawn ADD in the reason colour, it is
+    # the card's top edge catching that light.
+    n = 64
+    xx, yy = grid(n, n)
+    d = rrect_sdf(xx, yy, 2, 2, n - 2, n - 2, 10)
+    inner = cover(d) * cover(-(d + 2.0))
+    ty = (yy - 2) / (n - 4)
+    lit = 1 - smooth(ty * 2.4)
+    save("Luxe_Edge", 1.0, inner * lit)
+
+
 def gloss():
     w, h = 256, 64
     xx, yy = grid(w, h)
@@ -182,12 +198,14 @@ def spine_glow():
 
 
 def sheen():
-    # A slanted band, soft on both sides, gone at the top and bottom so it
-    # never lights the card's corners.
+    # A narrow band, properly slanted, brightest along the top where the
+    # glint rides and fading down the card: a glint crossing it, not a grey
+    # column. Gone at the very top and bottom so it never lights the corners.
     n = 64
     xx, yy = grid(n, n)
-    slant = (xx - n / 2) + (yy - n / 2) * 0.22
-    band = np.exp(-(slant / 14.0) ** 2)
+    slant = (xx - n / 2) + (yy - n / 2) * 0.5
+    band = np.exp(-(slant / 7.0) ** 2)
+    band *= 1 - 0.65 * smooth(yy / n)
     band *= smooth(yy / 6) * smooth((n - yy) / 6)
     band *= smooth(xx / 6) * smooth((n - xx) / 6)
     save("Luxe_Sheen", 1.0, band)
@@ -276,7 +294,7 @@ def glyphs():
 
 def main():
     os.makedirs(OUT, exist_ok=True)
-    for make in (shadow, card, bevel, gloss, wash, spine, spine_glow, sheen, glint, pill,
+    for make in (shadow, card, bevel, edge, gloss, wash, spine, spine_glow, sheen, glint, pill,
                  icon_art, dot, glyphs):
         make()
     for name, w, h in written:

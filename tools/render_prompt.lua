@@ -13,6 +13,9 @@
 --
 -- `backdrop` is the world behind the picture: dusk unless it says "bright".
 -- Text that reads over dusk has only passed the easy half of the test.
+--
+-- `lift` moves the picture's view up by that many units, for a state whose
+-- panel carries something tall above it (the list hung over the panel).
 
 -- `dir` holds the mock and the recorder; `addonDir` holds the addon being
 -- drawn. They differ when an older build is drawn with today's renderer, which
@@ -322,7 +325,7 @@ R.states = {
 		local button = ns.Prompt:GetButton()
 		if button.scripts.OnEnter then button.scripts.OnEnter(button) end
 	end },
-	{ key = "list-above", title = "Queue list above the panel", at = 0.85, setup = function(ns)
+	{ key = "list-above", title = "Queue list above the panel", at = 0.85, lift = 34, setup = function(ns)
 		Mock.groupSize = 2
 		partyIsParty()
 		-- Low on the screen, where the list hangs over the panel.
@@ -357,6 +360,52 @@ R.states = {
 		ns.addon:PLAYER_REGEN_DISABLED()
 		tick(ns)
 	end },
+	-- A mage on the panel, and a mage's own buff: the class colour, softened
+	-- on the looks that ask, must not land on a reason's colour.
+	{ key = "mage-target", title = "A mage as your target, names by class", at = 0.85, setup = function(ns)
+		Mock.unitClass = "MAGE"
+		boot(ns, { target = { "Tamsin", "Reed" } })
+		tick(ns)
+	end },
+	{ key = "mage-self", title = "A mage's own buff", at = 0.85, setup = function(ns)
+		boot(ns, {})
+		Mock.playerHeld = {}
+		ns.ForgetUnitAuras(ns.plain(UnitGUID("player")))
+		tick(ns)
+	end },
+	-- One line with people waiting: the count chip on the one line.
+	{ key = "one-line-count", title = "Second line off, three more waiting", at = 0.85, setup = function(ns)
+		Mock.groupSize = 2
+		partyIsParty()
+		boot(ns, { party1 = { "Gwen", "Hollow" }, nameplate1 = { "Anna", "Aim" },
+			nameplate2 = { "Brannoc", "Vale" }, nameplate3 = { "Corwin", "Ash" } })
+		ns.db.profile.prompt.showSub = false
+		ns.db.profile.prompt.height = 32
+		ns.Prompt:ApplyStyle()
+		owe(ns, "Anna Aim")
+		tick(ns)
+	end },
+	-- One line, and the buff lands: the name line has to say so.
+	{ key = "one-line-success", title = "Second line off, a buff that landed", at = 0.28,
+		setup = function(ns)
+		boot(ns, OWED)
+		ns.db.profile.prompt.showSub = false
+		ns.db.profile.prompt.height = 32
+		ns.Prompt:ApplyStyle()
+		owe(ns, "Anna Aim")
+		tick(ns)
+		ns.Prompt:ShowOutcome("cast", "Anna Aim")
+		FrameTree.settle()
+	end },
+	-- 13 pt at 40 tall: two lines on glass, so two lines here as well.
+	{ key = "h40", title = "40 tall at 13 pt", at = 0.85, setup = withPrompt(function(p)
+		p.height = 40
+	end) },
+	-- A panel made nearly clear, over snow: the text has to carry itself.
+	{ key = "clear-bright", title = "A nearly clear panel over a bright world", at = 0.85,
+		backdrop = "bright", setup = withPrompt(function(p)
+			p.bgColor = { 0.04, 0.04, 0.06, 0.1 }
+		end) },
 	{ key = "calm-owed", title = "Somebody buffed you, Effects: Calm", at = 0.85, setup = function(ns)
 		boot(ns, OWED)
 		ns.db.profile.prompt.effects = "calm"
@@ -395,14 +444,20 @@ function R.run(key)
 	UnitExists = realUnitExists
 	UnitInParty, UnitInSubgroup = realInParty, realInSubgroup
 	if not ok then error("state " .. key .. ": " .. tostring(err)) end
+	-- The clock taken to where the picture is read, and every one-shot that
+	-- has run its length by then finished, as the client would have: a
+	-- finished fade holds the alpha its OnFinished leaves, not its last frame.
+	Mock.now = Mock.now + (state.at or 0)
+	FrameTree.settle()
 	local button = ns.Prompt:GetButton()
 	return {
 		tree = FrameTree.snapshot(UIParent),
 		button = button and button._serial,
-		now = Mock.now + (state.at or 0),
+		now = Mock.now,
 		title = state.title,
 		locale = locale,
 		backdrop = state.backdrop,
+		lift = state.lift,
 		screen = { width = 1600, height = Mock.screenHeight or 1000 },
 		errors = ns.errors and #ns.errors or 0,
 		firstError = ns.errors and ns.errors[1] and (tostring(ns.errors[1].where) .. " -> "

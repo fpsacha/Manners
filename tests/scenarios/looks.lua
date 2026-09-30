@@ -67,9 +67,18 @@ local function errorsSince(ns, from)
 	return out
 end
 
+-- What an outcome's lines must say, whatever the look and the settings: the
+-- name line and the reason line read together.
+local VERDICT = {
+	success = { "buffed" },
+	refused = { "could not buff", "Out of range." },
+	sent = { "sent" },
+}
+
 -- Every state tools/render_prompt.py draws, driven in turn on one prompt.
 local function everyState(ns, p)
 	local P = ns.Prompt
+	local regions = P:Regions()
 	local steps = {
 		{ "owed", function() owe(ns, "Anna Aim") ns.addon:Tick() end },
 		{ "success", function() P:ShowOutcome("cast", "Anna Aim") end },
@@ -126,6 +135,16 @@ local function everyState(ns, p)
 		local ok, err = pcall(step[2])
 		FT.settle()
 		if not ok then return step[1] .. " threw: " .. tostring(err) end
+		local words = VERDICT[step[1]]
+		if words then
+			local said = tostring(regions.name:GetText()) .. " / "
+				.. (regions.sub:IsShown() and tostring(regions.sub:GetText()) or "")
+			local found = false
+			for _, word in ipairs(words) do
+				if said:find(word, 1, true) then found = true end
+			end
+			if not found then return step[1] .. ": the lines do not say the verdict: " .. said end
+		end
 	end
 end
 
@@ -164,6 +183,14 @@ for _, style in ipairs(STYLES) do
 			if not ok then fail(scenario, edit[1] .. " threw: " .. tostring(err)) end
 			threw = everyState(ns, p)
 			if threw then fail(scenario, edit[1] .. ": " .. threw) end
+		end
+		-- Calm was the last setting: whatever every state left, nothing loops.
+		-- (A look from Looks/: the built-in looks' favour glow is theirs to
+		-- keep on Calm.)
+		ns.addon:Tick()
+		FT.settle()
+		if ns.Looks.Get(style) and looping() > 0 then
+			fail(scenario, ("%d animation(s) loop on Calm after every state"):format(looping()))
 		end
 		for _, e in ipairs(errorsSince(ns, from)) do fail(scenario, "guarded: " .. e) end
 	end)
@@ -332,9 +359,10 @@ withTree("Luxe honours the second line, the count, the list and the icon", CROWD
 		fail(scenario, "the round icon kept the square mask or ring")
 	end
 	if r.icon._mask ~= look.mask then fail(scenario, "the icon is not shaped by Luxe's mask") end
-	-- The height two lines need is the look's own, and the others keep theirs.
-	if ns.TwoLineHeight(13, "luxe") ~= 42 or ns.TwoLineHeight(13, "glass") ~= 39 then
-		fail(scenario, ("two lines need %s on Luxe and %s on glass, not 42 and 39")
+	-- The height two lines need is the look's own, never more than glass's
+	-- (Luxe draws the tag tight below its full height), and glass keeps its.
+	if ns.TwoLineHeight(13, "luxe") ~= 39 or ns.TwoLineHeight(13, "glass") ~= 39 then
+		fail(scenario, ("two lines need %s on Luxe and %s on glass, not 39 and 39")
 			:format(tostring(ns.TwoLineHeight(13, "luxe")), tostring(ns.TwoLineHeight(13, "glass"))))
 	end
 end)
@@ -350,6 +378,11 @@ withTree("switching looks leaves no region of the old one showing", ANNA, functi
 		return
 	end
 	local function check(style, round)
+		-- An outcome with a tick first, which narrows the tag's room further.
+		if p.style == "luxe" then
+			Mock.advance(3)
+			ns.Prompt:ShowOutcome("cast", "Anna Aim")
+		end
 		p.style = style
 		ns.Prompt:ApplyStyle()
 		owe(ns, "Anna Aim")
@@ -371,6 +404,9 @@ withTree("switching looks leaves no region of the old one showing", ANNA, functi
 			end
 			if (now.textLayer._level or 0) ~= (now.art._level or 0) + 1 then
 				fail(scenario, "textLayer kept Luxe's frame level on glass")
+			end
+			if ns.Prompt:LookKit().fit.room[now.sub] ~= nil then
+				fail(scenario, "the reason line kept Luxe's room after switching to " .. style)
 			end
 			for _, f in ipairs({ now.glow, now.burst, now.shine }) do
 				if f._shown == false then fail(scenario, "a glass frame of light stayed hidden after Luxe") break end
@@ -458,8 +494,24 @@ withTree("Luxe keeps translated outcome lines on a German client", ANNA, functio
 	if r.sub:GetText() == "buffed" then
 		fail(scenario, "a German client's tag reads the English \"buffed\"")
 	end
-	if not tostring(r.name:GetText()):find("Anna", 1, true) then
-		fail(scenario, "the German outcome line lost the name: " .. tostring(r.name:GetText()))
+	-- The name stays put, as in English; the translated sub is the verdict.
+	local named = tostring(r.name:GetText())
+	if not named:find("Anna", 1, true) or named:find("|c", 1, true) then
+		fail(scenario, "the German outcome moved the name: " .. named)
+	end
+	if r.sub:GetText() ~= ns.L["the game confirmed it"] then
+		fail(scenario, "the German tag is not the translated verdict: " .. tostring(r.sub:GetText()))
+	end
+	-- A sent cast: the translated line on the name, no sentence in a tag.
+	Mock.advance(3)
+	ns.addon:Tick()
+	ns.Prompt:ShowOutcome("sent", "Anna Aim")
+	if r.look.pillFrame._shown ~= false or (r.sub:GetText() or "") ~= "" then
+		fail(scenario, "a German sent cast put a sentence in the tag: " .. tostring(r.sub:GetText()))
+	end
+	named = tostring(r.name:GetText())
+	if not named:find("Anna", 1, true) or named == "Anna Aim" then
+		fail(scenario, "a German sent cast does not say it on the name line: " .. named)
 	end
 end, function() Mock.locale = "deDE" end)
 
@@ -495,6 +547,19 @@ withTree("Luxe softens class-coloured names", { nameplate1 = { "Mira", "Vale" } 
 	local text = ns.Prompt:RenderPrimary(entry, 0)
 	if text:find("ff40c7eb", 1, true) then
 		fail(scenario, "a mage's name is drawn in the full class colour on Luxe: " .. text)
+	end
+	-- Only a tint on white: every channel at 0.8 or more, so a mage's cyan
+	-- never lands on the target reason's.
+	local code = text:match("|cff(%x%x%x%x%x%x)")
+	for i = 1, 5, 2 do
+		if not code or tonumber(code:sub(i, i + 1), 16) < 0xcc then
+			fail(scenario, "a mage's name on Luxe is more than a tint on white: " .. text)
+			break
+		end
+	end
+	-- The same answer again, from the cache.
+	if ns.Prompt:RenderPrimary(entry, 0) ~= text then
+		fail(scenario, "a class colour softened twice came out different")
 	end
 	ns.db.profile.prompt.style = "glass"
 	ns.Prompt:ApplyStyle()
@@ -563,5 +628,308 @@ withTree("every look is offered, and Luxe is the default", {}, function(ns, scen
 	end
 	if shipped.defaults.profile.prompt.style ~= "luxe" then
 		fail(scenario, "the default look is " .. tostring(shipped.defaults.profile.prompt.style) .. ", not Luxe")
+	end
+end)
+
+-- ------------------------------------------------------------------ 13
+-- With one line there is no tag to turn into the verdict: the name line says
+-- it, the built-in looks' way, or a landed buff and a refusal look alike
+-- without colour vision.
+withTree("Luxe says the verdict on the name line when there is one line", ANNA, function(ns, scenario)
+	local r, p = upIn(ns, scenario, "luxe")
+	if not (r.look and r.look.glyph) then
+		fail(scenario, "SKIPPED -- Luxe is not the look in use")
+		return
+	end
+	local function oneLine(label)
+		ns.Prompt:ApplyStyle()
+		owe(ns, "Anna Aim")
+		ns.addon:Tick()
+		for _, case in ipairs({ { "cast", "buffed" }, { "failed", "could not buff" }, { "sent", "sent to" } }) do
+			Mock.advance(3)
+			ns.addon:Tick()
+			ns.Prompt:ShowOutcome(case[1], "Anna Aim", case[1] == "failed" and "Out of range." or nil)
+			local named = tostring(r.name:GetText())
+			if not named:find(case[2], 1, true) then
+				fail(scenario, ("%s: a \"%s\" outcome's one line does not say so: %s"):format(label, case[1], named))
+			end
+		end
+	end
+	p.showSub = false
+	oneLine("second line off")
+	p.showSub, p.height = true, 32
+	oneLine("32 tall")
+	-- A verdict too long for the tag even at its smallest: no pill ending
+	-- in an ellipsis, and the name line says it instead.
+	p.height = 44
+	ns.Prompt:ApplyStyle()
+	Mock.advance(3)
+	ns.addon:Tick()
+	ns.Prompt:ShowOutcome("failed", "Anna Aim", ("Something went wrong with that spell. "):rep(6))
+	if r.sub:GetText() ~= "" or r.look.pillFrame._shown ~= false then
+		fail(scenario, "a verdict too long for the tag is drawn cut in it: " .. tostring(r.sub:GetText()))
+	end
+	if not tostring(r.name:GetText()):find("could not buff", 1, true) then
+		fail(scenario, "a verdict too long for the tag left the name line without it: "
+			.. tostring(r.name:GetText()))
+	end
+end)
+
+-- ------------------------------------------------------------------ 14
+-- The count chip rides the name line: centred on one line, up with the name
+-- on two.
+withTree("Luxe's count chip sits on the name line", CROWD, function(ns, scenario)
+	local r, p = upIn(ns, scenario, "luxe", function(pp) pp.showQueue, pp.queueRows = true, 3 end)
+	local look = r.look
+	if not (look and look.chipBox) then
+		fail(scenario, "SKIPPED -- Luxe is not the look in use")
+		return
+	end
+	local function chipY()
+		local at = look.chipBox.points[#look.chipBox.points]
+		return at and at[5]
+	end
+	if not near(chipY(), look.nameY) or near(look.nameY, 0) then
+		fail(scenario, ("on two lines the chip is at %s, not on the name at %s"):format(tostring(chipY()),
+			tostring(look.nameY)))
+	end
+	p.showSub, p.height = false, 32
+	ns.Prompt:ApplyStyle()
+	ns.addon:Tick()
+	if not near(chipY(), 0) then
+		fail(scenario, "on one line the count chip is not on the centred name: y " .. tostring(chipY()))
+	end
+end)
+
+-- ------------------------------------------------------------------ 15
+-- A glass profile moved to Luxe keeps the second line it had: at 13 pt, 39
+-- tall is enough for both, the tag drawn tight.
+withTree("Luxe keeps two lines wherever glass had them", ANNA, function(ns, scenario)
+	for _, case in ipairs({ { 13, 39 }, { 13, 41 }, { 17, 47 }, { 20, 53 } }) do
+		local fs, h = case[1], case[2]
+		if ns.TwoLineHeight(fs, "luxe") > ns.TwoLineHeight(fs, "glass") then
+			fail(scenario, ("at %d pt Luxe needs %d for two lines, glass %d"):format(fs,
+				ns.TwoLineHeight(fs, "luxe"), ns.TwoLineHeight(fs, "glass")))
+		end
+		local r = upIn(ns, scenario, "luxe", function(pp) pp.fontSize, pp.height = fs, h end)
+		if not (r.look and r.look.pillFrame) then
+			fail(scenario, "SKIPPED -- Luxe is not the look in use")
+			return
+		end
+		if not r.sub:IsShown() or r.look.pillFrame._shown == false then
+			fail(scenario, ("%d tall at %d pt lost the reason line on Luxe"):format(h, fs))
+		end
+		-- The tag inside the card.
+		if r.look.pillTop + r.look.pillH > h - 1 then
+			fail(scenario, ("%d tall at %d pt: the tag runs off the card"):format(h, fs))
+		end
+	end
+end)
+
+-- ------------------------------------------------------------------ 16
+-- Glass's owed pulse stops when Luxe takes over: hidden is not stopped, and
+-- Calm stops every loop.
+withTree("switching from glass mid-pulse leaves nothing looping on Calm", ANNA, function(ns, scenario)
+	local r, p = upIn(ns, scenario, "glass")
+	if not (r.glow and r.glow.pulse and r.glow.pulse._playing) then
+		fail(scenario, "SKIPPED -- glass's owed pulse is not playing")
+		return
+	end
+	p.style = "luxe"
+	ns.Prompt:ApplyStyle()
+	ns.addon:Tick()
+	FT.settle()
+	if r.glow.pulse._playing then fail(scenario, "glass's pulse still loops under Luxe") end
+	p.effects = "calm"
+	ns.Prompt:ApplyStyle()
+	ns.addon:Tick()
+	FT.settle()
+	if looping() > 0 then
+		fail(scenario, ("%d animation(s) loop on Calm after switching from glass"):format(looping()))
+	end
+end)
+
+-- ------------------------------------------------------------------ 17
+-- The spine keeps its own colour: the light blooms round it, never over it.
+withTree("Luxe draws its light under the spine", ANNA, function(ns, scenario)
+	local r = upIn(ns, scenario, "luxe")
+	local look = r.look
+	if not (look and look.spineFrame) then
+		fail(scenario, "SKIPPED -- Luxe is not the look in use")
+		return
+	end
+	local spine = look.spine._parent
+	for _, f in ipairs({ look.flareFrame, look.pulseFrame, look.hoverFrame, look.resultFrame }) do
+		if (f._level or 0) >= (spine._level or 0) then
+			fail(scenario, "a frame of light is drawn over the spine")
+			break
+		end
+	end
+	if (spine._level or 0) >= (r.textLayer._level or 0) then fail(scenario, "the spine is drawn over the text") end
+	if (spine._alpha or 1) < 1 then fail(scenario, "the spine's frame is not drawn") end
+end)
+
+-- ------------------------------------------------------------------ 18
+-- "Reason colour: both" does something on Luxe: the card's top edge lit in
+-- the reason colour, and the list's too.
+withTree("Luxe lights its top edge for \"both\"", CROWD, function(ns, scenario)
+	local r, p = upIn(ns, scenario, "luxe", function(pp) pp.showQueue, pp.queueRows = true, 3 end)
+	local look = r.look
+	if not (look and look.edge) then
+		fail(scenario, "SKIPPED -- Luxe is not the look in use")
+		return
+	end
+	if FT.visible(look.edge[2]) then fail(scenario, "the reason-lit edge shows on \"icon\"") end
+	p.accentMode = "both"
+	ns.Prompt:ApplyStyle()
+	ns.addon:Tick()
+	local cr, cg, cb = ns.Prompt:AccentColor("owed")
+	if not FT.visible(look.edge[2]) or not sameColour(look.edge[2]._color, cr, cg, cb) then
+		fail(scenario, "\"both\" does not light the card's top edge in the reason colour")
+	end
+	if not FT.visible(look.trayEdge[2]) then fail(scenario, "\"both\" does not light the list's edge") end
+end)
+
+-- ------------------------------------------------------------------ 19
+-- A line with its own colour gets a tag of that colour, not the reason's;
+-- in a fight the tag keeps the reason round the grey words.
+withTree("Luxe tints the tag to a line's own colour", ANNA, function(ns, scenario)
+	local r, p = upIn(ns, scenario, "luxe")
+	local look = r.look
+	if not (look and look.pillEdge) then
+		fail(scenario, "SKIPPED -- Luxe is not the look in use")
+		return
+	end
+	p.locked = false
+	ns.Prompt:ApplyStyle()
+	ns.addon:Tick()
+	if not sameColour(look.pillEdge[2]._color, 1, 0x80 / 255, 0x80 / 255) then
+		fail(scenario, "the red \"not buffing while unlocked\" sits in a tag of another colour")
+	end
+	p.locked = true
+	ns.Prompt:ApplyStyle()
+	ns.addon:Tick()
+	local cr, cg, cb = ns.Prompt:AccentColor("owed")
+	if not sameColour(look.pillEdge[2]._color, cr, cg, cb) then
+		fail(scenario, "the tag kept the unlocked line's red after locking")
+	end
+	Mock.inCombat = true
+	ns.addon:PLAYER_REGEN_DISABLED()
+	ns.addon:Tick()
+	if tostring(r.sub:GetText()):find("|c", 1, true) and not sameColour(look.pillEdge[2]._color, cr, cg, cb) then
+		fail(scenario, "in a fight the tag lost the reason's colour round the grey words")
+	end
+end)
+
+-- ------------------------------------------------------------------ 20
+-- In a fight the lines dim themselves, not textLayer, whose cross-fade would
+-- replace the dim while it plays; the dim goes with the fight.
+withTree("Luxe dims the lines themselves in a fight", ANNA, function(ns, scenario)
+	local r = upIn(ns, scenario, "luxe")
+	if not (r.look and r.look.spine) then
+		fail(scenario, "SKIPPED -- Luxe is not the look in use")
+		return
+	end
+	Mock.inCombat = true
+	ns.addon:PLAYER_REGEN_DISABLED()
+	ns.addon:Tick()
+	if not near(r.name._alpha, 0.80) or not near(r.sub._alpha, 0.80) then
+		fail(scenario, ("the lines are not dimmed in a fight: name %s, reason %s"):format(tostring(r.name._alpha),
+			tostring(r.sub._alpha)))
+	end
+	if not near(r.textLayer._alpha or 1, 1) then
+		fail(scenario, "the fight's dim is on textLayer, where the cross-fade overrides it")
+	end
+	Mock.inCombat = false
+	if ns.addon.PLAYER_REGEN_ENABLED then ns.addon:PLAYER_REGEN_ENABLED() end
+	ns.addon:Tick()
+	if not near(r.name._alpha or 1, 1) then fail(scenario, "the name stayed dim after the fight") end
+	-- Dim, then another look: the lines come back whole.
+	Mock.inCombat = true
+	ns.addon:PLAYER_REGEN_DISABLED()
+	ns.addon:Tick()
+	Mock.inCombat = false
+	ns.db.profile.prompt.style = "glass"
+	ns.Prompt:ApplyStyle()
+	if not near(r.name._alpha or 1, 1) or not near(r.sub._alpha or 1, 1) then
+		fail(scenario, "the fight's dim stayed on the lines after switching to glass")
+	end
+end)
+
+-- ------------------------------------------------------------------ 21
+-- An unconfirmed cast claims nothing: no wash over the card.
+withTree("Luxe washes the card for a verdict, not for a sent cast", ANNA, function(ns, scenario)
+	local r = upIn(ns, scenario, "luxe")
+	local look = r.look
+	if not (look and look.resultFrame) then
+		fail(scenario, "SKIPPED -- Luxe is not the look in use")
+		return
+	end
+	ns.Prompt:ShowOutcome("cast", "Anna Aim")
+	if not near(look.resultFrame._alpha, 1) then fail(scenario, "a landed buff did not wash the card") end
+	Mock.advance(3)
+	ns.addon:Tick()
+	ns.Prompt:ShowOutcome("sent", "Anna Aim")
+	if (look.resultFrame._alpha or 0) > 0 then
+		fail(scenario, "a cast nobody confirmed washed the card")
+	end
+end)
+
+-- ------------------------------------------------------------------ 22
+-- A panel made nearly clear: the text outlined, the tag on a dark ground of
+-- its own, and under 0.2 no shadow round nothing.
+withTree("Luxe carries its text on a nearly clear panel", ANNA, function(ns, scenario)
+	local r, p = upIn(ns, scenario, "luxe", function(pp) pp.bgColor = { 0.04, 0.04, 0.06, 0.1 } end)
+	local look = r.look
+	if not (look and look.pillFill) then
+		fail(scenario, "SKIPPED -- Luxe is not the look in use")
+		return
+	end
+	for _, fs in ipairs({ r.name, r.sub }) do
+		if not tostring(fs._font and fs._font.flags):find("OUTLINE", 1, true) then
+			fail(scenario, "a line on a nearly clear panel is not outlined")
+			break
+		end
+	end
+	local c = look.pillFill[2]._color
+	if not (c and c[1] < 0.05 and c[2] < 0.05 and c[3] < 0.05 and c[4] >= 0.4) then
+		fail(scenario, "the tag has no dark ground of its own on a nearly clear panel")
+	end
+	if FT.visible(look.shadow[5]) then fail(scenario, "the shadow is drawn round a clear panel") end
+	-- Back to the default card: no outline, the tag in the reason's colour.
+	p.bgColor = nil
+	ns.Prompt:ApplyStyle()
+	ns.addon:Tick()
+	if tostring(r.name._font and r.name._font.flags):find("OUTLINE", 1, true) then
+		fail(scenario, "the outline stayed on the default card")
+	end
+	if not FT.visible(look.shadow[5]) then fail(scenario, "the shadow did not come back") end
+end)
+
+-- ------------------------------------------------------------------ 23
+-- The scan repaints several times a second; Luxe adds no measuring and no
+-- gradient to a repaint that changes nothing.
+withTree("Luxe adds no measuring or gradient to a repaint", CROWD, function(ns, scenario)
+	local r = upIn(ns, scenario, "luxe", function(pp) pp.showQueue, pp.queueRows = true, 3 end)
+	local kit = r.look and r.look.kit
+	if not kit then
+		fail(scenario, "SKIPPED -- Luxe is not the look in use")
+		return
+	end
+	ns.addon:Tick()
+	local measured, graded = 0, 0
+	local width, gradient = kit.TextWidth, kit.Gradient
+	kit.TextWidth = function(...) measured = measured + 1 return width(...) end
+	kit.Gradient = function(...) graded = graded + 1 return gradient(...) end
+	for _ = 1, 5 do
+		Mock.advance(0.4)
+		ns.addon:Tick()
+	end
+	kit.TextWidth, kit.Gradient = width, gradient
+	if not (r.look.chipFill[2]._shown ~= false and r.look.tray[5]._shown ~= false) then
+		fail(scenario, "SKIPPED -- the chip and the list are not both up")
+	elseif measured > 0 or graded > 0 then
+		fail(scenario, ("five repaints of the same panel measured %d time(s) and graded %d time(s)")
+			:format(measured, graded))
 	end
 end)

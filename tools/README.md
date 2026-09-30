@@ -123,7 +123,10 @@ is found without the game. The addon measures its lines to fit them, and the
 renderer answers those measurements with the font it draws in, so a line the
 addon shrank to fit is drawn fitting. A state can ask for a bright world
 behind it (`backdrop = "bright"` in `render_prompt.lua`) where dusk would flatter
-the text.
+the text, and a view lifted (`lift`) when something tall hangs over the panel.
+Each picture is taken `at` seconds after the state's last step: the mock clock
+is moved there and every one-shot animation that has finished by then is
+finished, so a fade that ended shows what it left, not its last frame.
 
 `--addon` draws another checkout of the addon with today's renderer, which is
 the fair way to put a before and an after side by side. Needs lupa, Pillow and

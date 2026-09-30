@@ -1887,8 +1887,10 @@ end
 
 -- How the name and reason line are laid out, kept by ApplyStyle for the
 -- painters: fonts, current sizes, start, and the room kept at the right (more
--- while the count chip is up).
-local fit = { path = nil, flags = "", base = {}, size = {}, room = {}, width = 0, textX = 0,
+-- while the count chip is up). `drawn` is each line's width at the size
+-- FitLine left it, when FitLine measured it there, so a look need not measure
+-- again.
+local fit = { path = nil, flags = "", base = {}, size = {}, room = {}, drawn = {}, width = 0, textX = 0,
 	chipRoom = 10, right = nil, twoLine = false }
 
 -- The inset from the right-hand edge when nothing is beside the lines.
@@ -1928,13 +1930,16 @@ local function FitLine(fs)
 	local room = fit.room[fs] or (fit.width - fit.textX - (fit.right or EDGE_ROOM))
 	local least = math.max(7, math.floor(base * 0.8 + 0.5))
 	local size = base
+	local w
 	while size > least do
-		local w = TextWidth(fs)
+		w = TextWidth(fs)
 		if not w or w <= room + 0.5 then break end
 		size = size - 1
 		SafeFont(fs, fit.path, size, fit.flags)
+		w = nil
 	end
 	fit.size[fs] = size
+	fit.drawn[fs] = w
 	if activeLook then activeLook:Fitted(fs) end
 end
 
@@ -2409,6 +2414,12 @@ end
 -- Out of ApplyStyle, for its upvalues.
 function Prompt:ApplyLook(p, look)
 	if not look.kit then look:Build(self:LookKit()) end
+	-- The built-in looks' animations stopped, not only hidden: a pulse left
+	-- looping on a hidden frame still loops, Calm or not.
+	for _, f in ipairs({ glowFrame, sweepFrame, shineFrame, burstFrame }) do
+		if f.pulse then f.pulse:Stop() end
+		if f.anim then f.anim:Stop() end
+	end
 	for _, part in ipairs(self.builtinParts) do part:Hide() end
 	if iconMask then iconMask:Hide() end
 	local hl = button:GetHighlightTexture()
@@ -2482,6 +2493,10 @@ end
 -- rendering
 ---------------------------------------------------------------------------
 
+-- The softened class codes ClassColored has worked out, for the look's
+-- classSoften in `by`.
+local softened = {}
+
 local function ClassColored(entry, text)
 	if not ns.db.profile.prompt.classColor or not entry.class then return text end
 	local c = RAID_CLASS_COLORS and RAID_CLASS_COLORS[entry.class]
@@ -2490,12 +2505,19 @@ local function ClassColored(entry, text)
 	-- reason colour.
 	local soften = activeLook and activeLook.classSoften
 	if soften then
-		-- From the code itself ("ffRRGGBB"), which every client fills in.
-		local function up(at)
-			local v = (tonumber(c.colorStr:sub(at, at + 1), 16) or 255) / 255
-			return math.floor((v + (1 - v) * soften) * 255 + 0.5)
+		-- Worked out once per class and look: this runs on every repaint.
+		if softened.by ~= soften then wipe(softened) softened.by = soften end
+		local code = softened[c.colorStr]
+		if not code then
+			-- From the code itself ("ffRRGGBB"), which every client fills in.
+			local function up(at)
+				local v = (tonumber(c.colorStr:sub(at, at + 1), 16) or 255) / 255
+				return math.floor((v + (1 - v) * soften) * 255 + 0.5)
+			end
+			code = ("|cff%02x%02x%02x"):format(up(3), up(5), up(7))
+			softened[c.colorStr] = code
 		end
-		return ("|cff%02x%02x%02x%s|r"):format(up(3), up(5), up(7), text)
+		return ("%s%s|r"):format(code, text)
 	end
 	return string.format("|c%s%s|r", c.colorStr, text)
 end

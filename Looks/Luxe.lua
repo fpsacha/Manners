@@ -20,14 +20,22 @@
 --     while the rest of the ink dims -- the reason survives combat;
 --   * the owed pulse breathes 0.18-0.36 every 2.4 s, only while somebody owed
 --     is on top, and holds still on Calm;
---   * class-coloured names are taken 55% of the way to white (classSoften),
---     not 30%: at 30% a rogue's yellow and a paladin's pink still read as
---     reasons. "Colour names by class" already turns them off entirely, so a
---     second switch would only say the same thing twice;
+--   * class-coloured names are taken 85% of the way to white (classSoften),
+--     so a class colour is only a tint on white: at 55% a mage's cyan landed
+--     on the target reason's, and a mage's own "You" read as target. The
+--     spine and the tag stay the only saturated marks, as the design has it.
+--     "Colour names by class" already turns them off entirely, so a second
+--     switch would only say the same thing twice;
 --   * a refusal greys the icon as well as reddening the tag, which reads
 --     without colour vision;
 --   * the count chip steps aside when the name would be cut even at its
---     smallest size, since the name is the one thing the panel must say.
+--     smallest size, since the name is the one thing the panel must say;
+--   * "Reason colour: both" lights the card's top edge in the reason colour
+--     as well, so the setting shows here too;
+--   * on a panel made nearly clear the name and the tag take an outline, and
+--     the tag a dark ground of its own, as the minimal look's text does;
+--   * a panel shorter than Luxe's own two lines but tall enough for the
+--     built-in looks' draws the tag slimmer rather than dropping it.
 
 local _, ns = ...
 local L = ns.L
@@ -39,7 +47,7 @@ local Luxe = ns.Looks.Register("luxe", {
 	order = 1,
 	-- The ground and the ink dim apart, so art itself stays whole.
 	combatArtAlpha = 1,
-	classSoften = 0.55,
+	classSoften = 0.85,
 })
 
 -- Where the spine sits, and what a fight does to each part: the card holds,
@@ -58,13 +66,27 @@ local OUTCOME = {
 -- RING_PAD in tools/make_luxe_textures.py, which must agree.
 local RING_PAD = 3
 
+-- The tag's sizes, full or `tight`: a slimmer tag and a one-unit gap, for a
+-- panel with room for the built-in looks' two lines but not for these.
 local function SubSize(fontSize) return math.max(7, fontSize - 3) end
-local function PillHeight(fontSize) return math.floor(1.5 * SubSize(fontSize) + 0.5) end
-local function Gap(fontSize) return math.max(2, math.floor(0.2 * fontSize + 0.5)) end
+local function PillHeight(fontSize, tight)
+	return math.floor((tight and 1.3 or 1.5) * SubSize(fontSize) + 0.5)
+end
+local function Gap(fontSize, tight)
+	if tight then return 1 end
+	return math.max(2, math.floor(0.2 * fontSize + 0.5))
+end
 
--- The name, the gap and the tag as one block, with four units above and below.
+-- The name, the gap and the tag as one block, with four units above and below;
+-- tight, two.
+local function BlockHeight(fontSize, tight)
+	return math.ceil(1.2 * fontSize + Gap(fontSize, tight) + PillHeight(fontSize, tight) + (tight and 4 or 8))
+end
+
+-- Never more than the built-in looks ask: a profile that showed two lines on
+-- glass keeps them here, with the tag drawn tight until the full one fits.
 function Luxe.TwoLineHeight(fontSize)
-	return math.ceil(1.2 * fontSize + Gap(fontSize) + PillHeight(fontSize) + 8)
+	return math.max(ns.TwoLineHeight(fontSize, "glass"), BlockHeight(fontSize, true))
 end
 
 -- The spine is a light as well as a mark: it carries the reason on this look,
@@ -241,7 +263,11 @@ function Luxe:Build(kit)
 	self.trayBox = keep(CreateFrame("Frame", nil, art))
 	self.tray = NineSlice(art, "BACKGROUND", -6, ART .. "Card", 64, 16, 8)
 	self.trayBevel = NineSlice(art, "BORDER", 1, ART .. "Bevel", 64, 16, 8)
-	for _, s in ipairs({ self.shadow, self.card, self.bevel, self.tray, self.trayBevel }) do
+	-- The top edge lit in the reason colour, for "Reason colour: both".
+	self.edge = NineSlice(art, "BORDER", 2, ART .. "Edge", 64, 16, 8, "ADD")
+	self.trayEdge = NineSlice(art, "BORDER", 2, ART .. "Edge", 64, 16, 8, "ADD")
+	for _, s in ipairs({ self.shadow, self.card, self.bevel, self.tray, self.trayBevel, self.edge,
+		self.trayEdge }) do
 		for _, t in ipairs(s) do keep(t) end
 	end
 	self.ground = { self.gloss }
@@ -252,7 +278,12 @@ function Luxe:Build(kit)
 	-- The ink.
 	self.wash = tex(art, "BORDER", 2, "Wash", "ADD")
 	self.glow = tex(art, "ARTWORK", 0, "SpineGlow", "ADD")
-	self.spine = tex(art, "ARTWORK", 1, "Spine")
+	-- The spine on a frame of its own, over the frames of light: a glow added
+	-- on top of the core pushed it to lemon or white, and the mark lost the
+	-- very colour it carries. The light blooms round it instead.
+	self.spineFrame = keep(CreateFrame("Frame", nil, art))
+	self.spineFrame:SetAllPoints(art)
+	self.spine = tex(self.spineFrame, "ARTWORK", 1, "Spine")
 	self.shade = tex(art, "ARTWORK", 1, "IconShade")
 	self.rim = tex(art, "ARTWORK", 2, "IconRim")
 	self.ring = tex(art, "ARTWORK", 3, "IconRing")
@@ -302,14 +333,16 @@ function Luxe:Build(kit)
 	PlaceThree(self.chipFill, self.chipBox, 10)
 	PlaceThree(self.chipEdge, self.chipBox, 10)
 
-	-- Levels: the light over the art, the text over the light, the tag's
-	-- frame over the text's own frame.
+	-- Levels: the light over the art, the spine over the light, the ring's
+	-- burst and the crossing light over both, the text over all of it, the
+	-- tag's frame over the text's own frame (Apply: base + 4 and + 5).
 	local base = art:GetFrameLevel()
 	for _, f in ipairs({ self.resultFrame, self.flareFrame, self.pulseFrame, self.hoverFrame }) do
 		f:SetFrameLevel(base + 1)
 	end
-	self.burstFrame:SetFrameLevel(base + 2)
-	self.sheenFrame:SetFrameLevel(base + 2)
+	self.spineFrame:SetFrameLevel(base + 2)
+	self.burstFrame:SetFrameLevel(base + 3)
+	self.sheenFrame:SetFrameLevel(base + 3)
 
 	self:BuildAnimations()
 end
@@ -422,8 +455,10 @@ function Luxe:Apply(p, above)
 	local iconSize = math.max(8, math.min(p.iconSize, H - 10))
 	local showIcon = p.showIcon and true or false
 	local spineLen = math.max(8, showIcon and math.min(iconSize, H - 14) or H - 16)
-	local sub, pillH = SubSize(fs), PillHeight(fs)
-	local nameH, gap = 1.2 * fs, Gap(fs)
+	-- Tight between the built-in looks' two-line height and Luxe's own.
+	local tight = H < BlockHeight(fs)
+	local sub, pillH = SubSize(fs), PillHeight(fs, tight)
+	local nameH, gap = 1.2 * fs, Gap(fs, tight)
 	local top = (H - (nameH + gap + pillH)) / 2
 	local textX = showIcon and (iconX + iconSize + 10) or (SPINE_X + spineW + 9)
 	self.p, self.W, self.H = p, W, H
@@ -435,6 +470,11 @@ function Luxe:Apply(p, above)
 	self.subRoom = math.max(20, W - textX - 10 - pillH)
 	self.glyphRoom = sub + 2
 	self.above = above
+	-- A panel made nearly clear: the card gives the text no ground, so the
+	-- text is outlined and the tag carries a dark ground of its own (Styled,
+	-- PaintPill), and below 0.2 the shadow goes, a smudge round nothing.
+	self.clear = ba < 0.35
+	self.fitText, self.dropped = nil, nil
 
 	-- The ground: the card is the panel colour, darker towards the bottom --
 	-- the same two stops Prompt's text is measured against.
@@ -453,13 +493,17 @@ function Luxe:Apply(p, above)
 	self.gloss:SetVertexColor(1, 1, 1, 0.07 * ba * math.max(0, 1 - lum * 1.3))
 	PlaceSlice(self.bevel, art, art, 1, 1, 1, 1)
 	SliceColor(self.bevel, 1, 1, 1, 1)
+	PlaceSlice(self.edge, art, art, 1, 1, 1, 1)
 	-- The list's card: the panel's colour a shade lighter in alpha, graded
-	-- when PaintQueue knows its height.
-	self.trayTop = { br, bg, bb, ba * 0.9 }
-	self.trayBottom = { br * 0.70, bg * 0.70, bb * 0.78, ba * 0.9 }
+	-- here, once, for the most rows the list can hold. The gradient is per
+	-- slice, so a list of fewer rows draws the same fall from top to bottom,
+	-- and PaintQueue, which runs on every scan, only sets a height.
 	self.trayHeight = nil
+	SliceGradient(self.tray, 8 + math.max(1, p.queueRows or 1) * (sub + 7),
+		{ br, bg, bb, ba * 0.9 }, { br * 0.70, bg * 0.70, bb * 0.78, ba * 0.9 }, kit.Gradient)
 	PlaceSlice(self.tray, self.trayBox, self.trayBox, 0, 0, 0, 0)
 	PlaceSlice(self.trayBevel, self.trayBox, self.trayBox, 1, 1, 1, 1)
+	PlaceSlice(self.trayEdge, self.trayBox, self.trayBox, 1, 1, 1, 1)
 	SliceColor(self.trayBevel, 1, 1, 1, 0.8)
 
 	-- The ink.
@@ -560,11 +604,10 @@ function Luxe:Apply(p, above)
 	self.glyph:Hide()
 	self.verdict = nil
 
-	-- The chip rides the name line at the right.
+	-- The chip rides the name line at the right (Styled, which knows where
+	-- the name line is).
 	local chipH = math.max(8, pillH - 1)
 	self.chipH = chipH
-	self.chipBox:ClearAllPoints()
-	self.chipBox:SetPoint("RIGHT", textLayer, "RIGHT", -8, self.nameY)
 	self.chipBox:SetSize(chipH * 2, chipH)
 	PlaceThree(self.chipFill, self.chipBox, chipH)
 	PlaceThree(self.chipEdge, self.chipBox, chipH)
@@ -584,7 +627,9 @@ function Luxe:Apply(p, above)
 	-- frames parked at alpha 0, the list for PaintQueue, the ring for the
 	-- reason's paint, the tag for its text, the chip for a count.
 	for _, x in ipairs(self.own) do x:Show() end
-	for _, s in ipairs({ self.tray, self.trayBevel }) do SliceShown(s, false) end
+	for _, s in ipairs({ self.tray, self.trayBevel, self.edge, self.trayEdge }) do SliceShown(s, false) end
+	if ba < 0.2 then SliceShown(self.shadow, false) end
+	self.both, self.pillHex, self.pillCode = nil, nil, nil
 	for _, d in ipairs(self.dots) do d:Hide() end
 	for _, t in ipairs({ self.shade, self.rim, self.ring }) do t:SetShown(showIcon) end
 	self.burstFrame:SetShown(showIcon)
@@ -601,8 +646,25 @@ function Luxe:Apply(p, above)
 end
 
 -- The text as this look wants it, over what Prompt's StyleText set.
-function Luxe:Styled(p)
+function Luxe:Styled(p, twoLine)
 	local kit = self.kit
+	-- The chip on the name line, wherever the name line is: centred when it
+	-- is the only one.
+	self.chipBox:ClearAllPoints()
+	self.chipBox:SetPoint("RIGHT", kit.textLayer, "RIGHT", -8, twoLine and self.nameY or 0)
+	-- A nearly clear panel: every line outlined, as on the minimal look, and
+	-- the lines FitLine shrinks keep it (fit.flags).
+	if self.clear then
+		kit.fit.flags = "OUTLINE"
+		for _, fs in ipairs({ kit.name, kit.sub, kit.count }) do
+			local path, size = fs:GetFont()
+			if path then fs:SetFont(path, size, "OUTLINE") end
+		end
+		for _, fs in ipairs(kit.rows) do
+			local path, size = fs:GetFont()
+			if path then fs:SetFont(path, size, "OUTLINE") end
+		end
+	end
 	-- A shadow inside a tinted tag reads as dirt.
 	kit.sub:SetShadowColor(0, 0, 0, 0)
 	kit.sub:SetShadowOffset(0, 0)
@@ -639,7 +701,12 @@ function Luxe:Hide()
 	end
 	kit.textLayer:SetFrameLevel(kit.art:GetFrameLevel() + 1)
 	kit.textLayer:SetAlpha(1)
+	for _, fs in ipairs({ kit.name, kit.sub, kit.count }) do fs:SetAlpha(1) end
+	-- The reason line's room is the tag's: the built-in looks fit theirs to
+	-- the panel's width, and only do so while this is nil.
+	kit.fit.room[kit.sub] = nil
 	self.combat, self.hovered, self.washFor, self.trayShown = nil, nil, nil, nil
+	self.fitText, self.dropped = nil, nil
 end
 
 ---------------------------------------------------------------------------
@@ -649,6 +716,8 @@ end
 function Luxe:PlaceLines(right)
 	local kit = self.kit
 	local name, sub = kit.name, kit.sub
+	-- The reason line lost its anchor to the tag: the next fit places it again.
+	self.fitText = nil
 	if kit.fit.twoLine then
 		name:SetPoint("LEFT", self.textX, self.nameY)
 		name:SetPoint("RIGHT", -right, self.nameY)
@@ -667,26 +736,80 @@ function Luxe:ShowsVerdict()
 	return self.verdict ~= nil and self.kit.sub:GetText() == self.verdict
 end
 
+-- The tag's fill and edge: in the reason's colour, or in the colour the line
+-- brings with it (the red "not buffing while unlocked" is not a reason and
+-- should not sit in a gold tag). On a nearly clear panel the fill is a dark
+-- ground of its own under the coloured edge.
+function Luxe:PaintPill()
+	local c = self.pillCode or self.tint or NEUTRAL
+	local r, g, b = c[1], c[2], c[3]
+	for _, t in ipairs(self.pillEdge) do t:SetVertexColor(r, g, b, 0.50) end
+	if self.clear then
+		for _, t in ipairs(self.pillFill) do t:SetVertexColor(0, 0, 0, 0.55) end
+	else
+		for _, t in ipairs(self.pillFill) do t:SetVertexColor(r, g, b, 0.15) end
+	end
+end
+
+-- The tag hugs its words. The scan repaints the same line several times a
+-- second, so a line already fitted in the same room is left as it is: no
+-- measuring, no anchoring, no string work.
 function Luxe:Fitted(fs)
 	local kit = self.kit
 	if fs ~= kit.sub then return end
-	local glyph = self.glyphOn and self:ShowsVerdict()
+	local fit = kit.fit
+	local verdict = self:ShowsVerdict()
+	local glyph = self.glyphOn and verdict
 	local room = self.subRoom - (glyph and self.glyphRoom or 0)
-	if kit.fit.room[fs] ~= room then
+	if fit.room[fs] ~= room then
 		-- Fitted again at the room the glyph leaves, which lands back here.
-		kit.fit.room[fs] = room
+		fit.room[fs] = room
 		fs:SetWidth(room)
 		return kit.FitLine(fs)
 	end
-	-- The tag hugs its words.
 	local text = fs:GetText()
-	if not (kit.fit.twoLine and fs:IsShown() and type(text) == "string" and text ~= "") then
+	local secret = issecretvalue and issecretvalue(text)
+	local shown = fit.twoLine and fs:IsShown() and (secret or (type(text) == "string" and text ~= ""))
+		and true or false
+	local combat = self.combat or false
+	if not secret and text == self.fitText and room == self.fitRoom and shown == self.fitShown
+		and combat == self.fitCombat and glyph == self.fitGlyph and verdict == self.fitVerdict
+		and fit.size[fs] == self.fitSize then
+		if self.dropped then fs:SetText("") end
+		return
+	end
+	self.fitText, self.fitRoom, self.fitShown = not secret and text or nil, room, shown
+	self.fitCombat, self.fitGlyph, self.fitVerdict, self.fitSize = combat, glyph, verdict, fit.size[fs]
+	self.dropped = nil
+
+	-- A line with a colour of its own, when it is not the verdict and no
+	-- fight holds the panel (there the tag keeps the reason round the grey
+	-- "held -- in combat"). Read once per new line.
+	local hex = shown and not secret and not combat and not verdict and text:match("^|c[fF][fF](%x%x%x%x%x%x)")
+		or nil
+	if hex ~= self.pillHex then
+		self.pillHex = hex
+		self.pillCode = hex and { tonumber(hex:sub(1, 2), 16) / 255, tonumber(hex:sub(3, 4), 16) / 255,
+			tonumber(hex:sub(5, 6), 16) / 255 } or nil
+		self:PaintPill()
+	end
+
+	if not shown then
 		self.pillFrame:Hide()
 		return
 	end
-	local width = math.min(kit.TextWidth(fs) or room, room)
+	-- What FitLine just measured; measured here only when it could not fit.
+	local width = fit.drawn[fs] or kit.TextWidth(fs) or room
+	if width > room + 0.5 then
+		-- Cut even at its smallest: a tag ending in an ellipsis is no tag, so
+		-- its words are left out of this paint. The spine still says why.
+		self.dropped = true
+		fs:SetText("")
+		self.pillFrame:Hide()
+		return
+	end
 	local lead = glyph and self.glyphRoom or 0
-	self.pillFrame:SetWidth(math.floor(width + self.pillH + lead + 0.5))
+	self.pillFrame:SetWidth(math.floor(math.min(width, room) + self.pillH + lead + 0.5))
 	fs:ClearAllPoints()
 	fs:SetPoint("LEFT", self.pillFrame, "LEFT", self.pillH / 2 + lead, 0)
 	self.glyph:SetShown(glyph and true or false)
@@ -697,17 +820,22 @@ function Luxe:Chip(on)
 	local kit = self.kit
 	if on then
 		-- The name wins: a chip that would leave the name cut even at its
-		-- smallest size is left out of this paint.
+		-- smallest size is left out of this paint. The margin is on the
+		-- chip's side, so it steps aside before the name reaches its edge.
+		-- The width is the one FitLine just measured.
 		local name, fit = kit.name, kit.fit
-		local width, size, base = kit.TextWidth(name), fit.size[name], fit.base[name]
+		local width, size, base = fit.drawn[name] or kit.TextWidth(name), fit.size[name], fit.base[name]
 		if width and size and base and size > 0 then
 			local least = math.max(7, math.floor(base * 0.8 + 0.5))
-			if width * least / size > self.W - self.textX - fit.chipRoom + 0.5 then on = false end
+			if width * least / size > self.W - self.textX - fit.chipRoom - 0.5 then on = false end
 		end
 	end
 	if on then
-		local width = (kit.TextWidth(kit.count) or self.sub) + 0.9 * self.chipH
-		self.chipBox:SetWidth(math.floor(width + 0.5))
+		-- Sized from the digits, not measured: a digit is about six tenths of
+		-- the font across.
+		local text = kit.count:GetText()
+		local digits = type(text) == "string" and math.max(1, #text) or 1
+		self.chipBox:SetWidth(math.floor(digits * 0.6 * self.sub + 0.9 * self.chipH + 0.5))
 	end
 	for _, s in ipairs({ self.chipFill, self.chipEdge }) do
 		for _, t in ipairs(s) do t:SetShown(on) end
@@ -727,7 +855,12 @@ function Luxe:SetInk(ink, ground, text)
 	for _, t in ipairs(self.ground) do t:SetAlpha(ground) end
 	for _, t in ipairs({ self.shade, self.rim, kit.icon }) do t:SetAlpha(ink) end
 	if kit.cooldown then kit.cooldown:SetAlpha(ink) end
-	kit.textLayer:SetAlpha(text)
+	-- On the lines themselves, not on textLayer: Prompt's cross-fade plays
+	-- on textLayer, and an animation's alpha replaces its frame's own, so a
+	-- name changing in a fight flashed to full and popped back.
+	kit.name:SetAlpha(text)
+	kit.sub:SetAlpha(text)
+	kit.count:SetAlpha(text)
 end
 
 -- The marks in one colour: the spine, its light, the ring, the tag.
@@ -744,19 +877,28 @@ function Luxe:Tint(r, g, b, ring)
 	self.hoverGlow:SetVertexColor(r, g, b, 0.35)
 	self.ring:SetVertexColor(r, g, b, 0.85)
 	self.ring:SetShown(ring and kit.icon:IsShown() and true or false)
-	for _, t in ipairs(self.pillFill) do t:SetVertexColor(r, g, b, 0.15) end
-	for _, t in ipairs(self.pillEdge) do t:SetVertexColor(r, g, b, 0.50) end
+	-- The top edge, shown by PaintReason for "both" only.
+	SliceColor(self.edge, r, g, b, 0.45)
+	SliceColor(self.trayEdge, r, g, b, 0.30)
+	local tint = self.tint or {}
+	tint[1], tint[2], tint[3] = r, g, b
+	self.tint = tint
+	self:PaintPill()
 	local mr, mg, mb = Mix(r, g, b, kit.ink.light and 0.35 or 0)
 	local tr, tg, tb = kit.Legible(mr, mg, mb, 4.5)
 	kit.sub:SetTextColor(tr, tg, tb, 1)
 	self.glyph:SetVertexColor(tr, tg, tb, 1)
-	self.tint = { r, g, b }
 end
 
 function Luxe:PaintReason(r, g, b, _, mode)
 	mode = mode or "icon"
 	if mode == "off" then r, g, b = NEUTRAL[1], NEUTRAL[2], NEUTRAL[3] end
 	self:Tint(r, g, b, mode == "icon" or mode == "both")
+	-- "Both" is the ring and the spine, which "icon" already is on this look,
+	-- and the card's top edge lit in the reason colour, which only it is.
+	self.both = mode == "both"
+	SliceShown(self.edge, self.both)
+	SliceShown(self.trayEdge, self.both and self.trayShown or false)
 	-- A refusal greyed the icon; a fight keeps it grey.
 	self.kit.icon:SetDesaturated(self.combat and true or false)
 end
@@ -771,6 +913,11 @@ function Luxe:Combat(on)
 		self.pulseFrame:SetAlpha(0)
 		self.glow:SetAlpha(0)
 		self.wash:SetAlpha(0)
+		-- The tag keeps the reason round the fight's grey words.
+		if self.pillHex then
+			self.pillHex, self.pillCode = nil, nil
+			self:PaintPill()
+		end
 	else
 		self:SetInk(1, 1, 1)
 		self.glow:SetAlpha(1)
@@ -838,8 +985,14 @@ function Luxe:Flourish(kind)
 		self.burstAnim:Stop()
 		self.burstAnim:Play()
 	end
-	-- Nothing for a cast nobody confirmed: a flourish is a claim.
-	if kind == "cast" then self:Sheen(1, 1, 1, 0.40) end
+	-- Nothing for a cast nobody confirmed: a flourish is a claim. The light
+	-- is the landed buff's green taken towards white: plain white over the
+	-- near-black card only greys it.
+	if kind == "cast" then
+		local o = OUTCOME.cast
+		local r, g, b = Mix(o[1], o[2], o[3], 0.6)
+		self:Sheen(r, g, b, 0.30)
+	end
 end
 
 function Luxe:StopFlourishes()
@@ -866,44 +1019,56 @@ end
 ---------------------------------------------------------------------------
 
 -- The name stays where it was and the tag becomes the verdict, so the eye
--- never has to find the person again.
+-- never has to find the person again -- when there is a tag to carry it.
+-- With one line, or no verdict word in this client's language, the name line
+-- says it the built-in looks' way ("buffed Anna", translated).
 function Luxe:PaintOutcome(kind, lead, sub, who, stamp)
 	local kit = self.kit
 	local o = OUTCOME[kind] or OUTCOME.cast
+	local tag = kit.sub:IsShown()
 	local word
 	if kind == "failed" then
 		word = (sub and sub ~= "" and sub) or (Known("could not buff") and L["could not buff"])
 	elseif kind == "sent" then
+		-- No fallback: the built-in sub is a sentence, not a tag.
 		word = Known("sent, unconfirmed") and L["sent, unconfirmed"]
 	else
-		word = Known("buffed") and L["buffed"]
+		-- The built-in sub is translated and short ("the game confirmed it"):
+		-- under a tick it says the same.
+		word = (Known("buffed") and L["buffed"]) or (sub and sub ~= "" and sub)
 	end
-	if word and who then
-		kit.SetLine(kit.name, who)
-	else
-		-- Not in this client's language yet, or nobody to name: the built-in
-		-- looks' lines, which are.
-		kit.SetLine(kit.name, lead)
-		word = sub or ""
-	end
+	local stays = tag and who and word
+	kit.SetLine(kit.name, stays and who or lead)
 	self:Tint(o[1], o[2], o[3], true)
 	kit.icon:SetDesaturated(kind == "failed" or self.combat or false)
 	self.glyph:SetTexture(ART .. (kind == "failed" and "Cross" or "Check"))
 	self.glyphOn = kind ~= "sent"
-	if kit.sub:IsShown() then
-		kit.SetLine(kit.sub, word)
+	if tag then
+		-- With the verdict on the name line, the tag holds what the built-in
+		-- looks' second line would (nothing for a sent cast, whose sentence
+		-- would fill the tag end to end).
+		kit.SetLine(kit.sub, stays and word or (kind ~= "sent" and sub) or "")
+		local dropped = self.dropped
 		self.verdict = kit.sub:GetText()
 		self:Fitted(kit.sub)
+		-- The verdict would not fit the tag even at its smallest: the name
+		-- line says it instead.
+		if stays and (dropped or self.dropped) then kit.SetLine(kit.name, lead) end
 	end
 	-- The wash, once per click: a repaint during the outcome leaves it be.
+	-- None for a cast nobody confirmed, which claims nothing: its words say it.
 	if stamp ~= self.washFor then
 		self.washFor = stamp
-		SliceColor(self.result, o[1], o[2], o[3], 0.16)
 		self.resultAnim:Stop()
-		self.resultFrame:SetAlpha(1)
-		if kit.FullEffects() then
-			self.resultAnim.to = 0
-			self.resultAnim:Play()
+		if kind == "sent" then
+			self.resultFrame:SetAlpha(0)
+		else
+			SliceColor(self.result, o[1], o[2], o[3], 0.16)
+			self.resultFrame:SetAlpha(1)
+			if kit.FullEffects() then
+				self.resultAnim.to = 0
+				self.resultAnim:Play()
+			end
 		end
 	end
 end
@@ -927,6 +1092,7 @@ function Luxe:PaintQueue(rows, shown, above)
 		self.trayShown, self.above = list, above
 		SliceShown(self.tray, list)
 		SliceShown(self.trayBevel, list)
+		SliceShown(self.trayEdge, list and self.both or false)
 		-- The shadow falls under both.
 		if not list then
 			PlaceSlice(self.shadow, art, art, 12, 9, 12, 15)
@@ -944,7 +1110,7 @@ function Luxe:PaintQueue(rows, shown, above)
 	local pitch = self.pitch
 	local height = 8 + shown * pitch
 	-- Laid out again only when the number of rows or the side changes: the
-	-- scan repaints this several times a second, and the gradient is not free.
+	-- scan repaints this several times a second. The gradient is Apply's.
 	local placed = self.trayHeight == height and self.trayAt == above
 	if not placed then
 		self.trayHeight, self.trayAt = height, above
@@ -957,7 +1123,6 @@ function Luxe:PaintQueue(rows, shown, above)
 			self.trayBox:SetPoint("TOPRIGHT", art, "BOTTOMRIGHT", 0, -3)
 		end
 		self.trayBox:SetHeight(height)
-		SliceGradient(self.tray, height, self.trayTop, self.trayBottom, kit.Gradient)
 	end
 
 	local dotX = SPINE_X + self.spineW / 2

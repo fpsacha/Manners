@@ -47,12 +47,16 @@
 --   Hide()          The player picked another look (out of combat). Hide every
 --                   region of yours and undo every change to a shared one:
 --                   the icon's mask, alpha and desaturation, the cooldown's
---                   swipe, textLayer's level and alpha, any reparented text.
+--                   swipe, textLayer's level and alpha, any reparented text,
+--                   the lines' alpha, and any kit.fit.room it set for the
+--                   name or the reason line (the built-in looks set none).
 --   PlaceLines(right)  Anchor kit.name and kit.sub (both just cleared). `right`
 --                   is the inset at the right; kit.fit.twoLine says whether
 --                   the second line is up.
 --   Fitted(fs)      A line was just set or refitted (FitLine): size anything
---                   that hugs its text.
+--                   that hugs its text. kit.fit.drawn[fs] is its width when
+--                   FitLine measured it at the size it left; measure only
+--                   when that is nil, and leave a line that has not changed.
 --   PaintReason(r, g, b, reason, mode)  The reason's colour (already the custom
 --                   one with "Colour marker by reason" off) and accentMode.
 --                   Colour the marks and kit.sub. Skipped when nothing
@@ -83,8 +87,8 @@
 --   button art textLayer icon cooldown name sub count rows
 --                   the shared regions: button is secure, so never touch it;
 --                   cooldown can be nil on a client without the template.
---   fit ink         Prompt's text layout and ground tables (read; room and
---                   rowReason may be written).
+--   fit ink         Prompt's text layout and ground tables (read; room,
+--                   flags -- in Styled -- and rowReason may be written).
 --   Gradient(tex, orientation, r1, g1, b1, a1, r2, g2, b2, a2)
 --   Legible(r, g, b, minimum) -> r, g, b   held to that contrast on the panel
 --   TextWidth(fs)   the line's unbounded width, or nil

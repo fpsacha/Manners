@@ -275,10 +275,11 @@ local defaults = {
 			hideInCombat = false,
 
 			-- Luxe (Looks/Luxe.lua) since 1.5: the default for everybody who
-			-- never picked a look. AceDB stores a value only once it differs
-			-- from its default, so a profile that stayed on glass without
-			-- choosing it moves to Luxe too, deliberately; one that picked
-			-- glass, framed or minimal keeps it.
+			-- never picked a look. AceDB drops a value equal to its default
+			-- when it saves, and glass was the default until now, so nobody's
+			-- glass was ever saved: everybody on glass, chosen or not, moves
+			-- to Luxe and has to pick Glass again to keep it. A profile that
+			-- picked framed or minimal keeps it.
 			style = "luxe",
 			accentByReason = true,
 			-- standard | colourblind: which four reason colours (Prompt.lua).
