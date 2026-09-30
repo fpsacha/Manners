@@ -3824,10 +3824,10 @@ mutate("Prompt.lua",
 
 # The follow prompt asked about a party member in a fight.
 mutate("Core.lua",
-       "\tif not InCombatLockdown() then\n"
-       "\t\tlocal follow = safecall(_G.CheckInteractDistance, unit, 4)",
-       "\tif true then\n"
-       "\t\tlocal follow = safecall(_G.CheckInteractDistance, unit, 4)",
+       "\tif not InCombatLockdown() and type(_G.CheckInteractDistance) == \"function\" then\n"
+       "\t\tlocal follow = plain(_G.CheckInteractDistance(unit, 4))",
+       "\tif type(_G.CheckInteractDistance) == \"function\" then\n"
+       "\t\tlocal follow = plain(_G.CheckInteractDistance(unit, 4))",
        "shout reach asked in combat",
        expect="which the game blocks",
        script="runscenarios.py")

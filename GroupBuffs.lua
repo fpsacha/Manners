@@ -113,15 +113,10 @@ for i = 1, 40 do
 	TOKENS.party[i] = "party" .. i
 end
 
--- The raid subgroup a unit is in, or nil where nothing says. A party-wide
--- spell reaches the target's own subgroup of a raid and nobody else in it.
-local function RaidSubgroup(unit)
-	local index = tonumber(unit:match("^raid(%d+)$")) or plain(UnitInRaid and UnitInRaid(unit))
-	if type(index) ~= "number" then return nil end
-	local _, _, subgroup = safecall(_G.GetRaidRosterInfo, index)
-	if type(subgroup) ~= "number" then return nil end
-	return subgroup
-end
+-- The raid subgroup a unit is in, or nil where nothing says: Core's. A
+-- party-wide spell reaches the target's own subgroup of a raid and nobody
+-- else in it.
+local RaidSubgroup = ns.RaidSubgroup
 
 -- Whether `unit` carries a blessing of ours other than `key`, or cannot be
 -- read: either way a Greater Blessing of `key` may take one of ours off them.

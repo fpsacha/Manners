@@ -12,7 +12,7 @@ local InCombatLockdown = _G.InCombatLockdown
 local GetTime = _G.GetTime
 
 -- Core.lua's, which loads first.
-local safecall = ns.safecall
+local plain, safecall = ns.plain, ns.safecall
 
 ---------------------------------------------------------------------------
 -- how near is near
@@ -117,6 +117,10 @@ do
 	-- nil as "further out", so a client withholding answers put everybody at 28-40
 	-- yards. Asked here, a refusal stays a refusal, in one call rather than five.
 	-- nil for an edge backed by a spell, where GetRange is all there is.
+	--
+	-- Both calls are the client's, handed a number and a unit token: they answer
+	-- or withhold a secret, which plain() makes "cannot tell", and do not throw,
+	-- so they are called directly, once per passer-by per scan.
 	local function DirectCheck(lib, edge)
 		local list = lib.friendRC
 		if type(list) ~= "table" then return nil end
@@ -126,7 +130,11 @@ do
 				local index = tonumber(info:match("^interact:(%d+)$"))
 				if index then
 					return function(unit)
-						local r = safecall(_G.CheckInteractDistance, unit, index)
+						-- Read at call time: the client can lack it, and the rung
+						-- outlives the moment it was built.
+						local check = _G.CheckInteractDistance
+						if type(check) ~= "function" then return nil end
+						local r = plain(check(unit, index))
 						if r == nil then return nil end
 						return r == true or r == 1
 					end
@@ -135,7 +143,7 @@ do
 				local inRange = (C_Item and C_Item.IsItemInRange) or _G.IsItemInRange
 				if item and type(inRange) == "function" then
 					return function(unit)
-						local r = safecall(inRange, item, unit)
+						local r = plain(inRange(item, unit))
 						if r == nil then return nil end
 						return r == true or r == 1
 					end
@@ -204,8 +212,12 @@ do
 				-- the function exists and dropped by its own silence.
 				if type(want) ~= "number" then return nil end
 				if type(_G.CheckInteractDistance) ~= "function" then return nil end
+				-- Called directly, as DirectCheck does, and read at call time for
+				-- the same reason: the client can take it away after this is built.
 				local function read(unit)
-					local r = safecall(_G.CheckInteractDistance, unit, INTERACT_DUEL)
+					local check = _G.CheckInteractDistance
+					if type(check) ~= "function" then return nil end
+					local r = plain(check(unit, INTERACT_DUEL))
 					if r == nil then return nil end
 					return r == true or r == 1
 				end
@@ -310,8 +322,11 @@ do
 
 		if not quiet then prox.asked = prox.asked + 1 end
 		local verdict, heard = nil, false
+		-- Each rung is asked directly: the one third-party call among them,
+		-- LibRangeCheck's GetRange, is protected inside its own rung, and the
+		-- client calls in the rest cannot throw (see DirectCheck).
 		for _, rung in ipairs(ladder) do
-			local near, answered = safecall(rung.ask, unit)
+			local near, answered = rung.ask(unit)
 			if answered == true then
 				heard = true
 				if not quiet then proxBlind[rung.name] = 0 end

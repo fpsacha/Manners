@@ -250,11 +250,10 @@ end
 
 -- ------------------------------------------------------------------ pvp 4
 -- A flag the game will not show is "cannot tell", and cannot tell offers, as
--- everywhere else in the addon: a secret, a call that throws, one flag read
--- and the other withheld, and no such call at all.
+-- everywhere else in the addon: a secret or a call that is missing, and one
+-- flag read with the other withheld.
 for _, case in ipairs({
 	{ label = "a secret", pvp = "secret" },
-	{ label = "a throw", pvp = "throw" },
 	{ label = "the free-for-all flag withheld", ffa = "secret" },
 	{ label = "no such call", missing = true },
 }) do
@@ -270,6 +269,35 @@ for _, case in ipairs({
 		if not offered(ns, ANNA) then
 			fail(scenario, "a passer-by whose flag cannot be read was held back")
 		end
+	end)
+end
+
+-- A flag read that throws is a fault, not "cannot tell": the flags are asked
+-- directly on every scan (Core.lua, the protection policy), since the client
+-- answers them or withholds a secret. So a throw reaches the scan's Guard,
+-- which names it in /manners errors and keeps the scanner going: once the call
+-- stops throwing, the next scan offers her again.
+do
+	local scenario = "pvp: a flag read that throws is named, and the scanner lives on"
+	with(scenario, { people = { nameplate1 = { "Anna", "Aim" } } }, function(ns)
+		if not offered(ns, ANNA) then
+			fail(scenario, "SKIPPED -- the passer-by was not offered unflagged")
+			return
+		end
+		Mock.pvp = { nameplate1 = "throw" }
+		local before = #ns.errors
+		scan(ns, 0.4)
+		if #ns.errors <= before then
+			fail(scenario, "a flag read that throws was not named in /manners errors")
+		end
+		Mock.pvp = nil
+		scan(ns, 0.4)
+		if ns.Prompt:PanelName() ~= ANNA or not macro(ns):find(ANNA, 1, true) then
+			fail(scenario, "the scanner did not offer her again once the flag read stopped throwing: "
+				.. flat(macro(ns)))
+		end
+		-- Named, and over: nothing left for `with` to call unexplained.
+		wipe(ns.errors)
 	end)
 end
 

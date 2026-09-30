@@ -40,6 +40,33 @@ _G["BINDING_NAME_CLICK MannersPrompt:LeftButton"] = L["Buff the prompted player"
 
 ---------------------------------------------------------------------------
 -- secret-safe access
+--
+-- The protection policy. On this client most API calls hand back a secret
+-- rather than throw, so a result is made safe with plain(), which turns a
+-- secret into nil ("cannot tell"), and the call itself is not wrapped. A
+-- function that may be missing gets a type() check on the global, read at
+-- call time.
+--
+-- pcall is only for calls that can throw:
+--   - the aura reads the client restricts per spell. These keep a bare inline
+--     pcall per read, never safecall, behind the aura cache;
+--   - third-party library code (LibRangeCheck);
+--   - calls handed a value that may be secret, such as a GUID;
+--   - APIs whose signature differs between client generations;
+--   - macro and settings setup.
+--
+-- Everything else on a busy path (per unit, per event, per repaint) calls the
+-- client directly: type check, call, then plain() on each return it uses.
+-- safecall costs about 310 ns a call against about 45 ns for the direct form,
+-- so it is for once-per-scan and UI-rate calls, where it costs nothing
+-- measurable.
+--
+-- ns.Guard stays at event, timer and module boundaries: one pcall per event,
+-- about 80 ns. One fault is then named in /manners errors and never stops the
+-- scanner. A throw inside the scan is caught there, not read as "cannot tell".
+--
+-- tests/scenarios/perf-budget.lua holds the scan to this: at most 12 pcalls
+-- per city scan and 30 per raid scan.
 ---------------------------------------------------------------------------
 
 local issecretvalue = _G.issecretvalue
@@ -55,11 +82,20 @@ local function plain(v)
 end
 ns.plain = plain
 
+-- A call that may throw, or may not exist, for the once-per-scan and UI-rate
+-- places the policy above allows it: nil for any of that, the first three
+-- returns made plain. The test is inline rather than three plain() calls,
+-- which is the same answer for less.
 local function safecall(fn, ...)
 	if type(fn) ~= "function" then return nil end
 	local ok, a, b, c = pcall(fn, ...)
 	if not ok then return nil end
-	return plain(a), plain(b), plain(c)
+	if issecretvalue then
+		if issecretvalue(a) then a = nil end
+		if issecretvalue(b) then b = nil end
+		if issecretvalue(c) then c = nil end
+	end
+	return a, b, c
 end
 ns.safecall = safecall
 
@@ -1338,7 +1374,9 @@ local function UnitHasBuff(unit, buff, guid)
 				-- is true for any player's aura, so only a readable token answers.
 				local source = plain(aura.sourceUnit)
 				if type(source) == "string" then
-					local same = safecall(UnitIsUnit, source, "player")
+					-- Called directly: the token is a plain string the client
+					-- wrote, which UnitIsUnit answers or withholds, never throws on.
+					local same = plain(UnitIsUnit(source, "player"))
 					if same ~= nil then mine = same == true end
 				end
 				break
@@ -1422,23 +1460,54 @@ local function InRange(unit, buff)
 	local name = ns.BuffName(buff)
 
 	-- By id first: a name has to be resolved against the spellbook, and this
-	-- client is unreliable about exactly that.
+	-- client is unreliable about exactly that. Called directly, each handed
+	-- only the argument type it takes (an id as a number, a name as a string)
+	-- and a unit token, so neither can throw; an answer withheld is a secret,
+	-- which plain() makes "cannot tell". Asked of every person on every scan.
+	local spells = C_Spell
+	local byId = type(spells) == "table" and spells.IsSpellInRange or nil
+	if type(byId) ~= "function" then byId = nil end
+	local byName = _G.IsSpellInRange
+	if type(byName) ~= "function" then byName = nil end
 	local r
-	if info and info.topRank then
-		r = safecall(C_Spell and C_Spell.IsSpellInRange, info.topRank, unit)
+	if byId and info and type(info.topRank) == "number" then
+		r = plain(byId(info.topRank, unit))
 	end
-	if r == nil then r = safecall(C_Spell and C_Spell.IsSpellInRange, name, unit) end
-	if r == nil then r = safecall(_G.IsSpellInRange, name, unit) end
+	if type(name) == "string" then
+		if r == nil and byId then r = plain(byId(name, unit)) end
+		if r == nil and byName then r = plain(byName(name, unit)) end
+	end
 	if r == nil then return nil end
 	return (r == true or r == 1)
 end
 ns.InRange = InRange
 
+-- The raid subgroup (1-8) a unit is in, or nil where nothing says. A raid
+-- token's number is its place on the roster; any other token asks UnitInRaid.
+-- A party-wide spell reaches the target's own subgroup of a raid and nobody
+-- else in it, and "Raid groups I buff" goes by it too. The roster is asked
+-- directly: it is handed a plain number, which it answers (or answers nil
+-- for) and does not throw on, and a subgroup withheld is a secret, which
+-- plain() makes "cannot tell".
+local function RaidSubgroup(unit)
+	local index = tonumber(unit:match("^raid(%d+)$")) or plain(UnitInRaid and UnitInRaid(unit))
+	if type(index) ~= "number" then return nil end
+	local roster = _G.GetRaidRosterInfo
+	if type(roster) ~= "function" then return nil end
+	local _, _, subgroup = roster(index)
+	subgroup = plain(subgroup)
+	if type(subgroup) ~= "number" then return nil end
+	return subgroup
+end
+ns.RaidSubgroup = RaidSubgroup
+
 -- Whether a partyOnly buff the player casts reaches this unit. In a raid a
 -- vanilla shout reaches only the caster's subgroup (ns.PARTY_IS_SUBGROUP; later
 -- flavours made it raid-wide): UnitInSubgroup where the client has it, as the
 -- Camelot class-buff reminder uses, else the raid roster. `inRaid` is the
--- scan's reading of IsInRaid; nil asks here.
+-- scan's reading of IsInRaid; nil asks here. UnitInSubgroup is handed the
+-- token the walk has already asked UnitExists and the rest about, so it is
+-- called directly, and only once the check above says it is there.
 local function SameParty(unit, inRaid)
 	if not unit then return false end
 	if inRaid == nil then inRaid = plain(IsInRaid and IsInRaid()) == true end
@@ -1449,13 +1518,9 @@ local function SameParty(unit, inRaid)
 		return type(plain(UnitInRaid and UnitInRaid(unit))) == "number"
 	end
 	if type(_G.UnitInSubgroup) == "function" then
-		return safecall(_G.UnitInSubgroup, unit) == true
+		return plain(_G.UnitInSubgroup(unit)) == true
 	end
-	local index = plain(UnitInRaid and UnitInRaid(unit))
-	local mine = plain(UnitInRaid and UnitInRaid("player"))
-	if type(index) ~= "number" or type(mine) ~= "number" then return false end
-	local _, _, theirs = safecall(_G.GetRaidRosterInfo, index)
-	local _, _, ours = safecall(_G.GetRaidRosterInfo, mine)
+	local theirs, ours = RaidSubgroup(unit), RaidSubgroup("player")
 	return theirs ~= nil and theirs == ours
 end
 ns.SameParty = SameParty
@@ -1472,15 +1537,20 @@ ns.SameParty = SameParty
 -- the game blocks it for a friendly unit and names the addon, which no pcall
 -- catches. LibRangeCheck is still asked in a fight, because it switches to its
 -- in-combat checkers by itself.
+--
+-- The follow prompt is called directly: handed a token, it answers or
+-- withholds a secret. LibStub's silent lookup returns nil for a library that
+-- is not there rather than throwing. LibRangeCheck's GetRange is third-party
+-- code, so it alone keeps its safecall.
 local function ShoutReach(unit)
-	if not InCombatLockdown() then
-		local follow = safecall(_G.CheckInteractDistance, unit, 4)
+	if not InCombatLockdown() and type(_G.CheckInteractDistance) == "function" then
+		local follow = plain(_G.CheckInteractDistance(unit, 4))
 		if follow ~= nil then return follow == true or follow == 1 end
 	end
 
 	local stub = _G.LibStub
 	local lib = type(stub) == "table" and type(stub.GetLibrary) == "function"
-		and safecall(stub.GetLibrary, stub, "LibRangeCheck-3.0", true) or nil
+		and stub:GetLibrary("LibRangeCheck-3.0", true) or nil
 	if type(lib) == "table" and type(lib.GetRange) == "function" then
 		local _, maxRange = safecall(lib.GetRange, lib, unit)
 		if type(maxRange) == "number" and maxRange <= 30 then return true end

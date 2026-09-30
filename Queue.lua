@@ -980,16 +980,9 @@ local function SweepReason(name, now, ready, db)
 	return nil
 end
 
--- The raid group (1-8) a unit is in, or nil when it cannot be told. A raid
--- token's number is its place on the roster; any other token asks UnitInRaid,
--- as SameParty does.
-local function RaidGroupOf(unit)
-	local index = tonumber(unit:match("^raid(%d+)$")) or plain(UnitInRaid and UnitInRaid(unit))
-	if type(index) ~= "number" then return nil end
-	local _, _, group = safecall(_G.GetRaidRosterInfo, index)
-	if type(group) ~= "number" then return nil end
-	return group
-end
+-- The raid group (1-8) a unit is in, or nil when it cannot be told: Core's
+-- one reading of the roster, which the group casts ask too.
+local RaidGroupOf = ns.RaidSubgroup
 
 -- The raid groups still ticked, as "1, 2, 3", for /manners debug: nil when all
 -- eight are (the setting changes nothing), false when none are.
@@ -1056,8 +1049,8 @@ end
 -- a buff on somebody flagged starts that countdown again. You are never
 -- judged by it: your own entry (SelfEntry) never passes through it.
 --
--- A flag the game will not show (a secret, a call that is missing or throws)
--- is "cannot tell", and the person is offered, as everywhere else here.
+-- A flag the game will not show (a secret or a call that is missing) is
+-- "cannot tell", and the person is offered, as everywhere else here.
 -- Somebody no token reaches -- a favour from a stranger, a passer-by
 -- remembered -- is judged on the flag last read off them, kept on the debt and
 -- on the memory. A favour owed to somebody flagged stays owed, and is offered
@@ -1072,10 +1065,17 @@ end
 ---------------------------------------------------------------------------
 
 -- Whether a unit is flagged, the free-for-all flag included: true, false, or
--- nil when the game will not say.
+-- nil when the game will not say. Asked of every person on every scan, so
+-- called directly: the walk has already handed the same token, unprotected,
+-- to UnitExists, UnitIsUnit, UnitIsPlayer, UnitCanAssist and the rest, and a
+-- flag withheld comes back a secret, which plain() makes "cannot tell". Each
+-- function is read at call time and may be missing. Written out rather than
+-- as `f and plain(f(unit)) or nil`, which turns a definite false into nil.
 local function PvPFlag(unit)
-	local pvp = safecall(_G.UnitIsPVP, unit)
-	local ffa = safecall(_G.UnitIsPVPFreeForAll, unit)
+	local isPvP, isFFA = _G.UnitIsPVP, _G.UnitIsPVPFreeForAll
+	local pvp, ffa
+	if type(isPvP) == "function" then pvp = plain(isPvP(unit)) end
+	if type(isFFA) == "function" then ffa = plain(isFFA(unit)) end
 	if pvp == true or ffa == true then return true end
 	if pvp == false and ffa == false then return false end
 	return nil

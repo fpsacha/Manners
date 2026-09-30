@@ -171,7 +171,8 @@ mutate("Queue.lua",
        script="runscenarios.py")
 
 # A token with no raid number (mouseover, a nameplate) never placed in a group.
-mutate("Queue.lua",
+# The reading is Core's RaidSubgroup, which Queue.lua's RaidGroupOf names.
+mutate("Core.lua",
        "\tlocal index = tonumber(unit:match(\"^raid(%d+)$\")) or plain(UnitInRaid and UnitInRaid(unit))\n",
        "\tlocal index = tonumber(unit:match(\"^raid(%d+)$\"))\n",
        "raid group only read off raid tokens",
