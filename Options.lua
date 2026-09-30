@@ -2597,7 +2597,10 @@ local function BuildSpeechTab()
 				type = "input",
 				name = L["Your lines (one per line)"],
 				order = 23,
-				multiline = 10,
+				-- Tall enough for In character's examples, about 25 lines, to
+				-- read without scrolling: at 10 rows a player saw a handful and
+				-- took them for the whole set.
+				multiline = 26,
 				width = "full",
 				hidden = speechOff,
 				-- Typing over In character's examples makes them your own
