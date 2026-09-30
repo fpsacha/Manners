@@ -715,8 +715,8 @@ mutate("Clicks.lua",
 # 18. user-typed text handed to gsub as a replacement, where % is an escape.
 #     "10% left" in the top-up wording throws on every repaint.
 mutate("Core.lua",
-       '\treturn ((text or ""):gsub(token, function() return value or "" end))\n',
-       '\treturn ((text or ""):gsub(token, value or ""))\n',
+       '\t\treturn (text:gsub(token, SwapValue))\n',
+       '\t\treturn (text:gsub(token, swapValue))\n',
        "typed text used as a gsub replacement",
        expect="a per-cent sign in the wording does not stop the prompt",
        script="runscenarios.py")

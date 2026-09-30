@@ -488,3 +488,42 @@ do
 	restoreUnits()
 end
 Mock.reset()
+
+-- ------------------------------------------------------------------ perf 11
+-- ns.Swap, which the prompt's repaint asks about seventeen times, answers a
+-- line without its token straight away and makes nothing to answer it, and
+-- reads neither the line nor the value as a pattern: a reason line typed as
+-- "10% left" and a name with "%1" in it come through as typed.
+Mock.reset()
+do
+	local scenario = "ns.Swap swaps only its token, and reads nothing as a pattern"
+	with(scenario, function()
+		local ns = load(scenario)
+		if not ns then return end
+		local Swap = ns.Swap
+		if Swap(nil, "{name}", "Anna") ~= "" then
+			fail(scenario, "no line at all did not come back empty: " .. tostring(Swap(nil, "{name}", "Anna")))
+		end
+		local line = "Buff them -- 10% left"
+		if Swap(line, "{name}", "Anna") ~= line then
+			fail(scenario, "a line without the token came back changed: " .. tostring(Swap(line, "{name}", "Anna")))
+		end
+		local said = Swap("{name} has {time}", "{time}", "10%")
+		if said ~= "{name} has 10%" then
+			fail(scenario, "a value with % in it was not put in as typed: " .. tostring(said))
+		end
+		said = Swap("Thanks, {name}!", "{name}", "%1")
+		if said ~= "Thanks, %1!" then
+			fail(scenario, "a value reading like a capture was not put in as typed: " .. tostring(said))
+		end
+		said = Swap(Swap("{name}: {buff}, {name}", "{name}", "Anna"), "{buff}", "Arcane Intellect")
+		if said ~= "Anna: Arcane Intellect, Anna" then
+			fail(scenario, "two tokens in one line were not both swapped: " .. tostring(said))
+		end
+		if Swap("{name}", "{name}", nil) ~= "" then
+			fail(scenario, "no value did not swap the token for nothing")
+		end
+		noErrors(scenario, ns)
+	end)
+end
+Mock.reset()

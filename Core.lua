@@ -104,8 +104,21 @@ ns.safecall = safecall
 -- and the reason lines and phrases are typed by the player ("10% left"); a
 -- function replacement is returned verbatim. Shared here so Core and Prompt
 -- cannot disagree. The parentheses drop gsub's second return, the match count.
-function ns.Swap(text, token, value)
-	return ((text or ""):gsub(token, function() return value or "" end))
+--
+-- A repaint asks this about seventeen times, mostly for a token its line does
+-- not hold, so a plain find answers that first and nothing is made for it;
+-- every caller's token is a literal "{word}", which a plain find and gsub read
+-- alike. Where the token is there, the one file-level function hands back the
+-- value, rather than a new closure per call.
+do
+	local swapValue
+	local function SwapValue() return swapValue end
+	function ns.Swap(text, token, value)
+		text = text or ""
+		if not text:find(token, 1, true) then return text end
+		swapValue = value or ""
+		return (text:gsub(token, SwapValue))
+	end
 end
 
 ---------------------------------------------------------------------------
