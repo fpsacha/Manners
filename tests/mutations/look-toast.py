@@ -239,7 +239,10 @@ mutate(TOAST,
        "\tif self.keyUp then inset = math.max(inset, self.keyRoom or 0) end\n",
        "",
        "the name runs under the key's chip",
-       expect="the name runs under the key's chip",
+       # With a key bound the count now pairs beside it (1.5.1), and the pair
+       # already keeps the name clear; the key's own room is what holds when
+       # the key's chip grows, which is the check that sees it.
+       expect="Toast gives the lines the new key's room",
        script="runscenarios.py")
 
 # --- the favour clock ------------------------------------------------------

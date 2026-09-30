@@ -62,7 +62,7 @@ Favours you return also earn you a title, from *Well Brought Up* at 10 to *The V
 
 ### The prompt
 
-Six looks to choose from under Look > Style: **Luxe** (the default: a slim dark card with a stripe and a tag in the reason colour), **Toast** (a gilded banner with a medallion round the icon), **Arcane** (smoked glass, a turning rune circle and a keycap showing your key), and Glass, Framed and Minimal. Your own colours and fonts, and LibSharedMedia support. When a buff lands a ring pops out of the icon and light crosses the panel; a refused one gives a small shake. The icon shows the global cooldown sweep like an action bar. Set *Animations* to *Calm* if you would rather it kept still.
+Six looks to choose from under Look > Style: Glass (the default), Framed and Minimal, and three new ones -- **Luxe** (a slim dark card with a stripe and a tag in the reason colour), **Toast** (a gilded banner with a medallion round the icon), **Arcane** (smoked glass, a turning rune circle and a keycap showing your key). Your own colours and fonts, and LibSharedMedia support. When a buff lands a ring pops out of the icon and light crosses the panel; a refused one gives a small shake. The icon shows the global cooldown sweep like an action bar. Set *Animations* to *Calm* if you would rather it kept still.
 
 Leave the text colour at white and it turns dark by itself on a light panel. *Reason colours* under Look > Style has a colour-blind friendly set: pale yellow, orange, sky blue and violet.
 

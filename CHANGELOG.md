@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.5.1
+
+- **The new looks read properly in the game.** Luxe's reason tag could be
+  white on white (a passer-by's "needs Arcane Intellect"), Toast put gold text
+  on a gold banner, and Arcane laid light over the spell icon. Now the spell
+  icon is drawn clean in all three -- only a ring around it -- the text always
+  sits on a dark ground, and Luxe's tag and count are dark with the reason
+  colour round the edge. The count no longer sits on the icon.
+- **Glass is the default look again** while the new looks settle in. If you
+  picked Luxe, Toast or Arcane yourself, you keep it.
+- **"Say a line when I buff someone" now speaks every time you buff somebody.**
+  "Only when I buff someone back" was on underneath it by default, so buffing
+  a passer-by said nothing. It is off by default now; the two thank-you
+  choices on Start here still switch it on.
+- **In character shows far more of your lines.** The box on What I say now
+  holds about 24 of your own character's lines instead of 8, and the note
+  above it says how many the set really has -- over 2,400. Your saved set is
+  updated when you log in; lines you wrote yourself are never touched.
+
 ## 1.5.0
 
 The prompt gets three new looks, the options open again, and a big pass of

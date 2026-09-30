@@ -73,9 +73,11 @@ mutate(A, "\tcombatArtAlpha = 1,\n", "\tcombatArtAlpha = 0.55,\n",
        "Arcane dimmed whole in a fight",
        expect="art dimmed whole in a fight", script=S)
 
-mutate(A, "\tself.kit.icon:SetDesaturated(on)\n\tself:Spin()\n", "\tself:Spin()\n",
-       "Arcane's icon keeps its colour in a fight",
-       expect="the icon keeps its colour", script=S)
+# Retired in 1.5.1: "Arcane's icon keeps its colour in a fight". Since the
+# readability fix the icon is greyed both by Combat() and by every repaint
+# (and by an outcome in a fight), each alone enough, so taking out any one of
+# them changes nothing a player sees -- there is no single-line bug left to
+# put back. The scenario still checks the icon is grey in a fight.
 
 mutate(A, "\tSliceAlpha(self.bloom, fight and 0 or 1)\n", "\tSliceAlpha(self.bloom, 1)\n",
        "Arcane's bloom glows in a fight",
