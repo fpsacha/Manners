@@ -229,10 +229,10 @@ mutate(TOAST,
        script="runscenarios.py")
 
 mutate(TOAST,
-       "\t\t\tmode = \"coin\"\n",
-       "\t\t\tmode = \"chip\"\n",
-       "two chips side by side at the right",
-       expect="the count is not on the medallion",
+       "\t\t\tif self:NameFits(self:PairRoom()) then mode = \"pair\" end\n",
+       "\t\t\tif self:NameFits(self:PairRoom()) then mode = \"chip\" end\n",
+       "two chips on top of each other at the right",
+       expect="with the key's chip up the count is not beside it",
        script="runscenarios.py")
 
 mutate(TOAST,
@@ -429,14 +429,6 @@ mutate(TOAST,
        expect="German client",
        script="runscenarios.py")
 
-# The coin hung off the banner's end with no medallion to sit on.
-mutate(TOAST,
-       "\t\tif keyUp and self.M > 0 then\n",
-       "\t\tif keyUp then\n",
-       "the count's coin with no medallion",
-       expect="not beside the key's chip",
-       script="runscenarios.py")
-
 mutate(TOAST,
        "\tif self.countMode == \"pair\" then inset = math.max(inset, self:PairRoom()) end\n",
        "",
@@ -468,8 +460,8 @@ mutate(TOAST,
        script="runscenarios.py")
 
 mutate(TOAST,
-       "\tself.bead:SetSize(self.clockH * 4.5, self.clockH * 2)\n",
-       "\tself.bead:SetSize(self.clockH * 3.2, self.clockH * 1.3)\n",
+       "\tlocal beadW = self.clockH * 4.5\n\tself.bead:SetSize(beadW, self.clockH * 2)\n",
+       "\tlocal beadW = self.clockH * 3.2\n\tself.bead:SetSize(beadW, self.clockH * 1.3)\n",
        "the clock's spark too small",
        expect="too small to see",
        script="runscenarios.py")
