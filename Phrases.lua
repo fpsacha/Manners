@@ -3275,8 +3275,10 @@ RP.SPREAD = 3
 RP.RECENT = 12
 
 do
-	-- The reason on a queue entry to the kind of line it wants. The target,
-	-- nearby and anything new all get an offer.
+	-- The reason on a queue entry to the kind of line it wants. A group member
+	-- you target keeps the group lines (the reason says "target", inGroup still
+	-- says where they stand: see RP.Pick); the target, nearby and anything new
+	-- outside your group get an offer.
 	local KIND = { owed = "thanks", asked = "asked", group = "group" }
 
 	local GetTime = _G.GetTime
@@ -3572,7 +3574,8 @@ do
 			return nil
 		end
 		local family, faction, class = RP.Player()
-		local kind = KIND[entry.reason] or "offer"
+		-- Never a stranger's "for the road" to somebody in your own group.
+		local kind = KIND[entry.reason] or (entry.inGroup and "group") or "offer"
 		local name = entry.short or entry.name
 		local single = entry.buff and ns.BuffName(entry.buff)
 		-- {buff} is the spell that goes out: a group cast's own name

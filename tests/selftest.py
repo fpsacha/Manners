@@ -771,11 +771,13 @@ mutate("Prompt.lua",
 #      that looks harmless.
 mutate("Prompt.lua",
        """		if entry.name == top.name then
-			inQueue = true
+			-- The queue's own entry, not merely the name: a paint of the copy
+			-- the hold kept is never a paint from the queue.
+			inQueue = inQueue or entry == top
 		else
 			others = others + 1""",
        """		if false then
-			inQueue = true
+			inQueue = inQueue or entry == top
 		else
 			others = others + 1""",
        "the panel's own person listed as waiting",
@@ -786,10 +788,12 @@ mutate("Prompt.lua",
 #     thing that churns. A panel swapping a name can be looked away from.
 mutate("Prompt.lua",
        """	if isNew and db.sound.enabled
-		and (not db.sound.owedOnly or top.reason == "owed")
+		and (not db.sound.owedOnly or top.reason == "owed"
+			or not (ns.caps and ns.caps.hasClassBuffs == true and db.sources.owed ~= false))
 		and not (lastSoundAt and (now - lastSoundAt) < SOUND_FLOOR_SECONDS) then""",
        """	if isNew and db.sound.enabled
-		and (not db.sound.owedOnly or top.reason == "owed") then""",
+		and (not db.sound.owedOnly or top.reason == "owed"
+			or not (ns.caps and ns.caps.hasClassBuffs == true and db.sources.owed ~= false)) then""",
        "the alert sound following the churn",
        expect="the alert sound has a floor under it",
        script="runscenarios.py")
@@ -937,7 +941,8 @@ mutate("Options.lua",
 #     two are one job and were two tabs apart, which is how they came to
 #     disagree about who is worth interrupting for.
 mutate("Prompt.lua",
-       '		and (not db.sound.owedOnly or top.reason == "owed")\n',
+       '		and (not db.sound.owedOnly or top.reason == "owed"\n'
+       '			or not (ns.caps and ns.caps.hasClassBuffs == true and db.sources.owed ~= false))\n',
        "",
        "the sound alerting for passers-by",
        expect="the sound is as choosy as the flash",

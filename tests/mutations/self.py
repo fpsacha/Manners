@@ -106,8 +106,8 @@ mutate("Prompt.lua",
        expect="the tooltip does not say when yours runs out", script=S)
 
 mutate("Prompt.lua",
-       "\tif entry.reason == \"self\" then\n\t\t-- Nothing about targets: the macro never touches yours.\n",
-       "\tif false then\n\t\t-- Nothing about targets: the macro never touches yours.\n",
+       "\tif entry.reason == \"self\" then\n\t\t-- Nothing about targets: the macro hands your target back (see\n",
+       "\tif false then\n\t\t-- Nothing about targets: the macro hands your target back (see\n",
        "self: tooltip says it targets you",
        expect="the tooltip does not say it is cast on you", script=S)
 
@@ -139,14 +139,16 @@ mutate("Prompt.lua",
 
 # A bare /cast: with a friendly player targeted, it lands on them.
 mutate("Prompt.lua",
-       "\tlocal lines, restore = STRATEGIES.target(entry, spell)\n",
+       "\tlocal lines = STRATEGIES.target(entry, spell)\n"
+       "\tlocal restore = not StillTargeted(entry) or Prompt.armedForFight == true\n",
        "\tlocal lines, restore = { \"/cast \" .. spell }, false\n",
        "self: cast with no unit",
        expect="the macro reads", script=S)
 
 # [@player]: conditional targeting does not resolve on WoW Forever.
 mutate("Prompt.lua",
-       "\tlocal lines, restore = STRATEGIES.target(entry, spell)\n",
+       "\tlocal lines = STRATEGIES.target(entry, spell)\n"
+       "\tlocal restore = not StillTargeted(entry) or Prompt.armedForFight == true\n",
        "\tlocal lines, restore = { \"/cast [@player] \" .. spell }, false\n",
        "self: cast by [@player]",
        expect="the macro reads", script=S)

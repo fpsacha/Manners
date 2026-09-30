@@ -2882,6 +2882,7 @@ local function BuildLookTab()
 				name = L["Flash when someone buffs me"],
 				desc = L["Needs the icon, the stripe or Full animations."],
 				order = 31,
+				hidden = function() return not HasClassBuffs() end,
 				-- The glow lives on the icon, the sweep on the stripe and
 				-- the light on arrival on the panel; with none of them this
 				-- does nothing, and a live control would read as broken.
@@ -2981,6 +2982,7 @@ local function BuildLookTab()
 				name = L["Only for people who buff me"],
 				desc = L["Off, every new person makes a sound, passers-by included."],
 				order = 35,
+				hidden = function() return not HasClassBuffs() end,
 				width = "full",
 				disabled = function() return not SND().enabled end,
 				get = function() return SND().owedOnly end,

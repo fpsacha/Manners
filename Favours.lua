@@ -341,12 +341,16 @@ do
 		if hasMana == nil and seen.class then hasMana = MANA_CLASSES[seen.class] == true end
 		local inParty = seen.sameParty
 		if inParty == nil then inParty = SameParty(seen.name) end
+		-- Whether a "buffed you" line is said here at all, asked once for both
+		-- kinds of favour: a raid's shouts at every pull are no more news than
+		-- its Fortitude.
+		local speak = db.verbose and not QuietHere()
 
 		-- Nothing we cast is any use to them, so no debt the queue could never fill.
 		if not ns.CouldOffer(hasMana, true) then
 			-- A favour all the same, and let go in the moment it arrived.
 			TellLedger("Received", seen, true)
-			if db.verbose then
+			if speak then
 				-- Translators: the option's name comes in through its own key, so a
 				-- translated line quotes the checkbox the player can find.
 				addon:Print(L["|cff80ff80%s buffed you|r -- nothing you cast is any use to them (\"%s\" is on)"]:format(seen.name, L["Skip players it does nothing for"]))
@@ -368,7 +372,7 @@ do
 		-- prompt, and the line says so, naming the subgroup where that is the
 		-- limit. The emote below asks the same.
 		local reachable = ns.CouldOffer(hasMana, inParty) ~= nil
-		if db.verbose and not QuietHere() then
+		if speak then
 			-- "On the prompt" only when a prompt can show it: not through a snooze,
 			-- an unlocked prompt or Not while mounted.
 			local snoozeEnds = reachable and ns.SnoozeLeft() and ns.SnoozeEndsAt()
@@ -538,10 +542,20 @@ do
 				read = read + 1
 
 				local instanceId = plain(aura.auraInstanceID)
+				-- A readable aura with its number withheld is a refusal too
+				-- (some fights withhold single fields): skipped unmarked, two
+				-- such scans would prune the baseline empty, and every buff
+				-- carried through the fight come back as a favour after it.
+				if instanceId == nil then refused = true end
 				if instanceId then
 					-- The spell is half of the aura's identity, not only a filter.
 					local spellId = plain(aura.spellId)
-					local key = spellId or true
+					-- A spell withheld keeps the identity the aura was filed
+					-- under: filed as `true` in a fight, the real id afterwards
+					-- read as a new aura, and the buff as a new favour. One first
+					-- seen withheld stays `true`, so it is still announced once
+					-- its spell reads (IsNew): it may have landed in the fight.
+					local key = spellId or knownAuras[instanceId] or true
 					local expires = plain(aura.expirationTime)
 					present[instanceId] = key
 					presentUntil[instanceId] = expires
