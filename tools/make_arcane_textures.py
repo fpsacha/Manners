@@ -8,8 +8,11 @@ random field comes from a fixed seed, so running it twice writes the same
 bytes and a diff in git is a change of art.
 
 Ported from the approved design (design14/arcane/make_textures.py), less the
-four-point sparkles the judges called clip-art. The conventions Arcane.lua
-relies on:
+four-point sparkles the judges called clip-art, and since 1.5.1 less the
+lens's gloss and shade over the icon, the frost, the icon's light and the
+hover fill: the game lays added light on far more strongly than a preview
+render, and they washed out the spell icon and the text's ground. The
+conventions Arcane.lua relies on:
 
   * Four texels per UI unit, where an edge must stay crisp: a nine-slice
     corner of 32 texels is drawn 8 units square. The two soft glows round the
@@ -23,16 +26,16 @@ relies on:
     outcomes.
   * The glows are baked -- the bloom, the rune circle's, the tick's -- so
     nothing is blurred or computed at run time.
+  * Nothing is drawn over the spell icon but its frame, which starts where
+    the art ends (IconRing, IconRingSq), and the tick for a buff that landed.
   * Powers of two, at most 256, 32-bit uncompressed TGA.
 
   Arcane_Shadow        128x128  9-slice, corner 32. Soft drop shadow (black).
   Arcane_Bloom         128x128  9-slice, corner 32. Outer glow, hollow (ADD).
-  Arcane_Glass         128x128  9-slice, corner 32. The card, radius 6 units.
-  Arcane_GlassLight    256x64   The frost: scatter, grain, sheen, a streak (ADD).
+  Arcane_Glass         128x128  9-slice, corner 32. The card, radius 6 units;
+                                in black, the second coat of smoke.
   Arcane_Glint         256x8    The top edge catching the light (ADD).
   Arcane_Rim           128x128  9-slice, corner 32. The lit rim, top-left light.
-  Arcane_GlassHover     64x64   The card's shape filled flat: the hover light.
-  Arcane_IconLight     256x64   Light from the icon across the glass; the wash.
   Arcane_Well          128x128  A dark disc: the lens sits in the glass.
   Arcane_RuneRing      256x256  Two hairlines, 18 glyphs, 72 ticks, glow (ADD).
   Arcane_RuneRingSq    256x256  The same on a rounded square, round a square icon.
@@ -40,16 +43,14 @@ relies on:
   Arcane_SquircleMask  128x128  Mask and cooldown swipe: the square icon.
   Arcane_IconRing      128x128  The frame round a round icon: seam, ring, glow.
   Arcane_IconRingSq    128x128  The same round a square one.
-  Arcane_IconShade     128x128  Black: the lens's edge and lower third.
-  Arcane_IconShadeSq   128x128  The same, square.
-  Arcane_IconGloss     128x128  The lens's highlight, a soft crescent (ADD).
   Arcane_Check          64x64   The tick over the icon for a buff that landed.
   Arcane_Keycap         64x64   9-slice, corner 16. The key the prompt is bound to.
   Arcane_Badge          64x64   3-slice, caps half the height. The count.
   Arcane_Drain         256x16   The favour's time left: a hairline (ADD).
   Arcane_Spark          64x32   The drain's leading bead (ADD).
   Arcane_Shine          64x64   The band of light that crosses once (ADD).
-  Arcane_Dot            32x32   The list's reason bead.
+  Arcane_Dot            32x32   The list's reason bead; an outcome's wash round
+                                the lens.
 
 Needs numpy and Pillow.
 """
@@ -184,25 +185,6 @@ def glass():
     save("Glass", 1.0, cover(sd) * (0.90 + 0.10 * edge))
 
 
-def glass_light():
-    """The frost: cloudy scatter, fine grain, a sheen over the top half and one
-    broad diagonal streak, feathered on every side. Stretched to the card."""
-    w, h = 256, 64
-    x, y = grid(w, h)
-    u, v = x / w, y / h
-    cloud = smoothstep(0.35, 0.95, fbm(w, h, 1405, octaves=5, base=3))
-    rng = np.random.default_rng(77)
-    grain = blur(rng.uniform(0, 1, (h, w)), 0.55)
-    grain = np.clip((grain - grain.mean()) * 3.2 + 0.5, 0, 1) ** 2.2
-    sheen = (1 - smoothstep(0.0, 0.55, v)) ** 1.6
-    d = (u - 0.20) - (0.5 - v) * 0.18
-    streak = (np.exp(-(d / 0.05) ** 2) * 0.8
-              + np.exp(-((u - 0.27 - (0.5 - v) * 0.18) / 0.012) ** 2) * 0.5)
-    a = 0.22 * cloud + 0.05 * grain + 0.60 * sheen + 0.30 * streak
-    a *= smoothstep(0, 5, np.minimum.reduce([x, y, w - x, h - y]))
-    save("GlassLight", 1.0, np.clip(a, 0, 1))
-
-
 def glint():
     """A hairline brightest a third of the way along, gone at both ends."""
     w, h = 256, 8
@@ -229,27 +211,6 @@ def rim():
     a = np.maximum(line, inner) * light
     rgb = np.where(line > 0.5, 1.0, 0.85)
     save("Rim", rgb, a)
-
-
-def glass_hover():
-    """The card's shape, filled: drawn ADD at a few percent under the cursor."""
-    n = 64
-    x, y = grid(n, n)
-    save("GlassHover", 1.0, cover(sd_rrect(x, y, 0, 0, n, n, RADIUS / 2), 0.5))
-
-
-def icon_light():
-    """Light from the icon falling across the glass. Its centre is 15% along;
-    it fades to nothing at the top, the bottom and the left, so its rectangle
-    never shows at the card's corners. The outcome's wash too."""
-    w, h = 256, 64
-    x, y = grid(w, h)
-    u, v = x / w, y / h
-    du, dv = (u - 0.15) / 0.62, (v - 0.5) / 0.95
-    a = np.exp(-(du * du + dv * dv) * 2.6)
-    a *= smoothstep(0.0, 0.22, v) * smoothstep(1.0, 0.78, v)
-    a *= smoothstep(0.0, 0.05, u) * smoothstep(1.0, 0.85, u)
-    save("IconLight", 1.0, a / a.max())
 
 
 # ------------------------------------------------------------------ the lens
@@ -454,30 +415,6 @@ def icon_ring(round_):
     save("IconRing" if round_ else "IconRingSq", grey, a)
 
 
-def icon_shade(round_):
-    n = 128
-    x, y = grid(n, n)
-    if round_:
-        sd = np.hypot(x - n / 2, y - n / 2) - n / 2
-    else:
-        sd = sd_rrect(x, y, 0, 0, n, n, 0.24 * n)
-    edge = np.exp(np.minimum(0, sd) / 9.0) * 0.55
-    low = smoothstep(0.45, 1.0, y / n) * 0.35
-    save("IconShade" if round_ else "IconShadeSq", 0.0, np.clip(edge + low - edge * low, 0, 1))
-
-
-def icon_gloss():
-    n = 128
-    x, y = grid(n, n)
-    u, v = x / n - 0.5, y / n
-    ell = (u / 0.46) ** 2 + ((v - 0.10) / 0.36) ** 2
-    # A soft crescent over the top, nothing hot in it: drawn at a fifth of its
-    # strength (Arcane.lua), it is a lens catching the light, not a white cap
-    # over the spell's art.
-    a = (1 - smoothstep(0.55, 1.0, ell)) * (1 - smoothstep(0.05, 0.48, v)) * 0.9
-    save("IconGloss", 1.0, np.clip(a, 0, 1))
-
-
 def check():
     n, ss = 64, 4
     N = n * ss
@@ -598,12 +535,11 @@ def main():
     ap.add_argument("--sheet", default="", help="also write a contact sheet here (not shipped)")
     args = ap.parse_args()
     os.makedirs(OUT, exist_ok=True)
-    for make in (shadow, bloom, glass, glass_light, glint, rim, glass_hover, icon_light, well,
-                 rune_ring, rune_ring_sq, masks, icon_gloss, check, keycap, badge, drain, spark, shine, dot):
+    for make in (shadow, bloom, glass, glint, rim, well, rune_ring, rune_ring_sq, masks, check,
+                 keycap, badge, drain, spark, shine, dot):
         make()
     for round_ in (True, False):
         icon_ring(round_)
-        icon_shade(round_)
     for name, w, h in written:
         print("  Textures/Arcane/%-24s %4dx%-4d" % ("Arcane_" + name + ".tga", w, h))
     if args.sheet:

@@ -176,9 +176,9 @@ mutate(A, "\tlocal maskFile = ART .. (round and \"CircleMask\" or \"SquircleMask
        "Arcane's round icon kept square",
        expect="the round icon kept the square mask", script=S)
 
-mutate(A, "\tfor _, t in ipairs({ self.well, self.runes, self.shade, self.gloss, self.ring }) do\n"
+mutate(A, "\tfor _, t in ipairs({ self.well, self.runes, self.ring }) do\n"
        "\t\tt:SetShown(showIcon)\n",
-       "\tfor _, t in ipairs({ self.well, self.runes, self.shade, self.gloss, self.ring }) do\n"
+       "\tfor _, t in ipairs({ self.well, self.runes, self.ring }) do\n"
        "\t\tt:SetShown(true)\n",
        "Arcane's lens up with the icon off",
        expect="lens and runes are still up", script=S)
@@ -203,10 +203,6 @@ mutate(A, "\tkit.textLayer:SetFrameLevel(kit.art:GetFrameLevel() + 1)\n", "",
        expect="textLayer kept Arcane's frame level", script=S)
 
 # --- round 15 review: the lens -------------------------------------------
-
-mutate(A, "\tself.gloss:SetVertexColor(1, 1, 1, round and 0.20 or 0.16)\n", "",
-       "Arcane's lens highlight at full strength",
-       expect="highlight is drawn at full strength", script=S)
 
 mutate(A, "\tself.runes:SetTexture(ART .. (round and \"RuneRing\" or \"RuneRingSq\"))\n",
        "\tself.runes:SetTexture(ART .. \"RuneRing\")\n",
@@ -306,6 +302,6 @@ mutate(A, "\tkit.fit.room[kit.name], kit.fit.room[kit.sub] = nil, nil\n", "",
        "Arcane's room left on the name for the next look",
        expect="the name kept Arcane's room", script=S)
 
-mutate(A, "\tif not showIcon then chipRoom = 10 + math.ceil(sub * 1.3 + 8) + 4 end\n", "",
+mutate(A, "\tlocal chipRoom = 10 + math.ceil(sub * 1.3 + 8) + 4\n", "\tlocal chipRoom = 10\n",
        "Arcane's name under the count with the icon off",
        expect="runs under the count", script=S)
