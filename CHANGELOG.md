@@ -2,9 +2,61 @@
 
 ## Unreleased
 
-- **Fixed: the options would not open** ("AceConfigRegistry-3.0: ... width:
+### Fixed
+
+- **The options would not open** ("AceConfigRegistry-3.0: ... width:
   expected a string or number"), from 1.1.2 on. The buttons and drop-downs
-  are still sized to their words, now in a way the options library accepts.
+  are still sized to their words, now in a way the options library accepts,
+  and slider and key binding labels are no longer cut off either ("Top up when
+  less than this is l...").
+- The prompt now moves on as soon as something better comes up. Before, it
+  could stay on the person you had just targeted away from, on your old target
+  after you cleared it (even with somebody who buffed you waiting), or on
+  somebody whose favour had run out.
+- You are no longer offered a buff you do not have the mana to cast: a mage low
+  on mana kept getting an Intellect prompt that failed with "Not enough mana".
+  Buffs you can still afford, like your armor, are still offered.
+- A party or raid member the game cannot see (still in town while you are
+  inside) is no longer offered, even if they buffed you or asked. They are
+  offered again once they are back in sight.
+- Buffs you were already wearing no longer show up as new "buffed you" favours
+  when a fight ends.
+- One Battle Shout now returns the favour to everybody owed in your party who
+  was close enough to hear it, not only the person it was aimed at.
+- Buffing yourself now always hands your target back, even with "Hand my
+  target back" off -- unless you had yourself targeted.
+- "Give this character its own settings" no longer wipes the settings a
+  character already has. Back on a shared profile, the button reads "Go back
+  to this character's own settings" and returns you to them as you left them.
+  When another character uses this character's settings, Start here says so.
+- Hunters and shamans now get the Advanced tab for their own prompt, "Play a
+  sound" works for them, and options about favours from others are hidden for
+  classes nobody can owe one.
+- Pasting settings no longer switches "Tell me in chat" back on.
+- {class} in the prompt wording shows the class in your game's language
+  ("Priester") instead of "PRIEST".
+- Right-clicking the prompt in a fight now says the next press still casts at
+  that person until the fight ends; after a failed press the message names the
+  group spell when the prompt has moved on to one.
+- "Nothing you cast is any use to them" is now quiet in raids and dungeon
+  fights, like every other "buffed you" line, and in character a party member
+  you have targeted hears group lines rather than a stranger's "for the road".
+
+### Lighter on your game
+
+- The scan of who is around does far less work: in a 40-player raid, 22
+  protected calls per pass instead of 161; in a busy city, 9 instead of 89; a
+  ready check, 6 instead of 143. About a third less memory churn in raids.
+- In a fight, your own buffs are read once per scan (about 2.5 times a second)
+  however often they change, instead of on every change -- this takes most of
+  the work off the busiest moments. A "buffed you" line for a buff that lands
+  mid-fight can come up to one scan later; the favour is kept all the same, and
+  a buff that runs out and is put straight back is still noticed.
+- A long "never offer" list no longer slows the scan in a crowd, group buffs in
+  a raid read each member once per pass, and other players' spell casts are no
+  longer delivered to Manners at all.
+- `/manners debug` shows how many times your auras changed this session and
+  how many reads that took.
 
 ## 1.4.0
 
