@@ -11,51 +11,58 @@ box-filtered down in premultiplied alpha; then the colour is bled into the
 fully transparent texels, so the client's bilinear filtering never pulls in a
 dark fringe.
 
+1.6 redrew the look with restraint. In the game 1.5.1's toast wore a glaring
+yellow line round the banner, a heavy square frame round the icon and a blue
+glow ring: the gold ran up to near white, and the lights were ADD layers,
+which the client draws far brighter than tools/render_prompt.py. So:
+  * the gold is a deep old gold, no brighter than 0.62 (Rec.601 luma) at its
+    brightest texel, every rail with a darker line inside it, and no sheen or
+    halo baked round it (tests/scenarios/look-toast.lua reads the files);
+  * nothing that stays on screen is additive: the light the look keeps is
+    baked into the art or drawn with BLEND. Only the flourishes (the flare,
+    the rail glints, the ring of light) are ADD, and never for more than 0.6 s;
+  * the medallion is round and built from flat discs drawn under the icon, so
+    its rings are a set number of UI units wide at every height and nothing
+    lies over the icon at all.
+
 Two kinds of art:
-  * baked gold (the border, the drawer's rail, the medallion's rings, the chip,
-    the gem's setting): drawn in its own colours and never vertex-coloured.
-    In a fight the Lua turns it to iron with SetDesaturated and a grey.
-  * white or grey art (the enamel, the gem, every light, the body, the wash,
-    the ember, the glyphs): the colour comes from SetVertexColor or
+  * baked gold (the border, the drawer's rail, the medallion's gold, the chip,
+    the gem's setting): drawn in its own colours. In a fight the Lua turns it
+    to iron with SetDesaturated and a grey.
+  * white or grey art (the discs, the enamel, the gem, the body, the ember,
+    the glyphs, the flourishes): the colour comes from SetVertexColor or
     SetGradient, so one file serves all six reasons, the colour-blind set, a
     custom marker colour and the outcomes.
 
-  Toast_Border         256x256  8 pieces, cut 0.25: the double gilded rail with
-                                a faceted stud in each corner. From height 40 up.
-  Toast_BorderSlim     256x256  The same frame with one rail and a smaller stud,
-                                below height 40, where two rails turn to mush.
-  Toast_BorderGlow     256x256  Every gilded part of each, blurred into light,
-  Toast_BorderSlimGlow 256x256  for the flare when a buff lands (ADD).
+  Toast_Border         256x256  8 pieces, cut 0.25: a thin old-gold rail, a dark
+                                channel, a darker inner line, and a small stud
+                                in each corner. From height 40 up.
+  Toast_BorderSlim     256x256  The same, finer, below height 40.
+  Toast_BorderGlow     256x256  The gilding blurred into light, for the flare
+  Toast_BorderSlimGlow 256x256  when a buff lands (ADD, half a second).
   Toast_Drawer         128x128  The list's drawer: one thin rail.
   Toast_Shadow         128x128  9 pieces, cut 0.25: the soft drop shadow.
-  Toast_Body           256x64   The banner's ground, grey for a warm gradient.
-  Toast_Ring           128x128  The round medallion: gold rings, a dark seam
-  Toast_Seal           128x128  each side of the enamel, glass on the enamel;
-                                clear inside the lip, over the icon.
-                                Toast_Seal is the squircle, for the icon left
-                                square.
-  Toast_RingBand       128x128  The enamel between the rings, grey for the
-  Toast_SealBand       128x128  reason colour: bright and flat, as enamel is.
+  Toast_Body           256x64   The banner's ground, grey for a warm gradient,
+                                lighter at the top.
+  Toast_Disc           128x128  A flat round disc, white: the medallion's dark
+                                edge, the dark well under the icon, the owed
+                                glow on the enamel and the cursor's light on
+                                the gold, each coloured by the Lua.
+  Toast_Gold           128x128  A round disc of old gold lit from the upper
+                                left: under the icon, it shows as the ring.
+  Toast_Enamel         128x128  A round disc, grey, faintly lit: the enamel,
+                                in the reason colour darkened.
   Toast_IconMask        64x64   The icon's shape, round and squircle; also the
   Toast_SealMask        64x64   cooldown's swipe.
-  Toast_RingGlow       128x128  A soft ring of light round the medallion (ADD).
-  Toast_Bloom          128x64   The reason's light behind the medallion (ADD).
-  Toast_Wash           256x64   Light from the left: outcome and hover (ADD).
+  Toast_RingGlow       128x128  A ring of light round the medallion (ADD, for
+                                the arrival and the landed buff only).
   Toast_Glint           64x16   A spark that runs along a rail (ADD).
-  Toast_Streak          64x64   The light that crosses the banner once (ADD).
-  Toast_Spark           32x32   The corner stud's twinkle (ADD).
   Toast_Chip            64x32   3 pieces: the count and key chips, gold-rimmed.
   Toast_Gem             32x32   A list row's stone, grey for its reason colour,
   Toast_GemSet          32x32   and its gold setting.
-  Toast_Ember           64x16   The favour clock's line (ADD): a thin core in
-                                a soft glow, even along its length.
+  Toast_Ember           64x16   The favour clock's line: a crisp core.
   Toast_Check           32x32   A tick, for a buff that landed.
   Toast_Cross           32x32   A cross, for one that did not.
-
-Ported from the approved design's make_textures.py (design14/toast), with the
-judges' fixes: a dark seam either side of the enamel, the enamel brighter and
-flatter with a pale inner highlight, so the owed gold never reads as more
-metal; and a single-rail frame for small panels.
 
 Needs numpy and Pillow.
 """
@@ -74,14 +81,25 @@ LIGHT /= np.linalg.norm(LIGHT)
 HALF = LIGHT + np.array([0, 0, 1], np.float32)
 HALF /= np.linalg.norm(HALF)
 
+# Old gold: deep, warm and matt. Its top stop is held under the cap below, and
+# the shading never climbs past it -- 1.5.1's ran up to near white, which at
+# the game's own scale read as a glaring yellow line round the banner.
 GOLD_STOPS = [
-    (0.00, (0.10, 0.055, 0.02)),
-    (0.30, (0.36, 0.22, 0.07)),
-    (0.52, (0.66, 0.46, 0.18)),
-    (0.70, (0.86, 0.67, 0.32)),
-    (0.86, (0.98, 0.86, 0.54)),
-    (1.00, (1.00, 0.97, 0.84)),
+    (0.00, (0.085, 0.052, 0.022)),
+    (0.28, (0.22, 0.145, 0.060)),
+    (0.52, (0.40, 0.285, 0.120)),
+    (0.72, (0.53, 0.395, 0.180)),
+    (0.88, (0.63, 0.490, 0.245)),
+    (1.00, (0.70, 0.560, 0.300)),
 ]
+# The brightest any gold texel may be, as Rec.601 luma.
+GOLD_CAP = 0.60
+# A darker gold, for the line inside each rail and the medallion's outer rim.
+DARK_GOLD = 0.60
+
+# The medallion's discs: 50 % alpha at this fraction of the half-size, which
+# the Lua (DISC_FILL) sizes them by.
+DISC_FILL = 0.98
 
 written = []
 
@@ -111,6 +129,17 @@ def ramp(t, stops):
     return np.stack([np.interp(t, pos, [s[1][c] for s in stops]) for c in range(3)], -1)
 
 
+def luma(rgb):
+    return rgb[..., 0] * 0.299 + rgb[..., 1] * 0.587 + rgb[..., 2] * 0.114
+
+
+def capped(rgb, cap=GOLD_CAP):
+    """Gold held under the cap: a texel brighter than it is scaled down."""
+    l = luma(rgb)
+    k = np.where(l > cap, cap / np.maximum(l, 1e-6), 1.0)
+    return rgb * k[..., None]
+
+
 def noise(w, h, seed, scale=(1.0, 1.0), octaves=3):
     """Smooth value noise on the supersampled grid, -1..1."""
     rng = np.random.default_rng(seed)
@@ -127,18 +156,18 @@ def noise(w, h, seed, scale=(1.0, 1.0), octaves=3):
     return out / 1.75
 
 
-def shade_metal(height, stops=GOLD_STOPS, spec_power=36.0, spec=0.55, lift=0.0):
-    """Gold lit from the upper left over a height field in texture pixels."""
+def shade_metal(height, spec=0.10, lift=0.0, dark=1.0):
+    """Old gold lit from the upper left over a height field in texture
+    pixels: a gentle ramp and a small, warm specular, held under the cap."""
     gy, gx = np.gradient(height, 1.0 / SS)
     n = np.stack([-gx, -gy, np.ones_like(height)], -1)
     n /= np.linalg.norm(n, axis=-1, keepdims=True)
     ndl = np.clip(n @ LIGHT, 0, 1)
     ndh = np.clip(n @ HALF, 0, 1)
-    # A flat face sits at mid gold; faces turned to the light go pale.
-    t = 0.10 + 0.95 * (ndl - 0.15) / 0.85 + lift
-    rgb = ramp(t, stops)
-    rgb = rgb + (ndh ** spec_power)[..., None] * np.array([1.0, 0.95, 0.82], np.float32) * spec
-    return rgb
+    t = 0.18 + 0.80 * (ndl - 0.15) / 0.85 + lift
+    rgb = ramp(t, GOLD_STOPS)
+    rgb = rgb + (ndh ** 30.0)[..., None] * np.array([0.60, 0.50, 0.32], np.float32) * spec
+    return capped(rgb * dark)
 
 
 def bevel(depth, width, rise):
@@ -202,6 +231,19 @@ def fold(x, y, w, h):
     return np.minimum(x, w - x), np.minimum(y, h - y)
 
 
+def compose(layers):
+    """Straight colour and alpha from (rgb, alpha) layers, bottom first."""
+    rgb = np.zeros(layers[0][1].shape + (3,), np.float32)
+    alpha = np.zeros(layers[0][1].shape, np.float32)
+    for col, a in layers:
+        col = np.broadcast_to(np.asarray(col, np.float32), rgb.shape)
+        pre = rgb * alpha[..., None]
+        pre = col * a[..., None] + pre * (1 - a[..., None])
+        alpha = a + alpha * (1 - a)
+        rgb = pre / np.maximum(alpha[..., None], 1e-6)
+    return rgb, alpha
+
+
 # ------------------------------------------------------------------ the frame
 
 BORDER = 256          # Toast_Border.tga is 256 x 256
@@ -209,105 +251,67 @@ BORDER_CUT = 64       # each corner piece is 64 texels (texcoord 0.25)
 BORDER_UNITS = 12.0   # ...drawn about 12 UI units square at the default height
 K = BORDER_CUT / BORDER_UNITS   # texels per UI unit in the border art
 
-# The profile, in UI units in from the outer edge. Looks/Toast.lua's RAIL
-# table names where the rails run, for the sparks and the favour clock, and
-# must agree.
-OUTER_RAIL = (0.55, 2.15)
-INNER_AT = 3.30
-INNER_W = 0.75
-NOTCH_R = 2.45
-STUD_AT = 3.30
-STUD_R = 1.60
-OUTER_RADIUS = 3.0
-
-# The single-rail frame for small panels: the rail a little thinner, no inner
-# rail, and one small stud tucked into each corner.
-SLIM_RAIL = (0.55, 1.95)
-SLIM_STUD_AT = 3.05
-SLIM_STUD_R = 1.05
+# The profiles, in UI units in from the outer edge at a 12-unit corner:
+# (lip end, rail end, channel end, inner line end), the corner stud's centre
+# and radius, and the notch the inner line makes round it. Looks/Toast.lua's
+# RAIL table names where the rail and the clock run, and must agree.
+FRAMES = {
+    "double": dict(rail=(0.45, 1.70), inner=(2.25, 2.72), stud=(3.55, 0.95), notch=1.55, radius=2.2),
+    "slim": dict(rail=(0.40, 1.45), inner=(1.72, 2.08), stud=(2.95, 0.70), notch=1.15, radius=2.0),
+}
+DARK = np.array([0.030, 0.019, 0.011], np.float32)
 
 
-def border_parts(slim):
-    """The gold, dark and sheen of a frame, on the supersampled grid."""
+def border_parts(kind):
+    """The gold, the dark and where the panel starts, on the supersampled grid."""
+    f = FRAMES[kind]
     size, k = BORDER, K
     x, y = grid(size, size)
     fx, fy = fold(x, y, size, size)
-    u, v = fx / k, fy / k                       # UI units
-    depth = -roundrect_sdf(u, v, 0.0, OUTER_RADIUS)   # in from the outer edge
-    o0, o1 = SLIM_RAIL if slim else OUTER_RAIL
-    at, r = (SLIM_STUD_AT, SLIM_STUD_R) if slim else (STUD_AT, STUD_R)
+    u, v = fx / k, fy / k                                    # UI units
+    depth = -roundrect_sdf(u, v, 0.0, f["radius"])            # in from the outer edge
+    r0, r1 = f["rail"]
+    i0, i1 = f["inner"]
+    at, sr = f["stud"]
 
-    stud = np.abs(u - at) + np.abs(v - at) - r      # a diamond, negative inside
-    if slim:
-        # Where the panel starts: just inside the rail.
-        inner = depth - o1
-        inner_w = 0.0
-    else:
-        # The inner rail: a square inset INNER_AT with a concave notch at the
-        # corner, round the stud.
-        rect = roundrect_sdf(u, v, INNER_AT, 0.0)
-        notch = np.sqrt((u - at) ** 2 + (v - at) ** 2) - NOTCH_R
-        inner = np.maximum(rect, -notch)
-        # A second, smaller lozenge further in along the diagonal: the
-        # flourish that makes the corner an ornament and not a notch.
-        d2 = at + r + 1.55
-        stud = np.minimum(stud, np.abs(u - d2) + np.abs(v - d2) - 0.62)
-        inner_w = INNER_W
+    # The inner line: a square inset with a concave notch round the stud.
+    rect = roundrect_sdf(u, v, i0, 0.0)
+    notch = np.sqrt((u - at) ** 2 + (v - at) ** 2) - f["notch"]
+    inner = np.maximum(rect, -notch)                          # negative past i0
+    iw = i1 - i0
+    stud = np.abs(u - at) + np.abs(v - at) - sr               # a diamond
 
-    h = np.zeros_like(depth)
-    outer_rail = (depth >= o0) & (depth <= o1)
-    h = np.where(outer_rail, bevel((depth - o0) * k, (o1 - o0) * k, 0.62 * (o1 - o0) * k), h)
-    if not slim:
-        inner_rail = (inner <= 0) & (inner >= -inner_w)
-        h = np.where(inner_rail, bevel(-inner * k, inner_w * k, 0.6 * inner_w * k), h)
-    # A faceted stud: a pyramid, so each face takes the light differently.
-    h = np.where(stud <= 0, np.maximum(h, (-stud) * k * 0.95), h)
-
-    # Fine brushing along the rails, so the gilding is metal and not paint.
+    h = np.where((depth >= r0) & (depth <= r1), bevel((depth - r0) * k, (r1 - r0) * k, 0.55 * (r1 - r0) * k), 0)
     grain = noise(size, size, 31, scale=(3.0, 3.0), octaves=2)
-    rgb = shade_metal(h + grain * 0.18)
-    parts = [cover((o0 - depth) * k) * cover((depth - o1) * k), cover(stud * k)]
-    if not slim:
-        parts.append(cover(-inner * k - inner_w * k) * cover(inner * k))
-    gold_a = np.clip(np.maximum.reduce(parts), 0, 1)
+    rail_rgb = shade_metal(h + grain * 0.10)
+    hi = bevel(-inner * k, iw * k, 0.5 * iw * k)
+    line_rgb = shade_metal(hi + grain * 0.06, lift=-0.05, dark=DARK_GOLD)
+    stud_rgb = shade_metal(np.maximum(-stud, 0) * k * 0.8, lift=-0.02)
 
-    # The dark parts: the outer lip, the channel between the rails, and a
-    # shadow the innermost rail throws onto the panel.
-    lip = cover(-depth * k) * cover((depth - o0) * k)
-    if slim:
-        channel = np.zeros_like(depth)
-        panel = depth - o1
-        shadow_in = np.clip(1 - panel / 1.5, 0, 1) ** 2 * (panel > 0)
-        edge = panel
-    else:
-        channel = cover((o1 - depth) * k) * cover(-inner * k)
-        shadow_in = np.clip(1 - (-inner - inner_w) / 1.7, 0, 1) ** 2 * (inner < -inner_w)
-        edge = -inner - inner_w
-    dark_rgb = np.array([0.035, 0.022, 0.014], np.float32)
-    dark_a = np.clip(lip * 0.92 + channel * 0.90 + shadow_in * 0.55, 0, 1)
-    # A hairline of warm light just inside the frame: the panel's own sheen.
-    sheen = np.exp(-((edge - 0.35) / 0.28) ** 2) * (edge > 0)
-    sheen *= np.clip((v - 3.5) / 1.0, 0, 1)
-    top_bias = np.where(np.arange(size * SS)[:, None] < size * SS / 2, 1.0, 0.35)
-    return rgb, gold_a, dark_rgb, dark_a, sheen * top_bias, edge, k
+    rail_a = cover((r0 - depth) * k) * cover((depth - r1) * k)
+    line_a = cover(-inner * k - iw * k) * cover(inner * k)
+    stud_a = cover(stud * k)
+    # The dark: the lip outside the rail and the channel inside it, solid;
+    # then a short shade the frame throws onto the panel.
+    lip = cover(-depth * k) * cover((depth - r0) * k)
+    channel = cover((r1 - depth) * k) * cover(-inner * k)
+    past = -inner - iw
+    shade = np.clip(1 - past / 1.3, 0, 1) ** 2 * (past > 0)
+    dark_a = np.clip(lip + channel + shade * 0.40, 0, 1)
+    rgb, alpha = compose([(DARK, dark_a), (line_rgb, line_a), (rail_rgb, rail_a), (stud_rgb, stud_a)])
+    gold_a = np.maximum.reduce([rail_a, line_a, stud_a])
+    return rgb, alpha, gold_a, past
 
 
-def make_border(name, glow_name, slim):
+def make_border(name, glow_name, kind):
     size = BORDER
-    rgb, gold_a, dark_rgb, dark_a, sheen, edge, k = border_parts(slim)
-    alpha = np.clip(gold_a + dark_a * (1 - gold_a), 0, 1)
-    rgb_all = rgb * gold_a[..., None] + dark_rgb * (dark_a * (1 - gold_a))[..., None]
-    rgb_all = rgb_all / np.maximum(alpha[..., None], 1e-5)
-    s = sheen * 0.16
-    rgb_all = rgb_all * (1 - s[..., None]) + np.array([1.0, 0.86, 0.62]) * s[..., None]
-    alpha = np.clip(alpha + s * (1 - alpha), 0, 1)
-    save(name, finish(rgb_all, alpha, size, size))
-
-    # The flare: every gilded part, blurred into light, kept off the middle.
+    rgb, alpha, gold_a, past = border_parts(kind)
+    save(name, finish(rgb, alpha, size, size))
+    # The flare: the gilding blurred into light, kept off the middle.
     base = Image.fromarray((gold_a * 255).astype(np.uint8))
-    blur = np.asarray(base.filter(ImageFilter.GaussianBlur(1.1 * k * SS)), np.float32) / 255
-    glow = np.clip(blur * 1.8 + gold_a * 0.6, 0, 1)
-    glow *= np.clip(1 - (edge - 1.2) / 2.0, 0, 1) ** 1.5
+    blur = np.asarray(base.filter(ImageFilter.GaussianBlur(0.9 * K * SS)), np.float32) / 255
+    glow = np.clip(blur * 1.5 + gold_a * 0.5, 0, 1)
+    glow *= np.clip(1 - past / 1.8, 0, 1) ** 1.5
     save(glow_name, finish(white(glow), glow, size, size))
 
 
@@ -319,20 +323,15 @@ def make_drawer():
     x, y = grid(size, size)
     fx, fy = fold(x, y, size, size)
     u, v = fx / k, fy / k
-    depth = -roundrect_sdf(u, v, 0.0, 2.2)
-    r0, r1 = 0.45, 1.35
-    rail = (depth >= r0) & (depth <= r1)
-    h = np.where(rail, bevel((depth - r0) * k, (r1 - r0) * k, 0.6 * (r1 - r0) * k), 0)
+    depth = -roundrect_sdf(u, v, 0.0, 2.0)
+    r0, r1 = 0.40, 1.25
+    h = np.where((depth >= r0) & (depth <= r1), bevel((depth - r0) * k, (r1 - r0) * k, 0.5 * (r1 - r0) * k), 0)
     grain = noise(size, size, 37, scale=(3.0, 3.0), octaves=2)
-    rgb = shade_metal(h + grain * 0.15, lift=-0.06)
+    rgb = shade_metal(h + grain * 0.10, lift=-0.06)
     gold_a = cover((r0 - depth) * k) * cover((depth - r1) * k)
     lip = cover(-depth * k) * cover((depth - r0) * k)
-    shade_in = np.clip(1 - (depth - r1) / 1.6, 0, 1) ** 2 * (depth > r1)
-    dark_a = np.clip(lip * 0.9 + shade_in * 0.5, 0, 1)
-    dark = np.array([0.03, 0.02, 0.012], np.float32)
-    alpha = np.clip(gold_a + dark_a * (1 - gold_a), 0, 1)
-    rgb_all = (rgb * gold_a[..., None] + dark * (dark_a * (1 - gold_a))[..., None]) \
-        / np.maximum(alpha[..., None], 1e-5)
+    shade_in = np.clip(1 - (depth - r1) / 1.3, 0, 1) ** 2 * (depth > r1)
+    rgb_all, alpha = compose([(DARK, np.clip(lip + shade_in * 0.40, 0, 1)), (rgb, gold_a)])
     save("Toast_Drawer", finish(rgb_all, alpha, size, size))
 
 
@@ -343,27 +342,23 @@ def make_shadow():
     x, y = grid(size, size)
     fx, fy = fold(x, y, size, size)
     d = roundrect_sdf(fx, fy, 24, 6)
-    a = np.where(d < 0, 1.0, np.exp(-(d / 8.5) ** 2 * 1.2)) * 0.78
+    a = np.where(d < 0, 1.0, np.exp(-(d / 8.5) ** 2 * 1.2)) * 0.72
     save("Toast_Shadow", finish(np.zeros(a.shape + (3,), np.float32), a, size, size))
 
 
 def make_body():
-    """The banner's ground, grey for SetGradient to warm: brightest a quarter
-    of the way in, where the medallion's light falls, falling off to every
-    edge, with a faint brushed grain. Stretched to any width, so nothing in it
-    has a shape that stretching would give away."""
+    """The banner's ground, grey for SetGradient to warm: a quiet vertical
+    fall from the top down, the faintest brushed grain along it, and a soft
+    darkening at the very ends. Stretched to any width, so nothing in it has
+    a shape that stretching would give away."""
     w, h = 256, 64
     x, y = grid(w, h)
     xn, yn = x / w, y / h
-    light = 0.60 + 0.40 * np.exp(-((xn - 0.22) / 0.42) ** 2)
-    light *= 0.80 + 0.20 * (1 - yn) ** 1.2
-    ex = np.minimum(xn, 1 - xn) / 0.10
-    ey = np.minimum(yn, 1 - yn) / 0.30
-    vig = np.clip(np.minimum(ex, ey), 0, 1)
-    light *= 0.62 + 0.38 * sstep(0, 1, vig)
-    grain = noise(w, h, 5, scale=(0.6, 4.0), octaves=3) * 0.035 \
-        + noise(w, h, 9, scale=(6.0, 6.0), octaves=1) * 0.02
-    val = np.clip(light + grain, 0, 1)
+    val = 1.0 - 0.22 * sstep(0.0, 1.0, yn)
+    ex = np.minimum(xn, 1 - xn) / 0.06
+    val *= 0.90 + 0.10 * sstep(0, 1, np.clip(ex, 0, 1))
+    grain = noise(w, h, 5, scale=(0.5, 4.0), octaves=3) * 0.020
+    val = np.clip(val + grain, 0, 1)
     fx, fy = fold(x, y, w, h)
     a = cover(roundrect_sdf(fx, fy, 1.0, 3.0))
     save("Toast_Body", finish(np.repeat(val[..., None], 3, -1), a, w, h))
@@ -371,106 +366,46 @@ def make_body():
 
 # ------------------------------------------------------------------ the medallion
 
+def disc_field(size):
+    x, y = grid(size, size)
+    c = size / 2
+    rho = np.hypot(x - c, y - c) / c
+    ang = np.arctan2(y - c, x - c)             # 0 at the right, +pi/2 at the bottom
+    # 50 % at DISC_FILL, over two texels: crisp at the game's sizes.
+    a = np.clip(0.5 - (rho - DISC_FILL) * c / 2.0, 0, 1)
+    return rho, ang, a
+
+
+# The upper left, where the light comes from.
+LIGHT_ANG = np.arctan2(-0.70, -0.42)
+
+
+def make_discs():
+    size = 128
+    rho, ang, a = disc_field(size)
+    save("Toast_Disc", finish(white(a), a, size, size))
+
+    # Old gold, lit by the angle round the ring and not by the radius, so the
+    # band the icon leaves showing is shaded the same at every height: the
+    # upper left catches the light, the lower right falls into shade, and a
+    # fine circular brushing runs round it.
+    lit = np.cos(ang - LIGHT_ANG)
+    brush = noise(size, size, 23, scale=(4.0, 4.0), octaves=2)
+    t = 0.60 + 0.30 * lit + 0.03 * brush
+    gold = capped(ramp(t, GOLD_STOPS))
+    save("Toast_Gold", finish(gold, a, size, size))
+
+    # The enamel: flat, as fired glass is, a shade lighter towards the light.
+    val = 0.86 + 0.10 * lit + 0.02 * brush
+    save("Toast_Enamel", finish(np.repeat(np.clip(val, 0, 1)[..., None], 3, -1), a, size, size))
+
+
 def superellipse_rho(x, y, size, n):
     """Normalised radius (1 at the texture's half-size) of a superellipse of
     order n: 2 is a circle, 6 a squircle."""
     c = size / 2
     X, Y = np.abs(x - c) / c, np.abs(y - c) / c
     return (X ** n + Y ** n) ** (1.0 / n)
-
-
-# Radii as a fraction of the medallion's half-width. The icon is ICON_R of it
-# across (Looks/Toast.lua's ICON_OF, which must agree).
-#
-# The icon is most of the medallion and the gold is thin: a lip, a seam, the
-# enamel, a seam and the outer ring, about a quarter thinner than the design's.
-# The seams are dark and wide enough to survive the game's own scale (about
-# 1.2 units at a 44-unit medallion, 1 at 36): below a pixel they blur away and
-# the enamel reads as more gold.
-ICON_R = 0.63
-LIP = (0.617, 0.695)   # from just inside the icon's edge (0.63 * 0.985)
-BAND = (0.695, 0.805)
-RING = (0.805, 0.945)
-EDGE = 0.975
-SEAM = 0.055   # the dark seam either side of the enamel, its width in rho
-
-
-def make_medallion(name, n):
-    size = 128
-    x, y = grid(size, size)
-    rho = superellipse_rho(x, y, size, n)
-    c = size / 2
-    ang = np.arctan2(y - c, x - c)             # 0 at the right, +pi/2 at the bottom
-    tex = c                                    # texels per unit of rho
-
-    h = np.zeros_like(rho)
-    lip = (rho >= LIP[0]) & (rho <= LIP[1] - SEAM)
-    h = np.where(lip, bevel((rho - LIP[0]) * tex, (LIP[1] - SEAM - LIP[0]) * tex, 2.4), h)
-    ring = (rho >= RING[0] + SEAM) & (rho <= RING[1])
-    rh = bevel((rho - RING[0] - SEAM) * tex, (RING[1] - RING[0] - SEAM) * tex, 3.4)
-    # A coin edge: shallow grooves round the outer half of the ring.
-    grooves = 0.5 + 0.5 * np.cos(ang * 40)
-    mid = RING[0] + SEAM + 0.5 * (RING[1] - RING[0] - SEAM)
-    rh = rh - 0.45 * sstep(0.70, 1.0, grooves) * sstep(mid - 0.01, mid + 0.02, rho)
-    h = np.where(ring, rh, h)
-    grain = noise(size, size, 17 + n, scale=(2.5, 2.5), octaves=2)
-    gold = shade_metal(h + grain * 0.05)
-
-    gold_a = np.maximum(
-        cover((LIP[0] - rho) * tex) * cover((rho - (LIP[1] - SEAM)) * tex),
-        cover((RING[0] + SEAM - rho) * tex) * cover((rho - RING[1]) * tex))
-    # Dark: a lip outside the ring, and the medallion's own shadow on the panel.
-    dark_edge = cover((RING[1] - rho) * tex) * cover((rho - EDGE) * tex)
-    rho_s = superellipse_rho(x, y - 0.035 * size, size, n)
-    drop = np.clip(1 - (rho_s - EDGE) / (1.0 - EDGE + 0.02), 0, 1) ** 1.6 * (rho > EDGE - 0.01)
-    # Nothing inside the lip: this file is drawn over the spell icon, and an
-    # inner shadow and a gloss across it (1.5.0) washed the icon out in the
-    # game. The icon is drawn clean; only the lip's edge touches it.
-    # The seams: a near-black channel where the enamel meets each gold ring,
-    # solid, so the enamel reads as set into the gold and never as more gold
-    # (the judges' fix: the owed reason is gold, and it sat on gold).
-    seam = cover((LIP[1] - SEAM - rho) * tex) * cover((rho - LIP[1] - 0.004) * tex) \
-        + cover((RING[0] - 0.004 - rho) * tex) * cover((rho - RING[0] - SEAM) * tex)
-    dark_a = np.clip(dark_edge * 0.95 + drop * 0.55 + seam, 0, 1)
-    dark = np.array([0.025, 0.014, 0.008], np.float32)
-
-    alpha = np.clip(gold_a + dark_a * (1 - gold_a), 0, 1)
-    rgb = (gold * gold_a[..., None] + dark * (dark_a * (1 - gold_a))[..., None]) \
-        / np.maximum(alpha[..., None], 1e-5)
-
-    # Glass on the enamel only: a pale inner highlight -- a thin line along
-    # its inner third, brightest at the top -- and a catch-light low on the
-    # right. Enamel is glass on metal, and the white line is what says so.
-    # Never on the icon.
-    top = np.clip(-np.sin(ang), 0, 1)
-    b0, b1 = LIP[1], RING[0]
-    inner_line = np.exp(-((rho - (b0 + 0.30 * (b1 - b0))) / 0.011) ** 2) \
-        * (0.30 + 0.70 * top ** 1.5) * 0.42
-    catch = np.exp(-((rho - (b0 + b1) / 2) / 0.028) ** 2) \
-        * np.clip(np.sin(ang - 0.3), 0, 1) ** 6 * 0.16
-    g = np.clip(inner_line + catch, 0, 1) * (rho > LIP[1] - SEAM)
-    rgb = rgb * (1 - g[..., None]) + np.array([1.0, 0.99, 0.96]) * g[..., None]
-    alpha = np.clip(alpha + g * (1 - alpha), 0, 1)
-    save(name, finish(rgb, alpha, size, size))
-
-
-def make_band(name, n):
-    """The enamel between the two gold rings: grey, for the reason colour. Near
-    flat and bright, as fired enamel is, a little deeper at its walls and lit
-    on its lower right -- not the rounded, shaded channel metal would be."""
-    size = 128
-    x, y = grid(size, size)
-    rho = superellipse_rho(x, y, size, n)
-    c = size / 2
-    ang = np.arctan2(y - c, x - c)
-    # Tucked under both seams, so no gap shows between enamel and gold.
-    lo, hi = LIP[1] - SEAM, RING[0] + SEAM
-    t = np.clip((rho - lo) / (hi - lo), 0, 1)
-    wall = 1 - (2 * t - 1) ** 2
-    lit = 0.5 + 0.5 * np.sin(ang + 0.35)          # the lower right catches light
-    val = 0.80 + 0.14 * wall ** 0.5 + 0.06 * lit * wall
-    a = cover((lo - rho) * c) * cover((rho - hi) * c)
-    save(name, finish(np.repeat(np.clip(val, 0, 1)[..., None], 3, -1), a, size, size))
 
 
 def make_mask(name, n):
@@ -483,88 +418,32 @@ def make_mask(name, n):
 
 
 def make_ring_glow():
-    """A soft ring of light round the medallion. Drawn 1.45 times the
-    medallion, so its crest sits on the medallion's dark outer edge. Its
-    outer falloff is tight enough that it has gone before the text begins, a
-    few units past the medallion, even on the tallest panel: a wider one lit
-    the ground under the name."""
+    """A ring of light round the medallion, for the flourishes only. Drawn
+    1.45 times the medallion, its crest on the medallion's edge; the part
+    inside lies under the medallion's discs, so it shows only as a halo."""
     size = 128
     x, y = grid(size, size)
     rho = superellipse_rho(x, y, size, 2)
-    crest = EDGE / 1.45
-    a = np.exp(-((rho - crest) / 0.045) ** 2)
-    a = np.where(rho < crest, np.exp(-((rho - crest) / 0.07) ** 2), a)
+    crest = DISC_FILL / 1.45
+    a = np.exp(-((rho - crest) / 0.05) ** 2)
     a *= cover((rho - 0.99) * 64)
     save("Toast_RingGlow", finish(white(a), a, size, size))
 
 
-def make_bloom():
-    """The reason-coloured light behind the medallion, spilling right through
-    the banner. Zero at its top and bottom edge, so drawn at the banner's
-    height it never lights the world outside."""
-    w, h = 128, 64
-    x, y = grid(w, h)
-    xn, yn = x / w, y / h
-    dx = (xn - 0.30) / np.where(xn < 0.30, 0.26, 0.62)
-    dy = (yn - 0.5) / 0.38
-    a = np.exp(-(dx * dx + dy * dy) * 1.6)
-    a *= sstep(0.0, 0.18, np.minimum(yn, 1 - yn)) * sstep(0.0, 0.06, 1 - xn)
-    # Rising from nothing at its left edge, which sits under the medallion's
-    # centre: a hard edge there showed through as a seam while the panel
-    # faded in and out.
-    a *= sstep(0.0, 0.30, xn)
-    save("Toast_Bloom", finish(white(a), a, w, h))
-
-
-def make_wash():
-    """A wash of light from the left: the outcome, and the hover."""
-    w, h = 256, 64
-    x, y = grid(w, h)
-    xn, yn = x / w, y / h
-    a = np.exp(-((xn - 0.08) / 0.55) ** 2) * (0.55 + 0.45 * np.exp(-((yn - 0.5) / 0.45) ** 2))
-    a *= sstep(0.0, 0.10, np.minimum(yn, 1 - yn)) * sstep(0.0, 0.02, np.minimum(xn, 1 - xn))
-    save("Toast_Wash", finish(white(a), a, w, h))
-
-
 def make_glint():
-    """The spark that runs along a rail: a long bright bead of light."""
+    """The spark that runs along a rail: a short bright bead of light."""
     w, h = 64, 16
     x, y = grid(w, h)
     dx, dy = (x / w - 0.5) / 0.5, (y / h - 0.5) / 0.5
-    core = np.exp(-(dx / 0.22) ** 2 - (dy / 0.16) ** 2)
-    halo = np.exp(-(dx / 0.55) ** 2 - (dy / 0.45) ** 2) * 0.45
+    core = np.exp(-(dx / 0.20) ** 2 - (dy / 0.16) ** 2)
+    halo = np.exp(-(dx / 0.50) ** 2 - (dy / 0.40) ** 2) * 0.35
     a = np.clip(core + halo, 0, 1) * sstep(0, 0.1, 1 - np.abs(dx)) * sstep(0, 0.1, 1 - np.abs(dy))
     save("Toast_Glint", finish(white(a), a, w, h))
 
 
-def make_streak():
-    """The broad diagonal light that crosses the banner once."""
-    w, h = 64, 64
-    x, y = grid(w, h)
-    xn, yn = x / w - 0.5, y / h - 0.5
-    d = xn + yn * 0.35
-    a = np.exp(-(d / 0.13) ** 2) * 0.8 + np.exp(-(d / 0.035) ** 2) * 0.35
-    a *= sstep(0, 0.12, 0.5 - np.abs(xn)) * sstep(0, 0.06, 0.5 - np.abs(yn))
-    a = np.clip(a, 0, 1)
-    save("Toast_Streak", finish(white(a), a, w, h))
-
-
-def make_spark():
-    """A four-pointed twinkle for the corner stud."""
-    s = 32
-    x, y = grid(s, s)
-    dx, dy = (x - s / 2) / (s / 2), (y - s / 2) / (s / 2)
-    r = np.sqrt(dx * dx + dy * dy)
-    rays = np.exp(-(np.abs(dx) / 0.05)) * np.exp(-(np.abs(dy) / 0.55)) \
-        + np.exp(-(np.abs(dy) / 0.05)) * np.exp(-(np.abs(dx) / 0.55))
-    a = np.clip(rays * 0.9 + np.exp(-(r / 0.16) ** 2) + np.exp(-(r / 0.45) ** 2) * 0.25, 0, 1)
-    a *= sstep(0, 0.1, 1 - np.maximum(np.abs(dx), np.abs(dy)))
-    save("Toast_Spark", finish(white(a), a, s, s))
-
-
 def make_chip():
-    """The count and key chips: a dark enamel stadium with a gold rim. Cut in
-    three by the Lua: caps half the height wide, the middle stretched."""
+    """The count and key chips: a dark enamel stadium with an old-gold rim.
+    Cut in three by the Lua: caps half the height wide, the middle stretched."""
     w, h = 64, 32
     x, y = grid(w, h)
     k = 32 / 14.0
@@ -573,21 +452,17 @@ def make_chip():
     px = np.clip(x, cx0, cx1)
     d = np.sqrt((x - px) ** 2 + (y - h / 2) ** 2) - r
     depth = -d / k
-    r0, r1 = 0.25, 1.30
-    rail = (depth >= r0) & (depth <= r1)
-    hgt = np.where(rail, bevel((depth - r0) * k, (r1 - r0) * k, 0.65 * (r1 - r0) * k), 0)
+    r0, r1 = 0.25, 1.15
+    hgt = np.where((depth >= r0) & (depth <= r1), bevel((depth - r0) * k, (r1 - r0) * k, 0.55 * (r1 - r0) * k), 0)
     gold = shade_metal(hgt)
     gold_a = cover((r0 - depth) * k) * cover((depth - r1) * k)
     inside = cover((depth - r1) * -k)
     yn = y / h
-    enamel = np.array([0.075, 0.055, 0.045]) * (1.25 - 0.5 * yn)[..., None]
+    enamel = np.array([0.070, 0.050, 0.040]) * (1.20 - 0.4 * yn)[..., None]
     shade = np.clip(1 - (depth - r1) / 1.2, 0, 1) ** 2
-    enamel = enamel * (1 - 0.6 * shade[..., None])
+    enamel = enamel * (1 - 0.5 * shade[..., None])
     lip = cover(-depth * k) * cover((depth - r0) * k) * 0.9
-    alpha = np.clip(gold_a + (inside + lip) * (1 - gold_a), 0, 1)
-    rgb = (gold * gold_a[..., None] + enamel * (inside * (1 - gold_a))[..., None]
-           + np.array([0.03, 0.02, 0.01]) * (lip * (1 - gold_a))[..., None]) \
-        / np.maximum(alpha[..., None], 1e-5)
+    rgb, alpha = compose([(DARK, lip), (enamel, inside), (gold, gold_a)])
     save("Toast_Chip", finish(rgb, alpha, w, h))
 
 
@@ -607,31 +482,27 @@ def make_gem():
     val = np.where(table, 0.95, facet_light)
     val = val * (0.80 + 0.20 * (1 - r / stone_r))
     spec = np.exp(-(((dx + 0.22) / 0.10) ** 2 + ((dy + 0.24) / 0.10) ** 2))
-    val = np.clip(val + spec * 0.6, 0, 1.0)
+    val = np.clip(val + spec * 0.4, 0, 1.0)
     a = cover((r - stone_r) * c)
     save("Toast_Gem", finish(np.repeat(val[..., None], 3, -1).astype(np.float32), a, s, s))
 
-    r0, r1 = stone_r - 0.04, 0.90
+    r0, r1 = stone_r - 0.04, 0.88
     ring = (r >= r0) & (r <= r1)
-    hgt = np.where(ring, bevel((r - r0) * c, (r1 - r0) * c, 2.2), 0)
+    hgt = np.where(ring, bevel((r - r0) * c, (r1 - r0) * c, 1.8), 0)
     gold = shade_metal(hgt)
     gold_a = cover((r0 - r) * c) * cover((r - r1) * c)
     lip = cover((r1 - r) * c) * cover((r - 0.98) * c) * 0.9
-    alpha = np.clip(gold_a + lip * (1 - gold_a), 0, 1)
-    rgb = (gold * gold_a[..., None] + np.array([0.03, 0.02, 0.01]) * (lip * (1 - gold_a))[..., None]) \
-        / np.maximum(alpha[..., None], 1e-5)
+    rgb, alpha = compose([(DARK, lip), (gold, gold_a)])
     save("Toast_GemSet", finish(rgb, alpha, s, s))
 
 
 def make_ember():
-    """The favour clock's line: a thin bright core in a soft glow, the same
+    """The favour clock's line: a crisp core with a one-texel edge, the same
     all along, so the Lua can stretch its middle to any length."""
     w, h = 64, 16
     x, y = grid(w, h)
-    dy = (y / h - 0.5) / 0.5
-    core = np.exp(-(dy / 0.20) ** 2)
-    halo = np.exp(-(dy / 0.55) ** 2) * 0.50
-    a = np.clip(core + halo, 0, 1) * sstep(0, 0.12, 1 - np.abs(dy))
+    dy = np.abs(y / h - 0.5) * h                  # texels from the middle
+    a = np.clip(0.5 - (dy - 5.0) / 1.5, 0, 1)
     save("Toast_Ember", finish(white(a), a, w, h))
 
 
@@ -654,29 +525,31 @@ def make_glyphs():
     save("Toast_Cross", finish(white(a), a, n, n))
 
 
+# Files of earlier versions that this one no longer draws.
+RETIRED = ["Toast_Ring", "Toast_Seal", "Toast_RingBand", "Toast_SealBand", "Toast_Bloom",
+           "Toast_Wash", "Toast_Streak", "Toast_Spark"]
+
+
 def main():
     os.makedirs(OUT, exist_ok=True)
-    make_border("Toast_Border", "Toast_BorderGlow", slim=False)
-    make_border("Toast_BorderSlim", "Toast_BorderSlimGlow", slim=True)
+    make_border("Toast_Border", "Toast_BorderGlow", "double")
+    make_border("Toast_BorderSlim", "Toast_BorderSlimGlow", "slim")
     make_drawer()
     make_shadow()
     make_body()
-    make_medallion("Toast_Ring", 2)
-    make_band("Toast_RingBand", 2)
+    make_discs()
     make_mask("Toast_IconMask", 2)
-    make_medallion("Toast_Seal", 6)
-    make_band("Toast_SealBand", 6)
     make_mask("Toast_SealMask", 6)
     make_ring_glow()
-    make_bloom()
-    make_wash()
     make_glint()
-    make_streak()
-    make_spark()
     make_chip()
     make_gem()
     make_ember()
     make_glyphs()
+    for name in RETIRED:
+        path = os.path.join(OUT, name + ".tga")
+        if os.path.exists(path):
+            os.remove(path)
     for name, w, h in written:
         print("  Textures/Toast/%-22s %4dx%-4d" % (name + ".tga", w, h))
 

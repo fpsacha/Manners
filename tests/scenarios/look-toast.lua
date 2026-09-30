@@ -62,9 +62,9 @@ local function isToast(look)
 	return look ~= nil and look.band ~= nil and look.ember ~= nil
 end
 
--- The enamel's colour for a reason colour: Looks/Toast.lua's Enamel, and a
--- warm gold fired deeper (Fired).
-local function enamel(r, g, b)
+-- The fired colour for a reason colour: Looks/Toast.lua's Enamel, and a
+-- warm gold fired deeper (Fired). The jewel and the owed glow wear it.
+local function fired(r, g, b)
 	local l = 0.299 * r + 0.587 * g + 0.114 * b
 	local function push(v) return math.max(0, math.min(1, l + (v - l) * 1.35)) end
 	local er, eg, eb = push(r), push(g), push(b)
@@ -72,6 +72,12 @@ local function enamel(r, g, b)
 		er, eg, eb = er * 0.75, eg * 0.70 * 0.75, eb * 0.75
 	end
 	return er, eg, eb
+end
+
+-- The enamel band's colour: the fired colour darkened (ENAMEL_DARK).
+local function enamel(r, g, b)
+	local er, eg, eb = fired(r, g, b)
+	return er * 0.48, eg * 0.48, eb * 0.48
 end
 
 -- Relative luminance, from sRGB.
@@ -87,8 +93,8 @@ local function plays(list)
 end
 
 -- ------------------------------------------------------------------ 1
--- The enamel says why, in each reason's colour, both palettes; the light
--- behind the medallion agrees; with the marker off the enamel is neutral.
+-- The enamel says why, in each reason's colour, both palettes; the owed glow
+-- on it agrees; with the marker off the enamel is neutral.
 withTree("Toast carries the reason on the enamel", ANNA, function(ns, scenario)
 	local r, p, look = upIn(ns, scenario)
 	if not isToast(look) then
@@ -105,28 +111,32 @@ withTree("Toast carries the reason on the enamel", ANNA, function(ns, scenario)
 			if not sameColour(look.band._color, er, eg, eb) then
 				fail(scenario, ("the enamel is not in %s's colour in the %s set"):format(reason, palette))
 			end
-			if not sameColour(look.bloom._color, cr, cg, cb) then
-				fail(scenario, ("the light behind the medallion is not in %s's colour in the %s set")
+			local fr, fg, fb = fired(cr, cg, cb)
+			if not sameColour(look.glow._color, fr, fg, fb) then
+				fail(scenario, ("the enamel's glow is not in %s's colour in the %s set")
 					:format(reason, palette))
 			end
 		end
 	end
-	-- The owed gold is parted from the gold round it by brightness: a honey
-	-- amber, well under the gilding's luminance (about 0.48 at its face),
-	-- and still warm. Saturation alone blurred into one ring at game scale.
+	-- The owed gold is parted from the gold round it by brightness: fired to
+	-- a honey amber, well under the gilding's luminance (about 0.48 at its
+	-- face), and still warm -- even where it is lit, as the owed glow lights
+	-- the enamel and the jewel wears it. Saturation alone blurred into one
+	-- ring at game scale.
 	p.reasonPalette = "standard"
 	ns.Prompt:ApplyStyle()
 	ns.Prompt:PaintAccent("owed")
-	local c = look.band._color
+	local c = look.glow._color
 	if not (c and luminance(c[1], c[2], c[3]) < 0.7 * 0.48 and c[1] > c[2] and c[2] > c[3]) then
 		fail(scenario, "the owed enamel is not parted from the gold it sits in: "
 			.. (c and ("%.2f %.2f %.2f"):format(c[1], c[2], c[3]) or "no colour"))
 	end
-	-- The colour-blind set's lemon target stays light, as its palette means.
+	-- The colour-blind set's lemon target stays light where it is fired
+	-- bright (the glow, the jewel), as its palette means.
 	p.reasonPalette = "colourblind"
 	ns.Prompt:ApplyStyle()
 	ns.Prompt:PaintAccent("target")
-	c = look.band._color
+	c = look.glow._color
 	if not (c and luminance(c[1], c[2], c[3]) > 0.6) then
 		fail(scenario, "the colour-blind target's enamel was fired dark like the owed gold")
 	end
@@ -158,8 +168,8 @@ withTree("Toast carries the reason on the enamel", ANNA, function(ns, scenario)
 end)
 
 -- ------------------------------------------------------------------ 2
--- The rails' sparks, the streak and the twinkle are for a new favour, never
--- for a new face nor for a repaint of the same one; and never on Calm.
+-- The rails' glints are for a new favour, never for a new face nor for a
+-- repaint of the same one; and never on Calm.
 withTree("Toast sparkles only for a new favour", CROWD, function(ns, scenario)
 	freshPrompt(ns, scenario)
 	local p = ns.db.profile.prompt
@@ -172,7 +182,7 @@ withTree("Toast sparkles only for a new favour", CROWD, function(ns, scenario)
 		return
 	end
 	-- Strangers on the panel, one after another: faces, not favours.
-	local before = plays(look.sweep) + look.streakAnim._plays + look.twinkleAnim._plays
+	local before = plays(look.sweep)
 	for _ = 1, 3 do
 		ns.Prompt:Paint({ name = "Brannoc Vale", short = "Brannoc", reason = "nearby",
 			buff = ns.ResolveBuff(true) }, 0)
@@ -182,13 +192,13 @@ withTree("Toast sparkles only for a new favour", CROWD, function(ns, scenario)
 		ns.Prompt:StopAttention()
 	end
 	tick(ns)
-	if plays(look.sweep) + look.streakAnim._plays + look.twinkleAnim._plays > before then
+	if plays(look.sweep) > before then
 		fail(scenario, "the rails sparkled for a new face on the panel, not a favour")
 	end
-	-- A favour: the sparks run, all three kinds.
+	-- A favour: the glints run, down both rails.
 	owe(ns, "Anna Aim")
 	tick(ns)
-	if plays(look.sweep) == before or look.streakAnim._plays == 0 or look.twinkleAnim._plays == 0 then
+	if plays(look.sweep) < before + #look.sweep or #look.sweep < 2 then
 		fail(scenario, "a new favour on top and the rails did not catch the light")
 	end
 	-- The same favour, repainted by the scan: nothing more.
@@ -210,8 +220,8 @@ withTree("Toast sparkles only for a new favour", CROWD, function(ns, scenario)
 end)
 
 -- ------------------------------------------------------------------ 3
--- The owed pulse breathes a few times and then holds still; on Calm it never
--- loops; with nobody owed it goes.
+-- The owed pulse breathes a few times and then settles to the dark enamel;
+-- on Calm it never loops; with nobody owed it goes.
 withTree("Toast's pulse breathes three times and holds", ANNA, function(ns, scenario)
 	local _, p, look = upIn(ns, scenario)
 	if not isToast(look) then
@@ -227,8 +237,8 @@ withTree("Toast's pulse breathes three times and holds", ANNA, function(ns, scen
 	if look.pulse[1]._playing or #loops > 0 then
 		fail(scenario, "the owed pulse still loops after its three breaths")
 	end
-	if not near(look.bloomPulse._alpha, 0.45) then
-		fail(scenario, "after its breaths the owed glow is not held still: " .. tostring(look.bloomPulse._alpha))
+	if not near(look.glow._alpha, 0) then
+		fail(scenario, "after its breaths the enamel is not let go to its dark: " .. tostring(look.glow._alpha))
 	end
 	tick(ns)
 	if look.pulse[1]._playing then fail(scenario, "the scan started the spent pulse again") end
@@ -241,13 +251,24 @@ withTree("Toast's pulse breathes three times and holds", ANNA, function(ns, scen
 	tick(ns)
 	_, loops = FT.playing()
 	if #loops > 0 then fail(scenario, ("%d animation(s) loop on Calm"):format(#loops)) end
-	if not near(look.bloomPulse._alpha, 0.45) then
-		fail(scenario, "on Calm the owed glow is not held still at 0.45")
+	if not near(look.glow._alpha, 0) then
+		fail(scenario, "on Calm the owed glow is not still at the dark enamel")
 	end
-	-- Nobody owed: the glow goes.
+	-- Nobody owed while it breathes: the glow goes, and the loop with it.
+	p.effects = "full"
 	wipe(ns.owed)
 	tick(ns)
-	if (look.bloomPulse._alpha or 0) > 0 then fail(scenario, "the owed glow stayed with nobody owed") end
+	ns.Prompt:ApplyStyle()
+	owe(ns, "Anna Aim")
+	tick(ns)
+	if not look.pulse[1]._playing then
+		fail(scenario, "SKIPPED -- the owed pulse did not start again")
+	end
+	wipe(ns.owed)
+	tick(ns)
+	if (look.glow._alpha or 0) > 0 or look.pulse[1]._playing then
+		fail(scenario, "the owed glow stayed with nobody owed")
+	end
 end)
 
 -- ------------------------------------------------------------------ 4
@@ -267,7 +288,7 @@ withTree("Toast in a fight turns to iron and keeps the reason", ANNA, function(n
 	if not (rail._desaturated and sameColour(rail._color, 0.62, 0.62, 0.64)) then
 		fail(scenario, "the gilding did not turn to iron in a fight")
 	end
-	if not (look.ring._desaturated and look.chip[1]._desaturated) then
+	if not (look.ring._desaturated and look.rim._desaturated and look.chip[1]._desaturated) then
 		fail(scenario, "the medallion or the chip kept its gold in a fight")
 	end
 	if not r.icon._desaturated then fail(scenario, "the icon keeps its colour in a fight") end
@@ -279,11 +300,13 @@ withTree("Toast in a fight turns to iron and keeps the reason", ANNA, function(n
 	if not (r.icon._color and r.icon._color[1] < 0.9) then
 		fail(scenario, "the icon is not dimmed in a fight")
 	end
-	-- And an opaque well in its shape under it, over the banner's end.
+	-- And an opaque well under it, over the banner's end and the gold, and
+	-- still under the icon (ARTWORK 0).
 	local well = look.well
 	if not (well and well._shown ~= false and (well._color and well._color[4] or 1) > 0.99
-		and (well._sublevel or -99) > (look.body._sublevel or 0)
-		and tostring(well._file):find("Mask", 1, true)) then
+		and well._layer == "ARTWORK" and (well._sublevel or 0) < 0
+		and (well._sublevel or -99) > (look.ring._sublevel or 0)
+		and (well._width or 0) >= (r.icon._width or 99)) then
 		fail(scenario, "nothing opaque under the icon: whatever is behind it shows through")
 	end
 	if not near(r.textLayer._alpha, 0.78) then fail(scenario, "the text does not dim in a fight") end
@@ -475,13 +498,13 @@ withTree("Toast fits its gilding and medallion to the panel", ANNA, function(ns,
 	for _, size in ipairs(sizes) do
 		p.width, p.height, p.fontSize, p.iconSize = size[1], size[2], size[3], size[4]
 		ns.Prompt:ApplyStyle()
-		if (look.medallion._width or 0) > p.height + 0.01 or look.cx < (look.medallion._width or 0) / 2 - 0.01 then
+		if (look.M or 0) > p.height + 0.01 or look.cx < (look.M or 0) / 2 - 0.01 then
 			fail(scenario, ("at %dx%d the medallion (%s) overhangs the button")
-				:format(size[1], size[2], tostring(look.medallion._width)))
+				:format(size[1], size[2], tostring(look.M)))
 		end
-		if (look.medallion._width or 0) < p.height - 1.01 then
+		if (look.M or 0) < p.height - 1.01 then
 			fail(scenario, ("at %dx%d with an icon of %d the medallion (%s) is shorter than the banner")
-				:format(size[1], size[2], size[4], tostring(look.medallion._width)))
+				:format(size[1], size[2], size[4], tostring(look.M)))
 		end
 		if p.height >= 40 and tostring(look.border[2]._file):find("Slim", 1, true) then
 			fail(scenario, "the single rail at height " .. p.height)
@@ -679,7 +702,7 @@ withTree("Toast carries the reason on a jewel with the icon off", ANNA, function
 			fail(scenario, "no jewel carries the reason with the icon off")
 			return
 		end
-		local er, eg, eb = enamel(ns.Prompt:AccentColor(reason))
+		local er, eg, eb = fired(ns.Prompt:AccentColor(reason))
 		if not sameColour(c, er, eg, eb) then fail(scenario, "the jewel is not in " .. reason .. "'s colour") end
 		seen[#seen + 1] = c[1] + c[2] * 10 + c[3] * 100
 	end
@@ -696,8 +719,8 @@ end)
 
 -- ------------------------------------------------------------------ 16
 -- The favour clock: the spent time as ash its whole length, the time left
--- burning over it, hotter than the enamel, and a spark at its end big
--- enough to see at the game's scale.
+-- over it, lighter than the dark enamel, and a bead at its end big enough to
+-- see at the game's scale; none of it additive.
 withTree("Toast's clock burns over its ash", ANNA, function(ns, scenario)
 	local _, _, look = upIn(ns, scenario)
 	if not isToast(look) then
@@ -715,35 +738,20 @@ withTree("Toast's clock burns over its ash", ANNA, function(ns, scenario)
 	if not (ember._width and ember._width < look.clockLen * 0.6) then
 		fail(scenario, "the clock did not burn down")
 	end
-	local _, _, eb = enamel(ns.Prompt:AccentColor("owed"))
-	if not (ember._color and ember._color[3] > eb + 0.15) then
-		fail(scenario, "the burning clock is the enamel's colour, one more gold rail")
+	local band = look.band._color
+	local ec = ember._color
+	if not (ec and band and luminance(ec[1], ec[2], ec[3]) > luminance(band[1], band[2], band[3]) + 0.05) then
+		fail(scenario, "the burning clock is no lighter than the enamel")
 	end
-	if (look.bead._width or 0) < look.clockH * 4 or (look.bead._height or 0) < look.clockH * 1.8 then
+	if (look.bead._width or 0) < look.clockH * 2 or (look.bead._height or 0) < look.clockH * 2 then
 		fail(scenario, "the clock's spark is too small to see")
+	end
+	for _, t in ipairs({ ash, ember, look.bead }) do
+		if (t._blend or "BLEND") == "ADD" then fail(scenario, "the favour clock is drawn in additive light") end
 	end
 	wipe(ns.owed)
 	ns.Prompt:Paint({ name = "Anna Aim", short = "Anna", reason = "nearby", buff = ns.ResolveBuff(true) }, 0)
 	if ash._shown ~= false then fail(scenario, "the clock's ash stayed with nothing owed") end
-end)
-
--- ------------------------------------------------------------------ 17
--- The light behind the medallion rises from nothing: the file is drawn whole
--- (its edge is soft), not cut at its brightest column, which showed as a
--- seam through the medallion whenever the panel faded.
-withTree("Toast's light has no edge under the medallion", ANNA, function(ns, scenario)
-	local _, _, look = upIn(ns, scenario)
-	if not isToast(look) then
-		fail(scenario, "SKIPPED -- Toast is not the look in use")
-		return
-	end
-	for _, t in ipairs({ look.bloom, look.bloomPulse, look.bloomArrive }) do
-		local tc = t._texCoord
-		if tc and #tc >= 2 and tc[1] > 0.001 then
-			fail(scenario, "the light is cut at " .. tostring(tc[1]) .. " of its file, a hard edge under the medallion")
-			return
-		end
-	end
 end)
 
 -- ------------------------------------------------------------------ 18
@@ -761,7 +769,7 @@ withTree("Toast's icon size is stated on the options page", ANNA, function(ns, s
 		fail(scenario, "SKIPPED -- no icon size options")
 		return
 	end
-	local drawn = math.floor((look.medallion._width or 0) * 0.63 + 0.5)
+	local drawn = math.floor((look.iconSize or 0) + 0.5)
 	if not slider.disabled() then fail(scenario, "the icon size slider is live on a look that ignores it") end
 	if notice.hidden() then fail(scenario, "nothing on the options page says how Toast sizes its icon") end
 	local text = tostring(notice.name())
@@ -831,5 +839,147 @@ withTree("every look's art is in the package", ANNA, function(ns, scenario)
 	if looked == 0 or checked == 0 then fail(scenario, "no look's art was checked") end
 	for file in pairs(missing) do
 		fail(scenario, "a look draws " .. file .. ", which the package does not ship")
+	end
+end)
+
+-- ------------------------------------------------------------------ 20
+-- No additive light at rest. tools/render_prompt.py draws ADD far more
+-- gently than the client does, and 1.5.1's toast, tuned against it, wore a
+-- bright glow ring and a glaring rim in the game. So once the panel has
+-- settled -- no flourish playing -- no Toast texture on screen is ADD with
+-- any alpha, in any state it can rest in; and each flourish that is ADD
+-- (the rails' glints, the ring of light, the flare, the burst) is a one-shot
+-- of 0.6 s at most, so it has gone out by the time the panel is at rest.
+local FLOURISH = 0.6
+
+-- The Toast textures drawn additively with some alpha, or with a group still
+-- playing on them, as "file (why)" strings.
+local function additiveLit(look)
+	local lit = {}
+	for _, t in ipairs(look.own or {}) do
+		if t._blend == "ADD" and FT.visible(t) then
+			local a, x = 1, t
+			while x do
+				a = a * (x._alpha or 1)
+				x = x._parent
+			end
+			a = a * (t._color and t._color[4] or 1)
+			local playing = false
+			for _, g in ipairs(t._groups or {}) do
+				if g._playing then playing = true end
+			end
+			if a > 0.001 or playing then
+				lit[#lit + 1] = ("%s (%s)"):format(tostring(t._file):match("[^\\]+$") or "?",
+					playing and "still animating" or ("alpha %.2f"):format(a))
+			end
+		end
+	end
+	return lit
+end
+
+withTree("Toast keeps no additive light at rest", CROWD, function(ns, scenario)
+	local r, p, look = upIn(ns, scenario)
+	if not isToast(look) then
+		fail(scenario, "SKIPPED -- Toast is not the look in use")
+		return
+	end
+	-- Every flourish is a short one-shot.
+	local groups = 0
+	for _, t in ipairs(look.own) do
+		if t._blend == "ADD" then
+			for _, g in ipairs(t._groups or {}) do
+				groups = groups + 1
+				if g._looping and g._looping ~= "NONE" then
+					fail(scenario, ("an additive light loops: %s"):format(tostring(t._file)))
+				elseif FT.groupLength(g) > FLOURISH + 1e-6 then
+					fail(scenario, ("an additive flourish lasts %.2f s, more than %.1f: %s")
+						:format(FT.groupLength(g), FLOURISH, tostring(t._file)))
+				end
+			end
+		end
+	end
+	if groups == 0 then fail(scenario, "SKIPPED -- the toast has no additive flourish to judge") end
+
+	local function check(what)
+		Mock.advance(FLOURISH + 0.01)
+		FT.settle()
+		local lit = additiveLit(look)
+		if #lit > 0 then
+			fail(scenario, ("%s: additive light at rest: %s"):format(what, table.concat(lit, ", ")))
+		end
+	end
+
+	-- A new favour on Full lights its flourishes (else this checks nothing).
+	wipe(ns.owed)
+	tick(ns)
+	owe(ns, "Anna Aim")
+	ns.addon:Tick()
+	local _, loops = FT.playing()
+	local playing = 0
+	for _, g in ipairs(FT.playing()) do
+		local owner = g._owner
+		if owner and owner._blend == "ADD" then playing = playing + 1 end
+	end
+	if playing == 0 then fail(scenario, "SKIPPED -- a new favour lit no flourish") end
+	check("a new favour, owed and breathing")
+	if #loops == 0 then fail(scenario, "SKIPPED -- the owed pulse is not breathing") end
+	Mock.runTimers(10)
+	check("owed, after its breaths")
+
+	-- The cursor on it.
+	local button = ns.Prompt:GetButton()
+	if button.scripts.OnEnter then button.scripts.OnEnter(button) else look:Hover(true) end
+	check("under the cursor")
+	if button.scripts.OnLeave then button.scripts.OnLeave(button) else look:Hover(false) end
+	check("the cursor gone")
+
+	-- The outcomes, on Full and held on Calm.
+	for _, effects in ipairs({ "full", "calm" }) do
+		p.effects = effects
+		ns.Prompt:ApplyStyle()
+		tick(ns)
+		for _, kind in ipairs({ "cast", "failed", "sent" }) do
+			Mock.advance(3)
+			ns.Prompt:ShowOutcome(kind, "Anna Aim", "Out of range.")
+			check(("a %s outcome on %s"):format(kind, effects))
+		end
+		Mock.advance(3)
+		tick(ns)
+		check("owed on " .. effects)
+	end
+	p.effects = "full"
+
+	-- A fight.
+	Mock.inCombat = true
+	ns.addon:PLAYER_REGEN_DISABLED()
+	tick(ns)
+	check("in a fight")
+	Mock.inCombat = false
+	if ns.addon.PLAYER_REGEN_ENABLED then ns.addon:PLAYER_REGEN_ENABLED() end
+	tick(ns)
+
+	-- Every setting that changes what is drawn.
+	SetBinding("SHIFT-F", COMMAND)
+	for _, setup in ipairs({
+		{ "the list shown", function() p.showQueue, p.queueRows = true, 3 end },
+		{ "a round icon", function() p.roundIcon = true end },
+		{ "the icon off", function() p.showIcon = false end },
+		{ "180x36", function() p.showIcon, p.width, p.height, p.fontSize = true, 180, 36, 11 end },
+		{ "360x120", function() p.width, p.height, p.fontSize = 360, 120, 24 end },
+		{ "a light panel", function() p.width, p.height, p.fontSize, p.bgColor = 220, 44, 13, { 0.85, 0.82, 0.74, 1 } end },
+	}) do
+		setup[2]()
+		ns.Prompt:ApplyStyle()
+		wipe(ns.owed)
+		tick(ns)
+		owe(ns, "Anna Aim")
+		tick(ns)
+		check(setup[1])
+		Mock.runTimers(10)
+		check(setup[1] .. ", after the breaths")
+	end
+	SetBinding("SHIFT-F", nil)
+	if r.icon._shown == false and look.medallion._shown ~= false then
+		fail(scenario, "SKIPPED -- the prompt did not come back")
 	end
 end)

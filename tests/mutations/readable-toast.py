@@ -1,66 +1,58 @@
-# Mutations for the Toast look's legibility: tests/scenarios/readable-toast.lua.
+# Mutations for the Toast look's legibility and restraint:
+# tests/scenarios/readable-toast.lua.
 #
 # Run by tests/selftest.py with mutate() in scope. Each puts back one of the
-# things that made 1.5.0's toast hard to read in the game -- light added under
-# the text, art over the spell icon, the count on the icon -- and names the
-# check that has to object. The art itself (the gloss and the shade the
-# medallion drew over the icon) is binary and cannot be mutated here; the same
-# check reads it texel by texel.
+# things that made the toast hard to read or loud in the game -- light under
+# the text, art over the spell icon, the count on the icon, bright gold, a
+# square frame, a glowing enamel, a cold body -- and names the check that has
+# to object. The art itself is binary and cannot be mutated here; the same
+# checks read it texel by texel, and these swap the files or colours the Lua
+# draws with.
 
 TOAST = "Looks/Toast.lua"
 
 # --- the text on a dark ground ---------------------------------------------
 
-# 1.5.0's banner: a warm brown lit to gold in its middle, a little see-through.
+# A banner lit to gold behind the text, a little see-through.
 mutate(TOAST,
-       "local WARM_TOP, WARM_BOTTOM, WARM_ALPHA = { 0.080, 0.056, 0.042 }, { 0.040, 0.029, 0.024 }, 1\n",
-       "local WARM_TOP, WARM_BOTTOM, WARM_ALPHA = { 0.205, 0.145, 0.100 }, { 0.070, 0.050, 0.042 }, 0.95\n",
+       "local WARM_TOP, WARM_BOTTOM, WARM_ALPHA = { 0.118, 0.072, 0.046 }, { 0.090, 0.055, 0.036 }, 1\n",
+       "local WARM_TOP, WARM_BOTTOM, WARM_ALPHA = { 0.420, 0.310, 0.190 }, { 0.300, 0.220, 0.140 }, 0.95\n",
        "the toast's banner lit brown behind the text",
        expect="on its ground over a world",
        script="runscenarios.py")
 
-# The reason's light spilling right under the name, as it did.
+# The cursor's light laid across the whole banner, under the lines.
 mutate(TOAST,
-       "\t\tt:SetSize(lightEnd - left, BH - 3)\n",
-       "\t\tt:SetSize(2.03 * BH, BH - 3)\n",
-       "the toast's bloom under the text",
+       "\tDisc(self.ringHover, art, cx, cy, rRing)\n",
+       "\tBox(self.ringHover, art, left, top, W, bottom)\n",
+       "the cursor's light under the text",
        expect="on its ground over a world",
        script="runscenarios.py")
 
-# The outcome's wash and the cursor's across the whole banner.
+# The owed glow spread far past the medallion, under the name.
 mutate(TOAST,
-       "\t\tBox(t, art, left + 1, top + 1, lightEnd, bottom - 1)\n",
-       "\t\tBox(t, art, left + 1, top + 1, W - 1, bottom - 1)\n",
-       "the toast's washes under the text",
+       "\tDisc(self.glow, art, cx, cy, rEnamel)\n",
+       "\tDisc(self.glow, art, cx, cy, 3 * R)\n",
+       "the owed glow under the text",
        expect="on its ground over a world",
        script="runscenarios.py")
 
 # --- the icon drawn clean ---------------------------------------------------
 
-# Every light of the look's drawn over the icon rather than under it.
+# The gold ring drawn over the icon, as 1.5.0's medallion was.
 mutate(TOAST,
-       "\t\tlocal t = tex(parent or art, \"BORDER\", sublevel, file, \"ADD\")\n",
-       "\t\tlocal t = tex(parent or art, \"OVERLAY\", sublevel, file, \"ADD\")\n",
-       "the toast's lights over the icon",
+       "\tself.ring = tex(art, \"ARTWORK\", -3, \"Gold\")\n",
+       "\tself.ring = tex(art, \"OVERLAY\", -3, \"Gold\")\n",
+       "the toast's ring over the icon",
        expect="lies over the spell icon's box",
        script="runscenarios.py")
 
-# The favour clock's spark left on the line's end as it runs out, over the
-# icon's corner.
+# The well drawn over the icon rather than under it.
 mutate(TOAST,
-       "\t\t\tmath.max(self.clockX + width, self.beadMin), self.clockY)\n",
-       "\t\t\tself.clockX + width, self.clockY)\n",
-       "the toast's clock spark over the icon",
+       "\tself.well = tex(art, \"ARTWORK\", -1, \"Disc\")\n",
+       "\tself.well = tex(art, \"ARTWORK\", 1, \"Disc\")\n",
+       "the toast's well over the icon",
        expect="lies over the spell icon's box",
-       script="runscenarios.py")
-
-# The medallion drawn smaller than the panel, its gold and enamel over the
-# icon it frames.
-mutate(TOAST,
-       "\tself.medallion:SetSize(math.max(1, M), math.max(1, M))\n",
-       "\tself.medallion:SetSize(math.max(1, M * 0.8), math.max(1, M * 0.8))\n",
-       "the toast's medallion over the icon",
-       expect="is drawn over the spell icon",
        script="runscenarios.py")
 
 # --- the count off the icon -------------------------------------------------
@@ -72,4 +64,71 @@ mutate(TOAST,
        " -(self.cy + 0.32 * self.M))\n",
        "the toast's count on the icon",
        expect="the count's chip covers the spell icon",
+       script="runscenarios.py")
+
+# --- round 18: old gold, a round medallion, a warm body ---------------------
+
+# The frame drawn from its flare's file: the glaring line of 1.5.1.
+mutate(TOAST,
+       "\tEach(self.border, \"SetTexture\", frameFile)\n",
+       "\tEach(self.border, \"SetTexture\", frameFile .. \"Glow\")\n",
+       "the frame drawn as light",
+       expect="is gold as bright as",
+       script="runscenarios.py")
+
+# The medallion's rim at the ring's full brightness and more: not old gold.
+mutate(TOAST,
+       "local RIM = { 0.66, 0.62, 0.58 }\n",
+       "local RIM = { 1.6, 1.4, 1.2 }\n",
+       "the medallion's rim brightened",
+       expect="is gold as bright as",
+       script="runscenarios.py")
+
+# A square frame round the icon: the medallion's edge drawn from a square
+# file.
+mutate(TOAST,
+       "\tself.medallion = tex(art, \"ARTWORK\", -8, \"Disc\")\n",
+       "\tself.medallion = tex(art, \"ARTWORK\", -8, \"Body\")\n",
+       "a square frame round the icon",
+       expect="is not round",
+       script="runscenarios.py")
+
+# The gold ring as thick as 1.5.1's, growing with the panel.
+mutate(TOAST,
+       "\tlocal well = ring - Clamp(H * 0.045, 1.5, 2.5)\n",
+       "\tlocal well = ring - H * 0.09\n",
+       "the gold ring thick",
+       expect="the gold ring is",
+       script="runscenarios.py")
+
+# The icon shrunk inside the ring, which no longer hugs it.
+mutate(TOAST,
+       "\t\ticon = 2 * iconR / MASK_FILL\n",
+       "\t\ticon = 1.7 * iconR / MASK_FILL\n",
+       "the ring standing off the icon",
+       expect="it should hug it",
+       script="runscenarios.py")
+
+# The enamel at the reason's full colour: a glowing band, not a dark one.
+mutate(TOAST,
+       "local ENAMEL_DARK = 0.48\n",
+       "local ENAMEL_DARK = 1.0\n",
+       "the enamel undarkened",
+       expect="is not the reason colour darkened",
+       script="runscenarios.py")
+
+# Icon rounding ignored: round whatever the setting.
+mutate(TOAST,
+       "\tlocal maskFile = ART .. (round and \"IconMask\" or \"SealMask\")\n",
+       "\tlocal maskFile = ART .. \"IconMask\"\n",
+       "icon rounding ignored",
+       expect="rounding is off and the icon is round",
+       script="runscenarios.py")
+
+# The olive-black body of 1.5.1's in the game: no warmth in it.
+mutate(TOAST,
+       "local WARM_TOP, WARM_BOTTOM, WARM_ALPHA = { 0.118, 0.072, 0.046 }, { 0.090, 0.055, 0.036 }, 1\n",
+       "local WARM_TOP, WARM_BOTTOM, WARM_ALPHA = { 0.060, 0.058, 0.044 }, { 0.040, 0.039, 0.030 }, 1\n",
+       "the body cold and olive",
+       expect="is not a warm brown",
        script="runscenarios.py")

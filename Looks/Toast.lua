@@ -1,64 +1,62 @@
 -- Manners -- the Toast look: a warm banner pinned by a round gilded medallion,
--- in the grammar of the game's own achievement toasts.
+-- in the grammar of the game's own achievement toasts, drawn with restraint.
 --
--- A deep brown banner with a gilded rail and corner studs. A gold medallion
--- pins its left end; the spell icon sits in the middle of it, inside a ring of
--- enamel in the reason colour, and a soft light in the same colour comes from
--- behind it. The name is the title, the reason the subtitle. It is still at
--- rest; it moves when something happens.
+-- A deep warm brown banner, framed by a thin rail of old gold with a darker
+-- line inside it and a small stud in each corner. A round medallion pins its
+-- left end: the spell icon, a thin gold ring hugging it, a band of enamel in
+-- the reason colour (darkened, as fired enamel is), and a fine rim. The name
+-- is the title, the reason the subtitle. It is still at rest; it moves when
+-- something happens, and briefly.
 --
--- Two rules it keeps since 1.5.1, when in the game it read gold on gold and
--- the icon looked washed out (the preview renderer adds light far more gently
--- than the client, so they are held by arithmetic, not by eye --
--- tests/scenarios/readable-toast.lua):
---   * the icon is drawn clean: nothing lies over it but the medallion's gold
---     lip at its very edge, and the count never sits on it;
---   * the text stands on dark: the body under the lines is a near-black brown
---     at full strength, the gilding stays on the rails, and every light of
---     the reason's -- the bloom, the washes, the ring's glow -- stops short of
---     the lines.
+-- The rules it keeps since 1.6, when in the game 1.5.1 wore a glaring yellow
+-- line all round, a square bevelled frame round the icon and a bright blue
+-- glow ring (tests/scenarios/look-toast.lua and readable-toast.lua):
+--   * no additive light at rest. tools/render_prompt.py draws ADD far more
+--     gently than the client does, so light that stays on screen is baked
+--     into the art or drawn with BLEND in colours given here, and the preview
+--     shows what the game shows. Only a flourish -- the rails' glints for a
+--     new favour, the ring of light as it arrives, the flare and the burst
+--     of a landed buff -- is ADD, and each is gone within 0.6 s;
+--   * the gold is old gold, never brighter than 0.62, thin and crisp;
+--   * the medallion is round, made of flat discs drawn UNDER the icon, so
+--     nothing lies over the icon at all and each ring is a set number of UI
+--     units wide at any height (the gold ring 1.5 to 2.5);
+--   * the text stands on dark: the body under the lines is a deep brown at
+--     full strength, and nothing is drawn under the lines but the body.
 --
 -- Every region is a texture from Textures/Toast (tools/make_toast_textures.py).
 -- The gold is baked, because it is decoration; everything that means something
--- -- the enamel, the lights, the list's gems, the favour clock, the outcome --
--- is white or grey art coloured by SetVertexColor, so one file serves all six
--- reasons, both palettes, a custom marker colour and the outcomes. The
--- interface this file implements is described at the top of Looks/Looks.lua.
+-- -- the enamel, the list's gems, the favour clock, the outcome -- is white or
+-- grey art coloured by SetVertexColor, so one file serves all six reasons,
+-- both palettes, a custom marker colour and the outcomes. The interface this
+-- file implements is described at the top of Looks/Looks.lua.
 --
--- Where it departs from the approved design (design14/toast/SPEC.md), on the
--- judges' word:
---   * a dark seam either side of the enamel, and the enamel flat, bright and
---     more saturated than the gold with a pale highlight, so the owed gold
---     (and the colour-blind yellow) never reads as more metal;
---   * the rails' sparks, the streak and the corner's twinkle only for a new
---     favour, never for every new face on the panel; a new face gets the
---     text's own dip and nothing else;
---   * below height 40 a single rail and smaller studs, so the gilding does not
---     turn to mush at the smallest sizes;
---   * the text at its regular weight (a FontString has no other), the
---     hierarchy carried by size, ink and shadow;
+-- Kept from the approved design (design14/toast/SPEC.md) and the judges' word:
+--   * the rails' glints only for a new favour, never for every new face; a
+--     new face gets the text's own dip and nothing else;
+--   * below height 40 a finer frame, so the gilding does not turn to mush;
+--   * the text at its regular weight, the hierarchy carried by size, ink and
+--     shadow;
 --   * the result as a verdict on the second line -- "buffed" with a tick, or
 --     the game's own words with a cross -- and the name left where it was;
---   * the favour clock: a thin ember in the reason colour, hotter than the
+--   * the favour clock: a thin line in the reason colour, lighter than the
 --     enamel, over a line of ash along the bottom rail, burning down as the
---     time to return the favour runs out. Brought
---     up to date on the scan's own repaint, never on a frame script; kept
---     under Calm, because it is information, and in a fight, dimmed;
---   * the bound key on a chip at the right, like the count's, when a key is
---     bound; the count's chip then sits beside the key's (never on the
---     medallion, where it covered the icon). Either chip steps aside for a
---     paint in which the name would otherwise be cut;
---   * the owed pulse breathes three times and then holds still;
+--     time to return the favour runs out. Brought up to date on the scan's
+--     own repaint, never on a frame script; kept under Calm, because it is
+--     information, and in a fight, dimmed;
+--   * the bound key on a chip at the right, the count's chip beside it (never
+--     on the medallion, where it covered the icon). Either chip steps aside
+--     for a paint in which the name would otherwise be cut;
+--   * the owed enamel breathes three times and then settles;
 --   * a fight turns the gold to iron and greys the icon, the text dims, and
---     the enamel keeps its colour: the one bright thing left is the reason;
---   * the medallion stays inside the button: the banner is drawn a few units
---     inside the panel's height instead, so the whole look takes clicks and
---     the drag and the screen clamp see what the player sees. The medallion
---     is the panel's height, the icon most of it and the gold thin, so the
---     icon is sized by the height (Options says so);
---   * the owed gold fired to a honey amber, darker than the metal, since
---     saturation alone did not part it from the gold at the game's scale;
+--     the enamel keeps its colour: the one coloured thing left is the reason;
+--   * the medallion is the panel's height and stays inside the button, so the
+--     whole look takes clicks and the drag and the screen clamp see what the
+--     player sees; the icon is sized by the height (Options says so);
+--   * the owed gold fired to a honey amber, so it never reads as more metal;
 --   * with the icon off, a jewel at the banner's end carries the reason;
+--   * the icon left square (the default) is a softly squared icon inside the
+--     round medallion, on a dark well; rounded, it fills the ring;
 --   * a class-coloured name is taken a third of the way to white.
 
 local _, ns = ...
@@ -74,41 +72,81 @@ local Toast = ns.Looks.Register("toast", {
 	classSoften = 0.35,
 })
 
--- The icon is this much of the medallion across (ICON_R in the generator).
-local ICON_OF = 0.63
+-- The discs are drawn to this fraction of their file's half-size
+-- (DISC_FILL in the generator), and the icon's masks to this.
+local DISC_FILL, MASK_FILL = 0.98, 0.985
+-- A squircle of order 6 reaches this far along its diagonal, as a fraction of
+-- its half-size: 2 ^ (1/2 - 1/6).
+local SQUIRCLE_REACH = 1.26
 -- Where the rails run, in units in from the frame's edge for a 12-unit
--- corner, scaled with the corner: the outer rail, the stud, and the favour
--- clock's line, on the dark of the banner just inside the innermost rail --
--- on the gold itself the owed gold, which is nearly every clock, vanished.
-local RAIL = { outer = 1.35, clock = 5.4, stud = 3.3,
-	slimOuter = 1.25, slimClock = 3.4, slimStud = 3.05 }
--- The banner's own warm pair, for a panel colour nobody chose: a deep brown,
--- opaque, so no world shows through under the text. Dark enough for the
--- dimmest reason line at 4.5:1 (tests/scenarios/readable-toast.lua).
-local WARM_TOP, WARM_BOTTOM, WARM_ALPHA = { 0.080, 0.056, 0.042 }, { 0.040, 0.029, 0.024 }, 1
+-- corner, scaled with the corner: the middle of the rail, for the glints, and
+-- the favour clock's line, on the dark of the banner just inside the inner
+-- line (on the gold itself the owed colour, which is nearly every clock,
+-- vanished). FRAMES in the generator, which must agree.
+local RAIL = { rail = 1.08, clock = 4.3, slimRail = 0.93, slimClock = 3.4 }
+-- The banner's own warm pair, for a panel colour nobody chose: a deep warm
+-- brown, opaque, so no world shows through under the text. Dark enough for
+-- the dimmest reason line at 4.5:1 (tests/scenarios/readable-toast.lua); the
+-- body's file adds its own quiet fall from the top down.
+local WARM_TOP, WARM_BOTTOM, WARM_ALPHA = { 0.118, 0.072, 0.046 }, { 0.090, 0.055, 0.036 }, 1
 local IVORY = { 1.00, 0.965, 0.90 }
 local WARM_GREY = { 0.80, 0.75, 0.66 }
 local PALE_GOLD = { 1.00, 0.86, 0.52 }
 local IRON = { 0.62, 0.62, 0.64 }
+-- The medallion's outer rim: the ring's gold, darker.
+local RIM = { 0.66, 0.62, 0.58 }
+-- The dark of the medallion's edge and of the well under the icon.
+local WELL = { 0.030, 0.020, 0.014 }
+-- The cursor's light on the gold ring: a paler gold laid over it (BLEND).
+local HOVER = { 0.80, 0.68, 0.44, 0.42 }
+-- The enamel is the reason colour fired and then darkened this much: a dark
+-- band, never a glow.
+local ENAMEL_DARK = 0.48
 -- The enamel with the marker switched off.
 local NEUTRAL = { 0.46, 0.40, 0.35 }
--- The outcomes' own colours: the enamel, the verdict, the wash.
+-- The outcomes' own colours: the enamel and the verdict.
 local OUTCOME = {
 	cast = { 0.52, 0.90, 0.52 },
 	failed = { 1.00, 0.40, 0.34 },
 	sent = { 0.91, 0.86, 0.60 },
 }
-local WASH = { cast = 0.24, failed = 0.15, sent = 0.14 }
 -- What a fight does: the text dims, the icon greys and dims.
 local TEXT_COMBAT, ICON_COMBAT = 0.78, 0.70
--- The owed pulse: this many breaths of 3.2 s, then it holds still.
+-- The owed pulse: the enamel lit to this and back, this many breaths of
+-- 3.2 s, then it settles to the dark enamel.
+local PULSE_PEAK = 0.55
 local BREATHS = 3
 local BREATH = 1.6
+-- The longest an additive flourish may stay lit, in seconds.
+local FLOURISH = 0.6
 local COMMAND = "CLICK MannersPrompt:LeftButton"
 
 local function Clamp(v, lo, hi) return math.max(lo, math.min(hi, v)) end
 local function SubSize(fontSize) return math.max(7, fontSize - 3) end
 local function Gap(fontSize) return math.max(1.5, fontSize * 0.16) end
+
+-- The medallion for a panel `H` high, in UI units: its radius and the radius
+-- each disc is drawn to, from the outside in -- the dark edge, the rim, the
+-- enamel, the gold ring, the well -- and the icon's size. Each ring is a set
+-- width in units, growing a little with the panel and then holding, so the
+-- gold is thin at every height.
+local function Medallion(H, round)
+	local R = H / 2
+	local rim = R - Clamp(H * 0.014, 0.5, 1.0)
+	local enamel = rim - Clamp(H * 0.022, 0.8, 1.4)
+	local ring = enamel - Clamp(H * 0.068, 2.3, 4.0)
+	local well = ring - Clamp(H * 0.045, 1.5, 2.5)
+	local seam = ring + Clamp(H * 0.012, 0.45, 0.8)
+	local iconR = well - Clamp(H * 0.012, 0.45, 0.8)
+	local icon
+	if round then
+		icon = 2 * iconR / MASK_FILL
+	else
+		-- The squared icon's corners just inside the well.
+		icon = 2 * (well - 0.35) / (MASK_FILL * SQUIRCLE_REACH)
+	end
+	return R, rim, enamel, ring, well, icon, seam
+end
 
 -- The name, the gap and the reason as one block, and the frame round it.
 function Toast.TwoLineHeight(fontSize)
@@ -121,11 +159,11 @@ function Toast.AccentCarriers(p)
 	return (p.accentMode or "icon") ~= "off", false
 end
 
--- The medallion is the banner's height, never shorter (its rails run in under
--- it), so the icon is sized by the height and not by the slider. Options says
--- so with this.
+-- The medallion is the panel's height, so the icon is sized by the height and
+-- not by the slider. Options says so with this.
 function Toast.IconSize(p)
-	return math.floor(ICON_OF * (p.height or 44) + 0.5)
+	local _, _, _, _, _, icon = Medallion(p.height or 44, p.roundIcon)
+	return math.floor(icon + 0.5)
 end
 
 -- More colourful than the palette's own: enamel is glass fired on metal, and
@@ -141,12 +179,8 @@ local function Mix(r, g, b, t)
 end
 
 -- The enamel for a reason colour. A warm gold (the owed reason) is fired
--- deeper, to a dark honey amber, about (0.75, 0.41, 0.10): saturation alone
--- did not part it from the gold round it at the game's scale, where the two
--- were one thick ring. At one pixel a unit its mean luminance is a third
--- under the outer ring's, at 44 and at 36 high, and it still reads as the
--- owed hue. The colour-blind set's orange and lemon are not warm golds and
--- pass unchanged.
+-- deeper, to a honey amber, so it never reads as one more ring of gold. The
+-- colour-blind set's orange and lemon are not warm golds and pass unchanged.
 local function Fired(r, g, b)
 	local er, eg, eb = Enamel(r, g, b)
 	if er > 0.9 and eb < 0.3 and eg > 0.6 * er and eg < 0.9 * er then
@@ -154,6 +188,11 @@ local function Fired(r, g, b)
 		er, eg, eb = er * 0.75, eg * 0.75, eb * 0.75
 	end
 	return er, eg, eb
+end
+
+-- The band round the ring: the fired colour darkened.
+local function Dark(r, g, b)
+	return r * ENAMEL_DARK, g * ENAMEL_DARK, b * ENAMEL_DARK
 end
 
 -- Whether a stored colour is the default one: AceDB strips a value equal to its
@@ -254,6 +293,14 @@ local function PlaceThree(s, box, height)
 	s[2]:SetPoint("BOTTOMRIGHT", s[3], "BOTTOMLEFT", 0, 0)
 end
 
+-- A disc of radius `r` round the medallion's centre.
+local function Disc(t, rel, cx, cy, r)
+	local d = math.max(0.5, 2 * r / DISC_FILL)
+	t:ClearAllPoints()
+	t:SetPoint("CENTER", rel, "TOPLEFT", cx, -cy)
+	t:SetSize(d, d)
+end
+
 ---------------------------------------------------------------------------
 -- motion: every animation here runs on the texture it lights, parked at
 -- alpha 0 between plays, so nothing is left lit when it stops
@@ -285,15 +332,15 @@ local function Flash(region, peak, up, down, delay, smoothing)
 	return g
 end
 
--- A spark down a rail: in, along, out.
+-- A glint down a rail: in, along, out, all within FLOURISH of its start.
 local function Travel(region, delay)
 	local g = region:CreateAnimationGroup()
 	local move = g:CreateAnimation("Translation")
-	move:SetDuration(0.9)
+	move:SetDuration(FLOURISH - 0.1 - delay)
 	if move.SetStartDelay then move:SetStartDelay(delay) end
 	if move.SetSmoothing then move:SetSmoothing("IN_OUT") end
-	Alpha(g, 0, 1, 0.2, 1, delay)
-	Alpha(g, 1, 0, 0.3, 1, delay + 0.6)
+	Alpha(g, 0, 1, 0.1, 1, delay)
+	Alpha(g, 1, 0, 0.2, 1, FLOURISH - 0.3)
 	g.move = move
 	Park(g, region, 0)
 	return g
@@ -316,6 +363,7 @@ function Toast:Build(kit)
 		return keep(t)
 	end
 	local function anim(g) anims[#anims + 1] = g return g end
+	-- A flourish's light: additive, parked at nothing.
 	local function light(file, sublevel, parent)
 		local t = tex(parent or art, "BORDER", sublevel, file, "ADD")
 		t:SetAlpha(0)
@@ -327,41 +375,47 @@ function Toast:Build(kit)
 	self.shadow = Pieces(art, "BACKGROUND", -8, ART .. "Shadow", nil, true, keep)
 	self.drawerBody = tex(art, "BACKGROUND", -7, "Body")
 	self.body = tex(art, "BACKGROUND", -6, "Body")
-	-- An opaque well in the icon's shape, under it: the banner begins at the
-	-- medallion's centre, and whenever the icon or the panel is less than
-	-- opaque (a fight, the panel fading in and out) nothing behind it may
-	-- show, or the icon splits down the middle.
-	self.well = tex(art, "BACKGROUND", -5, "IconMask")
 	self.drawer = Pieces(art, "BORDER", -2, ART .. "Drawer", nil, false, keep)
 	self.border = Pieces(art, "BORDER", 2, ART .. "Border", nil, false, keep)
 
-	-- The light behind the medallion, at rest and breathing; the outcome's
-	-- wash and the cursor's.
-	self.bloom = tex(art, "BORDER", 0, "Bloom", "ADD")
-	self.bloomPulse = light("Bloom", 0)
-	self.bloomArrive = light("Bloom", 0)
-	self.wash = light("Wash", -1)
-	self.hoverWash = light("Wash", -1)
-	-- Round the medallion: above the border, below the icon.
-	self.ringPulse = light("RingGlow", 3)
+	-- The flourishes: a ring of light round the medallion as a favour
+	-- arrives and as a buff lands, under the medallion's discs so it shows
+	-- only outside them; the gilding's flare; a glint down each rail.
 	self.ringArrive = light("RingGlow", 3)
-	self.ringHover = light("RingGlow", 3)
 	self.burst = light("RingGlow", 4)
-	-- What runs over the gilding.
 	self.flare = Pieces(art, "BORDER", 5, ART .. "BorderGlow", "ADD", false, keep)
 	Each(self.flare, "SetAlpha", 0)
-	self.streak = light("Streak", 1)
 	self.glints = {}
-	for i = 1, 4 do self.glints[i] = light("Glint", 6) end
-	self.twinkle = light("Spark", 7)
+	for i = 1, 2 do self.glints[i] = light("Glint", 6) end
+
+	-- The medallion: flat discs on art, under the icon (ARTWORK 0), so they
+	-- are drawn after the rails and nothing of them lies over the icon. From
+	-- the outside in: the dark edge, the rim, the enamel and its owed glow,
+	-- a dark seam that sets the enamel apart from the gold, the gold ring
+	-- and the cursor's light on it, and the well.
+	self.medallion = tex(art, "ARTWORK", -8, "Disc")
+	self.rim = tex(art, "ARTWORK", -7, "Gold")
+	self.band = tex(art, "ARTWORK", -6, "Enamel")
+	self.glow = tex(art, "ARTWORK", -5, "Disc")
+	self.seam = tex(art, "ARTWORK", -4, "Disc")
+	self.ring = tex(art, "ARTWORK", -3, "Gold")
+	self.ringHover = tex(art, "ARTWORK", -2, "Disc")
+	-- The well: opaque, in the icon's place, so whenever the icon or the
+	-- panel is less than opaque (a fight, the panel fading in and out)
+	-- nothing behind it shows; and the dark hairline between icon and gold.
+	self.well = tex(art, "ARTWORK", -1, "Disc")
+	self.glow:SetAlpha(0)
+	self.ringHover:SetAlpha(0)
 
 	-- The favour clock, on the bottom rail: the time spent as a line of dark
-	-- ash its whole length, the time left burning over it.
-	self.ash = tex(art, "ARTWORK", 1, "Ember")
+	-- ash its whole length, the time left over it, and a bead at its end.
+	-- Over the rails and under the medallion, so its end tucks under the
+	-- medallion's edge and never reaches the icon.
+	self.ash = tex(art, "BORDER", 6, "Ember")
 	self.ash:SetTexCoord(0.25, 0.75, 0, 1)
-	self.ember = tex(art, "ARTWORK", 2, "Ember", "ADD")
+	self.ember = tex(art, "BORDER", 7, "Ember")
 	self.ember:SetTexCoord(0.25, 0.75, 0, 1)
-	self.bead = tex(art, "ARTWORK", 3, "Glint", "ADD")
+	self.bead = tex(art, "BORDER", 7, "Disc")
 
 	-- The list's gems, and with the icon off one at the banner's end, which
 	-- carries the reason in the medallion's place.
@@ -373,16 +427,9 @@ function Toast:Build(kit)
 	self.jewel = tex(art, "ARTWORK", 1, "Gem")
 	self.jewelSet = tex(art, "ARTWORK", 2, "GemSet")
 
-	-- The medallion: the enamel and the gold, on a frame over the icon so it
-	-- can settle onto it as the panel arrives.
-	local base = art:GetFrameLevel()
-	self.medallion = keep(CreateFrame("Frame", nil, art))
-	self.medallion:SetFrameLevel(base + 2)
-	self.band = tex(self.medallion, "ARTWORK", 1, "RingBand")
-	self.ring = tex(self.medallion, "ARTWORK", 2, "Ring")
-
 	-- The chips: over the banner, at its right end; their text is on
 	-- textLayer, over them.
+	local base = art:GetFrameLevel()
 	self.chipFrame = keep(CreateFrame("Frame", nil, art))
 	self.chipFrame:SetFrameLevel(base + 3)
 	self.chipBox = keep(CreateFrame("Frame", nil, self.chipFrame))
@@ -400,116 +447,54 @@ function Toast:Build(kit)
 	self.mask = art:CreateMaskTexture()
 	self.mask:SetTexture(ART .. "IconMask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
 
-	-- Everything gold, for the iron of a fight.
-	self.gold = { self.ring, self.jewelSet }
+	-- Everything gold, for the iron of a fight, and the tint each wears out
+	-- of one.
+	self.gold = { self.ring, self.rim, self.jewelSet }
 	for _, s in ipairs({ self.border, self.drawer, self.chip, self.keyChip, self.gemSets }) do
 		for _, t in ipairs(s) do self.gold[#self.gold + 1] = t end
 	end
+	self.goldTint = { [self.rim] = RIM }
 
 	self:BuildAnimations(anim)
-
-	-- The medallion settles onto the icon as the panel comes up, on Full.
-	local intro = art.intro
-	if intro and intro.HookScript then
-		intro:HookScript("OnPlay", function()
-			if Toast.active and kit.FullEffects() and kit.icon:IsShown() then
-				Toast.popAnim:Stop()
-				Toast.popAnim:Play()
-			end
-		end)
-	end
 end
 
 function Toast:BuildAnimations(anim)
-	-- The owed pulse: the light behind the medallion and a ring round it
-	-- breathe together, slowly; see Attention for how long.
-	self.pulse = {}
-	for _, t in ipairs({ self.bloomPulse, self.ringPulse }) do
-		local g = t:CreateAnimationGroup()
-		g:SetLooping("BOUNCE")
-		Alpha(g, 0.45, 1, BREATH, 1, nil, "IN_OUT")
-		self.pulse[#self.pulse + 1] = anim(g)
-	end
+	-- The owed pulse: the enamel lit and let go, slowly (BLEND, the fired
+	-- colour over the dark); see Attention for how long.
+	local pulse = self.glow:CreateAnimationGroup()
+	pulse:SetLooping("BOUNCE")
+	Alpha(pulse, 0, PULSE_PEAK, BREATH, 1, nil, "IN_OUT")
+	self.pulse = { anim(pulse) }
 
-	-- The favour just done: the light swells and settles.
-	self.arrive = {
-		anim(Flash(self.bloomArrive, 1, 0.3, 0.9, nil, "IN_OUT")),
-		anim(Flash(self.ringArrive, 1, 0.3, 0.9, nil, "IN_OUT")),
-	}
+	-- The favour just done: a ring of light off the medallion, briefly.
+	self.arrive = { anim(Flash(self.ringArrive, 1, 0.15, 0.40, nil, "IN")) }
 
-	-- A new favour: sparks down both rails, the lower pair a beat behind, a
-	-- light across the banner, and the corner stud twinkles as they arrive.
+	-- A new favour: a glint down each rail, the lower a beat behind.
 	self.sweep = {}
 	for i, t in ipairs(self.glints) do
-		self.sweep[i] = anim(Travel(t, i <= 2 and 0.15 or 0.24))
+		self.sweep[i] = anim(Travel(t, i == 1 and 0.05 or 0.12))
 	end
-	local streak = self.streak:CreateAnimationGroup()
-	streak.move = streak:CreateAnimation("Translation")
-	streak.move:SetDuration(0.8)
-	if streak.move.SetStartDelay then streak.move:SetStartDelay(0.15) end
-	if streak.move.SetSmoothing then streak.move:SetSmoothing("IN_OUT") end
-	Alpha(streak, 0, 0.34, 0.4, 1, 0.15)
-	Alpha(streak, 0.34, 0, 0.4, 1, 0.55)
-	Park(streak, self.streak, 0)
-	self.streakAnim = anim(streak)
-	local twinkle = self.twinkle:CreateAnimationGroup()
-	local grow = twinkle:CreateAnimation("Scale")
-	if grow.SetScaleFrom then grow:SetScaleFrom(0.6, 0.6) end
-	if grow.SetScaleTo then grow:SetScaleTo(1.2, 1.2) end
-	if grow.SetOrigin then grow:SetOrigin("CENTER", 0, 0) end
-	grow:SetDuration(0.4)
-	if grow.SetStartDelay then grow:SetStartDelay(1.1) end
-	-- Turned an eighth as it flares, where the client has the animation.
-	local turn = twinkle:CreateAnimation("Rotation")
-	if turn and turn.SetDegrees then
-		turn:SetDegrees(45)
-		if turn.SetOrigin then turn:SetOrigin("CENTER", 0, 0) end
-		turn:SetDuration(0.4)
-		if turn.SetStartDelay then turn:SetStartDelay(1.1) end
-	end
-	Alpha(twinkle, 0, 1, 0.15, 1, 1.1, "OUT")
-	Alpha(twinkle, 1, 0, 0.25, 1, 1.25, "IN")
-	Park(twinkle, self.twinkle, 0)
-	self.twinkleAnim = anim(twinkle)
 
 	-- A buff that landed: the gilding flares, a ring bursts off the medallion.
 	self.flareAnims = {}
-	for i, t in ipairs(self.flare) do self.flareAnims[i] = anim(Flash(t, 0.75, 0.08, 0.45)) end
+	for i, t in ipairs(self.flare) do self.flareAnims[i] = anim(Flash(t, 0.5, 0.08, 0.42)) end
 	local burst = self.burst:CreateAnimationGroup()
 	local bGrow = burst:CreateAnimation("Scale")
 	if bGrow.SetScaleFrom then bGrow:SetScaleFrom(1, 1) end
-	if bGrow.SetScaleTo then bGrow:SetScaleTo(1.45, 1.45) end
+	if bGrow.SetScaleTo then bGrow:SetScaleTo(1.35, 1.35) end
 	if bGrow.SetOrigin then bGrow:SetOrigin("CENTER", 0, 0) end
 	bGrow:SetDuration(0.5)
 	if bGrow.SetSmoothing then bGrow:SetSmoothing("OUT") end
-	Alpha(burst, 0.9, 0, 0.5, 1, nil, "OUT")
+	Alpha(burst, 0.8, 0, 0.5, 1, nil, "OUT")
 	Park(burst, self.burst, 0)
 	self.burstAnim = anim(burst)
 
-	-- The outcome's wash, fading over the outcome's time.
-	local wash = self.wash:CreateAnimationGroup()
-	Alpha(wash, 1, 0, self.kit.OUTCOME_SECONDS, 1, nil, "OUT")
-	Park(wash, self.wash, 0)
-	self.washAnim = anim(wash)
-
-	-- The cursor's light, both ways; from and to are set for each play.
-	self.hoverAnims = {}
-	for i, t in ipairs({ self.hoverWash, self.ringHover }) do
-		local g = t:CreateAnimationGroup()
-		g.fade = Alpha(g, 0, 1, 0.12, 1, nil, "OUT")
-		Park(g, t, 0)
-		self.hoverAnims[i] = anim(g)
-	end
-
-	-- The medallion settling onto the icon.
-	local pop = self.medallion:CreateAnimationGroup()
-	local settle = pop:CreateAnimation("Scale")
-	if settle.SetScaleFrom then settle:SetScaleFrom(1.12, 1.12) end
-	if settle.SetScaleTo then settle:SetScaleTo(1, 1) end
-	if settle.SetOrigin then settle:SetOrigin("CENTER", 0, 0) end
-	settle:SetDuration(0.32)
-	if settle.SetSmoothing then settle:SetSmoothing("OUT") end
-	self.popAnim = anim(pop)
+	-- The cursor's light on the gold, both ways; from and to are set for
+	-- each play.
+	local hover = self.ringHover:CreateAnimationGroup()
+	hover.fade = Alpha(hover, 0, 1, 0.12, 1, nil, "OUT")
+	Park(hover, self.ringHover, 0)
+	self.hoverAnims = { anim(hover) }
 end
 
 ---------------------------------------------------------------------------
@@ -535,14 +520,13 @@ function Toast:Apply(p, above)
 	local C = Clamp(math.floor(BH * 0.30 + 0.5), 8, 16)
 	-- The medallion is the panel's height: the banner's rails and body run in
 	-- under it to its centre, so a medallion any shorter than the banner left
-	-- their ends showing above and below it. The icon is sized by the height
-	-- (Toast.IconSize), which Options says.
+	-- their ends showing above and below it.
 	local M = showIcon and H or 0
 	local cx, cy = M / 2, H / 2
 	local left = showIcon and cx or 0
 	-- With the icon off, a jewel at the banner's end carries the reason.
 	local jewel = sub + 8
-	-- Clear of the frame's inner rail.
+	-- Clear of the frame's inner line.
 	local jewelX = C / 2 + 7
 	local textX = showIcon and (M + 6) or math.floor(jewelX + jewel / 2 + 7 + 0.5)
 	self.ov, self.top, self.bottom, self.C, self.M, self.cx, self.cy = ov, top, bottom, C, M, cx, cy
@@ -566,49 +550,25 @@ function Toast:Apply(p, above)
 	kit.Gradient(self.drawerBody, "VERTICAL", br * 0.9, bg * 0.9, bb * 0.9, ta * 0.97,
 		tr * 0.8, tg * 0.8, tb * 0.8, ta * 0.97)
 
-	-- The frame: the double rail from height 40 up, one rail under it.
+	-- The frame: the fine one under height 40.
 	local frameFile = ART .. (slim and "BorderSlim" or "Border")
 	Each(self.border, "SetTexture", frameFile)
 	Each(self.flare, "SetTexture", frameFile .. "Glow")
 	PlacePieces(self.border, art, left, top, W, bottom, C, showIcon)
 	PlacePieces(self.flare, art, left, top, W, bottom, C, showIcon)
-	for i = 1, 8 do
-		local side = i == 1 or i == 4 or i == 6
-		self.border[i]:SetShown(not (showIcon and side))
-		self.flare[i]:SetShown(not (showIcon and side))
-	end
 	self.shadowBox = { left - 12 + 4, top - 9, W + 12, bottom + 15 }
 	Each(self.shadow, "SetVertexColor", 1, 1, 1, self.shadowAlpha)
 	self.drawnList = nil
 	self:PlaceShadow(nil)
 
-	-- The rails, for the sparks and the clock.
+	-- The rails, for the glints and the clock.
 	local k = C / 12
-	local outer = (slim and RAIL.slimOuter or RAIL.outer) * k
+	local railAt = (slim and RAIL.slimRail or RAIL.rail) * k
 	local clockAt = (slim and RAIL.slimClock or RAIL.clock) * k
-	local studAt = (slim and RAIL.slimStud or RAIL.stud) * k
-
-	-- The light behind the medallion: from its centre, rightwards, never
-	-- above or below the banner. The whole file, which rises from nothing at
-	-- its left edge, so the light grows out from under the medallion and no
-	-- edge of it lies under the medallion to show through a fade. It ends
-	-- short of the text, as the washes do: light added under the lines
-	-- turned the banner gold behind gold words in the game.
-	local lightEnd = math.max(left + 4, textX - 2)
-	for _, t in ipairs({ self.bloom, self.bloomPulse, self.bloomArrive }) do
-		t:SetTexCoord(0, 1, 0, 1)
-		t:ClearAllPoints()
-		t:SetPoint("LEFT", art, "TOPLEFT", left, -cy)
-		t:SetSize(lightEnd - left, BH - 3)
-	end
-	for _, t in ipairs({ self.wash, self.hoverWash }) do
-		Box(t, art, left + 1, top + 1, lightEnd, bottom - 1)
-	end
 
 	-- The medallion and the icon in it.
 	icon:ClearAllPoints()
 	icon:SetShown(showIcon)
-	self.medallion:SetShown(showIcon)
 	local round = p.roundIcon and true or false
 	local maskFile = ART .. (round and "IconMask" or "SealMask")
 	self.mask:SetTexture(maskFile, "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
@@ -619,21 +579,21 @@ function Toast:Apply(p, above)
 		icon:AddMaskTexture(self.mask)
 		self.masked = true
 	end
-	self.band:SetTexture(ART .. (round and "RingBand" or "SealBand"))
-	self.ring:SetTexture(ART .. (round and "Ring" or "Seal"))
-	self.well:SetTexture(maskFile)
-	self.well:SetVertexColor(WARM_BOTTOM[1], WARM_BOTTOM[2], WARM_BOTTOM[3], 1)
-	self.well:ClearAllPoints()
-	self.well:SetAllPoints(icon)
-	local iconSize = M * ICON_OF
-	self.medallion:ClearAllPoints()
-	self.medallion:SetPoint("CENTER", art, "TOPLEFT", cx, -cy)
-	self.medallion:SetSize(math.max(1, M), math.max(1, M))
-	for _, t in ipairs({ self.band, self.ring }) do
-		t:ClearAllPoints()
-		t:SetAllPoints(self.medallion)
-	end
-	for _, t in ipairs({ self.ringPulse, self.ringArrive, self.ringHover, self.burst }) do
+	local R, rRim, rEnamel, rRing, rWell, iconSize, rSeam = Medallion(math.max(1, M), round)
+	self.R, self.iconSize, self.ringWidth, self.enamelWidth = R, iconSize, rRing - rWell, rEnamel - rRing
+	Disc(self.medallion, art, cx, cy, R)
+	Disc(self.rim, art, cx, cy, rRim)
+	Disc(self.band, art, cx, cy, rEnamel)
+	Disc(self.glow, art, cx, cy, rEnamel)
+	Disc(self.seam, art, cx, cy, rSeam)
+	Disc(self.ring, art, cx, cy, rRing)
+	Disc(self.ringHover, art, cx, cy, rRing)
+	Disc(self.well, art, cx, cy, rWell)
+	self.medallion:SetVertexColor(WELL[1], WELL[2], WELL[3], 1)
+	self.well:SetVertexColor(WELL[1], WELL[2], WELL[3], 1)
+	self.seam:SetVertexColor(WELL[1], WELL[2], WELL[3], 1)
+	self.ringHover:SetVertexColor(HOVER[1], HOVER[2], HOVER[3], HOVER[4])
+	for _, t in ipairs({ self.ringArrive, self.burst }) do
 		t:ClearAllPoints()
 		t:SetPoint("CENTER", art, "TOPLEFT", cx, -cy)
 		t:SetSize(1.45 * M, 1.45 * M)
@@ -650,52 +610,39 @@ function Toast:Apply(p, above)
 		end
 	end
 
-	-- The sparks: from the medallion's edge to the far corner, on each rail.
+	-- The glints: from the medallion's edge to the far corner, on each rail.
 	local from = showIcon and M - 4 or C / 2
 	local run = math.max(10, W - C - from)
-	local gw, gh = 1.7 * BH, 0.30 * BH
+	local gw, gh = 1.2 * BH, 0.22 * BH
 	for i, t in ipairs(self.glints) do
-		local y = (i <= 2) and (top + outer) or (bottom - outer)
-		local core = (i % 2) == 0
+		local y = (i == 1) and (top + railAt) or (bottom - railAt)
 		t:ClearAllPoints()
 		t:SetPoint("CENTER", art, "TOPLEFT", from, -y)
-		t:SetSize(core and gw / 2 or gw, core and gh / 2 or gh)
-		t:SetVertexColor(1, core and 1 or 0.92, core and 0.92 or 0.70, 1)
+		t:SetSize(gw, gh)
+		t:SetVertexColor(1, 0.90, 0.66, 0.8)
 		self.sweep[i].move:SetOffset(run, 0)
 	end
-	-- The light across the banner, kept on it from end to end.
-	local sw = 1.3 * BH
-	self.streak:ClearAllPoints()
-	self.streak:SetPoint("TOPLEFT", art, "TOPLEFT", left, -(top + 1))
-	self.streak:SetSize(sw, BH - 2)
-	self.streak:SetVertexColor(1, 0.93, 0.78, 1)
-	self.streakAnim.move:SetOffset(math.max(0, W - left - sw), 0)
-	self.twinkle:ClearAllPoints()
-	self.twinkle:SetPoint("CENTER", art, "TOPLEFT", W - studAt, -(top + studAt))
-	self.twinkle:SetSize(1.5 * C, 1.5 * C)
-	self.twinkle:SetVertexColor(1, 0.95, 0.8, 1)
 	Each(self.flare, "SetVertexColor", 1, 0.85, 0.55, 1)
-	self.hoverWash:SetVertexColor(1, 0.92, 0.75, 0.07)
 
-	-- The favour clock: from the medallion to the far corner, along the
-	-- bottom rail.
-	self.clockX = showIcon and M - 2 or C
-	self.clockLen = math.max(10, W - C * 0.8 - self.clockX)
-	self.clockH = math.max(3, 0.36 * C)
-	self.ember:ClearAllPoints()
-	self.ember:SetPoint("LEFT", art, "TOPLEFT", self.clockX, -(bottom - clockAt))
-	self.ember:SetHeight(self.clockH)
-	self.ash:ClearAllPoints()
-	self.ash:SetPoint("LEFT", art, "TOPLEFT", self.clockX, -(bottom - clockAt))
-	self.ash:SetSize(self.clockLen, self.clockH)
-	self.ash:SetVertexColor(0.30, 0.12, 0.05, 0.55)
-	-- The burning end: a spark big enough to see at the game's own scale,
-	-- placed by Clock. Kept clear of the icon as the clock runs out, where
-	-- a spark centred on the line's end reached back over its corner.
-	local beadW = self.clockH * 4.5
-	self.bead:SetSize(beadW, self.clockH * 2)
+	-- The favour clock: from the medallion's edge to the far corner, along
+	-- the bottom rail.
 	self.clockY = -(bottom - clockAt)
-	self.beadMin = showIcon and (cx + iconSize / 2 + beadW / 2 + 0.5) or 0
+	local dy = (bottom - clockAt) - cy
+	self.clockX = showIcon and (cx + math.sqrt(math.max(0, R * R - dy * dy)) + 1) or C
+	self.clockLen = math.max(10, W - C * 0.8 - self.clockX)
+	self.clockH = math.max(1.0, 0.09 * C)
+	self.ember:ClearAllPoints()
+	self.ember:SetPoint("LEFT", art, "TOPLEFT", self.clockX, self.clockY)
+	self.ember:SetHeight(self.clockH * 16 / 11.5)
+	self.ash:ClearAllPoints()
+	self.ash:SetPoint("LEFT", art, "TOPLEFT", self.clockX, self.clockY)
+	self.ash:SetSize(self.clockLen, self.clockH * 16 / 11.5)
+	self.ash:SetVertexColor(0.30, 0.13, 0.06, 0.60)
+	-- The burning end: a bead big enough to see at the game's own scale,
+	-- placed by Clock, and never back over the medallion.
+	local beadD = self.clockH * 2.6
+	self.bead:SetSize(beadD, beadD)
+	self.beadMin = self.clockX + beadD / 2
 	self.clockW = nil
 
 	-- The jewel at the banner's end, with the icon off.
@@ -727,10 +674,8 @@ function Toast:Apply(p, above)
 	-- Measured again in the new font and size.
 	self.keyLabel, self.countText = nil, nil
 
-	-- The levels: the medallion over the icon's glows, the chips over the
-	-- medallion, the text over everything.
+	-- The levels: the chips over the banner, the text over everything.
 	local base = art:GetFrameLevel()
-	self.medallion:SetFrameLevel(base + 2)
 	self.chipFrame:SetFrameLevel(base + 3)
 	kit.textLayer:SetFrameLevel(base + 4)
 
@@ -746,8 +691,8 @@ function Toast:Apply(p, above)
 	-- Everything shown, then what waits: the lights parked at nothing, the
 	-- list for PaintQueue, the chips for Chip, the clock for its debt.
 	for _, x in ipairs(self.own) do x:Show() end
-	self.medallion:SetShown(showIcon)
-	for _, t in ipairs({ self.ringPulse, self.ringArrive, self.ringHover, self.burst }) do
+	for _, t in ipairs({ self.medallion, self.rim, self.band, self.glow, self.seam, self.ring, self.ringHover,
+		self.well, self.ringArrive, self.burst }) do
 		t:SetShown(showIcon)
 	end
 	for i = 1, 8 do
@@ -765,7 +710,6 @@ function Toast:Apply(p, above)
 	self.ash:Hide()
 	self.ember:Hide()
 	self.bead:Hide()
-	self.well:SetShown(showIcon)
 	self.jewel:SetShown(not showIcon)
 	self.jewelSet:SetShown(not showIcon)
 	for _, t in ipairs(self.chip) do t:Hide() end
@@ -1015,8 +959,8 @@ function Toast:Chip(on)
 end
 
 -- The favour clock: how much of the time to return the favour is left, as a
--- line of ember along the bottom rail that burns down towards the medallion.
--- A preview shows it part-burnt, so it can be seen while styling.
+-- line along the bottom rail that burns down towards the medallion. A
+-- preview shows it part-burnt, so it can be seen while styling.
 function Toast:Clock()
 	local frac
 	local P = ns.Prompt
@@ -1058,28 +1002,23 @@ end
 -- the reason
 ---------------------------------------------------------------------------
 
--- The enamel, its light and the clock in one colour; the reason line warmed
--- towards it. An outcome leaves the clock alone: it is about the favour, not
--- the click.
+-- The enamel and the clock in one colour; the reason line warmed towards
+-- it. An outcome leaves the clock alone: it is about the favour, not the
+-- click.
 function Toast:Tint(r, g, b, outcome)
 	local kit = self.kit
 	local er, eg, eb = Fired(r, g, b)
-	self.band:SetVertexColor(er, eg, eb, 1)
+	local dr, dg, db = Dark(er, eg, eb)
+	self.band:SetVertexColor(dr, dg, db, 1)
+	self.glow:SetVertexColor(er, eg, eb, 1)
 	self.jewel:SetVertexColor(er, eg, eb, 1)
-	-- Light added to a light panel only greys it, so there it is a hint.
-	local bloom = kit.ink.light and 0.32 or 0.13
-	self.bloom:SetVertexColor(r, g, b, bloom)
-	self.bloomPulse:SetVertexColor(r, g, b, 0.26)
-	self.bloomArrive:SetVertexColor(r, g, b, 0.43)
-	self.ringPulse:SetVertexColor(r, g, b, 0.22)
-	self.ringArrive:SetVertexColor(r, g, b, 0.45)
-	self.ringHover:SetVertexColor(r, g, b, 0.30)
+	self.ringArrive:SetVertexColor(r, g, b, 0.55)
 	self.burst:SetVertexColor(r, g, b, 1)
 	if not outcome then
-		-- The time left burns hotter than the enamel, towards white, so it
-		-- is a live line over its ash and not one more gold rail.
-		self.ember:SetVertexColor(Mix(er, eg, eb, 0.35))
-		self.bead:SetVertexColor(Mix(r, g, b, 0.45))
+		-- The time left in the fired colour, lighter than the dark enamel,
+		-- so it is a live line over its ash; quiet, never a lit rail.
+		self.ember:SetVertexColor(er, eg, eb, 0.72)
+		self.bead:SetVertexColor(Mix(er, eg, eb, 0.30))
 	end
 	-- The subtitle: warm grey taken most of the way to the reason, held to its
 	-- contrast; on a light panel the plain grey, which the tint would cost.
@@ -1101,10 +1040,9 @@ end
 function Toast:PaintReason(r, g, b, _, mode)
 	mode = mode or "icon"
 	if mode == "off" then
-		-- Neutral enamel, and the light a warm white at half strength.
+		-- Neutral enamel, and the clock a warm white.
 		self:Tint(NEUTRAL[1], NEUTRAL[2], NEUTRAL[3])
-		self.bloom:SetVertexColor(1, 0.92, 0.80, (self.kit.ink.light and 0.16 or 0.07))
-		self.ember:SetVertexColor(1, 0.86, 0.60, 0.9)
+		self.ember:SetVertexColor(0.86, 0.76, 0.58, 0.9)
 	else
 		-- "stripe" is "both" here: the toast has no stripe, and the enamel is
 		-- where its reason is.
@@ -1119,13 +1057,21 @@ end
 function Toast:Iron(on)
 	for _, t in ipairs(self.gold) do
 		t:SetDesaturated(on)
-		if on then t:SetVertexColor(IRON[1], IRON[2], IRON[3], 1) else t:SetVertexColor(1, 1, 1, 1) end
+		local tint = self.goldTint[t]
+		if on then
+			local k = tint and tint[1] or 1
+			t:SetVertexColor(IRON[1] * k, IRON[2] * k, IRON[3] * k, 1)
+		elseif tint then
+			t:SetVertexColor(tint[1], tint[2], tint[3], 1)
+		else
+			t:SetVertexColor(1, 1, 1, 1)
+		end
 	end
 end
 
 -- The banner holds; the gold goes to iron, the icon greys, the text dims and
 -- the lights go out. The enamel keeps its colour, and the clock burns on,
--- dimmed: the reason is the one bright thing left.
+-- dimmed: the reason is the one coloured thing left.
 function Toast:Combat(on)
 	on = on and true or false
 	if self.combat == on then return end
@@ -1139,7 +1085,6 @@ function Toast:Combat(on)
 	local v = on and ICON_COMBAT or 1
 	kit.icon:SetVertexColor(v, v, v)
 	if kit.cooldown then kit.cooldown:SetAlpha(on and ICON_COMBAT or 1) end
-	self.bloom:SetAlpha(on and 0 or 1)
 	self.ember:SetAlpha(on and 0.7 or 1)
 	self.bead:SetAlpha(on and 0.7 or 1)
 	if on then
@@ -1163,17 +1108,13 @@ end
 -- The rails catch the light: a new favour, on Full.
 function Toast:Sweep()
 	PlayAll(self.sweep)
-	self.streakAnim:Stop()
-	self.streakAnim:Play()
-	self.twinkleAnim:Stop()
-	self.twinkleAnim:Play()
 end
 
--- The breathing, held still: after its breaths, and on Calm.
+-- The breathing, let go: after its breaths, and on Calm. The enamel settles
+-- to its dark.
 function Toast:HoldPulse()
 	for _, g in ipairs(self.pulse) do g:Stop() end
-	self.bloomPulse:SetAlpha(0.45)
-	self.ringPulse:SetAlpha(0.45)
+	self.glow:SetAlpha(0)
 end
 
 function Toast:Attention(isNew, arrived, flashStyle)
@@ -1184,23 +1125,22 @@ function Toast:Attention(isNew, arrived, flashStyle)
 	end
 	if isNew then
 		self.pulseSpent = nil
-		-- Sparks down the rails for a new favour, never for a new face.
+		-- Glints down the rails for a new favour, never for a new face.
 		if full then self:Sweep() end
 	end
-	-- The favour just done, or a new favour on "once": the light swells.
+	-- The favour just done, or a new favour on "once": the ring of light.
 	if full and (arrived or (isNew and flashStyle == "once")) then PlayAll(self.arrive) end
 	if flashStyle ~= "pulse" then
 		self:StopAttention()
 		return
 	end
 	if not full or self.pulseSpent then
-		-- Calm, or breathed its fill: nothing loops. The glow is held.
+		-- Calm, or breathed its fill: nothing loops.
 		self:HoldPulse()
 		return
 	end
 	if self.pulse[1]:IsPlaying() then return end
-	self.bloomPulse:SetAlpha(0.45)
-	self.ringPulse:SetAlpha(0.45)
+	self.glow:SetAlpha(0)
 	for _, g in ipairs(self.pulse) do g:Play() end
 	-- A few breaths and then still: a loop that runs for as long as somebody
 	-- waits is the one thing on an always-on panel that ages badly.
@@ -1218,8 +1158,7 @@ end
 function Toast:StopAttention()
 	self.pulseGen = (self.pulseGen or 0) + 1
 	for _, g in ipairs(self.pulse) do g:Stop() end
-	self.bloomPulse:SetAlpha(0)
-	self.ringPulse:SetAlpha(0)
+	self.glow:SetAlpha(0)
 end
 
 function Toast:Flourish(kind)
@@ -1238,25 +1177,22 @@ function Toast:StopFlourishes()
 	for _, g in ipairs(self.flareAnims) do g:Stop() end
 	self.burstAnim:Stop()
 	for _, g in ipairs(self.sweep) do g:Stop() end
-	self.streakAnim:Stop()
-	self.twinkleAnim:Stop()
 end
 
+-- The cursor on the panel: the gold ring warms (BLEND).
 function Toast:Hover(on)
 	on = on and true or false
 	if self.hovered == on then return end
 	self.hovered = on
-	for i, g in ipairs(self.hoverAnims) do
-		local t = i == 1 and self.hoverWash or self.ringHover
-		local from = t:GetAlpha()
-		g:Stop()
-		t:SetAlpha(from)
-		g.to = on and 1 or 0
-		g.fade:SetFromAlpha(from)
-		g.fade:SetToAlpha(g.to)
-		g.fade:SetDuration(on and 0.12 or 0.18)
-		g:Play()
-	end
+	local g, t = self.hoverAnims[1], self.ringHover
+	local from = t:GetAlpha()
+	g:Stop()
+	t:SetAlpha(from)
+	g.to = on and 1 or 0
+	g.fade:SetFromAlpha(from)
+	g.fade:SetToAlpha(g.to)
+	g.fade:SetDuration(on and 0.12 or 0.18)
+	g:Play()
 end
 
 ---------------------------------------------------------------------------
@@ -1264,8 +1200,8 @@ end
 ---------------------------------------------------------------------------
 
 -- The name stays where it was and the subtitle becomes the verdict, so the
--- eye never has to find the person again. The enamel and the wash take the
--- outcome's colour.
+-- eye never has to find the person again. The enamel takes the outcome's
+-- colour.
 function Toast:PaintOutcome(kind, lead, sub, who, stamp)
 	local kit = self.kit
 	local o = OUTCOME[kind] or OUTCOME.cast
@@ -1289,6 +1225,7 @@ function Toast:PaintOutcome(kind, lead, sub, who, stamp)
 		word = sub or ""
 	end
 	self.outcomeOn = true
+	self.washFor = stamp
 	self:Tint(o[1], o[2], o[3], true)
 	-- The verdict in the outcome's colour, not the reason's.
 	local vr, vg, vb = kit.Legible(o[1], o[2], o[3], 4.5)
@@ -1303,25 +1240,11 @@ function Toast:PaintOutcome(kind, lead, sub, who, stamp)
 		self.verdict = kit.sub:GetText()
 		self:Fitted(kit.sub)
 	end
-	-- The wash, once per click: a repaint during the outcome leaves it be.
-	if stamp ~= self.washFor then
-		self.washFor = stamp
-		self.wash:SetVertexColor(o[1], o[2], o[3], WASH[kind] or WASH.cast)
-		self.washAnim:Stop()
-		self.wash:SetAlpha(1)
-		if kit.FullEffects() then
-			self.washAnim.to = 0
-			self.washAnim:Play()
-		end
-	end
 end
 
 function Toast:ClearOutcome()
 	self.outcomeOn = nil
-	if not self.washFor then return end
 	self.washFor = nil
-	self.washAnim:Stop()
-	self.wash:SetAlpha(0)
 end
 
 ---------------------------------------------------------------------------

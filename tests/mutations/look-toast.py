@@ -10,7 +10,7 @@ TOAST = "Looks/Toast.lua"
 # --- the reason ------------------------------------------------------------
 
 mutate(TOAST,
-       "\tself.band:SetVertexColor(er, eg, eb, 1)\n",
+       "\tself.band:SetVertexColor(dr, dg, db, 1)\n",
        "\tself.band:SetVertexColor(1, 1, 1, 1)\n",
        "the enamel left uncoloured",
        expect="the enamel is not in",
@@ -94,8 +94,8 @@ mutate(TOAST,
        script="runscenarios.py")
 
 mutate(TOAST,
-       "\tfor _, g in ipairs(self.pulse) do g:Stop() end\n\tself.bloomPulse:SetAlpha(0)\n",
-       "\tfor _, g in ipairs(self.pulse) do g:Stop() end\n",
+       "\tself.pulseGen = (self.pulseGen or 0) + 1\n\tfor _, g in ipairs(self.pulse) do g:Stop() end\n",
+       "\tself.pulseGen = (self.pulseGen or 0) + 1\n",
        "the owed glow left up with nobody owed",
        expect="the owed glow stayed with nobody owed",
        script="runscenarios.py")
@@ -147,8 +147,8 @@ mutate(TOAST,
 
 # The one bright thing left in a fight, turned to iron with the rest.
 mutate(TOAST,
-       "\tself.gold = { self.ring, self.jewelSet }\n",
-       "\tself.gold = { self.ring, self.jewelSet, self.band }\n",
+       "\tself.gold = { self.ring, self.rim, self.jewelSet }\n",
+       "\tself.gold = { self.ring, self.rim, self.jewelSet, self.band }\n",
        "the enamel turned to iron in a fight",
        expect="the enamel lost the reason's colour in a fight",
        script="runscenarios.py")
@@ -350,8 +350,8 @@ mutate(TOAST,
        script="runscenarios.py")
 
 mutate(TOAST,
-       "\tself.well:SetShown(showIcon)\n",
-       "\tself.well:Hide()\n",
+       "\tself.well:SetVertexColor(WELL[1], WELL[2], WELL[3], 1)\n",
+       "\tself.well:SetVertexColor(WELL[1], WELL[2], WELL[3], 0.5)\n",
        "nothing opaque under the icon",
        expect="nothing opaque under the icon",
        script="runscenarios.py")
@@ -366,7 +366,7 @@ mutate(TOAST,
 # A medallion shorter than the banner shows the rails' ends above and below.
 mutate(TOAST,
        "\tlocal M = showIcon and H or 0\n",
-       "\tlocal M = showIcon and Clamp(p.iconSize / ICON_OF, H * 0.8, H) or 0\n",
+       "\tlocal M = showIcon and Clamp(p.iconSize * 1.5, H * 0.8, H) or 0\n",
        "the medallion shorter than the banner",
        expect="is shorter than the banner",
        script="runscenarios.py")
@@ -384,14 +384,6 @@ mutate(TOAST,
        "\tif er > 0.9 then\n",
        "every warm colour fired dark",
        expect="fired dark like the owed gold",
-       script="runscenarios.py")
-
-# The light cut at its brightest column, a seam under the medallion.
-mutate(TOAST,
-       "\t\tt:SetTexCoord(0, 1, 0, 1)\n",
-       "\t\tt:SetTexCoord(0.30, 1, 0, 1)\n",
-       "the light cut under the medallion",
-       expect="a hard edge under the medallion",
        script="runscenarios.py")
 
 # With the icon off, nothing carries the reason.
@@ -456,15 +448,15 @@ mutate(TOAST,
        script="runscenarios.py")
 
 mutate(TOAST,
-       "\t\tself.ember:SetVertexColor(Mix(er, eg, eb, 0.35))\n",
-       "\t\tself.ember:SetVertexColor(er, eg, eb)\n",
+       "\t\tself.ember:SetVertexColor(er, eg, eb, 0.72)\n",
+       "\t\tself.ember:SetVertexColor(dr, dg, db, 0.72)\n",
        "the clock in the enamel's colour",
-       expect="one more gold rail",
+       expect="no lighter than the enamel",
        script="runscenarios.py")
 
 mutate(TOAST,
-       "\tlocal beadW = self.clockH * 4.5\n\tself.bead:SetSize(beadW, self.clockH * 2)\n",
-       "\tlocal beadW = self.clockH * 3.2\n\tself.bead:SetSize(beadW, self.clockH * 1.3)\n",
+       "\tlocal beadD = self.clockH * 2.6\n",
+       "\tlocal beadD = self.clockH * 1.2\n",
        "the clock's spark too small",
        expect="too small to see",
        script="runscenarios.py")
@@ -492,7 +484,7 @@ mutate("Options.lua",
        script="runscenarios.py")
 
 mutate(TOAST,
-       "\treturn math.floor(ICON_OF * (p.height or 44) + 0.5)\n",
+       "\treturn math.floor(icon + 0.5)\n",
        "\treturn p.iconSize\n",
        "the notice gives the slider's size, not the drawn one",
        expect="the notice does not give the icon's size",
@@ -504,4 +496,49 @@ mutate(TOAST,
        "ART .. \"Shadw\", nil, true, keep)",
        "a misnamed Toast texture",
        expect="which the package does not ship",
+       script="runscenarios.py")
+
+# --- round 18: no additive light at rest (1.5.1 glared in the game) ---------
+
+# The owed glow on the enamel drawn in additive light, as 1.5.1's glow ring
+# was: it breathes for ten seconds, far past a flourish.
+mutate(TOAST,
+       "\tself.glow = tex(art, \"ARTWORK\", -5, \"Disc\")\n",
+       "\tself.glow = tex(art, \"ARTWORK\", -5, \"Disc\", \"ADD\")\n",
+       "the owed glow additive",
+       expect="additive light at rest",
+       script="runscenarios.py")
+
+# The cursor's light on the gold drawn additively, and it stays while the
+# cursor does.
+mutate(TOAST,
+       "\tself.ringHover = tex(art, \"ARTWORK\", -2, \"Disc\")\n",
+       "\tself.ringHover = tex(art, \"ARTWORK\", -2, \"Disc\", \"ADD\")\n",
+       "the cursor's light additive",
+       expect="under the cursor: additive light at rest",
+       script="runscenarios.py")
+
+# The arrival's ring of light held for over a second, as 1.5.1's was.
+mutate(TOAST,
+       "\tself.arrive = { anim(Flash(self.ringArrive, 1, 0.15, 0.40, nil, \"IN\")) }\n",
+       "\tself.arrive = { anim(Flash(self.ringArrive, 1, 0.3, 0.9, nil, \"IN\")) }\n",
+       "the arrival's light lingers",
+       expect="an additive flourish lasts",
+       script="runscenarios.py")
+
+# The favour clock drawn in additive light, as it was: on for as long as the
+# debt.
+mutate(TOAST,
+       "\tself.ember = tex(art, \"BORDER\", 7, \"Ember\")\n",
+       "\tself.ember = tex(art, \"BORDER\", 7, \"Ember\", \"ADD\")\n",
+       "the favour clock additive",
+       expect="additive light at rest",
+       script="runscenarios.py")
+
+# A flourish parked lit when it is stopped.
+mutate(TOAST,
+       "\tg.down = Alpha(g, peak, 0, down, 2, nil, smoothing or \"OUT\")\n\tPark(g, region, 0)\n",
+       "\tg.down = Alpha(g, peak, 0, down, 2, nil, smoothing or \"OUT\")\n\tPark(g, region, 0.3)\n",
+       "a flourish parked lit",
+       expect="additive light at rest",
        script="runscenarios.py")
