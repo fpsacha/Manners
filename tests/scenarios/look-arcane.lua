@@ -351,6 +351,9 @@ end)
 -- A German client keeps the translated lines until the verdict words are.
 withTree("Arcane keeps translated outcome lines on a German client", ANNA, function(ns, scenario)
 	local r, _, look = upIn(ns, scenario)
+	-- A translation made before the verdict words: they are taken out again,
+	-- so this is the path a client without them takes (all eight have them).
+	for _, k in ipairs({ "buffed", "sent, unconfirmed", "could not buff" }) do rawset(ns.L, k, nil) end
 	if not isArcane(look) then fail(scenario, "SKIPPED -- Arcane is not the look in use") return end
 	ns.Prompt:ShowOutcome("cast", "Anna Aim")
 	if r.sub:GetText() == "buffed" then fail(scenario, "a German client's line reads the English \"buffed\"") end

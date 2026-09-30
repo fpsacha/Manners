@@ -578,6 +578,9 @@ end)
 -- takes the built-in second line, which is translated, as the verdict.
 withTree("Toast keeps the name on a German client's outcome", ANNA, function(ns, scenario)
 	local r, _, look = upIn(ns, scenario)
+	-- A translation made before the verdict words: they are taken out again,
+	-- so this is the path a client without them takes (all eight have them).
+	for _, k in ipairs({ "buffed", "sent, unconfirmed", "could not buff" }) do rawset(ns.L, k, nil) end
 	if not isToast(look) then
 		fail(scenario, "SKIPPED -- Toast is not the look in use")
 		return

@@ -511,6 +511,9 @@ end)
 -- that are translated rather than putting English in a German panel.
 withTree("Luxe keeps translated outcome lines on a German client", ANNA, function(ns, scenario)
 	local r = upIn(ns, scenario, "luxe")
+	-- A translation made before the verdict words: they are taken out again,
+	-- so this is the path a client without them takes (all eight have them).
+	for _, k in ipairs({ "buffed", "sent, unconfirmed", "could not buff" }) do rawset(ns.L, k, nil) end
 	if not (r.look and r.look.glyph) then
 		fail(scenario, "SKIPPED -- Luxe is not the look in use")
 		return
@@ -627,12 +630,15 @@ withTree("every look is offered, and Luxe is the default", {}, function(ns, scen
 		end
 	end
 	if sorting[1] ~= "luxe" then fail(scenario, "Luxe is not first in the dropdown: " .. tostring(sorting[1])) end
-	-- Whichever looks are still stubs.
+	-- Every look offered is written now, so a stub is registered here to
+	-- keep the way a look not written yet draws as another one honest.
+	ns.Looks.Register("stub", { name = "stub", order = 99, fallback = "luxe" })
 	for key, look in pairs(ns.Looks.list) do
 		if look.fallback and ns.Looks.Get(key) ~= ns.Looks.Get(look.fallback) then
 			fail(scenario, "a look not written yet does not draw as Luxe")
 		end
 	end
+	ns.Looks.list.stub = nil
 	if ns.Looks.Get("glass") ~= nil then fail(scenario, "glass is handed to Looks/ instead of Prompt.lua") end
 	freshPrompt(ns, scenario)
 	ns.db.profile.prompt.style = "toast"
@@ -961,3 +967,35 @@ withTree("Luxe adds no measuring or gradient to a repaint", CROWD, function(ns, 
 			:format(measured, graded))
 	end
 end)
+
+-- ------------------------------------------------------------------ 24
+-- Every translation has the verdict words now: on a German client each of
+-- the new looks says the verdict in German, and the name stays where it was.
+for _, style in ipairs({ "luxe", "toast", "arcane" }) do
+	withTree(style .. " says the verdict in German", ANNA, function(ns, scenario)
+		local r = upIn(ns, scenario, style)
+		if not (r.look and ns.Looks.Get(style) == r.look) then
+			fail(scenario, "SKIPPED -- " .. style .. " is not the look in use")
+			return
+		end
+		local L = ns.L
+		for _, k in ipairs({ "buffed", "sent, unconfirmed", "could not buff" }) do
+			if rawget(L, k) == nil then fail(scenario, "the German translation has no word for \"" .. k .. "\"") end
+		end
+		ns.Prompt:ShowOutcome("cast", "Anna Aim")
+		if r.sub:GetText() ~= L["buffed"] then
+			fail(scenario, "a landed buff on a German client does not say " .. L["buffed"] .. ": "
+				.. tostring(r.sub:GetText()))
+		end
+		if tostring(r.name:GetText()):find("Anna", 1, true) ~= 1 then
+			fail(scenario, "a landed buff on a German client moved the name: " .. tostring(r.name:GetText()))
+		end
+		Mock.advance(3)
+		ns.addon:Tick()
+		ns.Prompt:ShowOutcome("sent", "Anna Aim")
+		if r.sub:GetText() ~= L["sent, unconfirmed"] then
+			fail(scenario, "an unconfirmed cast on a German client does not say " .. L["sent, unconfirmed"]
+				.. ": " .. tostring(r.sub:GetText()))
+		end
+	end, function() Mock.locale = "deDE" end)
+end

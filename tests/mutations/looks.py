@@ -429,3 +429,12 @@ mutate("Prompt.lua",
        "FitLine keeps no measured width",
        expect="five repaints of the same panel measured",
        script="runscenarios.py")
+
+# The German translation without its verdict word: the new looks fall back to
+# the built-in line, and the scenario that asks for the German word says so.
+mutate("Locales/deDE.lua",
+       "L[\"buffed\"] = \"gestärkt\"\n",
+       "",
+       "German verdict word missing",
+       expect="says the verdict in German",
+       script="runscenarios.py")

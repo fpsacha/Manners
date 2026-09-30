@@ -17,6 +17,7 @@ What it writes, all 1280 pixels wide:
 
     manners-prompt.png     somebody who buffed you, with the glow
     manners-reasons.png    the five reasons somebody is offered, each in its colour
+    manners-looks.png      the same favour in each of the six looks, named
     manners-ledger.png     the favour ledger with a day of ordinary play in it
     manners-languages.png  the prompt in German, French and Chinese
     manners-palette.png    the standard and the colour-blind reason colours
@@ -271,6 +272,22 @@ local added = {
 		settle(ns)
 	end },
 }
+-- The same moment in every look the Look tab offers: a favour to return, two
+-- passers-by waiting behind it (the count), and a key bound to the prompt, as
+-- most players who use it have -- the looks that show the key only show it
+-- with one bound. ShotStyle is the look the profile ends up on, so a look the
+-- addon refused or put back is caught rather than drawn under another's name.
+for _, style in ipairs({ "glass", "framed", "minimal", "luxe", "toast", "arcane" }) do
+	added[#added + 1] = { key = "shot-look-" .. style, at = 0.85, setup = function(ns)
+		Mock.bindings = { F = "CLICK MannersPrompt:LeftButton" }
+		boot(ns, { nameplate1 = ELOWEN, nameplate2 = SABLE, nameplate3 = MIRA })
+		ns.db.profile.prompt.style = style
+		owe(ns, "Elowen Thistledown")
+		settle(ns)
+		ns.ClampSettings()
+		ShotStyle = ns.db.profile.prompt.style
+	end }
+end
 for _, state in ipairs(added) do
 	state.title = state.key
 	table.insert(R.states, state)
@@ -947,6 +964,17 @@ REASONS = [
 # them there.
 LIST_ROWS = ["Mira Holt", "Tam Rook", "Ivo Lark"]
 
+# The looks the Look tab offers, in the order the picture shows them, each
+# with the name and the few words the dropdown gives it.
+LOOKS = [
+    ("glass", "Glass", "dark panel, soft shadow"),
+    ("framed", "Framed", "flat panel, thin border"),
+    ("minimal", "Minimal", "text only, no panel"),
+    ("luxe", "Luxe", "slim dark card, a spine in the reason colour"),
+    ("toast", "Toast", "warm banner, gilded medallion"),
+    ("arcane", "Arcane", "smoked glass, a rim lit by the reason"),
+]
+
 
 def build(addon_dir):
     """Every snapshot the pictures need, checked. Nothing is drawn until all of
@@ -969,6 +997,19 @@ def build(addon_dir):
             texts = shown_texts(snap, PromptTree)
             expect_names(key, texts, ["Bram Cinderfell", "Elowen Thistledown", "Oskar Fenwick",
                                       "Sable Harrow"])
+            check_glyphs(key, texts)
+            snaps[key] = snap
+    for style, _, _ in LOOKS:
+        key = "shot-look-" + style
+        lua.globals().ShotStyle = None
+        snap, top = snap_of(R, lua, key)
+        if snap:
+            expect_top(key, top, "Elowen Thistledown", "owed")
+            got = lua.globals().ShotStyle
+            if got != style:
+                problem("%s: the prompt is drawn in %s, not %s" % (key, got, style))
+            texts = shown_texts(snap, PromptTree)
+            expect_names(key, texts, ["Elowen Thistledown"])
             check_glyphs(key, texts)
             snaps[key] = snap
     # The list in English, drawn nowhere: what each translated one is held
@@ -1100,9 +1141,38 @@ def picture_palette(snaps):
     return board
 
 
+def picture_looks(snaps):
+    """The six looks in two columns, the three older ones down the left and the
+    three new ones down the right, each named over its panel. Every panel is
+    drawn at the same zoom from the same moment, so what differs between them
+    is the look and nothing else. Two columns rather than three, because at the
+    zoom three to a row allows the panels' own words were too small to read."""
+    layers = [prompt_layer("shot-look-" + style, snaps["shot-look-" + style], 2.0)
+              for style, _, _ in LOOKS]
+    cols = 2
+    rows = (len(layers) + cols - 1) // cols
+    cell_w = WIDTH / cols
+    label_h = 60
+    row = max(l.size[1] for l in layers) + label_h + 18
+    top = 140
+    board = Board(top + row * rows + 10, seed=17, sun=(0.50, 0.53))
+    heading(board, "Six looks to choose from",
+            "The same favour in each. Pick one under Look > Panel style; Luxe is the default.")
+    for i, ((_, name, words), layer) in enumerate(zip(LOOKS, layers)):
+        cx = cell_w * (i // rows) + cell_w / 2
+        y = top + row * (i % rows)
+        board.shade(cx - 230, y + 4, cx + 230, y + label_h, 0.4)
+        board.text((cx, y + 20), name, 26, bold=True, anchor="mm")
+        board.text((cx, y + 48), words, 17, fill=(214, 206, 214), anchor="mm")
+        w, h = layer.size
+        board.place(layer, cx - w / 2, y + label_h + (row - label_h - 18 - h) / 2)
+    return board
+
+
 PICTURES = [
     ("manners-prompt.png", picture_prompt),
     ("manners-reasons.png", picture_reasons),
+    ("manners-looks.png", picture_looks),
     ("manners-ledger.png", picture_ledger),
     ("manners-languages.png", picture_languages),
     ("manners-palette.png", picture_palette),
