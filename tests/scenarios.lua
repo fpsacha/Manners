@@ -8649,7 +8649,10 @@ do
 	-- one this is about.
 	for _, file in ipairs({ "Locales/Init.lua", "Buffs.lua", "Core.lua", "Range.lua",
 		"Speech.lua", "Queue.lua", "Requests.lua", "Favours.lua", "Clicks.lua",
-		"Commands.lua", "Ledger.lua", "Looks/Looks.lua", "Looks/Luxe.lua", "Prompt.lua",
+		"Commands.lua", "Ledger.lua", "Looks/Looks.lua", "Looks/Luxe.lua",
+		"Prompt/Prompt.lua", "Prompt/Text.lua", "Prompt/Effects.lua", "Prompt/Hold.lua",
+		"Prompt/Macro.lua", "Prompt/Press.lua", "Prompt/Button.lua", "Prompt/Panel.lua",
+		"Prompt/List.lua", "Prompt/Paint.lua", "Prompt/Refresh.lua",
 		"Options.lua" }) do
 		local chunk, err = loadfile(dir .. "/" .. file)
 		if not chunk then
@@ -16284,7 +16287,7 @@ if ns then
 	local scenario = "the reason colours match their comment"
 	drive(scenario, ns)
 	ns.Prompt:ExitTest()
-	local file = io.open(dir .. "/Prompt.lua", "r")
+	local file = io.open(dir .. "/Prompt/Prompt.lua", "r")
 	local source = file and file:read("*a") or ""
 	if file then file:close() end
 	-- The unbroken run of comment lines straight above the table.

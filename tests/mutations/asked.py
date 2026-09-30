@@ -251,7 +251,7 @@ mutate("Queue.lua",
        script="runscenarios.py")
 
 # The prompt reading "unverified" for somebody who asked.
-mutate("Prompt.lua",
+mutate("Prompt/Paint.lua",
        "\t\tand entry.reason ~= \"asked\" then\n",
        "\t\tthen\n",
        "a request read as unverified",
@@ -323,7 +323,7 @@ mutate("Requests.lua",
        script="runscenarios.py")
 
 # The prompt reading "needs {buff}" for somebody who asked.
-mutate("Prompt.lua",
+mutate("Prompt/Prompt.lua",
        "\tgroup = \"reasonGroup\", nearby = \"reasonNearby\", asked = \"reasonAsked\" }\n",
        "\tgroup = \"reasonGroup\", nearby = \"reasonNearby\" }\n",
        "no wording of its own for a request",
@@ -356,8 +356,8 @@ mutate("Options.lua",
 
 # The press's record without the reason: the ledger files a buff somebody
 # asked for as one given unprompted, and counts it among the day's gifts.
-mutate("Prompt.lua",
-       "\t\treason = current.reason,\n",
+mutate("Prompt/Press.lua",
+       "\t\treason = S.current.reason,\n",
        "",
        "the press forgets the request",
        expect="a buff given to somebody who asked is filed as asked",

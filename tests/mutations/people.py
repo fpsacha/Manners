@@ -20,7 +20,7 @@ mutate("Queue.lua",
        script="runscenarios.py")
 
 # Shift ignored, so shift-right-click is only the skip.
-mutate("Prompt.lua",
+mutate("Prompt/Press.lua",
        "\t\tif IsShiftKeyDown and ns.plain(IsShiftKeyDown()) then\n",
        "\t\tif false then\n",
        "shift-right-click only skips",
@@ -28,7 +28,7 @@ mutate("Prompt.lua",
        script="runscenarios.py")
 
 # Shift read as held on every right-click, so the skip fills the list.
-mutate("Prompt.lua",
+mutate("Prompt/Press.lua",
        "\t\tif IsShiftKeyDown and ns.plain(IsShiftKeyDown()) then\n",
        "\t\tif true then\n",
        "plain right-click puts them on the list",
@@ -37,7 +37,7 @@ mutate("Prompt.lua",
 
 # The shifted press re-silencing the right button, which is a protected call
 # and is refused in a fight.
-mutate("Prompt.lua",
+mutate("Prompt/Press.lua",
        "\t\t\tns.PutOnNeverList(victim)\n",
        "\t\t\tns.PutOnNeverList(victim)\n\t\t\tself:SetAttribute(\"type2\", \"none\")\n",
        "shift-right-click touches the button in a fight",
@@ -163,8 +163,8 @@ mutate("Queue.lua",
        script="runscenarios.py")
 
 # The tooltip offering to put a listed person on the list they are on.
-mutate("Prompt.lua",
-       "\t\tif ns.IsNeverOffered and ns.IsNeverOffered(current.name) then\n",
+mutate("Prompt/Button.lua",
+       "\t\tif ns.IsNeverOffered and ns.IsNeverOffered(S.current.name) then\n",
        "\t\tif false then\n",
        "tooltip misdescribes shift-right-click on a listed person",
        expect="an owed person already on the list lets the favour go",

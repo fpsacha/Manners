@@ -87,7 +87,7 @@ mutate("Queue.lua",
        script="runscenarios.py")
 
 # The reason line keeps the group's words.
-mutate("Prompt.lua",
+mutate("Prompt/Paint.lua",
        "\tif entry.sweep and entry.reason == \"group\" then\n",
        "\tif false then\n",
        "reason line does not say why they are first",
@@ -95,7 +95,7 @@ mutate("Prompt.lua",
        script="runscenarios.py")
 
 # The tooltip silent about the ready check.
-mutate("Prompt.lua",
+mutate("Prompt/Button.lua",
        "\tif entry.sweep == \"readycheck\" then\n",
        "\tif false then\n",
        "tooltip silent about the ready check",
@@ -323,7 +323,7 @@ mutate("Queue.lua",
        script="runscenarios.py")
 
 # The tooltip silent about it.
-mutate("Prompt.lua",
+mutate("Prompt/Button.lua",
        "\tlocal kept, resume = ns.SavingMana()\n",
        "\tlocal kept, resume = nil, nil\n",
        "tooltip silent about saving mana",
@@ -347,7 +347,7 @@ mutate("Queue.lua",
        script="runscenarios.py")
 
 # An open tooltip not rebuilt when mana crosses the floor.
-mutate("Prompt.lua",
+mutate("Prompt/Button.lua",
        " .. \"\\1\" .. tostring((ns.SavingMana()))",
        "",
        "open tooltip deaf to the mana floor",
@@ -355,7 +355,7 @@ mutate("Prompt.lua",
        script="runscenarios.py")
 
 # An empty press says nothing about it.
-mutate("Prompt.lua",
+mutate("Prompt/Press.lua",
        "\t\telseif ns.SavingMana() then\n",
        "\t\telseif false then\n",
        "empty press silent about saving mana",

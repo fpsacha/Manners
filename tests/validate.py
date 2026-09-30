@@ -664,7 +664,7 @@ print("\n== version consistency ==")
 # from a direction it did not know about -- and CurseForge would publish the
 # flavour builds under a version that never existed.
 build = re.search(r'ns\.BUILD = "([^"]+)"',
-                  open(os.path.join(ROOT, "Prompt.lua"), encoding="utf-8").read())
+                  open(os.path.join(ROOT, "Prompt", "Prompt.lua"), encoding="utf-8").read())
 # A top heading of "Unreleased" is work sitting in the log ahead of a bump, and
 # is the one case where the three are meant to disagree: the toc still names
 # what shipped. Compare against the newest heading that names a version, and

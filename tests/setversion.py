@@ -4,7 +4,7 @@ mirrored.
     python tests/setversion.py 0.9.5
 
 The version lives in three places that must agree: the tocs (what the game and
-CurseForge read), ns.BUILD in Prompt.lua (what every click line reports), and
+CurseForge read), ns.BUILD in Prompt/Prompt.lua (what every click line reports), and
 the top heading of CHANGELOG.md. Editing them by hand has now produced a
 mismatch twice, each time by search-and-replacing a value that was already
 wrong. This sets all of them from one argument and does not care what they said
@@ -54,10 +54,10 @@ open(p, "w", encoding="utf-8", newline="\n").write(s)
 maketocs.main(check=False)
 
 # --- the build stamp --------------------------------------------------
-p = os.path.join(ROOT, "Prompt.lua")
+p = os.path.join(ROOT, "Prompt", "Prompt.lua")
 s = open(p, encoding="utf-8").read()
 s, n = re.subn(r'ns\.BUILD = "[^"]*"', 'ns.BUILD = "%s"' % version, s, count=1)
-assert n == 1, "no ns.BUILD in Prompt.lua"
+assert n == 1, "no ns.BUILD in Prompt/Prompt.lua"
 open(p, "w", encoding="utf-8", newline="\n").write(s)
 
 # --- the changelog ----------------------------------------------------

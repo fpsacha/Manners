@@ -3,7 +3,7 @@
 # tests/scenarios/speech-range.lua that names it.
 
 # The range reading ignored: the line goes in for somebody known out of reach.
-mutate("Prompt.lua",
+mutate("Prompt/Macro.lua",
        "\tlocal speak = not silent and entry.ranged ~= false and not ns.SpeechHeld(entry.name)\n",
        "\tlocal speak = not silent and not ns.SpeechHeld(entry.name)\n",
        "speech armed out of range",
@@ -12,7 +12,7 @@ mutate("Prompt.lua",
 
 # Unknown range taken for out of range: silences everybody the client will
 # not measure.
-mutate("Prompt.lua",
+mutate("Prompt/Macro.lua",
        "\tlocal speak = not silent and entry.ranged ~= false and not ns.SpeechHeld(entry.name)\n",
        "\tlocal speak = not silent and entry.ranged == true and not ns.SpeechHeld(entry.name)\n",
        "speech silenced when range is unknown",
@@ -21,7 +21,7 @@ mutate("Prompt.lua",
 
 # The macro's key blind to whether the line is armed: a change of range
 # never rebuilds the macro.
-mutate("Prompt.lua",
+mutate("Prompt/Macro.lua",
        "\t\ttostring(StillTargeted(entry)), tostring(speak) }, \"\\1\")\n",
        "\t\ttostring(StillTargeted(entry)) }, \"\\1\")\n",
        "macro key ignores the spoken line",
@@ -29,23 +29,23 @@ mutate("Prompt.lua",
        script="runscenarios.py")
 
 # The tooltip quoting a line the macro left out.
-mutate("Prompt.lua",
-       "\tif phraseText and phraseArmed then\n",
-       "\tif phraseText then\n",
+mutate("Prompt/Macro.lua",
+       "\tif S.phraseText and S.phraseArmed then\n",
+       "\tif S.phraseText then\n",
        "tooltip quotes a held line",
        expect="speech-range: the line follows what the scan knows of the range",
        script="runscenarios.py")
 
 # PreClick not asking the range again for the entry it re-keys.
-mutate("Prompt.lua",
-       "\t\tPrompt:ApplyTarget(current, OutOfReachNow(current))\n",
-       "\t\tPrompt:ApplyTarget(current)\n",
+mutate("Prompt/Press.lua",
+       "\t\tPrompt:ApplyTarget(S.current, OutOfReachNow(S.current))\n",
+       "\t\tPrompt:ApplyTarget(S.current)\n",
        "press keeps the line for somebody who walked off",
        expect="speech-range: the press drops the line for somebody who walked off",
        script="runscenarios.py")
 
 # The last-moment range reading never saying no.
-mutate("Prompt.lua",
+mutate("Prompt/Press.lua",
        "\treturn ns.ReachNow(entry.unit, entry.buff) == false\n",
        "\treturn false\n",
        "last-moment range never out",
@@ -53,7 +53,7 @@ mutate("Prompt.lua",
        script="runscenarios.py")
 
 # A refusal holding nothing: the next press talks again.
-mutate("Prompt.lua",
+mutate("Prompt/Macro.lua",
        "\tlocal speak = not silent and entry.ranged ~= false and not ns.SpeechHeld(entry.name)\n",
        "\tlocal speak = not silent and entry.ranged ~= false\n",
        "refusal does not hold the line",
@@ -85,7 +85,7 @@ mutate("Clicks.lua",
        script="runscenarios.py")
 
 # PreClick's main path trusting the held entry's old range reading.
-mutate("Prompt.lua",
+mutate("Prompt/Press.lua",
        "\tPrompt:ApplyTarget(top, OutOfReachNow(top))\n",
        "\tPrompt:ApplyTarget(top)\n",
        "press keeps the line for a held entry that walked off",

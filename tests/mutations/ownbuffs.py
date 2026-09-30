@@ -319,9 +319,9 @@ mutate("Speech.lua",
 
 # --- a prompt for a hunter (Prompt.lua) ---
 
-mutate("Prompt.lua",
-       "\tif not ns.CanCastAnything() and not testMode then\n",
-       "\tif not ns.caps.anyKnown and not testMode then\n",
+mutate("Prompt/Refresh.lua",
+       "\tif not ns.CanCastAnything() and not S.testMode then\n",
+       "\tif not ns.caps.anyKnown and not S.testMode then\n",
        "own: no prompt for a hunter",
        expect="the hunter's prompt is not up on his aspect", script=S)
 
@@ -476,7 +476,7 @@ mutate("Commands.lua",
 
 # The macro's key without the name it casts by: learning Ice Armor at the
 # trainer leaves "/cast Frost Armor" armed under the same entry.
-mutate("Prompt.lua",
+mutate("Prompt/Macro.lua",
        "\t\tns.EntrySpellName(entry),\n",
        "",
        "own: the macro keeps the old rank's name",

@@ -166,9 +166,9 @@ mutate("Speech.lua",
        expect="whisper: a cross-realm name is whispered with its realm",
        script="runscenarios.py")
 
-mutate("Prompt.lua",
-       "\t\tout[#out + 1] = L[\"Says: |cffffffff%s|r\"]:format(ns.SpokenText(phraseText))\n",
-       "\t\tout[#out + 1] = L[\"Says: |cffffffff%s|r\"]:format((phraseText:gsub(\"^/%S+%s*\", \"\")))\n",
+mutate("Prompt/Macro.lua",
+       "\t\tout[#out + 1] = L[\"Says: |cffffffff%s|r\"]:format(ns.SpokenText(S.phraseText))\n",
+       "\t\tout[#out + 1] = L[\"Says: |cffffffff%s|r\"]:format((S.phraseText:gsub(\"^/%S+%s*\", \"\")))\n",
        "tooltip strips only the command",
        expect="whisper: a cross-realm name is whispered with its realm",
        script="runscenarios.py")

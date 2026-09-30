@@ -87,43 +87,43 @@ mutate("Queue.lua",
        "self: named rather than You",
        expect="the first line does not say You", script=S)
 
-mutate("Prompt.lua",
+mutate("Prompt/Prompt.lua",
        "REASON_KEY.self = \"reasonSelf\"\n",
        "",
        "self: reason line a passer-by's",
        expect="the reason line reads", script=S)
 
-mutate("Prompt.lua",
+mutate("Prompt/Button.lua",
        "\telseif entry.reason == \"self\" then\n\t\t-- Offered to you only on a reading",
        "\telseif false then\n\t\t-- Offered to you only on a reading",
        "self: tooltip calls you nearby",
        expect="the tooltip does not say it is your own and missing", script=S)
 
-mutate("Prompt.lua",
+mutate("Prompt/Button.lua",
        "\t\tGameTooltip:AddLine(entry.reason == \"self\" and L[\"Yours expires in %s.\"]:format(left)\n",
        "\t\tGameTooltip:AddLine(false and L[\"Yours expires in %s.\"]:format(left)\n",
        "self: tooltip says theirs of yours",
        expect="the tooltip does not say when yours runs out", script=S)
 
-mutate("Prompt.lua",
+mutate("Prompt/Macro.lua",
        "\tif entry.reason == \"self\" then\n\t\t-- Nothing about targets: the macro hands your target back (see\n",
        "\tif false then\n\t\t-- Nothing about targets: the macro hands your target back (see\n",
        "self: tooltip says it targets you",
        expect="the tooltip does not say it is cast on you", script=S)
 
-mutate("Prompt.lua",
-       "\t\telseif current.reason == \"self\" then\n\t\t\t-- The switch, since the list is of other people (StopOfferingSelf).\n",
+mutate("Prompt/Button.lua",
+       "\t\telseif S.current.reason == \"self\" then\n\t\t\t-- The switch, since the list is of other people (StopOfferingSelf).\n",
        "\t\telseif false then\n\t\t\t-- The switch, since the list is of other people (StopOfferingSelf).\n",
        "self: tooltip offers you the never list",
        expect="the tooltip does not say what shift-right-click does to you", script=S)
 
-mutate("Prompt.lua",
+mutate("Prompt/Prompt.lua",
        "REASON_COLOR.self = REASON_COLOR.group\n",
        "",
        "self: standard colour a passer-by's",
        expect="in the standard palette you are", script=S)
 
-mutate("Prompt.lua",
+mutate("Prompt/Prompt.lua",
        "REASON_COLOR_CVD.self = REASON_COLOR_CVD.group\n",
        "",
        "self: colour-blind colour a passer-by's",
@@ -138,7 +138,7 @@ mutate("Prompt.lua",
 # mutations below are what the strategy now guards against.
 
 # A bare /cast: with a friendly player targeted, it lands on them.
-mutate("Prompt.lua",
+mutate("Prompt/Macro.lua",
        "\tlocal lines = STRATEGIES.target(entry, spell)\n"
        "\tlocal restore = not StillTargeted(entry) or Prompt.armedForFight == true\n",
        "\tlocal lines, restore = { \"/cast \" .. spell }, false\n",
@@ -146,7 +146,7 @@ mutate("Prompt.lua",
        expect="the macro reads", script=S)
 
 # [@player]: conditional targeting does not resolve on WoW Forever.
-mutate("Prompt.lua",
+mutate("Prompt/Macro.lua",
        "\tlocal lines = STRATEGIES.target(entry, spell)\n"
        "\tlocal restore = not StillTargeted(entry) or Prompt.armedForFight == true\n",
        "\tlocal lines, restore = { \"/cast [@player] \" .. spell }, false\n",
@@ -159,16 +159,16 @@ mutate("Speech.lua",
        "self: a line said to yourself",
        expect="the macro reads", script=S)
 
-mutate("Prompt.lua",
-       "\t\tonSelf = (armed ~= nil and armed.onSelf == true) or current.reason == \"self\",\n",
+mutate("Prompt/Press.lua",
+       "\t\tonSelf = (S.armed ~= nil and S.armed.onSelf == true) or S.current.reason == \"self\",\n",
        "",
        "self: press not parked as yours",
        expect="the press was not parked as one on yourself", script=S)
 
 # A /manners try macro arms no record, so only the entry says it is you.
-mutate("Prompt.lua",
-       "\t\tonSelf = (armed ~= nil and armed.onSelf == true) or current.reason == \"self\",\n",
-       "\t\tonSelf = armed ~= nil and armed.onSelf == true,\n",
+mutate("Prompt/Press.lua",
+       "\t\tonSelf = (S.armed ~= nil and S.armed.onSelf == true) or S.current.reason == \"self\",\n",
+       "\t\tonSelf = S.armed ~= nil and S.armed.onSelf == true,\n",
        "self: a try press on you files a gift",
        expect="a /manners try press on yourself wrote", script=S)
 
@@ -206,21 +206,21 @@ mutate("Clicks.lua",
        "self: refusal names you like a stranger",
        expect="the refusal reads", script=S)
 
-mutate("Prompt.lua",
-       "\tlocal own = ns.IsPlayerName(outcomeName)\n",
+mutate("Prompt/Paint.lua",
+       "\tlocal own = ns.IsPlayerName(S.outcomeName)\n",
        "\tlocal own = false\n",
        "self: outcome names you like a stranger",
        expect="the panel reads", script=S)
 
 # --- right-click and the menu ---
 
-mutate("Prompt.lua",
+mutate("Prompt/Press.lua",
        "\t\tif IsShiftKeyDown and ns.plain(IsShiftKeyDown()) and own then\n",
        "\t\tif false then\n",
        "self: shift-right-click lists you",
        expect="shift-right-click left the switch on", script=S)
 
-mutate("Prompt.lua",
+mutate("Prompt/Press.lua",
        "\t\tif db and db.verbose and own then\n",
        "\t\tif false then\n",
        "self: skip names you like a stranger",
@@ -329,7 +329,7 @@ mutate("Commands.lua",
 
 # --- saving mana keeps your own buff, and says so ---
 
-mutate("Prompt.lua",
+mutate("Prompt/Button.lua",
        "\t\tGameTooltip:AddLine((ns.OffersSelf()\n",
        "\t\tGameTooltip:AddLine((false\n",
        "self: saving-mana tooltip leaves you out",
@@ -341,7 +341,7 @@ mutate("Commands.lua",
        "self: saving-mana debug leaves you out",
        expect="/manners debug while saving mana leaves your own buff out", script=S)
 
-mutate("Prompt.lua",
+mutate("Prompt/Press.lua",
        "\t\t\tlocal line = ns.OffersSelf()\n",
        "\t\t\tlocal line = false\n",
        "self: saving-mana empty press leaves you out",
@@ -394,7 +394,7 @@ mutate("Options.lua",
 
 # --- the other lines about a press on you ---
 
-mutate("Prompt.lua",
+mutate("Prompt/Paint.lua",
        "\tif top.reason == \"self\" then\n",
        "\tif false then\n",
        "self: moved-on names you like a stranger",

@@ -508,7 +508,7 @@ def whole_suite_args(m):
 
 
 # 1. a name local to another file, called from this one -- the `plain` bug
-mutate("Prompt.lua",
+mutate("Prompt/Macro.lua",
        "ns.PickPhrase(entry,",
        "PickPhrase(entry,",
        "cross-file local call (the `plain` bug)",
@@ -537,21 +537,21 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # 5. the stale-macro bug: an emptied queue leaving the last person armed
-mutate("Prompt.lua",
-       """		for _, attribute in ipairs({ "type1", "macrotext1", "spell1", "unit1",
-			"type", "macrotext", "spell", "unit",
-			"type2", "type3", "type4", "type5" }) do
-			button:SetAttribute(attribute, nil)
-		end
-		appliedKey = nil""",
-       """		if appliedKey ~= nil then
-			for _, attribute in ipairs({ "type1", "macrotext1", "spell1", "unit1",
-				"type", "macrotext", "spell", "unit",
-				"type2", "type3", "type4", "type5" }) do
-				button:SetAttribute(attribute, nil)
-			end
-			appliedKey = nil
-		end""",
+mutate("Prompt/Macro.lua",
+       "\t\tfor _, attribute in ipairs({ \"type1\", \"macrotext1\", \"spell1\", \"unit1\",\n"
+       "\t\t\t\"type\", \"macrotext\", \"spell\", \"unit\",\n"
+       "\t\t\t\"type2\", \"type3\", \"type4\", \"type5\" }) do\n"
+       "\t\t\tR.button:SetAttribute(attribute, nil)\n"
+       "\t\tend\n"
+       "\t\tS.appliedKey = nil",
+       "\t\tif S.appliedKey ~= nil then\n"
+       "\t\t\tfor _, attribute in ipairs({ \"type1\", \"macrotext1\", \"spell1\", \"unit1\",\n"
+       "\t\t\t\t\"type\", \"macrotext\", \"spell\", \"unit\",\n"
+       "\t\t\t\t\"type2\", \"type3\", \"type4\", \"type5\" }) do\n"
+       "\t\t\t\tR.button:SetAttribute(attribute, nil)\n"
+       "\t\t\tend\n"
+       "\t\t\tS.appliedKey = nil\n"
+       "\t\tend",
        "stale macro on an emptied queue",
        expect="emptied queue disarms",
        script="runscenarios.py")
@@ -560,8 +560,8 @@ mutate("Prompt.lua",
 #    exists at all. A dead optimisation is not a bug, but a dead check is: this
 #    one went unnoticed for three releases while the name sat unread in four
 #    assignments.
-mutate("Prompt.lua",
-       "	if key == appliedKey then return end",
+mutate("Prompt/Macro.lua",
+       "\tif key == S.appliedKey then return end",
        "	if false then return end",
        "macro re-armed on every repaint",
        expect="the macro is armed once per candidate",
@@ -662,7 +662,7 @@ mutate("Core.lua",
 # 15. one pending slot, overwritten without a word. Everything the buried press
 #     wrote on the assumption it landed stays standing, with nothing left that
 #     could ever take it back.
-mutate("Prompt.lua",
+mutate("Prompt/Press.lua",
        "\tns.AbandonPendingClick()\n",
        "",
        "a pending click discarded silently",
@@ -726,7 +726,7 @@ mutate("Core.lua",
 #     panel dropped out of one scan, not because somebody better arrived. Without
 #     the hold the panel follows every one of those, with the cross-fade and the
 #     sound behind it.
-mutate("Prompt.lua",
+mutate("Prompt/Hold.lua",
        "	if not HoldStillStands(GetTime()) then return top end\n",
        "	if true then return top end\n",
        "the prompt strobing on a churning queue",
@@ -735,8 +735,8 @@ mutate("Prompt.lua",
 
 # 20. and the other half of it: one empty scan taking the prompt down, so the
 #     next scan 0.4s later puts it back with the entrance animation replayed.
-mutate("Prompt.lua",
-       "			if now - emptyAt < EMPTY_FUSE_SECONDS then return end\n",
+mutate("Prompt/Refresh.lua",
+       "\t\t\tif now - S.emptyAt < EMPTY_FUSE_SECONDS then return end\n",
        "",
        "an empty scan hiding the prompt at once",
        expect="one empty scan took the prompt down",
@@ -746,8 +746,8 @@ mutate("Prompt.lua",
 #      prompt is visible and naming somebody, and re-resolving to nobody here
 #      disarms it -- so the click does nothing and says nothing, which is the
 #      silent failure the fuse was added to avoid, arriving by the other door.
-mutate("Prompt.lua",
-       "\tif not top and current and not Retired(current, now) and named == current.name then\n",
+mutate("Prompt/Press.lua",
+       "\tif not top and S.current and not Retired(S.current, now) and named == S.current.name then\n",
        "\tif false then\n",
        "a press that disarms a visible prompt",
        expect="a press while the prompt was still naming Ana disarmed it",
@@ -757,7 +757,7 @@ mutate("Prompt.lua",
 #      counted. The pick is not always queue[1] -- a tie is kept with the
 #      current candidate, and a held one is not in the queue at all -- so this
 #      is short by one for exactly the people the hold exists for.
-mutate("Prompt.lua",
+mutate("Prompt/Refresh.lua",
        "	self:Paint(top, others)\n",
        "	self:Paint(top, #queue - 1)\n",
        "a waiting count read off the queue order",
@@ -769,7 +769,7 @@ mutate("Prompt.lua",
 #      list entirely, and lists the panel's own person when the pick is not
 #      queue[1]. It also stops the hold ever being renewed, which is the part
 #      that looks harmless.
-mutate("Prompt.lua",
+mutate("Prompt/Refresh.lua",
        """		if entry.name == top.name then
 			-- The queue's own entry, not merely the name: a paint of the copy
 			-- the hold kept is never a paint from the queue.
@@ -786,7 +786,7 @@ mutate("Prompt.lua",
 
 # 21. the sound tied to the name on the panel changing, which is exactly the
 #     thing that churns. A panel swapping a name can be looked away from.
-mutate("Prompt.lua",
+mutate("Prompt/Refresh.lua",
        """	if isNew and db.sound.enabled
 		and (not db.sound.owedOnly or top.reason == "owed"
 			or not (ns.caps and ns.caps.hasClassBuffs == true and db.sources.owed ~= false))
@@ -823,7 +823,7 @@ mutate("Clicks.lua",
 # 24. the combat hold. The macro is frozen at whoever was on the button when the
 #     fight started; without this the panel goes on painting that at full
 #     brightness with a live queue listed underneath it.
-mutate("Prompt.lua",
+mutate("Prompt/Refresh.lua",
        "		self:SetCombatHold(true)\n",
        "",
        "a frozen prompt that still looks live",
@@ -832,7 +832,7 @@ mutate("Prompt.lua",
 
 # 25. and the tooltip over it, which is the most detailed and most convincing
 #     thing the prompt says about a macro that cannot follow anything.
-mutate("Prompt.lua",
+mutate("Prompt/Button.lua",
        '		if InCombatLockdown() then return end\n		GameTooltip:SetOwner(self, "ANCHOR_TOP")',
        '		GameTooltip:SetOwner(self, "ANCHOR_TOP")',
        "a tooltip describing a frozen macro",
@@ -842,8 +842,8 @@ mutate("Prompt.lua",
 # 26. the spoken line re-rolled per repaint and again on the press, so the line
 #     quoted in the tooltip was never the line that went out. The cache looks
 #     like an optimisation and is the only thing making the quote true.
-mutate("Prompt.lua",
-       "	if phraseKey ~= phraseIdentity or (phraseText and #phraseText > budget) then\n",
+mutate("Prompt/Macro.lua",
+       "\tif S.phraseKey ~= phraseIdentity or (S.phraseText and #S.phraseText > budget) then\n",
        "	if true then\n",
        "the tooltip quoting a line it will not cast",
        expect="the tooltip quotes the line that will actually run",
@@ -851,18 +851,18 @@ mutate("Prompt.lua",
 
 # 27. queue rows lying on the world with no background: unreadable on anything
 #     bright, absent on anything dark.
-mutate("Prompt.lua",
-       "	queueBack:SetShown(back)\n",
-       "	queueBack:SetShown(false)\n",
+mutate("Prompt/List.lua",
+       "\tR.queueBack:SetShown(back)\n",
+       "\tR.queueBack:SetShown(false)\n",
        "a queue list with no background",
        expect="the rows are still lying on the world with no background",
        script="runscenarios.py")
 
 # 28. and the same list hanging below a prompt that now sits just above the
 #     action bars, which runs it off the bottom of the screen.
-mutate("Prompt.lua",
-       "	queueAbove = QueueGoesAbove()\n",
-       "	queueAbove = false\n",
+mutate("Prompt/Panel.lua",
+       "\tS.queueAbove = QueueGoesAbove()\n",
+       "\tS.queueAbove = false\n",
        "a queue list that runs off the screen",
        expect="still hangs its list below itself",
        script="runscenarios.py")
@@ -894,7 +894,7 @@ mutate("Core.lua",
 # 31. preview timing out while the options window is open, which is the only
 #     time it is any use -- and the reason the prompt could not be styled in a
 #     city at all.
-mutate("Prompt.lua",
+mutate("Prompt/Refresh.lua",
        "		local styling = ns.OptionsOpen and ns.OptionsOpen()\n",
        "		local styling = false\n",
        "preview dying while it is being used",
@@ -940,7 +940,7 @@ mutate("Options.lua",
 # 35. the sound going off for everybody again while the flash stays choosy. The
 #     two are one job and were two tabs apart, which is how they came to
 #     disagree about who is worth interrupting for.
-mutate("Prompt.lua",
+mutate("Prompt/Refresh.lua",
        '		and (not db.sound.owedOnly or top.reason == "owed"\n'
        '			or not (ns.caps and ns.caps.hasClassBuffs == true and db.sources.owed ~= false))\n',
        "",
@@ -1280,8 +1280,8 @@ mutate("Clicks.lua",
 #     fight, and never painted out of it. The sub-line underneath was rewritten
 #     on every pass and the name line was not, so a past-tense headline about
 #     one person became the title over a macro aimed at another.
-mutate("Prompt.lua",
-       "\t\t\t\tSetLine(nameText, self:RenderPrimary(current, 0))\n",
+mutate("Prompt/Refresh.lua",
+       "\t\t\t\tSetLine(R.nameText, self:RenderPrimary(S.current, 0))\n",
        "",
        "a confirmation left as the panel's title",
        expect="became the panel's title for the rest of the fight",
@@ -1290,12 +1290,12 @@ mutate("Prompt.lua",
 # 59. and the other half of the same branch: Show on a secure frame, which
 #     Blizzard refuses for the length of the fight. A refused Hide is invisible;
 #     a refused Show is the confirmation not appearing, which is the feature.
-mutate("Prompt.lua",
+mutate("Prompt/Refresh.lua",
        """		if self:OutcomeLive() and not p.hideInCombat then
 			self:PaintOutcome()""",
-       """		if self:OutcomeLive() and not p.hideInCombat then
-			button:Show()
-			self:PaintOutcome()""",
+       "\t\tif self:OutcomeLive() and not p.hideInCombat then\n"
+       "\t\t\tR.button:Show()\n"
+       "\t\t\tself:PaintOutcome()",
        "a protected Show inside the combat branch",
        expect="on the secure button in combat",
        script="runscenarios.py")
@@ -1303,9 +1303,9 @@ mutate("Prompt.lua",
 # 60. the combat dim released at the bottom of Refresh, which preview returns
 #     above. Written as the blind spot rather than as a deletion: every other
 #     path still heals, so only the check that is about preview can catch it.
-mutate("Prompt.lua",
+mutate("Prompt/Refresh.lua",
        "\tif not InCombatLockdown() then self:SetCombatHold(false) end",
-       "\tif not InCombatLockdown() and not testMode then self:SetCombatHold(false) end",
+       "\tif not InCombatLockdown() and not S.testMode then self:SetCombatHold(false) end",
        "a preview left holding the dim of a fight",
        expect="the fight ended and the preview stayed dimmed",
        script="runscenarios.py")
@@ -1331,7 +1331,7 @@ mutate("Looks/Looks.lua",
        script="runscenarios.py")
 
 # 63. and the border itself, which is what makes that entry true.
-mutate("Prompt.lua",
+mutate("Prompt/Panel.lua",
        "\t\tedge:SetShown(framed)",
        "\t\tedge:SetShown(false)",
        "a border the look promises and never draws",
@@ -1381,7 +1381,7 @@ mutate("Core.lua",
 #     all. 58 above covers the guarded half; this is the `else` that did not
 #     exist, so a fight that began with nobody on the panel kept the click's
 #     green headline for its whole length over a button holding no macro.
-mutate("Prompt.lua",
+mutate("Prompt/Refresh.lua",
        '\t\t\t\tself:PaintHeldInert(L["held -- a press still casts what the fight froze"],\n'
        '\t\t\t\t\tL["held -- nothing armed, and the panel cannot go"])\n',
        "",
@@ -1392,8 +1392,8 @@ mutate("Prompt.lua",
 # 69. and the half that decides which of the two held states it is. An emptied
 #     button and one the fight froze still armed read identically without it,
 #     and only one of them casts on a press.
-mutate("Prompt.lua",
-       '\tlocal frozen = button:GetAttribute("macrotext1")',
+mutate("Prompt/Paint.lua",
+       "\tlocal frozen = R.button:GetAttribute(\"macrotext1\")",
        "\tlocal frozen = true",
        "a disarmed panel warning about a cast",
        expect="does not say the button is empty",
@@ -1402,25 +1402,25 @@ mutate("Prompt.lua",
 # 70. Hide called straight from a branch that returns above the combat branch,
 #     which is where all four of these sat: refused, silently, on every tick of
 #     every fight, with the branch walking away believing the panel had gone.
-mutate("Prompt.lua",
+mutate("Prompt/Refresh.lua",
        '\t\tif not SetPanelShown(false) then\n'
        '\t\t\tself:PaintHeldInert(L["switched off -- a press still casts what the fight froze"],\n'
        '\t\t\t\tL["switched off -- nothing armed, and the panel cannot go"])\n'
        '\t\tend',
-       "\t\tbutton:Hide()",
+       "\t\tR.button:Hide()",
        "a switched-off addon hiding in combat",
        expect="/manners off in combat called",
        script="runscenarios.py")
 
 # 71. the same call in the branch that has nothing to cast, which can become
 #     true mid-fight the moment the client answers SPELLS_CHANGED.
-mutate("Prompt.lua",
+mutate("Prompt/Refresh.lua",
        """		if not SetPanelShown(false) then
 			self:PaintHeldInert(
 				L["nothing this character can cast -- a press still casts what the fight froze"],
 				L["nothing this character can cast -- nothing armed, and the panel cannot go"])
 		end""",
-       "\t\tbutton:Hide()",
+       "\t\tR.button:Hide()",
        "a client with nothing to cast hiding in combat",
        expect="a client with nothing to cast in combat called",
        script="runscenarios.py")
@@ -1428,9 +1428,9 @@ mutate("Prompt.lua",
 # 72. and the preview's Show, which is the one call that would make a mock-up
 #     appear over a panel the fight found hidden -- so a refusal here is the
 #     whole feature not happening rather than an invisible no-op.
-mutate("Prompt.lua",
-       "\t\tif not button:IsShown() and SetPanelShown(true) then",
-       "\t\tif not button:IsShown() and (button:Show() or true) then",
+mutate("Prompt/Refresh.lua",
+       "\t\tif not R.button:IsShown() and SetPanelShown(true) then",
+       "\t\tif not R.button:IsShown() and (R.button:Show() or true) then",
        "a preview calling Show during a fight",
        expect="the fight found hidden called",
        script="runscenarios.py")
@@ -1438,7 +1438,7 @@ mutate("Prompt.lua",
 # 73. the unlocked branch, caught from the other direction. Guarding the Show
 #     and then painting the same line anyway leaves the panel telling the user
 #     to drag a frame OnDragStart refuses for exactly as long as Show does.
-mutate("Prompt.lua",
+mutate("Prompt/Refresh.lua",
        "\t\tif SetPanelShown(true) then",
        "\t\tif true then",
        "an unlocked prompt inviting a drag in combat",
@@ -1448,10 +1448,10 @@ mutate("Prompt.lua",
 # 74. the Hide that lived inside the combat branch itself. It only ever ran in
 #     combat, so it was refused every single time it was made -- deleted rather
 #     than guarded, because a guard on it would be just as dead.
-mutate("Prompt.lua",
-       "\t\tlocal debt = current and current.name and ns.owed[current.name]",
-       """		if p.hideInCombat or not current then button:Hide() end
-		local debt = current and current.name and ns.owed[current.name]""",
+mutate("Prompt/Refresh.lua",
+       "\t\tlocal debt = S.current and S.current.name and ns.owed[S.current.name]",
+       "\t\tif p.hideInCombat or not S.current then R.button:Hide() end\n"
+       "\t\tlocal debt = S.current and S.current.name and ns.owed[S.current.name]",
        "the combat branch's own refused Hide",
        expect="repainting the held panel called",
        script="runscenarios.py")
@@ -1469,9 +1469,9 @@ mutate("Options.lua",
 # 76. and the same disagreement arriving from the other side: the label left
 #     alone and the click made to block the person, which is what the old
 #     wording described and what would stop the buff walk dead.
-mutate("Prompt.lua",
-       "\t\tns.MarkAttempted(current.name, current.buff.key)",
-       "\t\tns.BlockPerson(current.name)",
+mutate("Prompt/Press.lua",
+       "\t\tns.MarkAttempted(S.current.name, S.current.buff.key)",
+       "\t\tns.BlockPerson(S.current.name)",
        "a click blocking the person the label denies",
        expect="blocks the whole person while the page says",
        script="runscenarios.py")
@@ -1550,7 +1550,7 @@ mutate("Options.lua",
 
 # 84. and the thing it does do, taken away -- which would leave a switch that
 #     is now genuinely wired to nothing at all.
-mutate("Prompt.lua",
+mutate("Prompt/Refresh.lua",
        "\t\tif self:OutcomeLive() and not p.hideInCombat then",
        "\t\tif self:OutcomeLive() then",
        "a combat switch wired to nothing",
@@ -1743,7 +1743,7 @@ mutate("Clicks.lua",
 # anybody, so calling it a targeted cast makes the settle look for a name that
 # was never in the macro -- and a warrior's only way of repaying anybody stops
 # working, which is the exact bug the record was introduced to end.
-mutate("Prompt.lua",
+mutate("Prompt/Macro.lua",
        "\t\t{ targeted = false, selfCast = true, aimedAt = nil }",
        "\t\t{ targeted = true, selfCast = false, aimedAt = nil }",
        "a self-cast macro recorded as a targeted one",
@@ -1770,7 +1770,7 @@ mutate("Commands.lua",
 # have it. An unknown slash command is not an error the user sees -- the line is
 # simply dropped, the cast goes to whoever was already targeted, and the addon
 # says a favour was returned.
-mutate("Prompt.lua",
+mutate("Prompt/Macro.lua",
        '\treturn "/target"\nend',
        '\treturn "/targetexact"\nend',
        "/targetexact written after it was deliberately withdrawn",
@@ -2140,7 +2140,7 @@ mutate("Flavour.lua",
        expect="no project constants on",
        script="runscenarios.py")
 
-mutate("Prompt.lua",
+mutate("Prompt/Macro.lua",
        '\treturn {\n\t\tTargetCommand() .. " " .. who,\n\t\t"/cast " .. spell,\n'
        "\t}, restore,",
        '\treturn {\n\t\t"/cast [@" .. who .. ",help,nodead] " .. spell,\n\t}, false,',
@@ -2510,7 +2510,7 @@ mutate("Commands.lua",
 
 # The framed border brightened towards white again. It converges on the panel
 # exactly as the panel goes pale -- the failure the comment above it names.
-mutate("Prompt.lua",
+mutate("Prompt/Panel.lua",
        "\tlocal lighten = (0.299 * br + 0.587 * bg + 0.114 * bb) <= 0.5",
        "\tlocal lighten = true",
        "a border that vanishes into a pale panel",
@@ -2519,7 +2519,7 @@ mutate("Prompt.lua",
 
 # The count chip back to a fixed width around a number drawn from the font
 # slider. At 32 the digits are wider than the box behind them.
-mutate("Prompt.lua",
+mutate("Prompt/Panel.lua",
        "\tlocal chipWidth = countSize * 2",
        "\tlocal chipWidth = 20",
        "a count chip narrower than its own digits",
@@ -2527,7 +2527,7 @@ mutate("Prompt.lua",
        script="runscenarios.py")
 
 # The same, in the other dimension.
-mutate("Prompt.lua",
+mutate("Prompt/Panel.lua",
        "\tlocal chipHeight = math.min(countSize + 4, math.max(8, p.height - 6))",
        "\tlocal chipHeight = math.min(14, math.max(8, p.height - 6))",
        "a count chip shorter than its own digits",
@@ -2536,7 +2536,7 @@ mutate("Prompt.lua",
 
 # And the room reserved beside it, which was the other fixed number: a chip that
 # grows under a name that was never told to move over.
-mutate("Prompt.lua",
+mutate("Prompt/Panel.lua",
        "\tlocal chipRoom = p.showCount and (chipWidth + 8) or EDGE_ROOM",
        "\tlocal chipRoom = p.showCount and 28 or EDGE_ROOM",
        "a name that runs under the count chip",
@@ -2566,8 +2566,8 @@ mutate("Options.lua",
 # between the halves re-arms the prompt at the next person, and the debounced
 # press fired their macro with nothing filed -- so the refused press's parked
 # record was settled by somebody else's cast.
-mutate("Prompt.lua",
-       "\t\telseif appliedKey ~= pressKey then\n\t\t\tPrompt:ApplyTarget(nil)\n",
+mutate("Prompt/Press.lua",
+       "\t\telseif S.appliedKey ~= pressKey then\n\t\t\tPrompt:ApplyTarget(nil)\n",
        "\t\telseif false then\n\t\t\tPrompt:ApplyTarget(nil)\n",
        "a debounced press firing what it never armed",
        expect="the second half of a press fires only what the first half armed",
@@ -2584,7 +2584,7 @@ mutate("Clicks.lua",
 
 # The cooldown asked after the fight is: in combat the macro cannot be disarmed,
 # and a press inside the cooldown was filed against the frozen person.
-mutate("Prompt.lua",
+mutate("Prompt/Press.lua",
        "\tcooldownPressAt = (not ready) and now or nil\n\tif InCombatLockdown() then\n\t\tpressStale = nil\n\t\treturn\n\tend\n",
        "\tif InCombatLockdown() then cooldownPressAt = nil pressStale = nil return end\n\tcooldownPressAt = (not ready) and now or nil\n",
        "a press in the cooldown filed during a fight",
@@ -2593,9 +2593,9 @@ mutate("Prompt.lua",
 
 # A press the cooldown turned away kept its PreClick stamp, and the press after
 # it -- the cooldown ends mid-click as often as not -- was swallowed.
-mutate("Prompt.lua",
-       "\t\tlastPreClickAt = nil\n\t\tguardedEntry = current\n",
-       "\t\tguardedEntry = current\n",
+mutate("Prompt/Press.lua",
+       "\t\tlastPreClickAt = nil\n\t\tguardedEntry = S.current\n",
+       "\t\tguardedEntry = S.current\n",
        "a guarded press swallowing the next one",
        expect="a press the cooldown turned away does not swallow the next one",
        script="runscenarios.py")
@@ -2638,7 +2638,7 @@ mutate("Clicks.lua",
 
 # A combat press in the spell-queue window goes out when the cooldown ends,
 # and dropping its bookkeeping left the person owed for a buff that landed.
-mutate("Prompt.lua",
+mutate("Prompt/Press.lua",
        "left <= ns.SpellQueueWindow() then\n\t\tready = true\n",
        "left <= ns.SpellQueueWindow() then\n",
        "a queued combat press treated as refused",
@@ -3013,7 +3013,7 @@ mutate("Commands.lua",
        script="runscenarios.py")
 
 # The tooltip promising a run the button was left empty for.
-mutate("Prompt.lua",
+mutate("Prompt/Macro.lua",
        "\t\tif not text then\n\t\t\tout[#out + 1] = L[\"|cffffcc66Does nothing:|r",
        "\t\tif false then\n\t\t\tout[#out + 1] = L[\"|cffffcc66Does nothing:|r",
        "try tooltip promising an empty button",
@@ -3161,15 +3161,15 @@ mutate("Clicks.lua",
 
 # The press rule believing the flash only while it is live, so a press after
 # it timed out -- its words still on the panel -- went to the entry under it.
-mutate("Prompt.lua",
-       "\tif outcomePainted then return outcomePainted end\n",
-       "\tif self:OutcomeLive() then return outcomeName end\n",
+mutate("Prompt/Paint.lua",
+       "\tif S.outcomePainted then return S.outcomePainted end\n",
+       "\tif self:OutcomeLive() then return S.outcomeName end\n",
        "a press under an old flash going to the next person",
        expect="cast at Bert (",
        script="runscenarios.py")
 
 # And the flash left for the next scan to take off.
-mutate("Prompt.lua",
+mutate("Prompt/Paint.lua",
        "\t\t\tif gen ~= outcomeGen then return end\n"
        "\t\t\tns.Guard(\"prompt outcome expiry\", Prompt.Refresh, Prompt)\n",
        "\t\t\tif gen ~= outcomeGen then return end\n",
@@ -3178,24 +3178,24 @@ mutate("Prompt.lua",
        script="runscenarios.py")
 
 # A right-click under the flash skipping whoever is armed underneath it.
-mutate("Prompt.lua",
-       "\t\tlocal victim = Prompt:PanelName() or (current and current.name)\n",
-       "\t\tlocal victim = current and current.name\n",
+mutate("Prompt/Press.lua",
+       "\t\tlocal victim = Prompt:PanelName() or (S.current and S.current.name)\n",
+       "\t\tlocal victim = S.current and S.current.name\n",
        "a right-click skipping the person under the flash",
        expect="skipped Bert instead",
        script="runscenarios.py")
 
 # The press asking the fuse's clock rather than the panel, so a press before
 # any scan lit the fuse, or after it burnt out, disarmed a named prompt.
-mutate("Prompt.lua",
-       "\tif not top and current and not Retired(current, now) and named == current.name then\n",
-       "\tif not top and emptyAt and (now - emptyAt) < EMPTY_FUSE_SECONDS and not Retired(current, now) then\n",
+mutate("Prompt/Press.lua",
+       "\tif not top and S.current and not Retired(S.current, now) and named == S.current.name then\n",
+       "\tif not top and S.emptyAt and (now - S.emptyAt) < lib.EMPTY_FUSE_SECONDS and not Retired(S.current, now) then\n",
        "a press on a named prompt going nowhere",
        expect="did nothing and said nothing",
        script="runscenarios.py")
 
 # And the panel left up past its fuse until a scan came round.
-mutate("Prompt.lua",
+mutate("Prompt/Hold.lua",
        "\t\tC_Timer.After(EMPTY_FUSE_SECONDS + 0.05, function()\n"
        "\t\t\tns.Guard(\"fuse repaint\", Prompt.Refresh, Prompt)\n",
        "\t\tC_Timer.After(EMPTY_FUSE_SECONDS + 0.05, function()\n",
@@ -3204,7 +3204,7 @@ mutate("Prompt.lua",
        script="runscenarios.py")
 
 # A press while switched off answered with "nobody to buff".
-mutate("Prompt.lua",
+mutate("Prompt/Press.lua",
        "\t\tif db and not db.enabled then\n\t\t\tns.addon:Print(L[\"Manners is |cffff8080switched off|r",
        "\t\tif false then\n\t\t\tns.addon:Print(L[\"Manners is |cffff8080switched off|r",
        "a press while switched off saying nobody to buff",
@@ -3212,7 +3212,7 @@ mutate("Prompt.lua",
        script="runscenarios.py")
 
 # Your own target handed back to whoever came before them.
-mutate("Prompt.lua",
+mutate("Prompt/Macro.lua",
        '\tlocal restore = ns.db.profile.filters.restoreTarget == true\n'
        '\t\tand (not StillTargeted(entry) or Prompt.armedForFight == true)\n',
        "\tlocal restore = ns.db.profile.filters.restoreTarget == true\n",
@@ -3221,7 +3221,7 @@ mutate("Prompt.lua",
        script="runscenarios.py")
 
 # The tooltip reading the setting instead of what the macro does.
-mutate("Prompt.lua",
+mutate("Prompt/Macro.lua",
        "\t\tlocal _, restore = CastLines(entry)\n\t\tif restore then\n",
        "\t\tif ns.db.profile.filters.restoreTarget then\n",
        "the tooltip promising a hand-back the macro skips",
@@ -3229,7 +3229,7 @@ mutate("Prompt.lua",
        script="runscenarios.py")
 
 # A release ending a drag that never started.
-mutate("Prompt.lua",
+mutate("Prompt/Button.lua",
        "\t\tif not dragging then return end\n",
        "",
        "a drag that never started being ended",
@@ -3246,16 +3246,16 @@ mutate("Core.lua",
 
 # The open tooltip re-rendered only when the name changed, so the same person's
 # next buff, or their turning out to be owed, went undescribed.
-mutate("Prompt.lua",
-       "\t\tlocal shown = table.concat({ current.name, current.buff.key, tostring(current.reason),\n"
-       "\t\t\ttostring(phraseText), tostring(appliedKey) }, \"\\1\")\n",
-       "\t\tlocal shown = current.name\n",
+mutate("Prompt/Button.lua",
+       "\t\tlocal shown = table.concat({ S.current.name, S.current.buff.key, tostring(S.current.reason),\n"
+       "\t\t\ttostring(S.phraseText), tostring(S.appliedKey) }, \"\\1\")\n",
+       "\t\tlocal shown = S.current.name\n",
        "an open tooltip keyed on the name alone",
        expect="went on describing the buff before it",
        script="runscenarios.py")
 
 # And left standing over a button with nothing armed on it.
-mutate("Prompt.lua",
+mutate("Prompt/Button.lua",
        "\t\t\tself.tooltipFor = nil\n\t\t\tGameTooltip:Hide()\n\t\t\treturn\n",
        "\t\t\tself.tooltipFor = nil\n\t\t\treturn\n",
        "a tooltip left up over a disarmed button",
@@ -3264,8 +3264,8 @@ mutate("Prompt.lua",
 
 # The roll wiped by the cooldown guard's disarm and rolled again on the re-arm,
 # so the press after it said a line the tooltip never quoted.
-mutate("Prompt.lua",
-       "\t\t\tphraseKey, phraseText = guardedPhraseKey, guardedPhraseText\n",
+mutate("Prompt/Press.lua",
+       "\t\t\tS.phraseKey, S.phraseText = guardedPhraseKey, guardedPhraseText\n",
        "",
        "a guarded press re-rolling the spoken line",
        expect="was turned away, and the next press said",
@@ -3273,16 +3273,16 @@ mutate("Prompt.lua",
 
 # The roll keyed on the macro, unit token and all, so the same person seen
 # through another token was somebody new to it.
-mutate("Prompt.lua",
-       "\tif phraseKey ~= phraseIdentity or (phraseText and #phraseText > budget) then\n"
-       "\t\tphraseKey, phraseText = phraseIdentity,",
-       "\tif phraseKey ~= key then\n\t\tphraseKey, phraseText = key,",
+mutate("Prompt/Macro.lua",
+       "\tif S.phraseKey ~= phraseIdentity or (S.phraseText and #S.phraseText > budget) then\n"
+       "\t\tS.phraseKey, S.phraseText = phraseIdentity,",
+       "\tif S.phraseKey ~= key then\n\t\tS.phraseKey, S.phraseText = key,",
        "the spoken line re-rolled on a unit token",
        expect="a press with the cursor on her said",
        script="runscenarios.py")
 
 # "Missing it" for anybody without a countdown, read or not.
-mutate("Prompt.lua",
+mutate("Prompt/Button.lua",
        "\telseif entry.known == false then\n",
        "\telseif true then\n",
        "a tooltip saying missing about an unread aura",
@@ -3291,7 +3291,7 @@ mutate("Prompt.lua",
 
 # A preview started in a fight: painted on a hidden panel, or over a macro the
 # fight froze at somebody real.
-mutate("Prompt.lua",
+mutate("Prompt/Refresh.lua",
        "\tif InCombatLockdown() then\n\t\tns.addon:Print(L[\"|cffff8080not during a fight|r -- the preview",
        "\tif false then\n\t\tns.addon:Print(L[\"|cffff8080not during a fight|r -- the preview",
        "a preview started in a fight",
@@ -3308,7 +3308,7 @@ mutate("Options.lua",
 
 # /manners test started the preview and let Refresh take it down again, so a
 # preview that never appeared was announced off and then explained.
-mutate("Prompt.lua",
+mutate("Prompt/Refresh.lua",
        "\tif db and db.enabled and db.prompt.locked and not InCombatLockdown()\n",
        "\tif false and db and db.enabled and db.prompt.locked and not InCombatLockdown()\n",
        "a preview announced off before it was on",
@@ -3317,7 +3317,7 @@ mutate("Prompt.lua",
 
 # The preview starting without telling an open options page, whose button then
 # reads "Preview" over a running one.
-mutate("Prompt.lua",
+mutate("Prompt/Refresh.lua",
        "\t-- The options page's button now has to read \"Stop preview\"; see ExitTest.\n"
        "\tif ns.RepaintOptions then ns.RepaintOptions() end\n",
        "",
@@ -3326,7 +3326,7 @@ mutate("Prompt.lua",
        script="runscenarios.py")
 
 # ...and ending without telling it.
-mutate("Prompt.lua",
+mutate("Prompt/Refresh.lua",
        "\t-- options page that its button reads \"Preview\" again.\n"
        "\tif ns.RepaintOptions then ns.RepaintOptions() end\n",
        "",
@@ -3337,15 +3337,15 @@ mutate("Prompt.lua",
 # The stored offsets handed to SetPoint after the scale, which multiplies
 # them by it: the presets and Reset position land somewhere else at every
 # scale but 1.
-mutate("Prompt.lua",
-       "\tbutton:SetPoint(p.point, UIParent, p.relPoint, p.x / p.scale, p.y / p.scale)\n",
-       "\tbutton:SetPoint(p.point, UIParent, p.relPoint, p.x, p.y)\n",
+mutate("Prompt/Panel.lua",
+       "\tR.button:SetPoint(p.point, UIParent, p.relPoint, p.x / p.scale, p.y / p.scale)\n",
+       "\tR.button:SetPoint(p.point, UIParent, p.relPoint, p.x, p.y)\n",
        "offsets multiplied by the prompt's scale",
        expect="\"Above the action bars\" put the bottom edge at",
        script="runscenarios.py")
 
 # A drop saved in the frame's scaled units, which moves when the scale does.
-mutate("Prompt.lua",
+mutate("Prompt/Button.lua",
        "\tp.x, p.y = math.floor(x * s + 0.5), math.floor(y * s + 0.5)\n",
        "\tp.x, p.y = math.floor(x + 0.5), math.floor(y + 0.5)\n",
        "a drop saved in scaled units",
@@ -3378,7 +3378,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # The queue's side decided from a scaled centre against an unscaled screen.
-mutate("Prompt.lua",
+mutate("Prompt/Panel.lua",
        "\treturn y * ratio < screenHeight / 3\n",
        "\treturn y < screenHeight / 3\n",
        "queue side ignoring the prompt's scale",
@@ -3386,7 +3386,7 @@ mutate("Prompt.lua",
        script="runscenarios.py")
 
 # The reason colours' comment going back to greys they do not have.
-mutate("Prompt.lua",
+mutate("Prompt/Prompt.lua",
        "-- Rec.601 greys: target 0.83, owed 0.79, group 0.56, nearby 0.54.\n",
        "-- Rec.601 greys: target 0.86, owed 0.78, group 0.63, nearby 0.54.\n",
        "reason colour greys misstated",
@@ -3454,7 +3454,7 @@ mutate("Options.lua",
 
 # The macro handing a target back whatever "Hand my target back afterwards"
 # says. (The targeting note this once caught saying so is gone from the page.)
-mutate("Prompt.lua",
+mutate("Prompt/Macro.lua",
        "\tlocal restore = ns.db.profile.filters.restoreTarget == true\n"
        "\t\tand (not StillTargeted(entry) or Prompt.armedForFight == true)\n",
        "\tlocal restore = true\n"
@@ -3787,7 +3787,7 @@ mutate(".github/workflows/ci.yml",
 
 # Your own target's macro frozen for a fight without the hand-back, so tabbing
 # to the mob and pressing leaves you on the friend.
-mutate("Prompt.lua",
+mutate("Prompt/Macro.lua",
        "\t\tand (not StillTargeted(entry) or Prompt.armedForFight == true)",
        "\t\tand not StillTargeted(entry)",
        "fight macro for your target drops the hand-back",
@@ -3805,7 +3805,7 @@ mutate("Core.lua",
 # The prompt's tooltip promising your own target stays targeted when the
 # macro hands it back -- in a fight, the one place that happens. (The Targeting
 # note this was written for is gone from the page.)
-mutate("Prompt.lua",
+mutate("Prompt/Macro.lua",
        "\t\tif restore then\n"
        "\t\t\tout[#out + 1] = L[\"Hands your own target back afterwards.\"]\n",
        "\t\tif restore then\n"
@@ -3815,9 +3815,9 @@ mutate("Prompt.lua",
        script="runscenarios.py")
 
 # A settled line kept after the room it was rolled for has gone.
-mutate("Prompt.lua",
-       "\tif phraseKey ~= phraseIdentity or (phraseText and #phraseText > budget) then",
-       "\tif phraseKey ~= phraseIdentity then",
+mutate("Prompt/Macro.lua",
+       "\tif S.phraseKey ~= phraseIdentity or (S.phraseText and #S.phraseText > budget) then",
+       "\tif S.phraseKey ~= phraseIdentity then",
        "kept spoken line not measured again",
        expect="cuts the hand-back off the end",
        script="runscenarios.py")

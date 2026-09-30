@@ -45,5 +45,15 @@ Looks\Looks.lua
 Looks\Luxe.lua
 Looks\Toast.lua
 Looks\Arcane.lua
-Prompt.lua
+Prompt\Prompt.lua
+Prompt\Text.lua
+Prompt\Effects.lua
+Prompt\Hold.lua
+Prompt\Macro.lua
+Prompt\Press.lua
+Prompt\Button.lua
+Prompt\Panel.lua
+Prompt\List.lua
+Prompt\Paint.lua
+Prompt\Refresh.lua
 Options.lua

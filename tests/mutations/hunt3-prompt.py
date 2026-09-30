@@ -4,7 +4,7 @@
 
 # The fuse and the press no longer treat a listed person with nothing owed as
 # retired, so the panel stays up and armed at them.
-mutate("Prompt.lua",
+mutate("Prompt/Hold.lua",
        "\t\tand (ns.IsBlocked(entry.name, entry.buff and entry.buff.key, now)\n"
        "\t\t\tor ListedWithoutDebt(entry.name, now))\n",
        "\t\tand ns.IsBlocked(entry.name, entry.buff and entry.buff.key, now)\n",
@@ -13,15 +13,15 @@ mutate("Prompt.lua",
        script="runscenarios.py")
 
 # The hold no longer lets go of a listed person with nothing owed.
-mutate("Prompt.lua",
-       "\tif ListedWithoutDebt(heldEntry.name, now) then return false end\n",
+mutate("Prompt/Hold.lua",
+       "\tif ListedWithoutDebt(S.heldEntry.name, now) then return false end\n",
        "",
        "never-listed person kept by the hold",
        expect="a person put on the never list leaves the panel at once",
        script="runscenarios.py")
 
 # The owed exception dropped: every listed person is let go, owed or not.
-mutate("Prompt.lua",
+mutate("Prompt/Hold.lua",
        "\treturn not owed\n",
        "\treturn true\n",
        "owed person on the never list let go by the prompt",
@@ -30,7 +30,7 @@ mutate("Prompt.lua",
 
 # Listing somebody no longer repaints the prompt, so /manners never and the
 # options box leave the panel armed at them until the next scan.
-mutate("Prompt.lua",
+mutate("Prompt/Refresh.lua",
        "\t\t\tif listed then ns.Guard(\"never repaint\", Prompt.Refresh, Prompt) end\n",
        "",
        "never list repaints only the options page",
