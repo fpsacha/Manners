@@ -385,10 +385,12 @@ withTree("Toast shows the bound key on a chip", CROWD, function(ns, scenario)
 	if look.keyChip[2]._shown == false or look.keyText:GetText() ~= "SHIFT-F" then
 		fail(scenario, "a key bound to the prompt and no chip naming it: " .. tostring(look.keyText:GetText()))
 	end
-	-- The count, beside it, is a coin on the medallion, and the lines keep
-	-- the key's room.
-	if look.countMode ~= "coin" or r.count._shown == false then
-		fail(scenario, "with the key's chip up the count is not on the medallion: " .. tostring(look.countMode))
+	-- The count is a chip beside it -- never a coin on the medallion, which
+	-- covered the icon (tests/scenarios/readable-toast.lua) -- and the lines
+	-- keep the key's room.
+	local at = look.chipBox.points[1]
+	if look.countMode ~= "pair" or r.count._shown == false or not (at and at[2] == look.keyBox) then
+		fail(scenario, "with the key's chip up the count is not beside it: " .. tostring(look.countMode))
 	end
 	local right = r.name.points[#r.name.points]
 	if not (right and right[1] == "RIGHT" and right[2] <= -(look.keyRoom - 0.5)) then
@@ -602,9 +604,8 @@ withTree("Toast keeps the name on a German client's outcome", ANNA, function(ns,
 end, function() Mock.locale = "deDE" end)
 
 -- ------------------------------------------------------------------ 13
--- With the icon off there is no medallion to hold the count's coin: it goes
--- on a chip beside the key's, inside the banner, and the lines keep the room
--- of both.
+-- With the icon off, as with it on, the count goes on a chip beside the
+-- key's, inside the banner, and the lines keep the room of both.
 withTree("Toast keeps the count inside the banner with the icon off", CROWD, function(ns, scenario)
 	local r, p, look = upIn(ns, scenario, function(pp) pp.showIcon = false end)
 	if not isToast(look) then
@@ -617,8 +618,8 @@ withTree("Toast keeps the count inside the banner with the icon off", CROWD, fun
 	if r.count._shown == false or not look.countMode then
 		fail(scenario, "the count went with the icon off and a key bound")
 	end
-	-- The coin's place is the medallion's lower right; with no medallion it
-	-- is the panel's left edge, half off the button.
+	-- Never at the medallion's place: with no medallion that is the panel's
+	-- left edge, half off the button.
 	local at = look.chipBox.points[1]
 	if look.countMode == "coin" or not (at and at[2] == look.keyBox) then
 		fail(scenario, "with no medallion the count is not beside the key's chip: " .. tostring(look.countMode))

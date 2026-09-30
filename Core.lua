@@ -323,13 +323,14 @@ local defaults = {
 			-- because renaming it would silently reset everyone's setting.
 			hideInCombat = false,
 
-			-- Luxe (Looks/Luxe.lua) since 1.5: the default for everybody who
-			-- never picked a look. AceDB drops a value equal to its default
-			-- when it saves, and glass was the default until now, so nobody's
-			-- glass was ever saved: everybody on glass, chosen or not, moves
-			-- to Luxe and has to pick Glass again to keep it. A profile that
-			-- picked framed or minimal keeps it.
-			style = "luxe",
+			-- Glass again from 1.5.1. 1.5.0 made Luxe the default, and in the
+			-- game its reason tag read white on white for a passer-by: the
+			-- preview renderer draws light layers far gentler than the client
+			-- does, so the new looks were judged on a picture that was not the
+			-- game. Glass has been played for months. AceDB never saves a value
+			-- equal to its default, so everybody who never picked a look is
+			-- back on Glass; a look somebody picked, Luxe included, is kept.
+			style = "glass",
 			accentByReason = true,
 			-- standard | colourblind: which four reason colours (Prompt.lua).
 			reasonPalette = "standard",
@@ -378,7 +379,11 @@ local defaults = {
 		speech = {
 			enabled = false,
 			channel = "SAY",
-			onlyWhenReturning = true,
+			-- Off from 1.5.1: ticking "Say a line when I buff someone" should
+			-- do what it says. With this on by default, a player ticked it,
+			-- buffed a passer-by and heard nothing. The thank-you quick choices
+			-- on Start here still switch it on for themselves.
+			onlyWhenReturning = false,
 			-- Filled in at load from the Roleplay set.
 			phrases = "",
 		},

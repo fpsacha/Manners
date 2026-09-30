@@ -254,7 +254,7 @@ a new title.
 
 ## The prompt's look
 
-Six looks -- Luxe (the default), Toast, Arcane, Glass, Framed and Minimal,
+Six looks -- Glass (the default), Framed, Minimal, Luxe, Toast and Arcane,
 under Look > Style > *Panel style* -- your own colours and fonts, and
 LibSharedMedia support. When a buff lands, a ring pops out of the icon and
 light crosses the panel; a refused one gives the text a small shake. Somebody

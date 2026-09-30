@@ -73,9 +73,11 @@ mutate(A, "\tcombatArtAlpha = 1,\n", "\tcombatArtAlpha = 0.55,\n",
        "Arcane dimmed whole in a fight",
        expect="art dimmed whole in a fight", script=S)
 
-mutate(A, "\tself.kit.icon:SetDesaturated(on)\n\tself:Spin()\n", "\tself:Spin()\n",
-       "Arcane's icon keeps its colour in a fight",
-       expect="the icon keeps its colour", script=S)
+# Retired in 1.5.1: "Arcane's icon keeps its colour in a fight". Since the
+# readability fix the icon is greyed both by Combat() and by every repaint
+# (and by an outcome in a fight), each alone enough, so taking out any one of
+# them changes nothing a player sees -- there is no single-line bug left to
+# put back. The scenario still checks the icon is grey in a fight.
 
 mutate(A, "\tSliceAlpha(self.bloom, fight and 0 or 1)\n", "\tSliceAlpha(self.bloom, 1)\n",
        "Arcane's bloom glows in a fight",
@@ -176,9 +178,9 @@ mutate(A, "\tlocal maskFile = ART .. (round and \"CircleMask\" or \"SquircleMask
        "Arcane's round icon kept square",
        expect="the round icon kept the square mask", script=S)
 
-mutate(A, "\tfor _, t in ipairs({ self.well, self.runes, self.shade, self.gloss, self.ring }) do\n"
+mutate(A, "\tfor _, t in ipairs({ self.well, self.runes, self.ring }) do\n"
        "\t\tt:SetShown(showIcon)\n",
-       "\tfor _, t in ipairs({ self.well, self.runes, self.shade, self.gloss, self.ring }) do\n"
+       "\tfor _, t in ipairs({ self.well, self.runes, self.ring }) do\n"
        "\t\tt:SetShown(true)\n",
        "Arcane's lens up with the icon off",
        expect="lens and runes are still up", script=S)
@@ -203,10 +205,6 @@ mutate(A, "\tkit.textLayer:SetFrameLevel(kit.art:GetFrameLevel() + 1)\n", "",
        expect="textLayer kept Arcane's frame level", script=S)
 
 # --- round 15 review: the lens -------------------------------------------
-
-mutate(A, "\tself.gloss:SetVertexColor(1, 1, 1, round and 0.20 or 0.16)\n", "",
-       "Arcane's lens highlight at full strength",
-       expect="highlight is drawn at full strength", script=S)
 
 mutate(A, "\tself.runes:SetTexture(ART .. (round and \"RuneRing\" or \"RuneRingSq\"))\n",
        "\tself.runes:SetTexture(ART .. \"RuneRing\")\n",
@@ -306,6 +304,6 @@ mutate(A, "\tkit.fit.room[kit.name], kit.fit.room[kit.sub] = nil, nil\n", "",
        "Arcane's room left on the name for the next look",
        expect="the name kept Arcane's room", script=S)
 
-mutate(A, "\tif not showIcon then chipRoom = 10 + math.ceil(sub * 1.3 + 8) + 4 end\n", "",
+mutate(A, "\tlocal chipRoom = 10 + math.ceil(sub * 1.3 + 8) + 4\n", "\tlocal chipRoom = 10\n",
        "Arcane's name under the count with the icon off",
        expect="runs under the count", script=S)

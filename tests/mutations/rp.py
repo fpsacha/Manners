@@ -125,7 +125,7 @@ mutate("Phrases.lua",
 # Only this character's class counts as untouched, so a shared profile's set
 # reads as edited on a character of another class.
 mutate("Phrases.lua",
-       "\t\tfor class in pairs(RP.CLASS) do tails[#tails + 1] = Tail(class, english) end\n",
+       "\t\tfor class in pairs(RP.CLASS) do classes[#classes + 1] = class end\n",
        "",
        "shared profile loses in character",
        expect="rp: load the set, share it, edit it",
@@ -462,7 +462,7 @@ mutate("Phrases.lua",
 
 # The box without the lines that show the moment.
 mutate("Phrases.lua",
-       "\t\tput(RP.HISTORY.again)\n",
+       "\t\tput(RP.HISTORY.again, 1, 1)\n",
        "",
        "rp box shows no moment",
        expect="rp: the box shows the moment, and beta.9's box still counts",

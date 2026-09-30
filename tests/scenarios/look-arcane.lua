@@ -469,14 +469,12 @@ withTree("Arcane's preview shows the favour's clock", {}, function(ns, scenario)
 end)
 
 -- ------------------------------------------------------------------ 13
--- The lens: a faint highlight, and a rune circle in the icon's own shape,
--- sized round the icon with room above and below it.
-withTree("Arcane's lens has a faint highlight and a circle in the icon's shape", ANNA, function(ns, scenario)
+-- The lens: a rune circle in the icon's own shape, sized round the icon with
+-- room above and below it. Nothing lies over the icon itself: that is
+-- tests/scenarios/readable-arcane.lua's.
+withTree("Arcane's lens has a circle in the icon's shape", ANNA, function(ns, scenario)
 	local r, p, look = upIn(ns, scenario)
 	if not isArcane(look) then fail(scenario, "SKIPPED -- Arcane is not the look in use") return end
-	if not (look.gloss._color and look.gloss._color[4] <= 0.2) then
-		fail(scenario, "the lens's highlight is drawn at full strength")
-	end
 	if not tostring(look.runes._file):find("RuneRingSq", 1, true) then
 		fail(scenario, "the square icon sits in a round rune circle")
 	end
