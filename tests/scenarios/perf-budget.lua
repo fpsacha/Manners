@@ -1,0 +1,12 @@
+-- The pcall budget per scan: a placeholder, with nothing to run yet.
+--
+-- tools/perf_probe.py counts the protected calls a scan makes in four places a
+-- player stands (idle, a city, a dungeon party, a raid), and the baseline it
+-- measured before the pcall refactor is the starting point, not the budget:
+-- the budget is whatever the refactor leaves standing, set once it has landed
+-- and each remaining pcall has been kept for a reason. Until then this file
+-- holds no scenario, so it cannot fail and cannot pass for a check.
+--
+-- When it is set: stand the player in the probe's raid and city, count pcall
+-- per addon:Tick the way the probe does, and fail on anything over the budget,
+-- naming the line that added it.

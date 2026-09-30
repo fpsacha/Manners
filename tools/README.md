@@ -225,6 +225,59 @@ allocations carry over. The crowd itself is in `profile_scan.lua`. To compare
 against an older version, `git archive` it into a scratch folder, copy both
 `profile_scan` files into its `tools/`, and run it there.
 
+## perf_probe.py
+
+How many protected calls a scan makes, where from, and what they cost. Written
+after a player said on CurseForge that the addon (ab)uses `pcall` on busy code
+paths, so that the answer is a count rather than an opinion either way.
+
+It loads the addon on the mock client the way the test runners do (Lua 5.1
+through lupa, `tests/mockapi.lua`, the files `tests/addonfiles.lua` reads from
+`Manners.toc`), with `pcall` and `xpcall` replaced by counting versions before
+the first file loads, and stands the player in four places, each in a fresh
+Lua state:
+
+- **idle** — alone out in the world, nobody targeted, no nameplates
+- **city** — a capital: twenty strangers' nameplates, a target, a mouseover
+- **dungeon** — a five-player party between pulls, three mobs' nameplates
+- **raid** — forty players, ten nameplates, a ready check running
+
+In each it runs a hundred scans (`addon:Tick`, which ends in the prompt's one
+repaint, which builds the queue), then a hundred more with `UNIT_AURA` arriving
+between them: two hundred for the other people there — in the raid, its forty
+group tokens — and fifty for the player. It reports per scan and per event the
+`pcall` count, each one charged to the line that made it
+(`debug.getinfo(2, "Sl")`) and again, for a `pcall` made inside `ns.safecall`
+or `ns.Guard`, to the line that asked for it; the `ns.safecall` and `ns.Guard`
+calls; the kilobytes allocated (collector held off, a full collection first)
+and kept; and `os.clock` time. A bench of one `pcall`, `safecall` and `Guard`
+against a direct call turns the counts into the most that removing them could
+save.
+
+```
+python tools/perf_probe.py                                  # this tree
+python tools/perf_probe.py --json before.json --text before.txt
+python tools/perf_probe.py --addon ../Manners-1.4.0         # another checkout
+python tools/perf_probe.py --compare before.json            # before -> after
+python tools/perf_probe.py --situations raid,city --top 40
+```
+
+`--addon` runs the probe in this tree against the addon and the mock in that
+one, so an old version is measured by `git worktree add` or `git archive` into
+a scratch folder and nothing copied. It exits non-zero if any of the addon's
+guards caught an error, since a situation that throws is not the one it claims
+to be. The situations are in `perf_probe.lua`: the unit API is answered from a
+table of distinct people there, because the shared mock names every unit the
+same stranger and says every unit exists; and the few client globals the mock
+lacks and the scan reads are added there, each listed by the report when read
+("read but not in the mock").
+
+The times are the mock's, whose API is Lua where the game's is C (its
+`issecretvalue` too, so `ns.plain` and `ns.safecall` read high), and are for
+comparing two versions on one machine. The counts and allocations are the
+addon's own. `profile_scan.py` is the other half: time and client API calls
+per function, in one worst crowd.
+
 ## lua51_limits.py
 
 How full each function is against Lua 5.1's two limits: 60 upvalues, and 200
