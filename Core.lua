@@ -788,8 +788,10 @@ do
 	-- Which of their buffs this person should be offered, or nil for none. Every
 	-- castable buff is walked, so holding the first one never hides somebody.
 	--
-	-- `candidates` comes from CastableBuffs. `has(buff)` answers only the aura
-	-- question: has, remaining, and mine (their copy is our cast; nil unknown).
+	-- `candidates` comes from CastableBuffs. `has(buff, opts)` answers only the
+	-- aura question: has, remaining, and mine (their copy is our cast; nil
+	-- unknown). It is handed opts too, like opts.blocked, so the caller's
+	-- answer can be a file-level function rather than a closure per person.
 	--   offerAnyway  offer even when they are covered: we owe them a favour, and
 	--                a refresh takes nothing away.
 	--   rotate       false where there is nothing to walk along: the tokenless
@@ -826,7 +828,7 @@ do
 				-- Castable rather than Eligible: the blessing we tried moments ago
 				-- is the one they most likely carry, so it must still be read.
 				if Castable(opts, buff) then
-					local held, remaining, mine = has(buff)
+					local held, remaining, mine = has(buff, opts)
 					if held == true and mine == false then
 						-- Another paladin's: ours of the same kind would only
 						-- replace it, so move on to a kind they lack -- unless we
@@ -892,7 +894,7 @@ do
 		local firstHeld
 		for _, buff in ipairs(candidates) do
 			if Eligible(opts, buff) then
-				local held, remaining = has(buff)
+				local held, remaining = has(buff, opts)
 				if held == false then return buff, false end
 				if held ~= true then
 					if not firstUnknown then firstUnknown = buff end

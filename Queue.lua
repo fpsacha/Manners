@@ -1379,10 +1379,20 @@ local function OfferPassersBy(queue, seen, rejected, now, db, candidates, verdic
 	end
 end
 
--- PickBuffFor's two callbacks for the queue, at file level so that no person
+-- PickBuffFor's callbacks for the queue, at file level so that no person
 -- costs a closure. The tokenless path has no aura to read, hence NoReading.
 local function QueueBlocked(candidate, opts)
 	return ns.IsBlocked(opts.name, candidate.key, opts.now)
+end
+
+-- The walk's aura reading, off the unit, GUID and `checked` the walk writes
+-- into opts. The client's answer, and nothing else: a policy (offer the owed
+-- regardless) must never be written as a reading, or PickBuffFor takes it for
+-- the client saying nothing landed. Choosing not to look answers nil, not
+-- false, since the walk stops at the first definite gap.
+local function ReadAura(buff, opts)
+	if not opts.checked then return nil end
+	return UnitHasBuff(opts.unit, buff, opts.guid)
 end
 
 local function NoReading()
@@ -1815,16 +1825,9 @@ function ns.BuildQueue(watch)
 		local whenBuffed = f.whenBuffed or "skip"
 		local checked = whenBuffed ~= "always"
 
-		-- The client's answer, and nothing else: a policy (offer the owed
-		-- regardless) must never be written as a reading, or PickBuffFor takes
-		-- it for the client saying nothing landed. Choosing not to look answers
-		-- nil, not false, since the walk stops at the first definite gap.
-		local function auraState(buff)
-			if not checked then return nil end
-			return UnitHasBuff(unit, buff, guid)
-		end
-
 		-- Every field written for every person; PickBuffFor keeps nothing.
+		-- What ReadAura reads the auras with, first.
+		opts.unit, opts.guid, opts.checked = unit, guid, checked
 		-- Somebody who asked gets only what they asked for, relevant to them or
 		-- not (a warrior may want Intellect), but never when already covered.
 		opts.hasMana = hasMana
@@ -1842,7 +1845,7 @@ function ns.BuildQueue(watch)
 		-- Blocked for this person and this buff; reads name and now off opts.
 		opts.blocked = QueueBlocked
 		opts.now = now
-		local buff, has, remaining = ns.PickBuffFor(asked or candidates, opts, auraState)
+		local buff, has, remaining = ns.PickBuffFor(asked or candidates, opts, ReadAura)
 
 		if not buff then rejected[full] = true return end
 		if not checked then has = nil end

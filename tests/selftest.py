@@ -642,8 +642,8 @@ mutate("Favours.lua",
 #     believed it -- so the blessing somebody was carrying read back as absent
 #     and the walk offered the next one down, over the top of it.
 mutate("Queue.lua",
-       "\t\tlocal function auraState(buff)\n",
-       "\t\tlocal function auraState(buff)\n\t\t\tif isOwed then return false end\n",
+       "local function ReadAura(buff, opts)\n",
+       "local function ReadAura(buff, opts)\n\tif opts.offerAnyway then return false end\n",
        "a policy disguised as an aura reading",
        expect="a debt does not walk a paladin off the blessing they hold",
        script="runscenarios.py")
@@ -1352,8 +1352,8 @@ mutate("Core.lua",
 #     branch -- so the refresh mode was switched on, described in the options,
 #     and dead for the one class it is safest on.
 mutate("Core.lua",
-       "\t\t\t\t\tlocal held, remaining, mine = has(buff)\n",
-       "\t\t\t\t\tlocal held, _, mine = has(buff)\n",
+       "\t\t\t\t\tlocal held, remaining, mine = has(buff, opts)\n",
+       "\t\t\t\t\tlocal held, _, mine = has(buff, opts)\n",
        "a top-up with the timer thrown away",
        expect="was offered no top-up at all",
        script="runscenarios.py")
