@@ -25,13 +25,16 @@
 -- say, or nil for English. The longer translations are where a line that fits
 -- in English runs off the panel, and the only way to see that without the
 -- game is to draw the prompt in them.
-local dir, addonDir, locale = ...
+--
+-- `style` draws every state in that look (a state that names its own look
+-- keeps it), and `key` binds that key to the prompt first, as most players who
+-- use it have: the looks that show the key only show it with one bound.
+local dir, addonDir, locale, style, key = ...
 addonDir = addonDir or dir
 if locale == "" or locale == "enUS" then locale = nil end
--- `style` is the look drawn where a state does not pick one: the default a
--- profile that never chose would have, so every state can be seen in it.
-local style = select(4, ...)
 if style == "" then style = nil end
+if key == "" then key = nil end
+local COMMAND = "CLICK MannersPrompt:LeftButton"
 
 dofile(dir .. "/tests/mockapi.lua")
 dofile(dir .. "/tests/frametree.lua")
@@ -83,7 +86,9 @@ end
 -- cooldown, and the nameplates the state names registered with the scan.
 local function boot(ns, names)
 	people(names or {})
+	if key then Mock.bindings = { [key] = COMMAND } end
 	ns.addon:OnInitialize()
+	if style then ns.db.profile.prompt.style = style end
 	ns.addon:OnEnable()
 	ns.addon:PLAYER_ENTERING_WORLD()
 	Mock.runTimers(3)
@@ -108,6 +113,18 @@ local function tick(ns)
 	FrameTree.settle()
 end
 
+-- A fight starts and the picture is taken once it has settled: the fight's
+-- own one-shot fades (the text's swap, a flare) have run out by then, and a
+-- still of them mid-run would be brighter than the panel a player sees.
+local function fight(ns)
+	Mock.inCombat = true
+	ns.addon:PLAYER_REGEN_DISABLED()
+	tick(ns)
+	Mock.advance(2)
+	FrameTree.settle()
+	tick(ns)
+end
+
 local STRANGER = { nameplate1 = { "Brannoc", "Vale" } }
 local OWED = { nameplate1 = { "Anna", "Aim" } }
 
@@ -118,6 +135,26 @@ local function withPrompt(edit)
 		ns.Prompt:ApplyStyle()
 		owe(ns, "Anna Aim")
 		tick(ns)
+	end
+end
+
+-- The prompt in Arcane with Anna owed on top, 40 s into her 100: `edit` the
+-- settings, `names` the people about (a party among them makes a group), and
+-- `after` what happens next.
+local function arcane(edit, names, after)
+	return function(ns)
+		Mock.bindings = { F = COMMAND }
+		if names and names.party1 then
+			Mock.groupSize = 2
+			partyIsParty()
+		end
+		boot(ns, names or OWED)
+		ns.db.profile.prompt.style = "arcane"
+		if edit then edit(ns.db.profile.prompt, ns) end
+		ns.Prompt:ApplyStyle()
+		ns.owed["Anna Aim"] = { expires = GetTime() + 60, at = GetTime() - 40, class = "PRIEST" }
+		tick(ns)
+		if after then after(ns) end
 	end
 end
 
@@ -206,9 +243,7 @@ R.states = {
 		boot(ns, OWED)
 		owe(ns, "Anna Aim")
 		tick(ns)
-		Mock.inCombat = true
-		ns.addon:PLAYER_REGEN_DISABLED()
-		tick(ns)
+		fight(ns)
 	end },
 	{ key = "queue", title = "Queue list shown", at = 0.85, setup = function(ns)
 		Mock.groupSize = 2
@@ -323,6 +358,34 @@ R.states = {
 	{ key = "glass", title = "Look: glass", at = 0.85, setup = withPrompt(function(p)
 		p.style = "glass"
 	end) },
+	-- Arcane, as a player who picks it sees it: a key bound for its keycap and
+	-- the favour's clock part-run. (--style arcane --key F draws every state
+	-- in it.)
+	{ key = "arcane", title = "Look: arcane", at = 0.85, setup = arcane() },
+	{ key = "arcane-round", title = "Look: arcane, round icon", at = 0.85, setup = arcane(function(p)
+		p.roundIcon = true
+	end) },
+	{ key = "arcane-combat", title = "Look: arcane, held in combat", at = 0.85, setup = arcane(nil, nil,
+		fight) },
+	{ key = "arcane-queue", title = "Look: arcane, list shown", at = 0.85, setup = arcane(function(p)
+		p.showQueue = true
+		p.queueRows = 3
+	end, { party1 = { "Gwen", "Hollow" }, nameplate1 = { "Anna", "Aim" },
+		nameplate2 = { "Brannoc", "Vale" }, nameplate3 = { "Corwin", "Ash" } }) },
+	{ key = "arcane-noicon", title = "Look: arcane, icon off, list shown", at = 0.85,
+		setup = arcane(function(p)
+			p.showIcon = false
+			p.showQueue = true
+			p.queueRows = 3
+		end, { party1 = { "Gwen", "Hollow" }, nameplate1 = { "Anna", "Aim" },
+			nameplate2 = { "Brannoc", "Vale" }, nameplate3 = { "Corwin", "Ash" } }) },
+	{ key = "arcane-light", title = "Look: arcane, a light panel, list shown", at = 0.85,
+		setup = arcane(function(p)
+			p.bgColor = { 0.86, 0.84, 0.78, 0.92 }
+			p.showQueue = true
+			p.queueRows = 3
+		end, { party1 = { "Gwen", "Hollow" }, nameplate1 = { "Anna", "Aim" },
+			nameplate2 = { "Brannoc", "Vale" }, nameplate3 = { "Corwin", "Ash" } }) },
 	{ key = "hover", title = "The cursor on the panel", at = 0.3, setup = function(ns)
 		boot(ns, OWED)
 		owe(ns, "Anna Aim")
@@ -377,9 +440,7 @@ R.states = {
 		boot(ns, OWED)
 		owe(ns, "Anna Aim")
 		tick(ns)
-		Mock.inCombat = true
-		ns.addon:PLAYER_REGEN_DISABLED()
-		tick(ns)
+		fight(ns)
 	end },
 	-- A mage on the panel, and a mage's own buff: the class colour, softened
 	-- on the looks that ask, must not land on a reason's colour.
@@ -465,10 +526,12 @@ function R.run(key)
 	UnitExists = realUnitExists
 	UnitInParty, UnitInSubgroup = realInParty, realInSubgroup
 	if not ok then error("state " .. key .. ": " .. tostring(err)) end
-	-- The clock taken to where the picture is read, and every one-shot that
-	-- has run its length by then finished, as the client would have: a
-	-- finished fade holds the alpha its OnFinished leaves, not its last frame.
-	Mock.now = Mock.now + (state.at or 0)
+	-- The clock is taken to the moment of the picture and the one-shots that
+	-- have run out by then are finished, as the client finishes them: their
+	-- OnFinished parks each where the addon wants it. Left playing, the
+	-- renderer would draw them at their last frame instead -- a fade the
+	-- addon then sets somewhere else drawn brighter than it is.
+	Mock.advance(state.at or 0)
 	FrameTree.settle()
 	local button = ns.Prompt:GetButton()
 	return {

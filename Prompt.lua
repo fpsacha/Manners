@@ -3325,6 +3325,8 @@ function Prompt:Paint(entry, extra)
 	ShowChip(showCount)
 
 	self:PaintAccent(entry.reason)
+	-- On every paint of a person, the scan's own tick: a look's clock.
+	if activeLook and activeLook.Painted then activeLook:Painted(entry) end
 
 	if p.showIcon then
 		local info = ns.BuffInfo(entry.buff)

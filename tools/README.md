@@ -114,8 +114,17 @@ python tools/render_prompt.py --out renders          # every state, plus sheet.p
 python tools/render_prompt.py --states owed,refused  # just those
 python tools/render_prompt.py --addon ../old --out before   # an older build
 python tools/render_prompt.py --locale deDE --out de         # as a German client
+python tools/render_prompt.py --style arcane --key F --out arcane   # every state in a look
 python tools/render_prompt.py --compare before after compare.png
 ```
+
+`--style` draws every state in that look (a state that names its own look,
+such as `framed`, keeps it), and `--key` binds that key to the prompt first,
+which the looks that show the key on the panel need. The `arcane-*` states
+draw Arcane as a player who picks it sees it, with a key bound and the
+favour's clock part-run. Each picture is taken `at` seconds after its state
+settles, with the one-shot animations that have run out by then finished the
+way the client finishes them, so a fight's dim is drawn as dim as it is.
 
 `--locale` loads the addon as a client in that language (the mock's
 `Mock.locale`), which is how a German or Russian line that runs off the panel

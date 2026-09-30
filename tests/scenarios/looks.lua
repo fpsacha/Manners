@@ -439,7 +439,7 @@ withTree("switching looks leaves no region of the old one showing", ANNA, functi
 					break
 				end
 			end
-			if round and now.icon._mask ~= (now.look and now.look.mask) then
+			if round and not (now.look and now.icon._mask == now.look.mask) then
 				fail(scenario, "switching back to " .. style .. " did not shape the icon again")
 			end
 			-- Nothing of any other look from Looks/ left under this one.
