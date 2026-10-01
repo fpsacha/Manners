@@ -72,8 +72,8 @@ mutate("Options/Look.lua",
        "red if it failed.\"],\n"
        "\t\t\t\torder = 32.5,\n"
        "\t\t\t\twidth = \"full\",\n"
-       "\t\t\t\tget = fGet,\n"
-       "\t\t\t\tset = fSet,\n",
+       "\t\t\t\tget = Page.fGet,\n"
+       "\t\t\t\tset = Page.fSet,\n",
        "when tab: combat switch writes filters",
        expect="hideInCombat writes prompt.hideInCombat no longer", script=S)
 
