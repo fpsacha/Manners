@@ -48,8 +48,60 @@ while args:
         shard = (int(i), int(k))
     elif flag == "--trace":
         trace_path = value
+    elif flag == "--jobs":
+        os.environ["MANNERS_SCENARIO_JOBS"] = value
     else:
         sys.exit("runscenarios.py: unknown argument %s" % flag)
+
+# The whole suite, un-narrowed, runs in worker processes: scenarios.lua (most
+# of the time) split by scenario name with --shard, the topic files spread
+# over the rest by size, each worker this same script narrowed to its share.
+# The output and the exit status are the same shape as one process's, since
+# CI and selftest.py read them. selftest.py runs many suites at once and sets
+# MANNERS_SCENARIO_JOBS=1 for them, so it never fans out twice.
+JOBS = int(os.environ.get("MANNERS_SCENARIO_JOBS") or 0) or (os.cpu_count() or 4)
+if JOBS > 1 and names is None and files is None and shard is None and trace_path is None:
+    import subprocess
+    from concurrent.futures import ThreadPoolExecutor
+    here = os.path.abspath(__file__)
+    extras = sorted(glob.glob(os.path.join(ADDON_DIR, "tests", "scenarios", "*.lua")))
+    shards = max(1, JOBS // 2)
+    tasks = [["--file", "scenarios.lua", "--shard", "%d/%d" % (i, shards)] for i in range(shards)]
+    bins = [[] for _ in range(max(1, JOBS - shards))]
+    sizes = [0] * len(bins)
+    for path in sorted(extras, key=os.path.getsize, reverse=True):
+        k = sizes.index(min(sizes))
+        bins[k] += ["--file", os.path.basename(path)]
+        sizes[k] += os.path.getsize(path)
+    tasks += [b for b in bins if b]
+    env = dict(os.environ, MANNERS_SCENARIO_JOBS="1", PYTHONIOENCODING="utf-8")
+
+    def work(args):
+        r = subprocess.run([sys.executable, here] + args, capture_output=True, text=True,
+                           encoding="utf-8", errors="replace", env=env)
+        return r.stdout + r.stderr, r.returncode
+
+    with ThreadPoolExecutor(max_workers=JOBS) as pool:
+        results = list(pool.map(work, tasks))
+    lines, failures, broken = [], 0, False
+    for text, code in results:
+        for line in text.splitlines():
+            if line.startswith("failures:"):
+                failures += int(line.split(":", 1)[1] or 0)
+            elif line in ("=== scenarios ===", "all scenarios clean") or line.startswith("narrowed:") \
+                    or line == "  (narrowed run): no scenario matched the selection" or not line.strip():
+                continue
+            else:
+                lines.append(line)
+                if line.startswith(("SCENARIO HARNESS ERROR", "LOADFILE")) or "Traceback" in line:
+                    broken = True
+    print("=== scenarios ===")
+    for line in lines:
+        print(line)
+    if failures == 0 and not broken:
+        print("all scenarios clean")
+    print("failures: %d" % failures)
+    sys.exit(1 if failures or broken else 0)
 
 L = lupa.LuaRuntime(unpack_returned_tuples=True)
 out = []

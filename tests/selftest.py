@@ -36,6 +36,9 @@ back green, before a failure in it counts as caught.
   --plan         run the baseline and the trace, print which scenarios would
                  judge each runscenarios.py mutation, and stop
   --jobs N       how many mutations run at once (default: one per core)
+  --changed [REF]  only the mutations of files that differ from REF (default
+                 master), for a quick check of a small change; the full run
+                 is still what a release is checked against
 """
 import atexit, subprocess, shutil, sys, os, json, tempfile, threading, time, bisect, re
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -70,7 +73,9 @@ TIMEOUT = 600
 
 def run(script, args=(), root=DIR):
     """The suite's output and exit status; status None when it timed out."""
-    env = dict(os.environ, PYTHONIOENCODING="utf-8")
+    # One process per suite: this file already runs many at once, and
+    # runscenarios.py would otherwise split each into workers of its own.
+    env = dict(os.environ, PYTHONIOENCODING="utf-8", MANNERS_SCENARIO_JOBS="1")
     try:
         r = subprocess.run([sys.executable, os.path.join(root, "tests", script)] + list(args),
                            capture_output=True, text=True, encoding="utf-8",
@@ -107,8 +112,12 @@ def findings(out):
     just stripped, so it was false for every line ever printed and no mutation
     has ever named the check that caught it -- the evidence the CAUGHT column
     claims to rest on was never once read.
+
+    A throw that escapes every scenario stops a one-process run where it is,
+    before the files after it; its line is then the only complaint there is.
     """
-    return [l.rstrip() for l in out.split("\n") if l.startswith("  ") and l.strip()]
+    return [l.rstrip() for l in out.split("\n")
+            if (l.startswith("  ") and l.strip()) or l.startswith("SCENARIO HARNESS ERROR")]
 
 
 dead_anchors = []
@@ -3916,7 +3925,22 @@ if ANCHORS_ONLY:
 
 say()
 _started = time.time()
+
+# --changed: the mutations of files that differ from REF (committed or not),
+# the rest left out, and said so.
+if "--changed" in sys.argv[1:]:
+    _i = sys.argv.index("--changed")
+    _ref = sys.argv[_i + 1] if _i + 1 < len(sys.argv) and not sys.argv[_i + 1].startswith("--") else "master"
+    _out = subprocess.run(["git", "-C", DIR, "diff", "--name-only", _ref], capture_output=True, text=True)
+    _changed = {p.strip().replace("\\", "/") for p in _out.stdout.splitlines() if p.strip()}
+    _kept = [m for m in plan if not isinstance(m, Mutation) or m.filename.replace("\\", "/") in _changed]
+    print("--changed %s: %d files differ; %d of %d mutations kept" % (
+        _ref, len(_changed), sum(isinstance(m, Mutation) for m in _kept),
+        sum(isinstance(m, Mutation) for m in plan)))
+    plan[:] = _kept
+
 _tree_before = tree_snapshot()
+
 mutations = [m for m in plan if isinstance(m, Mutation)]
 
 # The baseline and the trace, side by side: neither edits anything, so both

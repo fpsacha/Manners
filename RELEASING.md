@@ -22,6 +22,8 @@ afterwards — pushing it again only says it already exists.
    that before you go on.
 3. **Run the four suites.** `validate` fails with "no notes under" if step 1
    was skipped, which is the same check the release makes.
+   While working, `selftest.py --changed` judges only the mutations of the
+   files you touched; the full `selftest.py` runs once, here.
 4. **Commit.**
 5. **Push master and wait for CI to go green.**
 6. **Tag, and push the tag.**

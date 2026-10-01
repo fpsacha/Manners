@@ -45,6 +45,8 @@ python tests/selftest.py --anchors  # only that every mutation still finds its t
 python tests/selftest.py --plan     # which scenarios would judge each mutation, then stop
 python tests/selftest.py --whole    # every mutation on the whole suite, as it used to be
 python tests/selftest.py --jobs 4   # fewer at once (default: one per core)
+python tests/selftest.py --changed  # only the mutations of files that differ from master
+python tests/selftest.py --changed v1.5.4  # ... or from any commit or tag
 ```
 
 It used to take 25 minutes here and over two hours on GitHub's runner. What
@@ -94,7 +96,8 @@ on anything thrown — in game that would be a timer that silently stops, or a
 prompt sitting there doing nothing.
 
 ```
-python tests/runscenarios.py
+python tests/runscenarios.py           # spread over one process per core
+python tests/runscenarios.py --jobs 1  # in one process, as it used to run
 ```
 
 Scenarios can also live in `tests/scenarios/<topic>.lua`, one file per topic,
