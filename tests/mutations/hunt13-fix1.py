@@ -101,4 +101,6 @@ mutate("Core.lua",
        "\tlocal names = _G.LOCALIZED_CLASS_NAMES_MALE\n",
        "\tlocal names = _G.LOCALIZED_CLASS_NAMES_MALE\n",
        "fix1: no class throws",
-       expect="with no class at all the first line reads", script=S)
+       # Since Glass is the default again (1.5.1) the throw escapes from an
+       # earlier paint and stops the run before the named check is reached.
+       expect="attempt to index local 'class'", script=S)
