@@ -85,8 +85,8 @@ mutate(A, "\tSliceAlpha(self.bloom, fight and 0 or 1)\n", "\tSliceAlpha(self.blo
 
 # --- the favour's clock -----------------------------------------------------
 
-mutate("Prompt.lua",
-       "\tif activeLook and activeLook.Painted then activeLook:Painted(entry) end\n", "",
+mutate("Prompt/Paint.lua",
+       "\tif S.activeLook and S.activeLook.Painted then S.activeLook:Painted(entry) end\n", "",
        "the look never told a person was painted",
        expect="no clock along the bottom", script=S)
 

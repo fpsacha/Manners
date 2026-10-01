@@ -109,12 +109,12 @@ mutate("GroupBuffs.lua",
        expect="running out was said", script=S)
 
 # ------------------------------------------------ the prompt
-mutate("Prompt.lua",
+mutate("Prompt/Paint.lua",
        "\tlocal group = entry.groupCast\n\tif group then\n",
        "\tlocal group = entry.groupCast\n\tif false then\n",
        "groupbuffs: the second line is a person's",
        expect="the panel does not name the party and the count", script=S)
-mutate("Prompt.lua",
+mutate("Prompt/Macro.lua",
        "\treturn STRATEGIES[StrategyFor(entry)](entry, ns.EntrySpellName(entry))\n",
        "\treturn STRATEGIES[StrategyFor(entry)](entry, ns.BuffName(entry.buff))\n",
        "groupbuffs: the macro casts the single spell",
@@ -122,17 +122,17 @@ mutate("Prompt.lua",
 # Both parts of the macro's key that follow the group spell: its id, and the
 # name the macro casts by (which "own: the macro keeps the old rank's name"
 # takes away on its own).
-mutate("Prompt.lua",
+mutate("Prompt/Macro.lua",
        "\t\tns.EntrySpellName(entry),\n\t\ttostring(entry.groupCast and entry.groupCast.spell),\n",
        "",
        "groupbuffs: the macro is not rebuilt for the group cast",
        expect="the macro still casts the single buff at a party", script=S)
-mutate("Prompt.lua",
+mutate("Prompt/Button.lua",
        "\tlocal have = ns.ReagentCount(group.reagent) or group.reagents\n",
        "\tlocal have = 0\n",
        "groupbuffs: the tooltip does not count",
        expect="the tooltip does not count the reagent", script=S)
-mutate("Prompt.lua",
+mutate("Prompt/Button.lua",
        "\tfor _, name in ipairs(group.members) do Note(name) end\n",
        "",
        "groupbuffs: the tooltip names only the anchor's favour",
@@ -144,9 +144,9 @@ mutate("Speech.lua",
        expect="the spoken line does not name the group spell", script=S)
 
 # ------------------------------------------------ the press and the settle
-mutate("Prompt.lua",
-       "\t\tfor _, name in ipairs(current.groupCast.members) do\n\t\t\tns.MarkAttempted(name, current.buff.key)\n",
-       "\t\tfor _, name in ipairs(current.groupCast.members) do\n",
+mutate("Prompt/Press.lua",
+       "\t\tfor _, name in ipairs(S.current.groupCast.members) do\n\t\t\tns.MarkAttempted(name, S.current.buff.key)\n",
+       "\t\tfor _, name in ipairs(S.current.groupCast.members) do\n",
        "groupbuffs: the press blocks only the anchor",
        expect="of the people it covered were offered again while the press waited for the game", script=S)
 mutate("Clicks.lua",
@@ -228,7 +228,7 @@ mutate("GroupBuffs.lua",
        expect="a warlock is shown a setting for group buffs", script=S)
 
 # ------------------------------------------------ review round: the spell said
-mutate("Prompt.lua",
+mutate("Prompt/Macro.lua",
        "\t\ttostring(entry.groupCast and entry.groupCast.spell), tostring(ns.tryMacro) }, \"\\1\")\n",
        "\t\ttostring(ns.tryMacro) }, \"\\1\")\n",
        "groupbuffs: the spoken line is kept across a change of spell",
@@ -286,7 +286,7 @@ mutate("Clicks.lua",
        expect="the ledger shows Dain's favour", script=S)
 
 # ------------------------------------------------ review round: skipping
-mutate("Prompt.lua",
+mutate("Prompt/Press.lua",
        "\t\tif group and ns.SkipGroupCast then ns.SkipGroupCast(group) end\n",
        "",
        "groupbuffs: not now skips only the anchor",
@@ -296,12 +296,12 @@ mutate("GroupBuffs.lua",
        "",
        "groupbuffs: skipping a group cast blocks nobody",
        expect="offers of Arcane Intellect came straight back after skipping the party", script=S)
-mutate("Prompt.lua",
+mutate("Prompt/Press.lua",
        "\t\t\tlocal shown = (group and group.groupCast.label)\n\t\t\t\tor ",
        "\t\t\tlocal shown = ",
        "groupbuffs: the skip line names the anchor",
        expect="chat does not say the party was skipped", script=S)
-mutate("Prompt.lua",
+mutate("Prompt/Press.lua",
        "\t\t\t\tns.addon:Print(L[\"The rest of %s is skipped for now.\"]:format(group.groupCast.label or \"?\"))\n",
        "",
        "groupbuffs: never on a group cast says nothing of the rest",
@@ -321,14 +321,14 @@ mutate("Options/Launcher.lua",
        "\treturn tostring(ns.BuffName",
        "groupbuffs: the launcher names the single spell",
        expect="the launcher's tooltip does not name the group cast", script=S)
-mutate("Prompt.lua",
+mutate("Prompt/Button.lua",
        "\t\tGameTooltip:AddLine(group and L[\"Right-click to skip this group buff for now.\"]\n\t\t\tor L[",
        "\t\tGameTooltip:AddLine(L[",
        "groupbuffs: the tooltip's skip line is a person's",
        expect="the tooltip does not say what a right-click does to a group cast", script=S)
 
 # ------------------------------------------------ review round: the panel
-mutate("Prompt.lua",
+mutate("Prompt/Paint.lua",
        "\t\tlocal groupIcon = entry.groupCast and entry.groupCast.icon\n",
        "\t\tlocal groupIcon = nil\n",
        "groupbuffs: the panel shows the single spell's icon",
@@ -348,12 +348,12 @@ mutate("GroupBuffs.lua",
        "\t\t\t\tif Missing(entry) or RunningLow(entry) then\n",
        "groupbuffs: running out is counted as missing",
        expect="four running out reads", script=S)
-mutate("Prompt.lua",
+mutate("Prompt/Paint.lua",
        "\t\tif low == 0 then return L[\"%s -- %d missing\"]:format(spell, missing) end\n",
        "\t\tif true then return L[\"%s -- %d missing\"]:format(spell, missing + low) end\n",
        "groupbuffs: the second line calls everybody missing",
        expect="four running out reads", script=S)
-mutate("Prompt.lua",
+mutate("Prompt/Button.lua",
        "\tif missing > 0 and low > 0 then\n",
        "\tif false then\n",
        "groupbuffs: the tooltip hides who is running out",
@@ -408,8 +408,8 @@ mutate("Ledger.lua",
        "groupbuffs: the ledger files a group cast by its anchor",
        expect="a group cast aimed at the one who asked was filed as asked for", script=S)
 # ...and one everybody asked for filed as a gift.
-mutate("Prompt.lua",
-       "\t\t\tasked = current.groupCast.asked,\n",
+mutate("Prompt/Press.lua",
+       "\t\t\tasked = S.current.groupCast.asked,\n",
        "",
        "groupbuffs: the press forgets that everybody asked",
        expect="everybody it covered asked, and the group cast was filed as given unprompted", script=S)

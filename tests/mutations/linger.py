@@ -184,110 +184,110 @@ mutate("Queue.lua",
        expect="a full crowd made room by forgetting somebody seen more recently than the oldest", script=S)
 
 # ------------------------------------------------ the prompt under the cursor
-mutate("Prompt.lua",
-       "\tif now - heldAt >= HOLD_SECONDS and not CursorHolds(heldEntry, now) then return false end\n",
-       "\tif now - heldAt >= HOLD_SECONDS then return false end\n",
+mutate("Prompt/Hold.lua",
+       "\tif now - S.heldAt >= HOLD_SECONDS and not CursorHolds(S.heldEntry, now) then return false end\n",
+       "\tif now - S.heldAt >= HOLD_SECONDS then return false end\n",
        "linger: the hold runs out under the cursor",
        expect="a passer-by no better took the panel from under the cursor", script=S)
 
-mutate("Prompt.lua",
-       "\t\t\tif CursorHolds(current, now) then return end\n",
+mutate("Prompt/Refresh.lua",
+       "\t\t\tif CursorHolds(S.current, now) then return end\n",
        "",
        "linger: the fuse burns out under the cursor",
        expect="the prompt came down under the cursor as the queue emptied", script=S)
 
-mutate("Prompt.lua",
-       "\t\thovering = true\n",
+mutate("Prompt/Button.lua",
+       "\t\tS.hovering = true\n",
        "",
        "linger: OnEnter does not say the cursor is there",
        expect="the prompt came down under the cursor as the queue emptied", script=S)
 
-mutate("Prompt.lua",
-       "\t\thovering = nil\n\t\tif C_Timer and C_Timer.After then\n",
+mutate("Prompt/Button.lua",
+       "\t\tS.hovering = nil\n\t\tif C_Timer and C_Timer.After then\n",
        "\t\tif C_Timer and C_Timer.After then\n",
        "linger: OnLeave does not say the cursor went",
        expect="the prompt stayed up after the cursor left it, with nobody in the queue", script=S)
 
-mutate("Prompt.lua",
+mutate("Prompt/Button.lua",
        "\t\t\tC_Timer.After(0, function() ns.Guard(\"leave repaint\", Prompt.Refresh, Prompt) end)\n",
        "",
        "linger: leaving waits for the next scan",
        expect="the prompt stayed up after the cursor left it, with nobody in the queue", script=S)
 
-mutate("Prompt.lua",
-       "\theldEntry, heldAt, emptyAt = nil, nil, nil\n\thovering, heldTurnedDown = nil, nil\n",
-       "\theldEntry, heldAt, emptyAt = nil, nil, nil\n\theldTurnedDown = nil\n",
+mutate("Prompt/Hold.lua",
+       "\tS.heldEntry, S.heldAt, S.emptyAt = nil, nil, nil\n\tS.hovering, S.heldTurnedDown = nil, nil\n",
+       "\tS.heldEntry, S.heldAt, S.emptyAt = nil, nil, nil\n\tS.heldTurnedDown = nil\n",
        "linger: the cursor outlives the prompt",
        expect="a hover from before the prompt went down still held it up", script=S)
 
 # The cursor must never hold a panel that has to move on.
-mutate("Prompt.lua",
-       "\tif top.name == heldEntry.name then return top end\n",
-       "\tif hovering then return heldEntry end\n\tif top.name == heldEntry.name then return top end\n",
+mutate("Prompt/Hold.lua",
+       "\tif top.name == S.heldEntry.name then return top end\n",
+       "\tif S.hovering then return S.heldEntry end\n\tif top.name == S.heldEntry.name then return top end\n",
        "linger: the cursor holds off somebody better",
        expect="somebody who buffed you did not take the panel from under the cursor", script=S)
 
-mutate("Prompt.lua",
-       "\tif not (heldEntry and heldAt) then return false end\n",
-       "\tif not (heldEntry and heldAt) then return false end\n\tif hovering then return true end\n",
+mutate("Prompt/Hold.lua",
+       "\tif not (S.heldEntry and S.heldAt) then return false end\n",
+       "\tif not (S.heldEntry and S.heldAt) then return false end\n\tif S.hovering then return true end\n",
        "linger: the cursor holds somebody skipped",
        expect="a right-click skip under the cursor left the panel on", script=S)
 
-mutate("Prompt.lua",
-       "\t\tif button:IsShown() and current and not retired and not ArmingForFight() then\n",
-       "\t\tif hovering and current then return end\n\t\tif button:IsShown() and current and not retired and not ArmingForFight() then\n",
+mutate("Prompt/Refresh.lua",
+       "\t\tif R.button:IsShown() and S.current and not retired and not ArmingForFight() then\n",
+       "\t\tif S.hovering and S.current then return end\n\t\tif R.button:IsShown() and S.current and not retired and not ArmingForFight() then\n",
        "linger: the cursor holds the last person retired",
        expect="a right-click skip under the cursor on the last person left the prompt up", script=S)
 
 # ...nor through the pull, whose macro serves the whole fight: the held person
 # over somebody in the queue, and over an empty one.
-mutate("Prompt.lua",
+mutate("Prompt/Hold.lua",
        "\tif ArmingForFight() then return top end\n",
-       "\tif hovering then return heldEntry end\n\tif ArmingForFight() then return top end\n",
+       "\tif S.hovering then return S.heldEntry end\n\tif ArmingForFight() then return top end\n",
        "linger: the cursor holds through the pull",
        expect="linger: a pull under the cursor arms whoever the queue holds (with Bert waiting)", script=S)
 
-mutate("Prompt.lua",
-       "\t\tif button:IsShown() and current and not retired and not ArmingForFight() then\n",
-       "\t\tif hovering and current and not retired then return end\n\t\tif button:IsShown() and current and not retired and not ArmingForFight() then\n",
+mutate("Prompt/Refresh.lua",
+       "\t\tif R.button:IsShown() and S.current and not retired and not ArmingForFight() then\n",
+       "\t\tif S.hovering and S.current and not retired then return end\n\t\tif R.button:IsShown() and S.current and not retired and not ArmingForFight() then\n",
        "linger: the cursor keeps the fuse through the pull",
        expect="linger: a pull under the cursor arms whoever the queue holds (with nobody)", script=S)
 
 # ------------------------------------------------ the cursor forgives a token lost, not a verdict
 # Review: under the cursor the hold kept a group member found dead, out of
 # range or out of sight, with no end, and the press cast at them.
-mutate("Prompt.lua",
-       "\tif heldTurnedDown == entry.name then return false end\n",
+mutate("Prompt/Hold.lua",
+       "\tif S.heldTurnedDown == entry.name then return false end\n",
        "",
        "linger: a verdict does not end the cursor's hold",
        expect="a group member turned down stayed on the panel under the cursor while", script=S)
 
-mutate("Prompt.lua",
-       "\treturn now - heldAt < HOVER_SECONDS\n",
+mutate("Prompt/Hold.lua",
+       "\treturn now - S.heldAt < HOVER_SECONDS\n",
        "\treturn true\n",
        "linger: the cursor's hold has no end",
        expect="the cursor held somebody gone for longer than ten seconds", script=S)
 
-mutate("Prompt.lua",
+mutate("Prompt/Refresh.lua",
        "\tNoteVerdicts(verdicts)\n\tlocal top = self:PickTop(",
        "\tlocal top = self:PickTop(",
        "linger: the repaint notes no verdicts",
        expect="a group member turned down stayed on the panel under the cursor while", script=S)
 
-mutate("Prompt.lua",
+mutate("Prompt/Press.lua",
        "\tNoteVerdicts(verdicts)\n\tlocal top = Prompt:PickTop(",
        "\tlocal top = Prompt:PickTop(",
        "linger: the press notes no verdicts",
        expect="a press under the cursor cast at a group member found dead", script=S)
 
-mutate("Prompt.lua",
-       "\tlocal queue, verdicts = ns.BuildQueue(hovering)\n\tNoteVerdicts(verdicts)\n\tlocal top = self:PickTop(",
+mutate("Prompt/Refresh.lua",
+       "\tlocal queue, verdicts = ns.BuildQueue(S.hovering)\n\tNoteVerdicts(verdicts)\n\tlocal top = self:PickTop(",
        "\tlocal queue, verdicts = ns.BuildQueue()\n\tNoteVerdicts(verdicts)\n\tlocal top = self:PickTop(",
        "linger: the repaint does not watch",
        expect="linger: under the cursor a group member turned down yields the panel (dead)", script=S)
 
-mutate("Prompt.lua",
-       "\tlocal queue, verdicts = ns.BuildQueue(hovering)\n\tNoteVerdicts(verdicts)\n\tlocal top = Prompt:PickTop(",
+mutate("Prompt/Press.lua",
+       "\tlocal queue, verdicts = ns.BuildQueue(S.hovering)\n\tNoteVerdicts(verdicts)\n\tlocal top = Prompt:PickTop(",
        "\tlocal queue, verdicts = ns.BuildQueue()\n\tNoteVerdicts(verdicts)\n\tlocal top = Prompt:PickTop(",
        "linger: the press does not watch",
        expect="a press under the cursor cast at a group member found dead", script=S)
@@ -318,21 +318,21 @@ mutate("Queue.lua",
 
 # A verdict written once, by the scan that let them go, and forgotten by the
 # next, which has nothing to say about them.
-mutate("Prompt.lua",
+mutate("Prompt/Hold.lua",
        "\tif not (name and verdicts) then return end\n",
-       "\theldTurnedDown = nil\n\tif not (name and verdicts) then return end\n",
+       "\tS.heldTurnedDown = nil\n\tif not (name and verdicts) then return end\n",
        "linger: a verdict lasts one scan",
        expect="linger: under the cursor the prompt still comes down for a remembered stranger while you save mana", script=S)
 
 # ...and not for good either: back in the queue, they are held again.
-mutate("Prompt.lua",
-       "\tif inQueue or not heldEntry then heldAt, heldTurnedDown = now, nil end\n",
-       "\tif inQueue or not heldEntry then heldAt = now end\n",
+mutate("Prompt/Refresh.lua",
+       "\tif inQueue or not S.heldEntry then S.heldAt, S.heldTurnedDown = now, nil end\n",
+       "\tif inQueue or not S.heldEntry then S.heldAt = now end\n",
        "linger: a verdict outlives the person's return",
        expect="somebody back from a verdict was not held under the cursor again", script=S)
 
 # ------------------------------------------------ your own state
-mutate("Prompt.lua",
+mutate("Prompt/Hold.lua",
        "\tif verdicts == true or (type(verdicts) == \"table\" and verdicts[name] == true) then\n",
        "\tif type(verdicts) == \"table\" and verdicts[name] == true then\n",
        "linger: your own state is no verdict",

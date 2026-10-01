@@ -8649,7 +8649,10 @@ do
 	-- one this is about.
 	for _, file in ipairs({ "Locales/Init.lua", "Buffs.lua", "Core.lua", "Range.lua",
 		"Speech.lua", "Queue.lua", "Requests.lua", "Favours.lua", "Clicks.lua",
-		"Commands.lua", "Ledger.lua", "Looks/Looks.lua", "Looks/Luxe.lua", "Prompt.lua",
+		"Commands.lua", "Ledger.lua", "Looks/Looks.lua", "Looks/Luxe.lua",
+		"Prompt/Prompt.lua", "Prompt/Text.lua", "Prompt/Effects.lua", "Prompt/Hold.lua",
+		"Prompt/Macro.lua", "Prompt/Press.lua", "Prompt/Button.lua", "Prompt/Panel.lua",
+		"Prompt/List.lua", "Prompt/Paint.lua", "Prompt/Refresh.lua",
 		"Options/Shared.lua", "Options/Launcher.lua", "Options/Start.lua", "Options/Who.lua",
 		"Options/When.lua", "Options/Say.lua", "Options/Look.lua", "Options/Advanced.lua",
 		"Options/Diagnostics.lua", "Options/Profiles.lua", "Options/Register.lua" }) do
@@ -16286,7 +16289,7 @@ if ns then
 	local scenario = "the reason colours match their comment"
 	drive(scenario, ns)
 	ns.Prompt:ExitTest()
-	local file = io.open(dir .. "/Prompt.lua", "r")
+	local file = io.open(dir .. "/Prompt/Prompt.lua", "r")
 	local source = file and file:read("*a") or ""
 	if file then file:close() end
 	-- The unbroken run of comment lines straight above the table.

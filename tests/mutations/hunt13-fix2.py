@@ -12,22 +12,22 @@ S = "runscenarios.py"
 
 # The hold judged by the copy painted again: somebody still in the queue keeps
 # the priority they had then, over a new target.
-mutate("Prompt.lua",
+mutate("Prompt/Hold.lua",
        "\tif top.priority < held.priority then return top end\n",
-       "\tif top.priority < heldEntry.priority then return top end\n",
+       "\tif top.priority < S.heldEntry.priority then return top end\n",
        "fix2: hold judged by the painted copy",
        expect="the prompt stayed on the old target after you targeted somebody else", script=S)
 
 # ...and the copy painted kept: over a favour once the target is cleared.
-mutate("Prompt.lua",
+mutate("Prompt/Hold.lua",
        "\tif top.priority < held.priority then return top end\n\treturn held\n",
-       "\tif top.priority < heldEntry.priority then return top end\n\treturn heldEntry\n",
+       "\tif top.priority < S.heldEntry.priority then return top end\n\treturn S.heldEntry\n",
        "fix2: hold keeps the painted copy",
        expect="the favour did not get the panel once the target was cleared", script=S)
 
 # ...over the group once a favour lapses.
-mutate("Prompt.lua",
-       "\t\tif candidate.name == heldEntry.name then held = candidate break end\n",
+mutate("Prompt/Hold.lua",
+       "\t\tif candidate.name == S.heldEntry.name then held = candidate break end\n",
        "\t\tif false then held = candidate break end\n",
        "fix2: hold never finds them in the queue",
        expect="a lapsed favour kept the panel ahead of the group", script=S)
@@ -76,16 +76,16 @@ mutate("Clicks.lua",
        expect="a late refusal of the shout left the other favour it returned repaid", script=S)
 
 # Somebody nothing measured counted as in reach.
-mutate("Prompt.lua",
-       "\t\t\tif entry.name ~= current.name and entry.ranged == true and entry.reason ~= \"self\"\n",
-       "\t\t\tif entry.name ~= current.name and entry.ranged ~= false and entry.reason ~= \"self\"\n",
+mutate("Prompt/Press.lua",
+       "\t\t\tif entry.name ~= S.current.name and entry.ranged == true and entry.reason ~= \"self\"\n",
+       "\t\t\tif entry.name ~= S.current.name and entry.ranged ~= false and entry.reason ~= \"self\"\n",
        "fix2: unmeasured member counted in reach",
        expect="a shout counted as repaying a party member nothing measured in its reach", script=S)
 
 # ------------------------------------------------ own
 
 # The press on yourself follows the switch for other people again.
-mutate("Prompt.lua",
+mutate("Prompt/Macro.lua",
        "\tlocal lines = STRATEGIES.target(entry, spell)\n"
        "\tlocal restore = not StillTargeted(entry) or Prompt.armedForFight == true\n",
        "\tlocal lines, restore = STRATEGIES.target(entry, spell)\n",
@@ -93,7 +93,7 @@ mutate("Prompt.lua",
        expect="the press on yourself drops your target", script=S)
 
 # Your own target is not asked about: /targetlasttarget switches away from you.
-mutate("Prompt.lua",
+mutate("Prompt/Macro.lua",
        "\treturn (entry.unit == \"target\" or entry.reason == \"self\") and entry.name ~= nil\n",
        "\treturn entry.unit == \"target\" and entry.name ~= nil\n",
        "fix2: self-targeted not seen",
@@ -102,14 +102,14 @@ mutate("Prompt.lua",
 # ------------------------------------------------ sound
 
 # "Only for people who buff me" applied to a class nobody can owe.
-mutate("Prompt.lua",
+mutate("Prompt/Refresh.lua",
        "or not (ns.caps and ns.caps.hasClassBuffs == true and db.sources.owed ~= false))",
        "or not (ns.caps and true))",
        "fix2: owed-only sound silences a hunter",
        expect="the hunter's own prompt came up and the sound played", script=S)
 
 # ...and ignored for a class that can be owed.
-mutate("Prompt.lua",
+mutate("Prompt/Refresh.lua",
        "or not (ns.caps and ns.caps.hasClassBuffs == true and db.sources.owed ~= false))",
        "or not (ns.caps and false))",
        "fix2: owed-only sound ignored for a mage",
@@ -129,15 +129,15 @@ mutate("Options/Look.lua",
 
 # ------------------------------------------------ skip
 
-mutate("Prompt.lua",
-       "\t\tlocal frozenOnThem = not own and InCombatLockdown() and current and current.name == victim\n",
+mutate("Prompt/Press.lua",
+       "\t\tlocal frozenOnThem = not own and InCombatLockdown() and S.current and S.current.name == victim\n",
        "\t\tlocal frozenOnThem = false\n",
        "fix2: skip in a fight claims the skip",
        expect="a skip in a fight claimed the skip without saying a press still casts at them", script=S)
 
 # ------------------------------------------------ moved
 
-mutate("Prompt.lua",
+mutate("Prompt/Paint.lua",
        "\tif top.groupCast then\n\t\tns.addon:Print(L[\"the prompt has moved on to",
        "\tif false then\n\t\tns.addon:Print(L[\"the prompt has moved on to",
        "fix2: moved on names one member",

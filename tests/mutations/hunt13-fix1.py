@@ -71,7 +71,7 @@ mutate("Queue.lua",
        expect="hunt13-fix1: a party member out of sight is not offered though asking", script=S)
 
 # ------------------------------------------------ {class} in the client's words
-mutate("Prompt.lua",
+mutate("Prompt/Paint.lua",
        "\tout = Swap(out, \"{class}\", ns.ClassName(entry.class))\n",
        "\tout = Swap(out, \"{class}\", entry.class)\n",
        "fix1: {class} prints the token",

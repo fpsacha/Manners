@@ -41,7 +41,7 @@ git push origin vX.Y.Z-beta.N
 The last two lines only once CI has passed on the pushed commit.
 
 `setversion.py` writes the version into every toc (`Manners.toc` and the
-generated `Manners_Camelot.toc`), into `ns.BUILD` in `Prompt.lua`, and onto the
+generated `Manners_Camelot.toc`), into `ns.BUILD` in `Prompt/Prompt.lua`, and onto the
 changelog heading. Never edit those by hand: doing it that way produced a
 mismatch twice, each time by correcting a value that was already the wrong one.
 

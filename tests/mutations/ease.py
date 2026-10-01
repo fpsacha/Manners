@@ -7,9 +7,9 @@
 # ------------------------------------------------------------------ snooze
 
 # The prompt's own reading of the snooze taken out: a snooze that hides nothing.
-mutate("Prompt.lua",
-       "\tif ns.SnoozeLeft(now) then\n\t\tself:ApplyTarget(nil)\n\t\tbutton:Hide()\n",
-       "\tif false then\n\t\tself:ApplyTarget(nil)\n\t\tbutton:Hide()\n",
+mutate("Prompt/Refresh.lua",
+       "\tif ns.SnoozeLeft(now) then\n\t\tself:ApplyTarget(nil)\n\t\tR.button:Hide()\n",
+       "\tif false then\n\t\tself:ApplyTarget(nil)\n\t\tR.button:Hide()\n",
        "a snooze that hides nothing",
        expect="ease: snooze hides the prompt and brings it back on time",
        script="runscenarios.py")
@@ -52,7 +52,7 @@ mutate("Commands.lua",
        script="runscenarios.py")
 
 # A keypress on the snoozed prompt told "nobody to buff".
-mutate("Prompt.lua",
+mutate("Prompt/Press.lua",
        "\t\telseif ns.SnoozeLeft(now) then\n",
        "\t\telseif false then\n",
        "a keypress while snoozed saying nobody to buff",

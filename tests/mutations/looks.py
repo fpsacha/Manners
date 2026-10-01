@@ -7,7 +7,7 @@
 # --- switching looks ------------------------------------------------------
 
 # The glass look's regions left up under Luxe.
-mutate("Prompt.lua",
+mutate("Prompt/Panel.lua",
        "\tfor _, part in ipairs(self.builtinParts) do part:Hide() end\n",
        "",
        "glass regions left under a look of its own",
@@ -15,18 +15,19 @@ mutate("Prompt.lua",
        script="runscenarios.py")
 
 # Glass's frames of light never put back after Luxe hid them.
-mutate("Prompt.lua",
-       "\tglowFrame:Show()\n",
+mutate("Prompt/Panel.lua",
+       "\tR.glowFrame:Show()\n",
        "",
        "glass's light left hidden after Luxe",
        expect="a glass frame of light stayed hidden after Luxe",
        script="runscenarios.py")
 
 # The button's square highlight never put back.
-mutate("Prompt.lua",
-       "\tshineFrame:Show()\n\tlocal hl = button:GetHighlightTexture()\n"
+mutate("Prompt/Panel.lua",
+       "\tR.shineFrame:Show()\n"
+       "\tlocal hl = R.button:GetHighlightTexture()\n"
        "\tif hl then hl:SetVertexColor(1, 1, 1, 0.045) end\n",
-       "\tshineFrame:Show()\n",
+       "\tR.shineFrame:Show()\n",
        "the highlight left off after Luxe",
        expect="the button's highlight stayed off after Luxe",
        script="runscenarios.py")
@@ -56,8 +57,8 @@ mutate("Looks/Luxe.lua",
        script="runscenarios.py")
 
 # The old look never told to go.
-mutate("Prompt.lua",
-       "\tif activeLook and activeLook ~= look then activeLook:Hide() end\n",
+mutate("Prompt/Panel.lua",
+       "\tif S.activeLook and S.activeLook ~= look then S.activeLook:Hide() end\n",
        "",
        "a look never hidden when another is picked",
        expect="still shows after switching to",
@@ -90,8 +91,8 @@ mutate("Looks/Luxe.lua",
        script="runscenarios.py")
 
 # A class colour as it is, on Luxe.
-mutate("Prompt.lua",
-       "\tlocal soften = activeLook and activeLook.classSoften\n",
+mutate("Prompt/Paint.lua",
+       "\tlocal soften = S.activeLook and S.activeLook.classSoften\n",
        "\tlocal soften = nil\n",
        "class colours not softened on Luxe",
        expect="in the full class colour on Luxe",
@@ -116,8 +117,8 @@ mutate("Looks/Luxe.lua",
        script="runscenarios.py")
 
 # The cursor forgotten.
-mutate("Prompt.lua",
-       "\t\tif activeLook then activeLook:Hover(true) end\n",
+mutate("Prompt/Button.lua",
+       "\t\tif S.activeLook then S.activeLook:Hover(true) end\n",
        "",
        "Luxe never told the cursor arrived",
        expect="the cursor on the panel did not light it",
@@ -134,16 +135,16 @@ mutate("Looks/Luxe.lua",
 # --- the fight ------------------------------------------------------------
 
 # The whole of art dimmed, card and all, as the glass look does.
-mutate("Prompt.lua",
-       "\tart:SetAlpha(combatHeld and (activeLook and activeLook.combatArtAlpha or 0.55) or 1)\n",
-       "\tart:SetAlpha(combatHeld and 0.55 or 1)\n",
+mutate("Prompt/Effects.lua",
+       "\tR.art:SetAlpha(combatHeld and (S.activeLook and S.activeLook.combatArtAlpha or 0.55) or 1)\n",
+       "\tR.art:SetAlpha(combatHeld and 0.55 or 1)\n",
        "art dimmed whole on Luxe in a fight",
        expect="art dimmed whole in a fight",
        script="runscenarios.py")
 
 # The look never told about the fight.
-mutate("Prompt.lua",
-       "\tif activeLook then activeLook:Combat(on) end\n",
+mutate("Prompt/Effects.lua",
+       "\tif S.activeLook then S.activeLook:Combat(on) end\n",
        "",
        "Luxe never told a fight started",
        expect="the icon keeps its colour in a fight",
@@ -218,9 +219,9 @@ mutate("Looks/Luxe.lua",
        script="runscenarios.py")
 
 # The glass look's list painted under Luxe's.
-mutate("Prompt.lua",
-       "\t\t\tqueueBars[i]:SetShown(not activeLook)\n",
-       "\t\t\tqueueBars[i]:Show()\n",
+mutate("Prompt/List.lua",
+       "\t\t\tR.queueBars[i]:SetShown(not S.activeLook)\n",
+       "\t\t\tR.queueBars[i]:Show()\n",
        "glass list bars under Luxe",
        expect="the glass look's list bars show under Luxe",
        script="runscenarios.py")
@@ -343,7 +344,7 @@ mutate("Looks/Luxe.lua",
        script="runscenarios.py")
 
 # Glass's pulse left looping, hidden, under Luxe.
-mutate("Prompt.lua",
+mutate("Prompt/Panel.lua",
        "\t\tif f.pulse then f.pulse:Stop() end\n",
        "",
        "glass's pulse loops on under Luxe",
@@ -423,7 +424,7 @@ mutate("Looks/Luxe.lua",
        script="runscenarios.py")
 
 # FitLine keeping no width for the looks.
-mutate("Prompt.lua",
+mutate("Prompt/Text.lua",
        "\tfit.drawn[fs] = w\n",
        "",
        "FitLine keeps no measured width",

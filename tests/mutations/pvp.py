@@ -337,15 +337,15 @@ mutate("Queue.lua",
 # ------------------------------------------------ the prompt
 
 # The press on an empty queue follows the panel onto somebody flagged.
-mutate("Prompt.lua",
+mutate("Prompt/Hold.lua",
        "\tif ns.HeldForPvP(entry) then return true end\n",
        "",
        "pvp: retired ignores the flag",
        expect="the press cast at somebody flagged for PvP since the paint", script=S)
 
 # The panel's short hold keeps somebody flagged, and the press follows it.
-mutate("Prompt.lua",
-       "\tif ns.HeldForPvP(heldEntry) then return false end\n",
+mutate("Prompt/Hold.lua",
+       "\tif ns.HeldForPvP(S.heldEntry) then return false end\n",
        "",
        "pvp: the hold ignores the flag",
        expect="the press cast at somebody flagged for PvP since the paint", script=S)

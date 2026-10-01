@@ -11,7 +11,7 @@ read as four bars with a darker notch at every corner. These are real falloffs,
 drawn once here, so the client only ever stretches them.
 
 Glow.tga is light falling off in every direction from the texture's centre.
-Prompt.lua cuts it into eight pieces round the icon, the way a nine-slice
+Prompt/Prompt.lua cuts it into eight pieces round the icon, the way a nine-slice
 border is cut: the four quarters are the corners, which fade from the icon's
 corner outwards in a quarter circle, and a line through the middle is each
 side, which fades straight out. The pieces meet with the same brightness on
@@ -19,7 +19,7 @@ both sides of every join, so there is no seam and no notch.
 
 GlowRound.tga is a ring for the rounded icon, dark in the middle where the icon
 is and fading outwards from the rim. The rim sits at RING_AT of the texture's
-half-width, and Prompt.lua sizes the texture from that same number so the rim
+half-width, and Prompt/Prompt.lua sizes the texture from that same number so the rim
 lands on the edge of the round icon at any size.
 
 Both are white, with the shape in the alpha: the prompt colours them with the
@@ -34,7 +34,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TEX = os.path.join(ROOT, "Textures")
 SIZE = 64
 # Where the rim of the round glow sits, as a fraction of the half-width. Stated
-# again in Prompt.lua as GLOW_RING_AT; the two have to agree.
+# again in Prompt/Prompt.lua as GLOW_RING_AT; the two have to agree.
 RING_AT = 0.70
 
 
