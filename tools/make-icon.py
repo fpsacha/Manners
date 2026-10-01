@@ -253,7 +253,7 @@ icon.resize((64, 64), Image.LANCZOS).convert("RGB").save(os.path.join(OUT, "icon
 # actually seen rather than inferred from the large one.
 # The game cannot load a PNG. Everything above is for the CurseForge listing;
 # this is the one the addon itself uses, for the minimap button (ICON in
-# Options.lua) and the addon list (IconTexture in Manners.toc), and it has to be
+# Options/Launcher.lua) and the addon list (IconTexture in Manners.toc), and it has to be
 # an uncompressed 32-bit TGA at a power-of-two size. Both of those name it
 # without the extension, the way the client wants a texture path.
 import os as _os

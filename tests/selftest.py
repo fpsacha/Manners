@@ -905,7 +905,7 @@ mutate("Prompt.lua",
 #     option's *name*, so the page renders perfectly and puts a slider under a
 #     dropdown it has nothing to do with -- which is what "...after this long"
 #     did under "If they already have the buff" for four releases.
-mutate("Options.lua",
+mutate("Options/Advanced.lua",
        "\t\t\t\torder = 14,\n\t\t\t\tmin = 10,\n",
        "\t\t\t\torder = 13,\n\t\t\t\tmin = 10,\n",
        "two controls at the same order",
@@ -916,7 +916,7 @@ mutate("Options.lua",
 #     now sit beside the flash under an option key of their own, and reading the
 #     profile field off that key instead of naming it is a silent settings reset
 #     for everybody who already had a sound chosen.
-mutate("Options.lua",
+mutate("Options/Look.lua",
        """				set = function(_, value)
 					SND().file = value""",
        """				set = function(info, value)
@@ -930,7 +930,7 @@ mutate("Options.lua",
 #     it: "Remember a buff for: 120" and "Top up when under: 5" read as the same
 #     kind of number. Anchored on the slider's own name line: When to offer
 #     names it too, in the pointer to it, and that comes first in the file.
-mutate("Options.lua",
+mutate("Options/Advanced.lua",
        "\t\t\t\tname = L[\"Offer a buff back for (seconds)\"],\n",
        "\t\t\t\tname = L[\"Offer a buff back for\"],\n",
        "a time slider showing a bare number",
@@ -965,7 +965,7 @@ mutate("Core.lua",
 #     Might -- the one class whose automatic pick depends on who is standing
 #     there -- so a priest read an explanation of a paladin's spells, and with
 #     the walk shipped it does not describe even the paladin any more.
-mutate("Options.lua",
+mutate("Options/Who.lua",
        """	local text = L["Automatic may offer, in this order: %s. Each person gets the first one they are missing."]
 		:format(list)""",
        '	local text = "Automatic uses the first buff you have learned."',
@@ -975,7 +975,7 @@ mutate("Options.lua",
 
 # 38. three sources switched off, which is a prompt that can never appear and
 #     is indistinguishable from a broken addon.
-mutate("Options.lua",
+mutate("Options/Who.lua",
        "					return s.owed or s.group or s.asked or (s.strangers and not OnlyReachesGroup())",
        "					return true",
        "no warning for a queue that can never fill",
@@ -986,7 +986,7 @@ mutate("Options.lua",
 #     the only spell considered, so nobody is offered anything at all -- and it
 #     is deliberately not reset for you, because a failed spell probe must not
 #     rewrite a setting.
-mutate("Options.lua",
+mutate("Options/Who.lua",
        'hidden = function() return ns.PinnedBuff() == nil end,',
        "hidden = function() return true end,",
        "no warning for a pin that stops everything",
@@ -997,7 +997,7 @@ mutate("Options.lua",
 #      heard by your party, so the queue turns down everybody outside the group
 #      before the strangers toggle is ever read -- and a control that does
 #      nothing reads as a feature that is broken.
-mutate("Options.lua",
+mutate("Options/Who.lua",
        "				hidden = OnlyReachesGroup,\n",
        "",
        "a toggle offered to a class it cannot help",
@@ -1043,7 +1043,7 @@ mutate("Queue.lua",
 
 # 43. the errors the addon already caught, back to being invisible on the one
 #     page somebody opens when nothing is working.
-mutate("Options.lua",
+mutate("Options/Diagnostics.lua",
        "hidden = function() return #ns.errors == 0 end,",
        "hidden = function() return true end,",
        "caught errors kept off the page",
@@ -1053,7 +1053,7 @@ mutate("Options.lua",
 # 44. and the build number out of the block that exists to be pasted into a
 #     report -- the first question every report gets, asked of the one screen
 #     that could not answer it.
-mutate("Options.lua",
+mutate("Options/Diagnostics.lua",
        'local lines = { ("Manners %s"):format(tostring(ns.BUILD)) }',
        'local lines = { "Manners" }',
        "a bug report with no build number",
@@ -1065,7 +1065,7 @@ mutate("Options.lua",
 #     anything for the length of a fight.
 #     Anchored with the notice's own wording: the When you click tab has one
 #     of these as well now, and it comes first in the file.
-mutate("Options.lua",
+mutate("Options/Look.lua",
        "hidden = function() return not InCombatLockdown() end,\n"
        "\t\t\t\tname = \"|cffffd100\" .. L[\"In combat: changes here show once the fight ends.\"]",
        "hidden = function() return true end,\n"
@@ -1090,7 +1090,7 @@ mutate("Core.lua",
 #     position -- undone by dragging the prompt back -- had one; loading a
 #     phrase set, which overwrites a box somebody filled by hand with no undo
 #     anywhere in the addon, did not.
-mutate("Options.lua",
+mutate("Options/Say.lua",
        """				confirm = function(_, value)
 					return L["Replace everything in the box below with the %s lines?"]:format(
 						(ns.PHRASE_SETS[value] and ns.PHRASE_SETS[value].label)
@@ -1458,7 +1458,7 @@ mutate("Prompt.lua",
 
 # 75. the label that promised a per-player wait over a click that blocks one
 #     spell. The wording is the bug here, so the wording is what goes back.
-mutate("Options.lua",
+mutate("Options/Advanced.lua",
        'desc = L["In case the cast failed; right-clicking the prompt skips the person for this long."]',
        'desc = L["How long before the same player can come back up;'
        ' right-clicking the prompt skips the person for this long."]',
@@ -1477,7 +1477,7 @@ mutate("Prompt.lua",
        script="runscenarios.py")
 
 # 77. the one place the number really is per person, taken back off the page.
-mutate("Options.lua",
+mutate("Options/Advanced.lua",
        '; right-clicking the prompt skips the person for this long."]',
        '."]',
        "the per-person half left unmentioned",
@@ -1491,9 +1491,10 @@ mutate("Options.lua",
 #     slider. That setter no longer asks for a repaint at all -- the dialog
 #     redraws itself when the slider is let go -- so the check now sits on the
 #     one control that still repaints the page from a press: the bug report.
-mutate("Options.lua",
-       "\t\t\t\t\treportOpen = not reportOpen\n\t\t\t\t\tns.RefreshOptionsDisplay()",
-       "\t\t\t\t\treportOpen = not reportOpen\n\t\t\t\t\tAceConfigRegistry:NotifyChange(ADDON)",
+mutate("Options/Diagnostics.lua",
+       "\t\t\t\t\tPage.reportOpen = not Page.reportOpen\n\t\t\t\t\tns.RefreshOptionsDisplay()",
+       "\t\t\t\t\tPage.reportOpen = not Page.reportOpen\n"
+       "\t\t\t\t\tLibStub(\"AceConfigRegistry-3.0\", true):NotifyChange(\"Manners\")",
        "a control calling a library that may be absent",
        expect="opening the bug-report box threw",
        script="runscenarios.py")
@@ -1502,7 +1503,7 @@ mutate("Options.lua",
 #     -- AceConfig rejects the whole table for a function where it wants a
 #     number -- so the setter is the only place left to apply it, and it did
 #     not, under a notice claiming the icon was being held.
-mutate("Options.lua",
+mutate("Options/Look.lua",
        # Anchored on the comment that follows it: the height slider's setter is
        # the same three lines, sits earlier in the file, and would otherwise be
        # the one this replaced -- which is a mutation of a different check.
@@ -1514,7 +1515,7 @@ mutate("Options.lua",
 
 # 80. the description that named three reason colours out of four, leaving out
 #     the one most people see most often.
-mutate("Options.lua",
+mutate("Options/Look.lua",
        'or L["Pale blue for your own target, amber for a favour owed',
        'or L["Amber for a favour owed',
        "a reason colour the page never names",
@@ -1524,7 +1525,7 @@ mutate("Options.lua",
 # 81. and the setting that silently takes the ring away. Rounding the icon puts
 #     a mask where the ring was, so "Ring around the icon" -- the default --
 #     ends up over a prompt with no reason colour anywhere on it.
-mutate("Options.lua",
+mutate("Options/Look.lua",
        'local ring = (mode == "icon" or mode == "both") and p.showIcon and not p.roundIcon',
        'local ring = (mode == "icon" or mode == "both") and p.showIcon',
        "a ring the page believes in after it is gone",
@@ -1532,7 +1533,7 @@ mutate("Options.lua",
        script="runscenarios.py")
 
 # 82. the targeting switch offered to a class whose macro never takes a target.
-mutate("Options.lua",
+mutate("Options/Advanced.lua",
        "\t\t\t\thidden = function() return NeverTargets() or NoOthers() end,\n\t\t\t\tget = fGetMacro,",
        "\t\t\t\thidden = NoOthers,\n\t\t\t\tget = fGetMacro,",
        "handing back a target that is never taken",
@@ -1541,7 +1542,7 @@ mutate("Options.lua",
 
 # 83. "Hide in combat" over a panel that cannot be hidden. The call that read
 #     it was protected and refused every time it ran, and it is gone.
-mutate("Options.lua",
+mutate("Options/Look.lua",
        'name = L["Keep the prompt dim and still in combat"],',
        'name = L["Hide in combat"],',
        "a switch named for something it cannot do",
@@ -1558,7 +1559,7 @@ mutate("Prompt.lua",
        script="runscenarios.py")
 
 # 85. the source list that named three of the four unit tokens the scan walks.
-mutate("Options.lua",
+mutate("Options/Who.lua",
        'L["Seen through nameplates, your target, focus and mouseover."],',
        'L["Seen through nameplates, your target and mouseover."],',
        "a way of reaching somebody left off the page",
@@ -1567,7 +1568,7 @@ mutate("Options.lua",
 
 # 86. and the chat switch described as one line when it prints seven kinds --
 #     the useful ones being a click that failed or left somebody owed.
-mutate("Options.lua",
+mutate("Options/Start.lua",
        'desc = L["A line when somebody buffs you, when a favour is counted as repaid,'
        ' and when a click fails, is skipped, or leaves somebody owed."]',
        'desc = L["A line when somebody buffs you."]',
@@ -1578,7 +1579,7 @@ mutate("Options.lua",
 # 87. the grace window described as running from the moment we lose sight of
 #     somebody, which is a thing nothing in the addon can notice. It runs from
 #     their buff -- the one instant they were provably in range.
-mutate("Options.lua",
+mutate("Options/Advanced.lua",
        'desc = L["Counted from their buff, not from when they walked off."],',
        'desc = "How long a favour stays offerable once we can no longer see them.",',
        "a window timed from an event nothing sees",
@@ -1931,7 +1932,7 @@ mutate("Core.lua",
 # The page then blames the switches -- "every spell below is switched off" --
 # for a spell Automatic is holding back on purpose, which sends somebody to a
 # control that is already set the way they want it.
-mutate("Options.lua",
+mutate("Options/Who.lua",
        "\t\t\tif buff.neverAuto and ns.IsBuffKnown(buff) and not B().skip[buff.key] then",
        "\t\t\tif false then",
        "the page blaming the switches for a never-automatic spell",
@@ -1950,7 +1951,7 @@ mutate("Core.lua",
 
 # And the same finding kept off the options page, where far more people will see
 # it than will ever type a slash command.
-mutate("Options.lua",
+mutate("Options/Diagnostics.lua",
        """\t\t\t\t\t\tif info and info.unresolved and #info.unresolved > 0 then
 \t\t\t\t\t\t\tlocal missing = {}""",
        """\t\t\t\t\t\tif false then
@@ -2421,7 +2422,7 @@ mutate("Commands.lua",
 # The launcher's text back to a constant. On a broker bar that is the addon's
 # name written next to the addon's icon, and the only way left to ask what state
 # it is in is to click it -- which changes the answer.
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        '\tif not Enabled() then return L["%s |cffff8080off|r"]:format("Manners") end\n',
        '',
        "a launcher that never says which state it is in",
@@ -2430,7 +2431,7 @@ mutate("Options.lua",
 
 # And the other way it goes stale: the text is right when it is made and never
 # put back in step afterwards, so it describes whatever was true at login.
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "\tif broker.text ~= text then broker.text = text end",
        "\tlocal _ = text",
        "launcher text that is only ever right at login",
@@ -2440,7 +2441,7 @@ mutate("Options.lua",
 # The state taken back out of the tooltip. A broker display is free to show the
 # icon alone -- on the minimap that is the only shape it has -- and then the
 # tooltip is the last place that can say why no prompt has appeared all evening.
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        """		return false, L["Switched off -- no prompt will appear."], 1, 0.5, 0.5
 """,
        "",
@@ -2450,7 +2451,7 @@ mutate("Options.lua",
 
 # The minimap button's own click, which is the other way the switch is thrown
 # from outside the page it has a checkbox on.
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "\t-- on their own.\n\tns.RepaintOptions()\n",
        "\t-- on their own.\n",
        "the minimap click leaving the page stale",
@@ -2460,7 +2461,7 @@ mutate("Options.lua",
 # "Show minimap button" drawn on a client with no LibDBIcon. It writes a setting
 # nothing reads and calls Show on a button that was never registered: a control
 # that ticks, saves, and does nothing whatever.
-mutate("Options.lua",
+mutate("Options/Start.lua",
        """				-- button for a greyed-out control to be about.
 				hidden = function() return not HasMinimapButton() end,
 """,
@@ -2472,7 +2473,7 @@ mutate("Options.lua",
 # A heading with nothing under it. The Minimap header this was written for is
 # gone; options-headers.lua holds every header on the page to the same rule,
 # and a class with nothing to cast is where the Snooze heading would be alone.
-mutate("Options.lua",
+mutate("Options/Start.lua",
        """				type = "header", name = L["Snooze"], order = 50,
 				hidden = noPrompt,
 """,
@@ -2484,7 +2485,7 @@ mutate("Options.lua",
 
 # And the same control hidden always, which satisfies everything the absence
 # scenario asks for while quietly taking the minimap button off everybody's page.
-mutate("Options.lua",
+mutate("Options/Start.lua",
        """				-- button for a greyed-out control to be about.
 				hidden = function() return not HasMinimapButton() end,""",
        """				-- button for a greyed-out control to be about.
@@ -2554,7 +2555,7 @@ mutate("Commands.lua",
 
 # The same wording in the block somebody pastes into a bug report, where the
 # person reading it cannot ask which of the two numbers it is.
-mutate("Options.lua",
+mutate("Options/Diagnostics.lua",
        "\t\t\t:format(ns.errorCount or #ns.errors, #ns.errors)",
        "\t\t\t:format(#ns.errors, #ns.errors)",
        "a bug report counting what survived the ring",
@@ -2948,7 +2949,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # An emptied phrase box kept as typed, and refilled later by a size slider.
-mutate("Options.lua",
+mutate("Options/Say.lua",
        "\t\t\t\t\tif type(value) ~= \"string\" or value:match(\"^%s*$\") then\n",
        "\t\t\t\t\tif false then\n",
        "an emptied phrase box kept empty",
@@ -3052,7 +3053,7 @@ mutate("Commands.lua",
        script="runscenarios.py")
 
 # The When you click tab saying nothing in a fight.
-mutate("Options.lua",
+mutate("Options/Say.lua",
        "\t\t\t-- fight ends, and until then a press runs the old one.\n"
        "\t\t\tcombatNotice = {\n"
        "\t\t\t\ttype = \"description\",\n"
@@ -3298,7 +3299,7 @@ mutate("Prompt.lua",
        script="runscenarios.py")
 
 # The options page's button still offering it.
-mutate("Options.lua",
+mutate("Options/Look.lua",
        "\t\t\t\t\treturn InCombatLockdown() and not ns.Prompt:InTest()\n",
        "\t\t\t\t\treturn false\n",
        "the page offering Preview in a fight",
@@ -3394,7 +3395,7 @@ mutate("Prompt.lua",
 
 # The Settings page asked whether it is shown rather than visible, so it reads
 # as open after the window is shut and a preview started there never ends.
-mutate("Options.lua",
+mutate("Options/Register.lua",
        "\t\tlocal ok, visible = pcall(function() return blizCategory:IsVisible() end)\n",
        "\t\tlocal ok, visible = pcall(function() return blizCategory:IsShown() end)\n",
        "Settings page asked IsShown",
@@ -3402,7 +3403,7 @@ mutate("Options.lua",
        script="runscenarios.py")
 
 # The Settings fallback asking for the canvas frame's own ID, which is 0.
-mutate("Options.lua",
+mutate("Options/Register.lua",
        "\t\tpcall(Settings.OpenToCategory, blizCategoryID)\n",
        "\t\tpcall(Settings.OpenToCategory, blizCategory:GetID())\n",
        "Settings fallback by the frame's ID",
@@ -3410,23 +3411,23 @@ mutate("Options.lua",
        script="runscenarios.py")
 
 # The report box left open when the standalone window is opened again...
-mutate("Options.lua",
-       "\tif not ns.OptionsOpen() then reportOpen = false end\n",
+mutate("Options/Register.lua",
+       "\tif not ns.OptionsOpen() then Page.reportOpen = false end\n",
        "",
        "report box survives reopening the window",
        expect="reopening the window with /manners, the report box is still open",
        script="runscenarios.py")
 
 # ...and when the Settings page is.
-mutate("Options.lua",
-       "\t\tblizCategory:HookScript(\"OnHide\", function() reportOpen = false end)\n",
+mutate("Options/Register.lua",
+       "\t\tblizCategory:HookScript(\"OnHide\", function() Page.reportOpen = false end)\n",
        "",
        "report box survives the Settings page",
        expect="reopening the Settings window on the page, the report box is still open",
        script="runscenarios.py")
 
 # Height shrinking the icon without asking for a repaint...
-mutate("Options.lua",
+mutate("Options/Look.lua",
        "\t\t\t\t\tif P().iconSize ~= icon then RepaintSoon() end\n"
        "\t\t\t\tend,\n\t\t\t},\n\n\t\t\tstyleHeader = {",
        "\t\t\t\tend,\n\t\t\t},\n\n\t\t\tstyleHeader = {",
@@ -3435,7 +3436,7 @@ mutate("Options.lua",
        script="runscenarios.py")
 
 # ...and Width the same.
-mutate("Options.lua",
+mutate("Options/Look.lua",
        "\t\t\t\t\tif P().iconSize ~= icon then RepaintSoon() end\n"
        "\t\t\t\tend,\n\t\t\t},\n\t\t\theight = {",
        "\t\t\t\tend,\n\t\t\t},\n\t\t\theight = {",
@@ -3444,7 +3445,7 @@ mutate("Options.lua",
        script="runscenarios.py")
 
 # ...or asking for one on every tick of a drag.
-mutate("Options.lua",
+mutate("Options/Look.lua",
        "\t\tif mine == repaintToken and ns.RefreshOptionsDisplay then\n",
        "\t\tif ns.RefreshOptionsDisplay then\n",
        "width and height repaint on every tick",
@@ -3463,7 +3464,7 @@ mutate("Prompt.lua",
        script="runscenarios.py")
 
 # The target switch silent about Always offer...
-mutate("Options.lua",
+mutate("Options/Who.lua",
        "\t\t\t\t\tif F().whenBuffed == \"always\" then\n"
        "\t\t\t\t\t\ttext = text .. \"\\n\\n\"\n",
        "\t\t\t\t\tif false then\n"
@@ -3474,7 +3475,7 @@ mutate("Options.lua",
 
 # ...the switch dropping the condition Always offer never meets. (The
 # pale-blue colour's own sentence about it went with the Look redesign.)
-mutate("Options.lua",
+mutate("Options/Who.lua",
        "L[\"Your target goes ahead of everyone when the game can see they lack the buff.\"]",
        "L[\"Your target goes ahead of everyone.\"]",
        "reason colour silent about Always offer",
@@ -3482,7 +3483,7 @@ mutate("Options.lua",
        script="runscenarios.py")
 
 # ...and the note under Always offer itself.
-mutate("Options.lua",
+mutate("Options/When.lua",
        "even with a fresh buff.\"]\n"
        "\t\t\t\t\t\t.. \"|r\\n\\n|cff888888\"\n"
        "\t\t\t\t\t\t.. L[\"%s does nothing in this mode.\"]:format(Ref(L[\"My target first\"], TAB.who))\n"
@@ -3495,7 +3496,7 @@ mutate("Options.lua",
 
 # "Offer a buff back for" with the switch that ends it sooner moved away from
 # it. It used to name the switch; now the switch is the next control down.
-mutate("Options.lua",
+mutate("Options/Advanced.lua",
        "\t\t\t\tname = L[\"Stop sooner if they are probably gone\"],\n"
        "\t\t\t\tdesc = L[\"Someone who buffed you rarely can be range-checked, so they are let go after the time below.\"],\n"
        "\t\t\t\torder = 13,\n",
@@ -3507,7 +3508,7 @@ mutate("Options.lua",
        script="runscenarios.py")
 
 # "People who buffed me" promising a warrior strangers.
-mutate("Options.lua",
+mutate("Options/Who.lua",
        "\t\t\t\t\tif OnlyReachesGroup() then\n"
        "\t\t\t\t\t\tif ns.PARTY_IS_SUBGROUP then\n",
        "\t\t\t\t\tif false then\n"
@@ -3519,7 +3520,7 @@ mutate("Options.lua",
        script="runscenarios.py")
 
 # "(mana users only)" with the filter that makes it true switched off.
-mutate("Options.lua",
+mutate("Options/Who.lua",
        "\tif buff.manaOnly and F().relevantOnly then\n",
        "\tif buff.manaOnly then\n",
        "mana users only ignores its filter",
@@ -3527,7 +3528,7 @@ mutate("Options.lua",
        script="runscenarios.py")
 
 # "Every spell below is switched off" over unlearned spells still ticked.
-mutate("Options.lua",
+mutate("Options/Who.lua",
        "\t\t\tif not buff.neverAuto and not ns.IsBuffKnown(buff) and not B().skip[buff.key] then\n",
        "\t\t\tif false then\n",
        "every spell off over ticked unlearned ones",
@@ -3535,7 +3536,7 @@ mutate("Options.lua",
        script="runscenarios.py")
 
 # "If they already have the buff" silent about the favour exception...
-mutate("Options.lua",
+mutate("Options/When.lua",
        "L[\"Someone who buffed you is always offered a buff back; Diagnostics shows"
        " which buffs Manners can see on others.\"]\n",
        "L[\"Diagnostics shows which buffs Manners can see on others.\"]\n",
@@ -3544,7 +3545,7 @@ mutate("Options.lua",
        script="runscenarios.py")
 
 # ...and the top-up slider the same.
-mutate("Options.lua",
+mutate("Options/When.lua",
        "is not offered a top-up, unless they buffed you.\"],\n",
        "is not offered a top-up.\"],\n",
        "top-up slider hides the favour exception",
@@ -3553,7 +3554,7 @@ mutate("Options.lua",
 
 # The paladin note promising "left alone" under Always offer, which does not
 # look at what they carry...
-mutate("Options.lua",
+mutate("Options/Who.lua",
        "\t\tif F().whenBuffed == \"always\" then\n",
        "\t\tif false then\n",
        "paladin note silent about Always offer",
@@ -3561,7 +3562,7 @@ mutate("Options.lua",
        script="runscenarios.py")
 
 # ...and on a client that will not show their blessings.
-mutate("Options.lua",
+mutate("Options/Who.lua",
        "\t\t\tif not (info and info.readable) then hidden = true end\n",
        "",
        "paladin note silent about hidden blessings",
@@ -3570,7 +3571,7 @@ mutate("Options.lua",
 
 # The chat switch promising a line for every click, when a cast that worked
 # prints nothing unless it repaid a favour...
-mutate("Options.lua",
+mutate("Options/Start.lua",
        'desc = L["A line when somebody buffs you, when a favour is counted as repaid,'
        ' and when a click fails, is skipped, or leaves somebody owed."]',
        'desc = L["A line when somebody buffs you, and a line for what each click turned'
@@ -3591,7 +3592,7 @@ mutate("Commands.lua",
 
 # Diagnostics saying "never offer" about a spell whose group id alone is
 # missing, while the queue offers it.
-mutate("Options.lua",
+mutate("Options/Diagnostics.lua",
        "\t\t\t\t\t\t\tif not info.known and not rankResolves then\n",
        "\t\t\t\t\t\t\tif true then\n",
        "diagnostics says never offer for a group id",
@@ -3599,7 +3600,7 @@ mutate("Options.lua",
        script="runscenarios.py")
 
 # The minimap tooltip saying "Watching" for a character with nothing learned...
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "\telseif not ns.ResolveBuff(true) then\n",
        "\telseif false then\n",
        "tooltip watching with nothing learned",
@@ -3607,7 +3608,7 @@ mutate("Options.lua",
        script="runscenarios.py")
 
 # ...and for a class with nothing to give.
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "\telseif class and ns.CLASSES_WITHOUT_BUFFS and ns.CLASSES_WITHOUT_BUFFS[class] then\n",
        "\telseif false then\n",
        "tooltip silent about a class with no buffs",
@@ -3615,7 +3616,7 @@ mutate("Options.lua",
        script="runscenarios.py")
 
 # "Stay quiet in combat" claiming the prompt cannot be hidden.
-mutate("Options.lua",
+mutate("Options/Look.lua",
        "L[\"It stays on screen in combat because your key binding would still cast;",
        "L[\"It cannot be hidden in combat because Blizzard freezes secure frames;",
        "quiet-in-combat says it cannot be hidden",
@@ -3623,7 +3624,7 @@ mutate("Options.lua",
        script="runscenarios.py")
 
 # "Stay quiet in combat" promising a green flash nothing paints.
-mutate("Options.lua",
+mutate("Options/Look.lua",
        " say what a click did, red if it failed.\"]",
        " say what a click did, green or red.\"]",
        "quiet-in-combat promises a green flash",
@@ -3641,7 +3642,7 @@ mutate("Commands.lua",
        script="runscenarios.py")
 
 # The same path on Start here, in the Open key bindings button's tooltip.
-mutate("Options.lua",
+mutate("Options/Start.lua",
        "Opens Options > Keybindings > Manners, the game's own key bindings.\"]",
        "Opens Game Menu > Key Bindings > Manners, the game's own key bindings.\"]",
        "How this works names the Game Menu key bindings",
@@ -3657,7 +3658,7 @@ mutate("Bindings.xml",
        script="runscenarios.py")
 
 # The minimap button back on a Blizzard icon while the logo ships unused.
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "local ICON = \"Interface\\\\AddOns\\\\Manners\\\\Textures\\\\Manners64\"",
        "local ICON = \"Interface\\\\Icons\\\\Spell_Holy_MagicalSentry\"",
        "minimap button on a Blizzard icon",
@@ -3859,7 +3860,7 @@ mutate("Favours.lua",
        script="runscenarios.py")
 
 # The warrior's owed toggle saying the same.
-mutate("Options.lua",
+mutate("Options/Who.lua",
        "\t\t\t\t\t\tif ns.PARTY_IS_SUBGROUP then\n",
        "\t\t\t\t\t\tif false then\n",
        "owed toggle says group, not subgroup",

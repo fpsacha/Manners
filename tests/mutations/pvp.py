@@ -129,7 +129,7 @@ mutate("Queue.lua",
        "pvp: a countdown not recorded",
        expect="does not say your flag running out keeps the rule standing", script=S)
 
-mutate("Options.lua",
+mutate("Options/Who.lua",
        ", but not while your own flag is running out.\"],",
        ".\"],",
        "pvp: the tooltip leaves the countdown out",
@@ -414,7 +414,7 @@ mutate("Core.lua",
        "pvp: not repaired",
        expect="a saved skipPvP of yes came back as", script=S)
 
-mutate("Options.lua",
+mutate("Options/Who.lua",
        "own flag is running out.\"],\n\t\t\t\torder = 43,\n",
        "own flag is running out.\"],\n\t\t\t\torder = 53,\n",
        "pvp: the switch out of place",
@@ -428,7 +428,7 @@ mutate("Commands.lua",
        "pvp: /manners debug silent",
        expect="/manners debug does not say who is held back for PvP", script=S)
 
-mutate("Options.lua",
+mutate("Options/Diagnostics.lua",
        "\t\t\t\thidden = function() return #ns.PvPLines(true) == 0 end,\n",
        "\t\t\t\thidden = function() return true end,\n",
        "pvp: Diagnostics silent",

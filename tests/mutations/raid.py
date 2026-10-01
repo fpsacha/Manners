@@ -212,7 +212,7 @@ mutate("Queue.lua",
        script="runscenarios.py")
 
 # The page's checkbox writing the wrong way round.
-mutate("Options.lua",
+mutate("Options/Who.lua",
        "\t\t\t\t\tF().skipRaidGroups[group] = (not on) or nil\n",
        "\t\t\t\t\tF().skipRaidGroups[group] = on or nil\n",
        "raid group checkbox inverted",
@@ -363,7 +363,7 @@ mutate("Prompt.lua",
        script="runscenarios.py")
 
 # The page shows the slider to a warrior.
-mutate("Options.lua",
+mutate("Options/When.lua",
        "\t\treturn (class ~= nil and ns.MANA_CLASSES[class] ~= true) or not HasClassBuffs()\n",
        "\t\treturn not HasClassBuffs()\n",
        "mana floor on a warrior's page",

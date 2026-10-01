@@ -198,7 +198,7 @@ size it is actually seen.
 It also writes `Textures/Manners64.tga`, which lives outside this folder because
 it is the one thing these tools make that ships in the zip: the
 game cannot load a PNG, and this is the icon in the addon list (`IconTexture` in
-`Manners.toc`) and on the minimap button (`ICON` in `Options.lua`).
+`Manners.toc`) and on the minimap button (`ICON` in `Options/Launcher.lua`).
 
 Drawn to sit next to real WoW spell icons: bevelled gold frame lit from the
 top-left, dark saturated interior, one glowing subject, plenty of bloom.
@@ -364,7 +364,7 @@ function's upvalue count and the deepest overlap of its locals' live ranges
 straight from the compiler's own bookkeeping.
 
 ```
-python tools/lua51_limits.py Core.lua Queue.lua Prompt.lua Options.lua   # the twenty tightest
+python tools/lua51_limits.py Core.lua Queue.lua Prompt.lua Options/*.lua   # the twenty tightest
 ```
 
 `tests/validate.py` uses it to fail any function in a shipped file over 55

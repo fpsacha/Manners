@@ -8650,7 +8650,9 @@ do
 	for _, file in ipairs({ "Locales/Init.lua", "Buffs.lua", "Core.lua", "Range.lua",
 		"Speech.lua", "Queue.lua", "Requests.lua", "Favours.lua", "Clicks.lua",
 		"Commands.lua", "Ledger.lua", "Looks/Looks.lua", "Looks/Luxe.lua", "Prompt.lua",
-		"Options.lua" }) do
+		"Options/Shared.lua", "Options/Launcher.lua", "Options/Start.lua", "Options/Who.lua",
+		"Options/When.lua", "Options/Say.lua", "Options/Look.lua", "Options/Advanced.lua",
+		"Options/Diagnostics.lua", "Options/Profiles.lua", "Options/Register.lua" }) do
 		local chunk, err = loadfile(dir .. "/" .. file)
 		if not chunk then
 			fail(scenario, "load " .. file .. ": " .. tostring(err))

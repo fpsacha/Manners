@@ -86,7 +86,7 @@ mutate("Ledger.lua",
        "\t\treturn now - 86400\n",
        "ledger: today is the last 24 hours",
        expect="the ledger summary counts are right", script=S)
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "if ns.Ledger then ns.Guard(\"ledger tooltip\", ns.Ledger.AddTooltip, tooltip) end",
        "",
        "ledger: the minimap tooltip has no summary",
@@ -167,7 +167,7 @@ mutate("Ledger.lua",
        expect="the ledger opens clear of the prompt", script=S)
 
 # The General tab's button shuts the options window the ledger would sit under.
-mutate("Options.lua",
+mutate("Options/Start.lua",
        "\t\t\t\t\tns.CloseOptions()\n",
        "",
        "ledger: opens under the options window",

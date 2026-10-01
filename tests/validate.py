@@ -465,16 +465,17 @@ print("\n== AceConfig schema ==")
 NUMBER_ONLY = ["min", "softMin", "max", "softMax", "step", "bigStep",
                "relWidth", "imageHeight", "imageWidth"]
 
-opts = open(os.path.join(ROOT, "Options.lua"), encoding="utf-8").read()
 bad = 0
-for key in NUMBER_ONLY:
-    for m in re.finditer(r"(?<![\w.])" + key + r"\s*=\s*function\b", opts):
-        line = opts.count("\n", 0, m.start()) + 1
-        print("  Options.lua:%d  %s takes a number, not a function -- this "
-              "fails ValidateOptionsTable and the whole page stops drawing"
-              % (line, key))
-        bad += 1
-        fail += 1
+for opts_file in sorted(glob.glob(os.path.join(ROOT, "Options", "*.lua"))):
+    opts = open(opts_file, encoding="utf-8").read()
+    for key in NUMBER_ONLY:
+        for m in re.finditer(r"(?<![\w.])" + key + r"\s*=\s*function\b", opts):
+            line = opts.count("\n", 0, m.start()) + 1
+            print("  Options/%s:%d  %s takes a number, not a function -- this "
+                  "fails ValidateOptionsTable and the whole page stops drawing"
+                  % (os.path.basename(opts_file), line, key))
+            bad += 1
+            fail += 1
 if not bad:
     print("  ok  no function given where AceConfig wants a number (%d keys checked)"
           % len(NUMBER_ONLY))

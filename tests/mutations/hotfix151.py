@@ -12,7 +12,7 @@ mutate("Phrases.lua",
        script=S)
 
 # The note without the number.
-mutate("Options.lua",
+mutate("Options/Say.lua",
        "\t\t\t\t\t\t:format(ns.InCharacter.Count()) .. \"|r\\n\"\n",
        "\t\t\t\t\t\t:format(8) .. \"|r\\n\"\n",
        "hotfix151: the note does not name the count",

@@ -469,14 +469,14 @@ mutate(TOAST,
        script="runscenarios.py")
 
 # The options page and the icon size the look ignores.
-mutate("Options.lua",
+mutate("Options/Look.lua",
        "disabled = function() return not P().showIcon or LookIconSize() ~= nil end,",
        "disabled = function() return not P().showIcon end,",
        "the icon slider live on Toast",
        expect="the icon size slider is live",
        script="runscenarios.py")
 
-mutate("Options.lua",
+mutate("Options/Look.lua",
        "\t\t\t\t\tif LookIconSize() then return not p.showIcon end\n",
        "",
        "nothing says how Toast sizes its icon",

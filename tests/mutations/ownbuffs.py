@@ -327,85 +327,85 @@ mutate("Prompt.lua",
 
 # --- the options (Options.lua) ---
 
-mutate("Options.lua",
+mutate("Options/Who.lua",
        "\t\t\t\t\t\tif known == family then return false end\n",
        "\t\t\t\t\t\tdo return false end\n",
        "own: every class's families shown",
        expect="is shown to a mage", script=S)
 
-mutate("Options.lua",
+mutate("Options/Who.lua",
        "\t\t\t\t\t\tif ns.OwnSpellKnown(spell) then\n\t\t\t\t\t\t\tvalues[spell.key]",
        "\t\t\t\t\t\tif true then\n\t\t\t\t\t\t\tvalues[spell.key]",
        "own: spells not learned offered",
        expect="Mage Armor is a choice for a mage who has not learned it", script=S)
 
-mutate("Options.lua",
+mutate("Options/Who.lua",
        "\tif why == \"last\" then return L[\"Automatic (%s, the one you had up last)\"]:format(name) end\n",
        "",
        "own: Automatic does not say it is the last one",
        expect="Automatic reads", script=S)
 
-mutate("Options.lua",
+mutate("Options/Who.lua",
        "\tif why == \"world\" then return L[\"Automatic (%s, outside dungeons and raids)\"]:format(name) end\n",
        "",
        "own: Automatic does not say outside dungeons",
        expect="Automatic reads", script=S)
 
-mutate("Options.lua",
+mutate("Options/Who.lua",
        "\t\t\tif #family.spells > 1 or family.tank then\n",
        "\t\t\tif true then\n",
        "own: a spell alone as a dropdown",
        expect="a priest's Inner Fire is not a checkbox", script=S)
 
-mutate("Options.lua",
+mutate("Options/Who.lua",
        "\t\t\tif #family.spells > 1 or family.tank then\n",
        "\t\t\tif #family.spells > 1 then\n",
        "own: Righteous Fury as a checkbox",
        expect="Righteous Fury's choices read", script=S)
 
-mutate("Options.lua",
+mutate("Options/Who.lua",
        "\t\t\t\tdisabled = function() return not S().self end,\n\t\t\t}\n",
        "\t\t\t\tdisabled = function() return false end,\n\t\t\t}\n",
        "own: live with Myself off",
        expect="the armor dropdown stays live with Myself off", script=S)
 
-mutate("Options.lua",
+mutate("Options/Who.lua",
        "\t\t\t\tif not HasClassBuffs() then return true end\n\t\t\t\tif type(was) == \"function\" then",
        "\t\t\t\tif type(was) == \"function\" then",
        "own: a hunter shown everybody else's settings",
        expect="is shown to a hunter", script=S)
 
-mutate("Options.lua",
+mutate("Options/Who.lua",
        "(ForOthersOnly).\n\t\thidden = function() return not HasPrompt() end,\n",
        "(ForOthersOnly).\n\t\thidden = function() return not HasClassBuffs() end,\n",
        "own: Who to buff hidden from a hunter",
        expect="Who to buff is hidden from a hunter", script=S)
 
-mutate("Options.lua",
+mutate("Options/Start.lua",
        "\tlocal function noPrompt() return not HasPrompt() end\n",
        "\tlocal function noPrompt() return not HasClassBuffs() end\n",
        "own: Start here hides a hunter's prompt",
        expect="Start here hides a hunter's prompt steps", script=S)
 
-mutate("Options.lua",
+mutate("Options/Start.lua",
        "\t\t\t\t\tif not HasClassBuffs() then return grey(Quick.OwnOnlySummary()) end\n",
        "",
        "own: Start here tells a hunter about other people",
        expect="Start here tells a hunter", script=S)
 
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "\tlocal ownOnly = ns.OwnBuffsOnly()\n",
        "\tlocal ownOnly = false\n",
        "own: the launcher tells a hunter there is nothing",
        expect="the launcher tells a hunter", script=S)
 
-mutate("Options.lua",
+mutate("Options/Who.lua",
        "\t\t\t\t\tns.db.profile.ownBuffs.inCities = value\n",
        "",
        "own: Also in cities and inns not written",
        expect="with Also in cities and inns ticked, in a city you were offered", script=S)
 
-mutate("Options.lua",
+mutate("Options/Diagnostics.lua",
        "\t\t\t\thidden = function() return #ns.MyselfLines(GetTime()) == 0 end,\n",
        "\t\t\t\thidden = function() return true end,\n",
        "own: Diagnostics silent",
@@ -505,13 +505,13 @@ mutate("Queue.lua",
 
 # The launcher, the login line and the greeting saying nothing is offered
 # while the prompt is up on your own buff.
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "\telseif ownOnly or (ns.OwnBuffsLive() and not ns.ResolveBuff(true)) then\n",
        "\telseif ownOnly then\n",
        "own: the launcher says nothing to a warlock with Demon Skin",
        expect="the launcher tells a warlock with only Demon Skin", script=S)
 
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "\t\tif ownOnly then return true, L[\"Watching your own buffs.\"], 0.4, 0.9, 0.4 end\n",
        "\t\tif true then return true, L[\"Watching your own buffs.\"], 0.4, 0.9, 0.4 end\n",
        "own: the launcher does not say others get nothing",
@@ -690,19 +690,19 @@ mutate("Core.lua",
 
 # Myself's heading and Also in cities and inns shown to a warrior, and the
 # latter live with Myself off.
-mutate("Options.lua",
+mutate("Options/Who.lua",
        "order = 15, hidden = NothingForSelf },",
        "order = 15 },",
        "own: Myself's heading shown to a warrior",
        expect="myselfHeader is shown to a warrior", script=S)
 
-mutate("Options.lua",
+mutate("Options/Who.lua",
        "\t\t\t\torder = 15.9,\n\t\t\t\twidth = \"full\",\n\t\t\t\thidden = NothingForSelf,\n",
        "\t\t\t\torder = 15.9,\n\t\t\t\twidth = \"full\",\n",
        "own: Also in cities and inns shown to a warrior",
        expect="ownCities is shown to a warrior", script=S)
 
-mutate("Options.lua",
+mutate("Options/Who.lua",
        "\t\t\t\tdisabled = function() return not S().self end,\n"
        "\t\t\t\tget = function() return ns.db.profile.ownBuffs.inCities == true end,\n",
        "\t\t\t\tget = function() return ns.db.profile.ownBuffs.inCities == true end,\n",
@@ -710,31 +710,31 @@ mutate("Options.lua",
        expect="Also in cities and inns stays live with Myself off", script=S)
 
 # When to offer for a hunter: there, and only what is about him.
-mutate("Options.lua",
+mutate("Options/When.lua",
        "topped up from here.\n\t\thidden = function() return not HasPrompt() end,\n",
        "topped up from here.\n\t\thidden = function() return not HasClassBuffs() end,\n",
        "own: When to offer hidden from a hunter",
        expect="When to offer is hidden from a hunter", script=S)
 
-mutate("Options.lua",
+mutate("Options/When.lua",
        "\t\treturn (class ~= nil and ns.MANA_CLASSES[class] ~= true) or not HasClassBuffs()\n",
        "\t\treturn (class ~= nil and ns.MANA_CLASSES[class] ~= true)\n",
        "own: a hunter shown the mana floor",
        expect="manaFloor is shown to a hunter", script=S)
 
-mutate("Options.lua",
+mutate("Options/When.lua",
        "order = 20,\n\t\t\t\thidden = function() return not S().owed or not HasClassBuffs() end,\n",
        "order = 20,\n\t\t\t\thidden = function() return not S().owed end,\n",
        "own: a hunter shown the favours",
        expect="favoursHeader is shown to a hunter", script=S)
 
-mutate("Options.lua",
+mutate("Options/When.lua",
        "F().whenBuffed ~= \"always\" or not HasClassBuffs() end,\n",
        "F().whenBuffed ~= \"always\" end,\n",
        "own: a hunter shown the always note",
        expect="alwaysNote is shown to a hunter", script=S)
 
-mutate("Options.lua",
+mutate("Options/When.lua",
        "\t\t\t\t\tif not HasClassBuffs() then\n\t\t\t\t\t\treturn L[\"Your own buffs are offered when none",
        "\t\t\t\t\tif false then\n\t\t\t\t\t\treturn L[\"Your own buffs are offered when none",
        "own: a hunter told about favours on When to offer",

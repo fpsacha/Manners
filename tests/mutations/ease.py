@@ -60,7 +60,7 @@ mutate("Prompt.lua",
        script="runscenarios.py")
 
 # The launcher's text knowing nothing about a snooze.
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "\tif ends then return L[\"%s |cffffd100snoozed until %s|r\"]:format(\"Manners\", ends) end\n",
        "",
        "a launcher that never mentions the snooze",
@@ -122,21 +122,21 @@ mutate("Queue.lua",
 
 # ------------------------------------------------------------------ minimap
 
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "\tif mouseButton == \"RightButton\" and OpenLauncherMenu(owner, later) then return end\n",
        "",
        "a right-click that opens no menu",
        expect="ease: the minimap right-click opens a menu",
        script="runscenarios.py")
 
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "\tfor _, minutes in ipairs(MENU_SNOOZE_MINUTES) do\n",
        "\tfor _, minutes in ipairs({}) do\n",
        "a menu with no snooze in it",
        expect="the menu is missing entries",
        script="runscenarios.py")
 
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "\tif HasLauncherMenu() then\n",
        "\t\t\t\tif false then\n",
        "a tooltip that does not mention the menu",
@@ -331,15 +331,15 @@ mutate("Commands.lua",
        expect="outside what the page allows survived",
        script="runscenarios.py")
 
-mutate("Options.lua",
-       "\tif which == \"export\" then shareOpen = true end\n",
+mutate("Options/Register.lua",
+       "\tif which == \"export\" then Page.shareOpen = true end\n",
        "",
        "/manners export with the box shut",
        expect="left the box with the settings in it shut",
        script="runscenarios.py")
 
 # The game cannot copy, so a button that says it does is a promise broken.
-mutate("Options.lua",
+mutate("Options/Profiles.lua",
        "or L[\"Show my settings as text\"]\n",
        "or L[\"Copy my settings\"]\n",
        "a button that says it copies",

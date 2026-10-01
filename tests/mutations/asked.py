@@ -339,7 +339,7 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # The page saying the prompt will never appear with requests switched on.
-mutate("Options.lua",
+mutate("Options/Who.lua",
        "\t\t\t\t\treturn s.owed or s.group or s.asked or (s.strangers and not OnlyReachesGroup())\n",
        "\t\t\t\t\treturn s.owed or s.group or (s.strangers and not OnlyReachesGroup())\n",
        "requests not counted as a source",
@@ -347,7 +347,7 @@ mutate("Options.lua",
        script="runscenarios.py")
 
 # The launcher calling somebody who asked a passer-by.
-mutate("Options.lua",
+mutate("Options/Launcher.lua",
        "\tif reason == \"asked\" then return asked end\n",
        "",
        "the launcher reads a request as nearby",
