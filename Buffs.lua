@@ -233,6 +233,34 @@ local VANILLA = {
 -- Vanilla content only: Burning Crusade gave most of these families a member
 -- this table does not have (Molten and Fel Armor, Earth Shield, Aspect of the
 -- Viper, Crusader Aura), so the tbc set below leaves it out.
+-- The level each rank of the buffs above is learned at (vanilla trainers), for
+-- "skip my own class when they can cast it too": somebody of your class at or
+-- past the level of your best rank could give themselves the same, and one
+-- below it gets yours, which is better. Talent buffs and shouts are never
+-- skipped that way, so they are not here; a rank missing here counts as
+-- learned at level 1.
+ns.RANK_LEVEL = {
+	-- Arcane Intellect
+	[1459] = 1, [1460] = 14, [1461] = 28, [10156] = 42, [10157] = 56,
+	-- Power Word: Fortitude
+	[1243] = 1, [1244] = 12, [1245] = 24, [2791] = 36, [10937] = 48, [10938] = 60,
+	-- Shadow Protection
+	[976] = 30, [10957] = 42, [10958] = 56,
+	-- Mark of the Wild
+	[1126] = 1, [5232] = 10, [6756] = 20, [5234] = 30, [8907] = 40, [9884] = 50, [9885] = 60,
+	-- Thorns
+	[467] = 6, [782] = 14, [1075] = 24, [8914] = 34, [9756] = 44, [9910] = 54,
+	-- Blessing of Wisdom
+	[19742] = 14, [19850] = 24, [19852] = 34, [19853] = 44, [19854] = 54, [25290] = 60,
+	-- Blessing of Might
+	[19740] = 4, [19834] = 12, [19835] = 22, [19836] = 32, [19837] = 42, [19838] = 52, [25291] = 60,
+	-- Blessing of Salvation, Blessing of Light, Unending Breath
+	[1038] = 26, [19977] = 40, [19978] = 50, [19979] = 60, [5697] = 16,
+}
+function ns.RankLevel(id)
+	return id and ns.RANK_LEVEL[id] or nil
+end
+
 local VANILLA_OWN = {
 	MAGE = {
 		{
@@ -347,6 +375,40 @@ local VANILLA_OWN = {
 	-- WARRIOR and ROGUE: nothing of their own that is a buff. Poisons and a
 	-- shaman's weapon imbues are weapon enchants, not auras.
 }
+
+-- Tracking, for every class: Find Herbs and Find Minerals come with a
+-- profession, not a class, and drop when you die like a buff ("when I die I
+-- often forget to put it on", a player on CurseForge). On this client it is
+-- not an aura but the minimap's tracking list (Core.lua, TrackingList), as
+-- EnhanceQoL's Forever build reads it; a spell missing from that list is never
+-- known, so a wrong id here can only cost the reminder. The gathering ids are
+-- EnhanceQoL's, each with the second id Forever also uses. One table shared by
+-- every class's list, so the memory of the one you had on is one memory.
+local TRACKING = {
+	key = "tracking",
+	label = L["Tracking"],
+	tracking = true,
+	toggle = true,
+	spells = {
+		{ key = "findherbs", ranks = { 2383, 8387 } },
+		{ key = "findminerals", ranks = { 2580, 8388 } },
+		{ key = "findtreasure", ranks = { 2481 } },
+		{ key = "trackbeasts", ranks = { 1494 } },
+		{ key = "trackhumanoids", ranks = { 19883, 5225 } },
+		{ key = "trackundead", ranks = { 19884 } },
+		{ key = "trackhidden", ranks = { 19885 } },
+		{ key = "trackelementals", ranks = { 19880 } },
+		{ key = "trackdemons", ranks = { 19878 } },
+		{ key = "trackgiants", ranks = { 19882 } },
+		{ key = "trackdragonkin", ranks = { 19879 } },
+		{ key = "senseundead", ranks = { 5502 } },
+		{ key = "sensedemons", ranks = { 5500 } },
+	},
+}
+for _, class in ipairs({ "MAGE", "PRIEST", "WARLOCK", "PALADIN", "HUNTER", "SHAMAN", "DRUID", "WARRIOR", "ROGUE" }) do
+	VANILLA_OWN[class] = VANILLA_OWN[class] or {}
+	table.insert(VANILLA_OWN[class], TRACKING)
+end
 
 local VANILLA_SET = {
 	name = "vanilla",

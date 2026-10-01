@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.5.4
+
+- **Skip my own class when they can cast it too** (Who to buff, under Who to
+  skip; off unless you tick it). A mage can give themselves Arcane Intellect,
+  so another mage is left out -- unless they are too low a level for the rank
+  you cast, and then they still get yours, which is better. Somebody who
+  buffed you, asked, or you targeted is always offered, and talent buffs
+  such as Divine Spirit or Kings are never skipped this way.
+
+## 1.5.3
+
+- **Tracking is one of your own buffs now.** Find Herbs, Find Minerals, Find
+  Treasure, a hunter's tracks, Sense Undead and Sense Demons drop when you die;
+  Manners now reminds you to put yours back on, under Who to buff > Myself >
+  *Tracking* -- Automatic picks the one you had on last. As with your other
+  buffs, not in a fight, and not in cities and inns unless you tick that.
+
 ## 1.5.2
 
 - **Toast, redone.** In the game it had a glaring bright line round the banner

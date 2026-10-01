@@ -271,6 +271,8 @@ local defaults = {
 			-- (Queue.lua, "flagged for PvP"). On: a buff on them flags you
 			-- too, for minutes, which nobody asked for by buffing back.
 			skipPvP = true,
+			-- Off: an option a player asked for (see SelfServed in Queue.lua).
+			skipSameClass = false,
 			-- The share of your mana (0-90) kept for yourself: below it, only
 			-- a favour owed or a request from chat is offered. 0 is off.
 			manaFloor = 0,
@@ -932,9 +934,47 @@ end
 
 -- In a block of its own for the main chunk's 200 locals.
 do
+	-- Tracking (Buffs.lua, TRACKING) is no aura here: the minimap's tracking
+	-- list says what is on, by spell id, as EnhanceQoL's Forever build reads
+	-- it. Kept a second, or until the client says it changed; nil while the
+	-- client has not filled it in, or on a client without the list.
+	local trackingAt, trackingList
+	local function TrackingList()
+		local now = GetTime()
+		if trackingList and now - trackingAt < 1 then return trackingList end
+		local api = _G.C_Minimap
+		if not (api and type(api.GetNumTrackingTypes) == "function"
+			and type(api.GetTrackingInfo) == "function") then return nil end
+		local count = plain(api.GetNumTrackingTypes())
+		if type(count) ~= "number" then return nil end
+		local list = {}
+		for index = 1, count do
+			local info = api.GetTrackingInfo(index)
+			-- Not a table: not filled in yet, or an older shape of the call.
+			if type(info) ~= "table" then return nil end
+			local id = plain(info.spellID)
+			if type(id) == "number" then list[id] = plain(info.active) == true end
+		end
+		trackingList, trackingAt = list, now
+		return list
+	end
+	function ns.ForgetTrackingList() trackingList = nil end
+
 	local function Known(spell)
 		local info = caps.own and caps.own[spell.key]
-		return info ~= nil and info.known == true
+		if not (info ~= nil and info.known == true) then return false end
+		-- A tracking spell counts only when the minimap lists it: the list is
+		-- what says whether it is on, so one it does not list could never read
+		-- as on and would be offered for ever.
+		if spell.family and spell.family.tracking then
+			local list = TrackingList()
+			if not list then return false end
+			for _, id in ipairs(spell.ranks) do
+				if list[id] ~= nil then return true end
+			end
+			return false
+		end
+		return true
 	end
 	ns.OwnSpellKnown = Known
 
@@ -1133,6 +1173,21 @@ do
 	-- know. The one found up is remembered for Automatic: the only place that is
 	-- written.
 	function ns.ReadOwnFamily(family)
+		if family.tracking then
+			local list = TrackingList()
+			if not list then return nil end
+			for _, spell in ipairs(family.spells) do
+				if Known(spell) then
+					for _, id in ipairs(spell.ranks) do
+						if list[id] == true then
+							Remember(family, spell)
+							return true, spell, nil
+						end
+					end
+				end
+			end
+			return false
+		end
 		local now = GetTime()
 		local form = ActiveForm()
 		local formSpell = form and ns.OWN_BY_ID[form]
@@ -1814,6 +1869,7 @@ function ns.ClampSettings()
 	-- Read on every scan as a switch that only a plain true turns on, so
 	-- anything else a damaged file holds would switch it off unseen.
 	boolean(profile.filters, "skipPvP", true)
+	boolean(profile.filters, "skipSameClass", false)
 	boolean(profile.groupBuffs, "use", true)
 	-- A count of people, so a whole one: a hand-edited 2.5 is a number the
 	-- slider cannot show, and the page would say something the scan does not do.
@@ -1989,6 +2045,8 @@ function addon:OnEnable()
 		-- The prompt freezes when a fight starts and must show it at once.
 		"PLAYER_REGEN_DISABLED",
 		"SPELLS_CHANGED",
+		-- Tracking switched on or off (Find Herbs and the like).
+		"MINIMAP_UPDATE_TRACKING",
 		"NAME_PLATE_UNIT_ADDED",
 		"NAME_PLATE_UNIT_REMOVED",
 		-- Cooldowns the client takes back; the casts are below.
@@ -2194,6 +2252,13 @@ local lastProbe = 0
 -- edge, so a buff learned in the middle of a burst (a trainer visit) is still
 -- noticed.
 local probeQueued = false
+-- Tracking changed: the next scan reads the minimap's list afresh, and the
+-- one you switched on is remembered for Automatic.
+function addon:MINIMAP_UPDATE_TRACKING()
+	ns.ForgetTrackingList()
+	ns.ownAurasChanged = true
+end
+
 function addon:SPELLS_CHANGED()
 	local now = GetTime()
 	if now - lastProbe < 5 then
