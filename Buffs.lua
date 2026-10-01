@@ -349,6 +349,40 @@ local VANILLA_OWN = {
 	-- shaman's weapon imbues are weapon enchants, not auras.
 }
 
+-- Tracking, for every class: Find Herbs and Find Minerals come with a
+-- profession, not a class, and drop when you die like a buff ("when I die I
+-- often forget to put it on", a player on CurseForge). On this client it is
+-- not an aura but the minimap's tracking list (Core.lua, TrackingList), as
+-- EnhanceQoL's Forever build reads it; a spell missing from that list is never
+-- known, so a wrong id here can only cost the reminder. The gathering ids are
+-- EnhanceQoL's, each with the second id Forever also uses. One table shared by
+-- every class's list, so the memory of the one you had on is one memory.
+local TRACKING = {
+	key = "tracking",
+	label = L["Tracking"],
+	tracking = true,
+	toggle = true,
+	spells = {
+		{ key = "findherbs", ranks = { 2383, 8387 } },
+		{ key = "findminerals", ranks = { 2580, 8388 } },
+		{ key = "findtreasure", ranks = { 2481 } },
+		{ key = "trackbeasts", ranks = { 1494 } },
+		{ key = "trackhumanoids", ranks = { 19883, 5225 } },
+		{ key = "trackundead", ranks = { 19884 } },
+		{ key = "trackhidden", ranks = { 19885 } },
+		{ key = "trackelementals", ranks = { 19880 } },
+		{ key = "trackdemons", ranks = { 19878 } },
+		{ key = "trackgiants", ranks = { 19882 } },
+		{ key = "trackdragonkin", ranks = { 19879 } },
+		{ key = "senseundead", ranks = { 5502 } },
+		{ key = "sensedemons", ranks = { 5500 } },
+	},
+}
+for _, class in ipairs({ "MAGE", "PRIEST", "WARLOCK", "PALADIN", "HUNTER", "SHAMAN", "DRUID", "WARRIOR", "ROGUE" }) do
+	VANILLA_OWN[class] = VANILLA_OWN[class] or {}
+	table.insert(VANILLA_OWN[class], TRACKING)
+end
+
 local VANILLA_SET = {
 	name = "vanilla",
 	buffs = VANILLA,

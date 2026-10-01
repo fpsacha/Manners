@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.5.3
+
+- **Tracking is one of your own buffs now.** Find Herbs, Find Minerals, Find
+  Treasure, a hunter's tracks, Sense Undead and Sense Demons drop when you die;
+  Manners now reminds you to put yours back on, under Who to buff > Myself >
+  *Tracking* -- Automatic picks the one you had on last. As with your other
+  buffs, not in a fight, and not in cities and inns unless you tick that.
+
 ## 1.5.2
 
 - **Toast, redone.** In the game it had a glaring bright line round the banner
