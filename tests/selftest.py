@@ -1078,10 +1078,10 @@ mutate("Options.lua",
 #     while AceConfig is drawing, so without this the notice stands over
 #     controls that work again for as long as the window stays open.
 mutate("Core.lua",
-       """	-- And the notice on the Prompt tab comes off, over controls that work again.
-	ns.RepaintOptions()
-""",
-       "",
+       "\t\tns.Guard(\"combat release\", ns.Prompt.Refresh, ns.Prompt)\n"
+       "\tend\n\n\tns.RepaintOptions()\n",
+       "\t\tns.Guard(\"combat release\", ns.Prompt.Refresh, ns.Prompt)\n"
+       "\tend\n",
        "a combat notice that never comes down",
        expect="leaving combat left the notice standing",
        script="runscenarios.py")
@@ -1126,9 +1126,9 @@ mutate("Favours.lua",
 #     window is filed as something they were already carrying.
 mutate("Favours.lua",
        "\t\t\telse\n"
-       "\t\t\t\t-- And the reading that has to agree is asked for on the clock.",
+       "\t\t\t\tScheduleSettle()\n\t\t\tend\n",
        "\t\t\telseif false then\n"
-       "\t\t\t\t-- And the reading that has to agree is asked for on the clock.",
+       "\t\t\t\tScheduleSettle()\n\t\t\tend\n",
        "a baseline settling when the client says so",
        expect="the baseline never settled without an event",
        script="runscenarios.py")
@@ -2372,7 +2372,6 @@ mutate("Commands.lua",
 
 # And never coming back for it once the fight ends.
 mutate("Core.lua",
-       "\t-- character's life -- the flag is read first and this returns at once.\n"
        "\tns.Guard(\"Welcome\", ns.Welcome)\n",
        "",
        "no second chance after the fight",

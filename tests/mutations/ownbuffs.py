@@ -592,7 +592,6 @@ mutate("Favours.lua",
        expect="the favour from the fight was thanked with an emote after it", script=S)
 
 mutate("Favours.lua",
-       "\t\t-- A favour from the fight, found by the walk made as it ended.\n"
        "\t\tif walkAfterFight then return true end\n",
        "",
        "own: the fight's last favour said after a dungeon fight",

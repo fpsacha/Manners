@@ -3,7 +3,6 @@
 -- diagnostics.
 
 local ns = select(2, ...)
--- Player-facing text, in the client's language: see Locales/Init.lua.
 local L = ns.L
 local addon = ns.addon
 
@@ -27,14 +26,11 @@ local owed, LiveExpiry = ns.owed, ns.DebtExpiry
 -- character. What it asks for (a macro, a key) is per character anyway.
 ---------------------------------------------------------------------------
 
--- What "Myself" is doing, for /manners debug and the Diagnostics tab: first
--- what holds everything on yourself back right now, if anything, then your
--- group buff when it is the one on the prompt (one entry for you at a time,
--- and it goes first: Queue.lua, SelfEntry), then a line per family of your
--- class's own buffs you know, from the answers the queue reads (Core.lua,
--- OwnVerdict), so the two cannot disagree. Nothing when "Myself" is off: the
--- line about the switch says that. Whole sentences per case, for the
--- translators.
+-- What "Myself" is doing, for /manners debug and Diagnostics: what holds
+-- everything on yourself back, if anything; your group buff when it is the one
+-- on the prompt (Queue.lua, SelfEntry); then a line per family of your class's
+-- own buffs, from the queue's own answers (Core.lua, OwnVerdict), so the two
+-- cannot disagree. Nothing when "Myself" is off. Whole sentences per case.
 do
 	local HELD = {
 		fight = L["your own buffs: held back -- you are in a fight."],
@@ -184,10 +180,9 @@ function ns.Welcome(force, offSaid)
 	end
 
 	-- Point at whichever panel will be on screen: somebody real already queued,
-	-- or the preview (which Refresh drops the moment a real person waits). Only
-	-- somebody who can actually be on the panel counts: switched off, unlocked
-	-- or snoozed, the queue still fills but the button shows no one, and the
-	-- preview runs in all three.
+	-- or the preview. Only somebody who can really be on the panel counts:
+	-- switched off, unlocked or snoozed, the queue fills but the button shows no
+	-- one, and the preview runs in all three.
 	local queued = 0
 	local profile = addon.db.profile
 	if profile and profile.enabled and profile.prompt.locked and not ns.SnoozeLeft() then
@@ -339,8 +334,6 @@ function ns.ExpandTokens(text)
 			tostring(entry.targetName or entry.name))
 	end
 
-	-- Through Swap: gsub reads a replacement string as a template, and a name
-	-- could hold a %.
 	text = ns.Swap(text, "{unit}", (entry and entry.unit) or "target")
 	text = ns.Swap(text, "{name}", (entry and entry.name) or "target")
 	-- {aim} is the spelling a targeting line wants (off Camelot, without the
@@ -374,7 +367,6 @@ ns.SNOOZE_MAX = 240
 -- where the player reads the answer.
 local snoozeUntil
 
--- Seconds of snooze left, or nil when there is none.
 function ns.SnoozeLeft(now)
 	if not snoozeUntil then return nil end
 	local left = snoozeUntil - (now or GetTime())
@@ -491,7 +483,6 @@ function ns.StartSnooze(minutes)
 	return minutes
 end
 
--- End the snooze now. Says so when asked to; returns whether there was one.
 function ns.StopSnooze(quiet)
 	local was = ns.SnoozeLeft() ~= nil
 	snoozeUntil = nil
@@ -628,7 +619,6 @@ do
 		return fields
 	end
 
-	-- The table a field lives in, made on the way if asked to.
 	local function Holder(profile, path, create)
 		local t = profile
 		for _, seg in ipairs(path) do
@@ -724,8 +714,6 @@ do
 		end
 	end
 
-	-- Text back into a value of the field's own type, or nil for anything that is
-	-- not one.
 	local function DecodeValue(field, raw)
 		local kind = field.kind
 		if kind == "boolean" then
@@ -762,7 +750,6 @@ do
 		return ("%06x"):format(h)
 	end
 
-	-- The current profile as a settings string.
 	function ns.ExportSettings()
 		local profile = addon.db and addon.db.profile
 		if not profile then return nil end
@@ -924,7 +911,6 @@ do
 		return kept
 	end
 
-	-- Replace the current profile's shareable settings with the ones in `text`.
 	-- Returns whether it applied and the line to say.
 	function ns.ImportSettings(text)
 		local profile = addon.db and addon.db.profile
@@ -999,9 +985,8 @@ end
 ---------------------------------------------------------------------------
 
 -- Every command, in the order the help prints them: one list that HandleSlash,
--- the help and the scenario that walks it all read, so nothing is advertised
--- without existing. Grouped by what somebody is trying to do, printed in the
--- order of COMMAND_GROUPS.
+-- the help and the scenario walking it all read, so nothing is advertised
+-- without existing.
 ns.COMMAND_GROUPS = {
 	{ key = "everyday", title = L["Everyday"] },
 	{ key = "setup", title = L["Setting it up"] },
@@ -1413,7 +1398,6 @@ function addon:HandleSlash(rawInput)
 			self:Print(("  combat log favours: armed=%s, %d seen, %d filed"):format(
 				tostring(ns.logScan.armed), ns.logScan.applied, ns.logScan.noted))
 		end
-		-- Which set of spells this client was handed, matched or guessed.
 		self:Print(("  buff data: |cffffffff%s|r"):format(tostring(ns.BUFFS_SOURCE)))
 
 		-- A buff table that never arrived says so first, or the lines below
@@ -1476,8 +1460,6 @@ function addon:HandleSlash(rawInput)
 				self:Print("  " .. L["nobody has buffed you recently."])
 			end
 		end
-		-- The third source, which reads chat: listening or not, what it read and
-		-- set aside, and who is waiting.
 		for _, line in ipairs(ns.RequestLines()) do self:Print("  " .. line) end
 		-- And yourself, so a prompt that reads "You" is explained by a switch
 		-- rather than taken for the addon mistaking you for somebody else.
@@ -1499,7 +1481,6 @@ function addon:HandleSlash(rawInput)
 		-- with nothing else on screen to say why.
 		for _, line in ipairs(ns.RefusalLines(now)) do self:Print("  " .. line) end
 
-		-- And whether the last look at your own buffs was believed.
 		local scan = ns.auraScan
 		if scan.doubt then
 			self:Print(("  " .. L["|cffff8080own buffs: last scan not believed (%s)|r -- %d read, baseline %d"])
@@ -1512,10 +1493,9 @@ function addon:HandleSlash(rawInput)
 		else
 			self:Print(("  " .. L["own buffs: %d read, baseline %d"]):format(scan.read, scan.held))
 		end
-		-- In a fight the changes only mark a walk due and the tick makes it
-		-- (Favours.lua, UNIT_AURA), so after one this shows them gathered up.
-		-- Only the walks a change asked for are counted (ScanOwnBuffs), so the
-		-- second number is never the larger.
+		-- In a fight the changes only mark a walk due (Favours.lua, UNIT_AURA), so the
+		-- first number runs ahead; only walks a change asked for are counted, so the
+		-- second is never the larger.
 		self:Print(("    " .. L["%d changes to your auras this session, read in %d walks"])
 			:format(scan.events, scan.walks))
 		-- The emote is untested in game (Favours.lua), so what it last did and

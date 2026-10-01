@@ -17,8 +17,8 @@ mutate("Clicks.lua",
        "ledger: a repayment is never written down",
        expect="a favour repaid is marked returned", script=S)
 mutate("Clicks.lua",
-       "\t-- The ledger takes back its settle by the same clock.\n\tTellLedger(\"Refused\", settled.name, settled.at)\n",
-       "",
+       "\tTellLedger(\"Refused\", settled.name, settled.at)\n\tRewindClick(settled)\n",
+       "\tRewindClick(settled)\n",
        "ledger: a late refusal leaves the row repaid",
        expect="a refused cast puts the ledger back", script=S)
 mutate("Core.lua",

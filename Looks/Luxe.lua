@@ -1,4 +1,4 @@
--- Manners -- the Luxe look, the default.
+-- Manners -- the Luxe look.
 --
 -- A slim near-black card with a soft baked shadow and a one-unit bevel lit
 -- from above. Down the left edge runs a spine in the reason colour with a
@@ -135,7 +135,6 @@ end
 local function PlaceSlice(s, top, bottom, l, t, r, b)
 	local c = s.corner
 	for _, tex in ipairs(s) do tex:ClearAllPoints() end
-	-- Top row.
 	s[1]:SetPoint("TOPLEFT", top, "TOPLEFT", -l, t)
 	s[1]:SetSize(c, c)
 	s[2]:SetPoint("TOPLEFT", top, "TOPLEFT", -l + c, t)
@@ -143,7 +142,6 @@ local function PlaceSlice(s, top, bottom, l, t, r, b)
 	s[2]:SetHeight(c)
 	s[3]:SetPoint("TOPRIGHT", top, "TOPRIGHT", r, t)
 	s[3]:SetSize(c, c)
-	-- Middle row.
 	s[4]:SetPoint("TOPLEFT", top, "TOPLEFT", -l, t - c)
 	s[4]:SetPoint("BOTTOMLEFT", bottom, "BOTTOMLEFT", -l, -b + c)
 	s[4]:SetWidth(c)
@@ -152,7 +150,6 @@ local function PlaceSlice(s, top, bottom, l, t, r, b)
 	s[6]:SetPoint("TOPRIGHT", top, "TOPRIGHT", r, t - c)
 	s[6]:SetPoint("BOTTOMRIGHT", bottom, "BOTTOMRIGHT", r, -b + c)
 	s[6]:SetWidth(c)
-	-- Bottom row.
 	s[7]:SetPoint("BOTTOMLEFT", bottom, "BOTTOMLEFT", -l, -b)
 	s[7]:SetSize(c, c)
 	s[8]:SetPoint("BOTTOMLEFT", bottom, "BOTTOMLEFT", -l + c, -b)
@@ -335,7 +332,6 @@ function Luxe:Build(kit)
 	self.pillFill = ThreeSlice(self.pillFrame, "ARTWORK", 2, ART .. "Pill")
 	self.pillEdge = ThreeSlice(self.pillFrame, "ARTWORK", 3, ART .. "PillEdge")
 	self.glyph = tex(self.pillFrame, "ARTWORK", 4, "Check")
-	-- The count chip, on textLayer under the count.
 	self.chipBox = keep(CreateFrame("Frame", nil, textLayer))
 	self.chipFill = ThreeSlice(textLayer, "ARTWORK", 2, ART .. "Pill")
 	self.chipEdge = ThreeSlice(textLayer, "ARTWORK", 3, ART .. "PillEdge")
@@ -388,7 +384,6 @@ function Luxe:BuildAnimations()
 	if breathe.SetSmoothing then breathe:SetSmoothing("IN_OUT") end
 	self.pulseAnim = pulse
 
-	-- The tag pops in with a new favour.
 	local pop = self.pillFrame:CreateAnimationGroup()
 	local grow = pop:CreateAnimation("Scale")
 	if grow.SetScaleFrom then grow:SetScaleFrom(0.9, 0.9) end
@@ -402,7 +397,6 @@ function Luxe:BuildAnimations()
 	show:SetDuration(0.18)
 	self.popAnim = pop
 
-	-- A band of light crossing the card once: in, across, out.
 	local sheen = self.sheenFrame:CreateAnimationGroup()
 	local sIn = sheen:CreateAnimation("Alpha")
 	sIn:SetFromAlpha(0)
@@ -424,7 +418,6 @@ function Luxe:BuildAnimations()
 	sheen:SetScript("OnStop", function() self.sheenFrame:SetAlpha(0) end)
 	self.sheenAnim = sheen
 
-	-- The ring rings out when a buff lands.
 	local burst = self.burstFrame:CreateAnimationGroup()
 	local bFade = burst:CreateAnimation("Alpha")
 	bFade:SetFromAlpha(0.95)
@@ -441,7 +434,6 @@ function Luxe:BuildAnimations()
 	burst:SetScript("OnStop", function() self.burstFrame:SetAlpha(0) end)
 	self.burstAnim = burst
 
-	-- The outcome's light over the card, fading over the outcome's time.
 	self.resultAnim = Fade(self.resultFrame, 0, self.kit.OUTCOME_SECONDS, "OUT")
 	self.resultAnim.fade:SetFromAlpha(1)
 	self.resultAnim.fade:SetToAlpha(0)
@@ -538,7 +530,6 @@ function Luxe:Apply(p, above)
 	local clearX = showIcon and math.ceil(iconX + iconSize + RING_PAD * iconSize / 30 + 1) or 0
 	self.clearX = clearX
 
-	-- The icon: the shared texture, placed and shaped for this look.
 	icon:ClearAllPoints()
 	icon:SetShown(showIcon)
 	local round = p.roundIcon and true or false
@@ -591,7 +582,6 @@ function Luxe:Apply(p, above)
 	self.glint:SetSize(math.min(40, band), 4)
 	self.sheenAnim.move:SetOffset(math.max(0, W - band - clearX), 0)
 
-	-- The cursor's and the outcome's light: over the card past the icon.
 	for _, f in ipairs({ self.hoverFrame, self.resultFrame }) do
 		f:ClearAllPoints()
 		f:SetAllPoints(art)
@@ -599,7 +589,6 @@ function Luxe:Apply(p, above)
 	PlaceSlice(self.hoverLight, self.hoverFrame, self.hoverFrame, -clearX, 0, 0, 0)
 	PlaceSlice(self.result, self.resultFrame, self.resultFrame, -clearX, 0, 0, 0)
 
-	-- The tag, and the reason line moved into it.
 	local textLayer, subText = kit.textLayer, kit.sub
 	local base = art:GetFrameLevel()
 	textLayer:SetFrameLevel(base + 4)
@@ -636,7 +625,6 @@ function Luxe:Apply(p, above)
 	kit.count:ClearAllPoints()
 	kit.count:SetPoint("CENTER", self.chipBox, "CENTER", 0, 0)
 
-	-- The list: rows start under the icon, their dot under the spine.
 	local rowWidth = math.max(20, W - iconX - 8)
 	for _, fs in ipairs(kit.rows) do
 		fs:SetWidth(rowWidth)
@@ -668,7 +656,6 @@ function Luxe:Apply(p, above)
 	return textX, chipRoom
 end
 
--- The text as this look wants it, over what Prompt's StyleText set.
 function Luxe:Styled(p, twoLine)
 	local kit = self.kit
 	-- The chip on the name line, wherever the name line is: centred when it

@@ -15,7 +15,6 @@
 -- the way anybody buffed does: their auras read the buff once it lands.
 
 local ns = select(2, ...)
--- Player-facing text, in the client's language: see Locales/Init.lua.
 local L = ns.L
 local addon = ns.addon
 
@@ -113,21 +112,16 @@ for i = 1, 40 do
 	TOKENS.party[i] = "party" .. i
 end
 
--- One reading of the group per GroupCasts call. Every bucket that reaches the
--- threshold asks FlaggedAmong about the whole raid, and each used to read
--- every member's subgroup (or class) and PvP flag again: five group casts in
--- a raid were two hundred roster reads a scan. Nothing about the raid changes
--- inside one call, so the first bucket's answers serve the rest, by token.
--- Wiped at the start of every call, so no answer outlives it, even in a call
--- its Guard stopped part-way; the prompt's hold and its press
--- (GroupCastFlagged, ShoutFlagged) hand in none and read afresh.
+-- One reading of the group per GroupCasts call: every bucket at the threshold
+-- asks FlaggedAmong about the whole raid, and five group casts in a raid were
+-- two hundred roster reads a scan. Nothing changes inside one call, so the
+-- first bucket's answers serve the rest, by token. Wiped at the start of every
+-- call; the prompt's hold and its press hand in none and read afresh.
 local groupMemo = { subgroup = {}, class = {}, flag = {} }
 
 -- nil kept as an answer of its own, so "cannot tell" is not asked again.
 local NOTHING = {}
 
--- read(unit), or the answer `memo` already holds for this unit, when a memo
--- is handed in.
 local function Asked(memo, kind, unit, read)
 	if not memo then return read(unit) end
 	local kept = memo[kind]
@@ -141,9 +135,6 @@ local function Asked(memo, kind, unit, read)
 	return value
 end
 
--- The raid subgroup a unit is in, or nil where nothing says: Core's. A
--- party-wide spell reaches the target's own subgroup of a raid and nobody
--- else in it.
 local CoreRaidSubgroup = ns.RaidSubgroup
 local function RaidSubgroup(unit, memo)
 	return Asked(memo, "subgroup", unit, CoreRaidSubgroup)
@@ -203,17 +194,13 @@ local function ClassSafe(class, key, offered, inRaid)
 	return true
 end
 
--- Who of everybody a party-wide spell lands on reads as flagged for PvP (see
--- "flagged for PvP" in Queue.lua): the first one's name, "?" when the game
--- will not name them, or nil. `where` is a bucket's -- a class for a Greater
--- Blessing, a raid subgroup, or "party" -- or "raid" for everybody in the
--- raid (a shout where shouts are raid-wide), and everybody in it counts, not
--- only those the queue offered: somebody flagged was never queued at all.
--- Nobody's reach is asked, so one flagged anywhere in it holds the cast back.
--- Somebody whose class or subgroup cannot be read, or whose flag cannot, is
--- no reason to (cannot tell). You are never counted. `memo` is GroupCasts',
--- nil for a question asked afresh. Still the first one flagged in token
--- order, whichever bucket read them first.
+-- Who of everybody a party-wide spell lands on reads as flagged for PvP: the
+-- first one's name in token order, "?" when the game will not name them, or
+-- nil. `where` is a bucket's (a class, a raid subgroup, "party") or "raid" for
+-- the whole raid, and everybody in it counts, not only those queued: somebody
+-- flagged was never queued at all. Somebody whose class, subgroup or flag
+-- cannot be read is no reason to (cannot tell); you are never counted. `memo`
+-- is GroupCasts', nil for a question asked afresh.
 local function FlaggedAmong(where, byClass, inRaid, memo)
 	local n = plain(GetNumGroupMembers and GetNumGroupMembers()) or 0
 	local tokens = inRaid and TOKENS.raid or TOKENS.party
@@ -257,8 +244,7 @@ function ns.ShoutFlagged(inRaid)
 	return FlaggedAmong(own, false, true)
 end
 
--- The class's name as the game spells it, for "every Warrior": Core's, which
--- {class} on the prompt reads too, so the two cannot spell it differently.
+-- Core's, so "every Warrior" and {class} on the prompt spell it alike.
 local ClassName = ns.ClassName
 
 ---------------------------------------------------------------------------
@@ -355,9 +341,8 @@ local function Build(bucket, byClass, inRaid, ownSubgroup, pvp, memo)
 	-- cast gets to them.
 	local members = {}
 	-- Whether every one of them asked for it in chat. An asker outranks the
-	-- party (PRIORITY), so the anchor is the asker whenever anybody in it
-	-- asked, and the anchor's reason alone would file the whole cast as
-	-- asked for -- and leave it out of the day's gifts (Ledger.Settled) --
+	-- party, so the anchor is the asker whenever anybody asked, and its reason
+	-- alone would file the whole cast as asked for -- out of the day's gifts --
 	-- when it reached everybody else unprompted.
 	local asked = true
 	for _, entry in ipairs(bucket.entries) do

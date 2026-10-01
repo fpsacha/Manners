@@ -38,7 +38,6 @@
 -- Levitate, Water Walking) are deliberately absent.
 
 local _, ns = ...
--- Player-facing text, in the client's language: see Locales/Init.lua.
 local L = ns.L
 
 ---------------------------------------------------------------------------

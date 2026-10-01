@@ -9,9 +9,9 @@
 -- is the title, the reason the subtitle. It is still at rest; it moves when
 -- something happens, and briefly.
 --
--- The rules it keeps since 1.6, when in the game 1.5.1 wore a glaring yellow
--- line all round, a square bevelled frame round the icon and a bright blue
--- glow ring (tests/scenarios/look-toast.lua and readable-toast.lua):
+-- The rules it keeps since 1.5.2, after 1.5.1 wore in the game a glaring
+-- yellow line all round, a square bevelled frame round the icon and a bright
+-- blue glow ring (tests/scenarios/look-toast.lua and readable-toast.lua):
 --   * no additive light at rest. tools/render_prompt.py draws ADD far more
 --     gently than the client does, so light that stays on screen is baked
 --     into the art or drawn with BLEND in colours given here, and the preview
@@ -457,16 +457,13 @@ function Toast:BuildAnimations(anim)
 	Alpha(pulse, 0, PULSE_PEAK, BREATH, 1, nil, "IN_OUT")
 	self.pulse = { anim(pulse) }
 
-	-- The favour just done: a ring of light off the medallion, briefly.
 	self.arrive = { anim(Flash(self.ringArrive, 1, 0.15, 0.40, nil, "IN")) }
 
-	-- A new favour: a glint down each rail, the lower a beat behind.
 	self.sweep = {}
 	for i, t in ipairs(self.glints) do
 		self.sweep[i] = anim(Travel(t, i == 1 and 0.05 or 0.12))
 	end
 
-	-- A buff that landed: the gilding flares, a ring bursts off the medallion.
 	self.flareAnims = {}
 	for i, t in ipairs(self.flare) do self.flareAnims[i] = anim(Flash(t, 0.5, 0.08, 0.42)) end
 	local burst = self.burst:CreateAnimationGroup()
@@ -541,7 +538,6 @@ function Toast:Apply(p, above)
 	kit.Gradient(self.drawerBody, "VERTICAL", br * 0.9, bg * 0.9, bb * 0.9, ta * 0.97,
 		tr * 0.8, tg * 0.8, tb * 0.8, ta * 0.97)
 
-	-- The frame: the fine one under height 40.
 	local frameFile = ART .. (slim and "BorderSlim" or "Border")
 	Each(self.border, "SetTexture", frameFile)
 	Each(self.flare, "SetTexture", frameFile .. "Glow")
@@ -552,12 +548,10 @@ function Toast:Apply(p, above)
 	self.drawnList = nil
 	self:PlaceShadow(nil)
 
-	-- The rails, for the glints and the clock.
 	local k = C / 12
 	local railAt = (slim and RAIL.slimRail or RAIL.rail) * k
 	local clockAt = (slim and RAIL.slimClock or RAIL.clock) * k
 
-	-- The medallion and the icon in it.
 	icon:ClearAllPoints()
 	icon:SetShown(showIcon)
 	-- Round at either setting of "Round the icon off" (see the top).
@@ -601,7 +595,6 @@ function Toast:Apply(p, above)
 		end
 	end
 
-	-- The glints: from the medallion's edge to the far corner, on each rail.
 	local from = showIcon and M - 4 or C / 2
 	local run = math.max(10, W - C - from)
 	local gw, gh = 1.2 * BH, 0.22 * BH
@@ -615,8 +608,6 @@ function Toast:Apply(p, above)
 	end
 	Each(self.flare, "SetVertexColor", 1, 0.85, 0.55, 1)
 
-	-- The favour clock: from the medallion's edge to the far corner, along
-	-- the bottom rail.
 	self.clockY = -(bottom - clockAt)
 	local dy = (bottom - clockAt) - cy
 	self.clockX = showIcon and (cx + math.sqrt(math.max(0, R * R - dy * dy)) + 1) or C
@@ -637,14 +628,12 @@ function Toast:Apply(p, above)
 	self.beadMin = self.clockX + beadD / 2
 	self.clockW = nil
 
-	-- The jewel at the banner's end, with the icon off.
 	for _, t in ipairs({ self.jewel, self.jewelSet }) do
 		t:ClearAllPoints()
 		t:SetPoint("CENTER", art, "TOPLEFT", jewelX, -cy)
 		t:SetSize(jewel, jewel)
 	end
 
-	-- The lines: centred as one block.
 	local gap = Gap(fs)
 	local block = fs + gap + sub
 	self.nameY = block / 2 - fs / 2 + 0.5
@@ -655,7 +644,6 @@ function Toast:Apply(p, above)
 	self.glyph:SetSize(sub + 1, sub + 1)
 	self.verdict, self.glyphOn, self.subLead = nil, nil, 0
 
-	-- The chips.
 	local chipH = sub + 7
 	self.chipH = chipH
 	PlaceThree(self.keyChip, self.keyBox, chipH)
@@ -666,12 +654,10 @@ function Toast:Apply(p, above)
 	-- Measured again in the new font and size.
 	self.keyLabel, self.countText = nil, nil
 
-	-- The levels: the chips over the banner, the text over everything.
 	local base = art:GetFrameLevel()
 	self.chipFrame:SetFrameLevel(base + 3)
 	kit.textLayer:SetFrameLevel(base + 4)
 
-	-- The list: rows after the gems, the gems in the drawer.
 	self.rowX = showIcon and textX or C + 14
 	local rowWidth = math.max(20, W - self.rowX - 12)
 	for _, row in ipairs(kit.rows) do
@@ -719,7 +705,6 @@ function Toast:Apply(p, above)
 	return textX, math.ceil(chipH * 1.75) + 15
 end
 
--- The shadow under the banner and, while it is up, the drawer.
 function Toast:PlaceShadow(drawer)
 	local b = self.shadowBox
 	local y0, y1 = b[2], b[4]
@@ -730,7 +715,6 @@ function Toast:PlaceShadow(drawer)
 	PlacePieces(self.shadow, self.kit.art, b[1], y0, b[3], y1, 16)
 end
 
--- The text as this look wants it, over what Prompt's StyleText set.
 function Toast:Styled(p)
 	local kit = self.kit
 	local ink = kit.ink
@@ -1048,7 +1032,6 @@ function Toast:PaintReason(r, g, b, _, mode)
 	self.kit.icon:SetDesaturated(self.combat and true or false)
 end
 
--- Gold, or the iron of a fight.
 function Toast:Iron(on)
 	for _, t in ipairs(self.gold) do
 		t:SetDesaturated(on)
@@ -1100,7 +1083,6 @@ local function PlayAll(list)
 	end
 end
 
--- The rails catch the light: a new favour, on Full.
 function Toast:Sweep()
 	PlayAll(self.sweep)
 end
@@ -1174,7 +1156,6 @@ function Toast:StopFlourishes()
 	for _, g in ipairs(self.sweep) do g:Stop() end
 end
 
--- The cursor on the panel: the gold ring warms (BLEND).
 function Toast:Hover(on)
 	on = on and true or false
 	if self.hovered == on then return end

@@ -4,7 +4,6 @@
 -- player who switched it on, a /thank.
 
 local ns = select(2, ...)
--- Player-facing text, in the client's language: see Locales/Init.lua.
 local L = ns.L
 local addon = ns.addon
 
@@ -59,11 +58,10 @@ do
 		return plain(value)
 	end
 
-	-- Why the client would not want an emote from addon code now, or nil.
-	-- Retail 12.x holds chat from addon code back in an encounter; which
-	-- instance does it when, nobody here has seen, so every instance is out,
-	-- and so is a client that will not say whether this is one. Then the two
-	-- checks other addons on this client make before chatting (EnhanceQoL,
+	-- Why the client would not want an emote from addon code now, or nil. Retail
+	-- 12.x holds addon chat back in an encounter, and which instance does it when
+	-- nobody here has seen, so every instance is out, as is a client that will not
+	-- say. Then the two checks other addons here make before chatting (EnhanceQoL,
 	-- Prat): the messaging lockdown and the Chat restriction state.
 	local function Held()
 		if InCombatLockdown() then return L["in a fight"] end
@@ -189,9 +187,7 @@ do
 	-- silent stop is the one failure the addon cannot notice on its own. It
 	-- starts doubted, because "0 read, baseline 0" is also what a quiet healthy
 	-- session prints. `events` and `walks` count UNIT_AURA on you and the walks
-	-- of your aura list those events asked for this session: in a fight they
-	-- only mark a walk due (UNIT_AURA, below), so after one the first is well
-	-- ahead of the second, and it is never behind.
+	-- those events asked for.
 	ns.auraScan = { read = 0, held = 0, doubt = "never scanned", primed = false, events = 0, walks = 0 }
 	-- Reused on every UNIT_AURA rather than rebuilt. Wiped at the top of the scan,
 	-- never at the bottom, so a re-entrant call (NoteFavour prints, and another
@@ -318,18 +314,15 @@ do
 	end
 
 	-- Where the "buffed you" line is not said: a fight in a dungeon or a raid,
-	-- where chat belongs to the fight, and anywhere inside a raid, where every
-	-- buffer sweeps the raid between pulls and each would get a line. Nobody
-	-- in a raid instance is a stranger, so the prompt offers them anyway. The
-	-- favour is filed all the same. A client that will not say where you are
-	-- gets the line.
+	-- where chat belongs to the fight, and anywhere in a raid, where every buffer
+	-- sweeps the raid between pulls. The favour is filed all the same; a client
+	-- that will not say where you are gets the line.
 	local function QuietHere()
 		local ok, inside, kind = pcall(_G.IsInInstance)
 		if not ok or plain(inside) ~= true then return false end
 		kind = plain(kind)
 		if kind == "raid" then return true end
 		if kind ~= "party" then return false end
-		-- A favour from the fight, found by the walk made as it ended.
 		if walkAfterFight then return true end
 		return InCombatLockdown() and true or false
 	end
@@ -465,16 +458,14 @@ do
 		return true
 	end
 
-	-- Read at load, as ns.plain reads it: absent on a client that never had
-	-- secrets. Inside the block, like the rest of this section's locals.
+	-- Read at load, as ns.plain reads it: absent on a client that never had secrets.
 	local issecretvalue = _G.issecretvalue
 
 	-- One slot of your own aura list: the aura, and whether the client provably
-	-- refused it. A throw or a secret value is a refusal; a plain nil is what an
-	-- empty slot looks like and possibly a refusal too, and one slot cannot tell
-	-- them apart. So this reports proof of a refusal and never claims honesty,
-	-- and the scan reads the walk as a whole. The pcall stays: the client
-	-- restricts this read per aura, and a restricted read can throw.
+	-- refused it. A throw or a secret is a refusal; a plain nil is an empty slot
+	-- and possibly a refusal too, so this reports proof of a refusal, never
+	-- honesty, and the scan reads the walk as a whole. The pcall stays: the
+	-- client restricts this read per aura, and a restricted read can throw.
 	local function ReadAuraSlot(index)
 		local ok, value = pcall(C_UnitAuras.GetAuraDataByIndex, "player", index, "HELPFUL")
 		if not ok then return nil, true end
@@ -497,24 +488,19 @@ do
 	end
 
 	-- Is the aura in this slot one the baseline has not filed? The number is
-	-- reused, so the spell is compared too. And for an entry the previous reading
-	-- did not show (the one scan of grace the prune gives a vanished aura), the
-	-- ending decides: a cast that ran out and was replaced under its own number
-	-- ends later, while a refusal handed back returns the same ending. The two
-	-- readings are otherwise identical slot for slot. An ending missing or
-	-- unreadable at either end claims nothing and leaves the aura filed. After a
-	-- doubted reading of nothing (the last buff ran out, or death took them all)
-	-- the previous reading is stale, so the ending decides then too: a buff
-	-- recast under the number it had is new, the same one handed back is not.
-	-- One the previous reading showed is a refresh, unless the end that reading
-	-- saw has gone by and this one ends later: what it saw ran out, so this was
-	-- cast after. In a fight the reading that would have found it gone is never
-	-- taken -- the aura events there only mark a walk due and the tick makes it
-	-- (UNIT_AURA, below) -- so a buff that runs out and is recast under its own
-	-- number between two ticks comes here looking like a refresh. A refresh in
-	-- the last moments before the old end, read after it, is taken for a recast:
-	-- the two are that far apart, and either way somebody put your buff back.
-	-- An end of 0 is a buff with none, which never runs out.
+	-- reused, so the spell is compared too. Where the previous reading did not
+	-- show it (the one scan of grace the prune gives a vanished aura), or after a
+	-- doubted reading of nothing (the last buff ran out, or death took them all),
+	-- the ending decides: a cast that ran out and was replaced under its own
+	-- number ends later, while a refusal handed back returns the same ending. An
+	-- ending missing or unreadable at either end claims nothing and leaves the
+	-- aura filed. One the previous reading showed is a refresh, unless the end
+	-- that reading saw has gone by and this one ends later: what it saw ran out,
+	-- so this was cast after. That covers a fight, whose aura events only mark a
+	-- walk due (UNIT_AURA, below), so a buff recast between two ticks looks like
+	-- a refresh. A refresh in the last moments before the old end, read after it,
+	-- is taken for a recast: either way somebody put your buff back. An end of 0
+	-- is a buff with none, which never runs out.
 	local function IsNew(instanceId, key, expires)
 		local known = knownAuras[instanceId]
 		if known == nil or known ~= key then return true end
@@ -555,10 +541,9 @@ do
 			scan.primed = auraScanPrimed
 			return
 		end
-		-- A walk of all forty slots from here on, counted for /manners debug
-		-- beside the changes to your auras when one of them asked for it. With
-		-- a login's and the settle timer's counted too, the walks could
-		-- outnumber the changes they are set beside.
+		-- A walk of all forty slots from here on, counted for /manners debug only when
+		-- a change asked for it: a login's and the settle timer's would outnumber the
+		-- changes they are set beside.
 		if asked then scan.walks = scan.walks + 1 end
 
 		-- Read before the walk, which may set the flag itself further down.
@@ -669,7 +654,6 @@ do
 				auraScanPrimed = true
 				scan.primed = true
 			else
-				-- And the reading that has to agree is asked for on the clock.
 				ScheduleSettle()
 			end
 		else
@@ -749,11 +733,10 @@ do
 	-- OnEnable got it through.
 	--
 	-- An addition, never a replacement (STATUS.md): the aura scan is the spine and
-	-- the only source on Forever. The log adds what the scan cannot do anywhere:
-	-- SPELL_AURA_APPLIED carries the caster's GUID, and GetPlayerInfoByGUID names
-	-- a stranger with no unit token. A log line is an event, not a reading that
-	-- might be wrong, so none of the scan's corroboration applies; the policy
-	-- gates still do, in NoteFavour.
+	-- the only source on Forever. The log adds what the scan cannot:
+	-- SPELL_AURA_APPLIED carries the caster's GUID, and GetPlayerInfoByGUID names a
+	-- stranger with no unit token. A log line is an event, not a reading, so none
+	-- of the scan's corroboration applies; NoteFavour's policy gates still do.
 	---------------------------------------------------------------------------
 
 	-- What this source has made of itself, for /manners debug, as ns.auraScan.
@@ -829,12 +812,10 @@ function addon:UNIT_AURA(_, unit)
 	if unit == "player" then
 		ns.auraScan.events = ns.auraScan.events + 1
 		if InCombatLockdown() then
-			-- A walk is forty slots behind a pcall apiece, and a fight sends
-			-- this many times a second: the walk waits for the next tick (the
-			-- scan interval on the Advanced tab, 0.4 s by default and up to
-			-- 2 s), so a burst of events costs one. A favour that lands in the
-			-- fight is said up to that much later, and filed all the same; one
-			-- that runs out and is recast before the tick too (IsNew).
+			-- A walk is forty slots behind a pcall apiece, and a fight sends this many
+			-- times a second: the walk waits for the next tick (the Advanced tab's scan
+			-- interval, 0.4 s by default), so a burst costs one. A favour that lands in
+			-- the fight is said up to that much later, and filed all the same.
 			ns.ownScanDue = true
 		else
 			-- Out of a fight at once: the events are few, and a favour's line

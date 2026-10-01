@@ -3,7 +3,6 @@
 -- which puts everybody the prompt could offer in order.
 
 local ns = select(2, ...)
--- Player-facing text, in the client's language: see Locales/Init.lua.
 local L = ns.L
 local addon = ns.addon
 
@@ -33,10 +32,9 @@ local owed = {}
 -- that reached nobody), so somebody behind a pillar does not walk the list.
 local tried = {}
 
--- [name] = what the game has been refusing on this person (see NoteRefusal).
--- In memory only, on purpose: a /reload or a new login is a fresh start, and
--- whatever the server held against them (a phase, a duel, a rule nobody
--- names) rarely outlives one.
+-- [name] = what the game has been refusing on this person (NoteRefusal). In
+-- memory only, on purpose: whatever the server held against them (a phase, a
+-- duel, a rule nobody names) rarely outlives a /reload or a new login.
 local refusals = {}
 
 ns.lastGave = {} -- [name] = buffKey, for rotating when auras cannot be read
@@ -73,9 +71,8 @@ local function SaveDebts()
 		local expires = LiveExpiry(entry)
 		if expires > now then
 			out = out or {}
-			-- The class is all the tokenless fallback has to judge by, with the
-			-- PvP flag last read off them. The guid is not kept: nothing reads
-			-- it back.
+			-- The class and the PvP flag are all the tokenless fallback judges by. The
+			-- guid is not kept: nothing reads it back.
 			out[name] = {
 				expires = wall + (expires - now),
 				at = wall - (now - entry.at),
@@ -125,7 +122,6 @@ local function RestoreDebts()
 		end
 	end
 end
--- OnInitialize (Core.lua) brings them back, once a session.
 ns.RestoreDebts = RestoreDebts
 
 -- AceDB fires this from its PLAYER_LOGOUT handler, before it strips the
@@ -181,9 +177,8 @@ do
 		return keys
 	end
 
-	-- Whether this person, or this one buff for this person, is inside a block.
 	-- The whole-person key is always consulted, and so is a back-off after
-	-- refusals in a row, which is a block on the whole person as well.
+	-- refusals in a row, a block on the whole person too.
 	function ns.IsBlocked(name, buffKey, now)
 		if not name then return false end
 		now = now or GetTime()
@@ -204,14 +199,12 @@ do
 	end
 end
 
--- What the game keeps refusing, per person, and the two things that follow
--- from it. The spoken line is held for a while after any refusal: a macro runs
--- every line even when its /cast fails, so a thank-you went out over a buff
--- that never landed, once per press (beta.8). And the person backs off further
--- with each refusal in a row: somebody the game will never let you buff (the
--- server does not say why) came straight back after two seconds, forever. A
--- cast on them that lands forgets all of it (PruneSettled). A block of its own
--- for the main chunk's 200 locals.
+-- What the game keeps refusing, per person, and what follows. The spoken line
+-- is held for a while after any refusal: a macro runs every line even when its
+-- /cast fails, so a thank-you went out over a buff that never landed, once per
+-- press (beta.8). And the person backs off further with each refusal in a row:
+-- somebody the game will never let you buff came straight back after two
+-- seconds, forever. A cast that lands forgets it all (PruneSettled).
 do
 	-- How long each refusal in a row keeps the person off the prompt. The first
 	-- is the two seconds RewindClick has always written, so one stray refusal
@@ -284,9 +277,8 @@ do
 		end
 	end
 
-	-- One person's record, room made for it first. Counted here rather than
-	-- kept in a tally: a new record is one refusal, so this is rare, and a
-	-- count cannot drift from the table.
+	-- One person's record, room made for it first. Counted here, not tallied: a
+	-- new record is rare, and a count cannot drift from the table.
 	local function Record(name, now)
 		local r = refusals[name]
 		if r then return r end
@@ -360,7 +352,6 @@ do
 		if name then refusals[name] = nil end
 	end
 
-	-- Whether the spoken line is held for this person.
 	function ns.SpeechHeld(name, now)
 		local r = name and refusals[name]
 		return r ~= nil and r.quietUntil > (now or GetTime())
@@ -417,8 +408,6 @@ local function NeverSet()
 	return never
 end
 
--- What somebody typed, tidied: the space around it off and any run of spaces
--- inside it cut to one. nil for nothing at all.
 local function CleanName(name)
 	if type(name) ~= "string" then return nil end
 	name = name:gsub("%s+", " "):match("^%s*(.-)%s*$")
@@ -458,10 +447,9 @@ end
 -- What the list walk has already answered, by name: the entry, or false. The
 -- scan asks about everybody 2.5 times a second, two case-folded compares per
 -- entry. Checked against a copy of the list rather than cleared by an editor,
--- because imports, profile switches and the scenarios write the table directly;
--- a different fold function throws the answers away too. `scan` is the answers
--- while BuildQueue walks the units, nil otherwise. One table for the main
--- chunk's 200 locals.
+-- because imports, profile switches and the scenarios write the table
+-- directly; a different fold function throws the answers away too. `scan` is
+-- the answers while BuildQueue walks the units.
 local neverSeen = {
 	list = nil, fold = nil, size = 0, copy = {}, verdict = {}, count = 0,
 	max = 1000, scan = nil,
@@ -528,11 +516,9 @@ end
 ns.ListedAs = ListedAs
 
 -- The scan's answers while it walks; between scans the same answers, checked
--- against the list as it stands now (NeverVerdicts does that on every call,
--- with table lookups alone), so an edit is honoured at once. The prompt's
--- repaint and the options page ask about the same few names over and over,
--- and a walk of the list with a case-folded compare per entry for each ask
--- was most of what a long list cost.
+-- against the list as it stands (NeverVerdicts, table lookups alone), so an
+-- edit is honoured at once. The repaint and the options page ask about the
+-- same few names over and over, and a list walk per ask was most of the cost.
 function ns.IsNeverOffered(name)
 	return ListedAs(name, neverSeen.scan or NeverVerdicts()) ~= nil
 end
@@ -574,13 +560,11 @@ function ns.ClearNeverList()
 end
 
 -- Puts somebody on the list as a deliberate act (a shift-right-click on the
--- prompt, /manners never, the options box) and always says so, whatever Tell
--- me in chat is set to, since it is where the way back is written down.
--- Returns the spelling on the list, or nil for a name that was only space.
---
--- A favour they are owed goes with them, even when already listed: owed people
--- are exempt from the list (STATUS.md), so they would otherwise come straight
--- back once the skip ran out. Their next favour is offered as usual.
+-- prompt, /manners never, the options box) and always says so, since it is
+-- where the way back is written. Returns the spelling on the list, or nil for
+-- a name that was only space. A favour they are owed goes with them, even when
+-- already listed: owed people are exempt from the list (STATUS.md), so they
+-- would come straight back once the skip ran out.
 function ns.PutOnNeverList(name)
 	local listed, already = ns.NeverOffer(name)
 	if not listed then return nil end
@@ -653,22 +637,18 @@ end
 ---------------------------------------------------------------------------
 -- friends and guildmates
 --
--- For "Who comes first". Every answer here is a preference about order, never
--- a reason to offer or drop anybody, so anything the client will not say --
--- an API that is missing, one that throws, a value withheld as a secret -- is
--- read as "not a friend" and the person is ranked like everybody else.
+-- For "Who comes first": a preference about order, never a reason to offer or
+-- drop anybody, so anything the client will not say reads as "not a friend".
 ---------------------------------------------------------------------------
 
--- The section's two entry points. Everything else is private to the block
--- below, whose locals are released at its end: the main chunk is close to
--- the 200 locals Lua 5.1 allows one function.
+-- The section's two entry points; the rest is private to the block below, for
+-- the main chunk's 200 locals.
 local SweepCloseness, Closeness
 do
 	-- How long an answer about one person is kept: a friends list changes over
 	-- minutes, and the scan asks about everybody two and a half times a second.
 	local CLOSE_SECONDS = 10
 	local closeCache = {}
-	-- The friends list by lower-cased name and by GUID, and when it was read.
 	local friendNames, friendGuids, friendsReadAt = {}, {}, nil
 
 	-- The fallback for a client whose C_FriendList has no IsFriend: the list read
@@ -715,11 +695,10 @@ do
 		return realm
 	end
 
-	-- "friend", "guild", or nil for neither and for could-not-tell alike; a
-	-- friend is the more particular thing for the tooltip to say, so first.
-	-- The GUID goes to the client as handed over, secret or not (the friends
-	-- API may still take it); it is never compared or read here, because a
-	-- secret throws on both.
+	-- "friend", "guild", or nil for neither and for could-not-tell alike; friend
+	-- first, the more particular thing for the tooltip to say. The GUID goes to
+	-- the client as handed over, and is never compared or read here: a secret
+	-- throws on both.
 	function Closeness(unit, full, now)
 		local cached = closeCache[full]
 		if cached and now - cached.at < CLOSE_SECONDS then return cached.kind or nil end
@@ -753,11 +732,9 @@ do
 			if inMine == true then
 				kind = "guild"
 			elseif inMine == nil then
-				-- Only where UnitIsInMyGuild gave no answer (a plain no is an
-				-- answer): the two guild names, when both are readable, and their
-				-- realms, since a guild's name is only unique on its realm. pcall
-				-- rather than safecall, which keeps only three returns and the
-				-- realm is the fourth.
+				-- Only where UnitIsInMyGuild gave no answer (a plain no is one): the two guild
+				-- names and their realms, a guild's name being unique only on its realm.
+				-- pcall, not safecall: the realm is the fourth return.
 				local okTheirs, theirs, _, _, theirRealm = pcall(_G.GetGuildInfo, unit)
 				local okOurs, ours, _, _, ourRealm = pcall(_G.GetGuildInfo, "player")
 				theirs, ours = plain(theirs), plain(ours)
@@ -774,10 +751,9 @@ do
 	end
 end
 
--- Tell the favour ledger (Ledger.lua) what just happened to a favour. One way
--- only, so it never changes who is offered what, and guarded so a ledger that
--- throws cannot take a settle or a sweep with it. Not a global: this assigns
--- the local declared above the never-offer list.
+-- Tell the favour ledger (Ledger.lua) what happened to a favour: one way only,
+-- so it never changes who is offered what, and guarded. Assigns the local
+-- declared above the never-offer list.
 function TellLedger(event, ...)
 	local ledger = ns.Ledger
 	local fn = ledger and ledger[event]
@@ -798,11 +774,10 @@ local PRIORITY = { target = 0, owed = 1, asked = 1.5, group = 2, nearby = 3 }
 -- A group member put first by a ready check or by coming back from the dead:
 -- behind your deliberate target, ahead of everybody else.
 PRIORITY.sweep = 0.5
--- Your own buff: behind everybody who is waiting on you for something -- the
--- person you picked out, a ready check or a death, a favour to return, a
--- request -- since they may walk off and you will not. Ahead of your group and
--- passers-by, since what you carry yourself is what you fight with, and your
--- group can be swept once you are done.
+-- Your own buff: behind everybody waiting on you for something -- your pick, a
+-- ready check or a death, a favour, a request -- since they may walk off and
+-- you will not; ahead of your group and passers-by, since what you carry is
+-- what you fight with.
 PRIORITY.self = 1.75
 
 -- The group's unit tokens, spelled out once rather than joined on every scan.
@@ -833,10 +808,8 @@ local function IterateUnits(fn)
 		end
 	end
 
-	-- namePlateUnitToken read off the frame comes back as a secret value on
-	-- this client, so the frames are useless for enumeration. The token handed
-	-- to NAME_PLATE_UNIT_ADDED is not, so we keep our own list from the events
-	-- and only fall back to the frames if that list is empty.
+	-- Our own list from NAME_PLATE_UNIT_ADDED (ns.nameplateUnits, Core.lua): a
+	-- frame's token is a secret. The frames only when that list is empty.
 	local plated = 0
 	for token in pairs(ns.nameplateUnits) do
 		if plain(UnitExists(token)) then
@@ -890,9 +863,8 @@ local MANA_MARGIN = 5
 -- holding offers back. One table for the main chunk's 200 locals.
 local sweep = { readyUntil = nil, down = {}, revived = {}, prefix = nil, saving = nil }
 
--- READY_CHECK hands over who started it and the seconds it runs for. Either
--- end of the check repaints at once rather than at the next scan: a ready
--- check lasts seconds, and the prompt should move as it starts.
+-- Either end of a ready check repaints at once rather than at the next scan:
+-- a ready check lasts seconds.
 function addon:READY_CHECK(_, _, timeLeft)
 	local seconds = plain(timeLeft)
 	if type(seconds) ~= "number" or seconds <= 0 or seconds > 120 then seconds = READY_CHECK_SECONDS end
@@ -924,13 +896,12 @@ function ns.ReadyCheckRunning(now)
 	return untilAt ~= nil and untilAt > (now or GetTime())
 end
 
--- Who in the group has just come back from the dead. Walked on every scan tick
--- rather than on UNIT_HEALTH, which in a raid fires hundreds of times a second
--- in a fight: forty yes-or-no questions every 0.4 seconds is cheaper, and the
--- tick runs in fights and while you are dead yourself, which the queue's walk
--- does not. A withheld answer (a secret) is no answer, so nothing changes on
--- it. The name is read only when somebody dies or stands up, and checked
--- again then, since a roster change can hand the token to somebody else.
+-- Who in the group has just come back from the dead, walked on every tick
+-- rather than on UNIT_HEALTH, which fires hundreds of times a second in a raid
+-- fight: forty questions every 0.4 s is cheaper, and the tick runs in fights
+-- and while you are dead. A secret answer changes nothing. The name is read
+-- only when somebody dies or stands up, and checked again then: a roster
+-- change can hand the token to somebody else.
 function ns.WatchGroupDeaths(now)
 	local db = addon.db and addon.db.profile
 	local down, revived = sweep.down, sweep.revived
@@ -1043,40 +1014,32 @@ end
 ---------------------------------------------------------------------------
 -- flagged for PvP
 --
--- A buff on somebody flagged for PvP flags you too, for minutes, out where
--- anybody of the other faction may then set on you -- and a group spell or a
--- shout that lands on one flagged member of your party does the same. So
+-- A buff on somebody flagged for PvP flags you too, for minutes -- and so does
+-- a group spell or a shout landing on one flagged member of your party. So
 -- while "Skip players flagged for PvP" is on and you are not flagged yourself,
--- nobody who reads as flagged is offered anything, whatever the reason: a
--- favour owed, a request, your group, a passer-by, your target, a ready check
--- or somebody just revived. While you are flagged -- a battleground, /pvp, an
--- enemy town -- buffing them costs you nothing more, and the rule stands
--- aside. Not while your own flag is running out, though (see YouAreFlagged):
--- a buff on somebody flagged starts that countdown again. You are never
--- judged by it: your own entry (SelfEntry) never passes through it.
+-- nobody who reads as flagged is offered anything, whatever the reason. While
+-- you are flagged -- a battleground, /pvp, an enemy town -- buffing them costs
+-- nothing more and the rule stands aside; not while your own flag is running
+-- out, though (YouAreFlagged), since a buff restarts that countdown. Your own
+-- entry (SelfEntry) never passes through it.
 --
--- A flag the game will not show (a secret or a call that is missing) is
--- "cannot tell", and the person is offered, as everywhere else here.
+-- A flag the game will not show is "cannot tell", and the person is offered.
 -- Somebody no token reaches -- a favour from a stranger, a passer-by
 -- remembered -- is judged on the flag last read off them, kept on the debt and
 -- on the memory. A favour owed to somebody flagged stays owed, and is offered
--- if the flag drops while the favour is still remembered. A flag lasts five
--- minutes after the last fight and a favour is kept two by default, so that
--- is the lesser case, and nothing that talks to the player promises it.
+-- if the flag drops while it is still remembered: the lesser case (a flag lasts
+-- five minutes, a favour two by default), so nothing promises it to the player.
 --
 -- War Mode: this client has Retail's C_PvP war mode calls but no way to switch
--- it on (Camelot's talent frame has no War Mode button, Retail's has), and on a
--- client where it is on, a player in it reads as flagged anyway -- which is
--- all that is read here. So nothing asks about War Mode.
+-- it on, and where it is on a player in it reads as flagged anyway. So nothing
+-- asks about War Mode.
 ---------------------------------------------------------------------------
 
 -- Whether a unit is flagged, the free-for-all flag included: true, false, or
--- nil when the game will not say. Asked of every person on every scan, so
--- called directly: the walk has already handed the same token, unprotected,
--- to UnitExists, UnitIsUnit, UnitIsPlayer, UnitCanAssist and the rest, and a
--- flag withheld comes back a secret, which plain() makes "cannot tell". Each
--- function is read at call time and may be missing. Written out rather than
--- as `f and plain(f(unit)) or nil`, which turns a definite false into nil.
+-- nil when the game will not say. Called directly (the policy atop Core.lua):
+-- the walk has already handed the same token to UnitExists and the rest.
+-- Written out rather than as `f and plain(f(unit)) or nil`, which turns a
+-- definite false into nil.
 local function PvPFlag(unit)
 	local isPvP, isFFA = _G.UnitIsPVP, _G.UnitIsPVPFreeForAll
 	local pvp, ffa
@@ -1088,19 +1051,14 @@ local function PvPFlag(unit)
 end
 ns.PvPFlag = PvPFlag
 
--- Whether you are flagged, which stands the rule aside, and as a second answer
--- whether the rule stands only because your flag is running out. Your own
--- flag withheld counts as not flagged -- except in a battleground or an
--- arena, where everybody is -- because the two mistakes are not alike: taking
--- you for unflagged costs an offer to somebody the game says is flagged, where
--- the other way round costs you the very flag the setting exists to spare you.
---
--- Flagged with the countdown running (after /pvp off, a flagged player
--- buffed, an enemy town left) counts as not flagged, outside a
--- battleground or arena: you are waiting the flag out, and every flagged
--- player buffed starts the five minutes again -- the owner's own report, one
--- buff back flagging him and the prompt then offering the next flagged
--- player. A countdown the game will not show is no countdown.
+-- Whether you are flagged, which stands the rule aside, and second whether it
+-- stands only because your flag is running out. Your own flag withheld counts
+-- as not flagged -- except in a battleground or arena -- because the mistakes
+-- are unequal: one costs an offer, the other the very flag the setting spares
+-- you. Flagged with the countdown running (after /pvp off, a flagged player
+-- buffed, an enemy town left) counts as not flagged outside a battleground or
+-- arena: every flagged player buffed restarts the five minutes (the owner's
+-- own report). A countdown the game will not show is no countdown.
 local function YouAreFlagged()
 	local mine = PvPFlag("player")
 	if mine == false then return false end
@@ -1111,7 +1069,6 @@ local function YouAreFlagged()
 	return true
 end
 
--- Whether the rule stands right now: the setting on and you not flagged.
 local function PvPRuleStands(db)
 	return db.filters.skipPvP == true and not YouAreFlagged()
 end
@@ -1184,12 +1141,10 @@ function ns.PvPLines(scan)
 	return out
 end
 
--- A shout lands on your whole party (in a raid, your subgroup, or the whole
--- raid where shouts reach it: see ShoutFlagged), whoever the prompt names, so
--- while the rule stands one member flagged among them holds back every shout,
--- as a group cast is held back (GroupBuffs.lua): the queue without them, each
--- a verdict, since none is offered this scan. The party is walked only when a
--- shout is queued at all.
+-- A shout lands on your whole party (in a raid your subgroup, or the whole
+-- raid where shouts reach it: ShoutFlagged), whoever the prompt names, so
+-- while the rule stands one flagged member holds back every shout, as for a
+-- group cast, each a verdict. The party is walked only when a shout is queued.
 local function HoldShoutsForPvP(queue, rejected, inRaid)
 	local shout
 	for _, entry in ipairs(queue) do
@@ -1218,39 +1173,32 @@ end
 -- passers-by, remembered
 --
 -- Friendly nameplates are off by default, so for most players a stranger is
--- found through the cursor and nothing else: "mouseover" is the one token
--- that reaches them, and it goes the moment the cursor leaves them to go and
--- click the prompt. The next scan had nobody, the empty-queue fuse took the
--- prompt down, and the offer vanished in under a second on the way to being
--- clicked, every time, whatever the settings (a CurseForge report on 1.1.0).
--- With nameplates on, somebody pacing along the edge of "Passers-by within"
+-- found by the cursor alone: "mouseover" is the one token that reaches them,
+-- and it goes the moment the cursor leaves them for the prompt. The next scan
+-- had nobody, the empty-queue fuse took the prompt down, and the offer
+-- vanished on the way to being clicked, every time (a CurseForge report on
+-- 1.1.0). With nameplates on, somebody pacing the edge of "Passers-by within"
 -- blinked on and off the same way.
 --
 -- So a passer-by offered through a token nobody pointed at -- the cursor, a
 -- nameplate -- is remembered by name, and for a few seconds after the last
--- token that reached them they are offered the way the owed fallback offers
--- a favour: no token, reached by the macro's /target line, range unknown. A
--- cast on somebody who has walked off is refused, and the refusal back-off
--- (NoteRefusal) lets them go. Only plain data is kept, never a unit token:
--- by the time it is read the token may name somebody else.
+-- token reached them is offered as the owed fallback offers a favour: no
+-- token, the macro's /target line, range unknown. A cast on somebody who has
+-- walked off is refused, and the back-off (NoteRefusal) lets them go. Only
+-- plain data is kept, never a unit token, which may name somebody else by then.
 --
--- The same trip to the prompt loses anybody else only the cursor found, so
--- the memory is not for passers-by alone. Somebody who asked in chat is
--- remembered the same way, with what they asked for, as long as the request
--- stands: a request names a person, not a unit, and has no tokenless path of
--- its own. Somebody who buffed you longer ago than "Let them go after" is
--- offered by the owed fallback again for the same few seconds after a token
--- last reached them (see `near` on the debt), since being found is evidence
--- of reach as good as a fresh favour.
+-- Somebody who asked in chat is remembered the same way while the request
+-- stands: a request names a person, not a unit. Somebody who buffed you longer
+-- ago than "Let them go after" is offered by the owed fallback again for the
+-- same few seconds after a token last reached them (`near` on the debt): being
+-- found is evidence of reach as good as a fresh favour.
 ---------------------------------------------------------------------------
 
--- How long after the last token reached them. Getting the cursor across the
--- screen to the prompt and reading it takes a second or two. Somebody found
--- within ten yards and running straight off at seven yards a second leaves a
--- buff's thirty yards in about three; somebody standing about or walking stays
--- in reach far longer. Ten seconds covers the trip and the read, and whoever
--- did run off costs one refused cast. Longer would leave the queue full of a
--- crowd long gone.
+-- How long after the last token reached them. Reaching the prompt and reading
+-- it takes a second or two; somebody running off at seven yards a second
+-- leaves a buff's thirty yards in about three, somebody standing about far
+-- later. Ten covers the trip, and a runner costs one refused cast; longer
+-- would fill the queue with a crowd long gone.
 local LINGER_SECONDS = 10
 -- A city square puts dozens of people through the scan in ten seconds; the
 -- ones seen longest ago make room.
@@ -1313,22 +1261,19 @@ local function StillCastable(memo, candidates, f)
 	return false
 end
 
--- The walk's second half for the remembered: everybody whom no token reached
--- this scan, offered by name until LINGER_SECONDS after one last did.
--- `rejected` is the walk's, where true is a verdict about the person -- they
--- carry the buff, are dead, out of casting range, listed, outside a city --
--- and lets them go at once; "far" is only the nearness check, which does not
--- (see visit). `drop` is a reason that turns every passer-by down, but not
--- somebody who asked: a request is a source of its own, which the passer-by
--- switch, saving mana and the city rule leave alone, as the walk does.
--- Somebody last read as flagged for PvP is let go the same way while the
--- rule stands, and written into the scan's record (see "flagged for PvP").
+-- The walk's second half for the remembered: everybody no token reached this
+-- scan, offered by name until LINGER_SECONDS after one last did. In
+-- `rejected` (the walk's), true is a verdict about the person -- covered,
+-- dead, out of range, listed, outside a city -- and lets them go; "far" is
+-- only the nearness check, which does not (see visit). `drop` turns every
+-- passer-by down, but not somebody who asked: a request is a source of its
+-- own. Somebody last read as flagged for PvP is let go while the rule stands,
+-- and recorded.
 --
 -- Letting somebody go on a verdict writes it into `rejected` too, which
--- BuildQueue hands the prompt: the cursor holding the panel on them must not
--- outlast it (see hovering in Prompt.lua). Running out of time is no verdict.
--- `verdict` is the scan's never-offer answers (NeverVerdicts), which the walk
--- has mostly filled for these very names already, as SelfEntry reads them.
+-- BuildQueue hands the prompt, so the cursor's hold cannot outlast it
+-- (hovering, Prompt.lua). Running out of time is no verdict. `verdict` is the
+-- scan's never-offer answers (NeverVerdicts).
 local function OfferPassersBy(queue, seen, rejected, now, db, candidates, verdict, drop)
 	for name, memo in pairs(passing) do
 		local debt = db.sources.owed and owed[name]
@@ -1487,22 +1432,17 @@ function ns.SelfBuffFirst(db, now)
 	return (SelfBuff(db, mine, full, now))
 end
 
--- Your own buff, when you are missing it or (with top-ups on) it is running
--- low: the one entry BuildQueue makes for you, after the walk, since
--- IsBuffableUnit turns "player" away on every other path. `candidates` is
--- CastableBuffs' answer for the scan, and `verdict` the never-offer list's
--- answers for it (NeverVerdicts). Returns the entry, or nil.
+-- Your own buff, missing or (with top-ups on) running low: the one entry
+-- BuildQueue makes for you, after the walk, since IsBuffableUnit turns
+-- "player" away everywhere else. Returns the entry, or nil.
 --
--- One entry for you at a time, and your group buff first: it is the one your
--- group sees you missing, and the class's own come after it in the order
--- Buffs.lua lists them (a mage's Intellect, then the armor).
+-- One entry for you at a time, your group buff first: it is the one your group
+-- sees you missing, and the class's own follow in Buffs.lua's order.
 --
--- Not held back while saving mana, unlike the group: the floor keeps your mana
--- for yourself, and a buff on yourself is exactly that -- one cheap cast you
--- always want. Nor by the raid groups you were given, which are about whom
+-- Not held back while saving mana, unlike the group: a buff on yourself is
+-- what the floor keeps mana for. Nor by the raid groups, which are about whom
 -- you buff. Your own name on the never-offer list is honoured, though "never"
--- on the prompt switches this source off instead (StopOfferingSelf): the
--- list's own sentences are about other people.
+-- on the prompt switches this source off instead (StopOfferingSelf).
 local function SelfEntry(db, candidates, now, verdict)
 	local held, full = ns.MyselfHeldBack(db, now)
 	if held then return nil end
@@ -1519,7 +1459,6 @@ local function SelfEntry(db, candidates, now, verdict)
 	return {
 		name = full,
 		short = ShortName(full),
-		-- What the first line and the list under it say in your name's place.
 		display = L["You"],
 		-- The spelling the macro's /target line carries: you are targeted by
 		-- name like anybody else (STRATEGIES.self in Prompt.lua says why).
@@ -1553,17 +1492,14 @@ function ns.StopOfferingSelf()
 	ns.RepaintOptions()
 end
 
--- CastableBuffs' answer less what the game says you cannot pay for right now,
--- once per scan, for everything the scan offers from it: the walk, requests,
--- favours out of sight, passers-by remembered, "Buff myself" and the group
--- casts. A mage at 150 mana was offered an Intellect that costs more, and
--- every press failed with "Not enough mana" -- the caster's fault, so nothing
--- backed off: the prompt went round everybody, thanking each of them with
--- speech on, and buffed nobody. Only a no for want of mana counts: a plain no
--- can be a form (cat form, Shadowform) the macro may still get past, and a
--- client that will not say keeps the buff. The zero-mana stop in BuildQueue
--- stays for a client without the call. Your class's own buffs and the group
--- spell ask for themselves (Core.lua, GroupBuffs.lua).
+-- CastableBuffs' answer less what the game says you cannot pay for now, once
+-- per scan, for everything the scan offers from it. A mage at 150 mana was
+-- offered an Intellect that costs more and every press failed -- the caster's
+-- fault, so nothing backed off: the prompt went round everybody, thanking
+-- each, and buffed nobody. Only a no for want of mana counts: a plain no can
+-- be a form the macro may still get past, and a client that will not say
+-- keeps the buff. The zero-mana stop in BuildQueue stays for a client without
+-- the call; your own buffs and the group spell ask for themselves.
 local function Affordable(candidates)
 	local check = C_Spell and C_Spell.IsSpellUsable
 	if type(check) ~= "function" then check = _G.IsUsableSpell end
@@ -1585,21 +1521,18 @@ local function Affordable(candidates)
 end
 
 -- The queue, sorted, and what the scan turned down: [name] = true for
--- everybody a token reached and found covered, dead, out of range, out of
--- sight, listed or held back while you save mana (and the remembered let go
--- on a verdict), or true for the whole queue refused for your own state --
--- dead, on a taxi, mounted with "Hide the prompt while I'm mounted", nothing
--- to cast. The prompt reads it to tell a verdict from a token merely lost (see
--- hovering in Prompt.lua). `watch` is its say that it holds somebody the queue
--- may not: a verdict about the dead then costs a name read even when no debt
--- or remembered passer-by would ask for one.
+-- everybody a token reached and found covered, dead, out of range or sight,
+-- listed or held back for mana (and the remembered let go on a verdict), or
+-- true for the whole queue refused for your own state. The prompt reads it to
+-- tell a verdict from a token merely lost (hovering, Prompt.lua). `watch` says
+-- the prompt holds somebody the queue may not: a verdict about the dead then
+-- costs a name read anyway.
 function ns.BuildQueue(watch)
 	local db = addon.db and addon.db.profile
 	-- What this scan holds back for PvP, started again whichever way it ends.
 	wipe(pvpScan.names)
 	wipe(pvpScan.groups)
 	pvpScan.stands, pvpScan.you, pvpScan.countdown = false, nil, nil
-	-- Nothing learned to cast on anybody, yourself included.
 	if not db or not ns.CanCastAnything() then return {}, true end
 
 	-- Nothing can be cast while dead, in a vehicle, or on a taxi, so offering
@@ -1634,7 +1567,6 @@ function ns.BuildQueue(watch)
 	-- (which would fill the proximity counts with people never offered).
 	local groupOnly = ns.OnlyReachesGroup(candidates)
 	local inRaid = plain(IsInRaid and IsInRaid()) == true
-	-- The never-offer list's answers so far; see NeverVerdicts.
 	local neverVerdict = NeverVerdicts()
 
 	-- Offers nobody asked for, held back while you keep your mana and, in a
@@ -1721,11 +1653,9 @@ function ns.BuildQueue(watch)
 		local inGroup = plain(UnitInParty and UnitInParty(unit)) or plain(UnitInRaid and UnitInRaid(unit))
 		local isOwed = db.sources.owed and owed[full] and LiveExpiry(owed[full]) > now
 
-		-- The never-offer list, for everybody but a person owed a favour. That
-		-- exception is a decision (STATUS.md), and the options page says so:
-		-- returning a favour is what the addon is for. Safe to write into
-		-- `rejected`: nobody reaching this line is owed anything the fallback
-		-- could offer, since it asks the same two questions isOwed just did.
+		-- The never-offer list, for everybody but a person owed a favour: that
+		-- exception is a decision (STATUS.md), and the options page says so. Safe to
+		-- write into `rejected`: the fallback asks the same two questions isOwed did.
 		if not isOwed and ns.IsNeverOffered(full) then
 			rejected[full] = true
 			return
@@ -1760,16 +1690,13 @@ function ns.BuildQueue(watch)
 			local group = RaidGroupOf(unit)
 			if group and skipGroups[group] then return end
 		end
-		-- A group member the game says is out of sight -- still in town while
-		-- the raid is inside, or a long way off in it -- is out of range for
-		-- certain, which this client's range check often will not say. A
-		-- range rule, not a group one, so a favour owed and a request meet it
-		-- too: a raider who buffed you and then hearthed sat on top of the
-		-- prompt, every press failing out of range, for the whole favour.
-		-- Their debt and request stay; `rejected` keeps the owed fallback and
-		-- the memory of askers from offering them by name, and the next scan
-		-- that sees them offers them again. Only the group is asked: their
-		-- tokens are the ones that outlast sight.
+		-- A group member the game says is out of sight -- in town while the raid is
+		-- inside, or far off in it -- is out of range for certain, which this client's
+		-- range check often will not say. A range rule, so a favour and a request
+		-- meet it too: a raider who buffed you and hearthed sat on the prompt, every
+		-- press failing, for the whole favour. Their debt and request stay; `rejected`
+		-- keeps the fallbacks off them until a scan sees them again. Only the group's
+		-- tokens outlast sight.
 		if inGroup and f.requireInRange
 			and plain(UnitIsVisible and UnitIsVisible(unit)) == false then
 			rejected[full] = true
@@ -1783,18 +1710,14 @@ function ns.BuildQueue(watch)
 			return
 		end
 
-		-- Flagged for PvP, for every reason alike -- a favour, a request, the
-		-- group, your target. Below everything above, each of which keeps
-		-- somebody off the prompt whatever their flag, so /manners debug
-		-- names only people the rule itself holds back; above everything
-		-- below, since two flags cost less than a distance or an aura read.
-		-- A verdict, so the cursor's hold lets them go, and a passer-by
-		-- remembered with it -- where "far", below, would not. What was read
-		-- goes on their debt, for the owed fallback, which has no token to
-		-- ask; the debt itself stays. Of the tests above, somebody owed meets
-		-- only the whole-person block and, in the group, the out-of-sight
-		-- test, which the fallback honours as well (the second through
-		-- `rejected`), so every token that finds them offerable refreshes it.
+		-- Flagged for PvP, for every reason alike. Below the tests above, so /manners
+		-- debug names only people the rule itself holds back; above those below, since
+		-- two flags cost less than a distance or an aura read. A verdict, so the
+		-- cursor's hold lets them go, where "far" would not. What was read goes on
+		-- their debt for the owed fallback, which has no token to ask; the debt stays.
+		-- Somebody owed meets only the whole-person and out-of-sight tests above,
+		-- which the fallback honours too, so every token finding them offerable
+		-- refreshes it.
 		local flag
 		if pvpRead then
 			flag = PvPFlag(unit)
@@ -1826,7 +1749,6 @@ function ns.BuildQueue(watch)
 		local checked = whenBuffed ~= "always"
 
 		-- Every field written for every person; PickBuffFor keeps nothing.
-		-- What ReadAura reads the auras with, first.
 		opts.unit, opts.guid, opts.checked = unit, guid, checked
 		-- Somebody who asked gets only what they asked for, relevant to them or
 		-- not (a warrior may want Intellect), but never when already covered.
@@ -1842,7 +1764,6 @@ function ns.BuildQueue(watch)
 		-- Owing somebody means offering them even when covered: a decision about
 		-- who gets an offer, saying nothing about what their auras read.
 		opts.offerAnyway = isOwed
-		-- Blocked for this person and this buff; reads name and now off opts.
 		opts.blocked = QueueBlocked
 		opts.now = now
 		local buff, has, remaining = ns.PickBuffFor(asked or candidates, opts, ReadAura)
@@ -1857,12 +1778,10 @@ function ns.BuildQueue(watch)
 		if ranged == nil and buff.selfCast then ranged = ShoutReach(unit) end
 		if f.requireInRange and ranged == false then rejected[full] = true return end
 
-		-- A deliberate target outranks a debt, but only once their auras were
-		-- read and the buff found missing; promoting a guess would put somebody
-		-- covered above a person who really buffed you. Being owed stays the
-		-- better line for the prompt to say, so an owed target keeps it, and so
-		-- does somebody who asked (the order comes from the priority, the words
-		-- from the reason). Switchable: some players target to inspect.
+		-- A deliberate target outranks a debt, but only once their auras were read
+		-- and the buff found missing: a guess must not put somebody covered above a
+		-- person who buffed you. The words come from the reason, so an owed or asking
+		-- target keeps them. Switchable: some players target to inspect.
 		local priority = PRIORITY[reason]
 		if unit == "target" and db.priority.target
 			and not isOwed and checked and has == false then
@@ -1995,11 +1914,9 @@ function ns.BuildQueue(watch)
 					tokenless.name = full
 					local buff = ns.PickBuffFor(candidates, tokenless, NoReading)
 
-					-- One buff per favour: nothing here can verify the first
-					-- landed. selfCast is excluded: a shout is judged repaid on
-					-- whether the press measured them inside its reach, and with
-					-- no token here there is nothing to measure -- they may be a
-					-- zone away.
+					-- One buff per favour: nothing here can verify the first landed. Not a shout:
+					-- it is judged repaid on whether the press measured them in reach, and with no
+					-- token they may be a zone away.
 					if buff and not buff.selfCast and not ns.IsBlocked(full, buff.key, now) then
 						queue[#queue + 1] = {
 							name = full,

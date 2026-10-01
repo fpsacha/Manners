@@ -149,7 +149,6 @@ function Looks.Allowed()
 	return out
 end
 
--- The dropdown's values and their order.
 function Looks.Choices()
 	local values, sorting = {}, {}
 	for key, look in pairs(Looks.list) do

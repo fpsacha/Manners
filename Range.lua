@@ -3,7 +3,6 @@
 -- (Queue.lua) asks it about every passer-by on every scan.
 
 local ns = select(2, ...)
--- Player-facing text, in the client's language: see Locales/Init.lua.
 local L = ns.L
 local addon = ns.addon
 
@@ -117,10 +116,8 @@ do
 	-- nil as "further out", so a client withholding answers put everybody at 28-40
 	-- yards. Asked here, a refusal stays a refusal, in one call rather than five.
 	-- nil for an edge backed by a spell, where GetRange is all there is.
-	--
-	-- Both calls are the client's, handed a number and a unit token: they answer
-	-- or withhold a secret, which plain() makes "cannot tell", and do not throw,
-	-- so they are called directly, once per passer-by per scan.
+	-- Both are client calls handed a number and a unit token, which answer or
+	-- withhold a secret and never throw, so they are called directly.
 	local function DirectCheck(lib, edge)
 		local list = lib.friendRC
 		if type(list) ~= "table" then return nil end
@@ -244,7 +241,6 @@ do
 		},
 	}
 
-	-- Why the rungs that are missing are missing, all of them.
 	local function DroppedNote()
 		local names = {}
 		for _, source in ipairs(PROX_SOURCES) do

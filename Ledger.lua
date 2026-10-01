@@ -1,22 +1,19 @@
 -- Manners -- the favour ledger.
 --
 -- A record of what the addon has done for you: who buffed you, with what and
--- when, whether you returned it and with what, and who you buffed without being
--- asked. The recent entries are listed in a small window (/manners ledger), under
--- the lifetime counts, which the minimap tooltip and the General tab repeat.
+-- when, whether you returned it and with what, and who you buffed unasked. The
+-- recent entries are listed in a small window (/manners ledger), under the
+-- lifetime counts, which the minimap tooltip and the General tab repeat.
 --
--- It is a record and never a decision. Core tells it what happened at the
--- four moments a favour changes hands -- noticed, repaid, refused after all, and
--- let go -- and nothing reads a ledger entry to decide what to offer or whom to
--- cast at: the debt table in Queue.lua is the one opinion about who is owed. So
--- the ledger may only ever be wrong by missing something, and one that throws
--- takes nothing with it, because Core calls it through Guard.
+-- It is a record and never a decision. Core tells it what happened at the four
+-- moments a favour changes hands -- noticed, repaid, refused after all, let go
+-- -- and nothing reads it to decide what to offer: the debt table in Queue.lua
+-- is the one opinion about who is owed. So the ledger can only be wrong by
+-- missing something, and one that throws takes nothing with it (Guard).
 --
--- The window is plain UI with no secure frame anywhere in it, so unlike the
--- prompt it can be opened, scrolled, cleared and dragged in a fight.
+-- The window is plain UI with no secure frame, so it works in a fight.
 
 local _, ns = ...
--- Player-facing text, in the client's language: see Locales/Init.lua.
 local L = ns.L
 
 local Ledger = {}
@@ -43,15 +40,12 @@ local TEXT = {
 	CLOSE = "x",
 	CLOSE_TIP = L["Close (Escape works too)"],
 
-	-- The headline over the list, and the line the minimap tooltip and the
-	-- options page repeat. "Today" is the calendar day on this computer's
-	-- clock. It counts only the favours something you cast could have
-	-- returned: a warrior's shout to a mage is listed, but scoring it as a
-	-- favour not returned would be a failure the player can do nothing about.
-	--
-	-- "Recorded" rather than "nobody buffed you": the ledger hears of nothing
-	-- while the addon is off or has nothing to cast, and after Clear, so all
-	-- it can say is what it has.
+	-- The headline over the list, repeated by the minimap tooltip and the options
+	-- page. "Today" is this computer's calendar day. It counts only favours
+	-- something you cast could have returned: a warrior's shout to a mage scored
+	-- as not returned would be a failure the player can do nothing about.
+	-- "Recorded" rather than "nobody buffed you": the ledger hears nothing while
+	-- the addon is off or has nothing to cast, or after Clear.
 	TODAY_NONE = L["No favours recorded today."],
 	TODAY_ONLY_USELESS = L["Nothing you cast could return today's favours."],
 	TODAY_ONE = L["Returned %d of 1 favour today."],
@@ -135,10 +129,8 @@ local TEXT = {
 	TIP_RETURNED_WITH = L["You returned it %s later, with %s."],
 	TIP_LETGO_EXPIRED = L["Let go: the time to return it ran out before you did."],
 	TIP_LETGO_USELESS = L["Let go: nothing you can cast is any use to them."],
-	-- Quotes the setting by the name it has on the When tab, which a scenario
-	-- holds it to.
-	-- The setting's own name and place, through the same keys the options
-	-- page uses, so a translation names what the player will find there.
+	-- The setting's own name and place, through the options page's keys, so a
+	-- translation names what the player will find there; a scenario holds it to.
 	TIP_LETGO_NOTKEPT = L["Let go: \"%s\" (%s tab, under %s) is off, so it was forgotten when you logged out or reloaded."]
 		:format(L["Keep favours through a /reload"], L["Advanced"], L["Favours"]),
 	TIP_LETGO_NEVER = L["Let go: you put them on your never-offer list."],
@@ -181,10 +173,9 @@ local TEXT = {
 
 	OPTIONS_EMPTY = L["Nothing has been recorded on this character yet."],
 
-	-- The title the favours you have returned earn you (TITLES below): at the
-	-- top of the window, the title on the left and the way to the next on the
-	-- right, "37 of 50 to Courteous" -- the favours returned, where the next
-	-- title comes, and its name.
+	-- The title the favours you have returned earn (TITLES below): at the top of
+	-- the window, the title on the left and the way to the next on the right,
+	-- "37 of 50 to Courteous".
 	UNTITLED = L["Untitled, for now"],
 	RANK_PROGRESS = L["%d of %d to %s"],
 	RANK_TOP = L["every title earned"],
@@ -267,10 +258,9 @@ local function Secret(v)
 end
 
 -- A name that may be kept, or nil: the debt table's rules, restated because
--- this is the other place a name goes to disk and the window prints it. A
--- secret, anything too long for a name and a surname, and anything carrying a
--- chat escape or macro punctuation are refused. The longest name and surname
--- are twelve characters each of up to four bytes, and the space between.
+-- this too goes to disk and the window prints it. A secret, anything longer
+-- than a name and a surname (twelve characters each of up to four bytes, and
+-- a space), and anything with a chat escape or macro punctuation are refused.
 local function CleanName(name)
 	if Secret(name) or type(name) ~= "string" then return nil end
 	if name == "" or #name > 97 then return nil end
@@ -614,12 +604,10 @@ local function PromoteDue()
 	if s then Announce(s) end
 end
 
--- After a favour returned. Core settles when the cast is sent, and the server
--- can refuse it a moment later, taking the favour back: a title said at once
--- would stand in chat while the window took it away, and the favour that then
--- really earned it would be silent. So the title waits out the refusal, and
--- is said only if the count still holds it. Without a timer to wait on, it is
--- said at once.
+-- After a favour returned. Core settles when the cast is sent and the server
+-- can refuse it a moment later: a title said at once would stand in chat while
+-- the window took it away. So the title waits out the refusal and is said
+-- only if the count still holds it; with no timer to wait on, at once.
 local function Promote(s)
 	if TitleLevel(s.totals.returned) <= (s.title or 0) then return end
 	if not (C_Timer and C_Timer.After) then return Announce(s) end
@@ -992,12 +980,10 @@ function Ledger.Entries(filter)
 	return out
 end
 
--- Why nothing new can reach the list right now, or nil when it can: "off" for
--- an addon switched off, "nothing" for a character the prompt has nothing to
--- cast on, "owedoff" for favours not being watched for. The same gates
--- NoteFavour and the prompt pass, so the window never promises a row that
--- cannot come. Asked, never stored: each is a setting or a spell book that can
--- change under it.
+-- Why nothing new can reach the list now, or nil: "off" (addon switched off),
+-- "nothing" (nothing to cast), "owedoff" (favours not watched for). The same
+-- gates NoteFavour and the prompt pass, so the window never promises a row
+-- that cannot come; asked, never stored, since each can change under it.
 local function Quiet()
 	local p = ns.db and ns.db.profile
 	if type(p) ~= "table" then return nil end
@@ -1140,10 +1126,9 @@ local LOGO = "Interface\\AddOns\\Manners\\Textures\\Manners64"
 -- scale, where the screen is under eight hundred units tall.
 --
 -- Every string here is hung by two points on the same edge -- TOPLEFT and
--- TOPRIGHT, never TOPLEFT and RIGHT. With an edge and a centre on one axis it
--- is unverified whether this client sizes the string from its text or from the
--- distance between the points; two points on one edge place it the same under
--- either reading. tests/scenarios/ledgerui.lua keeps it that way, and
+-- TOPRIGHT, never TOPLEFT and RIGHT: whether this client sizes such a string
+-- from its text or from the points is unverified, and two points on one edge
+-- place it the same either way. tests/scenarios/ledgerui.lua keeps it so, and
 -- tools/render_ledger.py draws the other reading so a lapse shows.
 local WIDTH, HEIGHT = 360, 480
 local PAD = 12
@@ -1201,8 +1186,7 @@ local function Font()
 end
 
 -- A font file the client cannot load leaves the string with no font, and the
--- first SetText on it throws; the game's own font always loads. GetFont is
--- asked for rather than assumed, like the rest of the frame API here.
+-- first SetText on it throws; the game's own font always loads.
 local function SafeFont(fs, path, size, flags)
 	if not fs:SetFont(path, size, flags) or (fs.GetFont and not fs:GetFont()) then
 		fs:SetFont(STANDARD_TEXT_FONT, size, flags)
@@ -1231,8 +1215,7 @@ local function Text(parent, size, colour, layer)
 	return fs
 end
 
--- Up to `lines` lines, wrapped at the width the string is hung to. Asked for
--- rather than assumed, like the rest of the client's frame API here.
+-- Up to `lines` lines, wrapped at the width the string is hung to.
 local function Wrap(fs, lines)
 	fs:SetWordWrap(true)
 	if fs.SetMaxLines then fs:SetMaxLines(lines) end
@@ -1354,14 +1337,11 @@ local function Detail(e)
 end
 
 -- What an owed row says in place of "the prompt offers them" while the prompt
--- cannot, or nil while it can. Asked at the moment of hovering, like Quiet(),
--- because each is a switch, a timer, a flag or a mount that changes under an
--- open window, and each through pcall, so a helper that throws costs the
--- caveat and not the tooltip. A snooze or a mount only holds the offer back
--- for a while; a party-only favour also waits on the giver being in your
--- party, and its lines say both. A PvP flag comes first of the passing ones,
--- as in the favour's chat line: whatever else holds the prompt back, so
--- would the flag, and it is the one that most often outlasts the favour.
+-- cannot, or nil. Asked when hovered, like Quiet(), each check through pcall
+-- so a throw costs the caveat and not the tooltip. A snooze or a mount holds
+-- the offer back for a while; a party-only favour also waits on the giver
+-- being in your party, and its lines say both. A PvP flag comes first, as in
+-- the favour's chat line: it is the one that most often outlasts the favour.
 local function OwedHeldBack(e)
 	local ok, quiet = pcall(Quiet)
 	quiet = ok and quiet or nil
@@ -1450,8 +1430,6 @@ local function BuildRow(i)
 	row.stripe:SetPoint("TOPLEFT")
 	row.stripe:SetPoint("BOTTOMLEFT")
 
-	-- The spell, in a dark well a pixel bigger than it, as the prompt draws
-	-- its own.
 	row.iconBack = Solid(row, "BORDER")
 	row.iconBack:SetSize(26, 26)
 	row.iconBack:SetPoint("LEFT", row, "LEFT", 8, 0)
@@ -1461,8 +1439,6 @@ local function BuildRow(i)
 	row.icon:SetPoint("CENTER", row.iconBack, "CENTER")
 	row.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
 
-	-- Line one: who, and when, the when pushed to the right and the name cut
-	-- where it meets it.
 	row.when = Text(row, 10, INK_FAINT)
 	row.when:SetJustifyH("RIGHT")
 	row.when:SetPoint("TOPRIGHT", row, "TOPRIGHT", -8, -4)
@@ -1471,8 +1447,6 @@ local function BuildRow(i)
 	row.name:SetPoint("TOPLEFT", row, "TOPLEFT", ROW_TEXT_X, -3)
 	row.name:SetPoint("TOPRIGHT", row.when, "TOPLEFT", -8, 1)
 
-	-- Line two: the state as a badge -- its word on a plate of its colour,
-	-- sized to the word when the row is painted -- and then what happened.
 	row.badgePlate = Solid(row, "BORDER", 1)
 	row.badgePlate:SetHeight(13)
 	row.badgePlate:SetPoint("BOTTOMLEFT", row, "BOTTOMLEFT", ROW_TEXT_X, 3)
@@ -1523,8 +1497,6 @@ local function Paint(row, e, now)
 	local badge, detail, colour = Detail(e)
 	row.badge:SetText(badge)
 	row.badge:SetTextColor(colour[1], colour[2], colour[3])
-	-- The plate is the word and a few pixels either side, and never so wide
-	-- that a long translation of it leaves no room for what follows.
 	local plate = math.min(BADGE_MAX, math.ceil(TextWidth(row.badge)) + 10)
 	row.badgePlate:SetWidth(plate)
 	row.badge:SetWidth(plate - 6)
@@ -1588,9 +1560,6 @@ local function EmptyText(key)
 	return key == "favours" and TEXT.EMPTY_FAVOURS or TEXT.EMPTY_ALL
 end
 
--- The title at the top: its name, the way to the next sized to its words and
--- never so wide the name has no room, and the bar filled for the stretch
--- between the title held and the next.
 local function PaintRank(sum)
 	local rank = Ledger.Rank(sum)
 	local r = window.rank
@@ -1654,8 +1623,6 @@ function Render()
 	if not clearable and clearArmedUntil then DisarmClear() end
 	window.clear:SetShown(clearable)
 
-	-- The scroll bar: a thumb the share of the track the rows on screen are of
-	-- the whole list, only when there is more than one screen of it.
 	local scrolls = #list > ROWS
 	window.track:SetShown(scrolls)
 	window.thumb:SetShown(scrolls)
@@ -1668,7 +1635,6 @@ function Render()
 		window.thumb:SetPoint("TOPRIGHT", window, "TOPRIGHT", -PAD + 2, LIST_TOP - y)
 	end
 
-	-- Something new at the top since the last paint, and the top is on screen.
 	local top = list[1]
 	if top and lastTop ~= nil and top ~= lastTop and offset == 0 then
 		rows[1].flashAnim:Stop()
@@ -1848,8 +1814,6 @@ local function BuildTabs()
 	end
 end
 
--- What an empty list shows in its place: the addon's mark, faded, and under
--- it the line EmptyText picks, wrapped to the middle of the list.
 local function BuildEmpty()
 	local icon = window:CreateTexture(nil, "ARTWORK")
 	icon:SetTexture(LOGO)
@@ -1865,8 +1829,6 @@ local function BuildEmpty()
 	Wrap(window.empty, 6)
 end
 
--- The footer: where the rows on screen sit in the list, and Clear, as wide as
--- the longer of its two labels.
 local function BuildFooter()
 	local rule = Solid(window, "BORDER")
 	rule:SetHeight(1)
@@ -1892,7 +1854,6 @@ local function Build()
 	window:SetFrameStrata("HIGH")
 	-- Comes to the front of its strata when clicked, and Show raises it, so a
 	-- window opened first in the same strata does not keep it underneath.
-	-- Asked for rather than assumed, like the rest of the frame API here.
 	if window.SetToplevel then window:SetToplevel(true) end
 	window:SetClampedToScreen(true)
 	window:SetMovable(true)
@@ -1918,7 +1879,6 @@ local function Build()
 	body:SetAllPoints()
 	body:SetVertexColor(0.04, 0.04, 0.06, 0.94)
 
-	-- The title band, a shade lighter, with the accent drawn under it.
 	local band = Solid(window, "BACKGROUND", -5)
 	band:SetPoint("TOPLEFT")
 	band:SetPoint("TOPRIGHT")

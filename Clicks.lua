@@ -3,7 +3,6 @@
 -- and the /click macro the options page offers.
 
 local ns = select(2, ...)
--- Player-facing text, in the client's language: see Locales/Init.lua.
 local L = ns.L
 local addon = ns.addon
 
@@ -37,11 +36,11 @@ local SETTLE_SECONDS = 2
 -- that event names nobody. SETTLE_SECONDS still decides when a record is dead.
 local SENT_SECONDS = 0.5
 
--- Said the same way wherever a click comes to nothing. "Still owed" only of
--- somebody who is; "was not buffed" only where something says so. `unknown`
+-- Said the same way wherever a click comes to nothing: "still owed" only of
+-- somebody who is, "was not buffed" only where something says so. `unknown`
 -- (a format string handed the name) is the line for somebody not owed when
--- nothing does: a press abandoned before the game answered, whose queued cast
--- may yet land. `unknownSelf` is that line for a press on yourself.
+-- nothing does -- a press abandoned before the game answered, whose cast may
+-- yet land -- and `unknownSelf` that line for a press on yourself.
 local function SayStillOwed(name, why, unknown, unknownSelf)
 	local db = addon.db and addon.db.profile
 	if not (db and db.verbose) then return end
@@ -119,11 +118,10 @@ end
 -- spellings; do not rebuild it from there.
 
 -- Retiring a record whose window has run out, wherever that is noticed. One
--- owner, because a slot simply cleared stops the sweep from ever rewinding
--- what the click wrote; a record is never discarded silently. What the user
--- is told is the caller's (`why`): the settle path holds a late cast event,
--- which proves a spell went out, just not this press's. The panel is written
--- only by SweepPendingClick, the one caller watching the window run out.
+-- owner, so a record is never discarded without rewinding what the click
+-- wrote. What the user is told is the caller's (`why`): the settle path holds
+-- a late cast event, proof a spell went out, just not this press's. Only
+-- SweepPendingClick, watching the window run out, writes the panel.
 local function ExpirePendingClick(pending, why)
 	ns.pendingClick = nil
 	-- An error inside the window already rewound this record and said so;
@@ -163,12 +161,11 @@ local function AbandonPendingClick()
 end
 ns.AbandonPendingClick = AbandonPendingClick
 
--- An error the game raised in the moment after a click: evidence that
--- something failed, none about what (it carries full bags and all the rest),
--- so it takes back what the click wrote and no more. The record stays parked:
--- a cast going out after all still settles it and takes the chat line back;
--- otherwise the sweep runs the clock out quietly. Returns the name it rewound,
--- for the panel; nothing without a live click parked, or for a second error.
+-- An error the game raised just after a click: evidence something failed,
+-- none about what (full bags and all the rest), so it takes back what the
+-- click wrote and no more. The record stays parked: a cast going out after
+-- all still settles it. Returns the name it rewound, for the panel; nothing
+-- without a live click parked, or for a second error.
 local function FailPendingClick(message)
 	local pending = ns.pendingClick
 	if not pending then return nil end
@@ -288,7 +285,6 @@ local function SettleMembers(names, pending, covered, spellId)
 	return records, repaid
 end
 
--- "<spell> returned the favour to them as well", where verbose says it.
 local function SayAlsoRepaid(spell, repaid)
 	local db = addon.db and addon.db.profile
 	if #repaid > 0 and db and db.verbose then
@@ -322,14 +318,12 @@ local function SettleGroup(pending, spellId, anchorOwed)
 	return records, givenAs
 end
 
--- Everybody else a shout reached (SettleMembers): the party members the scan
--- the press was made on measured inside its reach (Prompt.lua, PostClick). A
--- shout lands on the whole party around you, so it returns every favour in
--- earshot, not only the one it was aimed at -- left owed, they were offered a
+-- Everybody else a shout reached: the party members the press's scan measured
+-- inside its reach (Prompt.lua, PostClick). A shout lands on the whole party,
+-- so it returns every favour in earshot -- left owed, they were offered a
 -- second shout, then let go as run out. Each goes to the ledger as a plain
--- return, with no group of its own, and nobody gets a given row: one shout is
--- one cast, counted under the anchor. Returns what a late refusal needs to
--- undo it, as SettleGroup does.
+-- return; one shout is one cast, under the anchor. Returns what a late
+-- refusal needs to undo it, as SettleGroup does.
 local function SettleShout(pending, spellId)
 	local records, repaid = SettleMembers(pending.shoutMembers, pending,
 		{ buffKey = pending.buffKey, inGroup = true }, spellId)
@@ -365,14 +359,12 @@ local function UnsettleGroup(settled)
 	SaveDebts()
 end
 
--- A press on yourself ([@player]): there is nobody else it can have reached,
--- so our spell going out is the whole answer. Nothing is filed. A buff on
--- yourself is no favour returned and no gift, so the ledger (and with it the
--- milestones and In character's memory of whom you have met), the favours
--- owed and the requests are not told; the retry cooldown and the rotation
--- pointer are, as for anybody. Kept for a late refusal like any settle, which
--- finds no debt and no ledger row to take back, and backs you off as it
--- would anybody the game keeps refusing.
+-- A press on yourself ([@player]): nobody else can have been reached, so our
+-- spell going out is the whole answer. A buff on yourself is no favour and no
+-- gift, so the ledger (and with it the milestones and In character's memory),
+-- the debts and the requests are not told; the retry cooldown and the rotation
+-- pointer are. Kept for a late refusal like any settle, which backs you off as
+-- it would anybody.
 local function SettleSelf(pending, spellId, castGUID)
 	ns.pendingClick = nil
 	if not SpellIsOurs(spellId, pending.buffKey) then
@@ -487,7 +479,6 @@ local function SettlePendingClick(landedOn, spellId, castGUID)
 	-- stood, including when the favour was done, which the grace window reads.
 	local wasOwed = owed[pending.name]
 
-	-- Only where there was a favour to repay.
 	if unheard and wasOwed and pending.outOfShout then
 		SayStillOwed(pending.name, L["the shout went out, but they were too far away to hear it"])
 	elseif unheard and wasOwed then
@@ -500,9 +491,8 @@ local function SettlePendingClick(landedOn, spellId, castGUID)
 				SETTLE_INFERENCE[inferred].said:format(buff and ns.BuffName(buff) or L["the spell"])))
 		end
 	elseif pending.answered then
-		-- An error inside the window already told chat this person was not
-		-- buffed; this cast went out after it, so take that back, worded to
-		-- the evidence. Only with verbose, where it was said.
+		-- An error inside the window said this person was not buffed; this cast went
+		-- out after it, so that is taken back (with verbose, where it was said).
 		local db = addon.db and addon.db.profile
 		if db and db.verbose then
 			local line = wasOwed and L["|cffffd100%s counted as repaid after all|r -- the error before it was about something else."]
@@ -524,9 +514,7 @@ local function SettlePendingClick(landedOn, spellId, castGUID)
 	end
 
 	if not unheard then ns.SettleFavour(pending.name) end
-	-- And whatever they asked for is answered, on the same evidence.
 	if not unheard then ns.ServeRequest(pending.name, pending.buffKey) end
-	-- The ledger follows the same gate as the debt.
 	if not unheard then TellLedger("Settled", pending.name, wasOwed, pending, spellId) end
 	-- A group cast settles everybody else it covered with the same evidence.
 	-- A shout is never one, so `unheard` cannot be true here.
@@ -549,12 +537,11 @@ local function SettlePendingClick(landedOn, spellId, castGUID)
 	ns.pendingClick = nil
 end
 
--- A refusal that arrives after the settle has already let the record go:
--- UNIT_SPELLCAST_SENT is the client sending the cast, not the server taking
--- it, and out of range or line of sight come back a moment later. The record
--- is kept for SETTLE_SECONDS. Driven by UNIT_SPELLCAST_FAILED alone, since
--- UI_ERROR_MESSAGE carries no spell id, so the game's own words cannot be
--- repeated. Returns the name, for the panel.
+-- A refusal arriving after the settle let the record go: SENT is the client
+-- sending, not the server taking it, and out of range or line of sight come
+-- back a moment later, so the record is kept SETTLE_SECONDS. Driven by
+-- UNIT_SPELLCAST_FAILED alone: UI_ERROR_MESSAGE carries no spell id. Returns
+-- the name, for the panel.
 local function UnsettleLateRefusal(castGUID)
 	PruneSettled()
 	-- No match is no evidence about a cast that settled, and does nothing.
@@ -593,9 +580,7 @@ local function UnsettleLateRefusal(castGUID)
 		end
 		SaveDebts()
 	end
-	-- The ledger takes back its settle by the same clock.
 	TellLedger("Refused", settled.name, settled.at)
-	-- And what the click wrote, which the settle let stand.
 	RewindClick(settled)
 	-- This is the refusal that repeats for somebody the game will never let
 	-- you buff (beta.8): every press settles on SENT and comes back here.
@@ -786,7 +771,6 @@ function addon:UNIT_SPELLCAST_DELAYED(_, unit)
 	SyncSweep()
 end
 
--- Any change to the cooldowns, the global one included.
 function addon:SPELL_UPDATE_COOLDOWN()
 	SyncSweep()
 end

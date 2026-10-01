@@ -16,15 +16,12 @@
 --   Clicks.lua     what became of a press, the global cooldown, the macro
 --   Commands.lua   first run, test console, snooze, sharing, slash commands
 --
--- A local that one of them needs from another is put on ns where it is
--- defined. A file that loads later copies it into a local of its own at load;
--- one that loads earlier (this one, for the lifecycle) reads it off ns inside
--- the function that needs it, since at load it does not exist yet. Where a
--- comment in another file says "Core", it means this file and those seven.
+-- A local one of them needs from another goes on ns where it is defined: a
+-- later file copies it into a local at load, an earlier one (this, for the
+-- lifecycle) reads it off ns at call time. "Core" in another file means this
+-- file and those seven.
 
--- The file's arguments are the addon's folder name and its namespace table.
 local ns = select(2, ...)
--- Player-facing text, in the client's language: see Locales/Init.lua.
 local L = ns.L
 
 local addon = LibStub("AceAddon-3.0"):NewAddon((...), "AceEvent-3.0", "AceConsole-3.0", "AceTimer-3.0")
@@ -73,19 +70,16 @@ local issecretvalue = _G.issecretvalue
 local InCombatLockdown = _G.InCombatLockdown
 local GetTime = _G.GetTime
 
--- Anything the API hands back may be a secret value. Secrets throw on
--- comparison and arithmetic, so everything we branch on passes through here
--- and becomes nil when we are not allowed to look at it.
+-- Secrets throw on comparison and arithmetic, so anything branched on comes
+-- through here: nil when we may not look.
 local function plain(v)
 	if issecretvalue and issecretvalue(v) then return nil end
 	return v
 end
 ns.plain = plain
 
--- A call that may throw, or may not exist, for the once-per-scan and UI-rate
--- places the policy above allows it: nil for any of that, the first three
--- returns made plain. The test is inline rather than three plain() calls,
--- which is the same answer for less.
+-- For the once-per-scan and UI-rate places the policy above allows: nil when
+-- the call is missing or throws, else its first three returns made plain.
 local function safecall(fn, ...)
 	if type(fn) ~= "function" then return nil end
 	local ok, a, b, c = pcall(fn, ...)
@@ -99,17 +93,14 @@ local function safecall(fn, ...)
 end
 ns.safecall = safecall
 
--- One token swapped for one piece of text, with the text never read as a
--- pattern. A string replacement is a gsub template in which "%" is an escape,
--- and the reason lines and phrases are typed by the player ("10% left"); a
--- function replacement is returned verbatim. Shared here so Core and Prompt
--- cannot disagree. The parentheses drop gsub's second return, the match count.
+-- One token swapped for one piece of text, never read as a pattern: in a gsub
+-- template "%" is an escape, and players type the reason lines and phrases
+-- ("10% left"); a function replacement is returned verbatim.
 --
 -- A repaint asks this about seventeen times, mostly for a token its line does
--- not hold, so a plain find answers that first and nothing is made for it;
--- every caller's token is a literal "{word}", which a plain find and gsub read
--- alike. Where the token is there, the one file-level function hands back the
--- value, rather than a new closure per call.
+-- not hold, so a plain find answers that first; every token is a literal
+-- "{word}", which a plain find and gsub read alike. One file-level function
+-- hands back the value, not a closure per call.
 do
 	local swapValue
 	local function SwapValue() return swapValue end
@@ -213,10 +204,8 @@ local defaults = {
 			-- People who ask for your buff in chat. Off, because reading chat is
 			-- guesswork, so the player should choose it.
 			asked = false,
-			-- Yourself, when you are missing your own buff (or, with top-ups on,
-			-- running low). On: a buff on yourself costs nobody anything, reads
-			-- your own auras (which the game does not hide from you), and is
-			-- the one offer nobody could mind.
+			-- Yourself, missing your own buff. On: it costs nobody anything and reads
+			-- your own auras, which the game does not hide.
 			self = true,
 		},
 
@@ -228,10 +217,8 @@ local defaults = {
 			-- everything on yourself, your group buff included (SelfEntry):
 			-- two rules for one "You" on the prompt would be a puzzle.
 			inCities = false,
-			-- Per family, by its key: "auto" (Automatic, or ticked for a
-			-- family of one), a spell's key (always that one), or "off"
-			-- (Don't remind me). Filled in below from the table, so every
-			-- family has its default and a settings string carries each.
+			-- Per family, by its key: "auto" (Automatic, or ticked for a family of one),
+			-- a spell's key (always that one), or "off" (Don't remind me). Filled below.
 			pick = {},
 		},
 
@@ -241,18 +228,15 @@ local defaults = {
 			-- Friends and guildmates ahead of the rest of their kind. On,
 			-- because it only reorders people who were offered anyway.
 			friends = true,
-			-- Group members missing your buff go to the front while a ready
-			-- check runs, and so does somebody just back from the dead. On:
-			-- both only reorder people who were offered anyway, at the moment
-			-- a buffer sweeps the group.
+			-- Group members missing your buff go first while a ready check runs, and so
+			-- does somebody just back from the dead. On, for the same reason as friends.
 			readyCheck = true,
 			revived = true,
 		},
 
-		-- One cast for a whole party (GroupBuffs.lua). On, because it only
-		-- ever happens for somebody who has learned the group version and is
-		-- carrying its reagent -- which nobody does except to use it -- and it
-		-- saves them the mana and the presses of buffing the party one by one.
+		-- One cast for a whole party (GroupBuffs.lua). On: only somebody who has
+		-- learned the group version and carries its reagent gets it -- nobody does
+		-- but to use it -- and it saves the mana and presses of one by one.
 		groupBuffs = {
 			use = true,
 			-- How many of one party (or, for a Greater Blessing, one class)
@@ -290,9 +274,8 @@ local defaults = {
 			-- The share of your mana (0-90) kept for yourself: below it, only
 			-- a favour owed or a request from chat is offered. 0 is off.
 			manaFloor = 0,
-			-- The raid groups (1-8) switched off, as a sparse set (absent =
-			-- on): in a raid, members of those groups are offered nothing
-			-- unasked.
+			-- The raid groups (1-8) switched off, as a sparse set (absent = on): in a
+			-- raid, those groups are offered nothing unasked.
 			skipRaidGroups = {},
 		},
 
@@ -301,7 +284,6 @@ local defaults = {
 			retryCooldown = 12,
 			scanInterval = 0.4,
 			graceSeconds = 45,
-			-- Whether a debt survives a reload or disconnect.
 			keepDebts = true,
 		},
 
@@ -323,13 +305,11 @@ local defaults = {
 			-- because renaming it would silently reset everyone's setting.
 			hideInCombat = false,
 
-			-- Glass again from 1.5.1. 1.5.0 made Luxe the default, and in the
-			-- game its reason tag read white on white for a passer-by: the
-			-- preview renderer draws light layers far gentler than the client
-			-- does, so the new looks were judged on a picture that was not the
-			-- game. Glass has been played for months. AceDB never saves a value
-			-- equal to its default, so everybody who never picked a look is
-			-- back on Glass; a look somebody picked, Luxe included, is kept.
+			-- Glass again from 1.5.1: 1.5.0 made Luxe the default, and in the game its
+			-- reason tag read white on white for a passer-by -- the preview renderer draws
+			-- light layers far gentler than the client does. AceDB never saves a value
+			-- equal to its default, so everybody who never picked a look is back on
+			-- Glass; a look somebody picked, Luxe included, is kept.
 			style = "glass",
 			accentByReason = true,
 			-- standard | colourblind: which four reason colours (Prompt.lua).
@@ -379,10 +359,9 @@ local defaults = {
 		speech = {
 			enabled = false,
 			channel = "SAY",
-			-- Off from 1.5.1: ticking "Say a line when I buff someone" should
-			-- do what it says. With this on by default, a player ticked it,
-			-- buffed a passer-by and heard nothing. The thank-you quick choices
-			-- on Start here still switch it on for themselves.
+			-- Off from 1.5.1: with this on by default, a player ticked "Say a line when I
+			-- buff someone", buffed a passer-by and heard nothing. The thank-you quick
+			-- choices on Start here still switch it on for themselves.
 			onlyWhenReturning = false,
 			-- Filled in at load from the Roleplay set.
 			phrases = "",
@@ -390,10 +369,9 @@ local defaults = {
 
 		-- owedOnly, to match the flash, which only pulses for a favour owed.
 		sound = { enabled = false, file = ns.SOUND_KEY, owedOnly = true },
-		-- A place of our own on the minimap's rim. With none, LibDBIcon puts
-		-- every addon at 225 degrees, and the button sat exactly on Questie's:
-		-- a player saw Questie's "!" and got Manners' tooltip (1.5.1). A
-		-- button somebody has dragged keeps where they put it.
+		-- A place of our own on the minimap's rim: LibDBIcon puts every addon at 225
+		-- degrees, where the button sat on Questie's, and a player saw Questie's "!"
+		-- and got Manners' tooltip (1.5.1). A dragged button keeps its place.
 		minimap = { hide = false, minimapPos = 195 },
 	},
 }
@@ -419,12 +397,10 @@ local caps = { buffs = {} }
 ns.caps = caps
 
 local playerClass
--- For the files that load after this one, which cannot see the local, and
--- read it when they run: the probe sets it again each time it runs.
+-- For the files after this one, read at call time: each probe sets it again.
 function ns.PlayerClass() return playerClass end
 
--- The client's own name for a spell id, or nil when this client does not have
--- the id. Both generations of the call are tried.
+-- nil when this client does not have the id. Both generations are tried.
 local function SpellNameFor(id)
 	return safecall(C_Spell and C_Spell.GetSpellName, id)
 		or safecall(_G.GetSpellInfo, id)
@@ -475,22 +451,19 @@ do
 			end
 		end
 
-		-- The macro casts by name and lets the game pick the best rank of it,
-		-- so the name is the best rank's you know: one spell line can change
-		-- its name on the way up (Frost Armor is Ice Armor from 30, Demon
-		-- Skin Demon Armor from 20), and "/cast Frost Armor" would cast rank 3
-		-- forever. With nothing known, the top rank's, which resolves whether
-		-- or not you know it.
+		-- The macro casts by name and the game picks the best rank of it, so the name
+		-- is the best rank's you know: a spell line can change its name on the way up
+		-- (Frost Armor is Ice Armor from 30), and "/cast Frost Armor" would cast rank
+		-- 3 forever. With nothing known, the top rank's.
 		local named = info.topRank or buff.ranks[1]
 		info.name = SpellNameFor(named)
 		info.icon = safecall(C_Spell and C_Spell.GetSpellTexture, named)
 
 		-- Ids this client has never heard of. A wrong id has no symptom but silence,
-		-- so the mismatch is named in /manners debug and on the Diagnostics page.
-		-- Every aura id, since a dead group id only breaks the "already has it"
-		-- check. A diagnostic line rather than a popup, because a client still
-		-- loading spell data answers nil for everything (the probe re-runs on
-		-- SPELLS_CHANGED).
+		-- so every one, aura ids included (a dead group id breaks the "already has
+		-- it" check), is named in /manners debug and on Diagnostics. A line, not a
+		-- popup: a client still loading spell data answers nil for everything (the
+		-- probe re-runs on SPELLS_CHANGED).
 		info.unresolved = {}
 		for _, id in ipairs(buff.auraIds) do
 			if not SpellNameFor(id) then
@@ -523,9 +496,8 @@ do
 	end
 
 	-- Does this client still hand addons the combat log? Where it is gone,
-	-- registration throws, so one pcall'd RegisterEvent answers it. A frame of our
-	-- own (Ace's registry would keep the subscription), made once because this
-	-- re-runs on every SPELLS_CHANGED.
+	-- registration throws, so one pcall'd RegisterEvent answers it, on a frame of
+	-- our own made once (Ace's registry would keep the subscription).
 	local probeFrame
 	local function ProbeCombatLog()
 		if type(_G.CreateFrame) ~= "function" then return nil end
@@ -619,7 +591,6 @@ do
 
 		caps.anyKnown = false
 		caps.anyReadable = false
-		-- How many of this class's buffs carry an id this client does not have.
 		caps.unresolvedBuffs = 0
 		for _, buff in ipairs(ns.GetClassBuffs(playerClass) or {}) do
 			local info = ProbeBuff(buff)
@@ -631,11 +602,10 @@ do
 
 		caps.hasClassBuffs = ns.GetClassBuffs(playerClass) ~= nil
 
-		-- The class's own buffs (Buffs.lua, VANILLA_OWN), probed the same way
-		-- but kept in a table of their own: caps.buffs stays the list of what
-		-- you can give, which /manners debug, the bug report and the options
-		-- walk as such. Known only by a rank the client says you know AND a
-		-- name it can give that rank: the macro casts by that name.
+		-- The class's own buffs (Buffs.lua, VANILLA_OWN), probed the same way but kept
+		-- apart: caps.buffs stays the list of what you can give. Known only by a rank
+		-- the client says you know AND a name it can give that rank: the macro casts
+		-- by that name.
 		caps.own = {}
 		caps.anyOwnKnown = false
 		for _, family in ipairs(ns.GetOwnFamilies(playerClass) or {}) do
@@ -651,10 +621,9 @@ do
 	end
 end
 
--- Whether this character has anything the prompt could cast: a buff for
--- somebody else, or one of its own. The one test for "is there a prompt at
--- all", so a hunter, with nothing to give anybody, still has one for his
--- aspects.
+-- Whether this character has anything the prompt could cast, for somebody
+-- else or itself: the one test for "is there a prompt at all", so a hunter
+-- still has one for his aspects.
 function ns.CanCastAnything()
 	return caps.anyKnown == true or caps.anyOwnKnown == true
 end
@@ -722,10 +691,10 @@ function ns.CastableBuffs()
 end
 
 -- Whether everything this character could offer reaches only its party (a
--- warrior's Battle Shout), so "passers-by" means nothing for them. Computed
--- from the switches and pin rather than listed by class; shared by the options
--- page, the greeting and the favour line so they agree. `castable` is
--- CastableBuffs' answer when the caller already has it.
+-- warrior's Battle Shout), so "passers-by" means nothing for them. From the
+-- switches and pin rather than listed by class, and shared so the options
+-- page, the greeting and the favour line agree. `castable` is CastableBuffs'
+-- answer when the caller already has it.
 function ns.OnlyReachesGroup(castable)
 	castable = castable or ns.CastableBuffs()
 	if #castable == 0 then return false end
@@ -735,11 +704,10 @@ function ns.OnlyReachesGroup(castable)
 	return true
 end
 
--- Whether "Myself" may put a buff on the caster. A shout (selfCast) is cast
--- on you for your party and already covers you, so offering it to you alone
--- would only nag a solo warrior every time it ran out; notSelf is a spell the
--- game will not let you put on yourself, and neverSelf one nobody wants to be
--- reminded of on dry land (Buffs.lua: a warlock's Unending Breath).
+-- Whether "Myself" may put a buff on the caster. A shout (selfCast) already
+-- covers you, so alone it would nag a solo warrior every time it ran out;
+-- notSelf is a spell the game will not put on you, neverSelf one nobody wants
+-- on dry land (Buffs.lua: Unending Breath).
 function ns.CastsOnSelf(buff)
 	return buff ~= nil and not buff.selfCast and not buff.notSelf and not buff.neverSelf
 end
@@ -756,22 +724,19 @@ function ns.SelfBuffs(castable)
 	return out
 end
 
--- Whether "Myself" is on and has something behind it. One answer for every
--- sentence that says who is still offered -- the options page, and the lines
--- about saving mana, which keeps your own buff (Queue.lua, SelfEntry) -- so
--- none of them leaves you out while the queue keeps you in.
+-- Whether "Myself" is on and has something behind it: one answer for every
+-- sentence about who is still offered (the options page, the lines about
+-- saving mana), so none leaves you out while the queue keeps you in.
 function ns.OffersSelf()
 	local db = addon.db and addon.db.profile
 	return db ~= nil and db.sources.self == true
 		and (#ns.SelfBuffs() > 0 or ns.OwnFamiliesOn() > 0)
 end
 
--- Whether "Myself" has one of your class's own buffs to remind you of: on,
--- and a family you know not switched off. That alone keeps a prompt on a
--- character with nothing for anybody else -- a hunter, a warlock before
--- Unending Breath, a mage whose Intellect is switched off -- so every line
--- that would say "nothing will be offered" (the launcher, the login line, the
--- greeting) asks this first.
+-- Whether "Myself" has one of your class's own buffs to remind you of. That
+-- alone keeps a prompt on a character with nothing for anybody else -- a
+-- hunter, a warlock before Unending Breath -- so every line that would say
+-- "nothing will be offered" asks this first.
 function ns.OwnBuffsLive()
 	local db = addon.db and addon.db.profile
 	return db ~= nil and db.sources.self == true and ns.OwnFamiliesOn() > 0
@@ -786,8 +751,7 @@ function ns.PinnedBuff()
 	return ns.FindBuff(playerClass, choice)
 end
 
--- PickBuffFor in a block of its own with the helpers only it reads, to spare
--- the main chunk's locals (Lua 5.1 allows 200; tests/validate.py counts them).
+-- In a block of its own for the main chunk's 200 locals.
 do
 	-- Split in two because the exclusive branch needs the halves apart: "wrong
 	-- spell for this person" holds for the scan, "tried a moment ago" is a
@@ -845,8 +809,7 @@ do
 		-- covered and walking would replace it. Another paladin's blessing
 		-- covers nothing of ours (they stack) but is not ours to give; one that
 		-- names nobody we can read counts as ours, or ours would be walked over.
-		-- Never rotated: rotating would take the blessing just given away again,
-		-- where offering the same one twice only refreshes it (ns.RotatesBuffs).
+		-- Never rotated: see ns.RotatesBuffs.
 		if ns.EXCLUSIVE_BUFFS[playerClass] then
 			local pick, allRead, onCooldown = nil, true, false
 			-- The first blessing they carry from another paladin, kept for a debt
@@ -961,10 +924,9 @@ end
 -- your own buffs
 --
 -- The buffs only your class puts on itself (Buffs.lua, VANILLA_OWN), a family
--- at a time: which of it you know, which one to remind you of (your pick, or
--- Automatic: the one you had up last), and whether any of it is on you now.
--- Queue.lua's SelfEntry offers the first family that comes up missing, and
--- /manners debug and the options page ask the same questions here, so none of
+-- at a time: which you know, which to remind you of (your pick, or Automatic:
+-- the one you had up last), and whether any is on you now. SelfEntry
+-- (Queue.lua), /manners debug and the options page all ask here, so none of
 -- them can say something the queue does not do.
 ---------------------------------------------------------------------------
 
@@ -985,8 +947,7 @@ do
 		return nil
 	end
 
-	-- The families of your class you know anything of, in the order they are
-	-- offered. Nothing else is read, offered or shown on the options page.
+	-- Nothing outside these is read, offered or shown on the options page.
 	function ns.KnownOwnFamilies()
 		local out = {}
 		for _, family in ipairs(ns.GetOwnFamilies(playerClass) or {}) do
@@ -1016,7 +977,6 @@ do
 		return "auto"
 	end
 
-	-- How many of the families you know are not switched off.
 	function ns.OwnFamiliesOn()
 		local count = 0
 		for _, family in ipairs(ns.KnownOwnFamilies()) do
@@ -1167,12 +1127,11 @@ do
 		return nil, nil, refused
 	end
 
-	-- Whether any of the family is up on you, and yours: true with the spell
-	-- and its time left, false for definitely none, nil for the client would
-	-- not say (never a reason to offer). By the ids AND by the names of the
-	-- ranks you know, so a rank missing from the table cannot read as never
-	-- up. Only the spells you know are read. The one found up is remembered
-	-- for Automatic: the only place "the one you had up last" is written.
+	-- Whether any of the family is up on you, and yours: true with the spell and
+	-- its time left, false for definitely none, nil for the client would not say
+	-- (never a reason to offer). By the ids AND by the names of the ranks you
+	-- know. The one found up is remembered for Automatic: the only place that is
+	-- written.
 	function ns.ReadOwnFamily(family)
 		local now = GetTime()
 		local form = ActiveForm()
@@ -1257,16 +1216,13 @@ do
 		return spell, up, up and left or nil
 	end
 
-	-- "The one you had up last", kept up to date whatever the queue is doing.
-	-- The queue reads your families only when it could offer you one, so a
-	-- fight, a city, your group buff being due or an earlier family missing
-	-- would leave the memory on the aura of an hour ago -- and Automatic, and
-	-- its words on the options page, on the wrong spell: the paladin who
-	-- switched to Concentration mid-fight and died would be reminded of
-	-- Devotion. Your auras changing (UNIT_AURA on you, Favours.lua) asks for
-	-- one reading of each family you know on the next tick, which is what
-	-- writes the memory (ReadOwnFamily); a reading the client refuses writes
-	-- nothing. Asked once at load too, for what you logged in wearing.
+	-- "The one you had up last", kept current whatever the queue is doing. The
+	-- queue reads your families only when it could offer you one, so a fight, a
+	-- city or an earlier family missing would leave Automatic on the aura of an
+	-- hour ago: the paladin who switched to Concentration mid-fight and died
+	-- would be reminded of Devotion. UNIT_AURA on you (Favours.lua) asks for one
+	-- reading of each family on the next tick, which writes the memory
+	-- (ReadOwnFamily); a refused reading writes nothing. Asked once at load too.
 	ns.ownAurasChanged = true
 	function ns.RememberOwnBuffs()
 		ns.ownAurasChanged = false
@@ -1404,8 +1360,7 @@ local function UnitHasBuff(unit, buff, guid)
 				-- is true for any player's aura, so only a readable token answers.
 				local source = plain(aura.sourceUnit)
 				if type(source) == "string" then
-					-- Called directly: the token is a plain string the client
-					-- wrote, which UnitIsUnit answers or withholds, never throws on.
+					-- Direct: a client-written token, which UnitIsUnit never throws on.
 					local same = plain(UnitIsUnit(source, "player"))
 					if same ~= nil then mine = same == true end
 				end
@@ -1489,11 +1444,9 @@ local function InRange(unit, buff)
 	local info = ns.BuffInfo(buff)
 	local name = ns.BuffName(buff)
 
-	-- By id first: a name has to be resolved against the spellbook, and this
-	-- client is unreliable about exactly that. Called directly, each handed
-	-- only the argument type it takes (an id as a number, a name as a string)
-	-- and a unit token, so neither can throw; an answer withheld is a secret,
-	-- which plain() makes "cannot tell". Asked of every person on every scan.
+	-- By id first: a name must be resolved against the spellbook, which this
+	-- client is unreliable about. Direct calls, each handed only the types it
+	-- takes, so neither throws; asked of every person on every scan.
 	local spells = C_Spell
 	local byId = type(spells) == "table" and spells.IsSpellInRange or nil
 	if type(byId) ~= "function" then byId = nil end
@@ -1515,11 +1468,9 @@ ns.InRange = InRange
 -- The raid subgroup (1-8) a unit is in, or nil where nothing says. A raid
 -- token's number is its place on the roster; any other token asks UnitInRaid.
 -- A party-wide spell reaches the target's own subgroup of a raid and nobody
--- else in it, and "Raid groups I buff" goes by it too. The roster is asked
--- directly: it is handed a plain number, which it answers (or answers nil
--- for) and does not throw on, and a subgroup withheld is a secret, which
--- plain() makes "cannot tell". On ns alone, where Queue.lua and GroupBuffs.lua
--- take it from, to spare the main chunk one of Lua 5.1's 200 locals.
+-- else in it, and "Raid groups I buff" goes by it too. The roster is handed a
+-- plain number, so it is called directly. On ns alone (Queue.lua and
+-- GroupBuffs.lua take it from there) to spare a main-chunk local.
 function ns.RaidSubgroup(unit)
 	local index = tonumber(unit:match("^raid(%d+)$")) or plain(UnitInRaid and UnitInRaid(unit))
 	if type(index) ~= "number" then return nil end
@@ -1535,9 +1486,7 @@ end
 -- vanilla shout reaches only the caster's subgroup (ns.PARTY_IS_SUBGROUP; later
 -- flavours made it raid-wide): UnitInSubgroup where the client has it, as the
 -- Camelot class-buff reminder uses, else the raid roster. `inRaid` is the
--- scan's reading of IsInRaid; nil asks here. UnitInSubgroup is handed the
--- token the walk has already asked UnitExists and the rest about, so it is
--- called directly, and only once the check above says it is there.
+-- scan's reading of IsInRaid; nil asks here.
 local function SameParty(unit, inRaid)
 	if not unit then return false end
 	if inRaid == nil then inRaid = plain(IsInRaid and IsInRaid()) == true end
@@ -1559,19 +1508,15 @@ ns.SameParty = SameParty
 -- tell. InRange cannot answer it: a self-cast spell has no range to anybody.
 --
 -- The follow prompt (CheckInteractDistance 4, about 28 yards) first, where a
--- refusal stays a refusal. LibRangeCheck only after it and only to say yes
--- within 30 yards, since its "far" can be a refusal in disguise (see
--- DirectCheck). Both are looser than an untalented shout (20 yards, 30 with all
--- of Booming Voice) on purpose: they are there to stop the sixty-yard or
--- other-zone case, not to measure exactly. Never the follow prompt in a fight:
--- the game blocks it for a friendly unit and names the addon, which no pcall
--- catches. LibRangeCheck is still asked in a fight, because it switches to its
--- in-combat checkers by itself.
+-- refusal stays a refusal; LibRangeCheck after it, and only to say yes within
+-- 30 yards, since its "far" can be a refusal in disguise (DirectCheck). Both
+-- are looser than a shout on purpose: they stop the sixty-yard or other-zone
+-- case. Never the follow prompt in a fight: the game blocks it for a friendly
+-- unit and names the addon, which no pcall catches. LibRangeCheck switches to
+-- its in-combat checkers by itself.
 --
--- The follow prompt is called directly: handed a token, it answers or
--- withholds a secret. LibStub's silent lookup returns nil for a library that
--- is not there rather than throwing. LibRangeCheck's GetRange is third-party
--- code, so it alone keeps its safecall.
+-- The follow prompt is called directly, and LibStub's silent lookup returns
+-- nil rather than throwing; LibRangeCheck is third-party, so it keeps safecall.
 local function ShoutReach(unit)
 	if not InCombatLockdown() and type(_G.CheckInteractDistance) == "function" then
 		local follow = plain(_G.CheckInteractDistance(unit, 4))
@@ -1635,13 +1580,12 @@ local function SafeForMacro(name)
 end
 ns.SafeForMacro = SafeForMacro
 
--- The name somebody is filed under, given UnitName's two halves: the key for
--- debts (on disk), the tried table and the rotation pointer. The /target
--- spelling is ns.TargetName. On Camelot the second half is a surname, joined
--- with a space (verified in game); elsewhere it is a realm, present only for a
--- cross-realm player and joined with a dash as the game does. nil for a name
--- withheld or unsafe for macro text. One function for the aura scan and the
--- combat log (GetPlayerInfoByGUID), so both spell a person the same way.
+-- The name somebody is filed under, from UnitName's two halves: the key for
+-- debts (on disk), the tried table and the rotation pointer (the /target
+-- spelling is ns.TargetName). On Camelot the second half is a surname, joined
+-- with a space (verified in game); elsewhere a realm, joined with a dash as
+-- the game does. nil for a name withheld or unsafe for macro text. The aura
+-- scan and the combat log both file through here.
 local function JoinName(name, second)
 	if not name then return nil end
 
@@ -1679,11 +1623,9 @@ function ns.TargetName(name)
 	return ShortName(name)
 end
 
--- A class as the player reads it, from the token the game files it under:
--- "Priester" for PRIEST on a German client, "Priest" where the client has no
--- table of names. Everything that shows a class in words asks here -- {class}
--- on the prompt, a paladin's "Every Warrior" -- so the two spell it alike; the
--- colours and the mana test keep the token. nil for no class at all.
+-- A class as the player reads it: "Priester" for PRIEST on a German client,
+-- the token where the client has no table of names. Everything that shows a
+-- class in words asks here; colours and the mana test keep the token.
 function ns.ClassName(class)
 	if type(class) ~= "string" or class == "" then return nil end
 	local names = _G.LOCALIZED_CLASS_NAMES_MALE
@@ -1836,9 +1778,8 @@ function ns.ClampSettings()
 	if type(speech.phrases) ~= "string" or speech.phrases:match("^%s*$") then
 		speech.phrases = ns.PhraseSetText(speech.presetChoice) or ns.PhraseSetText("roleplay")
 	end
-	-- A set's English text is what an English-only build wrote into the box,
-	-- not something the player typed, so it follows the client's language.
-	-- On an English client the two are the same text and nothing changes.
+	-- A set's English text is what an English-only build wrote into the box, not
+	-- something the player typed, so it follows the client's language.
 	local englishSet = ns.EnglishPhraseSet(speech.phrases)
 	local translatedSet = englishSet and ns.PhraseSetText(englishSet)
 	if translatedSet and translatedSet ~= speech.phrases then speech.phrases = translatedSet end
@@ -1880,16 +1821,12 @@ function ns.ClampSettings()
 
 	boolean(profile.priority, "readyCheck", true)
 	boolean(profile.priority, "revived", true)
-	-- Read on every scan as a switch: a string there would be on forever, and
-	-- the checkbox could not show it.
 	boolean(profile.sources, "self", true)
 
-	-- Your own buffs, read on every scan. "Also in cities and inns" is a
-	-- switch like the one above. A family's pick is "auto", "off" or a spell
-	-- of that family; anything else -- a hand-edited file, a spell that has
-	-- moved to another family -- is Automatic, and a family this client has
-	-- no data for goes, since nothing could ever read it. Written, not
-	-- cleared: AceDB puts a default back only at the next load.
+	-- A family's pick is "auto", "off" or a spell of that family; anything else
+	-- -- a hand-edited file, a spell moved to another family -- is Automatic, and
+	-- a family this client has no data for goes. Written, not cleared: AceDB puts
+	-- a default back only at the next load.
 	local own = profile.ownBuffs
 	boolean(own, "inCities", false)
 	if type(own.pick) ~= "table" then own.pick = {} end
@@ -1919,9 +1856,8 @@ function ns.ClampSettings()
 		end
 	end
 
-	-- The never-offer list is read on every scan; the repair at the top made
-	-- it a table. An entry that is not a name set to true is dropped: there is
-	-- no telling who it was meant to be.
+	-- An entry that is not a name set to true is dropped: there is no telling who
+	-- it was meant to be.
 	for name, flag in pairs(profile.never) do
 		if type(name) ~= "string" or not name:find("%S") or flag ~= true then
 			profile.never[name] = nil
@@ -1994,9 +1930,7 @@ function ns.ClampSettings()
 		profile.buff.choice = "auto"
 	end
 
-	-- Colours are read as four numbers without checking. Repaired with a copy
-	-- of the default, never the default table itself: AceDB strips values
-	-- equal to their default at a profile switch, and would strip it bare.
+	-- Colours are read as four numbers unchecked; repaired with a copy, as above.
 	for _, key in ipairs({ "fontColor", "bgColor", "accentColor" }) do
 		local c = p[key]
 		if type(c) ~= "table" or type(c[1]) ~= "number" or type(c[2]) ~= "number"
@@ -2084,13 +2018,11 @@ function addon:OnEnable()
 		ns.Guard("RegisterEvent " .. event, function() self:RegisterEvent(event) end)
 	end
 
-	-- The player's own casts, on a frame of our own that asks the client for
-	-- the player's alone. Through AceEvent every cast by anybody in sight was
-	-- dispatched, 320-490 ns each, to a handler whose first line threw it away:
-	-- in a raid fight, a hundred and more a second, about as much as the whole
-	-- tick there. The handlers stay addon methods with their unit checks, for
-	-- a client without RegisterUnitEvent, where the frame hears everybody's.
-	-- The frame is made once, whatever calls OnEnable again.
+	-- The player's own casts, on a frame of our own that asks the client for the
+	-- player's alone: through AceEvent every cast in sight was dispatched (320-490
+	-- ns each) to a handler that threw it away -- in a raid fight, about as much
+	-- as the whole tick. The handlers keep their unit checks for a client without
+	-- RegisterUnitEvent. The frame is made once, whatever calls OnEnable again.
 	for _, event in ipairs({
 		"UNIT_SPELLCAST_SENT",
 		"UNIT_SPELLCAST_SUCCEEDED",
@@ -2140,10 +2072,9 @@ function addon:OnEnable()
 			and ns.CLASSES_WITHOUT_BUFFS[caps.class] == true
 		-- The profile is shared, so off on one character is off on every alt.
 		local off = not self.db.profile.enabled
-		-- Nothing for anybody else, and one of your own buffs to remind you
-		-- of: a hunter or a shaman, whose class has nothing for others, or a
-		-- class that has but not yet (a warlock before Unending Breath) or
-		-- not now (every spell switched off). Still a prompt, for yourself.
+		-- Nothing for anybody else and one of your own buffs to remind you of: a
+		-- hunter or a shaman, a warlock before Unending Breath, or every spell
+		-- switched off. Still a prompt, for yourself.
 		local ownLive = not buff and ns.OwnBuffsLive()
 		if not buff and nothingToGive and not ownLive then
 			self:Print(L["build |cffffd100%s|r -- this class has no buffs to cast on other players."]:format(tostring(ns.BUILD)))
@@ -2166,14 +2097,12 @@ function addon:OnEnable()
 			self:Print(L["build |cffffd100%s|r watching for buffs. Ready to cast |cffffd100nothing -- %s|r."]:format(
 				tostring(ns.BUILD), ns.NothingToCast()))
 		end
-		-- Why the prompt is somewhere else this session, if an update moved it.
 		ns.SayAnchorCarried()
 		-- The macro an older version made, while nothing else is going on.
 		ns.SettleOldMacro()
-		-- And, on this character's first login, what the thing is for: on the
-		-- same delay, since nothing printed before the chat frame exists is
-		-- seen. Guarded so it cannot take the build line with it; told whether
-		-- that line just said the profile is off.
+		-- On this character's first login, what the thing is for, on the same delay
+		-- (nothing printed before the chat frame exists is seen); guarded, and told
+		-- whether the line above said the profile is off.
 		ns.Guard("Welcome", ns.Welcome, false, off)
 	end)
 end
@@ -2184,7 +2113,6 @@ function addon:StartScanner()
 end
 
 function addon:Tick()
-	-- A repeating timer whose function errors simply stops running, silently.
 	ns.Guard("Tick", addon.TickBody, self)
 end
 
@@ -2343,12 +2271,10 @@ function addon:PLAYER_REGEN_ENABLED()
 		ns.Guard("combat release", ns.Prompt.Refresh, ns.Prompt)
 	end
 
-	-- And the notice on the Prompt tab comes off, over controls that work again.
 	ns.RepaintOptions()
 
-	-- A first greeting stood down by a fight (the prompt cannot be shown in
-	-- lockdown) gets another go; free on every other fight in the
-	-- character's life -- the flag is read first and this returns at once.
+	-- A first greeting stood down by a fight gets another go; on every other
+	-- fight the flag is read first and this returns at once.
 	ns.Guard("Welcome", ns.Welcome)
 	-- And the old macro, for the same reason: it cannot be edited in a fight.
 	if ns.SettleOldMacro then ns.SettleOldMacro() end
@@ -2363,8 +2289,6 @@ function ns.WriteProbe()
 		at = date("%Y-%m-%d %H:%M:%S"),
 		version = (GetBuildInfo()),
 		toc = select(4, GetBuildInfo()),
-		-- The identity /manners debug prints, for a report that arrives as a
-		-- copy of SavedVariables.
 		flavour = caps.flavour,
 		family = caps.family,
 		-- Which spell tables the flavour was given: flavours share sets, and an
@@ -2397,7 +2321,6 @@ function ns.WriteProbe()
 			name = info.name,
 			known = info.known,
 			knownGroup = info.knownGroup,
-			-- The group version the prompt would cast, and what it eats.
 			groupRank = info.groupRank,
 			groupReagent = info.groupReagent,
 			topRank = info.topRank,

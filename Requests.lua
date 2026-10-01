@@ -2,7 +2,6 @@
 -- bring the asking in.
 
 local ns = select(2, ...)
--- Player-facing text, in the client's language: see Locales/Init.lua.
 local L = ns.L
 local addon = ns.addon
 
@@ -422,7 +421,6 @@ do
 		requests[#requests + 1] = {
 			name = sender, short = short, guid = guid, keys = keys, at = now,
 			expires = now + ASK_SECONDS, channel = channel,
-			-- Held until the fight is over: nothing can be offered in one.
 			fight = fighting,
 		}
 		while #requests > ASK_KEEP do table.remove(requests, 1) end

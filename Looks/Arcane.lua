@@ -117,8 +117,6 @@ local ICON_FRAME = 0.75
 -- inner runes (RuneRing's and RuneRingSq's inner hairlines).
 local ICON_FIT = 0.69
 
--- The rim is this look's stripe and always carries the reason, unless the
--- marker is off; the ring and the runes are its icon marker.
 function Arcane.AccentCarriers(p)
 	local mode = p.accentMode or "icon"
 	return (mode == "icon" or mode == "both") and p.showIcon and true or false, mode ~= "off"
@@ -295,7 +293,6 @@ function Arcane:Build(kit)
 	-- Turned and slid without shimmering, where the client offers it.
 	if self.runes.SetSnapToPixelGrid then self.runes:SetSnapToPixelGrid(false) end
 	if self.runes.SetTexelSnappingBias then self.runes:SetTexelSnappingBias(0) end
-	-- The favour's clock: the spent track, what is left, its leading bead.
 	self.track = tex(art, "ARTWORK", 0, "Drain", "ADD")
 	self.drain = tex(art, "ARTWORK", 1, "Drain", "ADD")
 	self.spark = tex(art, "ARTWORK", 2, "Spark", "ADD")
@@ -342,7 +339,6 @@ function Arcane:Build(kit)
 	PlaceSlice(self.keycap, self.keyBox, self.keyBox, 0, 0, 0, 0)
 	self.keyText:SetPoint("CENTER", self.keyBox, "CENTER", 0, 0)
 
-	-- The light over the art, the shine over that; the text over both.
 	local base = art:GetFrameLevel()
 	self.liftFrame:SetFrameLevel(base + 1)
 	self.hoverFrame:SetFrameLevel(base + 1)
@@ -384,7 +380,6 @@ function Arcane:BuildAnimations()
 	if swell.SetSmoothing then swell:SetSmoothing("IN_OUT") end
 	self.pulseAnim = pulse
 
-	-- The rune circle's turn: once in two minutes, even, on Full only.
 	local spin = self.runes:CreateAnimationGroup()
 	spin:SetLooping("REPEAT")
 	local turn = spin:CreateAnimation("Rotation")
@@ -393,8 +388,6 @@ function Arcane:BuildAnimations()
 	turn:SetDuration(120)
 	self.spinAnim = spin
 
-	-- The runes flare: brighter at once, settling back as the circle grows
-	-- into place.
 	local runeFlare = self.runes:CreateAnimationGroup()
 	local bright = runeFlare:CreateAnimation("Alpha")
 	bright:SetFromAlpha(1)
@@ -409,7 +402,6 @@ function Arcane:BuildAnimations()
 	if grow.SetSmoothing then grow:SetSmoothing("OUT") end
 	self.runeFlareAnim = runeFlare
 
-	-- Light crossing the card once: in, across, out.
 	local shine = self.shineFrame:CreateAnimationGroup()
 	local sIn = shine:CreateAnimation("Alpha")
 	sIn:SetFromAlpha(0)
@@ -431,7 +423,6 @@ function Arcane:BuildAnimations()
 	shine:SetScript("OnStop", function() self.shineFrame:SetAlpha(0) end)
 	self.shineAnim = shine
 
-	-- The tick comes in; the wash goes out over the outcome's time.
 	self.checkAnim = Fade(self.check, 1, 0.12, "OUT")
 	self.checkAnim.fade:SetFromAlpha(0)
 	self.checkAnim.fade:SetToAlpha(1)
@@ -459,12 +450,10 @@ function Arcane:Apply(p, above)
 	local showIcon = p.showIcon and true or false
 	local round = p.roundIcon and true or false
 
-	-- The lens: the rune circle's size, its gap from the edge, the icon in it.
-	-- The circle wants the icon at 0.69 of it and room above and below (3
-	-- units on a short card, 5 on a tall one). When the icon asked for is more
-	-- than that room holds, it still grows with the slider, a third as fast,
-	-- and the circle takes a unit a side of its room: a bigger icon covers the
-	-- inner runes rather than the slider going dead.
+	-- The lens: the rune circle wants the icon at 0.69 of it and 3-5 units above
+	-- and below. An icon asked bigger than that room holds still grows with the
+	-- slider, a third as fast, the circle taking a unit a side of its room: a
+	-- bigger icon covers the inner runes rather than the slider going dead.
 	local margin = math.max(3, math.min(5, math.floor(H / 11)))
 	local asked = math.max(8, math.min(p.iconSize, H - 8))
 	local M = math.max(12, math.min(H - 2 * margin, asked * 1.45))
@@ -492,7 +481,6 @@ function Arcane:Apply(p, above)
 	self.pitch = sub + 8
 	self.showIcon = showIcon
 
-	-- Corners: 8 units, or half the height of a very short card.
 	local corner = math.min(8, H / 2)
 	for _, s in ipairs({ self.glass, self.smoke, self.rim, self.liftRim, self.hoverRim }) do s.corner = corner end
 	for _, s in ipairs({ self.trayGlass, self.trayRim }) do s.corner = 8 end
@@ -527,11 +515,9 @@ function Arcane:Apply(p, above)
 	self.glint:SetPoint("TOPRIGHT", -6, -0.6)
 	self.glint:SetHeight(2)
 	self.glint:SetVertexColor(1, 1, 1, 0.30 * clear)
-	-- The list's glass: the panel's colour, a little clearer.
 	SliceColor(self.trayGlass, br, bg, bb, ba * 0.92)
 	SliceColor(self.trayRim, 0.75, 0.78, 0.90, 0.18)
 
-	-- The lens, round the shared icon.
 	local cy = 0
 	-- A square icon has a circle of its own shape: a round one round it is
 	-- covered at the four corners by the icon's frame.
@@ -578,7 +564,6 @@ function Arcane:Apply(p, above)
 		if cooldown.SetUseCircularEdge then cooldown:SetUseCircularEdge(round) end
 	end
 
-	-- The drain, along the bottom under the text.
 	local drainX = textX - 2
 	self.drainFull = math.max(8, W - 9 - drainX)
 	for _, t in ipairs({ self.track, self.drain }) do
@@ -608,7 +593,6 @@ function Arcane:Apply(p, above)
 		f:SetAllPoints(art)
 	end
 
-	-- The text over all of it.
 	local base = art:GetFrameLevel()
 	kit.textLayer:SetFrameLevel(base + 4)
 	self.badgeBox:ClearAllPoints()
@@ -673,7 +657,6 @@ function Arcane:Apply(p, above)
 	return textX, chipRoom
 end
 
--- The text as this look wants it, over what Prompt's StyleText set.
 function Arcane:Styled(p)
 	local kit = self.kit
 	local path = kit.fit.path or STANDARD_TEXT_FONT

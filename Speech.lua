@@ -3,7 +3,6 @@
 -- loads after this file.
 
 local ns = select(2, ...)
--- Player-facing text, in the client's language: see Locales/Init.lua.
 local L = ns.L
 local addon = ns.addon
 
@@ -113,7 +112,6 @@ do
 		quiet = { "{name}.", "For you, {name}.", "{name} \\o" },
 	}
 
-	-- The set whose English text this is, or nil for anything else.
 	function EnglishPhraseSet(text)
 		if type(text) ~= "string" then return nil end
 		for _, key in ipairs(ns.PHRASE_SET_ORDER) do
@@ -203,12 +201,10 @@ do
 				if not ok or secret(first) or secret(second) then return nil end
 			end
 		elseif entry.targetName ~= nil and not name:find("[%s%-]") then
-			-- With no unit (the tokenless fallback) a bare name cannot say whether
-			-- a realm was dropped, so the client is asked by the debt's GUID and
-			-- the bare name goes out only if it says plainly: this name, your own
-			-- realm. A debt back from disk has no GUID and gets no line. Roll a
-			-- few's stand-in (no targetName) has nobody to ask. Through plain(),
-			-- so a secret half is nil and fails the match.
+			-- With no unit (the tokenless fallback) a bare name cannot say whether a
+			-- realm was dropped, so the client is asked by the debt's GUID, and the bare
+			-- name goes out only if it says plainly: this name, your own realm. A debt
+			-- back from disk has no GUID and gets no line, nor has Roll a few's stand-in.
 			local debt = ns.owed and ns.owed[name]
 			local guid = debt and debt.guid
 			if not guid then return nil end
@@ -245,7 +241,6 @@ do
 		end
 		if #pool == 0 then return nil end
 
-		-- Through Swap, so a "%" in a name cannot throw from inside gsub.
 		local phrase = pool[math.random(#pool)]
 		phrase = ns.Swap(phrase, "{name}", entry.short or entry.name)
 		-- The spell that goes out: a group cast's own name (GroupBuffs.lua).

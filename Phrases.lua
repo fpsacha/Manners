@@ -39,13 +39,12 @@ local _, ns = ...
 local RP = {}
 ns.InCharacter = RP
 
--- Player-facing text, in the client's language: see Locales/Init.lua. Read
--- through a proxy that remembers each translation's English key, because the
--- box keeps whatever language it was filled in: a player who picks the set
+-- Read through a proxy that remembers each translation's English key, because
+-- the box keeps whatever language it was filled in: a player who picks the set
 -- before the lines are translated has English examples saved, and they must
--- still count as untouched once a later release translates them.
--- The proxy only forwards: every key reaching it is written below as a whole
--- L["..."] literal, which is what the translation audit collects.
+-- still count as untouched once a later release translates them. The proxy
+-- only forwards: every key reaching it is written below as a whole L["..."]
+-- literal, which is what the translation audit collects.
 local ENGLISH = {}
 local L = setmetatable({}, {
 	__index = function(_, key)
@@ -91,11 +90,10 @@ RP.FAMILY = {
 -- everybody's at that hour (RP.TIME). A people with a city of its own in
 -- RP.HOME may have "city" lines, said there in place of anybody's (RP.PLACE),
 -- and "outsider" lines, by moment, about how other peoples take to it, which
--- join that moment's lines for somebody who is not kin, away from home. Every
--- line is a whole literal so it can be translated as a whole. A kin line joins whichever of the others is being
--- said, so it greets nobody: "well met" is wrong to somebody who just buffed
--- you. No line says "buff" either -- the set is in character, and {buff} is
--- the spell's own name.
+-- join that moment's lines for somebody who is not kin, away from home. A kin
+-- line joins whichever of the others is being said, so it greets nobody:
+-- "well met" is wrong to somebody who just buffed you. No line says "buff"
+-- either -- the set is in character, and {buff} is the spell's own name.
 --
 -- The first few lines of a pool are the phrase box's examples (RP.Examples
 -- says how many of which), and a box players have saved is recognised by
@@ -3196,21 +3194,16 @@ RP.LEGACY = {
 }
 
 -- On a client in another language, a line nobody has translated yet is left
--- out rather than said in English. Locales/Init.lua hands back the English
--- key for a string with no translation, which is right for a button and
--- wrong for a line said aloud in /say, next to players who share the
--- client's language: new lines reach English players at once and everybody
--- else as their translations land. A translation is a value its
--- Locales/<code>.lua set on ns.L itself, so rawget finds it where the English
--- fallback, which lives in the metatable, is not found. Every pool the
--- picking reads is thinned here, at load, so the box's examples (each pool's
--- first lines), Roll a few and the prompt all keep to the same lines; a pool
--- left with none is taken away and joins no draw, as one never written would
--- not (a people with no group lines left speaks its offers, see RP.PoolFor).
+-- out rather than said in English: Locales/Init.lua's English fallback is right
+-- for a button and wrong for a line said aloud in /say. A translation is a
+-- value its Locales/<code>.lua set on ns.L itself, so rawget finds it where the
+-- fallback, in the metatable, is not. Every pool the picking reads is thinned
+-- here, at load, so the box's examples, Roll a few and the prompt all keep to
+-- the same lines; a pool left with none is taken away and joins no draw (a
+-- people with no group lines left speaks its offers, see RP.PoolFor).
 -- RP.LEGACY only recognises, and is left whole.
 --
--- A language with no translations at all -- no Locales file of its own, so
--- the whole addon reads in English there -- keeps its English lines: thinned,
+-- A language with no translations at all keeps its English lines: thinned,
 -- the set would have nothing left to say.
 do
 	local locale, translated = ns.LOCALE, ns.L
@@ -3271,25 +3264,19 @@ end
 -- than one of three, so writing more lines buys variety and never airtime.
 --
 -- A people's own lines weigh most of what is always there, so a dwarf sounds
--- like a dwarf over a session, and more than its class does: the spell goes
--- out on every cast a mage makes, so the spell's lines and the class's would
--- otherwise speak as often as the people. The moments that are rare and made
--- for this very click (somebody met again, a gift to answer, kin) weigh a lot,
--- so they come up when they apply; a third meeting is the one a player
--- notices most, so it weighs most of all, and of a gift, what it does is said
--- more than its name, which the trade lines can only play on. The moments
+-- like a dwarf over a session, and more than its class or the spell, which go
+-- out on every cast a mage makes. The rare moments made for this very click
+-- (somebody met again, a gift to answer, kin) weigh a lot, so they come up
+-- when they apply; a third meeting, the one a player notices most, weighs most
+-- of all, and of a gift, what it does is said more than its name. The moments
 -- that are nearly always true (a place, the hour, the spell, whom you are
 -- helping) weigh little each, since several apply at once, and half that when
--- returning a favour (see RP.Pick), since none of them says thank you; a
--- people's own hour and city a little more than everybody's. Worked through
--- for full pools: a stranger outdoors at midday hears their people a little
--- over a third of the time; a favour whose spell is known is answered about
--- the gift a third of the time and with the people's own thanks nearly as
--- often, and one whose spell is not with the people's own thanks nearly half
--- the time; somebody met a third time hears about it one pick in four. Kin
--- weighs less than the people's lines because a kin pool is small, and a small
--- pool at full weight is the one heard over and over. In a group the group
--- lines are the point, so they outweigh the side's.
+-- returning a favour (see RP.Pick); a people's own hour and city a little more
+-- than everybody's. Worked through for full pools: a stranger outdoors at
+-- midday hears their people a little over a third of the time; somebody met a
+-- third time hears about it one pick in four. Kin weighs less than the
+-- people's lines because a kin pool is small, and a small pool at full weight
+-- is heard over and over. In a group the group lines outweigh the side's.
 RP.WEIGHT = {
 	race = 9, kin = 6, class = 3, faction = 2, general = 1, group = 3,
 	spell = 3, trade = 4, gift = 6, history = 10, place = 3, time = 3,
@@ -3382,9 +3369,8 @@ do
 
 	-- Which RP.TARGET pool the person being helped calls for: "sameclass" for
 	-- our own class (RP.Pick then asks RP.SAME first), their class token
-	-- otherwise, nil when it is unknown. The
-	-- queue read their class with their name; a token still holding them is
-	-- asked when it did not.
+	-- otherwise, nil when it is unknown. The queue read their class with their
+	-- name; a token still holding them is asked when it did not.
 	function RP.Target(entry, mine)
 		if type(entry) ~= "table" then return nil end
 		local theirs = ClassToken(entry.class)
@@ -3407,7 +3393,6 @@ do
 		return name
 	end
 
-	-- The spell id on the debt for this person, or nil.
 	local function GiftId(entry)
 		local owed = ns.owed
 		local debt = type(owed) == "table" and type(entry.name) == "string" and owed[entry.name]
@@ -3504,12 +3489,10 @@ do
 	end
 
 	-- How often buffs have passed between the player and each person this
-	-- session, for RP.HISTORY. Core tells this file what it tells the ledger
-	-- (TellLedger) and it counts as it goes, in memory only: "again" is about
-	-- today's session, and the ledger on disk is a record, never a decision.
-	-- A favour counts once when it arrives, however many buffs it arrives as,
-	-- and its return completes it rather than counting again; a buff given
-	-- unasked or asked for counts once.
+	-- session, for RP.HISTORY: counted from what Core tells the ledger, in memory
+	-- only, since "again" is about today's session. A favour counts once when it
+	-- arrives and its return completes it; a buff given unasked or asked for
+	-- counts once.
 	local met = {}        -- [name] = exchanges this session
 	local waiting = {}    -- [name] = true while a counted favour is unreturned
 	local lastSettle = {} -- [name] = the last settle, for a refusal to take back
@@ -3837,7 +3820,6 @@ do
 	end
 	RP.Examples = Examples
 
-	-- The examples for whoever is logged in.
 	function RP.Text()
 		return Examples(RP.Player())
 	end
@@ -3892,13 +3874,10 @@ do
 	end
 
 	-- Whether "In character" is what speaks. The box is compared with the
-	-- examples of every people, side and class, not only this character's: a
-	-- profile is often shared by several characters, and the dwarf mage who
-	-- picked the set has not edited anything the orc warrior on the same
-	-- profile should lose. English examples count too, saved by a player who
-	-- picked the set before its lines were translated into their language, and
-	-- so do the boxes earlier versions saved: beta.10 to 1.5.0's eight lines
-	-- and beta.9's five.
+	-- examples of every people, side and class, not only this character's: on a
+	-- shared profile, the dwarf mage who picked the set has not edited anything
+	-- the orc warrior should lose. English examples count too, and the boxes
+	-- earlier versions saved (beta.10 to 1.5.0's eight lines, beta.9's five).
 	function RP.Active(speech)
 		if type(speech) ~= "table" or speech.presetChoice ~= "incharacter" then return false end
 		local text = speech.phrases
@@ -3909,12 +3888,10 @@ do
 		return answer
 	end
 
-	-- The load-time repair (Core's ClampSettings) for this set: examples saved
-	-- in English, or in an earlier version's shorter box, become this
-	-- character's examples as they read now in the client's language, as the
-	-- fixed sets' English text does, so the box and an export read like an
-	-- untouched set. On an English client an untouched box of today's is left
-	-- as it is.
+	-- The load-time repair (Core's ClampSettings) for this set: examples saved in
+	-- English, or in an earlier version's shorter box, become this character's
+	-- examples as they read now, as the fixed sets' English text does. On an
+	-- English client an untouched box of today's is left as it is.
 	function RP.Repair(speech)
 		if not RP.Active(speech) or IsExamples(speech.phrases) then return end
 		speech.phrases = RP.Text()
