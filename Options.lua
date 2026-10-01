@@ -2198,6 +2198,16 @@ local function BuildWhoTab()
 				get = fGet,
 				set = fSet,
 			},
+			-- Asked for by a player: see SelfServed in Queue.lua.
+			skipSameClass = {
+				type = "toggle",
+				name = L["Skip my own class when they can cast it too"],
+				desc = L["Somebody of your class can give themselves your buff, so they are left out -- unless they are too low a level for the rank you cast, and then they still get yours. People who buffed you, asked or you targeted are always offered."],
+				order = 43.5,
+				width = "full",
+				get = fGet,
+				set = fSet,
+			},
 
 			-------------------------------------------------- never offer
 			neverHeader = { type = "header", name = L["Never offer"], order = 50 },

@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.5.4
+
+- **Skip my own class when they can cast it too** (Who to buff, under Who to
+  skip; off unless you tick it). A mage can give themselves Arcane Intellect,
+  so another mage is left out -- unless they are too low a level for the rank
+  you cast, and then they still get yours, which is better. Somebody who
+  buffed you, asked, or you targeted is always offered, and talent buffs
+  such as Divine Spirit or Kings are never skipped this way.
+
 ## 1.5.3
 
 - **Tracking is one of your own buffs now.** Find Herbs, Find Minerals, Find

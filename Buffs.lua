@@ -234,6 +234,34 @@ local VANILLA = {
 -- Vanilla content only: Burning Crusade gave most of these families a member
 -- this table does not have (Molten and Fel Armor, Earth Shield, Aspect of the
 -- Viper, Crusader Aura), so the tbc set below leaves it out.
+-- The level each rank of the buffs above is learned at (vanilla trainers), for
+-- "skip my own class when they can cast it too": somebody of your class at or
+-- past the level of your best rank could give themselves the same, and one
+-- below it gets yours, which is better. Talent buffs and shouts are never
+-- skipped that way, so they are not here; a rank missing here counts as
+-- learned at level 1.
+ns.RANK_LEVEL = {
+	-- Arcane Intellect
+	[1459] = 1, [1460] = 14, [1461] = 28, [10156] = 42, [10157] = 56,
+	-- Power Word: Fortitude
+	[1243] = 1, [1244] = 12, [1245] = 24, [2791] = 36, [10937] = 48, [10938] = 60,
+	-- Shadow Protection
+	[976] = 30, [10957] = 42, [10958] = 56,
+	-- Mark of the Wild
+	[1126] = 1, [5232] = 10, [6756] = 20, [5234] = 30, [8907] = 40, [9884] = 50, [9885] = 60,
+	-- Thorns
+	[467] = 6, [782] = 14, [1075] = 24, [8914] = 34, [9756] = 44, [9910] = 54,
+	-- Blessing of Wisdom
+	[19742] = 14, [19850] = 24, [19852] = 34, [19853] = 44, [19854] = 54, [25290] = 60,
+	-- Blessing of Might
+	[19740] = 4, [19834] = 12, [19835] = 22, [19836] = 32, [19837] = 42, [19838] = 52, [25291] = 60,
+	-- Blessing of Salvation, Blessing of Light, Unending Breath
+	[1038] = 26, [19977] = 40, [19978] = 50, [19979] = 60, [5697] = 16,
+}
+function ns.RankLevel(id)
+	return id and ns.RANK_LEVEL[id] or nil
+end
+
 local VANILLA_OWN = {
 	MAGE = {
 		{

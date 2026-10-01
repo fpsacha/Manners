@@ -1381,7 +1381,23 @@ end
 
 -- PickBuffFor's callbacks for the queue, at file level so that no person
 -- costs a closure. The tokenless path has no aura to read, hence NoReading.
+-- "Skip my own class when they can cast it too": somebody of your class,
+-- offered unasked, whose level is at or past the one your best rank of this
+-- buff is learned at (Buffs.lua, RANK_LEVEL), could give themselves the same.
+-- One below it is still offered: yours is better than theirs. A talent buff,
+-- which not everybody of the class has, and a shout, which reaches them
+-- anyway, are never skipped this way. A level the client will not give is
+-- taken as one that could cast it, and -1 (a skull) is above every rank.
+local function SelfServed(candidate, opts)
+	if not opts.sameClass or candidate.selfCast or candidate.talent then return false end
+	local info = ns.BuffInfo(candidate)
+	local need = ns.RankLevel(info and info.topRank) or 1
+	local level = opts.level
+	return level == nil or level < 0 or level >= need
+end
+
 local function QueueBlocked(candidate, opts)
+	if SelfServed(candidate, opts) then return true end
 	return ns.IsBlocked(opts.name, candidate.key, opts.now)
 end
 
@@ -1845,6 +1861,12 @@ function ns.BuildQueue(watch)
 		-- Blocked for this person and this buff; reads name and now off opts.
 		opts.blocked = QueueBlocked
 		opts.now = now
+		-- Your own class, offered unasked: see SelfServed. Never somebody who
+		-- buffed you, asked, or you picked out on purpose.
+		local same = f.skipSameClass == true and not pointed and (reason == "group" or reason == "nearby")
+			and plain(select(2, UnitClass(unit))) == caps.class
+		opts.sameClass = same
+		opts.level = same and plain(UnitLevel(unit)) or nil
 		local buff, has, remaining = ns.PickBuffFor(asked or candidates, opts, ReadAura)
 
 		if not buff then rejected[full] = true return end
