@@ -822,7 +822,12 @@ withTree("Toast's icon size is stated on the options page", ANNA, function(ns, s
 		fail(scenario, "SKIPPED -- no icon size options")
 		return
 	end
+	-- A slider value unlike the drawn size, so the notice is seen to name
+	-- the one Toast draws (at the default height both are 30).
+	p.iconSize = 20
+	ns.Prompt:ApplyStyle()
 	local drawn = math.floor((look.iconSize or 0) + 0.5)
+	if drawn == 20 then fail(scenario, "SKIPPED -- Toast drew the slider's size, so nothing tells them apart") end
 	if not slider.disabled() then fail(scenario, "the icon size slider is live on a look that ignores it") end
 	if notice.hidden() then fail(scenario, "nothing on the options page says how Toast sizes its icon") end
 	local text = tostring(notice.name())

@@ -1,7 +1,12 @@
 # Changelog
 
-## Unreleased
+## 1.5.2
 
+- **Toast, redone.** In the game it had a glaring bright line round the banner
+  and a heavy square frame with a blue glow round the icon. It is now a quiet
+  warm banner: a thin frame of old, matt gold, a round medallion with a slim
+  gold ring and the reason colour as a dark enamel band, and no light left
+  glowing once it has arrived.
 - The minimap button now has a place of its own on the rim. It used to sit
   on the spot every addon gets by default, right on top of other buttons
   (Questie's, for one), so you saw theirs and got Manners' tooltip. A button
