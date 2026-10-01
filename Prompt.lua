@@ -92,7 +92,7 @@ local queueTextX = 0
 -- here. Looks/Looks.lua says what it is asked and when.
 local activeLook
 -- Goes into every click line, so a log says which build produced it.
-ns.BUILD = "1.5.1"
+ns.BUILD = "1.5.2"
 
 local current, testMode, testExpiry, lastTop, appliedKey, lastClickAt, lastPreClickAt, lastSkipAt
 -- Why the last painted person was on the panel, beside lastTop's who.

@@ -26,3 +26,11 @@ mutate("Core.lua",
        "hotfix151: speech only when returning, by default",
        expect="hotfix151: ticking Say a line speaks to a passer-by",
        script=S)
+
+# No place of its own: LibDBIcon's shared 225, on top of other addons' buttons.
+mutate("Core.lua",
+       "\t\tminimap = { hide = false, minimapPos = 195 },\n",
+       "\t\tminimap = { hide = false },\n",
+       "hotfix151: the minimap button at the shared spot",
+       expect="the minimap button has no place of its own",
+       script=S)

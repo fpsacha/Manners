@@ -66,3 +66,27 @@ do
 	end
 	restore()
 end
+
+-- The minimap button has a place of its own on the rim. With none, LibDBIcon
+-- puts every addon at 225 degrees, and Manners sat on Questie's button: a
+-- player saw Questie's "!" and Manners' tooltip. A position somebody dragged
+-- to is theirs and is kept.
+do
+	local scenario = "hotfix151: the minimap button does not sit on everybody's spot"
+	Mock.reset()
+	local ns = load(scenario)
+	if ns then
+		drive(scenario, ns)
+		local pos = ns.db.profile.minimap and ns.db.profile.minimap.minimapPos
+		if type(pos) ~= "number" then
+			fail(scenario, "the minimap button has no place of its own, so it sits at LibDBIcon's 225")
+		elseif pos == 225 then
+			fail(scenario, "the minimap button's place is LibDBIcon's shared 225")
+		end
+		ns.db.profile.minimap.minimapPos = 42
+		ns.ClampSettings()
+		if ns.db.profile.minimap.minimapPos ~= 42 then
+			fail(scenario, "a dragged minimap button was moved back to " .. tostring(ns.db.profile.minimap.minimapPos))
+		end
+	end
+end

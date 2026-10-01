@@ -19,10 +19,11 @@
 --      draws them brighter than the preview does.
 --   3. The count's chip never covers the icon.
 --
--- The one-shot flourishes (the sparks, the streak, the flare, the burst, the
--- arrival's swell: a second at most, on Full only) are left to settle first;
--- everything that stays -- rest, the owed pulse at its brightest, the cursor's
--- light, an outcome held on Calm -- is judged.
+-- The one-shot flourishes (the rails' glints, the flare, the burst, the
+-- arrival's ring of light: 0.6 s at most, on Full only, and the only ADD
+-- light the look has -- tests/scenarios/look-toast.lua holds it to that) are
+-- left to settle first; everything that stays -- rest, the owed pulse at its
+-- brightest, the cursor's light, an outcome held on Calm -- is judged.
 
 local dir, H = ...
 local fail, load = H.fail, H.load
@@ -822,6 +823,287 @@ withTree("Toast's text stands on a dark ground", ANNA, function(ns, scenario)
 		tick(ns)
 		rest(ns)
 		checkText(ns, scenario, setup[1], nameColours(ns, look), true)
+	end
+end)
+
+---------------------------------------------------------------------------
+-- 4, 5 and 6: the gold, the medallion and the body, read from the files
+---------------------------------------------------------------------------
+
+-- In the game 1.5.1's toast wore a thin glaring yellow line all round the
+-- banner, a heavy square bevelled frame round the icon with a glow ring, and
+-- an olive-black body. The redo is held to these, from the texels the look
+-- ships and what the frames were told:
+--   4. the gold is a deep old gold -- no gold texel the look draws brighter
+--      than 0.62 (Rec.601 luma, vertex colour applied), each rail with a
+--      darker line inside it, the frame thin (3.2 units at a 12-unit corner)
+--      and crisp: no light haloed round it;
+--   5. the medallion is round: every disc of it round, a gold ring 1.5 to 2.5
+--      units wide hugging the icon (at most a unit of dark between, along
+--      the axis as well as the diagonal), the enamel just outside it,
+--      darkened from the reason colour; the icon round at either setting of
+--      "Round the icon off" -- squared, it sat in a dark round hole;
+--   6. the body is a deep warm brown with a quiet vertical gradient baked in.
+
+local GOLD_MOST = 0.62
+local RING_LEAST, RING_MOST = 1.5, 2.5
+
+local function luma(r, g, b) return 0.299 * r + 0.587 * g + 0.114 * b end
+
+-- The brightest opaque texel of `img` in the texcoord box of `t`, with its
+-- vertex colour applied. Cached per file, box and colour.
+local brightestCache = {}
+local function brightest(t, img)
+	local c = t._texCoord
+	local u0, u1, v0, v1 = 0, 1, 0, 1
+	if c and #c == 4 then u0, u1, v0, v1 = c[1], c[2], c[3], c[4] end
+	local vc = t._color or { 1, 1, 1, 1 }
+	local key = ("%s:%.3f:%.3f:%.3f:%.3f:%.3f:%.3f:%.3f"):format(tostring(t._file), u0, u1, v0, v1,
+		vc[1] or 1, vc[2] or 1, vc[3] or 1)
+	local hit = brightestCache[key]
+	if hit then return hit end
+	local most = 0
+	local x0, x1 = math.floor(math.min(u0, u1) * img.w), math.ceil(math.max(u0, u1) * img.w) - 1
+	local y0, y1 = math.floor(math.min(v0, v1) * img.h), math.ceil(math.max(v0, v1) * img.h) - 1
+	for y = y0, y1 do
+		for x = x0, x1 do
+			local r, g, b, a = pixel(img, x, y)
+			if a >= 0.5 then
+				local l = luma(r * (vc[1] or 1), g * (vc[2] or 1), b * (vc[3] or 1))
+				if l > most then most = l end
+			end
+		end
+	end
+	brightestCache[key] = most
+	return most
+end
+
+-- Where a round file's alpha falls through a half, from its middle out along
+-- its middle row, as a fraction of its half-width; along the diagonal with
+-- `diagonal`, as a fraction of the half-width too.
+local function reach(img, diagonal)
+	local n = img.w / 2
+	local last = 0
+	for i = 0, n * 15 do
+		local d = i / 10
+		local u = diagonal and (0.5 + d / img.w * 0.7071) or (0.5 + d / img.w)
+		local v = diagonal and (0.5 + d / img.h * 0.7071) or 0.5
+		if u >= 1 or v >= 1 then break end
+		local _, _, _, a = texel(img, u, v)
+		if a < 0.5 then return d / n end
+		last = d / n
+	end
+	return last
+end
+
+-- The medallion's rim must still read as gold: dimmed to a brown line, the
+-- enamel sat on a dark edge and the medallion lost its gilded bezel.
+local RIM_LEAST = 0.42
+-- And the frame's darker inner line must still be seen: at 0.15 it existed
+-- only in the file, and the rail read as a dim pencil line.
+local INNER_LEAST = 0.28
+
+withTree("Toast's gold is old gold, thin and crisp", CROWD, function(ns, scenario)
+	local r, p, look = upIn(ns, scenario)
+	if not isToast(look) then
+		fail(scenario, "SKIPPED -- Toast is not the look in use")
+		return
+	end
+	SetBinding("SHIFT-F", COMMAND)
+	local judged, seen = 0, {}
+	-- Every piece of gold on show, the list's drawer and gems among them
+	-- (the crowd fills three rows), and with the icon off the jewel's setting.
+	for _, size in ipairs({ { 220, 44, 13, true }, { 180, 36, 11, true }, { 220, 44, 13, false } }) do
+		p.width, p.height, p.fontSize, p.showIcon = size[1], size[2], size[3], size[4]
+		p.showQueue, p.queueRows = true, 3
+		ns.Prompt:ApplyStyle()
+		tick(ns)
+		rest(ns)
+		for _, t in ipairs(look.gold) do
+			local img = t._shown ~= false and image(t._file)
+			if img then
+				judged = judged + 1
+				seen[t] = true
+				seen[tostring(t._file):match("_(%a+)$") or "?"] = true
+				local most = brightest(t, img)
+				if most > GOLD_MOST then
+					fail(scenario, ("%dx%d: %s is gold as bright as %.2f, over %.2f"):format(size[1], size[2],
+						tostring(t._file):match("[^\\]+$") or "?", most, GOLD_MOST))
+				end
+				if t == look.rim and most < RIM_LEAST then
+					fail(scenario, ("%dx%d: the medallion's rim is %.2f at its brightest, too dark to read as gold")
+						:format(size[1], size[2], most))
+				end
+			end
+		end
+		-- The frame's profile, down the middle of its top edge.
+		local frame = look.border[2]
+		local img = image(frame._file)
+		if not img then
+			fail(scenario, "the frame's file could not be read")
+		else
+			local x = math.floor(img.w / 2)
+			local runs, run, deepest, halo = {}, nil, -1, 0
+			for y = 0, math.floor(img.h / 4) - 1 do
+				local cr, cg, cb, a = pixel(img, x, y)
+				local l = luma(cr, cg, cb)
+				if a >= 0.5 then deepest = y end
+				if a >= 0.5 and l > 0.12 then
+					if not run then
+						run = { most = 0 }
+						runs[#runs + 1] = run
+					end
+					run.most = math.max(run.most, l)
+				else
+					run = nil
+				end
+			end
+			for y = 0, img.h - 1 do
+				for xx = 0, img.w - 1 do
+					local cr, cg, cb, a = pixel(img, xx, y)
+					if a > 0.02 and a < 0.5 and luma(cr, cg, cb) > 0.3 then halo = halo + 1 end
+				end
+			end
+			local what = ("%dx%d"):format(size[1], size[2])
+			if #runs < 2 then
+				fail(scenario, what .. ": the frame has no darker line inside its rail")
+			elseif runs[#runs].most > 0.8 * runs[1].most then
+				fail(scenario, ("%s: the frame's inner line (%.2f) is not darker than its rail (%.2f)")
+					:format(what, runs[#runs].most, runs[1].most))
+			elseif runs[#runs].most < INNER_LEAST then
+				fail(scenario, ("%s: the frame's inner line (%.2f) is too dark to see at the game's scale")
+					:format(what, runs[#runs].most))
+			end
+			local units = (deepest + 1) / (img.w / 4) * 12
+			if units > 3.2 then
+				fail(scenario, ("%s: the frame is %.1f units deep at a 12-unit corner, not thin"):format(what, units))
+			end
+			if halo > 0 then
+				fail(scenario, ("%s: the frame has %d texels of light haloed round it, a glowing outline")
+					:format(what, halo))
+			end
+		end
+	end
+	SetBinding("SHIFT-F", nil)
+	if judged == 0 then fail(scenario, "no gold was judged") end
+	for _, want in ipairs({ { "Drawer", "the list's drawer" }, { "GemSet", "a gem's setting" },
+		{ look.jewelSet, "the jewel's setting" }, { look.rim, "the medallion's rim" } }) do
+		if not seen[want[1]] then fail(scenario, want[2] .. " was never judged") end
+	end
+end)
+
+withTree("Toast's medallion is round, its gold ring thin", ANNA, function(ns, scenario)
+	local r, p, look = upIn(ns, scenario)
+	if not isToast(look) then
+		fail(scenario, "SKIPPED -- Toast is not the look in use")
+		return
+	end
+	local discs = { "medallion", "rim", "band", "ring", "well" }
+	for _, round in ipairs({ false, true }) do
+		for _, size in ipairs(SIZES) do
+			p.roundIcon = round
+			p.width, p.height, p.fontSize = size[1], size[2], size[3]
+			ns.Prompt:ApplyStyle()
+			tick(ns)
+			rest(ns)
+			local what = ("%dx%d %s"):format(size[1], size[2], round and "round" or "square")
+			-- Every disc round, and each one's drawn radius.
+			local radius = {}
+			for _, key in ipairs(discs) do
+				local t = look[key]
+				local img = t and image(t._file)
+				if not (img and t._shown ~= false) then
+					fail(scenario, what .. ": the medallion's " .. key .. " is not drawn")
+					return
+				end
+				local _, _, _, corner = texel(img, 0.1, 0.1)
+				local _, _, _, middle = texel(img, 0.5, 0.5)
+				local _, _, _, edge = texel(img, 0.5, 0.04)
+				if corner > 0.01 or middle < 0.99 or edge < 0.5 then
+					fail(scenario, ("%s: the medallion's %s is not round (%s)"):format(what, key, tostring(t._file)))
+				end
+				if t._blend == "ADD" then fail(scenario, what .. ": the medallion's " .. key .. " is additive") end
+				radius[key] = (t._width or 0) / 2 * reach(img)
+			end
+			-- The icon, round at either setting: its reach from the centre along
+			-- the axis and along the diagonal, which for a round icon agree.
+			local icon = r.icon
+			local mask = icon._mask and image(icon._mask._file)
+			if not mask then
+				fail(scenario, what .. ": the icon has no mask")
+				return
+			end
+			local corner = select(4, texel(mask, 0.12, 0.12))
+			if corner > 0.01 then
+				fail(scenario, ("%s: rounding is %s and the icon is not round"):format(what, round and "on" or "off"))
+			end
+			local axis = (icon._width or 0) / 2 * reach(mask, false)
+			local diagonal = (icon._width or 0) / 2 * reach(mask, true)
+			local ring = radius.ring - math.max(radius.well, axis, diagonal)
+			if ring < RING_LEAST - 0.05 or ring > RING_MOST + 0.05 then
+				fail(scenario, ("%s: the gold ring is %.2f units wide, not %.1f to %.1f")
+					:format(what, ring, RING_LEAST, RING_MOST))
+			end
+			local gap = radius.well - math.min(axis, diagonal)
+			if gap > 1.0 then
+				fail(scenario, ("%s: the gold ring stands %.2f units off the icon; it should hug it"):format(what, gap))
+			end
+			local enamel = radius.band - radius.ring
+			if enamel < 1.5 or enamel > 5 or radius.rim - radius.band > 1.6 then
+				fail(scenario, ("%s: the enamel is not a band just outside the ring (%.2f wide, %.2f of rim)")
+					:format(what, enamel, radius.rim - radius.band))
+			end
+		end
+	end
+	-- The enamel is the reason colour darkened, never lit.
+	p.width, p.height, p.fontSize, p.roundIcon = 220, 44, 13, false
+	for _, palette in ipairs({ "standard", "colourblind" }) do
+		p.reasonPalette = palette
+		ns.Prompt:ApplyStyle()
+		tick(ns)
+		rest(ns)
+		for _, reason in ipairs({ "target", "owed", "asked", "group", "nearby", "self" }) do
+			ns.Prompt:PaintAccent(reason)
+			local cr, cg, cb = ns.Prompt:AccentColor(reason)
+			local c = look.band._color
+			if not (c and luminance(c[1], c[2], c[3]) < 0.5 * luminance(cr, cg, cb)) then
+				fail(scenario, ("the enamel for %s in the %s set is not the reason colour darkened"):format(reason, palette))
+			end
+		end
+	end
+end)
+
+withTree("Toast's body is a deep warm brown", ANNA, function(ns, scenario)
+	local _, _, look = upIn(ns, scenario)
+	if not isToast(look) then
+		fail(scenario, "SKIPPED -- Toast is not the look in use")
+		return
+	end
+	local body = look.body
+	local gr = body._gradient
+	local img = image(body._file)
+	if not (gr and gr[1] == "VERTICAL" and type(gr[2]) == "table" and type(gr[3]) == "table" and img) then
+		fail(scenario, "the body has no vertical gradient on its own file")
+		return
+	end
+	-- Warm: red over green over blue, the red well over the blue; deep: dark
+	-- enough that the text keeps its ground (tests the lines above).
+	for i, stop in ipairs({ gr[2], gr[3] }) do
+		local sr, sg, sb = stop.r or 1, stop.g or 1, stop.b or 1
+		if not (sr > sg and sg > sb and sr >= 1.8 * sb) then
+			fail(scenario, ("the body's %s stop is not a warm brown: %.3f %.3f %.3f")
+				:format(i == 1 and "bottom" or "top", sr, sg, sb))
+		end
+		if luminance(sr, sg, sb) > 0.03 then
+			fail(scenario, ("the body's %s stop is not deep: %.3f %.3f %.3f"):format(i == 1 and "bottom" or "top", sr, sg, sb))
+		end
+	end
+	-- The file's own quiet fall from the top down, along its middle.
+	local top = pixel(img, math.floor(img.w / 2), math.floor(img.h * 0.1))
+	local bottom = pixel(img, math.floor(img.w / 2), math.floor(img.h * 0.9))
+	if not (top - bottom >= 0.08 and top - bottom <= 0.35) then
+		fail(scenario, ("the body's file has no subtle gradient baked in: %.2f at the top, %.2f at the foot")
+			:format(top, bottom))
 	end
 end)
 
