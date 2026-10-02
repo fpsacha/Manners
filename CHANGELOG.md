@@ -1,5 +1,38 @@
 # Changelog
 
+## Unreleased
+
+- **A new options window.** Manners has a window of its own in place of the
+  old tabs: eight pages down the left (Start here, Who to buff, Who to skip,
+  When to offer, What I say, Look, Profiles and Diagnostics), and every
+  setting in one place only. `/manners` and the minimap button open it on the
+  page you used last, and it remembers where you put it.
+- **Start here is two steps:** who to buff, already answered, and putting it
+  on a key. *Show me the prompt*, *Snooze* and *Manners is on* sit at the top
+  of the window, on every page.
+- **A line under the top of the window says when the prompt will not do what
+  you expect:** switched off, unlocked (with *Lock it* right there), snoozed,
+  nothing it can offer, or kept away while you ride. A red dot beside a page
+  points at something to fix there, such as no key yet.
+- **Search.** The box above the pages finds a setting by its name, its
+  tooltip or one of its choices, capitals or not, in every language Manners
+  speaks, and takes you straight to it.
+- **Who to skip has a page of its own:** the skip switches and the
+  never-offer list, which now has an X beside each name to take it off. Under
+  *Skip players flagged for PvP* you can see who it is holding back right now.
+- **The Advanced tab is gone.** The favour settings are on *When to offer*,
+  and the exact position and the prompt's wording on *Look*. Fine-tuning sits
+  in folded sections at the foot of each page; a gold dot on one means
+  something in it has been changed.
+- **Put these back to default resets the page you are on**, and keeps where
+  the prompt sits, the lines you wrote and the never-offer list.
+- **Changes on Look show on the real prompt:** the window fades while you drag
+  a slider, and for a moment after any other change, so you can see the
+  prompt behind it.
+- *When I buff someone* now leads *What I say*, above the switches it sets.
+  The ledger opens on top of the options instead of closing them, and the
+  game's **Options > AddOns > Manners** has a button that opens the window.
+
 ## 1.5.4
 
 - **Skip my own class when they can cast it too** (Who to buff, under Who to
