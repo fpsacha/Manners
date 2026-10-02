@@ -1720,3 +1720,4 @@ setmetatable(_G, { __index = function(_, key)
 	end
 	return nil
 end })
+dofile((debug.getinfo(1, "S").source:match("^@(.*[/\\])") or "tests/") .. "mockwidgets.lua")

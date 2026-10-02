@@ -66,4 +66,8 @@ Options\Look.lua
 Options\Advanced.lua
 Options\Diagnostics.lua
 Options\Profiles.lua
+Options\Window\Bind.lua
+Options\Window\Widgets.lua
+Options\Window\WidgetsChoice.lua
+Options\Window\WidgetsEntry.lua
 Options\Register.lua
