@@ -3512,14 +3512,16 @@ mutate("Options/When.lua",
        script="runscenarios.py")
 
 # "Offer a buff back for" with the switch that ends it sooner moved away from
-# it. It used to name the switch; now the switch is the next control down.
-mutate("Options/Advanced.lua",
-       "\t\t\t\tname = L[\"Stop sooner if they are probably gone\"],\n"
-       "\t\t\t\tdesc = L[\"Someone who buffed you rarely can be range-checked, so they are let go after the time below.\"],\n"
-       "\t\t\t\torder = 13,\n",
-       "\t\t\t\tname = L[\"Stop sooner if they are probably gone\"],\n"
-       "\t\t\t\tdesc = L[\"Someone who buffed you rarely can be range-checked, so they are let go after the time below.\"],\n"
-       "\t\t\t\torder = 15.5,\n",
+# it. It used to name the switch; now the switch is the next control down. The
+# window places controls by its layout, not by the model's order, so the move
+# is made there: the switch put above the slider.
+mutate("Options/Window/Layout.lua",
+       "\t\t\t\t\t\"advanced.reciprocateWindow\",\n"
+       "\t\t\t\t\t\"advanced.owedClassBuffsOnly\",\n"
+       "\t\t\t\t\t\"advanced.reachableOnly\",\n",
+       "\t\t\t\t\t\"advanced.reachableOnly\",\n"
+       "\t\t\t\t\t\"advanced.reciprocateWindow\",\n"
+       "\t\t\t\t\t\"advanced.owedClassBuffsOnly\",\n",
        "remember window silent about the grace",
        expect="the slider says people stay on the prompt this long",
        script="runscenarios.py")
