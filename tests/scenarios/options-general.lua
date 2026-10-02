@@ -1,6 +1,9 @@
--- Start here (Options.lua, BuildStartTab): the switch, the lock warning, the
--- four numbered steps (who to buff, a key, seeing the prompt, what to say),
--- the snooze, the ledger and the minimap switch.
+-- Start here (Options/Start.lua, BuildStartTab): two numbered steps (who to
+-- buff, a key), the ledger, and the minimap and chat switches -- and the items
+-- of the same group the options window draws elsewhere: the switch, the
+-- preview and the snooze in its header, Lock it in its status strip, the voice
+-- choice on What I say. The lock warning and the off notice are the strip's
+-- line now (ns.LauncherState), and Where it sits and Lock position are Look's.
 --
 -- Called by scenarios.lua with the addon directory and its helpers.
 
@@ -50,7 +53,7 @@ end
 
 -- ------------------------------------------------------------------ 1
 do
-	local scenario = "start here: four numbered steps, in order"
+	local scenario = "start here: two numbered steps, in order"
 	local ns, a, general = session(scenario)
 	if ns then
 		if text(general.name) ~= "Start here" or general.order ~= 1 then
@@ -58,7 +61,6 @@ do
 		end
 		local steps = {
 			{ "whoHeader", "1. Who to buff" }, { "keyHeader", "2. Put it on a key" },
-			{ "tryHeader", "3. See it" }, { "voiceHeader", "4. Say thanks (optional)" },
 		}
 		local last = 0
 		for _, step in ipairs(steps) do
@@ -82,8 +84,6 @@ do
 		local within = {
 			whoHeader = { "quickWho", "quickWhoSummary" },
 			keyHeader = { "bindKey", "openBindings", "makeMacro", "bindStatus" },
-			tryHeader = { "previewStart", "startPos", "startLocked" },
-			voiceHeader = { "quickVoice", "quickVoiceSummary" },
 		}
 		for header, keys in pairs(within) do
 			for _, key in ipairs(keys) do
@@ -95,8 +95,12 @@ do
 				end
 			end
 		end
+		-- And the copies the window retired: Where it sits and Lock position
+		-- are Look's, Only when I buff someone back is What I say's, and the
+		-- off and unlocked notices are the status strip's line.
 		for _, gone in ipairs({ "startHeader", "miscHeader", "chatHeader",
-			"shareHeader", "shareNote", "shareCopy", "shareText", "sharePaste" }) do
+			"shareHeader", "shareNote", "shareCopy", "shareText", "sharePaste",
+			"startPos", "startLocked", "onlyWhenReturning", "offNotice", "lockNotice" }) do
 			if a[gone] then fail(scenario, gone .. " is still on Start here") end
 		end
 		if text(a.enabled.name) ~= "Manners is on" then
@@ -108,6 +112,49 @@ do
 		end
 		if not (a.minimap and a.minimap.order > a.ledgerOpen.order) then
 			fail(scenario, "the minimap switch is not last, under the ledger")
+		end
+		noErrors(scenario, ns)
+	end
+end
+
+-- ------------------------------------------------------------------ 1a
+-- The page as the window draws it (the layout spec, IA.md section 2): the lead,
+-- the two steps, the ledger, then minimap and chat, nothing folded; the switch,
+-- the preview and the snooze in the header, Lock it at the strip's end.
+local START_PAGE = {
+	"general.noBuffs", "general.howItWorks", "general.quickWho", "general.quickWhoSummary",
+	"general.bindKey", "general.makeMacro", "general.openBindings", "general.bindStatus",
+	"general.ledgerSummary", "general.ledgerOpen", "general.minimap", "general.verbose",
+}
+do
+	local scenario = "start here: the page as the window draws it"
+	local ns = session(scenario)
+	if ns and H.layoutInToc() and not ns.WindowLayout then
+		fail(scenario, "the toc loads the window's layout and ns.WindowLayout is not there")
+	elseif ns and ns.WindowLayout then
+		local layout = ns.WindowLayout
+		local list, sections = H.pagePaths(ns, "general")
+		list = list or {}
+		for i, want in ipairs(START_PAGE) do
+			if list[i] ~= want then
+				fail(scenario, ("Start here's row %d is %s, not %s"):format(i, tostring(list[i]), want))
+			elseif sections[want].fold then
+				fail(scenario, want .. " is folded away on Start here")
+			end
+		end
+		if #list ~= #START_PAGE then
+			fail(scenario, ("Start here draws %d rows, not %d"):format(#list, #START_PAGE))
+		end
+		local header = layout.header or {}
+		if header.preview ~= "general.previewStart" or header.enabled ~= "general.enabled" then
+			fail(scenario, "the switch or the preview is not in the window's header")
+		end
+		local snooze = table.concat(header.snooze or {}, " ")
+		if snooze ~= "general.snooze5 general.snooze15 general.snooze30 general.snoozeStop" then
+			fail(scenario, "the header's snooze menu holds " .. snooze)
+		end
+		if not (layout.strip and layout.strip.lock == "general.lockNow") then
+			fail(scenario, "Lock it is not at the end of the status strip")
 		end
 		noErrors(scenario, ns)
 	end
@@ -156,10 +203,8 @@ do
 		ns.caps.hasClassBuffs = false
 		for _, key in ipairs({ "howItWorks", "whoHeader", "quickWho", "quickWhoSummary",
 			"keyHeader", "bindKey", "openBindings", "makeMacro", "bindStatus",
-			"tryHeader", "previewStart", "startPos", "startLocked",
-			"voiceHeader", "quickVoice", "quickVoiceSummary",
-			"snoozeHeader", "snoozeNote", "snooze5", "snooze15", "snooze30",
-			"lockNotice", "lockNow" }) do
+			"previewStart", "quickVoice", "quickVoiceSummary",
+			"snoozeNote", "snooze5", "snooze15", "snooze30", "lockNow" }) do
 			if a[key] and shown(a[key]) then
 				fail(scenario, key .. " is shown to a class with nothing to cast")
 			end
@@ -177,19 +222,27 @@ do
 	local scenario = "start here: the unlocked prompt is flagged with a Lock it button"
 	local ns, a = session(scenario)
 	if ns then
+		-- The warning is the status strip's line, the launcher's own, on
+		-- every page; Lock it sits at its end. Lock position is Look's.
+		local function strip()
+			local _, line, _, _, _, _, _, kind = ns.LauncherState()
+			return kind == "unlocked", tostring(line)
+		end
+		local locked = ns.optionsTable.args.appearance.args.locked
 		local p = ns.db.profile.prompt
 		p.locked = true
-		if shown(a.lockNotice) or shown(a.lockNow) then
+		if strip() or shown(a.lockNow) then
 			fail(scenario, "the unlocked warning is up over a locked prompt")
 		end
-		a.startLocked.set({ "startLocked" }, false)
+		locked.set({ "locked" }, false)
 		if p.locked ~= false then
 			fail(scenario, "Lock position unticked left the prompt locked")
 		end
-		if not (shown(a.lockNotice) and shown(a.lockNow)) then
+		local up, line = strip()
+		if not (up and shown(a.lockNow)) then
 			fail(scenario, "the prompt is unlocked and the tab says nothing")
-		elseif not text(a.lockNotice.name):find("will not cast", 1, true) then
-			fail(scenario, "the unlocked warning reads " .. text(a.lockNotice.name))
+		elseif not line:find("casts nothing", 1, true) then
+			fail(scenario, "the unlocked warning reads " .. line)
 		end
 		-- In a fight too: ApplyStyle holds off, the setting is still written.
 		Mock.inCombat = true
@@ -199,10 +252,10 @@ do
 		if p.locked ~= true then
 			fail(scenario, "Lock it did not lock the prompt")
 		end
-		if shown(a.lockNotice) then
+		if strip() then
 			fail(scenario, "locked, the unlocked warning stayed")
 		end
-		if a.startLocked.get({ "startLocked" }) ~= true then
+		if locked.get({ "locked" }) ~= true then
 			fail(scenario, "Lock position does not read the lock")
 		end
 		noErrors(scenario, ns)
@@ -212,16 +265,17 @@ end
 -- ------------------------------------------------------------------ 4
 do
 	local scenario = "start here: Lock position unticked while off says there is nothing to drag"
-	local ns, a = session(scenario)
+	local ns = session(scenario)
 	if ns then
+		local locked = ns.optionsTable.args.appearance.args.locked
 		ns.addon:HandleSlash("off")
 		Mock.printed = {}
-		a.startLocked.set({ "startLocked" }, false)
+		locked.set({ "locked" }, false)
 		if not said():find("no prompt to drag", 1, true) then
 			fail(scenario, "unlocked while off, and chat said nothing: " .. said())
 		end
 		Mock.printed = {}
-		a.startLocked.set({ "startLocked" }, true)
+		locked.set({ "locked" }, true)
 		if said():find("no prompt to drag", 1, true) then
 			fail(scenario, "locking said there is nothing to drag")
 		end
@@ -360,7 +414,9 @@ end
 
 -- ------------------------------------------------------------------ 9
 do
-	local scenario = "start here: step 3 shows the prompt and places it"
+	-- The preview, which the window draws in its header. Where it sits is
+	-- Look's (options-appearance.lua holds it).
+	local scenario = "start here: step 3 shows the prompt"
 	local ns, a = session(scenario)
 	if ns then
 		local preview = a.previewStart
@@ -381,34 +437,6 @@ do
 		end
 		ns.Prompt:ExitTest()
 		ns.db.profile.enabled = true
-
-		local pos = a.startPos
-		if pos.get({ "startPos" }) ~= "bars" then
-			fail(scenario, "a new profile sits at " .. tostring(pos.get({ "startPos" })))
-		end
-		local values = pos.values({})
-		if values.bars ~= "Above the action bars (default)" then
-			fail(scenario, "the default place reads " .. tostring(values.bars))
-		end
-		if values.custom then
-			fail(scenario, "Where I dragged it is offered while the prompt is on a preset")
-		end
-		pos.set({ "startPos" }, "minimap")
-		local p = ns.db.profile.prompt
-		if p.point ~= "TOPRIGHT" or ns.CurrentPositionPreset() ~= "minimap" then
-			fail(scenario, "picking Under the minimap did not move the prompt")
-		end
-		p.x = p.x + 13
-		if pos.get({ "startPos" }) ~= "custom" then
-			fail(scenario, "dragged off the presets, the dropdown still names one")
-		end
-		local order = pos.sorting({})
-		if not pos.values({}).custom or order[#order] ~= "custom" then
-			fail(scenario, "Where I dragged it is not the last choice once dragged")
-		end
-		local x = p.x
-		pos.set({ "startPos" }, "custom")
-		if p.x ~= x then fail(scenario, "picking Where I dragged it moved the prompt") end
 		noErrors(scenario, ns)
 	end
 end

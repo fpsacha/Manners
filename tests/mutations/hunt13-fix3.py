@@ -64,7 +64,7 @@ mutate("Options/Advanced.lua",
        "\t\t-- other people is hidden inside (NoOthers).\n"
        "\t\thidden = function() return not HasClassBuffs() end,\n",
        "hunt13-fix3: Advanced hidden from a hunter",
-       expect="the Advanced tab is hidden from a hunter", script=S)
+       expect="the Advanced group is hidden from a hunter", script=S)
 
 # Handing a target back offered where the switch changes nothing.
 mutate("Options/Advanced.lua",
@@ -87,23 +87,16 @@ mutate("Options/Advanced.lua",
        "hunt13-fix3: a hunter shown the favours",
        expect="favoursHeader is shown to a hunter", script=S)
 
-# Look pointing a rogue at a tab he does not have.
+# Re-anchored: posPreset's pointer at Advanced is gone (the exact numbers are
+# a fold on Look), so the fault is now a rogue given the Look page itself.
 mutate("Options/Look.lua",
-       "\t\t\t\t\tif not HasPrompt() then return text end\n",
-       "",
-       "hunt13-fix3: Look points a rogue at Advanced",
-       expect="posPreset points a rogue at an Advanced tab", script=S)
+       "\t\thidden = function() return not HasPrompt() end,\n\t\targs = {\n",
+       "\t\targs = {\n",
+       "hunt13-fix3: Look shown to a rogue",
+       expect="a rogue has a Look page", script=S)
 
-# ...and not pointing a hunter at the wording he now has.
-mutate("Options/Look.lua",
-       "\t\t\t\thidden = function() return not HasPrompt() end,\n"
-       "\t\t\t\tname = \"|cff888888\"\n"
-       "\t\t\t\t\t.. L[\"Change what the prompt says: %s.\"]",
-       "\t\t\t\thidden = function() return not HasClassBuffs() end,\n"
-       "\t\t\t\tname = \"|cff888888\"\n"
-       "\t\t\t\t\t.. L[\"Change what the prompt says: %s.\"]",
-       "hunt13-fix3: Look hides the wording pointer from a hunter",
-       expect="wordingNote is hidden from a hunter", script=S)
+# Retired: "Look hides the wording pointer from a hunter". appearance.wordingNote
+# is gone; the wording is a fold on Look itself, so there is no pointer to hide.
 
 # ------------------------------------------------ Tell me in chat
 

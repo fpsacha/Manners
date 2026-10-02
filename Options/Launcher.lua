@@ -200,6 +200,12 @@ end
 -- A seventh answer, `heldOnly`, is true while a fight holds a prompt that a
 -- snooze or the lock will take down once it ends: the one on it is still armed
 -- and still worth a Skip, and nobody after them is going to be offered.
+--
+-- An eighth, `kind`, names the branch the line came from -- off, unlocked,
+-- snoozed, ownoff, mounted, ownwatch, noclass, nothing, blocked, unlearned,
+-- watching -- so the options window's status strip can show only the states
+-- that keep the prompt from doing what the player expects. The tooltip and
+-- the menu ignore it.
 local function LauncherState()
 	local class = ns.caps and ns.caps.class
 	local snoozeLeft = ns.SnoozeLeft and ns.SnoozeLeft()
@@ -212,9 +218,9 @@ local function LauncherState()
 		-- as long as that lasts.
 		if InCombatLockdown() and ArmedButtonLeft() then
 			return false, L["Switched off -- the prompt this fight froze stays up until it ends, and a press still casts it."],
-				1, 0.5, 0.5, true
+				1, 0.5, 0.5, true, nil, "off"
 		end
-		return false, L["Switched off -- no prompt will appear."], 1, 0.5, 0.5
+		return false, L["Switched off -- no prompt will appear."], 1, 0.5, 0.5, nil, nil, "off"
 	elseif DragPanelUp() then
 		-- Ahead of the snooze, as the prompt reads them: an unlocked prompt is
 		-- up to be dragged and casts nothing.
@@ -225,33 +231,33 @@ local function LauncherState()
 		-- is cleared only the macro is left, said as /manners off says it.
 		if held then
 			return true, L["Unlocked, but in this fight the prompt stays as the fight found it, and a press still casts it; it can be dragged once the fight ends."],
-				1, 0.82, 0, true, true
+				1, 0.82, 0, true, true, "unlocked"
 		elseif InCombatLockdown() and ArmedButtonLeft() then
 			return false, L["Unlocked -- the prompt this fight froze stays up until it ends, and a press still casts it; then it can be dragged."],
-				1, 0.82, 0, true
+				1, 0.82, 0, true, nil, "unlocked"
 		end
 		if snoozeLeft then
 			return false, L["Unlocked, and snoozed until %s -- the prompt stays up to be dragged, casting nothing, until you lock it."]
-				:format(ns.SnoozeEndsAt()), 1, 0.82, 0, true
+				:format(ns.SnoozeEndsAt()), 1, 0.82, 0, true, nil, "unlocked"
 		end
 		return false, L["Unlocked -- the prompt is up to be dragged and casts nothing until you lock it (%s)."]
-			:format("|cffffd100/manners lock|r"), 1, 0.82, 0, true
+			:format("|cffffd100/manners lock|r"), 1, 0.82, 0, true, nil, "unlocked"
 	elseif snoozeLeft and held then
 		-- A snooze started in the fight: the panel stays as the fight found it,
 		-- armed, and follows the snooze once it ends. Said as that, and with the
 		-- held entry still listed, since a press still casts at them.
 		return true, L["Snoozed until %s -- in this fight the prompt stays as the fight found it, and follows the snooze once the fight ends."]
-			:format(ns.SnoozeEndsAt()), 1, 0.82, 0, true, true
+			:format(ns.SnoozeEndsAt()), 1, 0.82, 0, true, true, "snoozed"
 	elseif snoozeLeft then
 		-- The clock time and the minutes both: the time is what the player
 		-- compares with a raid timer, and the minutes are what they asked for.
 		return false, L["Snoozed until %s, %s from now -- no prompt until then."]
-			:format(ns.SnoozeEndsAt(), ns.MinutesText(math.ceil(snoozeLeft / 60))), 1, 0.82, 0, true
+			:format(ns.SnoozeEndsAt(), ns.MinutesText(math.ceil(snoozeLeft / 60))), 1, 0.82, 0, true, nil, "snoozed"
 	elseif ownOnly and not ns.OffersSelf() then
 		-- A hunter with "Myself" or every one of his own buffs switched off:
 		-- the prompt has nothing left to be for.
 		return false, L["Nothing to do: your own buffs are switched off under %s."]
-			:format(L["Myself"]), 1, 0.82, 0
+			:format(L["Myself"]), 1, 0.82, 0, nil, nil, "ownoff"
 	elseif ownOnly or (ns.OwnBuffsLive() and not ns.ResolveBuff(true)) then
 		-- Nothing for anybody else, but a prompt for your own buffs: a hunter,
 		-- a warlock before Unending Breath, a mage with her Intellect switched
@@ -260,30 +266,34 @@ local function LauncherState()
 		-- list "You" and its Skip.
 		if not held and ns.HiddenWhileMounted and ns.HiddenWhileMounted() then
 			return false, L["Kept away while you are mounted -- %s, on the %s tab."]
-				:format(L["Hide the prompt while I'm mounted"], L["When to offer"]), 1, 0.82, 0, true
+				:format(L["Hide the prompt while I'm mounted"], L["When to offer"]), 1, 0.82, 0, true, nil, "mounted"
 		end
-		if ownOnly then return true, L["Watching your own buffs."], 0.4, 0.9, 0.4 end
+		if ownOnly then return true, L["Watching your own buffs."], 0.4, 0.9, 0.4, nil, nil, "ownwatch" end
 		return true, L["Watching your own buffs; nothing is offered to anybody else: %s."]
-			:format(ns.NothingToCast()), 0.4, 0.9, 0.4, true
+			:format(ns.NothingToCast()), 0.4, 0.9, 0.4, true, nil, "ownwatch"
 	elseif class and ns.CLASSES_WITHOUT_BUFFS and ns.CLASSES_WITHOUT_BUFFS[class] then
-		return false, L["Nothing to do: %s"]:format(ns.NO_CLASS_BUFFS), 1, 0.82, 0
+		return false, L["Nothing to do: %s"]:format(ns.NO_CLASS_BUFFS), 1, 0.82, 0, nil, nil, "noclass"
 	elseif not HasClassBuffs() then
-		return false, L["Nothing to cast on this character -- /manners debug says why."], 1, 0.82, 0
+		return false, L["Nothing to cast on this character -- /manners debug says why."], 1, 0.82, 0,
+			nil, nil, "nothing"
 	elseif not ns.ResolveBuff(true) then
 		if ns.caps.anyKnown then
-			return false, L["Nothing will be offered: %s."]:format(ns.NothingToCast()), 1, 0.5, 0.5, true
+			return false, L["Nothing will be offered: %s."]:format(ns.NothingToCast()), 1, 0.5, 0.5, true,
+				nil, "blocked"
 		end
-		return false, L["Nothing learned to cast yet."], 1, 0.82, 0
+		return false, L["Nothing learned to cast yet."], 1, 0.82, 0, nil, nil, "unlearned"
 	elseif not held and ns.HiddenWhileMounted and ns.HiddenWhileMounted() then
 		-- The queue offers nobody while this is true, so name the mount -- but
 		-- not over a prompt a fight holds, which is still up and armed. The
 		-- option and its tab go in by their own keys, so a translation names
 		-- the labels the window shows.
 		return false, L["Kept away while you are mounted -- %s, on the %s tab."]
-			:format(L["Hide the prompt while I'm mounted"], L["When to offer"]), 1, 0.82, 0, true
+			:format(L["Hide the prompt while I'm mounted"], L["When to offer"]), 1, 0.82, 0, true, nil, "mounted"
 	end
-	return true, L["Watching for people to buff."], 0.4, 0.9, 0.4
+	return true, L["Watching for people to buff."], 0.4, 0.9, 0.4, nil, nil, "watching"
 end
+-- The options window's status strip reads the same line.
+ns.LauncherState = LauncherState
 
 -- What the launcher's tooltip says, for the minimap button, a broker display
 -- and the addon compartment alike.

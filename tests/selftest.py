@@ -983,10 +983,11 @@ mutate("Options/Who.lua",
        script="runscenarios.py")
 
 # 38. three sources switched off, which is a prompt that can never appear and
-#     is indistinguishable from a broken addon.
-mutate("Options/Who.lua",
-       "					return s.owed or s.group or s.asked or (s.strangers and not OnlyReachesGroup())",
-       "					return true",
+#     is indistinguishable from a broken addon. Re-anchored on Shared.lua's
+#     NoSources, which the warning and Who to buff's red dot both read.
+mutate("Options/Shared.lua",
+       "\treturn not (s.owed or s.group or s.asked or (s.strangers and not OnlyReachesGroup())\n",
+       "\treturn not (true\n",
        "no warning for a queue that can never fill",
        expect="all three sources are off and the page says nothing",
        script="runscenarios.py")
@@ -2451,7 +2452,7 @@ mutate("Options/Launcher.lua",
 # icon alone -- on the minimap that is the only shape it has -- and then the
 # tooltip is the last place that can say why no prompt has appeared all evening.
 mutate("Options/Launcher.lua",
-       """		return false, L["Switched off -- no prompt will appear."], 1, 0.5, 0.5
+       """		return false, L["Switched off -- no prompt will appear."], 1, 0.5, 0.5, nil, nil, "off"
 """,
        "",
        "a tooltip that never names the state",
@@ -3307,10 +3308,11 @@ mutate("Prompt/Refresh.lua",
        expect="a preview was started in a fight over a panel",
        script="runscenarios.py")
 
-# The options page's button still offering it.
-mutate("Options/Look.lua",
-       "\t\t\t\t\treturn InCombatLockdown() and not ns.Prompt:InTest()\n",
-       "\t\t\t\t\treturn false\n",
+# The options page's button still offering it. Re-anchored on the window's
+# header button (general.previewStart): Look's own Preview is gone.
+mutate("Options/Start.lua",
+       "\t\t\t\t\treturn not ns.Prompt:InTest() and InCombatLockdown()\n",
+       "\t\t\t\t\treturn not ns.Prompt:InTest() and false\n",
        "the page offering Preview in a fight",
        expect="still offers Preview in the middle of a fight",
        script="runscenarios.py")

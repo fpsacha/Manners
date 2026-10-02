@@ -1236,8 +1236,13 @@ do
 			fail(scenario, "a hunter is not shown Hide the prompt while I'm mounted or If they already have it")
 		end
 		ns.db.profile.filters.whenBuffed = "always"
-		for _, k in ipairs({ "manaFloor", "manaNote", "favoursHeader", "favoursNote", "alwaysNote" }) do
+		for _, k in ipairs({ "manaFloor", "manaNote", "alwaysNote" }) do
 			if shown(a[k]) then fail(scenario, k .. " is shown to a hunter") end
+		end
+		-- The favours the window draws on this page, from the Advanced group.
+		local adv = ns.optionsTable.args.advanced.args
+		for _, k in ipairs({ "favoursHeader", "reciprocateWindow", "owedClassBuffsOnly" }) do
+			if shown(adv[k]) then fail(scenario, k .. " is shown to a hunter") end
 		end
 		local desc = H.optionText(a.whenBuffed.desc)
 		if desc:find("buffed you", 1, true) or not desc:find("Your own buffs", 1, true) then

@@ -6,7 +6,7 @@ local Page = ns.OptionsPage
 local restyleAndMacro, S, F, B = Page.restyleAndMacro, Page.S, Page.F, Page.B
 local sGet, sSet, fGet, fSet = Page.sGet, Page.sSet, Page.fGet, Page.fSet
 local bSet, prGet, prSet, HasClassBuffs = Page.bSet, Page.prGet, Page.prSet, Page.HasClassBuffs
-local OnlyReachesGroup, HasPrompt, OffersSelf, TAB = Page.OnlyReachesGroup, Page.HasPrompt, Page.OffersSelf, Page.TAB
+local OnlyReachesGroup, HasPrompt, TAB = Page.OnlyReachesGroup, Page.HasPrompt, Page.TAB
 
 local function BuffChoices()
 	local values = { auto = L["Automatic (whatever they are missing)"] }
@@ -486,14 +486,8 @@ function Page.BuildWhoTab()
 			emptyWarning = {
 				type = "description",
 				order = 10.5,
-				hidden = function()
-					local s = S()
-					-- A source this class cannot use (passers-by, or yourself,
-					-- for a warrior) does not count as switched on: its toggle
-					-- is hidden.
-					return s.owed or s.group or s.asked or (s.strangers and not OnlyReachesGroup())
-						or OffersSelf()
-				end,
+				-- The same answer the page's red dot reads (Shared.lua).
+				hidden = function() return not Page.NoSources() end,
 				name = "|cffff8080"
 					.. L["Nothing is ticked here, so the prompt will never appear."] .. "|r",
 			},

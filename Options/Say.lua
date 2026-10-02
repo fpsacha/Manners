@@ -7,7 +7,8 @@ local P, S, SP, spGet = Page.P, Page.S, Page.SP, Page.spGet
 local spSet, HasClassBuffs, TAB = Page.spSet, Page.HasClassBuffs, Page.TAB
 
 -- What I say: the social replies to a buff, the /thank and the line that goes
--- out with a cast. Targeting is on Advanced.
+-- out with a cast. The options window leads the page with Start here's voice
+-- choice (general.quickVoice), so the page needs no intro pointing at it.
 function Page.BuildSpeechTab()
 	-- The dropdown's own names for two sets, where the set's label alone does
 	-- not say what it is. Every other set keeps the label ns.PHRASE_SETS gives.
@@ -42,13 +43,6 @@ function Page.BuildSpeechTab()
 				fontSize = "medium",
 				hidden = function() return not InCombatLockdown() end,
 				name = "|cffffd100" .. L["In combat: changes here apply once the fight ends."] .. "|r\n",
-			},
-			intro = {
-				type = "description",
-				order = 1,
-				fontSize = "medium",
-				name = L["Optional: thank people, or say a line, when you buff them. %s also has quick choices for this."]
-					:format(TAB.general) .. "\n",
 			},
 
 			speechHeader = { type = "header", name = L["Thanks and speech"], order = 10 },

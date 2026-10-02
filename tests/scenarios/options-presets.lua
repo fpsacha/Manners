@@ -712,8 +712,9 @@ end
 -- switch "Only when I buff someone back" on, so its lines for a request, a
 -- stranger or the group were never heard: a player picked it, buffed a
 -- passer-by, and their character said nothing. The thank-you choices still
--- speak only when returning a favour, and the switch itself sits under the
--- choice on Start here, where the player just made it.
+-- speak only when returning a favour. The choice leads What I say in the
+-- options window, right above the switch itself, so Start here's copy of the
+-- switch is gone, and so is the choice's tooltip pointing at What I say.
 do
 	local scenario = "presets: In character speaks when you buff a stranger"
 	Mock.reset()
@@ -739,9 +740,30 @@ do
 				fail(scenario, "a press on a passer-by says nothing: "
 					.. (tostring(text):gsub("\n", " / ")))
 			end
-			local toggle = ns.optionsTable.args.general.args.onlyWhenReturning
-			if not toggle or toggle.hidden() then
-				fail(scenario, "Start here has no Only when I buff someone back under the choice")
+			local general = ns.optionsTable.args.general.args
+			if general.onlyWhenReturning then
+				fail(scenario, "Start here still has its own copy of Only when I buff someone back")
+			end
+			local toggle = ns.optionsTable.args.click.args.onlyWhenReturning
+			local disabled = toggle and toggle.disabled
+			if type(disabled) == "function" then disabled = disabled({}) end
+			if not toggle or disabled then
+				fail(scenario, "What I say has no live Only when I buff someone back under the choice")
+			end
+			if general.quickVoice and general.quickVoice.desc ~= nil then
+				fail(scenario, "When I buff someone still points at What I say, the page it leads: "
+					.. H.optionText(general.quickVoice.desc))
+			end
+			if ns.WindowLayout then
+				local list = H.pagePaths(ns, "click") or {}
+				local choice, switch
+				for i, path in ipairs(list) do
+					if path == "general.quickVoice" then choice = i end
+					if path == "click.onlyWhenReturning" then switch = i end
+				end
+				if not (choice and switch and choice < switch) then
+					fail(scenario, "the choice does not lead What I say above Only when I buff someone back")
+				end
 			end
 			quick.Apply(quick.VOICE, "polite")
 			if sp.onlyWhenReturning ~= true then

@@ -1,4 +1,5 @@
--- Manners -- options: the Advanced tab.
+-- Manners -- options: the Advanced group (the tuning knobs the options window
+-- draws on When to offer and Look) and the per-page reset.
 
 local _, ns = ...
 local L = ns.L
@@ -7,7 +8,6 @@ local rescan, restyleAndMacro, S, F = Page.rescan, Page.restyleAndMacro, Page.S,
 local pGet, pSet, sGet, sSet = Page.pGet, Page.pSet, Page.sGet, Page.sSet
 local fGet, fSet, fGetMacro, fSetMacro = Page.fGet, Page.fSet, Page.fGetMacro, Page.fSetMacro
 local tGet, tSet, HasClassBuffs, HasPrompt = Page.tGet, Page.tSet, Page.HasClassBuffs, Page.HasPrompt
-local TAB = Page.TAB
 
 -- Whether nothing this character can offer takes a target at all -- a warrior,
 -- whose Battle Shout is cast on himself. CastLines builds no /target line for a
@@ -22,45 +22,50 @@ local function NeverTargets()
 	return true
 end
 
--- The tuning knobs: favours, timing, targeting, exact position and the
--- prompt's wording. Every control keeps its own key and get/set, so moving it
--- here left its profile field where it was.
-function Page.BuildAdvancedTab()
-	-- The tab is there for every class with a prompt; the knobs about other
-	-- people -- favours, their reason lines, handing a target back -- are
-	-- hidden from a class that only ever offers you your own buff (a hunter's
-	-- aspect), where they would be switches that change nothing.
-	local function NoOthers() return not HasClassBuffs() end
+---------------------------------------------------------------------------
+-- the per-page reset
+--
+-- "Put these back to default" in the options window's footer puts back the
+-- page in view: every field on that page's list, including rows this class
+-- does not show, then the hooks those fields' own setters run. Never the
+-- master switch, the key, where the prompt sits or its lock, the never-offer
+-- list or your lines: what somebody placed, wrote or listed by hand is not a
+-- tuning knob. The settings the old Advanced tab's reset put back are all
+-- here, on When to offer and Look, where they now sit.
+---------------------------------------------------------------------------
 
-	-- What "Put these back to default" puts back: every field this tab
-	-- writes, by its section in the profile. Nothing else on the page, and
-	-- not where the prompt sits: that is a place somebody dragged it to, not
-	-- a tuning knob, and Where it sits (Look, Start here) puts it back.
-	local resetFields = {
-		{ "sources", "owedClassBuffsOnly" },
-		{ "timing", "reciprocateWindow" },
-		{ "filters", "reachableOnly" },
-		{ "timing", "graceSeconds" },
-		{ "timing", "keepDebts" },
-		{ "timing", "retryCooldown" },
-		{ "timing", "scanInterval" },
-		{ "filters", "restoreTarget" },
-		{ "prompt", "format" },
-		{ "prompt", "reasonTarget" },
-		{ "prompt", "reasonOwed" },
-		{ "prompt", "reasonAsked" },
-		{ "prompt", "reasonSelf" },
-		{ "prompt", "reasonGroup" },
-		{ "prompt", "reasonNearby" },
-		{ "prompt", "reasonRefresh" },
-		{ "prompt", "reasonUnknown" },
-	}
-	local function ResetAdvanced()
-		ns.Guard("reset advanced", function()
-			local defaults, profile = ns.defaults.profile, ns.db.profile
-			for _, field in ipairs(resetFields) do
-				profile[field[1]][field[2]] = defaults[field[1]][field[2]]
-			end
+local function RefreshBroker()
+	if ns.RefreshBrokerText then ns.Guard("broker text", ns.RefreshBrokerText) end
+end
+
+-- By page id, each field as "section.field" in the profile, and `after`, the
+-- hooks. Pages without a list (Start here, Profiles, Diagnostics) have no
+-- reset button.
+Page.RESET = {
+	who = {
+		"buff.choice", "buff.skip", "filters.relevantOnly",
+		"sources.owed", "sources.group", "sources.strangers", "sources.asked", "sources.self",
+		"filters.proximity", "filters.restingOnly", "ownBuffs.pick", "ownBuffs.inCities",
+		"groupBuffs.use", "groupBuffs.atLeast", "filters.skipRaidGroups",
+		"priority.target", "priority.friends", "priority.readyCheck", "priority.revived",
+		after = function()
+			restyleAndMacro()
+			-- An own buff's pick shows at once, as its own control does it.
+			ns.Prompt:Refresh()
+			-- The favour count follows People who buff me.
+			RefreshBroker()
+		end,
+	},
+	-- The never-offer list is kept: every name on it was put there by hand.
+	skip = {
+		"filters.skipPvP", "filters.skipSameClass", "filters.requireInRange", "filters.minLevel",
+	},
+	when = {
+		"filters.whenBuffed", "filters.refreshUnder", "filters.hideMounted", "filters.manaFloor",
+		"timing.reciprocateWindow", "sources.owedClassBuffsOnly", "filters.reachableOnly",
+		"timing.graceSeconds", "timing.keepDebts", "timing.retryCooldown", "timing.scanInterval",
+		"filters.restoreTarget",
+		after = function()
 			-- keepDebts can only go from off to on here, which deletes
 			-- nothing; SaveDebts is still what its setter runs, so the two
 			-- ways of switching it on leave the file the same.
@@ -69,13 +74,86 @@ function Page.BuildAdvancedTab()
 			-- Both hold off in combat and catch up when the fight ends, so
 			-- this never touches the secure button mid-fight.
 			restyleAndMacro()
-			ns.RefreshOptionsDisplay()
-		end)
+		end,
+	},
+	-- Your lines and the line set are kept.
+	click = {
+		"prompt.thankEmote", "speech.enabled", "speech.channel", "speech.onlyWhenReturning",
+		after = function() ns.Prompt:InvalidateMacro() end,
+	},
+	-- Where the prompt sits and its lock are kept.
+	appearance = {
+		"prompt.scale", "prompt.alpha", "prompt.width", "prompt.height", "prompt.style",
+		"prompt.bgColor", "prompt.accentByReason", "prompt.reasonPalette", "prompt.accentColor",
+		"prompt.accentMode", "prompt.flashStyle", "prompt.effects", "prompt.hideInCombat",
+		"prompt.font", "prompt.fontSize", "prompt.fontColor", "prompt.classColor", "prompt.showSub",
+		"prompt.format", "prompt.reasonTarget", "prompt.reasonOwed", "prompt.reasonAsked",
+		"prompt.reasonSelf", "prompt.reasonGroup", "prompt.reasonNearby", "prompt.reasonRefresh",
+		"prompt.reasonUnknown", "prompt.showIcon", "prompt.iconSize", "prompt.roundIcon",
+		"prompt.showCooldown", "prompt.showCount", "prompt.showQueue", "prompt.queueRows",
+		"sound.enabled", "sound.file", "sound.owedOnly",
+		after = function()
+			-- The icon back inside the prompt's size, as the size sliders do.
+			ns.ClampSettings()
+			restyleAndMacro()
+		end,
+	},
+}
+
+local function Copy(value)
+	if type(value) ~= "table" then return value end
+	local out = {}
+	for k, v in pairs(value) do out[k] = Copy(v) end
+	return out
+end
+
+-- One field back to its default. A set (buff.skip, ownBuffs.pick, the raid
+-- groups) is wiped in place and refilled, so anything holding the table sees
+-- it change; a colour gets a fresh copy, so the profile never holds the
+-- defaults' own table for a picker to write into.
+local function ResetField(path)
+	local section, name = path:match("^(%w+)%.(%w+)$")
+	local default = ns.defaults.profile[section][name]
+	local into = ns.db.profile[section]
+	local current = into[name]
+	if type(default) == "table" and type(current) == "table" and default[1] == nil then
+		wipe(current)
+		for k, v in pairs(default) do current[k] = Copy(v) end
+	else
+		into[name] = Copy(default)
 	end
+end
+
+-- Put page `pageId` back to its defaults, with no question asked (the button's
+-- own confirm has asked it), and repaint. Answers false for a page with no
+-- list.
+function Page.ResetPage(pageId)
+	local list = Page.RESET[pageId]
+	if not list then return false end
+	return ns.Guard("reset page", function()
+		for _, path in ipairs(list) do ResetField(path) end
+		if list.after then list.after() end
+		ns.RefreshOptionsDisplay()
+	end)
+end
+
+-- The tuning knobs: favours, timing, targeting, exact position and the
+-- prompt's wording. Every control keeps its own key and get/set, so moving it
+-- here left its profile field where it was. No longer a page of its own: the
+-- options window draws these on When to offer and Look, and the intro, the
+-- combat notice and the reset in its frame.
+function Page.BuildAdvancedTab()
+	-- The group is there for every class with a prompt; the knobs about other
+	-- people -- favours, their reason lines, handing a target back -- are
+	-- hidden from a class that only ever offers you your own buff (a hunter's
+	-- aspect), where they would be switches that change nothing.
+	local function NoOthers() return not HasClassBuffs() end
 
 	return {
 		type = "group",
-		name = TAB.advanced,
+		-- Named for the old dialog, which the window falls back to if it
+		-- cannot be shown.
+		name = L["Advanced"],
 		order = 6,
 		-- The same rule as When to offer: a hunter's own prompt has a first
 		-- line, a reason, a place and timings like anybody's. What is about
@@ -93,13 +171,16 @@ function Page.BuildAdvancedTab()
 				hidden = function() return not InCombatLockdown() end,
 				name = "|cffffd100" .. L["In combat: targeting changes apply once the fight ends."] .. "|r\n",
 			},
+			-- The footer's reset, for whichever page is open; hidden on a
+			-- page with nothing to put back.
 			resetAdvanced = {
 				type = "execute",
 				name = L["Put these back to default"],
 				order = 0.7,
+				hidden = function() return Page.RESET[ns.OptionsTab()] == nil end,
 				confirm = true,
-				confirmText = L["Put every setting on this tab back to its default? This also restores what the prompt says; where it sits is kept."],
-				func = ResetAdvanced,
+				confirmText = L["Put every setting on this page back to its default? Where the prompt sits, the lines you wrote and the never-offer list are kept."],
+				func = function() Page.ResetPage(ns.OptionsTab()) end,
 			},
 
 			favoursHeader = { type = "header", name = L["Favours"], order = 10, hidden = NoOthers },

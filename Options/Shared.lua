@@ -108,8 +108,18 @@ local function OffersSelf()
 	return ns.OffersSelf()
 end
 
+-- Whether every source on Who to buff is off, so the prompt never appears:
+-- who.emptyWarning shows on it and the page's red dot reads it. A source this
+-- class cannot use (passers-by, or yourself, for a warrior) does not count as
+-- switched on: its toggle is hidden.
+local function NoSources()
+	local s = S()
+	return not (s.owed or s.group or s.asked or (s.strangers and not OnlyReachesGroup())
+		or OffersSelf())
+end
+
 Page.HasClassBuffs, Page.OnlyReachesGroup = HasClassBuffs, OnlyReachesGroup
-Page.HasPrompt, Page.OffersSelf = HasPrompt, OffersSelf
+Page.HasPrompt, Page.OffersSelf, Page.NoSources = HasPrompt, OffersSelf, NoSources
 
 -- Whether the copy-for-a-bug-report box is open: a state of the window, not of
 -- the profile, put back in OpenOptions and when the Settings page hides.
@@ -117,25 +127,69 @@ Page.reportOpen = false
 -- And the box holding these settings as text, for the same reasons.
 Page.shareOpen = false
 
--- Each tab's name, used for its own title and wherever text on another tab
--- points at it, so renaming a tab cannot leave a sentence naming the old one.
--- The keys are the group keys, which never change: Ledger.lua repaints by
--- "general", and the tests and bug reports name tabs by them.
+-- Each page's name, used for its own title and wherever text on another page
+-- points at it, so renaming a page cannot leave a sentence naming the old one.
+-- The keys are the page ids, which never change: Ledger.lua repaints by
+-- "general", and the tests and bug reports name pages by them. Who to skip is
+-- a page of the window built from Who to buff's controls, not a group.
 local TAB = {
 	general = L["Start here"],
 	who = L["Who to buff"],
+	skip = L["Who to skip"],
 	when = L["When to offer"],
 	click = L["What I say"],
 	appearance = L["Look"],
-	advanced = L["Advanced"],
 	diagnostics = L["Diagnostics"],
 }
 
--- Text that points at a control somewhere else: the control's name in gold,
--- the tab it is on in plain text. Where the dependency can be a `disabled` or
+-- Text that points at a control on another page: the control's name in gold,
+-- the page it is on in plain text. Where the dependency can be a `disabled` or
 -- a `hidden` instead, it should be.
 local function Ref(control, tab)
 	return ("|cffffd100%s|r (%s)"):format(control, tab)
 end
 
 Page.TAB, Page.Ref = TAB, Ref
+
+---------------------------------------------------------------------------
+-- the sidebar's red dots
+--
+-- One predicate per page that can hold a warning, true while that page's
+-- warning shows. Each asks the same answers the warning's own `hidden` asks,
+-- never the note's text or colour, so the dot and the note cannot disagree.
+-- Read at paint time, after every tab file has loaded.
+---------------------------------------------------------------------------
+
+-- A buff pinned in Buff to offer that this character has not learned: offered
+-- to nobody (who.pinNote in red).
+local function PinUnlearned()
+	local pin = ns.PinnedBuff()
+	return pin ~= nil and not ns.IsBuffKnown(pin)
+end
+
+-- Automatic with nothing it can cast (who.autoNote in red).
+local function NothingCastable()
+	return ns.PinnedBuff() == nil and #ns.CastableBuffs() == 0
+end
+
+Page.Warn = {
+	-- No key and no macro: general.bindStatus in red.
+	general = function()
+		return HasPrompt() and not ns.Setup.Key() and not ns.Setup.MacroMade()
+	end,
+	who = function()
+		return HasClassBuffs() and (NoSources() or PinUnlearned() or NothingCastable())
+	end,
+	-- when.alwaysNote.
+	when = function()
+		return HasClassBuffs() and F().whenBuffed == "always"
+	end,
+	-- appearance.noSound, appearance.accentDead.
+	appearance = function()
+		return (SND().enabled == true and SND().file == "None") or Page.AccentDead()
+	end,
+	-- diagnostics.errorList.
+	diagnostics = function()
+		return #ns.errors > 0
+	end,
+}

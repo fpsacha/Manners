@@ -5,7 +5,7 @@ local L = ns.L
 local Page = ns.OptionsPage
 local restyle, P, SND, pGet = Page.restyle, Page.P, Page.SND, Page.pGet
 local pSet, pGetColor, pSetColor, HasClassBuffs = Page.pSet, Page.pGetColor, Page.pSetColor, Page.HasClassBuffs
-local HasPrompt, TAB, Ref = Page.HasPrompt, Page.TAB, Page.Ref
+local HasPrompt, TAB = Page.HasPrompt, Page.TAB
 
 local LSM = LibStub("LibSharedMedia-3.0")
 
@@ -45,6 +45,16 @@ local function AccentCarriers()
 	return ring == true, stripe == true
 end
 
+-- Whether the marker colour has nowhere left to go: accentDead shows on it and
+-- the page's red dot reads it. "Off" is excluded: that is somebody asking for
+-- no accent, and a warning about getting what you asked for is noise.
+local function AccentDead()
+	if (P().accentMode or "icon") == "off" then return false end
+	local ring, stripe = AccentCarriers()
+	return not (ring or stripe)
+end
+Page.AccentDead = AccentDead
+
 -- The icon's size on a look that sizes it itself (Toast, from the height), or
 -- nil where the slider sets it.
 local function LookIconSize()
@@ -59,6 +69,11 @@ function Page.BuildLookTab()
 		type = "group",
 		name = TAB.appearance,
 		order = 5,
+		-- Who to buff, Who to skip and When to offer already go for a
+		-- character with no prompt; a rogue has nothing here to look at or
+		-- preview either. Someone styling a shared profile does it from a
+		-- character that has one.
+		hidden = function() return not HasPrompt() end,
 		args = {
 			-- Everything on this tab is a secure attribute or a texture
 			-- on a secure frame, and ApplyStyle returns at once in combat;
@@ -70,27 +85,8 @@ function Page.BuildLookTab()
 				hidden = function() return not InCombatLockdown() end,
 				name = "|cffffd100" .. L["In combat: changes here show once the fight ends."] .. "|r\n",
 			},
-			-- First on the tab, because everything under it is something
-			-- you want to see while you change it, and on a live prompt
-			-- most of it is invisible until somebody happens to walk past.
-			test = {
-				type = "execute",
-				-- A button labelled "Preview" whichever thing it was about
-				-- to do is a button you press twice to find out.
-				name = function()
-					return ns.Prompt:InTest() and L["Stop preview"] or L["Preview"]
-				end,
-				desc = L["Shows a sample prompt to style; it stays while this window is open."],
-				order = 1,
-				-- Greyed out in a fight, where ToggleTest refuses to start
-				-- one: the fight may have hidden the panel or frozen its
-				-- macro at somebody real. One already running can still be
-				-- stopped.
-				disabled = function()
-					return InCombatLockdown() and not ns.Prompt:InTest()
-				end,
-				func = function() ns.Prompt:ToggleTest() end,
-			},
+			-- The preview is general.previewStart, which the options window
+			-- draws in its header, so it is one press from every page.
 			locked = {
 				type = "toggle",
 				name = L["Lock position"],
@@ -111,18 +107,13 @@ function Page.BuildLookTab()
 			-- lock it -- four steps and a mode you can forget you are in,
 			-- because an unlocked prompt is also one that will not cast.
 			-- The default place is on the list, so it doubles as the reset.
-			-- Named as on Start here: one setting, one name.
+			-- The exact numbers are a fold on the same page, so the tooltip
+			-- points nowhere.
 			posPreset = {
 				type = "select",
 				name = L["Where it sits"],
-				-- The pointer only where there is an Advanced tab to point at,
-				-- by the tab's own rule: a rogue has none.
-				desc = function()
-					local text = L["Pick Above the action bars to put it back where it started."]
-						.. " " .. L["Dragging the prompt afterwards sets this to Where I dragged it."]
-					if not HasPrompt() then return text end
-					return text .. "\n\n" .. L["Exact numbers: %s."]:format(Ref(L["Exact position"], TAB.advanced))
-				end,
+				desc = L["Pick Above the action bars to put it back where it started."]
+					.. " " .. L["Dragging the prompt afterwards sets this to Where I dragged it."],
 				order = 3,
 				-- "custom" only while the prompt is on none of the presets,
 				-- so it can be shown but never picked.
@@ -281,17 +272,11 @@ function Page.BuildLookTab()
 				get = pGet,
 				set = pSet,
 			},
-			-- Shown only when the colour above has nowhere left to go. "Off"
-			-- is excluded: that is somebody asking for no accent, and a
-			-- warning about getting what you asked for is noise.
+			-- Shown only when the colour above has nowhere left to go.
 			accentDead = {
 				type = "description",
 				order = 26.5,
-				hidden = function()
-					if (P().accentMode or "icon") == "off" then return true end
-					local ring, stripe = AccentCarriers()
-					return ring or stripe
-				end,
+				hidden = function() return not AccentDead() end,
 				-- Every carrier the mode asked for and did not get, not just
 				-- the first. Each combination is a sentence of its own,
 				-- because a list joined with ", and" is English grammar a
@@ -481,8 +466,9 @@ function Page.BuildLookTab()
 			fontColor = {
 				type = "color",
 				name = L["Text colour"],
+				-- Named without its page: the switch is on this one.
 				desc = L["Left at white, text turns dark on a light panel by itself. Other colours are used as picked, except for names while this is on:"]
-					.. " " .. Ref(L["Colour names by class"], TAB.appearance),
+					.. " |cffffd100" .. L["Colour names by class"] .. "|r",
 				order = 43,
 				hasAlpha = true,
 				get = pGetColor,
@@ -501,18 +487,6 @@ function Page.BuildLookTab()
 				width = "full",
 				get = pGet,
 				set = pSet,
-			},
-			-- The words themselves are on Advanced; said here, where the
-			-- font and size are, since this is where people look for them.
-			wordingNote = {
-				type = "description",
-				order = 46,
-				-- Advanced is there for a class with a prompt, a hunter's own
-				-- included, and not for one with none: the tab's own rule.
-				hidden = function() return not HasPrompt() end,
-				name = "|cff888888"
-					.. L["Change what the prompt says: %s."]:format(Ref(L["Prompt wording"], TAB.advanced))
-					.. "|r",
 			},
 
 			iconHeader = { type = "header", name = L["Icon and waiting list"], order = 50 },

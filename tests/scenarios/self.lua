@@ -833,8 +833,12 @@ do
 			if ns.db.profile.prompt.reasonSelf ~= "mine: {buff}" then
 				fail(scenario, "the wording does not write prompt.reasonSelf")
 			end
+			-- The footer's reset with Look open, where the wording is drawn.
 			local reset = findOption(root, "resetAdvanced")
+			local realTab = ns.OptionsTab
+			ns.OptionsTab = function() return "appearance" end
 			if reset and reset.func then reset.func() end
+			ns.OptionsTab = realTab
 			if ns.db.profile.prompt.reasonSelf ~= "your own {buff}" then
 				fail(scenario, "Put these back to default kept " .. tostring(ns.db.profile.prompt.reasonSelf))
 			end

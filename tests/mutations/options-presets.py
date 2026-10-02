@@ -283,10 +283,16 @@ mutate("Options/Start.lua",
        expect="presets: In character speaks when you buff a stranger",
        script="runscenarios.py")
 
-# The switch left on What I say only.
+# Retired: "Start here without the returning switch". Start here's copy of
+# Only when I buff someone back (general.onlyWhenReturning) is gone: the voice
+# choice now leads What I say, right above the switch itself.
+
+# The choice's tooltip back, pointing at the page it now leads.
 mutate("Options/Start.lua",
-       "\t\t\t\thidden = function() return noClassBuffs() or not SP().enabled end,\n",
-       "\t\t\t\thidden = function() return true end,\n",
-       "Start here without the returning switch",
-       expect="presets: In character speaks when you buff a stranger",
+       "\t\t\t\tname = L[\"When I buff someone\"],\n\t\t\t\torder = 41,\n",
+       "\t\t\t\tname = L[\"When I buff someone\"],\n"
+       "\t\t\t\tdesc = \"Change the words and channel on What I say.\",\n"
+       "\t\t\t\torder = 41,\n",
+       "presets: the voice choice points at What I say",
+       expect="When I buff someone still points at What I say",
        script="runscenarios.py")

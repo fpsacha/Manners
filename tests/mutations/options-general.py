@@ -7,12 +7,13 @@ S = "runscenarios.py"
 
 # --- the layout ---
 
-# A step header moved out of turn.
+# A step header moved out of turn. Re-anchored on step 2: step 3 is the
+# window's header button now, and Start here has two steps.
 mutate("Options/Start.lua",
-       "\t\t\t\ttype = \"header\", name = L[\"3. See it\"], order = 30,\n",
-       "\t\t\t\ttype = \"header\", name = L[\"3. See it\"], order = 19,\n",
-       "start here: step 3 before step 2",
-       expect="3. See it comes before the step ahead of it", script=S)
+       "\t\t\t\ttype = \"header\", name = L[\"2. Put it on a key\"], order = 20,\n",
+       "\t\t\t\ttype = \"header\", name = L[\"2. Put it on a key\"], order = 9,\n",
+       "start here: step 2 before step 1",
+       expect="2. Put it on a key comes before the step ahead of it", script=S)
 
 # The steps shown to a class with nothing to cast.
 mutate("Options/Start.lua",
@@ -23,11 +24,13 @@ mutate("Options/Start.lua",
 
 # --- the lock ---
 
-# The warning up over a locked prompt.
+# The warning up over a locked prompt. Re-anchored on Lock it: the warning
+# itself is the status strip's line now, the launcher's own.
 mutate("Options/Start.lua",
-       "\t\t\t\tname = \"|cffff8080\" .. L[\"The prompt is unlocked, so it will not cast.\"] .. \"|r\",\n",
-       "\t\t\t\tname = \"|cffff8080\" .. L[\"The prompt is unlocked, so it will not cast.\"] .. \"|r\",\n"
-       "\t\t\t\thidden = function() return not HasClassBuffs() end,\n",
+       "\t\t\t\thidden = function() return P().locked or not HasPrompt() end,\n"
+       "\t\t\t\tfunc = function()\n",
+       "\t\t\t\thidden = function() return not HasPrompt() end,\n"
+       "\t\t\t\tfunc = function()\n",
        "start here: lock warning over a locked prompt",
        expect="the unlocked warning is up over a locked prompt", script=S)
 
@@ -38,17 +41,18 @@ mutate("Options/Start.lua",
        "start here: Lock it does not lock",
        expect="Lock it did not lock the prompt", script=S)
 
-# Lock position writing nothing.
-mutate("Options/Start.lua",
-       "\t\t\t\t\tP().locked = value\n\t\t\t\t\trestyle()\n",
-       "\t\t\t\t\trestyle()\n",
+# Lock position writing nothing. Re-anchored on Look's: Start here's copy
+# (startLocked) is gone.
+mutate("Options/Look.lua",
+       "\t\t\t\t\tpSet(info, value)\n\t\t\t\t\tif not value and not ns.db.profile.enabled then\n",
+       "\t\t\t\t\tif not value and not ns.db.profile.enabled then\n",
        "start here: Lock position writes nothing",
        expect="Lock position unticked left the prompt locked", script=S)
 
 # Unlocked while off, without a word.
-mutate("Options/Start.lua",
-       "\t\t\t\t\tP().locked = value\n\t\t\t\t\trestyle()\n\t\t\t\t\tif not value and not ns.db.profile.enabled then\n",
-       "\t\t\t\t\tP().locked = value\n\t\t\t\t\trestyle()\n\t\t\t\t\tif false then\n",
+mutate("Options/Look.lua",
+       "\t\t\t\t\tpSet(info, value)\n\t\t\t\t\tif not value and not ns.db.profile.enabled then\n",
+       "\t\t\t\t\tpSet(info, value)\n\t\t\t\t\tif false then\n",
        "start here: unlocked while off says nothing",
        expect="unlocked while off, and chat said nothing", script=S)
 
@@ -178,45 +182,17 @@ mutate("Options/Start.lua",
        "start here: preview startable in a fight",
        expect="the preview can be started in a fight", script=S)
 
-mutate("Options/Start.lua",
-       "\t\t\t\t-- the presets: shown, never picked.\n"
-       "\t\t\t\tvalues = function()\n"
-       "\t\t\t\t\tlocal out = {}\n"
-       "\t\t\t\t\tfor _, preset in ipairs(ns.POSITION_PRESETS) do\n"
-       "\t\t\t\t\t\tout[preset.key] = preset.key == \"bars\"\n"
-       "\t\t\t\t\t\t\tand L[\"Above the action bars (default)\"] or preset.name\n"
-       "\t\t\t\t\tend\n"
-       "\t\t\t\t\tif not ns.CurrentPositionPreset() then out.custom = L[\"Where I dragged it\"] end\n",
-       "\t\t\t\t-- the presets: shown, never picked.\n"
-       "\t\t\t\tvalues = function()\n"
-       "\t\t\t\t\tlocal out = {}\n"
-       "\t\t\t\t\tfor _, preset in ipairs(ns.POSITION_PRESETS) do\n"
-       "\t\t\t\t\t\tout[preset.key] = preset.key == \"bars\"\n"
-       "\t\t\t\t\t\t\tand L[\"Above the action bars (default)\"] or preset.name\n"
-       "\t\t\t\t\tend\n"
-       "\t\t\t\t\tout.custom = L[\"Where I dragged it\"]\n",
-       "start here: Where I dragged it always offered",
-       expect="Where I dragged it is offered while the prompt is on a preset", script=S)
+# Retired: "start here: Where I dragged it always offered", "... not last" and
+# "dragged prompt shown on a preset". Start here's copy of Where it sits
+# (startPos) is gone; Look's posPreset is the one, held by the look: mutations
+# in options-appearance.py.
 
-mutate("Options/Start.lua",
-       "\t\t\t\t\tif not ns.CurrentPositionPreset() then keys[#keys + 1] = \"custom\" end\n",
+# Where it sits moving nothing. Re-anchored on Look's, the only one left.
+mutate("Options/Look.lua",
+       "\t\t\t\t\tif value ~= \"custom\" then ns.ApplyPositionPreset(value) end\n",
        "",
-       "start here: Where I dragged it not last",
-       expect="Where I dragged it is not the last choice once dragged", script=S)
-
-mutate("Options/Start.lua",
-       "\t\t\t\t\tns.ApplyPositionPreset(v)\n\t\t\t\t\trestyle()\n",
-       "\t\t\t\t\trestyle()\n",
        "start here: Where it sits moves nothing",
-       expect="picking Under the minimap did not move the prompt", script=S)
-
-mutate("Options/Start.lua",
-       "\t\t\t\t\treturn keys\n\t\t\t\tend,\n"
-       "\t\t\t\tget = function() return ns.CurrentPositionPreset() or \"custom\" end,\n",
-       "\t\t\t\t\treturn keys\n\t\t\t\tend,\n"
-       "\t\t\t\tget = function() return ns.CurrentPositionPreset() or \"bars\" end,\n",
-       "start here: dragged prompt shown on a preset",
-       expect="dragged off the presets, the dropdown still names one", script=S)
+       expect="picking the default place did not put the prompt back", script=S)
 
 # --- snooze ---
 

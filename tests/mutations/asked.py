@@ -339,9 +339,10 @@ mutate("Core.lua",
        script="runscenarios.py")
 
 # The page saying the prompt will never appear with requests switched on.
-mutate("Options/Who.lua",
-       "\t\t\t\t\treturn s.owed or s.group or s.asked or (s.strangers and not OnlyReachesGroup())\n",
-       "\t\t\t\t\treturn s.owed or s.group or (s.strangers and not OnlyReachesGroup())\n",
+# Re-anchored on Shared.lua's NoSources, which the warning now reads.
+mutate("Options/Shared.lua",
+       "\treturn not (s.owed or s.group or s.asked or (s.strangers and not OnlyReachesGroup())\n",
+       "\treturn not (s.owed or s.group or (s.strangers and not OnlyReachesGroup())\n",
        "requests not counted as a source",
        expect="the empty-sources warning counts requests",
        script="runscenarios.py")

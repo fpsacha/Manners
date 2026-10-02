@@ -154,10 +154,17 @@ mutate("Ledger.lua",
 
 # The row forgotten at a reload names the setting as the options name it.
 mutate("Ledger.lua",
-       ":format(L[\"Keep favours through a /reload\"], L[\"Advanced\"], L[\"Favours\"])",
-       ":format(L[\"Keep favours across a reload\"], L[\"Advanced\"], L[\"Favours\"])",
+       ":format(L[\"Keep favours through a /reload\"], L[\"When to offer\"], L[\"Favours\"])",
+       ":format(L[\"Keep favours across a reload\"], L[\"When to offer\"], L[\"Favours\"])",
        "ledger: not-kept row names a missing setting",
        expect="a favour forgotten at a reload names the setting", script=S)
+
+# ...and the page it is on: Advanced is no longer a page.
+mutate("Ledger.lua",
+       ":format(L[\"Keep favours through a /reload\"], L[\"When to offer\"], L[\"Favours\"])",
+       ":format(L[\"Keep favours through a /reload\"], L[\"Advanced\"], L[\"Favours\"])",
+       "ledger: not-kept row names a page that is gone",
+       expect="the row sends the player to a page the setting is not on", script=S)
 
 # The window's first spot is clear of the prompt's.
 mutate("Ledger.lua",
@@ -166,12 +173,14 @@ mutate("Ledger.lua",
        "ledger: opens centred over the prompt",
        expect="the ledger opens clear of the prompt", script=S)
 
-# The General tab's button shuts the options window the ledger would sit under.
+# Re-anchored and turned round: the General tab's button used to shut the
+# options window, which sat in a higher strata. Both are HIGH and toplevel now,
+# and the fault is the button shutting the window it was pressed on.
 mutate("Options/Start.lua",
-       "\t\t\t\t\tns.CloseOptions()\n",
-       "",
-       "ledger: opens under the options window",
-       expect="the ledger summary counts are right", script=S)
+       "\t\t\t\tfunc = function() ns.Ledger.Show() end,\n",
+       "\t\t\t\tfunc = function()\n\t\t\t\t\tns.CloseOptions()\n\t\t\t\t\tns.Ledger.Show()\n\t\t\t\tend,\n",
+       "ledger: shuts the options window",
+       expect="Open the ledger on the General tab shut the options window", script=S)
 
 # A favour repaints the options only where the count is printed.
 mutate("Ledger.lua",

@@ -66,10 +66,15 @@ do
 					.. tostring(intro.order) .. ")")
 			end
 			local text = optionText(intro.name)
-			for _, want in ipairs({ "Default profile", "per character", "Share as text" }) do
+			for _, want in ipairs({ "Default profile", "per character" }) do
 				if not tostring(text):find(want, 1, true) then
 					fail(scenario, "the profiles intro does not say " .. want .. ": " .. tostring(text))
 				end
+			end
+			-- Share as text is a section of the same page in the options
+			-- window, so the intro points nowhere.
+			if tostring(text):find("Share as text", 1, true) then
+				fail(scenario, "the profiles intro points at Share as text on its own page: " .. tostring(text))
 			end
 		end
 		-- The library's paragraph says the same thing, so the tab would open

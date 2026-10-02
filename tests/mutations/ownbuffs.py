@@ -512,8 +512,8 @@ mutate("Options/Launcher.lua",
        expect="the launcher tells a warlock with only Demon Skin", script=S)
 
 mutate("Options/Launcher.lua",
-       "\t\tif ownOnly then return true, L[\"Watching your own buffs.\"], 0.4, 0.9, 0.4 end\n",
-       "\t\tif true then return true, L[\"Watching your own buffs.\"], 0.4, 0.9, 0.4 end\n",
+       "\t\tif ownOnly then return true, L[\"Watching your own buffs.\"], 0.4, 0.9, 0.4, nil, nil, \"ownwatch\" end\n",
+       "\t\tif true then return true, L[\"Watching your own buffs.\"], 0.4, 0.9, 0.4, nil, nil, \"ownwatch\" end\n",
        "own: the launcher does not say others get nothing",
        expect="the launcher tells a warlock with only Demon Skin", script=S)
 
@@ -722,9 +722,11 @@ mutate("Options/When.lua",
        "own: a hunter shown the mana floor",
        expect="manaFloor is shown to a hunter", script=S)
 
-mutate("Options/When.lua",
-       "order = 20,\n\t\t\t\thidden = function() return not S().owed or not HasClassBuffs() end,\n",
-       "order = 20,\n\t\t\t\thidden = function() return not S().owed end,\n",
+# Re-anchored: When to offer's own favours header is gone; the window draws
+# the Advanced group's Favours section on that page.
+mutate("Options/Advanced.lua",
+       "\t\t\tfavoursHeader = { type = \"header\", name = L[\"Favours\"], order = 10, hidden = NoOthers },\n",
+       "\t\t\tfavoursHeader = { type = \"header\", name = L[\"Favours\"], order = 10 },\n",
        "own: a hunter shown the favours",
        expect="favoursHeader is shown to a hunter", script=S)
 

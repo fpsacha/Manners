@@ -5332,7 +5332,7 @@ if ns then
 			ns.BuildQueue = function() return {} end
 		end
 
-		local test = findOption(ns.optionsTable, "test")
+		local test = findOption(ns.optionsTable, "previewStart")
 		local label = test and (type(test.name) == "function" and test.name() or test.name)
 		if label ~= "Stop preview" then
 			fail(scenario, "the button still reads " .. tostring(label)
@@ -5417,7 +5417,7 @@ local REQUIRED_OPTIONS = {
 	"relevantOnly", "requireInRange", "reachableOnly", "graceSeconds", "minLevel",
 	"whenBuffed", "refreshUnder", "reciprocateWindow", "retryCooldown", "scanInterval",
 	"restoreTarget", "channel", "onlyWhenReturning", "preset", "phrases", "roll",
-	"test", "locked", "style", "accentByReason", "accentColor", "bgColor",
+	"previewStart", "locked", "style", "accentByReason", "accentColor", "bgColor",
 	"accentMode", "flashStyle", "posPreset", "x", "y", "width", "height", "scale",
 	"alpha", "hideInCombat", "format", "showSub", "reasonTarget", "reasonOwed",
 	"reasonGroup", "reasonNearby", "reasonRefresh", "reasonUnknown", "font",
@@ -5846,16 +5846,17 @@ if ns then
 		s.owed, s.group, s.strangers, s.self = true, true, true, true
 	end
 
-	-- 2. the addon itself off
-	local off = general and findOption(ns.optionsTable, "offNotice")
-	if not (off and off.hidden) then
+	-- 2. the addon itself off, said by the options window's status strip on
+	-- every page (the launcher's own state line, ns.LauncherState).
+	local function stripKind() return select(8, ns.LauncherState()) end
+	if not general then
 		fail(scenario, "nothing says the addon is switched off")
 	else
-		if not off.hidden() then
+		if stripKind() == "off" then
 			fail(scenario, "the disabled notice is showing while the addon is enabled")
 		end
 		ns.db.profile.enabled = false
-		if off.hidden() then
+		if stripKind() ~= "off" then
 			fail(scenario, "the addon is off and the page reads exactly as it does when it is on")
 		end
 		ns.db.profile.enabled = true
@@ -11395,11 +11396,10 @@ if ns then
 	-- And why the repaint is worth making. A count of NotifyChange calls says
 	-- only that something was asked to redraw; these two say the page has
 	-- something different to draw -- a box whose answer has flipped, and a
-	-- notice that has become the one thing on the tab worth reading.
+	-- status strip line that has become the one thing worth reading.
 	local general = ns.optionsTable and ns.optionsTable.args.general
 	local enable = general and general.args.enabled
-	local notice = general and findOption(ns.optionsTable, "offNotice")
-	if not (enable and enable.get and notice and notice.hidden) then
+	if not (enable and enable.get and ns.LauncherState) then
 		fail(scenario, "SKIPPED -- no Enable box and no switched-off notice to read,"
 			.. " so the repaints counted above are not shown to matter")
 	else
@@ -11407,7 +11407,7 @@ if ns then
 		if enable.get({ "enabled" }) ~= false then
 			fail(scenario, "the Enable box still answers `ticked` after /manners off")
 		end
-		if notice.hidden() then
+		if select(8, ns.LauncherState()) ~= "off" then
 			fail(scenario, "the red switched-off notice stayed hidden through the one"
 				.. " moment it was written for")
 		end
@@ -15991,7 +15991,7 @@ if ns then
 				.. tostring(ns.Prompt:PanelName()))
 		end
 		-- The options page's button is the same command by another door.
-		local test = findOption(ns.optionsTable, "test")
+		local test = findOption(ns.optionsTable, "previewStart")
 		if not (test and type(test.disabled) == "function" and test.disabled()) then
 			fail(scenario, "the options page still offers Preview in the middle of a fight")
 		end
@@ -16039,11 +16039,12 @@ Mock.reset()
 -- ------------------------------------------------------------------ 245
 -- /manners test and /manners welcome redraw the Preview button.
 --
--- The options page's button reads "Preview" or "Stop preview" from whether one
--- is running, and AceConfig only asks while it is drawing. The slash commands
--- that start and stop one never asked it to draw, so with the window open the
--- button went on offering "Preview" over a running preview -- and pressing it
--- stopped the preview.
+-- The options page's button reads "Show me the prompt" or "Stop preview" from
+-- whether one is running, and the page only asks while it is drawing. The
+-- slash commands that start and stop one never asked it to draw, so with the
+-- window open the button went on offering a preview over a running one -- and
+-- pressing it stopped the preview. (It was Look's "Preview" button then; the
+-- window's header button is general.previewStart.)
 Mock.reset()
 ns = load("the preview button follows the slash commands")
 if ns then
@@ -16051,7 +16052,7 @@ if ns then
 	drive(scenario, ns)
 	ns.Prompt:ExitTest()
 	Mock.advance(60)
-	local test = findOption(ns.optionsTable, "test")
+	local test = findOption(ns.optionsTable, "previewStart")
 	local registry = LibStub("AceConfigRegistry-3.0")
 	if not (test and type(test.name) == "function" and registry and registry.NotifyChange) then
 		fail(scenario, "SKIPPED -- no Preview button or no repaint to watch")
@@ -16065,7 +16066,7 @@ if ns then
 		end
 		Mock.optionsOpen = true
 		local function check(what)
-			local want = ns.Prompt:InTest() and "Stop preview" or "Preview"
+			local want = ns.Prompt:InTest() and "Stop preview" or "Show me the prompt"
 			if drawn ~= want then
 				fail(scenario, ("after %s the open page's button reads %q with the preview %s")
 					:format(what, drawn, ns.Prompt:InTest() and "running" or "stopped"))
@@ -16694,6 +16695,24 @@ if ns then
 	local tab = ns.optionsTable and ns.optionsTable.args.advanced
 	if not (window and sooner and tab) then
 		fail(scenario, "SKIPPED -- no Offer a buff back for slider or no switch to let them go sooner")
+	elseif ns.WindowLayout then
+		-- The options window draws both on When to offer, in Favours: the
+		-- switch below the slider, in the same section (Ignore shields,
+		-- heals and trinket procs may sit between them).
+		local slider, switch
+		for _, page in pairs(ns.WindowLayout.pages or {}) do
+			for _, section in ipairs(page.sections or {}) do
+				for index, item in ipairs(section.items or {}) do
+					local id = type(item) == "table" and item[1] or item
+					if id == "advanced.reciprocateWindow" then slider = { section, index } end
+					if id == "advanced.reachableOnly" then switch = { section, index } end
+				end
+			end
+		end
+		if not (slider and switch and slider[1] == switch[1] and switch[2] > slider[2]) then
+			fail(scenario, "the slider says people stay on the prompt this long and the setting"
+				.. " that lets them go sooner is not under it in its section")
+		end
 	else
 		-- The next control down the page, whatever its number.
 		local nextKey, nextOrder
@@ -17093,13 +17112,16 @@ Mock.reset()
 -- learned Arcane Intellect yet, neither of whom will ever see a prompt. The
 -- tooltip exists to say why no prompt has appeared, and it said the one thing
 -- that makes a missing prompt look like a bug.
+--
+-- The options window's status strip reads the same answer (ns.LauncherState),
+-- by the branch it names: the line it would show is the tooltip's.
 for _, case in ipairs({
-	{ label = "a rogue", class = "ROGUE", says = "no buffs" },
+	{ label = "a rogue", class = "ROGUE", says = "no buffs", kind = "noclass" },
 	{ label = "a mage who has learned nothing", class = "MAGE", learned = false,
-		says = "learned" },
+		says = "learned", kind = "unlearned" },
 	{ label = "a mage with every spell switched off", class = "MAGE", off = true,
-		says = "switched off under" },
-	{ label = "a mage who can cast", class = "MAGE", watching = true },
+		says = "switched off under", kind = "blocked" },
+	{ label = "a mage who can cast", class = "MAGE", watching = true, kind = "watching" },
 }) do
 	Mock.reset()
 	Mock.class = case.class
@@ -17141,6 +17163,13 @@ for _, case in ipairs({
 			elseif not said:find(case.says, 1, true) then
 				fail(scenario, "the tooltip does not say why " .. case.label .. " sees no prompt: "
 					.. said)
+			end
+			local _, line, _, _, _, _, _, kind = ns.LauncherState()
+			if kind ~= case.kind then
+				fail(scenario, "the status strip reads the state as " .. tostring(kind)
+					.. ", not " .. case.kind)
+			elseif not said:find(tostring(line), 1, true) then
+				fail(scenario, "the status strip's line is not the tooltip's: " .. tostring(line))
 			end
 		end
 
@@ -17702,6 +17731,52 @@ local H = {
 	knowShout = knowShout, primeAuras = primeAuras, favourFrom = favourFrom,
 	pressAndSend = pressAndSend, findOption = findOption, optionsByKey = optionsByKey, namedSpell = namedSpell,
 	savedProfile = savedProfile, tryAgainst = tryAgainst, optionText = optionText,
+	-- Whether the toc loads the options window's layout (Options/Window/
+	-- Layout.lua), so a scenario about where a control is drawn can tell a
+	-- checkout without the window from a layout that failed to load.
+	layoutInToc = function()
+		for _, file in ipairs(ADDON_FILES) do
+			if file == "Options/Window/Layout.lua" then return true end
+		end
+		return false
+	end,
+	-- Where the window draws model control `path` ("tab.key"), from
+	-- ns.WindowLayout: the page id, the section table and the item's index in
+	-- it. Nil when it is placed on no page (the frame's header, strip and
+	-- footer included) or there is no layout.
+	placedOn = function(ns, path)
+		local layout = ns and ns.WindowLayout
+		if type(layout) ~= "table" or type(layout.pages) ~= "table" then return nil end
+		for pageId, page in pairs(layout.pages) do
+			for _, section in ipairs(page.sections or {}) do
+				for index, item in ipairs(section.items or {}) do
+					local ids = type(item) == "table" and (item.ids or { item[1] }) or { item }
+					for _, id in ipairs(ids) do
+						if id == path then return pageId, section, index end
+					end
+				end
+			end
+		end
+		return nil
+	end,
+	-- Every model path page `pageId` draws, top to bottom, and the section
+	-- each sits in; nil without a layout or that page.
+	pagePaths = function(ns, pageId)
+		local layout = ns and ns.WindowLayout
+		local page = type(layout) == "table" and type(layout.pages) == "table" and layout.pages[pageId]
+		if type(page) ~= "table" then return nil end
+		local list, sections = {}, {}
+		for _, section in ipairs(page.sections or {}) do
+			for _, item in ipairs(section.items or {}) do
+				local ids = type(item) == "table" and (item.ids or { item[1] }) or { item }
+				for _, id in ipairs(ids) do
+					list[#list + 1] = id
+					sections[id] = section
+				end
+			end
+		end
+		return list, sections
+	end,
 }
 if extras then
 	for i = 1, #extras do

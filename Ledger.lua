@@ -131,8 +131,9 @@ local TEXT = {
 	TIP_LETGO_USELESS = L["Let go: nothing you can cast is any use to them."],
 	-- The setting's own name and place, through the options page's keys, so a
 	-- translation names what the player will find there; a scenario holds it to.
+	-- Keep favours through a /reload is on When to offer, under Favours.
 	TIP_LETGO_NOTKEPT = L["Let go: \"%s\" (%s tab, under %s) is off, so it was forgotten when you logged out or reloaded."]
-		:format(L["Keep favours through a /reload"], L["Advanced"], L["Favours"]),
+		:format(L["Keep favours through a /reload"], L["When to offer"], L["Favours"]),
 	TIP_LETGO_NEVER = L["Let go: you put them on your never-offer list."],
 	-- In place of TIP_OWED while the prompt cannot offer them, the rule Quiet()
 	-- below keeps for the empty list: the window never promises what cannot

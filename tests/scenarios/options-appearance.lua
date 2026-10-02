@@ -1,5 +1,7 @@
--- The Look tab (Options.lua, BuildLookTab): the prompt's position, size,
--- style, the ways it gets your attention, its text and its icon.
+-- The Look tab (Options/Look.lua, BuildLookTab): the prompt's position, size,
+-- style, the ways it gets your attention, its text and its icon. The preview is
+-- the options window's header button now, and the exact position and wording
+-- are folds on the same page, so nothing here points elsewhere.
 --
 -- The tab reads top to bottom in the order a player sets a prompt up: put it
 -- somewhere, size it, style it, decide how loud it is, then the text and the
@@ -57,13 +59,13 @@ end
 -- The tab in the order the spec gives it, so the page reads as a setup rather
 -- than as the history of which setting arrived when.
 local ORDER = {
-	"combatNotice", "test", "locked", "posPreset",
+	"combatNotice", "locked", "posPreset",
 	"posHeader", "scale", "alpha", "width", "height",
 	"styleHeader", "style", "bgColor", "accentByReason", "reasonPalette", "accentColor",
 	"accentMode", "accentDead",
 	"attentionHeader", "flashStyle", "effects", "hideInCombat", "soundEnabled", "soundFile",
 	"soundOwedOnly", "noSound",
-	"textHeader", "font", "fontSize", "fontColor", "classColor", "showSub", "wordingNote",
+	"textHeader", "font", "fontSize", "fontColor", "classColor", "showSub",
 	"iconHeader", "showIcon", "iconSize", "iconSizeCapped", "roundIcon", "showCooldown",
 	"showCount", "showQueue", "queueRows",
 }
@@ -94,8 +96,10 @@ do
 		if args.posPreset and args.posPreset.order >= args.posHeader.order then
 			fail(scenario, "Where it sits is not at the top of the tab")
 		end
-		-- Moved to other tabs, not deleted from the page.
-		for _, key in ipairs({ "x", "y", "thankEmote", "format", "reset" }) do
+		-- Moved to other tabs, not deleted from the page. The preview is the
+		-- window's header button (general.previewStart); the wording is a fold
+		-- on this page, so nothing points at it.
+		for _, key in ipairs({ "x", "y", "thankEmote", "format", "reset", "test", "wordingNote" }) do
 			if args[key] then fail(scenario, key .. " is still on the Look tab") end
 		end
 
@@ -133,17 +137,6 @@ do
 	local scenario = "the top of the Look tab says what each button does"
 	local ns, _, args = session(scenario)
 	if ns then
-		if text(args.test.desc) ~= "Shows a sample prompt to style; it stays while this window is open." then
-			fail(scenario, "Preview says: " .. text(args.test.desc))
-		end
-		if text(args.test.name) ~= "Preview" then
-			fail(scenario, "the preview button reads " .. text(args.test.name) .. " with no preview up")
-		end
-		ns.Prompt:ToggleTest()
-		if text(args.test.name) ~= "Stop preview" then
-			fail(scenario, "the preview button reads " .. text(args.test.name) .. " during a preview")
-		end
-		ns.Prompt:ExitTest()
 		if text(args.locked.desc) ~= "Unlock to drag the prompt; it will not cast until you lock it again." then
 			fail(scenario, "Lock position says: " .. text(args.locked.desc))
 		end
@@ -331,9 +324,9 @@ do
 			effects = "Calm drops the light sweep, the shake and the fade-out.",
 			soundEnabled = "When a new person appears on the prompt.",
 			soundOwedOnly = "Off, every new person makes a sound, passers-by included.",
+			-- The exact numbers are a fold on this page: no pointer.
 			posPreset = "Pick Above the action bars to put it back where it started."
-				.. " Dragging the prompt afterwards sets this to Where I dragged it."
-				.. "\n\nExact numbers: |cffffd100Exact position|r (Advanced).",
+				.. " Dragging the prompt afterwards sets this to Where I dragged it.",
 		}
 		for key, want in pairs(descs) do
 			if text(args[key].desc) ~= want then
@@ -384,7 +377,8 @@ do
 	local ns, _, args = session(scenario)
 	if ns then
 		local desc = text(args.fontColor.desc)
-		local ref = "|cffffd100Colour names by class|r (Look)"
+		-- On this page, so named without a page.
+		local ref = " |cffffd100Colour names by class|r"
 		if desc:sub(-#ref) ~= ref then
 			fail(scenario, "Text colour does not end by pointing at Colour names by class: " .. desc)
 		end
@@ -393,11 +387,6 @@ do
 		if not desc:find("|cffffd100Keep the prompt dim and still in combat|r", 1, true)
 			or desc:find("(When to offer)", 1, true) then
 			fail(scenario, "Show the global cooldown does not point at Keep the prompt dim: " .. desc)
-		end
-		-- The wording moved to Advanced; Text, where people look for it, says so.
-		local wording = text(args.wordingNote and args.wordingNote.name)
-		if not wording:find("|cffffd100Prompt wording|r (Advanced)", 1, true) then
-			fail(scenario, "Text does not point at Prompt wording: " .. wording)
 		end
 		desc = text(args.roundIcon.desc)
 		if desc:find("|cff888888", 1, true) then
