@@ -1,7 +1,8 @@
--- The Diagnostics tab of the options page (Options.lua, BuildDiagnosticsTab):
--- what Manners is doing, and why. Four sections: the chat messages it can
--- print for you, what it can see on this client (and how it is measuring a
--- passer-by's distance), the errors this session, and the bug report.
+-- The Diagnostics tab of the options page (Options/Diagnostics.lua,
+-- BuildDiagnosticsTab): what Manners is doing, and why. Three sections: what
+-- it can see on this client (and how it is measuring a passer-by's distance),
+-- the errors this session, and the bug report, which Log every click joins in
+-- the options window (its one-control Messages in chat section is gone).
 --
 -- The tab is read through ns.optionsTable, the table AceConfig is handed, so a
 -- label here is the label on the page.
@@ -47,8 +48,8 @@ local function session(scenario, setup)
 end
 
 -- ------------------------------------------------------------------ 1
--- The tab, its four sections in order, and the two chat switches living on it
--- rather than on General.
+-- The tab, its sections in order, and the click log living on it rather than
+-- on General.
 do
 	local scenario = "diagnostics: four sections, chat switches on this tab"
 	local ns = session(scenario)
@@ -61,7 +62,6 @@ do
 			fail(scenario, "the tab is at order " .. tostring(t.order))
 		end
 		local want = {
-			{ "chatHeader", "Messages in chat", 1 },
 			{ "capsHeader", "What Manners can see", 10 },
 			{ "errorsHeader", "Errors this session", 20 },
 			{ "reportHeader", "Reporting a bug", 30 },
@@ -91,8 +91,13 @@ do
 			if not text(clicks.desc):find("why a cast failed", 1, true) then
 				fail(scenario, "the click log does not say what it is for: " .. text(clicks.desc))
 			end
-			if not (clicks.order > 1 and clicks.order < 10) then
-				fail(scenario, "the click log is not under Messages in chat")
+			-- A bug-hunting tool, so the window draws it with the report.
+			if ns.WindowLayout then
+				local _, section = H.placedOn(ns, "diagnostics.debugClicks")
+				local _, reportSection = H.placedOn(ns, "diagnostics.copyReport")
+				if not (section and section == reportSection) then
+					fail(scenario, "the click log is not under Reporting a bug")
+				end
 			end
 
 			-- The same saved key as ever.

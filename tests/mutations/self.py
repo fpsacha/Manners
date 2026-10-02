@@ -291,9 +291,10 @@ mutate("Core.lua",
        "self: broken wording kept",
        expect="a broken wording was kept", script=S)
 
-mutate("Options/Who.lua",
-       "\t\t\t\t\t\tor OffersSelf()\n",
-       "",
+# Re-anchored on Shared.lua's NoSources, which the warning now reads.
+mutate("Options/Shared.lua",
+       "\n\t\tor OffersSelf())\n",
+       ")\n",
        "self: warning forgets you",
        expect="with only yourself on, the page says", script=S)
 
@@ -309,9 +310,10 @@ mutate("Options/Who.lua",
        "self: switch shown to a warrior",
        expect="the Myself switch is shown to a warrior", script=S)
 
+# Re-anchored on Look's reset list, where the wording is put back now.
 mutate("Options/Advanced.lua",
-       "\t\t{ \"prompt\", \"reasonSelf\" },\n",
-       "",
+       "\t\t\"prompt.reasonSelf\", \"prompt.reasonGroup\",",
+       "\t\t\"prompt.reasonGroup\",",
        "self: reset keeps your wording",
        expect="Put these back to default kept", script=S)
 

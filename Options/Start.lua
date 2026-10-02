@@ -3,8 +3,7 @@
 local ADDON, ns = ...
 local L = ns.L
 local Page = ns.OptionsPage
-local restyle, P, S, F = Page.restyle, Page.P, Page.S, Page.F
-local SP, PR, spGet, spSet = Page.SP, Page.PR, Page.spGet, Page.spSet
+local P, S, F, SP, PR = Page.P, Page.S, Page.F, Page.SP, Page.PR
 local HasClassBuffs, HasPrompt, OffersSelf, TAB = Page.HasClassBuffs, Page.HasPrompt, Page.OffersSelf, Page.TAB
 local Ref, HasMinimapButton, CompartmentShown, DragPanelUp = Page.Ref, Page.HasMinimapButton, Page.CompartmentShown, Page.DragPanelUp
 
@@ -542,9 +541,12 @@ function Quick.VoiceSummary()
 	return text
 end
 
--- Start here: switching Manners on, then four numbered steps (who to buff, a
--- key, seeing the prompt, what to say), the snooze and the ledger. Ledger.lua
--- repaints this tab by its key, "general".
+-- The Start here group: switching Manners on, the numbered steps (who to buff,
+-- a key, seeing the prompt, what to say), the snooze and the ledger. The
+-- options window places them (Options/Window/Layout.lua): the switch, the
+-- preview and the snooze in its header, the voice choice on What I say, the
+-- profile lines on Profiles. Ledger.lua repaints this page by its id,
+-- "general".
 function Page.BuildStartTab()
 	-- The steps and the snooze are about a prompt; a class with nothing to
 	-- cast gets the noBuffs text instead.
@@ -574,16 +576,6 @@ function Page.BuildStartTab()
 					-- side is another addon's display frame.
 					ns.RepaintOptions()
 				end,
-			},
-			-- Switched off, every other page still reads as a working
-			-- addon being configured. The prompt simply never appears.
-			offNotice = {
-				type = "description",
-				order = 1.5,
-				hidden = function() return ns.db.profile.enabled end,
-				name = "|cffff8080"
-					.. L["Manners is switched off, so the prompt will never appear. Everything below is still saved."]
-					.. "|r",
 			},
 			noBuffs = {
 				type = "description",
@@ -621,17 +613,6 @@ function Page.BuildStartTab()
 				name = L["Manners shows a small button, the prompt, with the next person to buff. Click it, or press your key, and it casts on them; the game does not let addons cast by themselves."]
 					.. "\n",
 			},
-			-- An unlocked prompt is a drag panel and casts nothing (Prompt.lua
-			-- reads the lock before anything else), which from the outside
-			-- looks like an addon that does not work. Said at the top, with
-			-- the fix beside it.
-			lockNotice = {
-				type = "description",
-				order = 4,
-				fontSize = "medium",
-				hidden = function() return P().locked or not HasPrompt() end,
-				name = "|cffff8080" .. L["The prompt is unlocked, so it will not cast."] .. "|r",
-			},
 			-- ApplyStyle holds off in a fight and catches up when it ends, so
 			-- this never touches the secure button in combat.
 			lockNow = {
@@ -647,10 +628,10 @@ function Page.BuildStartTab()
 			},
 
 			-- Every character starts on the shared Default profile, so a
-			-- setup made here reaches the alts too. Said before step 1, and
-			-- only while another character is actually on this profile. That
-			-- can be this character's own, picked by an alt on the Profiles
-			-- tab, and the line then says the others are on it.
+			-- setup made here reaches the alts too. Said where profiles are
+			-- explained, and only while another character is actually on this
+			-- profile. That can be this character's own, picked by an alt on
+			-- the Profiles tab, and the line then says the others are on it.
 			sharedNote = {
 				type = "description",
 				order = 8,
@@ -662,8 +643,7 @@ function Page.BuildStartTab()
 					if type(db.keys) == "table" and name == db.keys.char then
 						line = L["Your other characters are using this character's settings (profile: %s); they can pick their own on the Profiles tab."]
 					end
-					return grey(line:format(tostring(name))
-						.. " " .. L["The Profiles tab also copies settings as text to share."])
+					return grey(line:format(tostring(name)))
 				end,
 			},
 			-- Offered only where it does something (Setup.CanOwnProfile). A
@@ -776,8 +756,9 @@ function Page.BuildStartTab()
 				end,
 			},
 
-			-- Step 3. The preview, where it sits, and the lock, so the prompt
-			-- can be seen and placed without going to Look.
+			-- Step 3. The preview, which the options window draws in its
+			-- header so every page has it; where the prompt sits and its lock
+			-- are on Look, once.
 			tryHeader = {
 				type = "header", name = L["3. See it"], order = 30,
 				hidden = noPrompt,
@@ -790,59 +771,12 @@ function Page.BuildStartTab()
 				desc = L["Shows a sample prompt so you can see it and put it where you want."],
 				order = 31,
 				hidden = noPrompt,
-				-- As on Look: ToggleTest refuses to start one in a fight, and
-				-- one already running can still be stopped.
+				-- ToggleTest refuses to start one in a fight, and one already
+				-- running can still be stopped.
 				disabled = function()
 					return not ns.Prompt:InTest() and InCombatLockdown()
 				end,
 				func = function() ns.Prompt:ToggleTest() end,
-			},
-			startPos = {
-				type = "select",
-				name = L["Where it sits"],
-				desc = L["Pick Above the action bars to put it back where it started."],
-				order = 32,
-				hidden = noPrompt,
-				-- "Where I dragged it" only while the prompt is on none of
-				-- the presets: shown, never picked.
-				values = function()
-					local out = {}
-					for _, preset in ipairs(ns.POSITION_PRESETS) do
-						out[preset.key] = preset.key == "bars"
-							and L["Above the action bars (default)"] or preset.name
-					end
-					if not ns.CurrentPositionPreset() then out.custom = L["Where I dragged it"] end
-					return out
-				end,
-				sorting = function()
-					local keys = {}
-					for i, preset in ipairs(ns.POSITION_PRESETS) do keys[i] = preset.key end
-					if not ns.CurrentPositionPreset() then keys[#keys + 1] = "custom" end
-					return keys
-				end,
-				get = function() return ns.CurrentPositionPreset() or "custom" end,
-				set = function(_, v)
-					if v == "custom" then return end
-					ns.ApplyPositionPreset(v)
-					restyle()
-				end,
-			},
-			-- Look > Locked's setter, written out: pSet would write the
-			-- option's key, and this one's is not "locked".
-			startLocked = {
-				type = "toggle",
-				name = L["Lock position"],
-				desc = L["Unlock to drag the prompt; it will not cast until you lock it again."],
-				order = 33,
-				hidden = noPrompt,
-				get = function() return P().locked end,
-				set = function(_, value)
-					P().locked = value
-					restyle()
-					if not value and not ns.db.profile.enabled then
-						ns.addon:Print(L["unlocked, but the addon is |cffff8080off|r so there is no prompt to drag -- switch it on first."])
-					end
-				end,
 			},
 
 			-- Step 4. What is said, as a preset; the words are on What I say.
@@ -852,8 +786,8 @@ function Page.BuildStartTab()
 			},
 			quickVoice = {
 				type = "select",
+				-- No tooltip: it leads What I say, above the switches it sets.
 				name = L["When I buff someone"],
-				desc = L["Change the words and channel on What I say."],
 				order = 41,
 				width = "full",
 				hidden = noClassBuffs,
@@ -862,20 +796,6 @@ function Page.BuildStartTab()
 				get = function() return Quick.Match(Quick.VOICE) end,
 				set = function(_, v) Quick.Apply(Quick.VOICE, v) end,
 				confirm = function(_, v) return Quick.Confirm(Quick.VOICE, v) end,
-			},
-			-- What I say's own switch, beside the choice that sets it: the
-			-- choices set it one way or the other, and a player who wants it
-			-- otherwise should not have to find it on another tab. Nothing to
-			-- switch while nothing is said.
-			onlyWhenReturning = {
-				type = "toggle",
-				name = L["Only when I buff someone back"],
-				desc = L["Off, you also speak when you buff someone first."],
-				order = 41.5,
-				width = "full",
-				hidden = function() return noClassBuffs() or not SP().enabled end,
-				get = spGet,
-				set = spSet,
 			},
 			quickVoiceSummary = {
 				type = "description",
@@ -968,12 +888,9 @@ function Page.BuildStartTab()
 				desc = L["Who buffed you, whether you returned it, and who you buffed first."],
 				order = 62,
 				hidden = function() return not ns.Ledger end,
-				-- This window shut first: it sits in a higher strata than
-				-- the ledger, which would open hidden underneath it.
-				func = function()
-					ns.CloseOptions()
-					ns.Ledger.Show()
-				end,
+				-- The options stay open: both windows are HIGH and toplevel,
+				-- and Show raises the ledger above this one.
+				func = function() ns.Ledger.Show() end,
 			},
 
 			-- Last, under a header of its own: where the way back in lives,

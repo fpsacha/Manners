@@ -1,10 +1,12 @@
--- The Advanced tab (Options.lua, BuildAdvancedTab): the tuning knobs that used
--- to be spread over the other tabs -- favours, timing, targeting, the exact
--- position and the prompt's wording -- under one intro, a combat notice and a
--- button that puts them back to default.
+-- The Advanced group (Options/Advanced.lua, BuildAdvancedTab): the tuning
+-- knobs -- favours, timing, targeting, the exact position and the prompt's
+-- wording -- that the options window draws on When to offer and Look, with its
+-- intro (the window's fold caption), its combat notice (the status strip) and
+-- "Put these back to default", which is now the window's per-page reset
+-- (Page.RESET, Page.ResetPage).
 --
--- Every control moved here kept its option key and its get/set, so the profile
--- field it writes is where it always was: a player upgrading keeps every value.
+-- Every control kept its option key and its get/set, so the profile field it
+-- writes is where it always was: a player upgrading keeps every value.
 --
 -- Called by scenarios.lua with the addon directory and its helpers.
 
@@ -29,12 +31,12 @@ local function session(scenario, class)
 	return ns
 end
 
-local function tab(ns)
+local function group(ns)
 	return ns.optionsTable and ns.optionsTable.args and ns.optionsTable.args.advanced
 end
 
--- The page as it should read, top to bottom: key, order, and the English label.
-local LAYOUT = {
+-- The model, top to bottom: key, order, and the English label.
+local MODEL = {
 	{ "advIntro", 0.5, "The defaults suit most players; change these only if something bothers you." },
 	{ "advCombatNotice", 0.6, "In combat: targeting changes apply once the fight ends." },
 	{ "resetAdvanced", 0.7, "Put these back to default" },
@@ -65,6 +67,26 @@ local LAYOUT = {
 	{ "reasonUnknown", 59, "Reason text: can't tell" },
 }
 
+-- Where the window draws them, top to bottom (the layout spec, IA.md section
+-- 2): When to offer's Favours, then its Timing and Targeting folds; Look's
+-- Exact position and Prompt wording folds. Folded or not, by section.
+local PLACED = {
+	when = {
+		{ "advanced.reciprocateWindow" }, { "advanced.owedClassBuffsOnly" },
+		{ "advanced.reachableOnly" }, { "advanced.graceSeconds" }, { "advanced.keepDebts" },
+		{ "advanced.retryCooldown", folded = true }, { "advanced.scanInterval", folded = true },
+		{ "advanced.restoreTarget", folded = true }, { "advanced.noTargetNote", folded = true },
+	},
+	appearance = {
+		{ "advanced.x", folded = true }, { "advanced.y", folded = true },
+		{ "advanced.formatHelp", folded = true }, { "advanced.format", folded = true },
+		{ "advanced.reasonTarget", folded = true }, { "advanced.reasonOwed", folded = true },
+		{ "advanced.reasonAsked", folded = true }, { "advanced.reasonSelf", folded = true },
+		{ "advanced.reasonGroup", folded = true }, { "advanced.reasonNearby", folded = true },
+		{ "advanced.reasonRefresh", folded = true }, { "advanced.reasonUnknown", folded = true },
+	},
+}
+
 -- Each control that writes a setting, and the profile field it writes.
 local FIELDS = {
 	{ "owedClassBuffsOnly", "sources", "owedClassBuffsOnly" },
@@ -87,45 +109,102 @@ local FIELDS = {
 	{ "reasonUnknown", "prompt", "reasonUnknown" },
 }
 
--- What the reset puts back: every control's field but where the prompt sits,
--- which is a place somebody dragged it to. KEPT is that place, the two offsets
--- and the anchor they are measured from.
-local RESET, KEPT = {}, {
-	{ "prompt", "x" }, { "prompt", "y" }, { "prompt", "point" }, { "prompt", "relPoint" },
+-- When to offer's reset: its own four, the old Advanced reset's eight favour,
+-- timing and targeting fields, which now sit on this page.
+local WHEN_RESET = {
+	{ "filters", "whenBuffed" }, { "filters", "refreshUnder" }, { "filters", "hideMounted" },
+	{ "filters", "manaFloor" },
+	{ "timing", "reciprocateWindow" }, { "sources", "owedClassBuffsOnly" },
+	{ "filters", "reachableOnly" }, { "timing", "graceSeconds" }, { "timing", "keepDebts" },
+	{ "timing", "retryCooldown" }, { "timing", "scanInterval" }, { "filters", "restoreTarget" },
 }
-for _, f in ipairs(FIELDS) do
-	if f[2] ~= "prompt" or (f[3] ~= "x" and f[3] ~= "y") then RESET[#RESET + 1] = { f[2], f[3] } end
-end
+
+-- Look's reset: everything about the prompt itself, the old Advanced reset's
+-- nine wording fields included -- but not where it sits, nor its lock.
+local LOOK_RESET = {
+	{ "prompt", "scale" }, { "prompt", "alpha" }, { "prompt", "width" }, { "prompt", "height" },
+	{ "prompt", "style" }, { "prompt", "bgColor" }, { "prompt", "accentByReason" },
+	{ "prompt", "reasonPalette" }, { "prompt", "accentColor" }, { "prompt", "accentMode" },
+	{ "prompt", "flashStyle" }, { "prompt", "effects" }, { "prompt", "hideInCombat" },
+	{ "prompt", "font" }, { "prompt", "fontSize" }, { "prompt", "fontColor" },
+	{ "prompt", "classColor" }, { "prompt", "showSub" },
+	{ "prompt", "format" }, { "prompt", "reasonTarget" }, { "prompt", "reasonOwed" },
+	{ "prompt", "reasonAsked" }, { "prompt", "reasonSelf" }, { "prompt", "reasonGroup" },
+	{ "prompt", "reasonNearby" }, { "prompt", "reasonRefresh" }, { "prompt", "reasonUnknown" },
+	{ "prompt", "showIcon" }, { "prompt", "iconSize" }, { "prompt", "roundIcon" },
+	{ "prompt", "showCooldown" }, { "prompt", "showCount" }, { "prompt", "showQueue" },
+	{ "prompt", "queueRows" },
+	{ "sound", "enabled" }, { "sound", "file" }, { "sound", "owedOnly" },
+}
+local LOOK_KEPT = {
+	{ "prompt", "x" }, { "prompt", "y" }, { "prompt", "point" }, { "prompt", "relPoint" },
+	{ "prompt", "locked" },
+}
 
 -- A value that is not the default, whatever the field's type.
 local function other(value, name)
 	if type(value) == "boolean" then return not value end
 	if type(value) == "number" then return value + 7 end
+	if type(value) == "table" then return { 0.13, 0.27, 0.41, 0.5 } end
 	if name == "point" or name == "relPoint" then
 		return value == "TOP" and "LEFT" or "TOP"
 	end
 	return "changed " .. name .. " {name}"
 end
 
+local function same(a, b)
+	if type(a) ~= "table" or type(b) ~= "table" then return a == b end
+	for k, v in pairs(a) do if not same(v, b[k]) then return false end end
+	for k in pairs(b) do if a[k] == nil then return false end end
+	return true
+end
+
+local function show(value)
+	if type(value) ~= "table" then return tostring(value) end
+	local parts = {}
+	for i = 1, #value do parts[i] = tostring(value[i]) end
+	return "{" .. table.concat(parts, ", ") .. "}"
+end
+
+-- The hooks a reset runs, counted, with the page the window has open as
+-- `pageId`; `run()` presses the reset button. Everything is put back after.
+local function pressReset(ns, pageId, calls)
+	local realTab = ns.OptionsTab
+	local realScan, realSave = ns.addon.StartScanner, ns.addon.SaveDebts
+	local realStyle, realMacro = ns.Prompt.ApplyStyle, ns.Prompt.InvalidateMacro
+	local realRedraw, realClamp = ns.RefreshOptionsDisplay, ns.ClampSettings
+	ns.OptionsTab = function() return pageId end
+	ns.addon.StartScanner = function(...) calls.scan = calls.scan + 1; return realScan(...) end
+	ns.addon.SaveDebts = function(...) calls.save = calls.save + 1; return realSave(...) end
+	ns.Prompt.ApplyStyle = function(...) calls.style = calls.style + 1; return realStyle(...) end
+	ns.Prompt.InvalidateMacro = function(...) calls.macro = calls.macro + 1; return realMacro(...) end
+	ns.RefreshOptionsDisplay = function(...) calls.redraw = calls.redraw + 1; return realRedraw(...) end
+	ns.ClampSettings = function(...) calls.clamp = calls.clamp + 1; return realClamp(...) end
+	local reset = findOption(ns.optionsTable, "resetAdvanced")
+	local ok, err = pcall(reset.func, { "resetAdvanced" })
+	ns.OptionsTab = realTab
+	ns.addon.StartScanner, ns.addon.SaveDebts = realScan, realSave
+	ns.Prompt.ApplyStyle, ns.Prompt.InvalidateMacro = realStyle, realMacro
+	ns.RefreshOptionsDisplay, ns.ClampSettings = realRedraw, realClamp
+	return ok, err
+end
+
 -- ------------------------------------------------------------------ 1
 do
-	local scenario = "advanced: the tab reads top to bottom as laid out"
+	local scenario = "advanced: the knobs keep their keys, orders and labels"
 	local ns = session(scenario)
-	local adv = ns and tab(ns)
+	local adv = ns and group(ns)
 	if ns and not adv then
-		fail(scenario, "there is no Advanced tab")
+		fail(scenario, "the Advanced group is gone from the model, and every knob in it")
 	elseif ns then
-		if optionText(adv.name) ~= "Advanced" then
-			fail(scenario, "the tab is called " .. optionText(adv.name))
-		end
 		if adv.order ~= 6 then
-			fail(scenario, "the tab is at order " .. tostring(adv.order) .. ", not 6")
+			fail(scenario, "the group is at order " .. tostring(adv.order) .. ", not 6")
 		end
-		for _, want in ipairs(LAYOUT) do
+		for _, want in ipairs(MODEL) do
 			local key, order, label = want[1], want[2], want[3]
 			local option = adv.args[key]
 			if not option then
-				fail(scenario, "advanced: " .. key .. " is not on the tab")
+				fail(scenario, "advanced: " .. key .. " is not in the group")
 			else
 				if option.order ~= order then
 					fail(scenario, ("advanced: %s is at order %s, not %s")
@@ -150,15 +229,60 @@ do
 		if help and not optionText(help.name):find("The second line always shows the reason.", 1, true) then
 			fail(scenario, "the placeholder help no longer says the second line shows the reason")
 		end
-		-- The reset asks first, and says the wording goes back with it.
+		-- The reset asks first, about this page, and says what it keeps.
 		local reset = adv.args.resetAdvanced
-		if reset and not (reset.type == "execute" and reset.confirm
-			and optionText(reset.confirmText):find("Put every setting on this tab back to its default?", 1, true)) then
+		if reset and not (reset.type == "execute" and reset.confirm == true
+			and optionText(reset.confirmText):find("Put every setting on this page back to its default?", 1, true)) then
 			fail(scenario, "Put these back to default does not ask before it resets")
 		end
-		if reset and not optionText(reset.confirmText):find("restores what the prompt says; where it sits is kept", 1, true) then
-			fail(scenario, "the reset does not say it restores the wording and keeps the position: "
-				.. optionText(reset.confirmText))
+		if reset and not optionText(reset.confirmText):find(
+			"Where the prompt sits, the lines you wrote and the never-offer list are kept.", 1, true) then
+			fail(scenario, "the reset does not say what it keeps: " .. optionText(reset.confirmText))
+		end
+		noErrors(scenario, ns)
+	end
+end
+
+-- ------------------------------------------------------------------ 1b
+-- Drawn where the layout spec puts them: no Advanced page, the favours open on
+-- When to offer, the rest in folds; the intro, the combat notice and the reset
+-- in the window's own frame.
+do
+	local scenario = "advanced: drawn on When to offer and Look as laid out"
+	local ns = session(scenario)
+	if ns and H.layoutInToc() and not ns.WindowLayout then
+		fail(scenario, "the toc loads the window's layout and ns.WindowLayout is not there")
+	elseif ns and ns.WindowLayout then
+		local layout = ns.WindowLayout
+		if layout.pages.advanced then
+			fail(scenario, "Advanced is still a page of its own")
+		end
+		for pageId, want in pairs(PLACED) do
+			local list, sections = H.pagePaths(ns, pageId)
+			local got = {}
+			for _, path in ipairs(list or {}) do
+				if path:find("^advanced%.") then got[#got + 1] = path end
+			end
+			for i, entry in ipairs(want) do
+				if got[i] ~= entry[1] then
+					fail(scenario, ("%s: the knob in place %d is %s, not %s")
+						:format(pageId, i, tostring(got[i]), entry[1]))
+				elseif (sections[entry[1]].fold == true) ~= (entry.folded == true) then
+					fail(scenario, entry[1] .. (entry.folded and " is not in a fold" or " is folded away"))
+				end
+			end
+			if #got ~= #want then
+				fail(scenario, ("%s draws %d Advanced knobs, not %d"):format(pageId, #got, #want))
+			end
+		end
+		if not (layout.footer and layout.footer.reset == "advanced.resetAdvanced") then
+			fail(scenario, "the reset is not the footer's")
+		end
+		if layout.foldCaption ~= "advanced.advIntro" then
+			fail(scenario, "the intro does not caption the folds")
+		end
+		if not (layout.strip and layout.strip.combat and layout.strip.combat.when == "advanced.advCombatNotice") then
+			fail(scenario, "the targeting combat notice is not When to offer's strip line")
 		end
 		noErrors(scenario, ns)
 	end
@@ -169,17 +293,17 @@ end
 do
 	local scenario = "advanced: shown only to a class with buffs"
 	local ns = session(scenario)
-	local adv = ns and tab(ns)
+	local adv = ns and group(ns)
 	if ns and not adv then
-		fail(scenario, "SKIPPED -- there is no Advanced tab")
+		fail(scenario, "SKIPPED -- there is no Advanced group")
 	elseif ns then
 		if adv.hidden and adv.hidden() then
-			fail(scenario, "the Advanced tab is hidden from a mage")
+			fail(scenario, "the Advanced group is hidden from a mage")
 		end
 		local rogue = session(scenario, "ROGUE")
-		local radv = rogue and tab(rogue)
+		local radv = rogue and group(rogue)
 		if rogue and not (radv and radv.hidden and radv.hidden()) then
-			fail(scenario, "the Advanced tab is shown to a rogue, who has no buff to tune")
+			fail(scenario, "the Advanced group is shown to a rogue, who has no buff to tune")
 		end
 	end
 end
@@ -216,9 +340,9 @@ end
 do
 	local scenario = "advanced: controls grey out and hide by what they depend on"
 	local ns = session(scenario)
-	local adv = ns and tab(ns)
+	local adv = ns and group(ns)
 	if ns and not adv then
-		fail(scenario, "SKIPPED -- there is no Advanced tab")
+		fail(scenario, "SKIPPED -- there is no Advanced group")
 	elseif ns then
 		local a = adv.args
 		local s, f = ns.db.profile.sources, ns.db.profile.filters
@@ -302,27 +426,26 @@ end
 Mock.reset()
 
 -- ------------------------------------------------------------------ 6
--- Put these back to default: this tab's fields and nothing else, kept
--- favours written the way the switch writes them, and the page redrawn.
+-- Put these back to default, on When to offer: its twelve fields, the old
+-- Advanced reset's eight favour, timing and targeting fields among them, and
+-- nothing from another page -- not Look's wording, which the old reset took
+-- with it. Kept favours written the way the switch writes them, and the page
+-- redrawn.
 do
-	local scenario = "advanced: put these back to default"
+	local scenario = "advanced: put these back to default on When to offer"
 	local ns = session(scenario)
 	local reset = ns and findOption(ns.optionsTable, "resetAdvanced")
 	if ns and not (reset and reset.func) then
 		fail(scenario, "there is no Put these back to default button")
 	elseif ns then
 		local profile, defaults = ns.db.profile, ns.defaults.profile
-		for _, f in ipairs(RESET) do
+		for _, f in ipairs(WHEN_RESET) do
 			profile[f[1]][f[2]] = other(defaults[f[1]][f[2]], f[2])
 		end
-		local kept = {}
-		for i, f in ipairs(KEPT) do
-			kept[i] = other(defaults[f[1]][f[2]], f[2])
-			profile[f[1]][f[2]] = kept[i]
-		end
-		-- Two settings from other tabs, which must be left as they are.
+		-- Settings from other pages, which must be left as they are.
 		profile.prompt.scale = 1.25
 		profile.sources.owed = false
+		profile.prompt.format = "changed {name}"
 
 		-- A favour kept with the switch off is on nobody's disk.
 		wipe(ns.owed)
@@ -330,50 +453,134 @@ do
 		ns.addon:SaveDebts()
 		local wasWritten = Mock.sv.char and Mock.sv.char.debts
 
-		local calls = { scan = 0, style = 0, macro = 0, redraw = 0 }
-		local realScan = ns.addon.StartScanner
-		local realStyle, realMacro = ns.Prompt.ApplyStyle, ns.Prompt.InvalidateMacro
-		local realRedraw = ns.RefreshOptionsDisplay
-		ns.addon.StartScanner = function(...) calls.scan = calls.scan + 1; return realScan(...) end
-		ns.Prompt.ApplyStyle = function(...) calls.style = calls.style + 1; return realStyle(...) end
-		ns.Prompt.InvalidateMacro = function(...) calls.macro = calls.macro + 1; return realMacro(...) end
-		ns.RefreshOptionsDisplay = function(...) calls.redraw = calls.redraw + 1; return realRedraw(...) end
+		local calls = { scan = 0, save = 0, style = 0, macro = 0, redraw = 0, clamp = 0 }
+		local ok, err = pressReset(ns, "when", calls)
+		if not ok then fail(scenario, "the reset threw -> " .. tostring(err)) end
 
-		reset.func({ "resetAdvanced" })
-
-		ns.addon.StartScanner = realScan
-		ns.Prompt.ApplyStyle, ns.Prompt.InvalidateMacro = realStyle, realMacro
-		ns.RefreshOptionsDisplay = realRedraw
-
-		for _, f in ipairs(RESET) do
-			if profile[f[1]][f[2]] ~= defaults[f[1]][f[2]] then
-				fail(scenario, ("advanced reset: %s.%s was not put back (%s, default %s)")
-					:format(f[1], f[2], tostring(profile[f[1]][f[2]]), tostring(defaults[f[1]][f[2]])))
+		for _, f in ipairs(WHEN_RESET) do
+			if not same(profile[f[1]][f[2]], defaults[f[1]][f[2]]) then
+				fail(scenario, ("when reset: %s.%s was not put back (%s, default %s)")
+					:format(f[1], f[2], show(profile[f[1]][f[2]]), show(defaults[f[1]][f[2]])))
 			end
 		end
-		for i, f in ipairs(KEPT) do
-			if profile[f[1]][f[2]] ~= kept[i] then
-				fail(scenario, ("advanced reset: moved the prompt (%s.%s is %s)")
-					:format(f[1], f[2], tostring(profile[f[1]][f[2]])))
-			end
-		end
-		if profile.prompt.scale ~= 1.25 or profile.sources.owed ~= false then
-			fail(scenario, "advanced reset: put back a setting from another tab")
+		if profile.prompt.scale ~= 1.25 or profile.sources.owed ~= false
+			or profile.prompt.format ~= "changed {name}" then
+			fail(scenario, "when reset: put back a setting from another page")
 		end
 		if wasWritten then
 			fail(scenario, "SKIPPED -- a favour was written with the switch off")
 		elseif not (Mock.sv.char and Mock.sv.char.debts and Mock.sv.char.debts["Yorick Vane"]) then
-			fail(scenario, "advanced reset: switched keeping favours back on without saving them,"
+			fail(scenario, "when reset: switched keeping favours back on without saving them,"
 				.. " the way the switch itself does")
 		end
 		if calls.scan == 0 then
-			fail(scenario, "advanced reset: the new timings were not handed to the scanner")
+			fail(scenario, "when reset: the new timings were not handed to the scanner")
 		end
 		if calls.style == 0 or calls.macro == 0 then
-			fail(scenario, "advanced reset: the prompt was not restyled and its macro rebuilt")
+			fail(scenario, "when reset: the prompt was not restyled and its macro rebuilt")
 		end
 		if calls.redraw == 0 then
-			fail(scenario, "advanced reset: the page still shows the old values")
+			fail(scenario, "when reset: the page still shows the old values")
+		end
+		noErrors(scenario, ns)
+	end
+end
+
+-- ------------------------------------------------------------------ 6b
+-- On Look: everything about the prompt itself, the nine wording fields the old
+-- Advanced reset put back included, and never where it sits or its lock.
+do
+	local scenario = "advanced: put these back to default on Look"
+	local ns = session(scenario)
+	local reset = ns and findOption(ns.optionsTable, "resetAdvanced")
+	if ns and not (reset and reset.func) then
+		fail(scenario, "there is no Put these back to default button")
+	elseif ns then
+		local profile, defaults = ns.db.profile, ns.defaults.profile
+		for _, f in ipairs(LOOK_RESET) do
+			profile[f[1]][f[2]] = other(defaults[f[1]][f[2]], f[2])
+		end
+		local kept = {}
+		for i, f in ipairs(LOOK_KEPT) do
+			kept[i] = other(defaults[f[1]][f[2]], f[2])
+			profile[f[1]][f[2]] = kept[i]
+		end
+		profile.filters.restoreTarget = not defaults.filters.restoreTarget
+
+		local calls = { scan = 0, save = 0, style = 0, macro = 0, redraw = 0, clamp = 0 }
+		local ok, err = pressReset(ns, "appearance", calls)
+		if not ok then fail(scenario, "the reset threw -> " .. tostring(err)) end
+
+		for _, f in ipairs(LOOK_RESET) do
+			if not same(profile[f[1]][f[2]], defaults[f[1]][f[2]]) then
+				fail(scenario, ("look reset: %s.%s was not put back (%s, default %s)")
+					:format(f[1], f[2], show(profile[f[1]][f[2]]), show(defaults[f[1]][f[2]])))
+			end
+		end
+		-- A fresh copy: a colour picker writing into the profile's table must
+		-- never be writing into the defaults.
+		for _, name in ipairs({ "bgColor", "fontColor", "accentColor" }) do
+			if profile.prompt[name] == defaults.prompt[name] then
+				fail(scenario, "look reset: prompt." .. name .. " is the defaults' own table")
+			end
+		end
+		for i, f in ipairs(LOOK_KEPT) do
+			if profile[f[1]][f[2]] ~= kept[i] then
+				fail(scenario, ("look reset: moved the prompt (%s.%s is %s)")
+					:format(f[1], f[2], tostring(profile[f[1]][f[2]])))
+			end
+		end
+		if profile.filters.restoreTarget == defaults.filters.restoreTarget then
+			fail(scenario, "look reset: put back a setting from another page")
+		end
+		if calls.clamp == 0 then
+			fail(scenario, "look reset: the icon was not held inside the prompt's size again")
+		end
+		if calls.style == 0 or calls.macro == 0 then
+			fail(scenario, "look reset: the prompt was not restyled")
+		end
+		if calls.redraw == 0 then
+			fail(scenario, "look reset: the page still shows the old values")
+		end
+		noErrors(scenario, ns)
+	end
+end
+
+-- ------------------------------------------------------------------ 6c
+-- The one button serves whichever page is open: shown where the page has a
+-- list, hidden where it has none, and it puts back that page and no other.
+do
+	local scenario = "advanced: the reset button follows the page in view"
+	local ns = session(scenario)
+	local reset = ns and findOption(ns.optionsTable, "resetAdvanced")
+	if ns and not (reset and reset.func) then
+		fail(scenario, "there is no Put these back to default button")
+	elseif ns then
+		local realTab = ns.OptionsTab
+		local function hiddenOn(pageId)
+			ns.OptionsTab = function() return pageId end
+			local hidden = reset.hidden
+			if type(hidden) == "function" then hidden = hidden({ "resetAdvanced" }) end
+			ns.OptionsTab = realTab
+			return hidden and true or false
+		end
+		for _, pageId in ipairs({ "who", "skip", "when", "click", "appearance" }) do
+			if hiddenOn(pageId) then fail(scenario, "the reset is hidden on " .. pageId) end
+		end
+		for _, pageId in ipairs({ "general", "profiles", "diagnostics" }) do
+			if not hiddenOn(pageId) then
+				fail(scenario, "the reset is offered on " .. pageId .. ", which has nothing to put back")
+			end
+		end
+		-- Who to skip open: its four go back, When to offer's stay.
+		local f = ns.db.profile.filters
+		f.minLevel, f.whenBuffed = 40, "always"
+		pressReset(ns, "skip", { scan = 0, save = 0, style = 0, macro = 0, redraw = 0, clamp = 0 })
+		if f.minLevel ~= ns.defaults.profile.filters.minLevel then
+			fail(scenario, "with Who to skip open, the reset did not put Skip players below level back")
+		end
+		if f.whenBuffed ~= "always" then
+			fail(scenario, "with Who to skip open, the reset put back When to offer's setting")
 		end
 		noErrors(scenario, ns)
 	end
@@ -397,14 +604,16 @@ do
 		Mock.protect(button)
 		Mock.inCombat = true
 		Mock.protectedCalls = {}
-		reset.func({ "resetAdvanced" })
+		local calls = { scan = 0, save = 0, style = 0, macro = 0, redraw = 0, clamp = 0 }
+		pressReset(ns, "when", calls)
+		pressReset(ns, "appearance", calls)
 		if #Mock.protectedCalls > 0 then
-			fail(scenario, "advanced reset in a fight called " .. table.concat(Mock.protectedCalls, ", ")
+			fail(scenario, "reset in a fight called " .. table.concat(Mock.protectedCalls, ", ")
 				.. " on the secure button")
 		end
 		if profile.prompt.format ~= defaults.prompt.format
 			or profile.filters.restoreTarget ~= defaults.filters.restoreTarget then
-			fail(scenario, "advanced reset in a fight was not saved")
+			fail(scenario, "reset in a fight was not saved")
 		end
 		Mock.inCombat = false
 		Mock.protectedCalls = {}

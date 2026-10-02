@@ -88,12 +88,14 @@ mutate("Options/Profiles.lua",
        "profiles: the library's paragraph repeats the intro",
        expect="the library's own paragraph repeats the profiles intro", script=S)
 
-# The share boxes, under the library's controls, not pointed at.
+# Retired: "profiles: share boxes not pointed at". Share as text is a section
+# of the same page in the options window, so the intro no longer points at it;
+# the fault now is the pointer coming back.
 mutate("Options/Profiles.lua",
-       "\t\t\t\t.. \" \" .. L[\"To share settings as text, see Share as text at the bottom.\"] .. \"\\n\",\n",
-       "\t\t\t\t.. \"\\n\",\n",
-       "profiles: share boxes not pointed at",
-       expect="the profiles intro does not say Share as text", script=S)
+       "\t\t\t\t.. \"\\n\",\n\t\t},\n",
+       "\t\t\t\t.. \" To share settings as text, see Share as text at the bottom.\\n\",\n\t\t},\n",
+       "profiles: share boxes pointed at on their own page",
+       expect="the profiles intro points at Share as text on its own page", script=S)
 
 mutate("Options/Profiles.lua",
        "\t\t\t\tif not parsed then return err end\n",

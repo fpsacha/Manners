@@ -17,18 +17,9 @@ mutate("Options/Look.lua",
        "when tab: combat switch out of its section",
        expect="is out of order: it comes before hideInCombat", script=S)
 
-# The favour timing pointer: gone, or up with favours off.
-mutate("Options/When.lua",
-       ":format(Ref(L[\"Offer a buff back for (seconds)\"], TAB.advanced))\n",
-       ":format(L[\"Offer a buff back for (seconds)\"])\n",
-       "when tab: favour time points nowhere",
-       expect="When to offer does not point at how long a favour waits", script=S)
-
-mutate("Options/When.lua",
-       "\t\t\t\torder = 21,\n\t\t\t\thidden = function() return not S().owed or not HasClassBuffs() end,\n",
-       "\t\t\t\torder = 21,\n\t\t\t\thidden = function() return not HasClassBuffs() end,\n",
-       "when tab: favour pointer with favours off",
-       expect="the favours pointer stays up with People who buff me off", script=S)
+# Retired: "when tab: favour time points nowhere" and "favour pointer with
+# favours off". when.favoursHeader and when.favoursNote are gone: the window
+# draws Offer a buff back for on this page, so there is no pointer left.
 
 # The choices listed in the alphabet's order rather than least mana first.
 mutate("Options/When.lua",

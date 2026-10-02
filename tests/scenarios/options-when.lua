@@ -1,8 +1,10 @@
--- The When to offer tab (Options.lua, BuildWhenTab): "when does the prompt
--- offer, and when does it hold back". Two sections, Already buffed and Hold
--- back; the engine timings live under Advanced. The combat switch and the mana
--- floor moved here from other tabs without changing the keys they save under,
--- and the floor says under itself what it does at the value it is set to.
+-- The When to offer tab (Options/When.lua, BuildWhenTab): "when does the
+-- prompt offer, and when does it hold back". Two sections, Already buffed and
+-- Hold back; the favours, timings and targeting are defined in the Advanced
+-- group, and the options window draws them on this page, so no note points
+-- there. The combat switch and the mana floor moved here from other tabs
+-- without changing the keys they save under, and the floor says under itself
+-- what it does at the value it is set to.
 --
 -- Called by scenarios.lua with the addon directory and its helpers.
 
@@ -41,8 +43,7 @@ do
 		-- The combat switch went to Look: it only stops the flashes, and
 		-- among the switches that stop offers it read as one of them.
 		local ORDER = { "buffedHeader", "whenBuffed", "refreshUnder", "alwaysNote",
-			"wayHeader", "hideMounted", "manaFloor", "manaNote",
-			"favoursHeader", "favoursNote" }
+			"wayHeader", "hideMounted", "manaFloor", "manaNote" }
 		local last
 		for _, key in ipairs(ORDER) do
 			local control = tab.args[key]
@@ -63,6 +64,7 @@ do
 				fail(scenario, key .. " is on the When to offer tab, which should hold only its two sections")
 			end
 		end
+		-- Defined in the Advanced group, under the keys they always had.
 		for _, key in ipairs({ "timingHeader", "reciprocateWindow", "keepDebts",
 			"retryCooldown", "scanInterval" }) do
 			if tab.args[key] then
@@ -72,23 +74,13 @@ do
 		if tab.order ~= 3 then
 			fail(scenario, "the tab is at order " .. tostring(tab.order) .. " rather than third")
 		end
-		-- How long a favour waits is asked here first, and answered with the
-		-- way to the control on Advanced; with favours off it has nothing to
-		-- be about.
-		local note = tab.args.favoursNote
-		if note then
-			local text = optionText(note.name)
-			if not text:find("|cffffd100Offer a buff back for (seconds)|r (Advanced)", 1, true) then
-				fail(scenario, "When to offer does not point at how long a favour waits: " .. text)
+		-- How long a favour waits is asked here first, and answered by the
+		-- control itself: the window draws Favours on this page, open.
+		if ns.WindowLayout then
+			local pageId, section = H.placedOn(ns, "advanced.reciprocateWindow")
+			if pageId ~= "when" or (section and section.fold) then
+				fail(scenario, "When to offer does not show how long a favour waits")
 			end
-			ns.db.profile.sources.owed = false
-			local function hidden(option)
-				return type(option.hidden) == "function" and option.hidden() or option.hidden == true
-			end
-			if not (hidden(note) and hidden(tab.args.favoursHeader)) then
-				fail(scenario, "the favours pointer stays up with People who buff me off")
-			end
-			ns.db.profile.sources.owed = true
 		end
 		noErrors(scenario, ns)
 	end

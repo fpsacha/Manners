@@ -1,7 +1,8 @@
--- The What I say tab (Options.lua, BuildSpeechTab): the social replies to a
--- buff and nothing else. The /thank, whether a line is said, where and when;
+-- The What I say tab (Options/Say.lua, BuildSpeechTab): the social replies to
+-- a buff and nothing else. The /thank, whether a line is said, where and when;
 -- then the lines themselves, a section that is only there while a line is
--- said at all. Targeting lives on Advanced.
+-- said at all. Targeting lives on Advanced. The options window leads the page
+-- with Start here's voice choice, so it has no intro pointing there.
 --
 -- Called by scenarios.lua with the addon directory and its helpers.
 
@@ -57,7 +58,6 @@ do
 		end
 		local want = {
 			{ "combatNotice", 0.5 },
-			{ "intro", 1 },
 			{ "speechHeader", 10, "Thanks and speech" },
 			{ "thankEmote", 11, "/thank people who buff me" },
 			{ "enabled", 12, "Say a line when I buff someone" },
@@ -98,13 +98,10 @@ do
 		if click.args.onlyNote then
 			fail(scenario, "the note repeating Only when I buff someone back is still on the tab")
 		end
-		local intro = optionText(click.args.intro and click.args.intro.name)
-		if not intro:find("Optional: thank people, or say a line, when you buff them.", 1, true)
-			or not intro:find("Start here also has quick choices for this.", 1, true) then
-			fail(scenario, "the intro reads: " .. intro)
-		end
-		if intro:find("/say", 1, true) then
-			fail(scenario, "the intro still explains the /say refusal: " .. intro)
+		-- The voice choice leads the page now; an intro saying Start here
+		-- has quick choices would point at the row right under it.
+		if click.args.intro then
+			fail(scenario, "the intro pointing at Start here's quick choices is still on the tab")
 		end
 		local roll = click.args.roll
 		if not optionText(roll and roll.desc):find("only you see them", 1, true) then

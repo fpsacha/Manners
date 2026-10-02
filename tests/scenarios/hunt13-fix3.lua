@@ -9,7 +9,9 @@
 --   * The Advanced tab hidden from a hunter, whose own prompt has a first
 --     line, a reason, timings and a place like anybody's, while Look sent him
 --     there. It follows the prompt now; what is about other people inside it
---     does not show for him, and Look points a rogue at no tab.
+--     does not show for him. Advanced is no longer a page: the options window
+--     draws its timings on When to offer and its wording on Look, which point
+--     at nothing, and a rogue has no Look page at all.
 --   * A paste reset "Tell me in chat", which the Profiles tab promises a paste
 --     keeps. It is kept, and a 1.4.0 string that carries it is read without
 --     calling it a newer version's setting.
@@ -231,8 +233,9 @@ do
 				.. ME .. "); they can pick their own on the Profiles tab.", 1, true) then
 				fail(scenario, "the note does not say the others are on this character's profile: " .. text)
 			end
-			if not text:find("The Profiles tab also copies settings as text to share.", 1, true) then
-				fail(scenario, "the note lost its sentence about sharing as text: " .. text)
+			-- It sits on Profiles now, beside Share as text: no pointer there.
+			if text:find("The Profiles tab also copies settings as text to share.", 1, true) then
+				fail(scenario, "the note points at Share as text from the page it sits on: " .. text)
 			end
 			Mock.printed = {}
 			local sets, copies = calls.set, calls.copy
@@ -252,18 +255,26 @@ do
 end
 
 -- ------------------------------------------------------------------ Advanced
--- A hunter with his aspects learned has a prompt and so an Advanced tab: the
--- wording of his own line, the timings and the exact place are his. The
+-- A hunter with his aspects learned has a prompt and so the Advanced knobs:
+-- the wording of his own line, the timings and the exact place are his, drawn
+-- on When to offer (Timing) and Look (Exact position, Prompt wording). The
 -- favours, the other people's reason lines and handing a target back are not.
--- A rogue has no prompt, no tab, and Look points him at none.
+-- A rogue has no prompt, no Look page, and nothing points him anywhere.
 local HUNTER_SHOWN = { "reasonSelf", "retryCooldown", "scanInterval", "x", "y", "format",
-	"reasonRefresh", "timingHeader", "exactPosHeader", "wordingHeader", "resetAdvanced" }
+	"reasonRefresh", "timingHeader", "exactPosHeader", "wordingHeader" }
+-- Where the window draws the hunter's, page by page.
+local HUNTER_PLACED = {
+	["advanced.retryCooldown"] = "when", ["advanced.scanInterval"] = "when",
+	["advanced.x"] = "appearance", ["advanced.y"] = "appearance",
+	["advanced.format"] = "appearance", ["advanced.reasonSelf"] = "appearance",
+	["advanced.reasonRefresh"] = "appearance",
+}
 local HUNTER_HIDDEN = { "favoursHeader", "owedClassBuffsOnly", "reciprocateWindow", "reachableOnly",
 	"graceSeconds", "keepDebts", "targetingHeader", "restoreTarget", "noTargetNote", "reasonTarget",
 	"reasonOwed", "reasonAsked", "reasonGroup", "reasonNearby", "reasonUnknown" }
 
 do
-	local scenario = "hunt13-fix3: the Advanced tab fits a hunter"
+	local scenario = "hunt13-fix3: the Advanced knobs fit a hunter"
 	with(scenario, "HUNTER", { HAWK, MONKEY }, function(ns)
 		if not (ns.OwnBuffsOnly and ns.OwnBuffsOnly()) then
 			fail(scenario, "SKIPPED -- a hunter with his aspects learned has no prompt of his own")
@@ -271,7 +282,7 @@ do
 		end
 		local adv = ns.optionsTable.args.advanced
 		if not shown(adv) then
-			fail(scenario, "the Advanced tab is hidden from a hunter, whose own prompt it words and places")
+			fail(scenario, "the Advanced group is hidden from a hunter, whose own prompt it words and places")
 			return
 		end
 		for _, key in ipairs(HUNTER_SHOWN) do
@@ -280,25 +291,46 @@ do
 		for _, key in ipairs(HUNTER_HIDDEN) do
 			if shown(adv.args[key]) then fail(scenario, key .. " is shown to a hunter") end
 		end
-		local look = ns.optionsTable.args.appearance.args
-		if not optionText(look.posPreset.desc):find("|cffffd100Exact position|r (Advanced)", 1, true) then
-			fail(scenario, "posPreset does not point a hunter at Exact position: " .. optionText(look.posPreset.desc))
+		for _, pageId in ipairs({ "when", "appearance" }) do
+			if not shown(ns.optionsTable.args[pageId]) then
+				fail(scenario, "the " .. pageId .. " page is hidden from a hunter, whose knobs it draws")
+			end
 		end
-		if not shown(look.wordingNote) then
-			fail(scenario, "wordingNote is hidden from a hunter, whose wording is on Advanced")
+		-- The footer's reset, with When to offer open: his timings go back.
+		local realTab = ns.OptionsTab
+		ns.OptionsTab = function() return "when" end
+		local resetShown = shown(adv.args.resetAdvanced)
+		ns.OptionsTab = realTab
+		if not resetShown then fail(scenario, "resetAdvanced is hidden from a hunter on When to offer") end
+		if ns.WindowLayout then
+			for path, pageId in pairs(HUNTER_PLACED) do
+				if H.placedOn(ns, path) ~= pageId then
+					fail(scenario, path .. " is not drawn on " .. pageId .. " for a hunter")
+				end
+			end
+		end
+		-- The exact numbers are a fold on the same page: no pointer at all.
+		local desc = optionText(ns.optionsTable.args.appearance.args.posPreset.desc)
+		if desc:find("|cffffd100", 1, true) or desc:find("(Advanced)", 1, true) then
+			fail(scenario, "posPreset points a hunter somewhere: " .. desc)
 		end
 	end)
 end
 
 do
-	local scenario = "hunt13-fix3: a rogue has no Advanced tab and is pointed at none"
+	local scenario = "hunt13-fix3: a rogue has no Advanced knobs and no Look page"
 	with(scenario, "ROGUE", nil, function(ns)
 		if ns.OwnBuffsOnly() or ns.caps.hasClassBuffs then
 			fail(scenario, "SKIPPED -- the rogue has a prompt")
 			return
 		end
 		if shown(ns.optionsTable.args.advanced) then
-			fail(scenario, "the Advanced tab is shown to a rogue, who has no prompt")
+			fail(scenario, "the Advanced group is shown to a rogue, who has no prompt")
+		end
+		-- Nothing to look at or preview: the page goes, as Who to buff and
+		-- When to offer already do.
+		if shown(ns.optionsTable.args.appearance) then
+			fail(scenario, "a rogue has a Look page, with no prompt to style")
 		end
 		local look = ns.optionsTable.args.appearance.args
 		local desc = optionText(look.posPreset.desc)
@@ -307,9 +339,6 @@ do
 		end
 		if not desc:find("Pick Above the action bars to put it back where it started.", 1, true) then
 			fail(scenario, "posPreset lost its first sentence for a rogue: " .. desc)
-		end
-		if shown(look.wordingNote) then
-			fail(scenario, "wordingNote points a rogue at an Advanced tab he does not have")
 		end
 	end)
 end

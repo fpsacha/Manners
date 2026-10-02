@@ -20,14 +20,14 @@ function Page.BuildProfilesTab()
 	for key, option in pairs({
 		-- What a profile is for, in the player's words, in place of the
 		-- library's own paragraph: most players never need a second one.
-		-- With the way to the share boxes, which sit under the library's
-		-- controls.
+		-- Share as text is a section of the same page, so nothing points
+		-- at it.
 		profilesIntro = {
 			type = "description",
 			order = 0.5,
 			fontSize = "medium",
 			name = L["Every character uses the Default profile unless you pick another here; make one per character for different settings."]
-				.. " " .. L["To share settings as text, see Share as text at the bottom."] .. "\n",
+				.. "\n",
 		},
 		-- Two boxes rather than one that does both: a box that shows
 		-- your settings and also applies whatever is typed into it

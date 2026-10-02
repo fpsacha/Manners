@@ -633,22 +633,22 @@ do
 		if not text:find(headline, 1, true) or not text:find(lifetime, 1, true) then
 			fail(scenario, "the General tab does not carry the summary: " .. text)
 		end
-		-- The button on the General tab shuts the options window it is on
-		-- before it opens the ledger: that window sits in a higher strata, in
-		-- the middle of the screen, and the ledger opened underneath it.
-		local dialog = LibStub("AceConfigDialog-3.0")
-		dialog.Close = function(_, app) if app == "Manners" then Mock.optionsOpen = false end end
-		Mock.optionsOpen = true
+		-- The button on the General tab opens the ledger over the options
+		-- window and leaves that open: both are HIGH and toplevel, and Show
+		-- raises the ledger, so the one opened last is on top. It used to
+		-- shut the window, which sat in a higher strata over the ledger.
+		local realClose, closed = ns.CloseOptions, 0
+		ns.CloseOptions = function(...) closed = closed + 1 return realClose(...) end
 		local open = H.findOption(ns.optionsTable, "ledgerOpen")
 		if window then window:Hide() end
 		if open and open.func then open.func() end
+		ns.CloseOptions = realClose
 		if not (window and window:IsShown()) then
 			fail(scenario, "Open the ledger on the General tab did not open it")
 		end
-		if ns.OptionsOpen() then
-			fail(scenario, "Open the ledger left the options window open over it")
+		if closed > 0 then
+			fail(scenario, "Open the ledger on the General tab shut the options window it was pressed on")
 		end
-		dialog.Close = nil
 	end
 	date = realDate
 end
@@ -926,6 +926,12 @@ do
 				local tip = table.concat(Mock.tooltip, "\n")
 				if not tip:find("\"" .. H.optionText(keep.name) .. "\"", 1, true) then
 					fail(scenario, "the row names a setting the options do not have: " .. tip)
+				end
+				-- And the page the window draws it on, by that page's own
+				-- name: Keep favours through a /reload is on When to offer.
+				local page = second.OptionsPage.TAB.when
+				if not tip:find("(" .. page .. " tab", 1, true) then
+					fail(scenario, "the row sends the player to a page the setting is not on: " .. tip)
 				end
 				if not tip:find("reload", 1, true) then
 					fail(scenario, "the row says only a logout forgets a favour: " .. tip)

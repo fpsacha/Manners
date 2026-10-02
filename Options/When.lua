@@ -3,13 +3,13 @@
 local _, ns = ...
 local L = ns.L
 local Page = ns.OptionsPage
-local S, F, fGet, fSet = Page.S, Page.F, Page.fGet, Page.fSet
+local F, fGet, fSet = Page.F, Page.fGet, Page.fSet
 local HasClassBuffs, HasPrompt, OffersSelf, TAB = Page.HasClassBuffs, Page.HasPrompt, Page.OffersSelf, Page.TAB
 local Ref = Page.Ref
 
--- When to offer, and when the prompt holds back. The four engine timings
--- (how long a favour is remembered, the retry wait, the scan interval) live
--- under Advanced; this tab only answers "offer now, or hold back?".
+-- When to offer, and when the prompt holds back. The favour, timing and
+-- targeting controls are defined in Advanced.lua; the options window draws
+-- them on this page, under these sections (Options/Window/Layout.lua).
 function Page.BuildWhenTab()
 	-- A class with no mana bar has nothing to keep: the floor and the line
 	-- under it go together. An unknown class (before the probe) shows both.
@@ -140,23 +140,6 @@ function Page.BuildWhenTab()
 					end
 					return "|cff888888" .. text .. "|r"
 				end,
-			},
-
-			-- How long a favour waits is the question somebody who only
-			-- returns buffs asks first, and they ask it here. The control
-			-- stays with the other favour timings on Advanced.
-			favoursHeader = {
-				type = "header", name = L["Favours"], order = 20,
-				hidden = function() return not S().owed or not HasClassBuffs() end,
-			},
-			favoursNote = {
-				type = "description",
-				order = 21,
-				hidden = function() return not S().owed or not HasClassBuffs() end,
-				name = "|cff888888"
-					.. L["How long someone who buffed you stays on offer: %s."]
-						:format(Ref(L["Offer a buff back for (seconds)"], TAB.advanced))
-					.. "|r",
 			},
 		},
 	}

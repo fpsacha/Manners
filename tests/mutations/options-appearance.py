@@ -69,11 +69,12 @@ mutate("Options/Look.lua",
        expect="picking Where I dragged it moved the prompt", script=S)
 
 # Where it sits (once Quick position) back down under Size, where it sat before.
+# Re-anchored on the tooltip's last line, which no longer points at Advanced.
 mutate("Options/Look.lua",
-       ":format(Ref(L[\"Exact position\"], TAB.advanced))\n"
-       "\t\t\t\tend,\n\t\t\t\torder = 3,\n",
-       ":format(Ref(L[\"Exact position\"], TAB.advanced))\n"
-       "\t\t\t\tend,\n\t\t\t\torder = 15,\n",
+       "L[\"Dragging the prompt afterwards sets this to Where I dragged it.\"],\n"
+       "\t\t\t\torder = 3,\n",
+       "L[\"Dragging the prompt afterwards sets this to Where I dragged it.\"],\n"
+       "\t\t\t\torder = 15,\n",
        "look: Quick position under Size",
        expect="Where it sits is not at the top of the tab", script=S)
 
@@ -139,9 +140,16 @@ mutate("Options/Look.lua",
 
 # Text colour no longer names the switch that overrides it.
 mutate("Options/Look.lua",
-       "\t\t\t\t\t.. \" \" .. Ref(L[\"Colour names by class\"], TAB.appearance),\n",
+       "\t\t\t\t\t.. \" |cffffd100\" .. L[\"Colour names by class\"] .. \"|r\",\n",
        ",\n",
        "look: Text colour points nowhere",
+       expect="Text colour does not end by pointing at Colour names by class", script=S)
+
+# ...or names it with the page it is already on.
+mutate("Options/Look.lua",
+       "\t\t\t\t\t.. \" |cffffd100\" .. L[\"Colour names by class\"] .. \"|r\",\n",
+       "\t\t\t\t\t.. \" \" .. Page.Ref(L[\"Colour names by class\"], TAB.appearance),\n",
+       "look: Text colour names its own page",
        expect="Text colour does not end by pointing at Colour names by class", script=S)
 
 # The cooldown sweep silent about the combat setting that stills it.
@@ -151,19 +159,23 @@ mutate("Options/Look.lua",
        "look: cooldown points nowhere",
        expect="Show the global cooldown does not point at Keep the prompt dim", script=S)
 
-# Look's text section silent about where the wording is.
-mutate("Options/Look.lua",
-       "\t\t\t\t\t.. L[\"Change what the prompt says: %s.\"]:format(Ref(L[\"Prompt wording\"], TAB.advanced))\n",
-       "\t\t\t\t\t.. L[\"Change what the prompt says: %s.\"]:format(L[\"Prompt wording\"])\n",
-       "look: text section points nowhere",
-       expect="Text does not point at Prompt wording", script=S)
+# Retired: "look: text section points nowhere". appearance.wordingNote is
+# gone; Prompt wording is a fold on Look itself, so nothing points at it.
 
 # Where it sits silent about how to put the prompt back.
 mutate("Options/Look.lua",
-       "\t\t\t\t\tlocal text = L[\"Pick Above the action bars to put it back where it started.\"]\n"
-       "\t\t\t\t\t\t.. \" \" .. L[\"Dragging",
-       "\t\t\t\t\tlocal text = L[\"Dragging",
+       "\t\t\t\tdesc = L[\"Pick Above the action bars to put it back where it started.\"]\n"
+       "\t\t\t\t\t.. \" \" .. L[\"Dragging",
+       "\t\t\t\tdesc = L[\"Dragging",
        "look: no way back named",
+       expect="posPreset says", script=S)
+
+# The pointer at Advanced back on a tooltip whose fold is on the same page.
+mutate("Options/Look.lua",
+       "L[\"Dragging the prompt afterwards sets this to Where I dragged it.\"],\n",
+       "L[\"Dragging the prompt afterwards sets this to Where I dragged it.\"]"
+       " .. \"\\n\\nExact numbers: |cffffd100Exact position|r (Advanced).\",\n",
+       "look: Where it sits points at Advanced",
        expect="posPreset says", script=S)
 
 # The second line's height a constant rather than worked out from the font.
