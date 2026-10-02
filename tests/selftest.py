@@ -51,7 +51,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 ANCHORS_ONLY = "--anchors" in sys.argv[1:]
 WHOLE = "--whole" in sys.argv[1:]
 PLAN = "--plan" in sys.argv[1:]
-JOBS = os.cpu_count() or 4
+# Two cores left free by default, so the machine stays usable during a run.
+JOBS = max(1, (os.cpu_count() or 4) - 2)
 if "--jobs" in sys.argv[1:]:
     JOBS = max(1, int(sys.argv[sys.argv.index("--jobs") + 1]))
 

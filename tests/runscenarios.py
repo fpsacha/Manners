@@ -58,8 +58,9 @@ while args:
 # over the rest by size, each worker this same script narrowed to its share.
 # The output and the exit status are the same shape as one process's, since
 # CI and selftest.py read them. selftest.py runs many suites at once and sets
-# MANNERS_SCENARIO_JOBS=1 for them, so it never fans out twice.
-JOBS = int(os.environ.get("MANNERS_SCENARIO_JOBS") or 0) or (os.cpu_count() or 4)
+# MANNERS_SCENARIO_JOBS=1 for them, so it never fans out twice. Two cores are
+# left free by default, so the machine stays usable during a run.
+JOBS = int(os.environ.get("MANNERS_SCENARIO_JOBS") or 0) or max(1, (os.cpu_count() or 4) - 2)
 if JOBS > 1 and names is None and files is None and shard is None and trace_path is None:
     import subprocess
     from concurrent.futures import ThreadPoolExecutor
