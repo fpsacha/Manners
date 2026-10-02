@@ -10,11 +10,14 @@
 -- mock underneath -- including the wrappers that write down a protected call
 -- made in combat, which a replacement would have silently dropped.
 --
--- Used two ways. tools/render_prompt.py walks the tree and draws it, and
+-- Used three ways. tools/render_prompt.py walks the tree and draws it,
 -- tests/scenarios/look.lua asks which animations are playing, which is the only
 -- evidence that an effect starts and stops: against the mock's own groups,
 -- whose IsPlaying always answers false, a pulse that never stops and one that
--- never starts are the same pulse.
+-- never starts are the same pulse. And tools/render_options.py draws the
+-- options window from it, which is built of edit boxes, sliders and scroll
+-- frames as well, and measures its text to lay itself out (see "Widgets" and
+-- "Text and geometry" below).
 --
 -- Nothing here is loaded by the addon, and nothing here changes what the mock
 -- does for a scenario that does not ask for it: FrameTree.install() swaps
@@ -127,7 +130,7 @@ local function newGroup(owner)
 	g.Finish = function(self) return FT.finishGroup(self) end
 	g.IsPlaying = function(self) return self._playing end
 	g.IsDone = function(self) return not self._playing end
-	g.GetAnimations = function(self) return table.unpack(self._anims) end
+	g.GetAnimations = function(self) return (table.unpack or unpack)(self._anims) end
 	g.GetParent = function(self) return self._owner end
 	owner._groups = owner._groups or {}
 	owner._groups[#owner._groups + 1] = g
@@ -199,6 +202,476 @@ function FT.visible(r)
 	return true
 end
 
+-- How wide a line of text is. The renderer hands in FT.measure, which asks the
+-- font it draws with, so a line the addon shrank to fit is the line the
+-- picture shows fitting. Without it, half the font's size a character --
+-- Friz Quadrata's average, near enough -- counted in characters rather than
+-- bytes, or every Cyrillic or accented line measured twice its width.
+local function measure(text, size)
+	text = tostring(text or ""):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
+	if FT.measure then return FT.measure(text, size) end
+	local chars = text:gsub("[\128-\191]", "")
+	return #chars * size * 0.5
+end
+
+-- ------------------------------------------------------------------ widgets
+--
+-- The options window is built of Frame, Button, EditBox, Slider and
+-- ScrollFrame, its text set in the game's font objects. What each of those is
+-- told is kept in `_ft`, apart from the fields the mock keeps for itself, so a
+-- mock that records the same call its own way cannot disagree with what is
+-- drawn. Setters go through to the mock as every other call here does; a
+-- getter is only supplied where the mock has none.
+
+local FRIZ = "Fonts\\FRIZQT__.TTF"
+local GOLD, WHITE, GREY = { 1, 0.82, 0, 1 }, { 1, 1, 1, 1 }, { 0.5, 0.5, 0.5, 1 }
+-- The client's own: Normal is gold, Highlight white, Disable grey, each at
+-- 12, with Large at 16 and Small at 10.
+FT.FONTS = {
+	GameFontNormal = { FRIZ, 12, GOLD }, GameFontNormalLarge = { FRIZ, 16, GOLD },
+	GameFontNormalSmall = { FRIZ, 10, GOLD }, GameFontHighlight = { FRIZ, 12, WHITE },
+	GameFontHighlightSmall = { FRIZ, 10, WHITE }, GameFontDisable = { FRIZ, 12, GREY },
+	GameFontDisableSmall = { FRIZ, 10, GREY },
+}
+
+-- A colour set by SetTextColor and one that came with a font object are both
+-- kept, stamped, and the later one is what is drawn.
+local function stamp()
+	FT.stamps = (FT.stamps or 0) + 1
+	return FT.stamps
+end
+
+-- A font object's name, face and colour. The object is a table (the client's,
+-- or the mock's with `_name` and GetFont) or its global's name.
+local function fontObject(obj)
+	local name = type(obj) == "string" and obj or (type(obj) == "table" and obj._name) or nil
+	if type(obj) == "string" then obj = _G[obj] end
+	local known = name and FT.FONTS[name]
+	local path, size, flags
+	if type(obj) == "table" and type(obj.GetFont) == "function" then path, size, flags = obj:GetFont() end
+	if not size and known then path, size, flags = known[1], known[2], "" end
+	local color = known and known[3]
+	if not color and type(obj) == "table" and type(obj.GetTextColor) == "function" then
+		color = { obj:GetTextColor() }
+	end
+	return name, size and { path = path, size = size, flags = flags } or nil, color
+end
+
+local function utf8len(s)
+	return select(2, tostring(s or ""):gsub("[^\128-\191]", ""))
+end
+
+-- Moved under another frame without going through the mock's SetParent: a
+-- scroll child belongs to its scroll frame once it is set, as in the client.
+local function adopt(parent, child)
+	local old = child._parent
+	if old == parent then return end
+	if old and old._children then
+		for i, c in ipairs(old._children) do
+			if c == child then table.remove(old._children, i) break end
+		end
+	end
+	child._parent = parent
+	if parent._children then parent._children[#parent._children + 1] = child end
+	if parent._level and child._level then FT.relevel(child, parent._level + 1) end
+end
+
+-- A frame's level set, and everything on it moved by as much, so what was
+-- drawn over it still is.
+function FT.relevel(f, level)
+	local delta = level - (f._level or level)
+	if delta == 0 then return end
+	local function shift(r)
+		if r._level then r._level = r._level + delta end
+		for _, c in ipairs(r._children or {}) do shift(c) end
+	end
+	shift(f)
+end
+
+local W = {}
+
+-- Font strings and edit boxes.
+function W.text(f)
+	wrap(f, "SetFontObject", function(self, obj)
+		local name, font, color = fontObject(obj)
+		local w = self._ft
+		w.fontObject, w.fontRef, w.objColor, w.objAt = name, obj, color, stamp()
+		if font then self._font, self._noFont = font, nil end
+	end)
+	if not f.GetFontObject then f.GetFontObject = function(self) return self._ft.fontRef end end
+	wrap(f, "SetTextColor", function(self) self._ft.colorAt = stamp() end)
+	wrap(f, "SetSpacing", function(self, v) self._ft.spacing = tonumber(v) end)
+	if not f.GetSpacing then f.GetSpacing = function(self) return self._ft.spacing or 0 end end
+end
+
+function W.FontString(f)
+	W.text(f)
+	-- The field tools/render_ledger.lua's measurable strings write as well.
+	wrap(f, "SetMaxLines", function(self, n) self._maxLines = tonumber(n) end)
+	if not f.GetMaxLines then f.GetMaxLines = function(self) return self._maxLines or 0 end end
+	wrap(f, "SetNonSpaceWrap", function(self, v) self._ft.nonSpaceWrap = v and true or false end)
+	-- Answered from the same lines the renderer draws, as the width is.
+	f.GetStringHeight = function(self) return FT.textHeight(self) end
+	f.GetNumLines = function(self) return #(FT.textLines(self)) end
+end
+
+-- Enabled and disabled, for buttons, sliders and edit boxes alike.
+function W.enable(f)
+	wrap(f, "Enable", function(self) self._ft.enabled = true end)
+	wrap(f, "Disable", function(self) self._ft.enabled = false end)
+	wrap(f, "SetEnabled", function(self, v) self._ft.enabled = v and true or false end)
+	if not f.IsEnabled then f.IsEnabled = function(self) return self._ft.enabled ~= false end end
+end
+
+function W.Button(f)
+	W.enable(f)
+	if not f.Click then
+		f.Click = function(self, button, down)
+			local fn = self.scripts and self.scripts.OnClick
+			if fn and self._ft.enabled ~= false then fn(self, button or "LeftButton", down or false) end
+		end
+	end
+end
+
+function W.EditBox(f)
+	W.text(f)
+	W.enable(f)
+	wrap(f, "SetMultiLine", function(self, v) self._ft.multiLine = v and true or false end)
+	wrap(f, "SetTextInsets", function(self, l, r, t, b)
+		self._ft.insets = { tonumber(l) or 0, tonumber(r) or 0, tonumber(t) or 0, tonumber(b) or 0 }
+	end)
+	wrap(f, "SetMaxLetters", function(self, n) self._ft.maxLetters = tonumber(n) end)
+	wrap(f, "SetAutoFocus", function(self, v) self._ft.autoFocus = v and true or false end)
+	-- One box has the keyboard at a time.
+	wrap(f, "SetFocus", function(self)
+		if FT.focus and FT.focus ~= self and FT.focus._ft then FT.focus._ft.focus = false end
+		FT.focus, self._ft.focus = self, true
+	end)
+	wrap(f, "ClearFocus", function(self)
+		if FT.focus == self then FT.focus = nil end
+		self._ft.focus = false
+	end)
+	wrap(f, "SetCursorPosition", function(self, n) self._ft.cursor = tonumber(n) end)
+	if not f.HighlightText then f.HighlightText = function(self) return self end end
+	if not f.HasFocus then f.HasFocus = function(self) return self._ft.focus == true end end
+	if not f.GetNumLetters then f.GetNumLetters = function(self) return utf8len(self._text) end end
+	if not f.Insert then
+		f.Insert = function(self, s) return self:SetText(tostring(self._text or "") .. tostring(s or "")) end
+	end
+end
+
+local function clampValue(w)
+	if w.value ~= nil and w.min and w.max then w.value = math.max(w.min, math.min(w.max, w.value)) end
+end
+
+-- The thumb is a texture of the slider's, given or made from a file. The
+-- client puts it where the value says, whatever anchors it was given.
+local function setThumb(slider, tex)
+	local w = slider._ft
+	local thumb = type(tex) == "table" and tex._kind and tex
+	if not thumb then
+		thumb = w.thumb and w.thumb._ft.madeHere and w.thumb or slider:CreateTexture(nil, "ARTWORK")
+		thumb._ft.madeHere = true
+		thumb:SetTexture(tex)
+	end
+	if w.thumb and w.thumb ~= thumb then w.thumb._ft.thumbOf = nil end
+	thumb._ft.thumbOf, w.thumb = slider, thumb
+end
+
+function W.Slider(f)
+	W.enable(f)
+	wrap(f, "SetOrientation", function(self, o) self._ft.orientation = o end)
+	wrap(f, "SetMinMaxValues", function(self, lo, hi)
+		self._ft.min, self._ft.max = tonumber(lo), tonumber(hi)
+		clampValue(self._ft)
+	end)
+	wrap(f, "SetValueStep", function(self, v) self._ft.step = tonumber(v) end)
+	wrap(f, "SetObeyStepOnDrag", function(self, v) self._ft.obeyStep = v and true or false end)
+	wrap(f, "SetValue", function(self, v)
+		self._ft.value = tonumber(v)
+		clampValue(self._ft)
+	end)
+	if not f.GetValue then f.GetValue = function(self) return self._ft.value or self._ft.min or 0 end end
+	if not f.GetMinMaxValues then
+		f.GetMinMaxValues = function(self) return self._ft.min or 0, self._ft.max or 0 end
+	end
+	if not f.GetValueStep then f.GetValueStep = function(self) return self._ft.step or 0 end end
+	wrap(f, "SetThumbTexture", setThumb)
+	-- Always this one: the window sizes and colours the thumb it is handed back.
+	f.GetThumbTexture = function(self) return self._ft.thumb end
+end
+
+function W.ScrollFrame(f)
+	wrap(f, "SetScrollChild", function(self, child)
+		local w = self._ft
+		if w.scrollChild and w.scrollChild ~= child and w.scrollChild._ft then
+			w.scrollChild._ft.scrollFrame = nil
+		end
+		w.scrollChild = child
+		if type(child) == "table" and child._ft then
+			child._ft.scrollFrame = self
+			adopt(self, child)
+		end
+	end)
+	if not f.GetScrollChild then f.GetScrollChild = function(self) return self._ft.scrollChild end end
+	wrap(f, "SetVerticalScroll", function(self, v) self._ft.vscroll = tonumber(v) or 0 end)
+	wrap(f, "SetHorizontalScroll", function(self, v) self._ft.hscroll = tonumber(v) or 0 end)
+	if not f.GetVerticalScroll then f.GetVerticalScroll = function(self) return self._ft.vscroll or 0 end end
+	if not f.GetHorizontalScroll then
+		f.GetHorizontalScroll = function(self) return self._ft.hscroll or 0 end
+	end
+	if not f.GetVerticalScrollRange then
+		f.GetVerticalScrollRange = function(self) return FT.scrollRange(self) end
+	end
+	if not f.UpdateScrollChildRect then f.UpdateScrollChildRect = function(self) return self end end
+end
+
+-- Where a frame's edges are, in its own units, for a mock that has no answer.
+local function edge(axis, high)
+	return function(self)
+		local lo, hi = FT.span(self, axis)
+		if not lo then return nil end
+		return (high and hi or lo) / FT.scaleOf(self)
+	end
+end
+local EDGES = { GetLeft = edge("x", false), GetRight = edge("x", true),
+	GetBottom = edge("y", false), GetTop = edge("y", true) }
+
+function W.Frame(f)
+	wrap(f, "SetClipsChildren", function(self, v) self._ft.clips = v and true or false end)
+	if not f.DoesClipChildren then f.DoesClipChildren = function(self) return self._ft.clips == true end end
+	wrap(f, "SetToplevel", function(self, v) self._ft.toplevel = v and true or false end)
+	-- Kept as a stamp only: the renderer of the options window draws the frame
+	-- raised last on top of its strata; the other renderers draw as before.
+	wrap(f, "Raise", function(self) self._ft.raisedAt = stamp() end)
+	wrap(f, "EnableKeyboard", function(self, v) self._ft.keyboard = v and true or false end)
+	wrap(f, "SetPropagateKeyboardInput", function(self, v) self._ft.propagate = v and true or false end)
+	wrap(f, "SetHitRectInsets", function(self, l, r, t, b) self._ft.hitInsets = { l, r, t, b } end)
+	if not f.IsMouseOver then f.IsMouseOver = function() return false end end
+	for name, fn in pairs(EDGES) do
+		if not f[name] then f[name] = fn end
+	end
+end
+
+local KINDS = { Button = W.Button, EditBox = W.EditBox, Slider = W.Slider, ScrollFrame = W.ScrollFrame }
+
+function FT.extend(f, kind)
+	f._ft = f._ft or {}
+	if kind == "FontString" then
+		W.FontString(f)
+	elseif kind ~= "Texture" and kind ~= "MaskTexture" then
+		W.Frame(f)
+		if KINDS[kind] then KINDS[kind](f) end
+	end
+end
+
+-- ------------------------------------------------------------------ text and geometry
+--
+-- A string wraps at the width its anchors or SetWidth give it, so how tall it
+-- is depends on where it sits. These answer that from the anchors, by the
+-- rules tools/render_options.py draws by: two edges on an axis win over a set
+-- size, a set size hangs from one edge or a centre; a scroll child hangs from
+-- its scroll frame's top left, moved by the scroll; a thumb sits where its
+-- slider's value puts it. Spans are { low, high } in screen units, y up.
+
+-- The renderer's screen; otherwise the size render_prompt.py draws.
+FT.screen = nil
+
+local function frac(point, axis)
+	point = tostring(point or "CENTER")
+	if axis == "x" then
+		if point:find("LEFT", 1, true) then return 0 elseif point:find("RIGHT", 1, true) then return 1 end
+		return 0.5
+	end
+	if point:find("BOTTOM", 1, true) then return 0 elseif point:find("TOP", 1, true) then return 1 end
+	return 0.5
+end
+
+function FT.scaleOf(r)
+	local s = 1
+	while r do
+		s = s * (r._scale or 1)
+		r = r._parent
+	end
+	return s
+end
+
+-- Where each of a region's anchors puts it on one axis, by the fraction of
+-- its width or height the anchor is at (0, 0.5 or 1). A relative frame given
+-- by name, or none, is the parent, as FT.snapshot hands it to the renderer.
+local function anchorsOn(r, axis, depth)
+	local at, s = {}, FT.scaleOf(r)
+	local pts = r.points or {}
+	if r._allPointsTo then
+		pts = { { "TOPLEFT", r._allPointsTo, "TOPLEFT", 0, 0 },
+			{ "BOTTOMRIGHT", r._allPointsTo, "BOTTOMRIGHT", 0, 0 } }
+	end
+	for _, p in ipairs(pts) do
+		local point, rel, relPoint, x, y = p[1], p[2], p[3], p[4], p[5]
+		if type(rel) == "number" then rel, relPoint, x, y = nil, nil, rel, relPoint end
+		if type(rel) ~= "table" then rel = r._parent end
+		local lo, hi = FT.span(rel, axis, depth)
+		if lo then
+			local off = (axis == "x" and x or y) or 0
+			at[frac(point, axis)] = lo + (hi - lo) * frac(relPoint or point, axis) + off * s
+		end
+	end
+	return at
+end
+
+-- The lines a string is drawn in: its own line breaks always, and past those
+-- it wraps at its width unless word wrap is off or it has no width.
+local function explicitLines(text)
+	local out = {}
+	text = text:gsub("|n", "\n")
+	for line in (text .. "\n"):gmatch("([^\n]*)\n") do out[#out + 1] = line end
+	return out
+end
+
+local function fallbackWrap(text, width, size)
+	local out = {}
+	for _, para in ipairs(explicitLines(text)) do
+		local line
+		for word in para:gmatch("%S+") do
+			local trial = line and (line .. " " .. word) or word
+			if line and measure(trial, size) > width + 0.5 then
+				out[#out + 1] = line
+				line = word
+			else
+				line = trial
+			end
+		end
+		out[#out + 1] = line or ""
+	end
+	return out
+end
+
+-- The width a string wraps at, in its own units: its two edges, else its set
+-- width, else none.
+function FT.boundWidth(r)
+	local at = anchorsOn(r, "x", 0)
+	if at[0] and at[1] then return (at[1] - at[0]) / FT.scaleOf(r) end
+	return r._width
+end
+
+-- The lines drawn, and whether SetMaxLines cut some off. The renderer hands
+-- in FT.wrap, which breaks them with the font it draws in.
+function FT.textLines(r)
+	local text = r._text
+	if text == nil or text == "" then return {}, false end
+	text = tostring(text)
+	local size = r._font and r._font.size or 12
+	local width = r._wordWrap ~= false and FT.boundWidth(r) or nil
+	local lines
+	if not width then
+		lines = explicitLines(text)
+	elseif FT.wrap then
+		lines = explicitLines(FT.wrap(text, width, size, r._ft and r._ft.nonSpaceWrap or false))
+	else
+		lines = fallbackWrap(text, width, size)
+	end
+	local cap = r._maxLines
+	if type(cap) == "number" and cap > 0 and #lines > cap then
+		for i = #lines, cap + 1, -1 do lines[i] = nil end
+		return lines, true
+	end
+	return lines, false
+end
+
+-- A line is as tall as the font is big, plus SetSpacing between lines.
+function FT.textHeight(r)
+	local n = #(FT.textLines(r))
+	if n == 0 then return 0 end
+	local size = r._font and r._font.size or 12
+	return n * size + (n - 1) * (r._ft and r._ft.spacing or 0)
+end
+
+local function widestLine(r)
+	local size, widest = r._font and r._font.size or 12, 0
+	for _, line in ipairs(explicitLines(tostring(r._text or ""))) do
+		widest = math.max(widest, measure(line, size))
+	end
+	return widest
+end
+
+-- A region's size on one axis in screen units: what it was set to, else, for a
+-- string, its text's.
+function FT.sizeOn(r, axis)
+	local s = FT.scaleOf(r)
+	local set
+	if axis == "x" then set = r._width else set = r._height end
+	if set then return set * s end
+	if r._kind == "FontString" then
+		if axis == "x" then return widestLine(r) * s end
+		return FT.textHeight(r) * s
+	end
+	return 0
+end
+
+local function scrollChildSpan(r, sf, axis, depth)
+	local lo, hi = FT.span(sf, axis, depth)
+	if not lo then return nil end
+	local s = FT.scaleOf(r)
+	if axis == "x" then
+		local left = lo - (sf._ft.hscroll or 0) * s
+		return left, left + (r._width and r._width * s or (hi - lo))
+	end
+	local top = hi + (sf._ft.vscroll or 0) * s
+	return top - (r._height or 0) * s, top
+end
+
+local function thumbSpan(r, slider, axis, depth)
+	local lo, hi = FT.span(slider, axis, depth)
+	if not lo then return nil end
+	local s, w = FT.scaleOf(r), slider._ft
+	local vertical = w.orientation == "VERTICAL"
+	local along = (axis == "y") == vertical
+	local size
+	if axis == "x" then size = r._width else size = r._height end
+	size = size and size * s or (along and 16 * s or (hi - lo))
+	if not along then
+		local mid = (lo + hi) / 2
+		return mid - size / 2, mid + size / 2
+	end
+	local min, max = w.min or 0, w.max or 1
+	local t = max > min and ((w.value or min) - min) / (max - min) or 0
+	t = math.max(0, math.min(1, t))
+	-- A vertical slider has its minimum at the top.
+	if vertical then t = 1 - t end
+	local start = lo + t * (hi - lo - size)
+	return start, start + size
+end
+
+function FT.span(r, axis, depth)
+	depth = (depth or 0) + 1
+	if type(r) ~= "table" or depth > 64 then return nil end
+	if r == UIParent then
+		local screen = FT.screen or {}
+		if axis == "x" then return 0, screen.width or 1600 end
+		return 0, screen.height or Mock.screenHeight or 1000
+	end
+	local w = r._ft
+	if w and w.scrollFrame then return scrollChildSpan(r, w.scrollFrame, axis, depth) end
+	if w and w.thumbOf then return thumbSpan(r, w.thumbOf, axis, depth) end
+	local at = anchorsOn(r, axis, depth)
+	if at[0] and at[1] then return at[0], at[1] end
+	local size = FT.sizeOn(r, axis)
+	if at[0] then return at[0], at[0] + size end
+	if at[1] then return at[1] - size, at[1] end
+	if at[0.5] then return at[0.5] - size / 2, at[0.5] + size / 2 end
+	return nil
+end
+
+-- How far a scroll frame can scroll: its child's height past its own.
+function FT.scrollRange(sf)
+	local child = sf._ft and sf._ft.scrollChild
+	if not child then return 0 end
+	local clo, chi = FT.span(child, "y")
+	local lo, hi = FT.span(sf, "y")
+	if not clo or not lo then return 0 end
+	return math.max(0, ((chi - clo) - (hi - lo)) / FT.scaleOf(sf))
+end
+
 instrument = function(f, kind, parent, layer, sublevel)
 	FT.serial = FT.serial + 1
 	f._serial = FT.serial
@@ -232,6 +705,9 @@ instrument = function(f, kind, parent, layer, sublevel)
 		end
 		self._parent = parent
 		if parent and parent._children then parent._children[#parent._children + 1] = self end
+		-- A frame moved under another sits one level above it, as the client
+		-- puts it (SetFixedFrameLevel is the client's way to stop that).
+		if parent and parent._level and self._level then FT.relevel(self, parent._level + 1) end
 	end)
 	f.IsVisible = function(self) return FT.visible(self) end
 
@@ -266,17 +742,9 @@ instrument = function(f, kind, parent, layer, sublevel)
 	f.SetShadowColor = function(self, r, g, b, a) self._shadowColor = { r, g, b, a } return self end
 	f.SetShadowOffset = function(self, x, y) self._shadowOffset = { x, y } return self end
 	f.SetWordWrap = function(self, v) self._wordWrap = v return self end
-	-- How wide the text is. The renderer hands in FT.measure, which asks the
-	-- font it draws with, so a line the addon shrank to fit is the line the
-	-- picture shows fitting. Without it, half the font's size a character --
-	-- Friz Quadrata's average, near enough -- counted in characters rather
-	-- than bytes, or every Cyrillic or accented line measured twice its width.
+	-- How wide the text is, on one line (see measure above).
 	f.GetStringWidth = function(self)
-		local text = tostring(self._text or ""):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
-		local size = self._font and self._font.size or 12
-		if FT.measure then return FT.measure(text, size) end
-		local chars = text:gsub("[\128-\191]", "")
-		return #chars * size * 0.5
+		return measure(self._text, self._font and self._font.size or 12)
 	end
 	-- The client's other measure, the one that ignores the width the anchors
 	-- put on the string. Nothing here wraps or cuts, so the two are the same.
@@ -357,6 +825,7 @@ instrument = function(f, kind, parent, layer, sublevel)
 		f.SetUseCircularEdge = function(self, v) self._circular = v return self end
 		f.SetEdgeScale = function(self, v) self._edgeScale = v return self end
 	end
+	FT.extend(f, kind)
 	return f
 end
 FT.instrument = instrument
@@ -370,6 +839,7 @@ function FT.install()
 	base = Mock.newFrame
 	realCreateFrame = CreateFrame
 	FT.all, FT.log, FT.serial = {}, {}, 0
+	FT.stamps, FT.focus = 0, nil
 	-- Adopted afresh on every install, not once: the serials start again at
 	-- zero, and a root still carrying the last install's number would share it
 	-- with the first frame made after this one.
@@ -382,13 +852,29 @@ function FT.install()
 	end
 	UIParent._level = 0
 	UIParent._children = {}
+	UIParent._ft = UIParent._ft or {}
 	CreateFrame = function(kind, name, parent, template)
 		local f = base()
 		instrument(f, kind or "Frame", parent or UIParent, nil)
 		f._name = name
 		f._template = template
+		FT.template(f, template)
 		if name then _G[name] = f end
 		return f
+	end
+end
+
+-- What a template gives a frame before the addon touches it. The window's
+-- close X is the only template it uses: 24 square, and a click hides the
+-- frame it sits on.
+function FT.template(f, template)
+	if type(template) ~= "string" or not template:find("UIPanelCloseButton", 1, true) then return end
+	f._width, f._height = f._width or 24, f._height or 24
+	if not f.scripts.OnClick then
+		f.scripts.OnClick = function(self)
+			local parent = self._parent
+			if parent and parent.Hide then parent:Hide() end
+		end
 	end
 end
 
@@ -417,7 +903,8 @@ function FT.snapshot(root)
 			if type(a) == "number" then
 				pts[i] = { point, ref(r._parent), point, a, b or 0 }
 			elseif a == nil then
-				pts[i] = { point, ref(r._parent), point, 0, 0 }
+				-- (point) alone, or (point, nil, relPoint, x, y): nil is the parent.
+				pts[i] = { point, ref(r._parent), b or point, c or 0, d or 0 }
 			else
 				pts[i] = { point, ref(a), b or point, c or 0, d or 0 }
 			end
@@ -448,7 +935,7 @@ function FT.snapshot(root)
 	walk(root or UIParent)
 	for _, r in ipairs(FT.all) do
 		if wanted[r] then
-			out[#out + 1] = {
+			out[#out + 1] = FT.widgetFields(r, ref, {
 				id = r._serial, kind = r._kind, parent = ref(r._parent), name = r._name,
 				layer = r._layer, sublevel = r._sublevel, level = r._level,
 				strata = r._strata,
@@ -470,10 +957,30 @@ function FT.snapshot(root)
 				swipeTexture = r._swipeTexture,
 				drawEdge = r._drawEdge,
 				groups = anims(r),
-			}
+			})
 		end
 	end
 	return out
+end
+
+-- What the widgets above recorded, added to a snapshot entry. References to
+-- other regions go through `ref`, as everything in the snapshot does.
+function FT.widgetFields(r, ref, entry)
+	local w = r._ft or {}
+	entry.template = r._template
+	entry.maxLines = r._maxLines
+	entry.fontObject, entry.objColor = w.fontObject, w.objColor
+	-- Whether the font object's colour came after SetTextColor's.
+	entry.objLater = (w.objAt or 0) > (w.colorAt or 0)
+	entry.spacing, entry.nonSpaceWrap = w.spacing, w.nonSpaceWrap
+	entry.clips, entry.enabled, entry.raisedAt = w.clips, w.enabled, w.raisedAt
+	entry.scrollChild, entry.scrollFrame = ref(w.scrollChild), ref(w.scrollFrame)
+	entry.vscroll, entry.hscroll = w.vscroll, w.hscroll
+	entry.multiLine, entry.insets, entry.focus = w.multiLine, w.insets, w.focus
+	entry.orientation, entry.value = w.orientation, w.value
+	entry.minValue, entry.maxValue = w.min, w.max
+	entry.thumb, entry.thumbOf = ref(w.thumb), ref(w.thumbOf)
+	return entry
 end
 
 return FT
