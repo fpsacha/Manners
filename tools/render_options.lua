@@ -36,12 +36,66 @@ local SCREEN = { width = 1365, height = 768 }
 -- Sidebar order, used when the layout cannot be asked.
 R.PAGES = { "general", "who", "skip", "when", "click", "appearance", "profiles", "diagnostics" }
 
+-- AceDBOptions' Profiles controls as the library builds them (its English
+-- words, its orders, its handler methods), over the mock's database. The
+-- mock's own stand-in builds only the opening paragraph, which would draw
+-- Profiles without the controls a player sees on it.
+local function profileOptions()
+	local lib = LibStub("AceDBOptions-3.0")
+	lib.GetOptionsTable = function(_, db)
+		local function current() return Mock.sv.profileName or "Default" end
+		-- The sidebar's second line under Profiles is the profile's name.
+		db.GetCurrentProfile = db.GetCurrentProfile or function() return current() end
+		local H = { db = db }
+		function H.GetCurrentProfile() return current() end
+		function H.SetProfile(_, _, name) db:SetProfile(name) end
+		function H.ListProfiles(_, info)
+			local out = { Default = "Default" }
+			for name in pairs(Mock.sv.profiles or {}) do out[name] = name end
+			out[current()] = current()
+			if info.arg == "nocurrent" then out[current()] = nil end
+			return out
+		end
+		function H.HasNoProfiles(self, info) return next(self:ListProfiles(info)) == nil end
+		function H.CopyProfile() end
+		function H.DeleteProfile() end
+		function H.Reset() end
+		local gold, close = NORMAL_FONT_COLOR_CODE or "|cffffd200", FONT_COLOR_CODE_CLOSE or "|r"
+		return { type = "group", name = "Profiles", handler = H, args = {
+			desc = { order = 1, type = "description",
+				name = "You can change the active database profile, so you can have different settings for every character.\n" },
+			descreset = { order = 9, type = "description",
+				name = "Reset the current profile back to its default values, in case your configuration is broken, or you simply want to start over." },
+			reset = { order = 10, type = "execute", name = "Reset Profile", desc = "Reset the current profile to the default", func = "Reset" },
+			current = { order = 11, type = "description",
+				name = function(info) return "Current Profile: " .. gold .. info.handler:GetCurrentProfile() .. close end },
+			choosedesc = { order = 20, type = "description",
+				name = "\nYou can either create a new profile by entering a name in the editbox, or choose one of the already existing profiles." },
+			new = { order = 30, type = "input", name = "New", desc = "Create a new empty profile.", get = false,
+				set = "SetProfile", usage = "Profile names cannot be longer than 50 characters.",
+				validate = function(_, text) return #text > 0 and #text <= 50 and not text:find("^ +$") end },
+			choose = { order = 40, type = "select", name = "Existing Profiles", desc = "Select one of your currently available profiles.",
+				get = "GetCurrentProfile", set = "SetProfile", values = "ListProfiles", arg = "common" },
+			copydesc = { order = 50, type = "description",
+				name = "\nCopy the settings from one existing profile into the currently active profile." },
+			copyfrom = { order = 60, type = "select", name = "Copy From", desc = "Copy the settings from one existing profile into the currently active profile.",
+				get = false, set = "CopyProfile", values = "ListProfiles", disabled = "HasNoProfiles", arg = "nocurrent" },
+			deldesc = { order = 70, type = "description",
+				name = "\nDelete existing and unused profiles from the database to save space, and cleanup the SavedVariables file." },
+			delete = { order = 80, type = "select", name = "Delete a Profile", desc = "Deletes a profile from the database.",
+				get = false, set = "DeleteProfile", values = "ListProfiles", disabled = "HasNoProfiles", arg = "nocurrent",
+				confirm = true, confirmText = "Are you sure you want to delete the selected profile?" },
+		} }
+	end
+end
+
 local function fresh()
 	Mock.reset()
 	Mock.screenHeight = SCREEN.height
 	FT.uninstall()
 	FT.install()
 	FT.measure, FT.wrap, FT.screen = measure, wrap, SCREEN
+	profileOptions()
 end
 
 local function load()
@@ -59,7 +113,35 @@ local function load()
 	return ns
 end
 
+-- What each class has learned, as tests/scenarios/window-classes.lua gives it
+-- for IA 1.11's table: its buffs by key (every rank) and spell ids. The mock
+-- client on its own knows Arcane Intellect and nothing else, which would
+-- draw every other class as a character that has learned nothing yet.
+local KNOWS = {
+	MAGE = { known = { 1459, 168 } },
+	PRIEST = { buffs = { "fortitude", "spirit", "shadow" } },
+	PALADIN = { buffs = { "wisdom", "might", "kings", "salvation", "light", "sanctuary" } },
+	WARRIOR = { buffs = { "battleshout" } },
+	HUNTER = { known = { 13165, 13163 } },
+}
+local mockKnown, mockPlayerSpell = IsSpellKnown, IsPlayerSpell
+
+local function know(ns)
+	IsSpellKnown, IsPlayerSpell = mockKnown, mockPlayerSpell
+	local spec = KNOWS[Mock.class]
+	if not spec then return end
+	local set = {}
+	for _, id in ipairs(spec.known or {}) do set[id] = true end
+	for _, key in ipairs(spec.buffs or {}) do
+		local buff = ns.FindBuff and ns.FindBuff(Mock.class, key)
+		for _, id in ipairs(buff and buff.ranks or {}) do set[id] = true end
+	end
+	IsSpellKnown = function(id) return set[id] == true end
+	IsPlayerSpell = IsSpellKnown
+end
+
 local function boot(ns)
+	know(ns)
 	ns.addon:OnInitialize()
 	ns.addon:OnEnable()
 	ns.addon:PLAYER_ENTERING_WORLD()
@@ -168,6 +250,14 @@ AFTER["folds-open"] = function(ns, _, page)
 	assert(type(saved) == "table", "the window keeps no ns.db.global.window")
 	saved.open = open
 	ns.OpenOptions(page)
+end
+
+-- The page scrolled to its end, as the mouse wheel would take it, for what a
+-- long page holds below the first screen.
+function AFTER.scrolled(ns)
+	local UI = ns.WindowUI
+	assert(UI and UI.ScrollTo, "this tree has no ns.WindowUI.ScrollTo")
+	UI.ScrollTo(math.huge)
 end
 
 -- The confirm box, asked for the way a player asks: the footer's reset pressed.

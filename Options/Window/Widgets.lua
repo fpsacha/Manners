@@ -41,7 +41,9 @@ local T = {
 	ink = { 0.922, 0.902, 0.855 },
 	inkSoft = { 0.788, 0.765, 0.710 },
 	hint = { 0.557, 0.545, 0.518 },
-	dim = { 0.373, 0.365, 0.345 },
+	-- Greyed-out words: as light as keeps 4.5:1 on the panel, the floor the
+	-- window holds all its text to.
+	dim = { 0.52, 0.509, 0.481 },
 	white = { 1, 1, 1 },
 	red = { 1, 0.502, 0.502 },
 	green = { 0.502, 0.878, 0.502 },
@@ -67,9 +69,9 @@ local T = {
 	btnTop = { 0.525, 0.102, 0.067 },
 	btnBottom = { 0.263, 0.035, 0.020 },
 	btnEdge = { 0.114, 0.016, 0.008 },
-	btnOffTop = { 0.227, 0.224, 0.224 },
-	btnOffBottom = { 0.137, 0.133, 0.133 },
-	btnOffInk = { 0.545, 0.533, 0.510 },
+	btnOffTop = { 0.16, 0.158, 0.158 },
+	btnOffBottom = { 0.1, 0.098, 0.098 },
+	btnOffInk = { 0.6, 0.588, 0.561 },
 	shine = { 1, 1, 1, 0.17 },
 	trackTop = { 0.020, 0.020, 0.024 },
 	trackBottom = { 0.090, 0.090, 0.110 },

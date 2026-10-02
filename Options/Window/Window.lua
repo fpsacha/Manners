@@ -244,11 +244,14 @@ function UI.HoverPreview(on)
 	end)
 end
 
--- What the widgets are handed with every item.
+-- What the widgets are handed with every item. Relayout is asked for by a
+-- row that changed height by itself (an error under a box, a name added to
+-- the never-offer list): the page is laid out again, values left as they are.
 UI.ctx = {
 	OnChange = function(item) ns.Guard("options window", UI.Changed, item) end,
 	OnHold = function(on) ns.Guard("options window", UI.Held, on) end,
 	Repaint = function() ns.Guard("options repaint", UI.Refresh) end,
+	Relayout = function() ns.Guard("options relayout", UI.Relayout) end,
 }
 
 ---------------------------------------------------------------------------
@@ -521,6 +524,16 @@ function UI.Refresh()
 	if not UI.built or UI.painting then return end
 	UI.painting = true
 	local ok, err = pcall(PaintAll)
+	UI.painting = false
+	if not ok then error(err, 0) end
+end
+
+-- The open page placed again without re-reading its rows. Asked for while a
+-- paint runs, it is that paint's layout that places the row.
+function UI.Relayout()
+	if not UI.built or UI.painting or not UI.page or not UI.frame:IsShown() then return end
+	UI.painting = true
+	local ok, err = pcall(UI.PaintPage, true)
 	UI.painting = false
 	if not ok then error(err, 0) end
 end

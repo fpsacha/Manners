@@ -113,7 +113,9 @@ KIND.select = {
 		row.values = Bind().Values(row.item)
 		row.value:SetText(ChoiceLabel(row))
 		TextColour(row.value, row.off and T.dim or T.ink)
+		-- The tint is what colours the arrow, so greying it out takes the tint.
 		row.chevron:SetDesaturated(row.off and true or false)
+		W.Colour(row.chevron, row.off and T.dim or T.gold)
 		W.FieldLook(row.field.look, row.off and "off" or nil)
 		row.field:SetEnabled(not row.off)
 	end,

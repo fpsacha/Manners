@@ -25,25 +25,6 @@ end
 
 local function said() return table.concat(Mock.printed, "\n") end
 
--- Until the model's half of the redesign is in (Interface 1, with Page.Warn),
--- the two rules these scenarios lean on are put in as IA.md states them: Look
--- hides without a prompt, and the footer's reset answers for the page in
--- view. With Page.Warn present this does nothing and the model's own rules
--- are the ones tested.
-local RESET_PAGES = { who = true, skip = true, when = true, click = true, appearance = true }
-local function PreModel(ns)
-	local Page = ns.OptionsPage
-	if Page.Warn ~= nil then return end
-	local args = ns.optionsTable.args
-	if args.appearance.hidden == nil then
-		args.appearance.hidden = function() return not Page.HasPrompt() end
-	end
-	local reset = args.advanced.args.resetAdvanced
-	if reset and reset.hidden == nil then
-		reset.hidden = function() return not RESET_PAGES[ns.OptionsTab()] end
-	end
-end
-
 -- One session as opts.class (a mage by default), knowing opts.known (spell
 -- ids), with body(ns, UI) run and every global put back however it ends.
 local function with(scenario, opts, body)
@@ -64,7 +45,6 @@ local function with(scenario, opts, body)
 		drive(scenario, ns)
 		ns.Guard("probe", ns.ProbeCapabilities)
 		ns.Prompt:ExitTest()
-		PreModel(ns)
 		Mock.printed = {}
 		body(ns, ns.WindowUI)
 		if not opts.allowErrors then noErrors(scenario, ns) end
@@ -785,5 +765,51 @@ do
 		ns.addon:SPELLS_CHANGED()
 		Mock.runTimers(6)
 		if not UI.RowShown("who.own_armor") then fail(scenario, "learning Frost Armor did not add Armor to Who to buff") end
+	end)
+end
+
+-- ------------------------------------------------------------------ relayout
+-- A row that changes height by itself -- a refusal said in red under its box,
+-- with nothing committed to repaint the page -- asks the window through
+-- ctx.Relayout to place the page again round it. Without it the row grew
+-- inside a slot laid out for its old height, over the row under it.
+--
+-- AceDBOptions' New box, which the mock's stand-in for the library does not
+-- build, is put in as the library defines it.
+do
+	local scenario = "window: a refusal under a box lays the page out again round it"
+	with(scenario, {}, function(ns, UI)
+		local profiles = ns.optionsTable.args.profiles
+		profiles.handler = profiles.handler or {}
+		profiles.handler.SetProfile = function() end
+		profiles.args.new = { order = 30, type = "input", name = "New", desc = "Create a new empty profile.",
+			get = false, set = "SetProfile", usage = "Profile names cannot be longer than 50 characters.",
+			validate = function(_, text) return #text > 0 and #text <= 50 end }
+		ns.OpenOptions("profiles")
+		local w = UI.Where("profiles.new")
+		local row = w and w.e.row
+		if not (row and row.box and UI.RowShown("profiles.new")) then
+			fail(scenario, "SKIPPED -- no New box on Profiles")
+			return
+		end
+		local before = w.e.h
+		local below = UI.Where("profiles.shareCopy")
+		local belowAt = below and below.e.y
+		Mock.type(row.box, string.rep("x", 60))
+		Mock.press(row.box, "ENTER")
+		if not row.error then
+			fail(scenario, "SKIPPED -- the New box took a name of 60 characters")
+			return
+		end
+		if not (w.e.h > before) then
+			fail(scenario, ("the red sentence made the New box's row %s tall and the page still gave it %s")
+				:format(tostring(row.height), tostring(w.e.h)))
+		elseif belowAt and not (below.e.y > belowAt) then
+			fail(scenario, "the rows under the New box did not move down for the red sentence")
+		end
+		Mock.press(row.box, "ESCAPE")
+		if row.error or w.e.h ~= before then
+			fail(scenario, "Escape left the refusal's room on the page (" .. tostring(w.e.h) .. ", was " .. before .. ")")
+		end
 	end)
 end

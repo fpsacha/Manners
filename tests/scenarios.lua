@@ -16335,39 +16335,40 @@ end
 Mock.reset()
 
 -- ------------------------------------------------------------------ 249
--- A preview started from the game's Settings window ends once it is shut.
+-- A preview started with the options window open ends once it is shut.
 --
--- Whether the page was open was asked of the canvas AddToBlizOptions made, with
--- IsShown -- the canvas's own flag. Shutting the Settings window hides the
--- window and leaves that flag set, because the client only clears it when
--- another page takes the canvas's place. So after one visit the page read as
--- open until the next: the preview's clock was pushed forward on every pass,
--- "somebody real turned up" never fired, and the prompt went on showing a
--- mock-up and casting nothing over the people who had buffed you.
+-- Whether the options were open was once asked of the Settings canvas with
+-- IsShown -- the canvas's own flag, which the client leaves set after the
+-- Settings window is shut. So after one visit the options read as open until
+-- the next: the preview's clock was pushed forward on every pass, "somebody
+-- real turned up" never fired, and the prompt went on showing a mock-up and
+-- casting nothing over the people who had buffed you. The options window is
+-- asked the same question now, and has to answer it the same way.
 Mock.reset()
-ns = load("a preview from the Settings window ends when it is shut")
+ns = load("a preview from the options window ends when it is shut")
 if ns then
-	local scenario = "a preview from the Settings window ends when it is shut"
+	local scenario = "a preview from the options window ends when it is shut"
 	drive(scenario, ns)
 	ns.Prompt:ExitTest()
 	Mock.advance(60)
 	withEmptyPrompt(function()
-		Mock.openSettings()
+		ns.addon:HandleSlash("")
 		if not ns.OptionsOpen() then
-			fail(scenario, "SKIPPED -- the Settings page does not read as open while it is")
+			fail(scenario, "SKIPPED -- the options window does not read as open while it is")
 		end
-		ns.Prompt:ToggleTest()
+		-- The very first open starts a preview by itself.
+		if not ns.Prompt:InTest() then ns.Prompt:ToggleTest() end
 		if not ns.Prompt:InTest() then
-			fail(scenario, "SKIPPED -- the page's Preview button did not start a preview")
+			fail(scenario, "SKIPPED -- the window's preview button did not start a preview")
 		else
-			Mock.closeSettings()
+			ns.CloseOptions()
 			if ns.OptionsOpen() then
-				fail(scenario, "with the Settings window shut, the page still reads as open")
+				fail(scenario, "with the options window shut, it still reads as open")
 			end
 			Mock.advance(30)
 			ns.Prompt:Refresh()
 			if ns.Prompt:InTest() then
-				fail(scenario, "the preview outlived the Settings window it was started from")
+				fail(scenario, "the preview outlived the options window it was started from")
 				ns.Prompt:ExitTest()
 			end
 		end
@@ -16381,7 +16382,7 @@ if ns then
 			Mock.advance(30)
 			ns.Prompt:Refresh()
 			if ns.Prompt:InTest() then
-				fail(scenario, "a /manners test after a visit to the Settings page never timed out")
+				fail(scenario, "a /manners test after the options window was shut never timed out")
 				ns.Prompt:ExitTest()
 			end
 		end
@@ -16394,19 +16395,19 @@ if ns then
 	else
 		local realBuild = ns.BuildQueue
 		ns.BuildQueue = function() return {} end
-		Mock.openSettings()
-		ns.Prompt:ToggleTest()
+		ns.addon:HandleSlash("")
+		if not ns.Prompt:InTest() then ns.Prompt:ToggleTest() end
 		ns.BuildQueue = function() return { template } end
 		if not ns.Prompt:InTest() then
 			fail(scenario, "SKIPPED -- the second preview did not start")
 		else
-			Mock.closeSettings()
+			ns.CloseOptions()
 			Mock.printed = {}
 			ns.Prompt:Refresh()
 			if ns.Prompt:InTest()
 				or not table.concat(Mock.printed, "\n"):find("somebody real turned up", 1, true) then
 				fail(scenario, "somebody real was waiting and the preview stood in front of them"
-					.. " after the Settings window was shut")
+					.. " after the options window was shut")
 			end
 		end
 		ns.BuildQueue = realBuild
@@ -16415,43 +16416,53 @@ end
 Mock.reset()
 
 -- ------------------------------------------------------------------ 250
--- The Settings fallback opens on Manners' page.
+-- The last resort opens the game's Settings window on Manners' entry.
 --
--- If the standalone dialog cannot open, OpenOptions falls back to the game's
--- Settings window and asks for the category by ID. It asked the canvas frame
--- for that ID, and a plain frame's ID is 0, which is no category at all -- so
--- the window came up on whatever page it was last on. AddToBlizOptions hands
--- the real ID back as its second value, in the number form this client uses or
--- the name form older ones do.
+-- If neither the window nor the old dialog will open, OpenOptions asks the
+-- Settings window for Manners' category by ID. Once it asked the canvas frame,
+-- and a plain frame's ID is 0, which is no category at all -- so the window
+-- came up on whatever page it was last on. The ID is the one the category
+-- came back with, in the number form this client uses or the name form older
+-- ones do.
 for _, id in ipairs({ 17, "Manners" }) do
 	Mock.reset()
-	Mock.blizCategoryID = id
 	local scenario = "the Settings fallback opens on Manners (" .. type(id) .. " ID)"
+	local record = Mock.installSettings()
+	local register = Settings.RegisterCanvasLayoutCategory
+	Settings.RegisterCanvasLayoutCategory = function(...)
+		local category = register(...)
+		category.ID = id
+		return category
+	end
 	ns = load(scenario)
 	if ns then
 		drive(scenario, ns)
 		local dialog = LibStub("AceConfigDialog-3.0")
-		local realOpen, realSettings = dialog.Open, Settings
-		local asked = {}
-		Settings = { OpenToCategory = function(which) asked[#asked + 1] = which end }
-		dialog.Open = function()
-			error("AceConfigRegistry:ValidateOptionsTable(): Manners.args: expected a table", 0)
-		end
-		ns.addon:HandleSlash("options")
-		if Mock.broker and Mock.broker.OnClick then
-			Mock.broker.OnClick(nil, "LeftButton")
-		end
-		dialog.Open, Settings = realOpen, realSettings
-		if #asked == 0 then
-			fail(scenario, "with the dialog broken, nothing opened the Settings window at all")
-		end
-		for _, which in ipairs(asked) do
-			if which ~= id then
-				fail(scenario, ("the Settings window was asked for category %s, not Manners' %s")
-					:format(tostring(which), tostring(id)))
+		local realOpen, realBuild = dialog.Open, ns.WindowUI and ns.WindowUI.Build
+		if not realBuild then
+			fail(scenario, "SKIPPED -- no options window to break")
+		else
+			ns.WindowUI.Build = function() error("the window would not build", 0) end
+			dialog.Open = function()
+				error("AceConfigRegistry:ValidateOptionsTable(): Manners.args: expected a table", 0)
+			end
+			ns.addon:HandleSlash("options")
+			if Mock.broker and Mock.broker.OnClick then
+				Mock.broker.OnClick(nil, "LeftButton")
+			end
+			dialog.Open, ns.WindowUI.Build = realOpen, realBuild
+			if #record.opened == 0 then
+				fail(scenario, "with the window and the dialog broken, nothing opened the Settings window at all")
+			end
+			for _, which in ipairs(record.opened) do
+				if which ~= id then
+					fail(scenario, ("the Settings window was asked for category %s, not Manners' %s")
+						:format(tostring(which), tostring(id)))
+				end
 			end
 		end
 	end
+	Mock.removeSettings()
 end
 Mock.reset()
 
@@ -16461,7 +16472,8 @@ Mock.reset()
 -- Whether it was open was a file local that only its own button ever changed,
 -- so shutting the window and opening it again found the fourteen-line box still
 -- open and the button reading "Hide the report" -- the state its own comment
--- says has no business surviving the window being shut. Both routes in.
+-- says has no business surviving the window being shut. Both windows: the
+-- options window, and the old dialog it falls back to.
 Mock.reset()
 ns = load("the bug-report box starts shut")
 if ns then
@@ -16480,31 +16492,41 @@ if ns then
 			end
 		end
 
-		-- The standalone window, shut and opened again with /manners.
+		-- The options window: left alone while it stays up, where somebody may
+		-- be copying out of the box, and shut with it.
 		ns.addon:HandleSlash("")
-		Mock.optionsOpen = true
+		ns.Prompt:ExitTest()
 		button.func()
 		if report.hidden() then
 			fail(scenario, "SKIPPED -- the button did not open the box")
 		end
+		ns.addon:HandleSlash("")
+		if report.hidden() then
+			fail(scenario, "/manners with the window already up shut the report box")
+		end
+		ns.CloseOptions()
+		check("shutting the window,")
+		if not report.hidden() then button.func() end
+		ns.addon:HandleSlash("")
+		check("reopening the window with /manners,")
+		ns.CloseOptions()
+
+		-- The old dialog, shut and opened again with /manners: the window is
+		-- broken, so the dialog is what opens.
+		local realBuild, realOpen = ns.WindowUI.Build, ns.WindowUI.Open
+		ns.WindowUI.Open = function() error("the window would not show", 0) end
+		ns.addon:HandleSlash("")
+		Mock.optionsOpen = true
+		if report.hidden() then button.func() end
+		if report.hidden() then
+			fail(scenario, "SKIPPED -- the button did not open the box in the dialog")
+		end
 		Mock.optionsOpen = false
 		ns.addon:HandleSlash("")
 		Mock.optionsOpen = true
-		check("reopening the window with /manners,")
+		check("reopening the dialog with /manners,")
 		Mock.optionsOpen = false
-
-		-- The game's Settings window, shut and opened again on the page.
-		-- From shut, whatever the first half left behind.
-		Mock.openSettings()
-		if not report.hidden() then button.func() end
-		button.func()
-		if report.hidden() then
-			fail(scenario, "SKIPPED -- the button did not open the box on the Settings page")
-		end
-		Mock.closeSettings()
-		Mock.openSettings()
-		check("reopening the Settings window on the page,")
-		Mock.closeSettings()
+		ns.WindowUI.Build, ns.WindowUI.Open = realBuild, realOpen
 	end
 end
 Mock.reset()

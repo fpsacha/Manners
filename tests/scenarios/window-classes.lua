@@ -21,22 +21,6 @@ local function noErrors(scenario, ns)
 	end
 end
 
--- See window.lua: until the model has Page.Warn, Look's page rule and the
--- footer reset's rule are put in as IA.md states them.
-local RESET_PAGES = { who = true, skip = true, when = true, click = true, appearance = true }
-local function PreModel(ns)
-	local Page = ns.OptionsPage
-	if Page.Warn ~= nil then return end
-	local args = ns.optionsTable.args
-	if args.appearance.hidden == nil then
-		args.appearance.hidden = function() return not Page.HasPrompt() end
-	end
-	local reset = args.advanced.args.resetAdvanced
-	if reset and reset.hidden == nil then
-		reset.hidden = function() return not RESET_PAGES[ns.OptionsTab()] end
-	end
-end
-
 -- What each class knows: its buffs by key (every rank), or spell ids.
 local CLASSES = {
 	MAGE = {},
@@ -69,7 +53,6 @@ local function with(scenario, class, locale, body)
 		drive(scenario, ns)
 		ns.Guard("probe", ns.ProbeCapabilities)
 		ns.Prompt:ExitTest()
-		PreModel(ns)
 		body(ns, ns.WindowUI)
 		ns.Prompt:ExitTest()
 		noErrors(scenario, ns)

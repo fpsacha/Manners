@@ -197,7 +197,8 @@ local function BuildResults()
 	panel:SetSize(RESULT_W, RESULT_H)
 	panel:SetFrameLevel((f:GetFrameLevel() or 1) + 30)
 	panel:EnableMouse(true)
-	local bg = UI.Solid(panel, "BACKGROUND", { 0.043, 0.043, 0.063, 0.98 })
+	-- Opaque: the page under it would read through even a 2% gap.
+	local bg = UI.Solid(panel, "BACKGROUND", { 0.043, 0.043, 0.063, 1 })
 	bg:SetAllPoints()
 	for _, side in ipairs({ { "TOPLEFT", "TOPRIGHT", 0 }, { "BOTTOMLEFT", "BOTTOMRIGHT", 0 },
 		{ "TOPLEFT", "BOTTOMLEFT", 1 }, { "TOPRIGHT", "BOTTOMRIGHT", 1 } }) do

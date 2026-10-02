@@ -12,14 +12,9 @@
 local dir, H = ...
 local fail, load = H.fail, H.load
 
--- Options/Window/*.lua are in the toc once the window itself lands; until
--- then they are run here, after the addon, as the toc would run them.
+-- What the toc's Options/Window/*.lua put in the namespace; nil, and the
+-- scenario fails, when the toc no longer loads the file.
 local function need(ns, file, field)
-	if ns[field] then return ns[field] end
-	local chunk, err = loadfile(dir .. "/" .. file)
-	if not chunk then return nil, tostring(err) end
-	local ok, runErr = pcall(chunk, "Manners", ns)
-	if not ok then return nil, tostring(runErr) end
 	return ns[field]
 end
 
@@ -39,7 +34,7 @@ local scenario = "search reads a label as it is drawn, in any case"
 local ns = load(scenario)
 local Search = ns and need(ns, "Options/Window/Search.lua", "WindowSearch")
 if ns and not Search then
-	fail(scenario, "SKIPPED -- Options/Window/Search.lua would not load")
+	fail(scenario, "the toc loaded no ns.WindowSearch (Options/Window/Search.lua)")
 elseif Search then
 	for _, case in ipairs({
 		{ "|cffffd100Lock|r it", "lock it", "a colour code" },
@@ -91,7 +86,7 @@ scenario = "search puts labels first, then choices, tooltips and places, at most
 ns = load(scenario)
 Search = ns and need(ns, "Options/Window/Search.lua", "WindowSearch")
 if ns and not Search then
-	fail(scenario, "SKIPPED -- Options/Window/Search.lua would not load")
+	fail(scenario, "the toc loaded no ns.WindowSearch (Options/Window/Search.lua)")
 elseif Search then
 	-- Given worst first, so the order out is the ranking's and not the input's.
 	local entries = {
@@ -146,7 +141,7 @@ ns = load(scenario)
 Search = ns and need(ns, "Options/Window/Search.lua", "WindowSearch")
 local layout = ns and need(ns, "Options/Window/Layout.lua", "WindowLayout")
 if ns and not (Search and layout) then
-	fail(scenario, "SKIPPED -- Options/Window/Search.lua or Layout.lua would not load")
+	fail(scenario, "the toc loaded no ns.WindowSearch or ns.WindowLayout")
 elseif Search then
 	local entries = {}
 	for _, group in ipairs(layout.groups) do

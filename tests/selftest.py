@@ -3404,37 +3404,37 @@ mutate("Prompt/Prompt.lua",
        expect="the comment gives grey",
        script="runscenarios.py")
 
-# The Settings page asked whether it is shown rather than visible, so it reads
-# as open after the window is shut and a preview started there never ends.
+# The options asked whether the window exists rather than whether it is shown,
+# so they read as open after it is shut and a preview started there never ends.
 mutate("Options/Register.lua",
-       "\t\tlocal ok, visible = pcall(function() return blizCategory:IsVisible() end)\n",
-       "\t\tlocal ok, visible = pcall(function() return blizCategory:IsShown() end)\n",
-       "Settings page asked IsShown",
-       expect="with the Settings window shut, the page still reads as open",
+       "\tif window and window:IsShown() then return true end\n",
+       "\tif window then return true end\n",
+       "options window asked whether it exists",
+       expect="with the options window shut, it still reads as open",
        script="runscenarios.py")
 
-# The Settings fallback asking for the canvas frame's own ID, which is 0.
+# The last resort asking for the canvas frame's own ID, which is 0.
 mutate("Options/Register.lua",
-       "\t\tpcall(Settings.OpenToCategory, blizCategoryID)\n",
-       "\t\tpcall(Settings.OpenToCategory, blizCategory:GetID())\n",
+       "\tblizCategoryID = category and (category.GetID and category:GetID() or category.ID) or nil\n",
+       "\tblizCategoryID = canvas.GetID and canvas:GetID() or 0\n",
        "Settings fallback by the frame's ID",
        expect="the Settings window was asked for category 0",
        script="runscenarios.py")
 
-# The report box left open when the standalone window is opened again...
+# The report box left open when the fallback dialog is opened again...
 mutate("Options/Register.lua",
        "\tif not ns.OptionsOpen() then Page.reportOpen = false end\n",
        "",
-       "report box survives reopening the window",
-       expect="reopening the window with /manners, the report box is still open",
+       "report box survives reopening the dialog",
+       expect="reopening the dialog with /manners, the report box is still open",
        script="runscenarios.py")
 
-# ...and when the Settings page is.
-mutate("Options/Register.lua",
-       "\t\tblizCategory:HookScript(\"OnHide\", function() Page.reportOpen = false end)\n",
+# ...and when the window is shut.
+mutate("Options/Window/Window.lua",
+       "\tns.OptionsPage.reportOpen = false\n",
        "",
-       "report box survives the Settings page",
-       expect="reopening the Settings window on the page, the report box is still open",
+       "report box survives shutting the window",
+       expect="shutting the window, the report box is still open",
        script="runscenarios.py")
 
 # Height shrinking the icon without asking for a repaint...

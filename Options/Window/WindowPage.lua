@@ -571,7 +571,9 @@ local function RefreshRows(sec)
 	end
 end
 
-function UI.PaintPage()
+-- layoutOnly: a row changed height by itself, so the rows are placed again
+-- without being read again.
+function UI.PaintPage(layoutOnly)
 	local m = UI.Model(UI.page)
 	BuildFrames(m)
 	local y = PAD_TOP
@@ -583,7 +585,7 @@ function UI.PaintPage()
 	local captioned, open = false, UI.State().open
 	for _, sec in ipairs(m.sections) do
 		-- A shut fold's rows are not drawn, so not read either.
-		if Judge(sec) and not (sec.fold and not open[sec.key]) then RefreshRows(sec) end
+		if Judge(sec) and not layoutOnly and not (sec.fold and not open[sec.key]) then RefreshRows(sec) end
 		if sec.fold and sec.visible and not captioned then
 			y = PlaceCaption(m, y)
 			captioned = true

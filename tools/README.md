@@ -194,6 +194,13 @@ python tools/render_options.py --check                           # exit 1 on any
 python tools/render_options.py --demo                            # prove the drawing and the checks
 ```
 
+Each class is drawn knowing what `tests/scenarios/window-classes.lua` gives it
+for IA 1.11's table (a priest its three buffs, a hunter two aspects, a mage
+Arcane Intellect and Frost Armor), since the mock on its own knows Arcane
+Intellect and nothing else. The Profiles page gets AceDBOptions' own controls,
+built as the library builds them, in English, over the mock's database: the
+mock's stand-in for the library has only its opening paragraph.
+
 `--state` puts the window into a state through the addon's own entry points,
 and can be given more than once:
 
@@ -203,6 +210,7 @@ and can be given more than once:
 | `snoozed` | `ns.StartSnooze(15)` before it opens |
 | `combat` | a fight starts once it is open (`PLAYER_REGEN_DISABLED`) |
 | `folds-open` | every folded section in the layout written open in `ns.db.global.window.open`, the window shut and opened again |
+| `scrolled` | the page scrolled to its end (`ns.WindowUI.ScrollTo`), for what a long page holds below the first screen |
 | `modal` | the footer's "Put these back to default" pressed; on a page without one, `ns.WindowWidgets.Modal` opened with its words |
 | `search WORDS` | the words typed into the sidebar's search box (`window.search`, else the topmost edit box in the sidebar), with the 0.15 s wait let run |
 
@@ -220,7 +228,9 @@ name (`GameFontNormal` gold, `GameFontHighlight` white, `GameFontDisable` grey;
 passed down the tree, hidden frames left out, and text that wraps. The client's
 own art files are drawn as stand-ins rather than flat tiles: an icon from
 `Interface\Icons` as a tile with the initials of its name, a check box's tick,
-arrows, plus and minus, and the close X (a `UIPanelCloseButton` is 24 square).
+arrows, plus and minus, and the close X (a `UIPanelCloseButton` is 24 square),
+each seen through its `SetTexCoord`, so a fold's arrow turned to point down
+while it is open is drawn pointing down.
 
 The addon is told how its text measures by the same font and the same line
 breaking the picture is drawn with: `tests/frametree.lua` answers

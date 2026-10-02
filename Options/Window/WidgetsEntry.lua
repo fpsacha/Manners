@@ -185,14 +185,25 @@ local function BuildSlider(row)
 	s:SetHeight(20)
 	s:SetObeyStepOnDrag(true)
 	s:SetHitRectInsets(0, 0, -4, -4)
-	local rail = CreateFrame("Frame", nil, s)
-	rail:SetPoint("LEFT", s, "LEFT", 0, 0)
-	rail:SetPoint("RIGHT", s, "RIGHT", 0, 0)
-	rail:SetHeight(6)
-	local fill = W.Solid(rail, "BACKGROUND", 1)
-	fill:SetAllPoints(rail)
+	-- The rail is drawn on the slider itself: a child frame would sit a level
+	-- above it and cut across the thumb.
+	local fill = W.Solid(s, "BACKGROUND", 1)
+	fill:SetPoint("LEFT", s, "LEFT", 0, 0)
+	fill:SetPoint("RIGHT", s, "RIGHT", 0, 0)
+	fill:SetHeight(6)
 	W.Gradient(fill, "VERTICAL", T.trackBottom, T.trackTop)
-	W.Border(rail, T.trackEdge)
+	for i, side in ipairs({ "TOP", "BOTTOM", "LEFT", "RIGHT" }) do
+		local t = W.Solid(s, "BORDER", 1, T.trackEdge)
+		if i <= 2 then
+			t:SetPoint(side .. "LEFT", fill, side .. "LEFT", 0, 0)
+			t:SetPoint(side .. "RIGHT", fill, side .. "RIGHT", 0, 0)
+			t:SetHeight(1)
+		else
+			t:SetPoint("TOP" .. side, fill, "TOP" .. side, 0, 0)
+			t:SetPoint("BOTTOM" .. side, fill, "BOTTOM" .. side, 0, 0)
+			t:SetWidth(1)
+		end
+	end
 	row.thumb = s:CreateTexture(nil, "OVERLAY")
 	row.thumb:SetSize(11, 18)
 	s:SetThumbTexture(row.thumb)

@@ -16,11 +16,10 @@ local fail, load, drive = H.fail, H.load, H.drive
 
 local CLASSES = { "MAGE", "PRIEST", "PALADIN", "WARRIOR", "HUNTER", "ROGUE", "DRUID" }
 
--- Retired from the model by the same piece of work, on the model's own
--- branch: until both have landed they may be in it or not. Nothing in the
--- layout may name them. Once the model no longer has them, drop this set and
--- every id here becomes an ordinary "has no place" failure.
-local REMOVED_BY_MODEL = {
+-- Retired with the window (the information architecture, section 3): each
+-- was a duplicate of a kept control or a pointer the layout says better. No
+-- class's model may have one back, and the layout may not name one.
+local RETIRED = {
 	["general.startPos"] = true, ["general.startLocked"] = true,
 	["general.onlyWhenReturning"] = true, ["general.offNotice"] = true,
 	["general.lockNotice"] = true, ["appearance.test"] = true,
@@ -54,17 +53,6 @@ local SLOT_TYPES = {
 	["header.snoozeTip"] = "description", ["strip.lock"] = "execute", ["strip.combat"] = "description",
 	foldCaption = "description", ["footer.reset"] = "execute", ["footer.build"] = "description",
 }
-
--- Options/Window/*.lua are in the toc once the window itself lands; until
--- then they are run here, after the addon, as the toc would run them.
-local function need(ns, file, field)
-	if ns[field] then return ns[field] end
-	local chunk, err = loadfile(dir .. "/" .. file)
-	if not chunk then return nil, tostring(err) end
-	local ok, runErr = pcall(chunk, "Manners", ns)
-	if not ok then return nil, tostring(runErr) end
-	return ns[field]
-end
 
 -- Every path the layout names, with where and as what. `uses[path]` is a list
 -- of { where =, as = "item" | "header" | slot name, entry = item table }.
@@ -202,8 +190,8 @@ local function CheckClass(scenario, ns, layout, seen)
 				where[#where + 1] = use.where
 			end
 		end
-		if REMOVED_BY_MODEL[path] then
-			if placed > 0 or unplaced then problem(path .. " is named by the layout, but the model is retiring it") end
+		if RETIRED[path] then
+			problem(path .. " is in the model, which retired it")
 		elseif unplaced and placed > 0 then
 			problem(path .. " is placed (" .. table.concat(where, "; ") .. ") and listed as unplaced")
 		elseif not unplaced and placed == 0 then
@@ -216,7 +204,7 @@ local function CheckClass(scenario, ns, layout, seen)
 
 	local standIns = {}
 	for path, list in pairs(uses) do
-		if REMOVED_BY_MODEL[path] then problem("the layout names " .. path .. ", which the model is retiring") end
+		if RETIRED[path] then problem("the layout names " .. path .. ", which is retired") end
 		local option = model[path]
 		if option then seen[path] = true end
 		for _, use in ipairs(list) do
@@ -262,9 +250,9 @@ for _, class in ipairs(CLASSES) do
 	local ns = load(scenario)
 	if ns then
 		drive(scenario, ns)
-		local layout, err = need(ns, "Options/Window/Layout.lua", "WindowLayout")
+		local layout = ns.WindowLayout
 		if not layout then
-			fail(scenario, "SKIPPED -- Options/Window/Layout.lua would not load: " .. tostring(err))
+			fail(scenario, "the toc loaded no ns.WindowLayout (Options/Window/Layout.lua)")
 		elseif not (ns.optionsTable and ns.optionsTable.args) then
 			fail(scenario, "SKIPPED -- no options table was built")
 		else
@@ -280,7 +268,7 @@ Mock.reset()
 if ran == #CLASSES and allUses then
 	local scenario = "every path in the options window's layout is in the model"
 	for path, list in pairs(allUses) do
-		if not seen[path] and not REMOVED_BY_MODEL[path] then
+		if not seen[path] and not RETIRED[path] then
 			if ACEDB[path] then
 				-- In the game's model, not the mock's: see ACEDB above.
 			elseif list[1].as == "unplaced" then

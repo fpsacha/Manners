@@ -230,15 +230,11 @@ end
 -- ------------------------------------------------------------------ /manners export
 do
 	local scenario = "profiles: /manners export opens this tab with the box showing"
-	local dialog = LibStub and LibStub("AceConfigDialog-3.0", true)
 	local ns = session(scenario)
 	local tab = ns and profilesTab(scenario, ns)
-	if tab and dialog then
-		local selected
-		local real = dialog.SelectGroup
-		dialog.SelectGroup = function(_, app, group) selected = group end
+	if tab then
 		ns.addon:HandleSlash("export")
-		dialog.SelectGroup = real
+		local selected = ns.OptionsOpen() and ns.OptionsTab() or nil
 		if selected ~= "profiles" then
 			fail(scenario, "/manners export opened the options on " .. tostring(selected)
 				.. ", not the Profiles tab")

@@ -68,7 +68,7 @@ MARGIN = 18
 MIN_RATIO = 4.5
 # How far past an edge counts as past it, in UI units.
 TOL = 0.5
-STATES = ("combat", "unlocked", "snoozed", "folds-open", "modal", "search")
+STATES = ("combat", "unlocked", "snoozed", "folds-open", "scrolled", "modal", "search")
 CONTROLS = ("Button", "EditBox", "Slider", "CheckButton")
 REGION_KINDS = ("Texture", "FontString", "MaskTexture")
 
@@ -805,6 +805,30 @@ def draw_layout(canvas, lay, alpha, px, to_px):
                              a[..., 3] * alpha, None)
 
 
+def tex_coord(art, tc):
+    """The stand-in seen through SetTexCoord: the four-number form cuts a piece
+    out, the eight-number form (the texture's point at the top left, bottom
+    left, top right and bottom right corners) also turns or mirrors it -- a
+    fold's arrow pointing down while it is open."""
+    if not tc or not all(isinstance(v, (int, float)) for v in tc):
+        return art
+    if len(tc) == 4:
+        l, r, t, b = tc
+        ul, ll, ur, lr = (l, t), (l, b), (r, t), (r, b)
+    elif len(tc) == 8:
+        ul, ll, ur, lr = (tc[0], tc[1]), (tc[2], tc[3]), (tc[4], tc[5]), (tc[6], tc[7])
+    else:
+        return art
+    h, w = art.shape[:2]
+    v, u = np.mgrid[0:h, 0:w].astype(np.float32)
+    u, v = (u + 0.5) / w, (v + 0.5) / h
+    sx = ul[0] * (1 - u) * (1 - v) + ur[0] * u * (1 - v) + ll[0] * (1 - u) * v + lr[0] * u * v
+    sy = ul[1] * (1 - u) * (1 - v) + ur[1] * u * (1 - v) + ll[1] * (1 - u) * v + lr[1] * u * v
+    xi = np.clip((sx * w).astype(int), 0, w - 1)
+    yi = np.clip((sy * h).astype(int), 0, h - 1)
+    return art[yi, xi]
+
+
 def texture_art(canvas, geo, r, box, alpha, px, to_px, place):
     """render_prompt's textures, with the client's own art files -- which are
     not here to load -- drawn as stand-ins rather than flat tiles."""
@@ -817,6 +841,7 @@ def texture_art(canvas, geo, r, box, alpha, px, to_px, place):
         h, w = cov.shape
         art = standin(file, w, h)
         if art is not None:
+            art = tex_coord(art, r.get("texCoord"))
             col = rp.texture_colour(r, w, h)
             if r.get("desaturated"):
                 grey = art[..., :3] @ np.array([0.299, 0.587, 0.114], np.float32)
@@ -1291,7 +1316,7 @@ def main():
     ap.add_argument("--locale", default="", help="client language to load the addon as, e.g. deDE")
     ap.add_argument("--pages", default="", help="comma-separated page ids (default: every page)")
     ap.add_argument("--state", action="append", nargs="+", metavar="STATE",
-                    help="combat, unlocked, snoozed, folds-open, modal, or search WORDS; repeatable")
+                    help="combat, unlocked, snoozed, folds-open, scrolled, modal, or search WORDS; repeatable")
     ap.add_argument("--check", action="store_true", help="list faults and exit 1 if there are any")
     ap.add_argument("--demo", action="store_true", help="draw and check the demo windows instead")
     args = ap.parse_args()
