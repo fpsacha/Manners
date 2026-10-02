@@ -72,8 +72,14 @@ Options\Look.lua
 Options\Advanced.lua
 Options\Diagnostics.lua
 Options\Profiles.lua
+Options\Window\Search.lua
 Options\Window\Bind.lua
 Options\Window\Widgets.lua
 Options\Window\WidgetsChoice.lua
 Options\Window\WidgetsEntry.lua
+Options\Window\Layout.lua
+Options\Window\Window.lua
+Options\Window\WindowChrome.lua
+Options\Window\WindowPage.lua
+Options\Window\WindowSearch.lua
 Options\Register.lua
