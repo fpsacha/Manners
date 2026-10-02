@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.6.0
 
 - **A new options window.** Manners has a window of its own in place of the
   old tabs: eight pages down the left (Start here, Who to buff, Who to skip,
