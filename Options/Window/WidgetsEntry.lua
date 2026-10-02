@@ -135,12 +135,13 @@ local function Snap(row, v)
 	return tonumber(("%." .. Decimals(step) .. "f"):format(v))
 end
 
+-- As many decimals as the step has, kept when they are zeros (1.00, 0.50),
+-- as the mock-up shows them, so the box does not jump between 1 and 1.05
+-- while the thumb moves.
 local function RangeText(row, v)
 	if row.item.def.isPercent then return ("%d%%"):format(math.floor(v * 100 + 0.5)) end
 	local _, _, step = Bounds(row)
-	local s = ("%." .. Decimals(step) .. "f"):format(v)
-	if s:find(".", 1, true) then s = s:gsub("0+$", ""):gsub("%.$", "") end
-	return s
+	return ("%." .. Decimals(step) .. "f"):format(v)
 end
 
 local function RangeParse(row, text)
@@ -593,17 +594,35 @@ local function MultiFocus(box, on)
 	end
 end
 
--- Keeps the line being typed on in view.
-local function FollowCursor(box, _, y, _, h)
-	local scroll = box.row.scroll
-	y, h = -(tonumber(y) or 0), tonumber(h) or 0
+-- Keeps the line being typed on in view. The client tells the cursor's move
+-- before the box has grown to hold a new line, so the scroll range is the
+-- old one until the next frame; the follow waits for that frame, as
+-- Blizzard's own ScrollingEdit does, and takes the range as it then stands.
+local function Follow(row)
+	row.following = false
+	local scroll = row.scroll
+	scroll:UpdateScrollChildRect()
+	local y, h = row.cursorY or 0, row.cursorH or 0
 	local top, height = scroll:GetVerticalScroll(), scroll:GetHeight()
+	local to = top
 	if y < top then
-		scroll:SetVerticalScroll(y)
+		to = y
 	elseif y + h > top + height then
-		scroll:SetVerticalScroll(y + h - height)
+		to = y + h - height
 	end
-	BarSync(box.row)
+	if to ~= top then
+		local range = tonumber(ns.plain(scroll:GetVerticalScrollRange())) or 0
+		scroll:SetVerticalScroll(math.max(0, math.min(range, to)))
+	end
+	BarSync(row)
+end
+
+local function FollowCursor(box, _, y, _, h)
+	local row = box.row
+	row.cursorY, row.cursorH = -(tonumber(y) or 0), tonumber(h) or 0
+	if row.following then return end
+	row.following = true
+	C_Timer.After(0, function() ns.Guard("options box", Follow, row) end)
 end
 
 local function Wheel(scroll, delta)

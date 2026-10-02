@@ -1,8 +1,9 @@
 -- What the options window reads from the model and nowhere else: the sidebar's
 -- red dots (Page.Warn), the status strip's state (ns.LauncherState's `kind`),
 -- the header's Snooze (its entries' own hidden rules), the footer's per-page
--- reset (Page.RESET, Page.ResetPage), and the ledger opening over the window
--- rather than shutting it.
+-- reset (Page.RESET, Page.ResetPage) and the old dialog's, Who to skip's PvP
+-- lines read once a paint, and the ledger opening over the window rather than
+-- shutting it.
 --
 -- Every scenario name starts with "model:" so the mutations in
 -- tests/mutations/window-model.py can name the one that has to catch them.
@@ -29,7 +30,7 @@ local function shown(option)
 end
 
 -- Globals a scenario may replace, put back after each: Mock.reset owns none.
-local TOUCHED = { "IsSpellKnown", "IsPlayerSpell", "IsMounted" }
+local TOUCHED = { "IsSpellKnown", "IsPlayerSpell", "IsMounted", "UnitExists" }
 
 -- One driven session as `class`, knowing only `known` (spell ids) when given,
 -- with body(ns) run and everything put back whether it finished or threw.
@@ -66,6 +67,12 @@ end
 
 local function red(option)
 	return optionText(option and option.name):find("|cffff8080", 1, true) ~= nil
+end
+
+-- A click as the client delivers it, to one of the window's buttons.
+local function press(button)
+	local onClick = button and button:GetScript("OnClick")
+	if onClick then onClick(button, "LeftButton", false) end
 end
 
 -- ------------------------------------------------------------------ red dots
@@ -416,6 +423,17 @@ local EXPECTED = {
 		"prompt.showCooldown", "prompt.showCount", "prompt.showQueue", "prompt.queueRows",
 		"sound.enabled", "sound.file", "sound.owedOnly",
 	},
+	-- Not a page of the window: the old dialog's Advanced tab, which the
+	-- window falls back to (Register.lua). Its reset is the old one's
+	-- seventeen, When to offer's favours, timings and targeting and Look's
+	-- wording, and never the exact position drawn on the same tab.
+	advanced = {
+		"sources.owedClassBuffsOnly", "timing.reciprocateWindow", "filters.reachableOnly",
+		"timing.graceSeconds", "timing.keepDebts", "timing.retryCooldown", "timing.scanInterval",
+		"filters.restoreTarget", "prompt.format", "prompt.reasonTarget", "prompt.reasonOwed",
+		"prompt.reasonAsked", "prompt.reasonSelf", "prompt.reasonGroup", "prompt.reasonNearby",
+		"prompt.reasonRefresh", "prompt.reasonUnknown",
+	},
 }
 
 -- What each page's reset must leave alone, set to something of its own.
@@ -426,6 +444,8 @@ local KEPT = {
 	click = { { "speech.phrases", "my very own line" }, { "speech.presetChoice", "polite" } },
 	appearance = { { "prompt.x", 41 }, { "prompt.y", 123 }, { "prompt.point", "TOP" },
 		{ "prompt.relPoint", "TOP" }, { "prompt.locked", false } },
+	advanced = { { "prompt.x", 41 }, { "prompt.y", 123 }, { "prompt.point", "TOP" },
+		{ "prompt.relPoint", "TOP" }, { "prompt.scale", 1.25 }, { "filters.whenBuffed", "always" } },
 }
 -- The hooks each page's fields' own setters run, which its reset must run too.
 local HOOKS = {
@@ -434,6 +454,7 @@ local HOOKS = {
 	when = { "save", "scan", "style", "macro" },
 	click = { "macro" },
 	appearance = { "clamp", "style", "macro" },
+	advanced = { "save", "scan", "style", "macro" },
 }
 
 local function field(profile, path)
@@ -442,7 +463,7 @@ local function field(profile, path)
 	return profile, path
 end
 
-for _, pageId in ipairs({ "who", "skip", "when", "click", "appearance" }) do
+for _, pageId in ipairs({ "who", "skip", "when", "click", "appearance", "advanced" }) do
 	local scenario = "model: the reset puts " .. pageId .. " back"
 	with(scenario, nil, nil, function(ns)
 		local Page = ns.OptionsPage
@@ -533,7 +554,7 @@ do
 		local Page = ns.OptionsPage
 		ns.db.profile.verbose = false
 		ns.db.profile.minimap.hide = true
-		for _, pageId in ipairs({ "general", "profiles", "diagnostics", "advanced" }) do
+		for _, pageId in ipairs({ "general", "profiles", "diagnostics" }) do
 			if Page.RESET[pageId] ~= nil then
 				fail(scenario, pageId .. " has a reset list")
 			elseif Page.ResetPage(pageId) ~= false then
@@ -543,6 +564,162 @@ do
 		if ns.db.profile.verbose ~= false or ns.db.profile.minimap.hide ~= true then
 			fail(scenario, "a reset of a page with no list put a setting back")
 		end
+	end)
+end
+
+-- YES puts back the page the question was asked on. The box stays up while
+-- the page under it changes: the minimap button or a slash command opening
+-- Look, /manners export opening Profiles.
+do
+	local scenario = "model: the reset puts back the page it asked about"
+	with(scenario, nil, nil, function(ns)
+		local UI, W = ns.WindowUI, ns.WindowWidgets
+		if not (UI and W and W.Asking) then
+			fail(scenario, "SKIPPED -- no options window")
+			return
+		end
+		local timing, prompt = ns.db.profile.timing, ns.db.profile.prompt
+		local defaults = ns.defaults.profile
+		local function ask()
+			ns.OpenOptions("when")
+			ns.Prompt:ExitTest()
+			timing.scanInterval, prompt.scale = 1.5, 2
+			press(UI.footer.reset)
+			return W.Asking()
+		end
+
+		local box = ask()
+		if not (box and box.yes) then
+			fail(scenario, "Put these back to default did not ask first")
+			return
+		end
+		ns.OpenOptions("appearance")
+		press(box.yes)
+		if timing.scanInterval ~= defaults.timing.scanInterval then
+			fail(scenario, "asked on When to offer, YES with Look opened under the box left Check for people every at "
+				.. tostring(timing.scanInterval))
+		end
+		if prompt.scale ~= 2 then
+			fail(scenario, "asked on When to offer, YES put back Look's scale, the page opened under the box")
+		end
+
+		box = ask()
+		ns.ShowShareBox("export")
+		if box then press(box.yes) end
+		if timing.scanInterval ~= defaults.timing.scanInterval then
+			fail(scenario, "asked on When to offer, YES with Profiles opened under the box put nothing back")
+		end
+		if W.Asking() then fail(scenario, "the box is still asking after YES") end
+		noErrors(scenario, ns)
+	end)
+end
+
+-- The window that will not show falls back to the old dialog, whose Advanced
+-- tab is the one place it draws the reset: shown there, and putting back that
+-- tab's settings -- even when another tab is clicked while the dialog asks.
+do
+	local scenario = "model: the old dialog's Advanced tab keeps its reset"
+	with(scenario, nil, nil, function(ns)
+		local UI = ns.WindowUI
+		local dialog = LibStub("AceConfigDialog-3.0")
+		local reset = findOption(ns.optionsTable, "resetAdvanced")
+		if not (UI and reset and reset.func) then
+			fail(scenario, "SKIPPED -- no window or no reset to fall back from")
+			return
+		end
+		local status = { groups = { selected = "advanced" } }
+		local realStatus, realOpen = dialog.GetStatusTable, UI.Open
+		dialog.GetStatusTable = function(_, app)
+			if app == "Manners" then return status end
+			return {}
+		end
+		UI.Open = function() error("no window today", 0) end
+		local ok, err = pcall(function()
+			ns.OpenOptions("when")
+			if ns.OptionsTab() ~= "advanced" then
+				fail(scenario, "SKIPPED -- the fallback reads its tab as " .. tostring(ns.OptionsTab()))
+				return
+			end
+			local info = { "advanced", "resetAdvanced" }
+			local hidden = reset.hidden
+			if type(hidden) == "function" then hidden = hidden(info) end
+			if hidden then fail(scenario, "the old dialog's Advanced tab hides Put these back to default") end
+
+			local profile, defaults = ns.db.profile, ns.defaults.profile
+			for _, path in ipairs(EXPECTED.advanced) do
+				local into, name = field(profile, path)
+				local from = field(defaults, path)
+				unsettle(into, name, from[name])
+			end
+			profile.prompt.x, profile.sources.strangers = 41, not defaults.sources.strangers
+			-- Pressed as the dialog presses it: its question asked, then
+			-- Who to buff's tab clicked while the question is up, then YES.
+			if type(reset.confirm) == "function" then reset.confirm(info) end
+			status.groups.selected = "who"
+			reset.func(info)
+			for _, path in ipairs(EXPECTED.advanced) do
+				local into, name = field(profile, path)
+				local from = field(defaults, path)
+				if not same(into[name], from[name]) then
+					fail(scenario, "the old dialog's reset left " .. path .. " as it was")
+				end
+			end
+			if profile.prompt.x ~= 41 then fail(scenario, "the old dialog's reset moved the prompt") end
+			if profile.sources.strangers == defaults.sources.strangers then
+				fail(scenario, "the old dialog's reset put back Who to buff, the tab clicked while it asked")
+			end
+		end)
+		dialog.GetStatusTable, UI.Open = realStatus, realOpen
+		if not ok then fail(scenario, "threw: " .. tostring(err)) end
+		for _, e in ipairs(ns.errors or {}) do
+			if e.where ~= "options window" then
+				fail(scenario, "guarded: " .. tostring(e.where) .. " -> " .. tostring(e.err))
+			end
+		end
+	end)
+end
+
+-- ------------------------------------------------------------------ the PvP note
+-- Who to skip's PvP lines rebuild the queue to be read, so a paint reads them
+-- once (IA.md, Who to skip): their hidden and their text share one scan, with
+-- somebody flagged and the note up as much as with nobody.
+do
+	local scenario = "model: a paint of Who to skip builds the queue once"
+	with(scenario, nil, nil, function(ns)
+		local UI = ns.WindowUI
+		if not UI then
+			fail(scenario, "SKIPPED -- no options window")
+			return
+		end
+		H.strangers({ nameplate1 = { "Flagga", "Bearer" } })
+		H.clearClicks(ns)
+		Mock.pvp = { nameplate1 = true }
+		ns.OpenOptions("skip")
+		ns.Prompt:ExitTest()
+		local real, built = ns.BuildQueue, 0
+		ns.BuildQueue = function(...) built = built + 1 return real(...) end
+		ns.RefreshOptionsDisplay()
+		local paint = built
+		-- A slider tick on the same page is a paint too.
+		local minLevel = ns.WindowBind.Item("who.minLevel", nil, UI.ctx)
+		built = 0
+		if minLevel then ns.WindowBind.Commit(minLevel, 5) end
+		local tick = built
+		ns.BuildQueue = real
+		local row = UI.RowFor("diagnostics.pvpDiag")
+		local text = row and row.text and row.text:GetText() or ""
+		if not (UI.RowShown("diagnostics.pvpDiag") and text:find("Flagga", 1, true)) then
+			fail(scenario, "SKIPPED -- the PvP lines are not up for Flagga: " .. text)
+		end
+		if paint ~= 1 then fail(scenario, ("one paint of Who to skip built the queue %d times"):format(paint)) end
+		if not minLevel then
+			fail(scenario, "SKIPPED -- no Skip players below level")
+		elseif ns.db.profile.filters.minLevel ~= 5 then
+			fail(scenario, "SKIPPED -- Skip players below level did not move")
+		elseif tick ~= 1 then
+			fail(scenario, ("one tick of Skip players below level built the queue %d times"):format(tick))
+		end
+		noErrors(scenario, ns)
 	end)
 end
 

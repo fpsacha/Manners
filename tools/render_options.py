@@ -649,6 +649,14 @@ def drawn_art(kind, w, h):
                             fill=(110, 24, 18, 255), outline=(200, 160, 90, 255), width=max(1, k))
         d.line([(W * 0.32, H * 0.32), (W * 0.68, H * 0.68)], fill=(245, 225, 200, 255), width=max(2, int(W * 0.1)))
         d.line([(W * 0.68, H * 0.32), (W * 0.32, H * 0.68)], fill=(245, 225, 200, 255), width=max(2, int(W * 0.1)))
+    elif kind == "cross":
+        # The loot window's Pass: a red cross on its own, no box round it.
+        for a, b in (((0.22, 0.22), (0.78, 0.78)), ((0.78, 0.22), (0.22, 0.78))):
+            d.line([(W * a[0], H * a[1]), (W * b[0], H * b[1])], fill=(40, 6, 4, 255), width=max(3, int(W * 0.26)))
+            d.line([(W * a[0], H * a[1]), (W * b[0], H * b[1])], fill=(230, 60, 40, 255), width=max(2, int(W * 0.16)))
+    elif kind == "disc":
+        # A round mask: white, for the vertex colour to tint.
+        d.ellipse((0, 0, W - 1, H - 1), fill=(255, 255, 255, 255))
     elif kind == "thumb":
         d.rounded_rectangle((W * 0.2, 0, W * 0.8, H), radius=W * 0.2, fill=(200, 180, 120, 255))
     img = img.resize((w, h), Image.LANCZOS)
@@ -667,6 +675,10 @@ def standin(file, w, h):
         return drawn_art("plus" if "plus" in base else "minus", w, h)
     if "close" in base or "minimizebutton" in base or "exit" in base:
         return drawn_art("close", w, h)
+    if "grouploot-pass" in base:
+        return drawn_art("cross", w, h)
+    if "portraitalphamask" in base:
+        return drawn_art("disc", w, h)
     if "sliderbar-button" in base or "thumb" in base:
         return drawn_art("thumb", w, h)
     if "arrow" in base or "scroll" in base or "expand" in base or "collapse" in base:

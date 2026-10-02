@@ -13,8 +13,12 @@ local C = UI.C
 local STRIP_KINDS = { off = true, unlocked = true, snoozed = true, ownoff = true, blocked = true, mounted = true }
 
 -- When to offer's combat line is about Hand my target back afterwards, so it
--- shows only while that is.
+-- shows only while that is on screen, the Targeting fold open.
 local COMBAT_NEEDS = { when = "advanced.restoreTarget" }
+
+-- Snooze's chevron, saying it opens a menu: the dropdowns' own arrow, with 6
+-- between it and the words.
+local CHEVRON, CHEVRON_ROOM = 12, 16
 
 ---------------------------------------------------------------------------
 -- header: icon and title, Show me the prompt, Snooze, the switch, the X
@@ -29,6 +33,9 @@ local function PreviewClicked()
 	local running = ns.Prompt and ns.Prompt:InTest()
 	ns.WindowBind.Run(item)
 	if running then UI.session.stoppedPreview = true end
+	-- Still resting on it: the 0.4 s counts again from the click, so a
+	-- preview just started gets its peek without the pointer moving.
+	if header.preview:IsMouseOver() then UI.HoverPreview(true) end
 end
 
 -- A menu entry's work. It answers nothing: the menu takes anything a
@@ -44,7 +51,7 @@ local function FillSnooze(_, root)
 	local B = ns.WindowBind
 	local stop
 	for _, item in ipairs(header.snoozeItems) do
-		if not B.Hidden(item) then
+		if not UI.Hidden(item) then
 			if item.key == "snoozeStop" then
 				stop = item
 			else
@@ -128,9 +135,20 @@ function UI.BuildHeader(f)
 		if item then header.snoozeItems[#header.snoozeItems + 1] = item end
 	end
 	header.snoozeTip = UI.Item(layout.snoozeTip)
-	header.snooze = W.Button(h, L["Snooze"], UI.Guarded(SnoozeClicked))
-	header.snooze:HookScript("OnEnter", UI.Guarded(SnoozeTip))
-	header.snooze:HookScript("OnLeave", function() GameTooltip:Hide() end)
+	local snooze = W.Button(h, L["Snooze"], UI.Guarded(SnoozeClicked))
+	snooze:HookScript("OnEnter", UI.Guarded(SnoozeTip))
+	snooze:HookScript("OnLeave", function() GameTooltip:Hide() end)
+	snooze.chevron = snooze:CreateTexture(nil, "ARTWORK")
+	snooze.chevron:SetTexture("Interface\\Buttons\\Arrow-Down-Up")
+	snooze.chevron:SetSize(CHEVRON, CHEVRON)
+	snooze.chevron:SetPoint("RIGHT", snooze, "RIGHT", -11, -2)
+	snooze.chevron:SetVertexColor(C.gold[1], C.gold[2], C.gold[3], 1)
+	-- The words centred in what the chevron leaves.
+	if snooze.label then
+		snooze.label:ClearAllPoints()
+		snooze.label:SetPoint("CENTER", snooze, "CENTER", -CHEVRON_ROOM / 2, 0)
+	end
+	header.snooze = snooze
 end
 
 -- Placed from the right edge in: the X, the switch, Snooze, the preview.
@@ -140,7 +158,7 @@ function UI.PaintHeader()
 	local switch = header.enabled
 	if switch then
 		local item = header.enabledItem
-		local shown = not B.Hidden(item)
+		local shown = not UI.Hidden(item)
 		switch.frame:SetShown(shown)
 		if shown then
 			switch.Refresh(switch)
@@ -155,7 +173,7 @@ function UI.PaintHeader()
 
 	local anySnooze = false
 	for _, item in ipairs(header.snoozeItems) do
-		if not B.Hidden(item) then anySnooze = true end
+		if not UI.Hidden(item) then anySnooze = true end
 	end
 	local snooze = header.snooze
 	snooze:SetShown(anySnooze)
@@ -163,7 +181,7 @@ function UI.PaintHeader()
 		local ends = ns.SnoozeEndsAt and ns.SnoozeEndsAt()
 		header.snoozeLabel = ends and L["Snoozed until %s"]:format(ends) or L["Snooze"]
 		UI.SetButtonText(snooze, header.snoozeLabel)
-		local w = math.ceil(UI.Measure(header.snoozeLabel)) + 26
+		local w = math.ceil(UI.Measure(header.snoozeLabel)) + 26 + CHEVRON_ROOM
 		snooze:SetSize(w, 22)
 		snooze:ClearAllPoints()
 		snooze:SetPoint("TOPLEFT", h, "TOPLEFT", right - w, -11)
@@ -171,11 +189,11 @@ function UI.PaintHeader()
 	end
 
 	local item, preview = header.previewItem, header.preview
-	local shown = item ~= nil and not B.Hidden(item)
+	local shown = item ~= nil and not UI.Hidden(item)
 	preview:SetShown(shown)
 	if shown then
 		UI.SetButtonText(preview, B.Text(item, "name") or L["Show me the prompt"])
-		preview:SetEnabled(not B.Disabled(item))
+		preview:SetEnabled(not UI.Disabled(item))
 		preview:SetSize(header.previewWidth, 22)
 		preview:ClearAllPoints()
 		preview:SetPoint("TOPLEFT", h, "TOPLEFT", right - header.previewWidth, -11)
@@ -226,14 +244,22 @@ local function StateLine()
 	return line, r or 1, g or 0.82, b or 0, kind
 end
 
+-- Whether the control a combat line is about is on screen: shown by its own
+-- rules, and its fold open, so the line never speaks of something shut away.
+local function NeedShown(path)
+	local needs = UI.Item(path)
+	if not needs or UI.Hidden(needs) then return false end
+	local w = UI.Where(path)
+	return not (w and w.sec.fold and not UI.State().open[w.sec.key])
+end
+
 -- Line 2: in a fight, the open page's note on what waits for it to end.
 local function CombatLine()
 	if not InCombatLockdown() then return nil end
 	local B = ns.WindowBind
 	local item = UI.Item((UI.Layout().strip.combat or {})[UI.page])
-	if not item or B.Hidden(item) then return nil end
-	local needs = UI.Item(COMBAT_NEEDS[UI.page])
-	if COMBAT_NEEDS[UI.page] and (not needs or B.Hidden(needs)) then return nil end
+	if not item or UI.Hidden(item) then return nil end
+	if COMBAT_NEEDS[UI.page] and not NeedShown(COMBAT_NEEDS[UI.page]) then return nil end
 	local text = B.Text(item, "name")
 	if not text then return nil end
 	-- Not %s, which under a Western locale takes the last byte of "加".
@@ -243,10 +269,9 @@ end
 -- Lays the strip out and answers its height: none at all when nothing needs
 -- saying.
 function UI.PaintStrip()
-	local B = ns.WindowBind
 	local s, width = strip, UI.WIDTH - 24
 	local line, r, g, b, kind = StateLine()
-	local lockShown = strip.lockItem ~= nil and not B.Hidden(strip.lockItem)
+	local lockShown = strip.lockItem ~= nil and not UI.Hidden(strip.lockItem)
 	strip.kind = line and kind or nil
 	local combat = CombatLine()
 	local y, height = 6, 0
@@ -259,10 +284,13 @@ function UI.PaintStrip()
 			s.line1:SetWidth(room)
 			s.line1:SetText(line)
 			s.line1:SetTextColor(r, g, b, 1)
-			s.line1:ClearAllPoints()
-			s.line1:SetPoint("TOPLEFT", s.frame, "TOPLEFT", 12, -y)
-			s.line1:Show()
 			lineH = UI.TextHeight(s.line1)
+			-- One row with Lock it, as the mock-up has it: a line shorter
+			-- than the button sits level with its middle.
+			local drop = lockShown and math.max(0, math.floor((20 - lineH) / 2)) or 0
+			s.line1:ClearAllPoints()
+			s.line1:SetPoint("TOPLEFT", s.frame, "TOPLEFT", 12, -(y + drop))
+			s.line1:Show()
 		else
 			s.line1:Hide()
 		end
@@ -341,8 +369,7 @@ local function PageButton(id)
 	b.sub = UI.Text(b, GameFontDisableSmall, C.hint)
 	b.sub:SetWidth(UI.SIDEBAR - 8 - 36 - 6)
 	b.sub:SetWordWrap(false)
-	b.dot = UI.Solid(b, "OVERLAY", C.dot)
-	b.dot:SetSize(7, 7)
+	b.dot = UI.Dot(b, C.dot)
 	b.dot:SetPoint("TOPRIGHT", b, "TOPRIGHT", -6, -12)
 	b:SetScript("OnClick", UI.Guarded(function() UI.ShowPage(id) end))
 	b:SetScript("OnEnter", UI.Guarded(function(self)
@@ -483,8 +510,8 @@ end
 function UI.PaintFooter()
 	local B = ns.WindowBind
 	local item = footer.resetItem
-	footer.reset:SetShown(item ~= nil and not B.Hidden(item))
-	if item then footer.reset:SetEnabled(not B.Disabled(item)) end
+	footer.reset:SetShown(item ~= nil and not UI.Hidden(item))
+	if item then footer.reset:SetEnabled(not UI.Disabled(item)) end
 	local build = footer.buildItem and B.Text(footer.buildItem, "name")
 	footer.build:SetText(build and UI.Plain(build) or "")
 end

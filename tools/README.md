@@ -196,10 +196,16 @@ python tools/render_options.py --demo                            # prove the dra
 
 Each class is drawn knowing what `tests/scenarios/window-classes.lua` gives it
 for IA 1.11's table (a priest its three buffs, a hunter two aspects, a mage
-Arcane Intellect and Frost Armor), since the mock on its own knows Arcane
-Intellect and nothing else. The Profiles page gets AceDBOptions' own controls,
-built as the library builds them, in English, over the mock's database: the
-mock's stand-in for the library has only its opening paragraph.
+Arcane Intellect and Frost Armor), and the buffs of its own IA 1.11 lists
+under Myself (a priest's Inner Fire, a paladin's Devotion Aura and Righteous
+Fury, a hunter's Trueshot Aura, and Track Beasts on the hunter's minimap
+tracking list), since the mock on its own knows Arcane Intellect and nothing
+else. The client's key bindings page is there (`Settings.OpenToCategory` and
+`Settings.KEYBINDINGS_CATEGORY_ID`), so Start here shows Open key bindings, and
+the clock answers `date("%H:%M")` in hours and minutes, as a snooze's end is
+shown. The Profiles page gets AceDBOptions' own controls, built as the library
+builds them, in English, over the mock's database: the mock's stand-in for the
+library has only its opening paragraph.
 
 `--state` puts the window into a state through the addon's own entry points,
 and can be given more than once:
@@ -228,7 +234,8 @@ name (`GameFontNormal` gold, `GameFontHighlight` white, `GameFontDisable` grey;
 passed down the tree, hidden frames left out, and text that wraps. The client's
 own art files are drawn as stand-ins rather than flat tiles: an icon from
 `Interface\Icons` as a tile with the initials of its name, a check box's tick,
-arrows, plus and minus, and the close X (a `UIPanelCloseButton` is 24 square),
+arrows, plus and minus, the close X (a `UIPanelCloseButton` is 24 square), the
+loot window's Pass cross and the round portrait mask (white, for its colour),
 each seen through its `SetTexCoord`, so a fold's arrow turned to point down
 while it is open is drawn pointing down.
 

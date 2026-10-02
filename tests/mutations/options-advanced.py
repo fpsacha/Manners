@@ -90,7 +90,7 @@ mutate("Options/Advanced.lua",
 
 # No question before resetting.
 mutate("Options/Advanced.lua",
-       "\t\t\t\tconfirm = true,\n\t\t\t\tconfirmText = L[\"Put every setting on this page back to its default? Where the prompt sits, the lines you wrote and the never-offer list are kept.\"],\n",
+       "\t\t\t\tconfirm = function()\n\t\t\t\t\taskedFor = ns.OptionsTab()\n\t\t\t\t\treturn true\n\t\t\t\tend,\n\t\t\t\tconfirmText = L[\"Put every setting on this page back to its default? Where the prompt sits, the lines you wrote and the never-offer list are kept.\"],\n",
        "",
        "advanced: the reset does not ask",
        expect="Put these back to default does not ask before it resets", script=S)
@@ -111,8 +111,8 @@ mutate("Options/Advanced.lua",
 
 # The button putting back a page other than the one in view.
 mutate("Options/Advanced.lua",
-       "\t\t\t\tfunc = function() Page.ResetPage(ns.OptionsTab()) end,\n",
-       "\t\t\t\tfunc = function() Page.ResetPage(\"when\") end,\n",
+       "\t\t\t\t\tlocal pageId = askedFor or ns.OptionsTab()\n",
+       "\t\t\t\t\tlocal pageId = \"when\"\n",
        "advanced: the reset ignores the page in view",
        expect="with Who to skip open, the reset did not put Skip players below level back", script=S)
 

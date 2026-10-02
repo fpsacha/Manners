@@ -309,6 +309,10 @@ do
 		if strip() ~= note("appearance.combatNotice") then fail(scenario, "Look's strip in a fight reads " .. tostring(strip())) end
 		ns.OpenOptions("click")
 		if strip() ~= note("click.combatNotice") then fail(scenario, "What I say's strip in a fight reads " .. tostring(strip())) end
+		-- With the Targeting fold open: its line is about Hand my target back
+		-- (window-polish.lua holds it to the fold).
+		local targeting = UI.Where("advanced.restoreTarget")
+		if targeting and targeting.sec.fold then UI.State().open[targeting.sec.key] = true end
 		ns.OpenOptions("when")
 		if strip() ~= note("advanced.advCombatNotice") then fail(scenario, "When to offer's strip in a fight reads " .. tostring(strip())) end
 		ns.OpenOptions("general")

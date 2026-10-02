@@ -251,7 +251,14 @@ run("widgets: the slider snaps to its step and holds the window while held", fun
 		local scale = build(scenario, ns, ctx, "range", "appearance.scale")
 		P.scale = 1.5
 		scale:Refresh()
-		if scale.box:GetText() ~= "1.5" then fail(scenario, "a scale of 1.5 reads " .. tostring(scale.box:GetText())) end
+		-- Every decimal the step has, zeros too, as the mock-up shows them.
+		if scale.box:GetText() ~= "1.50" then fail(scenario, "a scale of 1.5 reads " .. tostring(scale.box:GetText())) end
+		if scale.low:GetText() ~= "0.50" or scale.high:GetText() ~= "3.00" then
+			fail(scenario, "the scale's ends read " .. tostring(scale.low:GetText()) .. " and " .. tostring(scale.high:GetText()))
+		end
+		P.scale = 1
+		scale:Refresh()
+		if scale.box:GetText() ~= "1.00" then fail(scenario, "a scale of 1 reads " .. tostring(scale.box:GetText())) end
 		noErrors(scenario, ns)
 	end
 end)

@@ -236,11 +236,17 @@ local function PickerClosed()
 	if row then W.Hold(row, false) end
 end
 
+-- The client calls swatchFunc and then opacityFunc for every move of the
+-- picker, so the second finds nothing new and is let go: one commit, one
+-- repaint and one restyle a move.
 local function Live(row)
 	if picking ~= row or W.Off(row) then return end
 	local r, g, b = ColorPickerFrame:GetColorRGB()
 	local a = 1
 	if HasAlpha(row) and ColorPickerFrame.GetColorAlpha then a = ColorPickerFrame:GetColorAlpha() end
+	local last = row.live
+	if last[1] == r and last[2] == g and last[3] == b and last[4] == a then return end
+	last[1], last[2], last[3], last[4] = r, g, b, a
 	W.Apply(row, r, g, b, a)
 end
 
@@ -269,7 +275,7 @@ local function SwatchClicked(hit)
 	if picking and picking ~= row then W.Hold(picking, false) end
 	local r, g, b, a = Bind().Value(row.item)
 	r, g, b, a = tonumber(r) or 1, tonumber(g) or 1, tonumber(b) or 1, tonumber(a) or 1
-	row.before = { r, g, b, a }
+	row.before, row.live = { r, g, b, a }, { r, g, b, a }
 	picking = row
 	W.Hold(row, true)
 	OpenPicker(row, r, g, b, a)
@@ -325,14 +331,19 @@ KIND.color = {
 }
 
 ---------------------------------------------------------------------------
--- keybinding: a capture button. Click it, then press the key; Escape cancels,
--- a right-click clears it. Written through the definition's set
+-- keybinding: a capture button. Click it, then press the key, a mouse button
+-- other than the two that work it, or turn the wheel; Escape cancels, a
+-- right-click clears it. Written through the definition's set
 -- (Setup.SetKey), which refuses in a fight; the control is greyed out there
 -- by its own disabled anyway.
 ---------------------------------------------------------------------------
 
 local MODIFIER_KEYS = { LSHIFT = true, RSHIFT = true, LCTRL = true, RCTRL = true, LALT = true,
 	RALT = true, LMETA = true, RMETA = true, UNKNOWN = true }
+
+-- The mouse buttons as the game spells them in a binding, as AceGUI's key
+-- control took them.
+local MOUSE_KEYS = { MiddleButton = "BUTTON3", Button4 = "BUTTON4", Button5 = "BUTTON5" }
 
 local capturing
 
@@ -346,16 +357,19 @@ local function StopCapture(row)
 	if not row or capturing ~= row then return end
 	capturing = nil
 	row.button:EnableKeyboard(false)
+	row.button:EnableMouseWheel(false)
 	KeyLook(row)
 end
 
--- The keyboard is the button's only while it waits, so nothing else the
--- player types is taken from the game.
+-- The keyboard and the wheel are the button's only while it waits, so
+-- nothing else the player types is taken from the game, and the wheel
+-- scrolls the page over it the rest of the time.
 local function StartCapture(row)
 	if capturing and capturing ~= row then StopCapture(capturing) end
 	capturing = row
 	row.button:EnableKeyboard(true)
 	row.button:SetPropagateKeyboardInput(false)
+	row.button:EnableMouseWheel(true)
 	KeyLook(row)
 end
 
@@ -370,6 +384,14 @@ local function Chord(key)
 	return prefix .. key
 end
 
+-- The key, mouse button or turn of the wheel that ends a capture, bound with
+-- the modifiers held.
+local function Take(row, key)
+	StopCapture(row)
+	if W.Off(row) then return end
+	W.Apply(row, Chord(key))
+end
+
 local function KeyPressed(button, key)
 	local row = button.row
 	if capturing ~= row then return end
@@ -379,15 +401,25 @@ local function KeyPressed(button, key)
 	end
 	-- A modifier on its own is the start of a chord, not the key.
 	if MODIFIER_KEYS[key] then return end
-	StopCapture(row)
-	if W.Off(row) then return end
-	W.Apply(row, Chord(key))
+	Take(row, key)
+end
+
+local function KeyWheel(button, delta)
+	local row = button.row
+	if capturing ~= row then return end
+	Take(row, (tonumber(delta) or 0) >= 0 and "MOUSEWHEELUP" or "MOUSEWHEELDOWN")
 end
 
 local function KeyClicked(button, mouse)
 	local row = button.row
 	if W.Off(row) then
 		StopCapture(row)
+		return
+	end
+	-- The other mouse buttons are keys to bind, and only while one is waited
+	-- for.
+	if MOUSE_KEYS[mouse] then
+		if capturing == row then Take(row, MOUSE_KEYS[mouse]) end
 		return
 	end
 	if mouse == "RightButton" then
@@ -415,7 +447,7 @@ KIND.keybinding = {
 	Build = function(row)
 		row.label = W.Wrapping(W.Text(row.frame, T.fonts.label, T.ink))
 		local b = CreateFrame("Button", nil, row.frame)
-		b:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+		b:RegisterForClicks("AnyUp")
 		b:SetHeight(24)
 		b.look = W.Field(b)
 		b.text = W.Text(b, T.fonts.label, T.white)
@@ -425,6 +457,7 @@ KIND.keybinding = {
 		b.text:SetWordWrap(false)
 		b:SetScript("OnClick", function(self, mouse) ns.Guard("options key", KeyClicked, self, mouse) end)
 		b:SetScript("OnKeyDown", function(self, key) ns.Guard("options key", KeyPressed, self, key) end)
+		b:SetScript("OnMouseWheel", function(self, delta) ns.Guard("options key", KeyWheel, self, delta) end)
 		b:SetScript("OnHide", function(self) ns.Guard("options key", StopCapture, self.row) end)
 		W.Tip(b, row, KeyHover)
 		row.button = b

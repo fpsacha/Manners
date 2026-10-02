@@ -26,7 +26,7 @@ end
 
 local function Add(out, item, sec, id, title)
 	local B = ns.WindowBind
-	if B.Hidden(item) then return end
+	if UI.Hidden(item) then return end
 	local choices = {}
 	local t = item.def.type
 	if t == "select" or t == "multiselect" then
@@ -79,6 +79,16 @@ end
 function UI.CloseResults()
 	if search.results then search.results:Hide() end
 	search.found = {}
+end
+
+-- A page shown by any other way than a result (the sidebar, a link, /manners
+-- export): the results stop covering it, the box lets go of the keyboard, and
+-- a search still waiting for typing to settle is dropped. The words stay.
+function UI.LeaveSearch()
+	search.token = search.token + 1
+	search.pending = false
+	UI.CloseResults()
+	if search.box then search.box:ClearFocus() end
 end
 
 -- Opens the page, its fold (kept open), scrolls to the row and flashes it.

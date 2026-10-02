@@ -100,6 +100,27 @@ Page.RESET = {
 	},
 }
 
+-- Not a page of the window. The old dialog, which the window falls back to
+-- (Register.lua), draws the reset on one tab, Advanced, so that tab has a
+-- list: the old reset's seventeen, which are the controls on it -- When to
+-- offer's favours, timings and targeting and Look's wording -- less the exact
+-- position beside them. Their setters' hooks are When to offer's, whose
+-- restyle covers the wording.
+Page.RESET.advanced = {
+	"sources.owedClassBuffsOnly", "timing.reciprocateWindow", "filters.reachableOnly",
+	"timing.graceSeconds", "timing.keepDebts", "timing.retryCooldown", "timing.scanInterval",
+	"filters.restoreTarget", "prompt.format", "prompt.reasonTarget", "prompt.reasonOwed",
+	"prompt.reasonAsked", "prompt.reasonSelf", "prompt.reasonGroup", "prompt.reasonNearby",
+	"prompt.reasonRefresh", "prompt.reasonUnknown",
+	after = Page.RESET.when.after,
+}
+
+-- The page the reset's question was asked on. The box stays up while the
+-- page under it can change -- the minimap button or a slash command opening
+-- another, another tab clicked in the old dialog -- and YES is a yes to the
+-- page that was asked about.
+local askedFor
+
 local function Copy(value)
 	if type(value) ~= "table" then return value end
 	local out = {}
@@ -178,9 +199,18 @@ function Page.BuildAdvancedTab()
 				name = L["Put these back to default"],
 				order = 0.7,
 				hidden = function() return Page.RESET[ns.OptionsTab()] == nil end,
-				confirm = true,
+				-- Asked as it is pressed, which is when the page is noted.
+				confirm = function()
+					askedFor = ns.OptionsTab()
+					return true
+				end,
 				confirmText = L["Put every setting on this page back to its default? Where the prompt sits, the lines you wrote and the never-offer list are kept."],
-				func = function() Page.ResetPage(ns.OptionsTab()) end,
+				-- Run with no question asked, it puts back the page in view.
+				func = function()
+					local pageId = askedFor or ns.OptionsTab()
+					askedFor = nil
+					Page.ResetPage(pageId)
+				end,
 			},
 
 			favoursHeader = { type = "header", name = L["Favours"], order = 10, hidden = NoOthers },

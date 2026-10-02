@@ -1580,6 +1580,10 @@ for name, ids in pairs({
 	["Lightning Shield"] = { 324, 325, 905, 945, 8134, 10431, 10432 },
 	["Water Shield"] = { 408510 },
 	["Omen of Clarity"] = { 16864 },
+	-- Tracking, which the minimap's list says is known (Buffs.lua, TRACKING).
+	["Find Herbs"] = { 2383, 8387 },
+	["Find Minerals"] = { 2580, 8388 },
+	["Track Beasts"] = { 1494 },
 }) do
 	for _, id in ipairs(ids) do SPELL_NAMES[id] = name end
 end

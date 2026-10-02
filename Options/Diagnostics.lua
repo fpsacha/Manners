@@ -208,14 +208,17 @@ function Page.BuildDiagnosticsTab()
 			-- Who "Skip players flagged for PvP" is holding back, in the
 			-- words /manners debug uses (ns.PvPLines): somebody missing
 			-- from the prompt for it has nothing else on screen to say why.
-			-- A scan of its own, since the page is not repainted by one.
+			-- A scan of its own, since the page is not repainted by one; one
+			-- a paint, since in a battleground crowd a scan is a whole
+			-- queue. `hidden` runs it -- whatever draws the line asks that
+			-- first -- and the text reads what the scan left.
 			pvpDiag = {
 				type = "description",
 				order = 11.8,
 				fontSize = "medium",
 				hidden = function() return #ns.PvPLines(true) == 0 end,
 				name = function()
-					return "|cffffffff" .. L["Flagged for PvP"] .. "|r\n" .. table.concat(ns.PvPLines(true), "\n")
+					return "|cffffffff" .. L["Flagged for PvP"] .. "|r\n" .. table.concat(ns.PvPLines(), "\n")
 				end,
 			},
 			-- What is measuring how near a passer-by is, and how often it

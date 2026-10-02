@@ -115,16 +115,16 @@ function UI.Where(path)
 end
 
 -- Whether an entry is shown by its own rules and its tab's. A composite is
--- shown while any of its controls is.
+-- shown while any of its controls is. A rule that throws hides its entry
+-- (UI.Hidden).
 local function Shown(e)
-	local B = ns.WindowBind
 	if e.subs then
 		for _, sub in ipairs(e.subs) do
-			if not IsNote(sub) and not B.Hidden(sub) then return true end
+			if not IsNote(sub) and not UI.Hidden(sub) then return true end
 		end
 		return false
 	end
-	return not B.Hidden(e.item)
+	return not UI.Hidden(e.item)
 end
 UI.EntryShown = Shown
 
@@ -301,8 +301,7 @@ local function FoldButton(sec, child)
 	b.chevron:SetPoint("LEFT", b, "LEFT", 4, 0)
 	b.label = UI.Text(b, 13, C.goldSoft)
 	b.label:SetPoint("LEFT", b, "LEFT", 22, 0)
-	b.dot = UI.Solid(b, "OVERLAY", C.gold)
-	b.dot:SetSize(7, 7)
+	b.dot = UI.Dot(b, C.gold)
 	b:SetScript("OnClick", UI.Guarded(function() ToggleFold(sec) end))
 	b:SetScript("OnEnter", function(self) self.hover:Show() end)
 	b:SetScript("OnLeave", function(self) self.hover:Hide() end)
@@ -556,18 +555,24 @@ local function PlaceFold(sec, y)
 	return y + 26
 end
 
+-- The title, and its gold rule running on from it to the content's right
+-- edge on the same line, fading out, as the mock-up and a model header row
+-- (Widgets.lua) draw it.
 local function PlaceTitle(sec, y)
+	local child = UI.view.child
 	sec.title:SetText(SectionText(sec))
 	sec.title:ClearAllPoints()
-	sec.title:SetPoint("TOPLEFT", UI.view.child, "TOPLEFT", PAD_LEFT, -y)
+	sec.title:SetPoint("TOPLEFT", child, "TOPLEFT", PAD_LEFT, -y)
 	sec.title:Show()
 	local h = UI.TextHeight(sec.title, 13)
+	local from = math.min(math.ceil(UI.TextWidth(sec.title, 13)) + 10, CONTENT_W)
+	local middle = -(y + math.floor(h / 2 + 0.5))
 	sec.rule:ClearAllPoints()
-	sec.rule:SetPoint("TOPLEFT", UI.view.child, "TOPLEFT", PAD_LEFT, -(y + h + 3))
-	sec.rule:SetWidth(CONTENT_W)
+	sec.rule:SetPoint("LEFT", child, "TOPLEFT", PAD_LEFT + from, middle)
+	sec.rule:SetPoint("RIGHT", child, "TOPLEFT", PAD_LEFT + CONTENT_W, middle)
 	sec.rule:Show()
 	sec.y = y
-	return y + h + 9
+	return y + h + 6
 end
 
 local function PlaceCaption(m, y)

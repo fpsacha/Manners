@@ -231,7 +231,8 @@ do
 		end
 		-- The reset asks first, about this page, and says what it keeps.
 		local reset = adv.args.resetAdvanced
-		if reset and not (reset.type == "execute" and reset.confirm == true
+		-- A function asks too: it notes the page the question is about.
+		if reset and not (reset.type == "execute" and (reset.confirm == true or type(reset.confirm) == "function")
 			and optionText(reset.confirmText):find("Put every setting on this page back to its default?", 1, true)) then
 			fail(scenario, "Put these back to default does not ask before it resets")
 		end

@@ -161,20 +161,25 @@ local function load()
 end
 
 -- What each class has learned, as tests/scenarios/window-classes.lua gives it
--- for IA 1.11's table: its buffs by key (every rank) and spell ids. The mock
--- client on its own knows Arcane Intellect and nothing else, which would
--- draw every other class as a character that has learned nothing yet.
+-- for IA 1.11's table: its buffs by key (every rank) and spell ids, and the
+-- buffs of its own IA 1.11 lists under Myself (Inner Fire 588; Devotion Aura
+-- 465 and Righteous Fury 25780; Trueshot Aura 19506). The mock client on its
+-- own knows Arcane Intellect and nothing else, which would draw every other
+-- class as a character that has learned nothing yet. `tracking` is what the
+-- minimap's tracking list holds (Core.lua reads tracking from it, not from
+-- the spellbook): Track Beasts for the hunter.
 local KNOWS = {
 	MAGE = { known = { 1459, 168 } },
-	PRIEST = { buffs = { "fortitude", "spirit", "shadow" } },
-	PALADIN = { buffs = { "wisdom", "might", "kings", "salvation", "light", "sanctuary" } },
+	PRIEST = { buffs = { "fortitude", "spirit", "shadow" }, known = { 588 } },
+	PALADIN = { buffs = { "wisdom", "might", "kings", "salvation", "light", "sanctuary" }, known = { 465, 25780 } },
 	WARRIOR = { buffs = { "battleshout" } },
-	HUNTER = { known = { 13165, 13163 } },
+	HUNTER = { known = { 13165, 13163, 19506 }, tracking = { 1494 } },
 }
 local mockKnown, mockPlayerSpell = IsSpellKnown, IsPlayerSpell
 
 local function know(ns)
 	IsSpellKnown, IsPlayerSpell = mockKnown, mockPlayerSpell
+	rawset(_G, "C_Minimap", nil)
 	local spec = KNOWS[Mock.class]
 	if not spec then return end
 	local set = {}
@@ -183,12 +188,34 @@ local function know(ns)
 		local buff = ns.FindBuff and ns.FindBuff(Mock.class, key)
 		for _, id in ipairs(buff and buff.ranks or {}) do set[id] = true end
 	end
+	local tracking = spec.tracking or {}
+	for _, id in ipairs(tracking) do set[id] = true end
 	IsSpellKnown = function(id) return set[id] == true end
 	IsPlayerSpell = IsSpellKnown
+	if #tracking > 0 then
+		rawset(_G, "C_Minimap", {
+			GetNumTrackingTypes = function() return #tracking end,
+			GetTrackingInfo = function(i) return { spellID = tracking[i], active = false } end,
+		})
+	end
+end
+
+-- The client's clock as the header shows a snooze's end: hours and minutes.
+-- The mock's date() answers "12:00:00" whatever it is asked, which would draw
+-- the German header wider than the game does.
+local mockDate = date
+date = function(format, ...)
+	if format == "%H:%M" then return "12:00" end
+	return mockDate(format, ...)
 end
 
 local function boot(ns)
 	know(ns)
+	-- The game's own key bindings page, which Start here's Open key bindings
+	-- opens (Setup.CanOpenBindings): there on this client generation.
+	rawset(_G, "Settings", rawget(_G, "Settings") or {})
+	Settings.OpenToCategory = Settings.OpenToCategory or function() end
+	Settings.KEYBINDINGS_CATEGORY_ID = Settings.KEYBINDINGS_CATEGORY_ID or 1
 	ns.addon:OnInitialize()
 	ns.addon:OnEnable()
 	ns.addon:PLAYER_ENTERING_WORLD()

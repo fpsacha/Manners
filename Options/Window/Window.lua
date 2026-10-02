@@ -56,6 +56,26 @@ function UI.Solid(parent, layer, colour, sub)
 	return t
 end
 
+-- A round dot with a soft glow, as the mock-up draws the sidebar's red dot and
+-- a fold's gold one: the client's round portrait mask, tinted, over two
+-- larger and fainter copies of itself, the glow falling away in steps. A
+-- frame, so they show, hide and move as one.
+local ROUND = "Interface\\CharacterFrame\\TempPortraitAlphaMask"
+local DOT_LAYERS = { { 15, 0.15 }, { 11, 0.35 }, { 7, 1 } }
+
+function UI.Dot(parent, colour)
+	local dot = CreateFrame("Frame", nil, parent)
+	dot:SetSize(7, 7)
+	for i, layer in ipairs(DOT_LAYERS) do
+		local t = dot:CreateTexture(nil, "OVERLAY", nil, i)
+		t:SetTexture(ROUND)
+		t:SetSize(layer[1], layer[1])
+		t:SetPoint("CENTER", dot, "CENTER", 0, 0)
+		t:SetVertexColor(colour[1], colour[2], colour[3], layer[2])
+	end
+	return dot
+end
+
 -- SetGradient changed shape between client generations; tried as Prompt.lua
 -- tries it, over a white texture for the colours to tint, with a flat colour
 -- that always works behind it. Vertical runs bottom to top.
@@ -184,6 +204,26 @@ function UI.Item(path, entry)
 	return path and ns.WindowBind.Item(path, entry, UI.ctx) or nil
 end
 
+-- A control's hidden or disabled rule as the window paints it. One that
+-- throws is named once in /manners errors and read as true -- the control
+-- left out, or greyed out -- as a row whose Refresh throws is left out: one
+-- bad rule never sends the player to the old dialog, which asks the same
+-- rules anyway.
+local thrown = {}
+
+local function Rule(rule, item)
+	local ok, on = pcall(rule, item)
+	if ok then return on end
+	if not thrown[item.path] then
+		thrown[item.path] = true
+		ns.Guard("options row " .. tostring(item.path), error, on, 0)
+	end
+	return true
+end
+
+function UI.Hidden(item) return Rule(ns.WindowBind.Hidden, item) end
+function UI.Disabled(item) return Rule(ns.WindowBind.Disabled, item) end
+
 ---------------------------------------------------------------------------
 -- the peek: the window fades so the real prompt behind it shows (IA 1.7)
 ---------------------------------------------------------------------------
@@ -192,10 +232,15 @@ local PEEK_ALPHA, FADE_OUT, FADE_IN, PEEK_AFTER, HOVER_DELAY = 0.25, 0.15, 0.2, 
 local peek = { held = false, hover = false, untilAt = 0, alpha = 1, hoverToken = 0 }
 UI.peek = peek
 
--- No peek in a fight: Look's changes wait for it to end anyway.
+-- No peek in a fight: Look's changes wait for it to end anyway. A hold counts
+-- only while Look is the page (the colour picker can be left up behind
+-- another), and the pointer on the preview button only while a preview runs
+-- (it can end without the pointer moving).
 function UI.PeekTarget()
 	if InCombatLockdown() then return 1 end
-	if peek.held or peek.hover or GetTime() < peek.untilAt then return PEEK_ALPHA end
+	local held = peek.held and UI.page == "appearance"
+	local hover = peek.hover and ns.Prompt ~= nil and ns.Prompt:InTest()
+	if held or hover or GetTime() < peek.untilAt then return PEEK_ALPHA end
 	return 1
 end
 
@@ -508,6 +553,8 @@ end
 -- The page in view: its rows built the first time, the others' rows put away.
 function UI.ShowPage(id)
 	if not UI.Layout().pages[id] then return end
+	-- Whatever asked for the page, the search's drop-down is not over it.
+	if UI.LeaveSearch then UI.LeaveSearch() end
 	local was = UI.page
 	if was and was ~= id then UI.HidePage(was) end
 	UI.page = id
