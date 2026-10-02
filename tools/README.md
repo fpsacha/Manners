@@ -208,7 +208,7 @@ and can be given more than once:
 |---|---|
 | `unlocked` | the prompt unlocked before the window opens |
 | `snoozed` | `ns.StartSnooze(15)` before it opens |
-| `combat` | a fight starts once it is open (`PLAYER_REGEN_DISABLED`) |
+| `combat` | a fight starts once it is open, in the client's order: `PLAYER_REGEN_DISABLED` to Core and to every frame registered for it while lockdown has not begun, then lockdown and the next frame's timers |
 | `folds-open` | every folded section in the layout written open in `ns.db.global.window.open`, the window shut and opened again |
 | `scrolled` | the page scrolled to its end (`ns.WindowUI.ScrollTo`), for what a long page holds below the first screen |
 | `modal` | the footer's "Put these back to default" pressed; on a page without one, `ns.WindowWidgets.Modal` opened with its words |
@@ -237,9 +237,16 @@ breaking the picture is drawn with: `tests/frametree.lua` answers
 `GetStringWidth`, `GetStringHeight` and `GetNumLines` through `FT.measure` and
 `FT.wrap`, which this installs, and works out the width a string wraps at from
 its anchors as the renderer does. So a row the window laid out to fit is drawn
-fitting, and one that does not fit shows.
+fitting, and one that does not fit shows. A multi-line edit box grows to hold
+its text, as the client's does, so the scroll frame round it has something to
+scroll.
 
-`--check` reads the drawn tree of the window for four faults, lists each with
+Chinese and Korean (`--locale zhCN`, `zhTW`, `koKR`) are drawn and measured in
+a face that has their script (Microsoft YaHei, JhengHei, Malgun Gothic, or
+Noto Sans CJK), set before anything is measured: Candara has none of it, and a
+page measured in boxes is laid out wrong.
+
+`--check` reads the drawn tree of the window for five faults, lists each with
 the text it concerns, and exits 1 if there is any (2 if a page could not be
 drawn at all):
 
@@ -263,6 +270,11 @@ drawn at all):
   pixel under its lines at its alpha, and the ratio below which the worst
   twentieth of those pixels fall is the one held to 4.5. Greyed-out controls
   are held to it too: the game's grey passes on a dark panel.
+- **(e) text the picture cannot be trusted for**: a character the face it is
+  drawn in does not have (read from the face's own character map, with
+  fontTools), or bytes that are not UTF-8. Those would stop the run at the
+  first page that had one; instead they are drawn as U+FFFD, the region is
+  named, and the run goes on to the next page.
 
 `--demo` does not load the addon. `render_options.lua` builds a window of every
 kind of frame the options window may use -- the frame types, font objects,
@@ -270,7 +282,8 @@ colour textures, gradients, art, an edit box, a multi-line edit box scrolled in
 its own scroll frame, a slider, a number box, a clipping frame, a hidden row
 and a faded one -- and draws it three ways: clean, clean with its content
 scrolled to the end, and with one fault planted for each check, tagged `[a1]`,
-`[b1]` and so on in its text. It exits 1 unless the clean ones pass every check
+`[b1]` and so on in its text (`[e1]` is Chinese in a Latin face, `[e2]` a
+character cut in half). It exits 1 unless the clean ones pass every check
 and the faults are found exactly. Run it after changing the renderer or
 `tests/frametree.lua`.
 

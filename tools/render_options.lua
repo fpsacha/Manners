@@ -31,6 +31,53 @@ local FT = FrameTree
 local R = {}
 local FILES = dofile(dir .. "/tests/addonfiles.lua")(addonDir)
 
+-- `s` with what Python cannot read as UTF-8 turned into U+FFFD, one for each
+-- broken character as Python counts them (the start of a character and the
+-- continuation bytes it did get), and whether there was any.
+local function mendUtf8(s)
+	local out, i, n, bad = {}, 1, #s, false
+	while i <= n do
+		local c = s:byte(i)
+		local len, lo, hi = 0, 0x80, 0xBF
+		if c < 0x80 then
+			len = 1
+		elseif c >= 0xC2 and c <= 0xDF then
+			len = 2
+		elseif c >= 0xE0 and c <= 0xEF then
+			len = 3
+			if c == 0xE0 then lo = 0xA0 elseif c == 0xED then hi = 0x9F end
+		elseif c >= 0xF0 and c <= 0xF4 then
+			len = 4
+			if c == 0xF0 then lo = 0x90 elseif c == 0xF4 then hi = 0x8F end
+		end
+		-- How many bytes from i make a whole character, or a broken start.
+		local got = len > 0 and 1 or 0
+		while got > 0 and got < len and i + got <= n do
+			local d = s:byte(i + got)
+			if d < (got == 1 and lo or 0x80) or d > (got == 1 and hi or 0xBF) then break end
+			got = got + 1
+		end
+		if len > 0 and got == len then
+			out[#out + 1] = s:sub(i, i + len - 1)
+		else
+			out[#out + 1] = "\239\191\189"
+			bad = true
+		end
+		i = i + math.max(got, 1)
+	end
+	return table.concat(out), bad
+end
+
+-- The renderer's measure and wrap, handed text it can read: Python stops at
+-- the first byte that is not UTF-8, and a page with one is still to be drawn
+-- (R.scrub names it).
+local function readable(fn)
+	return function(text, ...)
+		if type(text) == "string" and text:find("[\128-\255]") then text = mendUtf8(text) end
+		return fn(text, ...)
+	end
+end
+
 -- 1280 x 720 at UI scale 1, the screen IA.md 1.1 sizes the window for.
 local SCREEN = { width = 1365, height = 768 }
 -- Sidebar order, used when the layout cannot be asked.
@@ -94,7 +141,7 @@ local function fresh()
 	Mock.screenHeight = SCREEN.height
 	FT.uninstall()
 	FT.install()
-	FT.measure, FT.wrap, FT.screen = measure, wrap, SCREEN
+	FT.measure, FT.wrap, FT.screen = readable(measure), readable(wrap), SCREEN
 	profileOptions()
 end
 
@@ -231,9 +278,14 @@ function BEFORE.snoozed(ns)
 	ns.StartSnooze(15)
 end
 
+-- In the client's order: the event comes just before lockdown begins, to Core
+-- and to every frame that registered for it, and what they put off to the
+-- next frame runs under lockdown.
 function AFTER.combat(ns)
-	Mock.inCombat = true
 	ns.addon:PLAYER_REGEN_DISABLED()
+	if Mock.frameEvent then Mock.frameEvent("PLAYER_REGEN_DISABLED") end
+	Mock.inCombat = true
+	Mock.runTimers()
 end
 
 -- Every folded section open, as the window remembers them (IA 1.5): shut, the
@@ -342,6 +394,45 @@ function R.page(page, spec)
 		firstError = ns.errors and ns.errors[1] and (tostring(ns.errors[1].where) .. " -> "
 			.. tostring(ns.errors[1].err)) or nil,
 	}
+end
+
+-- ------------------------------------------------------------------ broken text
+
+-- A snapshot the renderer could not read, put right in place: every string
+-- in it mended, and each region whose text was broken listed, so the page is
+-- still drawn and the fault is named rather than ending the run.
+function R.scrub(snap)
+	local found = {}
+	local function mend(t, entry, depth)
+		if depth > 8 then return end
+		for k, v in pairs(t) do
+			if type(v) == "string" then
+				local fixed, bad = mendUtf8(v)
+				if bad then
+					t[k] = fixed
+					found[#found + 1] = { id = entry and entry.id, kind = entry and entry.kind,
+						field = tostring(k), text = fixed }
+				end
+			elseif type(v) == "table" then
+				mend(v, entry, depth + 1)
+			end
+		end
+	end
+	for _, entry in ipairs(snap.tree or {}) do mend(entry, entry, 2) end
+	for k, v in pairs(snap) do
+		if k ~= "tree" then
+			if type(v) == "string" then
+				local fixed, bad = mendUtf8(v)
+				if bad then
+					snap[k] = fixed
+					found[#found + 1] = { field = tostring(k), text = fixed }
+				end
+			elseif type(v) == "table" then
+				mend(v, nil, 2)
+			end
+		end
+	end
+	return found
 end
 
 -- ------------------------------------------------------------------ the demo
@@ -874,6 +965,12 @@ function D.faults()
 	fs = D.text(pale, "GameFontNormal", "[d2] Gold on a pale row")
 	fs:SetPoint("LEFT", 6, 0)
 	plant("d", "d2")
+	-- Chinese in a Latin face, and a character cut in half by a trim that
+	-- took its last byte for a space.
+	rows:note("[e1] Chinese the face cannot draw: \228\184\173\230\150\135", "GameFontHighlight")
+	plant("e", "e1")
+	rows:note("[e2] Reason text: top-up \229\138", "GameFontHighlight")
+	plant("e", "e2")
 	rows.child:SetHeight(rows.y + 16)
 	local below = D.button(rows.child, "[c3] Past the end of the scroll child")
 	below:SetPoint("TOPLEFT", rows.child, "TOPLEFT", 16, -(rows.y + 60))

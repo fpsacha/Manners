@@ -31,6 +31,13 @@ local function PreviewClicked()
 	if running then UI.session.stoppedPreview = true end
 end
 
+-- A menu entry's work. It answers nothing: the menu takes anything a
+-- callback returns as its response, and only none (or CloseAll) shuts it, so
+-- the guard's `true` left the menu open on stale entries.
+local function Entry(item)
+	return function() ns.Guard("options snooze", ns.WindowBind.Run, item) end
+end
+
 -- The snooze menu, built from the layout's snooze entries, each by its own
 -- rules: Stop snoozing is there only while a snooze runs.
 local function FillSnooze(_, root)
@@ -41,13 +48,13 @@ local function FillSnooze(_, root)
 			if item.key == "snoozeStop" then
 				stop = item
 			else
-				root:CreateButton(B.Text(item, "name") or item.key, UI.Guarded(function() B.Run(item) end))
+				root:CreateButton(B.Text(item, "name") or item.key, Entry(item))
 			end
 		end
 	end
 	if stop then
 		if root.CreateDivider then root:CreateDivider() end
-		root:CreateButton(B.Text(stop, "name") or stop.key, UI.Guarded(function() B.Run(stop) end))
+		root:CreateButton(B.Text(stop, "name") or stop.key, Entry(stop))
 	end
 end
 
@@ -197,6 +204,11 @@ function UI.BuildStrip(f)
 	strip.frame = s
 	strip.line1 = UI.Text(s, GameFontHighlight)
 	strip.line2 = UI.Text(s, GameFontHighlight)
+	-- Wrapped inside a word too, for a language with no spaces to break at.
+	for _, line in ipairs({ strip.line1, strip.line2 }) do
+		line:SetWordWrap(true)
+		if line.SetNonSpaceWrap then line:SetNonSpaceWrap(true) end
+	end
 	strip.lockItem = UI.Item(UI.Layout().strip.lock)
 	local lockName = strip.lockItem and ns.WindowBind.Text(strip.lockItem, "name") or L["Lock it"]
 	strip.lock = W.Button(s, lockName, UI.Guarded(function()
@@ -224,7 +236,8 @@ local function CombatLine()
 	if COMBAT_NEEDS[UI.page] and (not needs or B.Hidden(needs)) then return nil end
 	local text = B.Text(item, "name")
 	if not text then return nil end
-	return (text:gsub("[\r\n%s]+$", ""))
+	-- Not %s, which under a Western locale takes the last byte of "加".
+	return (text:gsub("[ \t\r\n]+$", ""))
 end
 
 -- Lays the strip out and answers its height: none at all when nothing needs

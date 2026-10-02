@@ -864,7 +864,9 @@ function Page.BuildStartTab()
 				type = "execute",
 				name = L["Stop snoozing"],
 				order = 54,
-				hidden = function() return not ns.SnoozeLeft() end,
+				-- With the other three: a snooze started from chat or the
+				-- minimap menu does not give a rogue a Snooze button.
+				hidden = function() return noPrompt() or not ns.SnoozeLeft() end,
 				func = function() ns.StopSnooze() end,
 			},
 

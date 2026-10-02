@@ -235,6 +235,99 @@ do
 	end)
 end
 
+-- ------------------------------------------------------------------ pairs
+-- A pair's partner is the item after it, not whatever shows next: Look's
+-- Reason colours sits beside Colour marker whether or not Marker colour shows,
+-- and a run of pairs (the reason boxes) puts its shown items two to a row, so
+-- a hunter's own-buff and top-up boxes still share one.
+local function sameRow(a, b) return a and b and a.e.y == b.e.y and b.e.x > a.e.x end
+
+do
+	local scenario = "window: a pair keeps its partner, and a run of pairs closes up round hidden items"
+	with(scenario, "MAGE", nil, function(ns, UI)
+		ns.db.profile.prompt.accentByReason = false
+		ns.OpenOptions("appearance")
+		local palette, mode, colour = UI.Where("appearance.reasonPalette"), UI.Where("appearance.accentMode"),
+			UI.Where("appearance.accentColor")
+		if not (UI.RowShown("appearance.reasonPalette") and UI.RowShown("appearance.accentMode")
+			and UI.RowShown("appearance.accentColor")) then
+			fail(scenario, "SKIPPED -- Reason colours, Colour marker or Marker colour is not shown")
+		else
+			if not sameRow(palette, mode) then fail(scenario, "Reason colours and Colour marker do not share a row") end
+			if not (colour.e.y >= math.max(palette.e.y + palette.e.h, mode.e.y + mode.e.h)) then
+				fail(scenario, "Marker colour is not on a row of its own under them")
+			end
+		end
+	end)
+	with(scenario, "HUNTER", nil, function(ns, UI)
+		ns.OpenOptions("appearance")
+		unfold(ns, "advanced.reasonSelf")
+		local mine, topUp = UI.Where("advanced.reasonSelf"), UI.Where("advanced.reasonRefresh")
+		if not (UI.RowShown("advanced.reasonSelf") and UI.RowShown("advanced.reasonRefresh")) then
+			fail(scenario, "SKIPPED -- a hunter's own-buff or top-up box is not shown")
+		elseif UI.RowShown("advanced.reasonOwed") then
+			fail(scenario, "SKIPPED -- a hunter has Reason text: buffed me")
+		elseif not sameRow(mine, topUp) then
+			fail(scenario, "a hunter's two reason boxes do not share a row")
+		end
+	end)
+end
+
+-- Two side by side line up their controls, not their tops: Lock position's
+-- box level with the dropdown beside it rather than with that dropdown's
+-- label (Panel colour's swatch beside Panel style goes the same way).
+do
+	local scenario = "window: a switch or a swatch beside a dropdown sits level with the dropdown"
+	with(scenario, "MAGE", nil, function(ns, UI)
+		ns.OpenOptions("appearance")
+		local function middle(e) return e.y + (e.row.fieldTop or 0) + (e.row.fieldHeight or 0) / 2 end
+		for _, pair in ipairs({ { "appearance.posPreset", "appearance.locked" } }) do
+			local field, beside = UI.Where(pair[1]), UI.Where(pair[2])
+			if not (UI.RowShown(pair[1]) and UI.RowShown(pair[2])) then
+				fail(scenario, "SKIPPED -- " .. pair[1] .. " or " .. pair[2] .. " is not shown")
+			elseif not (beside.e.x > field.e.x) then
+				fail(scenario, "SKIPPED -- " .. pair[2] .. " is not beside " .. pair[1])
+			elseif math.abs(middle(field.e) - middle(beside.e)) > 1 or not (beside.e.y > field.e.y) then
+				fail(scenario, ("%s sits at %s, level with %s's label rather than its field (%s)"):format(
+					pair[2], tostring(middle(beside.e)), pair[1], tostring(middle(field.e))))
+			end
+		end
+	end)
+end
+
+-- ------------------------------------------------------------------ notes
+-- IA section 2's grey notes are grey (a colour code in the text still wins),
+-- and the Myself and PvP lines are a grey block inset from the page; a plain
+-- note is in the label colour.
+do
+	local scenario = "window: grey notes are grey, and the Myself and PvP lines are a block"
+	with(scenario, "MAGE", nil, function(ns, UI)
+		local T = ns.WindowWidgets.Theme
+		ns.OpenOptions("general")
+		ns.OpenOptions("who")
+		ns.OpenOptions("skip")
+		local function colour(path)
+			local row = UI.RowFor(path)
+			return row and row.text and row.text._textColor
+		end
+		local function is(c, want) return c and math.abs(c[1] - want[1]) < 1e-6 and math.abs(c[2] - want[2]) < 1e-6 end
+		for _, path in ipairs({ "who.autoNote", "diagnostics.ownDiag", "diagnostics.pvpDiag" }) do
+			if not UI.RowFor(path) then
+				fail(scenario, "SKIPPED -- no row for " .. path)
+			elseif not is(colour(path), T.hint) then
+				fail(scenario, path .. " is not grey")
+			end
+		end
+		for _, path in ipairs({ "diagnostics.ownDiag", "diagnostics.pvpDiag" }) do
+			local row = UI.RowFor(path)
+			if row and not (row.well and row.wellRule) then fail(scenario, path .. " is not drawn as a block") end
+		end
+		if not is(colour("general.howItWorks"), T.ink) then fail(scenario, "Start here's lead is not in the label colour") end
+		local auto = UI.RowFor("who.autoNote")
+		if auto and auto.well then fail(scenario, "a grey note that is not a block has a well") end
+	end)
+end
+
 -- ------------------------------------------------------------------ red dots
 do
 	local scenario = "window: a page's red dot follows its warning, and a warning that throws is named"

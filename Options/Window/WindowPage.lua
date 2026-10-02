@@ -36,10 +36,22 @@ local function IsNote(item)
 	return t == "description" or t == "header"
 end
 
+-- A placed item's layout entry, with how the layout draws it as a note (its
+-- `notes` table: grey, or a grey block) folded into a copy.
+local function EntryLayout(raw)
+	local entry = type(raw) == "table" and raw or { raw }
+	local look = type(entry[1]) == "string" and (UI.Layout().notes or {})[entry[1]]
+	if type(look) ~= "table" then return entry end
+	local out = {}
+	for k, v in pairs(entry) do out[k] = v end
+	for k, v in pairs(look) do out[k] = v end
+	return out
+end
+
 -- One placed item: a control or a note, or the never-offer composite, which
 -- is one row built from several definitions.
 local function Entry(raw, sec)
-	local entry = type(raw) == "table" and raw or { raw }
+	local entry = EntryLayout(raw)
 	local e = { layout = entry, sec = sec }
 	if entry.composite then
 		e.subs = {}
@@ -312,6 +324,8 @@ local function Caption(m, child)
 	local cap = {}
 	cap.text = UI.Text(child, GameFontDisableSmall, C.hint)
 	cap.text:SetJustifyH("CENTER")
+	cap.text:SetWordWrap(true)
+	if cap.text.SetNonSpaceWrap then cap.text:SetNonSpaceWrap(true) end
 	cap.left = UI.Solid(child, "ARTWORK", C.line)
 	cap.left:SetHeight(1)
 	cap.right = UI.Solid(child, "ARTWORK", C.line)
@@ -375,9 +389,10 @@ local function NaturalWidth(e)
 	return type(w) == "number" and w or math.huge
 end
 
-local function Place(e, x, y, width)
+-- `h` when the row was laid out at this width already.
+local function Place(e, x, y, width, h)
 	local row = e.row
-	local h = row.Layout(row, width) or 20
+	h = h or row.Layout(row, width) or 20
 	local frame = row.frame
 	frame:ClearAllPoints()
 	frame:SetPoint("TOPLEFT", UI.view.child, "TOPLEFT", x, -y)
@@ -389,30 +404,72 @@ end
 
 local function Usable(e) return e.visible and e.row ~= nil end
 
-local function NextUsable(list, i)
-	for j = i + 1, #list do
-		if Usable(list[j]) then return j end
-	end
-end
-
 local function Indent(e) return e.layout.indent and INDENT or 0 end
 
--- Two items on one row when both fit half the width, measured in this
--- language; otherwise one above the other.
-local function PlacePair(list, i, y)
-	local e = list[i]
-	local j = NextUsable(list, i)
-	local x, width = PAD_LEFT + Indent(e), CONTENT_W - Indent(e)
-	local half = math.floor((width - GAP) / 2)
-	if j and NaturalWidth(e) <= half and NaturalWidth(list[j]) <= half then
-		for k = i + 1, j - 1 do
-			if list[k].row then list[k].row.frame:Hide() end
-		end
-		local h1 = Place(e, x, y, half)
-		local h2 = Place(list[j], x + half + GAP, y, half)
-		return y + math.max(h1, h2) + ROW_GAP, j + 1
+-- How far down a row the middle of its control is: under the label for a
+-- dropdown, a slider or a box, at the top for a switch or a swatch. Nil for a
+-- row with no control to line up (a note).
+local function Middle(row)
+	if not (row and row.fieldHeight) then return nil end
+	return (row.fieldTop or 0) + row.fieldHeight / 2
+end
+
+-- Two rows side by side, the one whose control sits higher moved down until
+-- the two controls are level: Lock position beside its dropdown rather than
+-- beside the dropdown's label.
+local function PlaceTwo(a, b, x, half, y)
+	local ha = a.row.Layout(a.row, half) or 20
+	local hb = b.row.Layout(b.row, half) or 20
+	local ma, mb = Middle(a.row), Middle(b.row)
+	local da, db = 0, 0
+	if ma and mb then
+		if ma > mb then db = math.floor(ma - mb + 0.5) else da = math.floor(mb - ma + 0.5) end
 	end
-	return y + Place(e, x, y, width) + ROW_GAP, i + 1
+	Place(a, x, y + da, half, ha)
+	Place(b, x + half + GAP, y + db, half, hb)
+	return y + math.max(ha + da, hb + db) + ROW_GAP
+end
+
+-- The items from i that a run of pairs covers: a pair and the item after it,
+-- and the next pair when it starts straight after (the reason boxes are one
+-- run of four pairs).
+local function PairRun(list, i)
+	local last, k = i, i
+	while list[k] and list[k].layout.pair and list[k + 1] do
+		last = k + 1
+		k = k + 2
+	end
+	return last
+end
+
+-- A run's shown items two to a row, in order, so two still share a row when
+-- the ones between them are hidden (a hunter's two reason boxes), and a pair
+-- whose partner is hidden is not joined to whatever follows the run. Two share
+-- a row when both fit half the width, measured in this language; otherwise
+-- one goes above the other.
+local function PlacePairs(list, i, y)
+	local last, shown = PairRun(list, i), {}
+	for k = i, last do
+		if Usable(list[k]) then
+			shown[#shown + 1] = list[k]
+		elseif list[k].row then
+			list[k].row.frame:Hide()
+		end
+	end
+	local k = 1
+	while k <= #shown do
+		local a, b = shown[k], shown[k + 1]
+		local x, width = PAD_LEFT + Indent(a), CONTENT_W - Indent(a)
+		local half = math.floor((width - GAP) / 2)
+		if b and NaturalWidth(a) <= half and NaturalWidth(b) <= half then
+			y = PlaceTwo(a, b, x, half, y)
+			k = k + 2
+		else
+			y = y + Place(a, x, y, width) + ROW_GAP
+			k = k + 1
+		end
+	end
+	return y, last + 1
 end
 
 -- A run of items in `columns` columns (the per-spell switches, the reason
@@ -457,11 +514,11 @@ local function LayoutRows(sec, y)
 	while i <= #list do
 		local e = list[i]
 		local cols = e.layout.columns
-		if not Usable(e) then
+		if e.layout.pair then
+			y, i = PlacePairs(list, i, y)
+		elseif not Usable(e) then
 			if e.row then e.row.frame:Hide() end
 			i = i + 1
-		elseif e.layout.pair then
-			y, i = PlacePair(list, i, y)
 		elseif cols and cols > 1 and e.kind ~= "multiselect" and e.kind ~= "never" then
 			y, i = PlaceColumns(list, i, y)
 		else

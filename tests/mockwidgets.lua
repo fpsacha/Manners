@@ -70,6 +70,20 @@ end
 Mock.measureText = widest
 Mock.textLines = numLines
 
+-- How tall a box of many lines needs to be for its text, inside its insets.
+-- tests/frametree.lua puts its own in, measured as the renderer draws.
+function Mock.editTextHeight(f)
+	if f._text == nil or f._text == "" then return 0 end
+	local ins = f._insets or {}
+	local width = (f._width or 0) - (ins[1] or 0) - (ins[2] or 0)
+	local size, n = fontSize(f), 0
+	for line in eachLine(f._text) do
+		local w = chars(line) * size * 0.5
+		n = n + (width > 0 and math.max(1, math.ceil(w / width)) or 1)
+	end
+	return n * size + (n - 1) * (f._spacing or 0) + (ins[3] or 0) + (ins[4] or 0)
+end
+
 ---------------------------------------------------------------------------
 -- the widened frame
 ---------------------------------------------------------------------------
@@ -98,6 +112,17 @@ end
 
 local widen
 
+-- The frames that registered for an event, for Mock.frameEvent.
+local eventFrames = setmetatable({}, { __mode = "k" })
+
+-- A box of many lines grows to hold its text, as the client's does, so the
+-- scroll frame it sits in has something to scroll: the height it was given is
+-- the least it is.
+local function grow(f)
+	if kindOf(f) ~= "EditBox" or not f._multiLine then return end
+	f._height = math.max(f._givenHeight or 0, Mock.editTextHeight(f))
+end
+
 local function addGeometry(f)
 	f.SetClipsChildren = function(self, on) self._clips = on and true or false end
 	f.SetToplevel = function(self, on) self._toplevel = on and true or false end
@@ -108,6 +133,14 @@ local function addGeometry(f)
 	f.SetPropagateKeyboardInput = function(self, on) self._propagate = on and true or false end
 	f.SetHitRectInsets = function(self, l, r, t, b) self._hitRect = { l, r, t, b } end
 	f.IsMouseOver = function(self) return self._mouseOver == true end
+	after(f, "RegisterEvent", function(self, event)
+		self._events = self._events or {}
+		self._events[event] = true
+		eventFrames[self] = true
+	end)
+	after(f, "UnregisterEvent", function(self, event)
+		if self._events then self._events[event] = nil end
+	end)
 	after(f, "EnableMouse", function(self, on) self._mouse = on ~= false end)
 	after(f, "EnableMouseWheel", function(self, on) self._wheel = on ~= false end)
 	-- The size it was given; UIParent keeps the screen the mock describes.
@@ -207,17 +240,35 @@ local function addText(f)
 	-- An edit box tells its scripts about every change of text, the
 	-- client's own SetText included (userInput false).
 	after(f, "SetText", function(self)
-		if kindOf(self) == "EditBox" then fire(self, "OnTextChanged", false) end
+		if kindOf(self) == "EditBox" then
+			grow(self)
+			fire(self, "OnTextChanged", false)
+		end
 	end)
 end
 
 local function addEditBox(f)
 	f.SetAutoFocus = function(self, on) self._autoFocus = on and true or false end
-	f.SetMultiLine = function(self, on) self._multiLine = on and true or false end
+	f.SetMultiLine = function(self, on)
+		self._multiLine = on and true or false
+		grow(self)
+	end
 	f.IsMultiLine = function(self) return self._multiLine == true end
 	f.SetMaxLetters = function(self, n) self._maxLetters = n end
 	f.GetNumLetters = function(self) return chars(tostring(self._text or "")) end
-	f.SetTextInsets = function(self, l, r, t, b) self._insets = { l, r, t, b } end
+	f.SetTextInsets = function(self, l, r, t, b)
+		self._insets = { l, r, t, b }
+		grow(self)
+	end
+	after(f, "SetSize", function(self, _, h)
+		self._givenHeight = h
+		grow(self)
+	end)
+	after(f, "SetHeight", function(self, h)
+		self._givenHeight = h
+		grow(self)
+	end)
+	after(f, "SetWidth", function(self) grow(self) end)
 	f.SetCursorPosition = function(self, n) self._cursor = n end
 	f.GetCursorPosition = function(self) return self._cursor or 0 end
 	f.HighlightText = function(self, from, to) self._highlight = { from or 0, to or -1 } end
@@ -239,6 +290,7 @@ local function addEditBox(f)
 	end
 	f.Insert = function(self, text)
 		self._text = tostring(self._text or "") .. tostring(text or "")
+		grow(self)
 		fire(self, "OnTextChanged", false)
 	end
 end
@@ -356,7 +408,23 @@ function Mock.type(box, text)
 	box:SetFocus()
 	box._text = text
 	box._cursor = chars(tostring(text))
+	grow(box)
 	fire(box, "OnTextChanged", true)
+end
+
+-- An event as the client hands it to the frames that registered for it with
+-- RegisterEvent (Core's own come through AceEvent, and scenarios call those
+-- handlers directly). Answers how many frames heard it.
+function Mock.frameEvent(event, ...)
+	local heard = 0
+	for f in pairs(eventFrames) do
+		local fn = f._events and f._events[event] and f.scripts and f.scripts.OnEvent
+		if fn then
+			fn(f, event, ...)
+			heard = heard + 1
+		end
+	end
+	return heard
 end
 
 -- A key pressed in a focused box: "ENTER", "ESCAPE", "TAB", or an arrow
@@ -463,6 +531,7 @@ function Mock.useMenu()
 			generator(owner, root)
 			Mock.menu = { owner = owner, root = root, entries = root.entries }
 			Mock.menus = (Mock.menus or 0) + 1
+			Mock.menuOpen, Mock.menuResponse = true, nil
 			return root
 		end,
 	}
@@ -498,10 +567,17 @@ function Mock.menuChosen(text)
 end
 
 -- Clicks an entry of the last menu; false when there is none by that text.
+-- What the entry's callback answered is its response, as the client's menu
+-- reads it: nothing (or MenuResponse.CloseAll) shuts the menu, anything else
+-- leaves it open on the entries it was built with. Mock.menuOpen says which.
 function Mock.pickMenu(text)
 	local e = Mock.menuEntry(text)
 	if not e or e.enabled == false then return false end
-	if e.setSelected then e.setSelected(e.data) elseif e.fn then e.fn(e.data) end
+	local response
+	if e.setSelected then response = e.setSelected(e.data) elseif e.fn then response = e.fn(e.data) end
+	local closeAll = type(MenuResponse) == "table" and MenuResponse.CloseAll or nil
+	Mock.menuResponse = response
+	Mock.menuOpen = not (response == nil or (closeAll ~= nil and response == closeAll))
 	return true
 end
 
@@ -555,6 +631,8 @@ end
 local function install()
 	Mock.modifiers = {}
 	Mock.menu, Mock.menus, Mock.focus = nil, 0, nil
+	Mock.menuOpen, Mock.menuResponse = false, nil
+	for f in pairs(eventFrames) do eventFrames[f] = nil end
 	Mock.screenWidth = 1365
 	if installedMenu and rawget(_G, "MenuUtil") == installedMenu then MenuUtil = nil end
 	installedMenu = nil

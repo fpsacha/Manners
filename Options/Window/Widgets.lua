@@ -4,7 +4,9 @@
 -- model (Options/*.lua, reached through ns.WindowBind) and hands back
 -- { frame, Layout, Refresh, NaturalWidth, Focus, Flash }. The window anchors
 -- the frame and decides where it goes; a row only lays out what is inside it,
--- at the width it is given, and says how tall that made it.
+-- at the width it is given, and says how tall that made it. A row with a
+-- control also notes how far down it the control starts and how tall that is
+-- (row.fieldTop, row.fieldHeight), so the window can line two up side by side.
 --
 -- Every row is plain frames: Frame, Button, EditBox, Slider and ScrollFrame,
 -- borders of four textures, text in explicit font strings. No templates, no
@@ -84,6 +86,12 @@ local T = {
 	backdrop = { 0, 0, 0, 0.55 },
 	flash = { 1, 0.82, 0, 0.24 },
 	remove = { 0.851, 0.475, 0.424 },
+	-- A note drawn as a block: a faint well with a grey rule down its left.
+	well = { 1, 1, 1, 0.03 },
+	wellRule = { 0.227, 0.227, 0.251 },
+	-- A box's scroll bar, as the content's: a faint track, a dark gold thumb.
+	barTrack = { 1, 1, 1, 0.05 },
+	barThumb = { 0.29, 0.25, 0.188 },
 	-- Font objects by name, asked for when used: the client has them all.
 	fonts = {
 		normal = "GameFontNormal", large = "GameFontNormalLarge", normalSmall = "GameFontNormalSmall",
@@ -196,6 +204,14 @@ function W.Text(parent, font, c, layer)
 	return fs
 end
 
+-- Wrapped at its width between words, and inside a word too wide for it: a
+-- line of Chinese has no spaces to break at, and would be cut short.
+function W.Wrapping(fs)
+	fs:SetWordWrap(true)
+	if fs.SetNonSpaceWrap then fs:SetNonSpaceWrap(true) end
+	return fs
+end
+
 -- The unbounded width of a string's text, or an estimate where the client
 -- will not say.
 function W.Measure(fs)
@@ -228,9 +244,11 @@ function W.PlaceLabel(fs, parent, width)
 end
 
 -- Text with leading and trailing blank lines dropped: AceConfig spaced its
--- notes with "\n", and the window spaces its rows itself.
+-- notes with "\n", and the window spaces its rows itself. ASCII white space
+-- only: %s follows the C library's locale, and under a Western one takes
+-- 0xA0, the last byte of "à" and of the Chinese "加".
 function W.Trim(s)
-	return (tostring(s or ""):gsub("^%s+", ""):gsub("%s+$", ""))
+	return (tostring(s or ""):gsub("^[ \t\r\n]+", ""):gsub("[ \t\r\n]+$", ""))
 end
 
 ---------------------------------------------------------------------------
@@ -348,7 +366,8 @@ local function BuildModal(parent)
 	W.Solid(box, "BACKGROUND", -7, T.modal):SetAllPoints(box)
 	W.Border(box, T.edgeHi)
 	m.box = box
-	m.text = W.Text(box, T.fonts.label, T.ink)
+	m.text = W.Wrapping(W.Text(box, T.fonts.label, T.ink))
+	if m.text.SetSpacing then m.text:SetSpacing(2) end
 	m.text:SetJustifyH("CENTER")
 	m.text:SetPoint("TOP", box, "TOP", 0, -16)
 	m.text:SetWidth(MODAL_WIDTH - 36)
@@ -555,42 +574,57 @@ end
 
 -- description: wrapping text, colour codes kept. fontSize "medium" is
 -- GameFontHighlight, anything else GameFontHighlightSmall; a page's lead is a
--- size up from that.
+-- size up from that. The layout's `hint` draws it grey rather than in the
+-- label colour (a colour code in the text still wins), and `block` in a faint
+-- well with a rule down its left, the text inset.
+local BLOCK_X, BLOCK_Y = 11, 6
+
 local function NoteFont(row)
 	local def = row.item.def or {}
 	local size = def.fontSize
 	if type(size) == "function" then size = size(row.item.info) end
 	local font = size == "medium" and T.fonts.label or T.fonts.small
-	local lead = row.item.layout and row.item.layout.lead
-	local key = font .. (lead and "+" or "")
+	local layout = row.item.layout or {}
+	local key = font .. (layout.lead and "+" or "") .. (layout.hint and "~" or "")
 	if row.fontKey == key then return end
 	row.fontKey = key
 	W.SetFont(row.text, font)
-	if lead then
+	if layout.lead then
 		local path, px, flags = row.text:GetFont()
 		if path then row.text:SetFont(path, (px or 12) + 2, flags or "") end
 	end
-	TextColour(row.text, T.ink)
+	TextColour(row.text, layout.hint and T.hint or T.ink)
 end
 
 KIND.description = {
 	Build = function(row)
-		local fs = W.Text(row.frame, T.fonts.small, T.ink)
-		fs:SetPoint("TOPLEFT", row.frame, "TOPLEFT", 0, 0)
-		fs:SetWordWrap(true)
-		if fs.SetNonSpaceWrap then fs:SetNonSpaceWrap(true) end
+		local block = (row.item.layout or {}).block
+		local fs = W.Wrapping(W.Text(row.frame, T.fonts.small, T.ink))
+		fs:SetPoint("TOPLEFT", row.frame, "TOPLEFT", block and BLOCK_X or 0, block and -BLOCK_Y or 0)
 		if fs.SetSpacing then fs:SetSpacing(2) end
 		row.text = fs
+		if block then
+			row.well = W.Solid(row.frame, "BACKGROUND", -1, T.well)
+			row.well:SetAllPoints(row.frame)
+			row.wellRule = W.Solid(row.frame, "BORDER", 1, T.wellRule)
+			row.wellRule:SetPoint("TOPLEFT", row.frame, "TOPLEFT", 0, 0)
+			row.wellRule:SetPoint("BOTTOMLEFT", row.frame, "BOTTOMLEFT", 0, 0)
+			row.wellRule:SetWidth(2)
+		end
 	end,
 	Refresh = function(row)
 		NoteFont(row)
 		row.text:SetText(W.Trim(W.Name(row)))
 	end,
 	Layout = function(row, width)
-		row.text:SetWidth(width)
-		return W.TextHeight(row.text)
+		if not row.well then
+			row.text:SetWidth(width)
+			return W.TextHeight(row.text)
+		end
+		row.text:SetWidth(math.max(1, width - BLOCK_X - 9))
+		return math.ceil(W.TextHeight(row.text)) + 2 * BLOCK_Y
 	end,
-	Natural = function(row) return W.Measure(row.text) end,
+	Natural = function(row) return W.Measure(row.text) + (row.well and BLOCK_X + 9 or 0) end,
 }
 
 -- header: a section title in gold Friz Quadrata 13, with a thin gold rule
@@ -647,6 +681,7 @@ KIND.execute = {
 	Layout = function(row, width)
 		local w = W.ButtonLabel(row.button, row.button.label:GetText())
 		if w > width then row.button:SetWidth(width) end
+		row.fieldTop, row.fieldHeight = 0, 24
 		return 24
 	end,
 	Natural = function(row) return row.button:GetWidth() end,
@@ -688,10 +723,8 @@ KIND.toggle = {
 		hit:SetPoint("TOPLEFT", row.frame, "TOPLEFT", 0, 0)
 		row.box = W.CheckBox(hit)
 		row.box:SetPoint("TOPLEFT", hit, "TOPLEFT", 0, 0)
-		local fs = W.Text(hit, T.fonts.label, T.ink)
+		local fs = W.Wrapping(W.Text(hit, T.fonts.label, T.ink))
 		fs:SetPoint("TOPLEFT", hit, "TOPLEFT", 25, -2)
-		fs:SetWordWrap(true)
-		if fs.SetNonSpaceWrap then fs:SetNonSpaceWrap(true) end
 		row.label = fs
 		hit:SetScript("OnClick", function(self) ns.Guard("options toggle", ToggleClicked, self) end)
 		W.Tip(hit, row)
@@ -708,6 +741,7 @@ KIND.toggle = {
 		row.label:SetWidth(room)
 		local h = math.max(18, math.ceil(W.TextHeight(row.label)) + 3)
 		row.hit:SetSize(25 + math.min(room, math.ceil(W.Measure(row.label))), h)
+		row.fieldTop, row.fieldHeight = 0, 18
 		return h
 	end,
 	Natural = function(row) return 25 + W.Measure(row.label) end,

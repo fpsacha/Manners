@@ -1,6 +1,7 @@
 # What the options window reads from the model: the sidebar's red dots
 # (Page.Warn, Options/Shared.lua), the status strip's state (LauncherState's
-# kind, Options/Launcher.lua), the per-page reset (Page.RESET and
+# kind, Options/Launcher.lua), the header's Snooze (its entries' hidden rules,
+# Options/Start.lua), the per-page reset (Page.RESET and
 # Page.ResetPage, Options/Advanced.lua) and the ledger raised over the window.
 # Each fault is caught by the scenario in tests/scenarios/model-window.lua that
 # names it.
@@ -97,6 +98,16 @@ mutate("Options/Launcher.lua",
        "\treturn true, L[\"Watching for people to buff.\"], 0.4, 0.9, 0.4\n",
        "model: watching without its kind",
        expect="a mage who can cast reads as", script=S)
+
+# --- the header's Snooze ---
+
+# Stop snoozing without the prompt rule the other entries carry: a rogue
+# snoozed from chat gets a Snooze button.
+mutate("Options/Start.lua",
+       "hidden = function() return noPrompt() or not ns.SnoozeLeft() end,\n",
+       "hidden = function() return not ns.SnoozeLeft() end,\n",
+       "model: Stop snoozing without a prompt",
+       expect="a snoozed rogue, who has no prompt, is shown snoozeStop", script=S)
 
 # --- the reset ---
 

@@ -723,6 +723,114 @@ run("widgets: the window's button, confirm, flash and changing labels", function
 	end
 end)
 
+-- ------------------------------------------------------------------ bytes
+-- Trimming takes ASCII white space only. Lua's %s follows the C library's
+-- locale, and under a Western one (this runner's, and perhaps the client's)
+-- it takes 0xA0, the last byte of the Chinese "Reason text: top-up" (...加),
+-- of the Korean (...신) and of "à": trimmed with it, a label held half a
+-- character, and the renderer stopped at the first page that had one.
+local ENDS_IN_A0 = {
+	"\229\142\159\229\155\160\230\150\135\229\173\151\239\188\154\232\161\165\229\138\160", -- 原因文字：补加
+	"\234\176\177\236\139\160", -- 갱신
+	"voil\195\160",
+}
+
+-- Bytes past ASCII as \ddd, so a cut character can be named without breaking
+-- the runner that prints it.
+local function bytes(s)
+	return (tostring(s):gsub("[\128-\255]", function(c) return "\\" .. c:byte() end))
+end
+
+run("widgets: a trim leaves the last byte of a character alone", function(scenario)
+	local ns, ctx = session(scenario)
+	if ns then
+		local W, UI = ns.WindowWidgets, ns.WindowUI
+		for _, s in ipairs(ENDS_IN_A0) do
+			if W.Trim(s) ~= s or W.Trim("\n  " .. s .. " \n") ~= s then
+				fail(scenario, ("W.Trim cut %s to %s"):format(bytes(s), bytes(W.Trim(s))))
+			end
+			if UI.Plain("|cffffffff" .. s .. "|r\n") ~= s then
+				fail(scenario, ("UI.Plain cut %s to %s"):format(bytes(s), bytes(UI.Plain(s))))
+			end
+		end
+		noErrors(scenario, ns)
+	end
+	-- And a real label, in the language that has one: Look's reason box.
+	for _, locale in ipairs({ "zhCN", "koKR" }) do
+		Mock.reset()
+		Mock.locale = locale
+		local zh = load(scenario)
+		if zh then
+			drive(scenario, zh)
+			zh.Prompt:ExitTest()
+			local item = zh.WindowBind.Item("advanced.reasonRefresh", {}, ctx)
+			local row = item and zh.WindowWidgets.Build("input", ctx.Window, item)
+			local want = zh.L["Reason text: top-up"]
+			if not row then
+				fail(scenario, "SKIPPED -- no reason box for a top-up")
+			elseif row.label:GetText() ~= want then
+				fail(scenario, ("%s's top-up label reads %s, not %s"):format(locale, bytes(row.label:GetText()), bytes(want)))
+			end
+			noErrors(scenario, zh)
+		end
+	end
+end)
+
+-- Every string the window wraps breaks inside a word too: Chinese has no
+-- spaces, so without it the reset's confirm was cut short with an ellipsis.
+run("widgets: the confirm, the strip and the fold caption wrap a line with no spaces", function(scenario)
+	local ns, ctx = session(scenario)
+	if ns then
+		local m = ns.WindowWidgets.Modal(ctx.Window, "Sure?", function() end, function() end)
+		if m.text._nonSpaceWrap ~= true then fail(scenario, "the confirm's words do not break inside a word") end
+		m:Hide()
+		ns.OpenOptions("appearance")
+		local UI = ns.WindowUI
+		for name, fs in pairs({ ["the strip's line 1"] = UI.strip.line1, ["the strip's line 2"] = UI.strip.line2,
+			["the fold caption"] = UI.Model("appearance").caption.text }) do
+			if fs._nonSpaceWrap ~= true or fs._wordWrap == false then fail(scenario, name .. " does not break inside a word") end
+		end
+		ns.Prompt:ExitTest()
+		noErrors(scenario, ns)
+	end
+end)
+
+-- ------------------------------------------------------------------ box bar
+-- A box of many lines whose text runs past it says so with a slim bar, which
+-- follows the wheel and scrolls the box when dragged, and goes once the text
+-- fits again. Without it the last line was cut in half and nothing said more
+-- was below.
+run("widgets: a box of many lines shows a bar while its text runs past it", function(scenario)
+	local ns, ctx = session(scenario)
+	if ns then
+		local row = build(scenario, ns, ctx, "multiline", "click.phrases")
+		if row then
+			local lines = {}
+			for i = 1, 60 do lines[i] = "Line " .. i .. ", thank you kindly" end
+			Mock.type(row.box, table.concat(lines, "\n"))
+			local range = row.scroll:GetVerticalScrollRange()
+			if not (range > 0) then
+				fail(scenario, "SKIPPED -- sixty lines do not run past the box")
+			elseif not row.bar:IsShown() then
+				fail(scenario, "sixty lines in a box of 26 show no bar")
+			else
+				row.scroll.scripts.OnMouseWheel(row.scroll, -1)
+				local at = row.scroll:GetVerticalScroll()
+				if not (at > 0) or row.bar:GetValue() ~= at then
+					fail(scenario, ("the wheel took the box to %s and the bar to %s"):format(tostring(at), tostring(row.bar:GetValue())))
+				end
+				Mock.drag(row.bar, range)
+				if row.scroll:GetVerticalScroll() ~= range then
+					fail(scenario, "dragging the bar to its end left the box at " .. tostring(row.scroll:GetVerticalScroll()))
+				end
+			end
+			Mock.type(row.box, "One line")
+			if row.bar:IsShown() then fail(scenario, "one line still shows the bar") end
+		end
+		noErrors(scenario, ns)
+	end
+end)
+
 -- ------------------------------------------------------------------ recorded
 -- On the recording frames tools/ draws from (tests/frametree.lua): every kind
 -- builds and lays out there too, and what it made is in the tree.

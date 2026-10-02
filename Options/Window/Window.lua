@@ -124,11 +124,15 @@ function UI.Measure(text, font)
 end
 
 -- Colour codes and textures out, for text the window draws in a colour of its
--- own (the build line, a combat line's trailing break).
+-- own (the build line, a combat line's trailing break). Byte ranges spelt
+-- out: %x and %s follow the C library's locale, and under a Western one %s
+-- takes 0xA0, the last byte of "à" and of the Chinese "加".
+local HEX8 = "|c" .. ("[0-9A-Fa-f]"):rep(8)
+
 function UI.Plain(text)
 	text = tostring(text or "")
-	text = text:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
-	return (text:gsub("^%s+", ""):gsub("%s+$", ""))
+	text = text:gsub(HEX8, ""):gsub("|r", "")
+	return (text:gsub("^[ \t\r\n]+", ""):gsub("[ \t\r\n]+$", ""))
 end
 
 -- A chrome button's label. W.Button keeps an explicit FontString; asked by
@@ -289,10 +293,6 @@ local function PlaceBody(top)
 	view.bar:SetPoint("TOPRIGHT", f, "TOPRIGHT", -4, -(top + 4))
 	view.bar:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -4, UI.FOOTER + 4)
 	view.height = UI.HEIGHT - top - UI.FOOTER
-	if UI.results then
-		UI.results:ClearAllPoints()
-		UI.results:SetPoint("TOPLEFT", f, "TOPLEFT", UI.SIDEBAR + 8, -(top + 4))
-	end
 end
 
 local function BuildBody(f)
@@ -399,6 +399,24 @@ function UI.Dropped()
 	end
 end
 
+-- A fight starting. The client says so just before lockdown begins, so the
+-- repaint Core asks for then still reads every control as live; one more on
+-- the next frame, under lockdown, greys out what the game refuses and puts
+-- the page's combat line in the strip. A key being waited for lets go now:
+-- the next key pressed is for the fight.
+local fightToken = 0
+
+local function FightStarting()
+	local W = ns.WindowWidgets
+	if W and W.StopCapture then W.StopCapture() end
+	if not UI.Shown() then return end
+	fightToken = fightToken + 1
+	local token = fightToken
+	C_Timer.After(0, function()
+		if token == fightToken and UI.Shown() then ns.Guard("options repaint", UI.Refresh) end
+	end)
+end
+
 local function Hidden()
 	ns.OptionsPage.reportOpen = false
 	ns.OptionsPage.shareOpen = false
@@ -443,6 +461,8 @@ function UI.Build()
 	UI.BuildFooter(f)
 	f:SetScript("OnHide", UI.Guarded(Hidden))
 	f:SetScript("OnUpdate", function(_, elapsed) Fade(elapsed or 0) end)
+	f:RegisterEvent("PLAYER_REGEN_DISABLED")
+	f:SetScript("OnEvent", UI.Guarded(FightStarting))
 	-- Last: anything that throws above leaves no half-built window behind for
 	-- tools and tests to find.
 	ns.OptionsWindow = f

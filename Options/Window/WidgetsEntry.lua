@@ -66,8 +66,7 @@ local function HideError(row)
 end
 
 local function ErrorText(parent)
-	local fs = W.Text(parent, T.fonts.small, T.red)
-	fs:SetWordWrap(true)
+	local fs = W.Wrapping(W.Text(parent, T.fonts.small, T.red))
 	fs:Hide()
 	return fs
 end
@@ -145,7 +144,7 @@ local function RangeText(row, v)
 end
 
 local function RangeParse(row, text)
-	local n = tonumber((text:gsub("%%", ""):gsub(",", "."):gsub("%s", "")))
+	local n = tonumber((text:gsub("%%", ""):gsub(",", "."):gsub("[ \t]", "")))
 	if not n then return nil end
 	if row.item.def.isPercent then n = n / 100 end
 	return Snap(row, n)
@@ -216,8 +215,7 @@ end
 
 KIND.range = {
 	Build = function(row)
-		row.label = W.Text(row.frame, T.fonts.label, T.ink)
-		row.label:SetWordWrap(true)
+		row.label = W.Wrapping(W.Text(row.frame, T.fonts.label, T.ink))
 		row.slider = BuildSlider(row)
 		row.box = Box(row.frame, "CENTER")
 		row.box.row = row
@@ -267,6 +265,7 @@ KIND.range = {
 		row.low:SetPoint("TOPLEFT", row.frame, "TOPLEFT", 0, -(lh + 22))
 		row.high:ClearAllPoints()
 		row.high:SetPoint("TOPRIGHT", row.frame, "TOPLEFT", sw, -(lh + 22))
+		row.fieldTop, row.fieldHeight = lh, 22
 		return lh + 34
 	end,
 	Natural = function(row) return math.max(W.Measure(row.label), 200) end,
@@ -288,7 +287,7 @@ local function NumberText(_, v)
 end
 
 local function NumberParse(_, text)
-	local n = tonumber((text:gsub(",", "."):gsub("%s", "")))
+	local n = tonumber((text:gsub(",", "."):gsub("[ \t]", "")))
 	return n and Clamp(n) or nil
 end
 
@@ -340,8 +339,7 @@ end
 
 KIND.number = {
 	Build = function(row)
-		row.label = W.Text(row.frame, T.fonts.label, T.ink)
-		row.label:SetWordWrap(true)
+		row.label = W.Wrapping(W.Text(row.frame, T.fonts.label, T.ink))
 		row.box = Box(row.frame, "RIGHT")
 		row.box.row = row
 		row.parse, row.show = NumberParse, NumberText
@@ -372,6 +370,7 @@ KIND.number = {
 		row.up:SetPoint("TOPLEFT", row.box, "TOPRIGHT", 3, 0)
 		row.down:ClearAllPoints()
 		row.down:SetPoint("BOTTOMLEFT", row.box, "BOTTOMRIGHT", 3, 0)
+		row.fieldTop, row.fieldHeight = lh, 22
 		return lh + 22
 	end,
 	Natural = function(row) return math.max(W.Measure(row.label), 107) end,
@@ -437,8 +436,7 @@ end
 
 KIND.input = {
 	Build = function(row)
-		row.label = W.Text(row.frame, T.fonts.label, T.ink)
-		row.label:SetWordWrap(true)
+		row.label = W.Wrapping(W.Text(row.frame, T.fonts.label, T.ink))
 		local box = Box(row.frame)
 		box.row = row
 		box:SetScript("OnEnterPressed", function(self) ns.Guard("options box", InputEnter, self) end)
@@ -466,6 +464,7 @@ KIND.input = {
 		row.box:ClearAllPoints()
 		row.box:SetPoint("TOPLEFT", row.frame, "TOPLEFT", 0, -lh)
 		row.box:SetWidth(math.min(width, 360))
+		row.fieldTop, row.fieldHeight = lh, 22
 		local h = lh + 22
 		if row.error then
 			row.err:ClearAllPoints()
@@ -481,9 +480,10 @@ KIND.input = {
 
 ---------------------------------------------------------------------------
 -- multiline: a scrolling box as many lines tall as the definition asks, with
--- Accept, lit only while the text differs from the model's. A read-only box
--- (its set throws typing away: the settings as text, the bug report) has no
--- Accept and selects everything when clicked, ready to copy.
+-- a slim bar while the text runs past it, and Accept, lit only while the text
+-- differs from the model's. A read-only box (its set throws typing away: the
+-- settings as text, the bug report) has no Accept and selects everything when
+-- clicked, ready to copy.
 ---------------------------------------------------------------------------
 
 local READ_ONLY = { ["profiles.shareText"] = true, ["diagnostics.report"] = true }
@@ -504,6 +504,50 @@ end
 
 local function AcceptState(row)
 	if row.accept then row.accept:SetEnabled(not row.off and (row.box:GetText() or "") ~= Current(row)) end
+end
+
+-- The box's own slim bar, as the content's: shown only while the text runs
+-- past the box, so a half-cut last line says there is more, and kept level
+-- with the scroll however it moved (the wheel, the cursor, the bar).
+local function BarSync(row)
+	local scroll, bar = row.scroll, row.bar
+	if not bar then return end
+	local range = tonumber(ns.plain(scroll:GetVerticalScrollRange())) or 0
+	bar:SetShown(range > 0)
+	if range <= 0 then return end
+	local height = tonumber(ns.plain(scroll:GetHeight())) or 0
+	row.syncing = true
+	bar:SetMinMaxValues(0, range)
+	bar:SetValue(scroll:GetVerticalScroll())
+	row.syncing = false
+	row.thumb:SetHeight(math.max(16, math.floor((height - 6) * height / (height + range))))
+end
+
+local function BarMoved(bar, value)
+	local row = bar.row
+	if row.syncing then return end
+	row.scroll:SetVerticalScroll(tonumber(value) or 0)
+end
+
+local function ScrollBar(row)
+	local bar = CreateFrame("Slider", nil, row.frame)
+	bar:SetOrientation("VERTICAL")
+	bar:SetWidth(6)
+	bar:SetMinMaxValues(0, 0)
+	bar:SetValueStep(1)
+	bar:SetObeyStepOnDrag(false)
+	bar:EnableMouse(true)
+	local level = row.scroll.GetFrameLevel and row.scroll:GetFrameLevel()
+	if level and bar.SetFrameLevel then bar:SetFrameLevel(level + 2) end
+	W.Solid(bar, "BACKGROUND", nil, T.barTrack):SetAllPoints(bar)
+	row.thumb = W.Solid(bar, "ARTWORK", nil, T.barThumb)
+	row.thumb:SetSize(6, 16)
+	bar:SetThumbTexture(row.thumb)
+	bar:SetPoint("TOPRIGHT", row.scroll, "TOPRIGHT", -2, -3)
+	bar:SetPoint("BOTTOMRIGHT", row.scroll, "BOTTOMRIGHT", -2, 3)
+	bar.row = row
+	bar:Hide()
+	return bar
 end
 
 local function AcceptClicked(b)
@@ -530,6 +574,7 @@ local function MultiTyped(box, userInput)
 	if userInput and row.error then HideError(row) end
 	AcceptState(row)
 	row.scroll:UpdateScrollChildRect()
+	BarSync(row)
 end
 
 local function MultiEscape(box)
@@ -558,12 +603,16 @@ local function FollowCursor(box, _, y, _, h)
 	elseif y + h > top + height then
 		scroll:SetVerticalScroll(y + h - height)
 	end
+	BarSync(box.row)
 end
 
 local function Wheel(scroll, delta)
 	local v = scroll:GetVerticalScroll() - (tonumber(delta) or 0) * LineHeight(scroll.row) * 3
 	scroll:SetVerticalScroll(math.max(0, math.min(scroll:GetVerticalScrollRange(), v)))
+	BarSync(scroll.row)
 end
+
+local function ScrollMoved(scroll) BarSync(scroll.row) end
 
 local function ScrollClicked(scroll)
 	Focus(scroll.row)
@@ -580,12 +629,17 @@ local function MultiScripts(row)
 	box:SetScript("OnEditFocusLost", function(self) ns.Guard("options box", MultiFocus, self, false) end)
 	scroll:SetScript("OnMouseDown", function(self) ns.Guard("options box", ScrollClicked, self) end)
 	scroll:SetScript("OnMouseWheel", function(self, delta) ns.Guard("options box", Wheel, self, delta) end)
+	-- The client's word that the text grew or shrank under the box.
+	scroll:SetScript("OnScrollRangeChanged", function(self) ns.Guard("options box", ScrollMoved, self) end)
+	local bar = row.bar
+	bar:SetScript("OnValueChanged", function(self, value) ns.Guard("options box", BarMoved, self, value) end)
+	bar:EnableMouseWheel(true)
+	bar:SetScript("OnMouseWheel", function(self, delta) ns.Guard("options box", Wheel, row.scroll, delta) end)
 end
 
 KIND.multiline = {
 	Build = function(row)
-		row.label = W.Text(row.frame, T.fonts.label, T.ink)
-		row.label:SetWordWrap(true)
+		row.label = W.Wrapping(W.Text(row.frame, T.fonts.label, T.ink))
 		local scroll = CreateFrame("ScrollFrame", nil, row.frame)
 		scroll.look = W.Field(scroll)
 		scroll:EnableMouse(true)
@@ -601,6 +655,7 @@ KIND.multiline = {
 		box.row = row
 		scroll:SetScrollChild(box)
 		row.scroll, row.box = scroll, box
+		row.bar = ScrollBar(row)
 		MultiScripts(row)
 		W.Tip(box, row)
 		if not ReadOnly(row) then
@@ -631,6 +686,8 @@ KIND.multiline = {
 		row.scroll:SetSize(width, boxHeight)
 		row.box:SetSize(width, boxHeight)
 		row.scroll:UpdateScrollChildRect()
+		row.fieldTop, row.fieldHeight = lh, boxHeight
+		BarSync(row)
 		local y, below = lh + boxHeight, 0
 		local errRoom = width
 		if row.accept then

@@ -11,7 +11,7 @@ the game's font objects, and text that wraps. The addon is told how wide and
 how tall its text is by the same font and the same line breaking the picture
 is drawn with, so a row laid out to fit is drawn fitting.
 
---check reads the same tree for four faults and exits non-zero listing them:
+--check reads the same tree for five faults and exits non-zero listing them:
 
   (a) text cut short: wider than its width with word wrap off, a word wider
       than its width, or more wrapped lines than its height or SetMaxLines
@@ -22,7 +22,13 @@ is drawn with, so a row laid out to fit is drawn fitting.
   (c) a control or a line of text outside the window, cut by the content's
       edge, or past the end of what its scroll frame can scroll to;
   (d) text under 4.5:1 contrast against what is drawn under it, over a dusky
-      world and over snow, the worse of the two.
+      world and over snow, the worse of the two;
+  (e) text the picture cannot be trusted for: a character the face it is
+      drawn in does not have (a box in its place, measured as a box), or
+      bytes that are not UTF-8 (shown as U+FFFD, the page still drawn).
+
+Chinese and Korean are drawn in a face that has their script (--locale zhCN,
+zhTW or koKR), so they are measured in it too.
 
 --demo draws a window built in render_options.lua of every kind of frame the
 options window may use, once clean and once with a fault planted for each
@@ -35,9 +41,9 @@ and nothing on the clean one.
     python tools/render_options.py --check                   # exit 1 on any fault
     python tools/render_options.py --demo                    # prove the drawing and the checks
 
-Needs lupa, Pillow and numpy, as render_prompt.py does. Not pixel-true for the
-same reasons: Candara stands in for Friz Quadrata, icons are tiles, and the
-client's art is drawn as stand-ins.
+Needs lupa, Pillow and numpy, as render_prompt.py does, and fontTools for (e).
+Not pixel-true for the same reasons: Candara stands in for Friz Quadrata,
+icons are tiles, and the client's art is drawn as stand-ins.
 """
 import argparse
 import hashlib
@@ -69,6 +75,23 @@ MIN_RATIO = 4.5
 # How far past an edge counts as past it, in UI units.
 TOL = 0.5
 STATES = ("combat", "unlocked", "snoozed", "folds-open", "scrolled", "modal", "search")
+
+# Faces with the script of the languages Candara has no glyphs for, first in
+# the list for those languages; the Latin faces after them, for what is left.
+# A client in these languages draws them in its own font, not Friz Quadrata.
+CJK_FACES = {
+    "zhCN": [r"C:\Windows\Fonts\msyh.ttc", r"C:\Windows\Fonts\simsun.ttc"],
+    "zhTW": [r"C:\Windows\Fonts\msjh.ttc", r"C:\Windows\Fonts\msyh.ttc"],
+    "koKR": [r"C:\Windows\Fonts\malgun.ttf"],
+}
+NOTO_CJK = [
+    "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+    "/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc",
+    "/usr/share/fonts/google-noto-cjk/NotoSansCJK-Regular.ttc",
+    "/System/Library/Fonts/PingFang.ttc",
+]
+LATIN_FACES = list(rp.FONT_CANDIDATES)
+LATIN_BOLD = list(rp.BOLD_CANDIDATES)
 CONTROLS = ("Button", "EditBox", "Slider", "CheckButton")
 REGION_KINDS = ("Texture", "FontString", "MaskTexture")
 
@@ -90,6 +113,35 @@ TOKEN = re.compile(r"\|c[0-9a-fA-F]{8}|\|r|.", re.S)
 def plain(text):
     """What a line shows: colour codes gone, inline art left out."""
     return ESCAPE.sub("", CODE.sub("", str(text or "")))
+
+
+def use_faces(locale):
+    """Draw and measure in a face with the language's script: before anything
+    is measured, so the addon lays itself out in the face the picture shows."""
+    cjk = CJK_FACES.get(locale or "")
+    rp.FONT_CANDIDATES[:] = (cjk + NOTO_CJK + LATIN_FACES) if cjk else LATIN_FACES
+    rp.BOLD_CANDIDATES[:] = (cjk + NOTO_CJK + LATIN_BOLD) if cjk else LATIN_BOLD
+    rp._font_cache.clear()
+    _measured.clear()
+    _cmap.clear()
+
+
+_cmap = {}
+
+
+def face_chars():
+    """The characters the face text is drawn in has, or None where fontTools
+    is missing or the face cannot be read (then (e) is noted, not run)."""
+    path = rp.font_path(False)
+    if path not in _cmap:
+        try:
+            from fontTools.ttLib import TTFont
+            font = TTFont(path, fontNumber=0, lazy=True)
+            _cmap[path] = set(font.getBestCmap() or {})
+        except Exception as e:  # noqa: BLE001 - any failure means "cannot tell"
+            note("(e) not checked: the face %s could not be read (%s)" % (path, e))
+            _cmap[path] = None
+    return _cmap[path]
 
 
 _measured = {}
@@ -1152,6 +1204,27 @@ class Checker:
             return "cut by the frame clipping it"
         return None
 
+    # (e)
+    def glyphs(self):
+        have = face_chars()
+        if have is None:
+            return
+        for rid in self.members:
+            r = self.geo.regions[rid]
+            lay = self.scene.layouts.get(rid)
+            if r["kind"] not in ("FontString", "EditBox") or not lay or not self.shown(r):
+                continue
+            missing = []
+            for _, _, raw, _ in lay.lines:
+                for ch in plain(raw):
+                    # U+FFFD stands for broken bytes, named as such by draw_one.
+                    if ord(ch) > 32 and ch != "\ufffd" and ord(ch) not in have and ch not in missing:
+                        missing.append(ch)
+            if missing:
+                self.add("e", "the face has no %s (U+%s): %s" % (
+                    "".join(missing[:8]), ", U+".join("%04X" % ord(c) for c in missing[:8]),
+                    describe(self.scene, rid)), [rid])
+
     # (d)
     def contrast(self, samples):
         for rid, passes in samples.items():
@@ -1179,6 +1252,7 @@ def check(scene):
     c.cut()
     c.overlaps()
     c.outside()
+    c.glyphs()
     frame = window_frame(scene)
     samples = {}
     for world, backdrop in (("dusk", None), ("snow", "bright")):
@@ -1220,17 +1294,32 @@ def report(name, findings):
         print("      (%s) %s" % (f["kind"], f["message"]))
 
 
-def draw_one(snap, path, do_check):
-    snap = rp.to_py(snap)
+def draw_one(R, snap, path, do_check):
+    """One page drawn, and checked. Bytes that are not UTF-8 would stop the
+    run at the first; they are put right (U+FFFD) and each one named as an
+    (e) finding, and the page is drawn."""
+    broken = []
+    try:
+        snap_py = rp.to_py(snap)
+    except UnicodeDecodeError:
+        broken = rp.to_py(R["scrub"](snap)) or []
+        snap_py = rp.to_py(snap)
+    snap = snap_py
     if snap.get("failed"):
         return snap, None, snap["failed"]
     scene = Scene(snap)
     draw_scene(scene, PX).save(path)
     findings = check(scene) if do_check else None
-    return snap, findings, None
+    bad = [{"kind": "e", "message": "not UTF-8 (drawn as U+FFFD): %s #%s %s %r" % (
+        b.get("kind") or "?", b.get("id"), b.get("field") or "", short(b.get("text") or "")),
+        "ids": [b.get("id")]} for b in broken]
+    if findings is None:
+        return snap, bad or None, None
+    return snap, findings + bad, None
 
 
 def render(args):
+    use_faces(args.locale)
     R = load(os.path.abspath(args.addon), args.locale or None, args.cls)
     spec, label = state_spec(args.state or [])
     pages = [p for p in args.pages.split(",") if p] or list(rp.to_py(R["pages"]()))
@@ -1240,7 +1329,7 @@ def render(args):
     for page in pages:
         name = page + ("-" + label if label else "")
         path = os.path.join(out, name + ".png")
-        snap, findings, err = draw_one(R["page"](page, spec), path, args.check)
+        snap, findings, err = draw_one(R, R["page"](page, spec), path, args.check)
         if err:
             failed += 1
             print("  %-12s could not be drawn: %s" % (page, err))
@@ -1273,13 +1362,14 @@ def render(args):
 def demo(args):
     """Both demo windows drawn and checked: the clean one must pass everything,
     and the faults one must give exactly the planted findings."""
+    use_faces(None)
     R = load(ROOT)
     out = os.path.abspath(args.out)
     os.makedirs(out, exist_ok=True)
     ok = True
     for which in ("kinds", "scrolled", "faults"):
         path = os.path.join(out, "demo-%s.png" % which)
-        snap, findings, err = draw_one(R["demo"](which), path, True)
+        snap, findings, err = draw_one(R, R["demo"](which), path, True)
         if err:
             print("  demo-%s could not be drawn: %s" % (which, err))
             return 2

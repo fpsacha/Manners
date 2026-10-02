@@ -331,6 +331,64 @@ do
 	end)
 end
 
+-- The pull as the client orders it: PLAYER_REGEN_DISABLED comes just before
+-- lockdown begins, so the repaint Core asks for from it still reads every
+-- control as live. The scenario above sets the fight first and hid that: the
+-- window looked out of combat for the whole fight, and a key being waited
+-- for took the first key pressed in it.
+local function pull(ns)
+	Mock.inCombat = false
+	ns.addon:PLAYER_REGEN_DISABLED()
+	Mock.frameEvent("PLAYER_REGEN_DISABLED")
+end
+
+local function lockdown()
+	Mock.inCombat = true
+	Mock.runTimers()
+end
+
+do
+	local scenario = "window: a fight starting shows on the window once lockdown begins"
+	with(scenario, {}, function(ns, UI)
+		local B, W = ns.WindowBind, ns.WindowWidgets
+		local function strip() return UI.strip.combat and UI.Plain(UI.strip.combat) or nil end
+		ns.OpenOptions("appearance")
+		ns.Prompt:ExitTest()
+		ns.RefreshOptionsDisplay()
+		pull(ns)
+		lockdown()
+		local want = UI.Plain(B.Text(item(ns, "appearance.combatNotice"), "name"))
+		if strip() ~= want then fail(scenario, "under lockdown, Look's strip reads " .. tostring(strip())) end
+		Mock.inCombat = false
+		ns.addon:PLAYER_REGEN_ENABLED()
+		if strip() then fail(scenario, "the combat line outlived the fight") end
+
+		-- A key being waited for lets go at the pull, and the key row and the
+		-- preview button grey out under lockdown.
+		ns.OpenOptions("general")
+		ns.Prompt:ExitTest()
+		local row = UI.RowFor("general.bindKey")
+		if not (row and row.button and UI.RowShown("general.bindKey")) then
+			fail(scenario, "SKIPPED -- no key row on Start here")
+			return
+		end
+		press(row.button)
+		if W.Capturing() ~= row then
+			fail(scenario, "SKIPPED -- clicking the key button did not start waiting for a key")
+			return
+		end
+		pull(ns)
+		if W.Capturing() or row.button._keyboard then
+			fail(scenario, "the key button still holds the keyboard at the pull, so the first key of the fight is swallowed")
+		end
+		lockdown()
+		if not row.off then fail(scenario, "under lockdown the key row is not greyed out") end
+		if UI.header.preview:IsEnabled() then fail(scenario, "under lockdown Show me the prompt can still be pressed") end
+		Mock.inCombat = false
+		ns.addon:PLAYER_REGEN_ENABLED()
+	end)
+end
+
 -- ------------------------------------------------------------------ folds
 do
 	local scenario = "window: a fold remembers being open, across a reopen and a profile switch"
@@ -674,6 +732,60 @@ do
 		if last then last.fn() end
 		if ns.SnoozeLeft() then fail(scenario, "Stop snoozing did not stop it") end
 		if UI.header.snoozeLabel ~= ns.L["Snooze"] then fail(scenario, "after the snooze the button reads " .. tostring(UI.header.snoozeLabel)) end
+	end)
+end
+
+-- The menu shuts once an entry is picked: the client's menu takes anything a
+-- callback answers as its response, and only none shuts it. The guard's
+-- `true` left it open on stale entries, with no Stop snoozing in it.
+do
+	local scenario = "window: picking a snooze shuts the menu"
+	with(scenario, {}, function(ns, UI)
+		Mock.useMenu()
+		ns.OpenOptions()
+		ns.Prompt:ExitTest()
+		local B = ns.WindowBind
+		press(UI.header.snooze)
+		local five = B.Text(item(ns, "general.snooze5"), "name")
+		if not Mock.pickMenu(five) then
+			fail(scenario, "SKIPPED -- the menu has no " .. tostring(five))
+			return
+		end
+		if not ns.SnoozeLeft() then fail(scenario, "Snooze 5 minutes did not snooze") end
+		if Mock.menuOpen then
+			fail(scenario, "the menu stayed open after a pick: its callback answered " .. tostring(Mock.menuResponse))
+		end
+		press(UI.header.snooze)
+		local stop = B.Text(item(ns, "general.snoozeStop"), "name")
+		if not Mock.pickMenu(stop) then
+			fail(scenario, "Stop snoozing is not in the menu opened during the snooze")
+		elseif Mock.menuOpen or ns.SnoozeLeft() then
+			fail(scenario, "Stop snoozing left the menu open or the snooze running")
+		end
+	end)
+end
+
+-- The results hang under the search box, 320 wide, and the first, which Enter
+-- takes, has a gold edge.
+do
+	local scenario = "window: search results hang under the box, the first marked"
+	with(scenario, {}, function(ns, UI)
+		ns.OpenOptions("general")
+		ns.Prompt:ExitTest()
+		local box, panel = UI.search.box, UI.search.results
+		box:SetText("sound")
+		box:GetScript("OnTextChanged")(box, true)
+		Mock.runTimers(0.2)
+		if #UI.search.found < 2 then
+			fail(scenario, "SKIPPED -- \"sound\" found fewer than two results")
+			return
+		end
+		local at = panel.points[#panel.points]
+		if not (at and at[2] == box and at[3] == "BOTTOMLEFT") then fail(scenario, "the results do not hang from the search box") end
+		if panel._width ~= 320 then fail(scenario, "the results are " .. tostring(panel._width) .. " wide") end
+		local first, second = UI.search.buttons[1], UI.search.buttons[2]
+		if not (first.mark and first.mark:IsShown() and first:IsShown()) then fail(scenario, "the first result has no gold edge") end
+		if second.mark then fail(scenario, "the second result is marked as the one Enter takes") end
 	end)
 end
 

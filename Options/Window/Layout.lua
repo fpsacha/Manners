@@ -13,7 +13,8 @@
 -- A section is { header = "tab.key" (the model header's name is its title) or
 -- title = L[...], fold = true below the hairline, key = "<page>.<name>" (stable:
 -- an open fold is remembered by it), items = { ... } }. An item is "tab.key"
--- or { "tab.key", indent, pair (may share a row with the next item shown),
+-- or { "tab.key", indent, pair (may share a row with the item after it; pairs
+-- that follow one another are one run, whose shown items go two to a row),
 -- standIn (a note that keeps its section while the controls it stands in for
 -- are hidden), lead, columns, widget }. tests/scenarios/layout.lua holds every
 -- control to being placed exactly once.
@@ -298,11 +299,12 @@ ns.WindowLayout = {
 					{ "appearance.style", pair = true },
 					"appearance.bgColor",
 					"appearance.accentByReason",
-					-- With Colour marker; Marker colour between them shows only
-					-- while Colour marker by reason is off.
+					-- With Colour marker, whatever else shows: Marker colour
+					-- follows on a row of its own while Colour marker by
+					-- reason is off.
 					{ "appearance.reasonPalette", pair = true },
-					"appearance.accentColor",
 					"appearance.accentMode",
+					"appearance.accentColor",
 					"appearance.accentDead",
 				} },
 				{ key = "appearance.attention", header = "appearance.attentionHeader", items = {
@@ -325,7 +327,8 @@ ns.WindowLayout = {
 					"appearance.classColor",
 					"appearance.showSub",
 				} },
-				-- The reason boxes two to a row, in queue order.
+				-- The reason boxes two to a row, in queue order: one run of
+				-- pairs, so a hunter's two still share a row.
 				{ key = "appearance.wording", header = "advanced.wordingHeader", fold = true, items = {
 					"advanced.formatHelp",
 					"advanced.format",
@@ -401,6 +404,21 @@ ns.WindowLayout = {
 				} },
 			},
 		},
+	},
+
+	-- How a note is drawn where IA section 2 says other than in the label
+	-- colour: grey (a colour code in its text still wins), or grey in a block
+	-- inset from the page. Kept apart from the items, which say where a row
+	-- goes rather than how it looks.
+	notes = {
+		["who.autoNote"] = { hint = true },
+		["diagnostics.ownDiag"] = { hint = true, block = true },
+		["diagnostics.pvpDiag"] = { hint = true, block = true },
+		-- AceDBOptions' descriptions, beside the controls they explain.
+		["profiles.choosedesc"] = { hint = true },
+		["profiles.copydesc"] = { hint = true },
+		["profiles.deldesc"] = { hint = true },
+		["profiles.descreset"] = { hint = true },
 	},
 
 	-- In the model and drawn nowhere.

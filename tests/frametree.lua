@@ -586,6 +586,29 @@ function FT.textHeight(r)
 	return n * size + (n - 1) * (r._ft and r._ft.spacing or 0)
 end
 
+-- How tall a box of many lines grows to hold its text: the lines the renderer
+-- draws it in, inside its insets. tests/mockwidgets.lua grows the box by
+-- this while the recorder is installed.
+function FT.editTextHeight(r)
+	local text = r._text
+	if text == nil or text == "" then return 0 end
+	text = tostring(text)
+	local ins = r._insets or (r._ft and r._ft.insets) or {}
+	local l, rt, t, b = ins[1] or 0, ins[2] or 0, ins[3] or 0, ins[4] or 0
+	local size = r._font and r._font.size or 12
+	local width = (r._width or 0) - l - rt
+	local lines
+	if width <= 0 then
+		lines = explicitLines(text)
+	elseif FT.wrap then
+		lines = explicitLines(FT.wrap(text, width, size, false))
+	else
+		lines = fallbackWrap(text, width, size)
+	end
+	local n = #lines
+	return n * size + (n - 1) * (r._ft and r._ft.spacing or 0) + t + b
+end
+
 local function widestLine(r)
 	local size, widest = r._font and r._font.size or 12, 0
 	for _, line in ipairs(explicitLines(tostring(r._text or ""))) do
@@ -831,6 +854,8 @@ end
 FT.instrument = instrument
 
 local realCreateFrame
+-- The mock's own measure for a box of many lines, put back on uninstall.
+local mockEditHeight
 
 -- Swap the recording CreateFrame in. UIParent is adopted as the root, sized to
 -- the screen the mock describes.
@@ -838,6 +863,8 @@ function FT.install()
 	if realCreateFrame then return end
 	base = Mock.newFrame
 	realCreateFrame = CreateFrame
+	mockEditHeight = Mock.editTextHeight
+	if mockEditHeight then Mock.editTextHeight = FT.editTextHeight end
 	FT.all, FT.log, FT.serial = {}, {}, 0
 	FT.stamps, FT.focus = 0, nil
 	-- Adopted afresh on every install, not once: the serials start again at
@@ -882,6 +909,8 @@ function FT.uninstall()
 	if not realCreateFrame then return end
 	CreateFrame = realCreateFrame
 	realCreateFrame = nil
+	if mockEditHeight then Mock.editTextHeight = mockEditHeight end
+	mockEditHeight = nil
 end
 
 -- A plain copy of the tree, one entry per region, with every reference to

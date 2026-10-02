@@ -1,7 +1,8 @@
 -- What the options window reads from the model and nowhere else: the sidebar's
 -- red dots (Page.Warn), the status strip's state (ns.LauncherState's `kind`),
--- the footer's per-page reset (Page.RESET, Page.ResetPage), and the ledger
--- opening over the window rather than shutting it.
+-- the header's Snooze (its entries' own hidden rules), the footer's per-page
+-- reset (Page.RESET, Page.ResetPage), and the ledger opening over the window
+-- rather than shutting it.
 --
 -- Every scenario name starts with "model:" so the mutations in
 -- tests/mutations/window-model.py can name the one that has to catch them.
@@ -312,6 +313,45 @@ do
 		if kind(ns) ~= "ownoff" then
 			fail(scenario, "a hunter with Myself off reads as " .. tostring(kind(ns)))
 		end
+	end)
+end
+
+-- ------------------------------------------------------------------ the snooze
+-- The header's Snooze button is there while any of its entries is, so each
+-- entry carries the prompt rule. A rogue can still snooze from chat or the
+-- minimap menu, and that gives him no button: IA 1.11, the master switch only.
+do
+	local scenario = "model: a snoozed rogue gets no Snooze"
+	local ENTRIES = { "snoozeHeader", "snoozeNote", "snooze5", "snooze15", "snooze30", "snoozeStop" }
+	with(scenario, "ROGUE", nil, function(ns)
+		ns.addon:HandleSlash("snooze 15")
+		if not ns.SnoozeLeft() then
+			fail(scenario, "SKIPPED -- /manners snooze did not snooze the rogue")
+			return
+		end
+		for _, key in ipairs(ENTRIES) do
+			if shown(findOption(ns.optionsTable, key)) then
+				fail(scenario, "a snoozed rogue, who has no prompt, is shown " .. key)
+			end
+		end
+		ns.OpenOptions("general")
+		local header = ns.WindowUI and ns.WindowUI.header
+		if not (header and header.snooze) then
+			fail(scenario, "SKIPPED -- the window built no Snooze button")
+		elseif header.snooze:IsShown() then
+			fail(scenario, "a snoozed rogue has a Snooze button reading " .. tostring(header.snoozeLabel))
+		end
+		ns.StopSnooze(true)
+		noErrors(scenario, ns)
+	end)
+	-- The rule is the prompt's, not the snooze's: a mage keeps Stop snoozing.
+	with(scenario, nil, nil, function(ns)
+		ns.StartSnooze(5)
+		if not shown(findOption(ns.optionsTable, "snoozeStop")) then
+			fail(scenario, "a snoozed mage has no Stop snoozing")
+		end
+		ns.StopSnooze(true)
+		noErrors(scenario, ns)
 	end)
 end
 

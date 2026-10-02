@@ -86,8 +86,7 @@ end
 
 KIND.select = {
 	Build = function(row)
-		row.label = W.Text(row.frame, T.fonts.label, T.ink)
-		row.label:SetWordWrap(true)
+		row.label = W.Wrapping(W.Text(row.frame, T.fonts.label, T.ink))
 		local field = CreateFrame("Button", nil, row.frame)
 		field:RegisterForClicks("LeftButtonUp")
 		field:SetHeight(24)
@@ -129,6 +128,7 @@ KIND.select = {
 		row.field:ClearAllPoints()
 		row.field:SetPoint("TOPLEFT", row.frame, "TOPLEFT", 0, -lh)
 		row.field:SetWidth(fw)
+		row.fieldTop, row.fieldHeight = lh, 24
 		return lh + 24
 	end,
 	Natural = function(row) return math.max(W.Measure(row.label), Widest(row) + 40) end,
@@ -170,8 +170,7 @@ end
 
 KIND.multiselect = {
 	Build = function(row)
-		row.label = W.Text(row.frame, T.fonts.label, T.ink)
-		row.label:SetWordWrap(true)
+		row.label = W.Wrapping(W.Text(row.frame, T.fonts.label, T.ink))
 		row.boxes = {}
 	end,
 	Refresh = function(row)
@@ -204,6 +203,7 @@ KIND.multiselect = {
 			hit:SetSize(math.min(colWidth - 6, 25 + math.ceil(W.Measure(hit.text))), 18)
 		end
 		local rows = math.ceil((row.count or 0) / cols)
+		row.fieldTop, row.fieldHeight = lh, 18
 		return lh + math.max(0, rows * 24 - 6)
 	end,
 	Natural = function(row)
@@ -297,9 +297,8 @@ KIND.color = {
 		row.colour = W.Solid(swatch, "ARTWORK")
 		Inset(row.colour, swatch, 2)
 		swatch.edges = W.Border(swatch, T.boxEdge)
-		local fs = W.Text(hit, T.fonts.label, T.ink)
+		local fs = W.Wrapping(W.Text(hit, T.fonts.label, T.ink))
 		fs:SetPoint("TOPLEFT", hit, "TOPLEFT", 32, -5)
-		fs:SetWordWrap(true)
 		hit:SetScript("OnClick", function(self) ns.Guard("options colour", SwatchClicked, self) end)
 		W.Tip(hit, row)
 		row.hit, row.swatch, row.label = hit, swatch, fs
@@ -319,6 +318,7 @@ KIND.color = {
 		row.label:SetWidth(room)
 		local h = math.max(24, math.ceil(W.TextHeight(row.label)) + 8)
 		row.hit:SetSize(32 + math.min(room, math.ceil(W.Measure(row.label))), h)
+		row.fieldTop, row.fieldHeight = 0, 24
 		return h
 	end,
 	Natural = function(row) return 32 + W.Measure(row.label) end,
@@ -413,8 +413,7 @@ end
 
 KIND.keybinding = {
 	Build = function(row)
-		row.label = W.Text(row.frame, T.fonts.label, T.ink)
-		row.label:SetWordWrap(true)
+		row.label = W.Wrapping(W.Text(row.frame, T.fonts.label, T.ink))
 		local b = CreateFrame("Button", nil, row.frame)
 		b:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 		b:SetHeight(24)
@@ -448,6 +447,7 @@ KIND.keybinding = {
 		b:ClearAllPoints()
 		b:SetPoint("TOPLEFT", row.frame, "TOPLEFT", 0, -lh)
 		b:SetWidth(math.min(width, math.max(150, math.ceil(W.Measure(b.text)) + 24)))
+		row.fieldTop, row.fieldHeight = lh, 24
 		return lh + 24
 	end,
 	Natural = function(row) return math.max(W.Measure(row.label), 150) end,
@@ -455,3 +455,9 @@ KIND.keybinding = {
 
 -- For the scenarios: the key row waiting for a key, or nil.
 function W.Capturing() return capturing end
+
+-- A fight starting lets go of the keyboard at once: the next key pressed is
+-- for the fight, and the binding could not be set in it anyway.
+function W.StopCapture()
+	if capturing then StopCapture(capturing) end
+end

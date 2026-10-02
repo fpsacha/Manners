@@ -8,7 +8,9 @@ local UI = ns.WindowUI
 local C = UI.C
 
 local MAX_RESULTS, DELAY = 8, 0.15
-local RESULT_W, RESULT_H = 380, 36
+-- Hung under the box, as in the game's own Settings window, and narrow enough
+-- to leave most of the page in view.
+local RESULT_W, RESULT_H = 320, 36
 
 local search = { token = 0, found = {}, buttons = {} }
 UI.search = search
@@ -129,7 +131,7 @@ function UI.RunSearch()
 	local box = search.box
 	local text = box and box:GetText() or ""
 	search.pending = false
-	if text:gsub("%s", "") == "" then
+	if text:gsub("[ \t\r\n]", "") == "" then
 		UI.CloseResults()
 		Bad(false)
 		return
@@ -176,6 +178,13 @@ local function ResultButton(panel, i)
 	b.hover = UI.Solid(b, "BACKGROUND", C.hover)
 	b.hover:SetAllPoints()
 	b.hover:Hide()
+	-- The first result is what Enter takes, and says so with a gold edge.
+	if i == 1 then
+		b.mark = UI.Solid(b, "ARTWORK", C.gold)
+		b.mark:SetPoint("TOPLEFT", b, "TOPLEFT", 0, 0)
+		b.mark:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", 0, 0)
+		b.mark:SetWidth(2)
+	end
 	b.label = UI.Text(b, GameFontHighlight, C.ink)
 	b.label:SetPoint("TOPLEFT", b, "TOPLEFT", 8, -4)
 	b.label:SetWidth(RESULT_W - 24)
@@ -200,6 +209,12 @@ local function BuildResults()
 	-- Opaque: the page under it would read through even a 2% gap.
 	local bg = UI.Solid(panel, "BACKGROUND", { 0.043, 0.043, 0.063, 1 })
 	bg:SetAllPoints()
+	-- A darker ring outside the edge, the depth the mock-up's shadow gives.
+	for i, alpha in ipairs({ 0.6, 0.3 }) do
+		local shade = UI.Solid(panel, "BACKGROUND", { 0, 0, 0, alpha }, -i)
+		shade:SetPoint("TOPLEFT", panel, "TOPLEFT", -i, i)
+		shade:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", i, -i - 1)
+	end
 	for _, side in ipairs({ { "TOPLEFT", "TOPRIGHT", 0 }, { "BOTTOMLEFT", "BOTTOMRIGHT", 0 },
 		{ "TOPLEFT", "BOTTOMLEFT", 1 }, { "TOPRIGHT", "BOTTOMRIGHT", 1 } }) do
 		local t = UI.Solid(panel, "BORDER", { 0.345, 0.345, 0.396, 1 })
@@ -211,7 +226,9 @@ local function BuildResults()
 	search.noneLine = UI.Text(panel, GameFontDisable, C.hint)
 	search.noneLine:SetPoint("LEFT", panel, "LEFT", 12, 0)
 	search.noneLine:Hide()
-	panel:SetPoint("TOPLEFT", f, "TOPLEFT", UI.SIDEBAR + 8, -(UI.HEADER + 4))
+	-- Under the box, so it moves with the sidebar when the strip shows, and
+	-- level with the page list's left edge, over the open page's gold bar.
+	panel:SetPoint("TOPLEFT", search.box, "BOTTOMLEFT", -4, -4)
 	panel:Hide()
 	search.results = panel
 	UI.results = panel
