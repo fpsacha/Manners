@@ -26,6 +26,24 @@ local frameMethods = {
   -- into its tag.
   "SetDesaturated", "RemoveMaskTexture", "SetParent", "SetFrameLevel", "SetStartDelay",
   "SetScaleFrom", "SetScaleTo", "SetOrigin",
+  -- The options window (Options/Window/*.lua), which /manners opens: the
+  -- frame, button, slider, scroll frame, edit box and font string methods
+  -- BUILD.md's Interface 4 allows it.
+  "SetToplevel", "Raise", "SetClipsChildren", "EnableKeyboard", "SetPropagateKeyboardInput",
+  "SetHitRectInsets", "EnableMouseWheel", "SetMotionScriptsWhileDisabled", "SetFontObject",
+  "SetJustifyV", "SetMaxLines", "SetNonSpaceWrap", "SetSpacing", "SetDrawLayer", "Enable",
+  "Disable", "SetEnabled", "Click", "SetOrientation", "SetMinMaxValues", "SetValueStep",
+  "SetObeyStepOnDrag", "SetValue", "SetThumbTexture", "SetScrollChild", "SetVerticalScroll",
+  "UpdateScrollChildRect", "SetAutoFocus", "SetMultiLine", "SetMaxLetters", "SetTextInsets",
+  "SetFocus", "ClearFocus", "HighlightText", "SetCursorPosition", "Insert",
+}
+
+-- What those frames answer when asked, before anything has been laid out.
+local windowAnswers = {
+  IsMouseOver = false, GetLeft = 0, GetTop = 0, GetRight = 0, GetBottom = 0, GetWidth = 0,
+  GetStringWidth = 0, GetUnboundedStringWidth = 0, GetStringHeight = 0, GetNumLines = 1,
+  GetValue = 0, GetVerticalScroll = 0, GetVerticalScrollRange = 0, HasFocus = false,
+  IsEnabled = true, GetNumLetters = 0,
 }
 
 local function newFrame()
@@ -55,6 +73,16 @@ local function newFrame()
   f.CreateAnimationGroup = function() return newFrame() end
   f.CreateAnimation = function() return newFrame() end
   f.CreateMaskTexture = function() return newFrame() end
+  for name, answer in pairs(windowAnswers) do
+    f[name] = function() return answer end
+  end
+  f.GetThumbTexture = function() return newFrame() end
+  -- Runs after whatever script is already there, as the client's does.
+  f.HookScript = function(self, which, fn)
+    local prior = self.scripts[which]
+    self.scripts[which] = prior and function(...) prior(...) return fn(...) end or fn
+    return self
+  end
   return f
 end
 

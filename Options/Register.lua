@@ -1,15 +1,21 @@
--- Manners -- options: the page put together from its tabs, registered with
--- AceConfig and the game's Settings window, and opened and shut.
+-- Manners -- options: the model put together from its tabs and registered
+-- with AceConfig, the entry in the game's Settings window, and the calls the
+-- rest of the addon opens, shuts and repaints the options window with.
+--
+-- The window itself is Options/Window/*.lua. AceConfigDialog stays as the
+-- safety net: if the window ever fails to build or show, the old dialog opens
+-- on the same definitions, so nobody is left without their settings.
 
 local ADDON, ns = ...
+local L = ns.L
 local Page = ns.OptionsPage
 
 local AceConfig = LibStub("AceConfig-3.0")
 local AceConfigDialog = LibStub("AceConfigDialog-3.0")
 
 -- Asked for optionally. It ships inside AceConfig-3.0 and will be there, but
--- the only thing that depends on it is the page repainting itself when a fight
--- ends -- and a missing library must not take the options screen with it.
+-- the only thing that depends on it is the fallback dialog repainting itself
+-- -- and a missing library must not take the options screen with it.
 local AceConfigRegistry = LibStub("AceConfigRegistry-3.0", true)
 
 -- The page is a setup flow: Start here takes a new player from nothing to a
@@ -32,6 +38,8 @@ local function BuildOptions()
 	}
 end
 
+-- For the fallback dialog only; the window measures its own rows.
+--
 -- Buttons and dropdowns sized to their words. AceConfigDialog gives a control
 -- 170 pixels unless told otherwise. AceGUI keeps 15 of them clear either side
 -- of a button's label, so "Put these back to default" was cut to "Put these
@@ -165,77 +173,108 @@ end
 -- registration
 ---------------------------------------------------------------------------
 
--- The canvas frame AddToBlizOptions made for the game's Settings window, and
--- the category ID it hands back beside it. Two values because they are two
--- things: the frame is what can be asked whether the page is on screen, and
--- only the ID is something Settings.OpenToCategory can find the page by.
-local blizCategory, blizCategoryID
+-- The category ID the game's Settings window hands back for our entry: the
+-- only thing Settings.OpenToCategory can find it by (the canvas frame's own
+-- GetID answers 0, which is no category at all).
+local blizCategoryID
+
+-- Set once the window has failed to build or show: from then on the old
+-- dialog opens instead, and the failure is not reported again.
+local broken = false
+
+-- Esc > Options > AddOns > Manners: the icon, the name, the one sentence that
+-- says what the addon does (Start here's own string), and a button into the
+-- window. The window cannot live inside Settings' panel, so the panel steps
+-- aside for it.
+local function OpenFromSettings()
+	if HideUIPanel and SettingsPanel then pcall(HideUIPanel, SettingsPanel) end
+	ns.OpenOptions()
+end
+
+local function BuildCanvas()
+	if not (Settings and Settings.RegisterCanvasLayoutCategory and Settings.RegisterAddOnCategory) then return end
+	local canvas = CreateFrame("Frame", "MannersOptionsCanvas")
+	local icon = canvas:CreateTexture(nil, "ARTWORK")
+	icon:SetTexture("Interface\\AddOns\\Manners\\Textures\\Manners64")
+	icon:SetSize(48, 48)
+	icon:SetPoint("TOPLEFT", canvas, "TOPLEFT", 16, -16)
+	local title = canvas:CreateFontString(nil, "ARTWORK")
+	title:SetFontObject(GameFontNormalLarge)
+	title:SetPoint("LEFT", icon, "RIGHT", 12, 0)
+	title:SetText("Manners")
+	local about = canvas:CreateFontString(nil, "ARTWORK")
+	about:SetFontObject(GameFontHighlight)
+	about:SetJustifyH("LEFT")
+	about:SetPoint("TOPLEFT", icon, "BOTTOMLEFT", 0, -16)
+	about:SetPoint("RIGHT", canvas, "RIGHT", -24, 0)
+	about:SetText(L["Manners shows a small button, the prompt, with the next person to buff. Click it, or press your key, and it casts on them; the game does not let addons cast by themselves."])
+	local open = ns.WindowWidgets.Button(canvas, L["Options"], function()
+		ns.Guard("options from Settings", OpenFromSettings)
+	end)
+	open:SetSize(160, 24)
+	open:SetPoint("TOPLEFT", about, "BOTTOMLEFT", 0, -16)
+	canvas.about, canvas.open = about, open
+
+	local category = Settings.RegisterCanvasLayoutCategory(canvas, "Manners")
+	Settings.RegisterAddOnCategory(category)
+	blizCategoryID = category and (category.GetID and category:GetID() or category.ID) or nil
+end
 
 function ns.SetupOptions()
 	local options = BuildOptions()
 	options.args.profiles = Page.BuildProfilesTab()
-	-- Last, so the profiles tab's controls are fitted too.
+	-- Sized for the fallback dialog, so it is right should it ever be needed;
+	-- the window ignores width hints. Last, so the profiles tab is too.
 	FitControls(options)
-	-- Kept so a control can be read back afterwards. A dropdown that lists the
-	-- right entries under the wrong labels renders perfectly and is invisible
-	-- to every other check we have.
+	-- Kept so a control can be read back afterwards, and the model the
+	-- window reads: ns.optionsTable.args[tab].args[key].
 	ns.optionsTable = options
 
+	-- Still registered, for the fallback dialog and its validator.
 	AceConfig:RegisterOptionsTable(ADDON, options)
-	blizCategory, blizCategoryID = AceConfigDialog:AddToBlizOptions(ADDON, "Manners")
-	-- The bug-report box shuts with the Settings page (OpenOptions shuts it
-	-- for the standalone window). OnHide, because the box's own `hidden` is
-	-- only asked while the page is being drawn.
-	if blizCategory and blizCategory.HookScript then
-		blizCategory:HookScript("OnHide", function() Page.reportOpen = false end)
-		blizCategory:HookScript("OnHide", function() Page.shareOpen = false end)
-	end
+	ns.Guard("options in Settings", BuildCanvas)
 
 	Page.RegisterLauncher()
 end
 
--- Repaint whatever is on screen from the values as they stand now: AceConfig
--- only asks a `hidden` or a `name` function while it is drawing, and some
--- answers (combat, errors, open boxes) change under it. Optional at both ends,
--- because failing to repaint must never take down the handler it is called from.
+-- Repaint whatever is on screen from the values as they stand now: the
+-- window's open page, sidebar and strip, and the fallback dialog if that is
+-- what is up. Optional at both ends, because failing to repaint must never
+-- take down the handler it is called from.
 function ns.RefreshOptionsDisplay()
 	if AceConfigRegistry and AceConfigRegistry.NotifyChange then
 		AceConfigRegistry:NotifyChange(ADDON)
 	end
+	local UI = ns.WindowUI
+	if UI and not broken and UI.Shown() then UI.Refresh() end
 end
 
 -- Whether the window somebody would be styling the prompt from is on screen.
 -- Asked rather than subscribed to, so a missed notification can never leave a
 -- preview running; every answer defaults to "no", so the preview times out.
 function ns.OptionsOpen()
+	local window = ns.OptionsWindow
+	if window and window:IsShown() then return true end
+	-- The fallback dialog, which the library keeps in here while it is open.
 	local frames = AceConfigDialog and AceConfigDialog.OpenFrames
 	if type(frames) == "table" and frames[ADDON] ~= nil then return true end
-
-	-- The other route in: the Settings window's canvas. IsVisible, not IsShown:
-	-- shutting the Settings window hides the window, not the canvas, whose own
-	-- shown flag stays set until another page takes its place. AceConfigDialog
-	-- asks its own Settings pages the same way.
-	if blizCategory then
-		local ok, visible = pcall(function() return blizCategory:IsVisible() end)
-		if ok and visible then return true end
-	end
 	return false
 end
 
--- Shut the standalone options window, if it is up. Only that one: the game's
--- Settings window is Blizzard's to open and shut, and some of it is protected
--- in a fight. Guarded, since a library without Close just leaves it open.
+-- Shut the window. Setup.OpenBindings and Setup.OpenMacros call this: the
+-- game's key binding and macro windows open underneath ours.
 function ns.CloseOptions()
+	if ns.WindowUI and ns.WindowUI.frame then ns.WindowUI.Close() end
 	if AceConfigDialog and AceConfigDialog.Close then
 		pcall(AceConfigDialog.Close, AceConfigDialog, ADDON)
 	end
 end
 
--- The key of the tab the options window has open -- "general", "prompt" -- or
--- nil where the library will not say. The library keeps the choice in its
--- status table for the page, which both the standalone window and the Settings
--- page read, so one answer covers both.
+-- The id of the page in view -- "general", "who", "skip" -- or nil before the
+-- window has opened. Ledger.lua repaints when it is "general".
 function ns.OptionsTab()
+	local UI = ns.WindowUI
+	if not broken and UI and UI.frame then return UI.page end
 	if not (AceConfigDialog and AceConfigDialog.GetStatusTable) then return nil end
 	local ok, status = pcall(AceConfigDialog.GetStatusTable, AceConfigDialog, ADDON)
 	local groups = ok and type(status) == "table" and status.groups
@@ -243,40 +282,55 @@ function ns.OptionsTab()
 	return type(selected) == "string" and selected or nil
 end
 
-function ns.OpenOptions()
+-- The window that failed, put away so nothing half-built stays on screen.
+local function Discard()
+	local UI = ns.WindowUI
+	if UI and UI.frame then UI.frame:Hide() end
+end
+
+function ns.OpenOptions(pageId)
 	-- The boxes start shut when the window opens, but are left alone when it
 	-- is already up, where somebody may be copying out of one.
 	if not ns.OptionsOpen() then Page.reportOpen = false end
 	if not ns.OptionsOpen() then Page.shareOpen = false end
+
+	if not broken then
+		if ns.Guard("options window", function() ns.WindowUI.Open(pageId) end) then return end
+		-- Named once, through the guard; the old dialog from now on.
+		broken = true
+		pcall(Discard)
+	end
+
 	-- Measured again with today's labels: a snooze button's, a list of buffs
 	-- learned since login.
 	if ns.optionsTable then ns.Guard("fit controls", FitControls, ns.optionsTable) end
-
-	-- The standalone dialog, first and by default. Settings.OpenToCategory
-	-- does not raise when it fails to find the category: on this client it
-	-- opens the Settings window at whatever page it was last on and returns
-	-- cleanly, so only the route that either works or errors can go first.
 	local ok = pcall(AceConfigDialog.Open, AceConfigDialog, ADDON)
 	if ok then return end
 
-	-- A last resort, by the ID AddToBlizOptions returned: the canvas frame's
-	-- own GetID answers 0, which is no category at all.
+	-- A last resort, by the ID the Settings entry came back with.
 	if Settings and Settings.OpenToCategory and blizCategoryID ~= nil then
 		pcall(Settings.OpenToCategory, blizCategoryID)
 	end
 end
 
--- Open the options on the Profiles tab, where the share boxes are, with the
--- box of this profile's settings showing when that is what was asked for.
--- For /manners export and a bare /manners import. Answers whether there is a
--- page to send them to at all; SelectGroup is asked for because a library
--- without it still opens the window, just not on this tab.
+-- Open the window on Profiles, where the share boxes are, with the box of
+-- this profile's settings showing when that is what was asked for. For
+-- /manners export and a bare /manners import. Answers whether there is a page
+-- to send them to at all.
 function ns.ShowShareBox(which)
-	ns.OpenOptions()
+	ns.OpenOptions("profiles")
 	if which == "export" then Page.shareOpen = true end
-	if AceConfigDialog.SelectGroup then
-		pcall(AceConfigDialog.SelectGroup, AceConfigDialog, ADDON, "profiles")
+	if broken then
+		if AceConfigDialog.SelectGroup then
+			pcall(AceConfigDialog.SelectGroup, AceConfigDialog, ADDON, "profiles")
+		end
+		ns.RefreshOptionsDisplay()
+		return true
 	end
 	ns.RefreshOptionsDisplay()
+	local UI = ns.WindowUI
+	if UI and UI.Shown() then
+		ns.Guard("options window", UI.Reveal, which == "export" and "profiles.shareNote" or "profiles.sharePaste")
+	end
 	return true
 end

@@ -1720,3 +1720,6 @@ setmetatable(_G, { __index = function(_, key)
 	end
 	return nil
 end })
+
+-- The options window's additions (tests/mockwindow.lua), from beside this file.
+dofile((debug.getinfo(1, "S").source:match("^@(.-)[^/\\]*$") or "") .. "mockwindow.lua")
