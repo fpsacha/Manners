@@ -70,20 +70,25 @@ SUITES = ("validate.py", "runharness.py", "runscenarios.py")
 # A mutation can turn a loop endless. Without a limit that is a selftest that
 # never finishes, which on CI reads as a hung runner rather than a failure.
 TIMEOUT = 600
+# The trace runs each scenario under a line hook, many times slower, and the
+# options window runs a great many lines: a shard went past 600 s and every
+# mutation fell back to the whole suite, which took the full run past hours.
+TRACE_TIMEOUT = 3600
 
 
-def run(script, args=(), root=DIR):
+def run(script, args=(), root=DIR, timeout=None):
     """The suite's output and exit status; status None when it timed out."""
+    timeout = timeout or TIMEOUT
     # One process per suite: this file already runs many at once, and
     # runscenarios.py would otherwise split each into workers of its own.
     env = dict(os.environ, PYTHONIOENCODING="utf-8", MANNERS_SCENARIO_JOBS="1")
     try:
         r = subprocess.run([sys.executable, os.path.join(root, "tests", script)] + list(args),
                            capture_output=True, text=True, encoding="utf-8",
-                           errors="replace", env=env, timeout=TIMEOUT)
+                           errors="replace", env=env, timeout=timeout)
         return r.stdout, r.returncode
     except subprocess.TimeoutExpired:
-        return "  (%s timed out after %d s)\n" % (script, TIMEOUT), None
+        return "  (%s timed out after %d s)\n" % (script, timeout), None
 
 
 def verdict(out, status=0):
@@ -3958,7 +3963,8 @@ with ThreadPoolExecutor(max_workers=JOBS) as _pool:
         for _i in range(JOBS):
             _p = os.path.join(scratch(), "trace-%d.json" % _i)
             _shards.append((_p, _pool.submit(run, "runscenarios.py",
-                                             ["--shard", "%d/%d" % (_i, JOBS), "--trace", _p])))
+                                             ["--shard", "%d/%d" % (_i, JOBS), "--trace", _p],
+                                             DIR, TRACE_TIMEOUT)))
     for _, _f in _shards:
         _f.result()
 
