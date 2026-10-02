@@ -41,7 +41,9 @@ this, which is what keeps them all agreeing.
 `make-icon.py` needs [Pillow](https://pypi.org/project/Pillow/).
 `make-screenshots.py` draws with the renderers below, so it needs what they
 need -- lupa, Pillow and numpy -- and a face with Chinese in it for the
-Chinese panel: Microsoft YaHei on Windows, `fonts-noto-cjk` on Linux.
+Chinese panel: Microsoft YaHei on Windows, `fonts-noto-cjk` on Linux. The
+renderers (`render_prompt.py`, `render_ledger.py`, `render_options.py`) need
+lupa, Pillow and numpy and nothing else.
 
 ```
 python -m pip install Pillow numpy lupa
@@ -174,6 +176,104 @@ prompt and addons known to work on this client use the pairing without
 trouble. It is taken on purpose, so that a ledger string leaning on the
 unsettled case shows as out of place; the window hangs every string by two
 points on one edge, which lands the same either way.
+
+## render_options.py
+
+The same for the options window, one picture a page, and a check of what it
+draws. `render_options.lua` loads the addon as a class in a language, opens the
+window on each page with `ns.OpenOptions(pageId)` and draws `ns.OptionsWindow`
+(820 x 600) with a margin of screen round it, framed wider if anything of the
+window strays off it. The pages come in sidebar order from
+`ns.WindowLayout.groups`.
+
+```
+python tools/render_options.py --out renders                     # every page, a mage, English
+python tools/render_options.py --class PRIEST --locale deDE --pages who,when
+python tools/render_options.py --state combat --state search whisper --pages who
+python tools/render_options.py --check                           # exit 1 on any fault
+python tools/render_options.py --demo                            # prove the drawing and the checks
+```
+
+`--state` puts the window into a state through the addon's own entry points,
+and can be given more than once:
+
+| State | How |
+|---|---|
+| `unlocked` | the prompt unlocked before the window opens |
+| `snoozed` | `ns.StartSnooze(15)` before it opens |
+| `combat` | a fight starts once it is open (`PLAYER_REGEN_DISABLED`) |
+| `folds-open` | every folded section in the layout written open in `ns.db.global.window.open`, the window shut and opened again |
+| `modal` | the footer's "Put these back to default" pressed; on a page without one, `ns.WindowWidgets.Modal` opened with its words |
+| `search WORDS` | the words typed into the sidebar's search box (`window.search`, else the topmost edit box in the sidebar), with the 0.15 s wait let run |
+
+Before the picture is taken, every shown frame of the window gets a second of
+`OnUpdate` with the clock and the timers moving, as the client would give it,
+so a fade the window drives itself has finished, and one-shot animations are
+settled as in `render_prompt.py`.
+
+On top of what the prompt needs, this draws an edit box's own text (its font,
+insets and justification, wrapped when it is multi-line, cut at its box), a
+slider's thumb where its value puts it, a scroll frame's child moved by its
+scroll and cut at its edges, `SetClipsChildren`, the game's font objects by
+name (`GameFontNormal` gold, `GameFontHighlight` white, `GameFontDisable` grey;
+12, with `Large` 16 and `Small` 10; each with its one-pixel shadow), alpha
+passed down the tree, hidden frames left out, and text that wraps. The client's
+own art files are drawn as stand-ins rather than flat tiles: an icon from
+`Interface\Icons` as a tile with the initials of its name, a check box's tick,
+arrows, plus and minus, and the close X (a `UIPanelCloseButton` is 24 square).
+
+The addon is told how its text measures by the same font and the same line
+breaking the picture is drawn with: `tests/frametree.lua` answers
+`GetStringWidth`, `GetStringHeight` and `GetNumLines` through `FT.measure` and
+`FT.wrap`, which this installs, and works out the width a string wraps at from
+its anchors as the renderer does. So a row the window laid out to fit is drawn
+fitting, and one that does not fit shows.
+
+`--check` reads the drawn tree of the window for four faults, lists each with
+the text it concerns, and exits 1 if there is any (2 if a page could not be
+drawn at all):
+
+- **(a) text cut short**: wider than its width with word wrap off; a single
+  word wider than its width when it wraps; or more wrapped lines than its
+  height or `SetMaxLines` leaves room for.
+- **(b) rows overlapping**: in every frame of the window, the strings and
+  child frames it holds compared two by two, each child frame by what it shows
+  that can collide (its text and its controls, not its backgrounds, and only
+  as much of a scroll frame as is inside it). A frame lifted above its
+  siblings -- another strata, or a frame level set higher -- is meant to cover
+  them (a menu, the search results, the confirm box), so it is left out of its
+  parent's comparison, and checked within.
+- **(c) outside**: a control (button, edit box, slider) or a line of text
+  outside the window; inside a scroll frame, one cut by its left or right edge
+  or lying past the end of the scroll child, where no scrolling reaches it;
+  inside a `SetClipsChildren` frame, one not wholly inside it.
+- **(d) contrast** under 4.5:1 against what is drawn under the text, worked out
+  as in `tests/scenarios/readable-*.lua`. The window is drawn once over a dusky
+  world and once over snow, each colour the text carries is laid over each
+  pixel under its lines at its alpha, and the ratio below which the worst
+  twentieth of those pixels fall is the one held to 4.5. Greyed-out controls
+  are held to it too: the game's grey passes on a dark panel.
+
+`--demo` does not load the addon. `render_options.lua` builds a window of every
+kind of frame the options window may use -- the frame types, font objects,
+colour textures, gradients, art, an edit box, a multi-line edit box scrolled in
+its own scroll frame, a slider, a number box, a clipping frame, a hidden row
+and a faded one -- and draws it three ways: clean, clean with its content
+scrolled to the end, and with one fault planted for each check, tagged `[a1]`,
+`[b1]` and so on in its text. It exits 1 unless the clean ones pass every check
+and the faults are found exactly. Run it after changing the renderer or
+`tests/frametree.lua`.
+
+Where the client's behaviour is not known for certain, these are the readings
+taken, the same in the recorder and the renderer: a scroll child hangs from its
+scroll frame's top left whatever it is anchored to, as wide as it is set (else
+as the scroll frame) and as tall as it is set; a thumb is 16 along the slider
+unless sized, and as thick as the slider; a vertical slider's minimum is at the
+top; of `SetFontObject` and `SetTextColor`, the later decides the colour; a
+frame moved to a new parent sits one level above it; a single-line edit box
+shows its text from the start. A region hung by an edge and a centre on one
+axis is drawn from the edge, as `render_prompt.py` draws it, and a note says
+so.
 
 ## make-glow.py
 
