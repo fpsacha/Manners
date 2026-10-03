@@ -443,8 +443,19 @@ function Mock.keyDown(frame, key)
 	return true
 end
 
-function Mock.mouseDown(frame, which) fire(frame, "OnMouseDown", which or "LeftButton") end
-function Mock.mouseUp(frame, which) fire(frame, "OnMouseUp", which or "LeftButton") end
+-- The buttons held, as IsMouseButtonDown reports them: the client knows a
+-- button is up even when the frame it went down on never hears about it.
+function Mock.mouseDown(frame, which)
+	Mock.buttonsDown[which or "LeftButton"] = true
+	fire(frame, "OnMouseDown", which or "LeftButton")
+end
+function Mock.mouseUp(frame, which)
+	Mock.buttonsDown[which or "LeftButton"] = nil
+	fire(frame, "OnMouseUp", which or "LeftButton")
+end
+function IsMouseButtonDown(which)
+	return Mock.buttonsDown[which or "LeftButton"] == true
+end
 
 -- The thumb dragged to `value`, snapped as the client snaps it with
 -- SetObeyStepOnDrag on.
@@ -630,6 +641,7 @@ end
 
 local function install()
 	Mock.modifiers = {}
+	Mock.buttonsDown = {}
 	Mock.menu, Mock.menus, Mock.focus = nil, 0, nil
 	Mock.menuOpen, Mock.menuResponse = false, nil
 	for f in pairs(eventFrames) do eventFrames[f] = nil end

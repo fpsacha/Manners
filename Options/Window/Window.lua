@@ -236,8 +236,22 @@ UI.peek = peek
 -- only while Look is the page (the colour picker can be left up behind
 -- another), and the pointer on the preview button only while a preview runs
 -- (it can end without the pointer moving).
+--
+-- A hold also lasts only while its cause does: the colour picker up, or a
+-- mouse button down. Its release can go missing -- a slider laid out afresh
+-- under the pointer misses its OnMouseUp -- and in 1.6.0 the window then stayed
+-- faded until the next click.
+local function HoldStands()
+	local picker = _G.ColorPickerFrame
+	if type(picker) == "table" and picker.IsShown and picker:IsShown() then return true end
+	local down = _G.IsMouseButtonDown
+	if type(down) ~= "function" then return true end
+	return down("LeftButton") and true or false
+end
+
 function UI.PeekTarget()
 	if InCombatLockdown() then return 1 end
+	if peek.held and not HoldStands() then peek.held = false end
 	local held = peek.held and UI.page == "appearance"
 	local hover = peek.hover and ns.Prompt ~= nil and ns.Prompt:InTest()
 	if held or hover or GetTime() < peek.untilAt then return PEEK_ALPHA end

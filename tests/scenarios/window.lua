@@ -639,12 +639,24 @@ do
 		if f:GetAlpha() ~= 1 then fail(scenario, "a change on Who to buff faded the window") end
 		B.Commit(item(ns, "who.friends"), true)
 
+		-- A hold stands while the button that made it is down.
+		Mock.buttonsDown.LeftButton = true
 		UI.ctx.OnHold(true)
 		settle(0.3)
 		if math.abs(f:GetAlpha() - 0.25) > 0.001 then fail(scenario, "holding a slider on Look left the window at " .. f:GetAlpha()) end
 		UI.ctx.OnHold(false)
+		Mock.buttonsDown.LeftButton = nil
 		settle(0.3)
 		if f:GetAlpha() ~= 1 then fail(scenario, "letting go left the window at " .. f:GetAlpha()) end
+
+		-- The release never reaching the slider (1.6.0: laid out afresh under
+		-- the pointer): the button is up all the same, and the window comes back.
+		Mock.buttonsDown.LeftButton = true
+		UI.ctx.OnHold(true)
+		settle(0.3)
+		Mock.buttonsDown.LeftButton = nil
+		settle(0.3)
+		if f:GetAlpha() ~= 1 then fail(scenario, "a hold whose release went missing left the window at " .. f:GetAlpha()) end
 
 		-- Resting on Show me the prompt while a preview runs.
 		if not ns.Prompt:InTest() then ns.Prompt:ToggleTest() end
