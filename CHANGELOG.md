@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- **The options window no longer stays see-through.** After a change on
+  *Look* it fades so you can see the prompt, and it could stay faded until
+  your next click. It now comes back by itself.
 - **/thank people who buff me works on every class**, as somebody asked on
   CurseForge. A rogue or a hunter, with no buffs to give, can now thank
   whoever buffs them: their *What I say* page holds that one switch. On every
