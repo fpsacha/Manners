@@ -134,7 +134,8 @@ function World.new(cfg)
 
 	-- What the bags hold, by item id, for the group casts' reagents. Only a
 	-- situation that carries some installs the item API, which the mock has
-	-- none of, so the others read the client exactly as before.
+	-- none of beyond a weapon's enchants, so the others read the client
+	-- exactly as before.
 	local bags = {}
 	local function carry(item, count)
 		bags[item] = count
@@ -267,18 +268,29 @@ function World.new(cfg)
 	local function scrolls()
 		ME.level = 12
 		bags[275069], bags[274947] = 2, 1
+		-- The list of the enchants on a weapon, from Mock.weaponEnchants as
+		-- tests/mockapi.lua has it; carry() may have put a C_Item of its own
+		-- in place of the mock's.
+		local function enchants(slot)
+			local list = {}
+			for i, e in ipairs(Mock.weaponEnchants and Mock.weaponEnchants[slot] or {}) do list[i] = e end
+			return list
+		end
 		set("C_Item", {
 			GetItemCount = function(id) return bags[id] or 0 end,
 			GetItemInfoInstant = function(id)
 				if id == STAFF then return id, "Weapon", "", "INVTYPE_2HWEAPON", 135145, 2, 10 end
 				return id, "Miscellaneous", "", "", 134939, 15, 0
 			end,
+			GetWeaponEnchantInfo = enchants,
 		})
 		set("GetInventoryItemID", function(unit, slot)
 			if unit == "player" and slot == 16 then return STAFF end
 			return nil
 		end)
-		Mock.tempEnchants = { [16] = { id = 8700, left = 1800 } }
+		-- Lesser Flame's, of the Imbue kind, on the main hand: half an hour.
+		Mock.weaponEnchants = { [0] = { { hasEnchant = true, enchantType = 3, timeLeft = 1800000, charges = 0,
+			enchantID = 8700, enchantIconID = 0 } } }
 		Mock.playerHeld = setmetatable({ [1302303] = false, [1302285] = false },
 			{ __index = function() return true end })
 		W.scrolls = true

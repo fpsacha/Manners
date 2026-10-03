@@ -1373,18 +1373,49 @@ do
 		return reached or first
 	end
 
-	-- A weapon imbue (Buffs.lua) is no aura: up is your main hand carrying any
-	-- temporary enchant, a scroll's or an oil's, since either way the weapon
-	-- has been seen to. The client's own call first: 12.1 replaced
-	-- GetWeaponEnchantInfo with C_PaperDollInfo.GetTemporaryEnchantmentInfo,
-	-- and keeps the old one only as a shim behind the loadDeprecationFallbacks
-	-- setting, which reads all three weapon slots to answer for one. Nothing
-	-- back is no enchant. Neither throws (slot 16 is a plain number), so no
-	-- pcall. Time left in seconds; the client gives milliseconds.
+	-- A weapon imbue (Buffs.lua) is no aura: up is your main hand carrying a
+	-- scroll's imbue or any temporary enchant, an oil's say, since either way
+	-- the weapon has been seen to; a permanent enchant never counts. The
+	-- scrolls' enchant is of the Imbue kind, which
+	-- C_PaperDollInfo.GetTemporaryEnchantmentInfo and the GetWeaponEnchantInfo
+	-- shim over it never report: read with those, an imbue on was nothing on
+	-- and the reminder asked again. So the list the client's own buff bar
+	-- reads, C_Item.GetWeaponEnchantInfo, every kind of enchant on the weapon;
+	-- the old calls only where it is missing. A secret is the client not
+	-- saying. None throws (the slot is a plain number), so no pcall. Time left
+	-- in seconds; the client gives milliseconds.
 	local function ReadImbue(family)
 		local has, expires, enchant
+		local list = C_Item and C_Item.GetWeaponEnchantInfo
 		local api = C_PaperDollInfo and C_PaperDollInfo.GetTemporaryEnchantmentInfo
-		if type(api) == "function" then
+		if type(list) == "function" then
+			local slots, kinds = Enum and Enum.WeaponSlot, Enum and Enum.ItemEnchantType
+			local temporary, imbue = kinds and kinds.Temporary or 2, kinds and kinds.Imbue or 3
+			local entries = plain(list(slots and slots.MainHand or 0))
+			if type(entries) ~= "table" then return nil end
+			local unknown, named = false, false
+			for _, info in ipairs(entries) do
+				local on, kind
+				if type(info) == "table" and not Withheld(info) then
+					on, kind = plain(info.hasEnchant), plain(info.enchantType)
+				end
+				if on == nil or (on == true and kind == nil) then
+					unknown = true
+				elseif on == true and (kind == temporary or kind == imbue) then
+					-- Any one counts; a scroll's, with an oil on beside it, is
+					-- the one named, remembered and topped up.
+					local id = plain(info.enchantID)
+					local made = ImbueScroll(family, id) ~= nil
+					if not has or (made and not named) then
+						has, enchant, expires, named = true, id, plain(info.timeLeft), made
+					end
+				end
+			end
+			if not has then
+				if unknown then return nil end
+				return false
+			end
+		elseif type(api) == "function" then
 			-- INVSLOT_MAINHAND.
 			local info = api(16)
 			if Withheld(info) then return nil end

@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- **The Weapon imbue reminder no longer asks again while an imbue is on.**
+  It could not see a scroll's imbue on your weapon, so it kept asking you to
+  put one on. It now sees it, and with top-ups on asks again only as it runs
+  low. An oil on your main hand still counts; an enchanter's permanent
+  enchant does not.
+
 ## 1.6.2
 
 - **Changing page while typing in a box** left the old page drawn, and

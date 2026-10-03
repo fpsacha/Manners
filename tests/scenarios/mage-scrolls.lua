@@ -2,15 +2,15 @@
 -- a weapon imbue. A player asked on CurseForge for "one for making sure a
 -- familiar is summoned and one for making sure a weapon imbue is on".
 -- Buffs.lua holds the scrolls (the camelot set's own), Core.lua reads the
--- bags, your level, the weapon in your main hand and its temporary enchant
+-- bags, your level, the weapon in your main hand and the enchants on it
 -- (ScrollReady, ReadImbue), Prompt/Macro.lua uses the scroll by its item id,
 -- and Options/Who.lua and the window show the two families under Myself.
 --
--- The mock has no item API, so each scenario stands one in: what the bags
--- hold, the weapon in the main hand, the enchant on it and your level. Your
--- own auras are Mock.playerHeld: Arcane Intellect, and a familiar where a
--- scenario says so. Nothing else is learned, so the scrolls are all there is
--- of your own to offer.
+-- The mock's item API is the weapon's enchant list alone, so each scenario
+-- stands the rest in: what the bags hold, the weapon in the main hand, the
+-- enchant on it and your level. Your own auras are Mock.playerHeld: Arcane
+-- Intellect, and a familiar where a scenario says so. Nothing else is
+-- learned, so the scrolls are all there is of your own to offer.
 --
 -- Every scenario name starts with "mage-scrolls:" so the mutations in
 -- tests/mutations/mage-scrolls.py can name the one that has to catch them.
@@ -30,6 +30,11 @@ local LESSER_FLAME_ENCHANT = 8700
 local INTELLECT = 1459
 -- A wizard oil's enchant: no scroll makes it.
 local OIL = 2628
+-- An enchanter's Crusader on the weapon, which never wears off.
+local CRUSADER = 1900
+-- Enum.ItemEnchantType: a scroll's imbue is of the Imbue kind, an oil
+-- Temporary, an enchanter's Permanent.
+local PERMANENT, TEMPORARY, IMBUE = 1, 2, 3
 
 -- Two weapons by item id, and the item subclass each is.
 local STAFF, DAGGER = 900010, 900015
@@ -64,28 +69,64 @@ local function family(ns, name)
 	return nil
 end
 
+-- What you had on last for the imbue, nil for nothing.
+local function lastImbue(ns)
+	local last = ns.db.char.ownLast
+	return type(last) == "table" and last.imbue or nil
+end
+
 -- What /manners debug says about yourself, one line per family.
 local function lines(ns) return table.concat(ns.MyselfLines(GetTime()), " / ") end
 
 -- The world a scenario stands in: bags (item -> count), weapon (the item in
--- the main hand), enchant ({ id, left } on it), level, `reads`, how many
--- times the bags were asked for a count, and `unloaded`, items the client
--- has not loaded yet (no name until RequestLoadItemDataByID and a load,
--- `requested` saying which were asked for).
+-- the main hand), enchant ({ id, left, kind } on it: seconds, and the kind
+-- an Imbue unless it says otherwise), level, `reads`, how many times the
+-- bags were asked for a count, and `unloaded`, items the client has not
+-- loaded yet (no name until RequestLoadItemDataByID and a load, `requested`
+-- saying which were asked for). `enchants`, where a scenario sets it, is the
+-- main hand's list as the client hands it over, in place of `enchant`.
 --
--- The enchant is read the way `api` says the client offers it: "native"
--- (the default) is 12.1's C_PaperDollInfo.GetTemporaryEnchantmentInfo with
--- the deprecation fallbacks switched off; "both" adds the old
--- GetWeaponEnchantInfo, the shim Blizzard_Deprecated defines on top of it,
--- which counts its calls in `shimReads`; "shim" is that alone; "none" is
--- neither. A namespace without the call stands for "not there": the mock
+-- The enchant is read with the calls `api` names, "+" between them: "list"
+-- is C_Item.GetWeaponEnchantInfo (tests/mockapi.lua's), every kind of
+-- enchant; "temporary" is 12.1's C_PaperDollInfo.GetTemporaryEnchantmentInfo
+-- and "shim" the old GetWeaponEnchantInfo, Blizzard_Deprecated's shim over
+-- it, both of which report a Temporary enchant alone, never an Imbue. The
+-- default is the client's own two, "list+temporary", the deprecation
+-- fallbacks switched off. Each counts its calls: listReads, temporaryReads,
+-- shimReads. A namespace without the call stands for "not there": the mock
 -- would build its own for a nil.
 local world
 
 local TOUCHED = { "C_Item", "GetInventoryItemID", "GetWeaponEnchantInfo", "C_PaperDollInfo", "UnitLevel",
-	"IsResting", "IsSpellKnown", "IsPlayerSpell" }
+	"IsResting", "IsSpellKnown", "IsPlayerSpell", "Enum" }
+
+-- One enchant as C_Item.GetWeaponEnchantInfo lists it: its time left in
+-- milliseconds, from seconds here.
+local function entry(id, kind, seconds)
+	return { hasEnchant = true, enchantType = kind, timeLeft = seconds * 1000, charges = 0, enchantID = id,
+		enchantIconID = 0 }
+end
+
+-- The main hand's enchants, as the list hands them over.
+local function mainHand()
+	if world.enchants then return world.enchants end
+	local e = world.enchant
+	if not e then return {} end
+	return { entry(e.id, e.kind or IMBUE, e.left) }
+end
+
+-- The Temporary one of them, the only kind the two old calls report.
+local function temporary()
+	for _, e in ipairs(mainHand()) do
+		if e.hasEnchant == true and e.enchantType == TEMPORARY then return e end
+	end
+	return nil
+end
 
 local function install(api)
+	local function has(call) return ("+" .. api .. "+"):find("+" .. call .. "+", 1, true) ~= nil end
+	rawset(_G, "C_Item", nil)
+	local list = C_Item.GetWeaponEnchantInfo
 	rawset(_G, "C_Item", {
 		GetItemCount = function(id)
 			world.reads = world.reads + 1
@@ -101,6 +142,11 @@ local function install(api)
 			if SUBCLASS[id] then return id, "Weapon", "", "INVTYPE_WEAPON", icon(id), 2, SUBCLASS[id] end
 			return id, "Miscellaneous", "", "", icon(id), 15, 0
 		end,
+		GetWeaponEnchantInfo = has("list") and function(slot)
+			world.listReads = world.listReads + 1
+			Mock.weaponEnchants = { [0] = mainHand() }
+			return list(slot)
+		end or nil,
 	})
 	rawset(_G, "GetInventoryItemID", function(unit, slot)
 		if unit == "player" and slot == 16 then return world.weapon end
@@ -108,20 +154,20 @@ local function install(api)
 	end)
 	-- Nothing at all for no enchant, as the client documents it.
 	local function native(slot)
-		local e = world.enchant
+		world.temporaryReads = world.temporaryReads + 1
+		local e = temporary()
 		if slot ~= 16 or not e then return end
-		return { enchantID = e.id, remainingTimeMs = e.left * 1000, chargesRemaining = 0, hasExpirationTime = true }
+		return { enchantID = e.enchantID, remainingTimeMs = e.timeLeft, chargesRemaining = 0, hasExpirationTime = true }
 	end
 	-- Blizzard_Deprecated's shim: all three weapon slots, four values each.
 	local function shim()
 		world.shimReads = world.shimReads + 1
-		local e = world.enchant
+		local e = temporary()
 		if not e then return false, nil, nil, nil, false, nil, nil, nil, false, nil, nil, nil end
-		return true, e.left * 1000, 0, e.id, false, nil, nil, nil, false, nil, nil, nil
+		return true, e.timeLeft, 0, e.enchantID, false, nil, nil, nil, false, nil, nil, nil
 	end
-	local hasNative = api == "native" or api == "both"
-	rawset(_G, "C_PaperDollInfo", { GetTemporaryEnchantmentInfo = hasNative and native or nil })
-	rawset(_G, "GetWeaponEnchantInfo", (api == "shim" or api == "both") and shim or nil)
+	rawset(_G, "C_PaperDollInfo", { GetTemporaryEnchantmentInfo = has("temporary") and native or nil })
+	rawset(_G, "GetWeaponEnchantInfo", has("shim") and shim or nil)
 	rawset(_G, "UnitLevel", function(unit)
 		if unit == "player" then return world.level end
 		return 12
@@ -129,23 +175,24 @@ local function install(api)
 end
 
 -- One session as opts.class (a mage by default), with opts.bags, opts.weapon
--- (a staff by default), opts.enchant, opts.level (12), opts.held (your own
--- auras besides Arcane Intellect), opts.api (see install) and opts.unloaded,
--- nobody else about; opts.known are the spells learned (the mock's Arcane
--- Intellect alone otherwise). opts.tree records the frames (the prompt's
--- icon). body(ns) runs and everything is put back, whether it finished or
--- threw.
+-- (a staff by default), opts.enchant or opts.enchants, opts.level (12),
+-- opts.held (your own auras besides Arcane Intellect), opts.api (see
+-- install) and opts.unloaded, nobody else about; opts.known are the spells
+-- learned (the mock's Arcane Intellect alone otherwise). opts.tree records
+-- the frames (the prompt's icon). body(ns) runs and everything is put back,
+-- whether it finished or threw.
 local function with(scenario, opts, body)
 	Mock.reset()
 	if opts.class then Mock.class = opts.class end
 	world = { bags = opts.bags or {}, weapon = opts.weapon or STAFF, enchant = opts.enchant,
-		level = opts.level or 12, reads = 0, shimReads = 0, unloaded = opts.unloaded, requested = {} }
+		enchants = opts.enchants, level = opts.level or 12, reads = 0, listReads = 0, temporaryReads = 0,
+		shimReads = 0, unloaded = opts.unloaded, requested = {} }
 	local held = { [INTELLECT] = true }
 	for _, id in ipairs(opts.held or {}) do held[id] = true end
 	world.held = held
 	local saved = {}
 	for _, name in ipairs(TOUCHED) do saved[name] = rawget(_G, name) end
-	install(opts.api or "native")
+	install(opts.api or "list+temporary")
 	if opts.known then
 		local learned = {}
 		for _, id in ipairs(opts.known) do learned[id] = true end
@@ -274,7 +321,7 @@ do
 		end
 
 		-- A wizard oil on the staff.
-		world.enchant = { id = OIL, left = 1800 }
+		world.enchant = { id = OIL, left = 1800, kind = TEMPORARY }
 		if mine(ns) then
 			fail(scenario, "with a wizard oil on the weapon, you were offered " .. key(mine(ns)))
 		end
@@ -870,7 +917,7 @@ end
 do
 	local scenario = "mage-scrolls: an oil running low is an enchant on the weapon, not nothing to pick"
 	with(scenario, { bags = { [RAT] = 1, [LESSER_FLAME] = 1 }, held = { RAT_AURA },
-		enchant = { id = OIL, left = 60 } }, function(ns)
+		enchant = { id = OIL, left = 60, kind = TEMPORARY } }, function(ns)
 		ns.db.profile.filters.whenBuffed = "refresh"
 		if mine(ns) then fail(scenario, "a wizard oil with a minute left offered " .. key(mine(ns))) end
 		local text = lines(ns)
@@ -887,43 +934,69 @@ do
 end
 
 -- ------------------------------------------------------------------ 15
--- The enchant is read with 12.1's C_PaperDollInfo.GetTemporaryEnchantmentInfo.
--- GetWeaponEnchantInfo is only Blizzard_Deprecated's shim over it now, there
--- while loadDeprecationFallbacks is on and reading all three weapon slots per
--- call: never asked where the client's own call is there, used where it is
--- not, and with neither the weapon is not read and nothing is offered.
+-- The order the enchant is read in. C_Item.GetWeaponEnchantInfo, the list
+-- the client's own buff bar reads, wherever it is there: neither old call is
+-- asked beside it. Without it, C_PaperDollInfo.GetTemporaryEnchantmentInfo;
+-- GetWeaponEnchantInfo -- Blizzard_Deprecated's shim over that, there while
+-- loadDeprecationFallbacks is on and reading all three weapon slots per
+-- call -- only without both. With none of them the weapon is not read and
+-- nothing is offered. The old calls report a Temporary enchant alone, so
+-- here the scroll's enchant is one.
 do
-	local scenario = "mage-scrolls: the enchant is read with the client's own call, the shim only without it"
-	-- Both: the client's own call alone.
-	with(scenario, { bags = { [LESSER_FLAME] = 1 }, held = { RAT_AURA }, api = "both",
+	local scenario = "mage-scrolls: the enchant is read with the list first, the old calls only without it"
+	-- All three: the list alone.
+	with(scenario, { bags = { [LESSER_FLAME] = 1 }, held = { RAT_AURA }, api = "list+temporary+shim",
 		enchant = { id = LESSER_FLAME_ENCHANT, left = 1800 } }, function(ns)
 		for _ = 1, 3 do
 			Mock.advance(1)
 			ns.addon:Tick()
 		end
-		if mine(ns) then fail(scenario, "with both calls and Lesser Flame on, you were offered " .. key(mine(ns))) end
+		if mine(ns) then fail(scenario, "with all three calls and Lesser Flame on, you were offered " .. key(mine(ns))) end
+		if world.listReads == 0 then fail(scenario, "with all three calls, the list was never asked") end
+		if world.temporaryReads ~= 0 or world.shimReads ~= 0 then
+			fail(scenario, ("with the list there, GetTemporaryEnchantmentInfo was asked %d times and the shim %d")
+				:format(world.temporaryReads, world.shimReads))
+		end
+	end)
+	-- No list, and both old calls: the shim never asked.
+	with(scenario, { bags = { [LESSER_FLAME] = 1 }, held = { RAT_AURA }, api = "temporary+shim" }, function(ns)
+		if key(mine(ns)) ~= "imbuelesserflame" then
+			fail(scenario, "with GetTemporaryEnchantmentInfo first and a bare staff, you were offered " .. key(mine(ns)))
+		end
+		world.enchant = { id = LESSER_FLAME_ENCHANT, left = 1800, kind = TEMPORARY }
+		for _ = 1, 3 do
+			Mock.advance(1)
+			ns.addon:Tick()
+		end
+		if mine(ns) then
+			fail(scenario, "with GetTemporaryEnchantmentInfo first and Lesser Flame on, you were offered " .. key(mine(ns)))
+		end
+		if lastImbue(ns) ~= "imbuelesserflame" then
+			fail(scenario, "with GetTemporaryEnchantmentInfo first, Lesser Flame was remembered as "
+				.. tostring(lastImbue(ns)))
+		end
 		if world.shimReads ~= 0 then
-			fail(scenario, ("GetWeaponEnchantInfo was asked %d times with the client's own call there"):format(
+			fail(scenario, ("GetWeaponEnchantInfo was asked %d times with GetTemporaryEnchantmentInfo there"):format(
 				world.shimReads))
 		end
 	end)
-	-- The shim alone, the deprecation fallbacks on a client without the new
-	-- call: it still serves.
+	-- The shim alone, the deprecation fallbacks on a client without the
+	-- other two: it still serves.
 	with(scenario, { bags = { [LESSER_FLAME] = 1 }, held = { RAT_AURA }, api = "shim" }, function(ns)
 		if key(mine(ns)) ~= "imbuelesserflame" then
 			fail(scenario, "with GetWeaponEnchantInfo alone and a bare staff, you were offered " .. key(mine(ns)))
 		end
-		world.enchant = { id = LESSER_FLAME_ENCHANT, left = 1800 }
+		world.enchant = { id = LESSER_FLAME_ENCHANT, left = 1800, kind = TEMPORARY }
 		if mine(ns) then
 			fail(scenario, "with GetWeaponEnchantInfo alone and Lesser Flame on, you were offered " .. key(mine(ns)))
 		end
-		if ns.db.char.ownLast.imbue ~= "imbuelesserflame" then
+		if lastImbue(ns) ~= "imbuelesserflame" then
 			fail(scenario, "with GetWeaponEnchantInfo alone, Lesser Flame was remembered as "
-				.. tostring(ns.db.char.ownLast.imbue))
+				.. tostring(lastImbue(ns)))
 		end
 	end)
-	-- Neither: nothing is known of the weapon, so nothing is offered for it.
-	with(scenario, { bags = { [LESSER_FLAME] = 1 }, held = { RAT_AURA }, api = "none" }, function(ns)
+	-- None: nothing is known of the weapon, so nothing is offered for it.
+	with(scenario, { bags = { [LESSER_FLAME] = 1 }, held = { RAT_AURA }, api = "" }, function(ns)
 		if mine(ns) then fail(scenario, "with no call to read the weapon, you were offered " .. key(mine(ns))) end
 		if not lines(ns):find("Weapon imbue: the game will not say whether it is up, so it is not offered.", 1, true) then
 			fail(scenario, "with no call to read the weapon, /manners debug says " .. lines(ns))
@@ -1065,6 +1138,159 @@ do
 		Mock.advance(2.1)
 		if not ns.IsBlocked(ns.UnitFullName("player"), "ratfamiliar") then
 			fail(scenario, "an interrupt 7 s after the Rat Familiar's three-second cast took the press back")
+		end
+	end)
+end
+
+-- ------------------------------------------------------------------ 18
+-- A player's report: a scroll's imbue on the weapon, and the reminder asking
+-- for one all the same. The imbue is an enchant of the Imbue kind, which
+-- C_PaperDollInfo.GetTemporaryEnchantmentInfo never reports; the client's
+-- own buff bar reads it from C_Item.GetWeaponEnchantInfo. Read from there:
+-- not offered, and the scroll named and remembered.
+do
+	local scenario = "mage-scrolls: an imbue on is read from the client's list, which the temporary-enchant call leaves out"
+	with(scenario, { bags = { [RAT] = 1, [LESSER_FLAME] = 1 }, held = { RAT_AURA },
+		enchants = { entry(LESSER_FLAME_ENCHANT, IMBUE, 1800) } }, function(ns)
+		if C_PaperDollInfo.GetTemporaryEnchantmentInfo(16) ~= nil then
+			fail(scenario, "SKIPPED -- the temporary-enchant call reports the imbue")
+			return
+		end
+		if mine(ns) then
+			fail(scenario, "with Lesser Flame's imbue on the staff, you were offered " .. key(mine(ns)))
+		end
+		if not lines(ns):find("Weapon imbue: Imbue Lesser Flame is up.", 1, true) then
+			fail(scenario, "with Lesser Flame's imbue on the staff, /manners debug says " .. lines(ns))
+		end
+		if lastImbue(ns) ~= "imbuelesserflame" then
+			fail(scenario, "Lesser Flame's imbue on the staff was remembered as " .. tostring(lastImbue(ns)))
+		end
+		-- Worn off: nothing on the list, and Lesser Flame offered again.
+		world.enchants = {}
+		if key(mine(ns)) ~= "imbuelesserflame" then
+			fail(scenario, "with the imbue worn off, you were offered " .. key(mine(ns)))
+		end
+	end)
+	-- A client without Enum.WeaponSlot and Enum.ItemEnchantType: the numbers
+	-- they stand for, the main hand 0 and an Imbue 3.
+	with(scenario, { bags = { [RAT] = 1, [LESSER_FLAME] = 1 }, held = { RAT_AURA },
+		enchants = { entry(LESSER_FLAME_ENCHANT, IMBUE, 1800) } }, function(ns)
+		local enum = {}
+		for name, values in pairs(Enum) do enum[name] = values end
+		enum.WeaponSlot, enum.ItemEnchantType = nil, nil
+		rawset(_G, "Enum", enum)
+		if mine(ns) then
+			fail(scenario, "without the weapon enums and Lesser Flame on the staff, you were offered " .. key(mine(ns)))
+		end
+	end)
+end
+
+-- ------------------------------------------------------------------ 19
+-- On the list, an oil (Temporary) has seen to the weapon as a scroll's imbue
+-- has; an enchanter's enchant (Permanent) never has, alone or beside one.
+do
+	local scenario = "mage-scrolls: an oil on the list counts, a permanent enchant never does"
+	with(scenario, { bags = { [LESSER_FLAME] = 1 }, held = { RAT_AURA },
+		enchants = { entry(OIL, TEMPORARY, 1800) } }, function(ns)
+		if mine(ns) then fail(scenario, "with a wizard oil on the list, you were offered " .. key(mine(ns))) end
+		if not lines(ns):find("Weapon imbue: your main hand already carries a temporary enchant.", 1, true) then
+			fail(scenario, "with a wizard oil on the list, /manners debug says " .. lines(ns))
+		end
+		if lastImbue(ns) ~= nil then
+			fail(scenario, "a wizard oil on the list was remembered as " .. tostring(lastImbue(ns)))
+		end
+	end)
+	with(scenario, { bags = { [LESSER_FLAME] = 1 }, held = { RAT_AURA },
+		enchants = { entry(CRUSADER, PERMANENT, 0) } }, function(ns)
+		if key(mine(ns)) ~= "imbuelesserflame" then
+			fail(scenario, ("with only Crusader on the staff, you were offered %s; /manners debug says %s")
+				:format(key(mine(ns)), lines(ns)))
+		end
+		world.enchants = { entry(CRUSADER, PERMANENT, 0), entry(LESSER_FLAME_ENCHANT, IMBUE, 1800) }
+		if mine(ns) then
+			fail(scenario, "with Crusader and Lesser Flame on the staff, you were offered " .. key(mine(ns)))
+		end
+		if not lines(ns):find("Weapon imbue: Imbue Lesser Flame is up.", 1, true) then
+			fail(scenario, "with Crusader and Lesser Flame on the staff, /manners debug says " .. lines(ns))
+		end
+	end)
+end
+
+-- ------------------------------------------------------------------ 20
+-- A secret on the list, or a field missing, is the client not saying: never
+-- a reason to offer, and nothing remembered. Whether one is on, its kind (it
+-- could be an enchanter's), the entry or the whole list; a missing
+-- hasEnchant the same. An entry that does say is enough, whatever the rest
+-- hide; one that hides only its enchant is on, and nobody's scroll.
+do
+	local scenario = "mage-scrolls: a secret on the list is the client not saying"
+	-- Withheld: not offered, nothing remembered, and /manners debug says so.
+	local function withheld(ns)
+		return mine(ns) == nil and lastImbue(ns) == nil
+			and lines(ns):find("Weapon imbue: the game will not say whether it is up, so it is not offered.", 1, true) ~= nil
+	end
+	local function told(ns)
+		return ("offered %s, remembered as %s; /manners debug says %s"):format(key(mine(ns)),
+			tostring(lastImbue(ns)), lines(ns))
+	end
+	local function hiding(field, value)
+		local e = entry(LESSER_FLAME_ENCHANT, IMBUE, 1800)
+		e[field] = value
+		return e
+	end
+	with(scenario, { bags = { [LESSER_FLAME] = 1 }, held = { RAT_AURA },
+		enchants = { hiding("hasEnchant", Mock.SECRET) } }, function(ns)
+		if not withheld(ns) then fail(scenario, "with hasEnchant secret, the weapon was read: " .. told(ns)) end
+		world.enchants = { hiding("enchantType", Mock.SECRET) }
+		if not withheld(ns) then fail(scenario, "with the enchant's kind secret, the weapon was read: " .. told(ns)) end
+		world.enchants = { Mock.SECRET }
+		if not withheld(ns) then fail(scenario, "with the entry secret, the weapon was read: " .. told(ns)) end
+		world.enchants = Mock.SECRET
+		if not withheld(ns) then fail(scenario, "with the whole list secret, the weapon was read: " .. told(ns)) end
+		world.enchants = { hiding("hasEnchant", nil) }
+		if not withheld(ns) then fail(scenario, "with hasEnchant missing, the weapon was read: " .. told(ns)) end
+		-- One that says, behind one that does not.
+		world.enchants = { hiding("hasEnchant", Mock.SECRET), entry(LESSER_FLAME_ENCHANT, IMBUE, 1800) }
+		if mine(ns) or lastImbue(ns) ~= "imbuelesserflame" then
+			fail(scenario, "Lesser Flame behind a secret entry: " .. told(ns))
+		end
+	end)
+	with(scenario, { bags = { [LESSER_FLAME] = 1 }, held = { RAT_AURA },
+		enchants = { hiding("enchantID", Mock.SECRET) } }, function(ns)
+		if mine(ns) or lastImbue(ns) ~= nil then
+			fail(scenario, "an imbue whose enchant is secret: " .. told(ns))
+		end
+	end)
+end
+
+-- ------------------------------------------------------------------ 21
+-- The list's time left is in milliseconds: two minutes of Lesser Flame with
+-- top-ups on is offered again, half an hour is not. With an oil on beside
+-- it, listed before or after, the scroll's imbue is the one read, named and
+-- topped up.
+do
+	local scenario = "mage-scrolls: the list's milliseconds drive a top-up, of the scroll's imbue beside an oil"
+	with(scenario, { bags = { [LESSER_FLAME] = 2 }, held = { RAT_AURA },
+		enchants = { entry(LESSER_FLAME_ENCHANT, IMBUE, 120) } }, function(ns)
+		ns.db.profile.filters.whenBuffed = "refresh"
+		local me = mine(ns)
+		if key(me) ~= "imbuelesserflame" or not (me.remaining and me.remaining > 110 and me.remaining <= 120) then
+			fail(scenario, ("two minutes of Lesser Flame on the list, top-ups on: offered %s, %s left")
+				:format(key(me), tostring(me and me.remaining)))
+		end
+		world.enchants = { entry(LESSER_FLAME_ENCHANT, IMBUE, 1800) }
+		if mine(ns) then
+			fail(scenario, "half an hour of Lesser Flame on the list, top-ups on: offered " .. key(mine(ns)))
+		end
+		world.enchants = { entry(OIL, TEMPORARY, 1800), entry(LESSER_FLAME_ENCHANT, IMBUE, 120) }
+		if key(mine(ns)) ~= "imbuelesserflame" then
+			fail(scenario, ("an oil listed before two minutes of Lesser Flame: offered %s; /manners debug says %s")
+				:format(key(mine(ns)), lines(ns)))
+		end
+		world.enchants = { entry(LESSER_FLAME_ENCHANT, IMBUE, 120), entry(OIL, TEMPORARY, 1800) }
+		if key(mine(ns)) ~= "imbuelesserflame" then
+			fail(scenario, ("an oil listed after two minutes of Lesser Flame: offered %s; /manners debug says %s")
+				:format(key(mine(ns)), lines(ns)))
 		end
 	end)
 end

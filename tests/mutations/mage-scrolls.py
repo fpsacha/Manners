@@ -199,7 +199,8 @@ mutate("Core.lua",
        "scrolls: the familiar had up last not read first",
        expect="the one he had up last, took", script=S)
 
-# The weapon read with the deprecated shim, or with neither call.
+# Without the list (C_Item.GetWeaponEnchantInfo): the weapon read with the
+# deprecated shim, or with neither old call.
 mutate("Core.lua",
        "\t\tlocal api = C_PaperDollInfo and C_PaperDollInfo.GetTemporaryEnchantmentInfo\n",
        "\t\tlocal api = nil\n",
@@ -210,13 +211,115 @@ mutate("Core.lua",
        "\t\t\tif info == nil then return false end\n",
        "\t\t\tif info == nil then return nil end\n",
        "scrolls: no enchant read as no answer",
-       expect="with the familiar up, a staff and no imbue, you were offered", script=S)
+       expect="with GetTemporaryEnchantmentInfo first and a bare staff, you were offered", script=S)
 
 mutate("Core.lua",
        "\t\t\tlocal read = _G.GetWeaponEnchantInfo\n\t\t\tif type(read) ~= \"function\" then return nil end\n",
        "\t\t\tdo return nil end\n\t\t\tlocal read = _G.GetWeaponEnchantInfo\n",
        "scrolls: the shim never used",
        expect="with GetWeaponEnchantInfo alone and a bare staff, you were offered", script=S)
+
+# The list C_Item.GetWeaponEnchantInfo, every kind of enchant on the weapon:
+# the scrolls' imbue is of the Imbue kind, which the old calls never report,
+# so read without the list an imbue on was nothing on and asked for again.
+mutate("Core.lua",
+       "\t\tif type(list) == \"function\" then\n",
+       "\t\tif false then\n",
+       "scrolls: the imbue read without the list",
+       expect="with Lesser Flame's imbue on the staff, you were offered", script=S)
+
+mutate("Core.lua",
+       "\t\t\tlocal entries = plain(list(slots and slots.MainHand or 0))\n",
+       "\t\t\tlocal entries = plain(list(16))\n",
+       "scrolls: the list asked for inventory slot 16",
+       expect="with Lesser Flame's imbue on the staff, you were offered", script=S)
+
+mutate("Core.lua",
+       "\t\t\tlocal entries = plain(list(slots and slots.MainHand or 0))\n",
+       "\t\t\tlocal entries = plain(list(slots and slots.MainHand or 16))\n",
+       "scrolls: no main hand without the enum",
+       expect="without the weapon enums and Lesser Flame on the staff, you were offered", script=S)
+
+mutate("Core.lua",
+       "\t\t\tlocal temporary, imbue = kinds and kinds.Temporary or 2, kinds and kinds.Imbue or 3\n",
+       "\t\t\tlocal temporary, imbue = kinds and kinds.Temporary, kinds and kinds.Imbue\n",
+       "scrolls: no Imbue kind without the enum",
+       expect="without the weapon enums and Lesser Flame on the staff, you were offered", script=S)
+
+mutate("Core.lua",
+       "\t\t\t\telseif on == true and (kind == temporary or kind == imbue) then\n",
+       "\t\t\t\telseif on == true and kind == temporary then\n",
+       "scrolls: an imbue on the list not counted",
+       expect="with Lesser Flame's imbue on the staff, you were offered", script=S)
+
+mutate("Core.lua",
+       "\t\t\t\telseif on == true and (kind == temporary or kind == imbue) then\n",
+       "\t\t\t\telseif on == true and kind == imbue then\n",
+       "scrolls: an oil on the list not counted",
+       expect="with a wizard oil on the list, you were offered", script=S)
+
+mutate("Core.lua",
+       "\t\t\t\telseif on == true and (kind == temporary or kind == imbue) then\n",
+       "\t\t\t\telseif on == true then\n",
+       "scrolls: a permanent enchant counted",
+       expect="with only Crusader on the staff, you were offered", script=S)
+
+mutate("Core.lua",
+       "\t\t\tif not has then\n\t\t\t\tif unknown then return nil end\n\t\t\t\treturn false\n",
+       "\t\t\tif not has then\n\t\t\t\tif unknown then return nil end\n\t\t\t\treturn nil\n",
+       "scrolls: an empty list read as no answer",
+       expect="with the imbue worn off, you were offered", script=S)
+
+# A secret, or a field missing, read as no enchant: the reminder asks for
+# an imbue that may well be on.
+mutate("Core.lua",
+       "\t\t\t\tif unknown then return nil end\n",
+       "",
+       "scrolls: a withheld entry read as no enchant",
+       expect="with hasEnchant secret, the weapon was read", script=S)
+
+mutate("Core.lua",
+       "\t\t\t\tif on == nil or (on == true and kind == nil) then\n",
+       "\t\t\t\tif on == true and kind == nil then\n",
+       "scrolls: a secret hasEnchant read as none",
+       expect="with hasEnchant secret, the weapon was read", script=S)
+
+mutate("Core.lua",
+       "\t\t\t\tif on == nil or (on == true and kind == nil) then\n",
+       "\t\t\t\tif on == nil then\n",
+       "scrolls: a secret kind read as none",
+       expect="with the enchant's kind secret, the weapon was read", script=S)
+
+mutate("Core.lua",
+       "\t\t\tif type(entries) ~= \"table\" then return nil end\n",
+       "\t\t\tif type(entries) ~= \"table\" then return false end\n",
+       "scrolls: a secret list read as empty",
+       expect="with the whole list secret, the weapon was read", script=S)
+
+# Which entry is read: the scroll's, beside an oil listed before or after it.
+mutate("Core.lua",
+       "\t\t\t\t\tif not has or (made and not named) then\n",
+       "\t\t\t\t\tif not has then\n",
+       "scrolls: an oil listed first read over the imbue",
+       expect="an oil listed before two minutes of Lesser Flame: offered", script=S)
+
+mutate("Core.lua",
+       "\t\t\t\t\tif not has or (made and not named) then\n",
+       "\t\t\t\t\tif true then\n",
+       "scrolls: an oil listed last read over the imbue",
+       expect="an oil listed after two minutes of Lesser Flame: offered", script=S)
+
+mutate("Core.lua",
+       "\t\t\t\t\t\thas, enchant, expires, named = true, id, plain(info.timeLeft), made\n",
+       "\t\t\t\t\t\thas, enchant, expires, named = true, id, nil, made\n",
+       "scrolls: the list's time left never read",
+       expect="two minutes of Lesser Flame on the list, top-ups on: offered", script=S)
+
+mutate("Core.lua",
+       "\t\t\t\t\t\thas, enchant, expires, named = true, id, plain(info.timeLeft), made\n",
+       "\t\t\t\t\t\thas, enchant, expires, named = true, nil, plain(info.timeLeft), made\n",
+       "scrolls: the imbue on the list never named",
+       expect="with Lesser Flame's imbue on the staff, /manners debug says", script=S)
 
 # An oil running low with top-ups on, taken for nothing to pick. Since the
 # twin top-up (1.6.2) reads the scroll right after, the read throws.

@@ -464,8 +464,9 @@ local TBC_SET = setmetatable({ own = {} }, { __index = VANILLA_SET })
 --             have used one. The scroll's name is that spell's, as the client
 --             names it; nameFromItem takes the item's instead, and is the
 --             name until the client has loaded the item.
---   imbue     up is the main hand carrying any temporary enchant, a wizard
---             oil included, rather than an aura; each scroll names its
+--   imbue     up is the main hand carrying a scroll's imbue or any temporary
+--             enchant, a wizard oil included, never a permanent one, rather
+--             than an aura (Core.lua, ReadImbue); each scroll names its
 --             `enchant` and the `weapon` it fits (the weapon's item subclass).
 local CAMELOT_OWN = {}
 do

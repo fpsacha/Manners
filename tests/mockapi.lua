@@ -147,9 +147,18 @@ function Mock.reset()
 	Mock.playerHeld = nil
 	Mock.playerHeldFor = nil
 	-- The temporary enchant on each inventory slot (C_PaperDollInfo), as
-	-- { [16] = { id = enchant, left = seconds } }: a mage's imbue or an oil on
-	-- the main hand. nil is none anywhere, which the call answers with nothing.
+	-- { [16] = { id = enchant, left = seconds } }: an oil on the main hand.
+	-- nil is none anywhere, which the call answers with nothing. A mage's
+	-- scroll imbue is of the Imbue kind, which this call never reports.
 	Mock.tempEnchants = nil
+	-- Every enchant on each weapon slot (C_Item.GetWeaponEnchantInfo), by
+	-- Enum.WeaponSlot (0 the main hand), each a list of the client's
+	-- WeaponEnchantInfo: { hasEnchant = true, enchantType = 3, timeLeft =
+	-- milliseconds, charges = 0, enchantID = 8700, enchantIconID = 0 }. The
+	-- type is Enum.ItemEnchantType: Imbue (3) a mage's scroll, Temporary (2)
+	-- an oil, Permanent (1) an enchanter's. nil is an empty list everywhere;
+	-- Mock.SECRET for a slot's list is the whole answer withheld.
+	Mock.weaponEnchants = nil
 	Mock.auraBlackout = false
 	Mock.noAuras = false
 	Mock.extraAura = false
@@ -1778,6 +1787,20 @@ setmetatable(_G, { __index = function(_, key)
 					hasExpirationTime = true }
 			end,
 		})
+	elseif key == "C_Item" then
+		-- The list the client's own buff bar reads (Mock.weaponEnchants), a
+		-- new table on every call; a slot's list may be Mock.SECRET, the whole
+		-- answer withheld. Nothing else of C_Item: a scenario about items
+		-- stands in the rest itself.
+		return ns_or_nil({
+			GetWeaponEnchantInfo = function(slot)
+				local listed = Mock.weaponEnchants and Mock.weaponEnchants[slot]
+				if listed == SECRET then return SECRET end
+				local list = {}
+				for i, e in ipairs(listed or {}) do list[i] = e end
+				return list
+			end,
+		})
 	elseif key == "C_NamePlate" then
 		return ns_or_nil({ GetNamePlates = function() return {} end })
 	elseif key == "C_Texture" then
@@ -1790,6 +1813,8 @@ setmetatable(_G, { __index = function(_, key)
 			SecrecyLevel = { NeverSecret = 0 },
 			AddOnRestrictionState = { Inactive = 0, Active = 1, Activating = 2 },
 			AddOnRestrictionType = { Map = 1, Combat = 2 },
+			WeaponSlot = { MainHand = 0, OffHand = 1, Ranged = 2 },
+			ItemEnchantType = { None = 0, Permanent = 1, Temporary = 2, Imbue = 3 },
 		}
 	end
 	return nil
