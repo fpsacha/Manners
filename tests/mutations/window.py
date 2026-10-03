@@ -29,12 +29,13 @@ mutate("Options/Window/WidgetsChoice.lua",
        "window: the colour picker does not fade the window",
        expect="with the colour picker open for Panel colour the window is at", script=S)
 
-# ...and shut without letting go.
+# ...and shut without letting go. Since 1.6.1 the window lets go by itself
+# once the picker is down, so it is the widget's own check that sees it.
 mutate("Options/Window/WidgetsChoice.lua",
        "\tif row then W.Hold(row, false) end\n",
        "",
        "window: the colour picker shut leaves the window faded",
-       expect="the colour picker shut and the window stayed at", script=S)
+       expect="the window was not told the picker shut", script=S)
 
 # A confirm skipped: the footer's reset went straight through.
 mutate("Options/Window/Bind.lua",
