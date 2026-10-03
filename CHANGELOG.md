@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.6.2
 
 - **Changing page while typing in a box** left the old page drawn, and
   clickable, on top of the new one. It now clears away.
