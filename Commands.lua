@@ -1453,6 +1453,11 @@ function addon:HandleSlash(rawInput)
 			for _, line in ipairs(ns.MyselfLines(GetTime())) do self:Print("  " .. line) end
 			-- Somebody buffing you is noticed for the /thank all the same.
 			PrintFavourWatch(self, db, GetTime())
+			-- The one state below that holds the /thank back too, said as the
+			-- full report says it, or the thank reads "on" with nothing to show.
+			if not db.enabled then
+				self:Print("|cffff8080" .. L["switched OFF on this profile -- nothing is recorded or offered; /manners on"] .. "|r")
+			end
 			return
 		end
 		self:Print("C_Secrets: " .. tostring(caps.hasSecrets)
@@ -1493,7 +1498,11 @@ function addon:HandleSlash(rawInput)
 			if not db.enabled then
 				self:Print("  " .. L["not watching for favours -- Manners is switched off."])
 			elseif not db.sources.owed then
-				self:Print("  " .. L["not watching for favours -- |cffffd100People who buff me|r is switched off."])
+				-- With the /thank on the walk still watches, for the thank alone
+				-- (Favours.lua, watching), and the thank's own lines follow.
+				self:Print("  " .. (db.prompt.thankEmote
+					and L["Favours are not recorded while \"People who buff me\" is off, on the Who to buff tab."]
+					or L["not watching for favours -- |cffffd100People who buff me|r is switched off."]))
 			else
 				self:Print("  " .. L["nobody has buffed you recently."])
 			end

@@ -2037,8 +2037,8 @@ mutate("Favours.lua",
 # The aura scan going round the agreement, which is the same duplicate arriving
 # from the other side.
 mutate("Favours.lua",
-       "\t\t\t\t\t\tif ClaimFavour(seen.name, key) then NoteFavour(seen) end",
-       "\t\t\t\t\t\tNoteFavour(seen)",
+       "\t\t\t\t\t\tNoteFavour(seen, ClaimFavour(seen.name, key))",
+       "\t\t\t\t\t\tNoteFavour(seen, true)",
        "the aura scan filing past the claim",
        expect="one landing seen twice, log first",
        script="runscenarios.py")
@@ -2046,7 +2046,7 @@ mutate("Favours.lua",
 # A debt filed by hand rather than through NoteFavour -- a prompt that works and
 # a user who is never told why, plus nothing written to disk.
 mutate("Favours.lua",
-       "\tNoteFavour({ key = spellId, name = full, guid = sourceGUID, class = plain(class) })",
+       "\tNoteFavour({ key = spellId, name = full, guid = sourceGUID, class = plain(class) }, true)",
        """\tns.owed[full] = { expires = GetTime() + 120, at = GetTime(),
 \t\tguid = sourceGUID, class = plain(class) }""",
        "the log keeping its own debts",

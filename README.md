@@ -480,12 +480,13 @@ list. They used to be at the bottom of *Who to buff*.
 - */thank people who buff me*: off by default. When somebody buffs you, you
   `/thank` them, and everybody near sees it: whether or not you could buff
   them back, and with *People who buff me* on or off. Never in a fight or in
-  any instance, at most once per person every five minutes and once every ten
-  seconds in all, so a raid buffing you on the pull is one thank. Only class
-  buffs such as Fortitude are thanked while *Ignore shields, heals and trinket
-  procs* is on. A rogue or a hunter, with no buffs to give anybody, has this
-  page with this switch alone on it. `/manners debug` shows the last thank, or
-  why the last one was skipped.
+  any instance, nor while you are stealthed or feigning death, at most once
+  per person every five minutes and once every ten seconds in all, so a raid
+  buffing you on the pull is one thank. Only class buffs such as Fortitude are
+  thanked while *Ignore shields, heals and trinket procs* is on. A rogue or a
+  hunter, with no buffs to give anybody, has this page with this switch alone
+  on it. `/manners debug` shows the last thank, or why the last one was
+  skipped.
 - *Say a line when I buff someone*: off by default, and then only when you
   buff someone back unless you untick *Only when I buff someone back*. Four
   line sets (Fantasy (general), Polite, Cheeky, Just their name), editable,

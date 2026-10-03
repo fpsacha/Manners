@@ -8,8 +8,12 @@
   class it now also thanks for a buff you could not have returned, and no
   longer needs *People who buff me* on, so the switch is never greyed out.
   The rest is as before: never in a fight or an instance, once per person
-  every five minutes, and only class buffs unless you untick *Ignore shields,
-  heals and trinket procs*.
+  every five minutes, and only class buffs. A class with buffs of its own can
+  untick *Ignore shields, heals and trinket procs* on *When to offer* to have
+  heals thanked too, and that box no longer waits for *People who buff me*
+  either.
+- **No /thank while you are hiding**: not in stealth or Shadowmeld, where it
+  would give you away to everybody near, and not while you feign death.
 - `/manners debug` shows the /thank on every class, and the bug report on
   *Diagnostics* says whether it is on.
 

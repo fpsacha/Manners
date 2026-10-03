@@ -4,7 +4,7 @@
 local _, ns = ...
 local L = ns.L
 local Page = ns.OptionsPage
-local rescan, restyleAndMacro, S, F = Page.rescan, Page.restyleAndMacro, Page.S, Page.F
+local rescan, restyleAndMacro, P, S, F = Page.rescan, Page.restyleAndMacro, Page.P, Page.S, Page.F
 local pGet, pSet, sGet, sSet = Page.pGet, Page.pSet, Page.sGet, Page.sSet
 local fGet, fSet, fGetMacro, fSetMacro = Page.fGet, Page.fSet, Page.fGetMacro, Page.fSetMacro
 local tGet, tSet, HasClassBuffs, HasPrompt = Page.tGet, Page.tSet, Page.HasClassBuffs, Page.HasPrompt
@@ -27,11 +27,12 @@ end
 --
 -- "Put these back to default" in the options window's footer puts back the
 -- page in view: every field on that page's list, including rows this class
--- does not show, then the hooks those fields' own setters run. Never the
--- master switch, the key, where the prompt sits or its lock, the never-offer
--- list or your lines: what somebody placed, wrote or listed by hand is not a
--- tuning knob. The settings the old Advanced tab's reset put back are all
--- here, on When to offer and Look, where they now sit.
+-- does not show unless the list's `keep` says otherwise, then the hooks those
+-- fields' own setters run. Never the master switch, the key, where the prompt
+-- sits or its lock, the never-offer list or your lines: what somebody placed,
+-- wrote or listed by hand is not a tuning knob. The settings the old Advanced
+-- tab's reset put back are all here, on When to offer and Look, where they
+-- now sit.
 ---------------------------------------------------------------------------
 
 local function RefreshBroker()
@@ -76,9 +77,13 @@ Page.RESET = {
 			restyleAndMacro()
 		end,
 	},
-	-- Your lines and the line set are kept.
+	-- Your lines and the line set are kept. So is the rest of the list for a
+	-- class with nothing to give, whose page holds the /thank alone (Say.lua,
+	-- THANKS_ONLY): the line said with a cast is one it never says, and on a
+	-- shared profile it is an alt's.
 	click = {
 		"prompt.thankEmote", "speech.enabled", "speech.channel", "speech.onlyWhenReturning",
+		keep = function(path) return path ~= "prompt.thankEmote" and not HasClassBuffs() end,
 		after = function() ns.Prompt:InvalidateMacro() end,
 	},
 	-- Where the prompt sits and its lock are kept.
@@ -152,7 +157,9 @@ function Page.ResetPage(pageId)
 	local list = Page.RESET[pageId]
 	if not list then return false end
 	return ns.Guard("reset page", function()
-		for _, path in ipairs(list) do ResetField(path) end
+		for _, path in ipairs(list) do
+			if not (list.keep and list.keep(path)) then ResetField(path) end
+		end
 		if list.after then list.after() end
 		ns.RefreshOptionsDisplay()
 	end)
@@ -217,11 +224,14 @@ function Page.BuildAdvancedTab()
 			owedClassBuffsOnly = {
 				type = "toggle",
 				name = L["Ignore shields, heals and trinket procs"],
-				desc = L["Only class buffs such as Fortitude count as a favour to return."],
+				desc = L["Only class buffs such as Fortitude count as a favour to return."]
+					.. " " .. L["The same goes for /thank people who buff me."],
 				order = 11,
 				width = "full",
 				hidden = NoOthers,
-				disabled = function() return not S().owed end,
+				-- Live while either switch it filters is: the favour scan reads
+				-- the casters it lets through for both (Favours.lua, watching).
+				disabled = function() return not (S().owed or P().thankEmote) end,
 				get = sGet,
 				set = sSet,
 			},

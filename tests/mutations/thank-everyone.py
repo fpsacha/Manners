@@ -8,8 +8,8 @@ S = "runscenarios.py"
 
 # ------------------------------------------------ the debt and the thank apart
 mutate("Favours.lua",
-       "\t\tif db.sources.owed then OweFavour(db, seen) end\n",
-       "\t\tOweFavour(db, seen)\n",
+       "\t\tif owe and db.sources.owed then OweFavour(db, seen) end\n",
+       "\t\tif owe then OweFavour(db, seen) end\n",
        "thank-everyone: a debt filed with the source off",
        expect="a debt was recorded with People who buff me off", script=S)
 mutate("Favours.lua",
@@ -30,12 +30,14 @@ mutate("Favours.lua",
 
 # ------------------------------------------------ who cast it, and when it is read
 mutate("Favours.lua",
-       "\t\t\tand (db.sources.owed or db.prompt.thankEmote) and true or false\n",
+       "\t\t\tand (db.sources.owed or (db.prompt.thankEmote\n"
+       "\t\t\t\tand not InCombatLockdown() and not walkAfterFight)) and true or false\n",
        "\t\t\tand db.sources.owed and true or false\n",
        "thank-everyone: casters read for the debt alone",
        expect="with People who buff me off, the favour was not thanked", script=S)
 mutate("Favours.lua",
-       "\t\t\tand (db.sources.owed or db.prompt.thankEmote) and true or false\n",
+       "\t\t\tand (db.sources.owed or (db.prompt.thankEmote\n"
+       "\t\t\t\tand not InCombatLockdown() and not walkAfterFight)) and true or false\n",
        "\t\t\tand true or false\n",
        "thank-everyone: casters read with both off",
        expect="a caster was read with both switches off", script=S)
@@ -93,3 +95,78 @@ mutate("Options/Diagnostics.lua",
        "\t\ttostring(db.timing.keepDebts), tostring(true))\n",
        "thank-everyone: the bug report always says thank=true",
        expect="the bug report does not say whether the /thank is on", script=S)
+mutate("Commands.lua",
+       "\t\t\tif not db.enabled then\n"
+       "\t\t\t\tself:Print(\"|cffff8080\" .. L[\"switched OFF",
+       "\t\t\tif false then\n"
+       "\t\t\t\tself:Print(\"|cffff8080\" .. L[\"switched OFF",
+       "thank-everyone: debug hides that a rogue's Manners is off",
+       expect="/manners debug does not say a rogue's Manners is switched off", script=S)
+mutate("Commands.lua",
+       "\t\t\t\tself:Print(\"  \" .. (db.prompt.thankEmote\n",
+       "\t\t\t\tself:Print(\"  \" .. (false\n",
+       "thank-everyone: debug says nothing watches the /thank",
+       expect="debug says nothing is watched while the /thank watches", script=S)
+
+# ------------------------------------------------ hiding
+mutate("Favours.lua",
+       "\t\tif plain(_G.IsStealthed and _G.IsStealthed()) == true then return L[\"while stealthed\"] end\n",
+       "",
+       "thank-everyone: a /thank from stealth",
+       expect="a rogue thanked somebody while stealthed", script=S)
+mutate("Favours.lua",
+       "\t\tif plain(_G.UnitIsFeignDeath and _G.UnitIsFeignDeath(\"player\")) == true then\n",
+       "\t\tif false then\n",
+       "thank-everyone: a /thank from Feign Death",
+       expect="a hunter thanked somebody while feigning death", script=S)
+
+# ------------------------------------------------ the /thank alone in a fight
+mutate("Favours.lua",
+       "\t\t\t\tand not InCombatLockdown() and not walkAfterFight)) and true or false\n",
+       "\t\t\t\tand not walkAfterFight)) and true or false\n",
+       "thank-everyone: casters read for the /thank in a fight",
+       expect="a caster was read for the /thank alone in a fight", script=S)
+mutate("Favours.lua",
+       "\t\t\t\tand not InCombatLockdown() and not walkAfterFight)) and true or false\n",
+       "\t\t\t\tand not InCombatLockdown())) and true or false\n",
+       "thank-everyone: casters read for the /thank as a fight ends",
+       expect="a caster was read for the /thank alone on the walk made as a fight ended", script=S)
+
+# ------------------------------------------------ the combat log
+mutate("Favours.lua",
+       "\t\t\t\t\t\t\tNoteFavour(seen, ClaimFavour(seen.name, key))\n",
+       "\t\t\t\t\t\t\tif ClaimFavour(seen.name, key) then NoteFavour(seen, true) end\n",
+       "thank-everyone: a landing the log filed is not thanked",
+       expect="a landing both sources saw was thanked 0 times", script=S)
+mutate("Favours.lua",
+       "\t\tif not seen.unit then return end\n",
+       "",
+       "thank-everyone: the log tries a thank with no token",
+       expect="the log tried a thank of its own", script=S)
+
+# ------------------------------------------------ the options
+mutate("Options/Advanced.lua",
+       "\t\tkeep = function(path) return path ~= \"prompt.thankEmote\" and not HasClassBuffs() end,\n",
+       "",
+       "thank-everyone: a hunter's reset reaches the speech",
+       expect="a hunter's What I say reset put back speech he cannot see", script=S)
+mutate("Options/Advanced.lua",
+       "\t\tkeep = function(path) return path ~= \"prompt.thankEmote\" and not HasClassBuffs() end,\n",
+       "\t\tkeep = function(path) return path ~= \"prompt.thankEmote\" end,\n",
+       "thank-everyone: a mage's reset keeps the speech",
+       expect="a mage's What I say reset did not put the speech back", script=S)
+mutate("Options/Advanced.lua",
+       "\t\tkeep = function(path) return path ~= \"prompt.thankEmote\" and not HasClassBuffs() end,\n",
+       "\t\tkeep = function(path) return not HasClassBuffs() end,\n",
+       "thank-everyone: a hunter's reset keeps the /thank",
+       expect="a hunter's What I say reset did not put the /thank back", script=S)
+mutate("Options/Advanced.lua",
+       "\t\t\t\tdisabled = function() return not (S().owed or P().thankEmote) end,\n",
+       "\t\t\t\tdisabled = function() return not S().owed end,\n",
+       "thank-everyone: Ignore shields greyed out for the /thank",
+       expect="Ignore shields, heals and trinket procs is greyed out with the /thank on", script=S)
+mutate("Options/Advanced.lua",
+       "\t\t\t\t\t.. \" \" .. L[\"The same goes for /thank people who buff me.\"],\n",
+       ",\n",
+       "thank-everyone: Ignore shields' tooltip silent on the /thank",
+       expect="Ignore shields' tooltip does not say it covers the /thank", script=S)

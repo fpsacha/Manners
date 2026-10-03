@@ -12,7 +12,7 @@ S = "runscenarios.py"
 
 # The loop that copies the defaults skipped.
 mutate("Options/Advanced.lua",
-       "\t\tfor _, path in ipairs(list) do ResetField(path) end\n",
+       "\t\t\tif not (list.keep and list.keep(path)) then ResetField(path) end\n",
        "",
        "advanced: the reset puts nothing back",
        expect="when reset: filters.whenBuffed was not put back", script=S)
@@ -119,7 +119,7 @@ mutate("Options/Advanced.lua",
 # --- what greys out and hides ---
 
 mutate("Options/Advanced.lua",
-       "\t\t\t\tdisabled = function() return not S().owed end,\n\t\t\t\tget = sGet,\n",
+       "\t\t\t\tdisabled = function() return not (S().owed or P().thankEmote) end,\n\t\t\t\tget = sGet,\n",
        "\t\t\t\tget = sGet,\n",
        "advanced: class buffs only live with favours off",
        expect="Ignore shields, heals and trinket procs is live with People who buffed me off", script=S)

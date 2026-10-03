@@ -29,14 +29,14 @@ local walkAfterFight = false
 ---------------------------------------------------------------------------
 -- thanking them with an emote
 --
--- "/thank people who buff me" (off by default): every favour NoteFavour is
--- handed is answered with C_ChatInfo.PerformEmote("THANK", <their token>), so
--- the game says "You thank Anna." to you and everybody near. It answers being
--- buffed, not the debt: whether you could return it, and People who buff me,
--- play no part, so a rogue thanks too. This is UNTESTED IN GAME: the API
--- documents a target name, not a unit token, and whether it is held back like
--- SendChatMessage is an assumption. Every doubt therefore ends in no emote
--- rather than a guess, and a throw is swallowed.
+-- "/thank people who buff me" (off by default): every favour the aura scan
+-- hands NoteFavour is answered with C_ChatInfo.PerformEmote("THANK", <their
+-- token>), so the game says "You thank Anna." to you and everybody near. It
+-- answers being buffed, not the debt: whether you could return it, and People
+-- who buff me, play no part, so a rogue thanks too. This is UNTESTED IN GAME:
+-- the API documents a target name, not a unit token, and whether it is held
+-- back like SendChatMessage is an assumption. Every doubt therefore ends in no
+-- emote rather than a guess, and a throw is swallowed.
 ---------------------------------------------------------------------------
 
 local ThankFavour
@@ -65,11 +65,19 @@ do
 	-- 12.x holds addon chat back in an encounter, and which instance does it when
 	-- nobody here has seen, so every instance is out, as is a client that will not
 	-- say. Then the two checks other addons here make before chatting (EnhanceQoL,
-	-- Prat): the messaging lockdown and the Chat restriction state.
+	-- Prat): the messaging lockdown and the Chat restriction state. Ahead of all
+	-- that, hiding: a text emote reaches everybody near, of either faction, so a
+	-- stealthed rogue or a night elf in Shadowmeld would give herself away, and
+	-- Feign Death drops combat while the fight goes on. Both are asked of the
+	-- player alone, so no secret goes in, and neither is pcalled.
 	local function Held()
 		if InCombatLockdown() then return L["in a fight"] end
 		-- A favour from the fight, found by the walk made as it ended.
 		if walkAfterFight then return L["in a fight"] end
+		if plain(_G.IsStealthed and _G.IsStealthed()) == true then return L["while stealthed"] end
+		if plain(_G.UnitIsFeignDeath and _G.UnitIsFeignDeath("player")) == true then
+			return L["in a fight"]
+		end
 		local inside = Answer(_G.IsInInstance)
 		if inside ~= false then return L["in an instance"] end
 		local encounter = _G.C_InstanceEncounter
@@ -418,8 +426,10 @@ do
 	-- One favour, filed against the person who was holding the token when the aura
 	-- was read: a debt while People who buff me is on, and a /thank while its own
 	-- switch is. Either one alone has the scan read who cast it (ScanOwnBuffs,
-	-- watching).
-	local function NoteFavour(seen)
+	-- watching). `owe` is false for a landing the other source claimed first
+	-- (ClaimFavour): the combat log, which has filed the debt and left the
+	-- /thank to the aura scan, the one with a token to thank at.
+	local function NoteFavour(seen, owe)
 		local db = addon.db and addon.db.profile
 		if not db then return end
 
@@ -428,7 +438,10 @@ do
 		if not db.enabled then return end
 
 		-- With this source off, no debt: it could never reach a prompt.
-		if db.sources.owed then OweFavour(db, seen) end
+		if owe and db.sources.owed then OweFavour(db, seen) end
+		-- A log line, which has no token to thank at: the aura scan thanks for
+		-- the same landing when it reads it, claimed by the log or not.
+		if not seen.unit then return end
 		-- The /thank answers being buffed, not the debt, so a favour you cannot
 		-- return is thanked, and a rogue or a hunter with nothing to give back
 		-- thanks too. Its rules are ThankFavour's. Guarded and last, so nothing
@@ -564,8 +577,11 @@ do
 		local classOnly = not db or db.sources.owedClassBuffsOnly ~= false
 		-- Whether anything read now could become a debt or a /thank at all; if
 		-- not, no caster is read (four unit lookups per slot, on every UNIT_AURA).
+		-- The /thank alone reads nobody in a fight or on the walk made as it
+		-- ends: it refuses both (Held), and a favour it skipped is never thanked.
 		local watching = primed and db and db.enabled
-			and (db.sources.owed or db.prompt.thankEmote) and true or false
+			and (db.sources.owed or (db.prompt.thankEmote
+				and not InCombatLockdown() and not walkAfterFight)) and true or false
 
 		local read = 0
 		local refused = false  -- a slot said outright that it would not answer
@@ -697,10 +713,11 @@ do
 						-- a token that may have changed hands. `filed` lives on the
 						-- sighting because an aura that came back under its own
 						-- number is in the baseline already. The claim covers the
-						-- combat log having seen the same landing with no number.
+						-- combat log having seen the same landing with no number:
+						-- then the debt is the log's, and the /thank still this one's.
 						if seen and seen.key == key and seen.name and not seen.filed then
 							seen.filed = true
-							if ClaimFavour(seen.name, key) then NoteFavour(seen) end
+							NoteFavour(seen, ClaimFavour(seen.name, key))
 						end
 					end
 				end
@@ -770,8 +787,8 @@ do
 
 		-- Asked here too so a switched-off source does no per-event work;
 		-- NoteFavour's check is the gate. People who buff me alone, not the
-		-- /thank: a log line has no token to thank at, and a claim made here
-		-- would take the landing from the aura scan, which has one.
+		-- /thank: a log line has no token to thank at, and the aura scan thanks
+		-- for every landing it reads, whichever source filed the debt.
 		local db = addon.db and addon.db.profile
 		if not db or not db.enabled or not db.sources.owed then return end
 
@@ -796,8 +813,9 @@ do
 
 		if not ClaimFavour(full, spellId) then return end
 		ns.logScan.noted = ns.logScan.noted + 1
-		-- The shape Sight produces, so NoteFavour has one kind of record.
-		NoteFavour({ key = spellId, name = full, guid = sourceGUID, class = plain(class) })
+		-- The shape Sight produces, so NoteFavour has one kind of record; with
+		-- no token in it, it is never thanked from here.
+		NoteFavour({ key = spellId, name = full, guid = sourceGUID, class = plain(class) }, true)
 	end
 
 	function addon:COMBAT_LOG_EVENT_UNFILTERED()

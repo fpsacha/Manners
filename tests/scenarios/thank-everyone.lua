@@ -2,11 +2,16 @@
 -- not the debt, so a character with nothing to give back (a rogue, a hunter,
 -- a warrior with no shout yet) and a player with People who buff me off thank
 -- too, while a debt is still only filed the way it always was. Noticing a
--- buff reads who cast it only while one of the two switches would use it.
+-- buff reads who cast it only while one of the two switches would use it, and
+-- for the /thank alone never in a fight, which it refuses. Nobody is thanked
+-- from stealth or Feign Death, and a landing the combat log filed first is
+-- still thanked by the aura scan.
 --
 -- The options follow: What I say is there for a hunter or a rogue with the
 -- /thank alone on it, the switch is live with People who buff me off, and a
--- mage's page is what it was.
+-- mage's page is what it was. Its reset puts back the /thank alone for a
+-- class with nothing to give; Ignore shields, heals and trinket procs is live
+-- while the /thank is on; and /manners debug says what holds the thank back.
 --
 -- Every scenario name starts with "thank-everyone:" so the mutations in
 -- tests/mutations/thank-everyone.py can name the one that has to catch them.
@@ -29,7 +34,8 @@ local PEOPLE = {
 }
 
 -- Globals the scenarios replace, put back after each.
-local TOUCHED = { "IsInInstance", "DoEmote", "IsSpellKnown", "IsPlayerSpell" }
+local TOUCHED = { "IsInInstance", "DoEmote", "IsSpellKnown", "IsPlayerSpell", "IsStealthed",
+	"UnitIsFeignDeath" }
 local original = {}
 for _, name in ipairs(TOUCHED) do original[name] = rawget(_G, name) end
 
@@ -263,6 +269,49 @@ for _, case in ipairs({
 	end)
 end
 
+-- The /thank alone reads nobody in a fight, nor on the walk made as the fight
+-- ends: it refuses both, and a favour it skipped is never thanked later. The
+-- same favour in a fight with People who buff me on is the control: the debt
+-- still reads its caster there, as it always has.
+for _, case in ipairs({
+	{ class = "MAGE", label = "a mage" },
+	{ class = "ROGUE", label = "a rogue" },
+}) do
+	local scenario = "thank-everyone: " .. case.label .. " with only the /thank reads no caster in a fight"
+	with(scenario, { class = case.class }, function(ns)
+		Mock.inCombat = true
+		local seen = lookups("nameplate1", function() favour(ns, "nameplate1") end)
+		Mock.inCombat = false
+		if seen == 0 then
+			fail(scenario, "SKIPPED -- with People who buff me on, a favour in a fight read no caster")
+			return
+		end
+		ns.db.profile.sources.owed = false
+		Mock.advance(20)
+		Mock.inCombat = true
+		local inFight = lookups("nameplate2", function() favour(ns, "nameplate2") end)
+		Mock.inCombat = false
+		if inFight > 0 then
+			fail(scenario, ("a caster was read for the /thank alone in a fight (%d unit lookups)"):format(inFight))
+		end
+		-- A buff landing in the fight, walked as it ends (ns.FlushOwnScan).
+		Mock.advance(20)
+		nextId = nextId + 1
+		local after = lookups("nameplate3", function()
+			Mock.inCombat = true
+			Mock.extraAura, Mock.extraAuraSpell, Mock.extraAuraSource = nextId, FORTITUDE, "nameplate3"
+			ns.addon:UNIT_AURA(nil, "player")
+			Mock.inCombat = false
+			ns.FlushOwnScan()
+		end)
+		if after > 0 then
+			fail(scenario, ("a caster was read for the /thank alone on the walk made as a fight ended"
+				.. " (%d unit lookups)"):format(after))
+		end
+		if thanked() > 0 then fail(scenario, case.label .. " thanked somebody for a buff from a fight") end
+	end)
+end
+
 -- ------------------------------------------------------------------ the rules
 -- Everything the thank held to for a mage holds for a rogue.
 do
@@ -308,6 +357,36 @@ do
 			fail(scenario, "SKIPPED -- the favour in the dungeon was not noticed")
 		elseif thanked() > 0 then
 			fail(scenario, "a rogue thanked somebody in a dungeon")
+		end
+	end)
+end
+
+-- Hiding: a text emote reaches everybody near, of either faction, so a rogue
+-- in stealth gives herself away by it, and a hunter feigning death is out of
+-- combat with the fight still on. Out of hiding, the next favour is thanked:
+-- the skip armed neither limit.
+for _, case in ipairs({
+	{ class = "ROGUE", label = "a rogue", how = "while stealthed", global = "IsStealthed",
+		hide = function() return true end, why = "while stealthed" },
+	{ class = "HUNTER", label = "a hunter", how = "while feigning death", known = { HAWK, MONKEY },
+		global = "UnitIsFeignDeath", hide = function(unit) return unit == "player" end, why = "in a fight" },
+}) do
+	local scenario = "thank-everyone: " .. case.label .. " does not thank " .. case.how
+	with(scenario, { class = case.class, known = case.known }, function(ns)
+		rawset(_G, case.global, case.hide)
+		favour(ns, "nameplate1")
+		local log = ns.thankLog and ns.thankLog.skipped
+		if thanked() > 0 then
+			fail(scenario, case.label .. " thanked somebody " .. case.how)
+		elseif not (log and log.why == case.why) then
+			fail(scenario, "the thank skipped " .. case.how .. " does not say why: "
+				.. tostring(log and log.why))
+		end
+		rawset(_G, case.global, function() return false end)
+		Mock.advance(1)
+		favour(ns, "nameplate2")
+		if thanked("nameplate2") ~= 1 then
+			fail(scenario, case.label .. " did not thank again once out of hiding")
 		end
 	end)
 end
@@ -374,6 +453,122 @@ do
 		end
 		if thanked("nameplate1") ~= 1 then fail(scenario, "a mage's favour was not thanked") end
 		if not queued(ns, anna) then fail(scenario, "a mage's favour is not on the prompt") end
+	end)
+end
+
+-- ------------------------------------------------------------------ the combat log
+-- Where the client has a log (Classic Era, TBC, Mists), one landing is seen by
+-- both sources, in either order, and the first claims it (Favours.lua,
+-- ClaimFavour). The debt is filed once, by whichever came first; the /thank is
+-- the aura scan's, the one with a token to thank at, whichever came first.
+-- The log never tries a thank of its own, so /manners debug has no "not
+-- thanked" line for it. Set up as scenarios.lua's "one landing seen twice".
+for _, case in ipairs({
+	{ class = "MAGE", label = "a mage", owes = true },
+	{ class = "ROGUE", label = "a rogue" },
+}) do
+	for _, order in ipairs({ "log first", "aura scan first" }) do
+		local scenario = "thank-everyone: " .. case.label .. "'s favour seen by both sources, " .. order
+		Mock.reset()
+		Mock.interface = 50504
+		Mock.combatLog = true
+		Mock.class = case.class
+		Mock.unitName = { "Petra", "Stonewell" }
+		Mock.guids = { ["Player-1-PETRA"] = { class = "PRIEST", name = "Petra", realm = "Stonewell" } }
+		Mock.extraAuraSpell = 21562
+		Mock.extraAuraSource = "nameplate1"
+		Mock.extraAuraUntil = 5000
+		emotes = {}
+		rawset(_G, "IsInInstance", outdoors)
+		rawset(_G, "DoEmote", record)
+		local ok, err = pcall(function()
+			local ns = load(scenario)
+			if not ns then return end
+			freshPrompt(ns, scenario)
+			ns.db.profile.prompt.thankEmote = true
+			primeAuras(ns)
+			if not (ns.combatLogArmed and ns.auraScan.primed) then
+				fail(scenario, "SKIPPED -- the log is not armed, or the baseline never settled")
+				return
+			end
+			local function fromTheLog() ns.addon:COMBAT_LOG_EVENT_UNFILTERED() end
+			local function fromTheScan()
+				Mock.extraAura = 3003
+				ns.ScanOwnBuffs()
+			end
+			if order == "log first" then
+				fromTheLog()
+				fromTheScan()
+			else
+				fromTheScan()
+				fromTheLog()
+			end
+			if ns.logScan.applied < 1 then
+				fail(scenario, "SKIPPED -- the log did not see the landing")
+				return
+			end
+			if thanked("nameplate1") ~= 1 then
+				fail(scenario, "a landing both sources saw was thanked " .. thanked() .. " times ("
+					.. tostring(ns.thankLog.skipped and ns.thankLog.skipped.why) .. ")")
+			end
+			if ns.thankLog.skipped then
+				fail(scenario, "the log tried a thank of its own: last not thanked, "
+					.. tostring(ns.thankLog.skipped.why))
+			end
+			if case.owes and not ns.owed["Petra-Stonewell"] then
+				fail(scenario, "neither source filed " .. case.label .. "'s favour")
+			elseif not case.owes and next(ns.owed) then
+				fail(scenario, case.label .. " was left owing " .. tostring(next(ns.owed)))
+			end
+			guarded(scenario, ns)
+		end)
+		for _, name in ipairs(TOUCHED) do rawset(_G, name, original[name]) end
+		Mock.reset()
+		if not ok then fail(scenario, "threw: " .. tostring(err)) end
+	end
+end
+
+-- ------------------------------------------------------------------ /manners debug
+-- What holds the /thank back is said. A rogue's report says Manners is
+-- switched off, as a mage's does. A mage with People who buff me off and the
+-- /thank on is not told nothing is watched, since the walk still watches for
+-- the thank, whose lines follow; with the /thank off as well, she is.
+do
+	local scenario = "thank-everyone: a rogue's debug says Manners is switched off"
+	with(scenario, { class = "ROGUE" }, function(ns)
+		ns.db.profile.enabled = false
+		Mock.printed = {}
+		ns.addon:HandleSlash("debug")
+		if not said():find("thank with an emote: |cff00ff00on", 1, true) then
+			fail(scenario, "SKIPPED -- debug does not show the rogue's /thank: " .. said())
+		elseif not said():find("switched OFF on this profile", 1, true) then
+			fail(scenario, "/manners debug does not say a rogue's Manners is switched off: " .. said())
+		end
+	end)
+end
+
+do
+	local scenario = "thank-everyone: a mage's debug with the /thank and not People who buff me"
+	with(scenario, { owed = false }, function(ns)
+		Mock.printed = {}
+		ns.addon:HandleSlash("debug")
+		if not said():find("thank with an emote: |cff00ff00on", 1, true) then
+			fail(scenario, "SKIPPED -- debug does not show the mage's /thank: " .. said())
+			return
+		end
+		if said():find("not watching for favours", 1, true) then
+			fail(scenario, "debug says nothing is watched while the /thank watches: " .. said())
+		end
+		if not said():find("Favours are not recorded while", 1, true) then
+			fail(scenario, "debug does not say favours are not recorded with People who buff me off: "
+				.. said())
+		end
+		ns.db.profile.prompt.thankEmote = false
+		Mock.printed = {}
+		ns.addon:HandleSlash("debug")
+		if not said():find("not watching for favours", 1, true) then
+			fail(scenario, "with both off, debug does not say nothing is watched: " .. said())
+		end
 	end)
 end
 
@@ -467,6 +662,70 @@ do
 		end
 		if not live(UI, "click.thankEmote") then
 			fail(scenario, "SKIPPED -- the /thank went grey with speech off")
+		end
+	end)
+end
+
+-- What I say's reset puts back what the page shows: for a hunter, the /thank
+-- alone. The line said with a cast is one he never says, and on a shared
+-- profile it is his priest's. A mage's reset puts back the lot.
+for _, case in ipairs({
+	{ class = "HUNTER", label = "a hunter", known = { HAWK, MONKEY } },
+	{ class = "MAGE", label = "a mage", all = true },
+}) do
+	local scenario = "thank-everyone: " .. case.label .. "'s What I say reset"
+	window(scenario, case, function(ns)
+		if ns.caps.hasClassBuffs ~= (case.all == true) then
+			fail(scenario, "SKIPPED -- " .. case.label .. " has class buffs: " .. tostring(ns.caps.hasClassBuffs))
+			return
+		end
+		local db = ns.db.profile
+		db.prompt.thankEmote = true
+		db.speech.enabled, db.speech.channel, db.speech.onlyWhenReturning = true, "WHISPER", true
+		if ns.OptionsPage.ResetPage("click") ~= true then
+			fail(scenario, "SKIPPED -- the reset did not run")
+			return
+		end
+		if db.prompt.thankEmote ~= false then
+			fail(scenario, case.label .. "'s What I say reset did not put the /thank back")
+		end
+		local speech = ("speech %s/%s/%s"):format(tostring(db.speech.enabled), tostring(db.speech.channel),
+			tostring(db.speech.onlyWhenReturning))
+		if case.all then
+			if speech ~= "speech false/SAY/false" then
+				fail(scenario, "a mage's What I say reset did not put the speech back: " .. speech)
+			end
+		elseif speech ~= "speech true/WHISPER/true" then
+			fail(scenario, "a hunter's What I say reset put back speech he cannot see: " .. speech)
+		end
+	end)
+end
+
+-- Ignore shields, heals and trinket procs filters the /thank too, so it is
+-- live while the /thank is on with People who buff me off, and its tooltip
+-- says so.
+do
+	local scenario = "thank-everyone: Ignore shields is live for the /thank alone"
+	window(scenario, {}, function(ns)
+		local advanced = ns.optionsTable.args.advanced
+		local control = advanced and advanced.args.owedClassBuffsOnly
+		if not (control and type(control.disabled) == "function") then
+			fail(scenario, "SKIPPED -- Ignore shields, heals and trinket procs has no disabled rule")
+			return
+		end
+		local db = ns.db.profile
+		db.sources.owed, db.prompt.thankEmote = false, false
+		if not control.disabled() then
+			fail(scenario, "SKIPPED -- Ignore shields is live with both switches off")
+			return
+		end
+		db.prompt.thankEmote = true
+		if control.disabled() then
+			fail(scenario, "Ignore shields, heals and trinket procs is greyed out with the /thank on")
+		end
+		local desc = type(control.desc) == "function" and control.desc() or control.desc
+		if not tostring(desc):find("/thank", 1, true) then
+			fail(scenario, "Ignore shields' tooltip does not say it covers the /thank: " .. tostring(desc))
 		end
 	end)
 end
