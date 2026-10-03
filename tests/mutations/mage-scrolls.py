@@ -218,12 +218,13 @@ mutate("Core.lua",
        "scrolls: the shim never used",
        expect="with GetWeaponEnchantInfo alone and a bare staff, you were offered", script=S)
 
-# An oil running low with top-ups on, taken for nothing to pick.
+# An oil running low with top-ups on, taken for nothing to pick. Since the
+# twin top-up (1.6.2) reads the scroll right after, the read throws.
 mutate("Core.lua",
        "\t\t\tif not upSpell then return nil, true, left, \"up\" end\n",
        "",
        "scrolls: an oil running low said as nothing to pick",
-       expect="a wizard oil with a minute left: /manners debug says", script=S)
+       expect="an oil running low is an enchant on the weapon, not nothing to pick: threw", script=S)
 
 # A scroll's cast cut short (Clicks.lua): the press kept, its block the
 # whole retry cooldown.
