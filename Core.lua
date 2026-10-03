@@ -811,8 +811,17 @@ do
 		return opts.blocked(buff, opts) == true
 	end
 
+	-- opts.skip, handed opts the same way: "Skip my own class" (Queue.lua,
+	-- SelfServed), they could give themselves this one. Wrong spell for this
+	-- person, never a cooldown: read as one, every blessing a paladin of 26 or
+	-- more could give himself said "offered a moment ago, wait" and he was
+	-- offered nothing at all, Kings included.
+	local function Skipped(opts, buff)
+		return opts.skip ~= nil and opts.skip(buff, opts) == true
+	end
+
 	local function Eligible(opts, buff)
-		return Castable(opts, buff) and not Blocked(opts, buff)
+		return Castable(opts, buff) and not Skipped(opts, buff) and not Blocked(opts, buff)
 	end
 
 	-- The candidate list a pin reduces the walk to, reused for every call.
@@ -860,20 +869,27 @@ do
 				-- Castable rather than Eligible: the blessing we tried moments ago
 				-- is the one they most likely carry, so it must still be read.
 				if Castable(opts, buff) then
+					-- One they could give themselves is still read: ours on them
+					-- covers them like any other, but it is never what they get.
+					local skipped = Skipped(opts, buff)
 					local held, remaining, mine = has(buff, opts)
 					if held == true and mine == false then
 						-- Another paladin's: ours of the same kind would only
 						-- replace it, so move on to a kind they lack -- unless we
 						-- offered this one moments ago, which still means "wait".
-						if Blocked(opts, buff) then
-							onCooldown = true
-						elseif not theirs then
-							theirs = buff
+						-- One they could give themselves is neither.
+						if not skipped then
+							if Blocked(opts, buff) then
+								onCooldown = true
+							elseif not theirs then
+								theirs = buff
+							end
 						end
 					elseif held == true then
 						-- Covered, and for this class that is the end of it. First
-						-- the cooldown: offered one moments ago means wait.
-						if Blocked(opts, buff) then return nil, true end
+						-- the cooldown: offered one moments ago means wait. One
+						-- they could give themselves is covered and no more.
+						if skipped or Blocked(opts, buff) then return nil, true end
 
 						-- The top-up, safest on this class: recasting a blessing
 						-- replaces it with itself. Ahead of the debt, as on the
@@ -888,10 +904,12 @@ do
 						-- from us (or from nobody we can name), which refreshes it.
 						if not opts.offerAnyway then return nil, true end
 						return buff, true
-					else
+					elseif not skipped then
 						-- "None of mine" only once every one has read back a
 						-- definite no: BuildQueue promotes over a debt on has ==
 						-- false, and the prompt drops the unverified wording.
+						-- Of the ones they could be offered: a kind they give
+						-- themselves is passed over, as the ordinary walk does.
 						if held ~= false then allRead = false end
 						if Blocked(opts, buff) then
 							onCooldown = true
@@ -1506,6 +1524,19 @@ do
 			if not upSpell then return nil, true, left, "up" end
 			-- The top-up is of the one you are wearing, whatever the pick.
 			spell = upSpell
+			-- Of the enchant you are wearing, that is: a scroll that makes the
+			-- same one (Spellbreak and Lesser Flame, Buffs.lua) tops it up when
+			-- the one named has run out. The last Spellbreak used, and nothing
+			-- was offered until the enchant wore off, with five Lesser Flames
+			-- in the bags.
+			if spell.item and spell.enchant and not ScrollReady(spell) then
+				for _, twin in ipairs(family.spells) do
+					if twin ~= spell and twin.enchant == spell.enchant and ScrollReady(twin) then
+						spell = twin
+						break
+					end
+				end
+			end
 		end
 		-- Only spells Automatic never picks are known (a hunter with nothing
 		-- but the Cheetah): nothing to remind you of.

@@ -827,7 +827,7 @@ function Toast:Fitted(fs)
 end
 
 -- Whether the name, even at its smallest, fits beside `room` at the right.
--- Its width is measured once a paint, by Chip.
+-- Its width is taken once a paint, by Chip.
 function Toast:NameFits(room)
 	local kit = self.kit
 	local name, fit = kit.name, kit.fit
@@ -865,9 +865,11 @@ end
 function Toast:Chip(on)
 	local kit = self.kit
 	self:Clock()
-	-- Measured here and nowhere else on the way through a paint; the chips'
-	-- own words only when they change.
-	self.nameWidth = kit.TextWidth(kit.name)
+	-- The width FitLine took of the name just now (every paint sets it before
+	-- the chip), measured here only where it could not; the chips' own words
+	-- only when they change. Measured outright, it was a pcall on every
+	-- repaint (Looks.lua: none on a per-scan path).
+	self.nameWidth = kit.fit.drawn[kit.name] or kit.TextWidth(kit.name)
 
 	local key = self:KeyLabel()
 	local keyUp = false

@@ -526,6 +526,12 @@ local function description(kind, text, a, b, data)
 	end
 	function d:SetEnabled(on) self.enabled = on ~= false end
 	function d:SetTooltip(fn) self.tooltip = fn end
+	-- The tallest the menu draws before it scrolls; a menu never given one
+	-- runs on past the screen's edge.
+	function d:SetScrollMode(extent)
+		assert(type(extent) == "number", "SetScrollMode takes a number")
+		self.scrollExtent = extent
+	end
 	return d
 end
 

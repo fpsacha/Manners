@@ -563,8 +563,9 @@ do
 	}
 
 	-- Imported only when the player already has it on: a pasted string must never
-	-- switch on speaking to other players.
-	local SHARE_KEEP_MINE = { ["speech.enabled"] = true }
+	-- switch on speaking to other players, nor the /thank everybody near sees
+	-- (off by default for that reason). Each names what the import then says.
+	local SHARE_KEEP_MINE = { ["speech.enabled"] = "switch", ["prompt.thankEmote"] = "thank" }
 
 	-- What is said and where, kept as the player has it whenever speaking is on,
 	-- so a paste cannot start yelling a stranger's words. With speaking off they
@@ -894,17 +895,17 @@ do
 
 	-- Write a parsed string over the current profile; everything it does not name
 	-- goes back to its default. `own` is the undo, the player's own settings put
-	-- back exactly; anything else keeps speaking as the player has it. Returns
-	-- what was kept back.
+	-- back exactly; anything else keeps speaking and the /thank as the player
+	-- has them. Returns what was kept back.
 	local function ApplySettings(profile, parsed, own)
 		local speaking = profile.speech and profile.speech.enabled == true
-		local kept = { switch = false, words = false }
+		local kept = { switch = false, thank = false, words = false }
 		for _, field in ipairs(ShareFields()) do
 			local holder = Holder(profile, field.path, true)
 			local value = parsed.values[field.name]
 			if value == nil then value = CopyValue(field.default) end
 			if not own and SHARE_KEEP_MINE[field.name] then
-				if value == true and holder[field.key] ~= true then kept.switch = true end
+				if value == true and holder[field.key] ~= true then kept[SHARE_KEEP_MINE[field.name]] = true end
 			elseif not own and speaking and SHARE_SPEECH[field.name] then
 				-- Only what the string actually names counts as kept back.
 				if parsed.values[field.name] ~= nil
@@ -950,6 +951,9 @@ do
 		end
 		if kept.switch then
 			lines[#lines + 1] = L["The string had speaking a line when you buff switched on. That is left off, because it talks to other players: switch it on under What I say if you want it."]
+		end
+		if kept.thank then
+			lines[#lines + 1] = L["The string had /thank people who buff me switched on. That is left off, because everybody near you sees it: switch it on under What I say if you want it."]
 		end
 		if kept.words then
 			lines[#lines + 1] = L["What you say when you buff, and where, is kept as you had it, because you have speaking switched on."]
@@ -1141,6 +1145,9 @@ local REPAINT_AFTER = {
 	restore = true, lock = true, unlock = true, snooze = true,
 	-- The never-offer list is drawn on the Who to buff tab.
 	never = true, allow = true,
+	-- Not a setting, but Start here says whether the macro is made, and warns
+	-- in the sidebar while there is neither a key nor a macro.
+	macro = true,
 }
 
 -- /manners debug's lines about somebody buffing you being noticed: the walk of

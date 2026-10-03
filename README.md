@@ -143,7 +143,9 @@ is under *Which buffs each class offers*).
   touched. Its use takes three seconds, and if moving cuts it short the scroll
   is offered again a moment later. *Automatic* takes the one you used last
   while you still have one that fits, otherwise the best your level and weapon
-  allow. A mage with no scrolls sees nothing of this.
+  allow. A top-up is of the enchant you are wearing: Spellbreak and Lesser
+  Flame make the same one, so either tops it up once the other is used up. A
+  mage with no scrolls sees nothing of this.
 - *Save mana* never holds you back, and nor does *Raid groups I buff*. In a
   party you count towards a group buff, and the group cast covers you.
 - A warrior's Battle Shout already covers the warrior and nobody needs Unending Breath
@@ -519,7 +521,9 @@ list. They used to be at the bottom of *Who to buff*.
   the chosen set, so untick *Say a line when I buff someone* to stay quiet.
   The lines stay hidden until it is ticked.
 - *Where to say it*: say, yell, party, raid, emote, or *Whisper them*, which
-  reaches the person you buff and nobody else. A whisper goes only when the
+  reaches the person you buff and nobody else. Party and raid speak only while
+  you are in a party or a raid: out of one the buff goes out with no line, and
+  the tooltip quotes none. A whisper goes only when the
   chat box cannot send it to somebody else by mistake. On Camelot that means
   a two-word name whose surname is plain letters or digits; a one-word name or
   an accented surname gets the buff with no line. Somebody from your own realm

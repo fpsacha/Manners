@@ -168,6 +168,15 @@ function B.Hidden(item)
 	return GroupSays(item, "hidden")
 end
 
+-- Hidden by its own rule alone, for a control the window places away from
+-- its tab: the footer's reset, whose tab (Advanced) is not a page of the
+-- window, and is hidden for a class with no prompt that still has What I say.
+function B.OwnHidden(item)
+	local def = item.def
+	if def.hidden == nil then return false end
+	return Ask(item, def.hidden, "hidden") and true or false
+end
+
 -- The same two ways for greyed out.
 function B.Disabled(item)
 	local def = item.def

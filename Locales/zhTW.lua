@@ -274,6 +274,7 @@ L["settings imported -- %d differ from the defaults."] = "設定已匯入——�
 L["1 setting from a newer version of Manners was left out."] = "有1項來自較新版本 Manners 的設定被略過。"
 L["%d settings from a newer version of Manners were left out."] = "有%d項來自較新版本 Manners 的設定被略過。"
 L["The string had speaking a line when you buff switched on. That is left off, because it talks to other players: switch it on under What I say if you want it."] = "該字串開啟了加增益時說話的功能。這項功能會對其他玩家說話，所以仍保持關閉：如果需要，請在「我說的話」分頁中開啟。"
+L["The string had /thank people who buff me switched on. That is left off, because everybody near you sees it: switch it on under What I say if you want it."] = "該字串開啟了「對為我加增益的人使用 /thank」。附近的每個人都看得到，所以仍保持關閉：如果需要，請在「我說的話」分頁中開啟。"
 L["What you say when you buff, and where, is kept as you had it, because you have speaking switched on."] = "加增益時說的話和說話的頻道都維持你原本的設定，因為你已開啟說話功能。"
 L["The prompt's look changes when this fight ends."] = "提示框的外觀會在這場戰鬥結束後改變。"
 L["|cffffd100/manners import undo|r puts your old settings back."] = "輸入 |cffffd100/manners import undo|r 可恢復你原本的設定。"

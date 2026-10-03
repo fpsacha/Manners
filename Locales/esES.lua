@@ -274,6 +274,7 @@ L["settings imported -- %d differ from the defaults."] = "configuración importa
 L["1 setting from a newer version of Manners was left out."] = "Se omitió 1 opción de una versión más reciente de Manners."
 L["%d settings from a newer version of Manners were left out."] = "Se omitieron %d opciones de una versión más reciente de Manners."
 L["The string had speaking a line when you buff switched on. That is left off, because it talks to other players: switch it on under What I say if you want it."] = "El texto tenía activado decir una frase al dar un beneficio. Se deja desactivado, porque habla a otros jugadores: actívalo en la pestaña Qué digo si lo quieres."
+L["The string had /thank people who buff me switched on. That is left off, because everybody near you sees it: switch it on under What I say if you want it."] = "El texto tenía activado /thank a quienes me dan un beneficio. Se deja desactivado, porque lo ven todos los que están cerca: actívalo en la pestaña Qué digo si lo quieres."
 L["What you say when you buff, and where, is kept as you had it, because you have speaking switched on."] = "Lo que dices al dar un beneficio, y dónde, se queda como lo tenías, porque tienes activada la opción Decir algo."
 L["The prompt's look changes when this fight ends."] = "El aspecto del aviso cambiará cuando termine este combate."
 L["|cffffd100/manners import undo|r puts your old settings back."] = "|cffffd100/manners import undo|r restaura tu configuración anterior."

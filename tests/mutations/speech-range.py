@@ -100,3 +100,20 @@ mutate("Clicks.lua",
        "settle failure does not hold the line",
        expect="speech-range: a press that went to somebody else holds the line",
        script="runscenarios.py")
+
+# The channel never asked: "/party Thanks" in the macro of a player in no
+# party, on every press.
+mutate("Prompt/Macro.lua",
+       "\t\tand ns.ChannelOpen()\n",
+       "\n",
+       "speech: /party with nobody to hear it",
+       expect="speech-range: /party is said only in a party",
+       script="runscenarios.py")
+
+# /raid taken for any group: a party that is no raid hears nothing of it.
+mutate("Speech.lua",
+       "\t\tmember = IsInRaid and IsInRaid()\n",
+       "\t\tmember = IsInGroup and IsInGroup()\n",
+       "speech: /raid said in a party",
+       expect="speech-range: /raid is said only in a raid",
+       script="runscenarios.py")

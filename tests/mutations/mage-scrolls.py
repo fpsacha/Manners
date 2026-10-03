@@ -118,6 +118,21 @@ mutate("Core.lua",
        "scrolls: the enchant's time in milliseconds",
        expect="two minutes of Lesser Flame with top-ups on offered", script=S)
 
+# The top-up only ever the scroll named for the enchant: the last Spellbreak
+# used, and nothing offered while it ran low with Lesser Flames in the bags.
+mutate("Core.lua",
+       "\t\t\tif spell.item and spell.enchant and not ScrollReady(spell) then\n",
+       "\t\t\tif false then\n",
+       "scrolls: no top-up from the other scroll",
+       expect="mage-scrolls: a top-up uses the other scroll that makes the same enchant", script=S)
+
+# Any scroll in the bags taken for a twin: Lesser Flame offered over Frost.
+mutate("Core.lua",
+       "\t\t\t\t\tif twin ~= spell and twin.enchant == spell.enchant and ScrollReady(twin) then\n",
+       "\t\t\t\t\tif twin ~= spell and ScrollReady(twin) then\n",
+       "scrolls: a top-up from another enchant",
+       expect="mage-scrolls: a top-up uses the other scroll that makes the same enchant", script=S)
+
 mutate("Core.lua",
        "\t\tif scroll then Remember(family, scroll) end\n",
        "",

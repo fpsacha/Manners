@@ -274,6 +274,7 @@ L["settings imported -- %d differ from the defaults."] = "설정을 가져왔습
 L["1 setting from a newer version of Manners was left out."] = "더 새로운 버전의 Manners 설정 1개는 제외했습니다."
 L["%d settings from a newer version of Manners were left out."] = "더 새로운 버전의 Manners 설정 %d개는 제외했습니다."
 L["The string had speaking a line when you buff switched on. That is left off, because it talks to other players: switch it on under What I say if you want it."] = "문자열에는 버프를 줄 때 한마디 하기가 켜져 있었습니다. 다른 플레이어에게 말하는 기능이므로 꺼 두었습니다. 원하면 말하기 탭에서 켜세요."
+L["The string had /thank people who buff me switched on. That is left off, because everybody near you sees it: switch it on under What I say if you want it."] = "문자열에는 나에게 버프를 준 사람에게 /thank 감정 표현이 켜져 있었습니다. 주변의 모든 사람이 보게 되므로 꺼 두었습니다. 원하면 말하기 탭에서 켜세요."
 L["What you say when you buff, and where, is kept as you had it, because you have speaking switched on."] = "말하기가 켜져 있으므로, 버프를 줄 때 하는 말과 말할 곳은 기존 그대로 두었습니다."
 L["The prompt's look changes when this fight ends."] = "알림창 모양은 이 전투가 끝나면 바뀝니다."
 L["|cffffd100/manners import undo|r puts your old settings back."] = "|cffffd100/manners import undo|r 명령으로 이전 설정을 복원할 수 있습니다."

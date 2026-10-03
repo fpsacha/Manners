@@ -1,5 +1,26 @@
 # Changelog
 
+## Unreleased
+
+- **Party and Raid speak only in a party or a raid.** With *Where to say it*
+  on Party or Raid, the line went out while you were in no party (or no
+  raid), reached nobody, and the game answered every press with "You aren't
+  in a party." Out of one, the buff now goes out with no line, and the line
+  comes back as soon as you join.
+- **Skip my own class works for paladins.** With it on, another paladin from
+  level 26 up was offered nothing at all, not even Kings, which it never
+  skips. He is offered Kings now, and a lower-level paladin still gets your
+  better Wisdom.
+- **Asking for a buff they already wear no longer hides them.** Somebody who
+  asked for a buff that somebody else gave them first was left off the prompt
+  for the rest of that minute, whatever else they lacked. They are offered
+  the rest, as if they had not asked.
+- **A mage's imbue is topped up by its twin.** Spellbreak and Lesser Flame put
+  the same enchant on your staff: with the one you used last gone from your
+  bags, the other now tops it up, where nothing was offered until it wore off.
+- Toast and Arcane no longer measure the name and the count again on every
+  repaint.
+
 ## 1.6.1
 
 - **The options window no longer stays see-through.** After a change on

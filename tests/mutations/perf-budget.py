@@ -47,3 +47,23 @@ mutate("Core.lua",
        "\t\t\tif i == 0 then\n\t\t\t\tspell = nil\n\t\t\telseif false then\n",
        "perf-budget: three familiars read on every scan",
        expect="perf-budget: a mage's scrolls cost a raid scan with group casts at most 2 pcalls", script=S)
+
+# The looks measuring again what FitLine has just measured, or the same count
+# on every repaint: a pcall a scan each, over the city's ceiling.
+mutate("Looks/Toast.lua",
+       "\tself.nameWidth = kit.fit.drawn[kit.name] or kit.TextWidth(kit.name)\n",
+       "\tself.nameWidth = kit.TextWidth(kit.name)\n",
+       "perf-budget: Toast measures the name every repaint",
+       expect="perf-budget: a city scan in any look makes at most 12 pcalls", script=S)
+
+mutate("Looks/Arcane.lua",
+       "\t\tif text ~= self.countText or not self.countW then\n",
+       "\t\tif true then\n",
+       "perf-budget: Arcane measures the count every repaint",
+       expect="perf-budget: a city scan in any look makes at most 12 pcalls", script=S)
+
+mutate("Looks/Arcane.lua",
+       "\tlocal width, size, base = fit.drawn[name] or kit.TextWidth(name), fit.size[name], fit.base[name]\n",
+       "\tlocal width, size, base = kit.TextWidth(name), fit.size[name], fit.base[name]\n",
+       "perf-budget: Arcane measures the name on every fit",
+       expect="perf-budget: a city scan in any look makes at most 12 pcalls", script=S)

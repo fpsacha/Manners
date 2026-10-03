@@ -678,8 +678,10 @@ function Arcane:Styled(p)
 	-- Light text gets its dark ground: the second coat of smoke. Dark text on
 	-- a light panel keeps the panel as the player coloured it.
 	SliceColor(self.smoke, 0, 0, 0, kit.ink.light and self.smokeAlpha or 0)
-	-- The key, now there is a font to measure it in.
+	-- The key, now there is a font to measure it in, and the count measured
+	-- again in it (Chip) the next time it is shown.
 	self:ReadKey(true)
+	self.countText = nil
 end
 
 function Arcane:Hide()
@@ -743,11 +745,13 @@ function Arcane:PlaceLines(right)
 end
 
 -- The name wins: with the keycap up, would the name still be cut at the
--- smallest size FitLine draws it? Measured from the width at the size it has.
+-- smallest size FitLine draws it? Measured from the width at the size it has:
+-- the one FitLine just took (this runs from Fitted, on every fit), measured
+-- here only where it could not.
 function Arcane:NameNeedsTheKeysRoom()
 	local kit = self.kit
 	local name, fit = kit.name, kit.fit
-	local width, size, base = kit.TextWidth(name), fit.size[name], fit.base[name]
+	local width, size, base = fit.drawn[name] or kit.TextWidth(name), fit.size[name], fit.base[name]
 	if not (width and size and base and size > 0) then return false end
 	local least = math.max(7, math.floor(base * 0.8 + 0.5))
 	local room = self.W - self.textX - (self.lineRight or 10) - self.keyRoom
@@ -849,9 +853,14 @@ function Arcane:Chip(on)
 		if type(text) == "string" and text ~= "" and text:sub(1, 1) ~= "+" then
 			kit.count:SetText("+" .. text)
 		end
-		local h = self.badgeH
-		local w = math.floor(math.max(h, (kit.TextWidth(kit.count) or self.sub) + 8) + 0.5)
-		self.badgeBox:SetWidth(w)
+		-- Measured only when its words change (Styled forgets them with the
+		-- font): every repaint shows the count, and a measure is a pcall.
+		text = kit.count:GetText()
+		if text ~= self.countText or not self.countW then
+			self.countText = text
+			self.countW = math.floor(math.max(self.badgeH, (kit.TextWidth(kit.count) or self.sub) + 8) + 0.5)
+		end
+		self.badgeBox:SetWidth(self.countW)
 		self.badgeBox:ClearAllPoints()
 		local right = self:KeyShown() and (8 + self.keyRoom + 1) or 8
 		self.badgeBox:SetPoint("RIGHT", kit.textLayer, "RIGHT", -right, 0)

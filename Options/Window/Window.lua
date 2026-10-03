@@ -222,6 +222,7 @@ local function Rule(rule, item)
 end
 
 function UI.Hidden(item) return Rule(ns.WindowBind.Hidden, item) end
+function UI.OwnHidden(item) return Rule(ns.WindowBind.OwnHidden, item) end
 function UI.Disabled(item) return Rule(ns.WindowBind.Disabled, item) end
 
 ---------------------------------------------------------------------------
@@ -284,10 +285,14 @@ local function OnLook(item)
 	return item ~= nil and UI.PageOf(item.path) == "appearance"
 end
 
--- After any committed change: the peek for a change on Look, and a repaint
--- of everything the change can reach.
+-- After any committed change: the peek for a change on Look while Look is
+-- the page (a box on it commits as the player leaves for another, and the
+-- window must not fade over that one), and a repaint of everything the
+-- change can reach.
 function UI.Changed(item)
-	if OnLook(item) and not InCombatLockdown() then peek.untilAt = GetTime() + PEEK_AFTER end
+	if OnLook(item) and UI.page == "appearance" and not InCombatLockdown() then
+		peek.untilAt = GetTime() + PEEK_AFTER
+	end
 	UI.Refresh()
 end
 
@@ -570,10 +575,14 @@ function UI.ShowPage(id)
 	-- Whatever asked for the page, the search's drop-down is not over it.
 	if UI.LeaveSearch then UI.LeaveSearch() end
 	local was = UI.page
-	if was and was ~= id then UI.HidePage(was) end
+	-- The new page is the one in view before the old one's rows are put
+	-- away: the client takes the focus from a box as it is hidden, the box
+	-- commits what was typed in it, and the repaint that asks for must paint
+	-- this page, not draw the old one's rows back over it.
 	UI.page = id
 	UI.State().page = id
 	if was ~= id then UI.view.scrollY = 0 end
+	if was and was ~= id then UI.HidePage(was) end
 	UI.Refresh()
 	if id == "appearance" and was ~= id and UI.Shown() then UI.LookOpened() end
 end
@@ -588,10 +597,12 @@ local function PaintAll()
 	if not (UI.visiblePages or {})[UI.page] then
 		local to = PageToOpen(nil)
 		if to ~= UI.page then
-			if UI.page then UI.HidePage(UI.page) end
+			-- The new page first, as ShowPage does.
+			local was = UI.page
 			UI.page = to
 			UI.State().page = to
 			UI.view.scrollY = 0
+			if was then UI.HidePage(was) end
 			UI.PaintSidebar()
 		end
 	end

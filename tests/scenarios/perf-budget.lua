@@ -58,8 +58,9 @@ end
 -- scans to fill its caches, then fifty counted. Returns the pcalls per scan,
 -- where they came from, and ns; nil when the scenario was left out or threw.
 -- Every global the world or the counter replaced is put back, whatever
--- happened.
-local function measure(scenario, situation, check)
+-- happened. `prepare(ns)`, when given, runs once the player is logged in and
+-- before the warm-up: a look, a key bound.
+local function measure(scenario, situation, check, prepare)
 	Mock.reset()
 	local world = World.new({ situation = situation, class = "MAGE", never = 50 })
 	local realPcall, realXpcall = pcall, xpcall
@@ -75,6 +76,7 @@ local function measure(scenario, situation, check)
 		local ns = load(scenario)
 		if not ns then return end
 		world.start(ns)
+		if prepare then prepare(ns) end
 		local addon = ns.addon
 		for _ = 1, WARM do
 			world.advance(STEP)
@@ -120,16 +122,18 @@ local function measure(scenario, situation, check)
 end
 
 -- The measured count against its ceiling, and against the floor that says
--- the counter saw anything at all.
-local function judge(scenario, result, ceiling)
+-- the counter saw anything at all. `label`, when given, says which of several
+-- runs of one scenario it was.
+local function judge(scenario, result, ceiling, label)
 	if not result then return end
 	local per = result.perScan
+	local which = label and (label .. ": ") or ""
 	if per < FLOOR then
-		fail(scenario, ("the counter saw %.1f pcalls per scan, fewer than the %d Guards make: it is"
-			.. " not counting"):format(per, FLOOR))
+		fail(scenario, ("%sthe counter saw %.1f pcalls per scan, fewer than the %d Guards make: it is"
+			.. " not counting"):format(which, per, FLOOR))
 	elseif per > ceiling then
-		fail(scenario, ("%.1f pcalls per scan, over the budget of %d; the lines charged most per scan: %s")
-			:format(per, ceiling, heaviest(result.sites, COUNTED)))
+		fail(scenario, ("%s%.1f pcalls per scan, over the budget of %d; the lines charged most per scan: %s")
+			:format(which, per, ceiling, heaviest(result.sites, COUNTED)))
 	end
 end
 
@@ -169,6 +173,38 @@ end
 do
 	local scenario = "perf-budget: a city scan makes at most 12 pcalls"
 	judge(scenario, measure(scenario, "city"), 12)
+end
+
+-- The same city in every look, with a key bound to the prompt and without:
+-- the budget above measured the default look alone. Toast measured the name
+-- on every repaint and Arcane the count, and Arcane the name again on every
+-- fit with a key bound, though FitLine had just measured it: a pcall a scan
+-- each, which put both over the ceiling (Looks.lua: no pcall on a per-scan
+-- path).
+do
+	local scenario = "perf-budget: a city scan in any look makes at most 12 pcalls"
+	local KEY, COMMAND = "F", "CLICK MannersPrompt:LeftButton"
+	for _, style in ipairs({ "glass", "luxe", "toast", "arcane" }) do
+		for _, keyed in ipairs({ false, true }) do
+			local label = style .. (keyed and ", a key bound" or "")
+			local applied = true
+			local result = measure(scenario, "city", nil, function(ns)
+				Mock.bindings = keyed and { [KEY] = COMMAND } or {}
+				ns.db.profile.prompt.style = style
+				ns.Prompt:ApplyStyle()
+				local look = ns.Prompt:Regions().look
+				local want = ns.Looks.Get(style)
+				if ns.db.profile.prompt.style ~= style or look ~= want or (want and look.key ~= style) then
+					fail(scenario, ("SKIPPED -- %s: the prompt is not wearing it"):format(label))
+					applied = false
+				elseif not ns.db.profile.prompt.locked then
+					fail(scenario, ("SKIPPED -- %s: the prompt is unlocked, so no key is shown"):format(label))
+					applied = false
+				end
+			end)
+			if applied then judge(scenario, result, 12, label) end
+		end
+	end
 end
 
 -- ------------------------------------------------------------------ budget 3

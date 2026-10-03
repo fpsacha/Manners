@@ -1163,3 +1163,63 @@ do
 	restoreUnits()
 end
 Mock.reset()
+
+-- ------------------------------------------------------------------ asked 24
+-- Asking for a buff already worn takes nothing else away. A priest who knows
+-- Fortitude and Divine Spirit; Anna, a mage, wears Fortitude -- another
+-- priest answered her "fort pls" first -- and lacks Spirit. Before the fix
+-- the request narrowed her to Fortitude, found her covered and dropped her
+-- from the prompt for the rest of its minute: the Spirit she was offered as a
+-- group member, or as a passer-by, was gone until the request ran out. She
+-- is offered Spirit throughout, the way she would be had she not asked.
+for _, where in ipairs({ "party", "nearby" }) do
+	Mock.reset()
+	local scenario = "an asker covered for what they asked is still offered what they lack ("
+		.. where .. ")"
+	local unit = where == "party" and "party1" or "nameplate1"
+	local known = knowing("PRIEST", { "fortitude", "spirit" })
+	local fortitude = ranksOf("PRIEST", "fortitude")
+	Mock.reset()
+	Mock.class = "PRIEST"
+	Mock.unitClass = "MAGE"
+	Mock.held = {}
+	for _, id in ipairs(fortitude) do Mock.held[id] = true end
+	if where == "party" then
+		known.UnitInParty = function(u) return u == unit end
+		known.GetNumGroupMembers = function() return 2 end
+	end
+	local restoreUnits = strangers({ [unit] = { "Anna", "Aim" } })
+	with(scenario, known, function()
+		local ns = load(scenario)
+		if not ns then return end
+		freshPrompt(ns, scenario)
+		local db = ns.db.profile
+		db.sources.asked, db.sources.group, db.sources.strangers = true, true, true
+		local reason = where == "party" and "group" or "nearby"
+		local anna = entryFor(ns, "Anna Aim")
+		if not (anna and anna.buff.key == "spirit" and anna.reason == reason) then
+			fail(scenario, ("SKIPPED -- before asking, Anna is offered %s as %s, not Spirit as %s")
+				:format(anna and tostring(anna.buff.key) or "nothing", anna and tostring(anna.reason) or "-", reason))
+			return
+		end
+		hear(ns, where == "party" and "CHAT_MSG_PARTY" or "CHAT_MSG_SAY", "fort pls", "Anna Aim",
+			"Player-1-" .. unit)
+		for _, wait in ipairs({ 0, 30 }) do
+			Mock.advance(wait)
+			anna = entryFor(ns, "Anna Aim")
+			if not anna then
+				fail(scenario, ("%ds after asking for the Fortitude she wears, Anna is offered nothing")
+					:format(wait))
+			elseif anna.buff.key ~= "spirit" then
+				fail(scenario, ("%ds after asking, Anna is offered %s, which she wears or never lacked")
+					:format(wait, tostring(anna.buff.key)))
+			elseif anna.reason ~= reason then
+				fail(scenario, ("%ds after asking, Anna is offered Spirit as %s, not %s")
+					:format(wait, tostring(anna.reason), reason))
+			end
+		end
+		noErrors(scenario, ns)
+	end)
+	restoreUnits()
+end
+Mock.reset()

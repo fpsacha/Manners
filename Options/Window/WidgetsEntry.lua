@@ -161,15 +161,33 @@ local function SliderMoved(slider, value)
 	if not row.box:HasFocus() then row.box:SetText(RangeText(row, v)) end
 end
 
--- The mouse held on the slider: the window fades for a look at the prompt,
--- and a repaint leaves the thumb where the player has it.
-local function SliderHeld(slider, on)
-	local row = slider.row
-	if on and row.off then return end
-	if (row.held == true) == on then return end
+-- A hold whose release went missing: a slider laid out afresh under the
+-- pointer can miss its OnMouseUp, and the client knows the button is up even
+-- then. Let go here, or the slider and its box go on showing where the drag
+-- ended instead of the setting. A client that will not say keeps the hold.
+local function HoldLost(row)
+	if not row.held or type(IsMouseButtonDown) ~= "function" or IsMouseButtonDown("LeftButton") then return end
+	row.held = false
+	W.Hold(row, false)
+end
+
+-- The mouse held on the slider or a nudge arrow: the window fades for a look
+-- at the prompt, and a repaint leaves the thumb where the player has it. A
+-- press lets go of the box beside it without committing, or the box would
+-- keep the old number and put it back when it lost the focus; and a press
+-- while a hold stands holds afresh, its release having gone missing.
+local function Held(row, on)
+	if on and row.off then return false end
+	if on and row.box:HasFocus() then Leave(row) end
+	if not on and not row.held then return false end
 	row.held = on
 	W.Hold(row, on)
-	if not on then row:Refresh() end
+	return true
+end
+
+local function SliderHeld(slider, on)
+	local row = slider.row
+	if Held(row, on) and not on then row:Refresh() end
 end
 
 local function ThumbLook(row)
@@ -235,6 +253,7 @@ KIND.range = {
 		TextColour(row.label, row.off and T.dim or T.ink)
 		local _, _, step, lo, hi = Bounds(row)
 		local v = Number(Bind().Value(row.item))
+		HoldLost(row)
 		row.refreshing = true
 		row.slider:SetMinMaxValues(lo, hi)
 		row.slider:SetValueStep(step or 0)
@@ -300,13 +319,7 @@ end
 
 local function ArrowClicked(b) Nudge(b.row, b.step) end
 
-local function ArrowHeld(b, on)
-	local row = b.row
-	if on and row.off then return end
-	if (row.held == true) == on then return end
-	row.held = on
-	W.Hold(row, on)
-end
+local function ArrowHeld(b, on) Held(b.row, on) end
 
 -- The arrow keys in the box nudge too, and the box shows where they got to.
 local function ArrowKey(box, key)

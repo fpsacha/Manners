@@ -264,8 +264,12 @@ function Prompt:ApplyTarget(entry, silent)
 	-- refused a cast on them (ns.SpeechHeld), so pressing at somebody it will
 	-- not let you reach does not keep talking. An unknown reading (nil, or a
 	-- secret) keeps the line: some clients never report range, and silencing
-	-- everybody there would take the feature away rather than fix it.
+	-- everybody there would take the feature away rather than fix it. Nor in
+	-- /party or /raid while you are in no party or raid (ns.ChannelOpen): the
+	-- line would reach nobody, on every press. In the key below, so a group
+	-- joined or left re-arms the macro on the next repaint.
 	local speak = not silent and entry.ranged ~= false and not ns.SpeechHeld(entry.name)
+		and ns.ChannelOpen()
 
 	-- Everything the macro is built from, so it is not rebuilt at 2.5 Hz. Other
 	-- inputs come through InvalidateMacro; the unit is here for try's {unit},

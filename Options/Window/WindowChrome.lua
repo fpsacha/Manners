@@ -506,11 +506,13 @@ function UI.BuildFooter(f)
 	footer.close:SetPoint("RIGHT", foot, "RIGHT", -10, 0)
 end
 
--- The reset's own hidden rule answers for the page in view (ns.OptionsTab).
+-- The reset's own hidden rule answers for the page in view (ns.OptionsTab),
+-- and its tab's does not: Advanced is hidden for a class with no prompt (a
+-- rogue), whose What I say still has a reset.
 function UI.PaintFooter()
 	local B = ns.WindowBind
 	local item = footer.resetItem
-	footer.reset:SetShown(item ~= nil and not UI.Hidden(item))
+	footer.reset:SetShown(item ~= nil and not UI.OwnHidden(item))
 	if item then footer.reset:SetEnabled(not UI.Disabled(item)) end
 	local build = footer.buildItem and B.Text(footer.buildItem, "name")
 	footer.build:SetText(build and UI.Plain(build) or "")

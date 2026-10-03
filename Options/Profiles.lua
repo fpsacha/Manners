@@ -6,14 +6,33 @@ local Page = ns.OptionsPage
 
 local AceDBOptions = LibStub("AceDBOptions-3.0")
 
--- AceDBOptions' own table, with a line on what a profile is above it and the
--- share boxes added under it. The library's strings and orders are its own;
--- the intro sits at 0.5, above its `desc` (order 1), and the share boxes
--- start at 100.
+-- A table of our own holding the same members, so what is written into it
+-- (a hidden, a width) stays ours.
+local function Copy(from)
+	local out = {}
+	for k, v in pairs(from) do out[k] = v end
+	return out
+end
+
+-- AceDBOptions' own controls, with a line on what a profile is above them
+-- and the share boxes added under them. The library's strings and orders are
+-- its own; the intro sits at 0.5, above its `desc` (order 1), and the share
+-- boxes start at 100.
+--
+-- In a group of our own: the library hands every addon that asks the same
+-- table of controls, so hiding its paragraph or adding the share boxes there
+-- would do it on every other addon's Profiles tab too, the paste box
+-- importing into Manners; and a newer copy of the library loading later puts
+-- a fresh table in its own groups, which would take the share boxes off ours.
+-- Its handler is kept: the library upgrades that one in place.
 function Page.BuildProfilesTab()
-	local t = AceDBOptions:GetOptionsTable(ns.db)
+	local lib = AceDBOptions:GetOptionsTable(ns.db)
+	local t = Copy(lib)
 	t.order = 90
-	t.args = t.args or {}
+	t.args = {}
+	for key, option in pairs(type(lib.args) == "table" and lib.args or {}) do
+		t.args[key] = type(option) == "table" and Copy(option) or option
+	end
 	-- The library's own opening paragraph says what profilesIntro says, so the
 	-- tab would open with the same thing twice.
 	if type(t.args.desc) == "table" then t.args.desc.hidden = true end

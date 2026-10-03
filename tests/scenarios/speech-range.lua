@@ -347,3 +347,68 @@ for _, how in ipairs({ "only when returning a favour", "in character" }) do
 		restore()
 	end
 end
+
+-- ------------------------------------------------------------ speech-range-5
+-- "Where to say it" on Party or Raid, and nobody to hear it. The macro ran
+-- "/party Thanks, Munin Hugins." solo, on every press: the line reached
+-- nobody and the server answered each one with "You aren't in a party."
+-- Raid chosen while only in a party is the same. The line goes in once the
+-- group is there and comes out when it is left, on the next repaint, and the
+-- tooltip quotes it only while it goes in.
+local function speaksIn(text, command)
+	return text ~= nil and text:find("\n/" .. command .. " ", 1, true) ~= nil
+end
+
+for _, channel in ipairs({ "PARTY", "RAID" }) do
+	local command = channel:lower()
+	local scenario = "speech-range: /" .. command .. " is said only in a " .. command
+	local ns, restore = session(scenario, function(ns)
+		ns.db.profile.speech.channel = channel
+	end)
+	if ns then
+		-- Solo, then (for /raid) a party that is no raid, then the group the
+		-- channel needs, then solo again.
+		local steps = {
+			{ "solo", 0, nil, false },
+		}
+		if channel == "RAID" then steps[#steps + 1] = { "in a party, no raid", 2, nil, false } end
+		steps[#steps + 1] = { "in a " .. command, 2, channel == "RAID" and { size = 2, player = 1 } or nil, true }
+		steps[#steps + 1] = { "the group left", 0, nil, false }
+		for _, step in ipairs(steps) do
+			local label, size, raid, want = step[1], step[2], step[3], step[4]
+			Mock.groupSize, Mock.raid = size, raid
+			ns.addon:Tick()
+			local entry = muninEntry(ns)
+			local text = macro(ns)
+			if not (entry and text and text:find(MUNIN, 1, true)) then
+				fail(scenario, "SKIPPED -- Munin is not armed (" .. label .. "): " .. flat(text))
+			elseif speaksIn(text, command) ~= want then
+				fail(scenario, ("%s: the macro %s the /%s line: %s"):format(label,
+					want and "lost" or "kept", command, flat(text)))
+			else
+				local quoted = table.concat(ns.Prompt:ClickSummary(entry), " / ")
+				if (quoted:find("Says:", 1, true) ~= nil) ~= want then
+					fail(scenario, ("%s: the tooltip %s a line the macro %s: %s"):format(label,
+						want and "leaves out" or "quotes", want and "says" or "leaves out", quoted))
+				end
+			end
+		end
+		Mock.groupSize, Mock.raid = 0, nil
+		guarded(scenario, ns)
+		restore()
+	end
+end
+
+-- The other channels need no group: /say solo still speaks.
+do
+	local scenario = "speech-range: /say needs no group"
+	local ns, restore = session(scenario)
+	if ns then
+		local text = macro(ns)
+		if not speaks(text) then
+			fail(scenario, "solo, the /say line is gone: " .. flat(text))
+		end
+		guarded(scenario, ns)
+		restore()
+	end
+end

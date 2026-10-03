@@ -143,6 +143,27 @@ ns.CHANNEL_COMMANDS = {
 	WHISPER = "w",
 }
 
+-- Whether the line's channel reaches anybody right now. /party and /raid
+-- outside a party or raid reach nobody: the macro's line went out on every
+-- press, the thank-you was lost, and the server answered each one with "You
+-- aren't in a party." Asked where the macro is built (Prompt/Macro.lua), not
+-- when the line is rolled, so joining or leaving a group arms or drops it on
+-- the next repaint. Only a definite no closes it, as with the range: a client
+-- that will not say keeps the line.
+function ns.ChannelOpen()
+	local db = addon.db and addon.db.profile
+	local channel = db and db.speech.channel
+	local member
+	if channel == "PARTY" then
+		member = IsInGroup and IsInGroup()
+	elseif channel == "RAID" then
+		member = IsInRaid and IsInRaid()
+	else
+		return true
+	end
+	return ns.plain(member) ~= false
+end
+
 ns.MACRO_LIMIT = 255
 
 -- The room a spoken line gets is whatever the cast lines leave, which differs

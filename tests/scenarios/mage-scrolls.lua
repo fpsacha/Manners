@@ -770,6 +770,66 @@ do
 	end)
 end
 
+-- ------------------------------------------------------------------ 12b
+-- The same enchant, and the scroll named for it used up: the top-up is the
+-- other scroll that makes it. A level-50 mage used his last Spellbreak with
+-- five Lesser Flames in the bags, and nothing was offered while the enchant
+-- ran low -- /manners debug said he had no Spellbreak -- until it wore off.
+-- The same after a reload, and the other way round. An enchant no scroll in
+-- the bags makes is still nobody's to top up.
+do
+	local scenario = "mage-scrolls: a top-up uses the other scroll that makes the same enchant"
+	local function topUp(ns, label, want)
+		ns.db.profile.filters.whenBuffed = "refresh"
+		world.enchant = { id = world.enchant and world.enchant.id or LESSER_FLAME_ENCHANT, left = 120 }
+		local me = mine(ns)
+		if key(me) ~= tostring(want) then
+			fail(scenario, ("%s, two minutes left: offered %s, not %s; /manners debug says %s")
+				:format(label, key(me), tostring(want), lines(ns)))
+		elseif want and not (me.remaining and me.remaining <= 120) then
+			fail(scenario, label .. ": offered as no top-up: " .. tostring(me.remaining))
+		end
+	end
+
+	-- In one session: the Spellbreak pressed was his last.
+	with(scenario, { bags = { [LESSER_FLAME] = 5, [SPELLBREAK] = 1 }, held = { RAT_AURA }, level = 50 }, function(ns)
+		if not press(ns, scenario, "imbuespellbreak", "Cast-twin-1", 1295720) then return end
+		ns.addon:UNIT_SPELLCAST_SUCCEEDED(nil, "player", "Cast-twin-1", 1295720)
+		restock(ns, { [LESSER_FLAME] = 5 })
+		world.enchant = { id = LESSER_FLAME_ENCHANT, left = 3600 }
+		mine(ns)
+		if ns.db.char.ownLast.imbue ~= "imbuespellbreak" then
+			fail(scenario, "SKIPPED -- the Spellbreak used was remembered as " .. tostring(ns.db.char.ownLast.imbue))
+			return
+		end
+		Mock.advance(3480)
+		topUp(ns, "his last Spellbreak used, Lesser Flame in the bags", "imbuelesserflame")
+	end)
+
+	-- After a reload, the Spellbreak remembered and none left.
+	with(scenario, { bags = { [LESSER_FLAME] = 5 }, held = { RAT_AURA }, level = 50 }, function(ns)
+		ns.db.char.ownLast = ns.db.char.ownLast or {}
+		ns.db.char.ownLast.imbue = "imbuespellbreak"
+		world.enchant = { id = LESSER_FLAME_ENCHANT, left = 3600 }
+		topUp(ns, "Spellbreak remembered from before a reload, Lesser Flame in the bags", "imbuelesserflame")
+	end)
+
+	-- The other way round: Lesser Flame remembered, a Spellbreak left.
+	with(scenario, { bags = { [SPELLBREAK] = 1 }, held = { RAT_AURA }, level = 50 }, function(ns)
+		ns.db.char.ownLast = ns.db.char.ownLast or {}
+		ns.db.char.ownLast.imbue = "imbuelesserflame"
+		world.enchant = { id = LESSER_FLAME_ENCHANT, left = 3600 }
+		topUp(ns, "Lesser Flame remembered, a Spellbreak in the bags", "imbuespellbreak")
+	end)
+
+	-- Frost on the staff and only Lesser Flame left: another enchant, so no
+	-- top-up -- Lesser Flame would replace it.
+	with(scenario, { bags = { [LESSER_FLAME] = 5 }, held = { RAT_AURA }, level = 50 }, function(ns)
+		world.enchant = { id = 8709, left = 3600 }
+		topUp(ns, "Frost running low, Lesser Flame in the bags", nil)
+	end)
+end
+
 -- ------------------------------------------------------------------ 13
 -- Spellbreak is named by its item, since its spell is Lesser Flame's. A mage
 -- who has never carried one has never loaded the item, so the client has no

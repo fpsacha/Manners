@@ -111,6 +111,8 @@ function Mock.reset()
 	Mock.bindingsSaved = 0
 	Mock.bindingSet = nil
 	Mock.macros = nil
+	-- AceDBOptions' table of controls, shared by every addon in a session.
+	Mock.dbOptionsArgs = nil
 	Mock.allSecret = false
 	Mock.stripped = false
 	Mock.unitName = { "Petra", "Stonewell" }
@@ -948,12 +950,35 @@ local function getLibrary(name, silent)
 		end
 	elseif name == "AceDBOptions-3.0" then
 		-- With the library's own opening paragraph, its `desc` at order 1,
-		-- which the page hides in favour of its own.
-		lib.GetOptionsTable = function()
-			return { type = "group", name = "p", args = {
+		-- which the page hides in favour of its own. As the real library does
+		-- it: a group per database, every one of them holding the same table
+		-- of controls -- one for every addon that asks, for the session
+		-- (Mock.reset makes it again) -- and a handler per database. Handing
+		-- back a fresh table each call is what let the page write into the one
+		-- every other addon's Profiles tab draws.
+		local function controls()
+			return {
 				desc = { type = "description", order = 1,
 					name = "You can change the active database profile, so you can have different settings for every character." },
-			} }
+			}
+		end
+		lib.optionTables = setmetatable({}, { __mode = "k" })
+		lib.handlers = setmetatable({}, { __mode = "k" })
+		lib.GetOptionsTable = function(self, db)
+			Mock.dbOptionsArgs = Mock.dbOptionsArgs or controls()
+			local key = db or self
+			local handler = self.handlers[key] or { db = db }
+			self.handlers[key] = handler
+			local tbl = self.optionTables[key] or { type = "group", name = "p" }
+			tbl.handler, tbl.args = handler, Mock.dbOptionsArgs
+			self.optionTables[key] = tbl
+			return tbl
+		end
+		-- What a newer copy of the library does as it loads after ours: a
+		-- fresh table of controls, put in every group already handed out.
+		lib.Upgrade = function(self)
+			Mock.dbOptionsArgs = controls()
+			for _, tbl in pairs(self.optionTables) do tbl.args = Mock.dbOptionsArgs end
 		end
 	elseif name == "LibSharedMedia-3.0" then
 		-- Real enough to tell a registered sound from a missing one. The
@@ -1179,6 +1204,12 @@ function GetNumGroupMembers()
 	return Mock.groupSize
 end
 function IsInRaid() return Mock.raid ~= nil end
+-- Any group, a raid included, as the client answers it: by the head count, so
+-- a scenario that stands in its own GetNumGroupMembers is answered the same.
+function IsInGroup()
+	local n = GetNumGroupMembers and GetNumGroupMembers()
+	return type(n) == "number" and n > 0
+end
 function IsSpellKnown(id) return id == 1459 end
 function IsPlayerSpell(id) return id == 1459 end
 function IsSpellInRange(spell, unit)

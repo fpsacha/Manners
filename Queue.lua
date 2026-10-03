@@ -1333,6 +1333,9 @@ end
 -- which not everybody of the class has, and a shout, which reaches them
 -- anyway, are never skipped this way. A level the client will not give is
 -- taken as one that could cast it, and -1 (a skull) is above every rank.
+-- Handed to PickBuffFor as opts.skip, apart from opts.blocked: a paladin's
+-- walk reads a block as "just offered, wait", and the skip read that way left
+-- another paladin with nothing.
 local function SelfServed(candidate, opts)
 	if not opts.sameClass or candidate.selfCast or candidate.talent then return false end
 	local info = ns.BuffInfo(candidate)
@@ -1342,7 +1345,6 @@ local function SelfServed(candidate, opts)
 end
 
 local function QueueBlocked(candidate, opts)
-	if SelfServed(candidate, opts) then return true end
 	return ns.IsBlocked(opts.name, candidate.key, opts.now)
 end
 
@@ -1641,7 +1643,8 @@ function ns.BuildQueue(watch)
 	-- everybody the walk reaches.
 	local opts = {}
 
-	local function visit(unit, pointed)
+	-- `unasked` walks somebody as if they had made no request (see below).
+	local function visit(unit, pointed, unasked)
 		local ok, person = IsBuffableUnit(unit, f)
 		if not ok then
 			-- Somebody turned down here must not walk back in through the
@@ -1681,7 +1684,7 @@ function ns.BuildQueue(watch)
 		-- nobody and for anybody owed, whose favour is the better reason.
 		-- Below the never-offer list on purpose: asking is not the exception
 		-- buffing you is.
-		local asked = not isOwed and ns.AskedFor(unit, full, now, candidates) or nil
+		local asked = not isOwed and not unasked and ns.AskedFor(unit, full, now, candidates) or nil
 
 		-- Decide whether we would offer this person at all before reading any
 		-- auras, which is the expensive part. A request is a source of its own:
@@ -1788,9 +1791,25 @@ function ns.BuildQueue(watch)
 			and plain(select(2, UnitClass(unit))) == caps.class
 		opts.sameClass = same
 		opts.level = same and plain(UnitLevel(unit)) or nil
+		opts.skip = SelfServed
 		local buff, has, remaining = ns.PickBuffFor(asked or candidates, opts, ReadAura)
 
-		if not buff then rejected[full] = true return end
+		if not buff then
+			-- Covered for what they asked -- somebody else answered first -- is
+			-- no reason to offer them nothing. They are walked again as if they
+			-- had not asked, through every rule the request let them past: they
+			-- lost the rest of what they were offered, as a group member or a
+			-- passer-by, for the request's whole minute. Turned down there too,
+			-- they are turned down for good, or the passer-by memory would
+			-- offer the asker the buff they are wearing.
+			if asked then
+				visit(unit, pointed, true)
+				if not seen[full] then rejected[full] = true end
+				return
+			end
+			rejected[full] = true
+			return
+		end
 		if not checked then has = nil end
 
 		local ranged = InRange(unit, buff)

@@ -4,7 +4,7 @@
 
 # The queue never asks whether somebody asked.
 mutate("Queue.lua",
-       "\t\tlocal asked = not isOwed and ns.AskedFor(unit, full, now, candidates) or nil\n",
+       "\t\tlocal asked = not isOwed and not unasked and ns.AskedFor(unit, full, now, candidates) or nil\n",
        "\t\tlocal asked = nil\n",
        "requests never reach the queue",
        expect="a request in any channel is offered, for a minute",
@@ -362,4 +362,22 @@ mutate("Prompt/Press.lua",
        "",
        "the press forgets the request",
        expect="a buff given to somebody who asked is filed as asked",
+       script="runscenarios.py")
+
+# A request for a buff already worn drops the asker from the prompt for its
+# minute, whatever else they lack.
+mutate("Queue.lua",
+       "\t\t\tif asked then\n\t\t\t\tvisit(unit, pointed, true)\n",
+       "\t\t\tif false then\n\t\t\t\tvisit(unit, pointed, true)\n",
+       "a covered asker offered nothing",
+       expect="an asker covered for what they asked is still offered what they lack",
+       script="runscenarios.py")
+
+# Walked again and turned down there, but not for good: the passer-by memory
+# offers the asker the buff they are wearing, as asked.
+mutate("Queue.lua",
+       "\t\t\t\tif not seen[full] then rejected[full] = true end\n",
+       "",
+       "a covered asker left to the passer-by memory",
+       expect="somebody who asked is offered it until they have it",
        script="runscenarios.py")

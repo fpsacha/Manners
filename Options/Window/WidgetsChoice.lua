@@ -27,9 +27,16 @@ local function Pick(row, key)
 	W.Apply(row, key)
 end
 
+-- The menu is kept on the screen but never scrolls by itself, so a long list
+-- (every sound or font a media pack registers, many profiles) would run past
+-- the edge out of reach: past twenty entries' height it scrolls. A shorter
+-- one is drawn as before.
+local MENU_HEIGHT = 20 * 20
+
 local function FillMenu(row, root, values)
 	local isSelected = function(key) return IsChosen(row, key) end
 	local setSelected = function(key) ns.Guard("options menu", Pick, row, key) end
+	if root.SetScrollMode then root:SetScrollMode(MENU_HEIGHT) end
 	for _, v in ipairs(values) do
 		root:CreateRadio(v[2], isSelected, setSelected, v[1])
 	end
@@ -363,9 +370,14 @@ end
 
 -- The keyboard and the wheel are the button's only while it waits, so
 -- nothing else the player types is taken from the game, and the wheel
--- scrolls the page over it the rest of the time.
+-- scrolls the page over it the rest of the time. A box with the focus (the
+-- search box, clicked into just before) lets go of it first: the client hands
+-- keys to the focused box ahead of any frame, and a click elsewhere does not
+-- take its focus away.
 local function StartCapture(row)
 	if capturing and capturing ~= row then StopCapture(capturing) end
+	local focused = GetCurrentKeyBoardFocus and GetCurrentKeyBoardFocus()
+	if focused and focused.ClearFocus then focused:ClearFocus() end
 	capturing = row
 	row.button:EnableKeyboard(true)
 	row.button:SetPropagateKeyboardInput(false)
