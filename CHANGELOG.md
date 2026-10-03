@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.6.1
 
 - **The options window no longer stays see-through.** After a change on
   *Look* it fades so you can see the prompt, and it could stay faded until
