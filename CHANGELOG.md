@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+- **Changing page while typing in a box** left the old page drawn, and
+  clickable, on top of the new one. It now clears away.
+- **A slider or arrow beside a box you had typed in** no longer jumps back
+  when that box lets go of the keyboard, and a slider whose mouse release
+  went missing follows the setting again.
+- **Long dropdowns scroll** instead of running off the screen: fonts and
+  sounds from a big media pack, or many profiles.
+- **Binding a key straight after typing in the search box** binds it, rather
+  than typing the key into the box.
+- **Other addons' Profiles pages are left alone.** Manners' share-as-text
+  boxes and intro were showing up on every Ace3 addon's Profiles page.
+- **A rogue or hunter has *Put these back to default* on What I say.**
+- **A pasted settings string no longer switches on /thank** without a word;
+  it says so and leaves it off.
+- `/manners macro` clears Start here's "No key yet" line at once.
 - **Party and Raid speak only in a party or a raid.** With *Where to say it*
   on Party or Raid, the line went out while you were in no party (or no
   raid), reached nobody, and the game answered every press with "You aren't
