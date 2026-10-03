@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.6.3
 
 - **The Weapon imbue reminder no longer asks again while an imbue is on.**
   It could not see a scroll's imbue on your weapon, so it kept asking you to
