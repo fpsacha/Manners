@@ -462,7 +462,8 @@ local TBC_SET = setmetatable({ own = {} }, { __index = VANILLA_SET })
 --             level it asks for), ranks = { the spell its use casts } }, best
 --             first, which is the order Automatic tries them in before you
 --             have used one. The scroll's name is that spell's, as the client
---             names it; nameFromItem takes the item's instead.
+--             names it; nameFromItem takes the item's instead, and is the
+--             name until the client has loaded the item.
 --   imbue     up is the main hand carrying any temporary enchant, a wizard
 --             oil included, rather than an aura; each scroll names its
 --             `enchant` and the `weapon` it fits (the weapon's item subclass).
@@ -491,9 +492,10 @@ do
 			{ key = "imbuegreaterfrost", item = 277501, level = 46, ranks = { 1302312 }, enchant = 8717, weapon = STAFF },
 			{ key = "imbueprecision", item = 277502, level = 46, ranks = { 1302310 }, enchant = 8718, weapon = STAFF },
 			-- The client's data points this one at Lesser Flame's spell and
-			-- enchant, so the spell's name would be Lesser Flame's.
+			-- enchant, so the spell's name would be Lesser Flame's: named by
+			-- the item, and by this until the client has loaded the item.
 			{ key = "imbuespellbreak", item = 277503, level = 46, ranks = { 1295720 }, enchant = 8700, weapon = STAFF,
-				nameFromItem = true },
+				nameFromItem = L["Imbue Spellbreak"] },
 			{ key = "imbueaccuracy", item = 277494, level = 25, ranks = { 1302306 }, enchant = 8711, weapon = STAFF },
 			{ key = "imbuequickening", item = 277495, level = 25, ranks = { 1302307 }, enchant = 8712, weapon = STAFF },
 			{ key = "imbuebalefrost", item = 277496, level = 25, ranks = { 1302305 }, enchant = 8714, weapon = STAFF },

@@ -21,6 +21,10 @@ six situations, each in a fresh Lua state:
   raidgc     the raid for a mage with Arcane Brilliance and Arcane Powder,
              group casts for two of a party missing it
 
+and, only when --situations names them, raidscrolls and raidgcscrolls: the
+raid and raidgc for a level-12 mage carrying Forever's familiar and imbue
+scrolls, with a familiar up and an imbue on.
+
 In each, `--ticks` scans (addon:Tick, which ends in the prompt's repaint, which
 builds the queue), then as many again with UNIT_AURA arriving between them --
 two hundred for the other people there (in the raid, its forty group tokens)
@@ -76,6 +80,10 @@ PROBE = os.path.join(HERE, "perf_probe.lua")
 WORLD = os.path.join(HERE, "perf_world.lua")
 DEFAULT_ADDON = os.path.dirname(HERE)
 SITUATIONS = ("idle", "city", "dungeon", "raid", "citynever", "raidgc")
+# Run only when named: the two raids for a level-12 mage carrying Forever's
+# scrolls (tools/perf_world.lua), which tests/scenarios/perf-budget.lua holds
+# to the plain raids' count plus two.
+NAMED_ONLY = ("raidscrolls", "raidgcscrolls")
 
 # The buckets, in the order they are reported, and what each is divided by.
 ROWS = (
@@ -502,7 +510,7 @@ def main():
     parser.add_argument("--addon", default=DEFAULT_ADDON,
                         help="the addon tree to measure (default: this one)")
     parser.add_argument("--situations", default=",".join(SITUATIONS),
-                        help="comma-separated, of " + ", ".join(SITUATIONS))
+                        help="comma-separated, of " + ", ".join(SITUATIONS + NAMED_ONLY))
     parser.add_argument("--ticks", type=int, default=100, help="scans per phase")
     parser.add_argument("--blocks", type=int, default=5, help="timed runs of each measurement; the best is kept")
     parser.add_argument("--min-seconds", type=float, default=0.25,
@@ -520,7 +528,7 @@ def main():
     addon = os.path.abspath(args.addon)
     wanted = [s.strip() for s in args.situations.split(",") if s.strip()]
     for s in wanted:
-        if s not in SITUATIONS:
+        if s not in SITUATIONS + NAMED_ONLY:
             sys.exit(f"perf_probe.py: no such situation: {s}")
 
     result = {

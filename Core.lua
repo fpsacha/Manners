@@ -507,17 +507,31 @@ do
 		local items = C_Item
 		local itemName = safecall(items and items.GetItemNameByID, spell.item)
 		if type(itemName) ~= "string" or itemName == "" then itemName = nil end
-		local spellName = SpellNameFor(spell.ranks[1])
 		if spell.nameFromItem then
-			info.name = itemName or spellName
+			-- Never the spell's, which is another scroll's: the client knows an
+			-- item's name only once it has loaded it, and a mage who has never
+			-- carried one has not. Its own name stands in, the item is asked
+			-- for, and BuffName takes the item's once the client has it.
+			info.name = itemName or spell.nameFromItem
+			if not itemName then
+				info.itemPending = spell.item
+				safecall(items and items.RequestLoadItemDataByID, spell.item)
+			end
 		else
-			info.name = spellName or itemName
+			info.name = SpellNameFor(spell.ranks[1]) or itemName
 		end
 		info.icon = safecall(items and items.GetItemIconByID, spell.item)
 		if info.icon == nil and items and type(items.GetItemInfoInstant) == "function" then
 			info.icon = plain((select(5, items.GetItemInfoInstant(spell.item))))
 		end
 		return info
+	end
+
+	-- The item's name for a scroll the probe had to name without it, once the
+	-- client has loaded the item (BuffName asks, only while it has not).
+	function ns.ResolveItemName(info)
+		local name = safecall(C_Item and C_Item.GetItemNameByID, info.itemPending)
+		if type(name) == "string" and name ~= "" then info.name, info.itemPending = name, nil end
 	end
 
 	-- Does this client still hand addons the combat log? Where it is gone,
@@ -671,6 +685,8 @@ end
 
 function ns.BuffName(buff)
 	local info = ns.BuffInfo(buff)
+	-- A scroll named before the client had loaded its item (ProbeScroll).
+	if info and info.itemPending then ns.ResolveItemName(info) end
 	return (info and info.name) or buff and buff.key or "?"
 end
 
@@ -1266,37 +1282,117 @@ do
 		return nil, nil, refused
 	end
 
-	-- The scroll whose enchant `enchant` is: one in the bags first, since two
-	-- scrolls can make the same one (Buffs.lua, Spellbreak); nil for an
-	-- enchant no scroll makes, a wizard oil say.
+	-- The scroll last used from the prompt, per family, this session: the one
+	-- word on which of two scrolls making the same enchant (Buffs.lua,
+	-- Spellbreak and Lesser Flame) is on the weapon. Noted when the press
+	-- settles (Clicks.lua, SettleSelf), which is handed the one it replaced,
+	-- and put back to that if the cast is cut short.
+	local pressedScroll = {}
+	function ns.NoteScrollPress(spell)
+		local before = pressedScroll[spell.family.key]
+		pressedScroll[spell.family.key] = spell
+		return before
+	end
+	function ns.UndoScrollPress(spell, before)
+		if pressedScroll[spell.family.key] == spell then pressedScroll[spell.family.key] = before end
+	end
+
+	-- The scroll whose enchant `enchant` is; nil for an enchant no scroll
+	-- makes, a wizard oil say. Two scrolls can make the same one, so: the one
+	-- just used from the prompt; else the one you had on last, at your level;
+	-- else the first you can use now; else the first your level allows.
 	local function ImbueScroll(family, enchant)
 		if type(enchant) ~= "number" then return nil end
-		local first
+		local pressed = pressedScroll[family.key]
+		if pressed and pressed.enchant == enchant then return pressed end
+		local level = plain(UnitLevel("player"))
+		if type(level) ~= "number" then level = math.huge end
+		local char = addon.db and addon.db.char
+		local memory = type(char) == "table" and type(char.ownLast) == "table"
+			and ns.FindOwnSpell(char.ownLast[family.key]) or nil
+		if memory and memory.family == family and memory.enchant == enchant and memory.level <= level then
+			return memory
+		end
+		local reached, first
 		for _, spell in ipairs(family.spells) do
 			if spell.enchant == enchant then
-				if ScrollCount(spell) > 0 then return spell end
+				if ScrollReady(spell) then return spell end
+				if not reached and spell.level <= level then reached = spell end
 				first = first or spell
 			end
 		end
-		return first
+		return reached or first
 	end
 
 	-- A weapon imbue (Buffs.lua) is no aura: up is your main hand carrying any
 	-- temporary enchant, a scroll's or an oil's, since either way the weapon
-	-- has been seen to. One call, no pcall: it takes nothing and throws on
-	-- nothing. Time left in seconds; the client gives milliseconds.
+	-- has been seen to. The client's own call first: 12.1 replaced
+	-- GetWeaponEnchantInfo with C_PaperDollInfo.GetTemporaryEnchantmentInfo,
+	-- and keeps the old one only as a shim behind the loadDeprecationFallbacks
+	-- setting, which reads all three weapon slots to answer for one. Nothing
+	-- back is no enchant. Neither throws (slot 16 is a plain number), so no
+	-- pcall. Time left in seconds; the client gives milliseconds.
 	local function ReadImbue(family)
-		local read = _G.GetWeaponEnchantInfo
-		if type(read) ~= "function" then return nil end
-		local has, expires, _, enchant = read()
-		if Withheld(has) then return nil end
-		if not has then return false end
-		local scroll = ImbueScroll(family, plain(enchant))
+		local has, expires, enchant
+		local api = C_PaperDollInfo and C_PaperDollInfo.GetTemporaryEnchantmentInfo
+		if type(api) == "function" then
+			-- INVSLOT_MAINHAND.
+			local info = api(16)
+			if Withheld(info) then return nil end
+			if info == nil then return false end
+			if type(info) ~= "table" then return nil end
+			has, enchant = true, plain(info.enchantID)
+			if plain(info.hasExpirationTime) ~= false then expires = plain(info.remainingTimeMs) end
+		else
+			local read = _G.GetWeaponEnchantInfo
+			if type(read) ~= "function" then return nil end
+			local _
+			has, expires, _, enchant = read()
+			if Withheld(has) then return nil end
+			if not has then return false end
+			expires, enchant = plain(expires), plain(enchant)
+		end
+		local scroll = ImbueScroll(family, enchant)
 		if scroll then Remember(family, scroll) end
-		expires = plain(expires)
 		local left
 		if type(expires) == "number" and expires > 0 then left = expires / 1000 end
 		return true, scroll, left
+	end
+
+	-- A familiar (Buffs.lua) is its aura on you, from you. Read the one you had
+	-- up last first, whatever your level says now, then the rest your level
+	-- allows (a scroll asks for its level, and nothing else puts the aura on):
+	-- one aura read on a scan where it is up, where reading all three best
+	-- first was three, and a level-12 mage reads the Rat's alone.
+	local function ReadFamiliar(family, byId, now)
+		local char = addon.db and addon.db.char
+		local last = type(char) == "table" and type(char.ownLast) == "table"
+			and ns.FindOwnSpell(char.ownLast[family.key]) or nil
+		if not (last and last.family == family) then last = nil end
+		local level = plain(UnitLevel("player"))
+		if type(level) ~= "number" then level = math.huge end
+		local refused = false
+		for i = 0, #family.spells do
+			local spell = family.spells[i]
+			if i == 0 then
+				spell = last
+			elseif spell == last or spell.level > level then
+				spell = nil
+			end
+			if spell then
+				for _, id in ipairs(spell.auraIds) do
+					local ok, aura = pcall(byId, "player", id)
+					if not ok or Withheld(aura) then
+						refused = true
+					elseif type(aura) == "table" and FromYou(aura) ~= false then
+						Remember(family, spell)
+						return true, spell, Left(aura, now)
+					end
+				end
+			end
+		end
+		if refused then return nil end
+		return false
 	end
 
 	-- Whether any of the family is up on you, and yours: true with the spell and
@@ -1322,21 +1418,24 @@ do
 		end
 		if family.imbue then return ReadImbue(family) end
 		local now = GetTime()
-		-- A familiar is no form, so a mage's scrolls cost no form read.
-		local form = not family.scroll and ActiveForm()
+		local api = C_UnitAuras
+		local byId = api and api.GetUnitAuraBySpellID
+		-- Every familiar, whether or not another of its scroll is in the bags:
+		-- the one summoned is up all the same. No form read: it is no form.
+		if family.scroll then
+			if type(byId) ~= "function" then return nil end
+			return ReadFamiliar(family, byId, now)
+		end
+		local form = ActiveForm()
 		local formSpell = form and ns.OWN_BY_ID[form]
 		if formSpell and formSpell.family == family then
 			Remember(family, formSpell)
 			return true, formSpell, nil
 		end
-		local api = C_UnitAuras
-		local byId = api and api.GetUnitAuraBySpellID
 		if type(byId) ~= "function" then return nil end
 		local refused = false
 		for _, spell in ipairs(family.spells) do
-			-- Every familiar, whether or not another of its scroll is in the
-			-- bags: the one summoned is up all the same.
-			if spell.item or Known(spell) then
+			if Known(spell) then
 				for _, id in ipairs(spell.auraIds) do
 					local ok, aura = pcall(byId, "player", id)
 					if not ok or Withheld(aura) then
@@ -1402,6 +1501,9 @@ do
 				or left > (ctx.refreshUnder or 5) * 60 then
 				return nil, true, left, "up", upSpell
 			end
+			-- An oil, or an enchant no scroll makes, running low: nothing of
+			-- yours tops it up, and the weapon is seen to until it runs out.
+			if not upSpell then return nil, true, left, "up" end
 			-- The top-up is of the one you are wearing, whatever the pick.
 			spell = upSpell
 		end

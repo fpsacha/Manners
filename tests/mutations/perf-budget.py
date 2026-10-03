@@ -38,3 +38,12 @@ mutate("Core.lua",
        "function(_, event, ...) addon[event](addon, ...) end",
        "perf-budget: the cast frame drops the event name",
        expect="the cast frame handed the event over as", script=S)
+
+# A mage's familiar read best first again (Core.lua, ReadFamiliar): the Cat's
+# and the Frog's aura asked on every scan before the Rat's he has up, whatever
+# his level and whichever he had up last -- four pcalls a scan where two do.
+mutate("Core.lua",
+       "\t\t\tif i == 0 then\n\t\t\t\tspell = last\n\t\t\telseif spell == last or spell.level > level then\n",
+       "\t\t\tif i == 0 then\n\t\t\t\tspell = nil\n\t\t\telseif false then\n",
+       "perf-budget: three familiars read on every scan",
+       expect="perf-budget: a mage's scrolls cost a raid scan with group casts at most 2 pcalls", script=S)

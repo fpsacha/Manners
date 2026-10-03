@@ -284,3 +284,57 @@ do
 	Mock.reset()
 	if not ok then fail(scenario, "threw: " .. tostring(err)) end
 end
+
+-- ------------------------------------------------------------------ budget 7
+-- The two raids again for a level-12 mage carrying Forever's scrolls
+-- (tools/perf_world.lua, raidscrolls and raidgcscrolls): the Rat familiar up
+-- and Lesser Flame's imbue on his staff, so neither is offered and both are
+-- read on every scan. The familiar is one aura read and the check that it is
+-- his (UnitIsUnit), the imbue one call that cannot throw: two more per scan
+-- than the same raid without them. Reading the three familiars best first was
+-- four more, which took the group-cast raid to 30.2.
+local function ScrollsCost(scenario, plainSituation, situation, ceiling, wantGroupCast)
+	local base = measure(scenario, plainSituation)
+	local result = measure(scenario, situation, function(ns)
+		local families = {}
+		for _, family in ipairs(ns.KnownOwnFamilies()) do families[family.key] = family end
+		if not (families.familiar and families.imbue) then
+			fail(scenario, "SKIPPED -- the scrolls in his bags make no Familiar and Weapon imbue of his own")
+			return
+		end
+		local up, spell = ns.ReadOwnFamily(families.familiar)
+		if not (up and spell and spell.key == "ratfamiliar") then
+			fail(scenario, "SKIPPED -- the Rat familiar is not read as up: " .. tostring(spell and spell.key))
+		end
+		up, spell = ns.ReadOwnFamily(families.imbue)
+		if not (up and spell and spell.key == "imbuelesserflame") then
+			fail(scenario, "SKIPPED -- Lesser Flame is not read as on the staff: " .. tostring(spell and spell.key))
+		end
+		local casts = 0
+		for _, entry in ipairs(ns.BuildQueue()) do
+			if entry.reason == "self" then
+				fail(scenario, "SKIPPED -- he was offered " .. tostring(entry.buff and entry.buff.key))
+			end
+			if entry.groupCast then casts = casts + 1 end
+		end
+		if wantGroupCast and casts == 0 then
+			fail(scenario, "SKIPPED -- no group cast formed, so none was counted")
+		end
+	end)
+	judge(scenario, result, ceiling)
+	if base and result and result.perScan - base.perScan > 2.05 then
+		fail(scenario, ("the scrolls cost %.1f pcalls per scan over the same raid without them, not 2;"
+			.. " the lines charged most per scan: %s"):format(result.perScan - base.perScan,
+			heaviest(result.sites, COUNTED)))
+	end
+end
+
+do
+	local scenario = "perf-budget: a mage's scrolls cost a raid scan at most 2 pcalls"
+	ScrollsCost(scenario, "raid", "raidscrolls", 30)
+end
+
+do
+	local scenario = "perf-budget: a mage's scrolls cost a raid scan with group casts at most 2 pcalls"
+	ScrollsCost(scenario, "raidgc", "raidgcscrolls", 30, true)
+end

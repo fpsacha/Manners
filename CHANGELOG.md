@@ -22,7 +22,8 @@
   *Weapon imbue* when nothing is on your main hand and you carry an imbue
   scroll that fits it: Lesser Flame on a staff, Chillknife on a dagger, and so
   on. A wizard oil counts as something on it. One press uses the scroll, with
-  its own icon on the prompt. *Automatic* takes the one you used last, or else
+  its own icon on the prompt; if moving cuts its three-second use short, it is
+  offered again a moment later. *Automatic* takes the one you used last, or else
   the best your level and weapon allow. Both show only while you carry such a
   scroll, and as with your other buffs, never in a fight, and not in cities
   and inns unless you tick that.

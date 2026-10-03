@@ -151,8 +151,8 @@ mutate("Clicks.lua",
 
 # core-10: an interrupted cast leaving the sweep running.
 mutate("Clicks.lua",
-       "function addon:UNIT_SPELLCAST_INTERRUPTED(_, unit)\n\tif unit ~= \"player\" then return end\n\tSyncSweep()\n",
-       "function addon:UNIT_SPELLCAST_INTERRUPTED(_, unit)\n\tif unit ~= \"player\" then return end\n",
+       "function addon:UNIT_SPELLCAST_INTERRUPTED(_, unit, castGUID, spellId)\n\tif unit ~= \"player\" then return end\n\tSyncSweep()\n",
+       "function addon:UNIT_SPELLCAST_INTERRUPTED(_, unit, castGUID, spellId)\n\tif unit ~= \"player\" then return end\n",
        "sweep not re-read on an interrupted cast",
        expect="core: the sweep stops when the global cooldown is given back (interrupted)",
        script="runscenarios.py")

@@ -144,6 +144,10 @@ function Mock.reset()
 	-- nothing at all. playerHeldFor is how long theirs has left.
 	Mock.playerHeld = nil
 	Mock.playerHeldFor = nil
+	-- The temporary enchant on each inventory slot (C_PaperDollInfo), as
+	-- { [16] = { id = enchant, left = seconds } }: a mage's imbue or an oil on
+	-- the main hand. nil is none anywhere, which the call answers with nothing.
+	Mock.tempEnchants = nil
 	Mock.auraBlackout = false
 	Mock.noAuras = false
 	Mock.extraAura = false
@@ -1730,6 +1734,18 @@ setmetatable(_G, { __index = function(_, key)
 			end,
 			GetSpellAuraSecrecy = function() return 0 end,
 			HasSecretRestrictions = function() return Mock.secretRestrictions end,
+		})
+	elseif key == "C_PaperDollInfo" then
+		-- 12.1's temporary enchant on a slot (Mock.tempEnchants), the shape the
+		-- forever branch's PaperDollInfoDocumentation gives: a table, or nothing
+		-- at all (MayReturnNothing) where the slot carries none.
+		return ns_or_nil({
+			GetTemporaryEnchantmentInfo = function(slot)
+				local e = Mock.tempEnchants and Mock.tempEnchants[slot]
+				if not e then return end
+				return { enchantID = e.id, remainingTimeMs = e.left * 1000, chargesRemaining = 0,
+					hasExpirationTime = true }
+			end,
 		})
 	elseif key == "C_NamePlate" then
 		return ns_or_nil({ GetNamePlates = function() return {} end })

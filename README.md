@@ -140,9 +140,10 @@ is under *Which buffs each class offers*).
   one-handed sword, and so on). A wizard oil or any other temporary enchant counts as
   something on it. A scroll is offered only once your level is up to it, with
   its own icon, and one press uses it from your bags: your target is not
-  touched. *Automatic* takes the one you used last while you still have one
-  that fits, otherwise the best your level and weapon allow. A mage with no
-  scrolls sees nothing of this.
+  touched. Its use takes three seconds, and if moving cuts it short the scroll
+  is offered again a moment later. *Automatic* takes the one you used last
+  while you still have one that fits, otherwise the best your level and weapon
+  allow. A mage with no scrolls sees nothing of this.
 - *Save mana* never holds you back, and nor does *Raid groups I buff*. In a
   party you count towards a group buff, and the group cast covers you.
 - A warrior's Battle Shout already covers the warrior and nobody needs Unending Breath

@@ -23,9 +23,11 @@
 -- when set, hears every global read that the mock does not have.
 --
 -- The situations (see SITUATIONS below): idle, city, dungeon, raid, citynever
--- (the city with a never-offer list of `never` names that match nobody there)
--- and raidgc (the raid for a mage with Arcane Brilliance and its powder, group
--- casts for two of a party).
+-- (the city with a never-offer list of `never` names that match nobody there),
+-- raidgc (the raid for a mage with Arcane Brilliance and its powder, group
+-- casts for two of a party), and raidscrolls and raidgcscrolls (those two
+-- raids for a level-12 mage carrying Forever's scrolls, a familiar up and an
+-- imbue on).
 
 local World = {}
 
@@ -45,7 +47,7 @@ local CLASSES = { "WARRIOR", "PRIEST", "MAGE", "ROGUE", "DRUID", "PALADIN", "HUN
 local MANA = { PRIEST = true, MAGE = true, DRUID = true, PALADIN = true, HUNTER = true, WARLOCK = true, SHAMAN = true }
 local POWER = { WARRIOR = { 1, "RAGE" }, ROGUE = { 3, "ENERGY" } }
 
-World.SITUATIONS = { "idle", "city", "dungeon", "raid", "citynever", "raidgc" }
+World.SITUATIONS = { "idle", "city", "dungeon", "raid", "citynever", "raidgc", "raidscrolls", "raidgcscrolls" }
 
 local function localized(class) return class:sub(1, 1) .. class:sub(2):lower() end
 
@@ -254,6 +256,42 @@ function World.new(cfg)
 		carry(17020, 20)
 		W.atLeast = 2
 		W.wantGroupCast = true
+	end
+
+	-- A level-12 mage's scrolls on Forever (Buffs.lua): Rat Familiars and an
+	-- Imbue Lesser Flame in the bags, a staff in the main hand with Lesser
+	-- Flame's imbue on it, and the Rat familiar with him -- every other aura
+	-- of his own as the mock has it, the Cat's and the Frog's not. Nothing of
+	-- the two is offered, and both are read on every scan.
+	local STAFF = 900010
+	local function scrolls()
+		ME.level = 12
+		bags[275069], bags[274947] = 2, 1
+		set("C_Item", {
+			GetItemCount = function(id) return bags[id] or 0 end,
+			GetItemInfoInstant = function(id)
+				if id == STAFF then return id, "Weapon", "", "INVTYPE_2HWEAPON", 135145, 2, 10 end
+				return id, "Miscellaneous", "", "", 134939, 15, 0
+			end,
+		})
+		set("GetInventoryItemID", function(unit, slot)
+			if unit == "player" and slot == 16 then return STAFF end
+			return nil
+		end)
+		Mock.tempEnchants = { [16] = { id = 8700, left = 1800 } }
+		Mock.playerHeld = setmetatable({ [1302303] = false, [1302285] = false },
+			{ __index = function() return true end })
+		W.scrolls = true
+	end
+
+	-- The raid, and the raid with group casts, for that mage.
+	function SITUATIONS.raidscrolls(friendGuid)
+		SITUATIONS.raid(friendGuid)
+		scrolls()
+	end
+	function SITUATIONS.raidgcscrolls(friendGuid)
+		SITUATIONS.raidgc(friendGuid)
+		scrolls()
 	end
 
 	-- ----------------------------------------------------------------- install

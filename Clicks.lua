@@ -253,6 +253,56 @@ local function RememberSettled(record)
 	settledRecent[#settledRecent + 1] = record
 end
 
+-- A mage's scroll (Buffs.lua) is the one press on yourself with a cast time:
+-- every scroll's use takes three seconds (SpellMisc's CastingTimeIndex 14),
+-- where your other own buffs are instant. SENT settles it as the cast
+-- starts, so a cast cut short -- moving, most often -- has used nothing up,
+-- and only INTERRUPTED (or a FAILED after the settle's window) says so. The
+-- press is kept here until the cast succeeds or stops, or for its length,
+-- pushback and latency at most: the scroll, the settle's record, its cast,
+-- and the press it replaced (Core.lua, NoteScrollPress).
+local SCROLL_SECONDS = 6
+local castingScroll
+
+-- The scroll being cast, if this event is about it: by the cast guid where
+-- both sides carry one, else by the spell its use casts (nil `spellId` asks
+-- for the guid alone). One cast runs at a time, so an interrupt or a success
+-- with the scroll's spell is its. A cast past its length is let go.
+local function ScrollCast(castGUID, spellId)
+	local cast = castingScroll
+	if not cast then return nil end
+	if GetTime() - cast.record.at > SCROLL_SECONDS then
+		castingScroll = nil
+		return nil
+	end
+	if cast.castGUID ~= nil and castGUID ~= nil then
+		if cast.castGUID ~= castGUID then return nil end
+	elseif spellId == nil or spellId ~= cast.spellId then
+		return nil
+	end
+	return cast
+end
+
+-- The scroll's cast cut short: the press is taken back as a refused one is
+-- (RewindClick), and the scroll is offered again once that block is out.
+-- Out of the settled list too, which would note it as landed. Returns the
+-- name, for the panel.
+local function ScrollCastStopped(castGUID, spellId, why)
+	local cast = ScrollCast(castGUID, spellId)
+	if not cast then return nil end
+	castingScroll = nil
+	for i, record in ipairs(settledRecent) do
+		if record == cast.record then
+			table.remove(settledRecent, i)
+			break
+		end
+	end
+	RewindClick(cast.record)
+	ns.UndoScrollPress(cast.spell, cast.before)
+	SayStillOwed(cast.record.name, why)
+	return cast.record.name
+end
+
 -- Which record a refusal answers, or nil for "nothing here says". A record
 -- that settled with no guid of its own never compares equal to one, so a guid
 -- on the refusal side alone matches nothing either.
@@ -391,9 +441,17 @@ local function SettleSelf(pending, spellId, castGUID)
 			addon:Print(L["|cffffd100you were buffed after all|r -- the error before it was about something else."])
 		end
 	end
-	RememberSettled({ name = pending.name, buffKey = pending.buffKey,
+	local record = { name = pending.name, buffKey = pending.buffKey,
 		gave = pending.gave, at = GetTime(), castGUID = castGUID,
-		landed = true, onSelf = true })
+		landed = true, onSelf = true }
+	RememberSettled(record)
+	-- A scroll: its cast has only begun (castingScroll), and which one it is
+	-- tells two scrolls making the same imbue apart (Core.lua, ImbueScroll).
+	local own = ns.FindOwnSpell(pending.buffKey)
+	if own and own.item then
+		castingScroll = { record = record, spell = own, castGUID = castGUID, spellId = spellId,
+			before = ns.NoteScrollPress(own) }
+	end
 end
 
 local function SettlePendingClick(landedOn, spellId, castGUID)
@@ -551,8 +609,13 @@ local function UnsettleLateRefusal(castGUID)
 	local index = MatchSettled(castGUID)
 	if not index then return nil end
 
-	-- Consumed before anything is undone with it: one refusal, one cast.
+	-- Consumed before anything is undone with it: one refusal, one cast. A
+	-- scroll's cast is over with it, and so is the press it noted.
 	local settled = table.remove(settledRecent, index)
+	if castingScroll and castingScroll.record == settled then
+		ns.UndoScrollPress(castingScroll.spell, castingScroll.before)
+		castingScroll = nil
+	end
 
 	-- Nothing for a switched-off addon. Only `enabled`: the owed source
 	-- decides only whether there was a debt, and settled.owed says that.
@@ -734,8 +797,10 @@ function addon:UNIT_SPELLCAST_SENT(_, unit, target, castGUID, spellId)
 		tostring(plain(spellId)), tostring(plain(target))))
 end
 
-function addon:UNIT_SPELLCAST_SUCCEEDED(_, unit, _, spellId)
+function addon:UNIT_SPELLCAST_SUCCEEDED(_, unit, castGUID, spellId)
 	if unit ~= "player" then return end
+	-- A scroll's cast done: the scroll is used, and nothing can stop it now.
+	if castingScroll and ScrollCast(plain(castGUID), plain(spellId)) then castingScroll = nil end
 	-- Again here, for a cast with a cast time: its global cooldown is running
 	-- by now, and the client's figure for it is the one to draw.
 	if ns.Prompt and ns.Prompt.SyncCooldown then
@@ -761,10 +826,14 @@ function addon:UNIT_SPELLCAST_START(_, unit)
 	SyncSweep()
 end
 
--- A cast stopped part-way: whatever it held up is over.
-function addon:UNIT_SPELLCAST_INTERRUPTED(_, unit)
+-- A cast stopped part-way: whatever it held up is over. A scroll's cast
+-- (castingScroll) used nothing up, so its press is taken back.
+function addon:UNIT_SPELLCAST_INTERRUPTED(_, unit, castGUID, spellId)
 	if unit ~= "player" then return end
 	SyncSweep()
+	if not castingScroll then return end
+	local stopped = ScrollCastStopped(plain(castGUID), plain(spellId), L["the cast was interrupted"])
+	if stopped then ShowOutcome("failed", stopped, L["the cast was interrupted"]) end
 end
 
 -- Pushback: being hit while casting moves the cast's end later, and only this
@@ -791,6 +860,13 @@ function addon:UNIT_SPELLCAST_FAILED(_, unit, castGUID, spellId)
 	if not ns.pendingClick then
 		local late = UnsettleLateRefusal(castGUID)
 		if late then ShowOutcome("failed", late, L["the game refused the cast"]) end
+	end
+	-- A scroll's cast failing after the settle's window: nothing was used up
+	-- either. By the guid alone, as a refusal is: the same scroll pressed
+	-- again from a bar mid-cast fails with its spell id too.
+	if castingScroll then
+		local stopped = ScrollCastStopped(castGUID, nil, L["the game refused the cast"])
+		if stopped then ShowOutcome("failed", stopped, L["the game refused the cast"]) end
 	end
 	if self.db.profile.verbose and ns.lastClickTime and (GetTime() - ns.lastClickTime) <= 1 then
 		self:Print(L["|cffff8080could not cast|r %s"]:format(SpellLabel(spellId)))

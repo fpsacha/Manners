@@ -68,20 +68,34 @@ end
 local function lines(ns) return table.concat(ns.MyselfLines(GetTime()), " / ") end
 
 -- The world a scenario stands in: bags (item -> count), weapon (the item in
--- the main hand), enchant ({ id, left } on it), level, and `reads`, how many
--- times the bags were asked for a count.
+-- the main hand), enchant ({ id, left } on it), level, `reads`, how many
+-- times the bags were asked for a count, and `unloaded`, items the client
+-- has not loaded yet (no name until RequestLoadItemDataByID and a load,
+-- `requested` saying which were asked for).
+--
+-- The enchant is read the way `api` says the client offers it: "native"
+-- (the default) is 12.1's C_PaperDollInfo.GetTemporaryEnchantmentInfo with
+-- the deprecation fallbacks switched off; "both" adds the old
+-- GetWeaponEnchantInfo, the shim Blizzard_Deprecated defines on top of it,
+-- which counts its calls in `shimReads`; "shim" is that alone; "none" is
+-- neither. A namespace without the call stands for "not there": the mock
+-- would build its own for a nil.
 local world
 
-local TOUCHED = { "C_Item", "GetInventoryItemID", "GetWeaponEnchantInfo", "UnitLevel", "IsResting",
-	"IsSpellKnown", "IsPlayerSpell" }
+local TOUCHED = { "C_Item", "GetInventoryItemID", "GetWeaponEnchantInfo", "C_PaperDollInfo", "UnitLevel",
+	"IsResting", "IsSpellKnown", "IsPlayerSpell" }
 
-local function install()
+local function install(api)
 	rawset(_G, "C_Item", {
 		GetItemCount = function(id)
 			world.reads = world.reads + 1
 			return world.bags[id] or 0
 		end,
-		GetItemNameByID = function(id) return ITEM_NAMES[id] end,
+		GetItemNameByID = function(id)
+			if world.unloaded and world.unloaded[id] then return nil end
+			return ITEM_NAMES[id]
+		end,
+		RequestLoadItemDataByID = function(id) world.requested[id] = true end,
 		GetItemIconByID = function(id) return icon(id) end,
 		GetItemInfoInstant = function(id)
 			if SUBCLASS[id] then return id, "Weapon", "", "INVTYPE_WEAPON", icon(id), 2, SUBCLASS[id] end
@@ -92,11 +106,22 @@ local function install()
 		if unit == "player" and slot == 16 then return world.weapon end
 		return nil
 	end)
-	rawset(_G, "GetWeaponEnchantInfo", function()
+	-- Nothing at all for no enchant, as the client documents it.
+	local function native(slot)
 		local e = world.enchant
-		if not e then return false, nil, nil, nil, false, nil, nil, nil end
-		return true, e.left * 1000, 0, e.id, false, nil, nil, nil
-	end)
+		if slot ~= 16 or not e then return end
+		return { enchantID = e.id, remainingTimeMs = e.left * 1000, chargesRemaining = 0, hasExpirationTime = true }
+	end
+	-- Blizzard_Deprecated's shim: all three weapon slots, four values each.
+	local function shim()
+		world.shimReads = world.shimReads + 1
+		local e = world.enchant
+		if not e then return false, nil, nil, nil, false, nil, nil, nil, false, nil, nil, nil end
+		return true, e.left * 1000, 0, e.id, false, nil, nil, nil, false, nil, nil, nil
+	end
+	local hasNative = api == "native" or api == "both"
+	rawset(_G, "C_PaperDollInfo", { GetTemporaryEnchantmentInfo = hasNative and native or nil })
+	rawset(_G, "GetWeaponEnchantInfo", (api == "shim" or api == "both") and shim or nil)
 	rawset(_G, "UnitLevel", function(unit)
 		if unit == "player" then return world.level end
 		return 12
@@ -104,22 +129,23 @@ local function install()
 end
 
 -- One session as opts.class (a mage by default), with opts.bags, opts.weapon
--- (a staff by default), opts.enchant, opts.level (12) and opts.held (your own
--- auras besides Arcane Intellect), nobody else about; opts.known are the
--- spells learned (the mock's Arcane Intellect alone otherwise). opts.tree
--- records the frames (the prompt's icon). body(ns) runs and everything is put
--- back, whether it finished or threw.
+-- (a staff by default), opts.enchant, opts.level (12), opts.held (your own
+-- auras besides Arcane Intellect), opts.api (see install) and opts.unloaded,
+-- nobody else about; opts.known are the spells learned (the mock's Arcane
+-- Intellect alone otherwise). opts.tree records the frames (the prompt's
+-- icon). body(ns) runs and everything is put back, whether it finished or
+-- threw.
 local function with(scenario, opts, body)
 	Mock.reset()
 	if opts.class then Mock.class = opts.class end
 	world = { bags = opts.bags or {}, weapon = opts.weapon or STAFF, enchant = opts.enchant,
-		level = opts.level or 12, reads = 0 }
+		level = opts.level or 12, reads = 0, shimReads = 0, unloaded = opts.unloaded, requested = {} }
 	local held = { [INTELLECT] = true }
 	for _, id in ipairs(opts.held or {}) do held[id] = true end
 	world.held = held
 	local saved = {}
 	for _, name in ipairs(TOUCHED) do saved[name] = rawget(_G, name) end
-	install()
+	install(opts.api or "native")
 	if opts.known then
 		local learned = {}
 		for _, id in ipairs(opts.known) do learned[id] = true end
@@ -239,7 +265,9 @@ do
 			fail(scenario, "the imbue on the weapon was not remembered: " .. tostring(ns.db.char.ownLast.imbue))
 		end
 
-		-- A Frog familiar with you and only Rat scrolls in the bags.
+		-- A Frog familiar with you and only Rat scrolls in the bags, at a
+		-- level a Frog scroll can be used at.
+		world.level = 20
 		world.held[RAT_AURA], world.held[FROG_AURA] = nil, true
 		if mine(ns) then
 			fail(scenario, "with a Frog familiar up, the Rat scroll was offered: " .. key(mine(ns)))
@@ -599,6 +627,384 @@ do
 		mine(ns)
 		if ns.db.char.ownLast.imbue ~= "imbuespellbreak" then
 			fail(scenario, "the enchant was remembered as " .. tostring(ns.db.char.ownLast.imbue))
+		end
+	end)
+end
+
+-- One press of the prompt on `want`, and the SENT that settles it, with the
+-- cast guid `guid` and the spell the use casts. False, said as SKIPPED, when
+-- the prompt is on something else or the press did not go out.
+local function press(ns, scenario, want, guid, spellId)
+	ns.Prompt:Refresh()
+	if key(ns.Prompt:Showing()) ~= want then
+		fail(scenario, ("SKIPPED -- the prompt is on %s, not %s"):format(key(ns.Prompt:Showing()), want))
+		return false
+	end
+	local pressed = H.pressButton(ns)
+	if not (pressed and pressed:find("/use item:", 1, true) and ns.pendingClick and ns.pendingClick.onSelf) then
+		fail(scenario, "SKIPPED -- the press on " .. want .. " did not go out: " .. flat(pressed))
+		return false
+	end
+	ns.addon:UNIT_SPELLCAST_SENT(nil, "player", nil, guid, spellId)
+	return true
+end
+
+-- ------------------------------------------------------------------ 12
+-- Lesser Flame and Spellbreak make the same enchant (8700), so the enchant
+-- alone cannot say which is on the weapon. A level-20 mage carrying both --
+-- a Spellbreak crafted for Comprehension's skill -- can only have used Lesser
+-- Flame; a level-50 mage is told by the press he made. Read, remembered,
+-- named and topped up as the one used, never as the first in the table.
+do
+	local scenario = "mage-scrolls: Lesser Flame is told from Spellbreak, which makes the same enchant"
+	with(scenario, { bags = { [LESSER_FLAME] = 2, [SPELLBREAK] = 1 }, held = { RAT_AURA }, level = 20 }, function(ns)
+		if key(mine(ns)) ~= "imbuelesserflame" then
+			fail(scenario, "SKIPPED -- a level-20 mage was offered " .. key(mine(ns)) .. ", not Lesser Flame")
+			return
+		end
+		-- Used from the bags by hand.
+		world.enchant = { id = LESSER_FLAME_ENCHANT, left = 1800 }
+		if not lines(ns):find("Weapon imbue: Imbue Lesser Flame is up.", 1, true) then
+			fail(scenario, "a level-20 mage's Lesser Flame: /manners debug says " .. lines(ns))
+		end
+		if ns.db.char.ownLast.imbue ~= "imbuelesserflame" then
+			fail(scenario, "a level-20 mage's Lesser Flame was remembered as " .. tostring(ns.db.char.ownLast.imbue))
+		end
+		ns.db.profile.filters.whenBuffed = "refresh"
+		world.enchant = { id = LESSER_FLAME_ENCHANT, left = 120 }
+		if key(mine(ns)) ~= "imbuelesserflame" then
+			fail(scenario, ("two minutes of a level-20 mage's Lesser Flame offered %s; /manners debug says %s")
+				:format(key(mine(ns)), lines(ns)))
+		end
+		world.enchant = nil
+		if key(mine(ns)) ~= "imbuelesserflame" then
+			fail(scenario, "once a level-20 mage's Lesser Flame wore off, Automatic offered " .. key(mine(ns)))
+		end
+		-- His last Lesser Flame used by hand: the Spellbreak left in the bags
+		-- asks for a level he does not have, so it is still Lesser Flame.
+		restock(ns, { [SPELLBREAK] = 1 })
+		ns.db.char.ownLast.imbue = nil
+		world.enchant = { id = LESSER_FLAME_ENCHANT, left = 3600 }
+		mine(ns)
+		if ns.db.char.ownLast.imbue ~= "imbuelesserflame" then
+			fail(scenario, "a level-20 mage's last Lesser Flame, with a Spellbreak left, was remembered as "
+				.. tostring(ns.db.char.ownLast.imbue))
+		end
+	end)
+
+	-- Level 50 after a reload, with nothing pressed this session: the one he
+	-- had on last, not the first that makes the enchant.
+	with(scenario, { bags = { [LESSER_FLAME] = 2, [SPELLBREAK] = 2 }, held = { RAT_AURA }, level = 50 }, function(ns)
+		ns.db.char.ownLast = ns.db.char.ownLast or {}
+		ns.db.char.ownLast.imbue = "imbuelesserflame"
+		world.enchant = { id = LESSER_FLAME_ENCHANT, left = 3600 }
+		if not lines(ns):find("Weapon imbue: Imbue Lesser Flame is up.", 1, true) then
+			fail(scenario, "a level-50 mage's Lesser Flame from before a reload: /manners debug says " .. lines(ns))
+		end
+	end)
+
+	-- Level 50 with Lesser Flame alone in the bags and nothing to go on: the
+	-- one he can use, not Spellbreak, first in the table and not carried.
+	with(scenario, { bags = { [LESSER_FLAME] = 2 }, held = { RAT_AURA }, level = 50 }, function(ns)
+		world.enchant = { id = LESSER_FLAME_ENCHANT, left = 3600 }
+		if not lines(ns):find("Weapon imbue: Imbue Lesser Flame is up.", 1, true) then
+			fail(scenario, "a level-50 mage with Lesser Flame alone in the bags: /manners debug says " .. lines(ns))
+		end
+	end)
+
+	-- Level 50, both in the bags: each pressed in turn from the prompt.
+	with(scenario, { bags = { [LESSER_FLAME] = 2, [SPELLBREAK] = 2 }, held = { RAT_AURA }, level = 50 }, function(ns)
+		local control = findOption(ns.optionsTable, "own_imbue")
+		if not (control and control.set) then
+			fail(scenario, "SKIPPED -- there is no Weapon imbue dropdown")
+			return
+		end
+		local function used(want, guid)
+			if not press(ns, scenario, want, guid, 1295720) then return false end
+			ns.addon:UNIT_SPELLCAST_SUCCEEDED(nil, "player", guid, 1295720)
+			world.enchant = { id = LESSER_FLAME_ENCHANT, left = 3600 }
+			mine(ns)
+			return true
+		end
+		control.set({ "own_imbue" }, "imbuespellbreak")
+		if not used("imbuespellbreak", "Cast-imbue-1") then return end
+		if ns.db.char.ownLast.imbue ~= "imbuespellbreak" then
+			fail(scenario, "a Spellbreak used from the prompt was remembered as " .. tostring(ns.db.char.ownLast.imbue))
+		end
+		world.enchant = nil
+		Mock.advance(5)
+		wipe(ns.tried)
+		control.set({ "own_imbue" }, "imbuelesserflame")
+		if not used("imbuelesserflame", "Cast-imbue-2") then return end
+		if ns.db.char.ownLast.imbue ~= "imbuelesserflame" then
+			fail(scenario, "a Lesser Flame used from the prompt with a Spellbreak in the bags was remembered as "
+				.. tostring(ns.db.char.ownLast.imbue))
+		end
+		-- Automatic tops up the one on, not the other.
+		control.set({ "own_imbue" }, "auto")
+		ns.db.profile.filters.whenBuffed = "refresh"
+		world.enchant = { id = LESSER_FLAME_ENCHANT, left = 120 }
+		Mock.advance(15)
+		wipe(ns.tried)
+		if key(mine(ns)) ~= "imbuelesserflame" then
+			fail(scenario, "two minutes of a level-50 mage's Lesser Flame offered " .. key(mine(ns)))
+		end
+
+		-- A Spellbreak press whose cast is cut short has put nothing on: the
+		-- Lesser Flame used by hand after it is still Lesser Flame.
+		world.enchant = nil
+		control.set({ "own_imbue" }, "imbuespellbreak")
+		if not press(ns, scenario, "imbuespellbreak", "Cast-imbue-3", 1295720) then return end
+		Mock.advance(2.5)
+		ns.addon:UNIT_SPELLCAST_INTERRUPTED(nil, "player", "Cast-imbue-3", 1295720)
+		world.enchant = { id = LESSER_FLAME_ENCHANT, left = 3600 }
+		-- Past the short block the interrupt leaves, which holds every own
+		-- buff back and with it the reading.
+		Mock.advance(2.1)
+		mine(ns)
+		if not lines(ns):find("Weapon imbue: Imbue Lesser Flame is up.", 1, true)
+			or ns.db.char.ownLast.imbue ~= "imbuelesserflame" then
+			fail(scenario, "after a Spellbreak press cut short, the Lesser Flame on was remembered as "
+				.. tostring(ns.db.char.ownLast.imbue))
+		end
+	end)
+end
+
+-- ------------------------------------------------------------------ 13
+-- Spellbreak is named by its item, since its spell is Lesser Flame's. A mage
+-- who has never carried one has never loaded the item, so the client has no
+-- name for it yet: a name of its own stands in, the item is asked for, and
+-- the item's name is taken once the client has it. Never two Lesser Flames
+-- in the dropdown.
+do
+	local scenario = "mage-scrolls: Spellbreak before the client has its item is not named as Lesser Flame"
+	with(scenario, { bags = { [LESSER_FLAME] = 2 }, held = { RAT_AURA }, level = 10,
+		unloaded = { [SPELLBREAK] = true } }, function(ns)
+		local control = findOption(ns.optionsTable, "own_imbue")
+		if not (control and control.values) then
+			fail(scenario, "SKIPPED -- there is no Weapon imbue dropdown")
+			return
+		end
+		local values = control.values()
+		if values.imbuespellbreak == values.imbuelesserflame or values.imbuespellbreak ~= "Imbue Spellbreak" then
+			fail(scenario, ("before the item loaded, Spellbreak reads %s and Lesser Flame %s")
+				:format(tostring(values.imbuespellbreak), tostring(values.imbuelesserflame)))
+		end
+		if not world.requested[SPELLBREAK] then fail(scenario, "the Spellbreak item was never asked for") end
+		control.set({ "own_imbue" }, "imbuespellbreak")
+		if not lines(ns):find("Weapon imbue: you have no Imbue Spellbreak in your bags.", 1, true) then
+			fail(scenario, "picked Spellbreak with none in the bags: /manners debug says " .. lines(ns))
+		end
+		world.unloaded = nil
+		values = control.values()
+		if values.imbuespellbreak ~= "Scroll of Imbue Spellbreak" then
+			fail(scenario, "once the item loaded, Spellbreak reads " .. tostring(values.imbuespellbreak))
+		end
+	end)
+end
+
+-- ------------------------------------------------------------------ 14
+-- A wizard oil running low with top-ups on: no scroll tops it up, so nothing
+-- is offered and /manners debug says the weapon carries an enchant, not that
+-- Automatic has nothing to pick with a Lesser Flame in the bags.
+do
+	local scenario = "mage-scrolls: an oil running low is an enchant on the weapon, not nothing to pick"
+	with(scenario, { bags = { [RAT] = 1, [LESSER_FLAME] = 1 }, held = { RAT_AURA },
+		enchant = { id = OIL, left = 60 } }, function(ns)
+		ns.db.profile.filters.whenBuffed = "refresh"
+		if mine(ns) then fail(scenario, "a wizard oil with a minute left offered " .. key(mine(ns))) end
+		local text = lines(ns)
+		if not text:find("Weapon imbue: your main hand already carries a temporary enchant.", 1, true)
+			or text:find("Automatic has nothing it would pick", 1, true) then
+			fail(scenario, "a wizard oil with a minute left: /manners debug says " .. text)
+		end
+		local diag = findOption(ns.optionsTable, "ownDiag")
+		local shown = diag and diag.name() or ""
+		if not shown:find("Weapon imbue: your main hand already carries a temporary enchant.", 1, true) then
+			fail(scenario, "a wizard oil with a minute left: Diagnostics says " .. flat(shown))
+		end
+	end)
+end
+
+-- ------------------------------------------------------------------ 15
+-- The enchant is read with 12.1's C_PaperDollInfo.GetTemporaryEnchantmentInfo.
+-- GetWeaponEnchantInfo is only Blizzard_Deprecated's shim over it now, there
+-- while loadDeprecationFallbacks is on and reading all three weapon slots per
+-- call: never asked where the client's own call is there, used where it is
+-- not, and with neither the weapon is not read and nothing is offered.
+do
+	local scenario = "mage-scrolls: the enchant is read with the client's own call, the shim only without it"
+	-- Both: the client's own call alone.
+	with(scenario, { bags = { [LESSER_FLAME] = 1 }, held = { RAT_AURA }, api = "both",
+		enchant = { id = LESSER_FLAME_ENCHANT, left = 1800 } }, function(ns)
+		for _ = 1, 3 do
+			Mock.advance(1)
+			ns.addon:Tick()
+		end
+		if mine(ns) then fail(scenario, "with both calls and Lesser Flame on, you were offered " .. key(mine(ns))) end
+		if world.shimReads ~= 0 then
+			fail(scenario, ("GetWeaponEnchantInfo was asked %d times with the client's own call there"):format(
+				world.shimReads))
+		end
+	end)
+	-- The shim alone, the deprecation fallbacks on a client without the new
+	-- call: it still serves.
+	with(scenario, { bags = { [LESSER_FLAME] = 1 }, held = { RAT_AURA }, api = "shim" }, function(ns)
+		if key(mine(ns)) ~= "imbuelesserflame" then
+			fail(scenario, "with GetWeaponEnchantInfo alone and a bare staff, you were offered " .. key(mine(ns)))
+		end
+		world.enchant = { id = LESSER_FLAME_ENCHANT, left = 1800 }
+		if mine(ns) then
+			fail(scenario, "with GetWeaponEnchantInfo alone and Lesser Flame on, you were offered " .. key(mine(ns)))
+		end
+		if ns.db.char.ownLast.imbue ~= "imbuelesserflame" then
+			fail(scenario, "with GetWeaponEnchantInfo alone, Lesser Flame was remembered as "
+				.. tostring(ns.db.char.ownLast.imbue))
+		end
+	end)
+	-- Neither: nothing is known of the weapon, so nothing is offered for it.
+	with(scenario, { bags = { [LESSER_FLAME] = 1 }, held = { RAT_AURA }, api = "none" }, function(ns)
+		if mine(ns) then fail(scenario, "with no call to read the weapon, you were offered " .. key(mine(ns))) end
+		if not lines(ns):find("Weapon imbue: the game will not say whether it is up, so it is not offered.", 1, true) then
+			fail(scenario, "with no call to read the weapon, /manners debug says " .. lines(ns))
+		end
+	end)
+end
+
+-- ------------------------------------------------------------------ 16
+-- A familiar up costs one aura read: a level-12 mage reads the Rat's alone
+-- (a Frog or a Cat scroll asks for a level he does not have), and a mage of
+-- any level reads the one he had up last first. Reading all three best first
+-- was three reads and three pcalls on every scan, fights included.
+do
+	local scenario = "mage-scrolls: a familiar up costs one aura read"
+	with(scenario, { bags = { [RAT] = 1, [LESSER_FLAME] = 1 }, held = { RAT_AURA },
+		enchant = { id = LESSER_FLAME_ENCHANT, left = 1800 } }, function(ns)
+		local familiar = family(ns, "familiar")
+		if not familiar then
+			fail(scenario, "SKIPPED -- no Familiar family for a mage with a Rat scroll")
+			return
+		end
+		-- Nothing remembered, so the level alone keeps the Cat and the Frog
+		-- unread.
+		ns.db.char.ownLast.familiar = nil
+		local before = Mock.counts.auraRead
+		local up, spell = ns.ReadOwnFamily(familiar)
+		if not (up and spell and spell.key == "ratfamiliar") then
+			fail(scenario, "SKIPPED -- the Rat familiar is not read as up: " .. tostring(spell and spell.key))
+		elseif Mock.counts.auraRead - before ~= 1 then
+			fail(scenario, ("a level-12 mage's Rat familiar took %d aura reads, not 1"):format(
+				Mock.counts.auraRead - before))
+		end
+	end)
+	with(scenario, { bags = { [RAT] = 1, [CAT] = 1 }, held = { RAT_AURA }, level = 30,
+		enchant = { id = LESSER_FLAME_ENCHANT, left = 1800 } }, function(ns)
+		local familiar = family(ns, "familiar")
+		if not familiar then
+			fail(scenario, "SKIPPED -- no Familiar family for a mage with Rat and Cat scrolls")
+			return
+		end
+		ns.ReadOwnFamily(familiar)
+		if ns.db.char.ownLast.familiar ~= "ratfamiliar" then
+			fail(scenario, "SKIPPED -- the Rat familiar was not remembered: " .. tostring(ns.db.char.ownLast.familiar))
+			return
+		end
+		local before = Mock.counts.auraRead
+		local up = ns.ReadOwnFamily(familiar)
+		if not up then
+			fail(scenario, "a level-30 mage's Rat familiar, read again, is not up")
+		elseif Mock.counts.auraRead - before ~= 1 then
+			fail(scenario, ("a level-30 mage's Rat familiar, the one he had up last, took %d aura reads, not 1")
+				:format(Mock.counts.auraRead - before))
+		end
+	end)
+end
+
+-- ------------------------------------------------------------------ 17
+-- A scroll's use takes three seconds, and SENT settles the press as the cast
+-- starts. Moving cuts it short (INTERRUPTED, naming the cast) and nothing is
+-- used up: the press is taken back as a refused one is, and the familiar is
+-- offered again once that short block is out, not the imbue in its place for
+-- the whole retry cooldown. The same for the cast failing after the settle's
+-- window, by its guid; a cast the client says succeeded stays settled.
+do
+	local scenario = "mage-scrolls: a scroll's cast cut short is offered again"
+	with(scenario, { bags = { [RAT] = 2, [LESSER_FLAME] = 1 } }, function(ns)
+		ns.db.profile.verbose = true
+		if not press(ns, scenario, "ratfamiliar", "Cast-rat-1", RAT_AURA) then return end
+		if not ns.IsBlocked(ns.UnitFullName("player"), "ratfamiliar") then
+			fail(scenario, "SKIPPED -- the familiar was not given its retry cooldown by the press")
+			return
+		end
+		Mock.advance(2.5)
+		Mock.printed = {}
+		ns.addon:UNIT_SPELLCAST_INTERRUPTED(nil, "player", "Cast-rat-1", RAT_AURA)
+		if not said():find("you were not buffed|r -- the cast was interrupted.", 1, true) then
+			fail(scenario, "an interrupted scroll said: " .. flat(said()))
+		end
+		Mock.advance(2.1)
+		if key(mine(ns)) ~= "ratfamiliar" then
+			fail(scenario, "2 s after the Rat Familiar's cast was interrupted, you were offered " .. key(mine(ns)))
+		end
+
+		-- Failed after the window, by its guid.
+		Mock.advance(5)
+		wipe(ns.tried)
+		if not press(ns, scenario, "ratfamiliar", "Cast-rat-2", RAT_AURA) then return end
+		Mock.advance(2.5)
+		ns.addon:UNIT_SPELLCAST_FAILED(nil, "player", "Cast-rat-2", RAT_AURA)
+		Mock.advance(2.1)
+		if key(mine(ns)) ~= "ratfamiliar" then
+			fail(scenario, "2 s after the Rat Familiar's cast failed, you were offered " .. key(mine(ns)))
+		end
+
+		-- Succeeded: nothing takes it back, not even the same scroll used
+		-- again from the bags and cut short.
+		Mock.advance(5)
+		wipe(ns.tried)
+		if not press(ns, scenario, "ratfamiliar", "Cast-rat-3", RAT_AURA) then return end
+		Mock.advance(3)
+		ns.addon:UNIT_SPELLCAST_SUCCEEDED(nil, "player", "Cast-rat-3", RAT_AURA)
+		Mock.advance(1)
+		ns.addon:UNIT_SPELLCAST_INTERRUPTED(nil, "player", "Cast-rat-4", RAT_AURA)
+		ns.addon:UNIT_SPELLCAST_INTERRUPTED(nil, "player", nil, RAT_AURA)
+		Mock.advance(2.1)
+		if not ns.IsBlocked(ns.UnitFullName("player"), "ratfamiliar") then
+			fail(scenario, "a Rat Familiar cast that succeeded was taken back by a later interrupt")
+		end
+
+		-- A failure naming no cast is no word on this one: the same scroll
+		-- pressed again from a bar mid-cast fails with its spell id too.
+		Mock.advance(15)
+		wipe(ns.tried)
+		if not press(ns, scenario, "ratfamiliar", "Cast-rat-5", RAT_AURA) then return end
+		Mock.advance(0.5)
+		ns.addon:UNIT_SPELLCAST_FAILED(nil, "player", nil, RAT_AURA)
+		Mock.advance(2.1)
+		if not ns.IsBlocked(ns.UnitFullName("player"), "ratfamiliar") then
+			fail(scenario, "a failure naming no cast took back the Rat Familiar being cast")
+		end
+
+		-- A client that names no cast at all: the interrupt is the scroll's by
+		-- its spell while the cast can still be running, and not after.
+		Mock.advance(15)
+		wipe(ns.tried)
+		if not press(ns, scenario, "ratfamiliar", nil, RAT_AURA) then return end
+		Mock.advance(2.5)
+		ns.addon:UNIT_SPELLCAST_INTERRUPTED(nil, "player", nil, RAT_AURA)
+		Mock.advance(2.1)
+		if key(mine(ns)) ~= "ratfamiliar" then
+			fail(scenario, "with no cast guids, 2 s after the Rat Familiar's cast was interrupted, you were offered "
+				.. key(mine(ns)))
+		end
+		Mock.advance(5)
+		wipe(ns.tried)
+		if not press(ns, scenario, "ratfamiliar", nil, RAT_AURA) then return end
+		Mock.advance(7)
+		ns.addon:UNIT_SPELLCAST_INTERRUPTED(nil, "player", nil, RAT_AURA)
+		Mock.advance(2.1)
+		if not ns.IsBlocked(ns.UnitFullName("player"), "ratfamiliar") then
+			fail(scenario, "an interrupt 7 s after the Rat Familiar's three-second cast took the press back")
 		end
 	end)
 end
