@@ -3,8 +3,13 @@
 local _, ns = ...
 local L = ns.L
 local Page = ns.OptionsPage
-local P, S, SP, spGet = Page.P, Page.S, Page.SP, Page.spGet
+local P, SP, spGet = Page.P, Page.SP, Page.spGet
 local spSet, HasClassBuffs, TAB = Page.spSet, Page.HasClassBuffs, Page.TAB
+
+-- The controls a class with nothing to give keeps: the /thank answers being
+-- buffed, which happens to a rogue too, and the header it sits under. Every
+-- other control on the tab is about the line said with a cast.
+local THANKS_ONLY = { speechHeader = true, thankEmote = true }
 
 -- What I say: the social replies to a buff, the /thank and the line that goes
 -- out with a cast. The options window leads the page with Start here's voice
@@ -28,11 +33,12 @@ function Page.BuildSpeechTab()
 	end
 	local function speechOff() return not SP().enabled end
 	local function inCharacter() return ns.InCharacter and ns.InCharacter.Active(SP()) end
-	return {
+	-- Shown to every class: a hunter or a rogue has the /thank alone on it
+	-- (THANKS_ONLY, below).
+	local tab = {
 		type = "group",
 		name = TAB.click,
 		order = 4,
-		hidden = function() return not HasClassBuffs() end,
 		args = {
 			-- Everything on this tab is a line in the macro, a secure
 			-- attribute the fight has frozen: the macro is rebuilt when the
@@ -47,15 +53,14 @@ function Page.BuildSpeechTab()
 
 			speechHeader = { type = "header", name = L["Thanks and speech"], order = 10 },
 			-- The other answer to a favour arriving. Its own get and set:
-			-- pSet restyles the prompt, and this changes nothing on it.
+			-- pSet restyles the prompt, and this changes nothing on it. Live
+			-- with People who buff me off: either switch has the favour noticed.
 			thankEmote = {
 				type = "toggle",
 				name = L["/thank people who buff me"],
 				desc = L["Everyone near you sees it; never in combat or instances, and at most once per person every five minutes."],
 				order = 11,
 				width = "full",
-				-- Nobody is noticed buffing you with that source off.
-				disabled = function() return not S().owed end,
 				get = function() return P().thankEmote end,
 				set = function(_, v) P().thankEmote = v end,
 			},
@@ -246,4 +251,18 @@ function Page.BuildSpeechTab()
 			},
 		},
 	}
+	-- With nothing to give there is no cast for a line to go out with: every
+	-- control but THANKS_ONLY's is hidden on top of its own rule, the fight
+	-- notice too, since nothing left on the page waits for the fight to end.
+	for key, control in pairs(tab.args) do
+		if not THANKS_ONLY[key] then
+			local own = control.hidden
+			control.hidden = function(info)
+				if not HasClassBuffs() then return true end
+				if type(own) == "function" then return own(info) end
+				return own
+			end
+		end
+	end
+	return tab
 end

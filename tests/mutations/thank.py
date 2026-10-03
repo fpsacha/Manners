@@ -6,9 +6,10 @@
 S = "runscenarios.py"
 
 # ------------------------------------------------ the setting
+# Re-anchored: NoteFavour asks the switch now, ThankFavour no longer does.
 mutate("Favours.lua",
-       "\t\tif not (db and db.prompt.thankEmote) then return end\n",
-       "\t\tif not db then return end\n",
+       "\t\tif db.prompt.thankEmote then ns.Guard(\"thank emote\", ThankFavour, seen) end\n",
+       "\t\tns.Guard(\"thank emote\", ThankFavour, seen)\n",
        "thank: the setting is not read",
        expect="an emote was made with the setting off", script=S)
 mutate("Core.lua",
@@ -27,23 +28,29 @@ mutate("Options/Say.lua",
        "thank: the toggle writes nothing",
        expect="the toggle does not switch the setting on", script=S)
 mutate("Options/Say.lua",
-       "\t\t\t\tdisabled = function() return not S().owed end,\n"
+       "\t\t\t\twidth = \"full\",\n"
        "\t\t\t\tget = function() return P().thankEmote end,\n",
+       "\t\t\t\twidth = \"full\",\n"
+       "\t\t\t\tdisabled = function() return not ns.db.profile.sources.owed end,\n"
        "\t\t\t\tget = function() return P().thankEmote end,\n",
-       "thank: the toggle is live with nobody noticed",
-       expect="the toggle is live with People who buffed me off", script=S)
+       "thank: the toggle greyed out with nobody owed",
+       expect="the toggle is greyed out with People who buffed me off", script=S)
 
 # ------------------------------------------------ which favours
+# The /thank answers being buffed, not the debt: each rule the debt has, put
+# on the thank as it used to be, is caught.
 mutate("Favours.lua",
-       "\t\tif reachable then ns.Guard(\"thank emote\", ThankFavour, seen) end\n",
-       "\t\tns.Guard(\"thank emote\", ThankFavour, seen)\n",
-       "thank: a favour the prompt cannot return is thanked",
-       expect="a favour the shout cannot return was thanked", script=S)
+       "\t\tif db.prompt.thankEmote then ns.Guard(\"thank emote\", ThankFavour, seen) end\n",
+       "\t\tif db.prompt.thankEmote and ns.CouldOffer(seen.hasMana, seen.sameParty) then\n"
+       "\t\t\tns.Guard(\"thank emote\", ThankFavour, seen)\n\t\tend\n",
+       "thank: only a favour the prompt can return is thanked",
+       expect="a favour the shout cannot return was not thanked at their nameplate", script=S)
 mutate("Favours.lua",
-       "\t\t\tTellLedger(\"Received\", seen, true)\n",
-       "\t\t\tTellLedger(\"Received\", seen, true)\n\t\t\tThankFavour(seen)\n",
-       "thank: a useless favour is thanked",
-       expect="a favour nothing you cast could return was thanked", script=S)
+       "\t\tif db.prompt.thankEmote then ns.Guard(\"thank emote\", ThankFavour, seen) end\n",
+       "\t\tif db.prompt.thankEmote and ns.CouldOffer(seen.hasMana, true) then\n"
+       "\t\t\tns.Guard(\"thank emote\", ThankFavour, seen)\n\t\tend\n",
+       "thank: a useless favour is not thanked",
+       expect="a favour nothing you cast could return was not thanked", script=S)
 
 # ------------------------------------------------ the emote and its target
 mutate("Favours.lua",
@@ -105,8 +112,8 @@ mutate("Favours.lua",
        "thank: a restricted answer does not hold the limits",
        expect="a restricted answer did not hold the gap", script=S)
 mutate("Commands.lua",
-       "\t\t\t\tthanks.thanked.name, math.floor(now - thanks.thanked.at), thanks.thanked.answer))\n",
-       "\t\t\t\tthanks.thanked.name, math.floor(now - thanks.thanked.at), \"?\"))\n",
+       "\t\t\tthanks.thanked.name, math.floor(now - thanks.thanked.at), thanks.thanked.answer))\n",
+       "\t\t\tthanks.thanked.name, math.floor(now - thanks.thanked.at), \"?\"))\n",
        "thank: debug does not show the game's answer",
        expect="/manners debug does not show what the game answered", script=S)
 mutate("Favours.lua",
@@ -246,17 +253,17 @@ mutate("Favours.lua",
 
 # ------------------------------------------------ /manners debug
 mutate("Commands.lua",
-       "\t\tself:Print(\"  \" .. (db.prompt.thankEmote and L[\"thank with an emote: |cff00ff00on|r\"]\n",
-       "\t\tself:Print(\"  \" .. (true and L[\"thank with an emote: |cff00ff00on|r\"]\n",
+       "\tself:Print(\"  \" .. (db.prompt.thankEmote and L[\"thank with an emote: |cff00ff00on|r\"]\n",
+       "\tself:Print(\"  \" .. (true and L[\"thank with an emote: |cff00ff00on|r\"]\n",
        "thank: debug always says on",
        expect="/manners debug does not say the emote is off", script=S)
 mutate("Commands.lua",
-       "\t\t\t\tthanks.thanked.name, math.floor(now - thanks.thanked.at), thanks.thanked.answer))\n",
-       "\t\t\t\tthanks.thanked.name, math.floor(thanks.thanked.at), thanks.thanked.answer))\n",
+       "\t\t\tthanks.thanked.name, math.floor(now - thanks.thanked.at), thanks.thanked.answer))\n",
+       "\t\t\tthanks.thanked.name, math.floor(thanks.thanked.at), thanks.thanked.answer))\n",
        "thank: debug gives the wrong age",
        expect="/manners debug does not name the last thank", script=S)
 mutate("Commands.lua",
-       "\t\t\t\tthanks.skipped.name, math.floor(now - thanks.skipped.at), thanks.skipped.why))\n",
-       "\t\t\t\tthanks.skipped.name, math.floor(now - thanks.skipped.at), \"?\"))\n",
+       "\t\t\tthanks.skipped.name, math.floor(now - thanks.skipped.at), thanks.skipped.why))\n",
+       "\t\t\tthanks.skipped.name, math.floor(now - thanks.skipped.at), \"?\"))\n",
        "thank: debug does not say why",
        expect="/manners debug does not name the last skip", script=S)

@@ -1132,6 +1132,42 @@ local REPAINT_AFTER = {
 	never = true, allow = true,
 }
 
+-- /manners debug's lines about somebody buffing you being noticed: the walk of
+-- your own buffs, and the /thank it ends in. Said for every class, since a
+-- rogue thanks too and has nothing else here to show it never came.
+local function PrintFavourWatch(self, db, now)
+	local scan = ns.auraScan
+	if scan.doubt then
+		self:Print(("  " .. L["|cffff8080own buffs: last scan not believed (%s)|r -- %d read, baseline %d"])
+			:format(scan.doubt, scan.read, scan.held))
+	elseif not scan.primed then
+		-- Believed, but the baseline waits for two scans that agree:
+		-- silence here means "waiting", not "nobody has buffed you".
+		self:Print(("  " .. L["|cffffd100own buffs: baseline not settled|r -- %d read, waiting for a second scan to agree"])
+			:format(scan.read))
+	else
+		self:Print(("  " .. L["own buffs: %d read, baseline %d"]):format(scan.read, scan.held))
+	end
+	-- In a fight the changes only mark a walk due (Favours.lua, UNIT_AURA), so the
+	-- first number runs ahead; only walks a change asked for are counted, so the
+	-- second is never the larger.
+	self:Print(("    " .. L["%d changes to your auras this session, read in %d walks"])
+		:format(scan.events, scan.walks))
+	-- The emote is untested in game (Favours.lua), so what it last did and
+	-- what it last passed over, with why, is the only report there is.
+	self:Print("  " .. (db.prompt.thankEmote and L["thank with an emote: |cff00ff00on|r"]
+		or L["thank with an emote: |cffff0000off|r"]))
+	local thanks = ns.thankLog or {}
+	if thanks.thanked then
+		self:Print(("    " .. L["last thanked: |cffffffff%s|r, %ds ago (the game answered %s)"]):format(
+			thanks.thanked.name, math.floor(now - thanks.thanked.at), thanks.thanked.answer))
+	end
+	if thanks.skipped then
+		self:Print(("    " .. L["last not thanked: |cffffffff%s|r, %ds ago (%s)"]):format(
+			thanks.skipped.name, math.floor(now - thanks.skipped.at), thanks.skipped.why))
+	end
+end
+
 -- Every command that changes what a press does says, in a fight, that it
 -- "takes effect when this fight ends; until then a press runs the macro
 -- already on the button": the macro is a secure attribute, frozen for the
@@ -1415,6 +1451,8 @@ function addon:HandleSlash(rawInput)
 					:format("|cffffd100" .. L["Myself, when I'm missing my own buff"] .. "|r"))
 			end
 			for _, line in ipairs(ns.MyselfLines(GetTime())) do self:Print("  " .. line) end
+			-- Somebody buffing you is noticed for the /thank all the same.
+			PrintFavourWatch(self, db, GetTime())
 			return
 		end
 		self:Print("C_Secrets: " .. tostring(caps.hasSecrets)
@@ -1481,36 +1519,7 @@ function addon:HandleSlash(rawInput)
 		-- with nothing else on screen to say why.
 		for _, line in ipairs(ns.RefusalLines(now)) do self:Print("  " .. line) end
 
-		local scan = ns.auraScan
-		if scan.doubt then
-			self:Print(("  " .. L["|cffff8080own buffs: last scan not believed (%s)|r -- %d read, baseline %d"])
-				:format(scan.doubt, scan.read, scan.held))
-		elseif not scan.primed then
-			-- Believed, but the baseline waits for two scans that agree:
-			-- silence here means "waiting", not "nobody has buffed you".
-			self:Print(("  " .. L["|cffffd100own buffs: baseline not settled|r -- %d read, waiting for a second scan to agree"])
-				:format(scan.read))
-		else
-			self:Print(("  " .. L["own buffs: %d read, baseline %d"]):format(scan.read, scan.held))
-		end
-		-- In a fight the changes only mark a walk due (Favours.lua, UNIT_AURA), so the
-		-- first number runs ahead; only walks a change asked for are counted, so the
-		-- second is never the larger.
-		self:Print(("    " .. L["%d changes to your auras this session, read in %d walks"])
-			:format(scan.events, scan.walks))
-		-- The emote is untested in game (Favours.lua), so what it last did and
-		-- what it last passed over, with why, is the only report there is.
-		self:Print("  " .. (db.prompt.thankEmote and L["thank with an emote: |cff00ff00on|r"]
-			or L["thank with an emote: |cffff0000off|r"]))
-		local thanks = ns.thankLog or {}
-		if thanks.thanked then
-			self:Print(("    " .. L["last thanked: |cffffffff%s|r, %ds ago (the game answered %s)"]):format(
-				thanks.thanked.name, math.floor(now - thanks.thanked.at), thanks.thanked.answer))
-		end
-		if thanks.skipped then
-			self:Print(("    " .. L["last not thanked: |cffffffff%s|r, %ds ago (%s)"]):format(
-				thanks.skipped.name, math.floor(now - thanks.skipped.at), thanks.skipped.why))
-		end
+		PrintFavourWatch(self, db, now)
 
 		-- The states that keep the prompt off screen while the queue below
 		-- still counts people (BuildQueue does not read them).

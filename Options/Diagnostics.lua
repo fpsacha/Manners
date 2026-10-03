@@ -50,15 +50,16 @@ local function BugReport()
 	end
 
 	-- The settings that change what it does, rather than how it looks. A report
-	-- that leaves these out is a report about the defaults.
+	-- that leaves these out is a report about the defaults. The /thank is one:
+	-- with it on, somebody buffing you is noticed even with owed off.
 	local db = ns.db.profile
 	lines[#lines + 1] = ("enabled=%s buff=%s sources owed/group/strangers/self=%s/%s/%s/%s"
-		.. " whenBuffed=%s targetFirst=%s keepDebts=%s"):format(
+		.. " whenBuffed=%s targetFirst=%s keepDebts=%s thank=%s"):format(
 		tostring(db.enabled), tostring(db.buff.choice),
 		tostring(db.sources.owed), tostring(db.sources.group), tostring(db.sources.strangers),
 		tostring(db.sources.self),
 		tostring(db.filters.whenBuffed), tostring(db.priority.target),
-		tostring(db.timing.keepDebts))
+		tostring(db.timing.keepDebts), tostring(db.prompt.thankEmote))
 	-- "Myself": where, and per family you know its pick and the one last up
 	-- (key=pick/last), which is what Automatic reads.
 	local picks = {}

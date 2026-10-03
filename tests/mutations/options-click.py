@@ -13,9 +13,10 @@ mutate("Options/Say.lua",
        "click: the tab is not fourth",
        expect="the What I say tab is not fourth", script=S)
 
+# Re-anchored: the comment under the switch went with its greying out.
 mutate("Options/Say.lua",
-       "\t\t\t\torder = 11,\n\t\t\t\twidth = \"full\",\n\t\t\t\t-- Nobody is noticed buffing you with that source off.\n",
-       "\t\t\t\torder = 21.2,\n\t\t\t\twidth = \"full\",\n\t\t\t\t-- Nobody is noticed buffing you with that source off.\n",
+       "\t\t\t\torder = 11,\n\t\t\t\twidth = \"full\",\n\t\t\t\tget = function() return P().thankEmote end,\n",
+       "\t\t\t\torder = 21.2,\n\t\t\t\twidth = \"full\",\n\t\t\t\tget = function() return P().thankEmote end,\n",
        "click: /thank back under the lines",
        expect="/thank people who buff me is not first under Thanks and speech", script=S)
 

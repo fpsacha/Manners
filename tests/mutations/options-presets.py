@@ -209,16 +209,17 @@ mutate("Options/Start.lua",
        "presets: group buffs without their reagent",
        expect="the group buffs and their reagent are not said", script=S)
 
-# A /thank that cannot fire summed up as if it could.
+# The /thank summed up as waiting on People who buff me, which it no longer
+# does (Favours.lua, NoteFavour): the old rule put back, each half.
 mutate("Options/Start.lua",
-       "\t\tif S().owed then return L[\"Only /thank.\"] end\n",
-       "\t\tdo return L[\"Only /thank.\"] end\n",
-       "presets: a /thank waiting on favours said as working",
+       "\t\treturn thanks and L[\"Only /thank.\"] or L[\"Silent.\"]\n",
+       "\t\treturn thanks and S().owed and L[\"Only /thank.\"] or L[\"Silent.\"]\n",
+       "presets: a /thank said as waiting on favours",
        expect="with People who buff me off, Just /thank them reads", script=S)
 
 mutate("Options/Start.lua",
-       "\tlocal thankLine = thanks and (S().owed and L[\"Also /thanks people who buff you.\"]\n",
-       "\tlocal thankLine = thanks and (true and L[\"Also /thanks people who buff you.\"]\n",
+       "\tlocal thankLine = thanks and L[\"Also /thanks people who buff you.\"]\n",
+       "\tlocal thankLine = thanks and S().owed and L[\"Also /thanks people who buff you.\"]\n",
        "presets: a line and a /thank waiting on favours",
        expect="with People who buff me off, a line and a /thank reads", script=S)
 

@@ -124,7 +124,9 @@ local TABLE = {
 			fail(scenario, "a warrior's Targeting fold does not hold the note in place of the switch")
 		end
 	end },
-	{ "HUNTER", "general who when appearance profiles diagnostics", function(scenario, ns, UI)
+	-- A hunter and a rogue have What I say for the /thank alone (Options/Say.lua,
+	-- THANKS_ONLY): somebody buffing them is thanked like anybody.
+	{ "HUNTER", "general who when click appearance profiles diagnostics", function(scenario, ns, UI)
 		ns.OpenOptions("general")
 		if UI.RowShown("general.quickWho") or not UI.RowShown("general.quickWhoSummary") then
 			fail(scenario, "a hunter's step 1 is not the own-buff sentence standing in")
@@ -139,7 +141,7 @@ local TABLE = {
 			fail(scenario, "a hunter's header lacks the preview or Snooze")
 		end
 	end },
-	{ "ROGUE", "general profiles diagnostics", function(scenario, ns, UI)
+	{ "ROGUE", "general click profiles diagnostics", function(scenario, ns, UI)
 		ns.OpenOptions("general")
 		if not UI.RowShown("general.noBuffs") then fail(scenario, "a rogue's Start here does not lead with noBuffs") end
 		if shown(UI.header.preview) or shown(UI.header.snooze) then fail(scenario, "a rogue has a preview or Snooze") end

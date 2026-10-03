@@ -1,9 +1,10 @@
--- "Thank them with an emote": a favour the prompt can return answered with
+-- "Thank them with an emote": a favour answered with
 -- C_ChatInfo.PerformEmote("THANK", <their token>) -- DoEmote where the client
--- has only that -- and every reason it is not: off, a fight, an instance, chat
--- held back, a token that no longer holds them, the two throttles, a favour the
--- chat line does not put on the prompt, an emote call that is missing or
--- throws, and one the game answers was restricted.
+-- has only that -- whether or not the prompt could return it, and every reason
+-- it is not: off, a fight, an instance, chat held back, a token that no longer
+-- holds them, the two throttles, an emote call that is missing or throws, and
+-- one the game answers was restricted. A class with nothing to give, and
+-- People who buff me off, are tests/scenarios/thank-everyone.lua's.
 --
 -- Every scenario name starts with "thank:" so the mutations in
 -- tests/mutations/thank.py can name the one that has to catch them.
@@ -402,10 +403,11 @@ do
 end
 
 -- ------------------------------------------------------------------ not on the prompt
--- The chat line's rule: a favour nothing you cast could return, and one only
--- your own party can be reached with, are not thanked.
+-- The /thank answers being buffed, not the debt: a favour nothing you cast
+-- could return, and one only your own party can be reached with, are thanked
+-- like any other. Neither used to be, while the thank rode on the debt.
 do
-	local scenario = "thank: not a favour nothing you cast is any use for"
+	local scenario = "thank: a favour nothing you cast is any use for is thanked all the same"
 	with(scenario, {
 		unitClass = "WARRIOR",
 		globals = { UnitPowerMax = function(unit, ...)
@@ -416,21 +418,21 @@ do
 		local text = favour(ns, "nameplate1", 25289)
 		if not text:find("nothing you cast is any use", 1, true) then
 			fail(scenario, "SKIPPED -- the favour was not the useless kind: " .. text)
-		elseif #emotes > 0 then
-			fail(scenario, "a favour nothing you cast could return was thanked")
+		elseif thanked("nameplate1") ~= 1 then
+			fail(scenario, "a favour nothing you cast could return was not thanked")
 		end
 	end)
 end
 
 -- A warrior's shout reaches the party only: a stranger's favour is kept, not
--- offered, and not thanked; a party member's is thanked at the party token.
--- The mock counts everybody as in your party once you have one, so the
--- stranger is met alone.
+-- offered, and thanked all the same at the nameplate; a party member's is
+-- thanked at the party token. The mock counts everybody as in your party once
+-- you have one, so the stranger is met alone.
 for _, case in ipairs({
 	{ label = "a stranger", unit = "nameplate1", groupSize = 0 },
-	{ label = "a party member", unit = "party1", groupSize = 3, thanks = true },
+	{ label = "a party member", unit = "party1", groupSize = 3, onPrompt = true },
 }) do
-	local scenario = "thank: a shout's favour only from the party (" .. case.label .. ")"
+	local scenario = "thank: a shout's favour is thanked from anybody (" .. case.label .. ")"
 	local shoutKnown = function(ns)
 		local known = {}
 		for _, id in ipairs(ns.FindBuff("WARRIOR", "battleshout").ranks) do known[id] = true end
@@ -444,7 +446,7 @@ for _, case in ipairs({
 	}, function(ns)
 		local text = favour(ns, case.unit)
 		if not noticed(scenario, ns, case.unit, text) then return end
-		if case.thanks then
+		if case.onPrompt then
 			if not text:find("on the prompt", 1, true) then
 				fail(scenario, "SKIPPED -- the party member's favour is not on the prompt: " .. text)
 			elseif thanked("party1") ~= 1 then
@@ -453,8 +455,8 @@ for _, case in ipairs({
 		else
 			if text:find("on the prompt", 1, true) then
 				fail(scenario, "SKIPPED -- the stranger's favour is on the prompt: " .. text)
-			elseif #emotes > 0 then
-				fail(scenario, "a favour the shout cannot return was thanked")
+			elseif thanked("nameplate1") ~= 1 then
+				fail(scenario, "a favour the shout cannot return was not thanked at their nameplate")
 			end
 		end
 	end)
@@ -602,9 +604,12 @@ do
 		if ns.db.profile.prompt.thankEmote ~= false then
 			fail(scenario, "the toggle does not switch the setting off")
 		end
+		-- Live whatever People who buff me says: the /thank has the favour
+		-- noticed on its own (Favours.lua, NoteFavour).
 		ns.db.profile.sources.owed = false
-		if not (type(control.disabled) == "function" and control.disabled()) then
-			fail(scenario, "the toggle is live with People who buffed me off")
+		if control.disabled == true
+			or (type(control.disabled) == "function" and control.disabled()) then
+			fail(scenario, "the toggle is greyed out with People who buffed me off")
 		end
 		ns.db.profile.sources.owed = true
 		ns.db.profile.prompt.thankEmote = "yes"

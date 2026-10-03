@@ -450,28 +450,41 @@ do
 end
 
 -- ------------------------------------------------------------------ summaries 4
--- The /thank answers somebody buffing you; with People who buff me off it can
--- be picked, and the summary says what it is waiting on.
+-- The /thank answers somebody buffing you, with People who buff me on or off
+-- (Favours.lua, NoteFavour), so the summary says it the same either way. It
+-- used to say the /thank waited for that switch, which was true then.
 do
-	local scenario = "presets: a /thank that cannot fire says why"
+	local scenario = "presets: a /thank is said the same with People who buff me off"
 	local ns = session(scenario)
 	if ns then
 		local quick = ns.QuickSetup
-		ns.db.profile.sources.owed = false
-		quick.Apply(quick.VOICE, "thank")
-		local voice = quick.VoiceSummary()
-		if voice == "Only /thank." or not voice:find("|cffffd100People who buff me|r (Who to buff)", 1, true) then
-			fail(scenario, "with People who buff me off, Just /thank them reads " .. voice)
+		-- Just /thank them alone, then a polite line with the /thank on too.
+		local function summaries()
+			quick.Apply(quick.VOICE, "thank")
+			local alone = quick.VoiceSummary()
+			quick.Apply(quick.VOICE, "polite")
+			ns.db.profile.prompt.thankEmote = true
+			return alone, quick.VoiceSummary()
 		end
-		quick.Apply(quick.VOICE, "polite")
-		ns.db.profile.prompt.thankEmote = true
-		voice = quick.VoiceSummary()
-		if voice:find("Also /thanks", 1, true) or not voice:find("People who buff me", 1, true) then
-			fail(scenario, "with People who buff me off, a line and a /thank reads " .. voice)
+		local function saysThanks(voice)
+			return voice:find("Also /thanks people who buff you.", 1, true) ~= nil
+				and not voice:find("People who buff me", 1, true)
+		end
+		ns.db.profile.sources.owed = false
+		local alone, withLine = summaries()
+		if alone ~= "Only /thank." then
+			fail(scenario, "with People who buff me off, Just /thank them reads " .. alone)
+		end
+		if not saysThanks(withLine) then
+			fail(scenario, "with People who buff me off, a line and a /thank reads " .. withLine)
 		end
 		ns.db.profile.sources.owed = true
-		if not quick.VoiceSummary():find("Also /thanks people who buff you.", 1, true) then
-			fail(scenario, "with People who buff me on, the /thank is not said: " .. quick.VoiceSummary())
+		alone, withLine = summaries()
+		if alone ~= "Only /thank." then
+			fail(scenario, "with People who buff me on, Just /thank them reads " .. alone)
+		end
+		if not saysThanks(withLine) then
+			fail(scenario, "with People who buff me on, a line and a /thank reads " .. withLine)
 		end
 		noErrors(scenario, ns)
 	end

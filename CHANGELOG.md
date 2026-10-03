@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+- **/thank people who buff me works on every class**, as somebody asked on
+  CurseForge. A rogue or a hunter, with no buffs to give, can now thank
+  whoever buffs them: their *What I say* page holds that one switch. On every
+  class it now also thanks for a buff you could not have returned, and no
+  longer needs *People who buff me* on, so the switch is never greyed out.
+  The rest is as before: never in a fight or an instance, once per person
+  every five minutes, and only class buffs unless you untick *Ignore shields,
+  heals and trinket procs*.
+- `/manners debug` shows the /thank on every class, and the bug report on
+  *Diagnostics* says whether it is on.
+
 ## 1.6.0
 
 - **A new options window.** Manners has a window of its own in place of the

@@ -313,7 +313,8 @@ explain themselves; this is what their tooltips have no room for.
 - On the left, the pages: *Start here*; *Who to buff*, *Who to skip*, *When
   to offer*, *What I say*, *Look*; *Profiles*, with the profile in use under
   its name, and *Diagnostics*. A page with nothing for your character is left
-  out, so a rogue has *Start here*, *Profiles* and *Diagnostics*. A red dot
+  out, so a rogue has *Start here*, *What I say* (with only the `/thank` on
+  it), *Profiles* and *Diagnostics*. A red dot
   beside a page means something there wants looking at: no key yet, nothing
   that can be offered, *Always offer* picked, a sound set to *None*, a marker
   colour with nothing left to colour, or something broken this session.
@@ -450,7 +451,7 @@ list. They used to be at the bottom of *Who to buff*.
     stays on the prompt this long; somebody it cannot see is let go sooner,
     when *Let them go after* is shorter.
   - *Ignore shields, heals and trinket procs*: only class buffs such as
-    Fortitude count as a favour to return.
+    Fortitude count as a favour to return, or to `/thank`.
   - *Stop sooner if they are probably gone* and *Let them go after (seconds)*
     (45): somebody who buffed you is rarely your target or on a nameplate, so
     all that is known is that they were in range when they buffed you. The
@@ -476,13 +477,15 @@ list. They used to be at the bottom of *Who to buff*.
   polite line*, *In character (fits your race and class)* or *Whisper them a
   thank-you*. It sets the switches under it, and the grey line says what they
   add up to; change one by hand and it reads *Custom (changed by hand)*.
-- */thank people who buff me*: off by default. When somebody buffs you and the
-  prompt can return it, you `/thank` them, and everybody near sees it. Never
-  in a fight or in any instance, at most once per person every five minutes
-  and once every ten seconds in all, so a raid buffing you on the pull is one
-  thank. Greyed out while *People who buff me* is off. Not yet tried in game:
-  `/manners debug` shows the last thank, or why the last one was skipped, and
-  a report of either is welcome.
+- */thank people who buff me*: off by default. When somebody buffs you, you
+  `/thank` them, and everybody near sees it: whether or not you could buff
+  them back, and with *People who buff me* on or off. Never in a fight or in
+  any instance, at most once per person every five minutes and once every ten
+  seconds in all, so a raid buffing you on the pull is one thank. Only class
+  buffs such as Fortitude are thanked while *Ignore shields, heals and trinket
+  procs* is on. A rogue or a hunter, with no buffs to give anybody, has this
+  page with this switch alone on it. `/manners debug` shows the last thank, or
+  why the last one was skipped.
 - *Say a line when I buff someone*: off by default, and then only when you
   buff someone back unless you untick *Only when I buff someone back*. Four
   line sets (Fantasy (general), Polite, Cheeky, Just their name), editable,

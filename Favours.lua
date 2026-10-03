@@ -1,7 +1,8 @@
 -- Manners -- noticing that somebody buffed you: your own auras watched for a
 -- new buff and whoever cast it, and the combat log where the client allows
--- it. What is noticed becomes a debt on Queue.lua's owed table, and, for a
--- player who switched it on, a /thank.
+-- it. What is noticed becomes a debt on Queue.lua's owed table while People
+-- who buff me is on, and, for a player who switched it on, a /thank -- the
+-- one part a class with nothing to give back has too.
 
 local ns = select(2, ...)
 local L = ns.L
@@ -28,12 +29,14 @@ local walkAfterFight = false
 ---------------------------------------------------------------------------
 -- thanking them with an emote
 --
--- "Thank them with an emote" (off by default): a favour NoteFavour files for
--- the prompt is answered with C_ChatInfo.PerformEmote("THANK", <their token>),
--- so the game says "You thank Anna." to you and everybody near. This is
--- UNTESTED IN GAME: the API documents a target name, not a unit token, and
--- whether it is held back like SendChatMessage is an assumption. Every doubt
--- therefore ends in no emote rather than a guess, and a throw is swallowed.
+-- "/thank people who buff me" (off by default): every favour NoteFavour is
+-- handed is answered with C_ChatInfo.PerformEmote("THANK", <their token>), so
+-- the game says "You thank Anna." to you and everybody near. It answers being
+-- buffed, not the debt: whether you could return it, and People who buff me,
+-- play no part, so a rogue thanks too. This is UNTESTED IN GAME: the API
+-- documents a target name, not a unit token, and whether it is held back like
+-- SendChatMessage is an assumption. Every doubt therefore ends in no emote
+-- rather than a guess, and a throw is swallowed.
 ---------------------------------------------------------------------------
 
 local ThankFavour
@@ -114,9 +117,8 @@ do
 		ns.thankLog.skipped = { name = name, at = now, why = why }
 	end
 
+	-- Asked only with the switch on (NoteFavour).
 	ThankFavour = function(seen)
-		local db = addon.db and addon.db.profile
-		if not (db and db.prompt.thankEmote) then return end
 		local now, name = GetTime(), seen.name
 
 		local why = Held()
@@ -327,20 +329,13 @@ do
 		return InCombatLockdown() and true or false
 	end
 
-	-- One favour, filed against the person who was holding the token when the aura
-	-- was read. `seen` comes from Sight and nothing is re-derived from the aura
-	-- here: by now the token may mean somebody else.
-	local function NoteFavour(seen)
-		local db = addon.db and addon.db.profile
-		if not db then return end
-
-		-- With this source off, or the addon off, nothing written here could ever
-		-- reach a prompt; the scan checks too, but the setting can change between
-		-- the sighting and here.
-		if not db.enabled or not db.sources.owed then return end
-
-		-- Nor with nothing castable for anybody (a rogue, a buff not learned, every
-		-- spell switched off, a pin on one not learned): asked as the queue asks it.
+	-- The debt a favour leaves, and the chat line about it, while People who buff
+	-- me is on (NoteFavour asks). `seen` comes from Sight and nothing is
+	-- re-derived from the aura here: by now the token may mean somebody else.
+	local function OweFavour(db, seen)
+		-- Nothing written here could ever reach a prompt with nothing castable for
+		-- anybody (a rogue, a buff not learned, every spell switched off, a pin on
+		-- one not learned): asked as the queue asks it.
 		if #ns.CastableBuffs() == 0 then return end
 		local pinned = ns.PinnedBuff()
 		if pinned and not ns.IsBuffKnown(pinned) then return end
@@ -380,7 +375,7 @@ do
 		-- A warrior's shout reaches the party (in a raid, the subgroup) and
 		-- nobody else, so a stranger who buffed one is kept but not on the
 		-- prompt, and the line says so, naming the subgroup where that is the
-		-- limit. The emote below asks the same.
+		-- limit.
 		local reachable = ns.CouldOffer(hasMana, inParty) ~= nil
 		if speak then
 			-- "On the prompt" only when a prompt can show it: not through a snooze,
@@ -418,11 +413,27 @@ do
 		end
 		-- Written through rather than left to the logout hook: favours are rare.
 		SaveDebts()
-		-- Only a favour the prompt can return, as the chat line has it: the
-		-- useless one returned above, and one only your party could be
-		-- reached with is not thanked either. Guarded and last, so nothing
+	end
+
+	-- One favour, filed against the person who was holding the token when the aura
+	-- was read: a debt while People who buff me is on, and a /thank while its own
+	-- switch is. Either one alone has the scan read who cast it (ScanOwnBuffs,
+	-- watching).
+	local function NoteFavour(seen)
+		local db = addon.db and addon.db.profile
+		if not db then return end
+
+		-- With the addon off nothing is noticed at all; the scan checks too, but
+		-- the setting can change between the sighting and here.
+		if not db.enabled then return end
+
+		-- With this source off, no debt: it could never reach a prompt.
+		if db.sources.owed then OweFavour(db, seen) end
+		-- The /thank answers being buffed, not the debt, so a favour you cannot
+		-- return is thanked, and a rogue or a hunter with nothing to give back
+		-- thanks too. Its rules are ThankFavour's. Guarded and last, so nothing
 		-- in it can cost the debt.
-		if reachable then ns.Guard("thank emote", ThankFavour, seen) end
+		if db.prompt.thankEmote then ns.Guard("thank emote", ThankFavour, seen) end
 	end
 
 	-- One buff landing, seen by two sources that cannot see each other (a log line
@@ -551,9 +562,10 @@ do
 
 		local db = addon.db and addon.db.profile
 		local classOnly = not db or db.sources.owedClassBuffsOnly ~= false
-		-- Whether anything read now could become a favour at all; if not, no
-		-- caster is read (four unit lookups per slot, on every UNIT_AURA).
-		local watching = primed and db and db.enabled and db.sources.owed and true or false
+		-- Whether anything read now could become a debt or a /thank at all; if
+		-- not, no caster is read (four unit lookups per slot, on every UNIT_AURA).
+		local watching = primed and db and db.enabled
+			and (db.sources.owed or db.prompt.thankEmote) and true or false
 
 		local read = 0
 		local refused = false  -- a slot said outright that it would not answer
@@ -757,7 +769,9 @@ do
 		if sourceGUID == nil or sourceGUID == playerGUID then return end
 
 		-- Asked here too so a switched-off source does no per-event work;
-		-- NoteFavour's check is the gate.
+		-- NoteFavour's check is the gate. People who buff me alone, not the
+		-- /thank: a log line has no token to thank at, and a claim made here
+		-- would take the landing from the aura scan, which has one.
 		local db = addon.db and addon.db.profile
 		if not db or not db.enabled or not db.sources.owed then return end
 

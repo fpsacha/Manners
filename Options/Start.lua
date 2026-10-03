@@ -509,14 +509,11 @@ end
 function Quick.VoiceSummary()
 	local sp = SP()
 	local thanks = P().thankEmote
-	-- The /thank answers somebody buffing you, and with People who buff me
-	-- off nobody is noticed doing it: What I say greys the switch out then.
-	local thankLine = thanks and (S().owed and L["Also /thanks people who buff you."]
-		or L["The /thank waits for %s to be on."]:format(Ref(L["People who buff me"], TAB.who)))
+	-- The /thank answers somebody buffing you, whether People who buff me is
+	-- on or not (Favours.lua, NoteFavour).
+	local thankLine = thanks and L["Also /thanks people who buff you."]
 	if not sp.enabled then
-		if not thanks then return L["Silent."] end
-		if S().owed then return L["Only /thank."] end
-		return L["Only /thank."] .. " " .. thankLine
+		return thanks and L["Only /thank."] or L["Silent."]
 	end
 	local set = ns.PHRASE_SETS[sp.presetChoice or "roleplay"]
 	local phrase
@@ -584,13 +581,15 @@ function Page.BuildStartTab()
 				hidden = HasPrompt,
 				-- "Your class has none" and "we could not work out what
 				-- you can cast" look identical from hasClassBuffs alone;
-				-- CLASSES_WITHOUT_BUFFS is what tells them apart.
+				-- CLASSES_WITHOUT_BUFFS is what tells them apart. The /thank
+				-- is named: it is the one thing such a class has here.
 				name = function()
 					if ns.caps.class and ns.CLASSES_WITHOUT_BUFFS[ns.caps.class] then
 						return "\n|cffff8080"
 							.. L["Your class has no buffs it can cast on another player."]
 							.. "|r\n\n"
-							.. L["Manners has nothing to offer here. It is still worth keeping installed on an alt that does."]
+							.. L["Manners can still answer a buff with a /thank: %s. And it is worth keeping installed on an alt that has buffs."]
+								:format(Ref(L["/thank people who buff me"], TAB.click))
 							.. "\n"
 					end
 					-- The command is handed in rather than written into the

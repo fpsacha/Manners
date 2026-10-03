@@ -112,8 +112,10 @@ do
 			if not optionText(thank.desc):find("at most once per person every five minutes", 1, true) then
 				fail(scenario, "the /thank toggle does not say how often it thanks")
 			end
+			-- Live with People who buff me off: the /thank has the favour
+			-- noticed on its own.
 			ns.db.profile.sources.owed = false
-			if live(thank) then fail(scenario, "the /thank toggle is live with People who buff me off") end
+			if not live(thank) then fail(scenario, "the /thank toggle is greyed out with People who buff me off") end
 			ns.db.profile.sources.owed = true
 		end
 		noErrors(scenario, ns)
@@ -121,16 +123,28 @@ do
 end
 
 -- ------------------------------------------------------------------ rogue
+-- Somebody buffing a rogue is thanked like anybody (Favours.lua), so the tab
+-- is there for the /thank, and only for it: every line is said with a cast.
 do
-	local scenario = "click tab: hidden for a class with nothing to cast"
+	local scenario = "click tab: a class with nothing to cast keeps only the /thank"
 	local ns = session(scenario, "ROGUE")
 	local click = ns and tab(ns)
 	if click then
 		if ns.caps.hasClassBuffs then
 			fail(scenario, "SKIPPED -- the rogue has class buffs here")
-		elseif shown(click) then
-			fail(scenario, "What I say shows for a rogue, who has nothing to say it with")
+		elseif not shown(click) then
+			fail(scenario, "What I say is hidden from a rogue, who can still /thank")
+		else
+			for key, control in pairs(click.args) do
+				local keep = key == "thankEmote" or key == "speechHeader"
+				if keep and not shown(control) then
+					fail(scenario, key .. " is hidden from a rogue")
+				elseif not keep and shown(control) then
+					fail(scenario, key .. " shows for a rogue, who has no cast to say it with")
+				end
+			end
 		end
+		noErrors(scenario, ns)
 	end
 end
 
