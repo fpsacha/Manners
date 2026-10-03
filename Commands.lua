@@ -539,7 +539,7 @@ ns.SHARE_PREFIX = "MNR1:"
 local SHARE_VERSION = 1
 -- A ceiling on the work a hostile string can ask for, set well above what a
 -- real profile holds (a long phrase box included), so the player's own export
--- and an import's undo always read back. /manners export warns past it.
+-- always reads back. /manners export warns past it.
 local SHARE_MAX = 64000
 
 -- Everything below is private to this block and reached through ns, for the
@@ -654,7 +654,11 @@ do
 	-- Anything but letters, digits and a little punctuation is written as %XX, and
 	-- a space as +: no separator (; = : ,) or chat escape (|) survives, and with
 	-- no spaces a line break a text box inserts can be stripped on the way in.
+	-- A line break goes as LF alone, and no other control character goes at all:
+	-- DecodeText refuses them, and a CR in the phrase box (a saved file can hold
+	-- one) made the player's own export a string nothing could read.
 	local function EncodeText(s)
+		s = s:gsub("\r\n?", "\n"):gsub("[%z\1-\8\11-\31\127]", "")
 		return (s:gsub("[^%w_%.%-!%?'%(%){}/ ]", function(c)
 			return ("%%%02X"):format(c:byte())
 		end):gsub(" ", "+"))
@@ -666,6 +670,9 @@ do
 		local text = s:gsub("%+", " "):gsub("%%(%x%x)", function(hex)
 			return string.char(tonumber(hex, 16))
 		end)
+		-- A CR is a line break too: up to 1.6.1 an export wrote the phrase box's
+		-- CRs as they were, and that string is still the player's own.
+		text = text:gsub("\r\n?", "\n")
 		-- No control characters, except a line break (one phrase per line) and a
 		-- tab, which a text box takes and ExportSettings therefore writes.
 		for i = 1, #text do
@@ -844,7 +851,7 @@ do
 		return Parse(text, SHARE_MAX)
 	end
 
-	-- The settings the last import replaced, as a settings string, for this
+	-- The settings the last import replaced, in the shape Parse returns, for this
 	-- session, and the profile they came off: its table (AceDB hands back the same
 	-- table on returning to a profile) and its name, for the line that says so.
 	local lastImportUndo, undoProfile, undoProfileName
@@ -930,7 +937,15 @@ do
 		local parsed, err = ns.ParseSettings(text)
 		if not parsed then return false, err end
 
-		local undo = ns.ExportSettings()
+		-- Copied off the profile, never written out as a string to be read back
+		-- later: a string that would not read (a CR from a saved file did it)
+		-- was found out only at the undo, after the import had written over
+		-- everything. This is the player's settings exactly, whatever they hold.
+		local undo = { values = {} }
+		for _, field in ipairs(ShareFields()) do
+			local holder = Holder(profile, field.path)
+			if holder then undo.values[field.name] = CopyValue(holder[field.key]) end
+		end
 		local kept = ApplySettings(profile, parsed, false)
 		lastImportUndo, undoProfile, undoProfileName = undo, profile, ProfileName()
 
@@ -979,15 +994,9 @@ do
 			end
 			return false, L["nothing to undo on this profile -- the last import was made on another one. Switch back to it to undo it."]
 		end
-		-- Read back through the same checks as any string, except the length
-		-- ceiling, which is for strings from strangers.
-		local parsed = Parse(lastImportUndo, math.huge)
+		local undo = lastImportUndo
 		lastImportUndo = nil
-		if not parsed then
-			-- Not "nothing to undo": there was one, and it could not be read.
-			return false, L["your settings from before the import could not be read back, so they were not restored."]
-		end
-		ApplySettings(profile, parsed, true)
+		ApplySettings(profile, undo, true)
 		if InCombatLockdown() then
 			return true, L["your settings from before the import are back. The prompt's look changes when this fight ends."]
 		end

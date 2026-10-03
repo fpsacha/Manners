@@ -17,6 +17,14 @@
 - **A pasted settings string no longer switches on /thank** without a word;
   it says so and leaves it off.
 - `/manners macro` clears Start here's "No key yet" line at once.
+- **`/manners import undo` always puts your settings back.** With a stray
+  carriage return in your phrase box, the undo was refused and the pasted
+  settings stayed, and your own `/manners export` could not be imported.
+  Both work now, and so does a string 1.6.1 exported from such a box.
+- **The options window opens even if its saved place is damaged.** A place
+  the game cannot put a window at, in a damaged or hand-edited saved file,
+  left you with the old options dialog at every login. The window now opens
+  in the middle of the screen.
 - **Party and Raid speak only in a party or a raid.** With *Where to say it*
   on Party or Raid, the line went out while you were in no party (or no
   raid), reached nobody, and the game answered every press with "You aren't
@@ -33,6 +41,32 @@
 - **A mage's imbue is topped up by its twin.** Spellbreak and Lesser Flame put
   the same enchant on your staff: with the one you used last gone from your
   bags, the other now tops it up, where nothing was offered until it wore off.
+- **No line in a fight.** Every press in a fight repeats the macro set when
+  it began, so the line went out again on each press, even after the favour
+  was returned. The buff still goes out, and the line comes back when the
+  fight ends.
+- **No thank-you to somebody who has just died.** A press in the moment the
+  prompt still showed them said the line while the game refused the buff.
+- **Nobody is owed or buffed as "Unknown".** A player whose name the game
+  had not loaded yet was filed under that name: owed for their buff,
+  offered ahead of the real person for ten seconds, and a press at them
+  targeted nobody.
+- **Your own buff is not cast again while the game hides it**, as it can in
+  a battleground. A buff Manners was not allowed to see read as missing, so
+  every press cast it again.
+- **A prompt with nothing left to cast is disarmed.** When the game briefly
+  reported no spells known, the prompt hid but its key still cast at the
+  last person on it, switched off or snoozed, and through the next fight.
+- **Manners works with the game's old-API fallbacks switched off**
+  (`/console loadDeprecationFallbacks 0`). It read every class as knowing
+  no spells, and did nothing.
+- **The ledger's "today"** no longer counts favours written while your
+  computer's clock ran ahead, on every day until that date came round.
+- **A damaged colour in your saved settings is repaired at login**, where it
+  broke the prompt's look at every login and on a switch to that profile.
+- Less work in busy places: a chat line in Russian, Korean or Chinese, with
+  *People who ask me in chat* on, no longer costs hundreds of comparisons;
+  nor do the people who asked while they stand near; nor a raid lying dead.
 - Toast and Arcane no longer measure the name and the count again on every
   repaint.
 

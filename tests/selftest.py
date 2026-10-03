@@ -2982,8 +2982,8 @@ mutate("Core.lua",
 
 # ...and a profile switch that carries one not saying so.
 mutate("Core.lua",
-       "\tns.SayAnchorCarried()\n\tns.Prompt:ApplyStyle()\n",
-       "\tns.Prompt:ApplyStyle()\n",
+       "\tns.SayAnchorCarried()\n\t-- Guarded like the login's",
+       "\t-- Guarded like the login's",
        "a carried anchor on a switch moved in silence",
        expect="a profile switch moved the prompt onto a new anchor",
        script="runscenarios.py")

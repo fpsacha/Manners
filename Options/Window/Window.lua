@@ -440,12 +440,30 @@ end
 -- the frame
 ---------------------------------------------------------------------------
 
+-- The anchors SetPoint takes. Any other name throws, and a window that cannot
+-- be placed is a window that never opens.
+local ANCHORS = {
+	CENTER = true, TOP = true, BOTTOM = true, LEFT = true, RIGHT = true,
+	TOPLEFT = true, TOPRIGHT = true, BOTTOMLEFT = true, BOTTOMRIGHT = true,
+}
+
+-- An offset some screen has, as the ledger window judges its own.
+local function Offset(v)
+	return type(v) == "number" and v == v and math.abs(v) < 10000
+end
+
+-- Where it was left, unless the saved file says something SetPoint cannot
+-- take (a hand edit, a damaged file): then the centre, and the saved place is
+-- forgotten, so it is not met again at every login.
 local function Place(f)
 	local s = UI.State()
 	f:ClearAllPoints()
-	if type(s.point) == "string" and type(s.x) == "number" and type(s.y) == "number" then
-		f:SetPoint(s.point, UIParent, type(s.relPoint) == "string" and s.relPoint or s.point, s.x, s.y)
+	local relPoint = s.relPoint
+	if relPoint == nil then relPoint = s.point end
+	if ANCHORS[s.point] and ANCHORS[relPoint] and Offset(s.x) and Offset(s.y) then
+		f:SetPoint(s.point, UIParent, relPoint, s.x, s.y)
 	else
+		s.point, s.relPoint, s.x, s.y = nil, nil, nil, nil
 		f:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
 	end
 end

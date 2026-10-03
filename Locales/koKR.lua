@@ -281,7 +281,6 @@ L["|cffffd100/manners import undo|r puts your old settings back."] = "|cffffd100
 L["nothing to undo -- no settings have been imported on this profile this session."] = "취소할 것이 없습니다 -- 이번 접속 중 이 프로필에 가져온 설정이 없습니다."
 L["nothing to undo on this profile -- the last import was made on profile %s. Switch back to it to undo it."] = "이 프로필에는 취소할 것이 없습니다 -- 마지막 가져오기는 %s 프로필에서 했습니다. 취소하려면 그 프로필로 다시 전환하세요."
 L["nothing to undo on this profile -- the last import was made on another one. Switch back to it to undo it."] = "이 프로필에는 취소할 것이 없습니다 -- 마지막 가져오기는 다른 프로필에서 했습니다. 취소하려면 그 프로필로 다시 전환하세요."
-L["your settings from before the import could not be read back, so they were not restored."] = "가져오기 전의 설정을 다시 읽을 수 없어 복원하지 못했습니다."
 L["your settings from before the import are back. The prompt's look changes when this fight ends."] = "가져오기 전의 설정을 복원했습니다. 알림창 모양은 이 전투가 끝나면 바뀝니다."
 L["your settings from before the import are back."] = "가져오기 전의 설정을 복원했습니다."
 L["Everyday"] = "자주 쓰는 명령"

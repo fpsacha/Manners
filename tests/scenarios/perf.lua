@@ -106,21 +106,33 @@ Mock.reset()
 -- is an answer to a different question -- so a different compare throws them
 -- away. The one below says no to everything, which is what a compare that has
 -- stopped folding case looks like from here.
+--
+-- The name holds an accented capital, written as its bytes: two names in A to
+-- Z are compared by string.lower alone, which folds them all, so only a name
+-- in another script asks the client's compare at all.
 Mock.reset()
 do
 	local scenario = "a different name compare throws the never-offer answers away"
-	local restoreUnits = strangers({ nameplate1 = { "Anna", "Aim" } })
+	local ANNA = "\195\129nna Aim"
+	local restoreUnits = strangers({ nameplate1 = { "\195\129nna", "Aim" } })
 	with(scenario, function()
 		local ns = load(scenario)
 		if not ns then return end
+		-- The client's compare, folding the one capital in play as well.
+		strcmputf8i = function(a, b)
+			a = a:gsub("\195\129", "\195\161"):lower()
+			b = b:gsub("\195\129", "\195\161"):lower()
+			if a == b then return 0 end
+			return a < b and -1 or 1
+		end
 		freshPrompt(ns, scenario)
-		ns.db.profile.never["anna aim"] = true
-		if inQueue(ns)["Anna Aim"] then
+		ns.db.profile.never["\195\161nna aim"] = true
+		if inQueue(ns)[ANNA] then
 			fail(scenario, "SKIPPED -- a name listed in another case was offered to begin with")
 			return
 		end
 		strcmputf8i = function() return 1 end
-		if not inQueue(ns)["Anna Aim"] then
+		if not inQueue(ns)[ANNA] then
 			fail(scenario, "the list was matched with the compare the client no longer has")
 		end
 		noErrors(scenario, ns)

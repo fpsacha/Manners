@@ -54,9 +54,14 @@ mutate("Commands.lua",
        script="runscenarios.py")
 
 # core-5: the undo read back under the ceiling meant for strangers' strings.
+# Re-anchored: the undo is copied off the profile now, never a string.
 mutate("Commands.lua",
-       "\tlocal parsed = Parse(lastImportUndo, math.huge)\n",
-       "\tlocal parsed = Parse(lastImportUndo, SHARE_MAX)\n",
+       "\t\tlocal undo = { values = {} }\n"
+       "\t\tfor _, field in ipairs(ShareFields()) do\n"
+       "\t\t\tlocal holder = Holder(profile, field.path)\n"
+       "\t\t\tif holder then undo.values[field.name] = CopyValue(holder[field.key]) end\n"
+       "\t\tend\n",
+       "\t\tlocal undo = ns.ParseSettings(ns.ExportSettings())\n",
        "import undo read under the paste ceiling",
        expect="core: a long profile's export and its import undo read back (more than any string can hold): the phrase box did not come back",
        script="runscenarios.py")

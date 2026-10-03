@@ -281,7 +281,6 @@ L["|cffffd100/manners import undo|r puts your old settings back."] = "输入|cff
 L["nothing to undo -- no settings have been imported on this profile this session."] = "没有可撤销的内容——本次会话中此配置文件没有导入过设置。"
 L["nothing to undo on this profile -- the last import was made on profile %s. Switch back to it to undo it."] = "此配置文件没有可撤销的内容——上次导入是在配置文件%s上进行的。切换回该配置文件即可撤销。"
 L["nothing to undo on this profile -- the last import was made on another one. Switch back to it to undo it."] = "此配置文件没有可撤销的内容——上次导入是在另一个配置文件上进行的。切换回该配置文件即可撤销。"
-L["your settings from before the import could not be read back, so they were not restored."] = "无法读回导入前的设置，所以未能恢复。"
 L["your settings from before the import are back. The prompt's look changes when this fight ends."] = "导入前的设置已恢复。提示框的外观将在本场战斗结束后改变。"
 L["your settings from before the import are back."] = "导入前的设置已恢复。"
 L["Everyday"] = "日常"

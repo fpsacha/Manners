@@ -69,10 +69,17 @@ end
 -- that armed the macro can be a tick old, and a macro runs every line even
 -- when its /cast fails (beta.8: two thank-yous, no buff). Only a unit token
 -- still naming them is asked; a recycled one says nothing about them, and an
--- unknown answer keeps the line, as the scan's does.
+-- unknown answer keeps the line, as the scan's does. Somebody who has died
+-- since the scan is out of reach too: the hold and the empty-queue fuse keep
+-- them on the panel a moment, and a range check measures distance, not life,
+-- so the press thanked a corpse while the game refused the cast.
 local function OutOfReachNow(entry)
 	if not (entry and entry.unit and entry.buff and entry.name) then return false end
 	if ns.UnitFullName(entry.unit) ~= entry.name then return false end
+	local deadOrGhost = _G.UnitIsDeadOrGhost
+	if type(deadOrGhost) == "function" and ns.plain(deadOrGhost(entry.unit)) == true then
+		return true
+	end
 	return ns.ReachNow(entry.unit, entry.buff) == false
 end
 

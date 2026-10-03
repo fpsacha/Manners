@@ -269,13 +269,18 @@ mutate("Commands.lua",
        script="runscenarios.py")
 
 # The undo run as an import, the way it first was: it keeps the settings it
-# replaced as a new undo, so a second undo puts the import back -- and the
-# first says "settings imported" and tells the player to undo it.
+# replaced as a new undo, so a second undo puts the import back.
 mutate("Commands.lua",
-       "\t\tlocal parsed = Parse(lastImportUndo, math.huge)\n"
-       "\t\tlastImportUndo = nil\n",
-       "\t\tdo return ns.ImportSettings(lastImportUndo) end\n"
-       "\t\tlocal parsed\n",
+       "\t\tlocal undo = lastImportUndo\n"
+       "\t\tlastImportUndo = nil\n"
+       "\t\tApplySettings(profile, undo, true)\n",
+       "\t\tlocal undo, now = lastImportUndo, { values = {} }\n"
+       "\t\tfor _, field in ipairs(ShareFields()) do\n"
+       "\t\t\tlocal holder = Holder(profile, field.path)\n"
+       "\t\t\tif holder then now.values[field.name] = CopyValue(holder[field.key]) end\n"
+       "\t\tend\n"
+       "\t\tApplySettings(profile, undo, true)\n"
+       "\t\tlastImportUndo, undoProfile = now, profile\n",
        "an undo that can be run twice",
        expect="a second /manners import undo",
        script="runscenarios.py")

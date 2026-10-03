@@ -183,10 +183,13 @@ do
 
 	-- Two words the same, regardless of case. Words only folds A to Z, so a
 	-- Russian or a Greek word typed in another case is folded by the client's
-	-- own strcmputf8i where there is one, as SameName folds names.
+	-- own strcmputf8i where there is one, as SameName folds names. Only when
+	-- both are in another script: an English word is already folded, so it
+	-- matches by equality alone, and asking strcmputf8i of every English word
+	-- on every list cost a Russian line seven hundred calls.
 	local function SameWord(a, b)
 		if a == b then return true end
-		if not a:find("[\128-\255]") then return false end
+		if not a:find("[\128-\255]") or not b:find("[\128-\255]") then return false end
 		local caseless = _G.strcmputf8i
 		if type(caseless) ~= "function" then return false end
 		local ok, cmp = pcall(caseless, a, b)

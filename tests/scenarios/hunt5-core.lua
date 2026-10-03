@@ -198,6 +198,10 @@ Mock.reset()
 -- ------------------------------------------------------------------ core-4
 -- Putting one name on a long list while many favours are owed compares each
 -- favour with that one name, not with the whole list.
+--
+-- The listed names hold an accented letter (its two bytes written out): two
+-- names in A to Z are compared by string.lower alone, without the client's
+-- compare, so only names in another script are counted here.
 Mock.reset()
 do
 	local scenario = "core: one name put on a long list costs one compare per favour"
@@ -215,14 +219,17 @@ do
 		wipe(ns.owed)
 		ns.ClearNeverList()
 		local never = ns.db.profile.never
-		for i = 1, 500 do never["Listed" .. i .. " Name"] = true end
+		for i = 1, 500 do never["L\195\173sted" .. i .. " Name"] = true end
 		for i = 1, 300 do
 			ns.owed["Owed" .. i .. " Name"] = { expires = GetTime() + 100, at = GetTime(), class = "PRIEST" }
 		end
 		ns.owed["Petra Stonewell"] = { expires = GetTime() + 100, at = GetTime(), class = "PRIEST" }
 		ns.owed["Anna Aim-Realm"] = { expires = GetTime() + 100, at = GetTime(), class = "PRIEST" }
 		calls = 0
-		ns.PutOnNeverList("Somebody Else")
+		ns.PutOnNeverList("S\195\179mebody Else")
+		if calls == 0 then
+			fail(scenario, "SKIPPED -- listing a name in another script asked no compare at all")
+		end
 		if calls >= 2000 then
 			fail(scenario, ("one name put on the list took %d compares"):format(calls))
 		end

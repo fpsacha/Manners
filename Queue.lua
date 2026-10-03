@@ -417,11 +417,15 @@ end
 
 -- Whether a listed name matches, regardless of case, since names are typed by
 -- hand. Folded by the client's strcmputf8i where there is one (string.lower
--- leaves accented capitals alone); plain lower is the fallback.
+-- leaves accented capitals alone); plain lower is the fallback, and all there
+-- is to it for two names in A to Z. The scan asks this of every asker it
+-- remembers against every request on every pass, so the pcall is kept for a
+-- name that needs it.
 local function SameName(a, b)
 	if not b then return false end
+	if a == b then return true end
 	local fold = _G.strcmputf8i
-	if type(fold) == "function" then
+	if type(fold) == "function" and (a:find("[\128-\255]") or b:find("[\128-\255]")) then
 		local ok, cmp = pcall(fold, a, b)
 		if ok and type(cmp) == "number" then return cmp == 0 end
 	end
@@ -922,12 +926,18 @@ function ns.WatchGroupDeaths(now)
 	end
 	local tokens = GROUP_TOKENS[prefix]
 	local count = math.min(inRaid and n or (n - 1), 40)
+	-- Called directly, as UnitIsDeadOrGhost is: a group token never throws.
+	local feigning = _G.UnitIsFeignDeath
+	if type(feigning) ~= "function" then feigning = nil end
 	for i = 1, count do
 		local unit = tokens[i]
 		local dead = plain(UnitIsDeadOrGhost(unit))
 		-- A hunter's Feign Death reads as dead here, and standing up from it
 		-- costs no buffs: taken as no answer, so nothing about them changes.
-		if dead == true and plain(safecall(_G.UnitIsFeignDeath, unit)) == true then
+		-- Asked only of somebody not yet down: for one already down either
+		-- answer leaves them so, and a wiped raid lying dead asked it of
+		-- every one of them on every tick.
+		if dead == true and down[unit] == nil and feigning and plain(feigning(unit)) == true then
 			dead = nil
 		end
 		if dead == true then

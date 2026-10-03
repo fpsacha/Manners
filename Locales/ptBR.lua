@@ -281,7 +281,6 @@ L["|cffffd100/manners import undo|r puts your old settings back."] = "|cffffd100
 L["nothing to undo -- no settings have been imported on this profile this session."] = "nada para desfazer -- nenhuma configuração foi importada neste perfil nesta sessão."
 L["nothing to undo on this profile -- the last import was made on profile %s. Switch back to it to undo it."] = "nada para desfazer neste perfil -- a última importação foi feita no perfil %s. Volte para ele para desfazê-la."
 L["nothing to undo on this profile -- the last import was made on another one. Switch back to it to undo it."] = "nada para desfazer neste perfil -- a última importação foi feita em outro perfil. Volte para ele para desfazê-la."
-L["your settings from before the import could not be read back, so they were not restored."] = "não foi possível ler de volta suas configurações de antes da importação, então elas não foram restauradas."
 L["your settings from before the import are back. The prompt's look changes when this fight ends."] = "suas configurações de antes da importação voltaram. O visual do lembrete muda quando este combate terminar."
 L["your settings from before the import are back."] = "suas configurações de antes da importação voltaram."
 L["Everyday"] = "Dia a dia"

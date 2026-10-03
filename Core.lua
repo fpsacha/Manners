@@ -418,11 +418,29 @@ end
 
 -- The probe's helpers, in a block of their own for the main chunk's 200 locals.
 do
+	-- Whether you know spell `id`. The client's own calls first: Forever
+	-- 1.60.1 keeps IsSpellKnown and IsPlayerSpell only as shims, in
+	-- Blizzard_DeprecatedSpellBook, behind the loadDeprecationFallbacks
+	-- setting; with that off both are gone and every class read as knowing
+	-- nothing. These are the two calls the shims make. Only the probe asks,
+	-- never a busy path.
+	local function SpellKnown(id)
+		local book = C_SpellBook
+		if type(book) == "table" then
+			local bank = Enum and Enum.SpellBookSpellBank and Enum.SpellBookSpellBank.Player or 0
+			if safecall(book.IsSpellInSpellBook, id, bank, false) == true
+				or safecall(book.IsSpellKnown, id, bank) == true then
+				return true
+			end
+		end
+		return safecall(_G.IsSpellKnown, id) == true or safecall(_G.IsPlayerSpell, id) == true
+	end
+
 	local function ProbeBuff(buff)
 		local info = { key = buff.key, buff = buff }
 
 		for _, id in ipairs(buff.ranks) do
-			if safecall(_G.IsSpellKnown, id) == true or safecall(_G.IsPlayerSpell, id) == true then
+			if SpellKnown(id) then
 				info.known = true
 				info.topRank = info.topRank or id
 				-- For your own buffs, every name a rank you know goes by: the
@@ -438,14 +456,14 @@ do
 			end
 		end
 		for _, id in ipairs(buff.group or {}) do
-			if safecall(_G.IsSpellKnown, id) == true or safecall(_G.IsPlayerSpell, id) == true then
+			if SpellKnown(id) then
 				info.knownGroup = true
 			end
 		end
 		-- The one-cast-for-the-party version: the best rank known, since the
 		-- macro casts by name and the game picks that one, and so its reagent.
 		for _, rank in ipairs(buff.groupCast or {}) do
-			if safecall(_G.IsSpellKnown, rank.id) == true or safecall(_G.IsPlayerSpell, rank.id) == true then
+			if SpellKnown(rank.id) then
 				info.groupRank, info.groupReagent = rank.id, rank.reagent
 				info.groupName = SpellNameFor(rank.id)
 				info.groupIcon = safecall(C_Spell and C_Spell.GetSpellTexture, rank.id)
@@ -1254,6 +1272,19 @@ do
 		return issecretvalue ~= nil and issecretvalue(value) == true
 	end
 
+	-- Whether an aura read that came back empty may only be hiding it. The
+	-- reads by id and by name hand back nothing at all for an aura the client
+	-- keeps secret just now (a battleground match, say), so a buff you are
+	-- wearing read as missing and every press cast it again. Asked of the
+	-- client at read time, not the probe's note: the restriction can start
+	-- after the probe ran. Only for an empty read, so a buff that reads as up
+	-- costs nothing; called directly, since a spell id never throws.
+	local function HiddenAura(id)
+		local secrets = C_Secrets
+		local ask = secrets and secrets.ShouldSpellAuraBeSecret
+		return type(ask) == "function" and plain(ask(id)) == true
+	end
+
 	-- Seconds left, nil for no timer: a toggle, or one the game hides.
 	local function Left(aura, now)
 		local expires = plain(aura.expirationTime)
@@ -1405,6 +1436,8 @@ do
 					elseif type(aura) == "table" and FromYou(aura) ~= false then
 						Remember(family, spell)
 						return true, spell, Left(aura, now)
+					elseif aura == nil and not refused and HiddenAura(id) then
+						refused = true
 					end
 				end
 			end
@@ -1461,6 +1494,8 @@ do
 					elseif type(aura) == "table" and FromYou(aura) ~= false then
 						Remember(family, spell)
 						return true, spell, Left(aura, now)
+					elseif aura == nil and not refused and HiddenAura(id) then
+						refused = true
 					end
 				end
 			end
@@ -1926,8 +1961,15 @@ ns.SafeForMacro = SafeForMacro
 -- with a space (verified in game); elsewhere a realm, joined with a dash as
 -- the game does. nil for a name withheld or unsafe for macro text. The aura
 -- scan and the combat log both file through here.
+--
+-- nil too for the client's stand-in for a name it has not loaded yet
+-- (UNKNOWNOBJECT, "Unknown" in English): that is nobody. Filed, it was owed,
+-- offered for ten seconds as a passer-by, and armed as "/target Unknown",
+-- which finds nobody and leaves the /cast to whoever is targeted. The name
+-- arrives a moment later, and they are somebody then.
 local function JoinName(name, second)
 	if not name then return nil end
+	if name == (plain(_G.UNKNOWNOBJECT) or "Unknown") then return nil end
 
 	local full = name
 	if second and second ~= "" then
@@ -2272,12 +2314,22 @@ function ns.ClampSettings()
 	end
 
 	-- Colours are read as four numbers unchecked; repaired with a copy, as above.
+	-- The alpha too, which may be absent (opaque) but nothing else: every look
+	-- does arithmetic on it. A channel past 0..1 is put back inside, as an
+	-- imported colour is.
+	local function channel(v)
+		return type(v) == "number" and v == v
+	end
 	for _, key in ipairs({ "fontColor", "bgColor", "accentColor" }) do
 		local c = p[key]
-		if type(c) ~= "table" or type(c[1]) ~= "number" or type(c[2]) ~= "number"
-			or type(c[3]) ~= "number" then
+		if type(c) ~= "table" or not channel(c[1]) or not channel(c[2]) or not channel(c[3])
+			or (c[4] ~= nil and not channel(c[4])) then
 			local d = ns.defaults.profile.prompt[key]
 			p[key] = { d[1], d[2], d[3], d[4] }
+		else
+			for i = 1, 4 do
+				if c[i] ~= nil then c[i] = math.min(math.max(c[i], 0), 1) end
+			end
 		end
 	end
 end
@@ -2508,7 +2560,9 @@ function addon:RefreshConfig(event)
 	ns.Guard("ClampSettings", ns.ClampSettings)
 	-- A profile switched to may just have been carried over; chat exists now.
 	ns.SayAnchorCarried()
-	ns.Prompt:ApplyStyle()
+	-- Guarded like the login's: a profile the clamp could not mend must not
+	-- take the scanner below with it.
+	ns.Guard("ApplyStyle on profile change", ns.Prompt.ApplyStyle, ns.Prompt)
 	ns.Prompt:InvalidateMacro()
 	-- Guarded: nil if Options.lua failed to load, and a throw here would take
 	-- StartScanner with it.

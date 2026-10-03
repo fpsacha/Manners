@@ -281,7 +281,6 @@ L["|cffffd100/manners import undo|r puts your old settings back."] = "輸入 |cf
 L["nothing to undo -- no settings have been imported on this profile this session."] = "沒有可復原的內容——本次登入中，此設定檔沒有匯入過設定。"
 L["nothing to undo on this profile -- the last import was made on profile %s. Switch back to it to undo it."] = "此設定檔沒有可復原的內容——上次匯入是在設定檔「%s」上進行的。切換回該設定檔即可復原。"
 L["nothing to undo on this profile -- the last import was made on another one. Switch back to it to undo it."] = "此設定檔沒有可復原的內容——上次匯入是在另一個設定檔上進行的。切換回該設定檔即可復原。"
-L["your settings from before the import could not be read back, so they were not restored."] = "無法讀回你匯入前的設定，因此未能恢復。"
 L["your settings from before the import are back. The prompt's look changes when this fight ends."] = "已恢復匯入前的設定。提示框的外觀會在這場戰鬥結束後改變。"
 L["your settings from before the import are back."] = "已恢復匯入前的設定。"
 L["Everyday"] = "日常"

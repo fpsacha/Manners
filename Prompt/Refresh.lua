@@ -137,6 +137,11 @@ function Prompt:RefreshPanel()
 	-- Nothing to cast on anybody, yourself included: a hunter with an aspect
 	-- learned has a prompt, for his own.
 	if not ns.CanCastAnything() and not S.testMode then
+		-- Disarmed like every branch that hides the panel: a probe that
+		-- answered nothing for a moment (a client still loading spell data)
+		-- left the last person's macro on the binding, and a fight froze it.
+		-- Ahead of the off and snooze branches, so they never got to.
+		self:ApplyTarget(nil)
 		self:StopAttention()
 		HideQueue()
 		lastTop = nil

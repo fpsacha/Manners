@@ -411,10 +411,15 @@ end
 
 local store
 
-local function CleanEntry(e)
+-- `now` is the wall clock, nil when it cannot be read. A stamp past it was
+-- written while the clock ran fast and has since been put right: it counts as
+-- now, as a remembered favour's does (Queue.lua, RestoreDebts), or the row
+-- counts as today's on every day until real time catches it up.
+local function CleanEntry(e, now)
 	if type(e) ~= "table" then return nil end
 	local name, at = CleanName(e.name), CleanTime(e.at)
 	if not name or not at then return nil end
+	if now and at > now then at = now end
 	local class = CleanClass(e.class)
 
 	if e.kind == "given" then
@@ -440,7 +445,13 @@ local function CleanEntry(e)
 		local out = { kind = "received", name = name, class = class, at = at,
 			spells = spells, times = math.max(1, Count(e.times)), state = state }
 		if state == "owed" and e.partyOnly == true then out.partyOnly = true end
-		if state ~= "owed" then out.doneAt = CleanTime(e.doneAt) end
+		if state ~= "owed" then
+			-- Never settled before it happened, nor after now.
+			local doneAt = CleanTime(e.doneAt)
+			if doneAt and now and doneAt > now then doneAt = now end
+			if doneAt and doneAt < at then doneAt = at end
+			out.doneAt = doneAt
+		end
 		if state == "returned" then out.gave = CleanSpell(e.gave) end
 		if state == "letgo" then out.why = WHY[e.why] and e.why or nil end
 		return out
@@ -486,10 +497,10 @@ local function Repair(char)
 		char.ledger = s
 	end
 
-	local kept = {}
+	local kept, now = {}, Wall()
 	if type(s.entries) == "table" then
 		for i = 1, #s.entries do
-			local e = CleanEntry(s.entries[i])
+			local e = CleanEntry(s.entries[i], now)
 			if e then kept[#kept + 1] = e end
 		end
 	end
