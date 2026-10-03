@@ -34,7 +34,10 @@ ns.TargetCommand = TargetCommand
 -- and fails silently (a retail 12.0 restriction), and [@nameplateN] resolves
 -- nowhere. Targeting reaches ungrouped strangers everywhere.
 local function StrategyFor(entry)
-	if entry.reason == "self" then return "self" end
+	if entry.reason == "self" then
+		if entry.buff and entry.buff.item then return "scroll" end
+		return "self"
+	end
 	if entry.buff and entry.buff.selfCast then return "selfcast" end
 	return "target"
 end
@@ -85,6 +88,16 @@ STRATEGIES.self = function(entry, spell)
 	local restore = not StillTargeted(entry) or Prompt.armedForFight == true
 	return lines, restore,
 		{ targeted = true, selfCast = false, onSelf = true, aimedAt = entry.targetName or entry.name }
+end
+
+-- A mage's scroll from the bags (Buffs.lua): used by its item id, with no
+-- name to spell and nobody to target -- an imbue enchants the weapon in your
+-- main hand by itself and a familiar is summoned on you, whoever is targeted
+-- -- so your target is never touched. The record is one on yourself, settled
+-- by the spell the use casts (Clicks.lua, SettleSelf).
+STRATEGIES.scroll = function(entry)
+	return { "/use item:" .. tostring(entry.buff.item) }, false,
+		{ targeted = false, selfCast = false, onSelf = true, aimedAt = nil }
 end
 
 -- Target them, cast, and optionally hand the player's own target back. One
@@ -154,7 +167,10 @@ function Prompt:ClickSummary(entry)
 		return out
 	end
 
-	if entry.reason == "self" then
+	if entry.reason == "self" and entry.buff.item then
+		-- A scroll: used from the bags, nobody targeted (STRATEGIES.scroll).
+		out[#out + 1] = L["Uses |cffffffff%s|r from your bags."]:format(spell)
+	elseif entry.reason == "self" then
 		-- Nothing about targets: the macro hands your target back (see
 		-- STRATEGIES.self), whatever the switch for other people says.
 		out[#out + 1] = L["Casts |cffffffff%s|r on you."]:format(spell)

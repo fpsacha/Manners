@@ -497,6 +497,29 @@ do
 		return info
 	end
 
+	-- A scroll (Buffs.lua, the mage's scrolls): its name is the one the client
+	-- gives the spell its use casts, already in the player's language, or the
+	-- item's where nameFromItem says the spell's is another scroll's; its icon
+	-- is the item's. Never `known`: whether there is one to use is the bags'
+	-- answer, asked when it is needed (ScrollReady).
+	local function ProbeScroll(spell)
+		local info = { key = spell.key, buff = spell, topRank = spell.ranks[1], unresolved = {}, secrecy = {} }
+		local items = C_Item
+		local itemName = safecall(items and items.GetItemNameByID, spell.item)
+		if type(itemName) ~= "string" or itemName == "" then itemName = nil end
+		local spellName = SpellNameFor(spell.ranks[1])
+		if spell.nameFromItem then
+			info.name = itemName or spellName
+		else
+			info.name = spellName or itemName
+		end
+		info.icon = safecall(items and items.GetItemIconByID, spell.item)
+		if info.icon == nil and items and type(items.GetItemInfoInstant) == "function" then
+			info.icon = plain((select(5, items.GetItemInfoInstant(spell.item))))
+		end
+		return info
+	end
+
 	-- Does this client still hand addons the combat log? Where it is gone,
 	-- registration throws, so one pcall'd RegisterEvent answers it, on a frame of
 	-- our own made once (Ace's registry would keep the subscription).
@@ -607,12 +630,12 @@ do
 		-- The class's own buffs (Buffs.lua, VANILLA_OWN), probed the same way but kept
 		-- apart: caps.buffs stays the list of what you can give. Known only by a rank
 		-- the client says you know AND a name it can give that rank: the macro casts
-		-- by that name.
+		-- by that name. A scroll is never known here (ProbeScroll).
 		caps.own = {}
 		caps.anyOwnKnown = false
 		for _, family in ipairs(ns.GetOwnFamilies(playerClass) or {}) do
 			for _, spell in ipairs(family.spells) do
-				local info = ProbeBuff(spell)
+				local info = spell.item and ProbeScroll(spell) or ProbeBuff(spell)
 				info.known = info.known == true and info.name ~= nil
 				caps.own[spell.key] = info
 				if info.known then caps.anyOwnKnown = true end
@@ -960,7 +983,65 @@ do
 	end
 	function ns.ForgetTrackingList() trackingList = nil end
 
+	-- The mage's scrolls (Buffs.lua) are items, not spells. How many of each the
+	-- bags hold, read for every scroll of your class at once and kept until
+	-- BAG_UPDATE_DELAYED says the bags changed; and the weapon type in your
+	-- main hand (its item subclass, false for none), kept until
+	-- PLAYER_EQUIPMENT_CHANGED. nil is "read it when next asked". No bag walk:
+	-- GetItemCount on the scrolls' own ids alone.
+	local scrollCounts, mainHand
+	function ns.ForgetScrolls() scrollCounts = nil end
+	function ns.ForgetMainHand() mainHand = nil end
+
+	local function ScrollCount(spell)
+		if not scrollCounts then
+			scrollCounts = {}
+			local count = C_Item and C_Item.GetItemCount
+			if type(count) == "function" then
+				for _, family in ipairs(ns.GetOwnFamilies(playerClass) or {}) do
+					for _, scroll in ipairs(family.scroll and family.spells or {}) do
+						local n = plain(count(scroll.item))
+						scrollCounts[scroll.item] = type(n) == "number" and n or 0
+					end
+				end
+			end
+		end
+		return scrollCounts[spell.item] or 0
+	end
+
+	local function MainHand()
+		if mainHand == nil then
+			mainHand = false
+			local id = type(_G.GetInventoryItemID) == "function" and plain(_G.GetInventoryItemID("player", 16)) or nil
+			local instant = C_Item and C_Item.GetItemInfoInstant
+			if type(id) == "number" and type(instant) == "function" then
+				local _, _, _, _, _, class, subclass = instant(id)
+				class, subclass = plain(class), plain(subclass)
+				-- Class 2 is a weapon; a shield or an off-hand book is not one.
+				if class == 2 and type(subclass) == "number" then mainHand = subclass end
+			end
+		end
+		return mainHand
+	end
+
+	-- Whether a scroll can be used now, or why not: "bags" (none in them),
+	-- "level" (yours is short of it) or "weapon" (an imbue for another kind of
+	-- weapon than the one in your main hand).
+	local function ScrollReady(spell)
+		if ScrollCount(spell) <= 0 then return false, "bags" end
+		local level = plain(UnitLevel("player"))
+		if type(level) ~= "number" or level < spell.level then return false, "level" end
+		if spell.weapon and MainHand() ~= spell.weapon then return false, "weapon" end
+		return true
+	end
+
+	-- For the bug report (Options/Diagnostics.lua): the answer the queue reads.
+	ns.ScrollReady = ScrollReady
+
 	local function Known(spell)
+		-- A scroll counts while there is one in the bags: its family is shown
+		-- and read; whether it can be used is ScrollReady's.
+		if spell.item then return ScrollCount(spell) > 0 end
 		local info = caps.own and caps.own[spell.key]
 		if not (info ~= nil and info.known == true) then return false end
 		-- A tracking spell counts only when the minimap lists it: the list is
@@ -1006,14 +1087,16 @@ do
 	-- The pick for a family: "off", "auto", or the key of a spell you know,
 	-- with the spell second. A spell you do not know -- the profile is shared
 	-- with an alt who does -- reads as Automatic, as another class's pin does
-	-- for the buffs you give.
+	-- for the buffs you give. A scroll stays the pick with none in the bags:
+	-- the dropdown lists every scroll, and the pick is offered once there is
+	-- one to use (OwnVerdict says why not until then).
 	function ns.OwnPick(family)
 		local db = addon.db and addon.db.profile
 		local picks = db and db.ownBuffs and db.ownBuffs.pick
 		local pick = type(picks) == "table" and picks[family.key] or nil
 		if pick == "off" then return "off" end
 		local spell = ns.FindOwnSpell(pick)
-		if spell and spell.family == family and Known(spell) then return spell.key, spell end
+		if spell and spell.family == family and (spell.item or Known(spell)) then return spell.key, spell end
 		return "auto"
 	end
 
@@ -1026,12 +1109,14 @@ do
 	end
 
 	-- The one you had up last, per character (db.char): what one character
-	-- runs says nothing about an alt sharing the profile.
+	-- runs says nothing about an alt sharing the profile. A scroll only while
+	-- you can use one now: in the bags, your level, your weapon.
 	local function Remembered(family)
 		local char = addon.db and addon.db.char
 		local memory = type(char) == "table" and char.ownLast
 		local spell = type(memory) == "table" and ns.FindOwnSpell(memory[family.key]) or nil
-		if spell and spell.family == family and not spell.neverAuto and Known(spell) then return spell end
+		if spell and spell.family == family and not spell.neverAuto and Known(spell)
+			and not (spell.item and not ScrollReady(spell)) then return spell end
 		return nil
 	end
 
@@ -1067,7 +1152,11 @@ do
 	--   "dungeon"  the family's pick for a dungeon or raid, before you have
 	--              had one up; "world" its first other spell outside one
 	--   "first"    the first you know, before you have had one up
-	-- nil and nil for a family you know nothing of.
+	--   "best"     a scroll: the first you can use now in the table's order,
+	--              which is best first, before you have used one
+	-- nil and nil for a family you know nothing of. Scrolls in the bags none
+	-- of which you can use now answer nil, why not ("level" or "weapon"), and
+	-- the best of them, so the line about it can say which.
 	--
 	-- The dungeon pick splits the answer in two only once it is learned: a
 	-- mage below 34 gets the same armor inside and out, and is told so as
@@ -1079,6 +1168,16 @@ do
 		end
 		local last = Remembered(family)
 		if last then return last, "last" end
+		if family.scroll then
+			local held, heldWhy
+			for _, spell in ipairs(family.spells) do
+				local ready, why = ScrollReady(spell)
+				if ready then return spell, "best" end
+				if why ~= "bags" and not held then held, heldWhy = spell, why end
+			end
+			if held then return nil, heldWhy, held end
+			return nil, nil
+		end
 		local preferred = family.dungeon and ns.FindOwnSpell(family.dungeon)
 		if preferred and Known(preferred) then
 			if InDungeon() then return preferred, "dungeon" end
@@ -1167,6 +1266,39 @@ do
 		return nil, nil, refused
 	end
 
+	-- The scroll whose enchant `enchant` is: one in the bags first, since two
+	-- scrolls can make the same one (Buffs.lua, Spellbreak); nil for an
+	-- enchant no scroll makes, a wizard oil say.
+	local function ImbueScroll(family, enchant)
+		if type(enchant) ~= "number" then return nil end
+		local first
+		for _, spell in ipairs(family.spells) do
+			if spell.enchant == enchant then
+				if ScrollCount(spell) > 0 then return spell end
+				first = first or spell
+			end
+		end
+		return first
+	end
+
+	-- A weapon imbue (Buffs.lua) is no aura: up is your main hand carrying any
+	-- temporary enchant, a scroll's or an oil's, since either way the weapon
+	-- has been seen to. One call, no pcall: it takes nothing and throws on
+	-- nothing. Time left in seconds; the client gives milliseconds.
+	local function ReadImbue(family)
+		local read = _G.GetWeaponEnchantInfo
+		if type(read) ~= "function" then return nil end
+		local has, expires, _, enchant = read()
+		if Withheld(has) then return nil end
+		if not has then return false end
+		local scroll = ImbueScroll(family, plain(enchant))
+		if scroll then Remember(family, scroll) end
+		expires = plain(expires)
+		local left
+		if type(expires) == "number" and expires > 0 then left = expires / 1000 end
+		return true, scroll, left
+	end
+
 	-- Whether any of the family is up on you, and yours: true with the spell and
 	-- its time left, false for definitely none, nil for the client would not say
 	-- (never a reason to offer). By the ids AND by the names of the ranks you
@@ -1188,8 +1320,10 @@ do
 			end
 			return false
 		end
+		if family.imbue then return ReadImbue(family) end
 		local now = GetTime()
-		local form = ActiveForm()
+		-- A familiar is no form, so a mage's scrolls cost no form read.
+		local form = not family.scroll and ActiveForm()
 		local formSpell = form and ns.OWN_BY_ID[form]
 		if formSpell and formSpell.family == family then
 			Remember(family, formSpell)
@@ -1200,7 +1334,9 @@ do
 		if type(byId) ~= "function" then return nil end
 		local refused = false
 		for _, spell in ipairs(family.spells) do
-			if Known(spell) then
+			-- Every familiar, whether or not another of its scroll is in the
+			-- bags: the one summoned is up all the same.
+			if spell.item or Known(spell) then
 				for _, id in ipairs(spell.auraIds) do
 					local ok, aura = pcall(byId, "player", id)
 					if not ok or Withheld(aura) then
@@ -1242,6 +1378,9 @@ do
 	--   "up"        one of it is up (and is no top-up)
 	--   "tried"     pressed or skipped a moment ago
 	--   "unusable"  the game says it cannot be cast now
+	--   "bags"      a scroll: none of it in your bags
+	--   "level"     a scroll: your level is short of it
+	--   "weapon"    an imbue: not for the weapon in your main hand
 	-- Reminded only when none of the family is up; a timed buff (never a
 	-- toggle) also when it runs low with top-ups on, as for anybody. `ctx` is
 	-- the scan's: name, now, whenBuffed, refreshUnder.
@@ -1250,10 +1389,13 @@ do
 		if pick == "off" then return nil, nil, nil, "off" end
 		local up, upSpell, left = ns.ReadOwnFamily(family)
 		if up == nil then return nil, nil, nil, "unread" end
+		-- Scrolls Automatic found in the bags and none usable: why not, and which.
+		local held, heldWhy
 		if not spell then
 			local why
-			spell, why = ns.OwnAutoPick(family)
+			spell, why, held = ns.OwnAutoPick(family)
 			if why == "notank" then return nil, up, nil, "notank" end
+			heldWhy = why
 		end
 		if up then
 			if family.toggle or ctx.whenBuffed ~= "refresh" or not left
@@ -1265,9 +1407,19 @@ do
 		end
 		-- Only spells Automatic never picks are known (a hunter with nothing
 		-- but the Cheetah): nothing to remind you of.
-		if not spell then return nil, up, nil, "none" end
+		if not spell then
+			if held and not up then return nil, up, nil, heldWhy, held end
+			return nil, up, nil, "none"
+		end
 		if ns.IsBlocked(ctx.name, spell.key, ctx.now) then return nil, up, left, "tried", spell end
-		if not Usable(spell) then return nil, up, left, "unusable", spell end
+		-- A scroll is used, not cast: the bags, your level and your weapon
+		-- answer for it rather than the spellbook.
+		if spell.item then
+			local ready, why = ScrollReady(spell)
+			if not ready then return nil, up, left, why, spell end
+		elseif not Usable(spell) then
+			return nil, up, left, "unusable", spell
+		end
 		return spell, up, up and left or nil
 	end
 
@@ -2047,6 +2199,9 @@ function addon:OnEnable()
 		"SPELLS_CHANGED",
 		-- Tracking switched on or off (Find Herbs and the like).
 		"MINIMAP_UPDATE_TRACKING",
+		-- A mage's scrolls: the bags and the weapon in the main hand.
+		"BAG_UPDATE_DELAYED",
+		"PLAYER_EQUIPMENT_CHANGED",
 		"NAME_PLATE_UNIT_ADDED",
 		"NAME_PLATE_UNIT_REMOVED",
 		-- Cooldowns the client takes back; the casts are below.
@@ -2258,6 +2413,12 @@ function addon:MINIMAP_UPDATE_TRACKING()
 	ns.ForgetTrackingList()
 	ns.ownAurasChanged = true
 end
+
+-- A mage's scrolls (Core.lua's own buffs): the bags changed, so their counts
+-- are read again when next asked; the same for the weapon in the main hand.
+-- Nothing else is read here, and nothing for a class without scrolls.
+function addon:BAG_UPDATE_DELAYED() ns.ForgetScrolls() end
+function addon:PLAYER_EQUIPMENT_CHANGED() ns.ForgetMainHand() end
 
 function addon:SPELLS_CHANGED()
 	local now = GetTime()

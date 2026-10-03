@@ -26,7 +26,8 @@ after a wipe, and only the raid groups you were given.
 It looks after you too. When you are missing your own buff, or one your class
 casts only on itself (a mage's armor, a priest's Inner Fire, a paladin's aura,
 a hunter's aspect, a shaman's shield), "You" comes up on the same prompt and
-one press puts it on you.
+one press puts it on you. A mage carrying familiar or weapon imbue scrolls is
+reminded of those too.
 
 Built for **WoW Forever** (Interface 16001), and shipped for that client only.
 
@@ -132,6 +133,16 @@ is under *Which buffs each class offers*).
   in Shadowform, a mage out of mana).
 - With *Offer a top-up when it runs low*, a buff with a timer is also offered
   when it is running out; an aura or an aspect never is.
+- **A mage's scrolls.** *Familiar* reminds you when no familiar is with you
+  and a Rat, Frog or Cat Familiar scroll is in your bags; *Weapon imbue* when
+  nothing is on the weapon in your main hand and you carry an imbue scroll
+  that fits it (Lesser Flame on a staff, Chillknife on a dagger, Spark on a
+  one-handed sword, and so on). A wizard oil or any other temporary enchant counts as
+  something on it. A scroll is offered only once your level is up to it, with
+  its own icon, and one press uses it from your bags: your target is not
+  touched. *Automatic* takes the one you used last while you still have one
+  that fits, otherwise the best your level and weapon allow. A mage with no
+  scrolls sees nothing of this.
 - *Save mana* never holds you back, and nor does *Raid groups I buff*. In a
   party you count towards a group buff, and the group cast covers you.
 - A warrior's Battle Shout already covers the warrior and nobody needs Unending Breath
@@ -395,7 +406,10 @@ explain themselves; this is what their tooltips have no room for.
   know and *Don't remind me*, and a checkbox for a buff on its own. Automatic
   says what it would pick right now, such as *Automatic (Mage Armor, the one
   you had up last)*. Righteous Fury's is *Automatic (only while I'm the
-  tank)*, *Always* or *Don't remind me*. Then *Also in cities and inns*, off
+  tank)*, *Always* or *Don't remind me*. A mage carrying scrolls also gets
+  *Familiar* and *Weapon imbue*, which list every scroll of their kind, carried
+  or not; one picked with none in your bags waits until you have one. Then
+  *Also in cities and inns*, off
   by default, and last what each of your own buffs is doing and why one is
   not being offered. A warrior or a rogue, with nothing to put on himself
   alone, does not see this part; a hunter or a shaman sees only this part of
@@ -653,7 +667,7 @@ you have learned them:
 
 | Class | Your own buffs |
 |---|---|
-| Mage | *Armor*: Frost Armor (Ice Armor from level 30) or Mage Armor |
+| Mage | *Armor*: Frost Armor (Ice Armor from level 30) or Mage Armor; and from the scrolls in your bags, *Familiar* (Rat, Frog or Cat) and *Weapon imbue* (Lesser Flame, Chillknife and the rest, each for the weapon it fits) |
 | Priest | Inner Fire; Touch of Weakness and Shadowguard, if you have learned them |
 | Warlock | Demon Skin (Demon Armor from level 20) |
 | Paladin | *Aura*: Devotion, Retribution, Concentration, Shadow, Frost or Fire Resistance; and Righteous Fury |

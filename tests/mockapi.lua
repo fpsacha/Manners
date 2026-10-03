@@ -452,6 +452,9 @@ for _, e in ipairs({
 	-- Registered on this client by EnhanceQoL's group frames and class-buff
 	-- reminder.
 	"READY_CHECK", "READY_CHECK_FINISHED",
+	-- Registered on this client by EnhanceQoL's class-buff reminder, which
+	-- watches the bags and the weapon for its weapon buffs.
+	"BAG_UPDATE_DELAYED", "PLAYER_EQUIPMENT_CHANGED",
 }) do KNOWN_EVENTS[e] = true end
 Mock.KNOWN_EVENTS = KNOWN_EVENTS
 Mock.badEvents = {}
@@ -1584,6 +1587,26 @@ for name, ids in pairs({
 	["Find Herbs"] = { 2383, 8387 },
 	["Find Minerals"] = { 2580, 8388 },
 	["Track Beasts"] = { 1494 },
+	-- A mage's scrolls on Forever (Buffs.lua): the spells their use casts.
+	-- Spellbreak's is Lesser Flame's in the client's own data.
+	["Rat Familiar"] = { 1296202 },
+	["Frog Familiar"] = { 1302285 },
+	["Cat Familiar"] = { 1302303 },
+	["Imbue Lesser Flame"] = { 1295720 },
+	["Imbue Chillknife"] = { 1296225 },
+	["Imbue Frost"] = { 1302283 },
+	["Imbue Striking"] = { 1302217 },
+	["Imbue Baleflame"] = { 1302219 },
+	["Imbue Iceknife"] = { 1302284 },
+	["Imbue Spark"] = { 1302227 },
+	["Imbue Accuracy"] = { 1302306 },
+	["Imbue Quickening"] = { 1302307 },
+	["Imbue Balefrost"] = { 1302305 },
+	["Imbue Flame"] = { 1302304 },
+	["Imbue Manablade"] = { 1302308 },
+	["Imbue Greater Flame"] = { 1302311 },
+	["Imbue Greater Frost"] = { 1302312 },
+	["Imbue Precision"] = { 1302310 },
 }) do
 	for _, id in ipairs(ids) do SPELL_NAMES[id] = name end
 end

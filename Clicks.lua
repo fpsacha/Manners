@@ -76,6 +76,9 @@ local function SpellIsOurs(spellId, buffKey)
 	-- spell by the name the macro cast, since that is what the game picked
 	-- the rank by -- a rank the table lacks is still the press's own cast.
 	local own = ns.FindOwnSpell(buffKey)
+	-- A mage's scroll by the spell its use casts, which two scrolls can share
+	-- (Buffs.lua, Spellbreak), so neither the lookup nor the name will do.
+	if own and own.item then return own.ranks[1] == spellId end
 	if own then
 		return ns.OWN_BY_ID[spellId] == own or SpellNameFor(spellId) == ns.BuffName(own)
 	end

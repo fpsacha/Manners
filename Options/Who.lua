@@ -219,7 +219,15 @@ local function OwnAutoLabel(family)
 	if why == "last" then return L["Automatic (%s, the one you had up last)"]:format(name) end
 	if why == "dungeon" then return L["Automatic (%s, in a dungeon or raid)"]:format(name) end
 	if why == "world" then return L["Automatic (%s, outside dungeons and raids)"]:format(name) end
+	if why == "best" then return L["Automatic (%s, the best you can use now)"]:format(name) end
 	return L["Automatic (%s, until you have put one up)"]:format(name)
+end
+
+-- The choices a family's dropdown lists: the spells you know, or for a
+-- mage's scrolls every one of them, so a pick stays on the list while you
+-- have none of it left.
+local function OwnChoice(family, spell)
+	return family.scroll or ns.OwnSpellKnown(spell)
 end
 
 -- One control per family of your class's own buffs, under "Myself" on Who to
@@ -259,6 +267,11 @@ local function AddOwnControls(args)
 					if family.tank then
 						return L["Automatic reminds you only while your group role is tank; Always reminds you whenever it is not up."]
 					end
+					if family.imbue then
+						return L["Reminds you when nothing is on the weapon in your main hand and a scroll in your bags fits it. Automatic takes the one you used last, else the best you can use."]
+					elseif family.scroll then
+						return L["Reminds you when no familiar is with you and a scroll for one is in your bags. Automatic takes the one you used last, else the best your level allows."]
+					end
 					local text = L["Reminds you when none of these is up. Automatic takes the one you had up last."]
 					-- A mage before any armor has been up: where Automatic
 					-- goes, both ways, while that is what it is doing.
@@ -277,7 +290,7 @@ local function AddOwnControls(args)
 				control.values = function()
 					local values = { auto = OwnAutoLabel(family), off = L["Don't remind me"] }
 					for _, spell in ipairs(family.spells) do
-						if ns.OwnSpellKnown(spell) then
+						if OwnChoice(family, spell) then
 							values[spell.key] = family.tank and L["Always"] or ns.BuffName(spell)
 						end
 					end
@@ -288,7 +301,7 @@ local function AddOwnControls(args)
 				control.sorting = function()
 					local sorted = { "auto" }
 					for _, spell in ipairs(family.spells) do
-						if ns.OwnSpellKnown(spell) then sorted[#sorted + 1] = spell.key end
+						if OwnChoice(family, spell) then sorted[#sorted + 1] = spell.key end
 					end
 					sorted[#sorted + 1] = "off"
 					return sorted

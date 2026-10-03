@@ -44,12 +44,23 @@ do
 		local name = about and ns.BuffName(about)
 		if spell and has then
 			return L["%s: %s is running low -- a top-up is due."]:format(label, ns.BuffName(spell))
+		elseif spell and spell.item then
+			return L["%s: none up -- %s is the one to use."]:format(label, ns.BuffName(spell))
 		elseif spell then
 			return L["%s: none up -- %s is the one to cast."]:format(label, ns.BuffName(spell))
 		elseif why == "off" then
 			return L["%s: switched off (Don't remind me)."]:format(label)
+		elseif why == "up" and not name and family.imbue then
+			-- An oil, or an enchant no scroll makes: the weapon is seen to.
+			return L["%s: your main hand already carries a temporary enchant."]:format(label)
 		elseif why == "up" then
 			return L["%s: %s is up."]:format(label, name or "?")
+		elseif why == "bags" then
+			return L["%s: you have no %s in your bags."]:format(label, name or "?")
+		elseif why == "level" then
+			return L["%s: %s needs level %d."]:format(label, name or "?", about.level)
+		elseif why == "weapon" then
+			return L["%s: %s does not fit the weapon in your main hand."]:format(label, name or "?")
 		elseif why == "notank" then
 			return L["%s: Automatic, and your group role is not tank, so it is not offered."]:format(label)
 		elseif why == "tried" then

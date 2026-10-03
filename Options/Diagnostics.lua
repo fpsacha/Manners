@@ -70,6 +70,19 @@ local function BugReport()
 	end
 	lines[#lines + 1] = ("own inCities=%s %s"):format(tostring(db.ownBuffs.inCities),
 		#picks > 0 and table.concat(picks, " ") or "none known")
+	-- A mage's scrolls in the bags, each with whether it can be used now
+	-- (Core.lua, ScrollReady): a scroll never offered is most often a level
+	-- or a weapon it does not fit.
+	local scrolls = {}
+	for _, family in ipairs(ns.KnownOwnFamilies()) do
+		for _, spell in ipairs(family.scroll and family.spells or {}) do
+			local ready, why = ns.ScrollReady(spell)
+			if why ~= "bags" then
+				scrolls[#scrolls + 1] = ("%s=%s"):format(spell.key, ready and "ready" or tostring(why))
+			end
+		end
+	end
+	if #scrolls > 0 then lines[#lines + 1] = "scrolls " .. table.concat(scrolls, " ") end
 	-- Who is ordered and who is held back: "my friend is never offered" is most
 	-- often answered by the last number here.
 	lines[#lines + 1] = ("friendsFirst=%s restingOnly=%s skipPvP=%s neverOffered=%d"):format(

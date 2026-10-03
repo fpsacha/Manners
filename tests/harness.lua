@@ -120,6 +120,9 @@ for _, e in ipairs({
   -- Registered on this client by EnhanceQoL's group frames and class-buff
   -- reminder.
   "READY_CHECK", "READY_CHECK_FINISHED",
+  -- Registered on this client by EnhanceQoL's class-buff reminder, which
+  -- watches the bags and the weapon for its weapon buffs.
+  "BAG_UPDATE_DELAYED", "PLAYER_EQUIPMENT_CHANGED",
 }) do KNOWN_EVENTS[e] = true end
 
 -- Ace3 stand-ins
@@ -362,6 +365,11 @@ else
     -- A ready check's two ends, each of which repaints the prompt.
     { "READY_CHECK", function() addon:READY_CHECK(nil, "Anna", 35) end },
     { "READY_CHECK_FINISHED", function() addon:READY_CHECK_FINISHED() end },
+    -- A mage's scrolls: the bags and the main hand forgotten, then read again
+    -- by the next scan, on a client with none of the item API.
+    { "BAG_UPDATE_DELAYED", function() addon:BAG_UPDATE_DELAYED() end },
+    { "PLAYER_EQUIPMENT_CHANGED", function() addon:PLAYER_EQUIPMENT_CHANGED(nil, 16, true) end },
+    { "BuildQueue after the bags", function() return ns.BuildQueue() end },
     -- The quick choices on Start here, every one of them, and the sentences
     -- that describe the result: each writes the profile and repaints, which
     -- is a hop into the prompt and the page.

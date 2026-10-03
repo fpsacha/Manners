@@ -16,6 +16,16 @@
   would give you away to everybody near, and not while you feign death.
 - `/manners debug` shows the /thank on every class, and the bug report on
   *Diagnostics* says whether it is on.
+- **A mage's scrolls are reminders too**, as somebody asked on CurseForge.
+  Under *Who to buff* > *Myself*, *Familiar* reminds you when no familiar is
+  with you and a Rat, Frog or Cat Familiar scroll is in your bags, and
+  *Weapon imbue* when nothing is on your main hand and you carry an imbue
+  scroll that fits it: Lesser Flame on a staff, Chillknife on a dagger, and so
+  on. A wizard oil counts as something on it. One press uses the scroll, with
+  its own icon on the prompt. *Automatic* takes the one you used last, or else
+  the best your level and weapon allow. Both show only while you carry such a
+  scroll, and as with your other buffs, never in a fight, and not in cities
+  and inns unless you tick that.
 
 ## 1.6.0
 

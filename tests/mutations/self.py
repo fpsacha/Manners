@@ -106,8 +106,8 @@ mutate("Prompt/Button.lua",
        expect="the tooltip does not say when yours runs out", script=S)
 
 mutate("Prompt/Macro.lua",
-       "\tif entry.reason == \"self\" then\n\t\t-- Nothing about targets: the macro hands your target back (see\n",
-       "\tif false then\n\t\t-- Nothing about targets: the macro hands your target back (see\n",
+       "\telseif entry.reason == \"self\" then\n\t\t-- Nothing about targets: the macro hands your target back (see\n",
+       "\telseif false then\n\t\t-- Nothing about targets: the macro hands your target back (see\n",
        "self: tooltip says it targets you",
        expect="the tooltip does not say it is cast on you", script=S)
 

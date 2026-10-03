@@ -123,7 +123,7 @@ mutate("Core.lua",
        expect="a paladin alone was offered", script=S)
 
 mutate("Core.lua",
-       "\t\tif spell and spell.family == family and Known(spell) then return spell.key, spell end\n",
+       "\t\tif spell and spell.family == family and (spell.item or Known(spell)) then return spell.key, spell end\n",
        "",
        "own: the pick ignored",
        expect="picked Mage Armor, and was offered", script=S)
@@ -204,8 +204,8 @@ mutate("Core.lua",
        expect="offered the armor again right after the press", script=S)
 
 mutate("Core.lua",
-       "\t\tif not Usable(spell) then return nil, up, left, \"unusable\", spell end\n",
-       "",
+       "\t\telseif not Usable(spell) then\n",
+       "\t\telseif false then\n",
        "own: offered what cannot be cast",
        expect="though the game says it cannot be cast", script=S)
 
@@ -334,7 +334,7 @@ mutate("Options/Who.lua",
        expect="is shown to a mage", script=S)
 
 mutate("Options/Who.lua",
-       "\t\t\t\t\t\tif ns.OwnSpellKnown(spell) then\n\t\t\t\t\t\t\tvalues[spell.key]",
+       "\t\t\t\t\t\tif OwnChoice(family, spell) then\n\t\t\t\t\t\t\tvalues[spell.key]",
        "\t\t\t\t\t\tif true then\n\t\t\t\t\t\t\tvalues[spell.key]",
        "own: spells not learned offered",
        expect="Mage Armor is a choice for a mage who has not learned it", script=S)

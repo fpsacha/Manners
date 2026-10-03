@@ -165,6 +165,9 @@ ns.WindowLayout = {
 					{ "who.own_aspect", indent = true },
 					{ "who.own_trueshot", indent = true },
 					{ "who.own_armor", indent = true },
+					-- A mage's scrolls on Forever, while there is one in the bags.
+					{ "who.own_familiar", indent = true },
+					{ "who.own_imbue", indent = true },
 					{ "who.own_aura", indent = true },
 					{ "who.own_righteousfury", indent = true },
 					{ "who.own_innerfire", indent = true },

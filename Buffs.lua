@@ -443,6 +443,86 @@ local VANILLA_SET = {
 local TBC_SET = setmetatable({ own = {} }, { __index = VANILLA_SET })
 
 ---------------------------------------------------------------------------
+-- WoW Forever: a mage's scrolls
+---------------------------------------------------------------------------
+
+-- Forever's own: scrolls a mage writes with Comprehension and reads from the
+-- bags, a familiar and a weapon imbue. "For mages, it would be handy to
+-- include the mage-specific scroll buffs as reminders", a player on
+-- CurseForge. Items, not spells, so Core.lua reads them apart (the scrolls):
+-- offered only with one in the bags, at the level it asks for and, for an
+-- imbue, on the weapon it fits, and used with /use item:<id> (Prompt/Macro.lua).
+-- Every id is the client's own (ItemSparse, ItemXItemEffect, ItemEffect,
+-- SpellEffect, SpellEquippedItems and SpellItemEnchantment, build
+-- 1.60.1.70178); Rat Familiar, Chillknife and Lesser Flame were also read off
+-- a level-12 mage's bags in game.
+--
+-- Each family is a family as above, with:
+--   scroll    its spells are scrolls: { key, item (the item id), level (the
+--             level it asks for), ranks = { the spell its use casts } }, best
+--             first, which is the order Automatic tries them in before you
+--             have used one. The scroll's name is that spell's, as the client
+--             names it; nameFromItem takes the item's instead.
+--   imbue     up is the main hand carrying any temporary enchant, a wizard
+--             oil included, rather than an aura; each scroll names its
+--             `enchant` and the `weapon` it fits (the weapon's item subclass).
+local CAMELOT_OWN = {}
+do
+	local STAFF, DAGGER, SWORD = 10, 15, 7
+	-- The use casts the familiar's own aura (Intellect, an hour).
+	local FAMILIAR = {
+		key = "familiar",
+		label = L["Familiar"],
+		scroll = true,
+		spells = {
+			{ key = "catfamiliar", item = 277493, level = 25, ranks = { 1302303 } },
+			{ key = "frogfamiliar", item = 277483, level = 16, ranks = { 1302285 } },
+			{ key = "ratfamiliar", item = 275069, level = 5, ranks = { 1296202 } },
+		},
+	}
+	-- The use enchants the weapon in the main hand by itself, for an hour.
+	local IMBUE = {
+		key = "imbue",
+		label = L["Weapon imbue"],
+		scroll = true,
+		imbue = true,
+		spells = {
+			{ key = "imbuegreaterflame", item = 277500, level = 46, ranks = { 1302311 }, enchant = 8716, weapon = STAFF },
+			{ key = "imbuegreaterfrost", item = 277501, level = 46, ranks = { 1302312 }, enchant = 8717, weapon = STAFF },
+			{ key = "imbueprecision", item = 277502, level = 46, ranks = { 1302310 }, enchant = 8718, weapon = STAFF },
+			-- The client's data points this one at Lesser Flame's spell and
+			-- enchant, so the spell's name would be Lesser Flame's.
+			{ key = "imbuespellbreak", item = 277503, level = 46, ranks = { 1295720 }, enchant = 8700, weapon = STAFF,
+				nameFromItem = true },
+			{ key = "imbueaccuracy", item = 277494, level = 25, ranks = { 1302306 }, enchant = 8711, weapon = STAFF },
+			{ key = "imbuequickening", item = 277495, level = 25, ranks = { 1302307 }, enchant = 8712, weapon = STAFF },
+			{ key = "imbuebalefrost", item = 277496, level = 25, ranks = { 1302305 }, enchant = 8714, weapon = STAFF },
+			{ key = "imbueflame", item = 277497, level = 25, ranks = { 1302304 }, enchant = 8713, weapon = STAFF },
+			{ key = "imbuemanablade", item = 277498, level = 25, ranks = { 1302308 }, enchant = 8715, weapon = DAGGER },
+			{ key = "imbuefrost", item = 277485, level = 16, ranks = { 1302283 }, enchant = 8709, weapon = STAFF },
+			{ key = "imbuestriking", item = 277486, level = 16, ranks = { 1302217 }, enchant = 8708, weapon = STAFF },
+			{ key = "imbuebaleflame", item = 277487, level = 16, ranks = { 1302219 }, enchant = 8706, weapon = STAFF },
+			{ key = "imbueiceknife", item = 277488, level = 16, ranks = { 1302284 }, enchant = 8710, weapon = DAGGER },
+			{ key = "imbuespark", item = 277489, level = 16, ranks = { 1302227 }, enchant = 8707, weapon = SWORD },
+			{ key = "imbuelesserflame", item = 274947, level = 5, ranks = { 1295720 }, enchant = 8700, weapon = STAFF },
+			{ key = "imbuechillknife", item = 275067, level = 5, ranks = { 1296225 }, enchant = 8698, weapon = DAGGER },
+		},
+	}
+	-- Vanilla's lists, with the mage's two after the armor.
+	for class, families in pairs(VANILLA_OWN) do
+		local list = {}
+		for i, family in ipairs(families) do list[i] = family end
+		CAMELOT_OWN[class] = list
+	end
+	table.insert(CAMELOT_OWN.MAGE, 2, FAMILIAR)
+	table.insert(CAMELOT_OWN.MAGE, 3, IMBUE)
+end
+
+-- Forever: the vanilla set, and its own buffs with the mage's scrolls. The
+-- name stays "vanilla", which is the set everything else comes from.
+local CAMELOT_SET = setmetatable({ own = CAMELOT_OWN }, { __index = VANILLA_SET })
+
+---------------------------------------------------------------------------
 -- Mists of Pandaria Classic
 ---------------------------------------------------------------------------
 
@@ -616,8 +696,8 @@ local SETS = {
 	vanilla = VANILLA_SET,
 	tbc = TBC_SET,
 	-- Forever runs vanilla content, and the vanilla tables are the ones
-	-- verified there in game.
-	camelot = VANILLA_SET,
+	-- verified there in game; its own buffs add the mage's scrolls.
+	camelot = CAMELOT_SET,
 	mists = MISTS_SET,
 	mainline = MAINLINE_SET,
 }
