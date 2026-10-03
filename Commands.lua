@@ -59,6 +59,8 @@ do
 			return L["%s: you have no %s in your bags."]:format(label, name or "?")
 		elseif why == "level" then
 			return L["%s: %s needs level %d."]:format(label, name or "?", about.level)
+		elseif why == "noweapon" then
+			return L["%s: there is no weapon in your main hand."]:format(label)
 		elseif why == "weapon" then
 			return L["%s: %s does not fit the weapon in your main hand."]:format(label, name or "?")
 		elseif why == "notank" then

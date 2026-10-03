@@ -347,7 +347,10 @@ end
 
 -- ------------------------------------------------------------------ 3
 -- An imbue is for one kind of weapon: Lesser Flame a staff, Chillknife a
--- dagger. The weapon is read again when the equipment changes.
+-- dagger. The weapon is read again when the equipment changes. With no
+-- weapon in the main hand, nothing is offered and /manners debug says so,
+-- not that a scroll does not fit a weapon that is not there -- before the
+-- level, which no weapon would make any difference to.
 do
 	local scenario = "mage-scrolls: a dagger in hand offers Chillknife, not Lesser Flame"
 	with(scenario, { bags = { [LESSER_FLAME] = 1, [CHILLKNIFE] = 1 }, weapon = DAGGER, held = { RAT_AURA } },
@@ -366,6 +369,29 @@ do
 			ns.addon:PLAYER_EQUIPMENT_CHANGED(nil, 16, true)
 			if key(mine(ns)) ~= "imbuelesserflame" then
 				fail(scenario, "with a staff put in hand, you were offered " .. key(mine(ns)))
+			end
+
+			-- The staff taken off.
+			world.weapon = nil
+			ns.addon:PLAYER_EQUIPMENT_CHANGED(nil, 16, false)
+			if mine(ns) then
+				fail(scenario, "with no weapon in hand, you were offered " .. key(mine(ns)))
+			end
+			local text = lines(ns)
+			if not text:find("Weapon imbue: there is no weapon in your main hand.", 1, true)
+				or text:find("does not fit", 1, true) then
+				fail(scenario, "with no weapon in hand, /manners debug says: " .. text)
+			end
+			-- A Spellbreak too, above a level-12 mage's: still the weapon.
+			restock(ns, { [SPELLBREAK] = 1, [LESSER_FLAME] = 1 })
+			text = lines(ns)
+			if not text:find("Weapon imbue: there is no weapon in your main hand.", 1, true) then
+				fail(scenario, "with no weapon in hand and a Spellbreak in the bags, /manners debug says: " .. text)
+			end
+			world.weapon = STAFF
+			ns.addon:PLAYER_EQUIPMENT_CHANGED(nil, 16, true)
+			if key(mine(ns)) ~= "imbuelesserflame" then
+				fail(scenario, "with the staff back in hand, you were offered " .. key(mine(ns)))
 			end
 		end)
 end

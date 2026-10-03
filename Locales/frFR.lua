@@ -223,6 +223,7 @@ L["%s: your main hand already carries a temporary enchant."] = "%s : votre main 
 L["%s: %s is up."] = "%s : le sort %s est actif."
 L["%s: you have no %s in your bags."] = "%s : %s n'est pas dans vos sacs."
 L["%s: %s needs level %d."] = "%s : %s nécessite le niveau %d."
+L["%s: there is no weapon in your main hand."] = "%s : vous n'avez aucune arme en main droite."
 L["%s: %s does not fit the weapon in your main hand."] = "%s : %s ne convient pas à l'arme de votre main droite."
 L["%s: Automatic, and your group role is not tank, so it is not offered."] = "%s : mode Automatique, et votre rôle de groupe n'est pas tank, donc rien n'est proposé."
 L["%s: %s was pressed or skipped a moment ago."] = "%s : le sort %s vient d'être tenté ou passé."

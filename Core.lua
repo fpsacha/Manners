@@ -1077,13 +1077,18 @@ do
 	end
 
 	-- Whether a scroll can be used now, or why not: "bags" (none in them),
-	-- "level" (yours is short of it) or "weapon" (an imbue for another kind of
-	-- weapon than the one in your main hand).
+	-- "noweapon" (an imbue, and no weapon in your main hand), "level" (yours
+	-- is short of it) or "weapon" (an imbue for another kind of weapon than
+	-- the one in your main hand). No weapon before the level: it holds back
+	-- every imbue, and the line about the family said a scroll did not fit a
+	-- weapon that was not there.
 	local function ScrollReady(spell)
 		if ScrollCount(spell) <= 0 then return false, "bags" end
+		local hand = spell.weapon and MainHand()
+		if hand == false then return false, "noweapon" end
 		local level = plain(UnitLevel("player"))
 		if type(level) ~= "number" or level < spell.level then return false, "level" end
-		if spell.weapon and MainHand() ~= spell.weapon then return false, "weapon" end
+		if spell.weapon and hand ~= spell.weapon then return false, "weapon" end
 		return true
 	end
 
@@ -1207,8 +1212,8 @@ do
 	--   "best"     a scroll: the first you can use now in the table's order,
 	--              which is best first, before you have used one
 	-- nil and nil for a family you know nothing of. Scrolls in the bags none
-	-- of which you can use now answer nil, why not ("level" or "weapon"), and
-	-- the best of them, so the line about it can say which.
+	-- of which you can use now answer nil, why not ("noweapon", "level" or
+	-- "weapon"), and the best of them, so the line about it can say which.
 	--
 	-- The dungeon pick splits the answer in two only once it is learned: a
 	-- mage below 34 gets the same armor inside and out, and is told so as
@@ -1562,6 +1567,7 @@ do
 	--   "tried"     pressed or skipped a moment ago
 	--   "unusable"  the game says it cannot be cast now
 	--   "bags"      a scroll: none of it in your bags
+	--   "noweapon"  an imbue: there is no weapon in your main hand
 	--   "level"     a scroll: your level is short of it
 	--   "weapon"    an imbue: not for the weapon in your main hand
 	-- Reminded only when none of the family is up; a timed buff (never a

@@ -7,6 +7,9 @@
   put one on. It now sees it, and with top-ups on asks again only as it runs
   low. An oil on your main hand still counts; an enchanter's permanent
   enchant does not.
+- **With no weapon in your main hand,** `/manners debug` and Diagnostics now
+  say so. They used to say your imbue scroll did not fit the weapon in your
+  main hand.
 
 ## 1.6.2
 

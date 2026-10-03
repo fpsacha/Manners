@@ -223,6 +223,7 @@ L["%s: your main hand already carries a temporary enchant."] = "%s: 주장비에
 L["%s: %s is up."] = "%s: %s 버프가 있습니다."
 L["%s: you have no %s in your bags."] = "%s: 가방에 %s 아이템이 없습니다."
 L["%s: %s needs level %d."] = "%s: %s 아이템은 %d레벨이 필요합니다."
+L["%s: there is no weapon in your main hand."] = "%s: 주장비에 무기가 없습니다."
 L["%s: %s does not fit the weapon in your main hand."] = "%s: %s 아이템은 주장비 무기에 맞지 않습니다."
 L["%s: Automatic, and your group role is not tank, so it is not offered."] = "%s: 자동이며 파티 역할이 방어 전담이 아니므로 띄우지 않습니다."
 L["%s: %s was pressed or skipped a moment ago."] = "%s: 방금 %s 주문을 눌렀거나 건너뛰었습니다."

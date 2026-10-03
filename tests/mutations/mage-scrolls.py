@@ -99,10 +99,28 @@ mutate("Core.lua",
        expect="a level-4 mage was offered", script=S)
 
 mutate("Core.lua",
-       "\t\tif spell.weapon and MainHand() ~= spell.weapon then return false, \"weapon\" end\n",
+       "\t\tif spell.weapon and hand ~= spell.weapon then return false, \"weapon\" end\n",
        "",
        "scrolls: any weapon",
        expect="with a dagger in hand you were offered", script=S)
+
+# No weapon in the main hand said as a scroll not fitting it, or (after the
+# level) as a Spellbreak above yours.
+mutate("Core.lua",
+       "\t\tif hand == false then return false, \"noweapon\" end\n",
+       "",
+       "scrolls: no weapon said as a weapon it does not fit",
+       expect="with no weapon in hand, /manners debug says", script=S)
+
+mutate("Core.lua",
+       "\t\tif hand == false then return false, \"noweapon\" end\n"
+       "\t\tlocal level = plain(UnitLevel(\"player\"))\n"
+       "\t\tif type(level) ~= \"number\" or level < spell.level then return false, \"level\" end\n",
+       "\t\tlocal level = plain(UnitLevel(\"player\"))\n"
+       "\t\tif type(level) ~= \"number\" or level < spell.level then return false, \"level\" end\n"
+       "\t\tif hand == false then return false, \"noweapon\" end\n",
+       "scrolls: no weapon said after the level",
+       expect="with no weapon in hand and a Spellbreak in the bags, /manners debug says", script=S)
 
 # --- reading them, and which to offer (Core.lua) ---
 
@@ -449,6 +467,12 @@ mutate("Commands.lua",
        "\t\telseif false then\n",
        "scrolls: the weapon unsaid",
        expect="/manners debug says", script=S)
+
+mutate("Commands.lua",
+       "\t\telseif why == \"noweapon\" then\n",
+       "\t\telseif false then\n",
+       "scrolls: no weapon unsaid",
+       expect="with no weapon in hand, /manners debug says", script=S)
 
 mutate("Commands.lua",
        "\t\telseif spell and spell.item then\n",

@@ -223,6 +223,7 @@ L["%s: your main hand already carries a temporary enchant."] = "%s：你的主�
 L["%s: %s is up."] = "%s：已有%s。"
 L["%s: you have no %s in your bags."] = "%s：背包中没有%s。"
 L["%s: %s needs level %d."] = "%s：%s需要%d级。"
+L["%s: there is no weapon in your main hand."] = "%s：你的主手没有武器。"
 L["%s: %s does not fit the weapon in your main hand."] = "%s：%s不适用于你主手的武器。"
 L["%s: Automatic, and your group role is not tank, so it is not offered."] = "%s：“自动”，而你的队伍职责不是坦克，所以不推荐。"
 L["%s: %s was pressed or skipped a moment ago."] = "%s：刚刚按下或跳过了%s。"
