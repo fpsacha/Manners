@@ -50,7 +50,10 @@ function Prompt:Create()
 	-- Copied from the secure buttons that work on this client (MountActions,
 	-- GroupTools): "AnyDown" with pressAndHoldAction. Registering down without
 	-- pressAndHoldAction delivers the click and casts nothing.
-	R.button:RegisterForClicks("AnyDown")
+	-- Kept on R as well: the client has no call that reads it back, and
+	-- /manners selftest reports what the button was registered for.
+	R.clicks = "AnyDown"
+	R.button:RegisterForClicks(R.clicks)
 	R.button:SetAttribute("pressAndHoldAction", true)
 	R.button:SetMovable(true)
 	R.button:SetClampedToScreen(true)

@@ -2271,9 +2271,18 @@ function ns.IconCeiling(p)
 	return math.max(12, math.min(height - 8, width - 60))
 end
 
+-- What the repair below put right this session, for /manners selftest: a
+-- value a damaged or hand-edited file held. On ns, not a main-chunk local,
+-- for Lua 5.1's 200; capped, since it runs on every profile change.
+ns.repairLog = {}
+
 function ns.ClampSettings()
 	local profile = addon.db and addon.db.profile
 	if not profile then return end
+	local function fixed(what, was)
+		local log = ns.repairLog
+		if #log < 20 then log[#log + 1] = ("%s (was %s)"):format(what, tostring(was)) end
+	end
 	-- AceDB fills defaults only into a table, and a damaged or hand-edited
 	-- file can hold anything, so a section that is not one is replaced whole
 	-- (with a copy: AceDB strips values equal to the default table itself).
@@ -2284,12 +2293,14 @@ function ns.ClampSettings()
 	end
 	for key, default in pairs(ns.defaults.profile) do
 		if type(default) == "table" and type(profile[key]) ~= "table" then
+			fixed(key, profile[key])
 			profile[key] = copy(default)
 		end
 	end
 	for _, limit in ipairs(LIMITS) do
 		local group, key, low, high = limit[1], limit[2], limit[3], limit[4]
 		local value = profile[group] and profile[group][key]
+		if type(value) ~= "number" or value < low or value > high then fixed(group .. "." .. key, value) end
 		if type(value) ~= "number" then
 			profile[group][key] = ns.defaults.profile[group][key]
 		elseif value < low then
@@ -2349,13 +2360,19 @@ function ns.ClampSettings()
 	-- Everything with a fixed set of values, checked against that set: an
 	-- unrecognised value falls through every branch that handles it.
 	local function oneOf(tbl, key, allowed, fallback)
-		if not allowed[tbl[key]] then tbl[key] = fallback end
+		if not allowed[tbl[key]] then
+			fixed(key, tbl[key])
+			tbl[key] = fallback
+		end
 	end
 
 	-- The same for a plain yes or no: a string there is truthy forever, and a
 	-- checkbox cannot show it.
 	local function boolean(tbl, key, fallback)
-		if type(tbl[key]) ~= "boolean" then tbl[key] = fallback end
+		if type(tbl[key]) ~= "boolean" then
+			fixed(key, tbl[key])
+			tbl[key] = fallback
+		end
 	end
 
 	oneOf(profile.filters, "whenBuffed", { skip = true, refresh = true, always = true }, "skip")

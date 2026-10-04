@@ -1052,6 +1052,8 @@ ns.COMMANDS = {
 		help = L["use settings somebody exported, or undo the last import"] },
 	{ word = "debug", group = "trouble", help = L["what your class and this build allow"] },
 	{ word = "errors", group = "trouble", help = L["the last few things that broke"] },
+	{ word = "selftest", group = "trouble",
+		help = L["check Manners against your game, and get a report to paste"] },
 	{ word = "dev", group = "trouble",
 		help = L["tools for testing the addon on this client: the click log, try, look and forms"] },
 }
@@ -1069,7 +1071,8 @@ ns.DEV_COMMANDS = {
 -- Other words that reach a command. The help itself is not in COMMANDS: it is
 -- what an unknown word falls through to, which is how the scenario that walks
 -- the list tells a missing branch.
-ns.COMMAND_ALIASES = { config = "options", help = "help", ["?"] = "help", log = "ledger" }
+ns.COMMAND_ALIASES = { config = "options", help = "help", ["?"] = "help", log = "ledger",
+	check = "selftest" }
 
 -- The whole list, one line per command under its group's heading. The first
 -- line is the marker a scenario looks for.
@@ -1413,6 +1416,13 @@ function addon:HandleSlash(rawInput)
 		else
 			local _, message = ns.ImportSettings(rest)
 			self:Print(message)
+		end
+	elseif input == "selftest" or input == "check" then
+		-- Selftest.lua: every check guarded on its own, nothing touched.
+		if ns.Selftest then
+			ns.Guard("selftest", ns.Selftest.Command)
+		else
+			self:Print(L["the self-test did not load -- reinstalling Manners should bring it back."])
 		end
 	elseif input == "dev" then
 		self:Print("|cffffd100" .. L["Tools for testing Manners on this client:"] .. "|r")

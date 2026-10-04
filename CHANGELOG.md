@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- `/manners selftest` checks Manners against your game and gives you a
+  report to paste. `/manners check` does the same.
+
 ## 1.6.5
 
 - **The thank-you line is only said when the buff will land.** Out of range,
