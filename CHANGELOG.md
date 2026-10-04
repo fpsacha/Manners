@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- **A shorter description in the AddOns list.** The second line under
+  Manners' description is gone, in every language.
+
 ## 1.6.5
 
 - **The thank-you line is only said when the buff will land.** Out of range,

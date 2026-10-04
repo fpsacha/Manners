@@ -37,27 +37,41 @@ local FLAVOURS = {
 		-- The assumption Core.lua states and this mirrors: Camelot keeps the
 		-- /target route, which is the only shape ever verified in game here.
 		conditionalTargeting = false,
+		secretRestrictions = true, weaponEnchantList = true, paperDoll = true,
 	},
 	mainline = {
 		build = "12.1.5", interface = 120100, project = WOW_PROJECT_MAINLINE,
 		combatLog = false, surnames = false, unitBuff = false,
 		conditionalTargeting = true,
+		secretRestrictions = true, weaponEnchantList = true, paperDoll = true,
 	},
+	-- The three Classic clients: no C_Item.GetWeaponEnchantInfo and no
+	-- C_PaperDollInfo.GetTemporaryEnchantmentInfo in the generated API docs of
+	-- Gethe/wow-ui-source's classic, classic_anniversary and classic_era
+	-- branches (September 2026); their buff frame reads the global
+	-- GetWeaponEnchantInfo instead, and so may anybody else.
 	mists = {
 		build = "5.5.0", interface = 50504, project = WOW_PROJECT_MISTS_CLASSIC,
 		combatLog = true, surnames = false, unitBuff = true,
 		conditionalTargeting = true,
+		secretRestrictions = true, weaponEnchantList = false, paperDoll = false,
 	},
 	tbc = {
 		build = "2.5.6", interface = 20506,
 		project = WOW_PROJECT_BURNING_CRUSADE_CLASSIC,
 		combatLog = true, surnames = false, unitBuff = true,
 		conditionalTargeting = true,
+		secretRestrictions = true, weaponEnchantList = false, paperDoll = false,
 	},
+	-- Classic Era 1.15.9 (classic_era branch, build 70003). C_Secrets is there,
+	-- and HasSecretRestrictions answers false: "all APIs that are tagged as
+	-- potentially returning secrets will never do so", in the client's own
+	-- documentation.
 	vanilla = {
 		build = "1.15.9", interface = 11509, project = WOW_PROJECT_CLASSIC,
 		combatLog = true, surnames = false, unitBuff = true,
 		conditionalTargeting = true,
+		secretRestrictions = false, weaponEnchantList = false, paperDoll = false,
 	},
 }
 Mock.FLAVOURS = FLAVOURS
@@ -97,6 +111,9 @@ function Mock.setFlavour(name)
 	Mock.combatLog = client.combatLog
 	Mock.surnames = client.surnames
 	Mock.conditionalTargeting = client.conditionalTargeting
+	Mock.secretRestrictions = client.secretRestrictions
+	Mock.weaponEnchantList = client.weaponEnchantList
+	Mock.paperDoll = client.paperDoll
 	WOW_PROJECT_ID = client.project
 	_G.UnitBuff = client.unitBuff and mockUnitBuff or nil
 	_G.UnitAura = client.unitBuff and mockUnitBuff or nil
@@ -394,10 +411,22 @@ function Mock.reset()
 	-- fallback exactly as before this existed.
 	Mock.spellCooldowns = nil
 
+	-- Whether the client loads Blizzard_Deprecated*'s shims, the
+	-- loadDeprecationFallbacks setting. With it off, CombatLogGetCurrentEventInfo
+	-- is gone from every client that has a combat log: all three Classic
+	-- branches moved it to C_CombatLog.GetCurrentEventInfo and keep the global
+	-- only in Blizzard_DeprecatedCombatLog, behind that setting.
+	Mock.deprecationFallbacks = true
+
 	-- Last, because it writes several of the knobs above. Camelot is what every
 	-- scenario written before this existed assumed, so resetting to it is what
 	-- keeps all of them behaving exactly as they did.
-	Mock.setFlavour("camelot")
+	--
+	-- MOCK_DEFAULT_FLAVOUR (runscenarios.py --flavour) makes another client the
+	-- default instead: the whole suite run as though it were Classic Era, say.
+	-- A diagnostic, not a CI run -- scenarios about Camelot's scrolls,
+	-- surnames and secrets go red there by design.
+	Mock.setFlavour(rawget(_G, "MOCK_DEFAULT_FLAVOUR") or "camelot")
 end
 Mock.reset()
 
@@ -1428,7 +1457,7 @@ local CLEU_DEFAULT = {
 	auraType = "BUFF",
 }
 
-function CombatLogGetCurrentEventInfo()
+local function combatLogEvent()
 	local e = Mock.cleu or {}
 	local function field(name)
 		local value = e[name]
@@ -1443,6 +1472,12 @@ function CombatLogGetCurrentEventInfo()
 		field("sourceFlags"), 0, field("destGUID"), field("destName"), 0, 0,
 		field("spellId"), field("spellName"), 1, field("auraType"), 0
 end
+
+-- Where every client with a log keeps the reading now. The global
+-- CombatLogGetCurrentEventInfo is Blizzard_DeprecatedCombatLog's alias for it,
+-- answered by the __index at the bottom of this file only while
+-- Mock.deprecationFallbacks is on.
+Mock.combatLogEvent = combatLogEvent
 
 -- Who the client can name from a GUID alone, with no unit token anywhere. This
 -- is the entire reason the combat log is worth registering, so the mock answers
@@ -1775,7 +1810,29 @@ setmetatable(_G, { __index = function(_, key)
 			GetSpellAuraSecrecy = function() return 0 end,
 			HasSecretRestrictions = function() return Mock.secretRestrictions end,
 		})
+	elseif key == "CombatLogGetCurrentEventInfo" then
+		if Mock.deprecationFallbacks == false then return nil end
+		return combatLogEvent
+	elseif key == "C_CombatLog" then
+		return ns_or_nil({ GetCurrentEventInfo = combatLogEvent })
+	elseif key == "GetWeaponEnchantInfo" then
+		-- The global the Classic clients' buff frame reads, which modern ones
+		-- keep only as a shim: a main hand's temporary enchant or imbue from
+		-- Mock.weaponEnchants, as hasMainHandEnchant, mainHandExpiration (ms),
+		-- mainHandCharges, mainHandEnchantID, and the off hand's four after.
+		if Mock.weaponEnchantList ~= false or Mock.stripped then return nil end
+		return function()
+			local listed = Mock.weaponEnchants and Mock.weaponEnchants[0]
+			if listed == SECRET then return SECRET end
+			for _, e in ipairs(listed or {}) do
+				if e.hasEnchant and (e.enchantType == 2 or e.enchantType == 3) then
+					return true, e.timeLeft, e.charges or 0, e.enchantID, false, nil, 0, nil
+				end
+			end
+			return false, nil, 0, nil, false, nil, 0, nil
+		end
 	elseif key == "C_PaperDollInfo" then
+		if Mock.paperDoll == false then return nil end
 		-- 12.1's temporary enchant on a slot (Mock.tempEnchants), the shape the
 		-- forever branch's PaperDollInfoDocumentation gives: a table, or nothing
 		-- at all (MayReturnNothing) where the slot carries none.
@@ -1791,15 +1848,16 @@ setmetatable(_G, { __index = function(_, key)
 		-- The list the client's own buff bar reads (Mock.weaponEnchants), a
 		-- new table on every call; a slot's list may be Mock.SECRET, the whole
 		-- answer withheld. Nothing else of C_Item: a scenario about items
-		-- stands in the rest itself.
+		-- stands in the rest itself. Absent off the modern clients
+		-- (Mock.weaponEnchantList).
 		return ns_or_nil({
-			GetWeaponEnchantInfo = function(slot)
+			GetWeaponEnchantInfo = Mock.weaponEnchantList ~= false and function(slot)
 				local listed = Mock.weaponEnchants and Mock.weaponEnchants[slot]
 				if listed == SECRET then return SECRET end
 				local list = {}
 				for i, e in ipairs(listed or {}) do list[i] = e end
 				return list
-			end,
+			end or nil,
 		})
 	elseif key == "C_NamePlate" then
 		return ns_or_nil({ GetNamePlates = function() return {} end })

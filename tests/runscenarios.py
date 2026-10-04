@@ -12,6 +12,11 @@ rather than by the whole suite:
   --shard I/K       only names that hash to I of K (tracing in parallel)
   --trace PATH      write which scenario was running on each line of the
                     scenario files, and which file each name is loaded in
+  --flavour NAME    make NAME the client Mock.reset() starts from instead of
+                    camelot (MANNERS_MOCK_FLAVOUR in the environment does the
+                    same): the whole suite as Classic Era is --flavour vanilla.
+                    A diagnostic: scenarios about Camelot's own scrolls,
+                    surnames and secrets go red off Camelot by design.
 
 A scenario that is left out gets nil from load(), which every scenario reads as
 "skip". A narrowed run that admits nothing at all fails, so a selection that no
@@ -50,6 +55,8 @@ while args:
         trace_path = value
     elif flag == "--jobs":
         os.environ["MANNERS_SCENARIO_JOBS"] = value
+    elif flag == "--flavour":
+        os.environ["MANNERS_MOCK_FLAVOUR"] = value
     else:
         sys.exit("runscenarios.py: unknown argument %s" % flag)
 
@@ -107,6 +114,10 @@ if JOBS > 1 and names is None and files is None and shard is None and trace_path
 L = lupa.LuaRuntime(unpack_returned_tuples=True)
 out = []
 L.globals().print = lambda *a: out.append(" ".join(str(x) for x in a))
+# Read by tests/mockapi.lua's Mock.reset(); the workers above inherit it
+# through the environment.
+if os.environ.get("MANNERS_MOCK_FLAVOUR"):
+    L.globals().MOCK_DEFAULT_FLAVOUR = os.environ["MANNERS_MOCK_FLAVOUR"]
 
 run = L.eval("function(path, dir, extras) "
              "local f, err = loadfile(path) "

@@ -821,9 +821,23 @@ do
 	-- What this source has made of itself, for /manners debug, as ns.auraScan.
 	ns.logScan = { armed = false, applied = 0, noted = 0 }
 
+	-- Where the reading lives. Classic Era 1.15.9, TBC 2.5.6 and Mists 5.5.4
+	-- all moved it to C_CombatLog.GetCurrentEventInfo and keep the old global
+	-- only in Blizzard_DeprecatedCombatLog, which loads with the
+	-- loadDeprecationFallbacks setting and is gone without it -- and then
+	-- every line threw, and the log was armed and read nothing. The global only
+	-- where the namespace is missing.
+	local function CombatLogEvent()
+		local log = _G.C_CombatLog
+		local read = type(log) == "table" and log.GetCurrentEventInfo
+		if type(read) ~= "function" then read = _G.CombatLogGetCurrentEventInfo end
+		if type(read) ~= "function" then return end
+		return read()
+	end
+
 	local function ReadCombatLogFavour()
 		local _, subevent, _, sourceGUID, _, _, _, destGUID, _, _, _,
-			spellId, _, _, auraType = CombatLogGetCurrentEventInfo()
+			spellId, _, _, auraType = CombatLogEvent()
 
 		-- Cheapest question first: every swing, tick and proc within fifty yards
 		-- arrives here, and most cost two string compares.

@@ -12,9 +12,20 @@ meant the published images could only ever drift away from the addon.
 
 Writes one `Manners_<Flavour>.toc` from `Manners.toc` for each entry in its
 `FLAVOURS` table. 1.0 ships for WoW Forever alone, so that is one file today,
-`Manners_Camelot.toc`. `Mainline`, `Mists` and `Vanilla` are commented out until
+`Manners_Camelot.toc`. `Mainline` and `Mists` are commented out until
 somebody runs the addon on those clients; there will be no `Manners_TBC.toc`
 until the Burning Crusade spell ids are in the tables.
+
+Its `STAGED` table is the step before shipping: `Vanilla` (Classic Era, 11509)
+is written to `tools/tocs/Manners_Vanilla.toc`, kept current and checked like
+the shipped one, and goes nowhere. Not beside `Manners.toc`, because the BigWigs
+packager reads every `Manners_<Flavour>.toc` in the checkout's top folder --
+whatever `.pkgmeta` leaves out of the zip -- and tags the upload with that
+client's game version; `tools/` is ignored by `.pkgmeta`, and the packager
+never looks in it. To try the addon on Era, copy that file next to `Manners.toc`
+in your own `Interface/AddOns/Manners`. `tests/validate.py` fails if a toc in
+the top folder is not in `FLAVOURS`, or if `.pkgmeta` stops ignoring the
+staging folder.
 
 ```
 python tools/maketocs.py           # write them
