@@ -117,6 +117,8 @@ local function HoldLine(entry, verdicts)
 	if spell and ns.safecall(usable, spell) == false then return true end
 	return false
 end
+-- For /manners selftest (Selftest.lua), which asks it of your target.
+ns.HoldLine = HoldLine
 
 -- PreClick runs before the secure handler reads the attributes, so out of
 -- combat the target is re-resolved at the last moment: a nameplate token may

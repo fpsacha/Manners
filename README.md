@@ -650,6 +650,7 @@ Sharing settings
 When something is wrong
 /manners debug              what your class and this build allow
 /manners errors             the last few things that broke, if any did
+/manners selftest           check Manners against your game, with a report to paste (also /manners check)
 /manners dev                tools for testing the addon on this client: the click log, try, look and forms
 /manners help               this list, grouped the same way
 ```
@@ -780,6 +781,39 @@ other than Mage went. The Diagnostics page's *Copy for a bug report* button
 gives you the build, what this client allows, the settings that matter and
 anything that has broken, ready to paste. `/manners debug` and `/manners
 errors` say much of the same in chat.
+
+### Checking Manners against your game
+
+`/manners selftest` (or `/manners check`) holds Manners up against the game
+you are playing, out of a fight, in a few seconds. It casts nothing, says
+nothing, changes no setting and presses nothing on the prompt. Each check
+reads PASS, WARN or FAIL with what it saw:
+
+- **the client**: its build, interface, language, which client Manners took
+  it for, and whether values are being kept secret;
+- **every game call Manners depends on**: there, and answering in the shape
+  Manners reads -- the aura reads, the spell calls, the weapon enchant list,
+  the item and tracking calls, the menus, the colour picker, the emote,
+  the spellbook, names with surnames, the mouse button and friendly
+  nameplates;
+- **what Manners believes**: the buffs you know and whether they can be
+  cast, what each of your own buffs reads as, the scrolls in your bags, your
+  main hand's enchants read through every call the game has and compared
+  with what Manners reads, and your familiar;
+- **the prompt**: its secure button, how it is clicked, the macro armed on it
+  now and its length, and your key or macro;
+- **range**: whether it can be read for your target, the player under your
+  cursor and nameplates, and whether a press at your target would say its
+  line;
+- **speech**: whether the channel reaches anybody, the line on the prompt,
+  and the voice of your people *In character* uses;
+- **the options window**: that it builds, and has not fallen back to the old
+  dialog;
+- **errors** this session, and any saved setting that had to be repaired.
+
+The report opens in a box under *Reporting a bug* on Diagnostics, ready to
+copy, with one line in chat saying how many passed. Target a friendly player
+first, and the range checks have somebody to measure.
 
 ## Building a release
 

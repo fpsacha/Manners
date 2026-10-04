@@ -335,6 +335,18 @@ function Page.BuildDiagnosticsTab()
 				-- typed in is discarded.
 				set = function() end,
 			},
+			-- /manners selftest's report (Selftest.lua), shown by
+			-- ns.ShowSelftestBox until the window shuts. Read-only, as above.
+			selftest = {
+				type = "input",
+				name = "",
+				order = 34,
+				multiline = 14,
+				width = "full",
+				hidden = function() return Page.selftestText == nil end,
+				get = function() return Page.selftestText or "" end,
+				set = function() end,
+			},
 		},
 	}
 end

@@ -500,7 +500,8 @@ KIND.input = {
 -- clicked, ready to copy.
 ---------------------------------------------------------------------------
 
-local READ_ONLY = { ["profiles.shareText"] = true, ["diagnostics.report"] = true }
+local READ_ONLY = { ["profiles.shareText"] = true, ["diagnostics.report"] = true,
+	["diagnostics.selftest"] = true }
 
 local function ReadOnly(row)
 	return READ_ONLY[row.item.path] == true or (row.item.layout or {}).readOnly == true

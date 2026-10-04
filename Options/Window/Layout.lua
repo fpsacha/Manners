@@ -404,6 +404,7 @@ ns.WindowLayout = {
 					"diagnostics.debugClicks",
 					"diagnostics.copyReport",
 					"diagnostics.report",
+					"diagnostics.selftest",
 				} },
 			},
 		},

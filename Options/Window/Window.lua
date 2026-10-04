@@ -502,6 +502,7 @@ end
 local function Hidden()
 	ns.OptionsPage.reportOpen = false
 	ns.OptionsPage.shareOpen = false
+	ns.OptionsPage.selftestText = nil
 	UI.session.stoppedPreview = false
 	UI.EndPeek()
 	if UI.CloseResults then UI.CloseResults() end
@@ -560,7 +561,7 @@ local function PageToOpen(id)
 	return "general"
 end
 
-function UI.Open(pageId)
+function UI.Open(pageId, quiet)
 	if not UI.frame then UI.Build() end
 	local f = UI.frame
 	local was, wasShown = UI.page, f:IsShown()
@@ -573,7 +574,7 @@ function UI.Open(pageId)
 	-- The very first time, out of a fight and with a prompt, the preview
 	-- starts by itself once.
 	local s = UI.State()
-	if not s.previewShown and not InCombatLockdown() and ns.OptionsPage.HasPrompt() then
+	if not quiet and not s.previewShown and not InCombatLockdown() and ns.OptionsPage.HasPrompt() then
 		s.previewShown = true
 		StartPreview()
 	end

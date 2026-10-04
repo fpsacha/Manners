@@ -288,14 +288,16 @@ local function Discard()
 	if UI and UI.frame then UI.frame:Hide() end
 end
 
-function ns.OpenOptions(pageId)
+-- `quiet` opens it without the preview a first opening starts: /manners
+-- selftest shows its report there and touches nothing on the prompt.
+function ns.OpenOptions(pageId, quiet)
 	-- The boxes start shut when the window opens, but are left alone when it
 	-- is already up, where somebody may be copying out of one.
 	if not ns.OptionsOpen() then Page.reportOpen = false end
 	if not ns.OptionsOpen() then Page.shareOpen = false end
 
 	if not broken then
-		if ns.Guard("options window", function() ns.WindowUI.Open(pageId) end) then return end
+		if ns.Guard("options window", function() ns.WindowUI.Open(pageId, quiet) end) then return end
 		-- Named once, through the guard; the old dialog from now on.
 		broken = true
 		pcall(Discard)
@@ -311,6 +313,31 @@ function ns.OpenOptions(pageId)
 	if Settings and Settings.OpenToCategory and blizCategoryID ~= nil then
 		pcall(Settings.OpenToCategory, blizCategoryID)
 	end
+end
+
+-- Whether the window has failed and the old dialog stands in for it.
+function ns.OptionsFallback() return broken end
+
+-- /manners selftest's report, in its box under Reporting a bug on
+-- Diagnostics (Options/Diagnostics.lua, selftest). Answers whether the box
+-- is in front of the player.
+function ns.ShowSelftestBox(text)
+	ns.OpenOptions("diagnostics", true)
+	Page.selftestText = text
+	if broken then
+		if AceConfigDialog.SelectGroup then
+			pcall(AceConfigDialog.SelectGroup, AceConfigDialog, ADDON, "diagnostics")
+		end
+		ns.RefreshOptionsDisplay()
+		return ns.OptionsOpen()
+	end
+	ns.RefreshOptionsDisplay()
+	local UI = ns.WindowUI
+	if UI and UI.Shown() then
+		ns.Guard("options window", UI.Reveal, "diagnostics.selftest")
+		return true
+	end
+	return false
 end
 
 -- Open the window on Profiles, where the share boxes are, with the box of
