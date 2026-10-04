@@ -28,6 +28,7 @@
   offered Unending Breath, and a shaman's Water Breathing on you counts as a
   favour.
 - **"ub" in chat** asks a warlock for Unending Breath.
+
 ## 1.6.4
 
 - **Pressing the prompt for a weapon imbue puts it on your weapon.** The
