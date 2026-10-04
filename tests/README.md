@@ -40,17 +40,26 @@ names is among what fails, and restores the file. A test that passes vacuously
 is worse than no test.
 
 ```
-python tests/selftest.py            # the full run: about two minutes
+python tests/selftest.py            # the full run: about half an hour on 8 workers
 python tests/selftest.py --anchors  # only that every mutation still finds its text: seconds
 python tests/selftest.py --plan     # which scenarios would judge each mutation, then stop
 python tests/selftest.py --whole    # every mutation on the whole suite, as it used to be
 python tests/selftest.py --jobs 4   # fewer at once (default: one per core)
+python tests/selftest.py --fresh-trace  # trace the scenarios again, kept trace or not
 python tests/selftest.py --changed  # only the mutations of files that differ from master
 python tests/selftest.py --changed v1.5.4  # ... or from any commit or tag
 ```
 
-It used to take 25 minutes here and over two hours on GitHub's runner. What
-makes it fast, and why none of it loosens the rule:
+It used to take 25 minutes here and over two hours on GitHub's runner; the
+options window then took it back up past 26 minutes on 14 workers. Measured
+on 8 workers (2,216 mutations, October 2026): 44.5 minutes before the trace
+hook below changed (20.8 tracing, 23.7 judging), 30 minutes after (7.1 and
+22.8), and about 25 when the trace is kept from an earlier run (2 for the
+baseline). On 14 workers that works out at about 17 (not measured: the
+machine is shared). What is left is the judging -- mostly the few dozen
+mutations judged on the whole suite, six or seven minutes each -- and on a
+runner's four cores that alone is over 45 minutes, so CI still runs only
+`--anchors`. What makes it fast, and why none of it loosens the rule:
 
 - **Parallel, in copies.** Mutations edit files in place, so each worker gets
   its own copy of the tree in a temporary folder, and never two mutations run
@@ -61,6 +70,10 @@ makes it fast, and why none of it loosens the rule:
   `runscenarios.py` runs only the scenarios its `expect` can come from. The
   scenario files are run once under a line trace (`runscenarios.py --trace`,
   split across the cores), which records the scenario running on each line.
+  The line hook is on only while a function of a scenario file runs — a
+  call/return hook switches it — so the addon's own lines cost nothing; the
+  old hook asked `debug.getinfo` on every line of everything and made a run
+  eight times slower, which was half the full run.
   `expect` is found in the scenario files — as written, joined across `..`,
   as the tail of a scenario's name before its colon, or failing those as the
   string literal sharing the most words with it — and the lines around each
@@ -72,6 +85,19 @@ makes it fast, and why none of it loosens the rule:
   the whole suite. A narrowed run that comes back MISSED or WRONG CHECK is
   judged again on the whole suite before anything is reported. The summary
   lists both, since each is a mutation the trace sent to the wrong place.
+- **The same trace.** The new hook was checked against the old one by what
+  they write: the whole suite traced in one process, and one file traced
+  alone, come out identical (202,591 line-and-scenario pairs), and
+  `selftest.py --plan --jobs 8` printed the same selection for every one of
+  the 2,216 mutations, byte for byte, before and after. The full runs agreed
+  on every verdict, and on every mutation judged again on a wider run.
+- **The trace kept.** It is saved in `%TEMP%/manners-selftest-trace`, keyed
+  on every file in the tree but `selftest.py` and `tests/mutations/`, and on
+  the number of shards (one per worker: a scenario can leave state behind for
+  the next one in its process, so the shard count is part of what the trace
+  says). Fixing a mutation and running again reuses it; any change to the
+  addon, a scenario, a mock or `runscenarios.py` traces afresh, since which
+  scenario lines run depends on all of them. `--fresh-trace` ignores it.
 - **The locales once.** `tests/scenarios/locales.lua` drives the addon in nine
   client locales. The baseline runs it; a mutation runs it only when the
   mutation is in `Locales/` or its text is traced there.

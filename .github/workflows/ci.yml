@@ -41,10 +41,10 @@ jobs:
       # A suite that cannot go red proves nothing. This reintroduces each fault
       # class it is supposed to catch and fails the build if any goes unnoticed.
       # Here only that every mutation still finds the code it changes: since the
-      # options window (1.6.0) the whole run -- 1,900 mutations, and a scenario
-      # trace that alone outlasts half an hour on a runner's four cores -- no
-      # longer fits. The whole run is made before every release instead
-      # (RELEASING.md).
+      # options window (1.6.0) the whole run no longer fits. The scenario trace
+      # is minutes now (tests/README.md), but judging 2,200 mutations is about
+      # 3 hours of one core -- over 45 minutes on a runner's four. The whole run
+      # is made before every release instead (RELEASING.md).
       #
       # `shell: bash` is not decoration. A step with no shell runs under
       # `bash -e` without pipefail, so the pipe's exit status is tee's, which is

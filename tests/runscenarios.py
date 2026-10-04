@@ -138,37 +138,92 @@ if narrowed:
             L.table_from({f: True for f in files}) if files is not None else None,
             shard[0] if shard else None, shard[1] if shard else None, admitted)
 
-# The trace: a line hook that notes, for every line of a scenario file that
-# runs, which scenario was the last one loaded. selftest.py reads it to find
-# the scenarios a check's text sits in. It slows a run about threefold, so it
-# is only on when asked for.
+# The trace: notes, for every line of a scenario file that runs, which
+# scenario was the last one loaded. selftest.py reads it to find the scenarios
+# a check's text sits in.
+#
+# It used to be a line hook asking debug.getinfo(2, "S") on every line, the
+# addon's included: a call, a table and a source name built for each, which
+# made a run eight times slower. Only lines of the scenario files are wanted,
+# so the line hook is now on only while one of their functions is running. A
+# call/return hook switches it: on a call, the function called decides; on a
+# return, the one returned to does. Each function is looked up once (getinfo
+# "f", then "S" the first time it is seen) and remembered, so the addon's own
+# lines cost nothing and its calls a lookup. The same lines and the same names
+# come out -- tests/README.md says how that was checked.
+#
+# Two details keep it exact. In a tail call Lua 5.1 keeps no frame for the
+# caller, so a return can land on a "(tail call)" level with no function;
+# that return changes nothing, and the "tail return" events that follow it --
+# the last of which sees the real caller -- decide instead. And a C function
+# (pcall, string.gsub, sort) runs no lines: calling one or returning into one
+# leaves the hook as it was, and its own return decides on the way out. That
+# includes pcall catching an error, which unwinds the frames between without
+# a return event of their own -- pcall itself still returns.
 trace = None
 if trace_path:
     trace = L.eval(r"""function(run)
 		local hits, names, base = {}, {}, {}
 		local current = "(before any scenario)"
-		local getinfo = debug.getinfo
+		local getinfo, sethook = debug.getinfo, debug.sethook
 		run.loaded = function(name, file)
 			current = name
 			local where = names[name]
 			if not where then where = {} names[name] = where end
 			where[file] = true
 		end
-		debug.sethook(function(_, line)
-			local src = getinfo(2, "S").source
-			local b = base[src]
-			if b == nil then
-				b = src:match("[/\\]tests[/\\]scenarios[/\\]([^/\\]+%.lua)$")
-					or (src:match("[/\\]tests[/\\]scenarios%.lua$") and "scenarios.lua") or false
-				base[src] = b
-			end
-			if b then
-				local key = b .. ":" .. line
-				local seen = hits[key]
-				if not seen then seen = {} hits[key] = seen end
+		-- The line table of the scenario file running now, nil outside them.
+		local lines, hook = nil, nil
+		-- What each function is: 0 for a C function, false for one outside the
+		-- scenario files, else its file's line table.
+		local kind = setmetatable({}, { __mode = "k" })
+		hook = function(event, line)
+			if event == "line" then
+				local seen = lines[line]
+				if not seen then seen = {} lines[line] = seen end
 				seen[current] = true
+				return
 			end
-		end, "l")
+			local info
+			if event == "call" then
+				info = getinfo(2, "f")
+			elseif event == "return" or event == "tail return" then
+				info = getinfo(3, "f")
+			else
+				return
+			end
+			local fn = info and info.func
+			if not fn then return end
+			local k = kind[fn]
+			if k == nil then
+				local s = getinfo(fn, "S")
+				if s.what == "C" then
+					k = 0
+				else
+					local b = base[s.source]
+					if b == nil then
+						b = s.source:match("[/\\]tests[/\\]scenarios[/\\]([^/\\]+%.lua)$")
+							or (s.source:match("[/\\]tests[/\\]scenarios%.lua$") and "scenarios.lua") or false
+						base[s.source] = b
+					end
+					k = false
+					if b then
+						k = hits[b]
+						if not k then k = {} hits[b] = k end
+					end
+				end
+				kind[fn] = k
+			end
+			if k == 0 then return end
+			if k then
+				if not lines then sethook(hook, "crl") end
+				lines = k
+			elseif lines then
+				lines = nil
+				sethook(hook, "cr")
+			end
+		end
+		sethook(hook, "cr")
 		return { hits = hits, names = names }
 	end""")
     if L.globals().SCENARIO_RUN is None:
@@ -186,7 +241,9 @@ err = run(SCENARIOS, ADDON_DIR, L.table_from(EXTRAS))
 if trace is not None:
     L.execute("debug.sethook()")
     as_lists = lambda t: {k: sorted(v.keys()) for k, v in t.items()}
-    json.dump({"lines": as_lists(trace.hits), "names": as_lists(trace.names)},
+    hits = {"%s:%d" % (f, n): sorted(seen.keys())
+            for f, t in trace.hits.items() for n, seen in t.items()}
+    json.dump({"lines": hits, "names": as_lists(trace.names)},
               open(trace_path, "w", encoding="utf-8"))
 
 for line in out:
