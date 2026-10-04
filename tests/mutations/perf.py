@@ -107,16 +107,16 @@ mutate("Queue.lua",
        expect="perf-budget: a raid scan makes at most 30 pcalls",
        script="runscenarios.py")
 
-# A hundred and sixty more file-level locals in Core.lua, which still loads but
-# leaves 5 free against validate's floor of 10. Core.lua has 165 free as this is
-# written (since the split into Range.lua, Queue.lua and the rest); if later
-# work frees more, this has to add more to stay caught, and it cannot add more
-# than are free, or Core.lua fails to compile and the headroom check has
+# A hundred and fifty-two more file-level locals in Core.lua, which still loads
+# but leaves 5 free against validate's floor of 10. Core.lua has 157 free as
+# this is written (1.6.5; it was 165 before the scroll and what-if work); if
+# later work frees more, this has to add more to stay caught, and it cannot add
+# more than are free, or Core.lua fails to compile and the headroom check has
 # nothing to count. Five, not fewer, so a branch that adds a few locals of its
 # own does not tip it over the compiler's limit. The per-function limits
 # section objects to the same change in its own words, so the expect is this
 # section's wording alone.
-_fill = ["m%d" % i for i in range(1, 161)]
+_fill = ["m%d" % i for i in range(1, 153)]
 mutate("Core.lua",
        "local L = ns.L\n",
        "local L = ns.L\n"

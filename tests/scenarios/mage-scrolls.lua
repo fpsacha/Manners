@@ -1319,9 +1319,14 @@ do
 				:format(key(mine(ns)), lines(ns)))
 		end
 		world.enchants = { entry(LESSER_FLAME_ENCHANT, IMBUE, 120), entry(OIL, TEMPORARY, 1800) }
-		if key(mine(ns)) ~= "imbuelesserflame" then
-			fail(scenario, ("an oil listed after two minutes of Lesser Flame: offered %s; /manners debug says %s")
-				:format(key(mine(ns)), lines(ns)))
+		-- Offered as a top-up of the imbue read, with its two minutes left: the
+		-- oil read over it is offered too once the two are known to stack, but
+		-- as nothing on, with no time left at all.
+		local topUp = mine(ns)
+		if key(topUp) ~= "imbuelesserflame"
+			or not (topUp.remaining and topUp.remaining > 110 and topUp.remaining <= 120) then
+			fail(scenario, ("an oil listed after two minutes of Lesser Flame: offered %s with %s left; /manners debug says %s")
+				:format(key(topUp), tostring(topUp and topUp.remaining), lines(ns)))
 		end
 	end)
 end

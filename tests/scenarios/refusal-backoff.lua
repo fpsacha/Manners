@@ -475,9 +475,12 @@ do
 		else
 			Mock.advance(35)
 			ns.addon:Tick()
+			-- The hold itself, not the armed macro: other rules (the line's own
+			-- pacing to one person, 1.6.5) can keep the line out of the macro
+			-- whatever the hold says, and would hide a hold cut short.
 			if blockedIn(ns, 0) then
 				fail(scenario, "SKIPPED -- still backed off")
-			elseif armedSpeaks(ns) then
+			elseif not ns.SpeechHeld(entryFor(ns).name) then
 				fail(scenario, "the press that went elsewhere cut the hold the back-off wrote")
 			end
 		end
