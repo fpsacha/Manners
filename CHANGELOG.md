@@ -1,5 +1,34 @@
 # Changelog
 
+## Unreleased
+
+- **Group buffs in a raid count the whole raid.** On WoW Forever, Arcane
+  Brilliance, the Prayers and Gift of the Wild reach everybody in your party
+  and raid. The prompt now offers one cast for the raid ("Your raid") once
+  enough of the raid need it, rather than counting each raid group apart and
+  walking you through single casts, and holds it back while anybody in the
+  raid is flagged for PvP.
+- **Prayer of Fortitude from level 48 to 59** is offered with Holy Candles in
+  your bags, the reagent its first rank takes. It used to look for Sacred
+  Candles, so it never came up.
+- **Blessing of Salvation is offered only to your party or raid**, since the
+  game will not let you cast it on anybody else. A passer-by wearing another
+  paladin's blessings is offered Light instead.
+- **Skip my own class** now skips priests and paladins who can give
+  themselves Divine Spirit or Kings: every priest and paladin trains them on
+  WoW Forever.
+- **Druids are no longer reminded of Omen of Clarity**, a passive on WoW
+  Forever with nothing to cast.
+- **Blessing of Sanctuary is gone from a paladin's list**, as it is from WoW
+  Forever. `/manners debug` and Diagnostics no longer report its spells as
+  missing.
+- **A Fear Ward, a Soulstone, Water Walking or Detect Invisibility** cast on
+  you now counts as a favour, to return or to `/thank`.
+- **Somebody breathing water from a shaman's Water Breathing** is no longer
+  offered Unending Breath, and a shaman's Water Breathing on you counts as a
+  favour.
+- **"ub" in chat** asks a warlock for Unending Breath.
+
 ## 1.6.3
 
 - **The Weapon imbue reminder no longer asks again while an imbue is on.**

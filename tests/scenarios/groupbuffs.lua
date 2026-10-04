@@ -23,6 +23,15 @@ local ITEM_NAMES = {
 local MAGE_SINGLE = { 10157, 10156, 1461, 1460, 1459 }
 local BRILLIANCE = 23028
 
+-- Classic Era, where a group spell in a raid reaches the target's own
+-- subgroup (Forever's reach the whole raid: Buffs.lua, groupIsRaid, and
+-- tests/scenarios/data-audit.lua). Its players have no surname, so a
+-- raider is filed under the first name alone there.
+local ERA = "vanilla"
+local function raider(i)
+	return Mock.surnames and ("Raider" .. i .. " Stone") or ("Raider" .. i)
+end
+
 -- The four others in a party of five.
 local PARTY = {
 	party1 = { "Gwen", "Hale" },
@@ -157,9 +166,11 @@ end
 
 -- A session in a party of five (or the raid `env.raid` names), the client as
 -- `env` says, the lifecycle driven and the slate cleared. `env.setup` runs on
--- the profile before the first repaint.
+-- the profile before the first repaint. `env.flavour` is the client,
+-- Forever when nil.
 local function session(scenario, env)
 	Mock.reset()
+	if env.flavour then Mock.setFlavour(env.flavour) end
 	Mock.class = env.class or "MAGE"
 	if env.raid then
 		Mock.raid = env.raid
@@ -430,9 +441,9 @@ do
 end
 
 -- ------------------------------------------------------------ groupbuffs-7
--- In a raid a party-wide spell reaches the target's own subgroup. Two missing
--- it in the player's subgroup and four in the next: one group cast for the
--- second subgroup only, and the first two one by one.
+-- In a raid on Classic Era a party-wide spell reaches the target's own
+-- subgroup. Two missing it in the player's subgroup and four in the next:
+-- one group cast for the second subgroup only, and the first two one by one.
 do
 	local names = {}
 	for i = 1, 10 do names["raid" .. i] = { "Raider" .. i, "Stone" } end
@@ -443,7 +454,8 @@ do
 	-- Subgroup 2 is raid6-10; raid10 has it.
 	held.raid10 = { [10157] = true }
 	local scenario = "groupbuffs: in a raid only one subgroup counts towards a group cast"
-	local ns, restore = session(scenario, mage({ raid = { size = 10, player = 1 }, names = names, held = held }))
+	local ns, restore = session(scenario, mage({ flavour = ERA, raid = { size = 10, player = 1 }, names = names,
+		held = held }))
 	if ns then
 		local group, count = groupCast(ns)
 		local all = offers(ns, "intellect")
@@ -451,15 +463,15 @@ do
 			fail(scenario, "no group cast for the subgroup with four missing it")
 		else
 			if count ~= 1 then fail(scenario, count .. " group casts, where one subgroup qualifies") end
-			if covered(group) ~= "Raider6 Stone, Raider7 Stone, Raider8 Stone, Raider9 Stone" then
+			if covered(group) ~= table.concat({ raider(6), raider(7), raider(8), raider(9) }, ", ") then
 				fail(scenario, "the group cast covers people outside the target's subgroup: " .. covered(group))
 			end
 			if not ns.BuildQueue()[1].groupCast then
 				fail(scenario, "the group cast does not come before the single casts of its kind")
 			end
-			if not (all["Raider2 Stone"] and all["Raider3 Stone"]) then
+			if not (all[raider(2)] and all[raider(3)]) then
 				fail(scenario, "the two missing it in the other subgroup are no longer offered")
-			elseif all["Raider2 Stone"].groupCast or all["Raider3 Stone"].groupCast then
+			elseif all[raider(2)].groupCast or all[raider(3)].groupCast then
 				fail(scenario, "the other subgroup was folded into a group cast it does not reach")
 			end
 		end
@@ -606,12 +618,13 @@ do
 	end
 end
 
--- The same in a raid: the other subgroup is still offered, one by one.
+-- The same in a raid on Classic Era: the other subgroup is still offered,
+-- one by one.
 do
 	local names = {}
 	for i = 1, 10 do names["raid" .. i] = { "Raider" .. i, "Stone" } end
 	local scenario = "groupbuffs: after it lands the other subgroup is still offered"
-	local env = mage({ raid = { size = 10, player = 1 }, names = names,
+	local env = mage({ flavour = ERA, raid = { size = 10, player = 1 }, names = names,
 		held = { raid4 = { [10157] = true }, raid5 = { [10157] = true }, raid10 = { [10157] = true } } })
 	local ns, restore = session(scenario, env)
 	if ns then
@@ -622,7 +635,7 @@ do
 			for i = 6, 9 do env.held["raid" .. i] = { [BRILLIANCE] = true } end
 			Mock.advance(20)
 			local all, count = offers(ns, "intellect")
-			if count ~= 2 or not (all["Raider2 Stone"] and all["Raider3 Stone"]) then
+			if count ~= 2 or not (all[raider(2)] and all[raider(3)]) then
 				fail(scenario, "expected the two in the other subgroup and nobody else, got " .. count)
 			end
 		end
@@ -1005,8 +1018,10 @@ do
 			if not said(toggle):find("Arcane Brilliance", 1, true) or said(toggle):find("Greater Blessing", 1, true) then
 				fail(scenario, "the toggle does not name the mage's own group spell: " .. said(toggle))
 			end
-			if not said(slider):find("one party", 1, true) then
-				fail(scenario, "the threshold does not say it counts one party or raid group: " .. said(slider))
+			-- On Forever the whole raid: tests/scenarios/data-audit.lua reads
+			-- Classic Era's "one party".
+			if not said(slider):find("your party or raid", 1, true) then
+				fail(scenario, "the threshold does not say it counts your party or raid: " .. said(slider))
 			end
 			if slider.name ~= "When this many need it" then
 				fail(scenario, "the threshold's name does not say what happens at the number: " .. tostring(slider.name))
@@ -1442,14 +1457,15 @@ do
 end
 
 -- ------------------------------------------------------------ groupbuffs-28
--- Who it is for, as players say it: in a raid, your own subgroup is "Your
--- group" and another is "Group 2"; the tooltip says the same.
+-- Who it is for, as players say it: in a raid on Classic Era, your own
+-- subgroup is "Your group" and another is "Group 2"; the tooltip says the
+-- same. Forever's "Your raid" is tests/scenarios/data-audit.lua's.
 do
 	local names = {}
 	for i = 1, 10 do names["raid" .. i] = { "Raider" .. i, "Stone" } end
 	local scenario = "groupbuffs: in a raid the panel names the raid group"
 	-- Everybody in both subgroups missing it: two group casts.
-	local ns, restore = session(scenario, mage({ raid = { size = 10, player = 1 }, names = names }))
+	local ns, restore = session(scenario, mage({ flavour = ERA, raid = { size = 10, player = 1 }, names = names }))
 	if ns then
 		local seen = {}
 		for _, entry in ipairs(ns.BuildQueue()) do

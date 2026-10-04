@@ -29,6 +29,10 @@ local RETIRED = {
 
 -- AceDBOptions' own entries. The mock's stand-in for the library builds only
 -- its `desc`, so these are in the model in the game and not here.
+-- Placed for another client's model, never this one's: Classic Era's
+-- Omen of Clarity, a passive on Forever (Buffs.lua, CAMELOT_OWN).
+local ELSEWHERE = { ["who.own_omen"] = true }
+
 local ACEDB = {
 	["profiles.current"] = true, ["profiles.choosedesc"] = true, ["profiles.new"] = true,
 	["profiles.choose"] = true, ["profiles.copydesc"] = true, ["profiles.copyfrom"] = true,
@@ -268,7 +272,7 @@ Mock.reset()
 if ran == #CLASSES and allUses then
 	local scenario = "every path in the options window's layout is in the model"
 	for path, list in pairs(allUses) do
-		if not seen[path] and not RETIRED[path] then
+		if not seen[path] and not RETIRED[path] and not ELSEWHERE[path] then
 			if ACEDB[path] then
 				-- In the game's model, not the mock's: see ACEDB above.
 			elseif list[1].as == "unplaced" then

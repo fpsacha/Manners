@@ -430,7 +430,8 @@ do
 		ns.ReagentCount = function() return count end
 		db.groupBuffs.use, db.groupBuffs.atLeast = true, 3
 		who = quick.WhoSummary()
-		if not who:find("Group buffs when 3 of a party need it (", 1, true)
+		-- A mage's on Forever counts the whole raid (GroupBuffs.lua).
+		if not who:find("Group buffs when 3 of your party or raid need it (", 1, true)
 			or not who:find(": 5 in bags).", 1, true) then
 			fail(scenario, "the group buffs and their reagent are not said: " .. who)
 		end

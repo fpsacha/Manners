@@ -61,8 +61,8 @@ mutate("GroupBuffs.lua",
 
 # ------------------------------------------------ who a cast reaches
 mutate("GroupBuffs.lua",
-       "\t\t\t\twhere = RaidSubgroup(entry.unit, memo)\n",
-       "\t\t\t\twhere = \"party\"\n",
+       "\t\t\t\twhere = ns.GROUP_IS_RAID and \"raid\" or RaidSubgroup(entry.unit, memo)\n",
+       "\t\t\t\twhere = ns.GROUP_IS_RAID and \"raid\" or \"party\"\n",
        "groupbuffs: a raid is one party",
        expect="the group cast covers people outside the target's subgroup", script=S)
 mutate("GroupBuffs.lua",
@@ -339,7 +339,7 @@ mutate("GroupBuffs.lua",
        "groupbuffs: your own raid group is called by number",
        expect="the raid's group casts are not named by raid group", script=S)
 mutate("GroupBuffs.lua",
-       "\tlocal ownSubgroup = inRaid and not byClass and RaidSubgroup(\"player\", memo) or nil\n",
+       "\tlocal ownSubgroup = inRaid and not byClass and not ns.GROUP_IS_RAID and RaidSubgroup(\"player\", memo) or nil\n",
        "\tlocal ownSubgroup = nil\n",
        "groupbuffs: the player's own raid group is never read",
        expect="the raid's group casts are not named by raid group", script=S)

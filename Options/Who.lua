@@ -49,7 +49,7 @@ local function BuffLabel(buff)
 	if buff.manaOnly and F().relevantOnly then
 		label = L["%s |cff808080(mana users only)|r"]:format(label)
 	end
-	if buff.partyOnly then label = L["%s |cff808080(your group only)|r"]:format(label) end
+	if buff.partyOnly or buff.groupOnly then label = L["%s |cff808080(your group only)|r"]:format(label) end
 	return label
 end
 
@@ -512,7 +512,7 @@ function Page.BuildWhoTab()
 				-- buffed him is turned down until they join.
 				desc = function()
 					if OnlyReachesGroup() then
-						if ns.PARTY_IS_SUBGROUP then
+						if ns.GroupMeansSubgroup() then
 							return L["Offer a buff back to anyone who buffs you. Yours reaches only your own party (in a raid, your subgroup), so someone outside it is offered once they join."]
 						end
 						return L["Offer a buff back to anyone who buffs you. Yours reaches only your group, so someone outside it is offered once they join."]

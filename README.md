@@ -111,8 +111,8 @@ casts it on you and hands your target back: nothing is said, and nothing goes
 in the ledger. With it come the buffs your class casts only on itself, once
 you have learned them: a mage's armor, a priest's Inner Fire, a warlock's
 Demon Skin or Armor, a paladin's aura and Righteous Fury, a hunter's aspect
-and Trueshot Aura, a shaman's shield, a druid's Omen of Clarity (the full list
-is under *Which buffs each class offers*).
+and Trueshot Aura, a shaman's shield (the full list is under *Which buffs
+each class offers*).
 
 - One at a time, your buff for others first: a mage missing both is offered
   Arcane Intellect, then the armor.
@@ -162,13 +162,14 @@ is under *Which buffs each class offers*).
 Brilliance, Prayer of Fortitude, Prayer of Spirit, Prayer of Shadow
 Protection, Gift of the Wild) and carry its reagent, a party with enough
 people missing it gets one cast instead of one each. Three is the default,
-and *When this many need it* sets 2 to 5. In a raid each raid group is
-counted on its own, because that is what the spell reaches. A paladin's
-Greater Blessings go by class across the group instead, and are held back
-while anybody of that class carries another of your blessings, which the
-Greater one would replace. The prompt names who it is for ("Your party",
-"Your group", "Group 2", "Every Warrior") and why ("Arcane Brilliance -- 4
-missing", "4 running out"), and the tooltip counts your reagents. A
+and *When this many need it* sets 2 to 5. In a raid the whole raid is
+counted together, because on WoW Forever the spell reaches everybody in
+your party and raid within 100 yards. A paladin's Greater Blessings go by
+class across the group instead, and are held back while anybody of that
+class carries another of your blessings, which the Greater one would
+replace. The prompt names who it is for ("Your party", "Your raid",
+"Every Warrior") and why ("Arcane Brilliance -- 4 missing", "4 running
+out"), and the tooltip counts your reagents. A
 right-click skips the cast for the whole group; a shift-right-click puts only
 the person it is aimed at on the never-offer list. Short of mana for the
 group spell, you are offered the single one. With the chat lines on, chat
@@ -440,8 +441,8 @@ list. They used to be at the bottom of *Who to buff*.
 - *Skip my own class when they can cast it too*: off by default. Another mage
   can give themselves Arcane Intellect, so they are left out, unless they are
   too low a level for the rank you cast. Somebody who buffed you, asked, or
-  you targeted is always offered, and talent buffs such as Divine Spirit or
-  Kings are never skipped this way.
+  you targeted is always offered. Every priest and paladin trains Divine
+  Spirit and Kings on WoW Forever, so those are skipped the same way.
 - *Skip players out of range*: where the game cannot tell, they are still
   offered. A group member the game cannot see at all (still in town, or far
   off in the instance) is left out.
@@ -468,7 +469,8 @@ list. They used to be at the bottom of *Who to buff*.
     stays on the prompt this long; somebody it cannot see is let go sooner,
     when *Let them go after* is shorter.
   - *Ignore shields, heals and trinket procs*: only class buffs such as
-    Fortitude count as a favour to return, or to `/thank`.
+    Fortitude, a Fear Ward or a Soulstone count as a favour to return, or to
+    `/thank`.
   - *Stop sooner if they are probably gone* and *Let them go after (seconds)*
     (45): somebody who buffed you is rarely your target or on a nameplate, so
     all that is known is that they were in range when they buffed you. The
@@ -650,7 +652,7 @@ your client runs in. Slash commands are English in all of them.
 | Mage | Arcane Intellect |
 | Priest | Power Word: Fortitude, Divine Spirit, Shadow Protection |
 | Druid | Mark of the Wild, Thorns |
-| Paladin | Wisdom, Might, Kings, Salvation, Light, Sanctuary |
+| Paladin | Wisdom, Might, Kings, Salvation (your party or raid only), Light |
 | Warlock | Unending Breath |
 | Warrior | Battle Shout (your own party only) |
 
@@ -661,9 +663,9 @@ nobody. That is deliberate rather than a fault.
 
 Mages, priests, druids and paladins also cast the group version of a buff
 once they have learned it and carry its reagent: Arcane Brilliance (Arcane
-Powder), the three Prayers (Sacred Candle), Gift of the Wild (Wild Berries or
-Wild Thornroot, by rank) and the Greater Blessings (Symbol of Kings). Thorns
-has none.
+Powder), the three Prayers (Sacred Candle, or a Holy Candle for Prayer of
+Fortitude's first rank), Gift of the Wild (Wild Berries or Wild Thornroot, by
+rank) and the Greater Blessings (Symbol of Kings). Thorns has none.
 
 **On yourself.** With *Myself* on, you are offered the buff you give others
 too, except Battle Shout (it already covers you) and Unending Breath (nobody
@@ -678,7 +680,7 @@ you have learned them:
 | Paladin | *Aura*: Devotion, Retribution, Concentration, Shadow, Frost or Fire Resistance; and Righteous Fury |
 | Hunter | *Aspect*: Hawk, Monkey, Wild or Beast (Cheetah and Pack count as up, but are never suggested); and Trueshot Aura |
 | Shaman | *Shield*: Lightning Shield or Water Shield |
-| Druid | Omen of Clarity |
+| Druid | Omen of Clarity on Classic Era only (a passive on WoW Forever) |
 
 Warriors and rogues have nothing of their own to be reminded of.
 

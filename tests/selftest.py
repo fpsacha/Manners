@@ -3529,9 +3529,9 @@ mutate("Options/Window/Layout.lua",
 # "People who buffed me" promising a warrior strangers.
 mutate("Options/Who.lua",
        "\t\t\t\t\tif OnlyReachesGroup() then\n"
-       "\t\t\t\t\t\tif ns.PARTY_IS_SUBGROUP then\n",
+       "\t\t\t\t\t\tif ns.GroupMeansSubgroup() then\n",
        "\t\t\t\t\tif false then\n"
-       "\t\t\t\t\t\tif ns.PARTY_IS_SUBGROUP then\n",
+       "\t\t\t\t\t\tif ns.GroupMeansSubgroup() then\n",
        "favour switch promises a warrior strangers",
        # Judged in tests/scenarios/options-who.lua since the redesign reworded
        # the sentence scenario 256 looks for.
@@ -3872,7 +3872,7 @@ mutate("README.md",
 
 # A raider in another subgroup told to join a group they are in.
 mutate("Favours.lua",
-       "or ns.PARTY_IS_SUBGROUP and L[\"|cff80ff80%s buffed you|r -- what you cast reaches only your own party",
+       "or ns.GroupMeansSubgroup() and L[\"|cff80ff80%s buffed you|r -- what you cast reaches only your own party",
        "or false and L[\"|cff80ff80%s buffed you|r -- what you cast reaches only your own party",
        "favour line says group, not subgroup",
        expect="a raider already in the group was told to join it",
@@ -3880,7 +3880,7 @@ mutate("Favours.lua",
 
 # The warrior's owed toggle saying the same.
 mutate("Options/Who.lua",
-       "\t\t\t\t\t\tif ns.PARTY_IS_SUBGROUP then\n",
+       "\t\t\t\t\t\tif ns.GroupMeansSubgroup() then\n",
        "\t\t\t\t\t\tif false then\n",
        "owed toggle says group, not subgroup",
        expect="the warrior's owed toggle says the shout reaches the group",

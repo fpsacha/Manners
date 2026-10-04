@@ -25,7 +25,7 @@ end
 local CLASSES = {
 	MAGE = {},
 	PRIEST = { buffs = { "fortitude", "spirit", "shadow" } },
-	PALADIN = { buffs = { "wisdom", "might", "kings", "salvation", "light", "sanctuary" } },
+	PALADIN = { buffs = { "wisdom", "might", "kings", "salvation", "light" } },
 	WARRIOR = { buffs = { "battleshout" } },
 	HUNTER = { known = { HAWK, MONKEY } },
 	ROGUE = {},
@@ -105,7 +105,7 @@ local TABLE = {
 	end },
 	{ "PALADIN", ALL, function(scenario, ns, UI)
 		ns.OpenOptions("who")
-		for _, key in ipairs({ "wisdom", "might", "kings", "salvation", "light", "sanctuary" }) do
+		for _, key in ipairs({ "wisdom", "might", "kings", "salvation", "light" }) do
 			if not UI.RowShown("who.offer_" .. key) then fail(scenario, "a paladin has no switch for " .. key) end
 		end
 	end },

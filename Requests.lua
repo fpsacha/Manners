@@ -73,7 +73,7 @@ do
 		salvation = { "salv", "salvation", "blessing of salvation" },
 		light = { "bol", "blessing of light" },
 		sanctuary = { "sanc", "sanctuary", "blessing of sanctuary" },
-		breath = { "unending breath", "water breathing", "~breath" },
+		breath = { "unending breath", "water breathing", "ub", "~breath" },
 		battleshout = { "battle shout", "~shout" },
 		emperor = { "legacy of the emperor", "~emperor" },
 		whitetiger = { "legacy of the white tiger", "white tiger" },

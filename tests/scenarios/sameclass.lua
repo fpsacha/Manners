@@ -77,9 +77,11 @@ end
 -- held back a moment ago as "just offered, wait". The same-class skip was read
 -- that way too: a paladin in your party from level 26 up, who could give
 -- himself Salvation, was offered nothing at all -- Kings, which the option
--- never skips, included -- and at 60 every blessing but Kings did it alone.
--- He is offered Kings at 60 and your better Wisdom at 30. Your Wisdom on him
--- still covers him: he is not walked onto Kings over it.
+-- never skips on Classic Era, where it is a talent, included -- and at 60
+-- every blessing but Kings did it alone. There he is offered Kings at 60, and
+-- your better Wisdom at 30 on either client. Your Wisdom on him still covers
+-- him: he is not walked onto Kings over it. Forever trains Kings at 20, so a
+-- paladin of 60 there gives himself every blessing (data-audit.lua).
 local PALADIN_KEYS = { "wisdom", "might", "kings", "salvation", "light" }
 local ANNA = "Anna Aim"
 local realInParty, realMembers = UnitInParty, GetNumGroupMembers
@@ -100,10 +102,12 @@ end
 -- What Anna, a paladin of `level` in your party missing every blessing but
 -- `wearing` (ranks of keys, from `source` -- nil for nobody named, which
 -- reads as yours), is offered with the option `on`: a buff key, false for
--- nothing, nil when the session would not start.
-local function blessing(level, on, wearing, source)
+-- nothing, nil when the session would not start. `flavour` is the client,
+-- Forever when nil.
+local function blessing(level, on, wearing, source, flavour)
 	local known, byKey = ranksOf(PALADIN_KEYS)
 	Mock.reset()
+	if flavour then Mock.setFlavour(flavour) end
 	Mock.class = "PALADIN"
 	Mock.unitClass = "PALADIN"
 	if wearing then
@@ -129,7 +133,8 @@ local function blessing(level, on, wearing, source)
 		H.freshPrompt(ns, scenario)
 		ns.db.profile.sources.strangers = false
 		ns.db.profile.filters.skipSameClass = on
-		local anna = H.inQueue(ns)[ANNA]
+		-- Classic Era's players have no surname.
+		local anna = H.inQueue(ns)[Mock.surnames and ANNA or "Anna"]
 		result = anna and anna.buff and anna.buff.key or false
 		for _, e in ipairs(ns.errors or {}) do
 			fail(scenario, "guarded: " .. tostring(e.where) .. " -> " .. tostring(e.err))
@@ -146,7 +151,7 @@ end
 
 do
 	local scenario = "sameclass: a paladin who can give himself the rest is offered Kings"
-	local off, on = blessing(60, false), blessing(60, true)
+	local off, on = blessing(60, false, nil, nil, "vanilla"), blessing(60, true, nil, nil, "vanilla")
 	if off == nil or on == nil then
 		fail(scenario, "SKIPPED -- the addon would not load")
 	elseif not off then
@@ -168,7 +173,7 @@ end
 
 do
 	local scenario = "sameclass: a paladin wearing your Wisdom is not walked onto Kings"
-	local on = blessing(60, true, { "wisdom" })
+	local on = blessing(60, true, { "wisdom" }, nil, "vanilla")
 	if on ~= false then
 		fail(scenario, "a level 60 paladin wearing your Wisdom was offered " .. tostring(on)
 			.. ", which would replace it")
@@ -177,7 +182,7 @@ end
 
 do
 	local scenario = "sameclass: another paladin's Wisdom on him is no reason to wait"
-	local on = blessing(60, true, { "wisdom" }, "party2")
+	local on = blessing(60, true, { "wisdom" }, "party2", "vanilla")
 	if on ~= "kings" then
 		fail(scenario, "a level 60 paladin wearing another paladin's Wisdom was offered " .. tostring(on)
 			.. ", not Kings")

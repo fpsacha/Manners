@@ -37,7 +37,7 @@ It skips the dead, the out of range, anyone you just tried, anyone the buff does
 ### Buff myself
 
 - **Your own buff.** Missing the buff you give everybody else? "You" comes up on the prompt with "your own Arcane Intellect" under it, and a press casts it on you: your target is left alone and nothing is said.
-- **Your class's own buffs**, once you have learned them: a mage's Frost Armor (Ice Armor from level 30) or Mage Armor; a priest's Inner Fire, Touch of Weakness and Shadowguard; a warlock's Demon Skin (Demon Armor from level 20); a paladin's aura and Righteous Fury; a hunter's aspect and Trueshot Aura; a shaman's Lightning Shield or Water Shield; a druid's Omen of Clarity.
+- **Your class's own buffs**, once you have learned them: a mage's Frost Armor (Ice Armor from level 30) or Mage Armor; a priest's Inner Fire, Touch of Weakness and Shadowguard; a warlock's Demon Skin (Demon Armor from level 20); a paladin's aura and Righteous Fury; a hunter's aspect and Trueshot Aura; a shaman's Lightning Shield or Water Shield.
 - **Automatic, or your choice.** Where your class has several of one kind -- armors, auras, aspects, shields -- pick the one you want, or leave it on *Automatic*, which follows the one you had up last and says which. Until you have had one up, a mage gets Mage Armor in a dungeon or raid and Frost Armor everywhere else. *Don't remind me* turns one off.
 - **Only when it matters.** Only when none of a kind is up, so the armor or aura you chose is never swapped for another; never in a fight; and not in cities and inns unless you tick *Also in cities and inns*. Righteous Fury only while your group role is tank, unless you set it to *Always*.
 - **Hunters and shamans**, who have nothing to give anybody else, now get a prompt for their own buffs.
@@ -45,7 +45,7 @@ It skips the dead, the out of range, anyone you just tried, anyone the buff does
 
 ### Dungeons and raids
 
-- **One cast for the whole party.** Once you know Arcane Brilliance, a Prayer, Gift of the Wild or a Greater Blessing and carry its reagent, a party with 3 or more people who need your buff gets one group cast instead of one each (a Greater Blessing goes by class). The prompt says who it is for ("Your party", "Group 2", "Every Warrior") and why ("Arcane Brilliance -- 4 missing"), and the tooltip counts your reagents. Short of mana for it, you get the single buff; out of reagents, it goes back to one at a time.
+- **One cast for the whole party or raid.** Once you know Arcane Brilliance, a Prayer, Gift of the Wild or a Greater Blessing and carry its reagent, a party or raid with 3 or more people who need your buff gets one group cast instead of one each (a Greater Blessing goes by class). The prompt says who it is for ("Your party", "Your raid", "Every Warrior") and why ("Arcane Brilliance -- 4 missing"), and the tooltip counts your reagents. Short of mana for it, you get the single buff; out of reagents, it goes back to one at a time.
 - **Ready checks.** From a ready check until the pull, your party or raid goes to the front of the queue.
 - **Back from the dead.** For two minutes after somebody is brought back, they go to the front. Feign Death doesn't count.
 - **Raid groups I buff.** Untick the groups you weren't assigned; people who buffed you or asked are still offered.
@@ -109,8 +109,8 @@ The first login on each character says what it does and shows you the prompt onc
 |---|---|---|
 | Mage | Arcane Intellect | Frost Armor (Ice Armor from 30) or Mage Armor |
 | Priest | Power Word: Fortitude, Divine Spirit, Shadow Protection | Inner Fire, Touch of Weakness, Shadowguard |
-| Druid | Mark of the Wild, Thorns | Omen of Clarity |
-| Paladin | Wisdom, Might, Kings, Salvation, Light, Sanctuary | an aura, Righteous Fury |
+| Druid | Mark of the Wild, Thorns | Omen of Clarity on Classic Era only (a passive on WoW Forever) |
+| Paladin | Wisdom, Might, Kings, Salvation (your party or raid only), Light | an aura, Righteous Fury |
 | Warlock | Unending Breath | Demon Skin (Demon Armor from 20) |
 | Warrior | Battle Shout (your own party only) | none |
 | Hunter | none | an aspect, Trueshot Aura |

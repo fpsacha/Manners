@@ -38,6 +38,7 @@ local function said() return table.concat(Mock.printed, "\n") end
 -- whether it finished or threw.
 local function with(scenario, opts, body)
 	Mock.reset()
+	if opts.flavour then Mock.setFlavour(opts.flavour) end
 	if opts.class then Mock.class = opts.class end
 	if opts.groupSize then Mock.groupSize = opts.groupSize end
 	if opts.raid then Mock.raid = opts.raid end
@@ -555,9 +556,10 @@ for _, case in ipairs({
 	end)
 end
 
--- In a raid a party-wide spell lands on the target's own subgroup: a raider
--- flagged in another subgroup keeps nothing back, one in its own (wearing the
--- buff, so never queued) keeps its group cast back.
+-- In a raid on Classic Era a party-wide spell lands on the target's own
+-- subgroup: a raider flagged in another subgroup keeps nothing back, one in
+-- its own (wearing the buff, so never queued) keeps its group cast back.
+-- Forever's reach the whole raid: tests/scenarios/data-audit.lua.
 for _, case in ipairs({
 	{ label = "in another subgroup", flagged = "raid3", want = true },
 	{ label = "in its own subgroup", flagged = "raid10", want = false },
@@ -570,7 +572,7 @@ for _, case in ipairs({
 	-- raid6-10: four missing it, raid10 wearing it.
 	local env = mageParty({ raid4 = { [10157] = true }, raid5 = { [10157] = true },
 		raid10 = { [10157] = true } })
-	with(scenario, { raid = { size = 10, player = 1 }, people = names,
+	with(scenario, { flavour = "vanilla", raid = { size = 10, player = 1 }, people = names,
 		before = function() groupClient(env) end }, function(ns)
 		if not groupAndSingles(ns) then
 			fail(scenario, "SKIPPED -- no group cast for the second subgroup with nobody flagged")

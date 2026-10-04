@@ -171,7 +171,7 @@ end
 local KNOWS = {
 	MAGE = { known = { 1459, 168 } },
 	PRIEST = { buffs = { "fortitude", "spirit", "shadow" }, known = { 588 } },
-	PALADIN = { buffs = { "wisdom", "might", "kings", "salvation", "light", "sanctuary" }, known = { 465, 25780 } },
+	PALADIN = { buffs = { "wisdom", "might", "kings", "salvation", "light" }, known = { 465, 25780 } },
 	WARRIOR = { buffs = { "battleshout" } },
 	HUNTER = { known = { 13165, 13163, 19506 }, tracking = { 1494 } },
 }

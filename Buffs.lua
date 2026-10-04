@@ -16,6 +16,8 @@
 --             as the ranks are, through buff.auraIds.
 --   manaOnly  only worth giving somebody with a mana bar.
 --   partyOnly reaches your party and nobody else.
+--   groupOnly reaches anybody in your party or raid (a raid member in another
+--             subgroup too), and nobody outside it: Blessing of Salvation.
 --   selfCast  cast on yourself, not on them, so the macro takes no target.
 --   neverAuto offerable, but never what "Automatic" reaches for.
 --   notSelf   the game will not let you cast it on yourself, so "Myself"
@@ -50,14 +52,16 @@ local L = ns.L
 -- The reagents the group versions eat, one per cast. The item ids and names
 -- were checked against QuestieDB_Camelot (the Forever client's own item data:
 -- 17020 Arcane Powder, 17021 Wild Berries, 17026 Wild Thornroot, 17029 Sacred
--- Candle, 21177 Symbol of Kings) and Questie's list of what reagent vendors
--- sell to each class. Which rank eats which is the 1.12 spell data, not in any
--- file here: the ranks learned at 60 and the 50/56 ones agree except Gift of
--- the Wild, whose first rank takes Wild Berries and whose second Thornroot.
--- GroupBuffs.lua also asks the client whether the spell is usable, which is
--- false without its reagent, so a wrong pairing costs an offer, not a cast.
+-- Candle, 21177 Symbol of Kings), Forever's ItemSparse (17028 Holy Candle) and
+-- Questie's list of what reagent vendors sell to each class. Which rank eats
+-- which is Forever's own SpellReagents (build 1.60.1.70178), the same as
+-- Classic Era's: two first ranks take the cheaper reagent, Prayer of
+-- Fortitude's (learned at 48) a Holy Candle and Gift of the Wild's (50) Wild
+-- Berries; every other rank takes the one paired below. GroupBuffs.lua also
+-- asks the client whether the spell is usable, which is false without its
+-- reagent, so a wrong pairing costs an offer, not a cast.
 local ARCANE_POWDER, WILD_BERRIES, WILD_THORNROOT = 17020, 17021, 17026
-local SACRED_CANDLE, SYMBOL_OF_KINGS = 17029, 21177
+local SACRED_CANDLE, HOLY_CANDLE, SYMBOL_OF_KINGS = 17029, 17028, 21177
 
 -- A paladin's Greater Blessing, highest rank first: every one of them takes a
 -- Symbol of Kings.
@@ -86,8 +90,8 @@ local VANILLA = {
 			key = "fortitude",
 			ranks = { 10938, 10937, 2791, 1245, 1244, 1243 },
 			group = { 21564, 21562 },
-			-- Prayer of Fortitude.
-			groupCast = { { id = 21564, reagent = SACRED_CANDLE }, { id = 21562, reagent = SACRED_CANDLE } },
+			-- Prayer of Fortitude: rank 1 a Holy Candle, rank 2 a Sacred one.
+			groupCast = { { id = 21564, reagent = SACRED_CANDLE }, { id = 21562, reagent = HOLY_CANDLE } },
 		},
 		{
 			key = "spirit",
@@ -146,6 +150,11 @@ local VANILLA = {
 			key = "salvation",
 			ranks = { 1038 },
 			group = { 25895 },
+			-- "Places a Blessing on the party member": the game refuses it on
+			-- anybody outside your party or raid (target 57 in the spell data,
+			-- Forever's and Classic Era's alike), where the other blessings
+			-- take any friendly target.
+			groupOnly = true,
 			groupCast = Greater(25895),
 		},
 		{
@@ -167,6 +176,10 @@ local VANILLA = {
 		{
 			key = "breath",
 			ranks = { 5697 },
+			-- A shaman's Water Breathing is the same aura (82, ten minutes):
+			-- somebody wearing it needs no Unending Breath, and it on you is
+			-- a favour like any other.
+			group = { 131 },
 			-- Water breathing is nothing to be reminded of on dry land, and a
 			-- ten-minute buff on yourself would come back all evening, ahead
 			-- of your Demon Skin or Armor.
@@ -236,9 +249,9 @@ local VANILLA = {
 -- The level each rank of the buffs above is learned at (vanilla trainers), for
 -- "skip my own class when they can cast it too": somebody of your class at or
 -- past the level of your best rank could give themselves the same, and one
--- below it gets yours, which is better. Talent buffs and shouts are never
--- skipped that way, so they are not here; a rank missing here counts as
--- learned at level 1.
+-- below it gets yours, which is better. A buff marked `talent` and a shout
+-- are never skipped that way, so their levels are never read; a rank missing
+-- here counts as learned at level 1.
 ns.RANK_LEVEL = {
 	-- Arcane Intellect
 	[1459] = 1, [1460] = 14, [1461] = 28, [10156] = 42, [10157] = 56,
@@ -256,6 +269,9 @@ ns.RANK_LEVEL = {
 	[19740] = 4, [19834] = 12, [19835] = 22, [19836] = 32, [19837] = 42, [19838] = 52, [25291] = 60,
 	-- Blessing of Salvation, Blessing of Light, Unending Breath
 	[1038] = 26, [19977] = 40, [19978] = 50, [19979] = 60, [5697] = 16,
+	-- Blessing of Kings and Divine Spirit: trained on Forever (its SpellLevels),
+	-- talents on Classic Era, where `talent` returns before these are read.
+	[20217] = 20, [14752] = 30, [14818] = 40, [14819] = 50, [27841] = 60,
 }
 function ns.RankLevel(id)
 	return id and ns.RANK_LEVEL[id] or nil
@@ -432,6 +448,14 @@ local VANILLA_SET = {
 	-- Classes whose groupCast reaches everybody of the target's class in the
 	-- raid or party rather than the target's party: the Greater Blessings.
 	groupByClass = { PALADIN = true },
+	-- Class buffs others put on you that Manners never offers (an emergency
+	-- spell, or one that moves you), counted as favours only: in ALL_BUFF_IDS,
+	-- never in BUFF_BY_ID. Fear Ward; Water Walking; Detect Invisibility;
+	-- Soulstone Resurrection, every rank. A shaman's Water Breathing comes in
+	-- as Unending Breath's group id instead. Amplify and Dampen Magic are left
+	-- out: each also works against its target, a raid tactic rather than a
+	-- courtesy.
+	favourOnly = { 6346, 546, 11743, 2970, 132, 20765, 20764, 20763, 20762, 20707 },
 }
 
 -- Burning Crusade Classic: the vanilla set in everything but the class's own
@@ -511,19 +535,53 @@ do
 			{ key = "imbuechillknife", item = 275067, level = 5, ranks = { 1296225 }, enchant = 8698, weapon = DAGGER },
 		},
 	}
-	-- Vanilla's lists, with the mage's two after the armor.
+	-- Vanilla's lists, with the mage's two after the armor. Forever made Omen
+	-- of Clarity a passive every druid has from 20 (16864: Attributes_0 0x40,
+	-- no duration): nothing to cast, so a druid there has tracking alone.
 	for class, families in pairs(VANILLA_OWN) do
 		local list = {}
-		for i, family in ipairs(families) do list[i] = family end
+		for _, family in ipairs(families) do
+			if family.key ~= "omen" then list[#list + 1] = family end
+		end
 		CAMELOT_OWN[class] = list
 	end
 	table.insert(CAMELOT_OWN.MAGE, 2, FAMILIAR)
 	table.insert(CAMELOT_OWN.MAGE, 3, IMBUE)
 end
 
--- Forever: the vanilla set, and its own buffs with the mage's scrolls. The
--- name stays "vanilla", which is the set everything else comes from.
-local CAMELOT_SET = setmetatable({ own = CAMELOT_OWN }, { __index = VANILLA_SET })
+-- Forever's own: the vanilla tables less what its client deleted or moved,
+-- copied entry by entry, since Classic Era still needs them as they are and
+-- BuildBuffLookups writes class, order and auraIds onto the chosen set's.
+-- Blessing of Sanctuary (20911-20914, Greater 25899) has no SpellName there;
+-- Kings and Divine Spirit are trained there (SpellLevels 20, and 30 to 60),
+-- in neither talent tree. A real table rather than an __index, because the
+-- lookups walk ns.BUFFS with pairs.
+local CAMELOT = {}
+do
+	local GONE = { sanctuary = true }
+	local TRAINED = { kings = true, spirit = true }
+	for class, list in pairs(VANILLA) do
+		local copy = {}
+		for _, buff in ipairs(list) do
+			if not GONE[buff.key] then
+				local entry = {}
+				for field, value in pairs(buff) do entry[field] = value end
+				if TRAINED[entry.key] then entry.talent = nil end
+				copy[#copy + 1] = entry
+			end
+		end
+		CAMELOT[class] = copy
+	end
+end
+
+-- Forever: those buffs, and its own with the mage's scrolls. The name stays
+-- "vanilla", which is the set everything else comes from. Its group versions
+-- of a priest's, mage's and druid's buff reach the caster's whole party and
+-- raid within 100 yards and need no target (target 56 in Forever's spell
+-- data, where Classic Era's reach the target's party): groupIsRaid. The
+-- Greater Blessings keep their by-class rule, and Battle Shout partyIsSubgroup.
+local CAMELOT_SET = setmetatable({ buffs = CAMELOT, own = CAMELOT_OWN, groupIsRaid = true },
+	{ __index = VANILLA_SET })
 
 ---------------------------------------------------------------------------
 -- Mists of Pandaria Classic
@@ -699,7 +757,8 @@ local SETS = {
 	vanilla = VANILLA_SET,
 	tbc = TBC_SET,
 	-- Forever runs vanilla content, and the vanilla tables are the ones
-	-- verified there in game; its own buffs add the mage's scrolls.
+	-- verified there in game, less what its client changed; its own buffs
+	-- add the mage's scrolls.
 	camelot = CAMELOT_SET,
 	mists = MISTS_SET,
 	mainline = MAINLINE_SET,
@@ -740,8 +799,10 @@ if chosen then
 	ns.CLASS_AUTO = chosen.auto
 	ns.CLASSES_WITHOUT_BUFFS = chosen.without
 	ns.PARTY_IS_SUBGROUP = chosen.partyIsSubgroup == true
+	ns.GROUP_IS_RAID = chosen.groupIsRaid == true
 	ns.GROUP_BY_CLASS = chosen.groupByClass
 	ns.OWN_BUFFS = chosen.own
+	ns.FAVOUR_ONLY_IDS = chosen.favourOnly
 end
 
 ---------------------------------------------------------------------------
@@ -749,7 +810,8 @@ end
 ---------------------------------------------------------------------------
 
 -- Every id any class can apply, used to tell a real class buff from a stray
--- heal-over-time or proc when deciding whether we owe somebody a favour.
+-- heal-over-time or proc when deciding whether we owe somebody a favour: the
+-- buffs above, and the set's favourOnly ones Manners never offers.
 ns.ALL_BUFF_IDS = {}
 ns.BUFF_BY_ID = {}
 -- The same for the class's own buffs, apart: none of them is anybody's favour
@@ -831,6 +893,10 @@ function ns.BuildBuffLookups()
 				ns.BUFF_BY_ID[id] = buff
 			end
 		end
+	end
+	-- A favour, and nothing else: no buff of anybody's is filed under them.
+	for _, id in ipairs(type(ns.FAVOUR_ONLY_IDS) == "table" and ns.FAVOUR_ONLY_IDS or {}) do
+		ns.ALL_BUFF_IDS[id] = true
 	end
 end
 

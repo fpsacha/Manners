@@ -10,19 +10,19 @@ mutate("Buffs.lua",
        "\t\t\tgroup = { 25898 },\n\t\t\ttalent = true,\n",
        "\t\t\tgroup = { 25898 },\n",
        "hunt5-other: Kings not marked as a talent",
-       expect="hunt5-other: talent-only buffs are marked on Forever", script=S)
+       expect="hunt5-other: talent-only buffs are marked on Classic Era", script=S)
 
 mutate("Buffs.lua",
        "\t\t\tgroup = { 25899 },\n\t\t\ttalent = true,\n",
        "\t\t\tgroup = { 25899 },\n",
        "hunt5-other: Sanctuary not marked as a talent",
-       expect="hunt5-other: talent-only buffs are marked on Forever", script=S)
+       expect="hunt5-other: talent-only buffs are marked on Classic Era", script=S)
 
 mutate("Buffs.lua",
        "\t\t\tgroup = { 27681 },\n\t\t\tmanaOnly = true,\n\t\t\ttalent = true,\n",
        "\t\t\tgroup = { 27681 },\n\t\t\tmanaOnly = true,\n",
        "hunt5-other: Divine Spirit not marked as a talent",
-       expect="hunt5-other: talent-only buffs are marked on Forever", script=S)
+       expect="hunt5-other: talent-only buffs are marked on Classic Era", script=S)
 
 mutate("Buffs.lua",
        "\t\t\tranks = { 369459 },\n\t\t\tmanaOnly = true,\n\t\t\ttalent = true,\n",

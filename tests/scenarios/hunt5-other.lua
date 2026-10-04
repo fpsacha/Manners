@@ -7,28 +7,51 @@
 local dir, H = ...
 local fail, load = H.fail, H.load
 
--- On the vanilla set Forever runs, Kings, Sanctuary and Divine Spirit come
--- from talents; Might is trained by every paladin and must not be marked.
+-- On Classic Era, Kings, Sanctuary and Divine Spirit come from talents; Might
+-- is trained by every paladin and must not be marked.
+local function talents(scenario, ns, wants)
+	for _, want in ipairs(wants) do
+		local buff = ns.FindBuff(want[1], want[2])
+		if not buff then
+			fail(scenario, want[1] .. " has no " .. want[2])
+		elseif buff.talent ~= want[3] then
+			fail(scenario, ("%s %s has talent = %s, wanted %s"):format(want[1],
+				want[2], tostring(buff.talent), tostring(want[3])))
+		end
+	end
+end
 do
-	local scenario = "hunt5-other: talent-only buffs are marked on Forever"
+	local scenario = "hunt5-other: talent-only buffs are marked on Classic Era"
 	Mock.reset()
-	Mock.interface = 16001
+	Mock.setFlavour("vanilla")
 	local ns = load(scenario)
 	if ns then
-		for _, want in ipairs({
+		talents(scenario, ns, {
 			{ "PALADIN", "kings", true },
 			{ "PALADIN", "sanctuary", true },
 			{ "PRIEST", "spirit", true },
 			{ "PALADIN", "might", nil },
 			{ "PRIEST", "fortitude", nil },
-		}) do
-			local buff = ns.FindBuff(want[1], want[2])
-			if not buff then
-				fail(scenario, want[1] .. " has no " .. want[2])
-			elseif buff.talent ~= want[3] then
-				fail(scenario, ("%s %s has talent = %s, wanted %s"):format(want[1],
-					want[2], tostring(buff.talent), tostring(want[3])))
-			end
+		})
+	end
+end
+
+-- Forever trains Kings (at 20) and Divine Spirit (30 to 60), in neither
+-- talent tree, and deleted Blessing of Sanctuary (Buffs.lua, CAMELOT).
+do
+	local scenario = "hunt5-other: Forever trains Kings and Divine Spirit and has no Sanctuary"
+	Mock.reset()
+	Mock.interface = 16001
+	local ns = load(scenario)
+	if ns then
+		talents(scenario, ns, {
+			{ "PALADIN", "kings", nil },
+			{ "PRIEST", "spirit", nil },
+			{ "PALADIN", "might", nil },
+			{ "PRIEST", "fortitude", nil },
+		})
+		if ns.FindBuff("PALADIN", "sanctuary") then
+			fail(scenario, "Forever's paladin has Blessing of Sanctuary, whose ids its client deleted")
 		end
 	end
 end

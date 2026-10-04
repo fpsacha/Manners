@@ -204,8 +204,8 @@ mutate("Options/Start.lua",
        expect="an empty bag is not said", script=S)
 
 mutate("Options/Start.lua",
-       "\t\t\t\t\tparts[1] = L[\"Group buffs when %d of a party need it (%s: %d in bags).\"]\n",
-       "\t\t\t\t\tparts[1] = L[\"Group buffs when %d of a party need it.\"]\n",
+       "\t\t\t\t\tparts[1] = (raidWide and L[\"Group buffs when %d of your party or raid need it (%s: %d in bags).\"]\n",
+       "\t\t\t\t\tparts[1] = (raidWide and L[\"Group buffs when %d of your party or raid need it.\"]\n",
        "presets: group buffs without their reagent",
        expect="the group buffs and their reagent are not said", script=S)
 

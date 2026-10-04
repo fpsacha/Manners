@@ -601,33 +601,36 @@ do
 	local scenario = "self: you count towards your raid group's and your class's group cast"
 	local raid = {}
 	for i = 2, 10 do raid["raid" .. i] = { "Raider" .. i, "Stone" } end
-	with(scenario, { people = raid, known = { 1459, BRILLIANCE } }, function(ns)
-		Mock.raid = { size = 10, player = 1 }
-		ns.db.profile.sources.strangers = false
-		ns.db.profile.groupBuffs.use, ns.db.profile.groupBuffs.atLeast = true, 3
-		powder(20)
-		-- Your subgroup is raid1 to raid5: two of the four others missing it,
-		-- and the other subgroup all wearing it.
-		auras({ raid4 = set(1459), raid5 = set(1459), raid6 = set(1459), raid7 = set(1459),
-			raid8 = set(1459), raid9 = set(1459), raid10 = set(1459) })
-		ns.Guard("probe", ns.ProbeCapabilities)
-		wear(ns, {})
-		local group
-		for _, entry in ipairs(ns.BuildQueue()) do
-			if entry.groupCast then group = entry end
-		end
-		if not group then
-			fail(scenario, "two of your raid group and you missing it made no group cast: "
-				.. names(ns.BuildQueue()))
-		elseif group.groupCast.missing ~= 3 or group.groupCast.label ~= "your group" then
-			fail(scenario, ("the raid's group cast counts %s missing in %s")
-				:format(tostring(group.groupCast.missing), tostring(group.groupCast.label)))
-		end
-		wear(ns, set(1459))
-		for _, entry in ipairs(ns.BuildQueue()) do
-			if entry.groupCast then fail(scenario, "SKIPPED -- two of the raid group alone made a group cast") end
-		end
-	end)
+	-- Classic Era's reaches your subgroup, Forever's the whole raid.
+	for _, case in ipairs({ { flavour = "vanilla", label = "your group" }, { label = "your raid" } }) do
+		with(scenario, { flavour = case.flavour, people = raid, known = { 1459, BRILLIANCE } }, function(ns)
+			Mock.raid = { size = 10, player = 1 }
+			ns.db.profile.sources.strangers = false
+			ns.db.profile.groupBuffs.use, ns.db.profile.groupBuffs.atLeast = true, 3
+			powder(20)
+			-- Your subgroup is raid1 to raid5: two of the four others missing it,
+			-- and the other subgroup all wearing it.
+			auras({ raid4 = set(1459), raid5 = set(1459), raid6 = set(1459), raid7 = set(1459),
+				raid8 = set(1459), raid9 = set(1459), raid10 = set(1459) })
+			ns.Guard("probe", ns.ProbeCapabilities)
+			wear(ns, {})
+			local group
+			for _, entry in ipairs(ns.BuildQueue()) do
+				if entry.groupCast then group = entry end
+			end
+			if not group then
+				fail(scenario, "two of your raid group and you missing it made no group cast: "
+					.. names(ns.BuildQueue()))
+			elseif group.groupCast.missing ~= 3 or group.groupCast.label ~= case.label then
+				fail(scenario, ("the raid's group cast counts %s missing in %s")
+					:format(tostring(group.groupCast.missing), tostring(group.groupCast.label)))
+			end
+			wear(ns, set(1459))
+			for _, entry in ipairs(ns.BuildQueue()) do
+				if entry.groupCast then fail(scenario, "SKIPPED -- two of the raid group alone made a group cast") end
+			end
+		end)
+	end
 
 	-- A paladin in a party of paladins, knowing Might and its Greater version.
 	with(scenario, { class = "PALADIN", groupSize = 5, known = { 19740, 25782 },

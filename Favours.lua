@@ -415,7 +415,7 @@ do
 			else
 				addon:Print((reachable
 					and L["|cff80ff80%s buffed you|r -- returning the favour is on the prompt"]
-					or ns.PARTY_IS_SUBGROUP and L["|cff80ff80%s buffed you|r -- what you cast reaches only your own party -- in a raid, your own subgroup -- so they are offered if they join it"]
+					or ns.GroupMeansSubgroup() and L["|cff80ff80%s buffed you|r -- what you cast reaches only your own party -- in a raid, your own subgroup -- so they are offered if they join it"]
 					or L["|cff80ff80%s buffed you|r -- what you cast reaches your group only, so they are offered if they join it"]):format(seen.name))
 			end
 		end

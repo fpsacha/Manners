@@ -3,9 +3,10 @@
 --
 -- From level 48 to 60 a buffer learns a version of the buff that covers the
 -- target's whole party (Prayer of Fortitude, Arcane Brilliance, Gift of the
--- Wild), or for a paladin everybody of the target's class in the raid or
--- party (the Greater Blessings), each for a reagent. When the player knows it,
--- carries the reagent, and enough of one party (or class) are waiting for the
+-- Wild) -- on Forever the caster's whole party and raid (ns.GROUP_IS_RAID) --
+-- or for a paladin everybody of the target's class in the raid or party (the
+-- Greater Blessings), each for a reagent. When the player knows it, carries
+-- the reagent, and enough of one party (or raid, or class) are waiting for the
 -- single buff, BuildQueue gets one entry for the group cast instead of theirs.
 --
 -- The entry is aimed at one of them, the anchor, so the macro, the settle and
@@ -278,13 +279,16 @@ local function Better(a, b)
 end
 
 -- Who the cast is for, the way players say it: the panel's title ("Your
--- party", "Group 3", "Every Warrior") and the same inside a sentence. The
--- party is always yours outside a raid; in one, people call the subgroups by
--- number, and yours is "your group".
+-- party", "Group 3", "Your raid", "Every Warrior") and the same inside a
+-- sentence. The party is always yours outside a raid; in one, people call the
+-- subgroups by number, and yours is "your group"; a cast that reaches the
+-- whole raid is for "your raid".
 local function Names(bucket, byClass, inRaid, ownSubgroup)
 	if byClass then
 		local class = ClassName(bucket.where)
 		return L["Every %s"]:format(class), L["every %s"]:format(class)
+	elseif inRaid and bucket.where == "raid" then
+		return L["Your raid"], L["your raid"]
 	elseif not inRaid or type(bucket.where) ~= "number" then
 		-- Outside a raid, or a raid group nothing numbered: the party.
 		return L["Your party"], L["your party"]
@@ -426,7 +430,8 @@ function ns.GroupCasts(queue, db, candidates, inRaid)
 			if byClass then
 				where = entry.class
 			elseif inRaid then
-				where = RaidSubgroup(entry.unit, memo)
+				-- Forever's reach the whole raid, Classic Era's the subgroup.
+				where = ns.GROUP_IS_RAID and "raid" or RaidSubgroup(entry.unit, memo)
 			else
 				where = "party"
 			end
@@ -452,7 +457,7 @@ function ns.GroupCasts(queue, db, candidates, inRaid)
 	-- a group cast held back for a flagged member is written into.
 	local pvp = ns.PvPRecord()
 	-- The player's own subgroup, so theirs is "your group" and not a number.
-	local ownSubgroup = inRaid and not byClass and RaidSubgroup("player", memo) or nil
+	local ownSubgroup = inRaid and not byClass and not ns.GROUP_IS_RAID and RaidSubgroup("player", memo) or nil
 	local absorbed, made
 	for _, bucket in ipairs(order) do
 		if bucket.missing + bucket.low >= atLeast then
@@ -499,8 +504,9 @@ end
 
 -- The options page's two descriptions, for this character's class: a
 -- paladin's Greater Blessings go by class across the whole group, everybody
--- else's by party (in a raid, raid group), and the spells named are the ones
--- this character has learned. Read each time the page is drawn.
+-- else's by party (in a raid, raid group; on Forever the whole raid), and the
+-- spells named are the ones this character has learned. Read each time the
+-- page is drawn.
 function ns.GroupBuffDescriptions()
 	if ns.GROUP_BY_CLASS[ns.PlayerClass()] == true then
 		return L["Cast one Greater Blessing for a whole class when enough of that class need it and you carry the reagent."],
@@ -510,6 +516,15 @@ function ns.GroupBuffDescriptions()
 	for _, buff in ipairs(ns.GetClassBuffs(ns.PlayerClass()) or {}) do
 		local info = buff.groupCast and ns.BuffInfo(buff)
 		if info and info.groupName then names[#names + 1] = info.groupName end
+	end
+	if ns.GROUP_IS_RAID then
+		local slider = L["How many in your party or raid must be missing it first."]
+		if #names == 0 then
+			return L["Cast your class's group version, once learned, when enough of your party or raid need it and you carry the reagent."],
+				slider
+		end
+		return L["Cast one %s when enough of your party or raid need it and you carry the reagent."]
+			:format(table.concat(names, " / ")), slider
 	end
 	-- "One party" is a raid group in a raid, which is what the fold counts.
 	local slider = L["How many in one party must be missing it first."]

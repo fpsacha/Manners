@@ -549,7 +549,8 @@ local CLASS_BUFFS = {
 	MAGE = { "intellect" },
 	PRIEST = { "fortitude", "spirit", "shadow" },
 	DRUID = { "motw", "thorns" },
-	PALADIN = { "wisdom", "might", "kings", "salvation", "light", "sanctuary" },
+	-- No Sanctuary: Forever deleted it (Buffs.lua, CAMELOT).
+	PALADIN = { "wisdom", "might", "kings", "salvation", "light" },
 	WARLOCK = { "breath" },
 	WARRIOR = { "battleshout" },
 }
@@ -560,9 +561,10 @@ for class, keys in pairs(CLASS_BUFFS) do
 
 		Mock.reset()
 		Mock.class = class
-		-- Battle Shout is partyOnly, so the warrior path only exists in a
-		-- group. Everything else is tested solo, which is the common case.
-		Mock.groupSize = (class == "WARRIOR") and 3 or 0
+		-- Battle Shout is partyOnly and Salvation groupOnly, so their paths
+		-- only exist in a group. Everything else is tested solo, which is the
+		-- common case.
+		Mock.groupSize = (class == "WARRIOR" or key == "salvation") and 3 or 0
 		local cns = load(label)
 		if cns then
 			-- Every rank of this buff is known, so the path is reachable.

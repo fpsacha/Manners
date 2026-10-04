@@ -482,13 +482,18 @@ function Quick.GroupSummary()
 			if info and info.groupRank and info.groupReagent and #parts == 0 then
 				local name = (ns.ReagentName and ns.ReagentName(info.groupReagent)) or tostring(info.groupReagent)
 				local count = ns.ReagentCount and ns.ReagentCount(info.groupReagent)
+				-- On Forever a priest's, mage's or druid's counts the whole raid
+				-- (GroupBuffs.lua); a Greater Blessing goes by class either way.
+				local raidWide = ns.GROUP_IS_RAID and not ns.GROUP_BY_CLASS[ns.PlayerClass()]
 				if count == 0 then
 					parts[1] = L["%s: none in your bags, so group buffs are not offered."]:format(name)
 				elseif count then
-					parts[1] = L["Group buffs when %d of a party need it (%s: %d in bags)."]
+					parts[1] = (raidWide and L["Group buffs when %d of your party or raid need it (%s: %d in bags)."]
+						or L["Group buffs when %d of a party need it (%s: %d in bags)."])
 						:format(gb.atLeast, name, count)
 				else
-					parts[1] = L["Group buffs when %d of a party need it."]:format(gb.atLeast)
+					parts[1] = (raidWide and L["Group buffs when %d of your party or raid need it."]
+						or L["Group buffs when %d of a party need it."]):format(gb.atLeast)
 				end
 			end
 		end

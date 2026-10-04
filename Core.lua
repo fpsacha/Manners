@@ -758,7 +758,18 @@ function ns.OnlyReachesGroup(castable)
 	castable = castable or ns.CastableBuffs()
 	if #castable == 0 then return false end
 	for _, buff in ipairs(castable) do
-		if not buff.partyOnly then return false end
+		if not (buff.partyOnly or buff.groupOnly) then return false end
+	end
+	return true
+end
+
+-- Whether "your group", in a sentence about what reaches only your group,
+-- is your own subgroup in a raid: a vanilla shout's is (ns.PARTY_IS_SUBGROUP),
+-- but Salvation (groupOnly) reaches anybody in the raid.
+function ns.GroupMeansSubgroup(castable)
+	if not ns.PARTY_IS_SUBGROUP then return false end
+	for _, buff in ipairs(castable or ns.CastableBuffs()) do
+		if buff.groupOnly and not buff.partyOnly then return false end
 	end
 	return true
 end
@@ -819,6 +830,8 @@ do
 	local function Castable(opts, buff)
 		if opts.relevantOnly and buff.manaOnly and opts.hasMana == false then return false end
 		if buff.partyOnly and not opts.inParty then return false end
+		-- Salvation: the game refuses it on anybody outside your party or raid.
+		if buff.groupOnly and not (opts.inGroup or opts.inParty) then return false end
 		return true
 	end
 

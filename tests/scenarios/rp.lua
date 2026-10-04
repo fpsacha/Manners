@@ -1854,6 +1854,8 @@ do
 		known(RP.CLASS, CLASSES, "class")
 		if not next(keys) then fail(scenario, "SKIPPED -- no buffs on this client to check the spells against") end
 		for key in pairs(keys) do has(RP.SPELL[key], "spell " .. key, full) end
+		-- And Classic Era's Blessing of Sanctuary, which Forever deleted.
+		keys.sanctuary = keys.sanctuary or "elsewhere"
 		known(RP.SPELL, keys, "spell")
 		-- What a gift does: every spell somebody can give you.
 		for key in pairs(keys) do has(RP.GIFT[key], "gift " .. key, 2) end
