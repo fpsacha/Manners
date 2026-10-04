@@ -20,7 +20,10 @@ mutate("Buffs.lua",
        "\tgroupByClass = { PALADIN = true },\n",
        "",
        "groupbuffs: Greater Blessings go by party",
-       expect="no Greater Blessing for four warriors missing Might", script=S)
+       # Since group casts reach the whole raid on Forever (1.6.5), the
+       # Greater Blessing is still offered without its class rule; the panel
+       # naming no class is what shows it.
+       expect="the panel does not name the class", script=S)
 
 # ------------------------------------------------ when a group cast is offered
 mutate("Queue.lua",

@@ -459,17 +459,16 @@ do
 	local ns, restore = session(scenario)
 	if ns then
 		speaking(ns)
-		local button = ns.Prompt:GetButton()
 		local ok = refusedPress(ns) and refusedPress(ns)
 		if ok then
-			-- Refusal two: backed off for 30 s, the line held for 60.
+			-- Refusal two: backed off for 30 s, the line held for 60. Then a
+			-- quiet note from a press whose line is not known (spoke unset). A
+			-- press during the hold now carries no line and leaves no note at
+			-- all (1.6.5), so the note is written straight to NoteRefusal.
 			Mock.advance(1)
-			ns.pendingClick = nil
-			ns.Prompt:ApplyTarget(entryFor(ns))
-			local post = button.scripts.PostClick
-			if post then pcall(post, button, "LeftButton", true) end
-			ok = ns.pendingClick ~= nil
-			if ok then ns.addon:UNIT_SPELLCAST_SENT(nil, "player", "Some Body", "Cast-Q", 1459) end
+			local entry = entryFor(ns)
+			ok = entry ~= nil and entry.name ~= nil
+			if ok then ns.NoteRefusal(entry.name, nil, true) end
 		end
 		if not ok then
 			fail(scenario, "SKIPPED -- a press parked nothing")

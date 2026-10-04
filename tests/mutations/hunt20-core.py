@@ -109,7 +109,9 @@ mutate("Prompt/Press.lua",
        "\tif type(deadOrGhost) ~= \"function\" or ns.plain(deadOrGhost(unit)) ~= false then return true end\n",
        "",
        "hunt20-core: a press on the dead keeps the line",
-       expect="a press on somebody who just died said the line", script=S)
+       # The press's fresh scan now also turns the dead away (1.6.5); with this
+       # line gone it is the unread-life check that the line breaks.
+       expect="speech-range: no line for somebody whose life the client will not read", script=S)
 
 # The client's "Unknown" filed as a person.
 mutate("Core.lua",
