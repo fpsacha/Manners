@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.6.4
 
 - **Pressing the prompt for a weapon imbue puts it on your weapon.** The
   scroll waited for you to click a weapon, so the press did nothing and the
