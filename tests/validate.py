@@ -214,7 +214,7 @@ else:
     fail += 1
 
 print("\n== the %d generated toc(s) are what the generator would write =="
-      % len(maketocs.FLAVOURS))
+      % len(maketocs.expected()))
 # The one line that differs from the source is the interface number, and
 # hand-maintained copies of the same file list are a drift waiting to happen.
 # Re-rendering here is exact: a hand edit to a generated toc -- or an edit to
@@ -407,6 +407,62 @@ else:
         fail += 1
     if generated and generated == declared:
         print("  ok  the same %d clients either way" % len(generated))
+
+print("\n== a staged toc cannot ship ==")
+# tools/maketocs.py's STAGED tocs (Classic Era's, today) are written and kept
+# current, but only somebody who copies one into their AddOns folder runs it.
+# Two ways one would go out on the next tag, both silent: a Manners_<Flavour>.toc
+# in the top folder, which the BigWigs packager reads from the checkout itself
+# -- whatever .pkgmeta keeps out of the zip -- to tag the CurseForge and Wago
+# upload with that client's game version; and a staging folder .pkgmeta no
+# longer ignores, which puts the file in the zip for anybody to load.
+_staged_bad = 0
+_shipped = {"Manners_%s.toc" % suffix for suffix, _ in maketocs.FLAVOURS}
+for _path in sorted(glob.glob(os.path.join(ROOT, "Manners[-_]*.toc"))):
+    _name = os.path.basename(_path)
+    if _name not in _shipped:
+        print("  %s is in the top folder but not in maketocs.FLAVOURS -- the packager"
+              " would publish for that client" % _name)
+        _staged_bad += 1
+_ignored = set()
+_m = re.search(r"^ignore:\s*\n((?:[ \t]+-[^\n]*\n?)+)", pkgmeta, re.M)
+if _m:
+    _ignored = {l.strip()[1:].strip().strip("/") for l in _m.group(1).splitlines() if l.strip()}
+_top = maketocs.STAGED_DIR.replace(os.sep, "/").split("/")[0]
+if maketocs.STAGED and _top not in _ignored:
+    print("  .pkgmeta does not ignore %s/, so the staged tocs in %s would ship"
+          % (_top, maketocs.STAGED_DIR.replace(os.sep, "/")))
+    _staged_bad += 1
+fail += _staged_bad
+if not _staged_bad:
+    print("  ok  %d staged (%s), none where the packager or the game reads it"
+          % (len(maketocs.STAGED), ", ".join(s for s, _ in maketocs.STAGED) or "none"))
+
+print("\n== the tocs' Notes make no testing disclaimer ==")
+# The Notes are the addon's public one-line description: the game's AddOns list
+# shows them, and so does every site that reads the toc. A line saying which
+# classes were tested and which are "unverified" is a disclaimer, and public
+# text does not carry them.
+# The words are the ones that line used, in each language it was written in.
+_DISCLAIMER = re.compile(
+    r"unverified|untested|tested in game|not verified"
+    r"|ungeprüft|getestet"
+    r"|sin verificar|probad[ao] en el juego"
+    r"|non vérifié|testé en jeu"
+    r"|non verificat|testato in gioco"
+    r"|검증되지|테스트했"
+    r"|não verificad|testad[ao] no jogo"
+    r"|未验证|实测|未驗證|實測", re.I)
+_notes_bad = 0
+for name, text in sorted(tocs.items()):
+    for line in text.splitlines():
+        if re.match(r"^## Notes(-\w+)?:", line) and _DISCLAIMER.search(line):
+            print("  %s: %s" % (name, line[:90]))
+            _notes_bad += 1
+fail += _notes_bad
+if not _notes_bad:
+    print("  ok  %d Notes lines across %d tocs" % (
+        sum(len(re.findall(r"^## Notes(?:-\w+)?:", t, re.M)) for t in tocs.values()), len(tocs)))
 
 print("\n== release notes for the current version ==")
 # The release workflow uploads exactly this section to CurseForge and Wago, and

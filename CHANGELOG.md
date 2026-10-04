@@ -15,6 +15,8 @@
   with them off, with a *Show friendly nameplates* button that turns them on
   (not in a fight; nothing changes unless you click it). The first line left
   out for that reason in a session says so in chat, once.
+- **A shorter description in the AddOns list.** The second line under
+  Manners' description is gone, in every language.
 
 ## 1.6.5
 

@@ -148,7 +148,15 @@ python tests/runscenarios.py --file look.lua          # one file's scenarios
 python tests/runscenarios.py --file scenarios.lua     # the main file's only
 python tests/runscenarios.py --select pick.json       # {"scenarios": [...], "files": [...]}
 python tests/runscenarios.py --trace lines.json       # which scenario ran each line
+python tests/runscenarios.py --flavour vanilla        # every scenario as Classic Era
 ```
+
+`--flavour` makes another client the one `Mock.reset()` starts from (camelot
+otherwise; `Mock.setFlavour` lists the five). It is a diagnostic rather than a
+suite to keep green: the scenarios about Forever's own scrolls, surnames and
+secret values go red on any other client by design, and what is left is the
+list worth reading. Classic Era's own scenarios, which run in every normal
+run, are `tests/scenarios/era.lua`.
 
 A scenario left out gets `nil` from `load()`, which every scenario reads as
 "skip"; the few that report an empty load as a failure of their own
