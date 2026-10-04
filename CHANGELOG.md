@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.6.5
 
 - **The thank-you line is only said when the buff will land.** Out of range,
   on cooldown, short of mana, or when Manners cannot tell -- a passer-by your
