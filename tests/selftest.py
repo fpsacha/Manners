@@ -858,7 +858,7 @@ mutate("Prompt/Button.lua",
 #     quoted in the tooltip was never the line that went out. The cache looks
 #     like an optimisation and is the only thing making the quote true.
 mutate("Prompt/Macro.lua",
-       "\tif S.phraseKey ~= phraseIdentity or (S.phraseText and #S.phraseText > budget) then\n",
+       "\tif speak and (S.phraseKey ~= phraseIdentity or (S.phraseText and #S.phraseText > budget)) then\n",
        "	if true then\n",
        "the tooltip quoting a line it will not cast",
        expect="the tooltip quotes the line that will actually run",
@@ -3290,9 +3290,9 @@ mutate("Prompt/Press.lua",
 # The roll keyed on the macro, unit token and all, so the same person seen
 # through another token was somebody new to it.
 mutate("Prompt/Macro.lua",
-       "\tif S.phraseKey ~= phraseIdentity or (S.phraseText and #S.phraseText > budget) then\n"
+       "\tif speak and (S.phraseKey ~= phraseIdentity or (S.phraseText and #S.phraseText > budget)) then\n"
        "\t\tS.phraseKey, S.phraseText = phraseIdentity,",
-       "\tif S.phraseKey ~= key then\n\t\tS.phraseKey, S.phraseText = key,",
+       "\tif speak and S.phraseKey ~= key then\n\t\tS.phraseKey, S.phraseText = key,",
        "the spoken line re-rolled on a unit token",
        expect="a press with the cursor on her said",
        script="runscenarios.py")
@@ -3835,8 +3835,8 @@ mutate("Prompt/Macro.lua",
 
 # A settled line kept after the room it was rolled for has gone.
 mutate("Prompt/Macro.lua",
-       "\tif S.phraseKey ~= phraseIdentity or (S.phraseText and #S.phraseText > budget) then",
-       "\tif S.phraseKey ~= phraseIdentity then",
+       "\tif speak and (S.phraseKey ~= phraseIdentity or (S.phraseText and #S.phraseText > budget)) then",
+       "\tif speak and (S.phraseKey ~= phraseIdentity) then",
        "kept spoken line not measured again",
        expect="cuts the hand-back off the end",
        script="runscenarios.py")

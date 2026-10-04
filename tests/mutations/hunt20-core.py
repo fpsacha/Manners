@@ -106,8 +106,8 @@ mutate("Prompt/Macro.lua",
 
 # A press on somebody just dead keeps the line.
 mutate("Prompt/Press.lua",
-       "\tif type(deadOrGhost) == \"function\" and ns.plain(deadOrGhost(entry.unit)) == true then\n",
-       "\tif false then\n",
+       "\tif type(deadOrGhost) ~= \"function\" or ns.plain(deadOrGhost(unit)) ~= false then return true end\n",
+       "",
        "hunt20-core: a press on the dead keeps the line",
        expect="a press on somebody who just died said the line", script=S)
 

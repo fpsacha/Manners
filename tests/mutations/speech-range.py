@@ -1,21 +1,23 @@
 # Mutations for the spoken line and the range (beta.8: a thank-you said over a
-# buff the game refused for range). Each is caught by the scenario in
+# buff the game refused for range), and for the line going only with a press
+# known to land (speech-range-6: "The Light already likes you, Weirbeard
+# Jenkins" over "Out of range."). Each is caught by the scenario in
 # tests/scenarios/speech-range.lua that names it.
 
 # The range reading ignored: the line goes in for somebody known out of reach.
 mutate("Prompt/Macro.lua",
-       "\tlocal speak = not silent and entry.ranged ~= false and not ns.SpeechHeld(entry.name)\n",
+       "\tlocal speak = not silent and entry.ranged == true and not ns.SpeechHeld(entry.name)\n",
        "\tlocal speak = not silent and not ns.SpeechHeld(entry.name)\n",
        "speech armed out of range",
        expect="speech-range: the line follows what the scan knows of the range",
        script="runscenarios.py")
 
-# Unknown range taken for out of range: silences everybody the client will
-# not measure.
+# Unknown range taken for in range, as it was before: the tooltip quotes a
+# line for somebody nobody could measure, which the press then leaves out.
 mutate("Prompt/Macro.lua",
-       "\tlocal speak = not silent and entry.ranged ~= false and not ns.SpeechHeld(entry.name)\n",
        "\tlocal speak = not silent and entry.ranged == true and not ns.SpeechHeld(entry.name)\n",
-       "speech silenced when range is unknown",
+       "\tlocal speak = not silent and entry.ranged ~= false and not ns.SpeechHeld(entry.name)\n",
+       "speech armed when range is unknown",
        expect="speech-range: the line follows what the scan knows of the range",
        script="runscenarios.py")
 
@@ -36,26 +38,26 @@ mutate("Prompt/Macro.lua",
        expect="speech-range: the line follows what the scan knows of the range",
        script="runscenarios.py")
 
-# PreClick not asking the range again for the entry it re-keys.
+# PreClick not judging the line again for the entry it re-keys.
 mutate("Prompt/Press.lua",
-       "\t\tPrompt:ApplyTarget(S.current, OutOfReachNow(S.current))\n",
+       "\t\tPrompt:ApplyTarget(S.current, HoldLine(S.current))\n",
        "\t\tPrompt:ApplyTarget(S.current)\n",
        "press keeps the line for somebody who walked off",
        expect="speech-range: the press drops the line for somebody who walked off",
        script="runscenarios.py")
 
-# The last-moment range reading never saying no.
+# The last-moment range reading never asked.
 mutate("Prompt/Press.lua",
-       "\treturn ns.ReachNow(entry.unit, entry.buff) == false\n",
-       "\treturn false\n",
+       "\tif ns.ReachNow(unit, entry.buff) ~= true then return true end\n",
+       "",
        "last-moment range never out",
        expect="speech-range: the press drops the line for somebody who walked off",
        script="runscenarios.py")
 
 # A refusal holding nothing: the next press talks again.
 mutate("Prompt/Macro.lua",
-       "\tlocal speak = not silent and entry.ranged ~= false and not ns.SpeechHeld(entry.name)\n",
-       "\tlocal speak = not silent and entry.ranged ~= false\n",
+       "\tlocal speak = not silent and entry.ranged == true and not ns.SpeechHeld(entry.name)\n",
+       "\tlocal speak = not silent and entry.ranged == true\n",
        "refusal does not hold the line",
        expect="speech-range: a refusal holds the line until neither",
        script="runscenarios.py")
@@ -86,7 +88,7 @@ mutate("Clicks.lua",
 
 # PreClick's main path trusting the held entry's old range reading.
 mutate("Prompt/Press.lua",
-       "\tPrompt:ApplyTarget(top, OutOfReachNow(top))\n",
+       "\tPrompt:ApplyTarget(top, HoldLine(top))\n",
        "\tPrompt:ApplyTarget(top)\n",
        "press keeps the line for a held entry that walked off",
        expect="speech-range: the press asks again for a held entry that walked off",
@@ -116,4 +118,115 @@ mutate("Speech.lua",
        "\t\tmember = IsInGroup and IsInGroup()\n",
        "speech: /raid said in a party",
        expect="speech-range: /raid is said only in a raid",
+       script="runscenarios.py")
+
+# ------------------------------------------------- a press known to land
+# The press without a token for them taking whatever token the scan had:
+# a target since moved to somebody else is asked about, and answers for them.
+mutate("Prompt/Press.lua",
+       "\tlocal unit = ns.UnitFor(entry.name, entry.unit)\n",
+       "\tlocal unit = entry.unit\n",
+       "press asks the scan's token, whoever holds it",
+       expect="speech-range: no line through your target, retargeted to somebody else",
+       script="runscenarios.py")
+
+# The scan's token taken without asking whose it is now.
+mutate("Queue.lua",
+       "\tif hint and plain(UnitExists(hint)) and ns.UnitFullName(hint) == name then return hint end\n",
+       "\tif hint and plain(UnitExists(hint)) then return hint end\n",
+       "token found by the scan's token alone",
+       expect="speech-range: the press finds him by any token, by his whole name",
+       script="runscenarios.py")
+
+# The walk matching a first name: another Weirbeard targeted is taken for
+# Weirbeard Jenkins.
+mutate("Queue.lua",
+       "\t\tif not found and unit ~= hint and plain(UnitExists(unit)) and ns.UnitFullName(unit) == name then\n",
+       "\t\tif not found and unit ~= hint and plain(UnitExists(unit))\n"
+       "\t\t\tand ns.FirstName(ns.UnitFullName(unit) or \"\") == ns.FirstName(name) then\n",
+       "token found by the first name",
+       expect="speech-range: the press knows him by his surname (Weirbeard Smith on a nameplate)",
+       script="runscenarios.py")
+
+# No walk at all: only the scan's own token is asked, and somebody still on a
+# nameplate after your target moved is lost.
+mutate("Queue.lua",
+       "\tlocal found\n\tIterateUnits(function(unit)\n",
+       "\tlocal found\n\tlocal _ = (function(unit)\n",
+       "no walk for another token",
+       expect="speech-range: the press follows him to another token (in reach)",
+       script="runscenarios.py")
+
+# Life the client will not read taken for alive.
+mutate("Prompt/Press.lua",
+       "\tif type(deadOrGhost) ~= \"function\" or ns.plain(deadOrGhost(unit)) ~= false then return true end\n",
+       "\tif type(deadOrGhost) == \"function\" and ns.plain(deadOrGhost(unit)) == true then return true end\n",
+       "life unread taken for alive",
+       expect="speech-range: no line for somebody whose life the client will not read",
+       script="runscenarios.py")
+
+# A range the client will not read taken for in reach, as it used to be.
+mutate("Prompt/Press.lua",
+       "\tif ns.ReachNow(unit, entry.buff) ~= true then return true end\n",
+       "\tif ns.ReachNow(unit, entry.buff) == false then return true end\n",
+       "range unread taken for in reach",
+       expect="speech-range: the press follows him to another token (range unread there)",
+       script="runscenarios.py")
+
+# The cooldowns never asked for the line.
+mutate("Prompt/Press.lua",
+       "\tif not ns.CastReady(spell) then return true end\n",
+       "",
+       "line said whatever the cooldowns",
+       expect="speech-range: no line while the spell's own cooldown runs",
+       script="runscenarios.py")
+
+# Asked, but of no spell: only the global cooldown is read.
+mutate("Prompt/Press.lua",
+       "\tif not ns.CastReady(spell) then return true end\n",
+       "\tif not ns.CastReady() then return true end\n",
+       "line asks the global cooldown alone",
+       expect="speech-range: no line while the spell's own cooldown runs",
+       script="runscenarios.py")
+
+# CastReady handed a spell and not reading its cooldown.
+mutate("Clicks.lua",
+       "\tif spell then\n\t\tlocal own = CooldownLeft(spell, now)\n",
+       "\tif false then\n\t\tlocal own = CooldownLeft(spell, now)\n",
+       "spell's own cooldown never read",
+       expect="speech-range: no line while the spell's own cooldown runs",
+       script="runscenarios.py")
+
+# The mana never asked for the line.
+mutate("Prompt/Press.lua",
+       "\tif spell and ns.safecall(usable, spell) == false then return true end\n",
+       "",
+       "line said without the mana",
+       expect="speech-range: no line without the mana to cast",
+       script="runscenarios.py")
+
+# Leaving the line out takes the press with it: the buff never goes.
+mutate("Prompt/Macro.lua",
+       "\tif not entry or not entry.buff or S.testMode then\n",
+       "\tif not entry or not entry.buff or S.testMode or silent then\n",
+       "a press without its line not cast",
+       expect="speech-range: out of reach at the press, the cast goes without the line",
+       script="runscenarios.py")
+
+# A press that leaves the line out rolls another: the line the tooltip
+# quoted is spent, and "In character" remembers one never said.
+mutate("Prompt/Macro.lua",
+       "\tif speak and (S.phraseKey ~= phraseIdentity or (S.phraseText and #S.phraseText > budget)) then\n",
+       "\tif silent or (speak and (S.phraseKey ~= phraseIdentity or (S.phraseText and #S.phraseText > budget))) then\n",
+       "a line left out is rolled again",
+       expect="speech-range: a line left out is kept for the press that lands",
+       script="runscenarios.py")
+
+# A line rolled whether or not it can be said, as it used to be: "In
+# character" counts a line nobody heard as said lately.
+mutate("Prompt/Macro.lua",
+       "\tif speak and (S.phraseKey ~= phraseIdentity or (S.phraseText and #S.phraseText > budget)) then\n",
+       "\tif S.phraseKey ~= phraseIdentity or (S.phraseText and #S.phraseText > budget) then\n",
+       "a line rolled for an arming that cannot say it",
+       expect="speech-range: no line is rolled for somebody the press cannot reach",
        script="runscenarios.py")

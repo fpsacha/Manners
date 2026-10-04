@@ -566,6 +566,9 @@ do
 		ana.name, ana.short, ana.reason, ana.priority = "Ana Field", "Ana Field", "owed", 1
 		ana.targetName = ns.TargetName(ana.name)
 		ana.unit = "nameplate1"
+		-- The nameplate names her: a press speaks only to somebody a token
+		-- holds now (speech-range-6).
+		Mock.unitNames = { nameplate1 = { "Ana", "Field" } }
 		ns.BuildQueue = function() return { ana } end
 		wipe(ns.tried)
 		counting()

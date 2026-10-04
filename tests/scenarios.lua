@@ -4998,6 +4998,9 @@ if ns then
 		-- Off a nameplate. The template came through the target token, and your
 		-- own target is never handed back (scenario 237).
 		ana.unit = "nameplate1"
+		-- And the nameplate names her: a press speaks only to somebody a token
+		-- holds now (speech-range-6).
+		Mock.unitNames = { nameplate1 = { "Ana", "Field" } }
 		ns.BuildQueue = function() return { ana } end
 
 		local db = ns.db.profile
@@ -15749,6 +15752,9 @@ if ns then
 		ana.name, ana.short, ana.reason, ana.priority = "Ana Field", "Ana Field", "owed", 1
 		ana.targetName = ns.TargetName(ana.name)
 		ana.unit = "nameplate1"
+		-- The nameplate names her: a press speaks only to somebody a token
+		-- holds now (speech-range-6).
+		Mock.unitNames = { nameplate1 = { "Ana", "Field" } }
 		ns.BuildQueue = function() return { ana } end
 
 		local db = ns.db.profile
@@ -15824,6 +15830,9 @@ if ns then
 			return entry
 		end
 		local seenAs = anna("nameplate1")
+		-- Both tokens name her: a press speaks only to somebody a token holds
+		-- now (speech-range-6).
+		Mock.unitNames = { nameplate1 = { "Anna", "Aim" }, mouseover = { "Anna", "Aim" } }
 		ns.BuildQueue = function() return { seenAs } end
 
 		local db = ns.db.profile

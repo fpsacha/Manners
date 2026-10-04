@@ -518,7 +518,13 @@ list. They used to be at the bottom of *Who to buff*.
   people. It does not repeat itself, and a context the game will not reveal
   is left out. The line rides in the macro the button runs, because the game
   refuses addon-sent `/say` and `/yell` outside instances, which is exactly
-  where somebody buffs you in passing. How long a line may be depends on the
+  where somebody buffs you in passing. A macro says its line even when the
+  cast fails, so the line goes in only with a buff that can land: somebody
+  your target, focus, cursor, group or a nameplate still shows you, alive and
+  in range, with the spell ready and the mana for it. When Manners cannot tell
+  -- a passer-by the cursor has left, a range the game will not give -- the
+  buff goes out without it, and the tooltip quotes no line. Line of sight
+  cannot be checked. How long a line may be depends on the
   name and on whether your target is handed back. An empty box goes back to
   the chosen set, so untick *Say a line when I buff someone* to stay quiet.
   The lines stay hidden until it is ticked.

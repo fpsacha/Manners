@@ -64,23 +64,47 @@ local function PromptIsLive()
 	return true
 end
 
--- Whether the person the macro is about to be aimed at is known to be out of
--- reach at this moment, for PreClick to leave the spoken line out. The scan
--- that armed the macro can be a tick old, and a macro runs every line even
--- when its /cast fails (beta.8: two thank-yous, no buff). Only a unit token
--- still naming them is asked; a recycled one says nothing about them, and an
--- unknown answer keeps the line, as the scan's does. Somebody who has died
--- since the scan is out of reach too: the hold and the empty-queue fuse keep
--- them on the panel a moment, and a range check measures distance, not life,
--- so the press thanked a corpse while the game refused the cast.
-local function OutOfReachNow(entry)
-	if not (entry and entry.unit and entry.buff and entry.name) then return false end
-	if ns.UnitFullName(entry.unit) ~= entry.name then return false end
+-- The spell the press casts, by id, for the client's word on whether it can
+-- go now: a group cast's own, else the best rank learned, as the queue asks.
+local function PressSpell(entry)
+	if entry.groupCast and entry.groupCast.spell then return entry.groupCast.spell end
+	local info = ns.BuffInfo(entry.buff)
+	return (info and info.topRank) or (entry.buff.ranks and entry.buff.ranks[1])
+end
+
+-- Whether PreClick leaves the spoken line out of this press. A macro runs
+-- every line even when its /cast fails, and a line said cannot be taken back
+-- (beta.8: two thank-yous, no buff; then "The Light already likes you,
+-- Weirbeard Jenkins" over "Out of range."). So out of combat the line goes in
+-- only for a press known to land -- "if I can't buff someone, I should not
+-- say anything" -- and anything the client will not answer is a no:
+--   - a token naming them now (ns.UnitFor): a remembered passer-by or a
+--     tokenless favour has none, and the scan's token may name somebody else;
+--   - alive: the hold and the fuse keep somebody a moment after they die, and
+--     a range check measures distance, not life;
+--   - in reach, asked as the scan asks it (ns.ReachNow);
+--   - the global cooldown, your own cast and the spell's own cooldown over;
+--   - the spell usable, mana included, where the client says.
+-- Line of sight no call can tell. The press itself goes out either way, and
+-- the line rolled for them is kept (ApplyTarget re-rolls only for somebody
+-- new), so a press that lands says it.
+local function HoldLine(entry)
+	local speech = ns.db and ns.db.profile.speech
+	-- Nothing to say, so nothing to judge, and no tokens walked.
+	if not (speech and speech.enabled) then return false end
+	if not (entry and entry.buff and entry.name) then return true end
+	local unit = ns.UnitFor(entry.name, entry.unit)
+	if not unit then return true end
 	local deadOrGhost = _G.UnitIsDeadOrGhost
-	if type(deadOrGhost) == "function" and ns.plain(deadOrGhost(entry.unit)) == true then
-		return true
-	end
-	return ns.ReachNow(entry.unit, entry.buff) == false
+	if type(deadOrGhost) ~= "function" or ns.plain(deadOrGhost(unit)) ~= false then return true end
+	if ns.ReachNow(unit, entry.buff) ~= true then return true end
+	local spell = PressSpell(entry)
+	if not ns.CastReady(spell) then return true end
+	local usable = C_Spell and C_Spell.IsSpellUsable
+	if type(usable) ~= "function" then usable = _G.IsUsableSpell end
+	-- Through safecall: the call's shape differs between client generations.
+	if spell and ns.safecall(usable, spell) == false then return true end
+	return false
 end
 
 -- PreClick runs before the secure handler reads the attributes, so out of
@@ -200,9 +224,9 @@ local function OnPreClick(self, mouseButton)
 		pressStale = true
 		-- Re-keyed rather than rebuilt: whether the macro hands your target back
 		-- depends on who is targeted now, which can have changed since the
-		-- repaint that armed it. Their range is asked again too: this entry's
-		-- reading is the oldest there is.
-		Prompt:ApplyTarget(S.current, OutOfReachNow(S.current))
+		-- repaint that armed it. Whether the line goes is judged again too:
+		-- this entry's reading is the oldest there is.
+		Prompt:ApplyTarget(S.current, HoldLine(S.current))
 		pressKey = S.appliedKey
 		return
 	end
@@ -233,8 +257,9 @@ local function OnPreClick(self, mouseButton)
 
 	S.appliedKey = nil
 	-- A held entry's range reading is from an overruled scan, and even a fresh
-	-- one is a tick old, so it is asked once more right before the macro runs.
-	Prompt:ApplyTarget(top, OutOfReachNow(top))
+	-- one is a tick old, so whether the line goes is judged once more right
+	-- before the macro runs.
+	Prompt:ApplyTarget(top, HoldLine(top))
 	pressKey = S.appliedKey
 end
 

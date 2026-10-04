@@ -210,9 +210,10 @@ end
 -- A secret name is no line at all, and so is a realm withheld as a secret: the
 -- name is then filed bare, and a whisper to it would reach somebody on your own
 -- realm. That holds with no unit too (the tokenless fallback), where a bare name
--- goes out only when the debt's GUID says own realm. A name that could break
--- the macro is no line either. Each refusal has its control beside it: the same
--- setup with the name plain does whisper.
+-- is rolled a line only when the debt's GUID says own realm -- though no press
+-- says it there, since no token holds them (speech-range-6). A name that could
+-- break the macro is no line either. Each refusal has its control beside it:
+-- the same setup with the name plain does whisper.
 do
 	local scenario = "whisper: a secret or unsafe name says nothing"
 	local ns, restore = session(scenario, "mainline", { "Brom", "Ravencrest" }, "Brom-Ravencrest")
@@ -260,9 +261,11 @@ do
 	end
 
 	-- No nameplate: Brom is offered from the tokenless fallback, filed bare.
-	-- What the client says of the debt's GUID decides: own realm is the control,
-	-- a secret realm, a GUID that now names somebody else, or no GUID at all (a
-	-- debt back from disk) is no line.
+	-- No token holds him, so the macro carries no line for him at all: a press
+	-- speaks only where it can tell the buff lands (speech-range-6). What the
+	-- client says of the debt's GUID still decides the line rolled for him:
+	-- own realm is the control, a secret realm, a GUID that now names somebody
+	-- else, or no GUID at all (a debt back from disk) is no line.
 	Mock.reset()
 	Mock.setFlavour("mainline")
 	restore = H.strangers({})
@@ -294,11 +297,18 @@ do
 				tostring(owner), now, realm == "" and "own" or "secret")
 			if not ok then
 				fail(scenario, "SKIPPED -- " .. label .. ": Brom is not armed: " .. flat(text))
-			elseif entry and entry.unit ~= nil then
-				fail(scenario, "SKIPPED -- " .. label .. ": Brom has a unit: " .. tostring(entry.unit))
-			elseif spoken(text) ~= want then
-				fail(scenario, ("%s: the spoken line is %s, wanted %s: %s"):format(
-					label, tostring(spoken(text)), tostring(want), flat(text)))
+			elseif not entry or entry.unit ~= nil then
+				fail(scenario, "SKIPPED -- " .. label .. ": Brom is not offered tokenless: "
+					.. tostring(entry and entry.unit))
+			elseif spoken(text) ~= nil then
+				fail(scenario, ("%s: the macro speaks to somebody no token holds: %s"):format(
+					label, flat(text)))
+			else
+				local line = ns.PickPhrase(entry, ns.PhraseBudget(entry))
+				if line ~= want then
+					fail(scenario, ("%s: the line rolled is %s, wanted %s"):format(
+						label, tostring(line), tostring(want)))
+				end
 			end
 		end
 		Mock.guids = nil

@@ -47,7 +47,7 @@ mutate("Prompt/Macro.lua",
 
 # The fuse's press is no longer re-keyed before it goes out.
 mutate("Prompt/Press.lua",
-       "\t\tPrompt:ApplyTarget(S.current, OutOfReachNow(S.current))\n\t\tpressKey = S.appliedKey\n",
+       "\t\tPrompt:ApplyTarget(S.current, HoldLine(S.current))\n\t\tpressKey = S.appliedKey\n",
        "\t\tpressKey = S.appliedKey\n",
        "fused press not re-keyed",
        expect="prompt5: a press after your target changed hands it back (fused)",

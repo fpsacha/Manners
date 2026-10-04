@@ -710,18 +710,23 @@ function ns.SpellQueueWindow()
 	return 0.4
 end
 
--- What is left of the global cooldown by the client's own figure, or nil where
--- it gives none. An idle 61304 reads a zero start and duration: a readable 0.
-local function GlobalCooldownLeft(now)
+-- What is left of a spell's cooldown by the client's own figure, or nil where
+-- it gives none. An idle spell reads a zero start and duration: a readable 0.
+local function CooldownLeft(spell, now)
 	local get = C_Spell and C_Spell.GetSpellCooldown
 	if not get then return nil end
-	local ok, info = pcall(get, GCD_SPELL)
+	local ok, info = pcall(get, spell)
 	if not ok or type(info) ~= "table" then return nil end
 	local start, duration = plain(info.startTime), plain(info.duration)
 	if type(start) ~= "number" or type(duration) ~= "number" then return nil end
 	local left = start + duration - now
 	if left < 0 then left = 0 end
 	return left
+end
+
+-- ...and of the global cooldown, which 61304 stands for.
+local function GlobalCooldownLeft(now)
+	return CooldownLeft(GCD_SPELL, now)
 end
 
 -- The global cooldown as a start and a length, for the sweep the prompt draws
@@ -766,7 +771,11 @@ end
 -- could, so the prompt can say so. A spell with a cast time (a conjure, a
 -- Hearthstone) blocks a /cast past the global cooldown, so the player's own
 -- cast is read too. Channels are left out: a new cast interrupts one.
-function ns.CastReady()
+--
+-- `spell`, an id, adds that spell's own cooldown: the press asks it only to
+-- decide the spoken line (Prompt/Press.lua), since a /cast of a spell still
+-- cooling down reaches the server and is refused there.
+function ns.CastReady(spell)
 	local now = GetTime()
 	-- The client's figure where it gives one, in place of the tracked guess
 	-- (which a cast off the global cooldown arms wrongly), not beside it.
@@ -778,6 +787,10 @@ function ns.CastReady()
 		if type(endMS) == "number" and endMS / 1000 - now > left then
 			left = endMS / 1000 - now
 		end
+	end
+	if spell then
+		local own = CooldownLeft(spell, now)
+		if own and own > left then left = own end
 	end
 	if left <= 0 then return true, 0 end
 	return false, left

@@ -835,6 +835,26 @@ local function IterateUnits(fn)
 	end
 end
 
+-- The token that names this person at this moment, or nil. Asked by the
+-- prompt's press (Prompt/Press.lua), which speaks only to somebody a token
+-- still holds: a remembered passer-by and the tokenless favour have none, and
+-- the token the scan found them by may name somebody else by now. Every token
+-- the scan walks, compared by the name they are filed under (UnitFullName:
+-- the surname on Forever, the realm elsewhere), so another "Weirbeard" is not
+-- Weirbeard Jenkins. `hint`, the scan's token, is asked first. Once a press,
+-- never on the scan.
+function ns.UnitFor(name, hint)
+	if type(name) ~= "string" then return nil end
+	if hint and plain(UnitExists(hint)) and ns.UnitFullName(hint) == name then return hint end
+	local found
+	IterateUnits(function(unit)
+		if not found and unit ~= hint and plain(UnitExists(unit)) and ns.UnitFullName(unit) == name then
+			found = unit
+		end
+	end)
+	return found
+end
+
 ---------------------------------------------------------------------------
 -- dungeons and raids
 --

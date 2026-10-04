@@ -264,21 +264,22 @@ function Prompt:ApplyTarget(entry, silent)
 	ns.lastTopEntry = entry
 	ns.lastTopUnit = entry.unit
 
-	-- Whether a spoken line may go in. Not for somebody known to be out of
+	-- Whether a spoken line may go in. Only for somebody the scan measured in
 	-- reach: the macro runs on past a /cast that fails, and the line went out
-	-- over a buff that never landed (beta.8). Nor for a while after the game
-	-- refused a cast on them (ns.SpeechHeld), so pressing at somebody it will
-	-- not let you reach does not keep talking. An unknown reading (nil, or a
-	-- secret) keeps the line: some clients never report range, and silencing
-	-- everybody there would take the feature away rather than fix it. Nor in
-	-- /party or /raid while you are in no party or raid (ns.ChannelOpen): the
-	-- line would reach nobody, on every press. In the key below, so a group
-	-- joined or left re-arms the macro on the next repaint. Nor in the macro
-	-- armed for a fight: every press in it runs that one frozen text, so the
-	-- line went out again on a press the cooldown turned away and after the
-	-- favour was repaid. As /thank, never in a fight; the repaint after it
-	-- puts the line back.
-	local speak = not silent and entry.ranged ~= false and not ns.SpeechHeld(entry.name)
+	-- over a buff that never landed (beta.8). A reading nobody could take --
+	-- no token, a client that will not say, a secret -- is a no: "if I can't
+	-- buff someone, I should not say anything". The press judges it all again
+	-- (Press.lua, HoldLine), and this keeps the tooltip from quoting a line
+	-- the press would leave out. Nor for a while after the game refused a cast
+	-- on them (ns.SpeechHeld), so pressing at somebody it will not let you
+	-- reach does not keep talking. Nor in /party or /raid while you are in no
+	-- party or raid (ns.ChannelOpen): the line would reach nobody, on every
+	-- press. In the key below, so a group joined or left re-arms the macro on
+	-- the next repaint. Nor in the macro armed for a fight: every press in it
+	-- runs that one frozen text, so the line went out again on a press the
+	-- cooldown turned away and after the favour was repaid. As /thank, never
+	-- in a fight; the repaint after it puts the line back.
+	local speak = not silent and entry.ranged == true and not ns.SpeechHeld(entry.name)
 		and ns.ChannelOpen()
 		and Prompt.armedForFight ~= true
 
@@ -341,11 +342,14 @@ function Prompt:ApplyTarget(entry, silent)
 	local phraseIdentity = table.concat({ entry.name, entry.buff.key, tostring(entry.reason),
 		tostring(entry.groupCast and entry.groupCast.spell), tostring(ns.tryMacro) }, "\1")
 	local budget = ns.PhraseBudget(entry)
-	if S.phraseKey ~= phraseIdentity or (S.phraseText and #S.phraseText > budget) then
+	-- Rolled only for an arming that can say it: "In character" remembers
+	-- every line it rolls as said lately, and a line rolled for somebody the
+	-- press cannot reach is never said. Kept through an arming that leaves it
+	-- out (out of reach for a moment, a press that cannot land), so the roll
+	-- the tooltip quoted is the one said once the line is armed again.
+	if speak and (S.phraseKey ~= phraseIdentity or (S.phraseText and #S.phraseText > budget)) then
 		S.phraseKey, S.phraseText = phraseIdentity, ns.PickPhrase(entry, budget)
 	end
-	-- Rolled whether or not it is said, so the roll the tooltip quoted is
-	-- the one said once the line is armed again.
 	local phrase = speak and S.phraseText or nil
 	S.phraseArmed = phrase ~= nil
 	if phrase then lines[#lines + 1] = phrase end

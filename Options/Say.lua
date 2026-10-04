@@ -246,7 +246,7 @@ function Page.BuildSpeechTab()
 				order = 25,
 				hidden = speechOff,
 				name = "\n|cff888888"
-					.. L["A line goes out when you click, even if the cast then fails out of range or line of sight."]
+					.. L["A line goes out only with a buff that can land: in range, ready to cast, and with the mana for it. When Manners cannot tell, the buff goes out without it. Line of sight cannot be checked."]
 					.. "|r",
 			},
 		},
