@@ -59,7 +59,11 @@ local L = ns.L
 -- Fortitude's (learned at 48) a Holy Candle and Gift of the Wild's (50) Wild
 -- Berries; every other rank takes the one paired below. GroupBuffs.lua also
 -- asks the client whether the spell is usable, which is false without its
--- reagent, so a wrong pairing costs an offer, not a cast.
+-- reagent, so a wrong pairing costs an offer, not a cast. On Forever the
+-- account's Legacy perk Reagent Economy (1225503) waives the reagent of every
+-- one of these (its class auras 1262636/38/47/50 list them all), and then the
+-- client calls the spell usable with none in the bags: GroupBuffs.lua,
+-- ReagentWaived.
 local ARCANE_POWDER, WILD_BERRIES, WILD_THORNROOT = 17020, 17021, 17026
 local SACRED_CANDLE, HOLY_CANDLE, SYMBOL_OF_KINGS = 17029, 17028, 21177
 
@@ -470,8 +474,10 @@ local TBC_SET = setmetatable({ own = {} }, { __index = VANILLA_SET })
 -- WoW Forever: a mage's scrolls
 ---------------------------------------------------------------------------
 
--- Forever's own: scrolls a mage writes with Comprehension and reads from the
--- bags, a familiar and a weapon imbue. "For mages, it would be handy to
+-- Forever's own: scrolls a mage finds -- in a Bundle of Scrolls from Study,
+-- or by deciphering an untranslated scroll with Comprehend Scroll (both
+-- Comprehension spells) -- and reads from the bags, a familiar and a weapon
+-- imbue. "For mages, it would be handy to
 -- include the mage-specific scroll buffs as reminders", a player on
 -- CurseForge. Items, not spells, so Core.lua reads them apart (the scrolls):
 -- offered only with one in the bags, at the level it asks for and, for an
@@ -506,7 +512,8 @@ do
 			{ key = "ratfamiliar", item = 275069, level = 5, ranks = { 1296202 } },
 		},
 	}
-	-- The use enchants the weapon in the main hand by itself, for an hour.
+	-- The use is aimed at an item (Targets 16), as an oil's is: the macro hands
+	-- it the main-hand weapon with /use 16 (Prompt/Macro.lua). It lasts an hour.
 	local IMBUE = {
 		key = "imbue",
 		label = L["Weapon imbue"],
@@ -694,7 +701,7 @@ local MAINLINE = {
 		{ key = "motw", ranks = { 1126 } },
 	},
 
-	-- New in 11.0, all specs, learned at 17.
+	-- New in 11.0, all specs, learned at 16 (Wowhead retail; retail SpellLevels 16).
 	SHAMAN = {
 		{ key = "skyfury", ranks = { 462854 } },
 	},

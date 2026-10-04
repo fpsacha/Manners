@@ -482,6 +482,9 @@ function Quick.GroupSummary()
 			if info and info.groupRank and info.groupReagent and #parts == 0 then
 				local name = (ns.ReagentName and ns.ReagentName(info.groupReagent)) or tostring(info.groupReagent)
 				local count = ns.ReagentCount and ns.ReagentCount(info.groupReagent)
+				-- None needed with Forever's Reagent Economy (GroupBuffs.lua), so
+				-- an empty bag is no news: said as when the count is unknown.
+				if count == 0 and ns.ReagentWaived and ns.ReagentWaived(info, 0) then count = nil end
 				-- On Forever a priest's, mage's or druid's counts the whole raid
 				-- (GroupBuffs.lua); a Greater Blessing goes by class either way.
 				local raidWide = ns.GROUP_IS_RAID and not ns.GROUP_BY_CLASS[ns.PlayerClass()]

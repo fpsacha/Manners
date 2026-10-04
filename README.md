@@ -174,8 +174,10 @@ right-click skips the cast for the whole group; a shift-right-click puts only
 the person it is aimed at on the never-offer list. Short of mana for the
 group spell, you are offered the single one. With the chat lines on, chat
 says when you are down to 5 reagents and when you run out, after which the
-prompt goes back to one person at a time. Nothing changes until you have
-learned a group buff and carry its reagent.
+prompt goes back to one person at a time. With the Legacy perk Reagent
+Economy you need no reagent at all: the group cast is offered with none in
+your bags, and the tooltip says no reagent is needed. Nothing changes until
+you have learned a group buff and carry its reagent or have the perk.
 
 **Dungeons and raids.**
 

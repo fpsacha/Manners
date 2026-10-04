@@ -42,8 +42,8 @@ mutate("GroupBuffs.lua",
        "groupbuffs: an unread aura counts as missing",
        expect="a group cast was offered for people nobody read as missing it", script=S)
 mutate("GroupBuffs.lua",
-       "\t\t\tif have and have > 0 and Usable(info.groupRank) then\n",
-       "\t\t\tif Usable(info.groupRank) then\n",
+       "\t\t\tif waived or (have and have > 0 and Usable(info.groupRank)) then\n",
+       "\t\t\tif waived or Usable(info.groupRank) then\n",
        "groupbuffs: no reagent is no obstacle",
        expect="groupbuffs: no reagent, they are buffed one by one", script=S)
 mutate("GroupBuffs.lua",
@@ -249,8 +249,8 @@ mutate("Phrases.lua",
 
 # ------------------------------------------------ review round: mana
 mutate("GroupBuffs.lua",
-       "\tlocal usable = safecall(check, spellId)\n\treturn usable ~= false\n",
-       "\tlocal usable, noMana = safecall(check, spellId)\n\treturn not (usable == false and noMana ~= true)\n",
+       "\tlocal usable = UsableAnswer(spellId)\n\treturn usable ~= false\n",
+       "\tlocal usable, noMana = UsableAnswer(spellId)\n\treturn not (usable == false and noMana ~= true)\n",
        "groupbuffs: too little mana for the group spell is no obstacle",
        expect="groupbuffs: mana enough only for the single spell, they are buffed one by one", script=S)
 

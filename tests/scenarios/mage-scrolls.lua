@@ -727,9 +727,10 @@ end
 -- ------------------------------------------------------------------ 12
 -- Lesser Flame and Spellbreak make the same enchant (8700), so the enchant
 -- alone cannot say which is on the weapon. A level-20 mage carrying both --
--- a Spellbreak crafted for Comprehension's skill -- can only have used Lesser
--- Flame; a level-50 mage is told by the press he made. Read, remembered,
--- named and topped up as the one used, never as the first in the table.
+-- a Spellbreak from a Bundle of Scrolls, below the level it asks for -- can
+-- only have used Lesser Flame; a level-50 mage is told by the press he made.
+-- Read, remembered, named and topped up as the one used, never as the first
+-- in the table.
 do
 	local scenario = "mage-scrolls: Lesser Flame is told from Spellbreak, which makes the same enchant"
 	with(scenario, { bags = { [LESSER_FLAME] = 2, [SPELLBREAK] = 1 }, held = { RAT_AURA }, level = 20 }, function(ns)

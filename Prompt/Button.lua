@@ -140,6 +140,11 @@ local function GroupTooltipLines(entry, group)
 		GameTooltip:AddLine(L["It returns the favour to %s as well."]:format(table.concat(owedNames, ", ")),
 			1, 0.78, 0.3, true)
 	end
+	-- Forever's Reagent Economy: the cast uses none (GroupBuffs.lua).
+	if group.reagentWaived then
+		GameTooltip:AddLine(L["No reagent needed."], 0.7, 0.7, 0.7, true)
+		return
+	end
 	local have = ns.ReagentCount(group.reagent) or group.reagents
 	local item = ns.ReagentName(group.reagent)
 	if item then

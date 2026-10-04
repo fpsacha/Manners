@@ -6,8 +6,9 @@
 -- Wild) -- on Forever the caster's whole party and raid (ns.GROUP_IS_RAID) --
 -- or for a paladin everybody of the target's class in the raid or party (the
 -- Greater Blessings), each for a reagent. When the player knows it, carries
--- the reagent, and enough of one party (or raid, or class) are waiting for the
--- single buff, BuildQueue gets one entry for the group cast instead of theirs.
+-- the reagent (or, on Forever, has the perk that waives it: ReagentWaived),
+-- and enough of one party (or raid, or class) are waiting for the single
+-- buff, BuildQueue gets one entry for the group cast instead of theirs.
 --
 -- The entry is aimed at one of them, the anchor, so the macro, the settle and
 -- the ledger see a person as they always have. What it adds is `groupCast`:
@@ -52,12 +53,32 @@ ns.ReagentName = ReagentName
 -- one, and a player who can afford only the single one is better offered it
 -- than a group cast that fails on every press. A client that will not say is
 -- taken at the table's word.
-local function Usable(spellId)
+local function UsableAnswer(spellId)
 	local check = C_Spell and C_Spell.IsSpellUsable
 	if type(check) ~= "function" then check = _G.IsUsableSpell end
-	local usable = safecall(check, spellId)
+	return safecall(check, spellId)
+end
+
+local function Usable(spellId)
+	local usable = UsableAnswer(spellId)
 	return usable ~= false
 end
+
+-- Whether the reagent is not needed at all. On Forever the Legacy perk
+-- Reagent Economy (spell 1225503: "Your class abilities no longer require
+-- reagents purchaseable from vendors") puts a hidden aura on the player, one
+-- a class (1262650 priest, 1262638 mage, 1262636 druid, 1262647 paladin),
+-- that takes the reagent off every group spell in Buffs.lua. Whoever has it
+-- carries none and casts all the same, so the client calling the spell usable
+-- with none in the bags is the sign. Only an outright yes counts (a client
+-- that will not say is no reason to offer a cast with nothing in the bags),
+-- and only on Forever: no other client has the perk. `have` is ReagentCount's.
+local function ReagentWaived(info, have)
+	if have ~= 0 or not (info and info.groupRank) then return false end
+	if (ns.Flavour and ns.Flavour.flavour) ~= "camelot" then return false end
+	return UsableAnswer(info.groupRank) == true
+end
+ns.ReagentWaived = ReagentWaived
 
 -- Reagents seen in the bags this session, the count last seen of each, and
 -- which notes have been said. Each note once a session: news the first time,
@@ -383,6 +404,8 @@ local function Build(bucket, byClass, inRaid, ownSubgroup, pvp, memo)
 		icon = info.groupIcon,
 		reagent = info.groupReagent,
 		reagents = bucket.ready.have,
+		-- Reagent Economy: nothing is used, and the tooltip says so.
+		reagentWaived = bucket.ready.waived or nil,
 		-- Apart, so the panel says "4 missing" after a wipe and "4 running
 		-- out" before a pull; the threshold is on the two together.
 		missing = bucket.missing,
@@ -425,10 +448,13 @@ function ns.GroupCasts(queue, db, candidates, inRaid)
 		local info = ns.BuffInfo(buff)
 		if info and info.groupRank and info.groupReagent then
 			local have = ReagentCount(info.groupReagent)
-			NoteStock(info, have, db)
-			if have and have > 0 and Usable(info.groupRank) then
+			-- Waived, the bags have nothing to run out of, and the client has
+			-- just said the spell is usable.
+			local waived = ReagentWaived(info, have)
+			if not waived then NoteStock(info, have, db) end
+			if waived or (have and have > 0 and Usable(info.groupRank)) then
 				ready = ready or {}
-				ready[buff.key] = { info = info, have = have }
+				ready[buff.key] = { info = info, have = have, waived = waived }
 			end
 		end
 	end

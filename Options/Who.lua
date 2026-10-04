@@ -409,6 +409,9 @@ function Page.BuildWhoTab()
 						.. L["%s: the game does not say how many you carry."]:format(name) .. "|r"
 				elseif count > 0 then
 					lines[#lines + 1] = L["%s: %d in your bags"]:format(name, count)
+				elseif ns.ReagentWaived and ns.ReagentWaived(info, count) then
+					-- Forever's Reagent Economy (GroupBuffs.lua).
+					lines[#lines + 1] = L["%s: none needed -- the game lets you cast without it."]:format(name)
 				else
 					lines[#lines + 1] = "|cffff8080"
 						.. L["%s: none in your bags, so group buffs are not offered."]:format(name)

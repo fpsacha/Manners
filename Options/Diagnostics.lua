@@ -43,9 +43,12 @@ local function BugReport()
 		-- eat as the bags hold it now: "never offers the group buff" is most
 		-- often answered here.
 		if info and info.groupRank then
-			lines[#lines + 1] = ("    group spell %s, reagent %s x%s"):format(
-				tostring(info.groupRank), tostring(info.groupReagent),
-				tostring(ns.ReagentCount and ns.ReagentCount(info.groupReagent)))
+			local count = ns.ReagentCount and ns.ReagentCount(info.groupReagent)
+			-- Forever's Reagent Economy, as GroupBuffs.lua reads it.
+			local waived = ns.ReagentWaived and ns.ReagentWaived(info, count)
+			lines[#lines + 1] = ("    group spell %s, reagent %s x%s%s"):format(
+				tostring(info.groupRank), tostring(info.groupReagent), tostring(count),
+				waived and " (waived: the client says it is usable without)" or "")
 		end
 	end
 

@@ -25,6 +25,15 @@
 - **Prayer of Fortitude from level 48 to 59** is offered with Holy Candles in
   your bags, the reagent its first rank takes. It used to look for Sacred
   Candles, so it never came up.
+- **Reagent Economy works with group buffs.** With this WoW Forever Legacy
+  perk, which removes vendor reagents from your class abilities, the
+  Prayers, Arcane Brilliance, Gift of the Wild and the Greater Blessings are
+  offered even with no candles, powder, berries or Symbols in your bags. The
+  tooltip says no reagent is needed. Start here and Who to buff no longer
+  say group buffs are off because a reagent is missing.
+- **Imbue Spellbreak's placeholder name** in German, Spanish, Brazilian
+  Portuguese, Korean and both Chinese now uses the game's own words. You see
+  it until the game has loaded the scroll.
 - **Blessing of Salvation is offered only to your party or raid**, since the
   game will not let you cast it on anybody else. A passer-by wearing another
   paladin's blessings is offered Light instead.
