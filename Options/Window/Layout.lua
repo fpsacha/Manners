@@ -115,6 +115,14 @@ ns.WindowLayout = {
 			title = L["Start here"],
 			icon = ICONS.general,
 			sections = {
+				-- A new profile's two questions (Start.lua, Quick.Asking); the
+				-- section goes with them once answered or skipped.
+				{ key = "general.firstRun", header = "general.firstHeader", items = {
+					"general.firstWho",
+					"general.firstVoice",
+					{ "general.firstDone", pair = true },
+					"general.firstSkip",
+				} },
 				{ key = "general.lead", items = {
 					{ "general.noBuffs", standIn = true },
 					{ "general.howItWorks", lead = true },
@@ -267,6 +275,9 @@ ns.WindowLayout = {
 					"click.enabled",
 					{ "click.channel", indent = true },
 					{ "click.onlyWhenReturning", indent = true },
+					-- While speaking with friendly nameplates off (Speech.lua).
+					{ "click.platesNote", indent = true },
+					{ "click.showPlates", indent = true },
 					{ "click.linesOff", standIn = true },
 				} },
 				{ key = "click.lines", header = "click.phrasesHeader", items = {

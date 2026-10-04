@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+- **Two questions to start with.** The first time you open the options on a
+  new profile, Start here asks *Who do you want to buff?* and *Should your
+  character talk?*, with the same choices as its quick settings, and *Done*
+  sets them as those do. *Skip* leaves everything as it is. Neither comes
+  back on that profile, and a profile you already had is never asked.
+- **Friendly nameplates and the thank-you.** A stranger is shown to Manners
+  mostly by their nameplate, so with the game's friendly nameplates off their
+  line was left out without a word. What I say now says so while you speak
+  with them off, with a *Show friendly nameplates* button that turns them on
+  (not in a fight; nothing changes unless you click it). The first line left
+  out for that reason in a session says so in chat, once.
+
 ## 1.6.5
 
 - **The thank-you line is only said when the buff will land.** Out of range,

@@ -53,8 +53,15 @@ All three carry the same build from the same tag.
 
 ## First steps
 
-Open the options with `/manners`, or click the minimap button. The window
-opens on **Start here**, which has two steps:
+Open the options with `/manners`, or click the minimap button. The first
+time, on a new profile, the window opens on **Start here** with two
+questions at the top under *Quick setup*: *Who do you want to buff?* (people
+who buff you, your group too, everyone near you, or your group kept topped
+up for dungeons and raids) and *Should your character talk?* (stay silent,
+just `/thank` them, a polite line, or in character). *Done* sets them as the
+choices on Start here and What I say would; *Skip* leaves everything as it
+is. Either way they are not asked again on that profile, and a profile you
+already had is never asked. Below them, Start here has two steps:
 
 1. **Who to buff.** One quick choice, *Offer my buff to*, already answered:
    a new profile starts on *Everyone near me*, and the line under it says
@@ -372,6 +379,10 @@ explain themselves; this is what their tooltips have no room for.
 
 **Start here.** The two steps, the favour ledger, and *Minimap and chat*.
 
+- *Quick setup*, at the top, only on a profile that has never been set up
+  (see *First steps*): the quick choices below and on *What I say*, put as two
+  questions, with *Done* and *Skip*. A class with nothing to give is not asked.
+
 - *1. Who to buff*: *Offer my buff to* is a quick choice. *Only people who buff
   me*; *People who buff me, and my group*; *Everyone near me* (a new profile's
   defaults); or *My group, kept topped up (dungeons and raids)*, which also
@@ -545,7 +556,13 @@ list. They used to be at the bottom of *Who to buff*.
   your target, focus, cursor, group or a nameplate still shows you, alive and
   in range, with the spell ready and the mana for it. When Manners cannot tell
   -- a passer-by the cursor has left, a range the game will not give -- the
-  buff goes out without it, and the tooltip quotes no line. One line per
+  buff goes out without it, and the tooltip quotes no line. A passer-by is
+  shown to Manners mostly by a nameplate, so with the game's friendly
+  nameplates off a stranger seldom gets a line: while you speak with them off,
+  a grey note under the switches says so, with *Show friendly nameplates*,
+  which turns the game's setting on (not in a fight; it changes only when you
+  click it). The first line left out for that reason in a session also says
+  so in your chat, once. One line per
   person a minute: a second buff on somebody inside a minute of a line goes
   out silent, unless it returns a favour. A group cast that returns a favour
   thanks the person it repays, whoever it is aimed at. Line of sight

@@ -176,6 +176,9 @@ do
 	local scenario = "window: OpenOptions, OptionsOpen, CloseOptions and OptionsTab"
 	with(scenario, {}, function(ns, UI)
 		local Page = ns.OptionsPage
+		-- Set up already: a new profile opens on its two questions instead
+		-- (tests/scenarios/quick-setup.lua).
+		ns.db.profile.firstRun = "answered"
 		ns.OpenOptions("when")
 		if ns.OptionsTab() ~= "when" then fail(scenario, "OpenOptions(\"when\") opened " .. tostring(ns.OptionsTab())) end
 		shut(ns)
@@ -810,6 +813,8 @@ do
 	local scenario = "window: where it sits, its page and its folds are the account's, never the profile's"
 	with(scenario, {}, function(ns, UI)
 		Mock.geometry = { width = 1365, height = 768 }
+		-- Set up already, as above.
+		ns.db.profile.firstRun = "answered"
 		ns.OpenOptions("appearance")
 		ns.Prompt:ExitTest()
 		local f = ns.OptionsWindow

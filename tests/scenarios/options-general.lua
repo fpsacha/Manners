@@ -120,8 +120,10 @@ end
 -- ------------------------------------------------------------------ 1a
 -- The page as the window draws it (the layout spec, IA.md section 2): the lead,
 -- the two steps, the ledger, then minimap and chat, nothing folded; the switch,
--- the preview and the snooze in the header, Lock it at the strip's end.
+-- the preview and the snooze in the header, Lock it at the strip's end. Above
+-- them all, a new profile's two questions (tests/scenarios/quick-setup.lua).
 local START_PAGE = {
+	"general.firstWho", "general.firstVoice", "general.firstDone", "general.firstSkip",
 	"general.noBuffs", "general.howItWorks", "general.quickWho", "general.quickWhoSummary",
 	"general.bindKey", "general.makeMacro", "general.openBindings", "general.bindStatus",
 	"general.ledgerSummary", "general.ledgerOpen", "general.minimap", "general.verbose",

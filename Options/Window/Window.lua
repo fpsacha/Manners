@@ -566,6 +566,8 @@ function UI.Open(pageId)
 	local was, wasShown = UI.page, f:IsShown()
 	f:Show()
 	f:Raise()
+	-- A profile that has never been set up opens on its two questions.
+	if not pageId and ns.QuickSetup and ns.QuickSetup.Asking() then pageId = "general" end
 	local id = PageToOpen(pageId)
 	UI.ShowPage(id)
 	-- Opening the window onto Look is opening Look.
