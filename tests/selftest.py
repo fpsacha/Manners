@@ -43,6 +43,13 @@ back green, before a failure in it counts as caught.
 import atexit, subprocess, shutil, sys, os, json, tempfile, threading, time, bisect, re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+# A check's text can hold Korean or Chinese, which a Windows console or a file
+# redirected from one cannot encode: the print threw after a 30-minute run and
+# took the summary with it. Escape what the stream cannot take instead.
+for _stream in (sys.stdout, sys.stderr):
+    if hasattr(_stream, "reconfigure"):
+        _stream.reconfigure(errors="backslashreplace")
+
 # --anchors checks only that every mutation still finds the text it replaces,
 # which takes seconds rather than the full run's minutes. It is for the
 # middle of a change that moves a lot of code text -- wrapping strings for
