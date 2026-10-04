@@ -99,8 +99,8 @@ mutate("Core.lua",
 
 # The line kept in the macro armed for a fight.
 mutate("Prompt/Macro.lua",
-       "\t\tand ns.ChannelOpen()\n\t\tand Prompt.armedForFight ~= true\n",
-       "\t\tand ns.ChannelOpen()\n",
+       "\t\tand ns.ChannelOpen(entry)\n\t\tand Prompt.armedForFight ~= true\n",
+       "\t\tand ns.ChannelOpen(entry)\n",
        "hunt20-core: the line in the fight's macro",
        expect="says the line on every press", script=S)
 

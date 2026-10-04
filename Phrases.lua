@@ -113,7 +113,7 @@ RP.RACE = {
 			L["Grand, {name}! I'd carve ye a statue, but this is quicker."],
 			L["The Titans made us of stone, {name}, but that still touched me. Thank ye."],
 			L["Thank ye, {name}. Back at ye, before me pride notices I needed it."],
-			L["Thank ye, {name}. Muradin says a debt left unpaid rusts. Here, before it does."],
+			L["Thank ye, {name}. Muradin said a debt left unpaid rusts. Here, before it does."],
 			L["Thank ye, {name}. Even me ram looked impressed, and he hates everybody."],
 			L["The Explorers' League'll ask where ye dug up such manners, {name}. Thanks!"],
 			L["Thank ye, {name}. Warmed me right down to me boots, that did."],
@@ -122,6 +122,13 @@ RP.RACE = {
 			L["Came back to ye like a Wildhammer's stormhammer, {name}. Less painful, mind."],
 			L["Come to Ironforge, {name}. Me mam'll feed ye till ye can't stand. Thank ye!"],
 			L["Checked it fer gunpowder out o' habit, {name}. Clean as a whistle. Here's yers!"],
+			L["Thank ye, {name}. Ye'll be the talk o' the Great Forge tonight."],
+			L["Not even Magni could've done that kinder, {name}. Louder, aye. Thank ye."],
+			L["Thank ye, {name}. I'd offer me beard as surety, but I'm terrible fond of it."],
+			L["Back at ye, {name}, quick as a ram goin' downhill. Stoppin' is the hard part."],
+			L["Ye'd make a fine honorary dwarf, {name}. We'll work on yer singin'."],
+			L["Thank ye, {name}. If ye ever need a tunnel dug, I'm yer dwarf."],
+			L["Keep yer powder dry and yer friends closer, me da said. Here, {name}."],
 		},
 		asked = {
 			L["Aye, {name}, ye only had to ask. Hold still now, like a good anvil."],
@@ -138,12 +145,18 @@ RP.RACE = {
 			L["Aye, {name}. In Dun Morogh ye help quick, or ye both freeze standin' there."],
 			L["Aye, {name}. Ye'll feel it in yer boots first. That's how ye know it's dwarven."],
 			L["Aye, {name}. Say no, and ye'd ask a gnome, and then I'd feel responsible."],
+			L["Course, {name}. A dwarf who won't help is no dwarf. Just a short, grumpy rock."],
+			L["Mountaineer's promise, {name}: done right, done once. Mostly."],
+			L["Fer you, {name}? Easy as findin' ale in Ironforge."],
+			L["Ask a Bronzebeard, {name}, and ye get it with both hands. Here."],
+			L["Aye, {name}. Stand on that rock there. Good rock, that. Granite."],
+			L["Aye, {name}. In the mines, ye shout and somebody comes runnin'. Here I am."],
 		},
 		offer = {
 			L["Here, {name}, a wee somethin' to keep ye on yer feet. Wee, like me."],
 			L["Off ye go, {name}, steady as the mountain."],
 			L["Here, {name}. Ale's for after; this is for before."],
-			L["Magni turned to diamond fer the cause, {name}. This is the cheaper option."],
+			L["Magni'd melt down his crown fer a friend, {name}. This is the cheaper option."],
 			L["A dwarf's got yer back, {name}. Well, yer knees. Close enough."],
 			L["If a trogg bothers ye, {name}, tell it a dwarf sent ye. Then run."],
 			L["If it wears off, {name}, give it a good thump. That's how we fix everything."],
@@ -158,6 +171,14 @@ RP.RACE = {
 			L["Mountaineers swear by it, {name}. Ye'll climb no better, but land softer."],
 			L["Ironforge's gates have never fallen, {name}. Neither should ye. Take this."],
 			L["Me cousins down Blackrock way would've set it alight first, {name}. Fer luck."],
+			L["Off to Uldaman, {name}? Touch nothin' with runes on it. Trust a dwarf on that."],
+			L["Fer the road, {name}. It's no keg o' Thunderbrew, but it travels better."],
+			L["A gift from under the mountain, {name}. Mind yer head on the way out."],
+			L["A rifleman needs dry powder and a good mate, {name}. I'm the mate. Here."],
+			L["If yer road passes Grim Batol, {name}, keep walkin'. And take this."],
+			L["From one explorer to another, {name}. The League'll want yer notes after."],
+			L["If ye ride a gryphon, {name}, hold on with yer knees and yer prayers. Here."],
+			L["A dwarf never lets a friend walk into the dark unready, {name}. Take this."],
 		},
 		kin = {
 			L["Stone and hammer keep ye, cousin {name}!"],
@@ -183,6 +204,12 @@ RP.RACE = {
 			L["Dwarves always know which way is down, {name}. Up's yer problem."],
 			L["Anythin' made o' stone, {name}, let me talk to it first. Might be a cousin."],
 			L["If the ceilin' creaks, {name}, I'll tell ye. If I go quiet, run."],
+			L["Shields up, {name}. I'll hold the line. Mountains don't move, and neither do I."],
+			L["Watch fer troggs, {name}. Ugly, angry, and they go fer the ankles. My ankles."],
+			L["Mind the low beams, {name}. Says the only one here who never has to."],
+			L["I've a hammer, a grudge and a good breakfast in me, {name}. We'll be fine."],
+			L["Ironforge was carved by folk who never quit halfway, {name}. Neither do we."],
+			L["Keep up, {name}! Short legs, but we never stop movin'. That's the secret."],
 		},
 		morning = {
 			L["Mornin', {name}! Too early for ale. Almost. Have this first."],
@@ -213,6 +240,13 @@ RP.RACE = {
 			L["Not since Mum packed my lunches, {name}, have I felt so looked after. Thanks."],
 			L["Into my memoirs, {name}. Chapter nine: 'Everyone Was Lovely'. Thank you."],
 			L["I'll toast you at the Pig and Whistle, {name}. Then the pig. Then the whistle."],
+			L["Thanks, {name}. My next horse gets your name. He'll be a very good horse."],
+			L["I owe you a pint at the Lion's Pride, {name}. This will tide you over."],
+			L["Much obliged, {name}. In Elwynn that's neighbourly. Out here, it's heroic."],
+			L["Thanks, {name}. We humans don't live long enough to leave a kindness waiting."],
+			L["Thanks, {name}. If the Stockade held folk for kindness, you'd be in for life."],
+			L["By the Light, {name}, that was good of you. Uther would have liked you."],
+			L["Darkshire could use folk like you, {name}. Darkshire could use anyone, mind."],
 		},
 		asked = {
 			L["Of course, {name}. Hold still and look heroic; it helps the bards."],
@@ -226,10 +260,14 @@ RP.RACE = {
 			L["Of course, {name}. Stand up straight; my old sergeant is watching, somewhere."],
 			L["Of course, {name}. A polite request is rarer than a quiet night in Duskwood."],
 			L["Right away, {name}. I'll play the Archbishop; you pretend to be impressed."],
-			L["Step out of the shade, {name}; I like to see where I'm aiming."],
 			L["Stormwind rose from rubble, {name}. I can manage one {buff}."],
 			L["Of course, {name}. Last one I did was a Westfall scarecrow. Long story."],
 			L["Aye, {name}. Kul Tiran terms: a handshake, and I spare you the shanty."],
+			L["Right away, {name}. Bolvar says the realm runs on small kindnesses."],
+			L["Gladly, {name}. Elwynn folk never turn away a neighbour, armour and all."],
+			L["Of course, {name}. The Light provides. Today it's using me as the courier."],
+			L["Of course, {name}. Stormwind raised me on the Light, porridge and saying yes."],
+			L["Right away, {name}. At Northshire we answered before the second bell."],
 		},
 		offer = {
 			L["The road ahead is long, {name}. This won't shorten it, but it'll help."],
@@ -249,6 +287,14 @@ RP.RACE = {
 			L["Uther blessed strangers on the road, {name}. I've less hammer, same idea."],
 			L["Take this, {name}. Goldshire custom: no traveller leaves empty-handed."],
 			L["The wolves in Elwynn look friendly, {name}. They are not. Take this."],
+			L["Lothar held the line with less, {name}. Granted, he had a very big sword."],
+			L["Westfall farmers share even in a bad year, {name}. They're all bad years now."],
+			L["Redridge, Duskwood, Westfall, {name}: every road out of Elwynn gets worse."],
+			L["Take this, {name}. The guards can't be everywhere. Out here, they're nowhere."],
+			L["Bound for Hillsbrad, {name}? Southshore's still ours. Barely. Take this."],
+			L["Stromgarde still stands, {name}, mostly out of stubbornness. So will you. Here."],
+			L["A Stormwind welcome, {name}: a smile, a blessing and the way to the inn."],
+			L["The Argent Dawn says the Light is for all who'll carry it, {name}. Carry some."],
 		},
 		-- Stormwind and Kul Tiras are both this family, and both Arathor's.
 		kin = {
@@ -275,6 +321,12 @@ RP.RACE = {
 			L["Humans always rise to the occasion, {name}. Usually after tripping over it."],
 			L["Do this well, {name}. Some elf will be telling the story for a thousand years."],
 			L["Farmers, sailors, bakers, {name}: every army Stormwind ever raised. Onward!"],
+			L["Form up, {name}. One steady line beats a crowd of brave fools. Lothar said so."],
+			L["We'll make Stormwind proud, {name}. Or give the town criers something to shout."],
+			L["Light keep us, {name}. And if it's busy, I've packed bandages."],
+			L["Everyone goes home, {name}. I promised somebody's mother. Probably yours."],
+			L["We look like a proper Stormwind patrol now, {name}. Shinier, even."],
+			L["Stay sharp, {name}. Lordaeron learned the hard way: never trust the bread."],
 		},
 	},
 	nightelf = {
@@ -295,6 +347,14 @@ RP.RACE = {
 			L["I outlived the Sundering, {name}. I'll not outlive a debt to you. Here."],
 			L["All those centuries of memories, {name}, and this one goes near the front."],
 			L["I'll tell the moon about you tonight, {name}. She likes a good story."],
+			L["In Darnassus they'd sing of that, {name}. Quietly, for about a century."],
+			L["Thank you, {name}. A Sentinel settles a debt of honour by moonset. So do I."],
+			L["Shan'do Stormrage would approve, {name}. He'll tell you himself, when he wakes."],
+			L["The Cenarion Circle preaches balance, {name}. You've just tipped it my way."],
+			L["Better than a moonwell, {name}. Don't tell the priestesses I said so."],
+			L["Even Fandral would smile at that, {name}, and his face has forgotten how."],
+			L["Thank you, {name}. I'd send a hippogryph with my thanks, but they bite."],
+			L["That warms me like moonlight, {name}. Not very warm, I admit. Still, thank you."],
 		},
 		asked = {
 			L["Gladly, {name}. Be still, and let the moonlight find you."],
@@ -312,6 +372,11 @@ RP.RACE = {
 			L["One moment, {name}. My hair is older than most kingdoms, and it tangles."],
 			L["Darnassian has nine words for 'yes', {name}. I'll spare you eight of them."],
 			L["Of course, {name}. The Sentinels would want a password. I'll accept 'please'."],
+			L["Of course, {name}. I'll be swift. Swift for a kaldorei, that is. Do sit down."],
+			L["Gladly, {name}. The Sentinels taught me to answer a call before it echoes."],
+			L["Be still, {name}. What's done in haste is undone by nightfall, the druids say."],
+			L["Gladly, {name}. Elune asks little of us: kindness, patience and good aim."],
+			L["Of course, {name}. The forest gave me plenty. It would sulk if I didn't share."],
 		},
 		offer = {
 			L["Elune-adore, {name}. Walk softly; the trees are light sleepers."],
@@ -331,6 +396,15 @@ RP.RACE = {
 			L["I'd stay to chat, {name}, but kaldorei chats run to the next full moon. Here."],
 			L["Bandu thoribas, {name}: prepare to fight. There. Now you're prepared."],
 			L["From the kaldorei, the moon and a very old tree, {name}. Mostly from me."],
+			L["Ashenvale remembers every axe, {name}. Carry this, and leave yours sheathed."],
+			L["The Sentinels will know you're a friend, {name}. Probably. Wave a lot."],
+			L["May the moon guide you, {name}, and this keep you until it rises."],
+			L["Moonglade welcomes all who come in peace, {name}. So does this."],
+			L["Darkshore is beautiful, {name}, and full of things that bite. Take this."],
+			L["My people learned the hard way not to hoard magic, {name}. So, here."],
+			L["Felwood was a forest like any other once, {name}. Stay well; it didn't."],
+			L["Bound for Stonetalon, {name}? Mind the goblins' saws. The trees certainly do."],
+			L["If you meet an Ancient, {name}, bow. They notice, and they never forget."],
 		},
 		kin = {
 			L["Ishnu-alah, {name}. Elune keeps her children close."],
@@ -355,8 +429,13 @@ RP.RACE = {
 			L["Follow me, {name}. I know these paths. They were a forest last time, mind."],
 			L["Should we fail, {name}, I'll remember you fondly for several thousand years."],
 			L["I've watched heroes charge in blind for millennia, {name}. Let's try eyes open."],
-			L["If anyone asks, {name}, we were always this good."],
 			L["I'll take first watch, {name}. And second. A kaldorei barely notices a night."],
+			L["Keep your voices low, {name}. The forest listens, and it has a long memory."],
+			L["We held back the Legion with fewer than this, {name}. We'll be fine."],
+			L["A Sentinel never looses an arrow she'd want back, {name}. Choose your moments."],
+			L["Dark in there, {name}? Follow me. The night is where my people live."],
+			L["Moving out, {name}. Silent as owls if we can, silent as dwarves if we can't."],
+			L["I'll watch the shadows, {name}. Nothing moves in them without my say."],
 		},
 		night = {
 			L["The moon's up, {name}. For a kaldorei, this is the middle of the morning."],
@@ -479,6 +558,13 @@ RP.RACE = {
 			L["I'll name my next invention after you, {name}! It's a very small cannon."],
 			L["Thanks, {name}! Ironforge has been good to us gnomes, and so have you."],
 			L["You're on my list of favourite people, {name}! It's short. Mostly clockwork."],
+			L["Thanks, {name}! A gift with no gears in it. I didn't know they made those."],
+			L["Thank you, {name}! I'd pay you back with interest, but my abacus is in pieces."],
+			L["When we retake Gnomeregan, {name}, you get a window seat. We'll add windows."],
+			L["Exactly what I needed, {name}, and I didn't even have to build it. Thanks!"],
+			L["The tall folk rarely notice us gnomes, {name}. You did. Thank you!"],
+			L["Tinker Town will hear all about you, {name}. Loudly, over the machinery."],
+			L["It worked first time, {name}! Nothing I make works first time. Marvellous!"],
 		},
 		asked = {
 			L["Request received, {name}! Processing... done!"],
@@ -496,6 +582,11 @@ RP.RACE = {
 			L["Approved, {name}! Stamped, signed and filed under 'obviously'."],
 			L["Of course, {name}! A twist of the gyromatic micro-adjustor... there!"],
 			L["Gnomes never refuse a problem, {name}. Occasionally we cause them. Here!"],
+			L["Right away, {name}! Tested on three volunteers and one very brave squirrel."],
+			L["Happy to, {name}! Measure twice, zap once. Gnome proverb. Well, my proverb."],
+			L["Of course, {name}! The High Tinker says help where you can. I can, so here!"],
+			L["On it, {name}! I'll need a ladder. No? Just this, then."],
+			L["Delighted, {name}! It's nice to fix something that doesn't fight back."],
 		},
 		offer = {
 			L["Hold still, {name}, this is perfectly safe. Probably!"],
@@ -516,6 +607,14 @@ RP.RACE = {
 			L["Here, {name}! It's small, but so is a keystone, and look what those hold up."],
 			L["I'd explain how it works, {name}, but that takes three days and a chalkboard."],
 			L["If you hear ticking, {name}, that's my pocket watch. Almost certainly."],
+			L["A dash of arcane, a pinch of science, {name}, and no troggs involved. Here!"],
+			L["Ironforge took us gnomes in when we needed it, {name}. I'm passing it along."],
+			L["Here, {name}! It doesn't whistle, spin or catch fire. I'm working on all three."],
+			L["Here, {name}! Unwrapped, sorry. The wrapping machine wrapped itself again."],
+			L["My mechanostrider wanted to give you something, {name}. It lacks the hands."],
+			L["Off on an adventure, {name}? Take this, and bring me back anything that ticks."],
+			L["Reliable as the Deeprun Tram, {name}. That's a compliment, I promise. Here!"],
+			L["For you, {name}! One part magic to two parts confidence. Mostly confidence."],
 		},
 		kin = {
 			L["For Gnomeregan, {name}! Always nice to talk to somebody at eye level."],
@@ -543,6 +642,12 @@ RP.RACE = {
 			L["Clipboard ready, {name}! Today I'm writing down everyone's heroics."],
 			L["If we get separated, {name}, follow the smoke. It'll be me."],
 			L["Everyone keep their fingers, {name}. I've counted. I'll count again after."],
+			L["Ready, {name}? Spare gears, spare fuses, spare plan. Possibly two."],
+			L["Leave the traps to me, {name}. I've built most of them. Not these. But similar."],
+			L["Before we go in, {name}: has anyone seen my wrench? It's mildly important."],
+			L["For Gnomeregan, {name}! And for everywhere else, while we're at it."],
+			L["If I get carried off, {name}, please retrieve my notes first. Then me."],
+			L["This is an experiment, {name}. Hypothesis: we win. Let's go and test it."],
 		},
 		morning = {
 			L["Morning, {name}! Up since three. The toaster needed a new engine."],
@@ -742,6 +847,11 @@ RP.RACE = {
 			L["I'll carve that on my axe handle, {name}. Next to the notches. Thank you."],
 			L["Kindness unasked is rare as rain in Durotar, {name}. Returned."],
 			L["In my clan, {name}, a gift is answered with a bigger one. Here."],
+			L["A Frostwolf never counts what a friend gives, {name}. Only what he gives back."],
+			L["The camps taught us who our friends are, {name}. You're one. Here."],
+			L["Thanks, {name}. Thrall says the Horde's strength is its friends. You count."],
+			L["Good. Strong. Kind. Three things I respect, {name}. Have this."],
+			L["Grom would have roared his thanks, {name}. I'll spare your ears and send this."],
 		},
 		asked = {
 			-- Dabu: the grunt's "I obey", not the peon's "zug zug".
@@ -760,6 +870,11 @@ RP.RACE = {
 			L["One {buff}, {name}. Orc style: fast, direct, a bit too hard."],
 			L["Stand still, {name}. I aim this like a throwing axe, and I rarely miss."],
 			L["Lok'tar, {name}. It means 'victory'. Today it also means 'yes'."],
+			L["Done, {name}. If you need anything carried, hit or shouted at, ask again."],
+			L["You ask straight, {name}. I answer straight. Here."],
+			L["The shamans say the spirits help those who stand still, {name}. Stand still."],
+			L["A good request, {name}: clear, brave and short. Like a good battle plan."],
+			L["Done, {name}. Thrall says help freely. I say help quickly. Both right."],
 		},
 		offer = {
 			L["Lok'tar ogar, {name}! Take this into battle. A tavern brawl also counts."],
@@ -780,6 +895,14 @@ RP.RACE = {
 			L["The Barrens don't end, {name}. They just get more zhevra. Take this."],
 			L["Strength for your arm, {name}. The honour, I see, you brought yourself."],
 			L["My wolf wanted you to have his bone, {name}. I talked him down to this."],
+			L["Any grunt in Razor Hill would do the same, {name}. Most would shout first."],
+			L["For the fight ahead, {name}. There's always one. Orcs plan for it."],
+			L["We were slaves once, {name}. Now we choose whom we help. Today, it's you."],
+			L["Go, {name}, and let your enemies hear you coming. Or don't. Surprise works too."],
+			L["A gift from Durotar, {name}. Like the land: rough, warm and short on shade."],
+			L["The elements are fickle, {name}. I am not. Take this."],
+			L["Strength, {name}. Not the kind you lift. The kind you keep."],
+			L["Nobody crosses the Barrens alone if an orc can help it, {name}. Here."],
 		},
 		kin = {
 			L["Throm-ka, {name}! The blood of the clans runs strong in you."],
@@ -807,6 +930,10 @@ RP.RACE = {
 			L["Scars are stories, {name}. Let's all come out of this with short ones."],
 			L["Old chieftains had war councils, {name}. We have me pointing at things."],
 			L["If I charge early, {name}, it isn't impatience. It's tradition."],
+			L["Form up, {name}! Shamans in the middle, fools at the front. I'm at the front."],
+			L["Tonight we feast, {name}. First, we earn it."],
+			L["If I fall, {name}, sing about it loudly in Orgrimmar. Lie a little."],
+			L["Strength and honour, {name}. And if we run low on honour, more strength."],
 		},
 	},
 	forsaken = {
@@ -817,7 +944,6 @@ RP.RACE = {
 			L["Thank you, {name}. I'd blush, but the blood stopped reaching my face."],
 			L["My undying gratitude, {name}. For once, the phrase is accurate."],
 			L["Most kind, {name}. You've lifted me from 'deceased' to 'mildly deceased'."],
-			L["Returned, {name}. Death took my pulse, not my manners."],
 			L["I felt that, {name}, and I don't feel much these days. Here, feel this."],
 			L["Thank you, {name}. That's the first colour I've seen all week."],
 			L["Thank you, {name}. Kindness above ground; I'd almost forgotten it happens."],
@@ -845,6 +971,11 @@ RP.RACE = {
 			L["I'd have Lordaeron's bells rung for you, {name}, but they only do funerals now."],
 			L["Thank you, {name}. Next time I'm in Brill, I'll name a pumpkin after you."],
 			L["Thank you, {name}. My afterlife had rather let itself go. You've tidied it up."],
+			L["Most of the living wouldn't have bothered, {name}. I'll resent them, not you."],
+			L["Better than anything I've pulled out of Undercity's sewers, {name}. Thanks."],
+			L["Thank you, {name}. One tip in return: never drink what an apothecary hands you."],
+			L["Arthas took everything I had, {name}. You've given a little back. Thank you."],
+			L["Thank you, {name}. Catching kindness beats catching the plague. I've done both."],
 		},
 		asked = {
 			L["Certainly, {name}. Try not to die. It's overrated."],
@@ -867,6 +998,10 @@ RP.RACE = {
 			L["{buff}, {name}? With the Dark Lady's compliments."],
 			L["Of course, {name}. I don't sleep or eat, so I may as well be useful."],
 			L["Glad to, {name}. The Scourge used my hands for worse."],
+			L["Certainly, {name}. The apothecaries taught me a steady hand. Mostly on rats."],
+			L["The Dark Lady said serve the Horde, {name}. She never said sulk about it."],
+			L["Right away, {name}. In Deathknell they woke me with far ruder requests."],
+			L["Silverpine's worgen never ask this nicely, {name}. You're a pleasant change."],
 		},
 		offer = {
 			L["Stay among the living a little longer, {name}."],
@@ -874,7 +1009,6 @@ RP.RACE = {
 			L["I was a physician in Lordaeron, {name}. Old habits die harder than I did."],
 			L["No charge, {name}. The apothecaries would have made you sign something."],
 			L["A gift from the grave, {name}. Don't worry, I washed it."],
-			L["Every traveller needs a little help, {name}. Here's yours."],
 			L["I've seen where heroes end up, {name}. I live there. Take this."],
 			L["Take this, {name}. I learned the hard way you can't take it with you."],
 			L["Take this, {name}. It's the only thing I own that isn't slightly damp."],
@@ -898,6 +1032,8 @@ RP.RACE = {
 			L["No strings attached, {name}. I cut mine when the Lich King lost his grip."],
 			L["Fresh from Tirisfal, {name}. Well, fresh for Tirisfal."],
 			L["Take this, {name}. The Bulwark taught me to look out for the living."],
+			L["Passing Pyrewood, {name}? Take this. The village has a bad habit after dark."],
+			L["The Scarlets would call this unholy, {name}. From me, they'd say it of bread."],
 		},
 		kin = {
 			L["We Forsaken must look after each other, {name}."],
@@ -946,7 +1082,6 @@ RP.RACE = {
 			L["When we win, {name}, drinks at the Gallows' End in Brill. My treat. Your risk."],
 			L["Don't mind the flies, {name}. They're with me."],
 			L["I'll watch the rear, {name}. Nothing sneaks up on someone who can't blink."],
-			L["Any blood on the floor after, {name}, it isn't mine. I stopped carrying any."],
 		},
 		night = {
 			L["The dead keep terrible hours, {name}. Nice to have company for once."],
@@ -1026,6 +1161,12 @@ RP.RACE = {
 			L["I'll carve this on a totem, {name}. Tauren carve slowly; expect it by spring."],
 			L["Bloodhoof Village will hear of this at supper, {name}. Thank you."],
 			L["Cairne taught us to honour every kindness, {name}, and so I do."],
+			L["Thank you, {name}. Hamuul says the land repays those who tend it. So do I."],
+			L["In Thunder Bluff we'd beat a drum for that, {name}. Imagine it. Thank you."],
+			L["The Earth Mother gives without counting, {name}. You've been listening to her."],
+			L["Thank you, {name}. My heart's as full as a kodo after the spring grass."],
+			L["The elders on Elder Rise would approve, {name}. Slowly, after a long talk."],
+			L["If you pass through Mulgore, {name}, ask for me. Everyone knows the big one."],
 		},
 		asked = {
 			L["Of course, {name}. Stand tall and be at peace. I'll handle the tall part."],
@@ -1044,6 +1185,10 @@ RP.RACE = {
 			L["Magatha would want a favour for it, {name}. Baine would just say yes. So: yes."],
 			L["Hold still, {name}. I've practised on kodo, and they're far less polite."],
 			L["Of course, {name}. A shu'halo never refuses a traveller. Or a second helping."],
+			L["Of course, {name}. The plains taught me patience; the kodo taught me to share."],
+			L["Gladly, {name}. Ancestors, steady my hand. Not my hooves; they're fine."],
+			L["Always, {name}. Cairne never refuses a friend, and he's taller than me."],
+			L["Ask anything, {name}. A tauren has strength to spare and time to listen."],
 		},
 		offer = {
 			L["Walk with the Earth Mother, {name}. She's everywhere, so you can't get lost."],
@@ -1065,6 +1210,13 @@ RP.RACE = {
 			L["Druids call it a blessing, hunters luck, {name}. Tauren call it manners."],
 			L["Take this, {name}. If a harpy screeches at you, screech back. They hate that."],
 			L["Here, {name}. A tauren blessing: sturdy, slow to fade, smells faintly of sage."],
+			L["Here, {name}. The Venture Company would charge you for this. I won't."],
+			L["From the high mesas of Thunder Bluff, {name}, where even the wind is friendly."],
+			L["The ancestors watch the roads, {name}. I just help them out a little."],
+			L["A gift should be heavy with meaning and light to carry, {name}. This is both."],
+			L["The Earth Mother made the world wide so we'd meet people like you, {name}."],
+			L["Hunt with respect and the land feeds you, {name}. That's my wisdom. Here."],
+			L["Here, {name}. Not every tauren would share. The Grimtotem certainly wouldn't."],
 		},
 		kin = {
 			L["The Earth Mother watches over us both, {name}."],
@@ -1091,6 +1243,10 @@ RP.RACE = {
 			L["Nobody walks alone at the rear, {name}. That's where I'll be, looming kindly."],
 			L["Tell me when to charge, {name}. Tauren are slow to start, and slower to stop."],
 			L["Nobody wander, {name}. The last party that did in the Barrens is still walking."],
+			L["Stand close, {name}. A herd is strongest when nobody wanders off to graze."],
+			L["Watch the ground, {name}. Quilboar dig traps, and I find them all hoof first."],
+			L["Into the fight with a calm heart, {name}. The rage can come later, if it must."],
+			L["May the Earth Mother keep this herd, {name}, every last stubborn calf of it."],
 		},
 		morning = {
 			L["An'she rises, {name}, and so do we. Slower, in my case."],
@@ -1129,6 +1285,12 @@ RP.RACE = {
 			L["That deserves a dance, {name}. Lucky ya: {buff} instead."],
 			L["Jungle rule, {name}: what ya give comes back, often with teeth. Not this one."],
 			L["A gift for a troll, {name}? We never forget a kindness."],
+			L["Old Sen'jin said a gift is a promise, {name}. I keep mine. Here."],
+			L["Back on the Echo Isles that earned a feast, {name}. Here's the short version."],
+			L["That one's goin' in the stories by the fire, {name}. Ya get a good part."],
+			L["Nice, {name}. Darkspear pay back quick. We got places to be. Mostly the beach."],
+			L["Stranglethorn gives nothin' for free, {name}. Nice to see somebody does."],
+			L["Zalazane would've kept that for himself, {name}. Good thing ya ain't him."],
 		},
 		asked = {
 			L["Sure thing, {name}. Hold still; mojo hates a movin' target."],
@@ -1147,6 +1309,10 @@ RP.RACE = {
 			L["Easy one, {name}. Hard one's gettin' a raptor to sit still."],
 			L["Troll rule, {name}: never make a friend beg or a raptor wait. Here."],
 			L["Don't wiggle, {name}. Last one who did got the spell and a new haircut."],
+			L["No problem, {name}. Darkspear always got time for a friend. And a nap."],
+			L["Sure, {name}. Hold still, like a fisherman at Sen'jin waitin' on a bite."],
+			L["Yes, {name}. Vol'jin says never turn away a friend, and he's usually right."],
+			L["Sure thing, {name}. I'll hum a little. Witch doctors say it helps."],
 		},
 		offer = {
 			L["Da loa watch over ya, {name}. They're real nosy that way."],
@@ -1167,6 +1333,13 @@ RP.RACE = {
 			L["Jungle's got two kinds of folk, {name}: ready, and lunch. You're ready."],
 			L["Easy, {name}. This one tickles. Don't laugh; it gets offended."],
 			L["Take this, {name}. Darkspear never send a friend off empty-handed."],
+			L["Darkspear know what it is to need a friend far from home, {name}. Here."],
+			L["Watch for the Bloodscalps, {name}. Same tusks as me, worse manners. Take this."],
+			L["Walk easy, {name}. Life's long if ya don't rush it, and short if ya do."],
+			L["My granny was a witch doctor, {name}. Share, she said, and look scary doin' it."],
+			L["From Sen'jin Village, {name}. Smells a bit like fish. Works fine, though."],
+			L["Stay loose, {name}. Tense folk trip on roots. Take this, and relax."],
+			L["The spirits whisper ya name, {name}. Well, somebody's. Close enough."],
 		},
 		kin = {
 			L["We look after our own, {name}. Always, mon."],
@@ -1192,6 +1365,12 @@ RP.RACE = {
 			L["My tusks are sharp, {name}, but they can't be everywhere. Stay near."],
 			L["Nobody panic, {name}. Panic is bad mojo. Swagger is good mojo."],
 			L["See an idol with glowin' eyes, {name}? Don't touch it. Trust me."],
+			L["Everybody stay loose, {name}. Fights go better when ya smilin'. Mostly."],
+			L["Darkspear fight together or not at all, {name}. Together makes more stories."],
+			L["Ready, {name}? Any Gurubashi, let me talk first. Then you hit 'em."],
+			L["Watch for traps, {name}. Trolls built half the old temples. We love surprises."],
+			L["The loa are watchin' this group, {name}. Let's give 'em a good show."],
+			L["I got ya back, {name}. Trolls got long arms for a reason."],
 		},
 		night = {
 			L["Night's the best time for mojo, {name}. Nobody sees where it's from."],
@@ -2654,6 +2833,36 @@ RP.GIFT = {
 		L["I won't ask where {gift} gets its air, {name}. Just: thanks."],
 		L["With {gift} I'll cross Lordamere Lake, {name}. Underneath."],
 	},
+	-- The favours Manners never offers (Buffs.lua, favourOnly), which are in
+	-- no buff: RP.GiftKey finds these by the spell's own id.
+	soulstone = {
+		L["If I fall, {name}, I'll be back to thank you properly."],
+		L["A spare life in my pocket, {name}. I'll try not to spend it. Thank you."],
+		L["Thank you, {name}. Death can knock now; I've a key to the back door."],
+		L["Dying's only a delay with your {gift}, {name}. Thank you."],
+		L["Thank you, {name}. If the worst happens, I'll get up and say it twice."],
+	},
+	fearward = {
+		L["Let the next thing roar at me, {name}. I'm not running this time. Thank you."],
+		L["{gift}! One fright, already dealt with, {name}. Thank you."],
+		L["Thank you, {name}. The next scream I hear won't be mine."],
+		L["No running in circles for me, {name}. Not the first time, anyway. Thank you."],
+		L["Brave on credit, thanks to you, {name}. I'll spend it wisely."],
+	},
+	waterwalking = {
+		L["Thank you, {name}. Lakes, rivers, puddles: all floors now."],
+		L["{gift}! The short way across it is, {name}. Dry boots and all."],
+		L["Walking on water, {name}. Folk will start a religion. Thank you."],
+		L["The murlocs will be furious, {name}. Thank you for the shortcut."],
+		L["Thank you, {name}. I'll be across before it fades. Probably."],
+	},
+	detectinvis = {
+		L["{gift}! Whatever hid round here, {name}, hides no more."],
+		L["I can see what's hiding now, {name}. Some of it should stay hidden. Thanks."],
+		L["Thank you, {name}. Every lurker around just lost their only trick."],
+		L["Thank you, {name}. Now I can see what your imp gets up to."],
+		L["My eyes see more than my wits can handle, {name}. Thank you."],
+	},
 }
 
 -- How often the two of you have traded this session (RP.Familiar): "again"
@@ -3196,7 +3405,8 @@ RP.LEGACY = {
 		group = L["Everyone ready? You are now, {name}."],
 	},
 	-- The review of the lines after 1.6.4: the trolls' examples, written
-	-- more plainly, and a goblin's group line.
+	-- more plainly, and a goblin's group line. Then the race voices: Magni
+	-- is the living king of Ironforge in this world, not a diamond.
 	reworded = {
 		{ L["Ya too kind, {name}! This one's from me."],
 			L["Ya be too kind, {name}! Dis one be from me."] },
@@ -3224,6 +3434,8 @@ RP.LEGACY = {
 			L["Night be da best time for mojo, {name}. Nobody see where it come from."] },
 		{ L["We split the take even, {name}. I'll do the maths. Trust me."],
 			L["We split the loot even, {name}. I'll do the maths. Trust me."] },
+		{ L["Magni'd melt down his crown fer a friend, {name}. This is the cheaper option."],
+			L["Magni turned to diamond fer the cause, {name}. This is the cheaper option."] },
 	},
 }
 
@@ -3329,24 +3541,24 @@ end
 -- (a single line said too often grates), and a pool of thirty no more often
 -- than one of three, so writing more lines buys variety and never airtime.
 --
--- A people's own lines weigh most of what is always there, so a dwarf sounds
--- like a dwarf over a session, and more than its class or the spell, which go
--- out on every cast a mage makes. The rare moments made for this very click
--- (somebody met again, a gift to answer, kin) weigh a lot, so they come up
--- when they apply; a third meeting, the one a player notices most, weighs most
--- of all, and of a gift, what it does is said more than its name. The moments
--- that are nearly always true (a place, the hour, the spell, whom you are
--- helping) weigh little each, since several apply at once, and half that when
--- returning a favour (see RP.Pick); a people's own hour and city a little more
--- than everybody's. Worked through for full pools: a stranger outdoors at
--- midday hears their people a little over a third of the time; somebody met a
--- third time hears about it one pick in four. Kin weighs less than the
--- people's lines because a kin pool is small, and a small pool at full weight
--- is heard over and over. In a group the group lines outweigh the side's.
+-- A people's own lines come first, by a long way: a Forsaken should sound
+-- Forsaken, a dwarf like a dwarf, in every moment, and above all in a
+-- thank-you, the line most players hear. The rare moments made for this very
+-- click (somebody met again, a gift to answer, kin, the people's own hour and
+-- city) come next, so they are heard when they apply, and of a gift, what it
+-- does is said more than its name. The moments that are nearly always true (a
+-- place, the hour, the spell, whom you are helping, the speaker's class) weigh
+-- little each, since several apply at once, and half that when returning a
+-- favour (see RP.Pick). Worked through for full pools: a stranger outdoors at
+-- midday hears their people about two times in three, a thank-you for a known
+-- spell included (a little less in a busy run, since the memory below skips
+-- lines said lately); somebody met a third time hears about it one pick in
+-- four. Kin weighs less than the people's lines because a kin pool is small,
+-- and a small pool at full weight is heard over and over.
 RP.WEIGHT = {
-	race = 9, kin = 6, class = 3, faction = 2, general = 1, group = 3,
-	spell = 3, trade = 4, gift = 6, history = 10, place = 3, time = 3,
-	hour = 4, home = 4, target = 4,
+	race = 36, kin = 12, class = 3, faction = 2, general = 1, group = 2,
+	spell = 3, trade = 2, gift = 3, history = 17, place = 3, time = 3,
+	hour = 8, home = 10, target = 4,
 }
 RP.SPREAD = 3
 
@@ -3484,10 +3696,19 @@ do
 		return name
 	end
 
+	-- The favours no buff of Buffs.lua holds (its favourOnly ids), by every
+	-- rank's id: a Soulstone, Fear Ward, Water Walking, Detect Invisibility.
+	local FAVOUR_KEY = {
+		[20707] = "soulstone", [20762] = "soulstone", [20763] = "soulstone",
+		[20764] = "soulstone", [20765] = "soulstone",
+		[6346] = "fearward", [546] = "waterwalking",
+		[132] = "detectinvis", [2970] = "detectinvis", [11743] = "detectinvis",
+	}
+
 	-- The buff key of the spell they gave you ("intellect", "thorns"), for
 	-- RP.GIFT, or nil: the debt's spell looked up in Buffs.lua's ids, where
-	-- any rank or group version of it is filed. Roll a few's stand-in hands
-	-- its key in as entry.giftKey.
+	-- any rank or group version of it is filed, or among the favours above.
+	-- Roll a few's stand-in hands its key in as entry.giftKey.
 	function RP.GiftKey(entry)
 		if type(entry) ~= "table" then return nil end
 		local key = entry.giftKey
@@ -3495,7 +3716,7 @@ do
 			local id = GiftId(entry)
 			local byId = ns.BUFF_BY_ID
 			local buff = id and type(byId) == "table" and byId[id]
-			key = type(buff) == "table" and buff.key or nil
+			key = type(buff) == "table" and buff.key or (id and FAVOUR_KEY[id]) or nil
 		end
 		if type(key) ~= "string" then return nil end
 		return key

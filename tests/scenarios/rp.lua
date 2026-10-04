@@ -1566,10 +1566,10 @@ end
 -- ------------------------------------------------------------------ rp-25
 -- The weighing: with every moment known at once, each pool is heard in
 -- proportion to its weight times its lines, counted up to RP.SPREAD. The
--- people's own lines stay the most heard of the ones about the speaker, and
--- the rare moments made for this click (a trade, a gift, kin, a meeting
--- again) outweigh the ones that are nearly always true, a meeting again most
--- of all, and what a gift does outweighs its name. Returning a favour, the
+-- people's own lines come first, a meeting again next, and the rare moments
+-- made for this click (a trade, a gift, kin, a meeting again) outweigh the
+-- ones that are nearly always true, and what a gift does outweighs its name.
+-- Returning a favour, the
 -- pools that do not say thank you (the spell, the place, the hour, whoever is
 -- helped) weigh half; the spell on a class it does little for shares the
 -- pool of whoever is helped rather than adding to it. A people with no group
@@ -1621,15 +1621,18 @@ do
 				fail(scenario, ("%s heard %.1f%% of the time, weighed for %.1f%%"):format(tag, got * 100, want * 100))
 			end
 		end
+		-- The order, by the exact shares: the counts are held to them above,
+		-- and two counts a couple of standard deviations apart could swap on
+		-- any change to the order of the draws.
 		local function more(a, b)
-			if (counts[a] or 0) <= (counts[b] or 0) then
-				fail(scenario, ("%s (%d) is not heard more than %s (%d)"):format(a, counts[a] or 0, b, counts[b] or 0))
+			if (share[a] or 0) <= (share[b] or 0) then
+				fail(scenario, ("%s (%.1f) is not weighed above %s (%.1f)"):format(a, share[a] or 0, b, share[b] or 0))
 			end
 		end
 		more("race", "class") more("race", "faction") more("race", "general")
 		more("trade", "place") more("trade", "time") more("trade", "spell")
 		more("gift", "place") more("gift", "time") more("gift", "trade")
-		more("history", "place") more("history", "trade") more("history", "race")
+		more("history", "place") more("history", "trade") more("race", "history")
 		more("kin", "general")
 
 		-- A pool of one line is heard a third as often as a full one, and a
@@ -1860,9 +1863,29 @@ do
 		-- And Classic Era's Blessing of Sanctuary, which Forever deleted.
 		keys.sanctuary = keys.sanctuary or "elsewhere"
 		known(RP.SPELL, keys, "spell")
-		-- What a gift does: every spell somebody can give you.
-		for key in pairs(keys) do has(RP.GIFT[key], "gift " .. key, 2) end
-		known(RP.GIFT, keys, "gift")
+		-- What a gift does: every spell somebody can give you, and every
+		-- favour Manners never offers (Buffs.lua, favourOnly), found by its id.
+		local gifts = {}
+		for key in pairs(keys) do
+			has(RP.GIFT[key], "gift " .. key, 2)
+			gifts[key] = true
+		end
+		local owed = ns.owed
+		if not (ns.FAVOUR_ONLY_IDS and ns.FAVOUR_ONLY_IDS[1]) then
+			fail(scenario, "SKIPPED -- no favour-only gifts on this client to check")
+		end
+		for _, id in ipairs(ns.FAVOUR_ONLY_IDS or {}) do
+			ns.owed = { Bram = { spell = id } }
+			local key = RP.GiftKey({ name = "Bram" })
+			if key == nil then
+				fail(scenario, "the favour of spell " .. id .. " has no gift lines")
+			else
+				has(RP.GIFT[key], "gift " .. key, 2)
+				gifts[key] = true
+			end
+		end
+		ns.owed = owed
+		known(RP.GIFT, gifts, "gift")
 
 		-- The moments.
 		has(RP.TRADE, "trade", full)

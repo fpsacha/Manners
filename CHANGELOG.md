@@ -15,6 +15,16 @@
   game rather than the world, were rewritten. A box saved with the old
   examples is still In character. On a client in another language, a
   rewritten line is left out until it is translated.
+- **In character sounds like your own people.** A thank-you, the line heard
+  most and the only one with "Only when I buff someone back" on, is now in
+  your people's voice about two times in three, up from under one in three:
+  a Forsaken sounds Forsaken, a dwarf like a dwarf. Asking, offering and
+  group lines lean the same way. Humans, dwarves, night elves, gnomes, orcs,
+  the Forsaken, tauren and trolls have 184 new lines between them, a few
+  lines any people could say were retired, and Magni is the living king of
+  Ironforge rather than a diamond. A Soulstone, Fear Ward, Water Walking or
+  Detect Invisibility is thanked for what it does. On a client in another
+  language, the new people's lines join once they are translated.
 - **Group buffs in a raid count the whole raid.** On WoW Forever, Arcane
   Brilliance, the Prayers and Gift of the Wild reach everybody in your party
   and raid. The prompt now offers one cast for the raid ("Your raid") once
@@ -67,6 +77,46 @@
   goes on casting after you unlock the prompt.
 - **The preview's count** covers every row it lists below the panel. It
   said 2 over three to five rows.
+- **A scroll's imbue that runs out under a wizard oil is offered again.**
+  Once the game has shown the two on your weapon together, the oil alone no
+  longer counts as the weapon seen to. Until then an oil still counts, so
+  nobody is asked to put a scroll over one.
+- **A scroll picked above your level gives way to Automatic** while you
+  carry one of that kind you can use, and takes over again once you reach
+  its level: an alt sharing the main's profile, with Cat Familiar picked and
+  Rats in the bags, is offered the Rat.
+- **Imbue Spellbreak ranks with Lesser Flame**, whose +4 Fire it puts on.
+  Automatic chose it over Flame, Frost and the other scrolls that do more.
+- **Another paladin's aura on you, or another hunter's Aspect of the Wild or
+  Trueshot Aura:** Automatic offers the next one you know that is not on you
+  already, or nothing, rather than a second copy that would not stack. Your
+  own copy is read as yours even when the game lists theirs first.
+- **Lightning Shield, Shadowguard and Inner Fire nearly spent after a
+  fight** are offered as a top-up with *Offer a top-up when it runs low*: the
+  shields on their last charge, Inner Fire on its last five. The prompt says
+  how many charges are left.
+- **No "buffed you" line in a battleground, an arena or any raid group**,
+  where everybody buffs everybody at once. The favour is still noticed and
+  offered.
+- **A warrior's shout that lapses between pulls** no longer brings a "buffed
+  you" line and a `/thank` every time: once in half an hour for a group
+  member. While they wear your own buff with more than the top-up time left,
+  their favour is not offered back: refreshing it repays nothing.
+- **A lower rank no longer counts as having the buff.** A level 60 wearing
+  Fortitude's second rank from a low-level priest is offered yours, and a
+  priest wearing it is reminded of her own. A rank that is the best your cast
+  could land on a low-level player still counts.
+- **Nobody on your `/ignore` list** is thanked, spoken to or offered a favour
+  back, and passers-by on it are not offered. Group members on it still are.
+- **With *Ignore shields, heals and trinket procs* off**, a paladin's aura,
+  a hunter's aspect or Trueshot Aura no longer counts as a favour every time
+  you walk back into its range.
+- **A group cast that returns a favour thanks the person it repays**, even
+  when somebody else in the party is its target. After a ready check it is
+  aimed at the one you owe.
+- **One line per person a minute.** Fortitude, then Divine Spirit on the
+  same person says the line once, not twice. A thank-you for a favour always
+  goes out.
 
 ## 1.6.4
 

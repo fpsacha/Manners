@@ -524,8 +524,8 @@ def whole_suite_args(m):
 
 # 1. a name local to another file, called from this one -- the `plain` bug
 mutate("Prompt/Macro.lua",
-       "ns.PickPhrase(entry,",
-       "PickPhrase(entry,",
+       "ns.PickPhrase(speaker,",
+       "PickPhrase(speaker,",
        "cross-file local call (the `plain` bug)",
        expect="Prompt:Refresh")
 
@@ -2745,15 +2745,9 @@ mutate("Core.lua",
        expect="a raid-wide shout reaches the whole raid",
        script="runscenarios.py")
 
-# The favour line asking whether they are in the raid rather than whether the
-# shout reaches them.
-mutate("Favours.lua",
-       "\t\tlocal inParty = seen.sameParty\n"
-       "\t\tif inParty == nil then inParty = SameParty(seen.name) end\n",
-       "\t\tlocal inParty = type(ns.safecall(_G.UnitInRaid, seen.name)) == \"number\"\n",
-       "a raider in another subgroup promised the prompt",
-       expect="a favour from another subgroup was announced as on the prompt",
-       script="runscenarios.py")
+# (The favour line asking whether they are in the raid rather than whether
+# the shout reaches them is gone with the line: nothing is said about a favour
+# in a raid group, Favours.lua QuietHere.)
 
 # A shout's reach left to IsSpellInRange, which has nothing to say about a spell
 # with no target: a party member sixty yards off is offered it.
@@ -3875,7 +3869,7 @@ mutate("Favours.lua",
        "or ns.GroupMeansSubgroup() and L[\"|cff80ff80%s buffed you|r -- what you cast reaches only your own party",
        "or false and L[\"|cff80ff80%s buffed you|r -- what you cast reaches only your own party",
        "favour line says group, not subgroup",
-       expect="a raider already in the group was told to join it",
+       expect="a stranger's favour line says the shout reaches the group",
        script="runscenarios.py")
 
 # The warrior's owed toggle saying the same.

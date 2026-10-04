@@ -76,8 +76,8 @@ mutate("Phrases.lua",
 
 # A people's own lines weighed no more than anybody's.
 mutate("Phrases.lua",
-       "\trace = 9, kin = 6,",
-       "\trace = 1, kin = 6,",
+       "\trace = 36, kin = 12,",
+       "\trace = 1, kin = 12,",
        "race lines not weighted highest",
        expect="rp: a dwarf of the Alliance thanks like one",
        script="runscenarios.py")
@@ -194,8 +194,8 @@ mutate("Phrases.lua",
 # The set spared the only-when-returning check, as a merge that moved its
 # hook above that line would leave it: strangers and the group are spoken to.
 mutate("Speech.lua",
-       "\t\tif db.speech.onlyWhenReturning and entry.reason ~= \"owed\" then return nil end\n",
-       "\t\tif db.speech.onlyWhenReturning and entry.reason ~= \"owed\""
+       "\t\tif db.speech.onlyWhenReturning and not Returning(entry) then return nil end\n",
+       "\t\tif db.speech.onlyWhenReturning and not Returning(entry)"
        " and not ns.InCharacter.Active(db.speech) then return nil end\n",
        "in character ignores only when returning",
        expect="rp: in character keeps to returning favours",
@@ -538,7 +538,7 @@ mutate("Phrases.lua",
 
 # The gift's key never found from the debt's spell.
 mutate("Phrases.lua",
-       '\t\t\tkey = type(buff) == "table" and buff.key or nil\n',
+       '\t\t\tkey = type(buff) == "table" and buff.key or (id and FAVOUR_KEY[id]) or nil\n',
        "\t\t\tkey = nil\n",
        "rp gift key never found",
        expect="rp: a favour is thanked for by the spell it was",

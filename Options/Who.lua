@@ -214,6 +214,9 @@ end
 local function OwnAutoLabel(family)
 	local spell, why = ns.OwnAutoPick(family)
 	if why == "tank" or why == "notank" then return L["Automatic (only while I'm the tank)"] end
+	-- Passing over one somebody else of your class has on you: no one spell
+	-- to name for long, since theirs comes and goes.
+	if why == "covered" then return L["Automatic"] end
 	local name = spell and ns.BuffName(spell)
 	if not name then return L["Automatic"] end
 	if why == "last" then return L["Automatic (%s, the one you had up last)"]:format(name) end

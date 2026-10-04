@@ -265,7 +265,7 @@ mutate("Favours.lua",
 
 # Said in a raid out of a fight, once per buffer between pulls.
 mutate("Favours.lua",
-       "\t\tif kind == \"raid\" then return true end\n",
+       "\t\tif kind == \"raid\" or kind == \"pvp\" or kind == \"arena\" then return true end\n",
        "\t\tif kind == \"raid\" then return InCombatLockdown() and true or false end\n",
        "favour line said in a raid between pulls",
        expect="a favour was announced in chat where it should be quiet",

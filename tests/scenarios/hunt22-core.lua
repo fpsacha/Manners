@@ -154,9 +154,10 @@ for _, case in ipairs({ { "another raid group", "raid8" }, { "your own raid grou
 				.. tostring(entry and entry.buff.key))
 			return
 		end
-		if not said:find("returning the favour is on the prompt", 1, true) then
-			fail(scenario, ("the chat line says %s is offered only once they join the raid they are in, while "
-				.. "the prompt offers them Salvation: %s"):format(name, flat(said)))
+		-- No "buffed you" line in a raid group (Favours.lua, QuietHere): the
+		-- prompt is what says they are offered.
+		if said:find("buffed you", 1, true) then
+			fail(scenario, ("a favour from %s in a raid group was announced in chat: %s"):format(name, flat(said)))
 		end
 		local row
 		for _, e in ipairs(ns.db.char.ledger and ns.db.char.ledger.entries or {}) do

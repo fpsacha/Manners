@@ -283,8 +283,8 @@ mutate("Core.lua",
        expect="with only Crusader on the staff, you were offered", script=S)
 
 mutate("Core.lua",
-       "\t\t\tif not has then\n\t\t\t\tif unknown then return nil end\n\t\t\t\treturn false\n",
-       "\t\t\tif not has then\n\t\t\t\tif unknown then return nil end\n\t\t\t\treturn nil\n",
+       "\t\t\tif not has or (imbueStacks and not named) then\n\t\t\t\tif unknown then return nil end\n\t\t\t\treturn false\n",
+       "\t\t\tif not has or (imbueStacks and not named) then\n\t\t\t\tif unknown then return nil end\n\t\t\t\treturn nil\n",
        "scrolls: an empty list read as no answer",
        expect="with the imbue worn off, you were offered", script=S)
 

@@ -118,7 +118,10 @@ each class offers*).
   Arcane Intellect, then the armor.
 - Only when **none** of a kind is up, so the armor, aura or aspect you chose
   is never swapped for another. Only yours count: another paladin's aura on
-  you does not stop the reminder.
+  you does not stop the reminder. But two of the same aura do not stack, so
+  Automatic passes over one that already reaches you from another paladin (or
+  an Aspect of the Wild or a Trueshot Aura from another hunter) for the next
+  you know, and offers nothing when there is none.
 - Where your class has several of one kind, you pick one, or leave it on
   *Automatic*, which reminds you of the one you had up last (read from your
   own buffs, even if you changed it in a fight or in town). Until you have had
@@ -132,13 +135,18 @@ each class offers*).
   while the game says the spell cannot be cast (a druid in cat form, a priest
   in Shadowform, a mage out of mana).
 - With *Offer a top-up when it runs low*, a buff with a timer is also offered
-  when it is running out; an aura or an aspect never is.
+  when it is running out; an aura or an aspect never is. So is Lightning
+  Shield or Shadowguard down to its last charge, and Inner Fire down to its
+  last five, after a fight.
 - **A mage's scrolls.** *Familiar* reminds you when no familiar is with you
   and a Rat, Frog or Cat Familiar scroll is in your bags; *Weapon imbue* when
   nothing is on the weapon in your main hand and you carry an imbue scroll
   that fits it (Lesser Flame on a staff, Chillknife on a dagger, Spark on a
-  one-handed sword, and so on). A wizard oil or any other temporary enchant counts as
-  something on it. A scroll is offered only once your level is up to it, with
+  one-handed sword, and so on). A wizard oil or any other temporary enchant
+  counts as something on it, until the game has shown a scroll's imbue on the
+  weapon beside one: from then on, for the session, the oil alone no longer
+  counts, so a scroll whose imbue ran out under it is offered again. A scroll
+  is offered only once your level is up to it, with
   its own icon, and one press uses it from your bags: your target is not
   touched. Its use takes three seconds, and if moving cuts it short the scroll
   is offered again a moment later. *Automatic* takes the one you used last
@@ -199,13 +207,19 @@ you have learned a group buff and carry its reagent or have the perk.
   target and passers-by wait until your mana is 5 points above it, so the
   prompt does not flicker between casts. The tooltip, a press on the empty
   prompt and `/manners debug` say when they come back.
-- Inside a raid the "buffed you" chat line is not printed, and in a dungeon
-  it waits out the fight. The favour is still noticed and offered.
+- In a raid group, a battleground or an arena the "buffed you" chat line is
+  not printed, and in a dungeon it waits out the fight. The favour is still
+  noticed and offered. A group member whose buff lands again every few
+  minutes (a warrior's shout) gets the line once in half an hour, and while
+  they wear your own buff with more than the top-up time left, their favour
+  is not offered back: there is nothing to repay.
 
 **Never offer.** People on the list are never offered anything, as passers-by
 or as group members. Somebody on it who buffs you is still offered the favour
 back, because returning a favour is the point; shift-right-click them again to
-let that favour go. The list is on the *Who to skip* page, and `/manners never`
+let that favour go. Your `/ignore` list goes further: nobody on it is
+thanked, offered a favour back or offered as a passer-by, though a group
+member on it still is. The list is on the *Who to skip* page, and `/manners never`
 and `/manners allow <name>` work from chat. In a fight the prompt cannot move
 off the person it is showing, so a press still casts at them until the fight
 ends, and chat says so.
@@ -414,7 +428,9 @@ explain themselves; this is what their tooltips have no room for.
   you had up last)*. Righteous Fury's is *Automatic (only while I'm the
   tank)*, *Always* or *Don't remind me*. A mage carrying scrolls also gets
   *Familiar* and *Weapon imbue*, which list every scroll of their kind, carried
-  or not; one picked with none in your bags waits until you have one. Then
+  or not; one picked with none in your bags waits until you have one, and one
+  picked above your level (a profile shared with a higher mage) gives way to
+  *Automatic* until you reach it. Then
   *Also in cities and inns*, off
   by default, and last what each of your own buffs is doing and why one is
   not being offered. A warrior or a rogue, with nothing to put on himself
@@ -460,7 +476,9 @@ list. They used to be at the bottom of *Who to buff*.
   (then *Top up when less than this is left (minutes)*), or *Always offer*.
   Somebody who buffed you is offered the favour back whichever you pick. Your
   own buffs are always read, so you are never offered one you are wearing;
-  a top-up reaches them too, but never an aura or an aspect.
+  a top-up reaches them too, but never an aura or an aspect. A rank below
+  the one your cast would land (a level-60 wearing Fortitude's second rank)
+  counts as not having it, for you and for them.
 - *Hide the prompt while I'm mounted*: dead, on a flight path or in a vehicle
   the prompt already stays away, because nothing can be cast there.
 - *Save mana: stop below (% mana)*: 0 is off (see *Dungeons and raids*
@@ -472,7 +490,8 @@ list. They used to be at the bottom of *Who to buff*.
     when *Let them go after* is shorter.
   - *Ignore shields, heals and trinket procs*: only class buffs such as
     Fortitude, a Fear Ward or a Soulstone count as a favour to return, or to
-    `/thank`.
+    `/thank`. A paladin's aura, a hunter's aspect or Trueshot Aura reaching
+    you never counts, ticked or not.
   - *Stop sooner if they are probably gone* and *Let them go after (seconds)*
     (45): somebody who buffed you is rarely your target or on a nameplate, so
     all that is known is that they were in range when they buffed you. The
@@ -502,7 +521,8 @@ list. They used to be at the bottom of *Who to buff*.
   `/thank` them, and everybody near sees it: whether or not you could buff
   them back, and with *People who buff me* on or off. Never in a fight or in
   any instance, nor while you are stealthed or feigning death, at most once
-  per person every five minutes and once every ten seconds in all, so a raid
+  per person every five minutes (half an hour for a group member) and once
+  every ten seconds in all, so a raid
   buffing you on the pull is one thank. Only class buffs such as Fortitude are
   thanked while *Ignore shields, heals and trinket procs* is on. A rogue or a
   hunter, with no buffs to give anybody, has this page with this switch alone
@@ -525,7 +545,10 @@ list. They used to be at the bottom of *Who to buff*.
   your target, focus, cursor, group or a nameplate still shows you, alive and
   in range, with the spell ready and the mana for it. When Manners cannot tell
   -- a passer-by the cursor has left, a range the game will not give -- the
-  buff goes out without it, and the tooltip quotes no line. Line of sight
+  buff goes out without it, and the tooltip quotes no line. One line per
+  person a minute: a second buff on somebody inside a minute of a line goes
+  out silent, unless it returns a favour. A group cast that returns a favour
+  thanks the person it repays, whoever it is aimed at. Line of sight
   cannot be checked. How long a line may be depends on the
   name and on whether your target is handed back. An empty box goes back to
   the chosen set, so untick *Say a line when I buff someone* to stay quiet.

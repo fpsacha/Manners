@@ -99,6 +99,9 @@ local function HoldLine(entry, verdicts)
 	-- Nothing to say, so nothing to judge, and no tokens walked.
 	if not (speech and speech.enabled) then return false end
 	if not (entry and entry.buff and entry.name) then return true end
+	-- A line to them in the last minute (Macro.lua, ns.LineRested), as the
+	-- arming asks it, so the tooltip and the press agree.
+	if not ns.LineRested(ns.LineSpeaker(entry), GetTime()) then return true end
 	if verdicts == true or (type(verdicts) == "table" and verdicts[entry.name] == true) then return true end
 	local unit = ns.UnitFor(entry.name, entry.unit)
 	if not unit then return true end
@@ -407,6 +410,8 @@ local function OnPostClick(self, mouseButton, down)
 	if S.phraseArmed and S.phraseSource and ns.InCharacter and ns.InCharacter.Remember then
 		ns.InCharacter.Remember(S.phraseSource)
 	end
+	-- ...and the person it went to has had their line for the minute.
+	if S.phraseArmed then ns.NoteLineSaid(ns.LineSpeaker(S.current).name, now) end
 
 	-- Park the press rather than clearing the debt: the game says a moment
 	-- later whether anything was cast. What the macro was aimed at and the old

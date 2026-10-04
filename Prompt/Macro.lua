@@ -218,6 +218,50 @@ function Prompt:ClickSummary(entry)
 	return out
 end
 
+-- Who the spoken line is to: the entry, or for a group cast aimed at somebody
+-- owed nothing, the first member it repays (GroupBuffs.lua, groupCast.owed),
+-- as a copy of the cast's entry wearing that member's name, token and class
+-- and the reason "owed". A ready check sweeps the party to one priority, and
+-- whether a favour was thanked came down to whose name came first; with
+-- "Only when I buff someone back" on, the cast repaid it in silence.
+function ns.LineSpeaker(entry)
+	local group = entry and entry.groupCast
+	local member = group and entry.reason ~= "owed" and group.owed and group.owed[1]
+	if not member then return entry end
+	local speaker = {}
+	for field, value in pairs(entry) do speaker[field] = value end
+	speaker.name, speaker.short, speaker.unit = member.name, member.short, member.unit
+	speaker.targetName, speaker.class = member.targetName, member.class
+	speaker.reason = "owed"
+	return speaker
+end
+
+-- One line per person per exchange: after a line has gone to somebody, the
+-- next minute's buffs on them go out silent -- a priest's Fortitude, Spirit
+-- and Shadow Protection said "Cheers" three times in six seconds. A
+-- thank-you for a favour is never held back. Stamped by the press that
+-- carried the line (Press.lua, OnPostClick); capped as ns.lastGave is.
+local LINE_REST = 60
+local spokeAt, spokeCount = {}, 0
+
+function ns.NoteLineSaid(name, now)
+	if type(name) ~= "string" then return end
+	if not spokeAt[name] then
+		spokeCount = spokeCount + 1
+		if spokeCount > 400 then
+			wipe(spokeAt)
+			spokeCount = 1
+		end
+	end
+	spokeAt[name] = now
+end
+
+function ns.LineRested(entry, now)
+	if entry.reason == "owed" then return true end
+	local at = spokeAt[entry.name]
+	return not (at and now - at < LINE_REST)
+end
+
 -- `silent` leaves the spoken line out whatever the entry says: PreClick's
 -- last-moment judgement (HoldLine), or a repaint arming somebody the latest
 -- scan no longer offers.
@@ -276,18 +320,24 @@ function Prompt:ApplyTarget(entry, silent)
 	-- would leave out. Nor for a while after the game refused a cast on them
 	-- (ns.SpeechHeld), so pressing at somebody it will not let you reach does
 	-- not keep talking. Nor in /party or /raid while you are in no party or
-	-- raid (ns.ChannelOpen): the line would reach nobody, on every press. In
+	-- raid, or to somebody outside it (ns.ChannelOpen): the line would reach
+	-- nobody, on every press, or nobody it was for. In
 	-- the key below, so a group joined or left re-arms the macro on the next
 	-- repaint. Nor in the macro armed for a fight: every press in it runs that
 	-- one frozen text, so the line went out again on a press the cooldown
 	-- turned away and after the favour was repaid. As /thank, never in a
 	-- fight; the repaint after it puts the line back. Nor for a shout at
 	-- somebody not surely inside its own radius (ns.ShoutSure): the scan's
-	-- reach for a shout is looser on purpose, and the press asks the same.
+	-- reach for a shout is looser on purpose, and the press asks the same. Nor
+	-- for somebody a line went to in the last minute (ns.LineRested), unless
+	-- it thanks them for a favour; `speak` is in the key, so the line comes
+	-- back once the minute is up.
+	local speaker = ns.LineSpeaker(entry)
 	local speak = not silent and entry.ranged == true and not ns.SpeechHeld(entry.name)
-		and ns.ChannelOpen()
+		and ns.ChannelOpen(entry)
 		and Prompt.armedForFight ~= true
 		and not (entry.buff.selfCast and ns.ShoutSure(entry.unit) ~= true)
+		and ns.LineRested(speaker, GetTime())
 
 	-- Everything the macro is built from, so it is not rebuilt at 2.5 Hz. Other
 	-- inputs come through InvalidateMacro; the unit is here for try's {unit},
@@ -346,7 +396,7 @@ function Prompt:ApplyTarget(entry, silent)
 	-- The group spell too, as in the macro's key: the line names the spell, and
 	-- one kept from a single cast would name the wrong one under a group cast.
 	local phraseIdentity = table.concat({ entry.name, entry.buff.key, tostring(entry.reason),
-		tostring(entry.groupCast and entry.groupCast.spell), tostring(ns.tryMacro) }, "\1")
+		tostring(entry.groupCast and entry.groupCast.spell), tostring(ns.tryMacro), speaker.name }, "\1")
 	local budget = ns.PhraseBudget(entry)
 	-- Rolled only for an arming that can say it, and kept through an arming
 	-- that leaves it out (out of reach for a moment, a press that cannot
@@ -355,7 +405,7 @@ function Prompt:ApplyTarget(entry, silent)
 	-- (phraseSource), and counts it as said lately only when a press carries
 	-- it (Press.lua, OnPostClick).
 	if speak and (S.phraseKey ~= phraseIdentity or (S.phraseText and #S.phraseText > budget)) then
-		S.phraseKey, S.phraseText, S.phraseSource = phraseIdentity, ns.PickPhrase(entry, budget)
+		S.phraseKey, S.phraseText, S.phraseSource = phraseIdentity, ns.PickPhrase(speaker, budget)
 	end
 	local phrase = speak and S.phraseText or nil
 	S.phraseArmed = phrase ~= nil

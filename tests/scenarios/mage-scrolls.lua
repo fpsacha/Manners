@@ -914,7 +914,9 @@ end
 -- in the dropdown.
 do
 	local scenario = "mage-scrolls: Spellbreak before the client has its item is not named as Lesser Flame"
-	with(scenario, { bags = { [LESSER_FLAME] = 2 }, held = { RAT_AURA }, level = 10,
+	-- At Spellbreak's own level: below it, a pick gives way to Automatic's
+	-- Lesser Flame while there is one to use.
+	with(scenario, { bags = { [LESSER_FLAME] = 2 }, held = { RAT_AURA }, level = 46,
 		unloaded = { [SPELLBREAK] = true } }, function(ns)
 		local control = findOption(ns.optionsTable, "own_imbue")
 		if not (control and control.values) then
@@ -1322,4 +1324,115 @@ do
 				:format(key(mine(ns)), lines(ns)))
 		end
 	end)
+end
+
+-- ------------------------------------------------------------------ 22
+-- What if a Brilliant Wizard Oil and a scroll's imbue sit on one staff, and
+-- the imbue runs out with the oil still on? The client lists each enchant
+-- apart (scenario 21), so once it has listed the two together they stack,
+-- and an oil alone means the scroll's imbue is gone: it is offered again.
+-- Never seen together, an oil alone still counts (scenario 19), so nobody
+-- is asked to put a scroll over an oil that would not take it.
+do
+	local scenario = "mage-scrolls: an oil alone, once seen beside a scroll's imbue, no longer counts"
+	with(scenario, { bags = { [LESSER_FLAME] = 2 }, held = { RAT_AURA },
+		enchants = { entry(OIL, TEMPORARY, 1700), entry(LESSER_FLAME_ENCHANT, IMBUE, 1800) } }, function(ns)
+		if mine(ns) then
+			fail(scenario, "SKIPPED -- an oil and Lesser Flame on the staff offered " .. key(mine(ns)))
+			return
+		end
+		world.enchants = { entry(OIL, TEMPORARY, 1600) }
+		if key(mine(ns)) ~= "imbuelesserflame" then
+			fail(scenario, ("the imbue ran out under an oil seen beside it, and you were offered %s; "
+				.. "/manners debug says %s"):format(key(mine(ns)), lines(ns)))
+		end
+		if not lines(ns):find("Weapon imbue: none up -- Imbue Lesser Flame is the one to use.", 1, true) then
+			fail(scenario, "with the imbue gone from under the oil, /manners debug says " .. lines(ns))
+		end
+	end)
+end
+
+-- ------------------------------------------------------------------ 23
+-- What if two mages share the Default profile, the main picks Cat Familiar
+-- or Imbue Greater Frost, and the level-14 alt carries Rats and Lesser
+-- Flames? A pick above your level steps aside for Automatic while it has a
+-- scroll to use, and takes over again at its level; the dropdown keeps it.
+do
+	local GREATER_FROST = 277501
+	local scenario = "mage-scrolls: a scroll picked above your level gives way to Automatic until you reach it"
+	with(scenario, { bags = { [RAT] = 4 }, level = 14 }, function(ns)
+		local familiar = findOption(ns.optionsTable, "own_familiar")
+		local imbue = findOption(ns.optionsTable, "own_imbue")
+		if not (familiar and familiar.set) then
+			fail(scenario, "SKIPPED -- there is no Familiar dropdown")
+			return
+		end
+		familiar.set({ "own_familiar" }, "catfamiliar")
+		if key(mine(ns)) ~= "ratfamiliar" then
+			fail(scenario, ("Cat Familiar picked at level 14 with four Rats: offered %s; /manners debug says %s")
+				:format(key(mine(ns)), lines(ns)))
+		end
+		if familiar.get() ~= "catfamiliar" then
+			fail(scenario, "the dropdown no longer shows the pick: " .. tostring(familiar.get()))
+		end
+		-- Nothing Automatic could use (a Frog wants 16): the pick stands, and
+		-- says why it waits in its own words.
+		restock(ns, { [FROG] = 1 })
+		if mine(ns) or not lines(ns):find("Familiar: you have no Cat Familiar in your bags.", 1, true) then
+			fail(scenario, ("Cat picked at level 14 with only a Frog scroll: offered %s; /manners debug says %s")
+				:format(key(mine(ns)), lines(ns)))
+		end
+		world.level = 25
+		restock(ns, { [RAT] = 4, [CAT] = 1 })
+		if key(mine(ns)) ~= "catfamiliar" then
+			fail(scenario, "at level 25 with a Cat scroll, the pick offered " .. key(mine(ns)))
+		end
+		-- Out of Cats at its level: the pick holds, as scenario 7 has it.
+		restock(ns, { [RAT] = 4 })
+		if mine(ns) then fail(scenario, "Cat picked at 25 with none in the bags offered " .. key(mine(ns))) end
+
+		-- The imbue the same way.
+		world.level = 14
+		world.held[RAT_AURA] = true
+		restock(ns, { [LESSER_FLAME] = 3 })
+		if not (imbue and imbue.set) then
+			fail(scenario, "SKIPPED -- there is no Weapon imbue dropdown")
+			return
+		end
+		imbue.set({ "own_imbue" }, "imbuegreaterfrost")
+		if key(mine(ns)) ~= "imbuelesserflame" then
+			fail(scenario, ("Greater Frost picked at level 14 with Lesser Flames: offered %s; /manners debug says %s")
+				:format(key(mine(ns)), lines(ns)))
+		end
+		world.level = 50
+		restock(ns, { [GREATER_FROST] = 1, [LESSER_FLAME] = 3 })
+		if key(mine(ns)) ~= "imbuegreaterfrost" then
+			fail(scenario, "at level 50 with Greater Frost in the bags, the pick offered " .. key(mine(ns)))
+		end
+	end)
+end
+
+-- ------------------------------------------------------------------ 24
+-- What if a mage of 46 or more carries Imbue Spellbreak beside level-25 or
+-- level-16 scrolls, with none remembered? Spellbreak puts on Lesser Flame's
+-- +4 Fire (its spell and enchant are Lesser Flame's), so Automatic ranks it
+-- with the level-5 scrolls, not ahead of Flame's +12 or Frost's +8.
+do
+	local ACCURACY, FLAME = 277494, 277497
+	local scenario = "mage-scrolls: Automatic ranks Spellbreak with Lesser Flame, below the scrolls that do more"
+	with(scenario, { bags = { [SPELLBREAK] = 2, [FLAME] = 1, [ACCURACY] = 1 }, held = { RAT_AURA }, level = 50 },
+		function(ns)
+			if key(mine(ns)) ~= "imbueaccuracy" then
+				fail(scenario, ("Spellbreak, Flame and Accuracy at level 50: offered %s; /manners debug says %s")
+					:format(key(mine(ns)), lines(ns)))
+			end
+			restock(ns, { [SPELLBREAK] = 2, [FROST] = 1 })
+			if key(mine(ns)) ~= "imbuefrost" then
+				fail(scenario, "Spellbreak and Frost at level 50: offered " .. key(mine(ns)))
+			end
+			restock(ns, { [SPELLBREAK] = 2, [LESSER_FLAME] = 1 })
+			if key(mine(ns)) ~= "imbuespellbreak" then
+				fail(scenario, "SKIPPED -- Spellbreak and Lesser Flame at level 50: offered " .. key(mine(ns)))
+			end
+		end)
 end

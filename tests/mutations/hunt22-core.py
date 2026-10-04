@@ -44,18 +44,10 @@ mutate("Core.lua",
        expect="core22: a passer-by wearing nothing, owed, Salvation pinned", script=S)
 
 # ------------------------------------------------------------ the favour
-# The favour judged as a shout would be: in your own subgroup or nowhere.
-mutate("Favours.lua",
-       "\t\t\tinGroup = inGroup or inParty,\n",
-       "\t\t\tinGroup = inParty,\n",
-       "hunt22-core: a favour's reach judged by the subgroup",
-       expect="core22: a Salvation-only paladin's favour from another raid group is on the prompt", script=S)
-
-mutate("Favours.lua",
-       "\t\tlocal reachable = ns.CouldOffer(hasMana, inParty, inGroup) ~= nil\n",
-       "\t\tlocal reachable = ns.CouldOffer(hasMana, inParty) ~= nil\n",
-       "hunt22-core: the favour line blind to the raid",
-       expect="core22: a Salvation-only paladin's favour from another raid group is on the prompt", script=S)
+# (The favour's reach judged as a shout's, in your own subgroup or nowhere, and
+# the line blind to the raid, went with the line: nothing is said about a
+# favour in a raid group, Favours.lua QuietHere. The scenario still checks
+# the prompt offers them.)
 
 # The ledger row's lines chosen by the shout's subgroup rule again.
 mutate("Ledger.lua",

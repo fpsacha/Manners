@@ -369,6 +369,14 @@ for _, channel in ipairs({ "PARTY", "RAID" }) do
 	local ns, restore = session(scenario, function(ns)
 		ns.db.profile.speech.channel = channel
 	end)
+	-- Munin is in the raid with you whenever there is one: a /raid line goes
+	-- only to a member (ns.ChannelOpen), and the mock's raid knows its
+	-- members by raid token, not by nameplate.
+	local realInRaid = UnitInRaid
+	UnitInRaid = function(unit)
+		if Mock.raid and unit == "nameplate1" then return 2 end
+		return realInRaid(unit)
+	end
 	if ns then
 		-- Solo, then (for /raid) a party that is no raid, then the group the
 		-- channel needs, then solo again.
@@ -401,6 +409,7 @@ for _, channel in ipairs({ "PARTY", "RAID" }) do
 		guarded(scenario, ns)
 		restore()
 	end
+	UnitInRaid = realInRaid
 end
 
 -- The other channels need no group: /say solo still speaks.

@@ -77,6 +77,9 @@ function Prompt:ReasonText(entry)
 	-- they are at the front, and the queue only does it for a reading.
 	if entry.sweep and entry.reason == "group" then
 		template = entry.sweep == "readycheck" and L["ready check"] or L["just revived"]
+	elseif entry.charges then
+		-- A charge shield topped up for its charges, not its time.
+		template = entry.charges == 1 and L["1 charge left"] or L["%d charges left"]:format(entry.charges)
 	elseif RemainingText(entry.remaining) then
 		template = p.reasonRefresh or template
 	elseif entry.checked and entry.known == nil and entry.reason ~= "owed"

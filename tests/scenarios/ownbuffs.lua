@@ -72,9 +72,10 @@ end
 
 local function key(entry) return tostring(entry and entry.buff and entry.buff.key) end
 
--- What you wear of your class's own buffs, as { id, left, source, name }:
+-- What you wear of your class's own buffs, as { id, left, source, name, apps }:
 -- `left` nil is a toggle (no timer), `source` nil is you and false names
--- nobody, `name` defaults to the spell's own. `withheld` is a client that
+-- nobody, `name` defaults to the spell's own, `apps` the charges the client
+-- counts (nil for none given). `withheld` is a client that
 -- will not say: every read of your own buffs a secret. Read again at once.
 local function wear(ns, auras, withheld)
 	rawset(_G, "C_UnitAuras", nil)
@@ -84,7 +85,7 @@ local function wear(ns, auras, withheld)
 		local source = a.source
 		if source == nil then source = "player" elseif source == false then source = nil end
 		local aura = { spellId = a.id, name = a.name or ns.SpellNameFor(a.id),
-			expirationTime = a.left and (Mock.now + a.left) or 0, sourceUnit = source }
+			expirationTime = a.left and (Mock.now + a.left) or 0, sourceUnit = source, applications = a.apps }
 		byId[a.id] = aura
 		if aura.name then byName[aura.name] = aura end
 	end
@@ -1574,6 +1575,144 @@ do
 			fail(scenario, ("an aura event out of a fight was not counted as a walk: %d changes and %d walks,"
 				.. " for three and three"):format(ns.auraScan.events - events, ns.auraScan.walks - walks))
 		end
+	end)
+end
+Mock.reset()
+
+-- ------------------------------------------------------------------ own 30
+-- What if another of your class already has the same party aura on you? Two
+-- copies do not stack ("one Aura on them per Paladin"), so Automatic passes
+-- over the one you had up last for the next you know that is not on you, and
+-- for a family of one -- Trueshot Aura, which every hunter has from 40 on
+-- Forever -- offers nothing at all, rather than a press that puts up a copy
+-- the game drops and is offered again every retry, 525 mana a time.
+Mock.reset()
+do
+	local scenario = "own: a shared aura another of your class has on you is passed over"
+	with(scenario, { class = "PALADIN", known = { 19740, DEVOTION, RETRIBUTION },
+		wearing = { { id = DEVOTION } } }, function(ns)
+		if mine(ns) or ns.db.char.ownLast.aura ~= "devotionaura" then
+			fail(scenario, "SKIPPED -- your own Devotion Aura was not read up and remembered")
+			return
+		end
+		wear(ns, { { id = DEVOTION, source = "party1" } })
+		if key(mine(ns)) ~= "retributionaura" then
+			fail(scenario, "yours gone and another paladin's Devotion Aura on you: offered " .. key(mine(ns))
+				.. ", not Retribution Aura")
+		end
+		-- Every aura you know already reaches you from somebody: nothing.
+		wear(ns, { { id = DEVOTION, source = "party1" }, { id = RETRIBUTION, source = "party2" } })
+		if mine(ns) then
+			fail(scenario, "both your auras on you from other paladins: offered " .. key(mine(ns)))
+		end
+		-- A pick is a pick.
+		local aura = findOption(ns.optionsTable, "own_aura")
+		if aura and aura.set then
+			aura.set({ "own_aura" }, "devotionaura")
+			if key(mine(ns)) ~= "devotionaura" then
+				fail(scenario, "Devotion Aura picked, another paladin's on you: offered " .. key(mine(ns)))
+			end
+			aura.set({ "own_aura" }, "auto")
+		end
+		-- Yours and theirs both on you, and the client reads theirs first by
+		-- id and, unfiltered, by name: only your own copy answers by name.
+		local base = C_UnitAuras
+		local name = ns.SpellNameFor(DEVOTION)
+		rawset(_G, "C_UnitAuras", setmetatable({
+			GetUnitAuraBySpellID = function(unit, id)
+				if unit == "player" and ns.OWN_BY_ID[id] then
+					if id == DEVOTION then return { spellId = id, name = name, expirationTime = 0, sourceUnit = "party1" } end
+					return nil
+				end
+				return base.GetUnitAuraBySpellID(unit, id)
+			end,
+			GetAuraDataBySpellName = function(unit, asked, filter)
+				if unit ~= "player" or asked ~= name then return nil end
+				local yours = type(filter) == "string" and filter:find("PLAYER", 1, true) ~= nil
+				return { spellId = DEVOTION, name = name, expirationTime = 0, sourceUnit = yours and "player" or "party1" }
+			end,
+		}, { __index = base }))
+		ns.ForgetUnitAuras(ns.plain(UnitGUID("player")))
+		if mine(ns) then
+			fail(scenario, "your own Devotion Aura, read after another paladin's, was taken for missing: offered "
+				.. key(mine(ns)))
+		end
+	end)
+end
+
+Mock.reset()
+do
+	local TRUESHOT = 19506
+	local scenario = "own: another hunter's Trueshot Aura on you is not offered again"
+	with(scenario, { class = "HUNTER", known = { HAWK, MONKEY, TRUESHOT },
+		wearing = { { id = HAWK }, { id = TRUESHOT, source = "party1" } } }, function(ns)
+		if mine(ns) then
+			fail(scenario, "another hunter's Trueshot Aura on you: offered " .. key(mine(ns)))
+		end
+		for _, line in ipairs(ns.MyselfLines(GetTime())) do
+			if line:find("none up", 1, true) then
+				fail(scenario, "/manners debug says, with another hunter's Trueshot on you: " .. line)
+			end
+		end
+		Mock.advance(700)
+		wipe(ns.tried)
+		if mine(ns) then
+			fail(scenario, "minutes later, another hunter's Trueshot Aura still on you: offered " .. key(mine(ns)))
+		end
+		-- Theirs gone: yours is offered.
+		wear(ns, { { id = HAWK } })
+		if key(mine(ns)) ~= "trueshot" then
+			fail(scenario, "SKIPPED -- with no Trueshot Aura on you, offered " .. key(mine(ns)))
+		end
+	end)
+end
+
+-- ------------------------------------------------------------------ own 31
+-- What if a charge shield is nearly spent after a fight, with most of its
+-- time left? With top-ups on, Lightning Shield (3 charges) down to its last
+-- and Inner Fire (20 on Forever) down to five or fewer are topped up like a
+-- buff running out, and say so; a full one, top-ups off, or a count the
+-- client does not give leave it be.
+Mock.reset()
+do
+	local SHIELD = 324
+	local scenario = "own: a charge shield on its last charges is topped up"
+	with(scenario, { class = "SHAMAN", known = { SHIELD },
+		wearing = { { id = SHIELD, left = 590, apps = 1 } } }, function(ns)
+		if mine(ns) then
+			fail(scenario, "top-ups off, Lightning Shield on its last charge was offered " .. key(mine(ns)))
+		end
+		ns.db.profile.filters.whenBuffed = "refresh"
+		local me = mine(ns)
+		if key(me) ~= "lightningshield" then
+			fail(scenario, "Lightning Shield with 1 of its 3 charges and ten minutes left, top-ups on: offered "
+				.. key(me))
+		elseif ns.Prompt:ReasonText(me) ~= "1 charge left" then
+			fail(scenario, "the charge top-up reads " .. tostring(ns.Prompt:ReasonText(me)))
+		end
+		wear(ns, { { id = SHIELD, left = 590, apps = 3 } })
+		if mine(ns) then fail(scenario, "a full Lightning Shield was topped up: " .. key(mine(ns))) end
+		wear(ns, { { id = SHIELD, left = 590 } })
+		if mine(ns) then
+			fail(scenario, "a Lightning Shield whose charges the client does not give was topped up")
+		end
+	end)
+end
+
+Mock.reset()
+do
+	local scenario = "own: Inner Fire down to a quarter of its charges is topped up"
+	with(scenario, { class = "PRIEST", known = { INNER_FIRE },
+		wearing = { { id = INNER_FIRE, left = 540, apps = 5 } } }, function(ns)
+		ns.db.profile.filters.whenBuffed = "refresh"
+		local me = mine(ns)
+		if key(me) ~= "innerfire" then
+			fail(scenario, "Inner Fire with 5 of its 20 charges left, top-ups on: offered " .. key(me))
+		elseif ns.Prompt:ReasonText(me) ~= "5 charges left" then
+			fail(scenario, "the charge top-up reads " .. tostring(ns.Prompt:ReasonText(me)))
+		end
+		wear(ns, { { id = INNER_FIRE, left = 540, apps = 6 } })
+		if mine(ns) then fail(scenario, "Inner Fire with 6 of 20 charges was topped up") end
 	end)
 end
 Mock.reset()

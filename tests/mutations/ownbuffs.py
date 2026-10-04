@@ -11,7 +11,7 @@ S = "runscenarios.py"
 # --- the offer (Queue.lua) ---
 
 mutate("Queue.lua",
-       "\tif not buff then buff, has, remaining = OwnPick(db, full, now) end\n",
+       "\tif not buff then buff, has, remaining, charges = OwnPick(db, full, now) end\n",
        "",
        "own: never offered",
        expect="a mage with no armor up was not offered one", script=S)
@@ -19,8 +19,8 @@ mutate("Queue.lua",
 # Your own group buff after the class's own rather than before.
 mutate("Queue.lua",
        "\tif #mine > 0 then buff, has, remaining = SelfBuff(db, mine, full, now) end\n"
-       "\tif not buff then buff, has, remaining = OwnPick(db, full, now) end\n",
-       "\tbuff, has, remaining = OwnPick(db, full, now)\n"
+       "\tif not buff then buff, has, remaining, charges = OwnPick(db, full, now) end\n",
+       "\tbuff, has, remaining, charges = OwnPick(db, full, now)\n"
        "\tif not buff and #mine > 0 then buff, has, remaining = SelfBuff(db, mine, full, now) end\n",
        "own: your group buff not first",
        expect="before your Intellect", script=S)
@@ -151,8 +151,8 @@ mutate("Core.lua",
        expect="wearing Frost Armor under another name, you were offered", script=S)
 
 mutate("Core.lua",
-       "\t\tlocal named, left, nameRefused = ByName(family, now)\n",
-       "\t\tlocal named, left, nameRefused = nil, nil, false\n",
+       "\t\tlocal named, left, applications, nameRefused = ByName(family, now)\n",
+       "\t\tlocal named, left, applications, nameRefused = nil, nil, nil, false\n",
        "own: not read by name",
        expect="wearing an Ice Armor rank the table lacks", script=S)
 
@@ -187,20 +187,20 @@ mutate("Core.lua",
        expect="the client will not read your armor", script=S)
 
 mutate("Core.lua",
-       "\t\t\tif family.toggle or ctx.whenBuffed ~= \"refresh\" or not left\n",
-       "\t\t\tif ctx.whenBuffed ~= \"refresh\" or not left\n",
+       "\t\t\tif family.toggle or ctx.whenBuffed ~= \"refresh\"\n",
+       "\t\t\tif ctx.whenBuffed ~= \"refresh\"\n",
        "own: an aura topped up",
        expect="a toggle was offered as a top-up", script=S)
 
 mutate("Core.lua",
-       "\t\t\tif family.toggle or ctx.whenBuffed ~= \"refresh\" or not left\n",
-       "\t\t\tif family.toggle or not left\n",
+       "\t\t\tif family.toggle or ctx.whenBuffed ~= \"refresh\"\n",
+       "\t\t\tif family.toggle\n",
        "own: a top-up with top-ups off",
        expect="a minute of Mage Armor was topped up with top-ups off", script=S)
 
 mutate("Core.lua",
-       "\t\t\tif family.toggle or ctx.whenBuffed ~= \"refresh\" or not left\n",
-       "\t\t\tif true\n",
+       "\t\t\tif family.toggle or ctx.whenBuffed ~= \"refresh\"\n\t\t\t\tor (not spent and",
+       "\t\t\tif true\n\t\t\t\tor (not spent and",
        "own: never a top-up",
        expect="a minute of Mage Armor with top-ups on offered", script=S)
 
@@ -292,8 +292,8 @@ mutate("Buffs.lua",
        expect="Aspect of the Cheetah was remembered", script=S)
 
 mutate("Buffs.lua",
-       "\t\t\t},\n\t\t\ttoggle = true,\n\t\t},\n\t\t{\n\t\t\tkey = \"righteousfury\",",
-       "\t\t\t},\n\t\t},\n\t\t{\n\t\t\tkey = \"righteousfury\",",
+       "\t\t\ttoggle = true,\n\t\t\t-- \"Players may only have one Aura on them per Paladin\"",
+       "\t\t\t-- \"Players may only have one Aura on them per Paladin\"",
        "own: a paladin's aura timed",
        expect="a toggle was offered as a top-up", script=S)
 

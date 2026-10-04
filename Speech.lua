@@ -82,6 +82,29 @@ ns.PHRASE_SET_ORDER = { "roleplay", "polite", "cheeky", "quiet" }
 -- strings, not L[...]: they are what a profile holds (a scenario checks they
 -- match the keys above).
 local EnglishPhraseSet
+
+-- Every line a ready-made set has shipped, as translated and in English, the
+-- former sets' too: a line in the box that is one of these is the addon's
+-- words, which an emote quotes (ns.PickPhrase); any other is the player's
+-- own, said as typed.
+local SHIPPED = {}
+
+-- The ready-made lines that only make sense as a return: a thank-you for a
+-- buff, or calling it even. Said only when the press returns a favour
+-- (Roll); the rest of a set can go to anybody, a stranger, a group member,
+-- somebody who asked. By the translation and by the English, since the box
+-- keeps the language it was filled in.
+local RETURN_ONLY = {
+	[L["Thanks for the buff, {name}!"]] = true,
+	[L["Returning the favour, {name}."]] = true,
+	[L["One good buff deserves another, {name}."]] = true,
+	[L["Consider us even, {name}."]] = true,
+	["Thanks for the buff, {name}!"] = true,
+	["Returning the favour, {name}."] = true,
+	["One good buff deserves another, {name}."] = true,
+	["Consider us even, {name}."] = true,
+}
+
 do
 	local PHRASE_SETS_ENGLISH = {
 		roleplay = {
@@ -160,6 +183,19 @@ do
 		},
 	}
 
+	local function Ship(lines)
+		for _, text in ipairs(lines or {}) do SHIPPED[text] = true end
+	end
+	for key, set in pairs(ns.PHRASE_SETS) do
+		Ship(set.lines)
+		Ship(PHRASE_SETS_ENGLISH[key])
+		local former = FORMER[key]
+		if former then
+			Ship(former.english)
+			Ship(former.translated)
+		end
+	end
+
 	local function Holds(text, lines)
 		return lines ~= nil and text == table.concat(lines, "\n")
 	end
@@ -200,25 +236,45 @@ ns.CHANNEL_COMMANDS = {
 	WHISPER = "w",
 }
 
--- Whether the line's channel reaches anybody right now. /party and /raid
--- outside a party or raid reach nobody: the macro's line went out on every
--- press, the thank-you was lost, and the server answered each one with "You
--- aren't in a party." Asked where the macro is built (Prompt/Macro.lua), not
--- when the line is rolled, so joining or leaving a group arms or drops it on
--- the next repaint. Only a definite no closes it, as with the range: a client
--- that will not say keeps the line.
-function ns.ChannelOpen()
+-- Whether the line's channel reaches anybody right now, and with entry, the
+-- person on the prompt. /party and /raid outside a party or raid reach nobody:
+-- the macro's line went out on every press, the thank-you was lost, and the
+-- server answered each one with "You aren't in a party." The group the game
+-- forms for a battleground or a dungeon queue is not one: it talks in
+-- /instance, so only your own party or raid counts (LE_PARTY_CATEGORY_HOME,
+-- where the client has it). And a /party or /raid line to somebody outside
+-- that group is a thank-you they never read: a stranger who buffed you while
+-- you quest in a party, or a raider in another subgroup, since /party in a
+-- raid reaches only your own subgroup. They get the buff with no line, as
+-- anybody does out of a group. Asked where the macro is built
+-- (Prompt/Macro.lua), not when the line is rolled, so joining or leaving a
+-- group arms or drops it on the next repaint. Only a definite no closes it,
+-- as with the range: a client that will not say keeps the line.
+local function InHome(fn)
+	if type(fn) ~= "function" then return nil end
+	local home = _G.LE_PARTY_CATEGORY_HOME
+	if home == nil then return ns.plain(fn()) end
+	return ns.plain(fn(home))
+end
+
+function ns.ChannelOpen(entry)
 	local db = addon.db and addon.db.profile
 	local channel = db and db.speech.channel
-	local member
-	if channel == "PARTY" then
-		member = IsInGroup and IsInGroup()
-	elseif channel == "RAID" then
-		member = IsInRaid and IsInRaid()
-	else
-		return true
+	if channel ~= "PARTY" and channel ~= "RAID" then return true end
+	local member = IsInRaid
+	if channel == "PARTY" then member = IsInGroup end
+	if InHome(member) == false then return false end
+	if type(entry) ~= "table" then return true end
+	if entry.inGroup ~= true then return false end
+	-- In a raid, /party is your own subgroup.
+	if channel == "PARTY" and InHome(IsInRaid) == true and type(entry.unit) == "string" then
+		if type(_G.UnitInSubgroup) == "function" then
+			return ns.plain(_G.UnitInSubgroup(entry.unit)) ~= false
+		end
+		local theirs, ours = ns.RaidSubgroup(entry.unit), ns.RaidSubgroup("player")
+		return theirs == nil or ours == nil or theirs == ours
 	end
-	return ns.plain(member) ~= false
+	return true
 end
 
 ns.MACRO_LIMIT = 255
@@ -301,33 +357,55 @@ do
 		if command == ns.CHANNEL_COMMANDS.WHISPER then
 			local target = WhisperTargetOf(rest, RegionalNames())
 			if target then rest = rest:sub(#target + 2) end
+		elseif command == ns.CHANNEL_COMMANDS.EMOTE then
+			-- The words an emote quotes (PickPhrase), without the frame.
+			local before, after = L['says, "%s"']:match("^(.-)%%s(.*)$")
+			if before and #rest >= #before + #after and rest:sub(1, #before) == before
+				and rest:sub(#rest - #after + 1) == after then
+				rest = rest:sub(#before + 1, #rest - #after)
+			end
 		end
 		return rest
 	end
 
+	-- Whether this press returns a favour: the person on it is owed one. A
+	-- group cast is filed under its anchor, and the line names the anchor.
+	local function Returning(entry)
+		return entry.reason == "owed"
+	end
+
 	-- The line, and for "In character" the line as written, which that set
 	-- remembers as said only once a press carries it (Prompt/Press.lua).
-	local function Roll(db, entry, command, budget)
+	-- With quote (an emote), the addon's own words are quoted in it, measured
+	-- as they will go out; a line the player wrote is said as typed.
+	local function Roll(db, entry, command, budget, quote)
 		-- "In character" chooses for this person and moment, not from the box.
 		local inCharacter = ns.InCharacter
 		if inCharacter and inCharacter.Active(db.speech) then
-			return inCharacter.Pick(entry, command, budget)
+			if not quote then return inCharacter.Pick(entry, command, budget) end
+			local line, source = inCharacter.Pick(entry, command, budget - #quote:format(""))
+			if not line then return nil end
+			return "/" .. command .. " " .. quote:format(line:sub(#command + 3)), source
 		end
 
+		-- A ready-made thank-you only to somebody owed one; the player's own
+		-- lines are theirs to say to anybody.
+		local returning = Returning(entry)
 		local pool = {}
 		for line in tostring(db.speech.phrases or ""):gmatch("[^\r\n]+") do
 			local clean = SanitizePhrase(line)
-			if clean then pool[#pool + 1] = clean end
+			if clean and (returning or not RETURN_ONLY[clean]) then pool[#pool + 1] = clean end
 		end
 		if #pool == 0 then return nil end
 
-		local phrase = pool[math.random(#pool)]
-		phrase = ns.Swap(phrase, "{name}", entry.short or entry.name)
+		local raw = pool[math.random(#pool)]
+		local phrase = ns.Swap(raw, "{name}", entry.short or entry.name)
 		-- The spell that goes out: a group cast's own name (GroupBuffs.lua).
 		local spell = entry.groupCast and entry.groupCast.spellName
 		phrase = ns.Swap(phrase, "{buff}", spell or (entry.buff and ns.BuffName(entry.buff)))
 		phrase = SanitizePhrase(phrase)
 		if not phrase then return nil end
+		if quote and SHIPPED[raw] then phrase = quote:format(phrase) end
 
 		local line = "/" .. command .. " " .. phrase
 		if #line > budget then return nil end
@@ -345,10 +423,13 @@ do
 		-- a line, and "In character" spends none of its memory of lines said
 		-- lately on one that never is.
 		if entry.reason == "self" then return nil end
-		if db.speech.onlyWhenReturning and entry.reason ~= "owed" then return nil end
+		if db.speech.onlyWhenReturning and not Returning(entry) then return nil end
 
 		local command = ns.CHANNEL_COMMANDS[db.speech.channel]
 		if not command then return nil end
+		-- An emote reads "Mortimer says, "Cheers, Bram!"" for the addon's own
+		-- lines; one the player wrote for it ("bows to {name}.") goes as typed.
+		local quote = db.speech.channel == "EMOTE" and L['says, "%s"'] or nil
 
 		-- A whisper names who it goes to, so the name is part of the command, and
 		-- of every length either roll measures against the budget.
@@ -359,7 +440,7 @@ do
 			command = command .. " " .. whisperTo
 		end
 
-		local line, source = Roll(db, entry, command, budget)
+		local line, source = Roll(db, entry, command, budget, quote)
 		-- A whisper the chat box would read as going to somebody else, or would
 		-- drop, says nothing: "/w Petra Cheers mate" is Petra Cheers on Camelot,
 		-- where names have surnames. Not asked of the stand-ins the Roll a few

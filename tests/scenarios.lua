@@ -13553,14 +13553,17 @@ for _, case in ipairs({ { api = "UnitInSubgroup" }, { api = "the raid roster" } 
 			end
 		end
 
+		-- In a raid group the favour is filed and nothing is said
+		-- (Favours.lua, QuietHere); it is still not offered.
 		wipe(ns.owed)
 		primeAuras(ns)
 		local said = favourFrom(ns, "raid30", 25289)
-		if not said:find("buffed you", 1, true) then
+		if not ns.owed["Raider30 Stone"] then
 			fail(scenario, "SKIPPED -- the favour from raid30 was not noticed: " .. said)
-		elseif said:find("on the prompt", 1, true) then
-			fail(scenario, "a favour from another subgroup was announced as on the prompt: "
-				.. said)
+		elseif said:find("buffed you", 1, true) then
+			fail(scenario, "a favour in a raid group was announced in chat: " .. said)
+		elseif inQueue(ns)["Raider30 Stone"] then
+			fail(scenario, "a favour from another subgroup was offered a shout that cannot reach them")
 		end
 	end
 	IsSpellKnown, IsPlayerSpell, UnitInSubgroup = realKnown, realPlayer, realSubgroup
@@ -17580,7 +17583,10 @@ Mock.reset()
 -- you cast reaches your group only, so they are offered if they join it". They
 -- are in his group already -- the raid -- and joining it is not what would get
 -- them offered; being in his subgroup is. The warrior's description of "People
--- who buffed me" said the same.
+-- who buffed me" said the same. In a raid group the line is no longer said at
+-- all (Favours.lua, QuietHere), so the words are checked on a stranger's
+-- favour once the raid has broken up: the shout reaches the party, and in a
+-- raid the subgroup.
 Mock.reset()
 Mock.class = "WARRIOR"
 Mock.raid = { size = 40, player = 1 }
@@ -17598,11 +17604,22 @@ if ns then
 	ns.db.profile.verbose = true
 	primeAuras(ns)
 	local said = favourFrom(ns, "raid30", 25289)
+	if not ns.owed["Raider30 Stone"] then
+		fail(scenario, "SKIPPED -- the favour from another subgroup was not noticed: " .. said)
+	elseif said:find("buffed you", 1, true) then
+		fail(scenario, "a favour in a raid group was announced in chat: " .. said)
+	end
+	-- The raid gone, a stranger on a nameplate buffs him.
+	Mock.raid = nil
+	Mock.unitNames.nameplate1 = { "Passing", "Stranger" }
+	ns.ResetAuraBaseline()
+	primeAuras(ns)
+	said = favourFrom(ns, "nameplate1", 25289, 4777)
 	if not said:find("buffed you", 1, true) or said:find("on the prompt", 1, true) then
-		fail(scenario, "SKIPPED -- the favour from another subgroup was not noticed as out"
-			.. " of reach: " .. said)
+		fail(scenario, "SKIPPED -- the stranger's favour was not noticed as out of reach: " .. said)
 	elseif not said:find("subgroup", 1, true) then
-		fail(scenario, "a raider already in the group was told to join it: " .. said)
+		fail(scenario, "a stranger's favour line says the shout reaches the group, not the party or a raid"
+			.. " subgroup: " .. said)
 	end
 	local owed = findOption(ns.optionsTable, "owed")
 	local desc = owed and tostring(type(owed.desc) == "function" and owed.desc() or owed.desc)

@@ -204,7 +204,7 @@ mutate("Favours.lua",
 
 # ------------------------------------------------ throttles
 mutate("Favours.lua",
-       "\t\tif last and now - last < PER_PERSON then\n",
+       "\t\tif last and now - last < (seen.inGroup and PER_MEMBER or PER_PERSON) then\n",
        "\t\tif false then\n",
        "thank: no per-person limit",
        expect="the same person was thanked twice in a minute", script=S)
@@ -224,7 +224,7 @@ mutate("Favours.lua",
        "thank: the person thanked is not remembered",
        expect="the same person was thanked twice in a minute", script=S)
 mutate("Favours.lua",
-       "\t\t\tif now - at >= PER_PERSON then thankedAt[who] = nil end\n",
+       "\t\t\tif now - at >= PER_MEMBER then thankedAt[who] = nil end\n",
        "\t\t\tif now - at >= 0 then thankedAt[who] = nil end\n",
        "thank: the sweep forgets everybody",
        expect="the same person was thanked twice in a minute", script=S)

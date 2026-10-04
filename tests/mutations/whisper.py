@@ -152,8 +152,8 @@ mutate("Speech.lua",
 
 # The budget measured without the name, so a long name and realm overrun it.
 mutate("Speech.lua",
-       "\t\tlocal line, source = Roll(db, entry, command, budget)\n",
-       "\t\tlocal line, source = Roll(db, entry, command, budget + (whisperTo and #whisperTo + 1 or 0))\n",
+       "\t\tlocal line, source = Roll(db, entry, command, budget, quote)\n",
+       "\t\tlocal line, source = Roll(db, entry, command, budget + (whisperTo and #whisperTo + 1 or 0), quote)\n",
        "whisper budget forgets the name",
        expect="whisper: the budget counts a long name and realm",
        script="runscenarios.py")

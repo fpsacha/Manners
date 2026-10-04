@@ -1615,3 +1615,50 @@ do
 		end
 	end
 end
+
+-- ------------------------------------------------------------------ what-if
+-- What if a group cast returns a favour, but somebody else in the party
+-- comes first? A ready check sweeps everybody missing it to one priority,
+-- the member owed included, and whose name came first decided who was
+-- targeted and thanked: Gwen, owed, with Bram, Cora and Dain about, got no
+-- line, and with "Only when I buff someone back" on the cast repaid her in
+-- silence. The owed member is the target where priorities tie, and where
+-- somebody else comes first all the same (she wears another mage's
+-- Intellect, so is not swept), the line still thanks her.
+do
+	local function speechOn(ns)
+		local sp = ns.db.profile.speech
+		sp.enabled = true
+		sp.onlyWhenReturning = true
+		sp.channel = "SAY"
+		sp.phrases = "Thanks, {name}."
+	end
+	for _, case in ipairs({
+		{ label = "everybody missing it", held = {} },
+		{ label = "she wears another mage's Intellect", held = { party1 = { [10157] = "party2" } } },
+	}) do
+		local scenario = "groupbuffs: a group cast that returns a favour thanks the one it repays ("
+			.. case.label .. ")"
+		local ns, restore = session(scenario, mage({ held = case.held, setup = function(ns)
+			speechOn(ns)
+			H.owe(ns, "Gwen Hale")
+			ns.addon:READY_CHECK(nil, nil, 30)
+		end }))
+		if ns then
+			ns.addon:Tick()
+			local group = groupCast(ns)
+			local text = macro(ns)
+			if not (group and text and text:find("/cast Arcane Brilliance", 1, true)) then
+				fail(scenario, "SKIPPED -- no group cast armed: " .. flat(text))
+			elseif not case.held.party1 and group.name ~= "Gwen Hale" then
+				fail(scenario, ("a ready check tied the party, and the cast was aimed at %s, not Gwen who is owed: %s")
+					:format(tostring(group.name), flat(text)))
+			elseif not text:find("/say Thanks, Gwen Hale.", 1, true) then
+				fail(scenario, ("the group cast repays Gwen, and the line %s: %s"):format(
+					text:find("/say", 1, true) and "thanks somebody else" or "is missing", flat(text)))
+			end
+			guarded(scenario, ns)
+			restore()
+		end
+	end
+end

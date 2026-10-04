@@ -547,6 +547,32 @@ function ns.IsNeverOffered(name)
 	return ListedAs(name, neverSeen.scan or NeverVerdicts()) ~= nil
 end
 
+-- Whether somebody is on your /ignore list, the game's own "leave me alone":
+-- by token, else by GUID. Neither call throws on a plain token or GUID, and
+-- each answers a plain yes or no, so nothing is pcalled; false on a client
+-- without them. Unlike the never-offer list, a favour is no exception: nobody
+-- you ignore is thanked or offered one back (Favours.lua, Sight), and no
+-- passer-by is offered at all. A group member stays offered: buffing a
+-- teammate you ignore still helps the group.
+function ns.Ignored(unit, guid)
+	local friends = _G.C_FriendList
+	if type(friends) ~= "table" then return false end
+	if type(unit) == "string" and type(friends.IsIgnored) == "function"
+		and plain(friends.IsIgnored(unit)) == true then return true end
+	if type(guid) == "string" and type(friends.IsIgnoredByGuid) == "function"
+		and plain(friends.IsIgnoredByGuid(guid)) == true then return true end
+	return false
+end
+
+-- Whether the ignore list has anybody on it, asked once a scan so an empty
+-- one costs the walk nothing.
+local function IgnoresAnybody()
+	local friends = _G.C_FriendList
+	local count = type(friends) == "table" and type(friends.GetNumIgnores) == "function"
+		and plain(friends.GetNumIgnores()) or nil
+	return type(count) == "number" and count > 0
+end
+
 -- Puts somebody on the list. Returns the spelling now on it, and whether they
 -- were already there (whose spelling is kept, so nobody is listed twice).
 function ns.NeverOffer(name)
@@ -1439,13 +1465,14 @@ end
 
 -- The first of your class's own families that comes up missing (Core.lua,
 -- OwnVerdict), in the table's order, as your entry: the spell, the reading,
--- and the time left for a top-up. nil when none does.
+-- the time left for a top-up, and the charges left for a charge shield's.
+-- nil when none does.
 local function OwnPick(db, full, now)
 	local ctx = { name = full, now = now, whenBuffed = db.filters.whenBuffed,
 		refreshUnder = db.filters.refreshUnder }
 	for _, family in ipairs(ns.KnownOwnFamilies()) do
-		local spell, has, remaining = ns.OwnVerdict(family, ctx)
-		if spell then return spell, has, remaining end
+		local spell, has, remaining, _, _, charges = ns.OwnVerdict(family, ctx)
+		if spell then return spell, has, remaining, charges end
 	end
 	return nil
 end
@@ -1516,9 +1543,9 @@ local function SelfEntry(db, candidates, now, verdict)
 	if held then return nil end
 	-- A shout already covers you, and a few spells refuse the caster.
 	local mine = ns.SelfBuffs(candidates)
-	local buff, has, remaining
+	local buff, has, remaining, charges
 	if #mine > 0 then buff, has, remaining = SelfBuff(db, mine, full, now) end
-	if not buff then buff, has, remaining = OwnPick(db, full, now) end
+	if not buff then buff, has, remaining, charges = OwnPick(db, full, now) end
 	if not buff then return nil end
 	-- Last, so the list is walked only for an offer about to be made, and
 	-- through the scan's answers, which a list edit alone sets walking again.
@@ -1543,6 +1570,9 @@ local function SelfEntry(db, candidates, now, verdict)
 		ranged = true,
 		known = has,
 		remaining = remaining,
+		-- A charge shield on its last charges (Core.lua, OwnVerdict): the
+		-- reason line says so rather than the time it has left.
+		charges = charges,
 		checked = true,
 	}
 end
@@ -1646,6 +1676,7 @@ function ns.BuildQueue(watch)
 		skipGroups = f.skipRaidGroups
 	end
 	local readyCheck = db.priority.readyCheck == true and ns.ReadyCheckRunning(now)
+	local ignoring = IgnoresAnybody()
 
 	-- Flagged for PvP (see above). Flags are read only with the setting on,
 	-- but then even while you are flagged yourself and the rule stands aside,
@@ -1726,6 +1757,12 @@ function ns.BuildQueue(watch)
 		-- exception is a decision (STATUS.md), and the options page says so. Safe to
 		-- write into `rejected`: the fallback asks the same two questions isOwed did.
 		if not isOwed and ns.IsNeverOffered(full) then
+			rejected[full] = true
+			return
+		end
+		-- Your /ignore list, for everybody outside your group, a favour
+		-- included (ns.Ignored).
+		if ignoring and not inGroup and ns.Ignored(unit) then
 			rejected[full] = true
 			return
 		end
@@ -1831,8 +1868,13 @@ function ns.BuildQueue(watch)
 		opts.refreshUnder = f.refreshUnder
 		opts.name = full
 		-- Owing somebody means offering them even when covered: a decision about
-		-- who gets an offer, saying nothing about what their auras read.
+		-- who gets an offer, saying nothing about what their auras read. Not a
+		-- group member who wears your own cast with more than the top-up time
+		-- left (PickBuffFor reads it, paidUp): a warrior's shout lapses between
+		-- pulls and lands again as a new favour, and every one asked for a
+		-- full-mana refresh of a Fortitude with forty minutes to run.
 		opts.offerAnyway = isOwed
+		opts.paidUp = isOwed and inGroup and checked or nil
 		opts.blocked = QueueBlocked
 		opts.now = now
 		-- Your own class, offered unasked: see SelfServed. Never somebody who

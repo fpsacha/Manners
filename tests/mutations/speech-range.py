@@ -108,7 +108,7 @@ mutate("Clicks.lua",
 # The channel never asked: "/party Thanks" in the macro of a player in no
 # party, on every press.
 mutate("Prompt/Macro.lua",
-       "\t\tand ns.ChannelOpen()\n",
+       "\t\tand ns.ChannelOpen(entry)\n",
        "\n",
        "speech: /party with nobody to hear it",
        expect="speech-range: /party is said only in a party",
@@ -116,8 +116,8 @@ mutate("Prompt/Macro.lua",
 
 # /raid taken for any group: a party that is no raid hears nothing of it.
 mutate("Speech.lua",
-       "\t\tmember = IsInRaid and IsInRaid()\n",
-       "\t\tmember = IsInGroup and IsInGroup()\n",
+       "\tlocal member = IsInRaid\n",
+       "\tlocal member = IsInGroup\n",
        "speech: /raid said in a party",
        expect="speech-range: /raid is said only in a raid",
        script="runscenarios.py")
@@ -351,8 +351,8 @@ mutate("Speech.lua",
        script="runscenarios.py")
 
 mutate("Prompt/Macro.lua",
-       "\t\tS.phraseKey, S.phraseText, S.phraseSource = phraseIdentity, ns.PickPhrase(entry, budget)\n",
-       "\t\tS.phraseKey, S.phraseText = phraseIdentity, ns.PickPhrase(entry, budget)\n",
+       "\t\tS.phraseKey, S.phraseText, S.phraseSource = phraseIdentity, ns.PickPhrase(speaker, budget)\n",
+       "\t\tS.phraseKey, S.phraseText = phraseIdentity, ns.PickPhrase(speaker, budget)\n",
        "the arming keeps no line as written",
        expect="speech-range: In character counts a line as said only when a press says it",
        script="runscenarios.py")

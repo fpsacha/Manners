@@ -236,6 +236,14 @@ local VANILLA = {
 --   dungeon   Automatic's first pick in a dungeon or raid before you have had
 --             one up; elsewhere it is the first spell of the family you know.
 --   tank      Automatic reminds you only while your group role is tank.
+--   shared    a party aura somebody else of your class can put on you too
+--             (a paladin's auras, a hunter's aspects and Trueshot), where two
+--             of the same do not stack: Automatic passes over one that already
+--             reaches you from them for the next you know, and offers nothing
+--             when every one does. A pick is offered all the same.
+--   charges   on a spell: how many charges a cast gives (a shaman's
+--             Lightning Shield, Shadowguard, Inner Fire). With top-ups on,
+--             one down to its last few is topped up like one running out.
 --
 -- Every id below was checked against Forever's own spell data (EnhanceQoL's
 -- SpellRankData_Camelot, generated from build 1.60.1.69913) and Wowhead
@@ -298,7 +306,8 @@ local VANILLA_OWN = {
 	},
 
 	PRIEST = {
-		{ key = "innerfire", spells = { { key = "innerfire", ranks = { 10952, 10951, 1006, 602, 7128, 588 } } } },
+		-- 20 charges on Forever ("Lasts 10 min or until 20 charges are used").
+		{ key = "innerfire", spells = { { key = "innerfire", ranks = { 10952, 10951, 1006, 602, 7128, 588 }, charges = 20 } } },
 		-- An undead priest's and a troll priest's racials in 1.12. Whether
 		-- Forever keeps them racial, the guides disagree; it does not matter
 		-- here, since each is shown and offered only to a priest who has
@@ -309,7 +318,7 @@ local VANILLA_OWN = {
 		{ key = "touchofweakness",
 			spells = { { key = "touchofweakness", ranks = { 19266, 19265, 19264, 19262, 19261, 2652 } } } },
 		{ key = "shadowguard",
-			spells = { { key = "shadowguard", ranks = { 19312, 19311, 19310, 19309, 19308, 18137 } } } },
+			spells = { { key = "shadowguard", ranks = { 19312, 19311, 19310, 19309, 19308, 18137 }, charges = 3 } } },
 	},
 
 	WARLOCK = {
@@ -338,6 +347,9 @@ local VANILLA_OWN = {
 				{ key = "sanctityaura", ranks = { 20218 }, talent = true },
 			},
 			toggle = true,
+			-- "Players may only have one Aura on them per Paladin", and two
+			-- of the same from two paladins do not stack.
+			shared = true,
 		},
 		{
 			key = "righteousfury",
@@ -363,11 +375,16 @@ local VANILLA_OWN = {
 				{ key = "aspectpack", ranks = { 13159 }, neverAuto = true },
 			},
 			toggle = true,
+			-- The Wild and the Pack reach the party.
+			shared = true,
 		},
 		{
 			key = "trueshot",
 			-- The two 1299xxx ranks are Forever's own, below the talent's three.
+			-- Every hunter has it from level 40 on Forever, and it reaches the
+			-- party.
 			spells = { { key = "trueshot", ranks = { 20906, 20905, 19506, 1299348, 1299346 }, talent = true } },
+			shared = true,
 		},
 	},
 
@@ -376,7 +393,7 @@ local VANILLA_OWN = {
 			key = "shield",
 			label = L["Shield"],
 			spells = {
-				{ key = "lightningshield", ranks = { 10432, 10431, 8134, 945, 905, 325, 324 } },
+				{ key = "lightningshield", ranks = { 10432, 10431, 8134, 945, 905, 325, 324 }, charges = 3 },
 				-- Forever's own: a Restoration talent (the Season of Discovery
 				-- rune's id, as Forever's Lava Burst and Riptide are), and "only
 				-- one Elemental Shield" may be up, so a healer wearing it has
@@ -523,11 +540,6 @@ do
 			{ key = "imbuegreaterflame", item = 277500, level = 46, ranks = { 1302311 }, enchant = 8716, weapon = STAFF },
 			{ key = "imbuegreaterfrost", item = 277501, level = 46, ranks = { 1302312 }, enchant = 8717, weapon = STAFF },
 			{ key = "imbueprecision", item = 277502, level = 46, ranks = { 1302310 }, enchant = 8718, weapon = STAFF },
-			-- The client's data points this one at Lesser Flame's spell and
-			-- enchant, so the spell's name would be Lesser Flame's: named by
-			-- the item, and by this until the client has loaded the item.
-			{ key = "imbuespellbreak", item = 277503, level = 46, ranks = { 1295720 }, enchant = 8700, weapon = STAFF,
-				nameFromItem = L["Imbue Spellbreak"] },
 			{ key = "imbueaccuracy", item = 277494, level = 25, ranks = { 1302306 }, enchant = 8711, weapon = STAFF },
 			{ key = "imbuequickening", item = 277495, level = 25, ranks = { 1302307 }, enchant = 8712, weapon = STAFF },
 			{ key = "imbuebalefrost", item = 277496, level = 25, ranks = { 1302305 }, enchant = 8714, weapon = STAFF },
@@ -538,6 +550,17 @@ do
 			{ key = "imbuebaleflame", item = 277487, level = 16, ranks = { 1302219 }, enchant = 8706, weapon = STAFF },
 			{ key = "imbueiceknife", item = 277488, level = 16, ranks = { 1302284 }, enchant = 8710, weapon = DAGGER },
 			{ key = "imbuespark", item = 277489, level = 16, ranks = { 1302227 }, enchant = 8707, weapon = SWORD },
+			-- The client's data points this one at Lesser Flame's spell and
+			-- enchant, so the spell's name would be Lesser Flame's: named by
+			-- the item, and by this until the client has loaded the item.
+			-- Ranked with the level-5 scrolls, just above Lesser Flame, since
+			-- what it puts on is Lesser Flame's +4 Fire (SpellItemEnchantment
+			-- 8700; Wowhead Forever's tooltip for 277503 says as much): fourth
+			-- in the list, Automatic used it over Flame's +12 at 46. Recheck
+			-- when a build gives 277503's ItemEffect a spell of its own. Before
+			-- Lesser Flame, the twin order ImbueScroll and the top-up rely on.
+			{ key = "imbuespellbreak", item = 277503, level = 46, ranks = { 1295720 }, enchant = 8700, weapon = STAFF,
+				nameFromItem = L["Imbue Spellbreak"] },
 			{ key = "imbuelesserflame", item = 274947, level = 5, ranks = { 1295720 }, enchant = 8700, weapon = STAFF },
 			{ key = "imbuechillknife", item = 275067, level = 5, ranks = { 1296225 }, enchant = 8698, weapon = DAGGER },
 		},

@@ -45,6 +45,9 @@ do
 	-- raid buffing you on the pull is not twenty emotes. Only an emote that
 	-- went counts; a favour skipped for either is never thanked later.
 	local PER_PERSON = 300
+	-- A group member's buffs land again at every lapse (a shout's three
+	-- minutes): one /thank in half an hour for them.
+	local PER_MEMBER = 1800
 	local GAP = 10
 	local thankedAt = {} -- [filed name] = GetTime() of the thank
 	local lastAt
@@ -134,7 +137,7 @@ do
 		local unit = Holding(seen)
 		if not unit then return Skip(name, now, L["no unit for them"]) end
 		local last = thankedAt[name]
-		if last and now - last < PER_PERSON then
+		if last and now - last < (seen.inGroup and PER_MEMBER or PER_PERSON) then
 			return Skip(name, now, L["thanked them a moment ago"])
 		end
 		if lastAt and now - lastAt < GAP then
@@ -152,7 +155,7 @@ do
 		lastAt = now
 		-- Swept here rather than on a timer: an emote is rarer than a favour.
 		for who, at in pairs(thankedAt) do
-			if now - at >= PER_PERSON then thankedAt[who] = nil end
+			if now - at >= PER_MEMBER then thankedAt[who] = nil end
 		end
 		thankedAt[name] = now
 		-- Read the way Blizzard's chat box reads it: true means the emote was
@@ -288,12 +291,17 @@ do
 		if not source or source == "player" then return end
 		if plain(UnitIsUnit(source, "player")) then return end
 		if plain(UnitIsPlayer(source)) ~= true then return end
+		-- Somebody on your /ignore list, the game's own "leave me alone": no
+		-- debt, no line and no /thank. Asked directly: the token and the GUID
+		-- are plain, and either call answers a plain yes or no.
+		local guid = plain(UnitGUID(source))
+		if ns.Ignored(source, guid) then return end
 
 		local full = ns.UnitFullName(source)
 		if not full then return end
 
 		seen.name = full
-		seen.guid = plain(UnitGUID(source))
+		seen.guid = guid
 		seen.class = plain(select(2, UnitClass(source)))
 		-- Asked of the token while it still means them, like the name: in
 		-- your own party (a shout's reach) and in your party or raid at all
@@ -336,18 +344,29 @@ do
 	end
 
 	-- Where the "buffed you" line is not said: a fight in a dungeon or a raid,
-	-- where chat belongs to the fight, and anywhere in a raid, where every buffer
-	-- sweeps the raid between pulls. The favour is filed all the same; a client
-	-- that will not say where you are gets the line.
+	-- where chat belongs to the fight, and anywhere in a raid group, where every
+	-- buffer sweeps the raid between pulls -- a raid instance, a world boss, a
+	-- battleground's start and every graveyard rez in it -- and in an arena. The
+	-- favour is filed all the same; a client that will not say where you are
+	-- gets the line.
 	local function QuietHere()
+		if type(_G.IsInRaid) == "function" and plain(_G.IsInRaid()) == true then return true end
 		local ok, inside, kind = pcall(_G.IsInInstance)
 		if not ok or plain(inside) ~= true then return false end
 		kind = plain(kind)
-		if kind == "raid" then return true end
+		if kind == "raid" or kind == "pvp" or kind == "arena" then return true end
 		if kind ~= "party" then return false end
 		if walkAfterFight then return true end
 		return InCombatLockdown() and true or false
 	end
+
+	-- When the "buffed you" line was last said about each group member: a
+	-- warrior's three-minute shout lapses between pulls and lands again on the
+	-- next, a new favour each time, and the line came with every one. Once in
+	-- half an hour per member; nobody outside your group meets this. Capped as
+	-- ns.lastGave is.
+	local LINE_AGAIN = 1800
+	local lineAt, lineCount = {}, 0
 
 	-- The debt a favour leaves, and the chat line about it, while People who buff
 	-- me is on (NoteFavour asks). `seen` comes from Sight and nothing is
@@ -372,6 +391,18 @@ do
 		-- kinds of favour: a raid's shouts at every pull are no more news than
 		-- its Fortitude.
 		local speak = db.verbose and not QuietHere()
+		if speak and seen.inGroup then
+			local now, last = GetTime(), lineAt[seen.name]
+			if last and now - last < LINE_AGAIN then
+				speak = false
+			else
+				if not last then
+					lineCount = lineCount + 1
+					if lineCount > 400 then wipe(lineAt) lineCount = 1 end
+				end
+				lineAt[seen.name] = now
+			end
+		end
 
 		-- Nothing we cast is any use to them, so no debt the queue could never fill.
 		if not ns.CouldOffer(hasMana, true) then
@@ -645,7 +676,11 @@ do
 						fresh[#fresh + 1] = instanceId
 						-- Who cast it, read while the token still means them, and
 						-- only for an aura that could ever be announced.
-						if watching and spellId
+						-- A class's own aura or aspect reaching you (another
+						-- paladin's Devotion Aura, a hunter's Trueshot) is
+						-- nobody's favour, whatever the setting: it lands again
+						-- every time you walk back into its range.
+						if watching and spellId and not ns.OWN_BY_ID[spellId]
 							and (not classOnly or ns.ALL_BUFF_IDS[spellId]) then
 							Sight(instanceId, key, aura)
 						end
@@ -814,6 +849,8 @@ do
 		if db.sources.owedClassBuffsOnly ~= false and not ns.ALL_BUFF_IDS[spellId] then
 			return
 		end
+		-- Nor a class's own aura, as the aura scan has it.
+		if ns.OWN_BY_ID[spellId] then return end
 
 		ns.logScan.applied = ns.logScan.applied + 1
 

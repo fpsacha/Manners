@@ -89,8 +89,10 @@ mutate("GroupBuffs.lua",
        "groupbuffs: aimed at somebody out of range",
        expect="a group cast was aimed at somebody measured out of range", script=S)
 mutate("GroupBuffs.lua",
-       "\tif a.priority ~= b.priority then return a.priority < b.priority end\n\tif (a.ranged",
-       "\tif (a.ranged",
+       "\tif a.priority ~= b.priority then return a.priority < b.priority end\n"
+       "\tif (a.ranged == true) ~= (b.ranged == true) then return a.ranged == true end\n"
+       "\tif (a.reason == \"owed\") ~= (b.reason == \"owed\") then return a.reason == \"owed\" end\n",
+       "\tif (a.ranged == true) ~= (b.ranged == true) then return a.ranged == true end\n",
        "groupbuffs: aimed past a favour",
        expect="the group cast is not aimed at somebody owed", script=S)
 mutate("Queue.lua",
@@ -232,8 +234,8 @@ mutate("GroupBuffs.lua",
 
 # ------------------------------------------------ review round: the spell said
 mutate("Prompt/Macro.lua",
-       "\t\ttostring(entry.groupCast and entry.groupCast.spell), tostring(ns.tryMacro) }, \"\\1\")\n",
-       "\t\ttostring(ns.tryMacro) }, \"\\1\")\n",
+       "\t\ttostring(entry.groupCast and entry.groupCast.spell), tostring(ns.tryMacro), speaker.name }, \"\\1\")\n",
+       "\t\ttostring(ns.tryMacro), speaker.name }, \"\\1\")\n",
        "groupbuffs: the spoken line is kept across a change of spell",
        expect="the spoken line kept the group spell for a single cast", script=S)
 mutate("Phrases.lua",

@@ -305,7 +305,11 @@ local function RunningLow(entry)
 end
 
 -- Which of a party the macro aims at: the one the queue ranks highest, then
--- somebody measured in range, then by name so the choice holds still.
+-- somebody measured in range, then somebody owed a favour (a ready check or
+-- a death sweeps the whole party to one priority, the owed member too, and
+-- the cast went to whoever came first by name), then by name so the choice
+-- holds still. Aimed elsewhere, the line still thanks the one it repays
+-- (Prompt/Macro.lua, ns.LineSpeaker).
 local function Better(a, b)
 	-- Never you while anybody else is in reach. You count towards the
 	-- threshold and the cast covers you, but it is aimed at one of the others,
@@ -315,6 +319,7 @@ local function Better(a, b)
 	if (a.reason == "self") ~= (b.reason == "self") then return b.reason == "self" end
 	if a.priority ~= b.priority then return a.priority < b.priority end
 	if (a.ranged == true) ~= (b.ranged == true) then return a.ranged == true end
+	if (a.reason == "owed") ~= (b.reason == "owed") then return a.reason == "owed" end
 	return (a.name or "") < (b.name or "")
 end
 
@@ -389,9 +394,16 @@ local function Build(bucket, byClass, inRaid, ownSubgroup, pvp, memo)
 	-- alone would file the whole cast as asked for -- out of the day's gifts --
 	-- when it reached everybody else unprompted.
 	local asked = true
+	-- Everybody else it repays, nobody measured out of reach: the spoken line
+	-- thanks one of them when the anchor is owed nothing (Prompt/Macro.lua).
+	local owed
 	for _, entry in ipairs(bucket.entries) do
 		if entry ~= anchor then members[#members + 1] = entry.name end
 		if entry.reason ~= "asked" then asked = false end
+		if entry ~= anchor and entry.reason == "owed" and entry.ranged ~= false then
+			owed = owed or {}
+			owed[#owed + 1] = entry
+		end
 	end
 
 	local info = bucket.ready.info
@@ -419,6 +431,8 @@ local function Build(bucket, byClass, inRaid, ownSubgroup, pvp, memo)
 		-- Who it is for, inside a sentence ("your party", "group 3").
 		label = label,
 		asked = asked or nil,
+		-- The members' own entries, for the line (see above).
+		owed = owed,
 	}
 	-- What the panel's first line says in place of the anchor's name.
 	group.display = display

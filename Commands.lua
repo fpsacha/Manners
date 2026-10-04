@@ -53,7 +53,9 @@ do
 		elseif why == "up" and not name and family.imbue then
 			-- An oil, or an enchant no scroll makes: the weapon is seen to.
 			return L["%s: your main hand already carries a temporary enchant."]:format(label)
-		elseif why == "up" then
+		elseif why == "up" or why == "covered" then
+			-- "covered": somebody else's copy of it reaches you (a shared
+			-- family, Core.lua OwnAutoPick), and a second would not stack.
 			return L["%s: %s is up."]:format(label, name or "?")
 		elseif why == "bags" then
 			return L["%s: you have no %s in your bags."]:format(label, name or "?")

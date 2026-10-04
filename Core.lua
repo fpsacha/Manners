@@ -855,6 +855,13 @@ do
 		return Castable(opts, buff) and not Skipped(opts, buff) and not Blocked(opts, buff)
 	end
 
+	-- Our own cast on them, read as ours, with more left than a top-up waits
+	-- for: a debt (opts.paidUp) is not repaid by refreshing it.
+	local function Fresh(opts, mine, remaining)
+		return opts.paidUp ~= nil and mine == true and type(remaining) == "number"
+			and remaining > (opts.refreshUnder or 5) * 60
+	end
+
 	-- The candidate list a pin reduces the walk to, reused for every call.
 	local PINNED_ONLY = {}
 
@@ -867,6 +874,9 @@ do
 	-- answer can be a file-level function rather than a closure per person.
 	--   offerAnyway  offer even when they are covered: we owe them a favour, and
 	--                a refresh takes nothing away.
+	--   paidUp       ...except with what they carry from us with more than the
+	--                top-up time left (Fresh): a group member's favour that
+	--                has nothing to repay.
 	--   rotate       false where there is nothing to walk along: the tokenless
 	--                owed path has one buff per favour and cannot verify it.
 	--
@@ -939,7 +949,7 @@ do
 
 						-- A debt is repaid with the blessing they already hold
 						-- from us (or from nobody we can name), which refreshes it.
-						if not opts.offerAnyway then return nil, true end
+						if not opts.offerAnyway or Fresh(opts, mine, remaining) then return nil, true end
 						return buff, true
 					elseif castable and not skipped then
 						-- "None of mine" only once every one has read back a
@@ -981,14 +991,14 @@ do
 		local firstHeld
 		for _, buff in ipairs(candidates) do
 			if Eligible(opts, buff) then
-				local held, remaining = has(buff, opts)
+				local held, remaining, mine = has(buff, opts)
 				if held == false then return buff, false end
 				if held ~= true then
 					if not firstUnknown then firstUnknown = buff end
 					if seenLast and not afterLast then afterLast = buff end
 					if buff.key == last then seenLast = true end
 				else
-					if not firstHeld then firstHeld = buff end
+					if not firstHeld and not Fresh(opts, mine, remaining) then firstHeld = buff end
 					if opts.whenBuffed == "refresh" and remaining
 						and remaining <= (opts.refreshUnder or 5) * 60 and not expiring then
 						expiring, expiringRemaining = buff, remaining
@@ -1165,7 +1175,10 @@ do
 	-- with an alt who does -- reads as Automatic, as another class's pin does
 	-- for the buffs you give. A scroll stays the pick with none in the bags:
 	-- the dropdown lists every scroll, and the pick is offered once there is
-	-- one to use (OwnVerdict says why not until then).
+	-- one to use (OwnVerdict says why not until then). One above your level
+	-- reads as Automatic while Automatic has one of the family to use (an alt
+	-- on the main's profile, carrying Rats under the main's Cat), and takes
+	-- over again at its level; the dropdown keeps showing it.
 	function ns.OwnPick(family)
 		local db = addon.db and addon.db.profile
 		local picks = db and db.ownBuffs and db.ownBuffs.pick
@@ -1230,6 +1243,9 @@ do
 	--   "first"    the first you know, before you have had one up
 	--   "best"     a scroll: the first you can use now in the table's order,
 	--              which is best first, before you have used one
+	--   "covered"  a shared family (Buffs.lua): the one it would pick reaches
+	--              you already from somebody else of your class, so the next
+	--              you know that does not; nil, and the one covered, for none
 	-- nil and nil for a family you know nothing of. Scrolls in the bags none
 	-- of which you can use now answer nil, why not ("noweapon", "level" or
 	-- "weapon"), and the best of them, so the line about it can say which.
@@ -1237,11 +1253,8 @@ do
 	-- The dungeon pick splits the answer in two only once it is learned: a
 	-- mage below 34 gets the same armor inside and out, and is told so as
 	-- "first" in both places, never as a choice between two that is not one.
-	function ns.OwnAutoPick(family)
-		if family.tank then
-			if not Tanking() then return nil, "notank" end
-			return FirstKnown(family, true), "tank"
-		end
+	local OthersOnYou
+	local function AutoAnswer(family)
 		local last = Remembered(family)
 		if last then return last, "last" end
 		if family.scroll then
@@ -1263,6 +1276,26 @@ do
 		end
 		local first = FirstKnown(family, true)
 		return first, first and "first" or nil
+	end
+
+	function ns.OwnAutoPick(family)
+		if family.tank then
+			if not Tanking() then return nil, "notank" end
+			return FirstKnown(family, true), "tank"
+		end
+		local spell, why, held = AutoAnswer(family)
+		-- Another paladin's Devotion Aura, another hunter's Trueshot Aura on
+		-- you: a second copy of yours would not stack. Asked first of the
+		-- answer Automatic has, and of the rest only when that one is theirs.
+		if spell and family.shared and OthersOnYou(spell) then
+			for _, other in ipairs(family.spells) do
+				if other ~= spell and Known(other) and not other.neverAuto and not OthersOnYou(other) then
+					return other, "covered"
+				end
+			end
+			return nil, "covered", spell
+		end
+		return spell, why, held
 	end
 
 	-- The spell of the active shapeshift form. A paladin's auras are forms on
@@ -1296,6 +1329,20 @@ do
 		return issecretvalue ~= nil and issecretvalue(value) == true
 	end
 
+	-- Whether somebody else's copy of a spell is on you (FromYou false): a
+	-- party aura from another of your class. Read by id directly, since a
+	-- spell id never throws; a refusal is no answer, so not theirs.
+	OthersOnYou = function(spell)
+		local api = C_UnitAuras
+		local byId = api and api.GetUnitAuraBySpellID
+		if type(byId) ~= "function" then return false end
+		for _, id in ipairs(spell.auraIds) do
+			local aura = byId("player", id)
+			if not Withheld(aura) and type(aura) == "table" and FromYou(aura) == false then return true end
+		end
+		return false
+	end
+
 	-- Whether an aura read that came back empty may only be hiding it. The
 	-- reads by id and by name hand back nothing at all for an aura the client
 	-- keeps secret just now (a battleground match, say), so a buff you are
@@ -1318,8 +1365,10 @@ do
 
 	-- The family by the names of the ranks you know (ProbeBuff), for a rank
 	-- the table lacks: the client's own lookup by name where it has one, else
-	-- your aura list walked. The spell and its time left, or nil and whether
-	-- the client refused to say.
+	-- your aura list walked, both filtered to auras you cast, so another
+	-- paladin's Devotion Aura read first never hides yours. The spell and its
+	-- time left (and its charges, as the client counts them), or nil, nil and
+	-- whether the client refused to say.
 	local function ByName(family, now)
 		local api = C_UnitAuras
 		local lookup = api and api.GetAuraDataBySpellName
@@ -1329,22 +1378,22 @@ do
 			local info = caps.own and caps.own[spell.key]
 			for name in pairs(Known(spell) and info.names or {}) do
 				if type(lookup) == "function" then
-					local ok, aura = pcall(lookup, "player", name, "HELPFUL")
+					local ok, aura = pcall(lookup, "player", name, "HELPFUL|PLAYER")
 					if not ok or Withheld(aura) then
 						refused = true
 					elseif type(aura) == "table" and FromYou(aura) ~= false then
-						return spell, Left(aura, now)
+						return spell, Left(aura, now), plain(aura.applications)
 					end
 				elseif type(walk) == "function" then
 					for i = 1, 40 do
-						local ok, aura = pcall(walk, "player", i, "HELPFUL")
+						local ok, aura = pcall(walk, "player", i, "HELPFUL|PLAYER")
 						if not ok or Withheld(aura) then
 							refused = true
 							break
 						end
 						if type(aura) ~= "table" then break end
 						if plain(aura.name) == name and FromYou(aura) ~= false then
-							return spell, Left(aura, now)
+							return spell, Left(aura, now), plain(aura.applications)
 						end
 					end
 				else
@@ -1352,7 +1401,7 @@ do
 				end
 			end
 		end
-		return nil, nil, refused
+		return nil, nil, nil, refused
 	end
 
 	-- The scroll last used from the prompt, per family, this session: the one
@@ -1397,9 +1446,17 @@ do
 		return reached or first
 	end
 
+	-- Whether the client has listed a scroll's imbue and another temporary
+	-- enchant (an oil) on the main hand together, this session: then the two
+	-- stack, and an oil alone no longer means the weapon is seen to. Never set
+	-- where they do not stack, so nobody is asked to put a scroll over an oil.
+	local imbueStacks = false
+
 	-- A weapon imbue (Buffs.lua) is no aura: up is your main hand carrying a
 	-- scroll's imbue or any temporary enchant, an oil's say, since either way
-	-- the weapon has been seen to; a permanent enchant never counts. The
+	-- the weapon has been seen to; a permanent enchant never counts. Once a
+	-- scroll's imbue has been seen beside an oil (imbueStacks), an oil alone
+	-- counts for nothing: the scroll's imbue has run out under it. The
 	-- scrolls' enchant is of the Imbue kind, which
 	-- C_PaperDollInfo.GetTemporaryEnchantmentInfo and the GetWeaponEnchantInfo
 	-- shim over it never report: read with those, an imbue on was nothing on
@@ -1417,7 +1474,7 @@ do
 			local temporary, imbue = kinds and kinds.Temporary or 2, kinds and kinds.Imbue or 3
 			local entries = plain(list(slots and slots.MainHand or 0))
 			if type(entries) ~= "table" then return nil end
-			local unknown, named = false, false
+			local unknown, named, other = false, false, false
 			for _, info in ipairs(entries) do
 				local on, kind
 				if type(info) == "table" and not Withheld(info) then
@@ -1430,12 +1487,14 @@ do
 					-- the one named, remembered and topped up.
 					local id = plain(info.enchantID)
 					local made = ImbueScroll(family, id) ~= nil
+					if not made then other = true end
 					if not has or (made and not named) then
 						has, enchant, expires, named = true, id, plain(info.timeLeft), made
 					end
 				end
 			end
-			if not has then
+			if named and other then imbueStacks = true end
+			if not has or (imbueStacks and not named) then
 				if unknown then return nil end
 				return false
 			end
@@ -1501,8 +1560,9 @@ do
 		return false
 	end
 
-	-- Whether any of the family is up on you, and yours: true with the spell and
-	-- its time left, false for definitely none, nil for the client would not say
+	-- Whether any of the family is up on you, and yours: true with the spell,
+	-- its time left and the charges it has left (the aura's applications, for
+	-- a charge shield), false for definitely none, nil for the client would not say
 	-- (never a reason to offer). By the ids AND by the names of the ranks you
 	-- know. The one found up is remembered for Automatic: the only place that is
 	-- written.
@@ -1548,17 +1608,17 @@ do
 						refused = true
 					elseif type(aura) == "table" and FromYou(aura) ~= false then
 						Remember(family, spell)
-						return true, spell, Left(aura, now)
+						return true, spell, Left(aura, now), plain(aura.applications)
 					elseif aura == nil and not refused and HiddenAura(id) then
 						refused = true
 					end
 				end
 			end
 		end
-		local named, left, nameRefused = ByName(family, now)
+		local named, left, applications, nameRefused = ByName(family, now)
 		if named then
 			Remember(family, named)
-			return true, named, left
+			return true, named, left, applications
 		end
 		if refused or nameRefused then return nil end
 		return false
@@ -1590,12 +1650,21 @@ do
 	--   "level"     a scroll: your level is short of it
 	--   "weapon"    an imbue: not for the weapon in your main hand
 	-- Reminded only when none of the family is up; a timed buff (never a
-	-- toggle) also when it runs low with top-ups on, as for anybody. `ctx` is
-	-- the scan's: name, now, whenBuffed, refreshUnder.
+	-- toggle) also when it runs low with top-ups on, as for anybody, and a
+	-- charge shield (Buffs.lua, charges) down to its last few charges, which
+	-- the first hits of the next pull would take: then the sixth return is
+	-- the charges it has left. `ctx` is the scan's: name, now, whenBuffed,
+	-- refreshUnder.
 	function ns.OwnVerdict(family, ctx)
 		local pick, spell = ns.OwnPick(family)
 		if pick == "off" then return nil, nil, nil, "off" end
-		local up, upSpell, left = ns.ReadOwnFamily(family)
+		-- A scroll picked above your level steps aside for Automatic while it
+		-- has a scroll of the family you can use (see ns.OwnPick).
+		if spell and spell.item then
+			local level = plain(UnitLevel("player"))
+			if type(level) == "number" and level < spell.level and ns.OwnAutoPick(family) then spell = nil end
+		end
+		local up, upSpell, left, charges = ns.ReadOwnFamily(family)
 		if up == nil then return nil, nil, nil, "unread" end
 		-- Scrolls Automatic found in the bags and none usable: why not, and which.
 		local held, heldWhy
@@ -1606,8 +1675,13 @@ do
 			heldWhy = why
 		end
 		if up then
-			if family.toggle or ctx.whenBuffed ~= "refresh" or not left
-				or left > (ctx.refreshUnder or 5) * 60 then
+			-- Down to its last charge (Lightning Shield, Shadowguard), or a
+			-- quarter of them (Inner Fire's 20): only on a plain count.
+			local spent = upSpell and upSpell.charges and type(charges) == "number" and charges >= 1
+				and charges <= math.max(1, math.floor(upSpell.charges / 4))
+			if not spent then charges = nil end
+			if family.toggle or ctx.whenBuffed ~= "refresh"
+				or (not spent and (not left or left > (ctx.refreshUnder or 5) * 60)) then
 				return nil, true, left, "up", upSpell
 			end
 			-- An oil, or an enchant no scroll makes, running low: nothing of
@@ -1644,7 +1718,7 @@ do
 		elseif not Usable(spell) then
 			return nil, up, left, "unusable", spell
 		end
-		return spell, up, up and left or nil
+		return spell, up, up and left or nil, nil, nil, up and charges or nil
 	end
 
 	-- "The one you had up last", kept current whatever the queue is doing. The
@@ -1794,6 +1868,24 @@ local function UnitHasBuff(unit, buff, guid)
 					-- Direct: a client-written token, which UnitIsUnit never throws on.
 					local same = plain(UnitIsUnit(source, "player"))
 					if same ~= nil then mine = same == true end
+				end
+				-- A rank below the one your cast would land on them covers
+				-- nothing: a level-60 wearing a low player's +10 Stamina for an
+				-- hour, never offered the +70. The game lands the best rank you
+				-- know up to ten levels above theirs. Ranks only, never a group
+				-- version; a level that cannot be read tests nothing.
+				local worn = ns.RankLevel(id)
+				local level = worn and plain(UnitLevel(unit))
+				local best = level and ns.RankLevel(info.topRank)
+				if type(level) == "number" and level > 0 and best then
+					local reach, landing = math.min(best, level + 10), nil
+					local isRank = false
+					for _, rank in ipairs(buff.ranks) do
+						if rank == id then isRank = true end
+						local at = ns.RankLevel(rank)
+						if at and at <= reach and (not landing or at > landing) then landing = at end
+					end
+					if isRank and landing and worn < landing then has, expires, mine = false, nil, nil end
 				end
 				break
 			end
