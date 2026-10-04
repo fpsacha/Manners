@@ -423,6 +423,21 @@ mutate("Prompt/Macro.lua",
        "scrolls: cast on you by name",
        expect="the familiar's macro reads", script=S)
 
+# The imbue used without its weapon: the cursor waits for one and nothing is
+# cast (1.6.2 and 1.6.3 in game).
+mutate("Prompt/Macro.lua",
+       "\tif entry.buff.enchant then lines[2] = \"/use 16\" end\n",
+       "",
+       "scrolls: an imbue left waiting for a weapon",
+       expect="the imbue's macro reads", script=S)
+
+# ...and the weapon line given to a familiar too.
+mutate("Prompt/Macro.lua",
+       "\tif entry.buff.enchant then lines[2] = \"/use 16\" end\n",
+       "\tlines[2] = \"/use 16\"\n",
+       "scrolls: a familiar given the weapon line",
+       expect="the familiar's macro reads", script=S)
+
 mutate("Prompt/Macro.lua",
        "\"/use item:\" .. tostring(entry.buff.item)",
        "\"/use \" .. tostring(entry.buff.item)",
