@@ -283,7 +283,9 @@ do
 			fail(scenario, "SKIPPED -- the prompt did not move on to the imbue: " .. key(ns.Prompt:Showing()))
 			return
 		end
-		if macro(ns) ~= "/use item:" .. LESSER_FLAME then
+		-- Aimed at the main-hand weapon in the same press (1.6.4): the use
+		-- alone left the cursor waiting for a weapon.
+		if macro(ns) ~= "/use item:" .. LESSER_FLAME .. "\n/use 16" then
 			fail(scenario, "the imbue's macro reads " .. flat(macro(ns)))
 		end
 		if ns.Prompt:Regions().icon:GetTexture() ~= icon(LESSER_FLAME) then
@@ -684,7 +686,7 @@ do
 			return
 		end
 		local pressed = H.pressButton(ns)
-		if pressed ~= "/use item:" .. SPELLBREAK then
+		if pressed ~= "/use item:" .. SPELLBREAK .. "\n/use 16" then
 			fail(scenario, "SKIPPED -- the press did not go out: " .. flat(pressed))
 			return
 		end

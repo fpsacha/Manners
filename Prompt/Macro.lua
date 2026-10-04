@@ -91,12 +91,18 @@ STRATEGIES.self = function(entry, spell)
 end
 
 -- A mage's scroll from the bags (Buffs.lua): used by its item id, with no
--- name to spell and nobody to target -- an imbue enchants the weapon in your
--- main hand by itself and a familiar is summoned on you, whoever is targeted
--- -- so your target is never touched. The record is one on yourself, settled
--- by the spell the use casts (Clicks.lua, SettleSelf).
+-- name to spell and nobody to target, so your target is never touched. A
+-- familiar is summoned on you. An imbue is aimed at an item, as an oil or a
+-- poison is (Targets 16 in the client's SpellTargetRestrictions): the use
+-- alone left the cursor waiting for a weapon and cast nothing, and the next
+-- use aimed the waiting imbue at the scroll ("That item is not a valid
+-- target", 1.6.2 and 1.6.3). /use 16 hands it the main-hand weapon in the
+-- same press. The record is one on yourself, settled by the spell the use
+-- casts (Clicks.lua, SettleSelf).
 STRATEGIES.scroll = function(entry)
-	return { "/use item:" .. tostring(entry.buff.item) }, false,
+	local lines = { "/use item:" .. tostring(entry.buff.item) }
+	if entry.buff.enchant then lines[2] = "/use 16" end
+	return lines, false,
 		{ targeted = false, selfCast = false, onSelf = true, aimedAt = nil }
 end
 

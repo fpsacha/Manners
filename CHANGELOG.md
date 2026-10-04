@@ -28,6 +28,12 @@
   offered Unending Breath, and a shaman's Water Breathing on you counts as a
   favour.
 - **"ub" in chat** asks a warlock for Unending Breath.
+## 1.6.4
+
+- **Pressing the prompt for a weapon imbue puts it on your weapon.** The
+  scroll waited for you to click a weapon, so the press did nothing and the
+  next one said "That item is not a valid target". It now goes straight on
+  the weapon in your main hand, as a poison or oil macro does.
 
 ## 1.6.3
 
