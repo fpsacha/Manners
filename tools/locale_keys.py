@@ -18,7 +18,10 @@ tests/validate.py runs audit() and fails on anything it reports:
   throws in string.format the moment the line is printed, in that language
   only, where nobody testing in English will ever see it.
 
-Missing translations are not failures: the English shows instead.
+- a key the code asks for that a locale does not translate. The client would
+  show the English instead, which is not a crash, but it is an untranslated
+  line in a release: every locale has to cover every key before one ships.
+  `--missing <code>` lists them, ready to translate.
 """
 import glob
 import json
@@ -126,6 +129,12 @@ def audit():
                                 " must match the English, in order)" % (code, key[:60], value[:60]))
                 continue
             done += 1
+        missing = [k for k in found if k not in table]
+        for key in missing[:5]:
+            problems.append("MISSING %s: %r has no translation (%s)" % (code, key[:70], found[key][0]))
+        if len(missing) > 5:
+            problems.append("MISSING %s: and %d more -- python tools/locale_keys.py --missing %s"
+                            % (code, len(missing) - 5, code))
         summary.append("%s %d/%d" % (code, done, len(found)))
     return problems, summary
 

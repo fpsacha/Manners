@@ -159,6 +159,13 @@ function in a shipped file over 55 upvalues or 190 active locals fails, named
 by file and line, and the five tightest are printed every run so the next
 merge to cross can be seen coming.
 
+It also audits the translations (`tools/locale_keys.py`): every `Locales/*.lua`
+has to load, keep each line's `%s`, `{tokens}` and `|c` codes as the English
+has them, set no key the code no longer asks for, and translate every key the
+code does ask for. A missing key fails the run (`MISSING deDE: ...`), so no
+release ships with a line that shows in English on a translated client;
+`python tools/locale_keys.py --missing <code>` lists what to translate.
+
 ## `bughunt.py` — patterns
 
 Greps for fault shapes seen here: `a and b or c` where `b` can legitimately be
