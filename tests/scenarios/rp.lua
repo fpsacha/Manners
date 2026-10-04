@@ -1897,9 +1897,10 @@ do
 end
 
 -- ------------------------------------------------------------------ rp-28
--- No line twice in a row: one picked in the last RP.RECENT has no share
+-- No line twice in a row: one said in the last RP.RECENT has no share
 -- while any other line still fits, so a party of five helped in turn hears
--- five different lines. When every line that fits has been said lately --
+-- five different lines. Each pick here is said, as a press that carries it
+-- remembers it (Prompt/Press.lua); a pick alone is not. When every line that fits has been said lately --
 -- here, a few of the lines about meeting again, fewer than the memory holds,
 -- leaned on as Roll a few does --
 -- the set still speaks rather than falling silent.
@@ -1929,7 +1930,9 @@ do
 			local entry = person(ns, reason)
 			local said = {}
 			for i = 1, 60 do
-				said[i] = ns.PickPhrase(entry, 250)
+				local source
+				said[i], source = ns.PickPhrase(entry, 250)
+				RP.Remember(source)
 				if not said[i] then
 					fail(scenario, "fell silent on pick " .. i .. " for " .. reason)
 					break
@@ -1951,7 +1954,8 @@ do
 		local again = {}
 		render(ns, entry, few, again, true)
 		for i = 1, keep + 5 do
-			local line = ns.PickPhrase(entry, 250)
+			local line, source = ns.PickPhrase(entry, 250)
+			RP.Remember(source)
 			local said = line and line:match("^/say (.+)$")
 			if not (said and again[said]) then
 				fail(scenario, "pick " .. i .. " leaning on " .. #few .. " lines said " .. tostring(line))

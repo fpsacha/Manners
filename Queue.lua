@@ -200,7 +200,7 @@ do
 end
 
 -- What the game keeps refusing, per person, and what follows. The spoken line
--- is held for a while after any refusal: a macro runs every line even when its
+-- is held for a while after a refusal: a macro runs every line even when its
 -- /cast fails, so a thank-you went out over a buff that never landed, once per
 -- press (beta.8). And the person backs off further with each refusal in a row:
 -- somebody the game will never let you buff came straight back after two
@@ -237,14 +237,28 @@ do
 		"SPELL_FAILED_SILENCED", "SPELL_FAILED_STUNNED", "SPELL_FAILED_CASTER_DEAD",
 		"SPELL_FAILED_INTERRUPTED" }
 
-	local function AboutTheCaster(message)
+	-- Refusals the press asks about again before it lets a line go
+	-- (Prompt/Press.lua, HoldLine): the range, the mana, a cooldown or a cast
+	-- in progress, the target dead. A press that carried no line and was
+	-- refused for one of these leaves nothing to hold: the next press says the
+	-- line only if it finds that cleared.
+	local RECHECKED = { "ERR_OUT_OF_RANGE", "SPELL_FAILED_OUT_OF_RANGE", "ERR_OUT_OF_MANA",
+		"SPELL_FAILED_NOT_READY", "ERR_SPELL_COOLDOWN", "ERR_ABILITY_COOLDOWN",
+		"SPELL_FAILED_SPELL_IN_PROGRESS", "SPELL_FAILED_TARGETS_DEAD" }
+
+	-- Whether the game's words are one of these global strings.
+	local function OneOf(message, keys)
 		if type(message) ~= "string" then return false end
 		local bare = message:gsub("%.$", "")
-		for _, key in ipairs(CASTER_SIDE) do
+		for _, key in ipairs(keys) do
 			local text = plain(_G[key])
 			if type(text) == "string" and text:gsub("%.$", "") == bare then return true end
 		end
 		return false
+	end
+
+	local function AboutTheCaster(message)
+		return OneOf(message, CASTER_SIDE)
 	end
 
 	-- Said whether or not chat lines are on: it is the only thing that says
@@ -311,14 +325,19 @@ do
 	-- where the caller has them. `quietOnly` holds the spoken line and no more,
 	-- for a press the game never answered at all: nothing refused anybody
 	-- there, so it is no evidence the game will refuse them next time.
-	function ns.NoteRefusal(name, why, quietOnly)
+	-- `spoke` is false for a press whose macro carried no line (PostClick
+	-- records it): refused for something the next press asks again
+	-- (RECHECKED), that holds no line, or the press that lands once they are
+	-- back in reach would go out silent too. The back-off stands either way.
+	function ns.NoteRefusal(name, why, quietOnly, spoke)
 		if not name then return end
 		local now = GetTime()
 		if why == nil and lastError and now - lastErrorAt <= ERROR_SECONDS then why = lastError end
 		local r = Record(name, now)
+		local hold = spoke ~= false or not OneOf(why, RECHECKED)
 		-- Never shortened: a quiet note must not cut the longer hold a back-off
 		-- below wrote.
-		if now + QUIET_SECONDS > r.quietUntil then r.quietUntil = now + QUIET_SECONDS end
+		if hold and now + QUIET_SECONDS > r.quietUntil then r.quietUntil = now + QUIET_SECONDS end
 		newest = name
 		if quietOnly or AboutTheCaster(why) then
 			r.last = now
@@ -335,7 +354,7 @@ do
 		-- The line stays held past the back-off: somebody the game keeps refusing
 		-- comes back when it runs out, and the first press then would thank them
 		-- over yet another refused cast. A cast that lands clears it (NoteLanded).
-		if r.blockUntil + QUIET_SECONDS > r.quietUntil then r.quietUntil = r.blockUntil + QUIET_SECONDS end
+		if hold and r.blockUntil + QUIET_SECONDS > r.quietUntil then r.quietUntil = r.blockUntil + QUIET_SECONDS end
 		if r.count >= TELL_AT and not r.said then
 			r.said = true
 			if r.why or not (C_Timer and C_Timer.After) then

@@ -3556,11 +3556,14 @@ do
 		return nil
 	end
 
-	-- The lines picked lately, oldest first, and how many times each is among
-	-- them, by the line as written (RP.RECENT).
+	-- The lines said lately, oldest first, and how many times each is among
+	-- them, by the line as written (RP.RECENT). A line counts once a press
+	-- carries it (Prompt/Press.lua, OnPostClick), not when it is picked: the
+	-- prompt picks a line for its tooltip, and the press can leave it out.
 	local lately, latelyCount = {}, {}
 
-	local function Remember(text)
+	function RP.Remember(text)
+		if type(text) ~= "string" then return end
 		lately[#lately + 1] = text
 		latelyCount[text] = (latelyCount[text] or 0) + 1
 		local keep = tonumber(RP.RECENT) or 0
@@ -3571,13 +3574,14 @@ do
 		end
 	end
 
-	-- One line for this person, now, with the channel command in front, or nil
-	-- when nothing fits. Every pool the moment calls for is gathered, each at
-	-- its share of the draw (RP.WEIGHT, RP.SPREAD), and every candidate is
-	-- measured before the roll rather than after it, so a long name or spell
-	-- leaves the shorter lines to choose from instead of silence. A line
-	-- picked in the last RP.RECENT gets no share while another still fits, and
-	-- only then: the memory never silences the set.
+	-- One line for this person, now, with the channel command in front, and
+	-- the line as written for RP.Remember; or nil when nothing fits. Every
+	-- pool the moment calls for is gathered, each at its share of the draw
+	-- (RP.WEIGHT, RP.SPREAD), and every candidate is measured before the roll
+	-- rather than after it, so a long name or spell leaves the shorter lines
+	-- to choose from instead of silence. A line said in the last RP.RECENT
+	-- gets no share while another still fits, and only then: the memory never
+	-- silences the set.
 	--
 	-- entry.lean (Roll a few's context rows) keeps the draw to the pool of
 	-- that name, where it has a line that fits. The queue never sets it.
@@ -3739,8 +3743,7 @@ do
 			end
 		end
 		if not chosen then return nil end
-		Remember(texts[chosen])
-		return lines[chosen]
+		return lines[chosen], texts[chosen]
 	end
 
 	-- Line n of a pool, or with english, as it read before translation; a

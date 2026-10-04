@@ -7,7 +7,7 @@
   cursor has left for the prompt, somebody no nameplate or target shows, a
   range the game will not give -- the buff press goes out silently, rather
   than thanking somebody over "Out of range.". The tooltip quotes a line only
-  when it will be said.
+  for somebody Manners last saw in range.
 - **Group buffs in a raid count the whole raid.** On WoW Forever, Arcane
   Brilliance, the Prayers and Gift of the Wild reach everybody in your party
   and raid. The prompt now offers one cast for the raid ("Your raid") once

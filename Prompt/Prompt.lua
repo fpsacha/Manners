@@ -87,6 +87,9 @@ local S = {
 	-- tooltip quotes the roll the press will cast.
 	phraseKey = nil,
 	phraseText = nil,
+	-- ...and, for an "In character" line, the line as written, which that set
+	-- remembers as said once a press carries it (Press.lua, OnPostClick).
+	phraseSource = nil,
 	-- Whether that line is on the button now: it is kept but left out for somebody
 	-- out of reach or just refused (see ApplyTarget), and the tooltip must agree.
 	phraseArmed = nil,

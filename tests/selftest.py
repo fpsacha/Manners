@@ -689,11 +689,11 @@ mutate("Prompt/Press.lua",
 #     later has nothing left to settle and the favour stays owed.
 mutate("Clicks.lua",
        """	RewindClick(pending)
-	ns.NoteRefusal(pending.name, message)
+	ns.NoteRefusal(pending.name, message, nil, pending.spoke)
 	return pending.name
 end""",
        """	RewindClick(pending)
-	ns.NoteRefusal(pending.name, message)
+	ns.NoteRefusal(pending.name, message, nil, pending.spoke)
 	ns.pendingClick = nil
 	return pending.name
 end""",
@@ -3281,7 +3281,7 @@ mutate("Prompt/Button.lua",
 # The roll wiped by the cooldown guard's disarm and rolled again on the re-arm,
 # so the press after it said a line the tooltip never quoted.
 mutate("Prompt/Press.lua",
-       "\t\t\tS.phraseKey, S.phraseText = guardedPhraseKey, guardedPhraseText\n",
+       "\t\t\tS.phraseKey, S.phraseText, S.phraseSource = guardedPhraseKey, guardedPhraseText, guardedPhraseSource\n",
        "",
        "a guarded press re-rolling the spoken line",
        expect="was turned away, and the next press said",
@@ -3291,8 +3291,8 @@ mutate("Prompt/Press.lua",
 # through another token was somebody new to it.
 mutate("Prompt/Macro.lua",
        "\tif speak and (S.phraseKey ~= phraseIdentity or (S.phraseText and #S.phraseText > budget)) then\n"
-       "\t\tS.phraseKey, S.phraseText = phraseIdentity,",
-       "\tif speak and S.phraseKey ~= key then\n\t\tS.phraseKey, S.phraseText = key,",
+       "\t\tS.phraseKey, S.phraseText, S.phraseSource = phraseIdentity,",
+       "\tif speak and S.phraseKey ~= key then\n\t\tS.phraseKey, S.phraseText, S.phraseSource = key,",
        "the spoken line re-rolled on a unit token",
        expect="a press with the cursor on her said",
        script="runscenarios.py")

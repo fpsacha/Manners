@@ -46,7 +46,7 @@ local cooldownPressAt
 local guardedEntry
 -- ...and the spoken line it carried, put back with it so the tooltip and the
 -- next press quote the same roll.
-local guardedPhraseKey, guardedPhraseText
+local guardedPhraseKey, guardedPhraseText, guardedPhraseSource
 
 -- The one question the click path asks. Deliberately not Core's "is the addon
 -- switched on", which governs bookkeeping; this governs whether the button in
@@ -78,6 +78,10 @@ end
 -- Weirbeard Jenkins" over "Out of range."). So out of combat the line goes in
 -- only for a press known to land -- "if I can't buff someone, I should not
 -- say anything" -- and anything the client will not answer is a no:
+--   - not turned down by the scan PreClick has just made (`verdicts`, its
+--     second return): the hold and the fuse still press somebody it found
+--     covered, dead or out of reach since, or with everybody refused for
+--     your own state (dead, on a taxi). "far" is only the nearness check;
 --   - a token naming them now (ns.UnitFor): a remembered passer-by or a
 --     tokenless favour has none, and the scan's token may name somebody else;
 --   - alive: the hold and the fuse keep somebody a moment after they die, and
@@ -88,11 +92,12 @@ end
 -- Line of sight no call can tell. The press itself goes out either way, and
 -- the line rolled for them is kept (ApplyTarget re-rolls only for somebody
 -- new), so a press that lands says it.
-local function HoldLine(entry)
+local function HoldLine(entry, verdicts)
 	local speech = ns.db and ns.db.profile.speech
 	-- Nothing to say, so nothing to judge, and no tokens walked.
 	if not (speech and speech.enabled) then return false end
 	if not (entry and entry.buff and entry.name) then return true end
+	if verdicts == true or (type(verdicts) == "table" and verdicts[entry.name] == true) then return true end
 	local unit = ns.UnitFor(entry.name, entry.unit)
 	if not unit then return true end
 	local deadOrGhost = _G.UnitIsDeadOrGhost
@@ -142,7 +147,7 @@ local function OnPreClick(self, mouseButton)
 	if lastPreClickAt and (now - lastPreClickAt) < 0.25 then
 		if not ready then
 			guardedEntry = S.current
-			guardedPhraseKey, guardedPhraseText = S.phraseKey, S.phraseText
+			guardedPhraseKey, guardedPhraseText, guardedPhraseSource = S.phraseKey, S.phraseText, S.phraseSource
 			Prompt:ApplyTarget(nil)
 		elseif S.appliedKey ~= pressKey then
 			Prompt:ApplyTarget(nil)
@@ -204,7 +209,7 @@ local function OnPreClick(self, mouseButton)
 	if not ready then
 		lastPreClickAt = nil
 		guardedEntry = S.current
-		guardedPhraseKey, guardedPhraseText = S.phraseKey, S.phraseText
+		guardedPhraseKey, guardedPhraseText, guardedPhraseSource = S.phraseKey, S.phraseText, S.phraseSource
 		Prompt:ApplyTarget(nil)
 		Prompt:SayWaiting(left)
 		return
@@ -226,7 +231,7 @@ local function OnPreClick(self, mouseButton)
 		-- depends on who is targeted now, which can have changed since the
 		-- repaint that armed it. Whether the line goes is judged again too:
 		-- this entry's reading is the oldest there is.
-		Prompt:ApplyTarget(S.current, HoldLine(S.current))
+		Prompt:ApplyTarget(S.current, HoldLine(S.current, verdicts))
 		pressKey = S.appliedKey
 		return
 	end
@@ -259,7 +264,7 @@ local function OnPreClick(self, mouseButton)
 	-- A held entry's range reading is from an overruled scan, and even a fresh
 	-- one is a tick old, so whether the line goes is judged once more right
 	-- before the macro runs.
-	Prompt:ApplyTarget(top, HoldLine(top))
+	Prompt:ApplyTarget(top, HoldLine(top, verdicts))
 	pressKey = S.appliedKey
 end
 
@@ -367,10 +372,10 @@ local function OnPostClick(self, mouseButton, down)
 		if found and not InCombatLockdown() then
 			-- The line it carried goes back with it, so the macro keeps the
 			-- roll the tooltip has been quoting.
-			S.phraseKey, S.phraseText = guardedPhraseKey, guardedPhraseText
+			S.phraseKey, S.phraseText, S.phraseSource = guardedPhraseKey, guardedPhraseText, guardedPhraseSource
 			Prompt:ApplyTarget(found)
 		end
-		guardedPhraseKey, guardedPhraseText = nil, nil
+		guardedPhraseKey, guardedPhraseText, guardedPhraseSource = nil, nil, nil
 		if ns.db and ns.db.profile.debugClicks then
 			ns.addon:Print("|cffffd100CLICK|r " .. L["held back -- the cooldown was still running"])
 		end
@@ -393,6 +398,13 @@ local function OnPostClick(self, mouseButton, down)
 	end
 	if not (S.current and S.current.name) then return end
 
+	-- The line went out with this press, so "In character" counts it as said
+	-- lately now rather than when it was rolled: a roll the press left out
+	-- (out of reach, the cursor gone from them) was never heard.
+	if S.phraseArmed and S.phraseSource and ns.InCharacter and ns.InCharacter.Remember then
+		ns.InCharacter.Remember(S.phraseSource)
+	end
+
 	-- Park the press rather than clearing the debt: the game says a moment
 	-- later whether anything was cast. What the macro was aimed at and the old
 	-- rotation pointer ride along. Anything already parked is abandoned first,
@@ -408,6 +420,11 @@ local function OnPostClick(self, mouseButton, down)
 	ns.pendingClick = { name = S.current.name, at = GetTime(),
 		buffKey = S.current.buff and S.current.buff.key,
 		selfCast = S.armed ~= nil and S.armed.selfCast == true,
+		-- Whether the macro that ran carried the spoken line, for a refusal to
+		-- tell a press that thanked them from one that went out silent
+		-- (Queue.lua, NoteRefusal). A /manners try template is the player's own
+		-- text, and may say anything.
+		spoke = S.phraseArmed == true or ns.tryMacro ~= nil,
 		-- Your own buff: settled with nothing filed (Clicks.lua, SettleSelf).
 		-- Read off the entry as well as the record: a /manners try macro arms
 		-- no record, and the game naming you as the one it reached would

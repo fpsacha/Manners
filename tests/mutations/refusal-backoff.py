@@ -28,7 +28,7 @@ mutate("Queue.lua",
 
 # The refusal that repeats (after the cast was sent) not counted.
 mutate("Clicks.lua",
-       "\tns.NoteRefusal(settled.name)\n",
+       "\tns.NoteRefusal(settled.name, nil, nil, settled.spoke)\n",
        "",
        "late refusal not counted",
        expect="refusal-backoff: refusals in a row back off further each time",
@@ -124,7 +124,7 @@ mutate("Queue.lua",
 
 # The spoken line's hold running out with the back-off, or before it.
 mutate("Queue.lua",
-       "\t\tif r.blockUntil + QUIET_SECONDS > r.quietUntil then r.quietUntil = r.blockUntil + QUIET_SECONDS end\n",
+       "\t\tif hold and r.blockUntil + QUIET_SECONDS > r.quietUntil then r.quietUntil = r.blockUntil + QUIET_SECONDS end\n",
        "",
        "line comes back with the person",
        expect="refusal-backoff: the spoken line stays held past the back-off (nearby)",
@@ -132,8 +132,8 @@ mutate("Queue.lua",
 
 # A quiet note overwriting a longer hold.
 mutate("Queue.lua",
-       "\t\tif now + QUIET_SECONDS > r.quietUntil then r.quietUntil = now + QUIET_SECONDS end\n",
-       "\t\tr.quietUntil = now + QUIET_SECONDS\n",
+       "\t\tif hold and now + QUIET_SECONDS > r.quietUntil then r.quietUntil = now + QUIET_SECONDS end\n",
+       "\t\tif hold then r.quietUntil = now + QUIET_SECONDS end\n",
        "quiet note shortens the hold",
        expect="refusal-backoff: a quiet note never shortens the hold",
        script="runscenarios.py")

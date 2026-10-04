@@ -582,11 +582,17 @@ end
 
 -- The same, with him still on a nameplate, twenty yards off: too far to be
 -- offered as a passer-by, so the hold's entry is the only one there is, and
--- well inside the spell's reach. The press finds him there by name, and says
--- the line if that token reads him in reach -- not if its reading is withheld.
-for _, unread in ipairs({ false, true }) do
-	local scenario = "speech-range: the press follows him to another token ("
-		.. (unread and "range unread there" or "in reach") .. ")"
+-- the scan's word on him is only "far", which says nothing of the spell's
+-- reach. The press finds him there by name, and says the line if that token
+-- reads him in reach -- not if its reading is withheld, nor if it reads him
+-- out of reach.
+for _, case in ipairs({
+	{ "in reach", nil, true },
+	{ "range unread there", function() Mock.rangeless = { [1459] = true } end, false },
+	{ "out of reach there", function() Mock.rangeByUnit = { nameplate2 = false } end, false },
+}) do
+	local label, change, want = case[1], case[2], case[3]
+	local scenario = "speech-range: the press follows him to another token (" .. label .. ")"
 	local ns, restore = passing(scenario, {
 		target = { "Weirbeard", "Jenkins" }, nameplate2 = { "Weirbeard", "Jenkins" } }, function()
 		Mock.yards = { nameplate2 = 20 }
@@ -598,15 +604,15 @@ for _, unread in ipairs({ false, true }) do
 				.. flat(macro(ns)))
 		else
 			Mock.unitNames.target = { "Ejp", "Ejp" }
-			if unread then Mock.rangeless = { [1459] = true } end
+			if change then change() end
 			local ran, cast, said = pressAt(ns)
 			if not cast then
 				fail(scenario, "SKIPPED -- the hold did not keep the press on Weirbeard: " .. flat(ran))
-			elseif said == unread then
-				fail(scenario, unread
-					and ("the press spoke on a range the client would not read: " .. flat(ran))
-					or ("the press lost him when your target moved, though a nameplate holds him: "
-						.. flat(ran)))
+			elseif said ~= want then
+				fail(scenario, want
+					and ("the press lost him when your target moved, though a nameplate holds him: "
+						.. flat(ran))
+					or ("the press spoke with the nameplate holding him " .. label .. ": " .. flat(ran)))
 			end
 		end
 		guarded(scenario, ns)
@@ -788,6 +794,36 @@ do
 	end
 end
 
+-- The client says the spell cannot be cast, and not for want of mana. The
+-- scan keeps the buff (a plain no can be a form the macro gets past), so he
+-- stays in the queue and the press goes to him; only the press's own question
+-- leaves the line out.
+do
+	local scenario = "speech-range: no line when the client says the spell cannot be cast"
+	local ns, restore = passing(scenario, { nameplate1 = { "Weirbeard", "Jenkins" } })
+	if ns then
+		if not speaks(macro(ns)) then
+			fail(scenario, "SKIPPED -- the line was not armed to begin with: " .. flat(macro(ns)))
+		else
+			local real = rawget(_G, "IsUsableSpell")
+			rawset(_G, "IsUsableSpell", function() return false end)
+			local kept = H.inQueue(ns)[WEIRBEARD] ~= nil
+			local ok, ran, cast, said = pcall(pressAt, ns)
+			rawset(_G, "IsUsableSpell", real)
+			if not ok then
+				fail(scenario, "the press threw: " .. tostring(ran))
+			elseif not (kept and cast) then
+				fail(scenario, "SKIPPED -- the scan did not keep Weirbeard, or the press did not cast at him: "
+					.. flat(ran))
+			elseif said then
+				fail(scenario, "the press spoke over a spell the client says cannot be cast: " .. flat(ran))
+			end
+		end
+		guarded(scenario, ns)
+		restore()
+	end
+end
+
 -- In a fight nothing is judged again: the macro the pull armed (with no line,
 -- as for every fight) is the one every press runs.
 do
@@ -817,9 +853,9 @@ do
 	end
 end
 
--- Nor is a line rolled for an arming that cannot say it: "In character"
--- remembers every line it rolls as said lately, and a line rolled for a
--- favour no token holds is never said. Rolled once a nameplate shows him.
+-- Nor is a line rolled for an arming that cannot say it: a line for a favour
+-- no token holds is never said, and "In character" gathers every pool the
+-- moment calls for to roll one. Rolled once a nameplate shows him.
 do
 	local scenario = "speech-range: no line is rolled for somebody the press cannot reach"
 	local rolls, realPick = 0, nil
@@ -857,8 +893,7 @@ do
 end
 
 -- A line left out is not spent: the press rolls nothing new, and the line the
--- tooltip quoted is the one said by the next press that lands. ("In
--- character" remembers every line it rolls, and holds back one said lately.)
+-- tooltip quoted is the one said by the next press that lands.
 do
 	local scenario = "speech-range: a line left out is kept for the press that lands"
 	local ns, restore = passing(scenario, { nameplate1 = { "Weirbeard", "Jenkins" } }, function(ns)
@@ -902,4 +937,294 @@ do
 		guarded(scenario, ns)
 		restore()
 	end
+end
+
+-- ------------------------------------------------------------ speech-range-7
+-- A press that went out without the line, then refused, used to hold the line
+-- for half a minute like any other. So the usual favour -- the first press as
+-- he walks off, the second once he is back -- never thanked him: the press
+-- that landed went out silent too. Refused for something every press asks
+-- again before it says a line (out of range, mana, a cooldown, the target
+-- dead), a silent press holds nothing; the back-off still stands. Line of
+-- sight no press can ask, so a refusal for it holds the line as before. Both
+-- presses here are silent for the same reason, out of reach; only the game's
+-- words differ. The client's own strings, which the mock leaves out.
+for _, case in ipairs({
+	{ "out of range", "ERR_OUT_OF_RANGE", "Out of range.", true },
+	{ "out of sight", "SPELL_FAILED_LINE_OF_SIGHT", "Target not in line of sight", false },
+}) do
+	local label, key, words, want = case[1], case[2], case[3], case[4]
+	local scenario = "speech-range: a silent press refused " .. label
+		.. (want and " leaves the next press its line" or " still holds the line")
+	local saved = rawget(_G, key)
+	rawset(_G, key, words)
+	local ns, restore = passing(scenario, { nameplate1 = { "Weirbeard", "Jenkins" } }, function(ns)
+		H.owe(ns, WEIRBEARD)
+	end)
+	if ns then
+		if not speaks(macro(ns)) then
+			fail(scenario, "SKIPPED -- the line was not armed to begin with: " .. flat(macro(ns)))
+		else
+			Mock.rangeByUnit = { nameplate1 = false }
+			local ran, cast, said = pressAt(ns)
+			if not cast or said then
+				fail(scenario, "SKIPPED -- the first press did not go out silent at Weirbeard: " .. flat(ran))
+			else
+				ns.addon:UI_ERROR_MESSAGE(nil, 0, words)
+				-- Back in reach, the back-off over.
+				Mock.rangeByUnit = nil
+				Mock.advance(5)
+				ns.addon:Tick()
+				local again, castAgain, saidAgain = pressAt(ns)
+				if not castAgain then
+					fail(scenario, "SKIPPED -- the second press did not cast at Weirbeard: " .. flat(again))
+				elseif saidAgain ~= want then
+					fail(scenario, ("after a silent press refused with %q, the press that lands %s: %s"):format(
+						words, want and "is silent too" or "speaks", flat(again)))
+				end
+			end
+		end
+		guarded(scenario, ns)
+		restore()
+	end
+	rawset(_G, key, saved)
+end
+
+-- ------------------------------------------------------------ speech-range-8
+-- The scan PreClick makes turned him down, and the press goes to him anyway:
+-- the empty-queue fuse presses whoever the panel names, and the hold keeps a
+-- painted entry against somebody no better. His token still names him, in
+-- reach and alive, so only that scan knows the cast will fail -- covered by
+-- another mage's Arcane Brilliance since the paint ("A more powerful spell is
+-- already active"), or you dead, which refuses the whole queue. The cast goes
+-- out (the panel said so); the line does not.
+for _, case in ipairs({
+	{ "covered since the paint", function(ns)
+		Mock.held = { [23028] = true }
+		ns.ForgetUnitAuras(UnitGUID("nameplate1"))
+	end },
+	{ "you died since the paint", function() Mock.dead = true end },
+}) do
+	local label, change = case[1], case[2]
+	local scenario = "speech-range: no line when the press's own scan turns him down (" .. label .. ")"
+	local ns, restore = passing(scenario, { nameplate1 = { "Weirbeard", "Jenkins" } })
+	if ns then
+		if not speaks(macro(ns)) then
+			fail(scenario, "SKIPPED -- the line was not armed to begin with: " .. flat(macro(ns)))
+		else
+			change(ns)
+			local _, verdicts = ns.BuildQueue()
+			if not (verdicts == true or (type(verdicts) == "table" and verdicts[WEIRBEARD] == true)) then
+				fail(scenario, "SKIPPED -- the scan did not turn him down: " .. tostring(verdicts))
+			else
+				local ran, cast, said = pressAt(ns)
+				if not cast then
+					fail(scenario, "SKIPPED -- the fuse did not keep the press on Weirbeard: " .. flat(ran))
+				elseif said then
+					fail(scenario, "the press spoke to somebody its own scan turned down: " .. flat(ran))
+				end
+			end
+		end
+		Mock.dead = false
+		Mock.held = nil
+		guarded(scenario, ns)
+		restore()
+	end
+end
+
+-- Weirbeard your target, Ejp a passer-by on a nameplate: covered since the
+-- paint, Weirbeard leaves the queue and the hold keeps him over Ejp, whom the
+-- queue still has. The covering is his alone, read off his token. (Somebody
+-- owed is offered covered or not, so he is not owed here.)
+local function coverOne(unit, spellId)
+	local base = C_UnitAuras
+	rawset(_G, "C_UnitAuras", setmetatable({
+		GetUnitAuraBySpellID = function(who, id)
+			if who == unit and id == spellId then
+				return { spellId = id, expirationTime = Mock.now + 3600, duration = 3600 }
+			end
+			return base.GetUnitAuraBySpellID(who, id)
+		end,
+	}, { __index = base }))
+	return function() rawset(_G, "C_UnitAuras", nil) end
+end
+
+local function heldOverEjp(scenario)
+	local ns, restore = passing(scenario,
+		{ target = { "Weirbeard", "Jenkins" }, nameplate2 = { "Ejp", "Ejp" } })
+	if not ns then return nil end
+	local queue = H.inQueue(ns)
+	if not (queue[WEIRBEARD] and queue["Ejp Ejp"] and speaks(macro(ns))
+		and macro(ns):find(WEIRBEARD, 1, true)) then
+		fail(scenario, "SKIPPED -- Weirbeard was not armed with the line ahead of Ejp: " .. flat(macro(ns)))
+		guarded(scenario, ns)
+		restore()
+		return nil
+	end
+	local uncover = coverOne("target", 23028)
+	ns.ForgetUnitAuras(UnitGUID("target"))
+	queue = H.inQueue(ns)
+	if queue[WEIRBEARD] or not queue["Ejp Ejp"] then
+		fail(scenario, "SKIPPED -- the queue did not drop Weirbeard and keep Ejp")
+		uncover()
+		guarded(scenario, ns)
+		restore()
+		return nil
+	end
+	return ns, function()
+		uncover()
+		restore()
+	end
+end
+
+do
+	local scenario = "speech-range: no line when the press's own scan turns down the held entry"
+	local ns, restore = heldOverEjp(scenario)
+	if ns then
+		local ran, cast, said = pressAt(ns)
+		if not cast then
+			fail(scenario, "SKIPPED -- the hold did not keep the press on Weirbeard: " .. flat(ran))
+		elseif said then
+			fail(scenario, "the press spoke to a held entry its own scan turned down: " .. flat(ran))
+		end
+		guarded(scenario, ns)
+		restore()
+	end
+end
+
+-- ------------------------------------------------------------ speech-range-9
+-- The tooltip quotes the line only where the repaint armed it, and the
+-- repaint arms it only on the latest scan's reading. Somebody the queue no
+-- longer holds -- kept by the hold, or by the fuse under the cursor -- carries
+-- an older one, so the macro is re-armed without the line and the tooltip
+-- quotes none. The press judges the line again either way.
+local function quotes(ns)
+	local S = ns.Prompt.state
+	local quoted = table.concat(ns.Prompt:ClickSummary(S.current), " / ")
+	return quoted:find("Says:", 1, true) ~= nil, quoted
+end
+
+do
+	local scenario = "speech-range: the tooltip quotes no line for the held entry"
+	local ns, restore = heldOverEjp(scenario)
+	if ns then
+		Mock.advance(0.4)
+		ns.addon:Tick()
+		local S = ns.Prompt.state
+		if not (S.current and S.current.name == WEIRBEARD and ns.Prompt:PanelName() == WEIRBEARD) then
+			fail(scenario, "SKIPPED -- the hold did not keep Weirbeard on the panel: "
+				.. tostring(ns.Prompt:PanelName()))
+		else
+			local quoted, text = quotes(ns)
+			if quoted then
+				fail(scenario, "the tooltip quotes a line for a held entry the scan turned down: " .. text)
+			elseif speaks(macro(ns)) then
+				fail(scenario, "the macro armed for the held entry speaks: " .. flat(macro(ns)))
+			end
+		end
+		guarded(scenario, ns)
+		restore()
+	end
+end
+
+-- Your target, the cursor on the panel, the target cleared: the queue empties,
+-- the cursor holds him on the panel, and the press can find no token for him.
+do
+	local scenario = "speech-range: the tooltip quotes no line while the cursor holds an empty queue"
+	local ns, restore = passing(scenario, { target = { "Weirbeard", "Jenkins" } })
+	if ns then
+		local S = ns.Prompt.state
+		if not (speaks(macro(ns)) and quotes(ns)) then
+			fail(scenario, "SKIPPED -- the line was not armed and quoted to begin with: " .. flat(macro(ns)))
+		else
+			S.hovering = true
+			Mock.unitNames.target = nil
+			for _, wait in ipairs({ 0.4, 2 }) do
+				Mock.advance(wait)
+				ns.addon:Tick()
+				local quoted, text = quotes(ns)
+				if not (S.current and S.current.name == WEIRBEARD) then
+					fail(scenario, "SKIPPED -- the cursor did not hold Weirbeard on the panel")
+					break
+				elseif quoted then
+					fail(scenario, ("%.1fs after the target was cleared the tooltip quotes a line: %s"):format(
+						wait, text))
+					break
+				end
+			end
+			local ran, cast, said = pressAt(ns)
+			if not cast then
+				fail(scenario, "SKIPPED -- the press did not go to Weirbeard: " .. flat(ran))
+			elseif said then
+				fail(scenario, "the press spoke to somebody no token holds: " .. flat(ran))
+			end
+		end
+		guarded(scenario, ns)
+		restore()
+	end
+end
+
+-- ------------------------------------------------------------ speech-range-10
+-- "In character" keeps the lines said lately out of the next draws. It used
+-- to count every line it rolled, and the prompt rolls one for its tooltip the
+-- moment somebody comes into reach: a passer-by under the cursor, the cursor
+-- gone to the prompt, the press out without the line -- and the line nobody
+-- heard was held back as said. It counts a line now once a press carries it.
+-- Every roll here takes the first line with a share, so the memory alone
+-- decides which line comes up.
+do
+	local scenario = "speech-range: In character counts a line as said only when a press says it"
+	local realRandom = math.random
+	local ns, restore = passing(scenario, { mouseover = { "Weirbeard", "Jenkins" } }, function(ns)
+		math.random = function(n)
+			if n then return 1 end
+			return 0
+		end
+		local preset = H.findOption(ns.optionsTable, "preset")
+		if preset and preset.set then preset.set({ "preset" }, "incharacter") end
+	end)
+	if ns then
+		local S = ns.Prompt.state
+		local entry = S.current
+		local first = S.phraseText
+		local function roll()
+			return (ns.PickPhrase(entry, ns.PhraseBudget(entry)))
+		end
+		if not (ns.InCharacter and ns.InCharacter.Active(ns.db.profile.speech)) then
+			fail(scenario, "SKIPPED -- the In character set did not load")
+		elseif not (entry and first and speaks(macro(ns))) then
+			fail(scenario, "SKIPPED -- the passer-by was not armed with a line: " .. flat(macro(ns)))
+		else
+			-- The cursor leaves him for the prompt.
+			Mock.unitNames.mouseover = nil
+			Mock.advance(0.4)
+			ns.addon:Tick()
+			local ran, cast, said = pressAt(ns)
+			if not cast or said then
+				fail(scenario, "SKIPPED -- the press did not go out silent at Weirbeard: " .. flat(ran))
+			elseif roll() ~= first then
+				fail(scenario, ("a line the press left out was counted as said: %s held back, %s rolled"):format(
+					flat(first), flat(roll())))
+			else
+				-- Back under a token, in reach: the press says the line kept for
+				-- him, and from then on it is one said lately.
+				ns.pendingClick = nil
+				wipe(ns.tried)
+				Mock.unitNames.nameplate1 = { "Weirbeard", "Jenkins" }
+				ns.nameplateUnits.nameplate1 = true
+				Mock.advance(1)
+				ns.addon:Tick()
+				local again, castAgain, saidAgain = pressAt(ns)
+				if not (castAgain and saidAgain and again:find(first, 1, true)) then
+					fail(scenario, "SKIPPED -- the press that landed did not say the line kept for him: "
+						.. flat(again))
+				elseif roll() == first then
+					fail(scenario, "a line a press said is not counted as said lately: " .. flat(first))
+				end
+			end
+		end
+		guarded(scenario, ns)
+		restore()
+	end
+	math.random = realRandom
 end

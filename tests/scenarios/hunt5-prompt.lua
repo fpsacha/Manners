@@ -112,10 +112,12 @@ Mock.reset()
 -- hold (or the fuse) keeps her entry, whose unit still says "target", so a press
 -- used to run /target on her with no hand-back and leave you on her instead of
 -- the mob you had just picked. While she is still your target there is nothing
--- to hand back.
+-- to hand back. The repaint that finds the queue without her re-arms her entry;
+-- a press landing before it is re-keyed by PreClick alone (unpainted).
 for _, case in ipairs({
 	{ label = "held", withBert = true, retarget = true },
 	{ label = "fused", withBert = false, retarget = true },
+	{ label = "fused, pressed before a repaint", withBert = false, retarget = true, unpainted = true },
 	{ label = "still targeted", withBert = true, retarget = false },
 }) do
 	Mock.reset()
@@ -139,7 +141,7 @@ for _, case in ipairs({
 		Mock.advance(0.3)
 		if case.retarget then
 			seen.target = nil
-			ns.addon:Tick()
+			if not case.unpainted then ns.addon:Tick() end
 			if ns.Prompt:PanelName() ~= "Anna Aim" then
 				fail(scenario, "SKIPPED -- the panel let Anna go at once: "
 					.. tostring(ns.Prompt:PanelName()))

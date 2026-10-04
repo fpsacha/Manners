@@ -561,7 +561,7 @@ mutate("Phrases.lua",
        script="runscenarios.py")
 
 mutate("Phrases.lua",
-       "\t\tRemember(texts[chosen])\n",
+       "\t\tlately[#lately + 1] = text\n\t\tlatelyCount[text] = (latelyCount[text] or 0) + 1\n",
        "",
        "rp nothing remembered",
        expect="rp: no line twice in a row",

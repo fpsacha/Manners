@@ -347,6 +347,12 @@ function Prompt:RefreshPanel()
 		-- the dropped person's macro for the whole fight.
 		if R.button:IsShown() and S.current and not retired and not ArmingForFight() then
 			LightFuse(now)
+			-- Kept on the panel, though the queue no longer holds them: the
+			-- reading the spoken line was armed on went with it, so the macro
+			-- is armed without the line and the tooltip quotes none. The press
+			-- judges the line again (Press.lua, HoldLine). Undone at once below
+			-- when the fuse has burnt out.
+			self:ApplyTarget(S.current, true)
 			-- Nor does it burn out under the cursor (see hovering): the
 			-- player is on the way to clicking it. OnLeave repaints. Not
 			-- when the queue emptied on a verdict, theirs or your own state
@@ -365,8 +371,6 @@ function Prompt:RefreshPanel()
 		return
 	end
 	S.emptyAt = nil
-
-	self:ApplyTarget(top)
 
 	-- Who else is waiting, which of them are listed, and whether the pick is in
 	-- the queue: counted, not read off queue order, because the pick is not
@@ -391,6 +395,12 @@ function Prompt:RefreshPanel()
 			end
 		end
 	end
+
+	-- Armed once the count above says whether the pick is the queue's own
+	-- entry. A copy the hold kept carries the reading of a scan the latest one
+	-- overruled, so it is armed without the spoken line, and the tooltip
+	-- quotes none; the press judges the line again (Press.lua, HoldLine).
+	self:ApplyTarget(top, not inQueue)
 
 	local wasHidden = not R.button:IsShown()
 	local isNew = top.name ~= lastTop

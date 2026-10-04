@@ -219,7 +219,8 @@ function Prompt:ClickSummary(entry)
 end
 
 -- `silent` leaves the spoken line out whatever the entry says: PreClick's
--- last-moment range reading.
+-- last-moment judgement (HoldLine), or a repaint arming somebody the latest
+-- scan no longer offers.
 function Prompt:ApplyTarget(entry, silent)
 	if InCombatLockdown() then
 		-- Frozen until the fight ends. `current` may only be cleared: a disarm
@@ -254,7 +255,7 @@ function Prompt:ApplyTarget(entry, silent)
 		S.armed = nil
 		-- Same reasoning for the spoken line: there is no macro, so there is no
 		-- line, and the tooltip must not still be quoting the last one.
-		S.phraseKey, S.phraseText, S.phraseArmed = nil, nil, nil
+		S.phraseKey, S.phraseText, S.phraseArmed, S.phraseSource = nil, nil, nil, nil
 		return
 	end
 
@@ -268,17 +269,19 @@ function Prompt:ApplyTarget(entry, silent)
 	-- reach: the macro runs on past a /cast that fails, and the line went out
 	-- over a buff that never landed (beta.8). A reading nobody could take --
 	-- no token, a client that will not say, a secret -- is a no: "if I can't
-	-- buff someone, I should not say anything". The press judges it all again
-	-- (Press.lua, HoldLine), and this keeps the tooltip from quoting a line
-	-- the press would leave out. Nor for a while after the game refused a cast
-	-- on them (ns.SpeechHeld), so pressing at somebody it will not let you
-	-- reach does not keep talking. Nor in /party or /raid while you are in no
-	-- party or raid (ns.ChannelOpen): the line would reach nobody, on every
-	-- press. In the key below, so a group joined or left re-arms the macro on
-	-- the next repaint. Nor in the macro armed for a fight: every press in it
-	-- runs that one frozen text, so the line went out again on a press the
-	-- cooldown turned away and after the favour was repaid. As /thank, never
-	-- in a fight; the repaint after it puts the line back.
+	-- buff someone, I should not say anything". Nor for a reading the latest
+	-- scan overruled: the repaint arms the hold's copy and the fuse's entry
+	-- `silent` (Refresh.lua). The press judges it all again (Press.lua,
+	-- HoldLine), and this keeps the tooltip from quoting a line the press
+	-- would leave out. Nor for a while after the game refused a cast on them
+	-- (ns.SpeechHeld), so pressing at somebody it will not let you reach does
+	-- not keep talking. Nor in /party or /raid while you are in no party or
+	-- raid (ns.ChannelOpen): the line would reach nobody, on every press. In
+	-- the key below, so a group joined or left re-arms the macro on the next
+	-- repaint. Nor in the macro armed for a fight: every press in it runs that
+	-- one frozen text, so the line went out again on a press the cooldown
+	-- turned away and after the favour was repaid. As /thank, never in a
+	-- fight; the repaint after it puts the line back.
 	local speak = not silent and entry.ranged == true and not ns.SpeechHeld(entry.name)
 		and ns.ChannelOpen()
 		and Prompt.armedForFight ~= true
@@ -342,13 +345,14 @@ function Prompt:ApplyTarget(entry, silent)
 	local phraseIdentity = table.concat({ entry.name, entry.buff.key, tostring(entry.reason),
 		tostring(entry.groupCast and entry.groupCast.spell), tostring(ns.tryMacro) }, "\1")
 	local budget = ns.PhraseBudget(entry)
-	-- Rolled only for an arming that can say it: "In character" remembers
-	-- every line it rolls as said lately, and a line rolled for somebody the
-	-- press cannot reach is never said. Kept through an arming that leaves it
-	-- out (out of reach for a moment, a press that cannot land), so the roll
-	-- the tooltip quoted is the one said once the line is armed again.
+	-- Rolled only for an arming that can say it, and kept through an arming
+	-- that leaves it out (out of reach for a moment, a press that cannot
+	-- land), so the roll the tooltip quoted is the one said once the line is
+	-- armed again. "In character" hands back the line as written too
+	-- (phraseSource), and counts it as said lately only when a press carries
+	-- it (Press.lua, OnPostClick).
 	if speak and (S.phraseKey ~= phraseIdentity or (S.phraseText and #S.phraseText > budget)) then
-		S.phraseKey, S.phraseText = phraseIdentity, ns.PickPhrase(entry, budget)
+		S.phraseKey, S.phraseText, S.phraseSource = phraseIdentity, ns.PickPhrase(entry, budget)
 	end
 	local phrase = speak and S.phraseText or nil
 	S.phraseArmed = phrase ~= nil
@@ -376,5 +380,5 @@ function Prompt:InvalidateMacro()
 	S.appliedKey = nil
 	-- The settled roll goes with the macro. PreClick clears appliedKey on its
 	-- own instead, so a press re-resolves who without re-rolling what is said.
-	S.phraseKey, S.phraseText = nil, nil
+	S.phraseKey, S.phraseText, S.phraseSource = nil, nil, nil
 end

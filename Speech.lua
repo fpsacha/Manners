@@ -248,6 +248,8 @@ do
 		return rest
 	end
 
+	-- The line, and for "In character" the line as written, which that set
+	-- remembers as said only once a press carries it (Prompt/Press.lua).
 	local function Roll(db, entry, command, budget)
 		-- "In character" chooses for this person and moment, not from the box.
 		local inCharacter = ns.InCharacter
@@ -275,6 +277,8 @@ do
 		return line
 	end
 
+	-- The line with its channel command, and for "In character" the line as
+	-- written (see Roll), or nil.
 	function ns.PickPhrase(entry, budget)
 		local db = addon.db and addon.db.profile
 		if not db or not db.speech.enabled then return nil end
@@ -298,7 +302,7 @@ do
 			command = command .. " " .. whisperTo
 		end
 
-		local line = Roll(db, entry, command, budget)
+		local line, source = Roll(db, entry, command, budget)
 		-- A whisper the chat box would read as going to somebody else, or would
 		-- drop, says nothing: "/w Petra Cheers mate" is Petra Cheers on Camelot,
 		-- where names have surnames. Not asked of the stand-ins the Roll a few
@@ -308,6 +312,6 @@ do
 			and WhisperTargetOf(line:match("^/%S+(.*)$"), RegionalNames()) ~= whisperTo then
 			return nil
 		end
-		return line
+		return line, source
 	end
 end

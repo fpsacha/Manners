@@ -323,18 +323,28 @@ do
 end
 
 -- ------------------------------------------------------------ backoff-7
--- An error about the caster (out of mana) holds the spoken line but says
--- nothing about the person: no back-off past the old two seconds.
+-- An error about the caster (out of mana) holds the spoken line the press
+-- said but says nothing about the person: no back-off past the old two
+-- seconds. (A press that said no line holds nothing for it: every press asks
+-- the mana again before it says one -- speech-range-7.)
 do
 	local scenario = "refusal-backoff: out of mana backs nobody off"
 	local ns, restore = session(scenario)
 	if ns then
+		local speech = ns.db.profile.speech
+		speech.enabled, speech.onlyWhenReturning = true, false
+		speech.channel, speech.phrases = "SAY", "Thanks, {name}."
 		local saved = rawget(_G, "ERR_OUT_OF_MANA")
 		rawset(_G, "ERR_OUT_OF_MANA", "Not enough mana")
 		for i = 1, 3 do
 			ns.pendingClick = nil
 			ns.Prompt:ApplyTarget(entryFor(ns))
 			local button = ns.Prompt:GetButton()
+			local armed = button:GetAttribute("macrotext1")
+			if i == 1 and not (armed and armed:find("\n/say ", 1, true)) then
+				fail(scenario, "SKIPPED -- the first press carried no line: " .. tostring(armed))
+				break
+			end
 			Mock.advance(3)
 			pcall(button.scripts.PostClick, button, "LeftButton", true)
 			if not ns.pendingClick then

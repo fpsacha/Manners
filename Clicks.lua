@@ -184,7 +184,7 @@ local function FailPendingClick(message)
 	SayStillOwed(pending.name, type(message) == "string"
 		and L["the game said: %s"]:format((message:gsub("%.$", ""))) or L["the game refused it"])
 	RewindClick(pending)
-	ns.NoteRefusal(pending.name, message)
+	ns.NoteRefusal(pending.name, message, nil, pending.spoke)
 	return pending.name
 end
 
@@ -591,7 +591,7 @@ local function SettlePendingClick(landedOn, spellId, castGUID)
 	-- ignores (STATUS.md); only a listing after the settle lets it go.
 	RememberSettled({ name = pending.name, buffKey = pending.buffKey,
 		gave = pending.gave, at = GetTime(), owed = wasOwed, castGUID = castGUID,
-		listedAtSettle = ListedAs(pending.name) ~= nil,
+		listedAtSettle = ListedAs(pending.name) ~= nil, spoke = pending.spoke,
 		-- A shout nothing measured them inside of is not a cast on them.
 		landed = not unheard,
 		group = pending.group, members = members, givenAs = givenAs })
@@ -650,7 +650,7 @@ local function UnsettleLateRefusal(castGUID)
 	RewindClick(settled)
 	-- This is the refusal that repeats for somebody the game will never let
 	-- you buff (beta.8): every press settles on SENT and comes back here.
-	ns.NoteRefusal(settled.name)
+	ns.NoteRefusal(settled.name, nil, nil, settled.spoke)
 	SayStillOwed(settled.name, L["the game refused the cast after sending it"])
 	return settled.name
 end
