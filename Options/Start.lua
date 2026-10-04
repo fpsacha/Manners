@@ -546,6 +546,84 @@ function Quick.VoiceSummary()
 	return text
 end
 
+---------------------------------------------------------------------------
+-- The first run: two questions on top of Start here
+--
+-- A profile that has never been set up (profile.firstRun, stamped by
+-- ClampSettings: "pending" for a new one, "existing" for one from before)
+-- opens the window on Start here with two of the presets above as plain
+-- questions, a Done and a Skip. Picks wait in Quick.first until Done applies
+-- them through Quick.Apply, as the dropdowns do; Skip leaves every setting as
+-- it is. Either ends it for the profile, so it is never asked again.
+---------------------------------------------------------------------------
+
+-- The voice choices asked about: whispering is a fine-tune for later.
+Quick.FIRST_VOICE = { silent = true, thank = true, polite = true, incharacter = true }
+Quick.first = {}
+
+function Quick.Pending()
+	local profile = ns.db and ns.db.profile
+	return type(profile) == "table" and profile.firstRun == "pending"
+end
+
+-- Shown only to a class with something to give: both questions are about it.
+function Quick.Asking()
+	return Quick.Pending() and HasClassBuffs() == true
+end
+
+local function FirstSlot(list) return list == Quick.WHO and "who" or "voice" end
+
+function Quick.FirstValues(list)
+	local out = {}
+	for key, name in pairs(Quick.Values(list)) do
+		if key ~= "custom" and (list ~= Quick.VOICE or Quick.FIRST_VOICE[key]) then out[key] = name end
+	end
+	return out
+end
+
+function Quick.FirstOrder(list)
+	local values, keys = Quick.FirstValues(list), {}
+	for _, key in ipairs(Quick.Order(list)) do
+		if values[key] then keys[#keys + 1] = key end
+	end
+	return keys
+end
+
+-- The pick so far, else what the profile matches now, else the first choice.
+function Quick.FirstPick(list)
+	local values = Quick.FirstValues(list)
+	local picked = Quick.first[FirstSlot(list)]
+	if picked and values[picked] then return picked end
+	local now = Quick.Match(list)
+	if values[now] then return now end
+	return Quick.FirstOrder(list)[1]
+end
+
+function Quick.SetFirstPick(list, key)
+	if Quick.FirstValues(list)[key] then Quick.first[FirstSlot(list)] = key end
+end
+
+-- Done asks first only where a preset would: over choices made by hand, or
+-- over lines somebody wrote.
+function Quick.FirstConfirm()
+	return Quick.Confirm(Quick.WHO, Quick.FirstPick(Quick.WHO))
+		or Quick.Confirm(Quick.VOICE, Quick.FirstPick(Quick.VOICE))
+end
+
+-- Done (answered) or Skip. The state is written first, so the questions are
+-- gone even if applying a preset fails.
+function Quick.FinishFirstRun(answered)
+	if not Quick.Pending() then return end
+	local who, voice = Quick.FirstPick(Quick.WHO), Quick.FirstPick(Quick.VOICE)
+	ns.db.profile.firstRun = answered and "answered" or "skipped"
+	Quick.first = {}
+	if answered then
+		if who then Quick.Apply(Quick.WHO, who) end
+		if voice then Quick.Apply(Quick.VOICE, voice) end
+	end
+	ns.RefreshOptionsDisplay()
+end
+
 -- The Start here group: switching Manners on, the numbered steps (who to buff,
 -- a key, seeing the prompt, what to say), the snooze and the ledger. The
 -- options window places them (Options/Window/Layout.lua): the switch, the
@@ -561,12 +639,58 @@ function Page.BuildStartTab()
 	-- own buffs; the steps about other people are not.
 	local function noPrompt() return not HasPrompt() end
 	local function grey(text) return "|cff888888" .. text .. "|r" end
+	local function notAsking() return not Quick.Asking() end
 
 	return {
 		type = "group",
 		name = TAB.general,
 		order = 1,
 		args = {
+			-- The first run's two questions, above everything while the
+			-- profile has never been set up (Quick.Asking). The window draws
+			-- them as the first section of the page.
+			firstHeader = {
+				type = "header", name = L["Quick setup"], order = 0.1,
+				hidden = notAsking,
+			},
+			firstWho = {
+				type = "select",
+				name = L["Who do you want to buff?"],
+				order = 0.2,
+				width = "full",
+				hidden = notAsking,
+				values = function() return Quick.FirstValues(Quick.WHO) end,
+				sorting = function() return Quick.FirstOrder(Quick.WHO) end,
+				get = function() return Quick.FirstPick(Quick.WHO) end,
+				set = function(_, v) Quick.SetFirstPick(Quick.WHO, v) end,
+			},
+			firstVoice = {
+				type = "select",
+				name = L["Should your character talk?"],
+				order = 0.3,
+				width = "full",
+				hidden = notAsking,
+				values = function() return Quick.FirstValues(Quick.VOICE) end,
+				sorting = function() return Quick.FirstOrder(Quick.VOICE) end,
+				get = function() return Quick.FirstPick(Quick.VOICE) end,
+				set = function(_, v) Quick.SetFirstPick(Quick.VOICE, v) end,
+			},
+			firstDone = {
+				type = "execute",
+				name = L["Done"],
+				order = 0.4,
+				hidden = notAsking,
+				confirm = function() return Quick.FirstConfirm() end,
+				func = function() Quick.FinishFirstRun(true) end,
+			},
+			firstSkip = {
+				type = "execute",
+				name = L["Skip"],
+				desc = L["Leaves every setting as it is. The same choices are below and on the other tabs."],
+				order = 0.5,
+				hidden = notAsking,
+				func = function() Quick.FinishFirstRun(false) end,
+			},
 			enabled = {
 				type = "toggle",
 				name = L["Manners is on"],

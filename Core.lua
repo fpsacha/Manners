@@ -2455,6 +2455,16 @@ function ns.ClampSettings()
 	oneOf(p, "effects", { full = true, calm = true }, "full")
 	boolean(p, "showCooldown", true)
 
+	-- The two questions Start here asks a new profile (Options/Start.lua,
+	-- Quick.Asking). A profile this clamp has been through before carries the
+	-- anchor stamp below, so it was set up long ago and is never asked; one
+	-- without it is new (or reset). Stamped, like the stamp, in a key with no
+	-- default. Read before that stamp is written.
+	if profile.firstRun == nil then
+		profile.firstRun = p.anchorCarried == true and "existing" or "pending"
+	end
+	oneOf(profile, "firstRun", { pending = true, answered = true, skipped = true, existing = true }, "existing")
+
 	-- Beta.1 moved the default anchor from the middle of the screen to the
 	-- bottom edge; AceDB strips values equal to their default, so a 0.9.x
 	-- prompt on the middle kept only its offsets, and a negative one lands off

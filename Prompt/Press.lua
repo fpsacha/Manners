@@ -104,7 +104,12 @@ local function HoldLine(entry, verdicts)
 	if not ns.LineRested(ns.LineSpeaker(entry), GetTime()) then return true end
 	if verdicts == true or (type(verdicts) == "table" and verdicts[entry.name] == true) then return true end
 	local unit = ns.UnitFor(entry.name, entry.unit)
-	if not unit then return true end
+	if not unit then
+		-- With friendly nameplates off a passer-by seldom has a token: said
+		-- once a session (Speech.lua).
+		ns.NoteTokenlessHold(entry)
+		return true
+	end
 	local deadOrGhost = _G.UnitIsDeadOrGhost
 	if type(deadOrGhost) ~= "function" or ns.plain(deadOrGhost(unit)) ~= false then return true end
 	if ns.ReachNow(unit, entry.buff) ~= true then return true end

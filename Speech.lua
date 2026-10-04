@@ -453,3 +453,52 @@ do
 		return line, source
 	end
 end
+
+---------------------------------------------------------------------------
+-- friendly nameplates
+--
+-- A line goes out only with a press on somebody a token names now
+-- (Prompt/Press.lua, HoldLine). A passer-by has one through a target, the
+-- mouseover or a nameplate, and with the game's friendly nameplates off most
+-- have none, so every line to a stranger is held back without a word. What I
+-- say says so while it is true, with a button that turns them on; the first
+-- such hold of a session says it once in chat. The setting is the game's, and
+-- changes only when that button is clicked.
+---------------------------------------------------------------------------
+
+do
+	local said = false
+
+	-- Off only when the client says so plainly; no answer is not "off".
+	function ns.FriendlyPlatesOff()
+		local get = _G.GetCVar or (C_CVar and C_CVar.GetCVar)
+		if type(get) ~= "function" then return false end
+		local ok, value = pcall(get, "nameplateShowFriends")
+		if not ok then return false end
+		value = ns.plain(value)
+		return value == "0" or value == 0 or value == false
+	end
+
+	-- The button's work. Refused in a fight, as the client refuses it there.
+	function ns.ShowFriendlyPlates()
+		if InCombatLockdown() or not ns.FriendlyPlatesOff() then return false end
+		local set = _G.SetCVar or (C_CVar and C_CVar.SetCVar)
+		if type(set) ~= "function" then return false end
+		return (pcall(set, "nameplateShowFriends", "1"))
+	end
+
+	-- A press whose line HoldLine held back for want of a token. Said once a
+	-- session, and only where a line was wanted at all and the nameplates
+	-- are why: not for your own buff, nor a first buff with "only when I buff
+	-- someone back" on.
+	function ns.NoteTokenlessHold(entry)
+		if said or type(entry) ~= "table" then return end
+		local speech = addon.db and addon.db.profile.speech
+		if not (speech and speech.enabled) or entry.reason == "self" then return end
+		if speech.onlyWhenReturning and entry.reason ~= "owed" then return end
+		if not ns.FriendlyPlatesOff() then return end
+		said = true
+		addon:Print(L["a line was left out: with friendly nameplates off, Manners cannot tell whether a stranger is in range to hear you. %s on the %s tab turns them on."]
+			:format("|cffffd100" .. L["Show friendly nameplates"] .. "|r", L["What I say"]))
+	end
+end
