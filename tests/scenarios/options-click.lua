@@ -231,8 +231,8 @@ do
 		if type(values) == "function" then values = values() end
 		-- Not "Roleplay": beside In character, a roleplayer could not tell
 		-- which of the two they had.
-		if values.roleplay ~= "Fantasy (general)" then
-			fail(scenario, "the general set is not named Fantasy (general): " .. tostring(values.roleplay))
+		if values.roleplay ~= "Azeroth (general)" then
+			fail(scenario, "the general set is not named Azeroth (general): " .. tostring(values.roleplay))
 		end
 		if ns.InCharacter and values.incharacter ~= "In character (fits your race and class)" then
 			fail(scenario, "the In character set is named " .. tostring(values.incharacter))

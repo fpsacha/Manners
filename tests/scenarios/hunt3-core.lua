@@ -845,3 +845,77 @@ for _, key in ipairs({ "roleplay", "polite", "cheeky", "quiet" }) do
 	end
 end
 Mock.reset()
+
+-- ------------------------------------------------------------------ core-12b
+-- The Fantasy set became Azeroth, with lines of its own. A box still holding
+-- the Fantasy lines was filled by picking the set, not typed, so it takes the
+-- Azeroth lines when the profile loads: in English, and on a German client
+-- as German, the translations deDE.lua still carries for the old lines. A box
+-- the player added to keeps every line.
+local FANTASY = {
+	"May the Light watch over you, {name}.",
+	"The arcane favours you, {name}.",
+	"Strength to your arm, {name}.",
+	"A boon for the road, {name}.",
+	"Safe travels, {name}. The roads are not kind.",
+	"Winds at your back, {name}.",
+	"May your blade stay keen, {name}.",
+	"Fortune favour you, {name}.",
+	"Go well, {name}. You will need it.",
+	"Take this with you, {name}.",
+	"A gift, freely given.",
+	"Stay sharp out there, {name}.",
+}
+for _, locale in ipairs({ "enUS", "deDE" }) do
+	Mock.reset()
+	Mock.locale = locale
+	local scenario = "core: a box of the Fantasy lines takes the Azeroth set (" .. locale .. ")"
+	local ns = load(scenario)
+	if ns then
+		drive(scenario, ns)
+		ns.Prompt:ExitTest()
+		local speech = ns.db.profile.speech
+		local azeroth = ns.PhraseSetText("roleplay")
+		local english = table.concat(FANTASY, "\n")
+		if azeroth == english or not azeroth:find("Azeroth", 1, true) then
+			fail(scenario, "SKIPPED -- the general set is not the Azeroth one: " .. tostring(azeroth))
+		end
+		local boxes = { { "the English Fantasy box", english } }
+		if locale ~= "enUS" then
+			local translated = {}
+			for i, line in ipairs(FANTASY) do
+				translated[i] = rawget(ns.L, line)
+				if translated[i] == nil then
+					fail(scenario, "SKIPPED -- " .. locale .. " has no translation of: " .. line)
+					translated[i] = line
+				end
+			end
+			boxes[#boxes + 1] = { "the " .. locale .. " Fantasy box", table.concat(translated, "\n") }
+		end
+		local preset = H.findOption(ns.optionsTable, "preset")
+		for _, box in ipairs(boxes) do
+			-- A profile from before the dropdown remembered its choice, and one
+			-- that names the set.
+			for _, choice in ipairs({ false, "roleplay" }) do
+				speech.presetChoice = choice or nil
+				speech.phrases = box[2]
+				ns.ClampSettings()
+				if speech.phrases ~= azeroth then
+					fail(scenario, box[1] .. " was not given the Azeroth lines: |" .. tostring(speech.phrases) .. "|")
+				end
+				if preset and preset.get and preset.get({ "preset" }) ~= "roleplay" then
+					fail(scenario, "the set dropdown reads " .. tostring(preset.get({ "preset" }))
+						.. " after " .. box[1] .. " became Azeroth")
+				end
+			end
+			local edited = box[2] .. "\nMy own line, {name}."
+			speech.phrases = edited
+			ns.ClampSettings()
+			if speech.phrases ~= edited then
+				fail(scenario, box[1] .. " with a line added was replaced: |" .. tostring(speech.phrases) .. "|")
+			end
+		end
+		guarded(scenario, ns)
+	end
+end
+Mock.reset()

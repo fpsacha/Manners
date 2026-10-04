@@ -67,9 +67,47 @@ end
 
 -- Exactly what the box held when these versions saved it: 1.5.0's for a
 -- Forsaken mage of the Horde and a dwarf priest of the Alliance (every
--- version from beta.10 saved the same), and beta.9's for a Forsaken. Written
--- out, not rebuilt from the pools, so a first line reworded since shows.
+-- version from beta.10 saved the same), and beta.9's for a Forsaken; and
+-- 1.6.4's and 1.5.0's for a troll mage of the Horde, whose examples have been
+-- reworded since. Written out, not rebuilt from the pools, so a line
+-- reworded since shows.
 local SAVED = {
+	troll164 = {
+		"Ya be too kind, {name}! Dis one be from me.",
+		"Thanks, mon! Da spirits smile on ya, {name}.",
+		"Ya gave me good mojo, {name}. Now ya get some back, extra spicy.",
+		"Bwonsamdi gonna be real disappointed, {name}. Thanks, mon.",
+		"Sure ting, {name}. Hold still; da mojo don't like a movin' target.",
+		"No worries, {name}. Da loa got ya covered.",
+		"Stay away from da voodoo, {name}. ...Except dis voodoo. Dis one fine.",
+		"Da loa be watchin' over ya, {name}. Dey real nosy like dat.",
+		"Stay sharp out dere, {name}. Take dis wit' ya.",
+		"Ya look like somebody who appreciate quality, {name}. Here: quality.",
+		"Take dis, {name}. Walk like ya own da jungle. I do.",
+		"For the Horde, {name}! Go with strength. I've just handed you some.",
+		"Go with honour, {name}. Victory awaits.",
+		"Stay close, {name}. Trolls regenerate; da rest of ya gotta be careful.",
+		"Dis crew got style, {name}. Now it got mojo too.",
+		"We go in together, {name}, we come out together. Dat be da whole plan, mon.",
+		"Our strength is each other, {name}. For the Horde!",
+		"Forward, {name}. The Horde advances together. Retreats... never, officially.",
+		"Hey, {name}! Always good to see family, mon.",
+		"Here, {name}. I had a spare thought and nowhere to put it.",
+		"Take this, {name}. I'd add bread, but conjured bread tastes of nothing.",
+		"We have to stop meeting like this, {name}. Actually, no, we don't.",
+		"Somewhere in here a villain is rehearsing a speech, {name}. Let's interrupt.",
+		"Night be da best time for mojo, {name}. Nobody see where it come from.",
+	},
+	troll150 = {
+		"Ya be too kind, {name}! Dis one be from me.",
+		"Sure ting, {name}. Hold still; da mojo don't like a movin' target.",
+		"Da loa be watchin' over ya, {name}. Dey real nosy like dat.",
+		"For the Horde, {name}! Go with strength. I've just handed you some.",
+		"Everyone ready? You are now, {name}.",
+		"Here, {name}. I had a spare thought and nowhere to put it.",
+		"We have to stop meeting like this, {name}. Actually, no, we don't.",
+		"Somewhere in here a villain is rehearsing a speech, {name}. Let's interrupt.",
+	},
 	forsaken150 = {
 		"Thank you, {name}. It would warm my heart, if it still beat.",
 		"Certainly, {name}. Try not to die. It's overrated.",
@@ -227,15 +265,18 @@ do
 			end
 		end
 
+		-- Of the pools as they read then: a line reworded since (the trolls')
+		-- put back as it was, which RP.BEFORE does. Without it, today's.
+		local before = RP.BEFORE or RP
 		local families = { false }
-		for family in pairs(RP.RACE) do families[#families + 1] = family end
+		for family in pairs(before.RACE) do families[#families + 1] = family end
 		local classes = { false }
-		for class in pairs(RP.CLASS) do classes[#classes + 1] = class end
-		local general = RP.GENERAL
+		for class in pairs(before.CLASS) do classes[#classes + 1] = class end
+		local general = before.GENERAL
 		for _, faction in ipairs({ "Alliance", "Horde", "Neutral" }) do
-			local side = RP.FACTION[faction]
+			local side = before.FACTION[faction]
 			for _, family in ipairs(families) do
-				local race = family and RP.RACE[family]
+				local race = family and before.RACE[family]
 				for _, class in ipairs(classes) do
 					local lines
 					if race then
@@ -243,9 +284,9 @@ do
 					else
 						lines = { side.thanks[1], side.asked[1], side.offer[1], general.thanks[1], general.offer[1] }
 					end
-					if class then lines[#lines + 1] = RP.CLASS[class].offer[1] end
-					lines[#lines + 1] = RP.HISTORY.again[1]
-					lines[#lines + 1] = RP.PLACE.instance[1]
+					if class then lines[#lines + 1] = before.CLASS[class].offer[1] end
+					lines[#lines + 1] = before.HISTORY.again[1]
+					lines[#lines + 1] = before.PLACE.instance[1]
 					speech.phrases = table.concat(lines, "\n")
 					if not RP.Active(speech) then
 						fail(scenario, ("the 1.5.0 box of a %s %s of the %s counts as edited")
@@ -419,6 +460,146 @@ do
 		speech.phrases = saved
 		if not RP.Active(speech) then
 			fail(scenario, "1.5.0's German box with two lines alike counts as edited")
+		end
+		noErrors(scenario, ns)
+	end)
+end
+
+-- ------------------------------------------------------------------ rpx-5
+-- Example lines reworded since boxes were saved with them: the trolls', after
+-- 1.6.4. A troll mage's box as 1.6.4 saved it, and as 1.5.0 did, still
+-- counts and becomes today's at load, in English and in the client's
+-- language. There the new lines have no translation yet and the old ones
+-- do, as the locale files stand; and a line the language had no translation
+-- for was left out of the box it saved, the next one moving up, which the
+-- saved box keeps. The "translation" is made as in rpx-4.
+do
+	local scenario = "rp examples: a box of lines reworded since still counts"
+	with(scenario, "Horde", function()
+		local ns = ready(scenario, "Troll", "MAGE")
+		if not ns then return end
+		local english = ns.InCharacter
+		local speech = ns.db.profile.speech
+		local today = english.Text()
+		if today == table.concat(SAVED.troll164, "\n") then
+			fail(scenario, "SKIPPED -- the troll's examples read as 1.6.4's")
+			return
+		end
+		for _, saved in ipairs({
+			{ "a troll mage's 1.6.4 box", SAVED.troll164 },
+			{ "a troll mage's 1.5.0 box", SAVED.troll150 },
+		}) do
+			speech.phrases = table.concat(saved[2], "\n")
+			if not english.Active(speech) then fail(scenario, saved[1] .. " counts as edited") end
+			ns.ClampSettings()
+			if speech.phrases ~= today then
+				fail(scenario, saved[1] .. " was not turned into today's: |" .. tostring(speech.phrases) .. "|")
+			end
+		end
+
+		-- Every line the set knows, today's and the ones it keeps to
+		-- recognise; and the box's lines 1.6.4's did not have, the new ones.
+		local lines = {}
+		local function walk(tbl)
+			for _, value in pairs(tbl) do
+				if type(value) == "string" then
+					lines[#lines + 1] = value
+				elseif type(value) == "table" then
+					walk(value)
+				end
+			end
+		end
+		for _, name in ipairs({ "RACE", "KIN", "FACTION", "GENERAL", "CLASS", "SPELL", "TRADE", "GIFT",
+			"HISTORY", "PLACE", "TIME", "TARGET", "SAME", "ONTO", "LEGACY" }) do
+			walk(english[name] or {})
+		end
+		local old = {}
+		for _, text in ipairs(SAVED.troll164) do old[text] = true end
+		local new = {}
+		for _, text in ipairs(split(today)) do
+			if not old[text] then new[text] = true end
+		end
+
+		-- Phrases.lua in German with every line translated but the new ones
+		-- and those in more; and a saved box as it read in that German.
+		local realL, realLocale = ns.L, ns.LOCALE
+		local function german(more)
+			for i = #ns.PHRASE_SET_ORDER, 1, -1 do
+				if ns.PHRASE_SET_ORDER[i] == "incharacter" then table.remove(ns.PHRASE_SET_ORDER, i) end
+			end
+			local L = setmetatable({}, { __index = function(_, key) return key end })
+			for _, text in ipairs(lines) do
+				if not (new[text] or more[text]) then rawset(L, text, "[de] " .. text) end
+			end
+			ns.L, ns.LOCALE = L, "deDE"
+			local chunk, err = loadfile(dir .. "/Phrases.lua")
+			local ok, runErr = false, err
+			if chunk then ok, runErr = pcall(chunk, "Manners", ns) end
+			ns.L, ns.LOCALE = realL, realLocale
+			if not ok then
+				fail(scenario, "Phrases.lua would not load as deDE: " .. tostring(runErr))
+				return nil
+			end
+			local function box(list)
+				local out = {}
+				for _, text in ipairs(list) do
+					local de = rawget(L, text)
+					if de == nil then
+						fail(scenario, "SKIPPED -- a saved line is not translated here: " .. text)
+						return nil
+					end
+					out[#out + 1] = de
+				end
+				return table.concat(out, "\n")
+			end
+			return ns.InCharacter, box
+		end
+
+		local RP, box = german({})
+		if not RP then return end
+		local germanToday = RP.Text()
+		local cases = {
+			{ "a troll mage's German 1.6.4 box", box(SAVED.troll164) },
+			{ "a troll mage's German 1.5.0 box", box(SAVED.troll150) },
+			{ "a troll mage's 1.6.4 box in English on deDE", table.concat(SAVED.troll164, "\n") },
+		}
+		if cases[1][2] == germanToday then
+			fail(scenario, "SKIPPED -- the German box reads as 1.6.4's")
+		end
+		for _, case in ipairs(cases) do
+			if case[2] then
+				speech.phrases = case[2]
+				if not RP.Active(speech) then fail(scenario, case[1] .. " counts as edited") end
+				ns.ClampSettings()
+				if speech.phrases ~= germanToday then
+					fail(scenario, case[1] .. " did not become the German box: |" .. tostring(speech.phrases) .. "|")
+				end
+			end
+		end
+
+		-- The troll's third offer untranslated, then as now: 1.6.4's German
+		-- box had the fifth, which the review kept, after the fourth.
+		local third = "Ya look like somebody who appreciate quality, {name}. Here: quality."
+		local fourth = "Take dis, {name}. Walk like ya own da jungle. I do."
+		local fifth = "Everybody need mojo, {name}. I make so much I gotta give it away."
+		RP, box = german({ [third] = true })
+		if not RP then return end
+		local moved = {}
+		for _, text in ipairs(SAVED.troll164) do
+			if text ~= third then moved[#moved + 1] = text end
+			if text == fourth then moved[#moved + 1] = fifth end
+		end
+		local saved = box(moved)
+		if saved then
+			speech.phrases = saved
+			if not RP.Active(speech) then
+				fail(scenario, "a troll mage's German 1.6.4 box, a line left out, counts as edited")
+			end
+			ns.ClampSettings()
+			if speech.phrases ~= RP.Text() then
+				fail(scenario, "a troll mage's German 1.6.4 box, a line left out, did not become the German box: |"
+					.. tostring(speech.phrases) .. "|")
+			end
 		end
 		noErrors(scenario, ns)
 	end)

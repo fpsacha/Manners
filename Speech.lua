@@ -20,21 +20,25 @@ local addon = ns.addon
 -- in /say"): a phrase of its own, never the label dropped into one.
 ns.PHRASE_SETS = {
 	roleplay = {
-		label = L["Fantasy"],
-		summary = L["a fantasy line"],
+		label = L["Azeroth"],
+		summary = L["a line from Azeroth"],
 		lines = {
-			L["May the Light watch over you, {name}."],
-			L["The arcane favours you, {name}."],
-			L["Strength to your arm, {name}."],
-			L["A boon for the road, {name}."],
-			L["Safe travels, {name}. The roads are not kind."],
-			L["Winds at your back, {name}."],
-			L["May your blade stay keen, {name}."],
-			L["Fortune favour you, {name}."],
-			L["Go well, {name}. You will need it."],
-			L["Take this with you, {name}."],
-			L["A gift, freely given."],
-			L["Stay sharp out there, {name}."],
+			L["Azeroth needs you on your feet, {name}."],
+			L["The Titans shaped this world, {name}. Keeping it whole falls to the likes of us."],
+			L["The Scourge is always recruiting, {name}. Don't give them the satisfaction."],
+			L["The Legion's been at this world for ten thousand years, {name}. It hasn't won yet."],
+			L["If something whispers to you in the dark, {name}, don't answer."],
+			L["Some of Deathwing's brood wear human faces, {name}. Mind who you trust."],
+			L["Ley lines run under all of Azeroth, {name}. Today a little runs your way."],
+			L["Watch the long grass in Stranglethorn, {name}. The panthers are watching you."],
+			L["Careful by the shore, {name}. Where there's one murloc, there are nine."],
+			L["No charge, {name}. They'd call me mad in Booty Bay."],
+			L["May the Barrens be kinder to you than they were to me, {name}."],
+			L["Stay out of the Plaguelands if you can, {name}. Go well armed if you can't."],
+			L["One good turn, {name}. Azeroth could use a few more of those."],
+			L["Ragnaros still burns under Blackrock Mountain, {name}. Let's keep him down there."],
+			L["From Kalimdor to the Eastern Kingdoms, {name}, may every road bring you home."],
+			L["From one wanderer of Azeroth to another."],
 		},
 	},
 	polite = {
@@ -72,26 +76,31 @@ ns.PHRASE_SETS = {
 -- version of.
 ns.PHRASE_SET_ORDER = { "roleplay", "polite", "cheeky", "quiet" }
 
--- The sets as builds up to 1.0.0-beta.5 stored them in every profile, in
--- English on every client; ClampSettings swaps this text for the translated
--- set. Plain strings, not L[...]: they are what a profile holds (a scenario
--- checks they match the keys above).
+-- The sets in English, as builds up to 1.0.0-beta.5 stored them in every
+-- profile on every client, and as the box holds a set picked before its lines
+-- were translated; ClampSettings swaps this text for the translated set. Plain
+-- strings, not L[...]: they are what a profile holds (a scenario checks they
+-- match the keys above).
 local EnglishPhraseSet
 do
 	local PHRASE_SETS_ENGLISH = {
 		roleplay = {
-			"May the Light watch over you, {name}.",
-			"The arcane favours you, {name}.",
-			"Strength to your arm, {name}.",
-			"A boon for the road, {name}.",
-			"Safe travels, {name}. The roads are not kind.",
-			"Winds at your back, {name}.",
-			"May your blade stay keen, {name}.",
-			"Fortune favour you, {name}.",
-			"Go well, {name}. You will need it.",
-			"Take this with you, {name}.",
-			"A gift, freely given.",
-			"Stay sharp out there, {name}.",
+			"Azeroth needs you on your feet, {name}.",
+			"The Titans shaped this world, {name}. Keeping it whole falls to the likes of us.",
+			"The Scourge is always recruiting, {name}. Don't give them the satisfaction.",
+			"The Legion's been at this world for ten thousand years, {name}. It hasn't won yet.",
+			"If something whispers to you in the dark, {name}, don't answer.",
+			"Some of Deathwing's brood wear human faces, {name}. Mind who you trust.",
+			"Ley lines run under all of Azeroth, {name}. Today a little runs your way.",
+			"Watch the long grass in Stranglethorn, {name}. The panthers are watching you.",
+			"Careful by the shore, {name}. Where there's one murloc, there are nine.",
+			"No charge, {name}. They'd call me mad in Booty Bay.",
+			"May the Barrens be kinder to you than they were to me, {name}.",
+			"Stay out of the Plaguelands if you can, {name}. Go well armed if you can't.",
+			"One good turn, {name}. Azeroth could use a few more of those.",
+			"Ragnaros still burns under Blackrock Mountain, {name}. Let's keep him down there.",
+			"From Kalimdor to the Eastern Kingdoms, {name}, may every road bring you home.",
+			"From one wanderer of Azeroth to another.",
 		},
 		polite = {
 			"Thanks for the buff, {name}!",
@@ -112,11 +121,59 @@ do
 		quiet = { "{name}.", "For you, {name}.", "{name} \\o" },
 	}
 
+	-- Sets as they read before they were rewritten, under the key of the set
+	-- that took their place, since a box filled with one then still holds it:
+	-- the Fantasy set, which became Azeroth after 1.6.4. Each in English, as
+	-- above, and as L[...], whose keys keep the old translations in the
+	-- locale files, so a box filled in another language is known too. Never
+	-- said.
+	local FORMER = {
+		roleplay = {
+			english = {
+				"May the Light watch over you, {name}.",
+				"The arcane favours you, {name}.",
+				"Strength to your arm, {name}.",
+				"A boon for the road, {name}.",
+				"Safe travels, {name}. The roads are not kind.",
+				"Winds at your back, {name}.",
+				"May your blade stay keen, {name}.",
+				"Fortune favour you, {name}.",
+				"Go well, {name}. You will need it.",
+				"Take this with you, {name}.",
+				"A gift, freely given.",
+				"Stay sharp out there, {name}.",
+			},
+			translated = {
+				L["May the Light watch over you, {name}."],
+				L["The arcane favours you, {name}."],
+				L["Strength to your arm, {name}."],
+				L["A boon for the road, {name}."],
+				L["Safe travels, {name}. The roads are not kind."],
+				L["Winds at your back, {name}."],
+				L["May your blade stay keen, {name}."],
+				L["Fortune favour you, {name}."],
+				L["Go well, {name}. You will need it."],
+				L["Take this with you, {name}."],
+				L["A gift, freely given."],
+				L["Stay sharp out there, {name}."],
+			},
+		},
+	}
+
+	local function Holds(text, lines)
+		return lines ~= nil and text == table.concat(lines, "\n")
+	end
+
+	-- The set whose text this is, when it is the addon's and not the
+	-- player's: a set in English, or a former set in English or as translated.
 	function EnglishPhraseSet(text)
 		if type(text) ~= "string" then return nil end
 		for _, key in ipairs(ns.PHRASE_SET_ORDER) do
-			local english = PHRASE_SETS_ENGLISH[key]
-			if english and text == table.concat(english, "\n") then return key end
+			local former = FORMER[key]
+			if Holds(text, PHRASE_SETS_ENGLISH[key])
+				or former and (Holds(text, former.english) or Holds(text, former.translated)) then
+				return key
+			end
 		end
 		return nil
 	end

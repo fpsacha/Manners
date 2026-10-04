@@ -134,10 +134,10 @@ mutate("Options/Say.lua",
 # --- the Line set names ---
 
 mutate("Options/Say.lua",
-       "\t\troleplay = L[\"Fantasy (general)\"],\n",
+       "\t\troleplay = L[\"Azeroth (general)\"],\n",
        "",
        "click: roleplay keeps its bare name",
-       expect="the general set is not named Fantasy (general)", script=S)
+       expect="the general set is not named Azeroth (general)", script=S)
 
 mutate("Options/Say.lua",
        "\t\tincharacter = L[\"In character (fits your race and class)\"],\n",

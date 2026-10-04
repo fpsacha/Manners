@@ -350,7 +350,7 @@ do
 		local sp = ns.db.profile.speech
 		sp.enabled, sp.channel, sp.onlyWhenReturning = true, "SAY", true
 		local want = {
-			roleplay = "Says a fantasy line in /say when you buff someone back.",
+			roleplay = "Says a line from Azeroth in /say when you buff someone back.",
 			polite = "Says a polite line in /say when you buff someone back.",
 			cheeky = "Says a cheeky line in /say when you buff someone back.",
 			quiet = "Says just their name in /say when you buff someone back.",

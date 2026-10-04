@@ -462,7 +462,7 @@ mutate("Phrases.lua",
 
 # The box without the lines that show the moment.
 mutate("Phrases.lua",
-       "\t\tput(RP.HISTORY.again, 1, 1)\n",
+       "\t\tput(pools.HISTORY.again, 1, 1)\n",
        "",
        "rp box shows no moment",
        expect="rp: the box shows the moment, and beta.9's box still counts",

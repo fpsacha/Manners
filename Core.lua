@@ -2244,7 +2244,9 @@ function ns.ClampSettings()
 		speech.phrases = ns.PhraseSetText(speech.presetChoice) or ns.PhraseSetText("roleplay")
 	end
 	-- A set's English text is what an English-only build wrote into the box, not
-	-- something the player typed, so it follows the client's language.
+	-- something the player typed, so it follows the client's language; a set's
+	-- text from before it was rewritten (Fantasy, now Azeroth) becomes the set
+	-- as it reads now.
 	local englishSet = ns.EnglishPhraseSet(speech.phrases)
 	local translatedSet = englishSet and ns.PhraseSetText(englishSet)
 	if translatedSet and translatedSet ~= speech.phrases then speech.phrases = translatedSet end

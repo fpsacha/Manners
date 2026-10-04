@@ -18,7 +18,7 @@ function Page.BuildSpeechTab()
 	-- The dropdown's own names for two sets, where the set's label alone does
 	-- not say what it is. Every other set keeps the label ns.PHRASE_SETS gives.
 	local SET_LABEL = {
-		roleplay = L["Fantasy (general)"],
+		roleplay = L["Azeroth (general)"],
 		-- The same words as Start here's quick choice for it.
 		incharacter = L["In character (fits your race and class)"],
 	}

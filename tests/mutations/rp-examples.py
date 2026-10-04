@@ -14,22 +14,22 @@ mutate("Phrases.lua",
 
 # Every character shown a mage's lines.
 mutate("Phrases.lua",
-       '\t\tput(PoolFor(RP.CLASS[class], "offer"), 2, 1)\n',
-       '\t\tput(PoolFor(RP.CLASS.MAGE, "offer"), 2, 1)\n',
+       '\t\tput(PoolFor(pools.CLASS[class], "offer"), 2, 1)\n',
+       '\t\tput(PoolFor(pools.CLASS.MAGE, "offer"), 2, 1)\n',
        "rp examples show another class's lines",
        expect="the box shows a line that is not the character's own", script=S)
 
 # Anybody's kin line where the people has its own.
 mutate("Phrases.lua",
-       "put(general.group, 0, 1) put(race.kin or RP.KIN, 1)\n",
-       "put(general.group, 0, 1) put(RP.KIN, 1)\n",
+       "put(general.group, 0, 1) put(race.kin or pools.KIN, 1)\n",
+       "put(general.group, 0, 1) put(pools.KIN, 1)\n",
        "rp examples show everybody's kin line",
        expect="the box shows a line that is not the character's own", script=S)
 
 # The general group line kept from the older box, which is nobody's own.
 mutate("Phrases.lua",
-       "put(general.group, 0, 1) put(race.kin or RP.KIN, 1)\n",
-       "put(general.group, 1, 1) put(race.kin or RP.KIN, 1)\n",
+       "put(general.group, 0, 1) put(race.kin or pools.KIN, 1)\n",
+       "put(general.group, 1, 1) put(race.kin or pools.KIN, 1)\n",
        "rp examples show the general group line",
        expect="the box shows a line that is not the character's own", script=S)
 
@@ -42,17 +42,40 @@ mutate("Phrases.lua",
 
 # The box 1.5.0 saved read as the player's own lines.
 mutate("Phrases.lua",
-       "\t\tlocal forms = older and { false, true } or { false }\n",
-       "\t\tlocal forms = { false }\n",
+       "\tlocal SAVED = { TODAY, { false, RP.BEFORE }, { true, RP.BEFORE } }\n",
+       "\tlocal SAVED = { TODAY, { false, RP.BEFORE } }\n",
        "rp examples 1.5.0 box lost",
        expect="a Forsaken mage's 1.5.0 box counts as edited", script=S)
 
 # ...and taken for today's by the load repair, so it stays eight lines.
 mutate("Phrases.lua",
-       "\t\tlocal forms = older and { false, true } or { false }\n",
-       "\t\tlocal forms = { false, true }\n",
+       "\t\tlocal forms = older and SAVED or { TODAY }\n",
+       "\t\tlocal forms = SAVED\n",
        "rp examples 1.5.0 box never repaired",
        expect="a Forsaken mage's 1.5.0 box was not turned into today's", script=S)
+
+# The box 1.6.4 saved, before the trolls' examples were reworded, read as
+# the player's own lines.
+mutate("Phrases.lua",
+       "\tlocal SAVED = { TODAY, { false, RP.BEFORE }, { true, RP.BEFORE } }\n",
+       "\tlocal SAVED = { TODAY, { true, RP.BEFORE } }\n",
+       "rp examples 1.6.4 box lost",
+       expect="a troll mage's 1.6.4 box counts as edited", script=S)
+
+# The pools of saved boxes made of today's lines: a reworded example forgotten.
+mutate("Phrases.lua",
+       "\t\tRP.BEFORE[name] = Before(RP[name])\n",
+       "\t\tRP.BEFORE[name] = RP[name]\n",
+       "rp examples reworded lines forgotten",
+       expect="a troll mage's 1.5.0 box counts as edited", script=S)
+
+# The old lines left whole on another language's client, where the box
+# they filled had a line without a translation left out.
+mutate("Phrases.lua",
+       "\t\tRP.BEFORE = Keep(RP.BEFORE)\n",
+       "",
+       "rp examples old lines not thinned abroad",
+       expect="a troll mage's German 1.6.4 box, a line left out, counts as edited", script=S)
 
 # beta.9's five lines read as the player's own.
 mutate("Phrases.lua",
@@ -63,8 +86,8 @@ mutate("Phrases.lua",
 
 # An edited box taken for the set because it begins like the examples.
 mutate("Phrases.lua",
-       "\t\t\t\t\t\t\tif text == Examples(family, faction, class or nil, english, form) then return true end\n",
-       "\t\t\t\t\t\t\treturn true\n",
+       "\t\t\t\t\t\t\tif text == Examples(family, faction, class or nil, english, form[1], form[2]) then\n",
+       "\t\t\t\t\t\t\tif true then\n",
        "rp examples an edited box read as the set",
        expect="today's box and a line of the player's counts as In character", script=S)
 

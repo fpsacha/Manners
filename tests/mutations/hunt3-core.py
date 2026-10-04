@@ -232,3 +232,28 @@ mutate("Speech.lua",
        "English phrase copy drifts from its set",
        expect="core: an English phrase box written by an earlier build is translated (polite)",
        script="runscenarios.py")
+
+# core-12b: the Fantasy lines left in the box once the set is Azeroth.
+mutate("Speech.lua",
+       "\t\t\t\tor former and (Holds(text, former.english) or Holds(text, former.translated)) then\n",
+       "\t\t\t\tthen\n",
+       "Fantasy box kept after the set became Azeroth",
+       expect="core: a box of the Fantasy lines takes the Azeroth set (enUS)",
+       script="runscenarios.py")
+
+# ...and as translated, on a client in another language.
+mutate("Speech.lua",
+       "\t\t\t\tor former and (Holds(text, former.english) or Holds(text, former.translated)) then\n",
+       "\t\t\t\tor former and Holds(text, former.english) then\n",
+       "translated Fantasy box kept after the set became Azeroth",
+       expect="core: a box of the Fantasy lines takes the Azeroth set (deDE)",
+       script="runscenarios.py")
+
+# The English copy of the Fantasy lines drifting from what boxes hold: an
+# English box on a German client is known by nothing else.
+mutate("Speech.lua",
+       "\t\t\t\t\"A gift, freely given.\",\n",
+       "\t\t\t\t\"A gift, freely given!\",\n",
+       "Fantasy English copy drifts",
+       expect="core: a box of the Fantasy lines takes the Azeroth set (deDE)",
+       script="runscenarios.py")

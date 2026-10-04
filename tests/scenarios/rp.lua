@@ -2146,9 +2146,11 @@ end
 -- English still has some -- no people, side, class or moment falls silent in
 -- a language because its newest lines are not translated yet. The pools that
 -- only add to another may wait for their translations, since the moment still
--- has its own there: a people's city (anybody's city lines), its lines for
--- outsiders (its lines for the moment), a spell on a class it does little for
--- (the lines for that class).
+-- has its own there: a people's city (anybody's city lines), its own hours
+-- (everybody's lines for the hour, heard beside them: the trolls' night was
+-- rewritten whole in a review of the lines), its lines for outsiders (its
+-- lines for the moment), a spell on a class it does little for (the lines for
+-- that class).
 do
 	local function localeCodes()
 		local f = io.open(dir .. "/Locales/Locales.xml", "r")
@@ -2176,6 +2178,7 @@ do
 			local pools = allPools(there.InCharacter)
 			for where, pool in pairs(english) do
 				local adds = where:find("^RACE%.[^.]+%.city$") or where:find("^RACE%.[^.]+%.outsider%.")
+					or where:find("^RACE%.[^.]+%.night$") or where:find("^RACE%.[^.]+%.morning$")
 					or where:find("^ONTO%.")
 				if not adds and type(pool) == "table" and #pool > 0 then
 					local left = pools[where]
