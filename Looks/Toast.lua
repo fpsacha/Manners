@@ -837,12 +837,13 @@ function Toast:NameFits(room)
 	return width * least / size <= self.W - self.textX - math.max(room, 12) + 0.5
 end
 
--- The key bound to the prompt, as the game spells it short, or nil. Not while
--- unlocked, when a press buffs nobody, nor over an outcome.
+-- The key bound to the prompt, as the game spells it short, or nil. Only
+-- where a press casts something, as on Arcane: the button armed (a fight's
+-- frozen macro too, unlocked or not), never over a held panel with nothing
+-- armed, nor over an outcome.
 function Toast:KeyLabel()
 	if self.outcomeOn or type(GetBindingKey) ~= "function" then return nil end
-	local p = ns.db and ns.db.profile.prompt
-	if not (p and p.locked) then return nil end
+	if not (self.kit.button:GetAttribute("type1") or (ns.Prompt and ns.Prompt:InTest())) then return nil end
 	local key = GetBindingKey(COMMAND)
 	if type(key) ~= "string" or key == "" then return nil end
 	if type(GetBindingText) == "function" then

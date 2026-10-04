@@ -195,13 +195,30 @@ local function ClassSafe(class, key, offered, inRaid)
 	return true
 end
 
+-- Whether a group spell or shout can land on `unit` at all: not one the
+-- client says is out of sight (beyond any group spell's 100 yards, as
+-- BuildQueue reads it), nor one lying dead. A hunter's Feign Death is no
+-- death, and the spell lands on them. An unclear answer counts as reached.
+-- Called directly, as Queue.lua calls them: a group token never throws.
+local function Reached(unit)
+	if plain(UnitIsVisible and UnitIsVisible(unit)) == false then return false end
+	if plain(UnitIsDeadOrGhost(unit)) == true then
+		local feigning = _G.UnitIsFeignDeath
+		if type(feigning) ~= "function" then return true end
+		return plain(feigning(unit)) ~= false
+	end
+	return true
+end
+
 -- Who of everybody a party-wide spell lands on reads as flagged for PvP: the
 -- first one's name in token order, "?" when the game will not name them, or
 -- nil. `where` is a bucket's (a class, a raid subgroup, "party") or "raid" for
 -- the whole raid, and everybody in it counts, not only those queued: somebody
 -- flagged was never queued at all. Somebody whose class, subgroup or flag
--- cannot be read is no reason to (cannot tell); you are never counted. `memo`
--- is GroupCasts', nil for a question asked afresh.
+-- cannot be read is no reason to (cannot tell); you are never counted, and
+-- nor is somebody the spell cannot reach (Reached), asked only of the flagged
+-- so a raid with nobody flagged pays nothing for it. `memo` is GroupCasts',
+-- nil for a question asked afresh.
 local function FlaggedAmong(where, byClass, inRaid, memo)
 	local n = plain(GetNumGroupMembers and GetNumGroupMembers()) or 0
 	local tokens = inRaid and TOKENS.raid or TOKENS.party
@@ -216,7 +233,9 @@ local function FlaggedAmong(where, byClass, inRaid, memo)
 			elseif inRaid and where ~= "raid" then
 				inside = RaidSubgroup(unit, memo) == where
 			end
-			if inside and Asked(memo, "flag", unit, Flag) == true then return ns.UnitFullName(unit) or "?" end
+			if inside and Asked(memo, "flag", unit, Flag) == true and Reached(unit) then
+				return ns.UnitFullName(unit) or "?"
+			end
 		end
 	end
 	return nil

@@ -155,7 +155,7 @@ mutate("Requests.lua",
 
 # A whole Chinese sentence taken as one short word.
 mutate("Requests.lua",
-       "\t\t\tif word:find(\"[\\228-\\233]\") and select(2, word:gsub(\"[\\192-\\255]\", \"\")) > ASK.mostChars then\n",
+       "\t\t\tif run:find(\"[\\228-\\233]\") and select(2, run:gsub(\"[\\192-\\255]\", \"\")) > ASK.mostChars then\n",
        "\t\t\tif false then\n",
        "chinese sentences uncapped",
        expect="core2: a long Chinese sentence is not a request",

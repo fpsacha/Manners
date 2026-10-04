@@ -99,6 +99,11 @@ do
 			"plez", "plse", "pleas", "plss", "plzz", "need", "gimme",
 			"bitte", "svp", "stp", "porfa", "favor", "favore",
 			"пожалуйста", "пж", "плз", "плиз", "пжлст" }),
+		-- A please of more than one word, as one phrase: none of its words
+		-- alone is a please ("ça me plaît"), and beside a nickname each one
+		-- had to be a small word, which "por" and "per" are not.
+		pleasePhrases = { { "por", "favor" }, { "per", "favore" }, { "sil", "vous", "plait" },
+			{ "sil", "vous", "plaît" }, { "sil", "te", "plait" }, { "sil", "te", "plaît" } },
 		opener = Set({ "can", "could", "may", "any", "anyone", "anybody", "someone",
 			"somebody", "got", "mind" }),
 		-- Opening a question about the buff rather than one asking for it. "who
@@ -170,11 +175,21 @@ do
 	-- A to Z spelled out rather than %w and string.lower, which follow the C
 	-- locale and can split a Cyrillic or Chinese character in two. Other
 	-- scripts are compared by SameWord and looked up by Among.
+	--
+	-- The common punctuation outside ASCII separates words too: ¡ ¿ « », the
+	-- dashes, curly quotes and the ellipsis, the full-width ！ ， ？ and 、 。,
+	-- and a curly apostrophe is an apostrophe ("s’il"). Not the full-width
+	-- colon, which stands inside a spell's name (真言术：韧). The text handed
+	-- back is the message as typed, which the Chinese names and the trailing
+	-- question mark are read from.
 	local function Words(text)
 		text = text:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
 			:gsub("|H.-|h(.-)|h", "%1"):gsub("|T.-|t", ""):gsub("[A-Z]", string.lower)
+		local split = text:gsub("\194[\161\171\187\191]", " "):gsub("\226\128[\147\148\156\157\166]", " ")
+			:gsub("\239\188[\129\140\159]", " "):gsub("\227\128[\129\130]", " ")
+			:gsub("\226\128[\152\153]", "'")
 		local words = {}
-		for found in text:gmatch("[A-Za-z0-9\128-\255']+") do
+		for found in split:gmatch("[A-Za-z0-9\128-\255']+") do
 			local word = found:gsub("'", "")
 			if word ~= "" then words[#words + 1] = word end
 		end
@@ -271,9 +286,12 @@ do
 		if #words == 0 or #words > ASK_MOST_WORDS then return nil end
 		for _, word in ipairs(words) do
 			if Among(ASK.never, word) then return nil end
-			-- A word holding Chinese ideographs (lead bytes 228-233) is capped
-			-- by its characters, counted by their lead bytes.
-			if word:find("[\228-\233]") and select(2, word:gsub("[\192-\255]", "")) > ASK.mostChars then
+		end
+		-- A run holding Chinese ideographs (lead bytes 228-233) is capped by its
+		-- characters, counted by their lead bytes. Read off the message as
+		-- typed: a sentence is no shorter for the commas Words splits it at.
+		for run in lowered:gmatch("[A-Za-z0-9\128-\255']+") do
+			if run:find("[\228-\233]") and select(2, run:gsub("[\192-\255]", "")) > ASK.mostChars then
 				return nil
 			end
 		end
@@ -312,6 +330,11 @@ do
 			and not ASK.questionEnds[stem:sub(-3)] and not lowered:find("[\234-\237]")
 
 		local covered, found, generic = {}, {}, false
+		-- A please of more than one word ("por favor", "s'il vous plaît"),
+		-- covered as a whole so that none of its words stands alone.
+		for _, phrase in ipairs(ASK.pleasePhrases) do
+			if Mark(words, phrase, covered) then pleased = true end
+		end
 		for _, buff in ipairs(ns.GetClassBuffs(ns.PlayerClass()) or {}) do
 			if ns.IsBuffKnown(buff) then
 				found[buff.key] = Names(words, lowered, buff, covered)

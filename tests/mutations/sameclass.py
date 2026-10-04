@@ -12,8 +12,8 @@ mutate("Queue.lua",
 
 # A blessing he could give himself picked for him all the same.
 mutate("Core.lua",
-       "\t\t\t\t\telseif not skipped then\n",
-       "\t\t\t\t\telse\n",
+       "\t\t\t\t\telseif castable and not skipped then\n",
+       "\t\t\t\t\telseif castable then\n",
        "sameclass: a paladin offered what he gives himself",
        expect="sameclass: a paladin who can give himself the rest is offered Kings",
        script=S)
@@ -21,8 +21,8 @@ mutate("Core.lua",
 # Skipped blessings dropped before the aura read: your Wisdom on him no
 # longer covers him, and Kings would replace it.
 mutate("Core.lua",
-       "\t\t\t\tif Castable(opts, buff) then\n\t\t\t\t\t-- One they could give themselves is still read",
-       "\t\t\t\tif Castable(opts, buff) and not Skipped(opts, buff) then\n\t\t\t\t\t-- One they could give themselves is still read",
+       "\t\t\t\tif castable or buff.groupOnly then\n\t\t\t\t\t-- One they could give themselves is still read",
+       "\t\t\t\tif (castable or buff.groupOnly) and not Skipped(opts, buff) then\n\t\t\t\t\t-- One they could give themselves is still read",
        "sameclass: your blessing on him not read",
        expect="sameclass: a paladin wearing your Wisdom is not walked onto Kings",
        script=S)

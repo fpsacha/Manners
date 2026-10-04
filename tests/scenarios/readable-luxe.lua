@@ -475,6 +475,17 @@ local function textColour(fs)
 	return { c[1], c[2], c[3] }
 end
 
+-- The tag's words in the colour they are drawn: a line's own leading colour
+-- code where it carries one ("held -- in combat" in grey), which SetLine
+-- leaves in the text and the font string's colour does not show, else the
+-- font string's.
+local function tagColour(fs)
+	local hex = type(fs._text) == "string" and fs._text:match("^|c%x%x(%x%x%x%x%x%x)")
+	if not hex then return textColour(fs) end
+	return { tonumber(hex:sub(1, 2), 16) / 255, tonumber(hex:sub(3, 4), 16) / 255,
+		tonumber(hex:sub(5, 6), 16) / 255 }
+end
+
 local function pillItem(s, look, list)
 	for _, item in ipairs(s.textures) do
 		if item.t == look[list][2] then return item end
@@ -483,12 +494,14 @@ local function pillItem(s, look, list)
 end
 
 -- Rule 2 on the lines as they stand: the name in every colour a name can be,
--- the tag in the colour it is painted.
-local function readable(ns, scenario, label, extraNameColours)
+-- the tag in the colour it is painted. `tagOnly` leaves the name to the
+-- panel: on a light one it is dark on light, as it should be, and only the
+-- tag and the chip carry a dark ground of their own.
+local function readable(ns, scenario, label, extraNameColours, tagOnly)
 	local s = scene(ns, TEXT_FLOURISH)
 	local r = s.regions
 	local look = r.look
-	if not look.clear and FT.visible(r.name) and (r.name._text or "") ~= "" then
+	if not tagOnly and not look.clear and FT.visible(r.name) and (r.name._text or "") ~= "" then
 		local box = nameBox(s, r.name)
 		if box then
 			local colours = nameColours(look.classSoften or 0.85)
@@ -505,7 +518,7 @@ local function readable(ns, scenario, label, extraNameColours)
 		local box = pillTextBox(s, look, r.sub)
 		local fill = pillItem(s, look, "pillFill")
 		if box then
-			local q, why = worstContrast(s, r.sub, box, { { "the tag's words", textColour(r.sub) } }, fill)
+			local q, why = worstContrast(s, r.sub, box, { { "the tag's words", tagColour(r.sub) } }, fill)
 			if q < MIN_RATIO then
 				fail(scenario, ("%s: the reason line reads %.2f:1 on its tag, not %.1f -- %s")
 					:format(label, q, MIN_RATIO, why))
@@ -719,6 +732,63 @@ withTree("Luxe's text stands on a dark ground", ANNA, function(ns, scenario)
 	local r, p = upIn(ns, scenario, function(pp) pp.bgColor = { 0.04, 0.04, 0.06, 0.1 } end)
 	if isLuxe(r) then
 		everyReason(ns, scenario, p, "a nearly clear panel", function(l) readable(ns, scenario, l) end)
+	end
+end)
+
+-- A light panel, the text colour left to follow it: the name goes dark, but
+-- the tag and the chip keep their own near-black fills, and what stands on
+-- them stays light. Taken dark for the panel -- the words, the count and the
+-- colour codes the lines bring ("held -- in combat") -- they read 1:1.
+withTree("Luxe's tag and count keep their own ground on a light panel", ANNA, function(ns, scenario)
+	for _, panel in ipairs({ { "a cream panel", { 0.86, 0.84, 0.78, 0.92 } },
+		{ "a white panel", { 1, 1, 1, 0.92 } } }) do
+		local r, p = upIn(ns, scenario, function(pp) pp.bgColor = panel[2] end)
+		if not isLuxe(r) then
+			fail(scenario, "SKIPPED -- Luxe is not the look in use")
+			return
+		end
+		local label = panel[1]
+		local function read(l) readable(ns, scenario, l, nil, true) end
+		everyReason(ns, scenario, p, label .. " at rest", read)
+		hover(ns, true)
+		everyReason(ns, scenario, p, label .. " under the cursor", read)
+		hover(ns, false)
+		Mock.inCombat = true
+		ns.addon:PLAYER_REGEN_DISABLED()
+		settle(ns)
+		everyReason(ns, scenario, p, label .. " in a fight", read)
+		-- The fight's own grey words, as they stand on the tag.
+		ns.Prompt:PaintAccent("owed")
+		r.look.kit.SetLine(r.sub, "|cffb0b0b0held|r -- in combat")
+		read(label .. ", \"held -- in combat\" in a fight")
+		Mock.inCombat = false
+		if ns.addon.PLAYER_REGEN_ENABLED then ns.addon:PLAYER_REGEN_ENABLED() end
+		settle(ns)
+		p.effects = "calm"
+		ns.Prompt:ApplyStyle()
+		settle(ns)
+		hover(ns, true)
+		for _, case in ipairs({ { "cast" }, { "failed", "Out of range." }, { "sent" } }) do
+			Mock.advance(3)
+			ns.addon:Tick()
+			ns.Prompt:ShowOutcome(case[1], "Anna Aim", case[2])
+			read(("%s, a %s outcome held under the cursor"):format(label, case[1]))
+		end
+		hover(ns, false)
+		p.effects = "full"
+		Mock.advance(3)
+		ns.Prompt:ApplyStyle()
+		settle(ns)
+		ns.Prompt:PaintAccent("owed")
+		-- The colours the prompt itself writes on the tag, kept as written
+		-- for a dark ground: "not buffing while unlocked", "held", "ready
+		-- in", and gold and white.
+		for _, code in ipairs({ "ff8080", "b0b0b0", "b8b8c7", "ffd100", "ffffff" }) do
+			r.look.kit.SetLine(r.sub, "|cff" .. code .. "held|r")
+			read(("%s, a reason line in |cff%s"):format(label, code))
+		end
+		ns.Prompt:Paint({ name = "Anna Aim", short = "Anna", reason = "owed", buff = ns.ResolveBuff(true) }, 12)
+		read(label .. " with the count up")
 	end
 end)
 

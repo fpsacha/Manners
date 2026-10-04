@@ -99,8 +99,8 @@ mutate("Prompt/Press.lua",
 # A press the settle path calls a failure (the cast went to somebody else)
 # holding nothing: the next press thanks them again.
 mutate("Clicks.lua",
-       "\t\t-- went, so it is held; no back-off, since the game refused nobody.\n\t\tns.NoteRefusal(pending.name, nil, true)\n",
-       "\t\t-- went, so it is held; no back-off, since the game refused nobody.\n",
+       "\t\t-- since the game refused nobody.\n\t\tns.NoteRefusal(pending.name, nil, true, pending.spoke)\n",
+       "\t\t-- since the game refused nobody.\n",
        "settle failure does not hold the line",
        expect="speech-range: a press that went to somebody else holds the line",
        script="runscenarios.py")
@@ -239,7 +239,7 @@ mutate("Prompt/Macro.lua",
 # A silent press refused out of range holding the line like any other: the
 # press that lands once he is back goes out silent too.
 mutate("Queue.lua",
-       "\t\tlocal hold = spoke ~= false or not OneOf(why, RECHECKED)\n",
+       "\t\tlocal hold = spoke ~= false or (not quietOnly and not OneOf(why, RECHECKED))\n",
        "\t\tlocal hold = true\n",
        "a silent press refused out of range holds the line",
        expect="speech-range: a silent press refused out of range leaves the next press its line",
@@ -248,7 +248,7 @@ mutate("Queue.lua",
 # ...and refused for what no press can ask again (line of sight) holding
 # nothing either.
 mutate("Queue.lua",
-       "\t\tlocal hold = spoke ~= false or not OneOf(why, RECHECKED)\n",
+       "\t\tlocal hold = spoke ~= false or (not quietOnly and not OneOf(why, RECHECKED))\n",
        "\t\tlocal hold = spoke ~= false\n",
        "a silent press refused out of sight holds nothing",
        expect="speech-range: a silent press refused out of sight still holds the line",

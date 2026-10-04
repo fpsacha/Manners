@@ -13,7 +13,8 @@
   and raid. The prompt now offers one cast for the raid ("Your raid") once
   enough of the raid need it, rather than counting each raid group apart and
   walking you through single casts, and holds it back while anybody in the
-  raid is flagged for PvP.
+  raid it would reach is flagged for PvP: not somebody out of sight or dead,
+  though a hunter feigning death still counts.
 - **Prayer of Fortitude from level 48 to 59** is offered with Holy Candles in
   your bags, the reagent its first rank takes. It used to look for Sacred
   Candles, so it never came up.
@@ -34,6 +35,22 @@
   offered Unending Breath, and a shaman's Water Breathing on you counts as a
   favour.
 - **"ub" in chat** asks a warlock for Unending Breath.
+- **A warrior's thank-you goes with Battle Shout only within its 20 yards.**
+  The shout is still offered to party members a little further off, but the
+  line is said only where something can tell they are close enough to hear
+  it: close enough to trade, or LibRangeCheck says so.
+- **"por favor", "per favore" and "s'il vous plaît"** count as a please when
+  somebody asks for a buff in chat, as "porfa" and "svp" already did. So do
+  "¿int?", "int pls…" with the one-character ellipsis, and "int？" typed on a
+  Chinese keyboard.
+- **Luxe with a light panel colour:** the reason tag's words, the count and
+  lines such as "held -- in combat" are light again on the tag's own dark
+  fill. They were taken dark to suit the panel, dark on dark.
+- **Toast shows its key only when a press casts something:** not over a
+  panel held in a fight with nothing armed, and still while a fight's macro
+  goes on casting after you unlock the prompt.
+- **The preview's count** covers every row it lists below the panel. It
+  said 2 over three to five rows.
 
 ## 1.6.4
 

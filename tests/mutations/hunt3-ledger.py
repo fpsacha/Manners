@@ -68,7 +68,7 @@ mutate("Ledger.lua",
 
 # A party-only favour held back by a snooze or a mount still waits on the party.
 mutate("Ledger.lua",
-       "\tif e.partyOnly then\n\t\tif ns.PARTY_IS_SUBGROUP then\n",
-       "\tif false then\n\t\tif ns.PARTY_IS_SUBGROUP then\n",
+       "\tif e.partyOnly then\n\t\tlocal reach = OnlyGroup()\n",
+       "\tif false then\n\t\tlocal reach = OnlyGroup()\n",
        "hunt3 ledger: party-only row held back drops the party",
        expect="hunt3 ledger: a party-only favour held back still says it waits on the party", script=S)

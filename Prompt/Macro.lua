@@ -281,10 +281,13 @@ function Prompt:ApplyTarget(entry, silent)
 	-- repaint. Nor in the macro armed for a fight: every press in it runs that
 	-- one frozen text, so the line went out again on a press the cooldown
 	-- turned away and after the favour was repaid. As /thank, never in a
-	-- fight; the repaint after it puts the line back.
+	-- fight; the repaint after it puts the line back. Nor for a shout at
+	-- somebody not surely inside its own radius (ns.ShoutSure): the scan's
+	-- reach for a shout is looser on purpose, and the press asks the same.
 	local speak = not silent and entry.ranged == true and not ns.SpeechHeld(entry.name)
 		and ns.ChannelOpen()
 		and Prompt.armedForFight ~= true
+		and not (entry.buff.selfCast and ns.ShoutSure(entry.unit) ~= true)
 
 	-- Everything the macro is built from, so it is not rebuilt at 2.5 Hz. Other
 	-- inputs come through InvalidateMacro; the unit is here for try's {unit},

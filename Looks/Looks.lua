@@ -22,6 +22,9 @@
 --                   panel (default 0.55). 1 when the look dims its own parts.
 --   classSoften     0..1: how far a class-coloured name is taken towards white
 --                   (nil: as it is), so it never competes with the reason.
+--   subOnDark       true when the reason line sits on a dark ground of the
+--                   look's own (Luxe's tag): its colour codes, picked for a
+--                   dark ground, are not taken darker for a light panel.
 --   TwoLineHeight(fontSize)  the height two lines need on this look (nil:
 --                   Prompt's own). Options states it; ApplyStyle obeys it.
 --   AccentCarriers(p)        ring, stripe: which reason marks are on screen

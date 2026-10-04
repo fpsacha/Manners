@@ -183,14 +183,15 @@ function Prompt:RefreshPanel()
 		if not R.button:IsShown() and SetPanelShown(true) then
 			if R.art.intro then R.art.intro:Play() end
 		end
-		self:Paint(TestEntry(), 2)
-		self:StartAttention(false)
 		-- Mock rows with mock reasons, since the reason bar is being styled
-		-- too.
+		-- too. The count covers every row listed, as a real one does: each
+		-- row below is somebody else waiting.
 		local mock, reasons = {}, { "owed", "group", "nearby", "nearby", "nearby" }
 		for i = 1, (p.showQueue and p.queueRows or 0) do
 			mock[i] = { text = L["Someone %d"]:format(i), reason = reasons[i] }
 		end
+		self:Paint(TestEntry(), math.max(2, #mock))
+		self:StartAttention(false)
 		self:PaintQueue(mock)
 		return
 	end

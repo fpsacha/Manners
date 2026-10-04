@@ -158,9 +158,15 @@ local function FitLine(fs)
 end
 
 -- The one way text goes onto the name and the reason line: its colours made
--- legible on this panel, and the line fitted to its room.
+-- legible on this panel, and the line fitted to its room. A reason line on a
+-- look's own dark ground (subOnDark) keeps codes picked for a dark ground on
+-- a light panel too: taken dark for the panel, they were dark on dark.
 local function SetLine(fs, text)
-	fs:SetText(LegibleText(text))
+	if fs == R.subText and not ink.light and S.activeLook and S.activeLook.subOnDark then
+		fs:SetText(text)
+	else
+		fs:SetText(LegibleText(text))
+	end
 	FitLine(fs)
 end
 

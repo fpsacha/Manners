@@ -131,9 +131,11 @@ local function ExpirePendingClick(pending, why)
 	-- RewindClick writes from now, so running it twice doubles the block.
 	if pending.answered then return end
 	RewindClick(pending)
-	-- Nothing reached them, so the spoken line (which the macro ran anyway) is
-	-- held; no back-off, since nothing here says the game refused them.
-	ns.NoteRefusal(pending.name, nil, true)
+	-- Nothing reached them, so a spoken line the macro carried (and ran
+	-- anyway) is held; a silent press holds nothing, or the press that lands
+	-- once they are back would go out silent too. No back-off, since nothing
+	-- here says the game refused them.
+	ns.NoteRefusal(pending.name, nil, true, pending.spoke)
 	SayStillOwed(pending.name, why or L["the game answered that press with nothing at all"])
 end
 
@@ -527,8 +529,9 @@ local function SettlePendingClick(landedOn, spellId, castGUID)
 		SayStillOwed(pending.name, why)
 		RewindClick(pending)
 		-- The macro's line thanked them for a buff that went elsewhere or never
-		-- went, so it is held; no back-off, since the game refused nobody.
-		ns.NoteRefusal(pending.name, nil, true)
+		-- went, so it is held (a silent press held nothing); no back-off,
+		-- since the game refused nobody.
+		ns.NoteRefusal(pending.name, nil, true, pending.spoke)
 		ns.pendingClick = nil
 		-- The chat line's sentence, without colour codes: the sub-line is
 		-- already tinted, and a nested one renders as literal text.

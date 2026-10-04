@@ -263,6 +263,14 @@ do
 		settleTries = 0
 	end
 
+	-- Whether a unit or a name is in your party or raid at all, as BuildQueue's
+	-- walk asks it: Salvation's reach, where a shout's is SameParty.
+	local function InGroup(who)
+		if not who then return false end
+		return (plain(UnitInParty and UnitInParty(who)) or plain(UnitInRaid and UnitInRaid(who))) and true
+			or false
+	end
+
 	-- Read the caster off a slot at the moment the slot is read, and keep it with
 	-- the class under the aura: neither can be recovered later, and the fallback
 	-- queue needs the class. A sighting with nobody in it still records that no
@@ -287,8 +295,11 @@ do
 		seen.name = full
 		seen.guid = plain(UnitGUID(source))
 		seen.class = plain(select(2, UnitClass(source)))
-		-- Asked of the token while it still means them, like the name.
+		-- Asked of the token while it still means them, like the name: in
+		-- your own party (a shout's reach) and in your party or raid at all
+		-- (Salvation's), as BuildQueue's walk asks it.
 		seen.sameParty = SameParty(source)
+		seen.inGroup = InGroup(source)
 		seen.hasMana = UnitHasMana(source)
 		-- And their PvP flag, which goes on the debt: the owed fallback, with
 		-- no token to ask, judges them on it (Queue.lua, "flagged for PvP").
@@ -299,14 +310,15 @@ do
 	end
 
 	-- What the queue would offer somebody (nil for nothing) knowing only whether
-	-- they have mana and whether a shout reaches them. The rest is set as the
-	-- queue sets it for a debt, so the two cannot disagree.
-	function ns.CouldOffer(hasMana, inParty)
+	-- they have mana, whether a shout reaches them, and whether they are in
+	-- your party or raid at all (Salvation's reach; nil: as inParty). The rest
+	-- is set as the queue sets it for a debt, so the two cannot disagree.
+	function ns.CouldOffer(hasMana, inParty, inGroup)
 		local db = addon.db and addon.db.profile
 		if not db then return nil end
 		return ns.PickBuffFor(ns.CastableBuffs(), {
 			hasMana = hasMana,
-			inGroup = inParty,
+			inGroup = inGroup or inParty,
 			inParty = inParty,
 			relevantOnly = db.filters.relevantOnly,
 			whenBuffed = "always",
@@ -354,6 +366,8 @@ do
 		if hasMana == nil and seen.class then hasMana = MANA_CLASSES[seen.class] == true end
 		local inParty = seen.sameParty
 		if inParty == nil then inParty = SameParty(seen.name) end
+		local inGroup = seen.inGroup
+		if inGroup == nil then inGroup = InGroup(seen.name) end
 		-- Whether a "buffed you" line is said here at all, asked once for both
 		-- kinds of favour: a raid's shouts at every pull are no more news than
 		-- its Fortitude.
@@ -383,8 +397,9 @@ do
 		-- A warrior's shout reaches the party (in a raid, the subgroup) and
 		-- nobody else, so a stranger who buffed one is kept but not on the
 		-- prompt, and the line says so, naming the subgroup where that is the
-		-- limit.
-		local reachable = ns.CouldOffer(hasMana, inParty) ~= nil
+		-- limit. Salvation reaches the whole raid: a raider in another
+		-- subgroup is on the prompt as the queue offers them.
+		local reachable = ns.CouldOffer(hasMana, inParty, inGroup) ~= nil
 		if speak then
 			-- "On the prompt" only when a prompt can show it: not through a snooze,
 			-- an unlocked prompt or Not while mounted.

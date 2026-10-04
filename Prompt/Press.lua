@@ -86,7 +86,9 @@ end
 --     tokenless favour has none, and the scan's token may name somebody else;
 --   - alive: the hold and the fuse keep somebody a moment after they die, and
 --     a range check measures distance, not life;
---   - in reach, asked as the scan asks it (ns.ReachNow);
+--   - in reach, asked as the scan asks it (ns.ReachNow), and for a shout
+--     surely inside its own radius (ns.ShoutSure): the scan's reach for a
+--     shout is looser than the shout on purpose;
 --   - the global cooldown, your own cast and the spell's own cooldown over;
 --   - the spell usable, mana included, where the client says.
 -- Line of sight no call can tell. The press itself goes out either way, and
@@ -103,6 +105,7 @@ local function HoldLine(entry, verdicts)
 	local deadOrGhost = _G.UnitIsDeadOrGhost
 	if type(deadOrGhost) ~= "function" or ns.plain(deadOrGhost(unit)) ~= false then return true end
 	if ns.ReachNow(unit, entry.buff) ~= true then return true end
+	if entry.buff.selfCast and ns.ShoutSure(unit) ~= true then return true end
 	local spell = PressSpell(entry)
 	if not ns.CastReady(spell) then return true end
 	local usable = C_Spell and C_Spell.IsSpellUsable

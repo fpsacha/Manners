@@ -125,6 +125,8 @@ local TEXT = {
 	-- true whether or not they are in it now.
 	TIP_OWED_PARTY = L["Still owed. What you cast reaches only your own party, so the prompt offers them only while they are in it."],
 	TIP_OWED_SUBGROUP = L["Still owed. What you cast reaches only your own party -- in a raid, your own subgroup -- so the prompt offers them only while they are in it."],
+	-- A paladin's Salvation, which reaches the whole raid but nobody outside it.
+	TIP_OWED_GROUP = L["Still owed. What you cast reaches only your own party or raid, so the prompt offers them only while they are in it."],
 	TIP_RETURNED = L["You returned it %s later."],
 	TIP_RETURNED_WITH = L["You returned it %s later, with %s."],
 	TIP_LETGO_EXPIRED = L["Let go: the time to return it ran out before you did."],
@@ -154,14 +156,17 @@ local TEXT = {
 	TIP_OWED_SNOOZED_SUBGROUP = L["Still owed. What you cast reaches only your own party -- in a raid, your own subgroup -- so the prompt offers them only while they are in it, and it is snoozed until %s, so only if time is left then."],
 	TIP_OWED_MOUNTED_PARTY = L["Still owed. What you cast reaches only your own party, so the prompt offers them only while they are in it, once you are no longer mounted, until the time runs out."],
 	TIP_OWED_MOUNTED_SUBGROUP = L["Still owed. What you cast reaches only your own party -- in a raid, your own subgroup -- so the prompt offers them only while they are in it, once you are no longer mounted, until the time runs out."],
+	TIP_OWED_SNOOZED_GROUP = L["Still owed. What you cast reaches only your own party or raid, so the prompt offers them only while they are in it, and it is snoozed until %s, so only if time is left then."],
+	TIP_OWED_MOUNTED_GROUP = L["Still owed. What you cast reaches only your own party or raid, so the prompt offers them only while they are in it, once you are no longer mounted, until the time runs out."],
 	TIP_GAVE = L["You buffed them with %s, %s."],
 	TIP_GAVE_GROUP = L["They were in your group and had not buffed you."],
 	TIP_GAVE_STRANGER = L["They were not in your group and had not buffed you."],
 	-- Under either of those for a buff somebody asked for, which is listed
 	-- with the rest but not counted as given unprompted.
 	TIP_GAVE_ASKED = L["They asked for it in chat."],
-	-- Under TIP_GAVE_GROUP for a group cast, which is counted as one buff.
-	TIP_GAVE_COVERED = L["One cast gave it to %d who needed it in their party or class, and counts as one buff given."],
+	-- Under TIP_GAVE_GROUP for a group cast, which is counted as one buff. The
+	-- group is not named: a party's, a class's or (on Forever) a whole raid's.
+	TIP_GAVE_COVERED = L["One cast gave it to %d who needed it, and counts as one buff given."],
 
 	JUST_NOW = L["just now"],
 	MINUTES_AGO = L["%d min ago"],
@@ -1348,6 +1353,18 @@ local function Detail(e)
 	return TEXT.STATE_LETGO, why, COLOUR.letgo
 end
 
+-- Which "only your group" a party-only favour's lines name, by what this
+-- character casts now: SUBGROUP for a vanilla shout in a raid
+-- (ns.GroupMeansSubgroup, as the favour's chat line and Who to buff ask it),
+-- GROUP for Salvation, which reaches the whole raid, else PARTY.
+local function OnlyGroup()
+	if ns.GroupMeansSubgroup() then return "SUBGROUP" end
+	for _, buff in ipairs(ns.CastableBuffs()) do
+		if buff.groupOnly and not buff.partyOnly then return "GROUP" end
+	end
+	return "PARTY"
+end
+
 -- What an owed row says in place of "the prompt offers them" while the prompt
 -- cannot, or nil. Asked when hovered, like Quiet(), each check through pcall
 -- so a throw costs the caveat and not the tooltip. A snooze or a mount holds
@@ -1368,11 +1385,8 @@ local function OwedHeldBack(e)
 	if okPvP and flagged == true then return TEXT.TIP_OWED_PVP end
 	local snoozeLine, mountLine = TEXT.TIP_OWED_SNOOZED, TEXT.TIP_OWED_MOUNTED
 	if e.partyOnly then
-		if ns.PARTY_IS_SUBGROUP then
-			snoozeLine, mountLine = TEXT.TIP_OWED_SNOOZED_SUBGROUP, TEXT.TIP_OWED_MOUNTED_SUBGROUP
-		else
-			snoozeLine, mountLine = TEXT.TIP_OWED_SNOOZED_PARTY, TEXT.TIP_OWED_MOUNTED_PARTY
-		end
+		local reach = OnlyGroup()
+		snoozeLine, mountLine = TEXT["TIP_OWED_SNOOZED_" .. reach], TEXT["TIP_OWED_MOUNTED_" .. reach]
 	end
 	local snoozed, ends = pcall(function()
 		return ns.SnoozeLeft and ns.SnoozeLeft() and ns.SnoozeEndsAt()
@@ -1408,7 +1422,7 @@ local function RowTooltip(row)
 		if e.state == "owed" then
 			local line = OwedHeldBack(e)
 				or not e.partyOnly and TEXT.TIP_OWED
-				or ns.PARTY_IS_SUBGROUP and TEXT.TIP_OWED_SUBGROUP or TEXT.TIP_OWED_PARTY
+				or TEXT["TIP_OWED_" .. OnlyGroup()]
 			GameTooltip:AddLine(line, c[1], c[2], c[3], true)
 		elseif e.state == "returned" then
 			local took = Duration((e.doneAt or e.at) - e.at)

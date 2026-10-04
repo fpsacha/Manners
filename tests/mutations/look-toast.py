@@ -222,7 +222,7 @@ mutate(TOAST,
        script="runscenarios.py")
 
 mutate(TOAST,
-       "\tif not (p and p.locked) then return nil end\n",
+       "\tif not (self.kit.button:GetAttribute(\"type1\") or (ns.Prompt and ns.Prompt:InTest())) then return nil end\n",
        "",
        "the key's chip on an unlocked prompt",
        expect="on an unlocked prompt",

@@ -899,7 +899,11 @@ do
 			for _, buff in ipairs(candidates) do
 				-- Castable rather than Eligible: the blessing we tried moments ago
 				-- is the one they most likely carry, so it must still be read.
-				if Castable(opts, buff) then
+				-- A Salvation we cannot cast on them (no longer in our group) is
+				-- read too: ours still on them covers them, and the walk would
+				-- otherwise offer a blessing that replaces it.
+				local castable = Castable(opts, buff)
+				if castable or buff.groupOnly then
 					-- One they could give themselves is still read: ours on them
 					-- covers them like any other, but it is never what they get.
 					local skipped = Skipped(opts, buff)
@@ -908,8 +912,9 @@ do
 						-- Another paladin's: ours of the same kind would only
 						-- replace it, so move on to a kind they lack -- unless we
 						-- offered this one moments ago, which still means "wait".
-						-- One they could give themselves is neither.
-						if not skipped then
+						-- One they could give themselves is neither, and nor is
+						-- one we cannot cast on them.
+						if castable and not skipped then
 							if Blocked(opts, buff) then
 								onCooldown = true
 							elseif not theirs then
@@ -919,8 +924,9 @@ do
 					elseif held == true then
 						-- Covered, and for this class that is the end of it. First
 						-- the cooldown: offered one moments ago means wait. One
-						-- they could give themselves is covered and no more.
-						if skipped or Blocked(opts, buff) then return nil, true end
+						-- they could give themselves is covered and no more, and
+						-- so is one we cannot cast on them: nothing to top up.
+						if skipped or not castable or Blocked(opts, buff) then return nil, true end
 
 						-- The top-up, safest on this class: recasting a blessing
 						-- replaces it with itself. Ahead of the debt, as on the
@@ -935,7 +941,7 @@ do
 						-- from us (or from nobody we can name), which refreshes it.
 						if not opts.offerAnyway then return nil, true end
 						return buff, true
-					elseif not skipped then
+					elseif castable and not skipped then
 						-- "None of mine" only once every one has read back a
 						-- definite no: BuildQueue promotes over a debt on has ==
 						-- false, and the prompt drops the unverified wording.
@@ -1958,6 +1964,33 @@ local function ShoutReach(unit)
 	return nil
 end
 ns.ShoutReach = ShoutReach
+
+-- Whether a shout surely reaches this unit, for the spoken line alone: true
+-- only where something says within 20 yards, the radius of every Battle Shout
+-- rank in Forever's spell data (and the tightest any client gives a shout);
+-- further, unknown or in a fight is false. ShoutReach stays looser on purpose
+-- for offering and settling, but a thank-you over a shout that never reached
+-- them cannot be taken back. Out of a fight the trade prompt
+-- (CheckInteractDistance 2, about ten yards) first, called directly; then
+-- LibRangeCheck within 20, through safecall as in ShoutReach. Without the
+-- library a warrior's line goes out only within the trade prompt's reach. On
+-- ns rather than a main-chunk local, for Lua 5.1's 200: asked only by the
+-- press (Prompt/Press.lua, HoldLine) and the macro's arming (Macro.lua).
+function ns.ShoutSure(unit)
+	if not unit then return false end
+	if not InCombatLockdown() and type(_G.CheckInteractDistance) == "function" then
+		local trade = plain(_G.CheckInteractDistance(unit, 2))
+		if trade == true or trade == 1 then return true end
+	end
+	local stub = _G.LibStub
+	local lib = type(stub) == "table" and type(stub.GetLibrary) == "function"
+		and stub:GetLibrary("LibRangeCheck-3.0", true) or nil
+	if type(lib) == "table" and type(lib.GetRange) == "function" then
+		local _, maxRange = safecall(lib.GetRange, lib, unit)
+		if type(maxRange) == "number" and maxRange <= 20 then return true end
+	end
+	return false
+end
 
 -- Whether the buff reaches this unit right now, asked the way the scan asks it
 -- for entry.ranged. The prompt's press asks again just before its macro runs:

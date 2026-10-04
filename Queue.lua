@@ -327,14 +327,15 @@ do
 	-- there, so it is no evidence the game will refuse them next time.
 	-- `spoke` is false for a press whose macro carried no line (PostClick
 	-- records it): refused for something the next press asks again
-	-- (RECHECKED), that holds no line, or the press that lands once they are
-	-- back in reach would go out silent too. The back-off stands either way.
+	-- (RECHECKED), or not refused at all (quietOnly), that holds no line, or
+	-- the press that lands once they are back in reach would go out silent
+	-- too. The back-off stands either way.
 	function ns.NoteRefusal(name, why, quietOnly, spoke)
 		if not name then return end
 		local now = GetTime()
 		if why == nil and lastError and now - lastErrorAt <= ERROR_SECONDS then why = lastError end
 		local r = Record(name, now)
-		local hold = spoke ~= false or not OneOf(why, RECHECKED)
+		local hold = spoke ~= false or (not quietOnly and not OneOf(why, RECHECKED))
 		-- Never shortened: a quiet note must not cut the longer hold a back-off
 		-- below wrote.
 		if hold and now + QUIET_SECONDS > r.quietUntil then r.quietUntil = now + QUIET_SECONDS end

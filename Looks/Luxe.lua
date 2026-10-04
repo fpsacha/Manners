@@ -48,6 +48,8 @@ local Luxe = ns.Looks.Register("luxe", {
 	-- The ground and the ink dim apart, so art itself stays whole.
 	combatArtAlpha = 1,
 	classSoften = 0.85,
+	-- The tag carries its own dark ground (PaintPill), whatever the panel.
+	subOnDark = true,
 })
 
 -- Where the spine sits, and what a fight does to each part: the card holds,
@@ -678,10 +680,11 @@ function Luxe:Styled(p, twoLine)
 	-- A shadow inside a tinted tag reads as dirt.
 	kit.sub:SetShadowColor(0, 0, 0, 0)
 	kit.sub:SetShadowOffset(0, 0)
-	local r, g, b = kit.Legible(0.80, 0.81, 0.86, 4.5)
-	kit.count:SetTextColor(r, g, b, 1)
+	-- The count stands on its chip's own dark fill, not on the panel: held
+	-- to the panel, a light one took it dark on dark.
+	kit.count:SetTextColor(0.80, 0.81, 0.86, 1)
 	kit.count:SetShadowOffset(0, 0)
-	r, g, b = kit.Legible(0.90, 0.90, 0.92, 4.5)
+	local r, g, b = kit.Legible(0.90, 0.90, 0.92, 4.5)
 	for _, fs in ipairs(kit.rows) do fs:SetTextColor(r, g, b, 1) end
 	kit.ink.rowReason = kit.ink.light and "|cff9a9ca8" or "|cff505058"
 end
@@ -891,8 +894,11 @@ function Luxe:Tint(r, g, b, ring)
 	self.tint = tint
 	self:HoverWash()
 	self:PaintPill()
-	local mr, mg, mb = Mix(r, g, b, kit.ink.light and 0.35 or 0)
-	local tr, tg, tb = kit.Legible(mr, mg, mb, 4.5)
+	-- The words stand on the tag's own dark fill, so they go light on any
+	-- panel. Held to a light panel they went dark on dark; on a dark one the
+	-- panel's rule can only take them lighter still.
+	local tr, tg, tb = Mix(r, g, b, kit.ink.light and 0.35 or 0.5)
+	if kit.ink.light then tr, tg, tb = kit.Legible(tr, tg, tb, 4.5) end
 	kit.sub:SetTextColor(tr, tg, tb, 1)
 	self.glyph:SetVertexColor(tr, tg, tb, 1)
 end
