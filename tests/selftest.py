@@ -36,6 +36,8 @@ back green, before a failure in it counts as caught.
   --plan         run the baseline and the trace, print which scenarios would
                  judge each runscenarios.py mutation, and stop
   --jobs N       how many mutations run at once (default: one per core)
+  --fresh-trace  trace the scenarios again even if a trace of this same tree
+                 is kept in %TEMP%/manners-selftest-trace
   --changed [REF]  only the mutations of files that differ from REF (default
                  master), for a quick check of a small change; the full run
                  is still what a release is checked against
@@ -77,18 +79,50 @@ SUITES = ("validate.py", "runharness.py", "runscenarios.py")
 # A mutation can turn a loop endless. Without a limit that is a selftest that
 # never finishes, which on CI reads as a hung runner rather than a failure.
 TIMEOUT = 600
-# The trace runs each scenario under a line hook, many times slower, and the
-# options window runs a great many lines: a shard went past 600 s and every
+# The trace runs each scenario under a hook, slower, and a few scenarios do
+# a great deal of arithmetic in the scenario file itself (the readable-* files
+# read texels): under the old per-line hook a shard went past 600 s and every
 # mutation fell back to the whole suite, which took the full run past hours.
+# The slowest shard now takes about six minutes on eight workers; the limit is
+# left generous for a slower machine.
 TRACE_TIMEOUT = 3600
 
 
-def run(script, args=(), root=DIR, timeout=None):
+# The trace is kept between runs, keyed on everything a scenario run can read:
+# every file in the tree but the ones that only say what to mutate. The common
+# loop -- a mutation fixed in tests/mutations/, the run made again -- then skips
+# it. Any change to the addon, a scenario, a mock or runscenarios.py is a new
+# key, since which scenario lines run depends on all of them; so is the number
+# of shards, which decides what ran before each scenario in its process.
+TRACE_CACHE = os.path.join(tempfile.gettempdir(), "manners-selftest-trace")
+FRESH_TRACE = "--fresh-trace" in sys.argv[1:]
+
+
+def trace_key(shards):
+    import hashlib
+    h = hashlib.sha256(("shards %d\n" % shards).encode())
+    for top, dirs, names in os.walk(DIR):
+        dirs[:] = sorted(d for d in dirs if d not in (".git", "__pycache__"))
+        rel_top = os.path.relpath(top, DIR).replace("\\", "/")
+        if rel_top == "tests/mutations":
+            continue
+        for name in sorted(names):
+            rel = (name if rel_top == "." else rel_top + "/" + name)
+            if rel == "tests/selftest.py" or rel == "selftest.out" or name.endswith(".selftest-backup"):
+                continue
+            h.update(("%s\n" % rel).encode())
+            with open(os.path.join(top, name), "rb") as f:
+                h.update(hashlib.sha256(f.read()).digest())
+    return h.hexdigest()[:32]
+
+
+def run(script, args=(), root=DIR, timeout=None, fanout=1):
     """The suite's output and exit status; status None when it timed out."""
     timeout = timeout or TIMEOUT
     # One process per suite: this file already runs many at once, and
-    # runscenarios.py would otherwise split each into workers of its own.
-    env = dict(os.environ, PYTHONIOENCODING="utf-8", MANNERS_SCENARIO_JOBS="1")
+    # runscenarios.py would otherwise split each into workers of its own. The
+    # baseline's whole scenario run is the exception (see where it starts).
+    env = dict(os.environ, PYTHONIOENCODING="utf-8", MANNERS_SCENARIO_JOBS=str(fanout))
     try:
         r = subprocess.run([sys.executable, os.path.join(root, "tests", script)] + list(args),
                            capture_output=True, text=True, encoding="utf-8",
@@ -113,8 +147,8 @@ def verdict(out, status=0):
                                           "RESULT: all checks passed")
 
 
-def tally(script):
-    return verdict(*run(script))
+def tally(script, fanout=1):
+    return verdict(*run(script, fanout=fanout))
 
 
 def findings(out):
@@ -3957,12 +3991,27 @@ mutations = [m for m in plan if isinstance(m, Mutation)]
 # The baseline and the trace, side by side: neither edits anything, so both
 # run on the tree itself.
 _shards = []
+_trace_key = _trace_cached = None
+if not WHOLE:
+    _trace_key = trace_key(JOBS)
+    _trace_cached = os.path.join(TRACE_CACHE, _trace_key + ".json")
+    if FRESH_TRACE or not os.path.exists(_trace_cached):
+        _trace_cached = None
+# The baseline's scenario run is the whole suite, five minutes in one process.
+# Next to a trace it is spread over a few processes of its own (a quarter of
+# the workers, on top of them, for the minutes the trace takes); with the trace
+# kept from an earlier run it is all there is to wait for, and takes them all.
+_fanout = JOBS if (WHOLE or _trace_cached) else max(1, JOBS // 4)
 with ThreadPoolExecutor(max_workers=JOBS) as _pool:
-    _base = {script: _pool.submit(tally, script) for script in SUITES}
-    if not WHOLE:
-        # The trace slows a run about threefold, so it is split by scenario
-        # name across every core; each shard still runs the lines between
-        # scenarios, which is where a name is told apart from the next.
+    _base = {script: _pool.submit(tally, script, _fanout if script == "runscenarios.py" else 1)
+             for script in SUITES}
+    if not WHOLE and _trace_cached is None:
+        # Split by scenario name, one shard per worker. Each shard runs every
+        # scenario file but loads only its own scenarios; the rest are skipped
+        # in a fraction of a second, so the shards cost what their scenarios
+        # cost. The number of shards is part of what the trace says -- a
+        # scenario can leave state behind for the next one in its process --
+        # so it stays one per worker, as it always was.
         for _i in range(JOBS):
             _p = os.path.join(scratch(), "trace-%d.json" % _i)
             _shards.append((_p, _pool.submit(run, "runscenarios.py",
@@ -3996,12 +4045,32 @@ scenario_map = None
 if not WHOLE:
     _merged = {"lines": {}, "names": {}}
     try:
-        for _p, _ in _shards:
+        for _p in [_trace_cached] if _trace_cached else [p for p, _ in _shards]:
             _t = json.load(open(_p, encoding="utf-8"))
             for _key in ("lines", "names"):
                 for _k, _v in _t[_key].items():
                     _merged[_key].setdefault(_k, set()).update(_v)
         scenario_map = ScenarioMap(_merged)
+        if _trace_cached:
+            print("(the scenario trace is the one kept from a run on this same tree)")
+        else:
+            # Written whole and then renamed, so a run stopped halfway, or two
+            # at once, never leaves a half-written trace to be read as whole.
+            # A trace that cannot be kept is only a slower next run.
+            try:
+                os.makedirs(TRACE_CACHE, exist_ok=True)
+                _tmp = os.path.join(TRACE_CACHE, "%s.%d.tmp" % (_trace_key, os.getpid()))
+                with open(_tmp, "w", encoding="utf-8") as _out:
+                    json.dump({k: {n: sorted(v) for n, v in t.items()} for k, t in _merged.items()},
+                              _out)
+                os.replace(_tmp, os.path.join(TRACE_CACHE, _trace_key + ".json"))
+                # The newest few are enough: a key that is not the tree's any
+                # more is only ever wanted again after a revert.
+                _kept = sorted(_glob.glob(os.path.join(TRACE_CACHE, "*.json")), key=os.path.getmtime)
+                for _old in _kept[:-4]:
+                    os.remove(_old)
+            except OSError as _e:
+                print("(the scenario trace could not be kept for the next run: %s)" % _e)
     except (OSError, ValueError) as _e:
         print("(the scenario trace did not finish, so every mutation is judged"
               " on the whole suite: %s)" % _e)
