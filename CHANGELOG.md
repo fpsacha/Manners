@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.6.6
 
 - `/manners selftest` checks Manners against your game and gives you a
   report to paste. `/manners check` does the same.
