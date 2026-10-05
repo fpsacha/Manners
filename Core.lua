@@ -2544,7 +2544,7 @@ end
 function ns.SayAnchorCarried()
 	if not ns.anchorCarriedNote then return end
 	ns.anchorCarriedNote = nil
-	addon:Print(L["the prompt was moved onto its new anchor, the middle of the screen. If you had put it at the bottom edge on purpose, drag it back or pick a place under |cffffd100Put it|r on the options page."])
+	addon:Print(L["the prompt was moved onto its new anchor, the middle of the screen. If you had put it at the bottom edge on purpose, drag it back or pick a place under |cffffd100Where it sits|r on the options page."])
 end
 
 function addon:OnInitialize()

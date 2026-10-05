@@ -55,9 +55,9 @@ SOURCE = "Manners.toc"
 # class-report issue template exists to collect.
 FLAVOURS = [
     ("Camelot", 16001),     # WoW Forever 1.60.1 -- the only one ever run
+    ("Vanilla", 11509),     # Classic Era 1.15.9 -- published 1.6.7
     # ("Mainline", 120100), # retail "Midnight" 12.1
     # ("Mists", 50504),     # Mists of Pandaria Classic
-    # ("Vanilla", 11509),   # Classic Era 1.15.9
     # No _TBC.toc even then: a 2.5 client applies Burning Crusade spell ranks,
     # whose ids are in none of the tables here, so the addon would load,
     # resolve nothing, and offer nobody anything -- which reads as broken
@@ -71,7 +71,6 @@ FLAVOURS = [
 # 11509 is the classic_era branch of Gethe/wow-ui-source at 1.15.9 (70003),
 # its newest build, September 2026.
 STAGED = [
-    ("Vanilla", 11509),     # Classic Era 1.15.9
 ]
 STAGED_DIR = os.path.join("tools", "tocs")
 

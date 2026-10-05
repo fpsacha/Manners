@@ -59,29 +59,11 @@ its macro has no `/target` line, and `pending.selfCast` in `SettlePendingClick`
 is the branch deciding whether a warrior can ever repay anybody. It has never
 run against the real game.
 
-**Classic Era is staged, not shipped.** It runs against the mock as Era 1.15.9
-(`tests/scenarios/era.lua`; `python tests/runscenarios.py --flavour vanilla`
-runs everything else as Era too), and `tools/tocs/Manners_Vanilla.toc` is
-generated for a tester to copy in. Nobody has played it. To publish it:
-
-1. In `tools/maketocs.py`, move `("Vanilla", 11509)` from `STAGED` to
-   `FLAVOURS` (check the classic_era branch's `version.txt` for a newer build
-   first: 1.15.x is interface 115xx), and run `python tools/maketocs.py`. It
-   writes `Manners_Vanilla.toc` in the top folder; `git rm` the old copy in
-   `tools/tocs/`.
-2. In `Manners.toc`, make the line `## Interface: 16001, 11509` and regenerate:
-   `tests/validate.py` holds that line and `FLAVOURS` to the same list.
-3. Nothing in `.pkgmeta` or `release.yml`: neither names a game version. The
-   packager reads every `Manners_<Flavour>.toc` in the checkout's top folder,
-   files 11509 as Classic Era 1.15.9 (CurseForge game version type 67408,
-   Wago `supported_classic_patches`) beside Forever's 1.60.1 (88568), and uploads
-   one zip tagged for both. Its log's `Game version:` line should read
-   `1.60.1, 1.15.9`.
-4. On CurseForge and Wago, check the project accepts Classic Era files; on
-   CurseForge, that 1.15.9 is in its game-version list, or the packager files
-   the upload under the newest Era version it does have.
-5. The public text: README ("shipped for that client only"), the CurseForge
-   and Wago descriptions, and a changelog line saying Classic Era is supported.
+**Classic Era ships since 1.6.7** (Manners_Vanilla.toc, interface 11509). It
+has run only against the mock as Era 1.15.9 (`tests/scenarios/era.lua`).
+`python tests/runscenarios.py --flavour vanilla` runs the whole suite as Era as
+a diagnostic; most of its reds are fixtures written for Camelot (two-part names,
+Forever's scrolls and raid-wide group casts), not addon faults.
 
 **One assumption is untested.** A late refusal is matched to the press it
 answers using the cast guid the client sends with both cast events, and only

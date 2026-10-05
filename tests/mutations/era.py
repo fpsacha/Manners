@@ -80,13 +80,8 @@ mutate(".pkgmeta",
        expect=".pkgmeta does not ignore tools/",
        script=V)
 
-# The staged tocs moved somewhere the packager does not ignore.
-mutate("tools/maketocs.py",
-       "STAGED_DIR = os.path.join(\"tools\", \"tocs\")\n",
-       "STAGED_DIR = os.path.join(\"Textures\", \"tocs\")\n",
-       "era: the staged tocs written outside tools/",
-       expect=".pkgmeta does not ignore Textures/",
-       script=V)
+# (A mutation moving STAGED_DIR went with 1.6.7: Era ships, nothing is staged,
+# and validate's staged-toc check has nothing to hold until something is.)
 
 # ------------------------------------------------ the Notes
 # The tested-and-unverified line back on the English Notes, and on a

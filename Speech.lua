@@ -488,12 +488,13 @@ do
 	end
 
 	-- A press whose line HoldLine held back for want of a token. Said once a
-	-- session, and only where a line was wanted at all and the nameplates
+	-- session, only with "Tell me in chat" on, only where a line was wanted at all and the nameplates
 	-- are why: not for your own buff, nor a first buff with "only when I buff
 	-- someone back" on.
 	function ns.NoteTokenlessHold(entry)
 		if said or type(entry) ~= "table" then return end
 		local speech = addon.db and addon.db.profile.speech
+		if not (speech and addon.db.profile.verbose) then return end
 		if not (speech and speech.enabled) or entry.reason == "self" then return end
 		if speech.onlyWhenReturning and entry.reason ~= "owed" then return end
 		if not ns.FriendlyPlatesOff() then return end

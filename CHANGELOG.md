@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.6.7
+
+- **Classic Era.** Manners now installs on Classic Era as well as WoW Forever.
+- The nameplate tip in chat stays quiet when *Tell me in chat what Manners is
+  doing* is off.
+- Two chat messages named options by their old names; they now say *Hide the
+  prompt while I'm mounted* and *Where it sits*.
+- Italian and Portuguese use the game's own words for nameplates.
+
 ## 1.6.6
 
 - `/manners selftest` checks Manners against your game and gives you a

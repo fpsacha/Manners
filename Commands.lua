@@ -1584,7 +1584,7 @@ function addon:HandleSlash(rawInput)
 				:format(ns.SnoozeEndsAt()))
 		end
 		if ns.HiddenWhileMounted() then
-			self:Print(L["|cffffd100mounted|r -- Not while mounted keeps the prompt away until you get off"])
+			self:Print(L["|cffffd100mounted|r -- \"Hide the prompt while I'm mounted\" keeps it away until you get off"])
 		end
 		-- The queue below leaves out everybody nobody asked for while this
 		-- holds, which looks like a broken queue unless it is said.

@@ -29,10 +29,10 @@ a hunter's aspect, a shaman's shield), "You" comes up on the same prompt and
 one press puts it on you. A mage carrying familiar or weapon imbue scrolls is
 reminded of those too.
 
-Built for **WoW Forever** (Interface 16001), and shipped for that client only.
+Built for **WoW Forever** (Interface 16001) and **Classic Era** (Interface
+11509).
 
-Retail, Mists Classic and Classic Era are implemented too, but nobody working
-on this can launch those clients, so they are not shipped.
+Retail and Mists Classic are implemented too, but not shipped yet.
 
 ## Installing
 

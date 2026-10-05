@@ -14552,7 +14552,7 @@ for _, case in ipairs({
 			fail(scenario, "SKIPPED -- the carry-over " .. (moved and "fired" or "did not fire")
 				.. " for a Y of " .. case.y)
 		end
-		local noted = said:find("Put it", 1, true) ~= nil
+		local noted = said:find("Where it sits", 1, true) ~= nil
 		if case.note and not noted then
 			fail(scenario, "the prompt was moved onto a new anchor and chat said nothing: " .. said)
 		elseif not case.note and noted then
@@ -14578,7 +14578,7 @@ if ns then
 	local said = table.concat(Mock.printed, "\n")
 	if p.point ~= "CENTER" then
 		fail(scenario, "SKIPPED -- the carry-over did not fire on the switch")
-	elseif not said:find("Put it", 1, true) then
+	elseif not said:find("Where it sits", 1, true) then
 		fail(scenario, "a profile switch moved the prompt onto a new anchor and chat said"
 			.. " nothing: " .. said)
 	end
@@ -17756,7 +17756,7 @@ if ns then
 	Mock.printed = {}
 	ns.addon:RefreshConfig()
 	local said = table.concat(Mock.printed, "\n")
-	if p.point ~= "CENTER" or not said:find("Put it", 1, true) then
+	if p.point ~= "CENTER" or not said:find("Where it sits", 1, true) then
 		fail(scenario, "SKIPPED -- the carry-over did not fire or was not announced: " .. said)
 	elseif not said:find("on purpose", 1, true) then
 		fail(scenario, "the line tells everybody whose prompt sat on the bottom edge to put"

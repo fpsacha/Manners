@@ -437,8 +437,9 @@ for _, case in ipairs({
 	{ "nameplates off", "0", true, 1 },
 	{ "nameplates on", "1", true, 0 },
 	{ "speech off", "0", false, 0 },
+	{ "chat messages off", "0", true, 0, true },
 }) do
-	local label, value, speaking, want = case[1], case[2], case[3], case[4]
+	local label, value, speaking, want, quiet = case[1], case[2], case[3], case[4], case[5]
 	local scenario = "quick-setup: a line held back for want of nameplates is said once a session (" .. label .. ")"
 	local box, restore = cvars({ nameplateShowFriends = value })
 	Mock.reset()
@@ -448,6 +449,7 @@ for _, case in ipairs({
 		H.freshPrompt(ns, scenario)
 		local speech = ns.db.profile.speech
 		speech.enabled = speaking
+		ns.db.profile.verbose = not quiet
 		speech.onlyWhenReturning = false
 		speech.channel = "SAY"
 		speech.phrases = "Thanks, {name}."
