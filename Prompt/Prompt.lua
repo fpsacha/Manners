@@ -60,7 +60,7 @@ local Prompt = {}
 ns.Prompt = Prompt
 
 -- Goes into every click line, so a log says which build produced it.
-ns.BUILD = "1.6.7"
+ns.BUILD = "1.6.8"
 
 -- What more than one file reads or writes. The fields that start out nil are
 -- listed for what they hold.

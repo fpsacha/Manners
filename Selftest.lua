@@ -580,14 +580,14 @@ local function CVar(name)
 	return Plain(value)
 end
 
-Check("api.nameplateCVar", "api", 'GetCVar("nameplateShowFriends")', function(add)
-	local value, why = CVar("nameplateShowFriends")
-	if why then
-		add(WARN, "GetCVar " .. why)
+Check("api.nameplateCVar", "api", "friendly nameplates setting", function(add)
+	local name, value = ns.FriendlyPlatesCVar()
+	if not name then
+		add(WARN, "GetCVar answered for none of " .. table.concat(ns.FRIENDLY_PLATES_CVARS, ", "))
 	elseif tostring(value) == "1" then
-		add(PASS, "1 -- friendly nameplates are on")
+		add(PASS, name .. " = 1 -- friendly nameplates are on")
 	else
-		add(WARN, Show(value) .. " -- friendly nameplates are off, so a passer-by's range is read only"
+		add(WARN, name .. " = " .. Show(value) .. " -- friendly nameplates are off, so a passer-by's range is read only"
 			.. " while targeted or under the cursor")
 	end
 end)
@@ -919,9 +919,10 @@ Check("range.nameplates", "range", L["nameplates"], function(add)
 		if not first and ok == true and Plain(assist) then first = unit end
 	end
 	local okP, plates = Ask(Field(_G.C_NamePlate, "GetNamePlates"))
-	local line = ("%d tracked, C_NamePlate.GetNamePlates %s, nameplateShowFriends %s"):format(tracked,
+	local cvar, shown = ns.FriendlyPlatesCVar()
+	local line = ("%d tracked, C_NamePlate.GetNamePlates %s, %s %s"):format(tracked,
 		okP == true and type(plates) == "table" and tostring(#plates) or okP == MISSING and "missing" or "n/a",
-		Show(CVar("nameplateShowFriends")))
+		cvar or "friendly nameplates", Show(shown))
 	if not first then
 		add(WARN, line .. " -- no friendly nameplate to measure", L["nameplates"])
 		return

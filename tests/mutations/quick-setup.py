@@ -137,3 +137,12 @@ mutate("Speech.lua",
        "nameplate line with them on",
        expect="quick-setup: a line held back for want of nameplates is said once a session (nameplates on)",
        script="runscenarios.py")
+
+# Back to the one name: WoW Forever answers nil for it, so the hint and the
+# button never work there (the 1.6.6 self-test in game).
+mutate("Speech.lua",
+       "\tns.FRIENDLY_PLATES_CVARS = { \"nameplateShowFriendlyPlayers\", \"nameplateShowFriends\" }\n",
+       "\tns.FRIENDLY_PLATES_CVARS = { \"nameplateShowFriends\" }\n",
+       "nameplate setting read by its old name only",
+       expect="quick-setup: the nameplate setting is read by the name the client answers to (Forever's name)",
+       script="runscenarios.py")

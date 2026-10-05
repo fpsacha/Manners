@@ -164,7 +164,7 @@ do
 		end
 		rawset(_G, "C_ChatInfo", {})
 		spy("PerformEmote", C_ChatInfo)
-		rawset(_G, "C_CVar", { GetCVar = function(name) return name == "nameplateShowFriends" and "1" or "0" end })
+		rawset(_G, "C_CVar", { GetCVar = function(name) return name == "nameplateShowFriendlyPlayers" and "1" or "0" end })
 		spy("SetCVar", C_CVar)
 		local button = ns.Prompt:GetButton()
 		local setAttribute = button.SetAttribute

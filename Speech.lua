@@ -469,13 +469,24 @@ end
 do
 	local said = false
 
+	-- The setting's name: nameplateShowFriendlyPlayers on WoW Forever and
+	-- retail (Bindings_Standard.xml's FRIENDNAMEPLATES), nameplateShowFriends
+	-- on the Classic clients. The first the client answers for is the one.
+	ns.FRIENDLY_PLATES_CVARS = { "nameplateShowFriendlyPlayers", "nameplateShowFriends" }
+
+	function ns.FriendlyPlatesCVar()
+		local get = _G.GetCVar or (C_CVar and C_CVar.GetCVar)
+		if type(get) ~= "function" then return nil end
+		for _, name in ipairs(ns.FRIENDLY_PLATES_CVARS) do
+			local ok, value = pcall(get, name)
+			value = ok and ns.plain(value) or nil
+			if value ~= nil then return name, value end
+		end
+	end
+
 	-- Off only when the client says so plainly; no answer is not "off".
 	function ns.FriendlyPlatesOff()
-		local get = _G.GetCVar or (C_CVar and C_CVar.GetCVar)
-		if type(get) ~= "function" then return false end
-		local ok, value = pcall(get, "nameplateShowFriends")
-		if not ok then return false end
-		value = ns.plain(value)
+		local _, value = ns.FriendlyPlatesCVar()
 		return value == "0" or value == 0 or value == false
 	end
 
@@ -484,7 +495,7 @@ do
 		if InCombatLockdown() or not ns.FriendlyPlatesOff() then return false end
 		local set = _G.SetCVar or (C_CVar and C_CVar.SetCVar)
 		if type(set) ~= "function" then return false end
-		return (pcall(set, "nameplateShowFriends", "1"))
+		return (pcall(set, (ns.FriendlyPlatesCVar()), "1"))
 	end
 
 	-- A press whose line HoldLine held back for want of a token. Said once a

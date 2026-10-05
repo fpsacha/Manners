@@ -360,7 +360,7 @@ for _, case in ipairs({
 }) do
 	local label, speaking, value, want = case[1], case[2], case[3], case[4]
 	local scenario = "quick-setup: the nameplate note shows only while speaking with them off (" .. label .. ")"
-	local box, restore = cvars({ nameplateShowFriends = value })
+	local box, restore = cvars({ nameplateShowFriendlyPlayers = value })
 	local ns = session(scenario)
 	if ns then
 		ns.db.profile.speech.enabled = speaking
@@ -388,7 +388,7 @@ end
 -- once, after which the note has nothing to say.
 do
 	local scenario = "quick-setup: Show friendly nameplates sets the setting only out of combat"
-	local box, restore = cvars({ nameplateShowFriends = "0" })
+	local box, restore = cvars({ nameplateShowFriendlyPlayers = "0" })
 	local ns = session(scenario)
 	if ns then
 		ns.db.profile.speech.enabled = true
@@ -408,7 +408,7 @@ do
 			UI.Refresh()
 			if UI.Disabled(row.item) then fail(scenario, "the button stayed grey after the fight") end
 			press(row.button)
-			if #box.sets ~= 1 or box.sets[1][1] ~= "nameplateShowFriends" or tostring(box.sets[1][2]) ~= "1" then
+			if #box.sets ~= 1 or box.sets[1][1] ~= "nameplateShowFriendlyPlayers" or tostring(box.sets[1][2]) ~= "1" then
 				fail(scenario, ("the click made %d changes"):format(#box.sets))
 			end
 			if UI.RowShown("click.platesNote") or UI.RowShown("click.showPlates") then
@@ -416,6 +416,32 @@ do
 			end
 		end
 		shut(ns)
+		noErrors(scenario, ns)
+	end
+	restore()
+end
+
+-- Which setting: WoW Forever answers nameplateShowFriendlyPlayers and not the
+-- old nameplateShowFriends (a 1.6.6 self-test read nil there); the Classic
+-- clients answer only the old one. The button sets the one that answered.
+for _, case in ipairs({
+	{ "Forever's name", "nameplateShowFriendlyPlayers" },
+	{ "Classic's name", "nameplateShowFriends" },
+}) do
+	local label, cvar = case[1], case[2]
+	local scenario = "quick-setup: the nameplate setting is read by the name the client answers to (" .. label .. ")"
+	local box, restore = cvars({ [cvar] = "0" })
+	local ns = session(scenario)
+	if ns then
+		local name, value = ns.FriendlyPlatesCVar()
+		if name ~= cvar or value ~= "0" then
+			fail(scenario, ("read %s = %s, not %s = 0"):format(tostring(name), tostring(value), cvar))
+		end
+		if not ns.FriendlyPlatesOff() then fail(scenario, "the nameplates were not read as off") end
+		ns.ShowFriendlyPlates()
+		if #box.sets ~= 1 or box.sets[1][1] ~= cvar then
+			fail(scenario, "the button set " .. tostring(box.sets[1] and box.sets[1][1]) .. ", not " .. cvar)
+		end
 		noErrors(scenario, ns)
 	end
 	restore()
@@ -441,7 +467,7 @@ for _, case in ipairs({
 }) do
 	local label, value, speaking, want, quiet = case[1], case[2], case[3], case[4], case[5]
 	local scenario = "quick-setup: a line held back for want of nameplates is said once a session (" .. label .. ")"
-	local box, restore = cvars({ nameplateShowFriends = value })
+	local box, restore = cvars({ nameplateShowFriendlyPlayers = value })
 	Mock.reset()
 	local restoreUnits = H.strangers({})
 	local ns = load(scenario)

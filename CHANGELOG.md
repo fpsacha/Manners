@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.6.8
+
+- **Friendly nameplates on WoW Forever.** The game renamed its setting, so
+  Manners could not tell whether your friendly nameplates were on: the tip on
+  *What I say* and its *Show friendly nameplates* button now work there.
+
 ## 1.6.7
 
 - **Classic Era.** Manners now installs on Classic Era as well as WoW Forever.
