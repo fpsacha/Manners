@@ -77,3 +77,4 @@ Options\Window\WindowChrome.lua
 Options\Window\WindowPage.lua
 Options\Window\WindowSearch.lua
 Options\Register.lua
+Selftest.lua
