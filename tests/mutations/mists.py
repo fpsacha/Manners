@@ -11,8 +11,8 @@ S = "runscenarios.py"
 # The Mists client in the mock restricting secrets again, which the classic
 # branch's API documentation says it never does.
 mutate("tests/mockapi.lua",
-       "\t\tsecretRestrictions = false, weaponEnchantList = false, paperDoll = false,\n\t},\n\ttbc = {",
-       "\t\tsecretRestrictions = true, weaponEnchantList = false, paperDoll = false,\n\t},\n\ttbc = {",
+       "\t\tsecretRestrictions = false, weaponEnchantList = false, paperDoll = false,\n\t},\n\t-- Burning Crusade Classic Anniversary",
+       "\t\tsecretRestrictions = true, weaponEnchantList = false, paperDoll = false,\n\t},\n\t-- Burning Crusade Classic Anniversary",
        "mists: the mock restricting secrets on Mists",
        expect="mists: Mists is read as mists and given the mists set",
        script=S)
