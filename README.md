@@ -578,7 +578,7 @@ list. They used to be at the bottom of *Who to buff*.
   a two-word name whose surname is plain letters or digits; a one-word name or
   an accented surname gets the buff with no line. Somebody from your own realm
   who is out of sight is whispered only while the game can still name them,
-  so not after a `/reload`. Not yet tried in game.
+  so not after a `/reload`.
 
 **Look.** Where it sits and its lock, size, style and colours, and getting
 your attention (flash, animations, sound). Folded below: the exact position,

@@ -12,13 +12,11 @@
 --   WoW Forever 1.60.1       interface 16001     Manners_Camelot.toc
 --   Mists of Pandaria        interface 50504     Manners_Mists.toc (not shipped)
 --   BC Classic Anniversary   interface 20506     (none -- see below)
---   Classic Era 1.15.9       interface 11509     Manners_Vanilla.toc (staged, not shipped)
+--   Classic Era 1.15.9       interface 11509     Manners_Vanilla.toc
 --
--- 1.0 ships for WoW Forever alone (Manners_Camelot.toc, and Manners.toc at
--- 16001 too). The others are recognised and implemented but untested, so
--- their tocs are commented out in tools/maketocs.py -- all but Classic Era's,
--- which is written to tools/tocs/, where neither the packager nor the game
--- reads it, for somebody to copy in and try. There is deliberately no
+-- WoW Forever and (since 1.6.7) Classic Era ship. The others are recognised
+-- and implemented, and their tocs are commented out in tools/maketocs.py
+-- until somebody has run them. There is deliberately no
 -- TBC toc: a 2.5 client applies Burning Crusade spell ranks, whose ids are in
 -- none of Buffs.lua's tables. Add the ids before adding the toc.
 

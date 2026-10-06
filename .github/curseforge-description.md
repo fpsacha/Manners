@@ -8,9 +8,9 @@ Manners notices, works out what you owe them, and puts one button on screen. Cli
 
 In a dungeon or a raid it keeps your group topped up: one group cast for a whole party when you carry the reagent, your group first at a ready check and after a wipe, and only the raid groups you were given. Setting it up takes one page: **Start here**, four numbered steps.
 
-It looks after you too. When you are missing your own buff, or one your class casts only on itself -- a mage's armor, a priest's Inner Fire, a paladin's aura, a hunter's aspect, a shaman's shield -- "You" comes up on the same prompt, and one press puts it on you.
+It looks after you too. When you are missing your own buff, or one your class casts only on itself -- a mage's armor, a priest's Inner Fire, a paladin's aura, a hunter's aspect, a shaman's shield -- "You" comes up on the same prompt, and one press puts it on you. On WoW Forever, a mage carrying familiar or weapon imbue scrolls is reminded of those too.
 
-Built for **WoW Forever** (Interface 16001), and shipped for that client only.
+Built for **WoW Forever** (Interface 16001) and **Classic Era** (Interface 11509).
 
 ### Who it offers, in this order
 
@@ -32,7 +32,7 @@ It skips the dead, the out of range, anyone you just tried, anyone the buff does
 - **How near is near.** Arcane Intellect reaches thirty yards, which in a city is everybody on screen, so passers-by can be limited to *nearby* (about ten yards, the default) or *right beside me*, or offered only in cities and inns.
 - **If they already have it**: leave them alone, offer a top-up when it runs low, or always offer.
 - **Out of the way when you want it.** `/manners snooze` hides the prompt for 15 minutes (or `snooze 5`, `snooze 1h`, `snooze off`), and *Hide the prompt while I'm mounted* keeps it away while you ride.
-- **Thank them with an emote.** Off by default. When somebody buffs you and you have something to give back, you `/thank` them -- never in a fight or an instance, and at most once per person every five minutes. Not yet tried in game.
+- **Thank them with an emote.** Off by default. When somebody buffs you and you have something to give back, you `/thank` them -- never in a fight or an instance, and at most once per person every five minutes.
 
 ### Buff myself
 
@@ -45,7 +45,7 @@ It skips the dead, the out of range, anyone you just tried, anyone the buff does
 
 ### Dungeons and raids
 
-- **One cast for the whole party or raid.** Once you know Arcane Brilliance, a Prayer, Gift of the Wild or a Greater Blessing and carry its reagent, a party or raid with 3 or more people who need your buff gets one group cast instead of one each (a Greater Blessing goes by class). The prompt says who it is for ("Your party", "Your raid", "Every Warrior") and why ("Arcane Brilliance -- 4 missing"), and the tooltip counts your reagents. Short of mana for it, you get the single buff; out of reagents, it goes back to one at a time.
+- **One cast for the whole group.** Once you know Arcane Brilliance, a Prayer, Gift of the Wild or a Greater Blessing and carry its reagent, a party or raid with 3 or more people who need your buff gets one group cast instead of one each (a Greater Blessing goes by class). The prompt says who it is for ("Your party", "Your raid", "Every Warrior") and why ("Arcane Brilliance -- 4 missing"), and the tooltip counts your reagents. Short of mana for it, you get the single buff; out of reagents, it goes back to one at a time.
 - **Ready checks.** From a ready check until the pull, your party or raid goes to the front of the queue.
 - **Back from the dead.** For two minutes after somebody is brought back, they go to the front. Feign Death doesn't count.
 - **Raid groups I buff.** Untick the groups you weren't assigned; people who buffed you or asked are still offered.
@@ -72,7 +72,7 @@ Leave the text colour at white and it turns dark by itself on a light panel. *Re
 
 ### Say something
 
-Optional, and off until you turn it on: a line when you buff somebody, from four sets (Azeroth, Polite, Cheeky, or just their name) that you can edit. It goes out through the button's macro, so it counts as you talking, and only with a buff that can land: out of range, on cooldown, or when Manners cannot tell, the buff goes out without it. Say it, yell it, tell your group, or *whisper them* so nobody else hears; a whisper goes only when there is no doubt who it reaches.
+Optional, and off until you turn it on: a line when you buff somebody, from four sets (Azeroth, Polite, Cheeky, or just their name) that you can edit. It goes out through the button's macro, so it counts as you talking, and only with a buff that can land: out of range, on cooldown, or when Manners cannot tell, the buff goes out without it. Say it, yell it, tell your group, or *whisper them* so nobody else hears; a whisper goes only when there is no doubt who it reaches. With the game's friendly nameplates off, Manners often cannot tell whether a stranger is close enough to hear you, so *What I say* has a button that turns them on.
 
 Or pick **In character (fits your race and class)**: over two thousand lines, and the one you say is chosen when you click, to fit your people, your class and the moment. Thanks when you return a favour, an answer when somebody asked, an offer to a stranger, something warmer for your group -- and lines that only work right now: about the spell you are giving, a trade for the one they gave you, the third swap today, an inn, a dungeon, the small hours, somebody of your own class. Every race has its own voice (a dwarf's brogue, an orc's *Lok'tar ogar*, a Forsaken's gallows humour), and it does not repeat itself. In all nine languages.
 
@@ -84,7 +84,7 @@ Click for options, shift-click for the ledger, middle-click to switch Manners on
 
 ### Getting started
 
-Type `/manners` or click the minimap button, and the options open on **Start here**: four numbered steps. 1. Who to buff, one quick choice from *Only people who buff me* to *My group, kept topped up (dungeons and raids)*. 2. Put it on a key, set right there, or *Make a macro* for your bars. 3. See it: show the prompt and pick where it sits. 4. Say thanks, if you like: stay silent, `/thank` them, or say a line. Everything else is on the other tabs, in plain words.
+Type `/manners` or click the minimap button, and the options open on **Start here**. The first time, two questions set you up -- who to buff, and whether your character talks -- or *Skip* keeps the defaults. After that, it is four numbered steps. 1. Who to buff, one quick choice from *Only people who buff me* to *My group, kept topped up (dungeons and raids)*. 2. Put it on a key, set right there, or *Make a macro* for your bars. 3. See it: show the prompt and pick where it sits. 4. Say thanks, if you like: stay silent, `/thank` them, or say a line. Everything else is on the other tabs, in plain words.
 
 The first login on each character says what it does and shows you the prompt once; `/manners welcome` says it again.
 
@@ -98,6 +98,7 @@ The first login on each character says what it does and shows you the prompt onc
 /manners export     your settings as one line of text, to keep or share
 /manners import     use a line somebody exported (import undo puts yours back)
 /manners debug      what your class and this build allow
+/manners selftest   checks Manners against your game, as a report to paste
 /manners help       every command, grouped
 ```
 
@@ -130,10 +131,10 @@ English, German, Spanish (Spain and Mexico), French, Italian, Korean, Brazilian 
 
 Blizzard does not let an addon cast a spell on its own, and has not since patch 2.0. So Manners does everything except the keypress: it decides who deserves the buff, and the game casts when you click.
 
-On WoW Forever conditional targeting (`[@unit]`, `[@mouseover]`, `[@focus]`) does not resolve, so buffing somebody means targeting them for an instant. Your previous target is handed straight back, and that can be switched off.
+Buffing somebody means targeting them for an instant (on WoW Forever, conditional targeting -- `[@unit]`, `[@mouseover]`, `[@focus]` -- does not resolve). Your previous target is handed straight back, and that can be switched off.
 
 ### Bugs and reports
 
-Use [the issue templates on GitHub](https://github.com/fpsacha/Manners/issues/new/choose). The Diagnostics tab has a *Copy for a bug report* button that gathers the build, what your client allows and anything that has broken.
+Use [the issue templates on GitHub](https://github.com/fpsacha/Manners/issues/new/choose). `/manners selftest` checks Manners against your game and gives you a report to paste, and the Diagnostics tab has a *Copy for a bug report* button that gathers the build, what your client allows and anything that has broken.
 
 Also on [Wago](https://addons.wago.io/addons/rNkgzlNa), which is the one WowUp reads. Free, MIT licensed, [source on GitHub](https://github.com/fpsacha/Manners).
