@@ -456,8 +456,10 @@ do
 	-- What the person behind `unit`, filed as `full`, asked for, as the part
 	-- of `candidates` (the queue's castable list) that answers it, or nil. A
 	-- pin still means only that one spell. Nobody of your own class has asked;
-	-- a class that cannot be read is not taken for yours.
-	function ns.AskedFor(unit, full, now, candidates)
+	-- a class that cannot be read is not taken for yours. `askOnly` is the
+	-- scan's neverAuto spells (ns.AskOnlyBuffs), offered to whoever names one:
+	-- "buff pls" names every buff you have, not one Automatic leaves alone.
+	function ns.AskedFor(unit, full, now, candidates, askOnly)
 		if #requests == 0 then return nil end
 		local db = addon.db and addon.db.profile
 		if not (db and db.sources.asked) then return nil end
@@ -473,6 +475,11 @@ do
 					if (request.keys == ASK.ANY or request.keys[buff.key])
 						and (not pinned or pinned.key == buff.key) then
 						pool[#pool + 1] = buff
+					end
+				end
+				if askOnly and request.keys ~= ASK.ANY then
+					for _, buff in ipairs(askOnly) do
+						if request.keys[buff.key] then pool[#pool + 1] = buff end
 					end
 				end
 				if #pool == 0 then return nil end
