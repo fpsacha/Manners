@@ -53,6 +53,7 @@ local NAMES = {
 	[61648] = "Aspect of the Beast",
 	[324] = "Lightning Shield",
 	[52127] = "Water Shield",
+	[974] = "Earth Shield",
 	[6346] = "Fear Ward",
 	[546] = "Water Walking",
 	[20707] = "Soulstone",
@@ -102,6 +103,7 @@ end
 local TOUCHED = {
 	"IsSpellKnown", "IsPlayerSpell", "C_SpellBook", "MenuUtil", "UnitExists", "UnitClass", "UnitLevel",
 	"C_UnitAuras", "C_Spell", "GetSpellInfo", "DoEmote", "IsInInstance", "UnitGroupRolesAssigned",
+	"UnitPowerMax",
 }
 
 -- One Mists session: `opts.class` (a mage by default), knowing `opts.known`
@@ -240,10 +242,13 @@ do
 	end)
 end
 
--- Every id the set lists is one the Mists client names: a wrong id has no
--- symptom but silence (a buff never known, a group aura never matched), and
--- /manners debug lists the ones it cannot resolve. Each class probed with the
--- client's names alone.
+-- Every id the set lists is one the Mists client names, as the addon's own
+-- probe reports it: a wrong id has no symptom but silence (a buff never known,
+-- a group aura never matched), and /manners debug lists the ones the probe
+-- cannot resolve. Each class probed with the client's names alone. What a
+-- wrong id costs is caught by the scenarios below that use it (a buff not
+-- found, a buff worn read as missing, a favour not filed); this one is the
+-- report a player would read.
 local CLASSES = {
 	MAGE = { intellect = 1459 },
 	PRIEST = { fortitude = 21562 },
@@ -256,6 +261,23 @@ local CLASSES = {
 }
 local ALL_CLASSES = { "MAGE", "PRIEST", "DRUID", "PALADIN", "MONK", "WARLOCK", "WARRIOR", "DEATHKNIGHT",
 	"HUNTER", "SHAMAN", "ROGUE" }
+
+-- What each class has learned in a session: its buffs and every spell of its
+-- own the mists set lists.
+local SESSION = {
+	MAGE = { 1459, 61316, 30482, 7302, 6117 },
+	PRIEST = { 21562, 588, 73413 },
+	DRUID = { 1126 },
+	PALADIN = { 20217, 19740, 25780 },
+	MONK = { 115921, 116781 },
+	WARLOCK = { 109773, 5697 },
+	WARRIOR = { 6673 },
+	DEATHKNIGHT = { 57330 },
+	HUNTER = { 109260, 13165, 5118, 13159, 61648 },
+	SHAMAN = { 324, 52127, 974 },
+	ROGUE = {},
+}
+
 do
 	local scenario = "mists: every id in the set is one the client names"
 	for _, class in ipairs(ALL_CLASSES) do
@@ -270,22 +292,8 @@ do
 					fail(scenario, ("%s's own %s lists %d, which Mists does not have"):format(class, key, id))
 				end
 			end
-			for _, family in ipairs(ns.GetOwnFamilies(class) or {}) do
-				for _, spell in ipairs(family.spells) do
-					for _, id in ipairs(spell.ranks) do
-						if not NAMES[id] then
-							fail(scenario, ("%s's own %s lists %d, which Mists does not have"):format(class, spell.key, id))
-						end
-					end
-				end
-			end
 		end)
 	end
-	mists(scenario, {}, function(ns)
-		for _, id in ipairs(ns.FAVOUR_ONLY_IDS or {}) do
-			if not NAMES[id] then fail(scenario, "favour-only " .. id .. " is not a Mists spell") end
-		end
-	end)
 end
 
 -- ------------------------------------------------------------------ class buffs
@@ -618,6 +626,48 @@ do
 	end)
 end
 
+-- Its 5% critical strike is the same aura a monk's White Tiger gives, worth as
+-- much to somebody with no mana: with "Skip players it does nothing for" on (the
+-- default), a warrior and a hunter (Focus on Mists, so no mana either) are
+-- still offered it, and Who to buff has no switch claiming to hold it back.
+do
+	local scenario = "mists: Arcane Brilliance is offered to a warrior and a hunter, who have no mana"
+	mists(scenario, { known = { 1459 }, people = { nameplate1 = { "Anna", "" }, nameplate2 = { "Hank", "" } },
+		before = function()
+			local CLASS = { nameplate1 = { "Warrior", "WARRIOR" }, nameplate2 = { "Hunter", "HUNTER" } }
+			rawset(_G, "UnitClass", function(unit)
+				if unit == "player" then return "Mage", Mock.class end
+				local class = CLASS[unit]
+				if class then return class[1], class[2] end
+				return "Priest", Mock.unitClass
+			end)
+			rawset(_G, "UnitPowerMax", function(unit)
+				if CLASS[unit] then return 0 end
+				return 1000
+			end)
+		end }, function(ns)
+		if ns.db.profile.filters.relevantOnly ~= true then
+			fail(scenario, "SKIPPED -- \"Skip players it does nothing for\" is not on by default")
+			return
+		end
+		if ns.UnitHasMana("nameplate1") ~= false or ns.UnitHasMana("nameplate2") ~= false then
+			fail(scenario, "SKIPPED -- the warrior or the hunter reads as having mana")
+			return
+		end
+		local offered = queue(ns)
+		for _, name in ipairs({ "Anna", "Hank" }) do
+			local entry = offered[name]
+			if not (entry and entry.buff.key == "intellect") then
+				fail(scenario, name .. ", with no mana bar, was not offered Arcane Brilliance: " .. listed(ns))
+			end
+		end
+		local switch = H.findOption(ns.optionsTable, "relevantOnly")
+		if switch and type(switch.hidden) == "function" and not switch.hidden() then
+			fail(scenario, "Who to buff shows a switch that holds Arcane Brilliance back from players without mana")
+		end
+	end)
+end
+
 -- ------------------------------------------------------------------ skip my own class
 -- "Skip my own class when they can cast it too" reads the level Mists
 -- teaches the buff at: a level-40 mage cannot cast Arcane Brilliance (58)
@@ -677,6 +727,10 @@ local OWN = {
 	{ class = "HUNTER", known = { 13165, 109260, 5118 }, offered = "aspectironhawk", others = { 13165, 5118 },
 		label = "with Aspect of the Iron Hawk" },
 	{ class = "SHAMAN", known = { 324, 52127 }, offered = "lightningshield", others = { 52127 } },
+	-- A Restoration shaman in her own Earth Shield has her one Elemental Shield
+	-- up: Lightning Shield would replace it.
+	{ class = "SHAMAN", known = { 324, 52127, 974 }, offered = "lightningshield", others = { 52127, 974 },
+		label = "with Earth Shield" },
 }
 for _, case in ipairs(OWN) do
 	local scenario = ("mists: a %s's own buff is offered when none of its family is up%s"):format(
@@ -700,13 +754,17 @@ for _, case in ipairs(OWN) do
 		if type(text) ~= "string" or not (name and text:find("/cast " .. name, 1, true)) then
 			fail(scenario, "the press does not cast " .. tostring(name) .. ": " .. flat(text))
 		end
+		-- Wearing any other of the family, nothing of it is offered: not the
+		-- first you know, nor the one worn before (Automatic's memory).
 		for _, id in ipairs(case.others) do
 			Mock.playerHeld[id] = true
 			ns.ForgetUnitAuras(ns.plain(UnitGUID("player")))
 			Mock.advance(10)
-			local again = mine(ns, case.offered)
-			if again then
-				fail(scenario, ("wearing %s, you were still told to put %s over it"):format(NAMES[id], case.offered))
+			for _, again in ipairs(ns.BuildQueue()) do
+				if again.reason == "self" and again.buff and ns.FindOwnSpell(again.buff.key) then
+					fail(scenario, ("wearing %s, you were still told to put %s over it"):format(NAMES[id],
+						again.buff.key))
+				end
 			end
 			Mock.playerHeld[id] = nil
 		end
@@ -736,6 +794,81 @@ do
 	end)
 end
 
+-- Earth Shield on herself is the shield she chose while it is up, and never
+-- what Automatic reminds her of: a shaman who ran Water Shield, then put her
+-- Earth Shield on herself, is told nothing while it lasts and is reminded of
+-- Water Shield once it is gone -- not of Earth Shield, which in a group
+-- belongs on the tank.
+do
+	local scenario = "mists: a shaman's own Earth Shield is her shield, and never what Automatic reminds her of"
+	mists(scenario, { class = "SHAMAN", known = { 324, 52127, 974 } }, function(ns)
+		local function wearing(set)
+			Mock.playerHeld = set
+			ns.ForgetUnitAuras(ns.plain(UnitGUID("player")))
+			Mock.advance(10)
+			local entry = mine(ns)
+			return entry and entry.buff.key or false
+		end
+		local first = wearing({ [52127] = true })
+		if first ~= false then
+			fail(scenario, "SKIPPED -- in Water Shield she was still offered " .. tostring(first))
+			return
+		end
+		local over = wearing({ [974] = true })
+		if over ~= false then
+			fail(scenario, "wearing her own Earth Shield, she was told to cast " .. tostring(over) .. " over it")
+		end
+		local after = wearing({})
+		if after ~= "watershield" then
+			fail(scenario, "with no shield up she was reminded of " .. tostring(after)
+				.. ", not the Water Shield she had up last")
+		end
+	end)
+end
+
+-- Earth Shield has nine charges (SpellAuraOptions), and with top-ups on one
+-- down to its last two is topped up like one running out; with five left and
+-- nine minutes to go it is not. The top-up is of the one she is wearing.
+do
+	local scenario = "mists: a shaman's own Earth Shield down to its last charges is topped up"
+	mists(scenario, { class = "SHAMAN", known = { 324, 52127, 974 } }, function(ns)
+		ns.db.profile.filters.whenBuffed = "refresh"
+		local charges = 5
+		local base = C_UnitAuras
+		rawset(_G, "C_UnitAuras", setmetatable({
+			GetUnitAuraBySpellID = function(unit, id)
+				if unit == "player" then
+					if id ~= 974 then return nil end
+					return { spellId = 974, expirationTime = Mock.now + 540, sourceUnit = "player",
+						applications = charges }
+				end
+				return base.GetUnitAuraBySpellID(unit, id)
+			end,
+		}, { __index = base }))
+		Mock.playerHeld = { [974] = true }
+		ns.ForgetUnitAuras(ns.plain(UnitGUID("player")))
+		Mock.advance(10)
+		local early = mine(ns)
+		if early then
+			fail(scenario, "SKIPPED -- with five of nine charges and nine minutes left, "
+				.. tostring(early.buff.key) .. " was offered")
+			return
+		end
+		charges = 2
+		Mock.advance(10)
+		local entry = mine(ns)
+		if not (entry and entry.buff.key == "earthshield") then
+			fail(scenario, "down to two of its nine charges, Earth Shield was not topped up: " .. listed(ns))
+			return
+		end
+		ns.addon:Tick()
+		local text = macro(ns)
+		if type(text) ~= "string" or not text:find("/cast Earth Shield", 1, true) then
+			fail(scenario, "the top-up does not cast Earth Shield: " .. flat(text))
+		end
+	end)
+end
+
 -- Righteous Fury: only while your group role is tank.
 do
 	local scenario = "mists: a paladin tank is reminded of Righteous Fury"
@@ -753,25 +886,35 @@ do
 	end)
 end
 
--- Every class with something of its own here, and nothing of vanilla's.
+-- Every class, with everything learned and nothing of its own up, has the
+-- families Mists gives it found through the spellbook (what is read, offered
+-- and shown on the options page), and a class with none is offered nothing of
+-- its own.
 do
 	local scenario = "mists: the classes with buffs of their own"
-	mists(scenario, {}, function(ns)
-		local want = { MAGE = "armor", PRIEST = "innerfire", PALADIN = "righteousfury", HUNTER = "aspect",
-			SHAMAN = "shield" }
-		for class, key in pairs(want) do
-			local found
-			for _, family in ipairs(ns.GetOwnFamilies(class) or {}) do
-				if family.key == key then found = family end
+	local want = { MAGE = "armor", PRIEST = "innerfire", PALADIN = "righteousfury", HUNTER = "aspect",
+		SHAMAN = "shield" }
+	for _, class in ipairs(ALL_CLASSES) do
+		mists(scenario, { class = class, known = SESSION[class] }, function(ns)
+			Mock.playerHeld = {}
+			ns.ForgetUnitAuras(ns.plain(UnitGUID("player")))
+			local keys = {}
+			for _, family in ipairs(ns.KnownOwnFamilies()) do keys[#keys + 1] = family.key end
+			local got = table.concat(keys, ", ")
+			if got ~= (want[class] or "") then
+				fail(scenario, ("a %s with everything learned has [%s] of its own, not [%s]"):format(
+					class:lower(), got, want[class] or ""))
 			end
-			if not found then fail(scenario, class .. " has no " .. key .. " of its own on Mists") end
-		end
-		for _, class in ipairs({ "WARLOCK", "DRUID", "ROGUE", "WARRIOR", "DEATHKNIGHT", "MONK" }) do
-			if ns.GetOwnFamilies(class) then
-				fail(scenario, class .. " is reminded of something of its own that Mists does not have")
+			if not want[class] then
+				for _, entry in ipairs(ns.BuildQueue()) do
+					if entry.reason == "self" and entry.buff and ns.FindOwnSpell(entry.buff.key) then
+						fail(scenario, ("a %s was reminded of %s, which is nobody's own on Mists"):format(
+							class:lower(), entry.buff.key))
+					end
+				end
 			end
-		end
-	end)
+		end)
+	end
 end
 
 -- ------------------------------------------------------------------ the options window
@@ -850,19 +993,6 @@ end
 -- passer-by and a group member missing everything, a buff from a stranger off
 -- the log and off the aura list, a press, /manners debug and the in-game
 -- self-test, with In character speech: nothing the addon guards may throw.
-local SESSION = {
-	MAGE = { 1459, 61316, 30482, 7302, 6117 },
-	PRIEST = { 21562, 588, 73413 },
-	DRUID = { 1126 },
-	PALADIN = { 20217, 19740, 25780 },
-	MONK = { 115921, 116781 },
-	WARLOCK = { 109773, 5697 },
-	WARRIOR = { 6673 },
-	DEATHKNIGHT = { 57330 },
-	HUNTER = { 109260, 13165, 5118, 13159, 61648 },
-	SHAMAN = { 324, 52127 },
-	ROGUE = {},
-}
 for _, class in ipairs(ALL_CLASSES) do
 	local scenario = "mists: a " .. class:lower() .. "'s session raises no guarded error"
 	mists(scenario, { class = class, known = SESSION[class], groupSize = 2,

@@ -17,13 +17,13 @@ mutate("tests/mockapi.lua",
        expect="mists: Mists is read as mists and given the mists set",
        script=S)
 
-# A Horn of Winter id the Mists client does not have: never known, never
-# offered, and /manners debug the only place it shows.
+# A Horn of Winter id the Mists client does not have: a death knight who has
+# learned Horn of Winter is never found to know it, so it is never offered.
 mutate("Buffs.lua",
        "{ key = \"hornofwinter\", ranks = { 57330 }, selfCast = true, partyOnly = true },",
        "{ key = \"hornofwinter\", ranks = { 57331 }, selfCast = true, partyOnly = true },",
        "mists: a death knight's shout under an id Mists lacks",
-       expect="mists: every id in the set is one the client names",
+       expect="mists: a deathknight's buffs are found (IsSpellKnown)",
        script=S)
 
 # ------------------------------------------------ already buffed
@@ -50,6 +50,15 @@ mutate("Buffs.lua",
        "",
        "mists: Dalaran Brilliance read as missing Brilliance",
        expect="mists: somebody wearing Dalaran Brilliance (61316) is read as having it",
+       script=S)
+
+# Arcane Brilliance held back from anybody without mana again: a warrior or a
+# hunter (Focus on Mists) never offered the 5% critical strike it carries.
+mutate("Buffs.lua",
+       "\t\t\t-- mana bar either) as to a caster.\n\t\t},\n",
+       "\t\t\t-- mana bar either) as to a caster.\n\t\t\tmanaOnly = true,\n\t\t},\n",
+       "mists: Arcane Brilliance for mana users only",
+       expect="mists: Arcane Brilliance is offered to a warrior and a hunter, who have no mana",
        script=S)
 
 # A paladin's blessings taken to stack on Mists: the walk replaces the Kings
@@ -115,12 +124,13 @@ mutate("Buffs.lua",
        script=S)
 
 # ------------------------------------------------ your own buffs
-# Nothing of their own for any class on Mists, as before.
+# Nothing of their own for any class on Mists, as before: a mage with
+# nothing up is never reminded of her armor.
 mutate("Buffs.lua",
        "\town = MISTS_OWN,\n",
        "\town = {},\n",
        "mists: no own buffs on Mists",
-       expect="mists: the classes with buffs of their own",
+       expect="mists: a mage's own buff is offered when none of its family is up",
        script=S)
 
 # Inner Will out of the priest's family: a priest in Inner Will is told to
@@ -140,6 +150,33 @@ mutate("Buffs.lua",
        expect="mists: a shaman's own buff is offered when none of its family is up",
        script=S)
 
+# Earth Shield out of the shaman's family: a Restoration shaman wearing her
+# own is told to put Lightning Shield over it, which replaces it.
+mutate("Buffs.lua",
+       "\t\t\t\t{ key = \"earthshield\", ranks = { 974 }, neverAuto = true, talent = true, charges = 9 },\n",
+       "",
+       "mists: Earth Shield not of the shield family",
+       expect="mists: a shaman's own buff is offered when none of its family is up (with Earth Shield)",
+       script=S)
+
+# Earth Shield remembered like the others: once it has been up on her, it is
+# what she is reminded of, in a group too, where it belongs on the tank.
+mutate("Buffs.lua",
+       "{ key = \"earthshield\", ranks = { 974 }, neverAuto = true, talent = true, charges = 9 },",
+       "{ key = \"earthshield\", ranks = { 974 }, talent = true, charges = 9 },",
+       "mists: Earth Shield picked by Automatic",
+       expect="mists: a shaman's own Earth Shield is her shield, and never what Automatic reminds her of",
+       script=S)
+
+# Earth Shield's charges forgotten: down to its last one or two it is left to
+# run out.
+mutate("Buffs.lua",
+       "{ key = \"earthshield\", ranks = { 974 }, neverAuto = true, talent = true, charges = 9 },",
+       "{ key = \"earthshield\", ranks = { 974 }, neverAuto = true, talent = true },",
+       "mists: Earth Shield's charges forgotten",
+       expect="mists: a shaman's own Earth Shield down to its last charges is topped up",
+       script=S)
+
 # Aspect of the Hawk ahead of the talent that replaces it.
 mutate("Buffs.lua",
        "\t\t\t\t{ key = \"aspectironhawk\", ranks = { 109260 }, talent = true },\n"
@@ -150,8 +187,10 @@ mutate("Buffs.lua",
        expect="mists: a hunter's own buff is offered when none of its family is up (with Aspect of the Iron Hawk)",
        script=S)
 
-# Mage Armor first: a mage of 34 to 79 is offered an armor she cannot cast
-# before the one she can.
+# Mage Armor first: a mage who knows all three armors (80 and up), with none
+# up and none remembered, is offered Mage Armor rather than Molten. (Below 80
+# the order cannot matter: FirstKnown passes over an armor she has not
+# learned.)
 mutate("Buffs.lua",
        "\t\t\t\t{ key = \"moltenarmor\", ranks = { 30482 } },\n"
        "\t\t\t\t{ key = \"frostarmor\", ranks = { 7302 } },\n"

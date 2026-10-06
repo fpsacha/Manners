@@ -637,10 +637,11 @@ local MISTS = {
 			-- Dalaran Brilliance is the same buff learned from a different
 			-- book; a target carrying it does not want ours on top.
 			group = { 61316 },
-			-- 10% spell power and 5% critical strike here. The crit is
-			-- anybody's, but most of the buff is a caster's, and manaOnly is how
-			-- this addon says that.
-			manaOnly = true,
+			-- Not manaOnly here: 10% spell power and 5% critical strike, and
+			-- the crit (SpellEffect 1459, effect 1: aura 290, 5) is the same
+			-- aura Legacy of the White Tiger gives, worth as much to a warrior,
+			-- a rogue, a death knight or a hunter (Focus on this client, so no
+			-- mana bar either) as to a caster.
 		},
 	},
 
@@ -719,19 +720,20 @@ local MISTS_RANK_LEVEL = {
 -- As VANILLA_OWN. The armors, Inner Fire and Inner Will, Righteous Fury and
 -- the aspects last until they are cancelled or you die (SpellDuration -1),
 -- so those families are toggles: none is ever a top-up. A shaman's shields
--- last an hour. Each family's members are the ones its client text says only
--- one of may be up: "A Mage can only have one Armor spell active at a time",
--- "You can only have Inner Will or Inner Fire active at a time", "Only one
--- Aspect can be active at a time", "Only one of your Elemental Shields can be
--- active on you at once".
+-- are timed (an hour, Earth Shield ten minutes). Each family's members are the
+-- ones its client text says only one of may be up: "A Mage can only have one
+-- Armor spell active at a time", "You can only have Inner Will or Inner Fire
+-- active at a time", "Only one Aspect can be active at a time", "Only one of
+-- your Elemental Shields can be active on you at once" (Lightning, Water and
+-- Earth Shield all say it).
 --
 -- Left out, from the same data: Fel Armor (a passive here), Trueshot Aura
 -- and Omen of Clarity (passives), a paladin's seals and auras (Devotion Aura
 -- is a cooldown in 5.x; the resistance auras are gone), a death knight's
--- presences and a monk's or warrior's stances (stances), Earth Shield (cast
--- on the tank), and tracking: the minimap's menu here is checkboxes
--- (Blizzard_Minimap's MinimapTracking_Dropdown, loaded off vanilla), several
--- on at once, so one on says nothing about the rest being wanted.
+-- presences and a monk's or warrior's stances (stances), and tracking: the
+-- minimap's menu here is checkboxes (Blizzard_Minimap's
+-- MinimapTracking_Dropdown, loaded off vanilla), several on at once, so one
+-- on says nothing about the rest being wanted.
 local MISTS_OWN = {
 	MAGE = {
 		{
@@ -793,6 +795,15 @@ local MISTS_OWN = {
 				-- An hour each, with no charges to spend in 5.x.
 				{ key = "lightningshield", ranks = { 324 } },
 				{ key = "watershield", ranks = { 52127 } },
+				-- Restoration's alone (SpecializationSpells, spec 264), and
+				-- mostly the tank's; but it can go on yourself, and then it is
+				-- your one Elemental Shield ("only one of your Elemental
+				-- Shields can be active on you at once"): up, it is your
+				-- choice, and Lightning or Water Shield would replace it.
+				-- Never what Automatic picks or remembers, so a healer who put
+				-- it on herself once is not told to again in a group. Ten
+				-- minutes, nine charges (SpellAuraOptions ProcCharges 9).
+				{ key = "earthshield", ranks = { 974 }, neverAuto = true, talent = true, charges = 9 },
 			},
 		},
 	},
