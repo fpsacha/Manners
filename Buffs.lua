@@ -479,13 +479,312 @@ local VANILLA_SET = {
 	favourOnly = { 6346, 546, 11743, 2970, 132, 20765, 20764, 20763, 20762, 20707 },
 }
 
--- Burning Crusade Classic: the vanilla set in everything but the class's own
--- buffs. There every family above has a member vanilla lacks (Molten Armor,
--- Fel Armor, Earth Shield, Aspect of the Viper, Crusader Aura), and with one
--- of those up "Myself" would read none of the family as up and offer a spell
--- that replaces it. Empty, as on Mists, until somebody can check the ids; the
--- name stays "vanilla", which is the set its buffs for others come from.
-local TBC_SET = setmetatable({ own = {} }, { __index = VANILLA_SET })
+---------------------------------------------------------------------------
+-- Burning Crusade Classic Anniversary
+---------------------------------------------------------------------------
+
+-- 2.5.6: the vanilla buffs with the ranks Burning Crusade added from 61 to
+-- 70, and its new spells. Without a new rank in these lists, a level-70
+-- wearing it reads as not having the buff at all. Every id, rank, level,
+-- reagent and talent below is the client's own (SpellName, Spell,
+-- SpellLevels, SpellReagents, SkillLineAbility, SpellEffect and Talent, build
+-- 2.5.6.69795, from wago.tools); the vanilla ranks under the new ones are the
+-- same ids at the same levels there.
+--
+-- What else differs from vanilla: Gift of the Wild's third rank eats Wild
+-- Quillvine (ItemSparse 22148); Commanding Shout (469, learned at 68) is a
+-- second shout, cast on yourself and reaching "all party members within 20
+-- yards" like Battle Shout (target 20, radius 20); and Detect Invisibility is
+-- one spell (132), the vanilla ranks above it gone. The reach is vanilla's:
+-- a group version reaches the target's party (target 37), a Greater Blessing
+-- everybody of the target's class (61), Salvation only your party or raid
+-- (57). Kings, Sanctuary and Divine Spirit are still talents (Talent).
+local WILD_QUILLVINE = 22148
+
+-- One rank of a group version and the reagent it eats, as Greater does for
+-- the Greater Blessings.
+local function Rank(id, reagent)
+	return { id = id, reagent = reagent }
+end
+
+local TBC = {
+	MAGE = {
+		{
+			key = "intellect",
+			ranks = { 27126, 10157, 10156, 1461, 1460, 1459 },
+			group = { 27127, 23028 },
+			manaOnly = true,
+			-- Arcane Brilliance, both ranks an Arcane Powder.
+			groupCast = { Rank(27127, ARCANE_POWDER), Rank(23028, ARCANE_POWDER) },
+		},
+	},
+
+	PRIEST = {
+		{
+			key = "fortitude",
+			ranks = { 25389, 10938, 10937, 2791, 1245, 1244, 1243 },
+			group = { 25392, 21564, 21562 },
+			-- Prayer of Fortitude: rank 1 a Holy Candle, ranks 2 and 3 a Sacred one.
+			groupCast = { Rank(25392, SACRED_CANDLE), Rank(21564, SACRED_CANDLE), Rank(21562, HOLY_CANDLE) },
+		},
+		{
+			key = "spirit",
+			ranks = { 25312, 27841, 14819, 14818, 14752 },
+			group = { 32999, 27681 },
+			manaOnly = true,
+			talent = true,
+			-- Prayer of Spirit.
+			groupCast = { Rank(32999, SACRED_CANDLE), Rank(27681, SACRED_CANDLE) },
+		},
+		{
+			key = "shadow",
+			ranks = { 25433, 10958, 10957, 976 },
+			group = { 39374, 27683 },
+			-- Prayer of Shadow Protection.
+			groupCast = { Rank(39374, SACRED_CANDLE), Rank(27683, SACRED_CANDLE) },
+		},
+	},
+
+	DRUID = {
+		{
+			key = "motw",
+			ranks = { 26990, 9885, 9884, 8907, 5234, 6756, 5232, 1126 },
+			group = { 26991, 21850, 21849 },
+			-- Gift of the Wild: each rank its own reagent.
+			groupCast = { Rank(26991, WILD_QUILLVINE), Rank(21850, WILD_THORNROOT), Rank(21849, WILD_BERRIES) },
+		},
+		{
+			key = "thorns",
+			ranks = { 26992, 9910, 9756, 8914, 1075, 782, 467 },
+		},
+	},
+
+	PALADIN = {
+		{
+			key = "wisdom",
+			ranks = { 27142, 25290, 19854, 19853, 19852, 19850, 19742 },
+			group = { 27143, 25918, 25894 },
+			manaOnly = true,
+			groupCast = Greater(27143, 25918, 25894),
+		},
+		{
+			key = "might",
+			ranks = { 27140, 25291, 19838, 19837, 19836, 19835, 19834, 19740 },
+			group = { 27141, 25916, 25782 },
+			groupCast = Greater(27141, 25916, 25782),
+		},
+		{
+			key = "kings",
+			ranks = { 20217 },
+			talent = true,
+			group = { 25898 },
+			groupCast = Greater(25898),
+		},
+		{
+			key = "salvation",
+			ranks = { 1038 },
+			group = { 25895 },
+			groupCast = Greater(25895),
+			-- Your party or raid only (target 57), as on vanilla.
+			groupOnly = true,
+		},
+		{
+			key = "light",
+			ranks = { 27144, 19979, 19978, 19977 },
+			group = { 27145, 25890 },
+			groupCast = Greater(27145, 25890),
+		},
+		{
+			key = "sanctuary",
+			ranks = { 27168, 20914, 20913, 20912, 20911 },
+			group = { 27169, 25899 },
+			talent = true,
+			groupCast = Greater(27169, 25899),
+		},
+	},
+
+	WARLOCK = {
+		{
+			key = "breath",
+			ranks = { 5697 },
+			group = { 131 }, -- a shaman's Water Breathing, as on vanilla
+			neverSelf = true,
+		},
+	},
+
+	WARRIOR = {
+		{
+			key = "battleshout",
+			ranks = { 2048, 25289, 11551, 11550, 11549, 6192, 5242, 6673 },
+			selfCast = true,
+			partyOnly = true,
+		},
+		-- After Battle Shout, so Automatic gives that first. Nothing in the
+		-- client's data makes the two exclusive: a party can wear both.
+		{
+			key = "commandingshout",
+			ranks = { 469 },
+			selfCast = true,
+			partyOnly = true,
+		},
+	},
+}
+
+-- The levels of the ranks above that vanilla's RANK_LEVEL does not have
+-- (SpellLevels, same build). No other set names these ids, so adding them
+-- where every set looks changes nothing anywhere else. The shouts and
+-- Sanctuary have none, as on vanilla.
+for id, level in pairs({
+	[27126] = 70, [25389] = 70, [25433] = 68, [26990] = 70, [26992] = 64,
+	[27142] = 65, [27140] = 70, [27144] = 69, [25312] = 70,
+}) do
+	ns.RANK_LEVEL[id] = level
+end
+
+-- What each class puts on itself alone, as VANILLA_OWN, with every family's
+-- Burning Crusade ranks and members: Molten Armor, Fel Armor, Crusader Aura,
+-- Aspect of the Viper, Water Shield (trained at 62 here, no talent) and Earth
+-- Shield. Without them one of those up would read as none of the family up,
+-- and "Myself" would offer a spell that replaces it.
+local TBC_OWN = {
+	MAGE = {
+		{
+			key = "armor",
+			label = L["Armor"],
+			spells = {
+				-- Frost Armor 1-3, then Ice Armor 1-5 from level 30: one line.
+				{ key = "frostarmor", ranks = { 27124, 10220, 10219, 7320, 7302, 7301, 7300, 168 } },
+				{ key = "magearmor", ranks = { 27125, 22783, 22782, 6117 } },
+				{ key = "moltenarmor", ranks = { 30482 } },
+			},
+			dungeon = "magearmor", -- the mana back in a long fight
+		},
+	},
+
+	PRIEST = {
+		{ key = "innerfire",
+			spells = { { key = "innerfire", ranks = { 25431, 10952, 10951, 1006, 602, 7128, 588 }, charges = 20 } } },
+		-- Racials, each with a seventh rank: Touch of Weakness the undead's and
+		-- now the blood elf's, Shadowguard the troll's (SkillLineAbility's
+		-- race masks).
+		{ key = "touchofweakness",
+			spells = { { key = "touchofweakness", ranks = { 25461, 19266, 19265, 19264, 19262, 19261, 2652 } } } },
+		{ key = "shadowguard",
+			spells = { { key = "shadowguard", ranks = { 25477, 19312, 19311, 19310, 19309, 19308, 18137 }, charges = 3 } } },
+	},
+
+	WARLOCK = {
+		{
+			-- The family keeps vanilla's key, so a pick made there still reads.
+			key = "demonarmor",
+			label = L["Armor"],
+			spells = {
+				-- Demon Skin 1-2, then Demon Armor 1-6 from level 20: one line.
+				{ key = "demonarmor", ranks = { 27260, 11735, 11734, 11733, 1086, 706, 696, 687 } },
+				{ key = "felarmor", ranks = { 28189, 28176 } },
+			},
+			-- "Only one type of Armor spell can be active on the Warlock": the
+			-- spell power for a dungeon, the armor out in the world.
+			dungeon = "felarmor",
+		},
+	},
+
+	PALADIN = {
+		{
+			key = "aura",
+			label = L["Aura"],
+			spells = {
+				{ key = "devotionaura", ranks = { 27149, 10293, 10292, 1032, 10291, 643, 10290, 465 } },
+				{ key = "retributionaura", ranks = { 27150, 10301, 10300, 10299, 10298, 7294 } },
+				{ key = "concentrationaura", ranks = { 19746 } },
+				{ key = "shadowresaura", ranks = { 27151, 19896, 19895, 19876 } },
+				{ key = "frostresaura", ranks = { 27152, 19898, 19897, 19888 } },
+				{ key = "fireresaura", ranks = { 27153, 19900, 19899, 19891 } },
+				{ key = "sanctityaura", ranks = { 20218 }, talent = true },
+				-- Mounted speed: up counts as your choice, but nobody wants to be
+				-- reminded to ride faster, so Automatic never picks it.
+				{ key = "crusaderaura", ranks = { 32223 }, neverAuto = true },
+			},
+			toggle = true,
+			shared = true,
+		},
+		{
+			key = "righteousfury",
+			spells = { { key = "righteousfury", ranks = { 25780 } } },
+			tank = true, -- Automatic reminds you only while you tank
+		},
+	},
+
+	HUNTER = {
+		{
+			key = "aspect",
+			label = L["Aspect"],
+			spells = {
+				{ key = "aspecthawk", ranks = { 27044, 25296, 14322, 14321, 14320, 14319, 14318, 13165 } },
+				{ key = "aspectmonkey", ranks = { 13163 } },
+				{ key = "aspectwild", ranks = { 27045, 20190, 20043 } },
+				{ key = "aspectbeast", ranks = { 13161 } },
+				{ key = "aspectviper", ranks = { 34074 } },
+				-- Up counts as your choice; Automatic never runs you everywhere.
+				{ key = "aspectcheetah", neverAuto = true, ranks = { 5118 } },
+				{ key = "aspectpack", neverAuto = true, ranks = { 13159 } },
+			},
+			toggle = true,
+			shared = true,
+		},
+		{
+			key = "trueshot",
+			spells = { { key = "trueshot", ranks = { 27066, 20906, 20905, 19506 }, talent = true } },
+			shared = true,
+		},
+	},
+
+	SHAMAN = {
+		{
+			key = "shield",
+			label = L["Shield"],
+			spells = {
+				{ key = "lightningshield", ranks = { 25472, 25469, 10432, 10431, 8134, 945, 905, 325, 324 }, charges = 3 },
+				{ key = "watershield", ranks = { 33736, 24398 }, charges = 3 },
+				-- A Restoration talent, and "only one Elemental Shield can be
+				-- active on a target": a shaman wearing his own has chosen it.
+				-- Never Automatic's pick, being the one for the tank.
+				{ key = "earthshield", ranks = { 32594, 32593, 974 }, talent = true, neverAuto = true, charges = 6 },
+			},
+		},
+	},
+
+	DRUID = {
+		{
+			key = "omen",
+			spells = { { key = "omen", ranks = { 16864 }, talent = true } },
+		},
+	},
+}
+
+-- Tracking as on vanilla, every id there in this client too, and Find Fish
+-- (43308, the Weather-Beaten Journal's): only one tracking is on at a time,
+-- so with it missing here, Find Fish on would read as none and have another
+-- offered over it.
+do
+	local spells = {}
+	for _, spell in ipairs(TRACKING.spells) do spells[#spells + 1] = { key = spell.key, ranks = spell.ranks } end
+	spells[#spells + 1] = { key = "findfish", ranks = { 43308 } }
+	local tracking = { key = TRACKING.key, label = TRACKING.label, tracking = true, toggle = true, spells = spells }
+	for _, class in ipairs({ "MAGE", "PRIEST", "WARLOCK", "PALADIN", "HUNTER", "SHAMAN", "DRUID", "WARRIOR", "ROGUE" }) do
+		TBC_OWN[class] = TBC_OWN[class] or {}
+		table.insert(TBC_OWN[class], tracking)
+	end
+end
+
+local TBC_SET = setmetatable({
+	name = "tbc",
+	buffs = TBC,
+	own = TBC_OWN,
+	-- Vanilla's, less the two Detect Invisibility ranks this client deleted,
+	-- with the sixth Soulstone (27239).
+	favourOnly = { 6346, 546, 132, 27239, 20765, 20764, 20763, 20762, 20707 },
+}, { __index = VANILLA_SET })
 
 ---------------------------------------------------------------------------
 -- WoW Forever: a mage's scrolls

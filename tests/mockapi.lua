@@ -56,12 +56,19 @@ local FLAVOURS = {
 		conditionalTargeting = true,
 		secretRestrictions = true, weaponEnchantList = false, paperDoll = false,
 	},
+	-- Burning Crusade Classic Anniversary 2.5.6 (classic_anniversary branch,
+	-- build 69795; GetBuildInfo's 20506 and project 5 as Ketho's
+	-- BlizzardInterfaceResources records them). Secrets as on Era below: the
+	-- branch has the same C_Secrets and the same addon*RestrictionsForced
+	-- settings, all off, as classic_era, so HasSecretRestrictions is taken to
+	-- answer false here too. UnitBuff and UnitAura are Blizzard_Deprecated's
+	-- Deprecated_2_5_5.lua, behind loadDeprecationFallbacks like the log's.
 	tbc = {
 		build = "2.5.6", interface = 20506,
 		project = WOW_PROJECT_BURNING_CRUSADE_CLASSIC,
 		combatLog = true, surnames = false, unitBuff = true,
 		conditionalTargeting = true,
-		secretRestrictions = true, weaponEnchantList = false, paperDoll = false,
+		secretRestrictions = false, weaponEnchantList = false, paperDoll = false,
 	},
 	-- Classic Era 1.15.9 (classic_era branch, build 70003). C_Secrets is there,
 	-- and HasSecretRestrictions answers false: "all APIs that are tagged as
@@ -1686,6 +1693,56 @@ for name, ids in pairs({
 	["Imbue Greater Flame"] = { 1302311 },
 	["Imbue Greater Frost"] = { 1302312 },
 	["Imbue Precision"] = { 1302310 },
+}) do
+	for _, id in ipairs(ids) do SPELL_NAMES[id] = name end
+end
+
+-- Burning Crusade's own ranks and spells (Buffs.lua, TBC and TBC_OWN), as the
+-- 2.5.6 client names them; no other client's table names any of these ids.
+for name, ids in pairs({
+	["Arcane Intellect"] = { 27126 },
+	["Arcane Brilliance"] = { 27127 },
+	["Power Word: Fortitude"] = { 25389 },
+	["Prayer of Fortitude"] = { 25392 },
+	["Divine Spirit"] = { 25312 },
+	["Prayer of Spirit"] = { 32999 },
+	["Shadow Protection"] = { 25433 },
+	["Prayer of Shadow Protection"] = { 39374 },
+	["Mark of the Wild"] = { 26990 },
+	["Gift of the Wild"] = { 26991 },
+	["Thorns"] = { 26992 },
+	["Blessing of Wisdom"] = { 27142 },
+	["Greater Blessing of Wisdom"] = { 27143 },
+	["Blessing of Might"] = { 27140 },
+	["Greater Blessing of Might"] = { 27141 },
+	["Blessing of Light"] = { 27144 },
+	["Greater Blessing of Light"] = { 27145 },
+	["Blessing of Sanctuary"] = { 27168 },
+	["Greater Blessing of Sanctuary"] = { 27169 },
+	["Battle Shout"] = { 2048 },
+	["Commanding Shout"] = { 469 },
+	["Ice Armor"] = { 27124 },
+	["Mage Armor"] = { 27125 },
+	["Molten Armor"] = { 30482 },
+	["Inner Fire"] = { 25431 },
+	["Touch of Weakness"] = { 25461 },
+	["Shadowguard"] = { 25477 },
+	["Demon Armor"] = { 27260 },
+	["Fel Armor"] = { 28176, 28189 },
+	["Devotion Aura"] = { 27149 },
+	["Retribution Aura"] = { 27150 },
+	["Shadow Resistance Aura"] = { 27151 },
+	["Frost Resistance Aura"] = { 27152 },
+	["Fire Resistance Aura"] = { 27153 },
+	["Crusader Aura"] = { 32223 },
+	["Aspect of the Hawk"] = { 27044 },
+	["Aspect of the Wild"] = { 27045 },
+	["Aspect of the Viper"] = { 34074 },
+	["Trueshot Aura"] = { 27066 },
+	["Lightning Shield"] = { 25469, 25472 },
+	["Water Shield"] = { 24398, 33736 },
+	["Earth Shield"] = { 974, 32593, 32594 },
+	["Find Fish"] = { 43308 },
 }) do
 	for _, id in ipairs(ids) do SPELL_NAMES[id] = name end
 end

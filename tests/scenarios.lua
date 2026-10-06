@@ -8716,9 +8716,10 @@ Mock.reset()
 -- A wrong table here has no symptom worth the name: the spells still cast, the
 -- prompt still appears, and one class is quietly never offered anything because
 -- the id it was given belongs to a spell this client deleted six expansions
--- ago. The three vanilla-content flavours share one set on purpose -- Forever
--- runs vanilla content and those tables are the only ones verified in game --
--- and the assertions below say so, so that sharing cannot be undone by accident.
+-- ago. Forever and Classic Era share one set on purpose -- Forever runs
+-- vanilla content and those tables are the only ones verified in game -- and
+-- the assertions below say so, so that sharing cannot be undone by accident.
+-- Burning Crusade has a set of its own: its ranks go to 70.
 local BUFF_SETS = {
 	{
 		interface = 11509, flavour = "vanilla", set = "vanilla", classic = true,
@@ -8728,7 +8729,7 @@ local BUFF_SETS = {
 		exclusive = { PALADIN = true },
 	},
 	{
-		interface = 20506, flavour = "tbc", set = "vanilla", classic = true,
+		interface = 20506, flavour = "tbc", set = "tbc", classic = true,
 		has = { PALADIN = "wisdom", PRIEST = "spirit", DRUID = "thorns" },
 		absent = { "MONK", "EVOKER", "DEATHKNIGHT" },
 		without = { "HUNTER", "ROGUE", "SHAMAN" },
@@ -9948,7 +9949,7 @@ local CLIENTS = {
 	{ flavour = "mists", family = "classic", interface = 50504,
 		project = WOW_PROJECT_MISTS_CLASSIC, set = "mists", surname = false },
 	{ flavour = "tbc", family = "classic", interface = 20506,
-		project = WOW_PROJECT_BURNING_CRUSADE_CLASSIC, set = "vanilla", surname = false },
+		project = WOW_PROJECT_BURNING_CRUSADE_CLASSIC, set = "tbc", surname = false },
 	{ flavour = "vanilla", family = "classic", interface = 11509,
 		project = WOW_PROJECT_CLASSIC, set = "vanilla", surname = false },
 }
