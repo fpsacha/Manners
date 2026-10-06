@@ -41,35 +41,20 @@ SOURCE = "Manners.toc"
 #
 # Cataclysm Classic is absent because it is retired; Season of Discovery and
 # Hardcore are absent because they are Classic Era and not separate clients.
-# WHAT 1.0 CLAIMS, and why it is one line long.
-#
-# The addon knows about five clients and has been run on one. Mainline, Mists
-# and Vanilla are implemented, their spell tables are researched, and every
-# path through them is exercised against a mock -- but nobody has launched
-# those clients, and the mock has twice been taught to agree with the code
-# rather than with the game. Shipping a toc is a promise, and a 1.0 that is
-# broken on Retail earns reviews that outlive the fix by months.
-#
-# So 1.0 is Camelot alone. The other three are one uncommented line each and
-# come back the moment somebody reports one working -- which is what the
-# class-report issue template exists to collect.
+# Every live client ships since 1.7.0. Each set of spell ids was checked
+# against that client's own data (wago.tools DB2 of its build), and each has a
+# scenario file of its own (tests/scenarios/<flavour>.lua).
 FLAVOURS = [
-    ("Camelot", 16001),     # WoW Forever 1.60.1 -- the only one ever run
-    ("Vanilla", 11509),     # Classic Era 1.15.9 -- published 1.6.7
-    # ("Mainline", 120100), # retail "Midnight" 12.1
-    # ("Mists", 50504),     # Mists of Pandaria Classic
-    # No _TBC.toc even then: a 2.5 client applies Burning Crusade spell ranks,
-    # whose ids are in none of the tables here, so the addon would load,
-    # resolve nothing, and offer nobody anything -- which reads as broken
-    # rather than as unsupported. Add the ids first.
+    ("Camelot", 16001),     # WoW Forever 1.60.1
+    ("Vanilla", 11509),     # Classic Era 1.15.9 -- since 1.6.7
+    ("TBC", 20506),         # Burning Crusade Classic Anniversary 2.5.6
+    ("Mists", 50504),       # Mists of Pandaria Classic 5.5.4
+    ("Mainline", 120100),   # retail "Midnight" 12.1.0
 ]
 
 # Written, but not where the packager or the game looks (see the docstring).
-# Classic Era: the code and the mock know it (tests/scenarios/era.lua), and
-# nobody has played it. Publishing it is moving the line up into FLAVOURS and
-# adding the number to Manners.toc's Interface line -- STATUS.md says what else.
-# 11509 is the classic_era branch of Gethe/wow-ui-source at 1.15.9 (70003),
-# its newest build, September 2026.
+# Empty since every client ships; a flavour goes here when it is implemented
+# but not yet ready to publish.
 STAGED = [
 ]
 STAGED_DIR = os.path.join("tools", "tocs")

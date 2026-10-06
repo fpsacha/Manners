@@ -29,10 +29,7 @@ a hunter's aspect, a shaman's shield), "You" comes up on the same prompt and
 one press puts it on you. A mage carrying familiar or weapon imbue scrolls is
 reminded of those too.
 
-Built for **WoW Forever** (Interface 16001) and **Classic Era** (Interface
-11509).
-
-Retail and Mists Classic are implemented too, but not shipped yet.
+Runs on every live client: **WoW Forever**, **Classic Era**, **Burning Crusade Classic**, **Mists of Pandaria Classic** and **retail** (Midnight).
 
 ## Installing
 
@@ -732,6 +729,26 @@ you have learned them:
 | Druid | Omen of Clarity on Classic Era only (a passive on WoW Forever) |
 
 Warriors and rogues have nothing of their own to be reminded of.
+
+### Burning Crusade, Mists and retail
+
+The tables above are WoW Forever's and Classic Era's. On the other clients each
+class offers what that client gives it:
+
+- **Burning Crusade Classic:** the same buffs at every Burning Crusade rank,
+  and Commanding Shout for warriors (your own party only). On yourself, Molten
+  Armor, Fel Armor, Aspect of the Viper, Sanctity and Crusader Aura join their
+  families, and Earth Shield counts as a shaman's shield.
+- **Mists of Pandaria Classic:** Arcane Brilliance, Power Word: Fortitude,
+  Mark of the Wild, Blessing of Kings or Might, Legacy of the Emperor (and of
+  the White Tiger), Dark Intent, and Battle Shout or Horn of Winter for your own
+  party. On yourself: Molten, Frost or Mage Armor; Inner Fire or Inner Will;
+  Righteous Fury; an aspect; and Lightning, Water or Earth Shield.
+- **Retail:** Arcane Intellect (to those who use mana), Power Word: Fortitude,
+  Mark of the Wild, Skyfury, Blessing of the Bronze, and Battle Shout for your
+  own group. Source of Magic is offered when you pin it or somebody asks for it.
+  Paladins, death knights, monks, demon hunters, hunters, rogues and warlocks
+  have no buff for anybody else there, and Manners says so.
 
 ## Why a button and not automatic
 

@@ -10,7 +10,7 @@ In a dungeon or a raid it keeps your group topped up: one group cast for a whole
 
 It looks after you too. When you are missing your own buff, or one your class casts only on itself -- a mage's armor, a priest's Inner Fire, a paladin's aura, a hunter's aspect, a shaman's shield -- "You" comes up on the same prompt, and one press puts it on you. On WoW Forever, a mage carrying familiar or weapon imbue scrolls is reminded of those too.
 
-Built for **WoW Forever** (Interface 16001) and **Classic Era** (Interface 11509).
+Runs on every live client: **WoW Forever**, **Classic Era**, **Burning Crusade Classic**, **Mists of Pandaria Classic** and **retail** (Midnight).
 
 ### Who it offers, in this order
 
@@ -120,6 +120,26 @@ The first login on each character says what it does and shows you the prompt onc
 Where a class has several, the prompt offers whichever one they are missing: a priest walks Fortitude, then Divine Spirit, then Shadow Protection. Paladin blessings overwrite one another, so anybody holding one of yours is left alone, and the automatic pick is Wisdom for mana users and Might for everyone else. You can switch buffs off, or pin one and only ever cast that. Mages, priests, druids and paladins also get the group version (Arcane Brilliance, the Prayers, Gift of the Wild, the Greater Blessings) once they have learned it and carry its reagent.
 
 **Buff myself** offers you the buff you give others too, and everything in the last column once you have learned it. A warrior's shout already covers him, and nobody needs Unending Breath on dry land, so those two never are. Hunters and shamans have nothing to cast on another player, so their prompt is for their own buffs. Rogues have nothing to cast at all, and Manners says so.
+
+### Burning Crusade, Mists and retail
+
+The tables above are WoW Forever's and Classic Era's. On the other clients each
+class offers what that client gives it:
+
+- **Burning Crusade Classic:** the same buffs at every Burning Crusade rank,
+  and Commanding Shout for warriors (your own party only). On yourself, Molten
+  Armor, Fel Armor, Aspect of the Viper, Sanctity and Crusader Aura join their
+  families, and Earth Shield counts as a shaman's shield.
+- **Mists of Pandaria Classic:** Arcane Brilliance, Power Word: Fortitude,
+  Mark of the Wild, Blessing of Kings or Might, Legacy of the Emperor (and of
+  the White Tiger), Dark Intent, and Battle Shout or Horn of Winter for your own
+  party. On yourself: Molten, Frost or Mage Armor; Inner Fire or Inner Will;
+  Righteous Fury; an aspect; and Lightning, Water or Earth Shield.
+- **Retail:** Arcane Intellect (to those who use mana), Power Word: Fortitude,
+  Mark of the Wild, Skyfury, Blessing of the Bronze, and Battle Shout for your
+  own group. Source of Magic is offered when you pin it or somebody asks for it.
+  Paladins, death knights, monks, demon hunters, hunters, rogues and warlocks
+  have no buff for anybody else there, and Manners says so.
 
 ### Languages
 

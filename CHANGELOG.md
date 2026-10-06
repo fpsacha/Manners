@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- **Every live client.** Manners now installs on Burning Crusade Classic,
+  Mists of Pandaria Classic and retail as well as WoW Forever and Classic Era,
+  each with its own buffs: every Burning Crusade rank and Commanding Shout;
+  Mists' Legacies, Dark Intent and Horn of Winter; retail's Skyfury, Blessing
+  of the Bronze and Source of Magic.
+
 ## 1.6.8
 
 - **Friendly nameplates on WoW Forever.** The game renamed its setting, so

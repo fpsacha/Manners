@@ -4,7 +4,7 @@
 
 Somebody buffs you in passing; Manners puts them on one button, and a click buffs them back and hands your own target straight back. It also offers your group, people who ask for your buff in chat, and nearby players missing it -- and you, when you are missing your own buff or one your class casts only on itself. In dungeons and raids it keeps your group topped up, with one group cast for a whole party when you carry the reagent.
 
-Built for **WoW Forever** (Interface 16001) and **Classic Era** (Interface 11509).
+Runs on every live client: **WoW Forever**, **Classic Era**, **Burning Crusade Classic**, **Mists of Pandaria Classic** and **retail** (Midnight).
 
 - **Who comes first:** your target, then your group at a ready check or just back from the dead, then people who buffed you, people who asked in chat, you, the rest of your group, and passers-by. They are colour-coded, with a colour-blind friendly set.
 - **Buff myself:** missing your own buff, or one your class casts only on itself -- a mage's armor, a priest's Inner Fire, a warlock's Demon Armor, a paladin's aura or Righteous Fury, a hunter's aspect, a shaman's shield -- and "You" comes up on the prompt; one press puts it on you. Pick your armor, aura or aspect, or let *Automatic* follow the one you had up last. Only when none of a kind is up, never in a fight, and not in cities and inns unless you want it. Hunters and shamans now get a prompt of their own. On WoW Forever, a mage is reminded of familiar and weapon imbue scrolls too.
@@ -24,6 +24,7 @@ Built for **WoW Forever** (Interface 16001) and **Classic Era** (Interface 11509
 - **Say something in character** (off by default): over two thousand funny lines, picked for your race, class and faction and for the moment -- the spell you give, what they gave you, how often you two swap, where you are, the hour -- in every people's own voice, never repeating.
 - **Whisper them** as the channel for your line, so only the person you buff hears it, and an optional `/thank` emote when somebody buffs you (off by default).
 - **A self-test:** `/manners selftest` checks Manners against your game and gives you a report to paste into a bug report.
+- **Each client's own buffs:** every Burning Crusade rank and Commanding Shout; Mists' Legacies, Dark Intent and Horn of Winter; retail's Skyfury, Blessing of the Bronze and Source of Magic.
 - **Nine languages:** English, German, Spanish (Spain and Mexico), French, Italian, Korean, Brazilian Portuguese, Simplified and Traditional Chinese.
 
 **Getting started:** `/manners` opens the options on **Start here**. The first time, two questions set you up -- who to buff, and whether your character talks. After that, four numbered steps: who to buff (one quick choice), a key or a macro for your bars, where the prompt sits, and whether to say thanks. `/manners help` lists every command.

@@ -59,11 +59,16 @@ its macro has no `/target` line, and `pending.selfCast` in `SettlePendingClick`
 is the branch deciding whether a warrior can ever repay anybody. It has never
 run against the real game.
 
-**Classic Era ships since 1.6.7** (Manners_Vanilla.toc, interface 11509). It
-has run only against the mock as Era 1.15.9 (`tests/scenarios/era.lua`).
-`python tests/runscenarios.py --flavour vanilla` runs the whole suite as Era as
-a diagnostic; most of its reds are fixtures written for Camelot (two-part names,
-Forever's scrolls and raid-wide group casts), not addon faults.
+**Every live client ships since 1.7.0** (Classic Era since 1.6.7): a toc per
+client from tools/maketocs.py, and a set of spell ids per client in Buffs.lua,
+each checked against that client's DB2 on wago.tools. Each has its own scenario
+file (era.lua, tbc.lua, mists.lua, mainline.lua) and mutations. Only Forever has
+been played. `python tests/runscenarios.py --flavour <name>` runs the whole
+suite as that client as a diagnostic; most of its reds are fixtures written for
+Camelot (two-part names, Forever's scrolls and raid-wide group casts, a raid
+pcall ceiling set for Forever's data), not addon faults. Commanding Shout,
+Skyfury, Blessing of the Bronze, Source of Magic and Mists' new buffs have no
+In character lines of their own yet; those lines fall back to race and moment.
 
 **One assumption is untested.** A late refusal is matched to the press it
 answers using the cast guid the client sends with both cast events, and only
