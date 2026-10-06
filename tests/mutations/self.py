@@ -51,12 +51,14 @@ mutate("Core.lua",
        "self: shout offered to yourself",
        expect="a solo warrior was offered his own shout", script=S)
 
-# A spell the game keeps off its caster offered to the caster.
+# A spell the game keeps off its caster offered to the caster. Source of
+# Magic is neverAuto on retail (Buffs.lua: one ally carries it), so Automatic
+# never reaches it and the pinned half of the scenario is the one that sees it.
 mutate("Core.lua",
        "\treturn buff ~= nil and not buff.selfCast and not buff.notSelf and not buff.neverSelf\n",
        "\treturn buff ~= nil and not buff.selfCast and not buff.neverSelf\n",
        "self: notSelf ignored",
-       expect="while wearing the Blessing", script=S)
+       expect="a pinned Source of Magic was offered to the evoker casting it", script=S)
 
 # Your own name on the never-offer list ignored.
 mutate("Queue.lua",

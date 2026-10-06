@@ -39,11 +39,19 @@ local FLAVOURS = {
 		conditionalTargeting = false,
 		secretRestrictions = true, weaponEnchantList = true, paperDoll = true,
 	},
+	-- Retail Midnight 12.1.0 (live branch, build 69933; GetBuildInfo's
+	-- "12.1.0" and 120100, and WOW_PROJECT_MAINLINE, from Ketho's
+	-- BlizzardInterfaceResources live dump). COMBAT_LOG_EVENT_UNFILTERED
+	-- HasRestrictions in CombatLogDocumentation and no C_CombatLog reader is
+	-- listed; UnitBuff and UnitAura are gone. C_Item.GetWeaponEnchantInfo is
+	-- Forever's alone (in the forever dump, not the live one): retail has
+	-- C_PaperDollInfo.GetTemporaryEnchantmentInfo, and the global
+	-- GetWeaponEnchantInfo only as a shim over it (Deprecated_12_1_0.lua).
 	mainline = {
-		build = "12.1.5", interface = 120100, project = WOW_PROJECT_MAINLINE,
+		build = "12.1.0", interface = 120100, project = WOW_PROJECT_MAINLINE,
 		combatLog = false, surnames = false, unitBuff = false,
 		conditionalTargeting = true,
-		secretRestrictions = true, weaponEnchantList = true, paperDoll = true,
+		secretRestrictions = true, weaponEnchantList = false, paperDoll = true,
 	},
 	-- The three Classic clients: no C_Item.GetWeaponEnchantInfo and no
 	-- C_PaperDollInfo.GetTemporaryEnchantmentInfo in the generated API docs of

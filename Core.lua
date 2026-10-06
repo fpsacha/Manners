@@ -1921,6 +1921,9 @@ local MANA_CLASSES = {
 	DRUID = true, PALADIN = true, HUNTER = true, SHAMAN = true,
 	MONK = true, EVOKER = true,
 }
+-- Retail hunters have Focus and no mana bar (ChrClasses.DisplayPower 2, build
+-- 12.1.0.69933), where a vanilla hunter has mana.
+if (ns.Flavour and ns.Flavour.flavour) == "mainline" then MANA_CLASSES.HUNTER = nil end
 ns.MANA_CLASSES = MANA_CLASSES
 
 -- Returns true, false, or nil for "cannot tell". UnitPowerMax is a secret value

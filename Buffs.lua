@@ -706,13 +706,30 @@ local MISTS_SET = {
 -- Five class buffs are left, one per class, each an hour long and castable on
 -- somebody outside your group. Paladins and death knights have nothing left,
 -- and are named in `without` so the options page can say so.
+--
+-- Every id below was checked against retail's own spell data, build
+-- 12.1.0.69933 (wago.tools: SpellName, Spell, SpellEffect, SpellMisc,
+-- SpellLevels, SkillLineAbility, TraitDefinition), and the tooltips on Wowhead.
+-- Arcane Intellect, Fortitude, Mark of the Wild and Skyfury apply their own id
+-- to the target (aura effect, ImplicitTarget 118: "if the target is in your
+-- party or raid, all party and raid members will be affected"), so a stranger
+-- takes them and the one id is the aura. Battle Shout's targets are 56, the
+-- caster's raid within 100 yards: no target, and the whole raid rather than
+-- one subgroup, which is why this set leaves partyIsSubgroup out. Each of the
+-- six also triggers an eight-second "Highlight" on its caster (1271904 to
+-- 1271912), which is nothing anybody else wears and is left out.
 local MAINLINE = {
 	MAGE = {
 		{
 			key = "intellect",
 			ranks = { 1459 },
-			-- Not manaOnly here: on retail it is one of five raid buffs
-			-- everybody carries, whether or not they have a mana bar.
+			-- "Increasing their Intellect by 3%": nothing to a warrior, a rogue,
+			-- a hunter, a death knight or a demon hunter, none of whom has a
+			-- mana bar (ChrClasses.DisplayPower). It is the Mists reasoning: a
+			-- buff only a caster benefits from, which manaOnly is how this
+			-- addon says, and what "Skip players it does nothing for" (on by
+			-- default) promises.
+			manaOnly = true,
 		},
 	},
 
@@ -725,6 +742,7 @@ local MAINLINE = {
 	},
 
 	-- New in 11.0, all specs, learned at 16 (Wowhead retail; retail SpellLevels 16).
+	-- Trained (SkillLineAbility), in no talent tree (no TraitDefinition row).
 	SHAMAN = {
 		{ key = "skyfury", ranks = { 462854 } },
 	},
@@ -733,24 +751,33 @@ local MAINLINE = {
 		{
 			key = "bronze",
 			ranks = { 364342 },
-			-- The thirteen auras one cast can apply, one per class, none
-			-- sharing the cast's id: without them a buffed target reads as
-			-- missing it. All thirteen, rather than a guess at the mapping.
+			-- The thirteen auras the cast applies (its SpellEffect rows 0 to
+			-- 12 trigger exactly these), one per class, none sharing the
+			-- cast's id: without them a buffed target reads as missing it.
+			-- Five more spells are named Blessing of the Bronze (432652,
+			-- 432655, 432658, 432674, 442744); nothing in the client's spell
+			-- data applies them, so they are not what an evoker's cast puts on
+			-- anybody.
 			group = {
 				381732, 381741, 381746, 381748, 381749, 381750, 381751,
 				381752, 381753, 381754, 381756, 381757, 381758,
 			},
 		},
 		{
-			-- Talent-gated, so gated on `known` like every spell here: an
-			-- evoker without it never offers it. Second on purpose -- only one
-			-- ally can carry it, so Automatic reaches for the Blessing first.
+			-- Talent-gated (TraitDefinition), so gated on `known` like every
+			-- spell here: an evoker without it never offers it.
 			key = "sourceofmagic",
 			ranks = { 369459 },
 			manaOnly = true,
 			talent = true,
 			-- It goes to another player, never the evoker casting it.
 			notSelf = true,
+			-- "Limit 1": one ally carries it, and casting it on another takes
+			-- it off the first. Every other mana user is always missing it, so
+			-- Automatic walking on to it would move it from one passer-by to
+			-- the next, off the healer it was meant for. Offered only when it
+			-- is pinned.
+			neverAuto = true,
 		},
 	},
 
@@ -762,8 +789,12 @@ local MAINLINE = {
 local MAINLINE_SET = {
 	name = "mainline",
 	buffs = MAINLINE,
-	-- Empty for the same reason as Mists': untested ids, and most of these
-	-- spells are gone from retail anyway.
+	-- Empty on purpose. What a retail class casts on itself alone is either a
+	-- toggle with no end (the paladin's auras: duration -1 in SpellMisc), or a
+	-- shield whose one-at-a-time rule a talent lifts (Elemental Orbit, 383010,
+	-- lets a shaman wear two of Lightning, Water and Earth Shield), which a
+	-- family of "only one of these up" would get wrong; and a rogue's poisons
+	-- would need words of their own. "Myself" offers your own group buff.
 	own = {},
 	-- Nothing overwrites anything, and nothing depends on who is there.
 	exclusive = {},
@@ -777,6 +808,12 @@ local MAINLINE_SET = {
 		ROGUE = true,
 		WARLOCK = true,      -- Unending Breath is not a courtesy
 	},
+	-- Class buffs others put on you that Manners never offers, counted as
+	-- favours only, as the vanilla set counts them: Soulstone (20707, its
+	-- "Soul stored by" aura on the target), a shaman's Water Walking (546) and
+	-- a warlock's Unending Breath (5697). Fear Ward and Detect Invisibility are
+	-- gone from retail's SpellName.
+	favourOnly = { 20707, 546, 5697 },
 }
 
 ---------------------------------------------------------------------------
