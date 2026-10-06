@@ -1323,8 +1323,9 @@ end
 -- one is set, and, for a passer-by with "Only buffs they can use" on, still of
 -- use to them (a request asks for what it asks for). Not re-picked when it is
 -- not: without a token nothing says what else they lack, and the reading kept
--- is about this buff alone.
-local function StillCastable(memo, candidates, f)
+-- is about this buff alone. `askOnly` is the scan's neverAuto spells a request
+-- may name (ns.AskOnlyBuffs), still castable for somebody who asked for one.
+local function StillCastable(memo, candidates, f, askOnly)
 	local key = memo.buff.key
 	local pinned = ns.PinnedBuff()
 	if pinned and pinned.key ~= key then return false end
@@ -1332,6 +1333,11 @@ local function StillCastable(memo, candidates, f)
 		if buff.key == key then
 			return not (f.relevantOnly and memo.reason ~= "asked"
 				and buff.manaOnly and memo.hasMana == false)
+		end
+	end
+	if askOnly and memo.reason == "asked" then
+		for _, buff in ipairs(askOnly) do
+			if buff.key == key then return true end
 		end
 	end
 	return false
@@ -1349,8 +1355,8 @@ end
 -- Letting somebody go on a verdict writes it into `rejected` too, which
 -- BuildQueue hands the prompt, so the cursor's hold cannot outlast it
 -- (hovering, Prompt.lua). Running out of time is no verdict. `verdict` is the
--- scan's never-offer answers (NeverVerdicts).
-local function OfferPassersBy(queue, seen, rejected, now, db, candidates, verdict, drop)
+-- scan's never-offer answers (NeverVerdicts); `askOnly` StillCastable's.
+local function OfferPassersBy(queue, seen, rejected, now, db, candidates, askOnly, verdict, drop)
 	for name, memo in pairs(passing) do
 		local debt = db.sources.owed and owed[name]
 		local nearby = memo.reason == "nearby"
@@ -1370,7 +1376,7 @@ local function OfferPassersBy(queue, seen, rejected, now, db, candidates, verdic
 			or (ns.zonedAt and memo.seen < ns.zonedAt)
 			or rejected[name] == true
 			or flagged
-			or not StillCastable(memo, candidates, db.filters)
+			or not StillCastable(memo, candidates, db.filters, askOnly)
 			or ns.IsBlocked(name, memo.buff.key, now)
 			or ListedAs(name, verdict) ~= nil
 			or not SafeForMacro(name) then
@@ -1660,6 +1666,10 @@ function ns.BuildQueue(watch)
 	-- Nothing you cannot pay for is offered to anybody (see Affordable); an
 	-- empty list is the "nothing to give anybody else" below.
 	local candidates = Affordable(ns.CastableBuffs())
+	-- What a request in chat may name beside them: a spell Automatic never
+	-- walks to (Source of Magic) that somebody asked for. nil for none.
+	local askOnly = ns.AskOnlyBuffs()
+	if askOnly then askOnly = Affordable(askOnly) end
 	-- A warrior's shout reaches the group and nobody else, so passers-by are
 	-- dropped before the distance check rather than measured for nothing
 	-- (which would fill the proximity counts with people never offered).
@@ -1771,7 +1781,7 @@ function ns.BuildQueue(watch)
 		-- nobody and for anybody owed, whose favour is the better reason.
 		-- Below the never-offer list on purpose: asking is not the exception
 		-- buffing you is.
-		local asked = not isOwed and not unasked and ns.AskedFor(unit, full, now, candidates) or nil
+		local asked = not isOwed and not unasked and ns.AskedFor(unit, full, now, candidates, askOnly) or nil
 
 		-- Decide whether we would offer this person at all before reading any
 		-- auras, which is the expensive part. A request is a source of its own:
@@ -2076,7 +2086,7 @@ function ns.BuildQueue(watch)
 	-- after one last did. Everything that turns passers-by down as a kind
 	-- turns the remembered ones down for good: the switch off, a shout, saving
 	-- mana, a city-only rule out in the world.
-	OfferPassersBy(queue, seen, rejected, now, db, candidates, neverVerdict,
+	OfferPassersBy(queue, seen, rejected, now, db, candidates, askOnly, neverVerdict,
 		not db.sources.strangers or groupOnly or savingMana or notResting)
 
 	-- A shout lands on the whole party, flagged members and all.

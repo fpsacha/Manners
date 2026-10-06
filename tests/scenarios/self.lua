@@ -485,7 +485,10 @@ end
 
 -- ------------------------------------------------------------------ self 9
 -- A spell the game will not put on its caster (an evoker's Source of Magic) is
--- never offered to you, in Automatic or pinned; the one it will is.
+-- never offered to you, in Automatic or pinned; the one it will is. Automatic
+-- never reaches Source of Magic at all (neverAuto, Buffs.lua: one ally carries
+-- it), so the pinned half is the one notSelf answers for; the first half holds
+-- that nothing else is offered to an evoker wearing the Blessing.
 Mock.reset()
 do
 	local scenario = "self: a spell the game keeps off its caster is never offered to you"

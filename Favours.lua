@@ -679,8 +679,10 @@ do
 						-- A class's own aura or aspect reaching you (another
 						-- paladin's Devotion Aura, a hunter's Trueshot) is
 						-- nobody's favour, whatever the setting: it lands again
-						-- every time you walk back into its range.
+						-- every time you walk back into its range. Retail's
+						-- paladin auras, in no family, are NOT_FAVOUR_IDS.
 						if watching and spellId and not ns.OWN_BY_ID[spellId]
+							and not ns.NOT_FAVOUR_IDS[spellId]
 							and (not classOnly or ns.ALL_BUFF_IDS[spellId]) then
 							Sight(instanceId, key, aura)
 						end
@@ -864,7 +866,7 @@ do
 			return
 		end
 		-- Nor a class's own aura, as the aura scan has it.
-		if ns.OWN_BY_ID[spellId] then return end
+		if ns.OWN_BY_ID[spellId] or ns.NOT_FAVOUR_IDS[spellId] then return end
 
 		ns.logScan.applied = ns.logScan.applied + 1
 

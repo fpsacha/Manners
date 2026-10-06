@@ -39,7 +39,7 @@ end
 -- Mock.reset owns none of them.
 local TOUCHED = {
 	"IsSpellKnown", "IsPlayerSpell", "C_SpellBook", "MenuUtil", "UnitExists",
-	"UnitClass", "UnitPowerMax", "C_UnitAuras",
+	"UnitClass", "UnitPowerMax", "C_UnitAuras", "UnitLevel",
 }
 
 -- What retail's spell data says each buff is (build 12.1.0.69933), and the
@@ -211,6 +211,22 @@ do
 	end)
 end
 
+-- 12.1.5 is on the ptr2 branch (Gethe/wow-ui-source ptr2 version.txt
+-- 12.1.5.70077; Ketho's ptr2 dump: GetBuildInfo "12.1.5", 120105), and the toc
+-- lists it beside 120100: the next patch is read as Midnight like this one.
+do
+	local scenario = "mainline: 12.1.5 (interface 120105, on ptr2) is read as Midnight too"
+	retail(scenario, { before = function() Mock.build, Mock.interface = "12.1.5", 120105 end }, function(ns)
+		local f = ns.Flavour or {}
+		if f.flavour ~= "mainline" or f.interface ~= 120105 or f.recognised ~= true or f.agrees ~= true then
+			fail(scenario, "read as " .. tostring(ns.FlavourSummary and ns.FlavourSummary()))
+		end
+		if ns.BUFFS_SOURCE ~= "mainline" then
+			fail(scenario, "handed the " .. tostring(ns.BUFFS_SOURCE) .. " set")
+		end
+	end)
+end
+
 -- ------------------------------------------------------------------ the data
 -- Every id and every flag, against retail's own spell data: an id from
 -- another client resolves to nothing there and the buff is silently never
@@ -307,7 +323,7 @@ do
 		for key in pairs(buffs) do
 			local buff = { class = class, key = key, ids = { buffs[key] } }
 			if key == "bronze" then for _, id in ipairs(BRONZE) do buff.ids[#buff.ids + 1] = id end end
-			-- Source of Magic is offered only pinned (it goes to one ally).
+			-- Source of Magic is never Automatic's (it goes to one ally).
 			if key ~= "sourceofmagic" then cases[#cases + 1] = buff end
 		end
 	end
@@ -503,6 +519,37 @@ do
 	end)
 end
 
+-- "Skip my own class" (off by default) passes over somebody of your class who
+-- could cast the buff himself, by the level it is learned at: on retail
+-- Arcane Intellect at 8 (SpellLevels; Wowhead "Requires level 8"), so a mage
+-- of 5 is offered yours and one of 20 is not. Vanilla's trainers put it at 1.
+do
+	local scenario = "mainline: Skip my own class reads retail's levels (Arcane Intellect at 8)"
+	retail(scenario, { known = { 1459 }, people = { nameplate1 = { "Lowbie" }, nameplate2 = { "Elder" } },
+		before = function()
+			people({ nameplate1 = "MAGE", nameplate2 = "MAGE" })
+			local real = UnitLevel
+			UnitLevel = function(unit)
+				if unit == "nameplate1" then return 5 end
+				if unit == "nameplate2" then return 20 end
+				return real(unit)
+			end
+		end }, function(ns)
+		for id, level in pairs({ [1459] = 8, [21562] = 6, [1126] = 9, [462854] = 16, [364342] = 30 }) do
+			if ns.RankLevel(id) ~= level then
+				fail(scenario, ("%d is learned at %s, not retail's %d"):format(id, tostring(ns.RankLevel(id)), level))
+			end
+		end
+		ns.db.profile.filters.skipSameClass = true
+		if entryFor(ns, "Elder") then
+			fail(scenario, "SKIPPED -- a mage of 20 was offered Arcane Intellect with Skip my own class on")
+		end
+		if not entryFor(ns, "Lowbie") then
+			fail(scenario, "a mage of 5, who learns Arcane Intellect at 8, was passed over as able to cast it")
+		end
+	end)
+end
+
 -- ------------------------------------------------------------------ Source of Magic
 -- "Limit 1": one ally carries it. Automatic walking on to it from the
 -- Blessing would move it from one passer-by to the next all evening, so it is
@@ -535,23 +582,78 @@ do
 	end)
 end
 
+-- Asked for by name, it is offered on Automatic all the same: the healer who
+-- asks is who it is for. "buffs pls" names what Automatic gives, not this.
+-- Somebody who asked is remembered once their nameplate goes, as any asker is.
+do
+	local scenario = "mainline: an evoker offers Source of Magic to whoever asks for it by name"
+	local wearing = { [364342] = true }
+	for _, id in ipairs(BRONZE) do wearing[id] = true end
+	local names = { nameplate1 = { "Anna" }, nameplate2 = { "Iris" } }
+	retail(scenario, { class = "EVOKER", known = { 364342, 369459 }, people = names }, function(ns)
+		local db = ns.db.profile
+		db.sources.asked, db.sources.strangers, db.sources.group = true, false, false
+		Mock.held = wearing
+		Mock.advance(10)
+		local function say(text, sender, unit)
+			ns.addon.CHAT_MSG_SAY(ns.addon, "CHAT_MSG_SAY", text, sender, "Common", "", "", "", 0, 0, "", 0, 1,
+				"Player-1-" .. unit)
+		end
+		say("source of magic pls", "Anna", "nameplate1")
+		say("buffs pls", "Iris", "nameplate2")
+		local anna = entryFor(ns, "Anna")
+		if not (anna and anna.reason == "asked" and anna.buff and anna.buff.key == "sourceofmagic") then
+			fail(scenario, "Anna asked for Source of Magic and was offered "
+				.. tostring(anna and anna.buff and anna.buff.key) .. " as " .. tostring(anna and anna.reason))
+			Mock.held = nil
+			return
+		end
+		local iris = entryFor(ns, "Iris")
+		if iris then
+			fail(scenario, "Iris, asking for buffs and wearing the Blessing, was offered "
+				.. tostring(iris.buff and iris.buff.key))
+		end
+		names.nameplate1 = nil
+		Mock.advance(2)
+		local later = entryFor(ns, "Anna")
+		if not (later and later.reason == "asked" and later.unit == nil
+			and later.buff and later.buff.key == "sourceofmagic") then
+			fail(scenario, "Anna, who asked for Source of Magic, was let go as her nameplate went: "
+				.. tostring(later and later.buff and later.buff.key))
+		end
+		-- Switched off on the options page, it goes to nobody, asked or not.
+		db.buff.skip.sourceofmagic = true
+		names.nameplate1 = { "Anna" }
+		say("source of magic pls", "Anna", "nameplate1")
+		local off = entryFor(ns, "Anna")
+		if off and off.buff and off.buff.key == "sourceofmagic" then
+			fail(scenario, "Source of Magic, switched off, was offered to Anna for asking")
+		end
+		Mock.held = nil
+	end)
+end
+
 -- ------------------------------------------------------------------ favours
 -- With no combat log, a favour is noticed by the aura appearing on you and
 -- read off its source token, and filed under the name retail gives. A
 -- stranger's Blessing of the Bronze lands on a mage as the mage's aura
--- (381750), and the favour-only spells count without being offered.
+-- (381750), and the favour-only spells count without being offered. A
+-- Soulstone comes from a party member: retail's "Stores the soul of the target
+-- party or raid member" (Wowhead, Spell.Description) reaches nobody else.
 for _, case in ipairs({
 	{ id = 21562, what = "Power Word: Fortitude" },
 	{ id = 381750, what = "Blessing of the Bronze" },
-	{ id = 20707, what = "a Soulstone" },
+	{ id = 20707, what = "a Soulstone", from = "a party member", unit = "party1" },
 	{ id = 546, what = "Water Walking" },
 	{ id = 5697, what = "Unending Breath" },
 }) do
-	local scenario = ("mainline: %s from a stranger is a favour (%d)"):format(case.what, case.id)
-	retail(scenario, { known = { 1459 }, people = { nameplate1 = { "Petra" } } }, function(ns)
+	local unit = case.unit or "nameplate1"
+	local scenario = ("mainline: %s from %s is a favour (%d)"):format(case.what, case.from or "a stranger", case.id)
+	retail(scenario, { known = { 1459 }, people = { [unit] = { "Petra" } },
+		before = function() if case.unit then Mock.groupSize = 2 end end }, function(ns)
 		wipe(ns.owed)
 		H.primeAuras(ns)
-		local said = H.favourFrom(ns, "nameplate1", case.id)
+		local said = H.favourFrom(ns, unit, case.id)
 		if not ns.owed.Petra then
 			fail(scenario, case.what .. " from Petra was not filed as a favour: " .. flat(said))
 		elseif not entryFor(ns, "Petra") then
@@ -560,6 +662,56 @@ for _, case in ipairs({
 		if Mock.registeredEvents.COMBAT_LOG_EVENT_UNFILTERED then
 			fail(scenario, "the combat log was registered on retail")
 		end
+	end)
+end
+
+-- With "Ignore shields, heals and trinket procs" off, a paladin in your party
+-- is still no favour for his aura, which lands on you as its own id each time
+-- you walk back into its forty yards; a Renew from the healer beside him is.
+do
+	local scenario = "mainline: a party paladin's aura is never a favour, with heals counted"
+	retail(scenario, { known = { 1459 }, people = { party1 = { "Pala" }, party2 = { "Heal" } },
+		before = function() Mock.groupSize = 3 end }, function(ns)
+		ns.db.profile.sources.owedClassBuffsOnly = false
+		wipe(ns.owed)
+		H.primeAuras(ns)
+		local said = {}
+		for i, id in ipairs({ 465, 317920, 32223, 183435 }) do
+			said[#said + 1] = H.favourFrom(ns, "party1", id, 7500 + i)
+			Mock.advance(11)
+		end
+		if ns.owed.Pala or table.concat(said):find("buffed you", 1, true) then
+			fail(scenario, "a paladin's aura from the party was a favour: " .. flat(table.concat(said, " | ")))
+		end
+		local heal = H.favourFrom(ns, "party2", 139, 7510)
+		if not ns.owed.Heal then
+			fail(scenario, "SKIPPED -- with heals counted, a Renew from the party was not a favour: " .. flat(heal))
+		end
+	end)
+end
+
+-- The favour-only spells have the roleplay voice's gift lines, found by the
+-- spell's own id: Unending Breath among them, which on vanilla is a
+-- warlock's buff and found that way instead.
+do
+	local scenario = "mainline: a favour of Unending Breath has its gift lines"
+	retail(scenario, { known = { 1459 } }, function(ns)
+		local RP = ns.InCharacter
+		if not (RP and RP.GiftKey and RP.GIFT) then
+			fail(scenario, "SKIPPED -- no roleplay voice in this checkout")
+			return
+		end
+		for _, case in ipairs({ { 5697, "breath" }, { 20707, "soulstone" }, { 546, "waterwalking" } }) do
+			wipe(ns.owed)
+			ns.owed.Bram = { spell = case[1], expires = GetTime() + 100, at = GetTime() }
+			local key = RP.GiftKey({ name = "Bram" })
+			if key ~= case[2] then
+				fail(scenario, ("a favour of %d has gift key %s, not %s"):format(case[1], tostring(key), case[2]))
+			elseif type(RP.GIFT[key]) ~= "table" or #RP.GIFT[key] == 0 then
+				fail(scenario, ("no gift lines for %s"):format(key))
+			end
+		end
+		wipe(ns.owed)
 	end)
 end
 

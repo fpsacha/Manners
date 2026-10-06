@@ -3697,12 +3697,15 @@ do
 	end
 
 	-- The favours no buff of Buffs.lua holds (its favourOnly ids), by every
-	-- rank's id: a Soulstone, Fear Ward, Water Walking, Detect Invisibility.
+	-- rank's id: a Soulstone, Fear Ward, Water Walking, Detect Invisibility,
+	-- and on retail Unending Breath, which elsewhere is a warlock's buff and
+	-- found under BUFF_BY_ID first.
 	local FAVOUR_KEY = {
 		[20707] = "soulstone", [20762] = "soulstone", [20763] = "soulstone",
 		[20764] = "soulstone", [20765] = "soulstone",
 		[6346] = "fearward", [546] = "waterwalking",
 		[132] = "detectinvis", [2970] = "detectinvis", [11743] = "detectinvis",
+		[5697] = "breath",
 	}
 
 	-- The buff key of the spell they gave you ("intellect", "thorns"), for

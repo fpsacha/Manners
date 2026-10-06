@@ -749,6 +749,26 @@ function ns.CastableBuffs()
 	return out
 end
 
+-- The neverAuto spells CastableBuffs leaves out, learned and switched on, or
+-- nil for none: what a request in chat may still name (Requests.lua,
+-- AskedFor). Automatic never walks on to Source of Magic ("Limit 1"), but
+-- whoever asks for it by name has asked for it. None under a pin, which is
+-- all there is then. No class's buff for others is neverAuto on Forever or
+-- Classic Era.
+function ns.AskOnlyBuffs()
+	local db = addon.db and addon.db.profile
+	if not db or ns.PinnedBuff() then return nil end
+	local skip = db.buff and db.buff.skip
+	local out
+	for _, buff in ipairs(ns.GetClassBuffs(playerClass) or {}) do
+		if buff.neverAuto and ns.IsBuffKnown(buff) and not (skip and skip[buff.key]) then
+			out = out or {}
+			out[#out + 1] = buff
+		end
+	end
+	return out
+end
+
 -- Whether everything this character could offer reaches only its party (a
 -- warrior's Battle Shout), so "passers-by" means nothing for them. From the
 -- switches and pin rather than listed by class, and shared so the options
@@ -1922,7 +1942,9 @@ local MANA_CLASSES = {
 	MONK = true, EVOKER = true,
 }
 -- Retail hunters have Focus and no mana bar (ChrClasses.DisplayPower 2, build
--- 12.1.0.69933), where a vanilla hunter has mana.
+-- 12.1.0.69933), where a vanilla hunter has mana. A monk stays, though his
+-- class's DisplayPower is Energy (3): a Mistweaver is an Intellect healer with
+-- mana (ChrSpecialization 270), and the class cannot say which spec passes by.
 if (ns.Flavour and ns.Flavour.flavour) == "mainline" then MANA_CLASSES.HUNTER = nil end
 ns.MANA_CLASSES = MANA_CLASSES
 

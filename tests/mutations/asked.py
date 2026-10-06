@@ -4,7 +4,7 @@
 
 # The queue never asks whether somebody asked.
 mutate("Queue.lua",
-       "\t\tlocal asked = not isOwed and not unasked and ns.AskedFor(unit, full, now, candidates) or nil\n",
+       "\t\tlocal asked = not isOwed and not unasked and ns.AskedFor(unit, full, now, candidates, askOnly) or nil\n",
        "\t\tlocal asked = nil\n",
        "requests never reach the queue",
        expect="a request in any channel is offered, for a minute",

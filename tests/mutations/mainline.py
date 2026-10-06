@@ -68,18 +68,78 @@ mutate("Buffs.lua",
 
 # Source of Magic on Automatic's walk: moved from one passer-by to the next.
 mutate("Buffs.lua",
-       "\t\t\t-- is pinned.\n\t\t\tneverAuto = true,\n",
-       "\t\t\t-- is pinned.\n",
+       "\t\t\t-- pinned, and to whoever asks for it by name (ns.AskOnlyBuffs).\n\t\t\tneverAuto = true,\n",
+       "\t\t\t-- pinned, and to whoever asks for it by name (ns.AskOnlyBuffs).\n",
        "mainline: Source of Magic walked by Automatic",
        expect="mainline: Automatic never moves Source of Magic from one passer-by to the next",
        script=S)
 
-# The favour-only spells gone: a Soulstone from a stranger is nobody's favour.
+# The favour-only spells gone: a Soulstone from your party is nobody's favour.
 mutate("Buffs.lua",
        "\tfavourOnly = { 20707, 546, 5697 },\n",
        "",
        "mainline: no favour-only spells on retail",
-       expect="mainline: a Soulstone from a stranger is a favour (20707)",
+       expect="mainline: a Soulstone from a party member is a favour (20707)",
+       script=S)
+
+# Retail's paladin auras gone from the set: with heals counted, every walk
+# back into a party paladin's range is a favour, a debt and a /thank.
+mutate("Buffs.lua",
+       "\tnotFavour = { [465] = true, [317920] = true, [32223] = true, [183435] = true },\n",
+       "",
+       "mainline: a party paladin's aura a favour",
+       expect="mainline: a party paladin's aura is never a favour, with heals counted",
+       script=S)
+
+# The aura scan no longer asking: the same, by the code.
+mutate("Favours.lua",
+       "\t\t\t\t\t\t\tand not ns.NOT_FAVOUR_IDS[spellId]\n",
+       "",
+       "mainline: party auras not filtered from favours",
+       expect="mainline: a party paladin's aura is never a favour, with heals counted",
+       script=S)
+
+# The vanilla trainers' levels on retail: Arcane Intellect at 1, and a mage
+# of 5 who cannot cast it is passed over with "Skip my own class" on.
+mutate("Buffs.lua",
+       "\tif chosen.rankLevel then ns.RANK_LEVEL = chosen.rankLevel end\n",
+       "",
+       "mainline: vanilla's learning levels on retail",
+       expect="mainline: Skip my own class reads retail's levels (Arcane Intellect at 8)",
+       script=S)
+
+# Unending Breath's gift lines out of reach: on retail no buff holds 5697.
+mutate("Phrases.lua",
+       "\t\t[5697] = \"breath\",\n",
+       "",
+       "mainline: Unending Breath favour without gift lines",
+       expect="mainline: a favour of Unending Breath has its gift lines",
+       script=S)
+
+# ------------------------------------------------ asked for by name
+# Source of Magic, never Automatic's, no longer reached by a request naming it.
+mutate("Requests.lua",
+       "\t\t\t\tif askOnly and request.keys ~= ASK.ANY then\n",
+       "\t\t\t\tif false then\n",
+       "mainline: Source of Magic asked for and not offered",
+       expect="mainline: an evoker offers Source of Magic to whoever asks for it by name",
+       script=S)
+
+# ...and the asker let go the moment their nameplate does.
+mutate("Queue.lua",
+       "\tif askOnly and memo.reason == \"asked\" then\n",
+       "\tif false then\n",
+       "mainline: an asker for Source of Magic not remembered",
+       expect="mainline: an evoker offers Source of Magic to whoever asks for it by name",
+       script=S)
+
+# The per-spell switch ignored: Source of Magic switched off on the options
+# page, and offered to whoever asks all the same.
+mutate("Core.lua",
+       "\t\tif buff.neverAuto and ns.IsBuffKnown(buff) and not (skip and skip[buff.key]) then\n",
+       "\t\tif buff.neverAuto and ns.IsBuffKnown(buff) then\n",
+       "mainline: a switched-off Source of Magic offered when asked",
+       expect="mainline: an evoker offers Source of Magic to whoever asks for it by name",
        script=S)
 
 # Battle Shout held to one raid subgroup, as vanilla's is.

@@ -775,8 +775,8 @@ local MAINLINE = {
 			-- "Limit 1": one ally carries it, and casting it on another takes
 			-- it off the first. Every other mana user is always missing it, so
 			-- Automatic walking on to it would move it from one passer-by to
-			-- the next, off the healer it was meant for. Offered only when it
-			-- is pinned.
+			-- the next, off the healer it was meant for. Offered when it is
+			-- pinned, and to whoever asks for it by name (ns.AskOnlyBuffs).
 			neverAuto = true,
 		},
 	},
@@ -814,6 +814,21 @@ local MAINLINE_SET = {
 	-- a warlock's Unending Breath (5697). Fear Ward and Detect Invisibility are
 	-- gone from retail's SpellName.
 	favourOnly = { 20707, 546, 5697 },
+	-- A paladin's auras reach the party and raid as their own ids (SpellEffect
+	-- 65, an area aura on everybody within 40 yards) and land again each time
+	-- you walk back into range: nobody's favour, as on vanilla, where the own
+	-- table above is what says so. Here no family holds them, since they
+	-- outlast death (SpellMisc Attributes_3 0x100000) and there is nothing to
+	-- remind a paladin of. Devotion (465), Concentration (317920), Crusader
+	-- (32223) and Retribution Aura (183435): retail SpellName and SpellEffect,
+	-- and Wowhead ("Requires Paladin").
+	notFavour = { [465] = true, [317920] = true, [32223] = true, [183435] = true },
+	-- The level each buff above is learned at on retail (SpellLevels, build
+	-- 12.1.0.69933; Wowhead "Requires level"), for "Skip my own class": the
+	-- vanilla trainers' table (ns.RANK_LEVEL) puts Arcane Intellect and Mark
+	-- of the Wild at 1. Source of Magic is a talent and Battle Shout a shout,
+	-- neither read.
+	rankLevel = { [1459] = 8, [21562] = 6, [1126] = 9, [462854] = 16, [364342] = 30 },
 }
 
 ---------------------------------------------------------------------------
@@ -870,6 +885,10 @@ if chosen then
 	ns.GROUP_BY_CLASS = chosen.groupByClass
 	ns.OWN_BUFFS = chosen.own
 	ns.FAVOUR_ONLY_IDS = chosen.favourOnly
+	-- Retail's (MAINLINE_SET): party auras that are nobody's favour though no
+	-- family holds them, and learning levels of its own.
+	ns.NOT_FAVOUR_IDS = chosen.notFavour
+	if chosen.rankLevel then ns.RANK_LEVEL = chosen.rankLevel end
 end
 
 ---------------------------------------------------------------------------
@@ -925,6 +944,7 @@ function ns.BuildBuffLookups()
 	if type(ns.CLASS_AUTO) ~= "table" then ns.CLASS_AUTO = {} end
 	if type(ns.CLASSES_WITHOUT_BUFFS) ~= "table" then ns.CLASSES_WITHOUT_BUFFS = {} end
 	if type(ns.GROUP_BY_CLASS) ~= "table" then ns.GROUP_BY_CLASS = {} end
+	if type(ns.NOT_FAVOUR_IDS) ~= "table" then ns.NOT_FAVOUR_IDS = {} end
 	-- Ahead of the early return below: a client with no buffs for others
 	-- still has an (empty) table of its own buffs to index.
 	BuildOwnLookups()
