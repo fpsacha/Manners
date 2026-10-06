@@ -241,10 +241,40 @@ mutate("Buffs.lua",
        script=S)
 
 mutate("Buffs.lua",
-       "talent = true, neverAuto = true, charges = 6 },",
-       "talent = true, charges = 6 },",
+       "talent = true, neverAuto = true, charges = 6,",
+       "talent = true, charges = 6,",
        "tbc: Automatic picks Earth Shield",
        expect="tbc: Automatic never picks earthshield",
+       script=S)
+
+# Another shaman's Earth Shield on you: only one Elemental Shield fits, so
+# the family is up and nothing of yours replaces it.
+mutate("Buffs.lua",
+       "charges = 6,\n\t\t\t\t\tanyCaster = true },",
+       "charges = 6 },",
+       "tbc: another shaman's Earth Shield read as none",
+       expect="tbc: another shaman's Earth Shield on you is not replaced (a party member's, Earth Shield known)",
+       script=S)
+
+mutate("Core.lua",
+       "\t\t\tif spell.anyCaster then\n",
+       "\t\t\tif spell.anyCaster and Known(spell) then\n",
+       "tbc: another's Earth Shield seen only by a shaman who knows it",
+       expect="tbc: another shaman's Earth Shield on you is not replaced (a party member's, Earth Shield unknown)",
+       script=S)
+
+mutate("Core.lua",
+       "\t\t\t\t\telseif type(aura) == \"table\" then\n\t\t\t\t\t\treturn true, spell\n",
+       "\t\t\t\t\telseif type(aura) == \"table\" and FromYou(aura) ~= false then\n\t\t\t\t\t\treturn true, spell\n",
+       "tbc: another's Earth Shield counted only when it may be yours",
+       expect="tbc: another shaman's Earth Shield on you is not replaced (a party member's, Earth Shield unknown)",
+       script=S)
+
+mutate("Core.lua",
+       "\t\t\t\t\telseif type(aura) == \"table\" then\n\t\t\t\t\t\treturn true, spell\n",
+       "\t\t\t\t\telseif type(aura) == \"table\" then\n\t\t\t\t\t\treturn true, spell, Left(aura, now)\n",
+       "tbc: another's Earth Shield topped up with yours",
+       expect="tbc: another shaman's Earth Shield on you is not replaced (a party member's, Earth Shield known)",
        script=S)
 
 mutate("Buffs.lua",
@@ -274,4 +304,43 @@ mutate("Phrases.lua",
        "[20765] = \"soulstone\",",
        "tbc: the sixth Soulstone thanked as nothing",
        expect="tbc: a gift at a Burning Crusade rank is thanked as what it is",
+       script=S)
+
+# ------------------------------------------------ levels set too high
+# Ten levels under a new rank it still lands, so the rank below counts for
+# nothing there; a level one too high reads that rank as covering them.
+mutate("Buffs.lua",
+       "\t[27126] = 70, [25389] = 70, [25433] = 68,",
+       "\t[27126] = 70, [25389] = 70, [25433] = 69,",
+       "tbc: Shadow Protection's fourth rank learned at 69",
+       expect="tbc: a level-70 wearing the rank below is offered the new one (priest)",
+       script=S)
+
+mutate("Buffs.lua",
+       "[26990] = 70, [26992] = 64,\n",
+       "[26990] = 70, [26992] = 65,\n",
+       "tbc: Thorns' seventh rank learned at 65",
+       expect="tbc: a level-70 wearing the rank below is offered the new one (druid)",
+       script=S)
+
+mutate("Buffs.lua",
+       "\t[27142] = 65, [27140] = 70, [27144] = 69,",
+       "\t[27142] = 66, [27140] = 70, [27144] = 70,",
+       "tbc: Wisdom and Light's new ranks learned a level late",
+       expect="tbc: a level-70 wearing the rank below is offered the new one (paladin)",
+       script=S)
+
+mutate("Buffs.lua",
+       "\t[27126] = 70, [25389] = 70,",
+       "\t[27126] = 71, [25389] = 70,",
+       "tbc: Arcane Intellect's sixth rank learned at 71",
+       expect="tbc: a level-70 wearing the rank below is offered the new one (mage)",
+       script=S)
+
+# The vanilla ranks under them, which this client trains at the same levels.
+mutate("Buffs.lua",
+       "[10156] = 42, [10157] = 56,",
+       "[10156] = 42, [10157] = 58,",
+       "tbc: Arcane Intellect's fifth rank learned at 58",
+       expect="tbc: every rank is learned at the level the client trains it",
        script=S)

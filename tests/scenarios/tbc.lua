@@ -12,10 +12,12 @@
 -- about the mock as much as about the addon. What they hold the addon to is
 -- the part that is the addon's: the tbc set chosen, with every Burning Crusade
 -- rank and group version, so somebody buffed reads as buffed and a level-70
--- wearing a vanilla rank is offered the better one; every class's buffs found
--- by the calls the client has; the new spells (Commanding Shout, Molten and
--- Fel Armor, Crusader Aura, Aspect of the Viper, Water and Earth Shield, Find
--- Fish) where they belong; the log read where the client keeps it; a stranger
+-- wearing a vanilla rank is offered the better one, every rank at the level
+-- the client trains it; every class's buffs found by the calls the client
+-- has; the new spells (Commanding Shout, Molten and Fel Armor, Crusader Aura,
+-- Aspect of the Viper, Water and Earth Shield, Find Fish) where they belong,
+-- and another shaman's Earth Shield left on you; the log read where the
+-- client keeps it; a stranger
 -- targeted by the name it gives them; a group cast aimed at one raid group
 -- and eating the reagent of the rank the game will cast; and the options
 -- window built with and without the client's menus.
@@ -308,10 +310,11 @@ end
 
 -- ------------------------------------------------------------------ the better rank
 -- A rank below the one your cast would land covers nothing: a level-70
--- wearing vanilla's best is offered Burning Crusade's, which lands on
--- anybody of 60 and up; eleven levels under the new rank, vanilla's is the
--- best that would land, and it counts. Every new rank's level, as the client
--- trains it.
+-- wearing vanilla's best is offered Burning Crusade's, and so is somebody ten
+-- levels under the new rank, the lowest it lands on; eleven under, vanilla's
+-- is the best that would land, and it counts. Ten and eleven under pin every
+-- new rank's level from both sides, as the client trains it (SpellLevels): a
+-- level set too high misses the first, one too low the second.
 local LANDS = {
 	MAGE = { { "intellect", 70 } },
 	PRIEST = { { "fortitude", 70 }, { "spirit", 70 }, { "shadow", 68 } },
@@ -340,14 +343,16 @@ for _, class in ipairs({ "MAGE", "PRIEST", "DRUID", "PALADIN" }) do
 			else
 				relearn(ns, want.ranks)
 				Mock.held = { [want.ranks[2]] = true }
-				level = 70
-				local has = ns.UnitHasBuff("nameplate1", buff, nil)
-				if has ~= false then
-					fail(scenario, ("a level-70 wearing %s rank %d reads as %s, where %d (level %d) would land")
-						:format(key, want.ranks[2], tostring(has), want.ranks[1], learned))
+				for _, at in ipairs({ 70, learned - 10 }) do
+					level = at
+					local has = ns.UnitHasBuff("nameplate1", buff, nil)
+					if has ~= false then
+						fail(scenario, ("a level-%d wearing %s rank %d reads as %s, where %d (level %d) would land")
+							:format(level, key, want.ranks[2], tostring(has), want.ranks[1], learned))
+					end
 				end
 				level = learned - 11
-				has = ns.UnitHasBuff("nameplate1", buff, nil)
+				local has = ns.UnitHasBuff("nameplate1", buff, nil)
 				if has ~= true then
 					fail(scenario, ("a level-%d wearing %s rank %d reads as %s, the best that would land on them")
 						:format(level, key, want.ranks[2], tostring(has)))
@@ -355,6 +360,51 @@ for _, class in ipairs({ "MAGE", "PRIEST", "DRUID", "PALADIN" }) do
 			end
 		end
 		Mock.held = nil
+	end)
+end
+
+-- And every rank's level itself, Burning Crusade's and the vanilla ones under
+-- them, which this client trains at the same levels (SpellLevels.BaseLevel,
+-- build 2.5.6.69795): the landing above and "skip my own class" both read
+-- them. Sanctuary and the shouts have none, as on vanilla (Buffs.lua).
+local LEVEL = {
+	-- Arcane Intellect
+	[27126] = 70, [10157] = 56, [10156] = 42, [1461] = 28, [1460] = 14, [1459] = 1,
+	-- Power Word: Fortitude
+	[25389] = 70, [10938] = 60, [10937] = 48, [2791] = 36, [1245] = 24, [1244] = 12, [1243] = 1,
+	-- Divine Spirit
+	[25312] = 70, [27841] = 60, [14819] = 50, [14818] = 40, [14752] = 30,
+	-- Shadow Protection
+	[25433] = 68, [10958] = 56, [10957] = 42, [976] = 30,
+	-- Mark of the Wild
+	[26990] = 70, [9885] = 60, [9884] = 50, [8907] = 40, [5234] = 30, [6756] = 20, [5232] = 10, [1126] = 1,
+	-- Thorns
+	[26992] = 64, [9910] = 54, [9756] = 44, [8914] = 34, [1075] = 24, [782] = 14, [467] = 6,
+	-- Blessing of Wisdom
+	[27142] = 65, [25290] = 60, [19854] = 54, [19853] = 44, [19852] = 34, [19850] = 24, [19742] = 14,
+	-- Blessing of Might
+	[27140] = 70, [25291] = 60, [19838] = 52, [19837] = 42, [19836] = 32, [19835] = 22, [19834] = 12,
+	[19740] = 4,
+	-- Blessing of Kings, Salvation, Light; Unending Breath
+	[20217] = 20, [1038] = 26, [27144] = 69, [19979] = 60, [19978] = 50, [19977] = 40, [5697] = 16,
+}
+local UNLEVELLED = { sanctuary = true, battleshout = true, commandingshout = true }
+do
+	local scenario = "tbc: every rank is learned at the level the client trains it"
+	tbc(scenario, {}, function(ns)
+		for _, class in ipairs(GIVE_ORDER) do
+			for _, want in ipairs(GIVE[class]) do
+				for _, id in ipairs(want.ranks) do
+					local at = LEVEL[id]
+					if at == nil and not UNLEVELLED[want.key] then
+						fail(scenario, ("SKIPPED -- no level written here for %s rank %d"):format(want.key, id))
+					elseif at ~= nil and ns.RankLevel(id) ~= at then
+						fail(scenario, ("%s rank %d is taken as learned at %s, where the client trains it at %d")
+							:format(want.key, id, tostring(ns.RankLevel(id)), at))
+					end
+				end
+			end
+		end
 	end)
 end
 
@@ -674,6 +724,79 @@ for _, case in ipairs({
 			fail(scenario, ("once %s is gone, Automatic offers %s, wanted %s"):format(case.key,
 				tostring(spell and spell.key), case.first))
 		end
+	end)
+end
+
+-- Another shaman's Earth Shield on you: "only one Elemental Shield can be
+-- active on a target" (Spell 974, 32593, 32594), so a Lightning or Water
+-- Shield cast now would take off a shield somebody chose for you. Every rank
+-- of it, from a party member or from a stranger the client gives no token
+-- for, and whether or not you know Earth Shield yourself, is the family up:
+-- nothing is offered, with top-ups on and it nearly gone included, and
+-- "Myself" queues nothing of the family.
+for _, case in ipairs({
+	{ label = "a party member's, Earth Shield unknown", known = { 25472, 33736 }, source = "party1" },
+	{ label = "a party member's, Earth Shield known", known = { 25472, 33736, 32594 }, source = "party1" },
+	{ label = "a stranger's, no token", known = { 25472, 33736 }, source = false },
+}) do
+	local scenario = "tbc: another shaman's Earth Shield on you is not replaced (" .. case.label .. ")"
+	local worn
+	tbc(scenario, { class = "SHAMAN", known = case.known, before = function()
+		local base = C_UnitAuras
+		rawset(_G, "C_UnitAuras", setmetatable({
+			GetUnitAuraBySpellID = function(unit, spellId)
+				if unit ~= "player" then return base.GetUnitAuraBySpellID(unit, spellId) end
+				if spellId ~= worn then return nil end
+				return { spellId = spellId, expirationTime = Mock.now + 20, applications = 1,
+					sourceUnit = case.source or nil }
+			end,
+		}, { __index = base }))
+	end }, function(ns)
+		local family = ns.FindOwnFamily("shield")
+		if not family then
+			fail(scenario, "a shaman has no shield family")
+			return
+		end
+		local function selfOffers()
+			local keys = {}
+			for _, entry in ipairs(ns.BuildQueue()) do
+				if entry.reason == "self" and entry.buff and entry.buff.family == family then
+					keys[#keys + 1] = entry.buff.key
+				end
+			end
+			return table.concat(keys, ", ")
+		end
+		ns.db.profile.sources.self = true
+		H.clearClicks(ns)
+		worn = nil
+		local spell, up = ns.OwnVerdict(family, ownCtx(ns))
+		if up ~= false or not spell or spell.key ~= "lightningshield" then
+			fail(scenario, ("SKIPPED -- with no shield on, the family reads %s and %s is offered"):format(
+				tostring(up), tostring(spell and spell.key)))
+		end
+		for _, id in ipairs({ 32594, 32593, 974 }) do
+			worn = id
+			for _, whenBuffed in ipairs({ "skip", "refresh" }) do
+				local ctx = ownCtx(ns)
+				ctx.whenBuffed, ctx.refreshUnder = whenBuffed, 5
+				local offered, upNow = ns.OwnVerdict(family, ctx)
+				if upNow ~= true or offered then
+					fail(scenario, ("Earth Shield %d on you (top-ups %s) reads as %s, and %s is offered over it")
+						:format(id, whenBuffed, tostring(upNow), tostring(offered and offered.key)))
+				end
+			end
+		end
+		worn = nil
+		H.clearClicks(ns)
+		local queued = selfOffers()
+		if queued ~= "lightningshield" then
+			fail(scenario, "SKIPPED -- with no shield on, Myself queues " .. (queued ~= "" and queued or "nothing"))
+		end
+		worn = 32594
+		H.clearClicks(ns)
+		queued = selfOffers()
+		if queued ~= "" then fail(scenario, "with Earth Shield on you, Myself queues " .. queued) end
+		worn = nil
 	end)
 end
 

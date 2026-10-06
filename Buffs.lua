@@ -8,8 +8,9 @@
 --
 --   ranks     the castable spells, highest first. The macro casts by name, so
 --             the game picks the best rank you know; the list is for aura
---             matching and for "do you know this at all". Only vanilla has
---             more than one (ranks were removed game-wide in 4.0.1).
+--             matching and for "do you know this at all". Only the vanilla
+--             and Burning Crusade sets have more than one (ranks were removed
+--             game-wide in 4.0.1).
 --   group     every other id that counts as this buff already being there:
 --             the raid-wide version on vanilla, or the thirteen per-class
 --             auras Blessing of the Bronze applies on retail. Matched exactly
@@ -43,7 +44,8 @@ local _, ns = ...
 local L = ns.L
 
 ---------------------------------------------------------------------------
--- vanilla content: Classic Era, Burning Crusade Classic, and WoW Forever
+-- vanilla content: Classic Era and WoW Forever (Burning Crusade's set, below,
+-- builds on it)
 ---------------------------------------------------------------------------
 
 -- This data must not move: these are the tables confirmed working in game on
@@ -244,6 +246,11 @@ local VANILLA = {
 --   charges   on a spell: how many charges a cast gives (a shaman's
 --             Lightning Shield, Shadowguard, Inner Fire). With top-ups on,
 --             one down to its last few is topped up like one running out.
+--   anyCaster on a spell: one of it on you fills the family whoever cast it,
+--             since the game allows one of the family on a target (another
+--             shaman's Earth Shield, Burning Crusade). Somebody else's reads
+--             as the family up, so nothing of yours is offered over it, and
+--             is never topped up with yours.
 --
 -- Every id below was checked against Forever's own spell data (EnhanceQoL's
 -- SpellRankData_Camelot, generated from build 1.60.1.69913) and Wowhead
@@ -257,7 +264,9 @@ local VANILLA = {
 --
 -- Vanilla content only: Burning Crusade gave most of these families a member
 -- this table does not have (Molten and Fel Armor, Earth Shield, Aspect of the
--- Viper, Crusader Aura), so the tbc set below leaves it out.
+-- Viper, Crusader Aura), so the tbc set below has a table of its own
+-- (TBC_OWN).
+--
 -- The level each rank of the buffs above is learned at (vanilla trainers), for
 -- "skip my own class when they can cast it too": somebody of your class at or
 -- past the level of your best rank could give themselves the same, and one
@@ -747,9 +756,12 @@ local TBC_OWN = {
 				{ key = "lightningshield", ranks = { 25472, 25469, 10432, 10431, 8134, 945, 905, 325, 324 }, charges = 3 },
 				{ key = "watershield", ranks = { 33736, 24398 }, charges = 3 },
 				-- A Restoration talent, and "only one Elemental Shield can be
-				-- active on a target": a shaman wearing his own has chosen it.
-				-- Never Automatic's pick, being the one for the tank.
-				{ key = "earthshield", ranks = { 32594, 32593, 974 }, talent = true, neverAuto = true, charges = 6 },
+				-- active on a target" (Spell 974, 32593, 32594): a shaman wearing
+				-- his own has chosen it, and one wearing another shaman's has had
+				-- it chosen for him, so either way the family is up (anyCaster),
+				-- talent or not. Never Automatic's pick, being the one for the tank.
+				{ key = "earthshield", ranks = { 32594, 32593, 974 }, talent = true, neverAuto = true, charges = 6,
+					anyCaster = true },
 			},
 		},
 	},
