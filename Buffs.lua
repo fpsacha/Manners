@@ -620,11 +620,15 @@ local CAMELOT_SET = setmetatable({ buffs = CAMELOT, own = CAMELOT_OWN, groupIsRa
 -- 5.0.4 folded the raid-wide versions into the single-target spells and
 -- deleted the duplicates within a class, so every list here is one id long.
 --
--- NOT established: 5.0.4 also made these buffs apply to the whole party or
--- raid at once, and whether the cast still reaches a stranger has not been
--- verified on a live Mists client. If it does not, every entry wants
--- partyOnly. Listed as targetable until somebody can say, because that
--- failure is the cheap one (the cast lands on the caster's own group).
+-- Every id below is the Mists client's own (wago.tools DB2 for build
+-- 5.5.4.70032: SpellName, SkillLineAbility, SpellLevels, SpellEffect,
+-- SpecializationSpells) and Wowhead MoP Classic's. Each buff for others is
+-- cast at target 118 there, the target alone or, when the target is in your
+-- party or raid, the whole party and raid ("If target is in your party or
+-- raid, all party and raid members will be affected"): a stranger can be
+-- given one, so none is partyOnly. The shouts are target 56, the caster's
+-- whole party and raid within 100 yards, so they need no target and reach
+-- past your own subgroup (partyIsSubgroup is left off).
 local MISTS = {
 	MAGE = {
 		{
@@ -633,8 +637,9 @@ local MISTS = {
 			-- Dalaran Brilliance is the same buff learned from a different
 			-- book; a target carrying it does not want ours on top.
 			group = { 61316 },
-			-- Spell power rather than mana here, but it is still a buff only a
-			-- caster benefits from, and manaOnly is how this addon says that.
+			-- 10% spell power and 5% critical strike here. The crit is
+			-- anybody's, but most of the buff is a caster's, and manaOnly is how
+			-- this addon says that.
 			manaOnly = true,
 		},
 	},
@@ -657,14 +662,31 @@ local MISTS = {
 	-- The two Legacies are different buff categories (5% stats, 5% crit), so
 	-- a monk gives both, and MONK is deliberately absent from `exclusive`.
 	MONK = {
-		{ key = "emperor", ranks = { 115921 } },    -- Legacy of the Emperor
-		{ key = "whitetiger", ranks = { 116781 } }, -- Legacy of the White Tiger
+		{
+			key = "emperor",
+			ranks = { 115921 }, -- Legacy of the Emperor
+			-- The cast is a dummy (SpellEffect: effect 3, no aura) that lands as
+			-- one of two auras of its own: 117666 on your party and raid when
+			-- the target is in it, 117667 on a target outside it. Without them
+			-- somebody wearing a monk's Legacy reads as missing it, and a
+			-- stranger's Legacy on you is nobody's favour.
+			group = { 117666, 117667 },
+		},
+		{
+			key = "whitetiger",
+			ranks = { 116781 }, -- Legacy of the White Tiger
+			-- Windwalker's alone (SpecializationSpells, spec 269), so not every
+			-- monk knows it.
+			talent = true,
+		},
 	},
 
 	WARLOCK = {
 		{ key = "darkintent", ranks = { 109773 } },
 		-- Kept because somebody might want it, and kept away from Automatic
 		-- because nobody standing in a city wants to be handed water breathing.
+		-- A shaman's Water Breathing (131), its group id on vanilla, is gone
+		-- from this client.
 		{ key = "breath", ranks = { 5697 }, neverAuto = true, neverSelf = true },
 	},
 
@@ -672,20 +694,118 @@ local MISTS = {
 		{ key = "battleshout", ranks = { 6673 }, selfCast = true, partyOnly = true },
 	},
 
-	-- Horn of Winter is the death knight's Battle Shout: no target, party
-	-- only. Its id is the least certain in this file, so it is the first thing
-	-- to check if a Mists death knight reports the wrong spell.
+	-- Horn of Winter is the death knight's Battle Shout: no target, the party
+	-- and raid within 100 yards (Death Knight skill line, level 65).
 	DEATHKNIGHT = {
 		{ key = "hornofwinter", ranks = { 57330 }, selfCast = true, partyOnly = true },
 	},
 }
 
+-- The level each buff above is learned at on this client (SpellLevels), for
+-- "skip my own class when they can cast it too". Vanilla's table has the
+-- same ids at a rank's level -- 1459 and 1126 at 1, Blessing of Might at 4 --
+-- so read there a level-40 mage was taken for one who could cast Arcane
+-- Brilliance (58) and skipped. Legacy of the White Tiger is a talent and the
+-- shouts are cast on yourself, so their levels are never read.
+local MISTS_RANK_LEVEL = {
+	[1459] = 58, [21562] = 22, [1126] = 62, [20217] = 30, [19740] = 81,
+	[115921] = 22, [109773] = 82, [5697] = 24,
+}
+
+---------------------------------------------------------------------------
+-- Mists: what each class puts on itself alone
+---------------------------------------------------------------------------
+
+-- As VANILLA_OWN. The armors, Inner Fire and Inner Will, Righteous Fury and
+-- the aspects last until they are cancelled or you die (SpellDuration -1),
+-- so those families are toggles: none is ever a top-up. A shaman's shields
+-- last an hour. Each family's members are the ones its client text says only
+-- one of may be up: "A Mage can only have one Armor spell active at a time",
+-- "You can only have Inner Will or Inner Fire active at a time", "Only one
+-- Aspect can be active at a time", "Only one of your Elemental Shields can be
+-- active on you at once".
+--
+-- Left out, from the same data: Fel Armor (a passive here), Trueshot Aura
+-- and Omen of Clarity (passives), a paladin's seals and auras (Devotion Aura
+-- is a cooldown in 5.x; the resistance auras are gone), a death knight's
+-- presences and a monk's or warrior's stances (stances), Earth Shield (cast
+-- on the tank), and tracking: the minimap's menu here is checkboxes
+-- (Blizzard_Minimap's MinimapTracking_Dropdown, loaded off vanilla), several
+-- on at once, so one on says nothing about the rest being wanted.
+local MISTS_OWN = {
+	MAGE = {
+		{
+			key = "armor",
+			label = L["Armor"],
+			spells = {
+				-- Learned at 34, 54 and 80, so the first a mage knows is Molten.
+				{ key = "moltenarmor", ranks = { 30482 } },
+				{ key = "frostarmor", ranks = { 7302 } },
+				{ key = "magearmor", ranks = { 6117 } },
+			},
+			toggle = true,
+		},
+	},
+
+	PRIEST = {
+		{
+			-- Vanilla's family key, which the options window already places
+			-- (Options/Window/Layout.lua). No word of its own: named by the one
+			-- you know first, Inner Fire (9) before Inner Will (80).
+			key = "innerfire",
+			spells = {
+				{ key = "innerfire", ranks = { 588 } },
+				{ key = "innerwill", ranks = { 73413 } },
+			},
+			toggle = true,
+		},
+	},
+
+	PALADIN = {
+		{ key = "righteousfury", tank = true, spells = { { key = "righteousfury", ranks = { 25780 } } } },
+	},
+
+	HUNTER = {
+		{
+			key = "aspect",
+			label = L["Aspect"],
+			spells = {
+				-- The talent that replaces Aspect of the Hawk, first so a hunter
+				-- who took it is reminded of it rather than of the Hawk.
+				{ key = "aspectironhawk", ranks = { 109260 }, talent = true },
+				{ key = "aspecthawk", ranks = { 13165 } },
+				-- Up counts as your choice, so none of these is ever nagged over;
+				-- but nobody wants to be reminded to run everywhere or to be
+				-- untrackable (a glyph's), so Automatic never picks them.
+				{ key = "aspectcheetah", neverAuto = true, ranks = { 5118 } },
+				{ key = "aspectpack", neverAuto = true, ranks = { 13159 } },
+				{ key = "aspectbeast", neverAuto = true, ranks = { 61648 } },
+			},
+			toggle = true,
+		},
+	},
+
+	SHAMAN = {
+		{
+			key = "shield",
+			label = L["Shield"],
+			spells = {
+				-- An hour each, with no charges to spend in 5.x.
+				{ key = "lightningshield", ranks = { 324 } },
+				{ key = "watershield", ranks = { 52127 } },
+			},
+		},
+	},
+
+	-- WARLOCK, DRUID, ROGUE, WARRIOR, DEATHKNIGHT and MONK: nothing of their
+	-- own that is a buff here, as above.
+}
+
 local MISTS_SET = {
 	name = "mists",
 	buffs = MISTS,
-	-- No class's own buffs yet: nobody here can check the ids a Mists client
-	-- uses, and a table empty is "Myself" offering your group buff alone.
-	own = {},
+	own = MISTS_OWN,
+	rankLevel = MISTS_RANK_LEVEL,
 	-- Still one blessing per paladin in 5.5, so the walk would take away what
 	-- the last click gave.
 	exclusive = { PALADIN = true },
@@ -697,6 +817,10 @@ local MISTS_SET = {
 		ROGUE = true,
 		SHAMAN = true, -- the 5.x shaman buffs are auras, not casts on a person
 	},
+	-- As vanilla's: class buffs Manners never offers, counted as favours only.
+	-- Fear Ward (Priest, 54), Water Walking (Shaman, 24) and Soulstone
+	-- (Warlock, 18), each the client's own id here.
+	favourOnly = { 6346, 546, 20707 },
 }
 
 ---------------------------------------------------------------------------
@@ -833,6 +957,9 @@ if chosen then
 	ns.GROUP_BY_CLASS = chosen.groupByClass
 	ns.OWN_BUFFS = chosen.own
 	ns.FAVOUR_ONLY_IDS = chosen.favourOnly
+	-- A set whose buffs are learned at other levels than vanilla's ranks
+	-- brings its own (Mists); the others read vanilla's.
+	if chosen.rankLevel then ns.RANK_LEVEL = chosen.rankLevel end
 end
 
 ---------------------------------------------------------------------------

@@ -50,11 +50,18 @@ local FLAVOURS = {
 	-- Gethe/wow-ui-source's classic, classic_anniversary and classic_era
 	-- branches (September 2026); their buff frame reads the global
 	-- GetWeaponEnchantInfo instead, and so may anybody else.
+	-- Mists of Pandaria Classic 5.5.4 (classic branch, build 70032; Ketho's
+	-- BlizzardInterfaceResources classic branch has GetBuildInfo() answer
+	-- interface 50504 and WOW_PROJECT_ID 19). C_Secrets is there, and nothing
+	-- uses it: the branch's generated API docs tag no function SecretReturns
+	-- or SecretWhen* (Forever's tag hundreds), so HasSecretRestrictions answers
+	-- false here as on Era. UnitBuff and UnitAura are Blizzard_Deprecated's
+	-- shims over C_UnitAuras, there while loadDeprecationFallbacks is on.
 	mists = {
-		build = "5.5.0", interface = 50504, project = WOW_PROJECT_MISTS_CLASSIC,
+		build = "5.5.4", interface = 50504, project = WOW_PROJECT_MISTS_CLASSIC,
 		combatLog = true, surnames = false, unitBuff = true,
 		conditionalTargeting = true,
-		secretRestrictions = true, weaponEnchantList = false, paperDoll = false,
+		secretRestrictions = false, weaponEnchantList = false, paperDoll = false,
 	},
 	tbc = {
 		build = "2.5.6", interface = 20506,
