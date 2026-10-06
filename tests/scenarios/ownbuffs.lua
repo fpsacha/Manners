@@ -1253,17 +1253,19 @@ do
 end
 
 -- ------------------------------------------------------------------ own 25
--- Burning Crusade Classic shares the vanilla buffs for others, but not the
--- class's own: every family there has a member this table lacks (Molten
--- Armor, Fel Armor, Earth Shield), and one of those up would read as none of
--- the family up and be replaced.
+-- Burning Crusade Classic's own families are its own, not vanilla's: every
+-- family there has a member the vanilla table lacks (Molten Armor, Fel Armor,
+-- Earth Shield), and one of those up would read as none of the family up and
+-- be replaced. tests/scenarios/tbc.lua holds the rest of that set.
 Mock.reset()
 do
 	local scenario = "own: Burning Crusade has none of the vanilla families"
 	Mock.setFlavour("tbc")
 	local ns = load(scenario)
 	if ns then
-		if ns.GetOwnFamilies("MAGE") or next(ns.OWN_BUFFS) ~= nil then
+		-- Vanilla's Water Shield is Forever's rune id; this client's is 33736.
+		local water = ns.FindOwnSpell("watershield")
+		if not ns.FindOwnSpell("moltenarmor") or (water and water.ranks[1] == 408510) then
 			fail(scenario, "a Burning Crusade client was given the vanilla families of a class's own buffs")
 		end
 		if not ns.FindBuff("MAGE", "intellect") then

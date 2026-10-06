@@ -11,14 +11,15 @@
 --   retail "Midnight" 12.1   interface 120100+   Manners_Mainline.toc (not shipped)
 --   WoW Forever 1.60.1       interface 16001     Manners_Camelot.toc
 --   Mists of Pandaria        interface 50504     Manners_Mists.toc (not shipped)
---   BC Classic Anniversary   interface 20506     (none -- see below)
+--   BC Classic Anniversary   interface 20506     Manners_TBC.toc (not shipped)
 --   Classic Era 1.15.9       interface 11509     Manners_Vanilla.toc
 --
 -- WoW Forever and (since 1.6.7) Classic Era ship. The others are recognised
 -- and implemented, and their tocs are commented out in tools/maketocs.py
--- until somebody has run them. There is deliberately no
--- TBC toc: a 2.5 client applies Burning Crusade spell ranks, whose ids are in
--- none of Buffs.lua's tables. Add the ids before adding the toc.
+-- until somebody has run them. The Burning Crusade spell ranks a 2.5 client
+-- applies have a set of their own in Buffs.lua (the tbc set, every 2.5.6
+-- rank), so shipping it is what it is for the others: its line in
+-- tools/maketocs.py and its number on Manners.toc's Interface line.
 
 local _, ns = ...
 local L = ns.L

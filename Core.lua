@@ -1620,6 +1620,24 @@ do
 			Remember(family, named)
 			return true, named, left, applications
 		end
+		-- Somebody else's of a spell that fills the family whoever cast it
+		-- (Buffs.lua, anyCaster): another shaman's Earth Shield, which any
+		-- shield of yours would replace. Up whether or not you know the spell;
+		-- never remembered, and no time left, so nothing tops it up either.
+		for _, spell in ipairs(family.spells) do
+			if spell.anyCaster then
+				for _, id in ipairs(spell.auraIds) do
+					local ok, aura = pcall(byId, "player", id)
+					if not ok or Withheld(aura) then
+						refused = true
+					elseif type(aura) == "table" then
+						return true, spell
+					elseif aura == nil and not refused and HiddenAura(id) then
+						refused = true
+					end
+				end
+			end
+		end
 		if refused or nameRefused then return nil end
 		return false
 	end

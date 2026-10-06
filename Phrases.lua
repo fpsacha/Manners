@@ -3698,9 +3698,10 @@ do
 
 	-- The favours no buff of Buffs.lua holds (its favourOnly ids), by every
 	-- rank's id: a Soulstone, Fear Ward, Water Walking, Detect Invisibility.
+	-- 27239 is Burning Crusade's sixth Soulstone.
 	local FAVOUR_KEY = {
 		[20707] = "soulstone", [20762] = "soulstone", [20763] = "soulstone",
-		[20764] = "soulstone", [20765] = "soulstone",
+		[20764] = "soulstone", [20765] = "soulstone", [27239] = "soulstone",
 		[6346] = "fearward", [546] = "waterwalking",
 		[132] = "detectinvis", [2970] = "detectinvis", [11743] = "detectinvis",
 	}
