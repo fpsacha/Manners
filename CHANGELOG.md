@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.7.0
 
 - **Every live client.** Manners now installs on Burning Crusade Classic,
   Mists of Pandaria Classic and retail as well as WoW Forever and Classic Era,

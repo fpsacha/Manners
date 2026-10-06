@@ -71,17 +71,9 @@ mutate("Options/Window/WidgetsChoice.lua",
        script=S)
 
 # ------------------------------------------------ the staged toc
-# tools/ no longer ignored: tools/tocs/Manners_Vanilla.toc would go out in the
-# zip for any Era client to load.
-mutate(".pkgmeta",
-       "  - tools\n",
-       "",
-       "era: the staged toc's folder no longer ignored",
-       expect=".pkgmeta does not ignore tools/",
-       script=V)
-
-# (A mutation moving STAGED_DIR went with 1.6.7: Era ships, nothing is staged,
-# and validate's staged-toc check has nothing to hold until something is.)
+# (The mutations of the staged-toc folder went with 1.6.7 and 1.7.0: every
+# client ships, nothing is staged, and validate's staged-toc check has nothing
+# to hold until something is.)
 
 # ------------------------------------------------ the Notes
 # The tested-and-unverified line back on the English Notes, and on a
