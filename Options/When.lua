@@ -85,6 +85,21 @@ function Page.BuildWhenTab()
 						.. "|r"
 				end,
 			},
+			-- Somebody whose buffs the client will not show is offered
+			-- "unverified" (Queue.lua, UNVERIFIED_SECONDS); this offers them
+			-- never. Always offer reads nothing, so nothing is refused there,
+			-- and a class with nothing for anybody else is only offered its
+			-- own buffs, which are always read.
+			verifiedOnly = {
+				type = "toggle",
+				name = L["Only offer people whose buffs can be read"],
+				desc = L["In a fight, and sometimes just after, the game hides other players' buffs: Manners cannot tell then whether they already have yours, and offers it marked \"unverified\". Tick this to never offer it then. Someone who buffed you or asked for a buff is still offered."],
+				order = 5,
+				width = "full",
+				hidden = function() return F().whenBuffed == "always" or not HasClassBuffs() end,
+				get = fGet,
+				set = fSet,
+			},
 
 			-- Only the mount has a switch: dead, a taxi and a vehicle are
 			-- places nothing can be cast from, while a cast from a mount

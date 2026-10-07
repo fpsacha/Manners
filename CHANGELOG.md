@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+- **Fewer "unverified" offers after a fight.** The game hides other players'
+  buffs in a fight, and as soon as it ended Manners offered people already
+  wearing yours, marked *unverified*. A buff read with time left now still
+  counts while the game hides it in a fight and the five seconds after,
+  Manners reads everybody again the moment the fight ends, and nobody is
+  offered unverified in those five seconds.
+- **Only offer people whose buffs can be read**, under *When to offer* (off
+  by default): nobody is offered unverified at all. Somebody who buffed you or
+  asked for a buff is still offered.
+
 ## 1.7.3
 
 - **The Haranir really speak as themselves now.** The game calls their race

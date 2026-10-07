@@ -109,11 +109,11 @@ local FIELDS = {
 	{ "reasonUnknown", "prompt", "reasonUnknown" },
 }
 
--- When to offer's reset: its own four, the old Advanced reset's eight favour,
+-- When to offer's reset: its own five, the old Advanced reset's eight favour,
 -- timing and targeting fields, which now sit on this page.
 local WHEN_RESET = {
-	{ "filters", "whenBuffed" }, { "filters", "refreshUnder" }, { "filters", "hideMounted" },
-	{ "filters", "manaFloor" },
+	{ "filters", "whenBuffed" }, { "filters", "refreshUnder" }, { "filters", "verifiedOnly" },
+	{ "filters", "hideMounted" }, { "filters", "manaFloor" },
 	{ "timing", "reciprocateWindow" }, { "sources", "owedClassBuffsOnly" },
 	{ "filters", "reachableOnly" }, { "timing", "graceSeconds" }, { "timing", "keepDebts" },
 	{ "timing", "retryCooldown" }, { "timing", "scanInterval" }, { "filters", "restoreTarget" },
@@ -427,7 +427,7 @@ end
 Mock.reset()
 
 -- ------------------------------------------------------------------ 6
--- Put these back to default, on When to offer: its twelve fields, the old
+-- Put these back to default, on When to offer: its thirteen fields, the old
 -- Advanced reset's eight favour, timing and targeting fields among them, and
 -- nothing from another page -- not Look's wording, which the old reset took
 -- with it. Kept favours written the way the switch writes them, and the page
