@@ -57,9 +57,11 @@ local L = setmetatable({}, {
 
 -- UnitRace's second return, the untranslated file name, to the people whose
 -- lines it speaks. Allied races share their parent people's voice: a Mag'har
--- says Lok'tar as readily as any orc. The Haranir are new with Midnight and
--- have no lines of their own yet, so they speak with their faction's voice and
--- the general lines, which is better than guessing at a culture.
+-- says Lok'tar as readily as any orc. The Haranir, new with Midnight, have
+-- had lines of their own since 1.7.2, written from what Blizzard has published
+-- of them (warcraft.wiki.gg's Haranir and Harandar pages and the quests they
+-- cite); a race missing here speaks with its faction's voice and the general
+-- lines, which is better than guessing at a culture.
 RP.FAMILY = {
 	Dwarf = "dwarf", DarkIronDwarf = "dwarf", EarthenDwarf = "dwarf",
 	Human = "human", KulTiran = "human",
@@ -1905,9 +1907,85 @@ RP.RACE = {
 			L["Mortals live so briefly, {name}. Let us not make today any shorter."],
 		},
 	},
+	haranir = {
+		thanks = {
+			L["Thank you, {name}. Where I come from, a kindness is tended like a root."],
+			L["Hagar sent me to see the goddess's work, {name}. You're some of her best."],
+			L["Kindness echoes, {name}, and I grew up in a cavern. Here it comes back to you."],
+			L["My Legacy Stone showed who I'd stand beside, {name}. It forgot you. Thank you."],
+			L["We read lives in a root's rings, {name}. Yours just grew a kind one."],
+			L["The Shul'ka gave up everything to guard us, {name}. I can give this much."],
+			L["The world is more than Harandar, the Song said, {name}. Thanks for proving it."],
+			L["Thank you, {name}. Orweyna said outsiders had much to teach us. I'm learning."],
+			L["Our oaths forbid speaking to outsiders, {name}. I'll risk a thank you."],
+			L["My people lived up here once, {name}. Thanks to you, I can see why."],
+			L["We're raised on dedication and humility, {name}, so I'll just say thank you."],
+			L["Back home I'd dance for that, {name}. Up here people stare, so: thank you."],
+			L["Thank you, {name}. You've left me glowing like a moth back in Harandar."],
+			L["Har'mara is the Village of Balance, {name}. I'd hate to go home lopsided."],
+			L["If Aln'hara can hear anything where she is, {name}, I hope she heard that."],
+		},
+		asked = {
+			L["Of course, {name}. Protect, tend and serve, my people say. This is the serving."],
+			L["Of course, {name}. I answered the goddess's call. Yours is far easier to hear."],
+			L["Of course, {name}. Dalnir would call this a distraction. Dalnir isn't here."],
+			L["Of course, {name}. The roots never ask for anything. It's nice to be asked."],
+			L["Gladly, {name}. Back home I'd have had to pretend I never saw you."],
+			L["Of course, {name}. Mind the quills; they're friendlier than they look."],
+			L["Gladly, {name}. Don't stand still too long; in Harandar you'd sprout mushrooms."],
+			L["Of course, {name}. I was raised to do exactly as I was told. For once, I will."],
+			L["No alndust in this one, {name}. Nothing will come to life and bite you."],
+			L["Of course, {name}. Half the names up here are new to me. Yours I'll keep."],
+			L["{buff}, {name}, grown under the World Trees and picked fresh."],
+			L["Of course, {name}. Hagar is handling things at home; I'll handle them up here."],
+			L["At my initiation I was asked who I really am, {name}. Someone who says yes."],
+		},
+		offer = {
+			L["Take this, {name}, from a long way below. The roots send their regards."],
+			L["Take this, {name}, and may Aln'hara be with you."],
+			L["The sky has no ceiling, {name}. Anything could fall on you. Take this."],
+			L["Follow the visions, Hagar said, {name}. Today they pointed at you. Take this."],
+			L["My people would have watched you from the brush, {name}. I'd rather do this."],
+			L["Harandar stayed out of the world's wars, {name}. You weren't so lucky. Here."],
+			L["The Zur'ashar paint every tale worth telling, {name}. Make yours a long one."],
+			L["Go carefully, {name}. The goddess's world is a garden, and gardens have thorns."],
+			L["We tend roots in Harandar, {name}. You look as if you could use some tending."],
+			L["My ancestors grew restless and sought a purpose, {name}. I've found mine. Here."],
+			L["Har'mara lives at peace with its neighbours, {name}. I'd like that to spread."],
+			L["The first outsiders I met were fighting off a saptor, {name}. Best take this."],
+			L["My people have kept hope alive for ages on very little, {name}. Have some."],
+			L["I'm still learning what to say to strangers, {name}. This seemed safest."],
+			L["My people live beside a wound that never heals, {name}. Come back without one."],
+		},
+		kin = {
+			L["Two haranir out in the world, {name}. No wonder the elders are up in arms."],
+			L["Did the Song call you up as well, {name}? It never says where it's going."],
+			L["Keep to the brush, they told us, {name}. We are both very bad at it."],
+			L["Harandar's roots run under all of this, {name}. We're never far from home."],
+			L["We're both out here looking for the goddess, {name}. Two pairs of eyes, then."],
+			L["We were both told to give up childish adventures, {name}. Look at us now."],
+			L["Nobody up here speaks Hara'ni, {name}. We could say anything."],
+			L["The outsiders keep asking where we're from, {name}. I just point down."],
+		},
+		group = {
+			L["Stay close, {name}. A haranir needs something to guard, and today it's you."],
+			L["We once mastered every beast on our mountain, {name}. These won't take long."],
+			L["Word from Harandar, {name}: the haranir are ready to join the fight."],
+			L["My people's oldest shame is fighting each other, {name}. Let's fight together."],
+			L["Mind your step, {name}. Where I'm from, the floor is mostly somebody's roots."],
+			L["If anything crawls up from below, {name}, leave it to me. I know the type."],
+			L["Dangerous, {name}? My ancestors walked into the deep with no idea what waited."],
+			L["Do not fear the dark, {name}. Orweyna's words, and I keep them close."],
+			L["I'll take the ledges, {name}. Clawed feet were made for this."],
+			L["The goddess's world is worth fighting for, {name}. Even this bit of it."],
+			L["I've cleared weeds, mud skippers and invasive fungi, {name}. Nothing scares me."],
+			L["The Zur'ashar won't paint this fight, {name}. Let's win it anyway."],
+		},
+	},
 }
 
--- For kin of a people with no kin lines of their own (the Haranir, for now).
+-- For kin of a people with no kin lines of their own (a race the addon does
+-- not know).
 RP.KIN = {
 	L["It is good to see one of our own, {name}."],
 	L["Our people are few, {name}. That makes each of us count."],
@@ -3596,6 +3674,50 @@ RP.SAME = {
 		L["Our trainer would be proud, {name}. He'd shout it, but he'd be proud."],
 		L["Fellow warrior? Then you know the blacksmith's first name too, {name}."],
 	},
+	DEATHKNIGHT = {
+		L["We both served the Scourge, {name}. I won't ask what you did. Don't ask me."],
+		L["Two death knights, {name}. We've died twice between us. Let's stop there."],
+		L["Between us, {name}, we can drop the echoing voice. Nobody's here to frighten."],
+		L["Mograine would approve, {name}. Grimly; he approves of everything grimly."],
+		L["Two horns and one winter, {name}. Mine sounds today; yours can have tomorrow."],
+		L["The living keep their distance from us, {name}. We needn't keep ours."],
+		L["We both broke free at Light's Hope, {name}. Every choice since is our own."],
+		L["Do you still dream, {name}? I only ask our own kind. The living would worry."],
+		L["Walk with me after dark, {name}. With eyes like ours, we won't need a lantern."],
+	},
+	MONK = {
+		L["Fellow monk, {name}? Then we'll spar later and both pretend we held back."],
+		L["Two monks and one teapot, {name}. Whoever pours is the humbler, so I'll pour."],
+		L["We should compare masters, {name}. Mine was the hardest. Everyone's was."],
+		L["Meditate beside me later, {name}. If one of us snores, it was the other."],
+		L["Monk to monk, {name}: I won't tell you to breathe. You'd only tell me back."],
+		L["Two monks, {name}. Xuen would see a contest, Yu'lon a lesson. I see a friend."],
+		L["Why is every monastery on a mountaintop, {name}? Someone should try a valley."],
+		L["Do the forms with me at dawn, {name}. Two monks in step is nearly music."],
+		L["Strangers ask you for wisdom too, {name}? I tell them to eat something."],
+	},
+	EVOKER = {
+		L["Some of our own followed Sarkareth into the dark, {name}. We chose the sky."],
+		L["Shall we speak Draconic, {name}? The mortals always think we're quarrelling."],
+		L["Between us, {name}, not even the Aspects knew quite what to make of us."],
+		L["Do you also hold a spell a moment too long, {name}, just to feel it gather?"],
+		L["Our people are still choosing their customs, {name}. I'd like this one kept."],
+		L["Valdrakken was built for grown dragons, {name}. I feel like a hatchling there."],
+		L["Our magic hums when two of us stand close, {name}. I've never learned why."],
+		L["Scalecommanders drilled us both, {name}. Any shout still straightens my back."],
+		L["Whichever side you took, {name}, we were kin before there were sides to take."],
+	},
+	SHAMAN = {
+		L["You heard the earth grumble just now, {name}? Good. I thought it was only me."],
+		L["Race you to the next town as wolves, {name}? No lightning. Fair's fair."],
+		L["My ancestors and yours have surely met by now, {name}. I hope they got along."],
+		L["Two shamans, one sky, {name}. I asked first, so this storm is mine to give."],
+		L["Folk stare when we talk to rocks, {name}. Let them. The rocks answer us."],
+		L["Between two shamans, {name}, a storm is just a conversation. Here's my half."],
+		L["The elements could go quiet any day, {name}. Every day they answer is a gift."],
+		L["Ever tried to stop listening, {name}? I did, for a day. Everything got louder."],
+		L["People want storms stopped or started, {name}. Nobody asks how the sky feels."],
+	},
 }
 
 -- A spell given to a class it does little for, by the spell's buff key and
@@ -4422,7 +4544,7 @@ do
 	-- an answer and an offer sound like, then a group and kin. The people's
 	-- most, since the set speaks mostly as them; beta.10 to 1.5.0 showed a
 	-- line of each, the side's offer and the general group line. A people
-	-- with no lines of its own (the Haranir) has its side's lines in their
+	-- with no lines of its own (as the Haranir until 1.7.2) has its side's lines in their
 	-- place and the general ones in the side's. From pools, RP or RP.BEFORE.
 	local function Head(put, family, faction, pools)
 		local race, side, general = pools.RACE[family], pools.FACTION[faction] or {}, pools.GENERAL

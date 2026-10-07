@@ -248,16 +248,12 @@ do
 			if got ~= family then
 				fail(scenario, race .. " speaks as " .. tostring(got) .. ", not " .. family)
 			end
-			-- Every people but the Haranir has lines for every moment, and
-			-- more than one for kin.
+			-- Every people has lines for every moment, and more than one for
+			-- kin: the Haranir too, since 1.7.2.
 			local lines = RP.RACE[family]
-			if family ~= "haranir" then
-				if not (lines and lines.thanks and lines.asked and lines.offer
-					and type(lines.kin) == "table" and #lines.kin >= 2) then
-					fail(scenario, family .. " is missing a kind of line")
-				end
-			elseif lines then
-				fail(scenario, "the Haranir were given lines of their own to guess at")
+			if not (lines and lines.thanks and lines.asked and lines.offer
+				and type(lines.kin) == "table" and #lines.kin >= 2) then
+				fail(scenario, family .. " is missing a kind of line")
 			end
 		end
 		if type(RP.KIN) ~= "table" or #RP.KIN < 2 then
@@ -398,10 +394,42 @@ do
 	end)
 end
 
+-- ------------------------------------------------------------------ rp-4b
+-- The Haranir speak as themselves since 1.7.2. A Haranir who picked In
+-- character before that saved a box of their side's and the general lines;
+-- it is still the untouched set, on either side, and still after the load
+-- repair, so they keep speaking and now in their own voice.
+for _, faction in ipairs({ "Alliance", "Horde" }) do
+	local scenario = "rp: a Haranir's box from before their own lines still speaks (" .. faction .. ")"
+	with(scenario, faction, nil, function()
+		local ns = ready(scenario, "Haranir")
+		if not ns then return end
+		local RP = ns.InCharacter
+		if RP.Player() ~= "haranir" or not RP.RACE.haranir then
+			fail(scenario, "SKIPPED -- the Haranir have no lines of their own")
+			return
+		end
+		local speech = ns.db.profile.speech
+		speech.presetChoice = "incharacter"
+		speech.phrases = RP.Examples(nil, faction, "MAGE")
+		if not RP.Active(speech) then fail(scenario, "the 1.7.1 box counts as edited") end
+		ns.ClampSettings()
+		if not RP.Active(speech) then fail(scenario, "the load repair left a box that counts as edited") end
+		local entry = person(ns, "owed")
+		local expected = {}
+		render(ns, entry, RP.RACE.haranir.thanks, expected, "race")
+		speaker(ns, entry, "thanks", expected)
+		counting()
+		local counts = tally(ns, entry, expected, 200)
+		if not counts.race then fail(scenario, "never said a line of the Haranir's own") end
+		noErrors(scenario, ns)
+	end)
+end
+
 -- ------------------------------------------------------------------ rp-5
--- A race the addon has never heard of, and the Haranir, who have no lines of
--- their own: the faction's and the general ones, and still something said.
-for _, race in ipairs({ "Murloc", "Haranir" }) do
+-- A race the addon has never heard of: the faction's and the general lines,
+-- and still something said. (The Haranir spoke this way until 1.7.2.)
+for _, race in ipairs({ "Murloc" }) do
 	local scenario = "rp: a race without lines speaks for its faction (" .. race .. ")"
 	with(scenario, "Alliance", nil, function()
 		local ns = ready(scenario, race)
@@ -1784,7 +1812,7 @@ do
 			return out
 		end
 
-		-- Every people a race speaks as, the Haranir aside.
+		-- Every people a race speaks as, the Haranir too since 1.7.2.
 		local families = {}
 		for _, family in pairs(RP.FAMILY) do families[family] = true end
 		-- A people's own hour is optional, but full when it is there, and a
@@ -1799,7 +1827,7 @@ do
 			pandaren = { "morning", "night" },
 		}
 		for family in pairs(families) do
-			if family ~= "haranir" then
+			do
 				for _, kind in ipairs({ "thanks", "asked", "offer", "kin", "group" }) do
 					has(RP.RACE[family] and RP.RACE[family][kind], family .. "." .. kind, full)
 				end
@@ -1867,7 +1895,8 @@ do
 		-- retail's Skyfury, Blessing of the Bronze and Source of Magic.
 		local elsewhere = set({ "intellect", "fortitude", "spirit", "shadow", "motw", "thorns", "kings", "might",
 			"wisdom", "salvation", "light", "sanctuary", "battleshout", "breath", "commandingshout",
-			"hornofwinter", "emperor", "whitetiger", "darkintent", "skyfury", "bronze", "sourceofmagic" })
+			"hornofwinter", "emperor", "whitetiger", "darkintent", "skyfury", "bronze", "sourceofmagic",
+			"soulstone", "fearward", "waterwalking", "detectinvis" })
 		local filed = {}
 		for key in pairs(keys) do filed[key] = true end
 		for key in pairs(elsewhere) do filed[key] = true end

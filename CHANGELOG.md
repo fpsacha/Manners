@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- **The Haranir speak as themselves.** In character now has a voice of their
+  own for Midnight's Haranir, on either side: Harandar and its roots,
+  Aln'hara and her Song, and a people new to the world above.
+- Death knights, monks, evokers and shamans have lines of their own for
+  helping one of their own class.
+
 ## 1.7.1
 
 - **In character, for every new buff.** Lines of their own for Commanding
