@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.7.2
 
 - **The Haranir speak as themselves.** In character now has a voice of their
   own for Midnight's Haranir, on either side: Harandar and its roots,
