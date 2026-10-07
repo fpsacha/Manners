@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- **In character, for every new buff.** Lines of their own for Commanding
+  Shout, Horn of Winter, both Legacies, Dark Intent, Skyfury, Blessing of the
+  Bronze and Source of Magic, for giving them and for thanking somebody who
+  gave you one, and a voice of their own for death knights, monks, evokers and
+  shamans. In all nine languages.
+
 ## 1.7.0
 
 - **Every live client.** Manners now installs on Burning Crusade Classic,

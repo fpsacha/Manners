@@ -1860,9 +1860,18 @@ do
 		known(RP.CLASS, CLASSES, "class")
 		if not next(keys) then fail(scenario, "SKIPPED -- no buffs on this client to check the spells against") end
 		for key in pairs(keys) do has(RP.SPELL[key], "spell " .. key, full) end
-		-- And Classic Era's Blessing of Sanctuary, which Forever deleted.
-		keys.sanctuary = keys.sanctuary or "elsewhere"
-		known(RP.SPELL, keys, "spell")
+		-- And the spells of the other clients (Buffs.lua's sets): Classic Era's
+		-- Blessing of Sanctuary, which Forever deleted, and the rest of the
+		-- vanilla set where Mists or retail lack it; Burning Crusade's
+		-- Commanding Shout; Mists' Horn of Winter, Legacies and Dark Intent;
+		-- retail's Skyfury, Blessing of the Bronze and Source of Magic.
+		local elsewhere = set({ "intellect", "fortitude", "spirit", "shadow", "motw", "thorns", "kings", "might",
+			"wisdom", "salvation", "light", "sanctuary", "battleshout", "breath", "commandingshout",
+			"hornofwinter", "emperor", "whitetiger", "darkintent", "skyfury", "bronze", "sourceofmagic" })
+		local filed = {}
+		for key in pairs(keys) do filed[key] = true end
+		for key in pairs(elsewhere) do filed[key] = true end
+		known(RP.SPELL, filed, "spell")
 		-- What a gift does: every spell somebody can give you, and every
 		-- favour Manners never offers (Buffs.lua, favourOnly), found by its id.
 		local gifts = {}
@@ -1885,6 +1894,7 @@ do
 			end
 		end
 		ns.owed = owed
+		for key in pairs(elsewhere) do gifts[key] = true end
 		known(RP.GIFT, gifts, "gift")
 
 		-- The moments.

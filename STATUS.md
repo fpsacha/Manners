@@ -66,9 +66,8 @@ file (era.lua, tbc.lua, mists.lua, mainline.lua) and mutations. Only Forever has
 been played. `python tests/runscenarios.py --flavour <name>` runs the whole
 suite as that client as a diagnostic; most of its reds are fixtures written for
 Camelot (two-part names, Forever's scrolls and raid-wide group casts, a raid
-pcall ceiling set for Forever's data), not addon faults. Commanding Shout,
-Skyfury, Blessing of the Bronze, Source of Magic and Mists' new buffs have no
-In character lines of their own yet; those lines fall back to race and moment.
+pcall ceiling set for Forever's data), not addon faults. Every buff on every
+client has In character lines of its own (1.7.1).
 
 **One assumption is untested.** A late refusal is matched to the press it
 answers using the cast guid the client sends with both cast events, and only
