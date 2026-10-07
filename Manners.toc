@@ -19,7 +19,7 @@
 ## Notes-zhCN: 一键给刚为你加过增益的人回一个，也给附近缺少你增益的玩家补上。
 ## Notes-zhTW: 一鍵為剛替你加增益的人加回去，也為附近缺少你增益的玩家加上。
 ## Author: Sacha
-## Version: 1.7.0
+## Version: 1.7.1
 ## SavedVariables: MannersDB
 ## X-Compatible-With: forever
 ## X-License: MIT

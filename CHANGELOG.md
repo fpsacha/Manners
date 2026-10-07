@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.7.1
 
 - **In character, for every new buff.** Lines of their own for Commanding
   Shout, Horn of Winter, both Legacies, Dark Intent, Skyfury, Blessing of the
