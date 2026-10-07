@@ -78,7 +78,10 @@ SUITES = ("validate.py", "runharness.py", "runscenarios.py")
 
 # A mutation can turn a loop endless. Without a limit that is a selftest that
 # never finishes, which on CI reads as a hung runner rather than a failure.
-TIMEOUT = 600
+# A mutation judged on the whole suite runs it on one worker while thirteen
+# others run beside it: about ten minutes since 1.7.1 grew the phrase pools
+# and every locale, so 600 s turned forty of those into timeouts.
+TIMEOUT = 1200
 # The trace runs each scenario under a hook, slower, and a few scenarios do
 # a great deal of arithmetic in the scenario file itself (the readable-* files
 # read texels): under the old per-line hook a shard went past 600 s and every
