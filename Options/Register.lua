@@ -318,6 +318,22 @@ end
 -- Whether the window has failed and the old dialog stands in for it.
 function ns.OptionsFallback() return broken end
 
+-- The window built hidden, as opening it builds it, for /manners selftest's
+-- window.build. A build that throws ends as it does on /manners: named once,
+-- through the guard, the half-built frame put away and the old dialog from
+-- then on. Left to a bare pcall it kept UI.frame, which UI.Open then showed
+-- half-built without a throw, so nothing ever fell back. Never built again
+-- over a window that failed. Answers whether the window is built.
+function ns.BuildOptionsWindow()
+	local UI = ns.WindowUI
+	if UI.built then return true end
+	if broken then return false end
+	if ns.Guard("options window", UI.Build) then return UI.built == true end
+	broken = true
+	pcall(Discard)
+	return false
+end
+
 -- /manners selftest's report, in its box under Reporting a bug on
 -- Diagnostics (Options/Diagnostics.lua, selftest). Answers whether the box
 -- is in front of the player.
