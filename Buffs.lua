@@ -1399,6 +1399,17 @@ if chosen then
 	if chosen.rankLevel then ns.RANK_LEVEL = chosen.rankLevel end
 end
 
+-- The key of every own-buff family on any client, not only this one's. A
+-- settings string names the families of the client it was made on
+-- (ownBuffs.pick.<key>), and an import here tells another client's from a
+-- setting a later version added with this (Commands.lua).
+ns.OWN_FAMILY_ANY_CLIENT = {}
+for _, set in pairs(SETS) do
+	for _, families in pairs(set.own or {}) do
+		for _, family in ipairs(families) do ns.OWN_FAMILY_ANY_CLIENT[family.key] = true end
+	end
+end
+
 ---------------------------------------------------------------------------
 -- derived lookups
 ---------------------------------------------------------------------------
