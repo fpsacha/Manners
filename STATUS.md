@@ -43,6 +43,12 @@ it as Midnight. When it goes live, `Manners_Mainline.toc` needs the number
 write-only `ns.X`, but nothing finds a local function nobody calls; extending
 that check is the one step of the 1.0.0-beta.9 cleanup plan never built.
 
+**A stale comment in `release.yml`.** Above the "Confirm the suites can still
+fail" step it says CI on master runs the full selftest on every push. It does
+not: `ci.yml` runs `selftest.py --anchors`, and the full run is made by hand
+before a release (`RELEASING.md`). Reword the comment only; the `shell: bash`
+line and the grep below it are mutation anchors.
+
 **`verbose` defaults on** (every user gets a chat line each time somebody buffs
 them). Whether it should was never decided.
 
