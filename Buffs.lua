@@ -34,6 +34,8 @@
 --             buff you want only for a reason the prompt cannot see (Unending
 --             Breath, under water), which would come back every time it ran
 --             out, all evening. Offers to others are untouched.
+--   alone     lands on its target alone, on a set whose casts on somebody in
+--             your party or raid land on every one of them (wideCasts).
 --   talent    learned from a talent, so not everybody of the class knows it.
 --             Data only: ns.AskedFor still turns away every ask from your own
 --             class, talent or not, until it is taught to read this.
@@ -1042,8 +1044,9 @@ local MISTS = {
 		-- Kept because somebody might want it, and kept away from Automatic
 		-- because nobody standing in a city wants to be handed water breathing.
 		-- A shaman's Water Breathing (131), its group id on vanilla, is gone
-		-- from this client.
-		{ key = "breath", ranks = { 5697 }, neverAuto = true, neverSelf = true },
+		-- from this client. Its effects have no radius (Wowhead MoP Classic):
+		-- the one buff here that lands on its target alone.
+		{ key = "breath", ranks = { 5697 }, neverAuto = true, neverSelf = true, alone = true },
 	},
 
 	WARRIOR = {
@@ -1176,6 +1179,15 @@ local MISTS_SET = {
 	buffs = MISTS,
 	own = MISTS_OWN,
 	rankLevel = MISTS_RANK_LEVEL,
+	-- How far a shout reaches (target 56, radius 100: Battle Shout and Horn of
+	-- Winter alike). The older sets leave it out: their 20 yards are what
+	-- Core.lua's ShoutReach was written for.
+	shoutYards = 100,
+	-- A buff cast on somebody in your party or raid lands on every one of
+	-- them (target 118, radius 100: Arcane Brilliance, Dark Intent, the
+	-- Legacies), so the press on one returns the others' favours too
+	-- (Prompt/Press.lua, PostClick). A buff marked `alone` is the exception.
+	wideCasts = true,
 	-- Still one blessing per paladin in 5.5, so the walk would take away what
 	-- the last click gave.
 	exclusive = { PALADIN = true },
@@ -1284,6 +1296,8 @@ local MAINLINE = {
 			-- the next, off the healer it was meant for. Offered when it is
 			-- pinned, and to whoever asks for it by name (ns.AskOnlyBuffs).
 			neverAuto = true,
+			-- And so it reaches nobody but its target, in a group or out.
+			alone = true,
 		},
 	},
 
@@ -1302,6 +1316,10 @@ local MAINLINE_SET = {
 	-- family of "only one of these up" would get wrong; and a rogue's poisons
 	-- would need words of their own. "Myself" offers your own group buff.
 	own = {},
+	-- Battle Shout's reach, and the casts that land on your whole party and
+	-- raid (target 118), as on Mists.
+	shoutYards = 100,
+	wideCasts = true,
 	-- Nothing overwrites anything, and nothing depends on who is there.
 	exclusive = {},
 	auto = {},
@@ -1388,6 +1406,8 @@ if chosen then
 	ns.CLASSES_WITHOUT_BUFFS = chosen.without
 	ns.PARTY_IS_SUBGROUP = chosen.partyIsSubgroup == true
 	ns.GROUP_IS_RAID = chosen.groupIsRaid == true
+	ns.SHOUT_YARDS = chosen.shoutYards
+	ns.WIDE_CASTS = chosen.wideCasts == true
 	ns.GROUP_BY_CLASS = chosen.groupByClass
 	ns.OWN_BUFFS = chosen.own
 	ns.FAVOUR_ONLY_IDS = chosen.favourOnly

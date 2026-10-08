@@ -378,9 +378,11 @@ end
 -- so it returns every favour in earshot -- left owed, they were offered a
 -- second shout, then let go as run out. Each goes to the ledger as a plain
 -- return; one shout is one cast, under the anchor. Returns what a late
--- refusal needs to undo it, as SettleGroup does.
-local function SettleShout(pending, spellId)
-	local records, repaid = SettleMembers(pending.shoutMembers, pending,
+-- refusal needs to undo it, as SettleGroup does. `names`, when given, is
+-- everybody else a cast on one of them reached on Mists and retail
+-- (pending.wideMembers), settled the same way.
+local function SettleShout(pending, spellId, names)
+	local records, repaid = SettleMembers(names or pending.shoutMembers, pending,
 		{ buffKey = pending.buffKey, inGroup = true }, spellId)
 	local buff = pending.buffKey and ns.FindBuff(caps.class, pending.buffKey)
 	SayAlsoRepaid((spellId and SpellNameFor(spellId)) or (buff and ns.BuffName(buff)) or L["the spell"],
@@ -588,6 +590,9 @@ local function SettlePendingClick(landedOn, spellId, castGUID)
 	-- one it was aimed at unheard: each was measured on their own. Our shout
 	-- went out, or `why` above returned.
 	if pending.selfCast and pending.shoutMembers then members = SettleShout(pending, spellId) end
+	-- A cast that landed on the whole party and raid (Mists, retail) settles
+	-- everybody else in it the press's scan offered it, as a shout does.
+	if pending.wideMembers then members = SettleShout(pending, spellId, pending.wideMembers) end
 	-- The client sent the cast; the server has not answered yet. Keep the
 	-- record so a refusal arriving a moment from now has something to be about.
 	-- Whether they were on the never-offer list already, which a favour owed

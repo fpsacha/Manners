@@ -90,7 +90,9 @@ end
 --     surely inside its own radius (ns.ShoutSure): the scan's reach for a
 --     shout is looser than the shout on purpose;
 --   - the global cooldown, your own cast and the spell's own cooldown over;
---   - the spell usable, mana included, where the client says.
+--   - the spell usable, mana included, where the client says;
+--   - you not up in the air on a flying mount, where the cast fails ("You are
+--     mounted") unless the client drops you off it (ns.FlyingCastFails).
 -- Line of sight no call can tell. The press itself goes out either way, and
 -- the line rolled for them is kept (ApplyTarget re-rolls only for somebody
 -- new), so a press that lands says it.
@@ -120,6 +122,7 @@ local function HoldLine(entry, verdicts)
 	if type(usable) ~= "function" then usable = _G.IsUsableSpell end
 	-- Through safecall: the call's shape differs between client generations.
 	if spell and ns.safecall(usable, spell) == false then return true end
+	if ns.FlyingCastFails() then return true end
 	return false
 end
 -- For /manners selftest (Selftest.lua), which asks it of your target.
@@ -487,6 +490,25 @@ local function OnPostClick(self, mouseButton, down)
 			end
 		end
 		ns.pendingClick.shoutMembers = names
+	end
+	-- On Mists and retail a buff cast on somebody in your party or raid lands
+	-- on every one of them (Buffs.lua, wideCasts), so whoever else in the
+	-- group the scan offered the same buff, and did not measure out of reach,
+	-- is settled with them as a shout's hearers are. Not a buff that lands on
+	-- its target alone, not yourself, nobody on an overruled reading.
+	local cast = S.current.buff
+	if ns.WIDE_CASTS and S.current.inGroup and not stale and cast and not cast.selfCast and not cast.alone
+		and not ns.pendingClick.onSelf and not S.current.groupCast then
+		local names
+		for _, entry in ipairs(S.pickedFrom or {}) do
+			if entry.name ~= S.current.name and entry.inGroup and entry.ranged ~= false
+				and entry.reason ~= "self" and not entry.groupCast
+				and entry.buff and entry.buff.key == cast.key then
+				names = names or {}
+				names[#names + 1] = entry.name
+			end
+		end
+		ns.pendingClick.wideMembers = names
 	end
 	-- Everybody the group cast covers waits out the same cooldown as the
 	-- person it is aimed at, or they come straight back as single offers

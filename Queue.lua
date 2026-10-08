@@ -229,13 +229,14 @@ do
 	local newest
 
 	-- Errors about the caster rather than the person (out of mana, moving, the
-	-- cooldown): they hold the spoken line, since nothing landed, but say nothing
-	-- about whether the game will refuse this person next time. Named by the
-	-- client's own global strings, since the text is localised.
+	-- cooldown, still on a flying mount): they hold the spoken line, since
+	-- nothing landed, but say nothing about whether the game will refuse this
+	-- person next time. Named by the client's own global strings, since the
+	-- text is localised.
 	local CASTER_SIDE = { "ERR_OUT_OF_MANA", "SPELL_FAILED_MOVING", "SPELL_FAILED_NOT_READY",
 		"ERR_SPELL_COOLDOWN", "ERR_ABILITY_COOLDOWN", "SPELL_FAILED_SPELL_IN_PROGRESS",
 		"SPELL_FAILED_SILENCED", "SPELL_FAILED_STUNNED", "SPELL_FAILED_CASTER_DEAD",
-		"SPELL_FAILED_INTERRUPTED" }
+		"SPELL_FAILED_INTERRUPTED", "SPELL_FAILED_NOT_MOUNTED" }
 
 	-- Refusals the press asks about again before it lets a line go
 	-- (Prompt/Press.lua, HoldLine): the range, the mana, a cooldown or a cast
@@ -1086,6 +1087,19 @@ function ns.HiddenWhileMounted()
 	if not (db and db.filters and db.filters.hideMounted == true) then return false end
 	if type(IsMounted) ~= "function" then return false end
 	return plain(safecall(IsMounted)) == true
+end
+
+-- Whether you are up in the air, where a cast fails ("You are mounted") rather
+-- than taking you off the mount: warcraft.wiki.gg, Mount macros, "If you are
+-- flying, you can no longer cast spells". Not with the client's Auto Dismount
+-- in Flight on (autoDismountFlying, off by default), which drops you instead.
+-- The queue still offers, as it does on the ground; the press asks this for
+-- its spoken line alone (Prompt/Press.lua, HoldLine), and the refusal is
+-- yours, not theirs (CASTER_SIDE). A withheld answer counts as on the ground.
+function ns.FlyingCastFails()
+	if plain(safecall(_G.IsFlying)) ~= true then return false end
+	local value = plain(safecall(_G.GetCVar or (C_CVar and C_CVar.GetCVar), "autoDismountFlying"))
+	return not (value == "1" or value == 1 or value == true)
 end
 
 ---------------------------------------------------------------------------
