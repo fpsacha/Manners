@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.7.3
 
 - **The Haranir really speak as themselves now.** The game calls their race
   "Harronir" behind the scenes, so 1.7.2's lines for them were never said.
