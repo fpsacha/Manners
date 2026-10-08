@@ -501,13 +501,16 @@ do
 	-- A press whose line HoldLine held back for want of a token. Said once a
 	-- session, only with "Tell me in chat" on, only where a line was wanted at all and the nameplates
 	-- are why: not for your own buff, nor a first buff with "only when I buff
-	-- someone back" on.
+	-- someone back" on, nor in /party or /raid to somebody outside it
+	-- (ns.ChannelOpen), who gets no line whatever the nameplates say -- and
+	-- anybody inside it has a party or raid token.
 	function ns.NoteTokenlessHold(entry)
 		if said or type(entry) ~= "table" then return end
 		local speech = addon.db and addon.db.profile.speech
 		if not (speech and addon.db.profile.verbose) then return end
 		if not (speech and speech.enabled) or entry.reason == "self" then return end
 		if speech.onlyWhenReturning and entry.reason ~= "owed" then return end
+		if not ns.ChannelOpen(entry) then return end
 		if not ns.FriendlyPlatesOff() then return end
 		said = true
 		addon:Print(L["a line was left out: with friendly nameplates off, Manners cannot tell whether a stranger is in range to hear you. %s on the %s tab turns them on."]

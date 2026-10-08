@@ -84,8 +84,8 @@ mutate("Options/Start.lua",
 
 # The note shown to somebody who says nothing.
 mutate("Options/Say.lua",
-       "\t\t\t\thidden = function() return speechOff() or not ns.FriendlyPlatesOff() end,\n\t\t\t\tname = \"|cff888888\"",
-       "\t\t\t\thidden = function() return not ns.FriendlyPlatesOff() end,\n\t\t\t\tname = \"|cff888888\"",
+       "\t\t\t\thidden = function() return speechOff() or not ns.FriendlyPlatesOff() or not ns.ChannelOpen({}) end,\n\t\t\t\tname = \"|cff888888\"",
+       "\t\t\t\thidden = function() return not ns.FriendlyPlatesOff() or not ns.ChannelOpen({}) end,\n\t\t\t\tname = \"|cff888888\"",
        "nameplate note while silent",
        expect="quick-setup: the nameplate note shows only while speaking with them off (silent, nameplates off)",
        script="runscenarios.py")

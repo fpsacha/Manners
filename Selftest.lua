@@ -650,14 +650,16 @@ Check("beliefs.own", "beliefs", L["own buffs"], function(add)
 end)
 
 Check("beliefs.scrolls", "beliefs", L["scrolls in bags"], function(add)
-	local any = false
+	local any, held, unread = false, false, false
 	local count = Field(Items(), "GetItemCount")
 	for _, family in ipairs(ns.GetOwnFamilies(Class()) or {}) do
 		for _, spell in ipairs(family.scroll and family.spells or {}) do
 			any = true
 			local ok, n = Ask(count, spell.item)
 			n = ok == true and Plain(n) or nil
+			if type(n) ~= "number" then unread = true end
 			if type(n) == "number" and n > 0 then
+				held = true
 				local ready, why = ns.ScrollReady(spell)
 				local label = L["scrolls in bags"] .. " " .. spell.key
 				if why == "bags" then
@@ -672,8 +674,12 @@ Check("beliefs.scrolls", "beliefs", L["scrolls in bags"], function(add)
 		add(PASS, tostring(Class()) .. " has no scrolls")
 	elseif type(count) ~= "function" then
 		add(FAIL, "C_Item.GetItemCount is missing, so none can be counted")
+	elseif not held then
+		-- Said once, when nothing above was: a mage with no scrolls on them is
+		-- the ordinary case, not "said nothing".
+		add(unread and WARN or PASS, unread and "the client would not say how many are in the bags"
+			or "none in the bags")
 	end
-	-- Said once, when nothing above was.
 end)
 
 -- The main hand's enchants read through every call the client has, and what
@@ -932,8 +938,10 @@ Check("range.nameplates", "range", L["nameplates"], function(add)
 end)
 
 Check("range.proximity", "range", L["proximity"], function(add)
-	local summary = Strip(ns.ProximitySummary())
-	add(summary:find("no signal", 1, true) and WARN or PASS, summary)
+	-- Graded by what Range.lua says it measures with, not by the words, which
+	-- are translated: "keine Messung", "aucun signal".
+	local summary, unmeasured = ns.ProximitySummary()
+	add(unmeasured == true and WARN or PASS, Strip(summary))
 end)
 
 -- What the press would do with the thank-you line (Prompt/Press.lua,
@@ -1040,14 +1048,27 @@ Check("window.build", "window", L["builds"], function(add)
 		add(PASS, "built earlier this session")
 		return
 	end
-	-- Built hidden, as opening it would build it.
-	local ok, err = pcall(UI.Build)
-	if not ok then
-		add(FAIL, "building it threw: " .. tostring(err))
-	elseif not UI.built then
-		add(FAIL, "building it left no window")
-	else
+	if type(ns.BuildOptionsWindow) ~= "function" then
+		add(FAIL, "Options/Register.lua did not load")
+		return
+	end
+	-- Built hidden, as opening it would build it, and through the same guard
+	-- (Options/Register.lua): a build that throws leaves the old dialog in
+	-- the window's place, as /manners would, not a half-built frame for the
+	-- next opening to show. A window that failed is not built again.
+	local failed = ns.OptionsFallback()
+	if ns.BuildOptionsWindow() then
 		add(PASS, "built now, hidden")
+	elseif failed then
+		add(FAIL, "it failed earlier this session; the old dialog stands in (see Errors)")
+	elseif ns.OptionsFallback() then
+		local err = "see Errors"
+		for _, e in ipairs(ns.errors or {}) do
+			if e.where == "options window" then err = tostring(e.err) end
+		end
+		add(FAIL, "building it threw: " .. err)
+	else
+		add(FAIL, "building it left no window")
 	end
 end)
 

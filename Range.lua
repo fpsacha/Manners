@@ -405,6 +405,8 @@ do
 			out = L["%s -- |cffff8080no signal, so everybody in casting range is offered|r"]:format(out)
 		end
 		if prox.note then out = out .. " |cff808080(" .. prox.note .. ")|r" end
-		return out
+		-- And whether nothing can measure, for /manners selftest's WARN, which
+		-- cannot read it off a line that is translated.
+		return out, prox.source == nil
 	end
 end

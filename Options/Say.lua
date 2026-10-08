@@ -104,11 +104,13 @@ function Page.BuildSpeechTab()
 			-- A line goes out only to somebody a token names (Press.lua,
 			-- HoldLine), and with the game's friendly nameplates off most
 			-- passers-by have none, so their lines are held back unseen. Said
-			-- only while that is so; the setting changes only on a click.
+			-- only while that is so, and not in /party or /raid, where no line
+			-- goes to a passer-by at all (ns.ChannelOpen, asked of somebody
+			-- outside your group); the setting changes only on a click.
 			platesNote = {
 				type = "description",
 				order = 14.5,
-				hidden = function() return speechOff() or not ns.FriendlyPlatesOff() end,
+				hidden = function() return speechOff() or not ns.FriendlyPlatesOff() or not ns.ChannelOpen({}) end,
 				name = "|cff888888" .. L["Turn on friendly nameplates so Manners can tell when strangers are in range to hear you."] .. "|r",
 			},
 			showPlates = {
@@ -116,7 +118,7 @@ function Page.BuildSpeechTab()
 				name = L["Show friendly nameplates"],
 				desc = L["The game's own setting, under Nameplates in its options, where you can turn it off again."],
 				order = 14.6,
-				hidden = function() return speechOff() or not ns.FriendlyPlatesOff() end,
+				hidden = function() return speechOff() or not ns.FriendlyPlatesOff() or not ns.ChannelOpen({}) end,
 				-- The client refuses the setting in a fight.
 				disabled = function() return InCombatLockdown() end,
 				func = function()
