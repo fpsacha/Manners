@@ -194,19 +194,24 @@ def stream(args, indent=""):
 # ---------------------------------------------------------------- waiting on GitHub
 
 def find_run(workflow, sha, branch):
-    """The id and url of `workflow`'s push run for commit sha on branch (or tag)."""
+    """The id and url of `workflow`'s push run for commit sha on branch (or
+    tag), or None and what gh last said."""
+    import json
     deadline = time.time() + FIND_RUN_SECONDS
+    said = "no such run yet"
     while True:
         r = run(["gh", "run", "list", "--workflow", workflow, "--commit", sha, "--event", "push",
                  "--json", "databaseId,headBranch,url,status,createdAt", "--limit", "20"])
         if r.returncode == 0:
-            import json
             runs = [x for x in json.loads(r.stdout or "[]") if x.get("headBranch") == branch]
             if runs:
                 runs.sort(key=lambda x: x.get("createdAt", ""), reverse=True)
                 return runs[0]["databaseId"], runs[0]["url"]
+        else:
+            said = (r.stdout + r.stderr).strip().splitlines()[-1:] or ["gh run list failed"]
+            said = said[0]
         if time.time() > deadline:
-            return None, None
+            return None, said
         time.sleep(10)
 
 
@@ -236,8 +241,26 @@ def watch(run_id, what):
             tail = [l.rstrip() for l in f.read().splitlines() if l.strip()][-25:]
         for line in tail:
             say("    | " + line)
-        say("    (gh run view %s --log-failed shows the failing step)" % run_id)
+        for line in failed_steps(run_id):
+            say("    failed: " + line)
+        say("    (gh run view %s --log-failed shows the failing step's log)" % run_id)
     return code == 0
+
+
+def failed_steps(run_id):
+    """'job / step' for every step of the run that did not succeed."""
+    import json
+    r = run(["gh", "run", "view", str(run_id), "--json", "jobs"])
+    if r.returncode != 0:
+        return []
+    out = []
+    for job in json.loads(r.stdout or "{}").get("jobs", []):
+        if job.get("conclusion") in ("success", "skipped", None):
+            continue
+        steps = [s.get("name", "?") for s in job.get("steps", [])
+                 if s.get("conclusion") not in ("success", "skipped", None)]
+        out.append("%s / %s" % (job.get("name", "?"), ", ".join(steps) or job.get("conclusion")))
+    return out
 
 
 def packager_report(log_text):
@@ -344,7 +367,13 @@ def main(argv=None):
         say("Stopped: setversion.py failed. The tree may be part-changed: git status, then"
             " git checkout -- . to start again.")
         return 1
-    if stream([sys.executable, "tests/validate.py"], indent="    ") != 0:
+    r = run([sys.executable, "tests/validate.py"])
+    lines = (r.stdout + r.stderr).splitlines()
+    verdict = [l for l in lines if l.startswith("RESULT:")]
+    say("    validate.py: " + (verdict[-1] if verdict else "no RESULT line"))
+    if r.returncode != 0:
+        for line in [l for l in lines if l.strip() and not re.match(r"^(  ok\b|==|RESULT:)", l)][:40]:
+            say("    | " + line)
         say("Stopped: validate.py fails with the new version. Nothing is committed;"
             " git diff shows what setversion.py changed.")
         return 1
@@ -372,8 +401,10 @@ def main(argv=None):
     head(4)
     run_id, url = find_run("ci.yml", sha, "master")
     if run_id is None:
-        say("Stopped: no CI run of %s showed up in %d s. Find it with gh run list --workflow ci.yml,"
-            " then tag by hand (RELEASING.md) or run this again." % (sha[:10], FIND_RUN_SECONDS))
+        say("    gh: " + url)
+        say("Stopped: no CI run of %s showed up in %d s. Master is pushed and nothing is tagged."
+            " Find the run with gh run list --workflow ci.yml, then run this again with the same"
+            " version, or tag by hand (RELEASING.md)." % (sha[:10], FIND_RUN_SECONDS))
         return 1
     say("    %s" % url)
     if not watch(run_id, "CI"):
@@ -401,7 +432,9 @@ def main(argv=None):
     head(7)
     run_id, url = find_run("release.yml", sha, tag)
     if run_id is None:
-        say("Stopped: no release run of %s showed up; gh run list --workflow release.yml" % tag)
+        say("    gh: " + url)
+        say("Stopped: no release run of %s showed up in %d s, though the tag is on origin;"
+            " gh run list --workflow release.yml" % (tag, FIND_RUN_SECONDS))
         return 1
     say("    %s" % url)
     passed = watch(run_id, "release")

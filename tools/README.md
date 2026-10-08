@@ -123,8 +123,11 @@ The `Game version:` line should name all five clients; see RELEASING.md's
 
 `gh run watch` redraws its table every few seconds, so its output goes to
 `%TEMP%/manners-release-watch-<run>.txt` and the tool prints one line a
-minute; on a red run it prints the end of that file and how to see the failed
-step (`gh run view <run> --log-failed`).
+minute; on a red run it prints the end of that file, each job and step that
+did not pass (`failed: images / The listing images still draw from the addon`)
+and how to read its log (`gh run view <run> --log-failed`). CI's run is the
+whole of `ci.yml`, so a red `images` job stops a release as a red `tests` job
+does.
 
 When it stops, it says where that leaves the release and what to do next. It
 never deletes a tag or undoes a commit: a red CI run leaves master pushed and
