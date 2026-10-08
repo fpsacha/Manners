@@ -1,5 +1,39 @@
 # Changelog
 
+## Unreleased
+
+- **The Haranir really speak as themselves now.** The game calls their race
+  "Harronir" behind the scenes, so 1.7.2's lines for them were never said.
+- **Retail:** no more Lua error on every aura change in a fight.
+- **Mists and retail:** one cast on a group member covers the whole group
+  there, and Manners now treats it that way: everybody it reached counts as
+  repaid, nobody flagged for PvP is buffed by it while you are not flagged,
+  and Battle Shout and Horn of Winter are offered to party members up to 100
+  yards away.
+- **Mists:** Kings, Mark of the Wild and Legacy of the Emperor no longer get
+  offered to somebody already wearing one of the others, since they do not
+  stack. Arcane Brilliance is no longer called useless to warriors, and a
+  warlock giving Dark Intent no longer talks about breathing underwater.
+- **Classic Era, TBC and Mists:** people on your ignore list are no longer
+  thanked or offered a return when the combat log sees them buff you, and a
+  group member's shout no longer earns a fresh "buffed you" line at every
+  pull.
+- A favour is no longer answered with a weaker rank than the one the person
+  already wears, which the game refuses.
+- On a flying mount the spoken line is held back, since the cast cannot go
+  out, and "You are mounted" no longer blames the person you aimed at.
+- "Skip players below level" goes up to the level cap of your client (70 on
+  TBC, 90 on Mists and retail).
+- With "Ignore shields, heals and trinket procs" off, party auras such as
+  Leader of the Pack or Trueshot Aura are no longer favours, and another
+  shaman's Earth Shield on you is.
+- Sharing settings keeps the raid groups you switched off, a string from
+  another client imports cleanly, and a broken saved number is repaired.
+- `/manners selftest`: an options window that will not build no longer takes
+  the report with it, the distance check warns in every language, and a mage
+  with no scrolls gets a clear line. The nameplate tip stays quiet when your
+  line goes to /party or /raid.
+
 ## 1.7.2
 
 - **The Haranir speak as themselves.** In character now has a voice of their
