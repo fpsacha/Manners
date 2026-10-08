@@ -1236,8 +1236,21 @@ do
 		if not (shown(a.hideMounted) and shown(a.whenBuffed)) then
 			fail(scenario, "a hunter is not shown Hide the prompt while I'm mounted or If they already have it")
 		end
+		-- Only offer people whose buffs can be read is about other people
+		-- too: his own buffs are always read. Asked under the two choices
+		-- that show it to a class with buffs for others, since Always offer
+		-- hides it from everybody.
+		if a.verifiedOnly == nil then
+			fail(scenario, "Only offer people whose buffs can be read is not on the When to offer tab")
+		end
+		for _, choice in ipairs({ "skip", "refresh" }) do
+			ns.db.profile.filters.whenBuffed = choice
+			if shown(a.verifiedOnly) then
+				fail(scenario, "verifiedOnly is shown to a hunter (" .. choice .. " chosen)")
+			end
+		end
 		ns.db.profile.filters.whenBuffed = "always"
-		for _, k in ipairs({ "manaFloor", "manaNote", "alwaysNote" }) do
+		for _, k in ipairs({ "manaFloor", "manaNote", "alwaysNote", "verifiedOnly" }) do
 			if shown(a[k]) then fail(scenario, k .. " is shown to a hunter") end
 		end
 		-- The favours the window draws on this page, from the Advanced group.

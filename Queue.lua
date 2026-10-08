@@ -1352,7 +1352,20 @@ local function RememberPasserBy(entry, now, within, hasMana)
 	-- had a token: "needs" does not turn into "unverified" as the cursor
 	-- leaves them.
 	memo.known, memo.checked, memo.close = entry.known, entry.checked, entry.close
+	memo.withheld = entry.withheld
 	memo.expires = entry.remaining and (now + entry.remaining) or nil
+end
+
+-- The fight is over (PLAYER_REGEN_ENABLED): a passer-by remembered on a
+-- reading the client withheld is let go, since nothing can read them again
+-- without a token and the fight refused everybody. A token reaching them
+-- asks afresh. Somebody who asked stays: the request is the reason. So does a
+-- refusal that no fight made (a buff this client never shows): letting it go
+-- only took them off the prompt until the next scan.
+function ns.ForgetUnreadPassersBy()
+	for name, memo in pairs(passing) do
+		if memo.reason == "nearby" and memo.withheld then passing[name] = nil end
+	end
 end
 
 -- Whether the buff they were offered is still one the walk would offer them:
@@ -1415,12 +1428,16 @@ local function OfferPassersBy(queue, seen, rejected, now, db, candidates, askOnl
 			or flagged
 			or not StillCastable(memo, candidates, db.filters, askOnly)
 			or ns.IsBlocked(name, memo.buff.key, now)
+			or (db.filters.verifiedOnly and nearby and memo.checked and memo.known == nil)
 			or ListedAs(name, verdict) ~= nil
 			or not SafeForMacro(name) then
 			passing[name] = nil
 			if not seen[name] then rejected[name] = true end
 		elseif now - memo.seen >= LINGER_SECONDS then
 			passing[name] = nil
+		elseif rejected[name] == "unread" then
+			-- A token reached them this scan and the client would not say
+			-- (visit): what was read of them before says nothing more.
 		elseif not seen[name] and not (debt and LiveExpiry(debt) > now) then
 			-- Neither a token this scan nor a favour, whose paths offer them.
 			queue[#queue + 1] = {
@@ -1960,6 +1977,26 @@ function ns.BuildQueue(watch)
 		end
 		if not checked then has = nil end
 
+		-- A reading the client refused, for somebody offered on it alone: never
+		-- with "Only offer people whose buffs can be read" on, and not in the
+		-- first seconds after a fight (Core.lua, UNVERIFIED_SECONDS) when the
+		-- client may answer a moment on ("withheld"): a fight refuses every
+		-- reading and the client may go on refusing for a moment after it, and
+		-- the first scans after a pull offered people already wearing the buff.
+		-- Nor a top-up off what was last read worn ("kept"), which only holds an
+		-- offer back: their timer may have been renewed, or the buff lost, since.
+		-- Not a verdict on them, "unread": the next scan asks again, and what is
+		-- remembered of a passer-by is not offered on top (OfferPassersBy).
+		-- Somebody owed or who asked is offered whatever the reading, and says
+		-- so on the prompt.
+		local src = checked and ns.ReadingSource(guid, buff.key) or nil
+		if checked and reason ~= "owed" and reason ~= "asked"
+			and ((has and src == "kept")
+				or (has == nil and (f.verifiedOnly or (src == "withheld" and ns.JustAfterFight(now))))) then
+			rejected[full] = "unread"
+			return
+		end
+
 		local ranged = InRange(unit, buff)
 		-- A shout has no range for InRange to measure, so whatever can say how
 		-- far off they are is asked instead, and the answer rides on the entry
@@ -2013,6 +2050,10 @@ function ns.BuildQueue(watch)
 			priority = priority,
 			ranged = ranged,
 			known = has,
+			-- A refusal the client may lift a moment on (Core.lua,
+			-- ReadingSource): the end of a fight lets go of a passer-by
+			-- remembered on one (ForgetUnreadPassersBy).
+			withheld = (has == nil and src == "withheld") or nil,
 			-- How long what they carry has left, set only for a top-up.
 			remaining = remaining,
 			-- false when we chose not to look, as opposed to looked and were

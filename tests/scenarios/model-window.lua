@@ -406,7 +406,7 @@ local EXPECTED = {
 	},
 	skip = { "filters.skipPvP", "filters.skipSameClass", "filters.requireInRange", "filters.minLevel" },
 	when = {
-		"filters.whenBuffed", "filters.refreshUnder", "filters.hideMounted", "filters.manaFloor",
+		"filters.whenBuffed", "filters.refreshUnder", "filters.verifiedOnly", "filters.hideMounted", "filters.manaFloor",
 		"timing.reciprocateWindow", "sources.owedClassBuffsOnly", "filters.reachableOnly",
 		"timing.graceSeconds", "timing.keepDebts", "timing.retryCooldown", "timing.scanInterval",
 		"filters.restoreTarget",

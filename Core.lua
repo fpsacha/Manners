@@ -262,6 +262,10 @@ local defaults = {
 			restoreTarget = true, -- hand your target back after buffing
 			whenBuffed = "skip", -- skip | refresh | always
 			refreshUnder = 5, -- minutes left before a top-up is offered
+			-- Off: somebody whose buffs the client will not show is offered,
+			-- "unverified" (but not in the first seconds after a fight:
+			-- UNVERIFIED_SECONDS). On, never: a player asked for it.
+			verifiedOnly = false,
 			minLevel = 1,
 			-- Off, because a press on a mount dismounts you, which somebody
 			-- buffing from the saddle may want. Dead, taxi and vehicle need no
@@ -592,6 +596,11 @@ do
 		if C_Secrets and type(C_Secrets.ShouldAurasBeSecret) == "function" then
 			caps.aurasSecretNow = safecall(C_Secrets.ShouldAurasBeSecret)
 		end
+		-- Made while the client withholds (SPELLS_CHANGED can fire in a fight),
+		-- the probe may take a buff readable out of a fight for a secret one,
+		-- and every reading of it is then refused before it is asked, until the
+		-- next probe: PLAYER_REGEN_ENABLED probes again.
+		caps.probedInFight = InCombatLockdown() == true or caps.aurasSecretNow == true
 
 		---------------------------------------------------------------------
 		-- what this client is, and what follows from that
@@ -1860,9 +1869,71 @@ local function ForgetUnitAuras(guid)
 end
 ns.ForgetUnitAuras = ForgetUnitAuras
 
+-- How long a reading is trusted before the client is asked again. A refusal
+-- in the first seconds after a fight is kept a third as long: the client stops
+-- withholding a few moments after a fight, and somebody covered was offered as
+-- "unverified" for the three seconds a refusal from the fight's last scan lived
+-- on. Any other refusal is kept as long as a reading: one that never changes (an
+-- id declared secret) was asked three times as often for nothing.
+local READING_SECONDS = 3
+local REFUSAL_SECONDS = 1
+
+-- The seconds after a fight the client may go on withholding: a refusal then is
+-- asked again sooner (REFUSAL_SECONDS), what was last read worn still answers it
+-- (lastWorn), and nobody is offered on it (Queue.lua).
+ns.UNVERIFIED_SECONDS = 5
+
+local function JustAfterFight(now)
+	local ended = ns.fightEndedAt
+	return ended ~= nil and now - ended < ns.UNVERIFIED_SECONDS
+end
+ns.JustAfterFight = JustAfterFight
+
+-- lastWorn[guid][buffKey] = { id, expires, mine, over }: the last time somebody's
+-- buff was read on them with its timer, and which of its ids, outliving the cache
+-- and UNIT_AURA. In a fight and the few seconds after it (JustAfterFight), a
+-- refusal of that very id answers what that reading said, the time left counting
+-- down (UnitHasBuff): a fight refuses every reading, and the passer-by read with
+-- forty minutes of Intellect was offered it again, "unverified", on the first
+-- scan after. It only holds an offer back, never makes one (Queue.lua). Any other
+-- answer -- not worn, worn with no timer to trust, that id read and not found
+-- while another is refused -- drops it, and so does seeing them dead (their
+-- buffs went with them).
+local lastWorn = {}
+local lastWornCount = 0
+local lastWornSweep = 0
+
+local function ForgetWorn(guid, key)
+	local perUnit = lastWorn[guid]
+	if not (perUnit and perUnit[key]) then return end
+	perUnit[key] = nil
+	if next(perUnit) == nil then
+		lastWorn[guid] = nil
+		lastWornCount = lastWornCount - 1
+	end
+end
+
+-- Everything last read worn on somebody (IsBuffableUnit, on seeing them dead).
+local function ForgetAllWorn(guid)
+	if not (guid and lastWorn[guid]) then return end
+	lastWorn[guid] = nil
+	lastWornCount = lastWornCount - 1
+end
+
 local lastSweep = 0
 
 local function SweepAuraCache(now)
+	-- What was last read worn and has run out since goes, every half minute at
+	-- most, in a city or not.
+	if lastWornCount > 0 and (now - lastWornSweep) >= 30 then
+		lastWornSweep = now
+		for guid, perUnit in pairs(lastWorn) do
+			for key, worn in pairs(perUnit) do
+				if worn.expires <= now then ForgetWorn(guid, key) end
+			end
+		end
+	end
+
 	if auraCacheCount < 400 then return end
 	-- A big table stays big in a city, so the sweep is also rate-limited.
 	if (now - lastSweep) < 10 then return end
@@ -1874,6 +1945,20 @@ local function SweepAuraCache(now)
 			if not newest or entry.at > newest then newest = entry.at end
 		end
 		if not newest or (now - newest) > 10 then ForgetUnitAuras(guid) end
+	end
+end
+
+-- The fight is over: what it refused says nothing about now. Refusals are
+-- dropped from the cache, so the next scan asks the client again at once
+-- rather than up to three seconds on. The moment is kept for the wait before
+-- an unverified offer (UNVERIFIED_SECONDS, JustAfterFight).
+function ns.ForgetRefusals()
+	ns.fightEndedAt = GetTime()
+	for guid, perUnit in pairs(auraCache) do
+		for key, entry in pairs(perUnit) do
+			if entry.has == nil then perUnit[key] = nil end
+		end
+		if next(perUnit) == nil then ForgetUnitAuras(guid) end
 	end
 end
 
@@ -1890,14 +1975,21 @@ local function UnitHasBuff(unit, buff, guid)
 	local now = GetTime()
 	local perUnit = guid and auraCache[guid]
 	local cached = perUnit and perUnit[buff.key]
-	if cached and (now - cached.at) < 3 then
+	if cached and (now - cached.at) < ((cached.has == nil and not InCombatLockdown() and JustAfterFight(now))
+			and REFUSAL_SECONDS or READING_SECONDS) then
 		return cached.has, cached.expires and (cached.expires - now) or nil, cached.mine, cached.over
 	end
 
 	-- Refusals (an id declared secret, a read that throws or comes back secret)
 	-- are counted, not read as absence: BuildQueue promotes a target over a debt
-	-- on a definite no, and the prompt drops its unverified wording.
+	-- on a definite no, and the prompt drops its unverified wording. `withheld`
+	-- when the client may answer a moment on: a read refused as it was made, or
+	-- an id declared secret by a probe made while it withheld (probedInFight).
+	-- `keptRefused` when the id last read worn (lastWorn) is among the refused.
+	local wornBy = guid and lastWorn[guid]
+	local kept = wornBy and wornBy[buff.key]
 	local has, expires, mine, over, refused = false, nil, nil, nil, false
+	local withheld, keptRefused, found = false, false, nil
 	for _, id in ipairs(buff.auraIds) do
 		if info.secrecy[id] == true then
 			refused = true
@@ -1905,8 +1997,11 @@ local function UnitHasBuff(unit, buff, guid)
 			local ok, aura = pcall(C_UnitAuras.GetUnitAuraBySpellID, unit, id)
 			if not ok or (issecretvalue and issecretvalue(aura)) then
 				refused = true
+				withheld = true
+				if kept and kept.id == id then keptRefused = true end
 			elseif type(aura) == "table" then
 				has = true
+				found = id
 				local expiration = plain(aura.expirationTime)
 				if type(expiration) == "number" and expiration > 0 then expires = expiration end
 				-- Whose it is, for a paladin's blessings. isFromPlayerOrPlayerPet
@@ -1950,6 +2045,39 @@ local function UnitHasBuff(unit, buff, guid)
 		end
 	end
 	if not has and refused then has = nil end
+	-- An id declared secret: withheld when the probe that said so was made while
+	-- the client withheld, and the id last read worn may be one.
+	if refused and caps.probedInFight then withheld = true end
+	if kept and info.secrecy[kept.id] == true then keptRefused = true end
+
+	-- What was last read worn, kept past the cache (see lastWorn): written on
+	-- a reading with a timer, read on a refusal of that same id while that timer
+	-- runs, in a fight or just after it. `src` says so to the walk.
+	local src = withheld and has == nil and "withheld" or nil
+	if guid then
+		if has and expires then
+			if not wornBy then
+				wornBy = {}
+				lastWorn[guid] = wornBy
+				lastWornCount = lastWornCount + 1
+			end
+			if kept then
+				kept.id, kept.expires, kept.mine, kept.over = found, expires, mine, over
+			else
+				wornBy[buff.key] = { id = found, expires = expires, mine = mine, over = over }
+			end
+		elseif kept then
+			if has == nil and keptRefused and kept.expires > now then
+				-- Out of a fight the refusal stands, and the reading waits for the next.
+				if InCombatLockdown() or JustAfterFight(now) then
+					has, expires, mine, over = true, kept.expires, kept.mine, kept.over
+					src = "kept"
+				end
+			else
+				ForgetWorn(guid, buff.key)
+			end
+		end
+	end
 
 	-- Negative answers are cached too (a refusal as nil), or the walk re-reads
 	-- every buff for every person on every tick.
@@ -1964,13 +2092,25 @@ local function UnitHasBuff(unit, buff, guid)
 		if cached then
 			cached.at, cached.has, cached.expires, cached.mine = now, has, expires, mine
 			cached.over = over
+			cached.src = src
 		else
-			perUnit[buff.key] = { at = now, has = has, expires = expires, mine = mine, over = over }
+			perUnit[buff.key] = { at = now, has = has, expires = expires, mine = mine, over = over, src = src }
 		end
 	end
 	return has, expires and (expires - now) or nil, mine, over
 end
 ns.UnitHasBuff = UnitHasBuff
+
+-- What the last answer about somebody's buff rests on, for the walk (Queue.lua):
+-- "kept" when what was last read worn stood in for a refusal (lastWorn),
+-- "withheld" when the client refused a reading it may give a moment on, nil for
+-- anything else, a reading or a refusal that will not change.
+function ns.ReadingSource(guid, key)
+	local perUnit = guid and auraCache[guid]
+	local entry = perUnit and perUnit[key]
+	if not entry or (GetTime() - entry.at) >= READING_SECONDS then return nil end
+	return entry.src
+end
 
 -- Classes that have a mana bar, for when the client will not tell us a unit's
 -- power (always, on the tokenless owed path). Monk and evoker have one; death
@@ -2009,7 +2149,11 @@ local function IsBuffableUnit(unit, f)
 	if not unit or not plain(UnitExists(unit)) then return false end
 	if plain(UnitIsUnit(unit, "player")) then return false end
 	if plain(UnitIsPlayer(unit)) ~= true then return false end
-	if plain(UnitIsDeadOrGhost(unit)) == true then return false, true end
+	if plain(UnitIsDeadOrGhost(unit)) == true then
+		-- Their buffs went with them: what was last read worn says nothing now.
+		ForgetAllWorn(plain(UnitGUID(unit)))
+		return false, true
+	end
 	-- Only a definite refusal is a judgement about the person: a withheld
 	-- answer is nil, and the tokenless fallback exists to reach exactly those.
 	local canAssist = plain(UnitCanAssist("player", unit))
@@ -2481,6 +2625,7 @@ function ns.ClampSettings()
 	oneOf(profile.filters, "proximity", proximities, "near")
 	boolean(profile.filters, "restoreTarget", true)
 	boolean(profile.filters, "hideMounted", false)
+	boolean(profile.filters, "verifiedOnly", false)
 	boolean(profile.sound, "owedOnly", true)
 	boolean(profile.timing, "keepDebts", true)
 	boolean(profile.priority, "target", true)
@@ -2969,6 +3114,22 @@ function addon:PLAYER_REGEN_DISABLED()
 end
 
 function addon:PLAYER_REGEN_ENABLED()
+	-- What the fight withheld is asked again on the next scan rather than three
+	-- seconds on, and a probe made in the fight is made again (see
+	-- caps.probedInFight), once more a few seconds on should the client still
+	-- be withholding: before the repaint below, so it reads afresh.
+	if caps.probedInFight then
+		ns.Guard("ProbeCapabilities", ns.ProbeCapabilities)
+		if caps.probedInFight and C_Timer and C_Timer.After then
+			C_Timer.After(3, function()
+				if caps.probedInFight and not InCombatLockdown() then
+					ns.Guard("ProbeCapabilities", ns.ProbeCapabilities)
+				end
+			end)
+		end
+	end
+	ns.ForgetRefusals()
+	if ns.ForgetUnreadPassersBy then ns.ForgetUnreadPassersBy() end
 	-- A buff that landed after the fight's last tick, walked now so its favour
 	-- is filed before the repaint below offers anybody.
 	ns.FlushOwnScan()

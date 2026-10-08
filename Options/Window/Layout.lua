@@ -235,6 +235,7 @@ ns.WindowLayout = {
 					"when.whenBuffed",
 					{ "when.refreshUnder", indent = true },
 					"when.alwaysNote",
+					"when.verifiedOnly",
 				} },
 				{ key = "when.holdBack", header = "when.wayHeader", items = {
 					"when.hideMounted",
