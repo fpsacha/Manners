@@ -1,31 +1,300 @@
 # tools
 
-The generators for the addon's per-flavour `.toc` files, for the images on the
-CurseForge listing and in the README, and for the addon's own icon.
-Nothing in here ships: `.pkgmeta` ignores this folder, and the game never loads it.
+Two kinds of thing. First the tools for working on the addon: running the
+suites (`check.py`), making a release (`release.py`), keeping the translations
+whole (`locale_todo.py`, `locale_add.py`, with `build_locale.py`,
+`check_translation.py` and `locale_keys.py` under them) and adding In character
+lines (`add_phrases.py`). Then the generators for the addon's per-flavour
+`.toc` files, for the images on the CurseForge listing and in the README, and
+for the addon's own icon, and the probes that measure it. Nothing in here
+ships: `.pkgmeta` ignores this folder, and the game never loads it. The five
+working tools are run by hand; nothing in `tests/` imports them.
 
 They live in the repository rather than on somebody's desktop so the listing can
 be rebuilt when the addon changes. The first versions were one-off scripts, which
 meant the published images could only ever drift away from the addon.
 
+## check.py
+
+The suites in one command, one line each.
+
+```
+python tools/check.py                              # validate, harness, scenarios
+python tools/check.py --flavours                   # and each client's own files as that client
+python tools/check.py --anchors                    # and every mutation still finds its code
+python tools/check.py --flavours --anchors --jobs 3
+```
+
+Each step is the existing script, run as it is:
+
+| Step | Runs |
+|---|---|
+| `validate` | `tests/validate.py` |
+| `harness` | `tests/runharness.py` |
+| `scenarios` | `tests/runscenarios.py --jobs N`: every scenario, as WoW Forever (camelot), the default client |
+| `--flavours` | `tests/runscenarios.py --flavour X --file F`, one step per pair: `era.lua` as vanilla, `tbc.lua` as tbc, `mists.lua` as mists, `mainline.lua` as mainline, and every `tests/scenarios/*-fixes.lua` as each of those four (the `scenarios` step has run them as camelot) |
+| `--anchors` | `tests/selftest.py --anchors --jobs N` |
+
+As each step ends it prints `PASS` or `FAIL`, its seconds and its own verdict
+line (`RESULT: all checks passed`, `failures: 0`, `errors: 0`). Then, for each
+step that failed, the lines of its output that say why (at most 25), and a
+last line: `check: all 32 step(s) passed in 432s`, or which failed. It exits 1
+if any did. A failed step does not stop the others. Every step's whole output
+is kept in `%TEMP%/manners-check/<checkout>/<step>.txt`, a folder per checkout
+so that worktrees checked side by side keep their own (it is emptied at the
+start of each run and named on the first line), so a red step can be read
+without running it again.
+
+`--jobs N` is how many processes run at once, all steps together; the default
+is `MANNERS_SCENARIO_JOBS` from the environment (which `runscenarios.py` reads
+too) if it is set, else the cores less two, which stay free. `validate` and
+`harness` go first, then `scenarios` on all N, then the rest N at a time. Pass
+`--jobs 3` when other work is running on the machine. With `--flavours
+--anchors --jobs 3`, while three other suites ran on the same 16 cores, the
+whole thing took a little over seven minutes, six of them the `scenarios`
+step; the 28 flavour steps take 1 to 26 seconds each, and `--anchors` under one.
+
+Two things it is not. It is not the full mutation run: `python
+tests/selftest.py` is still what a change is finished against and what is run
+before a release (RELEASING.md); `--anchors` only proves every mutation still
+finds the text it changes. And `--flavours` is not the whole suite as another
+client: that is `python tests/runscenarios.py --flavour X`, a diagnostic whose
+reds are mostly fixtures written for Camelot, and `--baseline` there prints
+only the reds that are not in `tests/baselines/X.txt` (`tests/README.md`). The
+files `--flavours` runs are the ones written for each client, and they are
+green.
+
+## release.py
+
+RELEASING.md's "Each release", run in order, waiting where it says to wait.
+
+```
+python tools/release.py 1.7.4 --dry-run    # every check, every command it would run; changes nothing
+python tools/release.py 1.7.4
+python tools/release.py 1.8.0-beta.1 --coauthor "Claude Opus 5.5 <noreply@anthropic.com>"
+```
+
+Before it: write the notes under `## Unreleased` at the top of `CHANGELOG.md`,
+and run the full `python tests/selftest.py` by hand. This never runs the full
+mutation selftest -- it is long, and its verdict is read by a person -- and
+says so when it starts.
+
+Preflight, read-only; nothing changes unless every check passes:
+
+- the version is `X.Y.Z`, `X.Y.Z-alpha.N` or `X.Y.Z-beta.N` (what
+  `tests/setversion.py` takes) and newer than `Manners.toc`'s;
+- `CHANGELOG.md`'s top section is `## Unreleased`, with notes under it;
+- `gh` is installed and logged in;
+- on master, with a clean tree: nothing modified and nothing untracked;
+- origin's master is already in this branch (`git ls-remote`, no fetch);
+- the tag `vX.Y.Z` exists neither here nor on origin;
+- `python tools/check.py --anchors` passes (its lines are shown as it runs; it
+  takes all but two cores unless `MANNERS_SCENARIO_JOBS` says otherwise).
+
+Then, stopping at the first thing that fails:
+
+1. `python tests/setversion.py X.Y.Z`, then `python tests/validate.py`;
+2. `git commit -a -m "Manners X.Y.Z"`, with `-m "Co-Authored-By: ..."` when
+   `--coauthor` or the `MANNERS_COAUTHOR` environment variable gives one (the
+   whole line, or just the name and address);
+3. `git push origin master`;
+4. waits for `ci.yml`'s run of that commit (`gh run watch --exit-status`);
+5. `git tag -a vX.Y.Z -m "Manners X.Y.Z"`;
+6. `git push origin vX.Y.Z`;
+7. waits for `release.yml`'s run of the tag;
+8. prints, from that run's log (`gh run view --log`, where the secrets are
+   masked), which destinations were configured, the packager's
+   `Game version:` line, and what each upload answered:
+
+```
+    CurseForge: id 1705364, token set
+    Wago: id rNkgzlNa, token set
+    warning: WoWInterface: no token and no X-WoWI-ID -- skipped
+    Build type: multi-version non-alpha non-debug
+    Game version: 12.1.0, 5.5.4, 2.5.6, 1.60.1, 1.15.9
+    ...
+    Uploading Manners-v1.7.3.zip (12.1.0,5.5.4,2.5.6,1.60.1,1.15.9 release) to https://wow.curseforge.com/projects/1705364 -> Success!
+    Uploading Manners-v1.7.3.zip (12.1.0,5.5.4,2.5.6,1.60.1,1.15.9 release) to https://addons.wago.io/addons/rNkgzlNa -> Success!
+    Creating GitHub release: https://github.com/fpsacha/Manners/releases/tag/v1.7.3
+```
+
+The `Game version:` line should name all five clients; see RELEASING.md's
+"Game version" for what to do on the file page when it does not.
+
+`gh run watch` redraws its table every few seconds, so its output goes to
+`%TEMP%/manners-release-watch-<run>.txt` and the tool prints one line a
+minute; on a red run it prints the end of that file and how to see the failed
+step (`gh run view <run> --log-failed`).
+
+When it stops, it says where that leaves the release and what to do next. It
+never deletes a tag or undoes a commit: a red CI run leaves master pushed and
+nothing tagged -- fix, commit, push, and run it again with the same version,
+which now finds the top section already named `X.Y.Z` (that counts as the
+notes), sets nothing new, has nothing to commit, and goes on from the wait. A
+red release build prints RELEASING.md's two commands for taking the tag off,
+for you to run if nothing was uploaded.
+
+`--dry-run` makes every preflight check -- all of them, rather than stopping at
+the first -- prints each step's commands as `would run: ...`, changes nothing
+(no file, commit, push or tag; `git status` stays clean), and exits 1 if a
+real run would stop at a check.
+
+## locale_todo.py
+
+What every language still lacks, as files ready for a translator.
+
+```
+python tools/locale_todo.py               # into %TEMP%/manners-locale-todo/<checkout>
+python tools/locale_todo.py --out todo
+```
+
+For each locale (`Locales/<code>.lua`, and any language `build_locale.py`
+knows that has no file yet) it writes `DIR/<code>.todo.json`: a JSON object
+of every English key the code asks for (`locale_keys.py`) that the locale does
+not translate, each mapped to `""`, in the order the keys first appear in the
+code. A translation set to an empty string counts as missing. A locale with
+nothing missing gets no file, and one left from an earlier run is removed, so
+the folder always says what is left. It prints one line per locale with its
+count, and the total:
+
+```
+4232 strings to translate; writing to C:\...\Temp\manners-locale-todo\71b3f5e0
+  deDE     16 missing -> deDE.todo.json
+  ...
+128 missing in all, across 8 of 8 locales
+```
+
+Fill in the values -- a translator writes the language, never Lua -- and give
+the file to `locale_add.py`. The `{name}`, `%s` and `|cff...|r` in a key have
+to come through unchanged, as `check_translation.py` requires.
+
+## locale_add.py
+
+Merges translations into `Locales/<code>.lua` without losing a line.
+
+```
+python tools/locale_add.py deDE todo/deDE.todo.json [more.json ...]
+```
+
+Each file maps English keys to their translation; later files win, and a value
+left empty is skipped and counted, so a todo file translated in part can be
+given as it is. In order, and if any step objects the files are left as they
+were:
+
+1. the current file is read back as the game reads it
+   (`locale_keys.load_locale`);
+2. the new translations go through `check_translation.py`'s check -- a key the
+   code does not ask for, an empty value, or a `%s`, `{token}` or `|escape`
+   that differs from the English stops it, with each one listed;
+3. old and new are merged, the new winning, and the file is rebuilt by
+   `build_locale.py` (so the escaping is done there, once);
+4. every line of the old file has to be in the new one, except the lines of the
+   keys it changed. A rebuild drops a translation the code no longer asks for,
+   a comment written by hand and a line escaped some other way; if it would,
+   the old file and `Locales/Locales.xml` are put back and the lines are listed,
+   to be dealt with by hand;
+5. the new file is read back and has to hold exactly what was merged.
+
+```
+deDE: 16 added, 0 changed, 0 already so; 4232 of 4232 keys translated
+```
+
+The count after the semicolon is the keys the file now translates against the
+keys the code asks for; `still missing` follows when they differ. Run
+`tools/check.py` after, as after any change.
+
+## add_phrases.py
+
+Adds In character lines to `Phrases.lua`, pool by pool.
+
+```
+python tools/add_phrases.py pools.json
+```
+
+`pools.json` is a list of `{"pool": ..., "lines": [...]}`, the pool named by its
+path in Phrases.lua's tables:
+
+```json
+[
+ {"pool": "RACE.dwarf.thanks", "lines": ["Much obliged, {name}. Ale's on me."]},
+ {"pool": "CLASS.MONK.offer", "lines": ["...", "...", "..."]},
+ {"pool": "SPELL.skyfury", "lines": ["...", "...", "..."]},
+ {"pool": "GIFT.skyfury", "lines": ["...", "..."]},
+ {"pool": "SAME.EVOKER", "lines": ["...", "...", "..."]}
+]
+```
+
+`RACE.<family>.<kind>`, `CLASS.<CLASS>.<kind>`, `SPELL.<key>`, `GIFT.<key>`
+and `SAME.<CLASS>` (and `RACE.<family>.outsider.<moment>`) are the shapes it
+creates. Any other pool that exists already -- `TRADE`, `KIN`,
+`FACTION.Horde.offer`, `GENERAL.thanks`, `PLACE.city`, `TARGET.MAGE`,
+`ONTO.intellect.ROGUE` -- can be added to; `RP.LEGACY` never is.
+
+A pool that exists gets the lines after its last one, so its first lines, the
+phrase box's examples, stay first. One that does not is made at the end of the
+table it belongs in, a new class's table with it, and needs as many lines as
+`tests/scenarios/rp.lua` asks: `RP.SPREAD` (three) for most, two for a `GIFT`
+pool or a people's outsider lines. Its name is checked the way rp.lua checks
+where lines are filed: a family `RP.FAMILY` maps a race to, a class token, the
+key of a buff some client's set in `Buffs.lua` gives to others (or, for
+`GIFT`, a favour in `FAVOUR_KEY`), a kind the picking reads, and a city pool
+only where `RP.HOME` has the people's city.
+
+Every line is checked by rp.lua's rules before anything is written, and if any
+breaks one, nothing is, and each is listed with its reason:
+
+- over 85 bytes once `{name}` is "Bartholomewz" and `{buff}` and `{gift}` are
+  "Power Word: Fortitude";
+- `|`, `[`, `]`, a newline or another control character, a leading `/`, or
+  nothing at all (not safe in a macro);
+- a token other than `{name}`, `{buff}` and `{gift}`, or `{gift}` outside
+  `TRADE` and `GIFT`, the only pools it is filled in;
+- the word "buff" outside a token;
+- the same as a line already in the file (outside `RP.LEGACY`) or another new
+  line -- or the same letters, once tokens, spaces and punctuation are out and
+  case is ignored.
+
+Quotes and backslashes are escaped, and each line is written `L["..."],`. The
+file is not searched for fixed anchors: its comments and strings are masked,
+the `RP.<NAME> = { ... }` tables are walked brace by brace, and each nested
+table is known by its key. The result is read back -- every new line in its
+pool -- and compiled with Lua 5.1 before it is written.
+
+Every new line is a new translation key, so afterwards `tests/validate.py`
+reports it `MISSING` in every locale, and a new pool fails rp.lua's "every
+language keeps a line for every moment" until its lines are translated. Start
+to finish:
+
+```
+python tools/add_phrases.py pools.json
+python tools/locale_todo.py --out todo
+    (translate todo/<code>.todo.json, one per language)
+python tools/locale_add.py deDE todo/deDE.todo.json      # and each other language
+python tests/runscenarios.py --file rp.lua
+python tools/check.py
+```
+
+What rp.lua checks and this cannot is left to it: a class that gives buffs
+needs all four kinds, thanks, asked, offer and group.
+
 ## maketocs.py
 
 Writes one `Manners_<Flavour>.toc` from `Manners.toc` for each entry in its
-`FLAVOURS` table. 1.0 ships for WoW Forever alone, so that is one file today,
-`Manners_Camelot.toc`. `Mainline` and `Mists` are commented out until
-somebody runs the addon on those clients; there will be no `Manners_TBC.toc`
-until the Burning Crusade spell ids are in the tables.
+`FLAVOURS` table. Every live client ships since 1.7.0, so that is five files:
+`Manners_Camelot.toc` (WoW Forever), `Manners_Vanilla.toc` (Classic Era),
+`Manners_TBC.toc` (Burning Crusade Anniversary), `Manners_Mists.toc` (Mists
+Classic) and `Manners_Mainline.toc` (retail).
 
-Its `STAGED` table is the step before shipping: `Vanilla` (Classic Era, 11509)
-is written to `tools/tocs/Manners_Vanilla.toc`, kept current and checked like
-the shipped one, and goes nowhere. Not beside `Manners.toc`, because the BigWigs
-packager reads every `Manners_<Flavour>.toc` in the checkout's top folder --
-whatever `.pkgmeta` leaves out of the zip -- and tags the upload with that
-client's game version; `tools/` is ignored by `.pkgmeta`, and the packager
-never looks in it. To try the addon on Era, copy that file next to `Manners.toc`
-in your own `Interface/AddOns/Manners`. `tests/validate.py` fails if a toc in
-the top folder is not in `FLAVOURS`, or if `.pkgmeta` stops ignoring the
-staging folder.
+Its `STAGED` table is the step before shipping, empty while every client
+ships: a flavour listed there is written to `tools/tocs/`, kept current and
+checked like the shipped ones, and goes nowhere. Not beside `Manners.toc`,
+because the BigWigs packager reads every `Manners_<Flavour>.toc` in the
+checkout's top folder -- whatever `.pkgmeta` leaves out of the zip -- and tags
+the upload with that client's game version; `tools/` is ignored by `.pkgmeta`,
+and the packager never looks in it. To try a staged client, copy its file next
+to `Manners.toc` in your own `Interface/AddOns/Manners`. `tests/validate.py`
+fails if a toc in the top folder is not in `FLAVOURS`, or if `.pkgmeta` stops
+ignoring the staging folder.
 
 ```
 python tools/maketocs.py           # write them
@@ -140,7 +409,7 @@ settles, with the one-shot animations that have run out by then finished the
 way the client finishes them, so a fight's dim is drawn as dim as it is.
 
 `--locale` loads the addon as a client in that language (the mock's
-`Mock.locale`), which is how a German or Russian line that runs off the panel
+`Mock.locale`), which is how a German or French line that runs off the panel
 is found without the game. The addon measures its lines to fit them, and the
 renderer answers those measurements with the font it draws in, so a line the
 addon shrank to fit is drawn fitting. A state can ask for a bright world
@@ -169,13 +438,13 @@ The same for the favour ledger window (`/manners ledger`), importing
 `Ledger.lua`'s own entry points with days of play -- favours owed, returned and
 let go for each reason, gifts to the group and to strangers, a long name, a name
 with a realm, enough rows to scroll -- and opens the window on each tab, empty
-and switched off too. Every state is drawn in English, German and Russian, and
+and switched off too. Every state is drawn in English, German and French, and
 the addon measures its text with the renderer's font, so a label sized to its
 text is sized to what the picture draws. Strings the window cuts are listed on
 stdout.
 
 ```
-python tools/render_ledger.py --out renders                       # every state, en/de/ru
+python tools/render_ledger.py --out renders                       # every state, en/de/fr
 python tools/render_ledger.py --states all,empty --locales deDE
 python tools/render_ledger.py --compare before after compare.png
 ```
