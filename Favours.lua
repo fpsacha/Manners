@@ -893,7 +893,8 @@ do
 end
 
 -- Whether UNIT_AURA on you has asked for a walk of your aura list that nothing
--- has made yet. Set only in a fight; cleared by any walk (ScanOwnBuffs).
+-- has made yet. Set only in a fight, or while the client keeps auras secret
+-- (UNIT_AURA, below); cleared by any walk (ScanOwnBuffs).
 ns.ownScanDue = false
 
 -- The walk a fight's aura events left due, made now: on the tick (Core.lua,
@@ -901,14 +902,31 @@ ns.ownScanDue = false
 -- fight ends, ahead of the repaint that takes the combat hold off.
 function ns.FlushOwnScan()
 	if not ns.ownScanDue then return end
-	-- Only a fight marks the walk due, so out of lockdown this is the fight's
-	-- end, and what the walk finds is the fight's (walkAfterFight, above).
+	-- Only a fight marks the walk due, or the secret aura events a keystone or a
+	-- PvP match sends between its fights (UNIT_AURA, below), so out of lockdown
+	-- this is a fight's end or a lull in one of those, and what the walk finds
+	-- is kept as quiet as the fight's (walkAfterFight, above).
 	walkAfterFight = not InCombatLockdown()
 	ns.Guard("ScanOwnBuffs", ns.ScanOwnBuffs)
 	walkAfterFight = false
 end
 
 function addon:UNIT_AURA(_, unit)
+	-- Retail 12.1 makes the whole payload secret while auras are secret (a
+	-- fight, an encounter, a keystone, a PvP match), and a secret may be neither
+	-- compared nor handed to UnitGUID: either is a Lua error from addon code,
+	-- outside any Guard. Whose auras changed cannot be told, so they may be
+	-- yours: the walk is marked due as a fight marks it, counted once for that
+	-- walk (most are somebody else's), and nobody is forgotten, since a reading
+	-- lasts three seconds anyway (Core.lua, UnitHasBuff).
+	unit = plain(unit)
+	if unit == nil then
+		if not ns.ownScanDue then ns.auraScan.events = ns.auraScan.events + 1 end
+		ns.ownScanDue = true
+		ns.ownAurasChanged = true
+		return
+	end
+
 	if unit == "player" then
 		ns.auraScan.events = ns.auraScan.events + 1
 		if InCombatLockdown() then
