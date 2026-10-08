@@ -159,10 +159,10 @@ mutate("Queue.lua",
 
 # Your own entry kept out of the hold, as it was: added after it.
 mutate("Queue.lua",
-       "\tif pvpHeld then queue = HoldShoutsForPvP(queue, rejected, inRaid) end\n",
-       "\tif pvpHeld and mine then table.remove(queue) end\n"
-       "\tif pvpHeld then queue = HoldShoutsForPvP(queue, rejected, inRaid) end\n"
-       "\tif pvpHeld and mine then queue[#queue + 1] = mine end\n",
+       "\t\tqueue, held = HoldShoutsForPvP(queue, rejected, inRaid)\n",
+       "\t\tif mine then table.remove(queue) end\n"
+       "\t\tqueue, held = HoldShoutsForPvP(queue, rejected, inRaid)\n"
+       "\t\tif mine then queue[#queue + 1] = mine end\n",
        "flows-fix: your own party-wide buff over a flagged member",
        expect="flows-fix: mists: your own buff is held back while it would land on a flagged party member",
        script=S)
@@ -198,4 +198,29 @@ mutate("Queue.lua",
        "\treturn entry.inGroup == true and not entry.groupCast\n",
        "flows-fix: Era's single buff held back for a flagged member",
        expect="flows-fix: vanilla: a buff on a party member is still offered beside a flagged one",
+       script=S)
+
+# Your group buff held back and nothing in its place: your armor waits behind
+# it for as long as the member stays flagged.
+mutate("Queue.lua",
+       "\t\tif held and mine and LandsOnParty(mine) then\n",
+       "\t\tif false and held and mine and LandsOnParty(mine) then\n",
+       "flows-fix: nothing of yours in place of your held group buff",
+       expect="flows-fix: mists: your armor is offered while your own Brilliance is held back for a flagged party member",
+       script=S)
+
+# The entry in its place your group buff again, held back a moment ago.
+mutate("Queue.lua",
+       "\tlocal mine = ownOnly and {} or ns.SelfBuffs(candidates)\n",
+       "\tlocal mine = ns.SelfBuffs(candidates)\n",
+       "flows-fix: your held group buff put back in its own place",
+       expect="flows-fix: mists: your armor is offered while your own Brilliance is held back for a flagged party member",
+       script=S)
+
+# /manners debug telling you your armor waits behind a group buff held back.
+mutate("Queue.lua",
+       "\tif buff and LandsOnParty({ buff = buff, inGroup = inGroup }) and PvPRuleStands(db)\n",
+       "\tif false and buff and LandsOnParty({ buff = buff, inGroup = inGroup }) and PvPRuleStands(db)\n",
+       "flows-fix: debug's armor line waiting behind a held group buff",
+       expect="flows-fix: mists: your armor is offered while your own Brilliance is held back for a flagged party member",
        script=S)

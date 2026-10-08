@@ -505,8 +505,8 @@ mutate("Commands.lua",
        expect="does not say your Intellect comes before the armor", script=S)
 
 mutate("Queue.lua",
-       "\treturn (SelfBuff(db, mine, full, now))\n",
-       "\treturn nil\n",
+       "\tlocal buff = SelfBuff(db, mine, full, now)\n",
+       "\tlocal buff = nil\n",
        "own: your group buff first never found",
        expect="does not say your Intellect comes before the armor", script=S)
 

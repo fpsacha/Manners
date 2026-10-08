@@ -464,7 +464,8 @@ list. They used to be at the bottom of *Who to buff*.
   running out, since a buff would start it again. A group spell or a shout
   that would land on somebody flagged is held back too, and so, on Mists of
   Pandaria Classic and retail, is a buff for anybody in your party or raid,
-  you included, since there it lands on all of you. Under it, who it is
+  you included, since there it lands on all of you. Your class's own, such as
+  an armor, land on you alone and are still offered. Under it, who it is
   holding back right now.
 - *Skip my own class when they can cast it too*: off by default. Another mage
   can give themselves Arcane Intellect, so they are left out, unless they are

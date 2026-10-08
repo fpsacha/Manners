@@ -647,6 +647,49 @@ do
 		if not mine(ns, "moltenarmor") then
 			fail(scenario, "you are not offered Molten Armor, which lands on you alone, for Bert flagged")
 		end
+		local lines = table.concat(ns.PvPLines(true), " / ")
+		if lines:find("Molten Armor", 1, true) then
+			fail(scenario, "/manners debug says your Molten Armor is held back for Bert: " .. lines)
+		end
+		ns.addon:Tick()
+		local ran = tostring(pressButton(ns) or "")
+		if not ran:find("Molten Armor", 1, true) then
+			fail(scenario, "a press does not cast your Molten Armor with Bert flagged: " .. flat(ran))
+		end
+	end, function()
+		Mock.groupSize = 2
+		knowing({ 1459, 30482 })
+	end)
+
+	-- Missing both: your Brilliance, held back for Bert, used to keep your
+	-- armor waiting behind it for as long as he stayed flagged. The armor comes
+	-- in its place, on the prompt, the press and /manners debug alike.
+	scenario = "flows-fix: mists: your armor is offered while your own Brilliance is held back for a flagged party member"
+	run(scenario, "mists", "MAGE", { party1 = { "Bert", "" } }, function(ns)
+		Mock.runTimers(0)
+		ns.Prompt:ExitTest()
+		myselfOffered(ns)
+		local first = table.concat(ns.MyselfLines(GetTime()), " / ")
+		if not (mine(ns, "intellect") and first:find("comes first", 1, true)) then
+			fail(scenario, "SKIPPED -- your own Arcane Brilliance was not offered ahead of your armor with nobody"
+				.. " flagged: " .. first)
+			return
+		end
+		Mock.pvp = { party1 = true }
+		if not mine(ns, "moltenarmor") then
+			fail(scenario, "you are not offered Molten Armor, which lands on you alone, while your Arcane"
+				.. " Brilliance is held back for Bert, flagged")
+		end
+		local lines = table.concat(ns.MyselfLines(GetTime()), " / ")
+		if lines:find("comes first", 1, true) then
+			fail(scenario, "/manners debug says your armor waits behind your Arcane Brilliance, held back for"
+				.. " Bert: " .. lines)
+		end
+		ns.addon:Tick()
+		local ran = tostring(pressButton(ns) or "")
+		if not ran:find("Molten Armor", 1, true) then
+			fail(scenario, "a press does not cast your Molten Armor: " .. flat(ran))
+		end
 	end, function()
 		Mock.groupSize = 2
 		knowing({ 1459, 30482 })

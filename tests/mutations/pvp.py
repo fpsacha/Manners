@@ -300,7 +300,7 @@ mutate("GroupBuffs.lua",
 
 # A shout offered over a flagged party member.
 mutate("Queue.lua",
-       "\tif pvpHeld then queue = HoldShoutsForPvP(queue, rejected, inRaid) end\n",
+       "\t\tqueue, held = HoldShoutsForPvP(queue, rejected, inRaid)\n",
        "",
        "pvp: shout over a flagged member",
        expect="Anna was offered a shout that would land on Bert", script=S)

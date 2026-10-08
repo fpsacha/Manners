@@ -1114,7 +1114,7 @@ end
 -- nothing more and the rule stands aside; not while your own flag is running
 -- out, though (YouAreFlagged), since a buff restarts that countdown. Your own
 -- entry (SelfEntry) never passes through it, unless the buff lands on your
--- whole party (LandsOnParty).
+-- whole party (LandsOnParty); held back, your class's own take its place.
 --
 -- A flag the game will not show is "cannot tell", and the person is offered.
 -- Somebody no token reaches -- a favour from a stranger, a passer-by
@@ -1256,7 +1256,8 @@ end
 -- while the rule stands one flagged member holds back every shout, as for a
 -- group cast, each a verdict. So does a buff that lands on the whole party
 -- however it is aimed (LandsOnParty), yours included. The party is walked
--- only when one is queued.
+-- only when one is queued. Returns what is kept, and the flagged member's
+-- name when it held anything back.
 local function HoldShoutsForPvP(queue, rejected, inRaid)
 	local shout
 	for _, entry in ipairs(queue) do
@@ -1278,7 +1279,7 @@ local function HoldShoutsForPvP(queue, rejected, inRaid)
 			kept[#kept + 1] = entry
 		end
 	end
-	return kept
+	return kept, flagged
 end
 
 ---------------------------------------------------------------------------
@@ -1560,13 +1561,20 @@ end
 -- The group buff SelfEntry would put you on the prompt for right now, ahead
 -- of your class's own, or nil: for /manners debug and Diagnostics, whose line
 -- per family would otherwise call a spell "the one to cast" while the prompt
--- is on your Intellect (Commands.lua, MyselfLines).
+-- is on your Intellect (Commands.lua, MyselfLines). Not one held back for a
+-- flagged member of the party it lands on, which the prompt is not on.
 function ns.SelfBuffFirst(db, now)
 	local held, full = ns.MyselfHeldBack(db, now)
 	if held then return nil end
 	local mine = ns.SelfBuffs()
 	if #mine == 0 then return nil end
-	return (SelfBuff(db, mine, full, now))
+	local buff = SelfBuff(db, mine, full, now)
+	local inGroup = (plain(GetNumGroupMembers and GetNumGroupMembers()) or 0) > 0
+	if buff and LandsOnParty({ buff = buff, inGroup = inGroup }) and PvPRuleStands(db)
+		and ns.ShoutFlagged() ~= nil then
+		return nil
+	end
+	return buff
 end
 
 -- Your own buff, missing or (with top-ups on) running low: the one entry
@@ -1580,11 +1588,13 @@ end
 -- what the floor keeps mana for. Nor by the raid groups, which are about whom
 -- you buff. Your own name on the never-offer list is honoured, though "never"
 -- on the prompt switches this source off instead (StopOfferingSelf).
-local function SelfEntry(db, candidates, now, verdict)
+-- `ownOnly` leaves your group buff out, for when it is held back for PvP
+-- (BuildQueue): your class's own land on you alone.
+local function SelfEntry(db, candidates, now, verdict, ownOnly)
 	local held, full = ns.MyselfHeldBack(db, now)
 	if held then return nil end
 	-- A shout already covers you, and a few spells refuse the caster.
-	local mine = ns.SelfBuffs(candidates)
+	local mine = ownOnly and {} or ns.SelfBuffs(candidates)
 	local buff, has, remaining, charges
 	if #mine > 0 then buff, has, remaining = SelfBuff(db, mine, full, now) end
 	if not buff then buff, has, remaining, charges = OwnPick(db, full, now) end
@@ -2144,8 +2154,19 @@ function ns.BuildQueue(watch)
 
 	-- A shout lands on the whole party, flagged members and all, and on Mists
 	-- and retail so does a buff on any of you, yourself included: after you
-	-- are in.
-	if pvpHeld then queue = HoldShoutsForPvP(queue, rejected, inRaid) end
+	-- are in. Your group buff held back, your class's own come in its place,
+	-- as they would once it was cast: they land on you alone.
+	if pvpHeld then
+		local held
+		queue, held = HoldShoutsForPvP(queue, rejected, inRaid)
+		if held and mine and LandsOnParty(mine) then
+			mine = SelfEntry(db, candidates, now, neverVerdict, true)
+			if mine then
+				queue[#queue + 1] = mine
+				rejected[mine.name] = nil
+			end
+		end
+	end
 
 	-- A party's single casts folded into one group cast where the player has
 	-- the group version and its reagent (GroupBuffs.lua), before the sort, so
