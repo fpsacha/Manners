@@ -187,7 +187,7 @@ def stream(args, indent=""):
     p = subprocess.Popen(args, cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                          text=True, encoding="utf-8", errors="replace", env=env)
     for line in p.stdout:
-        say(indent + line.rstrip("\n"))
+        say((indent + line).rstrip())
     return p.wait()
 
 
@@ -426,6 +426,8 @@ def main(argv=None):
 
 
 def _quote(arg):
+    if arg == sys.executable:
+        return "python"
     return '"%s"' % arg if (" " in arg or not arg) else arg
 
 
