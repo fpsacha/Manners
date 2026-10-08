@@ -548,12 +548,13 @@ function ns.IsNeverOffered(name)
 end
 
 -- Whether somebody is on your /ignore list, the game's own "leave me alone":
--- by token, else by GUID. Neither call throws on a plain token or GUID, and
--- each answers a plain yes or no, so nothing is pcalled; false on a client
--- without them. Unlike the never-offer list, a favour is no exception: nobody
--- you ignore is thanked or offered one back (Favours.lua, Sight), and no
--- passer-by is offered at all. A group member stays offered: buffing a
--- teammate you ignore still helps the group.
+-- by token (or name: IsIgnored takes either), else by GUID. Neither call
+-- throws on a plain string, and each answers a plain yes or no, so nothing is
+-- pcalled; false on a client without them. Unlike the never-offer list, a
+-- favour is no exception: nobody you ignore is thanked or offered one back
+-- (Favours.lua, Sight and the combat log), and no passer-by is offered at
+-- all. A group member stays offered: buffing a teammate you ignore still
+-- helps the group.
 function ns.Ignored(unit, guid)
 	local friends = _G.C_FriendList
 	if type(friends) ~= "table" then return false end
@@ -2037,7 +2038,11 @@ function ns.BuildQueue(watch)
 			-- Both are "probably gone", so neither applies with that option off.
 			local fresh = not db.filters.reachableOnly or near
 				or ((not ns.zonedAt or entry.at >= ns.zonedAt) and (now - entry.at) <= grace)
+			-- Nor anybody on your /ignore list, which the walk asks of a token:
+			-- a debt filed before you ignored them is no reason to /target
+			-- them by name. Never a group member here, who has a token.
 			if LiveExpiry(entry) > now and fresh and not seen[full] and not rejected[full]
+				and not (ignoring and ns.Ignored(full, entry.guid))
 				and SafeForMacro(full) and not ns.IsBlocked(full, nil, now) then
 				-- Flagged when last read, and the rule stands: held back, a
 				-- verdict like the walk's, and still owed, to be returned if a

@@ -15,6 +15,13 @@
 --             the raid-wide version on vanilla, or the thirteen per-class
 --             auras Blessing of the Bronze applies on retail. Matched exactly
 --             as the ranks are, through buff.auraIds.
+--   alike     another class's buffs that do the same and do not stack with
+--             this one (Mists' raid-buff kinds: Kings, Mark of the Wild and
+--             Legacy of the Emperor are all 5% stats): somebody wearing one is
+--             covered, by somebody else, and a cast of ours would change
+--             nothing. Matched through buff.auraIds after the ranks and the
+--             group, never filed under this buff (BUFF_BY_ID): a favour of
+--             one is still that class's buff.
 --   manaOnly  only worth giving somebody with a mana bar.
 --   partyOnly reaches your party and nobody else.
 --   groupOnly reaches anybody in your party or raid (a raid member in another
@@ -251,6 +258,10 @@ local VANILLA = {
 --             shaman's Earth Shield, Burning Crusade). Somebody else's reads
 --             as the family up, so nothing of yours is offered over it, and
 --             is never topped up with yours.
+--   castOnOthers on a spell: also cast on somebody else, at a target rather
+--             than as an area aura (Earth Shield, on the tank above all). One
+--             on you from another player is a favour like any shield, where
+--             nothing else here ever is (ns.IsOwnAura).
 --
 -- Every id below was checked against Forever's own spell data (EnhanceQoL's
 -- SpellRankData_Camelot, generated from build 1.60.1.69913) and Wowhead
@@ -486,6 +497,13 @@ local VANILLA_SET = {
 	-- out: each also works against its target, a raid tactic rather than a
 	-- courtesy.
 	favourOnly = { 6346, 546, 11743, 2970, 132, 20765, 20764, 20763, 20762, 20707 },
+	-- A druid's party auras, which no family holds (they are a form's, never
+	-- cast): Leader of the Pack (24932, a feral's in Cat or Bear Form) and
+	-- Moonkin Aura (24907), each an "Apply Area Aura" on the party (Wowhead
+	-- Classic). Each lands again every time you walk back into range or the
+	-- druid shifts, so neither is anybody's favour, as a hunter's Trueshot Aura
+	-- is not (VANILLA_OWN).
+	notFavour = { [24932] = true, [24907] = true },
 }
 
 ---------------------------------------------------------------------------
@@ -759,8 +777,10 @@ local TBC_OWN = {
 				-- active on a target" (Spell 974, 32593, 32594): a shaman wearing
 				-- his own has chosen it, and one wearing another shaman's has had
 				-- it chosen for him, so either way the family is up (anyCaster),
-				-- talent or not. Never Automatic's pick, being the one for the tank.
-				{ key = "earthshield", ranks = { 32594, 32593, 974 }, talent = true, neverAuto = true, charges = 6,
+				-- talent or not. Never Automatic's pick, being the one for the tank;
+				-- and so, on you from another shaman, a favour (castOnOthers).
+				{ key = "earthshield", ranks = { 32594, 32593, 974 }, castOnOthers = true,
+					talent = true, neverAuto = true, charges = 6,
 					anyCaster = true },
 			},
 		},
@@ -796,6 +816,10 @@ local TBC_SET = setmetatable({
 	-- Vanilla's, less the two Detect Invisibility ranks this client deleted,
 	-- with the sixth Soulstone (27239).
 	favourOnly = { 6346, 546, 132, 27239, 20765, 20764, 20763, 20762, 20707 },
+	-- Vanilla's druid auras, and the party auras Burning Crusade added (Wowhead
+	-- TBC Classic, "Apply Area Aura" each): Tree of Life's (34123), and a
+	-- draenei's Heroic Presence (6562) and Inspiring Presence (28878).
+	notFavour = { [24932] = true, [24907] = true, [34123] = true, [6562] = true, [28878] = true },
 }, { __index = VANILLA_SET })
 
 ---------------------------------------------------------------------------
@@ -940,6 +964,17 @@ local CAMELOT_SET = setmetatable({ buffs = CAMELOT, own = CAMELOT_OWN, groupIsRa
 -- given one, so none is partyOnly. The shouts are target 56, the caster's
 -- whole party and raid within 100 yards, so they need no target and reach
 -- past your own subgroup (partyIsSubgroup is left off).
+--
+-- 5.x sorts these buffs into kinds, and two of one kind do not stack, whoever
+-- cast them: Legacy of the Emperor "does not stack with similar spells such
+-- as ... Blessing of Kings, or Mark of the Wild", White Tiger not with Arcane
+-- Brilliance, and "Trueshot Aura does not stack with Horn of Winter or Battle
+-- Shout" (warcraft.wiki.gg). So each buff that is one kind and nothing else
+-- lists the other classes' of its kind as `alike` (the effects are Wowhead
+-- MoP Classic's): somebody wearing one is not offered it. Arcane Brilliance
+-- (spell power and crit) and Dark Intent (spell power and, since 5.2,
+-- stamina) are covered only by two others together, which a list of ids
+-- cannot say, so they have none.
 local MISTS = {
 	MAGE = {
 		{
@@ -957,17 +992,21 @@ local MISTS = {
 	},
 
 	PRIEST = {
-		{ key = "fortitude", ranks = { 21562 } },
+		-- 10% stamina, as Dark Intent gives since 5.2 and Commanding Shout.
+		{ key = "fortitude", ranks = { 21562 }, alike = { 109773, 469 } },
 	},
 
 	DRUID = {
-		{ key = "motw", ranks = { 1126 } },
+		-- 5% stats, as Kings and Legacy of the Emperor (the auras it lands as).
+		{ key = "motw", ranks = { 1126 }, alike = { 20217, 117666, 117667 } },
 	},
 
 	-- The cast id is the aura id for these two: the Greater Blessings that used
 	-- to carry their own ids are gone, so there is no group version to match.
 	PALADIN = {
-		{ key = "kings", ranks = { 20217 } },
+		-- 5% stats, as Mark of the Wild and Legacy of the Emperor: somebody
+		-- wearing either is walked on to Might.
+		{ key = "kings", ranks = { 20217 }, alike = { 1126, 117666, 117667 } },
 		{ key = "might", ranks = { 19740 } },
 	},
 
@@ -983,6 +1022,8 @@ local MISTS = {
 			-- somebody wearing a monk's Legacy reads as missing it, and a
 			-- stranger's Legacy on you is nobody's favour.
 			group = { 117666, 117667 },
+			-- 5% stats, as Kings and Mark of the Wild.
+			alike = { 20217, 1126 },
 		},
 		{
 			key = "whitetiger",
@@ -990,6 +1031,9 @@ local MISTS = {
 			-- Windwalker's alone (SpecializationSpells, spec 269), so not every
 			-- monk knows it.
 			talent = true,
+			-- 5% crit, as Arcane Brilliance carries (either book) and a feral
+			-- druid's Leader of the Pack.
+			alike = { 1459, 61316, 24932 },
 		},
 	},
 
@@ -1003,13 +1047,15 @@ local MISTS = {
 	},
 
 	WARRIOR = {
-		{ key = "battleshout", ranks = { 6673 }, selfCast = true, partyOnly = true },
+		-- 10% attack power, as Horn of Winter and a hunter's Trueshot Aura.
+		{ key = "battleshout", ranks = { 6673 }, selfCast = true, partyOnly = true, alike = { 57330, 19506 } },
 	},
 
 	-- Horn of Winter is the death knight's Battle Shout: no target, the party
 	-- and raid within 100 yards (Death Knight skill line, level 65).
 	DEATHKNIGHT = {
-		{ key = "hornofwinter", ranks = { 57330 }, selfCast = true, partyOnly = true },
+		-- 10% attack power, as Battle Shout and a hunter's Trueshot Aura.
+		{ key = "hornofwinter", ranks = { 57330 }, selfCast = true, partyOnly = true, alike = { 6673, 19506 } },
 	},
 }
 
@@ -1113,8 +1159,10 @@ local MISTS_OWN = {
 				-- choice, and Lightning or Water Shield would replace it.
 				-- Never what Automatic picks or remembers, so a healer who put
 				-- it on herself once is not told to again in a group. Ten
-				-- minutes, nine charges (SpellAuraOptions ProcCharges 9).
-				{ key = "earthshield", ranks = { 974 }, neverAuto = true, talent = true, charges = 9 },
+				-- minutes, nine charges (SpellAuraOptions ProcCharges 9). Cast
+				-- on the tank, it is that player's favour (castOnOthers).
+				{ key = "earthshield", ranks = { 974 }, neverAuto = true, talent = true, charges = 9,
+					castOnOthers = true },
 			},
 		},
 	},
@@ -1143,6 +1191,18 @@ local MISTS_SET = {
 	-- Fear Ward (Priest, 54), Water Walking (Shaman, 24) and Soulstone
 	-- (Warlock, 18), each the client's own id here.
 	favourOnly = { 6346, 546, 20707 },
+	-- The passives that reach the party and raid within 100 yards as their own
+	-- auras (Wowhead MoP Classic: "Apply Area Aura", every one), and land again
+	-- each time you walk back into range: nobody's favour, as retail's paladin
+	-- auras. No family holds them, the hunter's Trueshot Aura included (left
+	-- out of MISTS_OWN as a passive). Trueshot Aura (19506), Leader of the Pack
+	-- (24932), Moonkin Aura (24907), Unholy Aura (55610), a shaman's Grace of
+	-- Air (116956), Unleashed Rage (30809), Elemental Oath (51470) and Burning
+	-- Wrath (77747), and a rogue's Swiftblade's Cunning (113742).
+	notFavour = {
+		[19506] = true, [24932] = true, [24907] = true, [55610] = true, [116956] = true,
+		[30809] = true, [51470] = true, [77747] = true, [113742] = true,
+	},
 }
 
 ---------------------------------------------------------------------------
@@ -1331,8 +1391,8 @@ if chosen then
 	ns.GROUP_BY_CLASS = chosen.groupByClass
 	ns.OWN_BUFFS = chosen.own
 	ns.FAVOUR_ONLY_IDS = chosen.favourOnly
-	-- Retail's (MAINLINE_SET): party auras that are nobody's favour though no
-	-- family holds them.
+	-- Party auras that are nobody's favour though no family holds them
+	-- (a druid's forms, Mists' passives, retail's paladin auras).
 	ns.NOT_FAVOUR_IDS = chosen.notFavour
 	-- A set whose buffs are learned at other levels than vanilla's ranks
 	-- brings its own (Mists, retail); the others read vanilla's.
@@ -1377,6 +1437,15 @@ local function BuildOwnLookups()
 			end
 		end
 	end
+end
+
+-- Whether `id` is a class's own aura or aspect, which reaching you is nobody's
+-- favour (Favours.lua): it lands again every time you walk back into its
+-- range. Not an own spell the class casts on somebody else too (castOnOthers),
+-- which on you is a favour like any shield.
+function ns.IsOwnAura(id)
+	local spell = ns.OWN_BY_ID[id]
+	return spell ~= nil and not spell.castOnOthers
 end
 
 -- A function rather than a bare loop, so a client with no table to walk (no
@@ -1426,6 +1495,17 @@ function ns.BuildBuffLookups()
 			for _, id in ipairs(buff.auraIds) do
 				ns.ALL_BUFF_IDS[id] = true
 				ns.BUFF_BY_ID[id] = buff
+			end
+
+			-- Another class's of the same kind: read as this one held, by
+			-- somebody else (Core.lua, UnitHasBuff), and filed under its own.
+			buff.alikeIds = nil
+			if buff.alike then
+				buff.alikeIds = {}
+				for _, id in ipairs(buff.alike) do
+					buff.auraIds[#buff.auraIds + 1] = id
+					buff.alikeIds[id] = true
+				end
 			end
 		end
 	end

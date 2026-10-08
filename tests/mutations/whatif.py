@@ -227,7 +227,7 @@ mutate("Queue.lua",
 # --- a party aura with heals counted (Favours.lua) ---
 
 mutate("Favours.lua",
-       "\t\t\t\t\t\tif watching and spellId and not ns.OWN_BY_ID[spellId]\n",
+       "\t\t\t\t\t\tif watching and spellId and not ns.IsOwnAura(spellId)\n",
        "\t\t\t\t\t\tif watching and spellId\n",
        "whatif: a party aura taken for a favour",
        expect="a paladin's aura and a hunter's aspect and Trueshot with heals counted", script=S)

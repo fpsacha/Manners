@@ -57,6 +57,11 @@ local NAMES = {
 	[6346] = "Fear Ward",
 	[546] = "Water Walking",
 	[20707] = "Soulstone",
+	-- Another class's of the same kind (Buffs.lua, alike), named as Wowhead
+	-- MoP Classic names them.
+	[469] = "Commanding Shout",
+	[19506] = "Trueshot Aura",
+	[24932] = "Leader of the Pack",
 }
 
 local function guarded(scenario, ns)

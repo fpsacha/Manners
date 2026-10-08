@@ -20,8 +20,8 @@ mutate("tests/mockapi.lua",
 # A Horn of Winter id the Mists client does not have: a death knight who has
 # learned Horn of Winter is never found to know it, so it is never offered.
 mutate("Buffs.lua",
-       "{ key = \"hornofwinter\", ranks = { 57330 }, selfCast = true, partyOnly = true },",
-       "{ key = \"hornofwinter\", ranks = { 57331 }, selfCast = true, partyOnly = true },",
+       "{ key = \"hornofwinter\", ranks = { 57330 }, selfCast = true, partyOnly = true,",
+       "{ key = \"hornofwinter\", ranks = { 57331 }, selfCast = true, partyOnly = true,",
        "mists: a death knight's shout under an id Mists lacks",
        expect="mists: a deathknight's buffs are found (IsSpellKnown)",
        script=S)
@@ -153,7 +153,8 @@ mutate("Buffs.lua",
 # Earth Shield out of the shaman's family: a Restoration shaman wearing her
 # own is told to put Lightning Shield over it, which replaces it.
 mutate("Buffs.lua",
-       "\t\t\t\t{ key = \"earthshield\", ranks = { 974 }, neverAuto = true, talent = true, charges = 9 },\n",
+       "\t\t\t\t{ key = \"earthshield\", ranks = { 974 }, neverAuto = true, talent = true, charges = 9,\n"
+       "\t\t\t\t\tcastOnOthers = true },\n",
        "",
        "mists: Earth Shield not of the shield family",
        expect="mists: a shaman's own buff is offered when none of its family is up (with Earth Shield)",
@@ -162,8 +163,8 @@ mutate("Buffs.lua",
 # Earth Shield remembered like the others: once it has been up on her, it is
 # what she is reminded of, in a group too, where it belongs on the tank.
 mutate("Buffs.lua",
-       "{ key = \"earthshield\", ranks = { 974 }, neverAuto = true, talent = true, charges = 9 },",
-       "{ key = \"earthshield\", ranks = { 974 }, talent = true, charges = 9 },",
+       "{ key = \"earthshield\", ranks = { 974 }, neverAuto = true, talent = true, charges = 9,",
+       "{ key = \"earthshield\", ranks = { 974 }, talent = true, charges = 9,",
        "mists: Earth Shield picked by Automatic",
        expect="mists: a shaman's own Earth Shield is her shield, and never what Automatic reminds her of",
        script=S)
@@ -171,8 +172,8 @@ mutate("Buffs.lua",
 # Earth Shield's charges forgotten: down to its last one or two it is left to
 # run out.
 mutate("Buffs.lua",
-       "{ key = \"earthshield\", ranks = { 974 }, neverAuto = true, talent = true, charges = 9 },",
-       "{ key = \"earthshield\", ranks = { 974 }, neverAuto = true, talent = true },",
+       "{ key = \"earthshield\", ranks = { 974 }, neverAuto = true, talent = true, charges = 9,",
+       "{ key = \"earthshield\", ranks = { 974 }, neverAuto = true, talent = true,",
        "mists: Earth Shield's charges forgotten",
        expect="mists: a shaman's own Earth Shield down to its last charges is topped up",
        script=S)

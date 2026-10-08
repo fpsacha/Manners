@@ -765,7 +765,10 @@ function Page.BuildWhoTab()
 				desc = L["Someone known only by name is offered anyway."],
 				order = 41,
 				min = 1,
-				max = 60,
+				-- This client's level cap, as the repair has it (Core.lua):
+				-- 70 on Burning Crusade, 90 on Mists and retail. A number
+				-- when the tab is built, which AceConfig requires.
+				max = ns.MaxPlayerLevel(),
 				step = 1,
 				get = fGet,
 				set = fSet,

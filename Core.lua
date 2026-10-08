@@ -1907,6 +1907,10 @@ local function UnitHasBuff(unit, buff, guid)
 					local same = plain(UnitIsUnit(source, "player"))
 					if same ~= nil then mine = same == true end
 				end
+				-- Another class's of the same kind (Buffs.lua, alike) is never
+				-- our cast, whoever the client names or does not: a paladin
+				-- walks on to Might, not stopping at Kings as if it were his.
+				if buff.alikeIds and buff.alikeIds[id] then mine = false end
 				-- A rank below the one your cast would land on them covers
 				-- nothing: a level-60 wearing a low player's +10 Stamina for an
 				-- hour, never offered the +70. The game lands the best rank you
@@ -2285,12 +2289,29 @@ function ns.ApplyPositionPreset(key)
 	return false
 end
 
+-- The highest level a player reaches on this client, for "Skip players below
+-- level" (the slider's end and the repair below): the client's own answer,
+-- never under its flavour's cap -- Burning Crusade's 70, Mists' and
+-- Midnight's 90, vanilla's 60 everywhere else -- so a client that cannot say
+-- does not cut a setting back. On ns, not a main-chunk local, for Lua 5.1's
+-- 200.
+function ns.MaxPlayerLevel()
+	local flavour = ns.Flavour and ns.Flavour.flavour
+	local cap = (flavour == "tbc" and 70) or ((flavour == "mists" or flavour == "mainline") and 90) or 60
+	local ask = _G.GetMaxPlayerLevel
+	local level = type(ask) == "function" and plain(ask()) or nil
+	if type(level) == "number" and level > cap then cap = level end
+	return cap
+end
+
+-- A limit's bounds are numbers, or a function asked each time (a client's
+-- level cap).
 local LIMITS = {
 	{ "timing", "scanInterval", 0.1, 2 },
 	{ "timing", "reciprocateWindow", 15, 600 },
 	{ "timing", "retryCooldown", 3, 60 },
 	{ "timing", "graceSeconds", 10, 180 },
-	{ "filters", "minLevel", 1, 60 },
+	{ "filters", "minLevel", 1, ns.MaxPlayerLevel },
 	{ "filters", "refreshUnder", 1, 60 },
 	{ "filters", "manaFloor", 0, 90 },
 	{ "prompt", "width", 80, 500 },
@@ -2342,6 +2363,7 @@ function ns.ClampSettings()
 	end
 	for _, limit in ipairs(LIMITS) do
 		local group, key, low, high = limit[1], limit[2], limit[3], limit[4]
+		if type(high) == "function" then high = high() end
 		local value = profile[group] and profile[group][key]
 		if type(value) ~= "number" or value < low or value > high then fixed(group .. "." .. key, value) end
 		if type(value) ~= "number" then

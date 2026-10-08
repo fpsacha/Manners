@@ -386,7 +386,14 @@ do
 		local inParty = seen.sameParty
 		if inParty == nil then inParty = SameParty(seen.name) end
 		local inGroup = seen.inGroup
-		if inGroup == nil then inGroup = InGroup(seen.name) end
+		if inGroup == nil then
+			-- The combat log's record, with no token to have asked: by name, and
+			-- kept on it for the line below, which says a group member's once
+			-- in half an hour. In a fight the log's line comes before the scan's,
+			-- so without it a member's lapsing shout was a line at every pull.
+			inGroup = InGroup(seen.name)
+			seen.inGroup = inGroup
+		end
 		-- Whether a "buffed you" line is said here at all, asked once for both
 		-- kinds of favour: a raid's shouts at every pull are no more news than
 		-- its Fortitude.
@@ -679,9 +686,11 @@ do
 						-- A class's own aura or aspect reaching you (another
 						-- paladin's Devotion Aura, a hunter's Trueshot) is
 						-- nobody's favour, whatever the setting: it lands again
-						-- every time you walk back into its range. Retail's
-						-- paladin auras, in no family, are NOT_FAVOUR_IDS.
-						if watching and spellId and not ns.OWN_BY_ID[spellId]
+						-- every time you walk back into its range. Party auras
+						-- in no family (retail's paladin auras, a druid's
+						-- Leader of the Pack) are NOT_FAVOUR_IDS. An Earth
+						-- Shield cast on you is no aura (Buffs.lua, IsOwnAura).
+						if watching and spellId and not ns.IsOwnAura(spellId)
 							and not ns.NOT_FAVOUR_IDS[spellId]
 							and (not classOnly or ns.ALL_BUFF_IDS[spellId]) then
 							Sight(instanceId, key, aura)
@@ -866,7 +875,7 @@ do
 			return
 		end
 		-- Nor a class's own aura, as the aura scan has it.
-		if ns.OWN_BY_ID[spellId] or ns.NOT_FAVOUR_IDS[spellId] then return end
+		if ns.IsOwnAura(spellId) or ns.NOT_FAVOUR_IDS[spellId] then return end
 
 		ns.logScan.applied = ns.logScan.applied + 1
 
@@ -877,6 +886,11 @@ do
 		local _, class, _, _, _, name, realm = GetPlayerInfoByGUID(sourceGUID)
 		-- The aura scan's join, so both sources file one person under one key.
 		local full = JoinName(plain(name), plain(realm))
+		-- Somebody on your /ignore list, as the aura scan asks it (Sight): no
+		-- debt, no line, nothing offered back. By name and by GUID, the two
+		-- this source has where Sight has a token; ahead of the claim, so the
+		-- scan, which drops them too, is not left a mark to consume.
+		if ns.Ignored(full, sourceGUID) then return end
 		if not full then return end
 
 		if not ClaimFavour(full, spellId) then return end
