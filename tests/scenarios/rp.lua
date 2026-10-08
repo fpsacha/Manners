@@ -225,7 +225,8 @@ end
 -- ------------------------------------------------------------------ rp-1
 -- Every race the client has, and the people whose voice it speaks with. A
 -- race missing here speaks only the general lines, which reads as the set
--- being broken for that race.
+-- being broken for that race. Each by the file name UnitRace returns second,
+-- which is not always the race's name: Scourge, and Harronir for the Haranir.
 do
 	local scenario = "rp: every race speaks with its own people"
 	local WANT = {
@@ -236,7 +237,7 @@ do
 		Scourge = "forsaken", Tauren = "tauren", HighmountainTauren = "tauren",
 		Troll = "troll", ZandalariTroll = "troll", BloodElf = "bloodelf",
 		Nightborne = "nightborne", Goblin = "goblin", Vulpera = "vulpera",
-		Pandaren = "pandaren", Dracthyr = "dracthyr", Haranir = "haranir",
+		Pandaren = "pandaren", Dracthyr = "dracthyr", Harronir = "haranir",
 	}
 	with(scenario, "Alliance", nil, function()
 		local ns = ready(scenario, "Human")
@@ -402,7 +403,7 @@ end
 for _, faction in ipairs({ "Alliance", "Horde" }) do
 	local scenario = "rp: a Haranir's box from before their own lines still speaks (" .. faction .. ")"
 	with(scenario, faction, nil, function()
-		local ns = ready(scenario, "Haranir")
+		local ns = ready(scenario, "Harronir")
 		if not ns then return end
 		local RP = ns.InCharacter
 		if RP.Player() ~= "haranir" or not RP.RACE.haranir then
@@ -688,7 +689,7 @@ do
 		long.class, long.gift, long.met = "WARRIOR", gift, 6
 		local RACES = { "Dwarf", "Human", "NightElf", "VoidElf", "Gnome", "Draenei", "Worgen",
 			"Orc", "Scourge", "Tauren", "Troll", "BloodElf", "Nightborne", "Goblin", "Vulpera",
-			"Pandaren", "Dracthyr", "Haranir", "Murloc" }
+			"Pandaren", "Dracthyr", "Harronir", "Murloc" }
 		for _, faction in ipairs({ "Alliance", "Horde", "Neutral" }) do
 			rawset(_G, "UnitFactionGroup", function() return faction, faction end)
 			for _, race in ipairs(RACES) do
@@ -2412,9 +2413,11 @@ do
 			for class, pool in pairs(classes) do render(ns, stand, pool, lines, key .. " on " .. class) end
 		end
 		render(ns, stand, RP.TARGET.WARRIOR, lines, "for a warrior")
+		-- Only a manaOnly one: Mists' Arcane Brilliance gives anybody crit.
+		local manaOnly = intellect.manaOnly and true or false
 		local cases = {
-			{ "Arcane Intellect on a warrior", intellect, "WARRIOR", "intellect on WARRIOR", true },
-			{ "Arcane Intellect on a rogue", intellect, "ROGUE", "intellect on ROGUE" },
+			{ "Arcane Intellect on a warrior", intellect, "WARRIOR", manaOnly and "intellect on WARRIOR", true },
+			{ "Arcane Intellect on a rogue", intellect, "ROGUE", manaOnly and "intellect on ROGUE" },
 			{ "Arcane Intellect on a priest", intellect, "PRIEST", nil },
 			{ "Fortitude on a warrior", fortitude, "WARRIOR", nil, true },
 			{ "Arcane Intellect on somebody unknown", intellect, nil, nil },

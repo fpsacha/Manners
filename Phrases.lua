@@ -61,7 +61,10 @@ local L = setmetatable({}, {
 -- had lines of their own since 1.7.2, written from what Blizzard has published
 -- of them (warcraft.wiki.gg's Haranir and Harandar pages and the quests they
 -- cite); a race missing here speaks with its faction's voice and the general
--- lines, which is better than guessing at a culture.
+-- lines, which is better than guessing at a culture. The file name is the
+-- client's ChrRaces.ClientFileString, not the race's name: "Scourge" for the
+-- Forsaken, "EarthenDwarf" for the Earthen, and "Harronir" for the Haranir
+-- (wago.tools ChrRaces 86 and 91; Blizzard's own glue screens say HARRONIR).
 RP.FAMILY = {
 	Dwarf = "dwarf", DarkIronDwarf = "dwarf", EarthenDwarf = "dwarf",
 	Human = "human", KulTiran = "human",
@@ -80,7 +83,7 @@ RP.FAMILY = {
 	Vulpera = "vulpera",
 	Pandaren = "pandaren",
 	Dracthyr = "dracthyr",
-	Haranir = "haranir",
+	Harronir = "haranir",
 }
 
 -- Each people's lines by what the moment is: "thanks" for returning a favour,
@@ -2274,6 +2277,18 @@ RP.GENERAL = {
 -- (thanks, asked, offer, group) unless its pool says otherwise.
 ---------------------------------------------------------------------------
 
+-- A class's line that is about one of its spells, by the line, to that
+-- spell's buff key: said only while that spell is the one going out (RP.Pick).
+-- The warlock's lines were written when Unending Breath was a warlock's only
+-- buff, and four are about water; on Mists a warlock hands out Dark Intent
+-- (Buffs.lua: Automatic never casts Unending Breath there). Marked where they
+-- stand rather than moved, since a pool's first lines are the box's examples.
+RP.ABOUT = {}
+local function About(key, text)
+	RP.ABOUT[text] = key
+	return text
+end
+
 -- The speaker's class (UnitClass's second return), by moment as the peoples'
 -- lines are; a group member hears the offers when there are no group lines.
 -- A class with no lines of its own simply has none here.
@@ -2505,12 +2520,12 @@ RP.CLASS = {
 			L["Certainly, {name}. Feel watched? That's only the Eye of Kilrogg. Hold still."],
 			L["Of course, {name}. I only curse people who don't ask nicely. You're quite safe."],
 			L["Yes, {name}, it's the one without screaming. Hold still."],
-			L["Of course, {name}. Going somewhere wet? I won't ask. Warlocks never ask."],
+			About("breath", L["Of course, {name}. Going somewhere wet? I won't ask. Warlocks never ask."]),
 		},
 		offer = {
 			L["Here, {name}. Don't ask where it came from. Really, don't."],
-			L["Fall in a lake someday, {name}, and you'll think of me fondly."],
-			L["Breathe easy, {name}. I'd hate to lose you to anything as dull as water."],
+			About("breath", L["Fall in a lake someday, {name}, and you'll think of me fondly."]),
+			About("breath", L["Breathe easy, {name}. I'd hate to lose you to anything as dull as water."]),
 			L["Here, {name}. You'll want a soulstone too, but that's a bigger conversation."],
 			L["Take this, {name}. It's the only spell of mine the priests approve of."],
 			L["Take this, {name}. My mother still thinks I'm a mage. Let's keep it that way."],
@@ -2523,7 +2538,7 @@ RP.CLASS = {
 		group = {
 			L["Everyone ready, {name}? Souls intact? Good. Let's keep it that way."],
 			L["Stay close, {name}. The voidwalker takes the hits; I take the credit."],
-			L["Swim all you like, {name}. If anyone drifts off, I'll summon them back."],
+			About("breath", L["Swim all you like, {name}. If anyone drifts off, I'll summon them back."]),
 			L["Do pet the felhunter, {name}. Just take your spells off first."],
 			L["If I fear something, {name}, don't chase it. It comes back. Angrier."],
 			L["I trade blood for mana, {name}. It looks worse than it is."],
@@ -3723,7 +3738,9 @@ RP.SAME = {
 -- A spell given to a class it does little for, by the spell's buff key and
 -- then the class helped (UnitClass's second return): Arcane Intellect fills
 -- mana, and a warrior or a rogue has none. Heard as part of RP.TARGET's pool
--- for that class, so whoever is helped gets no more of the draw than before.
+-- for that class, so whoever is helped gets no more of the draw than before,
+-- and only while the buff is manaOnly on this client: on Mists the intellect
+-- key is Arcane Brilliance, whose crit a warrior has every use for.
 -- The joke is on the spell or on the one casting it, never on the one who has
 -- no use for it.
 RP.ONTO = {
@@ -4350,6 +4367,7 @@ do
 		local kind = KIND[entry.reason] or (entry.inGroup and "group") or "offer"
 		local name = entry.short or entry.name
 		local single = entry.buff and ns.BuffName(entry.buff)
+		local key = type(entry.buff) == "table" and entry.buff.key
 		-- {buff} is the spell that goes out: a group cast's own name
 		-- (GroupBuffs.lua), which the macro casts.
 		local buff = entry.groupCast and ns.EntrySpellName and ns.EntrySpellName(entry) or single
@@ -4357,10 +4375,12 @@ do
 		-- {name}.") would be wrong under Gift of the Wild, so it sits out.
 		local notSaying = entry.groupCast and single ~= buff and single or nil
 		local gift = kind == "thanks" and RP.Gift(entry) or nil
-		-- "Your Fortitude for my Fortitude" is no trade: like with like, the
-		-- single names on both sides.
-		if gift ~= nil and gift == single then gift = nil end
-		local weight, spread = RP.WEIGHT, RP.SPREAD
+		-- "Your Fortitude for my Fortitude" is no trade: like with like, by the
+		-- single names on both sides or by the buff, since the favour may have
+		-- been the group version (a Prayer of Fortitude, filed under the same
+		-- key in Buffs.lua), which is named otherwise.
+		if gift ~= nil and (gift == single or (key and RP.GiftKey(entry) == key)) then gift = nil end
+		local weight, spread, about = RP.WEIGHT, RP.SPREAD, RP.ABOUT
 
 		local lines, weights, tags, texts, total = {}, {}, {}, {}, 0
 		local function add(pool, share, tag)
@@ -4375,6 +4395,8 @@ do
 					and (buff or not text:find("{buff}", 1, true))
 					and (gift or not text:find("{gift}", 1, true))
 					and not (notSaying and text:find(notSaying, 1, true))
+					-- Nor one about a spell of ours (RP.ABOUT) while another goes out.
+					and (about[text] == nil or about[text] == key)
 				if usable then
 					local said = ns.Swap(ns.Swap(ns.Swap(text, "{name}", name), "{buff}", buff), "{gift}", gift)
 					said = said:gsub("[\r\n]", " "):gsub("%s+", " "):match("^%s*(.-)%s*$")
@@ -4431,7 +4453,6 @@ do
 		-- you -- the spell, the place, the hour, whoever is helped -- weigh
 		-- half, so a thank-you mostly sounds like one.
 		local aside = kind == "thanks" and 0.5 or 1
-		local key = type(entry.buff) == "table" and entry.buff.key
 		add(key and RP.SPELL[key], weight.spell * aside, "spell")
 		if gift then add(RP.TRADE, weight.trade, "trade") end
 		-- Filed with the trade lines, so Roll a few's favour row shows either.
@@ -4447,10 +4468,12 @@ do
 		local hour = RP.Hour()
 		add(RP.TIME[hour], weight.time * aside, "time")
 		add(race and hour and race[hour], weight.hour, "hour")
-		-- Whoever is helped, and the spell on a class it does little for.
+		-- Whoever is helped, and the spell on a class it does little for: a
+		-- spell Buffs.lua marks manaOnly on this client, since Mists' Arcane
+		-- Brilliance gives a warrior the same crit it gives a mage.
 		local helped = RP.Target(entry, class)
 		local them = helped == "sameclass" and RP.SAME[class] or RP.TARGET[helped]
-		local onto = key and RP.ONTO[key]
+		local onto = key and entry.buff.manaOnly and RP.ONTO[key]
 		add(Both(them, onto and onto[helped]), weight.target * aside, "target")
 		if total <= 0 then return nil end
 
