@@ -56,7 +56,7 @@ ignore:
   - tests
   - tools
   - STATUS.md
-  - CLEANUP.md
+  - CLAUDE.md
   - RELEASING.md
   - README.md
   - CHANGELOG.md

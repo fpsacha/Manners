@@ -16,36 +16,41 @@ afterwards — pushing it again only says it already exists.
 1. **Write the notes.** Put them under `## Unreleased` at the top of
    `CHANGELOG.md`, written for the people who play the game: this section is
    exactly what CurseForge, Wago and the GitHub release show.
-2. **Set the version** with `python tests/setversion.py X.Y.Z-beta.N`. It
-   renames `## Unreleased` to the version. If the top heading is anything else
-   it adds a new, empty section instead and says so — the notes then go under
-   that before you go on.
-3. **Run the four suites.** `validate` fails with "no notes under" if step 1
-   was skipped, which is the same check the release makes.
-   While working, `selftest.py --changed` judges only the mutations of the
-   files you touched; the full `selftest.py` runs once, here.
-4. **Commit.**
-5. **Push master and wait for CI to go green.**
-6. **Tag, and push the tag.**
+2. **Run the full mutation suite** by hand: `python tests/selftest.py` (about
+   20 to 40 minutes; its docstring says what it does). Nothing after this step
+   runs it: CI and the release workflow run only `--anchors`.
+3. **Release with `python tools/release.py X.Y.Z`.** Try it with `--dry-run`
+   first, which prints every step and changes nothing. It:
+   - checks it is on `master` with a clean tree, that `## Unreleased` has
+     notes, and that `python tools/check.py` passes;
+   - sets the version with `tests/setversion.py`, which renames
+     `## Unreleased` to the version;
+   - commits "Manners X.Y.Z", with the Co-Authored-By line given by
+     `--coauthor` or the `MANNERS_COAUTHOR` environment variable;
+   - pushes master and waits for CI on that commit (`gh run watch`);
+   - tags `vX.Y.Z`, annotated "Manners X.Y.Z", and pushes the tag;
+   - waits for `release.yml` and prints the packager's "Game version:" line
+     and the upload results.
+
+The same steps by hand, if the tool cannot be used. `validate` fails with "no
+notes under" if step 1 was skipped, which is the same check the release makes.
+Push the tag only once CI has passed on the pushed commit:
 
 ```
 python tests/setversion.py X.Y.Z-beta.N
-python tests/validate.py
-python tests/runharness.py
-python tests/runscenarios.py
-python tests/selftest.py
+python tools/check.py
 git commit -am "Manners X.Y.Z-beta.N"
 git push origin master
 git tag vX.Y.Z-beta.N
 git push origin vX.Y.Z-beta.N
 ```
 
-The last two lines only once CI has passed on the pushed commit.
-
-`setversion.py` writes the version into every toc (`Manners.toc` and the
-generated `Manners_Camelot.toc`), into `ns.BUILD` in `Prompt/Prompt.lua`, and onto the
-changelog heading. Never edit those by hand: doing it that way produced a
-mismatch twice, each time by correcting a value that was already the wrong one.
+`setversion.py` writes the version into every toc (`Manners.toc` and the five
+generated `Manners_<Flavour>.toc`), into `ns.BUILD` in `Prompt/Prompt.lua`, and
+onto the changelog heading. Never edit those by hand: doing it that way produced
+a mismatch twice, each time by correcting a value that was already the wrong
+one. If the top heading is not `## Unreleased` it adds a new, empty section
+instead and says so; the notes then go under that before you go on.
 
 It takes `X.Y.Z`, `X.Y.Z-alpha.N` and `X.Y.Z-beta.N`, and nothing else. The
 packager reads "alpha" or "beta" out of the tag to mark a pre-release, and
@@ -54,17 +59,15 @@ every site. A release candidate is spelled as the next beta.
 
 Pushing the tag runs `.github/workflows/release.yml`, which:
 
-1. runs all four suites — `validate`, `runharness`, `runscenarios`, `selftest`
-2. fails the build if any check has stopped being able to detect the fault it
-   exists for
-3. reports which upload destinations have tokens configured
-4. builds `RELEASE_NOTES.md` from this version's changelog section, and stops
+1. runs `validate`, `runharness`, `runscenarios` and `selftest --anchors`
+2. reports which upload destinations have tokens configured
+3. builds `RELEASE_NOTES.md` from this version's changelog section, and stops
    if that section is missing or empty
-5. packages with the libraries fetched as externals
-6. makes a GitHub release and uploads to CurseForge and Wago (and WoWInterface,
+4. packages with the libraries fetched as externals
+5. makes a GitHub release and uploads to CurseForge and Wago (and WoWInterface,
    if it is ever given a token and an id)
 
-Every ordinary push runs the same four suites through `.github/workflows/ci.yml`,
+Every ordinary push runs the same suites through `.github/workflows/ci.yml`,
 so a tag should never be the first time a problem is heard about.
 
 ## When a tag's build fails
@@ -85,6 +88,24 @@ That is only safe when nothing was published: the suites and the notes run
 before the packager, so a failure there uploaded nothing. If the packager had
 already put a file on any site, use the next version number instead.
 
+## Game versions
+
+Each generated toc carries one client's interface number, and the packager tags
+the upload with every client it finds a `Manners_<Flavour>.toc` for in the
+checkout's top folder:
+
+| toc | Interface | Client |
+|---|---|---|
+| `Manners_Camelot.toc` | 16001 | WoW Forever 1.60.1 |
+| `Manners_Vanilla.toc` | 11509 | Classic Era 1.15.9 |
+| `Manners_TBC.toc` | 20506 | Burning Crusade Classic Anniversary 2.5.6 |
+| `Manners_Mists.toc` | 50504 | Mists of Pandaria Classic 5.5.4 |
+| `Manners_Mainline.toc` | 120100 | retail 12.1.0 |
+
+`tools/release.py` prints the packager's "Game version:" line. If the packager
+cannot map a new interface number to a CurseForge game version, the upload
+still succeeds and the version is set by hand on the file page.
+
 ## Setup, already done
 
 Kept as a record of how it was wired, and for anyone forking this.
@@ -98,18 +119,21 @@ Kept as a record of how it was wired, and for anyone forking this.
 
 `WOWI_API_TOKEN` and an `X-WoWI-ID` in the toc would add WoWInterface the same
 way. Any destination without a token is skipped rather than failing the build,
-which looks identical to a successful upload in the log — hence step 3 of the
+which looks identical to a successful upload in the log — hence step 2 of the
 workflow above.
 
 Tokens are created at <https://legacy.curseforge.com/account/api-tokens> and on
 Wago's account page, and added under Settings → Secrets and variables → Actions.
 Set them with `gh secret set CF_API_KEY`, which prompts for the value rather
 than taking it on the command line where it would land in your shell history.
+Nobody else types or keeps a token.
 
 ## The listing
 
-Each listing file holds only what goes on the page, so it can be pasted whole
-and nothing meant for us ends up in public:
+Neither CurseForge nor Wago has an API for the project page's text (only for
+uploads), so the page is pasted by hand. Each listing file holds only what goes
+on the page, so it can be pasted whole and nothing meant for us ends up in
+public:
 
 | Site | Field | File |
 |---|---|---|
@@ -118,21 +142,21 @@ and nothing meant for us ends up in public:
 | Wago | Description (Markdown, shorter) | `.github/wago-description.md` |
 | Both | Gallery titles and descriptions | `.github/gallery.md` |
 
-The README is written for people reading the source, not for the listings.
-Keep every listing agreeing with `Manners.toc`: Mage is tested in game and the
-other classes are not, and no listing claims more. The descriptions embed the
+The README is written for people reading the source, not for the listings. No
+listing carries a testing disclaimer ("untested", "mock client", "not tried in
+game"), and none claims more than the addon does. The descriptions embed the
 images from `https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/`,
 so they show inline only once `master` holds them.
 
 The images are generated rather than captured: `python tools/make-icon.py` and
 `python tools/make-screenshots.py`. See `tools/README.md`.
 
-The five screenshots -- `manners-prompt.png`, `manners-reasons.png`,
-`manners-ledger.png`, `manners-languages.png` and `manners-palette.png` in
-`.github/media/` -- go into the CurseForge and Wago galleries by hand; neither
-upload in the release workflow carries images. Their order, titles and
-descriptions are in `.github/gallery.md`. When they are regenerated,
-replace the gallery copies too.
+The six screenshots -- `manners-prompt.png`, `manners-reasons.png`,
+`manners-looks.png`, `manners-ledger.png`, `manners-languages.png` and
+`manners-palette.png` in `.github/media/` -- go into the CurseForge and Wago
+galleries by hand; neither upload in the release workflow carries images. Their
+order, titles and descriptions are in `.github/gallery.md`. When they are
+regenerated, replace the gallery copies too.
 
 ## Moderation
 
@@ -146,17 +170,3 @@ Uploads succeed and are downloadable by direct link during this; it is
 visibility in search and in WowUp that waits. If nothing has moved after about
 three days it has probably been flagged for manual review, and a support ticket
 is faster than waiting longer.
-
-## Game version
-
-The toc declares `## Interface: 16001`, which is WoW Forever (internally
-"Camelot"). If the packager cannot map a brand-new interface number to a
-CurseForge game version, the upload still succeeds and the version is set by
-hand on the file page. Check it after a release.
-
-## Still open
-
-- [ ] Decide whether `verbose` should default on — every user gets a chat line
-      each time somebody buffs them
-- [ ] Only Mage has cast in game. The listing and the toc both say so, and they
-      should keep saying so until somebody reports otherwise
