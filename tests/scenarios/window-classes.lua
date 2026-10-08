@@ -1,10 +1,11 @@
--- The options window class by class: IA 1.11's table as checks (which pages
+-- The options window class by class: the class table as checks (which pages
 -- each class has, and what changes on them), the note rule that keeps a
 -- section on screen, the sidebar's red dots, and every page built in English
 -- and German for six classes without an error.
 --
 -- None of it is special-cased in the window: every line follows from the
--- visibility rules in IA 1.5, which is what these hold it to.
+-- visibility rules (Options/Window/WindowPage.lua), which is what these hold
+-- it to.
 --
 -- Every scenario name starts with "window:".
 
@@ -84,7 +85,7 @@ end
 
 local ALL = "general who skip when click appearance profiles diagnostics"
 
--- ------------------------------------------------------------------ IA 1.11
+-- ------------------------------------------------------------ class table
 local TABLE = {
 	{ "MAGE", ALL, function(scenario, ns, UI)
 		ns.OpenOptions("who")
@@ -298,7 +299,7 @@ do
 end
 
 -- ------------------------------------------------------------------ notes
--- IA section 2's grey notes are grey (a colour code in the text still wins),
+-- The layout's grey notes are grey (a colour code in the text still wins),
 -- and the Myself and PvP lines are a grey block inset from the page; a plain
 -- note is in the label colour.
 do

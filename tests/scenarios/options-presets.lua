@@ -1,4 +1,4 @@
--- The helpers Start here is built on (Options.lua): the quick choices of who to
+-- The helpers Start here is built on (Options/Start.lua): the quick choices of who to
 -- offer to and what to say (ns.QuickSetup), the sentences that describe the
 -- result, and the key binding and macro helpers (ns.Setup).
 --

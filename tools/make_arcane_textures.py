@@ -7,7 +7,7 @@ Writes Textures/Arcane/*.tga, which ship in the zip. Deterministic: every
 random field comes from a fixed seed, so running it twice writes the same
 bytes and a diff in git is a change of art.
 
-Ported from the approved design (design14/arcane/make_textures.py), less the
+Ported from the approved design's own generator, less the
 four-point sparkles the judges called clip-art, and since 1.5.1 less the
 lens's gloss and shade over the icon, the frost, the icon's light and the
 hover fill: the game lays added light on far more strongly than a preview
@@ -102,23 +102,6 @@ def blur(a, sigma):
     p = np.apply_along_axis(lambda r: np.convolve(r, g, mode="same"), 1, p)
     p = np.apply_along_axis(lambda c: np.convolve(c, g, mode="same"), 0, p)
     return p[k:-k, k:-k]
-
-
-def fbm(w, h, seed, octaves=5, base=4, rough=0.55):
-    """Smooth value noise in [0, 1]."""
-    rng = np.random.default_rng(seed)
-    acc = np.zeros((h, w))
-    amp, total = 1.0, 0.0
-    for o in range(octaves):
-        gw, gh = base * 2 ** o + 1, max(2, int(base * 2 ** o * h / w) + 1)
-        g = rng.uniform(0, 1, (gh, gw)).astype(np.float32)
-        im = Image.fromarray(g, "F").resize((w, h), Image.BICUBIC)
-        acc += np.asarray(im, np.float64) * amp
-        total += amp
-        amp *= rough
-    acc /= total
-    acc -= acc.min()
-    return acc / max(1e-9, acc.max())
 
 
 def smoothstep(e0, e1, x):

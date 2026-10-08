@@ -6,7 +6,7 @@
 -- that two reasons share, a German line cut off before the words that say why
 -- -- each draws perfectly and reads as nothing. So these measure what the
 -- frames were told: the colours against the panel they sit on, worked out here
--- independently of Prompt.lua, and the widths of the lines against their room.
+-- independently of Prompt/Text.lua, and the widths of the lines against their room.
 
 local dir, H = ...
 local fail, load = H.fail, H.load

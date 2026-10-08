@@ -249,11 +249,8 @@ local added = {
 		ask(ns, "Mira Holt", "nameplate2")
 		settle(ns)
 	end },
-	-- The four reasons the colour-blind palette covers, on screen at once, in
-	-- either palette. Asked-for-it is not one of them: Prompt.lua's
-	-- REASON_COLOR_CVD has no colour for it, and ReasonColor falls back to the
-	-- passer-by's violet. The caption names the four rather than calling them
-	-- the set, so the picture does not promise a fifth colour the palette lacks.
+	-- Four of the reasons on screen at once, in either palette: the four the
+	-- caption names.
 	{ key = "shot-palette-standard", at = 0.85, setup = function(ns)
 		Mock.groupSize = 2
 		partyIsParty()
@@ -548,9 +545,9 @@ rp.Canvas.image = _keep_image
 
 # The lines drawn cut while the current layer is drawn. The addon leaves a
 # line that does not fit to the client, which cuts it and adds an ellipsis, so
-# the text the addon set is whole and only the drawing shows the cut: the
-# Russian passer-by row went out as "нужно: Чародейский инте..." with every
-# check on the text passing. The test is the one render_prompt.draw_text cuts
+# the text the addon set is whole and only the drawing shows the cut: a
+# translated passer-by row once went out cut short with every check on the
+# text passing. The test is the one render_prompt.draw_text cuts
 # on, asked before it draws; the ledger's single lines go through it as well.
 _cut = []
 _draw_text = rp.draw_text

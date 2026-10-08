@@ -36,9 +36,10 @@
 --             out, all evening. Offers to others are untouched.
 --   alone     lands on its target alone, on a set whose casts on somebody in
 --             your party or raid land on every one of them (wideCasts).
---   talent    learned from a talent, so not everybody of the class knows it.
---             Data only: ns.AskedFor still turns away every ask from your own
---             class, talent or not, until it is taught to read this.
+--   talent    learned from a talent, so not everybody of the class knows it:
+--             "Skip my own class" never skips it (Queue.lua, SelfServed).
+--             ns.AskedFor still turns away every ask from your own class,
+--             talent or not.
 --   groupCast the version one cast puts on a whole party (or, for a paladin,
 --             on everybody of one class), as { id, reagent } per rank, highest
 --             first. Only the rank the player knows best is ever used, because

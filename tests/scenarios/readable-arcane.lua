@@ -37,7 +37,7 @@ local LEAST = 4.5
 
 -- ------------------------------------------------------------------ colour
 
--- The web's contrast rules, derived here rather than borrowed from Prompt.lua,
+-- The web's contrast rules, derived here rather than borrowed from Prompt/,
 -- so a mistake there cannot pass for a pass here.
 local function linear(c)
 	if c <= 0.03928 then return c / 12.92 end

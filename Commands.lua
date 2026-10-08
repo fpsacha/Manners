@@ -210,7 +210,7 @@ function ns.Welcome(force, offSaid)
 	else
 		-- The existing preview: the real panel in its real place. ToggleTest is
 		-- a toggle, so only when none is running. The nil test is inside the
-		-- guard: ns.Prompt is nil when Prompt.lua did not load.
+		-- guard: ns.Prompt is nil when Prompt/Prompt.lua did not load.
 		ns.Guard("welcome preview", function()
 			if ns.Prompt and not ns.Prompt:InTest() then ns.Prompt:ToggleTest() end
 		end)

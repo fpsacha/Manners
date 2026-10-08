@@ -5,23 +5,23 @@
 
 The game reads Manners_<Flavour>.toc in preference to Manners.toc, so shipping
 real per-flavour files is what lets one addon declare the right interface number
-on each client it supports. 1.0 supports one, so FLAVOURS below has one entry
-and this writes one file, Manners_Camelot.toc; the others are commented out
-until somebody runs the addon on them.
+on each client it supports. FLAVOURS below lists the five live clients, and
+this writes one file for each, beside Manners.toc.
 
-STAGED below is the step between: a flavour whose toc is written, kept up to
-date and checked like the shipped ones, but into tools/tocs/ rather than beside
-Manners.toc. That is where it does not ship. The BigWigs packager finds every
+STAGED is for a flavour that is implemented but not ready to publish (empty
+since 1.7.0): its toc is written, kept up to date and checked like the shipped
+ones, but into tools/tocs/. The BigWigs packager finds every
 Manners_<Flavour>.toc in the checkout's top folder -- not in the zip it builds,
 the checkout -- and tags the CurseForge and Wago upload with each one's game
 version, so a staged toc at the top level would publish the addon for that
 client on the next tag even if .pkgmeta kept the file itself out of the zip.
 tools/ is in .pkgmeta's ignore list, and the packager never looks inside it.
-A tester copies the staged file next to Manners.toc in their own AddOns folder. Each generated toc differs from the
-source in exactly one line, which is why they are generated: hand-maintained
-copies of the same file list drift, and the way a toc drift shows up is that a
-client silently loads four files instead of five and the addon is dead there
-with no message.
+A tester copies the staged file next to Manners.toc in their own AddOns folder.
+
+Each generated toc differs from the source in exactly one line, which is why
+they are generated: hand-maintained copies of the same file list drift, and
+the way a toc drift shows up is that a client silently loads four files
+instead of five and the addon is dead there with no message.
 
 Manners.toc stays in the tree as the one file anybody edits, and as the fallback
 for a client that does not honour a suffixed name. tests/validate.py re-runs the

@@ -374,7 +374,7 @@ local function SettleGroup(pending, spellId, anchorOwed)
 end
 
 -- Everybody else a shout reached: the party members the press's scan measured
--- inside its reach (Prompt.lua, PostClick). A shout lands on the whole party,
+-- inside its reach (Prompt/Press.lua). A shout lands on the whole party,
 -- so it returns every favour in earshot -- left owed, they were offered a
 -- second shout, then let go as run out. Each goes to the ledger as a plain
 -- return; one shout is one cast, under the anchor. Returns what a late
@@ -664,8 +664,8 @@ local function UnsettleLateRefusal(castGUID)
 end
 
 -- The global cooldown, read where the client will say and tracked where not.
--- On the retail line this client descends from, spell 61304 IS the global
--- cooldown for every class, and addons on this client read it (EnhanceQoL's
+-- On the retail line Forever descends from, spell 61304 IS the global
+-- cooldown for every class, and addons on Forever read it (EnhanceQoL's
 -- GCD bar). It may be withheld, in a fight most of all, so the fallback
 -- tracks it: once a cast is sent, nothing else casts for about 1.5 seconds.
 local GCD_FALLBACK = 1.5
@@ -707,7 +707,7 @@ end
 -- How long before the global cooldown ends the client will accept a /cast and
 -- hold it, casting on its own when the cooldown runs out: a press in that
 -- window lands. The client's own setting, since players tune it; 400 ms is
--- the default on the retail line this client descends from.
+-- the default on the retail line Forever descends from.
 function ns.SpellQueueWindow()
 	local get = _G.GetCVar
 	if type(get) == "function" then

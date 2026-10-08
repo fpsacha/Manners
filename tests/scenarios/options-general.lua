@@ -118,7 +118,7 @@ do
 end
 
 -- ------------------------------------------------------------------ 1a
--- The page as the window draws it (the layout spec, IA.md section 2): the lead,
+-- The page as the window draws it: the lead,
 -- the two steps, the ledger, then minimap and chat, nothing folded; the switch,
 -- the preview and the snooze in the header, Lock it at the strip's end. Above
 -- them all, a new profile's two questions (tests/scenarios/quick-setup.lua).

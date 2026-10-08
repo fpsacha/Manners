@@ -78,7 +78,7 @@ local function readable(fn)
 	end
 end
 
--- 1280 x 720 at UI scale 1, the screen IA.md 1.1 sizes the window for.
+-- 1280 x 720 at UI scale 1, the screen the window is sized for.
 local SCREEN = { width = 1365, height = 768 }
 -- Sidebar order, used when the layout cannot be asked.
 R.PAGES = { "general", "who", "skip", "when", "click", "appearance", "profiles", "diagnostics" }
@@ -161,8 +161,8 @@ local function load()
 end
 
 -- What each class has learned, as tests/scenarios/window-classes.lua gives it
--- for IA 1.11's table: its buffs by key (every rank) and spell ids, and the
--- buffs of its own IA 1.11 lists under Myself (Inner Fire 588; Devotion Aura
+-- for its class table: its buffs by key (every rank) and spell ids, and the
+-- buffs of its own that table lists under Myself (Inner Fire 588; Devotion Aura
 -- 465 and Righteous Fury 25780; Trueshot Aura 19506). The mock client on its
 -- own knows Arcane Intellect and nothing else, which would draw every other
 -- class as a character that has learned nothing yet. `tracking` is what the
@@ -253,7 +253,7 @@ local function labelOf(frame)
 end
 
 -- The search box: the window's own handle on it if it keeps one, else the
--- topmost shown edit box in the sidebar (IA 1.8 puts it at the sidebar's top).
+-- topmost shown edit box in the sidebar (search sits at the sidebar's top).
 local function searchBox(win)
 	if type(win.search) == "table" and win.search._kind == "EditBox" then return win.search end
 	local wlo = FT.span(win, "x")
@@ -315,7 +315,7 @@ function AFTER.combat(ns)
 	Mock.runTimers()
 end
 
--- Every folded section open, as the window remembers them (IA 1.5): shut, the
+-- Every folded section open, as the window remembers them: shut, the
 -- keys written where the window keeps them, and opened again.
 AFTER["folds-open"] = function(ns, _, page)
 	local open = {}
@@ -582,7 +582,7 @@ function Rows:note(s, font, color, indent)
 	return self:put(f, height, indent)
 end
 
--- A section title: Friz 13 in gold over a thin gold rule (IA 1.5).
+-- A section title: Friz 13 in gold over a thin gold rule.
 function Rows:section(title)
 	self.y = self.y + 8
 	local f = self:row(22)

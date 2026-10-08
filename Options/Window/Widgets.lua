@@ -128,7 +128,7 @@ end
 
 -- A two-colour gradient, min at the bottom or left. SetGradient's signature
 -- changed between client generations, so a refusal falls back to the flat
--- colour of `max` (Prompt.lua does the same).
+-- colour of `max` (Prompt/Prompt.lua's Gradient does the same).
 function W.Gradient(tex, orientation, min, max)
 	tex:SetTexture(WHITE)
 	if tex.SetGradient and CreateColor and pcall(tex.SetGradient, tex, orientation,

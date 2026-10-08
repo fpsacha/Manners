@@ -1,13 +1,11 @@
 """Draw the prompt as the addon builds it, without the game.
 
-Nobody who works on Manners can run the client it ships for, so the only way
-to judge its look was to read Prompt.lua and imagine it. This loads the addon
-on the mock client the way tests/runscenarios.py does, puts the prompt into a
-state (tools/render_prompt.lua lists them), walks the frame tree that
-tests/frametree.lua recorded -- frames, anchors, sizes, textures with their
-colours, gradients, blend modes and masks, font strings with their text and
-colours, animations and where they are in their run -- and draws it with
-Pillow.
+This loads the addon on the mock client the way tests/runscenarios.py does,
+puts the prompt into a state (tools/render_prompt.lua lists them), walks the
+frame tree that tests/frametree.lua recorded -- frames, anchors, sizes,
+textures with their colours, gradients, blend modes and masks, font strings
+with their text and colours, animations and where they are in their run --
+and draws it with Pillow.
 
 It will never be pixel-true. The font is a stand-in for Friz Quadrata, spell
 icons are drawn tiles, and Blizzard art is approximated. What it is faithful
@@ -940,7 +938,7 @@ def main():
     ap.add_argument("--states", default="", help="comma-separated state keys (default: all)")
     ap.add_argument("--label", default="")
     # The client language, as GetLocale() spells it. The prompt's lines are
-    # the translations', so this is how a German or Russian line that runs off
+    # the translations', so this is how a German or French line that runs off
     # the panel is found without the game.
     ap.add_argument("--locale", default="", help="client language to load the addon as, e.g. deDE")
     # A look to draw every state in (a state that names its own keeps it), and

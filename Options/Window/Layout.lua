@@ -421,10 +421,10 @@ ns.WindowLayout = {
 		},
 	},
 
-	-- How a note is drawn where IA section 2 says other than in the label
-	-- colour: grey (a colour code in its text still wins), or grey in a block
-	-- inset from the page. Kept apart from the items, which say where a row
-	-- goes rather than how it looks.
+	-- How a note is drawn when not in the label colour: grey (a colour code
+	-- in its text still wins), or grey in a block inset from the page. Kept
+	-- apart from the items, which say where a row goes rather than how it
+	-- looks.
 	notes = {
 		["who.autoNote"] = { hint = true },
 		["diagnostics.ownDiag"] = { hint = true, block = true },

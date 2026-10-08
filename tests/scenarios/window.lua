@@ -1,11 +1,11 @@
 -- The options window (Options/Window/*.lua, Options/Register.lua): the frame,
--- the calls the rest of the addon makes (IA 1.13), the fallback to the old
+-- the calls the rest of the addon makes, the fallback to the old
 -- dialog, a fight, folds, search, the footer's reset, the status strip, the
 -- peek, the preview, the Settings entry, and where the window keeps its state.
--- The class table (IA 1.11) and every page in two languages are in
+-- The class table and every page in two languages are in
 -- window-classes.lua.
 --
--- Written against BUILD.md's interfaces rather than any one set of widgets:
+-- Written against the window's interfaces rather than any one set of widgets:
 -- rows are reached through the row table (Refresh, Flash), the confirm box
 -- through ns.WindowWidgets.Modal, and the model through ns.WindowBind.
 --
@@ -77,7 +77,7 @@ local function item(ns, path)
 end
 
 -- ------------------------------------------------------------------ binding
--- A tab made up for the purpose, with every AceConfig rule IA 1.12 lists:
+-- A tab made up for the purpose, with every AceConfig rule the window keeps:
 -- handler method strings on the group, get = false, validate's three
 -- answers, a confirm function, values with and without sorting, a
 -- multiselect, and the tab's own hidden and disabled reaching its items.

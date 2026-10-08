@@ -17,10 +17,10 @@
 -- has; the new spells (Commanding Shout, Molten and Fel Armor, Crusader Aura,
 -- Aspect of the Viper, Water and Earth Shield, Find Fish) where they belong,
 -- and another shaman's Earth Shield left on you; the log read where the
--- client keeps it; a stranger
--- targeted by the name it gives them; a group cast aimed at one raid group
--- and eating the reagent of the rank the game will cast; and the options
--- window built with and without the client's menus.
+-- client keeps it; a stranger targeted by the name it gives them; a group
+-- cast aimed at one raid group and eating the reagent of the rank the game
+-- will cast; and the options window built with and without the client's
+-- menus.
 --
 -- Every scenario name starts with "tbc:" so the mutations in
 -- tests/mutations/tbc.py can name the one that has to catch them.

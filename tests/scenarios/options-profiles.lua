@@ -1,4 +1,4 @@
--- The Profiles tab (Options.lua, BuildProfilesTab): AceDBOptions' own table,
+-- The Profiles tab (Options/Profiles.lua, BuildProfilesTab): AceDBOptions' own table,
 -- a line above it on what a profile is for, and the Share as text section
 -- under it -- the box to copy your settings from and the box to paste some in.
 --

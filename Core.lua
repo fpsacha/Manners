@@ -5,12 +5,13 @@
 -- Blizzard will not let an addon cast a spell on its own: CastSpellByName and
 -- friends are protected and only run from a hardware event. So this addon does
 -- every part of the job except the keypress -- it decides who deserves a buff
--- and parks that decision on a secure button. Prompt.lua owns that button;
--- this file and the seven after it in Manners.toc work out what goes on it:
+-- and parks that decision on a secure button. Prompt/ owns that button; this
+-- file and the eight after it in Manners.toc work out what goes on it:
 --
 --   Range.lua      how near a passer-by has to be
 --   Speech.lua     the phrase sets and the line said with a click
 --   Queue.lua      debts, refusals, the never-offer list, friends, BuildQueue
+--   GroupBuffs.lua one cast for a whole party in place of single casts
 --   Requests.lua   people who ask for a buff in chat
 --   Favours.lua    noticing that somebody buffed you
 --   Clicks.lua     what became of a press, the global cooldown, the macro
@@ -19,7 +20,7 @@
 -- A local one of them needs from another goes on ns where it is defined: a
 -- later file copies it into a local at load, an earlier one (this, for the
 -- lifecycle) reads it off ns at call time. "Core" in another file means this
--- file and those seven.
+-- file and those eight.
 
 local ns = select(2, ...)
 local L = ns.L
@@ -38,11 +39,11 @@ _G["BINDING_NAME_CLICK MannersPrompt:LeftButton"] = L["Buff the prompted player"
 ---------------------------------------------------------------------------
 -- secret-safe access
 --
--- The protection policy. On this client most API calls hand back a secret
--- rather than throw, so a result is made safe with plain(), which turns a
--- secret into nil ("cannot tell"), and the call itself is not wrapped. A
--- function that may be missing gets a type() check on the global, read at
--- call time.
+-- The protection policy. On Forever and retail most API calls hand back a
+-- secret rather than throw, so a result is made safe with plain(), which
+-- turns a secret into nil ("cannot tell"), and the call itself is not
+-- wrapped. A function that may be missing gets a type() check on the global,
+-- read at call time.
 --
 -- pcall is only for calls that can throw:
 --   - the aura reads the client restricts per spell. These keep a bare inline
@@ -161,7 +162,7 @@ end
 -- AceConfig reads a control's value, name and `hidden` only while drawing, and
 -- the broker text is assigned once, so anything that changes a setting outside
 -- its own control (slash commands, the minimap right-click, a fight starting
--- or ending) calls this. Both halves are optional and guarded: Options.lua may
+-- or ending) calls this. Both halves are optional and guarded: Options/ may
 -- not have loaded, and a failed repaint must not take down the caller.
 ---------------------------------------------------------------------------
 
@@ -178,7 +179,7 @@ end
 -- defaults
 ---------------------------------------------------------------------------
 
--- LibSharedMedia ships only "None", so Prompt.lua registers a sound of our own.
+-- LibSharedMedia ships only "None", so Prompt/Prompt.lua registers our own.
 -- A file id rather than a path, because Register rejects paths under Sound\.
 ns.SOUND_KEY = "Manners alert"
 ns.SOUND_FILE = 567458
@@ -314,7 +315,7 @@ local defaults = {
 			-- Glass; a look somebody picked, Luxe included, is kept.
 			style = "glass",
 			accentByReason = true,
-			-- standard | colourblind: which four reason colours (Prompt.lua).
+			-- standard | colourblind: which reason colours (Prompt/Prompt.lua).
 			reasonPalette = "standard",
 			accentMode = "icon", -- icon | stripe | both | off
 			flashStyle = "pulse", -- pulse | once | off
@@ -630,8 +631,8 @@ do
 
 		-- ASSUMPTION: whether /cast [@Name] can replace /target, cast, target back.
 		-- No API answers it, and [@Name] resolves only for group members, so
-		-- Camelot keeps the /target route, the only one verified in game. Nothing
-		-- reads this yet.
+		-- Camelot keeps the /target route, the only one verified in game. Only
+		-- reported (/manners debug, the bug report): no macro is built from it.
 		caps.conditionalTargeting = flavour.flavour ~= "camelot"
 
 		-- /targetexact matches the whole name where /target matches a prefix
@@ -2545,7 +2546,7 @@ function ns.ClampSettings()
 	-- The look once called "blizzard" is "framed" now; carried across rather
 	-- than reset to the default by the oneOf below.
 	if p.style == "blizzard" then p.style = "framed" end
-	-- Every look Looks/ registered, the three Prompt.lua draws among them.
+	-- Every look Looks/ registered, the three Prompt/Panel.lua draws among them.
 	oneOf(p, "style", ns.Looks.Allowed(), ns.defaults.profile.prompt.style)
 	oneOf(p, "accentMode", { icon = true, stripe = true, both = true, off = true }, "icon")
 	oneOf(p, "reasonPalette", { standard = true, colourblind = true }, "standard")
@@ -2867,8 +2868,8 @@ function addon:RefreshConfig(event)
 	-- take the scanner below with it.
 	ns.Guard("ApplyStyle on profile change", ns.Prompt.ApplyStyle, ns.Prompt)
 	ns.Prompt:InvalidateMacro()
-	-- Guarded: nil if Options.lua failed to load, and a throw here would take
-	-- StartScanner with it.
+	-- Guarded: nil if Options/Launcher.lua failed to load, and a throw here
+	-- would take StartScanner with it.
 	ns.Guard("RefreshMinimapButton", ns.RefreshMinimapButton)
 	-- An import's undo belongs to the profile it was made on:
 	-- ProfileChangedForUndo decides what a switch, copy or reset does to it,

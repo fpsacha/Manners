@@ -6,7 +6,7 @@
 -- is worked out once, here, loaded first in the toc, and every later file asks
 -- this one rather than re-deriving it.
 --
--- The five, as of September 2026, and the toc each would load:
+-- The five, as of September 2026, and the toc each loads:
 --
 --   retail "Midnight" 12.1   interface 120100+   Manners_Mainline.toc
 --   WoW Forever 1.60.1       interface 16001     Manners_Camelot.toc

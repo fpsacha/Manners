@@ -11,11 +11,8 @@ Libs/
 .release/
 *.zip
 
-# tools/maketocs.py is imported by tests/validate.py and tests/setversion.py
-# rather than shelled out to, so running the tests now leaves a bytecode cache
-# behind. (tools/__pycache__/fonts.cpython-312.pyc was committed before this
-# line existed and stays tracked until somebody removes it -- git ignores
-# nothing it is already tracking.)
+# The tests import tools/*.py rather than shelling out to them, so a run
+# leaves a bytecode cache behind.
 __pycache__/
 *.pyc
 

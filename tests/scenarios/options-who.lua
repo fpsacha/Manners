@@ -1,4 +1,4 @@
--- The Who to buff tab (BuildWhoTab in Options.lua): four questions, top to
+-- The Who to buff tab (BuildWhoTab in Options/Who.lua): four questions, top to
 -- bottom -- what to cast, who it goes to (with the group and raid settings
 -- under a heading of their own), who comes first, and who is skipped or never
 -- offered. Each setting sits under the question it answers and greys out

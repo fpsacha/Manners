@@ -326,7 +326,7 @@ end
 -- ------------------------------------------------------------------ the snooze
 -- The header's Snooze button is there while any of its entries is, so each
 -- entry carries the prompt rule. A rogue can still snooze from chat or the
--- minimap menu, and that gives him no button: IA 1.11, the master switch only.
+-- minimap menu, and that gives him no button: the master switch only.
 do
 	local scenario = "model: a snoozed rogue gets no Snooze"
 	local ENTRIES = { "snoozeHeader", "snoozeNote", "snooze5", "snooze15", "snooze30", "snoozeStop" }
@@ -394,7 +394,7 @@ local function same(a, b)
 	return true
 end
 
--- What each page's reset puts back (IA.md 1.6), written out here so a field
+-- What each page's reset puts back, written out here so a field
 -- dropped from Page.RESET is noticed rather than simply no longer checked.
 local EXPECTED = {
 	who = {
@@ -681,7 +681,7 @@ end
 
 -- ------------------------------------------------------------------ the PvP note
 -- Who to skip's PvP lines rebuild the queue to be read, so a paint reads them
--- once (IA.md, Who to skip): their hidden and their text share one scan, with
+-- once: their hidden and their text share one scan, with
 -- somebody flagged and the note up as much as with nobody.
 do
 	local scenario = "model: a paint of Who to skip builds the queue once"

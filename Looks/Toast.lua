@@ -32,7 +32,7 @@
 -- both palettes, a custom marker colour and the outcomes. The interface this
 -- file implements is described at the top of Looks/Looks.lua.
 --
--- Kept from the approved design (design14/toast/SPEC.md) and the judges' word:
+-- Kept from the approved design and the judges' word:
 --   * the rails' glints only for a new favour, never for every new face; a
 --     new face gets the text's own dip and nothing else;
 --   * below height 40 a finer frame, so the gilding does not turn to mush;

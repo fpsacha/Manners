@@ -35,7 +35,7 @@ local plain, ShortName, FirstName, SameName = ns.plain, ns.ShortName, ns.FirstNa
 -- words (might, mark, shout...) need a please or to stand alone, and never
 -- count in group chat, where "mark pls" is about raid markers.
 --
--- Chat text and senders can be secret values on this client; a secret is
+-- Chat text and senders can be secret values (Forever, retail); a secret is
 -- never compared, matched or kept, so an unreadable message is no request.
 --
 -- A request names a person, not a unit: the queue matches it against every

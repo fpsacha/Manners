@@ -76,9 +76,9 @@ function UI.Dot(parent, colour)
 	return dot
 end
 
--- SetGradient changed shape between client generations; tried as Prompt.lua
--- tries it, over a white texture for the colours to tint, with a flat colour
--- that always works behind it. Vertical runs bottom to top.
+-- SetGradient changed shape between client generations; tried as
+-- Prompt/Prompt.lua tries it, over a white texture for the colours to tint,
+-- with a flat colour that always works behind it. Vertical runs bottom to top.
 function UI.Gradient(tex, orientation, from, to)
 	tex:SetTexture("Interface\\Buttons\\WHITE8X8")
 	if tex.SetGradient and CreateColor then
@@ -226,7 +226,7 @@ function UI.OwnHidden(item) return Rule(ns.WindowBind.OwnHidden, item) end
 function UI.Disabled(item) return Rule(ns.WindowBind.Disabled, item) end
 
 ---------------------------------------------------------------------------
--- the peek: the window fades so the real prompt behind it shows (IA 1.7)
+-- the peek: the window fades so the real prompt behind it shows
 ---------------------------------------------------------------------------
 
 local PEEK_ALPHA, FADE_OUT, FADE_IN, PEEK_AFTER, HOVER_DELAY = 0.25, 0.15, 0.2, 1.5, 0.4
@@ -323,7 +323,7 @@ UI.ctx = {
 }
 
 ---------------------------------------------------------------------------
--- the preview (IA 1.7): the real prompt, started for the player twice
+-- the preview: the real prompt, started for the player twice
 ---------------------------------------------------------------------------
 
 local function StartPreview()

@@ -2,18 +2,19 @@
 --
 --   hold      the prompt's hold judged somebody still in the queue by the copy
 --             it painted, so a new target, a favour or a lapsed one never
---             moved the panel (Prompt.lua, PickTop)
+--             moved the panel (Prompt/Hold.lua, PickTop)
 --   fight     a fight withholding an aura's spell or number made every buff
 --             already on you a new favour when it ended (Favours.lua)
 --   shout     one Battle Shout returns every favour in earshot, not only the
---             one it was aimed at (Prompt.lua, PostClick; Clicks.lua)
+--             one it was aimed at (Prompt/Press.lua, PostClick; Clicks.lua)
 --   own       the press on yourself hands your target back whatever the
---             switch for other people says (Prompt.lua, STRATEGIES.self)
+--             switch for other people says (Prompt/Macro.lua, STRATEGIES.self)
 --   sound     "Only for people who buff me" cannot silence a class that is
---             never owed (Prompt.lua; Options.lua)
+--             never owed (Prompt/; Options/)
 --   skip      a right-press skip in a fight says the frozen press still casts
---             at them (Prompt.lua)
---   moved     "moved on" names a group cast by whom it lands on (Prompt.lua)
+--             at them (Prompt/Press.lua)
+--   moved     "moved on" names a group cast by whom it lands on
+--             (Prompt/Paint.lua)
 --   quiet     "nothing you cast is any use" is as quiet in a raid as every
 --             other "buffed you" line (Favours.lua)
 --   rp        In character gives a targeted group member the group lines

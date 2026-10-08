@@ -336,7 +336,7 @@ do
 	end
 
 	-- Whether the prompt is showing this person, which in a fight is where it
-	-- stays until the fight ends. Guarded: Prompt.lua may not have loaded.
+	-- stays until the fight ends. Guarded: the prompt may not have loaded.
 	local function FrozenOn(name)
 		if not (ns.Prompt and ns.Prompt.Showing) then return false end
 		local ok, showing = pcall(ns.Prompt.Showing, ns.Prompt)

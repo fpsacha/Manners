@@ -1,5 +1,5 @@
 -- Manners -- options window: the page in the content area. Its sections and
--- rows, which of them show (IA 1.5), pairs and columns measured in the
+-- rows, which of them show, pairs and columns measured in the
 -- player's language, the folds and their gold dots.
 --
 -- Each page's rows are built the first time it is opened and kept: switching
@@ -139,7 +139,7 @@ function UI.PageVisible(id)
 	return false
 end
 
--- The note rule (IA 1.5, 4): a section shows while a control in it does. A
+-- The note rule: a section shows while a control in it does. A
 -- note keeps it only when it stands in for a hidden control, or when the
 -- section holds no controls at all; any other note is attached and never
 -- keeps a section by itself.
@@ -162,7 +162,7 @@ local function Judge(sec)
 end
 
 ---------------------------------------------------------------------------
--- the gold dot on a fold (IA 1.5): something inside differs from default
+-- the gold dot on a fold: something inside differs from default
 ---------------------------------------------------------------------------
 
 -- The profile fields each foldable control writes. Only controls shown now
@@ -186,7 +186,6 @@ for _, key in ipairs({ "font", "fontSize", "fontColor", "classColor", "showSub",
 	"roundIcon", "showCooldown", "showCount", "showQueue", "queueRows" }) do
 	FIELDS["appearance." .. key] = { { "prompt", key } }
 end
-UI.FOLD_FIELDS = FIELDS
 
 local function Profile() return ns.db.profile end
 
@@ -212,7 +211,6 @@ local DIFFERS = {
 	["click.preset"] = LinesChanged,
 	["click.phrases"] = LinesChanged,
 }
-UI.FOLD_DIFFERS = DIFFERS
 
 -- Numbers within half a step, colours per component within 0.002 (alpha 1
 -- when missing), anything else exactly.
