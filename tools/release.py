@@ -17,8 +17,7 @@ Preflight, all read-only, and nothing changes unless every one passes:
 - origin's master is already in this branch (no pull is needed);
 - the tag vX.Y.Z is neither here nor on origin;
 - CHANGELOG.md's top section is "## Unreleased" and has notes under it;
-- python tools/check.py --anchors passes (on all but two cores, or on
-  MANNERS_SCENARIO_JOBS of them when that is set).
+- python tools/check.py --anchors passes (on all but two cores, its default).
 
 Then:
 
@@ -30,7 +29,8 @@ Then:
 4. git tag -a vX.Y.Z -m "Manners X.Y.Z", git push origin vX.Y.Z, and wait for
    release.yml's run of the tag;
 5. print the packager's "Game version:" line and what each upload said, read
-   from the run's log.
+   from the run's log (or that the run stopped before the packager, when its
+   log has no "Package and publish" step).
 
 It stops at the first thing that fails and says where that leaves the release
 and what to do next; it never deletes a tag or resets a commit itself. Run
@@ -263,6 +263,15 @@ def failed_steps(run_id):
     return out
 
 
+PACKAGE_STEP = "Package and publish"   # release.yml's step that runs the packager
+
+
+def log_steps(log_text):
+    """The names of the steps a `gh run view --log` text has lines from."""
+    return {parts[1] for parts in (raw.split("\t", 2) for raw in log_text.splitlines())
+            if len(parts) == 3}
+
+
 def packager_report(log_text):
     """What the release run's log says about the build and each upload."""
     out, pending = [], None
@@ -279,7 +288,7 @@ def packager_report(log_text):
             if m:
                 out.append(("warning: " if msg.startswith("##[warning]") else "") + m.group(1))
             continue
-        if step != "Package and publish":
+        if step != PACKAGE_STEP:
             continue
         if pending is not None:
             if msg.strip():
@@ -298,6 +307,20 @@ def packager_report(log_text):
     if pending is not None:
         out.append(pending + " -> (no answer in the log)")
     return out
+
+
+def run_report(log, run_id):
+    """(the packager's lines, the lines to show) from `gh run view --log`'s
+    result: the packager's lines, and a note when there are none to trust."""
+    if log.returncode != 0:
+        said = (log.stdout + log.stderr).strip().splitlines()[-1:] or ["no answer"]
+        return [], ["(the log could not be read: gh run view %s --log said: %s)" % (run_id, said[0])]
+    report = packager_report(log.stdout)
+    if PACKAGE_STEP not in log_steps(log.stdout):
+        return report, report + ["(the log has no '%s' step: the run stopped before the"
+                                 " packager, so nothing was uploaded)" % PACKAGE_STEP]
+    return report, report or ["(the '%s' step is in the log but printed none of the lines"
+                              " looked for; gh run view %s --log)" % (PACKAGE_STEP, run_id)]
 
 
 # ---------------------------------------------------------------- main
@@ -441,8 +464,8 @@ def main(argv=None):
 
     head(8)
     log = run(["gh", "run", "view", str(run_id), "--log"])
-    report = packager_report(log.stdout) if log.returncode == 0 else []
-    for line in report or ["(the log could not be read: gh run view %s --log)" % run_id]:
+    report, shown = run_report(log, run_id)
+    for line in shown:
         say("    " + line)
     say()
     if not passed:

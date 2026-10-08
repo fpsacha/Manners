@@ -38,18 +38,23 @@ Each step is the existing script, run as it is:
 As each step ends it prints `PASS` or `FAIL`, its seconds and its own verdict
 line (`RESULT: all checks passed`, `failures: 0`, `errors: 0`). Then, for each
 step that failed, the lines of its output that say why (at most 25), and a
-last line: `check: all 32 step(s) passed in 432s`, or which failed. It exits 1
-if any did. A failed step does not stop the others. Every step's whole output
+last line: `check: all 32 step(s) passed in 432s`, or which failed. For
+`validate` the lines are each `== x ==` section that holds a failure, under its
+heading; the tables and counts it prints on every run (the five tightest
+functions, the version table, the translation counts) are shown only in a
+section that failed. It exits 1 if any did. A failed step does not stop the
+others. Every step's whole output
 is kept in `%TEMP%/manners-check/<checkout>/<step>.txt`, a folder per checkout
 so that worktrees checked side by side keep their own (it is emptied at the
 start of each run and named on the first line), so a red step can be read
 without running it again.
 
 `--jobs N` is how many processes run at once, all steps together; the default
-is `MANNERS_SCENARIO_JOBS` from the environment (which `runscenarios.py` reads
-too) if it is set, else the cores less two, which stay free. `validate` and
-`harness` go first, then `scenarios` on all N, then the rest N at a time. Pass
-`--jobs 3` when other work is running on the machine. With `--flavours
+is the cores less two, which stay free. It is passed on as `--jobs`, so
+`MANNERS_SCENARIO_JOBS` (which `runscenarios.py` reads when it gets no
+`--jobs`) does not change it. `validate` and `harness` go first, then
+`scenarios` on all N, then the rest N at a time. Pass `--jobs 3` when other
+work is running on the machine. With `--flavours
 --anchors --jobs 3`, while three other suites ran on the same 16 cores, the
 whole thing took a little over seven minutes, six of them the `scenarios`
 step; the 28 flavour steps take 1 to 26 seconds each, and `--anchors` under one.
@@ -89,7 +94,7 @@ Preflight, read-only; nothing changes unless every check passes:
 - origin's master is already in this branch (`git ls-remote`, no fetch);
 - the tag `vX.Y.Z` exists neither here nor on origin;
 - `python tools/check.py --anchors` passes (its lines are shown as it runs; it
-  takes all but two cores unless `MANNERS_SCENARIO_JOBS` says otherwise).
+  takes all but two cores, its default).
 
 Then, stopping at the first thing that fails:
 
@@ -119,7 +124,10 @@ Then, stopping at the first thing that fails:
 ```
 
 The `Game version:` line should name all five clients; see RELEASING.md's
-"Game version" for what to do on the file page when it does not.
+"Game version" for what to do on the file page when it does not. A release run
+that stopped before the packager (in its test job, say) has none of the
+packager's lines, and the tool says so: the log has no `Package and publish`
+step, so nothing was uploaded.
 
 `gh run watch` redraws its table every few seconds, so its output goes to
 `%TEMP%/manners-release-watch-<run>.txt` and the tool prints one line a
@@ -179,16 +187,21 @@ Merges translations into `Locales/<code>.lua` without losing a line.
 python tools/locale_add.py deDE todo/deDE.todo.json [more.json ...]
 ```
 
-Each file maps English keys to their translation; later files win, and a value
-left empty is skipped and counted, so a todo file translated in part can be
-given as it is. In order, and if any step objects the files are left as they
-were:
+Each file maps English keys to their translation; later files win where two
+translate the same key. A value left empty is skipped: it never takes the
+place of a translation, whether an earlier file gives one or the locale has
+one, so a todo file translated in part can be given as it is, in any order
+with other files, and the keys no file translates are counted (`left empty`).
+A file that cannot be read or is not a JSON object is named, with why, and
+nothing is written. In order, and if any step objects the files are left as
+they were:
 
 1. the current file is read back as the game reads it
    (`locale_keys.load_locale`);
 2. the new translations go through `check_translation.py`'s check -- a key the
-   code does not ask for, an empty value, or a `%s`, `{token}` or `|escape`
-   that differs from the English stops it, with each one listed;
+   code does not ask for, a value that is not a string, or a `%s`, `{token}` or
+   `|escape` that differs from the English stops it, with each one listed under
+   the file it came from;
 3. old and new are merged, the new winning, and the file is rebuilt by
    `build_locale.py` (so the escaping is done there, once);
 4. every line of the old file has to be in the new one, except the lines of the
@@ -228,10 +241,11 @@ path in Phrases.lua's tables:
 ```
 
 `RACE.<family>.<kind>`, `CLASS.<CLASS>.<kind>`, `SPELL.<key>`, `GIFT.<key>`
-and `SAME.<CLASS>` (and `RACE.<family>.outsider.<moment>`) are the shapes it
-creates. Any other pool that exists already -- `TRADE`, `KIN`,
-`FACTION.Horde.offer`, `GENERAL.thanks`, `PLACE.city`, `TARGET.MAGE`,
-`ONTO.intellect.ROGUE` -- can be added to; `RP.LEGACY` never is.
+and `SAME.<CLASS>` (and `RACE.<family>.outsider.<moment>` for a people with a
+city in `RP.HOME`) are the shapes it creates. Any other pool that exists
+already -- `TRADE`, `KIN`, `FACTION.Horde.offer`, `GENERAL.thanks`,
+`PLACE.city`, `TARGET.MAGE`, `ONTO.intellect.ROGUE` -- can be added to;
+`RP.LEGACY` never is.
 
 A pool that exists gets the lines after its last one, so its first lines, the
 phrase box's examples, stay first. One that does not is made at the end of the
@@ -240,8 +254,15 @@ table it belongs in, a new class's table with it, and needs as many lines as
 pool or a people's outsider lines. Its name is checked the way rp.lua checks
 where lines are filed: a family `RP.FAMILY` maps a race to, a class token, the
 key of a buff some client's set in `Buffs.lua` gives to others (or, for
-`GIFT`, a favour in `FAVOUR_KEY`), a kind the picking reads, and a city pool
-only where `RP.HOME` has the people's city.
+`GIFT`, a favour in `FAVOUR_KEY`), and a kind the picking reads. City and
+outsider lines, in a new pool or an old one, are taken only for a people
+`RP.HOME` gives a city, as the comment above `RP.RACE` says: a city's lines are
+said only there, and the picking adds outsider lines for anybody who is not
+kin and not at home -- for a people with no home, everybody, everywhere, which
+rp.lua catches as a dwarf thanking in lines that are not a dwarf's thanks.
+
+A file of pools that cannot be read or is not JSON is named, with why, and
+nothing is written.
 
 Every line is checked by rp.lua's rules before anything is written, and if any
 breaks one, nothing is, and each is listed with its reason:

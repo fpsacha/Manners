@@ -5,16 +5,20 @@
 Each JSON file maps English keys to their translation, as
 tools/check_translation.py and tools/build_locale.py take them (a
 tools/locale_todo.py file with its values filled in is one). Later files win
-where two give the same key; a value left empty is skipped and counted, so a
-todo file translated in part can be handed in as it is.
+where two translate the same key. A value left empty is skipped: it never
+takes the place of a translation, whether another file gives one or the
+locale has one already, and the keys that no file translates are counted, so
+a todo file translated in part can be handed in as it is, before or after
+other files.
 
 In order, stopping at the first problem with the files as they were:
 
 1. the current Locales/<code>.lua is read back as the game reads it
    (tools/locale_keys.py's load_locale);
-2. the new translations go through tools/check_translation.py's check: a key
-   the code does not ask for, an empty value, or a %s, {token} or |escape that
-   differs from the English stops it;
+2. the new translations go through tools/check_translation.py's check, each
+   under the name of the file it came from: a key the code does not ask for, a
+   value that is not a string, or a %s, {token} or |escape that differs from
+   the English stops it;
 3. the two are merged, the new ones winning, and the file is rebuilt with
    tools/build_locale.py;
 4. every line of the old file must still be in the new one, except the lines of
@@ -58,22 +62,51 @@ def write(path, text):
         f.write(text)
 
 
+class BadInput(Exception):
+    pass
+
+
 def load_new(paths):
-    """{key: translation} from the files, later ones winning, and the count
-    of empty values skipped."""
-    new, empty = {}, 0
+    """{key: (translation, the file it came from)}, later files winning, and
+    how many keys were left empty in every file that gave them. An empty value
+    is skipped: it never takes the place of another file's translation."""
+    new, blank = {}, set()
     for path in paths:
-        with open(path, encoding="utf-8") as f:
-            table = json.load(f)
+        try:
+            with open(path, encoding="utf-8-sig") as f:
+                table = json.load(f)
+        except OSError as e:
+            raise BadInput("%s: cannot be read (%s)" % (path, e.strerror or e))
+        except (ValueError, UnicodeDecodeError) as e:  # JSONDecodeError is a ValueError
+            raise BadInput("%s: not JSON in UTF-8 (%s)" % (path, e))
         if not isinstance(table, dict):
-            raise SystemExit("%s: not a JSON object of English -> translation" % path)
+            raise BadInput("%s: not a JSON object of English -> translation" % path)
         for key, value in table.items():
             if isinstance(value, str) and not value.strip():
-                empty += 1
-                new.pop(key, None)
+                blank.add(key)
                 continue
-            new[key] = value
-    return new, empty
+            new[key] = (value, path)
+    return new, len(blank - set(new))
+
+
+def check_new(new, paths, tmpdir):
+    """check_translation's check of each file's translations that are kept,
+    the problems named by the file as it was given: (problems, how many)."""
+    problems, checked = [], 0
+    for n, path in enumerate(dict.fromkeys(paths)):
+        mine = {key: value for key, (value, origin) in new.items() if origin == path}
+        if not mine:
+            continue
+        # The same file name, in a folder of its own: check_translation names
+        # a problem by its file's base name, which is then put back as given.
+        os.makedirs(os.path.join(tmpdir, str(n)))
+        copy = os.path.join(tmpdir, str(n), os.path.basename(path))
+        write(copy, json.dumps(mine, ensure_ascii=False, indent=1) + "\n")
+        found, count = check_translation.check([copy])
+        checked += count
+        prefix = os.path.basename(path) + ": "
+        problems += [path + ": " + p[len(prefix):] if p.startswith(prefix) else p for p in found]
+    return problems, checked
 
 
 def main(argv):
@@ -104,19 +137,23 @@ def add(argv, tmpdir):
     current = locale_keys.load_locale(code) if old_text is not None else {}
 
     # 2. the new ones, checked before anything is touched
-    new, empty = load_new(paths)
+    try:
+        new, empty = load_new(paths)
+    except BadInput as e:
+        out(str(e))
+        print("%s: nothing written" % code)
+        return 2
     if not new:
-        print("%s: nothing to add (%d empty value(s) skipped)" % (code, empty))
+        print("%s: nothing to add (%d key(s) left empty)" % (code, empty))
         return 0
-    new_path = os.path.join(tmpdir, code + ".new.json")
-    write(new_path, json.dumps(new, ensure_ascii=False, indent=1) + "\n")
-    problems, checked = check_translation.check([new_path])
+    problems, checked = check_new(new, paths, tmpdir)
     if problems:
         for p in problems:
             out(p)
         print("%s: %d translation(s) checked, %d problem(s); nothing written"
               % (code, checked, len(problems)))
         return 1
+    new = {key: value for key, (value, _) in new.items()}
 
     # 3. merge and rebuild
     added = [k for k in new if k not in current]
@@ -181,7 +218,7 @@ def verify(code, current, changed, merged, old_text, locale_path, restore, count
     added, changes, same, empty = counts
     print("%s: %d added, %d changed, %d already so%s; %d of %d keys translated%s" % (
         code, added, changes, same,
-        ", %d empty skipped" % empty if empty else "",
+        ", %d left empty" % empty if empty else "",
         len(got), len(found),
         ", %d still missing (python tools/locale_todo.py)" % missing if missing else ""))
     return 0

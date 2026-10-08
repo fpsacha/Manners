@@ -14,15 +14,18 @@ pools.json is a list of pools and the lines to add to each:
 
 A pool is named by its path in Phrases.lua's tables: RACE.<family>.<kind>,
 CLASS.<CLASS>.<kind>, SPELL.<key>, GIFT.<key> or SAME.<CLASS> (and
-RACE.<family>.outsider.<moment>). A pool that exists gets the lines appended
-after its last line, so the first lines, which are the phrase box's examples,
-stay first. A pool that does not exist yet is created at the end of the table
-it belongs in -- a new class table is created too -- and needs as many lines as
-tests/scenarios/rp.lua asks of it: RP.SPREAD (three) for a full share of the
-draw, two for a GIFT pool or a people's outsider lines. Any other pool that already
-exists (KIN, TRADE, FACTION.Horde.offer, GENERAL.thanks, HISTORY.again,
-PLACE.city, TIME.night, TARGET.MAGE, ONTO.intellect.ROGUE) can be appended to;
-only the five shapes above can be created. RP.LEGACY is never touched.
+RACE.<family>.outsider.<moment>, for a people with a city in RP.HOME: the
+picking adds outsider lines for anybody who is not kin and not at home, which
+for a people with no home is everybody, everywhere). A pool that exists gets
+the lines appended after its last line, so the first lines, which are the
+phrase box's examples, stay first. A pool that does not exist yet is created
+at the end of the table it belongs in -- a new class table is created too --
+and needs as many lines as tests/scenarios/rp.lua asks of it: RP.SPREAD
+(three) for a full share of the draw, two for a GIFT pool or a people's
+outsider lines. Any other pool that already exists (KIN, TRADE,
+FACTION.Horde.offer, GENERAL.thanks, HISTORY.again, PLACE.city, TIME.night,
+TARGET.MAGE, ONTO.intellect.ROGUE) can be appended to; only the five shapes
+above can be created. RP.LEGACY is never touched.
 
 Phrases.lua is parsed, not searched for fixed anchors: its strings and
 comments are masked out, the RP.<NAME> = { ... } tables are walked brace by
@@ -48,8 +51,9 @@ A new pool is also checked for sense, as rp.lua checks the names pools are
 filed under: a family RP.FAMILY maps a race to, a class token, the key of a
 buff some client's set in Buffs.lua gives to others (or, for GIFT, a favour in
 FAVOUR_KEY), and a kind the picking reads (thanks, asked, offer, group; and
-kin, night, morning and city for a people, city only where RP.HOME has the
-people's city).
+kin, night, morning and city for a people). City and outsider lines, new or
+added to, are taken only for a people RP.HOME gives a city, as Phrases.lua's
+own comment above RP.RACE has it.
 
 What this cannot settle is left to rp.lua: a class that gives buffs needs all
 four kinds, and every pool needs a line left in every language -- a new pool
@@ -324,14 +328,34 @@ def offered_keys():
     return keys
 
 
-def known_names(src):
+def known_names(src, tables, masked):
     """The families RP.FAMILY maps races to, the buff keys of the buffs given
-    to others, and the favour keys Phrases.lua's FAVOUR_KEY files gifts under."""
+    to others, the favour keys Phrases.lua's FAVOUR_KEY files gifts under, and
+    the families RP.HOME gives a city (a table of maps that is not empty)."""
     fam = re.search(r"^RP\.FAMILY = \{(.*?)^\}", src, re.M | re.S)
     families = set(re.findall(r'"(\w+)"', fam.group(1))) if fam else set()
     fav = re.search(r"local FAVOUR_KEY = \{(.*?)\n\t\}", src, re.S)
     favours = set(re.findall(r'"(\w+)"', fav.group(1))) if fav else set()
-    return families, offered_keys(), favours
+    home = tables.get("HOME")
+    homes = {key for key, node in (home.children.items() if home else [])
+             if masked[node.open + 1:node.close].strip()}
+    return families, offered_keys(), favours, homes
+
+
+def home_problems(parts, homes):
+    """Why RACE.<family>.city or RACE.<family>.outsider... cannot hold lines:
+    Phrases.lua gives both only to a people with a city in RP.HOME."""
+    if parts[0] != "RACE" or len(parts) < 3 or parts[1] in homes:
+        return []
+    shape = ".".join(parts)
+    if parts[2] == "city":
+        return ["%s: RP.HOME has no city for %s, so its city lines would never be said"
+                % (shape, parts[1])]
+    if parts[2] == "outsider":
+        return ["%s: RP.HOME has no city for %s, so its outsider lines would be said to"
+                " everybody not of its people, everywhere; outsider lines are for a people"
+                " with a city (RP.HOME has %s)" % (shape, parts[1], ", ".join(sorted(homes)) or "none")]
+    return []
 
 
 def least_lines(parts, src):
@@ -345,9 +369,10 @@ def least_lines(parts, src):
     return full
 
 
-def creation_problems(parts, src):
-    """Why a pool at parts, which does not exist yet, should not be made."""
-    families, buffs, favours = known_names(src)
+def creation_problems(parts, names):
+    """Why a pool at parts, which does not exist yet, should not be made;
+    names is what known_names() returns."""
+    families, buffs, favours, homes = names
     top = parts[0]
     shape = ".".join(parts)
     if top == "RACE":
@@ -361,12 +386,7 @@ def creation_problems(parts, src):
         if parts[1] not in families:
             return ["%s: no race maps to the family %r in RP.FAMILY (%s)"
                     % (shape, parts[1], ", ".join(sorted(families)))]
-        if parts[2] == "city":
-            home = re.search(r"^RP\.HOME = \{(.*?)^\}", src, re.M | re.S)
-            if not home or not re.search(r"^\t%s = " % re.escape(parts[1]), home.group(1), re.M):
-                return ["%s: RP.HOME has no city for %s, so its city lines would never be said"
-                        % (shape, parts[1])]
-        return []
+        return home_problems(parts, homes)
     if top == "CLASS":
         if len(parts) != 3:
             return ["%s: a class pool is CLASS.<CLASS>.<kind>" % shape]
@@ -489,8 +509,15 @@ def main(argv):
     if len(argv) != 2:
         print(__doc__)
         return 2
-    with open(argv[1], encoding="utf-8") as f:
-        pools = json.load(f)
+    try:
+        with open(argv[1], encoding="utf-8-sig") as f:
+            pools = json.load(f)
+    except OSError as e:
+        print("%s: cannot be read (%s)" % (argv[1], e.strerror or e))
+        return 2
+    except (ValueError, UnicodeDecodeError) as e:  # JSONDecodeError is a ValueError
+        print("%s: not JSON in UTF-8 (%s)" % (argv[1], e))
+        return 2
     if not isinstance(pools, list) or not all(
             isinstance(p, dict) and isinstance(p.get("pool"), str) and isinstance(p.get("lines"), list)
             for p in pools):
@@ -500,6 +527,7 @@ def main(argv):
     with open(PHRASES, encoding="utf-8", newline="") as f:
         original = f.read()
     tables, masked = parse(original)
+    names = known_names(original, tables, masked)
     existing = all_literals(original, masked, tables)
     seen = {text: "Phrases.lua" for text in existing}
     seen_letters = {letters(text): text for text in existing}
@@ -523,11 +551,13 @@ def main(argv):
             problems.append("%s is a pool of lines, so %s cannot be made inside it"
                             % (".".join(parts[:depth]), path))
         elif depth < len(parts):
-            problems.extend(creation_problems(parts, original))
+            problems.extend(creation_problems(parts, names))
             least = least_lines(parts, original)
             if len(p["lines"]) < least:
                 problems.append("%s: a new pool needs at least %d lines (tests/scenarios/rp.lua)"
                                 % (path, least))
+        else:
+            problems.extend(home_problems(parts, names[3]))
         for text in p["lines"]:
             for why in line_problems(text, path):
                 problems.append("%s: %s\n    %s" % (path, why, text))
