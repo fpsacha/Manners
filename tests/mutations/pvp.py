@@ -388,7 +388,7 @@ mutate("Queue.lua",
 
 # A shout on the panel not asked again of the party it lands on.
 mutate("Queue.lua",
-       "\tif entry.buff and entry.buff.selfCast then return ns.ShoutFlagged() ~= nil end\n",
+       "\tif LandsOnParty(entry) then return ns.ShoutFlagged() ~= nil end\n",
        "",
        "pvp: a held shout not asked again",
        expect="the press shouted over a party member flagged for PvP", script=S)

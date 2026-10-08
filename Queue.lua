@@ -1106,13 +1106,15 @@ end
 -- flagged for PvP
 --
 -- A buff on somebody flagged for PvP flags you too, for minutes -- and so does
--- a group spell or a shout landing on one flagged member of your party. So
--- while "Skip players flagged for PvP" is on and you are not flagged yourself,
--- nobody who reads as flagged is offered anything, whatever the reason. While
+-- a group spell or a shout landing on one flagged member of your party, and on
+-- Mists and retail any buff cast on one of you (LandsOnParty). So while "Skip
+-- players flagged for PvP" is on and you are not flagged yourself, nobody who
+-- reads as flagged is offered anything, whatever the reason. While
 -- you are flagged -- a battleground, /pvp, an enemy town -- buffing them costs
 -- nothing more and the rule stands aside; not while your own flag is running
 -- out, though (YouAreFlagged), since a buff restarts that countdown. Your own
--- entry (SelfEntry) never passes through it.
+-- entry (SelfEntry) never passes through it, unless the buff lands on your
+-- whole party (LandsOnParty).
 --
 -- A flag the game will not show is "cannot tell", and the person is offered.
 -- Somebody no token reaches -- a favour from a stranger, a passer-by
@@ -1186,16 +1188,33 @@ function ns.PvPRecord()
 	return nil
 end
 
+-- Whether a press on this entry lands on the whole party, whoever it names: a
+-- shout, or, on a set whose buffs cast on somebody in your party or raid land
+-- on every one of them (ns.WIDE_CASTS: Mists, retail), a buff aimed at a group
+-- member or at yourself in a group. A stranger outside the group takes it
+-- alone, and so does anybody given a buff marked `alone` or one of your
+-- class's own. On those sets a shout and such a buff both reach the whole
+-- party and raid within 100 yards (Buffs.lua), which is where ShoutFlagged
+-- looks.
+local function LandsOnParty(entry)
+	local buff = entry.buff
+	if not buff then return false end
+	if buff.selfCast then return true end
+	return ns.WIDE_CASTS == true and entry.inGroup == true and not entry.groupCast
+		and not buff.alone and not buff.own
+end
+
 -- Whether the prompt must let go of this entry for PvP: the last scan held
 -- its person back -- which the prompt, having just scanned, is asking about
--- this moment -- or it is a group cast or a shout, which lands on the whole
--- party, and somebody in it reads as flagged now. The panel's hold and a press
--- both ask, so neither outlasts a flag raised since the paint.
+-- this moment -- or it is a group cast, a shout or a buff that lands on the
+-- whole party (LandsOnParty), and somebody in it reads as flagged now. The
+-- panel's hold and a press both ask, so neither outlasts a flag raised since
+-- the paint.
 function ns.HeldForPvP(entry)
 	if not (entry and entry.name and pvpScan.stands) then return false end
 	if pvpScan.names[entry.name] then return true end
 	if entry.groupCast then return ns.GroupCastFlagged(entry) ~= nil end
-	if entry.buff and entry.buff.selfCast then return ns.ShoutFlagged() ~= nil end
+	if LandsOnParty(entry) then return ns.ShoutFlagged() ~= nil end
 	return false
 end
 
@@ -1235,11 +1254,13 @@ end
 -- A shout lands on your whole party (in a raid your subgroup, or the whole
 -- raid where shouts reach it: ShoutFlagged), whoever the prompt names, so
 -- while the rule stands one flagged member holds back every shout, as for a
--- group cast, each a verdict. The party is walked only when a shout is queued.
+-- group cast, each a verdict. So does a buff that lands on the whole party
+-- however it is aimed (LandsOnParty), yours included. The party is walked
+-- only when one is queued.
 local function HoldShoutsForPvP(queue, rejected, inRaid)
 	local shout
 	for _, entry in ipairs(queue) do
-		if entry.buff and entry.buff.selfCast then
+		if LandsOnParty(entry) then
 			shout = entry.buff
 			break
 		end
@@ -1251,7 +1272,7 @@ local function HoldShoutsForPvP(queue, rejected, inRaid)
 	pvpScan.groups[#pvpScan.groups + 1] = { spell = ns.BuffName(shout), label = label, name = flagged }
 	local kept = {}
 	for _, entry in ipairs(queue) do
-		if entry.buff and entry.buff.selfCast then
+		if LandsOnParty(entry) then
 			rejected[entry.name] = true
 		else
 			kept[#kept + 1] = entry
@@ -2108,9 +2129,6 @@ function ns.BuildQueue(watch)
 	OfferPassersBy(queue, seen, rejected, now, db, candidates, askOnly, neverVerdict,
 		not db.sources.strangers or groupOnly or savingMana or notResting)
 
-	-- A shout lands on the whole party, flagged members and all.
-	if pvpHeld then queue = HoldShoutsForPvP(queue, rejected, inRaid) end
-
 	-- And you, once everybody else is in: before the fold below, so a group
 	-- cast counts you among your party.
 	local mine = SelfEntry(db, candidates, now, neverVerdict)
@@ -2123,6 +2141,11 @@ function ns.BuildQueue(watch)
 		local me = ns.UnitFullName("player")
 		if me then rejected[me] = true end
 	end
+
+	-- A shout lands on the whole party, flagged members and all, and on Mists
+	-- and retail so does a buff on any of you, yourself included: after you
+	-- are in.
+	if pvpHeld then queue = HoldShoutsForPvP(queue, rejected, inRaid) end
 
 	-- A party's single casts folded into one group cast where the player has
 	-- the group version and its reagent (GroupBuffs.lua), before the sort, so

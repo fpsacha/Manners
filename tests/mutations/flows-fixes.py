@@ -1,9 +1,10 @@
 # Mutations for the flows bug hunt's fixes (round 30): a favour or a top-up
 # offered over a stronger rank (Core.lua), a press in the air on a flying mount
 # (Queue.lua, Prompt/Press.lua), a shout's reach on Mists and retail (Core.lua,
-# Buffs.lua) and one cast settling only the party member it was aimed at
-# (Prompt/Press.lua, Clicks.lua, Buffs.lua). Each undoes a fix and is caught
-# by the scenario in tests/scenarios/flows-fixes.lua it names.
+# Buffs.lua), one cast settling only the party member it was aimed at
+# (Prompt/Press.lua, Clicks.lua, Buffs.lua) and the same cast offered over a
+# party member flagged for PvP (Queue.lua). Each undoes a fix and is caught by
+# the scenario in tests/scenarios/flows-fixes.lua it names.
 #
 # Run by selftest.py with mutate() in scope.
 
@@ -135,4 +136,66 @@ mutate("Prompt/Press.lua",
        "\tif ns.WIDE_CASTS and S.current.inGroup and not stale and cast and not cast.selfCast\n",
        "flows-fix: a single-target spell settling the party",
        expect="flows-fix: mists: a warlock's Unending Breath on one party member returns nobody else's favour",
+       script=S)
+
+# ------------------------------------------------------------ flagged, the whole party
+# The fix undone: a buff on a party member, which lands on the whole party,
+# offered over a member flagged for PvP, as a single cast on its target.
+mutate("Queue.lua",
+       "\treturn ns.WIDE_CASTS == true and entry.inGroup == true and not entry.groupCast\n",
+       "\treturn false and entry.inGroup == true and not entry.groupCast\n",
+       "flows-fix: a party-wide buff over a flagged member",
+       expect="flows-fix: mists: a buff on a party member is held back while it would land on a flagged one",
+       script=S)
+
+# The panel's hold and the press asking about shouts alone, as before: the
+# press armed at Anna casts after Bert, flagged, has joined.
+mutate("Queue.lua",
+       "\tif LandsOnParty(entry) then return ns.ShoutFlagged() ~= nil end\n",
+       "\tif entry.buff and entry.buff.selfCast then return ns.ShoutFlagged() ~= nil end\n",
+       "flows-fix: the press not asking about a party-wide buff",
+       expect="flows-fix: mists: a press does not cast at a party member once a flagged one joins",
+       script=S)
+
+# Your own entry kept out of the hold, as it was: added after it.
+mutate("Queue.lua",
+       "\tif pvpHeld then queue = HoldShoutsForPvP(queue, rejected, inRaid) end\n",
+       "\tif pvpHeld and mine then table.remove(queue) end\n"
+       "\tif pvpHeld then queue = HoldShoutsForPvP(queue, rejected, inRaid) end\n"
+       "\tif pvpHeld and mine then queue[#queue + 1] = mine end\n",
+       "flows-fix: your own party-wide buff over a flagged member",
+       expect="flows-fix: mists: your own buff is held back while it would land on a flagged party member",
+       script=S)
+
+# A passer-by outside the party held back with it.
+mutate("Queue.lua",
+       "\treturn ns.WIDE_CASTS == true and entry.inGroup == true and not entry.groupCast\n",
+       "\treturn ns.WIDE_CASTS == true and not entry.groupCast\n",
+       "flows-fix: a passer-by held back for a flagged member",
+       expect="flows-fix: mists: a passer-by is still offered beside a flagged party member",
+       script=S)
+
+# A buff that lands on its target alone held back with them.
+mutate("Queue.lua",
+       "\t\tand not buff.alone and not buff.own\n",
+       "\t\tand not buff.own\n",
+       "flows-fix: a single-target buff held back for a flagged member",
+       expect="flows-fix: mists: Unending Breath on a party member is still offered beside a flagged one",
+       script=S)
+
+# Your class's own buff, which lands on you alone, held back with them.
+mutate("Queue.lua",
+       "\t\tand not buff.alone and not buff.own\n",
+       "\t\tand not buff.alone\n",
+       "flows-fix: your own class's buff held back for a flagged member",
+       expect="flows-fix: mists: your armor is still offered beside a flagged party member",
+       script=S)
+
+# Classic Era's and Forever's buffs, which land on their target alone, held
+# back as Mists' are.
+mutate("Queue.lua",
+       "\treturn ns.WIDE_CASTS == true and entry.inGroup == true and not entry.groupCast\n",
+       "\treturn entry.inGroup == true and not entry.groupCast\n",
+       "flows-fix: Era's single buff held back for a flagged member",
+       expect="flows-fix: vanilla: a buff on a party member is still offered beside a flagged one",
        script=S)

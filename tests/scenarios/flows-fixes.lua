@@ -17,7 +17,10 @@
 --     the shout that repays them, nor settled by one;
 --   - one cast on a party member on Mists and retail, which lands on the whole
 --     party and raid (Buffs.lua, wideCasts), settling only the one it was
---     aimed at (Prompt/Press.lua, PostClick; Clicks.lua, SettleShout).
+--     aimed at (Prompt/Press.lua, PostClick; Clicks.lua, SettleShout);
+--   - the same cast offered, on a party member or on yourself, while it would
+--     land on a member flagged for PvP and flag you, which the group casts
+--     and the shouts were already held back for (Queue.lua, LandsOnParty).
 --
 -- Every scenario name starts with "flows-fix:" so the mutations in
 -- tests/mutations/flows-fixes.py can name the one that has to catch them.
@@ -474,5 +477,220 @@ do
 	end, function()
 		Mock.groupSize = 3
 		knowing({ 109773, 5697 })
+	end)
+end
+
+-- ------------------------------------------------------------ flagged, the whole party
+-- The same cast with "Skip players flagged for PvP" on (the default) and you
+-- not flagged: Arcane Intellect on Anna, or on you, lands on Bert too, who is
+-- flagged, and flags you. One flagged member holds it back for the whole
+-- party, as for a group cast or a shout: Anna, the press on her armed before
+-- Bert came, and your own. A passer-by outside the party takes it alone, and
+-- so does a buff marked `alone` or one of your class's own: still offered. On
+-- Classic Era and WoW Forever the buff reaches Anna alone, and she is offered.
+
+-- Your own entry for `key`, or nil.
+local function mine(ns, key)
+	for _, entry in ipairs(ns.BuildQueue()) do
+		if entry.reason == "self" and entry.buff and entry.buff.key == key then return entry end
+	end
+end
+
+-- You missing Arcane Intellect (or wearing it, with `wearing`), offered your
+-- own buffs in town as well, read afresh: past the aura cache's three seconds.
+local function myselfOffered(ns, wearing)
+	ns.db.profile.sources.self = true
+	ns.db.profile.ownBuffs.inCities = true
+	Mock.playerHeld = wearing and { [1459] = true } or {}
+	Mock.advance(4)
+end
+
+for _, flavour in ipairs({ "mists", "mainline" }) do
+	local scenario = "flows-fix: " .. flavour .. ": a buff on a party member is held back while it would land on a flagged one"
+	run(scenario, flavour, "MAGE", { party1 = { "Anna", "" }, party2 = { "Bert", "" } }, function(ns)
+		Mock.runTimers(0)
+		ns.Prompt:ExitTest()
+		if ns.db.profile.filters.skipPvP ~= true then
+			fail(scenario, "SKIPPED -- Skip players flagged for PvP is not on by default")
+			return
+		end
+		if not entryFor(ns, "Anna") then
+			fail(scenario, "SKIPPED -- Anna was not offered with nobody flagged")
+			return
+		end
+		Mock.pvp = { party2 = true }
+		local anna = entryFor(ns, "Anna")
+		if anna then
+			fail(scenario, ("Anna is offered %s, which on %s lands on the whole party, Bert included, who is"
+				.. " flagged for PvP (you are not)"):format(tostring(ns.BuffName(anna.buff)), flavour))
+		end
+		local lines = table.concat(ns.PvPLines(true), " / ")
+		if not (lines:find("your party", 1, true) and lines:find("Bert", 1, true)) then
+			fail(scenario, "/manners debug does not say why Anna is held back: " .. lines)
+		end
+		ns.addon:Tick()
+		local ran = tostring(pressButton(ns) or "")
+		if ran:find("/target Anna", 1, true) then
+			fail(scenario, "a press casts at Anna with Bert flagged in the party: " .. flat(ran))
+		end
+		-- Flagged yourself, the rule stands aside.
+		Mock.pvp.player = true
+		if not entryFor(ns, "Anna") then
+			fail(scenario, "flagged yourself, Anna is still held back for Bert")
+		end
+	end, function()
+		Mock.groupSize = 3
+	end)
+
+	-- Armed at Anna, then Bert joins, flagged: he takes nobody's place in the
+	-- queue, so the press on an empty queue follows the panel, and must not
+	-- cast at her.
+	scenario = "flows-fix: " .. flavour .. ": a press does not cast at a party member once a flagged one joins"
+	local people = { party1 = { "Anna", "" } }
+	run(scenario, flavour, "MAGE", people, function(ns)
+		Mock.runTimers(0)
+		ns.Prompt:ExitTest()
+		ns.addon:Tick()
+		local armed = tostring(ns.Prompt:GetButton():GetAttribute("macrotext1") or "")
+		if not armed:find("/target Anna", 1, true) then
+			fail(scenario, "SKIPPED -- the prompt was not armed at Anna: " .. flat(armed))
+			return
+		end
+		Mock.groupSize = 3
+		people.party2 = { "Bert", "" }
+		Mock.pvp = { party2 = true }
+		Mock.advance(0.5)
+		local ran = tostring(pressButton(ns) or "")
+		if ran:find("/target Anna", 1, true) then
+			fail(scenario, "the press casts at Anna, and lands on Bert, flagged since the paint: " .. flat(ran))
+		end
+	end, function()
+		Mock.groupSize = 2
+	end)
+
+	scenario = "flows-fix: " .. flavour .. ": your own buff is held back while it would land on a flagged party member"
+	run(scenario, flavour, "MAGE", { party1 = { "Bert", "" } }, function(ns)
+		Mock.runTimers(0)
+		ns.Prompt:ExitTest()
+		myselfOffered(ns)
+		if not mine(ns, "intellect") then
+			fail(scenario, "SKIPPED -- you were not offered your own Arcane Intellect with nobody flagged")
+			return
+		end
+		Mock.pvp = { party1 = true }
+		if mine(ns, "intellect") then
+			fail(scenario, "you are offered your own Arcane Intellect, which on " .. flavour
+				.. " lands on your whole party, Bert included, who is flagged for PvP (you are not)")
+		end
+	end, function()
+		Mock.groupSize = 2
+	end)
+end
+
+-- Outside the party the cast lands on its target alone: Zora, a passer-by, is
+-- offered with Bert flagged in your party.
+do
+	local scenario = "flows-fix: mists: a passer-by is still offered beside a flagged party member"
+	run(scenario, "mists", "MAGE", { party1 = { "Bert", "" }, nameplate1 = { "Zora", "" } }, function(ns)
+		Mock.runTimers(0)
+		ns.Prompt:ExitTest()
+		ns.db.profile.sources.strangers = true
+		if not entryFor(ns, "Zora") then
+			fail(scenario, "SKIPPED -- Zora was not offered with nobody flagged")
+			return
+		end
+		Mock.pvp = { party1 = true }
+		if not entryFor(ns, "Zora") then
+			fail(scenario, "Zora, outside your party, is held back for Bert, flagged in it, though a cast on"
+				.. " her lands on her alone")
+		end
+	end, function()
+		Mock.groupSize = 2
+		-- The mock puts every token in your party once you have one; Zora is not.
+		rawset(_G, "UnitInParty", function(unit) return unit == "party1" end)
+	end)
+end
+
+-- Unending Breath lands on its target alone (`alone`), and Molten Armor on
+-- you alone (your class's own): both still offered with Bert flagged.
+do
+	local scenario = "flows-fix: mists: Unending Breath on a party member is still offered beside a flagged one"
+	run(scenario, "mists", "WARLOCK", { party1 = { "Anna", "" }, party2 = { "Bert", "" } }, function(ns)
+		Mock.runTimers(0)
+		ns.Prompt:ExitTest()
+		ns.db.profile.buff.choice = "breath"
+		local anna = entryFor(ns, "Anna")
+		if not (anna and anna.buff and anna.buff.key == "breath") then
+			fail(scenario, "SKIPPED -- Anna was not offered Unending Breath with nobody flagged")
+			return
+		end
+		Mock.pvp = { party2 = true }
+		anna = entryFor(ns, "Anna")
+		if not (anna and anna.buff and anna.buff.key == "breath") then
+			fail(scenario, "Anna is not offered Unending Breath, which lands on her alone, for Bert flagged")
+		end
+	end, function()
+		Mock.groupSize = 3
+		knowing({ 109773, 5697 })
+	end)
+
+	scenario = "flows-fix: mists: your armor is still offered beside a flagged party member"
+	run(scenario, "mists", "MAGE", { party1 = { "Bert", "" } }, function(ns)
+		Mock.runTimers(0)
+		ns.Prompt:ExitTest()
+		myselfOffered(ns, true)
+		if not mine(ns, "moltenarmor") then
+			fail(scenario, "SKIPPED -- you were not offered Molten Armor with nobody flagged")
+			return
+		end
+		Mock.pvp = { party1 = true }
+		if not mine(ns, "moltenarmor") then
+			fail(scenario, "you are not offered Molten Armor, which lands on you alone, for Bert flagged")
+		end
+	end, function()
+		Mock.groupSize = 2
+		knowing({ 1459, 30482 })
+	end)
+end
+
+-- Classic Era and WoW Forever: Arcane Intellect lands on its target alone, so
+-- Anna and you are offered it with Bert flagged, and only Bert is held back.
+for _, flavour in ipairs({ "vanilla", "camelot" }) do
+	local scenario = "flows-fix: " .. flavour .. ": a buff on a party member is still offered beside a flagged one"
+	run(scenario, flavour, "MAGE", { party1 = { "Anna", "" }, party2 = { "Bert", "" } }, function(ns)
+		Mock.runTimers(0)
+		ns.Prompt:ExitTest()
+		if not (entryFor(ns, "Anna") and entryFor(ns, "Bert")) then
+			fail(scenario, "SKIPPED -- Anna and Bert were not both offered with nobody flagged")
+			return
+		end
+		Mock.pvp = { party2 = true }
+		if not entryFor(ns, "Anna") then
+			fail(scenario, "Anna is held back for Bert, flagged, though on " .. flavour
+				.. " the buff lands on her alone")
+		end
+		if entryFor(ns, "Bert") then
+			fail(scenario, "Bert, flagged for PvP, is offered")
+		end
+	end, function()
+		Mock.groupSize = 3
+	end)
+
+	scenario = "flows-fix: " .. flavour .. ": your own buff is still offered beside a flagged party member"
+	run(scenario, flavour, "MAGE", { party1 = { "Bert", "" } }, function(ns)
+		Mock.runTimers(0)
+		ns.Prompt:ExitTest()
+		myselfOffered(ns)
+		if not mine(ns, "intellect") then
+			fail(scenario, "SKIPPED -- you were not offered your own Arcane Intellect with nobody flagged")
+			return
+		end
+		Mock.pvp = { party1 = true }
+		if not mine(ns, "intellect") then
+			fail(scenario, "you are not offered your own Arcane Intellect for Bert flagged, though on "
+				.. flavour .. " it lands on you alone")
+		end
+	end, function()
+		Mock.groupSize = 2
 	end)
 end
