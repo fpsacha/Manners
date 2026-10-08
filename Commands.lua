@@ -552,8 +552,12 @@ do
 	-- Never shared: the on switch is a state, not a taste; the click logger is a
 	-- diagnostic; the minimap button's place is about this screen; the chat
 	-- lines are a personal noise preference, like the minimap button. The
-	-- Profiles tab promises a paste keeps all four.
-	local SHARE_SKIP = { enabled = true, debugClicks = true, minimap = true, verbose = true }
+	-- Profiles tab promises a paste keeps all four. The never-offer list is
+	-- real players' names, each put there by hand: not for a line handed to
+	-- somebody, and kept through a paste as the page's reset keeps it. Its
+	-- default is empty, so the walk never found it; named here so that is a
+	-- decision rather than an accident.
+	local SHARE_SKIP = { enabled = true, debugClicks = true, never = true, minimap = true, verbose = true }
 
 	-- The same further down. The lock is a state, and a string copied while the
 	-- prompt was unlocked would unlock everybody's, and an unlocked prompt never
@@ -608,6 +612,11 @@ do
 							kind = "colour"
 						elseif name == "buff.skip" then
 							kind = "set"
+						elseif name == "filters.skipRaidGroups" then
+							-- A set too, of group numbers rather than names. Its
+							-- default is empty, so the walk below found nothing in
+							-- it and the groups switched off never travelled.
+							kind = "groups"
 						else
 							local inner = {}
 							for i = 1, #path do inner[i] = path[i] end
@@ -734,6 +743,14 @@ do
 			if #keys == 0 then return nil end
 			table.sort(keys)
 			return table.concat(keys, ",")
+		elseif kind == "groups" then
+			if type(value) ~= "table" then return nil end
+			local groups = {}
+			for group = 1, 8 do
+				if value[group] == true then groups[#groups + 1] = tostring(group) end
+			end
+			if #groups == 0 then return nil end
+			return table.concat(groups, ",")
 		end
 	end
 
@@ -762,6 +779,14 @@ do
 				count = count + 1
 				if count > 64 then return nil end
 				out[part] = true
+			end
+			return out
+		elseif kind == "groups" then
+			-- A raid has eight groups; anything else is not one.
+			local out = {}
+			for part in (raw .. ","):gmatch("([^,]*),") do
+				if not part:match("^[1-8]$") then return nil end
+				out[tonumber(part)] = true
 			end
 			return out
 		end
@@ -841,6 +866,10 @@ do
 					-- dropped without a word: 1.4.0 wrote verbose=0 into its
 					-- strings, and calling that a newer version's setting is
 					-- a sentence the player can do nothing about.
+				elseif (ns.OWN_FAMILY_ANY_CLIENT or {})[name:match("^ownBuffs%.pick%.([%w_]+)$") or ""] then
+					-- Another game client's own buff (an Omen of Clarity pick
+					-- read on Forever): the same version made it, so nothing
+					-- newer exists to send the player looking for.
 				else
 					-- A setting a later version added: skipped, not refused.
 					unknown = unknown + 1

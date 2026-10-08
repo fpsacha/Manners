@@ -20,7 +20,7 @@ mutate("Options/Start.lua",
 
 # An empty own profile taken for one worth going back to.
 mutate("Options/Start.lua",
-       "\treturn type(own) == \"table\" and next(own) ~= nil\n",
+       "\treturn type(own) == \"table\" and not OnlyVisited(own)\n",
        "\treturn type(own) == \"table\"\n",
        "hunt13-fix3: an empty own profile counts",
        expect="an empty profile of its own counts as one to go back to", script=S)

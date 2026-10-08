@@ -131,6 +131,31 @@ end
 -- copies into before it copies, so going back to this one must never copy.
 -- An empty one counts as none: AceDB strips the defaults from a profile it
 -- leaves, so one nobody changed is empty, and copying into it loses nothing.
+-- Empty, that is, but for what the repair at load (ClampSettings, Core.lua)
+-- writes into every profile it meets, which AceDB keeps because none of it is
+-- a default: its two stamps, the first run it starts as, and the Roleplay
+-- lines it fills an empty phrase box with. A profile picked on the Profiles
+-- tab and left without a change holds those and nothing else.
+local function OnlyVisited(own)
+	for key, value in pairs(own) do
+		if key == "prompt" and type(value) == "table" then
+			for k, v in pairs(value) do
+				if not ((k == "anchorCarried" or k == "offsetsUnscaled") and v == true) then return false end
+			end
+		elseif key == "speech" and type(value) == "table" then
+			for k, v in pairs(value) do
+				if k ~= "phrases" or not (v == ns.PhraseSetText("roleplay")
+					or ns.EnglishPhraseSet(v) == "roleplay") then
+					return false
+				end
+			end
+		elseif not (key == "firstRun" and (value == "pending" or value == "existing")) then
+			return false
+		end
+	end
+	return true
+end
+
 function Setup.OwnProfileExists()
 	local db = ns.db
 	local sv, keys = db and db.sv, db and db.keys
@@ -139,7 +164,7 @@ function Setup.OwnProfileExists()
 		return false
 	end
 	local own = sv.profiles[keys.char]
-	return type(own) == "table" and next(own) ~= nil
+	return type(own) == "table" and not OnlyVisited(own)
 end
 
 -- Whether the button below has anything to do: somebody else is on this

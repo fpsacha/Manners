@@ -2343,8 +2343,11 @@ function ns.ClampSettings()
 	for _, limit in ipairs(LIMITS) do
 		local group, key, low, high = limit[1], limit[2], limit[3], limit[4]
 		local value = profile[group] and profile[group][key]
-		if type(value) ~= "number" or value < low or value > high then fixed(group .. "." .. key, value) end
-		if type(value) ~= "number" then
+		-- NaN (a hand-edited 0/0) is a number below and above nothing, so it
+		-- counts as no number at all, as for the offsets and colours below.
+		local number = type(value) == "number" and value == value
+		if not number or value < low or value > high then fixed(group .. "." .. key, value) end
+		if not number then
 			profile[group][key] = ns.defaults.profile[group][key]
 		elseif value < low then
 			profile[group][key] = low
