@@ -889,11 +889,14 @@ do
 	-- castable buff is walked, so holding the first one never hides somebody.
 	--
 	-- `candidates` comes from CastableBuffs. `has(buff, opts)` answers only the
-	-- aura question: has, remaining, and mine (their copy is our cast; nil
-	-- unknown). It is handed opts too, like opts.blocked, so the caller's
-	-- answer can be a file-level function rather than a closure per person.
+	-- aura question: has, remaining, mine (their copy is our cast; nil
+	-- unknown) and over (a rank above what ours would land, which the game
+	-- will not let ours replace). It is handed opts too, like opts.blocked, so
+	-- the caller's answer can be a file-level function rather than a closure
+	-- per person.
 	--   offerAnyway  offer even when they are covered: we owe them a favour, and
-	--                a refresh takes nothing away.
+	--                a refresh takes nothing away. Never over a stronger rank
+	--                (over), which is no refresh: the game refuses it.
 	--   paidUp       ...except with what they carry from us with more than the
 	--                top-up time left (Fresh): a group member's favour that
 	--                has nothing to repay.
@@ -937,17 +940,18 @@ do
 					-- One they could give themselves is still read: ours on them
 					-- covers them like any other, but it is never what they get.
 					local skipped = Skipped(opts, buff)
-					local held, remaining, mine = has(buff, opts)
+					local held, remaining, mine, over = has(buff, opts)
 					if held == true and mine == false then
 						-- Another paladin's: ours of the same kind would only
 						-- replace it, so move on to a kind they lack -- unless we
 						-- offered this one moments ago, which still means "wait".
 						-- One they could give themselves is neither, and nor is
-						-- one we cannot cast on them.
+						-- one we cannot cast on them, or one at a rank ours
+						-- cannot replace.
 						if castable and not skipped then
 							if Blocked(opts, buff) then
 								onCooldown = true
-							elseif not theirs then
+							elseif not theirs and not over then
 								theirs = buff
 							end
 						end
@@ -955,8 +959,10 @@ do
 						-- Covered, and for this class that is the end of it. First
 						-- the cooldown: offered one moments ago means wait. One
 						-- they could give themselves is covered and no more, and
-						-- so is one we cannot cast on them: nothing to top up.
+						-- so is one we cannot cast on them, or one worn at a rank
+						-- above ours: nothing to top up.
 						if skipped or not castable or Blocked(opts, buff) then return nil, true end
+						if over then return nil, true end
 
 						-- The top-up, safest on this class: recasting a blessing
 						-- replaces it with itself. Ahead of the debt, as on the
@@ -1011,13 +1017,15 @@ do
 		local firstHeld
 		for _, buff in ipairs(candidates) do
 			if Eligible(opts, buff) then
-				local held, remaining, mine = has(buff, opts)
+				local held, remaining, mine, over = has(buff, opts)
 				if held == false then return buff, false end
 				if held ~= true then
 					if not firstUnknown then firstUnknown = buff end
 					if seenLast and not afterLast then afterLast = buff end
 					if buff.key == last then seenLast = true end
-				else
+				elseif not over then
+					-- (Worn at a rank above ours, it is neither: covered, and
+					-- ours on top is refused.)
 					if not firstHeld and not Fresh(opts, mine, remaining) then firstHeld = buff end
 					if opts.whenBuffed == "refresh" and remaining
 						and remaining <= (opts.refreshUnder or 5) * 60 and not expiring then
@@ -1838,7 +1846,7 @@ ns.nameplateUnits = {}
 -- unit inspection
 ---------------------------------------------------------------------------
 
--- auraCache[guid][buffKey] = { at, has, expires, mine }, swept periodically
+-- auraCache[guid][buffKey] = { at, has, expires, mine, over }, swept periodically
 -- because a city puts hundreds of players through here. Keyed by player so
 -- UNIT_AURA, the hot path, forgets a whole player in one assignment; the count
 -- is of players.
@@ -1869,10 +1877,12 @@ local function SweepAuraCache(now)
 	end
 end
 
--- Returns has, secondsRemaining, mine. `has` is nil when the client refuses any
--- one of the buff's ids (the hidden one may be the one they wear);
+-- Returns has, secondsRemaining, mine, over. `has` is nil when the client refuses
+-- any one of the buff's ids (the hidden one may be the one they wear);
 -- `secondsRemaining` is nil when the timer is unreadable, not "about to expire";
--- `mine` is nil when the aura names nobody we can read.
+-- `mine` is nil when the aura names nobody we can read; `over` is true when
+-- they wear a rank above the one your cast would land, which the game refuses
+-- to put over it.
 local function UnitHasBuff(unit, buff, guid)
 	local info = ns.BuffInfo(buff)
 	if not info or not info.readable then return nil, nil end
@@ -1881,13 +1891,13 @@ local function UnitHasBuff(unit, buff, guid)
 	local perUnit = guid and auraCache[guid]
 	local cached = perUnit and perUnit[buff.key]
 	if cached and (now - cached.at) < 3 then
-		return cached.has, cached.expires and (cached.expires - now) or nil, cached.mine
+		return cached.has, cached.expires and (cached.expires - now) or nil, cached.mine, cached.over
 	end
 
 	-- Refusals (an id declared secret, a read that throws or comes back secret)
 	-- are counted, not read as absence: BuildQueue promotes a target over a debt
 	-- on a definite no, and the prompt drops its unverified wording.
-	local has, expires, mine, refused = false, nil, nil, false
+	local has, expires, mine, over, refused = false, nil, nil, nil, false
 	for _, id in ipairs(buff.auraIds) do
 		if info.secrecy[id] == true then
 			refused = true
@@ -1911,7 +1921,12 @@ local function UnitHasBuff(unit, buff, guid)
 				-- nothing: a level-60 wearing a low player's +10 Stamina for an
 				-- hour, never offered the +70. The game lands the best rank you
 				-- know up to ten levels above theirs. Ranks only, never a group
-				-- version; a level that cannot be read tests nothing.
+				-- version; a level that cannot be read tests nothing. A rank
+				-- above it covers them and is more: yours on top is refused ("A
+				-- more powerful spell is already active"), so it is no refresh
+				-- for a debt or a top-up to offer. Only one their level allows:
+				-- a rank past their reach is a reading no cast makes, and
+				-- tests nothing.
 				local worn = ns.RankLevel(id)
 				local level = worn and plain(UnitLevel(unit))
 				local best = level and ns.RankLevel(info.topRank)
@@ -1924,6 +1939,7 @@ local function UnitHasBuff(unit, buff, guid)
 						if at and at <= reach and (not landing or at > landing) then landing = at end
 					end
 					if isRank and landing and worn < landing then has, expires, mine = false, nil, nil end
+					if isRank and landing and worn > landing and worn <= level + 10 then over = true end
 				end
 				break
 			end
@@ -1943,11 +1959,12 @@ local function UnitHasBuff(unit, buff, guid)
 		-- crowd turns them all over every three seconds.
 		if cached then
 			cached.at, cached.has, cached.expires, cached.mine = now, has, expires, mine
+			cached.over = over
 		else
-			perUnit[buff.key] = { at = now, has = has, expires = expires, mine = mine }
+			perUnit[buff.key] = { at = now, has = has, expires = expires, mine = mine, over = over }
 		end
 	end
-	return has, expires and (expires - now) or nil, mine
+	return has, expires and (expires - now) or nil, mine, over
 end
 ns.UnitHasBuff = UnitHasBuff
 
@@ -2083,10 +2100,24 @@ ns.SameParty = SameParty
 --
 -- The follow prompt is called directly, and LibStub's silent lookup returns
 -- nil rather than throwing; LibRangeCheck is third-party, so it keeps safecall.
+--
+-- On Mists and retail a shout reaches the party and raid within 100 yards
+-- (Buffs.lua, shoutYards), past both tests above: their "no" at 28 or 30
+-- yards is no answer there. The client's own sight answers first instead,
+-- read as BuildQueue and GroupBuffs.lua read it for any group spell's 100
+-- yards; then the follow prompt's yes, then LibRangeCheck within the reach.
+-- Called directly, as they call it: a group token never throws.
 local function ShoutReach(unit)
+	local wide = ns.SHOUT_YARDS
+	if wide and type(_G.UnitIsVisible) == "function" then
+		local visible = plain(_G.UnitIsVisible(unit))
+		if visible ~= nil then return visible == true end
+	end
+
 	if not InCombatLockdown() and type(_G.CheckInteractDistance) == "function" then
 		local follow = plain(_G.CheckInteractDistance(unit, 4))
-		if follow ~= nil then return follow == true or follow == 1 end
+		if follow == true or follow == 1 then return true end
+		if follow ~= nil and not wide then return false end
 	end
 
 	local stub = _G.LibStub
@@ -2094,7 +2125,7 @@ local function ShoutReach(unit)
 		and stub:GetLibrary("LibRangeCheck-3.0", true) or nil
 	if type(lib) == "table" and type(lib.GetRange) == "function" then
 		local _, maxRange = safecall(lib.GetRange, lib, unit)
-		if type(maxRange) == "number" and maxRange <= 30 then return true end
+		if type(maxRange) == "number" and maxRange <= (wide or 30) then return true end
 	end
 	return nil
 end

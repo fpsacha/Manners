@@ -1412,8 +1412,8 @@ mutate("Core.lua",
 #     branch -- so the refresh mode was switched on, described in the options,
 #     and dead for the one class it is safest on.
 mutate("Core.lua",
-       "\t\t\t\t\tlocal held, remaining, mine = has(buff, opts)\n",
-       "\t\t\t\t\tlocal held, _, mine = has(buff, opts)\n",
+       "\t\t\t\t\tlocal held, remaining, mine, over = has(buff, opts)\n",
+       "\t\t\t\t\tlocal held, _, mine, over = has(buff, opts)\n",
        "a top-up with the timer thrown away",
        expect="was offered no top-up at all",
        script="runscenarios.py")
@@ -2934,8 +2934,8 @@ mutate("Core.lua",
 # The same, three seconds later: the cache remembering that there was a
 # blessing and forgetting whose it was.
 mutate("Core.lua",
-       "\t\treturn cached.has, cached.expires and (cached.expires - now) or nil, cached.mine\n",
-       "\t\treturn cached.has, cached.expires and (cached.expires - now) or nil\n",
+       "\t\treturn cached.has, cached.expires and (cached.expires - now) or nil, cached.mine, cached.over\n",
+       "\t\treturn cached.has, cached.expires and (cached.expires - now) or nil, nil, cached.over\n",
        "the aura cache forgetting whose blessing it was",
        expect="(a warrior with another paladin's Kings): cached: offered false",
        script="runscenarios.py")
