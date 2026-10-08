@@ -148,7 +148,7 @@ do
 	local CASES = {
 		{ race = "Scourge", family = "forsaken", faction = "Horde", class = "MAGE", hours = { "night", "morning" } },
 		{ race = "Dwarf", family = "dwarf", faction = "Alliance", class = "PRIEST", hours = { "morning" } },
-		{ race = "Haranir", family = "haranir", faction = "Horde", class = "MAGE", hours = {} },
+		{ race = "Harronir", family = "haranir", faction = "Horde", class = "MAGE", hours = {} },
 		-- A people the addon does not know, as the Haranir were until 1.7.2.
 		{ race = "Murloc", faction = "Alliance", class = "MAGE", hours = {} },
 	}

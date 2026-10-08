@@ -270,7 +270,7 @@ mutate("Phrases.lua",
 
 # "Your Arcane Intellect for my Arcane Intellect."
 mutate("Phrases.lua",
-       "\t\tif gift ~= nil and gift == single then gift = nil end\n",
+       "\t\tif gift ~= nil and (gift == single or (key and RP.GiftKey(entry) == key)) then gift = nil end\n",
        "",
        "rp a spell traded for itself",
        expect="rp: a favour is thanked for by the spell it was",
@@ -723,7 +723,7 @@ mutate("Phrases.lua",
 
 # The spell on a class it does little for never heard.
 mutate("Phrases.lua",
-       "\t\tlocal onto = key and RP.ONTO[key]\n",
+       "\t\tlocal onto = key and entry.buff.manaOnly and RP.ONTO[key]\n",
        "\t\tlocal onto = nil\n",
        "rp no spell on a class",
        expect="rp: a spell on a class it does little for",
