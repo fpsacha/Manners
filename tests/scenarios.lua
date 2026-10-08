@@ -109,8 +109,8 @@ local function drive(scenario, ns, extra)
 			if fn then fn(ns.Prompt:GetButton()) end
 		end },
 		-- And off again: the cursor on the panel holds it up (see hovering in
-		-- Prompt/Button.lua), which no scenario driven through here is about. The
-		-- repaint it asks for next frame is dropped: the next step repaints
+		-- Prompt/Prompt.lua), which no scenario driven through here is about.
+		-- The repaint it asks for next frame is dropped: the next step repaints
 		-- anyway, and a timer left pending here would fire inside whatever a
 		-- scenario later runs the clock for -- a pull's own repaint, say.
 		{ "OnLeave", function()

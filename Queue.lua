@@ -1391,7 +1391,7 @@ end
 --
 -- Letting somebody go on a verdict writes it into `rejected` too, which
 -- BuildQueue hands the prompt, so the cursor's hold cannot outlast it
--- (hovering, Prompt/Button.lua). Running out of time is no verdict. `verdict`
+-- (hovering, Prompt/Prompt.lua). Running out of time is no verdict. `verdict`
 -- is the scan's never-offer answers (NeverVerdicts); `askOnly`
 -- StillCastable's.
 local function OfferPassersBy(queue, seen, rejected, now, db, candidates, askOnly, verdict, drop)
@@ -1609,7 +1609,8 @@ local function SelfEntry(db, candidates, now, verdict, ownOnly)
 		short = ShortName(full),
 		display = L["You"],
 		-- The spelling the macro's /target line carries: you are targeted by
-		-- name like anybody else (STRATEGIES.self in Prompt/Macro.lua says why).
+		-- name like anybody else (STRATEGIES.self in Prompt/Macro.lua says
+		-- why).
 		targetName = ns.TargetName(full),
 		unit = "player",
 		class = caps.class,
@@ -1675,7 +1676,7 @@ end
 -- everybody a token reached and found covered, dead, out of range or sight,
 -- listed or held back for mana (and the remembered let go on a verdict), or
 -- true for the whole queue refused for your own state. The prompt reads it to
--- tell a verdict from a token merely lost (hovering, Prompt/Button.lua).
+-- tell a verdict from a token merely lost (hovering, Prompt/Prompt.lua).
 -- `watch` says the prompt holds somebody the queue may not: a verdict about
 -- the dead then costs a name read anyway.
 function ns.BuildQueue(watch)
@@ -2148,7 +2149,8 @@ function ns.BuildQueue(watch)
 	elseif watch then
 		-- Not offered to you, for whatever reason: a verdict on you, never a
 		-- token lost, so a cursor resting on the prompt does not hold "You"
-		-- there after you buffed yourself by hand (see hovering, Prompt/Button.lua).
+		-- there after you buffed yourself by hand (see hovering,
+		-- Prompt/Prompt.lua).
 		local me = ns.UnitFullName("player")
 		if me then rejected[me] = true end
 	end

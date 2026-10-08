@@ -67,8 +67,9 @@ local MODEL = {
 	{ "reasonUnknown", 59, "Reason text: can't tell" },
 }
 
--- Where the window draws them, top to bottom: When to offer's Favours, then its Timing and Targeting folds; Look's
--- Exact position and Prompt wording folds. Folded or not, by section.
+-- Where the window draws them, top to bottom: When to offer's Favours, then
+-- its Timing and Targeting folds; Look's Exact position and Prompt wording
+-- folds. Folded or not, by section.
 local PLACED = {
 	when = {
 		{ "advanced.reciprocateWindow" }, { "advanced.owedClassBuffsOnly" },

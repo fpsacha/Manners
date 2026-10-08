@@ -65,7 +65,7 @@ end
 
 -- One scan: this person's entry (or nil) and whether the scan wrote a verdict
 -- on them, which is what the prompt's hold reads (see hovering,
--- Prompt/Button.lua).
+-- Prompt/Prompt.lua).
 local function look(ns, name)
 	local queue, rejected = ns.BuildQueue()
 	local found

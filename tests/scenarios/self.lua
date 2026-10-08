@@ -1295,7 +1295,7 @@ end
 
 -- ------------------------------------------------------------------ self 26
 -- The cursor resting on the panel holds it for a token lost, never for a
--- verdict (see hovering, Prompt/Button.lua). Buffed by hand while the cursor
+-- verdict (see hovering, Prompt/Prompt.lua). Buffed by hand while the cursor
 -- is on "You", the scan no longer offers you, and that is a verdict on you:
 -- the panel goes as it would with the cursor elsewhere, rather than holding
 -- your own buff up for the cursor's ten seconds.

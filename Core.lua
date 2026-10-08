@@ -632,7 +632,8 @@ do
 		-- ASSUMPTION: whether /cast [@Name] can replace /target, cast, target back.
 		-- No API answers it, and [@Name] resolves only for group members, so
 		-- Camelot keeps the /target route, the only one verified in game. Only
-		-- reported (/manners debug, the bug report): no macro is built from it.
+		-- reported, by /manners debug and the probe kept in SavedVariables
+		-- (ns.WriteProbe): no macro is built from it.
 		caps.conditionalTargeting = flavour.flavour ~= "camelot"
 
 		-- /targetexact matches the whole name where /target matches a prefix
@@ -2546,7 +2547,8 @@ function ns.ClampSettings()
 	-- The look once called "blizzard" is "framed" now; carried across rather
 	-- than reset to the default by the oneOf below.
 	if p.style == "blizzard" then p.style = "framed" end
-	-- Every look Looks/ registered, the three Prompt/Panel.lua draws among them.
+	-- Every look Looks/ registered, the three Prompt/Panel.lua draws among
+	-- them.
 	oneOf(p, "style", ns.Looks.Allowed(), ns.defaults.profile.prompt.style)
 	oneOf(p, "accentMode", { icon = true, stripe = true, both = true, off = true }, "icon")
 	oneOf(p, "reasonPalette", { standard = true, colourblind = true }, "standard")

@@ -117,8 +117,9 @@ function ns.Welcome(force, offSaid)
 	if store.welcomed and not force then return true end
 
 	-- The probe's verdict on this character. Indexed off caps.class, so a
-	-- class not read (one secret value away on this client) is "not on the
-	-- list" and meets the gate below with everything else that is no answer.
+	-- class not read (one secret value away on Forever and retail) is "not on
+	-- the list" and meets the gate below with everything else that is no
+	-- answer.
 	local nothingToGive = caps.class ~= nil and ns.CLASSES_WITHOUT_BUFFS ~= nil
 		and ns.CLASSES_WITHOUT_BUFFS[caps.class] == true
 	-- ...and of those, a hunter or a shaman with a buff of his own learned,

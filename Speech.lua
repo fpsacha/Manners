@@ -280,8 +280,8 @@ end
 ns.MACRO_LIMIT = 255
 
 -- The room a spoken line gets is whatever the cast lines leave, which differs
--- per person: ns.PhraseBudget in Prompt/Macro.lua answers it. A block of its own for
--- the main chunk's 200 locals.
+-- per person: ns.PhraseBudget in Prompt/Macro.lua answers it. A block of its
+-- own for the main chunk's 200 locals.
 do
 	local function SanitizePhrase(text)
 		if type(text) ~= "string" then return nil end

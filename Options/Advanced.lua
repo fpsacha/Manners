@@ -334,8 +334,9 @@ function Page.BuildAdvancedTab()
 				-- Hidden, not disabled, like the strangers toggle: nothing
 				-- on this page would put a /target in a Battle Shout macro.
 				-- A press on yourself always hands your target back
-				-- (STRATEGIES.self, Prompt/Macro.lua), so for a class whose only
-				-- prompt is "You" this would be a switch that changes nothing.
+				-- (STRATEGIES.self, Prompt/Macro.lua), so for a class whose
+				-- only prompt is "You" this would be a switch that changes
+				-- nothing.
 				hidden = function() return NeverTargets() or NoOthers() end,
 				get = fGetMacro,
 				set = fSetMacro,
