@@ -358,8 +358,8 @@ end
 function Ledger.Ago(seconds)
 	seconds = math.max(0, seconds or 0)
 	if seconds < 45 then return TEXT.JUST_NOW end
-	if seconds < 3600 then return TEXT.MINUTES_AGO:format(math.max(1, math.floor(seconds / 60 + 0.5))) end
-	if seconds < 86400 then return TEXT.HOURS_AGO:format(math.max(1, math.floor(seconds / 3600 + 0.5))) end
+	if seconds < 3600 then return TEXT.MINUTES_AGO:format(math.min(59, math.max(1, math.floor(seconds / 60 + 0.5)))) end
+	if seconds < 86400 then return TEXT.HOURS_AGO:format(math.min(23, math.max(1, math.floor(seconds / 3600 + 0.5)))) end
 	local days = math.floor(seconds / 86400)
 	if days == 1 then return TEXT.DAY_AGO end
 	return TEXT.DAYS_AGO:format(days)
@@ -368,7 +368,7 @@ end
 local function Duration(seconds)
 	seconds = math.max(0, math.floor(seconds or 0))
 	if seconds < 60 then return TEXT.SECONDS:format(seconds) end
-	if seconds < 3600 then return TEXT.MINUTES:format(math.floor(seconds / 60 + 0.5)) end
+	if seconds < 3600 then return TEXT.MINUTES:format(math.min(59, math.floor(seconds / 60 + 0.5))) end
 	return TEXT.HOURS:format(math.floor(seconds / 3600 + 0.5))
 end
 

@@ -2059,7 +2059,12 @@ ns.InRange = InRange
 -- plain number, so it is called directly. On ns alone (Queue.lua and
 -- GroupBuffs.lua take it from there) to spare a main-chunk local.
 function ns.RaidSubgroup(unit)
-	local index = tonumber(unit:match("^raid(%d+)$")) or plain(UnitInRaid and UnitInRaid(unit))
+	local index = tonumber(unit:match("^raid(%d+)$"))
+	if not index then
+		-- UnitInRaid counts from 0; GetRaidRosterInfo counts from 1.
+		local r = plain(UnitInRaid and UnitInRaid(unit))
+		index = type(r) == "number" and r + 1 or nil
+	end
 	if type(index) ~= "number" then return nil end
 	local roster = _G.GetRaidRosterInfo
 	if type(roster) ~= "function" then return nil end

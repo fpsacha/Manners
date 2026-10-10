@@ -1156,7 +1156,7 @@ local function YouAreFlagged()
 	local mine = PvPFlag("player")
 	if mine == false then return false end
 	local inside, kind = safecall(_G.IsInInstance)
-	local battle = inside == true and (kind == "pvp" or kind == "arena")
+	local battle = (inside == true or inside == 1) and (kind == "pvp" or kind == "arena")
 	if mine == nil or battle then return battle end
 	if safecall(_G.IsPVPTimerRunning) == true then return false, true end
 	return true
