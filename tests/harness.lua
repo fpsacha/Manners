@@ -123,6 +123,8 @@ for _, e in ipairs({
   -- Registered on this client by EnhanceQoL's class-buff reminder, which
   -- watches the bags and the weapon for its weapon buffs.
   "BAG_UPDATE_DELAYED", "PLAYER_EQUIPMENT_CHANGED",
+  -- Registered on this client by EnhanceQoL's class-buff reminder.
+  "ADDON_RESTRICTION_STATE_CHANGED",
 }) do KNOWN_EVENTS[e] = true end
 
 -- Ace3 stand-ins

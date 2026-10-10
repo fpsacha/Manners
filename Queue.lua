@@ -1779,7 +1779,9 @@ function ns.BuildQueue(watch)
 	-- there is, every spell of yours switched off, or none you can pay for
 	-- right now -- leaves you alone to offer (an armor costs less than an
 	-- Intellect), and no walk: every person it reached would be turned down.
-	if #candidates == 0 then
+	-- Except for somebody asking by name for a spell Automatic leaves alone
+	-- (askOnly), whom only the walk reads.
+	if #candidates == 0 and not (askOnly and #askOnly > 0 and ns.RequestStanding(now)) then
 		local own = SelfEntry(db, candidates, now, neverVerdict)
 		if own then return { own }, {} end
 		return {}, true
