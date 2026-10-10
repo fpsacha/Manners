@@ -701,7 +701,7 @@ your client runs in. Slash commands are English in all of them.
 | Mage | Arcane Intellect |
 | Priest | Power Word: Fortitude, Divine Spirit, Shadow Protection |
 | Druid | Mark of the Wild, Thorns |
-| Paladin | Wisdom, Might, Kings, Salvation (your party or raid only), Light |
+| Paladin | Wisdom, Might, Kings, Salvation (your party or raid only), Light; Sanctuary on Classic Era |
 | Warlock | Unending Breath |
 | Warrior | Battle Shout (your own party only) |
 
@@ -723,7 +723,7 @@ you have learned them:
 
 | Class | Your own buffs |
 |---|---|
-| Mage | *Armor*: Frost Armor (Ice Armor from level 30) or Mage Armor; and from the scrolls in your bags, *Familiar* (Rat, Frog or Cat) and *Weapon imbue* (Lesser Flame, Chillknife and the rest, each for the weapon it fits) |
+| Mage | *Armor*: Frost Armor (Ice Armor from level 30) or Mage Armor; and on WoW Forever, from the scrolls in your bags, *Familiar* (Rat, Frog or Cat) and *Weapon imbue* (Lesser Flame, Chillknife and the rest, each for the weapon it fits) |
 | Priest | Inner Fire; Touch of Weakness and Shadowguard, if you have learned them |
 | Warlock | Demon Skin (Demon Armor from level 20) |
 | Paladin | *Aura*: Devotion, Retribution, Concentration, Shadow, Frost or Fire Resistance; and Righteous Fury |
@@ -861,8 +861,17 @@ libraries as build-time externals, so the packager fetches current upstream
 copies under their own licences.
 
 **A zip built from a clone therefore has no libraries and will not load.**
-Write the notes under `## Unreleased` in `CHANGELOG.md`, set the version, push
-master, and once CI is green tag it and let the workflow build it:
+Write the notes under `## Unreleased` in `CHANGELOG.md`, run the full
+`python tests/selftest.py` once, then let `tools/release.py` do the rest: it
+checks the tree and runs `tools/check.py`, sets the version, commits, pushes
+master, waits for CI, tags, pushes the tag and waits for the release build.
+
+```
+python tools/release.py X.Y.Z --dry-run   # every step printed, nothing changed
+python tools/release.py X.Y.Z
+```
+
+By hand it is the same steps, with the tag pushed only once CI is green:
 
 ```
 python tests/setversion.py X.Y.Z
@@ -877,12 +886,12 @@ A tag pushed without notes, or pushed together with master before CI has
 passed, fails its build and stays on origin; RELEASING.md says how to take it
 off.
 
-`.github/workflows/release.yml` runs the test suites, fails the build if any
-check has stopped being able to detect the fault it exists for, then packages
-and publishes a GitHub release and uploads to **CurseForge and Wago** from the
-one tag. A destination needs both a token in the repository secrets and a
-project id in the toc; missing either skips that upload in a way that reads
-exactly like success, so the build log names which half is absent.
+`.github/workflows/release.yml` runs the test suites and checks that every
+mutation still finds its code, then packages and publishes a GitHub release and
+uploads to **CurseForge and Wago** from the one tag, for all five clients. A
+destination needs both a token in the repository secrets and a project id in
+the toc; missing either skips that upload in a way that reads exactly like
+success, so the build log names which half is absent.
 
 The listing text is in `.github/`, one file per field: see
 [RELEASING.md](RELEASING.md#the-listing) for which goes where.
@@ -890,14 +899,21 @@ The listing text is in `.github/`, one file per field: see
 ## Tests
 
 ```
-python tests/validate.py       structure, syntax, Lua 5.1 limits and version consistency
-python tests/runharness.py     load the addon against a mock client
-python tests/runscenarios.py   adversarial scenarios
-python tests/selftest.py       confirm the suites can still go red
+python tools/check.py               validate, runharness and runscenarios, one line each
+python tools/check.py --flavours    ... and each client's own scenarios as that client
+python tools/check.py --anchors     ... and every mutation still finds its code
+python tests/selftest.py --changed  the mutations of the files you changed
+python tests/selftest.py            every mutation, each caught by the check it names
 ```
 
-All four run on every push via `.github/workflows/ci.yml`, and again as a gate
-before any release. See `tests/README.md`.
+`tools/check.py` runs `tests/validate.py` (structure, syntax, Lua 5.1 limits,
+translations, version consistency), `tests/runharness.py` (the addon loaded
+against a mock client) and `tests/runscenarios.py` (adversarial scenarios), and
+exits non-zero if any fails. `tests/selftest.py` puts back each fault the
+suites exist to catch and checks the named check catches it; the full run takes
+20 to 40 minutes, so it runs locally once before a release, while CI runs
+`--anchors` on every push. See `tests/README.md`, and `CLAUDE.md` for the
+flags.
 
 ## Listing images
 
