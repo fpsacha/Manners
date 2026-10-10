@@ -152,6 +152,22 @@ mutate("Queue.lua",
        expect="somebody handed a dead member's token was taken for them coming back",
        script="runscenarios.py")
 
+# A dead member's token handed to another dead member never looked at again.
+mutate("Queue.lua",
+       "\t\t\tif name and name ~= down[unit] then down[unit] = nil end\n",
+       "",
+       "token handed to another dead member not noticed",
+       expect="stood up under a token another dead member held and was not put first",
+       script="runscenarios.py")
+
+# ... and the stored name overwritten without asking about Feign Death again.
+mutate("Queue.lua",
+       "\t\t\tif name and name ~= down[unit] then down[unit] = nil end\n",
+       "\t\t\tif name then down[unit] = name end\n",
+       "token handed to a feigning hunter refiled as a death",
+       expect="a hunter handed a dead member's token was taken for them coming back",
+       script="runscenarios.py")
+
 # --- raid groups ---
 
 # The setting never read.

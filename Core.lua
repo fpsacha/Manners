@@ -1022,7 +1022,6 @@ do
 				if held ~= true then
 					if not firstUnknown then firstUnknown = buff end
 					if seenLast and not afterLast then afterLast = buff end
-					if buff.key == last then seenLast = true end
 				elseif not over then
 					-- (Worn at a rank above ours, it is neither: covered, and
 					-- ours on top is refused.)
@@ -1033,6 +1032,9 @@ do
 					end
 				end
 			end
+			-- Past `last` whether or not it is eligible: a press blocks it for the
+			-- retry cooldown, so it is usually the one that is not.
+			if buff.key == last then seenLast = true end
 		end
 
 		-- Nothing definitely missing, but something nobody could read: with no
@@ -1894,9 +1896,10 @@ local function UnitHasBuff(unit, buff, guid)
 		return cached.has, cached.expires and (cached.expires - now) or nil, cached.mine, cached.over
 	end
 
-	-- Refusals (an id declared secret, a read that throws or comes back secret)
-	-- are counted, not read as absence: BuildQueue promotes a target over a debt
-	-- on a definite no, and the prompt drops its unverified wording.
+	-- Refusals (an id declared secret, a read that throws or comes back secret,
+	-- an empty read of an id the client hides just now) are counted, not read as
+	-- absence: BuildQueue promotes a target over a debt on a definite no, and the
+	-- prompt drops its unverified wording.
 	local has, expires, mine, over, refused = false, nil, nil, nil, false
 	for _, id in ipairs(buff.auraIds) do
 		if info.secrecy[id] == true then
@@ -1905,6 +1908,13 @@ local function UnitHasBuff(unit, buff, guid)
 			local ok, aura = pcall(C_UnitAuras.GetUnitAuraBySpellID, unit, id)
 			if not ok or (issecretvalue and issecretvalue(aura)) then
 				refused = true
+			elseif aura == nil then
+				-- An aura the client keeps secret just now reads as nothing, and
+				-- the probe's note predates a match or key that began since:
+				-- asked at read time, as the own-buff families do (HiddenAura).
+				local secrets = C_Secrets
+				local ask = secrets and secrets.ShouldSpellAuraBeSecret
+				if type(ask) == "function" and plain(ask(id)) == true then refused = true end
 			elseif type(aura) == "table" then
 				has = true
 				local expiration = plain(aura.expirationTime)
@@ -2061,9 +2071,9 @@ ns.InRange = InRange
 function ns.RaidSubgroup(unit)
 	local index = tonumber(unit:match("^raid(%d+)$"))
 	if not index then
-		-- UnitInRaid counts from 0; GetRaidRosterInfo counts from 1.
+		-- UnitInRaid answers with the 1-based GetRaidRosterInfo index.
 		local r = plain(UnitInRaid and UnitInRaid(unit))
-		index = type(r) == "number" and r + 1 or nil
+		index = type(r) == "number" and r or nil
 	end
 	if type(index) ~= "number" then return nil end
 	local roster = _G.GetRaidRosterInfo

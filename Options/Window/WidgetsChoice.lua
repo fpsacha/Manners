@@ -243,6 +243,14 @@ local function PickerClosed()
 	if row then W.Hold(row, false) end
 end
 
+-- Whether the game's colour picker is up for one of these swatches. The window
+-- fades for as long as it is, which a slider or arrow let go of meanwhile
+-- (the window keeps one flag for all holds) must not end.
+function W.PickerUp()
+	local picker = _G.ColorPickerFrame
+	return picking ~= nil and type(picker) == "table" and picker.IsShown and picker:IsShown() and true or false
+end
+
 -- The client calls swatchFunc and then opacityFunc for every move of the
 -- picker, so the second finds nothing new and is let go: one commit, one
 -- repaint and one restyle a move.

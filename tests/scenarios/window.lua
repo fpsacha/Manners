@@ -635,7 +635,13 @@ do
 		Mock.advance(1.6)
 		settle(0.3)
 		if f:GetAlpha() ~= 1 then fail(scenario, "1.6 s after the change the window is still at " .. f:GetAlpha()) end
+		-- Leaving Look inside the 1.5 s: the page it opens on is not see-through.
 		B.Commit(item(ns, "appearance.showSub"), true)
+		press(UI.side.buttons.who)
+		settle(0.3)
+		if f:GetAlpha() ~= 1 then fail(scenario, "leaving Look inside the 1.5 s left the next page at " .. f:GetAlpha()) end
+		press(UI.side.buttons.appearance)
+		Mock.advance(1.6)
 		B.Commit(item(ns, "who.friends"), false)
 		Mock.advance(1.6)
 		settle(0.3)

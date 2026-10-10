@@ -176,6 +176,13 @@ for _, case in ipairs({
 			if macroOf(ns):find("Arcane Intellect", 1, true) then
 				fail(scenario, "the prompt armed a cast you cannot pay for: " .. flat(macroOf(ns)))
 			end
+			-- /manners debug and Diagnostics say what the prompt is on, not
+			-- an Intellect it has dropped.
+			local first = ns.SelfBuffFirst(ns.db.profile, GetTime())
+			if first then
+				fail(scenario, "debug says your own " .. tostring(first.key)
+					.. " comes first, which the prompt dropped for want of mana")
+			end
 		else
 			for _, who in ipairs({ ANNA, ZED }) do
 				if key(entryFor(ns, who)) ~= "intellect" then

@@ -563,6 +563,19 @@ withTree("Luxe lights up under the cursor", ANNA, function(ns, scenario)
 	if hl and hl._color and hl._color[4] ~= 0 then
 		fail(scenario, "the square highlight shows past Luxe's rounded corners")
 	end
+	-- The look changes under a cursor that stays: the light has finished
+	-- fading in, so nothing stops it, and the leave goes to the next look.
+	b.scripts.OnEnter(b)
+	Mock.advance(1)
+	FT.settle()
+	ns.db.profile.prompt.style = "glass"
+	ns.Prompt:ApplyStyle()
+	b.scripts.OnLeave(b)
+	ns.db.profile.prompt.style = "luxe"
+	ns.Prompt:ApplyStyle()
+	if look.hoverFrame:GetAlpha() ~= 0 then
+		fail(scenario, "Luxe came back with the cursor's light on, the cursor elsewhere")
+	end
 end)
 
 -- ------------------------------------------------------------------ 10

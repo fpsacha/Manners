@@ -289,11 +289,15 @@ local ASK_CASES = {
 	{ locale = "esES", name = "Intelecto Arcano", heard = { "int por favor", "buff por favor", "int, por favor",
 		"por favor int", "int por favor?", "¿int?", "¡int pls!", "Intelecto Arcano por favor" },
 		unheard = { "int no por favor" } },
-	{ locale = "itIT", name = "Intelletto Arcano", heard = { "int per favore", "buff per favore" } },
+	-- The article elided before a vowel sticks to the name ("l'intelletto"); the
+	-- name is still in the message, and a question opened "qu'est" still asks.
+	{ locale = "itIT", name = "Intelletto Arcano", heard = { "int per favore", "buff per favore",
+		"l'intelletto arcano per favore", "puoi darmi l'intelletto arcano?" } },
 	{ locale = "frFR", name = "Intelligence des Arcanes", heard = { "int s'il vous plaît", "int s'il te plait",
 		"buff s'il vous plaît", "Intelligence des Arcanes s'il vous plaît", "int s\226\128\153il vous plaît",
-		"INT S'IL VOUS PLAÎT" },
-		unheard = { "int plaît", "int ça me plaît" } },
+		"INT S'IL VOUS PLAÎT", "l'intelligence des arcanes svp", "l\226\128\153Intelligence des Arcanes s'il vous plaît",
+		"l'int svp" },
+		unheard = { "int plaît", "int ça me plaît", "Qu'est-ce que l'intelligence des arcanes ?" } },
 	{ locale = "enUS", name = "Arcane Intellect", heard = { "int pls\226\128\166", "int \226\128\148 pls",
 		"int\239\188\159", "\194\161int pls!", "\194\191int?", "\194\171int\194\187 pls", "int\227\128\130" } },
 	-- A sentence is no shorter for a comma: twelve characters at most, the

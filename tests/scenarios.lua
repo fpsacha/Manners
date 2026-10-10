@@ -2544,7 +2544,7 @@ ns = load("an unreadable class is walked through its list")
 if ns then
 	local scenario = "an unreadable class is walked through its list"
 	local known = {}
-	for _, key in ipairs({ "fortitude", "spirit" }) do
+	for _, key in ipairs({ "fortitude", "spirit", "shadow" }) do
 		for _, id in ipairs(ns.FindBuff("PRIEST", key).ranks) do known[id] = true end
 	end
 	local realKnown = IsSpellKnown
@@ -2596,6 +2596,20 @@ if ns then
 		if anyway == keys[1] then
 			fail(scenario, ("offer-anyway handed back %s straight after giving it")
 				:format(tostring(keys[1])))
+		end
+
+		-- A click blocks the buff it gave for the retry cooldown, so the pointer
+		-- sits on one the walk skips. The one after it is still next, not the top
+		-- of the list again.
+		if #keys >= 3 then
+			ns.lastGave[person] = keys[2]
+			ns.MarkAttempted(person, keys[2])
+			local pastBlocked = offeredNow()
+			if pastBlocked ~= keys[3] then
+				fail(scenario, ("%s was blocked behind the pointer and the walk offered %s, not %s")
+					:format(tostring(keys[2]), tostring(pastBlocked), tostring(keys[3])))
+			end
+			Mock.advance(13)
 		end
 		ns.db.profile.filters.whenBuffed = "skip"
 		ns.lastGave[person] = nil
@@ -12069,6 +12083,65 @@ if ns then
 						.. " that goes out is never counted (%s)"
 					or "a press too early to be queued was filed against the person"
 						.. " (%s)"):format(case.label))
+			end
+		end
+		Mock.inCombat = false
+		ns.addon:PLAYER_REGEN_ENABLED()
+		Mock.advance(3)
+		ns.addon:Tick()
+	end
+	_G.GetCVar = realCVar
+end
+restoreUnits()
+Mock.reset()
+
+-- ------------------------------------------------------------------ 176c
+-- A press queued in a wide spell-queue window is still settled by its cast.
+--
+-- The client casts a queued press when the cooldown ends, so its cast event
+-- comes as late as the press was early. The settle only took an event within
+-- half a second of the press: with the window set to 700 ms and 0.65 s of
+-- cooldown left, the cast that did go out was ignored, the record expired as
+-- "nothing was cast", and the person who was wearing the buff stayed owed.
+Mock.reset()
+restoreUnits = strangers({ nameplate1 = { "Anna", "Aim" } })
+ns = load("a press queued in a wide spell-queue window is settled by its cast")
+if ns then
+	local scenario = "a press queued in a wide spell-queue window is settled by its cast"
+	local realCVar = _G.GetCVar
+	for _, case in ipairs({
+		{ cvar = "700", wait = 0.85, label = "a 700 ms window, 0.65 s left" },
+		{ cvar = nil, wait = 1.15, label = "the default window, 0.35 s left" },
+	}) do
+		freshPrompt(ns, scenario)
+		clearClicks(ns)
+		_G.GetCVar = case.cvar and function(name)
+			if name == "SpellQueueWindow" then return case.cvar end
+		end or realCVar
+		owe(ns, "Anna Aim")
+		ns.addon:Tick()
+		local entry = ns.BuildQueue()[1]
+		Mock.inCombat = true
+		ns.addon:PLAYER_REGEN_DISABLED()
+		ns.addon:UNIT_SPELLCAST_SENT(nil, "player", "Somebody", "Cast-hand", 116)
+		Mock.advance(case.wait)
+		local ready, left = ns.CastReady()
+		if not (entry and entry.name == "Anna Aim" and entry.buff) then
+			fail(scenario, "SKIPPED -- Anna was not the one offered (" .. case.label .. ")")
+		elseif ready then
+			fail(scenario, "SKIPPED -- the cooldown had already ended (" .. case.label .. ")")
+		else
+			pressButton(ns)
+			if not ns.pendingClick then
+				fail(scenario, "SKIPPED -- the press was not filed (" .. case.label .. ")")
+			else
+				-- The client holds the cast until the cooldown ends.
+				Mock.advance(left)
+				ns.addon:UNIT_SPELLCAST_SENT(nil, "player", nil, "Cast-queued", entry.buff.ranks[1])
+				if ns.pendingClick or ns.owed["Anna Aim"] then
+					fail(scenario, ("the queued cast that went out was not counted, so the buff"
+						.. " it landed is owed again (%s)"):format(case.label))
+				end
 			end
 		end
 		Mock.inCombat = false

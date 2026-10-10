@@ -752,6 +752,10 @@ function Toast:Hide()
 	if not kit then return end
 	self.active = nil
 	for _, g in ipairs(self.anims) do g:Stop() end
+	-- The cursor's light parks where its fade was headed (and a finished fade
+	-- is not stopped at all), and the cursor leaves for the next look: put it
+	-- out after the Stop, or it is lit when this look comes back.
+	self.ringHover:SetAlpha(0)
 	for _, x in ipairs(self.own) do x:Hide() end
 	self.pulseGen = (self.pulseGen or 0) + 1
 	-- The shared regions, as the other looks expect to find them.
@@ -769,6 +773,10 @@ function Toast:Hide()
 	kit.fit.room[kit.name], kit.fit.room[kit.sub] = nil, nil
 	kit.textLayer:SetFrameLevel(kit.art:GetFrameLevel() + 1)
 	kit.textLayer:SetAlpha(1)
+	-- The fight's dimming of the clock goes with the hold, which Combat(false)
+	-- will not be here to lift.
+	self.ember:SetAlpha(1)
+	self.bead:SetAlpha(1)
 	self.combat, self.hovered, self.outcomeOn = nil, nil, nil
 	self.listShown, self.countMode, self.keyUp = nil, nil, false
 end
@@ -1119,9 +1127,15 @@ function Toast:Attention(isNew, arrived, flashStyle)
 		self:HoldPulse()
 		return
 	end
-	if self.pulse[1]:IsPlaying() then return end
-	self.glow:SetAlpha(0)
-	for _, g in ipairs(self.pulse) do g:Play() end
+	-- A repaint leaves a running pulse alone; a new favour on top keeps the
+	-- breathing going but takes its own three breaths, not what is left of the
+	-- last face's.
+	local playing = self.pulse[1]:IsPlaying()
+	if playing and not isNew then return end
+	if not playing then
+		self.glow:SetAlpha(0)
+		for _, g in ipairs(self.pulse) do g:Play() end
+	end
 	-- A few breaths and then still: a loop that runs for as long as somebody
 	-- waits is the one thing on an always-on panel that ages badly.
 	self.pulseGen = (self.pulseGen or 0) + 1

@@ -57,6 +57,10 @@ elseif Search then
 		{ "\195\128 \195\135A", "\195\160 \195\167a", "À and Ç" },
 		-- Spanish
 		{ "A\195\145O", "a\195\177o", "Ñ" },
+		-- Russian, which only a ruRU client's spell names bring
+		{ "\208\144\208\145\208\146 \208\159\208\160\208\161 \208\175", "\208\176\208\177\208\178 \208\191\209\128\209\129 \209\143", "А Б В, П Р С, Я" },
+		{ "\208\129\208\150", "\209\145\208\182", "Ё" },
+		{ "\209\145\208\182 \208\176", "\209\145\208\182 \208\176", "small Russian letters, already folded" },
 		-- Left alone
 		{ "2 \195\151 3", "2 \195\151 3", "the multiplication sign, which is no letter" },
 		{ "d\195\169j\195\160 vu", "d\195\169j\195\160 vu", "small letters, already folded" },
@@ -76,6 +80,10 @@ elseif Search then
 	-- What the folding is for: a query in capitals finds a label in small letters.
 	local hit = Search.Find("\195\156BERSPRINGEN", { { label = "Wen \195\188berspringen" } })
 	if #hit ~= 1 then fail(scenario, "a German query in capitals did not find its label") end
+	-- A ruRU spell name, "Чародейский интеллект", found by it in small letters.
+	local arcane = "\208\167\208\176\209\128\208\190\208\180\208\181\208\185\209\129\208\186\208\184\208\185 \208\184\208\189\209\130\208\181\208\187\208\187\208\181\208\186\209\130"
+	hit = Search.Find("\209\135\208\176\209\128\208\190\208\180\208\181\208\185\209\129\208\186\208\184\208\185", { { label = "Buff to offer", choices = { arcane } } })
+	if #hit ~= 1 then fail(scenario, "a Russian spell name in small letters did not find its capitalised choice") end
 	hit = Search.Find("|cffffd100whisper|r", { { label = "Where to say it", choices = { "Whisper them" } } })
 	if #hit ~= 1 then fail(scenario, "a query is not read the way a label is: a colour code in it stopped the match") end
 end

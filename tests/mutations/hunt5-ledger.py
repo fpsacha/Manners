@@ -27,6 +27,14 @@ mutate("Ledger.lua",
        "hunt5 ledger: midnight counted back from the hour",
        expect=DST, script=S)
 
+# Where the clocks skip midnight, the count back is stepped on into today.
+NOMIDNIGHT = "hunt5 ledger: today starts at the first moment of a day with no midnight"
+mutate("Ledger.lua",
+       "\t\t\tc = c + 1800\n",
+       "",
+       "hunt5 ledger: count back left an hour into yesterday",
+       expect=NOMIDNIGHT, script=S)
+
 # A font that will not load falls back to the game's own.
 FONT = "hunt5 ledger: a font that will not load does not break the window"
 mutate("Ledger.lua",

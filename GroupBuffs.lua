@@ -101,9 +101,9 @@ local function NoteStock(info, count, db)
 		-- Only on a drop, so logging in with a few in the bags says nothing:
 		-- it is the cast that just spent one that makes it news.
 		if count <= LOW_STOCK and before and count < before and not warnedLow[item] then
-			warnedLow[item] = true
 			local what = ReagentName(item)
 			if db.verbose and what then
+				warnedLow[item] = true
 				addon:Print(L["%d %s left -- the prompt goes back to one person at a time when they run out."]
 					:format(count, what))
 			end
@@ -111,8 +111,8 @@ local function NoteStock(info, count, db)
 		return
 	end
 	if count ~= 0 or not stocked[item] or told[item] then return end
-	told[item] = true
 	if not db.verbose then return end
+	told[item] = true
 	local single = ns.BuffName(info.buff)
 	local what = ReagentName(item)
 	if what then

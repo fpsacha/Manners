@@ -57,9 +57,9 @@ mutate(A, "\t\tif self.breathe then self:Breathe() end\n", "",
        expect="does not breathe after the flare", script=S)
 
 mutate(A, "\tself.breathe = nil\n\tself.pulseAnim:Stop()\n\tif not self.flareAnim:IsPlaying() then "
-       "self.liftFrame:SetAlpha(0) end\n\t-- In a fight",
+       "self.liftFrame:SetAlpha(0) end\n\t-- Unlocked, switched off",
        "\tself.breathe = nil\n\tif not self.flareAnim:IsPlaying() then "
-       "self.liftFrame:SetAlpha(0) end\n\t-- In a fight",
+       "self.liftFrame:SetAlpha(0) end\n\t-- Unlocked, switched off",
        "Arcane's breath outlives the favour",
        expect="the owed breath kept going", script=S)
 
@@ -88,21 +88,25 @@ mutate(A, "\tSliceAlpha(self.bloom, fight and 0 or 1)\n", "\tSliceAlpha(self.blo
 mutate("Prompt/Paint.lua",
        "\tif S.activeLook and S.activeLook.Painted then S.activeLook:Painted(entry) end\n", "",
        "the look never told a person was painted",
-       expect="no clock along the bottom", script=S)
+       expect="a rebinding is not on the keycap", script=S)
 
 mutate(A, "\t\tself.drain:SetWidth(width)\n", "",
        "Arcane's clock never drains",
        expect="halfway through the favour", script=S)
 
-mutate(A, "\tif self.combat then self:SetDrain(nil) end\n", "",
+mutate(A, "\tself:SetDrain(left)\nend\n", "\tif left then self:SetDrain(left) end\nend\n",
        "Arcane's clock outlives a favour in a fight",
        expect="ran out in a fight", script=S)
+
+mutate(A, "\tself:Clock()\n\ton = on and not self.outcome", "\ton = on and not self.outcome",
+       "Arcane's clock stands still in a fight",
+       expect="in a fight, the clock is", script=S)
 
 mutate(A, "\tself:ShowKey()\n\tself:SetDrain(self.drainLeft)\nend\n", "\tself:ShowKey()\nend\n",
        "Arcane's clock gone after an outcome",
        expect="the clock did not come back", script=S)
 
-mutate(A, "\t\t\tleft = 0.62\n", "\t\t\tleft = nil\n",
+mutate(A, "\t\tleft = 0.62\n", "\t\tleft = nil\n",
        "Arcane's preview has no clock",
        expect="the preview has no part-run clock", script=S)
 
@@ -238,10 +242,9 @@ mutate(A, "\tif self.washAnim.fade.SetStartDelay then self.washAnim.fade:SetStar
        "Arcane's wash fades from the first frame",
        expect="starts fading at once", script=S)
 
-mutate(A, "\tself:SetDrain(self.drainLeft)\n\tif kind == \"failed\" or kind == \"cast\" then\n",
-       "\tself:SetDrain(nil)\n\tif kind == \"failed\" or kind == \"cast\" then\n",
-       "Arcane's click in a fight forgets the clock",
-       expect="took the favour's clock away", script=S)
+mutate(A, "\tself:SetDrain(left)\nend\n", "\tself:SetDrain(not self.outcome and left or nil)\nend\n",
+       "Arcane's clock forgets its time over an outcome",
+       expect="the clock did not come back", script=S)
 
 # --- round 15 review: the list ---------------------------------------------
 

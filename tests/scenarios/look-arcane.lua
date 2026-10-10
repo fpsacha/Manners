@@ -448,6 +448,19 @@ withTree("Arcane lights up under the cursor", ANNA, function(ns, scenario)
 	end
 	b.scripts.OnLeave(b)
 	if look.hoverAnim.to ~= 0 then fail(scenario, "the cursor left and the glass stayed lit") end
+	-- The look changes under a cursor that stays: the light has finished
+	-- fading in, so nothing stops it, and the leave goes to the next look.
+	b.scripts.OnEnter(b)
+	Mock.advance(1)
+	FT.settle()
+	ns.db.profile.prompt.style = "glass"
+	ns.Prompt:ApplyStyle()
+	b.scripts.OnLeave(b)
+	ns.db.profile.prompt.style = "arcane"
+	ns.Prompt:ApplyStyle()
+	if look.hoverFrame:GetAlpha() ~= 0 then
+		fail(scenario, "Arcane came back with the cursor's light on, the cursor elsewhere")
+	end
 end)
 
 -- ------------------------------------------------------------------ 12
@@ -572,6 +585,40 @@ withTree("Arcane keeps the favour's clock through a click in a fight", ANNA, fun
 	if not shown(look.drain) then fail(scenario, "a click in a fight took the favour's clock away") end
 	local cr, cg, cb = ns.Prompt:AccentColor("owed")
 	if not sameColour(look.rim[2]._color, cr, cg, cb) then fail(scenario, "the rim stayed red in the fight") end
+	Mock.inCombat = false
+	if ns.addon.PLAYER_REGEN_ENABLED then ns.addon:PLAYER_REGEN_ENABLED() end
+end)
+
+-- ------------------------------------------------------------------ 17b
+-- The held panel in a fight keeps the favour's clock on the time, and a press
+-- (Prompt:StopAttention, then the game's refusal) leaves it be: Anna is still
+-- owed and the frozen panel still names her.
+withTree("Arcane's clock burns on through a fight and a press in it", ANNA, function(ns, scenario)
+	local _, _, look = upIn(ns, scenario)
+	if not isArcane(look) then fail(scenario, "SKIPPED -- Arcane is not the look in use") return end
+	local full = look.track._width
+	Mock.inCombat = true
+	ns.addon:PLAYER_REGEN_DISABLED()
+	ns.addon:Tick()
+	Mock.advance(50)
+	ns.addon:Tick()
+	if not near(look.drain._width, full * 0.5, 1) then
+		fail(scenario, ("halfway through the favour, in a fight, the clock is %.1f of %.1f"):format(look.drain._width, full))
+	end
+	local button = ns.Prompt:GetButton()
+	pcall(button.scripts.PreClick, button, "LeftButton", true)
+	pcall(button.scripts.PostClick, button, "LeftButton", true)
+	ns.addon:UI_ERROR_MESSAGE(nil, 0, "Out of range.")
+	Mock.advance(20)
+	ns.addon:Tick()
+	FT.settle()
+	if not ns.owed["Anna Aim"] then
+		fail(scenario, "SKIPPED -- the press settled Anna's favour")
+	elseif not shown(look.drain) then
+		fail(scenario, "a press in a fight took the favour's clock away, with Anna still owed")
+	elseif not near(look.drain._width, full * 0.3, 1) then
+		fail(scenario, ("the clock stopped following the time after a press in a fight: %.1f of %.1f"):format(look.drain._width, full))
+	end
 	Mock.inCombat = false
 	if ns.addon.PLAYER_REGEN_ENABLED then ns.addon:PLAYER_REGEN_ENABLED() end
 end)

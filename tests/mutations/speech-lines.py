@@ -37,7 +37,7 @@ mutate("Speech.lua",
 
 # ...and the macro never says who the line is for.
 mutate("Prompt/Macro.lua",
-       "\t\tand ns.ChannelOpen(entry)\n",
+       "\t\tand ns.ChannelOpen(speaker)\n",
        "\t\tand ns.ChannelOpen()\n",
        "channel asked without the person",
        expect="speech-lines: no party line to somebody outside the party",
@@ -61,7 +61,7 @@ mutate("Speech.lua",
 
 # A ready-made line said as an action: "Mortimer Cheers, Bram!".
 mutate("Speech.lua",
-       "\t\tif quote and SHIPPED[raw] then phrase = quote:format(phrase) end\n",
+       "\t\t\t\tif quote and SHIPPED[raw] then phrase = quote:format(phrase) end\n",
        "",
        "emote never quotes a set's line",
        expect="speech-lines: an emote quotes the addon's lines",
@@ -69,8 +69,8 @@ mutate("Speech.lua",
 
 # A line the player wrote for an emote quoted too: "says, "bows to Bram.""
 mutate("Speech.lua",
-       "\t\tif quote and SHIPPED[raw] then phrase = quote:format(phrase) end\n",
-       "\t\tif quote then phrase = quote:format(phrase) end\n",
+       "\t\t\t\tif quote and SHIPPED[raw] then phrase = quote:format(phrase) end\n",
+       "\t\t\t\tif quote then phrase = quote:format(phrase) end\n",
        "emote quotes the player's own line",
        expect="speech-lines: an emote quotes the addon's lines",
        script="runscenarios.py")

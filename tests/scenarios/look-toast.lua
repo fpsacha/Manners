@@ -271,6 +271,40 @@ withTree("Toast's pulse breathes three times and holds", ANNA, function(ns, scen
 	end
 end)
 
+-- ------------------------------------------------------------------ 3a
+-- A new favour takes its own three breaths: when one owed person drops off
+-- and another is on top while the pulse is still going, the first face's
+-- timer must not hold the second's glow early.
+withTree("Toast's pulse gives a replacing favour its own breaths",
+	{ nameplate1 = { "Anna", "Aim" }, nameplate2 = { "Brannoc", "Vale" } }, function(ns, scenario)
+	local _, _, look = upIn(ns, scenario)
+	if not isToast(look) then
+		fail(scenario, "SKIPPED -- Toast is not the look in use")
+		return
+	end
+	if not look.pulse[1]._playing then
+		fail(scenario, "SKIPPED -- the owed pulse is not breathing")
+		return
+	end
+	Mock.runTimers(5)
+	wipe(ns.owed)
+	owe(ns, "Brannoc Vale")
+	tick(ns)
+	if not look.pulse[1]._playing then
+		fail(scenario, "SKIPPED -- the pulse stopped when the next favour came on top")
+		return
+	end
+	-- Past the first face's nine and a half seconds, inside the second's.
+	Mock.runTimers(6)
+	if not look.pulse[1]._playing then
+		fail(scenario, "the first favour's timer held the next favour's pulse early")
+	end
+	Mock.runTimers(5)
+	if look.pulse[1]._playing then
+		fail(scenario, "the replacing favour breathed past its own three breaths")
+	end
+end)
+
 -- ------------------------------------------------------------------ 3b
 -- An outcome is about the click, not the favour: a return made while the
 -- owed enamel still breathes stops the breathing, and the enamel is the
@@ -386,6 +420,9 @@ withTree("Toast in a fight turns to iron and keeps the reason", ANNA, function(n
 	ns.Prompt:ApplyStyle()
 	if r.icon._color and r.icon._color[1] < 0.99 then
 		fail(scenario, "leaving Toast during a fight left the icon dimmed on glass")
+	end
+	if not (near(look.ember._alpha or 1, 1) and near(look.bead._alpha or 1, 1)) then
+		fail(scenario, "leaving Toast during a fight left the favour clock dimmed for when it returns")
 	end
 end)
 
@@ -1011,6 +1048,20 @@ withTree("Toast keeps no additive light at rest", CROWD, function(ns, scenario)
 	check("under the cursor")
 	if button.scripts.OnLeave then button.scripts.OnLeave(button) else look:Hover(false) end
 	check("the cursor gone")
+
+	-- The look changes under a cursor that stays: the light has finished
+	-- fading in, so nothing stops it, and the leave goes to the next look.
+	if button.scripts.OnEnter then button.scripts.OnEnter(button) else look:Hover(true) end
+	Mock.advance(1)
+	FT.settle()
+	p.style = "glass"
+	ns.Prompt:ApplyStyle()
+	if button.scripts.OnLeave then button.scripts.OnLeave(button) end
+	p.style = "toast"
+	ns.Prompt:ApplyStyle()
+	if look.ringHover:GetAlpha() ~= 0 then
+		fail(scenario, "Toast came back with the cursor's light on, the cursor elsewhere")
+	end
 
 	-- The outcomes, on Full and held on Calm.
 	for _, effects in ipairs({ "full", "calm" }) do

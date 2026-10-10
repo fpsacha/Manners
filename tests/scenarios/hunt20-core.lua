@@ -594,6 +594,56 @@ for _, case in ipairs({ { hidden = false }, { hidden = true } }) do
 end
 Mock.reset()
 
+-- ------------------------------------------------------------------ core20-8b
+-- A group buff read on somebody is not "absent" while the client hides it.
+--
+-- The same empty read, through the reader every group buff uses (the offer of
+-- your own Intellect, a stranger's, a blessing carried): a match that began
+-- after the probe left it a definite "no", and a mage wearing Arcane Intellect
+-- was offered it on every press. It answers "cannot tell" instead, and still
+-- says yes for one that reads as worn and no for one not hidden.
+for _, case in ipairs({
+	{ name = " (control: nothing hidden)", secret = nil, worn = false, expect = false },
+	{ name = " (control: worn)", secret = nil, worn = true, expect = true },
+	{ name = "", secret = { [1459] = true }, worn = false, expect = "unknown" },
+}) do
+	Mock.reset()
+	local scenario = "core20: a group buff the client hides does not read as absent" .. case.name
+	with(scenario, nil, function()
+		local probe = load(scenario)
+		if not probe then return end
+		local found = probe.FindBuff("MAGE", "intellect")
+		if not found then
+			fail(scenario, "SKIPPED -- no Intellect buff for a mage")
+			return
+		end
+		local known = {}
+		for _, id in ipairs(found.ranks) do known[id] = true end
+		rawset(_G, "IsSpellKnown", function(id) return known[id] == true end)
+		rawset(_G, "IsPlayerSpell", function(id) return known[id] == true end)
+		local ns = load(scenario)
+		if not ns then return end
+		ns.Guard("probe", ns.ProbeCapabilities)
+		local buff = ns.FindBuff("MAGE", "intellect")
+		local info = ns.BuffInfo(buff)
+		if not (info and info.readable) then
+			fail(scenario, "SKIPPED -- the Intellect buff was not readable at the probe")
+			return
+		end
+		-- The match goes live after the probe ran.
+		Mock.playerHeld = case.worn and { [buff.auraIds[1]] = true } or {}
+		Mock.secretAuraIds = case.secret
+		local has = ns.UnitHasBuff("player", buff)
+		local want = case.expect
+		if want == "unknown" then want = nil end
+		if has ~= want then
+			fail(scenario, ("an Intellect read as %s, not %s"):format(tostring(has), tostring(want)))
+		end
+		noErrors(scenario, ns)
+	end)
+end
+Mock.reset()
+
 -- ------------------------------------------------------------------ core20-9
 -- The macro armed for a fight carries no spoken line.
 --

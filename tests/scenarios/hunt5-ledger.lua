@@ -176,6 +176,69 @@ do
 end
 Mock.reset()
 
+-- ------------------------------------------------------------------ dst at midnight
+-- Where the clocks jump from 00:00 to 01:00 there is no midnight: time() puts
+-- 00:00 at 01:00, which does not read back as midnight, and the hours counted
+-- back from the clock land at 23:00 the night before. That hour's gifts were
+-- counted as today's.
+Mock.reset()
+do
+	local scenario = "hunt5 ledger: today starts at the first moment of a day with no midnight"
+	local realDate, realTime = date, time
+	local ns = load(scenario)
+	if ns then
+		H.freshPrompt(ns, scenario)
+		local function utc(y, m, d, hh, mm, ss)
+			y = m <= 2 and y - 1 or y
+			local era = math.floor(y / 400)
+			local yoe = y - era * 400
+			local doy = math.floor((153 * ((m + 9) % 12) + 2) / 5) + d - 1
+			local doe = yoe * 365 + math.floor(yoe / 4) - math.floor(yoe / 100) + doy
+			return (era * 146097 + doe - 719468) * 86400 + hh * 3600 + mm * 60 + ss
+		end
+		-- A zone four hours behind UTC until 00:00 on 6 September 2026, when
+		-- the clocks go to 01:00 and it is three behind.
+		local switch = utc(2026, 9, 6, 4, 0, 0)
+		date = function(fmt, t)
+			if fmt == "*t" then
+				t = t or Mock.epoch
+				local f = os.date("!*t", t + (t >= switch and -3 or -4) * 3600)
+				return { year = f.year, month = f.month, day = f.day, hour = f.hour,
+					min = f.min, sec = f.sec, isdst = t >= switch }
+			end
+			return realDate(fmt, t)
+		end
+		time = function(tbl)
+			if type(tbl) ~= "table" then return Mock.epoch end
+			local wall = utc(tbl.year, tbl.month, tbl.day, tbl.hour or 12, tbl.min or 0, tbl.sec or 0)
+			if wall + 4 * 3600 < switch then return wall + 4 * 3600 end
+			if wall + 3 * 3600 >= switch then return wall + 3 * 3600 end
+			return switch
+		end
+
+		local s = fresh(ns)
+		local L = ns.Ledger
+		-- 23:30 on the 5th, 02:30 and 12:00 on the 6th, local time.
+		Mock.epoch = utc(2026, 9, 6, 3, 30, 0)
+		L.Settled("Late Walker", nil, { inGroup = false }, 1459)
+		Mock.epoch = utc(2026, 9, 6, 5, 30, 0)
+		L.Settled("Early Walker", nil, { inGroup = false }, 1459)
+		Mock.epoch = utc(2026, 9, 6, 15, 0, 0)
+		L.Settled("Noon Walker", nil, { inGroup = false }, 1459)
+		if not (s.today and s.today.day == switch) then
+			fail(scenario, ("today began %s seconds after 01:00, the first moment of the day"):format(
+				tostring(s.today and s.today.day and s.today.day - switch)))
+		end
+		local sum = L.Summary()
+		if sum.given ~= 2 then
+			fail(scenario, ("two gifts since the clocks jumped, one before, read as %d today"):format(sum.given))
+		end
+		guarded(scenario, ns)
+	end
+	date, time = realDate, realTime
+end
+Mock.reset()
+
 -- ------------------------------------------------------------------ font
 -- The prompt's font is the ledger's too. A font the client has a name for but
 -- cannot load leaves a font string with no font, and the first SetText on it

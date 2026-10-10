@@ -27,7 +27,8 @@
 -- judges' word:
 --   * nothing runs per frame: the rune circle is one Rotation animation that
 --     stops on Calm and in a fight, and the drain is set on the scan's own
---     tick (Painted) rather than by a screen-long Scale and Translation pair;
+--     tick (Clock, from Chip) rather than by a screen-long Scale and
+--     Translation pair;
 --   * in a fight the card holds and the reason survives: the rim, the ring
 --     and the runes keep its colour while the icon greys and the light goes,
 --     where the design dimmed the whole panel and left a faint rim;
@@ -626,7 +627,7 @@ function Arcane:Apply(p, above)
 	end
 
 	-- Everything shown, then what waits: the list for PaintQueue, the clock
-	-- for Painted, the tick and the wash for an outcome, the badge for a
+	-- for Chip, the tick and the wash for an outcome, the badge for a
 	-- count, the keycap for a key.
 	for _, x in ipairs(self.own) do x:Show() end
 	SliceShown(self.shadow, self.shadowShown)
@@ -692,6 +693,10 @@ function Arcane:Hide()
 		self.shineAnim, self.checkAnim, self.washAnim, self.hoverAnim }) do
 		anim:Stop()
 	end
+	-- Stop parks nothing on a fade that has already finished, and the cursor
+	-- leaves for the next look: put the rim's light out here, or it is lit
+	-- when this look comes back.
+	self.hoverFrame:SetAlpha(0)
 	-- The shared regions, as the other looks expect to find them.
 	local icon = kit.icon
 	if self.masked then
@@ -847,6 +852,7 @@ end
 -- and of the keycap.
 function Arcane:Chip(on)
 	local kit = self.kit
+	self:Clock()
 	on = on and not self.outcome and true or false
 	if on then
 		local text = kit.count:GetText()
@@ -995,8 +1001,7 @@ end
 -- the favour's clock
 ---------------------------------------------------------------------------
 
--- After every paint of a person, on the scan's own tick: the key, and the
--- time left to return a favour, as the drain's length.
+-- After every paint of a person, on the scan's own tick: the key.
 function Arcane:Painted(entry)
 	self:ReadKey()
 	self:ShowKey()
@@ -1004,17 +1009,24 @@ function Arcane:Painted(entry)
 		self.restFor = entry.reason
 		self:Retint()
 	end
+end
+
+-- The time left to return a favour, as the drain's length. Run by Chip, which
+-- every repaint makes -- the fight's held panel and an outcome too, where
+-- Painted is not called -- and read off whoever the panel names, as Toast's is.
+function Arcane:Clock()
 	local left
-	if entry and entry.reason == "owed" then
-		local debt = ns.owed and ns.owed[entry.name]
+	if ns.Prompt:InTest() then
+		-- The preview has no favour behind it; its clock stands part-run.
+		left = 0.62
+	else
+		local name = ns.Prompt:PanelName()
+		local debt = name and ns.owed and ns.owed[name]
 		if type(debt) == "table" and type(debt.at) == "number" and ns.DebtExpiry then
 			local ends = ns.DebtExpiry(debt)
 			if type(ends) == "number" and ends > debt.at then
 				left = (ends - GetTime()) / (ends - debt.at)
 			end
-		elseif ns.Prompt and ns.Prompt:InTest() then
-			-- The preview has no favour behind it; its clock stands part-run.
-			left = 0.62
 		end
 	end
 	self:SetDrain(left)
@@ -1088,8 +1100,6 @@ function Arcane:StopAttention()
 	self.breathe = nil
 	self.pulseAnim:Stop()
 	if not self.flareAnim:IsPlaying() then self.liftFrame:SetAlpha(0) end
-	-- In a fight this is the favour gone or run out: its clock goes too.
-	if self.combat then self:SetDrain(nil) end
 	-- Unlocked, switched off or a fight with nothing armed: a press does
 	-- nothing, so the keycap goes.
 	self:ShowKey()

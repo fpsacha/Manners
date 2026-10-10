@@ -34,10 +34,11 @@ end
 
 -- A session for this race and class with "In character" loaded through the
 -- dropdown, as a player would load it.
-local function ready(scenario, race, class)
+local function ready(scenario, race, class, locale)
 	Mock.reset()
 	Mock.playerRace = race
 	Mock.class = class
+	Mock.locale = locale
 	local ns = load(scenario)
 	if not ns then return nil end
 	drive(scenario, ns)
@@ -605,4 +606,55 @@ do
 		end
 		noErrors(scenario, ns)
 	end)
+end
+
+-- ------------------------------------------------------------------ rpx-6
+-- A box of English examples, today's or 1.6.4's, loaded on a client whose
+-- language translates a line reworded since 1.6.4 as it translated the line it
+-- was: the shipped German, French, Italian and Brazilian files do for the
+-- trolls', and the German and French for the goblins'. The English box still
+-- counts and becomes the language's, as it does where no two lines read
+-- alike (rpx-4, rpx-5 make their "translation" so). The lines and files are
+-- the shipped ones.
+do
+	local scenario = "rp examples: an English box counts where a reworded line reads alike"
+	local CASES = {
+		{ race = "Troll", codes = { "deDE", "frFR", "itIT", "ptBR", "esES" } },
+		{ race = "Goblin", codes = { "deDE", "frFR" } },
+	}
+	for _, case in ipairs(CASES) do
+		with(scenario, "Horde", function()
+			local ns = ready(scenario, case.race, "MAGE")
+			if not ns then return end
+			local english = ns.InCharacter
+			local family, faction, class = english.Player()
+			local boxes = {
+				{ "today's", english.Text() },
+				{ "1.6.4's", english.Examples(family, faction, class, false, false, english.BEFORE) },
+			}
+			for _, code in ipairs(case.codes) do
+				for _, box in ipairs(boxes) do
+					local there = ready(scenario, case.race, "MAGE", code)
+					if not there then return end
+					local speech = there.db.profile.speech
+					local RP = there.InCharacter
+					local mine = RP.Text()
+					if mine == box[2] then
+						fail(scenario, "SKIPPED -- the box reads the same in English and " .. code)
+					end
+					speech.phrases = box[2]
+					if not RP.Active(speech) then
+						fail(scenario, ("a %s English box of %s counts as edited on %s"):format(box[1], case.race, code))
+					end
+					there.ClampSettings()
+					if speech.phrases ~= mine then
+						fail(scenario, ("a %s English box of %s did not become the box on %s: |%s|")
+							:format(box[1], case.race, code, tostring(speech.phrases)))
+					end
+					noErrors(scenario, there)
+				end
+			end
+			Mock.locale = nil
+		end)
+	end
 end

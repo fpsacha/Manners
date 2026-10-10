@@ -426,14 +426,14 @@ mutate("Requests.lua",
        expect="a remembered asker who asked for something else was still offered", script=S)
 
 mutate("Requests.lua",
-       "(request.full == full or SameName(request.short, short))",
+       "(request.full == full or (request.full == nil and SameName(request.short, short)))",
        "request.full == full",
        "linger: asking again forgets the asker",
        expect="a remembered asker who asked again was let go", script=S)
 
 mutate("Requests.lua",
-       "\t\t\tif Live(request, now) and (request.full == full or SameName(request.short, short))\n",
-       "\t\t\tif (request.full == full or SameName(request.short, short))\n",
+       "\t\t\tif Live(request, now) and (request.full == full or (request.full == nil and SameName(request.short, short)))\n",
+       "\t\t\tif (request.full == full or (request.full == nil and SameName(request.short, short)))\n",
        "linger: a request run out keeps the asker",
        expect="linger: a remembered asker after the request ran out", script=S)
 

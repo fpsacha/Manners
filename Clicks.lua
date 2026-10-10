@@ -32,8 +32,10 @@ local SETTLE_SECONDS = 2
 
 -- How late a cast event can still be this press's own answer: an accepted
 -- cast reports in the same frame, a queued one within the spell-queue window
--- (0.4 s). Anything later is a hand on the action bar, and on this client
--- that event names nobody. SETTLE_SECONDS still decides when a record is dead.
+-- (0.4 s by default, the floor here; a player who set it wider gets that
+-- window plus a margin, in SettlePendingClick). Anything later is a hand on
+-- the action bar, and on this client that event names nobody.
+-- SETTLE_SECONDS still decides when a record is dead.
 local SENT_SECONDS = 0.5
 
 -- Said the same way wherever a click comes to nothing: "still owed" only of
@@ -470,9 +472,12 @@ local function SettlePendingClick(landedOn, spellId, castGUID)
 		return
 	end
 
-	-- Inside the window, but too late to be this press's answer (SENT_SECONDS):
-	-- no evidence either way, so the sweep still owns the record.
-	if GetTime() - pending.at > SENT_SECONDS then return end
+	-- Inside the window, but too late to be this press's answer (SENT_SECONDS,
+	-- or the player's own queue window where that is wider -- a press queued
+	-- that far out casts when the cooldown ends): no evidence either way, so
+	-- the sweep still owns the record.
+	local late = math.min(SETTLE_SECONDS, math.max(SENT_SECONDS, ns.SpellQueueWindow() + 0.1))
+	if GetTime() - pending.at > late then return end
 
 	if pending.onSelf then return SettleSelf(pending, spellId, castGUID) end
 

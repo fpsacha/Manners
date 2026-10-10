@@ -97,10 +97,17 @@ mutate("Core.lua",
        "hunt20-core: a hidden self-buff read as missing",
        expect="was read as missing and offered again", script=S)
 
+# An empty read of a group buff's aura taken as "not up" while the client hides it.
+mutate("Core.lua",
+       "\t\t\t\tif type(ask) == \"function\" and plain(ask(id)) == true then refused = true end\n",
+       "",
+       "hunt20-core: a hidden group buff read as absent",
+       expect="an Intellect read as false, not nil", script=S)
+
 # The line kept in the macro armed for a fight.
 mutate("Prompt/Macro.lua",
-       "\t\tand ns.ChannelOpen(entry)\n\t\tand Prompt.armedForFight ~= true\n",
-       "\t\tand ns.ChannelOpen(entry)\n",
+       "\t\tand ns.ChannelOpen(speaker)\n\t\tand Prompt.armedForFight ~= true\n",
+       "\t\tand ns.ChannelOpen(speaker)\n",
        "hunt20-core: the line in the fight's macro",
        expect="says the line on every press", script=S)
 

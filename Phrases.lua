@@ -45,12 +45,19 @@ ns.InCharacter = RP
 -- still count as untouched once a later release translates them. The proxy
 -- only forwards: every key reaching it is written below as a whole L["..."]
 -- literal, which is what the translation audit collects.
-local ENGLISH = {}
+--
+-- A line reworded in English may be translated as it was, and then the new
+-- and the old English are one text. The pools are read before RP.LEGACY, so
+-- ENGLISH_NOW keeps the first key read, for the pools as they are, and
+-- ENGLISH the last, for the pools before the rewording (RP.BEFORE) and what
+-- RP.LEGACY holds.
+local ENGLISH, ENGLISH_NOW = {}, {}
 local L = setmetatable({}, {
 	__index = function(_, key)
 		local translated = ns.L
 		local text = translated[key]
 		ENGLISH[text] = key
+		if ENGLISH_NOW[text] == nil then ENGLISH_NOW[text] = key end
 		return text
 	end,
 })
@@ -4525,12 +4532,12 @@ do
 		return lines[chosen], texts[chosen]
 	end
 
-	-- Line n of a pool, or with english, as it read before translation; a
-	-- pool of one line as a plain string has only a line 1. On a client in
-	-- another language the pools were thinned at load, so line n there is
-	-- the nth translated line, and the box shows no line the set would not
-	-- say.
-	local function Nth(pool, n, english)
+	-- Line n of a pool, or with names (ENGLISH or ENGLISH_NOW), as it read
+	-- before translation; a pool of one line as a plain string has only a
+	-- line 1. On a client in another language the pools were thinned at load,
+	-- so line n there is the nth translated line, and the box shows no line
+	-- the set would not say.
+	local function Nth(pool, n, names)
 		local text = pool
 		if type(pool) == "table" then
 			text = pool[n]
@@ -4538,7 +4545,7 @@ do
 			return nil
 		end
 		if type(text) ~= "string" then return nil end
-		return english and ENGLISH[text] or text
+		return names and names[text] or text
 	end
 
 	-- A list of example lines, and put(pool, now, before) to add a pool's
@@ -4547,12 +4554,15 @@ do
 	-- filled it, one line of each of fewer pools. Players still have that one
 	-- saved, and it must still read as the untouched set (RP.Active).
 	-- Today's box shows each line once, in case two lines were translated
-	-- alike; the older box never checked, and is rebuilt as it was.
-	local function Lines(english, older)
+	-- alike; the older box never checked, and is rebuilt as it was. With
+	-- english, today's pools (RP) are put back by the key they were read
+	-- under first, the older ones (RP.BEFORE) by the last.
+	local function Lines(english, older, pools)
+		local names = english and (pools == RP and ENGLISH_NOW or ENGLISH)
 		local out, seen = {}, {}
 		local function put(pool, now, before)
 			for i = 1, older and (before or 0) or now do
-				local text = Nth(pool, i, english)
+				local text = Nth(pool, i, names)
 				if text == nil then return end
 				if older or not seen[text] then
 					seen[text] = true
@@ -4597,7 +4607,7 @@ do
 	-- with pools, from those (RP.BEFORE) rather than from today's.
 	local function Examples(family, faction, class, english, older, pools)
 		pools = pools or RP
-		local out, put = Lines(english, older)
+		local out, put = Lines(english, older, pools)
 		Head(put, family, faction, pools)
 		Tail(put, class, family, pools)
 		return table.concat(out, "\n")
@@ -4617,7 +4627,7 @@ do
 			or { side[1], side[2], side[3], general.thanks, general.offer }
 		local out = {}
 		for i = 1, 5 do
-			local text = Nth(five[i], 1, english)
+			local text = Nth(five[i], 1, english and ENGLISH)
 			if text then out[#out + 1] = text end
 		end
 		return table.concat(out, "\n")
@@ -4649,7 +4659,7 @@ do
 			for _, family in ipairs(families) do
 				family = family or nil
 				for _, form in ipairs(forms) do
-					local out, put = Lines(english, form[1])
+					local out, put = Lines(english, form[1], form[2])
 					Head(put, family, faction, form[2])
 					local head = table.concat(out, "\n")
 					if text:sub(1, #head) == head then

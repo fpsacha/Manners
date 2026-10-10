@@ -398,18 +398,25 @@ do
 		end
 		if #pool == 0 then return nil end
 
-		local raw = pool[math.random(#pool)]
-		local phrase = ns.Swap(raw, "{name}", entry.short or entry.name)
+		-- Each line is built and measured before the roll, so one too long for the
+		-- macro leaves the others to choose from instead of a press that says
+		-- nothing (as In character's pick does).
 		-- The spell that goes out: a group cast's own name (GroupBuffs.lua).
 		local spell = entry.groupCast and entry.groupCast.spellName
-		phrase = ns.Swap(phrase, "{buff}", spell or (entry.buff and ns.BuffName(entry.buff)))
-		phrase = SanitizePhrase(phrase)
-		if not phrase then return nil end
-		if quote and SHIPPED[raw] then phrase = quote:format(phrase) end
-
-		local line = "/" .. command .. " " .. phrase
-		if #line > budget then return nil end
-		return line
+		spell = spell or (entry.buff and ns.BuffName(entry.buff))
+		local fits = {}
+		for _, raw in ipairs(pool) do
+			local phrase = ns.Swap(raw, "{name}", entry.short or entry.name)
+			phrase = ns.Swap(phrase, "{buff}", spell)
+			phrase = SanitizePhrase(phrase)
+			if phrase then
+				if quote and SHIPPED[raw] then phrase = quote:format(phrase) end
+				local line = "/" .. command .. " " .. phrase
+				if #line <= budget then fits[#fits + 1] = line end
+			end
+		end
+		if #fits == 0 then return nil end
+		return fits[math.random(#fits)]
 	end
 
 	-- The line with its channel command, and for "In character" the line as

@@ -320,8 +320,9 @@ function Prompt:ApplyTarget(entry, silent)
 	-- would leave out. Nor for a while after the game refused a cast on them
 	-- (ns.SpeechHeld), so pressing at somebody it will not let you reach does
 	-- not keep talking. Nor in /party or /raid while you are in no party or
-	-- raid, or to somebody outside it (ns.ChannelOpen): the line would reach
-	-- nobody, on every press, or nobody it was for. In
+	-- raid, or to somebody outside it (ns.ChannelOpen, asked of the member the
+	-- line thanks): the line would reach nobody, on every press, or nobody it
+	-- was for. In
 	-- the key below, so a group joined or left re-arms the macro on the next
 	-- repaint. Nor in the macro armed for a fight: every press in it runs that
 	-- one frozen text, so the line went out again on a press the cooldown
@@ -334,7 +335,7 @@ function Prompt:ApplyTarget(entry, silent)
 	-- back once the minute is up.
 	local speaker = ns.LineSpeaker(entry)
 	local speak = not silent and entry.ranged == true and not ns.SpeechHeld(entry.name)
-		and ns.ChannelOpen(entry)
+		and ns.ChannelOpen(speaker)
 		and Prompt.armedForFight ~= true
 		and not (entry.buff.selfCast and ns.ShoutSure(entry.unit) ~= true)
 		and ns.LineRested(speaker, GetTime())

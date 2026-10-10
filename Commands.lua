@@ -167,6 +167,15 @@ function ns.Welcome(force, offSaid)
 		return true
 	end
 
+	-- A hunter or shaman with Myself (or every one of his own buffs) switched
+	-- off, perhaps by another character on the shared profile: no prompt will
+	-- ever come, so no tour and no preview of one. The launcher says the same.
+	if ownOnly and not ownLive then
+		addon:Print(L["Nothing to do: your own buffs are switched off under %s."]:format(L["Myself"]))
+		addon:Print(L["|cffffd100/manners welcome|r brings the rest of this back once that changes."])
+		return true
+	end
+
 	-- A class whose buffs reach only the party has no passer-by to offer to,
 	-- and one with nothing for anybody else has only itself.
 	if ownOnly then

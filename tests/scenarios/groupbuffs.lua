@@ -1562,6 +1562,41 @@ do
 	end
 end
 
+-- A note nobody saw is not said: with the chat lines off the heads-up and the
+-- out-of-reagent note stay due, and come with them back on.
+do
+	local scenario = "groupbuffs: the notes wait for the chat lines to be on"
+	local env = mage({ bags = { [ARCANE_POWDER] = 7 } })
+	local ns, restore = session(scenario, env)
+	if ns then
+		ns.db.profile.verbose = false
+		Mock.printed = {}
+		env.bags[ARCANE_POWDER] = 5
+		ns.addon:Tick()
+		env.bags[ARCANE_POWDER] = 0
+		ns.addon:Tick()
+		if #Mock.printed > 0 then
+			fail(scenario, "a note was printed with the chat lines off: " .. table.concat(Mock.printed, "\n"))
+		end
+		ns.db.profile.verbose = true
+		env.bags[ARCANE_POWDER] = 7
+		ns.addon:Tick()
+		env.bags[ARCANE_POWDER] = 4
+		ns.addon:Tick()
+		env.bags[ARCANE_POWDER] = 0
+		ns.addon:Tick()
+		local said = table.concat(Mock.printed, "\n")
+		if not said:find("4 Arcane Powder left", 1, true) then
+			fail(scenario, "the heads-up spent with the chat lines off was lost: " .. said)
+		end
+		if not said:find("you are out of Arcane Powder", 1, true) then
+			fail(scenario, "the out-of-reagent note spent with the chat lines off was lost: " .. said)
+		end
+		guarded(scenario, ns)
+		restore()
+	end
+end
+
 -- ------------------------------------------------------------ groupbuffs-31
 -- A group cast aimed at somebody who asked for it in chat. An asker outranks
 -- the party, so the cast is aimed at them whenever one of the party asked --
@@ -1656,6 +1691,56 @@ do
 			elseif not text:find("/say Thanks, Gwen Hale.", 1, true) then
 				fail(scenario, ("the group cast repays Gwen, and the line %s: %s"):format(
 					text:find("/say", 1, true) and "thanks somebody else" or "is missing", flat(text)))
+			end
+			guarded(scenario, ns)
+			restore()
+		end
+	end
+end
+
+-- A group cast in a raid whose line goes out in /party, which reaches only the
+-- player's own subgroup. The cast is aimed at somebody who is not owed (the
+-- member owed wears another mage's Intellect, so is not swept) and the line
+-- thanks the member owed, so the channel is asked of the member the line
+-- names, not of the one the cast is aimed at: the thank-you went to a
+-- subgroup that does not hold the person it thanks, and was left out where
+-- that person would have read it.
+do
+	local names = {}
+	for i = 1, 10 do names["raid" .. i] = { "Raider" .. i, "Stone" } end
+	for _, case in ipairs({
+		-- raid1-5 are the player's subgroup, raid6-10 the next.
+		{ owed = 7, wears = { 10 }, label = "owed outside the subgroup, the cast aimed inside it", said = false },
+		{ owed = 3, wears = { 2, 4, 5 }, label = "owed inside the subgroup, the cast aimed outside it", said = true },
+	}) do
+		local scenario = "groupbuffs: a group cast's /party line is asked of the member it thanks ("
+			.. case.label .. ")"
+		local held = { ["raid" .. case.owed] = { [10157] = "raid8" } }
+		for _, i in ipairs(case.wears) do held["raid" .. i] = { [10157] = "raid8" } end
+		local owedName = raider(case.owed)
+		local ns, restore = session(scenario, mage({ raid = { size = 10, player = 1 }, names = names,
+			held = held, setup = function(ns)
+				local sp = ns.db.profile.speech
+				sp.enabled = true
+				sp.onlyWhenReturning = false
+				sp.channel = "PARTY"
+				sp.phrases = "Thanks, {name}."
+				H.owe(ns, owedName)
+				ns.addon:READY_CHECK(nil, nil, 30)
+			end }))
+		if ns then
+			ns.addon:Tick()
+			local group = groupCast(ns)
+			local text = macro(ns)
+			local owedUnit = "raid" .. case.owed
+			if not (group and text and text:find("/cast Arcane Brilliance", 1, true)) then
+				fail(scenario, "SKIPPED -- no group cast armed: " .. flat(text))
+			elseif group.name == owedName or (ns.plain(UnitInSubgroup(group.unit)) == true) == case.said then
+				fail(scenario, ("SKIPPED -- the cast is aimed at %s, not somebody on the other side of the subgroup from %s: %s")
+					:format(tostring(group.name), owedName, flat(text)))
+			elseif (text:find("/party Thanks, " .. owedName .. ".", 1, true) ~= nil) ~= case.said then
+				fail(scenario, ("%s is %s the player's subgroup, and the /party line %s: %s"):format(owedName,
+					case.said and "in" or "outside", case.said and "is missing" or "is said anyway", flat(text)))
 			end
 			guarded(scenario, ns)
 			restore()

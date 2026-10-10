@@ -83,6 +83,13 @@ do
 		if math.abs(settle(ns, 0.3) - 0.25) > 0.001 then
 			fail(scenario, "with the colour picker open for Panel colour the window is at " .. ns.OptionsWindow:GetAlpha())
 		end
+		-- A slider pressed and let go with the picker still up ends its own
+		-- hold, not the picker's.
+		Mock.mouseDown(slider.slider)
+		Mock.mouseUp(slider.slider)
+		if math.abs(settle(ns, 0.3) - 0.25) > 0.001 then
+			fail(scenario, "Scale let go with the colour picker up left the window at " .. ns.OptionsWindow:GetAlpha())
+		end
 		Mock.closeColour(false)
 		Mock.advance(2)
 		if settle(ns, 0.3) ~= 1 then

@@ -108,7 +108,7 @@ mutate("Clicks.lua",
 # The channel never asked: "/party Thanks" in the macro of a player in no
 # party, on every press.
 mutate("Prompt/Macro.lua",
-       "\t\tand ns.ChannelOpen(entry)\n",
+       "\t\tand ns.ChannelOpen(speaker)\n",
        "\n",
        "speech: /party with nobody to hear it",
        expect="speech-range: /party is said only in a party",

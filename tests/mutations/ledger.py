@@ -82,8 +82,8 @@ mutate("Ledger.lua",
 
 # Today is the calendar day, and the summary reaches the tooltip.
 mutate("Ledger.lua",
-       "\t\treturn now - ((t.hour * 60 + t.min) * 60 + t.sec)\n",
-       "\t\treturn now - 86400\n",
+       "\t\tlocal c = now - ((t.hour * 60 + t.min) * 60 + t.sec)\n",
+       "\t\tlocal c = now - 86400\n",
        "ledger: today is the last 24 hours",
        expect="the ledger summary counts are right", script=S)
 mutate("Options/Launcher.lua",

@@ -706,7 +706,22 @@ end
 inLanguage("core2: a question about the buff is not a request (deDE)", "deDE", "MAGE", "intellect",
 	"Arkane Intelligenz",
 	{ "Arkane Intelligenz?" },
-	{ "Ist Arkane Intelligenz gut?", "Wer hat Arkane Intelligenz?" })
+	{ "Ist Arkane Intelligenz gut?", "Wer hat Arkane Intelligenz?", "Wo gibt es Arkane Intelligenz?" })
+-- Spanish, Italian and French write these openers with an accent, which Among
+-- does not fold, so each accented spelling is listed on its own.
+inLanguage("core2: an accented question about the buff is not a request (esES)", "esES", "MAGE", "intellect",
+	"Intelecto Arcano",
+	{ "Intelecto Arcano?" },
+	{ "¿Quién tiene Intelecto Arcano?", "¿Qué hace Intelecto Arcano?", "¿Cómo se consigue Intelecto Arcano?",
+		"¿Cuál es mejor, Intelecto Arcano?", "¿Quien tiene Intelecto Arcano?" })
+inLanguage("core2: an accented question about the buff is not a request (itIT)", "itIT", "MAGE", "intellect",
+	"Intelletto Arcano",
+	{ "Intelletto Arcano?" },
+	{ "Perché Intelletto Arcano?", "Perche Intelletto Arcano?" })
+inLanguage("core2: an accented question about the buff is not a request (frFR)", "frFR", "MAGE", "intellect",
+	"Intelligence des arcanes",
+	{ "Intelligence des arcanes ?" },
+	{ "Où trouver Intelligence des arcanes ?" })
 inLanguage("core2: a question about the buff is not a request (zhCN)", "zhCN", "MAGE", "intellect",
 	"奥术智慧",
 	{ "奥术智慧？" },

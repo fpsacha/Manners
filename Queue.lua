@@ -972,8 +972,9 @@ end
 -- rather than on UNIT_HEALTH, which fires hundreds of times a second in a raid
 -- fight: forty questions every 0.4 s is cheaper, and the tick runs in fights
 -- and while you are dead. A secret answer changes nothing. The name is read
--- only when somebody dies or stands up, and checked again then: a roster
--- change can hand the token to somebody else.
+-- as somebody dies, on every tick they lie dead, and as they stand up: a
+-- roster change can hand the token to somebody else, dead or alive, and one
+-- found under a new name is a new arrival, asked about Feign Death as such.
 function ns.WatchGroupDeaths(now)
 	local db = addon.db and addon.db.profile
 	local down, revived = sweep.down, sweep.revived
@@ -1000,6 +1001,10 @@ function ns.WatchGroupDeaths(now)
 	for i = 1, count do
 		local unit = tokens[i]
 		local dead = plain(UnitIsDeadOrGhost(unit))
+		if dead == true and down[unit] ~= nil then
+			local name = ns.UnitFullName(unit)
+			if name and name ~= down[unit] then down[unit] = nil end
+		end
 		-- A hunter's Feign Death reads as dead here, and standing up from it
 		-- costs no buffs: taken as no answer, so nothing about them changes.
 		-- Asked only of somebody not yet down: for one already down either
@@ -1558,6 +1563,34 @@ local function SelfBuff(db, mine, full, now)
 	return buff, has, remaining
 end
 
+-- CastableBuffs' answer less what the game says you cannot pay for now, once
+-- per scan, for everything the scan offers from it. A mage at 150 mana was
+-- offered an Intellect that costs more and every press failed -- the caster's
+-- fault, so nothing backed off: the prompt went round everybody, thanking
+-- each, and buffed nobody. Only a no for want of mana counts: a plain no can
+-- be a form the macro may still get past, and a client that will not say
+-- keeps the buff. The zero-mana stop in BuildQueue stays for a client without
+-- the call; your own buffs and the group spell ask for themselves.
+local function Affordable(candidates)
+	local check = C_Spell and C_Spell.IsSpellUsable
+	if type(check) ~= "function" then check = _G.IsUsableSpell end
+	if type(check) ~= "function" then return candidates end
+	local pinned = ns.PinnedBuff()
+	local out = {}
+	for _, buff in ipairs(candidates) do
+		local info = ns.BuffInfo(buff)
+		local usable, noMana = safecall(check, (info and info.topRank) or (buff.ranks and buff.ranks[1]))
+		if not (usable == false and noMana == true) then
+			out[#out + 1] = buff
+		elseif pinned and pinned.key == buff.key then
+			-- A pin is "only ever this one": PickBuffFor swaps whatever list
+			-- it is handed for the pin, so one that is left would offer it.
+			return {}
+		end
+	end
+	return out
+end
+
 -- The group buff SelfEntry would put you on the prompt for right now, ahead
 -- of your class's own, or nil: for /manners debug and Diagnostics, whose line
 -- per family would otherwise call a spell "the one to cast" while the prompt
@@ -1566,7 +1599,9 @@ end
 function ns.SelfBuffFirst(db, now)
 	local held, full = ns.MyselfHeldBack(db, now)
 	if held then return nil end
-	local mine = ns.SelfBuffs()
+	-- The list BuildQueue hands SelfEntry: a group buff you cannot pay for is
+	-- not the one the prompt is on.
+	local mine = ns.SelfBuffs(Affordable(ns.CastableBuffs()))
 	if #mine == 0 then return nil end
 	local buff = SelfBuff(db, mine, full, now)
 	local inGroup = (plain(GetNumGroupMembers and GetNumGroupMembers()) or 0) > 0
@@ -1640,34 +1675,6 @@ function ns.StopOfferingSelf()
 	addon:Print(L["your own buff will not be offered to you any more -- tick %s on the %s tab to have it back."]
 		:format("|cffffd100" .. L["Myself, when I'm missing my own buff"] .. "|r", L["Who to buff"]))
 	ns.RepaintOptions()
-end
-
--- CastableBuffs' answer less what the game says you cannot pay for now, once
--- per scan, for everything the scan offers from it. A mage at 150 mana was
--- offered an Intellect that costs more and every press failed -- the caster's
--- fault, so nothing backed off: the prompt went round everybody, thanking
--- each, and buffed nobody. Only a no for want of mana counts: a plain no can
--- be a form the macro may still get past, and a client that will not say
--- keeps the buff. The zero-mana stop in BuildQueue stays for a client without
--- the call; your own buffs and the group spell ask for themselves.
-local function Affordable(candidates)
-	local check = C_Spell and C_Spell.IsSpellUsable
-	if type(check) ~= "function" then check = _G.IsUsableSpell end
-	if type(check) ~= "function" then return candidates end
-	local pinned = ns.PinnedBuff()
-	local out = {}
-	for _, buff in ipairs(candidates) do
-		local info = ns.BuffInfo(buff)
-		local usable, noMana = safecall(check, (info and info.topRank) or (buff.ranks and buff.ranks[1]))
-		if not (usable == false and noMana == true) then
-			out[#out + 1] = buff
-		elseif pinned and pinned.key == buff.key then
-			-- A pin is "only ever this one": PickBuffFor swaps whatever list
-			-- it is handed for the pin, so one that is left would offer it.
-			return {}
-		end
-	end
-	return out
 end
 
 -- The queue, sorted, and what the scan turned down: [name] = true for

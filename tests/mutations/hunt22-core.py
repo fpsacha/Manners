@@ -153,6 +153,21 @@ mutate("Requests.lua",
        "hunt22-core: a curly apostrophe splits s'il",
        expect="core22: a request in frFR with its own please and punctuation is heard", script=S)
 
+# An elided article ("l'intelligence") left glued to the name, which is then
+# nowhere in the message; and to the opener of a question ("qu'est-ce que").
+mutate("Requests.lua",
+       "\t\t\t\tif not (SameWord(words[at], name[j])\n"
+       "\t\t\t\t\tor (words.bare[at] and SameWord(words.bare[at], name[j]))) then\n",
+       "\t\t\t\tif not SameWord(words[at], name[j]) then\n",
+       "hunt22-core: an elided article glued to the spell's name",
+       expect="core22: a request in frFR with its own please and punctuation is heard", script=S)
+
+mutate("Requests.lua",
+       "\t\t\tand not (words.bare[1] and Among(ASK.question, words.bare[1]))\n",
+       "\n",
+       "hunt22-core: a question opened qu'est taken for a request",
+       expect="core22: a request in frFR with its own please and punctuation is heard", script=S)
+
 # The Chinese cap counted per word once a comma splits the sentence.
 mutate("Requests.lua",
        "\t\tfor run in lowered:gmatch(\"[A-Za-z0-9\\128-\\255']+\") do\n",

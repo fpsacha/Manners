@@ -284,6 +284,43 @@ do
 		elseif eve.sweep ~= nil then
 			fail(scenario, "somebody handed a dead member's token was taken for them coming back")
 		end
+
+		-- Two dead members swap tokens before either stands up: each still
+		-- comes back, under the name the token holds now.
+		Mock.advance(121)
+		ns.addon:Tick()
+		dead.party1, dead.party2 = true, true
+		ns.addon:Tick()
+		names.party1, names.party2 = names.party2, names.party1
+		ns.addon:Tick()
+		dead.party1, dead.party2 = nil, nil
+		ns.addon:Tick()
+		for _, who in ipairs({ "Eve Even", BERT }) do
+			local entry = entryFor(ns, who)
+			if not (entry and entry.sweep == "revived") then
+				fail(scenario, who .. " stood up under a token another dead member held and was not put first")
+			end
+		end
+
+		-- And a hunter feigning death who is handed a dead member's token is
+		-- still no corpse standing up.
+		Mock.advance(121)
+		ns.addon:Tick()
+		dead.party1, dead.party2, feigning.party2 = true, true, true
+		ns.addon:Tick()
+		names.party1, names.party2 = names.party2, names.party1
+		feigning.party1, feigning.party2 = true, nil
+		ns.addon:Tick()
+		dead.party1, dead.party2, feigning.party1 = nil, nil, nil
+		ns.addon:Tick()
+		local hunter, other = entryFor(ns, "Eve Even"), entryFor(ns, BERT)
+		if not (hunter and other) then
+			fail(scenario, "SKIPPED -- the hunter and the member beside him were not both offered")
+		elseif hunter.sweep ~= nil then
+			fail(scenario, "a hunter handed a dead member's token was taken for them coming back")
+		elseif other.sweep ~= "revived" then
+			fail(scenario, "the dead member who got the token the hunter left was not put first")
+		end
 		noErrors(scenario, ns)
 	end)
 	restoreUnits()
@@ -310,6 +347,18 @@ do
 		Mock.raid = { size = 10, player = 1 }
 		local ns = load(scenario)
 		if not ns then return end
+		-- UnitInRaid's index is GetRaidRosterInfo's as it stands: the last of a
+		-- subgroup is not the first of the next, and the last of the raid is not
+		-- past the roster.
+		for _, case in ipairs({ { 5, 1 }, { 10, 2 } }) do
+			Mock.raid.player = case[1]
+			local group = ns.RaidSubgroup("player")
+			if group ~= case[2] then
+				fail(scenario, ("raid slot %d read as subgroup %s, not %d")
+					:format(case[1], tostring(group), case[2]))
+			end
+		end
+		Mock.raid.player = 1
 		freshPrompt(ns, scenario)
 		ns.db.profile.sources.strangers = false
 		local all = ns.BuildQueue()

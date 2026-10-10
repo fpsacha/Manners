@@ -113,10 +113,17 @@ do
 			"how", "which", "when", "where", "should", "would", "was", "were",
 			"who", "whos", "wants", "needs",
 			"ist", "sind", "hat", "wer", "was", "wie", "warum", "welche", "lohnt",
-			"est", "qui", "quoi", "pourquoi", "comment", "quel", "quelle",
-			"es", "quien", "quem", "que", "por", "como", "cual",
-			"chi", "cosa", "perche",
-			"кто", "что", "как", "зачем", "почему", "есть" }),
+			"wo", "wann", "wieso", "wozu", "wofür", "weshalb",
+			"est", "qui", "quoi", "pourquoi", "comment", "quel", "quelle", "où", "quand",
+			"combien",
+			-- Spanish and Italian write these with the accent when they ask, and
+			-- Among does not fold accents, so each is listed both ways.
+			"es", "quien", "quién", "quem", "que", "qué", "por", "como", "cómo",
+			"cual", "cuál", "donde", "dónde", "cuando", "cuándo", "cuanto", "cuánto",
+			"onde", "quando", "qual",
+			"chi", "cosa", "perche", "perché", "dove", "quale",
+			"кто", "что", "как", "зачем", "почему", "есть", "где", "когда", "сколько",
+			"какой", "какая", "откуда", "куда" }),
 		-- Chinese ends a question with a particle before the question mark:
 		-- "is it any good?" rather than a bare name asked for.
 		questionEnds = Set({ "吗", "嗎", "呢" }),
@@ -182,16 +189,26 @@ do
 	-- colon, which stands inside a spell's name (真言术：韧). The text handed
 	-- back is the message as typed, which the Chinese names and the trailing
 	-- question mark are read from.
+	--
+	-- The apostrophe is dropped, so "s'il" is "sil" and "don't" is "dont". An
+	-- article elided before a vowel ("l'intelligence", "qu'est") glues itself
+	-- to the word that way, so the list also holds, as `bare` by position, the
+	-- word without it, for the names and openers to be found by.
 	local function Words(text)
 		text = text:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
 			:gsub("|H.-|h(.-)|h", "%1"):gsub("|T.-|t", ""):gsub("[A-Z]", string.lower)
 		local split = text:gsub("\194[\161\171\187\191]", " "):gsub("\226\128[\147\148\156\157\166]", " ")
 			:gsub("\239\188[\129\140\159]", " "):gsub("\227\128[\129\130]", " ")
 			:gsub("\226\128[\152\153]", "'")
-		local words = {}
+		local words, bare = {}, {}
+		words.bare = bare
 		for found in split:gmatch("[A-Za-z0-9\128-\255']+") do
 			local word = found:gsub("'", "")
-			if word ~= "" then words[#words + 1] = word end
+			if word ~= "" then
+				words[#words + 1] = word
+				local rest = found:match("^[a-z][a-z]?'([aeiouh\128-\255].*)$")
+				if rest then bare[#words] = rest:gsub("'", "") end
+			end
 		end
 		return words, text
 	end
@@ -232,7 +249,12 @@ do
 		for i = 1, #words - n + 1 do
 			local all = true
 			for j = 1, n do
-				if not SameWord(words[i + j - 1], name[j]) then all = false break end
+				local at = i + j - 1
+				if not (SameWord(words[at], name[j])
+					or (words.bare[at] and SameWord(words.bare[at], name[j]))) then
+					all = false
+					break
+				end
 			end
 			if all then
 				found = true
@@ -327,6 +349,7 @@ do
 		-- Chinese question particle, and no Hangul (lead bytes 234-237), since
 		-- Korean asks about a thing and for it with the same question mark.
 		local questioned = marked and not Among(ASK.question, words[1])
+			and not (words.bare[1] and Among(ASK.question, words.bare[1]))
 			and not ASK.questionEnds[stem:sub(-3)] and not lowered:find("[\234-\237]")
 
 		local covered, found, generic = {}, {}, false
@@ -501,7 +524,7 @@ do
 		if not (db and db.sources.asked) or type(full) ~= "string" then return false end
 		local short = ShortName(full)
 		for _, request in ipairs(requests) do
-			if Live(request, now) and (request.full == full or SameName(request.short, short))
+			if Live(request, now) and (request.full == full or (request.full == nil and SameName(request.short, short)))
 				and (request.keys == ASK.ANY or request.keys[buffKey]) then
 				return true
 			end
@@ -520,7 +543,9 @@ do
 		local short = ShortName(name)
 		for i = #requests, 1, -1 do
 			local request = requests[i]
-			if request.full == name or SameName(request.short, short) then
+			-- A request a token has matched answers to the name it wrote on it,
+			-- and only that: another realm's Anna is a person of her own.
+			if request.full == name or (request.full == nil and SameName(request.short, short)) then
 				-- "buff pls" becomes the rest of what you can cast, each to be
 				-- given once: whether they carry a buff often cannot be read,
 				-- and then only this list stops the same one being offered

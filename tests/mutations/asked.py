@@ -60,8 +60,9 @@ mutate("Requests.lua",
 
 # A buff's name found inside other words: "intro" read as "int".
 mutate("Requests.lua",
-       "\t\t\t\tif not SameWord(words[i + j - 1], name[j]) then all = false break end\n",
-       "\t\t\t\tif not words[i + j - 1]:find(name[j], 1, true) then all = false break end\n",
+       "\t\t\t\tif not (SameWord(words[at], name[j])\n"
+       "\t\t\t\t\tor (words.bare[at] and SameWord(words.bare[at], name[j]))) then\n",
+       "\t\t\t\tif not words[at]:find(name[j], 1, true) then\n",
        "names matched inside other words",
        expect="only whole words and real requests count",
        script="runscenarios.py")
@@ -228,7 +229,7 @@ mutate("Clicks.lua",
 
 # Serving one person's request serves everybody's.
 mutate("Requests.lua",
-       "\t\t\tif request.full == name or SameName(request.short, short) then\n",
+       "\t\t\tif request.full == name or (request.full == nil and SameName(request.short, short)) then\n",
        "\t\t\tif true then\n",
        "serving one request serves them all",
        expect="a buff that lands serves the request",

@@ -697,6 +697,11 @@ function Luxe:Hide()
 		self.burstAnim, self.resultAnim, self.hoverAnim }) do
 		anim:Stop()
 	end
+	-- Stop parks nothing on a fade that has already finished, and the cursor
+	-- leaves for the next look: put the light out here, or it is lit when
+	-- this look comes back.
+	self.hoverFrame:SetAlpha(0)
+	self.resultFrame:SetAlpha(0)
 	-- The shared regions, as the built-in looks expect to find them.
 	local icon = kit.icon
 	if self.masked then

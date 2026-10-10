@@ -24,11 +24,12 @@ local function session(scenario)
 	if not ns then return nil end
 	drive(scenario, ns)
 	ns.Prompt:ExitTest()
-	local ctx = { changes = {}, holds = {}, relayouts = 0 }
+	local ctx = { changes = {}, holds = {}, pages = {}, relayouts = 0 }
 	ctx.Window = CreateFrame("Frame", "MannersOptionsTest", UIParent)
 	ctx.Window:SetSize(820, 600)
 	ctx.OnChange = function(item) ctx.changes[#ctx.changes + 1] = item.path end
 	ctx.OnHold = function(on) ctx.holds[#ctx.holds + 1] = on end
+	ctx.ScrollPage = function(delta) ctx.pages[#ctx.pages + 1] = delta end
 	ctx.Relayout = function(row) ctx.relayouts = ctx.relayouts + 1 row:Layout(row.width) end
 	return ns, ctx
 end
@@ -830,9 +831,22 @@ run("widgets: a box of many lines shows a bar while its text runs past it", func
 				if row.scroll:GetVerticalScroll() ~= range then
 					fail(scenario, "dragging the bar to its end left the box at " .. tostring(row.scroll:GetVerticalScroll()))
 				end
+				if #ctx.pages ~= 0 then fail(scenario, "the wheel went to the page while the box still moved") end
+				row.scroll.scripts.OnMouseWheel(row.scroll, -1)
+				if #ctx.pages ~= 1 or ctx.pages[1] ~= -1 then
+					fail(scenario, "the wheel at the end of the box was not handed to the page")
+				end
 			end
 			Mock.type(row.box, "One line")
 			if row.bar:IsShown() then fail(scenario, "one line still shows the bar") end
+			-- Nothing to scroll: the client would not pass the wheel up, so the box does.
+			ctx.pages = {}
+			row.scroll:SetVerticalScroll(0)
+			row.scroll.scripts.OnMouseWheel(row.scroll, 1)
+			row.bar.scripts.OnMouseWheel(row.bar, -1)
+			if #ctx.pages ~= 2 or ctx.pages[1] ~= 1 or ctx.pages[2] ~= -1 then
+				fail(scenario, "the wheel over a box with nothing to scroll was swallowed")
+			end
 		end
 		noErrors(scenario, ns)
 	end

@@ -367,3 +367,22 @@ do
 		guarded(scenario, ns)
 	end
 end
+
+-- ------------------------------------------------------------ speech-lines-6
+-- A box with one line too long for the macro: the press says the other, not
+-- nothing, whichever line the roll lands on.
+do
+	local scenario = "speech-lines: a line too long for the macro leaves the others to say"
+	local ns = withSet(scenario, nil)
+	if ns then
+		ns.db.profile.speech.phrases = "Hi {name}.\n" .. string.rep("y", 300)
+		local entry = person(ns, "owed")
+		local budget = ns.PhraseBudget(entry)
+		local said, silent = rolls(ns, entry, 20)
+		if silent > 0 then
+			fail(scenario, ("%d of 20 presses said nothing; one line of the box fits in %d"):format(silent, budget))
+		end
+		if not said["/say Hi Bram."] then fail(scenario, "the line that fits was never said") end
+		guarded(scenario, ns)
+	end
+end

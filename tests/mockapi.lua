@@ -1244,11 +1244,7 @@ end
 -- answer to "are they in my raid" and no answer at all to "does my shout reach
 -- them".
 function UnitInRaid(unit)
-	-- The real call counts from 0 (GetRaidRosterInfo counts from 1).
-	if Mock.raid then
-		local index = raidIndex(unit)
-		return maybeSecret(index and index - 1)
-	end
+	if Mock.raid then return maybeSecret(raidIndex(unit)) end
 	return maybeSecret(false)
 end
 function UnitInSubgroup(unit)

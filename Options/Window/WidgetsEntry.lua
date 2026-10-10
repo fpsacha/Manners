@@ -640,9 +640,17 @@ local function FollowCursor(box, _, y, _, h)
 end
 
 local function Wheel(scroll, delta)
-	local v = scroll:GetVerticalScroll() - (tonumber(delta) or 0) * LineHeight(scroll.row) * 3
-	scroll:SetVerticalScroll(math.max(0, math.min(scroll:GetVerticalScrollRange(), v)))
-	BarSync(scroll.row)
+	local row = scroll.row
+	delta = tonumber(delta) or 0
+	local top = scroll:GetVerticalScroll()
+	local v = top - delta * LineHeight(row) * 3
+	local to = math.max(0, math.min(scroll:GetVerticalScrollRange(), v))
+	scroll:SetVerticalScroll(to)
+	BarSync(row)
+	-- The client gives the wheel to the first frame that takes it and does not
+	-- pass it up, so a box with nothing left to scroll that way hands it to the
+	-- page, or the page would stop under the pointer.
+	if to == top and delta ~= 0 and row.ctx.ScrollPage then row.ctx.ScrollPage(delta) end
 end
 
 local function ScrollMoved(scroll) BarSync(scroll.row) end

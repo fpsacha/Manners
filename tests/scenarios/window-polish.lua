@@ -371,3 +371,33 @@ do
 
 	end)
 end
+
+-- ------------------------------------------------------------------ the wheel over a box
+-- The client gives the wheel to the first frame that takes it and does not pass
+-- it up, so a box with nothing left to scroll hands it to the page itself.
+do
+	local scenario = "window: the wheel over a box with nothing to scroll moves the page"
+	with(scenario, {}, function(ns, UI)
+		ns.db.profile.speech.enabled = true
+		ns.OpenOptions("click")
+		local row = UI.RowFor("click.phrases")
+		if not (row and row.scroll and UI.RowShown("click.phrases")) then
+			fail(scenario, "SKIPPED -- What I say shows no lines box")
+			return
+		end
+		if not (UI.view.range > 0) then
+			fail(scenario, "SKIPPED -- What I say fits the window")
+			return
+		end
+		Mock.type(row.box, "One line")
+		row.scroll:SetVerticalScroll(0)
+		UI.ScrollTo(0)
+		if not wheel(row.scroll, -1) or UI.view.scrollY <= 0 then
+			fail(scenario, "the wheel over a box that fits left the page at " .. tostring(UI.view.scrollY))
+		end
+		local at = UI.view.scrollY
+		if not wheel(row.bar, 1) or UI.view.scrollY >= at then
+			fail(scenario, "the wheel over the box's bar left the page at " .. tostring(UI.view.scrollY))
+		end
+	end)
+end

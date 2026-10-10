@@ -233,10 +233,11 @@ local PEEK_ALPHA, FADE_OUT, FADE_IN, PEEK_AFTER, HOVER_DELAY = 0.25, 0.15, 0.2, 
 local peek = { held = false, hover = false, untilAt = 0, alpha = 1, hoverToken = 0 }
 UI.peek = peek
 
--- No peek in a fight: Look's changes wait for it to end anyway. A hold counts
--- only while Look is the page (the colour picker can be left up behind
--- another), and the pointer on the preview button only while a preview runs
--- (it can end without the pointer moving).
+-- No peek in a fight: Look's changes wait for it to end anyway. A hold and the
+-- 1.5 s after a change count only while Look is the page (the colour picker can
+-- be left up behind another, and the player can leave inside the 1.5 s), and
+-- the pointer on the preview button only while a preview runs (it can end
+-- without the pointer moving).
 --
 -- A hold also lasts only while its cause does: the colour picker up, or a
 -- mouse button down. Its release can go missing -- a slider laid out afresh
@@ -253,9 +254,10 @@ end
 function UI.PeekTarget()
 	if InCombatLockdown() then return 1 end
 	if peek.held and not HoldStands() then peek.held = false end
-	local held = peek.held and UI.page == "appearance"
+	local onLook = UI.page == "appearance"
+	local held = (peek.held or ns.WindowWidgets.PickerUp()) and onLook
 	local hover = peek.hover and ns.Prompt ~= nil and ns.Prompt:InTest()
-	if held or hover or GetTime() < peek.untilAt then return PEEK_ALPHA end
+	if held or hover or (onLook and GetTime() < peek.untilAt) then return PEEK_ALPHA end
 	return 1
 end
 
@@ -320,6 +322,7 @@ UI.ctx = {
 	OnHold = function(on) ns.Guard("options window", UI.Held, on) end,
 	Repaint = function() ns.Guard("options repaint", UI.Refresh) end,
 	Relayout = function() ns.Guard("options relayout", UI.Relayout) end,
+	ScrollPage = function(delta) ns.Guard("options window", UI.ScrollBy, -(tonumber(delta) or 0) * 48) end,
 }
 
 ---------------------------------------------------------------------------

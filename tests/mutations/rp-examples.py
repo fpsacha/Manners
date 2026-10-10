@@ -94,15 +94,23 @@ mutate("Phrases.lua",
 # English examples built from the translations: a box saved in English
 # before the lines were translated reads as edited.
 mutate("Phrases.lua",
-       "\t\treturn english and ENGLISH[text] or text\n",
+       "\t\treturn names and names[text] or text\n",
        "\t\treturn text\n",
        "rp examples english box lost abroad",
        expect="1.5.0's box in English counts as edited on deDE", script=S)
 
+# Today's English lines put back by the last key read, the reworded line's
+# older wording where a translation reads alike.
+mutate("Phrases.lua",
+       "\t\tlocal names = english and (pools == RP and ENGLISH_NOW or ENGLISH)\n",
+       "\t\tlocal names = english and ENGLISH\n",
+       "rp examples english box lost where a reworded line reads alike",
+       expect="English box of Troll counts as edited on deDE", script=S)
+
 # The box on another language's client shown in English.
 mutate("Phrases.lua",
-       "\t\treturn english and ENGLISH[text] or text\n",
-       "\t\treturn ENGLISH[text] or text\n",
+       "\t\treturn names and names[text] or text\n",
+       "\t\treturn (names or ENGLISH)[text] or text\n",
        "rp examples show english abroad",
        expect="the box shows an untranslated line on deDE", script=S)
 

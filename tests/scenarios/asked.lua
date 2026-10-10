@@ -932,6 +932,38 @@ do
 end
 Mock.reset()
 
+-- Serving one of them does not close the other's request, which only the name
+-- on a request a nameplate has matched tells apart: both are "Anna" to the
+-- short name. Off Camelot a player from another realm is filed "Anna-Aim".
+Mock.reset()
+Mock.setFlavour("mainline")
+Mock.crossRealm = true
+do
+	local scenario = "serving one of two people with one name leaves the other's request"
+	local restoreUnits = strangers({ nameplate1 = { "Anna", "Aim" }, nameplate2 = { "Anna", "Bane" } })
+	with(scenario, {}, function()
+		local ns = load(scenario)
+		if not ns then return end
+		ready(ns, scenario)
+		hear(ns, "CHAT_MSG_SAY", "int pls", "Anna-Aim", "Player-1-nameplate1")
+		hear(ns, "CHAT_MSG_SAY", "int pls", "Anna-Bane", "Player-1-nameplate2")
+		if not (entryFor(ns, "Anna-Aim") and entryFor(ns, "Anna-Bane")) then
+			fail(scenario, "SKIPPED -- the two Annas were not both offered when they asked")
+			return
+		end
+		ns.ServeRequest("Anna-Aim", "intellect")
+		if entryFor(ns, "Anna-Aim") or ns.StillAsked("Anna-Aim", "intellect", GetTime()) then
+			fail(scenario, "the Anna who was served still has a request standing")
+		end
+		if not entryFor(ns, "Anna-Bane") or not ns.StillAsked("Anna-Bane", "intellect", GetTime()) then
+			fail(scenario, "serving one Anna closed the request of the Anna from another realm")
+		end
+		noErrors(scenario, ns)
+	end)
+	restoreUnits()
+end
+Mock.reset()
+
 -- ------------------------------------------------------------------ asked 18
 -- Nothing is heard while Manners is switched off, and nothing heard then turns
 -- up when it is switched back on.

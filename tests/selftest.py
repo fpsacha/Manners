@@ -2636,7 +2636,7 @@ mutate("Prompt/Press.lua",
 # A cast event a second after a refused press read as that press landing. On a
 # client that names no recipient, a hand-cast on somebody else repaid the debt.
 mutate("Clicks.lua",
-       "\tif GetTime() - pending.at > SENT_SECONDS then return end\n",
+       "\tif GetTime() - pending.at > late then return end\n",
        "",
        "a late cast event settling a refused press",
        expect="a cast a second after a refused press is not its answer",

@@ -376,8 +376,9 @@ end
 -- which applies daylight saving: counting back the hours on the clock is an
 -- hour out on the day the clocks change, and "today" would then move at the
 -- change. An answer that does not read back as midnight today (a time() that
--- ignores the table) is not trusted, and the count back is used; should date()
--- not answer with a table, "today" is the last day's worth of seconds.
+-- ignores the table) is not trusted, and the count back is used, stepped on to
+-- today where the clocks skip midnight; should date() not answer with a table,
+-- "today" is the last day's worth of seconds.
 local function StartOfToday(now)
 	local ok, t = pcall(_G.date, "*t", now)
 	if not (ok and type(t) == "table") then return now - 86400 end
@@ -391,7 +392,16 @@ local function StartOfToday(now)
 		end
 	end
 	if type(t.hour) == "number" and type(t.min) == "number" and type(t.sec) == "number" then
-		return now - ((t.hour * 60 + t.min) * 60 + t.sec)
+		local c = now - ((t.hour * 60 + t.min) * 60 + t.sec)
+		-- Where the clocks skip midnight (00:00 -> 01:00) there is no midnight to
+		-- read back, and the count back lands an hour into yesterday: step on to
+		-- the first moment that is today.
+		for _ = 1, 4 do
+			local okC, ct = pcall(_G.date, "*t", c)
+			if not (okC and type(ct) == "table" and (ct.day ~= t.day or ct.month ~= t.month)) then break end
+			c = c + 1800
+		end
+		return c
 	end
 	return now - 86400
 end

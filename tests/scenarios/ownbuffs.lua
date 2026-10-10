@@ -1183,6 +1183,20 @@ do
 			fail(scenario, "the login line tells a mage with her Intellect switched off " .. flat(login))
 		end
 	end)
+	-- A hunter on a profile where Myself was switched off (by another character):
+	-- nothing will ever be offered, so the greeting says that and shows no preview.
+	with(scenario, { class = "HUNTER", known = { HAWK, MONKEY } }, function(ns)
+		Mock.sv = {}
+		if not H.savedProfile(scenario, function(profile) profile.sources.self = false end) then return end
+		local again = load(scenario)
+		if not again then return end
+		wear(again, {})
+		local login = tostring(H.firstLogin(again))
+		if not login:find("Nothing to do: your own buffs are switched off under Myself.", 1, true)
+			or login:find("small prompt", 1, true) or again.Prompt:InTest() then
+			fail(scenario, "the greeting tells a hunter with Myself switched off " .. flat(login))
+		end
+	end)
 end
 
 -- ------------------------------------------------------------------ own 23

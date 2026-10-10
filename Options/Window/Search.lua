@@ -37,15 +37,26 @@ local ESCAPES = {
 -- Latin-1's À to Þ (0xC3 0x80-0x9E, but not 0x97, the multiplication sign)
 -- are their small letters plus 0x20, and Œ and Ÿ sit apart. That is every
 -- capital German, French, Spanish, Italian and Portuguese write; Korean and
--- Chinese have no case.
+-- Chinese have no case. Russian is folded too, though Manners has no Russian
+-- text: a ruRU client's spell names, which the choices and labels hold, are
+-- Cyrillic and start with a capital. А to П (0xD0 0x90-0x9F) are their small
+-- letters plus 0x20; Р to Я (0xD0 0xA0-0xAF) move on to 0xD1 0x80-0x8F; Ё
+-- sits apart.
 local function SmallLatin1(byte)
 	return "\195" .. char(byte:byte() + 32)
+end
+local function SmallCyrillic(byte)
+	byte = byte:byte()
+	if byte == 129 then return "\209\145" end
+	if byte < 160 then return "\208" .. char(byte + 32) end
+	return "\209" .. char(byte - 32)
 end
 local TWO_BYTE = { ["\197\146"] = "\197\147", ["\197\184"] = "\195\191" }
 
 local function Fold(text)
 	text = gsub(text, "[A-Z]+", lower)
 	text = gsub(text, "\195([\128-\150\152-\158])", SmallLatin1)
+	text = gsub(text, "\208([\129\144-\175])", SmallCyrillic)
 	return (gsub(text, "\197[\146\184]", TWO_BYTE))
 end
 
