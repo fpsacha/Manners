@@ -50,7 +50,8 @@ same list (`tests/validate.py` fails until they match).
 | `Selftest.lua` | the in-game `/manners selftest` (`/manners check`) |
 | `Textures/` | all generated, all shipped: `Manners64.tga` by `tools/make-icon.py`, `Glow.tga` and `GlowRound.tga` by `tools/make-glow.py`, `Arcane/`, `Luxe/` and `Toast/` by `tools/make_arcane_textures.py`, `make_luxe_textures.py` and `make_toast_textures.py` |
 | `tests/` | the suites, `scenarios/` and `mutations/` (one file per topic), the mock client (`mockapi.lua` + `mockwidgets.lua` + `mockwindow.lua`, `Mock.FLAVOURS` per client), `baselines/` (each client's known reds), `frametree.lua`, `baseline.py`, `bughunt.py`, `setversion.py` |
-| `tools/` | checks, release, locale and phrase tools, toc generator, renderers, image and texture generators, profilers (none ship) |
+| `tools/` | checks, lint, anchor lookup, client watch, release, locale and phrase tools, toc generator, renderers, image and texture generators, profilers (none ship) |
+| `.claude/` | `settings.json` (permissions, the lint hook) and `commands/` (`/check`, `/release`, `/bughunt`, `/translate`, `/phrases`); see "Dev tools" |
 | `.github/` | `workflows/ci.yml`, `workflows/release.yml`, the listing text files, `media/` (listing images), issue templates, `AUDIT.md` (the 2026-09-21 audit, history) |
 
 Cross-file sharing: a local one file needs from another goes on `ns` where it
@@ -112,7 +113,9 @@ default everywhere in the tests and the only client anybody here plays.
 
 | Command | What | Time |
 |---|---|---|
+| `python tools/lint.py` | every Lua file (Lua 5.1) and Python file compiles, the generated tocs are current; `file:line: what` per problem | under 1 s |
 | `python tools/check.py` | validate, runharness, runscenarios (Forever); one summary line per step, non-zero on any failure | minutes |
+| `python tools/check.py --lint` | lint first, and nothing else runs if it fails | |
 | `python tools/check.py --flavours` | also each client's own scenario file as that client (era.lua as vanilla, tbc.lua, mists.lua, mainline.lua) and every `tests/scenarios/*-fixes.lua` as each client | longer |
 | `python tools/check.py --anchors` | also `tests/selftest.py --anchors` | seconds more |
 | `python tests/selftest.py --changed [REF]` | the mutations of every file that differs from REF, committed or not (default master): code, tests, docs and workflows alike | minutes (about 15 for a handful judged by runscenarios) |
@@ -153,6 +156,40 @@ Nothing here talks to a running client. For the game itself, ask the user to
 run `/manners selftest` (a report to paste) or the `/manners dev` tools
 (`clicks`, `try`, `look`, `forms`) and paste the output, or for a screenshot.
 
+## Dev tools
+
+Quick helpers for working in a worktree (`tools/README.md` has the details):
+
+- `python tools/lint.py [FILE ...]`: Lua 5.1 syntax of every file the toc loads
+  plus `tests/*.lua`, `tests/scenarios/*.lua` and `tools/*.lua`, every `.py`
+  under `tools/` and `tests/` compiled, and the generated tocs current. One
+  `file:line: what` per problem, exit 1. Under a second. It does not count
+  upvalues or locals: `tests/validate.py` does. `--quick` is the hook's form.
+- `python tools/anchors_for.py FILE[:LINE[-LINE]|:FUNCTION]` **before** editing
+  a line: the mutations whose `old` text sits there (within 3 lines, `--near N`),
+  each with its label, its `expect` and the file:line of its `mutate()` call.
+  `python tools/anchors_for.py --check-after` **after**: only the mutations that
+  no longer find their text (`selftest.py --anchors`, gone ones only). Re-aim
+  them in the same change, never delete them.
+- `python tools/clients_watch.py`: each client's interface number and build in
+  the repo against `Gethe/wow-ui-source` (`version.txt` per branch) and
+  `Ketho/BlizzardInterfaceResources`, plus the PTR and beta branches. Exit 1 on
+  drift: a toc that would show out of date to players on that client. Needs `gh`.
+- `python tools/check.py --lint --flavours --anchors --jobs 2`: lint first, then
+  the rest; a lint failure stops it before anything else runs.
+- `.claude/settings.json` allows the commands above, `python tools/*`,
+  `python tests/*`, the everyday git and `gh run` commands and `gh api` reads of
+  the two upstream repos; it asks before `tools/release.py` and
+  `tests/setversion.py`, and denies force pushes, `git reset --hard`, `git clean`,
+  `rm -rf` and `gh secret`. A PostToolUse hook runs `python tools/lint.py --quick`
+  after every Edit or Write: it is silent when the file compiles and prints the
+  problem (exit 2) when it does not. Slash commands in `.claude/commands/`:
+  `/check`, `/release`, `/bughunt`, `/translate`, `/phrases`.
+- Cost and odd input: `tools/perf_probe.py` and `tools/profile_scan.py` (under
+  "Checks" above).
+  <!-- COORDINATOR (round 33 merge): add the fuzzer command here, from the fuzz area's docs_notes. -->
+  <!-- COORDINATOR (round 33 merge): add any new perf probe line here, from the perf area's docs_notes. -->
+
 ## Scenarios and mutations
 
 - **Scenarios** are Lua run against the mock. `tests/scenarios.lua` is the old
@@ -177,6 +214,8 @@ run `/manners selftest` (a report to paste) or the `/manners dev` tools
 - **Anchors**: changing code or comments a mutation's `old` sits on means
   updating that mutation so it still applies the same fault;
   `python tests/selftest.py --anchors` must report every anchor live.
+  `python tools/anchors_for.py FILE:LINE` lists them before the edit and
+  `--check-after` only the gone ones after it ("Dev tools" above).
 - **Anchors outside the code**: mutations also sit on `README.md`,
   `RELEASING.md`, `CHANGELOG.md`, `Manners.toc` and both workflows
   (`ci.yml`, `release.yml`), mostly judged by validate.py. One README anchor,

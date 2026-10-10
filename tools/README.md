@@ -1,14 +1,17 @@
 # tools
 
 Two kinds of thing. First the tools for working on the addon: running the
-suites (`check.py`), making a release (`release.py`), keeping the translations
+suites (`check.py`), the quick checks for the middle of an edit (`lint.py`,
+`anchors_for.py`), watching the clients' interface numbers (`clients_watch.py`),
+making a release (`release.py`), keeping the translations
 whole (`locale_todo.py`, `locale_add.py`, with `build_locale.py`,
 `check_translation.py` and `locale_keys.py` under them) and adding In character
 lines (`add_phrases.py`). Then the generators for the addon's per-flavour
 `.toc` files, for the images on the CurseForge listing and in the README, and
 for the addon's own icon, and the probes that measure it. Nothing in here
-ships: `.pkgmeta` ignores this folder, and the game never loads it. The five
-working tools are run by hand; nothing in `tests/` imports them.
+ships: `.pkgmeta` ignores this folder, and the game never loads it. The working
+tools are run by hand, except `lint.py --quick`, which `.claude/settings.json`
+runs after every edit an agent makes.
 
 They live in the repository rather than on somebody's desktop so the listing can
 be rebuilt when the addon changes. The first versions were one-off scripts, which
@@ -22,6 +25,7 @@ The suites in one command, one line each.
 python tools/check.py                              # validate, harness, scenarios
 python tools/check.py --flavours                   # and each client's own files as that client
 python tools/check.py --anchors                    # and every mutation still finds its code
+python tools/check.py --lint                       # tools/lint.py first; nothing else runs if it fails
 python tools/check.py --flavours --anchors --jobs 3
 ```
 
@@ -29,6 +33,7 @@ Each step is the existing script, run as it is:
 
 | Step | Runs |
 |---|---|
+| `lint` (`--lint`) | `tools/lint.py`, before everything. If it reports a problem its lines are shown and no other step runs: a file that does not compile turns every other step red with noise |
 | `validate` | `tests/validate.py` |
 | `harness` | `tests/runharness.py` |
 | `scenarios` | `tests/runscenarios.py --jobs N`: every scenario, as WoW Forever (camelot), the default client |
@@ -68,6 +73,130 @@ reds are mostly fixtures written for Camelot, and `--baseline` there prints
 only the reds that are not in `tests/baselines/X.txt` (`tests/README.md`). The
 files `--flavours` runs are the ones written for each client, and they are
 green.
+
+## lint.py
+
+Did my edit break a file? Under a second, for after every edit.
+
+```
+python tools/lint.py                   # everything
+python tools/lint.py Queue.lua tools/check.py    # only those files
+python tools/lint.py --quick           # the hook: the file named in the hook's JSON on stdin
+```
+
+One line per problem, `file:line: what`, and a last line with the count; exit 1
+if there is any.
+
+| Checks | What |
+|---|---|
+| Lua | every file `Manners.toc` loads (`Locales.xml` expanded, `embeds.xml` left out, as `tests/addonfiles.lua` reads it), `tests/*.lua`, `tests/scenarios/*.lua` and `tools/*.lua`, compiled with Lua 5.1 (`lupa.lua51`) and `loadstring`, the game's own compiler: a `goto`, a `//` or a bitwise `&` is an error here as it is there |
+| Python | every `.py` under `tools/` and `tests/` compiled with `compile()` (nothing written, no `__pycache__`), `SyntaxWarning`s included: an invalid escape sequence in a regular expression or a path is reported |
+| tocs | every file the toc names exists, and each generated `Manners_<Flavour>.toc` is what `tools/maketocs.py` would write (its own `expected()`, imported) |
+
+What it does not do: upvalue and local counts, references, translations and
+versions are `tests/validate.py`'s, which is not importable and takes four
+seconds. Run `validate` (or `check.py`) before handing work back; run this after
+every edit.
+
+`--quick` is for `.claude/settings.json`'s PostToolUse hook, which runs
+`python tools/lint.py --quick; exit $LASTEXITCODE` after every Edit or Write.
+With no FILE it reads the hook's JSON from stdin and lints `tool_input.file_path`
+if that is a `.lua` or `.py` file (editing `Manners.toc` or `tools/maketocs.py`
+re-checks the generated tocs); anything else, and an empty stdin, is silent. It
+prints nothing when all is well and, on a problem, writes it to stderr and exits
+2, which is how Claude Code shows a PostToolUse message to the agent. The
+`exit $LASTEXITCODE` is for PowerShell, whose `-Command` would otherwise turn the
+2 into a 1; Git Bash reads it as the exit status already in hand.
+
+## anchors_for.py
+
+Which mutations sit on the code you are about to change.
+
+```
+python tools/anchors_for.py Queue.lua                  # every mutation anchored in the file
+python tools/anchors_for.py Queue.lua:340              # on or within 3 lines of line 340
+python tools/anchors_for.py Queue.lua:340-352 Core.lua:90
+python tools/anchors_for.py Queue.lua:SameName         # a function, from its line to its end
+python tools/anchors_for.py --near 8 --brief Queue.lua:340
+python tools/anchors_for.py --check-after              # the anchors that are gone
+python tools/anchors_for.py --check-after Queue.lua    # ... only those in Queue.lua
+```
+
+A mutation (`tests/mutations/*.py`, and the ones written in `tests/selftest.py`)
+replaces the first occurrence of an `old` text and requires the check named by
+`expect` to go red. Change the lines that text sits on and it stops applying
+until `selftest.py --anchors` says so. This reads the mutations the way
+`selftest.py` does (each file of `tests/mutations` run with a recording
+`mutate()`; the top-level `mutate()` statements of `selftest.py` evaluated one by
+one, the file itself not run), finds where each `old` text sits now, and prints
+for each one that matches:
+
+```
+Queue.lua:453  never-offer list matches exact case only
+    expect: the never list persists and can be emptied
+    in tests/mutations/people.py:57  (judged by runscenarios.py)
+```
+
+the file and lines the text covers (`xN` when it occurs N times: the first is the
+one replaced), the label, the `expect`, and the file and line of the `mutate()`
+call, which is where to edit. `FILE:NAME` is a Lua function (`function NAME(`,
+`local function NAME(`, `NAME = function(`) or a Python `def`/`class`, from its
+first line to its closing `end` or the next line indented no deeper; one section
+is printed for each definition of the name. `FILE` is relative to the
+repository or absolute. Exit 0 whenever it lists.
+
+`--check-after` is `python tests/selftest.py --anchors` with only the gone ones
+printed (`ANCHOR GONE: label (file, mutation file:line)` and its `expect`), in
+about a second and exit 1 if there is one. Re-aim a gone mutation at the new
+code so it applies the same fault; never delete it, and never leave it for the
+full selftest to find.
+
+## clients_watch.py
+
+Have the five clients moved on from the interface numbers in the tocs?
+
+```
+python tools/clients_watch.py
+```
+
+A client patched to a new interface number shows the addon as out of date to
+every player on it until its toc says the new number. This reads, with `gh api`
+(GET only; needs `gh` installed and logged in; prints no token):
+
+- the repository: the number in `tools/maketocs.py` `FLAVOURS`, in `Manners.toc`'s
+  `## Interface:` line, in each generated `Manners_<Flavour>.toc` and in
+  `tests/mockapi.lua`'s `Mock.FLAVOURS`, and the build `CLAUDE.md` cites for the
+  data ("The builds cited in the code"); they must agree, and one line names the
+  odd one out if they do not;
+- upstream, per client: `version.txt` on that client's branch of
+  `Gethe/wow-ui-source` (`forever`, `classic_era`, `classic_anniversary`,
+  `classic`, `live`), `X.Y.Z.build`. The interface is `X*10000 + Y*100 + Z`
+  (16001, 11509, 20506, 50504, 120100 today; Blizzard's own tocs there carry no
+  `## Interface:` line to read). `Ketho/BlizzardInterfaceResources` states it too,
+  as the fourth value of the `GetBuildInfo() => ...` line in each branch's
+  README; its dump can trail `version.txt` by weeks and is shown beside it;
+- every other branch of `Gethe/wow-ui-source` that has a `version.txt` (`ptr`,
+  `ptr2`, `beta`, `classic_ptr`, `classic_beta`, `classic_era_ptr`,
+  `classic_titan`...), with the interface it implies and whether that is newer than
+  the toc of the client it belongs to (matched by the first digits of the number).
+
+```
+client           toc          repo  repo build     upstream      branch                iface   Ketho  status
+WoW Forever      Camelot     16001  1.60.1.70178   1.60.1.70338  forever               16001   16001  newer build (+160)
+Classic Era      Vanilla     11509  1.15.9.70003   1.15.9.70003  classic_era           11509   11509  ok
+...
+  ptr2               12.1.5.70077   interface 120105  Ketho 120105  NEWER than Manners_Mainline.toc (120100)
+```
+
+`ok` means the interface agrees. `newer build (+N)` means upstream is a later
+build of the same version: the spell data in `Buffs.lua` was read from the older
+one, which is not a toc matter. `DRIFT` means the number differs: change
+`tools/maketocs.py` `FLAVOURS` and `Manners.toc`'s Interface line, run
+`python tools/maketocs.py`, and put the new number in `RELEASING.md`'s table, the
+mock and `CLAUDE.md`'s client table. Exit 0 when no client has drifted, 1 when one
+has, 2 when upstream could not be read (a call dropped by the network is made
+once more). The test branches are information: `ptr2` with a number above the
+toc's is the one to prepare for.
 
 ## release.py
 

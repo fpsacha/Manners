@@ -3,6 +3,7 @@
     python tools/check.py                  # validate, harness, scenarios
     python tools/check.py --flavours       # and each client's own files as that client
     python tools/check.py --anchors        # and selftest.py --anchors
+    python tools/check.py --lint           # first tools/lint.py: stops there if it fails
     python tools/check.py --flavours --anchors --jobs 6
 
 The steps, each the existing script run as it is:
@@ -16,6 +17,9 @@ The steps, each the existing script run as it is:
              mainline -- and every tests/scenarios/*-fixes.lua as each of those
              four (the scenarios step has already run them as camelot):
              tests/runscenarios.py --flavour X --file F
+  --lint     tools/lint.py, first of all steps and alone until it passes: a file
+             that does not compile would turn every other step red with noise,
+             so on a problem its lines are shown and nothing else is run
   --anchors  tests/selftest.py --anchors --jobs N: every mutation still finds
              the code it changes. Not the full mutation run, which is
              python tests/selftest.py on its own and is done before a release.
@@ -159,6 +163,8 @@ def main(argv=None):
                         help="also run each client's own scenario file and every *-fixes.lua as each client")
     parser.add_argument("--anchors", action="store_true",
                         help="also run tests/selftest.py --anchors")
+    parser.add_argument("--lint", action="store_true",
+                        help="run tools/lint.py first, and stop there if it fails")
     parser.add_argument("--jobs", type=int, default=max(1, (os.cpu_count() or 4) - 2),
                         help="processes at once, all steps together (default: the cores less"
                              " two: %(default)s)")
@@ -182,7 +188,8 @@ def main(argv=None):
     if args.anchors:
         rest.append(Step("anchors", ["tests/selftest.py", "--anchors", "--jobs", str(jobs)],
                          why=r"^ANCHOR GONE: |Traceback|Error"))
-    steps = first + [scenarios] + rest
+    lint = Step("lint", ["tools/lint.py"])
+    steps = ([lint] if args.lint else []) + first + [scenarios] + rest
 
     def cost(step):
         # The biggest scenario files first (anchors before them all), so the
@@ -193,6 +200,14 @@ def main(argv=None):
 
     say("check: %d step(s), %d at once; logs in %s" % (len(steps), jobs, LOGS))
     start = time.time()
+    if args.lint:
+        lint.run()
+        if lint.code != 0:
+            for line in lint.why():
+                say(line)
+            say("")
+            say("check: lint FAILED in %.0fs; nothing else was run" % (time.time() - start))
+            return 1
     with ThreadPoolExecutor(max_workers=min(jobs, len(first))) as pool:
         list(pool.map(Step.run, first))
     scenarios.run()

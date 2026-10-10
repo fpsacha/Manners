@@ -5,13 +5,23 @@ work on the project: `CLAUDE.md`. How to release: `RELEASING.md`.
 
 ## State
 
-1.7.3 is released, for all five live clients: WoW Forever, Classic Era, Burning
+1.7.4 is released, for all five live clients: WoW Forever, Classic Era, Burning
 Crusade Classic Anniversary, Mists of Pandaria Classic and retail (a toc per
 client from `tools/maketocs.py`, a buff set per client in `Buffs.lua`, each
 checked against that client's DB2 on wago.tools, and a scenario file and
 mutations per client). Every buff on every client has In character lines of
 its own, and every people has lines (the Haranir since 1.7.2, speaking since
 1.7.3).
+
+Working here is quicker and safer for an agent since round 33 (`CLAUDE.md`,
+"Dev tools"). `tools/lint.py` says in under a second whether every Lua and
+Python file compiles and the generated tocs are current (`check.py --lint` runs
+it first and stops there on a problem). `tools/anchors_for.py` lists the
+mutations on a line before it is edited and, after, the anchors that are gone.
+`tools/clients_watch.py` compares each client's interface number and build with
+Blizzard's UI source and lists the PTR numbers. A `.claude/` folder holds a
+permissions list, a hook that lints each edited file, and the commands
+`/check`, `/release`, `/bughunt`, `/translate` and `/phrases`.
 
 ## Open
 
@@ -38,6 +48,8 @@ with `--baseline` to see only failures that are not already in
 **Retail 12.1.5 (interface 120105) is on the PTR.** `Flavour.lua` already reads
 it as Midnight. When it goes live, `Manners_Mainline.toc` needs the number
 (`tools/maketocs.py`'s `FLAVOURS` and `Manners.toc`'s Interface line).
+`python tools/clients_watch.py` says when it has (live's `version.txt` moves to
+12.1.5 and the retail row reads DRIFT); the same goes for the other four clients.
 
 **Unused local functions are found by hand.** `tests/validate.py` reports a
 write-only `ns.X`, but nothing finds a local function nobody calls; extending
