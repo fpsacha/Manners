@@ -482,6 +482,14 @@ do
 			Mock.advance(0.4)
 			ns.addon:Tick()
 		end
+		-- The scan itself no longer asks SameName of a request a token has
+		-- matched (it compares the full names), so the compare is asked
+		-- directly: it is still what the never-offer list and a request nobody
+		-- has matched go through on every pass.
+		for _ = 1, 5 do
+			ns.SameName("Anna Aim", "Bert Beside")
+			ns.SameName("Cara", "Cara Close")
+		end
 		if plain > 0 then
 			fail(scenario, ("five scans with three askers made %d strcmputf8i calls on names in A to Z")
 				:format(plain))

@@ -22,12 +22,22 @@ mutate("Options/Window/Window.lua",
        "window: a held slider does not fade the window",
        expect="holding the Scale slider left the window at", script=S)
 
-# The colour picker opened without telling the window it is held open...
-mutate("Options/Window/WidgetsChoice.lua",
-       "\tpicking = row\n\tW.Hold(row, true)\n",
-       "\tpicking = row\n",
+# The colour picker fading the window: the hold it tells the window about
+# and, since 1.7.4, the picker itself being up (W.PickerUp) both do it, so the
+# fault is the window ignoring a hold altogether...
+mutate("Options/Window/Window.lua",
+       "\tlocal held = (peek.held or ns.WindowWidgets.PickerUp()) and onLook\n",
+       "\tlocal held = false\n",
        "window: the colour picker does not fade the window",
        expect="with the colour picker open for Panel colour the window is at", script=S)
+
+# ...and the picker's own state not being read, so a slider let go of while
+# the picker is still up ends the fade.
+mutate("Options/Window/WidgetsChoice.lua",
+       "\treturn picking ~= nil and type(picker) == \"table\" and picker.IsShown and picker:IsShown() and true or false\n",
+       "\treturn false\n",
+       "window: the picker's own state not read",
+       expect="Scale let go with the colour picker up left the window at", script=S)
 
 # ...and shut without letting go. Since 1.6.1 the window lets go by itself
 # once the picker is down, so it is the widget's own check that sees it.

@@ -21,12 +21,14 @@ mutate("Options/Window/Window.lua",
        expect="of Look's rows are still drawn over Who to buff after leaving Scale's box", script=S)
 
 # A change on Look committed as the player leaves it fades the window over
-# the page they went to.
+# the page they went to: the 1.5 s after a change counts only on Look
+# (PeekTarget). The commit still writes the time (the page is not asked there),
+# so the page is asked where the time is read.
 mutate("Options/Window/Window.lua",
-       "\tif OnLook(item) and UI.page == \"appearance\" and not InCombatLockdown() then\n",
-       "\tif OnLook(item) and not InCombatLockdown() then\n",
+       "\tif held or hover or (onLook and GetTime() < peek.untilAt) then return PEEK_ALPHA end\n",
+       "\tif held or hover or GetTime() < peek.untilAt then return PEEK_ALPHA end\n",
        "hunt19-options: a Look box left for another page fades the window",
-       expect="the window faded over Who to buff, to", script=S)
+       expect="leaving Look inside the 1.5 s left the next page at", script=S)
 
 # The box beside a slider or nudge arrow keeps the keyboard, and its old
 # number, through the drag.

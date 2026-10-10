@@ -1,5 +1,42 @@
 # Changelog
 
+## Unreleased
+
+- **Giving several buffs in turn.** A slower second click no longer walks you
+  back to the first buff while the last one is still on its short wait.
+- **Hidden buffs.** A buff the game is hiding from addons right now is no
+  longer taken for missing.
+- **Back from the dead.** Somebody raised from the dead is put first even
+  when the group list reshuffled while they lay there, and one who merely
+  inherited a dead member's place in the list is not.
+- **Fights.** A press queued during a fight is no longer thrown away when your
+  spell queue window is wider than half a second.
+- **Same-named players from different realms** no longer close each other's
+  requests in chat.
+- **Requests in French, Italian, Spanish and German.** "l'intelligence des
+  arcanes svp" and the like are heard, and accented questions about a buff
+  are no longer taken for requests.
+- **The ledger's "today"** no longer starts an hour early on a day when the
+  clocks skip midnight, and "60 min ago" and "24 hr ago" read as an hour and
+  a day.
+- **Notes about your reagents** are no longer lost when chat messages are off.
+- **The first-run greeting** for a hunter or shaman with *Myself* off says that
+  nothing will be offered, instead of showing a preview.
+- **A phrase box with one very long line** no longer goes silent whenever that
+  line is picked; it rolls among the lines that fit.
+- **/party and /raid lines** are checked against the member you thank, not
+  the one a group cast was aimed at.
+- **The In character box** is recognised as untouched on German, French,
+  Italian and Brazilian clients again.
+- **The prompt's looks.** Switching look with the pointer on the prompt no
+  longer leaves its light on, the Arcane favour clock follows the fight and is
+  no longer wiped by the first click in it, and the Toast clock and breaths
+  start fresh for each person.
+- **The options window.** The fade after a change on Look stops when you leave
+  Look, the colour picker's hold lasts as long as the picker is open, a text
+  box with nothing to scroll hands the mouse wheel to the page, and search
+  matches capital letters in Cyrillic spell names.
+
 ## 1.7.3
 
 - **The Haranir really speak as themselves now.** The game calls their race

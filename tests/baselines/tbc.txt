@@ -187,8 +187,13 @@ core22: a request in frFR with its own please and punctuation is heard: "buff s'
 core22: a request in frFR with its own please and punctuation is heard: "int s'il te plait" was not heard as a request for Intelligence des Arcanes
 core22: a request in frFR with its own please and punctuation is heard: "int s'il vous pla\\195\\174t" was not heard as a request for Intelligence des Arcanes
 core22: a request in frFR with its own please and punctuation is heard: "int s\\226\\128\\153il vous pla\\195\\174t" was not heard as a request for Intelligence des Arcanes
+core22: a request in frFR with its own please and punctuation is heard: "l'int svp" was not heard as a request for Intelligence des Arcanes
+core22: a request in frFR with its own please and punctuation is heard: "l'intelligence des arcanes svp" was not heard as a request for Intelligence des Arcanes
+core22: a request in frFR with its own please and punctuation is heard: "l\\226\\128\\153Intelligence des Arcanes s'il vous pla\\195\\174t" was not heard as a request for Intelligence des Arcanes
 core22: a request in itIT with its own please and punctuation is heard: "buff per favore" was not heard as a request for Intelletto Arcano
 core22: a request in itIT with its own please and punctuation is heard: "int per favore" was not heard as a request for Intelletto Arcano
+core22: a request in itIT with its own please and punctuation is heard: "l'intelletto arcano per favore" was not heard as a request for Intelletto Arcano
+core22: a request in itIT with its own please and punctuation is heard: "puoi darmi l'intelletto arcano?" was not heard as a request for Intelletto Arcano
 core22: a request in zhCN with its own please and punctuation is heard: "\\232\\175\\183\\231\\187\\153\\230\\136\\145\\229\\138\\160\\229\\165\\165\\230\\156\\175\\230\\153\\186\\230\\133\\167" was not heard as a request for \229\165\165\230\156\175\230\153\186\230\133\167
 core22: a shout at 15 yards carries the thank-you (LibRangeCheck): SKIPPED -- Bob is not offered Battle Shout in reach
 core22: a shout at 15 yards leaves out the thank-you: SKIPPED -- Bob is not offered Battle Shout in reach
@@ -225,6 +230,9 @@ core2: a request that says no is not a request (ptBR): ptBR: request 1 was not h
 core2: a request that says no is not a request (zhCN): zhCN: request 1 was not heard as one
 core2: a request that says no is not a request (zhCN): zhCN: request 2 was not heard as one
 core2: a request that says no is not a request (zhCN): zhCN: request 3 was not heard as one
+core2: an accented question about the buff is not a request (esES): esES: request 1 was not heard as one
+core2: an accented question about the buff is not a request (frFR): frFR: request 1 was not heard as one
+core2: an accented question about the buff is not a request (itIT): itIT: request 1 was not heard as one
 core2: the Chinese please inside another word is not a please: zhCN: request 1 was not heard as one
 core2: the Chinese please inside another word is not a please: zhCN: request 2 was not heard as one
 core2: the Chinese please inside another word is not a please: zhCN: request 3 was not heard as one
@@ -291,6 +299,7 @@ groupbuffs: a group cast aimed at a favour still counts as one buff given: SKIPP
 groupbuffs: a group cast answers a member who asked in chat: SKIPPED -- Dain's request is not standing behind a group cast at somebody else: nil / Cora
 groupbuffs: a group cast that returns a favour thanks the one it repays (everybody missing it): a ready check tied the party, and the cast was aimed at Bram, not Gwen who is owed: /target Bram / /cast Arcane Brilliance / /targetlasttarget
 groupbuffs: a group cast that returns a favour thanks the one it repays (she wears another mage's Intellect): the group cast repays Gwen, and the line is missing: /target Bram / /cast Arcane Brilliance / /targetlasttarget
+groupbuffs: a group cast's /party line is asked of the member it thanks (owed inside the subgroup, the cast aimed outside it): Raider3 is in the player's subgroup, and the /party line is missing: /target Raider10 / /cast Arcane Brilliance / /targetlasttarget
 groupbuffs: a late refusal lets go a favour listed since the settle: SKIPPED -- the group cast at Cora did not settle Dain's favour: /target Cora Vell / /cast Arcane Intellect / /targetlasttarget
 groupbuffs: a late refusal puts every favour back: SKIPPED -- the group cast did not settle both favours: /target Cora Vell / /cast Arcane Intellect / /targetlasttarget
 groupbuffs: a refused press gives everybody it covered back: three seconds after a refused press the party is not offered again: Bram, Cora, Dain, Gwen
@@ -539,8 +548,11 @@ raid: only the raid groups I buff: a raid member outside your raid groups who as
 raid: only the raid groups I buff: outside a raid, the raid groups setting left a party member out
 raid: only the raid groups I buff: ticking group 2 again did not bring its members back
 raid: only the raid groups I buff: your target in another raid group was not offered
+raid: somebody just back from the dead comes first: Bert Beside stood up under a token another dead member held and was not put first
+raid: somebody just back from the dead comes first: Eve Even stood up under a token another dead member held and was not put first
 raid: somebody just back from the dead comes first: SKIPPED -- Anna was not offered after feigning death
 raid: somebody just back from the dead comes first: SKIPPED -- Eve was not offered at all
+raid: somebody just back from the dead comes first: SKIPPED -- the hunter and the member beside him were not both offered
 raid: somebody just back from the dead comes first: somebody back from the dead stayed first after two minutes
 raid: somebody just back from the dead comes first: somebody back from the dead was not put first: Bert, Zed Far, Anna, Cara, Dora
 raid: somebody just back from the dead comes first: somebody back from the dead was put first with the switch off
