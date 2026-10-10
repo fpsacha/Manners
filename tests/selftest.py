@@ -1321,11 +1321,11 @@ mutate("Prompt/Refresh.lua",
 # 21. the sound tied to the name on the panel changing, which is exactly the
 #     thing that churns. A panel swapping a name can be looked away from.
 mutate("Prompt/Refresh.lua",
-       """	if isNew and db.sound.enabled
+       """	if (isNew or (becameOwed and db.sound.owedOnly)) and db.sound.enabled
 		and (not db.sound.owedOnly or top.reason == "owed"
 			or not (ns.caps and ns.caps.hasClassBuffs == true and db.sources.owed ~= false))
 		and not (lastSoundAt and (now - lastSoundAt) < SOUND_FLOOR_SECONDS) then""",
-       """	if isNew and db.sound.enabled
+       """	if (isNew or (becameOwed and db.sound.owedOnly)) and db.sound.enabled
 		and (not db.sound.owedOnly or top.reason == "owed"
 			or not (ns.caps and ns.caps.hasClassBuffs == true and db.sources.owed ~= false)) then""",
        "the alert sound following the churn",

@@ -237,6 +237,16 @@ local function HasAlpha(row)
 	return h == true
 end
 
+-- The opacity slider of the classic family's picker (Classic Era, TBC, Mists)
+-- is the old one behind the new API: its 0 is the "+" end, opaque, so its
+-- value is transparency. Forever's and retail's answer the alpha itself.
+-- Both ways are the same flip; the rounding keeps 1 - (1 - a) from drifting a
+-- stored alpha by a float's last digit.
+local function SliderAlpha(v)
+	if type(v) ~= "number" or not (ns.Flavour and ns.Flavour.family == "classic") then return v end
+	return math.floor((1 - v) * 10000 + 0.5) / 10000
+end
+
 local function PickerClosed()
 	local row = picking
 	picking = nil
@@ -258,7 +268,7 @@ local function Live(row)
 	if picking ~= row or W.Off(row) then return end
 	local r, g, b = ColorPickerFrame:GetColorRGB()
 	local a = 1
-	if HasAlpha(row) and ColorPickerFrame.GetColorAlpha then a = ColorPickerFrame:GetColorAlpha() end
+	if HasAlpha(row) and ColorPickerFrame.GetColorAlpha then a = SliderAlpha(ColorPickerFrame:GetColorAlpha()) end
 	local last = row.live
 	if last[1] == r and last[2] == g and last[3] == b and last[4] == a then return end
 	last[1], last[2], last[3], last[4] = r, g, b, a
@@ -273,7 +283,7 @@ end
 local function OpenPicker(row, r, g, b, a)
 	local live = function() ns.Guard("options colour", Live, row) end
 	ColorPickerFrame:SetupColorPickerAndShow({
-		r = r, g = g, b = b, opacity = a, hasOpacity = HasAlpha(row),
+		r = r, g = g, b = b, opacity = SliderAlpha(a), hasOpacity = HasAlpha(row),
 		swatchFunc = live, opacityFunc = live,
 		cancelFunc = function() ns.Guard("options colour", Restore, row) end,
 	})
@@ -287,6 +297,10 @@ local function SwatchClicked(hit)
 		hookedPicker = picker
 		picker:HookScript("OnHide", function() ns.Guard("options colour", PickerClosed) end)
 	end
+	-- A picker still up for another swatch is not shown again, so the classic
+	-- one would never run its OnShow and keep the first swatch's opacity
+	-- slider: closed first, as AceGUI's swatch does.
+	if picker.IsShown and picker:IsShown() and picker.Hide then picker:Hide() end
 	if picking and picking ~= row then W.Hold(picking, false) end
 	local r, g, b, a = Bind().Value(row.item)
 	r, g, b, a = tonumber(r) or 1, tonumber(g) or 1, tonumber(b) or 1, tonumber(a) or 1
