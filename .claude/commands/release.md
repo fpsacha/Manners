@@ -19,8 +19,9 @@ at the first red:
 4. `python tools/check.py --lint --flavours --anchors`.
 5. Dry run, and show the user its output: `python tools/release.py $ARGUMENTS --dry-run`
 6. Ask the user to confirm the version. Only on a clear yes, run it with the
-   Co-Authored-By line from the environment:
-   `MANNERS_COAUTHOR="Claude Sonnet 5.5 <noreply@anthropic.com>" python tools/release.py $ARGUMENTS`
+   Co-Authored-By line (`--coauthor` reads the same in bash and in PowerShell;
+   an environment prefix does not):
+   `python tools/release.py $ARGUMENTS --coauthor "Claude Sonnet 5.5 <noreply@anthropic.com>"`
    It sets the version (`tests/setversion.py`), commits "Manners X.Y.Z", pushes
    master, waits for CI, tags `vX.Y.Z`, pushes the tag, waits for `release.yml`
    and prints the packager's `Game version:` line (all five clients) and the

@@ -99,8 +99,11 @@ seconds. Run `validate` (or `check.py`) before handing work back; run this after
 every edit.
 
 `--quick` is for `.claude/settings.json`'s PostToolUse hook, which runs
-`python tools/lint.py --quick; exit $LASTEXITCODE` after every Edit or Write.
-With no FILE it reads the hook's JSON from stdin and lints `tool_input.file_path`
+`tools/lint.py --quick` after every Edit or Write, through a one-line
+`python -c` that finds the script under `$CLAUDE_PROJECT_DIR` (the same text
+reads in bash and in PowerShell, neither of which spells the variable alike; a
+`cd tests` in the session would break a relative path) and does nothing if the
+script is not there. With no FILE it reads the hook's JSON from stdin and lints `tool_input.file_path`
 if that is a `.lua` or `.py` file (editing `Manners.toc` or `tools/maketocs.py`
 re-checks the generated tocs); anything else, and an empty stdin, is silent. It
 prints nothing when all is well and, on a problem, writes it to stderr and exits
@@ -141,13 +144,18 @@ the file and lines the text covers (`xN` when it occurs N times: the first is th
 one replaced), the label, the `expect`, and the file and line of the `mutate()`
 call, which is where to edit. `FILE:NAME` is a Lua function (`function NAME(`,
 `local function NAME(`, `NAME = function(`) or a Python `def`/`class`, from its
-first line to its closing `end` or the next line indented no deeper; one section
+first line to its closing `end` or the next line indented no deeper (a Lua
+function that closes on its own line is that one line); one section
 is printed for each definition of the name. `FILE` is relative to the
-repository or absolute. Exit 0 whenever it lists.
+repository or absolute, in the disk's case or not (`queue.lua` finds
+`Queue.lua`'s mutations). Exit 0 whenever it lists.
 
 `--check-after` is `python tests/selftest.py --anchors` with only the gone ones
 printed (`ANCHOR GONE: label (file, mutation file:line)` and its `expect`), in
-about a second and exit 1 if there is one. Re-aim a gone mutation at the new
+about a second and exit 1 if there is one, or if a file of `tests/mutations`
+does not run (a typo in a new one): the mutations after the failing line are
+never checked then, and `selftest.py --anchors` stops with a traceback on it
+too. Re-aim a gone mutation at the new
 code so it applies the same fault; never delete it, and never leave it for the
 full selftest to find.
 
@@ -194,7 +202,9 @@ one, which is not a toc matter. `DRIFT` means the number differs: change
 `tools/maketocs.py` `FLAVOURS` and `Manners.toc`'s Interface line, run
 `python tools/maketocs.py`, and put the new number in `RELEASING.md`'s table, the
 mock and `CLAUDE.md`'s client table. Exit 0 when no client has drifted, 1 when one
-has, 2 when upstream could not be read (a call dropped by the network is made
+has or when the repository disagrees with itself about a client's number (the
+"repo disagrees" note on its row, repeated below the table), 2 when upstream
+could not be read or `gh` is not installed (a call dropped by the network is made
 once more). The test branches are information: `ptr2` with a number above the
 toc's is the one to prepare for.
 

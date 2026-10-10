@@ -12,10 +12,11 @@ character phrases"; `Phrases.lua` holds them. Work in your worktree.
    `Buffs.lua`. Read the pool's existing lines first: do not repeat them.
 2. **Write** `pools.json`: `[{"pool": "RACE.<family>.<kind>", "lines": [...]}]`
    (`CLASS.<CLASS>.<kind>`, `SPELL.<key>`, `GIFT.<key>`, `SAME.<CLASS>`). At most
-   85 characters with `{name}` as "Bartholomewz" and `{buff}`/`{gift}` as "Power
-   Word: Fortitude"; no `|`, `[`, `]`, line break or leading `/`; only the tokens
-   `{name}` `{buff}` `{gift}` (`{gift}` only in TRADE and GIFT); never the word
-   "buff". At least three lines per new pool (two for GIFT and `outsider`).
+   85 bytes (UTF-8: an accented letter or a curly apostrophe counts 2 or 3) with
+   `{name}` as "Bartholomewz" and `{buff}`/`{gift}` as "Power Word: Fortitude";
+   no `|`, `[`, `]`, line break or leading `/`; only the tokens `{name}`
+   `{buff}` `{gift}` (`{gift}` only in TRADE and GIFT); never the word "buff".
+   At least three lines per new pool (two for GIFT and `outsider`).
 3. **Review**, a second agent that did not write them: in character and in the
    people's voice, natural English, nothing that reads as an instruction or a
    disclaimer, no two lines that say the same, nothing a macro cannot carry.

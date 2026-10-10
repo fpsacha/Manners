@@ -21,8 +21,10 @@ about a second.
 For each mutation: the file and the lines its `old` text covers (the first
 occurrence, the one that is replaced; "xN" when it occurs N times), its label,
 its `expect` text, and the file and line of its mutate() call, which is what
-to edit. FILE is relative to the repository or absolute. Exit 0 whenever it
-lists; --check-after exits 1 if any anchor is gone.
+to edit. FILE is relative to the repository or absolute (its case may differ from
+the disk's). Exit 0 whenever it lists; --check-after exits 1 if any anchor is gone
+or a mutation file could not be read (selftest.py --anchors fails on that too: the
+mutations after the failing line are never checked).
 
 The mutations are read the way selftest.py reads them: each file of
 tests/mutations is run with a recording mutate() in scope, and so is every
@@ -67,7 +69,8 @@ def load():
             code = compile(open(path, encoding="utf-8").read(), path, "exec")
             exec(code, {"mutate": recorder(source), "__file__": path})
         except Exception as e:
-            problems.append("%s: could not be read: %s: %s" % (source, type(e).__name__, e))
+            problems.append("%s: could not be read (its mutations after the failing line are "
+                            "missing): %s: %s" % (source, type(e).__name__, e))
     source = "tests/selftest.py"
     tree = ast.parse(open(SELFTEST, encoding="utf-8").read(), SELFTEST)
     mutate = recorder(source)
@@ -108,10 +111,24 @@ def where(m):
     return "%s:%s%s" % (m.file, lines, " x%d" % m.count if m.count > 1 else "")
 
 
+LUA_STRING = re.compile(r'"(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\'')
+LUA_OPENS = {"function", "if", "do", "repeat"}      # `for` and `while` open with their `do`
+LUA_CLOSES = {"end", "until"}
+
+
+def lua_depth(line):
+    """How many blocks the Lua `line` opens beyond the ones it closes (strings and
+    comments left out): 0 for a function written on one line."""
+    code = LUA_STRING.sub('""', line).split("--")[0]
+    words = re.findall(r"[A-Za-z_]\w*", code)
+    return sum((w in LUA_OPENS) - (w in LUA_CLOSES) for w in words)
+
+
 def definitions(name, symbol):
     """[(first, last)] lines of each function called `symbol` in the file `name`:
     from its `function` line to the `end` (Lua) or the next line indented no
-    deeper (Python) that follows."""
+    deeper (Python) that follows; a Lua function that closes on its own line is
+    that one line."""
     lines = open(os.path.join(ROOT, name), encoding="utf-8").read().split("\n")
     py = name.endswith(".py")
     last = re.escape(symbol.split(".")[-1])
@@ -126,6 +143,9 @@ def definitions(name, symbol):
         if not m:
             continue
         indent, end = m.group(1), i
+        if not py and lua_depth(line) <= 0:
+            found.append((i + 1, i + 1))
+            continue
         for j in range(i + 1, len(lines)):
             if py and lines[j].strip() and len(lines[j]) - len(lines[j].lstrip()) <= len(indent):
                 break
@@ -134,6 +154,23 @@ def definitions(name, symbol):
                 break
         found.append((i + 1, end + 1))
     return found
+
+
+def true_case(rel):
+    """`rel` (from the repository, with /) spelled the way the files on disk spell it.
+    Windows opens `queue.lua`, but no mutation names a file that way, so the answer
+    would be "0 mutations" for a file that has some."""
+    here, parts = ROOT, []
+    for part in rel.split("/"):
+        try:
+            names = os.listdir(here)
+        except OSError:
+            names = []
+        if part not in names:
+            part = next((n for n in names if n.lower() == part.lower()), part)
+        parts.append(part)
+        here = os.path.join(here, part)
+    return "/".join(parts)
 
 
 def parse(arg):
@@ -150,7 +187,7 @@ def parse(arg):
         inside = False
     if not inside or not os.path.isfile(full):
         raise SystemExit("anchors_for: %s is not a file inside %s" % (path, ROOT))
-    name = os.path.relpath(full, ROOT).replace(os.sep, "/")
+    name = true_case(os.path.relpath(full, ROOT).replace(os.sep, "/"))
     if tail is None:
         return [(name, None, None)]
     m = LINES.match(tail)
@@ -200,9 +237,15 @@ def main(argv=None):
         for m in lost:
             print("ANCHOR GONE: %s  (%s, %s:%d)" % (m.label, m.file, m.source, m.line))
             print("    expect: %s" % m.expect)
-        print("anchors_for: %s" % ("%d anchor(s) gone of %d mutations" % (len(lost), len(mutations))
-                                   if lost else "every anchor is live (%d mutations)" % len(mutations)))
-        return 1 if lost else 0
+        said = []
+        if lost:
+            said.append("%d anchor(s) gone of %d mutations" % (len(lost), len(mutations)))
+        if problems:        # selftest.py --anchors stops with a traceback on these: not a pass
+            said.append("%d mutation source(s) could not be read (above), so not every "
+                        "mutation was checked" % len(problems))
+        print("anchors_for: %s" % ("; ".join(said) if said
+                                   else "every anchor is live (%d mutations)" % len(mutations)))
+        return 1 if said else 0
 
     for name, lo, hi in wanted:
         hits = [m for m in mutations if m.file == name and m.first is not None
@@ -221,4 +264,7 @@ def main(argv=None):
 
 
 if __name__ == "__main__":
+    for stream in (sys.stdout, sys.stderr):     # piped on Windows they are cp1252: a label
+        if hasattr(stream, "reconfigure"):      # outside it would stop the listing midway
+            stream.reconfigure(encoding="utf-8", errors="replace")
     sys.exit(main())

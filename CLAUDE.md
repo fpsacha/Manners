@@ -169,21 +169,25 @@ Quick helpers for working in a worktree (`tools/README.md` has the details):
   a line: the mutations whose `old` text sits there (within 3 lines, `--near N`),
   each with its label, its `expect` and the file:line of its `mutate()` call.
   `python tools/anchors_for.py --check-after` **after**: only the mutations that
-  no longer find their text (`selftest.py --anchors`, gone ones only). Re-aim
-  them in the same change, never delete them.
+  no longer find their text (`selftest.py --anchors`, gone ones only; exit 1
+  too when a mutation file does not run). Re-aim them in the same change,
+  never delete them.
 - `python tools/clients_watch.py`: each client's interface number and build in
   the repo against `Gethe/wow-ui-source` (`version.txt` per branch) and
   `Ketho/BlizzardInterfaceResources`, plus the PTR and beta branches. Exit 1 on
-  drift: a toc that would show out of date to players on that client. Needs `gh`.
+  drift (a toc that would show out of date to players on that client) or when
+  the repo's own sources disagree; 2 when upstream cannot be read. Needs `gh`.
 - `python tools/check.py --lint --flavours --anchors --jobs 2`: lint first, then
   the rest; a lint failure stops it before anything else runs.
 - `.claude/settings.json` allows the commands above, `python tools/*`,
-  `python tests/*`, the everyday git and `gh run` commands and `gh api` reads of
-  the two upstream repos; it asks before `tools/release.py` and
-  `tests/setversion.py`, and denies force pushes, `git reset --hard`, `git clean`,
-  `rm -rf` and `gh secret`. A PostToolUse hook runs `python tools/lint.py --quick`
-  after every Edit or Write: it is silent when the file compiles and prints the
-  problem (exit 2) when it does not. Slash commands in `.claude/commands/`:
+  `python tests/*`, the everyday git (`git branch` only to list) and `gh run`
+  commands and `gh api` reads of the two upstream repos (every flag that makes it
+  a write is denied); it asks before `tools/release.py` and `tests/setversion.py`,
+  and denies force pushes, `git reset --hard`, `git clean`, forced or `-D`
+  branch changes, `rm -rf` and `gh secret`. A PostToolUse hook runs
+  `tools/lint.py --quick` (from `$CLAUDE_PROJECT_DIR`, so a `cd` does not break
+  it) after every Edit or Write: it is silent when the file compiles and prints
+  the problem (exit 2) when it does not. Slash commands in `.claude/commands/`:
   `/check`, `/release`, `/bughunt`, `/translate`, `/phrases`.
 - Cost and odd input: `tools/perf_probe.py` and `tools/profile_scan.py` (under
   "Checks" above).
@@ -282,7 +286,8 @@ only; `{gift}` is the spell they gave you), `RP.TRADE`, `RP.HISTORY`,
   creates it at the end of its table), escapes, and refuses what
   `tests/scenarios/rp.lua` would.
 - The rules (`rp: the lines are short and safe in a macro`): at most 85
-  characters with `{name}` -> "Bartholomewz" and `{buff}`/`{gift}` ->
+  bytes (UTF-8: an accented letter or a curly apostrophe counts 2 or 3) with
+  `{name}` -> "Bartholomewz" and `{buff}`/`{gift}` ->
   "Power Word: Fortitude"; no `|`, `[`, `]` or line break, no leading `/`; no
   line equal to another once reduced to its letters; only the `{name}`,
   `{buff}`, `{gift}` tokens, `{gift}` only in TRADE and GIFT; never the word

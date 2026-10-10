@@ -32,8 +32,9 @@ Status per client: ok; "newer build (+N)" when upstream is a later build of the
 same version (the data in Buffs.lua was read from the older one; not a toc matter);
 DRIFT when the interface differs, which needs the number changed in
 tools/maketocs.py FLAVOURS and Manners.toc's Interface line, then
-`python tools/maketocs.py`. Exit 0 when no client has drifted, 1 when one has,
-2 when upstream could not be read.
+`python tools/maketocs.py`. Exit 0 when no client has drifted, 1 when one has or
+when the repository disagrees with itself about a client's number (the "repo
+disagrees" note), 2 when upstream could not be read or `gh` is not installed.
 """
 import concurrent.futures
 import os
@@ -72,7 +73,8 @@ def gh(path, raw=True):
             r = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8",
                                errors="replace", timeout=60)
         except FileNotFoundError:
-            raise SystemExit("clients_watch: gh (the GitHub CLI) is not installed")
+            print("clients_watch: gh (the GitHub CLI) is not installed", file=sys.stderr)
+            raise SystemExit(2)         # 1 means drift; upstream could not be read
         except subprocess.TimeoutExpired:
             continue
         if r.returncode == 0:
@@ -169,7 +171,7 @@ def main(argv=None):
             jobs[("ketho", branch)] = "%s/contents/README.md?ref=%s" % (KETHO, branch)
     got = fetch(jobs)
 
-    drifted, unread = [], []
+    drifted, unread, disagreed = [], [], []
     print("%-16s %-9s %7s  %-13s  %-13s %-19s %7s %7s  %s" % (
         "client", "toc", "repo", "repo build", "upstream", "branch", "iface", "Ketho", "status"))
     for key, name, suffix, branch, _word in CLIENTS:
@@ -177,13 +179,16 @@ def main(argv=None):
             print("%-16s no toc for it in tools/maketocs.py FLAVOURS" % name)
             continue
         want, odd = agree(sources[suffix])
+        if odd:
+            disagreed.append(name)
         up = parse_version(got[("version", branch)])
         ketho = parse_ketho(got[("ketho", branch)])
         if up is None:
             unread.append(name)
             print("%-16s %-9s %7d  %-13s  %-13s %-19s %7s %7s  %s" % (
                 name, suffix, want, repo_builds[key] or "-",
-                "?", branch, "?", ketho or "-", "could not read version.txt"))
+                "?", branch, "?", ketho or "-", "could not read version.txt"
+                + ("; repo disagrees: " + ", ".join(odd) if odd else "")))
             continue
         implied = interface_of(up)
         notes = []
@@ -235,14 +240,24 @@ def main(argv=None):
     print()
     if unread:
         print("clients_watch: could not read upstream for %s" % ", ".join(unread))
-        return 2
     if drifted:
         print("clients_watch: DRIFT in %s -- change tools/maketocs.py FLAVOURS and Manners.toc's"
               " Interface line, then python tools/maketocs.py" % ", ".join(drifted))
+    if disagreed:
+        print("clients_watch: the repository does not agree with itself for %s (the repo"
+              " disagrees notes above): tools/maketocs.py FLAVOURS, Manners.toc, the generated"
+              " tocs and tests/mockapi.lua must carry one interface per client"
+              % ", ".join(disagreed))
+    if unread:
+        return 2
+    if drifted or disagreed:
         return 1
     print("clients_watch: no drift, all five tocs carry their client's current interface")
     return 0
 
 
 if __name__ == "__main__":
+    for stream in (sys.stdout, sys.stderr):     # piped on Windows they are cp1252, and branch
+        if hasattr(stream, "reconfigure"):      # names come from upstream
+            stream.reconfigure(encoding="utf-8", errors="replace")
     sys.exit(main())
