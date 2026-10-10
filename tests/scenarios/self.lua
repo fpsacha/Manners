@@ -1,8 +1,9 @@
 -- Buff myself (1.2.0): "Myself, when I'm missing my own buff" puts you on the
 -- prompt when you are missing one of your own buffs, or with top-ups on it is
--- running low. Queue.lua's SelfEntry makes the offer, Prompt.lua casts it with
--- a /cast aimed at you by name and nothing said, Clicks.lua settles it with nothing filed,
--- and GroupBuffs.lua counts you into your party's group cast.
+-- running low. Queue.lua's SelfEntry makes the offer, Prompt/Macro.lua casts it
+-- with a /cast aimed at you by name and nothing said, Clicks.lua settles it
+-- with nothing filed, and GroupBuffs.lua counts you into your party's group
+-- cast.
 --
 -- Every scenario name starts with "self:" so the mutations in
 -- tests/mutations/self.py can name the one that has to catch them.
@@ -1294,10 +1295,10 @@ end
 
 -- ------------------------------------------------------------------ self 26
 -- The cursor resting on the panel holds it for a token lost, never for a
--- verdict (see hovering in Prompt.lua). Buffed by hand while the cursor is on
--- "You", the scan no longer offers you, and that is a verdict on you: the
--- panel goes as it would with the cursor elsewhere, rather than holding your
--- own buff up for the cursor's ten seconds.
+-- verdict (see hovering, Prompt/Prompt.lua). Buffed by hand while the cursor
+-- is on "You", the scan no longer offers you, and that is a verdict on you:
+-- the panel goes as it would with the cursor elsewhere, rather than holding
+-- your own buff up for the cursor's ten seconds.
 Mock.reset()
 do
 	local scenario = "self: a hovered You moves on once you buff yourself by hand"

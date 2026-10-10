@@ -1,9 +1,8 @@
 -- Manners -- the looks the prompt can wear, each in a file of its own.
 --
--- Prompt.lua draws three looks itself (glass, framed, minimal) and has no room
--- for more: its main chunk is near Lua 5.1's 200 locals and ApplyStyle near
--- the 60 upvalues. So every other look lives in Looks/<Name>.lua, listed in the
--- toc after this file and before Prompt.lua, and registers itself here. Prompt
+-- The prompt draws three looks itself (glass, framed, minimal), in
+-- Prompt/Panel.lua. Every other look lives in Looks/<Name>.lua, listed in the
+-- toc after this file and before Prompt/, and registers itself here. Prompt
 -- keeps everything the looks share -- the secure button, the text, the queue,
 -- the hysteresis, every trigger -- and calls into the active look only where
 -- the looks differ.
@@ -118,8 +117,8 @@ local L = ns.L
 local Looks = { list = {} }
 ns.Looks = Looks
 
--- The three Prompt.lua draws, named here so the dropdown is one list. They
--- are never handed back by Get.
+-- The three Prompt/Panel.lua draws, named here so the dropdown is one list.
+-- They are never handed back by Get.
 local NATIVE = {
 	glass = { name = L["Glass -- dark panel, soft shadow"], order = 10, native = true },
 	framed = { name = L["Framed -- flat panel, thin border"], order = 11, native = true },
@@ -136,8 +135,8 @@ function Looks.Register(key, look)
 	return look
 end
 
--- The look to draw for a style, or nil for one Prompt.lua draws (and for a key
--- nobody registered). A fallback is followed once.
+-- The look to draw for a style, or nil for one Prompt/Panel.lua draws (and for
+-- a key nobody registered). A fallback is followed once.
 function Looks.Get(key)
 	local look = key and Looks.list[key]
 	if look and look.fallback then look = Looks.list[look.fallback] end

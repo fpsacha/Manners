@@ -1,6 +1,6 @@
--- The helpers Start here is built on (Options.lua): the quick choices of who to
--- offer to and what to say (ns.QuickSetup), the sentences that describe the
--- result, and the key binding and macro helpers (ns.Setup).
+-- The helpers Start here is built on (Options/Start.lua): the quick choices
+-- of who to offer to and what to say (ns.QuickSetup), the sentences that
+-- describe the result, and the key binding and macro helpers (ns.Setup).
 --
 -- A preset writes plain profile fields and then runs the hooks the individual
 -- setters run; a dropdown shows the preset the profile matches, or "Custom"

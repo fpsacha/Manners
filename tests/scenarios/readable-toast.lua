@@ -104,7 +104,7 @@ local function upIn(ns, scenario, edit)
 end
 
 ---------------------------------------------------------------------------
--- colour arithmetic, derived here and not borrowed from Prompt.lua
+-- colour arithmetic, derived here and not borrowed from Prompt/
 ---------------------------------------------------------------------------
 
 local function linear(c)

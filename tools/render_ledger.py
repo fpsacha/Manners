@@ -13,7 +13,7 @@ labels and rows have to fit in all three, and German and French run longest.
 The addon's text measure is the renderer's own font here, so a label the
 addon sized to its text is sized to the text the picture draws.
 
-    python tools/render_ledger.py                        # every state, en/de/ru
+    python tools/render_ledger.py                        # every state, en/de/fr
     python tools/render_ledger.py --out DIR --states all,empty --locales deDE
     python tools/render_ledger.py --addon OTHER_TREE     # draw an older build
     python tools/render_ledger.py --compare BEFORE AFTER OUT.png
@@ -26,7 +26,7 @@ import os
 import sys
 import tempfile
 
-from PIL import Image, ImageDraw
+from PIL import Image
 from lupa import lua51 as lupa
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))

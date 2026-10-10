@@ -117,8 +117,9 @@ function ns.Welcome(force, offSaid)
 	if store.welcomed and not force then return true end
 
 	-- The probe's verdict on this character. Indexed off caps.class, so a
-	-- class not read (one secret value away on this client) is "not on the
-	-- list" and meets the gate below with everything else that is no answer.
+	-- class not read (one secret value away on Forever and retail) is "not on
+	-- the list" and meets the gate below with everything else that is no
+	-- answer.
 	local nothingToGive = caps.class ~= nil and ns.CLASSES_WITHOUT_BUFFS ~= nil
 		and ns.CLASSES_WITHOUT_BUFFS[caps.class] == true
 	-- ...and of those, a hunter or a shaman with a buff of his own learned,
@@ -219,7 +220,7 @@ function ns.Welcome(force, offSaid)
 	else
 		-- The existing preview: the real panel in its real place. ToggleTest is
 		-- a toggle, so only when none is running. The nil test is inside the
-		-- guard: ns.Prompt is nil when Prompt.lua did not load.
+		-- guard: ns.Prompt is nil when Prompt/Prompt.lua did not load.
 		ns.Guard("welcome preview", function()
 			if ns.Prompt and not ns.Prompt:InTest() then ns.Prompt:ToggleTest() end
 		end)

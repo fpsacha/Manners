@@ -1,8 +1,8 @@
 """Run the scenarios: tests/scenarios.lua, then every tests/scenarios/*.lua.
 
-With no arguments every scenario runs. The rest narrows a run, which is what
-selftest.py does to judge one mutation by the scenarios its check lives in
-rather than by the whole suite:
+With no arguments every scenario runs, spread over one process per core but
+two. The rest narrows a run, which is what selftest.py does to judge one
+mutation by the scenarios its check lives in rather than by the whole suite:
 
   --scenario NAME   only scenarios loaded under this name (repeatable)
   --file FILE       only scenarios in this file -- scenarios.lua or a file in
@@ -12,17 +12,29 @@ rather than by the whole suite:
   --shard I/K       only names that hash to I of K (tracing in parallel)
   --trace PATH      write which scenario was running on each line of the
                     scenario files, and which file each name is loaded in
+  --jobs N          how many processes the whole suite is spread over (1: one
+                    process, as it used to run)
   --flavour NAME    make NAME the client Mock.reset() starts from instead of
                     camelot (MANNERS_MOCK_FLAVOUR in the environment does the
                     same): the whole suite as Classic Era is --flavour vanilla.
                     A diagnostic: scenarios about Camelot's own scrolls,
                     surnames and secrets go red off Camelot by design.
+  --baseline        with --flavour: compare the failures with the ones written
+                    down in tests/baselines/<flavour>.txt and print only what
+                    changed -- failures that are not in it, and entries in it
+                    that pass now. Exits 1 on anything new.
+  --update-baseline with --flavour: run, and write the failures down in
+                    tests/baselines/<flavour>.txt as the new baseline.
 
 A scenario that is left out gets nil from load(), which every scenario reads as
 "skip". A narrowed run that admits nothing at all fails, so a selection that no
 longer names anything cannot pass for a green one.
+
+Every scenario loads the whole addon afresh, and compiling its source was most
+of what a scenario cost: each file is now compiled once per process and loaded
+again from its bytecode (see "compiled once" below).
 """
-import glob, json, sys, os
+import glob, json, sys, os, re, time
 # Lua 5.1, because that is what the game runs. On the newer default the
 # suites passed a build that could not load in game: 5.1 allows a function
 # 60 upvalues where 5.4 allows 255, and Prompt:Create() had 69 (beta.6).
@@ -30,11 +42,15 @@ from lupa import lua51 as lupa
 
 ADDON_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SCENARIOS = os.path.join(ADDON_DIR, "tests", "scenarios.lua")
+BASELINES = os.path.join(ADDON_DIR, "tests", "baselines")
 
-names = files = shard = trace_path = None
+names = files = shard = trace_path = baseline = None
 args = sys.argv[1:]
 while args:
     flag = args.pop(0)
+    if flag in ("--baseline", "--update-baseline"):
+        baseline = flag[2:]
+        continue
     value = args.pop(0) if args else None
     if value is None:
         sys.exit("runscenarios.py: %s needs a value" % flag)
@@ -60,6 +76,92 @@ while args:
     else:
         sys.exit("runscenarios.py: unknown argument %s" % flag)
 
+FLAVOUR = os.environ.get("MANNERS_MOCK_FLAVOUR") or "camelot"
+if baseline and (names is not None or files is not None or shard is not None or trace_path):
+    # A narrowed run would read every baseline entry it did not run as fixed.
+    sys.exit("runscenarios.py: --%s compares the whole suite, so it takes no"
+             " --scenario, --file, --select, --shard or --trace" % baseline)
+
+
+# ------------------------------------------------------------ the baselines
+# Off Camelot the suite is red by design (see --flavour), and a list of a few
+# hundred failures is unreadable as a diff. A baseline is that list written
+# down once, so a run as Classic Era can say what is new since. Each failure
+# line is normalised first, so the same failure reads the same between runs
+# and between machines: no table or function addresses, no paths, no line
+# numbers inside an error (an edit above the line moves them), no timings,
+# and not the addon's own version, which the bug report and /manners debug
+# print and every release changes.
+_VERSION = re.search(r"^## Version:\s*(\S+)", open(os.path.join(ADDON_DIR, "Manners.toc"),
+                                                     encoding="utf-8").read(), re.M)
+# Digits and dots on neither side; a colour code ("|cffffffff1.7.3|r") is fine.
+if _VERSION:
+    _VERSION = re.compile(r"(?<![\d.])" + re.escape(_VERSION.group(1)) + r"(?![\d.])")
+_ADDRESS = re.compile(r"\b(table|function|thread|userdata|cdata): (?:0x)?[0-9A-Fa-f]{6,}")
+# A path to a .lua file, kept to its name: Lua shortens a long one in an error
+# message to "...<its last 57 characters>", which cut where it likes.
+_PATH = re.compile(r"[^\s'\"()\[\]]*[\\/]([^\\/\s'\"()\[\]]+\.lua)\b")
+_LINE_NO = re.compile(r"(\.lua\"?\]?):\d+\b")
+_TIMING = re.compile(r"\b\d+(?:\.\d+)?\s?(ms|s|seconds?)\b")
+_HARNESS = ("SCENARIO HARNESS ERROR", "LOADFILE")
+
+
+def failure_lines(lines):
+    """The failure lines of a run's output: indented ones, and a harness error.
+    A failure message that runs over several lines counts each indented one,
+    whichever process printed it."""
+    return [l for l in lines if (l.startswith("  ") and l.strip()) or l.startswith(_HARNESS)]
+
+
+def normalise(line):
+    line = _PATH.sub(r"\1", line.strip())
+    line = _ADDRESS.sub(r"\1: ADDR", line)
+    line = _LINE_NO.sub(r"\1:N", line)
+    if _VERSION:
+        line = _VERSION.sub("VERSION", line)
+    return _TIMING.sub(r"T \1", line)
+
+
+def compare_with_baseline(lines):
+    """Print what changed against the flavour's baseline; the exit status."""
+    path = os.path.join(BASELINES, FLAVOUR + ".txt")
+    rel = os.path.relpath(path, ADDON_DIR).replace("\\", "/")
+    now = sorted({normalise(l) for l in failure_lines(lines)})
+    if baseline == "update-baseline":
+        os.makedirs(BASELINES, exist_ok=True)
+        with open(path, "w", encoding="utf-8", newline="") as f:
+            f.write("# The scenarios that fail when the whole suite runs as %s, normalised.\n"
+                    "# Written by: python tests/runscenarios.py --flavour %s --update-baseline\n"
+                    "# Read by:    python tests/runscenarios.py --flavour %s --baseline\n"
+                    % (FLAVOUR, FLAVOUR, FLAVOUR))
+            for line in now:
+                f.write(line + "\n")
+        print("baseline %s: %d failures written to %s" % (FLAVOUR, len(now), rel))
+        return 0
+    known = []
+    if os.path.exists(path):
+        known = [l.rstrip("\n") for l in open(path, encoding="utf-8")
+                 if l.strip() and not l.startswith("#")]
+    elif FLAVOUR == "camelot":
+        print("(no %s: on Camelot the whole suite is green, so every failure is new)" % rel)
+    else:
+        print("(no %s yet: every failure is new; --update-baseline writes it)" % rel)
+    new = [l for l in now if l not in set(known)]
+    fixed = [l for l in sorted(set(known)) if l not in set(now)]
+    print("=== scenarios as %s, against %s ===" % (FLAVOUR, rel))
+    if new:
+        print("not in the baseline:")
+        for line in new:
+            print("  " + line)
+    if fixed:
+        print("in the baseline, passing now (--update-baseline takes them out):")
+        for line in fixed:
+            print("  " + line)
+    print("baseline %s: %d failing, %d written down, %d new, %d passing now"
+          % (FLAVOUR, len(now), len(set(known)), len(new), len(fixed)))
+    return 1 if new else 0
+
+
 # The whole suite, un-narrowed, runs in worker processes: scenarios.lua (most
 # of the time) split by scenario name with --shard, the topic files spread
 # over the rest by size, each worker this same script narrowed to its share.
@@ -67,21 +169,33 @@ while args:
 # CI and selftest.py read them. selftest.py runs many suites at once and sets
 # MANNERS_SCENARIO_JOBS=1 for them, so it never fans out twice. Two cores are
 # left free by default, so the machine stays usable during a run.
+#
+# A baseline is always taken in the same pieces, whatever --jobs says: off
+# Camelot a scenario can throw past every guard (SCENARIO HARNESS ERROR), which
+# ends its process there, and what that takes down with it depends on what
+# shares the process. So scenarios.lua in BASELINE_SHARDS shards and every
+# other file on its own, which also keeps one throw from hiding a whole file.
+BASELINE_SHARDS = 8
 JOBS = int(os.environ.get("MANNERS_SCENARIO_JOBS") or 0) or max(1, (os.cpu_count() or 4) - 2)
-if JOBS > 1 and names is None and files is None and shard is None and trace_path is None:
+if (JOBS > 1 or baseline) and names is None and files is None and shard is None and trace_path is None:
     import subprocess
     from concurrent.futures import ThreadPoolExecutor
     here = os.path.abspath(__file__)
     extras = sorted(glob.glob(os.path.join(ADDON_DIR, "tests", "scenarios", "*.lua")))
-    shards = max(1, JOBS // 2)
-    tasks = [["--file", "scenarios.lua", "--shard", "%d/%d" % (i, shards)] for i in range(shards)]
-    bins = [[] for _ in range(max(1, JOBS - shards))]
-    sizes = [0] * len(bins)
-    for path in sorted(extras, key=os.path.getsize, reverse=True):
-        k = sizes.index(min(sizes))
-        bins[k] += ["--file", os.path.basename(path)]
-        sizes[k] += os.path.getsize(path)
-    tasks += [b for b in bins if b]
+    if baseline:
+        tasks = [["--file", "scenarios.lua", "--shard", "%d/%d" % (i, BASELINE_SHARDS)]
+                 for i in range(BASELINE_SHARDS)]
+        tasks += [["--file", os.path.basename(p)] for p in sorted(extras, key=os.path.getsize, reverse=True)]
+    else:
+        shards = max(1, JOBS // 2)
+        tasks = [["--file", "scenarios.lua", "--shard", "%d/%d" % (i, shards)] for i in range(shards)]
+        bins = [[] for _ in range(max(1, JOBS - shards))]
+        sizes = [0] * len(bins)
+        for path in sorted(extras, key=os.path.getsize, reverse=True):
+            k = sizes.index(min(sizes))
+            bins[k] += ["--file", os.path.basename(path)]
+            sizes[k] += os.path.getsize(path)
+        tasks += [b for b in bins if b]
     env = dict(os.environ, MANNERS_SCENARIO_JOBS="1", PYTHONIOENCODING="utf-8")
 
     def work(args):
@@ -101,8 +215,10 @@ if JOBS > 1 and names is None and files is None and shard is None and trace_path
                 continue
             else:
                 lines.append(line)
-                if line.startswith(("SCENARIO HARNESS ERROR", "LOADFILE")) or "Traceback" in line:
+                if line.startswith(_HARNESS) or "Traceback" in line:
                     broken = True
+    if baseline:
+        sys.exit(compare_with_baseline(lines))
     print("=== scenarios ===")
     for line in lines:
         print(line)
@@ -118,6 +234,33 @@ L.globals().print = lambda *a: out.append(" ".join(str(x) for x in a))
 # through the environment.
 if os.environ.get("MANNERS_MOCK_FLAVOUR"):
     L.globals().MOCK_DEFAULT_FLAVOUR = os.environ["MANNERS_MOCK_FLAVOUR"]
+
+# Compiled once. Every scenario's load() runs loadfile on each of the addon's
+# files, the nine locales among them, and the compiling was most of what a
+# scenario cost: 0.16 s of every load, against 0.005 s for running what it
+# compiled. So the first loadfile of a path keeps the chunk's bytecode
+# (string.dump), and every later one loads that instead -- a new function each
+# time, exactly as loadfile gives, with the same source name and line
+# numbers, so an error message, a trace and a stack read as they did. A file
+# that does not compile is not kept, and fails each time as before.
+#
+# Nothing in the suites writes a file it then loads, and a mutation is a run
+# of its own; were a file to change during a run anyway, the bytecode kept
+# would be stale, so that is checked at the end (by its modification time)
+# and fails the run rather than passing on the old text.
+_run_started = time.time()
+compiled = L.eval(r"""function()
+	local compile, dump, undump = loadfile, string.dump, loadstring
+	local kept = {}
+	loadfile = function(path)
+		local bytes = path and kept[path]
+		if bytes then return undump(bytes, "@" .. path) end
+		local chunk, err = compile(path)
+		if chunk and path then kept[path] = dump(chunk) end
+		return chunk, err
+	end
+	return kept
+end""")()
 
 run = L.eval("function(path, dir, extras) "
              "local f, err = loadfile(path) "
@@ -256,6 +399,13 @@ if trace is not None:
             for f, t in trace.hits.items() for n, seen in t.items()}
     json.dump({"lines": hits, "names": as_lists(trace.names)},
               open(trace_path, "w", encoding="utf-8"))
+
+# The bytecode kept above stands for the file as it was when first loaded.
+stale = sorted(p for p in compiled.keys()
+               if os.path.exists(p) and os.path.getmtime(p) >= _run_started)
+if stale and not err:
+    err = ("SCENARIO HARNESS ERROR: changed during the run, so its compiled copy"
+           " was stale: " + ", ".join(os.path.relpath(p, ADDON_DIR) for p in stale))
 
 for line in out:
     print(line)

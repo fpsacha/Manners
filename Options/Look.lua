@@ -186,7 +186,7 @@ function Page.BuildLookTab()
 				type = "select",
 				name = L["Panel style"],
 				order = 21,
-				-- Every look, the three Prompt.lua draws and the ones in
+				-- Every look, the three Prompt/Panel.lua draws and the ones in
 				-- Looks/, from the registry, in its order; profiles holding
 				-- framed's old name are carried across in ClampSettings.
 				values = (ns.Looks.Choices()),

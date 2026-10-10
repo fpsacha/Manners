@@ -64,7 +64,6 @@ Mock.unitClass = "PRIEST"
 Mock.raid = { size = RAID, player = 1 }
 Mock.auraCount = 40
 Mock.unitNames = {}
-local tokens = {}
 for i = 1, RAID do
 	Mock.unitNames["raid" .. i] = { "Raider" .. i, "Of" .. i }
 end
@@ -261,7 +260,7 @@ local function otherAura()
 end
 
 -- The prompt's own share of a tick: its repaint with the queue handed to it
--- ready-made, so what is left is Prompt.lua's work alone.
+-- ready-made, so what is left is the prompt's work alone.
 local builtQueue = ns.BuildQueue()
 local function readyMade() return builtQueue end
 local function promptOnly()

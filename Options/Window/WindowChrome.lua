@@ -9,7 +9,7 @@ local C = UI.C
 
 -- The strip says the launcher's state line only for these: the states that
 -- keep the prompt from doing what the player expects. Start here and Who to
--- buff say the rest in full (IA 1.3).
+-- buff say the rest in full.
 local STRIP_KINDS = { off = true, unlocked = true, snoozed = true, ownoff = true, blocked = true, mounted = true }
 
 -- When to offer's combat line is about Hand my target back afterwards, so it

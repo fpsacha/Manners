@@ -23,8 +23,7 @@
 -- palettes, a custom marker colour and the outcomes. The interface this file
 -- implements is described at the top of Looks/Looks.lua.
 --
--- Where it departs from the approved design (design14/arcane/SPEC.md), on the
--- judges' word:
+-- Where it departs from the approved design, on the judges' word:
 --   * nothing runs per frame: the rune circle is one Rotation animation that
 --     stops on Calm and in a fight, and the drain is set on the scan's own
 --     tick (Clock, from Chip) rather than by a screen-long Scale and

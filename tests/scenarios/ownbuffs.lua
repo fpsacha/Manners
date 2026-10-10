@@ -3,7 +3,8 @@
 -- Righteous Fury, a hunter's aspect -- offered to you as "You" when none of a
 -- family is up. Buffs.lua holds the families (VANILLA_OWN), Core.lua reads
 -- them on you and picks one (OwnVerdict, OwnAutoPick), Queue.lua's SelfEntry
--- makes the entry, and Options.lua shows your class's families on Who to buff.
+-- makes the entry, and Options/Who.lua shows your class's families on Who to
+-- buff.
 --
 -- Every scenario name starts with "own:" so the mutations in
 -- tests/mutations/ownbuffs.py can name the one that has to catch them.

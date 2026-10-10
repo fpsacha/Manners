@@ -11,8 +11,7 @@
 -- palettes, a custom marker colour and the outcomes. The interface this file
 -- implements is described at the top of Looks/Looks.lua.
 --
--- Where it departs from the approved design (design14/luxe/SPEC.md), on the
--- judges' word:
+-- Where it departs from the approved design, on the judges' word:
 --   * the spine is 4-5 units wide with the height (3 below 36) and its
 --     resting bloom is twice as strong, so the reason reads before the name;
 --   * a thin ring in the reason colour sits round the icon, where the eye

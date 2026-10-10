@@ -7,7 +7,7 @@
 -- it leaves them for the prompt: the next scan had nobody and the empty-queue
 -- fuse took the prompt down. Two fixes, both here: a passer-by is remembered
 -- by name for a few seconds after the last token reached them (Queue.lua), and
--- the prompt holds still while the cursor is on it (Prompt.lua).
+-- the prompt holds still while the cursor is on it (Prompt/Hold.lua).
 --
 -- And what review found after: the cursor's hold forgives a token lost and
 -- nothing else, for ten seconds at most (a person found dead, covered or out
@@ -842,7 +842,7 @@ Mock.reset()
 -- A pull while the cursor holds the panel. The macro armed on the pull's own
 -- pass is frozen for the whole fight, so it goes to whoever the queue holds,
 -- or to nobody, never to the person only the cursor was keeping: the hold and
--- the fuse only smooth flicker (see ArmingForFight in Prompt.lua).
+-- the fuse only smooth flicker (see ArmingForFight in Prompt/Hold.lua).
 for _, case in ipairs({ { label = "with Bert waiting", bert = true }, { label = "with nobody" } }) do
 	Mock.reset()
 	local scenario = "linger: a pull under the cursor arms whoever the queue holds (" .. case.label .. ")"

@@ -1,4 +1,5 @@
--- The looks: the three Prompt.lua draws and the ones in Looks/, Luxe first.
+-- The looks: the three Prompt/Panel.lua draws and the ones in Looks/, Luxe
+-- first.
 --
 -- A look is art on frames the addon owns, and a broken one throws nothing: a
 -- ring left on the icon after switching back to glass, a tag that keeps last

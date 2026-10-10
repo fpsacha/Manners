@@ -641,7 +641,7 @@ function ns.PutOnNeverList(name)
 
 	-- In a fight the secure button cannot be re-armed, so if the prompt names
 	-- the person just listed, a press still casts at them until it ends, and
-	-- the line has to say so. Guarded: Prompt.lua may not have loaded.
+	-- the line has to say so. Guarded: the prompt may not have loaded.
 	local onPromptInFight = false
 	if InCombatLockdown() and ns.Prompt and ns.Prompt.Showing then
 		ns.Guard("never-offer prompt check", function()
@@ -1128,8 +1128,8 @@ end
 -- if the flag drops while it is still remembered: the lesser case (a flag lasts
 -- five minutes, a favour two by default), so nothing promises it to the player.
 --
--- War Mode: this client has Retail's C_PvP war mode calls but no way to switch
--- it on, and where it is on a player in it reads as flagged anyway. So nothing
+-- War Mode: Forever has Retail's C_PvP war mode calls but no way to switch it
+-- on, and where it is on, a player in it reads as flagged anyway. So nothing
 -- asks about War Mode.
 ---------------------------------------------------------------------------
 
@@ -1396,8 +1396,9 @@ end
 --
 -- Letting somebody go on a verdict writes it into `rejected` too, which
 -- BuildQueue hands the prompt, so the cursor's hold cannot outlast it
--- (hovering, Prompt.lua). Running out of time is no verdict. `verdict` is the
--- scan's never-offer answers (NeverVerdicts); `askOnly` StillCastable's.
+-- (hovering, Prompt/Prompt.lua). Running out of time is no verdict. `verdict`
+-- is the scan's never-offer answers (NeverVerdicts); `askOnly`
+-- StillCastable's.
 local function OfferPassersBy(queue, seen, rejected, now, db, candidates, askOnly, verdict, drop)
 	for name, memo in pairs(passing) do
 		local debt = db.sources.owed and owed[name]
@@ -1643,7 +1644,8 @@ local function SelfEntry(db, candidates, now, verdict, ownOnly)
 		short = ShortName(full),
 		display = L["You"],
 		-- The spelling the macro's /target line carries: you are targeted by
-		-- name like anybody else (STRATEGIES.self in Prompt.lua says why).
+		-- name like anybody else (STRATEGIES.self in Prompt/Macro.lua says
+		-- why).
 		targetName = ns.TargetName(full),
 		unit = "player",
 		class = caps.class,
@@ -1681,9 +1683,9 @@ end
 -- everybody a token reached and found covered, dead, out of range or sight,
 -- listed or held back for mana (and the remembered let go on a verdict), or
 -- true for the whole queue refused for your own state. The prompt reads it to
--- tell a verdict from a token merely lost (hovering, Prompt.lua). `watch` says
--- the prompt holds somebody the queue may not: a verdict about the dead then
--- costs a name read anyway.
+-- tell a verdict from a token merely lost (hovering, Prompt/Prompt.lua).
+-- `watch` says the prompt holds somebody the queue may not: a verdict about
+-- the dead then costs a name read anyway.
 function ns.BuildQueue(watch)
 	local db = addon.db and addon.db.profile
 	-- What this scan holds back for PvP, started again whichever way it ends.
@@ -2154,7 +2156,8 @@ function ns.BuildQueue(watch)
 	elseif watch then
 		-- Not offered to you, for whatever reason: a verdict on you, never a
 		-- token lost, so a cursor resting on the prompt does not hold "You"
-		-- there after you buffed yourself by hand (see hovering in Prompt.lua).
+		-- there after you buffed yourself by hand (see hovering,
+		-- Prompt/Prompt.lua).
 		local me = ns.UnitFullName("player")
 		if me then rejected[me] = true end
 	end

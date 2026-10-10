@@ -1,4 +1,4 @@
-"""Count the pcalls a scan makes, and what it allocates and costs, in four places.
+"""Count the pcalls a scan makes, and what it allocates and costs, in six places.
 
     python tools/perf_probe.py                               # this tree
     python tools/perf_probe.py --addon ../other-checkout     # another one

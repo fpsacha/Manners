@@ -1,5 +1,5 @@
 -- Manners -- options window: the search box at the top of the sidebar and its
--- results over the content (IA 1.8). Matching and ranking are
+-- results over the content. Matching and ranking are
 -- ns.WindowSearch's (Search.lua); this file asks the model what is on screen
 -- now, shows what was found and jumps to it.
 

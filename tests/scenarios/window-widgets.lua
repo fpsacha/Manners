@@ -52,7 +52,7 @@ end
 
 -- ------------------------------------------------------------------ the peek
 -- Look's real slider held down, and its real colour swatch's picker open,
--- fade the window so the prompt behind shows (IA 1.7): the rows tell the
+-- fade the window so the prompt behind shows: the rows tell the
 -- window through ctx.OnHold, which the window hands them with every item.
 do
 	local scenario = "window: Look's own slider and colour picker fade the window while held"
@@ -136,7 +136,7 @@ end
 
 -- ------------------------------------------------------------------ the reset
 -- The footer's reset asks in the window's own confirm box, over the window;
--- No changes nothing, Yes resets the page in view (IA 1.6).
+-- No changes nothing, Yes resets the page in view.
 do
 	local scenario = "window: the footer's reset asks in the window's own box, and Yes resets the page"
 	with(scenario, "skip", function(ns, UI)

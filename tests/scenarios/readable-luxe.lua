@@ -53,7 +53,7 @@ end
 
 -- ------------------------------------------------------------------ colour
 
--- The addon's own measure (Prompt.lua's Luminance and Ratio), re-derived.
+-- The addon's own measure (Prompt/Text.lua's Luminance and Ratio), re-derived.
 local function lin(c)
 	if c <= 0.03928 then return c / 12.92 end
 	return ((c + 0.055) / 1.055) ^ 2.4

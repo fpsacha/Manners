@@ -1,4 +1,4 @@
--- Prompt.lua fixes from the fifth bug hunt: what a press on a held or fused
+-- Prompt/ fixes from the fifth bug hunt: what a press on a held or fused
 -- entry claims about range and the hand-back, a pull landing on the hold or the
 -- fuse, the bookkeeping after switching off and on inside one fight, a font the
 -- client cannot load, the colour-blind palette's colour for askers, and the
