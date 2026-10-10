@@ -88,7 +88,7 @@ mutate("Queue.lua",
 
 # A battleground or arena not taken for flagged when your flag is withheld.
 mutate("Queue.lua",
-       "\tlocal battle = inside == true and (kind == \"pvp\" or kind == \"arena\")\n",
+       "\tlocal battle = (inside == true or inside == 1) and (kind == \"pvp\" or kind == \"arena\")\n",
        "\tlocal battle = false\n",
        "pvp: a battleground not counted",
        expect="a flagged passer-by was not offered while you are flagged too", script=S)
