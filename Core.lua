@@ -63,8 +63,9 @@ _G["BINDING_NAME_CLICK MannersPrompt:LeftButton"] = L["Buff the prompted player"
 -- about 80 ns. One fault is then named in /manners errors and never stops the
 -- scanner. A throw inside the scan is caught there, not read as "cannot tell".
 --
--- tests/scenarios/perf-budget.lua holds the scan to this: at most 12 pcalls
--- per city scan and 30 per raid scan.
+-- tests/scenarios/perf-budget.lua holds the scan to this on every client: a
+-- budget of pcalls, calls to the client and memory per scan for each place
+-- (a city is about 10 pcalls, a raid 14).
 ---------------------------------------------------------------------------
 
 local issecretvalue = _G.issecretvalue
@@ -1881,6 +1882,28 @@ local function SweepAuraCache(now)
 	end
 end
 
+-- The reads UnitHasBuff may ask of one unit, taken together: a buff has up to
+-- eight ids and a stranger usually wears none, so one protected call apiece was
+-- most of the scan's pcalls. The answers wait in auraReads by position in the
+-- id list, the first auraTaken positions of it; the loop there takes them, and
+-- asks any position past that on the spot, protected, as every id once was. It
+-- stops where the loop does (the first aura it can read), and a read that
+-- throws leaves the positions before it taken and the rest to the loop. A
+-- position the loop's own secrecy test skips is never read here or there.
+local auraReads, auraTaken = {}, 0
+local function PrefetchAuras(unit, ids, secrecy)
+	auraTaken = 0
+	local read = C_UnitAuras.GetUnitAuraBySpellID
+	for index, id in ipairs(ids) do
+		if secrecy[id] ~= true then
+			local aura = read(unit, id)
+			auraReads[index] = aura
+			auraTaken = index
+			if not (issecretvalue and issecretvalue(aura)) and type(aura) == "table" then return end
+		end
+	end
+end
+
 -- Returns has, secondsRemaining, mine, over. `has` is nil when the client refuses
 -- any one of the buff's ids (the hidden one may be the one they wear);
 -- `secondsRemaining` is nil when the timer is unreadable, not "about to expire";
@@ -1903,11 +1926,13 @@ local function UnitHasBuff(unit, buff, guid)
 	-- absence: BuildQueue promotes a target over a debt on a definite no, and the
 	-- prompt drops its unverified wording.
 	local has, expires, mine, over, refused = false, nil, nil, nil, false
-	for _, id in ipairs(buff.auraIds) do
+	pcall(PrefetchAuras, unit, buff.auraIds, info.secrecy)
+	for index, id in ipairs(buff.auraIds) do
 		if info.secrecy[id] == true then
 			refused = true
 		else
-			local ok, aura = pcall(C_UnitAuras.GetUnitAuraBySpellID, unit, id)
+			local ok, aura = true, auraReads[index]
+			if index > auraTaken then ok, aura = pcall(C_UnitAuras.GetUnitAuraBySpellID, unit, id) end
 			if not ok or (issecretvalue and issecretvalue(aura)) then
 				refused = true
 			elseif aura == nil then
