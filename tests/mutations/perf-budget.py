@@ -73,8 +73,8 @@ mutate("Looks/Arcane.lua",
 # own again: 30 pcalls a raid scan with group casts, which only that client
 # (and Classic Era a little less) shows.
 mutate("Core.lua",
-       "\tpcall(PrefetchAuras, unit, buff.auraIds, info.secrecy)\n",
-       "",
+       "\tlocal threw = not pcall(PrefetchAuras, unit, buff.auraIds, info.secrecy)\n",
+       "\tlocal threw = false\n",
        "perf-budget: the ranks read a pcall apiece",
        expect="perf-budget: a scan stays inside its pcall budget on every client", script=S)
 
@@ -92,3 +92,14 @@ mutate("Queue.lua",
        "\t\tlocal _ = { unit, unit, unit, unit, unit, unit, unit, unit }\n\t\tlocal ok, person = IsBuffableUnit(unit, f)\n",
        "perf-budget: a table per person walked",
        expect="perf-budget: a scan stays inside its allocation budget on every client", script=S)
+
+# The call hook telling the addon's files from the doubles by a "/tests/"
+# anywhere in the path again: a checkout under a folder called tests has it in
+# every path, the hook counts nothing, and every scan is read as asking the
+# client for nothing.
+mutate("tests/scenarios/perf-budget.lua",
+       "\t\tif source:sub(1, #folder):lower() == folder then\n",
+       "\t\tif false then\n",
+       "perf-budget: the doubles told by a tests folder anywhere in the path",
+       expect="perf-budget: the call hook tells the addon's files from the doubles wherever the checkout sits",
+       script=S)

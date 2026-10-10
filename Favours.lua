@@ -558,6 +558,16 @@ do
 		end
 	end
 
+	-- The walk's first step. A read that throws leaves the slots before it taken
+	-- and the slot it threw at filed as a thing that is no aura (false), which
+	-- ReadAuraSlot reads as a refusal: asked again it would throw again, a
+	-- failure each, so it is not. The slots after it are asked on their own.
+	local function TakeSlots()
+		if pcall(PrefetchSlots) then return end
+		slotsTaken = slotsTaken + 1
+		slotReads[slotsTaken] = false
+	end
+
 	local function ReadAuraSlot(index)
 		local ok, value = true, slotReads[index]
 		if index > slotsTaken then ok, value = pcall(C_UnitAuras.GetAuraDataByIndex, "player", index, "HELPFUL") end
@@ -665,7 +675,7 @@ do
 		-- Every slot, every time: the end of the list and a hole in the middle of
 		-- it look alike from the first silent slot, and an aura behind the silence
 		-- is the one refusal that shows on the reading itself.
-		pcall(PrefetchSlots)
+		TakeSlots()
 		for i = 1, 40 do
 			local aura, slotRefused = ReadAuraSlot(i)
 			if slotRefused then refused = true end
@@ -863,11 +873,10 @@ do
 		return read()
 	end
 
-	-- A line that has passed the handler's two questions (below): read again
-	-- here, for the rest of what it holds.
-	local function ReadCombatLogFavour()
-		local _, _, _, sourceGUID, _, _, _, destGUID, _, _, _, spellId = CombatLogEvent()
-
+	-- A line that has passed the handler's two questions (below), handed the
+	-- rest of what it needs from the reading the handler made: the client is
+	-- asked for a line once.
+	local function ReadCombatLogFavour(sourceGUID, destGUID, spellId)
 		-- Landed on us, and not by our own hand.
 		destGUID, sourceGUID = plain(destGUID), plain(sourceGUID)
 		if destGUID == nil or destGUID ~= playerGUID then return end
@@ -919,11 +928,11 @@ do
 		-- guard, of the client's own reading (CombatLogEvent type-checks what it
 		-- calls, and nothing after it throws), so those lines cost no protected
 		-- call; a line of the one kind this source reads goes on, guarded.
-		local _, subevent, _, _, _, _, _, _, _, _, _, _, _, _, auraType = CombatLogEvent()
+		local _, subevent, _, sourceGUID, _, _, _, destGUID, _, _, _, spellId, _, _, auraType = CombatLogEvent()
 		if plain(subevent) ~= "SPELL_AURA_APPLIED" then return end
 		if plain(auraType) ~= "BUFF" then return end
 		-- Guarded: an unguarded handler that throws simply stops being a source.
-		ns.Guard("combat log", ReadCombatLogFavour)
+		ns.Guard("combat log", ReadCombatLogFavour, sourceGUID, destGUID, spellId)
 	end
 end
 
@@ -965,7 +974,7 @@ function addon:UNIT_AURA(_, unit)
 	if unit == "player" then
 		ns.auraScan.events = ns.auraScan.events + 1
 		if InCombatLockdown() then
-			-- A walk is forty slots behind a pcall apiece, and a fight sends this many
+			-- A walk is forty slots behind one protected call, and a fight sends this many
 			-- times a second: the walk waits for the next tick (the Advanced tab's scan
 			-- interval, 0.4 s by default), so a burst costs one. A favour that lands in
 			-- the fight is said up to that much later, and filed all the same.

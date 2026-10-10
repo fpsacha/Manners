@@ -1888,8 +1888,10 @@ end
 -- id list, the first auraTaken positions of it; the loop there takes them, and
 -- asks any position past that on the spot, protected, as every id once was. It
 -- stops where the loop does (the first aura it can read), and a read that
--- throws leaves the positions before it taken and the rest to the loop. A
--- position the loop's own secrecy test skips is never read here or there.
+-- throws leaves the positions before it taken and the rest to the loop, which
+-- reads the one that threw as a refusal without asking it again (it would
+-- throw again, at a cost of a failure each). A position the loop's own
+-- secrecy test skips is never read here or there.
 local auraReads, auraTaken = {}, 0
 local function PrefetchAuras(unit, ids, secrecy)
 	auraTaken = 0
@@ -1926,13 +1928,21 @@ local function UnitHasBuff(unit, buff, guid)
 	-- absence: BuildQueue promotes a target over a debt on a definite no, and the
 	-- prompt drops its unverified wording.
 	local has, expires, mine, over, refused = false, nil, nil, nil, false
-	pcall(PrefetchAuras, unit, buff.auraIds, info.secrecy)
+	local threw = not pcall(PrefetchAuras, unit, buff.auraIds, info.secrecy)
 	for index, id in ipairs(buff.auraIds) do
 		if info.secrecy[id] == true then
 			refused = true
 		else
 			local ok, aura = true, auraReads[index]
-			if index > auraTaken then ok, aura = pcall(C_UnitAuras.GetUnitAuraBySpellID, unit, id) end
+			if index > auraTaken then
+				if threw then
+					-- The read the prefetch threw at, the first not taken: a
+					-- refusal, and not asked again.
+					threw, ok, aura = false, false, nil
+				else
+					ok, aura = pcall(C_UnitAuras.GetUnitAuraBySpellID, unit, id)
+				end
+			end
 			if not ok or (issecretvalue and issecretvalue(aura)) then
 				refused = true
 			elseif aura == nil then

@@ -21,12 +21,14 @@
 --            counts them: issecretvalue not among them, calls the mock makes
 --            of itself not either.
 --   KB       what addon:Tick allocates, the collector held off.
--- The budgets are in BUDGET, one line per client and place, each about a
--- quarter above what that client measured when the budget was set, so an
--- ordinary change passes and a hot-path pcall put back, a question asked twice
--- of each person or a table built per person does not: PvPFlag on safecall again
--- is 80 more pcalls per raid scan. To see what a client measures now, to set
--- the budget again after a change that meant to cost more or less:
+-- The budgets are in BUDGET, one line per client and place, each a quarter
+-- above what that client measured when the budget was set (pcalls to the
+-- nearest whole pcall, calls and KB rounded up, KB moving a little with the
+-- Lua build), so an ordinary change passes and a hot-path pcall put back, a
+-- question asked twice of each person or a table built per person does not:
+-- PvPFlag on safecall again is 80 more pcalls per raid scan. To see what a
+-- client measures now, to set the budget again after a change that meant to
+-- cost more or less:
 --
 --     MANNERS_PERF_REPORT=1 python tests/runscenarios.py --file perf-budget.lua
 --
@@ -55,19 +57,19 @@ local PLACES = { "idle", "city", "dungeon", "raid", "citynever", "raidgc" }
 
 -- pcalls, client calls and KB allocated per scan, for each client in each
 -- place, as the probe measured them (python tools/perf_probe.py --flavour X)
--- and this file counts them, plus about a quarter. The raid with group casts is
--- every client's but Mists' and retail's, whose one cast lands party-wide and
--- has no group version to fold a party into.
+-- and this file counts them, plus a quarter (see above). The raid with group
+-- casts is every client's but Mists' and retail's, whose one cast lands
+-- party-wide and has no group version to fold a party into.
 local BUDGET = {
-	camelot  = { idle = { 11, 40, 5 }, city = { 13, 448, 8 }, dungeon = { 12, 150, 8 },
+	camelot  = { idle = { 10, 40, 5 }, city = { 13, 448, 8 }, dungeon = { 12, 150, 8 },
 	             raid = { 18, 1039, 21 }, citynever = { 13, 448, 8 }, raidgc = { 20, 1242, 27 } },
-	vanilla  = { idle = { 11, 40, 5 }, city = { 13, 448, 8 }, dungeon = { 12, 150, 8 },
+	vanilla  = { idle = { 10, 40, 5 }, city = { 13, 448, 8 }, dungeon = { 12, 150, 8 },
 	             raid = { 18, 1039, 21 }, citynever = { 13, 448, 8 }, raidgc = { 20, 1667, 40 } },
-	tbc      = { idle = { 11, 40, 5 }, city = { 13, 449, 8 }, dungeon = { 12, 152, 8 },
+	tbc      = { idle = { 10, 40, 5 }, city = { 13, 449, 8 }, dungeon = { 12, 152, 8 },
 	             raid = { 18, 1049, 21 }, citynever = { 13, 449, 8 }, raidgc = { 20, 1679, 41 } },
-	mists    = { idle = { 11, 40, 5 }, city = { 13, 449, 9 }, dungeon = { 13, 177, 9 },
+	mists    = { idle = { 10, 40, 5 }, city = { 13, 449, 9 }, dungeon = { 12, 177, 9 },
 	             raid = { 20, 1258, 29 }, citynever = { 13, 449, 9 } },
-	mainline = { idle = { 11, 40, 5 }, city = { 13, 444, 8 }, dungeon = { 12, 170, 8 },
+	mainline = { idle = { 10, 40, 5 }, city = { 13, 444, 8 }, dungeon = { 12, 170, 8 },
 	             raid = { 18, 1215, 22 }, citynever = { 13, 444, 8 } },
 }
 
@@ -95,11 +97,22 @@ local function heaviest(sites, n)
 end
 
 -- Whether a function was defined by the test doubles (tests/ or the probe's
--- world) and so stands in for the client, as against the addon's own.
-local function fromDoubles(source)
-	source = tostring(source):gsub("\\", "/")
-	return source:find("/tests/", 1, true) ~= nil or source:find("/tools/perf_world.lua", 1, true) ~= nil
+-- world) and so stands in for the client, as against the addon's own. Judged
+-- by the path inside the addon's folder: a checkout that sits in a folder
+-- called tests (D:/Projects/tests/Manners) has "/tests/" in every path, the
+-- addon's own files included, and the hook then counts nothing.
+local function doublesIn(root)
+	local folder = tostring(root):gsub("\\", "/"):lower() .. "/"
+	return function(source)
+		source = tostring(source):gsub("^@", ""):gsub("\\", "/")
+		if source:sub(1, #folder):lower() == folder then
+			source = source:sub(#folder + 1)
+			return source:find("^tests/") ~= nil or source == "tools/perf_world.lua"
+		end
+		return source:find("/tests/", 1, true) ~= nil or source:find("/tools/perf_world.lua", 1, true) ~= nil
+	end
 end
+local fromDoubles = doublesIn(dir)
 
 -- The client's functions by name, once the addon has loaded: every Lua
 -- function in _G, or in a C_ namespace the world kept, that a test double
@@ -343,16 +356,53 @@ do
 	end
 end
 
+-- The call hook (budget 3) tells the addon's own files from the doubles by
+-- where they sit inside the addon's folder, so a checkout under a folder
+-- called tests is no different from any other.
+do
+	local scenario = "perf-budget: the call hook tells the addon's files from the doubles wherever the checkout sits"
+	if load(scenario) then
+		local cases = {
+			{ "D:/Projects/tests/Manners", "@D:/Projects/tests/Manners/Core.lua", false },
+			{ "D:/Projects/tests/Manners", "@D:/Projects/tests/Manners/Prompt/Press.lua", false },
+			{ "D:/Projects/tests/Manners", "@D:/Projects/tests/Manners/tests/mockapi.lua", true },
+			{ "D:/Projects/tests/Manners", "@D:/Projects/tests/Manners/tools/perf_world.lua", true },
+			{ "D:\\Projects\\tests\\Manners", "@D:\\Projects\\tests\\Manners\\Core.lua", false },
+			{ "D:\\Projects\\tests\\Manners", "@D:\\Projects\\tests\\Manners\\tests\\mockwidgets.lua", true },
+			{ "d:/projects/tests/manners", "@D:/Projects/tests/Manners/Looks/Toast.lua", false },
+			{ "/home/ci/work/Manners", "@/home/ci/work/Manners/Looks/Toast.lua", false },
+			{ "/home/ci/work/Manners", "@/home/ci/work/Manners/tests/mockapi.lua", true },
+			{ "/home/ci/work/Manners", "@/home/ci/work/Manners/tests/scenarios/perf-budget.lua", true },
+		}
+		for _, case in ipairs(cases) do
+			local root, source, want = case[1], case[2], case[3]
+			local got = doublesIn(root)(source)
+			if got ~= want then
+				fail(scenario, ("%s in a checkout at %s read as %s, not %s"):format(source, root,
+					got and "a double" or "the addon's own", want and "a double" or "the addon's own"))
+			end
+		end
+		-- And the folder this run was started in, whatever it is called.
+		if fromDoubles("@" .. dir .. "/Core.lua") then
+			fail(scenario, "Core.lua of the checkout under test read as a double")
+		end
+		if not fromDoubles("@" .. dir .. "/tests/mockapi.lua") then
+			fail(scenario, "tests/mockapi.lua of the checkout under test read as the addon's own")
+		end
+	end
+end
+
 -- ------------------------------------------------------------------ budget 2
 -- The pcalls a scan makes, on every client, in every place. What is left per
 -- scan once the policy is kept is the aura reads the client restricts per
 -- spell (taken together under one protected call per person read, behind the
--- aura cache: about two a scan in a city, four in a raid), the three Guards,
--- the walk's own pcall, IsResting, UnitAffectingCombat and IsSpellUsable (once
--- per scan each), the two text measures of the repaint and a little of the
--- proximity ladder's rebuild and the friends list. A city is 9 to 10 and a
--- raid 12 to 15; 161 per raid scan before the policy, and 423 per raid scan
--- with group casts before they read the roster once per call.
+-- aura cache: about half a pcall a scan in a city, four in a raid), the three
+-- Guards, the walk's own pcall, IsResting, UnitAffectingCombat and
+-- IsSpellUsable (once per scan each), the two text measures of the repaint and
+-- a little of the proximity ladder's rebuild and the friends list. An idle
+-- scan is 8, a city 10 and a raid 14 to 16; 161 per raid scan before the
+-- policy, and 423 per raid scan with group casts before they read the roster
+-- once per call.
 do
 	local scenario = "perf-budget: a scan stays inside its pcall budget on every client"
 	eachPlace(scenario, { pcalls = true }, 1, function(result, ceiling, label)
