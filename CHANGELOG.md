@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.7.4
 
 - **Giving several buffs in turn.** A slower second click no longer walks you
   back to the first buff while the last one is still on its short wait.
