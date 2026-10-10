@@ -465,9 +465,9 @@ own: a warlock missing both is offered Demon Skin, never Unending Breath: /manne
 own: the macro casts on you with no speech: the armor was not given its retry cooldown after the press
 passers-by only while resting: out in the world with the setting on, expected only the target: Tess
 perf-budget: a mage's scrolls cost a raid scan at most 2 pcalls: SKIPPED -- the scrolls in his bags make no Familiar and Weapon imbue of his own
-perf-budget: a mage's scrolls cost a raid scan with group casts at most 2 pcalls: 30.4 pcalls per scan, over the budget of 30; the lines charged most per scan: 18.0 Core.lua:1905, 5.0 Core.lua:85, 3.0 Core.lua:130, 2.0 Text.lua:119, 1.0 Queue.lua:2048
+perf-budget: a mage's scrolls cost a raid scan with group casts at most 2 pcalls: 30.4 pcalls per scan, over the budget of 30; the lines charged most per scan: 18.0 Core.lua:N, 5.0 Core.lua:N, 3.0 Core.lua:N, 2.0 Text.lua:N, 1.0 Queue.lua:N
 perf-budget: a mage's scrolls cost a raid scan with group casts at most 2 pcalls: SKIPPED -- the scrolls in his bags make no Familiar and Weapon imbue of his own
-perf-budget: a raid scan with group casts makes at most 30 pcalls: 30.4 pcalls per scan, over the budget of 30; the lines charged most per scan: 18.0 Core.lua:1905, 5.0 Core.lua:85, 3.0 Core.lua:130, 2.0 Text.lua:119, 1.0 Queue.lua:2048
+perf-budget: a raid scan with group casts makes at most 30 pcalls: 30.4 pcalls per scan, over the budget of 30; the lines charged most per scan: 18.0 Core.lua:N, 5.0 Core.lua:N, 3.0 Core.lua:N, 2.0 Text.lua:N, 1.0 Queue.lua:N
 presets: the Who summary says what favours and the group bring: the group buffs and their reagent are not said: Offering to: people who buff me, my group, myself (outside cities and inns). Already buffed: topped up when low. People who buff me are always offered one back. Group buffs when 3 of a party need it (17020: 5 in bags). Ready checks and the just-revived go first.
 prompt5: a press after your target changed hands it back (fused): SKIPPED -- Anna was not armed as your target without a hand-back: /target Anna / /cast Arcane Intellect
 prompt5: a press after your target changed hands it back (fused, pressed before a repaint): SKIPPED -- Anna was not armed as your target without a hand-back: /target Anna / /cast Arcane Intellect

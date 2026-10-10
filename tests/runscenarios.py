@@ -101,7 +101,7 @@ _ADDRESS = re.compile(r"\b(table|function|thread|userdata|cdata): (?:0x)?[0-9A-F
 # A path to a .lua file, kept to its name: Lua shortens a long one in an error
 # message to "...<its last 57 characters>", which cut where it likes.
 _PATH = re.compile(r"[^\s'\"()\[\]]*[\\/]([^\\/\s'\"()\[\]]+\.lua)\b")
-_LINE_NO = re.compile(r"(\.lua\"?\]?):\d+:")
+_LINE_NO = re.compile(r"(\.lua\"?\]?):\d+\b")
 _TIMING = re.compile(r"\b\d+(?:\.\d+)?\s?(ms|s|seconds?)\b")
 _HARNESS = ("SCENARIO HARNESS ERROR", "LOADFILE")
 
@@ -116,7 +116,7 @@ def failure_lines(lines):
 def normalise(line):
     line = _PATH.sub(r"\1", line.strip())
     line = _ADDRESS.sub(r"\1: ADDR", line)
-    line = _LINE_NO.sub(r"\1:N:", line)
+    line = _LINE_NO.sub(r"\1:N", line)
     if _VERSION:
         line = _VERSION.sub("VERSION", line)
     return _TIMING.sub(r"T \1", line)
