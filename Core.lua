@@ -2209,6 +2209,12 @@ function ns.ShoutSure(unit)
 		and stub:GetLibrary("LibRangeCheck-3.0", true) or nil
 	if type(lib) == "table" and type(lib.GetRange) == "function" then
 		local _, maxRange = safecall(lib.GetRange, lib, unit)
+		-- An edge backed by a prompt the client may withhold is asked again
+		-- directly (DirectCheck, Range.lua): the library flattens an answer
+		-- it cannot read, so only a yes heard here is sure.
+		local direct = type(maxRange) == "number" and maxRange <= 20 and ns.DirectRangeCheck
+			and ns.DirectRangeCheck(lib, maxRange)
+		if direct and direct(unit) ~= true then maxRange = nil end
 		if type(maxRange) == "number" and maxRange <= 20 then return true end
 	end
 	return false
