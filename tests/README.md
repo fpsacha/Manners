@@ -8,6 +8,12 @@ Run them from the project root. Every path is resolved relative to the test
 file rather than named outright — hardcoded ones passed here and failed the
 first time CI ran them on a machine that was not this one.
 
+`python tools/check.py --lint --flavours --anchors` runs them together, one
+line per suite (`tools/README.md`). Before any of it, `python tools/lint.py`
+says in under a second whether every Lua and Python file compiles, and
+`python tools/anchors_for.py FILE:LINE` says which mutations sit on a line
+you are about to change.
+
 ## `runharness.py` — load the addon for real
 
 Loads `harness.lua`, a mock WoW API, then loads every addon file `Manners.toc`
@@ -34,7 +40,7 @@ python tests/runharness.py
 
 ## `selftest.py` — check the suites can still fail
 
-Reintroduces each fault the suites exist to catch — over six hundred of them,
+Reintroduces each fault the suites exist to catch — about 2,400 of them,
 in `selftest.py` and `tests/mutations/<topic>.py` — confirms the check each one
 names is among what fails, and restores the file. A test that passes vacuously
 is worse than no test.
@@ -44,11 +50,16 @@ python tests/selftest.py            # the full run: about half an hour on 8 work
 python tests/selftest.py --anchors  # only that every mutation still finds its text: seconds
 python tests/selftest.py --plan     # which scenarios would judge each mutation, then stop
 python tests/selftest.py --whole    # every mutation on the whole suite, as it used to be
-python tests/selftest.py --jobs 4   # fewer at once (default: one per core)
+python tests/selftest.py --jobs 4   # fewer at once (default: the cores less two)
 python tests/selftest.py --fresh-trace  # trace the scenarios again, kept trace or not
 python tests/selftest.py --changed  # only the mutations of files that differ from master
 python tests/selftest.py --changed v1.5.4  # ... or from any commit or tag
+python tests/selftest.py --only "window:"  # only mutations whose label or file holds the text
 ```
+
+`python tools/anchors_for.py FILE:LINE` lists the mutations anchored on a line
+before it is changed, and `--check-after` the ones that lost their text after:
+`--anchors` with only the gone ones printed.
 
 It used to take 25 minutes here and over two hours on GitHub's runner; the
 options window then took it back up past 26 minutes on 14 workers. Measured
@@ -108,23 +119,28 @@ fail the run, and CI greps for those words at the start of a line.
 
 ## `runscenarios.py` — the states it has to survive
 
-Twelve scenarios through `mockapi.lua`, whose behaviour is configurable so the
-client can be made to misbehave on purpose: withhold every value as a secret,
-remove every API, put the player in the graveyard or in combat.
+Several hundred scenarios (`tests/scenarios.lua`, the old main file, and
+`tests/scenarios/<topic>.lua`, one file per topic) through the mock client
+(`mockapi.lua`, `mockwidgets.lua`, `mockwindow.lua`), whose behaviour is
+configurable so the client can be made to misbehave on purpose: withhold every
+value as a secret, remove every API, put the player in the graveyard or in
+combat, or be any of the five clients (`Mock.FLAVOURS`, `Mock.setFlavour`).
 
-Covers a class with no buffs to give, a dead player, combat lockdown, all
+They cover a class with no buffs to give, a dead player, combat lockdown, all
 values secret, a stripped client, a profile full of nonsense, the modes that
 must never arm the button, speech that could break the macro, a buff pinned
-from another class, and odd names.
+from another class, odd names, and everything a bug hunt has fixed since.
 
 Each drives the whole lifecycle including `PreClick` and `PostClick`, and fails
 on anything thrown — in game that would be a timer that silently stops, or a
 prompt sitting there doing nothing.
 
 ```
-python tests/runscenarios.py           # spread over one process per core
+python tests/runscenarios.py           # spread over one process per core but two
 python tests/runscenarios.py --jobs 1  # in one process, as it used to run
 ```
+
+A run ends with `failures: N`.
 
 Scenarios can also live in `tests/scenarios/<topic>.lua`, one file per topic,
 so that two pieces of work do not both append to the end of `scenarios.lua`.
@@ -149,14 +165,21 @@ python tests/runscenarios.py --file scenarios.lua     # the main file's only
 python tests/runscenarios.py --select pick.json       # {"scenarios": [...], "files": [...]}
 python tests/runscenarios.py --trace lines.json       # which scenario ran each line
 python tests/runscenarios.py --flavour vanilla        # every scenario as Classic Era
+python tests/runscenarios.py --flavour vanilla --baseline         # only what is new red
+python tests/runscenarios.py --flavour vanilla --update-baseline  # write the reds down
+python tests/runscenarios.py --shard 2/8              # the names that hash to 2 of 8
 ```
 
 `--flavour` makes another client the one `Mock.reset()` starts from (camelot
 otherwise; `Mock.setFlavour` lists the five). It is a diagnostic rather than a
 suite to keep green: the scenarios about Forever's own scrolls, surnames and
-secret values go red on any other client by design, and what is left is the
-list worth reading. Classic Era's own scenarios, which run in every normal
-run, are `tests/scenarios/era.lua`.
+secret values go red on any other client by design. What is red there is
+written down in `tests/baselines/<client>.txt`, so `--flavour X --baseline`
+prints only a failure that is not in it, and an entry that now passes; the
+list is what is left to read. Each client's own scenarios, which run in every
+normal run, are `tests/scenarios/era.lua`, `tbc.lua`, `mists.lua` and
+`mainline.lua`; `python tools/check.py --flavours` also runs every
+`*-fixes.lua` as each client.
 
 A scenario left out gets `nil` from `load()`, which every scenario reads as
 "skip"; the few that report an empty load as a failure of their own
@@ -200,6 +223,29 @@ code does ask for. A missing key fails the run (`MISSING deDE: ...`), so no
 release ships with a line that shows in English on a translated client;
 `python tools/locale_keys.py --missing <code>` lists what to translate.
 
+The rest of what it prints, one `== heading ==` section each: the generated
+tocs are what `tools/maketocs.py` would write and no staged toc ships; the
+toc's Notes carry no testing disclaimer; every file reference resolves; the
+libraries `.pkgmeta` declares are the ones `embeds.xml` loads; the changelog's
+sections are whole and the current version has notes; the AceConfig tables hold
+no function where a number belongs; both workflows fail when `selftest.py`
+does; `setversion.py` takes only versions the packager files the same way; the
+version agrees in every toc, `ns.BUILD` and the changelog; no `ns.X` is written
+and never read. It takes about four seconds; `python tools/lint.py` is the
+sub-second subset for the middle of an edit.
+
+## Other files here
+
+- `baseline.py` / `baseline.lua`: a fingerprint of what Forever decides and
+  arms. `python tests/baseline.py > before.txt`, make a change meant for
+  another client, again to `after.txt`, and `diff`: it must be empty.
+- `baselines/<client>.txt`: each client's known reds (see `--flavours` above).
+- `setversion.py`: writes the version into every toc, `ns.BUILD` and the
+  changelog heading. Never edit those by hand (`RELEASING.md`).
+- `addonfiles.lua`: the addon's files in load order, read from `Manners.toc`,
+  for every loader. `harness.lua`: what `runharness.py` drives.
+- `frametree.lua`, `mockwidgets.lua`, `mockwindow.lua`: the mock's frames.
+
 ## `bughunt.py` — patterns
 
 Greps for fault shapes seen here: `a and b or c` where `b` can legitimately be
@@ -218,4 +264,5 @@ existence check rather than an unguarded compare.
 `pip install lupa` for the Lua runtime. Every suite loads `lupa.lua51`, the
 same Lua the game runs: on a newer one the suites passed a build that could not
 load in game, because 5.1 allows a function 60 upvalues where 5.4 allows 255.
-Test code has to stay 5.1-clean for the same reason.
+Test code has to stay 5.1-clean for the same reason. Python 3.12. The GitHub
+CLI (`gh`, logged in) only for `tools/release.py` and `tools/clients_watch.py`.
