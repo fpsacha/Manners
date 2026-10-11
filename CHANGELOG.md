@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.7.5
 
 - **Classic Era, TBC and Mists: the colour picker's opacity slider** works the
   right way round for Panel colour, Marker colour and Text colour. Its slider
