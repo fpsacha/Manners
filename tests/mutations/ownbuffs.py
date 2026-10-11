@@ -456,7 +456,7 @@ mutate("Commands.lua",
 # A shaman's Water Shield outside the shield family: wearing it reads as no
 # shield up, and Lightning Shield is put over it.
 mutate("Buffs.lua",
-       "\t\t\t\t{ key = \"watershield\", ranks = { 408510 }, talent = true },\n",
+       "\t\t\t\t{ key = \"watershield\", ranks = { 408510 }, talent = true, charges = 3 },\n",
        "",
        "own: Water Shield not a shield",
        expect="wearing Water Shield, you were offered", script=S)

@@ -235,7 +235,7 @@ mutate("Buffs.lua",
 
 mutate("Buffs.lua",
        "\t\t\t\t{ key = \"watershield\", ranks = { 33736, 24398 }, charges = 3 },\n",
-       "\t\t\t\t{ key = \"watershield\", ranks = { 408510 }, talent = true },\n",
+       "\t\t\t\t{ key = \"watershield\", ranks = { 408510 }, talent = true, charges = 3 },\n",
        "tbc: Forever's Water Shield",
        expect="tbc: a shaman wearing Water Shield is not reminded of the rest of the family",
        script=S)

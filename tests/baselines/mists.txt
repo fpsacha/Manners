@@ -90,6 +90,7 @@ buffs given unprompted are filed under group or strangers: SKIPPED -- the group 
 build |cffffffffVERSION|r
 combat log favours: armed=true, 0 seen, 0 filed
 combat log=true (probe true) | secret restrictions=false | UnitName 2nd=realm
+commandingshout Commanding Shout       known=nil readable=true
 core20: a line in another script is not compared with English words: a Russian request with a capital at the start was not heard
 core20: a passer-by whose name has not loaded is not offered as Unknown: once her name loaded the panel showed Cora, not Cora
 core20: a press on somebody just dead says nothing (held, Bert queued): SKIPPED -- Anna was not armed with the line: /target Anna Aim / /cast Arcane Intellect / /targetlasttarget
@@ -580,14 +581,12 @@ self: you count towards your party's group cast: you are offered apart from the 
 self: you count towards your raid group's and your class's group cast: two of your raid group and you missing it made no group cast: Mort, Raider2, Raider3
 self: you count towards your raid group's and your class's group cast: two paladins and you missing Might made no Greater Blessing: Mort, Anna, Bert
 self: your own name on the never-offer list is honoured: offered your own buff with your name on the never-offer list
-selftest: a failure is that check's FAIL and the rest run: SKIPPED -- C_Item.GetWeaponEnchantInfo is not a PASS on the mock: WARN C_Item.GetWeaponEnchantInfo: missing -- a scroll's imbue on your weapon cannot be seen (the 1.6.3 bug)
 selftest: the button, names, the line rule, repairs and errors: a Camelot surname reads PASS UnitName (surname): "Mort", second nil, read as a realm, full name "Mort"
-selftest: the main hand and the familiar are compared: Manners reading an imbue over an empty list reads PASS main hand enchants: weapon unreadable / WARN main hand enchants: C_Item.GetWeaponEnchantInfo: missing / PASS main hand enchants: C_PaperDollInfo.GetTemporaryEnchantmentInfo: missing / PASS main hand enchants: GetWeaponEnchantInfo: false, nil, 0, nil / PASS main hand enchants: MAGE has no imbue reminder
+selftest: the main hand and the familiar are compared: Manners reading an imbue over an empty list reads PASS main hand enchants: weapon unreadable / PASS main hand enchants: C_Item.GetWeaponEnchantInfo: missing -- not used: MAGE has no weapon imbue on this client / PASS main hand enchants: C_PaperDollInfo.GetTemporaryEnchantmentInfo: missing / PASS main hand enchants: GetWeaponEnchantInfo: false, nil, 0, nil / PASS main hand enchants: MAGE has no imbue reminder
 selftest: the main hand and the familiar are compared: Manners reading no familiar over a Rat on you reads PASS familiar: MAGE has no familiar
-selftest: the main hand and the familiar are compared: Manners reading nothing over a listed imbue reads PASS main hand enchants: weapon unreadable / WARN main hand enchants: C_Item.GetWeaponEnchantInfo: missing / PASS main hand enchants: C_PaperDollInfo.GetTemporaryEnchantmentInfo: missing / PASS main hand enchants: GetWeaponEnchantInfo: true, 1800000, 0, 8708 / PASS main hand enchants: MAGE has no imbue reminder
+selftest: the main hand and the familiar are compared: Manners reading nothing over a listed imbue reads PASS main hand enchants: weapon unreadable / PASS main hand enchants: C_Item.GetWeaponEnchantInfo: missing -- not used: MAGE has no weapon imbue on this client / PASS main hand enchants: C_PaperDollInfo.GetTemporaryEnchantmentInfo: missing / PASS main hand enchants: GetWeaponEnchantInfo: true, 1800000, 0, 8708 / PASS main hand enchants: MAGE has no imbue reminder
 selftest: the main hand and the familiar are compared: a Rat up reads PASS familiar: MAGE has no familiar
-selftest: the main hand and the familiar are compared: an imbue C_Item lists and Manners reads reads PASS main hand enchants: weapon unreadable / WARN main hand enchants: C_Item.GetWeaponEnchantInfo: missing / PASS main hand enchants: C_PaperDollInfo.GetTemporaryEnchantmentInfo: missing / PASS main hand enchants: GetWeaponEnchantInfo: true, 1800000, 0, 8708 / PASS main hand enchants: MAGE has no imbue reminder
-selftest: the main hand and the familiar are compared: the report does not say the imbue is C_Item's alone: PASS main hand enchants: weapon unreadable / WARN main hand enchants: C_Item.GetWeaponEnchantInfo: missing / PASS main hand enchants: C_PaperDollInfo.GetTemporaryEnchantmentInfo: missing / PASS main hand enchants: GetWeaponEnchantInfo: true, 1800000, 0, 8708 / PASS main hand enchants: MAGE has no imbue reminder
+selftest: the main hand and the familiar are compared: the report does not say the imbue is C_Item's alone: PASS main hand enchants: weapon unreadable / PASS main hand enchants: C_Item.GetWeaponEnchantInfo: missing -- not used: MAGE has no weapon imbue on this client / PASS main hand enchants: C_PaperDollInfo.GetTemporaryEnchantmentInfo: missing / PASS main hand enchants: GetWeaponEnchantInfo: true, 1800000, 0, 8708 / PASS main hand enchants: MAGE has no imbue reminder
 shift-right-click never offers them again: SKIPPED -- the prompt was not armed at Anna: /target Anna
 somebody who asked comes after a favour and before your group: SKIPPED -- the prompt shows Bert
 somebody who asked comes after a favour and before your group: expected the favour, then the request, then your group: Anna Aim/owed, Bert/asked, Cara/group
@@ -789,5 +788,6 @@ window: the class table (PALADIN): a paladin has no switch for wisdom
 window: the class table (PRIEST): a priest has no switch for fortitude
 window: the class table (PRIEST): a priest has no switch for shadow
 window: the class table (PRIEST): a priest has no switch for spirit
+window: the class table (WARRIOR): a warrior with one buff is offered a choice
 your own buff: nothing you cast goes on yourself alone.
 your own messages are not requests: expected three of your own and none noted, got 2 and 1

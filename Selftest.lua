@@ -116,6 +116,16 @@ local function HasScrolls() return OwnFamily(function(f) return f.scroll end) ~=
 local function ImbueFamily() return OwnFamily(function(f) return f.imbue end) end
 local function FamiliarFamily() return OwnFamily(function(f) return f.scroll and not f.imbue end) end
 
+-- Why a call about the main hand's enchants does not matter to this character,
+-- or nil when it does. Only a family with an imbue (Forever's mage scrolls)
+-- reads them, and Enum.ItemEnchantType and C_Item.GetWeaponEnchantInfo exist
+-- on Forever alone (Ketho's BlizzardInterfaceResources), so on the other four
+-- clients their absence is the ordinary state, not a fault.
+local function NoImbueWhy()
+	if ImbueFamily() then return nil end
+	return tostring(Class()) .. " has no weapon imbue on this client"
+end
+
 -- A spell id to ask the spell calls about: your best rank of a buff you know,
 -- or of any buff of your class, or Arcane Intellect.
 local function SomeSpell()
@@ -186,11 +196,18 @@ end
 -- One client function's existence and the shape of its answer. `missing` is
 -- the status when there is no such function (FAIL or WARN), with why; `judge`
 -- turns the answer into a status and a line, or nil for PASS with the values.
-local function ApiCheck(id, path, find, args, missing, why, judge)
+-- `unused`, when given, says why the call does not matter to this character
+-- (or answers nil when it does): a call that is missing then passes with that.
+local function ApiCheck(id, path, find, args, missing, why, judge, unused)
 	Check(id, "api", path, function(add)
 		local fn = find()
 		if type(fn) ~= "function" then
-			add(type(missing) == "function" and missing() or missing, "missing -- " .. why)
+			local idle = unused and unused()
+			if idle then
+				add(PASS, "missing -- not used: " .. idle)
+			else
+				add(type(missing) == "function" and missing() or missing, "missing -- " .. why)
+			end
 			return
 		end
 		local out = { pcall(fn, unpack(args())) }
@@ -362,8 +379,7 @@ ApiCheck("api.weaponEnchants", "C_Item.GetWeaponEnchantInfo",
 		local slots = _G.Enum and _G.Enum.WeaponSlot
 		return { slots and slots.MainHand or 0 }
 	end,
-	function() return ImbueFamily() and FAIL or WARN end,
-	"a scroll's imbue on your weapon cannot be seen (the 1.6.3 bug)",
+	FAIL, "a scroll's imbue on your weapon cannot be seen (the 1.6.3 bug)",
 	function(list)
 		if Secret(list) then return WARN, "returned SECRET for the main hand" end
 		if type(list) ~= "table" then return FAIL, "returned " .. Show(list) .. ", not a list" end
@@ -371,7 +387,7 @@ ApiCheck("api.weaponEnchants", "C_Item.GetWeaponEnchantInfo",
 		for i, entry in ipairs(list) do shown[i] = Show(entry) end
 		return PASS, ("%d on the main hand%s"):format(#list,
 			#shown > 0 and (": " .. table.concat(shown, ", ")) or "")
-	end)
+	end, NoImbueWhy)
 
 Check("api.enums", "api", "Enum.WeaponSlot / Enum.ItemEnchantType", function(add)
 	local enum = _G.Enum
@@ -383,7 +399,12 @@ Check("api.enums", "api", "Enum.WeaponSlot / Enum.ItemEnchantType", function(add
 	-- Core.lua falls back on 0, 2 and 3.
 	if type(Field(slots, "MainHand")) ~= "number" or type(Field(kinds, "Temporary")) ~= "number"
 		or type(Field(kinds, "Imbue")) ~= "number" then
-		add(WARN, line .. " -- Manners assumes MainHand=0 Temporary=2 Imbue=3")
+		local idle = NoImbueWhy()
+		if idle then
+			add(PASS, line .. " -- not used: " .. idle)
+		else
+			add(WARN, line .. " -- Manners assumes MainHand=0 Temporary=2 Imbue=3")
+		end
 	elseif kinds.Imbue == kinds.Temporary then
 		add(FAIL, line .. " -- Imbue and Temporary are the same number")
 	else
@@ -393,7 +414,7 @@ end)
 
 ApiCheck("api.tempEnchant", "C_PaperDollInfo.GetTemporaryEnchantmentInfo",
 	function() return Field(_G.C_PaperDollInfo, "GetTemporaryEnchantmentInfo") end,
-	Table(16), WARN, "only matters where C_Item.GetWeaponEnchantInfo is missing")
+	Table(16), WARN, "only matters where C_Item.GetWeaponEnchantInfo is missing", nil, NoImbueWhy)
 
 local function ScrollItem()
 	local family = OwnFamily(function(f) return f.scroll end)
@@ -709,8 +730,12 @@ Check("beliefs.mainHand", "beliefs", L["main hand enchants"], function(add)
 		end
 		add(PASS, "C_Item.GetWeaponEnchantInfo: " .. (#listed > 0 and table.concat(listed, "; ") or "nothing"), label)
 	else
-		add(okL == MISSING and WARN or FAIL, "C_Item.GetWeaponEnchantInfo: "
-			.. (okL == MISSING and "missing" or okL and ("returned " .. Show(list)) or ("threw: " .. tostring(list))), label)
+		-- Missing is a warning only where the character reads it (Forever's
+		-- scrolls); a class or client with no imbue has nothing to see.
+		local idle = okL == MISSING and NoImbueWhy()
+		add(okL == MISSING and (idle and PASS or WARN) or FAIL, "C_Item.GetWeaponEnchantInfo: "
+			.. (okL == MISSING and ("missing" .. (idle and (" -- not used: " .. idle) or ""))
+				or okL and ("returned " .. Show(list)) or ("threw: " .. tostring(list))), label)
 	end
 
 	local okP, paper = Ask(Field(_G.C_PaperDollInfo, "GetTemporaryEnchantmentInfo"), 16)

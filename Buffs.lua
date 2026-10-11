@@ -423,7 +423,9 @@ local VANILLA_OWN = {
 				-- chosen and is never told to put Lightning Shield over it. Not
 				-- in Forever's rank data (one rank); a wrong id only means it is
 				-- never known here, and then never read as up either.
-				{ key = "watershield", ranks = { 408510 }, talent = true },
+				-- Three charges, 10 minutes (SpellAuraOptions ProcCharges 3,
+				-- build 1.60.1.70178), as the Burning Crusade ranks.
+				{ key = "watershield", ranks = { 408510 }, talent = true, charges = 3 },
 			},
 		},
 	},
@@ -1053,6 +1055,12 @@ local MISTS = {
 	WARRIOR = {
 		-- 10% attack power, as Horn of Winter and a hunter's Trueshot Aura.
 		{ key = "battleshout", ranks = { 6673 }, selfCast = true, partyOnly = true, alike = { 57330, 19506 } },
+		-- The warrior's other shout: 10% stamina for the party and raid within
+		-- 100 yards, five minutes (SpellEffect aura 137, target 56, radius 12;
+		-- SkillLineAbility class mask 1; SpellLevels 68), as Power Word:
+		-- Fortitude and Dark Intent give. After Battle Shout, so Automatic
+		-- gives that first.
+		{ key = "commandingshout", ranks = { 469 }, selfCast = true, partyOnly = true, alike = { 21562, 109773 } },
 	},
 
 	-- Horn of Winter is the death knight's Battle Shout: no target, the party

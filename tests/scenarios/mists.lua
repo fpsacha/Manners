@@ -261,7 +261,7 @@ local CLASSES = {
 	PALADIN = { kings = 20217, might = 19740 },
 	MONK = { emperor = 115921, whitetiger = 116781 },
 	WARLOCK = { darkintent = 109773, breath = 5697 },
-	WARRIOR = { battleshout = 6673 },
+	WARRIOR = { battleshout = 6673, commandingshout = 469 },
 	DEATHKNIGHT = { hornofwinter = 57330 },
 }
 local ALL_CLASSES = { "MAGE", "PRIEST", "DRUID", "PALADIN", "MONK", "WARLOCK", "WARRIOR", "DEATHKNIGHT",
@@ -276,7 +276,7 @@ local SESSION = {
 	PALADIN = { 20217, 19740, 25780 },
 	MONK = { 115921, 116781 },
 	WARLOCK = { 109773, 5697 },
-	WARRIOR = { 6673 },
+	WARRIOR = { 6673, 469 },
 	DEATHKNIGHT = { 57330 },
 	HUNTER = { 109260, 13165, 5118, 13159, 61648 },
 	SHAMAN = { 324, 52127, 974 },

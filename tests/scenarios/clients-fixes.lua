@@ -330,7 +330,7 @@ do
 	local OWN = {
 		[1126] = "motw", [20217] = "kings", [117667] = "emperor", [1459] = "intellect", [61316] = "intellect",
 		[6673] = "battleshout", [57330] = "hornofwinter", [109773] = "darkintent", [21562] = "fortitude",
-		[116781] = "whitetiger",
+		[116781] = "whitetiger", [469] = "commandingshout",
 	}
 	session(scenario, "mists", function()
 		local ns = load(scenario)
@@ -341,7 +341,7 @@ do
 				fail(scenario, ("%d is filed under %s, not %s"):format(id, tostring(buff and buff.key), key))
 			end
 		end
-		for _, id in ipairs({ 469, 19506, 24932 }) do
+		for _, id in ipairs({ 19506, 24932 }) do
 			if ns.BUFF_BY_ID[id] then
 				fail(scenario, ("%d, a buff Manners never offers, is filed under %s"):format(id, ns.BUFF_BY_ID[id].key))
 			end
