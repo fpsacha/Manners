@@ -26,6 +26,9 @@ function X.menuFor(flavour)
 	return { items = items, total = total }
 end
 
+-- Whether a step can name this op (a step is ops joined by +).
+function X.isOp(name) return OPS[name] ~= nil end
+
 local function modern(flavour) return flavour == "camelot" or flavour == "mainline" end
 local function classic(flavour) return flavour == "vanilla" or flavour == "tbc" or flavour == "mists" end
 
@@ -898,11 +901,27 @@ end)
 -- Somebody in the group dies and is raised again where they stand, a scan
 -- apart: the one way the group's death watch sees a raise.
 def("raise_member", 3, function(W, s)
-	local list = {}
+	local list, near = {}, {}
 	for _, p in ipairs(members(W)) do
-		if not p.dead and not p.ghost and not p.npc then list[#list + 1] = p end
+		if not p.dead and not p.ghost and not p.npc then
+			list[#list + 1] = p
+			if p.visible and p.yards <= 28 then near[#near + 1] = p end
+		end
 	end
-	local p = choose(list, s.a)
+	-- With nobody to raise, somebody joins first; and the one raised is
+	-- mostly one the raise can matter for, in reach, not a stranger to it.
+	if #list == 0 then
+		local walkers = {}
+		for _, q in ipairs(ungrouped(W)) do
+			if not q.npc and not q.dead and not q.ghost and q.connected then walkers[#walkers + 1] = q end
+		end
+		local q = choose(walkers, s.c)
+		if not q then return end
+		joinGroup(W, q)
+		q.yards = 3 + math.floor(s.b * 22)
+		list, near = { q }, { q }
+	end
+	local p = choose((#near > 0 and s.d % 4 ~= 0) and near or list, s.a)
 	if not p then return end
 	p.deadStep, p.deadFeign = W.stepNo, p.feign
 	p.dead = true
@@ -1033,6 +1052,52 @@ local CLASS_ASKS = {
 	SHAMAN = { "skyfury pls" }, EVOKER = { "bronze pls", "source of magic pls" },
 	MONK = { "legacy pls", "white tiger pls" }, DEATHKNIGHT = { "horn pls" },
 }
+-- A line said in a channel by somebody, and the world's note of what the addon
+-- ought to make of it. `clean` keeps the line as it is, with the sender's guid.
+local function sayAsk(W, p, channel, text, s, clean)
+	local second = W.surnames and p.surname or (p.crossRealm and p.realm or nil)
+	local forms = { p.first }
+	if second then
+		forms[2] = p.first .. (W.surnames and " " or "-") .. second
+		forms[3] = p.first .. "-" .. (p.crossRealm and p.realm or "Ravencrest")
+	end
+	local sender = choose(forms, s.d / 1000000)
+	W.askedAt = W.askedAt or {}
+	W.askedAt[X.filedName(W, p)] = Mock.now
+	-- A sender spelled with the first name alone may be taken for anyone who
+	-- shares it.
+	for _, other in ipairs(W.people) do
+		if other.first == p.first then W.askedAt[X.filedName(W, other)] = Mock.now end
+	end
+	local guid = (s.d % 11 == 0 and not clean) and "" or p.guid
+	local line = (s.d % 13 == 0) and 0 or 1
+	if W.secretOK and W.secret.all and s.d % 3 == 0 and not clean then text = Mock.SECRET end
+	if W.secretOK and W.secret.all and s.d % 3 == 1 and not clean then sender = Mock.SECRET end
+	fire(W, "CHAT_MSG_" .. channel, text, sender, "", "", sender, "", 0, 0, "", 0, 1, guid)
+	-- A request nobody could misread: the buff's nickname and a please, from
+	-- somebody the addon can tell by their guid, out of a fight.
+	local plain_ask = KNOWN_ASK[W.me.class]
+	if plain_ask and text == plain_ask.text then W.stats.reqTried = (W.stats.reqTried or 0) + 1 end
+	if plain_ask and text == plain_ask.text and guid ~= "" and not Mock.inCombat
+		and sender ~= Mock.SECRET and p.class ~= W.me.class and not p.npc then
+		local db = W.ns.db.profile
+		local buff
+		for _, e in ipairs(W.classBuffs or {}) do
+			if e.class == W.me.class and e.buff.key == plain_ask.key then buff = e.buff end
+		end
+		local known = false
+		for _, id in ipairs(buff and buff.ranks or {}) do if W.known[id] then known = true end end
+		local pin = W.ns.PinnedBuff()
+		if buff and known and db.enabled and db.sources.asked and not db.buff.skip[buff.key]
+			and (not pin or pin.key == buff.key) then
+			W.stats.reqRecorded = (W.stats.reqRecorded or 0) + 1
+			W.reqs = W.reqs or {}
+			W.reqs[X.filedName(W, p)] = { person = p, key = buff.key, buff = buff, at = Mock.now,
+				["until"] = Mock.now + 60 }
+		end
+	end
+end
+
 def("chat", 10, function(W, s)
 	local channels = { "SAY", "YELL", "PARTY", "PARTY_LEADER", "RAID", "RAID_LEADER", "INSTANCE_CHAT",
 		"INSTANCE_CHAT_LEADER", "WHISPER" }
@@ -1065,47 +1130,65 @@ def("chat", 10, function(W, s)
 		local n = choose(names, s.a)
 		if n then text = n .. " pls" end
 	end
-	local second = W.surnames and p.surname or (p.crossRealm and p.realm or nil)
-	local forms = { p.first }
-	if second then
-		forms[2] = p.first .. (W.surnames and " " or "-") .. second
-		forms[3] = p.first .. "-" .. (p.crossRealm and p.realm or "Ravencrest")
+	sayAsk(W, p, channel, text, s)
+end)
+-- A request nobody could misread ("int pls") from somebody standing in reach,
+-- the line as it is and the guid with it: what the asked-for check judges, and
+-- all it needs together is too rare to be left to a chance meeting of the
+-- chat step and a person in reach. With nobody near, somebody walks up first.
+def("ask_plain", 6, function(W, s)
+	if not KNOWN_ASK[W.me.class] or Mock.inCombat or W.me.dead or W.me.ghost then return end
+	-- Reading chat is off until a player turns it on, which a fresh profile
+	-- has not: the player switches it on in the options window first.
+	local ns = W.ns
+	local B, UI = ns.WindowBind, ns.WindowUI
+	if ns.db.profile.sources.asked ~= true and B and UI then
+		if not UI.Shown() then ns.OpenOptions(nil, true) end
+		local item = B.Item("who.asked", nil, UI.ctx)
+		if item and not B.Hidden(item) and not B.Disabled(item) then B.Commit(item, true) end
 	end
-	local sender = choose(forms, s.d / 1000000)
-	W.askedAt = W.askedAt or {}
-	W.askedAt[X.filedName(W, p)] = Mock.now
-	-- A sender spelled with the first name alone may be taken for anyone who
-	-- shares it.
-	for _, other in ipairs(W.people) do
-		if other.first == p.first then W.askedAt[X.filedName(W, other)] = Mock.now end
+	local ask = KNOWN_ASK[W.me.class]
+	local buff
+	for _, e in ipairs(W.classBuffs or {}) do
+		if e.class == W.me.class and e.buff.key == ask.key then buff = e.buff end
 	end
-	local guid = (s.d % 11 == 0) and "" or p.guid
-	local line = (s.d % 13 == 0) and 0 or 1
-	if W.secretOK and W.secret.all and s.d % 3 == 0 then text = Mock.SECRET end
-	if W.secretOK and W.secret.all and s.d % 3 == 1 then sender = Mock.SECRET end
-	fire(W, "CHAT_MSG_" .. channel, text, sender, "", "", sender, "", 0, 0, "", 0, 1, guid)
-	-- A request nobody could misread: the buff's nickname and a please, from
-	-- somebody the addon can tell by their guid, out of a fight.
-	local plain_ask = KNOWN_ASK[W.me.class]
-	if plain_ask and text == plain_ask.text then W.stats.reqTried = (W.stats.reqTried or 0) + 1 end
-	if plain_ask and text == plain_ask.text and guid ~= "" and not Mock.inCombat
-		and sender ~= Mock.SECRET and p.class ~= W.me.class and not p.npc then
-		local db = W.ns.db.profile
-		local buff
-		for _, e in ipairs(W.classBuffs or {}) do
-			if e.class == W.me.class and e.buff.key == plain_ask.key then buff = e.buff end
+	-- Somebody who asks for a buff lacks it.
+	local function lacks(p)
+		for _, id in ipairs(buff and buff.auraIds or {}) do
+			if p.buffs[id] then return false end
 		end
-		local known = false
-		for _, id in ipairs(buff and buff.ranks or {}) do if W.known[id] then known = true end end
-		local pin = W.ns.PinnedBuff()
-		if buff and known and db.enabled and db.sources.asked and not db.buff.skip[buff.key]
-			and (not pin or pin.key == buff.key) then
-			W.stats.reqRecorded = (W.stats.reqRecorded or 0) + 1
-			W.reqs = W.reqs or {}
-			W.reqs[X.filedName(W, p)] = { person = p, key = buff.key, buff = buff, at = Mock.now,
-				["until"] = Mock.now + 60 }
-		end
+		return true
 	end
+	local function fit(p)
+		return not p.npc and not p.dead and not p.ghost and p.connected and p.assist ~= false
+			and p.class ~= W.me.class and (p.grouped or not p.ignored) and lacks(p)
+	end
+	local pool = {}
+	for _, p in ipairs(others(W)) do
+		if fit(p) and p.visible and p.yards <= 28 then pool[#pool + 1] = p end
+	end
+	local p = choose(pool, s.a)
+	if not p then
+		local walkers = {}
+		for _, q in ipairs(ungrouped(W)) do
+			if fit(q) then walkers[#walkers + 1] = q end
+		end
+		p = choose(walkers, s.a)
+		if not p then return end
+		arrive(W, p)
+		p.yards = 3 + math.floor(s.b * 22)
+		plateAdd(W, p)
+	end
+	local channels = p.grouped and { "PARTY", "RAID", "WHISPER" } or { "SAY", "YELL", "WHISPER" }
+	sayAsk(W, p, choose(channels, s.c), ask.text, s, true)
+end)
+-- The player puts somebody about on the ignore list, or takes them off it.
+def("ignore", 2, function(W, s)
+	local pool = others(W)
+	for _, p in ipairs(aroundPeople(W)) do pool[#pool + 1] = p end
+	local p = choose(pool, s.a)
+	if not p or p.npc then return end
+	p.ignored = s.b < 0.7 or nil
 end)
 def("chat_me", 1, function(W, s)
 	local text = choose(ASKS, s.a)
@@ -1442,11 +1525,9 @@ def("drift", 2, function(W, s)
 	local k = math.floor(s.a * 4)
 	if k == 0 and W.secretOK then
 		local mode = ({ "on", "restricted", "secret", "gone" })[1 + math.floor(s.b * 4) % 4]
-		-- See fuzz_world.lua, play: no library where the answer is withheld.
-		if mode == "secret" then Mock.rangeCheck = nil end
 		Mock.setInteract(mode)
 	elseif k == 1 then
-		if s.b < 0.5 or Mock.interact == "secret" then Mock.rangeCheck = nil else Mock.rangeCheck = {} end
+		if s.b < 0.5 then Mock.rangeCheck = nil else Mock.rangeCheck = {} end
 		fire(W, "SPELLS_CHANGED")
 	elseif k == 2 then
 		local id = choose(allBuffIds(W), s.c)
@@ -1808,6 +1889,21 @@ local function personality(W, rng)
 	f.minLevel = pick({ 1, 1, 1, 10, 30 }, rng())
 	f.manaFloor = pick({ 0, 0, 0, 30, 80 }, rng())
 	pr.target, pr.friends, pr.readyCheck, pr.revived = chance(0.8), chance(0.8), chance(0.8), chance(0.8)
+	-- One seed in four starts from the settings most players keep -- every
+	-- source on, nobody held back for their level or the mana, nothing pinned
+	-- or switched off, nobody on the never-offer list -- the ground the checks
+	-- that only judge a plain answer (somebody asked, somebody was raised,
+	-- somebody lacks the buff) stand on. The draws are made all the same, so
+	-- the rest of the seed is what it was, and the first settings step moves
+	-- away from it as it does from any start.
+	local plain = W.seed % 4 == 1
+	if plain then
+		s.owed, s.group, s.strangers, s.asked, s.self = true, true, true, true, true
+		f.whenBuffed, f.proximity, f.requireInRange = "skip", "cast", true
+		f.skipPvP, f.skipSameClass, f.hideMounted, f.restingOnly = false, false, false, false
+		f.minLevel, f.manaFloor = 1, 0
+		pr.target, pr.friends, pr.readyCheck, pr.revived = true, true, true, true
+	end
 	db.groupBuffs.use, db.groupBuffs.atLeast = chance(0.85), pick({ 2, 3, 3, 4 }, rng())
 	db.timing.graceSeconds = pick({ 10, 45, 120 }, rng())
 	db.timing.reciprocateWindow = pick({ 30, 120, 600 }, rng())
@@ -1847,9 +1943,12 @@ local function personality(W, rng)
 	for _, entry in ipairs(W.classBuffs or {}) do
 		if entry.class == W.me.class then keys[#keys + 1] = entry.buff.key end
 	end
-	if #keys > 0 and chance(0.2) then db.buff.choice = pick(keys, rng()) end
+	if #keys > 0 and chance(0.2) then
+		local choice = pick(keys, rng())
+		if not plain then db.buff.choice = choice end
+	end
 	for _, key in ipairs(keys) do
-		if chance(0.12) then db.buff.skip[key] = true end
+		if chance(0.12) and not plain then db.buff.skip[key] = true end
 	end
 	ns.Guard("clamp", ns.ClampSettings)
 	ns.Prompt:InvalidateMacro()
@@ -1859,7 +1958,7 @@ local function personality(W, rng)
 	W.never = {}
 	for i = 1, 3 do
 		local p = W.people[1 + math.floor(rng() * 20)]
-		if chance(0.5) then
+		if chance(0.5) and not plain then
 			local name = X.filedName(W, p)
 			ns.NeverOffer(name)
 			W.never[name] = true
@@ -1896,6 +1995,22 @@ function X.afterBoot(W)
 		end
 	end
 	personality(W, rng)
+	-- Now and then somebody close by is on the player's ignore list from the
+	-- start, on a nameplate: the one case where the ignore list decides who is
+	-- offered, which a stranger at random is seldom (dice of their own).
+	local dice = X.newRng(W.seed * 389 + 17)
+	if dice() < 0.6 then
+		local near = {}
+		for _, p in ipairs(aroundPeople(W)) do
+			if not p.grouped and not p.npc then near[#near + 1] = p end
+		end
+		local p = choose(near, dice())
+		if p then
+			p.ignored = true
+			p.yards = 3 + math.floor(dice() * 22)
+			plateAdd(W, p)
+		end
+	end
 	Mock.advance(1)
 	W.ns.addon:Tick()
 end

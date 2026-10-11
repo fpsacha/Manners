@@ -1,6 +1,6 @@
 """A seeded, randomized event-sequence fuzzer for the addon: it plays the game.
 
-    python tools/fuzz.py --quick                      # 40 seeds x 5 clients x 100 steps, about 20 s
+    python tools/fuzz.py --quick --jobs 2             # 24 seeds x 5 clients x 100 steps, about 30 s
     python tools/fuzz.py --seeds 500 --jobs 2         # 500 seeds on every client, 200 steps
     python tools/fuzz.py --seeds 300 --flavour mists --steps 300
     python tools/fuzz.py --flavour mists --seed 77    # replay one run
@@ -9,7 +9,9 @@
     python tools/fuzz.py --flavour mists --seed 77 --minimize
                                                       # shrink it to a short failing sequence
     python tools/fuzz.py --flavour mists --seed 77 --play 'press,0.1,0.2,0.3,4,0.5|tick,...'
-                                                      # play exactly these steps (what --minimize prints)
+                                                      # play exactly these steps (what --minimize prints,
+                                                      # quoted: the '|' is a pipe to a shell); a step that
+                                                      # does not parse, or names no op, is an error
     python tools/fuzz.py --addon ../older-checkout --seeds 300
                                                       # the same world against another tree of the addon
 
@@ -18,9 +20,13 @@ World of its own (tests/fuzz_world.lua): a table of distinct people (ninety,
 or seven hundred on one seed in four), tokens that move between them, a group
 that forms and breaks, auras that come and go, spells learned and forgotten,
 reagents in the bags, a client with LibRangeCheck or without it, a language
-(one seed in three), a spell queue window. It then plays a list of steps drawn
-from a weighted menu (tests/fuzz_steps.lua), a quarter of them two things at
-once, in one of five styles (the ordinary mix; presses and casts; roster and
+(one seed in three), a spell queue window, somebody close by on the ignore
+list now and then, and settings: one seed in four starts from the ones most
+players keep (every source on, nothing pinned, held back or listed), the rest
+from a draw of their own. It then plays a list of steps drawn from a weighted
+menu (tests/fuzz_steps.lua), a quarter of them two things at once, in one of
+five styles by the seed's last step round a ring of five, so that any five
+seeds in a row play each once (the ordinary mix; presses and casts; roster and
 raid; settings, saved files and windows; fights, auras and withheld values):
 
   roster        join, leave, shuffle, subgroup moves, party to raid and back,
@@ -36,7 +42,11 @@ raid; settings, saved files and windows; fights, auras and withheld values):
                 shapeshift forms, resting, instances, zoning, a name the client
                 has not loaded yet ("Unknown"), a level gained, mana gone
   chat          requests in every channel and several languages, one in
-                every tenth plainly a request ("int pls"), noise, your own
+                every tenth plainly a request ("int pls"), noise, your own;
+                a plain request from somebody in reach who lacks the buff
+                (the reading of chat switched on first if a fresh profile has
+                it off), the player putting somebody on /ignore or taking
+                them off
   the press     PreClick, the secure handler running the macro (/target,
                 /cast, /use, the hand-back, the spoken line), PostClick, then
                 the game's answer in the shapes it takes: the cast landing, a
@@ -83,7 +93,9 @@ After every step (tests/fuzz_check.lua) these hold, or the run fails:
                 not flagged, a person of your own class while Skip my own
                 class is on, a dead or hostile one, one under the minimum
                 level, a skipped raid group, a blocked one, a passer-by out
-                of a city when cities only is on
+                of a city when cities only is on, somebody on the player's
+                /ignore list outside the group (a favour owed does not help
+                them; a member of the group stays offered)
   missing       the other way round, where the answer is simple: somebody in
                 reach and plainly lacking the buff is on the queue; somebody
                 who asked for it in so many words is offered it as asked for;
@@ -116,8 +128,11 @@ carries its own random numbers and reads the world as it finds it, so any
 subset of a step list is itself a valid run, which is what --minimize relies
 on; the addon's own math.random is seeded from the run's seed.
 
-Failures are grouped by signature (the invariant and the message with names,
-numbers, addresses and line numbers taken out). A run whose seed fails is
+Failures are grouped by signature: the invariant and its message with what
+differs between two meetings of one fault taken out -- the people (as words,
+so "Mo" is not the "Mo" of "Motw"), the buffs and their spells' names,
+whatever stands in parentheses or quotes (the macro, the line), numbers,
+addresses and line numbers. A run whose seed fails is
 replayed once in a fresh process before it is reported; one that does not fail
 again is "NOT REPRODUCIBLE" (state leaking between the seeds of one worker),
 which is a fault of the fuzzer. The exit status is 1 for any failure that is
@@ -132,10 +147,27 @@ addon's calls and the real client's documented answers; the AVOIDED list
 below is what was learned about where that model and the mock disagree with
 the game.
 
+The game raises on a boolean test of a secret as well (the addons installed
+beside this one check issecretvalue before any); the mock's table is true. So a library whose
+checkers are `CheckInteractDistance(...) and true or false` (LibRangeCheck's
+interact edges, Libs/LibRangeCheck-3.0 minor 38) reads a prompt the client
+withheld as "inside" here, where the game raises and the addon's safecall
+reads "cannot tell". The world keeps the library there all the same -- every
+seed has it or not whatever the prompts do -- and the addon asks an edge
+backed by a prompt again directly before it takes the library's word for a
+shout's reach (Core.lua, ShoutSure; tests/scenarios/fuzz-fixes.lua), so it
+holds whichever way the library reads a withheld value.
+
+How often the checks that need a plain situation run (somebody asked, somebody
+raised, somebody plainly lacking a buff) is in the summary line of each client
+("completeness checks N (P people expected, A askers, R raised)"), and a
+client with 20 seeds or more that never ran one is named under it. A --quick
+run (24 seeds, 100 steps) runs each of them on every client.
+
 A fuzzer that has stopped noticing a fault is as quiet as one that has found
-none, so tests/scenarios/fuzz-fixes.lua keeps seven of the oracles alive: the
-few steps each once shrank a planted fault to, played as a scenario, with the
-fault put back by a mutation in tests/mutations/fuzz-fixes.py. A fault the
+none, so tests/scenarios/fuzz-fixes.lua keeps the oracles that matter alive:
+the few steps each once shrank a planted fault to, played as a scenario, with
+the fault put back by a mutation in tests/mutations/fuzz-fixes.py. A fault the
 fuzzer finds in the addon goes there too, under "fuzz-fix:".
 """
 import argparse
@@ -178,12 +210,16 @@ KNOWN_QUIRKS = [
 # world or the checks instead of being reported -- the same arguments, kept so
 # nobody puts them back:
 #
-#  * LibRangeCheck in tests/mockapi.lua reads an interact-prompt answer the
-#    client withholds (a secret) as "inside the range" (`check(...) and true or
-#    false` over a table), so a shout looked surely within twenty yards at
-#    twenty-eight. The real library errors on a secret in a test, which the
-#    addon's safecall turns into "cannot tell". A client that withholds the
-#    interact prompts has no library here (fuzz_world.lua, play).
+#  * (Not avoided any more.) LibRangeCheck in tests/mockapi.lua reads an
+#    interact-prompt answer the client withholds (a secret) as "inside the
+#    range" (`check(...) and true or false` over a table), so a shout was
+#    surely within twenty yards at twenty-eight: a thank-you /yell to somebody
+#    24 yards off, on camelot and mainline seeds with the library and the
+#    prompts withheld. The first fuzzer took the library off those seeds. The
+#    game raises on that boolean test and the safecall says "cannot tell", so
+#    on the game it was no fault; but the addon's other readers of the same
+#    library ask the edge again directly (Range.lua, DirectCheck) and this one
+#    did not, so ShoutSure now does too, and the library stays in every seed.
 #  * A flag read that throws (UnitIsPVP) is the client's fault, named in
 #    /manners errors by design (tests/scenarios/pvp.lua); no step makes one.
 #  * The Lua state inherits the process's LC_CTYPE: Windows-1252 under Python
@@ -424,6 +460,13 @@ def run(args):
             flavour, len(mine), steps, len(bad), said, total.get("queued", 0), total.get("r_owed", 0),
             total.get("r_asked", 0), total.get("noted", 0), total.get("heard", 0), total.get("r_target", 0),
             total.get("group", 0), total.get("presses", 0), total.get("armed", 0), total.get("lines", 0), total.get("maxMacro", 0), total.get("cmpRuns", 0), total.get("cmpExpected", 0), total.get("cmpAsked", 0), total.get("cmpRevived", 0), total.get("reqRecorded", 0), total.get("reqTried", 0)))
+        # A check that never ran in a run this long is as quiet as one that
+        # found nothing: say so.
+        if len(mine) >= 20:
+            for key, what in (("cmpExpected", "somebody-plainly-lacking-a-buff"), ("cmpAsked", "asked-for"),
+                              ("cmpRevived", "raised-member")):
+                if not total.get(key):
+                    print("    note: the %s check never ran on %s in %d seeds" % (what, flavour, len(mine)))
     for sig, rs in sorted(real.items()):
         first = min(rs, key=lambda r: (r["step"], r["seed"]))
         flavs = sorted({r["flavour"] for r in rs})
@@ -492,15 +535,32 @@ def minimize(failing, args):
     for i, s in enumerate(steps, 1):
         print("  %3d  %s" % (i, s))
     print()
-    print("replay with these steps: python tools/fuzz.py --flavour %s --seed %s --play %s" % (
-        flavour, seed, "|".join(steps)))
+    # Single quotes keep the '|' from being a pipe in bash and in PowerShell
+    # alike; a step holds only letters, digits, '_', '+', ',' and '.'.
+    joined = "|".join(steps)
+    assert "'" not in joined, joined
+    print("replay with these steps: python tools/fuzz.py --flavour %s --seed %s --play '%s'" % (
+        flavour, seed, joined))
+
+
+def split_steps(text):
+    """The steps of a --play argument: '|' apart (or one a line, as --minimize
+    lists them), blanks dropped."""
+    return [piece.strip() for piece in re.split(r"[|\n]", text) if piece.strip()]
 
 
 def play_steps(args):
-    """--play 'step|step|...': exactly those steps, once, verbosely."""
+    """--play 'step|step|...': exactly those steps, once, verbosely. A step
+    that does not parse or names no op is an error (exit 2), not a step skipped
+    for a run that calls itself clean."""
+    steps = split_steps(args.play)
+    if not steps:
+        sys.exit("fuzz.py: --play holds no steps")
     runner = Runner(ADDON_DIR)
-    steps = [s for s in args.play.split("|") if s]
     result = runner.play(args.flavour, args.seed or 1, steps)
+    if not result["ok"] and result["kind"] == "steps":
+        print("fuzz.py: --play: %s" % result["message"], file=sys.stderr)
+        return 2
     if result["ok"]:
         print("fuzz: clean (%d steps)" % len(steps))
         return 0
@@ -520,7 +580,7 @@ def main():
     ap.add_argument("--steps", type=int, default=200, help="steps per seed (default 200)")
     ap.add_argument("--jobs", type=int, default=max(1, cores - 2), help="worker processes (default cores - 2)")
     ap.add_argument("--addon", help="the addon tree to play on, if not this one (read before anything else)")
-    ap.add_argument("--quick", action="store_true", help="40 seeds x every client x 100 steps")
+    ap.add_argument("--quick", action="store_true", help="24 seeds x every client x 100 steps (about 30 s with --jobs 2)")
     ap.add_argument("--minimize", action="store_true", help="with --seed: shrink the failing steps")
     ap.add_argument("--play", help="with --flavour: play exactly these steps, '|' apart")
     ap.add_argument("--trace", action="store_true", help="with --seed: print the prompt after every step")
@@ -530,8 +590,10 @@ def main():
     ap.add_argument("--json", help="write every run's result to this file")
     args = ap.parse_args()
     if args.quick:
-        args.seeds, args.steps = 40, 100
-    if args.play:
+        args.seeds, args.steps = 24, 100
+    if args.flavour != "all" and args.flavour not in FLAVOURS:
+        sys.exit("fuzz.py: no such client: %s (one of %s)" % (args.flavour, ", ".join(FLAVOURS)))
+    if args.play is not None:
         if args.flavour == "all":
             sys.exit("fuzz.py: --play needs --flavour")
         sys.exit(play_steps(args))

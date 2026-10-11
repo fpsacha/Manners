@@ -17,6 +17,30 @@ local function normalise(text)
 end
 X.normalise = normalise
 
+-- Every occurrence of `word` in `text` that is a word of its own: not the
+-- start, the middle or the end of a longer ASCII word ("Mo" is not the "Mo" of
+-- "Motw"). Text in other scripts has no ASCII letters, so a name between two
+-- Korean words is still found.
+local function replaceWord(text, word, with)
+	if word == "" then return text end
+	local out, from = {}, 1
+	while true do
+		local at = text:find(word, from, true)
+		if not at then break end
+		local before = text:sub(at - 1, at - 1)
+		local after = text:sub(at + #word, at + #word)
+		if before:find("^[A-Za-z0-9_]$") or after:find("^[A-Za-z0-9_]$") then
+			out[#out + 1] = text:sub(from, at)
+			from = at + 1
+		else
+			out[#out + 1] = text:sub(from, at - 1) .. with
+			from = at + #word
+		end
+	end
+	out[#out + 1] = text:sub(from)
+	return table.concat(out)
+end
+
 -- A message with the names of the people in it taken out, so that the same
 -- fault met with two different people is one signature.
 local function anonymise(W, text)
@@ -31,21 +55,48 @@ local function anonymise(W, text)
 		end)
 		W.namesLong = names
 	end
-	for _, name in ipairs(W.namesLong) do
-		local at = text:find(name, 1, true)
-		while at do
-			text = text:sub(1, at - 1) .. "NAME" .. text:sub(at + #name)
-			at = text:find(name, 1, true)
-		end
-	end
+	for _, name in ipairs(W.namesLong) do text = replaceWord(text, name, "NAME") end
 	return text
 end
 X.anonymise = anonymise
 
-local function fail(W, kind, message, where)
+-- What a failure is called: the invariant and its message with what differs
+-- between two meetings of one fault taken out -- the people, the buff (its key
+-- and its spell's name), the macro or line in parentheses or quotes, the
+-- numbers. One fault met with another buff, another person or another line is
+-- one signature, not as many as there were meetings. A Lua error (`literal`)
+-- keeps its quotes and parentheses, which name the variable and the value.
+local function signature(W, kind, message, literal)
+	local text = anonymise(W, (tostring(message):gsub("\n.*", "")))
+	if literal then return kind .. "|" .. normalise(text) end
+	if not W.buffWords or W.buffWordsOf ~= W.classBuffs then
+		local words, seen = {}, {}
+		for _, entry in ipairs(W.classBuffs or {}) do
+			for _, word in ipairs({ entry.buff.key, entry.name }) do
+				if type(word) == "string" and #word >= 3 and not seen[word] then
+					seen[word] = true
+					words[#words + 1] = word
+				end
+			end
+		end
+		table.sort(words, function(a, b)
+			if #a ~= #b then return #a > #b end
+			return a < b
+		end)
+		W.buffWords, W.buffWordsOf = words, W.classBuffs
+	end
+	for _, word in ipairs(W.buffWords) do text = replaceWord(text, word, "BUFF") end
+	text = text:gsub("%b()", "()"):gsub('"[^"]*"', '"Q"')
+	return kind .. "|" .. normalise(text)
+end
+X.signature = signature
+
+-- `sigText` stands in for the message in the signature, for a message that
+-- ends in the macro or the line it is about.
+local function fail(W, kind, message, where, sigText)
 	if W.failure then return end
 	W.failure = { kind = kind, message = tostring(message), where = where,
-		sig = kind .. "|" .. normalise(anonymise(W, message)) }
+		sig = signature(W, kind, sigText or message) }
 end
 X.fail = fail
 
@@ -55,7 +106,7 @@ function X.escaped(W, where, err)
 	if W.failure then return end
 	local first = tostring(err):gsub("\n.*", "")
 	W.failure = { kind = "escape", where = where, message = tostring(err),
-		sig = "escape|" .. normalise(anonymise(W, first)) }
+		sig = signature(W, "escape", first, true) }
 end
 
 local SPOKEN_FREE = { target = true, cast = true, use = true, targetlasttarget = true }
@@ -107,7 +158,8 @@ local function checkMacroText(W, macro, label)
 		return fail(W, "macro", ("%s: macro is %d characters"):format(label, #macro))
 	end
 	if macro:find("%[@") then
-		return fail(W, "macro", label .. ": macro holds a [@ conditional: " .. macro:gsub("\n", " / "))
+		return fail(W, "macro", label .. ": macro holds a [@ conditional: " .. macro:gsub("\n", " / "), nil,
+			label .. ": macro holds a [@ conditional")
 	end
 	for _, line in ipairs(lines(macro)) do
 		local cmd = line:match("^%s*/(%S+)")
@@ -115,7 +167,8 @@ local function checkMacroText(W, macro, label)
 			return fail(W, "macro", label .. ": a macro line starts with a space: " .. line)
 		end
 		if cmd and FORBIDDEN_LINES[cmd:lower()] then
-			return fail(W, "macro", label .. ": macro holds /" .. cmd:lower() .. ": " .. macro:gsub("\n", " / "))
+			return fail(W, "macro", label .. ": macro holds /" .. cmd:lower() .. ": " .. macro:gsub("\n", " / "), nil,
+				label .. ": macro holds /" .. cmd:lower())
 		end
 		if not cmd then
 			return fail(W, "macro", label .. ": a macro line is not a command: " .. line)
@@ -184,7 +237,8 @@ function X.checkMacro(W)
 	if #spoken > 0 and not ns.tryMacro then
 		-- Out of a fight the macro on the button was armed by the last repaint.
 		if Mock.inCombat then
-			return fail(W, "speech", "a spoken line is in the macro in a fight: " .. spoken[1])
+			return fail(W, "speech", "a spoken line is in the macro in a fight: " .. spoken[1], nil,
+				"a spoken line is in the macro in a fight")
 		end
 		local ok, why = lineAllowed(W, S.current)
 		if not ok then
@@ -200,13 +254,15 @@ function X.checkMacro(W)
 		if cmd == "w" then
 			local who = ns.LineSpeaker(S.current).name
 			if spoken[1]:sub(1, 4 + #who) ~= "/w " .. who .. " " then
-				return fail(W, "speech", ("a whisper for %s reads: %s"):format(who, spoken[1]))
+				return fail(W, "speech", ("a whisper for %s reads: %s"):format(who, spoken[1]), nil,
+					"a whisper is not addressed to the person it thanks")
 			end
 		end
 	end
 	-- Armed means somebody is on the prompt.
 	if not Mock.inCombat and not S.current and not ns.tryMacro then
-		return fail(W, "macro", "the button is armed with nobody on the prompt: " .. macro:gsub("\n", " / "))
+		return fail(W, "macro", "the button is armed with nobody on the prompt: " .. macro:gsub("\n", " / "), nil,
+			"the button is armed with nobody on the prompt")
 	end
 	if S.current and S.current.buff and not ns.tryMacro and not Mock.inCombat then
 		local entry = S.current
@@ -214,7 +270,8 @@ function X.checkMacro(W)
 		local first = lines(macro)[1]
 		if entry.buff.item then
 			if not (first and first:find("/use item:", 1, true)) then
-				return fail(W, "macro", "a scroll is armed without /use item: " .. macro:gsub("\n", " / "))
+				return fail(W, "macro", "a scroll is armed without /use item: " .. macro:gsub("\n", " / "), nil,
+					"a scroll is armed without /use item:")
 			end
 		elseif not entry.buff.selfCast then
 			if first ~= "/target " .. aim then
@@ -239,7 +296,8 @@ function X.checkPress(W, macro)
 	local S = ns.Prompt.state
 	local entry = S.current
 	if Mock.inCombat then
-		return fail(W, "speech", "a press in a fight carries a spoken line: " .. spoken[1])
+		return fail(W, "speech", "a press in a fight carries a spoken line: " .. spoken[1], nil,
+			"a press in a fight carries a spoken line")
 	end
 	local ok, why = lineAllowed(W, entry)
 	if not ok then
@@ -325,7 +383,10 @@ function X.checkComplete(W, queue, standing)
 	MANA.HUNTER = (W.flavour ~= "mainline") or nil
 	local sec = W.secret
 	if W.flaky then return end
-	if sec.all or sec.identity or sec.auras or sec.aura ~= "open" or next(sec.ids) then return end
+	if sec.all or sec.identity then return end
+	-- With the auras of others withheld nobody can be told to lack a buff; a
+	-- request still stands (below).
+	local auraOpen = not (sec.auras or sec.aura ~= "open" or next(sec.ids))
 	if W.readThrows and next(W.readThrows) then return end
 	if W.mana0 or W.me.mana <= 0.02 or W.me.dead or W.me.ghost then return end
 	if W.charmed or W.inVehicle or W.onTaxi or (W.mounted and f.hideMounted) then return end
@@ -340,15 +401,20 @@ function X.checkComplete(W, queue, standing)
 		candidates = { pinned }
 	end
 	if #candidates == 0 then return end
+	-- Where the auras of others are withheld, or one of the spells is a shout,
+	-- a group-only or party-only cast or a scroll, who is plainly worth a buff
+	-- is not a simple answer, and the walk below is left out; what somebody who
+	-- asked for a single-target buff is offered still is one.
+	local simple = auraOpen
 	for _, buff in ipairs(candidates) do
-		if buff.selfCast or buff.groupOnly or buff.partyOnly or buff.item then return end
+		if buff.selfCast or buff.groupOnly or buff.partyOnly or buff.item then simple = false end
 	end
-	W.stats.cmpRuns = (W.stats.cmpRuns or 0) + 1
+	if simple then W.stats.cmpRuns = (W.stats.cmpRuns or 0) + 1 end
 	local inQueue, entryOf = {}, {}
 	for _, e in ipairs(queue) do inQueue[e.name] = true entryOf[e.name] = e end
 	local now = Mock.now
 	local seen = {}
-	for _, token in ipairs(walkTokens(W)) do
+	for _, token in ipairs(simple and walkTokens(W) or {}) do
 		local p = W.tok[token]
 		if p and p ~= W.me and not p.npc then
 			local name = X.filedName(W, p)
@@ -628,6 +694,17 @@ function X.checkQueue(W, queue)
 				return fail(W, "forbidden", e.name .. " is on the never-offer list and was offered as " .. reason)
 			end
 		end
+		-- Your /ignore list, for everybody outside the group and a favour
+		-- owed included (Queue.lua, ns.Ignored); a member of the group stays
+		-- offered. Judged by the world's own record, where the client names
+		-- the person plainly.
+		if reason ~= "self" and not e.inGroup and not W.flaky and not W.secret.all and not W.secret.identity then
+			local who = personNamed(W, e.name)
+			if who and who ~= W.me and who.ignored == true and not who.grouped then
+				return fail(W, "forbidden", e.name .. " is on your ignore list and was offered as " .. reason, nil,
+					"somebody on your ignore list was offered")
+			end
+		end
 		if ns.IsBlocked(e.name, buff.key, Mock.now) then
 			return fail(W, "forbidden", e.name .. " offered while blocked")
 		end
@@ -871,7 +948,7 @@ function X.checkAll(W, step)
 		local e = ns.errors[1]
 		local first = tostring(e.err):gsub("\n.*", "")
 		fail(W, "guarded", ("%s -> %s"):format(tostring(e.where), tostring(e.err)))
-		if W.failure then W.failure.sig = "guarded|" .. normalise(tostring(e.where)) .. "|" .. normalise(anonymise(W, first)) end
+		if W.failure then W.failure.sig = signature(W, "guarded", tostring(e.where) .. "|" .. first, true) end
 		return
 	end
 	if Mock.inCombat and #Mock.protectedCalls > 0 then
@@ -899,7 +976,7 @@ function X.finalChecks(W)
 			local e = ns.errors[1]
 			local first = tostring(e.err):gsub("\n.*", "")
 			fail(W, "options", ("%s: %s -> %s"):format(label, tostring(e.where), tostring(e.err)))
-			if W.failure then W.failure.sig = "options|" .. normalise(tostring(e.where)) .. "|" .. normalise(anonymise(W, first)) end
+			if W.failure then W.failure.sig = signature(W, "options", tostring(e.where) .. "|" .. first, true) end
 			return true
 		end
 		return false

@@ -61,3 +61,77 @@ mutate("Queue.lua",
        "fuzz-canary: the raised member behind a plain one",
        expect="fuzz-canary: the raised member behind a plain one",
        script=S)
+
+# ----------------------------------------------------------- the other oracles
+#
+# Somebody on the player's /ignore list, outside the group, offered anyway.
+mutate("Queue.lua",
+       "\t\tif ignoring and not inGroup and ns.Ignored(unit) then\n",
+       "\t\tif false then\n",
+       "fuzz-canary: somebody on the ignore list offered",
+       expect="fuzz-canary: somebody on the ignore list offered",
+       script=S)
+
+# Chat requests never put anybody on the queue.
+mutate("Requests.lua",
+       "\tfunction ns.AskedFor(unit, full, now, candidates, askOnly)\n\t\tif #requests == 0 then return nil end\n",
+       "\tfunction ns.AskedFor(unit, full, now, candidates, askOnly)\n\t\tif #requests >= 0 then return nil end\n",
+       "fuzz-canary: somebody who asked is not offered as asked for",
+       expect="fuzz-canary: somebody who asked is not offered as asked for",
+       script=S)
+
+# ------------------------------------------------------------ the tool itself
+#
+# A step list that holds a step which is not one, played as a clean run.
+mutate("tests/fuzz_world.lua",
+       "\tlocal bad, why = badStep(list)\n\tif bad then\n",
+       "\tlocal bad, why = badStep(list)\n\tif false then\n",
+       "fuzz-canary: a step that is no step is no clean run",
+       expect="fuzz-canary: a step that is no step is no clean run",
+       script=S)
+
+# A name replaced inside a longer word.
+mutate("tests/fuzz_check.lua",
+       "\t\tif before:find(\"^[A-Za-z0-9_]$\") or after:find(\"^[A-Za-z0-9_]$\") then\n",
+       "\t\tif false then\n",
+       "fuzz-canary: one fault met twice is one signature (a name inside a word)",
+       expect="fuzz-canary: one fault met twice is one signature",
+       script=S)
+
+# The macro or the line in parentheses or quotes left in the signature.
+mutate("tests/fuzz_check.lua",
+       "\ttext = text:gsub(\"%b()\", \"()\"):gsub('\"[^\"]*\"', '\"Q\"')\n",
+       "\ttext = text\n",
+       "fuzz-canary: one fault met twice is one signature (a line in parentheses)",
+       expect="fuzz-canary: one fault met twice is one signature",
+       script=S)
+
+# The stand-in for a message that ends in the macro ignored.
+mutate("tests/fuzz_check.lua",
+       "\t\tsig = signature(W, kind, sigText or message) }\n",
+       "\t\tsig = signature(W, kind, message) }\n",
+       "fuzz-canary: one fault met twice is one signature (the macro at the end)",
+       expect="fuzz-canary: one fault met twice is one signature",
+       script=S)
+
+# ---------------------------------------------------------------- fuzz-fix
+#
+# ShoutSure over a library that reads a withheld prompt as "inside": the edge
+# that said yes is not asked again.
+mutate("Core.lua",
+       "\t\tlocal direct = type(maxRange) == \"number\" and maxRange <= 20 and ns.DirectRangeCheck\n"
+       "\t\t\tand ns.DirectRangeCheck(lib, maxRange)\n"
+       "\t\tif direct and direct(unit) ~= true then maxRange = nil end\n",
+       "",
+       "fuzz-fix: a shout sure over a library that guesses",
+       expect="fuzz-fix: a shout is not sure over a library that guesses",
+       script=S)
+
+# The world taking the library off the seeds whose client withholds the
+# interact prompts, which is what hid the fault above from the first fuzzer.
+mutate("tests/fuzz_world.lua",
+       "\t\tMock.setInteract(mode)\n\tend\n\t-- A third of the seeds play in another language",
+       "\t\tif mode == \"secret\" then Mock.rangeCheck = nil end\n\t\tMock.setInteract(mode)\n\tend\n\t-- A third of the seeds play in another language",
+       "fuzz-canary: the library stays where the prompts are withheld",
+       expect="fuzz-canary: the library stays where the prompts are withheld",
+       script=S)

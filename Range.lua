@@ -150,6 +150,8 @@ do
 		end
 		return nil
 	end
+	-- Also asked by ns.ShoutSure (Core.lua), which loads before this file.
+	ns.DirectRangeCheck = DirectCheck
 
 	-- The ladder, best first. Each build returns a function answering "is this unit
 	-- within `want` yards" (true, false, or nil for cannot tell) and whether the

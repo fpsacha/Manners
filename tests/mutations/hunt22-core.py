@@ -236,6 +236,12 @@ mutate("Core.lua",
 
 mutate("Core.lua",
        "\t\tlocal _, maxRange = safecall(lib.GetRange, lib, unit)\n"
+       "\t\t-- An edge backed by a prompt the client may withhold is asked again\n"
+       "\t\t-- directly (DirectCheck, Range.lua): the library flattens an answer\n"
+       "\t\t-- it cannot read, so only a yes heard here is sure.\n"
+       "\t\tlocal direct = type(maxRange) == \"number\" and maxRange <= 20 and ns.DirectRangeCheck\n"
+       "\t\t\tand ns.DirectRangeCheck(lib, maxRange)\n"
+       "\t\tif direct and direct(unit) ~= true then maxRange = nil end\n"
        "\t\tif type(maxRange) == \"number\" and maxRange <= 20 then return true end\n"
        "\tend\n"
        "\treturn false\n",

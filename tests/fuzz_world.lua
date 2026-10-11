@@ -239,6 +239,14 @@ function X.newWorld(cfg)
 	me.guid = "Player-1-00000001"
 	local casters = X.CASTERS[flavour]
 	me.class = cfg.class or (rng() < 0.8 and pick(casters, rng()) or pick(classes, rng()))
+	-- Two in three of the seeds that start from plain settings (fuzz_steps.lua,
+	-- personality) play a class whose request is plainly one ("int pls"), so
+	-- that the asked-for check has ground to stand on in a short run. Dice of
+	-- their own: nothing else of the seed moves.
+	if not cfg.class and cfg.seed % 4 == 1 then
+		local dice = X.newRng(cfg.seed * 53 + 1)
+		if dice() < 0.67 then me.class = pick({ "MAGE", "PRIEST", "DRUID" }, dice()) end
+	end
 	me.level = rng() < 0.7 and W.cap or (10 + math.floor(rng() * (W.cap - 10)))
 	me.race = RACES[1]
 	me.yards, me.crossRealm = 0, false
@@ -1119,7 +1127,7 @@ end
 local STYLES = {
 	[0] = {},
 	[1] = { press = 4, press_ready = 4, double_press = 3, cast_event = 3, manual_cast = 3, debt = 3,
-		chat = 2, plate_add = 2, hover = 2, press_right = 2 },
+		chat = 2, ask_plain = 2, plate_add = 2, hover = 2, press_right = 2 },
 	[2] = { join_party = 3, join_raid = 3, leave_group = 3, shuffle_group = 3, move_subgroup = 4,
 		member_far = 3, die_other = 3, revive_other = 3, raise_member = 4, feign = 3, pvp_other = 3, aura_other_add = 2,
 		ready_check = 4, ready_finished = 3, party_to_raid = 3, raid_to_party = 3 },
@@ -1129,7 +1137,9 @@ local STYLES = {
 		secrets = 3, cleu = 3, mount = 2, zone = 3, revive_me = 2, cast_event = 2 },
 }
 
-function X.styleOf(seed) return math.floor(seed / 11) % 5 end
+-- By the seed's last step round a ring of five, so that any five seeds in a
+-- row play each style once (a short run, --quick's twenty-four seeds, sees them all).
+function X.styleOf(seed) return seed % 5 end
 
 local function generate(flavour, seed, n)
 	loadParts()
@@ -1151,6 +1161,12 @@ local function generate(flavour, seed, n)
 		end
 		return weighted[1].op
 	end
+	-- A seed that starts from plain settings (fuzz_steps.lua, personality) opens
+	-- with the two events the checks that need a plain situation wait for --
+	-- somebody raised in the group, somebody asking in so many words -- twice,
+	-- a moment apart, so that even a short run has stood them in front of the
+	-- check (a step that does not apply to the class played does nothing).
+	local opening = (seed % 4 == 1) and { "raise_member", "ask_plain", "raise_member", "ask_plain" } or {}
 	for i = 1, n do
 		local s = { a = rng(), b = rng(), c = rng(), d = math.floor(rng() * 1000000) }
 		-- Mostly short gaps, now and then a long one.
@@ -1162,6 +1178,9 @@ local function generate(flavour, seed, n)
 		s.op = draw()
 		-- A quarter of the steps are two things at once.
 		if rng() < 0.25 then s.op = s.op .. "+" .. draw() end
+		-- (The draws above are made all the same: the rest of the list is the
+		-- one the seed always gave.)
+		if opening[i] then s.op, s.dt = opening[i], 0.6 end
 		out[i] = X.encode(s)
 	end
 	return out
@@ -1200,11 +1219,10 @@ function X.setup(opts)
 	if W.secretOK then
 		local modes = { "on", "restricted", "secret", "on" }
 		local mode = modes[1 + math.floor(env() * 4) % 4]
-		-- The mock's LibRangeCheck reads a withheld interact answer as inside
-		-- the range (tests/mockapi.lua: `and true or false` over a secret),
-		-- where the real library errors on it; so a client that withholds
-		-- the answer has no library here. (fuzz.py, AVOIDED.)
-		if mode == "secret" then Mock.rangeCheck = nil end
+		-- With the library there whatever the prompts say: the mock's reads a
+		-- withheld answer as inside the range (tests/mockapi.lua: `and true or
+		-- false` over a secret), which the addon must not take for a yard of
+		-- evidence (Core.lua, ShoutSure asks the edge again).
 		Mock.setInteract(mode)
 	end
 	-- A third of the seeds play in another language, whose words, lines and
@@ -1238,9 +1256,34 @@ function X.replayTo(opts, stop)
 	return W
 end
 
+-- What is wrong with a step list, or nil: a step that does not parse, or names
+-- an op there is not, is no step -- a run that went past it would call itself
+-- clean for steps it never played.
+local function badStep(list)
+	for index, text in ipairs(list) do
+		local step = X.decode(text)
+		if not step then
+			return index, ("is not a step (op,a,b,c,d,dt): %s"):format(tostring(text))
+		end
+		local any = false
+		for name in step.op:gmatch("[^+]+") do
+			any = true
+			if not X.isOp(name) then return index, ("names no op: %s"):format(name) end
+		end
+		if not any then return index, ("names no op: %s"):format(tostring(text)) end
+	end
+	return nil
+end
+
 local function play(opts)
 	local flavour, seed = opts.flavour, opts.seed
 	local list = opts.steps
+	loadParts()
+	local bad, why = badStep(list)
+	if bad then
+		return { ok = false, step = bad, kind = "steps", message = ("step %d %s"):format(bad, why),
+			sig = "steps|bad step", log = {} }
+	end
 	local W = X.setup(opts)
 
 	local ran, err = xpcall(function()
