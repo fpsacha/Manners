@@ -387,6 +387,11 @@ local function ToggleEnabled(mouseButton)
 	else
 		ns.addon:Print(L["switched off from the launcher -- middle-click it again, or type |cffffd100/manners on|r, to switch it back."])
 	end
+	-- In a fight the macro on the button cannot be cleared, so a press still
+	-- casts at whoever the fight froze on it, as /manners off says.
+	if not ns.db.profile.enabled and InCombatLockdown() and ArmedButtonLeft() then
+		ns.addon:Print(L["Switched off -- the prompt this fight froze stays up until it ends, and a press still casts it."])
+	end
 	-- The Enable checkbox and the launcher's text do not re-read the profile
 	-- on their own.
 	ns.RepaintOptions()

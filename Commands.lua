@@ -1388,7 +1388,16 @@ function addon:HandleSlash(rawInput)
 	elseif input == "off" then
 		db.enabled = false
 		ns.Prompt:Refresh()
-		self:Print(L["disabled."])
+		-- In a fight the macro on the button cannot be cleared, so a press
+		-- still casts at whoever the fight froze on it until the fight ends:
+		-- the same line the launcher's tooltip says.
+		local button = InCombatLockdown() and ns.Prompt:GetButton()
+		local armed = button and button:GetAttribute("macrotext1")
+		if type(armed) == "string" and armed ~= "" then
+			self:Print(L["Switched off -- the prompt this fight froze stays up until it ends, and a press still casts it."])
+		else
+			self:Print(L["disabled."])
+		end
 	elseif input == "never" then
 		-- The name is `rest`, kept as typed: a surname or a realm is part of it.
 		if rest == "" then
