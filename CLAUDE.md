@@ -95,9 +95,13 @@ default everywhere in the tests and the only client anybody here plays.
   - Forever only: surnames joined with a space (`caps.unitNameIsSurname`);
     the mage's scrolls (Familiar, Weapon imbue: `CAMELOT_OWN`, used with
     `/use item:<id>`); the Reagent Economy perk (`ns.ReagentWaived`);
-    group casts reaching the whole party and raid (`groupIsRaid`); regional
-    unique names in `/w` (Speech.lua asks the client, and assumes them on
-    Forever when it will not say); no Blessing of Sanctuary, Omen of Clarity
+    group casts reaching the whole party and raid (`groupIsRaid`); the mage's,
+    priest's and druid's group casts have no unit target (SpellEffect target
+    56), so `UNIT_SPELLCAST_SENT` names nobody (an empty string) and
+    `SettlePendingClick` reads that as "would not say"; regional unique names
+    in `/w` (Speech.lua asks the client, assumes them on Forever when it will
+    not say, and walks the name as Forever's `ExtractTellTarget` does:
+    accents and apostrophes are fine); no Blessing of Sanctuary, Omen of Clarity
     passive, Kings and Divine Spirit trained.
   - classic family (vanilla, tbc, mists): the combat log is read in addition
     to the aura scan (`ns.combatLogArmed`); never registered on modern clients
@@ -195,6 +199,22 @@ Quick helpers for working in a worktree (`tools/README.md` has the details):
   to a hot path; `python tests/baseline.py` (what Forever decides and arms) must
   stay identical across a performance change. `tools/profile_scan.py` is
   Forever-only (its fixtures use two-part names).
+- Audits (each documents itself with `-h`; none is part of `check.py`; they
+  download client data into a cache outside the repo): `tools/audit_ids.py
+  [--client X] [--notes]` holds every spell, item, aura, race and class id the
+  addon has to that build's wago.tools tables (run it after any change to
+  `Buffs.lua`); `tools/audit_groups.py` the group casts; `tools/audit_api.py`
+  every client API, event, CVar and widget method the addon uses against each
+  client's own API, saying which uses are guarded and which would throw (run it
+  before adding an API call, or when a toc moves to a new build; `audit_apis.py`
+  is the lighter version with `--textures`, `--globals` and `--ptr`, and
+  `audit_docs.py` reads Blizzard's own API documentation for what is secret or
+  restricted); `tools/migration_check.py` loads every release tag's addon on the
+  mock, saves its settings and loads them in the current addon (a setting a past
+  release saved that the current one mangles is a finding);
+  `tools/audit_saved_boxes.py` and `tools/legacy_lines.py` the In character
+  phrase box across releases and languages; `tools/audit_i18n_*.py` lead lists
+  for translators (formats, widths, gender, terms, references).
 - `python tools/fuzz.py --quick --jobs 2`: a seeded random game (rosters, auras,
   deaths, fights, chat, presses, withheld values, settings, reloads) played on
   every client with invariants checked after each step: 24 seeds x 5 clients x
@@ -320,7 +340,15 @@ only; `{gift}` is the spell they gave you), `RP.TRADE`, `RP.HISTORY`,
   examples, and a player's saved box is recognised by matching them exactly.
   Never reword or reorder the first lines of a pool; append. A reworded
   example goes into `RP.LEGACY.reworded` as it read before. Giving a people
-  its first pool changes its examples (as for the Haranir in 1.7.2).
+  its first pool changes its examples (as for the Haranir in 1.7.2). The same
+  holds for TRANSLATIONS: rewording a translation of one of a pool's first lines
+  in `Locales/<code>.lua` makes every box saved before it read as the player's
+  own, and In character stops for that player (1.6.6's 750 translation fixes did
+  this until 1.7.6). The earlier translations are kept in `RP.LEGACY_TRANSLATED`
+  (`tools/legacy_lines.py` builds and checks it): record the old text there
+  whenever such a translation changes. `python tools/audit_saved_boxes.py` saves
+  a box with every released tag in every language and checks the current
+  addon still recognises it.
 - Race file names are the client's `ChrRaces.ClientFileString`, not the race's
   name: `Scourge` (Forsaken), `EarthenDwarf`, `Harronir` (the Haranir). 1.7.2's
   Haranir lines never played because the key was guessed. Look it up.
@@ -352,7 +380,11 @@ only; `{gift}` is the spell they gave you), `RP.TRADE`, `RP.HISTORY`,
   target is handed back (`Prompt/Macro.lua`, `STRATEGIES`); a self-cast shout
   is a bare `/cast`, a scroll `/use item:<id>`. No `[@player]` or any
   `[@unit]` conditional: they do not resolve on Forever. Secure buttons
-  register `"AnyDown"`.
+  register `"AnyDown"`. Only the left mouse button casts: every other button
+  (type2..type5 and the wildcards `*type2`..`*type31`) is set to `none` in
+  `Prompt/Macro.lua` `SilenceOtherButtons`, because the client looks an
+  attribute up modifier-prefixed first and shift-right-click would otherwise
+  run the macro.
 - **Auras.** `C_UnitAuras` on every client; never `UnitBuff`/`UnitAura`.
 - **Public text** (README's player sections, CHANGELOG, listings, toc Notes):
   no "untested" / "mock client" / "not tried in game" disclaimers.

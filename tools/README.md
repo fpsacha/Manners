@@ -929,6 +929,136 @@ The same file checks that a cast by anybody else costs no Lua at all: the six
 `UNIT_SPELLCAST_*` events are registered on a frame of the addon's own for the
 player alone (`RegisterUnitEvent`), not through AceEvent.
 
+## audit_ids.py
+
+Every id the addon holds, checked against each client's own data tables.
+
+```
+python tools/audit_ids.py                       # all five clients
+python tools/audit_ids.py --client mists        # one (repeatable)
+python tools/audit_ids.py --cache DIR           # where the downloaded CSVs live
+python tools/audit_ids.py --offline             # download nothing; a missing table is an error
+python tools/audit_ids.py --fetch-only          # fill the cache and stop
+python tools/audit_ids.py --notes               # also print the NOTE lines (judgement calls)
+python tools/audit_ids.py --dump mists          # the addon's side as JSON, and stop
+python tools/audit_ids.py --selftest            # the audit goes red when a datum is wrong
+python tools/audit_ids.py --client camelot --build camelot=1.60.1.70338   # a newer build
+```
+
+`python tools/audit_ids.py -h` has the rest. Not part of `tools/check.py`; it downloads what it needs into a cache outside the repo.
+
+## audit_groups.py
+
+Hold the group casts in Buffs.lua to each client's own spell tables.
+
+```
+python tools/audit_groups.py                    # all five clients
+python tools/audit_groups.py --client camelot   # WoW Forever alone
+python tools/audit_groups.py --refresh          # fetch the tables again
+python tools/audit_groups.py --all              # print the INFO lines too
+```
+
+`python tools/audit_groups.py -h` has the rest. Not part of `tools/check.py`; it downloads what it needs into a cache outside the repo.
+
+## audit_api.py
+
+Every client API the addon uses, checked against each client's own API.
+
+```
+python tools/audit_api.py                       # all five clients
+python tools/audit_api.py --client tbc          # one (repeatable)
+python tools/audit_api.py --cache DIR           # where the downloaded resources live
+python tools/audit_api.py --offline             # download nothing
+python tools/audit_api.py --notes               # also print guarded uses and reads
+python tools/audit_api.py --uses                # print every API the addon uses and stop
+python tools/audit_api.py --json out.json       # everything found, for other tools
+python tools/audit_api.py --selftest            # the scanner sees guarded and unguarded calls
+python tools/audit_api.py --secrets             # which used APIs the clients tag as secret
+```
+
+`python tools/audit_api.py -h` has the rest. Not part of `tools/check.py`; it downloads what it needs into a cache outside the repo.
+
+## audit_apis.py
+
+Which game APIs, events, CVars and widget methods the addon uses that a client does not have, read out of the compiled Lua and compared with Ketho/BlizzardInterfaceResources' dump of that client.
+
+```
+python tools/audit_apis.py --fetch DIR      # download the dumps (needs gh)
+python tools/audit_apis.py DIR              # the report, from those dumps
+python tools/audit_apis.py DIR --flavour vanilla   # one client only (camelot vanilla tbc mists mainline)
+python tools/audit_apis.py DIR --all        # also the guarded ones
+python tools/audit_apis.py DIR --globals    # what the files assign and read as globals
+python tools/audit_apis.py DIR --ptr ptr2   # what a later build no longer has
+python tools/audit_apis.py --textures       # every Textures/*.tga against the client's rules
+python tools/audit_apis.py --help           # this text
+```
+
+`python tools/audit_apis.py -h` has the rest. Not part of `tools/check.py`; it downloads what it needs into a cache outside the repo.
+
+## audit_docs.py
+
+What Blizzard's own API documentation says about the calls and events the addon uses, read from the generated documentation of each client's UI source (Gethe/wow-ui-source, Interface/AddOns/Blizzard_APIDocumentationGenerated).
+
+```
+python tools/audit_docs.py --fetch DIR      # sparse clones, about 10 MB a client (needs git)
+python tools/audit_docs.py DIR secrets      # every API the addon calls whose docs name a Secret* rule
+python tools/audit_docs.py DIR restricted   # every API it calls that is restricted, or has a precondition
+python tools/audit_docs.py DIR events       # the payload of each event the addon handles, per client,
+                                            # beside the handler's parameters
+python tools/audit_docs.py DIR shapes       # calls whose return types differ between clients
+python tools/audit_docs.py --help           # this text
+```
+
+`python tools/audit_docs.py -h` has the rest. Not part of `tools/check.py`; it downloads what it needs into a cache outside the repo.
+
+## migration_check.py
+
+What the current addon makes of the saved variables of every release.
+
+```
+python tools/migration_check.py                      # every release tag
+python tools/migration_check.py --tags v1.0.0 v1.6.0 # only these
+python tools/migration_check.py --since v1.0.0       # that release and every later one
+python tools/migration_check.py --flavour mists      # as another client
+python tools/migration_check.py --real FILE.lua      # also a real SavedVariables file
+python tools/migration_check.py --cls ALL            # as each of the nine classes
+python tools/migration_check.py --locale deDE        # the current addon on a German client
+python tools/migration_check.py --jobs 2             # workers (default 2)
+python tools/migration_check.py --verbose            # also what each stage printed
+python tools/migration_check.py --scratch DIR        # keep the dumps in DIR
+```
+
+`python tools/migration_check.py -h` has the rest. Not part of `tools/check.py`; it downloads what it needs into a cache outside the repo.
+
+## audit_saved_boxes.py
+
+Does this tree still know the "In character" phrase box an earlier release saved?
+
+```
+python tools/audit_saved_boxes.py                       # every released tag since beta.9, every language
+python tools/audit_saved_boxes.py --tags v1.7.4 v1.6.5 --locales koKR zhCN
+python tools/audit_saved_boxes.py --classes MAGE,PRIEST --races Human,Orc   # a smaller grid
+python tools/audit_saved_boxes.py --list                # print the edited ones, not only a count
+python tools/audit_saved_boxes.py --saved-as enUS       # boxes filled in English, read on every language
+python tools/audit_saved_boxes.py --head v1.6.8         # recognised by that release's code, not this checkout's
+python tools/audit_saved_boxes.py --head DIR            # ...or by a copy of the addon in a folder
+```
+
+`python tools/audit_saved_boxes.py -h` has the rest. Not part of `tools/check.py`; it downloads what it needs into a cache outside the repo.
+
+## legacy_lines.py
+
+The earlier translations of the "In character" example lines, for Phrases.lua.
+
+```
+python tools/legacy_lines.py                          # every release tag since beta.10, every language
+python tools/legacy_lines.py --tags v1.6.5 --locales koKR
+python tools/legacy_lines.py --check                  # only say whether the table in Phrases.lua is complete
+python tools/legacy_lines.py --lua                    # print the table as Lua, ready to paste
+```
+
+`python tools/legacy_lines.py -h` has the rest. Not part of `tools/check.py`; it needs git and lupa.
+
 ## lua51_limits.py
 
 How full each function is against Lua 5.1's two limits: 60 upvalues, and 200

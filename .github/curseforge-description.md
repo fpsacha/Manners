@@ -132,7 +132,7 @@ class offers what that client gives it:
   families, and Earth Shield counts as a shaman's shield.
 - **Mists of Pandaria Classic:** Arcane Brilliance, Power Word: Fortitude,
   Mark of the Wild, Blessing of Kings or Might, Legacy of the Emperor (and of
-  the White Tiger), Dark Intent, and Battle Shout or Horn of Winter for your own
+  the White Tiger), Dark Intent, and Battle Shout, Commanding Shout or Horn of Winter for your own
   party. On yourself: Molten, Frost or Mage Armor; Inner Fire or Inner Will;
   Righteous Fury; an aspect; and Lightning, Water or Earth Shield.
 - **Retail:** Arcane Intellect (to those who use mana), Power Word: Fortitude,

@@ -25,6 +25,14 @@ permissions list, a hook that lints each edited file, and the commands
 
 ## Open
 
+**Forever's group casts and the cast event.** The mage's, priest's and druid's
+group casts have no unit target in the client's spell data, so
+`UNIT_SPELLCAST_SENT` is taken to name nobody and the cast is settled as "would
+not say" (1.7.6). That is an inference from the data and Blizzard's
+documentation, not an observation: `/manners clicks` after one such cast shows
+the sent line (`CAST SENT 23028 -> ` with nothing after the arrow if it is
+right).
+
 **Only Mage has ever cast in the live client, and only on WoW Forever.** No
 review substitutes for it. Warrior first: Battle Shout is `selfCast`, its macro
 has no `/target` line, and `pending.selfCast` in `SettlePendingClick` is the

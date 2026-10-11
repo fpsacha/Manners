@@ -794,6 +794,7 @@ whatif: nobody on your ignore list is thanked or offered: SKIPPED -- a passer-by
 whatif: nobody on your ignore list is thanked or offered: a group member on your ignore list was not offered
 whatif: one line per person a minute: threw: whatif.lua:N: attempt to index a nil value
 whisper: Camelot whispers name and surname, and nothing it would misread: Munin Hugins: the spoken line is nil, wanted /w Munin Hugins Thanks for the buff, Munin Hugins.: /target Munin Hugins / /cast Arcane Intellect / /targetlasttarget
+whisper: Camelot whispers name and surname, and nothing it would misread: Petra Brâve: the spoken line is nil, wanted /w Petra Brâve Thanks for the buff, Petra Brâve.: /target Petra Brâve / /cast Arcane Intellect / /targetlasttarget
 whisper: Camelot whispers name and surname, and nothing it would misread: Solo: the spoken line is /w Solo Thanks for the buff, Solo., wanted nil: /target Solo / /cast Arcane Intellect / /w Solo Thanks for the buff, Solo. / /targetlasttarget
 whisper: the client's regional-names answer decides the parse: Munin Hugins with regional names true: the spoken line is nil, wanted /w Munin Hugins Thanks for the buff, Munin Hugins.: /target Munin Hugins / /cast Arcane Intellect / /targetlasttarget
 who tab: a priest still chooses between spells: a priest is not offered Buff to offer

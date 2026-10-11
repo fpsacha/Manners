@@ -1,5 +1,32 @@
 # Changelog
 
+## Unreleased
+
+- **Only the left mouse button casts.** Shift-right-click on the prompt, which
+  is meant only to put somebody on the never-offer list, also ran the cast on
+  them, and so did ctrl-right-click, middle click and the side buttons. Now
+  only a left click or your key casts, whatever you hold.
+- **In character keeps working after the update, in every language.** If you
+  picked the set on a German, Spanish, French, Italian, Korean, Portuguese or
+  Chinese client before 1.6.6, the improved translations made your saved phrase
+  box look edited, and the set quietly stopped speaking.
+- **WoW Forever: group casts.** Arcane Brilliance, the Prayers and Gift of the
+  Wild now count as repaying the people they cover; they could be filed as
+  having gone to nobody, leaving favours owed and the ledger empty.
+- **WoW Forever: whispers** to a player whose surname has an accent or an
+  apostrophe are said, instead of dropped.
+- **Mists:** a warrior is offered Commanding Shout once the party wears Battle
+  Shout, and another warrior's Commanding Shout on you counts as a favour.
+- **WoW Forever: Water Shield** is topped up when it is down to its last
+  charge, with *Offer a top-up when it runs low* on.
+- **Snooze** shows when it ends in your client's own 12-hour format.
+- **/manners off** typed in a fight, and a middle click on the minimap button
+  during one, say that the prompt the fight froze stays up and a press still
+  casts it until the fight ends.
+- **/manners macro** and *Make a macro* say when every macro slot is in use.
+- **/manners selftest** no longer warns about Forever's scroll imbues on the
+  other clients, where they do not exist.
+
 ## 1.7.5
 
 - **Classic Era, TBC and Mists: the colour picker's opacity slider** works the
