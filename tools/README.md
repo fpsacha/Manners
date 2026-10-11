@@ -896,31 +896,34 @@ per function, in one worst crowd.
 ### The pcall budget
 
 `tests/scenarios/perf-budget.lua` holds a scan to what the protection policy
-at the top of `Core.lua`'s secret-safe section leaves standing. It stands a
-mage in four of the probe's situations through `perf_world.lua`, runs ten
-scans to fill the caches and counts fifty, with `pcall` (and `xpcall`)
-swapped for a counter around each `addon:Tick`. No addon file keeps a copy of
-`pcall` of its own, or the counter could not see it; the first scenario there
-checks that. A count under three per scan (the Guards alone make three) fails
-as a counter that is not counting, and a count over the ceiling fails with the
-measured figure and the five lines charged most.
+at the top of `Core.lua`'s secret-safe section leaves standing, on every
+client. It stands a mage in the probe's situations through `perf_world.lua`
+(idle, city, dungeon, raid, city with a never-offer list, raid with group
+casts), runs ten scans to fill the caches and counts fifty, with `pcall` (and
+`xpcall`) swapped for a counter around each `addon:Tick`, and counts the
+client's own functions the scan calls and the memory it allocates. One
+`BUDGET` table holds a ceiling per client and situation for each of the three,
+at about measured + 25%, so a hot-path `safecall` put back, a call asked twice
+or a table built per person goes red on the client where it happens.
+`MANNERS_PERF_REPORT=1 python tests/runscenarios.py --file perf-budget.lua`
+prints what each measures. No addon file keeps a copy of `pcall` of its own, or
+the counter could not see it; the first scenario there checks that. A count
+under three per scan (the Guards alone make three) fails as a counter that is
+not counting, and a count over the ceiling fails with the measured figure and
+the five lines charged most.
 
-| situation | before the refactor | after | ceiling |
-|---|---:|---:|---:|
-| city | 89.3 | 9.3 | 12 |
-| raid | 160.9 | 22.2 | 30 |
-| citynever (fifty names) | 189.3 | 9.3 | 12 |
-| raidgc | 422.9 | 24.2 | 30 |
-
-Each ceiling is about a quarter above what was measured once the refactor
-landed, so ordinary work passes and one hot-path safecall put back does not:
-`tests/mutations/perf.py` puts the PvP flags back on `safecall` (80 more per
-raid scan) and `tests/mutations/perf-budget.py` the proximity ladder's rungs
-(18 more per city scan), and both are caught. What is left after the refactor
-is the aura reads the client restricts per spell (about two per city scan and
-fourteen per raid scan, behind the aura cache), the three Guards, the walk's
-own pcall, and a handful of once-per-scan calls (IsResting,
-UnitAffectingCombat, IsSpellUsable, the group spell's reagent).
+Measured at 1.7.4 (pcalls per scan, a mage): idle about 8, city about 10,
+dungeon about 9.5, raid 14 to 16, raid with group casts about 16. A raid scan
+on Burning Crusade was 28 before the aura reads were taken together (a buff has
+up to eight ranks, each asked of the client on its own); the ids of a buff are
+now read under one protected call, and a forty-slot walk of your own auras
+under one as well. `tests/mutations/perf.py` puts the PvP flags back on
+`safecall` (80 more per raid scan) and `tests/mutations/perf-budget.py` the
+proximity ladder's rungs (18 more per city scan), and both are caught. What is
+left is the aura reads the client restricts (about half a pcall per city scan
+and four per raid scan), the three Guards, the walk's own pcall, and a handful
+of once-per-scan calls (IsResting, UnitAffectingCombat, IsSpellUsable, the
+group spell's reagent).
 
 The same file checks that a cast by anybody else costs no Lua at all: the six
 `UNIT_SPELLCAST_*` events are registered on a frame of the addon's own for the

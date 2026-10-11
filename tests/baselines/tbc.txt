@@ -711,6 +711,8 @@ whisper: the client's regional-names answer decides the parse: Munin Hugins with
 who the proximity setting does not apply to: a party member was dropped for distance
 who the proximity setting does not apply to: dropped the player you have set as your focus
 who the proximity setting does not apply to: dropped the player you have targeted, which is the plainest statement of intent there is
+widgets: a colour shows live, and Cancel puts it back: the picker did not open on the panel colour with its opacity
+window: each move of the colour picker is committed once: the colour came out 0.2 0.3 0.4 0.4
 window: the class table (WARRIOR): a warrior with one buff is offered a choice
 your own buff: offered to you when you are missing it.
 your own messages are not requests: expected three of your own and none noted, got 2 and 1

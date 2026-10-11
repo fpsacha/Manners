@@ -490,7 +490,7 @@ own: not reminded in combat: SKIPPED -- not offered an armor out of a fight
 own: not reminded while resting unless Also in cities and inns: with Also in cities and inns ticked, in a city no armor was offered: nil
 own: nothing for others, and the launcher and the login say the prompt is yours: SKIPPED -- a warlock with only Demon Skin has no prompt on it: nil
 own: nothing for others, and the launcher and the login say the prompt is yours: SKIPPED -- with her Intellect switched off, the prompt is not on her armor: nil
-own: nothing for others, and the launcher and the login say the prompt is yours: the greeting tells a hunter with Myself switched off build |cffffd1001.7.3|r -- this class has no buffs to cast on other players. / |cffffd100Manners|r is installed, but this class has no buffs to cast on other players. / It is still worth keeping for an alt that does -- it will say hello again there.
+own: nothing for others, and the launcher and the login say the prompt is yours: the greeting tells a hunter with Myself switched off build |cffffd100VERSION|r -- this class has no buffs to cast on other players. / |cffffd100Manners|r is installed, but this class has no buffs to cast on other players. / It is still worth keeping for an alt that does -- it will say hello again there.
 own: one entry for you, your group buff first, then a top-up: a minute of Mage Armor with top-ups on offered nil, known nil
 own: right-click skips your own buff: SKIPPED -- the prompt is not on your armor: nil
 own: saved-settings repair keeps and restores the new keys: a broken section was not put back

@@ -779,7 +779,9 @@ who tab: the reagent line counts the bags: a reagent the client has not named ye
 who tab: the reagent line counts the bags: an empty bag is not said in red: |cff888888You have not learned a group version of your buffs yet.|r
 who tab: the reagent line counts the bags: the reagent line does not count the bags: |cff888888You have not learned a group version of your buffs yet.|r
 who tab: the reagent line counts the bags: the reagent line is hidden with group buffs on
+widgets: a colour shows live, and Cancel puts it back: the picker did not open on the panel colour with its opacity
 window: a spell learned mid-session adds its row without a reload: learning Frost Armor did not add Armor to Who to buff
+window: each move of the colour picker is committed once: the colour came out 0.2 0.3 0.4 0.4
 window: the class table (MAGE): a mage has no Skip players it does nothing for
 window: the class table (PALADIN): a paladin has no switch for light
 window: the class table (PALADIN): a paladin has no switch for salvation

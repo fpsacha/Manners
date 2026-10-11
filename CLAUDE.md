@@ -189,10 +189,26 @@ Quick helpers for working in a worktree (`tools/README.md` has the details):
   it) after every Edit or Write: it is silent when the file compiles and prints
   the problem (exit 2) when it does not. Slash commands in `.claude/commands/`:
   `/check`, `/release`, `/bughunt`, `/translate`, `/phrases`.
-- Cost and odd input: `tools/perf_probe.py` and `tools/profile_scan.py` (under
-  "Checks" above).
-  <!-- COORDINATOR (round 33 merge): add the fuzzer command here, from the fuzz area's docs_notes. -->
-  <!-- COORDINATOR (round 33 merge): add any new perf probe line here, from the perf area's docs_notes. -->
+- `python tools/perf_probe.py [--flavour X] [--compare before.json]`: pcalls,
+  client calls and allocations per scan in idle, city, dungeon, raid, raidgc
+  and citynever, as any of the five clients. Measure before and after a change
+  to a hot path; `python tests/baseline.py` (what Forever decides and arms) must
+  stay identical across a performance change. `tools/profile_scan.py` is
+  Forever-only (its fixtures use two-part names).
+- `python tools/fuzz.py --quick --jobs 2`: a seeded random game (rosters, auras,
+  deaths, fights, chat, presses, withheld values, settings, reloads) played on
+  every client with invariants checked after each step: 24 seeds x 5 clients x
+  100 steps, about 30 s. `--seeds N [--flavour X] [--steps M]` for more (500
+  seeds on every client is about 13 minutes with `--jobs 2`); a failure prints
+  `flavour=X seed=S`, replay it with `--flavour X --seed S [--trace]`, shrink it
+  with `--minimize`, which prints a quoted `--play '<steps>'` line. 10,000 runs
+  of 200 steps found no addon fault at 1.7.4 beyond one the reviewer caught; run
+  it after any change to the queue, the aura or event handlers, or the macro.
+- Edit nothing under `tests/` or the addon while `check.py` or `selftest.py`
+  runs: each scenario process keeps a compiled copy of every file, and a change
+  mid-run fails the step with "changed during the run" while still printing
+  `failures: 0`. The selftest trace is keyed on the tests, so the first
+  `--changed` after a test edit pays for it (minutes).
 
 ## Scenarios and mutations
 
@@ -322,7 +338,12 @@ only; `{gift}` is the spell they gave you), `RP.TRADE`, `RP.HISTORY`,
   aura reads, library code, calls handed a possibly secret value, API drift
   and setup; `ns.Guard` at event, timer and module boundaries. The policy is at
   the top of `Core.lua`'s secret-safe section; `tests/scenarios/perf-budget.lua`
-  caps pcalls per scan (12 city, 30 raid). No file keeps its own copy of `pcall`.
+  caps pcalls, client calls and KB per scan for each of the five clients in six
+  places (idle, city, dungeon, raid, city with a never-offer list, raid with
+  group casts), at about measured + 25%; `MANNERS_PERF_REPORT=1 python
+  tests/runscenarios.py --file perf-budget.lua` prints what each measures
+  (Forever: idle 10, city 13, raid 18 pcalls). No file keeps its own copy of
+  `pcall`.
 - **Combat.** The secure button's attributes cannot change in combat: what is
   on the prompt when a fight starts stays until it ends.
 - **Macro.** 255 characters (`ns.MACRO_LIMIT`); the spoken line gets what the

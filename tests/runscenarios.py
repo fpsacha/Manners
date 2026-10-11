@@ -96,7 +96,8 @@ _VERSION = re.search(r"^## Version:\s*(\S+)", open(os.path.join(ADDON_DIR, "Mann
                                                      encoding="utf-8").read(), re.M)
 # Digits and dots on neither side; a colour code ("|cffffffff1.7.3|r") is fine.
 if _VERSION:
-    _VERSION = re.compile(r"(?<![\d.])" + re.escape(_VERSION.group(1)) + r"(?![\d.])")
+    # Right after a colour code ("|cffffd100" ends in a digit) counts as a start.
+    _VERSION = re.compile(r"(?:(?<=\|c[0-9A-Fa-f]{8})|(?<![\d.]))" + re.escape(_VERSION.group(1)) + r"(?![\d.])")
 _ADDRESS = re.compile(r"\b(table|function|thread|userdata|cdata): (?:0x)?[0-9A-Fa-f]{6,}")
 # A path to a .lua file, kept to its name: Lua shortens a long one in an error
 # message to "...<its last 57 characters>", which cut where it likes.

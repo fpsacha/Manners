@@ -1328,7 +1328,7 @@ end
 
 -- ------------------------------------------------------------------ own 26
 -- In a fight, UNIT_AURA on you comes many times a second, and every walk of
--- your aura list is forty slots behind a pcall apiece. The events only mark a
+-- your aura list is forty slots behind one protected call. The events only mark a
 -- walk due and the tick makes it: four events before a tick are one walk, not
 -- four, and the favour that landed among them is filed and said once. A tick
 -- with no event since walks nothing, and /manners debug counts both.

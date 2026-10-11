@@ -1,5 +1,26 @@
 # Changelog
 
+## Unreleased
+
+- **Classic Era, TBC and Mists: the colour picker's opacity slider** works the
+  right way round for Panel colour, Marker colour and Text colour. Its slider
+  there counts transparency, so dragging toward "opaque" could make the panel
+  or the text invisible; and clicking a second swatch while a picker was still
+  open wrote the first one's value into it.
+- **The alert sound** now plays when somebody already on the prompt buffs you,
+  as the flash does, with *Only for people who buff me* on.
+- **A buff the game was hiding when you logged in** during a fight (a /reload
+  mid-fight, a key under way) is read normally again once the fight ends,
+  instead of staying unreadable for the whole session.
+- **A spell offered only on request**, such as Source of Magic, is offered when
+  somebody asks for it even when nothing else is castable.
+- **Shouts.** On Forever and retail, when the game hides how far away your
+  party is, a shout's spoken line is no longer said over a cast that may not
+  reach.
+- **Lighter scans.** A 40-player raid scan makes about 14 protected game
+  calls instead of 24 to 28 on Forever, Classic Era and Burning Crusade, and
+  fewer on Mists and retail, and everything it decides is unchanged.
+
 ## 1.7.4
 
 - **Giving several buffs in turn.** A slower second click no longer walks you
