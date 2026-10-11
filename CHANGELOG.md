@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.7.6
 
 - **Only the left mouse button casts.** Shift-right-click on the prompt, which
   is meant only to put somebody on the never-offer list, also ran the cast on
