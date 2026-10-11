@@ -463,6 +463,12 @@ end
 local function SettlePendingClick(landedOn, spellId, castGUID)
 	local pending = ns.pendingClick
 	if not pending then return end
+	-- A cast with no unit to aim at (on Forever the mage's Arcane Brilliance, the
+	-- priest's Prayers and the druid's Gift of the Wild: target 56, the caster's
+	-- raid) has no name to report, and the event's target is a cstring that cannot
+	-- be nil, so it reads "". That names nobody: it is "the client would not say",
+	-- as a withheld name is, not a person the cast went to.
+	if landedOn == "" then landedOn = nil end
 	-- Past the window this cast belongs to something else (an accepted cast
 	-- answers in the same frame), so the record is retired, not settled -- with
 	-- its own sentence, since something was cast, just too late to be this.
