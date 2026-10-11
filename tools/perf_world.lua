@@ -120,6 +120,15 @@ function World.new(cfg)
 		return tokens[unit]
 	end
 
+	-- The name the addon files somebody under: first name and surname on
+	-- Forever, whose UnitName hands both back, the first name alone on every
+	-- other client (UnitName's second return is a realm there, and a person
+	-- from the player's own realm has none). Mock.setFlavour says which.
+	local function fullName(p)
+		if Mock.surnames then return p.name .. " " .. p.surname end
+		return p.name
+	end
+
 	-- The spells the player has learned, by id, where a situation names them;
 	-- the mock's own answer (Arcane Intellect's first rank and nothing else)
 	-- where none does. cfg.known names them for any situation (the probe reads
@@ -170,8 +179,8 @@ function World.new(cfg)
 		bind("target", tokens.nameplate3)
 		bind("mouseover", tokens.nameplate8)
 		local owedHere = tokens.nameplate14
-		W.owed[#W.owed + 1] = { name = owedHere.name .. " " .. owedHere.surname, class = owedHere.class }
-		W.owed[#W.owed + 1] = { name = "Gone Away", class = "PRIEST" }
+		W.owed[#W.owed + 1] = { name = fullName(owedHere), class = owedHere.class }
+		W.owed[#W.owed + 1] = { name = fullName({ name = "Gone", surname = "Away" }), class = "PRIEST" }
 		for _, token in ipairs(W.plates) do W.others[#W.others + 1] = token end
 		W.others[#W.others + 1] = "target"
 		W.others[#W.others + 1] = "mouseover"
@@ -199,7 +208,7 @@ function World.new(cfg)
 		end
 		bind("target", tokens.nameplate1)
 		bind("focus", W.party[1])
-		W.owed[#W.owed + 1] = { name = W.party[2].name .. " " .. W.party[2].surname, class = "PRIEST" }
+		W.owed[#W.owed + 1] = { name = fullName(W.party[2]), class = "PRIEST" }
 	end
 
 	-- A forty-player raid at the pull: eight groups of five with the player in
@@ -233,7 +242,7 @@ function World.new(cfg)
 		bind("focus", W.raid[3])
 		bind("mouseover", W.raid[12])
 		for _, i in ipairs({ 4, 21, 38 }) do
-			W.owed[#W.owed + 1] = { name = W.raid[i].name .. " " .. W.raid[i].surname, class = W.raid[i].class }
+			W.owed[#W.owed + 1] = { name = fullName(W.raid[i]), class = W.raid[i].class }
 		end
 	end
 
@@ -251,9 +260,14 @@ function World.new(cfg)
 	-- Arcane Powder, with a group cast for two of a party missing the buff:
 	-- each raid group short of it folds into one cast, which reads the roster
 	-- and the PvP flags as it forms. The run fails if no group cast forms.
+	-- Mists and retail have none for anybody (their one cast lands party-wide,
+	-- Buffs.lua wideCasts), so there world.canGroupCast(ns) says no and the
+	-- situation is not one of theirs. Burning Crusade's mage knows rank 2 of
+	-- Arcane Brilliance (27127) and Arcane Intellect's last rank (27126) as well.
+	local GROUP_KNOWN = { tbc = { 1459, 27126, 23028, 27127 } }
 	function SITUATIONS.raidgc(friendGuid)
 		SITUATIONS.raid(friendGuid)
-		known = known or { 1459, 23028 }
+		known = known or GROUP_KNOWN[Mock.flavour or "camelot"] or { 1459, 23028 }
 		carry(17020, 20)
 		W.atLeast = 2
 		W.wantGroupCast = true
@@ -507,6 +521,14 @@ function World.new(cfg)
 		end)
 		if type(C_Spell) == "table" then setField(C_Spell, "IsSpellUsable", function() return true, false end) end
 
+		-- The combat log's reading, as the client gives it: the values, no table
+		-- built to give them (the mock builds a closure a call). A swing at a
+		-- mob, which is what almost every line of a raid fight is.
+		set("C_CombatLog", { GetCurrentEventInfo = function()
+			return 1, "SWING_DAMAGE", false, "Player-1-00000042", "Aldric", 0x514, 0,
+				"Creature-0-1-1-1-1001-00000001", "Scarlet Zealot", 0xa48, 0, 1234, 0, 1, 0, 0
+		end })
+
 		-- LibRangeCheck-3.0 ships in the zip (embeds.xml), so it is there in game.
 		Mock.rangeCheck = {}
 		Mock.class = cfg.class or "MAGE"
@@ -570,6 +592,16 @@ function World.new(cfg)
 		if ns.Prompt and type(ns.Prompt.InTest) == "function" and ns.Prompt:InTest() then
 			ns.Prompt:ExitTest()
 		end
+	end
+
+	-- Whether the player's class has a group cast on this client at all (the
+	-- buff set the addon chose, once it is loaded): none of the raidgc
+	-- situations means anything where it does not.
+	function world.canGroupCast(addonNs)
+		for _, buff in ipairs(addonNs.BUFFS and addonNs.BUFFS[Mock.class] or {}) do
+			if buff.groupCast then return true end
+		end
+		return false
 	end
 
 	function world.advance(step)

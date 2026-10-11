@@ -543,8 +543,34 @@ do
 	-- and possibly a refusal too, so this reports proof of a refusal, never
 	-- honesty, and the scan reads the walk as a whole. The pcall stays: the
 	-- client restricts this read per aura, and a restricted read can throw.
+	--
+	-- The forty slots of the walk are read together first (PrefetchSlots), in
+	-- one protected call rather than forty: the first slotsTaken of them wait in
+	-- slotReads, and a slot past that, after a read that threw, is asked on its
+	-- own as ever. Nothing is compared here; a secret waits as it came.
+	local slotReads, slotsTaken = {}, 0
+	local function PrefetchSlots()
+		slotsTaken = 0
+		local read = C_UnitAuras.GetAuraDataByIndex
+		for index = 1, 40 do
+			slotReads[index] = read("player", index, "HELPFUL")
+			slotsTaken = index
+		end
+	end
+
+	-- The walk's first step. A read that throws leaves the slots before it taken
+	-- and the slot it threw at filed as a thing that is no aura (false), which
+	-- ReadAuraSlot reads as a refusal: asked again it would throw again, a
+	-- failure each, so it is not. The slots after it are asked on their own.
+	local function TakeSlots()
+		if pcall(PrefetchSlots) then return end
+		slotsTaken = slotsTaken + 1
+		slotReads[slotsTaken] = false
+	end
+
 	local function ReadAuraSlot(index)
-		local ok, value = pcall(C_UnitAuras.GetAuraDataByIndex, "player", index, "HELPFUL")
+		local ok, value = true, slotReads[index]
+		if index > slotsTaken then ok, value = pcall(C_UnitAuras.GetAuraDataByIndex, "player", index, "HELPFUL") end
 		if not ok then return nil, true end
 		-- A secret first, before anything compares it: comparing one throws,
 		-- and out here that throw would end the walk rather than mark a slot.
@@ -649,6 +675,7 @@ do
 		-- Every slot, every time: the end of the list and a hole in the middle of
 		-- it look alike from the first silent slot, and an aura behind the silence
 		-- is the one refusal that shows on the reading itself.
+		TakeSlots()
 		for i = 1, 40 do
 			local aura, slotRefused = ReadAuraSlot(i)
 			if slotRefused then refused = true end
@@ -846,15 +873,10 @@ do
 		return read()
 	end
 
-	local function ReadCombatLogFavour()
-		local _, subevent, _, sourceGUID, _, _, _, destGUID, _, _, _,
-			spellId, _, _, auraType = CombatLogEvent()
-
-		-- Cheapest question first: every swing, tick and proc within fifty yards
-		-- arrives here, and most cost two string compares.
-		if plain(subevent) ~= "SPELL_AURA_APPLIED" then return end
-		if plain(auraType) ~= "BUFF" then return end
-
+	-- A line that has passed the handler's two questions (below), handed the
+	-- rest of what it needs from the reading the handler made: the client is
+	-- asked for a line once.
+	local function ReadCombatLogFavour(sourceGUID, destGUID, spellId)
 		-- Landed on us, and not by our own hand.
 		destGUID, sourceGUID = plain(destGUID), plain(sourceGUID)
 		if destGUID == nil or destGUID ~= playerGUID then return end
@@ -901,8 +923,16 @@ do
 	end
 
 	function addon:COMBAT_LOG_EVENT_UNFILTERED()
+		-- Cheapest questions first: every swing, tick and proc within fifty yards
+		-- arrives here, and most cost two string compares. Asked ahead of the
+		-- guard, of the client's own reading (CombatLogEvent type-checks what it
+		-- calls, and nothing after it throws), so those lines cost no protected
+		-- call; a line of the one kind this source reads goes on, guarded.
+		local _, subevent, _, sourceGUID, _, _, _, destGUID, _, _, _, spellId, _, _, auraType = CombatLogEvent()
+		if plain(subevent) ~= "SPELL_AURA_APPLIED" then return end
+		if plain(auraType) ~= "BUFF" then return end
 		-- Guarded: an unguarded handler that throws simply stops being a source.
-		ns.Guard("combat log", ReadCombatLogFavour)
+		ns.Guard("combat log", ReadCombatLogFavour, sourceGUID, destGUID, spellId)
 	end
 end
 
@@ -944,7 +974,7 @@ function addon:UNIT_AURA(_, unit)
 	if unit == "player" then
 		ns.auraScan.events = ns.auraScan.events + 1
 		if InCombatLockdown() then
-			-- A walk is forty slots behind a pcall apiece, and a fight sends this many
+			-- A walk is forty slots behind one protected call, and a fight sends this many
 			-- times a second: the walk waits for the next tick (the Advanced tab's scan
 			-- interval, 0.4 s by default), so a burst costs one. A favour that lands in
 			-- the fight is said up to that much later, and filed all the same.

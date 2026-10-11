@@ -9,6 +9,8 @@
 --   world      tools/perf_world.lua, from the probe's own tree
 --   situation  "idle", "city", "dungeon", "raid", "citynever" or "raidgc"
 --              (see perf_world.lua)
+--   flavour    the client to stand in for: camelot (the default), vanilla,
+--              tbc, mists or mainline (Mock.FLAVOURS)
 --   never      names on the never-offer list in "citynever", 50
 --   mode       "count"  pcall and xpcall replaced by counting versions before
 --                       the addon loads, and a call hook on for the measured
@@ -38,8 +40,10 @@
 --           in all; the raid's are for its forty group tokens) and one for the
 --           player before every other scan. The raid's ready check again.
 -- Every call made is charged to a bucket: "scan" (a quiet Tick), "scan in
--- storm", "timers", "UNIT_AURA", "UNIT_AURA player", "READY_CHECK" and
--- "READY_CHECK_FINISHED". The driver divides by how many of each there were.
+-- storm", "timers", "UNIT_AURA", "UNIT_AURA player", "READY_CHECK",
+-- "READY_CHECK_FINISHED" and, where the combat log is armed (the classic
+-- clients), "COMBAT_LOG": two hundred lines of nobody's business, one by one.
+-- The driver divides by how many of each there were.
 --
 -- Besides the numbers, the queue itself: a fingerprint of it after the warm-up
 -- and again after the counted phases (who, which buff, why, whether measured
@@ -67,6 +71,9 @@ for _, t in ipairs({ _G, string, table, math, os, io, debug, coroutine }) do
 	end
 end
 
+-- The client the mock stands in for: its Mock.reset starts from this one
+-- (the whole suite's --flavour does the same through the same global).
+if cfg.flavour and cfg.flavour ~= "" then MOCK_DEFAULT_FLAVOUR = cfg.flavour end
 dofile(dir .. "/tests/mockapi.lua")
 
 -- ------------------------------------------------------------------ tallies
@@ -82,7 +89,7 @@ local function tally(name)
 			steps = 0, pcall = 0, xpcall = 0, pfail = 0,
 			safecall = 0, Guard = 0, BuildQueue = 0, Refresh = 0,
 			sites = {}, asked = {}, fails = {}, safeSites = {}, guardSites = {}, missing = {},
-			kb = 0, retained = 0, api = 0, apiCalls = {},
+			kb = 0, retained = 0, api = 0, apiCalls = {}, apiSites = {},
 		}
 		tallies[name] = t
 	end
@@ -250,6 +257,12 @@ for _, file in ipairs(files) do
 	chunk("Manners", ns)
 end
 local addon = ns.addon
+-- A situation about group casts on a client that has none for this class (mists
+-- and retail: their one cast lands party-wide) is not one that client has.
+if W.wantGroupCast and not world.canGroupCast(ns) then
+	return { situation = situation, mode = mode, ticks = TICKS, tallies = {}, problems = {}, errors = {},
+		notApplicable = "no group casts on " .. tostring(Mock.flavour) .. " for a " .. tostring(Mock.class) }
+end
 -- The lifecycle, the settings the situation needs, its favours owed, and the
 -- first login's preview ended (see perf_world.lua).
 world.start(ns)
@@ -307,11 +320,17 @@ local function onCall()
 	local fn = info and info.func
 	local api = fn and apiName[fn]
 	if api then
-		local from = getinfo(3, "S")
+		local from = getinfo(3, "Sl")
 		local src = from and shortSource(from.source)
 		if src ~= "tests/mockapi.lua" and src ~= "(probe)" then
 			local t = tally(b)
-			if api ~= "issecretvalue" then t.api = t.api + 1 end
+			if api ~= "issecretvalue" then
+				t.api = t.api + 1
+				-- Which line asked: a call asked twice for one person in a scan
+				-- shows up as two lines, or one line at twice the people.
+				local asked = api .. " <- " .. src .. ":" .. tostring(from.currentline)
+				t.apiSites[asked] = (t.apiSites[asked] or 0) + 1
+			end
 			t.apiCalls[api] = (t.apiCalls[api] or 0) + 1
 		end
 		return
@@ -343,6 +362,13 @@ local function auraEvent(unit) return function() addon:UNIT_AURA("UNIT_AURA", un
 local function readyCheck() addon:READY_CHECK("READY_CHECK", W.raid[2].name, 35) end
 local function readyDone() addon:READY_CHECK_FINISHED("READY_CHECK_FINISHED") end
 local playerAura = auraEvent("player")
+-- A line of the combat log that is nobody's business (a swing at a mob), which
+-- the classic clients hand the addon hundreds of a second in a raid fight; only
+-- where the log is armed (perf_world.lua stands in the client's reading).
+local function logLine() addon:COMBAT_LOG_EVENT_UNFILTERED() end
+local logArmed = ns.combatLogArmed == true and type(addon.COMBAT_LOG_EVENT_UNFILTERED) == "function"
+local LOGLINES = {}
+for i = 1, 200 do LOGLINES[i] = { "COMBAT_LOG", logLine } end
 
 -- The steps of a phase, in order. `storm` adds UNIT_AURA between the scans.
 local function phase(scanBucket, storm)
@@ -381,7 +407,8 @@ end
 -- Warm the caches the way somebody standing here has them.
 for _ = 1, 10 do advance() tick() timers() end
 
-local out = { situation = situation, mode = mode, ticks = TICKS, tallies = tallies, problems = {} }
+local out = { situation = situation, mode = mode, ticks = TICKS, tallies = tallies, problems = {},
+	flavour = Mock.flavour, family = ns.Flavour and ns.Flavour.family }
 
 -- The queue as a fingerprint: per entry, in order, who, which buff, why,
 -- whether measured in range, and the party a group cast lands on. What a
@@ -482,6 +509,7 @@ if mode == "count" then
 	end
 	counted(QUIET)
 	counted(STORM)
+	if logArmed then counted(LOGLINES) end
 	out.targets = targets
 	-- And the queue again at the end of the run, which has moved the clock on
 	-- through a ready check and a storm of auras.
@@ -509,6 +537,7 @@ elseif mode == "time" then
 	end
 	out.keptQuiet = allocated(QUIET)
 	out.keptStorm = allocated(STORM)
+	if logArmed then allocated(LOGLINES) end
 
 	-- Time. os.clock ticks in milliseconds on Windows, far coarser than one
 	-- step, so it is only read around runs of at least `minSeconds`: a burst
@@ -558,6 +587,7 @@ elseif mode == "time" then
 		eventTime("UNIT_AURA", list)
 	end
 	eventTime("UNIT_AURA player", { playerAura })
+	if logArmed then eventTime("COMBAT_LOG", { logLine }) end
 	if W.readyCheck then
 		eventTime("READY_CHECK", { readyCheck })
 		eventTime("READY_CHECK_FINISHED", { readyDone })

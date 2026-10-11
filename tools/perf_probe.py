@@ -6,11 +6,17 @@
     python tools/perf_probe.py --situations raid,city --top 40
     python tools/perf_probe.py --compare before.json         # before -> after
     python tools/perf_probe.py --situations citynever --never 200
+    python tools/perf_probe.py --flavour tbc                  # as Burning Crusade Classic
 
 Loads the addon on the mock client from tests/ (Lua 5.1 through lupa, the way
 tests/runharness.py and tests/runscenarios.py do: tests/mockapi.lua, then the
 files tests/addonfiles.lua reads out of Manners.toc) and stands the player in
-six situations, each in a fresh Lua state:
+six situations, each in a fresh Lua state. --flavour says which of the five
+clients the mock stands in for (camelot, vanilla, tbc, mists, mainline; the
+default is MANNERS_MOCK_FLAVOUR, else camelot): the same crowds, answered the
+way that client answers (a first name alone where Forever hands back a
+surname too), the buff set that client loads. raidgc is skipped as not
+applicable on mists and mainline, whose mage has no group cast.
 
   idle       alone out in the world: nobody targeted, no group, no nameplates
   city       a capital: twenty strangers' nameplates, a target and a mouseover
@@ -28,7 +34,9 @@ scrolls, with a familiar up and an imbue on.
 In each, `--ticks` scans (addon:Tick, which ends in the prompt's repaint, which
 builds the queue), then as many again with UNIT_AURA arriving between them --
 two hundred for the other people there (in the raid, its forty group tokens)
-and fifty for the player. It reports, per scan and per event:
+and fifty for the player; and, on the clients that still have a combat log
+(Classic Era, Burning Crusade, Mists), two hundred lines of it, swings at a
+mob, one by one. It reports, per scan and per event:
 
   pcall      calls of pcall and xpcall, each charged to the line that made it
              (debug.getinfo(2, "Sl") inside a counting pcall put in place
@@ -36,7 +44,8 @@ and fifty for the player. It reports, per scan and per event:
              among them, and their callers are listed separately
   safecall   calls of ns.safecall; Guard, calls of ns.Guard
   api        calls of the client's functions (the mock's, or this probe's
-             stand-ins) made from outside the mock, each counted by name;
+             stand-ins) made from outside the mock, each counted by name
+             (and, with --callers N, by the line that asked);
              issecretvalue listed but not in the total, since ns.plain asks
              it of every value it is handed; GetRaidRosterInfo on its own
   KB alloc   memory allocated, the collector held off (a full collection first)
@@ -80,6 +89,7 @@ PROBE = os.path.join(HERE, "perf_probe.lua")
 WORLD = os.path.join(HERE, "perf_world.lua")
 DEFAULT_ADDON = os.path.dirname(HERE)
 SITUATIONS = ("idle", "city", "dungeon", "raid", "citynever", "raidgc")
+FLAVOURS = ("camelot", "vanilla", "tbc", "mists", "mainline")
 # Run only when named: the two raids for a level-12 mage carrying Forever's
 # scrolls (tools/perf_world.lua), which tests/scenarios/perf-budget.lua holds
 # to the plain raids' count plus two.
@@ -94,6 +104,7 @@ ROWS = (
     ("UNIT_AURA player", "UNIT_AURA, the player"),
     ("READY_CHECK", "READY_CHECK"),
     ("READY_CHECK_FINISHED", "READY_CHECK_FINISHED"),
+    ("COMBAT_LOG", "combat log line (classic)"),
 )
 SCAN_BUCKETS = ("scan", "scan in storm")
 
@@ -151,6 +162,7 @@ def probe(addon, situation, mode, args):
         "world": WORLD.replace("\\", "/"),
         "mode": mode, "ticks": args.ticks, "blocks": args.blocks, "minSeconds": args.min_seconds,
         "class": args.klass, "benchN": args.bench_n, "never": args.never,
+        "flavour": args.flavour,
     })
     return to_python(chunk(cfg))
 
@@ -257,6 +269,7 @@ def summarise(addon, counted, timed, top):
         row["safecall_sites"] = ranked(t["safeSites"], n, top, targets.get("safecall", {}))
         row["guard_sites"] = ranked(t["guardSites"], n, top, targets.get("Guard", {}))
         row["api_calls"] = ranked(t.get("apiCalls") or {}, n, top)
+        row["api_sites"] = ranked(t.get("apiSites") or {}, n, top)
         for listing in ("pcall_sites", "asked_sites", "safecall_sites"):
             for r in row[listing]:
                 r["text"] = source_line(addon, r["site"].split(" (")[0])
@@ -307,7 +320,7 @@ def site_rows(say, rows, limit, fails_n=None):
         say(f"      {r['per']:>8.2f}  {r['site']:<34} {r['target']:<24} {r['text']}{fails}")
 
 
-def report(result, top):
+def report(result, top, callers=0):
     out = []
     say = out.append
     say("Manners perf probe")
@@ -315,6 +328,9 @@ def report(result, top):
     if result.get("probe") and result["probe"] != "same tree":
         say(f"  probe    {result['probe']}")
     say(f"  mock     {result['mock']}")
+    say(f"  client   {result.get('flavour', 'camelot')}")
+    for name, why in (result.get("not_applicable") or {}).items():
+        say(f"  skipped  {name}: {why}")
     say(f"  run      {result['class']}, {result['ticks']} scans a phase, Lua 5.1 (lupa {_lupa_package.__version__}),"
         f" {result['machine']}, {result['when']}")
     b = result["bench"]
@@ -407,6 +423,10 @@ def report(result, top):
                     " (issecretvalue not in the total)")
                 for r in row["api_calls"][:min(limit, 12)]:
                     say(f"      {r['per']:>8.2f}  {r['site']}")
+            if row.get("api_sites") and callers and key in SCAN_BUCKETS:
+                say(f"    the same calls by the line that asked, per {unit}")
+                for r in row["api_sites"][:callers]:
+                    say(f"      {r['per']:>8.2f}  {r['site']}")
             if row["missing_globals"]:
                 gaps = ", ".join(f"{k} {v:g}" for k, v in list(row["missing_globals"].items())[:12])
                 say(f"    read but not in the mock (mock cost, not the addon's), per {unit}: {gaps}")
@@ -468,7 +488,8 @@ def compare(old, new):
     say = out.append
     say("")
     say("=" * 100)
-    was = f"{os.path.basename(old.get('addon', '?'))}, {old.get('commit', '?')}, run {old.get('when', '?')}"
+    was = (f"{os.path.basename(old.get('addon', '?'))}, {old.get('commit', '?')},"
+           f" {old.get('flavour', 'camelot')}, run {old.get('when', '?')}")
     say(f"Against {was}: before -> after, per scan or per event")
     say(f"  {'':<11}{'':<28}{'pcall':>18}{'safecall':>18}{'Guard':>14}{'api':>18}{'KB alloc':>18}{'us':>20}")
     before = old.get("headline", {})
@@ -516,15 +537,21 @@ def main():
     parser.add_argument("--min-seconds", type=float, default=0.25,
                         help="the shortest run the clock is read around (os.clock is milliseconds on Windows)")
     parser.add_argument("--class", dest="klass", default="MAGE")
+    parser.add_argument("--flavour", default=os.environ.get("MANNERS_MOCK_FLAVOUR") or "camelot",
+                        help="the client to stand in for: camelot (default), vanilla, tbc, mists or mainline")
     parser.add_argument("--never", type=int, default=50,
                         help="names on the never-offer list in citynever (default 50)")
     parser.add_argument("--bench-n", type=int, default=1000000, help="calls per loop in the call-cost bench")
     parser.add_argument("--top", type=int, default=25, help="sites listed per scan bucket")
+    parser.add_argument("--callers", type=int, default=0, metavar="N",
+                        help="also list, per scan bucket, the N client calls asked most by the line that asked")
     parser.add_argument("--json", help="write everything measured here")
     parser.add_argument("--text", help="write the report here as well as to the screen")
     parser.add_argument("--compare", help="an earlier run's --json, to print before -> after beside this one")
     args = parser.parse_args()
 
+    if args.flavour not in FLAVOURS:
+        sys.exit(f"perf_probe.py: no such client: {args.flavour} (one of {', '.join(FLAVOURS)})")
     addon = os.path.abspath(args.addon)
     wanted = [s.strip() for s in args.situations.split(",") if s.strip()]
     for s in wanted:
@@ -532,6 +559,8 @@ def main():
             sys.exit(f"perf_probe.py: no such situation: {s}")
 
     result = {
+        "flavour": args.flavour,
+        "not_applicable": {},
         "addon": addon,
         "commit": git_describe(addon),
         "probe": git_describe(os.path.dirname(HERE)) if os.path.abspath(os.path.dirname(HERE)) != addon else "same tree",
@@ -546,6 +575,9 @@ def main():
     failed = False
     for s in wanted:
         counted = probe(addon, s, "count", args)
+        if counted.get("notApplicable"):
+            result["not_applicable"][s] = counted["notApplicable"]
+            continue
         timed = probe(addon, s, "time", args)
         summary = summarise(addon, counted, timed, max(args.top, 50))
         if summary["fingerprint"] != summary["fingerprint_time_run"]:
@@ -559,7 +591,7 @@ def main():
 
     result["never"] = args.never
     result["headline"] = headline(result)
-    text = report(result, args.top)
+    text = report(result, args.top, args.callers)
     if args.compare:
         with open(args.compare, encoding="utf-8") as f:
             old = json.load(f)

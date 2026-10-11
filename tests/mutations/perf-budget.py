@@ -15,7 +15,7 @@ mutate("Range.lua",
        "\t\t\tlocal near, answered = rung.ask(unit)\n",
        "\t\t\tlocal near, answered = safecall(rung.ask, unit)\n",
        "perf-budget: the ladder's rungs back on safecall",
-       expect="perf-budget: a city scan makes at most 12 pcalls", script=S)
+       expect="perf-budget: a scan stays inside its pcall budget on every client", script=S)
 
 # The player's casts registered through AceEvent again, which hands every cast
 # in sight to a handler that throws it away.
@@ -54,16 +54,52 @@ mutate("Looks/Toast.lua",
        "\tself.nameWidth = kit.fit.drawn[kit.name] or kit.TextWidth(kit.name)\n",
        "\tself.nameWidth = kit.TextWidth(kit.name)\n",
        "perf-budget: Toast measures the name every repaint",
-       expect="perf-budget: a city scan in any look makes at most 12 pcalls", script=S)
+       expect="perf-budget: a city scan in any look makes at most 11 pcalls", script=S)
 
 mutate("Looks/Arcane.lua",
        "\t\tif text ~= self.countText or not self.countW then\n",
        "\t\tif true then\n",
        "perf-budget: Arcane measures the count every repaint",
-       expect="perf-budget: a city scan in any look makes at most 12 pcalls", script=S)
+       expect="perf-budget: a city scan in any look makes at most 11 pcalls", script=S)
 
 mutate("Looks/Arcane.lua",
        "\tlocal width, size, base = fit.drawn[name] or kit.TextWidth(name), fit.size[name], fit.base[name]\n",
        "\tlocal width, size, base = kit.TextWidth(name), fit.size[name], fit.base[name]\n",
        "perf-budget: Arcane measures the name on every fit",
-       expect="perf-budget: a city scan in any look makes at most 12 pcalls", script=S)
+       expect="perf-budget: a city scan in any look makes at most 11 pcalls", script=S)
+
+# ------------------------------------------------ the budget on every client
+# Burning Crusade's buffs have up to eight ids, each read under a pcall of its
+# own again: 30 pcalls a raid scan with group casts, which only that client
+# (and Classic Era a little less) shows.
+mutate("Core.lua",
+       "\tlocal threw = not pcall(PrefetchAuras, unit, buff.auraIds, info.secrecy)\n",
+       "\tlocal threw = false\n",
+       "perf-budget: the ranks read a pcall apiece",
+       expect="perf-budget: a scan stays inside its pcall budget on every client", script=S)
+
+# Everybody asked the six questions of "can this be buffed" twice: 300 more
+# calls to the client in a raid, 130 in a city.
+mutate("Queue.lua",
+       "\t\tlocal ok, person = IsBuffableUnit(unit, f)\n",
+       "\t\tIsBuffableUnit(unit, f)\n\t\tlocal ok, person = IsBuffableUnit(unit, f)\n",
+       "perf-budget: everybody asked about twice",
+       expect="perf-budget: a scan stays inside its client call budget on every client", script=S)
+
+# A table built for every person walked and thrown away: 10 KB a raid scan.
+mutate("Queue.lua",
+       "\t\tlocal ok, person = IsBuffableUnit(unit, f)\n",
+       "\t\tlocal _ = { unit, unit, unit, unit, unit, unit, unit, unit }\n\t\tlocal ok, person = IsBuffableUnit(unit, f)\n",
+       "perf-budget: a table per person walked",
+       expect="perf-budget: a scan stays inside its allocation budget on every client", script=S)
+
+# The call hook telling the addon's files from the doubles by a "/tests/"
+# anywhere in the path again: a checkout under a folder called tests has it in
+# every path, the hook counts nothing, and every scan is read as asking the
+# client for nothing.
+mutate("tests/scenarios/perf-budget.lua",
+       "\t\tif source:sub(1, #folder):lower() == folder then\n",
+       "\t\tif false then\n",
+       "perf-budget: the doubles told by a tests folder anywhere in the path",
+       expect="perf-budget: the call hook tells the addon's files from the doubles wherever the checkout sits",
+       script=S)

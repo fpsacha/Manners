@@ -104,7 +104,7 @@ mutate("Queue.lua",
        "\tpvp = safecall(isPvP, unit)\n"
        "\tffa = safecall(isFFA, unit)\n",
        "the PvP flags back on safecall",
-       expect="perf-budget: a raid scan makes at most 30 pcalls",
+       expect="perf-budget: a scan stays inside its pcall budget on every client",
        script="runscenarios.py")
 
 # A hundred and fifty-two more file-level locals in Core.lua, which still loads

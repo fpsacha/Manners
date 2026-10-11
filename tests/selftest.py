@@ -2699,9 +2699,9 @@ mutate("Buffs.lua",
        script="runscenarios.py")
 
 mutate("Favours.lua",
-       "\t\tlocal ok, value = pcall(C_UnitAuras.GetAuraDataByIndex, \"player\", index, \"HELPFUL\")\n"
+       "\t\tif index > slotsTaken then ok, value = pcall(C_UnitAuras.GetAuraDataByIndex, \"player\", index, \"HELPFUL\") end\n"
        "\t\tif not ok then return nil, true end",
-       "\t\tlocal ok, value = pcall(C_UnitAuras.GetAuraDataByIndex, \"player\", index, \"HELPFUL\")\n"
+       "\t\tif index > slotsTaken then ok, value = pcall(C_UnitAuras.GetAuraDataByIndex, \"player\", index, \"HELPFUL\") end\n"
        "\t\tif _G.UnitBuff then pcall(_G.UnitBuff, \"player\", index) end\n"
        "\t\tif not ok then return nil, true end",
        "a UnitBuff fallback nobody needs",
