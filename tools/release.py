@@ -463,7 +463,15 @@ def main(argv=None):
     passed = watch(run_id, "release")
 
     head(8)
+    # The log is the one read that matters after the uploads, and a dropped
+    # connection there (1.7.6) must not read as a release without a report.
     log = run(["gh", "run", "view", str(run_id), "--log"])
+    for wait in (5, 15, 30):
+        if log.returncode == 0:
+            break
+        say("    (the log could not be read; trying again in %d s)" % wait)
+        time.sleep(wait)
+        log = run(["gh", "run", "view", str(run_id), "--log"])
     report, shown = run_report(log, run_id)
     for line in shown:
         say("    " + line)
