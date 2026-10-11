@@ -936,6 +936,23 @@ ns.CLICK_MACRO_NAME = MACRO_NAME
 -- buttons that work on this client are driven with.
 local MACRO_BODY = "/click MannersPrompt LeftButton 1"
 
+-- Whether both macro lists are at their caps. CreateMacro raises an error on a
+-- full list instead of answering with nothing (warcraft.wiki.gg API_CreateMacro),
+-- so the counts are the only way to tell "full" from any other refusal. The
+-- caps are Constants.MacroConsts on retail and Forever (120 account-wide, 30
+-- per character) and the MAX_*_MACROS globals on the classic family, as
+-- Blizzard_MacroUI reads them. A cap that cannot be read is not guessed.
+local function MacroListsFull()
+	local consts = type(_G.Constants) == "table" and _G.Constants.MacroConsts
+	if type(consts) ~= "table" then consts = {} end
+	local accountCap = consts.MAX_ACCOUNT_MACROS or _G.MAX_ACCOUNT_MACROS
+	local characterCap = consts.MAX_CHARACTER_MACROS or _G.MAX_CHARACTER_MACROS
+	local account, character = safecall(_G.GetNumMacros)
+	return type(accountCap) == "number" and type(characterCap) == "number"
+		and type(account) == "number" and type(character) == "number"
+		and account >= accountCap and character >= characterCap
+end
+
 function ns.CreateClickMacro()
 	if InCombatLockdown() then
 		addon:Print("|cffff8080" .. L["cannot touch macros in combat."] .. "|r")
@@ -963,6 +980,9 @@ function ns.CreateClickMacro()
 	end
 	if ok then
 		addon:Print(L["macro |cffffd100%s|r created. Drag it onto a bar from the macro window."]:format(MACRO_NAME))
+	elseif MacroListsFull() then
+		-- Both calls raised because both lists are full, not for some other reason.
+		addon:Print(L["|cffff8080no free macro slots.|r Delete one and try again."])
 	else
 		addon:Print("|cffff8080" .. L["could not create the macro."] .. "|r")
 	end
