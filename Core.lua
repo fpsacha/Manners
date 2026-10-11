@@ -2737,6 +2737,16 @@ function addon:OnEnable()
 		ns.Guard("RegisterEvent " .. event, function() self:RegisterEvent(event) end)
 	end
 
+	-- A restriction beginning or ending (a fight, an encounter, a key, a match),
+	-- on the clients that have restrictions: the probe's notes of which auras
+	-- are hidden depend on it (addon:ADDON_RESTRICTION_STATE_CHANGED). The
+	-- classic family has no such event, and asking for it would throw.
+	if caps.family == "modern" then
+		ns.Guard("RegisterEvent ADDON_RESTRICTION_STATE_CHANGED", function()
+			self:RegisterEvent("ADDON_RESTRICTION_STATE_CHANGED")
+		end)
+	end
+
 	-- The player's own casts, on a frame of our own that asks the client for the
 	-- player's alone: through AceEvent every cast in sight was dispatched (320-490
 	-- ns each) to a handler that threw it away -- in a raid fight, about as much
@@ -2945,6 +2955,28 @@ function addon:SPELLS_CHANGED()
 	ns.Guard("ProbeCapabilities", ns.ProbeCapabilities)
 end
 
+-- The probe notes, per aura id, whether the client calls it secret at that
+-- moment, and the restrictions in force decide that. One taken inside a
+-- restriction (a /reload mid-fight, a key under way) notes every buff as
+-- hidden, and UnitHasBuff then answers "cannot tell" for everybody until the
+-- next loading screen or spellbook change, long after the client reads the
+-- auras again. So the probe is taken again when a restriction ends -- the
+-- client's word of it, or the fight ending -- if it noted anything hidden and
+-- the client no longer hides auras. Only then: the other way round (a
+-- restriction beginning after the probe) is asked at read time, in UnitHasBuff.
+function addon:ADDON_RESTRICTION_STATE_CHANGED()
+	local hidden = false
+	for _, info in pairs(caps.buffs) do
+		for _, secret in pairs(info.secrecy) do
+			if secret == true then hidden = true end
+		end
+	end
+	if not hidden then return end
+	local ask = C_Secrets and C_Secrets.ShouldAurasBeSecret
+	if type(ask) == "function" and plain(ask()) == true then return end
+	ns.Guard("ProbeCapabilities", ns.ProbeCapabilities)
+end
+
 -- A deliberate choice of somebody backed off (see NoteRefusal) tries them
 -- again: the back-off must never keep the player from somebody they point at.
 -- The prompt's own macro targets and hands back inside a press, and those are
@@ -2987,6 +3019,8 @@ function addon:PLAYER_REGEN_DISABLED()
 end
 
 function addon:PLAYER_REGEN_ENABLED()
+	-- First, so everything below reads the buffs as the probe now has them.
+	ns.Guard("restriction ended", self.ADDON_RESTRICTION_STATE_CHANGED, self)
 	-- A buff that landed after the fight's last tick, walked now so its favour
 	-- is filed before the repaint below offers anybody.
 	ns.FlushOwnScan()

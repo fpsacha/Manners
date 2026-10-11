@@ -521,6 +521,10 @@ for _, e in ipairs({
 	-- Registered on this client by EnhanceQoL's class-buff reminder, which
 	-- watches the bags and the weapon for its weapon buffs.
 	"BAG_UPDATE_DELAYED", "PLAYER_EQUIPMENT_CHANGED",
+	-- Registered on this client by EnhanceQoL's class-buff reminder; retail
+	-- 12.0 and later have it too. The classic clients do not (Core.lua only
+	-- asks where the family is modern).
+	"ADDON_RESTRICTION_STATE_CHANGED",
 }) do KNOWN_EVENTS[e] = true end
 Mock.KNOWN_EVENTS = KNOWN_EVENTS
 Mock.badEvents = {}

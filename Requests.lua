@@ -513,6 +513,15 @@ do
 		return nil
 	end
 
+	-- Whether any request stands at all, for the queue to know that a walk
+	-- could still serve somebody when it has nothing to offer unasked.
+	function ns.RequestStanding(now)
+		for _, request in ipairs(requests) do
+			if Live(request, now) then return true end
+		end
+		return false
+	end
+
 	-- Whether somebody still has a request standing that asks for this buff,
 	-- for an asker Queue.lua remembers after the cursor has left them, who has
 	-- no unit to match: by the name AskedFor wrote on it when a token matched
