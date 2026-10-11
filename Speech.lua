@@ -306,10 +306,13 @@ do
 	-- With regional unique names a name is two words ("Petra Stonewell"), so it
 	-- walks while a separator, a word and a space remain; elsewhere while any
 	-- space does. Its autocomplete stop is left out: no name it knows begins with
-	-- a whole name and a word of the line.
+	-- a whole name and a word of the line. The word is any run of non-space
+	-- characters, as Forever's UI has read it since 1.60.1 (70205): it was %w+
+	-- before, which no accented letter, apostrophe, Hangul or Chinese character
+	-- matches, so a surname like that was taken for the line's first word.
 	local function WhisperTargetOf(text, regional)
 		local target = type(text) == "string" and text:match("^%s*(.*)") or ""
-		local more = regional and "[%s-](%w+)%s" or "%s"
+		local more = regional and "[%s-](%S+)%s" or "%s"
 		if not target:find(more) or target:sub(1, 1) == "|" then return nil end
 		while target and target:find(more) do
 			target = target:match("(.+)%s+[^%s]*")
@@ -324,7 +327,9 @@ do
 	local function WhisperName(entry)
 		local name = ns.plain(entry.name)
 		if not (ns.SafeForMacro and ns.SafeForMacro(name)) then return nil end
-		if name:find("%c") then return nil end
+		-- ASCII control characters, spelled out: %c asks the C library, which on a
+		-- Windows code page calls a byte of a Chinese or Korean name a control.
+		if name:find("[%z\1-\31\127]") then return nil end
 		-- A realm withheld as a secret is filed as the bare name (JoinName), and
 		-- a whisper to that finds somebody on your own realm instead. Asked of
 		-- the unit again, since the filed name no longer shows it.

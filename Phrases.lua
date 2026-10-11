@@ -3929,6 +3929,206 @@ RP.LEGACY = {
 	},
 }
 
+-- And what the examples' translations read before they were reworded: the
+-- 1.6.6 pass "Translations read for fluency" changed lines that are examples
+-- (Ishnu-alah spelled in Hangul for the night elves, the dwarves' and trolls'
+-- lines in most languages), and a box saved by an earlier release holds them
+-- as they read then, in the language it was filled in. Per language (esES
+-- answers esMX), each English key with the lines it was translated as, never
+-- said: RP.Active reads a line of a box that is one of these as the line it
+-- is today. A translation of an example edited from now on needs its old
+-- text here too: python tools/legacy_lines.py --check says which are
+-- missing, --lua prints the table.
+RP.LEGACY_TRANSLATED = {
+	deDE = {
+		["A gift freely given, {name}. The naaru hum a little louder. Returned."] = { "Freimütig gegeben, {name}. Die Naaru summen etwas lauter. Erwidert." },
+		["Bwonsamdi gonna be real disappointed, {name}. Thanks, mon."] = { "Bwonsamdi sein jetzt echt enttäuscht, {name}. Danke, Mann." },
+		["Da loa be watchin' over ya, {name}."] = { "Die Loa, die wachen über Euch, {name}." },
+		["Da loa be watchin' over ya, {name}. Dey real nosy like dat."] = { "Die Loa wachen über Euch, {name}. Die sein echt neugierig." },
+		["Night be da best time for mojo, {name}. Nobody see where it come from."] = { "Nacht sein die beste Zeit für Mojo, {name}. Keiner sieht, woher's kommt." },
+		["No worries, {name}. Da loa got ya covered."] = { "Keine Sorge, {name}. Die Loa sein bei Euch." },
+		["Stay away from da voodoo, {name}. ...Except dis voodoo. Dis one fine."] = { "Haltet Euch vom Voodoo fern, {name}. ...Außer von dem hier. Das sein gut." },
+		["We go in together, {name}, we come out together. Dat be da whole plan, mon."] = { "Zusammen rein, {name}, zusammen raus. Das sein der ganze Plan, Mann." },
+	},
+	esES = {
+		["A gift with no favour owed? The court would faint. Thank you, {name}."] = { "¿Un regalo sin deber favores? La corte se desmayaría. Gracias, {name}." },
+		["Bwonsamdi gonna be real disappointed, {name}. Thanks, mon."] = { "Bwonsamdi se va a llevar un buen chasco, {name}. Gracia', mon." },
+		["Da loa be watchin' over ya, {name}. Dey real nosy like dat."] = { "Lo' loa velan por ti, {name}. Son mu' fisgones, mon." },
+		["Da loa watch over ya, {name}. They're real nosy that way."] = { "Lo' loa te cuidan, {name}. Son bien curioso'." },
+		["Death's gonna be real disappointed, {name}. Thanks, mon."] = { "La muerte se va a llevar un buen chasco, {name}. Gracia', mon." },
+		["Here, {name}, a wee somethin' to keep ye on yer feet."] = { "Aquí tienes, {name}, algo pa' que no flaquees." },
+		["Here, {name}, a wee somethin' to keep ye on yer feet. Wee, like me."] = { "Toma, {name}, un detallito pa' que no flaquees. Chiquito, como yo." },
+		["Here, {name}. Ale's for after; this is for before."] = { "Toma, {name}. La cerveza, pa' después; esto, pa' antes." },
+		["Mornin', {name}! Too early for ale. Almost. Have this first."] = { "¡Buenos días, {name}! Temprano pa' la cerveza. Casi. Toma esto antes." },
+		["Night be da best time for mojo, {name}. Nobody see where it come from."] = { "La noche e' la mejor hora pa'l mojo, {name}. Nadie ve de dónde sale." },
+		["No trouble, {name}. Da loa like ya."] = { "Sin problema, {name}. Lo' loa te quieren." },
+		["Stay away from da voodoo, {name}. ...Except dis voodoo. Dis one fine."] = { "Aléjate del vudú, {name}. ...Menos de este vudú. Este tá bien." },
+		["Stay away from da voodoo, {name}. Except this one. This one's fine."] = { "Aléjate del vudú, {name}. Meno' de este. Este está bien." },
+		["Stay close, {name}. Trolls regenerate; da rest of ya gotta be careful."] = { "No te alejes, {name}. Un trol se regenera; lo' demás, cuidadito." },
+		["Sure thing, {name}. Hold still; mojo hates a movin' target."] = { "Seguro, {name}. No te mueva': el mojo odia lo que se mueve." },
+		["Sure ting, {name}. Hold still now."] = { "Claro que sí, {name}. No te mueva' ahora." },
+		["Sure ting, {name}. Hold still; da mojo don't like a movin' target."] = { "Claro, {name}. No te mueva': el mojo odia los blancos móviles." },
+		["We go in together, {name}, we come out together. Dat be da whole plan, mon."] = { "Entramo' juntos, {name}, salimo' juntos. Ese e' to' el plan, mon." },
+		["We go in together, {name}, we come out together. That's the plan, mon."] = { "Entramo' junto', {name}, y salimo' junto'. Ese e' el plan, mon." },
+		["We look after our own, {name}. Always, mon."] = { "Cuidamo' de los nuestro', {name}. Siempre, mon." },
+		["Ya be too kind, {name}! Dis one be from me."] = { "¡Ere' mu' amable, {name}! Esta va de mi parte." },
+		["Ya look like somebody who appreciate quality, {name}. Here: quality."] = { "Parece' alguien que aprecia la calidad, {name}. Toma: calidad." },
+		["Ya too kind, {name}! This one's from me."] = { "¡Qué amable ere', {name}! Esto va de mi parte." },
+	},
+	frFR = {
+		["Ask a dwarf fer help, {name}, and ye'll get it. Loudly."] = { "Demandez d'l'aide à un nain, {name} : vous l'aurez. Et vous l'entendrez." },
+		["Aw, {name}. I'd invoice you, but I'm feeling sentimental. It'll pass."] = { "Oh, {name}. J'vous facturerais bien, mais je suis d'humeur sentimentale. Ça passera." },
+		["Aye, {name}, ye only had to ask. Hold still now!"] = { "Pour sûr, {name}, suffisait d'demander. Bougez plus !" },
+		["Aye, {name}, ye only had to ask. Hold still now, like a good anvil."] = { "Pour sûr, {name}, suffisait d'demander. Bougez plus, comme une bonne enclume." },
+		["Bless ye, {name}! I'd hug ye, but ye'd be needin' a healer after."] = { "Merci, {name} ! Une accolade ? Non, z'auriez besoin d'un soigneur après." },
+		["Bwonsamdi gonna be real disappointed, {name}. Thanks, mon."] = { "Bwonsamdi, il va être bien déçu, {name}. Merci, l'ami." },
+		["Crew's got style, {name}. Now it's got mojo too."] = { "L'équipe a du style, {name}. Et maint'nant, du mojo." },
+		["Da loa be watchin' over ya, {name}."] = { "Les loa, ils veillent sur vous, {name}." },
+		["Da loa be watchin' over ya, {name}. Dey real nosy like dat."] = { "Les loa, ils veillent sur vous, {name}. Des vrais fouineurs, ceux-là." },
+		["Deal, {name}! I'll put it on your tab. Kidding!"] = { "Marché conclu, {name} ! Je le mets sur votre ardoise. J'rigole !" },
+		["Dis crew got style, {name}. Now it got mojo too."] = { "C'groupe a du style, {name}. Et maint'nant, du mojo." },
+		["Early bird gets the gold, {name}! Here's a freebie. Don't tell the other birds."] = { "L'or appartient à ceux qui se lèvent tôt, {name} ! Un cadeau. Le dites pas aux autres lève-tôt." },
+		["Here, {name}, a wee somethin' to keep ye on yer feet."] = { "Tenez, {name}, un p'tit quelque chose pour vous garder d'aplomb." },
+		["Here, {name}, a wee somethin' to keep ye on yer feet. Wee, like me."] = { "Tenez, {name}, un p'tit quelque chose pour vous garder d'aplomb. P'tit, comme moi." },
+		["Here, {name}. If anything explodes near you today, that was unrelated."] = { "Tenez, {name}. Si quelque chose explose près de vous aujourd'hui, j'y suis pour rien." },
+		["Here, {name}. Walk like ya own the jungle. I do."] = { "Tenez, {name}. Marchez comme si la jungle était à vous. Moi, c'est l'cas." },
+		["Hey, {name}! Always good to see family, mon."] = { "Hé, {name} ! C'est toujours bon d'voir la famille, ça." },
+		["If I start singin', {name}, the fight's gone well. Or very badly."] = { "Si j'me mets à chanter, {name}, c'est qu'le combat s'passe bien. Ou très mal." },
+		["Mornin', {name}! Too early for ale. Almost. Have this first."] = { "B'jour, {name} ! Trop tôt pour une bière. Presque. Prenez d'abord ça." },
+		["Much obliged, {name}. Ye've a friend in the mountain now."] = { "Mille mercis, {name}. Z'avez un ami dans la montagne, maint'nant." },
+		["Night be da best time for mojo, {name}. Nobody see where it come from."] = { "La nuit, c'est l'meilleur moment pour l'mojo, {name}. Personne voit d'où il vient." },
+		["Night's the best time for mojo, {name}. Nobody sees where it's from."] = { "La nuit, c'est l'meilleur moment pour l'mojo, {name}. Personne voit d'où il vient." },
+		["No trouble, {name}. Da loa like ya."] = { "Pas d'souci, {name}. Les loa vous aiment bien." },
+		["No worries, {name}. Da loa got ya covered."] = { "Pas d'souci, {name}. Les loa, ils vous couvrent." },
+		["Nobody dies on my contract, {name}. The paperwork's a nightmare."] = { "Personne meurt sous mon contrat, {name}. La paperasse, c'est l'enfer." },
+		["Right, {name}: I take the front, ye take the loot, and we argue after."] = { "Bon, {name} : j'prends l'avant, vous prenez l'butin, et on s'dispute après." },
+		["Say no more, {name}. Stone and steel, here it comes."] = { "Pas un mot d'plus, {name}. Par la pierre et l'acier, ça vient !" },
+		["Stand behind me, {name}. Aye, I know. Crouch a bit."] = { "Derrière moi, {name}. Oui, j'sais. Baissez-vous un peu." },
+		["Stay away from da voodoo, {name}. ...Except dis voodoo. Dis one fine."] = { "Restez loin du vaudou, {name}. ...Sauf c'vaudou-là. Lui, il est bien." },
+		["Stay close, {name}. Trolls regenerate; da rest of ya gotta be careful."] = { "Restez près d'moi, {name}. Les trolls, ça régénère ; vous autres, faites attention." },
+		["Stay sharp out dere, {name}. Take dis wit' ya."] = { "Faites gaffe dehors, {name}. Prenez ça avec vous." },
+		["Sure thing, {name}. Hold still; mojo hates a movin' target."] = { "Bien sûr, {name}. Bougez plus ; le mojo déteste les cibles qui bougent." },
+		["Sure ting, {name}. Hold still now."] = { "Bien sûr, {name}. Bougez plus, là." },
+		["Sure ting, {name}. Hold still; da mojo don't like a movin' target."] = { "Bien sûr, {name}. Bougez plus, là ; le mojo, il aime pas les cibles qui bougent." },
+		["Take dis, {name}. Walk like ya own da jungle. I do."] = { "Prenez ça, {name}. Marchez comme si la jungle était à vous. Moi, c'est l'cas." },
+		["Thanks, mon! Da spirits smile on ya, {name}."] = { "Merci, l'ami ! Les esprits, ils vous sourient, {name}." },
+		["Thanks, {name}! I checked it for fine print. There wasn't any. Weird!"] = { "Merci, {name} ! J'ai cherché les petites lignes. Y en avait pas. Bizarre !" },
+		["We go in together, {name}, we come out together. Dat be da whole plan, mon."] = { "On entre ensemble, {name}, on sort ensemble. C'est tout l'plan, l'ami." },
+		["We go in together, {name}, we come out together. That's the plan, mon."] = { "On entre ensemble, {name}, on sort ensemble. C'est ça, l'plan, l'ami." },
+		["Ya be too kind, {name}! Dis one be from me."] = { "Trop gentil, {name} ! Et çui-là, il vient d'moi." },
+		["Ya gave me good mojo, {name}. Now ya get some back, extra spicy."] = { "Vous m'avez donné du bon mojo, {name}. Maint'nant, vous en r'cevez, extra épicé." },
+		["Ya look like somebody who appreciate quality, {name}. Here: quality."] = { "Vous avez l'air d'aimer la qualité, {name}. Tenez : d'la qualité." },
+		["Ya too kind, {name}! This one's from me."] = { "Trop gentil, {name} ! Çui-là, il vient d'moi." },
+	},
+	itIT = {
+		["Bless ye, {name}! I'd hug ye, but ye'd be needin' a healer after."] = { "Evviva, {name}! Ti abbraccerei, ma poi ti servirebbe un guaritore." },
+		["Bwonsamdi gonna be real disappointed, {name}. Thanks, mon."] = { "Bwonsamdi ce resta malissimo, {name}. Grazie, cumpà." },
+		["Crew's got style, {name}. Now it's got mojo too."] = { "Stu gruppo tene stile, {name}. E mo' pure 'o mojo." },
+		["Da loa be watchin' over ya, {name}."] = { "'E loa te guardano 'e spalle, {name}." },
+		["Da loa be watchin' over ya, {name}. Dey real nosy like dat."] = { "'E loa te guardano 'e spalle, {name}. So' curiosi assaje." },
+		["Da loa watch over ya, {name}. They're real nosy that way."] = { "'E loa te tengono d'uocchio, {name}. So' curiuse assaje." },
+		["Death's gonna be real disappointed, {name}. Thanks, mon."] = { "'A morte ce resta proprio male, {name}. Grazie, cumpà." },
+		["Dis crew got style, {name}. Now it got mojo too."] = { "Sta compagnia tene stile, {name}. Mo' tene pure 'o mojo." },
+		["Here, {name}. Walk like ya own the jungle. I do."] = { "Piglia, {name}. Cammina comm'a padrone d''a giungla. Io 'o faccio." },
+		["Hey, {name}! Always good to see family, mon."] = { "Uè, {name}! Fa sempre piacere vedé 'a famiglia, cumpà." },
+		["Night be da best time for mojo, {name}. Nobody see where it come from."] = { "'A notte è l'ora d''o mojo, {name}. Nisciuno vede da dove vene." },
+		["Night's the best time for mojo, {name}. Nobody sees where it's from."] = { "'A notte è 'o mumento meglio p''o mojo, {name}. Nisciuno vede 'a do' vene." },
+		["No trouble, {name}. Da loa like ya."] = { "Nisciun problema, {name}. 'E loa te vonno bene." },
+		["No worries, {name}. Da loa got ya covered."] = { "Nun te preoccupà, {name}. Ce pensano 'e loa." },
+		["Stay away from da voodoo, {name}. ...Except dis voodoo. Dis one fine."] = { "Statte luntano d''o voodoo, {name}. ...Tranne chisto. Chisto va bbuono." },
+		["Stay away from da voodoo, {name}. Except this one. This one's fine."] = { "Statte luntano d''o voodoo, {name}. Chisto no: chisto è bbuono." },
+		["Stay close, {name}. Trolls regenerate; da rest of ya gotta be careful."] = { "Stamme vicino, {name}. 'E troll se rigenerano; vuje no, quindi occhio." },
+		["Stay sharp out dere, {name}. Take dis wit' ya."] = { "Occhi aperti llà fore, {name}. Pigliate chisto." },
+		["Stay sharp, {name}. Take this with ya."] = { "Uocchie aperte, {name}. Portate chisto." },
+		["Sure thing, {name}. Hold still; mojo hates a movin' target."] = { "Va bbuono, {name}. Nun te movere: 'o mojo odia chi se move." },
+		["Sure ting, {name}. Hold still now."] = { "Sicuro, {name}. Mo' nun te movere." },
+		["Sure ting, {name}. Hold still; da mojo don't like a movin' target."] = { "Sicuro, {name}. Nun te movere: 'o mojo nun ama 'e bersagli mobili." },
+		["Take dis, {name}. Walk like ya own da jungle. I do."] = { "Piglia, {name}. Cammina da padrone d''a giungla. Comme a me." },
+		["Take it, {name}, I've a spare. I've three spares of everything."] = { "Prendi, {name}, ho il ricambio. Ho tre ricambi di tutto." },
+		["Thanks, mon! Da spirits smile on ya, {name}."] = { "Grazie assaje, cumpà! 'E spiriti te sorrideno, {name}." },
+		["We go in together, {name}, we come out together. Dat be da whole plan, mon."] = { "Trasimmo insieme, {name}, e ascimmo insieme. Chisto è tutto 'o piano, cumpà." },
+		["We go in together, {name}, we come out together. That's the plan, mon."] = { "Trasimmo 'nzieme, {name}, e ascimmo 'nzieme. Chisto è 'o piano, cumpà." },
+		["We look after our own, {name}. Always, mon."] = { "Nuje penzammo a 'e nuoste, {name}. Sempe, cumpà." },
+		["Ya be too kind, {name}! Dis one be from me."] = { "Si' troppo gentile, {name}! Chisto t'o dong' io." },
+		["Ya gave me good mojo, {name}. Now ya get some back, extra spicy."] = { "M'hai dato buon mojo, {name}. Mo' te lo torno, cu 'o peperoncino." },
+		["Ya look like somebody who appreciate quality, {name}. Here: quality."] = { "Tieni 'a faccia 'e chi apprezza 'a qualità, {name}. Ecco: qualità." },
+		["Ya too kind, {name}! This one's from me."] = { "Si' troppo gentile, {name}! Chisto è da parte mia." },
+	},
+	koKR = {
+		["Anar'alah belore, {name}. May the sun guide you, and light your good side."] = { "Anar'alah belore, {name}. 태양이 그대를 인도하고, 잘 나온 쪽을 비추기를." },
+		["Anar'alah belore, {name}. May the sun guide you."] = { "Anar'alah belore, {name}. 태양이 그대를 인도하기를." },
+		["Archenon poros, {name}! The children of Argus look after one another."] = { "Archenon poros, {name}! 아르거스의 자손은 서로를 돌보지요." },
+		["Archenon poros, {name}. Your gift is returned."] = { "Archenon poros, {name}. 받은 선물을 돌려드립니다." },
+		["Dabu, {name}. It is done."] = { "Dabu, {name}. 다 됐다." },
+		["Elune-adore, {name}. Walk softly beneath the stars."] = { "Elune-adore, {name}. 별빛 아래 사뿐히 걷기를." },
+		["Elune-adore, {name}. Walk softly; the trees are light sleepers."] = { "Elune-adore, {name}. 사뿐히 걸으시오. 나무들은 잠귀가 밝으니." },
+		["Ishnu-alah, {name}. Elune keeps her children close."] = { "Ishnu-alah, {name}. 엘룬께선 자녀들을 늘 곁에 두시지요." },
+		["Ishnu-alah, {name}. Returned the same day, which for a kaldorei is rushing."] = { "Ishnu-alah, {name}. 당일에 갚다니, 칼도레이로선 서두른 셈이오." },
+		["Ishnu-alah, {name}. Your kindness is returned."] = { "Ishnu-alah, {name}. 그대의 호의를 돌려드리리다." },
+		["Lok'tar ogar, {name}! Take this into battle."] = { "Lok'tar ogar, {name}! 이걸 품고 전장으로 가라!" },
+		["Lok'tar ogar, {name}! Take this into battle. A tavern brawl also counts."] = { "Lok'tar ogar, {name}! 이걸 품고 전장으로 가라. 술집 싸움도 전장이다." },
+		["Shorel'aran, {name}. Fight with elegance."] = { "Shorel'aran, {name}. 우아하게 싸우시길." },
+		["Such courtesy does you credit, {name}. Anar'alah belore."] = { "그 예의, 칭찬할 만하군요, {name}. Anar'alah belore." },
+		["Throm-ka, {name}! Honour is repaid."] = { "Throm-ka, {name}! 명예로 갚는다!" },
+		["Throm-ka, {name}! The blood of the clans runs strong in you."] = { "Throm-ka, {name}! 네 안에 부족의 피가 힘차게 흐르는군." },
+	},
+	ptBR = {
+		["A gift freely given, {name}. The naaru hum a little louder. Returned."] = { "Um presente dado de coração, {name}. Os Naarus zumbem mais alto. Retribuído." },
+		["Ask a dwarf fer help, {name}, and ye'll get it. Loudly."] = { "Pede ajuda a um anão, {name}, e cê ganha. Aos berros." },
+		["Bless ye, {name}! I'd hug ye, but ye'd be needin' a healer after."] = { "Brigadão, {name}! Te daria um abraço, mas depois cê ia precisar de curador." },
+		["Much obliged, {name}. Ye've a friend in the mountain now."] = { "Valeu demais, {name}. Agora cê tem amigos na montanha." },
+		["Of course, {name}. The naaru guide your steps; this puts a spring in them."] = { "Claro, {name}. Os Naarus guiam seus passos; isto dá um gás neles." },
+		["Right, {name}: I take the front, ye take the loot, and we argue after."] = { "Combinado, {name}: eu vou na frente, cê pega o saque e depois a gente briga." },
+		["Thanks, mon! Da spirits smile on ya, {name}."] = { "Valeu, mano! Os espíritos sorriem procê, {name}." },
+		["The naaru would call this a fellowship, {name}. I call it good luck."] = { "Os Naarus chamariam isto de irmandade, {name}. Eu chamo de sorte." },
+		["Ya be too kind, {name}! Dis one be from me."] = { "Cê é gente boa demais, {name}! Essa vai de mim." },
+		["Ya gave me good mojo, {name}. Now ya get some back, extra spicy."] = { "Cê me deu mojo bom, {name}. Agora toma de volta, extra apimentado." },
+		["Ya look like somebody who appreciate quality, {name}. Here: quality."] = { "Cê tem cara de quem curte qualidade, {name}. Toma: qualidade." },
+		["Ya too kind, {name}! This one's from me."] = { "Cê é gentil demais, {name}! Essa é por minha conta." },
+	},
+	zhCN = {
+		["Crew's got style, {name}. Now it's got mojo too."] = { "这队人有派头，{name}。现在还有巫毒咧。" },
+		["Da loa be watchin' over ya, {name}."] = { "洛阿在守着你咧，{name}。" },
+		["Da loa be watchin' over ya, {name}. Dey real nosy like dat."] = { "洛阿在守着你咧，{name}。他们就是这么爱管闲事。" },
+		["Da loa watch over ya, {name}. They're real nosy that way."] = { "洛阿看着你咧，{name}。它们就是这么爱管闲事。" },
+		["Death's gonna be real disappointed, {name}. Thanks, mon."] = { "死神这下要失望透咧，{name}。谢啦，老兄。" },
+		["Here, {name}, a wee somethin' to keep ye on yer feet. Wee, like me."] = { "喏，{name}，一点小意思，保你站得稳。小，跟俺一个样。" },
+		["If I start singin', {name}, the fight's gone well. Or very badly."] = { "要是俺唱起歌来，{name}，就是仗打得顺。或者糟透了。" },
+		["No trouble, {name}. Da loa like ya."] = { "小事，{name}。洛阿喜欢你咧。" },
+		["No worries, {name}. Da loa got ya covered."] = { "莫担心，{name}。洛阿罩着你咧。" },
+		["Right, {name}: I take the front, ye take the loot, and we argue after."] = { "说好了，{name}：俺打头阵，你捡战利品，完事再吵。" },
+		["Stand behind me, {name}. Aye, I know. Crouch a bit."] = { "站俺后头，{name}。嗯，俺知道。你蹲低点儿。" },
+		["Stay close, {name}. Trolls regenerate; da rest of ya gotta be careful."] = { "跟紧点，{name}。巨魔能再生，你们其他人可得小心咧。" },
+		["Stone and hammer keep ye, cousin {name}!"] = { "愿石与锤护着你，老表{name}！" },
+		["Such courtesy does you credit, {name}. Nearly as much as it does me."] = { "如此礼数，为你增光，{name}。差不多跟为我增的光一样多。" },
+		["Sure thing, {name}. Hold still; mojo hates a movin' target."] = { "没问题，{name}。别动，巫毒最讨厌移动靶咧。" },
+		["Sure ting, {name}. Hold still; da mojo don't like a movin' target."] = { "小事一桩，{name}。莫乱动，巫毒不喜欢移动靶咧。" },
+		["Thank ye kindly, {name}! First round's on me when we're back at the forge."] = { "多谢啦，{name}！回到熔炉边，头一轮酒俺请！" },
+		["Thank ye, {name}! I'd have been fine without it, mind. But thank ye."] = { "谢啦，{name}！没它俺也扛得住，真的。不过还是谢啦！" },
+		["Thanks, mon! Da spirits smile on ya, {name}."] = { "谢啦，伙计！众灵在冲你笑咧，{name}。" },
+		["The Sunwell shines for us both, {name}."] = { "太阳之井为我们闪耀，{name}。" },
+		["Ya gave me good mojo, {name}. Now ya get some back, extra spicy."] = { "你给了我好巫毒，{name}。现在还你一份，加辣的咧。" },
+		["Ya too kind, {name}! This one's from me."] = { "你太客气咧，{name}！这个是我送的。" },
+	},
+	zhTW = {
+		["Da loa be watchin' over ya, {name}."] = { "羅亞在看著你哩，{name}。" },
+		["Da loa be watchin' over ya, {name}. Dey real nosy like dat."] = { "羅亞在看著你哩，{name}。祂們可愛管閒事了。" },
+		["Here, {name}, a wee somethin' to keep ye on yer feet. Wee, like me."] = { "來，{name}，小小心意讓你站穩腳。小，跟俺一樣！" },
+		["Here, {name}. Walk like ya own the jungle. I do."] = { "給你，{name}。走路要像叢林是你家的。咱就這樣走。" },
+		["If I start singin', {name}, the fight's gone well. Or very badly."] = { "俺要是開唱，{name}，不是打得很順，就是很慘。" },
+		["Right, {name}: I take the front, ye take the loot, and we argue after."] = { "好，{name}：俺打頭陣，你撿寶，打完再吵！" },
+		["Say no more, {name}. Stone and steel, here it comes."] = { "甭多說，{name}！岩石與鋼鐵，接著！" },
+		["Stand behind me, {name}. Aye, I know. Crouch a bit."] = { "躲俺後面，{name}。對，俺知道。蹲低點。" },
+		["Take dis, {name}. Walk like ya own da jungle. I do."] = { "{name}，走路要像叢林你家開的。咱就是。" },
+		["Thank ye kindly, {name}! First round's on me when we're back at the forge."] = { "多謝啦，{name}！回熔爐頭一杯俺請！" },
+		["Thank ye, {name}! I'd have been fine without it, mind. But thank ye."] = { "謝啦，{name}！沒這個俺也行，真的！但還是謝啦。" },
+		["Thanks, mon! Da spirits smile on ya, {name}."] = { "謝啦老兄！眾靈對你笑哩，{name}。" },
+		["Ya be too kind, {name}! Dis one be from me."] = { "你太客氣啦，{name}！這份算咱的。" },
+		["Ya gave me good mojo, {name}. Now ya get some back, extra spicy."] = { "你給咱好巫毒，{name}。現在還你，加辣的。" },
+		["Ya too kind, {name}! This one's from me."] = { "你太客氣啦，{name}！這個咱送的。" },
+	},
+}
+
 -- The pools the examples are drawn from as they read before the lines in
 -- RP.LEGACY.reworded were rewritten: a box saved then, by 1.6.4 or by an
 -- earlier version, is built from these (RP.Active). Made here, before the
@@ -4676,18 +4876,42 @@ do
 		return false
 	end
 
+	-- The box with each line that is one of an example's earlier translations
+	-- (RP.LEGACY_TRANSLATED) as that line reads now, line by line. A line that
+	-- is not one is left as it is, so a box with a line of the player's own in
+	-- it still matches no examples.
+	local earlier
+	local function Modernise(text)
+		if earlier == nil then
+			earlier = {}
+			local byLocale = RP.LEGACY_TRANSLATED
+			local set = byLocale and byLocale[ns.LOCALE == "esMX" and "esES" or ns.LOCALE]
+			for key, olds in pairs(set or {}) do
+				local now = rawget(ns.L, key)
+				if now ~= nil then
+					for _, old in ipairs(olds) do earlier[old] = now end
+				end
+			end
+		end
+		return (text:gsub("[^\n]+", earlier))
+	end
+
 	-- Whether "In character" is what speaks. The box is compared with the
 	-- examples of every people, side and class, not only this character's: on a
 	-- shared profile, the dwarf mage who picked the set has not edited anything
 	-- the orc warrior should lose. English examples count too, and the boxes
 	-- earlier versions saved (1.6.4's, beta.10 to 1.5.0's eight lines, beta.9's
-	-- five).
+	-- five), and those with the examples as they were translated then.
 	function RP.Active(speech)
 		if type(speech) ~= "table" or speech.presetChoice ~= "incharacter" then return false end
 		local text = speech.phrases
 		if type(text) ~= "string" then return false end
 		if text == lastText then return lastAnswer end
 		local answer = IsExamples(text, false, true) or IsExamples(text, true, true)
+		if not answer then
+			local now = Modernise(text)
+			answer = now ~= text and IsExamples(now, false, true)
+		end
 		lastText, lastAnswer = text, answer
 		return answer
 	end

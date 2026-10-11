@@ -36,7 +36,7 @@ mutate("Speech.lua",
 
 # Control characters let through.
 mutate("Speech.lua",
-       "\t\tif name:find(\"%c\") then return nil end\n",
+       "\t\tif name:find(\"[%z\\1-\\31\\127]\") then return nil end\n",
        "",
        "whisper name keeps control characters",
        expect="whisper: a secret or unsafe name says nothing",
@@ -128,7 +128,7 @@ mutate("Speech.lua",
 # Regional names walked as if they were realm names: "Munin Hugins" reads as
 # Munin.
 mutate("Speech.lua",
-       "\t\tlocal more = regional and \"[%s-](%w+)%s\" or \"%s\"\n",
+       "\t\tlocal more = regional and \"[%s-](%S+)%s\" or \"%s\"\n",
        "\t\tlocal more = \"%s\"\n",
        "whisper parse ignores regional names",
        expect="whisper: Camelot whispers name and surname, and nothing it would misread",

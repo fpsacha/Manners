@@ -575,8 +575,8 @@ list. They used to be at the bottom of *Who to buff*.
   you are in a party or a raid: out of one the buff goes out with no line, and
   the tooltip quotes none. A whisper goes only when the
   chat box cannot send it to somebody else by mistake. On Camelot that means
-  a two-word name whose surname is plain letters or digits; a one-word name or
-  an accented surname gets the buff with no line. Somebody from your own realm
+  a two-word name, surname accents and all; a one-word name
+  gets the buff with no line. Somebody from your own realm
   who is out of sight is whispered only while the game can still name them,
   so not after a `/reload`.
 

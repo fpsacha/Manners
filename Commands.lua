@@ -408,6 +408,22 @@ local function TwelveHourClock()
 	return ok and plain(value) == "0"
 end
 
+-- A time on a 12-hour clock as the client writes it in its own language, from
+-- TIME_TWELVEHOURAM and TIME_TWELVEHOURPM, the strings Blizzard's GameTime
+-- code formats the game clock's tooltip with ("%d:%02d AM", but "오전 %d:%02d"
+-- in Korean, "%d:%02d a.m." in Spanish). English where the client has none.
+local function TwelveHourText(hour, minute)
+	local twelve = hour % 12
+	if twelve == 0 then twelve = 12 end
+	local late = hour >= 12
+	local text = _G[late and "TIME_TWELVEHOURPM" or "TIME_TWELVEHOURAM"]
+	if type(text) == "string" then
+		local ok, out = pcall(text.format, text, twelve, minute)
+		if ok then return out end
+	end
+	return ("%d:%02d %s"):format(twelve, minute, late and "PM" or "AM")
+end
+
 -- When the snooze ends, on the clock on the player's screen.
 function ns.SnoozeEndsAt()
 	local left = ns.SnoozeLeft()
@@ -422,18 +438,16 @@ function ns.SnoozeEndsAt()
 		if read and type(h) == "number" and type(m) == "number" then
 			local total = (h * 60 + m + math.floor(left / 60 + 0.5)) % 1440
 			local hour, minute = math.floor(total / 60), total % 60
-			if TwelveHourClock() then
-				local twelve = hour % 12
-				if twelve == 0 then twelve = 12 end
-				return ("%d:%02d %s"):format(twelve, minute, hour < 12 and "AM" or "PM")
-			end
+			if TwelveHourClock() then return TwelveHourText(hour, minute) end
 			return ("%02d:%02d"):format(hour, minute)
 		end
 	end
 	local at = time() + math.floor(left + 0.5)
 	if TwelveHourClock() then
-		-- "9:45 PM", not "09:45 PM": the game clock drops the leading zero.
-		return (date("%I:%M %p", at):gsub("^0", ""))
+		local when = date("*t", at)
+		if type(when) == "table" and type(when.hour) == "number" and type(when.min) == "number" then
+			return TwelveHourText(when.hour, when.min)
+		end
 	end
 	return date("%H:%M", at)
 end
