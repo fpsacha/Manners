@@ -124,13 +124,14 @@ end
 -- Camelot: name and surname, which is what its chat box reads as one person.
 -- A name it would read otherwise gets no line at all, never a whisper to
 -- somebody else: a single word (it would take the line's first word as the
--- surname) and a surname outside what it counts as a word.
+-- surname). A surname with an accent in it is a word to the client since
+-- 1.60.1 (70205), and is whispered (i18n-fixes.lua has the rest).
 do
 	local scenario = "whisper: Camelot whispers name and surname, and nothing it would misread"
 	local cases = {
 		{ { "Munin", "Hugins" }, "Munin Hugins", "/w Munin Hugins Thanks, Munin Hugins." },
 		{ { "Solo" }, "Solo", nil },
-		{ { "Petra", "Br\195\162ve" }, "Petra Br\195\162ve", nil },
+		{ { "Petra", "Br\195\162ve" }, "Petra Br\195\162ve", "/w Petra Br\195\162ve Thanks, Petra Br\195\162ve." },
 	}
 	for _, case in ipairs(cases) do
 		local names, key, want = case[1], case[2], case[3]
