@@ -52,17 +52,17 @@ local function noErrors(scenario, ns)
 	end
 end
 
--- The type the secure handler would run for this press, walked the way
--- SecureButton_GetModifiedAttribute walks it: the modifier-and-button forms
--- first, then the button alone, then the bare attribute. The real order differs
--- in which of the wildcard forms comes first, and the answer below does not
--- depend on that: nothing here sets any of them.
+-- The type the secure handler would run for this press, walked the way the
+-- client's frame:GetAttribute(prefix, name, suffix) walks it: prefix..name..suffix,
+-- "*"..name..suffix, prefix..name.."*", "*"..name.."*", then the bare name
+-- (warcraft.wiki.gg, API_Frame_GetAttribute). A bare "type2" is only the
+-- unmodified right button: with shift held the walk never asks for it, and
+-- only a "*type2" answers.
 local function secureType(button, modifier, suffix)
 	for _, key in ipairs({
 		modifier .. "type" .. suffix, "*type" .. suffix,
 		modifier .. "type*", "*type*",
-		"type" .. suffix, "type*",
-		modifier .. "type", "*type", "type",
+		"type",
 	}) do
 		local value = button:GetAttribute(key)
 		if value ~= nil then return value, key end
@@ -287,7 +287,8 @@ Mock.reset()
 -- nothing.
 --
 -- The secure side must not be able to tell it from a plain right-click: no
--- shift- attribute, type2 "none", no cast bookkeeping. And a plain right-click
+-- shift- attribute, "none" for the right button whatever is held (type2 and
+-- *type2), no cast bookkeeping. And a plain right-click
 -- must go on being the skip it always was.
 Mock.reset()
 do
@@ -312,9 +313,13 @@ do
 			fail(scenario, "the tooltip does not mention shift-right-click")
 		end
 
-		for key in pairs(button.attributes) do
-			if tostring(key):find("^shift%-") or tostring(key):find("^%*") then
-				fail(scenario, "the button carries a modifier attribute, " .. tostring(key)
+		-- Only the "*type<N>" = "none" of the other buttons may be wildcards:
+		-- they are what keeps a modified click from falling to the macro.
+		for attribute, value in pairs(button.attributes) do
+			local key = tostring(attribute)
+			local silenced = key:find("^%*type%d+$") and value == "none"
+			if key:find("^shift%-") or (key:find("^%*") and not silenced) then
+				fail(scenario, "the button carries a modifier attribute, " .. key
 					.. ", so a shifted press is not the plain one")
 			end
 		end
