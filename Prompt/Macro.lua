@@ -8,12 +8,22 @@ local Prompt = ns.Prompt
 local S, R = Prompt.state, Prompt.regions
 local InCombatLockdown = _G.InCombatLockdown
 
--- Buttons 2 to 5 get a type the secure handler does not recognise, so they do
--- nothing; otherwise the unsuffixed type/macrotext (the form that works on
--- this client) fires for every button, a right-press included.
+-- Every button but the left gets a type the secure handler does not recognise,
+-- so it does nothing; otherwise the unsuffixed type/macrotext (the form that
+-- works on this client) fires for every button, a right-press included.
+-- The client looks an attribute up as prefix..name..suffix, "*"..name..suffix,
+-- ... and the bare name last (warcraft.wiki.gg, API_Frame_GetAttribute), the
+-- prefix being "shift-", "ctrl-", "alt-" or their mix while those keys are down
+-- (SecureButton_GetModifierPrefix). A plain "type2" is the unmodified right
+-- button alone: shift-right-click skips it and falls to the bare type, the
+-- macro. "*type<N>" is any modifier, as Blizzard's own SecureUnitButton_OnLoad
+-- sets "*type2"; N runs to 31, the last button the template names
+-- (BUTTON_LOOKUP_TABLE), and "AnyDown" answers every one. No "*type1": the left
+-- button with a modifier held, or from a key binding, is meant to cast.
 local function SilenceOtherButtons()
-	for index = 2, 5 do
-		R.button:SetAttribute("type" .. index, "none")
+	for index = 2, 31 do
+		if index <= 5 then R.button:SetAttribute("type" .. index, "none") end
+		R.button:SetAttribute("*type" .. index, "none")
 	end
 end
 
