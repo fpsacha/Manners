@@ -2061,10 +2061,6 @@ function ns.BuildQueue(watch)
 			priority = priority,
 			ranged = ranged,
 			known = has,
-			-- A refusal the client may lift a moment on (Core.lua,
-			-- ReadingSource): the end of a fight lets go of a passer-by
-			-- remembered on one (ForgetUnreadPassersBy).
-			withheld = (has == nil and src == "withheld") or nil,
 			-- How long what they carry has left, set only for a top-up.
 			remaining = remaining,
 			-- false when we chose not to look, as opposed to looked and were
@@ -2080,6 +2076,12 @@ function ns.BuildQueue(watch)
 			-- which the memory of them keeps (RememberPasserBy).
 			pvp = flag,
 		}
+		-- A refusal the client may lift a moment on (Core.lua, ReadingSource):
+		-- the end of a fight lets go of a passer-by remembered on one
+		-- (ForgetUnreadPassersBy). Set after the table is built, only when
+		-- true: one more field in the constructor doubles the hash part of
+		-- every entry of every scan.
+		if has == nil and src == "withheld" then queue[#queue].withheld = true end
 		-- Remembered for when the token goes, which for the cursor is the
 		-- moment the player moves it to the prompt. Not somebody pointed at:
 		-- a target or focus stands until the player changes it. A favour is

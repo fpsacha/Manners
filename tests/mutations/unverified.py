@@ -187,8 +187,8 @@ mutate("Queue.lua",
        expect="refused for good, was not offered unverified as the fight ended", script=S)
 
 mutate("Queue.lua",
-       "withheld = (has == nil and src == \"withheld\") or nil,",
-       "withheld = (has == nil) or nil,",
+       "if has == nil and src == \"withheld\" then queue[#queue].withheld = true end",
+       "if has == nil then queue[#queue].withheld = true end",
        "unverified: every refusal is taken for withheld",
        expect="refused for good, was let go of as a passer-by", script=S)
 
