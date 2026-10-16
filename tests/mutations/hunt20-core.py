@@ -99,8 +99,8 @@ mutate("Core.lua",
 
 # An empty read of a group buff's aura taken as "not up" while the client hides it.
 mutate("Core.lua",
-       "\t\t\t\tif type(ask) == \"function\" and plain(ask(id)) == true then refused = true end\n",
-       "",
+       "\t\t\t\t\trefused = true\n\t\t\t\t\twithheld = true\n",
+       "\t\t\t\t\twithheld = true\n",
        "hunt20-core: a hidden group buff read as absent",
        expect="an Intellect read as false, not nil", script=S)
 

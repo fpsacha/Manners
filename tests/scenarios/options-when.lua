@@ -42,7 +42,7 @@ do
 	elseif tab then
 		-- The combat switch went to Look: it only stops the flashes, and
 		-- among the switches that stop offers it read as one of them.
-		local ORDER = { "buffedHeader", "whenBuffed", "refreshUnder", "alwaysNote",
+		local ORDER = { "buffedHeader", "whenBuffed", "refreshUnder", "alwaysNote", "verifiedOnly",
 			"wayHeader", "hideMounted", "manaFloor", "manaNote" }
 		local last
 		for _, key in ipairs(ORDER) do
@@ -88,7 +88,9 @@ end
 
 -- ------------------------------------------------------------------ when 2
 -- The Already buffed choices run from least mana to most, and the lines under
--- them follow the choice.
+-- them follow the choice. "Only offer people whose buffs can be read" goes
+-- with Always offer, which reads nobody's buffs and so is never refused one:
+-- shown there, it would be a switch that changes nothing.
 do
 	local scenario = "when tab: the already-buffed choices and what follows them"
 	local ns = session(scenario)
@@ -108,8 +110,12 @@ do
 		local f = ns.db.profile.filters
 		local saved = f.whenBuffed
 		local refresh, note = tab.args.refreshUnder, tab.args.alwaysNote
+		local verified = tab.args.verifiedOnly
+		if not verified then
+			fail(scenario, "Only offer people whose buffs can be read is not on the When to offer tab")
+		end
 		for _, case in ipairs({
-			{ "skip", true, true }, { "refresh", false, true }, { "always", true, false },
+			{ "skip", true, true, false }, { "refresh", false, true, false }, { "always", true, false, true },
 		}) do
 			f.whenBuffed = case[1]
 			if refresh.hidden() ~= case[2] then
@@ -119,6 +125,10 @@ do
 			if note.hidden() ~= case[3] then
 				fail(scenario, "with " .. case[1] .. " chosen, the Always note is "
 					.. (case[3] and "shown" or "hidden"))
+			end
+			if verified and verified.hidden() ~= case[4] then
+				fail(scenario, "with " .. case[1] .. " chosen, Only offer people whose buffs can be read is "
+					.. (case[4] and "shown" or "hidden"))
 			end
 		end
 		f.whenBuffed = "always"
@@ -201,6 +211,40 @@ do
 			fail(scenario, "the mana note is missing from a mage's page")
 		end
 		ns.caps.class = class
+		noErrors(scenario, ns)
+	end
+end
+
+-- ------------------------------------------------------------------ when 5
+-- "Only offer people whose buffs can be read" is read on every scan as a yes
+-- or no (Queue.lua): a string or a number a damaged or hand-edited file holds
+-- is true there for good, holding back every unverified offer, and the box on
+-- the page cannot show it. The repair puts it back to off, and leaves a real
+-- answer as it is.
+do
+	local scenario = "when tab: a nonsense Only offer people whose buffs can be read is repaired"
+	local ns = session(scenario)
+	local tab = ns and whenTab(ns)
+	if tab then
+		local f = ns.db.profile.filters
+		local saved = f.verifiedOnly
+		for _, good in ipairs({ true, false }) do
+			f.verifiedOnly = good
+			ns.ClampSettings()
+			if f.verifiedOnly ~= good then
+				fail(scenario, "the repair changed a saved " .. tostring(good) .. " to "
+					.. tostring(f.verifiedOnly))
+			end
+		end
+		for _, nonsense in ipairs({ "yes", 1 }) do
+			f.verifiedOnly = nonsense
+			ns.ClampSettings()
+			if f.verifiedOnly ~= false then
+				fail(scenario, "a nonsense value for Only offer people whose buffs can be read survived"
+					.. " the repair: " .. tostring(f.verifiedOnly))
+			end
+		end
+		f.verifiedOnly = saved
 		noErrors(scenario, ns)
 	end
 end

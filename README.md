@@ -490,6 +490,13 @@ list. They used to be at the bottom of *Who to buff*.
   a top-up reaches them too, but never an aura or an aspect. A rank below
   the one your cast would land (a level-60 wearing Fortitude's second rank)
   counts as not having it, for you and for them.
+- *Only offer people whose buffs can be read* (off): in a fight, and
+  sometimes just after, the game hides other players' buffs, and Manners
+  offers your buff marked *unverified*. With this on, nobody is offered
+  unverified; somebody who buffed you or asked for a buff still is. Off,
+  nobody is offered unverified in the first five seconds after a fight
+  either, while Manners reads everybody again. Not shown under *Always
+  offer*, which reads nothing.
 - *Hide the prompt while I'm mounted*: dead, on a flight path or in a vehicle
   the prompt already stays away, because nothing can be cast there.
 - *Save mana: stop below (% mana)*: 0 is off (see *Dungeons and raids*
@@ -794,6 +801,12 @@ reports nothing. Every secure button that works here registers `"AnyDown"`.
 **Unit power is a secret value** for players outside your group, so "does this
 person have mana" cannot be read directly. Class is used instead, which is
 accurate for every vanilla class.
+
+**Other players' buffs are hidden in a fight**, and may stay hidden for a
+moment after it: every read comes back secret. A buff read before with its
+timer still counts in the fight and the five seconds after while it has time
+left (seeing somebody dead forgets it), the reads are made again the moment the
+fight ends, and nobody is offered "unverified" in those five seconds.
 
 **`UnitName` returns a surname, not a realm**, in its second value. Joining
 them with a hyphen produces names that no targeting call resolves, so here the
