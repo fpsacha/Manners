@@ -869,3 +869,148 @@ do
 		end
 	end)
 end
+
+-- ------------------------------------------------------------ unverified 23
+-- What is written in the first seconds after a fight is not trusted past
+-- them. A refusal written late in them (4.5 seconds after) is asked again as
+-- they end, not a second or three on, and the client, answering for itself by
+-- then, says she wears the buff. With the time it is trusted chosen as it is
+-- read rather than as it is written, it offered her, unverified, on a refusal
+-- written in a wait that had ended since.
+do
+	local scenario = "unverified: a refusal written late in a fight's wake is not trusted past it"
+	session(scenario, function(ns, ids, buff)
+		fightStarts(ns)
+		refuse(ids, "secret")
+		fightEnds(ns)
+		Mock.advance(4.5)
+		if inQueue(ns)[ANNA] then
+			fail(scenario, "SKIPPED -- Anna, refused 4.5 seconds after the fight, was offered unverified")
+			return
+		end
+		Mock.auraReadRefuse = nil
+		Mock.held = { [buff.ranks[1]] = true }
+		Mock.advance(0.7)
+		local entry = inQueue(ns)[ANNA]
+		if entry then
+			fail(scenario, ("Anna, wearing the buff and readable 5.2 seconds after the fight, was offered"
+				.. " (known=%s) on a refusal written before the wait ended"):format(tostring(entry.known)))
+		end
+	end)
+end
+
+-- ------------------------------------------------------------ unverified 24
+-- The same for the last reading standing in for a refusal: read wearing the
+-- buff, refused in the fight and for 4.9 seconds after it, she is held back
+-- on what was last read of her, and not a moment past the wait. Past it the
+-- client says she lost the buff: offered, as missing it.
+do
+	local scenario = "unverified: a kept reading is not held past a fight's wake"
+	session(scenario, function(ns, ids, buff)
+		Mock.held = { [buff.ranks[1]] = true }
+		Mock.advance(4)
+		if inQueue(ns)[ANNA] then
+			fail(scenario, "SKIPPED -- Anna was offered while read wearing the buff")
+			return
+		end
+		Mock.held = nil
+		fightStarts(ns)
+		refuse(ids, "secret")
+		inQueue(ns)
+		fightEnds(ns)
+		Mock.advance(4.9)
+		if inQueue(ns)[ANNA] then
+			fail(scenario, "SKIPPED -- Anna, last read wearing the buff, was offered 4.9 seconds after the fight")
+			return
+		end
+		Mock.auraReadRefuse = nil
+		Mock.advance(0.6)
+		local entry = inQueue(ns)[ANNA]
+		if not entry then
+			fail(scenario, "Anna, readable and missing the buff 5.5 seconds after the fight, was still held back"
+				.. " on what was last read of her")
+		elseif entry.known ~= false then
+			fail(scenario, "Anna was offered with known=" .. tostring(entry.known))
+		end
+	end)
+end
+
+-- ------------------------------------------------------------ unverified 25
+-- A probe made in a fight takes the buff for secret, and every reading of it
+-- is refused before it is asked. Read wearing it before the pull, she is not
+-- offered it in the fight: what was last read of her answers the refusal, as
+-- for any other.
+do
+	local scenario = "unverified: a probe made in a fight keeps the last reading for what it refuses"
+	session(scenario, function(ns, ids, buff)
+		Mock.held, Mock.heldFor = { [buff.ranks[1]] = true }, 1800
+		Mock.advance(4)
+		if inQueue(ns)[ANNA] then
+			fail(scenario, "SKIPPED -- Anna was offered while read wearing the buff")
+			return
+		end
+		Mock.held = nil
+		fightStarts(ns)
+		Mock.secretAuraIds = {}
+		for _, id in ipairs(ids) do Mock.secretAuraIds[id] = true end
+		ns.Guard("probe", ns.ProbeCapabilities)
+		if ns.BuffInfo(buff).readable then
+			fail(scenario, "SKIPPED -- the probe in the fight still took the buff for readable")
+			return
+		end
+		Mock.advance(4)
+		local entry = inQueue(ns)[ANNA]
+		if entry then
+			fail(scenario, ("Anna, read wearing the buff before the fight, was offered (known=%s) in it once a"
+				.. " probe made there took the buff for secret"):format(tostring(entry.known)))
+		end
+	end)
+end
+
+-- ------------------------------------------------------------ unverified 26
+-- The client still withholding as the fight ends, the probe made then takes
+-- the buff for secret again: what it refuses is withheld, and nobody is
+-- offered on it in the first seconds, as for any refusal the client may lift
+-- a moment on. Past them, as before.
+do
+	local scenario = "unverified: a probe made as a fight ends marks its refusals withheld"
+	session(scenario, function(ns, ids, buff)
+		-- The mock builds C_Secrets afresh on every read, so the namespace is
+		-- replaced by a copy with one answer changed, and the lazy one put back.
+		local copy = {}
+		for key, value in pairs(C_Secrets) do copy[key] = value end
+		copy.ShouldAurasBeSecret = function() return true end
+		local ok, err = pcall(function()
+			fightStarts(ns)
+			Mock.secretAuraIds = {}
+			for _, id in ipairs(ids) do Mock.secretAuraIds[id] = true end
+			rawset(_G, "C_Secrets", copy)
+			ns.Guard("probe", ns.ProbeCapabilities)
+			if ns.BuffInfo(buff).readable then
+				fail(scenario, "SKIPPED -- the probe in the fight still took the buff for readable")
+				return
+			end
+			Mock.advance(4)
+			inQueue(ns)
+			fightEnds(ns)
+			if ns.BuffInfo(buff).readable then
+				fail(scenario, "SKIPPED -- the probe as the fight ended took the buff for readable")
+				return
+			end
+			local entry = inQueue(ns)[ANNA]
+			if entry then
+				fail(scenario, ("Anna, refused as the fight ended by a client that still withheld, was offered"
+					.. " (known=%s) at once"):format(tostring(entry.known)))
+			end
+			Mock.advance(6)
+			entry = inQueue(ns)[ANNA]
+			if not entry then
+				fail(scenario, "Anna, still refused well after the fight, is never offered unverified")
+			elseif entry.known ~= nil then
+				fail(scenario, "a refused reading came back as " .. tostring(entry.known))
+			end
+		end)
+		rawset(_G, "C_Secrets", nil)
+		if not ok then error(err, 0) end
+	end)
+end

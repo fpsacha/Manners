@@ -594,6 +594,8 @@ do
 		-- What measures nearness depends on the spellbook, bags and libraries, and
 		-- this runs whenever those may have changed (SPELLS_CHANGED).
 		ns.ForgetProximity()
+		-- What was read under the last probe (ns.ForgetAuraCache).
+		if ns.ForgetAuraCache then ns.ForgetAuraCache() end
 
 		playerClass = plain(select(2, UnitClass("player")))
 		caps.class = playerClass
@@ -1881,6 +1883,17 @@ local function ForgetUnitAuras(guid)
 	auraCacheCount = auraCacheCount - 1
 end
 ns.ForgetUnitAuras = ForgetUnitAuras
+
+-- Every answer held, when a probe (ProbeCapabilities) runs: which ids are
+-- secret may change with it, and an answer read under the last probe would
+-- stand for up to three seconds under the next. A buff the probe made in a
+-- fight took for secret (probeHidden) is still read through the cache, so a
+-- reading from before the probe would pass for a verdict on somebody nobody
+-- can read now.
+function ns.ForgetAuraCache()
+	wipe(auraCache)
+	auraCacheCount = 0
+end
 
 -- How long a reading is trusted before the client is asked again. A refusal
 -- in the first seconds after a fight is kept a third as long: the client stops

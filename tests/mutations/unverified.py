@@ -2,9 +2,11 @@
 # buff worn kept past a refusal of that same id while its timer runs, whose
 # cast it was and a stronger rank with it, and dropped on a death (Core.lua,
 # lastWorn), a refusal asked again sooner in the seconds after a fight and at
-# once when one ends (REFUSAL_SECONDS, ns.ForgetRefusals), a probe made in a
-# fight or while the client withheld made again as it ends, and once more a
-# few seconds on (caps.probedInFight), nobody offered unverified in the first
+# once when one ends (REFUSAL_SECONDS, ns.ForgetRefusals), nothing written in
+# those seconds trusted past them (trustedTo, stamped as it is written), a probe
+# made in a fight or while the client withheld made again as it ends, and once
+# more a few seconds on (caps.probedInFight), its refusals still accounted for
+# meanwhile (info.probeHidden), nobody offered unverified in the first
 # seconds after a fight but on a refusal for good, nor a top-up off the last
 # reading (Core.lua, UNVERIFIED_SECONDS; Queue.lua), and "Only offer people
 # whose buffs can be read" (filters.verifiedOnly), none of which holds back
@@ -36,10 +38,33 @@ mutate("Core.lua",
 
 # ------------------------------------------------ asked again
 mutate("Core.lua",
-       "\t\t\tand REFUSAL_SECONDS or READING_SECONDS) then\n",
-       "\t\t\tand READING_SECONDS or READING_SECONDS) then\n",
+       "\t\t\tif has == nil then trustedTo = now + REFUSAL_SECONDS end\n",
+       "\t\t\tif has == nil then trustedTo = now + READING_SECONDS end\n",
        "unverified: a refusal is trusted as long as a reading",
        expect="a refusal just after a fight was trusted past a second", script=S)
+
+# What is written in the wait is not trusted past it (the stamp is fixed as the
+# answer is written, capped at the wait's end): a refusal, and the last reading
+# standing in for one, each by its own scenario.
+mutate("Core.lua",
+       "\t\t\tif trustedTo > windowEnds then trustedTo = windowEnds end\n",
+       "\t\t\tif has ~= nil and trustedTo > windowEnds then trustedTo = windowEnds end\n",
+       "unverified: a refusal written late in the wait outlives it",
+       expect="on a refusal written before the wait ended", script=S)
+
+mutate("Core.lua",
+       "\t\t\tif trustedTo > windowEnds then trustedTo = windowEnds end\n",
+       "\t\t\tif has == nil and trustedTo > windowEnds then trustedTo = windowEnds end\n",
+       "unverified: the last reading kept in the wait outlives it",
+       expect="was still held back on what was last read of her", script=S)
+
+# A stale reading rewritten in place is trusted afresh, or the walk reads its
+# source (ReadingSource) as long gone and offers the refused unverified.
+mutate("Core.lua",
+       "\t\t\tcached.trustedTo = trustedTo\n",
+       "",
+       "unverified: a rewritten reading keeps its old stamp",
+       expect="was offered unverified two seconds after the fight", script=S)
 
 mutate("Core.lua",
        "\t\t\tif entry.has == nil then perUnit[key] = nil end\n",
@@ -54,6 +79,12 @@ mutate("Core.lua",
        expect="unverified: the fight's refusals are asked again as it ends", script=S)
 
 # ------------------------------------------------ the probe
+mutate("Core.lua",
+       "\tif not info or not (info.readable or info.probeHidden) then return nil, nil end\n",
+       "\tif not info or not info.readable then return nil, nil end\n",
+       "unverified: a probe made in a fight leaves what it refuses unaccounted",
+       expect="once a probe made there took the buff for secret", script=S)
+
 mutate("Core.lua",
        "\tif caps.probedInFight then\n\t\tns.Guard(\"ProbeCapabilities\", ns.ProbeCapabilities)\n",
        "\tif false then\n\t\tns.Guard(\"ProbeCapabilities\", ns.ProbeCapabilities)\n",
@@ -200,8 +231,8 @@ mutate("Queue.lua",
 
 # ------------------------------------------------ the fight's end
 mutate("Core.lua",
-       "(cached.has == nil and not InCombatLockdown() and JustAfterFight(now))",
-       "(cached.has == nil and not InCombatLockdown())",
+       "\t\tlocal trustedTo = now + READING_SECONDS\n",
+       "\t\tlocal trustedTo = now + ((has == nil and not InCombatLockdown()) and REFUSAL_SECONDS or READING_SECONDS)\n",
        "unverified: every refusal out of a fight is asked again sooner",
        expect="out of any fight's wake was asked again", script=S)
 
@@ -242,3 +273,11 @@ mutate("Core.lua",
        "\t\tcaps.probedInFight = InCombatLockdown() == true\n",
        "unverified: a probe made while withheld is kept",
        expect="still unreadable three seconds after the fight", script=S)
+
+# A probe keeps the answers read under the last one: a reading from before a
+# probe that hid the buff passes for a verdict on somebody nobody can read.
+mutate("Core.lua",
+       "\t\tif ns.ForgetAuraCache then ns.ForgetAuraCache() end\n",
+       "",
+       "unverified: a probe keeps what was read under the last one",
+       expect="outranked the debt owed to", script=S)
