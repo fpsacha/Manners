@@ -100,7 +100,7 @@ checkout's top folder:
 | `Manners_Vanilla.toc` | 11509 | Classic Era 1.15.9 |
 | `Manners_TBC.toc` | 20506 | Burning Crusade Classic Anniversary 2.5.6 |
 | `Manners_Mists.toc` | 50504 | Mists of Pandaria Classic 5.5.4 |
-| `Manners_Mainline.toc` | 120100 | retail 12.1.0 |
+| `Manners_Mainline.toc` | 120105 | retail 12.1.5 |
 
 `tools/release.py` prints the packager's "Game version:" line. If the packager
 cannot map a new interface number to a CurseForge game version, the upload

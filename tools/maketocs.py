@@ -50,7 +50,7 @@ FLAVOURS = [
     ("Vanilla", 11509),     # Classic Era 1.15.9 -- since 1.6.7
     ("TBC", 20506),         # Burning Crusade Classic Anniversary 2.5.6
     ("Mists", 50504),       # Mists of Pandaria Classic 5.5.4
-    ("Mainline", 120100),   # retail "Midnight" 12.1.0
+    ("Mainline", 120105),   # retail "Midnight" 12.1.5
 ]
 
 # Written, but not where the packager or the game looks (see the docstring).

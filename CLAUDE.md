@@ -71,7 +71,7 @@ control placed exactly once), and its strings translated.
 | `vanilla` | Classic Era 1.15.9 | 11509 | `Manners_Vanilla.toc` | classic | yes | no | realm |
 | `tbc` | Burning Crusade Classic Anniversary 2.5.6 | 20506 | `Manners_TBC.toc` | classic | yes | no | realm |
 | `mists` | Mists of Pandaria Classic 5.5.4 | 50504 | `Manners_Mists.toc` | classic | yes | no | realm |
-| `mainline` | retail Midnight 12.1.0 | 120100 | `Manners_Mainline.toc` | modern | no | yes | realm |
+| `mainline` | retail Midnight 12.1.5 | 120105 | `Manners_Mainline.toc` | modern | no | yes | realm |
 
 All five ship: WoW Forever from the first release, Classic Era since 1.6.7,
 TBC, Mists and retail since 1.7.0. Forever is the

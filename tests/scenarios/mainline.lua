@@ -153,8 +153,8 @@ do
 	local scenario = "mainline: retail is read as Midnight and given the mainline set"
 	retail(scenario, {}, function(ns)
 		local f, caps = ns.Flavour or {}, ns.caps or {}
-		if f.flavour ~= "mainline" or f.family ~= "modern" or f.interface ~= 120100
-			or f.build ~= "12.1.0" or f.recognised ~= true or f.agrees ~= true then
+		if f.flavour ~= "mainline" or f.family ~= "modern" or f.interface ~= 120105
+			or f.build ~= "12.1.5" or f.recognised ~= true or f.agrees ~= true then
 			fail(scenario, "read as " .. tostring(ns.FlavourSummary and ns.FlavourSummary()))
 		end
 		if ns.BUFFS_SOURCE ~= "mainline" then
@@ -205,7 +205,7 @@ do
 		end
 		ns.addon:HandleSlash("debug")
 		local said = table.concat(Mock.printed, "\n")
-		if not said:find("mainline/modern interface=120100 build=12.1.0", 1, true) then
+		if not said:find("mainline/modern interface=120105 build=12.1.5", 1, true) then
 			fail(scenario, "/manners debug does not name the client: " .. flat(said))
 		end
 	end)

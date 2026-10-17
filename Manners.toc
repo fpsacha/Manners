@@ -6,7 +6,7 @@
 # The interface is a single number, 16001, because 1.0 ships for WoW Forever
 # alone. It is the one client anybody here can test, and the number is the one
 # that shipped and is known to work there.
-## Interface: 16001, 11509, 20506, 50504, 120100
+## Interface: 16001, 11509, 20506, 50504, 120105
 ## Title: Manners
 ## Notes: One click to buff back whoever just buffed you, and nearby players missing yours.
 ## Notes-deDE: Ein Klick erwidert den Gefallen, wenn Euch gerade jemand gestärkt hat, und stärkt Spieler in der Nähe, denen Euer Stärkungszauber fehlt.
