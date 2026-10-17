@@ -9958,7 +9958,7 @@ Mock.reset()
 local CLIENTS = {
 	{ flavour = "camelot", family = "modern", interface = 16001,
 		project = WOW_PROJECT_MAINLINE, set = "vanilla", surname = true },
-	{ flavour = "mainline", family = "modern", interface = 120100,
+	{ flavour = "mainline", family = "modern", interface = 120105,
 		project = WOW_PROJECT_MAINLINE, set = "mainline", surname = false },
 	{ flavour = "mists", family = "classic", interface = 50504,
 		project = WOW_PROJECT_MISTS_CLASSIC, set = "mists", surname = false },
