@@ -3660,11 +3660,11 @@ mutate("Clicks.lua",
        expect="the client said the global cooldown was idle",
        script="runscenarios.py")
 
-# And a spell the client says is off the global cooldown arming the guess
-# anyway, where 61304 will not answer.
+# And a spell the client says is off the global cooldown keeping the guess
+# anyway, where 61304 will not answer: SPELL_UPDATE_COOLDOWN's word on it unheard.
 mutate("Clicks.lua",
-       "\t\t\tif plain(info.isOnGCD) == false then return end\n",
-       "",
+       "\tif onGcd == false then\n",
+       "\tif false then\n",
        "an off-GCD spell arming the fallback",
        expect="a spell the client says is off the global cooldown still held the prompt",
        script="runscenarios.py")

@@ -15179,10 +15179,13 @@ if ns then
 
 	-- Where the global cooldown will not be read, a spell that says it is off
 	-- it still holds nothing -- and one that says nothing either way keeps the
-	-- guess, which is what stops a press being refused.
+	-- guess, which is what stops a press being refused. The client says so as
+	-- the game does, with SPELL_UPDATE_COOLDOWN after the cast went out: the
+	-- flag is not to be trusted at SENT, before the cooldown has started.
 	clearClicks(ns)
 	Mock.spellCooldowns = { [6262] = { duration = 0, isOnGCD = false } }
 	ns.addon:UNIT_SPELLCAST_SENT(nil, "player", nil, "Cast-hand", 6262)
+	ns.addon:SPELL_UPDATE_COOLDOWN()
 	Mock.advance(0.3)
 	if not ns.CastReady() then
 		fail(scenario, "a spell the client says is off the global cooldown still held the prompt")
@@ -15190,6 +15193,7 @@ if ns then
 	clearClicks(ns)
 	Mock.spellCooldowns = { [6262] = 0 }
 	ns.addon:UNIT_SPELLCAST_SENT(nil, "player", nil, "Cast-hand", 6262)
+	ns.addon:SPELL_UPDATE_COOLDOWN()
 	Mock.advance(0.3)
 	if ns.CastReady() then
 		fail(scenario, "with nothing readable, the one-and-a-half-second guess was dropped")
