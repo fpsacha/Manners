@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.7.7
 
 - **Fewer "unverified" offers after a fight.** The game hides other players'
   buffs in a fight, and as soon as it ended Manners offered people already
