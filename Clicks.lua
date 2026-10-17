@@ -808,6 +808,10 @@ local function GlobalCooldownReading()
 		if id then
 			start, duration = CooldownReading(id)
 			if start and duration <= 3 then return start, duration end
+			-- A client that gives no figure for one of them gives none for the
+			-- rest (every figure withheld in a fight), and the sweep asks at every
+			-- cooldown update: one more read is all it costs there.
+			if not start then break end
 		end
 	end
 	return nil

@@ -47,6 +47,14 @@ mutate("Clicks.lua",
        "hunt23-clicks: the search ends at the first buff",
        expect="hunt23-clicks: gcd-reference (the next buff, vanilla)", script=S)
 
+# Every known buff asked though none gives a figure: a fight on Forever reads the
+# client once per buff at every cooldown update.
+mutate("Clicks.lua",
+       "\t\t\tif not start then break end\n",
+       "",
+       "hunt23-clicks: every buff asked though none answers",
+       expect="hunt23-clicks: gcd-reference (withheld, camelot)", script=S)
+
 # ------------------------------------------------------------ isOnGCD at SENT
 # SENT trusting an isOnGCD of false, read before the cooldown has started: with
 # every figure withheld a press 0.3 s after an Intellect goes into the cooldown.

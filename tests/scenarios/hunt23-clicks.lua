@@ -198,6 +198,45 @@ do
 	end)
 end
 
+-- hunt23-clicks: gcd-reference (withheld) (Clicks.lua GlobalCooldownReading)
+--
+-- With every figure withheld (a fight on Forever) 61304 gives nothing and neither
+-- does the first buff, and the rest are not asked: the sweep reads at every
+-- cooldown update, and a priest with three buffs would cost four reads of the
+-- client each time, not two.
+do
+	local scenario = "hunt23-clicks: gcd-reference (withheld, camelot)"
+	local known = { [1243] = true, [976] = true, [14752] = true }
+	local reads = 0
+	run(scenario, "camelot", "PRIEST", { nameplate1 = { "Anna", "Aim" } }, function(ns)
+		local secret = { startTime = Mock.SECRET, duration = Mock.SECRET, isActive = true }
+		Mock.spellCooldowns = { [61304] = secret, [1243] = secret, [976] = secret, [14752] = secret }
+		Mock.inCombat = true
+		-- The mock builds its C_Spell afresh on each look, so one is set in its
+		-- place for the while and taken away after.
+		local spells = _G.C_Spell
+		local real = spells.GetSpellCooldown
+		spells.GetSpellCooldown = function(id)
+			reads = reads + 1
+			return real(id)
+		end
+		rawset(_G, "C_Spell", spells)
+		local ok, err = pcall(function()
+			ns.CastReady()
+			if reads ~= 2 then
+				fail(scenario, "the client was read " .. reads .. " times for the global cooldown with every figure"
+					.. " withheld, wanted 2 (61304 and the first buff)")
+			end
+		end)
+		rawset(_G, "C_Spell", nil)
+		if not ok then fail(scenario, "threw: " .. tostring(err)) end
+	end, function()
+		local is = function(id) return known[id] == true end
+		rawset(_G, "IsSpellKnown", is)
+		rawset(_G, "IsPlayerSpell", is)
+	end)
+end
+
 -- ------------------------------------------------------ isOnGCD read at SENT
 -- hunt23-clicks: notecast-isongcd-at-sent (Clicks.lua NoteCastWentOut,
 -- DropGuessOffGcd)
