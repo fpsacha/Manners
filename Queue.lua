@@ -227,6 +227,10 @@ do
 	local lastError, lastErrorAt = nil, 0
 	-- Who the newest refusal was about, for an error line arriving just after.
 	local newest
+	-- Whom the player last picked as their target on purpose: what
+	-- PLAYER_TARGET_CHANGED last handed LiftBackoff, nil once they cleared it.
+	-- Not whoever the prompt's own macro left targeted, which the event ignores.
+	local pointedAt
 
 	-- Errors about the caster rather than the person (out of mana, moving, the
 	-- cooldown, still on a flying mount): they hold the spoken line, since
@@ -349,6 +353,15 @@ do
 		r.last = now
 		r.count = r.count + 1
 		r.why = type(why) == "string" and why or nil
+		-- Somebody the player has picked out and still has selected is not backed
+		-- off: the lift is a change of target (LiftBackoff), and selecting the
+		-- person already selected sends none, so the prompt would turn from them
+		-- for good. The refusal is counted, so the next one, once they are no
+		-- longer the target, backs them off at the step it has reached. Only a
+		-- target the player chose: the macro's own /target (a hand-back switched
+		-- off, or nothing targeted before it) leaves its person targeted too, and
+		-- they must still be let go. Nothing to say in chat either: they stay offered.
+		if name == pointedAt and ns.UnitFullName("target") == name then return end
 		local debt = owed[name]
 		local steps = (debt and LiveExpiry(debt) > now) and OWED_STEPS or STEPS
 		local seconds = steps[math.min(r.count, #steps)]
@@ -379,8 +392,11 @@ do
 	end
 
 	-- The player pointed at them on purpose (PLAYER_TARGET_CHANGED): the
-	-- back-off lifts, the count stays, so another refusal backs off again.
+	-- back-off lifts, the count stays, so another refusal backs off again. `name`
+	-- is nil when the target was cleared, and the choice is remembered either way
+	-- (see NoteRefusal).
 	function ns.LiftBackoff(name)
+		pointedAt = name
 		local r = name and refusals[name]
 		if r then r.blockUntil = 0 end
 	end
