@@ -67,10 +67,18 @@ mutate("Core.lua",
        expect="was offered unverified two seconds after the fight", script=S)
 
 mutate("Core.lua",
-       "\t\t\tif entry.has == nil then perUnit[key] = nil end\n",
-       "\t\t\tif false then perUnit[key] = nil end\n",
+       "\t\t\tif entry.has == nil or entry.src == \"kept\" then perUnit[key] = nil end\n",
+       "\t\t\tif entry.src == \"kept\" then perUnit[key] = nil end\n",
        "unverified: the fight's refusals are kept past it",
        expect="unverified: the fight's refusals are asked again as it ends", script=S)
+
+# The last reading standing in for a refusal goes with the refusals, or a
+# reading kept in the fight holds back somebody readable after it.
+mutate("Core.lua",
+       "\t\t\tif entry.has == nil or entry.src == \"kept\" then perUnit[key] = nil end\n",
+       "\t\t\tif entry.has == nil then perUnit[key] = nil end\n",
+       "unverified: the fight's kept readings outlive it",
+       expect="unverified: a kept reading goes with the fight's refusals", script=S)
 
 mutate("Core.lua",
        "\tns.ForgetRefusals()\n\tif ns.ForgetUnreadPassersBy then ns.ForgetUnreadPassersBy() end\n",

@@ -1014,3 +1014,38 @@ do
 		if not ok then error(err, 0) end
 	end)
 end
+
+-- ------------------------------------------------------------ unverified 27
+-- The last reading standing in for a refusal is a refusal all the same, and
+-- goes with the fight's: read wearing the buff, refused in the fight, she
+-- loses it (dispelled, cancelled) with its timer still running. Readable again
+-- as the fight ends, she is offered on the first scan after it, as needing
+-- it, not held back for up to three seconds on what was last read of her in
+-- the fight.
+do
+	local scenario = "unverified: a kept reading goes with the fight's refusals"
+	session(scenario, function(ns, ids, buff)
+		Mock.held, Mock.heldFor = { [buff.ranks[1]] = true }, 1800
+		Mock.advance(4)
+		if inQueue(ns)[ANNA] then
+			fail(scenario, "SKIPPED -- Anna was offered while read wearing the buff")
+			return
+		end
+		Mock.held = nil
+		fightStarts(ns)
+		refuse(ids, "secret")
+		if inQueue(ns)[ANNA] then
+			fail(scenario, "SKIPPED -- Anna, last read wearing the buff, was offered in the fight")
+			return
+		end
+		Mock.auraReadRefuse = nil
+		fightEnds(ns)
+		local entry = inQueue(ns)[ANNA]
+		if not entry then
+			fail(scenario, "Anna, readable and missing the buff, was not offered on the first scan after the fight:"
+				.. " the reading kept in it outlived its end")
+		elseif entry.known ~= false then
+			fail(scenario, "Anna was offered with known=" .. tostring(entry.known))
+		end
+	end)
+end

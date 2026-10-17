@@ -2002,13 +2002,14 @@ end
 
 -- The fight is over: what it refused says nothing about now. Refusals are
 -- dropped from the cache, so the next scan asks the client again at once
--- rather than up to three seconds on. The moment is kept for the wait before
+-- rather than up to three seconds on; so is the last reading standing in for
+-- one ("kept"), a refusal all the same. The moment is kept for the wait before
 -- an unverified offer (UNVERIFIED_SECONDS, JustAfterFight).
 function ns.ForgetRefusals()
 	ns.fightEndedAt = GetTime()
 	for guid, perUnit in pairs(auraCache) do
 		for key, entry in pairs(perUnit) do
-			if entry.has == nil then perUnit[key] = nil end
+			if entry.has == nil or entry.src == "kept" then perUnit[key] = nil end
 		end
 		if next(perUnit) == nil then ForgetUnitAuras(guid) end
 	end

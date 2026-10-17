@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- **Offered the moment a fight ends.** Somebody Manners remembered wearing
+  your buff from before a fight, who lost it in the fight (dispelled, or
+  clicked off), waited up to three seconds after it to be offered it again.
+  Now they are read again the moment the fight ends, like everybody else.
+
 ## 1.7.7
 
 - **Fewer "unverified" offers after a fight.** The game hides other players'
