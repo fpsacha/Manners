@@ -6335,14 +6335,17 @@ if ns then
 	end
 
 	-- And the chain stops. A client that never answers must not leave a scan
-	-- running every fifth of a second for the rest of the session: past the
-	-- count the baseline goes back to waiting for an event, which is where it
-	-- was before any of this existed.
+	-- running for the rest of the session: past the counts of its two stages
+	-- (a fast one, then a slower one that outlasts a refusal of half a minute)
+	-- the baseline goes back to waiting for an event, which is where it was
+	-- before any of this existed. Stepped a fifth of a second at a time for a
+	-- minute, every stage and some to spare; how often it is asked, and how
+	-- far the slow stage reaches, is tests/scenarios/hunt23-favours.lua's.
 	Mock.extraAura = false
 	Mock.auraBlackout = true
 	ns.addon:PLAYER_ENTERING_WORLD()
 	local finished = true
-	for _ = 1, 40 do
+	for _ = 1, 300 do
 		if not Mock.runTimers(0.2) then
 			finished = false
 			break
@@ -9825,7 +9828,9 @@ for _, case in ipairs({
 			fail(scenario, "SKIPPED -- the unaltered line was not a favour either")
 		end
 		wipe(ns.owed)
-		-- Far enough on that the control's claim has gone stale.
+		-- Far enough on that the control's claim has gone stale: past the longest
+		-- the claim is kept, which is both settle stages of the aura scan and a
+		-- tick (Favours.lua, NOTE_MEMORY), 35 seconds.
 		--
 		-- Most of these cases leave the caster and the spell alone, so the mark
 		-- the control left behind is the mark the case would claim -- and the
@@ -9833,7 +9838,7 @@ for _, case in ipairs({
 		-- than because the field it changed was filtered. Every one of these
 		-- passed for that reason before the clock was moved, and four of them
 		-- went on passing with the filter they are about deleted.
-		Mock.advance(30)
+		Mock.advance(60)
 
 		Mock.cleu = case.cleu
 		-- Ignored, not thrown on. A handler that dies on a line it cannot use

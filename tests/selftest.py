@@ -1693,10 +1693,11 @@ mutate("Favours.lua",
 
 # 52. and the bound on the other side of it. Asking for the next reading from
 #     inside the last one is a chain, and a client that never answers is a
-#     chain that never ends -- a forty-slot aura walk every fifth of a second
-#     for the rest of the session, for a baseline that is not going to settle.
+#     chain that never ends -- a forty-slot aura walk every fifth of a second,
+#     then every second, for the rest of the session, for a baseline that is
+#     not going to settle. The bound is the two stages' tries together.
 mutate("Favours.lua",
-       "\tif settlePending or settleTries >= SETTLE_TRIES then return end\n",
+       "\tif settlePending or settleTries >= SETTLE_TRIES + SETTLE_SLOW_TRIES then return end\n",
        "\tif settlePending then return end\n",
        "a settling chain with no end to it",
        expect="a client that never settles is still being scanned on a timer",

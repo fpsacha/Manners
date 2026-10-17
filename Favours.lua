@@ -233,17 +233,32 @@ do
 	-- UNIT_AURA can be minutes away, and anything landing meanwhile would be filed
 	-- as already carried. The count bounds what a client that never settles
 	-- costs. Both reset on a zone change, the only thing that unprimes a baseline.
+	--
+	-- The count is spent by every scan the client refuses as well, and a loading
+	-- screen, a fight or a match can refuse the list for longer than four seconds.
+	-- With the tries gone nothing asked for the second reading when the client
+	-- answered again, and the baseline waited for the next UNIT_AURA, which is the
+	-- favour itself: in both readings, filed as carried. So a slower stage follows
+	-- the fast one, a second apart for thirty scans: half a minute more, for a walk
+	-- of forty slots behind one protected call each, made only while the baseline
+	-- is unsettled and given back on a zone change like the rest. The gap a landing
+	-- can fall into after the client answers is one interval, so up to a second
+	-- there, where it was until the next event. A refusal that outlasts both (a
+	-- keystone, a long fight) still ends at the next UNIT_AURA.
 	local SETTLE_INTERVAL = 0.2
 	local SETTLE_TRIES = 20
+	local SETTLE_SLOW_INTERVAL = 1
+	local SETTLE_SLOW_TRIES = 30
 	local settleTries = 0
 	local settlePending = false
 
 	local function ScheduleSettle()
-		if settlePending or settleTries >= SETTLE_TRIES then return end
+		if settlePending or settleTries >= SETTLE_TRIES + SETTLE_SLOW_TRIES then return end
 		if not (C_Timer and C_Timer.After) then return end
+		local interval = settleTries < SETTLE_TRIES and SETTLE_INTERVAL or SETTLE_SLOW_INTERVAL
 		settleTries = settleTries + 1
 		settlePending = true
-		C_Timer.After(SETTLE_INTERVAL, function()
+		C_Timer.After(interval, function()
 			settlePending = false
 			-- Guarded: a throw inside a timer callback would leave the baseline
 			-- unsettled for the session without a word.
@@ -507,8 +522,9 @@ do
 	-- first source and CONSUMED by the other, so a genuine recast afterwards is
 	-- still announced (STATUS.md). A mark nobody consumes (the stranger only the
 	-- log sees) suppresses a real recast until it expires, so the window is the
-	-- aura scan's longest deferral, SETTLE_INTERVAL * SETTLE_TRIES, plus a tick.
-	local NOTE_MEMORY = (SETTLE_INTERVAL * SETTLE_TRIES) + 1
+	-- aura scan's longest deferral, both settle stages together, plus a tick.
+	local NOTE_MEMORY = (SETTLE_INTERVAL * SETTLE_TRIES)
+		+ (SETTLE_SLOW_INTERVAL * SETTLE_SLOW_TRIES) + 1
 	local notedFavours = {}
 
 	local function ClaimFavour(name, spellKey)
@@ -837,7 +853,8 @@ do
 		-- from holding nothing, and is left as it is. Likewise a buff landing
 		-- between the first true reading and the one corroborating it is filed as
 		-- already carried and never announced -- better unheard than filed against
-		-- a bystander. The settle timer keeps that gap at SETTLE_INTERVAL. A scan
+		-- a bystander. The settle timer keeps that gap at SETTLE_INTERVAL, or at
+		-- SETTLE_SLOW_INTERVAL once a refusal has outlasted the fast stage. A scan
 		-- the evidence above can see through never becomes one of the two readings,
 		-- which narrows the residue to shapes nothing can see; nothing closes it.
 	end
