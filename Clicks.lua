@@ -677,8 +677,10 @@ end
 -- The global cooldown, read where the client will say and tracked where not.
 -- On the retail line Forever descends from, spell 61304 IS the global
 -- cooldown for every class, and addons on Forever read it (EnhanceQoL's
--- GCD bar). It may be withheld, in a fight most of all, so the fallback
--- tracks it: once a cast is sent, nothing else casts for about 1.5 seconds.
+-- GCD bar); Classic Era and Burning Crusade Classic have no such spell, and
+-- GlobalCooldownReading reads one of our buffs instead. It may be withheld, in
+-- a fight most of all, so the fallback tracks it: once a cast is sent, nothing
+-- else casts for about 1.5 seconds.
 local GCD_FALLBACK = 1.5
 local GCD_SPELL = 61304
 local castBlockedUntil = 0
@@ -729,39 +731,70 @@ function ns.SpellQueueWindow()
 	return 0.4
 end
 
--- What is left of a spell's cooldown by the client's own figure, or nil where
--- it gives none. An idle spell reads a zero start and duration: a readable 0.
-local function CooldownLeft(spell, now)
+-- A spell's cooldown by the client's own figure, as a start and a length, or
+-- nil where it gives none. An idle spell reads a zero start and duration: a
+-- readable 0.
+local function CooldownReading(spell)
 	local get = C_Spell and C_Spell.GetSpellCooldown
 	if not get then return nil end
 	local ok, info = pcall(get, spell)
 	if not ok or type(info) ~= "table" then return nil end
 	local start, duration = plain(info.startTime), plain(info.duration)
 	if type(start) ~= "number" or type(duration) ~= "number" then return nil end
+	return start, duration
+end
+
+-- What is left of a spell's cooldown by that figure, or nil where it gives none.
+local function CooldownLeft(spell, now)
+	local start, duration = CooldownReading(spell)
+	if not start then return nil end
 	local left = start + duration - now
 	if left < 0 then left = 0 end
 	return left
 end
 
--- ...and of the global cooldown, which 61304 stands for.
+-- The global cooldown by the client's own figure, as a start and a length, or
+-- nil where it gives none. Spell 61304 stands for it where the client has the
+-- spell. Classic Era and Burning Crusade Classic have no row for it in their
+-- spell data: there the global cooldown is a property of each spell, and the
+-- client's own action bars draw it from the spell's own cooldown. So one of our
+-- buffs stands in, the first the player knows with a reading no longer than a
+-- global cooldown (3 s, as NoteCastWentOut bounds it): none of them has a
+-- cooldown of its own, and a longer one, a spell's own, never passes for the
+-- global one. Asked only where 61304 says nothing, so a client that answers for
+-- it is read exactly as before.
+local function GlobalCooldownReading()
+	local start, duration = CooldownReading(GCD_SPELL)
+	if start then return start, duration end
+	local buffs = caps.buffs
+	for _, buff in ipairs(caps.class and ns.GetClassBuffs(caps.class) or {}) do
+		local info = buffs and buffs[buff.key]
+		local id = info and info.known and info.topRank
+		if id then
+			start, duration = CooldownReading(id)
+			if start and duration <= 3 then return start, duration end
+		end
+	end
+	return nil
+end
+
+-- ...and what is left of the global cooldown.
 local function GlobalCooldownLeft(now)
-	return CooldownLeft(GCD_SPELL, now)
+	local start, duration = GlobalCooldownReading()
+	if not start then return nil end
+	local left = start + duration - now
+	if left < 0 then left = 0 end
+	return left
 end
 
 -- The global cooldown as a start and a length, for the sweep the prompt draws
 -- over its icon, or nil when none is running. The same sources as CastReady,
 -- so the sweep and the "ready in" line agree about when the button is ready.
 local function GcdSpan(now)
-	local get = C_Spell and C_Spell.GetSpellCooldown
-	if get then
-		local ok, info = pcall(get, GCD_SPELL)
-		if ok and type(info) == "table" then
-			local start, duration = plain(info.startTime), plain(info.duration)
-			if type(start) == "number" and type(duration) == "number" then
-				if duration > 0 and start + duration > now then return start, duration end
-				return nil
-			end
-		end
+	local start, duration = GlobalCooldownReading()
+	if start then
+		if duration > 0 and start + duration > now then return start, duration end
+		return nil
 	end
 	if castBlockedUntil > now and castBlockedUntil > castBlockedFrom then
 		return castBlockedFrom, castBlockedUntil - castBlockedFrom
