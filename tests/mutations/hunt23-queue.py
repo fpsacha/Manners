@@ -65,3 +65,11 @@ mutate("Queue.lua",
        "hunt23-queue: the group switch writes no verdict",
        expect="hunt23-queue: the group switch turns away a remembered passer-by who joins",
        script=S)
+
+# Your own buff said to come first while your name is on the never-offer list.
+mutate("Queue.lua",
+       "\tif ListedAs(full) then return nil end\n",
+       "",
+       "hunt23-queue: your own buff comes first while you are never-offered",
+       expect="hunt23-queue: your own buff does not come first while your name is never-offered",
+       script=S)

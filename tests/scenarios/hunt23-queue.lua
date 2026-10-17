@@ -379,3 +379,81 @@ do
 	end)
 end
 
+-- ------------------------------------------------------ yourself, never-offered
+-- queue-selfbufffirst-ignores-never-list-self (Queue.lua SelfBuffFirst,
+-- Commands.lua MyselfLines)
+--
+-- SelfEntry, which builds the entry for yourself, ends on `ListedAs(full,
+-- verdict)`: your own name on the never-offer list means "no offer for you".
+-- SelfBuffFirst, which /manners debug and Diagnostics ask "which group buff
+-- would the prompt be on for you", had no such test, so with your own name
+-- listed the debug page said "your own Arcane Intellect comes first -- the
+-- buffs below wait until it has been cast" while the prompt offered you
+-- nothing.
+do
+	local scenario = "hunt23-queue: your own buff does not come first while your name is never-offered"
+	-- A mage who knows Arcane Intellect and her armors, as tests/scenarios/ownbuffs.lua
+	-- has her: /manners debug only speaks of "your own X comes first" with a
+	-- family of her own to put behind it.
+	local known = {}
+	for _, id in ipairs({ 1459, 1460, 1461, 10156, 10157, 23028, 168, 7300, 7301, 7302, 6117 }) do
+		known[id] = true
+	end
+	local function comesFirst(ns)
+		for _, line in ipairs(ns.MyselfLines(GetTime())) do
+			if line:find("comes first", 1, true) then return line end
+		end
+	end
+	local function before()
+		local is = function(id) return known[id] == true end
+		rawset(_G, "IsSpellKnown", is)
+		rawset(_G, "IsPlayerSpell", is)
+	end
+	run(scenario, "camelot", "MAGE", { nameplate1 = { "Anna", "Aim" } }, function(ns)
+		local db = ns.db.profile
+		Mock.playerHeld = {}
+		ns.ForgetUnitAuras(ns.plain(UnitGUID("player")))
+		Mock.advance(60)
+		local me = ns.UnitFullName("player")
+		local mine = entryFor(ns, me)
+		if not (mine and mine.reason == "self") then
+			fail(scenario, "SKIPPED -- you were not offered your own buff to begin with")
+			return
+		end
+		local first = ns.SelfBuffFirst(db, GetTime())
+		if not first then
+			fail(scenario, "SKIPPED -- SelfBuffFirst found no group buff for you before the listing")
+			return
+		end
+		if not comesFirst(ns) then
+			fail(scenario, "SKIPPED -- /manners debug did not say your own buff comes first before the listing")
+			return
+		end
+		-- Somebody else on the list changes nothing for you.
+		db.never["Somebody Else"] = true
+		if not ns.SelfBuffFirst(db, GetTime()) then
+			fail(scenario, "somebody else's name on the never-offer list took your own buff off SelfBuffFirst")
+		end
+		db.never["Somebody Else"] = nil
+		db.never[me] = true
+		Mock.advance(20)
+		if entryFor(ns, me) then
+			fail(scenario, "SKIPPED -- your own name on the never-offer list did not stop the offer")
+			return
+		end
+		local still = ns.SelfBuffFirst(db, GetTime())
+		if still then
+			fail(scenario, "the prompt offers you nothing (your own name is on the never-offer list), yet"
+				.. " SelfBuffFirst, which /manners debug reads, says your own " .. tostring(still.key)
+				.. " comes first")
+		end
+		-- And the line /manners debug prints from it.
+		local line = comesFirst(ns)
+		if line then fail(scenario, "/manners debug says: " .. line) end
+		-- Taken off the list, it is the first again.
+		db.never[me] = nil
+		if not ns.SelfBuffFirst(db, GetTime()) then
+			fail(scenario, "taken off the never-offer list, your own buff did not come first again")
+		end
+	end, before)
+end

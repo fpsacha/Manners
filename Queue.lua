@@ -1636,6 +1636,9 @@ end
 function ns.SelfBuffFirst(db, now)
 	local held, full = ns.MyselfHeldBack(db, now)
 	if held then return nil end
+	-- Your own name on the never-offer list: SelfEntry offers you nothing then,
+	-- so no group buff of yours is the one the prompt is on.
+	if ListedAs(full) then return nil end
 	-- The list BuildQueue hands SelfEntry: a group buff you cannot pay for is
 	-- not the one the prompt is on.
 	local mine = ns.SelfBuffs(Affordable(ns.CastableBuffs()))
