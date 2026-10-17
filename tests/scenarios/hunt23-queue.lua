@@ -208,3 +208,117 @@ do
 	end)
 end
 
+-- ------------------------------------------------------ the namesake
+-- queue-closeness-crossrealm-namesake-is-friend (Queue.lua Closeness)
+--
+-- "Who comes first: friends and guildmates" takes a player for a friend when
+-- their name is a friend's. Closeness runs that name test after
+-- C_FriendList.IsFriend has said no, and it used to take the realm off first
+-- (ns.TargetName), so a stranger from another realm who shares a name with a
+-- friend of yours was put ahead of everybody else of her kind and the tooltip
+-- called her a friend. Off Forever only: there the realm is how two Annas
+-- differ. The friends list names a friend of another realm with it
+-- ("Anna-Otherrealm") and one of your own without, and a friend of either
+-- kind is still found: by GUID, and where that is withheld by the name as filed.
+do
+	local scenario = "hunt23-queue: a namesake from another realm is not a friend"
+	local names = { nameplate1 = { "Anna", "Otherrealm" }, nameplate2 = { "Anna", "" } }
+	local function friendsList(list, isFriend)
+		return {
+			IsFriend = isFriend or function() return false end,
+			IsIgnored = function() return false end,
+			GetNumFriends = function() return #list end,
+			GetFriendInfoByIndex = function(i) return list[i] end,
+			GetNumIgnores = function() return 0 end,
+		}
+	end
+	for _, flavour in ipairs({ "vanilla", "tbc", "mists", "mainline" }) do
+		local label = scenario .. " (" .. flavour .. ")"
+		-- Your friend Anna of your own realm is nameplate2, known to the client by
+		-- her GUID; nameplate1 is a different Anna from another realm.
+		run(label, flavour, "MAGE", names, function(ns)
+			Mock.crossRealm = true
+			local friendGuid = "Player-1-nameplate2"
+			rawset(_G, "C_FriendList", friendsList({ { name = "Anna", guid = friendGuid } },
+				function(guid) return guid == friendGuid end))
+			ns.db.profile.priority.friends = true
+			Mock.advance(60)
+			local real = entryFor(ns, "Anna")
+			local namesake = entryFor(ns, "Anna-Otherrealm")
+			if not (real and namesake) then
+				fail(label, "SKIPPED -- both Annas were not offered: "
+					.. tostring(real and real.name) .. ", " .. tostring(namesake and namesake.name))
+				return
+			end
+			if real.close ~= "friend" then
+				fail(label, "SKIPPED -- the real friend was not read as one: " .. tostring(real.close))
+				return
+			end
+			if namesake.close ~= nil then
+				fail(label, "Anna-Otherrealm, whom the client says is no friend"
+					.. " (IsFriend false for her GUID), is read as '" .. tostring(namesake.close)
+					.. "' because a friend of yours is called Anna")
+			end
+		end)
+		-- Where IsFriend says no for everybody and the GUID on the list is nobody's
+		-- here: the friends are found by the name the list gives them.
+		run(label .. " by name", flavour, "MAGE", names, function(ns)
+			Mock.crossRealm = true
+			rawset(_G, "C_FriendList", friendsList({ { name = "Anna", guid = "Player-9-elsewhere" } }))
+			ns.db.profile.priority.friends = true
+			Mock.advance(60)
+			local real, namesake = entryFor(ns, "Anna"), entryFor(ns, "Anna-Otherrealm")
+			if not (real and namesake) then
+				fail(label .. " by name", "SKIPPED -- both Annas were not offered")
+				return
+			end
+			if real.close ~= "friend" then
+				fail(label .. " by name", "a friend of your own realm, listed as Anna, was not found by name: "
+					.. tostring(real.close))
+			end
+			if namesake.close ~= nil then
+				fail(label .. " by name", "Anna-Otherrealm was read as '" .. tostring(namesake.close)
+					.. "' by the name of the friend Anna")
+			end
+		end)
+		run(label .. " listed with her realm", flavour, "MAGE", names, function(ns)
+			Mock.crossRealm = true
+			rawset(_G, "C_FriendList", friendsList({ { name = "Anna-Otherrealm", guid = "Player-9-elsewhere" } }))
+			ns.db.profile.priority.friends = true
+			Mock.advance(60)
+			local real, namesake = entryFor(ns, "Anna"), entryFor(ns, "Anna-Otherrealm")
+			if not (real and namesake) then
+				fail(label .. " listed with her realm", "SKIPPED -- both Annas were not offered")
+				return
+			end
+			if namesake.close ~= "friend" then
+				fail(label .. " listed with her realm", "a friend of another realm, listed as Anna-Otherrealm,"
+					.. " was not found by name: " .. tostring(namesake.close))
+			end
+			if real.close ~= nil then
+				fail(label .. " listed with her realm", "Anna of your own realm was read as '"
+					.. tostring(real.close) .. "' by the name of the friend Anna-Otherrealm")
+			end
+		end)
+	end
+	-- Forever files a person by first name and surname, and a friend listed so is
+	-- found by that name alone.
+	local label = scenario .. " (camelot, by name)"
+	run(label, "camelot", "MAGE", { nameplate1 = { "Anna", "Aim" }, nameplate2 = { "Anna", "Other" } }, function(ns)
+		rawset(_G, "C_FriendList", friendsList({ { name = "Anna Aim", guid = "Player-9-elsewhere" } }))
+		ns.db.profile.priority.friends = true
+		Mock.advance(60)
+		local real, other = entryFor(ns, "Anna Aim"), entryFor(ns, "Anna Other")
+		if not (real and other) then
+			fail(label, "SKIPPED -- both Annas were not offered")
+			return
+		end
+		if real.close ~= "friend" then
+			fail(label, "a friend listed as Anna Aim was not found by name: " .. tostring(real.close))
+		end
+		if other.close ~= nil then
+			fail(label, "Anna Other was read as '" .. tostring(other.close) .. "'")
+		end
+	end)
+end
+

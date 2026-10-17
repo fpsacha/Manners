@@ -38,3 +38,21 @@ mutate("Queue.lua",
        "hunt23-queue: a cleared target stays the player's choice",
        expect="hunt23-queue: your own target is not backed off while you point at them: somebody the player selected once",
        script=S)
+
+# A namesake from another realm read as a friend by the first name alone.
+mutate("Queue.lua",
+       "\t\t\t\tor friendNames[full:lower()] then\n",
+       "\t\t\t\tor friendNames[full:lower()]\n\t\t\t\tor friendNames[(ns.TargetName(full) or full):lower()] then\n",
+       "hunt23-queue: a namesake from another realm is a friend",
+       expect="hunt23-queue: a namesake from another realm is not a friend (vanilla)",
+       script=S)
+
+# The friends found by the name the list gives them dropped: a friend of your
+# own realm, listed as "Anna", and a friend of another, listed as
+# "Anna-Realm", are no longer found where the client will not say by GUID.
+mutate("Queue.lua",
+       "\t\t\t\tor friendNames[full:lower()] then\n",
+       "\t\t\t\tor false then\n",
+       "hunt23-queue: friends are not found by the name on the list",
+       expect="hunt23-queue: a namesake from another realm is not a friend (vanilla) by name",
+       script=S)

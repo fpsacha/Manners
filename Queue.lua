@@ -784,9 +784,12 @@ do
 		else
 			ReadFriendsList(now)
 			local guid = plain(rawGuid)
+			-- By the name as filed, which is how the list spells a friend: "Anna"
+			-- of your own realm, "Anna-Realm" of another. Not with the realm taken
+			-- off (ns.TargetName), which made a stranger from another realm who
+			-- shares a first name with a friend a friend herself.
 			if (type(guid) == "string" and friendGuids[guid])
-				or friendNames[full:lower()]
-				or friendNames[(ns.TargetName(full) or full):lower()] then
+				or friendNames[full:lower()] then
 				kind = "friend"
 			end
 		end
