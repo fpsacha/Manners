@@ -58,7 +58,7 @@ mutate("Core.lua",
        "\tif caps.probedInFight then\n\t\tns.Guard(\"ProbeCapabilities\", ns.ProbeCapabilities)\n",
        "\tif false then\n\t\tns.Guard(\"ProbeCapabilities\", ns.ProbeCapabilities)\n",
        "unverified: a probe made in a fight is kept",
-       expect="still unreadable after it", script=S)
+       expect="still unreadable three seconds after the fight", script=S)
 
 mutate("Core.lua",
        "\t\tcaps.probedInFight = InCombatLockdown() == true or caps.aurasSecretNow == true\n",
@@ -241,4 +241,4 @@ mutate("Core.lua",
        "\t\tcaps.probedInFight = InCombatLockdown() == true or caps.aurasSecretNow == true\n",
        "\t\tcaps.probedInFight = InCombatLockdown() == true\n",
        "unverified: a probe made while withheld is kept",
-       expect="took for secret while the client withheld is still unreadable", script=S)
+       expect="still unreadable three seconds after the fight", script=S)
