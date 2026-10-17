@@ -501,7 +501,7 @@ do
 		-- likely to stay readable, which is what the "who is missing it" feature
 		-- rests on, so record every id rather than sampling one.
 		info.secrecy = {}
-		local readable = 0
+		local readable, declared = 0, 0
 		for _, id in ipairs(buff.auraIds) do
 			local secret
 			if C_Secrets and type(C_Secrets.ShouldSpellAuraBeSecret) == "function" then
@@ -515,8 +515,15 @@ do
 			end
 			info.secrecy[id] = secret
 			if secret == false then readable = readable + 1 end
+			if secret == true then declared = declared + 1 end
 		end
 		info.readable = caps.getUnitAuraBySpellID and readable > 0
+		-- Unreadable only because the probe was made while the client withheld
+		-- (caps.probedInFight) and so declared its ids secret: the client reads
+		-- them again once it stops, and until the next probe UnitHasBuff still
+		-- keeps the account of what it refused (withheld, what was last read
+		-- worn). Not so for a buff that can never be read.
+		info.probeHidden = caps.probedInFight == true and caps.getUnitAuraBySpellID == true and declared > 0
 
 		return info
 	end
@@ -1860,7 +1867,8 @@ ns.nameplateUnits = {}
 -- unit inspection
 ---------------------------------------------------------------------------
 
--- auraCache[guid][buffKey] = { at, has, expires, mine, over }, swept periodically
+-- auraCache[guid][buffKey] = { at, has, expires, mine, over, src, trustedTo }, swept
+-- periodically
 -- because a city puts hundreds of players through here. Keyed by player so
 -- UNIT_AURA, the hot path, forgets a whole player in one assignment; the count
 -- is of players.
@@ -1879,7 +1887,9 @@ ns.ForgetUnitAuras = ForgetUnitAuras
 -- withholding a few moments after a fight, and somebody covered was offered as
 -- "unverified" for the three seconds a refusal from the fight's last scan lived
 -- on. Any other refusal is kept as long as a reading: one that never changes (an
--- id declared secret) was asked three times as often for nothing.
+-- id declared secret) was asked three times as often for nothing. Fixed as the
+-- answer is written (trustedTo, in UnitHasBuff), not as it is read: an answer
+-- written in those seconds is not trusted past them (UNVERIFIED_SECONDS).
 local READING_SECONDS = 3
 local REFUSAL_SECONDS = 1
 
@@ -1999,13 +2009,15 @@ end
 -- to put over it.
 local function UnitHasBuff(unit, buff, guid)
 	local info = ns.BuffInfo(buff)
-	if not info or not info.readable then return nil, nil end
+	-- A buff nothing can read gives no answer. One a probe made in a fight took
+	-- for secret (probeHidden) goes on to the account below: the ids it refuses
+	-- are withheld, and what was last read worn answers them.
+	if not info or not (info.readable or info.probeHidden) then return nil, nil end
 
 	local now = GetTime()
 	local perUnit = guid and auraCache[guid]
 	local cached = perUnit and perUnit[buff.key]
-	if cached and (now - cached.at) < ((cached.has == nil and not InCombatLockdown() and JustAfterFight(now))
-			and REFUSAL_SECONDS or READING_SECONDS) then
+	if cached and now < cached.trustedTo then
 		return cached.has, cached.expires and (cached.expires - now) or nil, cached.mine, cached.over
 	end
 
@@ -2139,14 +2151,27 @@ local function UnitHasBuff(unit, buff, guid)
 			auraCache[guid] = perUnit
 			auraCacheCount = auraCacheCount + 1
 		end
+		-- When it stops being trusted, fixed now (READING_SECONDS): a refusal
+		-- written in the first seconds after a fight, REFUSAL_SECONDS, and
+		-- nothing written in them past them, or a refusal or a reading kept
+		-- from the fight would stand a moment into the time the client answers
+		-- for itself. In a fight, as ever, three seconds.
+		local trustedTo = now + READING_SECONDS
+		if JustAfterFight(now) and not InCombatLockdown() then
+			if has == nil then trustedTo = now + REFUSAL_SECONDS end
+			local windowEnds = ns.fightEndedAt + ns.UNVERIFIED_SECONDS
+			if trustedTo > windowEnds then trustedTo = windowEnds end
+		end
 		-- A stale reading is rewritten in place: nothing else holds one, and a
 		-- crowd turns them all over every three seconds.
 		if cached then
 			cached.at, cached.has, cached.expires, cached.mine = now, has, expires, mine
 			cached.over = over
 			cached.src = src
+			cached.trustedTo = trustedTo
 		else
-			perUnit[buff.key] = { at = now, has = has, expires = expires, mine = mine, over = over, src = src }
+			perUnit[buff.key] = { at = now, has = has, expires = expires, mine = mine, over = over, src = src,
+				trustedTo = trustedTo }
 		end
 	end
 	return has, expires and (expires - now) or nil, mine, over
@@ -2160,7 +2185,7 @@ ns.UnitHasBuff = UnitHasBuff
 function ns.ReadingSource(guid, key)
 	local perUnit = guid and auraCache[guid]
 	local entry = perUnit and perUnit[key]
-	if not entry or (GetTime() - entry.at) >= READING_SECONDS then return nil end
+	if not entry or GetTime() >= entry.trustedTo then return nil end
 	return entry.src
 end
 
