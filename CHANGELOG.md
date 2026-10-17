@@ -6,6 +6,32 @@
   your buff from before a fight, who lost it in the fight (dispelled, or
   clicked off), waited up to three seconds after it to be offered it again.
   Now they are read again the moment the fight ends, like everybody else.
+- **Your own target stays on the prompt.** When the game turned away three
+  casts on somebody you had picked as your target, Manners stopped offering
+  them for minutes, and since they were already your target there was no way
+  to "target them to try again". Somebody you picked and still have targeted
+  now stays offered.
+- **No "ready" during the global cooldown.** Manners asked the game whether a
+  cast was on the global cooldown the moment it went out, before the game can
+  say, and could call the prompt ready while it still ran, in a fight most of
+  all. It now waits for the game's answer.
+- **Classic Era and Burning Crusade: the global cooldown read from your own
+  spells.** These clients have no spell that stands for it, so after a
+  healthstone, a potion or a trinket the prompt waited a second and a half for
+  nothing. It now reads the global cooldown from one of your buffs, as the
+  game's own action bars do.
+- **The first buff after a long loading screen counts.** If the game hid your
+  buffs for more than four seconds after you logged in, reloaded or changed
+  zone, the first buff somebody gave you afterwards could go unnoticed: no
+  thanks, nothing owed. Manners now keeps looking, more slowly, for half a
+  minute more.
+- **"People in my group" off means off.** A passer-by who joined your group
+  could still be offered for a few seconds.
+- **A namesake from another realm is not your friend.** Everywhere but WoW
+  Forever, a stranger from another realm with a friend's name was ordered and
+  shown as your friend.
+- **`/manners debug` and the never-offer list.** With your own name on the
+  list, it no longer says your own buff comes first.
 
 ## 1.7.7
 

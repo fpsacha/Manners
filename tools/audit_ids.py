@@ -984,7 +984,8 @@ def check_misc(rep, c, d):
         gid = int(m.group(1))
         if gid not in c.names:
             rep.note("Clicks.GCD_SPELL", "spell %d (the global cooldown) is in none of this client's spell tables: "
-                     "C_Spell.GetSpellCooldown answers nothing for it, and Clicks.lua tracks 1.5 s itself" % gid)
+                     "C_Spell.GetSpellCooldown answers nothing for it, so Clicks.lua reads one of the class's "
+                     "buffs instead (GlobalCooldownReading), its 1.5 s guess last" % gid)
     rank_level = {int(k): v for k, v in as_map(d["rankLevel"]).items()}
     # RANK_LEVEL entries naming ids that are not spells here are dead weight, never wrong; skip.
 

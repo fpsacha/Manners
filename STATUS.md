@@ -58,17 +58,31 @@ row reads DRIFT); the toc then needs the number (`tools/maketocs.py`'s
 `FLAVOURS` and `Manners.toc`'s Interface line). Retail moved to 12.1.5
 (interface 120105) in 1.7.7.
 
-**Bug-hunt candidates never checked.** From a session before 1.7.4, so any may
-be stale or already fixed by 1.7.4 to 1.7.7: write a scenario that goes red on
-each before fixing anything. `probe-freezes-aura-secrecy-taken-mid-combat`,
-`settle-budget-spent-by-refused-scans-never-refilled`,
-`probe-secrecy-snapshot-trusted-forever`,
-`queue-liftbackoff-needs-target-change-event`,
-`queue-closeness-crossrealm-namesake-is-friend`,
-`clicks-gcd-spell-61304-wrong-on-era-tbc`,
-`clicks-notecast-trusts-isongcd-at-sent`,
-`queue-group-source-off-leaks-remembered-passerby`,
-`queue-selfbufffirst-ignores-never-list-self`.
+**Bug hunt 23 rests on three client facts nobody here can observe.** The nine
+old candidates were triaged after 1.7.7: two were already fixed, seven were
+fixed (`tests/scenarios/hunt23-*.lua`). What they assume:
+- Classic Era and TBC answer nothing for spell 61304 (no DB2 row there), so
+  `GlobalCooldownReading` (Clicks.lua) reads one of the class's buffs. If those
+  clients answer zeros instead, the fallback never runs. `/run
+  print(C_Spell.GetSpellCooldown(61304))` on either client settles it.
+- The cast spell's `isOnGCD` reads true by `SPELL_UPDATE_COOLDOWN` for a cast
+  on the global cooldown (`DropGuessOffGcd`); Blizzard documents the field as
+  trustworthy only there.
+- Selecting the unit already selected sends no `PLAYER_TARGET_CHANGED`
+  (Queue.lua `pointedAt`, `NoteRefusal`).
+
+**What bug hunt 23 left.** A refusal of your aura list longer than both settle
+stages (about 34 s: a keystone, a long fight) still loses the first favour
+after it (Favours.lua); a zone change while a slow settle timer is parked
+starts the next settle up to a second late. With your own name never-offered,
+the family lines of `/manners debug` still name a buff to cast (saying why
+needs a new string). A target chosen before the addon heard any target event
+(login, `/reload`) is not known to be a choice and is backed off as before.
+
+**`tests/baselines/vanilla.txt` and `tbc.txt` predate `unverified.lua`.**
+`runscenarios.py --flavour vanilla --baseline` (and tbc) prints 32
+`unverified:` failures not in the baseline, the same on 1.7.7. Likely Forever
+fixtures (two-part names); confirm before `--update-baseline`.
 
 **"Only for people who buff me" (sound) stays enabled with "People who buff me"
 off.** `Options/Look.lua` `soundOwedOnly` is disabled only by the sound
