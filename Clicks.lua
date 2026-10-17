@@ -687,6 +687,9 @@ local castBlockedUntil = 0
 -- When the tracked block began, for the prompt's sweep where the client
 -- gives no figure.
 local castBlockedFrom = 0
+-- The spell whose cast began the tracked block, for SPELL_UPDATE_COOLDOWN to ask
+-- whether it is on the global cooldown at all. nil once the client has said.
+local castBlockedBy
 
 local function NoteCastWentOut(spellId)
 	local now = GetTime()
@@ -694,14 +697,16 @@ local function NoteCastWentOut(spellId)
 
 	-- C_Spell.GetSpellCooldown answers with a table, whose duration for an
 	-- instant buff IS the global cooldown -- used only when readable and sane,
-	-- since a secret or a zero would unblock the button at once.
+	-- since a secret or a zero would unblock the button at once. Its isOnGCD is
+	-- not read here: the client documents the field as not to be trusted outside
+	-- SPELL_UPDATE_COOLDOWN, and a cast that has only been sent has not started
+	-- its cooldown yet, so a false now says nothing (and out of a fight it would
+	-- leave a press 0.3 s on to go straight into a running cooldown). Every cast
+	-- arms the guess; DropGuessOffGcd takes it back once the client can say.
 	local get = C_Spell and C_Spell.GetSpellCooldown
 	if get and spellId then
 		local ok, info = pcall(get, spellId)
 		if ok and type(info) == "table" then
-			-- A readable false says this spell triggers no global cooldown;
-			-- nil is the client saying nothing.
-			if plain(info.isOnGCD) == false then return end
 			local duration = plain(info.duration)
 			if type(duration) == "number" and duration > 0 and duration <= 3 then
 				seconds = duration
@@ -714,6 +719,36 @@ local function NoteCastWentOut(spellId)
 	if now + seconds > castBlockedUntil then
 		castBlockedUntil = now + seconds
 		castBlockedFrom = now
+		castBlockedBy = spellId
+	end
+end
+
+-- The guess taken back for a cast the client says is off the global cooldown (a
+-- healthstone, a potion, a trinket): SPELL_UPDATE_COOLDOWN is the one moment
+-- its isOnGCD is to be trusted, and it is the only word on the matter where the
+-- client's own figure is withheld (a fight on Forever: the start and length are
+-- secret, the flag is not). A false drops the guess; a true keeps it, and the
+-- client is not asked again; nil, the client saying nothing, keeps it and asks
+-- at the next event. A spell with a cooldown of its own that is also on the
+-- global one reads false as well once its own begins, and nothing can tell
+-- that from a spell off it: the guess goes, as it did when SENT read a false.
+local function DropGuessOffGcd(now)
+	local spellId = castBlockedBy
+	if not spellId then return end
+	-- Run out already, nothing left to take back.
+	if castBlockedUntil <= now then
+		castBlockedBy = nil
+		return
+	end
+	local get = C_Spell and C_Spell.GetSpellCooldown
+	if not get then return end
+	local ok, info = pcall(get, spellId)
+	if not ok or type(info) ~= "table" then return end
+	local onGcd = plain(info.isOnGCD)
+	if onGcd == nil then return end
+	castBlockedBy = nil
+	if onGcd == false then
+		castBlockedUntil, castBlockedFrom = 0, 0
 	end
 end
 
@@ -908,7 +943,11 @@ function addon:UNIT_SPELLCAST_DELAYED(_, unit)
 	SyncSweep()
 end
 
+-- The client's own word that the cooldowns changed: whether the cast that armed
+-- the guess is on the global cooldown at all, and then the sweep, drawn from
+-- what that leaves.
 function addon:SPELL_UPDATE_COOLDOWN()
+	DropGuessOffGcd(GetTime())
 	SyncSweep()
 end
 

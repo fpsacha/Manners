@@ -197,3 +197,197 @@ do
 		rawset(_G, "IsPlayerSpell", is)
 	end)
 end
+
+-- ------------------------------------------------------ isOnGCD read at SENT
+-- hunt23-clicks: notecast-isongcd-at-sent (Clicks.lua NoteCastWentOut,
+-- DropGuessOffGcd)
+--
+-- UNIT_SPELLCAST_SENT read the cast spell's cooldown and, on `isOnGCD == false`,
+-- took the spell for one that triggers no global cooldown and armed nothing. The
+-- client's own documentation of the field says it is not to be trusted outside
+-- SPELL_UPDATE_COOLDOWN, and SENT is before the cooldown has started: a reading
+-- of {startTime 0, duration 0, isOnGCD false} for a spell that is about to take
+-- the global cooldown is what that allows. Where the client's own figure for
+-- the global cooldown is not to be had the tracking is all there is, and with
+-- it unarmed a press 0.3 s after a Power Word or an Intellect goes straight into
+-- the running cooldown: out of combat the macro's spoken line goes out over a
+-- /cast the client turns away. That is Forever in a fight, where the client
+-- withholds every figure (a secret start and length, for 61304 and for the spell
+-- alike) but isOnGCD is documented NeverSecret (forever branch
+-- SpellSharedDocumentation.lua), so a stale false there is read as plainly as
+-- anywhere. Control: the same cast with the field absent (nil) armed.
+for _, field in ipairs({ false, "absent" }) do
+	local scenario = "hunt23-clicks: notecast-isongcd-at-sent (camelot, figures withheld in a fight, isOnGCD at SENT "
+		.. (field == "absent" and "absent" or "false") .. ")"
+	local cooldown
+	gcdSession(scenario, "camelot", function(intellect)
+		-- What the client says as the cast is sent: no cooldown has started.
+		cooldown = { startTime = Mock.SECRET, duration = Mock.SECRET, isActive = true }
+		if field == false then cooldown.isOnGCD = false end
+		return {
+			[61304] = { startTime = Mock.SECRET, duration = Mock.SECRET, isActive = true },
+			[intellect] = cooldown,
+		}
+	end, function(ns, intellect)
+		Mock.inCombat = true
+		ns.addon:UNIT_SPELLCAST_SENT(nil, "player", "Anna", "Cast-hand", intellect)
+		-- The cast goes out; by SPELL_UPDATE_COOLDOWN the client's own reading of
+		-- the same spell says the global cooldown is what it is on.
+		cooldown.isOnGCD = true
+		ns.addon:SPELL_UPDATE_COOLDOWN()
+		Mock.advance(0.3)
+		if ns.CastReady() then
+			fail(scenario, "0.3 s after an Arcane Intellect was sent, with every figure withheld, the client says it is on"
+				.. " the global cooldown and the prompt calls the press ready: SENT read isOnGCD="
+				.. (field == "absent" and "nil" or "false") .. " and armed nothing")
+		end
+	end)
+end
+
+-- The same on Era and TBC, where the figure is the buff's own reading: a stale
+-- false at SENT, the cooldown started a moment later, and the prompt still says
+-- when the global cooldown ends.
+for _, flavour in ipairs({ "vanilla", "tbc" }) do
+	local scenario = "hunt23-clicks: notecast-isongcd-at-sent (" .. flavour .. ", the figure the client gives)"
+	local cooldown
+	gcdSession(scenario, flavour, function(intellect)
+		cooldown = { startTime = 0, duration = 0, isActive = false, isOnGCD = false }
+		return { [intellect] = cooldown }
+	end, function(ns, intellect)
+		local sentAt = GetTime()
+		ns.addon:UNIT_SPELLCAST_SENT(nil, "player", "Anna", "Cast-hand", intellect)
+		Mock.advance(0.3)
+		cooldown.startTime, cooldown.duration, cooldown.isActive, cooldown.isOnGCD = sentAt, 1.5, true, true
+		ns.addon:SPELL_UPDATE_COOLDOWN()
+		if ns.CastReady() then
+			fail(scenario, "0.3 s after an Arcane Intellect was sent the client's own reading of it says the global"
+				.. " cooldown has 1.2 s to run, and the prompt calls the press ready")
+		end
+	end)
+end
+
+-- hunt23-clicks: dropped-off-gcd (Clicks.lua DropGuessOffGcd)
+--
+-- What SPELL_UPDATE_COOLDOWN says of the cast that armed the guess, with every
+-- figure withheld (a fight on Forever): a spell off the global cooldown gives
+-- the guess back, a press 0.3 s after a healthstone is not held for it, and in a
+-- fight it is filed, so the cast it sends settles the debt; a flag that says
+-- nothing keeps the guess, which is what stops a press being refused; a spell on
+-- the global cooldown keeps it, and the client is asked about a cast once, not
+-- at every cooldown update the fight sends (a raid sends them all the time).
+do
+	local scenario = "hunt23-clicks: dropped-off-gcd (camelot, figures withheld in a fight)"
+	local reads
+	local readsOf = 0
+	gcdSession(scenario, "camelot", function()
+		local secret = function(isOnGCD)
+			return { startTime = Mock.SECRET, duration = Mock.SECRET, isActive = true, isOnGCD = isOnGCD }
+		end
+		return { [61304] = secret(), [6262] = secret(false), [116] = secret(), [2139] = secret(true) }
+	end, function(ns)
+		Mock.inCombat = true
+		-- Every read of Frostbolt's cooldown, to count what asks for it. The mock
+		-- builds its C_Spell afresh on each look, so one is set in its place for
+		-- the while and taken away after.
+		local spells = _G.C_Spell
+		local real = spells.GetSpellCooldown
+		spells.GetSpellCooldown = function(id)
+			if id == 116 then readsOf = readsOf + 1 end
+			return real(id)
+		end
+		rawset(_G, "C_Spell", spells)
+		local ok, err = pcall(function()
+			-- A healthstone: off it, dropped at the first update.
+			ns.addon:UNIT_SPELLCAST_SENT(nil, "player", nil, "Cast-hand", 6262)
+			ns.addon:SPELL_UPDATE_COOLDOWN()
+			Mock.advance(0.3)
+			if not ns.CastReady() then
+				fail(scenario, "a healthstone the client says is off the global cooldown still held the prompt")
+			end
+			Mock.advance(2)
+
+			-- Counterspell, which says it is on it, keeps the guess.
+			ns.addon:UNIT_SPELLCAST_SENT(nil, "player", nil, "Cast-hand", 2139)
+			ns.addon:SPELL_UPDATE_COOLDOWN()
+			Mock.advance(0.3)
+			if ns.CastReady() then
+				fail(scenario, "a spell the client says is on the global cooldown did not hold the prompt")
+			end
+			Mock.advance(2)
+
+			-- Frostbolt says nothing at first: the guess stays and the client is asked
+			-- at each update; once it says on, never again.
+			ns.addon:UNIT_SPELLCAST_SENT(nil, "player", nil, "Cast-hand", 116)
+			reads = readsOf
+			ns.addon:SPELL_UPDATE_COOLDOWN()
+			ns.addon:SPELL_UPDATE_COOLDOWN()
+			if readsOf ~= reads + 2 then
+				fail(scenario, "a cast the client has said nothing about was asked about " .. (readsOf - reads)
+					.. " times in two cooldown updates, wanted 2")
+			end
+			Mock.advance(0.3)
+			if ns.CastReady() then
+				fail(scenario, "a spell the client says nothing about did not hold the prompt")
+			end
+			Mock.spellCooldowns[116].isOnGCD = true
+			ns.addon:SPELL_UPDATE_COOLDOWN()
+			reads = readsOf
+			for _ = 1, 5 do ns.addon:SPELL_UPDATE_COOLDOWN() end
+			if readsOf ~= reads then
+				fail(scenario, "a cast the client has said is on the global cooldown was asked about again "
+					.. (readsOf - reads) .. " times in five cooldown updates")
+			end
+			if ns.CastReady() then
+				fail(scenario, "a spell the client says is on the global cooldown did not hold the prompt")
+			end
+
+			-- A guess that has run out is not asked about at all.
+			Mock.spellCooldowns[116].isOnGCD = nil
+			Mock.advance(2)
+			ns.addon:UNIT_SPELLCAST_SENT(nil, "player", nil, "Cast-hand", 116)
+			reads = readsOf
+			Mock.advance(2)
+			ns.addon:SPELL_UPDATE_COOLDOWN()
+			if readsOf ~= reads then
+				fail(scenario, "a cast whose guess had run out was asked about at the next cooldown update")
+			end
+		end)
+		rawset(_G, "C_Spell", nil)
+		if not ok then fail(scenario, "threw: " .. tostring(err)) end
+	end)
+end
+
+-- And in a fight, the press after the healthstone is filed, so the cast it sends
+-- settles the debt (the case scenario 230 plays where 61304 answers).
+do
+	local scenario = "hunt23-clicks: dropped-off-gcd (a press in a fight, figures withheld)"
+	gcdSession(scenario, "camelot", function()
+		local secret = function(isOnGCD)
+			return { startTime = Mock.SECRET, duration = Mock.SECRET, isActive = true, isOnGCD = isOnGCD }
+		end
+		return { [61304] = secret(), [6262] = secret(false) }
+	end, function(ns, intellect, who)
+		local entry = ns.BuildQueue()[1]
+		Mock.inCombat = true
+		ns.addon:PLAYER_REGEN_DISABLED()
+		if not (entry and entry.name == who and entry.buff) then
+			fail(scenario, "SKIPPED -- Anna was not the one offered")
+			return
+		end
+		ns.addon:UNIT_SPELLCAST_SENT(nil, "player", nil, "Cast-hand", 6262)
+		ns.addon:SPELL_UPDATE_COOLDOWN()
+		Mock.advance(0.3)
+		H.pressButton(ns)
+		if not ns.pendingClick then
+			fail(scenario, "in a fight, a press just after a healthstone was set aside as turned away, so the buff it"
+				.. " casts is never counted")
+		else
+			ns.addon:UNIT_SPELLCAST_SENT(nil, "player", nil, "Cast-press", entry.buff.ranks[1])
+			if ns.owed[who] then
+				fail(scenario, "in a fight, the buff went out and Anna is still owed")
+			end
+		end
+		Mock.inCombat = false
+		ns.addon:PLAYER_REGEN_ENABLED()
+	end)
+end

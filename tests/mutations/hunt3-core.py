@@ -148,8 +148,8 @@ mutate("Clicks.lua",
 
 # core-10: the client's own word that the cooldowns changed, ignored.
 mutate("Clicks.lua",
-       "function addon:SPELL_UPDATE_COOLDOWN()\n\tSyncSweep()\nend\n",
-       "function addon:SPELL_UPDATE_COOLDOWN()\nend\n",
+       "function addon:SPELL_UPDATE_COOLDOWN()\n\tDropGuessOffGcd(GetTime())\n\tSyncSweep()\nend\n",
+       "function addon:SPELL_UPDATE_COOLDOWN()\n\tDropGuessOffGcd(GetTime())\nend\n",
        "sweep not re-read on a cooldown update",
        expect="core: the sweep stops when the global cooldown is given back (cooldown update)",
        script="runscenarios.py")

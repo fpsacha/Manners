@@ -46,3 +46,46 @@ mutate("Clicks.lua",
        "\t\t\tif start and duration <= 3 then return start, duration end\n\t\t\treturn nil\n",
        "hunt23-clicks: the search ends at the first buff",
        expect="hunt23-clicks: gcd-reference (the next buff, vanilla)", script=S)
+
+# ------------------------------------------------------------ isOnGCD at SENT
+# SENT trusting an isOnGCD of false, read before the cooldown has started: with
+# every figure withheld a press 0.3 s after an Intellect goes into the cooldown.
+mutate("Clicks.lua",
+       "\t\tif ok and type(info) == \"table\" then\n\t\t\tlocal duration = plain(info.duration)\n",
+       "\t\tif ok and type(info) == \"table\" then\n\t\t\tif plain(info.isOnGCD) == false then return end\n"
+       "\t\t\tlocal duration = plain(info.duration)\n",
+       "hunt23-clicks: SENT trusts isOnGCD",
+       expect="hunt23-clicks: notecast-isongcd-at-sent (camelot, figures withheld in a fight, isOnGCD at SENT false)",
+       script=S)
+
+# The cooldown update never asking whether the cast that armed the guess is off
+# the global cooldown, so a healthstone holds the prompt for the guess.
+mutate("Clicks.lua",
+       "\tDropGuessOffGcd(GetTime())\n\tSyncSweep()\nend\n",
+       "\tSyncSweep()\nend\n",
+       "hunt23-clicks: the cooldown update does not drop the guess",
+       expect="hunt23-clicks: dropped-off-gcd (camelot, figures withheld in a fight): a healthstone", script=S)
+
+# A flag that says nothing read as an answer that the spell is off the global
+# cooldown, so a press is let through a cast the client has not said anything of.
+mutate("Clicks.lua",
+       "\tif onGcd == nil then return end\n",
+       "\tif onGcd == nil then onGcd = false end\n",
+       "hunt23-clicks: an absent isOnGCD read as false",
+       expect="hunt23-clicks: dropped-off-gcd (camelot, figures withheld in a fight): a spell the client says nothing about",
+       script=S)
+
+# A cast the client has said is on the global cooldown asked about at every
+# cooldown update of the fight.
+mutate("Clicks.lua",
+       "\tif onGcd == nil then return end\n\tcastBlockedBy = nil\n",
+       "\tif onGcd == nil then return end\n",
+       "hunt23-clicks: a cast asked about at every cooldown update",
+       expect="was asked about again", script=S)
+
+# A guess that has run out still asked about.
+mutate("Clicks.lua",
+       "\tif castBlockedUntil <= now then\n\t\tcastBlockedBy = nil\n\t\treturn\n\tend\n",
+       "",
+       "hunt23-clicks: a spent guess asked about",
+       expect="a cast whose guess had run out was asked about", script=S)
