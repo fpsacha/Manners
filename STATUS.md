@@ -5,7 +5,7 @@ work on the project: `CLAUDE.md`. How to release: `RELEASING.md`.
 
 ## State
 
-1.7.4 is released, for all five live clients: WoW Forever, Classic Era, Burning
+1.7.7 is released, for all five live clients: WoW Forever, Classic Era, Burning
 Crusade Classic Anniversary, Mists of Pandaria Classic and retail (a toc per
 client from `tools/maketocs.py`, a buff set per client in `Buffs.lua`, each
 checked against that client's DB2 on wago.tools, and a scenario file and
@@ -53,11 +53,27 @@ and raid-wide group casts, a raid pcall ceiling set for Forever's data). Run it
 with `--baseline` to see only failures that are not already in
 `tests/baselines/<X>.txt`.
 
-**Retail 12.1.5 (interface 120105) is on the PTR.** `Flavour.lua` already reads
-it as Midnight. When it goes live, `Manners_Mainline.toc` needs the number
-(`tools/maketocs.py`'s `FLAVOURS` and `Manners.toc`'s Interface line).
-`python tools/clients_watch.py` says when it has (live's `version.txt` moves to
-12.1.5 and the retail row reads DRIFT); the same goes for the other four clients.
+**Client builds move.** `python tools/clients_watch.py` says when one has (its
+row reads DRIFT); the toc then needs the number (`tools/maketocs.py`'s
+`FLAVOURS` and `Manners.toc`'s Interface line). Retail moved to 12.1.5
+(interface 120105) in 1.7.7.
+
+**Bug-hunt candidates never checked.** From a session before 1.7.4, so any may
+be stale or already fixed by 1.7.4 to 1.7.7: write a scenario that goes red on
+each before fixing anything. `probe-freezes-aura-secrecy-taken-mid-combat`,
+`settle-budget-spent-by-refused-scans-never-refilled`,
+`probe-secrecy-snapshot-trusted-forever`,
+`queue-liftbackoff-needs-target-change-event`,
+`queue-closeness-crossrealm-namesake-is-friend`,
+`clicks-gcd-spell-61304-wrong-on-era-tbc`,
+`clicks-notecast-trusts-isongcd-at-sent`,
+`queue-group-source-off-leaks-remembered-passerby`,
+`queue-selfbufffirst-ignores-never-list-self`.
+
+**"Only for people who buff me" (sound) stays enabled with "People who buff me"
+off.** `Options/Look.lua` `soundOwedOnly` is disabled only by the sound
+switch. Judged harmless: the sound ignores the setting then
+(`Prompt/Refresh.lua`, `db.sources.owed ~= false`), so the toggle does nothing.
 
 **Unused local functions are found by hand.** `tests/validate.py` reports a
 write-only `ns.X`, but nothing finds a local function nobody calls; extending
