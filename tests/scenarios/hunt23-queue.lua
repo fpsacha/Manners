@@ -322,3 +322,60 @@ do
 	end)
 end
 
+-- ------------------------------------------------------ the group switch
+-- queue-group-source-off-leaks-remembered-passerby (Queue.lua visit,
+-- OfferPassersBy)
+--
+-- With "People in my group" off and passers-by on, a stranger offered as a
+-- passer-by is remembered by name for ten seconds after the last token reached
+-- them. When she joins your party in those seconds the walk finds her again
+-- as a group member, and visit() used to return on `reason == "group" and not
+-- db.sources.group` without a verdict (no `seen`, no `rejected`), so
+-- OfferPassersBy went on offering her from the old memory as a passer-by: the
+-- group switch was ignored for her until the memory ran out. Every other
+-- early return of that kind writes a verdict or drops the memories (`drop`).
+do
+	local scenario = "hunt23-queue: the group switch turns away a remembered passer-by who joins"
+	run(scenario, "camelot", "MAGE", { nameplate1 = { "Anna", "Aim" } }, function(ns)
+		local sources = ns.db.profile.sources
+		sources.group, sources.strangers = false, true
+		Mock.advance(60)
+		local before = entryFor(ns, "Anna Aim")
+		if not (before and before.reason == "nearby" and ns.passersBy["Anna Aim"]) then
+			fail(scenario, "SKIPPED -- Anna was not offered and remembered as a passer-by to begin with")
+			return
+		end
+		-- She joins the party.
+		Mock.groupSize = 2
+		Mock.advance(1)
+		local after = entryFor(ns, "Anna Aim")
+		if after then
+			fail(scenario, "with People in my group switched off, Anna is offered as '" .. tostring(after.reason)
+				.. "' (from the passer-by memory of before she joined) in the seconds after she joins the party")
+		end
+		-- The scan says so as a verdict, which the prompt's cursor hold reads, and
+		-- the memory of her goes with it.
+		local _, rejected = ns.BuildQueue()
+		if type(rejected) ~= "table" or rejected["Anna Aim"] ~= true then
+			fail(scenario, "no verdict was written for a group member the switch turns away: "
+				.. tostring(type(rejected) == "table" and rejected["Anna Aim"]))
+		end
+		if ns.passersBy["Anna Aim"] then
+			fail(scenario, "the passer-by memory of Anna outlived the verdict on her")
+		end
+	end)
+	-- Control: with the switch on she is offered as a group member after she joins.
+	run(scenario, "camelot", "MAGE", { nameplate1 = { "Anna", "Aim" } }, function(ns)
+		local sources = ns.db.profile.sources
+		sources.group, sources.strangers = true, true
+		Mock.advance(60)
+		Mock.groupSize = 2
+		Mock.advance(1)
+		local after = entryFor(ns, "Anna Aim")
+		if not (after and after.reason == "group") then
+			fail(scenario, "SKIPPED -- with People in my group on, Anna was not offered as a group member: "
+				.. tostring(after and after.reason))
+		end
+	end)
+end
+

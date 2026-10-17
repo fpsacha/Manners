@@ -48,8 +48,8 @@ mutate("Queue.lua",
 
 # Group members never offered.
 mutate("Queue.lua",
-       "\t\tif reason == \"group\" and not db.sources.group then return end\n",
-       "\t\tif reason == \"group\" then return end\n",
+       "\t\tif reason == \"group\" and not db.sources.group then\n",
+       "\t\tif reason == \"group\" then\n",
        "fuzz-canary: a group member left off the queue",
        expect="fuzz-canary: a group member left off the queue",
        script=S)

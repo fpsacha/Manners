@@ -1881,7 +1881,15 @@ function ns.BuildQueue(watch)
 		-- the group and passer-by switches, the nearness and city checks do
 		-- not apply to it. Casting range still does, further down.
 		local reason = isOwed and "owed" or (asked and "asked") or (inGroup and "group" or "nearby")
-		if reason == "group" and not db.sources.group then return end
+		-- The group switch off turns a member away for good, so it is a verdict:
+		-- a stranger remembered as a passer-by who has joined the party since
+		-- would otherwise be offered from that memory (OfferPassersBy) while it
+		-- lasts. The passers-by switch below needs none, the memories being
+		-- dropped whole for it (`drop`).
+		if reason == "group" and not db.sources.group then
+			rejected[full] = true
+			return
+		end
 		if reason == "nearby" and not db.sources.strangers then return end
 		if reason == "nearby" and groupOnly then return end
 
