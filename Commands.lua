@@ -30,12 +30,14 @@ local owed, LiveExpiry = ns.owed, ns.DebtExpiry
 -- everything on yourself back, if anything; your group buff when it is the one
 -- on the prompt (Queue.lua, SelfEntry); then a line per family of your class's
 -- own buffs, from the queue's own answers (Core.lua, OwnVerdict), so the two
--- cannot disagree. Nothing when "Myself" is off. Whole sentences per case.
+-- cannot disagree. Nothing when "Myself" is off, and only the one line when
+-- your own name is on the never-offer list. Whole sentences per case.
 do
 	local HELD = {
 		fight = L["your own buffs: held back -- you are in a fight."],
 		skipped = L["your own buffs: held back -- skipped for now."],
 		noname = L["your own buffs: held back -- the game will not say your name."],
+		listed = L["your own buffs: held back -- you are on your never-offer list."],
 	}
 
 	local function FamilyLine(family, ctx)
@@ -90,6 +92,9 @@ do
 		elseif held then
 			out[#out + 1] = HELD[held]
 		end
+		-- On your own never-offer list nothing is offered to you, so no family
+		-- below would be "the one to cast": the line above says why, and is all.
+		if held == "listed" then return out end
 		-- Your group buff is due: the lines below wait behind it.
 		local first = #families > 0 and ns.SelfBuffFirst(db, now)
 		if first then

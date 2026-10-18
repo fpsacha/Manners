@@ -1536,15 +1536,30 @@ ns.NoReading = NoReading
 --              you; asked once here rather than per buff, which the walk
 --              would answer the same way, so a skipped you costs no aura read
 --   "noname"   the game will not say your name
+--   "listed"   your own name is on the never-offer list
 -- Resting as the city rule for passers-by reads it: only a definite yes
 -- holds back, and could-not-tell offers.
-function ns.MyselfHeldBack(db, now)
+--
+-- Two functions, because "listed" is the one answer that walks something. The
+-- first is all but that: SelfEntry asks it, and asks the list itself at the
+-- very end, through the scan's answers, so only an offer about to be made pays
+-- for the walk. The second is for what only explains (SelfBuffFirst and
+-- MyselfLines, for /manners debug and the options page), and asks the list
+-- the way a repaint does, off its cached answers.
+local function HeldBackExceptList(db, now)
 	if db.sources.self ~= true then return "switch" end
 	if InCombatLockdown() or safecall(_G.UnitAffectingCombat, "player") == true then return "fight" end
 	if not (db.ownBuffs and db.ownBuffs.inCities == true) and Resting() == true then return "resting" end
 	local full = ns.UnitFullName("player")
 	if not full then return "noname" end
 	if ns.IsBlocked(full, nil, now or GetTime()) then return "skipped" end
+	return nil, full
+end
+
+function ns.MyselfHeldBack(db, now)
+	local held, full = HeldBackExceptList(db, now)
+	if held then return held end
+	if ns.IsNeverOffered(full) then return "listed" end
 	return nil, full
 end
 
@@ -1632,13 +1647,12 @@ end
 -- of your class's own, or nil: for /manners debug and Diagnostics, whose line
 -- per family would otherwise call a spell "the one to cast" while the prompt
 -- is on your Intellect (Commands.lua, MyselfLines). Not one held back for a
--- flagged member of the party it lands on, which the prompt is not on.
+-- flagged member of the party it lands on, which the prompt is not on. Nor
+-- one while your own name is on the never-offer list (MyselfHeldBack says so):
+-- SelfEntry offers you nothing then.
 function ns.SelfBuffFirst(db, now)
 	local held, full = ns.MyselfHeldBack(db, now)
 	if held then return nil end
-	-- Your own name on the never-offer list: SelfEntry offers you nothing then,
-	-- so no group buff of yours is the one the prompt is on.
-	if ListedAs(full) then return nil end
 	-- The list BuildQueue hands SelfEntry: a group buff you cannot pay for is
 	-- not the one the prompt is on.
 	local mine = ns.SelfBuffs(Affordable(ns.CastableBuffs()))
@@ -1666,7 +1680,7 @@ end
 -- `ownOnly` leaves your group buff out, for when it is held back for PvP
 -- (BuildQueue): your class's own land on you alone.
 local function SelfEntry(db, candidates, now, verdict, ownOnly)
-	local held, full = ns.MyselfHeldBack(db, now)
+	local held, full = HeldBackExceptList(db, now)
 	if held then return nil end
 	-- A shout already covers you, and a few spells refuse the caster.
 	local mine = ownOnly and {} or ns.SelfBuffs(candidates)
@@ -1676,6 +1690,7 @@ local function SelfEntry(db, candidates, now, verdict, ownOnly)
 	if not buff then return nil end
 	-- Last, so the list is walked only for an offer about to be made, and
 	-- through the scan's answers, which a list edit alone sets walking again.
+	-- MyselfHeldBack says the same to /manners debug ("listed").
 	if ListedAs(full, verdict) then return nil end
 
 	return {
