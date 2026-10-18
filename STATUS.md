@@ -99,17 +99,20 @@ not: `ci.yml` runs `selftest.py --anchors`, and the full run is made by hand
 before a release (`RELEASING.md`). Reword the comment only; the `shell: bash`
 line and the grep below it are mutation anchors.
 
-**`verbose` defaults on** (every user gets a chat line each time somebody buffs
-them). Whether it should was never decided.
-
-**Real player names remain in git history** from before the v0.9.5 scrub —
-nine names, two commits, plus the pre-scrub screenshots as blobs. All of it is
-pushed. The repository has no forks, so a rewrite is still cheap.
-
 ## Decisions
 
 Code comments point here (`STATUS.md`) for these. They are decisions rather
 than code; do not undo them.
+
+- **`verbose` stays on by default** (decided 2026-10-17). Every player gets
+  "X buffed you" and the line saying why a cast failed: a new player sees the
+  addon notice favours. AceDB stores no value equal to its default, so changing
+  the default would flip everybody who never touched the setting.
+- **The real player names in git history stay** (decided 2026-10-17): nine
+  names in two commits from before the v0.9.5 scrub, plus the pre-scrub
+  screenshots as blobs. All of it was public long before, a rewrite would
+  change every hash and tag and still leave copies in clones and GitHub's
+  caches.
 
 - **The first-name fallback was removed deliberately.** The macro sends one
   `/target`, carrying the full name. Both `CHANGELOG.md` 1.3.0 and
