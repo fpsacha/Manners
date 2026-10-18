@@ -24,12 +24,15 @@ local dir, H = ...
 local fail, load, drive = H.fail, H.load, H.drive
 local strangers, freshPrompt = H.strangers, H.freshPrompt
 
--- One scenario: the mock reset to `flavour` and `class`, `names` standing about
--- as strangers on their tokens, the addon loaded and driven to a fresh prompt,
--- and body(ns) run. Everything is put back and the mock reset after it.
+-- One scenario: the mock reset to `flavour` (nil: the client the suite runs as,
+-- Forever unless asked otherwise, so `runscenarios.py --flavour X` and check.py
+-- run it as X) and `class`, `names` standing about as strangers on their tokens,
+-- the addon loaded and driven to a fresh prompt, and body(ns) run. Everything is
+-- put back and the mock reset after it. Nothing below names Anna in a queue, so
+-- her spelling on each client does not matter here.
 local function run(scenario, flavour, class, names, body)
 	Mock.reset()
-	Mock.setFlavour(flavour)
+	if flavour then Mock.setFlavour(flavour) end
 	Mock.class = class
 	local restore
 	local ok, err = pcall(function()
@@ -80,13 +83,13 @@ end
 -- than the fast stage's twenty scans: the favour was lost.
 do
 	local scenario = "hunt23-favours: settle-budget-spent-by-refused-scans-never-refilled"
-	run(scenario, "camelot", "MAGE", { nameplate1 = { "Anna", "Aim" } }, function(ns)
+	run(scenario, nil, "MAGE", { nameplate1 = { "Anna", "Aim" } }, function(ns)
 		local noticed, settled = favourAfterRefusals(ns, 1)
 		if not (noticed and settled) then
 			fail(scenario, "SKIPPED -- even a one-second refusal lost the favour (settled=" .. tostring(settled) .. ")")
 		end
 	end)
-	run(scenario, "camelot", "MAGE", { nameplate1 = { "Anna", "Aim" } }, function(ns)
+	run(scenario, nil, "MAGE", { nameplate1 = { "Anna", "Aim" } }, function(ns)
 		local noticed, settled = favourAfterRefusals(ns, 6)
 		if not noticed then
 			fail(scenario, "the aura list was refused for six seconds at the loading screen and answered again;"
@@ -105,7 +108,7 @@ for _, case in ipairs({
 	{ "hunt23-favours: a baseline waits out thirty seconds of refusals", 30 },
 }) do
 	local scenario, seconds = case[1], case[2]
-	run(scenario, "camelot", "MAGE", { nameplate1 = { "Anna", "Aim" } }, function(ns)
+	run(scenario, nil, "MAGE", { nameplate1 = { "Anna", "Aim" } }, function(ns)
 		local noticed, settled = favourAfterRefusals(ns, seconds)
 		if not noticed then
 			fail(scenario, "the aura list was refused for " .. seconds .. " seconds and answered again;"
@@ -124,7 +127,7 @@ end
 -- gives them back.
 do
 	local scenario = "hunt23-favours: a refused baseline is asked less often as it waits, and then not at all"
-	run(scenario, "camelot", "MAGE", { nameplate1 = { "Anna", "Aim" } }, function(ns)
+	run(scenario, nil, "MAGE", { nameplate1 = { "Anna", "Aim" } }, function(ns)
 		local scans = 0
 		local scan = ns.ScanOwnBuffs
 		ns.ScanOwnBuffs = function(...)
@@ -185,8 +188,14 @@ for _, case in ipairs({
 }) do
 	local scenario = case[1]
 	Mock.reset()
-	Mock.interface = 50504
-	Mock.combatLog = true
+	-- Mists is a whole client to the mock, not an interface number on Forever's:
+	-- the first had Forever's surnames answering for the realm, so the same
+	-- Petra was "Petra-Stonewell" from the log's GUID and from the aura scan
+	-- on Forever, and "Petra" from the scan on any other client the suite is run
+	-- as (--flavour), two people. Off Forever the realm is only given for
+	-- somebody from another one.
+	Mock.setFlavour("mists")
+	Mock.crossRealm = true
 	Mock.unitName = { "Petra", "Stonewell" }
 	Mock.guids = { ["Player-1-PETRA"] = { class = "PRIEST", name = "Petra", realm = "Stonewell" } }
 	Mock.extraAuraSpell = 21562

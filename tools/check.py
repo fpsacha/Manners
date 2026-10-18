@@ -15,7 +15,9 @@ The steps, each the existing script run as it is:
   --flavours each client's own scenario file as that client -- era.lua as
              vanilla, tbc.lua as tbc, mists.lua as mists, mainline.lua as
              mainline -- and every tests/scenarios/*-fixes.lua as each of those
-             four (the scenarios step has already run them as camelot):
+             four (the scenarios step has already run them as camelot), and
+             the files in ALSO below (unverified.lua, hunt23-queue.lua and
+             hunt23-favours.lua as mainline):
              tests/runscenarios.py --flavour X --file F
   --lint     tools/lint.py, first of all steps and alone until it passes: a file
              that does not compile would turn every other step red with noise,
@@ -58,6 +60,17 @@ LOGS = os.path.join(tempfile.gettempdir(), "manners-check",
 # Each client but the default, and the scenario file that is its own.
 CLIENTS = (("vanilla", "era.lua"), ("tbc", "tbc.lua"), ("mists", "mists.lua"),
            ("mainline", "mainline.lua"))
+
+# Scenario files that are no client's own and no *-fixes, but follow the client
+# the suite runs as (nothing in them pins one), with the client each is run as
+# besides Forever. A fight hides other players' auras on retail as it does on
+# Forever (secret values) and never on the classic clients, so retail is the one
+# other client these are about: the 1.7.7 fight logic (Core.lua UnitHasBuff,
+# ns.ForgetRefusals, Queue.lua's unverified offers) and what 1.7.8 fixed in
+# Queue.lua and Favours.lua. Before this, no check ran unverified.lua as anything
+# but Forever.
+ALSO = (("mainline", "unverified.lua"), ("mainline", "hunt23-queue.lua"),
+        ("mainline", "hunt23-favours.lua"))
 
 # Lines that say nothing about why a step failed.
 NOISE = re.compile(r"^(=== .* ===|== .* ==|  ok\b.*|narrowed: .*|all scenarios clean|\s*)$")
@@ -185,6 +198,9 @@ def main(argv=None):
             for name in [own] + fixes:
                 rest.append(Step("%s: %s" % (client, name),
                                  ["tests/runscenarios.py", "--flavour", client, "--file", name]))
+        for client, name in ALSO:
+            rest.append(Step("%s: %s" % (client, name),
+                             ["tests/runscenarios.py", "--flavour", client, "--file", name]))
     if args.anchors:
         rest.append(Step("anchors", ["tests/selftest.py", "--anchors", "--jobs", str(jobs)],
                          why=r"^ANCHOR GONE: |Traceback|Error"))
