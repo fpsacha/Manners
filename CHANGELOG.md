@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.7.9
 
 - **`/manners debug` says when you are on your own never-offer list.** With
   your own name on the list it still named a buff for you to cast; it now
