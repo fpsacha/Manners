@@ -15,12 +15,27 @@ local strangers, freshPrompt = H.strangers, H.freshPrompt
 -- Globals a scenario replaces, put back after it whether it finished or threw.
 local TOUCHED = { "C_FriendList", "C_Secrets", "UnitExists", "UnitName", "IsSpellKnown", "IsPlayerSpell" }
 
--- One scenario: the mock reset to `flavour` and `class`, `names` standing about
--- as strangers on their tokens, the addon loaded and driven to a fresh prompt,
--- and body(ns) run. Everything is put back and the mock reset after it.
+-- How the client files Anna Aim, as ANNA, for the scenarios that follow the
+-- client the suite is standing in for (a nil `flavour` to run() below, so
+-- `runscenarios.py --flavour X` and check.py run them as X). On Forever UnitName's
+-- second return is a surname, filed with a space; off it a realm, which the
+-- client hands over for somebody from another one (Mock.crossRealm, set for
+-- these) and the addon joins with a dash. The scenarios about one client, or
+-- about the names themselves, say which client and spell their names out.
+local ANNA
+
+-- One scenario: the mock reset to `flavour` (nil: the client the suite runs as,
+-- Forever unless asked otherwise) and `class`, `names` standing about as strangers
+-- on their tokens, the addon loaded and driven to a fresh prompt, and body(ns)
+-- run. Everything is put back and the mock reset after it.
 local function run(scenario, flavour, class, names, body, before)
 	Mock.reset()
-	Mock.setFlavour(flavour)
+	if flavour then
+		Mock.setFlavour(flavour)
+	else
+		Mock.crossRealm = not Mock.surnames
+		ANNA = Mock.surnames and "Anna Aim" or "Anna-Aim"
+	end
 	Mock.class = class
 	local saved = {}
 	for _, name in ipairs(TOUCHED) do saved[name] = rawget(_G, name) end
@@ -38,6 +53,11 @@ local function run(scenario, flavour, class, names, body, before)
 		end)
 		local ns = load(scenario)
 		if not ns then return end
+		if not flavour and ns.UnitFullName("nameplate1") ~= ANNA then
+			fail(scenario, ("SKIPPED -- the addon files the stranger on the nameplate as %s, not %s")
+				:format(tostring(ns.UnitFullName("nameplate1")), ANNA))
+			return
+		end
 		freshPrompt(ns, scenario)
 		body(ns)
 		for _, e in ipairs(ns.errors or {}) do
@@ -89,31 +109,31 @@ do
 	local scenario = "hunt23-queue: your own target is not backed off while you point at them"
 	local function refuseThrice(ns)
 		for _ = 1, 3 do
-			ns.NoteRefusal("Anna Aim", "Out of range.", nil, true)
+			ns.NoteRefusal(ANNA, "Out of range.", nil, true)
 			Mock.advance(3)
 		end
 	end
 	-- Control: the same three refusals on somebody who is only on a nameplate
 	-- back her off, which is what the back-off is for.
-	run(scenario, "camelot", "MAGE", { nameplate1 = { "Anna", "Aim" } }, function(ns)
+	run(scenario, nil, "MAGE", { nameplate1 = { "Anna", "Aim" } }, function(ns)
 		Mock.advance(60)
-		if not entryFor(ns, "Anna Aim") then
+		if not entryFor(ns, ANNA) then
 			fail(scenario, "SKIPPED -- Anna on a nameplate was not offered to begin with")
 			return
 		end
 		refuseThrice(ns)
 		Mock.advance(20)
-		if entryFor(ns, "Anna Aim") then
+		if entryFor(ns, ANNA) then
 			fail(scenario, "SKIPPED -- three refusals did not back off somebody on a nameplate")
 		end
 	end)
 	-- The player selects Anna (the client sends PLAYER_TARGET_CHANGED once, as
 	-- the target changes) and presses on her three times. Selecting her again
 	-- afterwards sends nothing, so nothing is sent here.
-	run(scenario, "camelot", "MAGE", { target = { "Anna", "Aim" }, nameplate1 = { "Anna", "Aim" } }, function(ns)
+	run(scenario, nil, "MAGE", { target = { "Anna", "Aim" }, nameplate1 = { "Anna", "Aim" } }, function(ns)
 		ns.addon:PLAYER_TARGET_CHANGED()
 		Mock.advance(60)
-		local before = entryFor(ns, "Anna Aim")
+		local before = entryFor(ns, ANNA)
 		if not (before and before.unit == "target") then
 			fail(scenario, "SKIPPED -- Anna, the standing target, was not offered to begin with")
 			return
@@ -121,7 +141,7 @@ do
 		Mock.printed = {}
 		refuseThrice(ns)
 		Mock.advance(20)
-		if not entryFor(ns, "Anna Aim") then
+		if not entryFor(ns, ANNA) then
 			fail(scenario, "Anna has been the player's own target throughout, and after the third refusal the"
 				.. " back-off keeps her off the prompt for minutes with nothing that lifts it: the lift"
 				.. " waits for a PLAYER_TARGET_CHANGED that selecting the selected unit never sends")
@@ -136,14 +156,14 @@ do
 		Mock.unitNames.target = nil
 		ns.addon:PLAYER_TARGET_CHANGED()
 		Mock.advance(3)
-		local passerBy = entryFor(ns, "Anna Aim")
+		local passerBy = entryFor(ns, ANNA)
 		if not (passerBy and passerBy.unit ~= "target") then
 			fail(scenario, "SKIPPED -- Anna was not offered as a passer-by once the target was cleared")
 			return
 		end
-		ns.NoteRefusal("Anna Aim", "Out of range.", nil, true)
+		ns.NoteRefusal(ANNA, "Out of range.", nil, true)
 		Mock.advance(20)
-		if entryFor(ns, "Anna Aim") then
+		if entryFor(ns, ANNA) then
 			fail(scenario, "the refusals on her as the player's target were not counted: the fourth in a row,"
 				.. " as a passer-by, did not back her off")
 		end
@@ -152,12 +172,12 @@ do
 	-- target, an event the player sent): a later press on her is anybody's. The
 	-- macro's own /target makes her the target again, and three refusals back her
 	-- off, though she was the player's pick once.
-	run(scenario, "camelot", "MAGE", { target = { "Anna", "Aim" }, nameplate1 = { "Anna", "Aim" } }, function(ns)
+	run(scenario, nil, "MAGE", { target = { "Anna", "Aim" }, nameplate1 = { "Anna", "Aim" } }, function(ns)
 		ns.addon:PLAYER_TARGET_CHANGED()
 		Mock.unitNames.target = nil
 		ns.addon:PLAYER_TARGET_CHANGED()
 		Mock.advance(60)
-		if not entryFor(ns, "Anna Aim") then
+		if not entryFor(ns, ANNA) then
 			fail(scenario, "SKIPPED -- Anna on a nameplate was not offered after the target was cleared")
 			return
 		end
@@ -165,11 +185,11 @@ do
 			Mock.unitNames.target = { "Anna", "Aim" }
 			ns.pressAt = GetTime()
 			ns.addon:PLAYER_TARGET_CHANGED()
-			ns.NoteRefusal("Anna Aim", "Out of range.", nil, true)
+			ns.NoteRefusal(ANNA, "Out of range.", nil, true)
 			Mock.advance(3)
 		end
 		Mock.advance(20)
-		if entryFor(ns, "Anna Aim") then
+		if entryFor(ns, ANNA) then
 			fail(scenario, "somebody the player selected once and cleared again, whom the macro then targeted,"
 				.. " was not backed off after three refusals")
 		end
@@ -183,10 +203,10 @@ do
 	-- targeted before it leaves them so on the client too). Each press moves the
 	-- target within the half second PLAYER_TARGET_CHANGED ignores, as a press
 	-- does, and is refused.
-	run(scenario, "camelot", "MAGE", { nameplate1 = { "Anna", "Aim" } }, function(ns)
+	run(scenario, nil, "MAGE", { nameplate1 = { "Anna", "Aim" } }, function(ns)
 		ns.db.profile.filters.restoreTarget = false
 		Mock.advance(60)
-		if not entryFor(ns, "Anna Aim") then
+		if not entryFor(ns, ANNA) then
 			fail(scenario, "SKIPPED -- Anna on a nameplate was not offered to begin with")
 			return
 		end
@@ -194,11 +214,11 @@ do
 			Mock.unitNames.target = { "Anna", "Aim" }
 			ns.pressAt = GetTime()
 			ns.addon:PLAYER_TARGET_CHANGED()
-			ns.NoteRefusal("Anna Aim", "Out of range.", nil, true)
+			ns.NoteRefusal(ANNA, "Out of range.", nil, true)
 			Mock.advance(3)
 		end
 		Mock.advance(20)
-		if entryFor(ns, "Anna Aim") then
+		if entryFor(ns, ANNA) then
 			fail(scenario, "the macro's own /target made Anna the target, and three refusals on her did not"
 				.. " back her off: a prompt the game keeps refusing comes straight back, for good")
 		end
@@ -336,19 +356,19 @@ end
 -- early return of that kind writes a verdict or drops the memories (`drop`).
 do
 	local scenario = "hunt23-queue: the group switch turns away a remembered passer-by who joins"
-	run(scenario, "camelot", "MAGE", { nameplate1 = { "Anna", "Aim" } }, function(ns)
+	run(scenario, nil, "MAGE", { nameplate1 = { "Anna", "Aim" } }, function(ns)
 		local sources = ns.db.profile.sources
 		sources.group, sources.strangers = false, true
 		Mock.advance(60)
-		local before = entryFor(ns, "Anna Aim")
-		if not (before and before.reason == "nearby" and ns.passersBy["Anna Aim"]) then
+		local before = entryFor(ns, ANNA)
+		if not (before and before.reason == "nearby" and ns.passersBy[ANNA]) then
 			fail(scenario, "SKIPPED -- Anna was not offered and remembered as a passer-by to begin with")
 			return
 		end
 		-- She joins the party.
 		Mock.groupSize = 2
 		Mock.advance(1)
-		local after = entryFor(ns, "Anna Aim")
+		local after = entryFor(ns, ANNA)
 		if after then
 			fail(scenario, "with People in my group switched off, Anna is offered as '" .. tostring(after.reason)
 				.. "' (from the passer-by memory of before she joined) in the seconds after she joins the party")
@@ -356,22 +376,22 @@ do
 		-- The scan says so as a verdict, which the prompt's cursor hold reads, and
 		-- the memory of her goes with it.
 		local _, rejected = ns.BuildQueue()
-		if type(rejected) ~= "table" or rejected["Anna Aim"] ~= true then
+		if type(rejected) ~= "table" or rejected[ANNA] ~= true then
 			fail(scenario, "no verdict was written for a group member the switch turns away: "
-				.. tostring(type(rejected) == "table" and rejected["Anna Aim"]))
+				.. tostring(type(rejected) == "table" and rejected[ANNA]))
 		end
-		if ns.passersBy["Anna Aim"] then
+		if ns.passersBy[ANNA] then
 			fail(scenario, "the passer-by memory of Anna outlived the verdict on her")
 		end
 	end)
 	-- Control: with the switch on she is offered as a group member after she joins.
-	run(scenario, "camelot", "MAGE", { nameplate1 = { "Anna", "Aim" } }, function(ns)
+	run(scenario, nil, "MAGE", { nameplate1 = { "Anna", "Aim" } }, function(ns)
 		local sources = ns.db.profile.sources
 		sources.group, sources.strangers = true, true
 		Mock.advance(60)
 		Mock.groupSize = 2
 		Mock.advance(1)
-		local after = entryFor(ns, "Anna Aim")
+		local after = entryFor(ns, ANNA)
 		if not (after and after.reason == "group") then
 			fail(scenario, "SKIPPED -- with People in my group on, Anna was not offered as a group member: "
 				.. tostring(after and after.reason))
@@ -409,7 +429,7 @@ do
 		rawset(_G, "IsSpellKnown", is)
 		rawset(_G, "IsPlayerSpell", is)
 	end
-	run(scenario, "camelot", "MAGE", { nameplate1 = { "Anna", "Aim" } }, function(ns)
+	run(scenario, nil, "MAGE", { nameplate1 = { "Anna", "Aim" } }, function(ns)
 		local db = ns.db.profile
 		Mock.playerHeld = {}
 		ns.ForgetUnitAuras(ns.plain(UnitGUID("player")))
@@ -425,7 +445,11 @@ do
 			fail(scenario, "SKIPPED -- SelfBuffFirst found no group buff for you before the listing")
 			return
 		end
-		if not comesFirst(ns) then
+		-- Retail's mage has no family of her own (Buffs.lua, `own = {}`), so its
+		-- debug page has no such line to be wrong; there only the prompt's side,
+		-- SelfBuffFirst, is held to the list.
+		local says = next(ns.OWN_BUFFS.MAGE or {}) ~= nil
+		if says and not comesFirst(ns) then
 			fail(scenario, "SKIPPED -- /manners debug did not say your own buff comes first before the listing")
 			return
 		end

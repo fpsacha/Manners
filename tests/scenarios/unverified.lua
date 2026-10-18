@@ -10,12 +10,38 @@
 --
 -- Every scenario name starts with "unverified:" so tests/mutations/unverified.py
 -- can name the one that has to catch each fault.
+--
+-- The file follows the client the suite runs as: Forever by default, and
+-- retail under `--flavour mainline`, which tools/check.py --flavours does, since
+-- retail hides other players' auras in a fight as Forever does (secret values).
+-- The classic clients never do, so there the refusals are made up by the mock;
+-- the code is the same, and the scenarios still hold. Three things differ by
+-- client, and each is handled where it comes up: how Anna is filed (ANNA below),
+-- which buff has more than one aura id to declare one of secret (`manyIds`), and
+-- ranks, which only Forever, Classic Era and TBC have (the stronger-rank scenario
+-- returns quietly where there are none: a "SKIPPED" is a failure).
 
 local dir, H = ...
 local fail, load = H.fail, H.load
 local strangers, freshPrompt, inQueue, owe = H.strangers, H.freshPrompt, H.inQueue, H.owe
 
-local ANNA = "Anna Aim"
+-- What UnitName gives Anna, and how the client files her. On Forever her second
+-- return is a surname, filed with a space ("Anna Aim"); off it a realm, which the
+-- client hands over only for somebody from another one (the mock's
+-- Mock.crossRealm) and the addon joins with a dash ("Anna-Aim"). The scenarios
+-- here were written on Forever and named her "Anna Aim" throughout, so on any
+-- other client every `inQueue(ns)[ANNA]` found nobody and the file reported 32
+-- offers missing. ANNA is now set afresh by each session from the client the mock
+-- is standing in for, and checked against what the addon files her as (Core.lua,
+-- JoinName), so a wrong spelling is one failure that says so.
+local ANNA
+local ANNA_NAME = { "Anna", "Aim" }
+
+local function filedAs(name)
+	if Mock.surnames then return name[1] .. " " .. name[2] end
+	if Mock.crossRealm then return name[1] .. "-" .. name[2] end
+	return name[1]
+end
 
 local function noErrors(scenario, ns)
 	for _, e in ipairs(ns.errors or {}) do
@@ -25,15 +51,38 @@ end
 
 -- Runs `body(ns, ids, buff)` on a fresh session with Anna on a nameplate four
 -- yards off, the buff to offer resolved and its aura ids handed over, and puts
--- the units and the fight back whatever happened.
-local function session(scenario, body)
+-- the units and the fight back whatever happened. `manyIds` is for a scenario
+-- that declares one id of the buff secret while the rest still read: it needs a
+-- buff of more than one aura id. A mage has one on every client but retail's,
+-- where Arcane Intellect is the single id 1459 (no ranks, no group version),
+-- and the evoker's Blessing of the Bronze, with a group's worth of ids, is the
+-- buff that has them. The mock's spellbook holds Arcane Intellect alone, so the
+-- evoker is given one that knows every spell, and the two globals put back.
+local function session(scenario, body, manyIds)
 	Mock.reset()
-	local names = { nameplate1 = { "Anna", "Aim" } }
+	local knows, knowsPlayer = IsSpellKnown, IsPlayerSpell
+	if manyIds and Mock.flavour == "mainline" then
+		Mock.class = "EVOKER"
+		local all = function() return true end
+		rawset(_G, "IsSpellKnown", all)
+		rawset(_G, "IsPlayerSpell", all)
+	end
+	-- Somebody from another realm: Anna-Aim, which is how a stranger reaches
+	-- the retail and Classic clients' queues as often as not, and the spelling
+	-- where the filed name and the /target name differ (ns.TargetName).
+	Mock.crossRealm = not Mock.surnames
+	local names = { nameplate1 = ANNA_NAME }
+	ANNA = filedAs(ANNA_NAME)
 	Mock.yards = { nameplate1 = 4 }
 	local restoreUnits = strangers(names)
 	local ok, err = pcall(function()
 		local ns = load(scenario)
 		if not ns then return end
+		if ns.UnitFullName("nameplate1") ~= ANNA then
+			fail(scenario, ("SKIPPED -- the addon files the stranger on the nameplate as %s, not %s")
+				:format(tostring(ns.UnitFullName("nameplate1")), ANNA))
+			return
+		end
 		freshPrompt(ns, scenario)
 		ns.Prompt:ExitTest()
 		Mock.runTimers(0)
@@ -46,6 +95,9 @@ local function session(scenario, body)
 		noErrors(scenario, ns)
 	end)
 	restoreUnits()
+	rawset(_G, "IsSpellKnown", knows)
+	rawset(_G, "IsPlayerSpell", knowsPlayer)
+	Mock.crossRealm = false
 	Mock.inCombat = false
 	if not ok then fail(scenario, "threw: " .. tostring(err)) end
 end
@@ -339,7 +391,7 @@ do
 		ns.nameplateUnits.nameplate1 = nil
 		refuse(ids, "secret")
 		fightStarts(ns)
-		Mock.unitNames.nameplate1 = { "Anna", "Aim" }
+		Mock.unitNames.nameplate1 = ANNA_NAME
 		ns.nameplateUnits.nameplate1 = true
 		fightEnds(ns)
 		local entry = inQueue(ns)[ANNA]
@@ -377,7 +429,7 @@ local function outOfSight(ns)
 end
 
 local function inSight(ns)
-	Mock.unitNames.nameplate1 = { "Anna", "Aim" }
+	Mock.unitNames.nameplate1 = ANNA_NAME
 	ns.nameplateUnits.nameplate1 = true
 end
 
@@ -422,7 +474,7 @@ do
 		if not entry then
 			fail(scenario, "Anna, read without the buff she wore, was not offered as the fight ended")
 		end
-	end)
+	end, true)
 end
 
 -- ------------------------------------------------------------ unverified 11
@@ -561,6 +613,11 @@ end
 do
 	local scenario = "unverified: a stronger rank last read still bars a favour's refresh"
 	session(scenario, function(ns, ids, buff)
+		-- Ranks are Forever's, Classic Era's and Burning Crusade's: Mists and
+		-- retail each have one spell per buff (Buffs.lua), so nobody can wear a
+		-- stronger one there and there is nothing for this to be about. Not a
+		-- "SKIPPED": that is a failure, kept for a precondition that should have held.
+		if #buff.ranks < 2 then return end
 		local info = ns.BuffInfo(buff)
 		local ours = info and ns.RankLevel(info.topRank)
 		local reach = ns.plain(UnitLevel("nameplate1"))
@@ -867,7 +924,7 @@ do
 		elseif not inQueue(ns)[ANNA] then
 			fail(scenario, "Anna, refused for good, is no longer offered by name after the fight")
 		end
-	end)
+	end, true)
 end
 
 -- ------------------------------------------------------------ unverified 23

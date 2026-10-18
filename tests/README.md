@@ -179,7 +179,11 @@ prints only a failure that is not in it, and an entry that now passes; the
 list is what is left to read. Each client's own scenarios, which run in every
 normal run, are `tests/scenarios/era.lua`, `tbc.lua`, `mists.lua` and
 `mainline.lua`; `python tools/check.py --flavours` also runs every
-`*-fixes.lua` as each client.
+`*-fixes.lua` as each client, and `unverified.lua`, `hunt23-queue.lua` and
+`hunt23-favours.lua` as mainline: they follow the client the suite runs as and
+file their stranger as it does ("Anna Aim" on Forever, "Anna-Aim" off it). A
+scenario about something a client does not have (ranks, on Mists and retail)
+returns without a line there: a "SKIPPED" fail() is a failure.
 
 A scenario left out gets `nil` from `load()`, which every scenario reads as
 "skip"; the few that report an empty load as a failure of their own

@@ -37,7 +37,7 @@ Each step is the existing script, run as it is:
 | `validate` | `tests/validate.py` |
 | `harness` | `tests/runharness.py` |
 | `scenarios` | `tests/runscenarios.py --jobs N`: every scenario, as WoW Forever (camelot), the default client |
-| `--flavours` | `tests/runscenarios.py --flavour X --file F`, one step per pair: `era.lua` as vanilla, `tbc.lua` as tbc, `mists.lua` as mists, `mainline.lua` as mainline, and every `tests/scenarios/*-fixes.lua` as each of those four (the `scenarios` step has run them as camelot) |
+| `--flavours` | `tests/runscenarios.py --flavour X --file F`, one step per pair: `era.lua` as vanilla, `tbc.lua` as tbc, `mists.lua` as mists, `mainline.lua` as mainline, every `tests/scenarios/*-fixes.lua` as each of those four (the `scenarios` step has run them as camelot), and the files in `ALSO` (top of `check.py`) as mainline: `unverified.lua`, `hunt23-queue.lua`, `hunt23-favours.lua`. Retail hides other players' auras in a fight as Forever does, so the fight logic of 1.7.7 and what 1.7.8 fixed in the queue and the aura scan are run as both; these files follow the client the suite runs as, and take their stranger's name from it |
 | `--anchors` | `tests/selftest.py --anchors --jobs N` |
 
 As each step ends it prints `PASS` or `FAIL`, its seconds and its own verdict

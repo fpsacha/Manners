@@ -120,7 +120,7 @@ default everywhere in the tests and the only client anybody here plays.
 | `python tools/lint.py` | every Lua file (Lua 5.1) and Python file compiles, the generated tocs are current; `file:line: what` per problem | under 1 s |
 | `python tools/check.py` | validate, runharness, runscenarios (Forever); one summary line per step, non-zero on any failure | minutes |
 | `python tools/check.py --lint` | lint first, and nothing else runs if it fails | |
-| `python tools/check.py --flavours` | also each client's own scenario file as that client (era.lua as vanilla, tbc.lua, mists.lua, mainline.lua) and every `tests/scenarios/*-fixes.lua` as each client | longer |
+| `python tools/check.py --flavours` | also each client's own scenario file as that client (era.lua as vanilla, tbc.lua, mists.lua, mainline.lua), every `tests/scenarios/*-fixes.lua` as each client, and `unverified.lua`, `hunt23-queue.lua` and `hunt23-favours.lua` as mainline (retail hides auras in a fight as Forever does) | longer |
 | `python tools/check.py --anchors` | also `tests/selftest.py --anchors` | seconds more |
 | `python tests/selftest.py --changed [REF]` | the mutations of every file that differs from REF, committed or not (default master): code, tests, docs and workflows alike | minutes (about 15 for a handful judged by runscenarios) |
 | `python tests/selftest.py` | every mutation (about 2,400), each judged by the check it names | about 20-40 minutes; see the docstring |
