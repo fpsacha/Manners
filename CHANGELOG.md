@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.7.8
 
 - **Offered the moment a fight ends.** Somebody Manners remembered wearing
   your buff from before a fight, who lost it in the fight (dispelled, or
