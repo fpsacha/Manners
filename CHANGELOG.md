@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- **`/manners debug` says when you are on your own never-offer list.** With
+  your own name on the list it still named a buff for you to cast; it now
+  says your own buffs are held back because of the list.
+- **"Only for people who buff me" greys out** when *People who buff me* is
+  off, since the sound option does nothing then.
+- **A zone change during a long wait looks at your buffs at once.** If the
+  game was still hiding your buffs from the last zone, Manners could take up
+  to a second longer to look at the new one.
+
 ## 1.7.8
 
 - **Offered the moment a fight ends.** Somebody Manners remembered wearing

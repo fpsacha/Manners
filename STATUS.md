@@ -73,31 +73,24 @@ fixed in 1.7.8 (`tests/scenarios/hunt23-*.lua`). What they assume:
 
 **What bug hunt 23 left.** A refusal of your aura list longer than both settle
 stages (about 34 s: a keystone, a long fight) still loses the first favour
-after it (Favours.lua); a zone change while a slow settle timer is parked
-starts the next settle up to a second late. With your own name never-offered,
-the family lines of `/manners debug` still name a buff to cast (saying why
-needs a new string). A target chosen before the addon heard any target event
+after it (Favours.lua). A target chosen before the addon heard any target event
 (login, `/reload`) is not known to be a choice and is backed off as before.
 
-**`tests/baselines/vanilla.txt` and `tbc.txt` predate `unverified.lua`.**
-`runscenarios.py --flavour vanilla --baseline` (and tbc) prints 32
-`unverified:` failures not in the baseline, the same on 1.7.7. Likely Forever
-fixtures (two-part names); confirm before `--update-baseline`.
+**The retail runs of the fight scenarios are local only.** `check.py
+--flavours` runs `unverified.lua`, `hunt23-queue.lua` and `hunt23-favours.lua`
+as mainline (`ALSO` in `tools/check.py`), since retail hides auras in a fight
+as Forever does. Neither `ci.yml` nor `tools/release.py` runs `--flavours`
+(release.py runs `check.py --anchors`); adding it to release.py's check would
+cost about 30 s.
 
-**"Only for people who buff me" (sound) stays enabled with "People who buff me"
-off.** `Options/Look.lua` `soundOwedOnly` is disabled only by the sound
-switch. Judged harmless: the sound ignores the setting then
-(`Prompt/Refresh.lua`, `db.sources.owed ~= false`), so the toggle does nothing.
+**A client bump stales `tests/baselines/mainline.txt`.** Nine of its lines
+carry the client line ("12.1.5 (...), interface 120105"); they were rewritten
+for 12.1.5 after 1.7.8. `normalise()` in `tests/runscenarios.py` could strip
+the build and interface so the next bump does not.
 
 **Unused local functions are found by hand.** `tests/validate.py` reports a
 write-only `ns.X`, but nothing finds a local function nobody calls; extending
 that check is the one step of the 1.0.0-beta.9 cleanup plan never built.
-
-**A stale comment in `release.yml`.** Above the "Confirm the suites can still
-fail" step it says CI on master runs the full selftest on every push. It does
-not: `ci.yml` runs `selftest.py --anchors`, and the full run is made by hand
-before a release (`RELEASING.md`). Reword the comment only; the `shell: bash`
-line and the grep below it are mutation anchors.
 
 ## Decisions
 
