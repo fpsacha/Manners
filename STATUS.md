@@ -5,7 +5,7 @@ work on the project: `CLAUDE.md`. How to release: `RELEASING.md`.
 
 ## State
 
-1.7.7 is released, for all five live clients: WoW Forever, Classic Era, Burning
+1.7.8 is released, for all five live clients: WoW Forever, Classic Era, Burning
 Crusade Classic Anniversary, Mists of Pandaria Classic and retail (a toc per
 client from `tools/maketocs.py`, a buff set per client in `Buffs.lua`, each
 checked against that client's DB2 on wago.tools, and a scenario file and
@@ -60,7 +60,7 @@ row reads DRIFT); the toc then needs the number (`tools/maketocs.py`'s
 
 **Bug hunt 23 rests on three client facts nobody here can observe.** The nine
 old candidates were triaged after 1.7.7: two were already fixed, seven were
-fixed (`tests/scenarios/hunt23-*.lua`). What they assume:
+fixed in 1.7.8 (`tests/scenarios/hunt23-*.lua`). What they assume:
 - Classic Era and TBC answer nothing for spell 61304 (no DB2 row there), so
   `GlobalCooldownReading` (Clicks.lua) reads one of the class's buffs. If those
   clients answer zeros instead, the fallback never runs. `/run
