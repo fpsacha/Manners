@@ -52,12 +52,13 @@ jobs:
       # start of its summary lines, because a mutation's label or a caught
       # check's message may use the same words on a run that passed.
       #
-      # --anchors here, the full run in CI. The full run reintroduces every
+      # --anchors here, not the full run. The full run reintroduces every
       # fault one at a time and took over two hours on GitHub's runner, which
       # held a broken build live for hours when a fix needed shipping (beta.6).
-      # CI on master runs it in full on every push, and RELEASING.md runs it
-      # before a tag; the release checks that every mutation still has its
-      # text to reintroduce, which is what a last-minute edit breaks.
+      # ci.yml runs --anchors on every push as well, and the full run is made
+      # by hand before a tag (RELEASING.md). The release checks that every
+      # mutation still has its text to reintroduce, which is what a last-minute
+      # edit breaks.
       - name: Confirm the suites can still fail
         shell: bash
         run: |

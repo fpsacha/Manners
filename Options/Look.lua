@@ -3,7 +3,7 @@
 local _, ns = ...
 local L = ns.L
 local Page = ns.OptionsPage
-local restyle, P, SND, pGet = Page.restyle, Page.P, Page.SND, Page.pGet
+local restyle, P, S, SND, pGet = Page.restyle, Page.P, Page.S, Page.SND, Page.pGet
 local pSet, pGetColor, pSetColor, HasClassBuffs = Page.pSet, Page.pGetColor, Page.pSetColor, Page.HasClassBuffs
 local HasPrompt, TAB = Page.HasPrompt, Page.TAB
 
@@ -422,7 +422,10 @@ function Page.BuildLookTab()
 				order = 35,
 				hidden = function() return not HasClassBuffs() end,
 				width = "full",
-				disabled = function() return not SND().enabled end,
+				-- Also off with "People who buff me": nobody is owed then, and
+				-- the sound ignores this setting (Prompt/Refresh.lua), so the
+				-- toggle would do nothing. Unset counts as on, as it does there.
+				disabled = function() return not SND().enabled or S().owed == false end,
 				get = function() return SND().owedOnly end,
 				set = function(_, v) SND().owedOnly = v end,
 			},

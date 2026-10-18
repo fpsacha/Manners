@@ -251,6 +251,12 @@ do
 	local SETTLE_SLOW_TRIES = 30
 	local settleTries = 0
 	local settlePending = false
+	-- A timer cannot be called back, so a zone change leaves the old zone's parked
+	-- and settlePending true until it fires, up to a second inside the slow stage:
+	-- the new zone's first settle scan came that late. Each timer carries the epoch
+	-- it was set under, a zone change moves it on and clears the flag, and a timer
+	-- from an older one does nothing, not even clear the flag the new chain owns.
+	local settleEpoch = 0
 
 	local function ScheduleSettle()
 		if settlePending or settleTries >= SETTLE_TRIES + SETTLE_SLOW_TRIES then return end
@@ -258,7 +264,9 @@ do
 		local interval = settleTries < SETTLE_TRIES and SETTLE_INTERVAL or SETTLE_SLOW_INTERVAL
 		settleTries = settleTries + 1
 		settlePending = true
+		local epoch = settleEpoch
 		C_Timer.After(interval, function()
+			if epoch ~= settleEpoch then return end
 			settlePending = false
 			-- Guarded: a throw inside a timer callback would leave the baseline
 			-- unsettled for the session without a word.
@@ -279,6 +287,8 @@ do
 		haveLastScan = false
 		auraScanPrimed = false
 		settleTries = 0
+		settleEpoch = settleEpoch + 1
+		settlePending = false
 	end
 
 	-- Whether a unit or a name is in your party or raid at all, as BuildQueue's
