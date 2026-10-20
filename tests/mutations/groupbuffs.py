@@ -334,8 +334,8 @@ mutate("Prompt/Button.lua",
 
 # ------------------------------------------------ review round: the panel
 mutate("Prompt/Paint.lua",
-       "\t\tlocal groupIcon = entry.groupCast and entry.groupCast.icon\n",
-       "\t\tlocal groupIcon = nil\n",
+       "\tlocal groupIcon = entry.groupCast and entry.groupCast.icon\n",
+       "\tlocal groupIcon = nil\n",
        "groupbuffs: the panel shows the single spell's icon",
        expect="the panel shows icon", script=S)
 mutate("GroupBuffs.lua",

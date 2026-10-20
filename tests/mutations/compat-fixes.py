@@ -44,9 +44,9 @@ mutate("Prompt/Macro.lua",
 
 # /manners try arming the button without silencing the other buttons.
 mutate("Prompt/Macro.lua",
-       "\t\tSilenceOtherButtons()\n"
-       "\t\tns.lastMacro = \"[try] \" .. text\n",
-       "\t\tns.lastMacro = \"[try] \" .. text\n",
+       "\t\tSilenceOtherButtons(R)\n"
+       "\t\tif not S.isRow then ns.lastMacro = \"[try] \" .. text end\n",
+       "\t\tif not S.isRow then ns.lastMacro = \"[try] \" .. text end\n",
        "compat-fix: a /manners try macro armed for every button",
        expect="compat-fix: a /manners try macro is run by the left button only",
        script=S)

@@ -8675,7 +8675,7 @@ do
 		"Commands.lua", "Ledger.lua", "Looks/Looks.lua", "Looks/Luxe.lua",
 		"Prompt/Prompt.lua", "Prompt/Text.lua", "Prompt/Effects.lua", "Prompt/Hold.lua",
 		"Prompt/Macro.lua", "Prompt/Press.lua", "Prompt/Button.lua", "Prompt/Panel.lua",
-		"Prompt/List.lua", "Prompt/Paint.lua", "Prompt/Refresh.lua",
+		"Prompt/List.lua", "Prompt/Rows.lua", "Prompt/Paint.lua", "Prompt/Refresh.lua",
 		"Options/Shared.lua", "Options/Launcher.lua", "Options/Start.lua", "Options/Who.lua",
 		"Options/When.lua", "Options/Say.lua", "Options/Look.lua", "Options/Advanced.lua",
 		"Options/Diagnostics.lua", "Options/Profiles.lua", "Options/Register.lua" }) do

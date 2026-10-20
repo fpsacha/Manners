@@ -26,8 +26,8 @@ mutate("Options/Advanced.lua",
 
 # The anchor swept up with the rest: where the prompt sits is kept.
 mutate("Options/Advanced.lua",
-       "\t\t\"sound.enabled\", \"sound.file\", \"sound.owedOnly\",\n",
-       "\t\t\"sound.enabled\", \"sound.file\", \"sound.owedOnly\", \"prompt.point\",\n",
+       "\t\t\"prompt.clickRows\", \"sound.enabled\", \"sound.file\", \"sound.owedOnly\",\n",
+       "\t\t\"prompt.clickRows\", \"sound.enabled\", \"sound.file\", \"sound.owedOnly\", \"prompt.point\",\n",
        "advanced: the reset leaves the anchor",
        expect="look reset: moved the prompt", script=S)
 

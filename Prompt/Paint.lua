@@ -56,6 +56,15 @@ local function Substitute(template, entry, extra)
 	return out
 end
 
+-- The icon of the buff an entry offers: the group spell's for a group cast,
+-- else the buff's own. The prompt's icon and the list's rows are both drawn
+-- from it, and read nothing of the person (no aura is asked for).
+local function EntryIcon(entry)
+	local info = ns.BuffInfo(entry.buff)
+	local groupIcon = entry.groupCast and entry.groupCast.icon
+	return groupIcon or (info and info.icon) or 135932
+end
+
 function Prompt:ReasonText(entry)
 	local p = ns.db.profile.prompt
 	-- A group cast's second line is what it is and for how many, which no
@@ -293,11 +302,7 @@ function Prompt:Paint(entry, extra)
 	-- On every paint of a person, the scan's own tick: a look's clock.
 	if S.activeLook and S.activeLook.Painted then S.activeLook:Painted(entry) end
 
-	if p.showIcon then
-		local info = ns.BuffInfo(entry.buff)
-		local groupIcon = entry.groupCast and entry.groupCast.icon
-		R.icon:SetTexture(groupIcon or (info and info.icon) or 135932)
-	end
+	if p.showIcon then R.icon:SetTexture(EntryIcon(entry)) end
 end
 
-lib.Substitute = Substitute
+lib.Substitute, lib.EntryIcon = Substitute, EntryIcon

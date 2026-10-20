@@ -183,7 +183,7 @@ for _, key in ipairs({ "format", "reasonTarget", "reasonOwed", "reasonAsked", "r
 	FIELDS["advanced." .. key] = { { "prompt", key } }
 end
 for _, key in ipairs({ "font", "fontSize", "fontColor", "classColor", "showSub", "showIcon", "iconSize",
-	"roundIcon", "showCooldown", "showCount", "showQueue", "queueRows" }) do
+	"roundIcon", "showCooldown", "showCount", "showQueue", "queueRows", "clickRows" }) do
 	FIELDS["appearance." .. key] = { { "prompt", key } }
 end
 

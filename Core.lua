@@ -338,6 +338,9 @@ local defaults = {
 			showCount = true,
 			showQueue = false,
 			queueRows = 3,
+			-- A left click on a name in that list buffs them (Prompt/Rows.lua).
+			-- Off: the list is only to read.
+			clickRows = true,
 
 			font = "Friz Quadrata TT",
 			fontSize = 13,
@@ -2801,6 +2804,7 @@ function ns.ClampSettings()
 	boolean(p, "thankEmote", false)
 	oneOf(p, "effects", { full = true, calm = true }, "full")
 	boolean(p, "showCooldown", true)
+	boolean(p, "clickRows", true)
 
 	-- The two questions Start here asks a new profile (Options/Start.lua,
 	-- Quick.Asking). A profile this clamp has been through before carries the
@@ -3231,6 +3235,10 @@ function addon:PLAYER_REGEN_DISABLED()
 	-- First, while the button can still be touched: a drag held into the pull
 	-- is let go of and its position kept, rather than released in the fight.
 	if ns.Prompt then ns.Guard("drag at fight start", ns.Prompt.FinishDragForFight, ns.Prompt) end
+	-- A list row holds a macro only for the length of a press, so this finds
+	-- nothing unless a press was cut short; but the fight freezes whatever it
+	-- finds, and a row must never be left aimed at somebody.
+	if ns.Prompt then ns.Guard("rows at fight start", ns.Prompt.DisarmRows, ns.Prompt) end
 	-- Somebody who asked for a buff is not let go while you cannot offer it.
 	ns.Guard("requests at fight start", ns.HoldRequestsForFight)
 	-- The pull ends the sweep a ready check started; before the repaint below.

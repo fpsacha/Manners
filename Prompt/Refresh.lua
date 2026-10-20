@@ -9,7 +9,7 @@ local GetTime = _G.GetTime
 local HideQueue, Substitute, SetLine, ShowChip = lib.HideQueue, lib.Substitute, lib.SetLine, lib.ShowChip
 local ClearHold, LightFuse, NoteVerdicts, Retired = lib.ClearHold, lib.LightFuse, lib.NoteVerdicts, lib.Retired
 local CursorHolds, ArmingForFight, EMPTY_FUSE_SECONDS = lib.CursorHolds, lib.ArmingForFight, lib.EMPTY_FUSE_SECONDS
-local FullEffects, OutroAlpha = lib.FullEffects, lib.OutroAlpha
+local FullEffects, OutroAlpha, EntryIcon = lib.FullEffects, lib.OutroAlpha, lib.EntryIcon
 
 -- Who was last painted on the panel, by name, and why they were on it.
 local lastTop, lastTopReason
@@ -187,12 +187,19 @@ function Prompt:RefreshPanel()
 		-- too. The count covers every row listed, as a real one does: each
 		-- row below is somebody else waiting.
 		local mock, reasons = {}, { "owed", "group", "nearby", "nearby", "nearby" }
+		local test = TestEntry()
+		-- Nobody real in a mock row, so none of it can be pressed (no entry);
+		-- the icon is drawn as a real row's would be.
+		local icon = p.showIcon and EntryIcon(test) or nil
 		for i = 1, (p.showQueue and p.queueRows or 0) do
-			mock[i] = { text = L["Someone %d"]:format(i), reason = reasons[i] }
+			mock[i] = { text = L["Someone %d"]:format(i), reason = reasons[i], icon = icon }
 		end
-		self:Paint(TestEntry(), math.max(2, #mock))
+		self:Paint(test, math.max(2, #mock))
 		self:StartAttention(false)
-		self:PaintQueue(mock)
+		-- Not in a fight: the list's lines are what each name's button is
+		-- anchored to (Rows.lua), and the client will not have a frame that a
+		-- secure frame hangs from moved in combat.
+		if not InCombatLockdown() then self:PaintQueue(mock) end
 		return
 	end
 
@@ -392,6 +399,11 @@ function Prompt:RefreshPanel()
 					text = Substitute("{name}", entry, 0),
 					detail = self:ReasonText(entry),
 					reason = entry.reason,
+					-- The entry itself: a click on the name presses it as it
+					-- stands (Rows.lua), and the icon of what it offers is
+					-- drawn at the row's left.
+					entry = entry,
+					icon = p.showIcon and EntryIcon(entry) or nil,
 				}
 			end
 		end

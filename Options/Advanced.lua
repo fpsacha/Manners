@@ -96,7 +96,7 @@ Page.RESET = {
 		"prompt.reasonSelf", "prompt.reasonGroup", "prompt.reasonNearby", "prompt.reasonRefresh",
 		"prompt.reasonUnknown", "prompt.showIcon", "prompt.iconSize", "prompt.roundIcon",
 		"prompt.showCooldown", "prompt.showCount", "prompt.showQueue", "prompt.queueRows",
-		"sound.enabled", "sound.file", "sound.owedOnly",
+		"prompt.clickRows", "sound.enabled", "sound.file", "sound.owedOnly",
 		after = function()
 			-- The icon back inside the prompt's size, as the size sliders do.
 			ns.ClampSettings()
