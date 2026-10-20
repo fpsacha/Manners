@@ -359,6 +359,16 @@ local function RaidGroupChoices()
 	return values
 end
 
+-- A passer-by is seen mostly through a nameplate token, and with the game's
+-- friendly nameplates off almost nobody outside your group has one, so the
+-- note and the button under the passers-by switch say so (they hold only
+-- while it is so, and What I say has the same pair for spoken lines). Away
+-- with passers-by off or meaningless for this class, and unless the client
+-- plainly says the nameplates are off (Speech.lua).
+local function PlatesHidden()
+	return not S().strangers or OnlyReachesGroup() or not ns.FriendlyPlatesOff()
+end
+
 -- Four questions, top to bottom: what to cast, who it goes to (with the group
 -- and raid settings under their own heading), who comes first, and who is
 -- skipped or never offered.
@@ -551,6 +561,26 @@ function Page.BuildWhoTab()
 				hidden = OnlyReachesGroup,
 				get = sGet,
 				set = sSet,
+			},
+			strangersPlatesNote = {
+				type = "description",
+				order = 13.05,
+				hidden = PlatesHidden,
+				name = "|cff888888"
+					.. L["Turn on friendly nameplates so Manners can see passers-by: without them it sees almost nobody outside your group."]
+					.. "|r",
+			},
+			strangersShowPlates = {
+				type = "execute",
+				name = L["Show friendly nameplates"],
+				desc = L["The game's own setting, under Nameplates in its options, where you can turn it off again."],
+				order = 13.06,
+				hidden = PlatesHidden,
+				-- The client refuses the setting in a fight.
+				disabled = function() return InCombatLockdown() end,
+				func = function()
+					if ns.ShowFriendlyPlates() then ns.RefreshOptionsDisplay() end
+				end,
 			},
 			strangersNote = {
 				type = "description",

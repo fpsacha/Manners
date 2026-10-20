@@ -161,6 +161,9 @@ ns.WindowLayout = {
 					"who.owed",
 					"who.group",
 					"who.strangers",
+					-- While passers-by are on and the game's nameplates are off.
+					{ "who.strangersPlatesNote", indent = true },
+					{ "who.strangersShowPlates", indent = true },
 					{ "who.strangersNote", standIn = true },
 					{ "who.proximity", indent = true },
 					{ "who.restingOnly", indent = true },

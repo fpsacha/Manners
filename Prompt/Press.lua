@@ -205,6 +205,15 @@ local function OnPreClick(self, mouseButton)
 				and L["nobody to buff right now -- saving mana until you are back to %d%%, so only your own buff and people who buffed you or asked are offered. The floor is %s on the %s tab."]
 				or L["nobody to buff right now -- saving mana until you are back to %d%%, so only people who buffed you or asked are offered. The floor is %s on the %s tab."]
 			ns.addon:Print(line:format(resume, "|cffffd100" .. L["Save mana: stop below (% mana)"] .. "|r", L["When to offer"]))
+		elseif db and db.sources and db.sources.strangers == true and ns.caps.hasClassBuffs == true
+			and not ns.OnlyReachesGroup() and not (db.filters.restingOnly == true and ns.Resting() == false)
+			and ns.FriendlyPlatesOff() then
+			-- Nobody found, and passers-by are seen through the friendly
+			-- nameplates the game has off. The test of Who to buff's note and
+			-- button, so the line names a button that is there, and not while
+			-- the city rule turns passers-by down whatever the nameplates say.
+			ns.addon:Print(L["nobody to buff right now -- friendly nameplates are off, and passers-by are seen through them. %s on the %s tab turns them on."]
+				:format("|cffffd100" .. L["Show friendly nameplates"] .. "|r", L["Who to buff"]))
 		else
 			ns.addon:Print(L["nobody to buff right now."])
 		end
