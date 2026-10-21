@@ -522,6 +522,13 @@ for _, e in ipairs({
 	-- Registered on this client by EnhanceQoL's class-buff reminder, which
 	-- watches the bags and the weapon for its weapon buffs.
 	"BAG_UPDATE_DELAYED", "PLAYER_EQUIPMENT_CHANGED",
+	-- A temporary enchant going on a weapon or coming off, and the game asking
+	-- whether to replace one (the event Blizzard's own popup of that name is
+	-- shown on): each in the event list of all five clients (Ketho's
+	-- BlizzardInterfaceResources, the dumps of forever, live, classic,
+	-- classic_anniversary and classic_era). Manners listens for the first and
+	-- never for the second: the question is the player's.
+	"WEAPON_ENCHANT_CHANGED", "REPLACE_ENCHANT",
 	-- Registered on this client by EnhanceQoL's class-buff reminder; retail
 	-- 12.0 and later have it too. The classic clients do not (Core.lua only
 	-- asks where the family is modern).
@@ -1767,6 +1774,25 @@ for name, ids in pairs({
 	for _, id in ipairs(ids) do SPELL_NAMES[id] = name end
 end
 
+-- A rogue's poisons as spells (Buffs.lua, MISTS_OWN and MAINLINE_OWN), as the
+-- Mists and retail clients name them. Retail calls 5761 Numbing Poison where
+-- Mists calls it Mind-numbing Poison, so the one id has its retail name
+-- apart (RETAIL_NAMES), taken when the mock stands in for retail.
+for name, ids in pairs({
+	["Deadly Poison"] = { 2823 },
+	["Wound Poison"] = { 8679 },
+	["Crippling Poison"] = { 3408 },
+	["Mind-numbing Poison"] = { 5761 },
+	["Leeching Poison"] = { 108211 },
+	["Paralytic Poison"] = { 108215 },
+	["Instant Poison"] = { 315584 },
+	["Amplifying Poison"] = { 381664 },
+	["Atrophic Poison"] = { 381637 },
+}) do
+	for _, id in ipairs(ids) do SPELL_NAMES[id] = name end
+end
+local RETAIL_NAMES = { [5761] = "Numbing Poison" }
+
 -- Mock.inRange, unless Mock.rangeByUnit names this unit.
 function Mock.unitInRange(unit)
 	local by = Mock.rangeByUnit
@@ -1793,6 +1819,7 @@ setmetatable(_G, { __index = function(_, key)
 		return ns_or_nil({
 			GetSpellName = function(id)
 				if Mock.unknownSpells and Mock.unknownSpells[id] then return nil end
+				if Mock.flavour == "mainline" and RETAIL_NAMES[id] then return RETAIL_NAMES[id] end
 				return SPELL_NAMES[id] or "Arcane Intellect"
 			end,
 			GetSpellTexture = function() return 135932 end,
@@ -1896,17 +1923,32 @@ setmetatable(_G, { __index = function(_, key)
 		-- The global the Classic clients' buff frame reads, which modern ones
 		-- keep only as a shim: a main hand's temporary enchant or imbue from
 		-- Mock.weaponEnchants, as hasMainHandEnchant, mainHandExpiration (ms),
-		-- mainHandCharges, mainHandEnchantID, and the off hand's four after.
+		-- mainHandCharges, mainHandEnchantID, and the off hand's four and the
+		-- ranged slot's four after: four values to each of the three weapon
+		-- slots, in Enum.WeaponSlot's order, which is how the Classic buff frame
+		-- (Blizzard_BuffFrame's UpdateTemporaryEnchantmentBuffs, RETURNS_PER_ITEM
+		-- 4, itemIndex 1 main hand, 2 off hand, 3 ranged) takes them.
 		if Mock.weaponEnchantList ~= false or Mock.stripped then return nil end
 		return function()
-			local listed = Mock.weaponEnchants and Mock.weaponEnchants[0]
-			if listed == SECRET then return SECRET end
-			for _, e in ipairs(listed or {}) do
-				if e.hasEnchant and (e.enchantType == 2 or e.enchantType == 3) then
-					return true, e.timeLeft, e.charges or 0, e.enchantID, false, nil, 0, nil
+			local out = {}
+			for slot = 0, 2 do
+				local listed = Mock.weaponEnchants and Mock.weaponEnchants[slot]
+				if listed == SECRET then return SECRET end
+				local found
+				for _, e in ipairs(listed or {}) do
+					if e.hasEnchant and (e.enchantType == 2 or e.enchantType == 3) then
+						found = e
+						break
+					end
+				end
+				if found then
+					out[#out + 1], out[#out + 2], out[#out + 3], out[#out + 4] =
+						true, found.timeLeft, found.charges or 0, found.enchantID
+				else
+					out[#out + 1], out[#out + 2], out[#out + 3], out[#out + 4] = false, nil, 0, nil
 				end
 			end
-			return false, nil, 0, nil, false, nil, 0, nil
+			return unpack(out, 1, 12)
 		end
 	elseif key == "C_PaperDollInfo" then
 		if Mock.paperDoll == false then return nil end

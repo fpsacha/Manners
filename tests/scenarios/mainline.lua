@@ -190,10 +190,17 @@ do
 		for class in pairs(ns.BUFFS) do
 			if not RETAIL[class] then fail(scenario, class .. " was given buffs retail does not have") end
 		end
-		-- Nothing of a class's own: no scroll, no familiar, no tracking.
+		-- Nothing of a class's own: no scroll, no familiar, no tracking, no stone or
+		-- oil (retail has no items for a weapon here). A rogue's poisons are
+		-- spells, the lethal ones and the non-lethal ones.
 		for _, class in ipairs(ALL_CLASSES) do
-			if ns.GetOwnFamilies(class) then
-				fail(scenario, class .. " has buffs of its own on retail: " .. tostring(ns.GetOwnFamilies(class)[1].key))
+			local own = ns.GetOwnFamilies(class)
+			if class == "ROGUE" then
+				if not own or #own ~= 2 or own[1].key ~= "lethal" or own[2].key ~= "nonlethal" then
+					fail(scenario, "a rogue's own buffs on retail are not the lethal and non-lethal poisons")
+				end
+			elseif own then
+				fail(scenario, class .. " has buffs of its own on retail: " .. tostring(own[1].key))
 			end
 		end
 		-- The mock holding to what the live branch documents, so the rest of

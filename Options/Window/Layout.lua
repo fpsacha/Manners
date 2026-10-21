@@ -179,6 +179,17 @@ ns.WindowLayout = {
 					-- A mage's scrolls on Forever, while there is one in the bags.
 					{ "who.own_familiar", indent = true },
 					{ "who.own_imbue", indent = true },
+					-- What goes on a weapon from the bags, per hand, while there is
+					-- one in them; a rogue's poisons as spells on Mists and retail.
+					{ "who.own_poisonmain", indent = true },
+					{ "who.own_poisonoff", indent = true },
+					{ "who.own_lethal", indent = true },
+					{ "who.own_nonlethal", indent = true },
+					{ "who.own_stonemain", indent = true },
+					{ "who.own_stoneoff", indent = true },
+					{ "who.own_oilmain", indent = true },
+					{ "who.own_oiloff", indent = true },
+					{ "who.own_lure", indent = true },
 					{ "who.own_aura", indent = true },
 					{ "who.own_righteousfury", indent = true },
 					{ "who.own_innerfire", indent = true },

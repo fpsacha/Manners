@@ -81,7 +81,7 @@ mutate("Core.lua",
        expect="after the bags changed, a Rat Familiar scroll was not offered", script=S)
 
 mutate("Core.lua",
-       "function addon:PLAYER_EQUIPMENT_CHANGED() ns.ForgetMainHand() end\n",
+       "function addon:PLAYER_EQUIPMENT_CHANGED() ns.ForgetHands() end\n",
        "function addon:PLAYER_EQUIPMENT_CHANGED() end\n",
        "scrolls: a weapon change not noticed",
        expect="with a staff put in hand, you were offered", script=S)
@@ -186,8 +186,8 @@ mutate("Core.lua",
 
 # The press noted when it settles, and put back when its cast is cut short.
 mutate("Clicks.lua",
-       "\t\t\tbefore = ns.NoteScrollPress(own) }\n",
-       "\t\t\tbefore = nil }\n",
+       "\t\t\tbefore = ns.NoteScrollPress(own),\n",
+       "\t\t\tbefore = nil,\n",
        "scrolls: the scroll pressed never noted",
        expect="a Lesser Flame used from the prompt with a Spellbreak in the bags was remembered as", script=S)
 
@@ -247,14 +247,14 @@ mutate("Core.lua",
        expect="with Lesser Flame's imbue on the staff, you were offered", script=S)
 
 mutate("Core.lua",
-       "\t\t\tlocal entries = plain(list(slots and slots.MainHand or 0))\n",
+       "\t\t\tlocal entries = plain(list(WeaponSlot(family, slots)))\n",
        "\t\t\tlocal entries = plain(list(16))\n",
        "scrolls: the list asked for inventory slot 16",
        expect="with Lesser Flame's imbue on the staff, you were offered", script=S)
 
 mutate("Core.lua",
-       "\t\t\tlocal entries = plain(list(slots and slots.MainHand or 0))\n",
-       "\t\t\tlocal entries = plain(list(slots and slots.MainHand or 16))\n",
+       "\t\treturn slots and slots.MainHand or 0\n",
+       "\t\treturn slots and slots.MainHand or 16\n",
        "scrolls: no main hand without the enum",
        expect="without the weapon enums and Lesser Flame on the staff, you were offered", script=S)
 
@@ -374,7 +374,7 @@ mutate("Clicks.lua",
        expect="a Rat Familiar cast that succeeded was taken back by a later interrupt", script=S)
 
 mutate("Clicks.lua",
-       "\tif GetTime() - cast.record.at > SCROLL_SECONDS then\n",
+       "\tif GetTime() - cast.record.at > cast.seconds then\n",
        "\tif false then\n",
        "scrolls: a scroll's cast held forever",
        expect="an interrupt 7 s after the Rat Familiar's three-second cast took the press back", script=S)
@@ -426,15 +426,15 @@ mutate("Prompt/Macro.lua",
 # The imbue used without its weapon: the cursor waits for one and nothing is
 # cast (1.6.2 and 1.6.3 in game).
 mutate("Prompt/Macro.lua",
-       "\tif entry.buff.enchant then lines[2] = \"/use 16\" end\n",
+       "\tif entry.buff.enchant then lines[2] = \"/use \" .. slot end\n",
        "",
        "scrolls: an imbue left waiting for a weapon",
        expect="the imbue's macro reads", script=S)
 
 # ...and the weapon line given to a familiar too.
 mutate("Prompt/Macro.lua",
-       "\tif entry.buff.enchant then lines[2] = \"/use 16\" end\n",
-       "\tlines[2] = \"/use 16\"\n",
+       "\tif entry.buff.enchant then lines[2] = \"/use \" .. slot end\n",
+       "\tlines[2] = \"/use \" .. slot\n",
        "scrolls: a familiar given the weapon line",
        expect="the familiar's macro reads", script=S)
 

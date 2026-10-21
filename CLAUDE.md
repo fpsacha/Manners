@@ -108,8 +108,21 @@ default everywhere in the tests and the only client anybody here plays.
     (registration is refused there).
   - mists and mainline: a single buff on a group member lands party-wide
     (`wideCasts`), shouts reach 100 yards, their own `rankLevel`; mists' raid
-    buff kinds do not stack (`alike`); mainline has no own-buff families and
-    seven classes with nothing for others.
+    buff kinds do not stack (`alike`); mainline's only own buffs are a rogue's
+    poisons (families `lethal` and `nonlethal`, spells) and seven classes have
+    nothing for others.
+  - weapon enhancements (poisons, sharpening stones and weightstones, wizard
+    and mana oils, fishing lures), vanilla, tbc, camelot and mists: items from
+    the bags, one family per kind and hand (`slot` 16 or 17), the rows in
+    `Buffs.lua`'s `ENHANCEMENTS`, each client's own item data (a rogue's
+    poisons are items there but spells on mists and retail). Used with
+    `/use item:<id>` and `/use 16|17`, settled by the timed self-use
+    (`Clicks.lua`, `ENHANCE_SECONDS`), read per hand in `Core.lua`
+    (`ReadImbue`). The game's question about replacing an enchant
+    (`REPLACE_ENCHANT`) is left to the player: Manners never answers it, never
+    calls `C_Item.ReplaceEnchant` and never hides the popup (the test holds it
+    to that). A class with nothing learned and one in the bags has a prompt
+    (`ns.OwnItemsHeld`).
   - level cap for "Skip players below level": 60, tbc 70, mists and mainline 90
     (Core.lua).
 
@@ -414,7 +427,11 @@ only; `{gift}` is the spell they gave you), `RP.TRADE`, `RP.HISTORY`,
   SpellEffect, SpellLevels, SpellReagents, SpellMisc, SkillLineAbility,
   ItemSparse, ChrRaces, ... The builds cited in the code: Forever
   1.60.1.70178, Classic Era 1.15.9.70003, TBC 2.5.6.69795, Mists
-  5.5.4.70032, retail 12.1.0.69933.
+  5.5.4.70032, retail 12.1.0.69933. Forever's newer build 1.60.1.70450 added
+  three weapon items (`since` in `Buffs.lua`'s `ENHANCEMENTS`); the audit notes
+  them under the cited build and holds them to the data with `--build
+  camelot=1.60.1.70450`, which also shows drift in Salvation's names and Battle
+  Shout's reach that the cited build does not have.
 - **Wowhead** per client (Classic, TBC Classic, MoP Classic, retail, and a
   Forever database) for tooltips, levels and "Requires" lines.
 - **Blizzard's own UI code**: `Gethe/wow-ui-source`, one branch per client

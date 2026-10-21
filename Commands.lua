@@ -52,6 +52,9 @@ do
 			return L["%s: none up -- %s is the one to cast."]:format(label, ns.BuffName(spell))
 		elseif why == "off" then
 			return L["%s: switched off (Don't remind me)."]:format(label)
+		elseif why == "up" and not name and family.enhance then
+			-- An enchant none of this family's items makes: the weapon is seen to.
+			return L["%s: the weapon already carries a temporary enchant."]:format(label)
 		elseif why == "up" and not name and family.imbue then
 			-- An oil, or an enchant no scroll makes: the weapon is seen to.
 			return L["%s: your main hand already carries a temporary enchant."]:format(label)
@@ -63,8 +66,13 @@ do
 			return L["%s: you have no %s in your bags."]:format(label, name or "?")
 		elseif why == "level" then
 			return L["%s: %s needs level %d."]:format(label, name or "?", about.level)
+		elseif why == "noweapon" and family.enhance then
+			-- The label names the hand.
+			return L["%s: there is no weapon in that hand."]:format(label)
 		elseif why == "noweapon" then
 			return L["%s: there is no weapon in your main hand."]:format(label)
+		elseif why == "weapon" and family.enhance then
+			return L["%s: %s does not fit the weapon in that hand."]:format(label, name or "?")
 		elseif why == "weapon" then
 			return L["%s: %s does not fit the weapon in your main hand."]:format(label, name or "?")
 		elseif why == "notank" then
@@ -129,7 +137,7 @@ function ns.Welcome(force, offSaid)
 		and ns.CLASSES_WITHOUT_BUFFS[caps.class] == true
 	-- ...and of those, a hunter or a shaman with a buff of his own learned,
 	-- whose prompt reminds him of it: greeted with the prompt, not sent off.
-	local ownOnly = nothingToGive and caps.anyOwnKnown == true
+	local ownOnly = nothingToGive and (caps.anyOwnKnown == true or ns.OwnItemsHeld())
 	if ownOnly then nothingToGive = false end
 
 	-- Not until the probe has an answer. hasClassBuffs is false for a rogue,
@@ -1554,7 +1562,7 @@ function addon:HandleSlash(rawInput)
 		if not caps.hasClassBuffs then
 			self:Print(ns.NO_CLASS_BUFFS)
 			-- A hunter or a shaman still has a prompt, for his own buffs.
-			if caps.anyOwnKnown and not db.sources.self then
+			if (caps.anyOwnKnown or ns.OwnItemsHeld()) and not db.sources.self then
 				self:Print("  " .. L["your own buff: not offered -- %s is switched off."]
 					:format("|cffffd100" .. L["Myself, when I'm missing my own buff"] .. "|r"))
 			end

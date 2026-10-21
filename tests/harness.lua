@@ -123,6 +123,9 @@ for _, e in ipairs({
   -- Registered on this client by EnhanceQoL's class-buff reminder, which
   -- watches the bags and the weapon for its weapon buffs.
   "BAG_UPDATE_DELAYED", "PLAYER_EQUIPMENT_CHANGED",
+  -- A weapon's temporary enchant going on or off: in every client's event
+  -- list (Ketho's BlizzardInterfaceResources).
+  "WEAPON_ENCHANT_CHANGED",
   -- Registered on this client by EnhanceQoL's class-buff reminder.
   "ADDON_RESTRICTION_STATE_CHANGED",
 }) do KNOWN_EVENTS[e] = true end
@@ -372,6 +375,8 @@ else
     { "BAG_UPDATE_DELAYED", function() addon:BAG_UPDATE_DELAYED() end },
     { "PLAYER_EQUIPMENT_CHANGED", function() addon:PLAYER_EQUIPMENT_CHANGED(nil, 16, true) end },
     { "BuildQueue after the bags", function() return ns.BuildQueue() end },
+    -- A weapon's enchant changing, on a client with none of the item API.
+    { "WEAPON_ENCHANT_CHANGED", function() addon:WEAPON_ENCHANT_CHANGED() end },
     -- The quick choices on Start here, every one of them, and the sentences
     -- that describe the result: each writes the profile and repaints, which
     -- is a hop into the prompt and the page.

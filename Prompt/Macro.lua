@@ -109,9 +109,19 @@ end
 -- target", 1.6.2 and 1.6.3). /use 16 hands it the main-hand weapon in the
 -- same press. The record is one on yourself, settled by the spell the use
 -- casts (Clicks.lua, SettleSelf).
+--
+-- A weapon enhancement (a poison, a stone, an oil, a lure) is the same press
+-- for the hand its family is for: /use 16 for the main hand, /use 17 for the
+-- off hand. The slot line goes in only for an item that is aimed at a weapon
+-- (`enchant`): a bare /use of a slot would use the weapon's own on-use effect
+-- when the first line left nothing waiting. Over an enhancement already on
+-- the weapon the game asks whether to replace it: that question is the
+-- player's to answer, and Manners never answers it.
 STRATEGIES.scroll = function(entry)
 	local lines = { "/use item:" .. tostring(entry.buff.item) }
-	if entry.buff.enchant then lines[2] = "/use 16" end
+	local family = entry.buff.family
+	local slot = family and family.slot or 16
+	if entry.buff.enchant then lines[2] = "/use " .. slot end
 	return lines, false,
 		{ targeted = false, selfCast = false, onSelf = true, aimedAt = nil }
 end

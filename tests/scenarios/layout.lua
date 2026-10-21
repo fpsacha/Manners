@@ -30,8 +30,9 @@ local RETIRED = {
 -- AceDBOptions' own entries. The mock's stand-in for the library builds only
 -- its `desc`, so these are in the model in the game and not here.
 -- Placed for another client's model, never this one's: Classic Era's
--- Omen of Clarity, a passive on Forever (Buffs.lua, CAMELOT_OWN).
-local ELSEWHERE = { ["who.own_omen"] = true }
+-- Omen of Clarity, a passive on Forever (Buffs.lua, CAMELOT_OWN), and the
+-- rogue's poisons as spells on Mists and retail, which are items on the others.
+local ELSEWHERE = { ["who.own_omen"] = true, ["who.own_lethal"] = true, ["who.own_nonlethal"] = true }
 
 local ACEDB = {
 	["profiles.current"] = true, ["profiles.choosedesc"] = true, ["profiles.new"] = true,

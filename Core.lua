@@ -531,17 +531,39 @@ do
 		return info
 	end
 
+	-- A hand by the client's own word for it ("Main Hand", "Off Hand").
+	function ns.HandName(slot)
+		if slot == 17 then return _G.INVTYPE_WEAPONOFFHAND or "Off Hand" end
+		return _G.INVTYPE_WEAPONMAINHAND or "Main Hand"
+	end
+
 	-- A scroll (Buffs.lua, the mage's scrolls): its name is the one the client
 	-- gives the spell its use casts, already in the player's language, or the
 	-- item's where nameFromItem says the spell's is another scroll's; its icon
 	-- is the item's. Never `known`: whether there is one to use is the bags'
 	-- answer, asked when it is needed (ScrollReady).
+	--
+	-- A weapon enhancement (Buffs.lua, a poison, stone, oil or lure) is named by
+	-- its item as well, since the spell its use casts is "Crippling Poison" to
+	-- two ranks and "Wound Poison" to three, and the hand it is for follows the
+	-- name, so the prompt says which weapon is meant. Until the client has
+	-- loaded the item, the spell's name stands in.
 	local function ProbeScroll(spell)
 		local info = { key = spell.key, buff = spell, topRank = spell.ranks[1], unresolved = {}, secrecy = {} }
 		local items = C_Item
 		local itemName = safecall(items and items.GetItemNameByID, spell.item)
 		if type(itemName) ~= "string" or itemName == "" then itemName = nil end
-		if spell.nameFromItem then
+		local enhance = spell.family and spell.family.enhance
+		if enhance then info.hand = " (" .. ns.HandName(spell.family.slot) .. ")" end
+		if enhance and not spell.nameFromItem then
+			local called = itemName or SpellNameFor(spell.ranks[1])
+			info.name = called and (called .. info.hand) or nil
+			if not itemName then
+				info.itemPending = spell.item
+				local load = items and items.RequestLoadItemDataByID
+				safecall(load, spell.item)
+			end
+		elseif spell.nameFromItem then
 			-- Never the spell's, which is another scroll's: the client knows an
 			-- item's name only once it has loaded it, and a mage who has never
 			-- carried one has not. Its own name stands in, the item is asked
@@ -565,7 +587,16 @@ do
 	-- client has loaded the item (BuffName asks, only while it has not).
 	function ns.ResolveItemName(info)
 		local name = safecall(C_Item and C_Item.GetItemNameByID, info.itemPending)
-		if type(name) == "string" and name ~= "" then info.name, info.itemPending = name, nil end
+		if type(name) == "string" and name ~= "" then info.name, info.itemPending = name .. (info.hand or ""), nil end
+	end
+
+	-- A weapon enhancement's probe, made when it is first asked for rather than
+	-- with every spell at login: every class has dozens of them, and only those
+	-- in the bags are ever named or shown (ns.BuffInfo).
+	function ns.ProbeOwnItem(spell)
+		local info = ProbeScroll(spell)
+		if caps.own then caps.own[spell.key] = info end
+		return info
 	end
 
 	-- Does this client still hand addons the combat log? Where it is gone,
@@ -690,7 +721,8 @@ do
 		caps.own = {}
 		caps.anyOwnKnown = false
 		for _, family in ipairs(ns.GetOwnFamilies(playerClass) or {}) do
-			for _, spell in ipairs(family.spells) do
+			-- A weapon enhancement is probed when first asked for (ProbeOwnItem).
+			for _, spell in ipairs(family.enhance and {} or family.spells) do
 				local info = spell.item and ProbeScroll(spell) or ProbeBuff(spell)
 				info.known = info.known == true and info.name ~= nil
 				caps.own[spell.key] = info
@@ -706,14 +738,18 @@ end
 -- else or itself: the one test for "is there a prompt at all", so a hunter
 -- still has one for his aspects.
 function ns.CanCastAnything()
+	-- A rogue or a warrior with a poison or a stone in the bags has something to
+	-- put on a weapon, whatever he has learned (ns.OwnItemsHeld).
+	if ns.OwnItemsHeld() then return true end
 	return caps.anyKnown == true or caps.anyOwnKnown == true
 end
 
 -- A class with nothing for anybody else and something of its own learned: a
--- hunter with an aspect, a shaman with Lightning Shield. Everything about
--- other people is left off the options page for it, and "Myself" is shown.
+-- hunter with an aspect, a shaman with Lightning Shield, a rogue with poisons
+-- or a stone in the bags. Everything about other people is left off the
+-- options page for it, and "Myself" is shown.
 function ns.OwnBuffsOnly()
-	return not caps.hasClassBuffs and caps.anyOwnKnown == true
+	return not caps.hasClassBuffs and (caps.anyOwnKnown == true or ns.OwnItemsHeld())
 end
 
 -- Your own buffs' answers sit apart (caps.own); every key is unique across
@@ -721,7 +757,14 @@ end
 -- either kind.
 function ns.BuffInfo(buff)
 	if not buff then return nil end
-	if buff.own then return caps.own and caps.own[buff.key] end
+	if buff.own then
+		local info = caps.own and caps.own[buff.key]
+		-- A weapon enhancement is probed when first asked for (ProbeOwnItem).
+		if not info and caps.own and buff.item and buff.family and buff.family.enhance then
+			info = ns.ProbeOwnItem(buff)
+		end
+		return info
+	end
 	return caps.buffs[buff.key]
 end
 
@@ -1118,25 +1161,31 @@ do
 	end
 	function ns.ForgetTrackingList() trackingList = nil end
 
-	-- The mage's scrolls (Buffs.lua) are items, not spells. How many of each the
-	-- bags hold, read for every scroll of your class at once and kept until
-	-- BAG_UPDATE_DELAYED says the bags changed; and the weapon type in your
-	-- main hand (its item subclass, false for none), kept until
+	-- The mage's scrolls and every class's weapon enhancements (Buffs.lua) are
+	-- items, not spells. How many of each the bags hold, read for every item of
+	-- your class at once and kept until BAG_UPDATE_DELAYED says the bags
+	-- changed, with the first of each family held and whether any is; and the
+	-- weapon type in each hand (its item subclass, false for none), kept until
 	-- PLAYER_EQUIPMENT_CHANGED. nil is "read it when next asked". No bag walk:
-	-- GetItemCount on the scrolls' own ids alone.
-	local scrollCounts, mainHand
+	-- GetItemCount on the items' own ids alone, once each however many families
+	-- list it (a poison is in the main hand's and the off hand's).
+	local scrollCounts, hands, heldFirst, anyHeld
 	function ns.ForgetScrolls() scrollCounts = nil end
-	function ns.ForgetMainHand() mainHand = nil end
+	function ns.ForgetHands() hands = nil end
 
 	local function ScrollCount(spell)
 		if not scrollCounts then
-			scrollCounts = {}
+			scrollCounts, heldFirst, anyHeld = {}, {}, false
 			local count = C_Item and C_Item.GetItemCount
 			if type(count) == "function" then
 				for _, family in ipairs(ns.GetOwnFamilies(playerClass) or {}) do
 					for _, scroll in ipairs(family.scroll and family.spells or {}) do
-						local n = plain(count(scroll.item))
+						local n = scrollCounts[scroll.item] or plain(count(scroll.item))
 						scrollCounts[scroll.item] = type(n) == "number" and n or 0
+						if scrollCounts[scroll.item] > 0 then
+							heldFirst[family] = heldFirst[family] or scroll
+							anyHeld = true
+						end
 					end
 				end
 			end
@@ -1144,34 +1193,57 @@ do
 		return scrollCounts[spell.item] or 0
 	end
 
-	local function MainHand()
-		if mainHand == nil then
-			mainHand = false
-			local id = type(_G.GetInventoryItemID) == "function" and plain(_G.GetInventoryItemID("player", 16)) or nil
+	-- Whether the bags hold any item of your class's own buffs at all: what lets
+	-- a rogue with a poison and nothing learned have a prompt (CanCastAnything).
+	-- Asks for a count to have the bags read where they have not been.
+	local NO_ITEM = { item = 0 }
+	function ns.OwnItemsHeld()
+		ScrollCount(NO_ITEM)
+		return anyHeld == true
+	end
+
+	-- The item subclass of the weapon in a hand (its inventory slot, 16 or 17),
+	-- false for none. Class 2 is a weapon; a shield, or a book or an orb held in
+	-- the off hand, is not one, and takes nothing.
+	local function HandWeapon(slot)
+		hands = hands or {}
+		local held = hands[slot]
+		if held == nil then
+			held = false
+			local id = type(_G.GetInventoryItemID) == "function" and plain(_G.GetInventoryItemID("player", slot)) or nil
 			local instant = C_Item and C_Item.GetItemInfoInstant
 			if type(id) == "number" and type(instant) == "function" then
 				local _, _, _, _, _, class, subclass = instant(id)
 				class, subclass = plain(class), plain(subclass)
-				-- Class 2 is a weapon; a shield or an off-hand book is not one.
-				if class == 2 and type(subclass) == "number" then mainHand = subclass end
+				if class == 2 and type(subclass) == "number" then held = subclass end
 			end
+			hands[slot] = held
 		end
-		return mainHand
+		return held
 	end
 
-	-- Whether a scroll can be used now, or why not: "bags" (none in them),
-	-- "noweapon" (an imbue, and no weapon in your main hand), "level" (yours
-	-- is short of it) or "weapon" (an imbue for another kind of weapon than
-	-- the one in your main hand). No weapon before the level: it holds back
+	-- Whether a weapon of that subclass is one a mask of subclasses names
+	-- (Buffs.lua, `fits`: bit n for subclass n). Plain arithmetic: the mask
+	-- reaches bit 20.
+	local function Fits(mask, subclass)
+		return type(subclass) == "number" and math.floor(mask / 2 ^ subclass) % 2 == 1
+	end
+
+	-- Whether a scroll or an enhancement can be used now, or why not: "bags"
+	-- (none in them), "noweapon" (one for a weapon, and no weapon in that hand:
+	-- the main hand for an imbue, the hand of its family for an enhancement),
+	-- "level" (yours is short of it) or "weapon" (one for another kind of weapon
+	-- than the one in that hand). No weapon before the level: it holds back
 	-- every imbue, and the line about the family said a scroll did not fit a
 	-- weapon that was not there.
 	local function ScrollReady(spell)
 		if ScrollCount(spell) <= 0 then return false, "bags" end
-		local hand = spell.weapon and MainHand()
+		local hand = (spell.weapon or spell.fits) and HandWeapon(spell.family and spell.family.slot or 16)
 		if hand == false then return false, "noweapon" end
 		local level = plain(UnitLevel("player"))
 		if type(level) ~= "number" or level < spell.level then return false, "level" end
 		if spell.weapon and hand ~= spell.weapon then return false, "weapon" end
+		if spell.fits and not Fits(spell.fits, hand) then return false, "weapon" end
 		return true
 	end
 
@@ -1202,6 +1274,12 @@ do
 	-- The first spell of the family you know, in table order; `auto` passes
 	-- over the ones Automatic never picks.
 	local function FirstKnown(family, auto)
+		-- A weapon enhancement family: the first of its items the bags hold, as
+		-- they were last read, which is all of this family that is ever asked.
+		if family.enhance then
+			ScrollCount(family.spells[1])
+			return heldFirst[family]
+		end
 		for _, spell in ipairs(family.spells) do
 			if Known(spell) and not (auto and spell.neverAuto) then return spell end
 		end
@@ -1220,6 +1298,8 @@ do
 	-- What a family is called on the page and in chat: its own word for a
 	-- family of several ("Armor"), the spell's name for one alone.
 	function ns.OwnFamilyLabel(family)
+		-- An enhancement for a hand says which: "Poison (Main Hand)".
+		if family.enhance then return family.label .. " (" .. ns.HandName(family.slot) .. ")" end
 		if family.label then return family.label end
 		return ns.BuffName(FirstKnown(family) or family.spells[1])
 	end
@@ -1463,14 +1543,27 @@ do
 	-- Spellbreak and Lesser Flame) is on the weapon. Noted when the press
 	-- settles (Clicks.lua, SettleSelf), which is handed the one it replaced,
 	-- and put back to that if the cast is cut short.
-	local pressedScroll = {}
+	--
+	-- A hand an enhancement was just put on is busy until the cast is over (the
+	-- longest is a lure's five seconds): the weapon carries nothing yet, and
+	-- another family of the same hand -- an oil after a stone -- would be offered
+	-- over the one going on. Let go at the cast's end, or when it is cut short.
+	local pressedScroll, busyUntil = {}, {}
+	local HAND_BUSY = 8
 	function ns.NoteScrollPress(spell)
 		local before = pressedScroll[spell.family.key]
 		pressedScroll[spell.family.key] = spell
+		if spell.family.enhance then busyUntil[spell.family.slot] = GetTime() + HAND_BUSY end
 		return before
 	end
 	function ns.UndoScrollPress(spell, before)
 		if pressedScroll[spell.family.key] == spell then pressedScroll[spell.family.key] = before end
+		if spell.family.enhance then busyUntil[spell.family.slot] = nil end
+	end
+	-- Whether an enhancement was put on this hand a moment ago (OwnVerdict).
+	function ns.HandBusy(slot, now)
+		local endsAt = busyUntil[slot]
+		return endsAt ~= nil and now < endsAt
 	end
 
 	-- The scroll whose enchant `enchant` is; nil for an enchant no scroll
@@ -1519,6 +1612,18 @@ do
 	-- the old calls only where it is missing. A secret is the client not
 	-- saying. None throws (the slot is a plain number), so no pcall. Time left
 	-- in seconds; the client gives milliseconds.
+	--
+	-- A weapon enhancement (Buffs.lua) is read the same way for its own hand,
+	-- the family's `slot`: the main hand, or the off hand, whose enchants are
+	-- the list for Enum.WeaponSlot.OffHand, the temporary enchant of slot 17,
+	-- and the second four values of GetWeaponEnchantInfo. The enchant of
+	-- another kind is up all the same, and until the client has listed two on
+	-- a hand at once (imbueStacks) it ends the matter: a hand carries one.
+	local function WeaponSlot(family, slots)
+		if family.slot == 17 then return slots and slots.OffHand or 1 end
+		return slots and slots.MainHand or 0
+	end
+
 	local function ReadImbue(family)
 		local has, expires, enchant
 		local list = C_Item and C_Item.GetWeaponEnchantInfo
@@ -1526,7 +1631,7 @@ do
 		if type(list) == "function" then
 			local slots, kinds = Enum and Enum.WeaponSlot, Enum and Enum.ItemEnchantType
 			local temporary, imbue = kinds and kinds.Temporary or 2, kinds and kinds.Imbue or 3
-			local entries = plain(list(slots and slots.MainHand or 0))
+			local entries = plain(list(WeaponSlot(family, slots)))
 			if type(entries) ~= "table" then return nil end
 			local unknown, named, other = false, false, false
 			for _, info in ipairs(entries) do
@@ -1553,8 +1658,8 @@ do
 				return false
 			end
 		elseif type(api) == "function" then
-			-- INVSLOT_MAINHAND.
-			local info = api(16)
+			-- INVSLOT_MAINHAND, or INVSLOT_OFFHAND for the off hand's family.
+			local info = api(family.slot or 16)
 			if Withheld(info) then return nil end
 			if info == nil then return false end
 			if type(info) ~= "table" then return nil end
@@ -1564,7 +1669,12 @@ do
 			local read = _G.GetWeaponEnchantInfo
 			if type(read) ~= "function" then return nil end
 			local _
-			has, expires, _, enchant = read()
+			if family.slot == 17 then
+				-- Four values to a hand, the main hand's first, the off hand's next.
+				has, expires, _, enchant = select(5, read())
+			else
+				has, expires, _, enchant = read()
+			end
 			if Withheld(has) then return nil end
 			if not has then return false end
 			expires, enchant = plain(expires), plain(enchant)
@@ -1637,6 +1747,8 @@ do
 			return false
 		end
 		if family.imbue then return ReadImbue(family) end
+		-- A stone, a poison, an oil or a lure: its hand carries an enchant or not.
+		if family.enhance then return ReadImbue(family) end
 		local now = GetTime()
 		local api = C_UnitAuras
 		local byId = api and api.GetUnitAuraBySpellID
@@ -1782,6 +1894,11 @@ do
 			return nil, up, nil, "none"
 		end
 		if ns.IsBlocked(ctx.name, spell.key, ctx.now) then return nil, up, left, "tried", spell end
+		-- The hand an enhancement was just put on is busy until the cast is over
+		-- (NoteScrollPress): nothing else is offered for it in the meantime.
+		if spell.family.enhance and ns.HandBusy(spell.family.slot, ctx.now) then
+			return nil, up, left, "tried", spell
+		end
 		-- A scroll is used, not cast: the bags, your level and your weapon
 		-- answer for it rather than the spellbook.
 		if spell.item then
@@ -2942,6 +3059,9 @@ function addon:OnEnable()
 		-- A mage's scrolls: the bags and the weapon in the main hand.
 		"BAG_UPDATE_DELAYED",
 		"PLAYER_EQUIPMENT_CHANGED",
+		-- A stone, a poison, an oil or a lure on a weapon going on or wearing
+		-- off.
+		"WEAPON_ENCHANT_CHANGED",
 		"NAME_PLATE_UNIT_ADDED",
 		"NAME_PLATE_UNIT_REMOVED",
 		-- Cooldowns the client takes back; the casts are below.
@@ -3166,11 +3286,26 @@ function addon:MINIMAP_UPDATE_TRACKING()
 	ns.ownAurasChanged = true
 end
 
--- A mage's scrolls (Core.lua's own buffs): the bags changed, so their counts
--- are read again when next asked; the same for the weapon in the main hand.
--- Nothing else is read here, and nothing for a class without scrolls.
+-- A mage's scrolls and every class's weapon enhancements (Core.lua's own
+-- buffs): the bags changed, so their counts are read again when next asked; the
+-- same for the weapon in each hand. Nothing else is read here, and nothing for
+-- a class with none.
 function addon:BAG_UPDATE_DELAYED() ns.ForgetScrolls() end
-function addon:PLAYER_EQUIPMENT_CHANGED() ns.ForgetMainHand() end
+function addon:PLAYER_EQUIPMENT_CHANGED() ns.ForgetHands() end
+
+-- A temporary enchant went on a weapon or came off: your own buffs are read
+-- again on the next tick, which writes the one on the weapon down for
+-- Automatic, rather than at the next change of anything else. Nothing is read
+-- here; the event fires for each weapon and for each change of its time.
+function addon:WEAPON_ENCHANT_CHANGED() ns.ownAurasChanged = true end
+
+-- Putting an enhancement over the one a weapon carries makes the game ask
+-- whether to replace it (REPLACE_ENCHANT, a StaticPopup of the same name
+-- whose YES calls C_Item.ReplaceEnchant), a top-up of one running low
+-- included. That question is the player's to answer, and Manners never
+-- answers it: it does not listen for the event, call that function or hide the
+-- popup. Nothing shows that a call from an event handler is allowed, and a
+-- Blizzard popup hidden from addon code risks taint.
 
 function addon:SPELLS_CHANGED()
 	local now = GetTime()
