@@ -524,11 +524,11 @@ for _, e in ipairs({
 	"BAG_UPDATE_DELAYED", "PLAYER_EQUIPMENT_CHANGED",
 	-- A temporary enchant going on a weapon or coming off, and the game asking
 	-- whether to replace one (the event Blizzard's own popup of that name is
-	-- shown on, UIParent's and Blizzard_Game's handlers), with the warning the
-	-- game raises when an addon makes a call it forbids: each in the event
-	-- list of all five clients (Ketho's BlizzardInterfaceResources, the dumps
-	-- of forever, live, classic, classic_anniversary and classic_era).
-	"WEAPON_ENCHANT_CHANGED", "REPLACE_ENCHANT", "ADDON_ACTION_FORBIDDEN",
+	-- shown on): each in the event list of all five clients (Ketho's
+	-- BlizzardInterfaceResources, the dumps of forever, live, classic,
+	-- classic_anniversary and classic_era). Manners listens for the first and
+	-- never for the second: the question is the player's.
+	"WEAPON_ENCHANT_CHANGED", "REPLACE_ENCHANT",
 	-- Registered on this client by EnhanceQoL's class-buff reminder; retail
 	-- 12.0 and later have it too. The classic clients do not (Core.lua only
 	-- asks where the family is modern).

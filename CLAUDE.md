@@ -118,9 +118,11 @@ default everywhere in the tests and the only client anybody here plays.
     poisons are items there but spells on mists and retail). Used with
     `/use item:<id>` and `/use 16|17`, settled by the timed self-use
     (`Clicks.lua`, `ENHANCE_SECONDS`), read per hand in `Core.lua`
-    (`ReadImbue`). `REPLACE_ENCHANT` is answered for a Manners press alone
-    (`addon:REPLACE_ENCHANT`). A class with nothing learned and one in the
-    bags has a prompt (`ns.OwnItemsHeld`).
+    (`ReadImbue`). The game's question about replacing an enchant
+    (`REPLACE_ENCHANT`) is left to the player: Manners never answers it, never
+    calls `C_Item.ReplaceEnchant` and never hides the popup (the test holds it
+    to that). A class with nothing learned and one in the bags has a prompt
+    (`ns.OwnItemsHeld`).
   - level cap for "Skip players below level": 60, tbc 70, mists and mainline 90
     (Core.lua).
 

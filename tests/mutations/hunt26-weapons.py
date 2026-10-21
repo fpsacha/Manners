@@ -2,10 +2,10 @@
 # own buffs, per hand, and a rogue's poisons as spells (tests/scenarios/
 # hunt26-weapons.lua): the items and families in Buffs.lua, the bags, the
 # weapon in each hand and the enchants on it in Core.lua, the macro in
-# Prompt/Macro.lua, the timed settle in Clicks.lua, the answer to the game's
-# replace question in Core.lua, the rows (Options/Who.lua) and the debug lines
-# (Commands.lua). Each fault put back has to be caught by the scenario that
-# names it.
+# Prompt/Macro.lua, the timed settle in Clicks.lua, the game's replace question
+# (left to the player) in Core.lua, the rows (Options/Who.lua) and the debug
+# lines (Commands.lua). Each fault put back has to be caught by the scenario
+# that names it.
 #
 # Run by selftest.py with mutate() in scope.
 
@@ -175,80 +175,34 @@ mutate("Clicks.lua",
        expect="an interrupt 9 s after the lure's press took the press back", script=S)
 
 # ------------------------------------------------ the replace question
-# Never answered.
+# The game asks whether to replace the enchant on a weapon when an enhancement
+# goes over it. The question is the player's: an automatic answer, or the
+# popup taken down, is a fault. Each is put back as a handler for the event,
+# registered with the others.
 mutate(C,
-       "\t\tns.Guard(\"replace the weapon's enchant\", replace)\n",
-       "",
-       "hunt26-weapons: the replace question never answered",
-       expect="the question asked during our press was answered", script=S)
+       "\tfor _, event in ipairs({\n\t\t\"UNIT_AURA\",\n",
+       "\tfunction addon:REPLACE_ENCHANT()\n"
+       "\t\tif C_Item and C_Item.ReplaceEnchant then C_Item.ReplaceEnchant() end\n"
+       "\tend\n"
+       "\tfor _, event in ipairs({\n\t\t\"REPLACE_ENCHANT\",\n\t\t\"UNIT_AURA\",\n",
+       "hunt26-weapons: the replace question answered for the player",
+       expect="the game's question about replacing an enchant was answered", script=S)
 
-# Answered with no press of ours.
 mutate(C,
-       "\t\tif not (armed and at and now - at <= REPLACE_SECONDS) then return end\n",
-       "",
-       "hunt26-weapons: the replace question answered with no press",
-       expect="a question with no press of ours was answered", script=S)
-
-# Answered however late.
-mutate(C,
-       "\t\tif not (armed and at and now - at <= REPLACE_SECONDS) then return end\n",
-       "\t\tif not (armed and at) then return end\n",
-       "hunt26-weapons: the replace question answered however late",
-       expect="a question 3 s into a press was answered", script=S)
-
-# Answered for a press that carries no enhancement.
-mutate(C,
-       "\t\tif not (armed and at and now - at <= REPLACE_SECONDS) then return end\n",
-       "\t\tif not (at and now - at <= REPLACE_SECONDS) then return end\n",
-       "hunt26-weapons: the replace question answered for a familiar's press",
-       expect="the question asked during a familiar's press was answered", script=S)
-
-mutate(M,
-       "\t\t\tslot = family and family.enhance and slot or nil }\n",
-       "\t\t\tslot = slot }\n",
-       "hunt26-weapons: a scroll's record says it is an enhancement",
-       expect="the question asked during a familiar's press was answered", script=S)
-
-mutate(M,
-       "\tns.armedWeapon = record.slot\n",
-       "\tns.armedWeapon = nil\n",
-       "hunt26-weapons: the macro armed never said it was an enhancement",
-       expect="the question asked during our press was answered", script=S)
-
-# Answered after the press was filed.
-mutate(C,
-       "\t\tif last and last >= at then return end\n",
-       "",
-       "hunt26-weapons: the replace question answered after the press was filed",
-       expect="a question 0.5 s after a press that asked none was filed was answered", script=S)
-
-# Answered twice in one press.
-mutate(C,
-       "\t\tif answered == at then return end\n",
-       "",
-       "hunt26-weapons: the replace question answered twice for one press",
-       expect="two questions in one press were answered", script=S)
-
-# Answered after the game said it was forbidden.
-mutate(C,
-       "\t\tif forbidden then return end\n",
-       "",
-       "hunt26-weapons: the replace question answered after it was forbidden",
-       expect="the question was answered after the game called the answer forbidden", script=S)
-
-# The popup left on screen.
-mutate(C,
-       "\t\tlocal hide = _G.StaticPopup_Hide\n",
-       "\t\tlocal hide = nil\n",
-       "hunt26-weapons: the replace popup left up",
-       expect="the question's popup was not taken down", script=S)
+       "\tfor _, event in ipairs({\n\t\t\"UNIT_AURA\",\n",
+       "\tfunction addon:REPLACE_ENCHANT()\n"
+       "\t\tif StaticPopup_Hide then StaticPopup_Hide(\"REPLACE_ENCHANT\") end\n"
+       "\tend\n"
+       "\tfor _, event in ipairs({\n\t\t\"REPLACE_ENCHANT\",\n\t\t\"UNIT_AURA\",\n",
+       "hunt26-weapons: the replace popup taken down",
+       expect="the game's replace popup was taken down", script=S)
 
 # ------------------------------------------------ the events
 mutate(C,
-       "\t\t\"WEAPON_ENCHANT_CHANGED\",\n\t\t\"REPLACE_ENCHANT\",\n",
+       "\t\t\"WEAPON_ENCHANT_CHANGED\",\n",
        "",
-       "hunt26-weapons: the weapon and replace events not watched",
-       expect="the replace question, the enchant change and the forbidden warning are not watched", script=S)
+       "hunt26-weapons: the enchant change not watched",
+       expect="the enchant change is not watched", script=S)
 
 mutate(C,
        "function addon:WEAPON_ENCHANT_CHANGED() ns.ownAurasChanged = true end\n",

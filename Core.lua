@@ -3060,11 +3060,8 @@ function addon:OnEnable()
 		"BAG_UPDATE_DELAYED",
 		"PLAYER_EQUIPMENT_CHANGED",
 		-- A stone, a poison, an oil or a lure on a weapon going on or wearing
-		-- off, and the game asking whether to replace the one on it.
+		-- off.
 		"WEAPON_ENCHANT_CHANGED",
-		"REPLACE_ENCHANT",
-		-- Told once if the game takes that answer for a forbidden action.
-		"ADDON_ACTION_FORBIDDEN",
 		"NAME_PLATE_UNIT_ADDED",
 		"NAME_PLATE_UNIT_REMOVED",
 		-- Cooldowns the client takes back; the casts are below.
@@ -3303,55 +3300,12 @@ function addon:PLAYER_EQUIPMENT_CHANGED() ns.ForgetHands() end
 function addon:WEAPON_ENCHANT_CHANGED() ns.ownAurasChanged = true end
 
 -- Putting an enhancement over the one a weapon carries makes the game ask
--- whether to replace it (REPLACE_ENCHANT, the StaticPopup of the same name,
--- whose YES calls C_Item.ReplaceEnchant). The one such question Manners
--- answers is the one its own press made: a top-up of an enhancement running
--- low (Core.lua, OwnVerdict), where the question would leave the press
--- waiting for a click. A press is going on when PreClick has stamped it
--- (ns.pressAt) and PostClick has not yet filed it (ns.lastClickTime), with
--- an enhancement the button's macro carries (ns.armedWeapon, Prompt/Macro.lua),
--- inside two seconds; and the event is fired in the middle of that macro (the
--- documentation calls it synchronous), so the answer is given in the player's
--- own keypress. One press answers one question. Every other replacement, the
--- player's own use of an oil from the bags included, is left to the player.
-do
-	local REPLACE_SECONDS = 2
-	-- Whether the game called the answer forbidden, and the press (its stamp)
-	-- the last question was answered for.
-	local forbidden, answered = false, false
-
-	function addon:REPLACE_ENCHANT()
-		if forbidden then return end
-		local armed, at, last = ns.armedWeapon, ns.pressAt, ns.lastClickTime
-		local now = GetTime()
-		if not (armed and at and now - at <= REPLACE_SECONDS) then return end
-		if last and last >= at then return end
-		if answered == at then return end
-		answered = at
-		local replace = C_Item and C_Item.ReplaceEnchant
-		if type(replace) ~= "function" then return end
-		ns.Guard("replace the weapon's enchant", replace)
-		-- The question is Blizzard's own popup, and may be shown after this
-		-- handler has run: taken down now and again on the next frame.
-		local hide = _G.StaticPopup_Hide
-		if type(hide) == "function" then
-			ns.Guard("hide the replace question", hide, "REPLACE_ENCHANT")
-			if C_Timer and C_Timer.After then
-				C_Timer.After(0, function() ns.Guard("hide the replace question", hide, "REPLACE_ENCHANT") end)
-			end
-		end
-	end
-
-	-- The game calling that answer a forbidden action of ours (an AddOn may not
-	-- call it, on a client where that is so) raises its own warning once;
-	-- Manners never asks again that session, and the question is left to the
-	-- player.
-	function addon:ADDON_ACTION_FORBIDDEN(_, addonName, func)
-		if addonName == "Manners" and type(func) == "string" and func:find("ReplaceEnchant", 1, true) then
-			forbidden = true
-		end
-	end
-end
+-- whether to replace it (REPLACE_ENCHANT, a StaticPopup of the same name
+-- whose YES calls C_Item.ReplaceEnchant), a top-up of one running low
+-- included. That question is the player's to answer, and Manners never
+-- answers it: it does not listen for the event, call that function or hide the
+-- popup. Nothing shows that a call from an event handler is allowed, and a
+-- Blizzard popup hidden from addon code risks taint.
 
 function addon:SPELLS_CHANGED()
 	local now = GetTime()

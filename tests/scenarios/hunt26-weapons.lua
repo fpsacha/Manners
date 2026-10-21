@@ -6,9 +6,8 @@
 -- non-lethal. Buffs.lua holds the items (ids read from each client's own
 -- item data, which tools/audit_ids.py holds them to), Core.lua reads the bags,
 -- the weapon in each hand and the enchants on it (ScrollReady, ReadImbue),
--- Prompt/Macro.lua uses the item and aims it at the hand, and Core.lua's
--- REPLACE_ENCHANT answers the game's question about replacing an enchant for
--- a press of ours alone.
+-- Prompt/Macro.lua uses the item and aims it at the hand. The game's question
+-- about replacing an enchant is left to the player.
 --
 -- The mock's item API is the weapon's enchant list alone, so each scenario
 -- stands the rest in as the mage's scroll scenarios do: what the bags hold,
@@ -521,100 +520,58 @@ end
 
 -- ------------------------------------------------------------------ 6
 -- Putting an enhancement over the one on the weapon makes the game ask whether
--- to replace it. The question is answered for a press of ours that is going
--- on -- stamped by PreClick, not yet filed by PostClick -- carrying an
--- enhancement, inside two seconds, once; and for nothing else: not when no
--- press was made, not after it was filed, not late, not for a press that
--- carried no enhancement, not twice, and not again once the game has called
--- the answer forbidden.
+-- to replace it. That question is the player's to answer: Manners does not
+-- listen for it, never calls C_Item.ReplaceEnchant and never takes the popup
+-- down, even right after its own press on that hand. Both are spies here: the
+-- stub of C_Item.ReplaceEnchant counts its calls (world.replaced) and
+-- StaticPopup_Hide writes down what it was asked to hide (world.hidden).
 do
-	local scenario = "hunt26-weapons: the replace question is answered for our own press and never otherwise"
+	local scenario = "hunt26-weapons: the replace question is left to the player"
 	with(scenario, { class = "WARRIOR", level = 40, bags = { [DENSE_STONE] = 2 }, hands = { [16] = SWORD },
 		enchants = { [16] = { entry(DENSE_STONE_ENCHANT, TEMPORARY, 120) } } }, function(ns)
 		ns.db.profile.filters.whenBuffed = "refresh"
-		if not (Mock.registeredEvents.REPLACE_ENCHANT and Mock.registeredEvents.WEAPON_ENCHANT_CHANGED
-			and Mock.registeredEvents.ADDON_ACTION_FORBIDDEN) then
-			fail(scenario, "the replace question, the enchant change and the forbidden warning are not watched")
+
+		-- The game asks whatever has asked to hear the event, as the client
+		-- does: nothing, unless Manners registered for it.
+		local function ask()
+			if Mock.registeredEvents.REPLACE_ENCHANT and ns.addon.REPLACE_ENCHANT then
+				ns.addon:REPLACE_ENCHANT(nil, "Dense Sharpening Stone", "Dense Sharpening Stone")
+			end
+		end
+		local function taken()
+			local n = 0
+			for _, which in ipairs(world.hidden) do
+				if which == "REPLACE_ENCHANT" then n = n + 1 end
+			end
+			return n
 		end
 
-		-- No press at all since the session began: the player's own use of a
-		-- stone, say. (Nothing is stamped, so that nothing but the want of a press
-		-- can turn the question away.)
-		ns.armedWeapon, ns.pressAt, ns.lastClickTime = nil, nil, nil
-		ns.addon:REPLACE_ENCHANT(nil, "Dense Sharpening Stone", "Dense Sharpening Stone")
-		if world.replaced ~= 0 then fail(scenario, "a question with no press of ours was answered") end
+		if Mock.registeredEvents.REPLACE_ENCHANT or ns.addon.REPLACE_ENCHANT then
+			fail(scenario, "Manners listens for the game's question about replacing an enchant")
+		end
 
-		-- The top-up pressed, the question asked in the middle of the macro.
-		local ran = press(ns, scenario, "w12404m", function()
-			ns.addon:REPLACE_ENCHANT(nil, "Dense Sharpening Stone", "Dense Sharpening Stone")
-		end)
+		-- Asked with no press of ours.
+		ask()
+
+		-- The top-up pressed: the question is asked in the middle of the macro,
+		-- as the game's synchronous event is, and again once the press is filed
+		-- and a second after.
+		local ran = press(ns, scenario, "w12404m", ask)
 		if ran ~= "/use item:" .. DENSE_STONE .. "\n/use 16" then
 			fail(scenario, "SKIPPED -- the top-up's press did not go out: " .. flat(ran))
 			return
 		end
-		if world.replaced ~= 1 then
-			fail(scenario, ("the question asked during our press was answered %d times"):format(world.replaced))
-		end
-		if world.hidden[1] ~= "REPLACE_ENCHANT" then
-			fail(scenario, "the question's popup was not taken down: " .. tostring(world.hidden[1]))
-		end
-		-- Asked again in the same press: one press, one answer.
-		world.replaced = 0
-		ns.addon:REPLACE_ENCHANT(nil, "Dense Sharpening Stone", "Dense Sharpening Stone")
-		if world.replaced ~= 0 then fail(scenario, "a second question after the press was filed was answered") end
+		ask()
+		Mock.advance(1)
+		ask()
+		Mock.advance(3)
 
-		-- A press whose question comes late: not answered.
-		Mock.advance(20)
-		wipe(ns.tried)
-		local late = press(ns, scenario, "w12404m", function()
-			Mock.advance(3)
-			ns.addon:REPLACE_ENCHANT(nil, "Dense Sharpening Stone", "Dense Sharpening Stone")
-		end)
-		if not late then return end
-		if world.replaced ~= 0 then fail(scenario, "a question 3 s into a press was answered") end
-
-		-- Twice in one press: once.
-		Mock.advance(20)
-		wipe(ns.tried)
-		if not press(ns, scenario, "w12404m", function()
-			ns.addon:REPLACE_ENCHANT(nil, "a", "b")
-			ns.addon:REPLACE_ENCHANT(nil, "a", "b")
-		end) then return end
-		if world.replaced ~= 1 then
-			fail(scenario, ("two questions in one press were answered %d times"):format(world.replaced))
-		end
-
-		-- A press that asked no question, filed, and the player's own question a
-		-- moment after it: not ours to answer.
-		Mock.advance(20)
-		wipe(ns.tried)
-		if not press(ns, scenario, "w12404m", nil) then return end
-		Mock.advance(0.5)
-		world.replaced = 0
-		ns.addon:REPLACE_ENCHANT(nil, "a", "b")
 		if world.replaced ~= 0 then
-			fail(scenario, "a question 0.5 s after a press that asked none was filed was answered")
+			fail(scenario, ("the game's question about replacing an enchant was answered %d times"):format(world.replaced))
 		end
-
-		-- The game calls the answer forbidden: never again.
-		ns.addon:ADDON_ACTION_FORBIDDEN(nil, "Manners", "C_Item.ReplaceEnchant()")
-		Mock.advance(20)
-		wipe(ns.tried)
-		world.replaced = 0
-		if not press(ns, scenario, "w12404m", function()
-			ns.addon:REPLACE_ENCHANT(nil, "a", "b")
-		end) then return end
-		if world.replaced ~= 0 then fail(scenario, "the question was answered after the game called the answer forbidden") end
-	end)
-
-	-- A press of ours that carries no enhancement: a mage's familiar.
-	local scroll = "hunt26-weapons: a press that is no enhancement leaves the replace question to the player"
-	with(scroll, { class = "MAGE", level = 12, bags = { [RAT] = 1 }, hands = { [16] = STAFF } }, function(ns)
-		local ran = press(ns, scroll, "ratfamiliar", function()
-			ns.addon:REPLACE_ENCHANT(nil, "a", "b")
-		end)
-		if not ran then return end
-		if world.replaced ~= 0 then fail(scroll, "the question asked during a familiar's press was answered") end
+		if taken() ~= 0 then
+			fail(scenario, ("the game's replace popup was taken down %d times"):format(taken()))
+		end
 	end)
 end
 
@@ -898,6 +855,9 @@ do
 	local scenario = "hunt26-weapons: a weapon's enchant changing is noticed at once"
 	with(scenario, { class = "WARRIOR", level = 40, bags = { [DENSE_STONE] = 1 }, hands = { [16] = SWORD } },
 		function(ns)
+			if not Mock.registeredEvents.WEAPON_ENCHANT_CHANGED then
+				fail(scenario, "the enchant change is not watched")
+			end
 			ns.RememberOwnBuffs()
 			ns.ownAurasChanged = false
 			world.enchants[16] = { entry(DENSE_STONE_ENCHANT, TEMPORARY, 1800) }

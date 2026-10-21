@@ -114,17 +114,16 @@ end
 -- for the hand its family is for: /use 16 for the main hand, /use 17 for the
 -- off hand. The slot line goes in only for an item that is aimed at a weapon
 -- (`enchant`): a bare /use of a slot would use the weapon's own on-use effect
--- when the first line left nothing waiting. The record says which hand
--- (`slot`), for the answer to the game's question about replacing an enchant
--- (Core.lua, REPLACE_ENCHANT).
+-- when the first line left nothing waiting. Over an enhancement already on
+-- the weapon the game asks whether to replace it: that question is the
+-- player's to answer, and Manners never answers it.
 STRATEGIES.scroll = function(entry)
 	local lines = { "/use item:" .. tostring(entry.buff.item) }
 	local family = entry.buff.family
 	local slot = family and family.slot or 16
 	if entry.buff.enchant then lines[2] = "/use " .. slot end
 	return lines, false,
-		{ targeted = false, selfCast = false, onSelf = true, aimedAt = nil,
-			slot = family and family.enhance and slot or nil }
+		{ targeted = false, selfCast = false, onSelf = true, aimedAt = nil }
 end
 
 -- Target them, cast, and optionally hand the player's own target back. One
@@ -314,7 +313,6 @@ local function Arm(R, S, entry, silent)
 		S.appliedKey = nil
 		-- Nothing on the button, so nothing for a settle to be judged against.
 		S.armed = nil
-		ns.armedWeapon = nil
 		-- Same reasoning for the spoken line: there is no macro, so there is no
 		-- line, and the tooltip must not still be quoting the last one.
 		S.phraseKey, S.phraseText, S.phraseArmed, S.phraseSource = nil, nil, nil, nil
@@ -393,7 +391,6 @@ local function Arm(R, S, entry, silent)
 			if not S.isRow then ns.lastMacro = "[try, not armed] " .. tostring(unfilled) end
 			S.appliedKey = key
 			S.armed = nil
-			ns.armedWeapon = nil
 			return
 		end
 		R.button:SetAttribute("type1", "macro")
@@ -406,7 +403,6 @@ local function Arm(R, S, entry, silent)
 		-- None of this text is a /target this addon wrote, so it is evidence
 		-- about nobody's name and there is no record for the settle path.
 		S.armed = nil
-		ns.armedWeapon = nil
 		return
 	end
 
@@ -450,10 +446,6 @@ local function Arm(R, S, entry, silent)
 	S.appliedKey = key
 	-- Taken whole from the strategy that built the macro: one opinion about it.
 	S.armed = record
-	-- Whether the macro now on a button puts an enhancement on a hand, and which
-	-- hand: the macro armed last is the one a press runs, since PreClick arms it
-	-- just before (Core.lua, REPLACE_ENCHANT asks).
-	ns.armedWeapon = record.slot
 end
 
 -- A list row silences itself the same way when it is made (Rows.lua).
