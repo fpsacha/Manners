@@ -9,6 +9,7 @@ local InCombatLockdown = _G.InCombatLockdown
 local GetTime = _G.GetTime
 local RemainingText = lib.RemainingText
 local OnPreClick, OnPostClick = lib.OnPreClick, lib.OnPostClick
+local OnRowPreClick, OnRowPostClick = lib.OnRowPreClick, lib.OnRowPostClick
 
 -- Whether a drag actually started. The client delivers OnDragStop for every
 -- drag gesture, including the ones OnDragStart refused (locked, in combat).
@@ -156,7 +157,7 @@ end
 
 -- The button's other scripts, and the list Create() sets them from. A do
 -- block, so their names cost the main chunk one local rather than five.
-local BUTTON_SCRIPTS
+local BUTTON_SCRIPTS, ROW_SCRIPTS
 do
 	local function OnDragStart(self)
 		if ns.db.profile.prompt.locked or InCombatLockdown() then return end
@@ -176,23 +177,12 @@ do
 		FinishDrag()
 	end
 
-	local function OnEnter(self)
-		-- First, whatever the tooltip does: the cursor is on the panel, and
-		-- the hold and the fuse wait for it (see hovering). OnUpdate calls
-		-- this again only while the tooltip is ours, so still hovering.
-		S.hovering = true
-		if S.activeLook then S.activeLook:Hover(true) end
-		-- Nothing armed is nothing to describe, and a tooltip left from the
-		-- last person goes with it.
-		if not S.current or not S.current.buff then
-			if GameTooltip:IsOwned(self) then GameTooltip:Hide() end
-			return
-		end
-		-- In combat the macro is frozen at whoever it held when the fight
-		-- started, and a detailed tooltip about somebody stale is worse than
-		-- none.
-		if InCombatLockdown() then return end
-		GameTooltip:SetOwner(self, "ANCHOR_TOP")
+	-- The tooltip about the person `S.current` is: what the prompt says of whoever
+	-- it is armed at, and what a name in the list says of the name it holds
+	-- (OnRowEnter, which hands in a state of its own whose `current` is that
+	-- entry). `slot` is whose settled spoken line it quotes (S, or the row's).
+	local function FillTooltip(owner, anchor, S, slot)
+		GameTooltip:SetOwner(owner, anchor)
 		GameTooltip:AddLine("Manners")
 		GameTooltip:AddDoubleLine(S.current.display or S.current.short or S.current.name,
 			ns.EntrySpellName(S.current), 1, 1, 1, 0.8, 0.8, 0.8)
@@ -206,14 +196,14 @@ do
 		GameTooltip:AddLine(" ")
 		-- Plain English first; the raw macro only with /manners clicks, below.
 		-- ClickSummary quotes the settled roll.
-		for _, line in ipairs(Prompt:ClickSummary(S.current)) do
+		for _, line in ipairs(Prompt:ClickSummary(S.current, slot)) do
 			GameTooltip:AddLine(line, 0.62, 0.78, 0.62, true)
 		end
 		GameTooltip:AddLine(" ")
 		-- The raw macro is a debugging tool and reads like one, so it goes
 		-- where the other debugging tools are. /manners clicks turns it back
 		-- on.
-		if ns.db.profile.debugClicks and ns.lastMacro then
+		if ns.db.profile.debugClicks and ns.lastMacro and not slot.isRow then
 			GameTooltip:AddLine(L["Will run:"], 0.5, 0.5, 0.5)
 			for line in ns.lastMacro:gmatch("[^\r\n]+") do
 				GameTooltip:AddLine("  " .. line, 0.4, 0.8, 0.4)
@@ -246,6 +236,25 @@ do
 			GameTooltip:AddLine(L["Shift-right-click to put them on your never-offer list."], 0.5, 0.5, 0.5)
 		end
 		GameTooltip:Show()
+	end
+
+	local function OnEnter(self)
+		-- First, whatever the tooltip does: the cursor is on the panel, and
+		-- the hold and the fuse wait for it (see hovering). OnUpdate calls
+		-- this again only while the tooltip is ours, so still hovering.
+		S.hovering = true
+		if S.activeLook then S.activeLook:Hover(true) end
+		-- Nothing armed is nothing to describe, and a tooltip left from the
+		-- last person goes with it.
+		if not S.current or not S.current.buff then
+			if GameTooltip:IsOwned(self) then GameTooltip:Hide() end
+			return
+		end
+		-- In combat the macro is frozen at whoever it held when the fight
+		-- started, and a detailed tooltip about somebody stale is worse than
+		-- none.
+		if InCombatLockdown() then return end
+		FillTooltip(self, "ANCHOR_TOP", S, S)
 	end
 
 	local function OnLeave()
@@ -290,6 +299,27 @@ do
 		end
 	end
 
+	-- A name in the list (Prompt/Rows.lua): the cursor lights it and says who it
+	-- is, in the prompt's words. Nothing in a fight, where the list says nothing
+	-- and a row does nothing (no existing line says the list waits for the
+	-- fight to end, and none is made up for it).
+	local function OnRowEnter(self)
+		local row = self.mannersRow
+		row.hovered = true
+		if InCombatLockdown() then return end
+		if row.wash then row.wash:Show() end
+		local entry = row.entry
+		if not (entry and entry.buff) then return end
+		FillTooltip(self, "ANCHOR_RIGHT", { current = entry }, row)
+	end
+
+	local function OnRowLeave(self)
+		local row = self.mannersRow
+		row.hovered = nil
+		if row.wash then row.wash:Hide() end
+		if GameTooltip:IsOwned(self) then GameTooltip:Hide() end
+	end
+
 	-- In the order Create() always set them.
 	BUTTON_SCRIPTS = {
 		{ "OnDragStart", OnDragStart },
@@ -299,6 +329,14 @@ do
 		{ "OnEnter", OnEnter },
 		{ "OnLeave", OnLeave },
 		{ "OnUpdate", OnUpdate },
+	}
+
+	-- A list row's, set on each of them by Create (Rows.lua).
+	ROW_SCRIPTS = {
+		{ "PreClick", OnRowPreClick },
+		{ "PostClick", OnRowPostClick },
+		{ "OnEnter", OnRowEnter },
+		{ "OnLeave", OnRowLeave },
 	}
 end
 
@@ -311,3 +349,4 @@ function Prompt:FinishDragForFight()
 end
 
 lib.BUTTON_SCRIPTS = BUTTON_SCRIPTS
+lib.ROW_SCRIPTS = ROW_SCRIPTS

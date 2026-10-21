@@ -368,6 +368,7 @@ ns.WindowLayout = {
 					"appearance.showCount",
 					"appearance.showQueue",
 					{ "appearance.queueRows", indent = true },
+					{ "appearance.clickRows", indent = true },
 				} },
 			},
 		},

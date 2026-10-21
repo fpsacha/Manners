@@ -67,7 +67,7 @@ local ORDER = {
 	"soundOwedOnly", "noSound",
 	"textHeader", "font", "fontSize", "fontColor", "classColor", "showSub",
 	"iconHeader", "showIcon", "iconSize", "iconSizeCapped", "roundIcon", "showCooldown",
-	"showCount", "showQueue", "queueRows",
+	"showCount", "showQueue", "queueRows", "clickRows",
 }
 
 do

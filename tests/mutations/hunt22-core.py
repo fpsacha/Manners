@@ -184,8 +184,8 @@ mutate("Looks/Toast.lua",
 
 # ------------------------------------------------------------ the preview's count
 mutate("Prompt/Refresh.lua",
-       "\t\tself:Paint(TestEntry(), math.max(2, #mock))\n",
-       "\t\tself:Paint(TestEntry(), 2)\n",
+       "\t\tself:Paint(test, math.max(2, #mock))\n",
+       "\t\tself:Paint(test, 2)\n",
        "hunt22-core: the preview counts two over five rows",
        expect="core22: the preview's count covers its 5 listed rows", script=S)
 

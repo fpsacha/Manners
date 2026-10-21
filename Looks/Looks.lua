@@ -88,6 +88,14 @@
 --   PaintQueue(rows, shown, above)  The list's text is written (kit.rows);
 --                   rows[i].reason is each row's reason. Place the rows, their
 --                   markers and the background. nil rows, 0 shown: hide it.
+--                   Each row is a button too (Prompt/Rows.lua), hung off the
+--                   row's own font string, so a look that anchors kit.rows[i]
+--                   gets a click area on each name with nothing more. Two
+--                   optional fields size it: `pitch`, the distance between two
+--                   rows' centres (set in Apply; the area is that tall, so
+--                   neighbours meet), and `rowReach`, how far left of a row's
+--                   text its marker starts (default 18), which the area
+--                   includes. The row's icon is the three built-in looks' only.
 --
 -- THE KIT (Prompt:LookKit(), handed to Build)
 --   button art textLayer icon cooldown name sub count rows

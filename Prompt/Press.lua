@@ -15,9 +15,11 @@ local InCombatLockdown = _G.InCombatLockdown
 local GetTime = _G.GetTime
 local NoteVerdicts, Retired, LightFuse = lib.NoteVerdicts, lib.Retired, lib.LightFuse
 
--- When each handler last took a press: one press delivers a down and an up,
--- and each is counted once.
-local lastClickAt, lastPreClickAt, lastSkipAt
+-- When PreClick last took a press: one press delivers a down and an up, and
+-- each is counted once. PostClick's own stamps (clickAt, skipAt) are kept on
+-- the state it files against, the prompt's or a list row's, so a press on one
+-- never swallows a press on another.
+local lastPreClickAt
 -- Its own stamp rather than one of the three above: the refusal it rate-limits
 -- happens on presses none of those are counting.
 local lastStaleAt
@@ -294,6 +296,10 @@ local function OnPreClick(self, mouseButton)
 end
 
 local function OnPostClick(self, mouseButton, down)
+	-- Whose press this is: the prompt's, or a name in the list (OnRowPostClick),
+	-- whose slot stands in for the prompt's state under the same name, so
+	-- every line below files a press on a name exactly as one on the prompt.
+	local S = self.mannersRow or S
 	-- Bookkeeping only, and switched off, unlocked or previewing there is none:
 	-- a CLICK binding reaches a hidden frame. In combat the frozen macro may
 	-- still have cast; the debt stands and the line says so.
@@ -318,12 +324,14 @@ local function OnPostClick(self, mouseButton, down)
 		-- Its own stamp: sharing the cast path's would let a right-press
 		-- swallow a real left click landing just after it.
 		local now = GetTime()
-		if lastSkipAt and (now - lastSkipAt) < 0.25 then return end
-		lastSkipAt = now
+		if S.skipAt and (now - S.skipAt) < 0.25 then return end
+		S.skipAt = now
 		-- Whoever the panel names, as the left press follows: under a red flash
 		-- that is the person the flash is about, not the next one armed
 		-- underneath.
 		local victim = Prompt:PanelName() or (S.current and S.current.name)
+		-- A name in the list skips that name, whoever the prompt is on.
+		if S.isRow then victim = S.name end
 		if not victim then
 			ns.addon:Print(L["nobody to skip right now."])
 			return
@@ -339,7 +347,8 @@ local function OnPostClick(self, mouseButton, down)
 		-- Your own buff, by the name rather than the entry: under the flash
 		-- of a press on yourself the entry armed may already be the next one.
 		local own = ns.IsPlayerName(victim)
-		Prompt:StopAttention()
+		-- The prompt's pulse is about the prompt's person, not a row's.
+		if not S.isRow then Prompt:StopAttention() end
 		-- "Never" for yourself is the switch (StopOfferingSelf): the list is
 		-- of other people, and every line it says is about somebody else.
 		if IsShiftKeyDown and ns.plain(IsShiftKeyDown()) and own then
@@ -408,8 +417,8 @@ local function OnPostClick(self, mouseButton, down)
 	end
 
 	-- One press delivers both a down and an up; count and settle once.
-	if lastClickAt and (now - lastClickAt) < 0.25 then return end
-	lastClickAt = now
+	if S.clickAt and (now - S.clickAt) < 0.25 then return end
+	S.clickAt = now
 
 	-- Lets the error and cast handlers tell our own outcome apart from
 	-- everything else the game is shouting about.
@@ -419,7 +428,7 @@ local function OnPostClick(self, mouseButton, down)
 	if ns.db and ns.db.profile.debugClicks then
 		ns.addon:Print(("|cffffd100CLICK|r build=%s macro=%s"):format(
 			tostring(ns.BUILD),
-			tostring(R.button:GetAttribute("macrotext1") or "nil"):gsub("%s+", " ")))
+			tostring(self:GetAttribute("macrotext1") or "nil"):gsub("%s+", " ")))
 	end
 	if not (S.current and S.current.name) then return end
 
@@ -547,7 +556,94 @@ local function OnPostClick(self, mouseButton, down)
 			ns.lastGave[S.current.name] = S.current.buff.key
 		end
 	end
-	Prompt:StopAttention()
+	-- The prompt's pulse, which this press answers; a row's press answers the
+	-- row's person, and the prompt goes on asking for its own.
+	if not S.isRow then Prompt:StopAttention() end
+end
+
+-- A press on a name in the list (Prompt/Rows.lua), left button only: the other
+-- buttons are PostClick's skip and never. The row holds no macro at rest, so
+-- this is where it gets one, from the same Arm the prompt's comes from, for the
+-- person the row names if the scan still offers them -- and the same buff, so
+-- what is pressed is what the row said -- and the cooldown, the spoken line and
+-- the hand-back are judged as the prompt's press judges them. Never in a
+-- fight: nothing is written, and a row with nothing on it does nothing.
+local function OnRowPreClick(self, mouseButton, down)
+	if mouseButton and mouseButton ~= "LeftButton" then return end
+	-- Down is the press (the row, like the prompt, is registered for it); an up
+	-- the client delivers anyway is the end of it.
+	if down == false then return end
+	local row = self.mannersRow
+	row.pressing = nil
+	if InCombatLockdown() then return end
+	local now = GetTime()
+	if row.preAt and (now - row.preAt) < 0.25 then return end
+
+	local entry, db = row.entry, ns.db and ns.db.profile
+	if not (entry and entry.buff and entry.name and db and db.prompt.clickRows ~= false) then return end
+	if not PromptIsLive() then return end
+
+	-- The global cooldown holds a press back: nothing is armed, so nothing goes
+	-- out, and PostClick says so as it does for the prompt.
+	local ready, left = ns.CastReady()
+	cooldownPressAt = (not ready) and now or nil
+	if not ready then
+		guardedEntry = nil
+		row.pressing = true
+		Prompt:SayWaiting(left)
+		return
+	end
+
+	-- Stamped once the press is going ahead: a press turned away above says
+	-- nothing of the next.
+	row.preAt = now
+	local queue, verdicts = ns.BuildQueue(S.hovering)
+	NoteVerdicts(verdicts)
+	row.pickedFrom = queue
+	local fresh
+	for _, candidate in ipairs(queue) do
+		if candidate.name == entry.name and candidate.buff and candidate.buff.key == entry.buff.key then
+			fresh = candidate
+			break
+		end
+	end
+	-- Gone since the list was painted, or on another buff: not what the row
+	-- said, so not cast. The list is brought up to date and the player asks again.
+	if not fresh then
+		ns.Guard("row moved on", Prompt.Refresh, Prompt)
+		return
+	end
+
+	-- The macro's own /target and hand-back are not the player choosing
+	-- anybody (Core.lua, PLAYER_TARGET_CHANGED ignores them this close).
+	ns.pressAt = now
+	pressStale = nil
+	row.pressing = true
+	row.armedAt = now
+	row.appliedKey = nil
+	Prompt:ArmRow(row, fresh, HoldLine(fresh, verdicts))
+end
+
+-- Then files it, and lets the row go: nothing stays armed after the press.
+local function OnRowPostClick(self, mouseButton, down)
+	if down == false then return end
+	local row = self.mannersRow
+	if mouseButton and mouseButton ~= "LeftButton" then
+		-- Skip, or never with shift: the prompt's own path, for the person the
+		-- row names. Nothing here touches the button, but a list that has gone
+		-- quiet for a fight is not to be skipped by a click on its blank.
+		if InCombatLockdown() or not row.entry then return end
+		row.current = row.entry
+		OnPostClick(self, mouseButton, down)
+		row.current = nil
+		return
+	end
+	if not row.pressing then return end
+	row.pressing = nil
+	OnPostClick(self, mouseButton, down)
+	-- A fight that began in the middle of a press is DisarmRows' (Core.lua).
+	if not InCombatLockdown() then Prompt:ArmRow(row, nil) end
 end
 
 lib.OnPreClick, lib.OnPostClick = OnPreClick, OnPostClick
+lib.OnRowPreClick, lib.OnRowPostClick = OnRowPreClick, OnRowPostClick

@@ -589,6 +589,17 @@ function Page.BuildLookTab()
 				get = pGet,
 				set = pSet,
 			},
+			-- Off, the list is only to read: no name in it is a button.
+			clickRows = {
+				type = "toggle",
+				name = L["Click a name in the list to buff them"],
+				desc = L["Turns each name in the list into a button: a left click buffs that person as if they were on the prompt. Right-click skips them for now, shift-right-click puts them on your never-offer list. Names cannot be clicked in a fight."],
+				order = 58,
+				width = "full",
+				disabled = function() return not P().showQueue end,
+				get = pGet,
+				set = pSet,
+			},
 		},
 	}
 end

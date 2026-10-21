@@ -5,7 +5,7 @@
 local _, ns = ...
 local L = ns.L
 local Prompt = ns.Prompt
-local S, R = Prompt.state, Prompt.regions
+local S, R, lib = Prompt.state, Prompt.regions, Prompt.lib
 local InCombatLockdown = _G.InCombatLockdown
 
 -- Every button but the left gets a type the secure handler does not recognise,
@@ -20,7 +20,7 @@ local InCombatLockdown = _G.InCombatLockdown
 -- sets "*type2"; N runs to 31, the last button the template names
 -- (BUTTON_LOOKUP_TABLE), and "AnyDown" answers every one. No "*type1": the left
 -- button with a modifier held, or from a key binding, is meant to cast.
-local function SilenceOtherButtons()
+local function SilenceOtherButtons(R)
 	for index = 2, 31 do
 		if index <= 5 then R.button:SetAttribute("type" .. index, "none") end
 		R.button:SetAttribute("*type" .. index, "none")
@@ -159,7 +159,10 @@ end
 -- What the button will do, said the way a person would say it, quoting the
 -- settled spoken line (see phraseKey in ApplyTarget). Asked by the tooltip
 -- (Button.lua).
-function Prompt:ClickSummary(entry)
+function Prompt:ClickSummary(entry, slot)
+	-- Whose settled roll it quotes: the prompt's, or a list row's slot, which
+	-- holds none while it is at rest.
+	local S = slot or S
 	local out = {}
 	if not (entry and entry.buff) then return out end
 	local spell = ns.EntrySpellName(entry)
@@ -272,27 +275,20 @@ function ns.LineRested(entry, now)
 	return not (at and now - at < LINE_REST)
 end
 
+-- Arms a button at `entry` and keeps what it was built from, `S`. The prompt's
+-- own (Prompt:ApplyTarget) and a list row's (Prompt/Rows.lua) are armed by this
+-- one routine, so the macro a click on a name casts is the macro a press on the
+-- prompt would have cast, and nothing about it is written twice. `R` and `S`
+-- here are not the file's: `R` holds the `button` to arm and `S` the fields the
+-- press is judged by (current, appliedKey, armed, the spoken line) -- the
+-- prompt's regions and state, or a row's slot, which is both at once, with
+-- `isRow` set. They carry the file's names on purpose, so every line below
+-- reads as it always did.
+--
 -- `silent` leaves the spoken line out whatever the entry says: PreClick's
 -- last-moment judgement (HoldLine), or a repaint arming somebody the latest
 -- scan no longer offers.
-function Prompt:ApplyTarget(entry, silent)
-	if InCombatLockdown() then
-		-- Frozen until the fight ends. `current` may only be cleared: a disarm
-		-- must take effect, and pointing it at somebody new would file
-		-- bookkeeping under a name the macro does not hold. appliedKey stays:
-		-- it says what is on the button, which the fight froze, and the
-		-- unconditional clear path below disarms it after the fight. Who the
-		-- macro names is kept (frozenEntry) for a repaint in this fight to put
-		-- back once the prompt is live again.
-		if not entry then
-			S.frozenEntry = S.frozenEntry or S.current
-			S.current = nil
-		end
-		return
-	end
-
-	-- Out of combat the button is armed or disarmed for real.
-	S.frozenEntry = nil
+local function Arm(R, S, entry, silent)
 	S.current = entry
 
 	if not entry or not entry.buff or S.testMode then
@@ -316,8 +312,10 @@ function Prompt:ApplyTarget(entry, silent)
 	-- The console expands {unit}/{name}/{spell} against whoever is offered;
 	-- above the early return, because the unit can change while the macro does
 	-- not.
-	ns.lastTopEntry = entry
-	ns.lastTopUnit = entry.unit
+	if not S.isRow then
+		ns.lastTopEntry = entry
+		ns.lastTopUnit = entry.unit
+	end
 
 	-- Whether a spoken line may go in. Only for somebody the scan measured in
 	-- reach: the macro runs on past a /cast that fails, and the line went out
@@ -380,7 +378,7 @@ function Prompt:ApplyTarget(entry, silent)
 				"type", "macrotext", "spell", "unit" }) do
 				R.button:SetAttribute(attribute, nil)
 			end
-			ns.lastMacro = "[try, not armed] " .. tostring(unfilled)
+			if not S.isRow then ns.lastMacro = "[try, not armed] " .. tostring(unfilled) end
 			S.appliedKey = key
 			S.armed = nil
 			return
@@ -389,8 +387,8 @@ function Prompt:ApplyTarget(entry, silent)
 		R.button:SetAttribute("macrotext1", text)
 		R.button:SetAttribute("type", "macro")
 		R.button:SetAttribute("macrotext", text)
-		SilenceOtherButtons()
-		ns.lastMacro = "[try] " .. text
+		SilenceOtherButtons(R)
+		if not S.isRow then ns.lastMacro = "[try] " .. text end
 		S.appliedKey = key
 		-- None of this text is a /target this addon wrote, so it is evidence
 		-- about nobody's name and there is no record for the settle path.
@@ -432,12 +430,43 @@ function Prompt:ApplyTarget(entry, silent)
 	R.button:SetAttribute("macrotext1", macro)
 	R.button:SetAttribute("type", "macro")
 	R.button:SetAttribute("macrotext", macro)
-	SilenceOtherButtons()
+	SilenceOtherButtons(R)
 
-	ns.lastMacro = macro
+	if not S.isRow then ns.lastMacro = macro end
 	S.appliedKey = key
 	-- Taken whole from the strategy that built the macro: one opinion about it.
 	S.armed = record
+end
+
+-- A list row silences itself the same way when it is made (Rows.lua).
+lib.SilenceOtherButtons = SilenceOtherButtons
+
+-- The prompt's: armed or disarmed for the person it is on.
+function Prompt:ApplyTarget(entry, silent)
+	if InCombatLockdown() then
+		-- Frozen until the fight ends. `current` may only be cleared: a disarm
+		-- must take effect, and pointing it at somebody new would file
+		-- bookkeeping under a name the macro does not hold. appliedKey stays:
+		-- it says what is on the button, which the fight froze, and the
+		-- unconditional clear path below disarms it after the fight. Who the
+		-- macro names is kept (frozenEntry) for a repaint in this fight to put
+		-- back once the prompt is live again.
+		if not entry then
+			S.frozenEntry = S.frozenEntry or S.current
+			S.current = nil
+		end
+		return
+	end
+
+	-- Out of combat the button is armed or disarmed for real.
+	S.frozenEntry = nil
+	return Arm(R, S, entry, silent)
+end
+
+-- A list row's: the same macro on its own button, out of combat only (the
+-- caller's rule, Prompt/Rows.lua).
+function Prompt:ArmRow(row, entry, silent)
+	return Arm(row, row, entry, silent)
 end
 
 function Prompt:InvalidateMacro()

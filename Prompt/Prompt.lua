@@ -21,6 +21,7 @@
 --   Button.lua   the button's other scripts: the drag, the cursor, the tooltip
 --   Panel.lua    the panel built and styled; the three looks drawn here
 --   List.lua     the list of who is next
+--   Rows.lua     each name in that list as a button to press
 --   Paint.lua    the words on the panel, and a click's outcome over them
 --   Refresh.lua  the repaint, and the preview
 --
@@ -119,6 +120,12 @@ local S = {
 	-- them, has nothing to say about them. Cleared when the panel is painted from
 	-- the queue again, and by ClearHold.
 	heldTurnedDown = nil,
+
+	-- When PostClick last filed a press and last took a skip, on the prompt and
+	-- (on a row's own slot) on each name in the list: one press delivers a down
+	-- and an up, and each is counted once.
+	clickAt = nil,
+	skipAt = nil,
 
 	-- What the last click turned into: "cast", "sent" or "failed", who it was
 	-- about, and the game's own words where it had any.

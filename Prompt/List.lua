@@ -6,6 +6,9 @@ local Prompt = ns.Prompt
 local S, R, lib = Prompt.state, Prompt.regions, Prompt.lib
 local ink, GREYS, SetLine, ReasonColor = lib.ink, lib.GREYS, lib.SetLine, lib.ReasonColor
 
+-- The texture each row's icon wears, so one that has not changed is not set again.
+local painted = {}
+
 -- The list and its background live outside the panel, so hiding the button
 -- does not hide them. Every branch that takes the prompt down has to say so.
 local function HideQueue()
@@ -13,9 +16,12 @@ local function HideQueue()
 	for i, fs in ipairs(R.queueRows) do
 		fs:SetText("")
 		R.queueBars[i]:Hide()
+		R.queueIcons[i]:Hide()
 	end
 	R.queueBack:Hide()
 	R.queueHair:Hide()
+	-- Nobody listed, so nobody to press.
+	Prompt:PaintRows(nil)
 	if S.activeLook then S.activeLook:PaintQueue(nil, 0, S.queueAbove) end
 end
 
@@ -25,6 +31,18 @@ function Prompt:PaintQueue(rows)
 	local shown = 0
 	for i, fs in ipairs(R.queueRows) do
 		local row = rows and rows[i]
+		-- The icon of the buff the row offers, on the looks drawn here with the
+		-- spell icon on; set only when it is a different one.
+		local icon = R.queueIcons[i]
+		if row and row.icon and not S.activeLook then
+			if painted[i] ~= row.icon then
+				painted[i] = row.icon
+				icon:SetTexture(row.icon)
+			end
+			icon:Show()
+		else
+			icon:Hide()
+		end
 		if row then
 			-- The words after the name in the look's own dimmer grey.
 			local text = row.text
@@ -41,6 +59,9 @@ function Prompt:PaintQueue(rows)
 			R.queueBars[i]:Hide()
 		end
 	end
+
+	-- The names as buttons, whichever look lays the list out (Rows.lua).
+	self:PaintRows(rows)
 
 	-- A look of its own lays the list out itself.
 	if S.activeLook then return S.activeLook:PaintQueue(rows, shown, S.queueAbove) end

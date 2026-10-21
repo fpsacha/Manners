@@ -236,6 +236,7 @@ function Prompt:Create()
 
 	R.queueRows = {}
 	R.queueBars = {}
+	R.queueIcons = {}
 	for i = 1, 5 do
 		local fs = R.art:CreateFontString(nil, "OVERLAY")
 		fs:SetJustifyH("LEFT")
@@ -248,7 +249,14 @@ function Prompt:Create()
 		local bar = Solid(R.art, "ARTWORK", 1)
 		bar:Hide()
 		R.queueBars[i] = bar
+		-- The icon of the buff the row offers, between the bar and the name.
+		local icon = R.art:CreateTexture(nil, "ARTWORK")
+		icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+		icon:Hide()
+		R.queueIcons[i] = icon
 	end
+	-- And each name as a button of its own, to press (Rows.lua).
+	self:CreateRows()
 
 	self:BuildAnimations()
 
@@ -257,7 +265,7 @@ function Prompt:Create()
 	local parts = { R.panel, R.sheen, R.hairTop, R.hairBottom, R.accentTop, R.accentBottom, R.sweepFrame,
 		R.glowFrame, R.iconBack, R.iconEdge, R.iconShade, R.burstFrame, R.shineFrame, R.countChip, R.resultFill,
 		R.queueBack, R.queueHair }
-	for _, list in ipairs({ R.shadows, R.edges, R.queueBars }) do
+	for _, list in ipairs({ R.shadows, R.edges, R.queueBars, R.queueIcons }) do
 		for _, part in ipairs(list) do parts[#parts + 1] = part end
 	end
 	self.builtinParts = parts
@@ -505,9 +513,13 @@ function Prompt:ApplyStyle()
 	-- Rows get one anchor and an explicit width: TOPLEFT and RIGHT together
 	-- fight over the vertical centre. Which way the list hangs is settled here.
 	S.queueAbove = QueueGoesAbove()
+	-- With the spell icon on, each row wears the icon of its own buff, sized
+	-- from the row's font, and its text starts after it.
+	local iconW = p.showIcon and (math.max(7, p.fontSize - 3) + 2) or 0
+	local rowX = textX + (iconW > 0 and iconW + 3 or 0)
 	-- Kept for PaintQueue, which re-places the rows when the list hangs above
 	-- and therefore needs the same inset this loop uses.
-	S.queueTextX = textX
+	S.queueTextX = rowX
 	local rowHeight = p.fontSize + 4
 	local rowCount = math.max(1, p.queueRows or 1)
 	for i, fs in ipairs(R.queueRows) do
@@ -515,23 +527,31 @@ function Prompt:ApplyStyle()
 		if S.queueAbove then
 			-- Counted down from the top of the block, so the list reads top to
 			-- bottom.
-			fs:SetPoint("BOTTOMLEFT", R.art, "TOPLEFT", textX, 4 + (rowCount - i) * rowHeight)
+			fs:SetPoint("BOTTOMLEFT", R.art, "TOPLEFT", rowX, 4 + (rowCount - i) * rowHeight)
 		else
-			fs:SetPoint("TOPLEFT", R.art, "BOTTOMLEFT", textX, -4 - (i - 1) * rowHeight)
+			fs:SetPoint("TOPLEFT", R.art, "BOTTOMLEFT", rowX, -4 - (i - 1) * rowHeight)
 		end
 		-- The font and the colour are StyleText's; the width is the room
 		-- FitLine shrinks a long row into.
-		local width = math.max(20, p.width - textX - 8)
+		local width = math.max(20, p.width - rowX - 8)
 		fs:SetWidth(width)
 		fit.room[fs] = width
 
-		-- Anchored to its own row, so the bar follows the list whichever way it
-		-- hangs and whatever the font size is.
+		-- Anchored to its own row, so the icon and the bar follow the list
+		-- whichever way it hangs and whatever the font size is.
+		local icon = R.queueIcons[i]
+		icon:ClearAllPoints()
+		if iconW > 0 then
+			icon:SetSize(iconW, iconW)
+			icon:SetPoint("RIGHT", fs, "LEFT", -3, 0)
+		end
 		local bar = R.queueBars[i]
 		bar:ClearAllPoints()
 		bar:SetSize(3, math.max(6, p.fontSize - 2))
-		bar:SetPoint("RIGHT", fs, "LEFT", -4, 0)
+		bar:SetPoint("RIGHT", iconW > 0 and icon or fs, "LEFT", -4, 0)
 	end
+	-- The click area of each name, from the bar to the end of its text.
+	self:PlaceRows(p, nil, 7 + (iconW > 0 and iconW + 3 or 0) + 1)
 
 	-- The background behind the list; PaintQueue sets its depth from the rows
 	-- filled.
@@ -579,6 +599,9 @@ function Prompt:ApplyLook(p, look)
 	local above = QueueGoesAbove()
 	S.queueAbove = above
 	local textX, chipRoom = look:Apply(p, above)
+	-- The look lays the rows out itself (PaintQueue); each name's click area
+	-- hangs off the row's own text.
+	self:PlaceRows(p, look)
 	local twoLine = p.showSub and p.height >= ns.TwoLineHeight(p.fontSize, p.style)
 	local fontPath = LSM:Fetch("font", p.font) or STANDARD_TEXT_FONT
 	StyleText(p, p.style, fontPath, textX, chipRoom or EDGE_ROOM, twoLine, math.max(7, p.fontSize - 3))
@@ -686,6 +709,11 @@ function Prompt:Regions()
 		queueHair = R.queueHair,
 		rows = R.queueRows,
 		bars = R.queueBars,
+		-- The icon at each row's left (the three looks drawn here), and each
+		-- name's button: both for tests to read what was drawn and what can be
+		-- pressed.
+		rowIcons = R.queueIcons,
+		rowButtons = R.rowButtons,
 		-- The rest of what only the three looks here draw, and the look from
 		-- Looks/ in use (nil for those three), whose own regions are its `own`.
 		panel = R.panel,

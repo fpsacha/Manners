@@ -497,6 +497,9 @@ function Toast:Apply(p, above)
 	local showIcon = p.showIcon and true or false
 	self.active = true
 	self.p, self.W, self.H, self.sub, self.above = p, W, H, sub, above
+	-- How far apart the list's rows are, which is also how tall each name's
+	-- click area is (Prompt/Rows.lua).
+	self.pitch = sub + 6
 
 	-- The banner sits a few units inside the panel's height, so the medallion
 	-- that overhangs it is still inside the button: the whole look takes the
@@ -1279,7 +1282,7 @@ function Toast:PaintQueue(rows, shown, above)
 	if self.listShown == shown and self.listAt == above then return end
 	self.listShown, self.listAt = shown, above
 
-	local pitch = self.sub + 6
+	local pitch = self.pitch
 	local depth = 3 + 4 + shown * pitch + 5
 	local x0 = self.M > 0 and self.cx + 4 or 5.5
 	local x1 = self.W - 5.5
