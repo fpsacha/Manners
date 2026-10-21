@@ -380,6 +380,22 @@ widen = function(f, frameType, parent)
 	addButton(f)
 	addSlider(f)
 	addScroll(f)
+	-- The client refuses to anchor a protected frame (one made from a secure
+	-- template) to a region, a font string or a texture: "Action[SetPoint]
+	-- failed because[Cannot anchor protected frames to regions]". 1.8.0 hung
+	-- each name's secure button off its line of text, which the mock let pass;
+	-- in the game it threw inside ApplyStyle on every login.
+	local setPoint = f.SetPoint
+	f.SetPoint = function(self, point, rel, ...)
+		if type(rel) == "table" and type(self._template) == "string" and self._template:find("Secure", 1, true) then
+			local kind = rel._frameType or rel._kind
+			if kind == "FontString" or kind == "Texture" then
+				error(("Action[SetPoint] failed because[Cannot anchor protected frames to regions]: attempted from: %s:SetPoint.")
+					:format(tostring(self._name)), 2)
+			end
+		end
+		return setPoint(self, point, rel, ...)
+	end
 	local makeTexture, makeString = f.CreateTexture, f.CreateFontString
 	f.CreateTexture = function(self, ...) return widen(makeTexture(self, ...), "Texture", self) end
 	f.CreateFontString = function(self, ...) return widen(makeString(self, ...), "FontString", self) end

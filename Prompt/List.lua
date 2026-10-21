@@ -60,11 +60,13 @@ function Prompt:PaintQueue(rows)
 		end
 	end
 
-	-- The names as buttons, whichever look lays the list out (Rows.lua).
-	self:PaintRows(rows)
-
-	-- A look of its own lays the list out itself.
-	if S.activeLook then return S.activeLook:PaintQueue(rows, shown, S.queueAbove) end
+	-- A look of its own lays the list out itself; then the names as buttons,
+	-- laid on the lines where they now are (Rows.lua).
+	if S.activeLook then
+		S.activeLook:PaintQueue(rows, shown, S.queueAbove)
+		self:PaintRows(rows)
+		return
+	end
 
 	-- Sized to the filled rows, not the slider.
 	local back = shown > 0 and p.style ~= "minimal"
@@ -83,6 +85,8 @@ function Prompt:PaintQueue(rows)
 	end
 	R.queueBack:SetShown(back)
 	R.queueHair:SetShown(back)
+	-- The names as buttons, laid on the lines where they now are (Rows.lua).
+	self:PaintRows(rows)
 end
 
 lib.HideQueue = HideQueue

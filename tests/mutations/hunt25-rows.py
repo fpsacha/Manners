@@ -299,24 +299,34 @@ mutate("Core.lua",
 
 # ------------------------------------------------ the click areas
 mutate(R,
-       "\t\tbutton:SetPoint(\"RIGHT\", fs, \"RIGHT\", 4, 0)\n",
-       "",
+       "\tbutton:SetSize(w + placedReach + 4, placedPitch)\n",
+       "\tbutton:SetSize(0, placedPitch)\n",
        "hunt25-rows: a name's click area has no width",
        expect="hunt25-rows: every visible name has a click area",
        script=S)
 
 mutate(R,
-       "\t\tbutton:SetHeight(pitch)\n",
-       "\t\tbutton:SetHeight(1)\n",
+       "\tbutton:SetSize(w + placedReach + 4, placedPitch)\n",
+       "\tbutton:SetSize(w + placedReach + 4, 1)\n",
        "hunt25-rows: a name's click area is a hairline",
        expect="hunt25-rows: every visible name has a click area",
        script=S)
 
 mutate(R,
-       "\t\tbutton:SetPoint(\"LEFT\", fs, \"LEFT\", -reach, 0)\n",
-       "\t\tbutton:SetPoint(\"LEFT\", fs, \"LEFT\", reach, 0)\n",
+       "\tbutton:SetPoint(\"LEFT\", rel, at.relPoint, x - placedReach, y)\n",
+       "\tbutton:SetPoint(\"LEFT\", rel, at.relPoint, x + placedReach, y)\n",
        "hunt25-rows: a name's click area starts inside its text",
        expect="hunt25-rows: every visible name has a click area",
+       script=S)
+
+# The client refuses to anchor a protected frame to a region (tests/mockwidgets
+# refuses it too): a name's button hung off its own line of text threw in
+# ApplyStyle on every login, and the prompt was left without its fonts.
+mutate(R,
+       "\tbutton:SetPoint(\"LEFT\", rel, at.relPoint, x - placedReach, y)\n",
+       "\tbutton:SetPoint(\"LEFT\", fs, \"LEFT\", -placedReach, 0)\n",
+       "hunt25-rows: a name's button hung off its line of text",
+       expect="Cannot anchor protected frames to regions",
        script=S)
 
 mutate("Prompt/Panel.lua",

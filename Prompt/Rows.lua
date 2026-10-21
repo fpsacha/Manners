@@ -91,29 +91,78 @@ local function Slot(i)
 	return row
 end
 
+-- The client refuses to anchor a protected frame (each name's secure button)
+-- to a region: "Cannot anchor protected frames to regions". So a button cannot
+-- hang off its line of text; it takes the line's own anchor instead, on the
+-- frame the line hangs from (the prompt's art, in every look). Each line keeps
+-- the anchor it was last given, whoever gave it (ApplyStyle, PaintQueue, a
+-- look's own PaintQueue): its SetPoint is wrapped once, here, to note it.
+local function Noted(fs)
+	local at = {}
+	fs.mannersAt = at
+	local setPoint, clear = fs.SetPoint, fs.ClearAllPoints
+	fs.SetPoint = function(self, point, rel, relPoint, x, y, ...)
+		at.point, at.rel, at.relPoint, at.x, at.y = point, rel, relPoint, x, y
+		return setPoint(self, point, rel, relPoint, x, y, ...)
+	end
+	fs.ClearAllPoints = function(self, ...)
+		at.point = nil
+		return clear(self, ...)
+	end
+end
+
 -- Once, out of combat, from Create.
 function Prompt:CreateRows()
 	R.rowSlots, R.rowButtons = {}, {}
-	for i = 1, #R.queueRows do
+	for i, fs in ipairs(R.queueRows) do
+		Noted(fs)
 		local row = Slot(i)
 		R.rowSlots[i], R.rowButtons[i] = row, row.button
 	end
 end
 
--- Each name's click area, hung off its own text: from `reach` left of it (so
--- the marker and the icon are part of the name) to just past its end, as tall
--- as the rows are apart, so neighbours meet. Out of combat (ApplyStyle's rule).
+-- How a name's click area is laid on its line, from ApplyStyle and ApplyLook:
+-- from `reach` left of the text (so the marker and the icon are part of the
+-- name) to just past its end, as tall as the rows are apart, so neighbours
+-- meet. Laid by PaintRows, once the lines are where they are drawn.
+local placedReach, placedPitch, placedFont = ROW_REACH, 16, 12
+
 function Prompt:PlaceRows(p, look, reach)
-	if not R.rowButtons then return end
-	local pitch = look and look.pitch or (p.fontSize + 4)
-	reach = reach or (look and look.rowReach) or ROW_REACH
-	for i, fs in ipairs(R.queueRows) do
-		local button = R.rowButtons[i]
-		button:ClearAllPoints()
-		button:SetPoint("LEFT", fs, "LEFT", -reach, 0)
-		button:SetPoint("RIGHT", fs, "RIGHT", 4, 0)
-		button:SetHeight(pitch)
+	if not R.rowSlots then return end
+	placedPitch = look and look.pitch or (p.fontSize + 4)
+	placedReach = reach or (look and look.rowReach) or ROW_REACH
+	placedFont = p.fontSize
+	for _, row in ipairs(R.rowSlots) do row.laid = nil end
+end
+
+-- One name's button laid on its line, centred on it: false when the line has
+-- no anchor on the prompt's own frames (none ever has), and the button is then
+-- left hidden. Written only when the line has moved. Out of combat only.
+local function Lay(row, fs)
+	local at = fs.mannersAt
+	local point, rel, x, y = at and at.point, at and at.rel, at and at.x, at and at.y
+	if (rel ~= R.art and rel ~= R.button) or type(x) ~= "number" or type(y) ~= "number" then return false end
+	local h = fs:GetHeight()
+	if type(h) ~= "number" or h <= 0 then h = placedFont end
+	if point == "TOPLEFT" then
+		y = y - h / 2
+	elseif point == "BOTTOMLEFT" then
+		y = y + h / 2
+	elseif point ~= "LEFT" then
+		return false
 	end
+	local w = fs:GetWidth()
+	if type(w) ~= "number" or w <= 0 then w = fs:GetStringWidth() or 0 end
+	if row.laid and row.laidRel == rel and row.laidEdge == at.relPoint and row.laidX == x
+		and row.laidY == y and row.laidW == w then
+		return true
+	end
+	local button = row.button
+	button:ClearAllPoints()
+	button:SetPoint("LEFT", rel, at.relPoint, x - placedReach, y)
+	button:SetSize(w + placedReach + 4, placedPitch)
+	row.laid, row.laidRel, row.laidEdge, row.laidX, row.laidY, row.laidW = true, rel, at.relPoint, x, y, w
+	return true
 end
 
 -- Lets go of whatever a press left on the rows. Out of combat only: that is
@@ -154,7 +203,16 @@ function Prompt:PaintRows(rows)
 			local key = entry.buff.key
 			local changed = row.name ~= entry.name or row.buffKey ~= key
 			row.entry, row.name, row.buffKey = entry, entry.name, key
-			if not combat then
+			-- Laid on its line first: a name whose line cannot be found is left
+			-- hidden, so never pressed where it is not.
+			if not combat and not Lay(row, R.queueRows[i]) then
+				entry = nil
+				row.entry, row.name, row.buffKey = nil, nil, nil
+				if row.shown then
+					row.button:Hide()
+					row.shown = false
+				end
+			elseif not combat then
 				if not row.shown then
 					row.button:Show()
 					row.shown = true

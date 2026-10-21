@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+- **The prompt is back after 1.8.0.** Setting up the clickable names failed
+  at every login: with some looks the prompt never showed, so nothing was
+  offered (yourself included), and with the others an error was logged each
+  time. The names are placed in a way the game accepts now.
+- **Errors reach your error addon.** When something in Manners breaks, it is
+  now also handed to the game's error handler, once per kind, so BugGrabber,
+  BugSack and the like show it, besides `/manners errors`.
+
 ## 1.8.0
 
 - **Click a name in the list to buff them.** With *List the next few below*

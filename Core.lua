@@ -142,6 +142,13 @@ function ns.Guard(label, fn, ...)
 
 	if not ns.shouted[label] then
 		ns.shouted[label] = true
+		-- Handed on to the game's error handler as well, once per label, so an
+		-- error addon (or the game's own Lua error window, if the player turned
+		-- it on) sees what broke as it sees any addon's failure. Protected: the
+		-- handler is somebody else's code.
+		local getHandler = _G.geterrorhandler
+		local handler = type(getHandler) == "function" and getHandler()
+		if type(handler) == "function" then pcall(handler, "Manners: " .. label .. ": " .. err) end
 		if ns.addon and ns.addon.Print then
 			-- The label is the code's own name for the handler and the command
 			-- is typed as it stands, so neither is the translator's to change.
