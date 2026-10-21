@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.8.1
 
 - **The prompt is back after 1.8.0.** Setting up the clickable names failed
   at every login: with some looks the prompt never showed, so nothing was
