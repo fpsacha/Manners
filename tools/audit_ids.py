@@ -30,8 +30,13 @@ client's DB2 tables from wago.tools, for the build CLAUDE.md's "Data sources" ci
   SpellMisc/SpellDuration   a `toggle` family has no duration, a timed one has
   SpellAuraOptions   a shield's `charges`
   Talent             a `talent` buff is a talent (or not)
-  ItemSparse, ItemEffect, SpellItemEnchantment, SpellEquippedItems   Forever's scrolls: the
-                     item, the spell its use casts, the enchant, the weapon it fits
+  ItemSparse, ItemEffect, SpellItemEnchantment, SpellEquippedItems   Forever's scrolls, and every
+                     weapon enhancement item (poisons, stones, oils, lures) on the four clients that
+                     have them: the item and its required level and class, the spell its use casts,
+                     the enchant it makes, the weapons it fits (the subclass mask, or the inventory
+                     types an oil asks for), and a cast time the timed self-use settle covers; and,
+                     as NOTEs, items the client has that make a weapon enchant and the addon does
+                     not hold
   SpellEffect targets + SpellRadius   who a cast reaches against the flags that say so
                      (selfCast, partyOnly, groupOnly, alone, wideCasts, partyIsSubgroup,
                      SHOUT_YARDS)
@@ -75,7 +80,13 @@ BUILDS = {"camelot": "1.60.1.70178", "vanilla": "1.15.9.70003", "tbc": "2.5.6.69
 TABLES = ("SpellName", "Spell", "SpellMisc", "SpellEffect", "SpellLevels", "SkillLineAbility",
           "SpellReagents", "ItemSparse", "ChrRaces", "ChrClasses", "SpellAuraOptions",
           "SpellDuration", "Talent", "SpellEquippedItems", "SpellRadius")
-EXTRA = {"camelot": ("ItemEffect", "ItemXItemEffect", "SpellItemEnchantment", "TraitDefinition"),
+# SpellCastTimes: a weapon enhancement's use takes up to five seconds, which the settle must cover.
+# The Classic clients link an item to its use spell in ItemEffect itself (ParentItemID); Forever and
+# retail do it through ItemXItemEffect.
+EXTRA = {"camelot": ("ItemEffect", "ItemXItemEffect", "SpellItemEnchantment", "SpellCastTimes", "TraitDefinition"),
+         "vanilla": ("ItemEffect", "SpellItemEnchantment", "SpellCastTimes"),
+         "tbc": ("ItemEffect", "SpellItemEnchantment", "SpellCastTimes"),
+         "mists": ("ItemEffect", "SpellItemEnchantment", "SpellCastTimes"),
          "mainline": ("TraitDefinition",)}
 
 CLASS_BIT = {"WARRIOR": 1, "PALADIN": 2, "HUNTER": 4, "ROGUE": 8, "PRIEST": 16, "DEATHKNIGHT": 32,
@@ -99,6 +110,14 @@ def build_for(flavour):
     except Exception:
         pass
     return BUILDS[flavour]
+
+
+def build_number(flavour):
+    """The last part of the build audited for that client: 70178 of 1.60.1.70178."""
+    try:
+        return int(build_for(flavour).rsplit(".", 1)[-1])
+    except (ValueError, KeyError):
+        return 0
 
 
 def fetch(flavour, table, cache, offline=False, quiet=False):
@@ -285,7 +304,8 @@ class Client:
                 if num(r.get("DifficultyID")) != 0:
                     continue
                 out[num(r["SpellID"])] = {"duration": num(r["DurationIndex"]),
-                                          "a0": num(r["Attributes_0"]), "a3": num(r["Attributes_3"])}
+                                          "a0": num(r["Attributes_0"]), "a3": num(r["Attributes_3"]),
+                                          "cast": num(r.get("CastingTimeIndex"))}
             return out
         return self.memo("misc", build)
 
@@ -371,6 +391,75 @@ class Client:
             return {num(r["ID"]): float(r["Radius"] or 0) for r in rows(p)} if p else {}
         return self.memo("radius", build)
 
+    def item_rows(self, wanted):
+        """{item: {name, level, classes, ilvl}} for the ids asked about, from ItemSparse."""
+        def build():
+            p = self.path("ItemSparse")
+            out = {}
+            for r in (rows(p) if p else ()):
+                i = num(r["ID"])
+                if i in wanted:
+                    out[i] = {"name": r["Display_lang"], "level": num(r["RequiredLevel"]),
+                              "classes": num(r["AllowableClass"], -1), "ilvl": num(r["ItemLevel"])}
+            return out
+        return self.memo("item_rows:%s" % sorted(wanted), build)
+
+    @property
+    def item_effects(self):
+        """{item: [(spell, trigger type)]}: the Classic clients hold the item in ItemEffect itself
+        (ParentItemID), Forever and retail in ItemXItemEffect."""
+        def build():
+            p = self.path("ItemEffect")
+            out = {}
+            if not p:
+                return out
+            if self.flavour in ("camelot", "mainline"):
+                px = self.path("ItemXItemEffect")
+                effect = {num(r["ID"]): (num(r["SpellID"]), num(r["TriggerType"])) for r in rows(p)}
+                for r in (rows(px) if px else ()):
+                    e = effect.get(num(r["ItemEffectID"]))
+                    if e:
+                        out.setdefault(num(r["ItemID"]), []).append(e)
+            else:
+                for r in rows(p):
+                    out.setdefault(num(r["ParentItemID"]), []).append((num(r["SpellID"]), num(r["TriggerType"])))
+            return out
+        return self.memo("item_effects", build)
+
+    @property
+    def enchants(self):
+        """{enchant id: (name, duration in seconds or None)}, from SpellItemEnchantment (the
+        Classic builds carry no duration column)."""
+        def build():
+            p = self.path("SpellItemEnchantment")
+            out = {}
+            for r in (rows(p) if p else ()):
+                out[num(r["ID"])] = (r["Name_lang"], num(r["Duration"]) if "Duration" in r else None)
+            return out
+        return self.memo("enchants", build)
+
+    @property
+    def equipped(self):
+        """{spell: [(item class, inventory type mask, subclass mask)]}: what the spell may be
+        cast on, from SpellEquippedItems."""
+        def build():
+            p = self.path("SpellEquippedItems")
+            out = {}
+            for r in (rows(p) if p else ()):
+                out.setdefault(num(r["SpellID"]), []).append(
+                    (num(r["EquippedItemClass"]), num(r["EquippedItemInvTypes"]), num(r["EquippedItemSubclass"])))
+            return out
+        return self.memo("equipped", build)
+
+    @property
+    def cast_ms(self):
+        """{spell: cast time in ms}, from SpellMisc's index into SpellCastTimes."""
+        def build():
+            p = self.path("SpellCastTimes")
+            times = {num(r["ID"]): num(r["Base"]) for r in rows(p)} if p else {}
+            return {spell: times.get(m["cast"], 0) for spell, m in self.misc.items()} if times else {}
+        return self.memo("cast_ms", build)
+
     def level_of(self, spell):
         lv = self.levels.get(spell)
         if not lv:
@@ -430,6 +519,12 @@ OWN_NAMES = {
     "trueshot": r"Trueshot Aura",
     "lightningshield": r"Lightning Shield", "watershield": r"Water Shield", "earthshield": r"Earth Shield",
     "omen": r"Omen of Clarity",
+    # A rogue's poisons as spells (Mists, retail): each puts an aura of its own id on you for an hour.
+    "deadlypoison": r"Deadly Poison", "instantpoison": r"Instant Poison", "woundpoison": r"Wound Poison",
+    "amplifyingpoison": r"Amplifying Poison", "cripplingpoison": r"Crippling Poison",
+    "mindnumbingpoison": r"Mind-numbing Poison", "numbingpoison": r"Numbing Poison",
+    "atrophicpoison": r"Atrophic Poison", "leechingpoison": r"Leeching Poison",
+    "paralyticpoison": r"Paralytic Poison",
     "findherbs": r"Find Herbs", "findminerals": r"Find Minerals", "findtreasure": r"Find Treasure",
     "findfish": r"Find Fish",
     "trackbeasts": r"Track Beasts", "trackhumanoids": r"Track Humanoids", "trackundead": r"Track Undead",
@@ -779,7 +874,7 @@ def check_favours(rep, c, d):
 def check_scrolls(rep, c, d):
     if d.get("flavour") != "camelot":
         return
-    families = [f for fams in as_map(d["own"]).values() for f in fams if f.get("scroll")]
+    families = [f for fams in as_map(d["own"]).values() for f in fams if f.get("scroll") and not f.get("enhance")]
     items = {s["item"] for f in families for s in f["spells"]}
     names = c.item_names(items)
     p_ie, p_xie, p_se = (c.path("ItemEffect"), c.path("ItemXItemEffect"), c.path("SpellItemEnchantment"))
@@ -833,6 +928,140 @@ def check_scrolls(rep, c, d):
             lvl = s.get("level")
             if lvl is not None:
                 pass
+
+
+# What each kind of weapon enhancement is called, by its item; a lure is known by its enchant
+# ("Fishing Lure +25"), the item being a bauble, a worm or a hook.
+ENHANCE_ITEM_NAMES = {
+    "poison": r".*(Poison|Toxin).*",
+    "stone": r".*(Sharpening Stone|Weightstone).*",
+    "oil": r".*(Oil|Weapon Coating).*",
+}
+# SpellEquippedItems.EquippedItemSubclass for every melee weapon (axes, maces, polearms, swords,
+# staves, fist weapons, daggers, spears): what an oil, whose own data names inventory types
+# (weapon, two-hand, main hand, off hand) instead, is held to in Buffs.lua.
+MELEE_WEAPONS = 173555
+# The effects that put a temporary enchant on an item (53 enchant, 54 temporary, 92 held item), and
+# 360, the kind Forever gives its classic poisons and the mage's scrolls.
+ENCHANT_EFFECTS = (53, 54, 92, 360)
+# The longest use the timed self-use settle covers (Clicks.lua, SCROLL_SECONDS is eight).
+LONGEST_USE_MS = 5000
+
+
+def check_weapon_items(rep, c, d, flavour):
+    """Every weapon enhancement item (Buffs.lua, families with `enhance`) against the client's
+    item data: the item exists, asks the level and class the addon says, uses the spell the
+    addon names, which makes the enchant it names, on the weapons it fits, in a time the settle
+    covers. Then the other way round: items the client has that put a weapon enchant on and the
+    addon does not hold, as NOTEs."""
+    fams = {}
+    for cls, lst in as_map(d["own"]).items():
+        for f in lst:
+            if f.get("enhance"):
+                fams.setdefault(f["key"], (f, set()))[1].add(cls)
+    if not fams:
+        return
+    items = {s["item"] for f, _ in fams.values() for s in f["spells"]}
+    info = c.item_rows(items)
+    effects, ench, equipped, cast = c.item_effects, c.enchants, c.equipped, c.cast_ms
+    for key, (f, classes) in sorted(fams.items()):
+        kind = f.get("kind")
+        bits = 0
+        for cls in classes:
+            bits |= CLASS_BIT.get(cls, 0)
+        for s in f["spells"]:
+            item, use = s["item"], s["ranks"][0]
+            where = "weapon.%s.%d" % (key, item)
+            row = info.get(item)
+            if row is None:
+                # An item of a newer build than the one audited (`since`, Buffs.lua): said, and
+                # held to the data when the audit is pointed at that build (--build).
+                if s.get("since") and build_number(flavour) < s["since"]:
+                    rep.note(where, "item %d is from build %d, newer than the %d audited (--build to check it)" % (
+                        item, s["since"], build_number(flavour)))
+                else:
+                    rep.finding(where, "item %d is not in ItemSparse" % item)
+                continue
+            name = row["name"]
+            pattern = ENHANCE_ITEM_NAMES.get(kind)
+            if pattern and not re.fullmatch(pattern, name, re.I):
+                rep.finding(where, "item %d is %r, not a %s" % (item, name, kind))
+            if row["level"] != s["level"]:
+                rep.finding(where, "item %d (%s) asks level %d (ItemSparse); the addon says %d" % (
+                    item, name, row["level"], s["level"]))
+            allowed = row["classes"]
+            if allowed not in (-1, 0) and bits & ~allowed:
+                rep.finding(where, "item %d (%s) is for class mask %d only, but %s is offered to %s" % (
+                    item, name, allowed, key, sorted(classes)))
+            uses = effects.get(item, [])
+            if use not in [spell for spell, _ in uses]:
+                rep.finding(where, "item %d (%s) uses spell(s) %s in ItemEffect; the addon casts %d (%s)" % (
+                    item, name, [spell for spell, _ in uses], use, c.names.get(use)))
+            elif [trigger for spell, trigger in uses if spell == use][0] != 0:
+                rep.finding(where, "item %d (%s): spell %d is not its on-use effect (trigger type %d)" % (
+                    item, name, use, [trigger for spell, trigger in uses if spell == use][0]))
+            made = [e for e in c.effects.get(use, []) if e["effect"] in ENCHANT_EFFECTS]
+            if not made:
+                rep.finding(where, "spell %d (%s) puts no enchant on an item (SpellEffect)" % (use, c.names.get(use)))
+            elif all(e["misc0"] != s["enchant"] for e in made):
+                rep.finding(where, "spell %d makes enchant %s (SpellEffect); the addon says %d" % (
+                    use, [e["misc0"] for e in made], s["enchant"]))
+            if s["enchant"] not in ench:
+                rep.finding(where, "enchant %d is not in SpellItemEnchantment" % s["enchant"])
+            elif kind == "lure" and not ench[s["enchant"]][0].startswith("Fishing Lure"):
+                rep.finding(where, "enchant %d is %r, not a fishing lure" % (s["enchant"], ench[s["enchant"]][0]))
+            weapons = [e for e in equipped.get(use, []) if e[0] == 2]
+            if not weapons:
+                rep.finding(where, "spell %d is not restricted to weapons in SpellEquippedItems" % use)
+            else:
+                subs = invs = 0
+                for _, inv, sub in weapons:
+                    subs |= sub
+                    invs |= inv
+                if subs:
+                    if subs != s["fits"]:
+                        rep.finding(where, "spell %d wants weapon subclass mask %d (SpellEquippedItems); the addon says %d" % (
+                            use, subs, s["fits"]))
+                else:
+                    # An oil names inventory types, not kinds of weapon: every one-hand,
+                    # two-hand, main-hand and off-hand weapon, a fishing pole included, which
+                    # the lure has to itself here.
+                    if s["fits"] != MELEE_WEAPONS:
+                        rep.finding(where, "spell %d is for inventory types %d, which Buffs.lua holds as every melee weapon "
+                                    "(%d); the addon says %d" % (use, invs, MELEE_WEAPONS, s["fits"]))
+                    if invs & (1 << 14):
+                        rep.note(where, "item %d (%s) also fits a shield (inventory types %d); the addon offers it for weapons only" % (
+                            item, name, invs))
+            ms = cast.get(use)
+            if ms is not None and ms > LONGEST_USE_MS:
+                rep.finding(where, "spell %d casts for %d ms; the timed self-use settle covers %d" % (use, ms, LONGEST_USE_MS))
+    # The other way round: what the client has that the addon leaves out. Temporary enchants
+    # only (not an enchanter's permanent ones, effect 53), on melee weapons or a pole (not a
+    # scope for a bow), and not a scroll's, which the mage's own families hold.
+    held = set(items)
+    for fams in as_map(d["own"]).values():
+        for f in fams:
+            if f.get("scroll"):
+                held |= {s["item"] for s in f["spells"]}
+    gap = {}
+    for item, uses in effects.items():
+        if item in held:
+            continue
+        for spell, trigger in uses:
+            if trigger != 0:
+                continue
+            made = [e for e in c.effects.get(spell, []) if e["effect"] in (54, 360)]
+            on_weapons = [e for e in equipped.get(spell, []) if e[0] == 2 and (e[2] & (MELEE_WEAPONS | 1048576) or e[1])]
+            if made and on_weapons:
+                gap[item] = (spell, made[0]["misc0"])
+    if gap:
+        rows_ = c.item_rows(set(gap))
+        for item, (spell, enchant) in sorted(gap.items()):
+            row = rows_.get(item)
+            if row:
+                rep.note("weapon.gaps", "item %d %r (level %d, class mask %d, spell %d %r, enchant %d %r) puts an enchant on a weapon "
+                         "and the addon does not hold it" % (item, row["name"], row["level"], row["classes"], spell,
+                                                             c.names.get(spell), enchant, ench.get(enchant, ("?",))[0]))
 
 
 # Spells whose aura is not what the addon should match, with the reason (the audit's NOTE
@@ -995,6 +1224,7 @@ def audit_dump(rep, c, d, flavour):
     check_own(rep, c, d, flavour)
     check_favours(rep, c, d)
     check_scrolls(rep, c, d)
+    check_weapon_items(rep, c, d, flavour)
     check_races_classes(rep, c, d)
     check_reach(rep, c, d, flavour)
     check_mana(rep, c, d, flavour)
@@ -1027,13 +1257,13 @@ def audit(flavour, cache, offline, notes):
 
 
 def selftest(cache, offline):
-    """The audit goes red when a datum is wrong: Classic Era's dump is changed in seven ways, one
+    """The audit goes red when a datum is wrong: Classic Era's dump is changed in nine ways, one
     after another, and each must produce the FINDING it exists for."""
     import copy
     fl = "vanilla"
     base = addon_dump(fl)
     c = Client(fl, cache, offline)
-    for t in TABLES:
+    for t in TABLES + EXTRA.get(fl, ()):
         c.path(t)
     if c.missing:
         print("audit_ids --selftest: tables missing: %s" % ", ".join(c.missing))
@@ -1066,6 +1296,18 @@ def selftest(cache, offline):
     def mana_warrior(d):
         d["manaClasses"].append("WARRIOR")
 
+    def first_enhancement(d):
+        for fams in d["own"].values():
+            for fam in fams:
+                if fam.get("enhance"):
+                    return fam["spells"][0]
+
+    def wrong_enchant(d):
+        first_enhancement(d)["enchant"] = 1
+
+    def wrong_fit(d):
+        first_enhancement(d)["fits"] = 1
+
     cases = [
         ("a rank learned at another level than RANK_LEVEL says", change_level, "ns.RANK_LEVEL says 99"),
         ("a rank the client has that the addon dropped", drop_rank, "does not hold"),
@@ -1074,6 +1316,8 @@ def selftest(cache, offline):
         ("a talent not flagged as one", kings_not_talent, "not flagged talent"),
         ("a shout range that is not the spell's", shout_range, "SHOUT_YARDS"),
         ("a class with no mana bar among the mana classes", mana_warrior, "MANA_CLASSES"),
+        ("a weapon item that makes another enchant than the addon says", wrong_enchant, "the addon says 1"),
+        ("a weapon item that fits other weapons than the addon says", wrong_fit, "weapon subclass mask"),
     ]
     clean = Report(fl)
     FINDINGS.clear()
@@ -1104,7 +1348,7 @@ def main(argv=None):
     ap.add_argument("--notes", action="store_true", help="also print NOTE lines")
     ap.add_argument("--dump", choices=FLAVOURS, help="print the addon's side as JSON and stop")
     ap.add_argument("--selftest", action="store_true",
-                    help="change Classic Era's dump in seven ways and check each one is caught")
+                    help="change Classic Era's dump in nine ways and check each one is caught")
     ap.add_argument("--build", action="append", default=[], metavar="CLIENT=BUILD",
                     help="audit against another build of that client (e.g. camelot=1.60.1.70338), "
                          "for data that moved since the build CLAUDE.md cites")
