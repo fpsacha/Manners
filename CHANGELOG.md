@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.8.0
 
 - **Click a name in the list to buff them.** With *List the next few below*
   on (*Look* tab), each name under the prompt is now a button: a left click
