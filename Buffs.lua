@@ -216,6 +216,417 @@ local VANILLA = {
 }
 
 ---------------------------------------------------------------------------
+-- weapon enhancements: poisons, stones, oils and lures
+---------------------------------------------------------------------------
+
+-- What goes on a weapon from the bags and wears off: a rogue's poisons, a
+-- sharpening stone or a weightstone, a wizard or mana oil, a fishing lure on a
+-- pole. On the clients that have them as items (Classic Era, Burning Crusade,
+-- Mists and Forever) each is one of your own buffs of a kind apart from the
+-- spells: an item, as a mage's scroll is, used with /use item:<id> and aimed at
+-- the hand with /use 16 or /use 17 in the same press (Prompt/Macro.lua), and
+-- "up" when that hand carries a temporary enchant, whichever made it
+-- (Core.lua, ReadImbue). A weapon is taken to hold one at a time, so once one is
+-- on, no other kind is asked for over it, until the client has listed two on
+-- one hand together. Mists and retail give a rogue's poisons as spells instead
+-- (MISTS_OWN and MAINLINE_SET, below).
+--
+-- A family is one kind of enhancement for one hand: Poison for the main hand
+-- and again for the off hand, each with a pick of its own, since a rogue keeps
+-- one poison on each. Beside the fields of the scroll families (below), with
+-- `scroll` set because its spells are items:
+--
+--   enhance   a weapon enhancement: read per hand, never from an aura
+--   kind      poison, stone, oil or lure
+--   slot      the hand it is for, as an inventory slot: 16 main, 17 off
+--   only      the one class it is offered to (a rogue's poisons); every
+--             class carrying one of its items otherwise
+--
+-- and per spell, one for each item, best first (the order Automatic tries
+-- them in before you have used one; a stone made for any weapon first, then
+-- by rank):
+--
+--   item      the item id
+--   level     the level it asks to be used at (ItemSparse RequiredLevel)
+--   enchant   the enchant it makes (SpellItemEnchantment), which says which
+--             of them is on the weapon, and so what a top-up would be
+--   ranks     { the spell its use casts }, which settles the press
+--   fits      the weapons it fits, as the use spell's SpellEquippedItems
+--             subclass mask: one bit per kind of weapon (Core.lua, Fits)
+--   since     the first build of the client that has the item, where it is
+--             newer than the build the other data was read from
+--
+-- A wizard or mana oil's own data names inventory types (weapon, two-hand,
+-- main hand, off hand) where the rest name kinds of weapon, which would take
+-- a fishing pole as well; a pole has lures of its own, so an oil is held to
+-- every melee weapon (MELEE). Left out: a shaman's imbues, a warlock's
+-- firestones and spellstones, the items made for one use (Scourgebane,
+-- Bloodboil Poison, Season of Discovery's cleaning cloth and repellent), the
+-- coatings that go on a shield (Season of Discovery), the fishing hats, items
+-- for the ranged slot, and the placeholders and tests the data still carries
+-- (tools/audit_ids.py names every one of them with --notes). A wrong id costs
+-- the reminder for that item and never a nag, as everywhere in this file: an
+-- item is offered only when the bags hold one.
+--
+-- The ids are each client's own (ItemSparse, ItemEffect, SpellEffect,
+-- SpellEquippedItems and SpellItemEnchantment from wago.tools: Classic Era
+-- 1.15.9.70003, Burning Crusade 2.5.6.69795, Mists 5.5.4.70032, Forever
+-- 1.60.1.70178), and tools/audit_ids.py holds every one to them. Forever
+-- 1.60.1.70450 added three (287978-287980, a lower-level Rough Sharpening
+-- Stone, Lesser Wizard Oil and Elemental Sharpening Stone that make the
+-- enchants the older items do), marked `since`.
+local ENHANCEMENTS, AddEnhancements = {}, nil
+do
+	-- SpellEquippedItems' subclass masks: one bit per weapon subclass (0 axe,
+	-- 1 two-hand axe, 4 mace, 5 two-hand mace, 6 polearm, 7 sword, 8 two-hand
+	-- sword, 10 staff, 13 fist weapon, 15 dagger, 17 spear, 20 fishing pole).
+	local BLADED = 33219  -- axes, polearms, swords, daggers: a sharpening stone's
+	local BLUNT = 9264    -- maces, staves, fist weapons: a weightstone's
+	local EITHER = 42483  -- both of those: the elemental stone's
+	local MELEE = 173555  -- every melee weapon: a poison's, and what an oil is held to
+	local POLE = 1048576  -- a fishing pole: a lure's
+	-- The Consecrated stone's own: every melee weapon but a spear, the druid's
+	-- claws and a fishing pole besides (bits 11, 12 and 20).
+	local CONSECRATED = 1097203
+	-- Mists' elemental stone, which no mace or staff takes there.
+	local ELEMENTAL_MISTS = 41411
+
+	-- The kinds, in the order a class is reminded of them. A lure is for a pole,
+	-- which is a main-hand weapon alone.
+	local KINDS = {
+		{ kind = "poison", label = L["Poison"], only = "ROGUE" },
+		{ kind = "stone", label = L["Sharpening stone or weightstone"] },
+		{ kind = "oil", label = L["Oil"] },
+		{ kind = "lure", label = L["Fishing lure"], mainHand = true },
+	}
+	local HANDS = { { slot = 16, name = "main", suffix = "m" }, { slot = 17, name = "off", suffix = "o" } }
+
+	-- One client's families from its rows: { kind = { { item, level, enchant,
+	-- use spell, fits [, since] }, ... } }, best first.
+	local function Families(rows)
+		local out = {}
+		for _, kind in ipairs(KINDS) do
+			for _, hand in ipairs(HANDS) do
+				local list = rows[kind.kind]
+				if list and not (kind.mainHand and hand.slot ~= 16) then
+					local spells = {}
+					for i, row in ipairs(list) do
+						-- The key is unique across every client's tables (the pick
+						-- and the memory of the one last used are filed by it).
+						spells[i] = { key = "w" .. row[1] .. hand.suffix, item = row[1], level = row[2],
+							enchant = row[3], ranks = { row[4] }, fits = row[5], since = row[6] }
+					end
+					out[#out + 1] = {
+						key = kind.kind .. (kind.mainHand and "" or hand.name),
+						label = kind.label, kind = kind.kind, slot = hand.slot, only = kind.only,
+						scroll = true, enhance = true, spells = spells,
+					}
+				end
+			end
+		end
+		return out
+	end
+
+	-- The families for this class, ahead of tracking, which every list ends on.
+	AddEnhancements = function(list, class, families)
+		local at = #list + 1
+		for i, family in ipairs(list) do
+			if family.tracking then at = i break end
+		end
+		for _, family in ipairs(families) do
+			if not family.only or family.only == class then
+				table.insert(list, at, family)
+				at = at + 1
+			end
+		end
+	end
+
+	-- Classic Era 1.15.9.70003: the vanilla items, and Season of Discovery's
+	-- (the Blackfathom stone and mana oil, the poisons at 54 and 60), whose ids
+	-- the client carries for every realm. A poison is a rogue's alone.
+	local VANILLA_ROWS = {
+		poison = {
+			{ 8928, 60, 625, 11340, MELEE }, -- Instant Poison VI
+			{ 8927, 52, 624, 11339, MELEE }, -- Instant Poison V
+			{ 8926, 44, 623, 11338, MELEE }, -- Instant Poison IV
+			{ 6950, 36, 325, 8688, MELEE }, -- Instant Poison III
+			{ 6949, 28, 324, 8686, MELEE }, -- Instant Poison II
+			{ 6947, 20, 323, 8679, MELEE }, -- Instant Poison
+			{ 20844, 60, 2630, 25351, MELEE }, -- Deadly Poison V
+			{ 8985, 54, 627, 11356, MELEE }, -- Deadly Poison IV
+			{ 8984, 46, 626, 11355, MELEE }, -- Deadly Poison III
+			{ 2893, 38, 8, 2824, MELEE }, -- Deadly Poison II
+			{ 2892, 30, 7, 2823, MELEE }, -- Deadly Poison
+			{ 10922, 56, 706, 13227, MELEE }, -- Wound Poison IV
+			{ 10921, 48, 705, 13226, MELEE }, -- Wound Poison III
+			{ 10920, 40, 704, 13225, MELEE }, -- Wound Poison II
+			{ 10918, 32, 703, 13219, MELEE }, -- Wound Poison
+			{ 3776, 50, 603, 11202, MELEE }, -- Crippling Poison II
+			{ 3775, 20, 22, 3408, MELEE }, -- Crippling Poison
+			{ 9186, 52, 643, 11399, MELEE }, -- Mind-numbing Poison III
+			{ 6951, 38, 23, 8693, MELEE }, -- Mind-numbing Poison II
+			{ 5237, 24, 35, 5761, MELEE }, -- Mind-numbing Poison
+			{ 5654, 24, 42, 6650, MELEE }, -- Instant Toxin
+			{ 234444, 60, 7651, 1214171, MELEE }, -- Occult Poison II
+			{ 226374, 54, 7542, 458821, MELEE }, -- Occult Poison I
+			{ 217347, 60, 7256, 439465, MELEE }, -- Atrophic Poison
+			{ 217346, 60, 7255, 439464, MELEE }, -- Numbing Poison
+			{ 217345, 60, 7254, 439462, MELEE }, -- Sebacious Poison
+		},
+		stone = {
+			{ 18262, 50, 2506, 22756, EITHER }, -- Elemental Sharpening Stone
+			{ 12404, 35, 1643, 16138, BLADED }, -- Dense Sharpening Stone
+			{ 12643, 35, 1703, 16622, BLUNT }, -- Dense Weightstone
+			{ 7964, 25, 483, 9900, BLADED }, -- Solid Sharpening Stone
+			{ 7965, 25, 484, 9903, BLUNT }, -- Solid Weightstone
+			{ 2871, 15, 14, 2830, BLADED }, -- Heavy Sharpening Stone
+			{ 3241, 15, 21, 3114, BLUNT }, -- Heavy Weightstone
+			{ 2863, 5, 13, 2829, BLADED }, -- Coarse Sharpening Stone
+			{ 3240, 5, 20, 3113, BLUNT }, -- Coarse Weightstone
+			{ 2862, 1, 40, 2828, BLADED }, -- Rough Sharpening Stone
+			{ 3239, 1, 19, 3112, BLUNT }, -- Rough Weightstone
+			{ 23122, 50, 2684, 28891, CONSECRATED }, -- Consecrated Sharpening Stone
+			{ 211845, 0, 7098, 430392, EITHER }, -- Blackfathom Sharpening Stone
+		},
+		oil = {
+			{ 20749, 45, 2628, 25122, MELEE }, -- Brilliant Wizard Oil
+			{ 20748, 45, 2629, 25123, MELEE }, -- Brilliant Mana Oil
+			{ 20750, 40, 2627, 25121, MELEE }, -- Wizard Oil
+			{ 20747, 40, 2625, 25120, MELEE }, -- Lesser Mana Oil
+			{ 20746, 30, 2626, 25119, MELEE }, -- Lesser Wizard Oil
+			{ 20745, 20, 2624, 25118, MELEE }, -- Minor Mana Oil
+			{ 211848, 25, 7099, 430585, EITHER }, -- Blackfathom Mana Oil
+			{ 20744, 5, 2623, 25117, MELEE }, -- Minor Wizard Oil
+			{ 23123, 50, 2685, 28898, MELEE }, -- Blessed Wizard Oil
+			{ 3829, 30, 26, 3595, MELEE }, -- Frost Oil
+			{ 3824, 24, 25, 3594, MELEE }, -- Shadow Oil
+		},
+		lure = {
+			{ 6532, 0, 265, 8090, POLE }, -- Bright Baubles
+			{ 6533, 0, 266, 8089, POLE }, -- Aquadynamic Fish Attractor
+			{ 7307, 0, 265, 9092, POLE }, -- Flesh Eating Worm
+			{ 6530, 0, 264, 8088, POLE }, -- Nightcrawlers
+			{ 6811, 0, 264, 8532, POLE }, -- Aquadynamic Fish Lens
+			{ 6529, 0, 263, 8087, POLE }, -- Shiny Bauble
+		},
+	}
+
+	-- Burning Crusade 2.5.6.69795: the vanilla items with the ranks and the
+	-- stones, oils and poisons it added (Adamantite and Fel, Superior, Anesthetic,
+	-- the seventh Instant and Deadly Poison, the Blessed and Righteous Weapon
+	-- Coatings at 70). No Season of Discovery items.
+	local TBC_ROWS = {
+		poison = {
+			{ 21927, 68, 2641, 26891, MELEE }, -- Instant Poison VII
+			{ 8928, 60, 625, 11340, MELEE }, -- Instant Poison VI
+			{ 8927, 52, 624, 11339, MELEE }, -- Instant Poison V
+			{ 8926, 44, 623, 11338, MELEE }, -- Instant Poison IV
+			{ 6950, 36, 325, 8688, MELEE }, -- Instant Poison III
+			{ 6949, 28, 324, 8686, MELEE }, -- Instant Poison II
+			{ 6947, 20, 323, 8679, MELEE }, -- Instant Poison
+			{ 22054, 70, 2643, 27186, MELEE }, -- Deadly Poison VII
+			{ 22053, 62, 2642, 26967, MELEE }, -- Deadly Poison VI
+			{ 20844, 60, 2630, 25351, MELEE }, -- Deadly Poison V
+			{ 8985, 54, 627, 11356, MELEE }, -- Deadly Poison IV
+			{ 8984, 46, 626, 11355, MELEE }, -- Deadly Poison III
+			{ 2893, 38, 8, 2824, MELEE }, -- Deadly Poison II
+			{ 2892, 30, 7, 2823, MELEE }, -- Deadly Poison
+			{ 22055, 64, 2644, 27188, MELEE }, -- Wound Poison V
+			{ 10922, 56, 706, 13227, MELEE }, -- Wound Poison IV
+			{ 10921, 48, 705, 13226, MELEE }, -- Wound Poison III
+			{ 10920, 40, 704, 13225, MELEE }, -- Wound Poison II
+			{ 10918, 32, 703, 13219, MELEE }, -- Wound Poison
+			{ 3776, 50, 603, 11202, MELEE }, -- Crippling Poison II
+			{ 3775, 20, 22, 3408, MELEE }, -- Crippling Poison
+			{ 9186, 52, 643, 11399, MELEE }, -- Mind-numbing Poison III
+			{ 6951, 38, 23, 8693, MELEE }, -- Mind-numbing Poison II
+			{ 5237, 24, 35, 5761, MELEE }, -- Mind-numbing Poison
+			{ 21835, 68, 2640, 26785, MELEE }, -- Anesthetic Poison
+			{ 5654, 24, 42, 6650, MELEE }, -- Instant Toxin
+		},
+		stone = {
+			{ 23529, 60, 2713, 29453, BLADED }, -- Adamantite Sharpening Stone
+			{ 28421, 60, 2955, 34340, BLUNT }, -- Adamantite Weightstone
+			{ 18262, 50, 2506, 22756, EITHER }, -- Elemental Sharpening Stone
+			{ 23528, 50, 2712, 29452, BLADED }, -- Fel Sharpening Stone
+			{ 28420, 50, 2954, 34339, BLUNT }, -- Fel Weightstone
+			{ 12404, 35, 1643, 16138, BLADED }, -- Dense Sharpening Stone
+			{ 12643, 35, 1703, 16622, BLUNT }, -- Dense Weightstone
+			{ 7964, 25, 483, 9900, BLADED }, -- Solid Sharpening Stone
+			{ 7965, 25, 484, 9903, BLUNT }, -- Solid Weightstone
+			{ 2871, 15, 14, 2830, BLADED }, -- Heavy Sharpening Stone
+			{ 3241, 15, 21, 3114, BLUNT }, -- Heavy Weightstone
+			{ 2863, 5, 13, 2829, BLADED }, -- Coarse Sharpening Stone
+			{ 3240, 5, 20, 3113, BLUNT }, -- Coarse Weightstone
+			{ 2862, 1, 40, 2828, BLADED }, -- Rough Sharpening Stone
+			{ 3239, 1, 19, 3112, BLUNT }, -- Rough Weightstone
+			{ 23122, 50, 2684, 28891, CONSECRATED }, -- Consecrated Sharpening Stone
+		},
+		oil = {
+			{ 22522, 58, 2678, 28017, MELEE }, -- Superior Wizard Oil
+			{ 22521, 52, 2677, 28013, MELEE }, -- Superior Mana Oil
+			{ 20749, 45, 2628, 25122, MELEE }, -- Brilliant Wizard Oil
+			{ 20748, 45, 2629, 25123, MELEE }, -- Brilliant Mana Oil
+			{ 20750, 40, 2627, 25121, MELEE }, -- Wizard Oil
+			{ 20747, 40, 2625, 25120, MELEE }, -- Lesser Mana Oil
+			{ 20746, 30, 2626, 25119, MELEE }, -- Lesser Wizard Oil
+			{ 20745, 20, 2624, 25118, MELEE }, -- Minor Mana Oil
+			{ 20744, 5, 2623, 25117, MELEE }, -- Minor Wizard Oil
+			{ 34538, 70, 3265, 45395, MELEE }, -- Blessed Weapon Coating
+			{ 34539, 70, 3266, 45397, MELEE }, -- Righteous Weapon Coating
+			{ 23123, 50, 2685, 28898, MELEE }, -- Blessed Wizard Oil
+			{ 3829, 30, 26, 3595, MELEE }, -- Frost Oil
+			{ 3824, 24, 25, 3594, MELEE }, -- Shadow Oil
+		},
+		lure = {
+			{ 6532, 0, 265, 8090, POLE }, -- Bright Baubles
+			{ 6533, 0, 266, 8089, POLE }, -- Aquadynamic Fish Attractor
+			{ 7307, 0, 265, 9092, POLE }, -- Flesh Eating Worm
+			{ 34861, 0, 266, 45731, POLE }, -- Sharpened Fish Hook
+			{ 6530, 0, 264, 8088, POLE }, -- Nightcrawlers
+			{ 6811, 0, 264, 8532, POLE }, -- Aquadynamic Fish Lens
+			{ 6529, 0, 263, 8087, POLE }, -- Shiny Bauble
+		},
+	}
+
+	-- WoW Forever 1.60.1.70178: Classic Era's items and its own, among them the
+	-- three marked `since` that 1.60.1.70450 added. Its classic poisons use the
+	-- spell effect the scrolls do (SpellEffect 360) where the rest use 54, so the
+	-- client may list them as an Imbue and the rest as a Temporary enchant:
+	-- either counts as a hand being seen to (Core.lua, ReadImbue).
+	local CAMELOT_ROWS = {
+		poison = {
+			{ 8928, 60, 625, 11340, MELEE }, -- Instant Poison VI
+			{ 8927, 52, 624, 11339, MELEE }, -- Instant Poison V
+			{ 8926, 44, 623, 11338, MELEE }, -- Instant Poison IV
+			{ 6950, 36, 325, 8688, MELEE }, -- Instant Poison III
+			{ 6949, 28, 324, 8686, MELEE }, -- Instant Poison II
+			{ 6947, 20, 323, 8679, MELEE }, -- Instant Poison
+			{ 20844, 60, 2630, 25351, MELEE }, -- Deadly Poison V
+			{ 8985, 54, 627, 11356, MELEE }, -- Deadly Poison IV
+			{ 8984, 46, 626, 11355, MELEE }, -- Deadly Poison III
+			{ 2893, 38, 8, 2824, MELEE }, -- Deadly Poison II
+			{ 2892, 30, 7, 2823, MELEE }, -- Deadly Poison
+			{ 10922, 56, 706, 13227, MELEE }, -- Wound Poison IV
+			{ 10921, 48, 705, 13226, MELEE }, -- Wound Poison III
+			{ 10920, 40, 704, 13225, MELEE }, -- Wound Poison II
+			{ 10918, 32, 703, 13219, MELEE }, -- Wound Poison
+			{ 3776, 50, 603, 11202, MELEE }, -- Crippling Poison II
+			{ 3775, 20, 22, 3408, MELEE }, -- Crippling Poison
+			{ 9186, 52, 643, 11399, MELEE }, -- Mind-numbing Poison III
+			{ 6951, 38, 23, 8693, MELEE }, -- Mind-numbing Poison II
+			{ 5237, 24, 35, 5761, MELEE }, -- Mind-numbing Poison
+			{ 5654, 24, 42, 6650, MELEE }, -- Instant Toxin
+			{ 234444, 60, 7651, 1214171, MELEE }, -- Occult Poison II
+			{ 226374, 54, 7542, 458821, MELEE }, -- Occult Poison I
+			{ 217347, 60, 7256, 439465, MELEE }, -- Atrophic Poison
+			{ 217346, 60, 7255, 439464, MELEE }, -- Numbing Poison
+			{ 217345, 60, 7254, 439462, MELEE }, -- Sebacious Poison
+		},
+		stone = {
+			{ 18262, 50, 2506, 22756, EITHER }, -- Elemental Sharpening Stone
+			{ 287980, 1, 2506, 22756, EITHER, 70450 }, -- Elemental Sharpening Stone
+			{ 12404, 35, 1643, 16138, BLADED }, -- Dense Sharpening Stone
+			{ 12643, 35, 1703, 16622, BLUNT }, -- Dense Weightstone
+			{ 7964, 25, 483, 9900, BLADED }, -- Solid Sharpening Stone
+			{ 7965, 25, 484, 9903, BLUNT }, -- Solid Weightstone
+			{ 2871, 15, 14, 2830, BLADED }, -- Heavy Sharpening Stone
+			{ 3241, 15, 21, 3114, BLUNT }, -- Heavy Weightstone
+			{ 2863, 5, 13, 2829, BLADED }, -- Coarse Sharpening Stone
+			{ 3240, 5, 20, 3113, BLUNT }, -- Coarse Weightstone
+			{ 2862, 1, 40, 2828, BLADED }, -- Rough Sharpening Stone
+			{ 287978, 1, 40, 2828, BLADED, 70450 }, -- Rough Sharpening Stone
+			{ 3239, 1, 19, 3112, BLUNT }, -- Rough Weightstone
+			{ 23122, 50, 2684, 28891, CONSECRATED }, -- Consecrated Sharpening Stone
+			{ 211845, 0, 7098, 430392, EITHER }, -- Blackfathom Sharpening Stone
+		},
+		oil = {
+			{ 20749, 45, 2628, 25122, MELEE }, -- Brilliant Wizard Oil
+			{ 20748, 45, 2629, 25123, MELEE }, -- Brilliant Mana Oil
+			{ 20750, 40, 2627, 25121, MELEE }, -- Wizard Oil
+			{ 20747, 40, 2625, 25120, MELEE }, -- Lesser Mana Oil
+			{ 20746, 30, 2626, 25119, MELEE }, -- Lesser Wizard Oil
+			{ 287979, 1, 2626, 25119, MELEE, 70450 }, -- Lesser Wizard Oil
+			{ 20745, 20, 2624, 25118, MELEE }, -- Minor Mana Oil
+			{ 20744, 5, 2623, 25117, MELEE }, -- Minor Wizard Oil
+			{ 23123, 50, 2685, 28898, MELEE }, -- Blessed Wizard Oil
+			{ 3829, 30, 26, 3595, MELEE }, -- Frost Oil
+			{ 3824, 24, 25, 3594, MELEE }, -- Shadow Oil
+		},
+		lure = {
+			{ 6532, 0, 265, 8090, POLE }, -- Bright Baubles
+			{ 6533, 0, 266, 8089, POLE }, -- Aquadynamic Fish Attractor
+			{ 7307, 0, 265, 9092, POLE }, -- Flesh Eating Worm
+			{ 6530, 0, 264, 8088, POLE }, -- Nightcrawlers
+			{ 6811, 0, 264, 8532, POLE }, -- Aquadynamic Fish Lens
+			{ 6529, 0, 263, 8087, POLE }, -- Shiny Bauble
+			{ 268880, 0, 263, 8087, POLE }, -- "Secret" Bait
+		},
+	}
+
+	-- Mists of Pandaria Classic 5.5.4.70032: the stones, weightstones and oils
+	-- the client still has as items (their data is each of the earlier clients',
+	-- with Mists' own subclass and inventory masks), and the lures, of which
+	-- there are more than before. Its poisons are spells (MISTS_OWN, below).
+	local MISTS_ROWS = {
+		stone = {
+			{ 23529, 60, 2713, 29453, BLADED }, -- Adamantite Sharpening Stone
+			{ 28421, 60, 2955, 34340, BLUNT }, -- Adamantite Weightstone
+			{ 18262, 50, 2506, 22756, ELEMENTAL_MISTS }, -- Elemental Sharpening Stone
+			{ 23528, 50, 2712, 29452, BLADED }, -- Fel Sharpening Stone
+			{ 28420, 50, 2954, 34339, BLUNT }, -- Fel Weightstone
+			{ 12404, 35, 1643, 16138, BLADED }, -- Dense Sharpening Stone
+			{ 12643, 35, 1703, 16622, BLUNT }, -- Dense Weightstone
+			{ 7964, 25, 483, 9900, BLADED }, -- Solid Sharpening Stone
+			{ 7965, 25, 484, 9903, BLUNT }, -- Solid Weightstone
+			{ 2871, 15, 14, 2830, BLADED }, -- Heavy Sharpening Stone
+			{ 3241, 15, 21, 3114, BLUNT }, -- Heavy Weightstone
+			{ 2863, 5, 13, 2829, BLADED }, -- Coarse Sharpening Stone
+			{ 3240, 5, 20, 3113, BLUNT }, -- Coarse Weightstone
+			{ 2862, 1, 40, 2828, BLADED }, -- Rough Sharpening Stone
+			{ 3239, 1, 19, 3112, BLUNT }, -- Rough Weightstone
+			{ 23122, 50, 3593, 28891, CONSECRATED }, -- Consecrated Sharpening Stone
+		},
+		oil = {
+			{ 36899, 72, 3298, 47904, MELEE }, -- Exceptional Mana Oil
+			{ 22522, 58, 2678, 28017, MELEE }, -- Superior Wizard Oil
+			{ 22521, 52, 2677, 28013, MELEE }, -- Superior Mana Oil
+			{ 20749, 45, 2628, 25122, MELEE }, -- Brilliant Wizard Oil
+			{ 20748, 45, 2629, 25123, MELEE }, -- Brilliant Mana Oil
+			{ 20750, 40, 2627, 25121, MELEE }, -- Wizard Oil
+			{ 20747, 40, 2625, 25120, MELEE }, -- Lesser Mana Oil
+			{ 20746, 30, 2626, 25119, MELEE }, -- Lesser Wizard Oil
+			{ 20745, 20, 2624, 25118, MELEE }, -- Minor Mana Oil
+			{ 20744, 5, 2623, 25117, MELEE }, -- Minor Wizard Oil
+			{ 34538, 70, 3265, 45395, MELEE }, -- Blessed Weapon Coating
+			{ 34539, 70, 3266, 45397, MELEE }, -- Righteous Weapon Coating
+			{ 23123, 50, 3592, 28898, MELEE }, -- Blessed Wizard Oil
+			{ 3829, 30, 26, 3595, MELEE }, -- Frost Oil
+			{ 3824, 24, 25, 3594, MELEE }, -- Shadow Oil
+		},
+		lure = {
+			{ 68049, 0, 4225, 95244, POLE }, -- Heat-Treated Spinning Lure
+			{ 62673, 0, 266, 87646, POLE }, -- Feathered Lure
+			{ 6532, 0, 265, 8090, POLE }, -- Bright Baubles
+			{ 6533, 0, 266, 8089, POLE }, -- Aquadynamic Fish Attractor
+			{ 7307, 0, 265, 9092, POLE }, -- Flesh Eating Worm
+			{ 34861, 0, 266, 45731, POLE }, -- Sharpened Fish Hook
+			{ 46006, 0, 3868, 64401, POLE }, -- Glow Worm
+			{ 6530, 0, 264, 8088, POLE }, -- Nightcrawlers
+			{ 6811, 0, 264, 8532, POLE }, -- Aquadynamic Fish Lens
+			{ 6529, 0, 263, 8087, POLE }, -- Shiny Bauble
+			{ 69907, 1, 263, 99315, POLE }, -- Corpse Worm
+			{ 67404, 0, 4264, 98849, POLE }, -- Glass Fishing Bobber
+		},
+	}
+
+	ENHANCEMENTS.vanilla = Families(VANILLA_ROWS)
+	ENHANCEMENTS.tbc = Families(TBC_ROWS)
+	ENHANCEMENTS.camelot = Families(CAMELOT_ROWS)
+	ENHANCEMENTS.mists = Families(MISTS_ROWS)
+end
+
+---------------------------------------------------------------------------
 -- vanilla: what each class puts on itself alone
 ---------------------------------------------------------------------------
 
@@ -434,8 +845,10 @@ local VANILLA_OWN = {
 		{ key = "omen", spells = { { key = "omen", ranks = { 16864 }, talent = true } } },
 	},
 
-	-- WARRIOR and ROGUE: nothing of their own that is a buff. Poisons and a
-	-- shaman's weapon imbues are weapon enchants, not auras.
+	-- WARRIOR and ROGUE: no spell of their own that is a buff. What they put on
+	-- a weapon (poisons, stones, oils) is an item from the bags, and comes below,
+	-- with every class's (weapon enhancements, above). A shaman's weapon imbues
+	-- are not offered.
 }
 
 -- Tracking, for every class: Find Herbs and Find Minerals come with a
@@ -470,6 +883,8 @@ local TRACKING = {
 for _, class in ipairs({ "MAGE", "PRIEST", "WARLOCK", "PALADIN", "HUNTER", "SHAMAN", "DRUID", "WARRIOR", "ROGUE" }) do
 	VANILLA_OWN[class] = VANILLA_OWN[class] or {}
 	table.insert(VANILLA_OWN[class], TRACKING)
+	-- A weapon's poison, stone, oil or lure, ahead of tracking.
+	AddEnhancements(VANILLA_OWN[class], class, ENHANCEMENTS.vanilla)
 end
 
 local VANILLA_SET = {
@@ -811,6 +1226,8 @@ do
 	for _, class in ipairs({ "MAGE", "PRIEST", "WARLOCK", "PALADIN", "HUNTER", "SHAMAN", "DRUID", "WARRIOR", "ROGUE" }) do
 		TBC_OWN[class] = TBC_OWN[class] or {}
 		table.insert(TBC_OWN[class], tracking)
+		-- This client's stones, oils, poisons and lures (above), ahead of it.
+		AddEnhancements(TBC_OWN[class], class, ENHANCEMENTS.tbc)
 	end
 end
 
@@ -907,12 +1324,15 @@ do
 	}
 	-- Vanilla's lists, with the mage's two after the armor. Forever made Omen
 	-- of Clarity a passive every druid has from 20 (16864: Attributes_0 0x40,
-	-- no duration): nothing to cast, so a druid there has tracking alone.
+	-- no duration): nothing to cast, so a druid there has tracking alone. Not
+	-- Classic Era's stones, oils and poisons either: Forever's own (above), from
+	-- its own item data, go in their place.
 	for class, families in pairs(VANILLA_OWN) do
 		local list = {}
 		for _, family in ipairs(families) do
-			if family.key ~= "omen" then list[#list + 1] = family end
+			if family.key ~= "omen" and not family.enhance then list[#list + 1] = family end
 		end
+		AddEnhancements(list, class, ENHANCEMENTS.camelot)
 		CAMELOT_OWN[class] = list
 	end
 	table.insert(CAMELOT_OWN.MAGE, 2, FAMILIAR)
@@ -1179,9 +1599,43 @@ local MISTS_OWN = {
 		},
 	},
 
-	-- WARLOCK, DRUID, ROGUE, WARRIOR, DEATHKNIGHT and MONK: nothing of their
-	-- own that is a buff here, as above.
+	-- WARLOCK, DRUID, WARRIOR, DEATHKNIGHT and MONK: nothing of their own that is
+	-- a buff here, as above. A rogue's poisons are two families, below.
 }
+
+-- A rogue's poisons here are spells, not items: each puts an aura of its own id
+-- on you for an hour (SpellEffect: an aura on the caster, SpellMisc's
+-- 3,600,000 ms), and one lethal and one non-lethal poison may be up at once, so
+-- a family is up when any one of it is. Deadly Poison is learned at 10,
+-- Crippling at 20, Mind-numbing at 28 and Wound Poison at 30 (SpellLevels);
+-- Leeching and Paralytic Poison are talents. The stones, oils and lures the
+-- client still has as items go on every class's list, as on the others.
+do
+	local LETHAL = {
+		key = "lethal",
+		label = L["Lethal poison"],
+		spells = {
+			{ key = "deadlypoison", ranks = { 2823 } },
+			{ key = "woundpoison", ranks = { 8679 } },
+		},
+	}
+	local NONLETHAL = {
+		key = "nonlethal",
+		label = L["Non-lethal poison"],
+		spells = {
+			{ key = "cripplingpoison", ranks = { 3408 } },
+			{ key = "mindnumbingpoison", ranks = { 5761 } },
+			{ key = "leechingpoison", ranks = { 108211 }, talent = true },
+			{ key = "paralyticpoison", ranks = { 108215 }, talent = true },
+		},
+	}
+	MISTS_OWN.ROGUE = { LETHAL, NONLETHAL }
+	for _, class in ipairs({ "MAGE", "PRIEST", "WARLOCK", "PALADIN", "HUNTER", "SHAMAN", "DRUID", "ROGUE",
+		"WARRIOR", "DEATHKNIGHT", "MONK" }) do
+		MISTS_OWN[class] = MISTS_OWN[class] or {}
+		AddEnhancements(MISTS_OWN[class], class, ENHANCEMENTS.mists)
+	end
+end
 
 local MISTS_SET = {
 	name = "mists",
@@ -1315,16 +1769,50 @@ local MAINLINE = {
 	},
 }
 
+-- A rogue's poisons, the one thing a retail class casts on itself alone that
+-- fits a family: each is a spell that puts an aura of its own id on you for an
+-- hour (retail SpellEffect: an aura on the caster, SpellMisc's 3,600,000 ms),
+-- the lethal ones and the non-lethal ones each a family of their own. A
+-- talent lets a rogue wear two of each (Dragon-Tempered Blades), and one lethal
+-- and one non-lethal is all that is asked for, so a family is up when any one of
+-- it is. Not every rogue knows every one (Deadly, Numbing, Amplifying and
+-- Atrophic Poison are talents here, TraitDefinition); a spell not known is
+-- never offered, so a rogue is asked for what hers can cast. Build
+-- 12.1.0.69933.
+local MAINLINE_OWN = {
+	ROGUE = {
+		{
+			key = "lethal",
+			label = L["Lethal poison"],
+			spells = {
+				{ key = "deadlypoison", ranks = { 2823 }, talent = true },
+				{ key = "instantpoison", ranks = { 315584 } },
+				{ key = "woundpoison", ranks = { 8679 } },
+				{ key = "amplifyingpoison", ranks = { 381664 }, talent = true },
+			},
+		},
+		{
+			key = "nonlethal",
+			label = L["Non-lethal poison"],
+			spells = {
+				{ key = "cripplingpoison", ranks = { 3408 } },
+				{ key = "numbingpoison", ranks = { 5761 }, talent = true },
+				{ key = "atrophicpoison", ranks = { 381637 }, talent = true },
+			},
+		},
+	},
+}
+
 local MAINLINE_SET = {
 	name = "mainline",
 	buffs = MAINLINE,
-	-- Empty on purpose. What a retail class casts on itself alone is either a
-	-- toggle with no end (the paladin's auras: duration -1 in SpellMisc), or a
-	-- shield whose one-at-a-time rule a talent lifts (Elemental Orbit, 383010,
-	-- lets a shaman wear two of Lightning, Water and Earth Shield), which a
-	-- family of "only one of these up" would get wrong; and a rogue's poisons
-	-- would need words of their own. "Myself" offers your own group buff.
-	own = {},
+	-- A rogue's poisons alone (above). What else a retail class casts on itself
+	-- is either a toggle with no end (the paladin's auras: duration -1 in
+	-- SpellMisc), or a shield whose one-at-a-time rule a talent lifts (Elemental
+	-- Orbit, 383010, lets a shaman wear two of Lightning, Water and Earth
+	-- Shield), which a family of "only one of these up" would get wrong.
+	-- "Myself" offers your own group buff.
+	own = MAINLINE_OWN,
 	-- Battle Shout's reach, and the casts that land on your whole party and
 	-- raid (target 118), as on Mists.
 	shoutYards = 100,

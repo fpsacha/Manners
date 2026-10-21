@@ -112,9 +112,12 @@ local function OwnFamily(test)
 	return nil
 end
 
-local function HasScrolls() return OwnFamily(function(f) return f.scroll end) ~= nil end
+-- The mage's scrolls, Forever's own: not the weapon enhancements (a poison, a
+-- stone, an oil, a lure), which every client has as items of its own and which
+-- hold no more of this report's checks than a count of what the bags hold.
+local function HasScrolls() return OwnFamily(function(f) return f.scroll and not f.enhance end) ~= nil end
 local function ImbueFamily() return OwnFamily(function(f) return f.imbue end) end
-local function FamiliarFamily() return OwnFamily(function(f) return f.scroll and not f.imbue end) end
+local function FamiliarFamily() return OwnFamily(function(f) return f.scroll and not f.imbue and not f.enhance end) end
 
 -- Why a call about the main hand's enchants does not matter to this character,
 -- or nil when it does. Only a family with an imbue (Forever's mage scrolls)

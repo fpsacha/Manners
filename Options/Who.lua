@@ -228,8 +228,14 @@ end
 
 -- The choices a family's dropdown lists: the spells you know, or for a
 -- mage's scrolls every one of them, so a pick stays on the list while you
--- have none of it left.
+-- have none of it left. A weapon enhancement has dozens to a family, so its
+-- list is the ones your bags hold and the one picked, which stays while the
+-- bags are empty of it.
 local function OwnChoice(family, spell)
+	if family.enhance then
+		local picks = ns.db.profile.ownBuffs.pick
+		return ns.OwnSpellKnown(spell) or (type(picks) == "table" and picks[family.key] == spell.key)
+	end
 	return family.scroll or ns.OwnSpellKnown(spell)
 end
 
@@ -245,7 +251,10 @@ local function AddOwnControls(args)
 	table.sort(classes)
 	for _, class in ipairs(classes) do
 		for _, family in ipairs(ns.OWN_BUFFS[class]) do
-			order = order + 0.01
+			-- A family of several classes (tracking, a stone) is made once for each,
+			-- and the last stands; a thousandth apiece keeps every one of them
+			-- inside 15.2x, ahead of Also in cities and inns at 15.9.
+			order = order + 0.001
 			local pick = function() return (ns.OwnPick(family)) end
 			local write = function(_, value)
 				ns.db.profile.ownBuffs.pick[family.key] = value
@@ -269,6 +278,10 @@ local function AddOwnControls(args)
 				control.desc = function()
 					if family.tank then
 						return L["Automatic reminds you only while your group role is tank; Always reminds you whenever it is not up."]
+					end
+					if family.enhance then
+						return L["Reminds you when nothing is on the weapon in your %s and one of these in your bags fits it. Automatic takes the one you used last, else the best you can use."]
+							:format(ns.HandName(family.slot))
 					end
 					if family.imbue then
 						return L["Reminds you when nothing is on the weapon in your main hand and a scroll in your bags fits it. Automatic takes the one you used last, else the best you can use."]

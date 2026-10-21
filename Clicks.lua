@@ -257,15 +257,19 @@ local function RememberSettled(record)
 	settledRecent[#settledRecent + 1] = record
 end
 
--- A mage's scroll (Buffs.lua) is the one press on yourself with a cast time:
--- every scroll's use takes three seconds (SpellMisc's CastingTimeIndex 14),
--- where your other own buffs are instant. SENT settles it as the cast
--- starts, so a cast cut short -- moving, most often -- has used nothing up,
--- and only INTERRUPTED (or a FAILED after the settle's window) says so. The
--- press is kept here until the cast succeeds or stops, or for its length,
--- pushback and latency at most: the scroll, the settle's record, its cast,
--- and the press it replaced (Core.lua, NoteScrollPress).
+-- A mage's scroll or a weapon enhancement (Buffs.lua) is the one press on
+-- yourself with a cast time: every scroll's use takes three seconds
+-- (SpellMisc's CastingTimeIndex 14), and so does a stone's, an oil's and a
+-- poison's, a lure's five (index 6; two on Mists), where your other own buffs
+-- are instant. SENT settles it as the cast starts, so a cast cut short --
+-- moving, most often -- has used nothing up, and only INTERRUPTED (or a FAILED
+-- after the settle's window) says so. The press is kept here until the cast
+-- succeeds or stops, or for its length, pushback and latency at most: the item,
+-- the settle's record, its cast, and the press it replaced (Core.lua,
+-- NoteScrollPress). Six seconds for a scroll; eight for an enhancement, whose
+-- longest use is the lure's five.
 local SCROLL_SECONDS = 6
+local ENHANCE_SECONDS = 8
 local castingScroll
 
 -- The scroll being cast, if this event is about it: by the cast guid where
@@ -275,7 +279,7 @@ local castingScroll
 local function ScrollCast(castGUID, spellId)
 	local cast = castingScroll
 	if not cast then return nil end
-	if GetTime() - cast.record.at > SCROLL_SECONDS then
+	if GetTime() - cast.record.at > cast.seconds then
 		castingScroll = nil
 		return nil
 	end
@@ -456,7 +460,8 @@ local function SettleSelf(pending, spellId, castGUID)
 	local own = ns.FindOwnSpell(pending.buffKey)
 	if own and own.item then
 		castingScroll = { record = record, spell = own, castGUID = castGUID, spellId = spellId,
-			before = ns.NoteScrollPress(own) }
+			before = ns.NoteScrollPress(own),
+			seconds = own.family.enhance and ENHANCE_SECONDS or SCROLL_SECONDS }
 	end
 end
 
