@@ -123,6 +123,10 @@ for _, e in ipairs({
   -- Registered on this client by EnhanceQoL's class-buff reminder, which
   -- watches the bags and the weapon for its weapon buffs.
   "BAG_UPDATE_DELAYED", "PLAYER_EQUIPMENT_CHANGED",
+  -- A weapon's temporary enchant going on or off, the game asking whether to
+  -- replace one, and the warning it raises for a call it forbids: in every
+  -- client's event list (Ketho's BlizzardInterfaceResources).
+  "WEAPON_ENCHANT_CHANGED", "REPLACE_ENCHANT", "ADDON_ACTION_FORBIDDEN",
   -- Registered on this client by EnhanceQoL's class-buff reminder.
   "ADDON_RESTRICTION_STATE_CHANGED",
 }) do KNOWN_EVENTS[e] = true end
@@ -372,6 +376,12 @@ else
     { "BAG_UPDATE_DELAYED", function() addon:BAG_UPDATE_DELAYED() end },
     { "PLAYER_EQUIPMENT_CHANGED", function() addon:PLAYER_EQUIPMENT_CHANGED(nil, 16, true) end },
     { "BuildQueue after the bags", function() return ns.BuildQueue() end },
+    -- A weapon's enchant changing, and the game's question about replacing
+    -- one, asked with no press of ours and answered by nobody, on a client
+    -- with none of the item API.
+    { "WEAPON_ENCHANT_CHANGED", function() addon:WEAPON_ENCHANT_CHANGED() end },
+    { "REPLACE_ENCHANT", function() addon:REPLACE_ENCHANT(nil, "an enchant", "another") end },
+    { "ADDON_ACTION_FORBIDDEN", function() addon:ADDON_ACTION_FORBIDDEN(nil, "Manners", "C_Item.ReplaceEnchant()") end },
     -- The quick choices on Start here, every one of them, and the sentences
     -- that describe the result: each writes the profile and repaints, which
     -- is a hop into the prompt and the page.

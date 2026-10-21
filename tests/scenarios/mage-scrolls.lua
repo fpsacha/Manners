@@ -69,6 +69,22 @@ local function family(ns, name)
 	return nil
 end
 
+-- How many different items the class's own families count in the bags, the
+-- scrolls and the weapon enhancements (stones, oils, poisons, lures) alike:
+-- one GetItemCount each, however many families list it.
+local function itemsOf(ns, class)
+	local seen, n = {}, 0
+	for _, own in ipairs(ns.GetOwnFamilies(class) or {}) do
+		for _, spell in ipairs(own.scroll and own.spells or {}) do
+			if not seen[spell.item] then
+				seen[spell.item] = true
+				n = n + 1
+			end
+		end
+	end
+	return n
+end
+
 -- What you had on last for the imbue, nil for nothing.
 local function lastImbue(ns)
 	local last = ns.db.char.ownLast
@@ -433,8 +449,9 @@ do
 		if key(mine(ns)) ~= "ratfamiliar" then
 			fail(scenario, "after the bags changed, a Rat Familiar scroll was not offered: " .. key(mine(ns)))
 		end
-		if world.reads - before ~= 19 then
-			fail(scenario, ("the bags were read %d times for the 19 scrolls"):format(world.reads - before))
+		-- The 19 scrolls and the stones, oils and lures a mage may carry too.
+		if world.reads - before ~= itemsOf(ns, "MAGE") or itemsOf(ns, "MAGE") < 19 then
+			fail(scenario, ("the bags were read %d times for the %d items"):format(world.reads - before, itemsOf(ns, "MAGE")))
 		end
 		if control and control.hidden() ~= false then
 			fail(scenario, "with a scroll in the bags, the Familiar row is hidden")
@@ -598,7 +615,11 @@ do
 			local control = findOption(ns.optionsTable, name)
 			if control and control.hidden() ~= true then fail(scenario, "a priest is shown " .. name) end
 		end
-		if world.reads ~= 0 then fail(scenario, ("a priest's bags were read %d times"):format(world.reads)) end
+		-- Only for what a priest can use (a weapon's stone, oil or lure): none of the
+		-- 19 scrolls, which would be that many more reads.
+		if world.reads ~= itemsOf(ns, "PRIEST") then
+			fail(scenario, ("a priest's bags were read %d times, for %d items of his own"):format(world.reads, itemsOf(ns, "PRIEST")))
+		end
 	end)
 end
 

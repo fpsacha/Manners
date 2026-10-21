@@ -193,7 +193,8 @@ do
 		if caps.unitNameIsSurname ~= false then fail(scenario, "UnitName's realm is taken for a surname") end
 		for class, families in pairs(ns.OWN_BUFFS or {}) do
 			for _, family in ipairs(families) do
-				if family.scroll or family.imbue then
+				-- Not the weapon enhancements, which are Burning Crusade's own items.
+				if family.imbue or (family.scroll and not family.enhance) then
 					fail(scenario, class .. " has Forever's " .. tostring(family.key) .. " on Burning Crusade")
 				end
 			end

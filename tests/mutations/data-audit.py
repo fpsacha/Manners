@@ -47,8 +47,8 @@ mutate("Buffs.lua",
 
 # ------------------------------------------------ Omen of Clarity
 mutate("Buffs.lua",
-       "\t\t\tif family.key ~= \"omen\" then list[#list + 1] = family end\n",
-       "\t\t\tlist[#list + 1] = family\n",
+       "\t\t\tif family.key ~= \"omen\" and not family.enhance then list[#list + 1] = family end\n",
+       "\t\t\tif not family.enhance then list[#list + 1] = family end\n",
        "data-audit: Omen of Clarity offered on Forever",
        expect="data-audit: Omen of Clarity is a druid's own buff only on Classic Era (Forever)", script=S)
 mutate("Buffs.lua",

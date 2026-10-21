@@ -108,11 +108,13 @@ do
 		-- No scroll and no familiar anywhere: items and spells only Forever has.
 		for class, families in pairs(ns.OWN_BUFFS or {}) do
 			for _, family in ipairs(families) do
-				if family.scroll or family.imbue then
+				-- Not the weapon enhancements (a poison, a stone, an oil, a lure), which
+				-- are Era's own items from its own data.
+				if family.imbue or (family.scroll and not family.enhance) then
 					fail(scenario, class .. " has Forever's " .. tostring(family.key) .. " on Era")
 				end
 				for _, spell in ipairs(family.spells or {}) do
-					if spell.item then
+					if spell.item and not family.enhance then
 						fail(scenario, class .. " is reminded of scroll " .. tostring(spell.key) .. ", which Era has none of")
 					end
 				end

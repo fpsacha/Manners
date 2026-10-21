@@ -57,6 +57,14 @@ local NAMES = {
 	[6346] = "Fear Ward",
 	[546] = "Water Walking",
 	[20707] = "Soulstone",
+	-- A rogue's poisons, as the Mists client names them (SpellName, build
+	-- 5.5.4.70032).
+	[2823] = "Deadly Poison",
+	[8679] = "Wound Poison",
+	[3408] = "Crippling Poison",
+	[5761] = "Mind-numbing Poison",
+	[108211] = "Leeching Poison",
+	[108215] = "Paralytic Poison",
 	-- Another class's of the same kind (Buffs.lua, alike), named as Wowhead
 	-- MoP Classic names them.
 	[469] = "Commanding Shout",
@@ -222,7 +230,9 @@ do
 		end
 		for class, families in pairs(ns.OWN_BUFFS or {}) do
 			for _, family in ipairs(families) do
-				if family.scroll or family.imbue or family.tracking then
+				-- The weapon enhancements are Mists' own (its item data), a rogue's poisons
+				-- two families of spells; the scrolls and tracking are not.
+				if family.imbue or (family.scroll and not family.enhance) or family.tracking then
 					fail(scenario, class .. " has " .. tostring(family.key) .. ", which Mists has none of")
 				end
 			end
@@ -280,7 +290,8 @@ local SESSION = {
 	DEATHKNIGHT = { 57330 },
 	HUNTER = { 109260, 13165, 5118, 13159, 61648 },
 	SHAMAN = { 324, 52127, 974 },
-	ROGUE = {},
+	-- A rogue's poisons, the lethal ones and the non-lethal ones.
+	ROGUE = { 2823, 8679, 3408, 5761, 108211, 108215 },
 }
 
 do
@@ -898,7 +909,7 @@ end
 do
 	local scenario = "mists: the classes with buffs of their own"
 	local want = { MAGE = "armor", PRIEST = "innerfire", PALADIN = "righteousfury", HUNTER = "aspect",
-		SHAMAN = "shield" }
+		SHAMAN = "shield", ROGUE = "lethal, nonlethal" }
 	for _, class in ipairs(ALL_CLASSES) do
 		mists(scenario, { class = class, known = SESSION[class] }, function(ns)
 			Mock.playerHeld = {}

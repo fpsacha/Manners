@@ -373,7 +373,8 @@ for _, flavour in ipairs({ "vanilla", "tbc", "mists", "mainline" }) do
 			return
 		end
 		for _, family in ipairs(ns.GetOwnFamilies("MAGE") or {}) do
-			if family.imbue or family.scroll then
+			-- The scrolls, not a stone or an oil, which is any client's own.
+			if family.imbue or (family.scroll and not family.enhance) then
 				fail(scenario, "SKIPPED -- a " .. flavour .. " mage has " .. tostring(family.key))
 				return
 			end
