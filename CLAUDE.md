@@ -44,7 +44,7 @@ same list (`tests/validate.py` fails until they match).
 | `Phrases.lua` | the In character set (`RP` = `ns.InCharacter`) |
 | `Ledger.lua` | the favour ledger window (`/manners ledger`) |
 | `Looks/` | prompt looks beyond the built-in glass/framed/minimal: `Looks.lua` (registry and interface), `Luxe`, `Toast`, `Arcane` |
-| `Prompt/` | the prompt: `Prompt.lua` (ns.BUILD), `Panel` (regions, built-in looks), `Macro` (what the button casts), `Press` (Pre/PostClick), `Paint`, `Text`, `Effects`, `Hold` (hysteresis), `List`, `Button`, `Refresh` |
+| `Prompt/` | the prompt: `Prompt.lua` (ns.BUILD), `Panel` (regions, built-in looks), `Macro` (what the button casts), `Press` (Pre/PostClick), `Paint`, `Text`, `Effects`, `Hold` (hysteresis), `List`, `Rows` (the list's names as secure buttons, armed only for the one press), `Button`, `Refresh` |
 | `Options/` | the settings model, AceConfig-shaped, one file per tab (`Start Who When Say Look Advanced Diagnostics Profiles`), `Shared.lua`, `Launcher.lua` (minimap/broker/compartment), `Register.lua` (registers it; `ns.OpenOptions`; AceConfigDialog is the fallback) |
 | `Options/Window/` | the custom options window drawn from that model; `Layout.lua` places every control (`"tab.key"`) on a page |
 | `Selftest.lua` | the in-game `/manners selftest` (`/manners check`) |
