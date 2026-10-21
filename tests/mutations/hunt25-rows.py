@@ -361,3 +361,19 @@ mutate("Prompt/Button.lua",
        "hunt25-rows: the tooltip over a name describes the prompt's person",
        expect="hunt25-rows: the tooltip over a name is the prompt's for that person",
        script=S)
+
+# A name keeps the width the list had: the icon sits in the margin left of it,
+# and is never wider than that margin holds.
+mutate("Prompt/Panel.lua",
+       "\tlocal rowX = textX\n",
+       "\tlocal rowX = textX + (iconW > 0 and iconW + 3 or 0)\n",
+       "hunt25-rows: a name pushed right by its icon",
+       expect="pushed right by its icon",
+       script=S)
+
+mutate("Prompt/Panel.lua",
+       "\tif iconW > textX - 12 then iconW = textX - 12 end\n",
+       "",
+       "hunt25-rows: a name's icon wider than its margin",
+       expect="wider than the margin",
+       script=S)

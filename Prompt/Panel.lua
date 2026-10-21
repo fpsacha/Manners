@@ -514,9 +514,15 @@ function Prompt:ApplyStyle()
 	-- fight over the vertical centre. Which way the list hangs is settled here.
 	S.queueAbove = QueueGoesAbove()
 	-- With the spell icon on, each row wears the icon of its own buff, sized
-	-- from the row's font, and its text starts after it.
+	-- from the row's font, in the margin left of its text, under the prompt's
+	-- own icon: the text keeps the whole width it had, which a long name and
+	-- its reason need (pushed right by the icon, one was drawn cut).
 	local iconW = p.showIcon and (math.max(7, p.fontSize - 3) + 2) or 0
-	local rowX = textX + (iconW > 0 and iconW + 3 or 0)
+	-- No wider than that margin holds with the bar beside it (a small prompt
+	-- icon under a large font), and none where too little is left.
+	if iconW > textX - 12 then iconW = textX - 12 end
+	if iconW < 7 then iconW = 0 end
+	local rowX = textX
 	-- Kept for PaintQueue, which re-places the rows when the list hangs above
 	-- and therefore needs the same inset this loop uses.
 	S.queueTextX = rowX

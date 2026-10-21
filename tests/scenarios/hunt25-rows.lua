@@ -1158,3 +1158,40 @@ do
 		Mock.optionsOpen = nil
 	end)
 end
+
+-- ------------------------------------------------------------------ 21
+-- A name keeps the whole width the list had before its icon came: the icon
+-- sits in the margin left of the text, under the prompt's own icon. Pushed
+-- right by it, a long name and its reason no longer fitted and were drawn cut.
+-- And the icon is never wider than that margin holds beside the bar, even
+-- with the smallest prompt icon under the largest font.
+do
+	local scenario = "hunt25-rows: a name keeps its width beside its icon"
+	session(scenario, nil, function(ns, r, p)
+		p.showIcon = true
+		ns.Prompt:ApplyStyle()
+		local S = ns.Prompt.state
+		local textX = 10 + p.iconSize + 10
+		if S.queueTextX ~= textX then
+			fail(scenario, ("the list's text starts at %s, not %s: pushed right by its icon")
+				:format(tostring(S.queueTextX), textX))
+		end
+		local width = math.max(20, p.width - textX - 8)
+		if r.rows[1]:GetWidth() ~= width then
+			fail(scenario, ("a name has %s to fit into, not the %s the list had: pushed right by its icon")
+				:format(tostring(r.rows[1]:GetWidth()), width))
+		end
+
+		local iconSize, fontSize = p.iconSize, p.fontSize
+		p.iconSize, p.fontSize = 12, 32
+		ns.Prompt:ApplyStyle()
+		local margin = 10 + 12 + 10 - 12
+		local w = r.rowIcons[1]:GetWidth()
+		if w > margin then
+			fail(scenario, ("with a 12 icon and a 32 font a name's icon is %s wide, wider than the margin's %s")
+				:format(tostring(w), margin))
+		end
+		p.iconSize, p.fontSize = iconSize, fontSize
+		ns.Prompt:ApplyStyle()
+	end)
+end
