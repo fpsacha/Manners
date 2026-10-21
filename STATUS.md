@@ -58,6 +58,27 @@ row reads DRIFT); the toc then needs the number (`tools/maketocs.py`'s
 `FLAVOURS` and `Manners.toc`'s Interface line). Retail moved to 12.1.5
 (interface 120105) in 1.7.7.
 
+**What 1.8.0 needs the live game for.** The clickable names in the list
+(`Prompt/Rows.lua`): a left click on a name targets, casts and hands back with
+the spoken line, and the favour is filed; the row's attributes written in its
+PreClick are read on that same press (the prompt relies on the same); in a
+fight a name does nothing and no "action blocked" error appears; the click
+areas line up with the text in all six looks, above and below the prompt;
+right-click skips, shift-right-click lists. The weapon enhancements
+(`ENHANCEMENTS` in `Buffs.lua`): `/use 16` and `/use 17` aim the right hand on
+each client; the off hand's values in `GetWeaponEnchantInfo()` on Era, TBC and
+Mists; `WEAPON_ENCHANT_CHANGED` fires; over an enhancement already on, the
+game's own replace question appears and the player's click completes it
+(Manners never answers it); retail and Mists poison spells and talents read
+right. The friendly-nameplate note and button under Passers-by, and the
+empty-key line, as laid out in the real window.
+
+**Group spells are cast by bare name**, trusting the game to pick the best
+rank (Buffs.lua header). A priest or druid with two ranks of Prayer of
+Fortitude or Gift of the Wild has never pressed one in the live game. On a
+level-60 priest, `/run local i=C_Spell.GetSpellInfo("Prayer of Fortitude")
+print(i and i.spellID)` printing 21564 says the bare name means the top rank.
+
 **Bug hunt 23 rests on three client facts nobody here can observe.** The nine
 old candidates were triaged after 1.7.7: two were already fixed, seven were
 fixed in 1.7.8 (`tests/scenarios/hunt23-*.lua`). What they assume:

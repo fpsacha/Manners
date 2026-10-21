@@ -1,5 +1,26 @@
 # Changelog
 
+## Unreleased
+
+- **Click a name in the list to buff them.** With *List the next few below*
+  on (*Look* tab), each name under the prompt is now a button: a left click
+  buffs that person just as a press on the prompt would, and your target is
+  handed back. Right-click skips them for now; shift-right-click puts them on
+  your never-offer list. Each name shows the icon of the buff it would get.
+  Names cannot be clicked in a fight. *Click a name in the list to buff them*
+  turns it off.
+- **Poisons, sharpening stones, oils and fishing lures.** On WoW Forever,
+  Classic Era, Burning Crusade Classic and Mists of Pandaria Classic, Manners
+  reminds you when a weapon has nothing on it and a poison, stone, oil or lure
+  that fits it is in your bags, one hand at a time, and one press puts it on.
+  A rogue's poisons on Mists and retail are reminded the same way. Rogues now
+  get a prompt of their own. Each kind can be switched off with your other
+  own buffs on the *Who to buff* tab.
+- **Friendly nameplates.** Manners sees passers-by through the game's
+  friendly nameplates, and with them off it sees almost nobody outside your
+  group. The *Who to buff* tab now says so under *Passers-by*, with a button
+  to turn them on, and pressing your key on an empty prompt tells you why.
+
 ## 1.7.9
 
 - **`/manners debug` says when you are on your own never-offer list.** With
