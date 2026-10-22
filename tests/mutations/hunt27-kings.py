@@ -173,16 +173,16 @@ mutate("Core.lua",
 # ------------------------------------------------ the control
 # Shown to every class, not only a paladin whose list it changes.
 mutate("Options/Who.lua",
-       "\t\t\t\thidden = function() return ns.PinnedBuff() ~= nil or ns.StrongestBuff() == nil end,\n",
-       "\t\t\t\thidden = function() return ns.PinnedBuff() ~= nil end,\n",
+       "\t\t\t\thidden = function() return ns.PinnedBuff() ~= nil or ns.StrongestBuff() == nil or ns.HasBuffOrder() end,\n",
+       "\t\t\t\thidden = function() return ns.PinnedBuff() ~= nil or ns.HasBuffOrder() end,\n",
        "hunt27-kings: the switch shown to every class",
        expect="hunt27-kings: the switch is not shown to another class",
        script=S)
 
 # Still shown while one spell is pinned, which is all that is considered then.
 mutate("Options/Who.lua",
-       "\t\t\t\thidden = function() return ns.PinnedBuff() ~= nil or ns.StrongestBuff() == nil end,\n",
-       "\t\t\t\thidden = function() return ns.StrongestBuff() == nil end,\n",
+       "\t\t\t\thidden = function() return ns.PinnedBuff() ~= nil or ns.StrongestBuff() == nil or ns.HasBuffOrder() end,\n",
+       "\t\t\t\thidden = function() return ns.StrongestBuff() == nil or ns.HasBuffOrder() end,\n",
        "hunt27-kings: the switch shown over a pin",
        expect="hunt27-kings: vanilla: the switch is on Who to buff for a paladin",
        script=S)
@@ -205,8 +205,8 @@ mutate("Options/Who.lua",
 
 # Left out of the page's reset.
 mutate("Options/Advanced.lua",
-       "\t\t\"buff.choice\", \"buff.skip\", \"buff.kingsFirst\", \"filters.relevantOnly\",\n",
-       "\t\t\"buff.choice\", \"buff.skip\", \"filters.relevantOnly\",\n",
+       "\t\t\"buff.choice\", \"buff.skip\", \"buff.kingsFirst\", \"buff.order\", \"filters.relevantOnly\",\n",
+       "\t\t\"buff.choice\", \"buff.skip\", \"buff.order\", \"filters.relevantOnly\",\n",
        "hunt27-kings: the page's reset leaves the switch",
        expect="hunt27-kings: vanilla: the switch is on Who to buff for a paladin",
        script=S)

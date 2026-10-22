@@ -173,6 +173,7 @@ local KNOWS = {
 	PRIEST = { buffs = { "fortitude", "spirit", "shadow" }, known = { 588 } },
 	PALADIN = { buffs = { "wisdom", "might", "kings", "salvation", "light" }, known = { 465, 25780 } },
 	WARRIOR = { buffs = { "battleshout" } },
+	DRUID = { buffs = { "motw", "thorns" } },
 	HUNTER = { known = { 13165, 13163, 19506 }, tracking = { 1494 } },
 }
 local mockKnown, mockPlayerSpell = IsSpellKnown, IsPlayerSpell
@@ -305,6 +306,17 @@ function BEFORE.snoozed(ns)
 	ns.StartSnooze(15)
 end
 
+-- The class's buffs put in an order of the player's own, by the addon's own
+-- move: the one it lists second goes up a place (Wisdom over Kings, Spirit over
+-- Fortitude, Thorns over Mark of the Wild).
+function BEFORE.order(ns)
+	assert(ns.MoveBuff, "this tree has no buff order")
+	local second = { PALADIN = "wisdom", PRIEST = "spirit", DRUID = "thorns" }
+	local key = second[Mock.class]
+	assert(key, "no buff order to show for " .. tostring(Mock.class))
+	assert(ns.MoveBuff(key, -1), "the buff did not move")
+end
+
 -- In the client's order: the event comes just before lockdown begins, to Core
 -- and to every frame that registered for it, and what they put off to the
 -- next frame runs under lockdown.
@@ -329,6 +341,18 @@ AFTER["folds-open"] = function(ns, _, page)
 	assert(type(saved) == "table", "the window keeps no ns.db.global.window")
 	saved.open = open
 	ns.OpenOptions(page)
+end
+
+-- The third buff of the Buff order pressed up a place, as a click does it, and
+-- the picture taken a tenth of a second later: the buff that moved is still lit.
+function AFTER.press(ns, _, _, notes)
+	local UI = ns.WindowUI
+	local row = UI and UI.RowFor and UI.RowFor("who.orderPick")
+	assert(row and row.lines and row.lines[3], "no Buff order list on this page")
+	local up = row.lines[3].up
+	up:GetScript("OnClick")(up, "LeftButton", false)
+	R.settle = 0.1
+	notes[#notes + 1] = "press: the third buff moved up a place"
 end
 
 -- The page scrolled to its end, as the mouse wheel would take it, for what a
@@ -393,6 +417,7 @@ function R.page(page, spec)
 		assert(BEFORE[s.name] or AFTER[s.name], "no such state: " .. tostring(s.name))
 	end
 	local ns, notes, win = load(), {}, nil
+	R.settle = nil
 	local ok, err = pcall(function()
 		boot(ns)
 		apply(BEFORE, states, ns, nil, page, notes)
@@ -404,9 +429,10 @@ function R.page(page, spec)
 			local fn = AFTER[s.name]
 			if fn then fn(ns, win, s.name == "search" and s.arg or page, notes) end
 		end
-		-- Past the window's fades, every timer run and every one-shot settled.
+		-- Past the window's fades, every timer run and every one-shot settled
+		-- (a state that wants a fade caught part way says how long to wait).
 		Mock.runTimers()
-		frames(win, 1)
+		frames(win, R.settle or 1)
 	end)
 	return {
 		tree = FT.snapshot(UIParent),

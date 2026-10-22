@@ -383,6 +383,87 @@ local function PlatesHidden()
 	return not S().strangers or OnlyReachesGroup() or not ns.FriendlyPlatesOff()
 end
 
+-- The buff order (Core.lua, ns.WalkBuffs): a list of the class's buffs in the
+-- order they are tried, each one moved up or down a place, and the way back to
+-- Automatic. For a class with a choice to make -- two buffs or more on this
+-- client -- and not while one spell is pinned, which is all that is considered
+-- then (as the Kings switch's rule is).
+local function OrderHidden()
+	return ns.PinnedBuff() ~= nil or #(ns.GetClassBuffs(ns.caps.class) or {}) < 2
+end
+
+-- Who is picked in the list, for the buttons that move one: a state of the
+-- window, like the never-offer list's.
+local orderPicked
+
+-- The class's buffs as the walk tries them: their keys, and a key's place (0
+-- for none).
+local function OrderKeys()
+	local keys = {}
+	for _, buff in ipairs(ns.BuffWalkOrder()) do
+		keys[#keys + 1] = buff.key
+	end
+	return keys
+end
+
+local function OrderRank(key)
+	for rank, k in ipairs(OrderKeys()) do
+		if k == key then return rank end
+	end
+	return 0
+end
+
+-- The name as the switches above show it: the spell, what narrows who it goes
+-- to, and that it is not learned.
+local function OrderLabel(buff)
+	local label = BuffLabel(buff)
+	if not ns.IsBuffKnown(buff) then label = L["%s |cff808080(not learned)|r"]:format(label) end
+	return label
+end
+
+local function OrderChoices()
+	local values = {}
+	for _, buff in ipairs(ns.BuffWalkOrder()) do
+		values[buff.key] = OrderLabel(buff)
+	end
+	return values
+end
+
+-- The one picked, or the first when nothing is (or what was picked is gone).
+local function OrderPick()
+	if orderPicked and OrderRank(orderPicked) > 0 then return orderPicked end
+	return OrderKeys()[1]
+end
+
+-- What the list is: how the walk goes about it, then whose order it is. Two
+-- sentences for the two kinds of class, since a blessing and a Fortitude do not
+-- cover somebody alike.
+local function OrderNote()
+	local text = ns.EXCLUSIVE_BUFFS[ns.caps.class]
+		and L["Manners offers each person the first of these they can use, and leaves alone anybody who already wears one of yours."]
+		or L["Manners offers each person the first of these they are missing."]
+	local state
+	if ns.HasBuffOrder() then
+		state = L["Your own order is in use."]
+	else
+		local first = B().kingsFirst == true and ns.StrongestBuff()
+		state = first and L["Following Automatic's order, with %s first."]:format(ns.BuffName(first))
+			or L["Following Automatic's order."]
+	end
+	return text .. "\n|cffe6c45e" .. state .. "|r"
+end
+
+-- One step of the picked buff; the picked one stays picked, so a buff goes up
+-- three places in three presses.
+local function MoveOrder(step)
+	local key = OrderPick()
+	if key and ns.MoveBuff(key, step) then
+		orderPicked = key
+		restyleAndMacro()
+		ns.RefreshOptionsDisplay()
+	end
+end
+
 -- Four questions, top to bottom: what to cast, who it goes to (with the group
 -- and raid settings under their own heading), who comes first, and who is
 -- skipped or never offered.
@@ -496,7 +577,8 @@ function Page.BuildWhoTab()
 			-- switch: all of them decide what is cast. Only for a class whose list
 			-- has a strongest buff to put first (a paladin's Kings on Classic Era,
 			-- Burning Crusade and Forever), and not while one spell is pinned, which
-			-- is all that is considered then.
+			-- is all that is considered then, nor once the player has put the buffs
+			-- in an order of their own (Buff order below): that is what it means then.
 			kingsFirst = {
 				type = "toggle",
 				name = function()
@@ -510,7 +592,7 @@ function Page.BuildWhoTab()
 				end,
 				order = 4.8,
 				width = "full",
-				hidden = function() return ns.PinnedBuff() ~= nil or ns.StrongestBuff() == nil end,
+				hidden = function() return ns.PinnedBuff() ~= nil or ns.StrongestBuff() == nil or ns.HasBuffOrder() end,
 				get = function() return B().kingsFirst == true end,
 				set = bSet,
 			},
@@ -542,6 +624,60 @@ function Page.BuildWhoTab()
 				fontSize = "medium",
 				hidden = function() return ns.PinnedBuff() == nil end,
 				name = function() return PinExplanation() end,
+			},
+
+			-------------------------------------------------- buff order
+			-- A list of the class's buffs in the order they are tried, each with
+			-- an arrow up and one down (the window draws these five as one piece,
+			-- Window/WidgetsOrder.lua; the old dialog gets a dropdown and buttons).
+			orderHeader = { type = "header", name = L["Buff order"], order = 6, hidden = OrderHidden },
+			orderNote = {
+				type = "description",
+				order = 6.1,
+				hidden = OrderHidden,
+				name = OrderNote,
+			},
+			orderPick = {
+				type = "select",
+				name = L["Buff order"],
+				order = 6.2,
+				values = OrderChoices,
+				sorting = OrderKeys,
+				hidden = OrderHidden,
+				get = OrderPick,
+				set = function(_, value) orderPicked = value end,
+			},
+			orderUp = {
+				type = "execute",
+				name = L["Move up"],
+				order = 6.3,
+				hidden = OrderHidden,
+				disabled = function() return OrderRank(OrderPick()) <= 1 end,
+				func = function() MoveOrder(-1) end,
+			},
+			orderDown = {
+				type = "execute",
+				name = L["Move down"],
+				order = 6.4,
+				hidden = OrderHidden,
+				disabled = function()
+					local rank = OrderRank(OrderPick())
+					return rank == 0 or rank >= #OrderKeys()
+				end,
+				func = function() MoveOrder(1) end,
+			},
+			-- Only once something has been moved: Automatic needs no way back.
+			orderReset = {
+				type = "execute",
+				name = L["Back to Automatic"],
+				order = 6.5,
+				hidden = function() return OrderHidden() or not ns.HasBuffOrder() end,
+				func = function()
+					if ns.ClearBuffOrder() then
+						restyleAndMacro()
+						ns.RefreshOptionsDisplay()
+					end
+				end,
 			},
 
 			-------------------------------------------------- who it goes to

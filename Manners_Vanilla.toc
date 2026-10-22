@@ -72,6 +72,7 @@ Options\Window\Bind.lua
 Options\Window\Widgets.lua
 Options\Window\WidgetsChoice.lua
 Options\Window\WidgetsEntry.lua
+Options\Window\WidgetsOrder.lua
 Options\Window\Layout.lua
 Options\Window\Window.lua
 Options\Window\WindowChrome.lua

@@ -658,6 +658,7 @@ and can be given more than once:
 | `unlocked` | the prompt unlocked before the window opens |
 | `snoozed` | `ns.StartSnooze(15)` before it opens |
 | `combat` | a fight starts once it is open, in the client's order: `PLAYER_REGEN_DISABLED` to Core and to every frame registered for it while lockdown has not begun, then lockdown and the next frame's timers |
+| `order` | a paladin's, priest's or druid's buffs put in an order of the player's own before the window opens, by `ns.MoveBuff` (Wisdom, Spirit or Thorns up a place): Who to buff then shows the Buff order list with Back to Automatic |
 | `folds-open` | every folded section in the layout written open in `ns.db.global.window.open`, the window shut and opened again |
 | `scrolled` | the page scrolled to its end (`ns.WindowUI.ScrollTo`), for what a long page holds below the first screen |
 | `modal` | the footer's "Put these back to default" pressed; on a page without one, `ns.WindowWidgets.Modal` opened with its words |

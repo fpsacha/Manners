@@ -74,7 +74,7 @@ MARGIN = 18
 MIN_RATIO = 4.5
 # How far past an edge counts as past it, in UI units.
 TOL = 0.5
-STATES = ("combat", "unlocked", "snoozed", "folds-open", "scrolled", "modal", "search")
+STATES = ("combat", "unlocked", "snoozed", "order", "press", "folds-open", "scrolled", "modal", "search")
 
 # Faces with the script of the languages Candara has no glyphs for, first in
 # the list for those languages; the Latin faces after them, for what is left.
