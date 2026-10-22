@@ -1251,6 +1251,9 @@ do
 			party3 = { "Cara", "Close" }, party4 = { "Dora", "Deep" } } }, function(ns)
 		Mock.unitClass = "PALADIN"
 		ns.db.profile.sources.strangers = false
+		-- Might is what the party is missing in this walk; with Kings first it
+		-- would be Kings (tests/scenarios/hunt27-kings.lua).
+		ns.db.profile.buff.kingsFirst = false
 		ns.db.profile.groupBuffs.use, ns.db.profile.groupBuffs.atLeast = true, 3
 		GetItemCount = function(id) return id == 21177 and 20 or 0 end
 		GetItemInfo = function(id) return id == 21177 and "Symbol of Kings" or nil end

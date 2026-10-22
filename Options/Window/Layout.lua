@@ -84,6 +84,8 @@ end
 local function CastItems()
 	local items = { "who.choice" }
 	for _, item in ipairs(OfferItems()) do items[#items + 1] = item end
+	-- A paladin's Blessing of Kings first, while the walk is Automatic.
+	items[#items + 1] = "who.kingsFirst"
 	items[#items + 1] = "who.relevantOnly"
 	items[#items + 1] = { "who.autoNote", standIn = true }
 	items[#items + 1] = "who.pinNote"

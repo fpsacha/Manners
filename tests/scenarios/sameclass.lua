@@ -133,6 +133,10 @@ local function blessing(level, on, wearing, source, flavour)
 		H.freshPrompt(ns, scenario)
 		ns.db.profile.sources.strangers = false
 		ns.db.profile.filters.skipSameClass = on
+		-- About the walk past the blessings he could give himself, which ends at
+		-- Kings: in the order Wisdom, Might, Kings, not with Kings first
+		-- (tests/scenarios/hunt27-kings.lua).
+		ns.db.profile.buff.kingsFirst = false
 		-- Classic Era's players have no surname.
 		local anna = H.inQueue(ns)[Mock.surnames and ANNA or "Anna"]
 		result = anna and anna.buff and anna.buff.key or false
