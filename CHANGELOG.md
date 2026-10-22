@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- **Move the prompt, one click away.** A *Move the prompt* button now sits
+  at the top of the options window, next to *Show me the prompt*, and leads
+  the *Look* page: press it, drag the prompt where you want it, and it locks
+  itself when you let go. `/manners move` does the same. While the prompt is
+  unlocked the button reads *Lock it*.
+- **The unlocked prompt says what to do.** It reads "Drag to move" and "Let
+  go and it locks itself", and its tooltip still says it buffs nobody while
+  it is unlocked.
+
 ## 1.8.3
 
 - **Put your buffs in your own order.** *Who to buff* has a new *Buff order*
