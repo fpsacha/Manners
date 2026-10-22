@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.8.3
 
 - **Put your buffs in your own order.** *Who to buff* has a new *Buff order*
   list for any class with more than one buff: move a buff up or down with its
