@@ -276,21 +276,21 @@ do
 	end)
 end
 
--- Two side by side line up their controls, not their tops: Lock position's
--- box level with the dropdown beside it rather than with that dropdown's
+-- Two side by side line up their controls, not their tops: Move the prompt's
+-- button level with the dropdown beside it rather than with that dropdown's
 -- label (Panel colour's swatch beside Panel style goes the same way).
 do
 	local scenario = "window: a switch or a swatch beside a dropdown sits level with the dropdown"
 	with(scenario, "MAGE", nil, function(ns, UI)
 		ns.OpenOptions("appearance")
 		local function middle(e) return e.y + (e.row.fieldTop or 0) + (e.row.fieldHeight or 0) / 2 end
-		for _, pair in ipairs({ { "appearance.posPreset", "appearance.locked" } }) do
+		for _, pair in ipairs({ { "appearance.posPreset", "appearance.move" } }) do
 			local field, beside = UI.Where(pair[1]), UI.Where(pair[2])
 			if not (UI.RowShown(pair[1]) and UI.RowShown(pair[2])) then
 				fail(scenario, "SKIPPED -- " .. pair[1] .. " or " .. pair[2] .. " is not shown")
-			elseif not (beside.e.x > field.e.x) then
+			elseif beside.e.x == field.e.x then
 				fail(scenario, "SKIPPED -- " .. pair[2] .. " is not beside " .. pair[1])
-			elseif math.abs(middle(field.e) - middle(beside.e)) > 1 or not (beside.e.y > field.e.y) then
+			elseif math.abs(middle(field.e) - middle(beside.e)) > 1 then
 				fail(scenario, ("%s sits at %s, level with %s's label rather than its field (%s)"):format(
 					pair[2], tostring(middle(beside.e)), pair[1], tostring(middle(field.e))))
 			end

@@ -754,8 +754,8 @@ function Luxe:ShowsVerdict()
 end
 
 -- The tag's fill and edge: in the reason's colour, or in the colour the line
--- brings with it (the red "not buffing while unlocked" is not a reason and
--- should not sit in a gold tag). The fill is that colour taken dark, under an
+-- brings with it (a line written in red is not a reason and should not sit
+-- in a gold tag). The fill is that colour taken dark, under an
 -- edge in the colour itself; on a nearly clear panel, black.
 function Luxe:PaintPill()
 	local c = self.pillCode or self.tint or NEUTRAL

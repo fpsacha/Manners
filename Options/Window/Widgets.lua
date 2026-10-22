@@ -666,10 +666,19 @@ local function ExecuteClicked(b)
 	W.Run(row)
 end
 
+-- The layout's `big` is a button that leads a page: taller, in the large font,
+-- and not narrower than a short word makes it.
+local BIG_HEIGHT, BIG_MIN_WIDTH = 34, 190
+
 KIND.execute = {
 	Build = function(row)
+		local big = (row.item.layout or {}).big
 		local b = W.Button(row.frame, "", ExecuteClicked)
-		b.height = 24
+		b.height = big and BIG_HEIGHT or 24
+		if big then
+			b.minWidth = BIG_MIN_WIDTH
+			W.SetFont(b.label, T.fonts.large)
+		end
 		b:SetPoint("TOPLEFT", row.frame, "TOPLEFT", 0, 0)
 		W.Tip(b, row)
 		row.button = b
@@ -681,8 +690,8 @@ KIND.execute = {
 	Layout = function(row, width)
 		local w = W.ButtonLabel(row.button, row.button.label:GetText())
 		if w > width then row.button:SetWidth(width) end
-		row.fieldTop, row.fieldHeight = 0, 24
-		return 24
+		row.fieldTop, row.fieldHeight = 0, row.button.height or 24
+		return row.button.height or 24
 	end,
 	Natural = function(row) return row.button:GetWidth() end,
 }

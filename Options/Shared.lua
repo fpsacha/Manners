@@ -121,6 +121,55 @@ end
 Page.HasClassBuffs, Page.OnlyReachesGroup = HasClassBuffs, OnlyReachesGroup
 Page.HasPrompt, Page.OffersSelf, Page.NoSources = HasPrompt, OffersSelf, NoSources
 
+-- Move the prompt: the one switch for where the prompt sits, which people did
+-- not find as a small checkbox on Look. A button that reads Move the prompt
+-- while the prompt is locked and Lock it while it is not, going the way
+-- /manners move and /manners lock do, through HandleSlash, so chat says the
+-- same thing whichever way in (switched off, in a fight, snoozed). The window
+-- draws it twice, in its header (general.moveToggle) and at the top of Look
+-- (appearance.move), because its layout places a definition once; this makes
+-- both, and the fallback dialog gets them as ordinary buttons.
+--
+-- Unlocking is a move of the secure prompt, which the client refuses in a
+-- fight, so it is greyed out there with the minimap menu's words. Locking is a
+-- flag the prompt reads (Press.lua), so Lock it still works in a fight, as the
+-- status strip's does.
+local function MoveControl(order)
+	return {
+		type = "execute",
+		name = function() return P().locked and L["Move the prompt"] or L["Lock it"] end,
+		desc = function()
+			if not P().locked then
+				return L["Locks the prompt where it is. An unlocked prompt does not buff anyone."]
+			end
+			local text = L["Unlocks the prompt so you can drag it where you want it; it locks itself when you let go."]
+			if InCombatLockdown() then
+				text = text .. "\n\n" .. L["The prompt cannot be moved or changed during a fight. This comes back once it ends."]
+			end
+			return text
+		end,
+		order = order,
+		hidden = function() return not HasPrompt() end,
+		disabled = function() return P().locked and InCombatLockdown() end,
+		func = function()
+			local profile = ns.db.profile
+			if not profile.prompt.locked then
+				ns.addon:HandleSlash("lock")
+				return
+			end
+			if InCombatLockdown() then return end
+			ns.addon:HandleSlash("unlock")
+			-- The window sits over the spot the prompt starts at, and a prompt
+			-- behind it cannot be dragged: out of the way, as for the game's
+			-- key bindings, whenever there is a prompt up to drag. Switched
+			-- off, the line in chat says why there is none, and the switch is
+			-- in the header.
+			if profile.enabled and not profile.prompt.locked then ns.CloseOptions() end
+		end,
+	}
+end
+Page.MoveControl = MoveControl
+
 -- Whether the copy-for-a-bug-report box is open: a state of the window, not of
 -- the profile, put back in OpenOptions and when the Settings page hides.
 Page.reportOpen = false

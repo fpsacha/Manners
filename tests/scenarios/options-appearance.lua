@@ -59,7 +59,7 @@ end
 -- The tab in the order the spec gives it, so the page reads as a setup rather
 -- than as the history of which setting arrived when.
 local ORDER = {
-	"combatNotice", "locked", "posPreset",
+	"combatNotice", "move", "locked", "posPreset",
 	"posHeader", "scale", "alpha", "width", "height",
 	"styleHeader", "style", "bgColor", "accentByReason", "reasonPalette", "accentColor",
 	"accentMode", "accentDead",

@@ -87,6 +87,10 @@ function Page.BuildLookTab()
 			},
 			-- The preview is general.previewStart, which the options window
 			-- draws in its header, so it is one press from every page.
+			-- Moving the prompt leads the page as a button, the same one the
+			-- header has (general.moveToggle); the window does not draw Lock
+			-- position below it, since the button reads that state.
+			move = Page.MoveControl(1),
 			locked = {
 				type = "toggle",
 				name = L["Lock position"],

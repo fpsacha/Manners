@@ -849,18 +849,16 @@ withTree("Luxe tints the tag to a line's own colour", ANNA, function(ns, scenari
 		fail(scenario, "SKIPPED -- Luxe is not the look in use")
 		return
 	end
-	p.locked = false
-	ns.Prompt:ApplyStyle()
-	ns.addon:Tick()
+	-- A line written in a colour of its own, as the grey and red ones the
+	-- prompt paints in a fight or after a refusal are.
+	look.kit.SetLine(r.sub, "|cffff8080not reachable|r")
 	if not sameColour(look.pillEdge[2]._color, 1, 0x80 / 255, 0x80 / 255) then
-		fail(scenario, "the red \"not buffing while unlocked\" sits in a tag of another colour")
+		fail(scenario, "a red line sits in a tag of another colour")
 	end
-	p.locked = true
-	ns.Prompt:ApplyStyle()
 	ns.addon:Tick()
 	local cr, cg, cb = ns.Prompt:AccentColor("owed")
 	if not sameColour(look.pillEdge[2]._color, cr, cg, cb) then
-		fail(scenario, "the tag kept the unlocked line's red after locking")
+		fail(scenario, "the tag kept the red line's colour after the next repaint")
 	end
 	Mock.inCombat = true
 	ns.addon:PLAYER_REGEN_DISABLED()

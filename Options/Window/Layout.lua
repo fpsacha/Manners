@@ -16,8 +16,9 @@
 -- or { "tab.key", indent, pair (may share a row with the item after it; pairs
 -- that follow one another are one run, whose shown items go two to a row),
 -- standIn (a note that keeps its section while the controls it stands in for
--- are hidden), lead, columns, widget }. tests/scenarios/layout.lua holds every
--- control to being placed exactly once.
+-- are hidden), lead, columns, widget, big (a button that leads its page: taller,
+-- in the large font) }. tests/scenarios/layout.lua holds every control to being
+-- placed exactly once.
 
 local _, ns = ...
 local L = ns.L
@@ -96,6 +97,9 @@ ns.WindowLayout = {
 	-- The window frame: shown on every page, so no page shows them.
 	header = {
 		preview = "general.previewStart",
+		-- Beside the preview: Move the prompt, which reads Lock it while the
+		-- prompt is unlocked. The same control leads Look (appearance.move).
+		move = "general.moveToggle",
 		enabled = "general.enabled",
 		snooze = { "general.snooze5", "general.snooze15", "general.snooze30", "general.snoozeStop" },
 		snoozeTip = "general.snoozeNote",
@@ -325,9 +329,12 @@ ns.WindowLayout = {
 			icon = ICONS.appearance,
 			sections = {
 				-- No header of its own in the model: the control's label is the title.
+				-- Moving the prompt leads the page: the button, big, with the
+				-- ready-made places beside it. Lock position is not drawn (see
+				-- unplaced): the button reads and sets the same lock.
 				{ key = "appearance.where", title = L["Where it sits"], items = {
-					{ "appearance.posPreset", pair = true },
-					"appearance.locked",
+					{ "appearance.move", pair = true, big = true },
+					"appearance.posPreset",
 				} },
 				{ key = "appearance.size", header = "appearance.posHeader", items = {
 					{ "appearance.scale", pair = true },
@@ -473,6 +480,10 @@ ns.WindowLayout = {
 		["general.voiceHeader"] = true,
 		-- Snooze is a menu button in the header.
 		["general.snoozeHeader"] = true,
+		-- "Lock position": Look's first control is the Move the prompt button,
+		-- which reads Lock it while the prompt is unlocked and goes the same
+		-- way as /manners unlock and lock; the saved setting is the same.
+		["appearance.locked"] = true,
 		-- Its string is the Who to skip page's title.
 		["who.skipHeader"] = true,
 		-- "Messages in chat": Log every click joined Reporting a bug.

@@ -38,11 +38,13 @@ local TEST_SECONDS = 20
 
 -- `line` is the whole chat line for a preview that ended on its own, written
 -- where the reason is known so each reason is one sentence to translate.
-function Prompt:ExitTest(line)
+-- `quiet` ends it without one, for a caller that says what happened itself:
+-- unlocking, where "Drag to move" replaces the mock-up on the panel.
+function Prompt:ExitTest(line, quiet)
 	if not S.testMode then return end
 	S.testMode, S.testExpiry = false, nil
 	self:ApplyTarget(nil)
-	ns.addon:Print(line or L["preview off."])
+	if not quiet then ns.addon:Print(line or L["preview off."]) end
 	-- Every way a preview ends comes through here, so this tells an open
 	-- options page that its button reads "Preview" again.
 	if ns.RepaintOptions then ns.RepaintOptions() end
@@ -226,7 +228,11 @@ function Prompt:RefreshPanel()
 		if SetPanelShown(true) then
 			SetLine(R.nameText, "|cffffd100" .. L["Drag to move"] .. "|r")
 			S.outcomePainted = nil
-			if R.subText:IsShown() then SetLine(R.subText, "|cffff8080" .. L["not buffing while unlocked"] .. "|r") end
+			-- What happens next, in the look's own reason-line colour: the
+			-- red warning this used to be said something was wrong, and
+			-- nothing is. "not buffing while unlocked" is the tooltip's
+			-- (Button.lua).
+			if R.subText:IsShown() then SetLine(R.subText, L["Let go and it locks itself"]) end
 			ShowChip(false)
 			R.countText:SetText("")
 			R.resultFill:Hide()

@@ -1104,6 +1104,8 @@ ns.COMMANDS = {
 	{ word = "welcome", group = "setup",
 		help = L["what this addon does, and the one thing it needs from you"] },
 	{ word = "macro", group = "setup", help = L["make a /click macro for your action bar"] },
+	{ word = "move", group = "setup",
+		help = L["move the prompt -- unlock it, drag it, and it locks itself when you let go"] },
 	{ word = "unlock", group = "setup", help = L["unlock the prompt so it can be dragged"] },
 	{ word = "lock", group = "setup", help = L["lock it again -- an unlocked prompt never casts"] },
 	-- Both of these flip a setting that starts on, so they say "switch".
@@ -1224,7 +1226,7 @@ end
 -- RefreshConfig.
 local REPAINT_AFTER = {
 	on = true, off = true, verbose = true, clicks = true,
-	restore = true, lock = true, unlock = true, snooze = true,
+	restore = true, lock = true, unlock = true, move = true, snooze = true,
 	-- The never-offer list is drawn on the Who to buff tab.
 	never = true, allow = true,
 	-- Not a setting, but Start here says whether the macro is made, and warns
@@ -1356,7 +1358,10 @@ function addon:HandleSlash(rawInput)
 		else
 			self:Print(L["the favour ledger did not load -- reinstalling Manners should bring it back."])
 		end
-	elseif input == "unlock" then
+	elseif input == "unlock" or input == "move" then
+		-- A preview over the prompt would stand where "Drag to move" goes, and
+		-- the options window's button, which this is for, starts from one.
+		if ns.Prompt:InTest() then ns.Prompt:ExitTest(nil, true) end
 		db.prompt.locked = false
 		ns.Prompt:ApplyStyle()
 		-- Unlocking while off puts nothing on screen (Refresh reads `enabled`
