@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+- **Blessing of Kings first.** A paladin who has learned Blessing of Kings now
+  offers it to everybody before Might or Wisdom, and as a Greater Blessing for
+  a whole class. Somebody already wearing Kings from another paladin gets the
+  blessing they would have had before, and nobody wearing one of yours is
+  switched to another. *Blessing of Kings first* on the *Who to buff* tab
+  turns it off. On WoW Forever, Classic Era and Burning Crusade; on Mists,
+  Kings already came first.
+
 ## 1.8.1
 
 - **The prompt is back after 1.8.0.** Setting up the clickable names failed
