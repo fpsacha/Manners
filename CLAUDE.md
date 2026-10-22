@@ -387,6 +387,12 @@ only; `{gift}` is the spell they gave you), `RP.TRADE`, `RP.HISTORY`,
   `pcall`.
 - **Combat.** The secure button's attributes cannot change in combat: what is
   on the prompt when a fight starts stays until it ends.
+- **Secure frames never anchor to a region.** The client refuses a protected
+  frame's `SetPoint` onto a font string or texture ("Cannot anchor protected
+  frames to regions"); 1.8.0 did it for the list's names and threw in
+  ApplyStyle at every login. Anchor secure buttons to frames (the prompt's
+  art, its button); `tests/mockwidgets.lua` refuses the region anchor as the
+  client does.
 - **Macro.** 255 characters (`ns.MACRO_LIMIT`); the spoken line gets what the
   cast lines leave (`ns.PhraseBudget`). A press on anybody, yourself included,
   is `/target <name>`, `/cast <spell>`, and `/targetlasttarget` when your
