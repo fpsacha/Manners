@@ -934,6 +934,10 @@ function Page.BuildStartTab()
 				end,
 				func = function() ns.Prompt:ToggleTest() end,
 			},
+			-- Beside it in the window's header too, so moving the prompt is
+			-- one press from every page; Look leads with the same control
+			-- (appearance.move).
+			moveToggle = Page.MoveControl(32),
 
 			-- Step 4. What is said, as a preset; the words are on What I say.
 			voiceHeader = {

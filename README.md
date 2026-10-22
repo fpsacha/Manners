@@ -70,10 +70,12 @@ already had is never asked. Below them, Start here has two steps:
    matters, because the secure button only casts on the way down.
 
 Then press *Show me the prompt* at the top of the window (or type
-`/manners test`) to see it where it sits. *Where it sits* has three
-ready-made places, on the *Look* page beside *Lock position*; `/manners
-unlock` lets you drag it, and it locks again when you let go. To `/thank`
-people or say a line when you buff them, see *What I say*.
+`/manners test`) to see it where it sits. To move it, press *Move the
+prompt* beside it (or type `/manners move`): the window steps aside, you
+drag the prompt where you want it, and it locks itself when you let go. The
+*Look* page starts with the same button and, beside it, *Where it sits*,
+which has three ready-made places. To `/thank` people or say a line when you
+buff them, see *What I say*.
 
 The first login on each character says what the addon does and what it needs
 from you, once, and shows the prompt so you can see where it is.
@@ -336,10 +338,11 @@ explain themselves; this is what their tooltips have no room for.
 
 **On every page.**
 
-- Along the top: *Show me the prompt*, *Snooze* (5, 15 or 30 minutes; while
-  one runs the button says until when, and its menu can stop it) and *Manners
-  is on*. A character with nothing for the prompt to show, such as a rogue,
-  has only the switch.
+- Along the top: *Show me the prompt*, *Move the prompt* (it reads *Lock it*
+  while the prompt is unlocked; the game does not let a prompt be moved in a
+  fight), *Snooze* (5, 15 or 30 minutes; while one runs the button says until
+  when, and its menu can stop it) and *Manners is on*. A character with
+  nothing for the prompt to show, such as a rogue, has only the switch.
 - Under them, a line appears only while something keeps the prompt from
   doing what you would expect: Manners is off, the prompt is unlocked (with
   *Lock it* at the end of the line), a snooze is running, nothing can be
@@ -669,7 +672,8 @@ Everyday
 Setting it up
 /manners welcome            what it does, and the one thing it needs from you
 /manners macro              make a /click macro for your action bar
-/manners unlock             drag the prompt; it locks again when you let go
+/manners move               unlock the prompt and drag it; it locks itself when you let go
+/manners unlock             the same as move
 /manners lock               lock it again (an unlocked prompt never casts)
 /manners restore            switch handing your target back on or off
 /manners verbose            switch the chat lines about who buffed you on or off

@@ -332,6 +332,9 @@ UI.ctx = {
 local function StartPreview()
 	if InCombatLockdown() or not ns.Prompt or ns.Prompt:InTest() then return end
 	if not ns.OptionsPage.HasPrompt() then return end
+	-- Not over an unlocked prompt: the mock-up would stand where "Drag to move"
+	-- is, and Move the prompt put that there. Show me the prompt still asks.
+	if not ns.db.profile.prompt.locked then return end
 	ns.Prompt:ToggleTest()
 end
 

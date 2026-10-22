@@ -1,6 +1,6 @@
 -- Manners -- options window: the frame's own parts around the page. The
--- header (icon and title, Show me the prompt, Snooze, the master switch, the
--- X), the status strip, the sidebar's page list and the footer.
+-- header (icon and title, Show me the prompt, Move the prompt, Snooze, the
+-- master switch, the X), the status strip, the sidebar's page list and the footer.
 
 local _, ns = ...
 local L = ns.L
@@ -21,7 +21,8 @@ local COMBAT_NEEDS = { when = "advanced.restoreTarget" }
 local CHEVRON, CHEVRON_ROOM = 12, 16
 
 ---------------------------------------------------------------------------
--- header: icon and title, Show me the prompt, Snooze, the switch, the X
+-- header: icon and title, Show me the prompt, Move the prompt, Snooze, the
+-- switch, the X
 ---------------------------------------------------------------------------
 
 local header = {}
@@ -36,6 +37,28 @@ local function PreviewClicked()
 	-- Still resting on it: the 0.4 s counts again from the click, so a
 	-- preview just started gets its peek without the pointer moving.
 	if header.preview:IsMouseOver() then UI.HoverPreview(true) end
+end
+
+-- Move the prompt, which reads Lock it while the prompt is unlocked: the
+-- model's button (general.moveToggle) run as the window runs any, so it goes
+-- the way /manners unlock and lock go.
+local function MoveClicked()
+	local item = header.moveItem
+	if item then ns.WindowBind.Run(item) end
+end
+
+-- The button's name in gold and its tooltip under it: what it does now, and in
+-- a fight why it cannot.
+local function MoveTip(button)
+	local item = header.moveItem
+	if not item then return end
+	local B = ns.WindowBind
+	local desc = B.Text(item, "desc")
+	if not desc then return end
+	GameTooltip:SetOwner(button, "ANCHOR_BOTTOM")
+	GameTooltip:AddLine(UI.Plain(B.Text(item, "name")), 1, 0.82, 0)
+	GameTooltip:AddLine(desc, 1, 1, 1, true)
+	GameTooltip:Show()
 end
 
 -- A menu entry's work. It answers nothing: the menu takes anything a
@@ -129,6 +152,13 @@ function UI.BuildHeader(f)
 	-- Sized once to the longer of its two labels, so it does not jump.
 	header.previewWidth = math.ceil(math.max(UI.Measure(L["Show me the prompt"]), UI.Measure(L["Stop preview"]))) + 26
 
+	header.moveItem = UI.Item(layout.move)
+	header.move = W.Button(h, L["Move the prompt"], UI.Guarded(MoveClicked))
+	header.move:HookScript("OnEnter", UI.Guarded(MoveTip))
+	header.move:HookScript("OnLeave", function() GameTooltip:Hide() end)
+	-- The same: the longer of Move the prompt and Lock it.
+	header.moveWidth = math.ceil(math.max(UI.Measure(L["Move the prompt"]), UI.Measure(L["Lock it"]))) + 26
+
 	header.snoozeItems = {}
 	for _, path in ipairs(layout.snooze or {}) do
 		local item = UI.Item(path)
@@ -151,7 +181,8 @@ function UI.BuildHeader(f)
 	header.snooze = snooze
 end
 
--- Placed from the right edge in: the X, the switch, Snooze, the preview.
+-- Placed from the right edge in: the X, the switch, Snooze, Move the prompt,
+-- the preview.
 function UI.PaintHeader()
 	local B = ns.WindowBind
 	local h, right = header.frame, UI.WIDTH - 6 - 24 - 10
@@ -186,6 +217,18 @@ function UI.PaintHeader()
 		snooze:ClearAllPoints()
 		snooze:SetPoint("TOPLEFT", h, "TOPLEFT", right - w, -11)
 		right = right - w - 10
+	end
+
+	local moveItem, move = header.moveItem, header.move
+	local moveShown = moveItem ~= nil and not UI.Hidden(moveItem)
+	move:SetShown(moveShown)
+	if moveShown then
+		UI.SetButtonText(move, B.Text(moveItem, "name") or L["Move the prompt"])
+		move:SetEnabled(not UI.Disabled(moveItem))
+		move:SetSize(header.moveWidth, 22)
+		move:ClearAllPoints()
+		move:SetPoint("TOPLEFT", h, "TOPLEFT", right - header.moveWidth, -11)
+		right = right - header.moveWidth - 10
 	end
 
 	local item, preview = header.previewItem, header.preview

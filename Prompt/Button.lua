@@ -238,12 +238,37 @@ do
 		GameTooltip:Show()
 	end
 
+	-- Whether the panel is up as something to drag, which is when RefreshPanel
+	-- paints "Drag to move": on, unlocked, with something to cast, and no
+	-- preview or fight over it. The one tooltip it has says what the panel's
+	-- two short lines have no room for.
+	local function DragPanelUp()
+		local db = ns.db.profile
+		return db.enabled and not db.prompt.locked and not S.testMode and not InCombatLockdown()
+			and ns.CanCastAnything()
+	end
+
+	local function DragTooltip(owner)
+		GameTooltip:SetOwner(owner, "ANCHOR_TOP")
+		GameTooltip:AddLine("Manners")
+		GameTooltip:AddLine(L["Drag to move"], 1, 0.82, 0)
+		GameTooltip:AddLine(L["Let go and it locks itself"], 0.7, 0.7, 0.7, true)
+		GameTooltip:AddLine(L["not buffing while unlocked"], 1, 0.5, 0.5, true)
+		GameTooltip:Show()
+	end
+
 	local function OnEnter(self)
 		-- First, whatever the tooltip does: the cursor is on the panel, and
 		-- the hold and the fuse wait for it (see hovering). OnUpdate calls
 		-- this again only while the tooltip is ours, so still hovering.
 		S.hovering = true
 		if S.activeLook then S.activeLook:Hover(true) end
+		-- Nobody is armed while it is unlocked, so there is no person to
+		-- describe: the tooltip is about the drag instead.
+		if DragPanelUp() then
+			DragTooltip(self)
+			return
+		end
 		-- Nothing armed is nothing to describe, and a tooltip left from the
 		-- last person goes with it.
 		if not S.current or not S.current.buff then
@@ -278,6 +303,9 @@ do
 		if self.sinceCheck < 0.2 then return end
 		self.sinceCheck = 0
 		if not GameTooltip:IsOwned(self) then return end
+		-- The drag tooltip has nobody behind it and stays while the panel is
+		-- still up to be dragged; once it is locked, the rest of this applies.
+		if DragPanelUp() then return end
 		if not (S.current and S.current.buff) then
 			self.tooltipFor = nil
 			GameTooltip:Hide()

@@ -50,11 +50,12 @@ local STAND_IN = {
 }
 
 local GROUPS = { { "general" }, { "who", "skip", "when", "click", "appearance" }, { "profiles", "diagnostics" } }
-local FLAGS = { indent = true, pair = true, standIn = true, lead = true, columns = true, widget = true }
+local FLAGS = { indent = true, pair = true, standIn = true, lead = true, columns = true, widget = true, big = true }
 
 -- What each of the frame's own slots has to be in the model.
 local SLOT_TYPES = {
-	["header.preview"] = "execute", ["header.enabled"] = "toggle", ["header.snooze"] = "execute",
+	["header.preview"] = "execute", ["header.move"] = "execute", ["header.enabled"] = "toggle",
+	["header.snooze"] = "execute",
 	["header.snoozeTip"] = "description", ["strip.lock"] = "execute", ["strip.combat"] = "description",
 	foldCaption = "description", ["footer.reset"] = "execute", ["footer.build"] = "description",
 }
@@ -73,6 +74,7 @@ local function Collect(layout, problem)
 	end
 	local frame = layout.header or {}
 	use(frame.preview, "the header", "header.preview")
+	use(frame.move, "the header", "header.move")
 	use(frame.enabled, "the header", "header.enabled")
 	for _, path in ipairs(frame.snooze or {}) do use(path, "the snooze menu", "header.snooze") end
 	use(frame.snoozeTip, "the snooze tooltip", "header.snoozeTip")
@@ -232,6 +234,9 @@ local function CheckClass(scenario, ns, layout, seen)
 			end
 			if option and entry.widget == "number" and kind ~= "range" then
 				problem(path .. " is a " .. tostring(kind) .. "; only a range is a number box")
+			end
+			if option and entry.big and kind ~= "execute" then
+				problem(path .. " is a " .. tostring(kind) .. "; only a button is big")
 			end
 			if option and entry.columns and not (entry.composite or kind == "toggle" or kind == "multiselect") then
 				problem(path .. " is a " .. tostring(kind) .. "; columns are for switches and a multiselect")
