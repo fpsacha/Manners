@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.8.4
 
 - **Move the prompt, one click away.** A *Move the prompt* button now sits
   at the top of the options window, next to *Show me the prompt*, and leads
