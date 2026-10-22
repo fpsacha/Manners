@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+- **Put your buffs in your own order.** *Who to buff* has a new *Buff order*
+  list for any class with more than one buff: move a buff up or down with its
+  arrows, and the first one a person can use is what they are offered.
+  Anybody already wearing one of yours is still left alone, and Greater
+  Blessings follow your order too. *Back to Automatic* puts it back, and
+  brings back *Blessing of Kings first*, which gives way to an order of your
+  own.
+
 ## 1.8.2
 
 - **Blessing of Kings first.** A paladin who has learned Blessing of Kings now
