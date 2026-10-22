@@ -498,6 +498,10 @@ local function paladinRaid(extra)
 		class = "PALADIN", raid = { size = 10, player = 1 }, names = names, classes = classes,
 		known = join(PALADIN_SINGLE, { 25916, 25782, 25918, 25894 }),
 		bags = { [SYMBOL_OF_KINGS] = 10 },
+		-- These are about Greater Might and Wisdom, and about what the walk puts
+		-- over a Kings somebody carries: the walk before Kings could come first
+		-- (tests/scenarios/hunt27-kings.lua is about Kings first).
+		setup = function(ns) ns.db.profile.buff.kingsFirst = false end,
 		-- The priests have Wisdom from us, so the only class left is the warriors.
 		held = { raid5 = { [25290] = true }, raid9 = { [25290] = true }, raid10 = { [25290] = true } },
 	}

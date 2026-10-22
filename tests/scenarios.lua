@@ -14087,6 +14087,10 @@ for _, case in ipairs({
 		IsPlayerSpell = IsSpellKnown
 		local saved = savedProfile(scenario, function(profile)
 			for _, key in ipairs(case.skip) do profile.buff.skip[key] = true end
+			-- The walk as it was before Kings could come first: the spell named
+			-- when the first of the list is switched off is the next of it
+			-- (tests/scenarios/hunt27-kings.lua is about Kings first).
+			profile.buff.kingsFirst = false
 		end)
 		ns = saved and load(scenario)
 		local said = ns and firstLogin(ns)
@@ -14303,6 +14307,9 @@ for _, case in ipairs({
 		wipe(ns.tried)
 		ns.Guard("probe", ns.ProbeCapabilities)
 		ns.db.profile.filters.relevantOnly = true
+		-- Who is walked on past another paladin's blessing, in the order Wisdom,
+		-- Might, Kings (tests/scenarios/hunt27-kings.lua has Kings first).
+		ns.db.profile.buff.kingsFirst = false
 		if case.held then
 			Mock.held = { [case.held] = true }
 			Mock.heldSource = case.source and { [case.held] = case.source } or nil

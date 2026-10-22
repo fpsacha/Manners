@@ -181,7 +181,8 @@ local function AddBuffToggles(args)
 			desc = L["Untick to never offer this buff."],
 			-- Sub-one steps so the whole block sits between the buff dropdown
 			-- and "Skip players it does nothing for" (4.9) whatever the class
-			-- has, and in the order the walk visits them.
+			-- has, and in the order the buff set lists them (which is the walk's,
+			-- but for a paladin's Kings first: Automatic's note says that one).
 			order = 4 + index / 10,
 			width = "full",
 			-- A pinned spell is the only one considered, so these would be
@@ -490,6 +491,28 @@ function Page.BuildWhoTab()
 					end
 					return AutoExplanation()
 				end,
+			},
+			-- After the per-spell switches (4.1, 4.2, ...) and ahead of the mana
+			-- switch: all of them decide what is cast. Only for a class whose list
+			-- has a strongest buff to put first (a paladin's Kings on Classic Era,
+			-- Burning Crusade and Forever), and not while one spell is pinned, which
+			-- is all that is considered then.
+			kingsFirst = {
+				type = "toggle",
+				name = function()
+					local buff = ns.StrongestBuff()
+					return buff and L["%s first"]:format(ns.BuffName(buff)) or ""
+				end,
+				desc = function()
+					local buff = ns.StrongestBuff()
+					return buff and L["Offer %s to everybody before any other blessing. Somebody who already carries it from another paladin, or who cannot be given it, gets the blessing Automatic would have chosen instead; anybody carrying one of yours is left alone."]
+						:format(ns.BuffName(buff)) or ""
+				end,
+				order = 4.8,
+				width = "full",
+				hidden = function() return ns.PinnedBuff() ~= nil or ns.StrongestBuff() == nil end,
+				get = function() return B().kingsFirst == true end,
+				set = bSet,
 			},
 			-- The per-spell switches (AddBuffToggles) sit at 4.1, 4.2, ... and
 			-- this one after them: all three decide what is cast. Only for a

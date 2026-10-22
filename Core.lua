@@ -203,6 +203,11 @@ local defaults = {
 			-- The class's spells switched off, as a sparse set (absent = on).
 			-- Keys are class-unique, so a shared profile cannot cross classes.
 			skip = {},
+			-- A paladin who knows Blessing of Kings offers it to everybody ahead of
+			-- the rest (Buffs.lua, `strongest`; CastableBuffs). On: the strongest
+			-- blessing first is what was asked for, and somebody already carrying
+			-- one of yours, or Kings from another paladin, is handled as ever.
+			kingsFirst = true,
 		},
 
 		sources = {
@@ -812,15 +817,42 @@ end
 function ns.CastableBuffs()
 	local db = addon.db and addon.db.profile
 	local pinned = db and db.buff.choice
+	-- "Blessing of Kings first" (Buffs.lua, `strongest`): the strongest buff at
+	-- the head of the list, the rest behind it in their own order, so that what
+	-- the walk falls back to for somebody Kings does nothing for is what it would
+	-- have picked without the switch. Nothing else about the walk changes, which
+	-- is what keeps it stable: PickBuffFor's exclusive branch reads the whole list
+	-- before it offers anything, so somebody wearing any blessing of yours is
+	-- covered however the list is ordered -- never walked onto Kings, and Kings of
+	-- yours never walked onto Might or Wisdom -- and somebody wearing Kings from
+	-- another paladin is read as theirs and walked on to the next. Kings goes to
+	-- somebody wearing none of yours, and nobody flips between the two.
+	local strongestFirst = db ~= nil and db.buff.kingsFirst == true
 	local out = {}
 	for _, buff in ipairs(ns.GetClassBuffs(playerClass) or {}) do
 		if ns.IsBuffKnown(buff)
 			and (pinned == buff.key or not (db and db.buff.skip and db.buff.skip[buff.key]))
 			and (not buff.neverAuto or pinned == buff.key) then
-			out[#out + 1] = buff
+			if strongestFirst and buff.strongest then
+				table.insert(out, 1, buff)
+			else
+				out[#out + 1] = buff
+			end
 		end
 	end
 	return out
+end
+
+-- The buff of this class that "Blessing of Kings first" puts at the head of the
+-- walk (Buffs.lua, `strongest`), learned or not, or nil for a class or a client
+-- with none: a paladin's Kings on Classic Era, Burning Crusade and Forever, and
+-- nothing on Mists, where it is first in the list already. The options page
+-- shows the switch only where there is one.
+function ns.StrongestBuff()
+	for _, buff in ipairs(ns.GetClassBuffs(playerClass) or {}) do
+		if buff.strongest then return buff end
+	end
+	return nil
 end
 
 -- The neverAuto spells CastableBuffs leaves out, learned and switched on, or
@@ -1943,6 +1975,16 @@ function ns.ResolveBuff(hasMana)
 	local pinned = ns.PinnedBuff()
 	if pinned then return ns.IsBuffKnown(pinned) and pinned or nil end
 
+	-- Kings first: what the walk offers ahead of the rest is the spell named,
+	-- under the same switches as the walk (learned, switched on, not never-auto).
+	if db.buff.kingsFirst == true then
+		local strongest = ns.StrongestBuff()
+		if strongest and ns.IsBuffKnown(strongest) and not strongest.neverAuto
+			and not (db.buff.skip and db.buff.skip[strongest.key]) then
+			return strongest
+		end
+	end
+
 	-- The switches and the never-automatic rule apply here as in the walk.
 	local auto = ns.CLASS_AUTO[playerClass]
 	if auto then
@@ -2864,6 +2906,8 @@ function ns.ClampSettings()
 	-- anything else a damaged file holds would switch it off unseen.
 	boolean(profile.filters, "skipPvP", true)
 	boolean(profile.filters, "skipSameClass", false)
+	-- Read on every scan as a switch that only a plain true turns on.
+	boolean(profile.buff, "kingsFirst", true)
 	boolean(profile.groupBuffs, "use", true)
 	-- A count of people, so a whole one: a hand-edited 2.5 is a number the
 	-- slider cannot show, and the page would say something the scan does not do.

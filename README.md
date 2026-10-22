@@ -717,6 +717,14 @@ it is the only thing ever cast. Battle Shout reaches your own party (in a raid,
 your own subgroup) and nobody else, so a warrior outside a group is offered
 nobody. That is deliberate rather than a fault.
 
+A paladin who has learned Blessing of Kings offers it to everybody first, ahead
+of Might and Wisdom (*Blessing of Kings first* on the *Who to buff* page, on by
+default; Mists already puts Kings first). Somebody who already wears Kings from
+another paladin is offered the blessing the list would have given them (Might,
+or Wisdom for those with mana, then Salvation and Light), and nobody is changed
+from one of your blessings to another: anybody wearing one of yours is left
+alone, so Kings is never put over your Might and your Might never over Kings.
+
 Mages, priests, druids and paladins also cast the group version of a buff
 once they have learned it and carry its reagent: Arcane Brilliance (Arcane
 Powder), the three Prayers (Sacred Candle, or a Holy Candle for Prayer of

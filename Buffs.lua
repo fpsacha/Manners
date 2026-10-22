@@ -28,6 +28,12 @@
 --             subgroup too), and nobody outside it: Blessing of Salvation.
 --   selfCast  cast on yourself, not on them, so the macro takes no target.
 --   neverAuto offerable, but never what "Automatic" reaches for.
+--   strongest the buff of an exclusive class's list (a paladin's Kings) that
+--             "Blessing of Kings first" puts at the head of the walk: offered to
+--             everybody before the rest, which stay in their order behind it
+--             and are what somebody gets who cannot be given it or already
+--             wears it from another paladin (Core.lua, CastableBuffs). Set only
+--             where the list does not already begin with it: Mists' does.
 --   notSelf   the game will not let you cast it on yourself, so "Myself"
 --             (Queue.lua) never offers it to you.
 --   neverSelf castable on yourself, but never offered to you by "Myself": a
@@ -161,6 +167,7 @@ local VANILLA = {
 			group = { 25898 },
 			talent = true,
 			groupCast = Greater(25898),
+			strongest = true,
 		},
 		{
 			key = "salvation",
@@ -1026,6 +1033,7 @@ local TBC = {
 			talent = true,
 			group = { 25898 },
 			groupCast = Greater(25898),
+			strongest = true,
 		},
 		{
 			key = "salvation",
@@ -1430,7 +1438,8 @@ local MISTS = {
 	-- to carry their own ids are gone, so there is no group version to match.
 	PALADIN = {
 		-- 5% stats, as Mark of the Wild and Legacy of the Emperor: somebody
-		-- wearing either is walked on to Might.
+		-- wearing either is walked on to Might. First in the list, so not
+		-- `strongest`: the walk already offers it ahead of Might.
 		{ key = "kings", ranks = { 20217 }, alike = { 1126, 117666, 117667 } },
 		{ key = "might", ranks = { 19740 } },
 	},
