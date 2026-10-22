@@ -208,6 +208,14 @@ local defaults = {
 			-- blessing first is what was asked for, and somebody already carrying
 			-- one of yours, or Kings from another paladin, is handled as ever.
 			kingsFirst = true,
+			-- The order a class's buffs are tried in, set by hand (Who to buff, Buff
+			-- order): order[CLASS] = { key, key, ... }, every buff of that class the
+			-- client that wrote it has. Absent is Automatic -- the list as the buff
+			-- set gives it, Kings ahead of it while kingsFirst is on -- and one that
+			-- is there wins over kingsFirst. Per class, since the profile is shared by
+			-- every character; a key this client lacks is kept for the client that
+			-- has it (ns.ClampSettings, ns.WalkBuffs).
+			order = {},
 		},
 
 		sources = {
@@ -810,10 +818,190 @@ local function FirstKnownBuff()
 	end
 end
 
--- Everything of this class the player can actually cast, in list order, once
--- per scan. A neverAuto buff (Unending Breath) and a switched-off one are left
--- out unless pinned: a pin is a deliberate ask, and the options page hides the
--- switches while a spell is pinned.
+---------------------------------------------------------------------------
+-- the buff order
+--
+-- A class's buffs tried in an order of the player's own (Who to buff, Buff
+-- order), saved per class: db.buff.order[CLASS] = { key, key, ... }. Absent is
+-- Automatic, the list as the buff set gives it with Blessing of Kings ahead of
+-- it while db.buff.kingsFirst is on; one that is there wins over that switch,
+-- whose meaning the order is then. It is only ever the order the walk tries the
+-- buffs in (CastableBuffs): who is covered, and by what, is decided by
+-- PickBuffFor as ever, and reads the whole list before it offers anything.
+---------------------------------------------------------------------------
+
+-- In a block of its own for the main chunk's 200 locals.
+do
+	-- The list the walk reads, made for one order and kept until the order, the
+	-- class or its buff list differs: compared key by key on every call (a
+	-- handful of strings, no allocation), so an order edited in place, switched
+	-- with the profile or put back by the page's reset is read at the next scan
+	-- with nothing to tell this function.
+	local cache = { class = false, base = false, count = 0, keys = {}, list = {} }
+
+	-- `base` (the class's buffs in the buff set's order) in `order`'s order: the
+	-- keys this client has, once each, then the ones the order lacks in the
+	-- set's order. A key this client lacks is skipped, not removed.
+	local function Ordered(class, base, order)
+		local count = #order
+		local fresh = cache.class == class and cache.base == base and cache.count == count
+		if fresh then
+			local keys = cache.keys
+			for i = 1, count do
+				if keys[i] ~= order[i] then
+					fresh = false
+					break
+				end
+			end
+		end
+		if fresh then return cache.list end
+
+		local byKey, list, seen = {}, {}, {}
+		for _, buff in ipairs(base) do byKey[buff.key] = buff end
+		for i = 1, count do
+			local key = order[i]
+			local buff = type(key) == "string" and byKey[key]
+			if buff and not seen[key] then
+				seen[key] = true
+				list[#list + 1] = buff
+			end
+		end
+		for _, buff in ipairs(base) do
+			if not seen[buff.key] then list[#list + 1] = buff end
+		end
+		cache.class, cache.base, cache.count, cache.list = class, base, count, list
+		local keys = cache.keys
+		for i = 1, count do keys[i] = order[i] end
+		for i = count + 1, #keys do keys[i] = nil end
+		return list
+	end
+
+	-- The class's buffs the way Automatic walks them: the set's order, the
+	-- strongest first when asked. A new table, for the options page and the repair.
+	local function Automatic(class, kingsFirst)
+		local list, out = ns.GetClassBuffs(class) or {}, {}
+		if kingsFirst then
+			for _, buff in ipairs(list) do
+				if buff.strongest then out[#out + 1] = buff end
+			end
+		end
+		for _, buff in ipairs(list) do
+			if not (kingsFirst and buff.strongest) then out[#out + 1] = buff end
+		end
+		return out
+	end
+
+	-- The saved order of this character's class, or nil for Automatic.
+	function ns.BuffOrder()
+		local db = addon.db and addon.db.profile
+		local all = db and db.buff and db.buff.order
+		local order = type(all) == "table" and all[playerClass] or nil
+		if type(order) == "table" and order[1] ~= nil then return order end
+		return nil
+	end
+
+	-- Whether the player has set an order for this class: what turns the
+	-- Kings-first switch off the page and puts "Back to Automatic" on it.
+	function ns.HasBuffOrder()
+		return ns.BuffOrder() ~= nil
+	end
+
+	-- This class's buffs in the order the walk tries them -- every one of them,
+	-- learned or not, switched on or off -- and whether that order is the
+	-- player's own. Not a copy: read it, never write it. Called on every scan,
+	-- so nothing is made unless the order has just changed.
+	function ns.WalkBuffs()
+		local base = ns.GetClassBuffs(playerClass) or {}
+		local order = ns.BuffOrder()
+		if order then return Ordered(playerClass, base, order), true end
+		return base, false
+	end
+
+	-- What the options page lists: the walk's order as a new table, whoever's
+	-- order it is (Automatic's with Kings first while that switch is on).
+	function ns.BuffWalkOrder()
+		local db = addon.db and addon.db.profile
+		local list, custom = ns.WalkBuffs()
+		if not custom then return Automatic(playerClass, db ~= nil and db.buff.kingsFirst == true) end
+		local out = {}
+		for i, buff in ipairs(list) do out[i] = buff end
+		return out
+	end
+
+	-- One class's saved order made sound, or nil when nothing of it is left to
+	-- keep: a key that is not a string or that no client has for this class goes,
+	-- and a key twice is kept once. A key this client lacks stays (a profile is
+	-- shared by every client the account plays), and the buffs this client has
+	-- that the order lacks follow, in Automatic's order.
+	function ns.RepairedBuffOrder(class, keys, kingsFirst)
+		local known = ns.BUFF_KEY_ANY_CLIENT and ns.BUFF_KEY_ANY_CLIENT[class]
+		if not (known and type(keys) == "table") then return nil end
+		local out, seen = {}, {}
+		for _, key in ipairs(keys) do
+			if type(key) == "string" and known[key] and not seen[key] then
+				seen[key] = true
+				out[#out + 1] = key
+			end
+		end
+		if #out == 0 then return nil end
+		for _, buff in ipairs(Automatic(class, kingsFirst)) do
+			if not seen[buff.key] then out[#out + 1] = buff.key end
+		end
+		return out
+	end
+
+	-- One step of `key` up the order (step -1) or down it (step 1), among the
+	-- buffs this client has: the first cannot go up nor the last down, and then
+	-- nothing changes (false). An order that comes out as Automatic's is not
+	-- kept, so Back to Automatic goes with it and the switch comes back.
+	function ns.MoveBuff(key, step)
+		local db = addon.db and addon.db.profile
+		local base = ns.GetClassBuffs(playerClass)
+		if not (db and base) then return false end
+		local kingsFirst = db.buff.kingsFirst == true
+		local auto = {}
+		for i, buff in ipairs(Automatic(playerClass, kingsFirst)) do auto[i] = buff.key end
+		local saved = ns.BuffOrder()
+		local keys = saved and ns.RepairedBuffOrder(playerClass, saved, kingsFirst) or nil
+		if not keys then keys = { unpack(auto) } end
+
+		-- Where each of this client's buffs sits in the saved list, in its order.
+		local has, here = {}, {}
+		for _, buff in ipairs(base) do has[buff.key] = true end
+		for i, k in ipairs(keys) do
+			if has[k] then here[#here + 1] = i end
+		end
+		local rank
+		for r, i in ipairs(here) do
+			if keys[i] == key then rank = r end
+		end
+		local to = rank and here[rank + step]
+		if not to then return false end
+		keys[here[rank]], keys[to] = keys[to], keys[here[rank]]
+
+		if type(db.buff.order) ~= "table" then db.buff.order = {} end
+		local same = #keys == #auto
+		for i = 1, same and #keys or 0 do
+			if keys[i] ~= auto[i] then same = false end
+		end
+		db.buff.order[playerClass] = (not same) and keys or nil
+		return true
+	end
+
+	-- Back to Automatic: the order of this class goes. False when there was none.
+	function ns.ClearBuffOrder()
+		local db = addon.db and addon.db.profile
+		if not (db and ns.BuffOrder()) then return false end
+		db.buff.order[playerClass] = nil
+		return true
+	end
+end
+
+-- Everything of this class the player can actually cast, in list order (the
+-- player's own, when one is set: ns.WalkBuffs), once per scan. A neverAuto buff
+-- (Unending Breath) and a switched-off one are left out unless pinned: a pin is
+-- a deliberate ask, and the options page hides the switches while a spell is
+-- pinned.
 function ns.CastableBuffs()
 	local db = addon.db and addon.db.profile
 	local pinned = db and db.buff.choice
@@ -828,8 +1016,12 @@ function ns.CastableBuffs()
 	-- another paladin is read as theirs and walked on to the next. Kings goes to
 	-- somebody wearing none of yours, and nobody flips between the two.
 	local strongestFirst = db ~= nil and db.buff.kingsFirst == true
+	-- An order of the player's own is the walk as it stands, Kings wherever it
+	-- put it: it is what that switch means once there is one.
+	local walk, custom = ns.WalkBuffs()
+	if custom then strongestFirst = false end
 	local out = {}
-	for _, buff in ipairs(ns.GetClassBuffs(playerClass) or {}) do
+	for _, buff in ipairs(walk) do
 		if ns.IsBuffKnown(buff)
 			and (pinned == buff.key or not (db and db.buff.skip and db.buff.skip[buff.key]))
 			and (not buff.neverAuto or pinned == buff.key) then
@@ -1975,6 +2167,20 @@ function ns.ResolveBuff(hasMana)
 	local pinned = ns.PinnedBuff()
 	if pinned then return ns.IsBuffKnown(pinned) and pinned or nil end
 
+	-- The player's own order: the first of it the walk would offer, under the
+	-- same switches (learned, switched on, not never-auto) and, as Automatic
+	-- does, a spell only a mana user wants left to somebody who has mana.
+	local walk, custom = ns.WalkBuffs()
+	if custom then
+		local skip = db.buff.skip
+		for _, buff in ipairs(walk) do
+			if ns.IsBuffKnown(buff) and not buff.neverAuto and not (skip and skip[buff.key])
+				and not (buff.manaOnly and not hasMana) then
+				return buff
+			end
+		end
+	end
+
 	-- Kings first: what the walk offers ahead of the rest is the spell named,
 	-- under the same switches as the walk (learned, switched on, not never-auto).
 	if db.buff.kingsFirst == true then
@@ -2960,6 +3166,33 @@ function ns.ClampSettings()
 
 	-- The set of switched-off spells, indexed on every scan by CastableBuffs.
 	if type(profile.buff.skip) ~= "table" then profile.buff.skip = {} end
+	-- The buff order, read on every scan (ns.WalkBuffs), repaired for every class
+	-- in the profile whichever client wrote it: a key no client has for that
+	-- class, a key twice and an entry that is not a list of keys go; a key only
+	-- another client has stays (ns.RepairedBuffOrder), and the buffs this client
+	-- has that the order lacks are added after it, in Automatic's order.
+	local order = profile.buff.order
+	if type(order) ~= "table" then
+		fixed("buff.order", order)
+		order = {}
+		profile.buff.order = order
+	end
+	for class, keys in pairs(order) do
+		local repaired = type(class) == "string" and ns.RepairedBuffOrder(class, keys, profile.buff.kingsFirst == true)
+		if not repaired then
+			fixed("buff.order." .. tostring(class), keys)
+			order[class] = nil
+		else
+			local same = type(keys) == "table" and #keys == #repaired
+			for i = 1, same and #repaired or 0 do
+				if keys[i] ~= repaired[i] then same = false end
+			end
+			if not same then
+				fixed("buff.order." .. class, keys)
+				order[class] = repaired
+			end
+		end
+	end
 	-- The look once called "blizzard" is "framed" now; carried across rather
 	-- than reset to the default by the oneOf below.
 	if p.style == "blizzard" then p.style = "framed" end
