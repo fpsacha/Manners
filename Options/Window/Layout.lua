@@ -158,6 +158,15 @@ ns.WindowLayout = {
 			icon = WhoIcon,
 			sections = {
 				{ key = "who.cast", header = "who.buffsHeader", items = CastItems() },
+				-- The class's buffs as a list in the order they are tried, each with an
+				-- arrow up and one down (the "order" composite, Widgets: five
+				-- definitions drawn as one piece); for a class with two buffs or more
+				-- and no spell pinned.
+				{ key = "who.order", header = "who.orderHeader", items = {
+					{ composite = "order", ids = {
+						"who.orderNote", "who.orderPick", "who.orderUp", "who.orderDown", "who.orderReset",
+					} },
+				} },
 				{ key = "who.sources", header = "who.sourcesHeader", items = {
 					"who.emptyWarning",
 					"who.owed",

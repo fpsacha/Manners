@@ -44,7 +44,7 @@ end
 -- reset button.
 Page.RESET = {
 	who = {
-		"buff.choice", "buff.skip", "buff.kingsFirst", "filters.relevantOnly",
+		"buff.choice", "buff.skip", "buff.kingsFirst", "buff.order", "filters.relevantOnly",
 		"sources.owed", "sources.group", "sources.strangers", "sources.asked", "sources.self",
 		"filters.proximity", "filters.restingOnly", "ownBuffs.pick", "ownBuffs.inCities",
 		"groupBuffs.use", "groupBuffs.atLeast", "filters.skipRaidGroups",

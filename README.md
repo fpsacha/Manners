@@ -415,6 +415,14 @@ explain themselves; this is what their tooltips have no room for.
   else. Under *Always offer*, or where the game hides which blessing they
   carry, the first blessing that suits them is offered, and it can replace
   yours.
+- *Buff order*: for a class with more than one buff to give, the buffs as a
+  list in the order they are tried, each with an arrow up and an arrow down
+  (a class with one buff, or one spell pinned, has none). Move one and the
+  order is yours: *Blessing of Kings first* goes from the page, since the
+  order is what it meant, and *Back to Automatic* puts it all back. The order
+  decides what somebody who wears none of your buffs is offered, and what
+  somebody wearing another player's is offered next. Anybody wearing one of
+  yours is left alone whatever the order, and Greater Blessings follow it.
 - *Offer my buff to*: *People who buff me*, *My party and raid*, *Passers-by
   (players near me, not in my group)* and *People who ask me in chat*.
 - *Passers-by within*: *Anywhere I can cast* (about thirty yards), *Nearby*

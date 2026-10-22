@@ -1936,6 +1936,20 @@ for _, set in pairs(SETS) do
 	end
 end
 
+-- The key of every buff for others, by class, on any client and not only this
+-- one: ns.BUFF_KEY_ANY_CLIENT[class][key]. A saved buff order names the keys of
+-- the client it was made on (db.buff.order[CLASS], Core.lua), and one shared by
+-- two clients holds keys this one lacks: Core.lua's repair keeps those and drops
+-- what no client has.
+ns.BUFF_KEY_ANY_CLIENT = {}
+for _, set in pairs(SETS) do
+	for class, list in pairs(set.buffs or {}) do
+		local keys = ns.BUFF_KEY_ANY_CLIENT[class] or {}
+		ns.BUFF_KEY_ANY_CLIENT[class] = keys
+		for _, buff in ipairs(list) do keys[buff.key] = true end
+	end
+end
+
 ---------------------------------------------------------------------------
 -- derived lookups
 ---------------------------------------------------------------------------

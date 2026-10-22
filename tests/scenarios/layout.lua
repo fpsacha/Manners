@@ -163,7 +163,7 @@ local function CheckShape(layout, problem)
 					if item.widget ~= nil and item.widget ~= "number" then
 						problem(where .. ": " .. tostring(item[1]) .. " asks for a widget the window does not have: " .. tostring(item.widget))
 					end
-				elseif type(item) == "table" and item.composite ~= "never" then
+				elseif type(item) == "table" and item.composite ~= "never" and item.composite ~= "order" then
 					problem(where .. " has a composite the window does not build: " .. tostring(item.composite))
 				end
 			end
