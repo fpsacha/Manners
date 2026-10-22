@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.8.2
 
 - **Blessing of Kings first.** A paladin who has learned Blessing of Kings now
   offers it to everybody before Might or Wisdom, and as a Greater Blessing for
