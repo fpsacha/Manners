@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.8.5
 
 - **WoW Forever: an oil beside your imbue.** A weapon there wears an imbue
   (a shaman's Rockbiter Weapon, a rogue's poison, a mage's scroll imbue) and
