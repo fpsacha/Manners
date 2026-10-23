@@ -146,13 +146,11 @@ each class offers*).
   last five, after a fight.
 - **A mage's scrolls.** *Familiar* reminds you when no familiar is with you
   and a Rat, Frog or Cat Familiar scroll is in your bags; *Weapon imbue* when
-  nothing is on the weapon in your main hand and you carry an imbue scroll
+  no imbue is on the weapon in your main hand and you carry an imbue scroll
   that fits it (Lesser Flame on a staff, Chillknife on a dagger, Spark on a
-  one-handed sword, and so on). A wizard oil or any other temporary enchant
-  counts as something on it, until the game has shown a scroll's imbue on the
-  weapon beside one: from then on, for the session, the oil alone no longer
-  counts, so a scroll whose imbue ran out under it is offered again. A scroll
-  is offered only once your level is up to it, with
+  one-handed sword, and so on). A wizard oil is not an imbue: the game keeps
+  the two on a weapon together, so a mage wearing an oil is still reminded of
+  the imbue. A scroll is offered only once your level is up to it, with
   its own icon, and one press uses it from your bags: your target is not
   touched. Its use takes three seconds, and if moving cuts it short the scroll
   is offered again a moment later. *Automatic* takes the one you used last

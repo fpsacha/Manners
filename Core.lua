@@ -1824,18 +1824,9 @@ do
 		return reached or first
 	end
 
-	-- Whether the client has listed a scroll's imbue and another temporary
-	-- enchant (an oil) on the main hand together, this session: then the two
-	-- stack, and an oil alone no longer means the weapon is seen to. Never set
-	-- where they do not stack, so nobody is asked to put a scroll over an oil.
-	local imbueStacks = false
-
-	-- A weapon imbue (Buffs.lua) is no aura: up is your main hand carrying a
-	-- scroll's imbue or any temporary enchant, an oil's say, since either way
-	-- the weapon has been seen to; a permanent enchant never counts. Once a
-	-- scroll's imbue has been seen beside an oil (imbueStacks), an oil alone
-	-- counts for nothing: the scroll's imbue has run out under it. The
-	-- scrolls' enchant is of the Imbue kind, which
+	-- A weapon imbue (Buffs.lua) is no aura: up is your main hand carrying an
+	-- enchant of the Imbue kind, a scroll's or another; a permanent enchant
+	-- never counts. The scrolls' enchant is of that kind, which
 	-- C_PaperDollInfo.GetTemporaryEnchantmentInfo and the GetWeaponEnchantInfo
 	-- shim over it never report: read with those, an imbue on was nothing on
 	-- and the reminder asked again. So the list the client's own buff bar
@@ -1847,12 +1838,42 @@ do
 	-- A weapon enhancement (Buffs.lua) is read the same way for its own hand,
 	-- the family's `slot`: the main hand, or the off hand, whose enchants are
 	-- the list for Enum.WeaponSlot.OffHand, the temporary enchant of slot 17,
-	-- and the second four values of GetWeaponEnchantInfo. The enchant of
-	-- another kind is up all the same, and until the client has listed two on
-	-- a hand at once (imbueStacks) it ends the matter: a hand carries one.
+	-- and the second four values of GetWeaponEnchantInfo.
+	--
+	-- On the list, which is Forever's alone, a hand carries an Imbue enchant (a
+	-- shaman's Rockbiter Weapon, a poison, a scroll) and a Temporary one (a
+	-- stone, an oil, a lure) at once, so a family is up only for an enchant of
+	-- its own kind, which Buffs.lua says (`enchantKind`, of the family, or of
+	-- the spell the enchant is one of the family's). Of its own kind means
+	-- listed as that kind: an oil on the hand is no scroll's imbue, and
+	-- Rockbiter is no oil. Two exceptions, both about what the client says:
+	-- an enchant one of the family's own items makes is up whatever kind it is
+	-- listed as, and one listed as other than the data says is the client's
+	-- word, kept for the family for the rest of the session (`learnedKind`),
+	-- so a datum that was misjudged does not keep a reminder wrong. And an
+	-- enchant of the other kind whose id is hidden might be one of those: no
+	-- answer, never a reason to offer. A family with no kind in its data takes
+	-- any temporary or imbue enchant, as the clients that list no kind do.
+	local learnedKind = {}
 	local function WeaponSlot(family, slots)
 		if family.slot == 17 then return slots and slots.OffHand or 1 end
 		return slots and slots.MainHand or 0
+	end
+
+	-- Whether an enchant on the family's hand, listed as `listed` ("imbue" or
+	-- "temporary"), counts for the family, by `scroll`, the family's spell
+	-- that makes it (nil for none): true, false, or nil for not telling (the
+	-- enchant's id is hidden). ReadImbue asks it of each enchant on the hand.
+	local function CountsFor(family, scroll, id, listed)
+		local own = learnedKind[family.key] or family.enchantKind
+		if scroll then
+			local data = learnedKind[family.key] or scroll.enchantKind or own
+			if data and listed ~= data then learnedKind[family.key] = listed end
+			return true
+		end
+		if own == nil or listed == own then return true end
+		if id == nil then return nil end
+		return false
 	end
 
 	local function ReadImbue(family)
@@ -1864,7 +1885,7 @@ do
 			local temporary, imbue = kinds and kinds.Temporary or 2, kinds and kinds.Imbue or 3
 			local entries = plain(list(WeaponSlot(family, slots)))
 			if type(entries) ~= "table" then return nil end
-			local unknown, named, other = false, false, false
+			local unknown, named = false, false
 			for _, info in ipairs(entries) do
 				local on, kind
 				if type(info) == "table" and not Withheld(info) then
@@ -1873,18 +1894,20 @@ do
 				if on == nil or (on == true and kind == nil) then
 					unknown = true
 				elseif on == true and (kind == temporary or kind == imbue) then
-					-- Any one counts; a scroll's, with an oil on beside it, is
-					-- the one named, remembered and topped up.
+					-- One of the family's own kind counts; a scroll's, with
+					-- another enchant of the same kind beside it, is the one named,
+					-- remembered and topped up.
 					local id = plain(info.enchantID)
-					local made = ImbueScroll(family, id) ~= nil
-					if not made then other = true end
-					if not has or (made and not named) then
+					local scroll = ImbueScroll(family, id)
+					local made = scroll ~= nil
+					local counts = CountsFor(family, scroll, id, kind == imbue and "imbue" or "temporary")
+					if counts == nil then unknown = true end
+					if counts and (not has or (made and not named)) then
 						has, enchant, expires, named = true, id, plain(info.timeLeft), made
 					end
 				end
 			end
-			if named and other then imbueStacks = true end
-			if not has or (imbueStacks and not named) then
+			if not has then
 				if unknown then return nil end
 				return false
 			end

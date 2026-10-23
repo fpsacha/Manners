@@ -39,6 +39,23 @@ has no `/target` line, and `pending.selfCast` in `SettlePendingClick` is the
 branch deciding whether a warrior can ever repay anybody. It has never run
 against the real game. The other four clients have run only on the mock.
 
+**Weapon enhancements were written against the data and the mock, and the
+first word from the live game is a shaman on Forever saying the oil macro
+"doesn't apply oils properly".** Nothing in the data says why: an
+oil's use spell is the same shape as a scroll's (SpellTargetRestrictions target
+16, a three-second cast, SpellEquippedItems asking a weapon class), the ids and
+enchants audit clean at both Forever builds, and the macro is the scroll's
+(`/use item:<id>`, `/use 16`). What the game does with it is not known. Ask the
+player which oil, what the press did (nothing, an error line, the replace popup,
+the wrong hand), and for `/manners debug` and the lines `/manners dev clicks`
+prints on one press (`CLICK build=... macro=...`, `CAST SENT <spell> -> ...`,
+`CAST OK`, `after our cast: ...`). A macro of the player's own with those two
+lines (`/use item:20750`, `/use 16` for a Wizard Oil), clicked from a bar with
+the oil in the bags, says whether the game takes the form at all. Forever
+lists an Imbue (Rockbiter Weapon, a poison, a scroll) and a Temporary enchant (a
+stone, an oil, a lure) on a hand together; `enchantKind` in `Buffs.lua` and
+`ReadImbue` in `Core.lua` sort by it.
+
 **One assumption is untested.** A late refusal is matched to the press it
 answers using the cast guid the client sends with both cast events, and only
 the guid: a refusal undoes nothing unless both events carry the same one,

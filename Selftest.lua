@@ -766,14 +766,18 @@ Check("beliefs.mainHand", "beliefs", L["main hand enchants"], function(add)
 		spell and (" (" .. spell.key .. ")") or "")
 	if not listed then
 		add(FAIL, reads .. ", and the one call that lists a scroll's imbue gave nothing to read", label)
-	elseif listedOn and up == false then
-		add(FAIL, reads .. ", but C_Item lists " .. (listedImbue and "an imbue" or "an enchant") .. " on", label)
+	elseif listedImbue and up == false then
+		add(FAIL, reads .. ", but C_Item lists an imbue on", label)
 	elseif not listedOn and up == true then
 		add(FAIL, reads .. ", but C_Item lists nothing on", label)
 	elseif up == nil then
 		add(WARN, reads, label)
 	elseif listedImbue and not paperOn then
 		add(PASS, reads .. "; the imbue is seen only by C_Item, as expected", label)
+	elseif listedOn and not listedImbue and up == false then
+		-- A wizard oil on the staff: a Temporary enchant, which stays beside an
+		-- imbue, so the imbue is still to be put on.
+		add(PASS, reads .. "; C_Item lists a temporary enchant, which is no imbue", label)
 	else
 		add(PASS, reads, label)
 	end

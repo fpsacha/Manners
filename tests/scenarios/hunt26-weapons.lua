@@ -814,12 +814,15 @@ end
 -- ------------------------------------------------------------------ 13
 -- Reading the weapon is cheap: the client's list is asked for once by each
 -- family of yours that is held, in a queue build, and the bags are read once
--- until the client says they changed.
+-- until the client says they changed. Each hand here carries what every one of
+-- its families is up for (an imbue and a temporary enchant on the main hand,
+-- Forever keeping the two kinds together), since a build stops reading at the
+-- first family it would offer.
 do
 	local scenario = "hunt26-weapons: a queue build reads a hand once for each family held, and the bags once"
 	with(scenario, { bags = { [INSTANT_VI] = 1, [DENSE_STONE] = 1 }, hands = { [16] = DAGGER, [17] = DAGGER } },
 		function(ns)
-			world.enchants[16] = { entry(INSTANT_VI_ENCHANT, IMBUE, 1800) }
+			world.enchants[16] = { entry(INSTANT_VI_ENCHANT, IMBUE, 1800), entry(DENSE_STONE_ENCHANT, TEMPORARY, 1800) }
 			world.enchants[17] = { entry(DEADLY_IV_ENCHANT, TEMPORARY, 1800) }
 			mine(ns)
 			local before = world.reads

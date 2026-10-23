@@ -23,9 +23,10 @@ mutate("Selftest.lua",
        script=S)
 
 # The 1.6.3 bug's own check: C_Item lists an imbue, Manners reads nothing on,
-# and the report says nothing of it.
+# and the report says nothing of it. (A temporary enchant listed beside none
+# is no imbue, and reading nothing on over it is right.)
 mutate("Selftest.lua",
-       "\telseif listedOn and up == false then\n",
+       "\telseif listedImbue and up == false then\n",
        "\telseif false then\n",
        "selftest: imbue listed, read as nothing, passes",
        expect="selftest: the main hand and the familiar are compared",
