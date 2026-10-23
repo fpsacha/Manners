@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- **WoW Forever: an oil beside your imbue.** A weapon there wears an imbue
+  (a shaman's Rockbiter Weapon, a rogue's poison, a mage's scroll imbue) and
+  an oil, stone or lure at the same time, and Manners now reminds you of each
+  on its own: Rockbiter on your weapon no longer hides the oil reminder, and
+  a wizard oil no longer hides a mage's weapon imbue. A stone and an oil
+  still replace each other.
+
 ## 1.8.4
 
 - **Move the prompt, one click away.** A *Move the prompt* button now sits
