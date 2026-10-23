@@ -295,6 +295,21 @@ end
 
 -- States set before the window opens, and states acted out once it is open.
 local BEFORE, AFTER = {}, {}
+-- Handed out, so a caller can add states of its own to them (tools/make-
+-- screenshots.py puts the spell icons a picture wants in front of the mock's).
+R.BEFORE, R.AFTER = BEFORE, AFTER
+
+-- A player who has had the window open before: the first open of all starts
+-- the prompt's preview by itself, once, and the header then reads Stop preview
+-- where every later open reads Show me the prompt.
+function BEFORE.returning(ns)
+	local saved = ns.db.global.window
+	if type(saved) ~= "table" then
+		saved = {}
+		ns.db.global.window = saved
+	end
+	saved.previewShown = true
+end
 
 function BEFORE.unlocked(ns)
 	ns.db.profile.prompt.locked = false

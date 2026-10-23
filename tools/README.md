@@ -506,28 +506,46 @@ The listing images for CurseForge, Wago and the README, all 1280 wide:
 |---|---|
 | `manners-prompt.png` | the prompt for somebody who buffed you, glowing |
 | `manners-reasons.png` | the five reasons somebody is offered, each in its colour, in the order they rank |
+| `manners-looks.png` | the same favour in each of the six looks, named |
 | `manners-ledger.png` | the favour ledger with a day of ordinary play in it |
 | `manners-languages.png` | the prompt and its list in German, French and Simplified Chinese |
 | `manners-palette.png` | the standard reason colours beside the colour-blind set |
+| `manners-list.png` | the prompt with the next four under it, the cursor on the second name: its wash lit and its tooltip up, and what each click does |
+| `manners-options.png` | the options window on Who to buff for a paladin whose buff order is Wisdom, Kings, Might ..., with a ring on the arrows and on Move the prompt |
+| `manners-yourself.png` | three prompts for "You": a mage's armor, a rogue's poison for the main hand, a mage's own Arcane Intellect |
 
 These are **renders of the addon, not captures from the game**, and nothing
-about the prompt or the ledger is drawn in this script. It adds listing states
-to the lists in `render_prompt.lua` and `render_ledger.lua` at run time, which
-put the addon into each scene through its own entry points (a debt, a line in
-/say, a party token, the ledger's Received and Settled), draws them with
-`render_prompt.py` and `render_ledger.py`, and lays the result over a painted
-dusk. When the addon's look changes, re-run this and commit the images.
+about the prompt, the ledger or the options window is drawn in this script. It
+adds listing states to the lists in `render_prompt.lua`, `render_ledger.lua` and
+`render_options.lua` at run time, which put the addon into each scene through its
+own entry points (a debt, a line in /say, a party token, the ledger's Received and
+Settled, the buff order's own move, the row's own `OnEnter`), draws them with
+`render_prompt.py`, `render_ledger.py` and `render_options.py`, and lays the
+result over a painted dusk. When the addon's look changes, re-run this and commit
+the images.
 
-Two things are its own. The spell icons are painted emblems rather than the
+Four things are its own. The spell icons are painted emblems rather than the
 renderers' initials -- Blizzard's icons are not ours to ship, and Arcane
-Intellect's initials read as "AI" -- and the backdrop and captions are painted
-here.
+Intellect's initials read as "AI" -- the page icons of the options window's
+sidebar likewise, and the backdrop and captions are painted here. And three
+things are laid over the addon's drawing from what it said and where it put
+things: the tooltip's box (its words and colours are what the addon handed
+`GameTooltip`, recorded as it called `AddLine`; it hangs from the name's top
+right, as `ANCHOR_RIGHT` does), a mouse pointer, and the gold rings and numbers
+on the options window, placed from the frame tree.
 
 `--strict` writes nothing if any picture would show something other than what
 it claims:
 
 - a state the addon cannot build, or one that raised a guarded error;
 - the wrong person or the wrong reason on top of the prompt;
+- a list that is not the five people, reasons and buffs the list picture names,
+  a name under the cursor the tooltip is not about, a tooltip that no longer says
+  what each click does, or a name that is not lit;
+- an options window that fails `render_options.py --check` (text cut, rows
+  overlapping, a control off the window, contrast under 4.5:1, a glyph the face
+  lacks), whose buff order is not Wisdom, Kings, Might ..., whose header reads
+  Stop preview or lacks Move the prompt;
 - a ledger row the queue disagrees with -- a buff given to a class it would
   never offer one to, or a favour called beyond anything you cast when it is
   not;
@@ -659,6 +677,7 @@ and can be given more than once:
 | `snoozed` | `ns.StartSnooze(15)` before it opens |
 | `combat` | a fight starts once it is open, in the client's order: `PLAYER_REGEN_DISABLED` to Core and to every frame registered for it while lockdown has not begun, then lockdown and the next frame's timers |
 | `order` | a paladin's, priest's or druid's buffs put in an order of the player's own before the window opens, by `ns.MoveBuff` (Wisdom, Spirit or Thorns up a place): Who to buff then shows the Buff order list with Back to Automatic |
+| `returning` | a player who has had the window open before, before it opens: the first open of all starts the prompt's preview by itself, which turns the header's Show me the prompt into Stop preview |
 | `folds-open` | every folded section in the layout written open in `ns.db.global.window.open`, the window shut and opened again |
 | `scrolled` | the page scrolled to its end (`ns.WindowUI.ScrollTo`), for what a long page holds below the first screen |
 | `modal` | the footer's "Put these back to default" pressed; on a page without one, `ns.WindowWidgets.Modal` opened with its words |

@@ -3,11 +3,15 @@
 These used to be product shots painted by hand in Pillow, with the panel's
 size and colours read out of Core.lua and everything else restated here. Every
 restated detail was a way for the pictures to drift from the addon, and they
-did: the panel they showed was an older look. Now nothing about the prompt or
-the ledger is drawn here. tools/render_prompt.py and tools/render_ledger.py load
-the addon on the mock client, put it into a state and draw the frame tree it
-built; this file only chooses the states, lays the results out on a painted
-backdrop and writes the captions.
+did: the panel they showed was an older look. Now nothing about the prompt, the
+ledger or the options window is drawn here. tools/render_prompt.py,
+tools/render_ledger.py and tools/render_options.py load the addon on the mock
+client, put it into a state and draw the frame tree it built; this file only
+chooses the states, lays the results out on a painted backdrop and writes the
+captions. Three things are laid on afterwards, none of them the addon's to
+draw: a tooltip's box and a mouse pointer (the words in the box are what the
+addon told GameTooltip, with its colours), and a ring round a control of the
+window (found in the frame tree).
 
     python tools/make-screenshots.py            # into .github/media
     python tools/make-screenshots.py --strict   # refuse to draw anything doubtful
@@ -21,6 +25,9 @@ What it writes, all 1280 pixels wide:
     manners-ledger.png     the favour ledger with a day of ordinary play in it
     manners-languages.png  the prompt in German, French and Chinese
     manners-palette.png    the standard and the colour-blind reason colours
+    manners-list.png       the list under the prompt, a name lit and its tooltip up
+    manners-options.png    the options window on Who to buff, a buff order of its own
+    manners-yourself.png   three prompts for the player's own buffs
 
 Every player name is invented. Real names from a live session once reached a
 draft of these images; they belong to real people and were scrubbed. Keep it
@@ -28,10 +35,15 @@ that way.
 
 --strict refuses to write anything when a picture would show something other
 than what it claims: a state the addon cannot build or that raised a guarded
-error, the wrong person or the wrong reason on the prompt, a ledger row the
-queue would never have produced, a line the client would cut with an ellipsis,
-a translated picture still in English, a character the font cannot draw (a
-Chinese line in a Latin face comes out as boxes), or no TrueType face at all. Without it the same
+error, the wrong person or the wrong reason on the prompt, a list that is not
+the people and buffs the picture names or a name under the cursor the tooltip
+is not about, a tooltip that no longer says what each click does, an options
+window that fails render_options' own checks (text cut, rows overlapping,
+a control off the window, contrast under 4.5:1) or whose buff order is not the
+one shown, a ledger row the queue would never have produced, a line the client
+would cut with an ellipsis, a translated picture still in English, a character
+the font cannot draw (a Chinese line in a Latin face comes out as boxes), or no
+TrueType face at all. Without it the same
 problems are printed and the images are written anyway, so a local run still
 shows what went wrong. CI runs it strictly.
 
@@ -56,6 +68,7 @@ import render_prompt as rp  # noqa: E402 - the prompt's drawing code
 PromptTree = rp.Tree
 import render_ledger as rl  # noqa: E402 - the ledger's drawing code
 LedgerTree = rl.Tree
+import render_options as ro  # noqa: E402 - the options window's drawing code
 
 ROOT = rp.ROOT
 OUT = os.path.join(ROOT, ".github", "media")
@@ -114,8 +127,53 @@ def problem(msg):
 # Each prompt state leaves the person the addon put on top, and why, in
 # ShotTop, so the run can check the picture shows what its caption says.
 
+# The spell API the states and the options window are drawn over, shared by
+# both chunks: the mock names every spell it does not know Arcane Intellect and
+# gives every spell the same icon. These are the names the pictures need
+# besides its own (a mage's armor), and the icon each spell is shown with,
+# keyed by the name the client gives it. An icon is a file id the pictures
+# paint an emblem for (EMBLEMS, below): the id is the client's, the art is ours.
+SPELL_LUA = r"""
+local OWN_NAMES = {}
+for _, id in ipairs({ 10220, 10219, 7320, 7302, 7301, 7300, 168 }) do OWN_NAMES[id] = "Frost Armor" end
+local ICONS = {
+	["Blessing of Wisdom"] = 135970,
+	["Blessing of Kings"] = 135995,
+	["Blessing of Might"] = 135906,
+	["Blessing of Salvation"] = 135969,
+	["Blessing of Light"] = 135944,
+	["Frost Armor"] = 135843,
+}
+
+-- The mock's spell API with those over it. `translated` is what this client
+-- calls Arcane Intellect, or nothing.
+local function spellApi(translated)
+	rawset(_G, "C_Spell", nil)
+	local base = C_Spell
+	local api = {}
+	for k, v in pairs(base) do api[k] = v end
+	api.GetSpellName = function(id)
+		local name = OWN_NAMES[id] or base.GetSpellName(id)
+		if name == "Arcane Intellect" and translated and translated ~= "" then return translated end
+		return name
+	end
+	api.GetSpellTexture = function(id)
+		return ICONS[OWN_NAMES[id] or base.GetSpellName(id)] or base.GetSpellTexture(id)
+	end
+	return api
+end
+"""
+
 PROMPT_STATES = r"""
 local R, spellName = ...
+
+-- What the states below change in the mock, each as the mock has it: every
+-- state is put back to these before it runs (see the end), so a paladin in one
+-- picture is never the paladin in the next.
+local realUnitClass, realPowerMax = UnitClass, UnitPowerMax
+local realKnown, realPlayerSpell = IsSpellKnown, IsPlayerSpell
+local realLevel, realInventoryItem = rawget(_G, "UnitLevel"), rawget(_G, "GetInventoryItemID")
+local realTip = { GameTooltip.SetOwner, GameTooltip.AddLine, GameTooltip.AddDoubleLine }
 
 local function people(names)
 	Mock.unitNames = names
@@ -132,21 +190,66 @@ local function partyIsParty()
 	UnitInSubgroup = UnitInParty
 end
 
--- What this client calls the buff, put in front of the mock, which answers
--- in English whatever the language. A table left from the last state is taken
--- away first, so the mock's own comes back underneath.
+--SPELLS
+
+-- What this client calls the buff, and the icons and names the mock lacks,
+-- put in front of the mock, which answers in English whatever the language.
+-- A table left from the last state is taken away first, so the mock's own
+-- comes back underneath.
 local function spells()
-	rawset(_G, "C_Spell", nil)
-	if not spellName or spellName == "" then return end
-	local base = C_Spell
-	local api = {}
-	for k, v in pairs(base) do api[k] = v end
-	api.GetSpellName = function(id)
-		local name = base.GetSpellName(id)
-		if name == "Arcane Intellect" then return spellName end
-		return name
+	rawset(_G, "C_Spell", spellApi(spellName))
+end
+
+-- Who each unit is, for the pictures that give different people different
+-- buffs: the mock calls every unit a priest with a mana bar. A warrior or a
+-- rogue has none, which is what sends a paladin's Wisdom to somebody else.
+local function classes(map)
+	UnitClass = function(unit)
+		local class = map[unit]
+		if not class then return realUnitClass(unit) end
+		return class:sub(1, 1) .. class:sub(2):lower(), class
 	end
-	rawset(_G, "C_Spell", api)
+	UnitPowerMax = function(unit, ...)
+		local class = map[unit]
+		if class == "WARRIOR" or class == "ROGUE" then return 0 end
+		return realPowerMax(unit, ...)
+	end
+end
+
+-- What the player has learned: the ranks of those of the class's buffs for
+-- others named by key, and any other spell ids.
+local function know(ns, class, keys, ids)
+	local set = {}
+	for _, id in ipairs(ids or {}) do set[id] = true end
+	for _, key in ipairs(keys or {}) do
+		local buff = ns.FindBuff(class, key)
+		for _, id in ipairs(buff and buff.ranks or {}) do set[id] = true end
+	end
+	IsSpellKnown = function(id) return set[id] == true end
+	IsPlayerSpell = IsSpellKnown
+end
+
+-- What the tooltip is told, kept with its colours: the mock keeps the words
+-- alone. The picture draws the box; every word in it is the addon's.
+local function recordTooltip()
+	ShotTip = nil
+	GameTooltip.SetOwner = function(self, owner, anchor)
+		realTip[1](self, owner, anchor)
+		ShotTip = { anchor = anchor, owner = type(owner) == "table" and owner._serial or nil, lines = {} }
+	end
+	GameTooltip.AddLine = function(self, text, r, g, b, wrap)
+		realTip[2](self, text)
+		if ShotTip then
+			ShotTip.lines[#ShotTip.lines + 1] = { text = tostring(text), r = r, g = g, b = b, wrap = wrap and true or false }
+		end
+	end
+	GameTooltip.AddDoubleLine = function(self, left, right, lr, lg, lb, rr, rg, rb)
+		realTip[3](self, left, right)
+		if ShotTip then
+			ShotTip.lines[#ShotTip.lines + 1] = { left = tostring(left), right = tostring(right),
+				lr = lr, lg = lg, lb = lb, rr = rr, rg = rg, rb = rb }
+		end
+	end
 end
 
 -- As render_prompt.lua boots: up with nobody about, well past the login and
@@ -174,8 +277,8 @@ local function owe(ns, name, class)
 end
 
 -- Somebody asking for the buff in /say, as the client delivers the line.
-local function ask(ns, name, unit)
-	ns.addon:CHAT_MSG_SAY("CHAT_MSG_SAY", "int pls?", name, "Common", "", "", "", 0, 0, "", 0, 1,
+local function ask(ns, name, unit, line)
+	ns.addon:CHAT_MSG_SAY("CHAT_MSG_SAY", line or "int pls?", name, "Common", "", "", "", 0, 0, "", 0, 1,
 		"Player-1-" .. unit)
 end
 
@@ -183,8 +286,14 @@ local function settle(ns)
 	ns.Prompt:ApplyStyle()
 	ns.addon:Tick()
 	FrameTree.settle()
-	local top = ns.BuildQueue()[1]
+	local queue = ns.BuildQueue()
+	local top = queue[1]
 	ShotTop = top and { name = top.name, reason = top.reason } or false
+	-- Everybody the addon would offer, in order, and what each would get.
+	ShotQueue = {}
+	for i, entry in ipairs(queue) do
+		ShotQueue[i] = { name = entry.name, reason = entry.reason, buff = entry.buff and entry.buff.key or false }
+	end
 end
 
 local function list(ns, rows)
@@ -203,6 +312,49 @@ local SABLE = { "Sable", "Harrow" }
 local MIRA = { "Mira", "Holt" }
 local IVO = { "Ivo", "Lark" }
 local TAM = { "Tam", "Rook" }
+
+-- The mouse on a name in the list, as the client does it: the row's own
+-- OnEnter lights it and puts the tooltip up (Prompt/Button.lua).
+local function hover(ns, n)
+	local button = ns.Prompt:Regions().rowButtons[n]
+	local onEnter = button:GetScript("OnEnter")
+	onEnter(button)
+	FrameTree.settle()
+	ShotHover = { id = button._serial, row = n }
+end
+
+-- A weapon in each hand and what the bags hold, as the client answers about
+-- them: the mock's item API is the weapon's enchants alone. Item ids are
+-- Buffs.lua's; the dagger is a made-up id of subclass 15, as GetItemInfoInstant
+-- answers one.
+local INSTANT_POISON, DAGGER = 8928, 900015
+local ITEMS = {
+	[INSTANT_POISON] = { name = "Instant Poison VI", icon = 132273 },
+	[DAGGER] = { weapon = 15 },
+}
+local function carrying(counts, hands, level)
+	rawset(_G, "C_Item", nil)
+	local base = C_Item
+	local api = {}
+	for k, v in pairs(base or {}) do api[k] = v end
+	api.GetItemCount = function(id) return counts[id] or 0 end
+	api.GetItemNameByID = function(id) return ITEMS[id] and ITEMS[id].name end
+	api.RequestLoadItemDataByID = function() end
+	api.GetItemIconByID = function(id) return ITEMS[id] and ITEMS[id].icon end
+	api.GetItemInfoInstant = function(id)
+		local item = ITEMS[id] or {}
+		if item.weapon then return id, "Weapon", "", "INVTYPE_WEAPON", 135932, 2, item.weapon end
+		return id, "Miscellaneous", "", "", item.icon or 135932, 15, 0
+	end
+	rawset(_G, "C_Item", api)
+	rawset(_G, "GetInventoryItemID", function(unit, slot)
+		if unit == "player" then return hands[slot] end
+	end)
+	rawset(_G, "UnitLevel", function(unit)
+		if unit == "player" then return level end
+		return 12
+	end)
+end
 
 local added = {
 	-- The hero: a favour to return, the pulse near its brightest.
@@ -249,6 +401,55 @@ local added = {
 		ask(ns, "Mira Holt", "nameplate2")
 		settle(ns)
 	end },
+	-- The list with a name under the cursor. A paladin on Forever, with the
+	-- buff order Who to buff shows in its own picture (Wisdom first): a caster
+	-- is offered Wisdom and a fighter Kings, so the icons beside the names are
+	-- not all one. Five people, five reasons: the target on the panel, the
+	-- other four in the list, and the cursor on the second.
+	{ key = "shot-click", at = 0.85, setup = function(ns)
+		Mock.class = "PALADIN"
+		Mock.groupSize = 2
+		partyIsParty()
+		classes({ target = "WARRIOR", nameplate1 = "DRUID", nameplate2 = "ROGUE",
+			party1 = "PALADIN", nameplate3 = "ROGUE" })
+		know(ns, "PALADIN", { "wisdom", "might", "kings", "salvation", "light" })
+		boot(ns, { target = BRAM, nameplate1 = ELOWEN, nameplate2 = MARIBEL, party1 = OSKAR,
+			nameplate3 = SABLE })
+		recordTooltip()
+		ns.db.profile.sources.asked = true
+		list(ns, 4)
+		ns.MoveBuff("wisdom", -1)
+		owe(ns, "Elowen Thistledown", "DRUID")
+		ask(ns, "Maribel Quickwater", "nameplate2", "kings pls?")
+		settle(ns)
+		hover(ns, 2)
+	end },
+	-- A mage with Arcane Intellect up and no armor.
+	{ key = "shot-self-armor", at = 0.85, setup = function(ns)
+		Mock.class = "MAGE"
+		know(ns, "MAGE", { "intellect" }, { 168 })
+		Mock.playerHeld = { [10157] = true, [10156] = true, [1461] = true, [1460] = true, [1459] = true }
+		boot(ns, {})
+		settle(ns)
+	end },
+	-- A rogue with a poison in the bags and a bare dagger in each hand.
+	{ key = "shot-self-poison", at = 0.85, setup = function(ns)
+		Mock.class = "ROGUE"
+		carrying({ [INSTANT_POISON] = 2 }, { [16] = DAGGER, [17] = DAGGER }, 60)
+		know(ns, "ROGUE", {}, {})
+		boot(ns, {})
+		settle(ns)
+	end },
+	-- A mage who has dropped her own Arcane Intellect: the buff she gives
+	-- everybody else, come round to her.
+	{ key = "shot-self-intellect", at = 0.85, setup = function(ns)
+		Mock.class = "MAGE"
+		know(ns, "MAGE", { "intellect" })
+		Mock.playerHeld = {}
+		boot(ns, {})
+		ns.ForgetUnitAuras(ns.plain(UnitGUID("player")))
+		settle(ns)
+	end },
 	-- Four of the reasons on screen at once, in either palette: the four the
 	-- caption names.
 	{ key = "shot-palette-standard", at = 0.85, setup = function(ns)
@@ -285,11 +486,58 @@ for _, style in ipairs({ "glass", "framed", "minimal", "luxe", "toast", "arcane"
 		ShotStyle = ns.db.profile.prompt.style
 	end }
 end
+-- Every state starts from the mock as it was: what an earlier one made of the
+-- classes, the spellbook, the bags and the tooltip is put back first.
+local function restore()
+	UnitClass, UnitPowerMax = realUnitClass, realPowerMax
+	IsSpellKnown, IsPlayerSpell = realKnown, realPlayerSpell
+	rawset(_G, "C_Item", nil)
+	rawset(_G, "UnitLevel", realLevel)
+	rawset(_G, "GetInventoryItemID", realInventoryItem)
+	GameTooltip.SetOwner, GameTooltip.AddLine, GameTooltip.AddDoubleLine = realTip[1], realTip[2], realTip[3]
+	ShotTip, ShotHover, ShotQueue = nil, nil, nil
+end
 for _, state in ipairs(added) do
+	local setup = state.setup
+	state.setup = function(ns)
+		restore()
+		return setup(ns)
+	end
 	state.title = state.key
 	table.insert(R.states, state)
 end
 """
+PROMPT_STATES = PROMPT_STATES.replace("--SPELLS\n", SPELL_LUA)
+
+# The options window's, added to render_options.lua's in the same way: the
+# spell icons put in front of the mock's one for all (re-read by the probe,
+# which asked for them at login), and, once the window is open, where the buff
+# order's rows and arrows are, and in what order the rows stand, so the run
+# can check the picture shows the order it says.
+OPTIONS_STATES = r"""
+local R = ...
+--SPELLS
+
+R.BEFORE.icons = function(ns)
+	rawset(_G, "C_Spell", spellApi(nil))
+	ns.Guard("probe", ns.ProbeCapabilities)
+end
+
+-- A key on the prompt, as most players who use it have: without one the Start
+-- here page carries a red dot, which says the setup is not done.
+R.BEFORE.keybound = function()
+	Mock.bindings = { F = "CLICK MannersPrompt:LeftButton" }
+end
+
+R.AFTER.locate = function(ns)
+	local row = ns.WindowUI.RowFor("who.orderPick")
+	ShotOrder = { list = row.list._serial, lines = {} }
+	for i, line in ipairs(row.lines) do
+		ShotOrder.lines[i] = { key = line.key, up = line.up._serial, down = line.down._serial }
+	end
+end
+"""
+OPTIONS_STATES = OPTIONS_STATES.replace("--SPELLS\n", SPELL_LUA)
 
 # A day of ordinary play, oldest first, through Ledger.lua's own entry points:
 # favours returned, one still owed, one that ran out, one nothing you cast
@@ -419,6 +667,21 @@ def ledger_states(addon_dir):
     return lua, R
 
 
+def options_states(addon_dir, cls):
+    """render_options.lua, loaded as render_options.load loads it, as the
+    class `cls`, with the listing's states added. Loaded here rather than
+    through render_options.load because the states are compiled in the same
+    Lua runtime, which that hides."""
+    lua = ro.lua51.LuaRuntime(unpack_returned_tuples=True)
+    lua.globals().print = lambda *a: None
+    run = lua.eval("function(path, dir, addon, locale, class, measure, wrap) "
+                   "local f = assert(loadfile(path)) return f(dir, addon, locale, class, measure, wrap) end")
+    R = run(fwd(os.path.join(ROOT, "tools", "render_options.lua")), fwd(ROOT), fwd(addon_dir),
+            "", cls, ro.measure, ro.lua_wrap)
+    lua.compile(OPTIONS_STATES)(R)
+    return lua, R
+
+
 def use_faces(locale):
     """Point render_prompt at a face that has the language's script in it."""
     if locale in CJK_LOCALES:
@@ -433,6 +696,9 @@ def use_faces(locale):
 def snap_of(R, lua, key, *args):
     """One state's snapshot, or None with the reason recorded."""
     lua.globals().ShotTop = None
+    lua.globals().ShotQueue = None
+    lua.globals().ShotHover = None
+    lua.globals().ShotTip = None
     try:
         snap = R["run"](key, *args)
     except Exception as e:  # noqa: BLE001 - a Lua error is a state that cannot be built
@@ -580,7 +846,7 @@ class Layer:
     would have been drawn on it. Kept at the renderer's supersampled size and
     cropped to what the UI covers."""
 
-    def __init__(self, draw, key):
+    def __init__(self, draw, key, frame=None):
         del _cut[:]
         _matte[0] = 0.0
         draw()
@@ -599,11 +865,24 @@ class Layer:
         x0, x1 = max(0, xs.min() - pad), min(add.shape[1], xs.max() + 1 + pad)
         self.add = add[y0:y1, x0:x1]
         self.through = through[y0:y1, x0:x1]
+        # Where the screen is on it: the screen point at the top left of what
+        # was drawn and the pixels to a unit (the prompt's renderer leaves
+        # them on draw_state; the options window's are handed in), and how
+        # much was cropped off, so a point in screen units can be found on
+        # the layer afterwards.
+        self.frame = frame or getattr(rp.draw_state, "frame", None)
+        self.crop = (x0, y0)
 
     @property
     def size(self):
         """Width and height in output pixels."""
         return self.add.shape[1] / SS, self.add.shape[0] / SS
+
+    def at(self, x, y):
+        """Where the screen point (x, y), in UI units with y up, is on this
+        layer, in output pixels from its top left."""
+        left, top, px = self.frame
+        return ((x - left) * px - self.crop[0]) / SS, ((top - y) * px - self.crop[1]) / SS
 
 
 def pixels(zoom):
@@ -629,6 +908,169 @@ def prompt_layer(key, snap, zoom):
 def ledger_layer(key, snap, zoom):
     rp.Tree = LedgerTree
     return Layer(lambda: rl.draw_window(snap, px=pixels(zoom)), key)
+
+
+def options_layer(key, scene, zoom):
+    """The options window, laid out in `scene`, as a layer. The window is
+    drawn framed on itself, as render_options draws it, and the frame is
+    kept so a control can be found on the layer."""
+    frame = ro.window_frame(scene)
+    px = pixels(zoom)
+    return Layer(lambda: ro.draw_scene(scene, px, None, frame), key, frame=(frame[0], frame[3], px))
+
+
+class Sheet:
+    """A transparent sheet laid over the board like a layer, painted in
+    output pixels: what the pictures add to the addon's own drawing -- a
+    tooltip box, a mouse pointer, a ring round a control. It never stands in
+    for something the addon draws; the words on it are the addon's."""
+
+    def __init__(self, w, h):
+        self.w, self.h = int(np.ceil(w)), int(np.ceil(h))
+        self.add = np.zeros((self.h * SS, self.w * SS, 3), np.float32)
+        self.alpha = np.zeros((self.h * SS, self.w * SS), np.float32)
+
+    @property
+    def through(self):
+        return np.repeat((1 - self.alpha)[..., None], 3, axis=2)
+
+    @property
+    def size(self):
+        return self.w, self.h
+
+    def paint(self, shape, colour, alpha=1.0):
+        """Lay `colour` over the sheet where `shape` covers it. `shape(draw,
+        k)` draws 255 on a mask `k` pixels to an output pixel, and is drawn
+        at four times the size and brought down so its edges are smooth."""
+        k = SS * 2
+        mask = Image.new("L", (self.w * k, self.h * k), 0)
+        shape(ImageDraw.Draw(mask), k)
+        mask = mask.resize((self.w * SS, self.h * SS), Image.LANCZOS)
+        cov = (np.asarray(mask, np.float32) / 255 * alpha)[..., None]
+        self.add = np.asarray(colour, np.float32) * cov + self.add * (1 - cov)
+        self.alpha = cov[..., 0] + self.alpha * (1 - cov[..., 0])
+
+    def text(self, x, y, raw, size, colour, bold=False):
+        """One line, its colour codes honoured, left edge at x and the top of
+        its em square at y. Returns its width."""
+        face = rp.get_font(size * SS * 2, bold)
+        pieces = rp.runs(raw, tuple(colour) + (1,))
+        cx = x
+        for piece, c in pieces:
+            def shape(d, k, piece=piece, cx=cx):
+                d.text((cx * k, y * k), piece, font=face, fill=255)
+            self.paint(shape, c[:3])
+            cx += face.getlength(piece) / (SS * 2)
+        return cx - x
+
+
+def measure_line(raw, size, bold=False):
+    """How wide `raw` is drawn at `size` output pixels, colour codes left out."""
+    return rp.get_font(size * SS * 2, bold).getlength(rp.plain_text(raw)) / (SS * 2)
+
+
+def wrap_line(raw, size, width):
+    """`raw` broken at its spaces to lines no wider than `width`. A colour code
+    open at a break is closed there and opened again on the next line."""
+    out, line, open_code = [], "", ""
+    for word in raw.split(" "):
+        trial = word if not line else line + " " + word
+        if line and measure_line(trial, size) > width:
+            out.append(line + ("|r" if open_code else ""))
+            line = open_code + word
+        else:
+            line = trial
+        for m in rp.COLOR_CODE.finditer(word):
+            open_code = "" if m.group(0) == "|r" else m.group(0) if m.group(0).startswith("|c") else open_code
+    out.append(line)
+    return out
+
+
+def tooltip_sheet(tip, zoom):
+    """The tooltip the addon put up, as the game draws one: a dark box, the
+    first line larger, the others in the colours the addon gave them, a line
+    set to wrap broken at the box's width, a pair of lines (a name and the
+    spell) with the second pushed to the right. The words and colours are the
+    addon's own, recorded as it called AddLine; the box and the type are
+    stood in for here."""
+    u = zoom
+    body, head = 12 * u, 14 * u
+    pad, gap = 10 * u, 3 * u
+    rows = []   # (kind, size, bold, payload)
+    natural = 0
+    first = True
+    for line in tip["lines"]:
+        if "text" in line:
+            colour = (line.get("r") or 1, line.get("g") or 1, line.get("b") or 1)
+            if first:
+                rows.append(("one", head, True, (line["text"], colour)))
+                natural = max(natural, measure_line(line["text"], head, True))
+            elif line.get("wrap"):
+                rows.append(("wrap", body, False, (line["text"], colour)))
+            else:
+                rows.append(("one", body, False, (line["text"], colour)))
+                natural = max(natural, measure_line(line["text"], body))
+        else:
+            left = (line.get("lr") or 1, line.get("lg") or 1, line.get("lb") or 1)
+            right = (line.get("rr") or 1, line.get("rg") or 1, line.get("rb") or 1)
+            rows.append(("two", body, False, (line["left"], left, line["right"], right)))
+            natural = max(natural, measure_line(line["left"], body) + 24 * u
+                          + measure_line(line["right"], body))
+        first = False
+    # Wrapped lines break at the box's width, which is the widest line that
+    # does not wrap, so the box is no wider than its widest unwrapped line.
+    inner = max(natural, 190 * u)
+    laid = []
+    for kind, size, bold, payload in rows:
+        if kind == "wrap":
+            for piece in wrap_line(payload[0], size, inner):
+                laid.append(("one", size, bold, (piece, payload[1])))
+        else:
+            laid.append((kind, size, bold, payload))
+    height = pad * 2 + sum(r[1] + gap for r in laid) - gap
+    sheet = Sheet(inner + pad * 2 + 2, height + 2)
+    box = [1, 1, 1 + inner + pad * 2, 1 + height]
+
+    def rim(d, k):
+        d.rounded_rectangle([v * k for v in box], radius=4 * u * k, fill=255)
+
+    def fill(d, k):
+        edge = 1.5 * u
+        d.rounded_rectangle([(box[0] + edge) * k, (box[1] + edge) * k,
+                             (box[2] - edge) * k, (box[3] - edge) * k],
+                            radius=3 * u * k, fill=255)
+    # A rim in the border's colour with the dark laid over all but its edge.
+    sheet.paint(rim, (0.55, 0.57, 0.66))
+    sheet.paint(fill, (0.035, 0.035, 0.06))
+    y = 1 + pad
+    for kind, size, bold, payload in laid:
+        x = 1 + pad
+        if kind == "two":
+            sheet.text(x, y, payload[0], size, payload[1], bold)
+            w = measure_line(payload[2], size)
+            sheet.text(1 + pad + inner - w, y, payload[2], size, payload[3], bold)
+        else:
+            sheet.text(x, y, payload[0], size, payload[1], bold)
+        y += size + gap
+    return sheet
+
+
+def pointer_sheet(zoom):
+    """A mouse pointer, an arrow with a dark edge. It is the pointer's tip at
+    (1, 1) on the sheet, so a point is placed by the tip."""
+    u = zoom * 1.3
+    arrow = [(0, 0), (0, 16), (4, 12.5), (7.2, 19.5), (10, 18.3), (7, 11.6), (12, 11.2)]
+    sheet = Sheet(16 * u + 4, 22 * u + 4)
+
+    def outline(d, k):
+        d.polygon([(1 * k + x * u * k, 1 * k + y * u * k) for x, y in arrow], fill=255,
+                  outline=255, width=int(2.4 * u * k / SS))
+
+    def body(d, k):
+        d.polygon([(1 * k + x * u * k, 1 * k + y * u * k) for x, y in arrow], fill=255)
+    sheet.paint(outline, (0.02, 0.02, 0.03))
+    sheet.paint(body, (1.0, 1.0, 1.0))
+    return sheet
 
 
 # ---------------------------------------------------------------- icons
@@ -707,10 +1149,90 @@ def _emblem(kind, n):
     elif kind == "question":
         f = rp.get_font(n * 0.62, bold=True)
         d.text((n / 2, n * 0.54), "?", font=f, fill=255, anchor="mm")
+    elif kind == "book":
+        # An open book, its pages tilted toward the spine, a few lines on each.
+        d.polygon(pts([(0.12, 0.30), (0.47, 0.37), (0.47, 0.78), (0.12, 0.71)]), fill=255)
+        d.polygon(pts([(0.88, 0.30), (0.53, 0.37), (0.53, 0.78), (0.88, 0.71)]), fill=255)
+        w = max(1, int(n * 0.025))
+        for y in (0.46, 0.55, 0.64):
+            d.line(pts([(0.19, y - 0.005), (0.41, y + 0.025)]), fill=0, width=w)
+            d.line(pts([(0.59, y + 0.025), (0.81, y - 0.005)]), fill=0, width=w)
+    elif kind == "feather":
+        # A feather laid on the diagonal, its quill cut out of it.
+        t = np.linspace(0, 1, 40)
+        ax, ay = 0.20 + 0.62 * t, 0.82 - 0.64 * t
+        nx, ny = 0.717, 0.697
+        half = 0.145 * np.sin(np.pi * t) ** 0.8
+        top = list(zip(ax + nx * half, ay + ny * half))
+        low = list(zip(ax - nx * half, ay - ny * half))
+        d.polygon(pts(top + low[::-1]), fill=255)
+        d.line(pts([(0.12, 0.90), (0.76, 0.24)]), fill=0, width=max(1, int(n * 0.03)))
+        d.line(pts([(0.12, 0.90), (0.30, 0.72)]), fill=255, width=max(1, int(n * 0.03)))
+    elif kind == "cross":
+        d.rectangle([0.41 * n, 0.16 * n, 0.59 * n, 0.84 * n], fill=255)
+        d.rectangle([0.16 * n, 0.41 * n, 0.84 * n, 0.59 * n], fill=255)
+        for cx, cy in ((0.5, 0.16), (0.5, 0.84), (0.16, 0.5), (0.84, 0.5)):
+            disc(cx, cy, 0.05)
+    elif kind == "snowflake":
+        w = max(1, int(n * 0.05))
+        for i in range(6):
+            a = i * np.pi / 3
+            ux, uy = np.cos(a), np.sin(a)
+            d.line(pts([(0.5, 0.5), (0.5 + 0.38 * ux, 0.5 + 0.38 * uy)]), fill=255, width=w)
+            for dist, size in ((0.22, 0.12), (0.31, 0.08)):
+                for side in (-1, 1):
+                    b = a + side * np.pi / 4
+                    px, py = 0.5 + dist * ux, 0.5 + dist * uy
+                    d.line(pts([(px, py), (px + size * np.cos(b), py + size * np.sin(b))]),
+                           fill=255, width=w)
+        disc(0.5, 0.5, 0.06)
+    elif kind == "flask":
+        # A round flask with its cork and the line the liquid stands at, and a
+        # drop to one side.
+        d.rectangle([0.43 * n, 0.20 * n, 0.57 * n, 0.44 * n], fill=255)
+        d.rectangle([0.39 * n, 0.15 * n, 0.61 * n, 0.22 * n], fill=255)
+        disc(0.5, 0.63, 0.25)
+        d.line(pts([(0.27, 0.60), (0.73, 0.60)]), fill=0, width=max(1, int(n * 0.03)))
+        disc(0.84, 0.30, 0.04, 0.055)
+    elif kind == "map":
+        d.polygon(pts([(0.12, 0.25), (0.37, 0.20), (0.63, 0.27), (0.88, 0.21), (0.88, 0.75),
+                       (0.63, 0.81), (0.37, 0.74), (0.12, 0.80)]), fill=255)
+        w = max(1, int(n * 0.025))
+        d.line(pts([(0.37, 0.20), (0.37, 0.74)]), fill=0, width=w)
+        d.line(pts([(0.63, 0.27), (0.63, 0.81)]), fill=0, width=w)
+    elif kind == "mask":
+        disc(0.5, 0.5, 0.34, 0.27)
+        disc(0.37, 0.46, 0.085, 0.045, fill=0)
+        disc(0.63, 0.46, 0.085, 0.045, fill=0)
+        d.line(pts([(0.40, 0.64), (0.5, 0.67), (0.60, 0.64)]), fill=0, width=max(1, int(n * 0.03)))
+    elif kind == "clock":
+        w = max(1, int(n * 0.06))
+        d.ellipse([0.16 * n, 0.16 * n, 0.84 * n, 0.84 * n], outline=255, width=w)
+        d.line(pts([(0.5, 0.5), (0.5, 0.27)]), fill=255, width=w)
+        d.line(pts([(0.5, 0.5), (0.65, 0.58)]), fill=255, width=w)
+        disc(0.5, 0.5, 0.05)
+    elif kind == "note":
+        d.rectangle([0.22 * n, 0.14 * n, 0.78 * n, 0.86 * n], fill=255)
+        for y in (0.30, 0.42, 0.54, 0.66):
+            d.line(pts([(0.30, y), (0.70, y)]), fill=0, width=max(1, int(n * 0.03)))
+    elif kind == "eye":
+        xs = np.linspace(0.10, 0.90, 30)
+        lid = 0.24 * (1 - ((xs - 0.5) / 0.4) ** 2)
+        d.polygon(pts(list(zip(xs, 0.5 - lid)) + list(zip(xs[::-1], 0.5 + lid[::-1]))), fill=255)
+        disc(0.5, 0.5, 0.14, fill=0)
+        disc(0.5, 0.5, 0.065)
+    elif kind == "head":
+        disc(0.5, 0.36, 0.17)
+        d.ellipse([0.20 * n, 0.60 * n, 0.80 * n, 1.08 * n], fill=255)
+    elif kind == "spyglass":
+        w = max(1, int(n * 0.07))
+        d.ellipse([0.18 * n, 0.18 * n, 0.62 * n, 0.62 * n], outline=255, width=w)
+        d.line(pts([(0.58, 0.58), (0.82, 0.82)]), fill=255, width=int(w * 1.4))
     return m
 
 
-# Each icon file id the states hand back, and its emblem.
+# Each icon file id the states hand back, and its emblem. The options window
+# names the icons it takes from the client by file, and those are here too.
 EMBLEMS = {
     135932: "arcane",    # Arcane Intellect
     135987: "sun",       # Power Word: Fortitude
@@ -721,7 +1243,36 @@ EMBLEMS = {
     132333: "shout",     # Battle Shout
     135906: "sword",     # Blessing of Might
     134400: "question",  # the client's unknown-spell icon
+    135970: "book",      # Blessing of Wisdom
+    135969: "feather",   # Blessing of Salvation
+    135944: "cross",     # Blessing of Light
+    135843: "snowflake",  # Frost Armor
+    132273: "flask",     # a rogue's poison
+    "INV_Misc_Map_01": "map",                # Start here
+    "Ability_Vanish": "mask",                # Who to skip
+    "INV_Misc_PocketWatch_01": "clock",      # When to offer
+    "INV_Misc_Note_01": "note",              # What I say
+    "Spell_Holy_MindVision": "eye",          # Look
+    "INV_Misc_Head_Human_01": "head",        # Profiles
+    "INV_Misc_Spyglass_03": "spyglass",      # Diagnostics
+    "UI-Searchbox-Icon": "spyglass",         # the sidebar's search box
 }
+
+# The colours each spell's tile is drawn in, dark and light, where the
+# renderers have none for the icon; the window's pages share one tile colour.
+TILES = {
+    135970: ((0.08, 0.14, 0.42), (0.55, 0.82, 1.00)),
+    135995: ((0.30, 0.10, 0.36), (1.00, 0.84, 0.38)),
+    135906: ((0.36, 0.08, 0.06), (1.00, 0.58, 0.36)),
+    135969: ((0.16, 0.18, 0.36), (1.00, 0.98, 0.84)),
+    135944: ((0.34, 0.24, 0.05), (1.00, 0.95, 0.60)),
+    135987: ((0.30, 0.20, 0.05), (1.00, 0.90, 0.55)),
+    135843: ((0.04, 0.16, 0.36), (0.72, 0.96, 1.00)),
+    132273: ((0.04, 0.20, 0.07), (0.62, 1.00, 0.42)),
+}
+PAGE_TILE = ((0.16, 0.15, 0.24), (0.84, 0.76, 0.62))
+for _file, _tile in TILES.items():
+    rp.SPELL_ICONS.setdefault(_file, (str(_file),) + _tile)
 
 
 def emblem_tile(file, w, h):
@@ -747,6 +1298,28 @@ def emblem_tile(file, w, h):
 
 
 rp.icon_tile = emblem_tile
+
+# The options window takes its page icons from the client's own files, and
+# draws them as tiles in a colour made from the file's name. Here they are the
+# window's pages' emblems in one colour, so the sidebar reads as a set; the
+# search box's magnifier too, which is a file of its own.
+_icon_colours = ro.icon_colours
+_standin = ro.standin
+
+
+def _page_colours(name):
+    return PAGE_TILE if name in EMBLEMS else _icon_colours(name)
+
+
+def _page_art(file, w, h):
+    base = file.replace("/", "\\").rsplit("\\", 1)[-1]
+    if "searchbox" in base.lower():
+        return ro.icon_art("UI-Searchbox-Icon", w, h)
+    return _standin(file, w, h)
+
+
+ro.icon_colours = _page_colours
+ro.standin = _page_art
 
 
 # ---------------------------------------------------------------- the world
@@ -973,6 +1546,145 @@ LOOKS = [
 ]
 
 
+# The list picture: who the addon puts on the panel and in the list, in order,
+# the reason each is there and the buff each would get. A paladin whose buff
+# order has Wisdom first gives a caster Wisdom and a fighter Kings, so the
+# icons beside the names are not all one. The cursor is on the second name.
+CLICK_LIST = [
+    ("Bram Cinderfell", "target", "kings"),
+    ("Elowen Thistledown", "owed", "wisdom"),
+    ("Maribel Quickwater", "asked", "kings"),
+    ("Oskar Fenwick", "group", "wisdom"),
+    ("Sable Harrow", "nearby", "kings"),
+]
+CLICK_ROW = 2
+
+# The pictures of your own buffs: the state, the word under it, the line
+# under that, and a word the prompt's second line has to carry.
+SELF_SHOTS = [
+    ("shot-self-armor", "Armor", "A mage's armor, once you have learned it.", "Frost Armor"),
+    ("shot-self-poison", "Poison", "From your bags, for one weapon at a time.", "Instant Poison"),
+    ("shot-self-intellect", "Arcane Intellect", "The buff you give everybody, on you.",
+     "Arcane Intellect"),
+]
+
+# The buff order the options picture shows, which the window's own Buff order
+# list has to stand in: Wisdom moved up one place.
+ORDER_KEYS = ["wisdom", "kings", "might", "salvation", "light"]
+
+
+def shot_extras(lua):
+    """What a state left in the Lua globals besides its tree: the queue, the
+    cursor and the tooltip."""
+    return {"queue": rp.to_py(lua.globals().ShotQueue) or [],
+            "hover": rp.to_py(lua.globals().ShotHover) or None,
+            "tip": rp.to_py(lua.globals().ShotTip) or None}
+
+
+def build_click(addon_dir, snaps):
+    use_faces("enUS")
+    lua, R = prompt_states(addon_dir)
+    key = "shot-click"
+    snap, top = snap_of(R, lua, key)
+    if not snap:
+        return
+    expect_top(key, top, CLICK_LIST[0][0], CLICK_LIST[0][1])
+    got = shot_extras(lua)
+    queue = [(q["name"], q["reason"], q["buff"]) for q in got["queue"]]
+    if queue != CLICK_LIST:
+        problem("%s: the addon offers %s, not %s" % (key, queue, CLICK_LIST))
+    texts = shown_texts(snap, PromptTree)
+    expect_names(key, texts, [name for name, _, _ in CLICK_LIST])
+    check_glyphs(key, texts)
+    hover, tip = got["hover"], got["tip"]
+    if not hover or hover.get("row") != CLICK_ROW:
+        problem("%s: the cursor is not on row %d" % (key, CLICK_ROW))
+        return
+    if not tip or tip.get("owner") != hover.get("id"):
+        problem("%s: there is no tooltip over the name under the cursor" % key)
+        return
+    # The tooltip is the addon's, about the name the cursor is on, and says
+    # what each click does: the caption claims no more than that.
+    said = "\n".join(rp.plain_text(line.get("text") or line.get("left") or "")
+                     for line in tip.get("lines", []))
+    if CLICK_LIST[CLICK_ROW][0] not in said:
+        problem("%s: the tooltip is not about %s" % (key, CLICK_LIST[CLICK_ROW][0]))
+    if tip.get("anchor") != "ANCHOR_RIGHT":
+        problem("%s: the tooltip is anchored %s; the picture hangs it from the name's top right"
+                % (key, tip.get("anchor")))
+    for words in ("Click to cast", "Right-click to skip", "Shift-right-click to put them on your never-offer"):
+        if words not in said:
+            problem("%s: the tooltip no longer says %r, which the picture's captions rest on"
+                    % (key, words))
+    # The name lit: the row's wash is shown, which only its OnEnter does.
+    tree = PromptTree(snap)
+    wash = [r for r in tree.regions.values()
+            if r["kind"] == "Texture" and r.get("parent") == hover.get("id")]
+    if not wash or not all(c.get("shown", True) for c in tree.chain(wash[0])):
+        problem("%s: the name under the cursor is not lit" % key)
+    snap["shot"] = got
+    snaps[key] = snap
+
+
+def build_yourself(addon_dir, snaps):
+    use_faces("enUS")
+    lua, R = prompt_states(addon_dir)
+    for key, _, _, word in SELF_SHOTS:
+        snap, top = snap_of(R, lua, key)
+        if not snap:
+            continue
+        if not top or top.get("reason") != "self":
+            problem("%s: the prompt is not on the player (%s)" % (key, top))
+        texts = shown_texts(snap, PromptTree)
+        expect_names(key, texts, ["You", word])
+        check_glyphs(key, texts)
+        snaps[key] = snap
+
+
+def build_options(addon_dir, snaps):
+    """The options window on Who to buff for a paladin whose buff order is
+    Wisdom, Kings, Might ..., drawn and held to render_options' own checks."""
+    key = "options"
+    ro.use_faces(None)
+    lua, R = options_states(addon_dir, "PALADIN")
+    lua.globals().ShotOrder = None
+    try:
+        snap = rp.to_py(R["page"]("who", "icons\nkeybound\norder\nreturning\nlocate"))
+    except Exception as e:  # noqa: BLE001 - a Lua error is a window that cannot be built
+        problem("%s: the addon could not be put into this state: %s" % (key, e))
+        return
+    if snap.get("failed"):
+        problem("%s: the window could not be drawn: %s" % (key, snap["failed"]))
+        return
+    if snap.get("errors"):
+        problem("%s: %d guarded error(s), first %s" % (key, snap["errors"], snap.get("firstError")))
+    if snap.get("page") != "who":
+        problem("%s: the window is on %s, not Who to buff" % (key, snap.get("page")))
+    scene = ro.Scene(snap)
+    for finding in ro.check(scene):
+        problem("%s: (%s) %s" % (key, finding["kind"], finding["message"]))
+    order = rp.to_py(lua.globals().ShotOrder)
+    if not order or not order.get("lines"):
+        problem("%s: the page has no Buff order list" % key)
+        return
+    keys = [line["key"] for line in order["lines"]]
+    if keys[:len(ORDER_KEYS)] != ORDER_KEYS:
+        problem("%s: the Buff order reads %s, not %s" % (key, keys, ORDER_KEYS))
+    if find_button(scene, "Move the prompt") is None:
+        problem("%s: there is no Move the prompt button in the header" % key)
+        return
+    texts = [ro.plain(r["text"]).strip() for r in scene.regions.values()
+             if r["kind"] == "FontString" and r.get("text") and scene.visible(r)
+             and scene.alpha(r) > 0.01]
+    expect_names(key, texts, ["Move the prompt", "Show me the prompt", "Buff order",
+                              "Blessing of Wisdom", "Blessing of Kings", "Blessing of Might",
+                              "Back to Automatic"])
+    if "Stop preview" in texts:
+        problem("%s: the header reads Stop preview: the window was opened for the first time" % key)
+    check_glyphs(key, texts)
+    snaps[key] = {"scene": scene, "order": order}
+
+
 def build(addon_dir):
     """Every snapshot the pictures need, checked. Nothing is drawn until all of
     them are in, so a strict run refuses before it writes anything."""
@@ -1037,6 +1749,11 @@ def build(addon_dir):
         if untranslated:
             problem("%s: still in English: %s" % (key, "; ".join(untranslated)))
         snaps[key] = snap
+    use_faces("enUS")
+
+    build_click(addon_dir, snaps)
+    build_yourself(addon_dir, snaps)
+    build_options(addon_dir, snaps)
     use_faces("enUS")
 
     lua, R = ledger_states(addon_dir)
@@ -1166,6 +1883,143 @@ def picture_looks(snaps):
     return board
 
 
+def picture_click(snaps):
+    """The prompt with its list, the cursor on the second name: that name lit,
+    the tooltip the addon puts up over it, and what each click does beneath."""
+    key = "shot-click"
+    snap = snaps[key]
+    zoom = 2.0
+    layer = prompt_layer(key, snap, zoom)
+    lw, lh = layer.size
+    shot = snap["shot"]
+    tip = tooltip_sheet(shot["tip"], zoom)
+    pointer = pointer_sheet(zoom)
+    # The name's button, in screen units; the tooltip hangs from its top right
+    # (ANCHOR_RIGHT, which is what the addon asks for).
+    left, bottom, right, top = PromptTree(snap).rect(shot["hover"]["id"])
+    corner = layer.at(right, top)
+    first = 128
+    # The layer sits low enough that the tooltip, which stands above the name,
+    # clears the heading, and wide enough in that the tooltip clears the edge.
+    ly = max(first + 20, first + tip.h - corner[1] + 12)
+    span = max(lw, corner[0] + tip.w)
+    lx = (WIDTH - span) / 2
+    caption = 130
+    board = Board(ly + lh + caption, seed=47, sun=(0.84, 0.52))
+    heading(board, "Click any name", "Every name under the prompt is a button of its own.")
+    board.place(layer, lx, ly)
+    board.place(tip, lx + corner[0], ly + corner[1] - tip.h)
+    # The pointer rests at the end of the name's line, past its words, so
+    # the names stay legible.
+    tx, ty = layer.at(right - 8, (top + bottom) / 2)
+    board.place(pointer, lx + tx - 1, ly + ty - 1)
+    base = ly + lh + 26
+    board.shade(60, base - 12, WIDTH - 60, base + 92, 0.45)
+    for i, (word, line) in enumerate((
+            ("Left-click", "Buffs that person."),
+            ("Right-click", "Skips them for now."),
+            ("Shift-right-click", "Never offers them again."))):
+        cx = WIDTH * (2 * i + 1) / 6
+        board.text((cx, base + 20), word, 26, bold=True, anchor="mm")
+        board.text((cx, base + 56), line, 20, fill=(214, 206, 214), anchor="mm")
+    return board
+
+
+def find_button(scene, label):
+    """The shown button whose first words are `label`, as render_options sees
+    the tree."""
+    for rid, r in scene.regions.items():
+        if r["kind"] == "Button" and scene.visible(r):
+            text = ro.first_text(scene, rid)
+            if text and ro.plain(text).strip() == label:
+                return rid
+    return None
+
+
+def ring(sheet, layer, rect, grow, zoom, number=None):
+    """A gold ring round a rectangle of the window, in screen units, and a
+    numbered badge on its corner."""
+    (x0, y0), (x1, y1) = layer.at(rect[0], rect[3]), layer.at(rect[2], rect[1])
+    x0, y0, x1, y1 = x0 - grow, y0 - grow, x1 + grow, y1 + grow
+    width = 3
+
+    def outline(d, k, extra=0):
+        d.rounded_rectangle([(x0 - extra) * k, (y0 - extra) * k, (x1 + extra) * k, (y1 + extra) * k],
+                            radius=(6 + extra) * k, outline=255, width=int((width + 2 * extra) * k))
+    sheet.paint(lambda d, k: outline(d, k, 1.5), (0.0, 0.0, 0.0), 0.55)
+    sheet.paint(outline, (1.0, 0.82, 0.25))
+    if number is not None:
+        r = 13
+        cx, cy = x0 - 2, y0 - 2
+
+        def disc(d, k, extra=0):
+            d.ellipse([(cx - r - extra) * k, (cy - r - extra) * k, (cx + r + extra) * k, (cy + r + extra) * k],
+                      fill=255)
+        sheet.paint(lambda d, k: disc(d, k, 2), (0.0, 0.0, 0.0), 0.55)
+        sheet.paint(disc, (1.0, 0.82, 0.25))
+
+        def digit(d, k):
+            d.text((cx * k, (cy + 0.5) * k), str(number), font=rp.get_font(17 * k, True), fill=255,
+                   anchor="mm")
+        sheet.paint(digit, (0.10, 0.07, 0.02))
+
+
+def picture_options(snaps):
+    """The options window on Who to buff, a ring on the buff order's arrows
+    and one on Move the prompt in the header, and a line under for each."""
+    got = snaps["options"]
+    scene, order = got["scene"], got["order"]
+    zoom = 1.5
+    layer = options_layer("options", scene, zoom)
+    w, h = layer.size
+    geo = scene.geo
+    top = 132
+    caption = 128
+    board = Board(top + h + caption, seed=61, sun=(0.80, 0.50))
+    heading(board, "Set it up in one window", "Open it with /manners or the minimap button.")
+    x = (WIDTH - w) / 2
+    board.place(layer, x, top)
+    sheet = Sheet(w, h)
+    move = geo.rect(find_button(scene, "Move the prompt"))
+    ring(sheet, layer, move, 3, zoom, 2)
+    arrows = [geo.rect(line[side]) for line in order["lines"] for side in ("up", "down")]
+    ring(sheet, layer, (min(a[0] for a in arrows), min(a[1] for a in arrows),
+                        max(a[2] for a in arrows), max(a[3] for a in arrows)), 4, zoom, 1)
+    board.place(sheet, x, top)
+    base = top + h + 20
+    board.shade(40, base - 8, WIDTH - 40, base + 96, 0.45)
+    for i, (word, line) in enumerate((
+            ("The buff order", "Move a blessing up or down with its arrows."),
+            ("Move the prompt", "One click in the header, then drag it where you like."))):
+        x0 = 110 + i * 600
+        board.text((x0, base + 24), str(i + 1), 26, bold=True, fill=(255, 209, 64), anchor="mm")
+        board.text((x0 + 26, base + 24), word, 26, bold=True, anchor="lm")
+        board.text((x0 + 26, base + 62), line, 20, fill=(214, 206, 214), anchor="lm")
+    return board
+
+
+def picture_yourself(snaps):
+    """Three prompts for the player: what each is, in a word and a line."""
+    zoom = 1.5
+    layers = [prompt_layer(key, snaps[key], zoom) for key, *_ in SELF_SHOTS]
+    h = max(l.size[1] for l in layers)
+    top = 156
+    board = Board(top + h + 130, seed=71, sun=(0.50, 0.55))
+    heading(board, "Your own buffs too",
+            "When your own armor, poison or buff is missing, you come up like anybody else.")
+    gap = (WIDTH - sum(l.size[0] for l in layers)) / (len(layers) + 1)
+    x = gap
+    for (_, word, line, _), layer in zip(SELF_SHOTS, layers):
+        w = layer.size[0]
+        board.place(layer, x, top + (h - layer.size[1]) / 2)
+        base = top + h + 34
+        board.shade(x - 20, base - 24, x + w + 20, base + 62, 0.4)
+        board.text((x + w / 2, base), word, 26, bold=True, anchor="mm")
+        board.text((x + w / 2, base + 36), line, 17, fill=(214, 206, 214), anchor="mm")
+        x += w + gap
+    return board
+
+
 PICTURES = [
     ("manners-prompt.png", picture_prompt),
     ("manners-reasons.png", picture_reasons),
@@ -1173,6 +2027,9 @@ PICTURES = [
     ("manners-ledger.png", picture_ledger),
     ("manners-languages.png", picture_languages),
     ("manners-palette.png", picture_palette),
+    ("manners-list.png", picture_click),
+    ("manners-options.png", picture_options),
+    ("manners-yourself.png", picture_yourself),
 ]
 
 
