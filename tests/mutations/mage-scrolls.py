@@ -469,7 +469,9 @@ mutate("Commands.lua",
        "\t\telseif why == \"up\" and not name and family.imbue then\n",
        "\t\telseif false then\n",
        "scrolls: an oil said as ? is up",
-       expect="/manners debug says, of an oil", script=S)
+       # Since an oil is no imbue on Forever, another imbue is what keeps the
+       # scroll back and reaches this line.
+       expect="with another imbue on the staff, /manners debug says, of the scroll", script=S)
 
 mutate("Commands.lua",
        "\t\telseif why == \"bags\" then\n",

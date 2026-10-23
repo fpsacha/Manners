@@ -625,3 +625,25 @@ do
 		end
 	end)
 end
+
+-- An imbue no scroll makes on a mage's staff (one of the Imbue kind, which a
+-- scroll's would replace): the scroll is not offered over it, and
+-- /manners debug says the main hand is already seen to, not that "?" is up.
+-- An oil, of the other kind, still is offered.
+do
+	local scenario = "hunt31-oils: an imbue no scroll makes keeps a mage's scroll back, and says so"
+	with(scenario, { class = "MAGE", level = 45, hands = { [16] = STAFF },
+		bags = { [LESSER_FLAME_SCROLL] = 2, [WIZARD_OIL] = 2 } }, function(ns)
+		world.enchants[16] = { entry(FLAMETONGUE, IMBUE, 1800) }
+		local me = mine(ns)
+		if key(me) == "imbuelesserflame" then
+			fail(scenario, "with another imbue on the staff, the scroll's imbue was offered over it")
+		elseif key(me) ~= "w20750m" then
+			fail(scenario, ("with another imbue on the staff, you were offered %s, not the oil; /manners debug says %s")
+				:format(key(me), lines(ns)))
+		end
+		if not lines(ns):find("Weapon imbue: your main hand already carries a temporary enchant.", 1, true) then
+			fail(scenario, "with another imbue on the staff, /manners debug says, of the scroll: " .. lines(ns))
+		end
+	end)
+end
