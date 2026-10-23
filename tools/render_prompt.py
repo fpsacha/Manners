@@ -500,6 +500,10 @@ def draw_state(snap, px=ZOOM * SUPER, hover=False):
     # A state with something tall over the panel asks for the view lifted.
     cy += snap.get("lift") or 0
     left, top = cx - TILE_W / 2, cy + TILE_H * 0.18 + 22
+    # Where the picture sits on the screen, for whatever has to be laid on it
+    # in screen units afterwards (a tooltip over a row): the screen point at
+    # its top left, and the pixels to a unit.
+    draw_state.frame = (left, top, px)
     canvas = Canvas(int(TILE_W * px), int(TILE_H * px))
     canvas.backdrop(snap.get("backdrop"))
 
