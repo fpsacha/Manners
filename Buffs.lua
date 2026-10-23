@@ -232,11 +232,16 @@ local VANILLA = {
 -- Mists and Forever) each is one of your own buffs of a kind apart from the
 -- spells: an item, as a mage's scroll is, used with /use item:<id> and aimed at
 -- the hand with /use 16 or /use 17 in the same press (Prompt/Macro.lua), and
--- "up" when that hand carries a temporary enchant, whichever made it
--- (Core.lua, ReadImbue). A weapon is taken to hold one at a time, so once one is
--- on, no other kind is asked for over it, until the client has listed two on
--- one hand together. Mists and retail give a rogue's poisons as spells instead
--- (MISTS_OWN and MAINLINE_SET, below).
+-- "up" when that hand carries an enchant (Core.lua, ReadImbue). Classic Era,
+-- Burning Crusade and Mists give one temporary enchant to a hand, whichever
+-- made it, so any one counts and no other kind is asked for over it. WoW
+-- Forever's client lists every enchant on a hand with its kind
+-- (Enum.ItemEnchantType) and keeps one of each kind on a hand at once: a
+-- shaman's Rockbiter Weapon is an Imbue and a wizard oil a Temporary
+-- enchant, and both stay on. So there a family is up only when its hand
+-- carries an enchant of its own kind (`enchantKind`, below). Mists and retail
+-- give a rogue's poisons as spells instead (MISTS_OWN and MAINLINE_SET,
+-- below).
 --
 -- A family is one kind of enhancement for one hand: Poison for the main hand
 -- and again for the off hand, each with a pick of its own, since a rogue keeps
@@ -248,6 +253,8 @@ local VANILLA = {
 --   slot      the hand it is for, as an inventory slot: 16 main, 17 off
 --   only      the one class it is offered to (a rogue's poisons); every
 --             class carrying one of its items otherwise
+--   enchantKind  what the family's enchants are listed as, where the spells
+--             below do not say otherwise (the field of the same name)
 --
 -- and per spell, one for each item, best first (the order Automatic tries
 -- them in before you have used one; a stone made for any weapon first, then
@@ -262,6 +269,18 @@ local VANILLA = {
 --             subclass mask: one bit per kind of weapon (Core.lua, Fits)
 --   since     the first build of the client that has the item, where it is
 --             newer than the build the other data was read from
+--   enchantKind  Forever only, on the spell where it is not its family's: how
+--             that client lists the enchant the item makes, "imbue" or
+--             "temporary". It is the use spell's SpellEffect: 360 an imbue,
+--             54 a temporary enchant (wago.tools, 1.60.1.70178, and
+--             1.60.1.70450 for the `since` items; tools/audit_ids.py holds
+--             every one to it). Poisons are imbues, as are the mage's scrolls
+--             and a shaman's Rockbiter, Flametongue, Frostbrand and Windfury
+--             Weapon (the same effect, 360); stones, oils and lures are
+--             temporary enchants. Season of Discovery's five poisons
+--             (Atrophic, Numbing, Sebacious, Occult I and II) are the
+--             exception, effect 54. Left out on every other client, which
+--             read the one enchant a hand has (Core.lua, ReadImbue)
 --
 -- A wizard or mana oil's own data names inventory types (weapon, two-hand,
 -- main hand, off hand) where the rest name kinds of weapon, which would take
@@ -292,6 +311,8 @@ do
 	local EITHER = 42483  -- both of those: the elemental stone's
 	local MELEE = 173555  -- every melee weapon: a poison's, and what an oil is held to
 	local POLE = 1048576  -- a fishing pole: a lure's
+	-- The kinds Forever lists an enchant as (`enchantKind`).
+	local IMBUE, TEMPORARY = "imbue", "temporary"
 	-- The Consecrated stone's own: every melee weapon but a spear, the druid's
 	-- claws and a fishing pole besides (bits 11, 12 and 20).
 	local CONSECRATED = 1097203
@@ -309,8 +330,11 @@ do
 	local HANDS = { { slot = 16, name = "main", suffix = "m" }, { slot = 17, name = "off", suffix = "o" } }
 
 	-- One client's families from its rows: { kind = { { item, level, enchant,
-	-- use spell, fits [, since] }, ... } }, best first.
-	local function Families(rows)
+	-- use spell, fits [, since] [, enchantKind = ...] }, ... } }, best first.
+	-- `kinds` is { kind = enchantKind }, for a client that lists the kind of
+	-- each enchant (Forever); a row names its own `enchantKind` where its item
+	-- is not of its family's.
+	local function Families(rows, kinds)
 		local out = {}
 		for _, kind in ipairs(KINDS) do
 			for _, hand in ipairs(HANDS) do
@@ -321,12 +345,14 @@ do
 						-- The key is unique across every client's tables (the pick
 						-- and the memory of the one last used are filed by it).
 						spells[i] = { key = "w" .. row[1] .. hand.suffix, item = row[1], level = row[2],
-							enchant = row[3], ranks = { row[4] }, fits = row[5], since = row[6] }
+							enchant = row[3], ranks = { row[4] }, fits = row[5], since = row[6],
+							enchantKind = kinds and (row.enchantKind or kinds[kind.kind]) or nil }
 					end
 					out[#out + 1] = {
 						key = kind.kind .. (kind.mainHand and "" or hand.name),
 						label = kind.label, kind = kind.kind, slot = hand.slot, only = kind.only,
 						scroll = true, enhance = true, spells = spells,
+						enchantKind = kinds and kinds[kind.kind] or nil,
 					}
 				end
 			end
@@ -499,8 +525,11 @@ do
 	-- WoW Forever 1.60.1.70178: Classic Era's items and its own, among them the
 	-- three marked `since` that 1.60.1.70450 added. Its classic poisons use the
 	-- spell effect the scrolls do (SpellEffect 360) where the rest use 54, so the
-	-- client may list them as an Imbue and the rest as a Temporary enchant:
-	-- either counts as a hand being seen to (Core.lua, ReadImbue).
+	-- client lists them as an Imbue and the rest as a Temporary enchant, and a
+	-- hand holds one of each (CAMELOT_KINDS, and the row's own `enchantKind` for
+	-- Season of Discovery's five poisons, which are 54 like the stones and oils:
+	-- Core.lua, ReadImbue).
+	local CAMELOT_KINDS = { poison = IMBUE, stone = TEMPORARY, oil = TEMPORARY, lure = TEMPORARY }
 	local CAMELOT_ROWS = {
 		poison = {
 			{ 8928, 60, 625, 11340, MELEE }, -- Instant Poison VI
@@ -524,11 +553,11 @@ do
 			{ 6951, 38, 23, 8693, MELEE }, -- Mind-numbing Poison II
 			{ 5237, 24, 35, 5761, MELEE }, -- Mind-numbing Poison
 			{ 5654, 24, 42, 6650, MELEE }, -- Instant Toxin
-			{ 234444, 60, 7651, 1214171, MELEE }, -- Occult Poison II
-			{ 226374, 54, 7542, 458821, MELEE }, -- Occult Poison I
-			{ 217347, 60, 7256, 439465, MELEE }, -- Atrophic Poison
-			{ 217346, 60, 7255, 439464, MELEE }, -- Numbing Poison
-			{ 217345, 60, 7254, 439462, MELEE }, -- Sebacious Poison
+			{ 234444, 60, 7651, 1214171, MELEE, enchantKind = TEMPORARY }, -- Occult Poison II
+			{ 226374, 54, 7542, 458821, MELEE, enchantKind = TEMPORARY }, -- Occult Poison I
+			{ 217347, 60, 7256, 439465, MELEE, enchantKind = TEMPORARY }, -- Atrophic Poison
+			{ 217346, 60, 7255, 439464, MELEE, enchantKind = TEMPORARY }, -- Numbing Poison
+			{ 217345, 60, 7254, 439462, MELEE, enchantKind = TEMPORARY }, -- Sebacious Poison
 		},
 		stone = {
 			{ 18262, 50, 2506, 22756, EITHER }, -- Elemental Sharpening Stone
@@ -629,7 +658,7 @@ do
 
 	ENHANCEMENTS.vanilla = Families(VANILLA_ROWS)
 	ENHANCEMENTS.tbc = Families(TBC_ROWS)
-	ENHANCEMENTS.camelot = Families(CAMELOT_ROWS)
+	ENHANCEMENTS.camelot = Families(CAMELOT_ROWS, CAMELOT_KINDS)
 	ENHANCEMENTS.mists = Families(MISTS_ROWS)
 end
 
@@ -1276,10 +1305,14 @@ local TBC_SET = setmetatable({
 --             have used one. The scroll's name is that spell's, as the client
 --             names it; nameFromItem takes the item's instead, and is the
 --             name until the client has loaded the item.
---   imbue     up is the main hand carrying a scroll's imbue or any temporary
---             enchant, a wizard oil included, never a permanent one, rather
---             than an aura (Core.lua, ReadImbue); each scroll names its
---             `enchant` and the `weapon` it fits (the weapon's item subclass).
+--   imbue     up is the main hand carrying an enchant of the Imbue kind, a
+--             scroll's or any other (never a wizard oil, which is a Temporary
+--             one and stays beside it, nor a permanent enchant), rather than
+--             an aura (Core.lua, ReadImbue); each scroll names its `enchant`
+--             and the `weapon` it fits (the weapon's item subclass).
+--   enchantKind  the kind the family's enchants are listed as, as for the
+--             weapon enhancements (above). Every scroll's use is SpellEffect
+--             360, an imbue (wago.tools, 1.60.1.70178).
 local CAMELOT_OWN = {}
 do
 	local STAFF, DAGGER, SWORD = 10, 15, 7
@@ -1301,6 +1334,7 @@ do
 		label = L["Weapon imbue"],
 		scroll = true,
 		imbue = true,
+		enchantKind = "imbue",
 		spells = {
 			{ key = "imbuegreaterflame", item = 277500, level = 46, ranks = { 1302311 }, enchant = 8716, weapon = STAFF },
 			{ key = "imbuegreaterfrost", item = 277501, level = 46, ranks = { 1302312 }, enchant = 8717, weapon = STAFF },

@@ -273,8 +273,8 @@ debug names the client for a class with nothing to cast: never named the interfa
 debug says when favours are not being watched (both on): SKIPPED -- the control favour is not listed: client: |cfffffffftbc/classic interface=20506 build=2.5.6 project=5|r
 doubt does not outlive the scan that had it: a recast after a refused scan was taken for the buff already held
 every outcome over an empty queue gets its own fade: SKIPPED -- the first fade did not run to nothing
-every path in the options window's layout is in the model: who, section 3 (who.myself) places who.own_familiar, which no class's model has
-every path in the options window's layout is in the model: who, section 3 (who.myself) places who.own_imbue, which no class's model has
+every path in the options window's layout is in the model: who, section 4 (who.myself) places who.own_familiar, which no class's model has
+every path in the options window's layout is in the model: who, section 4 (who.myself) places who.own_imbue, which no class's model has
 fix2 fight: a fight's withheld auras are no new favour (a new favour in the fight): SKIPPED -- the favour before the fight was not filed: |cff80ff80Petra buffed you|r -- returning the favour is on the prompt
 fix2 fight: a fight's withheld auras are no new favour (the aura's number withheld): SKIPPED -- the favour before the fight was not filed: |cff80ff80Petra buffed you|r -- returning the favour is on the prompt
 fix2 fight: a fight's withheld auras are no new favour (the spell withheld): SKIPPED -- the favour before the fight was not filed: |cff80ff80Petra buffed you|r -- returning the favour is on the prompt
@@ -426,15 +426,16 @@ mage-scrolls: a top-up uses the other scroll that makes the same enchant: Spellb
 mage-scrolls: an imbue on is read from the client's list, which the temporary-enchant call leaves out: Lesser Flame's imbue on the staff was remembered as nil
 mage-scrolls: an imbue on is read from the client's list, which the temporary-enchant call leaves out: with Lesser Flame's imbue on the staff, /manners debug says
 mage-scrolls: an imbue on is read from the client's list, which the temporary-enchant call leaves out: with the imbue worn off, you were offered nil
-mage-scrolls: an oil alone, once seen beside a scroll's imbue, no longer counts: the imbue ran out under an oil seen beside it, and you were offered nil; /manners debug says
-mage-scrolls: an oil alone, once seen beside a scroll's imbue, no longer counts: with the imbue gone from under the oil, /manners debug says
-mage-scrolls: an oil on the list counts, a permanent enchant never does: with Crusader and Lesser Flame on the staff, /manners debug says
-mage-scrolls: an oil on the list counts, a permanent enchant never does: with a wizard oil on the list, /manners debug says
-mage-scrolls: an oil on the list counts, a permanent enchant never does: with only Crusader on the staff, you were offered nil; /manners debug says
-mage-scrolls: an oil running low is an enchant on the weapon, not nothing to pick: a wizard oil with a minute left: /manners debug says
-mage-scrolls: an oil running low is an enchant on the weapon, not nothing to pick: a wizard oil with a minute left: Diagnostics says |cffffffffMyself|r /
+mage-scrolls: an oil alone is no imbue, so an imbue that ran out under it is offered again: the imbue ran out under an oil, and you were offered nil; /manners debug says
+mage-scrolls: an oil alone is no imbue, so an imbue that ran out under it is offered again: with the imbue gone from under the oil, /manners debug says
+mage-scrolls: an oil on the list is no imbue, a permanent enchant never is: with Crusader and Lesser Flame on the staff, /manners debug says
+mage-scrolls: an oil on the list is no imbue, a permanent enchant never is: with a wizard oil on the list, /manners debug says
+mage-scrolls: an oil on the list is no imbue, a permanent enchant never is: with a wizard oil on the list, you were offered nil
+mage-scrolls: an oil on the list is no imbue, a permanent enchant never is: with only Crusader on the staff, you were offered nil; /manners debug says
+mage-scrolls: an oil running low is no imbue, and no top-up of one: a wizard oil with a minute left offered nil with nil left
+mage-scrolls: an oil running low is no imbue, and no top-up of one: a wizard oil with a minute left: /manners debug says
+mage-scrolls: an oil running low is no imbue, and no top-up of one: a wizard oil with a minute left: Diagnostics says |cffffffffMyself|r /
 mage-scrolls: empty bags offer nothing and are read only when they change: after the bags changed, a Rat Familiar scroll was not offered: nil
-mage-scrolls: empty bags offer nothing and are read only when they change: the bags were read 0 times for the 19 scrolls
 mage-scrolls: empty bags offer nothing and are read only when they change: with no scroll in the bags, the Familiar row is shown
 mage-scrolls: the Myself rows list every scroll: a mage with scrolls has no Familiar or Weapon imbue dropdown
 mage-scrolls: the enchant is read with the list first, the old calls only without it: with GetTemporaryEnchantmentInfo first and a bare staff, you were offered nil
@@ -445,6 +446,8 @@ mage-scrolls: the enchant is read with the list first, the old calls only withou
 mage-scrolls: the enchant is read with the list first, the old calls only without it: with no call to read the weapon, /manners debug says
 mage-scrolls: the list's milliseconds drive a top-up, of the scroll's imbue beside an oil: an oil listed after two minutes of Lesser Flame: offered nil with nil left; /manners debug says
 mage-scrolls: the list's milliseconds drive a top-up, of the scroll's imbue beside an oil: an oil listed before two minutes of Lesser Flame: offered nil; /manners debug says
+mage-scrolls: the list's milliseconds drive a top-up, of the scroll's imbue beside an oil: another imbue listed after two minutes of Lesser Flame: offered nil with nil left; /manners debug says
+mage-scrolls: the list's milliseconds drive a top-up, of the scroll's imbue beside an oil: another imbue listed before two minutes of Lesser Flame: offered nil with nil left; /manners debug says
 mage-scrolls: the list's milliseconds drive a top-up, of the scroll's imbue beside an oil: two minutes of Lesser Flame on the list, top-ups on: offered nil, nil left
 mana floor: only favours and requests below it: SKIPPED -- the party and the target were not offered to begin with
 milestones: a new title is said once in chat, chat lines or not: SKIPPED -- Petra is not owed and offered, so nothing can be repaid
@@ -572,7 +575,7 @@ self: you count towards your party's group cast: the group cast does not cover y
 self: you count towards your raid group's and your class's group cast: the raid's group cast counts 3 missing in your group
 self: your own name on the never-offer list is honoured: offered your own buff with your name on the never-offer list
 selftest: the button, names, the line rule, repairs and errors: a Camelot surname reads PASS UnitName (surname): "Mort", second nil, read as a realm, full name "Mort"
-selftest: the main hand and the familiar are compared: Manners reading an imbue over an empty list reads PASS main hand enchants: weapon unreadable / PASS main hand enchants: C_Item.GetWeaponEnchantInfo: missing -- not used: MAGE has no weapon imbue on this client / PASS main hand enchants: C_PaperDollInfo.GetTemporaryEnchantmentInfo: missing / PASS main hand enchants: GetWeaponEnchantInfo: false, nil, 0, nil / PASS main hand enchants: MAGE has no imbue reminder
+selftest: the main hand and the familiar are compared: Manners reading an imbue over an empty list reads PASS main hand enchants: weapon unreadable / PASS main hand enchants: C_Item.GetWeaponEnchantInfo: missing -- not used: MAGE has no weapon imbue on this client / PASS main hand enchants: C_PaperDollInfo.GetTemporaryEnchantmentInfo: missing / PASS main hand enchants: GetWeaponEnchantInfo: false, false, nil, 0 / PASS main hand enchants: MAGE has no imbue reminder
 selftest: the main hand and the familiar are compared: Manners reading no familiar over a Rat on you reads PASS familiar: MAGE has no familiar
 selftest: the main hand and the familiar are compared: Manners reading nothing over a listed imbue reads PASS main hand enchants: weapon unreadable / PASS main hand enchants: C_Item.GetWeaponEnchantInfo: missing -- not used: MAGE has no weapon imbue on this client / PASS main hand enchants: C_PaperDollInfo.GetTemporaryEnchantmentInfo: missing / PASS main hand enchants: GetWeaponEnchantInfo: true, 1800000, 0, 8708 / PASS main hand enchants: MAGE has no imbue reminder
 selftest: the main hand and the familiar are compared: a Rat up reads PASS familiar: MAGE has no familiar

@@ -5,25 +5,9 @@
 
 S = "runscenarios.py"
 
-# --- an oil seen beside a scroll's imbue (Core.lua, ReadImbue) ---
-
-mutate("Core.lua",
-       "\t\t\tif not has or (imbueStacks and not named) then\n",
-       "\t\t\tif not has then\n",
-       "whatif: an oil alone always counts",
-       expect="the imbue ran out under an oil seen beside it", script=S)
-
-mutate("Core.lua",
-       "\t\t\tif named and other then imbueStacks = true end\n",
-       "",
-       "whatif: an oil beside an imbue never noted",
-       expect="the imbue ran out under an oil seen beside it", script=S)
-
-mutate("Core.lua",
-       "\t\t\t\t\tif not made then other = true end\n",
-       "",
-       "whatif: the oil beside the imbue not seen",
-       expect="the imbue ran out under an oil seen beside it", script=S)
+# (An oil seen beside a scroll's imbue was three mutations on the code that
+# learned the two stack, once they had been seen together. The rule is now the
+# data's, kind by kind, and tests/mutations/hunt31-oils.py has its mutations.)
 
 # --- a scroll picked above your level (Core.lua, OwnVerdict) ---
 

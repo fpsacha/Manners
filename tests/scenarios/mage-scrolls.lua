@@ -28,8 +28,10 @@ local LESSER_FLAME, CHILLKNIFE, FROST, SPELLBREAK = 274947, 275067, 277485, 2775
 local RAT_AURA, FROG_AURA = 1296202, 1302285
 local LESSER_FLAME_ENCHANT = 8700
 local INTELLECT = 1459
--- A wizard oil's enchant: no scroll makes it.
+-- A wizard oil's enchant: no scroll makes it. And a shaman's Rockbiter Weapon's
+-- (an Imbue as a scroll's is), which no scroll makes either.
 local OIL = 2628
+local ROCKBITER = 29
 -- An enchanter's Crusader on the weapon, which never wears off.
 local CRUSADER = 1900
 -- Enum.ItemEnchantType: a scroll's imbue is of the Imbue kind, an oil
@@ -311,9 +313,11 @@ do
 end
 
 -- ------------------------------------------------------------------ 2
--- A familiar up -- whichever scroll it came from -- and anything on the main
--- hand, a wizard oil included, offer nothing. With top-ups on, an imbue
--- running low is offered again.
+-- A familiar up -- whichever scroll it came from -- and an imbue on the main
+-- hand offer nothing. A wizard oil is no imbue: it is a Temporary enchant,
+-- which stays on the weapon beside an imbue, so the imbue is still to be put
+-- on (hunt31-oils.lua has the rest). With top-ups on, an imbue running low is
+-- offered again.
 do
 	local scenario = "mage-scrolls: a familiar up and an imbue on offer nothing"
 	with(scenario, { bags = { [RAT] = 1, [LESSER_FLAME] = 1 }, held = { RAT_AURA },
@@ -338,12 +342,13 @@ do
 			fail(scenario, "with a Frog familiar up, the Rat scroll was offered: " .. key(mine(ns)))
 		end
 
-		-- A wizard oil on the staff.
+		-- A wizard oil on the staff: the imbue is still wanted, and /manners debug
+		-- says it is the one to use.
 		world.enchant = { id = OIL, left = 1800, kind = TEMPORARY }
-		if mine(ns) then
-			fail(scenario, "with a wizard oil on the weapon, you were offered " .. key(mine(ns)))
+		if key(mine(ns)) ~= "imbuelesserflame" then
+			fail(scenario, "with a wizard oil on the weapon, the imbue was not offered: " .. key(mine(ns)))
 		end
-		if not lines(ns):find("Weapon imbue: your main hand already carries a temporary enchant.", 1, true) then
+		if not lines(ns):find("Weapon imbue: none up -- Imbue Lesser Flame is the one to use.", 1, true) then
 			fail(scenario, "/manners debug says, of an oil: " .. lines(ns))
 		end
 
@@ -963,23 +968,29 @@ do
 end
 
 -- ------------------------------------------------------------------ 14
--- A wizard oil running low with top-ups on: no scroll tops it up, so nothing
--- is offered and /manners debug says the weapon carries an enchant, not that
--- Automatic has nothing to pick with a Lesser Flame in the bags.
+-- A wizard oil running low with top-ups on: no scroll tops it up, and it is no
+-- imbue to wait for either, so what is offered is the imbue, as the one to use
+-- (not a top-up with the oil's minute left, and not "Automatic has nothing to
+-- pick" with a Lesser Flame in the bags), in /manners debug and Diagnostics
+-- alike.
 do
-	local scenario = "mage-scrolls: an oil running low is an enchant on the weapon, not nothing to pick"
+	local scenario = "mage-scrolls: an oil running low is no imbue, and no top-up of one"
 	with(scenario, { bags = { [RAT] = 1, [LESSER_FLAME] = 1 }, held = { RAT_AURA },
 		enchant = { id = OIL, left = 60, kind = TEMPORARY } }, function(ns)
 		ns.db.profile.filters.whenBuffed = "refresh"
-		if mine(ns) then fail(scenario, "a wizard oil with a minute left offered " .. key(mine(ns))) end
+		local me = mine(ns)
+		if key(me) ~= "imbuelesserflame" or me.remaining ~= nil then
+			fail(scenario, ("a wizard oil with a minute left offered %s with %s left"):format(key(me),
+				tostring(me and me.remaining)))
+		end
 		local text = lines(ns)
-		if not text:find("Weapon imbue: your main hand already carries a temporary enchant.", 1, true)
+		if not text:find("Weapon imbue: none up -- Imbue Lesser Flame is the one to use.", 1, true)
 			or text:find("Automatic has nothing it would pick", 1, true) then
 			fail(scenario, "a wizard oil with a minute left: /manners debug says " .. text)
 		end
 		local diag = findOption(ns.optionsTable, "ownDiag")
 		local shown = diag and diag.name() or ""
-		if not shown:find("Weapon imbue: your main hand already carries a temporary enchant.", 1, true) then
+		if not shown:find("Weapon imbue: none up -- Imbue Lesser Flame is the one to use.", 1, true) then
 			fail(scenario, "a wizard oil with a minute left: Diagnostics says " .. flat(shown))
 		end
 	end)
@@ -1238,14 +1249,18 @@ do
 end
 
 -- ------------------------------------------------------------------ 19
--- On the list, an oil (Temporary) has seen to the weapon as a scroll's imbue
--- has; an enchanter's enchant (Permanent) never has, alone or beside one.
+-- On the list, an oil (Temporary) has not seen to the weapon as a scroll's
+-- imbue has (an Imbue is another kind of enchant, and the two stay on one
+-- weapon together); an enchanter's enchant (Permanent) never has either,
+-- alone or beside one.
 do
-	local scenario = "mage-scrolls: an oil on the list counts, a permanent enchant never does"
+	local scenario = "mage-scrolls: an oil on the list is no imbue, a permanent enchant never is"
 	with(scenario, { bags = { [LESSER_FLAME] = 1 }, held = { RAT_AURA },
 		enchants = { entry(OIL, TEMPORARY, 1800) } }, function(ns)
-		if mine(ns) then fail(scenario, "with a wizard oil on the list, you were offered " .. key(mine(ns))) end
-		if not lines(ns):find("Weapon imbue: your main hand already carries a temporary enchant.", 1, true) then
+		if key(mine(ns)) ~= "imbuelesserflame" then
+			fail(scenario, "with a wizard oil on the list, you were offered " .. key(mine(ns)))
+		end
+		if not lines(ns):find("Weapon imbue: none up -- Imbue Lesser Flame is the one to use.", 1, true) then
 			fail(scenario, "with a wizard oil on the list, /manners debug says " .. lines(ns))
 		end
 		if lastImbue(ns) ~= nil then
@@ -1318,8 +1333,9 @@ end
 -- ------------------------------------------------------------------ 21
 -- The list's time left is in milliseconds: two minutes of Lesser Flame with
 -- top-ups on is offered again, half an hour is not. With an oil on beside
--- it, listed before or after, the scroll's imbue is the one read, named and
--- topped up.
+-- it, listed before or after, the imbue is the one read, named and topped up;
+-- and so it is beside another imbue (Rockbiter Weapon's, which no scroll
+-- makes), the one the client lists first or last.
 do
 	local scenario = "mage-scrolls: the list's milliseconds drive a top-up, of the scroll's imbue beside an oil"
 	with(scenario, { bags = { [LESSER_FLAME] = 2 }, held = { RAT_AURA },
@@ -1340,13 +1356,26 @@ do
 				:format(key(mine(ns)), lines(ns)))
 		end
 		world.enchants = { entry(LESSER_FLAME_ENCHANT, IMBUE, 120), entry(OIL, TEMPORARY, 1800) }
-		-- Offered as a top-up of the imbue read, with its two minutes left: the
-		-- oil read over it is offered too once the two are known to stack, but
-		-- as nothing on, with no time left at all.
+		-- Offered as a top-up of the imbue read, with its two minutes left.
 		local topUp = mine(ns)
 		if key(topUp) ~= "imbuelesserflame"
 			or not (topUp.remaining and topUp.remaining > 110 and topUp.remaining <= 120) then
 			fail(scenario, ("an oil listed after two minutes of Lesser Flame: offered %s with %s left; /manners debug says %s")
+				:format(key(topUp), tostring(topUp and topUp.remaining), lines(ns)))
+		end
+		-- Two imbues on the list, which counts the imbue of a scroll first.
+		world.enchants = { entry(ROCKBITER, IMBUE, 1800), entry(LESSER_FLAME_ENCHANT, IMBUE, 120) }
+		topUp = mine(ns)
+		if key(topUp) ~= "imbuelesserflame"
+			or not (topUp.remaining and topUp.remaining > 110 and topUp.remaining <= 120) then
+			fail(scenario, ("another imbue listed before two minutes of Lesser Flame: offered %s with %s left; /manners debug says %s")
+				:format(key(topUp), tostring(topUp and topUp.remaining), lines(ns)))
+		end
+		world.enchants = { entry(LESSER_FLAME_ENCHANT, IMBUE, 120), entry(ROCKBITER, IMBUE, 1800) }
+		topUp = mine(ns)
+		if key(topUp) ~= "imbuelesserflame"
+			or not (topUp.remaining and topUp.remaining > 110 and topUp.remaining <= 120) then
+			fail(scenario, ("another imbue listed after two minutes of Lesser Flame: offered %s with %s left; /manners debug says %s")
 				:format(key(topUp), tostring(topUp and topUp.remaining), lines(ns)))
 		end
 	end)
@@ -1355,12 +1384,11 @@ end
 -- ------------------------------------------------------------------ 22
 -- What if a Brilliant Wizard Oil and a scroll's imbue sit on one staff, and
 -- the imbue runs out with the oil still on? The client lists each enchant
--- apart (scenario 21), so once it has listed the two together they stack,
--- and an oil alone means the scroll's imbue is gone: it is offered again.
--- Never seen together, an oil alone still counts (scenario 19), so nobody
--- is asked to put a scroll over an oil that would not take it.
+-- apart (scenario 21) and keeps the two together: an Imbue and a Temporary
+-- one. An oil alone is no imbue, from the first time it is seen, so the
+-- imbue is offered again, with the oil on or not.
 do
-	local scenario = "mage-scrolls: an oil alone, once seen beside a scroll's imbue, no longer counts"
+	local scenario = "mage-scrolls: an oil alone is no imbue, so an imbue that ran out under it is offered again"
 	with(scenario, { bags = { [LESSER_FLAME] = 2 }, held = { RAT_AURA },
 		enchants = { entry(OIL, TEMPORARY, 1700), entry(LESSER_FLAME_ENCHANT, IMBUE, 1800) } }, function(ns)
 		if mine(ns) then
@@ -1369,7 +1397,7 @@ do
 		end
 		world.enchants = { entry(OIL, TEMPORARY, 1600) }
 		if key(mine(ns)) ~= "imbuelesserflame" then
-			fail(scenario, ("the imbue ran out under an oil seen beside it, and you were offered %s; "
+			fail(scenario, ("the imbue ran out under an oil, and you were offered %s; "
 				.. "/manners debug says %s"):format(key(mine(ns)), lines(ns)))
 		end
 		if not lines(ns):find("Weapon imbue: none up -- Imbue Lesser Flame is the one to use.", 1, true) then

@@ -270,21 +270,23 @@ mutate("Core.lua",
        "scrolls: an imbue on the list not counted",
        expect="with Lesser Flame's imbue on the staff, you were offered", script=S)
 
+# A Temporary enchant on the list never counted, for any family: an oil is no
+# imbue, but it is what a stone (or another oil) is up for.
 mutate("Core.lua",
        "\t\t\t\telseif on == true and (kind == temporary or kind == imbue) then\n",
        "\t\t\t\telseif on == true and kind == imbue then\n",
        "scrolls: an oil on the list not counted",
-       expect="with a wizard oil on the list, you were offered", script=S)
+       expect="with an oil on the sword, you were offered", script=S)
 
 mutate("Core.lua",
        "\t\t\t\telseif on == true and (kind == temporary or kind == imbue) then\n",
        "\t\t\t\telseif on == true then\n",
        "scrolls: a permanent enchant counted",
-       expect="with only Crusader on the staff, you were offered", script=S)
+       expect="with only Crusader on the sword, you were offered", script=S)
 
 mutate("Core.lua",
-       "\t\t\tif not has or (imbueStacks and not named) then\n\t\t\t\tif unknown then return nil end\n\t\t\t\treturn false\n",
-       "\t\t\tif not has or (imbueStacks and not named) then\n\t\t\t\tif unknown then return nil end\n\t\t\t\treturn nil\n",
+       "\t\t\tif not has then\n\t\t\t\tif unknown then return nil end\n\t\t\t\treturn false\n",
+       "\t\t\tif not has then\n\t\t\t\tif unknown then return nil end\n\t\t\t\treturn nil\n",
        "scrolls: an empty list read as no answer",
        expect="with the imbue worn off, you were offered", script=S)
 
@@ -314,18 +316,20 @@ mutate("Core.lua",
        "scrolls: a secret list read as empty",
        expect="with the whole list secret, the weapon was read", script=S)
 
-# Which entry is read: the scroll's, beside an oil listed before or after it.
+# Which entry is read: the scroll's, beside another imbue (Rockbiter Weapon's)
+# listed before or after it. An oil beside it is no longer in the way: it does
+# not count for the imbue at all (hunt31-oils.py).
 mutate("Core.lua",
-       "\t\t\t\t\tif not has or (made and not named) then\n",
-       "\t\t\t\t\tif not has then\n",
-       "scrolls: an oil listed first read over the imbue",
-       expect="an oil listed before two minutes of Lesser Flame: offered", script=S)
+       "\t\t\t\t\tif counts and (not has or (made and not named)) then\n",
+       "\t\t\t\t\tif counts and not has then\n",
+       "scrolls: another imbue listed first read over the scroll's",
+       expect="another imbue listed before two minutes of Lesser Flame: offered", script=S)
 
 mutate("Core.lua",
-       "\t\t\t\t\tif not has or (made and not named) then\n",
-       "\t\t\t\t\tif true then\n",
-       "scrolls: an oil listed last read over the imbue",
-       expect="an oil listed after two minutes of Lesser Flame: offered", script=S)
+       "\t\t\t\t\tif counts and (not has or (made and not named)) then\n",
+       "\t\t\t\t\tif counts then\n",
+       "scrolls: another imbue listed last read over the scroll's",
+       expect="another imbue listed after two minutes of Lesser Flame: offered", script=S)
 
 mutate("Core.lua",
        "\t\t\t\t\t\thas, enchant, expires, named = true, id, plain(info.timeLeft), made\n",
@@ -339,13 +343,15 @@ mutate("Core.lua",
        "scrolls: the imbue on the list never named",
        expect="with Lesser Flame's imbue on the staff, /manners debug says", script=S)
 
-# An oil running low with top-ups on, taken for nothing to pick. Since the
-# twin top-up (1.6.2) reads the scroll right after, the read throws.
+# An enchant none of the family's items makes running low with top-ups on,
+# taken for nothing to pick. Since the twin top-up (1.6.2) reads the scroll
+# right after, the read throws. An oil is no imbue now (hunt31-oils.lua), so
+# the case is another's oil on a stone's hand, in hunt26-weapons.lua.
 mutate("Core.lua",
        "\t\t\tif not upSpell then return nil, true, left, \"up\" end\n",
        "",
        "scrolls: an oil running low said as nothing to pick",
-       expect="an oil running low is an enchant on the weapon, not nothing to pick: threw", script=S)
+       expect="a bare hand is offered a stone, a hand with an enchant is not: threw", script=S)
 
 # A scroll's cast cut short (Clicks.lua): the press kept, its block the
 # whole retry cooldown.
