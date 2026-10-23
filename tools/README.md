@@ -946,7 +946,7 @@ python tools/audit_ids.py --selftest            # the audit goes red when a datu
 python tools/audit_ids.py --client camelot --build camelot=1.60.1.70338   # a newer build
 ```
 
-It holds the weapon enhancement items (poisons, stones, oils, lures) on the four clients that have them to the item data too: ItemSparse (required level, class), ItemEffect (the spell its use casts), SpellEffect and SpellItemEnchantment (the enchant), SpellEquippedItems (the weapons it fits) and SpellCastTimes (a use the timed settle covers), and with `--notes` lists the items the client has that put an enchant on a weapon and the addon leaves out. An item marked `since` (newer than the cited build) is a NOTE until the audit is pointed at that build with `--build`.
+It holds the weapon enhancement items (poisons, stones, oils, lures) on the four clients that have them to the item data too: ItemSparse (required level, class), ItemEffect (the spell its use casts), SpellEffect and SpellItemEnchantment (the enchant), SpellEquippedItems (the weapons it fits) and SpellCastTimes (a use the timed settle covers), and with `--notes` lists the items the client has that put an enchant on a weapon and the addon leaves out. On Forever it also holds each item's `enchantKind` (Buffs.lua: how the client lists the enchant, which Core.lua's ReadImbue sorts a hand's enchants by) to the use spell's SpellEffect, 360 an imbue and 54 a temporary enchant, and finds one on any other client. An item marked `since` (newer than the cited build) is a NOTE until the audit is pointed at that build with `--build`.
 
 `python tools/audit_ids.py -h` has the rest. Not part of `tools/check.py`; it downloads what it needs into a cache outside the repo.
 

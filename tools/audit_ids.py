@@ -34,9 +34,11 @@ client's DB2 tables from wago.tools, for the build CLAUDE.md's "Data sources" ci
                      weapon enhancement item (poisons, stones, oils, lures) on the four clients that
                      have them: the item and its required level and class, the spell its use casts,
                      the enchant it makes, the weapons it fits (the subclass mask, or the inventory
-                     types an oil asks for), and a cast time the timed self-use settle covers; and,
-                     as NOTEs, items the client has that make a weapon enchant and the addon does
-                     not hold
+                     types an oil asks for), and a cast time the timed self-use settle covers; on
+                     Forever also each one's `enchantKind` against its use spell's effect (360 an
+                     imbue, 54 a temporary enchant), the scrolls' imbue included, and on the other
+                     clients that none has one; and, as NOTEs, items the client has that make a
+                     weapon enchant and the addon does not hold
   SpellEffect targets + SpellRadius   who a cast reaches against the flags that say so
                      (selfCast, partyOnly, groupOnly, alone, wideCasts, partyIsSubgroup,
                      SHOUT_YARDS)
@@ -925,6 +927,8 @@ def check_scrolls(rep, c, d):
                 if mask and not (mask >> s["weapon"]) & 1:
                     rep.finding(where, "spell %d wants weapon subclass mask %d (SpellEquippedItems); the addon says subclass %s" % (
                         want, mask, s["weapon"]))
+            if f.get("imbue"):
+                check_enchant_kind(rep, c, where, "camelot", f, s, want)
             lvl = s.get("level")
             if lvl is not None:
                 pass
@@ -946,6 +950,31 @@ MELEE_WEAPONS = 173555
 ENCHANT_EFFECTS = (53, 54, 92, 360)
 # The longest use the timed self-use settle covers (Clicks.lua, SCROLL_SECONDS is eight).
 LONGEST_USE_MS = 5000
+# How Forever's client lists the enchant a use spell makes, by the spell's effect (Buffs.lua,
+# `enchantKind`): 360 an Imbue, 54 a Temporary enchant (Enum.ItemEnchantType). A shaman's
+# Rockbiter Weapon and a warlock's firestone are 360 too, which is why a wizard oil stays beside
+# them on a hand.
+ENCHANT_KIND_BY_EFFECT = {360: "imbue", 54: "temporary"}
+
+
+def check_enchant_kind(rep, c, where, flavour, family, spell, use):
+    """`enchantKind` (Buffs.lua, a family's or its spell's) against what the use spell does. On
+    Forever every weapon enhancement and the mage's imbue scrolls carry one, and it is the use
+    spell's SpellEffect: 360 an imbue, 54 a temporary enchant. Off Forever none does: those clients
+    list one enchant to a hand and have no kinds to sort by (Core.lua, ReadImbue)."""
+    kind = spell.get("enchantKind") or family.get("enchantKind")
+    if flavour != "camelot":
+        if kind is not None:
+            rep.finding(where, "enchantKind %r on a client that lists no kinds" % kind)
+        return
+    made = sorted({ENCHANT_KIND_BY_EFFECT[e["effect"]] for e in c.effects.get(use, [])
+                   if e["effect"] in ENCHANT_KIND_BY_EFFECT})
+    if kind is None:
+        rep.finding(where, "no enchantKind on Forever, where spell %d (%s) is SpellEffect %s" % (
+            use, c.names.get(use), sorted(e["effect"] for e in c.effects.get(use, []))))
+    elif made != [kind]:
+        rep.finding(where, "enchantKind %r, but spell %d (%s) is SpellEffect %s (360 imbue, 54 temporary)" % (
+            kind, use, c.names.get(use), sorted(e["effect"] for e in c.effects.get(use, []))))
 
 
 def check_weapon_items(rep, c, d, flavour):
@@ -1035,6 +1064,7 @@ def check_weapon_items(rep, c, d, flavour):
             ms = cast.get(use)
             if ms is not None and ms > LONGEST_USE_MS:
                 rep.finding(where, "spell %d casts for %d ms; the timed self-use settle covers %d" % (use, ms, LONGEST_USE_MS))
+            check_enchant_kind(rep, c, where, flavour, f, s, use)
     # The other way round: what the client has that the addon leaves out. Temporary enchants
     # only (not an enchanter's permanent ones, effect 53), on melee weapons or a pole (not a
     # scope for a bow), and not a scroll's, which the mage's own families hold.
