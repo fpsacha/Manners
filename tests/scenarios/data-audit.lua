@@ -439,7 +439,10 @@ do
 		class = "PALADIN", groupSize = 2, inParty = { party1 = true },
 		people = { nameplate1 = { "Anna", "Aim" }, party1 = { "Bert", "Beside" } },
 		known = join(WISDOM, MIGHT, SALVATION),
-		setup = function(ns) ns.db.profile.buff.choice = "salvation" end,
+		-- The party is the subgroup where a shout is held to it (Classic Era's;
+		-- Forever's Battle Shout reaches the raid since build 70450), the case
+		-- "your group, not your subgroup" below is about.
+		setup = function(ns) ns.db.profile.buff.choice = "salvation" ns.PARTY_IS_SUBGROUP = true end,
 	}, function(ns)
 		local _, byName = queue(ns)
 		if key(byName["Bert Beside"]) ~= "salvation" then
@@ -473,7 +476,8 @@ do
 	with(scenario, {
 		class = "PALADIN", raid = { size = 10, player = 1 }, people = raidNames(),
 		known = join(WISDOM, MIGHT, SALVATION),
-		setup = function(ns) ns.db.profile.buff.choice = "salvation" end,
+		-- Where a shout is held to the subgroup (Classic Era's), as above.
+		setup = function(ns) ns.db.profile.buff.choice = "salvation" ns.PARTY_IS_SUBGROUP = true end,
 	}, function(ns)
 		local _, byName = queue(ns)
 		if key(byName["Raider7 Stone"]) ~= "salvation" then

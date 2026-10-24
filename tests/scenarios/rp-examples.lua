@@ -638,6 +638,10 @@ do
 					if not there then return end
 					local speech = there.db.profile.speech
 					local RP = there.InCharacter
+					-- The English reading alone: the table that reads any language's
+					-- box (RP.OTHER_HASH, hunt34-phrases.lua) would also take today's
+					-- English box, and then this path would go unjudged.
+					RP.InThisLanguage = function(text) return text end
 					local mine = RP.Text()
 					if mine == box[2] then
 						fail(scenario, "SKIPPED -- the box reads the same in English and " .. code)
