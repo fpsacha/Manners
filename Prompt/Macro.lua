@@ -185,7 +185,7 @@ function Prompt:ClickSummary(entry, slot)
 	if ns.tryMacro then
 		-- Asked the same question the button was, so this cannot promise a run
 		-- the button was left empty for.
-		local text, unfilled = ns.ExpandTokens(ns.tryMacro)
+		local text, unfilled = ns.ExpandTokens(ns.tryMacro, entry)
 		if not text then
 			out[#out + 1] = L["|cffffcc66Does nothing:|r %s."]:format(unfilled)
 			return out
@@ -378,7 +378,7 @@ local function Arm(R, S, entry, silent)
 	-- /manners try: arbitrary macro text, expanded against the candidate, so
 	-- testing on this client is one guess per click rather than per /reload.
 	if ns.tryMacro then
-		local text, unfilled = ns.ExpandTokens(ns.tryMacro)
+		local text, unfilled = ns.ExpandTokens(ns.tryMacro, entry)
 		if not text then
 			-- A template asking for a unit token this person lacks: nothing
 			-- goes on the button rather than a guess ("target" would cast at

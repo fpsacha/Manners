@@ -51,3 +51,16 @@ mutate("Favours.lua",
        "hunt34-favours: a recast that moved the end taken for the same aura",
        expect="hunt34-favours: a buff recast during the fight a reload happened in is still a favour", script=S)
 
+# ------------------------------------------------ a try macro from a name
+mutate("Prompt/Macro.lua",
+       "\t\tlocal text, unfilled = ns.ExpandTokens(ns.tryMacro, entry)\n\t\tif not text then\n\t\t\t-- A template",
+       "\t\tlocal text, unfilled = ns.ExpandTokens(ns.tryMacro)\n\t\tif not text then\n\t\t\t-- A template",
+       "hunt34-rows: a try macro from a name filled from the prompt's person",
+       expect="hunt33-rows: a /manners try macro pressed from a name", script=S)
+
+mutate("Commands.lua",
+       "\tentry = entry or ns.lastTopEntry\n",
+       "\tentry = ns.lastTopEntry\n",
+       "hunt34-rows: ExpandTokens ignoring the entry it is given",
+       expect="hunt33-rows: a /manners try macro pressed from a name", script=S)
+
