@@ -4,6 +4,8 @@
 -- whether each of the boxes it is handed still reads as the untouched set, and
 -- what loading the profile would turn it into (mode "check").
 --
+-- A third mode, "sets", lists the lines of the ready-made sets (tools/legacy_lines.py).
+--
 -- Called as f(root, tree, locale, mode, input) where root is the tree holding
 -- tests/mockapi.lua and tests/addonfiles.lua (this checkout), tree the addon to
 -- load (a tag's, or this checkout), locale a client language, and input, for
@@ -38,7 +40,14 @@ return function(root, tree, locale, mode, input, races, classes)
 
 	local out = {}
 	local factions = { "Alliance", "Horde", "Neutral" }
-	if mode == "save" then
+	if mode == "sets" then
+		-- The lines of every ready-made set, as this language reads them (English:
+		-- the keys), one per row.
+		for _, key in ipairs(ns.PHRASE_SET_ORDER) do
+			local set = ns.PHRASE_SETS[key]
+			for _, line in ipairs(set and set.lines or {}) do out[#out + 1] = "SET	" .. key .. "	" .. line end
+		end
+	elseif mode == "save" then
 		for _, race in ipairs(races) do
 			for _, faction in ipairs(factions) do
 				for _, class in ipairs(classes) do

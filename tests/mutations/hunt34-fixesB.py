@@ -103,6 +103,41 @@ mutate("Buffs.lua",
        expect="hunt33-data: camelot: a raid member in another subgroup is reached by Battle Shout",
        script="runscenarios.py")
 
+# ------------------------------------------------------------------ 5
+# A box filled by a client in another language follows the client: each of its
+# lines is read as this client reads it (Phrases.lua, RP.OTHER_HASH), and the
+# box counts as untouched when that is a set or the examples.
+mutate("Speech.lua",
+       "\t\tif now and now ~= text then\n",
+       "\t\tif false then\n",
+       "phrase set: another language's set never recognised",
+       expect="hunt34-phrases: an unedited set from another language follows a enUS client",
+       script="runscenarios.py")
+mutate("Speech.lua",
+       "\t\t\t\tif set and set.lines and Holds(now, set.lines) then return key end\n",
+       "\t\t\t\tif set and set.lines then return key end\n",
+       "phrase set: any box with a known line is a set",
+       expect="hunt34-phrases: a player's own box in another language's words is left alone",
+       script="runscenarios.py")
+mutate("Phrases.lua",
+       "\t\ttext = RP.InThisLanguage(text)\n",
+       "",
+       "In character: another language's examples never read",
+       expect="hunt34-phrases: In character keeps speaking after the client's language changes",
+       script="runscenarios.py")
+mutate("Phrases.lua",
+       "\t\t\tif n then return translated[keys[n]] end\n",
+       "\t\t\tif n then return keys[n] end\n",
+       "phrase set: another language's line read as English",
+       expect="hunt34-phrases: an unedited set from another language follows a zhCN client",
+       script="runscenarios.py")
+mutate("Phrases.lua",
+       "h = (h * 33 + line:byte(i)) % 4294967291 end\n",
+       "h = (h * 33 + line:byte(i)) % 4294967279 end\n",
+       "phrase set: the line hash is not the one the table was written with",
+       expect="hunt34-phrases: an unedited set from another language follows a enUS client",
+       script="runscenarios.py")
+
 # ------------------------------------------------------------------ 4
 # The prompt's font default is the library's own for the client's language.
 mutate("Core.lua",

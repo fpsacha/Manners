@@ -89,3 +89,32 @@ for _, locale in ipairs({ "koKR", "zhCN", "zhTW" }) do
 	end
 	Mock.reset()
 end
+
+-- ------------------------------------------------------------------ language
+-- The phrase box is filled at load in the client's language and kept in the
+-- profile. A player who changes the game's language later keeps a box in the old
+-- one: the repair only knows an English set (ns.EnglishPhraseSet), so a set
+-- written in German reads as the player's own lines on an English client.
+do
+	local scenario = "hunt33-settings: a phrase set saved in German follows the client into English"
+	Mock.reset()
+	Mock.locale = "deDE"
+	local ns = load(scenario)
+	if ns then
+		H.drive(scenario, ns)
+		local german = ns.db.profile.speech.phrases
+		local file = Mock.sv
+		Mock.reset()
+		Mock.sv = file
+		Mock.locale = "enUS"
+		local again = load(scenario)
+		if again then
+			H.drive(scenario, again)
+			local box = again.db.profile.speech.phrases
+			if box == german and german ~= again.PhraseSetText("roleplay") then
+				fail(scenario, "the unedited Roleplay set saved by a German client is still German on an English client")
+			end
+		end
+	end
+	Mock.reset()
+end

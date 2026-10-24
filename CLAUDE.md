@@ -361,7 +361,15 @@ only; `{gift}` is the spell they gave you), `RP.TRADE`, `RP.HISTORY`,
   (`tools/legacy_lines.py` builds and checks it): record the old text there
   whenever such a translation changes. `python tools/audit_saved_boxes.py` saves
   a box with every released tag in every language and checks the current
-  addon still recognises it.
+  addon still recognises it (its tag list is read from the repository's own
+  tags). A box filled in one language and opened by a client in another is
+  recognised through `RP.OTHER_KEYS` and `RP.OTHER_HASH` in `Phrases.lua`, every
+  set and example line in every language by the hash of its text (the locale
+  files load one per client, so the other languages' text is not there to ask):
+  after any change to a set, an example or a translation of one, run `python
+  tools/legacy_lines.py --write-other` (`--check-other` says whether it is
+  current; `--check` runs it too), and `python tools/audit_saved_boxes.py --tags
+  HEAD --saved-as deDE` (any language) reads the current boxes on every client.
 - Race file names are the client's `ChrRaces.ClientFileString`, not the race's
   name: `Scourge` (Forsaken), `EarthenDwarf`, `Harronir` (the Haranir). 1.7.2's
   Haranir lines never played because the key was guessed. Look it up.

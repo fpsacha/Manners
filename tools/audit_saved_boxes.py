@@ -1,6 +1,6 @@
 """Does this tree still know the "In character" phrase box an earlier release saved?
 
-    python tools/audit_saved_boxes.py                       # every released tag since beta.9, every language
+    python tools/audit_saved_boxes.py                       # every release tag with the set (from git), every language
     python tools/audit_saved_boxes.py --tags v1.7.4 v1.6.5 --locales koKR zhCN
     python tools/audit_saved_boxes.py --classes MAGE,PRIEST --races Human,Orc   # a smaller grid
     python tools/audit_saved_boxes.py --list                # print the edited ones, not only a count
@@ -25,11 +25,16 @@ longer recognised (EDITED), and any that threw. Nothing is written to the
 repository. Needs git, lupa. One tag and one language is a few seconds.
 
 The grid is races x 3 sides x 13 classes; --races and --classes narrow it.
-Exit 1 when any box is no longer recognised or throws. Every tag since
-v1.0.0-beta.9 is checked by default (beta.9 filled five lines, beta.10 to 1.5.0
-eight); a box earlier than that has no In character set. When a translation of
-an example line is reworded, the old text belongs in Phrases.lua's
-RP.LEGACY_TRANSLATED (tools/legacy_lines.py finds it and says what is missing).
+Exit 1 when any box is no longer recognised or throws. Every release tag whose
+tree has Phrases.lua is checked by default, read from the repository's own tags
+(beta.9 filled five lines, beta.10 to 1.5.0 eight; a tag earlier than that has
+no In character set), so a new release is in the list the day it is tagged. When
+a translation of an example line is reworded, the old text belongs in
+Phrases.lua's RP.LEGACY_TRANSLATED (tools/legacy_lines.py finds it and says what
+is missing). A box saved in one language is read on a client in another through
+RP.OTHER_HASH (Phrases.lua), but only as the current examples' texts: the other
+language's older translations are not in it. `--tags HEAD --saved-as deDE` checks
+the current boxes that way.
 """
 import argparse
 import io
@@ -48,10 +53,21 @@ RACES = ["Human", "Dwarf", "NightElf", "Gnome", "Draenei", "Worgen", "Orc", "Sco
          "KulTiran", "ZandalariTroll"]
 CLASSES = ["WARRIOR", "PALADIN", "HUNTER", "ROGUE", "PRIEST", "DEATHKNIGHT", "SHAMAN", "MAGE", "WARLOCK",
            "MONK", "DRUID", "DEMONHUNTER", "EVOKER"]
-TAGS = ["v1.0.0-beta.9", "v1.0.0-beta.10", "v1.0.0-beta.11", "v1.0.0", "v1.1.0", "v1.1.1", "v1.1.2", "v1.2.0",
-        "v1.3.0", "v1.4.0", "v1.5.0", "v1.5.1", "v1.5.2", "v1.5.3", "v1.5.4", "v1.6.0", "v1.6.1", "v1.6.2",
-        "v1.6.3", "v1.6.4", "v1.6.5", "v1.6.6", "v1.6.7", "v1.6.8", "v1.7.0", "v1.7.1", "v1.7.2", "v1.7.3",
-        "v1.7.4"]
+
+
+def released_tags():
+    """Every release tag whose tree has the In character set (Phrases.lua), oldest
+    first, read from the repository's own tags so that a new release is checked
+    without anybody editing a list (the list that stood here stopped at v1.7.4
+    for five releases)."""
+    def ask(*args):
+        return subprocess.run(("git",) + args, cwd=ROOT, capture_output=True, text=True).stdout
+    tags = []
+    for tag in ask("tag", "--list", "v*", "--sort=creatordate").split():
+        if ask("ls-tree", "--name-only", tag, "Phrases.lua").strip():
+            tags.append(tag)
+    return tags
+
 
 DRIVER = open(os.path.join(ROOT, "tools", "audit_saved_boxes.lua"), encoding="utf-8").read()
 
@@ -89,7 +105,8 @@ def run(tree, locale, mode, input_rows, races, classes):
 
 def main(argv):
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("--tags", nargs="*", default=TAGS)
+    ap.add_argument("--tags", nargs="*", default=None,
+                    help="release tags (default: every tag of the repository with Phrases.lua in it)")
     ap.add_argument("--locales", nargs="*", default=LOCALES)
     ap.add_argument("--races", default=",".join(RACES))
     ap.add_argument("--classes", default=",".join(CLASSES))
@@ -103,7 +120,7 @@ def main(argv):
     bad = 0
     with tempfile.TemporaryDirectory(prefix="manners-tags-") as base:
         head = ROOT if args.head == "HEAD" else extract(args.head, base)
-        for tag in args.tags:
+        for tag in args.tags or released_tags():
             tree = extract(tag, base)
             for loc in args.locales:
                 rows = run(tree, args.saved_as or loc, "save", None, races, classes)
