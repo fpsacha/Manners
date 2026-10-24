@@ -732,7 +732,9 @@ function Arcane:PlaceLines(right)
 	local kit = self.kit
 	local name, sub, fit = kit.name, kit.sub, kit.fit
 	self.lineRight = right
-	local inset = right + (self:KeyShown() and self.keyRoom or 0)
+	-- The count's and the keycap's room, never so much that the two points
+	-- cross: the name keeps 20 units, and the room at the right gives way.
+	local inset = math.min(right + (self:KeyShown() and self.keyRoom or 0), math.max(0, self.W - self.textX - 20))
 	local room = math.max(20, self.W - self.textX - inset)
 	name:ClearAllPoints()
 	sub:ClearAllPoints()

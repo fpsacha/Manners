@@ -733,6 +733,8 @@ end
 function Luxe:PlaceLines(right)
 	local kit = self.kit
 	local name, sub = kit.name, kit.sub
+	-- The name keeps 20 units: the two points never cross.
+	right = math.min(right, math.max(0, self.W - self.textX - 20))
 	-- The reason line lost its anchor to the tag: the next fit places it again.
 	self.fitText = nil
 	if kit.fit.twoLine then

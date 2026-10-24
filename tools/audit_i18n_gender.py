@@ -20,7 +20,11 @@ participle in its masculine form, and prints each line it finds as
     frFR [je suis vieux] Éloignez les torches de moi, {name}. Je suis vieux, sec et ...
 
 It is a lead list. A masculine-looking word can be a noun ("je suis le chef",
-"soy yo"), a name or invariable; each line is meant to be read. The patterns
+"soy yo"), a name or invariable; each line is meant to be read. The lines read
+and found to be a man's voice go into RP.MASCULINE (Phrases.lua), which RP.Pick
+leaves out for a woman; the patterns miss some ("Obrigado" in Portuguese, said
+by the speaker), so a new language or a new batch of lines wants a look beyond
+this list too. The patterns
 do not look for a gendered address to {name} ("vous voilà prêt"), which can
 only be answered by the sex of the person on the prompt.
 """

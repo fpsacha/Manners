@@ -4252,6 +4252,65 @@ RP.WEIGHT = {
 }
 RP.SPREAD = 3
 
+-- Lines a language gives a man's voice. The English lines are written for
+-- anybody to say ("I'm old, dry and very flammable"); where a language agrees
+-- an adjective, a participle or a noun with its speaker, the translation had to
+-- pick, and picked the masculine. RP.Pick leaves these out for a woman
+-- (UnitSex 3) unless that would leave the pool under RP.SPREAD lines, and says
+-- them to everybody else. Keyed by the English line, so a retranslation does not
+-- lose its place; esMX reads esES's. Found with tools/audit_i18n_gender.py and
+-- read line by line: a line about somebody else, or in a form that does not
+-- change with the speaker ("sono felice"), is not one.
+RP.MASCULINE = {
+	frFR = {
+		["Keep the torches clear of me, {name}. I'm old, dry and very flammable."] = true,
+		["Hold still, {name}. I've practised on kodo, and they're far less polite."] = true,
+		["Thank you, {name}. Somebody had to go first, and I'm glad it was you."] = true,
+		["Certainly, {name}. It's this or a lecture on ley lines, and you've been kind."] = true,
+		["If I ice-block, {name}, I'm not frozen with fear. I'm frozen on purpose."] = true,
+		["Thank you, {name}. My aura just brightened. It does that when I'm touched."] = true,
+		["Thank you, {name}. I switched to my grateful stance for that. It's rarely used."] = true,
+		["Your {gift} softens every blow, {name}. I'm upholstered."] = true,
+		["I'll remember your face now, {name}, and I'm terrible with faces."] = true,
+		["If this goes badly, {name}, don't worry. I've died before; it passes."] = true,
+	},
+	itIT = {
+		["Thank ye, {name}. I'd offer me beard as surety, but I'm terrible fond of it."] = true,
+		["I was a physician in Lordaeron, {name}. Old habits die harder than I did."] = true,
+		["I've outlived everyone I knew, {name}. I'd rather not outlive you. Take this."] = true,
+		["Pardon me, {name}. I'm told I lurk. I'm trying to lurk helpfully."] = true,
+		["Keep the torches clear of me, {name}. I'm old, dry and very flammable."] = true,
+		["Mind the green puddles, {name}. I've seen what they do. I'm what they do."] = true,
+		["Night, {name}. The one time nobody can tell I'm pale."] = true,
+		["Hold still, {name}. I've practised on kodo, and they're far less polite."] = true,
+		["Morning, {name}. Dew on the grass, dew on my fur. I'll be damp till noon."] = true,
+		["This late, {name}, only trolls and trouble are up. I'm the nice one."] = true,
+		["I heard your horn and swung harder, {name}. Nobody had to tell me twice."] = true,
+		["I'm half thunderstorm now, {name}. Thank you, and sorry about the rain."] = true,
+	},
+	esES = {
+		["Nobody else understands the hair, {name}. It was blond once. I think."] = true,
+	},
+	ptBR = {
+		["Dawn, {name}. Rich goblins sleep in. I'm not rich yet."] = true,
+		["A spare life in my pocket, {name}. I'll try not to spend it. Thank you."] = true,
+		["Thank you, {name}. Death can knock now; I've a key to the back door."] = true,
+		["Dying's only a delay with your {gift}, {name}. Thank you."] = true,
+		["Thank you, {name}. If the worst happens, I'll get up and say it twice."] = true,
+		["Let the next thing roar at me, {name}. I'm not running this time. Thank you."] = true,
+		["{gift}! One fright, already dealt with, {name}. Thank you."] = true,
+		["Thank you, {name}. The next scream I hear won't be mine."] = true,
+		["No running in circles for me, {name}. Not the first time, anyway. Thank you."] = true,
+		["Thank you, {name}. Lakes, rivers, puddles: all floors now."] = true,
+		["Walking on water, {name}. Folk will start a religion. Thank you."] = true,
+		["The murlocs will be furious, {name}. Thank you for the shortcut."] = true,
+		["Thank you, {name}. I'll be across before it fades. Probably."] = true,
+		["Thank you, {name}. Every lurker around just lost their only trick."] = true,
+		["Thank you, {name}. Now I can see what your imp gets up to."] = true,
+		["My eyes see more than my wits can handle, {name}. Thank you."] = true,
+	},
+}
+
 -- How many picks back a line is remembered: one said lately gets no share
 -- while any other line still fits, so five people helped in a row hear five
 -- different lines. By the line as written, so the same joke to another name
@@ -4293,6 +4352,36 @@ do
 		value = ns.plain(value)
 		if type(value) ~= "string" or #value > 20 or not value:find("^%u+$") then return nil end
 		return value
+	end
+
+	-- The lines this speaker leaves out: RP.MASCULINE's for a woman, in a
+	-- language that has them; nil for everybody else. The sex is the player's
+	-- own, which the client always says.
+	local function Leaving()
+		local code = ns.LOCALE == "esMX" and "esES" or ns.LOCALE
+		local list = RP.MASCULINE[code]
+		if not list or type(_G.UnitSex) ~= "function" then return nil end
+		if ns.plain(_G.UnitSex("player")) ~= 3 then return nil end
+		return list
+	end
+
+	-- The English a line was read under, for the tests.
+	function RP.EnglishOf(text) return ENGLISH[text] end
+
+	-- Which lines of this pool are left out (text -> true), or nil: none are
+	-- flagged, or leaving them out would take the pool below RP.SPREAD lines.
+	local function LeaveOut(pool, leaving)
+		local out, total, n = nil, 0, 0
+		for _, text in ipairs(pool) do
+			total = total + 1
+			if leaving[ENGLISH[text]] then
+				out = out or {}
+				out[text] = true
+				n = n + 1
+			end
+		end
+		if out and total - n < RP.SPREAD then return nil end
+		return out
 	end
 
 	-- The player's people ("dwarf", or nil for a race with no family), side
@@ -4588,11 +4677,13 @@ do
 		-- key in Buffs.lua), which is named otherwise.
 		if gift ~= nil and (gift == single or (key and RP.GiftKey(entry) == key)) then gift = nil end
 		local weight, spread, about = RP.WEIGHT, RP.SPREAD, RP.ABOUT
+		local leaving = Leaving()
 
 		local lines, weights, tags, texts, total = {}, {}, {}, {}, 0
 		local function add(pool, share, tag)
 			if type(pool) == "string" then pool = { pool } end
 			if type(pool) ~= "table" or type(share) ~= "number" then return end
+			local left = leaving and LeaveOut(pool, leaving)
 			local first = #lines + 1
 			for _, text in ipairs(pool) do
 				-- A line that would say an empty name or spell is left out,
@@ -4604,6 +4695,8 @@ do
 					and not (notSaying and text:find(notSaying, 1, true))
 					-- Nor one about a spell of ours (RP.ABOUT) while another goes out.
 					and (about[text] == nil or about[text] == key)
+					-- Nor a line this language gives a man's voice, for a woman.
+					and not (left and left[text])
 				if usable then
 					local said = ns.Swap(ns.Swap(ns.Swap(text, "{name}", name), "{buff}", buff), "{gift}", gift)
 					said = said:gsub("[\r\n]", " "):gsub("%s+", " "):match("^%s*(.-)%s*$")

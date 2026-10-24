@@ -194,6 +194,11 @@ do
 	-- When each filed cast was due to end, where the client says so. Read only by
 	-- IsNew; see there.
 	local knownUntil = {}
+	-- The entries the baseline primed while the spell was withheld (filed as
+	-- `true`), by instance id: what was worn before the walk could name it, as
+	-- against a buff first seen in the fight. The first reading with the spell
+	-- plain adopts them; see ScanOwnBuffs.
+	local primedBlind = {}
 	local auraScanPrimed = false
 	-- What the last scan of your own buffs made of itself, for /manners debug:
 	-- the gate in ScanOwnBuffs can switch this source off without a word, and a
@@ -281,6 +286,7 @@ do
 	function ns.ResetAuraBaseline()
 		wipe(knownAuras)
 		wipe(knownUntil)
+		wipe(primedBlind)
 		wipe(lastPresent)
 		wipe(lastUntil)
 		wipe(sighted)
@@ -729,6 +735,17 @@ do
 					-- its spell reads (IsNew): it may have landed in the fight.
 					local key = spellId or knownAuras[instanceId] or true
 					local expires = plain(aura.expirationTime)
+					-- A baseline primed in a fight (a /reload or login into one)
+					-- holds what was worn as `true`. The same instance id with its
+					-- spell now readable is that aura, so it is filed under its
+					-- spell: IsNew then judges it by its end, and an end later than
+					-- the one filed is a recast and still new. (A buff that landed
+					-- in the fight was filed by the rule above, not primed, and is
+					-- still announced once its spell reads.)
+					if spellId and primedBlind[instanceId] and knownAuras[instanceId] == true then
+						primedBlind[instanceId] = nil
+						knownAuras[instanceId] = spellId
+					end
 					present[instanceId] = key
 					presentUntil[instanceId] = expires
 					if IsNew(instanceId, key, expires) then
@@ -792,6 +809,7 @@ do
 				for instanceId, key in pairs(present) do
 					knownAuras[instanceId] = key
 					knownUntil[instanceId] = presentUntil[instanceId]
+					primedBlind[instanceId] = key == true or nil
 				end
 				auraScanPrimed = true
 				scan.primed = true
@@ -808,6 +826,7 @@ do
 				if present[instanceId] ~= key and lastPresent[instanceId] ~= key then
 					knownAuras[instanceId] = nil
 					knownUntil[instanceId] = nil
+					primedBlind[instanceId] = nil
 				end
 			end
 
@@ -821,6 +840,7 @@ do
 					if key ~= nil then
 						knownAuras[instanceId] = key
 						knownUntil[instanceId] = presentUntil[instanceId]
+						primedBlind[instanceId] = nil
 						local seen = sighted[instanceId]
 						-- The name read with the slot is the only one there will be;
 						-- a sighting that read nobody ends here, never asked again of

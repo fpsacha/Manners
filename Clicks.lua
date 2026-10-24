@@ -909,7 +909,11 @@ end
 function addon:UNIT_SPELLCAST_SUCCEEDED(_, unit, castGUID, spellId)
 	if unit ~= "player" then return end
 	-- A scroll's cast done: the scroll is used, and nothing can stop it now.
-	if castingScroll and ScrollCast(plain(castGUID), plain(spellId)) then castingScroll = nil end
+	local done = castingScroll and ScrollCast(plain(castGUID), plain(spellId))
+	if done then
+		castingScroll = nil
+		ns.EndScrollPress(done.spell)
+	end
 	-- Again here, for a cast with a cast time: its global cooldown is running
 	-- by now, and the client's figure for it is the one to draw.
 	if ns.Prompt and ns.Prompt.SyncCooldown then

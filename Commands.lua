@@ -436,9 +436,11 @@ end
 -- Tokens so a test can name the current candidate without typing its name.
 -- "target" stands in only when there is no candidate at all. A {unit} that
 -- cannot be filled is not guessed at: this returns nil and the reason, and
--- the prompt leaves the button empty and says why.
-function ns.ExpandTokens(text)
-	local entry = ns.lastTopEntry
+-- the prompt leaves the button empty and says why. `entry` is the person the
+-- macro is for when it is not the prompt's: a name in the list is armed at that
+-- name (Prompt/Macro.lua), and the prompt's own (ns.lastTopEntry) stays as it was.
+function ns.ExpandTokens(text, entry)
+	entry = entry or ns.lastTopEntry
 	local buff = entry and entry.buff or ns.ResolveBuff(true)
 	local info = buff and ns.BuffInfo(buff)
 

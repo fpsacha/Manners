@@ -512,7 +512,9 @@ function Toast:Apply(p, above)
 	-- The medallion is the panel's height: the banner's rails and body run in
 	-- under it to its centre, so a medallion any shorter than the banner left
 	-- their ends showing above and below it.
-	local M = showIcon and H or 0
+	-- A panel narrower than it is tall holds the medallion to half its width, or
+	-- the name is left a sliver beside it.
+	local M = showIcon and math.min(H, math.max(24, math.floor(W * 0.5))) or 0
 	local cx, cy = M / 2, H / 2
 	local left = showIcon and cx or 0
 	-- With the icon off, a jewel at the banner's end carries the reason.
@@ -794,6 +796,9 @@ function Toast:PlaceLines(right)
 	local inset = math.max(right, 12)
 	if self.keyUp then inset = math.max(inset, self.keyRoom or 0) end
 	if self.countMode == "pair" then inset = math.max(inset, self:PairRoom()) end
+	-- The two points never cross: the name keeps 20 units, the room at the
+	-- right gives way.
+	inset = math.min(inset, math.max(0, self.W - self.textX - 20))
 	self.inset = inset
 	self.lineRoom = math.max(20, self.W - self.textX - inset)
 	fit.room[name] = self.lineRoom

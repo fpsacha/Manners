@@ -1963,6 +1963,12 @@ do
 		if pressedScroll[spell.family.key] == spell then pressedScroll[spell.family.key] = before end
 		if spell.family.enhance then busyUntil[spell.family.slot] = nil end
 	end
+	-- The cast went through: the enchant is on the weapon, so the hand is free
+	-- at once (the eight seconds are for a cast that never reports its end).
+	-- The press itself stays noted: ImbueScroll names the scroll by it.
+	function ns.EndScrollPress(spell)
+		if spell.family.enhance then busyUntil[spell.family.slot] = nil end
+	end
 	-- Whether an enhancement was put on this hand a moment ago (OwnVerdict).
 	function ns.HandBusy(slot, now)
 		local endsAt = busyUntil[slot]

@@ -96,11 +96,21 @@ local function drive(scenario, ns, extra)
 		{ "ScanOwnBuffs", function() ns.ScanOwnBuffs() end },
 		{ "UNIT_AURA", function() ns.addon:UNIT_AURA(nil, "player") end },
 		{ "debug", function() ns.addon:HandleSlash("debug") end },
+		-- A press as the client delivers it: the down, which casts, and then the
+		-- up of the same key, which is no press (Prompt/Press.lua).
 		{ "PreClick", function()
 			local pre = ns.Prompt:GetButton().scripts.PreClick
-			if pre then pre(ns.Prompt:GetButton()) end
+			if pre then pre(ns.Prompt:GetButton(), "LeftButton", true) end
 		end },
 		{ "PostClick", function()
+			local post = ns.Prompt:GetButton().scripts.PostClick
+			if post then post(ns.Prompt:GetButton(), "LeftButton", true) end
+		end },
+		{ "PreClick (up)", function()
+			local pre = ns.Prompt:GetButton().scripts.PreClick
+			if pre then pre(ns.Prompt:GetButton(), "LeftButton", false) end
+		end },
+		{ "PostClick (up)", function()
 			local post = ns.Prompt:GetButton().scripts.PostClick
 			if post then post(ns.Prompt:GetButton(), "LeftButton", false) end
 		end },
