@@ -65,3 +65,54 @@ run("hunt34-press: a click with no down or up is a press", nil,
 	end
 end)
 
+-- ------------------------------------------------------------------ favours
+-- hunt34-favours: a baseline primed while the spell was withheld holds what was worn
+-- as one aura with the spell unknown. When the spell reads again, the same
+-- instance id is that aura -- unless its end moved later, which is a recast.
+run("hunt34-favours: a buff recast during the fight a reload happened in is still a favour", "camelot",
+	{ nameplate1 = { "Anna", "Aim" } }, function(ns)
+	local scenario = "hunt34-favours: a buff recast during the fight a reload happened in is still a favour"
+	local api = C_UnitAuras
+	local hide, later = false, 0
+	rawset(_G, "C_UnitAuras", {
+		GetUnitAuraBySpellID = api.GetUnitAuraBySpellID,
+		GetAuraDataByIndex = function(unit, i)
+			local aura = api.GetAuraDataByIndex(unit, i)
+			if aura and unit == "player" then
+				local copy = {}
+				for k, v in pairs(aura) do copy[k] = v end
+				if hide then copy.spellId = Mock.SECRET end
+				if later ~= 0 and type(copy.expirationTime) == "number" then
+					copy.expirationTime = copy.expirationTime + later
+				end
+				return copy
+			end
+			return aura
+		end,
+	})
+	wipe(ns.owed)
+	Mock.printed = {}
+	Mock.inCombat = true
+	hide = true
+	ns.addon:PLAYER_REGEN_DISABLED()
+	ns.addon:PLAYER_ENTERING_WORLD(nil, false, true)
+	for _ = 1, 40 do Mock.runTimers(0.1) end
+	if not ns.auraScan.primed then
+		fail(scenario, "SKIPPED -- the baseline did not settle in the fight")
+		return
+	end
+	-- The fight ends; the same auras read with their spells, ending later than
+	-- they did: somebody put them back.
+	Mock.inCombat = false
+	hide = false
+	later = 900
+	Mock.advance(2)
+	ns.addon:PLAYER_REGEN_ENABLED()
+	ns.addon:UNIT_AURA(nil, "player")
+	Mock.runTimers(1)
+	if not next(ns.owed) then
+		fail(scenario, "buffs that read ending 15 minutes later than the baseline's were taken for the same casts")
+	end
+end)
+
+

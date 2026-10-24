@@ -37,3 +37,17 @@ mutate("Prompt/Press.lua",
        "hunt34-press: a click with no phase taken for a release (PostClick)",
        expect="hunt34-press: a click with no down or up is a press", script=S)
 
+# ------------------------------------------------ a reload in a fight
+mutate("Favours.lua",
+       "\t\t\t\t\tprimedBlind[instanceId] = key == true or nil\n",
+       "",
+       "hunt34-favours: a baseline primed withheld never adopts the spell",
+       expect="hunt33-favours: a reload in a fight does not turn what you already wear into favours", script=S)
+
+# An adopted aura that took the new end as the filed one: a recast looks like a refresh.
+mutate("Favours.lua",
+       "\t\t\t\t\t\tknownAuras[instanceId] = spellId\n",
+       "\t\t\t\t\t\tknownAuras[instanceId] = spellId\n\t\t\t\t\t\tknownUntil[instanceId] = expires\n",
+       "hunt34-favours: a recast that moved the end taken for the same aura",
+       expect="hunt34-favours: a buff recast during the fight a reload happened in is still a favour", script=S)
+
