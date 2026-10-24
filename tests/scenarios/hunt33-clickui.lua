@@ -166,6 +166,67 @@ run("hunt33-press: the release of a key held past a refusal files no press on th
 	end
 end)
 
+-- ------------------------------------------------------------------ gendered lines
+-- hunt33-speech: a woman is given a man's line in French, Italian, Spanish and Portuguese
+--
+-- The lines are first-person ("I am old, dry and extremely flammable"). Where the
+-- language agrees an adjective with its speaker, the translation picks the
+-- masculine, and nothing in Phrases.lua or Speech.lua ever asks UnitSex, so a
+-- female character says it in a man's voice every time it is picked.
+-- tools/audit_i18n_gender.py lists 52 such lines; these four stand for them.
+local MASCULINE = {
+	frFR = "Éloignez les torches de moi, {name}. Je suis vieux, sec et très inflammable.",
+	itIT = "Tieni le torce lontane, {name}. Sono vecchio, secco e molto infiammabile.",
+	esES = "Gracias, {name}. Los susurros se callaron. Así sé que era sincero.",
+	ptBR = "Amanheceu, {name}. Goblin rico dorme até tarde. Ainda não sou rico.",
+}
+for _, code in ipairs({ "frFR", "itIT", "esES", "ptBR" }) do
+	local scenario = "hunt33-speech: a female speaker is not given a masculine first-person line in " .. code
+	Mock.reset()
+	Mock.locale = code
+	local sexAsked = 0
+	local real = rawget(_G, "UnitSex")
+	local ns = load(scenario)
+	if ns then
+		local ok, err = pcall(function()
+			UnitSex = function()
+				sexAsked = sexAsked + 1
+				return 3
+			end
+			local RP = ns.InCharacter
+			local found
+			local function walk(tbl)
+				if type(tbl) ~= "table" then return end
+				for _, v in pairs(tbl) do
+					if v == MASCULINE[code] then
+						found = true
+					elseif type(v) == "table" then
+						walk(v)
+					end
+				end
+			end
+			for _, name in ipairs({ "RACE", "KIN", "FACTION", "GENERAL", "CLASS", "SPELL", "TRADE", "GIFT",
+				"HISTORY", "PLACE", "TIME", "TARGET", "SAME", "ONTO" }) do
+				walk(RP[name])
+			end
+			if not found then
+				fail(scenario, "SKIPPED -- the line is no longer in any pool: " .. MASCULINE[code])
+				return
+			end
+			for _ = 1, 200 do
+				RP.Pick({ name = "Anna", short = "Anna", reason = "owed", buff = ns.ResolveBuff(true) }, "say", 250)
+			end
+			if sexAsked == 0 then
+				fail(scenario, "a female character's lines are picked 200 times and the speaker's sex is never asked,"
+					.. " while the pools hold \"" .. MASCULINE[code] .. "\"")
+			end
+		end)
+		if not ok then fail(scenario, "threw: " .. tostring(err)) end
+	end
+	UnitSex = real
+	Mock.reset()
+end
+
 -- ------------------------------------------------------------------ one of a group
 -- hunt33-text: the group cast's tooltip counts one person as "are"
 --

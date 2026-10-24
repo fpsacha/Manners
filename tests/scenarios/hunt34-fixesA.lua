@@ -254,3 +254,116 @@ for _, case in ipairs({
 	end)
 end
 
+-- ------------------------------------------------------------------ speech
+-- hunt34-speech: RP.MASCULINE (Phrases.lua) names lines a language gives a man's voice.
+-- RP.Pick leaves them out for a woman (UnitSex 3) unless that would leave the pool
+-- under RP.SPREAD lines.
+local function allLines(RP)
+	local out, seen = {}, {}
+	local function walk(tbl)
+		if type(tbl) ~= "table" then return end
+		for _, v in pairs(tbl) do
+			if type(v) == "string" then
+				if not seen[v] then
+					seen[v] = true
+					out[#out + 1] = v
+				end
+			else
+				walk(v)
+			end
+		end
+	end
+	for _, name in ipairs({ "RACE", "KIN", "FACTION", "GENERAL", "CLASS", "SPELL", "TRADE", "GIFT",
+		"HISTORY", "PLACE", "TIME", "TARGET", "SAME", "ONTO" }) do
+		walk(RP[name])
+	end
+	return out
+end
+
+for _, code in ipairs({ "frFR", "itIT", "esES", "ptBR" }) do
+	local scenario = "hunt34-speech: the list of masculine lines names lines the pools hold in " .. code
+	Mock.reset()
+	Mock.locale = code
+	local ns = load(scenario)
+	if ns then
+		local RP = ns.InCharacter
+		local held = {}
+		for _, text in ipairs(allLines(RP)) do held[RP.EnglishOf(text) or text] = true end
+		local list = RP.MASCULINE and RP.MASCULINE[code]
+		if type(list) ~= "table" or next(list) == nil then
+			fail(scenario, "no lines listed for " .. code)
+		else
+			for key in pairs(list) do
+				if not held[key] then
+					fail(scenario, "the list names a line no pool holds (any more): " .. key)
+				end
+			end
+		end
+	end
+	Mock.reset()
+end
+
+for _, code in ipairs({ "frFR", "itIT", "esES", "ptBR" }) do
+	local scenario = "hunt34-speech: a woman is spared a listed masculine line in " .. code
+	Mock.reset()
+	Mock.locale = code
+	local real = rawget(_G, "UnitSex")
+	local ns = load(scenario)
+	if ns then
+		local ok, err = pcall(function()
+			local RP = ns.InCharacter
+			local masculine
+			for key in pairs(RP.MASCULINE[code]) do
+				for _, text in ipairs(allLines(RP)) do
+					if RP.EnglishOf(text) == key then masculine = text end
+				end
+			end
+			if not masculine then
+				fail(scenario, "SKIPPED -- no listed line is in a pool")
+				return
+			end
+			-- The general thanks, alone in the draw (lean): the masculine line and
+			-- plain ones. Three plain ones keep the pool at RP.SPREAD without it.
+			local general = RP.GENERAL
+			local savedThanks = general.thanks
+			local entry = { name = "Anna", short = "Anna", reason = "owed", buff = ns.ResolveBuff(true),
+				lean = "general" }
+			local function heard(sex, pool)
+				general.thanks = pool
+				UnitSex = function() return sex end
+				local seen = {}
+				for _ = 1, 400 do
+					local _, text = RP.Pick(entry, "say", 250)
+					if text then seen[text] = true end
+				end
+				return seen
+			end
+			local plain = { "Una {name}.", "Dos {name}.", "Tres {name}." }
+			local roomy = { masculine, plain[1], plain[2], plain[3] }
+			local tight = { masculine, plain[1], plain[2] }
+			local a = heard(3, roomy)
+			local b = heard(2, roomy)
+			local c = heard(3, tight)
+			local d = heard(nil, roomy)
+			general.thanks = savedThanks
+			if a[masculine] then
+				fail(scenario, "a woman was given \"" .. masculine .. "\" from a pool of four")
+			end
+			if not (a[plain[1]] and a[plain[2]] and a[plain[3]]) then
+				fail(scenario, "leaving the line out left the others unheard")
+			end
+			if not b[masculine] then
+				fail(scenario, "a man was never given the line in 400 picks")
+			end
+			if not c[masculine] then
+				fail(scenario, "the line was left out of a pool that would drop under RP.SPREAD without it")
+			end
+			if not d[masculine] then
+				fail(scenario, "a speaker whose sex is not known was spared the line")
+			end
+		end)
+		if not ok then fail(scenario, "threw: " .. tostring(err)) end
+	end
+	UnitSex = real
+	Mock.reset()
+end

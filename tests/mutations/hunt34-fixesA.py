@@ -133,3 +133,27 @@ mutate("Looks/Toast.lua",
        "hunt34-layout: Toast's medallion as tall as a narrow panel",
        expect="hunt33-layout: the name has room at 140x120, 13 pt, in toast", script=S)
 
+# ------------------------------------------------ the lines a language gives a man's voice
+mutate("Phrases.lua",
+       "\t\t\t\t\tand not (left and left[text])\n",
+       "",
+       "hunt34-speech: a woman given a man's line",
+       expect="hunt34-speech: a woman is spared a listed masculine line", script=S)
+
+mutate("Phrases.lua",
+       "\t\tif out and total - n < RP.SPREAD then return nil end\n",
+       "",
+       "hunt34-speech: a pool thinned below RP.SPREAD",
+       expect="hunt34-speech: a woman is spared a listed masculine line", script=S)
+
+mutate("Phrases.lua",
+       "\t\tif ns.plain(_G.UnitSex(\"player\")) ~= 3 then return nil end\n",
+       "\t\tns.plain(_G.UnitSex(\"player\"))\n",
+       "hunt34-speech: a man spared the lines too",
+       expect="hunt34-speech: a woman is spared a listed masculine line", script=S)
+
+mutate("Phrases.lua",
+       "\t\tif not list or type(_G.UnitSex) ~= \"function\" then return nil end\n",
+       "\t\tif true then return nil end\n",
+       "hunt34-speech: the speaker's sex never asked",
+       expect="hunt33-speech: a female speaker is not given a masculine first-person line", script=S)
