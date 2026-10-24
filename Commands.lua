@@ -572,6 +572,11 @@ end
 --
 --   MNR1:prompt.width=260;prompt.fontColor=1,0.8,0,1;buff.skip=wisdom:5f3a9c
 --
+-- A buff order is CLASS=key:key:key, the classes joined by commas:
+-- buff.order=PALADIN=kings:might:wisdom,PRIEST=spirit:fortitude. The colons
+-- inside the body are no trouble to the checksum, which is whatever follows the
+-- last one.
+--
 -- A version, the name=value pairs, and a checksum over both, so a string cut
 -- short is refused rather than half applied.
 ---------------------------------------------------------------------------
@@ -649,6 +654,12 @@ do
 							kind = "colour"
 						elseif name == "buff.skip" then
 							kind = "set"
+						elseif name == "buff.order" then
+							-- The buffs of each class in an order of the player's
+							-- own, kept per class. Its default is empty, so the
+							-- walk below found nothing in it and the order a
+							-- player set never travelled.
+							kind = "order"
 						elseif name == "filters.skipRaidGroups" then
 							-- A set too, of group numbers rather than names. Its
 							-- default is empty, so the walk below found nothing in
@@ -780,6 +791,23 @@ do
 			if #keys == 0 then return nil end
 			table.sort(keys)
 			return table.concat(keys, ",")
+		elseif kind == "order" then
+			-- CLASS=key:key:key, the classes joined by commas: PRIEST=spirit:fortitude.
+			-- Only keys of the plain kind buff.skip allows, a class and a key at a time.
+			if type(value) ~= "table" then return nil end
+			local classes = {}
+			for class, keys in pairs(value) do
+				if type(class) == "string" and class:match("^%u+$") and type(keys) == "table" then
+					local list = {}
+					for _, key in ipairs(keys) do
+						if type(key) == "string" and key:match("^[%w_]+$") then list[#list + 1] = key end
+					end
+					if #list > 0 then classes[#classes + 1] = class .. "=" .. table.concat(list, ":") end
+				end
+			end
+			if #classes == 0 then return nil end
+			table.sort(classes)
+			return table.concat(classes, ",")
 		elseif kind == "groups" then
 			if type(value) ~= "table" then return nil end
 			local groups = {}
@@ -816,6 +844,29 @@ do
 				count = count + 1
 				if count > 64 then return nil end
 				out[part] = true
+			end
+			return out
+		elseif kind == "order" then
+			-- Each class once, each key of the plain kind, and what this client
+			-- knows of the class made sound the way a saved order is
+			-- (ns.RepairedBuffOrder); a class nothing is left of is dropped. The
+			-- login's repair goes over it again with the Kings-first switch the
+			-- string brings.
+			local out, count = {}, 0
+			for part in (raw .. ","):gmatch("([^,]*),") do
+				local class, list = part:match("^(%u+)=([%w_:]+)$")
+				if not class or out[class] ~= nil then return nil end
+				count = count + 1
+				if count > 32 then return nil end
+				local keys = {}
+				for key in (list .. ":"):gmatch("([^:]*):") do
+					if not key:match("^[%w_]+$") or #keys >= 64 then return nil end
+					keys[#keys + 1] = key
+				end
+				out[class] = ns.RepairedBuffOrder(class, keys, false) or false
+			end
+			for class, keys in pairs(out) do
+				if not keys then out[class] = nil end
 			end
 			return out
 		elseif kind == "groups" then

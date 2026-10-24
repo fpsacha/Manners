@@ -102,3 +102,49 @@ mutate("Buffs.lua",
        "forever: Battle Shout held to the warrior's own subgroup",
        expect="hunt33-data: camelot: a raid member in another subgroup is reached by Battle Shout",
        script="runscenarios.py")
+
+# ------------------------------------------------------------------ 3
+# The buff order a player set travels in a settings string: CLASS=key:key,
+# per class, validated like a saved order, reset by an import that has none.
+mutate("Commands.lua",
+       "\t\t\t\t\t\telseif name == \"buff.order\" then\n",
+       "\t\t\t\t\t\telseif name == \"buff.orderx\" then\n",
+       "settings string: the buff order has no kind of its own",
+       expect="hunt34-order: the order of every class travels in a settings string",
+       script="runscenarios.py")
+mutate("Commands.lua",
+       "\t\t\t\t\tif #list > 0 then classes[#classes + 1] = class .. \"=\" .. table.concat(list, \":\") end\n",
+       "\t\t\t\t\tif false then classes[#classes + 1] = class .. \"=\" .. table.concat(list, \":\") end\n",
+       "settings string: the buff order is not written",
+       expect="hunt34-order: the order of every class travels in a settings string",
+       script="runscenarios.py")
+mutate("Commands.lua",
+       "\t\t\t\tout[class] = ns.RepairedBuffOrder(class, keys, false) or false\n",
+       "\t\t\t\tout[class] = keys\n",
+       "settings string: a buff order read as it stands",
+       expect="hunt34-order: a damaged order is refused whole and an unknown buff is dropped",
+       script="runscenarios.py")
+mutate("Commands.lua",
+       "\t\t\t\tif not class or out[class] ~= nil then return nil end\n",
+       "\t\t\t\tif not class then return nil end\n",
+       "settings string: a class twice in a buff order",
+       expect="hunt34-order: a damaged order is refused whole and an unknown buff is dropped",
+       script="runscenarios.py")
+mutate("Commands.lua",
+       "\t\t\t\t\tif not key:match(\"^[%w_]+$\") or #keys >= 64 then return nil end\n",
+       "\t\t\t\t\tif #keys >= 64 then return nil end\n",
+       "settings string: an empty key in a buff order",
+       expect="hunt34-order: a damaged order is refused whole and an unknown buff is dropped",
+       script="runscenarios.py")
+mutate("Commands.lua",
+       "\t\t\tif value == nil then value = CopyValue(field.default) end\n",
+       "\t\t\tif value == nil and field.kind ~= \"order\" then value = CopyValue(field.default) end\n",
+       "settings string: an import with no buff order keeps the player's",
+       expect="hunt34-order: an import with no order puts Automatic back",
+       script="runscenarios.py")
+mutate("Commands.lua",
+       "\t\t\t\tif type(class) == \"string\" and class:match(\"^%u+$\") and type(keys) == \"table\" then\n",
+       "\t\t\t\tif type(class) == \"string\" and class:match(\"^%l+$\") and type(keys) == \"table\" then\n",
+       "settings string: no class is a buff order's",
+       expect="hunt34-order: the order of every class travels in a settings string",
+       script="runscenarios.py")
