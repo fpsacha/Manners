@@ -144,6 +144,10 @@ for _, case in ipairs({ { "another raid group", "raid8" }, { "your own raid grou
 		local p = ns.db.profile
 		p.buff.choice = "salvation"
 		ns.Guard("probe", ns.ProbeCapabilities)
+		-- A client whose party-wide shouts reach only your own subgroup (Classic
+		-- Era): the case where a Salvation row could wrongly say "subgroup".
+		-- Forever's shouts reach the raid now, so the flag is set here.
+		ns.PARTY_IS_SUBGROUP = true
 		ns.db.char.ledger = nil
 		ns.Ledger.Load()
 		H.primeAuras(ns)
