@@ -133,13 +133,13 @@ mutate("Queue.lua",
        expect="a stranger who buffed you, wearing your Fortitude, was not offered", script=S)
 
 mutate("Core.lua",
-       "\t\t\tand remaining > (opts.refreshUnder or 5) * 60\n",
+       "\t\t\tand remaining > (ns.LeadFor(opts, Length(buff, seconds)))\n",
        "\t\t\tand remaining > 0\n",
        "whatif: a cast running out taken as paid",
        expect="wearing your Fortitude with two minutes left, was not offered it", script=S)
 
 mutate("Core.lua",
-       "\t\t\t\t\t\tif not opts.offerAnyway or Fresh(opts, mine, remaining) then return nil, true end\n",
+       "\t\t\t\t\t\tif not opts.offerAnyway or Fresh(opts, mine, remaining, buff, seconds) then return nil, true end\n",
        "\t\t\t\t\t\tif not opts.offerAnyway then return nil, true end\n",
        "whatif: a fresh blessing of yours repaid again",
        expect="wearing your Might with forty minutes left, was offered", script=S)

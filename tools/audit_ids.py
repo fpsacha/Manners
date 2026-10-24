@@ -27,7 +27,14 @@ client's DB2 tables from wago.tools, for the build CLAUDE.md's "Data sources" ci
   SpellReagents      a group cast's reagent is what the client eats, in ItemSparse
   SpellEffect        the aura a cast lands is an id the addon matches (its own, a
                      trigger, or a listed group id); a group version's effects
-  SpellMisc/SpellDuration   a `toggle` family has no duration, a timed one has
+  SpellMisc/SpellDuration   a `toggle` family has no duration, a timed one has; and every
+                     length in Buffs.lua's table of how long each id lasts (ns.SPELL_SECONDS,
+                     which the lead of a top-up is worked out from) is the client's: a cast
+                     that only triggers its aura is the aura's, a weapon enhancement or scroll
+                     is its use spell's, else SpellItemEnchantment.Duration (Forever), else the
+                     length its tooltip gives (the Classic builds have no duration column
+                     there); an id the client gives no length has no entry; ranks of one
+                     spell are one length; no entry is for an id the addon does not hold
   SpellAuraOptions   a shield's `charges`
   Talent             a `talent` buff is a talent (or not)
   ItemSparse, ItemEffect, SpellItemEnchantment, SpellEquippedItems   Forever's scrolls, and every
@@ -326,6 +333,14 @@ class Client:
         if m["duration"] == 0:
             return 0
         return self.durations.get(m["duration"])
+
+    @property
+    def descriptions(self):
+        """{spell id: Description_lang}: the tooltip text, where a weapon enchant's length is."""
+        def build():
+            p = self.path("Spell")
+            return {num(r["ID"]): r.get("Description_lang") or "" for r in rows(p)} if p else {}
+        return self.memo("descriptions", build)
 
     @property
     def charges(self):
@@ -1099,6 +1114,107 @@ def check_weapon_items(rep, c, d, flavour):
 BENIGN_LANDED = re.compile(r".* Highlight|\[DND\].*|Shout Rage Bonus", re.I)
 
 
+def tooltip_seconds(text):
+    """The last length in minutes or hours a tooltip names ("for 30 minutes"), where it is a number
+    and not a token ("for $t1 minutes", which this cannot resolve); None for none."""
+    found = re.findall(r"(?<![\w$])(\d+)\s*(hour|minute|min)", text or "")
+    if not found:
+        return None
+    n, unit = found[-1]
+    return int(n) * (3600 if unit == "hour" else 60)
+
+
+def spell_seconds(c, spell):
+    """How long the aura a cast puts on lasts, in seconds: the spell's own SpellDuration, else what
+    its triggers land (a Blessing of the Bronze, Legacy of the Emperor), else 0 for no timer. None
+    for a spell the client has no duration row for."""
+    ms = c.duration_ms(spell)
+    if ms is None:
+        return None
+    if ms > 0:
+        return ms // 1000
+    landed = [a for a in aura_ids_of(c, spell) if a != spell]
+    best = max([(c.duration_ms(a) or 0) // 1000 for a in landed] or [0])
+    return best if best > 0 else 0
+
+
+def use_seconds(c, rep, where, spell, enchant):
+    """The length of what a weapon enhancement or a scroll puts on: the use spell's own duration
+    where it has one, else the enchant's (SpellItemEnchantment.Duration, Forever's only), else the
+    use spell's tooltip. Where two of those say something they must agree."""
+    own = spell_seconds(c, spell)
+    ench = c.enchants.get(enchant)
+    from_enchant = ench[1] if ench and ench[1] else None
+    from_text = tooltip_seconds(c.descriptions.get(spell))
+    said = {k: v for k, v in (("SpellDuration", own or None), ("SpellItemEnchantment", from_enchant),
+                              ("tooltip", from_text)) if v}
+    if len(set(said.values())) > 1:
+        rep.finding(where, "the client's own sources disagree on how long %d (%s) lasts: %s" % (
+            spell, c.names.get(spell), ", ".join("%s %ds" % kv for kv in sorted(said.items()))))
+    for source in ("SpellDuration", "SpellItemEnchantment", "tooltip"):
+        if source in said:
+            return said[source], source
+    return None, "none"
+
+
+def check_durations(rep, c, d, flavour):
+    """Buffs.lua's table of how long each id lasts, against the client's data. See the docstring."""
+    table = {int(k): v for k, v in as_map(d.get("seconds")).items()}
+    held = {}      # id -> where
+    groups = {}    # (what, kind) -> {id: expected}, for the ranks of one spell being one length
+
+    def judge(where, i, exp, how, group=None):
+        # An item's use spell is held by every class and both hands: said once.
+        if i in held:
+            return
+        held[i] = where
+        if group is not None:
+            groups.setdefault(group, {})[i] = exp
+        have = table.get(i)
+        if exp is None:
+            if have is not None:
+                rep.finding(where, "id %d (%s) has %ds in the table, and this client's data has no duration for it" % (
+                    i, c.names.get(i), have))
+        elif have is None:
+            rep.finding(where, "id %d (%s) has no length in the table; this client's data says %ds (%s)" % (
+                i, c.names.get(i), exp, how))
+        elif have != exp:
+            rep.finding(where, "id %d (%s) lasts %ds in the table; this client's data says %ds (%s)" % (
+                i, c.names.get(i), have, exp, how))
+
+    for cls, lst in as_map(d["buffs"]).items():
+        for b in lst:
+            where = "%s.%s" % (cls, b["key"])
+            for kind in ("ranks", "group", "alike"):
+                for i in b.get(kind) or []:
+                    # Another class's ids (`alike`) are other spells: no rule ties their lengths.
+                    judge("%s.%s" % (where, kind), i, spell_seconds(c, i), "SpellDuration",
+                          group=None if kind == "alike" else (where, kind))
+    for cls, fams in as_map(d["own"]).items():
+        for fam in fams:
+            if fam.get("tracking") or fam.get("toggle"):
+                continue
+            for sp in fam["spells"]:
+                where = "own.%s.%s.%s" % (cls, fam["key"], sp["key"])
+                if fam.get("enhance") or fam.get("scroll") or fam.get("imbue"):
+                    use = sp["ranks"][0]
+                    exp, how = use_seconds(c, rep, where, use, sp.get("enchant"))
+                    judge(where, use, exp, how)
+                    continue
+                for i in sp["ranks"]:
+                    judge(where, i, spell_seconds(c, i), "SpellDuration", group=(where, "ranks"))
+    for (what, kind), ids in groups.items():
+        lengths = {v for v in ids.values() if v is not None}
+        if len(lengths) > 1:
+            rep.finding("%s.%s" % (what, kind),
+                        "the ids of one spell last different times in this client (%s): the buff's length is "
+                        "read off its first id, so a buff with ranks of another length needs a rule of its own" % (
+                            ", ".join("%d: %ss" % kv for kv in sorted(ids.items()))))
+    for i in sorted(set(table) - set(held)):
+        rep.finding("seconds", "id %d (%s) has a length in the table and is held nowhere in this client's set" % (
+            i, c.names.get(i)))
+
+
 def check_reach(rep, c, d, flavour):
     """The flags that say who a cast reaches, against the implicit targets and radii of
     the top rank's first aura effect (SpellEffect, SpellRadius)."""
@@ -1255,6 +1371,7 @@ def audit_dump(rep, c, d, flavour):
     check_favours(rep, c, d)
     check_scrolls(rep, c, d)
     check_weapon_items(rep, c, d, flavour)
+    check_durations(rep, c, d, flavour)
     check_races_classes(rep, c, d)
     check_reach(rep, c, d, flavour)
     check_mana(rep, c, d, flavour)
@@ -1287,7 +1404,7 @@ def audit(flavour, cache, offline, notes):
 
 
 def selftest(cache, offline):
-    """The audit goes red when a datum is wrong: Classic Era's dump is changed in nine ways, one
+    """The audit goes red when a datum is wrong: Classic Era's dump is changed in twelve ways, one
     after another, and each must produce the FINDING it exists for."""
     import copy
     fl = "vanilla"
@@ -1338,6 +1455,15 @@ def selftest(cache, offline):
     def wrong_fit(d):
         first_enhancement(d)["fits"] = 1
 
+    def wrong_seconds(d):
+        d["seconds"]["1243"] = 60
+
+    def no_seconds(d):
+        d["seconds"].pop("10157")
+
+    def stray_seconds(d):
+        d["seconds"]["424242"] = 1800
+
     cases = [
         ("a rank learned at another level than RANK_LEVEL says", change_level, "ns.RANK_LEVEL says 99"),
         ("a rank the client has that the addon dropped", drop_rank, "does not hold"),
@@ -1348,6 +1474,9 @@ def selftest(cache, offline):
         ("a class with no mana bar among the mana classes", mana_warrior, "MANA_CLASSES"),
         ("a weapon item that makes another enchant than the addon says", wrong_enchant, "the addon says 1"),
         ("a weapon item that fits other weapons than the addon says", wrong_fit, "weapon subclass mask"),
+        ("a length that is not the one the client's data gives", wrong_seconds, "lasts 60s in the table"),
+        ("an id the client gives a length with none in the table", no_seconds, "has no length in the table"),
+        ("a length for an id the addon holds nowhere", stray_seconds, "held nowhere"),
     ]
     clean = Report(fl)
     FINDINGS.clear()
@@ -1378,7 +1507,7 @@ def main(argv=None):
     ap.add_argument("--notes", action="store_true", help="also print NOTE lines")
     ap.add_argument("--dump", choices=FLAVOURS, help="print the addon's side as JSON and stop")
     ap.add_argument("--selftest", action="store_true",
-                    help="change Classic Era's dump in nine ways and check each one is caught")
+                    help="change Classic Era's dump in twelve ways and check each one is caught")
     ap.add_argument("--build", action="append", default=[], metavar="CLIENT=BUILD",
                     help="audit against another build of that client (e.g. camelot=1.60.1.70338), "
                          "for data that moved since the build CLAUDE.md cites")

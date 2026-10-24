@@ -519,7 +519,7 @@ do
 end
 
 -- ------------------------------------------------------------ unverified 12
--- "Top up buffs running low", and Anna read with three minutes left: offered
+-- "Top up buffs running low", and Anna read with twenty seconds left: offered
 -- the top-up. Refused in the fight and the seconds after it, what was last
 -- read of her holds an offer back and never makes one: her timer may have
 -- been renewed, or the buff lost, since. Read again after the fight, she is
@@ -530,11 +530,11 @@ do
 	session(scenario, function(ns, ids, buff)
 		local f = ns.db.profile.filters
 		f.whenBuffed, f.refreshUnder = "refresh", 5
-		Mock.held, Mock.heldFor = { [buff.ranks[1]] = true }, 200
+		Mock.held, Mock.heldFor = { [buff.ranks[1]] = true }, 20
 		Mock.advance(4)
 		local before = inQueue(ns)[ANNA]
 		if not (before and before.known == true and before.remaining) then
-			fail(scenario, "SKIPPED -- Anna, read with three minutes left, was not offered a top-up")
+			fail(scenario, "SKIPPED -- Anna, read with twenty seconds left, was not offered a top-up")
 			return
 		end
 		fightStarts(ns)
@@ -554,7 +554,7 @@ do
 		Mock.advance(6)
 		entry = inQueue(ns)[ANNA]
 		if not (entry and entry.known == true and entry.remaining) then
-			fail(scenario, "Anna, read again with three minutes left after the fight, was not offered the top-up")
+			fail(scenario, "Anna, read again with twenty seconds left after the fight, was not offered the top-up")
 		end
 		Mock.heldFor = 1800
 		Mock.advance(4)

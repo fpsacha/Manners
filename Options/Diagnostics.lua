@@ -222,6 +222,19 @@ function Page.BuildDiagnosticsTab()
 					return "|cffffffff" .. L["Myself"] .. "|r\n" .. table.concat(ns.MyselfLines(GetTime()), "\n")
 				end,
 			},
+			-- How long each of your buffs lasts and when a top-up of it is due,
+			-- in the words /manners debug uses (ns.LeadLines): the lead is
+			-- worked out per buff, so "why did it come back now" or "why not
+			-- yet" is answered here.
+			leadDiag = {
+				type = "description",
+				order = 11.6,
+				fontSize = "medium",
+				hidden = function() return #ns.LeadLines() == 0 end,
+				name = function()
+					return "|cffffffff" .. ns.LeadHeading() .. "|r\n" .. table.concat(ns.LeadLines(), "\n")
+				end,
+			},
 			-- Who "Skip players flagged for PvP" is holding back, in the
 			-- words /manners debug uses (ns.PvPLines): somebody missing
 			-- from the prompt for it has nothing else on screen to say why.

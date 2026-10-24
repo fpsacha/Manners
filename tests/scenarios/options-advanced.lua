@@ -112,7 +112,8 @@ local FIELDS = {
 -- When to offer's reset: its own five, the old Advanced reset's eight favour,
 -- timing and targeting fields, which now sit on this page.
 local WHEN_RESET = {
-	{ "filters", "whenBuffed" }, { "filters", "refreshUnder" }, { "filters", "verifiedOnly" },
+	{ "filters", "whenBuffed" }, { "filters", "refreshUnder" }, { "filters", "refreshRaid" },
+	{ "filters", "verifiedOnly" },
 	{ "filters", "hideMounted" }, { "filters", "manaFloor" },
 	{ "timing", "reciprocateWindow" }, { "sources", "owedClassBuffsOnly" },
 	{ "filters", "reachableOnly" }, { "timing", "graceSeconds" }, { "timing", "keepDebts" },

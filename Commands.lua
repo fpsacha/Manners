@@ -116,6 +116,81 @@ do
 	end
 end
 
+-- When a top-up is due for each of your class's buffs, for /manners debug and
+-- Diagnostics: how long the buff lasts (the client's own table, Buffs.lua; the
+-- aura's own word replaces it while one is on somebody) and the lead that gives
+-- in the group, in a raid or dungeon and outside your group (Core.lua,
+-- ns.TopUpLead), under the player's ceiling. Whole sentences per case; a
+-- buff with no timer is said to be never topped up, and one nobody knows the
+-- length of is topped up at the ceiling alone.
+function ns.LeadLines()
+	local db = addon.db and addon.db.profile
+	local out = {}
+	if not db then return out end
+	local ceiling = db.filters.refreshUnder
+	local KIND, Lead, Text = ns.LEAD_KIND, ns.TopUpLead, ns.TimeText
+	for _, buff in ipairs(ns.GetClassBuffs(caps.class) or {}) do
+		local name = ns.BuffName(buff)
+		local single, group = ns.BuffSeconds(buff)
+		local seconds = single or group
+		if seconds == 0 and not group then
+			out[#out + 1] = L["%s: no timer -- never topped up."]:format(name)
+		elseif not seconds or seconds == 0 then
+			out[#out + 1] = L["%s: length unknown -- topped up at %s left, %s in a raid or dungeon."]
+				:format(name, Text(Lead(nil, KIND.group, ceiling)), Text(Lead(nil, KIND.raid, ceiling)))
+		else
+			local lasts = Text(seconds)
+			if single and group then lasts = lasts .. " " .. L["(%s as a group cast)"]:format(Text(group)) end
+			out[#out + 1] = L["%s: lasts %s -- topped up at %s left, %s in a raid or dungeon, %s outside your group."]
+				:format(name, lasts, Text(Lead(seconds, KIND.group, ceiling)),
+					Text(Lead(seconds, KIND.raid, ceiling)), Text(Lead(seconds, KIND.stranger, ceiling)))
+		end
+	end
+	-- Your own: more than one spell of a family can be learned, and each is its own length.
+	for _, family in ipairs(ns.KnownOwnFamilies()) do
+		if family.toggle then
+			out[#out + 1] = L["%s: no timer -- never topped up."]:format(ns.OwnFamilyLabel(family))
+		elseif not family.tracking then
+			for _, spell in ipairs(family.spells) do
+				if ns.OwnSpellKnown(spell) then
+					local seconds = ns.OwnSeconds(spell)
+					local name = ns.BuffName(spell)
+					if seconds == 0 then
+						out[#out + 1] = L["%s: no timer -- never topped up."]:format(name)
+					elseif not seconds then
+						out[#out + 1] = L["%s: length unknown -- topped up at %s left, %s in a raid or dungeon."]
+							:format(name, Text(Lead(nil, KIND.own, ceiling)), Text(Lead(nil, KIND.ownraid, ceiling)))
+					else
+						out[#out + 1] = L["%s: lasts %s -- topped up at %s left, %s in a raid or dungeon."]
+							:format(name, Text(seconds), Text(Lead(seconds, KIND.own, ceiling)),
+								Text(Lead(seconds, KIND.ownraid, ceiling)))
+					end
+				end
+			end
+		end
+	end
+	return out
+end
+
+-- The heading over those lines, saying so when top-ups are off and none of it
+-- is asked.
+function ns.LeadHeading()
+	local db = addon.db and addon.db.profile
+	if db and db.filters.whenBuffed ~= "refresh" then
+		return L["When a top-up is due (top-ups are off)"]
+	end
+	return L["When a top-up is due"]
+end
+
+-- /manners debug's block of them, indented under its heading; nothing when the
+-- class has nothing of the kind.
+local function PrintLeads(self)
+	local lines = ns.LeadLines()
+	if #lines == 0 then return end
+	self:Print("  " .. ns.LeadHeading())
+	for _, line in ipairs(lines) do self:Print("    " .. line) end
+end
+
 -- The sentence for a character that will never have anything to offer, shared
 -- by /manners debug and the greeting. Translators: the greeting and the login
 -- line carry their own copy inside a longer key, kept in step by hand.
@@ -1572,6 +1647,7 @@ function addon:HandleSlash(rawInput)
 					:format("|cffffd100" .. L["Myself, when I'm missing my own buff"] .. "|r"))
 			end
 			for _, line in ipairs(ns.MyselfLines(GetTime())) do self:Print("  " .. line) end
+			PrintLeads(self)
 			-- Somebody buffing you is noticed for the /thank all the same.
 			PrintFavourWatch(self, db, GetTime())
 			-- The one state below that holds the /thank back too, said as the
@@ -1603,6 +1679,7 @@ function addon:HandleSlash(rawInput)
 					tostring(ns.BUFFS_SOURCE)))
 			end
 		end
+		PrintLeads(self)
 		-- Tells a detection bug ("never saw the buff") from a targeting one.
 		local now = GetTime()
 		local pending = 0

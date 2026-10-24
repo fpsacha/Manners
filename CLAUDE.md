@@ -91,6 +91,14 @@ default everywhere in the tests and the only client anybody here plays.
   ... documented at the top of the file) rather than on flavour names. The
   camelot set is vanilla's (`__index`) with its own buffs, and is still called
   "vanilla" in `ns.BUFFS_SOURCE`; tbc builds on vanilla the same way.
+- **How long each buff lasts** is a table of ids per client in `Buffs.lua`
+  ("how long each lasts", `ns.SPELL_SECONDS`: seconds, 0 no timer, absent
+  unknown), from each client's SpellDuration; `tools/audit_ids.py` holds every
+  row to it, so a new id in a set needs its row. A top-up's lead is worked out
+  from it in `Core.lua` (`ns.TopUpLead`, `ns.LeadFor`: a tenth of the length,
+  the slider `refreshUnder` its ceiling, `refreshRaid` times in a raid or
+  dungeon, your own buffs half as much again, passers-by the last half
+  minute); the aura's own `duration` beats the table.
 - **Client-specific behaviour** (grep `ns.Flavour.flavour` / `.family`):
   - Forever only: surnames joined with a space (`caps.unitNameIsSurname`);
     the mage's scrolls (Familiar, Weapon imbue: `CAMELOT_OWN`, used with

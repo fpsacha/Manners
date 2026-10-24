@@ -1378,6 +1378,7 @@ local function RememberPasserBy(entry, now, within, hasMana)
 	memo.known, memo.checked, memo.close = entry.known, entry.checked, entry.close
 	memo.withheld = entry.withheld
 	memo.expires = entry.remaining and (now + entry.remaining) or nil
+	memo.seconds, memo.lead, memo.leadKind = entry.duration, entry.lead, entry.leadKind
 end
 
 -- The fight is over (PLAYER_REGEN_ENABLED): a passer-by remembered on a
@@ -1480,6 +1481,9 @@ local function OfferPassersBy(queue, seen, rejected, now, db, candidates, askOnl
 				remaining = memo.expires and (memo.expires - now) or nil,
 				checked = memo.checked,
 				close = memo.close,
+				duration = memo.seconds,
+				lead = memo.lead,
+				leadKind = memo.leadKind,
 			}
 		end
 	end
@@ -1565,20 +1569,21 @@ end
 
 -- The first of your class's own families that comes up missing (Core.lua,
 -- OwnVerdict), in the table's order, as your entry: the spell, the reading,
--- the time left for a top-up, and the charges left for a charge shield's.
--- nil when none does.
+-- the time left for a top-up, the charges left for a charge shield's, and for
+-- a top-up how long it lasts, its lead and the kind of lead. nil when none does.
 local function OwnPick(db, full, now)
 	local ctx = { name = full, now = now, whenBuffed = db.filters.whenBuffed,
 		refreshUnder = db.filters.refreshUnder }
 	for _, family in ipairs(ns.KnownOwnFamilies()) do
-		local spell, has, remaining, _, _, charges = ns.OwnVerdict(family, ctx)
-		if spell then return spell, has, remaining, charges end
+		local spell, has, remaining, _, _, charges, seconds, lead, kind = ns.OwnVerdict(family, ctx)
+		if spell then return spell, has, remaining, charges, seconds, lead, kind end
 	end
 	return nil
 end
 
 -- Your own group buff, when you are missing it or (with top-ups on) it is
--- running low: the buff, the reading and the time left, or nil. `mine` is
+-- running low: the buff, the reading, the time left and for a top-up how long it
+-- lasts, its lead and the kind of lead, or nil. `mine` is
 -- what of the scan's candidates goes on yourself (ns.SelfBuffs).
 local function SelfBuff(db, mine, full, now)
 	local f = db.filters
@@ -1593,7 +1598,9 @@ local function SelfBuff(db, mine, full, now)
 	end
 	-- The same walk everybody gets: the switches, the pin, a paladin's one
 	-- blessing at a time, and the per-buff retry cooldown.
-	local buff, has, remaining = ns.PickBuffFor(mine, {
+	local buff, has, remaining, seconds, lead, kind = ns.PickBuffFor(mine, {
+		-- Yours: a top-up comes earlier than for anybody else's (Core.lua, ns.LeadFor).
+		own = true,
 		hasMana = UnitHasMana("player"),
 		inGroup = (plain(GetNumGroupMembers and GetNumGroupMembers()) or 0) > 0,
 		-- The caster is always inside their own party.
@@ -1612,7 +1619,7 @@ local function SelfBuff(db, mine, full, now)
 	-- will not say is no reason to offer you what you may be wearing -- your
 	-- own buff bar says it better.
 	if not (has == false or remaining ~= nil) then return nil end
-	return buff, has, remaining
+	return buff, has, remaining, seconds, lead, kind
 end
 
 -- CastableBuffs' answer less what the game says you cannot pay for now, once
@@ -1684,16 +1691,16 @@ local function SelfEntry(db, candidates, now, verdict, ownOnly)
 	if held then return nil end
 	-- A shout already covers you, and a few spells refuse the caster.
 	local mine = ownOnly and {} or ns.SelfBuffs(candidates)
-	local buff, has, remaining, charges
-	if #mine > 0 then buff, has, remaining = SelfBuff(db, mine, full, now) end
-	if not buff then buff, has, remaining, charges = OwnPick(db, full, now) end
+	local buff, has, remaining, charges, seconds, lead, kind
+	if #mine > 0 then buff, has, remaining, seconds, lead, kind = SelfBuff(db, mine, full, now) end
+	if not buff then buff, has, remaining, charges, seconds, lead, kind = OwnPick(db, full, now) end
 	if not buff then return nil end
 	-- Last, so the list is walked only for an offer about to be made, and
 	-- through the scan's answers, which a list edit alone sets walking again.
 	-- MyselfHeldBack says the same to /manners debug ("listed").
 	if ListedAs(full, verdict) then return nil end
 
-	return {
+	local entry = {
 		name = full,
 		short = ShortName(full),
 		display = L["You"],
@@ -1718,6 +1725,9 @@ local function SelfEntry(db, candidates, now, verdict, ownOnly)
 		charges = charges,
 		checked = true,
 	}
+	-- A top-up says how long the buff lasts and when it was due (the tooltip).
+	if remaining then entry.duration, entry.lead, entry.leadKind = seconds, lead, kind end
+	return entry
 end
 
 -- "Never" for yourself, from a shift-right-press on the prompt or the
@@ -2013,7 +2023,7 @@ function ns.BuildQueue(watch)
 		opts.sameClass = same
 		opts.level = same and plain(UnitLevel(unit)) or nil
 		opts.skip = SelfServed
-		local buff, has, remaining = ns.PickBuffFor(asked or candidates, opts, ReadAura)
+		local buff, has, remaining, seconds, lead, leadKind = ns.PickBuffFor(asked or candidates, opts, ReadAura)
 
 		if not buff then
 			-- Covered for what they asked -- somebody else answered first -- is
@@ -2127,6 +2137,12 @@ function ns.BuildQueue(watch)
 		-- true: one more field in the constructor doubles the hash part of
 		-- every entry of every scan.
 		if has == nil and src == "withheld" then queue[#queue].withheld = true end
+		-- A top-up: how long the buff lasts, the lead that made it due and its
+		-- kind, for the tooltip. Written after the table is built, as above.
+		if remaining then
+			local made = queue[#queue]
+			made.duration, made.lead, made.leadKind = seconds, lead, leadKind
+		end
 		-- Remembered for when the token goes, which for the cursor is the
 		-- moment the player moves it to the prompt. Not somebody pointed at:
 		-- a target or focus stands until the player changes it. A favour is

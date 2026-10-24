@@ -311,6 +311,12 @@ function BEFORE.returning(ns)
 	saved.previewShown = true
 end
 
+-- "Offer a top-up when it runs low" chosen, so When to offer shows the two
+-- sliders that go with it (the ceiling and the raid's multiplier).
+function BEFORE.topups(ns)
+	ns.db.profile.filters.whenBuffed = "refresh"
+end
+
 function BEFORE.unlocked(ns)
 	ns.db.profile.prompt.locked = false
 	if ns.Prompt and ns.Prompt.ApplyStyle then ns.Prompt:ApplyStyle() end

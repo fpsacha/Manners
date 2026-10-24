@@ -97,8 +97,8 @@ mutate("Core.lua",
 # Left out of the page's Put these back to default. Caught by the When to
 # offer reset in tests/scenarios/options-advanced.lua.
 mutate("Options/Advanced.lua",
-       "\"filters.refreshUnder\", \"filters.verifiedOnly\", \"filters.hideMounted\",",
-       "\"filters.refreshUnder\", \"filters.hideMounted\",",
+       "\"filters.refreshRaid\", \"filters.verifiedOnly\", \"filters.hideMounted\",",
+       "\"filters.refreshRaid\", \"filters.hideMounted\",",
        "when tab: verified-only switch not reset",
        expect="when reset: filters.verifiedOnly was not put back", script=S)
 

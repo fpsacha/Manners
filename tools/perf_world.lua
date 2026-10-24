@@ -580,6 +580,9 @@ function World.new(cfg)
 		-- for graceSeconds after it arrived. Kept offered for the whole run,
 		-- however long, like every other favour here.
 		profile.timing.graceSeconds = 1e9
+		-- MANNERS_PERF_REFRESH=1: top-ups on, so everybody wearing the buff is asked how
+		-- long is left of it and when a top-up is due, which the default (off) never does.
+		if os.getenv("MANNERS_PERF_REFRESH") then profile.filters.whenBuffed = "refresh" end
 		if W.atLeast then profile.groupBuffs.atLeast = W.atLeast end
 		if W.never then
 			for i = 1, W.never do profile.never[("Listed%d Nobody"):format(i)] = true end

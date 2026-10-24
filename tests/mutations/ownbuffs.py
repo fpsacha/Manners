@@ -11,17 +11,17 @@ S = "runscenarios.py"
 # --- the offer (Queue.lua) ---
 
 mutate("Queue.lua",
-       "\tif not buff then buff, has, remaining, charges = OwnPick(db, full, now) end\n",
+       "\tif not buff then buff, has, remaining, charges, seconds, lead, kind = OwnPick(db, full, now) end\n",
        "",
        "own: never offered",
        expect="a mage with no armor up was not offered one", script=S)
 
 # Your own group buff after the class's own rather than before.
 mutate("Queue.lua",
-       "\tif #mine > 0 then buff, has, remaining = SelfBuff(db, mine, full, now) end\n"
-       "\tif not buff then buff, has, remaining, charges = OwnPick(db, full, now) end\n",
-       "\tbuff, has, remaining, charges = OwnPick(db, full, now)\n"
-       "\tif not buff and #mine > 0 then buff, has, remaining = SelfBuff(db, mine, full, now) end\n",
+       "\tif #mine > 0 then buff, has, remaining, seconds, lead, kind = SelfBuff(db, mine, full, now) end\n"
+       "\tif not buff then buff, has, remaining, charges, seconds, lead, kind = OwnPick(db, full, now) end\n",
+       "\tbuff, has, remaining, charges, seconds, lead, kind = OwnPick(db, full, now)\n"
+       "\tif not buff and #mine > 0 then buff, has, remaining, seconds, lead, kind = SelfBuff(db, mine, full, now) end\n",
        "own: your group buff not first",
        expect="before your Intellect", script=S)
 
@@ -98,8 +98,8 @@ mutate("Core.lua",
        expect="in a dungeon Automatic offered", script=S)
 
 mutate("Core.lua",
-       "(kind == \"party\" or kind == \"raid\")",
-       "kind ~= nil",
+       "return (inside == true or inside == 1) and (kind == \"party\" or kind == \"raid\")",
+       "return (inside == true or inside == 1) and kind ~= nil",
        "own: a battleground taken for a dungeon",
        expect="in a battleground Automatic offered", script=S)
 
@@ -193,7 +193,15 @@ mutate("Core.lua",
        expect="a toggle was offered as a top-up", script=S)
 
 mutate("Core.lua",
+       "\t\t\tif ctx.whenBuffed == \"refresh\" and left then\n"
+       "\t\t\t\tseconds = ownSeconds or ns.OwnSeconds(upSpell)\n"
+       "\t\t\t\tlead, kind = ns.OwnLead(ctx, seconds)\n"
+       "\t\t\tend\n"
        "\t\t\tif family.toggle or ctx.whenBuffed ~= \"refresh\"\n",
+       "\t\t\tif left then\n"
+       "\t\t\t\tseconds = ownSeconds or ns.OwnSeconds(upSpell)\n"
+       "\t\t\t\tlead, kind = ns.OwnLead(ctx, seconds)\n"
+       "\t\t\tend\n"
        "\t\t\tif family.toggle\n",
        "own: a top-up with top-ups off",
        expect="a minute of Mage Armor was topped up with top-ups off", script=S)

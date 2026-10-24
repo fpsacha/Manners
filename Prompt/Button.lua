@@ -87,6 +87,18 @@ local function PersonTooltipLines(entry)
 	if left then
 		GameTooltip:AddLine(entry.reason == "self" and L["Yours expires in %s."]:format(left)
 			or L["Theirs expires in %s."]:format(left), 0.7, 0.7, 0.7, true)
+		-- How long it lasts and why now rather than sooner or later: only a top-up
+		-- has a lead (Queue.lua), and only where the length is known.
+		if entry.duration and entry.lead then
+			GameTooltip:AddLine(L["It lasts %s and is topped up when %s are left."]
+				:format(ns.TimeText(entry.duration), ns.TimeText(entry.lead)), 0.7, 0.7, 0.7, true)
+			local kind = ns.LEAD_KINDS[entry.leadKind]
+			local why = kind == "raid" and L["In a raid or dungeon, so earlier than usual."]
+				or kind == "own" and L["Your own buff, so earlier than usual."]
+				or kind == "ownraid" and L["Your own buff in a raid or dungeon, so earlier still."]
+				or kind == "stranger" and L["Not in your group, so only at the last moment."]
+			if why then GameTooltip:AddLine(why, 0.7, 0.7, 0.7, true) end
+		end
 	end
 	-- And why the rest of the group is missing from the queue, when it is.
 	local kept, resume = ns.SavingMana()
