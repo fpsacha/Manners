@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.8.7
 
 - **Holding the key down is one press.** With the prompt on a key binding,
   holding the key counted its release as a second press: a refusal's red
