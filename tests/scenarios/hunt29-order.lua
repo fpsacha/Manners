@@ -936,12 +936,16 @@ do
 		if type(ns.db.profile.buff.order) ~= "table" or ns.BuffOrder() ~= nil then
 			fail(scenario, "a new profile has an order")
 		end
-		-- Not shared as text: a settings string never carries it, and a pasted one
-		-- leaves the player's own order where it is.
+		-- Shared as text, as a table of its own kind (hunt34 fixes B: the empty
+		-- default gave the walk of the defaults nothing to find, so it never
+		-- travelled): an exported string names the player's order, and the
+		-- player's own string imported leaves the order where it is.
 		ns.MoveBuff("light", -1)
 		local want = keys(ns.BuffOrder())
 		local text = ns.ExportSettings()
-		if text and text:find("order", 1, true) then fail(scenario, "an exported string names the order: " .. text) end
+		if not (text and text:find("buff.order=PALADIN=", 1, true)) then
+			fail(scenario, "an exported string does not name the order: " .. tostring(text))
+		end
 		local ok = ns.ImportSettings(text)
 		if ok ~= true then fail(scenario, "the player's own string would not import") end
 		if keys(ns.BuffOrder()) ~= want then
