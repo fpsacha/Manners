@@ -1356,7 +1356,7 @@ def render(args):
         for n in snap.get("notes") or []:
             extra += "  (" + n + ")"
         count = "" if findings is None else "  %d finding(s)" % len(findings)
-        print("  %-12s %s%s%s" % (page, os.path.relpath(path), count, extra))
+        print("  %-12s %s%s%s" % (page, rp.shown_path(path), count, extra))
         if findings:
             report(page, findings)
             total += len(findings)
@@ -1387,7 +1387,7 @@ def demo(args):
             print("  demo-%s could not be drawn: %s" % (which, err))
             return 2
         planted = [(p["kind"], p["tag"]) for p in (snap.get("planted") or [])]
-        print("  demo-%-7s %s  %d finding(s), %d planted" % (which, os.path.relpath(path), len(findings),
+        print("  demo-%-7s %s  %d finding(s), %d planted" % (which, rp.shown_path(path), len(findings),
                                                               len(planted)))
         report(which, findings)
         found = set()

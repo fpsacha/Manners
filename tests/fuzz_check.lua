@@ -690,7 +690,7 @@ function X.checkQueue(W, queue)
 			end
 		end
 		if reason ~= "owed" and reason ~= "self" then
-			if db.never and db.never[e.name] == true then
+			if db.never and db.never[e.name] then
 				return fail(W, "forbidden", e.name .. " is on the never-offer list and was offered as " .. reason)
 			end
 		end

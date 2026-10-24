@@ -13,8 +13,8 @@ mutate("GroupBuffs.lua",
        "data-audit: Forever's raid counted by raid group",
        expect="data-audit: on Forever one group spell covers everybody in the raid", script=S)
 mutate("Buffs.lua",
-       "local CAMELOT_SET = setmetatable({ buffs = CAMELOT, own = CAMELOT_OWN, groupIsRaid = true },\n",
-       "local CAMELOT_SET = setmetatable({ buffs = CAMELOT, own = CAMELOT_OWN },\n",
+       "local CAMELOT_SET = setmetatable({ buffs = CAMELOT, own = CAMELOT_OWN, groupIsRaid = true,\n",
+       "local CAMELOT_SET = setmetatable({ buffs = CAMELOT, own = CAMELOT_OWN,\n",
        "data-audit: Forever's set not raid-wide",
        expect="data-audit: on Forever a raider flagged in any raid group holds the group cast back", script=S)
 mutate("GroupBuffs.lua",
@@ -86,8 +86,8 @@ mutate("Buffs.lua",
        "data-audit: Sanctuary listed on Forever",
        expect="data-audit: a Forever paladin has no Blessing of Sanctuary to call unknown", script=S)
 mutate("Buffs.lua",
-       "local CAMELOT_SET = setmetatable({ buffs = CAMELOT, own = CAMELOT_OWN, groupIsRaid = true },\n",
-       "local CAMELOT_SET = setmetatable({ own = CAMELOT_OWN, groupIsRaid = true },\n",
+       "local CAMELOT_SET = setmetatable({ buffs = CAMELOT, own = CAMELOT_OWN, groupIsRaid = true,\n",
+       "local CAMELOT_SET = setmetatable({ own = CAMELOT_OWN, groupIsRaid = true,\n",
        "data-audit: Forever given the vanilla buffs whole",
        expect="data-audit: a Forever paladin has no Blessing of Sanctuary to call unknown", script=S)
 

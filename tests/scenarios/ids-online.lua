@@ -1,6 +1,6 @@
 -- The ids and the facts about them held to what the online databases say of
 -- WoW Forever (Wowhead Forever's tooltips and pages, the Forever guides) and
--- to the client's own tables (build 1.60.1.70178):
+-- to the client's own tables (build 1.60.1.70532):
 --
 -- - Reagent Economy (1225503), a Legacy perk, takes the vendor reagent off
 --   every group spell Manners lists (its class auras 1262650 priest, 1262638

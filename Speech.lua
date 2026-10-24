@@ -211,6 +211,17 @@ do
 				return key
 			end
 		end
+		-- A set a client in another language filled the box with: once each line is
+		-- this client's own reading (Phrases.lua, RP.OTHER_HASH) it is a set's text.
+		-- The box is only compared, never changed; a line that is not the addon's
+		-- keeps the box the player's own.
+		local now = ns.InThisLanguage and ns.InThisLanguage(text)
+		if now and now ~= text then
+			for _, key in ipairs(ns.PHRASE_SET_ORDER) do
+				local set = ns.PHRASE_SETS[key]
+				if set and set.lines and Holds(now, set.lines) then return key end
+			end
+		end
 		return nil
 	end
 end

@@ -727,12 +727,12 @@ your client runs in. Slash commands are English in all of them.
 | Druid | Mark of the Wild, Thorns |
 | Paladin | Wisdom, Might, Kings, Salvation (your party or raid only), Light; Sanctuary on Classic Era |
 | Warlock | Unending Breath |
-| Warrior | Battle Shout (your own party only) |
+| Warrior | Battle Shout (your own party; your whole raid on WoW Forever) |
 
 Individual buffs can be switched off on the *Who to buff* page, or one pinned so
 it is the only thing ever cast. Battle Shout reaches your own party (in a raid,
-your own subgroup) and nobody else, so a warrior outside a group is offered
-nobody. That is deliberate rather than a fault.
+your own subgroup on Classic Era and the whole raid on WoW Forever) and nobody
+else, so a warrior outside a group is offered nobody. That is deliberate rather than a fault.
 
 A paladin who has learned Blessing of Kings offers it to everybody first, ahead
 of Might and Wisdom (*Blessing of Kings first* on the *Who to buff* page, on by

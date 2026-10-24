@@ -190,7 +190,7 @@ every player on it until its toc says the new number. This reads, with `gh api`
 
 ```
 client           toc          repo  repo build     upstream      branch                iface   Ketho  status
-WoW Forever      Camelot     16001  1.60.1.70178   1.60.1.70338  forever               16001   16001  newer build (+160)
+WoW Forever      Camelot     16001  1.60.1.70532   1.60.1.70532  forever               16001   16001  ok
 Classic Era      Vanilla     11509  1.15.9.70003   1.15.9.70003  classic_era           11509   11509  ok
 ...
   ptr2               12.1.5.70077   interface 120105  Ketho 120105  NEWER than Manners_Mainline.toc (120100)
@@ -1060,11 +1060,12 @@ python tools/migration_check.py --scratch DIR        # keep the dumps in DIR
 Does this tree still know the "In character" phrase box an earlier release saved?
 
 ```
-python tools/audit_saved_boxes.py                       # every released tag since beta.9, every language
+python tools/audit_saved_boxes.py                       # every release tag (read from git), every language
 python tools/audit_saved_boxes.py --tags v1.7.4 v1.6.5 --locales koKR zhCN
 python tools/audit_saved_boxes.py --classes MAGE,PRIEST --races Human,Orc   # a smaller grid
 python tools/audit_saved_boxes.py --list                # print the edited ones, not only a count
 python tools/audit_saved_boxes.py --saved-as enUS       # boxes filled in English, read on every language
+python tools/audit_saved_boxes.py --tags HEAD --saved-as deDE   # today's boxes as a German client saved them, read on every language
 python tools/audit_saved_boxes.py --head v1.6.8         # recognised by that release's code, not this checkout's
 python tools/audit_saved_boxes.py --head DIR            # ...or by a copy of the addon in a folder
 ```
@@ -1078,9 +1079,15 @@ The earlier translations of the "In character" example lines, for Phrases.lua.
 ```
 python tools/legacy_lines.py                          # every release tag since beta.10, every language
 python tools/legacy_lines.py --tags v1.6.5 --locales koKR
-python tools/legacy_lines.py --check                  # only say whether the table in Phrases.lua is complete
+python tools/legacy_lines.py --check                  # whether the tables in Phrases.lua are complete and current
 python tools/legacy_lines.py --lua                    # print the table as Lua, ready to paste
+python tools/legacy_lines.py --write-other            # rewrite RP.OTHER_KEYS / RP.OTHER_HASH in Phrases.lua
+python tools/legacy_lines.py --check-other            # only say whether those are current (exit 1 if not)
 ```
+
+`RP.OTHER_KEYS` and `RP.OTHER_HASH` hold every set line and example line in every
+language, by the hash of the text, so a box one language's client filled is read
+by a client in another (`RP.InThisLanguage`).
 
 `python tools/legacy_lines.py -h` has the rest. Not part of `tools/check.py`; it needs git and lupa.
 

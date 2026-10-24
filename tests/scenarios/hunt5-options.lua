@@ -119,11 +119,11 @@ do
 		if not ns then return end
 		local lsm = LibStub("LibSharedMedia-3.0")
 		lsm.media.font = { ["2002"] = "Fonts\\2002.TTF" }
+		-- A font the player picked, here the Latin default a profile carried over
+		-- from a client in another language holds; the default of this client is
+		-- the library's own (hunt33-settings.lua), which is registered.
+		ns.db.profile.prompt.font = "Friz Quadrata TT"
 		local chosen = ns.db.profile.prompt.font
-		if chosen ~= "Friz Quadrata TT" then
-			fail(scenario, "SKIPPED -- the default font is " .. tostring(chosen))
-			return
-		end
 		local option = findOption(ns.optionsTable, "font")
 		local values = option and type(option.values) == "function" and option.values() or nil
 		if not values then

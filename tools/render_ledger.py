@@ -327,7 +327,7 @@ def render(addon_dir, out_dir, keys=None, locales=None, label=""):
             img.save(path)
             err = snap.get("errors") or 0
             extra = ("  %d guarded error(s): %s" % (err, snap.get("firstError"))) if err else ""
-            print("  %-12s %s  %s%s" % (key, loc, os.path.relpath(path), extra))
+            print("  %-12s %s  %s%s" % (key, loc, rp.shown_path(path), extra))
             for n in overflow_notes(snap):
                 print("      " + n)
             tiles.append(rp.labelled(img, snap["title"], "%s %s" % (key, loc)))

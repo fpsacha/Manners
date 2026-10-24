@@ -58,6 +58,15 @@ def note(msg):
 
 # ---------------------------------------------------------------- lua side
 
+def shown_path(path):
+    """The path as printed: relative to the working directory, or the absolute one
+    when there is no relative path (a temp folder on another drive)."""
+    try:
+        return os.path.relpath(path)
+    except ValueError:
+        return os.path.abspath(path)
+
+
 def to_py(v):
     """A lupa table as plain Python: a list where the keys are 1..n."""
     if lupa.lua_type(v) != "table":
@@ -892,7 +901,7 @@ def render(addon_dir, out_dir, keys=None, label="", locale=None, style=None, key
         img.save(path)
         err = snap.get("errors") or 0
         extra = ("  %d guarded error(s): %s" % (err, snap.get("firstError"))) if err else ""
-        print("  %-14s %s%s" % (key, os.path.relpath(path), extra))
+        print("  %-14s %s%s" % (key, shown_path(path), extra))
         tiles.append(labelled(img.resize((img.width // 2, img.height // 2), Image.LANCZOS),
                               snap["title"], key))
     if tiles:

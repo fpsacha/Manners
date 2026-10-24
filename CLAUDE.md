@@ -369,7 +369,15 @@ only; `{gift}` is the spell they gave you), `RP.TRADE`, `RP.HISTORY`,
   (`tools/legacy_lines.py` builds and checks it): record the old text there
   whenever such a translation changes. `python tools/audit_saved_boxes.py` saves
   a box with every released tag in every language and checks the current
-  addon still recognises it.
+  addon still recognises it (its tag list is read from the repository's own
+  tags). A box filled in one language and opened by a client in another is
+  recognised through `RP.OTHER_KEYS` and `RP.OTHER_HASH` in `Phrases.lua`, every
+  set and example line in every language by the hash of its text (the locale
+  files load one per client, so the other languages' text is not there to ask):
+  after any change to a set, an example or a translation of one, run `python
+  tools/legacy_lines.py --write-other` (`--check-other` says whether it is
+  current; `--check` runs it too), and `python tools/audit_saved_boxes.py --tags
+  HEAD --saved-as deDE` (any language) reads the current boxes on every client.
 - Race file names are the client's `ChrRaces.ClientFileString`, not the race's
   name: `Scourge` (Forsaken), `EarthenDwarf`, `Harronir` (the Haranir). 1.7.2's
   Haranir lines never played because the key was guessed. Look it up.
@@ -440,12 +448,14 @@ only; `{gift}` is the spell they gave you), `RP.TRADE`, `RP.HISTORY`,
   (`https://wago.tools/db2/<Table>/csv?build=<build>`): SpellName, Spell,
   SpellEffect, SpellLevels, SpellReagents, SpellMisc, SkillLineAbility,
   ItemSparse, ChrRaces, ... The builds cited in the code: Forever
-  1.60.1.70178, Classic Era 1.15.9.70003, TBC 2.5.6.69795, Mists
-  5.5.4.70032, retail 12.1.0.69933. Forever's newer build 1.60.1.70450 added
-  three weapon items (`since` in `Buffs.lua`'s `ENHANCEMENTS`); the audit notes
-  them under the cited build and holds them to the data with `--build
-  camelot=1.60.1.70450`, which also shows drift in Salvation's names and Battle
-  Shout's reach that the cited build does not have.
+  1.60.1.70532 (read at 1.60.1.70178 until hunt 34, and checked again against
+  70450 and 70532), Classic Era 1.15.9.70003, TBC 2.5.6.69795, Mists
+  5.5.4.70032, retail 12.1.0.69933. Forever's 1.60.1.70450 added three weapon
+  items (`since` in `Buffs.lua`'s `ENHANCEMENTS`), changed Battle Shout's target
+  from the caster's party (20) to the caster's raid (56, the radius unchanged),
+  so Forever's set has no `partyIsSubgroup`, and renamed Salvation to
+  "Salvation" and "Mass Salvation" (the audit takes either name). The audits
+  read the build per client from this line.
 - **Wowhead** per client (Classic, TBC Classic, MoP Classic, retail, and a
   Forever database) for tooltips, levels and "Requires" lines.
 - **Blizzard's own UI code**: `Gethe/wow-ui-source`, one branch per client

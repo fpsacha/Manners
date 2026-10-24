@@ -356,7 +356,7 @@ do
 		if ns.pendingClick then
 			fail(scenario, "a shift-right-click filed a cast")
 		end
-		if not ns.IsNeverOffered("Bert Beside") or ns.db.profile.never["Bert Beside"] ~= true then
+		if not ns.IsNeverOffered("Bert Beside") or not ns.db.profile.never["Bert Beside"] then
 			fail(scenario, "a shift-right-click did not put Bert on the never-offer list")
 		end
 		if not said():find("/manners allow Bert Beside", 1, true) then

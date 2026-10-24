@@ -116,8 +116,8 @@ end
 do
 	local putOnNeverList = ns.PutOnNeverList
 	if putOnNeverList then
-		ns.PutOnNeverList = function(name)
-			local listed = putOnNeverList(name)
+		ns.PutOnNeverList = function(name, typed)
+			local listed = putOnNeverList(name, typed)
 			if listed then ns.Guard("never repaint", Prompt.Refresh, Prompt) end
 			return listed
 		end

@@ -438,6 +438,11 @@ end
 -- so the never-offer list below can tell the ledger about a favour it lets go.
 local TellLedger
 
+-- What a never-offer entry holds: true for a name the player typed (and for
+-- every list saved before there was a marker), NEVER_FILED for one filed from a
+-- name the game gave. Core's ClampSettings keeps both.
+local NEVER_FILED = "filed"
+
 local function NeverSet()
 	local db = addon.db and addon.db.profile
 	local never = db and db.never
@@ -525,24 +530,31 @@ local function NeverVerdicts()
 end
 
 -- The entry on the list that names this person, or nil: exact, then regardless
--- of case, then with the realm taken off the name (as the prompt shows it) --
--- never the other way round. `verdict` is NeverVerdicts' table, passed only by
--- the scan; anybody else walks the list.
+-- of case, then -- for an entry the player typed -- with the realm taken off the
+-- name (as the prompt shows it), never the other way round. An entry filed from
+-- a name the game gave (the prompt, the ledger) is marked NEVER_FILED and
+-- matches that name alone: a same-realm "Anna" on the list is not the Anna of
+-- another realm, who is filed "Anna-Realm" and shows on the prompt as "Anna".
+-- An exact entry always beats a realm-less one. `verdict` is NeverVerdicts'
+-- table, passed only by the scan; anybody else walks the list.
 local function ListedAs(name, verdict)
 	local never = NeverSet()
 	if not never or type(name) ~= "string" or next(never) == nil then return nil end
-	if never[name] == true then return name end
+	local held = never[name]
+	if held == true or held == NEVER_FILED then return name end
 	if verdict then
 		local known = verdict[name]
 		if known ~= nil then return known or nil end
 	end
 	local short = ShortName(name)
-	local found
-	for key in pairs(never) do
+	local found, typed
+	for key, flag in pairs(never) do
 		if type(key) == "string" then
-			if SameName(key, name) or SameName(key, short) then found = key break end
+			if SameName(key, name) then found = key break end
+			if flag == true and not typed and SameName(key, short) then typed = key end
 		end
 	end
+	found = found or typed
 	if verdict then
 		-- Bounded like the other per-person caches.
 		if neverSeen.count >= neverSeen.max then
@@ -592,14 +604,17 @@ local function IgnoresAnybody()
 end
 
 -- Puts somebody on the list. Returns the spelling now on it, and whether they
--- were already there (whose spelling is kept, so nobody is listed twice).
-function ns.NeverOffer(name)
+-- were already there (whose spelling is kept, so nobody is listed twice). A
+-- name the player typed (`typed`) also answers to the same person from another
+-- realm ("Anna" for "Anna-Realm", as the prompt shows her); a name the game gave
+-- is filed as NEVER_FILED and means that one person only.
+function ns.NeverOffer(name, typed)
 	name = CleanName(name)
 	local never = NeverSet()
 	if not name or not never then return nil end
 	local already = ListedAs(name)
 	if already then return already, true end
-	never[name] = true
+	never[name] = typed and true or NEVER_FILED
 	return name, false
 end
 
@@ -616,7 +631,7 @@ end
 function ns.NeverList()
 	local names = {}
 	for name, flag in pairs(NeverSet() or {}) do
-		if flag == true then names[#names + 1] = name end
+		if flag == true or flag == NEVER_FILED then names[#names + 1] = name end
 	end
 	table.sort(names, NameBefore)
 	return names
@@ -633,19 +648,35 @@ end
 -- a name that was only space. A favour they are owed goes with them, even when
 -- already listed: owed people are exempt from the list (STATUS.md), so they
 -- would come straight back once the skip ran out.
-function ns.PutOnNeverList(name)
-	local listed, already = ns.NeverOffer(name)
+function ns.PutOnNeverList(name, typed)
+	local listed, already = ns.NeverOffer(name, typed)
 	if not listed then return nil end
 
 	local forgiven = false
 	-- Matched against the one entry just listed, by ListedAs' rule, rather than
-	-- walking the whole list once per favour.
+	-- walking the whole list once per favour: the name itself, and for an entry
+	-- the player typed also the same name with the realm taken off the favour's
+	-- key -- but only when no favour is filed under exactly the typed name, which
+	-- is then the one meant.
+	local byRealm = NeverSet()[listed] == true
+	local viaRealm
 	for key in pairs(owed) do
-		if SameName(listed, key) or SameName(listed, ShortName(key)) then
+		if SameName(listed, key) then
+			byRealm = false
 			owed[key] = nil
 			forgiven = true
 			-- The ledger's row goes with the debt: its own sweep walks the
 			-- debts and could never reach one let go here.
+			TellLedger("LetGo", key, "never")
+		elseif byRealm and SameName(listed, ShortName(key)) then
+			viaRealm = viaRealm or {}
+			viaRealm[#viaRealm + 1] = key
+		end
+	end
+	if viaRealm and byRealm then
+		for _, key in ipairs(viaRealm) do
+			owed[key] = nil
+			forgiven = true
 			TellLedger("LetGo", key, "never")
 		end
 	end

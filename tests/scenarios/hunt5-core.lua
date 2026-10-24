@@ -240,7 +240,9 @@ do
 		if ns.owed["Petra Stonewell"] then
 			fail(scenario, "listing an owed person in small letters kept their favour")
 		end
-		ns.PutOnNeverList("Anna Aim")
+		-- Typed by hand (the second argument), as the prompt shows her: a name the
+		-- game filed (no second argument) would mean the one person only.
+		ns.PutOnNeverList("Anna Aim", true)
 		if ns.owed["Anna Aim-Realm"] then
 			fail(scenario, "listing an owed person by the name without the realm kept their favour")
 		end
