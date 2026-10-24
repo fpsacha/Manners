@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.8.6
 
 - **Top-ups come at the right moment for each buff.** Manners now knows how
   long every buff lasts on your client and offers the top-up about a tenth of
