@@ -419,6 +419,21 @@ R.states = {
 	{ key = "large-size", title = "320 x 58, 17 pt, icon 40", at = 0.85, setup = withPrompt(function(p)
 		p.width, p.height, p.fontSize, p.iconSize = 320, 58, 17, 40
 	end) },
+	-- The ends of the sliders, with the count chip up (two owed): the name keeps
+	-- room between the icon and the chip (Prompt/Text.lua, PlaceLines).
+	{ key = "narrow-big", title = "80 x 36, 24 pt, two owed", at = 0.85, setup = function(ns)
+		boot(ns, { nameplate1 = { "Anna", "Aim" }, nameplate2 = { "Bert", "Beside" } })
+		local p = ns.db.profile.prompt
+		p.width, p.height, p.fontSize, p.iconSize = 80, 36, 24, 24
+		p.showIcon, p.showCount = true, true
+		ns.Prompt:ApplyStyle()
+		owe(ns, "Anna Aim")
+		owe(ns, "Bert Beside")
+		tick(ns)
+	end },
+	{ key = "tall-narrow", title = "140 x 120, 13 pt", at = 0.85, setup = withPrompt(function(p)
+		p.width, p.height, p.fontSize, p.iconSize = 140, 120, 13, 30
+	end) },
 	-- A key bound to the prompt, which a look may show on the panel.
 	{ key = "keybound", title = "A key bound to the prompt", at = 0.85, setup = function(ns)
 		Mock.bindings = { ["SHIFT-F"] = "CLICK MannersPrompt:LeftButton" }

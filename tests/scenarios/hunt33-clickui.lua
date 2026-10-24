@@ -194,3 +194,51 @@ run("hunt33-text: a group tooltip does not say one person are", {}, function(ns)
 	end
 end)
 
+-- ------------------------------------------------------------------ room for the name
+-- hunt33-layout: the name line is given room at the sizes the settings allow
+--
+-- The name is hung between the icon and the count chip by two points. The sliders
+-- let the width go down to 80 and the font up to 32, and the room between the
+-- points is then negative (the left point is to the right of the right one), so the
+-- client has nothing to draw the name in. Toast's medallion is as tall as the panel,
+-- so a tall, narrow Toast leaves the name two units. (Whether the client draws a
+-- string with crossed points at all is not known; no look should rely on it.)
+local CASES = {
+	{ style = "glass", width = 80, height = 36, font = 24 },
+	{ style = "framed", width = 80, height = 58, font = 32 },
+	{ style = "minimal", width = 80, height = 36, font = 24 },
+	{ style = "arcane", width = 80, height = 36, font = 24 },
+	{ style = "toast", width = 140, height = 120, font = 13 },
+}
+for _, case in ipairs(CASES) do
+	local scenario = ("hunt33-layout: the name has room at %dx%d, %d pt, in %s"):format(case.width, case.height, case.font, case.style)
+	Mock.reset()
+	FT.install()
+	local restore = strangers({ nameplate1 = { "Anna", "Aim" }, nameplate2 = { "Bert", "Beside" } })
+	local ns = load(scenario)
+	if ns then
+		local ok, err = pcall(function()
+			freshPrompt(ns, scenario)
+			local p = ns.db.profile.prompt
+			p.style, p.width, p.height, p.fontSize = case.style, case.width, case.height, case.font
+			p.showIcon, p.showCount, p.showQueue = true, true, false
+			p.iconSize = math.max(12, math.min(30, ns.IconCeiling(p)))
+			ns.Prompt:ApplyStyle()
+			owe(ns, "Anna Aim")
+			owe(ns, "Bert Beside")
+			ns.addon:Tick()
+			FT.settle()
+			local room = FT.boundWidth(ns.Prompt:Regions().name)
+			if type(room) ~= "number" then
+				fail(scenario, "SKIPPED -- the name line has no two points")
+			elseif room < 20 then
+				fail(scenario, ("the name line is %s units wide between its points (chip %s)"):format(
+					tostring(room), tostring(ns.Prompt:Regions().chip:IsShown())))
+			end
+		end)
+		if not ok then fail(scenario, "threw: " .. tostring(err)) end
+	end
+	restore()
+	FT.uninstall()
+	Mock.reset()
+end

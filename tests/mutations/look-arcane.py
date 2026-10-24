@@ -129,7 +129,8 @@ mutate(A, "\tlocal on = self:KeyShown() and not self.outcome and self:Armed() an
        "Arcane's keycap over an outcome",
        expect="the keycap stayed up over an outcome", script=S)
 
-mutate(A, "\tlocal inset = right + (self:KeyShown() and self.keyRoom or 0)\n", "\tlocal inset = right\n",
+mutate(A, "\tlocal inset = math.min(right + (self:KeyShown() and self.keyRoom or 0), math.max(0, self.W - self.textX - 20))\n",
+       "\tlocal inset = right\n",
        "Arcane's lines run under the keycap",
        expect="the name runs under the keycap", script=S)
 

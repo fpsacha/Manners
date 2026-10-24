@@ -109,6 +109,9 @@ local fit = { path = nil, flags = "", base = {}, size = {}, room = {}, drawn = {
 
 -- The inset from the right-hand edge when nothing is beside the lines.
 local EDGE_ROOM = 10
+-- The least room the name is given between its two points (the looks keep the
+-- same floor for theirs).
+local MIN_ROOM = 20
 
 -- How wide a line's text is, or nil when the client will not say. Unbounded
 -- where possible, since a bounded width always fits. Made plain: a secret name
@@ -141,7 +144,7 @@ local function FitLine(fs)
 		SafeFont(fs, fit.path, base, fit.flags)
 		fit.size[fs] = base
 	end
-	local room = fit.room[fs] or (fit.width - fit.textX - (fit.right or EDGE_ROOM))
+	local room = fit.room[fs] or math.max(MIN_ROOM, fit.width - (fit.left or fit.textX) - (fit.right or EDGE_ROOM))
 	local least = math.max(7, math.floor(base * 0.8 + 0.5))
 	local size = base
 	local w
@@ -175,19 +178,25 @@ end
 -- longer translations get the room.
 local function PlaceLines(chipUp)
 	local right = chipUp and fit.chipRoom or EDGE_ROOM
-	if fit.right == right then return end
+	-- At the ends of the sliders (80 wide, a big font or icon) the two points
+	-- would cross and the client has nothing to draw the name in: the name
+	-- keeps MIN_ROOM, its left end moving in over the icon's margin where it
+	-- must. (The chip is never up over less: ShowChip.)
+	local left = math.min(fit.textX, math.max(0, fit.width - MIN_ROOM - right))
+	if fit.right == right and fit.left == left then return end
+	fit.left = left
 	fit.right = right
 	R.nameText:ClearAllPoints()
 	R.subText:ClearAllPoints()
 	if S.activeLook then
 		S.activeLook:PlaceLines(right)
 	elseif fit.twoLine then
-		R.nameText:SetPoint("TOPLEFT", fit.textX, -8)
+		R.nameText:SetPoint("TOPLEFT", left, -8)
 		R.nameText:SetPoint("RIGHT", -right, 0)
-		R.subText:SetPoint("BOTTOMLEFT", fit.textX, 8)
+		R.subText:SetPoint("BOTTOMLEFT", left, 8)
 		R.subText:SetPoint("RIGHT", -right, 0)
 	else
-		R.nameText:SetPoint("LEFT", fit.textX, 0)
+		R.nameText:SetPoint("LEFT", left, 0)
 		R.nameText:SetPoint("RIGHT", -right, 0)
 	end
 	FitLine(R.nameText)
@@ -197,6 +206,11 @@ end
 -- The count chip up or down, and the lines beside it given their room.
 local function ShowChip(on)
 	on = on and true or false
+	-- No chip over a name with no room left beside it, on any look.
+	if on and fit.width - fit.textX - fit.chipRoom < MIN_ROOM then
+		on = false
+		R.countText:SetText("")
+	end
 	if S.activeLook then
 		-- A look may refuse it for this paint, so the name keeps its room.
 		on = S.activeLook:Chip(on) and true or false

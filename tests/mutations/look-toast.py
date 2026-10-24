@@ -287,7 +287,7 @@ mutate(TOAST,
 
 # The design's own: the medallion up to 8 units taller than the button.
 mutate(TOAST,
-       "\tlocal M = showIcon and H or 0\n",
+       "\tlocal M = showIcon and math.min(H, math.max(24, math.floor(W * 0.5))) or 0\n",
        "\tlocal M = showIcon and H + 8 or 0\n",
        "the medallion overhangs the button",
        expect="overhangs the button",
@@ -365,7 +365,7 @@ mutate(TOAST,
 
 # A medallion shorter than the banner shows the rails' ends above and below.
 mutate(TOAST,
-       "\tlocal M = showIcon and H or 0\n",
+       "\tlocal M = showIcon and math.min(H, math.max(24, math.floor(W * 0.5))) or 0\n",
        "\tlocal M = showIcon and Clamp(p.iconSize * 1.5, H * 0.8, H) or 0\n",
        "the medallion shorter than the banner",
        expect="is shorter than the banner",

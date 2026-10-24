@@ -96,3 +96,40 @@ mutate("Prompt/Button.lua",
        "hunt34-text: one more person running out read as are",
        expect="hunt33-text: a group tooltip does not say one person are", script=S)
 
+# ------------------------------------------------ room for the name
+mutate("Prompt/Text.lua",
+       "\tlocal left = math.min(fit.textX, math.max(0, fit.width - MIN_ROOM - right))\n",
+       "\tlocal left = fit.textX\n",
+       "hunt34-layout: the name's left end never gives way to a big icon",
+       expect="hunt34-layout: a big icon on a narrow panel leaves the name room in glass", script=S)
+
+mutate("Prompt/Text.lua",
+       "\tif on and fit.width - fit.textX - fit.chipRoom < MIN_ROOM then\n",
+       "\tif false then\n",
+       "hunt34-layout: a count chip drawn over a name with no room",
+       expect="hunt34-layout: no count chip over a name with no room", script=S)
+
+mutate("Looks/Arcane.lua",
+       "\tlocal inset = math.min(right + (self:KeyShown() and self.keyRoom or 0), math.max(0, self.W - self.textX - 20))\n",
+       "\tlocal inset = right + (self:KeyShown() and self.keyRoom or 0)\n",
+       "hunt34-layout: Arcane's two points cross at 80 wide",
+       expect="hunt34-layout: arcane keeps the name 20 units", script=S)
+
+mutate("Looks/Toast.lua",
+       "\tinset = math.min(inset, math.max(0, self.W - self.textX - 20))\n",
+       "",
+       "hunt34-layout: Toast's two points cross",
+       expect="hunt34-layout: toast keeps the name 20 units", script=S)
+
+mutate("Looks/Luxe.lua",
+       "\tright = math.min(right, math.max(0, self.W - self.textX - 20))\n",
+       "",
+       "hunt34-layout: Luxe's two points cross",
+       expect="hunt34-layout: luxe keeps the name 20 units", script=S)
+
+mutate("Looks/Toast.lua",
+       "\tlocal M = showIcon and math.min(H, math.max(24, math.floor(W * 0.5))) or 0\n",
+       "\tlocal M = showIcon and H or 0\n",
+       "hunt34-layout: Toast's medallion as tall as a narrow panel",
+       expect="hunt33-layout: the name has room at 140x120, 13 pt, in toast", script=S)
+

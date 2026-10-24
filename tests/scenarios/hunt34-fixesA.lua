@@ -145,3 +145,112 @@ for _, case in ipairs({
 	end)
 end
 
+-- ------------------------------------------------------------------ layout
+-- hunt34-layout: the lines' room at the right gives way when the icon leaves too little
+-- (a big icon on a narrow panel), on the built-in looks; and every look's PlaceLines
+-- keeps the name 20 units however much room it is told to keep.
+local function widthOf(ns)
+	FT.settle()
+	return FT.boundWidth(ns.Prompt:Regions().name)
+end
+
+for _, style in ipairs({ "glass", "framed", "minimal" }) do
+	local scenario = "hunt34-layout: a big icon on a narrow panel leaves the name room in " .. style
+	Mock.reset()
+	FT.install()
+	local restore = strangers({ nameplate1 = { "Anna", "Aim" } })
+	local ns = load(scenario)
+	if ns then
+		local ok, err = pcall(function()
+			freshPrompt(ns, scenario)
+			local p = ns.db.profile.prompt
+			p.style, p.width, p.height, p.fontSize = style, 80, 58, 13
+			p.showIcon, p.showCount, p.showQueue = true, false, false
+			p.iconSize = 44
+			ns.Prompt:ApplyStyle()
+			owe(ns, "Anna Aim")
+			ns.addon:Tick()
+			local room = widthOf(ns)
+			if type(room) ~= "number" then
+				fail(scenario, "SKIPPED -- the name line has no two points")
+			elseif room < 20 then
+				fail(scenario, ("the name line is %s units wide between its points"):format(tostring(room)))
+			end
+		end)
+		if not ok then fail(scenario, "threw: " .. tostring(err)) end
+	end
+	restore()
+	FT.uninstall()
+	Mock.reset()
+end
+
+for _, style in ipairs({ "arcane", "toast", "luxe" }) do
+	local scenario = "hunt34-layout: " .. style .. " keeps the name 20 units whatever room is asked for at the right"
+	Mock.reset()
+	FT.install()
+	local restore = strangers({ nameplate1 = { "Anna", "Aim" } })
+	local ns = load(scenario)
+	if ns then
+		local ok, err = pcall(function()
+			freshPrompt(ns, scenario)
+			local p = ns.db.profile.prompt
+			p.style, p.width, p.height, p.fontSize = style, 80, 36, 13
+			p.showIcon, p.showCount, p.showQueue = true, false, false
+			p.iconSize = 24
+			ns.Prompt:ApplyStyle()
+			owe(ns, "Anna Aim")
+			ns.addon:Tick()
+			local look = ns.Prompt.state.activeLook
+			if not look then
+				fail(scenario, "SKIPPED -- no look is active")
+				return
+			end
+			local r = ns.Prompt:Regions()
+			r.name:ClearAllPoints()
+			r.sub:ClearAllPoints()
+			look:PlaceLines(90)
+			local room = widthOf(ns)
+			if type(room) ~= "number" then
+				fail(scenario, "SKIPPED -- the name line has no two points")
+			elseif room < 20 then
+				fail(scenario, ("with 90 units kept at the right the name line is %s units wide"):format(tostring(room)))
+			end
+		end)
+		if not ok then fail(scenario, "threw: " .. tostring(err)) end
+	end
+	restore()
+	FT.uninstall()
+	Mock.reset()
+end
+
+-- hunt34-layout: no count chip over a name with no room beside it, and the chip stays at
+-- an ordinary size.
+for _, case in ipairs({
+	{ style = "glass", width = 80, height = 36, font = 24, chip = false },
+	{ style = "minimal", width = 80, height = 36, font = 24, chip = false },
+	{ style = "glass", width = 260, height = 44, font = 13, chip = true },
+	{ style = "minimal", width = 260, height = 44, font = 13, chip = true },
+}) do
+	local scenario = ("hunt34-layout: no count chip over a name with no room: %s %dx%d, %d pt"):format(
+		case.style, case.width, case.height, case.font)
+	run(scenario, nil, { nameplate1 = { "Anna", "Aim" }, nameplate2 = { "Bert", "Beside" } }, function(ns)
+		local p = ns.db.profile.prompt
+		p.style, p.width, p.height, p.fontSize = case.style, case.width, case.height, case.font
+		p.showIcon, p.showCount, p.showQueue = true, true, false
+		p.iconSize = math.max(12, math.min(30, ns.IconCeiling(p)))
+		ns.Prompt:ApplyStyle()
+		owe(ns, "Anna Aim")
+		owe(ns, "Bert Beside")
+		ns.addon:Tick()
+		local r = ns.Prompt:Regions()
+		if r.chip:IsShown() ~= case.chip then
+			fail(scenario, ("the count chip is %s, wanted %s"):format(
+				tostring(r.chip:IsShown()), tostring(case.chip)))
+		end
+		local text = r.count:GetText()
+		if (text == nil or text == "") == case.chip then
+			fail(scenario, "the count text reads " .. tostring(text) .. " with the chip " .. tostring(r.chip:IsShown()))
+		end
+	end)
+end
+
