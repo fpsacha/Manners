@@ -35,6 +35,12 @@ of what a scenario cost: each file is now compiled once per process and loaded
 again from its bytecode (see "compiled once" below).
 """
 import glob, json, sys, os, re, time
+# A failure line can hold any language a locale scenario read (a CJK client's text),
+# and a console on a legacy code page (cp1252 here) cannot print it: the run died
+# with UnicodeEncodeError instead of saying which scenario failed.
+for _stream in (sys.stdout, sys.stderr):
+    if hasattr(_stream, "reconfigure"):
+        _stream.reconfigure(encoding="utf-8", errors="replace")
 # Lua 5.1, because that is what the game runs. On the newer default the
 # suites passed a build that could not load in game: 5.1 allows a function
 # 60 upvalues where 5.4 allows 255, and Prompt:Create() had 69 (beta.6).
