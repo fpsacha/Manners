@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased
+
+- **Top-ups come at the right moment for each buff.** Manners now knows how
+  long every buff lasts on your client and offers the top-up about a tenth of
+  that before it ends: a minute before a ten-minute buff, five before an
+  hour's. Short buffs such as a five-minute blessing are no longer "running
+  out" the moment they land.
+- **Earlier in a raid or dungeon.** There the top-up starts earlier (new
+  *In a raid or dungeon, top up this many times earlier*, default 2), earlier
+  still for your own buffs, and only in the last half minute for somebody
+  outside your group.
+- ***Top up when less than this is left* is now *Top up at most this long
+  before it ends (minutes)***: the longest Manners will ever wait.
+- **The tooltip says why now.** It shows how long the buff lasts and when the
+  top-up is due, and Diagnostics and `/manners debug` list that for each of
+  your buffs.
+
 ## 1.8.5
 
 - **WoW Forever: an oil beside your imbue.** A weapon there wears an imbue
