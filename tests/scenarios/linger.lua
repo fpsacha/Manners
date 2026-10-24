@@ -186,10 +186,10 @@ Mock.reset()
 -- What the panel says about her does not change as the cursor leaves: the
 -- reading taken through the token is kept. Somebody read as missing the buff
 -- still "needs" it rather than turning "unverified", and a top-up keeps its
--- clock, counting down.
+-- clock, counting down. (A passer-by is topped up in the last half minute: Core.lua, ns.LeadFor.)
 for _, case in ipairs({
 	{ label = "missing it", held = nil, want = "needs" },
-	{ label = "a top-up", held = { [1459] = true }, heldFor = 120, want = "expires in" },
+	{ label = "a top-up", held = { [1459] = true }, heldFor = 28, want = "expires in" },
 }) do
 	Mock.reset()
 	local scenario = "linger: the panel says the same about her once the cursor leaves (" .. case.label .. ")"
@@ -219,7 +219,7 @@ for _, case in ipairs({
 		end
 		if case.heldFor and later then
 			local left = later.remaining
-			if type(left) ~= "number" or left > 118.5 or left < 116 then
+			if type(left) ~= "number" or left > case.heldFor - 1.5 or left < case.heldFor - 4 then
 				fail(scenario, "the top-up's time left did not count down while she was out of sight: "
 					.. tostring(left))
 			end

@@ -1888,8 +1888,8 @@ mutate("Core.lua",
 #     branch -- so the refresh mode was switched on, described in the options,
 #     and dead for the one class it is safest on.
 mutate("Core.lua",
-       "\t\t\t\t\tlocal held, remaining, mine, over = has(buff, opts)\n",
-       "\t\t\t\t\tlocal held, _, mine, over = has(buff, opts)\n",
+       "\t\t\t\t\tlocal held, remaining, mine, over, seconds = has(buff, opts)\n",
+       "\t\t\t\t\tlocal held, _, mine, over, seconds = has(buff, opts)\n",
        "a top-up with the timer thrown away",
        expect="was offered no top-up at all",
        script="runscenarios.py")
@@ -1898,8 +1898,8 @@ mutate("Core.lua",
 #     to everybody covered is the same branch failing in the other direction:
 #     a setting that says "leave them alone" ignored.
 mutate("Core.lua",
-       '\t\t\t\t\t\tif opts.whenBuffed == "refresh" and remaining\n',
-       "\t\t\t\t\t\tif remaining\n",
+       '\t\t\t\t\t\tif opts.whenBuffed == "refresh" and remaining then\n',
+       "\t\t\t\t\t\tif remaining then\n",
        "a top-up offered with the mode switched off",
        expect="the top-up mode is switched off",
        script="runscenarios.py")
@@ -1907,8 +1907,8 @@ mutate("Core.lua",
 # 67. the threshold. "When it is running out" is the whole of the offer, and
 #     without a live comparison every covered person is on the prompt for ever.
 mutate("Core.lua",
-       "\t\t\t\t\t\tand remaining <= (opts.refreshUnder or 5) * 60 then",
-       "\t\t\t\t\t\tand remaining <= (opts.refreshUnder or 5) * 6000 then",
+       "\t\t\t\t\t\t\tif remaining <= lead then return buff, true, remaining, seconds, lead, kind end\n",
+       "\t\t\t\t\t\t\tif remaining <= lead * 100 then return buff, true, remaining, seconds, lead, kind end\n",
        "a top-up for a blessing with an hour left",
        expect="a blessing with an hour left was answered",
        script="runscenarios.py")
@@ -3410,8 +3410,8 @@ mutate("Core.lua",
 # The same, three seconds later: the cache remembering that there was a
 # blessing and forgetting whose it was.
 mutate("Core.lua",
-       "\t\treturn cached.has, cached.expires and (cached.expires - now) or nil, cached.mine, cached.over\n",
-       "\t\treturn cached.has, cached.expires and (cached.expires - now) or nil, nil, cached.over\n",
+       "\t\treturn cached.has, cached.expires and (cached.expires - now) or nil, cached.mine, cached.over, cached.duration\n",
+       "\t\treturn cached.has, cached.expires and (cached.expires - now) or nil, nil, cached.over, cached.duration\n",
        "the aura cache forgetting whose blessing it was",
        expect="(a warrior with another paladin's Kings): cached: offered false",
        script="runscenarios.py")

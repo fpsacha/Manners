@@ -2715,10 +2715,11 @@ if ns then
 	local db = ns.db.profile
 	db.filters.whenBuffed = "refresh"
 	db.filters.refreshUnder = 5
-	-- Carrying it with two minutes to run, which is what puts them on the
-	-- prompt in this mode and nothing else would.
+	-- Carrying it with twenty seconds to run, which is what puts a passer-by
+	-- on the prompt in this mode and nothing else would (a stranger is topped
+	-- up in the last half minute: Core.lua, ns.LeadFor).
 	Mock.held = { [1459] = true }
-	Mock.heldFor = 120
+	Mock.heldFor = 20
 
 	local queue = ns.BuildQueue()
 	local entry = queue[1]
@@ -2727,7 +2728,7 @@ if ns then
 	elseif type(entry.remaining) ~= "number" then
 		fail(scenario, "the queue entry carries " .. type(entry.remaining)
 			.. " where the time left should be")
-	elseif math.abs(entry.remaining - 120) > 1 then
+	elseif math.abs(entry.remaining - 20) > 1 then
 		fail(scenario, "the time left came back as " .. tostring(entry.remaining))
 	else
 		-- And it reaches the player, which is the only reason to carry it.
@@ -2741,7 +2742,7 @@ if ns then
 
 		local said = false
 		for _, line in ipairs(lines) do
-			if line:find("expires in 2m", 1, true) then said = true end
+			if line:find("expires in 20s", 1, true) then said = true end
 		end
 		if not said then
 			fail(scenario, "the time left never reached the tooltip")
@@ -3608,10 +3609,10 @@ if ns then
 	else
 		db.filters.whenBuffed = "refresh"
 		db.filters.refreshUnder = 5
-		-- Carrying it with two minutes to run, which is the only thing that
-		-- puts a person who already has it on the prompt.
+		-- Carrying it with twenty seconds to run, which is the only thing that
+		-- puts a passer-by who already has it on the prompt.
 		Mock.held = { [1459] = true }
-		Mock.heldFor = 120
+		Mock.heldFor = 20
 		-- Past the aura cache: the queue built a moment ago read them as
 		-- missing it and that answer is good for three seconds.
 		Mock.advance(4)
@@ -3623,7 +3624,7 @@ if ns then
 			local sub = ns.Prompt:ReasonText(entry)
 			if sub == "WANTS ONE" then
 				fail(scenario, "the sub-line told somebody holding the buff that they want one")
-			elseif not sub:find("2m", 1, true) then
+			elseif not sub:find("20s", 1, true) then
 				fail(scenario, "the sub-line says nothing true about the top-up: " .. sub)
 			end
 
@@ -3642,7 +3643,7 @@ if ns then
 			if said:find("missing it", 1, true) then
 				fail(scenario, "the tooltip called somebody holding the buff missing it")
 			end
-			if not said:find("expires in 2m", 1, true) then
+			if not said:find("expires in 20s", 1, true) then
 				fail(scenario, "SKIPPED -- the tooltip never described the top-up at all")
 			end
 		end
@@ -7207,12 +7208,12 @@ if ns then
 	db.filters.whenBuffed = "refresh"
 	db.filters.refreshUnder = 5
 
-	-- Carrying might with two minutes left and none of the others. Wisdom is
+	-- Carrying might with twenty seconds left and none of the others. Wisdom is
 	-- first in the list and definitely absent, so the walk reaches the blessing
 	-- they hold only by refusing to stop at the one they do not.
 	Mock.held = {}
 	for _, id in ipairs(ns.FindBuff("PALADIN", "might").auraIds) do Mock.held[id] = true end
-	Mock.heldFor = 120
+	Mock.heldFor = 20
 
 	local function offered()
 		for _, entry in ipairs(ns.BuildQueue()) do
@@ -7222,7 +7223,7 @@ if ns then
 
 	local entry = offered()
 	if not entry then
-		fail(scenario, "a blessing two minutes from expiring was offered no top-up at all,"
+		fail(scenario, "a blessing twenty seconds from expiring was offered no top-up at all,"
 			.. " which is the whole of the refresh mode for this class")
 	else
 		if entry.buff.key ~= "might" then
@@ -7232,7 +7233,7 @@ if ns then
 		if type(entry.remaining) ~= "number" then
 			fail(scenario, "the offer carries " .. type(entry.remaining) .. " where the time"
 				.. " left should be, so nothing on the prompt says it is a top-up")
-		elseif math.abs(entry.remaining - 120) > 2 then
+		elseif math.abs(entry.remaining - 20) > 2 then
 			fail(scenario, "the time left came back as " .. tostring(entry.remaining))
 		end
 	end
@@ -7251,7 +7252,7 @@ if ns then
 	end
 
 	db.filters.whenBuffed = "skip"
-	Mock.heldFor = 120
+	Mock.heldFor = 20
 	Mock.advance(5)
 	local switchedOff = offered()
 	if switchedOff then

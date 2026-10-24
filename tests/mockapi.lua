@@ -166,6 +166,10 @@ function Mock.reset()
 	Mock.groupSize = 0
 	Mock.held = nil
 	Mock.heldFor = nil
+	-- The `duration` those auras carry (nil: none, as a client that says nothing).
+	Mock.heldDuration = nil
+	-- true: those auras (the player's included) have no timer, expirationTime 0.
+	Mock.heldNoTimer = nil
 	-- Who cast what Mock.held says a unit is carrying, per spell id, as the unit
 	-- token the aura names -- e.g. { [20217] = "nameplate2" } for another
 	-- paladin's Kings. Absent is the client naming nobody, which is also what
@@ -186,6 +190,7 @@ function Mock.reset()
 	-- nothing at all. playerHeldFor is how long theirs has left.
 	Mock.playerHeld = nil
 	Mock.playerHeldFor = nil
+	Mock.playerHeldDuration = nil
 	-- The temporary enchant on each inventory slot (C_PaperDollInfo), as
 	-- { [16] = { id = enchant, left = seconds } }: an oil on the main hand.
 	-- nil is none anywhere, which the call answers with nothing. A mage's
@@ -1853,11 +1858,16 @@ setmetatable(_G, { __index = function(_, key)
 				if unit == "player" then
 					local mine = Mock.playerHeld
 					if mine ~= nil and not mine[spellId] then return nil end
-					return { spellId = spellId, expirationTime = Mock.now + (Mock.playerHeldFor or 3600),
-						sourceUnit = "player" }
+					-- Mock.playerHeldDuration: the aura's own `duration`, which a real
+					-- client gives; left out, the aura carries none, as before.
+					return { spellId = spellId,
+						expirationTime = Mock.heldNoTimer and 0 or Mock.now + (Mock.playerHeldFor or 3600),
+						duration = Mock.playerHeldDuration, sourceUnit = "player" }
 				end
 				if Mock.held and Mock.held[spellId] then
-					return { spellId = spellId, expirationTime = Mock.now + (Mock.heldFor or 3600),
+					return { spellId = spellId,
+						expirationTime = Mock.heldNoTimer and 0 or Mock.now + (Mock.heldFor or 3600),
+						duration = Mock.heldDuration,
 						sourceUnit = Mock.heldSource and Mock.heldSource[spellId] or nil }
 				end
 				return nil

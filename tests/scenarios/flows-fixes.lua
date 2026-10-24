@@ -152,13 +152,14 @@ for _, case in ipairs(RANKED) do
 		local f = ns.db.profile.filters
 		f.whenBuffed, f.refreshUnder = "refresh", 5
 		ns.db.profile.sources.strangers = true
-		-- A minute left on whatever she wears.
-		Mock.heldFor = 60
+		-- Twenty seconds left on whatever she wears: a stranger is topped up in
+		-- the last half minute (Core.lua, ns.LeadFor).
+		Mock.heldFor = 20
 
 		wearing(case.known[1], "nameplate2")
 		local same = entryFor(ns, "Petra")
 		if not (same and same.buff and same.buff.key == "intellect" and same.remaining) then
-			fail(scenario, ("SKIPPED -- Petra, wearing Arcane Intellect %d with a minute left, is not offered"
+			fail(scenario, ("SKIPPED -- Petra, wearing Arcane Intellect %d with twenty seconds left, is not offered"
 				.. " a top-up (%s)"):format(case.known[1], tostring(same and same.remaining)))
 			return
 		end
@@ -166,7 +167,7 @@ for _, case in ipairs(RANKED) do
 		wearing(case.worn, "nameplate2")
 		local petra = entryFor(ns, "Petra")
 		if petra and petra.buff and petra.buff.key == "intellect" then
-			fail(scenario, ("Petra wears Arcane Intellect %d with a minute left and is offered a top-up with"
+			fail(scenario, ("Petra wears Arcane Intellect %d with twenty seconds left and is offered a top-up with"
 				.. " %d, which the game refuses"):format(case.worn, case.known[1]))
 		end
 	end, function()

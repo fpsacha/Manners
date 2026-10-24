@@ -283,7 +283,13 @@ local defaults = {
 			reachableOnly = true, -- hide people we cannot actually reach
 			restoreTarget = true, -- hand your target back after buffing
 			whenBuffed = "skip", -- skip | refresh | always
-			refreshUnder = 5, -- minutes left before a top-up is offered
+			-- The most minutes before a buff ends that a top-up is ever offered
+			-- (the ceiling of its lead, worked out from how long the buff lasts:
+			-- see "how early a top-up is offered").
+			refreshUnder = 5,
+			-- In a raid or a dungeon the lead is this many times longer: a fight
+			-- and the drinking after it take minutes.
+			refreshRaid = 2,
 			-- Off: somebody whose buffs the client will not show is offered,
 			-- "unverified" (but not in the first seconds after a fight:
 			-- UNVERIFIED_SECONDS). On, never: a player asked for it.
@@ -1139,6 +1145,150 @@ function ns.PinnedBuff()
 	return ns.FindBuff(playerClass, choice)
 end
 
+-- A length of time the way a player reads one: "1h", "1h 30m", "5m", "4m 30s",
+-- "30s". Seconds are dropped from an hour and more.
+function ns.TimeText(seconds)
+	local total = math.floor((tonumber(seconds) or 0) + 0.5)
+	local hours, minutes, rest = math.floor(total / 3600), math.floor(total % 3600 / 60), total % 60
+	if hours > 0 then
+		local text = L["%dh"]:format(hours)
+		if minutes > 0 then text = text .. " " .. L["%dm"]:format(minutes) end
+		return text
+	end
+	if minutes > 0 then
+		local text = L["%dm"]:format(minutes)
+		if rest > 0 then text = text .. " " .. L["%ds"]:format(rest) end
+		return text
+	end
+	return L["%ds"]:format(rest)
+end
+
+---------------------------------------------------------------------------
+-- how early a top-up is offered
+--
+-- Not one number for every buff: ten minutes of Thorns and an hour of
+-- Fortitude are not topped up at the same moment, and nor is the same buff in
+-- a raid, where a fight and the drinking after it take minutes, and on a
+-- stranger, who will be gone. The lead -- the time left at which a top-up is
+-- offered -- is worked out from how long the buff lasts (Buffs.lua, "how long
+-- each lasts"; the aura's own `duration` where the client says it):
+--
+--   lead = clamp(length x 10%, 15 s, 5 min), the five minutes growing by two
+--          per hour past the first (7 min for two hours, 10 at the most)
+--   then never above the player's ceiling (`refreshUnder`, "Top up at most this
+--   long before it ends"), so a profile that said 3 minutes keeps 3 at most,
+--   then by who it is for:
+--     your group          as it is
+--     a raid or a dungeon times `refreshRaid` (two), where you are in one
+--     your own buffs      one and a half times (you are not in reach of the
+--                         fix once the fight is on), and again the raid's
+--     somebody not in your group   half a minute, never more
+--   and never more than half of the buff's length, or a top-up would be due
+--   the moment it was cast (a three-minute shout, a five-minute blessing).
+-- A length nobody knows (no row, or a table of 0 on an aura that has a timer)
+-- is the ceiling alone, as every buff was before.
+--
+-- Worked out per (kind, length) and kept: the memo is dropped when the ceiling
+-- or the raid multiplier changes, which is the only time it could differ, so a
+-- scan allocates nothing for it after the first of each length.
+---------------------------------------------------------------------------
+do
+	local SHARE, FLOOR, CAP, CAP_PER_HOUR, CAP_MAX = 0.10, 15, 300, 120, 600
+	local STRANGER, OWN_SHARE = 30, 1.5
+	local STRANGER_KIND, GROUP_KIND, RAID_KIND, OWN_KIND, OWN_RAID_KIND = 1, 2, 3, 4, 5
+	ns.LEAD_KINDS = { "stranger", "group", "raid", "own", "ownraid" }
+	ns.LEAD_KIND = {}
+	for index, name in ipairs(ns.LEAD_KINDS) do ns.LEAD_KIND[name] = index end
+	local memo = { {}, {}, {}, {}, {} }
+	local memoCeiling, memoRaid
+
+	local function Compute(seconds, kind, ceiling, raid)
+		local lead = ceiling
+		if seconds then
+			lead = seconds * SHARE
+			local cap = CAP
+			if seconds > 3600 then cap = math.min(CAP_MAX, CAP + CAP_PER_HOUR * (seconds - 3600) / 3600) end
+			if lead > cap then lead = cap end
+			if lead < FLOOR then lead = FLOOR end
+			if lead > ceiling then lead = ceiling end
+		end
+		if kind == STRANGER_KIND then
+			if lead > STRANGER then lead = STRANGER end
+		else
+			if kind == OWN_KIND or kind == OWN_RAID_KIND then lead = lead * OWN_SHARE end
+			if kind == RAID_KIND or kind == OWN_RAID_KIND then lead = lead * raid end
+		end
+		if seconds and lead > seconds / 2 then lead = seconds / 2 end
+		return lead
+	end
+
+	-- The lead in seconds for a buff `seconds` long (nil for unknown), of that
+	-- kind (one of the five above), under a ceiling of `minutes`.
+	function ns.TopUpLead(seconds, kind, minutes)
+		local db = addon.db and addon.db.profile
+		local f = db and db.filters
+		local raid = f and f.refreshRaid
+		if type(raid) ~= "number" or raid < 1 then raid = 2 end
+		if type(minutes) ~= "number" or minutes < 1 then minutes = 5 end
+		if memoCeiling ~= minutes or memoRaid ~= raid then
+			for _, perKind in ipairs(memo) do wipe(perKind) end
+			memoCeiling, memoRaid = minutes, raid
+		end
+		if type(seconds) ~= "number" or not (seconds >= 1) then
+			seconds = nil
+		else
+			-- Whole seconds, so a length read as 1799.9 is not a memo entry of its own.
+			seconds = math.floor(seconds + 0.5)
+		end
+		local perKind = memo[kind]
+		local key = seconds or 0
+		local lead = perKind[key]
+		if not lead then
+			lead = Compute(seconds, kind, minutes * 60, raid)
+			perKind[key] = lead
+		end
+		return lead
+	end
+
+	-- Whether this scan is in a raid or a dungeon: the group's longer lead. At
+	-- most one answer per moment (`now`: a scan is one moment), since every
+	-- person with a top-up due would ask. A client that will not say is no.
+	local raidAt, raidNow = nil, false
+	local function Raidish(now)
+		if now ~= nil and raidAt == now then return raidNow end
+		local yes = plain(IsInRaid and IsInRaid()) == true
+		if not yes and type(_G.IsInInstance) == "function" then
+			local inside, kind = _G.IsInInstance()
+			inside, kind = plain(inside), plain(kind)
+			yes = (inside == true or inside == 1) and (kind == "party" or kind == "raid")
+		end
+		raidAt, raidNow = now, yes
+		return yes
+	end
+
+	-- The same for one of your own buffs (OwnVerdict), whose ctx has the scan's
+	-- `now` and the ceiling.
+	function ns.OwnLead(ctx, seconds)
+		local kind = Raidish(ctx.now) and OWN_RAID_KIND or OWN_KIND
+		return ns.TopUpLead(seconds, kind, ctx.refreshUnder), kind
+	end
+
+	-- The lead for one person's buff, from the walk's opts: `own` (yourself),
+	-- `inGroup` (in your party or raid), `now` and the ceiling `refreshUnder`.
+	-- Also says which kind it was, for the tooltip.
+	function ns.LeadFor(opts, seconds)
+		local kind
+		if opts.own then
+			kind = Raidish(opts.now) and OWN_RAID_KIND or OWN_KIND
+		elseif not opts.inGroup then
+			kind = STRANGER_KIND
+		else
+			kind = Raidish(opts.now) and RAID_KIND or GROUP_KIND
+		end
+		return ns.TopUpLead(seconds, kind, opts.refreshUnder), kind
+	end
+end
+
 -- In a block of its own for the main chunk's 200 locals.
 do
 	-- Split in two because the exclusive branch needs the halves apart: "wrong
@@ -1173,11 +1323,18 @@ do
 		return Castable(opts, buff) and not Skipped(opts, buff) and not Blocked(opts, buff)
 	end
 
+	-- How long the buff lasts, for its lead: the aura's own word (UnitHasBuff
+	-- hands it on), else the table's for the buff's own cast. nil for unknown.
+	local function Length(buff, seconds)
+		if type(seconds) == "number" and seconds > 0 then return seconds end
+		return (ns.BuffSeconds(buff))
+	end
+
 	-- Our own cast on them, read as ours, with more left than a top-up waits
 	-- for: a debt (opts.paidUp) is not repaid by refreshing it.
-	local function Fresh(opts, mine, remaining)
+	local function Fresh(opts, mine, remaining, buff, seconds)
 		return opts.paidUp ~= nil and mine == true and type(remaining) == "number"
-			and remaining > (opts.refreshUnder or 5) * 60
+			and remaining > (ns.LeadFor(opts, Length(buff, seconds)))
 	end
 
 	-- The candidate list a pin reduces the walk to, reused for every call.
@@ -1203,7 +1360,10 @@ do
 	--
 	-- Returns the buff, whether they hold it (true, false, or nil for "nobody
 	-- could tell", which callers keep apart from false), and for a top-up how
-	-- long theirs has left.
+	-- long theirs has left, how long it lasts (nil when nobody knows), the
+	-- lead that made it due and which kind of lead that was (ns.LEAD_KINDS).
+	-- `has` hands back a fifth value after the others, how long the aura
+	-- lasts, where the client says.
 	function ns.PickBuffFor(candidates, opts, has)
 		local db = addon.db and addon.db.profile
 		if not db or #candidates == 0 then return nil end
@@ -1238,7 +1398,7 @@ do
 					-- One they could give themselves is still read: ours on them
 					-- covers them like any other, but it is never what they get.
 					local skipped = Skipped(opts, buff)
-					local held, remaining, mine, over = has(buff, opts)
+					local held, remaining, mine, over, seconds = has(buff, opts)
 					if held == true and mine == false then
 						-- Another paladin's: ours of the same kind would only
 						-- replace it, so move on to a kind they lack -- unless we
@@ -1266,14 +1426,15 @@ do
 						-- replaces it with itself. Ahead of the debt, as on the
 						-- ordinary path, since only `remaining` puts the top-up
 						-- wording on the prompt.
-						if opts.whenBuffed == "refresh" and remaining
-							and remaining <= (opts.refreshUnder or 5) * 60 then
-							return buff, true, remaining
+						if opts.whenBuffed == "refresh" and remaining then
+							seconds = Length(buff, seconds)
+							local lead, kind = ns.LeadFor(opts, seconds)
+							if remaining <= lead then return buff, true, remaining, seconds, lead, kind end
 						end
 
 						-- A debt is repaid with the blessing they already hold
 						-- from us (or from nobody we can name), which refreshes it.
-						if not opts.offerAnyway or Fresh(opts, mine, remaining) then return nil, true end
+						if not opts.offerAnyway or Fresh(opts, mine, remaining, buff, seconds) then return nil, true end
 						return buff, true
 					elseif castable and not skipped then
 						-- "None of mine" only once every one has read back a
@@ -1305,7 +1466,7 @@ do
 
 		-- Three answers per candidate: they have it, they definitely do not, and
 		-- the client would not say. Something lacked outright wins, in list order.
-		local expiring, expiringRemaining
+		local expiring, expiringRemaining, expiringSeconds, expiringLead, expiringKind
 		-- Where the rotation below starts, and what it falls back to, gathered on
 		-- the way past rather than as a list (this runs 2.5 times a second).
 		local last = ns.lastGave and ns.lastGave[opts.name]
@@ -1315,7 +1476,7 @@ do
 		local firstHeld
 		for _, buff in ipairs(candidates) do
 			if Eligible(opts, buff) then
-				local held, remaining, mine, over = has(buff, opts)
+				local held, remaining, mine, over, seconds = has(buff, opts)
 				if held == false then return buff, false end
 				if held ~= true then
 					if not firstUnknown then firstUnknown = buff end
@@ -1323,10 +1484,14 @@ do
 				elseif not over then
 					-- (Worn at a rank above ours, it is neither: covered, and
 					-- ours on top is refused.)
-					if not firstHeld and not Fresh(opts, mine, remaining) then firstHeld = buff end
-					if opts.whenBuffed == "refresh" and remaining
-						and remaining <= (opts.refreshUnder or 5) * 60 and not expiring then
-						expiring, expiringRemaining = buff, remaining
+					if not firstHeld and not Fresh(opts, mine, remaining, buff, seconds) then firstHeld = buff end
+					if opts.whenBuffed == "refresh" and remaining and not expiring then
+						seconds = Length(buff, seconds)
+						local lead, kind = ns.LeadFor(opts, seconds)
+						if remaining <= lead then
+							expiring, expiringRemaining = buff, remaining
+							expiringSeconds, expiringLead, expiringKind = seconds, lead, kind
+						end
 					end
 				end
 			end
@@ -1344,7 +1509,7 @@ do
 			return afterLast or firstUnknown, nil
 		end
 
-		if expiring then return expiring, true, expiringRemaining end
+		if expiring then return expiring, true, expiringRemaining, expiringSeconds, expiringLead, expiringKind end
 
 		-- Nothing missing, nothing running out, and a favour outstanding: offer
 		-- what they already hold, with `true` saying they are covered.
@@ -1721,9 +1886,16 @@ do
 		return type(ask) == "function" and plain(ask(id)) == true
 	end
 
+	-- How long the aura just read lasts in all, where the client says: what
+	-- OwnVerdict works a top-up's lead from before it falls back on the table
+	-- (Buffs.lua). Written by Left, cleared when a reading starts.
+	local ownSeconds
+
 	-- Seconds left, nil for no timer: a toggle, or one the game hides.
 	local function Left(aura, now)
 		local expires = plain(aura.expirationTime)
+		local length = plain(aura.duration)
+		ownSeconds = type(length) == "number" and length > 0 and length or nil
 		if type(expires) == "number" and expires > 0 then return expires - now end
 		return nil
 	end
@@ -1985,6 +2157,7 @@ do
 	-- know. The one found up is remembered for Automatic: the only place that is
 	-- written.
 	function ns.ReadOwnFamily(family)
+		ownSeconds = nil
 		if family.tracking then
 			local list = TrackingList()
 			if not list then return nil end
@@ -2091,8 +2264,10 @@ do
 	-- toggle) also when it runs low with top-ups on, as for anybody, and a
 	-- charge shield (Buffs.lua, charges) down to its last few charges, which
 	-- the first hits of the next pull would take: then the sixth return is
-	-- the charges it has left. `ctx` is the scan's: name, now, whenBuffed,
-	-- refreshUnder.
+	-- the charges it has left. A top-up goes on with how long the buff lasts
+	-- (nil when nobody knows), the lead that made it due and its kind, as
+	-- the seventh to ninth returns (ns.LeadFor). `ctx` is the scan's: name,
+	-- now, whenBuffed, refreshUnder.
 	function ns.OwnVerdict(family, ctx)
 		local pick, spell = ns.OwnPick(family)
 		if pick == "off" then return nil, nil, nil, "off" end
@@ -2104,6 +2279,7 @@ do
 		end
 		local up, upSpell, left, charges = ns.ReadOwnFamily(family)
 		if up == nil then return nil, nil, nil, "unread" end
+		local seconds, lead, kind
 		-- Scrolls Automatic found in the bags and none usable: why not, and which.
 		local held, heldWhy
 		if not spell then
@@ -2118,8 +2294,14 @@ do
 			local spent = upSpell and upSpell.charges and type(charges) == "number" and charges >= 1
 				and charges <= math.max(1, math.floor(upSpell.charges / 4))
 			if not spent then charges = nil end
+			-- How long it lasts and when a top-up is due: yours, so earlier than
+			-- somebody else's (ns.OwnLead).
+			if ctx.whenBuffed == "refresh" and left then
+				seconds = ownSeconds or ns.OwnSeconds(upSpell)
+				lead, kind = ns.OwnLead(ctx, seconds)
+			end
 			if family.toggle or ctx.whenBuffed ~= "refresh"
-				or (not spent and (not left or left > (ctx.refreshUnder or 5) * 60)) then
+				or (not spent and (not left or left > lead)) then
 				return nil, true, left, "up", upSpell
 			end
 			-- An oil, or an enchant no scroll makes, running low: nothing of
@@ -2161,7 +2343,7 @@ do
 		elseif not Usable(spell) then
 			return nil, up, left, "unusable", spell
 		end
-		return spell, up, up and left or nil, nil, nil, up and charges or nil
+		return spell, up, up and left or nil, nil, nil, up and charges or nil, seconds, lead, kind
 	end
 
 	-- "The one you had up last", kept current whatever the queue is doing. The
@@ -2413,12 +2595,14 @@ function ns.ForgetRefusals()
 	end
 end
 
--- Returns has, secondsRemaining, mine, over. `has` is nil when the client refuses
--- any one of the buff's ids (the hidden one may be the one they wear);
+-- Returns has, secondsRemaining, mine, over, seconds. `has` is nil when the client
+-- refuses any one of the buff's ids (the hidden one may be the one they wear);
 -- `secondsRemaining` is nil when the timer is unreadable, not "about to expire";
 -- `mine` is nil when the aura names nobody we can read; `over` is true when
 -- they wear a rank above the one your cast would land, which the game refuses
--- to put over it.
+-- to put over it; `seconds` is how long that aura lasts in all, the aura's own
+-- `duration` where the client says it, else the table's for the id found
+-- (Buffs.lua), nil when neither does: what a top-up's lead is worked out from.
 local function UnitHasBuff(unit, buff, guid)
 	local info = ns.BuffInfo(buff)
 	-- A buff nothing can read gives no answer. One a probe made in a fight took
@@ -2430,7 +2614,7 @@ local function UnitHasBuff(unit, buff, guid)
 	local perUnit = guid and auraCache[guid]
 	local cached = perUnit and perUnit[buff.key]
 	if cached and now < cached.trustedTo then
-		return cached.has, cached.expires and (cached.expires - now) or nil, cached.mine, cached.over
+		return cached.has, cached.expires and (cached.expires - now) or nil, cached.mine, cached.over, cached.duration
 	end
 
 	-- Refusals (an id declared secret, a read that throws or comes back secret,
@@ -2445,6 +2629,7 @@ local function UnitHasBuff(unit, buff, guid)
 	local kept = wornBy and wornBy[buff.key]
 	local has, expires, mine, over, refused = false, nil, nil, nil, false
 	local withheld, keptRefused, found = false, false, nil
+	local duration
 	local threw = not pcall(PrefetchAuras, unit, buff.auraIds, info.secrecy)
 	for index, id in ipairs(buff.auraIds) do
 		if info.secrecy[id] == true then
@@ -2480,6 +2665,8 @@ local function UnitHasBuff(unit, buff, guid)
 				found = id
 				local expiration = plain(aura.expirationTime)
 				if type(expiration) == "number" and expiration > 0 then expires = expiration end
+				local length = plain(aura.duration)
+				if type(length) == "number" and length > 0 then duration = length end
 				-- Whose it is, for a paladin's blessings. isFromPlayerOrPlayerPet
 				-- is true for any player's aura, so only a readable token answers.
 				local source = plain(aura.sourceUnit)
@@ -2521,6 +2708,13 @@ local function UnitHasBuff(unit, buff, guid)
 		end
 	end
 	if not has and refused then has = nil end
+	-- What does not cover them has no length either (the rank test above).
+	if not has then duration = nil end
+	-- A length the client did not say is the table's, for the id found.
+	if has and expires and not duration then
+		local listed = ns.SPELL_SECONDS[found]
+		if listed and listed > 0 then duration = listed end
+	end
 	-- An id declared secret: withheld when the probe that said so was made while
 	-- the client withheld, and the id last read worn may be one.
 	if refused and caps.probedInFight then withheld = true end
@@ -2547,6 +2741,8 @@ local function UnitHasBuff(unit, buff, guid)
 				-- Out of a fight the refusal stands, and the reading waits for the next.
 				if InCombatLockdown() or JustAfterFight(now) then
 					has, expires, mine, over = true, kept.expires, kept.mine, kept.over
+					local listed = ns.SPELL_SECONDS[kept.id]
+					duration = listed and listed > 0 and listed or nil
 					src = "kept"
 				end
 			else
@@ -2579,14 +2775,15 @@ local function UnitHasBuff(unit, buff, guid)
 		if cached then
 			cached.at, cached.has, cached.expires, cached.mine = now, has, expires, mine
 			cached.over = over
+			cached.duration = duration
 			cached.src = src
 			cached.trustedTo = trustedTo
 		else
 			perUnit[buff.key] = { at = now, has = has, expires = expires, mine = mine, over = over, src = src,
-				trustedTo = trustedTo }
+				trustedTo = trustedTo, duration = duration }
 		end
 	end
-	return has, expires and (expires - now) or nil, mine, over
+	return has, expires and (expires - now) or nil, mine, over, duration
 end
 ns.UnitHasBuff = UnitHasBuff
 
@@ -2988,6 +3185,7 @@ local LIMITS = {
 	{ "timing", "graceSeconds", 10, 180 },
 	{ "filters", "minLevel", 1, ns.MaxPlayerLevel },
 	{ "filters", "refreshUnder", 1, 60 },
+	{ "filters", "refreshRaid", 1, 4 },
 	{ "filters", "manaFloor", 0, 90 },
 	{ "prompt", "width", 80, 500 },
 	{ "prompt", "height", 20, 120 },
