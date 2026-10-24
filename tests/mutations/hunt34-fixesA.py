@@ -64,3 +64,16 @@ mutate("Commands.lua",
        "hunt34-rows: ExpandTokens ignoring the entry it is given",
        expect="hunt33-rows: a /manners try macro pressed from a name", script=S)
 
+# ------------------------------------------------ a hand let go when the cast succeeds
+mutate("Clicks.lua",
+       "\t\tns.EndScrollPress(done.spell)\n",
+       "",
+       "hunt34-weapons: a hand held busy after the cast succeeded",
+       expect="hunt33-weapons: the hand is let go when the cast succeeds", script=S)
+
+mutate("Core.lua",
+       "\tfunction ns.EndScrollPress(spell)\n\t\tif spell.family.enhance then busyUntil[spell.family.slot] = nil end\n",
+       "\tfunction ns.EndScrollPress(spell)\n",
+       "hunt34-weapons: EndScrollPress letting nothing go",
+       expect="hunt33-weapons: the hand is let go when the cast succeeds", script=S)
+

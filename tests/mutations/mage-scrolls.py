@@ -374,7 +374,8 @@ mutate("Clicks.lua",
        expect="a failure naming no cast took back the Rat Familiar being cast", script=S)
 
 mutate("Clicks.lua",
-       "\tif castingScroll and ScrollCast(plain(castGUID), plain(spellId)) then castingScroll = nil end\n",
+       "\tlocal done = castingScroll and ScrollCast(plain(castGUID), plain(spellId))\n"
+       "\tif done then\n\t\tcastingScroll = nil\n\t\tns.EndScrollPress(done.spell)\n\tend\n",
        "",
        "scrolls: a scroll that succeeded still undone",
        expect="a Rat Familiar cast that succeeded was taken back by a later interrupt", script=S)
