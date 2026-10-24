@@ -72,7 +72,7 @@ local L = ns.L
 -- 17020 Arcane Powder, 17021 Wild Berries, 17026 Wild Thornroot, 17029 Sacred
 -- Candle, 21177 Symbol of Kings), Forever's ItemSparse (17028 Holy Candle) and
 -- Questie's list of what reagent vendors sell to each class. Which rank eats
--- which is Forever's own SpellReagents (build 1.60.1.70178), the same as
+-- which is Forever's own SpellReagents (build 1.60.1.70532), the same as
 -- Classic Era's: two first ranks take the cheaper reagent, Prayer of
 -- Fortitude's (learned at 48) a Holy Candle and Gift of the Wild's (50) Wild
 -- Berries; every other rank takes the one paired below. GroupBuffs.lua also
@@ -272,9 +272,8 @@ local VANILLA = {
 --   enchantKind  Forever only, on the spell where it is not its family's: how
 --             that client lists the enchant the item makes, "imbue" or
 --             "temporary". It is the use spell's SpellEffect: 360 an imbue,
---             54 a temporary enchant (wago.tools, 1.60.1.70178, and
---             1.60.1.70450 for the `since` items; tools/audit_ids.py holds
---             every one to it). Poisons are imbues, as are the mage's scrolls
+--             54 a temporary enchant (wago.tools, 1.60.1.70532, where the
+--             `since` items exist; tools/audit_ids.py holds every one to it). Poisons are imbues, as are the mage's scrolls
 --             and a shaman's Rockbiter, Flametongue, Frostbrand and Windfury
 --             Weapon (the same effect, 360); stones, oils and lures are
 --             temporary enchants. Season of Discovery's five poisons
@@ -297,7 +296,7 @@ local VANILLA = {
 -- The ids are each client's own (ItemSparse, ItemEffect, SpellEffect,
 -- SpellEquippedItems and SpellItemEnchantment from wago.tools: Classic Era
 -- 1.15.9.70003, Burning Crusade 2.5.6.69795, Mists 5.5.4.70032, Forever
--- 1.60.1.70178), and tools/audit_ids.py holds every one to them. Forever
+-- 1.60.1.70532), and tools/audit_ids.py holds every one to them. Forever
 -- 1.60.1.70450 added three (287978-287980, a lower-level Rough Sharpening
 -- Stone, Lesser Wizard Oil and Elemental Sharpening Stone that make the
 -- enchants the older items do), marked `since`.
@@ -522,7 +521,7 @@ do
 		},
 	}
 
-	-- WoW Forever 1.60.1.70178: Classic Era's items and its own, among them the
+	-- WoW Forever 1.60.1.70532: Classic Era's items and its own, among them the
 	-- three marked `since` that 1.60.1.70450 added. Its classic poisons use the
 	-- spell effect the scrolls do (SpellEffect 360) where the rest use 54, so the
 	-- client lists them as an Imbue and the rest as a Temporary enchant, and a
@@ -871,7 +870,7 @@ local VANILLA_OWN = {
 				-- in Forever's rank data (one rank); a wrong id only means it is
 				-- never known here, and then never read as up either.
 				-- Three charges, 10 minutes (SpellAuraOptions ProcCharges 3,
-				-- build 1.60.1.70178), as the Burning Crusade ranks.
+				-- build 1.60.1.70532), as the Burning Crusade ranks.
 				{ key = "watershield", ranks = { 408510 }, talent = true, charges = 3 },
 			},
 		},
@@ -939,8 +938,9 @@ local VANILLA_SET = {
 		SHAMAN = true, -- totems are placed, not cast on a person
 	},
 	-- A partyOnly buff reaches the caster's own subgroup of a raid and nobody
-	-- else in it. Vanilla's Battle Shout is party-wide in a raid, not raid-wide;
-	-- the later sets made their shouts reach the whole raid, and leave this out.
+	-- else in it. Classic Era's (and Burning Crusade's) Battle Shout is
+	-- party-wide in a raid, not raid-wide; WoW Forever's moved to the whole raid
+	-- at build 70450 and the later sets' shouts reach it, and leave this out.
 	partyIsSubgroup = true,
 	-- Classes whose groupCast reaches everybody of the target's class in the
 	-- raid or party rather than the target's party: the Greater Blessings.
@@ -1295,7 +1295,7 @@ local TBC_SET = setmetatable({
 -- imbue, on the weapon it fits, and used with /use item:<id> (Prompt/Macro.lua).
 -- Every id is the client's own (ItemSparse, ItemXItemEffect, ItemEffect,
 -- SpellEffect, SpellEquippedItems and SpellItemEnchantment, build
--- 1.60.1.70178); Rat Familiar, Chillknife and Lesser Flame were also read off
+-- 1.60.1.70532); Rat Familiar, Chillknife and Lesser Flame were also read off
 -- a level-12 mage's bags in game.
 --
 -- Each family is a family as above, with:
@@ -1312,7 +1312,7 @@ local TBC_SET = setmetatable({
 --             and the `weapon` it fits (the weapon's item subclass).
 --   enchantKind  the kind the family's enchants are listed as, as for the
 --             weapon enhancements (above). Every scroll's use is SpellEffect
---             360, an imbue (wago.tools, 1.60.1.70178).
+--             360, an imbue (wago.tools, 1.60.1.70532).
 local CAMELOT_OWN = {}
 do
 	local STAFF, DAGGER, SWORD = 10, 15, 7
@@ -1411,9 +1411,13 @@ end
 -- of a priest's, mage's and druid's buff reach the caster's whole party and
 -- raid within 100 yards and need no target (target 56 in Forever's spell
 -- data, where Classic Era's reach the target's party): groupIsRaid. The
--- Greater Blessings keep their by-class rule, and Battle Shout partyIsSubgroup.
-local CAMELOT_SET = setmetatable({ buffs = CAMELOT, own = CAMELOT_OWN, groupIsRaid = true },
-	{ __index = VANILLA_SET })
+-- Greater Blessings keep their by-class rule. Battle Shout, in every rank, has
+-- the caster's raid for its target too (56) since build 1.60.1.70450, where
+-- 1.60.1.70178 still had the caster's party (20), the radius unchanged (20
+-- yards): so a raid member in another subgroup is reached, and the vanilla
+-- subgroup rule (partyIsSubgroup) is left off here, as for the later clients.
+local CAMELOT_SET = setmetatable({ buffs = CAMELOT, own = CAMELOT_OWN, groupIsRaid = true,
+	partyIsSubgroup = false }, { __index = VANILLA_SET })
 
 ---------------------------------------------------------------------------
 -- Mists of Pandaria Classic

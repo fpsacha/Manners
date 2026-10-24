@@ -92,3 +92,13 @@ mutate("Queue.lua",
        "never list: Anna-Aim refused as already listed after Anna",
        expect="hunt34-never: a same-realm Anna on the list does not make Anna-Aim",
        script="runscenarios.py")
+
+# ------------------------------------------------------------------ 2
+# WoW Forever's Battle Shout reaches the caster's whole raid (build 70450 on),
+# so its set does not hold a shout to the caster's own subgroup.
+mutate("Buffs.lua",
+       "groupIsRaid = true,\n\tpartyIsSubgroup = false }, { __index = VANILLA_SET })",
+       "groupIsRaid = true }, { __index = VANILLA_SET })",
+       "forever: Battle Shout held to the warrior's own subgroup",
+       expect="hunt33-data: camelot: a raid member in another subgroup is reached by Battle Shout",
+       script="runscenarios.py")

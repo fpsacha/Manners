@@ -1,4 +1,4 @@
--- The buff data held to WoW Forever's own spell tables (build 1.60.1.70178,
+-- The buff data held to WoW Forever's own spell tables (build 1.60.1.70532,
 -- from wago.tools): the ids, rank levels, reagents and reach Buffs.lua gives
 -- the camelot set, each pinned by what a player would see if it were wrong.
 --

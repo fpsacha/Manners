@@ -13580,6 +13580,12 @@ end
 -- repaying them; and a favour from one of them was announced as "on the
 -- prompt". Both ways of asking are covered: UnitInSubgroup where the client has
 -- it, and the raid roster's subgroup numbers where it does not.
+--
+-- Where the shout reaches the caster's party only: Classic Era's and Burning
+-- Crusade's. WoW Forever's Battle Shout moved to the caster's raid at build
+-- 1.60.1.70450 (hunt33-data.lua holds that), so this runs on Forever with the
+-- subgroup rule the way those clients have it (ns.PARTY_IS_SUBGROUP, set the way
+-- pvp.lua sets it): the rule itself is what is judged here.
 for _, case in ipairs({ { api = "UnitInSubgroup" }, { api = "the raid roster" } }) do
 	Mock.reset()
 	Mock.class = "WARRIOR"
@@ -13592,6 +13598,7 @@ for _, case in ipairs({ { api = "UnitInSubgroup" }, { api = "the raid roster" } 
 		.. case.api .. ")"
 	ns = load(scenario)
 	if ns then
+		ns.PARTY_IS_SUBGROUP = true
 		knowShout(ns)
 		drive(scenario, ns)
 		Mock.advance(60)
@@ -17686,6 +17693,10 @@ local realKnown272, realPlayer272 = IsSpellKnown, IsPlayerSpell
 ns = load("a warrior in a raid is told the shout reaches his subgroup")
 if ns then
 	local scenario = "a warrior in a raid is told the shout reaches his subgroup"
+	-- A client whose shout reaches the party and, in a raid, the subgroup (Classic
+	-- Era's): WoW Forever's reaches the whole raid since build 70450 and says
+	-- "raid" (hunt33-data.lua), so the subgroup rule is set as pvp.lua sets it.
+	ns.PARTY_IS_SUBGROUP = true
 	knowShout(ns)
 	drive(scenario, ns)
 	Mock.advance(60)

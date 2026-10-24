@@ -388,6 +388,10 @@ Mock.reset()
 -- party and, in a raid, the warrior's own subgroup: a member of the party
 -- stops being offered it the moment the party becomes a raid that puts them in
 -- another subgroup, and is offered it again when it goes back.
+--
+-- That is a shout that reaches the caster's party (Classic Era's, Burning
+-- Crusade's); WoW Forever's reaches the raid since build 70450, so the subgroup
+-- rule is set on the way those clients have it (as pvp.lua does).
 Mock.reset()
 do
 	local scenario = "a shout follows the group from a party to a raid and back"
@@ -395,6 +399,7 @@ do
 	with(scenario, function()
 		local ns = load(scenario)
 		if not ns then return end
+		ns.PARTY_IS_SUBGROUP = true
 		knowShout(ns)
 		freshPrompt(ns, scenario)
 		ns.Guard("probe", ns.ProbeCapabilities)

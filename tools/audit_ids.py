@@ -76,7 +76,7 @@ csv.field_size_limit(1 << 28)
 FLAVOURS = ("camelot", "vanilla", "tbc", "mists", "mainline")
 # The build per client comes from CLAUDE.md ("The builds cited in the code"), by
 # tools/clients_watch.py's reading of it; these stand in if that line moves.
-BUILDS = {"camelot": "1.60.1.70178", "vanilla": "1.15.9.70003", "tbc": "2.5.6.69795",
+BUILDS = {"camelot": "1.60.1.70532", "vanilla": "1.15.9.70003", "tbc": "2.5.6.69795",
           "mists": "5.5.4.70032", "mainline": "12.1.0.69933"}
 
 TABLES = ("SpellName", "Spell", "SpellMisc", "SpellEffect", "SpellLevels", "SkillLineAbility",
@@ -124,8 +124,10 @@ def build_number(flavour):
 
 def fetch(flavour, table, cache, offline=False, quiet=False):
     """The path of the cached CSV, downloading it first when it is not there."""
-    # A build other than the one CLAUDE.md cites (--build) caches under its own name.
-    key = flavour if flavour not in BUILD_OVERRIDE else "%s@%s" % (flavour, BUILD_OVERRIDE[flavour])
+    # Every build caches under its own name, the one CLAUDE.md cites included: a
+    # cache keyed by the client alone kept answering with the old build's tables
+    # after the cited build moved.
+    key = "%s@%s" % (flavour, build_for(flavour))
     path = os.path.join(cache, "%s_%s.csv" % (key, table))
     if os.path.exists(path) and os.path.getsize(path) > 0:
         return path
@@ -490,7 +492,7 @@ BUFF_NAMES = {
     "wisdom": r"(Greater )?Blessing of Wisdom",
     "might": r"(Greater )?Blessing of Might",
     "kings": r"(Greater )?Blessing of Kings",
-    "salvation": r"(Greater )?Blessing of Salvation",
+    "salvation": r"(Greater )?Blessing of Salvation|Salvation|Mass Salvation",
     "light": r"(Greater )?Blessing of Light",
     "sanctuary": r"(Greater )?Blessing of Sanctuary",
     "breath": r"Unending Breath|Water Breathing",

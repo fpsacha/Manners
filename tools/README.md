@@ -190,7 +190,7 @@ every player on it until its toc says the new number. This reads, with `gh api`
 
 ```
 client           toc          repo  repo build     upstream      branch                iface   Ketho  status
-WoW Forever      Camelot     16001  1.60.1.70178   1.60.1.70338  forever               16001   16001  newer build (+160)
+WoW Forever      Camelot     16001  1.60.1.70532   1.60.1.70532  forever               16001   16001  ok
 Classic Era      Vanilla     11509  1.15.9.70003   1.15.9.70003  classic_era           11509   11509  ok
 ...
   ptr2               12.1.5.70077   interface 120105  Ketho 120105  NEWER than Manners_Mainline.toc (120100)

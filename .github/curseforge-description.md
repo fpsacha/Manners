@@ -113,7 +113,7 @@ The first login on each character says what it does and shows you the prompt onc
 | Druid | Mark of the Wild, Thorns | Omen of Clarity on Classic Era only (a passive on WoW Forever) |
 | Paladin | Wisdom, Might, Kings, Salvation (your party or raid only), Light | an aura, Righteous Fury |
 | Warlock | Unending Breath | Demon Skin (Demon Armor from 20) |
-| Warrior | Battle Shout (your own party only) | none |
+| Warrior | Battle Shout (your own party; your whole raid on WoW Forever) | none |
 | Hunter | none | an aspect, Trueshot Aura |
 | Shaman | none | Lightning Shield or Water Shield |
 
