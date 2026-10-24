@@ -194,7 +194,7 @@ mutate("Commands.lua",
        script="runscenarios.py")
 mutate("Commands.lua",
        "\t\t\tif value == nil then value = CopyValue(field.default) end\n",
-       "\t\t\tif value == nil and field.kind ~= \"order\" then value = CopyValue(field.default) end\n",
+       "\t\t\tif value == nil then value = field.kind == \"order\" and holder[field.key] or CopyValue(field.default) end\n",
        "settings string: an import with no buff order keeps the player's",
        expect="hunt34-order: an import with no order puts Automatic back",
        script="runscenarios.py")

@@ -94,6 +94,13 @@ do
 			if applied then fail(scenario, "a damaged order was imported: " .. body) end
 			if orders(ns) ~= mine then fail(scenario, "a refused string changed the orders (" .. body .. ")") end
 		end
+		-- Read, before anything is applied: the unknown buff is already gone, as
+		-- the login's repair would take it.
+		local parsed = ns.ParseSettings(signed("buff.order=PRIEST=nonsense:spirit"))
+		local read = parsed and parsed.values["buff.order"] and parsed.values["buff.order"].PRIEST
+		if not read or read[1] ~= "spirit" or table.concat(read, ":"):find("nonsense", 1, true) then
+			fail(scenario, "the string read as " .. (read and table.concat(read, ":") or "nothing"))
+		end
 		local applied = ns.ImportSettings(signed("buff.order=PRIEST=nonsense:spirit"))
 		local list = ns.BuffOrder()
 		if not applied or not list then

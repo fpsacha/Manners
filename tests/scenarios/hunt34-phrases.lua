@@ -28,17 +28,33 @@ local function session(scenario, locale, body)
 	Mock.reset()
 end
 
--- What each language writes into the box for each set, and that the table holds
--- every one of them as it reads there (a line the table has read differently
--- would come back from InThisLanguage as something else).
-local texts = {}
+-- What each language writes into the box for each set, collected in sessions of
+-- the scenario that asks (a narrowed run admits scenarios by name, so one
+-- scenario cannot lean on another having run first), kept for the next.
+local kept
+local function collect(scenario)
+	if kept then return kept end
+	local texts, ran = {}, 0
+	for _, locale in ipairs(LOCALES) do
+		texts[locale] = {}
+		session(scenario, locale, function(ns)
+			ran = ran + 1
+			for _, set in ipairs(SETS) do texts[locale][set] = ns.PhraseSetText(set) end
+		end)
+	end
+	-- Only a whole collection is kept: a scenario a narrowed run left out
+	-- collects nothing, and the next must not be handed that.
+	if ran == #LOCALES then kept = texts end
+	return texts
+end
+
+-- Each language reads its own sets as they stand: the table holds each line as
+-- it reads there (one it holds as something else would come back changed).
 for _, locale in ipairs(LOCALES) do
 	local scenario = "hunt34-phrases: " .. locale .. " reads its own sets as they are"
-	texts[locale] = {}
 	session(scenario, locale, function(ns)
 		for _, set in ipairs(SETS) do
 			local text = ns.PhraseSetText(set)
-			texts[locale][set] = text
 			if ns.InThisLanguage(text) ~= text then
 				fail(scenario, "the other-languages table does not read the " .. set .. " set as it stands here")
 			end
@@ -49,6 +65,7 @@ end
 -- Every language's unedited set, found in a box on a client in another.
 for _, client in ipairs({ "enUS", "zhCN", "deDE" }) do
 	local scenario = "hunt34-phrases: an unedited set from another language follows a " .. client .. " client"
+	local texts = collect(scenario)
 	session(scenario, client ~= "enUS" and client or nil, function(ns)
 		local bad = {}
 		for _, locale in ipairs(LOCALES) do
@@ -75,6 +92,7 @@ end
 -- lines turned about, in the other language's set and in the examples.
 do
 	local scenario = "hunt34-phrases: a player's own box in another language's words is left alone"
+	local texts = collect(scenario)
 	session(scenario, nil, function(ns)
 		local speech = ns.db.profile.speech
 		for _, set in ipairs({ "roleplay", "polite", "incharacter" }) do
@@ -111,6 +129,7 @@ end
 -- and are saved again as this character's English examples.
 do
 	local scenario = "hunt34-phrases: In character keeps speaking after the client's language changes"
+	local texts = collect(scenario)
 	session(scenario, nil, function(ns)
 		local speech = ns.db.profile.speech
 		speech.presetChoice, speech.phrases = "incharacter", texts.deDE.incharacter
