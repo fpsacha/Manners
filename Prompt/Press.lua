@@ -133,8 +133,11 @@ ns.HoldLine = HoldLine
 -- PreClick runs before the secure handler reads the attributes, so out of
 -- combat the target is re-resolved at the last moment: a nameplate token may
 -- since have been recycled to somebody else. Every mouse button
--- arrives ("AnyDown"); only the left one casts.
-local function OnPreClick(self, mouseButton)
+-- arrives ("AnyDown"); only the left one casts. A held key's release arrives
+-- too (`down` false): it runs no macro and is no press, so it is ignored here
+-- and in PostClick (nil counts as down: a click a script made has no phase).
+local function OnPreClick(self, mouseButton, down)
+	if down == false then return end
 	if mouseButton and mouseButton ~= "LeftButton" then return end
 	local now = GetTime()
 	-- The macro's own /target and hand-back are not the player choosing
@@ -296,6 +299,7 @@ local function OnPreClick(self, mouseButton)
 end
 
 local function OnPostClick(self, mouseButton, down)
+	if down == false then return end
 	-- Whose press this is: the prompt's, or a name in the list (OnRowPostClick),
 	-- whose slot stands in for the prompt's state under the same name, so
 	-- every line below files a press on a name exactly as one on the prompt.
