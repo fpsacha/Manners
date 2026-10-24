@@ -103,6 +103,27 @@ mutate("Buffs.lua",
        expect="hunt33-data: camelot: a raid member in another subgroup is reached by Battle Shout",
        script="runscenarios.py")
 
+# ------------------------------------------------------------------ 4
+# The prompt's font default is the library's own for the client's language.
+mutate("Core.lua",
+       "\t\t\t\treturn type(media) == \"string\" and media ~= \"\" and media or \"Friz Quadrata TT\"\n",
+       "\t\t\t\treturn \"Friz Quadrata TT\"\n",
+       "font default: Friz Quadrata TT on every client",
+       expect="hunt33-settings: koKR: a fresh profile's font is not 'not loaded'",
+       script="runscenarios.py")
+mutate("Core.lua",
+       "\t\t\t\treturn type(media) == \"string\" and media ~= \"\" and media or \"Friz Quadrata TT\"\n",
+       "\t\t\t\treturn type(media) == \"string\" and media ~= \"\" and media or \"\"\n",
+       "font default: no fallback when the library names none",
+       expect="hunt34-font: a library with no default of its own leaves Friz Quadrata TT",
+       script="runscenarios.py")
+mutate("Core.lua",
+       "\t\t\t\tlocal media = lsm and type(lsm.DefaultMedia) == \"table\" and lsm.DefaultMedia.font\n",
+       "\t\t\t\tlocal media = lsm and type(lsm.DefaultMedia) == \"table\" and \"Arial Narrow\"\n",
+       "font default: a Latin client given another font",
+       expect="hunt34-font: a Latin client keeps Friz Quadrata TT as the default",
+       script="runscenarios.py")
+
 # ------------------------------------------------------------------ 3
 # The buff order a player set travels in a settings string: CLASS=key:key,
 # per class, validated like a saved order, reset by an import that has none.

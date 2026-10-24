@@ -59,3 +59,33 @@ do
 		end
 	end
 end
+
+-- ------------------------------------------------------------------ font
+-- LibSharedMedia registers "Friz Quadrata TT" on every client but koKR, zhCN
+-- and zhTW (its own table: those clients have no Latin face under that name),
+-- and the prompt's font default is that name everywhere (Core.lua defaults).
+-- The prompt itself falls back to the library's default font for an unknown
+-- key, so it draws; but the Look page's Font list does not know the key and
+-- labels the player's own, untouched default "(not loaded)".
+for _, locale in ipairs({ "koKR", "zhCN", "zhTW" }) do
+	local scenario = "hunt33-settings: " .. locale .. ": a fresh profile's font is not 'not loaded'"
+	Mock.reset()
+	Mock.locale = locale
+	-- The mock's library holds no Friz Quadrata TT, as the shipped one on these clients.
+	local ns = load(scenario)
+	if ns then
+		H.drive(scenario, ns)
+		ns.Prompt:ExitTest()
+		local option = H.findOption(ns.optionsTable, "font")
+		local values = option and option.values
+		if type(values) == "function" then values = values() end
+		local label = type(values) == "table" and values[ns.db.profile.prompt.font]
+		if type(label) ~= "string" then
+			fail(scenario, "the Font list has no entry for the font the profile holds: " .. tostring(ns.db.profile.prompt.font))
+		elseif label:find("not loaded", 1, true) or label:find("|cff808080", 1, true) then
+			fail(scenario, "the player's untouched default font reads \"" .. label:gsub("[\128-\255]", "?")
+				.. "\" on the Look page")
+		end
+	end
+	Mock.reset()
+end

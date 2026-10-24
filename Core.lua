@@ -362,7 +362,17 @@ local defaults = {
 			-- Off: the list is only to read.
 			clickRows = true,
 
-			font = "Friz Quadrata TT",
+			-- LibSharedMedia's own default font for this client's language: "Friz
+			-- Quadrata TT" on most, but koKR, zhCN and zhTW register no such name,
+			-- and a profile holding it read "(not loaded)" on its own Look page
+			-- though nothing was wrong. AceDB writes no value equal to the default
+			-- into the saved file, so an untouched profile follows the language of
+			-- whichever client opens it, and only a font the player picked is kept.
+			font = (function()
+				local lsm = LibStub and LibStub("LibSharedMedia-3.0", true)
+				local media = lsm and type(lsm.DefaultMedia) == "table" and lsm.DefaultMedia.font
+				return type(media) == "string" and media ~= "" and media or "Friz Quadrata TT"
+			end)(),
 			fontSize = 13,
 			fontColor = { 1, 1, 1, 1 },
 			bgColor = { 0.04, 0.04, 0.06, 0.88 },

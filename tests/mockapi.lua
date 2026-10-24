@@ -1058,6 +1058,15 @@ local function getLibrary(name, silent)
 		-- number 1, so the mock starts where a bare client does.
 		lib.media = { sound = { None = 1 }, font = { ["font.ttf"] = "font.ttf" } }
 		lib.defaults = { sound = "None", font = "font.ttf" }
+		-- The library's own default per kind. Its font is "Friz Quadrata TT" except on
+		-- the three clients (koKR, zhCN, zhTW) that register no such name, where it
+		-- is the one the library does register there; read by Mock.locale as the
+		-- addon loads, since the library outlives a Mock.reset.
+		lib.DefaultMedia = setmetatable({}, { __index = function(_, kind)
+			local cjk = { koKR = true, zhCN = true, zhTW = true }
+			if kind == "font" then return cjk[Mock.locale] and "font.ttf" or "Friz Quadrata TT" end
+			return lib.defaults[kind]
+		end })
 		lib.Register = function(self, kind, key, data)
 			self.media[kind] = self.media[kind] or {}
 			self.media[kind][key] = data
