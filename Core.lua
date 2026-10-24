@@ -3179,10 +3179,11 @@ function ns.ClampSettings()
 		end
 	end
 
-	-- An entry that is not a name set to true is dropped: there is no telling who
-	-- it was meant to be.
+	-- An entry that is not a name set to true (typed) or "filed" (a name the game
+	-- gave, Queue.lua NEVER_FILED) is dropped: there is no telling who it was
+	-- meant to be.
 	for name, flag in pairs(profile.never) do
-		if type(name) ~= "string" or not name:find("%S") or flag ~= true then
+		if type(name) ~= "string" or not name:find("%S") or (flag ~= true and flag ~= "filed") then
 			profile.never[name] = nil
 		end
 	end

@@ -1441,7 +1441,8 @@ function addon:HandleSlash(rawInput)
 					:format(table.concat(names, ", ")))
 			end
 		else
-			ns.PutOnNeverList(rest)
+			-- Typed by hand: answers to the same name with a realm on it too.
+			ns.PutOnNeverList(rest, true)
 		end
 	elseif input == "allow" then
 		if rest == "" then

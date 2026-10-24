@@ -1038,7 +1038,7 @@ function Page.BuildWhoTab()
 				-- Always empty: it is a box to type into, not a setting with a
 				-- value to show back.
 				get = function() return "" end,
-				set = function(_, value) ns.PutOnNeverList(value) end,
+				set = function(_, value) ns.PutOnNeverList(value, true) end,
 			},
 			neverPick = {
 				type = "select",

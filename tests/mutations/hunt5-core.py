@@ -30,8 +30,8 @@ mutate("Queue.lua",
 
 # core-4: every favour checked against the whole list again.
 mutate("Queue.lua",
-       "\t\tif SameName(listed, key) or SameName(listed, ShortName(key)) then\n",
-       "\t\tif ListedAs(key) == listed then\n",
+       "\t\tif SameName(listed, key) then\n\t\t\tbyRealm = false\n",
+       "\t\tif ListedAs(key) == listed then\n\t\t\tbyRealm = false\n",
        "never-offer walks the list once per favour",
        expect="core: one name put on a long list costs one compare per favour",
        script="runscenarios.py")
@@ -39,8 +39,8 @@ mutate("Queue.lua",
 # core-4: the realm left on the favour's key, so a name listed as the prompt
 # shows it misses a cross-realm debt.
 mutate("Queue.lua",
-       "\t\tif SameName(listed, key) or SameName(listed, ShortName(key)) then\n",
-       "\t\tif SameName(listed, key) then\n",
+       "\t\telseif byRealm and SameName(listed, ShortName(key)) then\n",
+       "\t\telseif false then\n",
        "never-offer misses a cross-realm favour",
        expect="core: one name put on a long list costs one compare per favour",
        script="runscenarios.py")
