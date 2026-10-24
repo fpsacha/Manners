@@ -77,3 +77,22 @@ mutate("Core.lua",
        "hunt34-weapons: EndScrollPress letting nothing go",
        expect="hunt33-weapons: the hand is let go when the cast succeeds", script=S)
 
+# ------------------------------------------------ one of a group
+mutate("Prompt/Button.lua",
+       "\t\tif missing == 1 then\n\t\t\tcount = L[\"1 in %s is missing %s.\"]:format(label, single)\n",
+       "\t\tif false then\n\t\t\tcount = L[\"1 in %s is missing %s.\"]:format(label, single)\n",
+       "hunt34-text: one person missing the buff read as are",
+       expect="hunt33-text: a group tooltip does not say one person are", script=S)
+
+mutate("Prompt/Button.lua",
+       "\t\telseif low == 1 then\n\t\t\tcount = L[\"1 in %s is running out of %s.\"]:format(label, single)\n",
+       "\t\telseif false then\n\t\t\tcount = L[\"1 in %s is running out of %s.\"]:format(label, single)\n",
+       "hunt34-text: one person running out read as are",
+       expect="hunt34-text: the tooltip for a party with 0 missing and 1 running out says is", script=S)
+
+mutate("Prompt/Button.lua",
+       "low == 1 and L[\"1 more is running out.\"] or L[\"%d more are running out.\"]:format(low)",
+       "L[\"%d more are running out.\"]:format(low)",
+       "hunt34-text: one more person running out read as are",
+       expect="hunt33-text: a group tooltip does not say one person are", script=S)
+

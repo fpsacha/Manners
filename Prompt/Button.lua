@@ -114,17 +114,35 @@ local function GroupTooltipLines(entry, group)
 	local missing, low = group.missing or 0, group.low or 0
 	-- Missing and running out apart: "missing" after a wipe means something
 	-- different from a top-up before a pull.
+	-- One person is "is", not "are": a group cast is offered from two people
+	-- who need it, so one can be missing it and one running out.
 	local count
 	if group.class then
-		count = missing > 0 and L["%d of that class in your party or raid are missing %s."]:format(missing, single)
-			or L["%d of that class in your party or raid are running out of %s."]:format(low, single)
+		if missing == 1 then
+			count = L["1 of that class in your party or raid is missing %s."]:format(single)
+		elseif missing > 0 then
+			count = L["%d of that class in your party or raid are missing %s."]:format(missing, single)
+		elseif low == 1 then
+			count = L["1 of that class in your party or raid is running out of %s."]:format(single)
+		else
+			count = L["%d of that class in your party or raid are running out of %s."]:format(low, single)
+		end
 	else
-		count = missing > 0 and L["%d in %s are missing %s."]:format(missing, group.label or "?", single)
-			or L["%d in %s are running out of %s."]:format(low, group.label or "?", single)
+		local label = group.label or "?"
+		if missing == 1 then
+			count = L["1 in %s is missing %s."]:format(label, single)
+		elseif missing > 0 then
+			count = L["%d in %s are missing %s."]:format(missing, label, single)
+		elseif low == 1 then
+			count = L["1 in %s is running out of %s."]:format(label, single)
+		else
+			count = L["%d in %s are running out of %s."]:format(low, label, single)
+		end
 	end
 	GameTooltip:AddLine(count, 0.7, 0.7, 0.7, true)
 	if missing > 0 and low > 0 then
-		GameTooltip:AddLine(L["%d more are running out."]:format(low), 0.7, 0.7, 0.7, true)
+		GameTooltip:AddLine(low == 1 and L["1 more is running out."] or L["%d more are running out."]:format(low),
+			0.7, 0.7, 0.7, true)
 	end
 	GameTooltip:AddLine(group.class
 		and L["One cast gives it to %s in your party or raid."]:format(group.label or "?")

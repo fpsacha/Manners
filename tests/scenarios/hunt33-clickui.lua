@@ -166,3 +166,31 @@ run("hunt33-press: the release of a key held past a refusal files no press on th
 	end
 end)
 
+-- ------------------------------------------------------------------ one of a group
+-- hunt33-text: the group cast's tooltip counts one person as "are"
+--
+-- A group cast is offered once two people need it (atLeast, GroupBuffs.lua), so one
+-- can be missing the buff and one running out. Button.lua writes both counts into
+-- plural-only sentences: "1 in Gwen's party are missing ...", "1 more are running out."
+run("hunt33-text: a group tooltip does not say one person are", {}, function(ns)
+	local scenario = "hunt33-text: a group tooltip does not say one person are"
+	local button = ns.Prompt:GetButton()
+	local buff = ns.FindBuff("MAGE", "intellect")
+	local entry = { name = "Gwen Hale", short = "Gwen Hale", unit = "party1", reason = "group", buff = buff,
+		inGroup = true, ranged = true,
+		groupCast = { spell = 23028, spellName = "Arcane Brilliance", label = "Gwen's party", members = {},
+			missing = 1, low = 1, reagentWaived = true } }
+	ns.Prompt.state.current = entry
+	local onEnter = button.scripts.OnEnter
+	if not onEnter then fail(scenario, "SKIPPED -- no OnEnter") return end
+	onEnter(button)
+	local tip = table.concat(Mock.tooltip or {}, "\n")
+	if not tip:find("missing", 1, true) then fail(scenario, "SKIPPED -- no group lines in the tooltip: " .. tip) return end
+	if tip:find("1 in ", 1, true) and tip:find(" are missing", 1, true) then
+		fail(scenario, "one person missing the buff reads \"1 in ... are missing\"")
+	end
+	if tip:find("1 more are running out", 1, true) then
+		fail(scenario, "one person running out reads \"1 more are running out\"")
+	end
+end)
+

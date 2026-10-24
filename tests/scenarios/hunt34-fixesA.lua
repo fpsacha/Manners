@@ -116,3 +116,32 @@ run("hunt34-favours: a buff recast during the fight a reload happened in is stil
 end)
 
 
+-- ------------------------------------------------------------------ text
+-- hunt34-text: the group tooltip's other singulars: one person running out and nobody
+-- missing, and the same for a class's cast.
+for _, case in ipairs({
+	{ name = "a party", class = nil, missing = 0, low = 1, want = "1 in ", bad = " are running out" },
+	{ name = "a class", class = "MAGE", missing = 0, low = 1, want = "1 of that class", bad = " are running out" },
+	{ name = "a class", class = "MAGE", missing = 1, low = 0, want = "1 of that class", bad = " are missing" },
+}) do
+	local scenario = ("hunt34-text: the tooltip for %s with %d missing and %d running out says is"):format(
+		case.name, case.missing, case.low)
+	run(scenario, nil, {}, function(ns)
+		local button = ns.Prompt:GetButton()
+		local buff = ns.FindBuff("MAGE", "intellect")
+		local entry = { name = "Gwen Hale", short = "Gwen Hale", unit = "party1", reason = "group", buff = buff,
+			inGroup = true, ranged = true,
+			groupCast = { spell = 23028, spellName = "Arcane Brilliance", label = "Gwen's party", members = {},
+				missing = case.missing, low = case.low, class = case.class, reagentWaived = true } }
+		ns.Prompt.state.current = entry
+		Mock.tooltip = {}
+		button.scripts.OnEnter(button)
+		local tip = table.concat(Mock.tooltip or {}, " / ")
+		if not tip:find(case.want, 1, true) then
+			fail(scenario, "SKIPPED -- no count line in the tooltip: " .. tip)
+		elseif tip:find(case.bad, 1, true) then
+			fail(scenario, "one person reads \"" .. case.bad .. "\": " .. tip)
+		end
+	end)
+end
+
