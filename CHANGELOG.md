@@ -1,5 +1,37 @@
 # Changelog
 
+## Unreleased
+
+- **Holding the key down is one press.** With the prompt on a key binding,
+  holding the key counted its release as a second press: a refusal's red
+  flash vanished, the prompt said it had moved on, or showed "ready in ..."
+  over a cast that landed. Only the press counts now.
+- **A reload in a fight no longer invents favours.** After a `/reload` or
+  login in the middle of a fight, the buffs you were already wearing were
+  counted as favours the moment it ended. They are not.
+- **WoW Forever: Battle Shout reaches your whole raid.** The game now lands it
+  on everybody in your raid, so raid members in other groups are offered it
+  and the prompt says "your raid".
+- **The never-offer list tells namesakes apart.** Listing a player of your
+  realm no longer also hides a different player of the same name from another
+  realm, or lets go the favour that one did you. A name you type still covers
+  the same person from other realms.
+- **Your buff order travels.** It goes into `/manners export`, is read by
+  `/manners import`, and comes back with `/manners import undo`.
+- **Phrase sets follow your game language.** A set you saved in one language
+  (Roleplay, Polite, Cheeky, Just their name, In character) now follows you
+  when you change the game's language, and In character stays on. Phrases you
+  edited yourself are never touched.
+- **Women are spared men's lines.** In French, Italian, Spanish and
+  Portuguese, a female character no longer says the In character lines written
+  in a man's voice.
+- **Smaller fixes.** The next poison, stone or oil for a hand is offered right
+  after one lands, not five seconds later. The group tooltip reads "1 in your
+  party is missing ..." for one person. The name on the prompt keeps some room
+  at the smallest widths, and Toast's medallion no longer swallows a tall,
+  narrow panel. On Korean and Chinese clients a new profile's font no longer
+  reads "(not loaded)".
+
 ## 1.8.6
 
 - **Top-ups come at the right moment for each buff.** Manners now knows how
