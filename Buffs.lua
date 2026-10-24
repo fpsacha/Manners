@@ -52,6 +52,9 @@
 --             the macro casts by name and the game picks that rank. Offered in
 --             place of single casts by GroupBuffs.lua.
 --
+-- How long each lasts is no field of a buff: it is a table of ids per client, below
+-- ("how long each lasts"), which a top-up's lead is worked out from (Core.lua).
+--
 -- Only buffs worth giving a passer-by are listed: emergency spells (Blessing
 -- of Freedom, Protection) and anything that moves somebody (Slow Fall,
 -- Levitate, Water Walking) are deliberately absent.
@@ -1896,6 +1899,258 @@ local MAINLINE_SET = {
 }
 
 ---------------------------------------------------------------------------
+-- how long each lasts
+---------------------------------------------------------------------------
+
+-- The length of every buff Manners offers or watches, in seconds, per client:
+-- what a top-up's lead is worked out from (Core.lua, ns.TopUpLead). One row is
+-- { seconds, id, id, ... }, the ids being spell ids as the rest of this file
+-- holds them (every rank, every group version, `alike` ids, an own buff's ranks;
+-- for a weapon enhancement or a scroll the spell its use casts). 0 is "no
+-- timer"; an id missing from a client's table has no length in that client's
+-- data (or is not in that client at all), and is topped up by the player's
+-- ceiling alone (the minutes slider), never guessed at.
+--
+-- Where each number comes from, per client, for the build named above its table:
+--   SpellMisc.DurationIndex -> SpellDuration.Duration (milliseconds; -1 and 0
+--   are no timer), of the spell that puts the aura on. A cast that only triggers
+--   the aura (a Blessing of the Bronze, Mists' Legacy of the Emperor) is the
+--   aura's. Forever's group versions and retail's are an hour like the single
+--   spells; Classic Era's are twice as long, and its Blessings five minutes and
+--   its Greater Blessings fifteen (Burning Crusade's ten and thirty, Forever's
+--   an hour); a shout is two minutes on Classic Era, three on Forever, five on
+--   Mists and an hour on retail.
+--   A weapon enhancement or scroll: the use spell's own duration where it has
+--   one (Mists' Corpse Worm), else SpellItemEnchantment.Duration (Forever's),
+--   else the number in the use spell's own tooltip ("for 30 minutes": the
+--   Classic builds' SpellItemEnchantment has no duration column, and the use
+--   spell of an oil or a poison has none either).
+-- tools/audit_ids.py holds every row to those tables, and goes red on a number
+-- that is not what the client's data says, or an id missing one. Ranks of one
+-- spell never differ in any of the five (the audit checks that too), so the
+-- table is per id and not per buff; the aura's own `duration` beats it at
+-- runtime wherever the client will say.
+local function Seconds(rows)
+	local out = {}
+	for _, row in ipairs(rows) do
+		for i = 2, #row do out[row[i]] = row[1] end
+	end
+	return out
+end
+
+local SECONDS_FOR = {}
+do
+	-- Classic Era 1.15.9.70003. No row for 430585 (Blackfathom Mana Oil, whose tooltip
+	-- gives its length as a token the table does not resolve) nor for Forever's two
+	-- own Trueshot Aura ranks (1299346 and 1299348), which this client lacks: unknown.
+	SECONDS_FOR[VANILLA_SET] = Seconds({
+		{ 1800, 9885, 9884, 8907, 5234, 6756, 5232, 1126 }, -- Mark of the Wild (30 min)
+		{ 3600, 21850, 21849 }, -- Gift of the Wild (1 h)
+		{ 600, 9910, 9756, 8914, 1075, 782, 467 }, -- Thorns (10 min)
+		{ 1800, 10157, 10156, 1461, 1460, 1459 }, -- Arcane Intellect (30 min)
+		{ 3600, 23028 }, -- Arcane Brilliance (1 h)
+		{ 300, 25290, 19854, 19853, 19852, 19850, 19742 }, -- Blessing of Wisdom (5 min)
+		{ 900, 25918, 25894 }, -- Greater Blessing of Wisdom (15 min)
+		{ 300, 25291, 19838, 19837, 19836, 19835, 19834, 19740 }, -- Blessing of Might (5 min)
+		{ 900, 25916, 25782 }, -- Greater Blessing of Might (15 min)
+		{ 300, 20217 }, -- Blessing of Kings (5 min)
+		{ 900, 25898 }, -- Greater Blessing of Kings (15 min)
+		{ 300, 1038 }, -- Blessing of Salvation (5 min)
+		{ 900, 25895 }, -- Greater Blessing of Salvation (15 min)
+		{ 300, 19979, 19978, 19977 }, -- Blessing of Light (5 min)
+		{ 900, 25890 }, -- Greater Blessing of Light (15 min)
+		{ 300, 20914, 20913, 20912, 20911 }, -- Blessing of Sanctuary (5 min)
+		{ 900, 25899 }, -- Greater Blessing of Sanctuary (15 min)
+		{ 1800, 10938, 10937, 2791, 1245, 1244, 1243 }, -- Power Word: Fortitude (30 min)
+		{ 3600, 21564, 21562 }, -- Prayer of Fortitude (1 h)
+		{ 1800, 27841, 14819, 14818, 14752 }, -- Divine Spirit (30 min)
+		{ 3600, 27681 }, -- Prayer of Spirit (1 h)
+		{ 600, 10958, 10957, 976 }, -- Shadow Protection (10 min)
+		{ 1200, 27683 }, -- Prayer of Shadow Protection (20 min)
+		{ 600, 5697 }, -- Unending Breath (10 min)
+		{ 600, 131 }, -- Water Breathing (10 min)
+		{ 120, 25289, 11551, 11550, 11549, 6192, 5242, 6673 }, -- Battle Shout (2 min)
+		{ 600, 16864 }, -- Omen of Clarity (10 min)
+		{ 1800, 22756, 16138, 16622, 9900, 9903, 2830, 3114, 2829, 3113, 2828, 3112, 430392 }, -- sharpening stones and weightstones (30 min)
+		{ 3600, 28891 }, -- sharpening stones and weightstones: Consecrated Weapon (1 h)
+		{ 1800, 25122, 25123, 25121, 25120, 25119, 25118, 25117, 3595, 3594 }, -- oils and coatings (30 min)
+		{ 3600, 28898 }, -- oils and coatings: Blessed Wizard Oil (1 h)
+		{ 600, 8090, 9092, 8088, 8532, 8087 }, -- fishing lures (10 min)
+		{ 300, 8089 }, -- fishing lures: Aquadynamic Fish Attractor (5 min)
+		{ 1800, 20906, 20905, 19506 }, -- Trueshot Aura (30 min)
+		{ 1800, 10220, 10219, 7320, 7302, 7301, 7300, 168 }, -- Ice Armor / Frost Armor (30 min)
+		{ 1800, 22783, 22782, 6117 }, -- Mage Armor (30 min)
+		{ 1800, 25780 }, -- Righteous Fury (30 min)
+		{ 600, 10952, 10951, 1006, 602, 7128, 588 }, -- Inner Fire (10 min)
+		{ 600, 19266, 19265, 19264, 19262, 19261, 2652 }, -- Touch of Weakness (10 min)
+		{ 600, 19312, 19311, 19310, 19309, 19308, 18137 }, -- Shadowguard (10 min)
+		{ 1800, 11340, 11339, 11338, 8688, 8686, 8679, 25351, 11356, 11355, 2824, 2823, 13227, 13226, 13225,
+			13219, 11202, 3408, 11399, 8693, 5761, 6650, 1214171, 458821, 439465, 439464, 439462 }, -- poisons (30 min)
+		{ 600, 10432, 10431, 8134, 945, 905, 325, 324 }, -- Lightning Shield (10 min)
+		{ 600, 408510 }, -- Water Shield (10 min)
+		{ 1800, 11735, 11734, 11733, 1086, 706, 696, 687 }, -- Demon Armor / Demon Skin (30 min)
+	})
+
+	-- Burning Crusade Classic Anniversary 2.5.6.69795.
+	SECONDS_FOR[TBC_SET] = Seconds({
+		{ 1800, 26990, 9885, 9884, 8907, 5234, 6756, 5232, 1126 }, -- Mark of the Wild (30 min)
+		{ 3600, 26991, 21850, 21849 }, -- Gift of the Wild (1 h)
+		{ 600, 26992, 9910, 9756, 8914, 1075, 782, 467 }, -- Thorns (10 min)
+		{ 1800, 27126, 10157, 10156, 1461, 1460, 1459 }, -- Arcane Intellect (30 min)
+		{ 3600, 27127, 23028 }, -- Arcane Brilliance (1 h)
+		{ 600, 27142, 25290, 19854, 19853, 19852, 19850, 19742 }, -- Blessing of Wisdom (10 min)
+		{ 1800, 27143, 25918, 25894 }, -- Greater Blessing of Wisdom (30 min)
+		{ 600, 27140, 25291, 19838, 19837, 19836, 19835, 19834, 19740 }, -- Blessing of Might (10 min)
+		{ 1800, 27141, 25916, 25782 }, -- Greater Blessing of Might (30 min)
+		{ 600, 20217 }, -- Blessing of Kings (10 min)
+		{ 1800, 25898 }, -- Greater Blessing of Kings (30 min)
+		{ 600, 1038 }, -- Blessing of Salvation (10 min)
+		{ 1800, 25895 }, -- Greater Blessing of Salvation (30 min)
+		{ 600, 27144, 19979, 19978, 19977 }, -- Blessing of Light (10 min)
+		{ 1800, 27145, 25890 }, -- Greater Blessing of Light (30 min)
+		{ 600, 27168, 20914, 20913, 20912, 20911 }, -- Blessing of Sanctuary (10 min)
+		{ 1800, 27169, 25899 }, -- Greater Blessing of Sanctuary (30 min)
+		{ 1800, 25389, 10938, 10937, 2791, 1245, 1244, 1243 }, -- Power Word: Fortitude (30 min)
+		{ 3600, 25392, 21564, 21562 }, -- Prayer of Fortitude (1 h)
+		{ 1800, 25312, 27841, 14819, 14818, 14752 }, -- Divine Spirit (30 min)
+		{ 3600, 32999, 27681 }, -- Prayer of Spirit (1 h)
+		{ 600, 25433, 10958, 10957, 976 }, -- Shadow Protection (10 min)
+		{ 1200, 39374, 27683 }, -- Prayer of Shadow Protection (20 min)
+		{ 600, 5697 }, -- Unending Breath (10 min)
+		{ 600, 131 }, -- Water Breathing (10 min)
+		{ 120, 2048, 25289, 11551, 11550, 11549, 6192, 5242, 6673 }, -- Battle Shout (2 min)
+		{ 120, 469 }, -- Commanding Shout (2 min)
+		{ 1800, 16864 }, -- Omen of Clarity (30 min)
+		{ 3600, 29453, 34340, 22756, 29452, 34339, 16138, 16622, 9900, 9903, 2830, 3114, 2829, 3113, 2828,
+			3112, 28891 }, -- sharpening stones and weightstones (1 h)
+		{ 3600, 28017, 28013, 25122, 25123, 25121, 25120, 25119, 25118, 25117, 45395, 45397, 28898 }, -- oils and coatings (1 h)
+		{ 1800, 3595, 3594 }, -- oils and coatings: Frost Oil, Shadow Oil (30 min)
+		{ 600, 8090, 8089, 9092, 45731, 8088, 8532, 8087 }, -- fishing lures (10 min)
+		{ 0, 27066, 20906, 20905, 19506 }, -- Trueshot Aura (no timer)
+		{ 1800, 27124, 10220, 10219, 7320, 7302, 7301, 7300, 168 }, -- Ice Armor / Frost Armor (30 min)
+		{ 1800, 27125, 22783, 22782, 6117 }, -- Mage Armor (30 min)
+		{ 1800, 30482 }, -- Molten Armor (30 min)
+		{ 1800, 25780 }, -- Righteous Fury (30 min)
+		{ 600, 25431, 10952, 10951, 1006, 602, 7128, 588 }, -- Inner Fire (10 min)
+		{ 600, 25461, 19266, 19265, 19264, 19262, 19261, 2652 }, -- Touch of Weakness (10 min)
+		{ 600, 25477, 19312, 19311, 19310, 19309, 19308, 18137 }, -- Shadowguard (10 min)
+		{ 3600, 26891, 11340, 11339, 11338, 8688, 8686, 8679, 27186, 26967, 25351, 11356, 11355, 2824, 2823,
+			27188, 13227, 13226, 13225, 13219, 11202, 3408, 11399, 8693, 5761, 26785 }, -- poisons (1 h)
+		{ 1800, 6650 }, -- poisons: Instant Toxin (30 min)
+		{ 600, 25472, 25469, 10432, 10431, 8134, 945, 905, 325, 324 }, -- Lightning Shield (10 min)
+		{ 600, 33736, 24398 }, -- Water Shield (10 min)
+		{ 600, 32594, 32593, 974 }, -- Earth Shield (10 min)
+		{ 1800, 27260, 11735, 11734, 11733, 1086, 706, 696, 687 }, -- Demon Armor / Demon Skin (30 min)
+		{ 1800, 28189, 28176 }, -- Fel Armor (30 min)
+	})
+
+	-- WoW Forever 1.60.1.70178.
+	SECONDS_FOR[CAMELOT_SET] = Seconds({
+		{ 3600, 9885, 9884, 8907, 5234, 6756, 5232, 1126 }, -- Mark of the Wild (1 h)
+		{ 3600, 21850, 21849 }, -- Gift of the Wild (1 h)
+		{ 600, 9910, 9756, 8914, 1075, 782, 467 }, -- Thorns (10 min)
+		{ 3600, 10157, 10156, 1461, 1460, 1459 }, -- Arcane Intellect (1 h)
+		{ 3600, 23028 }, -- Arcane Brilliance (1 h)
+		{ 3600, 25290, 19854, 19853, 19852, 19850, 19742 }, -- Blessing of Wisdom (1 h)
+		{ 3600, 25918, 25894 }, -- Greater Blessing of Wisdom (1 h)
+		{ 3600, 25291, 19838, 19837, 19836, 19835, 19834, 19740 }, -- Blessing of Might (1 h)
+		{ 3600, 25916, 25782 }, -- Greater Blessing of Might (1 h)
+		{ 3600, 20217 }, -- Blessing of Kings (1 h)
+		{ 3600, 25898 }, -- Greater Blessing of Kings (1 h)
+		{ 3600, 1038 }, -- Blessing of Salvation (1 h)
+		{ 3600, 25895 }, -- Greater Blessing of Salvation (1 h)
+		{ 3600, 19979, 19978, 19977 }, -- Blessing of Light (1 h)
+		{ 3600, 25890 }, -- Greater Blessing of Light (1 h)
+		{ 3600, 10938, 10937, 2791, 1245, 1244, 1243 }, -- Power Word: Fortitude (1 h)
+		{ 3600, 21564, 21562 }, -- Prayer of Fortitude (1 h)
+		{ 3600, 27841, 14819, 14818, 14752 }, -- Divine Spirit (1 h)
+		{ 3600, 27681 }, -- Prayer of Spirit (1 h)
+		{ 600, 10958, 10957, 976 }, -- Shadow Protection (10 min)
+		{ 1200, 27683 }, -- Prayer of Shadow Protection (20 min)
+		{ 600, 5697 }, -- Unending Breath (10 min)
+		{ 600, 131 }, -- Water Breathing (10 min)
+		{ 180, 25289, 11551, 11550, 11549, 6192, 5242, 6673 }, -- Battle Shout (3 min)
+		{ 1800, 22756, 16138, 16622, 9900, 9903, 2830, 3114, 2829, 3113, 2828, 3112, 430392 }, -- sharpening stones and weightstones (30 min)
+		{ 3600, 28891 }, -- sharpening stones and weightstones: Consecrated Weapon (1 h)
+		{ 1800, 25122, 25123, 25121, 25120, 25119, 25118, 25117, 3595, 3594 }, -- oils and coatings (30 min)
+		{ 3600, 28898 }, -- oils and coatings: Blessed Wizard Oil (1 h)
+		{ 600, 8090, 9092, 8088, 8532, 8087 }, -- fishing lures (10 min)
+		{ 300, 8089 }, -- fishing lures: Aquadynamic Fish Attractor (5 min)
+		{ 1800, 20906, 20905, 19506, 1299348, 1299346 }, -- Trueshot Aura (30 min)
+		{ 1800, 10220, 10219, 7320, 7302, 7301, 7300, 168 }, -- Ice Armor / Frost Armor (30 min)
+		{ 1800, 22783, 22782, 6117 }, -- Mage Armor (30 min)
+		{ 3600, 1302303, 1302285, 1296202 }, -- familiar scrolls: Cat Familiar, Frog Familiar, Rat Familiar (1 h)
+		{ 3600, 1302311, 1302312, 1302310, 1302306, 1302307, 1302305, 1302304, 1302308, 1302283, 1302217,
+			1302219, 1302284, 1302227, 1295720, 1296225 }, -- weapon imbue scrolls (1 h)
+		{ 1800, 25780 }, -- Righteous Fury (30 min)
+		{ 600, 10952, 10951, 1006, 602, 7128, 588 }, -- Inner Fire (10 min)
+		{ 600, 19266, 19265, 19264, 19262, 19261, 2652 }, -- Touch of Weakness (10 min)
+		{ 600, 19312, 19311, 19310, 19309, 19308, 18137 }, -- Shadowguard (10 min)
+		{ 1800, 11340, 11339, 11338, 8688, 8686, 8679, 25351, 11356, 11355, 2824, 2823, 13227, 13226, 13225,
+			13219, 11202, 3408, 11399, 8693, 5761, 6650, 1214171, 458821, 439465, 439464, 439462 }, -- poisons (30 min)
+		{ 600, 10432, 10431, 8134, 945, 905, 325, 324 }, -- Lightning Shield (10 min)
+		{ 600, 408510 }, -- Water Shield (10 min)
+		{ 1800, 11735, 11734, 11733, 1086, 706, 696, 687 }, -- Demon Armor / Demon Skin (30 min)
+	})
+
+	-- Mists of Pandaria Classic 5.5.4.70032.
+	SECONDS_FOR[MISTS_SET] = Seconds({
+		{ 300, 57330 }, -- Horn of Winter (5 min)
+		{ 300, 6673 }, -- Battle Shout (5 min)
+		{ 0, 19506 }, -- Trueshot Aura (no timer)
+		{ 3600, 1126 }, -- Mark of the Wild (1 h)
+		{ 3600, 20217, 117666, 117667 }, -- Blessing of Kings / Legacy of the Emperor (1 h)
+		{ 3600, 1459 }, -- Arcane Brilliance (1 h)
+		{ 3600, 61316 }, -- Dalaran Brilliance (1 h)
+		{ 0, 115921 }, -- Legacy of the Emperor (the cast: no timer of its own; its auras are 117666 and 117667, an hour)
+		{ 3600, 116781 }, -- Legacy of the White Tiger (1 h)
+		{ 0, 24932 }, -- Leader of the Pack (no timer)
+		{ 3600, 19740 }, -- Blessing of Might (1 h)
+		{ 3600, 21562 }, -- Power Word: Fortitude (1 h)
+		{ 3600, 109773 }, -- Dark Intent (1 h)
+		{ 300, 469 }, -- Commanding Shout (5 min)
+		{ 600, 5697 }, -- Unending Breath (10 min)
+		{ 3600, 29453, 34340, 22756, 29452, 34339, 16138, 16622, 9900, 9903, 2830, 3114, 2829, 3113, 2828,
+			3112, 28891 }, -- sharpening stones and weightstones (1 h)
+		{ 3600, 47904, 28017, 28013, 25122, 25123, 25121, 25120, 25119, 25118, 25117, 45395, 45397, 28898 }, -- oils and coatings (1 h)
+		{ 1800, 3595, 3594 }, -- oils and coatings: Frost Oil, Shadow Oil (30 min)
+		{ 900, 95244 }, -- fishing lures: Heat-Treated Spinning Lure (15 min)
+		{ 600, 87646, 8090, 8089, 9092, 45731, 8088, 8532, 8087, 99315, 98849 }, -- fishing lures (10 min)
+		{ 3600, 64401 }, -- fishing lures: Glow Worm (1 h)
+		{ 0, 25780 }, -- Righteous Fury (no timer)
+		{ 3600, 2823 }, -- Deadly Poison (1 h)
+		{ 3600, 8679 }, -- Wound Poison (1 h)
+		{ 3600, 3408 }, -- Crippling Poison (1 h)
+		{ 3600, 5761 }, -- Mind-numbing Poison (1 h)
+		{ 3600, 108211 }, -- Leeching Poison (1 h)
+		{ 3600, 108215 }, -- Paralytic Poison (1 h)
+		{ 3600, 324 }, -- Lightning Shield (1 h)
+		{ 3600, 52127 }, -- Water Shield (1 h)
+		{ 600, 974 }, -- Earth Shield (10 min)
+	})
+
+	-- retail 12.1.0.69933.
+	SECONDS_FOR[MAINLINE_SET] = Seconds({
+		{ 3600, 1126 }, -- Mark of the Wild (1 h)
+		{ 3600, 364342 }, -- Blessing of the Bronze (1 h)
+		{ 3600, 381732, 381741, 381746, 381748, 381749, 381750, 381751, 381752, 381753, 381754, 381756,
+			381757, 381758 }, -- Blessing of the Bronze (1 h)
+		{ 3600, 369459 }, -- Source of Magic (1 h)
+		{ 3600, 1459 }, -- Arcane Intellect (1 h)
+		{ 3600, 21562 }, -- Power Word: Fortitude (1 h)
+		{ 3600, 462854 }, -- Skyfury (1 h)
+		{ 3600, 6673 }, -- Battle Shout (1 h)
+		{ 3600, 2823 }, -- Deadly Poison (1 h)
+		{ 3600, 315584 }, -- Instant Poison (1 h)
+		{ 3600, 8679 }, -- Wound Poison (1 h)
+		{ 3600, 381664 }, -- Amplifying Poison (1 h)
+		{ 3600, 3408 }, -- Crippling Poison (1 h)
+		{ 3600, 5761 }, -- Numbing Poison (1 h)
+		{ 3600, 381637 }, -- Atrophic Poison (1 h)
+	})
+end
+
+---------------------------------------------------------------------------
 -- which set this client gets
 ---------------------------------------------------------------------------
 
@@ -1957,6 +2212,31 @@ if chosen then
 	-- A set whose buffs are learned at other levels than vanilla's ranks
 	-- brings its own (Mists, retail); the others read vanilla's.
 	if chosen.rankLevel then ns.RANK_LEVEL = chosen.rankLevel end
+end
+
+-- How long each id lasts on this client (see "how long each lasts"): seconds,
+-- 0 for no timer, nothing for unknown. A client with no set has none.
+ns.SPELL_SECONDS = chosen and SECONDS_FOR[chosen] or {}
+
+-- The length of a buff for others: its single cast's, and the group version's
+-- when that is another length (Classic Era's Prayer of Fortitude is an hour
+-- where Power Word: Fortitude is half of one), else nil. Both nil where the
+-- client's data has no length.
+function ns.BuffSeconds(buff)
+	local single = buff and buff.ranks and ns.SPELL_SECONDS[buff.ranks[1]]
+	local group = buff and buff.group and ns.SPELL_SECONDS[buff.group[1]]
+	if group == single then group = nil end
+	return single, group
+end
+
+-- The length of one of your own spells (a family's `spells` entry): a toggle
+-- (an aura, an aspect, a stance) and a tracking skill have no timer, and so
+-- read 0 whatever the table says. A scroll or an enhancement is keyed by the
+-- spell its use casts, which is its first rank.
+function ns.OwnSeconds(spell)
+	local family = spell and spell.family
+	if family and (family.toggle or family.tracking) then return 0 end
+	return spell and spell.ranks and ns.SPELL_SECONDS[spell.ranks[1]] or nil
 end
 
 -- The key of every own-buff family on any client, not only this one's. A

@@ -124,6 +124,8 @@ local data = {
 	favourOnly = sortedIds(ns.FAVOUR_ONLY_IDS),
 	notFavour = sortedIds(ns.NOT_FAVOUR_IDS),
 	rankLevel = {},
+	-- How long each id lasts, seconds (Buffs.lua, "how long each lasts").
+	seconds = ns.SPELL_SECONDS or {},
 	classesWithout = keysOf(ns.CLASSES_WITHOUT_BUFFS),
 	classesExclusive = keysOf(ns.EXCLUSIVE_BUFFS),
 	classAuto = ns.CLASS_AUTO,
