@@ -263,6 +263,7 @@ ns.WindowLayout = {
 				{ key = "when.buffed", header = "when.buffedHeader", items = {
 					"when.whenBuffed",
 					{ "when.refreshUnder", indent = true },
+					{ "when.refreshRaid", indent = true },
 					"when.alwaysNote",
 					"when.verifiedOnly",
 				} },
@@ -439,6 +440,7 @@ ns.WindowLayout = {
 				{ key = "diagnostics.see", header = "diagnostics.capsHeader", items = {
 					"diagnostics.noDiag",
 					"diagnostics.diag",
+					"diagnostics.leadDiag",
 					"diagnostics.proximityDiag",
 				} },
 				{ key = "diagnostics.errors", header = "diagnostics.errorsHeader", items = {
@@ -463,6 +465,7 @@ ns.WindowLayout = {
 		["who.autoNote"] = { hint = true },
 		["diagnostics.ownDiag"] = { hint = true, block = true },
 		["diagnostics.pvpDiag"] = { hint = true, block = true },
+		["diagnostics.leadDiag"] = { hint = true, block = true },
 		-- AceDBOptions' descriptions, beside the controls they explain.
 		["profiles.choosedesc"] = { hint = true },
 		["profiles.copydesc"] = { hint = true },

@@ -674,6 +674,7 @@ and can be given more than once:
 | State | How |
 |---|---|
 | `unlocked` | the prompt unlocked before the window opens |
+| `topups` | "Offer a top-up when it runs low" chosen before the window opens, so When to offer shows the ceiling and the raid multiplier under it |
 | `snoozed` | `ns.StartSnooze(15)` before it opens |
 | `combat` | a fight starts once it is open, in the client's order: `PLAYER_REGEN_DISABLED` to Core and to every frame registered for it while lockdown has not begun, then lockdown and the next frame's timers |
 | `order` | a paladin's, priest's or druid's buffs put in an order of the player's own before the window opens, by `ns.MoveBuff` (Wisdom, Spirit or Thorns up a place): Who to buff then shows the Buff order list with Back to Automatic |
@@ -966,6 +967,8 @@ python tools/audit_ids.py --client camelot --build camelot=1.60.1.70338   # a ne
 ```
 
 It holds the weapon enhancement items (poisons, stones, oils, lures) on the four clients that have them to the item data too: ItemSparse (required level, class), ItemEffect (the spell its use casts), SpellEffect and SpellItemEnchantment (the enchant), SpellEquippedItems (the weapons it fits) and SpellCastTimes (a use the timed settle covers), and with `--notes` lists the items the client has that put an enchant on a weapon and the addon leaves out. On Forever it also holds each item's `enchantKind` (Buffs.lua: how the client lists the enchant, which Core.lua's ReadImbue sorts a hand's enchants by) to the use spell's SpellEffect, 360 an imbue and 54 a temporary enchant, and finds one on any other client. An item marked `since` (newer than the cited build) is a NOTE until the audit is pointed at that build with `--build`.
+
+It also holds Buffs.lua's table of how long each id lasts (`ns.SPELL_SECONDS`, in seconds, which a top-up's lead is worked out from) to the client's SpellMisc.DurationIndex and SpellDuration.Duration (a cast that only triggers its aura is the aura's; a weapon enhancement or scroll is its use spell's, else SpellItemEnchantment.Duration on Forever, else the length its tooltip names, since the Classic builds' enchantment table has no duration column): a FINDING for a number that differs, an id with no entry, an entry for an id the set does not hold, and ranks of one spell that differ. An id the client gives no length has no entry.
 
 `python tools/audit_ids.py -h` has the rest. Not part of `tools/check.py`; it downloads what it needs into a cache outside the repo.
 

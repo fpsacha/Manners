@@ -57,14 +57,28 @@ function Page.BuildWhenTab()
 			},
 			refreshUnder = {
 				type = "range",
-				name = L["Top up when less than this is left (minutes)"],
-				-- The favour exception again: a timer that cannot be read
-				-- holds back a top-up, never a buff owed.
-				desc = L["Someone whose time left cannot be read is not offered a top-up, unless they buffed you."],
+				name = L["Top up at most this long before it ends (minutes)"],
+				-- How the moment is worked out, then the favour exception:
+				-- a timer that cannot be read holds back a top-up, never a
+				-- buff owed.
+				desc = L["The moment is worked out from how long the buff lasts: about a tenth of it, so ten minutes means one minute before it ends and an hour five. This is the most it will ever take."]
+					.. " " .. L["Someone whose time left cannot be read is not offered a top-up, unless they buffed you."],
 				order = 3,
 				min = 1,
 				max = 60,
 				step = 1,
+				hidden = function() return F().whenBuffed ~= "refresh" end,
+				get = fGet,
+				set = fSet,
+			},
+			refreshRaid = {
+				type = "range",
+				name = L["In a raid or dungeon, top up this many times earlier"],
+				desc = L["A fight and the drinking after it take minutes, so in a raid or a dungeon a top-up is offered this many times earlier. Your own buffs are offered half as early again, and people outside your group only in the last half minute."],
+				order = 3.5,
+				min = 1,
+				max = 4,
+				step = 0.5,
 				hidden = function() return F().whenBuffed ~= "refresh" end,
 				get = fGet,
 				set = fSet,

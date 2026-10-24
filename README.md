@@ -141,9 +141,13 @@ each class offers*).
   while the game says the spell cannot be cast (a druid in cat form, a priest
   in Shadowform, a mage out of mana).
 - With *Offer a top-up when it runs low*, a buff with a timer is also offered
-  when it is running out; an aura or an aspect never is. So is Lightning
-  Shield or Shadowguard down to its last charge, and Inner Fire down to its
-  last five, after a fight.
+  when it is running out; an aura or an aspect never is. Manners knows how
+  long each buff lasts on your client and tops it up about a tenth of that
+  before it ends (a minute before a ten-minute buff, five before an hour's),
+  earlier in a raid or dungeon and for your own buffs, and only in the last
+  half minute for somebody outside your group. So is Lightning Shield or
+  Shadowguard down to its last charge, and Inner Fire down to its last five,
+  after a fight.
 - **A mage's scrolls.** *Familiar* reminds you when no familiar is with you
   and a Rat, Frog or Cat Familiar scroll is in your bags; *Weapon imbue* when
   no imbue is on the weapon in your main hand and you carry an imbue scroll
@@ -493,7 +497,10 @@ list. They used to be at the bottom of *Who to buff*.
 **When to offer.**
 
 - *If they already have it*: *Skip them*, *Offer a top-up when it runs low*
-  (then *Top up when less than this is left (minutes)*), or *Always offer*.
+  (then *Top up at most this long before it ends (minutes)*, the longest it
+  will ever wait, and *In a raid or dungeon, top up this many times earlier*),
+  or *Always offer*. *Diagnostics* and `/manners debug` list when a top-up is
+  due for each of your buffs.
   Somebody who buffed you is offered the favour back whichever you pick. Your
   own buffs are always read, so you are never offered one you are wearing;
   a top-up reaches them too, but never an aura or an aspect. A rank below
