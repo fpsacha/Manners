@@ -1,7 +1,7 @@
 # Manners
 
-**One click to buff back whoever just buffed you, and nearby players missing
-yours.**
+**Somebody buffed you. One click buffs them back, and your target is handed
+straight back.**
 
 [![CI](https://github.com/fpsacha/Manners/actions/workflows/ci.yml/badge.svg)](https://github.com/fpsacha/Manners/actions/workflows/ci.yml)
 [![CurseForge](https://img.shields.io/badge/CurseForge-Manners-f16436)](https://wow.curseforge.com/projects/1705364)
@@ -11,25 +11,27 @@ yours.**
 <img src=".github/media/manners-prompt.png" alt="The prompt: a dark panel naming Elowen Thistledown, who buffed you, with a gold glow round the spell icon" width="640">
 
 A priest buffs you in passing. By the time you have picked them out of a dozen
-nameplates, they are gone.
+nameplates, they are gone. Manners saw who it was, worked out what you owe them
+and put one button on screen. Click it, or press your key: they get their buff,
+your own target comes straight back, and the favour is remembered through a
+reload or a disconnect.
 
-Manners notices, works out what you owe them, and puts one button on screen.
-Click it, they get their buff, and your own target is handed straight back. It
-also offers your group, people who ask for your buff in chat, and nearby
-players who are missing it, so being the person who buffs strangers costs one
-click instead of a minute of squinting at names.
+The same button offers your group, people who ask for your buff in chat, and
+passers-by who are missing it, so buffing a stranger costs one click instead of
+a minute of squinting at names. It looks after you too: your own armor, aura,
+aspect or shield, and the poison, stone, oil or lure for each weapon, come up as
+"You" when they are missing. In a dungeon or a raid it offers one group cast for
+a whole party when you carry the reagent, puts your group first at a ready check
+and when somebody is brought back, offers only the raid groups you were given,
+and offers a top-up at the moment that suits each buff's length.
 
-In a dungeon or a raid it keeps the group topped up: one group cast for a
-whole party when you carry the reagent, your group first at a ready check and
-after a wipe, and only the raid groups you were given.
+Setting it up takes one page. `/manners` opens **Start here**: four numbered
+steps (who to buff, one key, see it, say thanks). The first time, two questions
+set the defaults for you, or *Skip* keeps them.
 
-It looks after you too. When you are missing your own buff, or one your class
-casts only on itself (a mage's armor, a priest's Inner Fire, a paladin's aura,
-a hunter's aspect, a shaman's shield), "You" comes up on the same prompt and
-one press puts it on you. A mage carrying familiar or weapon imbue scrolls is
-reminded of those too.
-
-Runs on every live client: **WoW Forever**, **Classic Era**, **Burning Crusade Classic**, **Mists of Pandaria Classic** and **retail** (Midnight).
+Runs on every live client: **WoW Forever** 1.60.1, **Classic Era** 1.15.9,
+**Burning Crusade Classic** (Anniversary) 2.5.6, **Mists of Pandaria Classic**
+5.5.4 and **retail** (Midnight) 12.1.5.
 
 ## Installing
 
@@ -58,7 +60,8 @@ up for dungeons and raids) and *Should your character talk?* (stay silent,
 just `/thank` them, a polite line, or in character). *Done* sets them as the
 choices on Start here and What I say would; *Skip* leaves everything as it
 is. Either way they are not asked again on that profile, and a profile you
-already had is never asked. Below them, Start here has two steps:
+already had is never asked. Below them, Start here has four numbered steps, the
+first two of which set it up:
 
 1. **Who to buff.** One quick choice, *Offer my buff to*, already answered:
    a new profile starts on *Everyone near me*, and the line under it says
@@ -101,7 +104,10 @@ Everybody who could use your buff is queued, in this order:
    (see *Buffing yourself* below).
 6. **Your party or raid**, anyone missing your buff.
 7. **Passers-by** missing your buff, seen through nameplates, your target,
-   your focus and your mouseover.
+   your focus and your mouseover. With the game's friendly nameplates off
+   Manners sees almost nobody outside your group: *Who to buff* says so under
+   *Passers-by*, with a button that turns them on, and a press of your key on
+   an empty prompt says why it is empty.
 
 It skips the dead, the out-of-range, anyone you just tried, anyone the buff
 does nothing for (Arcane Intellect is wasted on a rogue), and, while you are not
@@ -110,6 +116,14 @@ flagged yourself, anyone flagged for PvP, since buffing them would flag you.
 **On the prompt:** left-click (or your key) casts. **Right-click** skips that
 person for now without marking their favour repaid. **Shift-right-click** puts
 them on the never-offer list.
+
+**Click any name.** With *List the next few below* on (*Look* page, off by
+default), the names under the prompt are buttons of their own, each with the
+icon of the buff that person would get. A left click buffs that person just as
+a press on the prompt would, and hands your target back; right-click skips
+them for now, shift-right-click puts them on the never-offer list. Names cannot
+be clicked in a fight, when the prompt keeps what the fight found. *Click a
+name in the list to buff them*, under the same heading, turns it off.
 
 **Buffing yourself.** When you are missing the buff you give others, "You"
 comes up on the prompt with "your own Arcane Intellect" under it, and a press
@@ -162,6 +176,19 @@ each class offers*).
   allow. A top-up is of the enchant you are wearing: Spellbreak and Lesser
   Flame make the same one, so either tops it up once the other is used up. A
   mage with no scrolls sees nothing of this.
+- **Weapons, one hand at a time.** On WoW Forever, Classic Era, Burning Crusade
+  Classic and Mists of Pandaria Classic, when a weapon has nothing on it and a
+  poison, sharpening stone, weightstone, wizard or mana oil or fishing lure that
+  fits it is in your bags, "You" comes up with that item's icon, and one press
+  puts it on: your target is not touched. The main hand and the off hand are
+  reminded of separately, and a lure only for a fishing pole. Poisons are a
+  rogue's alone, and a rogue's poisons are reminded on Mists and retail too
+  (spells there, not items). Each kind has its own switch with your other own
+  buffs on the *Who to buff* page. On WoW Forever a weapon wears an imbue (a
+  shaman's Rockbiter Weapon, a rogue's poison, a mage's scroll imbue) and an
+  oil, stone or lure at the same time, so each is reminded of on its own; a
+  stone and an oil still replace each other. Manners never answers the game's
+  question about replacing an enchant: that is left to you.
 - *Save mana* never holds you back, and nor does *Raid groups I buff*. In a
   party you count towards a group buff, and the group cast covers you.
 - A warrior's Battle Shout already covers the warrior and nobody needs Unending Breath
@@ -344,7 +371,8 @@ explain themselves; this is what their tooltips have no room for.
   while the prompt is unlocked; the game does not let a prompt be moved in a
   fight), *Snooze* (5, 15 or 30 minutes; while one runs the button says until
   when, and its menu can stop it) and *Manners is on*. A character with
-  nothing for the prompt to show, such as a rogue, has only the switch.
+  nothing for the prompt to show (a rogue with no poison in the bags, say) has
+  only the switch.
 - Under them, a line appears only while something keeps the prompt from
   doing what you would expect: Manners is off, the prompt is unlocked (with
   *Lock it* at the end of the line), a snooze is running, nothing can be
@@ -353,8 +381,8 @@ explain themselves; this is what their tooltips have no room for.
 - On the left, the pages: *Start here*; *Who to buff*, *Who to skip*, *When
   to offer*, *What I say*, *Look*; *Profiles*, with the profile in use under
   its name, and *Diagnostics*. A page with nothing for your character is left
-  out, so a rogue has *Start here*, *What I say* (with only the `/thank` on
-  it), *Profiles* and *Diagnostics*. A red dot
+  out, so a rogue with no poison in the bags has *Start here*, *What I say*
+  (with only the `/thank` on it), *Profiles* and *Diagnostics*. A red dot
   beside a page means something there wants looking at: no key yet, nothing
   that can be offered, *Always offer* picked, a sound set to *None*, a marker
   colour with nothing left to colour, or something broken this session.
@@ -451,12 +479,12 @@ explain themselves; this is what their tooltips have no room for.
   *Familiar* and *Weapon imbue*, which list every scroll of their kind, carried
   or not; one picked with none in your bags waits until you have one, and one
   picked above your level (a profile shared with a higher mage) gives way to
-  *Automatic* until you reach it. Then
-  *Also in cities and inns*, off
-  by default, and last what each of your own buffs is doing and why one is
-  not being offered. A warrior or a rogue, with nothing to put on himself
-  alone, does not see this part; a hunter or a shaman sees only this part of
-  the page.
+  *Automatic* until you reach it. A poison, stone, oil or lure for a weapon
+  has a switch of its own per kind (*Weapons, one hand at a time*, above).
+  Then *Also in cities and inns*, off by default, and last what each of your
+  own buffs is doing and why one is not being offered. A class with nothing of
+  its own to put on, and no weapon item in the bags, does not see this part; a
+  hunter, a shaman or a rogue sees only this part of the page.
 - *My group and raid*: *Use group buffs* and *When this many need it* (see
   *Group buffs* above), with how many reagents are in your bags, shown only
   to classes with a group buff; and *Raid groups I buff*.
@@ -613,6 +641,10 @@ the text, the prompt's wording, and the icon and waiting list.
   (Animations on *Calm*, or the minimal look), *Flash when someone buffs me*
   has nothing to do and is greyed out. The cooldown sweep has its own switch
   under *Icon and waiting list*.
+- *List the next few below*, under *Icon and waiting list* and off by
+  default: the next few people the prompt would offer, one line each.
+  *Click a name in the list to buff them* (on) makes each line a button, as
+  under *Click any name* above; how many are listed is *How many to list*.
 - *Keep the prompt dim and still in combat*: the prompt stays on screen,
   because your key would still cast, but the flashes stop, and the icon shows
   no cooldown sweep for the fight.
@@ -763,7 +795,9 @@ you have learned them:
 | Shaman | *Shield*: Lightning Shield or Water Shield |
 | Druid | Omen of Clarity on Classic Era only (a passive on WoW Forever) |
 
-Warriors and rogues have nothing of their own to be reminded of.
+A warrior has no buff of his own to be reminded of, and a rogue's own buffs are
+his poisons; every class is reminded of a stone, an oil or a lure in the bags
+for a weapon with nothing on it (*Weapons, one hand at a time*, above).
 
 ### Burning Crusade, Mists and retail
 

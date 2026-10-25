@@ -79,16 +79,16 @@ mutate("Options/Window/WidgetsChoice.lua",
 # The tested-and-unverified line back on the English Notes, and on a
 # translation's.
 mutate("Manners.toc",
-       "## Notes: One click to buff back whoever just buffed you, and nearby players missing yours.\n",
-       "## Notes: One click to buff back whoever just buffed you, and nearby players missing yours."
+       "## Notes: Somebody buffed you. One click buffs them back, and your target is handed straight back.\n",
+       "## Notes: Somebody buffed you. One click buffs them back, and your target is handed straight back."
        "|n|cffffd100Mage is tested in game; other classes are implemented but unverified.|r\n",
        "era: the English Notes say what is unverified",
-       expect="Manners.toc: ## Notes: One click",
+       expect="Manners.toc: ## Notes: Somebody buffed",
        script=V)
 
 mutate("Manners.toc",
-       "denen Euer Stärkungszauber fehlt.\n",
-       "denen Euer Stärkungszauber fehlt.|n|cffffd100Der Magier ist im Spiel getestet; "
+       "bekommt Ihr gleich zurück.\n",
+       "bekommt Ihr gleich zurück.|n|cffffd100Der Magier ist im Spiel getestet; "
        "die anderen Klassen sind umgesetzt, aber ungeprüft.|r\n",
        "era: the German Notes say what is unverified",
        expect="Manners.toc: ## Notes-deDE:",
