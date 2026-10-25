@@ -73,7 +73,7 @@ mutate("Looks/Arcane.lua",
 # own again: 30 pcalls a raid scan with group casts, which only that client
 # (and Classic Era a little less) shows.
 mutate("Core.lua",
-       "\tlocal threw = not pcall(PrefetchAuras, unit, buff.auraIds, info.secrecy)\n",
+       "\tlocal threw = not pcall(PrefetchAuras, unit, buff.readIds or buff.auraIds, info.secrecy)\n",
        "\tlocal threw = false\n",
        "perf-budget: the ranks read a pcall apiece",
        expect="perf-budget: a scan stays inside its pcall budget on every client", script=S)

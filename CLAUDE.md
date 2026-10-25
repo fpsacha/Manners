@@ -86,9 +86,14 @@ default everywhere in the tests and the only client anybody here plays.
   `ns.BUFFS`, `ns.OWN_BUFFS`, `ns.EXCLUSIVE_BUFFS`, `ns.CLASS_AUTO`,
   `ns.CLASSES_WITHOUT_BUFFS`, `ns.PARTY_IS_SUBGROUP`, `ns.GROUP_IS_RAID`,
   `ns.SHOUT_YARDS`, `ns.WIDE_CASTS`, `ns.GROUP_BY_CLASS`, `ns.FAVOUR_ONLY_IDS`,
-  `ns.NOT_FAVOUR_IDS`, `ns.RANK_LEVEL`. Branch on those fields and the per-buff
-  flags (`partyOnly`, `groupOnly`, `selfCast`, `alone`, `alike`, `neverAuto`,
-  ... documented at the top of the file) rather than on flavour names. The
+  `ns.NOT_FAVOUR_IDS`, `ns.RANK_LEVEL`, `ns.STAT_VALUE`. Branch on those fields
+  and the per-buff flags (`partyOnly`, `groupOnly`, `selfCast`, `alone`, `alike`,
+  `blockers`, `neverAuto`, ... documented at the top of the file) rather than on
+  flavour names. `blockers` and `ns.STAT_VALUE` are the flat-stat scrolls that
+  hold a weaker rank of Arcane Intellect, Fortitude or Divine Spirit off
+  (Classic Era, TBC, Forever; Mists and retail give percentages and have none),
+  weighed numerically in `UnitHasBuff`; `tools/audit_ids.py` holds them to
+  SpellEffect. The
   camelot set is vanilla's (`__index`) with its own buffs, and is still called
   "vanilla" in `ns.BUFFS_SOURCE`; tbc builds on vanilla the same way.
 - **How long each buff lasts** is a table of ids per client in `Buffs.lua`

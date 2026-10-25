@@ -35,6 +35,11 @@ client's DB2 tables from wago.tools, for the build CLAUDE.md's "Data sources" ci
                      length its tooltip gives (the Classic builds have no duration column
                      there); an id the client gives no length has no entry; ranks of one
                      spell are one length; no entry is for an id the addon does not hold
+  SpellEffect (MOD_STAT)  Buffs.lua's `statValue` (what each rank of Arcane Intellect, Power Word:
+                     Fortitude and Divine Spirit and each scroll gives: the effect's value) and every buff's
+                     `blockers` (the scrolls of its stat): each blocker is a MOD_STAT spell of that stat, every
+                     scroll of that stat the client has is listed, a buff whose ranks are percentages (Mists,
+                     retail) lists none, and every rank has a row
   SpellAuraOptions   a shield's `charges`
   Talent             a `talent` buff is a talent (or not)
   ItemSparse, ItemEffect, SpellItemEnchantment, SpellEquippedItems   Forever's scrolls, and every
@@ -245,11 +250,29 @@ class Client:
                     "t0": num(r.get("ImplicitTarget_0")), "t1": num(r.get("ImplicitTarget_1")),
                     "radius": num(r.get("EffectRadiusIndex_0")),
                     "misc0": num(r.get("EffectMiscValue_0")),
+                    # What the effect gives, as the build's table spells it: the Classic builds an
+                    # integer (base) with a die of one side (the value is base + 1), Forever a float
+                    # (basef) that is the value itself.
+                    "base": num(r["EffectBasePoints"]) if "EffectBasePoints" in r else None,
+                    "basef": float(r.get("EffectBasePointsF") or 0),
+                    "die": num(r.get("EffectDieSides")),
                 })
             for v in out.values():
                 v.sort(key=lambda e: e["index"])
             return out
         return self.memo("effects", build)
+
+    @property
+    def stat_scrolls(self):
+        """{item: name} of every item the client names "Scroll of Intellect|Stamina|Spirit [numeral]":
+        what puts a flat stat on somebody that Arcane Intellect, Power Word: Fortitude and Divine
+        Spirit compete with."""
+        def build():
+            p = self.path("ItemSparse")
+            rx = re.compile(r"Scroll of (Intellect|Stamina|Spirit)( [IVX]+)?")
+            return {num(r["ID"]): r["Display_lang"] for r in (rows(p) if p else ())
+                    if rx.fullmatch((r["Display_lang"] or "").strip())}
+        return self.memo("stat_scrolls", build)
 
     @property
     def sla(self):
@@ -890,6 +913,85 @@ def check_favours(rep, c, d):
                     rep.note(label, "id %d (%s) has no aura effect: %s" % (i, name, [(e['effect'], e['aura']) for e in fx]))
 
 
+# What a buff of the addon gives, as the stat a MOD_STAT aura (29) names in EffectMiscValue, and the
+# name of the spell a scroll of that stat casts: Buffs.lua's `blockers`, `statValue`.
+STAT_OF = {"intellect": (3, "Intellect"), "fortitude": (2, "Stamina"), "spirit": (4, "Spirit")}
+MOD_STAT = 29
+
+
+def stat_value(c, spell):
+    """(what the MOD_STAT effect of `spell` gives, the stat it is for), or (None, None)."""
+    for e in c.effects.get(spell, ()):
+        if e["effect"] in AURA_EFFECTS and e["aura"] == MOD_STAT:
+            if e["base"] is None:
+                return e["basef"], e["misc0"]
+            return e["base"] + (1 if e["die"] == 1 else 0), e["misc0"]
+    return None, None
+
+
+def check_stats(rep, c, d, flavour):
+    """The flat-stat auras that hold a buff of the addon's off (Buffs.lua: `blockers`, `statValue`).
+
+    Every row of the table is the value the client's SpellEffect gives; a buff lists as blockers
+    every scroll of its stat the client has when its own ranks are MOD_STAT auras of that stat (so the
+    game compares the two), and none where they are not (Mists and retail give percentages); each
+    blocker is a spell of that stat, named for it; every rank of such a buff has a row."""
+    stat = {int(k): v for k, v in as_map(d.get("statValue")).items()}
+    for spell, want in sorted(stat.items()):
+        got, misc = stat_value(c, spell)
+        if got is None:
+            rep.finding("statValue", "id %d (%s) has no MOD_STAT effect in this client" % (spell, c.names.get(spell)))
+        elif got != want:
+            rep.finding("statValue", "id %d (%s): the table says %g, SpellEffect says %g" % (
+                spell, c.names.get(spell), want, got))
+    use_spell = {}
+    for item, uses in c.item_effects.items():
+        if item in c.stat_scrolls:
+            use_spell[item] = [sp for sp, _ in uses]
+    for cls, lst in as_map(d["buffs"]).items():
+        for b in lst:
+            key = b["key"]
+            want = STAT_OF.get(key)
+            where = "%s.%s.blockers" % (cls, key)
+            if want is None:
+                if b.get("blockers"):
+                    rep.finding(where, "blockers on a buff with no stat named in the audit")
+                continue
+            misc, name = want
+            ranks = b.get("ranks", [])
+            competes = any(stat_value(c, r)[1] == misc for r in ranks)
+            blockers = b.get("blockers") or []
+            if not competes:
+                if blockers:
+                    rep.finding(where, "the ranks of %s are not MOD_STAT %d auras in this client, so a scroll "
+                                "is no competition, and the buff lists blockers" % (key, misc))
+                continue
+            for r in ranks:
+                if r not in stat:
+                    rep.finding(where, "rank %d (%s) has no row in statValue" % (r, c.names.get(r)))
+            for i in blockers:
+                got, m = stat_value(c, i)
+                if i not in stat:
+                    rep.finding(where, "blocker %d (%s) has no row in statValue" % (i, c.names.get(i)))
+                if got is None:
+                    rep.finding(where, "blocker %d (%s) has no MOD_STAT effect in this client" % (i, c.names.get(i)))
+                elif m != misc:
+                    rep.finding(where, "blocker %d (%s) is MOD_STAT %d, the stat of %s is %d" % (
+                        i, c.names.get(i), m, key, misc))
+                if not name_ok(c.names.get(i), name):
+                    rep.finding(where, "blocker %d is %r, expected %s" % (i, c.names.get(i), name))
+            # every scroll of that stat the client has is listed
+            listed = set(blockers)
+            for item, iname in sorted(c.stat_scrolls.items()):
+                if not iname.strip().startswith("Scroll of " + name):
+                    continue
+                for sp in use_spell.get(item, []):
+                    got, m = stat_value(c, sp)
+                    if m == misc and sp not in listed:
+                        rep.finding(where, "the client has %s (item %d) casting %d, +%g %s, and the addon does not "
+                                    "list it" % (iname, item, sp, got, name))
+
+
 def check_scrolls(rep, c, d):
     if d.get("flavour") != "camelot":
         return
@@ -1369,6 +1471,7 @@ def check_misc(rep, c, d):
 
 def audit_dump(rep, c, d, flavour):
     check_buffs(rep, c, d, flavour)
+    check_stats(rep, c, d, flavour)
     check_own(rep, c, d, flavour)
     check_favours(rep, c, d)
     check_scrolls(rep, c, d)
@@ -1406,7 +1509,7 @@ def audit(flavour, cache, offline, notes):
 
 
 def selftest(cache, offline):
-    """The audit goes red when a datum is wrong: Classic Era's dump is changed in twelve ways, one
+    """The audit goes red when a datum is wrong: Classic Era's dump is changed in sixteen ways, one
     after another, and each must produce the FINDING it exists for."""
     import copy
     fl = "vanilla"
@@ -1466,6 +1569,18 @@ def selftest(cache, offline):
     def stray_seconds(d):
         d["seconds"]["424242"] = 1800
 
+    def wrong_value(d):
+        d["statValue"]["8096"] = 5
+
+    def drop_blocker(d):
+        mage(d)["blockers"].remove(12176)
+
+    def other_stat(d):
+        mage(d)["blockers"].append(8099)
+
+    def no_rank_row(d):
+        d["statValue"].pop("1460")
+
     cases = [
         ("a rank learned at another level than RANK_LEVEL says", change_level, "ns.RANK_LEVEL says 99"),
         ("a rank the client has that the addon dropped", drop_rank, "does not hold"),
@@ -1479,6 +1594,10 @@ def selftest(cache, offline):
         ("a length that is not the one the client's data gives", wrong_seconds, "lasts 60s in the table"),
         ("an id the client gives a length with none in the table", no_seconds, "has no length in the table"),
         ("a length for an id the addon holds nowhere", stray_seconds, "held nowhere"),
+        ("a scroll's worth that is not the spell's", wrong_value, "the table says 5"),
+        ("a scroll of the client's that the addon does not list", drop_blocker, "does not list it"),
+        ("a blocker of another stat", other_stat, "the stat of intellect"),
+        ("a rank with no worth in the table", no_rank_row, "has no row in statValue"),
     ]
     clean = Report(fl)
     FINDINGS.clear()
@@ -1509,7 +1628,7 @@ def main(argv=None):
     ap.add_argument("--notes", action="store_true", help="also print NOTE lines")
     ap.add_argument("--dump", choices=FLAVOURS, help="print the addon's side as JSON and stop")
     ap.add_argument("--selftest", action="store_true",
-                    help="change Classic Era's dump in twelve ways and check each one is caught")
+                    help="change Classic Era's dump in sixteen ways and check each one is caught")
     ap.add_argument("--build", action="append", default=[], metavar="CLIENT=BUILD",
                     help="audit against another build of that client (e.g. camelot=1.60.1.70338), "
                          "for data that moved since the build CLAUDE.md cites")

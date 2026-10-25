@@ -22,6 +22,20 @@
 --             nothing. Matched through buff.auraIds after the ranks and the
 --             group, never filed under this buff (BUFF_BY_ID): a favour of
 --             one is still that class's buff.
+--   blockers  the auras another source puts on somebody that the game compares
+--             with this buff's own: a flat stat. Arcane Intellect, Power Word:
+--             Fortitude and Divine Spirit are each a MOD_STAT aura (29) on one
+--             stat (Intellect 3, Stamina 2, Spirit 4 in EffectMiscValue), and so
+--             are the Scrolls of Intellect, Stamina and Spirit; only the greater
+--             of two such auras stays on somebody, and a cast of the lesser is
+--             refused ("A more powerful spell is already active"). Listed are
+--             the spells the scrolls cast; what they give, and what every rank
+--             of the buff gives, is the set's `statValue`. UnitHasBuff
+--             (Core.lua) reads them when the buff itself is not worn: one worth
+--             at least what the rank your cast would land on them gives covers
+--             them, a lesser one is cast over. Only where the buff's ranks are
+--             such an aura: the sets whose stat buffs are percentages (Mists,
+--             retail) have none, and no table.
 --   manaOnly  only worth giving somebody with a mana bar.
 --   partyOnly reaches your party and nobody else.
 --   groupOnly reaches anybody in your party or raid (a raid member in another
@@ -105,6 +119,8 @@ local VANILLA = {
 			ranks = { 10157, 10156, 1461, 1460, 1459 },
 			group = { 23028 },
 			manaOnly = true,
+			-- Scroll of Intellect I to IV (items 955, 2290, 4419, 10308).
+			blockers = { 8096, 8097, 8098, 12176 },
 			-- Arcane Brilliance.
 			groupCast = { { id = 23028, reagent = ARCANE_POWDER } },
 		},
@@ -115,6 +131,8 @@ local VANILLA = {
 			key = "fortitude",
 			ranks = { 10938, 10937, 2791, 1245, 1244, 1243 },
 			group = { 21564, 21562 },
+			-- Scroll of Stamina I to IV (items 1180, 1711, 4422, 10307).
+			blockers = { 8099, 8100, 8101, 12178 },
 			-- Prayer of Fortitude: rank 1 a Holy Candle, rank 2 a Sacred one.
 			groupCast = { { id = 21564, reagent = SACRED_CANDLE }, { id = 21562, reagent = HOLY_CANDLE } },
 		},
@@ -124,6 +142,8 @@ local VANILLA = {
 			group = { 27681 },
 			manaOnly = true,
 			talent = true,
+			-- Scroll of Spirit I to IV (items 1181, 1712, 4424, 10306).
+			blockers = { 8112, 8113, 8114, 12177 },
 			-- Prayer of Spirit.
 			groupCast = { { id = 27681, reagent = SACRED_CANDLE } },
 		},
@@ -925,10 +945,37 @@ for _, class in ipairs({ "MAGE", "PRIEST", "WARLOCK", "PALADIN", "HUNTER", "SHAM
 	AddEnhancements(VANILLA_OWN[class], class, ENHANCEMENTS.vanilla)
 end
 
+-- What each rank of the three buffs with `blockers` gives, and each scroll in
+-- them, as a number of the stat they put on (statValue; ns.STAT_VALUE for the
+-- chosen set): what UnitHasBuff weighs a blocker against. Every row is the
+-- client's own SpellEffect, the MOD_STAT effect (aura 29) of the spell and what
+-- it gives: Classic Era's and Burning Crusade's tables hold EffectBasePoints
+-- with a die of one side, so the value is that plus one; Forever's hold the
+-- value as it is (EffectBasePointsF). tools/audit_ids.py holds every row to its
+-- client. Only the single-target ranks, since only they are what a cast lands;
+-- the group versions are not read.
+--
+--   Arcane Intellect    1459 +2, 1460 +7, 1461 +15, 10156 +22, 10157 +31
+--   Scroll of Intellect 8096 +4, 8097 +8, 8098 +12, 12176 +16
+--   Power Word: Fortitude  1243 1244 1245 2791 10937 10938: +3 +8 +20 +32 +43 +54
+--                          here; Forever's are its own, +4 +10 +26 +42 +56 +70
+--   Scroll of Stamina   8099 +4, 8100 +8, 8101 +12, 12178 +16
+--   Divine Spirit       14752 +17, 14818 +23, 14819 +33, 27841 +40
+--   Scroll of Spirit    8112 +3, 8113 +7, 8114 +11, 12177 +15
+local VANILLA_STAT = {
+	[1459] = 2, [1460] = 7, [1461] = 15, [10156] = 22, [10157] = 31,
+	[8096] = 4, [8097] = 8, [8098] = 12, [12176] = 16,
+	[1243] = 3, [1244] = 8, [1245] = 20, [2791] = 32, [10937] = 43, [10938] = 54,
+	[8099] = 4, [8100] = 8, [8101] = 12, [12178] = 16,
+	[14752] = 17, [14818] = 23, [14819] = 33, [27841] = 40,
+	[8112] = 3, [8113] = 7, [8114] = 11, [12177] = 15,
+}
+
 local VANILLA_SET = {
 	name = "vanilla",
 	buffs = VANILLA,
 	own = VANILLA_OWN,
+	statValue = VANILLA_STAT,
 	-- Classes whose buffs overwrite one another, so a target carries only one
 	-- of yours and walking the list would replace a blessing they have.
 	exclusive = { PALADIN = true },
@@ -999,6 +1046,8 @@ local TBC = {
 			key = "intellect",
 			ranks = { 27126, 10157, 10156, 1461, 1460, 1459 },
 			group = { 27127, 23028 },
+			-- Scroll of Intellect I to V (the fifth is item 27499).
+			blockers = { 8096, 8097, 8098, 12176, 33078 },
 			manaOnly = true,
 			-- Arcane Brilliance, both ranks an Arcane Powder.
 			groupCast = { Rank(27127, ARCANE_POWDER), Rank(23028, ARCANE_POWDER) },
@@ -1010,6 +1059,8 @@ local TBC = {
 			key = "fortitude",
 			ranks = { 25389, 10938, 10937, 2791, 1245, 1244, 1243 },
 			group = { 25392, 21564, 21562 },
+			-- Scroll of Stamina I to V (the fifth is item 27502).
+			blockers = { 8099, 8100, 8101, 12178, 33081 },
 			-- Prayer of Fortitude: rank 1 a Holy Candle, ranks 2 and 3 a Sacred one.
 			groupCast = { Rank(25392, SACRED_CANDLE), Rank(21564, SACRED_CANDLE), Rank(21562, HOLY_CANDLE) },
 		},
@@ -1017,6 +1068,8 @@ local TBC = {
 			key = "spirit",
 			ranks = { 25312, 27841, 14819, 14818, 14752 },
 			group = { 32999, 27681 },
+			-- Scroll of Spirit I to V (the fifth is item 27501).
+			blockers = { 8112, 8113, 8114, 12177, 33080 },
 			manaOnly = true,
 			talent = true,
 			-- Prayer of Spirit.
@@ -1271,10 +1324,21 @@ do
 	end
 end
 
+-- Burning Crusade's: Classic Era's, with the sixth Arcane Intellect (27126
+-- +40), the seventh Fortitude (25389 +79), the fifth Divine Spirit (25312 +50)
+-- and the three fifth scrolls (Intellect 33078 +20, Stamina 33081 +20, Spirit
+-- 33080 +30). SpellEffect, build 2.5.6.69795.
+local TBC_STAT = {}
+for id, value in pairs(VANILLA_STAT) do TBC_STAT[id] = value end
+for id, value in pairs({ [27126] = 40, [25389] = 79, [25312] = 50, [33078] = 20, [33081] = 20, [33080] = 30 }) do
+	TBC_STAT[id] = value
+end
+
 local TBC_SET = setmetatable({
 	name = "tbc",
 	buffs = TBC,
 	own = TBC_OWN,
+	statValue = TBC_STAT,
 	-- Vanilla's, less the two Detect Invisibility ranks this client deleted,
 	-- with the sixth Soulstone (27239).
 	favourOnly = { 6346, 546, 132, 27239, 20765, 20764, 20763, 20762, 20707 },
@@ -1419,8 +1483,18 @@ end
 -- 1.60.1.70178 still had the caster's party (20), the radius unchanged (20
 -- yards): so a raid member in another subgroup is reached, and the vanilla
 -- subgroup rule (partyIsSubgroup) is left off here, as for the later clients.
+local CAMELOT_STAT = {}
+for id, value in pairs(VANILLA_STAT) do CAMELOT_STAT[id] = value end
+-- Forever's Power Word: Fortitude is worth more at every rank than Classic
+-- Era's (SpellEffect, build 1.60.1.70532: +4 +10 +26 +42 +56 +70); every other
+-- row is Classic Era's.
+for id, value in pairs({ [1243] = 4, [1244] = 10, [1245] = 26, [2791] = 42, [10937] = 56, [10938] = 70 }) do
+	CAMELOT_STAT[id] = value
+end
+
 local CAMELOT_SET = setmetatable({ buffs = CAMELOT, own = CAMELOT_OWN, groupIsRaid = true,
 	partyIsSubgroup = false }, { __index = VANILLA_SET })
+CAMELOT_SET.statValue = CAMELOT_STAT
 
 ---------------------------------------------------------------------------
 -- Mists of Pandaria Classic
@@ -2218,6 +2292,11 @@ if chosen then
 	if chosen.rankLevel then ns.RANK_LEVEL = chosen.rankLevel end
 end
 
+-- What each rank and each blocker of a buff gives (see `blockers`, and
+-- VANILLA_STAT). The sets whose stat buffs are percentages (Mists, retail) have
+-- none, and so no buff of theirs lists a blocker.
+ns.STAT_VALUE = chosen and chosen.statValue or {}
+
 -- How long each id lasts on this client (see "how long each lasts"): seconds,
 -- 0 for no timer, nothing for unknown. A client with no set has none.
 ns.SPELL_SECONDS = chosen and SECONDS_FOR[chosen] or {}
@@ -2375,6 +2454,29 @@ function ns.BuildBuffLookups()
 					buff.auraIds[#buff.auraIds + 1] = id
 					buff.alikeIds[id] = true
 				end
+			end
+
+			-- The auras that hold it off (`blockers`), strongest first, kept
+			-- apart from auraIds: wearing one is not wearing the buff, nor
+			-- anybody's favour, so none is matched, filed or counted as it. A
+			-- row the table has no number for is never worth anything, and
+			-- sorts last. readIds is what UnitHasBuff asks the client for, in
+			-- one batch: the buff's own ids, then these, so the first found is
+			-- the strongest one worn.
+			buff.blockerIds, buff.readIds = nil, nil
+			if buff.blockers then
+				local stat = ns.STAT_VALUE
+				local list = {}
+				for _, id in ipairs(buff.blockers) do list[#list + 1] = id end
+				table.sort(list, function(a, b)
+					local va, vb = stat[a] or 0, stat[b] or 0
+					if va ~= vb then return va > vb end
+					return a < b
+				end)
+				buff.blockerIds = list
+				buff.readIds = {}
+				for _, id in ipairs(buff.auraIds) do buff.readIds[#buff.readIds + 1] = id end
+				for _, id in ipairs(list) do buff.readIds[#buff.readIds + 1] = id end
 			end
 		end
 	end

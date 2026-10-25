@@ -13,7 +13,7 @@ S = "runscenarios.py"
 # The reads not taken together: every id asked under a protected call of its
 # own, as it was -- the answers are the same, the count is not.
 mutate("Core.lua",
-       "\tlocal threw = not pcall(PrefetchAuras, unit, buff.auraIds, info.secrecy)\n",
+       "\tlocal threw = not pcall(PrefetchAuras, unit, buff.readIds or buff.auraIds, info.secrecy)\n",
        "\tlocal threw = false\n",
        "perf-fix: the ids not read together",
        expect="perf-fix: a unit's aura ids are read under one protected call",
