@@ -42,6 +42,7 @@ Commands.lua
 Phrases.lua
 Ledger.lua
 Looks\Looks.lua
+Looks\Previews.lua
 Looks\Luxe.lua
 Looks\Toast.lua
 Looks\Arcane.lua
