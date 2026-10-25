@@ -162,7 +162,7 @@ local function CheckShape(layout, problem)
 					if item.columns ~= nil and not (type(item.columns) == "number" and item.columns >= 2) then
 						problem(where .. ": " .. tostring(item[1]) .. " has columns = " .. tostring(item.columns))
 					end
-					if item.widget ~= nil and item.widget ~= "number" then
+					if item.widget ~= nil and item.widget ~= "number" and item.widget ~= "themes" then
 						problem(where .. ": " .. tostring(item[1]) .. " asks for a widget the window does not have: " .. tostring(item.widget))
 					end
 				elseif type(item) == "table" and item.composite ~= "never" and item.composite ~= "order" then
@@ -234,6 +234,9 @@ local function CheckClass(scenario, ns, layout, seen)
 			end
 			if option and entry.widget == "number" and kind ~= "range" then
 				problem(path .. " is a " .. tostring(kind) .. "; only a range is a number box")
+			end
+			if option and entry.widget == "themes" and kind ~= "select" then
+				problem(path .. " is a " .. tostring(kind) .. "; only a select is a gallery of looks")
 			end
 			if option and entry.big and kind ~= "execute" then
 				problem(path .. " is a " .. tostring(kind) .. "; only a button is big")

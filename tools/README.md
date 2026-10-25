@@ -804,6 +804,29 @@ icon when a buff lands (`ring_thin_at` and `RING_AT` agree likewise),
 All are white, or black and white, with the shape in the alpha, and the prompt
 colours them.
 
+## make_look_previews.py
+
+The pictures on the look cards of the options window (`Options/Window/WidgetsTheme.lua`):
+`Textures/Previews/Preview_<key>.tga`, one per look in the registry, and
+`Looks/Previews.lua`, the generated list of which looks have one. For each look it
+loads the addon on the mock client in that style, takes `render_prompt.lua`'s
+"owed" state (somebody buffed you), draws it with `render_prompt.py` and cuts a
+248 x 62 unit view out to 256 x 64, 32 bit, uncompressed. Needs lupa, numpy and
+Pillow; the font is the machine's, so the bytes are the same on one machine only.
+
+```
+python tools/make_look_previews.py              # write the pictures and Looks/Previews.lua
+python tools/make_look_previews.py --out DIR    # the same files, into DIR
+python tools/make_look_previews.py --check      # current? exit 1 and say what is not
+```
+
+`--check` needs lupa alone and draws nothing: it hashes the frame tree each look ends
+up with, every texture outside `Textures/Previews`, this script and `render_prompt.py`,
+and compares that with the hash in `Looks/Previews.lua`. `tests/scenarios/theme-picker.lua`
+runs it, so a look, a texture or a default that changes turns that scenario red until
+the tool is run again; a look added to the registry has a card at once, with the addon's
+icon in place of its picture, and gets its picture the same way.
+
 ## make-icon.py
 
 `icon-512.png` (the CurseForge avatar), `icon-64.png`, and `icon-check.png`,

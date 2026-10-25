@@ -69,6 +69,8 @@ local COMMAND = "CLICK MannersPrompt:LeftButton"
 
 local Arcane = ns.Looks.Register("arcane", {
 	name = L["Arcane -- smoked glass, a rim lit by the reason"],
+	title = L["Arcane"],
+	description = L["smoked glass, a rim lit by the reason"],
 	order = 3,
 	-- The glass holds in a fight; the ink dims itself (Combat).
 	combatArtAlpha = 1,

@@ -1860,8 +1860,8 @@ mutate("Queue.lua",
 #     the old bug: the entry existed, the addon drew no border of any kind, and
 #     nothing anywhere could tell the difference.
 mutate("Looks/Looks.lua",
-       '\tframed = { name = L["Framed -- flat panel, thin border"], order = 11, native = true },',
-       '\tblizzard = { name = L["Blizzard -- default UI border"], order = 11, native = true },',
+       '\tframed = { name = L["Framed -- flat panel, thin border"], order = 11, native = true,',
+       '\tblizzard = { name = L["Blizzard -- default UI border"], order = 11, native = true,',
        "a look the addon draws nothing for",
        expect="the dropdown still offers a name the addon draws nothing for",
        script="runscenarios.py")

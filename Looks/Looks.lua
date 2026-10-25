@@ -13,6 +13,13 @@
 --
 -- Fields on `look`:
 --   name            the dropdown's label, L["Name -- what it is"]. Required.
+--   title           the card's name in the options window's picker, L["Glass"].
+--                   Optional: without it the card takes what the label says
+--                   before its dash.
+--   description     the card's one line under the name, L["dark panel, soft
+--                   shadow"]. Optional: without it the card takes what the
+--                   label says after the dash. Give both when a translation
+--                   writes the label with a dash the picker cannot split.
 --   order           where it sits in the dropdown (glass 10, framed 11,
 --                   minimal 12; lower comes first).
 --   fallback        a key to draw as instead, until this look is written. A
@@ -161,9 +168,12 @@ ns.Looks = Looks
 -- The three Prompt/Panel.lua draws, named here so the dropdown is one list.
 -- They are never handed back by Get.
 local NATIVE = {
-	glass = { name = L["Glass -- dark panel, soft shadow"], order = 10, native = true },
-	framed = { name = L["Framed -- flat panel, thin border"], order = 11, native = true },
-	minimal = { name = L["Minimal -- text only, no panel"], order = 12, native = true },
+	glass = { name = L["Glass -- dark panel, soft shadow"], order = 10, native = true,
+		title = L["Glass"], description = L["dark panel, soft shadow"] },
+	framed = { name = L["Framed -- flat panel, thin border"], order = 11, native = true,
+		title = L["Framed"], description = L["flat panel, thin border"] },
+	minimal = { name = L["Minimal -- text only, no panel"], order = 12, native = true,
+		title = L["Minimal"], description = L["text only, no panel"] },
 }
 for key, look in pairs(NATIVE) do
 	look.key = key
@@ -204,4 +214,38 @@ function Looks.Choices()
 		return a < b
 	end)
 	return values, sorting
+end
+
+-- What the label says either side of its dash: English writes " -- ", the
+-- translations an en dash, an em dash, a pair of them without spaces (Chinese),
+-- or nothing at all (the label is then the name alone).
+local DASHES = { " -- ", " \226\128\147 ", " \226\128\148 ", "\226\128\148\226\128\148" }
+
+local function SplitLabel(label)
+	label = type(label) == "string" and label or ""
+	for _, dash in ipairs(DASHES) do
+		local at = label:find(dash, 1, true)
+		if at then return label:sub(1, at - 1), label:sub(at + #dash) end
+	end
+	return label, ""
+end
+
+-- The card a look has in the options window's picker: its name and its one
+-- line, from the look's own fields or else from its label.
+function Looks.Card(key)
+	local look = Looks.list[key]
+	if not look then return tostring(key), "" end
+	local title, line = SplitLabel(look.name)
+	return look.title or title, look.description or line
+end
+
+-- Pictures of the looks for the picker's cards: Textures/Previews/Preview_<key>.tga,
+-- drawn by tools/make_look_previews.py, which also writes Looks/Previews.lua (the
+-- toc loads it after this file) to say which looks it drew. A look it has not
+-- drawn yet has a card without a picture.
+Looks.previews = {}
+
+function Looks.PreviewFile(key)
+	if not Looks.previews[key] then return nil end
+	return "Interface\\AddOns\\Manners\\Textures\\Previews\\Preview_" .. key
 end

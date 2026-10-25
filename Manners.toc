@@ -48,6 +48,7 @@ Commands.lua
 Phrases.lua
 Ledger.lua
 Looks\Looks.lua
+Looks\Previews.lua
 Looks\Luxe.lua
 Looks\Toast.lua
 Looks\Arcane.lua
@@ -81,6 +82,7 @@ Options\Window\Widgets.lua
 Options\Window\WidgetsChoice.lua
 Options\Window\WidgetsEntry.lua
 Options\Window\WidgetsOrder.lua
+Options\Window\WidgetsTheme.lua
 Options\Window\Layout.lua
 Options\Window\Window.lua
 Options\Window\WindowChrome.lua
