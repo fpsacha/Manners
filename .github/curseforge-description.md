@@ -6,7 +6,7 @@ A priest buffs you in passing. By the time you have picked them out of a dozen n
 
 The same button offers your group, people who ask for your buff in chat, and passers-by who are missing it, so buffing a stranger costs one click instead of a minute of squinting at names. It looks after you too: your own armor, aura, aspect or shield, and the poison, stone, oil or lure for each weapon, come up as "You" when they are missing. In a dungeon or a raid it offers one group cast for a whole party when you carry the reagent, and offers a top-up at the moment that suits each buff's length.
 
-Setting it up takes one page. `/manners` opens **Start here**: four numbered steps: who to buff, one key, see it, say thanks. The first time, two questions set the defaults for you, or *Skip* keeps them.
+Setting it up takes one page. `/manners` opens **Start here**: four numbered steps (who to buff, one key, see it, say thanks). The first time, two questions set the defaults for you, or *Skip* keeps them.
 
 ### What you see
 
@@ -60,7 +60,7 @@ Buffs you give: mage Arcane Intellect; priest Fortitude, Divine Spirit, Shadow P
 
 ### Timing
 
-With *Offer a top-up when it runs low* on (the *kept topped up* choice on Start here sets it), Manners knows how long every buff lasts on your client and offers the top-up about a tenth of that before it ends: a minute before a ten-minute buff, five before an hour's,. In a raid or dungeon it starts earlier (twice as early by default, which you can change), earlier still for your own buffs, and only in the last half minute for somebody outside your group. The tooltip says how long the buff lasts and when the top-up is due. After a fight everybody is read again at once.
+With *Offer a top-up when it runs low* on (the *kept topped up* choice on Start here sets it), Manners knows how long every buff lasts on your client and offers the top-up about a tenth of that before it ends: a minute before a ten-minute buff, five before an hour's. In a raid or dungeon it starts earlier (twice as early by default, which you can change), earlier still for your own buffs, and only in the last half minute for somebody outside your group. The tooltip says how long the buff lasts and when the top-up is due. After a fight everybody is read again at once.
 
 ### Paladins
 
