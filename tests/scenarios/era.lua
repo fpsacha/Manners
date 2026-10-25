@@ -350,20 +350,20 @@ for _, withMenu in ipairs({ true, false }) do
 		if pages < 3 then fail(scenario, ("only %d pages opened"):format(pages)) end
 
 		ns.OpenOptions("appearance")
-		local row = UI.RowFor("appearance.style")
+		local row = UI.RowFor("appearance.effects")
 		if not (row and row.field) then
-			fail(scenario, "SKIPPED -- no look dropdown on Look")
+			fail(scenario, "SKIPPED -- no Animations dropdown on Look")
 		else
 			local P = ns.db.profile.prompt
-			local was = P.style
+			local was = P.effects
 			Mock.menu = nil
 			row.field:Click()
 			if withMenu then
-				if not Mock.menu then fail(scenario, "the look dropdown opened no menu") end
-				if P.style ~= was then fail(scenario, "opening the menu changed the look") end
+				if not Mock.menu then fail(scenario, "the Animations dropdown opened no menu") end
+				if P.effects ~= was then fail(scenario, "opening the menu changed Animations") end
 			else
-				if P.style == was then
-					fail(scenario, "with no MenuUtil the look dropdown does nothing: still " .. tostring(was))
+				if P.effects == was then
+					fail(scenario, "with no MenuUtil the Animations dropdown does nothing: still " .. tostring(was))
 				end
 			end
 		end

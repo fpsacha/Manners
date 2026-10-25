@@ -292,12 +292,14 @@ for _, case in ipairs({ "on", "off", "snoozed" }) do
 end
 
 -- ------------------------------------------------------------------ Look
--- The page leads with the control, big, the places beside it, and does not draw
--- Lock position: the button reads and writes the same lock.
+-- The page leads, after the gallery of looks (its own section, above), with the
+-- control, big, the places beside it, and does not draw Lock position: the
+-- button reads and writes the same lock.
 do
 	local scenario = "hunt30-move: Look leads with a big Move the prompt button, the places beside it"
 	with(scenario, "MAGE", function(ns, UI)
 		local list = H.pagePaths(ns, "appearance") or {}
+		if list[1] == "appearance.style" then table.remove(list, 1) end
 		if list[1] ~= "appearance.move" or list[2] ~= "appearance.posPreset" then
 			fail(scenario, ("Look begins %s, %s"):format(tostring(list[1]), tostring(list[2])))
 		end
@@ -313,7 +315,9 @@ do
 			fail(scenario, "the button or the places are not shown on Look")
 			return
 		end
-		if move.sec ~= UI.Model("appearance").sections[1] or places.sec ~= move.sec then
+		-- The gallery of looks is the page's first section; the button and the
+		-- places are its second.
+		if move.sec ~= UI.Model("appearance").sections[2] or places.sec ~= move.sec then
 			fail(scenario, "the button and the places are not the page's first section")
 		end
 		if not (places.e.x > move.e.x and math.abs(places.e.y - move.e.y) < move.e.h) then
