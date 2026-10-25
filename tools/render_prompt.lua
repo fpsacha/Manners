@@ -92,9 +92,13 @@ local function boot(ns, names)
 	if style then ns.db.profile.prompt.style = style end
 	-- `size` "large": the top of the usual range, for a picture of how an
 	-- effect scales (a state that sets its own size keeps it).
-	if size == "large" then
+	-- "extreme": the narrowest prompt that holds the biggest icon (the icon is
+	-- held eight units inside the panel's height), with a large font. "tiny":
+	-- the smallest useful icon.
+	local sizes = { large = { 320, 58, 17, 40 }, extreme = { 220, 48, 17, 40 }, tiny = { 220, 44, 13, 16 } }
+	if sizes[size] then
 		local p = ns.db.profile.prompt
-		p.width, p.height, p.fontSize, p.iconSize = 320, 58, 17, 40
+		p.width, p.height, p.fontSize, p.iconSize = sizes[size][1], sizes[size][2], sizes[size][3], sizes[size][4]
 	end
 	ns.addon:OnEnable()
 	ns.addon:PLAYER_ENTERING_WORLD()

@@ -6,7 +6,9 @@
   icon's echo drops onto it and a bloom of the reason's colour gathers round
   its ring. When your buff lands, rings spread from the icon, light crosses
   the panel and the panel settles. A refusal snaps in a red-amber ring and
-  shakes the text.
+  shakes the text. The rings spread only as far as the room between the icon
+  and the text and the panel's edges allows, and the light always passes under
+  the text, so a letter is never washed.
 - **Scrolls count.** Somebody wearing a Scroll of Intellect, Stamina or
   Spirit that gives as much as your Arcane Intellect, Power Word: Fortitude
   or Divine Spirit would is no longer offered a cast the game refuses ("A

@@ -205,7 +205,7 @@ mutate(A, "\tfor _, anim in ipairs({ self.flareAnim, self.pulseAnim, self.spinAn
        "Arcane's runes left turning",
        expect="still turns after switching", script=S)
 
-mutate(A, "\tkit.textLayer:SetFrameLevel(kit.art:GetFrameLevel() + 1)\n", "",
+mutate(A, "\tkit.textLayer:SetFrameLevel(kit.art:GetFrameLevel() + kit.TEXT_LEVEL)\n", "",
        "textLayer left at Arcane's level",
        expect="textLayer kept Arcane's frame level", script=S)
 

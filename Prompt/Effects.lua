@@ -59,6 +59,21 @@ local function Grow(group, from, to, duration, order, delay, smoothing)
 	return a
 end
 
+-- A scale animation's ends changed after it was made (a method this client
+-- lacks leaves it as drawn, as in Grow).
+local function Rescale(a, from, to)
+	if from and a.SetScaleFrom then a:SetScaleFrom(from, from) end
+	if to and a.SetScaleTo then a:SetScaleTo(to, to) end
+end
+
+-- A look's lock-on ring (scaled from wider down onto its place by `onto`, then
+-- settled by `settle`, which a ring that only closes has none of) held to `cap`, the scale CapScale gave: wider only as
+-- far as the room goes, and never past where it rests.
+local function CapLock(onto, settle, from, mid, cap)
+	Rescale(onto, math.min(from, cap), math.min(mid, cap))
+	if settle then Rescale(settle, math.min(mid, cap), math.min(1, cap)) end
+end
+
 local function Slide(group, dx, dy, duration, order, delay, smoothing)
 	local a = group:CreateAnimation("Translation")
 	a:SetOffset(dx, dy)
@@ -93,9 +108,51 @@ end
 local ECHO_IN, ECHO_OUT = 0.16, 0.20
 local RING_SECONDS = { 0.52, 0.46 }
 local RING_DELAY = { 0, 0.08 }
+-- How far each ring spreads where the room allows it, as a multiple of where
+-- it starts, and its brightness at the start. The room the layout leaves is
+-- smaller than the 1.55 these were drawn for (see FXMethods:Fit), which caps
+-- the reach; the second ring keeps its share of the first's travel.
 local RING_REACH = { 1.55, 1.38 }
+local RING_SHARE = { 1, (1.38 - 1) / (1.55 - 1) }
 local RING_PEAK = { 0.95, 0.60 }
 local REJECT_SECONDS = 0.30
+-- Where a ring starts, in units inside the icon's edge: its brightest line
+-- begins on the icon's face and spreads out through the edge, so there is
+-- something to spread in a small room.
+local RING_START_IN = 3
+
+-- What the arrival's echo grows to at most, and the settle after it.
+local ECHO_FROM, ECHO_SETTLE = 1.45, 1.10
+-- How far a refusal's shake moves the text to the left at most (Panel's shake
+-- below: -3 to begin with), which the ring that contracts on the icon leaves
+-- room for.
+local SHAKE_LEFT = 3
+-- The margin kept between an effect's outer edge and the text, and and the
+-- panel's top and bottom edges, in units.
+local TEXT_MARGIN, EDGE_MARGIN = 2, 1
+
+-- What each ring file draws, as fractions of its half-width: where its
+-- brightest line is (`peak`) and how far out anything of it is seen at all
+-- (`edge`, where its alpha falls under 2%), rounded up a little. Measured from
+-- the files by the scenario that holds these to them (hunt37-effects); a look
+-- registers the files it draws its rings in (kit.RingArt).
+local RING_ART = {}
+local function RingArt(file, peak, edge)
+	RING_ART[file] = { peak = peak, edge = edge }
+end
+RingArt(RING, 0.773, 0.93)
+RingArt(RING_SQ, 0.773, 0.93)
+local function RingArtOf(file) return RING_ART[file] end
+-- A file nobody described is taken to fill its frame and have its line there.
+local UNKNOWN_ART = { peak = 1, edge = 1 }
+
+-- The scale at which a texture of half-width `half` whose art is seen out to
+-- `edge` of it reaches `limit` units from the icon's middle; a look uses it for
+-- the lock-on rings it scales itself.
+local function CapScale(limit, half, edge)
+	if not (limit and half and half > 0) then return 1e9 end
+	return limit / ((edge or 1) * half)
+end
 
 local FXMethods = {}
 FXMethods.__index = FXMethods
@@ -120,13 +177,13 @@ local function NewFX(parent, level, noEcho)
 		ring.tex:SetBlendMode("ADD")
 		ring.tex:SetAllPoints(ring.frame)
 		local land = ring.frame:CreateAnimationGroup()
-		Grow(land, 1, RING_REACH[i], RING_SECONDS[i], 1, RING_DELAY[i], "OUT")
+		ring.landGrow = Grow(land, 1, RING_REACH[i], RING_SECONDS[i], 1, RING_DELAY[i], "OUT")
 		Alpha(land, RING_PEAK[i], 0, RING_SECONDS[i], 1, RING_DELAY[i], "IN")
 		Park(land, ring.frame)
 		ring.land = land
 		if i == 1 then
 			local reject = ring.frame:CreateAnimationGroup()
-			Grow(reject, 1.55, 0.97, REJECT_SECONDS, 1, 0, "OUT")
+			ring.rejectGrow = Grow(reject, 1.55, 0.97, REJECT_SECONDS, 1, 0, "OUT")
 			Alpha(reject, 0, 0.95, 0.07, 1, 0, "OUT")
 			Alpha(reject, 0.95, 0, REJECT_SECONDS - 0.07, 1, 0.07, "IN")
 			Park(reject, ring.frame)
@@ -151,9 +208,9 @@ local function NewFX(parent, level, noEcho)
 		echo.mask:SetAllPoints(echo.frame)
 	end
 	local drop = echo.frame:CreateAnimationGroup()
-	Grow(drop, 1.45, 1, ECHO_IN, 1, 0, "OUT")
+	echo.dropIn = Grow(drop, ECHO_FROM, 1, ECHO_IN, 1, 0, "OUT")
 	Alpha(drop, 0, 0.62, ECHO_IN * 0.7, 1, 0, "OUT")
-	Grow(drop, 1, 1.10, ECHO_OUT, 2, 0, "IN_OUT")
+	echo.dropOut = Grow(drop, 1, ECHO_SETTLE, ECHO_OUT, 2, 0, "IN_OUT")
 	Alpha(drop, 0.62, 0, ECHO_OUT, 2, 0, "IN")
 	Park(drop, echo.frame)
 	echo.drop = drop
@@ -162,13 +219,16 @@ local function NewFX(parent, level, noEcho)
 	return fx
 end
 
--- Placed round `icon`: the rings' frames `pad` outside it (their texture fills
--- them, so pad says where the ring sits), the echo's frame on it.
-function FXMethods:Place(icon, pad)
+-- Placed round `icon`, which is `size` units across: the rings' frames `pad`
+-- outside it (their texture fills them, so pad says where the ring sits), the
+-- echo's frame on it. Fit says how far they may spread from there.
+function FXMethods:Place(icon, pad, size)
+	self.iconHalf = size / 2
 	for _, ring in ipairs(self.rings) do
 		ring.frame:ClearAllPoints()
 		ring.frame:SetPoint("TOPLEFT", icon, "TOPLEFT", -pad, pad)
 		ring.frame:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", pad, -pad)
+		ring.half = size / 2 + pad
 	end
 	local echo = self.echo
 	if not echo then return end
@@ -185,9 +245,7 @@ end
 -- The ring's art, round or square, and the echo's shape (a mask file, or nil
 -- for a square icon). Called whenever the icon's shape may have changed.
 function FXMethods:Shape(round, roundFile, squareFile, maskFile)
-	for _, ring in ipairs(self.rings) do
-		ring.tex:SetTexture(round and roundFile or squareFile)
-	end
+	for i = 1, #self.rings do self:SetArt(i, round and roundFile or squareFile) end
 	local echo = self.echo
 	if not (echo and echo.mask) then return end
 	if maskFile then
@@ -204,8 +262,49 @@ function FXMethods:Shape(round, roundFile, squareFile, maskFile)
 	end
 end
 
+-- One ring drawn in another file (a look's second ring in art of its own),
+-- whose reach Fit then reads.
+function FXMethods:SetArt(i, file)
+	local ring = self.rings[i]
+	ring.tex:SetTexture(file)
+	ring.art = RING_ART[file]
+end
+
 function FXMethods:SetShown(on)
 	for _, f in ipairs(self.frames) do f:SetShown(on) end
+end
+
+-- How far the rings and the echo may spread, from the room the layout leaves:
+-- `limitH` and `limitV` are the distances from the icon's middle to where the
+-- text starts (less the margin) and to the panel's top and bottom edges (less
+-- the margin), the nearer on each axis; `shake` how far the text swings
+-- towards the icon in a refusal. A ring is seen out to its art's `edge` of its
+-- half-width, so its scale is held where that edge reaches the limit, and it
+-- spreads from where its brightest line sits just inside the icon's edge out to
+-- there: where the room is small it spreads little, and where there is none
+-- it flashes in place. Called whenever the layout is: not per frame.
+function FXMethods:Fit(limitH, limitV, shake)
+	local half = self.iconHalf
+	if not half then return end
+	local limit = math.max(half, math.min(limitH, limitV))
+	local refuseLimit = math.max(half, math.min(limitH - (shake or 0), limitV))
+	for i, ring in ipairs(self.rings) do
+		local art = ring.art or UNKNOWN_ART
+		local full = art.edge * ring.half
+		local from = math.min(1, math.max(half * 0.6, half - RING_START_IN) / (art.peak * ring.half), limit / full)
+		local to = from + (math.min(RING_REACH[i], limit / full) - from) * RING_SHARE[i]
+		Rescale(ring.landGrow, from, to)
+		if ring.rejectGrow then
+			local out = math.max(from, math.min(RING_REACH[1], refuseLimit / full))
+			local back = math.min(from, refuseLimit / full)
+			Rescale(ring.rejectGrow, out, back)
+		end
+	end
+	local echo = self.echo
+	if not echo then return end
+	local room = limit / half
+	Rescale(echo.dropIn, math.min(ECHO_FROM, room))
+	Rescale(echo.dropOut, nil, math.min(ECHO_SETTLE, room))
 end
 
 -- A buff landed: two rings spread from the icon in the colour, the second
@@ -253,7 +352,8 @@ function FXMethods:IsPlaying()
 	return self.echo ~= nil and Playing(self.echo.drop)
 end
 
-lib.NewFX = NewFX
+lib.NewFX, lib.RingArt, lib.CapScale, lib.Rescale, lib.CapLock, lib.RingArtOf = NewFX, RingArt, CapScale, Rescale, CapLock, RingArtOf
+lib.TEXT_MARGIN, lib.EDGE_MARGIN, lib.SHAKE_LEFT = TEXT_MARGIN, EDGE_MARGIN, SHAKE_LEFT
 
 ---------------------------------------------------------------------------
 -- the three looks drawn here
@@ -309,7 +409,7 @@ function Prompt:BuildAnimations()
 	local arrive = R.burstFrame:CreateAnimationGroup()
 	Alpha(arrive, 0, 0.90, 0.09, 1, 0, "OUT")
 	Alpha(arrive, 0.90, 0, 0.38, 1, 0.09, "OUT")
-	Grow(arrive, 0.94, 1.10, 0.47, 1, 0, "OUT")
+	arrive.grow = Grow(arrive, 0.94, 1.10, 0.47, 1, 0, "OUT")
 	Park(arrive, R.burstFrame)
 	R.burstFrame.arrive = arrive
 
@@ -317,7 +417,7 @@ function Prompt:BuildAnimations()
 	local burst = R.burstFrame:CreateAnimationGroup()
 	Alpha(burst, 0, 0.85, 0.07, 1, 0, "OUT")
 	Alpha(burst, 0.85, 0, 0.38, 1, 0.07, "OUT")
-	Grow(burst, 1, 1.10, 0.45, 1, 0, "OUT")
+	burst.grow = Grow(burst, 1, 1.10, 0.45, 1, 0, "OUT")
 	Park(burst, R.burstFrame)
 	R.burstFrame.anim = burst
 
@@ -394,6 +494,23 @@ function Prompt:BuildAnimations()
 	if cFade.SetSmoothing then cFade:SetSmoothing("OUT") end
 	comeback.fade = cFade
 	R.art.comeback = comeback
+end
+
+-- The halo that flares round the icon (the three built-in looks): how deep it is
+-- drawn beyond the icon's ring, and how far it may grow. `limit` is the
+-- distance from the icon's middle to the nearest thing it must stay clear of
+-- (the text, the panel's top and bottom edges: Fit's limits), `half` the icon's
+-- half-size, `outer` the width of its ring, `haloHalf` the half-width of the
+-- round halo's texture when the icon is round (it draws a ring in place of the
+-- strips). Returns the depth for PlaceHalo.
+function Prompt:FitBurst(limit, half, outer, haloHalf)
+	local deep = math.max(0, math.min(4, limit - half - outer))
+	local reach = haloHalf or (half + outer + deep)
+	local cap = limit / reach
+	local flare, arrive = R.burstFrame.anim, R.burstFrame.arrive
+	if flare and flare.grow then lib.Rescale(flare.grow, math.min(1, cap), math.min(1.10, cap)) end
+	if arrive and arrive.grow then lib.Rescale(arrive.grow, math.min(0.94, cap), math.min(1.10, cap)) end
+	return deep
 end
 
 -- Whether the extra motion is wanted: the landing rings, the shine, the

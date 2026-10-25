@@ -385,6 +385,9 @@ function Toast:Build(kit)
 	-- of the icon: nothing lies over it.
 	self.fx = kit.FX(art, nil, true)
 	for _, f in ipairs(self.fx.frames) do keep(f) end
+	-- Where the ring file is brightest and how far out it is seen, for how far
+	-- the rings may spread (measured from the file: hunt37-effects).
+	kit.RingArt(ART .. "RingGlow", 0.68, 0.78)
 	-- The shade the medallion throws on the banner, over the rails and under
 	-- the discs: what makes it stand off the banner.
 	self.shade = tex(art, "BORDER", 4, "MedShade")
@@ -485,6 +488,7 @@ function Toast:BuildAnimations(anim)
 	-- to home in the 0.15 s it takes to light, so the group stays the 0.55 s
 	-- the light may.
 	local gather = self.arrive[1]:CreateAnimation("Scale")
+	self.gather = gather
 	if gather.SetScaleFrom then gather:SetScaleFrom(1.30, 1.30) end
 	if gather.SetScaleTo then gather:SetScaleTo(1, 1) end
 	if gather.SetOrigin then gather:SetOrigin("CENTER", 0, 0) end
@@ -621,8 +625,15 @@ function Toast:Apply(p, above)
 		icon:SetSize(iconSize, iconSize)
 		icon:SetPoint("CENTER", art, "TOPLEFT", cx, -cy)
 		-- The rings spread from the medallion's ring of light, in its art.
-		self.fx:Place(icon, (1.45 * M - iconSize) / 2)
+		self.fx:Place(icon, (1.45 * M - iconSize) / 2, iconSize)
 		self.fx:Shape(true, ART .. "RingGlow", ART .. "RingGlow")
+		-- The room the rings have: to the text (less a margin), to the
+		-- medallion's own left edge and to the panel's top and bottom, which
+		-- the medallion fills. The ring that gathers on it is held to the same.
+		local limitH = math.min(textX - cx - kit.TEXT_MARGIN, cx - kit.EDGE_MARGIN)
+		local limitV = H / 2 - kit.EDGE_MARGIN
+		self.fx:Fit(limitH, limitV, kit.SHAKE_LEFT)
+		kit.CapLock(self.gather, nil, 1.30, 1, kit.CapScale(math.min(limitH, limitV), 0.725 * M, 0.78))
 		local cooldown = kit.cooldown
 		if cooldown then
 			cooldown:ClearAllPoints()
@@ -815,7 +826,7 @@ function Toast:Hide()
 	end
 	kit.count:Show()
 	kit.fit.room[kit.name], kit.fit.room[kit.sub] = nil, nil
-	kit.textLayer:SetFrameLevel(kit.art:GetFrameLevel() + 1)
+	kit.textLayer:SetFrameLevel(kit.art:GetFrameLevel() + kit.TEXT_LEVEL)
 	kit.textLayer:SetAlpha(1)
 	-- The fight's dimming of the clock goes with the hold, which Combat(false)
 	-- will not be here to lift.

@@ -116,13 +116,29 @@
 --                   spread when a buff lands (fx:Land(r, g, b, strength)) and
 --                   one that contracts onto the icon for a refusal
 --                   (fx:Refuse(r, g, b, strength)), and, unless `noEcho`, the
---                   icon's echo (fx:Arrive(file, r, g, b)). fx:Place(icon, pad)
---                   puts the rings `pad` units outside the icon (their file
---                   fills their frame, so pad says where the ring sits),
---                   fx:Shape(round, roundFile, squareFile, maskFile) gives them
---                   the look's own art, fx:SetShown(on) and fx:Stop() (call it
---                   in Hide) the rest; fx.frames lists them. A look that keeps
---                   its icon clean passes noEcho.
+--                   icon's echo (fx:Arrive(file, r, g, b)). fx:Place(icon, pad,
+--                   size) puts the rings `pad` units outside the icon, which is
+--                   `size` across (their file fills their frame, so pad says
+--                   where the ring sits), fx:Shape(round, roundFile, squareFile,
+--                   maskFile) gives them the look's own art, fx:SetShown(on) and
+--                   fx:Stop() (call it in Hide) the rest; fx.frames lists them.
+--                   A look that keeps its icon clean passes noEcho.
+--                   THE ROOM: nothing of the icon's light may cover the text or
+--                   pass the panel's top and bottom. After Place and Shape, a
+--                   look calls fx:Fit(limitH, limitV, kit.SHAKE_LEFT): the
+--                   distances from the icon's middle to the text (less
+--                   kit.TEXT_MARGIN, and to the card's left edge less
+--                   kit.EDGE_MARGIN) and to the top and bottom (less
+--                   kit.EDGE_MARGIN), which holds the rings and the echo
+--                   inside. The files it draws its rings in are described once
+--                   with kit.RingArt(file, peak, edge): where the ring is
+--                   brightest and how far out it is seen, as fractions of the
+--                   file's half-width (hunt37-effects reads the files and holds
+--                   the numbers to them). A ring the look scales itself (a
+--                   lock-on) is held with kit.CapLock(closing, settling, from,
+--                   mid, kit.CapScale(limit, half, edge)). textLayer rests at
+--                   kit.TEXT_LEVEL frames above art, over every frame of light;
+--                   Hide puts it back there.
 --   Tint(r, g, b, t) -> r, g, b   a colour taken towards white (t up to 1) or
 --                   black (down to -1); WARM_WHITE is the second tone of a rim
 --   ReasonColor(reason) -> { r, g, b }  the palette's, whatever the marker
