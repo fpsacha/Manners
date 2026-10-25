@@ -875,7 +875,7 @@ end
 -- ------------------------------------------------------------------ 16
 -- Every visible name has a click area covering its text, in every look, with
 -- the list below the prompt and above it; a name that is not there has none.
-for _, style in ipairs({ "glass", "framed", "minimal", "luxe", "toast", "arcane", "whisper" }) do
+for _, style in ipairs({ "glass", "framed", "minimal", "luxe", "toast", "arcane", "whisper", "heritage" }) do
 	for _, above in ipairs({ false, true }) do
 		local scenario = ("hunt25-rows: every visible name has a click area (%s, list %s)")
 			:format(style, above and "above" or "below")

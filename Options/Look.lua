@@ -562,7 +562,8 @@ function Page.BuildLookTab()
 				desc = L["Masks the icon into a circle. Reads more like a portrait than a spell, so it is off by default."],
 				order = 53,
 				width = "full",
-				disabled = function() return not P().showIcon end,
+				-- Heritage's icon is an action button's: square.
+				disabled = function() return not P().showIcon or P().style == "heritage" end,
 				get = pGet,
 				set = pSet,
 			},
