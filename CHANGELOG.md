@@ -7,6 +7,11 @@
   its ring. When your buff lands, rings spread from the icon, light crosses
   the panel and the panel settles. A refusal snaps in a red-amber ring and
   shakes the text.
+- **Scrolls count.** Somebody wearing a Scroll of Intellect, Stamina or
+  Spirit that gives as much as your Arcane Intellect, Power Word: Fortitude
+  or Divine Spirit would is no longer offered a cast the game refuses ("A
+  more powerful spell is already active"). A weaker scroll still gets your
+  buff over it. Classic Era, Burning Crusade and WoW Forever.
 - **A two-tone breath.** While you owe somebody, the glow breathes in the
   reason's colour and a warm white rim, on a slower round of about two and a
   half seconds.
