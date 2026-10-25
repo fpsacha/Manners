@@ -78,6 +78,9 @@ local Toast = ns.Looks.Register("toast", {
 -- The discs are drawn to this fraction of their file's half-size
 -- (DISC_FILL in the generator), and the icon's mask to this.
 local DISC_FILL, MASK_FILL = 0.98, 0.985
+-- The medallion's shade: where its edge sits in its file (MED_SHADE_FILL in
+-- the generator, which must agree) and how dark it is.
+local SHADE_FILL, SHADE_ALPHA = 0.70, 0.55
 -- Where the rails run, in units in from the frame's edge for a 12-unit
 -- corner, scaled with the corner: the middle of the rail, for the glints, and
 -- the favour clock's line, on the dark of the banner just inside the inner
@@ -116,8 +119,11 @@ local TEXT_COMBAT, ICON_COMBAT = 0.78, 0.70
 -- The owed pulse: the enamel lit to this and back, this many breaths of
 -- 3.2 s, then it settles to the dark enamel.
 local PULSE_PEAK = 0.55
+-- The warm tone on the gold ring over the same breath: how much of the pale
+-- gold it takes at the top of it.
+local PULSE_WARM = 0.34
 local BREATHS = 3
-local BREATH = 1.6
+local BREATH = 1.3
 -- The longest an additive flourish may stay lit, in seconds.
 local FLOURISH = 0.6
 local COMMAND = "CLICK MannersPrompt:LeftButton"
@@ -373,7 +379,15 @@ function Toast:Build(kit)
 	-- arrives and as a buff lands, under the medallion's discs so it shows
 	-- only outside them; the gilding's flare; a glint down each rail.
 	self.ringArrive = light("RingGlow", 3)
-	self.burst = light("RingGlow", 4)
+	-- The rings that spread from the medallion when a buff lands, and the
+	-- one that snaps in when one is refused: the same ring of light, in
+	-- frames over the art (and under the text), parked at nothing. No echo
+	-- of the icon: nothing lies over it.
+	self.fx = kit.FX(art, nil, true)
+	for _, f in ipairs(self.fx.frames) do keep(f) end
+	-- The shade the medallion throws on the banner, over the rails and under
+	-- the discs: what makes it stand off the banner.
+	self.shade = tex(art, "BORDER", 4, "MedShade")
 	self.flare = Pieces(art, "BORDER", 5, ART .. "BorderGlow", "ADD", false, keep)
 	Each(self.flare, "SetAlpha", 0)
 	self.glints = {}
@@ -391,12 +405,16 @@ function Toast:Build(kit)
 	self.seam = tex(art, "ARTWORK", -4, "Disc")
 	self.ring = tex(art, "ARTWORK", -3, "Gold")
 	self.ringHover = tex(art, "ARTWORK", -2, "Disc")
+	-- The second tone of the owed breath: the gold ring warmed towards pale
+	-- gold, in BLEND like the enamel's own light.
+	self.ringWarm = tex(art, "ARTWORK", -2, "Disc")
 	-- The well: opaque, in the icon's place, so whenever the icon or the
 	-- panel is less than opaque (a fight, the panel fading in and out)
 	-- nothing behind it shows; and the dark hairline between icon and gold.
 	self.well = tex(art, "ARTWORK", -1, "Disc")
 	self.glow:SetAlpha(0)
 	self.ringHover:SetAlpha(0)
+	self.ringWarm:SetAlpha(0)
 
 	-- The favour clock, on the bottom rail: the time spent as a line of dark
 	-- ash its whole length, the time left over it, and a bead at its end.
@@ -423,6 +441,7 @@ function Toast:Build(kit)
 	local base = art:GetFrameLevel()
 	self.chipFrame = keep(CreateFrame("Frame", nil, art))
 	self.chipFrame:SetFrameLevel(base + 3)
+	for _, f in ipairs(self.fx.frames) do f:SetFrameLevel(base + 2) end
 	self.chipBox = keep(CreateFrame("Frame", nil, self.chipFrame))
 	self.keyBox = keep(CreateFrame("Frame", nil, self.chipFrame))
 	self.chip = ThreeSlice(self.chipFrame, "ARTWORK", 1, ART .. "Chip", keep)
@@ -455,9 +474,23 @@ function Toast:BuildAnimations(anim)
 	local pulse = self.glow:CreateAnimationGroup()
 	pulse:SetLooping("BOUNCE")
 	Alpha(pulse, 0, PULSE_PEAK, BREATH, 1, nil, "IN_OUT")
-	self.pulse = { anim(pulse) }
+	-- ...and, on the same breath, the gold ring warmed.
+	local warm = self.ringWarm:CreateAnimationGroup()
+	warm:SetLooping("BOUNCE")
+	Alpha(warm, 0, 1, BREATH, 1, nil, "IN_OUT")
+	self.pulse = { anim(pulse), anim(warm) }
 
 	self.arrive = { anim(Flash(self.ringArrive, 1, 0.15, 0.40, nil, "IN")) }
+	-- The arrival's ring converges on the medallion as it fades in: from wider
+	-- to home in the 0.15 s it takes to light, so the group stays the 0.55 s
+	-- the light may.
+	local gather = self.arrive[1]:CreateAnimation("Scale")
+	if gather.SetScaleFrom then gather:SetScaleFrom(1.30, 1.30) end
+	if gather.SetScaleTo then gather:SetScaleTo(1, 1) end
+	if gather.SetOrigin then gather:SetOrigin("CENTER", 0, 0) end
+	gather:SetDuration(0.15)
+	gather:SetOrder(1)
+	if gather.SetSmoothing then gather:SetSmoothing("OUT") end
 
 	self.sweep = {}
 	for i, t in ipairs(self.glints) do
@@ -466,16 +499,8 @@ function Toast:BuildAnimations(anim)
 
 	self.flareAnims = {}
 	for i, t in ipairs(self.flare) do self.flareAnims[i] = anim(Flash(t, 0.5, 0.08, 0.42)) end
-	local burst = self.burst:CreateAnimationGroup()
-	local bGrow = burst:CreateAnimation("Scale")
-	if bGrow.SetScaleFrom then bGrow:SetScaleFrom(1, 1) end
-	if bGrow.SetScaleTo then bGrow:SetScaleTo(1.35, 1.35) end
-	if bGrow.SetOrigin then bGrow:SetOrigin("CENTER", 0, 0) end
-	bGrow:SetDuration(0.5)
-	if bGrow.SetSmoothing then bGrow:SetSmoothing("OUT") end
-	Alpha(burst, 0.8, 0, 0.5, 1, nil, "OUT")
-	Park(burst, self.burst, 0)
-	self.burstAnim = anim(burst)
+	-- The first of the two rings, which the scenarios watch for a landed buff.
+	self.burstAnim = self.fx.rings[1].land
 
 	-- The cursor's light on the gold, both ways; from and to are set for
 	-- each play.
@@ -583,20 +608,28 @@ function Toast:Apply(p, above)
 	self.well:SetVertexColor(WELL[1], WELL[2], WELL[3], 1)
 	self.seam:SetVertexColor(WELL[1], WELL[2], WELL[3], 1)
 	self.ringHover:SetVertexColor(HOVER[1], HOVER[2], HOVER[3], HOVER[4])
-	for _, t in ipairs({ self.ringArrive, self.burst }) do
-		t:ClearAllPoints()
-		t:SetPoint("CENTER", art, "TOPLEFT", cx, -cy)
-		t:SetSize(1.45 * M, 1.45 * M)
-	end
+	Disc(self.ringWarm, art, cx, cy, rRing)
+	self.ringWarm:SetVertexColor(PALE_GOLD[1], PALE_GOLD[2], PALE_GOLD[3], PULSE_WARM)
+	self.shade:ClearAllPoints()
+	self.shade:SetPoint("CENTER", art, "TOPLEFT", cx + 0.04 * M, -(cy + 0.07 * M))
+	self.shade:SetSize(M / SHADE_FILL, M / SHADE_FILL)
+	self.shade:SetVertexColor(0, 0, 0, SHADE_ALPHA)
+	self.ringArrive:ClearAllPoints()
+	self.ringArrive:SetPoint("CENTER", art, "TOPLEFT", cx, -cy)
+	self.ringArrive:SetSize(1.45 * M, 1.45 * M)
 	if showIcon then
 		icon:SetSize(iconSize, iconSize)
 		icon:SetPoint("CENTER", art, "TOPLEFT", cx, -cy)
+		-- The rings spread from the medallion's ring of light, in its art.
+		self.fx:Place(icon, (1.45 * M - iconSize) / 2)
+		self.fx:Shape(true, ART .. "RingGlow", ART .. "RingGlow")
 		local cooldown = kit.cooldown
 		if cooldown then
 			cooldown:ClearAllPoints()
 			cooldown:SetAllPoints(icon)
 			-- The mask doubles as the swipe, so the sweep has the icon's shape.
 			if cooldown.SetSwipeTexture then cooldown:SetSwipeTexture(maskFile) end
+			if cooldown.SetUseCircularEdge then cooldown:SetUseCircularEdge(true) end
 		end
 	end
 
@@ -675,9 +708,10 @@ function Toast:Apply(p, above)
 	-- list for PaintQueue, the chips for Chip, the clock for its debt.
 	for _, x in ipairs(self.own) do x:Show() end
 	for _, t in ipairs({ self.medallion, self.rim, self.band, self.glow, self.seam, self.ring, self.ringHover,
-		self.well, self.ringArrive, self.burst }) do
+		self.ringWarm, self.well, self.ringArrive, self.shade }) do
 		t:SetShown(showIcon)
 	end
+	self.fx:SetShown(showIcon)
 	for i = 1, 8 do
 		local side = i == 1 or i == 4 or i == 6
 		self.border[i]:SetShown(not (showIcon and side))
@@ -757,6 +791,8 @@ function Toast:Hide()
 	if not kit then return end
 	self.active = nil
 	for _, g in ipairs(self.anims) do g:Stop() end
+	self.fx:Stop()
+	self.ringWarm:SetAlpha(0)
 	-- The cursor's light parks where its fade was headed (and a finished fade
 	-- is not stopped at all), and the cursor leaves for the next look: put it
 	-- out after the Stop, or it is lit when this look comes back.
@@ -773,7 +809,10 @@ function Toast:Hide()
 	icon:SetAlpha(1)
 	icon:SetVertexColor(1, 1, 1)
 	icon:SetDesaturated(false)
-	if kit.cooldown then kit.cooldown:SetAlpha(1) end
+	if kit.cooldown then
+		kit.cooldown:SetAlpha(1)
+		if kit.cooldown.SetUseCircularEdge then kit.cooldown:SetUseCircularEdge(false) end
+	end
 	kit.count:Show()
 	kit.fit.room[kit.name], kit.fit.room[kit.sub] = nil, nil
 	kit.textLayer:SetFrameLevel(kit.art:GetFrameLevel() + 1)
@@ -1010,7 +1049,6 @@ function Toast:Tint(r, g, b, outcome)
 	-- the reason, with the enamel's restraint.
 	self.jewel:SetVertexColor((er + dr) / 2, (eg + dg) / 2, (eb + db) / 2, 1)
 	self.ringArrive:SetVertexColor(r, g, b, 0.55)
-	self.burst:SetVertexColor(r, g, b, 1)
 	if not outcome then
 		-- The time left in the fired colour, lighter than the dark enamel,
 		-- so it is a live line over its ash; quiet, never a second rail, and
@@ -1111,6 +1149,7 @@ end
 function Toast:HoldPulse()
 	for _, g in ipairs(self.pulse) do g:Stop() end
 	self.glow:SetAlpha(0)
+	self.ringWarm:SetAlpha(0)
 end
 
 function Toast:Attention(isNew, arrived, flashStyle)
@@ -1142,6 +1181,7 @@ function Toast:Attention(isNew, arrived, flashStyle)
 	if playing and not isNew then return end
 	if not playing then
 		self.glow:SetAlpha(0)
+		self.ringWarm:SetAlpha(0)
 		for _, g in ipairs(self.pulse) do g:Play() end
 	end
 	-- A few breaths and then still: a loop that runs for as long as somebody
@@ -1161,23 +1201,31 @@ function Toast:StopAttention()
 	self.pulseGen = (self.pulseGen or 0) + 1
 	for _, g in ipairs(self.pulse) do g:Stop() end
 	self.glow:SetAlpha(0)
+	self.ringWarm:SetAlpha(0)
 end
 
 function Toast:Flourish(kind)
+	-- A refusal contracts: the gilding flares in red and amber, and one ring
+	-- snaps in onto the medallion. The text's shake is Prompt's.
+	if kind == "failed" then
+		Each(self.flare, "SetVertexColor", 1, 0.42, 0.20, 1)
+		PlayAll(self.flareAnims)
+		if self.kit.icon:IsShown() then self.fx:Refuse(1.00, 0.40, 0.22, 0.85) end
+		return
+	end
 	-- Nothing for a cast nobody confirmed: a flourish is a claim.
 	if kind ~= "cast" then return end
+	Each(self.flare, "SetVertexColor", 1, 0.85, 0.55, 1)
 	PlayAll(self.flareAnims)
 	if self.kit.icon:IsShown() then
 		local o = OUTCOME.cast
-		self.burst:SetVertexColor(o[1], o[2], o[3], 1)
-		self.burstAnim:Stop()
-		self.burstAnim:Play()
+		self.fx:Land(o[1], o[2], o[3], 0.70)
 	end
 end
 
 function Toast:StopFlourishes()
 	for _, g in ipairs(self.flareAnims) do g:Stop() end
-	self.burstAnim:Stop()
+	self.fx:Stop()
 	for _, g in ipairs(self.sweep) do g:Stop() end
 end
 

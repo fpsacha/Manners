@@ -579,7 +579,15 @@ python tools/render_prompt.py --addon ../old --out before   # an older build
 python tools/render_prompt.py --locale deDE --out de         # as a German client
 python tools/render_prompt.py --style arcane --key F --out arcane   # every state in a look
 python tools/render_prompt.py --compare before after compare.png
+python tools/render_prompt.py --states success --at 0.2         # 0.2 s into the animation
+python tools/render_prompt.py --states success --strip 0.05,0.15,0.3,0.5  # a film strip of it
+python tools/render_prompt.py --size large                      # 320 x 58, 17 pt, icon 40
 ```
+
+`--at SECONDS` takes every picture that far into its animation instead of
+at the state's own time, `--strip T1,T2,...` draws one picture per time side by
+side (how an effect moves, which a single still of it cannot say), and
+`--size large` is the top of the usual range.
 
 `--style` draws every state in that look (a state that names its own look,
 such as `framed`, keeps it), and `--key` binds that key to the prompt first,
@@ -771,17 +779,26 @@ so.
 
 ## make-glow.py
 
-`Textures/Glow.tga` and `Textures/GlowRound.tga`, the soft glows the prompt
-draws round its spell icon. Like `Manners64.tga` they ship in the zip. Needs
-Pillow; deterministic.
+`Textures/Glow.tga`, `GlowRound.tga`, `Ring.tga`, `RingSq.tga`, `Sweep.tga`,
+`Gloss.tga` and `Bevel.tga`, the light the prompt's own looks (glass, framed,
+minimal) are drawn with. Like `Manners64.tga` they ship in the zip. Needs
+numpy and Pillow; deterministic, with every number that shapes the art in
+`PARAMS` at the top of the script. `--out DIR` writes the same files to DIR
+(what `tests/scenarios/hunt35-effects.lua` compares with what ships) and
+`--sheet FILE` draws a contact sheet.
 
-`Glow.tga` is light falling off in every direction from its centre, and
-`Prompt/Prompt.lua` cuts it into eight pieces round a square icon: the quarters are
-the corners and a line through the middle is each side, so every join has the
-same brightness on both sides of it. `GlowRound.tga` is a ring for the rounded
-icon; `RING_AT` in the script and `GLOW_RING_AT` in `Prompt/Prompt.lua` say where its
-rim is and have to agree. Both are white with the shape in the alpha, and the
-prompt colours them.
+`Glow.tga` is light falling off in every direction from its centre (a monotone
+curve through the stops in `PARAMS`), and `Prompt/Prompt.lua` cuts it into
+eight pieces round a square icon: the quarters are the corners and a line
+through the middle is each side, so every join has the same brightness on both
+sides of it. `GlowRound.tga` is a ring for the rounded icon; `ring_at` in the
+script and `GLOW_RING_AT` in `Prompt/Prompt.lua` say where its rim is and have
+to agree. `Ring.tga` and `RingSq.tga` are the thin rings that spread from the
+icon when a buff lands (`ring_thin_at` and `RING_AT` agree likewise),
+`Sweep.tga` the band that crosses the panel with a bright leading edge,
+`Gloss.tga` the glass's reflection and `Bevel.tga` its inner bevel (a 9-slice).
+All are white, or black and white, with the shape in the alpha, and the prompt
+colours them.
 
 ## make-icon.py
 

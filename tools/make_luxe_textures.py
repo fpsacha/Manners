@@ -1,6 +1,7 @@
 """The art the Luxe look (Looks/Luxe.lua) draws the prompt with.
 
-    python tools/make_luxe_textures.py
+    python tools/make_luxe_textures.py              # Textures/Luxe/*.tga
+    python tools/make_luxe_textures.py --out DIR    # the same files, written to DIR
 
 Writes Textures/Luxe/*.tga, which ship in the zip. Deterministic: run it twice
 and the files are byte for byte the same, so a diff in git is a change of art.
@@ -24,11 +25,14 @@ hairlines), so a one-unit line stays crisp from 1080p to 4K.
                               inner line alone at full strength, for the
                               reason-lit top edge ("Reason colour: both", ADD).
   Luxe_Wash          128x64   Reason light from the left edge (ADD).
-  Luxe_Spine          16x64   The reason spine: a capsule, brightest in the
+  Luxe_Spine          32x128  The reason spine: a capsule, brightest in the
                               middle and 70% at the tips, so no gradient has to
-                              be set on every repaint.
-  Luxe_SpineGlow      64x128  Bloom round the spine (ADD).
-  Luxe_Sheen          64x64   The band of light that crosses the card (ADD).
+                              be set on every repaint; shaded as a rounded bar
+                              lit from the upper left (SPINE_SHADE).
+  Luxe_SpineGlow      64x128  Bloom round the spine, a hot edge and a long
+                              tail (ADD).
+  Luxe_Sheen          64x64   The band of light that crosses the card, a soft
+                              tail and a bright leading edge (ADD).
   Luxe_Glint          64x16   The top edge catching that light (ADD).
   Luxe_Pill           64x32   3-slice, caps 16. The reason tag's fill.
   Luxe_PillEdge       64x32   3-slice, caps 16. The tag's one-unit outline.
@@ -44,6 +48,7 @@ hairlines), so a one-unit line stays crisp from 1080p to 4K.
 
 Needs numpy and Pillow.
 """
+import argparse
 import os
 
 import numpy as np
@@ -55,6 +60,11 @@ OUT = os.path.join(ROOT, "Textures", "Luxe")
 # The ring is drawn this many units outside a 30-unit icon (Looks/Luxe.lua's
 # RING_PAD, scaled with the icon), so the texture maps 36 units onto 64 texels.
 RING_PAD, RING_ICON = 3.0, 30.0
+
+# The spine's file: texels, how dark its shaded edge is at most (1 is flat),
+# and how much darker its lower end.
+SPINE_W, SPINE_H = 32, 128
+SPINE_SHADE, SPINE_LOWER = 0.76, 0.10
 
 
 def grid(w, h):
@@ -173,13 +183,21 @@ def spine():
     # A capsule the full width. The judges asked for more presence than the
     # design's 3 units, so it is drawn 4 to 5 wide; the light is baked in --
     # 70% at the tips rising to full in the middle -- where the design set two
-    # gradients on every repaint.
-    w, h = 16, 64
+    # gradients on every repaint. 1.9 gave it a body: a rounded bar lit from
+    # the upper left, full colour down a highlight just left of its middle,
+    # shaded towards the right edge and the lower end, so the reason colour
+    # reads as a lit rod and not a flat strip. The colour is the vertex
+    # colour times this grey, so the highlight is the colour itself and the
+    # shade is the colour taken down.
+    w, h = SPINE_W, SPINE_H
     xx, yy = grid(w, h)
-    shape = cover(rrect_sdf(xx, yy, 0.4, 0.4, w - 0.4, h - 0.4, 7.6), 1.1)
+    shape = cover(rrect_sdf(xx, yy, 0.8, 0.8, w - 0.8, h - 0.8, w / 2 - 0.8), 1.1)
     along = np.abs(yy - h / 2) / (h / 2)
     light = 1.0 - 0.30 * smooth(along)
-    save("Luxe_Spine", 1.0, shape * light)
+    u = (xx - w / 2) / (w / 2)
+    body = SPINE_SHADE + (1.0 - SPINE_SHADE) * np.exp(-((u + 0.38) / 0.55) ** 2)
+    low = 1.0 - SPINE_LOWER * smooth(((yy / h) - 0.5) * 2.0)
+    save("Luxe_Spine", np.clip(body * low, 0, 1), shape * light)
 
 
 def spine_glow():
@@ -187,18 +205,24 @@ def spine_glow():
     w, h = 64, 128
     xx, yy = grid(w, h)
     core = cover(rrect_sdf(xx, yy, w / 2 - 4, 24, w / 2 + 4, h - 24, 4))
-    a = blur(core, 7.0)
-    save("Luxe_SpineGlow", 1.0, (a / a.max()) ** 1.15)
+    # Two widths of the same light, a tight one that hugs the spine and a wide
+    # one that spreads, so the glow has a hot edge and a long soft tail.
+    a = 0.62 * blur(core, 4.5) / blur(core, 4.5).max() + 0.38 * blur(core, 8.0) / blur(core, 8.0).max()
+    save("Luxe_SpineGlow", 1.0, (a / a.max()) ** 1.25)
 
 
 def sheen():
     # A narrow band, properly slanted, brightest along the top where the
     # glint rides and fading down the card: a glint crossing it, not a grey
     # column. Gone at the very top and bottom so it never lights the corners.
+    # A long soft tail on its left and a thin bright leading edge on its
+    # right: it has a front, so it reads as moving.
     n = 64
     xx, yy = grid(n, n)
     slant = (xx - n / 2) + (yy - n / 2) * 0.5
-    band = np.exp(-(slant / 7.0) ** 2)
+    band = np.where(slant < 0, 0.78 * np.exp(-(slant / 11.0) ** 2), np.exp(-(slant / 3.4) ** 2))
+    band = band + 0.55 * np.exp(-((slant - 1.2) / 1.0) ** 2)
+    band /= band.max()
     band *= 1 - 0.65 * smooth(yy / n)
     band *= smooth(yy / 6) * smooth((n - yy) / 6)
     band *= smooth(xx / 6) * smooth((n - xx) / 6)
@@ -281,6 +305,10 @@ def glyphs():
 
 
 def main():
+    global OUT
+    ap = argparse.ArgumentParser(description=__doc__.split(chr(10))[0])
+    ap.add_argument("--out", default=OUT, help="where to write the files (default: Textures/Luxe)")
+    OUT = os.path.abspath(ap.parse_args().out)
     os.makedirs(OUT, exist_ok=True)
     for make in (shadow, card, bevel, edge, wash, spine, spine_glow, sheen, glint, pill,
                  icon_art, dot, glyphs):

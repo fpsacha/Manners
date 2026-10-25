@@ -12,6 +12,60 @@ local Halo, PlaceHalo, PaintHalo, ReasonColor = lib.Halo, lib.PlaceHalo, lib.Pai
 local ink, fit, GREYS, EDGE_ROOM, TEXT_CONTRAST = lib.ink, lib.fit, lib.GREYS, lib.EDGE_ROOM, lib.TEXT_CONTRAST
 local Legible, TextWidth, SetLine, FitLine = lib.Legible, lib.TextWidth, lib.SetLine, lib.FitLine
 local StyleText, FullEffects, BUTTON_SCRIPTS = lib.StyleText, lib.FullEffects, lib.BUTTON_SCRIPTS
+local RING, RING_SQ, SWEEP, GLOSS, BEVEL = lib.RING, lib.RING_SQ, lib.SWEEP, lib.GLOSS, lib.BEVEL
+local Tint, WARM_WHITE = lib.Tint, lib.WARM_WHITE
+-- The client's own round mask: the shape of a round icon, its sweep and the
+-- icon's echo.
+local PORTRAIT_MASK = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
+-- The glass's inner bevel is a nine-slice of Textures/Bevel.tga: 6 of its 32
+-- texels at each corner, drawn 3 units square.
+local BEVEL_MARGIN, BEVEL_SIZE, BEVEL_CORNER = 6, 32, 3
+-- The glass's reflection, at the panel's own opacity: Textures/Gloss.tga is
+-- brightest at its top left, and this is that brightness.
+local GLOSS_ALPHA = 0.13
+
+-- Nine textures cut from one file, as the looks' own slices are.
+local function BevelSlice(parent, layer, sublevel)
+	local s = {}
+	local u = BEVEL_MARGIN / BEVEL_SIZE
+	local cuts = { 0, u, 1 - u, 1 }
+	for row = 1, 3 do
+		for col = 1, 3 do
+			local t = parent:CreateTexture(nil, layer, nil, sublevel)
+			t:SetTexture(BEVEL)
+			t:SetTexCoord(cuts[col], cuts[col + 1], cuts[row], cuts[row + 1])
+			s[#s + 1] = t
+		end
+	end
+	return s
+end
+
+local function PlaceBevel(s, box)
+	local c = BEVEL_CORNER
+	for _, t in ipairs(s) do t:ClearAllPoints() end
+	s[1]:SetPoint("TOPLEFT", box, "TOPLEFT", 0, 0)
+	s[1]:SetSize(c, c)
+	s[2]:SetPoint("TOPLEFT", box, "TOPLEFT", c, 0)
+	s[2]:SetPoint("TOPRIGHT", box, "TOPRIGHT", -c, 0)
+	s[2]:SetHeight(c)
+	s[3]:SetPoint("TOPRIGHT", box, "TOPRIGHT", 0, 0)
+	s[3]:SetSize(c, c)
+	s[4]:SetPoint("TOPLEFT", box, "TOPLEFT", 0, -c)
+	s[4]:SetPoint("BOTTOMLEFT", box, "BOTTOMLEFT", 0, c)
+	s[4]:SetWidth(c)
+	s[5]:SetPoint("TOPLEFT", box, "TOPLEFT", c, -c)
+	s[5]:SetPoint("BOTTOMRIGHT", box, "BOTTOMRIGHT", -c, c)
+	s[6]:SetPoint("TOPRIGHT", box, "TOPRIGHT", 0, -c)
+	s[6]:SetPoint("BOTTOMRIGHT", box, "BOTTOMRIGHT", 0, c)
+	s[6]:SetWidth(c)
+	s[7]:SetPoint("BOTTOMLEFT", box, "BOTTOMLEFT", 0, 0)
+	s[7]:SetSize(c, c)
+	s[8]:SetPoint("BOTTOMLEFT", box, "BOTTOMLEFT", c, 0)
+	s[8]:SetPoint("BOTTOMRIGHT", box, "BOTTOMRIGHT", -c, 0)
+	s[8]:SetHeight(c)
+	s[9]:SetPoint("BOTTOMRIGHT", box, "BOTTOMRIGHT", 0, 0)
+	s[9]:SetSize(c, c)
+end
 
 -- The drop shadow: steps of falloff from a crisp dark rim out to almost
 -- nothing, each a little lower, so the light reads as coming from above.
@@ -83,6 +137,7 @@ function Prompt:Create()
 	-- Light falling on the top half of the glass. The panel's own gradient
 	-- darkens towards the bottom; this is the other half of the same idea.
 	R.sheen = Solid(R.art, "BORDER", 0)
+	R.sheen:SetTexture(GLOSS)
 	R.sheen:SetPoint("TOPLEFT")
 	R.sheen:SetPoint("TOPRIGHT")
 
@@ -98,6 +153,13 @@ function Prompt:Create()
 	R.hairBottom:SetPoint("BOTTOMLEFT")
 	R.hairBottom:SetPoint("BOTTOMRIGHT")
 	R.hairBottom:SetVertexColor(0, 0, 0, 0.55)
+
+	-- The glass's inner bevel: a lit line along the top and down the sides, a
+	-- shade along the bottom, each softening inward. Over the hairlines and
+	-- under the framed look's border, which it never shares a look with.
+	R.bevel = BevelSlice(R.art, "BORDER", 2)
+	PlaceBevel(R.bevel, R.art)
+	for _, t in ipairs(R.bevel) do t:Hide() end
 
 	-- A line all the way round, for the framed look. Above the bevel and the
 	-- stripe, which it replaces. Anchored corner to corner, so it follows a
@@ -146,6 +208,12 @@ function Prompt:Create()
 	R.glowFrame:SetAlpha(0)
 	R.glowHalo = Halo(R.glowFrame, "BACKGROUND", -3)
 
+	-- And a tight rim of warm white hugging the ring, on its own frame so it
+	-- breathes with the glow: the reason's colour outside, light inside.
+	R.rimFrame = CreateFrame("Frame", nil, R.art)
+	R.rimFrame:SetAlpha(0)
+	R.rimHalo = Halo(R.rimFrame, "BACKGROUND", -2)
+
 	-- Doubles as the icon's border and the reason signal: a ring round the icon
 	-- reads better than a stripe at the panel's edge.
 	R.iconBack = Solid(R.art, "BACKGROUND", -2)
@@ -165,31 +233,36 @@ function Prompt:Create()
 	local okCooldown, made = pcall(CreateFrame, "Cooldown", nil, R.art, "CooldownFrameTemplate")
 	if okCooldown and made then
 		R.cooldown = made
-		Try(R.cooldown, "SetDrawEdge", false)
+		-- A thin line of light on the sweep's leading edge, where the client
+		-- draws one (the colour of it is the newest clients' to set).
+		Try(R.cooldown, "SetDrawEdge", true)
 		Try(R.cooldown, "SetDrawBling", false)
 		Try(R.cooldown, "SetHideCountdownNumbers", true)
 		Try(R.cooldown, "SetSwipeColor", 0, 0, 0, 0.62)
+		if R.cooldown.SetEdgeColor then R.cooldown:SetEdgeColor(1, 0.95, 0.80, 0.95) end
 		R.cooldown:Hide()
 	end
 
-	-- The ring that pops outward when a buff lands. Its own frame so it can
-	-- grow; drawn from the same strips as the glow, bright at the inside edge.
+	-- The halo that flares when a favour arrives, a buff lands or one is
+	-- refused. Its own frame so it can grow; drawn from the same strips as the
+	-- glow, bright at the inside edge.
 	R.burstFrame = CreateFrame("Frame", nil, R.art)
 	R.burstFrame:SetAlpha(0)
 	R.burstHalo = Halo(R.burstFrame, "OVERLAY", 2)
 
-	-- A band of light that crosses the panel once. Two halves, each fading
-	-- towards its outer edge, so the band has a soft middle and no hard sides.
+	-- The rings that spread from the icon when a buff lands, the one that
+	-- snaps in when a refusal comes, and the icon's echo as a favour arrives
+	-- (Prompt/Effects.lua; the looks make their own from the same builder).
+	R.fx = lib.NewFX(R.art)
+
+	-- A band of light that crosses the panel once: a tail that gathers and a
+	-- thin bright leading edge, from Textures/Sweep.tga.
 	R.shineFrame = CreateFrame("Frame", nil, R.art)
 	R.shineFrame:SetAlpha(0)
-	R.shineLeft = Solid(R.shineFrame, "OVERLAY", 1)
-	R.shineLeft:SetBlendMode("ADD")
-	R.shineLeft:SetPoint("TOPLEFT")
-	R.shineLeft:SetPoint("BOTTOMRIGHT", R.shineFrame, "BOTTOM", 0, 0)
-	R.shineRight = Solid(R.shineFrame, "OVERLAY", 1)
-	R.shineRight:SetBlendMode("ADD")
-	R.shineRight:SetPoint("TOPLEFT", R.shineFrame, "TOP", 0, 0)
-	R.shineRight:SetPoint("BOTTOMRIGHT")
+	R.shineBand = R.shineFrame:CreateTexture(nil, "OVERLAY", nil, 1)
+	R.shineBand:SetTexture(SWEEP)
+	R.shineBand:SetBlendMode("ADD")
+	R.shineBand:SetAllPoints(R.shineFrame)
 
 	-- Text sits on its own frame so a target change can cross-fade all of it
 	-- at once rather than swapping strings mid-read.
@@ -263,9 +336,9 @@ function Prompt:Create()
 	-- Everything only the three looks drawn here use, which a look from
 	-- Looks/ hides (ApplyLook) and ApplyStyle puts back.
 	local parts = { R.panel, R.sheen, R.hairTop, R.hairBottom, R.accentTop, R.accentBottom, R.sweepFrame,
-		R.glowFrame, R.iconBack, R.iconEdge, R.iconShade, R.burstFrame, R.shineFrame, R.countChip, R.resultFill,
-		R.queueBack, R.queueHair }
-	for _, list in ipairs({ R.shadows, R.edges, R.queueBars, R.queueIcons }) do
+		R.glowFrame, R.rimFrame, R.iconBack, R.iconEdge, R.iconShade, R.burstFrame, R.shineFrame, R.countChip,
+		R.resultFill, R.queueBack, R.queueHair }
+	for _, list in ipairs({ R.shadows, R.edges, R.queueBars, R.queueIcons, R.bevel, R.fx.frames }) do
 		for _, part in ipairs(list) do parts[#parts + 1] = part end
 	end
 	self.builtinParts = parts
@@ -313,8 +386,10 @@ function Prompt:ApplyStyle()
 	-- Put back what a look of its own hid: the three frames of light, and the
 	-- button's square highlight, which it draws rounded itself.
 	R.glowFrame:Show()
+	R.rimFrame:Show()
 	R.burstFrame:Show()
 	R.shineFrame:Show()
+	R.fx:SetShown(true)
 	local hl = R.button:GetHighlightTexture()
 	if hl then hl:SetVertexColor(1, 1, 1, 0.045) end
 
@@ -327,6 +402,7 @@ function Prompt:ApplyStyle()
 		R.sheen:Hide()
 		R.hairTop:Hide()
 		R.hairBottom:Hide()
+		for _, t in ipairs(R.bevel) do t:Hide() end
 	else
 		R.panel:Show()
 		-- The framed look keeps its flat panel and its border, and gets only
@@ -338,10 +414,16 @@ function Prompt:ApplyStyle()
 		-- mostly see-through does not keep a bright band floating on its own.
 		R.sheen:SetShown(glass)
 		R.sheen:SetHeight(math.max(4, math.floor(p.height * 0.5)))
-		Gradient(R.sheen, "VERTICAL", 1, 1, 1, 0, 1, 1, 1, 0.07 * ba)
+		R.sheen:SetVertexColor(1, 1, 1, GLOSS_ALPHA * ba)
 		R.hairTop:SetShown(glass)
 		R.hairTop:SetVertexColor(1, 1, 1, 0.12)
 		R.hairBottom:SetShown(glass)
+		-- The bevel's light and shade are in the file; the panel's own opacity
+		-- scales them, as it does the sheen.
+		for _, t in ipairs(R.bevel) do
+			t:SetShown(glass)
+			t:SetVertexColor(1, 1, 1, ba)
+		end
 	end
 
 	-- The border, on the framed look only: pushed away from the panel colour --
@@ -381,6 +463,7 @@ function Prompt:ApplyStyle()
 	R.icon:ClearAllPoints()
 	R.iconBack:ClearAllPoints()
 	R.glowFrame:ClearAllPoints()
+	R.rimFrame:ClearAllPoints()
 	if p.showIcon then
 		R.icon:SetSize(p.iconSize, p.iconSize)
 		R.icon:SetPoint("LEFT", 10, 0)
@@ -458,6 +541,17 @@ function Prompt:ApplyStyle()
 		R.burstFrame:SetPoint("TOPLEFT", R.icon, "TOPLEFT")
 		R.burstFrame:SetPoint("BOTTOMRIGHT", R.icon, "BOTTOMRIGHT")
 		PlaceHalo(R.burstHalo, R.burstFrame, 4, 4, outer, roundSize)
+		-- The rim of warm white hugs the ring, a few units deep.
+		R.rimFrame:SetPoint("TOPLEFT", R.icon, "TOPLEFT")
+		R.rimFrame:SetPoint("BOTTOMRIGHT", R.icon, "BOTTOMRIGHT")
+		PlaceHalo(R.rimHalo, R.rimFrame, 3, 3, outer, roundSize)
+		PaintHalo(R.rimHalo, WARM_WHITE[1], WARM_WHITE[2], WARM_WHITE[3], 1)
+		-- The rings spread from just outside the ring, in the shape of the
+		-- icon, and the icon's echo wears the same shape.
+		R.fx:Place(R.icon, R.fx.ThinPad(p.iconSize, outer + 1))
+		R.fx:Shape(round, RING, RING_SQ, round and PORTRAIT_MASK or nil)
+		-- A round sweep keeps its leading edge round.
+		if R.cooldown and R.cooldown.SetUseCircularEdge then R.cooldown:SetUseCircularEdge(round) end
 
 		textX = 10 + p.iconSize + 10
 	else
@@ -471,9 +565,9 @@ function Prompt:ApplyStyle()
 	-- with, is SyncCooldown's to decide; the settings behind both just changed.
 	self:SyncCooldown()
 
-	-- The band of light is about a fifth of the panel wide and crosses all of
+	-- The band of light is about a quarter of the panel wide and crosses all of
 	-- it, so the distance it travels is the width less its own.
-	local shineWidth = math.max(16, math.min(48, math.floor(p.width * 0.18)))
+	local shineWidth = math.max(24, math.min(72, math.floor(p.width * 0.26)))
 	R.shineFrame:ClearAllPoints()
 	R.shineFrame:SetPoint("LEFT", R.art, "LEFT", 0, 0)
 	R.shineFrame:SetSize(shineWidth, p.height)
@@ -594,10 +688,13 @@ function Prompt:ApplyLook(p, look)
 	if not look.kit then look:Build(self:LookKit()) end
 	-- The built-in looks' animations stopped, not only hidden: a pulse left
 	-- looping on a hidden frame still loops, Calm or not.
-	for _, f in ipairs({ R.glowFrame, R.sweepFrame, R.shineFrame, R.burstFrame }) do
+	for _, f in ipairs({ R.glowFrame, R.rimFrame, R.sweepFrame, R.shineFrame, R.burstFrame }) do
 		if f.pulse then f.pulse:Stop() end
 		if f.anim then f.anim:Stop() end
+		if f.arrive then f.arrive:Stop() end
+		if f.reject then f.reject:Stop() end
 	end
+	R.fx:Stop()
 	for _, part in ipairs(self.builtinParts) do part:Hide() end
 	if R.iconMask then R.iconMask:Hide() end
 	local hl = R.button:GetHighlightTexture()
@@ -627,6 +724,8 @@ function Prompt:LookKit()
 			Gradient = Gradient, Legible = Legible, TextWidth = TextWidth,
 			SetLine = SetLine, FitLine = FitLine, FullEffects = FullEffects,
 			ReasonColor = ReasonColor, OUTCOME_SECONDS = OUTCOME_SECONDS,
+			-- The rings and the glows' tints, which a look draws in its own art.
+			FX = lib.NewFX, Tint = Tint, WARM_WHITE = WARM_WHITE,
 		}
 	end
 	return self.kit
@@ -702,6 +801,16 @@ function Prompt:Regions()
 		cooldown = R.cooldown,
 		burst = R.burstFrame,
 		shine = R.shineFrame,
+		-- The band's own texture, whose vertex colour carries its strength.
+		shineBand = R.shineBand,
+		-- The warm white rim that breathes with the glow, the rings and the
+		-- icon's echo, the settle, Calm's entrance and the glass's bevel.
+		rim = R.rimFrame,
+		rimStrips = R.rimHalo and R.rimHalo.strips,
+		fx = R.fx,
+		settle = R.art and R.art.settle,
+		introCalm = R.art and R.art.introCalm,
+		bevel = R.bevel,
 		shake = R.textLayer and R.textLayer.shake,
 		intro = R.art and R.art.intro,
 		outro = R.art and R.art.outro,

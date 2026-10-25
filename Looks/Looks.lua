@@ -70,7 +70,10 @@
 --                   Calm (kit.FullEffects() false) must leave nothing looping.
 --   StopAttention() Nobody owed on top: every loop the look runs stops.
 --   Flourish(kind)  "cast", "sent" or "failed", once, Full effects only and not
---                   in a quiet fight. Prompt shakes the text on "failed".
+--                   in a quiet fight. Prompt shakes the text on "failed" and
+--                   settles the panel (a small swell) on "cast". A look draws
+--                   its own rings with kit.FX: a landing's spread outward
+--                   (fx:Land), a refusal's snaps in (fx:Refuse).
 --   StopFlourishes()  A repaint about somebody else: the one-shots stop.
 --   PaintOutcome(kind, lead, sub, who, stamp)  Write the outcome: the lines
 --                   Prompt would write (lead on the name line, sub below), the
@@ -108,6 +111,20 @@
 --   TextWidth(fs)   the line's unbounded width, or nil
 --   SetLine(fs, text)  FitLine(fs)
 --   FullEffects()   false on Calm
+--   FX(parent, level, noEcho) -> fx   the gestures every look shares, on frames
+--                   of `parent` (the art), parked at nothing: two rings that
+--                   spread when a buff lands (fx:Land(r, g, b, strength)) and
+--                   one that contracts onto the icon for a refusal
+--                   (fx:Refuse(r, g, b, strength)), and, unless `noEcho`, the
+--                   icon's echo (fx:Arrive(file, r, g, b)). fx:Place(icon, pad)
+--                   puts the rings `pad` units outside the icon (their file
+--                   fills their frame, so pad says where the ring sits),
+--                   fx:Shape(round, roundFile, squareFile, maskFile) gives them
+--                   the look's own art, fx:SetShown(on) and fx:Stop() (call it
+--                   in Hide) the rest; fx.frames lists them. A look that keeps
+--                   its icon clean passes noEcho.
+--   Tint(r, g, b, t) -> r, g, b   a colour taken towards white (t up to 1) or
+--                   black (down to -1); WARM_WHITE is the second tone of a rim
 --   ReasonColor(reason) -> { r, g, b }  the palette's, whatever the marker
 --   OUTCOME_SECONDS how long an outcome stays
 --

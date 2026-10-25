@@ -172,9 +172,10 @@ withTree("Arcane on Calm leaves nothing looping", CROWD, function(ns, scenario)
 		fail(scenario, "the owed breath kept going with nobody owed on top")
 	end
 	-- The breath is slow: never a flash.
+	-- 1.3 s each way of a bounce: 2.6 s round, at most 0.22 bright.
 	local swell = look.pulseAnim._anims[1]
-	if not (swell and swell._duration >= 2 and (swell._toAlpha or 1) <= 0.2) then
-		fail(scenario, "the owed breath is faster or brighter than 2.4 s at 0.16")
+	if not (swell and swell._duration * 2 >= 2 and swell._duration * 2 <= 3 and (swell._toAlpha or 1) <= 0.25) then
+		fail(scenario, "the owed breath is faster than 2 s a breath, slower than 3, or brighter than 0.25")
 	end
 end)
 
@@ -410,10 +411,26 @@ end)
 withTree("leaving Arcane gives back what it borrowed", ANNA, function(ns, scenario)
 	local r, p, look = upIn(ns, scenario, function(pp) pp.roundIcon = true end)
 	if not isArcane(look) then fail(scenario, "SKIPPED -- Arcane is not the look in use") return end
+	-- What Arcane's own Hide leaves on the cooldown, read the moment it has
+	-- run: every look sets the sweep's edge for itself in Apply, so by the
+	-- time the next look has been applied the edge is that look's, and only
+	-- here can Arcane's own be seen.
+	local hideArcane, edgeLeft = look.Hide, nil
+	look.Hide = function(self, ...)
+		hideArcane(self, ...)
+		if r.cooldown and r.cooldown._circular then edgeLeft = true end
+	end
 	for _, style in ipairs({ "glass", "arcane", "luxe", "arcane", "minimal" }) do
 		p.style = style
+		-- A round icon is the one reason the sweep's edge is round on any
+		-- look, so only Arcane has one, and what it left behind shows.
+		p.roundIcon = style == "arcane"
 		ns.Prompt:ApplyStyle()
 		ns.addon:Tick()
+		if style ~= "arcane" and edgeLeft then
+			fail(scenario, "the cooldown kept Arcane's round edge on " .. style .. " (left by Arcane's own Hide)")
+			edgeLeft = nil
+		end
 		if style ~= "arcane" then
 			for i, x in ipairs(look.own) do
 				if FT.visible(x) then
@@ -434,6 +451,7 @@ withTree("leaving Arcane gives back what it borrowed", ANNA, function(ns, scenar
 			end
 		end
 	end
+	look.Hide = hideArcane
 end)
 
 -- ------------------------------------------------------------------ 11

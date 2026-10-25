@@ -19,6 +19,9 @@ of that is read from what the addon told the frames, never restated here.
     python tools/render_prompt.py --style toast        # a look other than the default
     python tools/render_prompt.py --style arcane --key F  # every state in a look
     python tools/render_prompt.py --compare BEFORE AFTER OUT.png
+    python tools/render_prompt.py --states success --at 0.2     # 0.2 s into the animation
+    python tools/render_prompt.py --states success --strip 0.05,0.15,0.3,0.5   # a film strip
+    python tools/render_prompt.py --size large                  # 320 x 58, 17 pt, icon 40
 
 Needs lupa and Pillow (and numpy, which Pillow users nearly always have).
 """
@@ -80,15 +83,15 @@ def to_py(v):
     return {k: to_py(val) for k, val in items}
 
 
-def load_states(addon_dir, locale=None, style=None, key=None):
+def load_states(addon_dir, locale=None, style=None, key=None, size=None):
     lua = lupa.LuaRuntime(unpack_returned_tuples=True)
     printed = []
     lua.globals().print = lambda *a: printed.append(" ".join(str(x) for x in a))
-    run = lua.eval("function(path, dir, addon, locale, style, key) "
-                   "local f = assert(loadfile(path)) return f(dir, addon, locale, style, key) end")
+    run = lua.eval("function(path, dir, addon, locale, style, key, size) "
+                   "local f = assert(loadfile(path)) return f(dir, addon, locale, style, key, size) end")
     fwd = lambda p: p.replace("\\", "/")
     R = run(fwd(os.path.join(ROOT, "tools", "render_prompt.lua")), fwd(ROOT), fwd(addon_dir),
-            locale or "", style or "", key or "")
+            locale or "", style or "", key or "", size or "")
     # The addon measures its lines to fit them, and what it is told has to be
     # the width this draws, or a line it shrank to fit is drawn not fitting.
     # Measured at four times the size and scaled back, because a font rounded
@@ -884,14 +887,34 @@ def sheet(images, cols, pad=8, bg=(14, 14, 16), heading=None):
     return out
 
 
-def render(addon_dir, out_dir, keys=None, label="", locale=None, style=None, key=None):
-    R = load_states(addon_dir, locale, style, key)
+def render(addon_dir, out_dir, keys=None, label="", locale=None, style=None, key=None,
+           size=None, at=None, strip=None):
+    R = load_states(addon_dir, locale, style, key, size)
     all_keys = list(to_py(R["keys"]()))
     keys = keys or all_keys
     os.makedirs(out_dir, exist_ok=True)
     tiles = []
     for key in keys:
-        snap = R["run"](key)
+        if strip:
+            # One picture per moment, side by side: how an effect moves.
+            frames = []
+            for t in strip:
+                snap = R["run"](key, t)
+                if snap is None:
+                    break
+                snap = to_py(snap)
+                frames.append(labelled(draw_state(snap), "%s  t = %.2f s" % (key, t),
+                                       snap["title"]))
+            if not frames:
+                print("  %-14s (this build has no such state)" % key)
+                continue
+            cols = 2 if len(frames) > 3 else len(frames)
+            out = sheet(frames, cols, pad=6)
+            path = os.path.join(out_dir, key + "-strip.png")
+            out.save(path)
+            print("  %-14s %s" % (key, shown_path(path)))
+            continue
+        snap = R["run"](key, at)
         if snap is None:
             print("  %-14s (this build has no such state)" % key)
             continue
@@ -958,6 +981,12 @@ def main():
     # a key bound to the prompt, which the looks that show the key need.
     ap.add_argument("--style", default="", help="draw every state in this look, e.g. arcane")
     ap.add_argument("--key", default="", help="bind this key to the prompt first, e.g. F")
+    # How far into its animation each picture is taken, in seconds after the
+    # state's last act: one number for every state, or --strip for a film strip.
+    ap.add_argument("--at", type=float, default=None, help="seconds into the animation (default: each state's own)")
+    ap.add_argument("--strip", default="", help="comma-separated seconds: one film strip per state")
+    ap.add_argument("--size", default="", choices=["", "default", "large"],
+                    help="large: 320 x 58, 17 pt, icon 40")
     ap.add_argument("--compare", nargs=3, metavar=("BEFORE", "AFTER", "OUT"))
     args = ap.parse_args()
     if args.compare:
@@ -965,8 +994,9 @@ def main():
         return
     keys = [k for k in args.states.split(",") if k] or None
     label = args.label or " ".join(x for x in (args.style, args.locale) if x)
+    strip = [float(x) for x in args.strip.split(",") if x] or None
     render(os.path.abspath(args.addon), os.path.abspath(args.out), keys, label, args.locale or None,
-           args.style or None, args.key or None)
+           args.style or None, args.key or None, args.size or None, args.at, strip)
 
 
 if __name__ == "__main__":

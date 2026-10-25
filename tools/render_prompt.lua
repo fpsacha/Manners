@@ -29,11 +29,12 @@
 -- `style` draws every state in that look (a state that names its own look
 -- keeps it), and `key` binds that key to the prompt first, as most players who
 -- use it have: the looks that show the key only show it with one bound.
-local dir, addonDir, locale, style, key = ...
+local dir, addonDir, locale, style, key, size = ...
 addonDir = addonDir or dir
 if locale == "" or locale == "enUS" then locale = nil end
 if style == "" then style = nil end
 if key == "" then key = nil end
+if size == "" or size == "default" then size = nil end
 local COMMAND = "CLICK MannersPrompt:LeftButton"
 
 dofile(dir .. "/tests/mockapi.lua")
@@ -89,6 +90,12 @@ local function boot(ns, names)
 	if key then Mock.bindings = { [key] = COMMAND } end
 	ns.addon:OnInitialize()
 	if style then ns.db.profile.prompt.style = style end
+	-- `size` "large": the top of the usual range, for a picture of how an
+	-- effect scales (a state that sets its own size keeps it).
+	if size == "large" then
+		local p = ns.db.profile.prompt
+		p.width, p.height, p.fontSize, p.iconSize = 320, 58, 17, 40
+	end
 	ns.addon:OnEnable()
 	ns.addon:PLAYER_ENTERING_WORLD()
 	Mock.runTimers(3)
@@ -164,12 +171,12 @@ R.states = {
 		boot(ns, {})
 		tick(ns)
 	end },
-	{ key = "owed", title = "Somebody buffed you (pulse)", at = 0.85, setup = function(ns)
+	{ key = "owed", title = "Somebody buffed you (pulse)", at = 1.2, setup = function(ns)
 		boot(ns, OWED)
 		owe(ns, "Anna Aim")
 		tick(ns)
 	end },
-	{ key = "owed-arrival", title = "The moment they buffed you", at = 0.32, setup = function(ns)
+	{ key = "owed-arrival", title = "The moment they buffed you", at = 0.12, setup = function(ns)
 		boot(ns, OWED)
 		owe(ns, "Anna Aim")
 		tick(ns)
@@ -187,14 +194,14 @@ R.states = {
 		boot(ns, { target = { "Tamsin", "Reed" } })
 		tick(ns)
 	end },
-	{ key = "refused", title = "A refused buff", at = 0.15, setup = function(ns)
+	{ key = "refused", title = "A refused buff", at = 0.10, setup = function(ns)
 		boot(ns, OWED)
 		owe(ns, "Anna Aim")
 		tick(ns)
 		ns.Prompt:ShowOutcome("failed", "Anna Aim", "Out of range.")
 		FrameTree.settle()
 	end },
-	{ key = "success", title = "A buff that landed", at = 0.28, setup = function(ns)
+	{ key = "success", title = "A buff that landed", at = 0.20, setup = function(ns)
 		boot(ns, OWED)
 		owe(ns, "Anna Aim")
 		tick(ns)
@@ -533,7 +540,7 @@ end
 
 -- One state, drawn: the tree under UIParent, the button's id so the picture
 -- can be framed on it, and the clock the animations are to be read at.
-function R.run(key)
+function R.run(key, atOverride)
 	local state = R.find(key)
 	if not state then return nil end
 	local ns = load()
@@ -546,7 +553,9 @@ function R.run(key)
 	-- OnFinished parks each where the addon wants it. Left playing, the
 	-- renderer would draw them at their last frame instead -- a fade the
 	-- addon then sets somewhere else drawn brighter than it is.
-	Mock.advance(state.at or 0)
+	-- `atOverride` (--at) moves the picture along the animation.
+	if type(atOverride) ~= "number" or atOverride < 0 then atOverride = nil end
+	Mock.advance(atOverride or state.at or 0)
 	FrameTree.settle()
 	local button = ns.Prompt:GetButton()
 	return {

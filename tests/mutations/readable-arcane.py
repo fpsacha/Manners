@@ -9,8 +9,8 @@ S = "runscenarios.py"
 
 # --- the icon drawn clean ---------------------------------------------------
 
-mutate(A, "\tself.ring:SetSize(iconSize / ICON_FRAME, iconSize / ICON_FRAME)\n",
-       "\tself.ring:SetSize(iconSize, iconSize)\n",
+mutate(A, "\t\tt:SetSize(iconSize / ICON_FRAME, iconSize / ICON_FRAME)\n",
+       "\t\tt:SetSize(iconSize, iconSize)\n",
        "Arcane's frame drawn over the icon's art",
        expect="Arcane draws the spell icon clean: drawn over the spell icon", script=S)
 
@@ -49,8 +49,8 @@ mutate(A, "\t\tself.wash:SetShown(self.showIcon)\n", "\t\tself.wash:Show()\n",
        "Arcane's wash under the verdict with the icon off",
        expect="Arcane's verdict reads on its wash:", script=S)
 
-mutate(A, "\t\tself.checkAnim:Play()\n\tend\nend\n",
-       "\t\tself.checkAnim:Play()\n\tend\n\tself:Shine(1, 1, 1, 0.45)\nend\n",
+mutate(A, "\t\tself.fx:Land(o[1], o[2], o[3], 0.85)\n\tend\nend\n",
+       "\t\tself.fx:Land(o[1], o[2], o[3], 0.85)\n\tend\n\tself:Shine(1, 1, 1, 0.45)\nend\n",
        "Arcane's landed buff shines across the verdict",
        expect="Arcane's verdict reads on its wash:", script=S)
 

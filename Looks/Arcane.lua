@@ -318,10 +318,19 @@ function Arcane:Build(kit)
 	self.liftFrame = frame(art)
 	self.liftBloom = slice(self.liftFrame, "BACKGROUND", 0, "Bloom", 128, 32, 16, "ADD")
 	self.liftRim = slice(self.liftFrame, "BORDER", 0, "Rim", 128, 32, 8, "ADD")
+	-- The second tone of the owed breath: a warm white ring on the lens's own,
+	-- in the lift's frame so it breathes with it. Outside the icon, like the
+	-- ring it lights.
+	self.warmRing = tex(self.liftFrame, "OVERLAY", 1, "IconRing", "ADD")
 	self.hoverFrame = frame(art)
 	self.hoverRim = slice(self.hoverFrame, "BORDER", 1, "Rim", 128, 32, 8, "ADD")
 	self.shineFrame = frame(art)
 	self.shine = tex(self.shineFrame, "OVERLAY", 0, "Shine", "ADD")
+	-- The rings that spread when a buff lands -- the lens's ring, then the
+	-- circle of runes after it -- and the one that snaps in on a refusal. No
+	-- echo of the icon: the spell is drawn clean.
+	self.fx = kit.FX(art, nil, true)
+	for _, f in ipairs(self.fx.frames) do keep(f) end
 
 	-- On textLayer, over everything and dimmed with the text: the count's
 	-- coin, the keycap and its key.
@@ -343,6 +352,7 @@ function Arcane:Build(kit)
 	self.liftFrame:SetFrameLevel(base + 1)
 	self.hoverFrame:SetFrameLevel(base + 1)
 	self.shineFrame:SetFrameLevel(base + 2)
+	for _, f in ipairs(self.fx.frames) do f:SetFrameLevel(base + 2) end
 
 	self:BuildAnimations()
 end
@@ -370,13 +380,13 @@ function Arcane:BuildAnimations()
 	self.flareAnim = flare
 
 	-- The owed breath: slow and faint, so the only loop never reads as a
-	-- flash.
+	-- flash. 1.3 s each way, 2.6 s round.
 	local pulse = self.liftFrame:CreateAnimationGroup()
 	pulse:SetLooping("BOUNCE")
 	local swell = pulse:CreateAnimation("Alpha")
 	swell:SetFromAlpha(0)
-	swell:SetToAlpha(0.16)
-	swell:SetDuration(2.4)
+	swell:SetToAlpha(0.22)
+	swell:SetDuration(1.3)
 	if swell.SetSmoothing then swell:SetSmoothing("IN_OUT") end
 	self.pulseAnim = pulse
 
@@ -392,13 +402,13 @@ function Arcane:BuildAnimations()
 	local bright = runeFlare:CreateAnimation("Alpha")
 	bright:SetFromAlpha(1)
 	bright:SetToAlpha(RUNE_ALPHA)
-	bright:SetDuration(0.9)
+	bright:SetDuration(0.55)
 	if bright.SetSmoothing then bright:SetSmoothing("OUT") end
 	local grow = runeFlare:CreateAnimation("Scale")
 	if grow.SetScaleFrom then grow:SetScaleFrom(0.86, 0.86) end
 	if grow.SetScaleTo then grow:SetScaleTo(1, 1) end
 	if grow.SetOrigin then grow:SetOrigin("CENTER", 0, 0) end
-	grow:SetDuration(0.6)
+	grow:SetDuration(0.45)
 	if grow.SetSmoothing then grow:SetSmoothing("OUT") end
 	self.runeFlareAnim = runeFlare
 
@@ -422,6 +432,30 @@ function Arcane:BuildAnimations()
 	shine:SetScript("OnFinished", function() self.shineFrame:SetAlpha(0) end)
 	shine:SetScript("OnStop", function() self.shineFrame:SetAlpha(0) end)
 	self.shineAnim = shine
+
+	-- A favour arriving: the lens's ring locks onto the icon, from wider and
+	-- faint, past and back, in a quarter of a second.
+	local lock = self.ring:CreateAnimationGroup()
+	local lockFade = lock:CreateAnimation("Alpha")
+	lockFade:SetFromAlpha(0.25)
+	lockFade:SetToAlpha(1)
+	lockFade:SetDuration(0.12)
+	lockFade:SetOrder(1)
+	local lockIn = lock:CreateAnimation("Scale")
+	if lockIn.SetScaleFrom then lockIn:SetScaleFrom(1.22, 1.22) end
+	if lockIn.SetScaleTo then lockIn:SetScaleTo(0.97, 0.97) end
+	if lockIn.SetOrigin then lockIn:SetOrigin("CENTER", 0, 0) end
+	lockIn:SetDuration(0.15)
+	lockIn:SetOrder(1)
+	if lockIn.SetSmoothing then lockIn:SetSmoothing("OUT") end
+	local lockSettle = lock:CreateAnimation("Scale")
+	if lockSettle.SetScaleFrom then lockSettle:SetScaleFrom(0.97, 0.97) end
+	if lockSettle.SetScaleTo then lockSettle:SetScaleTo(1, 1) end
+	if lockSettle.SetOrigin then lockSettle:SetOrigin("CENTER", 0, 0) end
+	lockSettle:SetDuration(0.10)
+	lockSettle:SetOrder(2)
+	if lockSettle.SetSmoothing then lockSettle:SetSmoothing("IN_OUT") end
+	self.lockAnim = lock
 
 	self.checkAnim = Fade(self.check, 1, 0.12, "OUT")
 	self.checkAnim.fade:SetFromAlpha(0)
@@ -541,11 +575,25 @@ function Arcane:Apply(p, above)
 		self.masked = true
 	end
 	self.ring:SetTexture(ART .. (round and "IconRing" or "IconRingSq"))
+	self.warmRing:SetTexture(ART .. (round and "IconRing" or "IconRingSq"))
 	icon:SetSize(iconSize, iconSize)
 	icon:SetPoint("CENTER", art, "LEFT", cx, cy)
-	self.ring:ClearAllPoints()
-	self.ring:SetPoint("CENTER", icon, "CENTER", 0, 0)
-	self.ring:SetSize(iconSize / ICON_FRAME, iconSize / ICON_FRAME)
+	for _, t in ipairs({ self.ring, self.warmRing }) do
+		t:ClearAllPoints()
+		t:SetPoint("CENTER", icon, "CENTER", 0, 0)
+		t:SetSize(iconSize / ICON_FRAME, iconSize / ICON_FRAME)
+	end
+	-- The rings that spread: the lens's ring first, and the circle of runes
+	-- after it, a size up.
+	local w = kit.WARM_WHITE
+	self.warmRing:SetVertexColor(w[1], w[2], w[3], 1)
+	self.fx:Place(icon, (iconSize / ICON_FRAME - iconSize) / 2)
+	self.fx:Shape(round, ART .. "IconRing", ART .. "IconRingSq")
+	local runeRing = self.fx.rings[2]
+	runeRing.tex:SetTexture(ART .. (round and "RuneRing" or "RuneRingSq"))
+	runeRing.frame:ClearAllPoints()
+	runeRing.frame:SetPoint("TOPLEFT", icon, "TOPLEFT", -(M - iconSize) / 2, (M - iconSize) / 2)
+	runeRing.frame:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", (M - iconSize) / 2, -(M - iconSize) / 2)
 	self.check:ClearAllPoints()
 	self.check:SetPoint("CENTER", icon, "CENTER", 0, 0)
 	self.check:SetSize(iconSize * 0.86, iconSize * 0.86)
@@ -632,9 +680,10 @@ function Arcane:Apply(p, above)
 	SliceShown(self.shadow, self.shadowShown)
 	for _, s in ipairs({ self.trayGlass, self.trayRim }) do SliceShown(s, false) end
 	for _, d in ipairs(self.dots) do d:Hide() end
-	for _, t in ipairs({ self.well, self.runes, self.ring }) do
+	for _, t in ipairs({ self.well, self.runes, self.ring, self.warmRing }) do
 		t:SetShown(showIcon)
 	end
+	self.fx:SetShown(showIcon)
 	for _, t in ipairs({ self.track, self.drain, self.spark, self.check, self.wash }) do t:Hide() end
 	self:ShowBadge(false)
 	self.trayShown, self.trayHeight = nil, nil
@@ -689,9 +738,10 @@ function Arcane:Hide()
 	if not kit then return end
 	for _, x in ipairs(self.own) do x:Hide() end
 	for _, anim in ipairs({ self.flareAnim, self.pulseAnim, self.spinAnim, self.runeFlareAnim,
-		self.shineAnim, self.checkAnim, self.washAnim, self.hoverAnim }) do
+		self.shineAnim, self.checkAnim, self.washAnim, self.hoverAnim, self.lockAnim }) do
 		anim:Stop()
 	end
+	self.fx:Stop()
 	-- Stop parks nothing on a fade that has already finished, and the cursor
 	-- leaves for the next look: put the rim's light out here, or it is lit
 	-- when this look comes back.
@@ -1080,6 +1130,9 @@ function Arcane:Attention(isNew, arrived, flashStyle)
 		if full and self.showIcon then
 			self.runeFlareAnim:Stop()
 			self.runeFlareAnim:Play()
+			-- And the lens's ring locks onto the icon.
+			self.lockAnim:Stop()
+			self.lockAnim:Play()
 		end
 	end
 	-- The favour just done: light crosses the card in the reason's colour.
@@ -1113,6 +1166,15 @@ function Arcane:Shine(r, g, b, a)
 end
 
 function Arcane:Flourish(kind)
+	-- A refusal contracts: the lens's ring snaps in onto the icon in red. The
+	-- rim has already turned red, and the text's shake is Prompt's.
+	if kind == "failed" then
+		if self.showIcon and not self.combat then
+			local o = OUTCOME.failed
+			self.fx:Refuse(o[1], 0.45, 0.28)
+		end
+		return
+	end
 	-- Nothing for a cast nobody confirmed: a flourish is a claim. No light
 	-- across the card either: it would cross the verdict, which is up for
 	-- barely longer than the light.
@@ -1122,6 +1184,10 @@ function Arcane:Flourish(kind)
 		self.runeFlareAnim:Play()
 		self.checkAnim:Stop()
 		self.checkAnim:Play()
+		-- The lens's ring and the circle of runes after it spread outward in
+		-- the landed buff's green.
+		local o = OUTCOME.cast
+		self.fx:Land(o[1], o[2], o[3], 0.85)
 	end
 end
 
@@ -1129,6 +1195,8 @@ function Arcane:StopFlourishes()
 	self.runeFlareAnim:Stop()
 	self.shineAnim:Stop()
 	self.checkAnim:Stop()
+	self.lockAnim:Stop()
+	self.fx:Stop()
 end
 
 function Arcane:Hover(on)

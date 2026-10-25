@@ -1,6 +1,7 @@
 """The art the Arcane look (Looks/Arcane.lua) draws the prompt with.
 
     python tools/make_arcane_textures.py                 # Textures/Arcane/*.tga
+    python tools/make_arcane_textures.py --out DIR       # the same files, written to DIR
     python tools/make_arcane_textures.py --sheet OUT.png # and a contact sheet
 
 Writes Textures/Arcane/*.tga, which ship in the zip. Deterministic: every
@@ -63,6 +64,10 @@ from PIL import Image, ImageDraw
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "Textures", "Arcane")
 DENSITY = 4  # texels per UI unit
+# The rune circles are lit from the upper left: this share of their light is
+# left at the lower right, so the ring has a bright side and a dim one -- the
+# depth an additive ring can have, since light added cannot cast a shadow.
+RUNE_LIT_MIN = 0.58
 
 written = []
 
@@ -102,6 +107,13 @@ def blur(a, sigma):
     p = np.apply_along_axis(lambda r: np.convolve(r, g, mode="same"), 1, p)
     p = np.apply_along_axis(lambda c: np.convolve(c, g, mode="same"), 0, p)
     return p[k:-k, k:-k]
+
+
+def lit_from_upper_left(n):
+    """1 at the upper left, RUNE_LIT_MIN at the lower right, an even fall."""
+    x, y = grid(n, n)
+    t = (x + y) / (2.0 * n)
+    return RUNE_LIT_MIN + (1.0 - RUNE_LIT_MIN) * (1.0 - smoothstep(0.15, 0.85, t))
 
 
 def smoothstep(e0, e1, x):
@@ -264,7 +276,7 @@ def rune_ring():
     line = np.clip(line * 1.15, 0, 1)
     glow = blur(line, 3.0)
     glow = glow / max(1e-9, glow.max())
-    save("RuneRing", 1.0, np.clip(line + glow * 0.45, 0, 1))
+    save("RuneRing", 1.0, np.clip((line + glow * 0.45) * lit_from_upper_left(n), 0, 1))
 
 
 def rune_ring_sq():
@@ -364,7 +376,7 @@ def rune_ring_sq():
     line = np.clip(line * 1.15, 0, 1)
     glow = blur(line, 3.0)
     glow = glow / max(1e-9, glow.max())
-    save("RuneRingSq", 1.0, np.clip(line + glow * 0.45, 0, 1))
+    save("RuneRingSq", 1.0, np.clip((line + glow * 0.45) * lit_from_upper_left(n), 0, 1))
 
 
 # The icon fills the middle 96 of 128 texels in every frame texture: a frame
@@ -389,12 +401,16 @@ def icon_ring(round_):
         sd = np.hypot(x - n / 2, y - n / 2) - ICON_R
     else:
         sd = sd_rrect(x, y, 16, 16, 112, 112, 0.24 * 96)
-    seam = cover(-sd, 1) * cover(sd - 2.2, 1)
+    seam = cover(-sd, 1) * cover(sd - 2.2, 1) * 0.92
     ring = cover(-(sd - 2.2), 1) * cover(sd - 6.4, 1)
     glow = np.exp(-np.maximum(0, sd - 6.4) / 3.0) * cover(-(sd - 6.4), 1) * 0.40
     light = 1.0 - 0.40 * (y / n)
-    a = np.clip(seam * 0.92 + ring * light + glow * light, 0, 1)
-    grey = np.where(seam > np.maximum(ring, glow), 0.0, 1.0)
+    # The light (white) laid over the seam (black) as layers, so the edge
+    # between them is a blend, not a texel of one colour next to a texel of
+    # the other: the seam's edge was a staircase.
+    top = 1.0 - (1.0 - ring * light) * (1.0 - glow * light)
+    a = np.clip(top + seam * (1.0 - top), 0, 1)
+    grey = np.where(a > 1e-6, top / np.maximum(a, 1e-6), 1.0)
     save("IconRing" if round_ else "IconRingSq", grey, a)
 
 
@@ -514,9 +530,12 @@ def contact_sheet(path):
 
 
 def main():
+    global OUT
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--sheet", default="", help="also write a contact sheet here (not shipped)")
+    ap.add_argument("--out", default=OUT, help="where to write the files (default: Textures/Arcane)")
     args = ap.parse_args()
+    OUT = os.path.abspath(args.out)
     os.makedirs(OUT, exist_ok=True)
     for make in (shadow, bloom, glass, glint, rim, well, rune_ring, rune_ring_sq, masks, check,
                  keycap, badge, drain, spark, shine, dot):

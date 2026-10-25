@@ -183,9 +183,9 @@ mutate(A, "\tlocal maskFile = ART .. (round and \"CircleMask\" or \"SquircleMask
        "Arcane's round icon kept square",
        expect="the round icon kept the square mask", script=S)
 
-mutate(A, "\tfor _, t in ipairs({ self.well, self.runes, self.ring }) do\n"
+mutate(A, "\tfor _, t in ipairs({ self.well, self.runes, self.ring, self.warmRing }) do\n"
        "\t\tt:SetShown(showIcon)\n",
-       "\tfor _, t in ipairs({ self.well, self.runes, self.ring }) do\n"
+       "\tfor _, t in ipairs({ self.well, self.runes, self.ring, self.warmRing }) do\n"
        "\t\tt:SetShown(true)\n",
        "Arcane's lens up with the icon off",
        expect="lens and runes are still up", script=S)

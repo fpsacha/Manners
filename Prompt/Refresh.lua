@@ -183,7 +183,7 @@ function Prompt:RefreshPanel()
 		-- hidden panel stays hidden until it ends. Everything below is art and
 		-- runs anyway.
 		if not R.button:IsShown() and SetPanelShown(true) then
-			if R.art.intro then R.art.intro:Play() end
+			self:PlayIntro()
 		end
 		-- Mock rows with mock reasons, since the reason bar is being styled
 		-- too. The count covers every row listed, as a real one does: each
@@ -456,7 +456,7 @@ function Prompt:RefreshPanel()
 	R.button:Show()
 
 	if wasHidden then
-		if R.art.intro then R.art.intro:Play() end
+		self:PlayIntro()
 		-- A panel coming up part-way through a global cooldown shows what is
 		-- left of it; the cast that started it was sent while it was down.
 		self:SyncCooldown()

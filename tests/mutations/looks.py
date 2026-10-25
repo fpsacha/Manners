@@ -24,10 +24,10 @@ mutate("Prompt/Panel.lua",
 
 # The button's square highlight never put back.
 mutate("Prompt/Panel.lua",
-       "\tR.shineFrame:Show()\n"
+       "\tR.fx:SetShown(true)\n"
        "\tlocal hl = R.button:GetHighlightTexture()\n"
        "\tif hl then hl:SetVertexColor(1, 1, 1, 0.045) end\n",
-       "\tR.shineFrame:Show()\n",
+       "\tR.fx:SetShown(true)\n",
        "the highlight left off after Luxe",
        expect="the button's highlight stayed off after Luxe",
        script="runscenarios.py")

@@ -51,7 +51,8 @@ The Manners logo, `Textures\Manners64.tga`, is this project's own: it is drawn
 by `tools/make-icon.py` and shipped under the addon's MIT licence. It is the
 icon in the addon list and on the minimap button. The rest of `Textures\` is
 this project's own too, drawn by its own scripts and shipped under the same
-licence: the prompt's glows (`Glow.tga`, `GlowRound.tga`, `tools/make-glow.py`)
+licence: the prompt's light (`Glow.tga`, `GlowRound.tga`, `Ring.tga`, `RingSq.tga`,
+`Sweep.tga`, `Gloss.tga`, `Bevel.tga`, `tools/make-glow.py`)
 and the art of the Arcane, Luxe and Toast looks (`Textures\Arcane`, `Luxe` and
 `Toast`, `tools/make_arcane_textures.py`, `make_luxe_textures.py` and
 `make_toast_textures.py`).
