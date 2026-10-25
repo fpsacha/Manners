@@ -273,6 +273,13 @@ local function boot(ns, names)
 	return ns
 end
 
+-- The panel a little wider than the default, for the moments that name
+-- Elowen Thistledown in full: "could not buff Elowen Thistledown" is cut at
+-- 220 with the fonts CI draws with, and the strip's rows keep one size.
+local function roomy(ns)
+	ns.db.profile.prompt.width = 260
+end
+
 local function owe(ns, name, class)
 	ns.owed[name] = { expires = GetTime() + 100, at = GetTime(), class = class or "PRIEST" }
 end
@@ -372,6 +379,7 @@ local added = {
 	-- the panel, the words fully drawn.
 	{ key = "shot-landed", at = 0.20, setup = function(ns)
 		boot(ns, { nameplate1 = ELOWEN })
+		roomy(ns)
 		owe(ns, "Elowen Thistledown")
 		settle(ns)
 		ns.Prompt:ShowOutcome("cast", "Elowen Thistledown")
@@ -382,11 +390,13 @@ local added = {
 	-- the picture's choice (`--at`), not the state's.
 	{ key = "shot-moment-arrival", at = 0.05, setup = function(ns)
 		boot(ns, { nameplate1 = ELOWEN })
+		roomy(ns)
 		owe(ns, "Elowen Thistledown")
 		settle(ns)
 	end },
 	{ key = "shot-moment-refused", at = 0.15, setup = function(ns)
 		boot(ns, { nameplate1 = ELOWEN })
+		roomy(ns)
 		owe(ns, "Elowen Thistledown")
 		settle(ns)
 		ns.Prompt:ShowOutcome("failed", "Elowen Thistledown", "Out of range.")
@@ -1866,7 +1876,7 @@ def picture_moment(snaps):
     """Three moments of one favour, a row of four frames each: the real
     renderer's output at 0.05, 0.15, 0.30 and 0.60 s after the moment. Drawn
     at the game's own size, because four panels at twice that do not fit the
-    page's width; the titles and a caption stand to the left."""
+    page's width; each row's title and caption stand above its frames."""
     zoom = 1.0
     rows = []
     for key, *_ in MOMENTS:
@@ -1882,18 +1892,19 @@ def picture_moment(snaps):
     fw = max(l.size[0] for frames in rows for l in frames)
     fh = max(l.size[1] for frames in rows for l in frames)
     gap = 4
-    left = WIDTH - 24 - 4 * fw - 3 * gap
+    left = (WIDTH - 4 * fw - 3 * gap) / 2
     top = 150
-    row = fh + 36
+    above = 34
+    row = above + fh + 36
     board = Board(top + row * len(rows) + 14, seed=19, sun=(0.50, 0.55))
     heading(board, "Three moments",
             "One favour, four frames of each: 0.05, 0.15, 0.30 and 0.60 seconds in.")
     for n, ((_, title, line, _, _), frames) in enumerate(zip(MOMENTS, rows)):
-        y = top + row * n
-        board.shade(18, y - 6, WIDTH - 12, y + fh + 30, 0.4)
-        board.text((30, y + 10), title, 21, bold=True)
-        for k, text in enumerate(wrap_line(line, 16, left - 30 - 20)):
-            board.text((30, y + 44 + k * 21), text, 16, fill=(214, 206, 214))
+        board.shade(18, top + row * n - 6, WIDTH - 12, top + row * n + above + fh + 30, 0.4)
+        board.text((30, top + row * n + 4), title, 21, bold=True)
+        board.text((30 + caption_face(title, 21, True).getlength(title) + 16, top + row * n + 9), line, 16,
+                   fill=(214, 206, 214))
+        y = top + row * n + above
         for i, (t, layer) in enumerate(zip(MOMENT_TIMES, frames)):
             x = left + i * (fw + gap)
             # Every frame by the button's top left, so the panel stands still
