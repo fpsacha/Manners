@@ -92,6 +92,13 @@ local function groupsOf(r)
 		return g
 	end
 	g.intro, g.introCalm = { r.intro }, { r.introCalm }
+	if look.key == "slate" then
+		g.arrive = {}
+		for _, a in ipairs(look.arrive) do g.arrive[#g.arrive + 1] = a end
+		for _, a in ipairs(look.landing) do g.land[#g.land + 1] = a end
+		for _, a in ipairs(look.refusal) do g.reject[#g.reject + 1] = a end
+		return g
+	end
 	if look.key == "luxe" then
 		g.arrive = { look.lockAnim }
 		g.land[#g.land + 1] = look.landAnim
@@ -111,6 +118,9 @@ local function groupsOf(r)
 	end
 	return g
 end
+
+-- Slate joins the looks asked every question here.
+ALL[#ALL + 1] = "slate"
 
 local function snapshot(g)
 	return { arrive = total(g.arrive), land = total(g.land), reject = total(g.reject),
@@ -495,7 +505,7 @@ withTree("hunt35-effects: the owed breath is the reason's colour and a warm whit
 	end
 	if rim._color[3] >= rim._color[1] then fail(scenario, "the warm white is not warm: blue is not under red") end
 	-- The other three look keep a warm ring over the same breath.
-	for _, style in ipairs({ "luxe", "toast", "arcane" }) do
+	for _, style in ipairs({ "luxe", "toast", "arcane", "slate" }) do
 		local rr = upIn(ns, scenario, style)
 		owe(ns, "Anna Aim")
 		ns.addon:Tick()

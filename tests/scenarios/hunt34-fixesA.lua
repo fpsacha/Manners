@@ -184,7 +184,7 @@ for _, style in ipairs({ "glass", "framed", "minimal" }) do
 	Mock.reset()
 end
 
-for _, style in ipairs({ "arcane", "toast", "luxe" }) do
+for _, style in ipairs({ "arcane", "toast", "luxe", "slate" }) do
 	local scenario = "hunt34-layout: " .. style .. " keeps the name 20 units whatever room is asked for at the right"
 	Mock.reset()
 	FT.install()
