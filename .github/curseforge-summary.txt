@@ -1,1 +1,1 @@
-One click to buff back whoever just buffed you, and nearby players missing yours.
+Somebody buffed you. One click buffs them back, and your target is handed straight back.
