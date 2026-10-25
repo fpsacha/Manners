@@ -43,12 +43,12 @@ same list (`tests/validate.py` fails until they match).
 | `Commands.lua` | first run, test console, snooze, sharing, slash commands (`ns.COMMANDS`, `ns.DEV_COMMANDS`) |
 | `Phrases.lua` | the In character set (`RP` = `ns.InCharacter`) |
 | `Ledger.lua` | the favour ledger window (`/manners ledger`) |
-| `Looks/` | prompt looks beyond the built-in glass/framed/minimal: `Looks.lua` (registry and interface), `Luxe`, `Toast`, `Arcane` |
+| `Looks/` | prompt looks beyond the built-in glass/framed/minimal: `Looks.lua` (registry and interface), `Luxe`, `Toast`, `Arcane`, `Whisper` |
 | `Prompt/` | the prompt: `Prompt.lua` (ns.BUILD), `Panel` (regions, built-in looks), `Macro` (what the button casts), `Press` (Pre/PostClick), `Paint`, `Text`, `Effects`, `Hold` (hysteresis), `List`, `Rows` (the list's names as secure buttons, armed only for the one press), `Button`, `Refresh` |
 | `Options/` | the settings model, AceConfig-shaped, one file per tab (`Start Who When Say Look Advanced Diagnostics Profiles`), `Shared.lua`, `Launcher.lua` (minimap/broker/compartment), `Register.lua` (registers it; `ns.OpenOptions`; AceConfigDialog is the fallback) |
 | `Options/Window/` | the custom options window drawn from that model; `Layout.lua` places every control (`"tab.key"`) on a page |
 | `Selftest.lua` | the in-game `/manners selftest` (`/manners check`) |
-| `Textures/` | all generated, all shipped: `Manners64.tga` by `tools/make-icon.py`, the prompt's light (`Glow`, `GlowRound`, `Ring`, `RingSq`, `Sweep`, `Gloss`, `Bevel`) by `tools/make-glow.py`, `Arcane/`, `Luxe/` and `Toast/` by `tools/make_arcane_textures.py`, `make_luxe_textures.py` and `make_toast_textures.py` |
+| `Textures/` | all generated, all shipped: `Manners64.tga` by `tools/make-icon.py`, the prompt's light (`Glow`, `GlowRound`, `Ring`, `RingSq`, `Sweep`, `Gloss`, `Bevel`) by `tools/make-glow.py`, `Arcane/`, `Luxe/`, `Toast/` and `Whisper/` by `tools/make_arcane_textures.py`, `make_luxe_textures.py`, `make_toast_textures.py` and `make_whisper_textures.py` |
 | `tests/` | the suites, `scenarios/` and `mutations/` (one file per topic), the mock client (`mockapi.lua` + `mockwidgets.lua` + `mockwindow.lua`, `Mock.FLAVOURS` per client), `baselines/` (each client's known reds), `frametree.lua`, `baseline.py`, `bughunt.py`, `setversion.py` |
 | `tools/` | checks, lint, anchor lookup, client watch, release, locale and phrase tools, toc generator, renderers, image and texture generators, profilers (none ship) |
 | `.claude/` | `settings.json` (permissions, the lint hook) and `commands/` (`/check`, `/release`, `/bughunt`, `/translate`, `/phrases`); see "Dev tools" |

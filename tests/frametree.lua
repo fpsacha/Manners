@@ -67,6 +67,7 @@ local function newAnimation(group, kind)
 	a.GetDuration = function(self) return self._duration end
 	a.SetOrder = function(self, v) self._order = v return self end
 	a.SetOffset = function(self, x, y) self._offset = { x or 0, y or 0 } return self end
+	a.GetOffset = function(self) local o = self._offset or { 0, 0 } return o[1], o[2] end
 	a.SetSmoothing = function(self, v) self._smoothing = v return self end
 	a.SetStartDelay = function(self, v) self._startDelay = v return self end
 	a.SetScaleFrom = function(self, x, y) self._scaleFrom = { x, y } return self end

@@ -35,7 +35,7 @@ dofile(dir .. "/tests/frametree.lua")
 local FT = FrameTree
 
 local ANNA = { nameplate1 = { "Anna", "Aim" } }
-local ALL = { "glass", "framed", "minimal", "luxe", "toast", "arcane" }
+local ALL = { "glass", "framed", "minimal", "luxe", "toast", "arcane", "whisper" }
 
 local function withTree(scenario, names, body)
 	Mock.reset()
