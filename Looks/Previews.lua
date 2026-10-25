@@ -15,4 +15,4 @@ ns.Looks.previews = {
 	toast = true,
 	whisper = true,
 }
-ns.Looks.previewHash = "c4198536fef2538e85243339edee46642027a7634f3620028f5d2b5038f42e83"
+ns.Looks.previewHash = "a89675d3b81d6d8ef4555c978dd5c7b6ba9e6beac27c9d3000fd8a8f00a53ab9"

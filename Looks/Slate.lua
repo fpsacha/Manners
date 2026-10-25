@@ -47,6 +47,8 @@ local ART = "Interface\\AddOns\\Manners\\Textures\\Slate\\Slate_"
 
 local Slate = ns.Looks.Register("slate", {
 	name = L["Slate -- modern card, soft shadow, thin progress line"],
+	title = L["Slate"],
+	description = L["modern card, soft shadow, thin progress line"],
 	order = 6,
 	-- The card holds in a fight; the look dims its own parts.
 	combatArtAlpha = 1,

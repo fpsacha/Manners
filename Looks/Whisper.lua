@@ -38,6 +38,8 @@ local ART = "Interface\\AddOns\\Manners\\Textures\\Whisper\\Whisper_"
 
 local Whisper = ns.Looks.Register("whisper", {
 	name = L["Whisper -- no box, one hairline in the reason colour"],
+	title = L["Whisper"],
+	description = L["no box, one hairline in the reason colour"],
 	order = 4,
 	-- The ground and the ink are dimmed apart, so art itself stays whole.
 	combatArtAlpha = 1,

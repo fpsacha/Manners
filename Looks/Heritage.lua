@@ -54,6 +54,8 @@ local ART = "Interface\\AddOns\\Manners\\Textures\\Heritage\\Heritage_"
 
 local Heritage = ns.Looks.Register("heritage", {
 	name = L["Heritage -- stone and gold, like the first interface"],
+	title = L["Heritage"],
+	description = L["stone and gold, like the first interface"],
 	order = 5,
 	-- The frame holds in a fight; the look dims its own parts.
 	combatArtAlpha = 1,
