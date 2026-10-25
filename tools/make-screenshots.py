@@ -19,7 +19,8 @@ window (found in the frame tree).
 
 What it writes, all 1280 pixels wide:
 
-    manners-prompt.png     somebody who buffed you, with the glow
+    manners-prompt.png     the moment your buff lands, rings and sweep
+    manners-moment.png     film strips: they buffed you, it lands, it is refused
     manners-reasons.png    the five reasons somebody is offered, each in its colour
     manners-looks.png      the same favour in each of the six looks, named
     manners-ledger.png     the favour ledger with a day of ordinary play in it
@@ -362,6 +363,34 @@ local added = {
 		boot(ns, { nameplate1 = ELOWEN })
 		owe(ns, "Elowen Thistledown")
 		settle(ns)
+	end },
+	-- The hero's moment: that same favour returned, the cast confirmed. The
+	-- queue is read before the outcome is painted, so ShotTop is still the
+	-- favour the button was about to return; what the prompt then shows is
+	-- the addon's own outcome for a buff that landed. The time is where the
+	-- landing reads best: the rings off the icon spread, the sweep crossing
+	-- the panel, the words fully drawn.
+	{ key = "shot-landed", at = 0.20, setup = function(ns)
+		boot(ns, { nameplate1 = ELOWEN })
+		owe(ns, "Elowen Thistledown")
+		settle(ns)
+		ns.Prompt:ShowOutcome("cast", "Elowen Thistledown")
+		FrameTree.settle()
+	end },
+	-- The three moments of the film strip, each from the one favour: it
+	-- arrives, the buff lands, the game refuses it. Which frame is taken is
+	-- the picture's choice (`--at`), not the state's.
+	{ key = "shot-moment-arrival", at = 0.05, setup = function(ns)
+		boot(ns, { nameplate1 = ELOWEN })
+		owe(ns, "Elowen Thistledown")
+		settle(ns)
+	end },
+	{ key = "shot-moment-refused", at = 0.15, setup = function(ns)
+		boot(ns, { nameplate1 = ELOWEN })
+		owe(ns, "Elowen Thistledown")
+		settle(ns)
+		ns.Prompt:ShowOutcome("failed", "Elowen Thistledown", "Out of range.")
+		FrameTree.settle()
 	end },
 	{ key = "shot-target", at = 0.85, setup = function(ns)
 		boot(ns, { target = BRAM })
@@ -1530,6 +1559,32 @@ REASONS = [
     ("shot-nearby", "Sable Harrow", "nearby", "Passing by",
      "A stranger close enough to buff, missing yours."),
 ]
+# The hero: the favour returned, the cast confirmed, at the frame where the
+# landing reads best (the rings off the icon spread into two, the light sweep
+# started across the panel, the words fully drawn). Earlier the rings are
+# tight and the words still fading in; later the rings have thinned out and the
+# sweep is off the panel. It is the state's own time, so this is where
+# the state is built.
+LANDED_AT = 0.20
+LANDED_WORDS = ["buffed Elowen Thistledown", "the game confirmed it"]
+
+# The film strip: one favour, three moments, four frames of each. A row is the
+# state, the title and caption it carries, and the two lines the prompt has to
+# be saying -- and the words it must not, which would make the row's title
+# untrue. The frames are the renderer's, taken at these times (--at).
+MOMENT_TIMES = (0.05, 0.15, 0.30, 0.60)
+MOMENTS = [
+    ("shot-moment-arrival", "They buffed you",
+     "The favour arrives and the glow wakes.",
+     ["Elowen Thistledown", "buffed you"], ["buffed Elowen", "could not buff"]),
+    ("shot-landed", "Your buff lands",
+     "Rings off the icon, a sweep across the panel.",
+     LANDED_WORDS, ["buffed you", "could not buff"]),
+    ("shot-moment-refused", "The game refused it",
+     "The panel says why, in a few words.",
+     ["could not buff Elowen Thistledown", "Out of range."], ["buffed Elowen", "confirmed"]),
+]
+
 # Who the translated pictures' list rows name, as PROMPT_STATES' shot-list puts
 # them there.
 LIST_ROWS = ["Mira Holt", "Tam Rook", "Ivo Lark"]
@@ -1699,6 +1754,31 @@ def build(addon_dir):
             expect_names(key, texts, [name])
             check_glyphs(key, texts)
             snaps[key] = snap
+    # The hero and the film strip: the same favour at the moments the pictures
+    # show. Every frame is held to what its row's title says, so a frame that
+    # shows the arrival under "Your buff lands" is caught rather than drawn.
+    snap, top = snap_of(R, lua, "shot-landed")
+    if snap:
+        expect_top("shot-landed", top, "Elowen Thistledown", "owed")
+        texts = shown_texts(snap, PromptTree)
+        expect_names("shot-landed", texts, LANDED_WORDS)
+        check_glyphs("shot-landed", texts)
+        snaps["shot-landed"] = snap
+    for key, _, _, words, never in MOMENTS:
+        for t in MOMENT_TIMES:
+            frame = "%s@%.2f" % (key, t)
+            snap, top = snap_of(R, lua, key, t)
+            if not snap:
+                continue
+            expect_top(frame, top, "Elowen Thistledown", "owed")
+            texts = shown_texts(snap, PromptTree)
+            expect_names(frame, texts, words)
+            joined = "\n".join(texts)
+            for gone in never:
+                if gone in joined:
+                    problem("%s: the prompt says %r, which is not this moment" % (frame, gone))
+            check_glyphs(frame, texts)
+            snaps[frame] = snap
     for key in ("shot-palette-standard", "shot-palette-colourblind"):
         snap, top = snap_of(R, lua, key)
         if snap:
@@ -1770,8 +1850,60 @@ def build(addon_dir):
 
 
 def picture_prompt(snaps):
+    """The first picture on the page, so the addon at its best moment: the buff
+    has landed and the panel is mid-celebration. No heading; one line under it."""
     board = Board(600, seed=11, sun=(0.87, 0.47))
-    board.centre(prompt_layer("shot-owed", snaps["shot-owed"], 3.0), WIDTH / 2 - 40, 290)
+    layer = prompt_layer("shot-landed", snaps["shot-landed"], 3.0)
+    cx = WIDTH / 2 - 40
+    board.centre(layer, cx, 270)
+    below = 270 + layer.size[1] / 2
+    board.shade(cx - 230, below + 22, cx + 230, below + 82, 0.4)
+    board.text((cx, below + 52), "The moment your buff lands.", 26, bold=True, anchor="mm")
+    return board
+
+
+def picture_moment(snaps):
+    """Three moments of one favour, a row of four frames each: the real
+    renderer's output at 0.05, 0.15, 0.30 and 0.60 s after the moment. Drawn
+    at the game's own size, because four panels at twice that do not fit the
+    page's width; the titles and a caption stand to the left."""
+    zoom = 1.0
+    rows = []
+    for key, *_ in MOMENTS:
+        rows.append([prompt_layer("%s@%.2f" % (key, t), snaps["%s@%.2f" % (key, t)], zoom)
+                     for t in MOMENT_TIMES])
+    # A strip whose frames are all alike is one that ignored its times.
+    for (key, *_), frames in zip(MOMENTS, rows):
+        for i, a in enumerate(frames):
+            for j in range(i + 1, len(frames)):
+                if a.add.shape == frames[j].add.shape and np.array_equal(a.add, frames[j].add):
+                    problem("manners-moment.png: %s is the same at %.2f s and %.2f s"
+                            % (key, MOMENT_TIMES[i], MOMENT_TIMES[j]))
+    fw = max(l.size[0] for frames in rows for l in frames)
+    fh = max(l.size[1] for frames in rows for l in frames)
+    gap = 4
+    left = WIDTH - 24 - 4 * fw - 3 * gap
+    top = 150
+    row = fh + 36
+    board = Board(top + row * len(rows) + 14, seed=19, sun=(0.50, 0.55))
+    heading(board, "Three moments",
+            "One favour, four frames of each: 0.05, 0.15, 0.30 and 0.60 seconds in.")
+    for n, ((_, title, line, _, _), frames) in enumerate(zip(MOMENTS, rows)):
+        y = top + row * n
+        board.shade(18, y - 6, WIDTH - 12, y + fh + 30, 0.4)
+        board.text((30, y + 10), title, 21, bold=True)
+        for k, text in enumerate(wrap_line(line, 16, left - 30 - 20)):
+            board.text((30, y + 44 + k * 21), text, 16, fill=(214, 206, 214))
+        for i, (t, layer) in enumerate(zip(MOMENT_TIMES, frames)):
+            x = left + i * (fw + gap)
+            # Every frame by the button's top left, so the panel stands still
+            # on the page and only what the addon animates moves: the layer
+            # is wider on the side a ring has spread to.
+            snap = snaps["%s@%.2f" % (MOMENTS[n][0], t)]
+            left_, _, _, top_ = PromptTree(snap).rect(snap["button"])
+            ax, ay = layer.at(left_, top_)
+            board.place(layer, x + 14 - ax, y + 14 - ay)
+            board.text((x + fw / 2, y + fh + 6), "%.2f s" % t, 14, fill=(190, 184, 196), anchor="mm")
     return board
 
 
@@ -2022,6 +2154,7 @@ def picture_yourself(snaps):
 
 PICTURES = [
     ("manners-prompt.png", picture_prompt),
+    ("manners-moment.png", picture_moment),
     ("manners-reasons.png", picture_reasons),
     ("manners-looks.png", picture_looks),
     ("manners-ledger.png", picture_ledger),

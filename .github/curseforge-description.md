@@ -1,6 +1,8 @@
 **Somebody buffed you. One click buffs them back, and your target is handed straight back.**
 
-![The prompt: a dark panel naming Elowen Thistledown, who buffed you, with a gold glow round the spell icon](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-prompt.png)
+![The prompt as your buff lands: a dark panel reading buffed Elowen Thistledown and the game confirmed it, two gold rings spreading off the spell icon and a light sweep crossing the panel](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-prompt.png)
+
+![Three film strips of the prompt, four frames each: somebody buffed you, your buff lands, the game refuses it](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-moment.png)
 
 A priest buffs you in passing. By the time you have picked them out of a dozen nameplates, they are gone. Manners saw who it was, worked out what you owe them and put one button on screen. Click it, or press your key: they get their buff, your own target comes straight back, and the favour is remembered through a reload or a disconnect.
 
