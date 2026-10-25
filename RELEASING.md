@@ -151,7 +151,7 @@ so they show inline only once `master` holds them.
 The images are generated rather than captured: `python tools/make-icon.py` and
 `python tools/make-screenshots.py`. See `tools/README.md`.
 
-The nine screenshots -- `manners-prompt.png`, `manners-reasons.png`,
+The ten screenshots -- `manners-prompt.png`, `manners-moment.png`, `manners-reasons.png`,
 `manners-list.png`, `manners-yourself.png`, `manners-options.png`,
 `manners-looks.png`, `manners-ledger.png`, `manners-languages.png` and
 `manners-palette.png` in `.github/media/` -- go into the CurseForge and Wago

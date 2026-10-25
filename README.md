@@ -8,7 +8,9 @@ straight back.**
 [![Wago](https://img.shields.io/badge/Wago-Manners-c1272d)](https://addons.wago.io/addons/rNkgzlNa)
 [![Licence: MIT](https://img.shields.io/badge/licence-MIT-blue)](LICENSE)
 
-<img src=".github/media/manners-prompt.png" alt="The prompt: a dark panel naming Elowen Thistledown, who buffed you, with a gold glow round the spell icon" width="640">
+<img src=".github/media/manners-prompt.png" alt="The prompt as your buff lands: a dark panel reading buffed Elowen Thistledown and the game confirmed it, two gold rings spreading off the spell icon and a light sweep crossing the panel" width="640">
+
+<img src=".github/media/manners-moment.png" alt="Three film strips of the prompt, four frames each: somebody buffed you, your buff lands, the game refuses it" width="640">
 
 A priest buffs you in passing. By the time you have picked them out of a dozen
 nameplates, they are gone. Manners saw who it was, worked out what you owe them
