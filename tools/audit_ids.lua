@@ -77,7 +77,7 @@ end
 
 -- Plain fields of a buff or a spell, dropping what the lookups hang on (class,
 -- family, auraIds), which point back up the tree.
-local SKIP = { class = true, family = true, auraIds = true, alikeIds = true, order = true, own = true }
+local SKIP = { class = true, family = true, auraIds = true, alikeIds = true, blockerIds = true, readIds = true, order = true, own = true }
 
 local function plainCopy(t)
 	local out = {}
@@ -124,6 +124,9 @@ local data = {
 	favourOnly = sortedIds(ns.FAVOUR_ONLY_IDS),
 	notFavour = sortedIds(ns.NOT_FAVOUR_IDS),
 	rankLevel = {},
+	-- What every rank of Arcane Intellect, Power Word: Fortitude and Divine Spirit
+	-- and every scroll of their stat gives (Buffs.lua, statValue).
+	statValue = {},
 	-- How long each id lasts, seconds (Buffs.lua, "how long each lasts").
 	seconds = ns.SPELL_SECONDS or {},
 	classesWithout = keysOf(ns.CLASSES_WITHOUT_BUFFS),
@@ -147,5 +150,6 @@ local data = {
 	},
 }
 for id, level in pairs(ns.RANK_LEVEL or {}) do data.rankLevel[tostring(id)] = level end
+for id, value in pairs(ns.STAT_VALUE or {}) do data.statValue[tostring(id)] = value end
 
 return encode(data)
