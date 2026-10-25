@@ -331,6 +331,12 @@ function Arcane:Build(kit)
 	-- echo of the icon: the spell is drawn clean.
 	self.fx = kit.FX(art, nil, true)
 	for _, f in ipairs(self.fx.frames) do keep(f) end
+	-- Where each ring file is brightest and how far out it is seen, for how
+	-- far the rings may spread (measured from the files: hunt37-effects).
+	kit.RingArt(ART .. "IconRing", 0.758, 0.98)
+	kit.RingArt(ART .. "IconRingSq", 0.758, 0.98)
+	kit.RingArt(ART .. "RuneRing", 0.957, 1.0)
+	kit.RingArt(ART .. "RuneRingSq", 0.785, 1.0)
 
 	-- On textLayer, over everything and dimmed with the text: the count's
 	-- coin, the keycap and its key.
@@ -456,6 +462,7 @@ function Arcane:BuildAnimations()
 	lockSettle:SetOrder(2)
 	if lockSettle.SetSmoothing then lockSettle:SetSmoothing("IN_OUT") end
 	self.lockAnim = lock
+	self.lockIn, self.lockSettle = lockIn, lockSettle
 
 	self.checkAnim = Fade(self.check, 1, 0.12, "OUT")
 	self.checkAnim.fade:SetFromAlpha(0)
@@ -587,13 +594,22 @@ function Arcane:Apply(p, above)
 	-- after it, a size up.
 	local w = kit.WARM_WHITE
 	self.warmRing:SetVertexColor(w[1], w[2], w[3], 1)
-	self.fx:Place(icon, (iconSize / ICON_FRAME - iconSize) / 2)
+	self.fx:Place(icon, (iconSize / ICON_FRAME - iconSize) / 2, iconSize)
 	self.fx:Shape(round, ART .. "IconRing", ART .. "IconRingSq")
 	local runeRing = self.fx.rings[2]
-	runeRing.tex:SetTexture(ART .. (round and "RuneRing" or "RuneRingSq"))
+	self.fx:SetArt(2, ART .. (round and "RuneRing" or "RuneRingSq"))
+	runeRing.half = M / 2
 	runeRing.frame:ClearAllPoints()
 	runeRing.frame:SetPoint("TOPLEFT", icon, "TOPLEFT", -(M - iconSize) / 2, (M - iconSize) / 2)
 	runeRing.frame:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", (M - iconSize) / 2, -(M - iconSize) / 2)
+	-- How far they may spread: to the text (less a margin), to the card's left
+	-- edge and to its top and bottom edges. The ring that locks onto the icon
+	-- is held to the same room.
+	local limitH = math.min(textX - cx - kit.TEXT_MARGIN, cx - kit.EDGE_MARGIN)
+	local limitV = H / 2 - kit.EDGE_MARGIN
+	self.fx:Fit(limitH, limitV, kit.SHAKE_LEFT)
+	kit.CapLock(self.lockIn, self.lockSettle, 1.22, 0.97,
+		kit.CapScale(math.min(limitH, limitV), iconSize / ICON_FRAME / 2, 0.98))
 	self.check:ClearAllPoints()
 	self.check:SetPoint("CENTER", icon, "CENTER", 0, 0)
 	self.check:SetSize(iconSize * 0.86, iconSize * 0.86)
@@ -762,7 +778,7 @@ function Arcane:Hide()
 	end
 	kit.count:Show()
 	kit.fit.room[kit.name], kit.fit.room[kit.sub] = nil, nil
-	kit.textLayer:SetFrameLevel(kit.art:GetFrameLevel() + 1)
+	kit.textLayer:SetFrameLevel(kit.art:GetFrameLevel() + kit.TEXT_LEVEL)
 	kit.textLayer:SetAlpha(1)
 	self.combat, self.hovered, self.washFor, self.outcome, self.trayShown = nil, nil, nil, nil, nil
 	self.breathe = nil

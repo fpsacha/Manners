@@ -328,6 +328,10 @@ function Luxe:Build(kit)
 	-- spell is drawn clean.
 	self.fx = kit.FX(art, nil, true)
 	for _, f in ipairs(self.fx.frames) do keep(f) end
+	-- Where the art's ring is brightest and how far out it is seen, for how
+	-- far the rings may spread (measured from the files: hunt37-effects).
+	kit.RingArt(ART .. "IconRing", 0.922, 0.96)
+	kit.RingArt(ART .. "IconRingRound", 0.922, 0.96)
 	self.burstFrame = self.fx.rings[1].frame
 	self.sheenFrame = frame(art)
 	self.sheen = tex(self.sheenFrame, "OVERLAY", 1, "Sheen", "ADD")
@@ -422,6 +426,7 @@ function Luxe:BuildAnimations()
 	lockSettle:SetOrder(2)
 	if lockSettle.SetSmoothing then lockSettle:SetSmoothing("IN_OUT") end
 	self.lockAnim = lock
+	self.lockIn, self.lockSettle = lockIn, lockSettle
 
 	-- Breathing while somebody owed waits: slow and faint, so the only loop
 	-- on the panel never reads as flashing. 1.3 s each way, 2.6 s round.
@@ -596,8 +601,17 @@ function Luxe:Apply(p, above)
 			t:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", ringPad, -ringPad)
 		end
 		-- The rings spread from where the reason's ring sits.
-		self.fx:Place(icon, ringPad)
+		self.fx:Place(icon, ringPad, iconSize)
 		self.fx:Shape(round, ART .. "IconRingRound", ART .. "IconRing")
+		-- The room the rings have: to the text (less a margin), to the card's
+		-- left edge and to its top and bottom edges. The lock-on ring that
+		-- closes on the icon is held to it as well.
+		local half = iconSize / 2
+		local limitH = half + math.min(textX - iconX - iconSize - kit.TEXT_MARGIN, iconX - kit.EDGE_MARGIN)
+		local limitV = H / 2 - kit.EDGE_MARGIN
+		self.fx:Fit(limitH, limitV, kit.SHAKE_LEFT)
+		kit.CapLock(self.lockIn, self.lockSettle, 1.30, 0.97,
+			kit.CapScale(math.min(limitH, limitV), half + ringPad, 0.96))
 		local cooldown = kit.cooldown
 		if cooldown then
 			cooldown:ClearAllPoints()
@@ -759,7 +773,7 @@ function Luxe:Hide()
 		kit.sub:SetParent(kit.textLayer)
 		self.subMoved = nil
 	end
-	kit.textLayer:SetFrameLevel(kit.art:GetFrameLevel() + 1)
+	kit.textLayer:SetFrameLevel(kit.art:GetFrameLevel() + kit.TEXT_LEVEL)
 	kit.textLayer:SetAlpha(1)
 	for _, fs in ipairs({ kit.name, kit.sub, kit.count }) do fs:SetAlpha(1) end
 	-- The reason line's room is the tag's: the built-in looks fit theirs to

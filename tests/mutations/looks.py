@@ -50,7 +50,7 @@ mutate("Looks/Luxe.lua",
 
 # textLayer left raised.
 mutate("Looks/Luxe.lua",
-       "\tkit.textLayer:SetFrameLevel(kit.art:GetFrameLevel() + 1)\n",
+       "\tkit.textLayer:SetFrameLevel(kit.art:GetFrameLevel() + kit.TEXT_LEVEL)\n",
        "",
        "textLayer left at Luxe's level",
        expect="textLayer kept Luxe's frame level",

@@ -23,6 +23,8 @@ local BEVEL_MARGIN, BEVEL_SIZE, BEVEL_CORNER = 6, 32, 3
 -- The glass's reflection, at the panel's own opacity: Textures/Gloss.tga is
 -- brightest at its top left, and this is that brightness.
 local GLOSS_ALPHA = 0.13
+-- Where the icon sits and how far the text starts from it, in units.
+local ICON_X, ICON_GAP = 10, 10
 
 -- Nine textures cut from one file, as the looks' own slices are.
 local function BevelSlice(parent, layer, sublevel)
@@ -268,6 +270,10 @@ function Prompt:Create()
 	-- at once rather than swapping strings mid-read.
 	R.textLayer = CreateFrame("Frame", nil, R.art)
 	R.textLayer:SetAllPoints()
+	-- Over every frame of light, by level and not by the order they were made
+	-- in: the rings, the halo and the band across the panel pass under the
+	-- letters.
+	R.textLayer:SetFrameLevel(R.art:GetFrameLevel() + lib.TEXT_LEVEL)
 
 	R.nameText = R.textLayer:CreateFontString(nil, "OVERLAY")
 	R.nameText:SetJustifyH("LEFT")
@@ -466,7 +472,7 @@ function Prompt:ApplyStyle()
 	R.rimFrame:ClearAllPoints()
 	if p.showIcon then
 		R.icon:SetSize(p.iconSize, p.iconSize)
-		R.icon:SetPoint("LEFT", 10, 0)
+		R.icon:SetPoint("LEFT", ICON_X, 0)
 		R.icon:Show()
 
 		-- The coloured ring, and a pixel of dark between it and the art.
@@ -531,7 +537,15 @@ function Prompt:ApplyStyle()
 		-- (past it, light read as bars stuck to the prompt), reaching further
 		-- sideways where there is more room. A round icon wears the ring
 		-- instead.
-		local sy = math.max(2, math.min(8, math.floor((p.height - p.iconSize) / 2) - outer))
+		-- Where the room runs out, so does the light: the distance from the
+		-- icon's middle to the text (less a margin), to the panel's left edge
+		-- and to its top and bottom edges (less a margin) is what the rings,
+		-- the echo and the halo that flares are held inside (Effects.lua).
+		local half = p.iconSize / 2
+		local limitH = half + math.min(ICON_GAP - lib.TEXT_MARGIN, ICON_X - lib.EDGE_MARGIN)
+		local limitV = p.height / 2 - lib.EDGE_MARGIN
+		local limit = math.min(limitH, limitV)
+		local sy = math.max(0, math.min(8, math.floor((p.height - p.iconSize) / 2) - outer))
 		local sx = math.max(2, math.min(8, 10 - outer))
 		local roundSize = round and p.iconSize or nil
 		R.glowFrame:SetPoint("TOPLEFT", R.icon, "TOPLEFT")
@@ -540,20 +554,23 @@ function Prompt:ApplyStyle()
 		R.burstFrame:ClearAllPoints()
 		R.burstFrame:SetPoint("TOPLEFT", R.icon, "TOPLEFT")
 		R.burstFrame:SetPoint("BOTTOMRIGHT", R.icon, "BOTTOMRIGHT")
-		PlaceHalo(R.burstHalo, R.burstFrame, 4, 4, outer, roundSize)
+		local deep = self:FitBurst(limit, half, outer, round and roundSize / lib.GLOW_RING_AT / 2 or nil)
+		PlaceHalo(R.burstHalo, R.burstFrame, deep, deep, outer, roundSize)
 		-- The rim of warm white hugs the ring, a few units deep.
 		R.rimFrame:SetPoint("TOPLEFT", R.icon, "TOPLEFT")
 		R.rimFrame:SetPoint("BOTTOMRIGHT", R.icon, "BOTTOMRIGHT")
-		PlaceHalo(R.rimHalo, R.rimFrame, 3, 3, outer, roundSize)
+		local rim = math.max(0, math.min(3, limit - half - outer))
+		PlaceHalo(R.rimHalo, R.rimFrame, rim, rim, outer, roundSize)
 		PaintHalo(R.rimHalo, WARM_WHITE[1], WARM_WHITE[2], WARM_WHITE[3], 1)
 		-- The rings spread from just outside the ring, in the shape of the
 		-- icon, and the icon's echo wears the same shape.
-		R.fx:Place(R.icon, R.fx.ThinPad(p.iconSize, outer + 1))
+		R.fx:Place(R.icon, R.fx.ThinPad(p.iconSize, outer + 1), p.iconSize)
 		R.fx:Shape(round, RING, RING_SQ, round and PORTRAIT_MASK or nil)
+		R.fx:Fit(limitH, limitV, lib.SHAKE_LEFT)
 		-- A round sweep keeps its leading edge round.
 		if R.cooldown and R.cooldown.SetUseCircularEdge then R.cooldown:SetUseCircularEdge(round) end
 
-		textX = 10 + p.iconSize + 10
+		textX = ICON_X + p.iconSize + ICON_GAP
 	else
 		R.icon:Hide()
 		R.iconBack:Hide()
@@ -726,6 +743,13 @@ function Prompt:LookKit()
 			ReasonColor = ReasonColor, OUTCOME_SECONDS = OUTCOME_SECONDS,
 			-- The rings and the glows' tints, which a look draws in its own art.
 			FX = lib.NewFX, Tint = Tint, WARM_WHITE = WARM_WHITE,
+			-- How far they may spread (Prompt/Effects.lua): the files a look
+			-- draws its rings in, the scale at which a texture reaches a
+			-- limit, the margins kept from the text and the panel's edges,
+			-- how far a refusal's shake swings the text, and the level of
+			-- textLayer above art, over every frame of light.
+			RingArt = lib.RingArt, CapScale = lib.CapScale, CapLock = lib.CapLock, TEXT_MARGIN = lib.TEXT_MARGIN,
+			EDGE_MARGIN = lib.EDGE_MARGIN, SHAKE_LEFT = lib.SHAKE_LEFT, TEXT_LEVEL = lib.TEXT_LEVEL,
 		}
 	end
 	return self.kit

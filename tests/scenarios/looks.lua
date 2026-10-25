@@ -417,7 +417,7 @@ withTree("switching looks leaves no region of the old one showing", ANNA, functi
 			if now.sub._parent ~= now.textLayer then
 				fail(scenario, "the reason line is still inside Luxe's tag after switching to glass")
 			end
-			if (now.textLayer._level or 0) ~= (now.art._level or 0) + 1 then
+			if (now.textLayer._level or 0) ~= (now.art._level or 0) + ns.Prompt.lib.TEXT_LEVEL then
 				fail(scenario, "textLayer kept Luxe's frame level on glass")
 			end
 			if ns.Prompt:LookKit().fit.room[now.sub] ~= nil then

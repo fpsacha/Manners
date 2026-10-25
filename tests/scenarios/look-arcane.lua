@@ -440,7 +440,7 @@ withTree("leaving Arcane gives back what it borrowed", ANNA, function(ns, scenar
 			end
 			if r.icon._mask == look.mask then fail(scenario, "Arcane's mask still shapes the icon on " .. style) end
 			if look.spinAnim._playing then fail(scenario, "the rune circle still turns after switching to " .. style) end
-			if style ~= "luxe" and (r.textLayer._level or 0) ~= (r.art._level or 0) + 1 then
+			if style ~= "luxe" and (r.textLayer._level or 0) ~= (r.art._level or 0) + ns.Prompt.lib.TEXT_LEVEL then
 				fail(scenario, "textLayer kept Arcane's frame level on " .. style)
 			end
 			if r.cooldown and r.cooldown._circular then

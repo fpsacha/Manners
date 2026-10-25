@@ -388,3 +388,9 @@ lib.Gradient, lib.Solid, lib.Try, lib.unpackColor = Gradient, Solid, Try, unpack
 lib.Halo, lib.PlaceHalo, lib.PaintHalo = Halo, PlaceHalo, PaintHalo
 lib.RING, lib.RING_SQ, lib.RING_AT, lib.SWEEP, lib.GLOSS, lib.BEVEL = RING, RING_SQ, RING_AT, SWEEP, GLOSS, BEVEL
 lib.Tint, lib.WARM_WHITE = Tint, WARM_WHITE
+lib.GLOW_RING_AT = GLOW_RING_AT
+-- How many frame levels above art the text sits: over every frame of light
+-- (the rings, the halo, the band that crosses the panel, which are at art's
+-- level plus one), so none of it is drawn over a letter. A look that moves
+-- textLayer puts it back here (kit.TEXT_LEVEL).
+lib.TEXT_LEVEL = 4

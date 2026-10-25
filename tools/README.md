@@ -583,12 +583,15 @@ python tools/render_prompt.py --compare before after compare.png
 python tools/render_prompt.py --states success --at 0.2         # 0.2 s into the animation
 python tools/render_prompt.py --states success --strip 0.05,0.15,0.3,0.5  # a film strip of it
 python tools/render_prompt.py --size large                      # 320 x 58, 17 pt, icon 40
+python tools/render_prompt.py --size extreme                    # 220 x 48, 17 pt, icon 40
 ```
 
 `--at SECONDS` takes every picture that far into its animation instead of
 at the state's own time, `--strip T1,T2,...` draws one picture per time side by
 side (how an effect moves, which a single still of it cannot say), and
-`--size large` is the top of the usual range.
+`--size large` is the top of the usual range, `extreme` the narrowest prompt
+that holds the biggest icon (little room for light round it) and `tiny` an icon
+of 16.
 
 `--style` draws every state in that look (a state that names its own look,
 such as `framed`, keeps it), and `--key` binds that key to the prompt first,
