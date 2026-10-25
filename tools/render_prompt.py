@@ -610,6 +610,19 @@ def draw_state(snap, px=ZOOM * SUPER, hover=False):
                 and (hover or r.get("layer") != "HIGHLIGHT")]
     drawable.sort(key=sort_key)
 
+    def clip_box(r):
+        """The edges of the nearest frame above `r` that cuts what it holds, in
+        pixels, or None."""
+        for c in tree.chain(r)[1:]:
+            if c.get("clips"):
+                crect = tree.rect(c["id"])
+                if crect:
+                    cl, cb, cr, ct = place(c, crect)
+                    cx0, cy0 = to_px(cl, ct)
+                    cx1, cy1 = to_px(cr, cb)
+                    return (cx0, cy0, cx1, cy1)
+        return None
+
     for r in drawable:
         if not visible(r):
             continue
@@ -627,7 +640,7 @@ def draw_state(snap, px=ZOOM * SUPER, hover=False):
         elif r["kind"] == "Cooldown":
             draw_cooldown(canvas, r, (x0, y0, x1, y1), a, now)
         else:
-            draw_texture(canvas, tree, r, (x0, y0, x1, y1), a, px, to_px, place)
+            draw_texture(canvas, tree, r, (x0, y0, x1, y1), a, px, to_px, place, clip_box(r))
 
     img = canvas.image()
     if SUPER > 1:
@@ -663,12 +676,20 @@ def texture_colour(r, w, h):
     return np.broadcast_to(np.array(rgba, np.float32), (h, w, 4)).copy()
 
 
-def draw_texture(canvas, tree, r, box, alpha, px, to_px, place):
+def draw_texture(canvas, tree, r, box, alpha, px, to_px, place, clip=None):
     x0f, y0f, x1f, y1f = box
     ix0, iy0, cov = coverage(x0f, y0f, x1f, y1f)
     if cov is None:
         return
     h, w = cov.shape
+    if clip is not None:
+        # A frame that cuts what it holds (SetClipsChildren): only the part of
+        # the texture inside its edges is drawn.
+        xs = np.arange(ix0, ix0 + w, dtype=np.float32)
+        ys = np.arange(iy0, iy0 + h, dtype=np.float32)
+        kx = np.clip(np.minimum(xs + 1, clip[2]) - np.maximum(xs, clip[0]), 0, 1)
+        ky = np.clip(np.minimum(ys + 1, clip[3]) - np.maximum(ys, clip[1]), 0, 1)
+        cov = cov * ky[:, None] * kx[None, :]
     file = r.get("file")
     rgba = texture_colour(r, w, h)
     if isinstance(file, (int, float)) and not isinstance(file, bool):

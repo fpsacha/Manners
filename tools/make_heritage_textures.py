@@ -3,63 +3,65 @@
     python tools/make_heritage_textures.py             # Textures/Heritage/*.tga
     python tools/make_heritage_textures.py --out DIR   # the same files, written to DIR
 
-Writes Textures/Heritage/*.tga, which ship in the zip. Deterministic: seeded
-noise and no clock, so run it twice and the files are byte for byte the same,
-and a diff in git is a change of art.
+Writes Textures/Heritage/*.tga, which ship in the zip. Deterministic: no clock
+and no unseeded noise, so run it twice and the files are byte for byte the
+same, and a diff in git is a change of art.
 
-Heritage is drawn to look as if it shipped with the game's first interface: a
-dark marbled stone ground, a beaded gold frame with a boss in each corner, and
-the spell icon in a bevelled slot like an action button's. None of it uses a
-texture of the client's: a game texture cannot be drawn by the preview
-renderer, and the clients do not all keep the same ones, so everything is drawn
-here, in that manner, from distance fields at SS times its size, shaded from
-the upper left, and box-filtered down in premultiplied alpha; then the colour
-is bled into the fully transparent texels, so the client's bilinear filtering
-never pulls in a dark fringe.
+Heritage is the prompt drawn as a unit frame of the game's first interface: a
+round portrait in a thick gold ring with a gold wing and filigree curling round
+it, a gold-bordered body beside it holding a name banner and a status bar, and a
+level badge on the ring. Everything is drawn here, from distance fields at SS
+times its size, shaded from the upper left, and box-filtered down in
+premultiplied alpha; then the colour is bled into the fully transparent texels,
+so the client's bilinear filtering never pulls in a dark fringe. No texture of
+the client's is used: a game texture cannot be drawn by the preview renderer,
+and the clients do not all keep the same ones.
 
 Two kinds of art, as in the other looks:
-  * baked gold (the frame, the slot's rim, the chip, the gem's setting): drawn
-    in its own colours. In a fight the Lua takes it towards iron with
-    SetDesaturated and a grey.
-  * white or grey art (the stone, the slot's tint, the gem, the lights, the
-    gloss, the bar): the colour comes from SetVertexColor or SetGradient, so
-    one file serves all six reasons, both palettes, a custom marker colour and
-    the outcomes.
+  * baked gold (the portrait's ring and wing, the body's border, the badge's
+    rim, the list's pips): drawn in its own colours.
+  * white or grey art (the plate, the lights, the mask, the reason's rim): the
+    colour comes from SetVertexColor or SetGradient, so one file serves all six
+    reasons, both palettes, a custom marker colour and the outcomes.
 
-The frame, the slot and the chip are cut in pieces by the Lua (corners from the
-outer quarters of the file, edges from a thin strip through the middle), so
-their features are drawn in texels here and land as a number of UI units there:
-Looks/Heritage.lua's BAND, SLOT and GEM tables name the figures that must
-agree.
+The body's border and plate are cut in eight pieces by the Lua (corners from the
+outer quarters of the file, edges from a thin strip through the middle, and the
+plate's middle from the centre), so their features are drawn in texels here and
+land as a number of UI units there. Looks/Heritage.lua's CELL, RING_CX, RING_IN,
+RING_OUT, ROD_TEXELS, INSET_TEXELS, GLOW_OUT, RING_PEAK and RING_EDGE name the
+figures that must agree with CELL_ASPECT, RING_CX, RING_IN, RING_OUT, ROD, INSET_TEXELS,
+GLOW_OUT and make_ring() here.
 
-  Heritage_Frame      256x256  8 pieces, cut 0.25: a beaded gold rod with a
-                               dark channel and a fine inner line, a boss in
-                               each corner, and the frame's shade on the stone
-  Heritage_FrameGlow  256x256  The same gilding blurred into light, for the
-                               frame catching it (ADD)
-  Heritage_Stone      256x128  The ground: dark marble, grey, for the panel
-                               colour to tint
-  Heritage_Slot        64x64   8 pieces, cut 0.25: the action button's bevelled
-                               rim, drawn over the icon's edge
-  Heritage_SlotTint    64x64   8 pieces: a ring just inside the rim, white, in
-                               the reason colour
-  Heritage_SlotBack    64x64   The dark socket under the icon
-  Heritage_Gloss       64x64   The button's gloss: a soft highlight from the
-                               upper left, white
-  Heritage_Proc       128x128  The glow that breathes round the slot while
-                               somebody is owed (ADD)
-  Heritage_Ring       128x128  A rounded square ring of light for the landing
-                               and the refusal (ADD, under 0.6 s)
-  Heritage_Glint       64x16   A spark that runs along the frame (ADD)
-  Heritage_Chip        64x32   3 pieces: the count's chip, gold-rimmed
-  Heritage_Gem         32x32   A cut stone, grey for its reason colour (the
-  Heritage_GemSet      32x32   list's markers), and its gold setting
-  Heritage_White        8x8    A flat white, for the bar and the lights that
-                               are plain fills
+  Heritage_Portrait   256x256  The portrait's ornament, drawn for a cell 1.6
+                               times as wide as it is high (squeezed into the
+                               file, and stretched back by the Lua, so a circle
+                               stays a circle): the gold ring, the wing of
+                               blades that fans out of its upper left and its
+                               collar, and the ring's shadow on the portrait
+  Heritage_Mask       128x128  A white disc: the portrait's mask, its sweep, the
+                               socket under it and the light that flashes on it
+  Heritage_Rim        128x128  A soft ring just inside the portrait's edge, white,
+                               in the reason colour
+  Heritage_Aura       128x128  The light that breathes round the ring while
+                               somebody is owed, and glows red in a fight (ADD)
+  Heritage_Ring       128x128  A ring of light for the landing and the refusal
+                               (ADD, under 0.6 s)
+  Heritage_Body       128x128  8 pieces, cut 0.25: the body's gold border
+  Heritage_Plate      128x128  8 pieces: the body's dark ground, white
+  Heritage_Glow       128x128  8 pieces: the border's light, for the frame
+                               catching it and for the red of a fight (ADD)
+  Heritage_Badge       64x32   3 pieces: the level badge's dark pill with a gold
+                               rim (the count, the bound key)
+  Heritage_Pip         32x32   A gold ring for the list's rows
+  Heritage_Glint       64x16   A spark that runs along the banner and the bar
+                               (ADD)
+  Heritage_White        8x8    A flat white, for the banner, the bar and the
+                               lights that are plain fills
 
 Needs numpy and Pillow.
 """
 import argparse
+import math
 import os
 
 import numpy as np
@@ -81,48 +83,50 @@ HALF /= np.linalg.norm(HALF)
 GOLD_STOPS = [
     (0.00, (0.060, 0.038, 0.016)),
     (0.28, (0.260, 0.170, 0.062)),
-    (0.52, (0.500, 0.350, 0.130)),
-    (0.72, (0.720, 0.530, 0.210)),
-    (0.88, (0.880, 0.690, 0.320)),
-    (1.00, (0.960, 0.820, 0.470)),
+    (0.52, (0.520, 0.365, 0.135)),
+    (0.72, (0.760, 0.560, 0.220)),
+    (0.88, (0.930, 0.740, 0.340)),
+    (1.00, (1.000, 0.880, 0.520)),
 ]
-GOLD_CAP = 0.78
+GOLD_CAP = 0.90
 DARK = np.array([0.030, 0.020, 0.012], np.float32)
 
-# The frame, in texels of the 256 file: where each part of the band ends,
-# measured in from the outer edge. Looks/Heritage.lua's BAND is the band's end
-# as a fraction of the 64-texel corner, and must agree.
-FRAME = 256
-CUT = 64
-OUTLINE = 2.0                 # the dark line outside the rod
-ROD = (2.0, 17.0)             # the rod: a round bead of gold, 4 texels high
-CHANNEL = (17.0, 20.2)        # the dark groove inside it
-INNER = (20.2, 24.0)          # the fine inner line, a darker gold
-BAND = 24.0                   # where the gold ends
-RIM_DARK = 26.4               # the dark line inside the gold
-SHADE = 38.0                  # the frame's shade on the stone ends here
-BOSS = (16.0, 16.0, 14.5)     # centre x, y and radius of each corner's boss
+# The portrait's cell, as the Lua lays it: a cell CELL_ASPECT times as wide as
+# it is high, drawn in "design pixels" where the cell is DESIGN high. CELL,
+# RING_CX, RING_IN and RING_OUT in Looks/Heritage.lua say where the ring is, as
+# fractions of the cell's height, and must agree with these.
+CELL_ASPECT = 1.6
+DESIGN = 256.0
+RING_CX, RING_CY = 1.00, 0.50      # the ring's middle: of the cell's height, from its left and top
+RING_IN, RING_OUT = 0.31, 0.43     # the portrait's edge and the ring's outer edge, of its height
 
-# The slot's rim, in texels of the 64 file (quarter 16): the rim, then the tint's
-# ring. SLOT_RIM is where the rim ends and the tint begins; Looks/Heritage.lua's
-# SLOT table says the same as fractions of the quarter.
-SLOT = 64
-SLOT_CUT = 16
-SLOT_RIM = 5.2
-SLOT_TINT = (5.2, 9.6)
+# The body's border, in texels of the 128 file (quarter 32): the outline, the rod
+# and the groove inside it. Looks/Heritage.lua's ROD_TEXELS (the gold's width) and
+# INSET_TEXELS (where the border ends) say the same.
+BODY = 128
+BODY_CUT = 32
+BODY_R = 11.0
+OUTLINE_T = 0.7
+ROD = (0.7, 3.9)
+GROOVE = (3.9, 4.7)
+INSET_TEXELS = 4.7
+# The glow's reach beyond the border's outer edge, in texels; the Lua lays the
+# glow's pieces that much outside the body.
+GLOW_OUT = 6.0
 
-# The slot's width as a fraction of the proc glow's file.
-PROC_AT = 0.64
+# The aura: the ring's outer edge is AURA_AT of the file's half-width.
+AURA_AT = RING_OUT / 0.5 * 1.0
 
 written = []
 
 
 # ------------------------------------------------------------------ helpers
 
-def grid(w, h):
-    """Texel-centre coordinates of the supersampled grid, in texture pixels."""
+def grid(w, h, sx=1.0, sy=1.0):
+    """Texel-centre coordinates of the supersampled grid, in texture pixels
+    (scaled by sx, sy: design pixels for an art drawn stretched into its file)."""
     ys, xs = np.mgrid[0:h * SS, 0:w * SS].astype(np.float32)
-    return (xs + 0.5) / SS, (ys + 0.5) / SS
+    return (xs + 0.5) / SS * sx, (ys + 0.5) / SS * sy
 
 
 def sstep(e0, e1, x):
@@ -169,10 +173,11 @@ def noise(w, h, seed, scale=(1.0, 1.0), octaves=3, base=6.0):
     return out / total * 1.4
 
 
-def shade_gold(height, spec=0.12, lift=0.0, dark=1.0, strength=1.0):
+def shade_gold(height, spec=0.12, lift=0.0, dark=1.0, strength=1.0, step=(1.0, 1.0)):
     """Gold lit from the upper left over a height field in texture pixels: a
-    ramp from the light, a small warm specular, held under the cap."""
-    gy, gx = np.gradient(height, 1.0 / SS)
+    ramp from the light, a small warm specular, held under the cap. `step` is
+    the size of a supersampled sample in x and y, for a grid that is stretched."""
+    gy, gx = np.gradient(height, step[1] / SS, step[0] / SS)
     n = np.stack([-gx * strength, -gy * strength, np.ones_like(height)], -1)
     n /= np.linalg.norm(n, axis=-1, keepdims=True)
     ndl = np.clip(n @ LIGHT, 0, 1)
@@ -253,173 +258,251 @@ def rrect_sdf(x, y, w, h, r):
     return np.sqrt(ox * ox + oy * oy) + np.minimum(np.maximum(qx, qy), 0) - r
 
 
-def seg_sdf(px, py, ax, ay, bx, by):
-    vx, vy = bx - ax, by - ay
-    t = np.clip(((px - ax) * vx + (py - ay) * vy) / (vx * vx + vy * vy), 0, 1)
-    return np.hypot(px - ax - vx * t, py - ay - vy * t)
-
-
-# ------------------------------------------------------------------ the frame
-
-def frame_parts():
-    """The gold, the dark and the depth, on the supersampled grid."""
-    n = FRAME
-    x, y = grid(n, n)
-    depth = -rrect_sdf(x, y, n, n, 7.0)
-    # The rod, the fine inner line, and the boss in each corner.
-    h = hump(depth, *ROD, 4.2) + hump(depth, *INNER, 1.5)
-    bx, by, br = BOSS
-    boss_h = np.zeros_like(h)
-    boss_a = np.zeros_like(h)
-    seat_a = np.zeros_like(h)
-    for cx, cy in ((bx, by), (n - bx, by), (bx, n - by), (n - bx, n - by)):
-        r = np.hypot(x - cx, y - cy)
-        inside = np.clip(1 - (r / br) ** 2, 0, 1)
-        dome = 6.4 * inside ** 0.62
-        # A small round socket in the middle of the boss, and a bead round it.
-        dome = dome - 3.0 * sstep(5.2, 1.0, r) + 1.2 * np.exp(-((r - 6.4) / 1.3) ** 2)
-        boss_h = np.where(r < br, np.maximum(boss_h, dome), boss_h)
-        boss_a = np.maximum(boss_a, cover(r - br))
-        seat_a = np.maximum(seat_a, cover(r - (br + 2.2)))
-    boss_a = np.clip(boss_a, 0, 1)
-    h = np.where(boss_a > 0.5, boss_h, h)
-    grain = noise(n, n, 31, scale=(3.0, 3.0), octaves=2)
-    rgb = shade_gold(h + grain * 0.05, lift=0.10, strength=1.15)
-    # The groove and the foot of each boss are in shadow.
-    ao = 1 - 0.55 * np.exp(-((depth - sum(CHANNEL) / 2) / 1.7) ** 2)
-    rgb = rgb * ao[..., None]
-
-    in_band = cover(-depth) * cover(depth - BAND)           # 1 between the outer edge and BAND
-    outline = in_band * cover(depth - OUTLINE)               # 1 in the dark line outside the rod
-    channel = np.clip(cover(-(depth - CHANNEL[0])) * cover(depth - CHANNEL[1]), 0, 1)
-    metal = np.clip(in_band * (1 - outline) * (1 - 0.88 * channel), 0, 1)
-    metal = np.maximum(metal, boss_a)
-    # The dark: the keyline outside the rod, the groove, the line just inside
-    # the gold, the frame's shade on the stone, and a seat round each boss.
-    inner_dark = sstep(BAND - 0.4, BAND + 0.4, depth) * (1 - sstep(RIM_DARK - 0.4, RIM_DARK + 0.4, depth))
-    shade = np.clip(1 - (depth - RIM_DARK) / (SHADE - RIM_DARK), 0, 1) ** 2 * (depth > RIM_DARK)
-    dark = np.maximum.reduce([outline, channel * in_band, inner_dark, shade * 0.55, seat_a * 0.95 * (depth > 1.0)])
-    dark = np.clip(dark, 0, 1)
-    out_rgb, alpha = compose([(DARK, dark), (rgb, metal)])
-    return out_rgb, alpha, metal, depth
-
-
-def make_frame():
-    rgb, alpha, gold_a, depth = frame_parts()
-    save("Heritage_Frame", finish(rgb, alpha, FRAME, FRAME))
-    # The frame catching the light: the gilding blurred, kept off the stone.
-    base = Image.fromarray((gold_a * 255).astype(np.uint8))
-    blur = np.asarray(base.filter(ImageFilter.GaussianBlur(2.6 * SS)), np.float32) / 255
-    glow = np.clip(blur * 1.5 + gold_a * 0.55, 0, 1)
-    glow *= np.clip(1 - (depth - BAND) / 11.0, 0, 1) ** 1.4
-    glow *= (depth > 0.0)
-    save("Heritage_FrameGlow", finish(white(glow), glow, FRAME, FRAME))
-
-
-# ------------------------------------------------------------------ the stone
-
-def make_stone():
-    w, h = 256, 128
-    x, y = grid(w, h)
-    warp = noise(w, h, 7, scale=(1.0, 1.0), octaves=2, base=60.0)
-    mottle = noise(w, h, 11, scale=(1.0, 1.0), octaves=3, base=48.0)
-    fine = noise(w, h, 13, scale=(1.0, 1.0), octaves=2, base=2.4)
-    base = 0.60 + 0.10 * mottle
-    # Two sets of fine veins, running a little askew across the stone.
-    v1 = np.abs(np.sin((x * 0.0085 + y * 0.0075 + warp * 0.55) * np.pi * 2.0))
-    v2 = np.abs(np.sin((x * 0.0050 - y * 0.0120 + warp * 0.45 + 0.31) * np.pi * 2.0))
-    vein1 = np.exp(-(v1 / 0.17) ** 2) * 0.80 + np.exp(-(v1 / 0.02) ** 2) * 0.18
-    vein2 = np.exp(-(v2 / 0.20) ** 2) * 0.70 + np.exp(-(v2 / 0.022) ** 2) * 0.15
-    # A faint darker cloud, so the veins read as lying in the stone.
-    cloud = np.clip(noise(w, h, 17, scale=(1.0, 1.0), octaves=2, base=44.0), 0, 1)
-    lum = base + 0.13 * vein1 + 0.09 * vein2 + 0.028 * fine - 0.07 * cloud
-    lum = np.clip(lum, 0.30, 1.0)
-    tone = noise(w, h, 19, scale=(1.0, 1.0), octaves=2, base=70.0)
-    rgb = np.stack([lum * (1.0 + 0.040 * tone), lum, lum * (1.0 - 0.045 * tone)], -1)
-    a = np.ones_like(lum)
-    save("Heritage_Stone", finish(np.clip(rgb, 0, 1), a, w, h))
-
-
-# ------------------------------------------------------------------ the slot
-
 def between(d, a, b):
     """1 where a <= d <= b, with one-texel edges."""
     return cover(a - d) * cover(d - b)
 
 
-def slot_parts():
-    n = SLOT
+def blur(a, radius):
+    img = Image.fromarray((np.clip(a, 0, 1) * 255).astype(np.uint8))
+    return np.asarray(img.filter(ImageFilter.GaussianBlur(radius * SS)), np.float32) / 255
+
+
+# ------------------------------------------------------------------ the portrait
+
+def bezier(p0, p1, p2, n=56):
+    t = np.linspace(0, 1, n, dtype=np.float32)[:, None]
+    return (1 - t) ** 2 * np.array(p0, np.float32) + 2 * (1 - t) * t * np.array(p1, np.float32) \
+        + t ** 2 * np.array(p2, np.float32), t[:, 0]
+
+
+def blade(x, y, p0, p1, p2, width, rise, tip=0.6):
+    """A tapering curved blade from p0 to p2 bent through p1: its signed distance
+    (negative inside) and its height, a rounded ridge down the middle."""
+    pts, ts = bezier(p0, p1, p2)
+    best = np.full(x.shape, 1e9, np.float32)
+    at = np.zeros(x.shape, np.float32)
+    for (px, py), t in zip(pts, ts):
+        d = np.hypot(x - px, y - py)
+        closer = d < best
+        best = np.where(closer, d, best)
+        at = np.where(closer, t, at)
+    w = width * (1 - at) ** 0.80 + tip * (1 - at)
+    sd = best - w
+    ridge = rise * (w / max(width, 1.0)) * np.sqrt(np.clip(1 - (best / np.maximum(w, 1e-3)) ** 2, 0, 1))
+    return sd, ridge
+
+
+# The wing: base on the ring (angle from the ring's middle, y down, so 180 is
+# left and 270 is up, and how far out), the bend, the tip, the width at the base.
+# Every tip is inside the cell (design pixels of a cell DESIGN high and
+# DESIGN * CELL_ASPECT wide).
+def wing_blades():
+    cx, cy = RING_CX * DESIGN, RING_CY * DESIGN
+    ro = RING_OUT * DESIGN
+
+    def on_ring(deg, out=0.97):
+        a = math.radians(deg)
+        return (cx + math.cos(a) * ro * out, cy + math.sin(a) * ro * out)
+
+    return [
+        # (base, bend, tip, width, rise)
+        (on_ring(131), (118, 224), (16, 246), 15.0, 7.0),     # the tail: low, long, curling out
+        (on_ring(156), (76, 178), (3, 198), 16.0, 7.5),
+        (on_ring(178), (58, 136), (2, 140), 17.0, 8.0),
+        (on_ring(199), (62, 100), (5, 80), 18.0, 8.5),
+        (on_ring(219), (78, 66), (26, 20), 19.0, 9.0),
+        (on_ring(240), (128, 40), (98, 3), 18.0, 8.5),
+        (on_ring(260), (186, 30), (180, 2), 14.0, 7.0),
+    ]
+
+
+def portrait_parts():
+    n = 256
+    sx = CELL_ASPECT
+    x, y = grid(n, n, sx, 1.0)
+    cx, cy = RING_CX * DESIGN, RING_CY * DESIGN
+    ri, ro = RING_IN * DESIGN, RING_OUT * DESIGN
+    px = 1.15
+    dx, dy = x - cx, y - cy
+    r = np.hypot(dx, dy)
+    ang = np.degrees(np.arctan2(dy, dx)) % 360.0
+
+    # the ring: one thick round bead, a fine groove down its middle, and a bead
+    # of pearls (small studs) set along it
+    ring_d = np.abs(r - (ri + ro) / 2) - (ro - ri) / 2
+    h = hump(r, ri, ro, 15.0)
+    h = h - 4.2 * np.exp(-(((r - (ri + ro) / 2) / 2.2) ** 2)) * (r > ri) * (r < ro)
+    # pearls: twelve round studs on the ring's middle, each a small dome
+    pearl_d = np.full(r.shape, 1e9, np.float32)
+    for k in range(12):
+        a = math.radians(k * 30 + 15)
+        pxk, pyk = cx + math.cos(a) * (ri + ro) / 2, cy + math.sin(a) * (ri + ro) / 2
+        pr = np.hypot(x - pxk, y - pyk)
+        pearl_d = np.minimum(pearl_d, pr - 5.2)
+        dome = 6.0 * np.sqrt(np.clip(1 - (pr / 5.2) ** 2, 0, 1)) * (pr < 5.2)
+        h = np.where(pr < 5.2, np.maximum(h, 11.0 + dome), h)
+
+    # the wing and the collar it grows from
+    sd_all = ring_d
+    collar_out = ro + 13.0 * np.clip(np.sin(np.radians((ang - 120.0) / 170.0 * 180.0)), 0, 1) ** 0.7
+    collar_d = np.where((ang > 120) & (ang < 290) & (r > ro - 3.0), r - collar_out, 1e9)
+    sd_all = np.minimum(sd_all, collar_d)
+    h = np.maximum(h, np.where(collar_d < 0, 9.0 * np.sqrt(np.clip(-collar_d / 13.0, 0, 1)) + 2.0, 0.0))
+    for p0, p1, p2, width, rise in wing_blades():
+        sd, ridge = blade(x, y, p0, p1, p2, width, rise)
+        sd_all = np.minimum(sd_all, sd)
+        # a fine engraved line down the middle of each blade
+        mid = np.exp(-((ridge / max(rise, 1.0) - 0.55) / 0.10) ** 2) * (sd < -2.5)
+        h = np.maximum(h, np.where(sd < 0, ridge + 1.5 - 1.6 * mid, 0.0))
+    sd_all = np.minimum(sd_all, pearl_d)
+
+    grain = noise(n, n, 21, scale=(3.0, 3.0), octaves=2)
+    rgb = shade_gold(h + grain * 0.07, spec=0.16, lift=0.06, strength=0.95, step=(sx, 1.0))
+    # the groove and the foot of every part are in shadow
+    ao = 1 - 0.38 * np.exp(-(np.clip(-sd_all, 0, None) / 2.6) ** 2)
+    rgb = rgb * ao[..., None]
+    metal = cover(sd_all, px)
+    outline = cover(sd_all - 2.6, px)
+    # the ring's inner shadow falls on the portrait, and the whole ornament
+    # casts a soft shadow down and to the right
+    inner = 0.62 * np.clip(1 - np.clip(ri - r, 0, None) / 16.0, 0, 1) ** 2 * (r < ri)
+    shadow_src = cover(sd_all - 1.0, px)
+    sh = np.roll(np.roll(shadow_src, int(3 * SS / sx), 1), 3 * SS, 0)
+    sh = blur(sh, 2.6) * 0.5
+    layers = [(DARK, np.clip(sh, 0, 0.55)), (DARK, outline), (rgb, metal), (DARK, inner)]
+    out_rgb, alpha = compose(layers)
+    return out_rgb, alpha
+
+
+def make_portrait():
+    n = 256
+    rgb, alpha = portrait_parts()
+    save("Heritage_Portrait", finish(rgb, alpha, n, n))
+
+
+def make_mask():
+    n = 128
     x, y = grid(n, n)
-    depth = -rrect_sdf(x, y, n, n, 2.4)
-    h = hump(depth, 0.9, SLOT_RIM - 0.6, 2.6)
-    rgb = shade_gold(h, spec=0.10, lift=0.12, strength=1.3)
-    metal = between(depth, 0.9, SLOT_RIM - 0.5)
-    # The dark outside the metal (an outline) and the dark line inside it.
-    dark = np.maximum(between(depth, 0.0, 0.9), between(depth, SLOT_RIM - 0.5, SLOT_RIM + 0.9) * 0.9)
-    out_rgb, alpha = compose([(DARK, np.clip(dark, 0, 1)), (rgb, metal)])
-    return out_rgb, alpha, depth
+    r = np.hypot(x - n / 2, y - n / 2)
+    a = cover(r - (n / 2 - 0.5))
+    save("Heritage_Mask", finish(white(a), a, n, n))
 
 
-def make_slot():
-    n = SLOT
-    rgb, alpha, depth = slot_parts()
-    save("Heritage_Slot", finish(rgb, alpha, n, n))
-    # The tint: a ring of white just inside the rim.
-    a0, a1 = SLOT_TINT
-    x, y = grid(n, n)
-    ring = between(depth, a0 + 0.6, a1)
-    # A touch brighter along its upper left, as a lit edge would be.
-    lit = 0.80 + 0.20 * np.clip(1 - (x + y) / (n * 1.1), 0, 1)
-    a = np.clip(ring * lit, 0, 1)
-    save("Heritage_SlotTint", finish(white(a), a, n, n))
-    # The socket under the icon: dark, a little lighter at the middle.
-    edge = cover(-depth + 0.0) * 0 + cover(-(depth))
-    mid = np.clip(1 - np.hypot(x - n / 2, y - n / 2) / (n * 0.7), 0, 1)
-    col = np.stack([0.030 + 0.030 * mid, 0.027 + 0.026 * mid, 0.030 + 0.034 * mid], -1)
-    save("Heritage_SlotBack", finish(col, edge, n, n))
-    # The gloss: a soft highlight from the upper left, a fine line along the
-    # top, fading out well before the middle of the icon.
-    q = 1 - np.clip((x + y * 0.95) / (n * 0.95), 0, 1)
-    soft = sstep(0.0, 1.0, q) ** 1.6
-    line = np.exp(-((y - 2.6) / 1.1) ** 2) * sstep(n * 0.9, n * 0.2, x) * 0.55
-    gl = np.clip(soft * 0.55 + line, 0, 1) * cover(-(depth - 1.6))
-    save("Heritage_Gloss", finish(white(gl), gl, n, n))
-
-
-# ------------------------------------------------------------------ the lights
-
-def make_proc():
-    """The glow that breathes round the slot: the slot's edge is at SLOT_AT of
-    the file's half-width, full inside it and falling away outside, with
-    nothing at the file's edge, so no clipping shows. Looks/Heritage.lua's
-    PROC_AT must agree."""
+def make_rim():
+    """A soft ring inside the portrait's edge: it lies on the icon's square, whose
+    inscribed circle is the portrait, so its brightest line is at the edge."""
     n = 128
     x, y = grid(n, n)
     half = n / 2
-    sx, sy = x - half, y - half
-    side = n * PROC_AT
-    sd = rrect_sdf(sx + side / 2, sy + side / 2, side, side, 5.0)  # < 0 inside the slot square
-    a = np.exp(-(np.maximum(sd, 0) / 9.5) ** 1.3)
-    a = a * sstep(half * 1.0, half * 0.80, np.maximum(np.abs(sx), np.abs(sy)))
-    save("Heritage_Proc", finish(white(a), np.clip(a, 0, 1), n, n))
+    r = np.hypot(x - half, y - half) / half
+    a = sstep(0.70, 0.985, r) * (1 - sstep(0.985, 1.0, r)) * 0.9
+    a = np.clip(a, 0, 1)
+    save("Heritage_Rim", finish(white(a), a, n, n))
+
+
+def make_aura():
+    """The ring's light: the ring's own band lit evenly, and a halo falling away
+    outside it, with nothing at the file's edge. RING_OUT of the portrait's
+    height is AURA_AT of the file's half-width: the Lua sizes the file so."""
+    n = 128
+    x, y = grid(n, n)
+    half = n / 2
+    r = np.hypot(x - half, y - half) / half
+    inner = RING_IN / RING_OUT * AURA_AT
+    band = sstep(inner - 0.02, inner + 0.02, r) * (1 - sstep(AURA_AT - 0.01, AURA_AT + 0.01, r)) * 0.60
+    halo = np.exp(-(np.clip(r - AURA_AT, 0, None) / 0.060) ** 1.3) * (r >= AURA_AT)
+    a = np.clip(band + halo * 0.95, 0, 1) * (1 - sstep(0.93, 1.0, r))
+    save("Heritage_Aura", finish(white(a), a, n, n))
 
 
 def make_ring():
-    """A rounded-square ring of light. Its line is 0.74 of the half-width from
-    the middle and nothing is seen beyond 0.92: Looks/Heritage.lua's RingArt
-    says so, and tests/scenarios/hunt37-effects.lua reads the file."""
+    """A ring of light. Its line is 0.74 of the half-width from the middle and
+    nothing is seen beyond 0.92: Looks/Heritage.lua's RingArt says so, and
+    tests/scenarios/hunt37-effects.lua reads the file."""
     n = 128
     x, y = grid(n, n)
     half = n / 2
-    sd = rrect_sdf(x - half + half * 0.74, y - half + half * 0.74, half * 1.48, half * 1.48, 9.0)
+    r = np.hypot(x - half, y - half)
+    sd = r - half * 0.74
     core = np.exp(-(sd / 1.7) ** 2)
     halo = np.exp(-(np.abs(sd) / 5.0) ** 1.6) * 0.38
     a = np.clip(core * 0.95 + halo, 0, 1)
-    # Nothing near the file's edge, however wide the halo.
-    edge = np.maximum(np.abs(x - half), np.abs(y - half)) / half
-    a = a * sstep(0.935, 0.885, edge)
+    a = a * sstep(0.935, 0.885, r / half)
     save("Heritage_Ring", finish(white(a), a, n, n))
 
+
+# ------------------------------------------------------------------ the body
+
+def body_depth():
+    x, y = grid(BODY, BODY)
+    return x, y, -rrect_sdf(x, y, BODY, BODY, BODY_R)
+
+
+def make_body():
+    x, y, depth = body_depth()
+    h = hump(depth, ROD[0], ROD[1], 2.5)
+    grain = noise(BODY, BODY, 31, scale=(3.0, 3.0), octaves=2)
+    rgb = shade_gold(h + grain * 0.04, spec=0.14, lift=0.10, strength=1.5)
+    metal = between(depth, ROD[0], ROD[1])
+    outline = between(depth, 0.0, OUTLINE_T)
+    groove = between(depth, GROOVE[0], GROOVE[1]) * 0.9
+    dark = np.clip(np.maximum(outline, groove), 0, 1)
+    out_rgb, alpha = compose([(DARK, dark), (rgb, metal)])
+    save("Heritage_Body", finish(out_rgb, alpha, BODY, BODY))
+
+
+def make_plate():
+    x, y, depth = body_depth()
+    a = cover(-(depth - 0.4))
+    save("Heritage_Plate", finish(white(a), a, BODY, BODY))
+
+
+def make_glow():
+    """The border's light: the rod blurred outward by GLOW_OUT texels and a
+    little way in, white, for ADD. Its outer edge is the border's outer edge
+    plus GLOW_OUT: the Lua lays it that much outside the body."""
+    x, y = grid(BODY, BODY)
+    depth = -rrect_sdf(x, y, BODY, BODY, BODY_R + GLOW_OUT)
+    centre = GLOW_OUT + (ROD[0] + ROD[1]) / 2
+    d = np.abs(depth - centre)
+    a = np.exp(-(d / 3.6) ** 1.5)
+    a = np.clip(a * 1.1, 0, 1) * sstep(0.0, 1.2, depth)
+    save("Heritage_Glow", finish(white(a), a, BODY, BODY))
+
+
+# ------------------------------------------------------------------ the badge, the pip
+
+def make_badge():
+    w, h = 64, 32
+    x, y = grid(w, h)
+    d = -rrect_sdf(x, y, w, h, h / 2.0)
+    rim_h = hump(d, 0.3, 2.9, 1.8)
+    rgb_g = shade_gold(rim_h, spec=0.10, lift=0.06, strength=1.5)
+    fy = np.clip(y / h, 0, 1)
+    field = np.stack([0.075 - 0.030 * fy, 0.060 - 0.022 * fy, 0.050 - 0.018 * fy], -1)
+    # a small lift along the top of the field, as a lit bevel
+    lit = np.exp(-((y - 6.5) / 2.4) ** 2) * (d > 3.2) * 0.16
+    field = field + lit[..., None]
+    dark_line = between(d, 2.9, 3.7) * 0.8
+    rgb, alpha = compose([(DARK, cover(-d)), (field, cover(-(d - 3.4))), (DARK, dark_line),
+                          (rgb_g, between(d, 0.3, 2.9))])
+    save("Heritage_Badge", finish(rgb, alpha, w, h))
+
+
+def make_pip():
+    n = 32
+    x, y = grid(n, n)
+    r = np.hypot(x - n / 2, y - n / 2)
+    h = hump(r, 9.6, 15.0, 2.4)
+    rgb = shade_gold(h, spec=0.12, lift=0.08, strength=1.4)
+    metal = between(r, 9.9, 14.8)
+    dark = np.maximum(between(r, 9.0, 9.9), between(r, 14.8, 15.9)) * 0.9
+    out_rgb, alpha = compose([(DARK, np.clip(dark, 0, 1)), (rgb, metal)])
+    save("Heritage_Pip", finish(out_rgb, np.clip(alpha, 0, 1), n, n))
+
+
+# ------------------------------------------------------------------ the lights
 
 def make_glint():
     w, h = 64, 16
@@ -437,57 +520,11 @@ def make_white():
     save("Heritage_White", finish(white(a), a, n, n))
 
 
-# ------------------------------------------------------------------ the chip, the gem
-
-def make_chip():
-    w, h = 64, 32
-    x, y = grid(w, h)
-    d = -rrect_sdf(x, y, w, h, 7.0)
-    # A dark field with a gold hairline round it.
-    hh = hump(d, 0.2, 2.0, 1.4)
-    rgb_g = shade_gold(hh, spec=0.06, lift=0.02, dark=0.78, strength=1.4)
-    fy = np.clip(y / h, 0, 1)
-    field = np.stack([0.060 - 0.020 * fy, 0.050 - 0.016 * fy, 0.044 - 0.014 * fy], -1)
-    rgb, alpha = compose([(field, cover(-d)), (rgb_g, between(d, 0.0, 1.9))])
-    save("Heritage_Chip", finish(rgb, alpha, w, h))
-
-
-def make_gem():
-    n = 32
-    x, y = grid(n, n)
-    cx, cy = x - n / 2, y - n / 2
-    r = np.hypot(cx, cy)
-    ang = np.arctan2(cy, cx)
-    R = 11.6
-    # A round brilliant seen from above: eight facets round a table, each lit
-    # by how it faces the upper left.
-    step = np.pi / 4
-    facet = np.floor((ang + np.pi) / step)
-    centre = (facet + 0.5) * step - np.pi
-    face = np.cos(centre - np.arctan2(-0.66, -0.46))
-    zone = np.clip(r / R, 0, 1)
-    table = zone < 0.46
-    crown = 0.50 + 0.32 * face
-    shade = np.where(table, 0.90 - 0.10 * (cx + cy) / R, crown * (1.0 - 0.22 * zone))
-    seam_d = np.abs(((ang + np.pi) % step) - step / 2)          # radians from the facet's middle
-    edge = (step / 2 - seam_d) * r                                # texels to the nearest seam
-    shade = shade - 0.22 * np.exp(-(edge / 0.6) ** 2) * (~table)
-    shade = shade - 0.16 * np.exp(-((zone - 0.46) / 0.04) ** 2)
-    spec = np.exp(-(((cx + 3.2) ** 2 + (cy + 3.6) ** 2) / 3.0)) * 0.50
-    v = np.clip(shade + spec, 0.08, 1.0)
-    a = cover(r - R)
-    save("Heritage_Gem", finish(np.stack([v, v, v], -1), a, n, n))
-    # The setting: a gold ring with a bevel, a dark seam at the stone.
-    h = hump(r, R + 0.8, 15.4, 2.4)
-    rgb = shade_gold(h, spec=0.14, lift=0.10, strength=1.4)
-    metal = between(r, R + 0.8, 15.2)
-    dark = np.maximum(between(r, R - 0.4, R + 0.8), between(r, 15.2, 15.9))
-    rgb2, alpha = compose([(DARK, np.clip(dark, 0, 1)), (rgb, metal)])
-    save("Heritage_GemSet", finish(rgb2, np.clip(alpha, 0, 1), n, n))
-
-
-# Files of earlier drafts that this one no longer draws.
-RETIRED = []
+# Files of earlier drafts that this one no longer draws: removed from the output
+# folder when they are there.
+RETIRED = ["Heritage_Chip", "Heritage_Frame", "Heritage_FrameGlow", "Heritage_Gem", "Heritage_GemSet",
+           "Heritage_Gloss", "Heritage_Proc", "Heritage_Slot", "Heritage_SlotBack", "Heritage_SlotTint",
+           "Heritage_Stone"]
 
 
 def main():
@@ -496,15 +533,18 @@ def main():
     ap.add_argument("--out", default=OUT, help="where to write the files (default: Textures/Heritage)")
     OUT = os.path.abspath(ap.parse_args().out)
     os.makedirs(OUT, exist_ok=True)
-    make_frame()
-    make_stone()
-    make_slot()
-    make_proc()
+    make_portrait()
+    make_mask()
+    make_rim()
+    make_aura()
     make_ring()
+    make_body()
+    make_plate()
+    make_glow()
+    make_badge()
+    make_pip()
     make_glint()
     make_white()
-    make_chip()
-    make_gem()
     for name in RETIRED:
         path = os.path.join(OUT, name + ".tga")
         if os.path.exists(path):
