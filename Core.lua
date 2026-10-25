@@ -481,6 +481,22 @@ do
 		return safecall(_G.IsSpellKnown, id) == true or safecall(_G.IsPlayerSpell, id) == true
 	end
 
+	-- Whether the client declares an aura secret: true, false, or nil when it
+	-- will not say.
+	local function AuraSecrecy(id)
+		local secret
+		if C_Secrets and type(C_Secrets.ShouldSpellAuraBeSecret) == "function" then
+			secret = safecall(C_Secrets.ShouldSpellAuraBeSecret, id)
+		end
+		if secret == nil and C_Secrets and type(C_Secrets.GetSpellAuraSecrecy) == "function" then
+			local level = safecall(C_Secrets.GetSpellAuraSecrecy, id)
+			if level ~= nil and Enum and Enum.SecrecyLevel then
+				secret = (level ~= Enum.SecrecyLevel.NeverSecret)
+			end
+		end
+		return secret
+	end
+
 	local function ProbeBuff(buff)
 		local info = { key = buff.key, buff = buff }
 
@@ -535,6 +551,13 @@ do
 				info.unresolved[#info.unresolved + 1] = id
 			end
 		end
+		-- The blockers' too (Buffs.lua): a scroll's id this client lacks would
+		-- hold nothing off, and say nothing.
+		for _, id in ipairs(buff.blockerIds or {}) do
+			if not SpellNameFor(id) then
+				info.unresolved[#info.unresolved + 1] = id
+			end
+		end
 
 		-- Secrecy is decided per spell. Long-duration class buffs are the most
 		-- likely to stay readable, which is what the "who is missing it" feature
@@ -542,19 +565,15 @@ do
 		info.secrecy = {}
 		local readable, declared = 0, 0
 		for _, id in ipairs(buff.auraIds) do
-			local secret
-			if C_Secrets and type(C_Secrets.ShouldSpellAuraBeSecret) == "function" then
-				secret = safecall(C_Secrets.ShouldSpellAuraBeSecret, id)
-			end
-			if secret == nil and C_Secrets and type(C_Secrets.GetSpellAuraSecrecy) == "function" then
-				local level = safecall(C_Secrets.GetSpellAuraSecrecy, id)
-				if level ~= nil and Enum and Enum.SecrecyLevel then
-					secret = (level ~= Enum.SecrecyLevel.NeverSecret)
-				end
-			end
+			local secret = AuraSecrecy(id)
 			info.secrecy[id] = secret
 			if secret == false then readable = readable + 1 end
 			if secret == true then declared = declared + 1 end
+		end
+		-- The blockers' (Buffs.lua), recorded and not counted: what a scroll
+		-- reads as says nothing of whether the buff itself can be read.
+		for _, id in ipairs(buff.blockerIds or {}) do
+			info.secrecy[id] = AuraSecrecy(id)
 		end
 		info.readable = caps.getUnitAuraBySpellID and readable > 0
 		-- Unreadable only because the probe was made while the client withheld
@@ -2581,7 +2600,9 @@ end
 -- throws leaves the positions before it taken and the rest to the loop, which
 -- reads the one that threw as a refusal without asking it again (it would
 -- throw again, at a cost of a failure each). A position the loop's own
--- secrecy test skips is never read here or there.
+-- secrecy test skips is never read here or there. A buff with blockers
+-- (Buffs.lua) has them after its own ids in the list handed in (readIds): the
+-- loop stops at its own, and what comes after is read in UnitHasBuff.
 local auraReads, auraTaken = {}, 0
 local function PrefetchAuras(unit, ids, secrecy)
 	auraTaken = 0
@@ -2611,14 +2632,31 @@ function ns.ForgetRefusals()
 	end
 end
 
+-- The best rank of `buff` you know that your cast lands on somebody of `level`
+-- (the game lands the best rank you know up to ten levels above theirs): its
+-- id, or nil when none is known or none is within reach. The test UnitHasBuff
+-- makes of a rank worn, below, asks the same of the same ranks.
+local function LandingRank(buff, info, level)
+	local best = ns.RankLevel(info.topRank)
+	if not best then return nil end
+	local reach, landing, landed = math.min(best, level + 10), nil, nil
+	for _, rank in ipairs(buff.ranks) do
+		local at = ns.RankLevel(rank)
+		if at and at <= reach and (not landing or at > landing) then landing, landed = at, rank end
+	end
+	return landed
+end
+
 -- Returns has, secondsRemaining, mine, over, seconds. `has` is nil when the client
 -- refuses any one of the buff's ids (the hidden one may be the one they wear);
 -- `secondsRemaining` is nil when the timer is unreadable, not "about to expire";
 -- `mine` is nil when the aura names nobody we can read; `over` is true when
 -- they wear a rank above the one your cast would land, which the game refuses
--- to put over it; `seconds` is how long that aura lasts in all, the aura's own
--- `duration` where the client says it, else the table's for the id found
--- (Buffs.lua), nil when neither does: what a top-up's lead is worked out from.
+-- to put over it, or a scroll that gives as much of the same stat (Buffs.lua,
+-- `blockers`: then `has` is true with no timer, `mine` false); `seconds` is how
+-- long that aura lasts in all, the aura's own `duration` where the client says
+-- it, else the table's for the id found (Buffs.lua), nil when neither does:
+-- what a top-up's lead is worked out from.
 local function UnitHasBuff(unit, buff, guid)
 	local info = ns.BuffInfo(buff)
 	-- A buff nothing can read gives no answer. One a probe made in a fight took
@@ -2646,7 +2684,7 @@ local function UnitHasBuff(unit, buff, guid)
 	local has, expires, mine, over, refused = false, nil, nil, nil, false
 	local withheld, keptRefused, found = false, false, nil
 	local duration
-	local threw = not pcall(PrefetchAuras, unit, buff.auraIds, info.secrecy)
+	local threw = not pcall(PrefetchAuras, unit, buff.readIds or buff.auraIds, info.secrecy)
 	for index, id in ipairs(buff.auraIds) do
 		if info.secrecy[id] == true then
 			refused = true
@@ -2721,6 +2759,55 @@ local function UnitHasBuff(unit, buff, guid)
 				end
 				break
 			end
+		end
+	end
+
+	-- Not worn, and something else may be worn that the game compares with it
+	-- (Buffs.lua, `blockers`): a Scroll of Intellect on somebody lacking Arcane
+	-- Intellect. Yours is refused over one worth as much as the rank it would
+	-- land on them (the same landing as the rank test above), so they are
+	-- covered, and the cast is no favour's repayment ("over"); one worth less
+	-- is cast over as ever. The blockers follow the buff's own ids in the one
+	-- batched read (buff.readIds), strongest first and stopping at the first
+	-- found, so a buff that is worn never reads them and one that is not pays
+	-- reads and no call of its own; and what they read says nothing until one is
+	-- found or withheld, when the level of the target (and so the rank that
+	-- lands) is asked for the first time. One worth less than what lands, and
+	-- every one after it, is not weighed. A blocker the client will not let us
+	-- read, worth that much, leaves the answer open as one of the buff's own
+	-- ids does; a level it will not give tests nothing.
+	local blockerIds = buff.blockerIds
+	if blockerIds and not has and not refused then
+		local first, landing = #buff.auraIds, false
+		for index, id in ipairs(blockerIds) do
+			local at = first + index
+			local seen, aura = false, nil
+			if info.secrecy[id] == true then
+				seen = true
+			elseif at > auraTaken then
+				-- The read that threw, not asked again; any other position
+				-- past the ones taken is after a find, or never reached.
+				if threw then seen, threw = true, false end
+			else
+				aura = auraReads[at]
+				seen = (issecretvalue and issecretvalue(aura)) or (type(aura) == "table")
+			end
+			if seen then
+				if landing == false then
+					local level = plain(UnitLevel(unit))
+					local landed = type(level) == "number" and level > 0 and LandingRank(buff, info, level)
+					landing = landed and ns.STAT_VALUE[landed] or nil
+				end
+				local value = ns.STAT_VALUE[id]
+				if not (landing and value and value >= landing) then break end
+				if not (issecretvalue and issecretvalue(aura)) and type(aura) == "table" then
+					has, over, mine = true, true, false
+					break
+				end
+				refused = true
+				if info.secrecy[id] ~= true then withheld = true end
+			end
+			if at > auraTaken and not seen then break end
 		end
 	end
 	if not has and refused then has = nil end
