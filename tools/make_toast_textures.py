@@ -1,6 +1,7 @@
 """The art the Toast look (Looks/Toast.lua) draws the prompt with.
 
-    python tools/make_toast_textures.py
+    python tools/make_toast_textures.py             # Textures/Toast/*.tga
+    python tools/make_toast_textures.py --out DIR   # the same files, written to DIR
 
 Writes Textures/Toast/*.tga, which ship in the zip. Deterministic: seeded noise
 and no clock, so run it twice and the files are byte for byte the same, and a
@@ -54,6 +55,8 @@ Two kinds of art:
                                 ring, and under the enamel as the rim.
   Toast_Enamel         128x128  A round disc, grey, faintly lit: the enamel,
                                 in the reason colour darkened.
+  Toast_MedShade       128x128  The shade the medallion throws: a dark disc,
+                                blurred, black, drawn a little down and right.
   Toast_IconMask        64x64   The icon's shape, round; also the cooldown's
                                 swipe.
   Toast_RingGlow       128x128  A ring of light round the medallion (ADD, for
@@ -69,6 +72,7 @@ Two kinds of art:
 
 Needs numpy and Pillow.
 """
+import argparse
 import os
 
 import numpy as np
@@ -104,6 +108,12 @@ DARK_GOLD = 0.80
 # The medallion's discs: 50 % alpha at this fraction of the half-size, which
 # the Lua (DISC_FILL) sizes them by.
 DISC_FILL = 0.98
+# How far the light moves the gold and the enamel round the ring (the old
+# values were 0.12 and 0.10), and the shade the medallion throws: where its
+# edge sits in the file (as a fraction of the half-size, which the Lua sizes
+# it by, MED_SHADE_FILL) and how far it is blurred.
+GOLD_LIT, ENAMEL_LIT = 0.17, 0.15
+MED_SHADE_FILL, MED_SHADE_BLUR = 0.70, 0.17
 
 written = []
 
@@ -397,13 +407,30 @@ def make_discs():
     # circular brushing runs round it.
     lit = np.cos(ang - LIGHT_ANG)
     brush = noise(size, size, 23, scale=(4.0, 4.0), octaves=2)
-    t = 0.80 + 0.12 * lit + 0.03 * brush
+    # 1.9: a little more of both ends (the lower right darker), so the ring
+    # has a lit side and a shaded one; still under the cap, still no crescent.
+    t = 0.80 + GOLD_LIT * lit + 0.03 * brush
     gold = capped(ramp(t, GOLD_STOPS))
     save("Toast_Gold", finish(gold, a, size, size))
 
-    # The enamel: flat, as fired glass is, a shade lighter towards the light.
-    val = 0.86 + 0.10 * lit + 0.02 * brush
+    # The enamel: flat, as fired glass is, a shade lighter towards the light
+    # and darker on the far side.
+    val = 0.84 + ENAMEL_LIT * lit + 0.02 * brush
     save("Toast_Enamel", finish(np.repeat(np.clip(val, 0, 1)[..., None], 3, -1), a, size, size))
+
+
+def make_med_shade():
+    """The shade the medallion throws on the banner and the air under it: a
+    dark disc blurred, drawn a little down and to the right of it. Black, so
+    the Lua only sets how dark."""
+    size = 128
+    x, y = grid(size, size)
+    c = size / 2
+    rho = np.hypot(x - c, y - c) / c
+    sigma = MED_SHADE_BLUR
+    a = 1.0 / (1.0 + np.exp((rho - MED_SHADE_FILL) / (sigma * 0.32)))
+    a *= np.clip(1.0 - np.maximum(rho - 0.88, 0) / 0.12, 0, 1)
+    save("Toast_MedShade", finish(np.zeros(a.shape + (3,), np.float32), a, size, size))
 
 
 def superellipse_rho(x, y, size, n):
@@ -533,6 +560,10 @@ RETIRED = ["Toast_Ring", "Toast_Seal", "Toast_RingBand", "Toast_SealBand", "Toas
 
 
 def main():
+    global OUT
+    ap = argparse.ArgumentParser(description=__doc__.split(chr(10))[0])
+    ap.add_argument("--out", default=OUT, help="where to write the files (default: Textures/Toast)")
+    OUT = os.path.abspath(ap.parse_args().out)
     os.makedirs(OUT, exist_ok=True)
     make_border("Toast_Border", "Toast_BorderGlow", "double")
     make_border("Toast_BorderSlim", "Toast_BorderSlimGlow", "slim")
@@ -540,6 +571,7 @@ def main():
     make_shadow()
     make_body()
     make_discs()
+    make_med_shade()
     make_mask("Toast_IconMask", 2)
     make_ring_glow()
     make_glint()
