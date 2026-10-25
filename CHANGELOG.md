@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased
+
+- **The prompt comes alive.** When somebody who buffed you appears, the
+  icon's echo drops onto it and a bloom of the reason's colour gathers round
+  its ring. When your buff lands, rings spread from the icon, light crosses
+  the panel and the panel settles. A refusal snaps in a red-amber ring and
+  shakes the text.
+- **A two-tone breath.** While you owe somebody, the glow breathes in the
+  reason's colour and a warm white rim, on a slower round of about two and a
+  half seconds.
+- **Finer art.** The cooldown sweep has a bright leading edge; Glass has a
+  reflection and an inner bevel; Luxe's spine, Toast's medallion and Arcane's
+  rune circle have more depth. *Calm* still means fades only.
+- **A new description.** The listing and README say what Manners does now, and
+  the window's one-line note in the game's addon list reads the same in every
+  language.
+
 ## 1.8.7
 
 - **Holding the key down is one press.** With the prompt on a key binding,
