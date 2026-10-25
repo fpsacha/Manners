@@ -102,7 +102,7 @@ mutate(PANEL,
 
 # The level the text sits at shrunk to the light's.
 mutate(PROMPT,
-       "lib.TEXT_LEVEL = 4\n",
+       "lib.TEXT_LEVEL = 6\n",
        "lib.TEXT_LEVEL = 1\n",
        "hunt37: the text level is the light's level",
        expect=BENEATH + "framed", script=S)

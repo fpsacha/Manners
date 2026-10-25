@@ -554,7 +554,7 @@ function Prompt:ApplyStyle()
 		R.burstFrame:ClearAllPoints()
 		R.burstFrame:SetPoint("TOPLEFT", R.icon, "TOPLEFT")
 		R.burstFrame:SetPoint("BOTTOMRIGHT", R.icon, "BOTTOMRIGHT")
-		local deep = self:FitBurst(limit, half, outer, round and roundSize / lib.GLOW_RING_AT / 2 or nil)
+		local deep = self:FitBurst(limit, half, outer, round and p.iconSize / lib.GLOW_RING_AT / 2 or nil)
 		PlaceHalo(R.burstHalo, R.burstFrame, deep, deep, outer, roundSize)
 		-- The rim of warm white hugs the ring, a few units deep.
 		R.rimFrame:SetPoint("TOPLEFT", R.icon, "TOPLEFT")

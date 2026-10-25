@@ -393,4 +393,4 @@ lib.GLOW_RING_AT = GLOW_RING_AT
 -- (the rings, the halo, the band that crosses the panel, which are at art's
 -- level plus one), so none of it is drawn over a letter. A look that moves
 -- textLayer puts it back here (kit.TEXT_LEVEL).
-lib.TEXT_LEVEL = 4
+lib.TEXT_LEVEL = 6
