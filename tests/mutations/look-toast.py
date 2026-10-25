@@ -109,8 +109,8 @@ mutate(TOAST,
        script="runscenarios.py")
 
 mutate(TOAST,
-       "\tPlayAll(self.flareAnims)\n",
-       "",
+       "\tEach(self.flare, \"SetVertexColor\", 1, 0.85, 0.55, 1)\n\tPlayAll(self.flareAnims)\n",
+       "\tEach(self.flare, \"SetVertexColor\", 1, 0.85, 0.55, 1)\n",
        "a landed buff without its flare",
        expect="did not flare the gilding",
        script="runscenarios.py")

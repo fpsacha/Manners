@@ -355,7 +355,36 @@ local function unpackColor(c, fallback)
 	return c[1] or 1, c[2] or 1, c[3] or 1, c[4] == nil and 1 or c[4]
 end
 
+-- The rest of the light, drawn once by tools/make-glow.py as well: white, with
+-- the shape in the alpha. A thin ring that spreads from the icon (round, and a
+-- rounded square for a square icon), the band that crosses the panel, the
+-- glass's reflection and its inner bevel.
+local RING = "Interface\\AddOns\\Manners\\Textures\\Ring"
+local RING_SQ = "Interface\\AddOns\\Manners\\Textures\\RingSq"
+local SWEEP = "Interface\\AddOns\\Manners\\Textures\\Sweep"
+local GLOSS = "Interface\\AddOns\\Manners\\Textures\\Gloss"
+local BEVEL = "Interface\\AddOns\\Manners\\Textures\\Bevel"
+-- Where the ring's middle sits, as a fraction of the file's half-width:
+-- ring_thin_at in tools/make-glow.py, which must agree.
+local RING_AT = 0.78
+
+-- A colour taken towards white (t 0..1), or towards black (negative t): the
+-- lighter and darker tints the light is drawn in, worked out from the reason
+-- colour so the five colours and the colour-blind set stay exactly as they
+-- are. For t from -1 to 1 a colour inside the range stays inside it.
+local function Tint(r, g, b, t)
+	if t >= 0 then return r + (1 - r) * t, g + (1 - g) * t, b + (1 - b) * t end
+	local k = 1 + t
+	return r * k, g * k, b * k
+end
+
+-- The warm white the second tone of a light is drawn in: the reason's colour
+-- and this, together, read as a lit rim rather than a stained one.
+local WARM_WHITE = { 1.00, 0.94, 0.80 }
+
 lib.WHITE, lib.OUTCOME_SECONDS = WHITE, OUTCOME_SECONDS
 lib.REASON_KEY, lib.ReasonColor, lib.RemainingText = REASON_KEY, ReasonColor, RemainingText
 lib.Gradient, lib.Solid, lib.Try, lib.unpackColor = Gradient, Solid, Try, unpackColor
 lib.Halo, lib.PlaceHalo, lib.PaintHalo = Halo, PlaceHalo, PaintHalo
+lib.RING, lib.RING_SQ, lib.RING_AT, lib.SWEEP, lib.GLOSS, lib.BEVEL = RING, RING_SQ, RING_AT, SWEEP, GLOSS, BEVEL
+lib.Tint, lib.WARM_WHITE = Tint, WARM_WHITE

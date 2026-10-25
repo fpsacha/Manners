@@ -606,12 +606,13 @@ withTree("the look's settings are clamped and offered", {}, function(ns)
 end)
 
 -- The band of light's strength as it was last painted: 0.30 for a buff that
--- landed, 0.20 for a favour just done. Read off the band's left half, whose
--- inner stop carries it.
+-- landed, 0.20 for a favour just done. Read off the band's one texture
+-- (Textures/Sweep.tga), whose vertex colour carries it: the band used to be
+-- two gradients, and the strength was their inner stop.
 local function shineStrength(r)
-	local half = r.shine and r.shine._children and r.shine._children[1]
-	local g = half and half._gradient
-	return type(g) == "table" and type(g[3]) == "table" and g[3].a or nil
+	local band = r.shineBand
+	local c = band and band._color
+	return type(c) == "table" and c[4] or nil
 end
 
 -- ------------------------------------------------------------------ look 12

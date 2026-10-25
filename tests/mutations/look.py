@@ -117,8 +117,8 @@ mutate("Prompt/Refresh.lua",
 
 # The entrance's hop put back.
 mutate("Prompt/Effects.lua",
-       "\tdrop:SetOffset(0, -6)\n",
-       "\tdrop:SetOffset(0, 0)\n",
+       "\tSlide(intro, 0, -8, 0.01, 1)\n",
+       "\tSlide(intro, 0, 0, 0.01, 1)\n",
        "entrance hops at the end",
        expect="the entrance's moves add up",
        script="runscenarios.py")

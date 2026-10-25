@@ -312,6 +312,9 @@ function Luxe:Build(kit)
 	self.flare = tex(self.flareFrame, "ARTWORK", 0, "SpineGlow", "ADD")
 	self.pulseFrame = frame(art)
 	self.pulseGlow = tex(self.pulseFrame, "ARTWORK", 0, "SpineGlow", "ADD")
+	-- The second tone of the breath: a warm white ring hugging the reason's
+	-- own, over the same breath, outside the icon like the ring it lights.
+	self.pulseRing = tex(self.pulseFrame, "OVERLAY", 0, "IconRing", "ADD")
 	self.hoverFrame = frame(art)
 	self.hoverGlow = tex(self.hoverFrame, "ARTWORK", 0, "SpineGlow", "ADD")
 	self.hoverLight = NineSlice(self.hoverFrame, "BORDER", 3, ART .. "Card", 64, 16, 8, "ADD")
@@ -320,8 +323,12 @@ function Luxe:Build(kit)
 	self.resultFrame = frame(art)
 	self.result = NineSlice(self.resultFrame, "ARTWORK", 5, ART .. "Card", 64, 16, 8, "ADD")
 	for _, t in ipairs(self.result) do keep(t) end
-	self.burstFrame = frame(art)
-	self.burst = tex(self.burstFrame, "OVERLAY", 2, "IconRing", "ADD")
+	-- The rings that spread when a buff lands and the one that snaps in when
+	-- one is refused, in this look's own ring art. No echo of the icon: the
+	-- spell is drawn clean.
+	self.fx = kit.FX(art, nil, true)
+	for _, f in ipairs(self.fx.frames) do keep(f) end
+	self.burstFrame = self.fx.rings[1].frame
 	self.sheenFrame = frame(art)
 	self.sheen = tex(self.sheenFrame, "OVERLAY", 1, "Sheen", "ADD")
 	self.glint = tex(self.sheenFrame, "OVERLAY", 2, "Glint", "ADD")
@@ -350,7 +357,7 @@ function Luxe:Build(kit)
 		f:SetFrameLevel(base + 1)
 	end
 	self.spineFrame:SetFrameLevel(base + 2)
-	self.burstFrame:SetFrameLevel(base + 3)
+	for _, f in ipairs(self.fx.frames) do f:SetFrameLevel(base + 3) end
 	self.sheenFrame:SetFrameLevel(base + 3)
 
 	self:BuildAnimations()
@@ -374,14 +381,56 @@ function Luxe:BuildAnimations()
 	flare:SetScript("OnStop", function() self.flareFrame:SetAlpha(0) end)
 	self.flareAnim = flare
 
+	-- A buff landed: the spine's light flares and lets go inside half a second,
+	-- on the same frame as the arrival's flare (one at a time).
+	local land = self.flareFrame:CreateAnimationGroup()
+	local landUp = land:CreateAnimation("Alpha")
+	landUp:SetFromAlpha(0)
+	landUp:SetToAlpha(0.85)
+	landUp:SetDuration(0.07)
+	landUp:SetOrder(1)
+	local landDown = land:CreateAnimation("Alpha")
+	landDown:SetFromAlpha(0.85)
+	landDown:SetToAlpha(0)
+	landDown:SetDuration(0.40)
+	landDown:SetOrder(2)
+	if landDown.SetSmoothing then landDown:SetSmoothing("OUT") end
+	land:SetScript("OnFinished", function() self.flareFrame:SetAlpha(0) end)
+	land:SetScript("OnStop", function() self.flareFrame:SetAlpha(0) end)
+	self.landAnim = land
+
+	-- A favour arriving: the ring in the reason's colour locks onto the icon,
+	-- from wider and faint, past and back, in a quarter of a second.
+	local lock = self.ring:CreateAnimationGroup()
+	local lockFade = lock:CreateAnimation("Alpha")
+	lockFade:SetFromAlpha(0.25)
+	lockFade:SetToAlpha(1)
+	lockFade:SetDuration(0.12)
+	lockFade:SetOrder(1)
+	local lockIn = lock:CreateAnimation("Scale")
+	if lockIn.SetScaleFrom then lockIn:SetScaleFrom(1.30, 1.30) end
+	if lockIn.SetScaleTo then lockIn:SetScaleTo(0.97, 0.97) end
+	if lockIn.SetOrigin then lockIn:SetOrigin("CENTER", 0, 0) end
+	lockIn:SetDuration(0.15)
+	lockIn:SetOrder(1)
+	if lockIn.SetSmoothing then lockIn:SetSmoothing("OUT") end
+	local lockSettle = lock:CreateAnimation("Scale")
+	if lockSettle.SetScaleFrom then lockSettle:SetScaleFrom(0.97, 0.97) end
+	if lockSettle.SetScaleTo then lockSettle:SetScaleTo(1, 1) end
+	if lockSettle.SetOrigin then lockSettle:SetOrigin("CENTER", 0, 0) end
+	lockSettle:SetDuration(0.10)
+	lockSettle:SetOrder(2)
+	if lockSettle.SetSmoothing then lockSettle:SetSmoothing("IN_OUT") end
+	self.lockAnim = lock
+
 	-- Breathing while somebody owed waits: slow and faint, so the only loop
-	-- on the panel never reads as flashing.
+	-- on the panel never reads as flashing. 1.3 s each way, 2.6 s round.
 	local pulse = self.pulseFrame:CreateAnimationGroup()
 	pulse:SetLooping("BOUNCE")
 	local breathe = pulse:CreateAnimation("Alpha")
 	breathe:SetFromAlpha(0.18)
 	breathe:SetToAlpha(0.36)
-	breathe:SetDuration(2.4)
+	breathe:SetDuration(1.3)
 	if breathe.SetSmoothing then breathe:SetSmoothing("IN_OUT") end
 	self.pulseAnim = pulse
 
@@ -419,21 +468,8 @@ function Luxe:BuildAnimations()
 	sheen:SetScript("OnStop", function() self.sheenFrame:SetAlpha(0) end)
 	self.sheenAnim = sheen
 
-	local burst = self.burstFrame:CreateAnimationGroup()
-	local bFade = burst:CreateAnimation("Alpha")
-	bFade:SetFromAlpha(0.95)
-	bFade:SetToAlpha(0)
-	bFade:SetDuration(0.42)
-	if bFade.SetSmoothing then bFade:SetSmoothing("OUT") end
-	local bGrow = burst:CreateAnimation("Scale")
-	if bGrow.SetScaleFrom then bGrow:SetScaleFrom(1, 1) end
-	if bGrow.SetScaleTo then bGrow:SetScaleTo(1.3, 1.3) end
-	if bGrow.SetOrigin then bGrow:SetOrigin("CENTER", 0, 0) end
-	bGrow:SetDuration(0.42)
-	if bGrow.SetSmoothing then bGrow:SetSmoothing("OUT") end
-	burst:SetScript("OnFinished", function() self.burstFrame:SetAlpha(0) end)
-	burst:SetScript("OnStop", function() self.burstFrame:SetAlpha(0) end)
-	self.burstAnim = burst
+	-- The first of the two rings, which the scenarios watch for a landed buff.
+	self.burstAnim = self.fx.rings[1].land
 
 	self.resultAnim = Fade(self.resultFrame, 0, self.kit.OUTCOME_SECONDS, "OUT")
 	self.resultAnim.fade:SetFromAlpha(1)
@@ -545,7 +581,7 @@ function Luxe:Apply(p, above)
 	end
 	self.rim:SetTexture(ART .. (round and "IconRimRound" or "IconRim"))
 	self.ring:SetTexture(ART .. (round and "IconRingRound" or "IconRing"))
-	self.burst:SetTexture(ART .. (round and "IconRingRound" or "IconRing"))
+	self.pulseRing:SetTexture(ART .. (round and "IconRingRound" or "IconRing"))
 	local rimPad = iconSize / 30
 	local ringPad = RING_PAD * iconSize / 30
 	if showIcon then
@@ -554,19 +590,21 @@ function Luxe:Apply(p, above)
 		self.rim:ClearAllPoints()
 		self.rim:SetPoint("TOPLEFT", icon, "TOPLEFT", -rimPad, rimPad)
 		self.rim:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", rimPad, -rimPad)
-		for _, t in ipairs({ self.ring, self.burstFrame }) do
+		for _, t in ipairs({ self.ring, self.pulseRing }) do
 			t:ClearAllPoints()
 			t:SetPoint("TOPLEFT", icon, "TOPLEFT", -ringPad, ringPad)
 			t:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", ringPad, -ringPad)
 		end
-		self.burst:ClearAllPoints()
-		self.burst:SetAllPoints(self.burstFrame)
+		-- The rings spread from where the reason's ring sits.
+		self.fx:Place(icon, ringPad)
+		self.fx:Shape(round, ART .. "IconRingRound", ART .. "IconRing")
 		local cooldown = kit.cooldown
 		if cooldown then
 			cooldown:ClearAllPoints()
 			cooldown:SetAllPoints(icon)
 			-- The mask doubles as the swipe, so the sweep is rounded too.
 			if cooldown.SetSwipeTexture then cooldown:SetSwipeTexture(maskFile) end
+			if cooldown.SetUseCircularEdge then cooldown:SetUseCircularEdge(round) end
 		end
 	end
 
@@ -641,7 +679,8 @@ function Luxe:Apply(p, above)
 	self.both, self.pillHex, self.pillCode = nil, nil, nil
 	for _, d in ipairs(self.dots) do d:Hide() end
 	for _, t in ipairs({ self.rim, self.ring }) do t:SetShown(showIcon) end
-	self.burstFrame:SetShown(showIcon)
+	self.fx:SetShown(showIcon)
+	self.pulseRing:SetShown(showIcon)
 	self.glyph:Hide()
 	self:Chip(false)
 	self.combat, self.hovered, self.washFor = nil, nil, nil
@@ -693,9 +732,10 @@ function Luxe:Hide()
 	if not kit then return end
 	for _, x in ipairs(self.own) do x:Hide() end
 	for _, anim in ipairs({ self.flareAnim, self.pulseAnim, self.popAnim, self.sheenAnim,
-		self.burstAnim, self.resultAnim, self.hoverAnim }) do
+		self.burstAnim, self.resultAnim, self.hoverAnim, self.landAnim, self.lockAnim }) do
 		anim:Stop()
 	end
+	self.fx:Stop()
 	-- Stop parks nothing on a fade that has already finished, and the cursor
 	-- leaves for the next look: put the light out here, or it is lit when
 	-- this look comes back.
@@ -710,7 +750,10 @@ function Luxe:Hide()
 	self.mask:Hide()
 	icon:SetAlpha(1)
 	icon:SetDesaturated(false)
-	if kit.cooldown then kit.cooldown:SetAlpha(1) end
+	if kit.cooldown then
+		kit.cooldown:SetAlpha(1)
+		if kit.cooldown.SetUseCircularEdge then kit.cooldown:SetUseCircularEdge(false) end
+	end
 	kit.count:Show()
 	if self.subMoved then
 		kit.sub:SetParent(kit.textLayer)
@@ -892,6 +935,10 @@ function Luxe:Tint(r, g, b, ring)
 	self.hoverGlow:SetVertexColor(r, g, b, 0.35)
 	self.ring:SetVertexColor(r, g, b, 0.85)
 	self.ring:SetShown(ring and kit.icon:IsShown() and true or false)
+	-- The warm white on the same ring, for the owed breath.
+	local w = kit.WARM_WHITE
+	self.pulseRing:SetVertexColor(w[1], w[2], w[3], 0.9)
+	self.pulseRing:SetShown(ring and kit.icon:IsShown() and true or false)
 	-- The top edge, shown by PaintReason for "both" only.
 	SliceColor(self.edge, r, g, b, 0.45)
 	SliceColor(self.trayEdge, r, g, b, 0.30)
@@ -957,6 +1004,7 @@ function Luxe:Attention(isNew, arrived, flashStyle)
 	if isNew then
 		-- The spine flares once; on Calm, at half the height.
 		local peak = full and 0.9 or 0.45
+		self.landAnim:Stop()
 		self.flareAnim:Stop()
 		self.flareAnim.up:SetToAlpha(peak)
 		self.flareAnim.down:SetFromAlpha(peak)
@@ -964,6 +1012,11 @@ function Luxe:Attention(isNew, arrived, flashStyle)
 		if full then
 			self.popAnim:Stop()
 			self.popAnim:Play()
+			-- The ring locks onto the icon, where there is a ring to lock.
+			if self.ring:IsShown() then
+				self.lockAnim:Stop()
+				self.lockAnim:Play()
+			end
 		end
 	end
 	-- The favour just done: light crosses the card in the reason's colour.
@@ -996,12 +1049,26 @@ function Luxe:Sheen(r, g, b, a)
 	self.sheenAnim:Play()
 end
 
+-- The spine's light flared once, in the colour Tint last gave it (the
+-- outcome's), and let go: the glow answering the rings.
+function Luxe:Flare()
+	self.flareAnim:Stop()
+	self.landAnim:Stop()
+	self.landAnim:Play()
+end
+
 function Luxe:Flourish(kind)
+	-- A refusal contracts: one ring snaps in onto the icon in red, and the
+	-- spine's light (already red) flares. The text's shake is Prompt's.
+	if kind == "failed" then
+		local o = OUTCOME.failed
+		if self.kit.icon:IsShown() then self.fx:Refuse(o[1], 0.45, 0.28) end
+		self:Flare()
+		return
+	end
 	if kind == "cast" and self.kit.icon:IsShown() then
 		local o = OUTCOME.cast
-		self.burst:SetVertexColor(o[1], o[2], o[3], 1)
-		self.burstAnim:Stop()
-		self.burstAnim:Play()
+		self.fx:Land(o[1], o[2], o[3])
 	end
 	-- Nothing for a cast nobody confirmed: a flourish is a claim. The light
 	-- is the landed buff's green taken towards white: plain white over the
@@ -1010,12 +1077,15 @@ function Luxe:Flourish(kind)
 		local o = OUTCOME.cast
 		local r, g, b = Mix(o[1], o[2], o[3], 0.6)
 		self:Sheen(r, g, b, 0.30)
+		self:Flare()
 	end
 end
 
 function Luxe:StopFlourishes()
-	self.burstAnim:Stop()
+	self.fx:Stop()
 	self.sheenAnim:Stop()
+	self.landAnim:Stop()
+	self.lockAnim:Stop()
 end
 
 -- The cursor's wash, under the icon: lit by its colour, at once, while the
