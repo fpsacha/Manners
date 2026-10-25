@@ -282,7 +282,9 @@ local function layoutAt(ns, scenario, label, edit, ctx)
 	end
 	-- The plate and the ledge: the plate is the height less the ledge.
 	local plate, ledge = span(look.plate[2]), span(look.ledge[2])
-	if plate and ledge and not (near(plate[4] - plate[2] + (ledge[4] - ledge[2]), art[4] - art[2], 0.3)) then
+	local k = (art[3] - art[1]) / look.W
+	local want = math.min(6, math.max(3, math.floor(p.height / 11 + 0.5)))
+	if plate and ledge and not (near((ledge[4] - ledge[2]) / k, want, 0.05) and near((plate[4] - plate[2]) / k, p.height - want, 0.05)) then
 		fail(scenario, label .. ": the plate and its ledge do not fill the prompt's height")
 	end
 	-- The lines never meet the slant: the name's box (from where it starts to where it must
@@ -401,16 +403,19 @@ withTree("look-slate: the layout holds at every size, in every mode, and the sla
 	-- a long translation on the tag.
 	for W = 160, 400, 16 do
 		layoutAt(ns, scenario, "width " .. W, function(p) p.width = W end, ctx)
-		local r, _, look = ns.Prompt:Regions(), nil, ns.Prompt:Regions().look
-		ns.Prompt:Paint({ name = "Anna Aim", short = "Anna", reason = "nearby", buff = ns.ResolveBuff(true) }, 2)
-		ns.Prompt.lib.SetLine(r.sub, "needs Arcane Intellect, and a good deal more besides")
-		FT.settle()
-		local art = span(r.art)
-		local t = relative(art, look)(span(look.tagFrame))
-		local Wd = look.W
-		if t[3] > plateRight(Wd, t[2]) - 1 + 1e-6 then
-			fail(scenario, ("width %d: a long reason's tag is past the plate's slanted edge (%.1f, the edge %.1f)"):format(
-				W, t[3], plateRight(Wd, t[2])))
+		local r, look = ns.Prompt:Regions(), ns.Prompt:Regions().look
+		-- With nothing else waiting (no chip at the right) and with two more.
+		for _, others in ipairs({ 0, 2 }) do
+			ns.Prompt:Paint({ name = "Anna Aim", short = "Anna", reason = "nearby", buff = ns.ResolveBuff(true) }, others)
+			ns.Prompt.lib.SetLine(r.sub, "needs Arcane Intellect, and a good deal more besides")
+			FT.settle()
+			local art = span(r.art)
+			local t = relative(art, look)(span(look.tagFrame))
+			local Wd = look.W
+			if t[3] > plateRight(Wd, t[2]) - 1 + 1e-6 then
+				fail(scenario, ("width %d, %d waiting: a long reason's tag is past the plate's slanted edge (%.1f, the edge %.1f)"):format(
+					W, others, t[3], plateRight(Wd, t[2])))
+			end
 		end
 		ctx.n = ctx.n + 1
 	end
@@ -1034,6 +1039,10 @@ withTree("look-slate: the arrival plays once, for a new favour", CROWD, function
 	if not isSlate(look) then fail(scenario, "SKIPPED -- Slate is not the look in use") return end
 	local n = plays(look.arrive)
 	if n < #look.arrive then fail(scenario, "somebody buffing you did not play the whole arrival: " .. n) end
+	-- The blade flashes white.
+	if not (look.flash._color and look.flash._color[1] > 0.99 and look.flash._color[3] > 0.99) then
+		fail(scenario, "the blade's flash is not white")
+	end
 	Mock.advance(0.4)
 	tick(ns)
 	Mock.advance(0.4)
@@ -1061,7 +1070,7 @@ withTree("look-slate: the arrival plays once, for a new favour", CROWD, function
 			fail(scenario, "arrival effect " .. i .. " does not ease out hard")
 		end
 		for _, a in ipairs(g._anims) do
-			if a._kind == "Alpha" and a._order == 1 and a._toAlpha == 0 then starts[#starts + 1] = a._duration end
+			if g._owner ~= r.icon and a._kind == "Alpha" and a._order == 1 and a._toAlpha == 0 then starts[#starts + 1] = a._duration end
 		end
 	end
 	table.sort(starts)

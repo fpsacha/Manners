@@ -865,7 +865,7 @@ function Slate:Apply(p, above)
 	self.chipH = chipH
 	local chipTop = twoLine and (nameC - chipH / 2) or (hp - chipH) / 2
 	self.chipTop = math.max(1, chipTop)
-	self.edgeRoom = math.ceil(SLANT * (self.chipTop + chipH) + 4)
+	self.edgeRoom = math.ceil(SLANT * self.chipTop + 4)
 	self.chipW2 = math.ceil(chipH * 1.75)
 	PlaceSlabsIn(self.keyChip, self.keyBox, chipH)
 	self.keyBox:ClearAllPoints()

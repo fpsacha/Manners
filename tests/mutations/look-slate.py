@@ -84,7 +84,7 @@ slate("\t\ttextX = math.ceil(ground + SLANT * (hp - m) + 6)\n",
 slate("\tself.baseInset = math.ceil(twoLine and (SLANT * tagTop + 8 + SLANT * tagH / 2)\n",
       "\tself.baseInset = math.ceil(twoLine and (6)\n",
       "the lines keep no room for the slant at the right",
-      "the slant cuts the name's room")
+      "past the plate's")
 
 slate("\t\tf:SetSize(math.ceil(w + 10 + lean), self.tagH)\n",
       "\t\tf:SetSize(math.ceil(w), self.tagH)\n",
@@ -115,8 +115,8 @@ slate("\t\tlocal limitH = math.min(textX - cx - kit.TEXT_MARGIN, cx - kit.EDGE_M
       "the rings spread over the text",
       "hunt37-effects")
 
-slate("\tself.edgeRoom = math.ceil(SLANT * (self.chipTop + chipH) + 4)\n",
-      "\tself.edgeRoom = 4\n",
+slate("\tself.edgeRoom = math.ceil(SLANT * self.chipTop + 4)\n",
+      "\tself.edgeRoom = 0\n",
       "the chip's right end is past the slant",
       "the count chip is past the plate's slanted edge")
 
@@ -181,7 +181,7 @@ slate("\tself.rowReach = self.rowOffset\n",
 slate("\t\tif not (list and i <= shown) then\n",
       "\t\tif false then\n",
       "a strip stays with no row",
-      "a strip with no row")
+      "a strip stayed when the list went")
 
 # --- frames, rings and the light -------------------------------------------------
 
@@ -220,7 +220,7 @@ slate("\t\tif i <= n and at < frac then\n",
 slate("\tself.coolHold:SetDuration(left)\n",
       "\tself.coolHold:SetDuration(1)\n",
       "the bar stays up for a second whatever is left",
-      "the bar stays up")
+      "a second cooldown did not restart the bar")
 
 slate("\tself.coolOn = nil\n\tself.coolRun:Stop()\n\tfor _, seg in ipairs(self.segs) do seg.group:Stop() end\n",
       "\tself.coolOn = nil\n\tfor _, seg in ipairs(self.segs) do seg.group:Stop() end\n",
@@ -568,7 +568,7 @@ slate("local CONDENSED = \"Fonts\\\\ARIALN.TTF\"\n",
 
 slate("\tif face and not tried then kit.name:SetFont(fit.path or STANDARD_TEXT_FONT, p.fontSize, fit.flags) end\n", "",
       "a refused face leaves the name with no font",
-      "a line was left with no font")
+      "look-slate: a condensed face the client refuses")
 
 slate("\tlocal nameSize = face and fs + 2 or fs\n",
       "\tlocal nameSize = fs\n",
