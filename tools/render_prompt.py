@@ -273,7 +273,7 @@ def group_effect(g, now):
             t = 2 * total - t
     else:
         t = min(t, total)
-    alpha, dx, dy, sc = None, 0.0, 0.0, None
+    alpha, dx, dy, sc, origin = None, 0.0, 0.0, None, None
     start = 0.0
     for o in orders:
         for a in anims:
@@ -301,8 +301,11 @@ def group_effect(g, now):
                 f = a.get("scaleFrom") or [1, 1]
                 to = a.get("scaleTo") or [1, 1]
                 sc = (f[0] + (to[0] - f[0]) * p, f[1] + (to[1] - f[1]) * p)
+                # Where the scale is about: the frame's middle unless the
+                # animation says another point (a bar growing from its edge).
+                origin = a.get("origin")
         start += lengths[o]
-    return {"alpha": alpha, "dx": dx, "dy": dy, "scale": sc}
+    return {"alpha": alpha, "dx": dx, "dy": dy, "scale": sc, "origin": origin}
 
 
 # ---------------------------------------------------------------- drawing
@@ -539,6 +542,7 @@ def draw_state(snap, px=ZOOM * SUPER, hover=False):
                     prev["dy"] += e["dy"]
                     if e["scale"] is not None:
                         prev["scale"] = e["scale"]
+                        prev["origin"] = e.get("origin")
                 else:
                     effects[r["id"]] = e
 
@@ -569,7 +573,13 @@ def draw_state(snap, px=ZOOM * SUPER, hover=False):
                 crect = tree.rect(c["id"])
                 if crect:
                     sx, sy = e["scale"]
-                    ccx, ccy = (crect[0] + crect[2]) / 2, (crect[1] + crect[3]) / 2
+                    # About the animation's origin (SetOrigin: a point of the
+                    # frame and an offset from it), the middle by default.
+                    point, ox, oy = (list(e.get("origin") or []) + ["CENTER", 0, 0])[:3]
+                    ofx, ofy = fraction(point or "CENTER")
+                    escale = tree.eff_scale(c)
+                    ccx = crect[0] + (crect[2] - crect[0]) * ofx + (ox or 0) * escale
+                    ccy = crect[1] + (crect[3] - crect[1]) * ofy + (oy or 0) * escale
                     L, R = ccx + (L - ccx) * sx, ccx + (R - ccx) * sx
                     B, T = ccy + (B - ccy) * sy, ccy + (T - ccy) * sy
             s = tree.eff_scale(c)

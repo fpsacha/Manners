@@ -62,6 +62,8 @@ local SIZES = {
 	{ name = "round icon", edit = function(p) p.roundIcon = true end },
 	{ name = "accents off", edit = function(p) p.accentMode = "off" end },
 }
+-- Slate joins the looks asked of each size.
+ALL[#ALL + 1] = "slate"
 
 local function upIn(ns, scenario, style, size)
 	freshPrompt(ns, scenario)
@@ -366,6 +368,8 @@ local function reachOf(tga)
 end
 
 local RING_FILES = {
+	{ "Textures/Slate/Slate_FxRing", "Interface\\AddOns\\Manners\\Textures\\Slate\\Slate_FxRing" },
+	{ "Textures/Slate/Slate_FxRingRound", "Interface\\AddOns\\Manners\\Textures\\Slate\\Slate_FxRingRound" },
 	{ "Textures/Ring", "Interface\\AddOns\\Manners\\Textures\\Ring" },
 	{ "Textures/RingSq", "Interface\\AddOns\\Manners\\Textures\\RingSq" },
 	{ "Textures/Luxe/Luxe_IconRing", "Interface\\AddOns\\Manners\\Textures\\Luxe\\Luxe_IconRing" },
@@ -381,7 +385,7 @@ local RING_FILES = {
 withTree("hunt37-effects: each ring's declared reach is the reach of its art", ANNA, function(ns, scenario)
 	local lib = ns.Prompt.lib
 	-- A look registers its files when it is built.
-	for _, style in ipairs({ "luxe", "toast", "arcane", "heritage" }) do
+	for _, style in ipairs({ "luxe", "toast", "arcane", "heritage", "slate" }) do
 		freshPrompt(ns, scenario)
 		ns.db.profile.prompt.style = style
 		ns.Prompt:ApplyStyle()
