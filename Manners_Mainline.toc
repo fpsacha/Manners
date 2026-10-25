@@ -13,7 +13,7 @@
 ## Notes-zhCN: 有人给你加了增益，一键回敬对方，你原来的目标也会马上恢复。
 ## Notes-zhTW: 有人替你加了增益，一鍵回敬對方，你原本的目標也會馬上恢復。
 ## Author: Sacha
-## Version: 1.8.7
+## Version: 1.9.0
 ## SavedVariables: MannersDB
 ## X-Compatible-With: forever
 ## X-License: MIT

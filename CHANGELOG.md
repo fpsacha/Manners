@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.9.0
 
 - **The prompt comes alive.** When somebody who buffed you appears, the
   icon's echo drops onto it and a bloom of the reason's colour gathers round
