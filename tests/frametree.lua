@@ -768,6 +768,9 @@ instrument = function(f, kind, parent, layer, sublevel)
 	f.SetWordWrap = function(self, v) self._wordWrap = v return self end
 	-- How wide the text is, on one line (see measure above).
 	f.GetStringWidth = function(self)
+		-- The face the line is set in, for a renderer that draws it in one
+		-- (tools/render_prompt.py reads FT.fontPath from its measure).
+		FT.fontPath = self._font and self._font.path or nil
 		return measure(self._text, self._font and self._font.size or 12)
 	end
 	-- The client's other measure, the one that ignores the width the anchors

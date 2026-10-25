@@ -84,7 +84,7 @@ Or just `/thank` them with an emote (off by default, never in a fight or an inst
 
 ### Looks
 
-- **Nine looks**, picked from cards in the options window: Glass (the default), Framed, Minimal, Luxe, Toast, Arcane, Whisper (almost nothing, one hairline), Heritage (the first interface's stone and gold) and Slate (a modern card). Your own colours and fonts, and *Animations* on *Calm* if you would rather it kept still.
+- **Nine looks**, picked from cards in the options window: Glass (the default), Framed, Minimal, Luxe, Toast, Arcane, Whisper (almost nothing, one hairline), Heritage (the first interface's stone and gold) and Slate (slanted plates and a bold blade). Your own colours and fonts, and *Animations* on *Calm* if you would rather it kept still.
 - **A colour-blind palette** for the reason colours. Text turns dark by itself on a light panel.
 - **Move the prompt** is one click in the options window's header (or `/manners move`): drag it where you like, and it locks itself when you let go.
 - **Minimap button** and addon compartment: click for options, shift-click for the ledger, right-click for a menu.

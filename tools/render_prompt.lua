@@ -96,6 +96,9 @@ local function boot(ns, names)
 	-- held eight units inside the panel's height), with a large font. "tiny":
 	-- the smallest useful icon.
 	local sizes = { large = { 320, 58, 17, 40 }, extreme = { 220, 48, 17, 40 }, tiny = { 220, 44, 13, 16 } }
+	-- Or four numbers, "WIDTHxHEIGHTxFONTxICON" (--size 160x32x13x24).
+	local w, h, f, i = tostring(size):match("^(%d+)x(%d+)x(%d+)x(%d+)$")
+	if w then sizes[size] = { tonumber(w), tonumber(h), tonumber(f), tonumber(i) } end
 	if sizes[size] then
 		local p = ns.db.profile.prompt
 		p.width, p.height, p.fontSize, p.iconSize = sizes[size][1], sizes[size][2], sizes[size][3], sizes[size][4]

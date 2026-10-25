@@ -141,8 +141,10 @@ local function everyState(ns, p)
 			local said = tostring(regions.name:GetText()) .. " / "
 				.. (regions.sub:IsShown() and tostring(regions.sub:GetText()) or "")
 			local found = false
+			-- Slate sets its names and reasons in capitals.
+			local lower = said:lower()
 			for _, word in ipairs(words) do
-				if said:find(word, 1, true) then found = true end
+				if lower:find(word:lower(), 1, true) then found = true end
 			end
 			if not found then return step[1] .. ": the lines do not say the verdict: " .. said end
 		end
@@ -995,18 +997,23 @@ for _, style in ipairs({ "luxe", "toast", "arcane", "whisper", "heritage", "slat
 		for _, k in ipairs({ "buffed", "sent, unconfirmed", "could not buff" }) do
 			if rawget(L, k) == nil then fail(scenario, "the German translation has no word for \"" .. k .. "\"") end
 		end
+		-- Slate sets its lines in capitals (a-z only: an umlaut stays as it is).
+		local function said(text)
+			if style == "slate" then return (text:gsub("[a-z]", string.upper)) end
+			return text
+		end
 		ns.Prompt:ShowOutcome("cast", "Anna Aim")
-		if r.sub:GetText() ~= L["buffed"] then
+		if r.sub:GetText() ~= said(L["buffed"]) then
 			fail(scenario, "a landed buff on a German client does not say " .. L["buffed"] .. ": "
 				.. tostring(r.sub:GetText()))
 		end
-		if tostring(r.name:GetText()):find("Anna", 1, true) ~= 1 then
+		if tostring(r.name:GetText()):find(said("Anna"), 1, true) ~= 1 then
 			fail(scenario, "a landed buff on a German client moved the name: " .. tostring(r.name:GetText()))
 		end
 		Mock.advance(3)
 		ns.addon:Tick()
 		ns.Prompt:ShowOutcome("sent", "Anna Aim")
-		if r.sub:GetText() ~= L["sent, unconfirmed"] then
+		if r.sub:GetText() ~= said(L["sent, unconfirmed"]) then
 			fail(scenario, "an unconfirmed cast on a German client does not say " .. L["sent, unconfirmed"]
 				.. ": " .. tostring(r.sub:GetText()))
 		end

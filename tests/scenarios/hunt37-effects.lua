@@ -369,7 +369,6 @@ end
 
 local RING_FILES = {
 	{ "Textures/Slate/Slate_FxRing", "Interface\\AddOns\\Manners\\Textures\\Slate\\Slate_FxRing" },
-	{ "Textures/Slate/Slate_FxRingRound", "Interface\\AddOns\\Manners\\Textures\\Slate\\Slate_FxRingRound" },
 	{ "Textures/Ring", "Interface\\AddOns\\Manners\\Textures\\Ring" },
 	{ "Textures/RingSq", "Interface\\AddOns\\Manners\\Textures\\RingSq" },
 	{ "Textures/Luxe/Luxe_IconRing", "Interface\\AddOns\\Manners\\Textures\\Luxe\\Luxe_IconRing" },

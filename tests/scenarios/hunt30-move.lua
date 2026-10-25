@@ -465,8 +465,10 @@ for _, look in ipairs(LOOKS) do
 		ns.addon:HandleSlash("unlock")
 		ns.addon:Tick()
 		local name, sub = tostring(R.nameText:GetText()), tostring(R.subText:GetText())
-		if not name:find("Drag to move", 1, true) then fail(scenario, "the first line reads " .. name) end
-		if not sub:find("Let go and it locks itself", 1, true) then
+		-- Slate sets its lines in capitals.
+		if look == "slate" then name, sub = name:lower(), sub:lower() end
+		if not name:find(look == "slate" and "drag to move" or "Drag to move", 1, true) then fail(scenario, "the first line reads " .. name) end
+		if not sub:find(look == "slate" and "let go and it locks itself" or "Let go and it locks itself", 1, true) then
 			fail(scenario, "the second line reads " .. sub)
 		end
 		if sub:find("not buffing", 1, true) or sub:lower():find("|cffff8080", 1, true) then
