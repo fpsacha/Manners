@@ -54,7 +54,7 @@ local ART = "Interface\\AddOns\\Manners\\Textures\\Heritage\\Heritage_"
 
 local Heritage = ns.Looks.Register("heritage", {
 	name = L["Heritage -- stone and gold, like the first interface"],
-	order = 4,
+	order = 5,
 	-- The frame holds in a fight; the look dims its own parts.
 	combatArtAlpha = 1,
 	-- The stone is darker than the panels the class colours were picked for:

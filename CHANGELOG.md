@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+- **Three new looks.** *Whisper*: almost nothing, a small icon and one
+  hairline with a dash in the reason's colour; a landing draws a fine line
+  under the name. *Heritage*: the first interface's stone and gold, the icon
+  in an action button's slot, a gold flash when your buff lands and the red of
+  an out-of-range button when the game refuses it. *Slate*: a modern rounded
+  card with a soft shadow, and a thin line along its foot in place of the
+  cooldown sweep that fills green when your buff lands.
+- **Pick a look from cards.** The Look tab opens on a gallery: every look as a
+  picture, its name and a line about it. Click one and the prompt changes at
+  once. The settings dialog the game draws still has the dropdown.
+
 ## 1.9.0
 
 - **The prompt comes alive.** When somebody who buffed you appears, the

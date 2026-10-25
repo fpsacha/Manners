@@ -514,7 +514,7 @@ local added = {
 -- most players who use it have -- the looks that show the key only show it
 -- with one bound. ShotStyle is the look the profile ends up on, so a look the
 -- addon refused or put back is caught rather than drawn under another's name.
-for _, style in ipairs({ "glass", "framed", "minimal", "luxe", "toast", "arcane" }) do
+for _, style in ipairs({ "glass", "framed", "minimal", "luxe", "toast", "arcane", "whisper", "heritage", "slate" }) do
 	added[#added + 1] = { key = "shot-look-" .. style, at = 0.85, setup = function(ns)
 		Mock.bindings = { F = "CLICK MannersPrompt:LeftButton" }
 		boot(ns, { nameplate1 = ELOWEN, nameplate2 = SABLE, nameplate3 = MIRA })
@@ -1599,15 +1599,18 @@ MOMENTS = [
 # them there.
 LIST_ROWS = ["Mira Holt", "Tam Rook", "Ivo Lark"]
 
-# The looks the Look tab offers, in the order the picture shows them, each
-# with the name and the few words the dropdown gives it.
+# The looks the Look tab offers, in the order its gallery shows them, each
+# with the name and the few words its card gives it.
 LOOKS = [
-    ("glass", "Glass", "dark panel, soft shadow"),
-    ("framed", "Framed", "flat panel, thin border"),
-    ("minimal", "Minimal", "text only, no panel"),
     ("luxe", "Luxe", "slim dark card, a spine in the reason colour"),
     ("toast", "Toast", "warm banner, gilded medallion"),
     ("arcane", "Arcane", "smoked glass, a rim lit by the reason"),
+    ("whisper", "Whisper", "no box, one hairline in the reason colour"),
+    ("heritage", "Heritage", "stone and gold, like the first interface"),
+    ("slate", "Slate", "modern card, soft shadow, thin progress line"),
+    ("glass", "Glass", "dark panel, soft shadow"),
+    ("framed", "Framed", "flat panel, thin border"),
+    ("minimal", "Minimal", "text only, no panel"),
 ]
 
 
@@ -1999,26 +2002,25 @@ def picture_palette(snaps):
 
 
 def picture_looks(snaps):
-    """The six looks in two columns, the three older ones down the left and the
-    three new ones down the right, each named over its panel. Every panel is
-    drawn at the same zoom from the same moment, so what differs between them
-    is the look and nothing else. Two columns rather than three, because at the
-    zoom three to a row allows the panels' own words were too small to read."""
-    layers = [prompt_layer("shot-look-" + style, snaps["shot-look-" + style], 2.0)
+    """Every look, three to a row in the order the Look tab's gallery shows
+    them, each named over its panel. Every panel is drawn at the same zoom from
+    the same moment, so what differs between them is the look and nothing
+    else. The zoom is the largest at which three panels fit a row."""
+    layers = [prompt_layer("shot-look-" + style, snaps["shot-look-" + style], 1.5)
               for style, _, _ in LOOKS]
-    cols = 2
+    cols = 3
     rows = (len(layers) + cols - 1) // cols
     cell_w = WIDTH / cols
     label_h = 60
     row = max(l.size[1] for l in layers) + label_h + 18
     top = 140
     board = Board(top + row * rows + 10, seed=17, sun=(0.50, 0.53))
-    heading(board, "Six looks to choose from",
-            "The same favour in each. Pick one under Look > Panel style; Glass is the default.")
+    heading(board, "Nine looks to choose from",
+            "The same favour in each. Pick one from the cards under Look; Glass is the default.")
     for i, ((_, name, words), layer) in enumerate(zip(LOOKS, layers)):
-        cx = cell_w * (i // rows) + cell_w / 2
-        y = top + row * (i % rows)
-        board.shade(cx - 230, y + 4, cx + 230, y + label_h, 0.4)
+        cx = cell_w * (i % cols) + cell_w / 2
+        y = top + row * (i // cols)
+        board.shade(cx - cell_w / 2 + 12, y + 4, cx + cell_w / 2 - 12, y + label_h, 0.4)
         board.text((cx, y + 20), name, 26, bold=True, anchor="mm")
         board.text((cx, y + 48), words, 17, fill=(214, 206, 214), anchor="mm")
         w, h = layer.size

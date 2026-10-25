@@ -8,8 +8,11 @@ ns.Looks.previews = {
 	arcane = true,
 	framed = true,
 	glass = true,
+	heritage = true,
 	luxe = true,
 	minimal = true,
+	slate = true,
 	toast = true,
+	whisper = true,
 }
-ns.Looks.previewHash = "e9f3ce066cbe6ccc663a40864b2f3a2383ddfdff2e4d0823295b1815396c77bb"
+ns.Looks.previewHash = "c4198536fef2538e85243339edee46642027a7634f3620028f5d2b5038f42e83"

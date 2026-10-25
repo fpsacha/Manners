@@ -22,7 +22,7 @@ Turn on *List the next few below* (Look) and every name under the prompt is a bu
 
 ![The options window on Who to buff, with a paladin's buff order and the Move the prompt button in the header](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-options.png)
 
-![Six looks for the prompt: Glass, Framed, Minimal, Luxe, Toast and Arcane, the same favour drawn in each](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-looks.png)
+![Nine looks for the prompt: Luxe, Toast, Arcane, Whisper, Heritage, Slate, Glass, Framed and Minimal, the same favour drawn in each](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-looks.png)
 
 ![The favour ledger: the title your manners have earned, today's count and all-time totals, then rows of favours still owed, returned and let go, and buffs given to the group and to strangers](https://raw.githubusercontent.com/fpsacha/Manners/master/.github/media/manners-ledger.png)
 
@@ -84,7 +84,7 @@ Or just `/thank` them with an emote (off by default, never in a fight or an inst
 
 ### Looks
 
-- **Six looks**: Glass (the default), Framed, Minimal, Luxe, Toast and Arcane. Your own colours and fonts, and *Animations* on *Calm* if you would rather it kept still.
+- **Nine looks**, picked from cards in the options window: Glass (the default), Framed, Minimal, Luxe, Toast, Arcane, Whisper (almost nothing, one hairline), Heritage (the first interface's stone and gold) and Slate (a modern card). Your own colours and fonts, and *Animations* on *Calm* if you would rather it kept still.
 - **A colour-blind palette** for the reason colours. Text turns dark by itself on a light panel.
 - **Move the prompt** is one click in the options window's header (or `/manners move`): drag it where you like, and it locks itself when you let go.
 - **Minimap button** and addon compartment: click for options, shift-click for the ledger, right-click for a menu.
