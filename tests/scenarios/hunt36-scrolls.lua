@@ -439,6 +439,42 @@ for _, flavour in ipairs(FLAVOURS) do
 	end)
 end
 
+-- ------------------------------------------------------------ what it costs
+-- The blockers ride in the buff's own batched read (buff.readIds), after its
+-- ids and stopping at the first aura found: somebody wearing the buff costs
+-- the one read of its top rank and none of the scrolls, and somebody wearing
+-- nothing costs every id once, the scrolls included.
+for _, flavour in ipairs(FLAVOURS) do
+	local scenario = "hunt36-scrolls: " .. flavour .. ": a worn buff never reads its blockers"
+	run(scenario, flavour, "MAGE", PETRA, function(ns)
+		local buff = ns.FindBuff("MAGE", "intellect")
+		-- Rank 5 sits after Burning Crusade's sixth in the buff's ids.
+		local at
+		for index, id in ipairs(buff.auraIds) do
+			if id == 10157 then at = index end
+		end
+		wearing(10157)
+		local before = Mock.counts.auraRead
+		local has = ns.UnitHasBuff("nameplate1", buff)
+		local reads = Mock.counts.auraRead - before
+		if has ~= true or reads ~= at then
+			fail(scenario, ("somebody wearing rank 5 cost %d aura reads (has=%s), not the %d up to it")
+				:format(reads, tostring(has), at))
+		end
+		wearing()
+		before = Mock.counts.auraRead
+		ns.UnitHasBuff("nameplate1", buff)
+		reads = Mock.counts.auraRead - before
+		if reads ~= #buff.readIds or #buff.readIds ~= #buff.auraIds + #buff.blockerIds then
+			fail(scenario, ("somebody wearing nothing cost %d aura reads, not the buff's %d ids and %d blockers")
+				:format(reads, #buff.auraIds, #buff.blockerIds))
+		end
+	end, function()
+		knowing({ 10157, 10156, 1461, 1460, 1459 })
+		atLevel(60)
+	end)
+end
+
 -- ------------------------------------------------------------ a wrong id
 -- A blocker's id the client has never heard of holds nothing off and says
 -- nothing, which a wrong id always does: it is named in /manners debug,

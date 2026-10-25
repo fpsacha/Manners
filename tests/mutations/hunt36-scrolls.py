@@ -62,13 +62,14 @@ mutate("Buffs.lua",
        expect="hunt36-scrolls: vanilla: the strongest scroll worn is the one that counts",
        script=S)
 
-# The scroll weighed even when the buff itself is worn: their own buff and a
-# scroll, and the top-up for it is no longer offered.
+# The read going on past the buff it found: somebody wearing the top rank costs
+# the scrolls' reads too, every scan. (The scroll is still never weighed over a
+# buff that is worn: `not has` stands behind it.)
 mutate("Core.lua",
-       "\tif blockerIds and not has and not refused then\n",
-       "\tif blockerIds and not refused then\n",
-       "hunt36-scrolls: the scroll weighed over a buff that is worn",
-       expect="hunt36-scrolls: vanilla: wearing your buff and a scroll is read as before",
+       "\t\t\tif not (issecretvalue and issecretvalue(aura)) and type(aura) == \"table\" then return end\n",
+       "",
+       "hunt36-scrolls: the batched read going on past the buff found",
+       expect="hunt36-scrolls: vanilla: a worn buff never reads its blockers",
        script=S)
 
 # Covered, but not "over": the buff reads as worn and a favour is repaid with
