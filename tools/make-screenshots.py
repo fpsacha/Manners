@@ -1871,7 +1871,7 @@ def picture_looks(snaps):
     top = 140
     board = Board(top + row * rows + 10, seed=17, sun=(0.50, 0.53))
     heading(board, "Six looks to choose from",
-            "The same favour in each. Pick one under Look > Panel style; Luxe is the default.")
+            "The same favour in each. Pick one under Look > Panel style; Glass is the default.")
     for i, ((_, name, words), layer) in enumerate(zip(LOOKS, layers)):
         cx = cell_w * (i // rows) + cell_w / 2
         y = top + row * (i % rows)
