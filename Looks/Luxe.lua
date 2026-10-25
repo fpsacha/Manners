@@ -43,6 +43,8 @@ local ART = "Interface\\AddOns\\Manners\\Textures\\Luxe\\Luxe_"
 
 local Luxe = ns.Looks.Register("luxe", {
 	name = L["Luxe -- slim dark card, a spine in the reason colour"],
+	title = L["Luxe"],
+	description = L["slim dark card, a spine in the reason colour"],
 	order = 1,
 	-- The ground and the ink dim apart, so art itself stays whole.
 	combatArtAlpha = 1,

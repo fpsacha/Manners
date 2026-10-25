@@ -69,6 +69,8 @@ local ART = "Interface\\AddOns\\Manners\\Textures\\Toast\\Toast_"
 
 local Toast = ns.Looks.Register("toast", {
 	name = L["Toast -- warm banner, gilded medallion"],
+	title = L["Toast"],
+	description = L["warm banner, gilded medallion"],
 	order = 2,
 	-- The banner holds in a fight; the look dims its own parts.
 	combatArtAlpha = 1,
