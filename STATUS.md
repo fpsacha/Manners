@@ -5,7 +5,7 @@ work on the project: `CLAUDE.md`. How to release: `RELEASING.md`.
 
 ## State
 
-1.8.7 is released, for all five live clients: WoW Forever, Classic Era, Burning
+1.9.0 is released, for all five live clients: WoW Forever, Classic Era, Burning
 Crusade Classic Anniversary, Mists of Pandaria Classic and retail (a toc per
 client from `tools/maketocs.py`, a buff set per client in `Buffs.lua`, each
 checked against that client's DB2 on wago.tools, and a scenario file and
@@ -24,6 +24,13 @@ permissions list, a hook that lints each edited file, and the commands
 `/check`, `/release`, `/bughunt`, `/translate` and `/phrases`.
 
 ## Open
+
+**Next week (from 2026-11-01): new looks and a menu to choose them.** The
+owner wants different styles of theme for the prompt, beyond the six there
+are now (Glass, Framed, Minimal, Luxe, Toast, Arcane), and a new menu for
+choosing one, in place of the Look tab's dropdown. Not started; not before
+next week. New looks go through `Looks/Looks.lua`'s kit and are held to
+`hunt37-effects` (the light stays in its room, under the text).
 
 **Forever's group casts and the cast event.** The mage's, priest's and druid's
 group casts have no unit target in the client's spell data, so
