@@ -18,6 +18,8 @@ S_ART = 'look-leather: it draws only art of its own, all of it ships and every f
 S_STATE = 'look-leather: every state paints without an error on '
 S_LAYOUT = 'look-leather: nothing overlaps or leaves the prompt, at every size, '
 S_KEY = 'look-leather: the bound key and the count sit left of the eyelet and the name keeps its room'
+S_NOROOM = "look-leather: where the reason has no room the patches stand at the name line's end or aside"
+S_WHOLE = 'is not cut at the default size'
 S_OPAQUE = "look-leather: the leather is opaque at rest, whatever the panel's opacity says"
 S_REASON = 'look-leather: the reason is carried by the thread and the enamel, in both palettes'
 S_OUTCOME = "look-leather: the outcome keeps the name and writes the verdict, in the verdict's colour"
@@ -161,18 +163,44 @@ _m(LEATHER,
    "\tif self.countMode == \"pair\" then inset = math.max(inset, self:PairRoom()) end\n",
    "",
    "the name runs under the count beside the key",
+   expect=S_NOROOM)
+
+_m(LEATHER,
+   "\treturn math.ceil(self.chipRight + (self.countW or self.chipW2) + 4)\n",
+   "\treturn math.ceil(self.chipRight + self.chipW2 + 4)\n",
+   "a three-digit count wider than the room the line left it",
    expect=S_KEY)
 
 _m(LEATHER,
-   "\t\t\t\tkit.fit.chipRoom = room\n",
-   "",
-   "a three-digit count wider than the room the name left it",
-   expect=S_KEY)
-
-_m(LEATHER,
-   "\t\tlocal h = self.chipH\n\t\tlocal w = math.floor(self.countW + 0.5)\n",
-   "\t\tlocal h = self.chipH\n\t\tlocal w = self.chipW2\n",
+   "\t\tlocal h = mode == \"sub\" and self.subChipH or self.chipH\n\t\tlocal w = math.floor(self.countW + 0.5)\n",
+   "\t\tlocal h = mode == \"sub\" and self.subChipH or self.chipH\n\t\tlocal w = self.chipW2\n",
    "the count's patch too narrow for its words",
+   expect=S_KEY)
+
+# The name's room at the default size with a count and a key up: both patches
+# stand on the reason's line, so they take the room of the name's line.
+_m(LEATHER,
+   "\t\t\tif self:SubFits(self.keyRoom) then lane = \"sub\" end\n",
+   "",
+   "the key's patch back at the name line's end, taking the name's room",
+   expect=S_WHOLE)
+
+_m(LEATHER,
+   "\t\t\tif self:SubFits(lane == \"sub\" and self:PairRoom() or self:CountRoom()) then\n",
+   "\t\t\tif false then\n",
+   "the count's patch back at the name line's end, taking the name's room",
+   expect=S_WHOLE)
+
+_m(LEATHER,
+   "\tif self.keyLane == \"sub\" then subInset = math.max(subInset, self.keyRoom or 0) end\n",
+   "",
+   "the reason running under the key's patch",
+   expect=S_KEY)
+
+_m(LEATHER,
+   "\t\tsubInset = math.max(subInset, self.keyLane == \"sub\" and self:PairRoom() or self:CountRoom())\n",
+   "",
+   "the reason running under the count's patch",
    expect=S_KEY)
 
 # --- opaque leather --------------------------------------------------------

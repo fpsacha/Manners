@@ -62,8 +62,8 @@ _m(RIBBON,
    expect="look-ribbon: the default size holds two lines")
 
 _m(RIBBON,
-   "\tself.keyBox:SetPoint(\"RIGHT\", art, \"RIGHT\", -(g.notch + 5), 0)\n",
-   "\tself.keyBox:SetPoint(\"RIGHT\", art, \"RIGHT\", -2, 0)\n",
+   "\t\t\tself.keyBox:SetPoint(\"RIGHT\", kit.art, \"RIGHT\", -(self.g.notch + 5),\n",
+   "\t\t\tself.keyBox:SetPoint(\"RIGHT\", kit.art, \"RIGHT\", -2,\n",
    "the key's tag cut by the fork",
    expect="look-ribbon: the layout holds")
 
@@ -278,6 +278,32 @@ _m(RIBBON,
    "\tif type(GetBindingKey) ~= \"function\" then return nil end\n",
    "the key's tag over an outcome",
    expect="look-ribbon: the lines keep clear of the tags")
+
+# The name's room at the default size with a count and a key up: the count is
+# a badge on the medallion's rim and the key's tag stands on the reason line.
+_m(RIBBON,
+   "\tself.medalOK = showIcon and g.R >= MEDAL_BADGE_FROM and self.smallH <= g.R * 0.75\n",
+   "\tself.medalOK = false\n",
+   "the count back at the name line's end, taking the name's room",
+   expect="is not cut at the default size")
+
+_m(RIBBON,
+   "\t\t\tif self:SubFits(self.keyRoom) then lane = \"sub\" end\n",
+   "",
+   "the key's tag back at the name line's end, taking the name's room",
+   expect="is not cut at the default size")
+
+_m(RIBBON,
+   "\tif self.keyLane == \"sub\" then subInset = math.min(math.max(inset, self.keyRoom or 0), least) end\n",
+   "",
+   "the reason running under the key's tag",
+   expect="look-ribbon: the lines keep clear of the tags")
+
+_m(RIBBON,
+   "\t\t\t\tself.chipBox:SetPoint(\"CENTER\", kit.art, \"TOPLEFT\", g.cx + dx, -(g.cy + dy))\n",
+   "\t\t\t\tself.chipBox:SetPoint(\"CENTER\", kit.art, \"TOPLEFT\", g.cx + dx, -g.cy)\n",
+   "the count's badge in the middle of the medallion, off its rim",
+   expect="look-ribbon: the layout holds")
 
 # --- the outcomes -----------------------------------------------------------
 

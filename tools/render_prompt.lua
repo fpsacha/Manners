@@ -36,6 +36,12 @@ if style == "" then style = nil end
 if key == "" then key = nil end
 if size == "" or size == "default" then size = nil end
 local COMMAND = "CLICK MannersPrompt:LeftButton"
+-- Who is owed in the pictures: Anna Aim, or the two-part name MANNERS_RENDER_NAME
+-- holds (render_prompt.py --name "Elowen Thistledown"), for a name of the length
+-- a look has to hold.
+local ANNA = os.getenv("MANNERS_RENDER_NAME")
+if not ANNA or not ANNA:find("^%S+ %S+$") then ANNA = "Anna Aim" end
+local ANNA_UNIT = { ANNA:match("^(%S+) (%S+)$") }
 
 dofile(dir .. "/tests/mockapi.lua")
 dofile(dir .. "/tests/frametree.lua")
@@ -140,14 +146,14 @@ local function fight(ns)
 end
 
 local STRANGER = { nameplate1 = { "Brannoc", "Vale" } }
-local OWED = { nameplate1 = { "Anna", "Aim" } }
+local OWED = { nameplate1 = ANNA_UNIT }
 
 local function withPrompt(edit)
 	return function(ns)
 		boot(ns, OWED)
 		if edit then edit(ns.db.profile.prompt, ns) end
 		ns.Prompt:ApplyStyle()
-		owe(ns, "Anna Aim")
+		owe(ns, ANNA)
 		tick(ns)
 	end
 end
@@ -166,7 +172,7 @@ local function arcane(edit, names, after)
 		ns.db.profile.prompt.style = "arcane"
 		if edit then edit(ns.db.profile.prompt, ns) end
 		ns.Prompt:ApplyStyle()
-		ns.owed["Anna Aim"] = { expires = GetTime() + 60, at = GetTime() - 40, class = "PRIEST" }
+		ns.owed[ANNA] = { expires = GetTime() + 60, at = GetTime() - 40, class = "PRIEST" }
 		tick(ns)
 		if after then after(ns) end
 	end
@@ -180,12 +186,17 @@ R.states = {
 	end },
 	{ key = "owed", title = "Somebody buffed you (pulse)", at = 1.2, setup = function(ns)
 		boot(ns, OWED)
-		owe(ns, "Anna Aim")
+		owe(ns, ANNA)
+		tick(ns)
+	end },
+	{ key = "counted", title = "Somebody buffed you, two more waiting (the count chip)", at = 1.2, setup = function(ns)
+		boot(ns, { nameplate1 = ANNA_UNIT, nameplate2 = { "Brannoc", "Vale" }, nameplate3 = { "Corwin", "Ash" } })
+		owe(ns, ANNA)
 		tick(ns)
 	end },
 	{ key = "owed-arrival", title = "The moment they buffed you", at = 0.12, setup = function(ns)
 		boot(ns, OWED)
-		owe(ns, "Anna Aim")
+		owe(ns, ANNA)
 		tick(ns)
 	end },
 	{ key = "group", title = "A group member", setup = function(ns)
@@ -203,48 +214,48 @@ R.states = {
 	end },
 	{ key = "refused", title = "A refused buff", at = 0.10, setup = function(ns)
 		boot(ns, OWED)
-		owe(ns, "Anna Aim")
+		owe(ns, ANNA)
 		tick(ns)
-		ns.Prompt:ShowOutcome("failed", "Anna Aim", "Out of range.")
+		ns.Prompt:ShowOutcome("failed", ANNA, "Out of range.")
 		FrameTree.settle()
 	end },
 	{ key = "success", title = "A buff that landed", at = 0.20, setup = function(ns)
 		boot(ns, OWED)
-		owe(ns, "Anna Aim")
+		owe(ns, ANNA)
 		tick(ns)
-		ns.Prompt:ShowOutcome("cast", "Anna Aim")
+		ns.Prompt:ShowOutcome("cast", ANNA)
 		FrameTree.settle()
 	end },
 	{ key = "leaving", title = "After the last buff", at = 0.48, setup = function(ns)
 		boot(ns, OWED)
-		owe(ns, "Anna Aim")
+		owe(ns, ANNA)
 		tick(ns)
 		-- What a press does to the only person on the prompt: they are
 		-- retired for the retry cooldown, so the queue behind the flash is
 		-- empty and the panel is on its way down.
-		ns.BlockPerson("Anna Aim")
+		ns.BlockPerson(ANNA)
 		wipe(ns.owed)
-		ns.Prompt:ShowOutcome("cast", "Anna Aim")
+		ns.Prompt:ShowOutcome("cast", ANNA)
 		FrameTree.settle()
 	end },
 	{ key = "calm", title = "A buff that landed, Effects: Calm", at = 0.28, setup = function(ns)
 		boot(ns, OWED)
 		ns.db.profile.prompt.effects = "calm"
-		owe(ns, "Anna Aim")
+		owe(ns, ANNA)
 		tick(ns)
-		ns.Prompt:ShowOutcome("cast", "Anna Aim")
+		ns.Prompt:ShowOutcome("cast", ANNA)
 		FrameTree.settle()
 	end },
 	{ key = "sent", title = "Sent, unconfirmed", at = 0.15, setup = function(ns)
 		boot(ns, OWED)
-		owe(ns, "Anna Aim")
+		owe(ns, ANNA)
 		tick(ns)
-		ns.Prompt:ShowOutcome("sent", "Anna Aim")
+		ns.Prompt:ShowOutcome("sent", ANNA)
 		FrameTree.settle()
 	end },
 	{ key = "gcd", title = "Global cooldown running", at = 0.5, setup = function(ns)
 		boot(ns, OWED)
-		owe(ns, "Anna Aim")
+		owe(ns, ANNA)
 		tick(ns)
 		-- A cast that went out half a second ago, as the client reports it.
 		Mock.spellCooldowns = { [61304] = { startTime = Mock.now - 0.5, duration = 1.5 } }
@@ -255,19 +266,19 @@ R.states = {
 	end },
 	{ key = "combat", title = "Held in combat", at = 0.85, setup = function(ns)
 		boot(ns, OWED)
-		owe(ns, "Anna Aim")
+		owe(ns, ANNA)
 		tick(ns)
 		fight(ns)
 	end },
 	{ key = "queue", title = "Queue list shown", at = 0.85, setup = function(ns)
 		Mock.groupSize = 2
 		partyIsParty()
-		boot(ns, { party1 = { "Gwen", "Hollow" }, nameplate1 = { "Anna", "Aim" },
+		boot(ns, { party1 = { "Gwen", "Hollow" }, nameplate1 = ANNA_UNIT,
 			nameplate2 = { "Brannoc", "Vale" }, nameplate3 = { "Corwin", "Ash" } })
 		ns.db.profile.prompt.showQueue = true
 		ns.db.profile.prompt.queueRows = 3
 		ns.Prompt:ApplyStyle()
-		owe(ns, "Anna Aim")
+		owe(ns, ANNA)
 		tick(ns)
 	end },
 	{ key = "preview", title = "Preview", at = 0.85, setup = function(ns)
@@ -328,26 +339,26 @@ R.states = {
 	{ key = "minimal-list", title = "Look: minimal, list shown", at = 0.85, setup = function(ns)
 		Mock.groupSize = 2
 		partyIsParty()
-		boot(ns, { party1 = { "Gwen", "Hollow" }, nameplate1 = { "Anna", "Aim" },
+		boot(ns, { party1 = { "Gwen", "Hollow" }, nameplate1 = ANNA_UNIT,
 			nameplate2 = { "Brannoc", "Vale" }, nameplate3 = { "Corwin", "Ash" } })
 		ns.db.profile.prompt.style = "minimal"
 		ns.db.profile.prompt.showQueue = true
 		ns.db.profile.prompt.queueRows = 3
 		ns.Prompt:ApplyStyle()
-		owe(ns, "Anna Aim")
+		owe(ns, ANNA)
 		tick(ns)
 	end },
 	{ key = "minimal-list-bright", title = "Look: minimal, list shown, bright world", at = 0.85,
 		backdrop = "bright", setup = function(ns)
 		Mock.groupSize = 2
 		partyIsParty()
-		boot(ns, { party1 = { "Gwen", "Hollow" }, nameplate1 = { "Anna", "Aim" },
+		boot(ns, { party1 = { "Gwen", "Hollow" }, nameplate1 = ANNA_UNIT,
 			nameplate2 = { "Brannoc", "Vale" }, nameplate3 = { "Corwin", "Ash" } })
 		ns.db.profile.prompt.style = "minimal"
 		ns.db.profile.prompt.showQueue = true
 		ns.db.profile.prompt.queueRows = 3
 		ns.Prompt:ApplyStyle()
-		owe(ns, "Anna Aim")
+		owe(ns, ANNA)
 		tick(ns)
 	end },
 	-- The colour-blind palette, with the list up so three reasons are on
@@ -355,13 +366,13 @@ R.states = {
 	{ key = "palette", title = "Colour-blind palette, list shown", at = 0.85, setup = function(ns)
 		Mock.groupSize = 2
 		partyIsParty()
-		boot(ns, { party1 = { "Gwen", "Hollow" }, nameplate1 = { "Anna", "Aim" },
+		boot(ns, { party1 = { "Gwen", "Hollow" }, nameplate1 = ANNA_UNIT,
 			nameplate2 = { "Brannoc", "Vale" } })
 		ns.db.profile.prompt.showQueue = true
 		ns.db.profile.prompt.queueRows = 3
 		ns.db.profile.prompt.reasonPalette = "colourblind"
 		ns.Prompt:ApplyStyle()
-		owe(ns, "Anna Aim")
+		owe(ns, ANNA)
 		tick(ns)
 	end },
 	{ key = "round", title = "Round icon", at = 0.85, setup = withPrompt(function(p)
@@ -384,25 +395,25 @@ R.states = {
 	{ key = "arcane-queue", title = "Look: arcane, list shown", at = 0.85, setup = arcane(function(p)
 		p.showQueue = true
 		p.queueRows = 3
-	end, { party1 = { "Gwen", "Hollow" }, nameplate1 = { "Anna", "Aim" },
+	end, { party1 = { "Gwen", "Hollow" }, nameplate1 = ANNA_UNIT,
 		nameplate2 = { "Brannoc", "Vale" }, nameplate3 = { "Corwin", "Ash" } }) },
 	{ key = "arcane-noicon", title = "Look: arcane, icon off, list shown", at = 0.85,
 		setup = arcane(function(p)
 			p.showIcon = false
 			p.showQueue = true
 			p.queueRows = 3
-		end, { party1 = { "Gwen", "Hollow" }, nameplate1 = { "Anna", "Aim" },
+		end, { party1 = { "Gwen", "Hollow" }, nameplate1 = ANNA_UNIT,
 			nameplate2 = { "Brannoc", "Vale" }, nameplate3 = { "Corwin", "Ash" } }) },
 	{ key = "arcane-light", title = "Look: arcane, a light panel, list shown", at = 0.85,
 		setup = arcane(function(p)
 			p.bgColor = { 0.86, 0.84, 0.78, 0.92 }
 			p.showQueue = true
 			p.queueRows = 3
-		end, { party1 = { "Gwen", "Hollow" }, nameplate1 = { "Anna", "Aim" },
+		end, { party1 = { "Gwen", "Hollow" }, nameplate1 = ANNA_UNIT,
 			nameplate2 = { "Brannoc", "Vale" }, nameplate3 = { "Corwin", "Ash" } }) },
 	{ key = "hover", title = "The cursor on the panel", at = 0.3, setup = function(ns)
 		boot(ns, OWED)
-		owe(ns, "Anna Aim")
+		owe(ns, ANNA)
 		tick(ns)
 		local button = ns.Prompt:GetButton()
 		if button.scripts.OnEnter then button.scripts.OnEnter(button) end
@@ -412,12 +423,12 @@ R.states = {
 		partyIsParty()
 		-- Low on the screen, where the list hangs over the panel.
 		Mock.promptCentreY = 120
-		boot(ns, { party1 = { "Gwen", "Hollow" }, nameplate1 = { "Anna", "Aim" },
+		boot(ns, { party1 = { "Gwen", "Hollow" }, nameplate1 = ANNA_UNIT,
 			nameplate2 = { "Brannoc", "Vale" }, nameplate3 = { "Corwin", "Ash" } })
 		ns.db.profile.prompt.showQueue = true
 		ns.db.profile.prompt.queueRows = 3
 		ns.Prompt:ApplyStyle()
-		owe(ns, "Anna Aim")
+		owe(ns, ANNA)
 		tick(ns)
 	end },
 	{ key = "one-line", title = "Second line off", at = 0.85, setup = withPrompt(function(p)
@@ -436,12 +447,12 @@ R.states = {
 	-- The ends of the sliders, with the count chip up (two owed): the name keeps
 	-- room between the icon and the chip (Prompt/Text.lua, PlaceLines).
 	{ key = "narrow-big", title = "80 x 36, 24 pt, two owed", at = 0.85, setup = function(ns)
-		boot(ns, { nameplate1 = { "Anna", "Aim" }, nameplate2 = { "Bert", "Beside" } })
+		boot(ns, { nameplate1 = ANNA_UNIT, nameplate2 = { "Bert", "Beside" } })
 		local p = ns.db.profile.prompt
 		p.width, p.height, p.fontSize, p.iconSize = 80, 36, 24, 24
 		p.showIcon, p.showCount = true, true
 		ns.Prompt:ApplyStyle()
-		owe(ns, "Anna Aim")
+		owe(ns, ANNA)
 		owe(ns, "Bert Beside")
 		tick(ns)
 	end },
@@ -452,22 +463,22 @@ R.states = {
 	{ key = "keybound", title = "A key bound to the prompt", at = 0.85, setup = function(ns)
 		Mock.bindings = { ["SHIFT-F"] = "CLICK MannersPrompt:LeftButton" }
 		boot(ns, OWED)
-		owe(ns, "Anna Aim")
+		owe(ns, ANNA)
 		tick(ns)
 	end },
 	-- A favour most of the way to forgotten: the time left to return it.
 	{ key = "clock", title = "A favour with a third of its time left", at = 0.85, setup = function(ns)
 		boot(ns, OWED)
 		local window = ns.db.profile.timing.reciprocateWindow or 300
-		ns.owed["Anna Aim"] = { expires = GetTime() + window, at = GetTime() - window * 2, class = "PRIEST" }
-		ns.owed["Anna Aim"].expires = GetTime() + window / 3
-		ns.owed["Anna Aim"].at = GetTime() - window * 2 / 3
+		ns.owed[ANNA] = { expires = GetTime() + window, at = GetTime() - window * 2, class = "PRIEST" }
+		ns.owed[ANNA].expires = GetTime() + window / 3
+		ns.owed[ANNA].at = GetTime() - window * 2 / 3
 		tick(ns)
 	end },
 	{ key = "combat-bright", title = "Held in combat, over a bright world", at = 0.85,
 		backdrop = "bright", setup = function(ns)
 		boot(ns, OWED)
-		owe(ns, "Anna Aim")
+		owe(ns, ANNA)
 		tick(ns)
 		fight(ns)
 	end },
@@ -488,12 +499,12 @@ R.states = {
 	{ key = "one-line-count", title = "Second line off, three more waiting", at = 0.85, setup = function(ns)
 		Mock.groupSize = 2
 		partyIsParty()
-		boot(ns, { party1 = { "Gwen", "Hollow" }, nameplate1 = { "Anna", "Aim" },
+		boot(ns, { party1 = { "Gwen", "Hollow" }, nameplate1 = ANNA_UNIT,
 			nameplate2 = { "Brannoc", "Vale" }, nameplate3 = { "Corwin", "Ash" } })
 		ns.db.profile.prompt.showSub = false
 		ns.db.profile.prompt.height = 32
 		ns.Prompt:ApplyStyle()
-		owe(ns, "Anna Aim")
+		owe(ns, ANNA)
 		tick(ns)
 	end },
 	-- One line, and the buff lands: the name line has to say so.
@@ -503,9 +514,9 @@ R.states = {
 		ns.db.profile.prompt.showSub = false
 		ns.db.profile.prompt.height = 32
 		ns.Prompt:ApplyStyle()
-		owe(ns, "Anna Aim")
+		owe(ns, ANNA)
 		tick(ns)
-		ns.Prompt:ShowOutcome("cast", "Anna Aim")
+		ns.Prompt:ShowOutcome("cast", ANNA)
 		FrameTree.settle()
 	end },
 	-- 13 pt at 40 tall: two lines on glass, so two lines here as well.
@@ -520,7 +531,7 @@ R.states = {
 	{ key = "calm-owed", title = "Somebody buffed you, Effects: Calm", at = 0.85, setup = function(ns)
 		boot(ns, OWED)
 		ns.db.profile.prompt.effects = "calm"
-		owe(ns, "Anna Aim")
+		owe(ns, ANNA)
 		tick(ns)
 	end },
 	{ key = "small", title = "Scale 0.7", at = 0.85, setup = withPrompt(function(p)

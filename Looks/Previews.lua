@@ -15,4 +15,4 @@ ns.Looks.previews = {
 	ribbon = true,
 	toast = true,
 }
-ns.Looks.previewHash = "61f756f1ce9aa36cb576f49285e58c4a9dcffbb98661ba3aed6370e9b5534ae8"
+ns.Looks.previewHash = "393fc779b4db042deb7f549bbc67bb5a713245703a6c4eec94eaac7df94ab529"
