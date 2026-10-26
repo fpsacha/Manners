@@ -315,7 +315,13 @@ with("actionbar: a macro moved in a fight has its spell set once the fight ends"
 		fail(scenario, "the macro's slot was set in a fight")
 	end
 	Mock.inCombat = false
+	-- The prompt's own repaint after a fight arms the button again whenever the
+	-- fight changed anything about it, and sets the slot on its way; held off
+	-- here, so that what is under test is the catch-up of the slot alone.
+	local realRefresh = ns.Prompt.Refresh
+	ns.Prompt.Refresh = function() end
 	ns.addon:PLAYER_REGEN_ENABLED()
+	ns.Prompt.Refresh = realRefresh
 	if Mock.macroList[5].spell ~= spell then
 		fail(scenario, "the moved macro shows " .. tostring(Mock.macroList[5].spell) .. " after the fight, not " .. spell)
 	end
