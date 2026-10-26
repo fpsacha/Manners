@@ -579,6 +579,7 @@ python tools/render_prompt.py --states owed,refused  # just those
 python tools/render_prompt.py --addon ../old --out before   # an older build
 python tools/render_prompt.py --locale deDE --out de         # as a German client
 python tools/render_prompt.py --style arcane --key F --out arcane   # every state in a look
+python tools/render_prompt.py --name "Elowen Thistledown" --states counted --key F   # a name the length players have, with the count and a key up
 python tools/render_prompt.py --compare before after compare.png
 python tools/render_prompt.py --states success --at 0.2         # 0.2 s into the animation
 python tools/render_prompt.py --states success --strip 0.05,0.15,0.3,0.5  # a film strip of it

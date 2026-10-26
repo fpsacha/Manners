@@ -21,6 +21,7 @@ of that is read from what the addon told the frames, never restated here.
     python tools/render_prompt.py --compare BEFORE AFTER OUT.png
     python tools/render_prompt.py --states success --at 0.2     # 0.2 s into the animation
     python tools/render_prompt.py --states success --strip 0.05,0.15,0.3,0.5   # a film strip
+    python tools/render_prompt.py --name "Elowen Thistledown"   # who is owed (two words)
     python tools/render_prompt.py --size large                  # 320 x 58, 17 pt, icon 40
     python tools/render_prompt.py --size 400x72x13x56            # any WIDTHxHEIGHTxFONTxICON
     python tools/render_prompt.py --size extreme                # 220 x 48, 17 pt, icon 40 (or tiny: icon 16)
@@ -1063,8 +1064,11 @@ def main():
                     else (_ for _ in ()).throw(argparse.ArgumentTypeError("invalid size: " + v)),
                     help="large: 320 x 58, 17 pt, icon 40; extreme: 220 x 48, 17 pt, icon 40; tiny: icon 16; "
                          "or WIDTHxHEIGHTxFONTxICON, 160x32x13x24 say")
+    ap.add_argument("--name", default="", help='who is owed, two words ("Elowen Thistledown"); default Anna Aim')
     ap.add_argument("--compare", nargs=3, metavar=("BEFORE", "AFTER", "OUT"))
     args = ap.parse_args()
+    if args.name:
+        os.environ["MANNERS_RENDER_NAME"] = args.name
     if args.compare:
         compare(*args.compare)
         return

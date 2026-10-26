@@ -90,9 +90,9 @@ local function slurp(path)
 	return data
 end
 
--- The prompt up in Ribbon with Anna owed on top. Returns the regions, the
--- settings and the look.
-local function upIn(ns, scenario, edit, arriving)
+-- The prompt up in Ribbon with Anna owed on top (or `who`). Returns the regions,
+-- the settings and the look.
+local function upIn(ns, scenario, edit, arriving, who)
 	freshPrompt(ns, scenario)
 	local p = ns.db.profile.prompt
 	p.style = "ribbon"
@@ -111,7 +111,7 @@ local function upIn(ns, scenario, edit, arriving)
 	end
 	if edit then edit(p) end
 	ns.Prompt:ApplyStyle()
-	owe(ns, "Anna Aim")
+	owe(ns, who or "Anna Aim")
 	tick(ns)
 	-- At rest, unless the arrival is what is asked about: the ribbon slides
 	-- into place in 0.3 s.
@@ -360,6 +360,7 @@ local function layoutAt(ns, scenario, label, edit, ctx)
 	local g, W, H = look.g, look.W, look.H
 	local name, sub = span(r.name), r.sub:IsShown() and span(r.sub) or nil
 	if not (art and name) then fail(scenario, label .. ": nothing to measure") return end
+	local two = sub ~= nil
 	local box = { 0, 0, W, H }
 	-- Every piece of the ribbon is inside the box the prompt is given.
 	local pieces = {}
@@ -478,13 +479,28 @@ local function layoutAt(ns, scenario, label, edit, ctx)
 		if b[3] - b[1] > art[3] - art[1] then fail(scenario, label .. ": the " .. what .. " is wider than the prompt") end
 	end
 	if sub and not apart(name, sub, 0.3) then fail(scenario, label .. ": the name and the reason line overlap") end
-	-- The chips: a gold tag each, on the cloth, short of the fork, clear of the lines.
+	-- The chips: a gold tag each, short of the fork, clear of the lines: on the
+	-- cloth, between its rails, but for the count's badge, which hangs on the
+	-- medallion's rim (inside the prompt, its middle no further out than the rim).
 	for what, frame in pairs({ count = look.chipBox, key = look.keyBox }) do
 		local up = (what == "count" and look.countMode) or (what == "key" and look.keyUp)
 		if up then
 			local t = rel(span(frame))
-			if not inside(t, { 0, g.top, W, g.bottom }, 0.3) then fail(scenario, label .. ": the " .. what .. " tag leaves the cloth") end
-			if t[3] > forkLimit(W, g, t[2], t[4]) - 2 + 1e-6 then fail(scenario, label .. ": the " .. what .. " tag is cut by the fork") end
+			if what == "count" and look.countMode == "medal" then
+				if not look.showIcon then fail(scenario, label .. ": a badge on a medallion that is not there") end
+				if not inside(t, { 0, 0, W, H }, 0.3) then fail(scenario, label .. ": the count's badge leaves the prompt") end
+				local dist = math.sqrt(((t[1] + t[3]) / 2 - g.cx) ^ 2 + ((t[2] + t[4]) / 2 - g.cy) ^ 2)
+				if dist > g.R + 1 or dist < g.R * 0.6 then
+					fail(scenario, ("%s: the count's badge is %.1f from the medallion's middle, not on its rim (%.1f)"):format(label, dist, g.R))
+				end
+			else
+				if not inside(t, { 0, g.top, W, g.bottom }, 0.3) then fail(scenario, label .. ": the " .. what .. " tag leaves the cloth") end
+				if t[3] > forkLimit(W, g, t[2], t[4]) - 2 + 1e-6 then fail(scenario, label .. ": the " .. what .. " tag is cut by the fork") end
+				local rails = 5.8 * g.k
+				if two and (t[2] < g.top + rails - 0.6 or t[4] > g.bottom - rails + 0.6) then
+					fail(scenario, label .. ": the " .. what .. " tag is over a rail")
+				end
+			end
 			if not apart(name, span(frame), 0.2) then fail(scenario, label .. ": the " .. what .. " tag is over the name") end
 			if sub and not apart(sub, span(frame), 0.2) then fail(scenario, label .. ": the " .. what .. " tag is over the reason") end
 		end
@@ -618,19 +634,21 @@ withTree("look-ribbon: the default size holds two lines between the rails", ANNA
 	if 2 * g.R > p.height then fail(scenario, "the medallion is taller than the prompt") end
 end)
 
--- With the chips up the lines keep clear of them, and the name wins at every
--- width.
+-- With the tags up the lines keep clear of them, and the name wins at every
+-- width: the count is a badge on the medallion, the key's tag stands on the
+-- reason line, and a tag stands on a line only where that line has the room.
 withTree("look-ribbon: the lines keep clear of the tags", CROWD, function(ns, scenario)
 	local r, p, look = upIn(ns, scenario)
 	if not isRibbon(look) then fail(scenario, "SKIPPED -- Ribbon is not the look in use") return end
-	if look.countMode ~= "chip" then fail(scenario, "the count has no tag beside the name: " .. tostring(look.countMode)) end
+	if look.countMode ~= "medal" then fail(scenario, "the count is not a badge on the medallion: " .. tostring(look.countMode)) end
 	if not tostring(r.count:GetText()):find("^%+%d") then
 		fail(scenario, "the count's tag does not say how many more: " .. tostring(r.count:GetText()))
 	end
 	SetBinding("SHIFT-F", COMMAND)
 	tick(ns)
-	if look.countMode ~= "pair" or not look.keyUp then
-		fail(scenario, "the key and the count are not both up: " .. tostring(look.countMode))
+	if look.countMode ~= "medal" or look.keyLane ~= "sub" or not look.keyUp then
+		fail(scenario, ("the count is not on the medallion with the key's tag on the reason line: %s, %s"):format(
+			tostring(look.countMode), tostring(look.keyLane)))
 	end
 	local name, sub = span(r.name), span(r.sub)
 	for what, frame in pairs({ count = look.chipBox, key = look.keyBox }) do
@@ -638,6 +656,11 @@ withTree("look-ribbon: the lines keep clear of the tags", CROWD, function(ns, sc
 		if b and not apart(name, b, 0.2) then fail(scenario, what .. ": the name runs under the tag") end
 		if b and sub and not apart(sub, b, 0.2) then fail(scenario, what .. ": the reason runs under the tag") end
 	end
+	-- The key's tag stands on the reason's own line, low enough that the name's
+	-- room is the whole line's.
+	local kb = span(look.keyBox)
+	if kb and not (kb[4] <= (name[2] + name[4]) / 2 + 0.01) then fail(scenario, "the key's tag is not on the reason line") end
+	if look.inset > look.rightBase + 0.01 then fail(scenario, "the name gives room to a tag that is not on its line") end
 	-- The tags' ink is a dark crimson on the gold, never the cloth's lettering.
 	for _, fs in ipairs({ r.count, look.keyText }) do
 		local c = fs._textColor
@@ -649,33 +672,94 @@ withTree("look-ribbon: the lines keep clear of the tags", CROWD, function(ns, sc
 	Mock.advance(3)
 	tick(ns)
 	SetBinding("SHIFT-F", COMMAND)
-	local sawPair, sawKeyAlone = false, false
+	local sawSub = false
 	for width = 120, 400, 5 do
 		p.width = width
 		ns.Prompt:ApplyStyle()
 		ns.Prompt:Paint({ name = "Anna Aim", short = "Annabelle-Marguerite Thistlewood", reason = "owed",
 			buff = ns.ResolveBuff(true) }, 3)
-		if look.countMode == "pair" then
-			sawPair = true
-			if not look:NameFits(look:PairRoom()) then fail(scenario, width .. ": both tags are up and cut the name") end
-		elseif look.keyUp then
-			sawKeyAlone = true
-			if look.countMode == "chip" then fail(scenario, width .. ": the key's tag and a lone count are both up") end
+		if look.keyLane == "sub" then
+			sawSub = true
+			if not look:SubFits(look.keyRoom) then fail(scenario, width .. ": the key's tag is on the reason line and cuts it") end
+		elseif look.keyLane == "name" then
+			if not look:NameFits(look.keyRoom) then fail(scenario, width .. ": the key's tag is on the name line and cuts the name") end
+			if look.countMode == "pair" and not look:NameFits(look:PairRoom()) then
+				fail(scenario, width .. ": both tags are on the name line and cut the name")
+			end
 		end
-		if look.keyUp and not look:NameFits(look.keyRoom) then fail(scenario, width .. ": the key's tag is up and cuts the name") end
+		if look.countMode == "chip" and look.keyLane == "name" then
+			fail(scenario, width .. ": the key's tag and a lone count are both on the name line")
+		end
 	end
-	if not (sawPair and sawKeyAlone) then fail(scenario, "the sweep of widths never showed both the pair and the key alone") end
+	if not sawSub then fail(scenario, "the sweep of widths never put the key's tag on the reason line") end
+	-- A name that cannot shrink into the room is not given less of it for a tag.
 	p.width = 150
 	ns.Prompt:ApplyStyle()
 	ns.Prompt:Paint({ name = "Anna Aim", short = "Annabelle-Marguerite Thistlewood", reason = "owed",
 		buff = ns.ResolveBuff(true) }, 3)
-	if look.keyChip[2]._shown ~= false then fail(scenario, "the key's tag stayed up and cut a name that could not shrink") end
+	if look.keyLane == "name" then fail(scenario, "the key's tag stayed on the line of a name that could not shrink") end
 	SetBinding("SHIFT-F", nil)
 	p.width = 220
 	ns.Prompt:ApplyStyle()
 	tick(ns)
 	if look.keyUp then fail(scenario, "the key's tag outlived the binding") end
 end)
+
+-- An ordinary name is whole at the default size with the count and the key up:
+-- "Elowen Thistledown" (18 letters) in English and a German two-part name of the
+-- same length, on a 220 x 44 prompt at 13 pt with a 30 icon, +2 behind them and
+-- F bound. The tags stand on the medallion and the reason line, so the name has
+-- the line's room; measured the way a display serif is (0.58 of the size a
+-- letter, the width the stand-in for Morpheus draws), which the mock's half a
+-- size a letter flatters.
+for _, case in ipairs({ { "enUS", { "Elowen", "Thistledown" } }, { "deDE", { "Friedrich", "Eichwald" } } }) do
+	local locale, who = case[1], case[2]
+	local full = who[1] .. " " .. who[2]
+	local scenario = ("look-ribbon: %s with a count and a key is not cut at the default size, %s"):format(full, locale)
+	local names = { nameplate1 = who, nameplate2 = { "Brannoc", "Vale" }, nameplate3 = { "Corwin", "Ash" } }
+	withTree(scenario, names, function(ns)
+		local realMeasure = FT.measure
+		FT.measure = function(text, size)
+			local letters = select(2, text:gsub("[^\128-\191]", ""))
+			return letters * size * 0.58
+		end
+		local ok, err = pcall(function()
+			local r, p, look = upIn(ns, scenario, function(pp)
+				pp.width, pp.height, pp.fontSize, pp.iconSize = 220, 44, 13, 30
+				pp.showCount = true
+			end, false, full)
+			if not isRibbon(look) then fail(scenario, "SKIPPED -- Ribbon is not the look in use") return end
+			SetBinding("F", COMMAND)
+			tick(ns)
+			if not tostring(r.name:GetText()):find(who[1], 1, true) then
+				fail(scenario, "the name on the prompt is not " .. full .. ": " .. tostring(r.name:GetText()))
+				return
+			end
+			if not look.countMode then fail(scenario, "the count has no tag: it stepped aside for the name") end
+			if not tostring(r.count:GetText()):find("^%+2") then fail(scenario, "the count does not say +2: " .. tostring(r.count:GetText())) end
+			if not look.keyUp then fail(scenario, "the key has no tag: it stepped aside for the name") end
+			local room = span(r.name)
+			local width = r.name:GetUnboundedStringWidth()
+			local size = select(2, r.name:GetFont())
+			local base = look.kit.fit.base[r.name]
+			if room and type(width) == "number" and width > room[3] - room[1] + 0.6 then
+				fail(scenario, ("the name is %.1f wide in a room of %.1f: it is cut"):format(width, room[3] - room[1]))
+			end
+			if type(size) == "number" and type(base) == "number" and size < base * 0.9 then
+				fail(scenario, ("the name is drawn at %s, shrunk from %s for the tags"):format(tostring(size), tostring(base)))
+			end
+			if tostring(r.name:GetText()):find("%.%.%.") then fail(scenario, "the name is cut with an ellipsis") end
+			-- The reason is whole beside the key's tag too.
+			local sub, rs = r.sub, span(r.sub)
+			local sw = sub:GetUnboundedStringWidth()
+			if rs and type(sw) == "number" and sw > rs[3] - rs[1] + 0.6 then
+				fail(scenario, ("the reason is %.1f wide in a room of %.1f: it is cut"):format(sw, rs[3] - rs[1]))
+			end
+		end)
+		FT.measure = realMeasure
+		if not ok then error(err, 0) end
+	end, locale ~= "enUS" and function() Mock.locale = locale end or nil)
+end
 
 -- Long translated lines are fitted, never cut badly nor over anything.
 withTree("look-ribbon: a German client's lines fit the cloth", CROWD, function(ns, scenario)

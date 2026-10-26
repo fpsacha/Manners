@@ -149,6 +149,9 @@ local UNROLL_SECONDS, POP_SECONDS = 0.30, 0.18
 -- How much of the paper the unroll starts with.
 local UNROLL_FROM = 0.38
 local COMMAND = "CLICK MannersPrompt:LeftButton"
+-- The wax's radius from which the seal carries the count's slip pinned on its
+-- edge, and only while the slip is three quarters of that radius at most.
+local SEAL_BADGE_FROM = 15
 
 -- The serif the letter writes in: Blizzard's Morpheus, in every client (its
 -- Fonts.xml), with the Cyrillic cut for a Russian client. Korean and Chinese
@@ -848,8 +851,8 @@ function Letter:Apply(p, above)
 	self.rule:SetPoint("LEFT", art, "TOPLEFT", g.textX, -g.ruleY)
 	self.rule:SetSize(g.textRight - g.textX, 3)
 
-	-- The slips: the count at the name line's end, the key at the reason line's
-	-- end, or side by side on the name line when there is no second line.
+	-- The slips: the key at the reason line's end and the count pinned on the
+	-- seal's edge (Chip says where each goes when there is no seal, or no room).
 	local chipH = g.chipH
 	self.chipH = chipH
 	for _, s in ipairs({ self.countSlip, self.keySlip }) do
@@ -859,6 +862,11 @@ function Letter:Apply(p, above)
 	end
 	self:PlaceSlip(self.countSlip, self.countBox, chipH)
 	self:PlaceSlip(self.keySlip, self.keyBox, chipH)
+	-- The count's slip pinned on the seal is a little smaller, and only on a
+	-- seal big enough to carry it.
+	self.badgeH = Clamp(g.subSize + 1, 10, chipH)
+	self.sealOK = showIcon and g.sealD / 2 >= SEAL_BADGE_FROM and self.badgeH <= g.sealD / 2 * 0.75
+	self.countSlipH = chipH
 	self.countBox:ClearAllPoints()
 	self.keyBox:ClearAllPoints()
 	self.countMode, self.keyUp = nil, false
@@ -1093,12 +1101,14 @@ function Letter:PlaceLines()
 	local name, sub, fit, g = kit.name, kit.sub, kit.fit, self.g
 	local W = self.W
 	local base = W - g.textRight
-	-- The count's slip keeps the name line's end, the key's the reason line's;
-	-- with no second line they share the name line.
+	-- The key's slip keeps the reason line's end, the count's slip beside it
+	-- (or, where the reason has no room for both, the name line's end); with no
+	-- second line they share the name line.
 	local nameRoom, subRoom = 0, 0
 	if self.two then
-		if self.countMode then nameRoom = (self.countW or 0) + 4 end
+		if self.countMode == "chip" then nameRoom = (self.countW or 0) + 4 end
 		if self.keyUp then subRoom = (self.keyW or 0) + 4 end
+		if self.countMode == "sub" then subRoom = subRoom + (self.countW or 0) + 4 end
 	else
 		if self.keyUp then nameRoom = (self.keyW or 0) + 4 end
 		if self.countMode then nameRoom = nameRoom + (self.countW or 0) + 4 end
@@ -1130,6 +1140,16 @@ function Letter:NameFits(room)
 	return width * least / size <= self.W - self.textX - room + 0.5
 end
 
+-- Whether the reason, even at its smallest, fits beside `room` at the right.
+function Letter:SubFits(room)
+	local kit = self.kit
+	local sub, fit = kit.sub, kit.fit
+	local width, size, base = self.subWidth, fit.size[sub], fit.base[sub]
+	if not (width and size and base and size > 0) then return true end
+	local least = math.max(7, math.floor(base * 0.8 + 0.5))
+	return width * least / size <= self.W - self.textX - room + 0.5
+end
+
 -- The key bound to the prompt, as the game spells it short, or nil. Only where
 -- a press casts something: the button armed (a fight's frozen macro too,
 -- unlocked or not), never over a held panel with nothing armed, nor over an
@@ -1146,10 +1166,13 @@ function Letter:KeyLabel()
 	return key
 end
 
--- Run on every repaint. The count on a slip at the name line's end, the key on
--- a slip at the reason line's end (or side by side on the name line when there
--- is no reason line); a slip steps aside for a paint in which the name would
--- otherwise be cut.
+-- Run on every repaint. The key on a slip at the reason line's end, and the
+-- count on a smaller slip pinned on the seal's lower edge, so the name keeps
+-- its whole line and the reason nearly all of its. With no seal to pin it on
+-- (the icon off, or a seal too small), the count's slip stands beside the key's
+-- on the reason line, or, where the reason has no room for both, at the name
+-- line's end (and with no reason line, both share the name line). A slip steps
+-- aside for a paint in which the line it stands on would otherwise be cut.
 function Letter:Chip(on)
 	local kit = self.kit
 	local g = self.g
@@ -1181,8 +1204,15 @@ function Letter:Chip(on)
 	local mode
 	if on then
 		local need = base + (self.countW or h * 1.7 + 8) + 4
-		if two then
-			if self:NameFits(need) then mode = "chip" end
+		if self.sealOK then
+			mode = "seal"
+		elseif two then
+			self.subWidth = kit.fit.drawn[kit.sub] or kit.TextWidth(kit.sub)
+			if self:SubFits(need + (keyUp and self.keyW + 4 or 0)) then
+				mode = "sub"
+			elseif self:NameFits(need) then
+				mode = "chip"
+			end
 		elseif keyUp then
 			if self:NameFits(need + self.keyW + 4) then mode = "pair" end
 		elseif self:NameFits(need) then
@@ -1196,7 +1226,7 @@ function Letter:Chip(on)
 		text = count:GetText()
 		if text ~= self.countText then
 			self.countText = text
-			self.countW = math.ceil(math.max(h * 1.7, (kit.TextWidth(count) or self.sub) + 9))
+			self.countW = math.ceil(math.max((mode == "seal" and self.badgeH or h) * 1.7, (kit.TextWidth(count) or self.sub) + 9))
 			kit.fit.right = nil
 		end
 	end
@@ -1214,13 +1244,29 @@ function Letter:Chip(on)
 		self.keyBox:SetPoint("RIGHT", art, "RIGHT", -edge, subDy)
 		self.keyBox:SetSize(self.keyW, h)
 	end
-	if mode == "pair" then
+	if mode == "seal" then
+		-- Pinned on the wax's lower right, its middle on the edge, as far round
+		-- as keeps it inside the prompt and short of the text.
+		local bh, bw = self.badgeH, self.countW
+		local rw = g.sealD / 2
+		local dx = math.min(0.6 * rw, g.sealRight - g.cx + 3 - bw / 2)
+		local dy = math.min(math.sqrt(math.max(0, rw * rw - dx * dx)), self.H / 2 - 1 - bh / 2)
+		self.countBox:SetPoint("CENTER", art, "TOPLEFT", g.cx + dx, -(g.cy + dy))
+	elseif mode == "pair" or (mode == "sub" and keyUp) then
 		self.countBox:SetPoint("RIGHT", self.keyBox, "LEFT", -4, 0)
+	elseif mode == "sub" then
+		self.countBox:SetPoint("RIGHT", art, "RIGHT", -edge, subDy)
 	elseif mode then
 		self.countBox:SetPoint("RIGHT", art, "RIGHT", -edge, nameDy)
 	end
 	if mode then
-		self.countBox:SetSize(self.countW, h)
+		local ch = mode == "seal" and self.badgeH or h
+		self.countBox:SetSize(self.countW, ch)
+		if ch ~= self.countSlipH then
+			self.countSlipH = ch
+			for _, t in ipairs(self.countSlip) do t:ClearAllPoints() end
+			self:PlaceSlip(self.countSlip, self.countBox, ch)
+		end
 		kit.count:ClearAllPoints()
 		kit.count:SetPoint("CENTER", self.countBox, "CENTER", 0, 0)
 	end

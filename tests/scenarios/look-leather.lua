@@ -80,9 +80,9 @@ local function tick(ns)
 	FT.settle()
 end
 
--- The prompt up in Leather with Anna owed on top. Returns the regions, the
--- settings and the look.
-local function upIn(ns, scenario, edit)
+-- The prompt up in Leather with Anna owed on top (or `who`). Returns the
+-- regions, the settings and the look.
+local function upIn(ns, scenario, edit, who)
 	freshPrompt(ns, scenario)
 	local p = ns.db.profile.prompt
 	p.style = "leather"
@@ -94,7 +94,7 @@ local function upIn(ns, scenario, edit)
 	p.showSub = true
 	if edit then edit(p) end
 	ns.Prompt:ApplyStyle()
-	owe(ns, "Anna Aim")
+	owe(ns, who or "Anna Aim")
 	tick(ns)
 	local r = ns.Prompt:Regions()
 	return r, p, r.look
@@ -562,12 +562,13 @@ for _, locale in ipairs({ "enUS", "deDE" }) do
 	end)
 end
 
--- With a key bound and a count the patches sit left of the eyelet, the name
--- keeps its room, and nothing is over the eyelet.
+-- With a key bound and a count the patches sit left of the eyelet, on the
+-- reason's line side by side, the name keeps its whole room, the reason keeps
+-- clear of them, and nothing is over the eyelet.
 withTree("look-leather: the bound key and the count sit left of the eyelet and the name keeps its room", CROWD, function(ns, scenario)
 	for _, icon in ipairs({ true, false }) do
 		for _, case in ipairs({ { 220, 44, 13 }, { 300, 56, 17 } }) do
-			local r, _, look = upIn(ns, scenario, function(pp)
+			local r, p, look = upIn(ns, scenario, function(pp)
 				pp.width, pp.height, pp.fontSize, pp.showIcon = case[1], case[2], case[3], icon
 			end)
 			SetBinding("SHIFT-F", COMMAND)
@@ -575,36 +576,136 @@ withTree("look-leather: the bound key and the count sit left of the eyelet and t
 			if not isLeather(look) then fail(scenario, "SKIPPED -- Leather is not the look in use") return end
 			local panel, eye = rectOf(r.art), rectOf(look.eyelet)
 			if not look.keyUp then fail(scenario, "a bound key shows no patch") return end
-			local key, name = rectOf(look.keyBox), rectOf(r.name)
+			local key, name, sub = rectOf(look.keyBox), rectOf(r.name), rectOf(r.sub)
 			if not (key and eye and panel and inside(key, panel)) then fail(scenario, "the key's patch leaves the prompt") end
 			if key and eye and key[3] > eye[1] + 0.01 then fail(scenario, "the key's patch is over the eyelet") end
-			if name and key and name[3] > key[1] + 0.01 then fail(scenario, "the name runs under the key's patch") end
+			if look.keyLane ~= "sub" then fail(scenario, "the key's patch is not on the reason's line: " .. tostring(look.keyLane)) end
+			if name and key and across(name, key) then fail(scenario, "the name runs under the key's patch") end
+			if sub and key and (sub[3] > key[1] + 0.01 or math.abs((sub[2] + sub[4]) / 2 - (key[2] + key[4]) / 2) > 3) then
+				fail(scenario, "the reason is not beside the key's patch on its own line")
+			end
+			-- The name's room is the whole line's, up to the eyelet.
+			if name and eye and look.inset > look.baseInset + 0.01 then fail(scenario, "the name gives room to a patch that is not on its line") end
 			local keyText = rectOf(look.keyText)
 			if keyText and key and not inside(keyText, key) then fail(scenario, "the key's text leaves its patch") end
 			local count = rectOf(look.chipBox)
-			if look.countMode ~= "pair" then fail(scenario, "with a key bound and others waiting the count is " .. tostring(look.countMode)) end
-			if count and key and across(count, key) then fail(scenario, "the count's patch is over the key's") end
+			if look.countMode ~= "sub" then fail(scenario, "with a key bound and others waiting the count is " .. tostring(look.countMode)) end
+			if count and key and (across(count, key) or count[3] > key[1] + 0.01) then fail(scenario, "the count's patch is over the key's, or right of it") end
 			if count and eye and count[3] > eye[1] + 0.01 then fail(scenario, "the count's patch is over the eyelet") end
-			if count and name and name[3] > count[1] + 0.01 then fail(scenario, "the name runs under the count's patch") end
+			if count and name and across(name, count) then fail(scenario, "the name runs under the count's patch") end
+			if count and sub and sub[3] > count[1] + 0.01 then fail(scenario, "the reason runs under the count's patch") end
 			if count and not inside(count, panel) then fail(scenario, "the count's patch leaves the prompt") end
+			-- The key alone: the reason still keeps clear of its patch.
+			p.showCount = false
+			ns.Prompt:ApplyStyle()
+			tick(ns)
+			key, sub = rectOf(look.keyBox), rectOf(r.sub)
+			if look.countMode then fail(scenario, "a count's patch with the count off") end
+			if not look.keyUp then fail(scenario, "the key's patch gone with the count off") end
+			if sub and key and sub[3] > key[1] + 0.01 then fail(scenario, "with no count the reason runs under the key's patch") end
+			p.showCount = true
+			ns.Prompt:ApplyStyle()
+			tick(ns)
 			SetBinding("SHIFT-F")
 			tick(ns)
 			if look.keyUp then fail(scenario, "the key's patch stays after the binding goes") end
-			if look.countMode ~= "chip" then fail(scenario, "without a key the count is " .. tostring(look.countMode)) end
+			if look.countMode ~= "sub" then fail(scenario, "without a key the count is " .. tostring(look.countMode)) end
 			count = rectOf(look.chipBox)
 			if count and eye and count[3] > eye[1] + 0.01 then fail(scenario, "the lone count's patch is over the eyelet") end
-			-- A count of three digits is a wider patch, and the name gives it room.
+			-- A count of three digits is a wider patch, and the reason gives it room.
 			r.count:SetText("12345")
 			ns.Prompt.lib.ShowChip(true)
 			FT.settle()
-			local wide, words, line = rectOf(look.chipBox), rectOf(r.count), rectOf(r.name)
+			local wide, words, line, why = rectOf(look.chipBox), rectOf(r.count), rectOf(r.name), rectOf(r.sub)
 			if not look.countMode then fail(scenario, "a count of three digits shows no patch") end
 			if wide and words and not inside(words, wide) then fail(scenario, "the count's text leaves its patch") end
-			if wide and line and line[3] > wide[1] + 0.01 then fail(scenario, "the name runs under a count of three digits") end
+			if wide and line and across(line, wide) then fail(scenario, "the name runs under a count of three digits") end
+			if wide and why and why[3] > wide[1] + 0.01 then fail(scenario, "the reason runs under a count of three digits") end
 			if wide and eye and wide[3] > eye[1] + 0.01 then fail(scenario, "a count of three digits is over the eyelet") end
 		end
 	end
 end)
+
+-- Where the reason has no room for the patches, they step to the name line's end,
+-- or aside, and nothing of either line is ever under a patch.
+withTree("look-leather: where the reason has no room the patches stand at the name line's end or aside", CROWD, function(ns, scenario)
+	local r, p, look = upIn(ns, scenario, function(pp)
+		pp.width = 220
+		pp.reasonOwed = "hat dich gerade gebufft und wartet auf deine Antwort"
+	end)
+	if not isLeather(look) then fail(scenario, "SKIPPED -- Leather is not the look in use") return end
+	SetBinding("SHIFT-F", COMMAND)
+	tick(ns)
+	local name, sub = rectOf(r.name), rectOf(r.sub)
+	local patches = { { "key", look.keyUp, look.keyBox }, { "count", look.countMode, look.chipBox } }
+	for _, item in ipairs(patches) do
+		local what, up, box = item[1], item[2], rectOf(item[3])
+		if up and box then
+			if name and across(name, box) then fail(scenario, "the name is under the " .. what .. "'s patch") end
+			if sub and across(sub, box) then fail(scenario, "the reason is under the " .. what .. "'s patch") end
+		end
+	end
+	if look.countMode == "chip" or look.countMode == "pair" then
+		local count = rectOf(look.chipBox)
+		if count and name and math.abs((count[2] + count[4]) / 2 - (name[2] + name[4]) / 2) > 4 then
+			fail(scenario, "the count's patch is not on the name line")
+		end
+	end
+end)
+
+-- An ordinary name is whole at the default size with the count and the key up:
+-- "Elowen Thistledown" (18 letters) in English and a German two-part name of the
+-- same length, on a 220 x 44 prompt at 13 pt with a 30 icon, +2 behind them and
+-- F bound. The patches stand on the reason's line, so the name has the line's
+-- room; measured the way a display serif is (0.58 of the size a letter, the
+-- width the stand-in for Morpheus draws), which the mock's half a size a letter
+-- flatters.
+for _, case in ipairs({ { "enUS", { "Elowen", "Thistledown" } }, { "deDE", { "Friedrich", "Eichwald" } } }) do
+	local locale, who = case[1], case[2]
+	local full = who[1] .. " " .. who[2]
+	local scenario = ("look-leather: %s with a count and a key is not cut at the default size, %s"):format(full, locale)
+	local names = { nameplate1 = who, nameplate2 = { "Brannoc", "Vale" }, nameplate3 = { "Corwin", "Ash" } }
+	withTree(scenario, names, function(ns)
+		local realMeasure = FT.measure
+		FT.measure = function(text, size)
+			local letters = select(2, text:gsub("[^\128-\191]", ""))
+			return letters * size * 0.58
+		end
+		local ok, err = pcall(function()
+			local r, p, look = upIn(ns, scenario, function(pp)
+				pp.width, pp.height, pp.fontSize, pp.iconSize = 220, 44, 13, 30
+				pp.showCount = true
+			end, full)
+			if not isLeather(look) then fail(scenario, "SKIPPED -- Leather is not the look in use") return end
+			SetBinding("F", COMMAND)
+			tick(ns)
+			if not tostring(r.name:GetText()):find(who[1], 1, true) then
+				fail(scenario, "the name on the prompt is not " .. full .. ": " .. tostring(r.name:GetText()))
+				return
+			end
+			if not look.countMode then fail(scenario, "the count has no patch: it stepped aside for the name") end
+			if not look.keyUp then fail(scenario, "the key has no patch: it stepped aside for the name") end
+			local room = rectOf(r.name)
+			local width = r.name:GetUnboundedStringWidth()
+			local size = select(2, r.name:GetFont())
+			local base = look.kit.fit.base[r.name]
+			if room and type(width) == "number" and width > room[3] - room[1] + 0.6 then
+				fail(scenario, ("the name is %.1f wide in a room of %.1f: it is cut"):format(width, room[3] - room[1]))
+			end
+			if type(size) == "number" and type(base) == "number" and size < base * 0.9 then
+				fail(scenario, ("the name is drawn at %s, shrunk from %s for the patches"):format(tostring(size), tostring(base)))
+			end
+			if tostring(r.name:GetText()):find("%.%.%.") then fail(scenario, "the name is cut with an ellipsis") end
+			local rs = rectOf(r.sub)
+			local sw = r.sub:GetUnboundedStringWidth()
+			if rs and type(sw) == "number" and sw > rs[3] - rs[1] + 0.6 then
+				fail(scenario, ("the reason is %.1f wide in a room of %.1f: it is cut"):format(sw, rs[3] - rs[1]))
+			end
+		end)
+		FT.measure = realMeasure
+		if not ok then error(err, 0) end
+	end, locale ~= "enUS" and function() Mock.locale = locale end or nil)
+end
 
 -- ------------------------------------------------------------------ 5
 -- The leather is opaque at rest: the world never shows through it, whatever

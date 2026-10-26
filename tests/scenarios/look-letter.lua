@@ -72,9 +72,9 @@ local function tick(ns)
 	FT.settle()
 end
 
--- The prompt up in the Letter with Anna owed on top. Returns the regions, the
--- settings and the look.
-local function upIn(ns, scenario, edit)
+-- The prompt up in the Letter with Anna owed on top (or `who`). Returns the
+-- regions, the settings and the look.
+local function upIn(ns, scenario, edit, who)
 	freshPrompt(ns, scenario)
 	local p = ns.db.profile.prompt
 	p.style = "letter"
@@ -86,7 +86,7 @@ local function upIn(ns, scenario, edit)
 	p.showSub = true
 	if edit then edit(p) end
 	ns.Prompt:ApplyStyle()
-	owe(ns, "Anna Aim")
+	owe(ns, who or "Anna Aim")
 	tick(ns)
 	local r = ns.Prompt:Regions()
 	return r, p, r.look
@@ -545,7 +545,25 @@ for _, locale in ipairs({ "enUS", "deDE" }) do
 								if sub and (across(rule, name) and (rule[4] - rule[2]) > 4) then fail(scenario, tag .. ": the stroke of ink is over the name") end
 							end
 						end
-						if look.countMode then
+						if look.countMode == "seal" then
+							-- Pinned on the seal's edge: in the prompt, its middle on the wax's
+							-- edge, clear of both lines.
+							local chip = rectOf(look.countBox)
+							if not icon then fail(scenario, tag .. ": a slip pinned on a seal that is not there") end
+							if chip and not inside(rel(chip, panel), { 0, 0, panel[3] - panel[1], panel[4] - panel[2] }) then
+								fail(scenario, tag .. ": the count's slip leaves the prompt")
+							end
+							if chip then
+								local c = rel(chip, panel)
+								local dist = math.sqrt(((c[1] + c[3]) / 2 - g.cx) ^ 2 + ((c[2] + c[4]) / 2 - g.cy) ^ 2)
+								if dist > g.sealD / 2 + 1 or dist < g.sealD / 2 * 0.6 then
+									fail(scenario, ("%s: the count's slip is %.1f from the seal's middle, not on the wax's edge (%.1f)"):format(
+										tag, dist, g.sealD / 2))
+								end
+								if across(chip, name) then fail(scenario, tag .. ": the count's slip is over the name") end
+								if sub and across(chip, sub) then fail(scenario, tag .. ": the count's slip is over the reason") end
+							end
+						elseif look.countMode then
 							local chip = rectOf(look.countBox)
 							if chip and not inside(rel(chip, panel), { g.textX, look.paperTop, g.textRight, look.paperBottom }) then
 								fail(scenario, tag .. ": the count's slip leaves the paper's text")
@@ -566,38 +584,52 @@ for _, locale in ipairs({ "enUS", "deDE" }) do
 end
 
 -- ------------------------------------------------------------------ 5
--- The bound key and the count are slips of paper at the lines' ends: the count on
--- the name line, the key on the reason line; with no reason line, side by side.
+-- The bound key is a slip of paper at the reason line's end and the count a
+-- smaller one pinned on the seal's edge, so the name has its whole line. With no
+-- seal to pin it on (the icon off) the count's slip stands beside the key's on
+-- the reason line; with no reason line, both stand side by side on the name line.
 withTree("look-letter: the bound key and the count are slips beside the lines", CROWD, function(ns, scenario)
-	for _, two in ipairs({ true, false }) do
-		local r, p, look = upIn(ns, scenario, function(pp) pp.width, pp.showSub = 260, two end)
+	for _, case in ipairs({ { two = true, icon = true }, { two = false, icon = true },
+		{ two = true, icon = false }, { two = false, icon = false } }) do
+		local two, icon = case.two, case.icon
+		local r, p, look = upIn(ns, scenario, function(pp) pp.width, pp.showSub, pp.showIcon = 260, two, icon end)
 		SetBinding("SHIFT-F", COMMAND)
 		tick(ns)
 		if not isLetter(look) then fail(scenario, "SKIPPED -- Letter is not the look in use") return end
 		local panel = rectOf(r.art)
 		local g = look.g
-		local tag = two and "two lines" or "one line"
+		local tag = (two and "two lines" or "one line") .. (icon and ", a seal" or ", no seal")
 		if not look.keyUp then fail(scenario, tag .. ": a bound key shows no slip") return end
 		if not look.countMode then fail(scenario, tag .. ": the count shows no slip") return end
 		local key, count = rectOf(look.keyBox), rectOf(look.countBox)
 		local name = rectOf(r.name)
 		local paper = { g.textX, look.paperTop, g.textRight, look.paperBottom }
 		if not (key and inside(rel(key, panel), paper)) then fail(scenario, tag .. ": the key's slip leaves the paper") end
-		if not (count and inside(rel(count, panel), paper)) then fail(scenario, tag .. ": the count's slip leaves the paper") end
+		if icon then
+			if look.countMode ~= "seal" then fail(scenario, tag .. ": the count is not pinned on the seal: " .. tostring(look.countMode)) end
+			local c = count and rel(count, panel)
+			if not (c and c[1] >= 0 and c[3] <= g.textX) then fail(scenario, tag .. ": the count's slip is not on the seal") end
+		elseif not (count and inside(rel(count, panel), paper)) then
+			fail(scenario, tag .. ": the count's slip leaves the paper")
+		end
 		if name and key and across(name, key) then fail(scenario, tag .. ": the key's slip is over the name") end
 		if name and count and across(name, count) then fail(scenario, tag .. ": the count's slip is over the name") end
 		if count and key and across(count, key) then fail(scenario, tag .. ": the two slips overlap") end
+		-- Each on its own line: the key's middle is the reason's.
+		local function mid(b) return (b[2] + b[4]) / 2 end
 		if two then
 			local sub = rectOf(r.sub)
-			if look.countMode ~= "chip" then fail(scenario, "with two lines the count is not on the name line") end
-			-- Each on its own line: the count's middle is the name's, the key's the reason's.
-			local function mid(b) return (b[2] + b[4]) / 2 end
-			if name and count and math.abs(mid(count) - mid(name)) > 3 then fail(scenario, "the count's slip is not on the name line") end
-			if sub and key and math.abs(mid(key) - mid(sub)) > 3 then fail(scenario, "the key's slip is not on the reason line") end
-			if sub and key and across(sub, key) then fail(scenario, "the key's slip is over the reason") end
-		else
-			if look.countMode ~= "pair" then fail(scenario, "with one line the count and the key are not a pair") end
-			if count and key and not (count[3] <= key[1] + 0.01) then fail(scenario, "the count is not left of the key") end
+			if sub and key and math.abs(mid(key) - mid(sub)) > 3 then fail(scenario, tag .. ": the key's slip is not on the reason line") end
+			if sub and key and across(sub, key) then fail(scenario, tag .. ": the key's slip is over the reason") end
+			if sub and count and across(sub, count) then fail(scenario, tag .. ": the count's slip is over the reason") end
+			if not icon then
+				if look.countMode ~= "sub" then fail(scenario, tag .. ": the count is not beside the key on the reason line: " .. tostring(look.countMode)) end
+				if sub and count and math.abs(mid(count) - mid(sub)) > 3 then fail(scenario, tag .. ": the count's slip is not on the reason line") end
+				if count and key and not (count[3] <= key[1] + 0.01) then fail(scenario, tag .. ": the count is not left of the key") end
+			end
+		elseif not icon then
+			if look.countMode ~= "pair" then fail(scenario, tag .. ": the count and the key are not a pair") end
+			if count and key and not (count[3] <= key[1] + 0.01) then fail(scenario, tag .. ": the count is not left of the key") end
 		end
 		-- Both slips are paper, with writing in the ink.
 		for _, slip in ipairs({ look.countSlip, look.keySlip }) do
@@ -610,6 +642,97 @@ withTree("look-letter: the bound key and the count are slips beside the lines", 
 		if look.keyUp then fail(scenario, tag .. ": the key's slip stays with the key unbound") end
 	end
 end)
+
+-- Where the reason has no room for both slips, or there is no seal, the count's
+-- slip stands at the name line's end, and the name keeps clear of it.
+withTree("look-letter: where the reason has no room the count's slip stands at the name line's end", CROWD, function(ns, scenario)
+	local r, p, look = upIn(ns, scenario, function(pp)
+		pp.width, pp.showIcon = 220, false
+		pp.reasonOwed = "hat dich gerade gebufft und wartet auf deine Antwort"
+	end)
+	if not isLetter(look) then fail(scenario, "SKIPPED -- Letter is not the look in use") return end
+	SetBinding("SHIFT-F", COMMAND)
+	tick(ns)
+	local name, sub = rectOf(r.name), rectOf(r.sub)
+	if look.countMode == "chip" then
+		local count = rectOf(look.countBox)
+		if not count then fail(scenario, "the count's slip has no place") return end
+		if across(name, count) then fail(scenario, "the count's slip is over the name") end
+		if sub and across(sub, count) then fail(scenario, "the count's slip is over the reason") end
+		if name and math.abs((count[2] + count[4]) / 2 - (name[2] + name[4]) / 2) > 3 then
+			fail(scenario, "the count's slip is not on the name line")
+		end
+		if name[3] > count[1] + 0.01 then fail(scenario, "the name runs under the count's slip") end
+	elseif look.countMode == "sub" then
+		local count = rectOf(look.countBox)
+		if sub and count and sub[3] > count[1] + 0.01 then fail(scenario, "the reason runs under the count's slip") end
+	elseif look.countMode then
+		fail(scenario, "the count's slip is in an unexpected place: " .. tostring(look.countMode))
+	end
+	-- Wherever it stood, nothing of either line is under any slip.
+	for _, box in ipairs({ look.countBox, look.keyBox }) do
+		local b = rectOf(box)
+		if b and ((look.countMode and box == look.countBox) or (look.keyUp and box == look.keyBox)) then
+			if name and across(name, b) then fail(scenario, "the name is under a slip") end
+			if sub and across(sub, b) then fail(scenario, "the reason is under a slip") end
+		end
+	end
+end)
+
+-- An ordinary name is whole at the default size with the count and the key up:
+-- "Elowen Thistledown" (18 letters) in English and a German two-part name of the
+-- same length, on a 220 x 44 prompt at 13 pt with a 30 icon, +2 behind them and
+-- F bound. The count's slip is pinned on the seal and the key's stands on the
+-- reason line, so the name has the line's room; measured the way a display serif
+-- is (0.58 of the size a letter, the width the stand-in for Morpheus draws),
+-- which the mock's half a size a letter flatters.
+for _, case in ipairs({ { "enUS", { "Elowen", "Thistledown" } }, { "deDE", { "Friedrich", "Eichwald" } } }) do
+	local locale, who = case[1], case[2]
+	local full = who[1] .. " " .. who[2]
+	local scenario = ("look-letter: %s with a count and a key is not cut at the default size, %s"):format(full, locale)
+	local names = { nameplate1 = who, nameplate2 = { "Brannoc", "Vale" }, nameplate3 = { "Corwin", "Ash" } }
+	withTree(scenario, names, function(ns)
+		local realMeasure = FT.measure
+		FT.measure = function(text, size)
+			local letters = select(2, text:gsub("[^\128-\191]", ""))
+			return letters * size * 0.58
+		end
+		local ok, err = pcall(function()
+			local r, p, look = upIn(ns, scenario, function(pp)
+				pp.width, pp.height, pp.fontSize, pp.iconSize = 220, 44, 13, 30
+				pp.showCount = true
+			end, full)
+			if not isLetter(look) then fail(scenario, "SKIPPED -- Letter is not the look in use") return end
+			SetBinding("F", COMMAND)
+			tick(ns)
+			if not tostring(r.name:GetText()):find(who[1], 1, true) then
+				fail(scenario, "the name on the prompt is not " .. full .. ": " .. tostring(r.name:GetText()))
+				return
+			end
+			if not look.countMode then fail(scenario, "the count has no slip: it stepped aside for the name") end
+			if not tostring(r.count:GetText()):find("^%+2") then fail(scenario, "the count does not say +2: " .. tostring(r.count:GetText())) end
+			if not look.keyUp then fail(scenario, "the key has no slip: it stepped aside for the name") end
+			local room = rectOf(r.name)
+			local width = r.name:GetUnboundedStringWidth()
+			local size = select(2, r.name:GetFont())
+			local base = look.kit.fit.base[r.name]
+			if room and type(width) == "number" and width > room[3] - room[1] + 0.6 then
+				fail(scenario, ("the name is %.1f wide in a room of %.1f: it is cut"):format(width, room[3] - room[1]))
+			end
+			if type(size) == "number" and type(base) == "number" and size < base * 0.9 then
+				fail(scenario, ("the name is drawn at %s, shrunk from %s for the slips"):format(tostring(size), tostring(base)))
+			end
+			if tostring(r.name:GetText()):find("%.%.%.") then fail(scenario, "the name is cut with an ellipsis") end
+			local rs = rectOf(r.sub)
+			local sw = r.sub:GetUnboundedStringWidth()
+			if rs and type(sw) == "number" and sw > rs[3] - rs[1] + 0.6 then
+				fail(scenario, ("the reason is %.1f wide in a room of %.1f: it is cut"):format(sw, rs[3] - rs[1]))
+			end
+		end)
+		FT.measure = realMeasure
+		if not ok then error(err, 0) end
+	end, locale ~= "enUS" and function() Mock.locale = locale end or nil)
+end
 
 -- ------------------------------------------------------------------ 6
 -- The list: more of the letter. The paper and the rods are lengthened over the

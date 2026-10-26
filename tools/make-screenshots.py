@@ -689,8 +689,12 @@ def prompt_states(addon_dir, locale="", spell_name=""):
             locale)
     # The width the addon is told a line is, as render_prompt sets it: the
     # face this picture draws with, so a line it shrank to fit is drawn fitting.
+    # In the face the line is set in, as render_prompt measures: Ribbon, Letter
+    # and Leather set their names in a display serif much wider than the
+    # regular face, and a width taken in the wrong one fits a name the picture
+    # then draws cut.
     lua.globals().FrameTree.measure = lambda text, size: (
-        rp.get_font(float(size) * 4).getlength(rp.plain_text(text)) / 4)
+        rp.get_font(float(size) * 4, face=lua.globals().FrameTree.fontPath).getlength(rp.plain_text(text)) / 4)
     lua.compile(PROMPT_STATES)(R, spell_name)
     return lua, R
 

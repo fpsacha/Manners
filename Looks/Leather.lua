@@ -21,7 +21,8 @@
 -- The list is a column of smaller tags hung on the same ring: each a little
 -- leather tag of its own with a brass eyelet exactly under the eyelet above,
 -- an enamel dot for the reason and the name beside it. The count and the
--- bound key are small leather patches left of the eyelet.
+-- bound key are small leather patches left of the eyelet, on the reason's line,
+-- so the name keeps the whole of its own.
 --
 -- The motion is that of a hanging object (Calm is fades only):
 --   * a favour arriving: the tag swings in on its eyelet -- it drops, rebounds
@@ -765,18 +766,23 @@ function Leather:Apply(p, above)
 		end
 	end
 
-	-- The chips: small leather patches left of the eyelet, on the name's line.
+	-- The chips: small leather patches left of the eyelet, on the reason's line.
 	local chipH = sub + 6
 	self.chipH = chipH
 	local chipTop = self.nameC - chipH / 2
 	self.chipTop = Clamp(chipTop, edge + 1, math.max(edge + 1, H - edge - 1 - chipH))
+	-- ...or on the reason's line, where the name keeps its whole room: a
+	-- little lower than the name's, so it leaves the descenders above it alone.
+	self.subChipH = Clamp(sub + 4, 9, chipH)
+	self.subChipTop = twoLine and Clamp(subC - self.subChipH / 2, edge + 1,
+		math.max(edge + 1, H - edge - 1 - self.subChipH)) or nil
 	self.chipRight = math.ceil(self.ringInset)
 	self.chipW2 = math.ceil(chipH * 1.5)
 	self.keyBox:ClearAllPoints()
 	self.keyBox:SetPoint("TOPRIGHT", art, "TOPRIGHT", -self.chipRight, -self.chipTop)
 	self.keyBox:SetSize(self.chipW2, chipH)
 	PlaceTagIn(self.keyChip, self.keyBox, self.chipW2, chipH)
-	self.countMode, self.keyUp = nil, false
+	self.countMode, self.keyLane, self.keyUp = nil, nil, false
 	-- Measured again in the new font and size.
 	self.keyLabel, self.countText = nil, nil
 
@@ -952,7 +958,7 @@ function Leather:Hide()
 	kit.textLayer:SetAlpha(1)
 	for _, fs in ipairs({ kit.name, kit.count, self.keyText }) do fs:SetAlpha(1) end
 	self.combat, self.hovered, self.outcomeOn = nil, nil, nil
-	self.countMode, self.keyUp = nil, false
+	self.countMode, self.keyLane, self.keyUp = nil, nil, false
 end
 
 ---------------------------------------------------------------------------
@@ -962,13 +968,24 @@ end
 function Leather:PlaceLines(right)
 	local kit = self.kit
 	local name, sub, fit = kit.name, kit.sub, kit.fit
+	-- The name line keeps what stands on it: a count's patch, a key's, or the
+	-- pair. The reason line keeps clear of the same (a patch is as tall as the
+	-- line) and of what stands on its own line: the key's patch, with the
+	-- count's beside it.
 	local inset = math.max(right, self.baseInset)
-	if self.keyUp then inset = math.max(inset, self.keyRoom or 0) end
+	if self.keyLane == "name" then inset = math.max(inset, self.keyRoom or 0) end
 	if self.countMode == "pair" then inset = math.max(inset, self:PairRoom()) end
 	-- The two points never cross: the name keeps 20 units, the room at the
 	-- right gives way.
-	inset = math.min(inset, math.max(0, self.W - self.textX - 20))
-	self.inset = inset
+	local least = math.max(0, self.W - self.textX - 20)
+	inset = math.min(inset, least)
+	local subInset = inset
+	if self.keyLane == "sub" then subInset = math.max(subInset, self.keyRoom or 0) end
+	if self.countMode == "sub" then
+		subInset = math.max(subInset, self.keyLane == "sub" and self:PairRoom() or self:CountRoom())
+	end
+	subInset = math.min(subInset, least)
+	self.inset, self.subInset = inset, subInset
 	self.lineRoom = math.max(20, self.W - self.textX - inset)
 	fit.room[name] = self.lineRoom
 	if fit.twoLine then
@@ -978,9 +995,9 @@ function Leather:PlaceLines(right)
 		name:SetPoint("LEFT", self.textX, self.oneY)
 		name:SetPoint("RIGHT", -inset, self.oneY)
 	end
-	fit.room[sub] = self.lineRoom
+	fit.room[sub] = math.max(20, self.W - self.textX - subInset)
 	sub:SetPoint("LEFT", self.textX, self.subY)
-	sub:SetPoint("RIGHT", -inset, self.subY)
+	sub:SetPoint("RIGHT", -subInset, self.subY)
 end
 
 -- Nothing hugs the lines' text here: the reason is plain text on the leather.
@@ -992,6 +1009,17 @@ function Leather:NameFits(room)
 	local kit = self.kit
 	local name, fit = kit.name, kit.fit
 	local width, size, base = self.nameWidth, fit.size[name], fit.base[name]
+	if not (width and size and base and size > 0) then return true end
+	local least = math.max(7, math.floor(base * 0.8 + 0.5))
+	return width * least / size <= self.W - self.textX - math.max(room, self.baseInset) + 0.5
+end
+
+-- Whether the reason, even at its smallest, fits beside `room` at the right.
+-- Its width is taken once a paint, by Chip, while a patch asks.
+function Leather:SubFits(room)
+	local kit = self.kit
+	local sub, fit = kit.sub, kit.fit
+	local width, size, base = self.subWidth, fit.size[sub], fit.base[sub]
 	if not (width and size and base and size > 0) then return true end
 	local least = math.max(7, math.floor(base * 0.8 + 0.5))
 	return width * least / size <= self.W - self.textX - math.max(room, self.baseInset) + 0.5
@@ -1019,19 +1047,28 @@ function Leather:PairRoom()
 	return math.ceil((self.keyRoom or 0) + (self.countW or self.chipW2) + 3)
 end
 
--- Run on every repaint. The count's patch left of the eyelet, or, with the
--- key's patch there, a patch beside the key's; the key's patch when a key is
--- bound. Either steps aside for a paint in which the name would otherwise be
--- cut.
+-- The room the lines leave at the right for the count's patch alone.
+function Leather:CountRoom()
+	return math.ceil(self.chipRight + (self.countW or self.chipW2) + 4)
+end
+
+-- Run on every repaint. The patches sit left of the eyelet, on the reason's
+-- line, so the name keeps its whole room: the key's patch where the reason
+-- leaves room for it (else at the name line's end, where the name does, else
+-- not at all), and the count's patch beside it, or, where the reason has no
+-- room for both, at the name line's end. A patch steps aside for a paint in
+-- which the line it stands on would otherwise be cut.
 function Leather:Chip(on)
 	local kit = self.kit
+	local fit = kit.fit
 	-- The width FitLine took of the name just now, measured here only where it
-	-- could not; the chips' own words only when they change (Looks.lua: no
+	-- could not; the patches' own words only when they change (Looks.lua: no
 	-- pcall on a per-repaint path).
-	self.nameWidth = kit.fit.drawn[kit.name] or kit.TextWidth(kit.name)
+	self.nameWidth = fit.drawn[kit.name] or kit.TextWidth(kit.name)
+	local two = fit.twoLine and true or false
 
 	local key = self:KeyLabel()
-	local keyUp = false
+	local lane
 	if key then
 		if key ~= self.keyLabel then
 			self.keyLabel = key
@@ -1040,25 +1077,35 @@ function Leather:Chip(on)
 			self.keyW, self.keyRoom = w, math.ceil(self.chipRight + w + 3)
 			-- A key bound anew is a patch of a new width: Prompt places the
 			-- lines again, beside it.
-			kit.fit.right = nil
+			fit.right = nil
 		end
-		keyUp = self:NameFits(self.keyRoom)
+		if two then
+			self.subWidth = fit.drawn[kit.sub] or kit.TextWidth(kit.sub)
+			if self:SubFits(self.keyRoom) then lane = "sub" end
+		end
+		if not lane and self:NameFits(self.keyRoom) then lane = "name" end
 	end
-	if keyUp ~= self.keyUp then
-		self.keyUp = keyUp
+	if lane ~= self.keyLane then
+		self.keyLane, self.keyUp = lane, lane ~= nil
 		-- Prompt places the lines again, and PlaceLines keeps the key's room.
-		kit.fit.right = nil
+		fit.right = nil
+		if lane then
+			self.keyBox:ClearAllPoints()
+			self.keyBox:SetPoint("TOPRIGHT", kit.art, "TOPRIGHT", -self.chipRight,
+				-(lane == "sub" and self.subChipTop or self.chipTop))
+			self.keyBoxW = nil
+		end
 	end
-	if keyUp then
-		local w = math.floor(self.keyW + 0.5)
-		self.keyBox:SetWidth(w)
+	if lane then
+		local w, h = math.floor(self.keyW + 0.5), lane == "sub" and self.subChipH or self.chipH
+		self.keyBox:SetSize(w, h)
 		if w ~= self.keyBoxW then
 			self.keyBoxW = w
-			PlaceTagIn(self.keyChip, self.keyBox, w, self.chipH)
+			PlaceTagIn(self.keyChip, self.keyBox, w, h)
 		end
 	end
-	Each(self.keyChip, "SetShown", keyUp)
-	self.keyText:SetShown(keyUp)
+	Each(self.keyChip, "SetShown", lane ~= nil)
+	self.keyText:SetShown(lane ~= nil)
 
 	-- The count's patch is as wide as its words need: the room the lines keep
 	-- for it is too, so the name never runs under a count of three digits.
@@ -1067,31 +1114,41 @@ function Leather:Chip(on)
 		if text ~= self.countText then
 			self.countText = text
 			self.countW = math.max(self.chipW2, (kit.TextWidth(kit.count) or self.sub) + 10)
-			local room = math.ceil(self.chipRight + self.countW + 4)
-			if kit.fit.chipRoom ~= room then
-				kit.fit.chipRoom = room
-				kit.fit.right = nil
+			local room = self:CountRoom()
+			if fit.chipRoom ~= room then
+				fit.chipRoom = room
+				fit.right = nil
 			end
 		end
 	end
 	local mode
 	if on then
-		if keyUp then
+		if two then
+			self.subWidth = fit.drawn[kit.sub] or kit.TextWidth(kit.sub)
+			if self:SubFits(lane == "sub" and self:PairRoom() or self:CountRoom()) then
+				mode = "sub"
+			elseif lane == "name" then
+				if self:NameFits(self:PairRoom()) then mode = "pair" end
+			elseif self:NameFits(fit.chipRoom or 0) then
+				mode = "chip"
+			end
+		elseif lane then
 			if self:NameFits(self:PairRoom()) then mode = "pair" end
-		elseif self:NameFits(kit.fit.chipRoom or 0) then
+		elseif self:NameFits(fit.chipRoom or 0) then
 			mode = "chip"
 		end
 	end
 	if mode then
 		local count = kit.count
-		local h = self.chipH
+		local h = mode == "sub" and self.subChipH or self.chipH
 		local w = math.floor(self.countW + 0.5)
-		if mode ~= self.countMode then
+		if mode ~= self.countMode or lane ~= self.countLane then
 			self.chipBox:ClearAllPoints()
-			if mode == "pair" then
+			if mode == "pair" or (mode == "sub" and lane == "sub") then
 				self.chipBox:SetPoint("RIGHT", self.keyBox, "LEFT", -3, 0)
 			else
-				self.chipBox:SetPoint("TOPRIGHT", kit.art, "TOPRIGHT", -self.chipRight, -self.chipTop)
+				self.chipBox:SetPoint("TOPRIGHT", kit.art, "TOPRIGHT", -self.chipRight,
+					-(mode == "sub" and self.subChipTop or self.chipTop))
 			end
 			count:ClearAllPoints()
 			count:SetPoint("CENTER", self.chipBox, "CENTER", 0, 0)
@@ -1102,11 +1159,12 @@ function Leather:Chip(on)
 			PlaceTagIn(self.chip, self.chipBox, w, h)
 		end
 	end
-	self.countMode = mode
+	if mode ~= self.countMode then fit.right = nil end
+	self.countMode, self.countLane = mode, lane
 	Each(self.chip, "SetShown", mode ~= nil)
 	kit.count:SetShown(mode ~= nil)
-	-- Only a patch at the right takes room from the lines; PlaceLines gives a
-	-- pair the room of both.
+	-- Only a patch at the name line's end takes room from that line;
+	-- PlaceLines gives each line its room.
 	return mode == "chip" or mode == "pair"
 end
 

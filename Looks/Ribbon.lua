@@ -107,6 +107,10 @@ local PULSE_PEAK, PULSE_ENAMEL = 0.60, 0.50
 local BREATHS, BREATH = 3, 1.3
 local PALE_GOLD = { 1.00, 0.86, 0.52 }
 local COMMAND = "CLICK MannersPrompt:LeftButton"
+-- The medallion's radius from which it carries the count as a badge on its rim,
+-- and only while the badge is three quarters of that radius at most (a smaller
+-- medallion, or a bigger font, would be mostly badge).
+local MEDAL_BADGE_FROM = 16
 -- The client languages whose "roman" alphabet Morpheus draws.
 local FACE = "Fonts\\MORPHEUS.TTF"
 local ROMAN = { enUS = true, enGB = true, deDE = true, esES = true, esMX = true, frFR = true, itIT = true, ptBR = true }
@@ -466,8 +470,8 @@ function Ribbon:Build(kit)
 	self.jewel = tex(art, "ARTWORK", 1, "Gem")
 	self.jewelSet = tex(art, "ARTWORK", 2, "GemSet")
 
-	-- The chips: small gold tags over the cloth at its right, their text on
-	-- textLayer over them.
+	-- The chips: small gold tags, the key's over the cloth at its right, the
+	-- count's on the medallion's rim, their text on textLayer over them.
 	local base = art:GetFrameLevel()
 	self.chipFrame = keep(CreateFrame("Frame", nil, art))
 	self.chipFrame:SetFrameLevel(base + 3)
@@ -689,11 +693,16 @@ function Ribbon:Apply(p, above)
 	-- The tags: height from the reason's size, inside the rails.
 	local chipH = Clamp(sub + 5, 10, g.inner - 2)
 	self.chipH = chipH
+	-- The key's tag on the reason line is a little smaller, so it sits between
+	-- the rails beside the reason; the count's badge on the medallion's rim is
+	-- the same, where the medallion is big enough to carry one.
+	self.smallH = Clamp(sub + 2, 9, chipH)
+	self.medalOK = showIcon and g.R >= MEDAL_BADGE_FROM and self.smallH <= g.R * 0.75
 	PlaceThree(self.keyChip, self.keyBox, chipH)
 	self.keyBox:ClearAllPoints()
 	self.keyBox:SetPoint("RIGHT", art, "RIGHT", -(g.notch + 5), 0)
 	self.keyBox:SetSize(chipH * 1.75, chipH)
-	self.countMode, self.keyUp = nil, false
+	self.countMode, self.keyLane, self.keyUp = nil, nil, false
 	-- Measured again in the new font and size.
 	self.keyLabel, self.countText = nil, nil
 
@@ -857,7 +866,7 @@ function Ribbon:Hide()
 	kit.textLayer:SetAlpha(1)
 	kit.name:SetShadowOffset(1, -1)
 	self.combat, self.hovered, self.outcomeOn = nil, nil, nil
-	self.listShown, self.countMode, self.keyUp = nil, nil, false
+	self.listShown, self.countMode, self.keyLane, self.keyUp = nil, nil, nil, false
 	self.dyeNow, self.ringNow = nil, nil
 end
 
@@ -868,15 +877,25 @@ end
 function Ribbon:PlaceLines(right)
 	local kit = self.kit
 	local name, sub, fit = kit.name, kit.sub, kit.fit
+	-- What stands at the right of the name line: a count's tag, a key's, or the
+	-- pair. The key's tag on the reason line takes the room of the reason line
+	-- alone, and the count's badge on the medallion takes none.
 	local inset = math.max(right, self.rightBase)
-	if self.keyUp then inset = math.max(inset, self.keyRoom or 0) end
+	if self.keyLane == "name" then inset = math.max(inset, self.keyRoom or 0) end
 	if self.countMode == "pair" then inset = math.max(inset, self:PairRoom()) end
-	-- The two points never cross: the name keeps 20 units, the room at the
-	-- right gives way.
-	inset = math.min(inset, math.max(0, self.W - self.textX - 20))
+	-- The two points never cross: the name keeps 20 units, the room at the right
+	-- gives way.
+	local least = math.max(0, self.W - self.textX - 20)
+	inset = math.min(inset, least)
 	self.inset = inset
 	self.lineRoom = math.max(20, self.W - self.textX - inset)
 	fit.room[name] = self.lineRoom
+	-- The reason line keeps clear of everything the name line does (a tag's
+	-- height reaches into it), and of the key's tag on its own line.
+	local subInset = inset
+	if self.keyLane == "sub" then subInset = math.min(math.max(inset, self.keyRoom or 0), least) end
+	self.subInset = subInset
+	fit.room[sub] = math.max(20, self.W - self.textX - subInset)
 	if fit.twoLine then
 		name:SetPoint("LEFT", self.textX, self.nameY)
 		name:SetPoint("RIGHT", -inset, self.nameY)
@@ -884,9 +903,8 @@ function Ribbon:PlaceLines(right)
 		name:SetPoint("LEFT", self.textX, 0)
 		name:SetPoint("RIGHT", -inset, 0)
 	end
-	fit.room[sub] = self.lineRoom
 	sub:SetPoint("LEFT", self.textX, self.subY)
-	sub:SetPoint("RIGHT", -inset, self.subY)
+	sub:SetPoint("RIGHT", -subInset, self.subY)
 end
 
 -- The name's class colour (when "Colour names by class" is on) is taken most
@@ -923,6 +941,17 @@ function Ribbon:NameFits(room)
 	return width * least / size <= self.W - self.textX - math.max(room, self.rightBase) + 0.5
 end
 
+-- Whether the reason, even at its smallest, fits beside `room` at the right.
+-- Its width is taken once a paint, by Chip, while a key asks.
+function Ribbon:SubFits(room)
+	local kit = self.kit
+	local sub, fit = kit.sub, kit.fit
+	local width, size, base = self.subWidth, fit.size[sub], fit.base[sub]
+	if not (width and size and base and size > 0) then return true end
+	local least = math.max(7, math.floor(base * 0.8 + 0.5))
+	return width * least / size <= self.W - self.textX - math.max(room, self.rightBase) + 0.5
+end
+
 -- The key bound to the prompt, as the game spells it short, or nil. Only where
 -- a press casts something: the button armed (a fight's frozen macro too,
 -- unlocked or not), never over a held panel with nothing armed, nor over an
@@ -945,19 +974,27 @@ function Ribbon:PairRoom()
 	return (self.keyRoom or 0) + (self.kit.fit.chipRoom or 0) - self.rightBase - 4
 end
 
--- Run on every repaint. The count's tag at the right, or, with the key's tag
--- there, a tag beside the key's; the key's tag when a key is bound. Either
--- steps aside for a paint in which the name would otherwise be cut.
+-- Run on every repaint. Where the tags go, so that the name keeps its room:
+--   the key's tag at the right end of the reason line, short of the fork, where
+--   the reason leaves room for it; else at the right of the name line, where
+--   the name does; else not at all (with two lines a tag is the reason's
+--   height, so that one on each line never touch);
+--   the count as a small gold badge on the medallion's rim, as a level badge
+--   hangs on a portrait; with no medallion (or one too small), a tag at the
+--   right of the name line, beside the key's if that is there too.
+-- A tag steps aside for a paint in which the line it would stand on is cut.
 function Ribbon:Chip(on)
 	local kit = self.kit
+	local fit = kit.fit
 	-- The width FitLine took of the name just now (every paint sets it before
 	-- the chip), measured here only where it could not; the tags' own words
 	-- only when they change. Measured outright, it was a pcall on every
 	-- repaint (Looks.lua: none on a per-scan path).
-	self.nameWidth = kit.fit.drawn[kit.name] or kit.TextWidth(kit.name)
+	self.nameWidth = fit.drawn[kit.name] or kit.TextWidth(kit.name)
+	local two = fit.twoLine and true or false
 
 	local key = self:KeyLabel()
-	local keyUp = false
+	local lane
 	if key then
 		if key ~= self.keyLabel then
 			self.keyLabel = key
@@ -966,23 +1003,39 @@ function Ribbon:Chip(on)
 			self.keyW, self.keyRoom = w, math.ceil(w + self.g.notch + 10)
 			-- A key bound anew is a tag of a new width: Prompt places the
 			-- lines again, beside it.
-			kit.fit.right = nil
+			fit.right = nil
 		end
-		keyUp = self:NameFits(self.keyRoom)
+		if two then
+			self.subWidth = fit.drawn[kit.sub] or kit.TextWidth(kit.sub)
+			if self:SubFits(self.keyRoom) then lane = "sub" end
+		end
+		if not lane and self:NameFits(self.keyRoom) then lane = "name" end
 	end
-	if keyUp ~= self.keyUp then
-		self.keyUp = keyUp
-		kit.fit.right = nil
+	if lane ~= self.keyLane then
+		self.keyLane, self.keyUp = lane, lane ~= nil
+		fit.right = nil
+		if lane then
+			-- The key's tag on the reason line is a little smaller, and sits on
+			-- that line's own height.
+			local h = two and self.smallH or self.chipH
+			self.keyBox:ClearAllPoints()
+			self.keyBox:SetPoint("RIGHT", kit.art, "RIGHT", -(self.g.notch + 5),
+				lane == "sub" and self.subY or (two and self.nameY or 0))
+			self.keyBoxH = h
+			PlaceThree(self.keyChip, self.keyBox, h)
+		end
 	end
-	if keyUp then self.keyBox:SetWidth(math.floor(self.keyW + 0.5)) end
-	for _, t in ipairs(self.keyChip) do t:SetShown(keyUp) end
-	self.keyText:SetShown(keyUp)
+	if lane then self.keyBox:SetSize(math.floor(self.keyW + 0.5), self.keyBoxH) end
+	for _, t in ipairs(self.keyChip) do t:SetShown(lane ~= nil) end
+	self.keyText:SetShown(lane ~= nil)
 
 	local mode
 	if on then
-		if keyUp then
+		if self.medalOK then
+			mode = "medal"
+		elseif lane == "name" then
 			if self:NameFits(self:PairRoom()) then mode = "pair" end
-		elseif self:NameFits(kit.fit.chipRoom or 0) then
+		elseif self:NameFits(fit.chipRoom or 0) then
 			mode = "chip"
 		end
 	end
@@ -990,31 +1043,40 @@ function Ribbon:Chip(on)
 		local count = kit.count
 		local text = count:GetText()
 		if type(text) == "string" and text:match("^%d+$") then count:SetText("+" .. text) end
-		local h = self.chipH
+		local h = (mode == "medal" or two) and self.smallH or self.chipH
 		text = count:GetText()
 		if text ~= self.countText or mode ~= self.countMode then
 			self.countText = text
-			self.countW = math.max(h * 1.75, (kit.TextWidth(count) or self.sub) + 10)
+			self.countW = math.max(h * 1.6, (kit.TextWidth(count) or self.sub) + 8)
 		end
-		local w = self.countW
-		if mode ~= self.countMode then
+		local w = math.floor(self.countW + 0.5)
+		if mode ~= self.countMode or w ~= self.countBoxW then
+			self.countBoxW = w
 			self.chipBox:ClearAllPoints()
-			if mode == "pair" then
+			if mode == "medal" then
+				-- On the rim, at the lower right: as far round as keeps the badge
+				-- off the lines, and in the panel.
+				local g = self.g
+				local dx = math.min(0.6 * g.R, g.R + 3 - w / 2)
+				local dy = math.min(math.sqrt(math.max(0, g.R * g.R - dx * dx)), self.H / 2 - 1 - h / 2)
+				self.chipBox:SetPoint("CENTER", kit.art, "TOPLEFT", g.cx + dx, -(g.cy + dy))
+			elseif mode == "pair" then
 				self.chipBox:SetPoint("RIGHT", self.keyBox, "LEFT", -4, 0)
 			else
-				self.chipBox:SetPoint("RIGHT", kit.art, "RIGHT", -(self.g.notch + 5), 0)
+				self.chipBox:SetPoint("RIGHT", kit.art, "RIGHT", -(self.g.notch + 5), two and self.nameY or 0)
 			end
 			PlaceThree(self.chip, self.chipBox, h)
 			count:ClearAllPoints()
 			count:SetPoint("CENTER", self.chipBox, "CENTER", 0, 0)
 		end
-		self.chipBox:SetSize(math.floor(w + 0.5), h)
+		self.chipBox:SetSize(w, h)
 	end
+	if mode ~= self.countMode then fit.right = nil end
 	self.countMode = mode
 	for _, t in ipairs(self.chip) do t:SetShown(mode ~= nil) end
 	kit.count:SetShown(mode ~= nil)
-	-- Only a tag at the right takes room from the lines; PlaceLines gives a
-	-- pair the room of both.
+	-- Only a tag at the right of the name line takes room from the lines;
+	-- PlaceLines gives a pair the room of both.
 	return mode == "chip" or mode == "pair"
 end
 

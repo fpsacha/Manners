@@ -223,10 +223,30 @@ _m(LETTER,
    expect="the key's slip is over the reason", script=S)
 
 _m(LETTER,
-   "\t\tif self.countMode then nameRoom = (self.countW or 0) + 4 end\n",
+   "\t\tif self.countMode == \"chip\" then nameRoom = (self.countW or 0) + 4 end\n",
    "",
    "the name running under the count's slip",
    expect="the count's slip is over the name", script=S)
+
+_m(LETTER,
+   "\t\tif self.countMode == \"sub\" then subRoom = subRoom + (self.countW or 0) + 4 end\n",
+   "",
+   "the reason running under the count's slip",
+   expect="the count's slip is over the reason", script=S)
+
+# The name's room at the default size with a count and a key up: the count's
+# slip is pinned on the seal, so it takes the room of neither line.
+_m(LETTER,
+   "\tself.sealOK = showIcon and g.sealD / 2 >= SEAL_BADGE_FROM and self.badgeH <= g.sealD / 2 * 0.75\n",
+   "\tself.sealOK = false\n",
+   "the count's slip back on the lines, taking their room",
+   expect="is not cut at the default size", script=S)
+
+_m(LETTER,
+   "\t\tself.countBox:SetPoint(\"CENTER\", art, \"TOPLEFT\", g.cx + dx, -(g.cy + dy))\n",
+   "\t\tself.countBox:SetPoint(\"CENTER\", art, \"TOPLEFT\", g.cx + dx, -g.cy)\n",
+   "the count's slip in the middle of the seal, off the wax's edge",
+   expect="not on the wax's edge", script=S)
 
 _m(LETTER,
    "\t\tself.countBox:SetPoint(\"RIGHT\", art, \"RIGHT\", -edge, nameDy)\n",
