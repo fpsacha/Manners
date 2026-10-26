@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.10.0
 
 - **Three new looks, each a thing you could hold.** *Ribbon*: a crimson
   cloth ribbon with swallowtail ends and gold rails, the spell in a gold
