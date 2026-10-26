@@ -28,6 +28,14 @@
 --                   panel (default 0.55). 1 when the look dims its own parts.
 --   classSoften     0..1: how far a class-coloured name is taken towards white
 --                   (nil: as it is), so it never competes with the reason.
+--   classContrast   a look on a light ground of its own (the letter's parchment):
+--                   a class-coloured name is taken darker, by Legible against
+--                   the ground the look wrote into kit.ink (light false, lo,
+--                   hi), until it reads at this contrast (4.5); `classInk`
+--                   ({ r, g, b, amount }) first takes it that part of the way
+--                   to the look's own ink. `codeContrast` holds every other
+--                   colour code in the text to the same figure (the shared
+--                   rule is 3:1, taken to 4.5:1 only for a code that must move).
 --   subOnDark       true when the reason line sits on a dark ground of the
 --                   look's own (Luxe's tag): its colour codes, picked for a
 --                   dark ground, are not taken darker for a light panel.

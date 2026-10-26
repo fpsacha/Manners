@@ -20,6 +20,30 @@ local function ClassColored(entry, text)
 	-- Taken towards white where the look asks, so a name never reads as a
 	-- reason colour.
 	local soften = S.activeLook and S.activeLook.classSoften
+	-- A look on a light ground (the letter's parchment) takes the class colour
+	-- darker, until it reads at this contrast on that ground, first taken a
+	-- part of the way to the look's own ink (`classInk`: r, g, b and how far) so
+	-- that a pale class is a coloured ink and not a grey. Worked out once per
+	-- class: ApplyStyle empties ink.codes, where it is kept.
+	local contrast = S.activeLook and S.activeLook.classContrast
+	if contrast then
+		local key = "class" .. c.colorStr
+		local codes = lib.ink.codes
+		local code = codes[key]
+		if not code then
+			local function at(i) return (tonumber(c.colorStr:sub(i, i + 1), 16) or 255) / 255 end
+			local r, g, b = at(3), at(5), at(7)
+			local own = S.activeLook.classInk
+			if own then
+				r, g, b = r + (own[1] - r) * own[4], g + (own[2] - g) * own[4], b + (own[3] - b) * own[4]
+			end
+			r, g, b = lib.Legible(r, g, b, contrast)
+			code = ("|cff%02x%02x%02x"):format(math.floor(r * 255 + 0.5), math.floor(g * 255 + 0.5),
+				math.floor(b * 255 + 0.5))
+			codes[key] = code
+		end
+		return ("%s%s|r"):format(code, text)
+	end
 	if soften then
 		-- Worked out once per class and look: this runs on every repaint.
 		if softened.by ~= soften then wipe(softened) softened.by = soften end

@@ -514,7 +514,7 @@ local added = {
 -- most players who use it have -- the looks that show the key only show it
 -- with one bound. ShotStyle is the look the profile ends up on, so a look the
 -- addon refused or put back is caught rather than drawn under another's name.
-for _, style in ipairs({ "glass", "framed", "minimal", "luxe", "toast", "arcane", "whisper", "heritage", "slate" }) do
+for _, style in ipairs({ "glass", "framed", "minimal", "luxe", "toast", "arcane", "whisper", "letter", "slate" }) do
 	added[#added + 1] = { key = "shot-look-" .. style, at = 0.85, setup = function(ns)
 		Mock.bindings = { F = "CLICK MannersPrompt:LeftButton" }
 		boot(ns, { nameplate1 = ELOWEN, nameplate2 = SABLE, nameplate3 = MIRA })
@@ -1607,7 +1607,7 @@ LOOKS = [
     ("toast", "Toast", "warm banner, gilded medallion"),
     ("arcane", "Arcane", "smoked glass, a rim lit by the reason"),
     ("whisper", "Whisper", "floating letters, the reason in small capitals"),
-    ("heritage", "Heritage", "a unit frame: gold-ringed portrait, banner and bar"),
+    ("letter", "Letter", "parchment and a red wax seal"),
     ("slate", "Slate", "slanted plates, accent blade, segmented timer"),
     ("glass", "Glass", "dark panel, soft shadow"),
     ("framed", "Framed", "flat panel, thin border"),

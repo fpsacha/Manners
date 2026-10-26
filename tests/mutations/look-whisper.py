@@ -442,8 +442,8 @@ mutate(WHISPER,
        expect="the bloom is not under the reason and the name", script=S)
 
 mutate("tests/scenarios/hunt37-effects.lua",
-       "local ALL = { \"glass\", \"framed\", \"minimal\", \"luxe\", \"toast\", \"arcane\", \"whisper\", \"heritage\" }",
-       "local ALL = { \"glass\", \"framed\", \"minimal\", \"luxe\", \"toast\", \"arcane\", \"heritage\" }",
+       "local ALL = { \"glass\", \"framed\", \"minimal\", \"luxe\", \"toast\", \"arcane\", \"whisper\", \"letter\" }",
+       "local ALL = { \"glass\", \"framed\", \"minimal\", \"luxe\", \"toast\", \"arcane\", \"letter\" }",
        "look-whisper: hunt37's per-look loops forget it",
        expect="per-look loops do not name Whisper", script=S)
 

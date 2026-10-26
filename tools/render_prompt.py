@@ -335,8 +335,16 @@ NARROW_CANDIDATES = [r"C:\Windows\Fonts\ARIALN.TTF", "/usr/share/fonts/truetype/
                      "/usr/share/fonts/truetype/liberation2/LiberationSansNarrow-Regular.ttf", "ArialNarrow.ttf"]
 
 
+# Morpheus (Fonts\\MORPHEUS.TTF in every client), which the Letter look writes in:
+# the nearest book face this machine has stands in for its calligraphy.
+SERIF_CANDIDATES = [r"C:\Windows\Fonts\pala.ttf", r"C:\Windows\Fonts\georgia.ttf",
+                    "/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf", "DejaVuSerif.ttf"]
+
+
 def font_path(bold=False, face=None):
-    if face and "ARIALN" in str(face).upper():
+    if face and "MORPHEUS" in str(face).upper():
+        candidates = SERIF_CANDIDATES
+    elif face and "ARIALN" in str(face).upper():
         candidates = NARROW_CANDIDATES
     else:
         candidates = BOLD_CANDIDATES if bold else FONT_CANDIDATES
@@ -351,7 +359,7 @@ def font_path(bold=False, face=None):
 
 def get_font(size, bold=False, face=None):
     narrow = bool(face) and "ARIALN" in str(face).upper()
-    key = (round(size * 4) / 4, bold, narrow)
+    key = (round(size * 4) / 4, bold, narrow, bool(face) and "MORPHEUS" in str(face).upper())
     if key not in _font_cache:
         path = font_path(bold, face)
         _font_cache[key] = (ImageFont.truetype(path, max(1, int(round(size))))
