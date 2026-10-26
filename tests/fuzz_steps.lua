@@ -1771,6 +1771,29 @@ def("options_page", 3, function(W, s)
 	ns.OpenOptions(choose(ids, s.b), true)
 end)
 def("preview", 2, function(W) W.ns.Prompt:ToggleTest() end)
+-- The look changed on its own, through the Panel style control the options
+-- window draws (a card in the picker), so that every look is worn in the middle
+-- of a fight, a list, an outcome and a language, and not only from the first
+-- step (the ordinary "setting" step reaches the control one time in a hundred).
+def("restyle", 3, function(W, s)
+	local ns = W.ns
+	local keys = {}
+	for key in pairs(ns.Looks.Allowed()) do keys[#keys + 1] = key end
+	table.sort(keys)
+	local key = choose(keys, s.a)
+	if not key then return end
+	local B, UI = ns.WindowBind, ns.WindowUI
+	if B and UI then
+		if not UI.Shown() then ns.OpenOptions(nil, true) end
+		local item = B.Item("appearance.style", nil, UI.ctx)
+		if item and not B.Hidden(item) and not B.Disabled(item) then
+			B.Commit(item, key)
+			return
+		end
+	end
+	ns.db.profile.prompt.style = key
+	ns.Guard("restyle", ns.Prompt.ApplyStyle, ns.Prompt)
+end)
 def("never_list", 2, function(W, s)
 	local ns = W.ns
 	local pool = aroundPeople(W)

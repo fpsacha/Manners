@@ -1228,7 +1228,7 @@ function X.setup(opts)
 	-- A third of the seeds play in another language, whose words, lines and
 	-- names are longer or wider than English.
 	if seed % 3 == 0 then
-		local locales = { "deDE", "esES", "esMX", "frFR", "itIT", "koKR", "ptBR", "zhCN", "zhTW", "enGB" }
+		local locales = { "deDE", "esES", "esMX", "frFR", "itIT", "koKR", "ptBR", "zhCN", "zhTW", "enGB", "ruRU" }
 		Mock.locale = locales[1 + math.floor(env() * #locales) % #locales]
 	end
 	-- The addon's own dice (the line it picks) follow the seed, unless a

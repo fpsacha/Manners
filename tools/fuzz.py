@@ -66,7 +66,10 @@ raid; settings, saved files and windows; fights, auras and withheld values):
                 same profile, an import of a line from a foreign profile
                 (mangled now and then), slash commands (with the odd names a
                 player types), the launcher, the preview, the ledger, the
-                self-test, dragging the prompt
+                self-test, dragging the prompt, and the look changed through
+                the Panel style control (every look in the middle of a fight,
+                a list, an outcome, a language: Russian included, whose
+                client has no translation and writes in Cyrillic)
 
 After every step (tests/fuzz_check.lua) these hold, or the run fails:
 
