@@ -129,8 +129,8 @@ _m(LETTER,
    expect="the default panel colour tints the parchment", script=S)
 
 _m(LETTER,
-   "local PAPER_LUM, PAPER_LUM_LOW = 0.707, 0.496\n",
-   "local PAPER_LUM, PAPER_LUM_LOW = 0.707, 0.70\n",
+   "local PAPER_LUM, PAPER_LUM_LOW = 0.756, 0.488\n",
+   "local PAPER_LUM, PAPER_LUM_LOW = 0.756, 0.70\n",
    "the look's idea of its paper lighter than the file's",
    expect="the look's idea of its paper is the file's", script=S)
 
@@ -293,10 +293,10 @@ _m(LETTER,
    expect="drop of wax is not under the seal", script=S)
 
 _m(LETTER,
-   "\t\tself.drops[i] = tex(self.chipFrame, \"ARTWORK\", 0, \"Dot\")\n",
-   "\t\tself.drops[i] = tex(self.chipFrame, \"ARTWORK\", 0, \"Seal\")\n",
+   "\tself.mark = tex(self.sealFrame, \"ARTWORK\", 0, \"Mark\")\n",
+   "\tself.mark = tex(self.sealFrame, \"ARTWORK\", 0, \"Seal\")\n",
    "a file that ships and nothing draws",
-   expect="Dot ships but the look never draws it", script=S)
+   expect="Mark ships but the look never draws it", script=S)
 
 # --- motion ------------------------------------------------------------------
 
@@ -485,10 +485,72 @@ _m(GEN,
    expect="differs between two runs", script=S)
 
 _m(GEN,
-   "SEAL_R = 0.88\n",
    "SEAL_R = 0.90\n",
+   "SEAL_R = 0.92\n",
    "the seal's radius in the generator not the look's",
    expect="the seal's radius, the icon's edge", script=S)
+
+# --- the wax: the icon pressed into it, and the light on it never tinted -----
+
+_m(LETTER,
+   "local SEAL_R, ICON_AT, SEAL_EDGE = 0.90, 0.60, 0.96\n",
+   "local SEAL_R, ICON_AT, SEAL_EDGE = 0.90, 0.72, 0.96\n",
+   "the icon nearly three quarters of the wax, the seal a frame for it",
+   expect="the icon is pressed into the wax at a little over half its diameter", script=S)
+
+_m(LETTER,
+   "\tg.iconSize = math.max(8, math.floor(ICON_AT * g.sealD + 0.5))\n",
+   "\tg.iconSize = math.max(8, math.floor(0.70 * g.sealD + 0.5))\n",
+   "the icon sized to a share of the wax the look does not declare",
+   expect="of the wax's diameter", script=S)
+
+_m(LETTER,
+   "\tself.gloss:SetVertexColor(1, 1, 1, k >= 1 and 1 or 0.7)\n",
+   "\tself.gloss:SetVertexColor(w[1] * k, w[2] * k, w[3] * k, k >= 1 and 1 or 0.7)\n",
+   "the light on the wax tinted with the wax",
+   expect="the light on the seal is tinted", script=S)
+
+_m(LETTER,
+   "\tself.gloss:SetVertexColor(1, 1, 1, k >= 1 and 1 or 0.7)\n",
+   "\tself.gloss:SetVertexColor(1, 1, 1, 1)\n",
+   "the light on the wax as bright in a fight as out of one",
+   expect="the light on the wax is not fainter in a fight", script=S)
+
+_m(LETTER,
+   "\tfor _, t in ipairs(self.pins) do t:SetVertexColor(w[1] * k, w[2] * k, w[3] * k, 1) end\n",
+   "",
+   "the drops that pin the slips left white, not the seal's wax",
+   expect="is not the seal's wax", script=S)
+
+_m(LETTER,
+   "\tfor _, t in ipairs(self.dropLights) do t:SetVertexColor(1, 1, 1, 1) end\n",
+   "\tfor _, t in ipairs(self.dropLights) do t:SetVertexColor(0.9, 0.2, 0.2, 1) end\n",
+   "the light on the list's drops tinted",
+   expect="a drop's light is tinted", script=S)
+
+_m(LETTER,
+   "\t\tself.dropLights[i]:Show()\n",
+   "",
+   "a drop of wax in the list with no light on it",
+   expect="has no light on it", script=S)
+
+_m(LETTER,
+   "\t\tself.dropLights[i]:ClearAllPoints()\n\t\tself.dropLights[i]:SetAllPoints(self.drops[i])\n",
+   "\t\tself.dropLights[i]:ClearAllPoints()\n\t\tself.dropLights[i]:SetAllPoints(self.drops[i])\n\t\tself.dropLights[i]:SetPoint(\"CENTER\", art, \"TOPLEFT\", self.rowX, -y)\n",
+   "a drop's light drawn away from its drop",
+   expect="light is not where the drop is", script=S)
+
+_m(LETTER,
+   "\t\tt:SetPoint(\"CENTER\", box, \"TOPLEFT\", d * 0.50, -d * 0.45)\n",
+   "\t\tt:SetPoint(\"CENTER\", box, \"CENTER\", 0, 0)\n",
+   "the pin in the middle of its slip, over the writing",
+   expect="pin is not on its slip's upper left corner", script=S)
+
+_m(LETTER,
+   "\tself.keyPin:SetShown(keyUp)\n\tself.keyPinLight:SetShown(keyUp)\n",
+   "\tself.keyPin:SetShown(keyUp)\n\tself.keyPinLight:SetShown(false)\n",
+   "the key's pin without its light",
+   expect="the key's pin has no light on it", script=S)
 
 _m(GEN,
    "SHADOW_ZOOM = 1.34\n",

@@ -21,9 +21,16 @@ Two kinds of art:
   * baked colour (the parchment, the wood, the slip of paper): drawn in its own
     colours. The parchment may be tinted by the player's panel colour, which
     multiplies it.
-  * grey or white art (the wax, its gloss, the mask, the lights, the ink rule):
-    the colour comes from SetVertexColor, so one file serves every wax colour,
-    both palettes and a custom marker colour.
+  * grey or white art (the wax, the mask, the lights, the ink rule): the colour
+    comes from SetVertexColor, so one file serves every wax colour, both
+    palettes and a custom marker colour.
+
+The wax is two layers, so that every tint looks like wax: the body (grey, tinted
+to the wax's colour: its darkest texels are the troughs, its brightest the
+colour itself) and over it the light on it (white, never tinted: the hard
+specular, the broad sheen, the bounce off the paper on its far edge, the lit
+wall of the recess). The body gives the value and the tint the hue; the light
+is the same on red wax and on black.
 
 The parchment and the rods are cut into pieces by the Lua, so what they draw in
 texels lands as a number of units there. Looks/Letter.lua's PAPER_*, ROD_* and
@@ -34,15 +41,19 @@ SEAL_* constants name the figures that must agree with the ones here.
                             and three bands that the Lua repeats for a list. The
                             noise is periodic over the middle band, so the repeats
                             join
-  Letter_Rod         64x256 A turned wooden rod: a finial, a collar and a bead at
-                            each end and a plain shaft between that the Lua
-                            stretches
-  Letter_Seal       128x128 The wax: a blobby disc, a raised lip, an embossed ring,
-                            a recess for the icon. Grey, tinted to the wax's colour
+  Letter_Rod         64x256 A turned wooden rod: a finial, a brass collar and a
+                            bead at each end and a plain shaft between that the
+                            Lua stretches
+  Letter_Seal       128x128 The wax: a poured blob with a thick rounded edge, a
+                            raised uneven rim where the stamp pressed, a beaded
+                            ring, a recess for the icon. Grey, tinted to the wax's
+                            colour
   Letter_SealRim    128x128 The lip that overlaps the icon's edge, with the recess's
                             shadow on the icon. Grey
-  Letter_SealGloss  128x128 The glossy highlights on the lip. White
-  Letter_SealShadow 128x128 The seal's soft shadow on the paper. Black
+  Letter_SealGloss  128x128 The light on the wax: specular, sheen, bounce, the lit
+                            wall of the recess. White, never tinted
+  Letter_SealShadow 128x128 The seal's shadow on the paper: a tight contact shadow
+                            and a soft penumbra. Black
   Letter_Mark        64x64  A raised star, for the seal when the icon is off. Grey
   Letter_Mask       128x128 A white disc: the icon's mask, the cooldown's sweep and
                             the shape of the flashes
@@ -50,8 +61,10 @@ SEAL_* constants name the figures that must agree with the ones here.
   Letter_Crack      128x128 The crack a refusal splits the wax with
   Letter_Slip        64x32  A slip of paper, in three pieces: for the count and the
                             bound key
-  Letter_Dot         32x32  A drop of wax for each row of the list. Grey
-  Letter_Rule        128x8  A tapered stroke of ink. White
+  Letter_Dot         32x32  A drop of wax, the same material as the seal: for each
+                            row of the list and for the pin that holds a slip. Grey
+  Letter_DotGloss    32x32  The light on a drop. White, never tinted
+  Letter_Rule       128x8   A tapered stroke of ink. White
   Letter_Sweep       64x64  A soft slanted band of light that crosses the paper
 
 Needs numpy and Pillow.
@@ -72,6 +85,9 @@ LIGHT = np.array([-0.50, -0.66, 0.56], np.float32)
 LIGHT /= np.linalg.norm(LIGHT)
 HALF = LIGHT + np.array([0, 0, 1], np.float32)
 HALF /= np.linalg.norm(HALF)
+# The paper's bounce, from below and to the right.
+BOUNCE = np.array([0.45, 0.62, 0.30], np.float32)
+BOUNCE /= np.linalg.norm(BOUNCE)
 
 # ---- the figures Looks/Letter.lua repeats ---------------------------------
 
@@ -93,11 +109,16 @@ SHAFT = 0.70
 
 # The seal: the wax's mean radius is SEAL_R of the file's half-width, the icon's
 # edge is ICON_AT of that radius, and the farthest the wax is seen is SEAL_EDGE
-# of the half-width (the drops). The lip begins at LIP_AT of the radius.
+# of the half-width (the drops). The stamp's face ends at STAMP_AT of the
+# radius (the wax outside it was squeezed up into a rim), and the beaded ring
+# is embossed at RING_AT.
 SEAL = 128
-SEAL_R = 0.88
-ICON_AT = 0.70
-LIP_AT = 0.655
+SEAL_R = 0.90
+ICON_AT = 0.60
+SEAL_EDGE = 0.96
+STAMP_AT = 0.81
+RING_AT = 0.705
+BEADS = 22
 
 written = []
 measured = {}
@@ -126,10 +147,6 @@ def ramp(t, stops):
     t = np.clip(t, 0, 1)
     pos = [s[0] for s in stops]
     return np.stack([np.interp(t, pos, [s[1][c] for s in stops]) for c in range(3)], -1)
-
-
-def luma(rgb):
-    return rgb[..., 0] * 0.299 + rgb[..., 1] * 0.587 + rgb[..., 2] * 0.114
 
 
 def lin(c):
@@ -174,6 +191,30 @@ def fbm(x, y, cells, seed, period_y=None, falloff=0.55):
     return out / total
 
 
+def box_blur(a, r):
+    """A box blur of radius r (supersampled texels), separable, edges clamped."""
+    r = int(r)
+    if r < 1:
+        return a
+    out = a
+    for axis in (0, 1):
+        pad = [(0, 0), (0, 0)]
+        pad[axis] = (r, r)
+        p = np.pad(out, pad, mode="edge")
+        c = np.cumsum(p, axis=axis, dtype=np.float64)
+        c = np.concatenate([np.zeros_like(np.take(c, [0], axis=axis)), c], axis=axis)
+        n = out.shape[axis]
+        hi = np.take(c, np.arange(2 * r + 1, 2 * r + 1 + n), axis=axis)
+        lo = np.take(c, np.arange(0, n), axis=axis)
+        out = ((hi - lo) / (2 * r + 1)).astype(np.float32)
+    return out
+
+
+def soft_blur(a, r):
+    """Three box blurs: near enough a Gaussian."""
+    return box_blur(box_blur(box_blur(a, r), r), r)
+
+
 def bleed(col, a, passes=24):
     """Push colour outward into transparent texels (edge padding)."""
     have = a > 1e-3
@@ -209,6 +250,10 @@ def white(a):
     return np.ones(a.shape + (3,), np.float32)
 
 
+def tinted(a, rgb):
+    return np.broadcast_to(np.array(rgb, np.float32), a.shape + (3,)).copy()
+
+
 def grey(l):
     return np.repeat(np.clip(l, 0, 1)[..., None], 3, -1)
 
@@ -238,20 +283,28 @@ def lit(n, ambient=0.34, spec=0.0, shine=30.0):
     return out
 
 
+def angle_to(th, at):
+    """The signed angle from th to at, -pi..pi."""
+    return np.angle(np.exp(1j * (th - at)))
+
+
 # ------------------------------------------------------------------ the parchment
 
-# Cream at the lit upper left, tan towards the edges, as an old sheet: the
-# middle of the paper is about the luminance 0.6 the ink is held against.
+# Cream, warmer and lighter than old paper usually is in a picture, so the ink
+# reads: the middle of the sheet is about the luminance 0.7 the ink is held
+# against. Lit at the left, under the lamp, a shade tanner towards the right.
 PAPER_STOPS = [
-    (0.00, (0.790, 0.600, 0.350)),
-    (0.28, (0.890, 0.725, 0.455)),
-    (0.55, (0.955, 0.830, 0.575)),
-    (0.80, (0.975, 0.885, 0.655)),
-    (1.00, (0.985, 0.915, 0.715)),
+    (0.00, (0.700, 0.520, 0.300)),
+    (0.26, (0.850, 0.690, 0.430)),
+    (0.55, (0.930, 0.815, 0.570)),
+    (0.80, (0.960, 0.870, 0.645)),
+    (1.00, (0.980, 0.910, 0.710)),
 ]
-STAIN = np.array([0.58, 0.38, 0.17], np.float32)
-BURN = np.array([0.34, 0.185, 0.07], np.float32)
-CHAR = np.array([0.12, 0.058, 0.022], np.float32)
+STAIN = np.array([0.64, 0.45, 0.22], np.float32)
+BURN = np.array([0.36, 0.195, 0.07], np.float32)
+EMBER = np.array([0.62, 0.33, 0.10], np.float32)
+CHAR = np.array([0.10, 0.05, 0.02], np.float32)
+CREASE = np.array([0.42, 0.27, 0.12], np.float32)
 
 
 def spots(x, y, count, seed, period_y, rmin, rmax):
@@ -285,50 +338,71 @@ def make_paper():
     # The base colour: lit at the left, as a sheet lying under a lamp, with the
     # vertical component weak so the middle band tiles.
     u = x / w
-    base_t = np.clip(0.18 + 0.78 * sstep(0.0, 0.34, u) * (1 - 0.34 * sstep(0.45, 1.0, u)), 0, 1)
+    base_t = np.clip(0.20 + 0.78 * sstep(0.0, 0.30, u) * (1 - 0.28 * sstep(0.45, 1.0, u)), 0, 1)
     rgb = ramp(base_t, PAPER_STOPS)
 
-    # Mottling, from coarse blotches to fibre: all periodic over the middle band.
+    # Mottling, from coarse clouds to fibre: all periodic over the middle band.
     py = float(PAPER_MID)
-    blot = fbm(x, y, [32, 16, 8], 21, py)
-    rgb = rgb * (1 + 0.13 * blot[..., None])
+    cloud = fbm(x, y, [48, 24, 12], 21, py)
+    rgb = rgb * (1 + 0.095 * cloud[..., None])
     warm = fbm(x, y, [32, 16], 22, py)
-    rgb = rgb * (1 + 0.10 * warm[..., None] * np.array([0.5, 0.1, -0.9], np.float32))
-    # Age stains: patches taken towards a brown, soft at their edge.
-    st = fbm(x, y, [32, 16, 8], 23, py) * 0.6 + fbm(x, y, [16, 8], 24, py) * 0.4
-    stain = sstep(0.10, 0.62, st)
-    rgb = rgb * (1 - 0.34 * stain[..., None]) + STAIN * (0.34 * stain[..., None])
-    # Fibres: short strokes along the sheet, and the fine grain of the pulp.
-    fib = fbm(x * 0.55, y * 1.1, [6, 3], 25, py)
-    rgb = rgb * (1 + 0.032 * fib[..., None])
-    grain = vnoise(x, y, 1.0, 26, py) * 0.6 + vnoise(x, y, 0.5, 27, py) * 0.4
-    rgb = rgb * (1 + 0.040 * grain[..., None])
+    rgb = rgb * (1 + 0.09 * warm[..., None] * np.array([0.35, 0.0, -0.75], np.float32))
+    # Age: patches taken a little towards tan, soft at their edge, never a blotch.
+    st = fbm(x, y, [40, 20, 10], 23, py) * 0.6 + fbm(x, y, [16, 8], 24, py) * 0.4
+    stain = sstep(0.22, 0.78, st) * 0.20
+    rgb = rgb * (1 - stain[..., None]) + STAIN * stain[..., None]
+    # Fibres: the pulp's drift along the sheet, fine grain, and a few long
+    # threads lying in it, lighter and darker than the paper.
+    fib = fbm(x * 0.45, y * 1.5, [6, 3, 1.5], 25, py)
+    rgb = rgb * (1 + 0.040 * fib[..., None])
+    threads = 1 - np.abs(vnoise(x * 0.22, y * 1.9, 1.6, 26, py))
+    threads = sstep(0.80, 1.0, threads) * (0.5 + 0.5 * vnoise(x * 0.08, y, 8, 27, py))
+    rgb = rgb * (1 + 0.09 * threads[..., None] * np.sign(vnoise(x * 0.05, y, 12, 28, py))[..., None])
+    grain = vnoise(x, y, 1.0, 29, py) * 0.6 + vnoise(x, y, 0.5, 30, py) * 0.4
+    rgb = rgb * (1 + 0.035 * grain[..., None])
     # The brown foxing, and a faint laid line, as handmade paper has.
-    fox = spots(x, y, 48, 28, py, 0.55, 1.5)
-    rgb = rgb * (1 - 0.34 * fox[..., None]) + STAIN * (0.34 * fox[..., None]) * 0.8
-    laid = 0.5 + 0.5 * np.sin(y * (2 * math.pi / 4.0) + vnoise(x, y, 18, 29, py) * 2.0)
-    rgb = rgb * (1 - 0.010 * laid[..., None])
+    fox = spots(x, y, 30, 31, py, 0.5, 1.4)
+    rgb = rgb * (1 - 0.26 * fox[..., None]) + STAIN * (0.26 * fox[..., None]) * 0.85
+    laid = 0.5 + 0.5 * np.sin(y * (2 * math.pi / 4.0) + vnoise(x, y, 18, 32, py) * 2.0)
+    rgb = rgb * (1 - 0.012 * laid[..., None])
 
-    # The edges: a soft inner shadow, the burn, and the char at the very edge.
-    edge_noise = fbm(x * 0.7, y * 0.7, [10, 5, 2.5], 31) * 0.5 + 0.5
+    # The edges: a soft inner shadow, the burn (its ember line, then the char
+    # at the very edge), kept narrow so the middle band stays even.
+    edge_noise = fbm(x * 0.7, y * 0.7, [10, 5, 2.5], 33) * 0.5 + 0.5
     dpos = np.clip(dd, 0, None)
-    shadow = np.exp(-np.power(dpos / (8.5 + 4.0 * edge_noise), 1.15))
-    rgb = rgb * (1 - shadow[..., None] * 0.42) + BURN * (shadow[..., None] * 0.42)
-    burn_w = 2.1 + 2.0 * edge_noise
-    burn = np.clip(np.exp(-dpos / burn_w) * (0.70 + 0.30 * edge_noise), 0, 1)
-    rgb = rgb * (1 - burn[..., None] * 0.86) + BURN * (burn[..., None] * 0.86)
-    char = sstep(1.5, 0.0, dd) * (0.60 + 0.40 * edge_noise)
+    shadow = np.exp(-np.power(dpos / (5.0 + 2.5 * edge_noise), 1.2))
+    rgb = rgb * (1 - shadow[..., None] * 0.34) + BURN * (shadow[..., None] * 0.34)
+    burn_w = 2.2 + 2.2 * edge_noise
+    burn = np.clip(np.exp(-dpos / burn_w) * (0.75 + 0.25 * edge_noise), 0, 1)
+    rgb = rgb * (1 - burn[..., None] * 0.84) + BURN * (burn[..., None] * 0.84)
+    ember = np.exp(-((dpos - 1.3) / 1.0) ** 2) * (0.35 + 0.65 * edge_noise) * 0.60
+    rgb = rgb * (1 - ember[..., None]) + EMBER * ember[..., None]
+    char = sstep(1.3, 0.0, dd) * (0.65 + 0.35 * edge_noise)
     rgb = rgb * (1 - char[..., None]) + CHAR * char[..., None]
     # Scorch blooms along the edges, a few of them: darker patches that reach in.
-    bloom = sstep(0.55, 0.90, fbm(x * 0.5, y * 0.5, [20, 9], 33) * 0.5 + 0.5)
-    bl = bloom * np.exp(-dpos / 5.5)
-    rgb = rgb * (1 - bl[..., None] * 0.55) + BURN * (bl[..., None] * 0.55) * 0.8
+    bloom = sstep(0.58, 0.92, fbm(x * 0.5, y * 0.5, [20, 9], 34) * 0.5 + 0.5)
+    bl = bloom * np.exp(-dpos / 4.5)
+    rgb = rgb * (1 - bl[..., None] * 0.50) + BURN * (bl[..., None] * 0.50) * 0.85
 
-    # The sides, where the paper curls into the roll: shaded towards the rods.
-    curl = np.exp(-np.power(d_side / 15.0, 1.3))
-    rgb = rgb * (1 - 0.62 * curl[..., None]) + BURN * (0.62 * curl[..., None]) * 0.6
-    ridge = 0.5 + 0.5 * np.sin(d_side * 0.8)
-    rgb = rgb * (1 - 0.06 * curl[..., None] * ridge[..., None])
+    # The sides, where the paper curls over the rod. The rod itself covers the
+    # first dozen texels; past it the sheet climbs out of the roll: a crease in
+    # shadow at the rod, a crest where the curve catches the lamp, and on the
+    # right the whole curl turned away from the light.
+    under = 11.0
+    xl, xr = np.clip(x - under, 0, None), np.clip((w - x) - under, 0, None)
+    crease_l = np.exp(-np.power(xl / 6.5, 1.4))
+    crease_r = np.exp(-np.power(xr / 8.0, 1.3))
+    rgb = rgb * (1 - 0.50 * crease_l[..., None]) + CREASE * (0.50 * crease_l[..., None])
+    rgb = rgb * (1 - 0.62 * crease_r[..., None]) + CREASE * (0.62 * crease_r[..., None]) * 0.85
+    curl_l = np.exp(-np.power(xl / 16.0, 1.6))
+    curl_r = np.exp(-np.power(xr / 20.0, 1.5))
+    rgb = rgb * (1 - 0.16 * curl_l[..., None]) * (1 - 0.26 * curl_r[..., None])
+    crest_l = np.exp(-((xl - 9.5) / 3.2) ** 2) * 0.11
+    crest_r = np.exp(-((xr - 11.5) / 3.6) ** 2) * 0.05
+    rgb = rgb * (1 + crest_l[..., None] + crest_r[..., None])
+    # The cast shadow of the left rod on the sheet, which the lamp throws rightwards.
+    cast = np.exp(-np.power(xl / 4.0, 1.5)) * 0.22
+    rgb = rgb * (1 - cast[..., None])
 
     rgb = np.clip(rgb, 0, 1)
     save("Letter_Paper", finish(rgb, np.clip(alpha, 0, 1), w, h))
@@ -345,39 +419,48 @@ def make_paper():
 
 # ------------------------------------------------------------------ the rod
 
+# Walnut: dark and a little red in the shade, a warm honey where the lamp
+# catches the turning.
 WOOD_STOPS = [
-    (0.00, (0.080, 0.040, 0.018)),
-    (0.22, (0.250, 0.135, 0.058)),
-    (0.45, (0.455, 0.265, 0.110)),
-    (0.68, (0.675, 0.445, 0.205)),
-    (0.86, (0.850, 0.650, 0.360)),
-    (1.00, (0.975, 0.855, 0.600)),
+    (0.00, (0.070, 0.032, 0.016)),
+    (0.22, (0.235, 0.115, 0.050)),
+    (0.45, (0.430, 0.230, 0.095)),
+    (0.68, (0.640, 0.400, 0.180)),
+    (0.86, (0.820, 0.600, 0.320)),
+    (1.00, (0.960, 0.830, 0.560)),
+]
+BRASS_STOPS = [
+    (0.00, (0.160, 0.105, 0.030)),
+    (0.30, (0.440, 0.310, 0.090)),
+    (0.60, (0.760, 0.600, 0.220)),
+    (0.82, (0.940, 0.820, 0.420)),
+    (1.00, (1.000, 0.960, 0.760)),
 ]
 
 
 def rod_profile(y):
     """The half-width of the rod at texel row y of a cap, as a fraction of the
-    file's half-width, and the slope of that profile (per texel). A ball on a
-    neck, a cove, a bead and a flare down to the shaft."""
+    file's half-width. A ball finial on a neck, a cove opening to a brass
+    collar, a bead, and the flare down to the shaft."""
     r = np.full_like(y, SHAFT)
     # The ball at the top: a sphere of radius 17 texels centred 18 down.
-    ball = np.sqrt(np.clip(1 - ((y - 18.0) / 17.5) ** 2, 0, 1)) * (17.5 / 32.0) * 0.98
-    in_ball = (y >= 0.5) & (y < 24)
+    ball = np.sqrt(np.clip(1 - ((y - 18.0) / 17.0) ** 2, 0, 1)) * (17.0 / 32.0)
+    in_ball = (y >= 0.6) & (y < 25)
     r = np.where(in_ball, np.maximum(ball, 0.02), r)
     # The neck under it.
-    neck = 0.34 + 0.05 * sstep(24, 31, y)
-    r = np.where((y >= 24) & (y < 33), neck, r)
+    neck = 0.30 + 0.04 * sstep(25, 32, y)
+    r = np.where((y >= 25) & (y < 33), neck, r)
     # A cove opening to the collar.
-    cove = 0.34 + (0.98 - 0.34) * sstep(33, 47, y) ** 1.6
-    r = np.where((y >= 33) & (y < 47), cove, r)
-    # The collar, a bead, a groove and the flare into the shaft.
-    collar = 0.98 - 0.05 * np.sin((y - 47) / 10.0 * math.pi)
-    r = np.where((y >= 47) & (y < 57), collar, r)
-    groove = 0.80 + 0.18 * sstep(57, 60, y)
+    cove = 0.34 + (0.97 - 0.34) * sstep(33, 48, y) ** 1.7
+    r = np.where((y >= 33) & (y < 48), cove, r)
+    # The collar, brass, a little convex; a groove; the bead; the flare.
+    collar = 0.97 - 0.04 * (1 - np.sin((y - 48) / 9.0 * math.pi))
+    r = np.where((y >= 48) & (y < 57), collar, r)
+    groove = 0.78 + 0.02 * sstep(57, 60, y)
     r = np.where((y >= 57) & (y < 60), groove, r)
-    bead = 0.80 + 0.20 * np.sqrt(np.clip(1 - ((y - 67.5) / 8.5) ** 2, 0, 1))
+    bead = 0.78 + 0.21 * np.sqrt(np.clip(1 - ((y - 67.5) / 8.0) ** 2, 0, 1))
     r = np.where((y >= 60) & (y < 76), bead, r)
-    flare = SHAFT + (0.86 - SHAFT) * (1 - sstep(76, 84, y))
+    flare = SHAFT + (0.84 - SHAFT) * (1 - sstep(76, 84, y))
     r = np.where(y >= 76, flare, r)
     return r
 
@@ -393,143 +476,187 @@ def make_rod():
     half = prof * (w / 2)
     dx = x - cx
     nx = np.clip(dx / np.maximum(half, 1e-3), -1, 1)
-    inside = np.abs(dx) <= half
     # The slope of the profile: a bead faces up on its upper side, down on its
     # lower side, so the light catches the top of each swelling.
     slope = np.gradient(half, 1.0 / SS, axis=0)
     slope = np.where(y < h / 2, slope, -slope)
     nz = np.sqrt(np.clip(1 - nx * nx, 0, 1))
-    n = np.stack([nx * 0.95, -np.clip(slope, -3, 3) * nz * 0.55, nz + 0.12], -1)
+    n = np.stack([nx * 0.96, -np.clip(slope, -3, 3) * nz * 0.60, nz + 0.10], -1)
     n /= np.linalg.norm(n, axis=-1, keepdims=True)
     ndl = np.clip(n @ LIGHT, 0, 1)
     ndh = np.clip(n @ HALF, 0, 1)
-    # Lit in the middle: the shading peaks off the middle to the upper left a
-    # little and falls to dark at both edges, with a warm bounce at the right.
-    shade = 0.12 + 0.82 * ndl ** 0.85
-    bounce = 0.14 * np.clip(nx - 0.45, 0, 1) / 0.55 * nz
+    # The shading: lit off the middle to the upper left, falling to dark at
+    # both edges, with the paper's warm bounce on the right side.
+    shade = 0.10 + 0.80 * ndl ** 0.9
+    bounce = 0.16 * np.clip(n @ BOUNCE, 0, 1) ** 2
     t = np.clip(shade + bounce, 0, 1)
-    # Grain along the rod, and lathe marks across it.
-    grain = fbm(x * 2.2, y * 0.045, [6, 3, 1.5], 41) * 0.5
-    streak = vnoise(x * 3.0, y * 0.03, 1.0, 42) * 0.5 + 0.0
+    # Grain along the rod: long streaks, a wander, and the fine lines of the
+    # growth rings; lathe marks across the turning.
+    grain = fbm(x * 2.0, y * 0.04, [6, 3, 1.5], 41) * 0.5
+    streak = vnoise(x * 3.0, y * 0.025, 1.0, 42) * 0.5
+    wander = fbm(x * 0.4, y * 0.02, [8, 3], 44) * 7
+    ring = 0.5 + 0.5 * np.sin(x * 1.25 + wander)
     lathe = np.sin(y * 2.4 + vnoise(x * 0.2, y, 6, 43) * 3.0)
-    t = t + grain * 0.12 + streak * 0.05 + lathe * 0.012
+    t = t + grain * 0.11 + streak * 0.05 + lathe * 0.010 * (yy < ROD_CAP)
     rgb = ramp(t, WOOD_STOPS)
-    # The darker growth rings: thin lines running down the rod.
-    ring = 0.5 + 0.5 * np.sin(x * 1.1 + fbm(x * 0.4, y * 0.02, [8, 3], 44) * 7)
-    rgb = rgb * (1 - 0.10 * (ring ** 3)[..., None])
-    spec = (ndh ** 34) * 0.42 + (ndh ** 7) * 0.07
-    rgb = rgb + spec[..., None] * np.array([1.0, 0.86, 0.60], np.float32)
+    rgb = rgb * (1 - 0.14 * (ring ** 3)[..., None])
+    # The sheen: a hard line where the lamp stands in the varnish, a broader
+    # warm one beside it.
+    spec = (ndh ** 40) * 0.50 + (ndh ** 8) * 0.10
+    rgb = rgb + spec[..., None] * np.array([1.0, 0.88, 0.66], np.float32)
+    # The brass collar, with its own harder shine.
+    brass = sstep(47.5, 48.5, yy) * (1 - sstep(56.5, 57.5, yy))
+    bt = np.clip(0.12 + 0.72 * ndl ** 0.8 + 0.10 * np.clip(n @ BOUNCE, 0, 1), 0, 1)
+    brgb = ramp(bt, BRASS_STOPS) + ((ndh ** 60) * 0.70)[..., None] * np.array([1.0, 0.97, 0.85], np.float32)
+    rgb = rgb * (1 - brass[..., None]) + brgb * brass[..., None]
     # Darker where the turning is deep: the cove and the groove, and under the beads.
-    occl = 1 - 0.30 * np.clip(-np.where(y < h / 2, 1, -1) * slope, 0, 2) / 2
+    occl = 1 - 0.34 * np.clip(-np.where(y < h / 2, 1, -1) * slope, 0, 2) / 2
     rgb = rgb * occl[..., None]
     rgb = np.clip(rgb, 0, 1)
     edge = (half - np.abs(dx))
     alpha = cover(-edge) * ((yy > 0.3) & (y < h - 0.3))
     # A thin dark line at the edge, the outline of the turned wood.
-    line = sstep(1.3, 0.0, edge) * 0.55
-    rgb = rgb * (1 - line[..., None]) + np.array([0.06, 0.03, 0.012], np.float32) * line[..., None]
+    line = sstep(1.3, 0.0, edge) * 0.60
+    rgb = rgb * (1 - line[..., None]) + np.array([0.05, 0.025, 0.010], np.float32) * line[..., None]
     save("Letter_Rod", finish(rgb, np.clip(alpha, 0, 1), w, h))
 
 
 # ------------------------------------------------------------------ the wax
 
-def seal_field(zoom=1.0, ox=0.0, oy=0.0):
-    """The seal's geometry on the supersampled 128 grid: distance from the
-    middle, the wax's edge, the height of its surface. `zoom` draws it smaller
-    in the file (the shadow's file holds it 1/zoom the size) and (ox, oy) moves
-    it, both in texels of the file."""
-    n = SEAL
+def wax_outline(n, zoom=1.0, ox=0.0, oy=0.0, r_frac=SEAL_R, lobes=1.0, seed_th=0.0):
+    """The geometry of a poured blob on an n x n supersampled grid: distance
+    from the middle, the angle, the blob's mean radius, its edge radius at each
+    angle and the signed distance inside it. `zoom` draws it smaller in the file
+    and (ox, oy) moves it, both in texels of the file."""
     x, y = grid(n, n)
     dx, dy = (x - n / 2 - ox) * zoom, (y - n / 2 - oy) * zoom
     rho = np.hypot(dx, dy)
-    th = np.arctan2(dy, dx)
-    r0 = SEAL_R * n / 2
-    # A blobby outline: lobes at a few frequencies and two soft drops.
-    wob = (0.026 * np.sin(3 * th + 0.7) + 0.018 * np.sin(5 * th + 2.1) + 0.011 * np.sin(8 * th + 4.0)
-           + 0.007 * np.sin(13 * th + 1.3))
-    drop = 0.034 * np.exp(-((np.angle(np.exp(1j * (th - 0.95)))) / 0.30) ** 2)
-    drop += 0.022 * np.exp(-((np.angle(np.exp(1j * (th + 2.35)))) / 0.24) ** 2)
-    drop += 0.015 * np.exp(-((np.angle(np.exp(1j * (th - 2.6)))) / 0.20) ** 2)
-    rb = r0 * (1 + wob + drop)
-    e = rb - rho
-    return n, x, y, dx, dy, rho, th, r0, rb, e
+    th = np.arctan2(dy, dx) + seed_th
+    r0 = r_frac * n / 2
+    # Lobes at a few frequencies, and the bulges a pour squeezes out.
+    wob = (0.024 * np.sin(3 * th + 0.7) + 0.017 * np.sin(5 * th + 2.1) + 0.009 * np.sin(8 * th + 4.0)
+           + 0.005 * np.sin(13 * th + 1.3)) * lobes
+    drop = 0.032 * np.exp(-(angle_to(th, 0.95) / 0.30) ** 2)
+    drop += 0.024 * np.exp(-(angle_to(th, -2.35) / 0.26) ** 2)
+    drop += 0.016 * np.exp(-(angle_to(th, 2.6) / 0.20) ** 2)
+    drop += 0.012 * np.exp(-(angle_to(th, -0.55) / 0.18) ** 2)
+    rb = r0 * (1 + wob + drop * lobes)
+    return x, y, dx, dy, rho, th, r0, rb, rb - rho
 
 
-def seal_height(n, x, y, rho, r0, e):
-    # The wax edge rounds off over 9 texels and pools in a rim just inside it.
-    rounded = np.sqrt(np.clip(1 - (1 - np.clip(e / 9.5, 0, 1)) ** 2, 0, 1))
-    h = rounded
-    h = h + 0.15 * np.exp(-((e - 9.5) / 4.6) ** 2)
-    # The raised lip that the icon sits inside, and the embossed ring on it.
-    rr = (ICON_AT - 0.03) * r0
-    wall = sstep(rr - 3.0, rr + 3.0, rho)
-    h = h * (0.42 + 0.58 * wall)
-    h = h + 0.13 * np.exp(-((rho - 0.80 * r0) / 2.4) ** 2)
-    h = h - 0.07 * np.exp(-((rho - 0.745 * r0) / 2.0) ** 2)
-    h = h + 0.05 * np.exp(-((rho - LIP_AT * r0) / 2.2) ** 2)
-    # The surface of wax is never quite flat.
-    h = h + 0.018 * fbm(x, y, [9, 4.5, 2.2], 51)
+def seal_height(x, y, rho, th, r0, e):
+    """The seal's surface: a thick rounded edge, the rim the stamp squeezed up,
+    the stamp's pressed face with its beaded ring, and the recess for the icon."""
+    # The edge: wax is thick, and rounds off over a few texels to its top.
+    t = np.clip(e / 7.0, 0, 1)
+    top = np.sqrt(np.clip(1 - (1 - t) ** 2, 0, 1))
+    # The rim: the wax the stamp pushed out from under its face, humped up
+    # between the face's edge and the blob's edge, uneven round the seal.
+    rs = STAMP_AT * r0
+    span = np.maximum(e + (rho - rs), 1e-3)
+    u = np.clip((rho - rs) / span, 0, 1)
+    uneven = 0.70 + 0.30 * fbm(np.cos(th) * 40 + 64, np.sin(th) * 40 + 64, [14, 7], 52)
+    rim = np.clip(np.sin(math.pi * u), 0, 1) ** 1.3 * 0.26 * uneven * (rho > rs)
+    # The face: pressed down, flat but for the ring embossed on it.
+    face = sstep(rs + 1.6, rs - 1.6, rho)
+    pressed = 0.76
+    rr = RING_AT * r0
+    bead_ang = (th % (2 * math.pi / BEADS)) - math.pi / BEADS
+    d_bead = np.hypot(rho - rr, rr * bead_ang)
+    ring = 0.055 * np.exp(-((rho - rr) / 1.7) ** 2) + 0.085 * np.exp(-(d_bead / 1.55) ** 2)
+    h = (top + rim) * (1 - face) + (pressed + ring) * face
+    # The recess the icon sits in: a well with a wall.
+    ri = ICON_AT * r0
+    well = sstep(ri + 1.4, ri - 1.4, rho)
+    h = h * (1 - well) + 0.48 * well
+    # Wax is never quite flat, and bears the marbling of its pour.
+    h = h + 0.014 * fbm(x, y, [11, 5.5, 2.5], 51) * (1 - well)
     return h
 
 
+def wax_light(h, k, ambient=0.24):
+    """The body's value and the untinted light on a wax surface `h`: diffuse
+    with occlusion in the troughs; the hard specular, the broad sheen and the
+    bounce off the paper. The body's flat face comes out near 0.64, so a red
+    tint reads as oxblood there and as the colour itself only on the lit
+    bulges; the gloss over it is what shines."""
+    nrm = normals(h, 1.0, k)
+    body = lit(nrm, ambient=ambient)
+    # Occluded where the surface sits under its neighbours: the foot of the
+    # edge, the creases either side of the rim, the bottom of the well.
+    ao = np.clip(1 - 1.5 * np.clip(soft_blur(h, 2.2 * SS) - h, 0, None), 0.42, 1)
+    body = body * ao
+    ndh = np.clip(nrm @ HALF, 0, 1)
+    # Broad enough in texels to survive the file being drawn at a third of
+    # its size: a hair-thin highlight averages away.
+    hot = ndh ** 48 * 0.95 + ndh ** 14 * 0.30
+    sheen = ndh ** 6 * 0.28
+    bounce = np.clip(nrm @ BOUNCE, 0, 1) ** 7 * 0.34
+    return body, nrm, hot, sheen, bounce
+
+
 def make_seal():
-    n, x, y, dx, dy, rho, th, r0, rb, e = seal_field()
-    h = seal_height(n, x, y, rho, r0, e)
-    nrm = normals(h, 1.0, 8.5)
-    l = lit(nrm, ambient=0.40)
-    # Deeper where the wax is thick and where the recess meets its wall.
-    l = l * (0.86 + 0.14 * np.clip(h, 0, 1))
-    l = l * (1 - 0.30 * np.exp(-np.clip(ICON_AT * r0 - rho, -2, None) ** 2 / 25.0) * (rho < ICON_AT * r0 + 2))
-    # The brightest the wax gets is the colour it is tinted to; the light on the
-    # edge nearest the lamp is the gloss's.
-    l = np.clip(l * 1.06, 0, 1)
+    n = SEAL
+    x, y, dx, dy, rho, th, r0, rb, e = wax_outline(n)
+    h = seal_height(x, y, rho, th, r0, e)
+    body, nrm, hot, sheen, bounce = wax_light(h, 7.5)
+    # Marbling: slow swirls of a little lighter and darker wax.
+    marble = fbm(x * 0.9 + y * 0.35, y * 0.9 - x * 0.2, [18, 8, 4], 53)
+    body = body * (1 + 0.075 * marble)
+    # The wax is thinner at the lobes it squeezed out, and the paper shows
+    # through a little lighter; thickest, and deepest, in its troughs.
+    body = body * (0.86 + 0.14 * np.clip(h, 0, 1))
+    # The brightest the wax gets is the colour it is tinted to.
+    body = np.clip(body * 1.04, 0, 1)
     alpha = cover(-e)
-    save("Letter_Seal", finish(grey(l), alpha, n, n))
+    save("Letter_Seal", finish(grey(body), alpha, n, n))
     measured["seal_reach"] = round(float(np.max(np.where(alpha > 0.02, rho, 0))) / (n / 2), 3)
+    face = (rho < STAMP_AT * r0 * 0.95) & (rho > (ICON_AT + 0.05) * r0) & (np.abs(rho - RING_AT * r0) > 3)
+    measured["seal_body_face"] = round(float(np.median(body[face])), 3)
+    measured["seal_body_range"] = (round(float(np.percentile(body[alpha > 0.5], 3)), 3),
+                                   round(float(np.percentile(body[alpha > 0.5], 97)), 3))
+    # The light on the wax, never tinted: the hot specular along the lit
+    # edge and on the beads, the broad sheen on the lit half, the bounce off
+    # the paper on the far edge, and the lit far wall of the recess (the lamp
+    # reaches the wall that faces it, across the well). None of it over the
+    # icon itself.
+    ri = ICON_AT * r0
+    over_icon = sstep(ri - 2.0, ri - 0.2, rho)
+    toward = (dx * LIGHT[0] + dy * LIGHT[1]) / np.maximum(rho, 1e-3) / math.hypot(LIGHT[0], LIGHT[1])
+    wall = np.exp(-((rho - (ri + 0.6)) / 1.5) ** 2) * np.clip(-toward, 0, 1) ** 1.6 * 0.60
+    light = (hot + sheen * (0.55 + 0.45 * sstep(0.2, 1.0, np.clip(nrm @ LIGHT, 0, 1)))
+             + bounce * sstep(0.74 * r0, 0.90 * r0, rho) + wall)
+    light = light * over_icon * (alpha > 0.5)
+    # A hair softer than the surface itself, as a gloss is; the hot spots stay hard.
+    light = soft_blur(light, 0.35 * SS) * 0.7 + light * 0.3
+    gloss_rgb = tinted(light, (1.0, 0.965, 0.90))
+    save("Letter_SealGloss", finish(gloss_rgb, np.clip(light, 0, 1), n, n))
+    measured["seal_gloss_peak"] = round(float(light.max()), 3)
 
 
 def make_rim():
-    n, x, y, dx, dy, rho, th, r0, rb, e = seal_field()
-    h = seal_height(n, x, y, rho, r0, e)
-    nrm = normals(h, 1.0, 8.5)
-    l = lit(nrm, ambient=0.40)
-    l = l * (0.86 + 0.14 * np.clip(h, 0, 1))
-    l = np.clip(l * 1.06, 0, 1)
+    n = SEAL
+    x, y, dx, dy, rho, th, r0, rb, e = wax_outline(n)
+    h = seal_height(x, y, rho, th, r0, e)
+    body, nrm, hot, sheen, bounce = wax_light(h, 7.5)
+    marble = fbm(x * 0.9 + y * 0.35, y * 0.9 - x * 0.2, [18, 8, 4], 53)
+    body = np.clip(body * (1 + 0.075 * marble) * (0.86 + 0.14 * np.clip(h, 0, 1)) * 1.04, 0, 1)
     # The lip, over the icon's edge: opaque from just inside the icon's edge out
     # to where the body takes over, which is the same shading.
-    a_in = sstep(ICON_AT * r0 - 2.2, ICON_AT * r0 + 0.5, rho)
-    a_out = 1 - sstep(0.80 * r0, 0.88 * r0, rho)
+    ri = ICON_AT * r0
+    a_in = sstep(ri - 2.4, ri + 0.4, rho)
+    a_out = 1 - sstep(0.72 * r0, 0.80 * r0, rho)
     lip = a_in * a_out
     # The recess's shadow, on the icon: the wall of the recess falling away from
-    # the lamp, darker at the upper left where the lip stands over it.
-    shadow_w = np.exp(-np.clip(ICON_AT * r0 - rho, 0, None) / 4.2) * (rho < ICON_AT * r0 + 0.5)
-    side = 0.55 + 0.45 * np.clip(-(dx * LIGHT[0] + dy * LIGHT[1]) / np.maximum(rho, 1e-3) * -1, -1, 1)
-    sh = np.clip(shadow_w * (0.42 + 0.42 * side), 0, 0.88) * (1 - a_in)
+    # the lamp, darkest under the lip at the upper left, nothing at the lower
+    # right where the wall is lit instead.
+    toward = (dx * LIGHT[0] + dy * LIGHT[1]) / np.maximum(rho, 1e-3) / math.hypot(LIGHT[0], LIGHT[1])
+    side = 0.5 + 0.5 * toward
+    depth = np.exp(-np.clip(ri - rho, 0, None) / 5.0) * (rho < ri + 0.4)
+    sh = np.clip(depth * (0.16 + 0.62 * side ** 1.5), 0, 0.80) * (1 - a_in)
     alpha = np.clip(lip + sh * (1 - lip), 0, 1)
-    rgb = grey(l * lip / np.maximum(alpha, 1e-4))
+    rgb = grey(body * lip / np.maximum(alpha, 1e-4))
     save("Letter_SealRim", finish(rgb, alpha, n, n))
-
-
-def make_gloss():
-    n, x, y, dx, dy, rho, th, r0, rb, e = seal_field()
-    # The upper left is the lamp's: an arc of bright along the outer lip.
-    ang = np.angle(np.exp(1j * (th - math.radians(232))))
-    ring_c = 0.865 * r0
-    arc = np.exp(-((rho - ring_c) / 3.2) ** 2) * np.exp(-(ang / 0.62) ** 2)
-    arc2 = np.exp(-((rho - 0.78 * r0) / 2.0) ** 2) * np.exp(-((np.angle(np.exp(1j * (th - math.radians(238)))) / 0.38) ** 2))
-    # The hot spot, small and hard, and its softer halo.
-    cx, cy = -0.62 * r0 * 0.88 * 0.8, -0.62 * r0 * 0.88 * 0.9
-    sp = np.hypot(dx - cx * 1.12, dy - cy * 1.04)
-    hot = np.exp(-(sp / 3.2) ** 2.4)
-    halo = np.exp(-(sp / 11.0) ** 2) * 0.28
-    # A broad sheen on the lit half of the lip, a bounce on the far side.
-    sheen = np.exp(-((rho - 0.84 * r0) / 7.5) ** 2) * np.exp(-(ang / 1.05) ** 2) * 0.20
-    ang2 = np.angle(np.exp(1j * (th - math.radians(38))))
-    bounce = np.exp(-((rho - 0.89 * r0) / 2.6) ** 2) * np.exp(-(ang2 / 0.50) ** 2) * 0.30
-    inner = np.exp(-((rho - 0.60 * r0) / 1.6) ** 2) * np.exp(-((np.angle(np.exp(1j * (th - math.radians(40))))) / 0.9) ** 2) * 0.20
-    a = np.clip(arc * 0.80 + arc2 * 0.38 + hot * 0.95 + halo + sheen + bounce + inner, 0, 1)
-    a = a * (rho < r0 * 0.97)
-    save("Letter_SealGloss", finish(white(a), np.clip(a, 0, 1), n, n))
 
 
 SHADOW_ZOOM = 1.34
@@ -539,14 +666,17 @@ def make_shadow():
     n = SEAL
     # The wax's outline moved down and to the right and blurred into the paper,
     # with the wax's own place cut out of it: the shadow lies over the paper
-    # and under the lip, but never over the wax itself. The file holds the seal
-    # 1/SHADOW_ZOOM the size (the Lua draws it that much larger), and the offset
-    # is in texels of it.
-    _, x, y, dx, dy, rho, th, r0, rb, e = seal_field(SHADOW_ZOOM, 2.2, 4.6)
-    blur = 7.0
-    a = np.where(e > 0, 1.0, np.exp(-np.power(np.clip(-e, 0, None) / blur, 1.5))) * 0.55
-    _, _, _, _, _, _, _, _, _, e0 = seal_field(SHADOW_ZOOM)
-    a = a * (1 - cover(-e0 + 0.0))
+    # and under the lip, but never over the wax itself. Two shadows: a tight
+    # dark one where the wax touches the sheet, and a soft wide penumbra. The
+    # file holds the seal 1/SHADOW_ZOOM the size (the Lua draws it that much
+    # larger), and the offsets are in texels of it.
+    x, y, dx, dy, rho, th, r0, rb, e_near = wax_outline(n, SHADOW_ZOOM, 1.3, 2.2)
+    near = np.where(e_near > 0, 1.0, np.exp(-np.power(np.clip(-e_near, 0, None) / 2.6, 1.4))) * 0.62
+    e_far = wax_outline(n, SHADOW_ZOOM, 3.0, 5.4)[8]
+    far = np.where(e_far > 0, 1.0, np.exp(-np.power(np.clip(-e_far, 0, None) / 8.5, 1.3))) * 0.36
+    a = 1 - (1 - near) * (1 - far)
+    e0 = wax_outline(n, SHADOW_ZOOM)[8]
+    a = a * (1 - cover(-e0 - 0.3))
     a = a * (1 - sstep(0.80 * n / 2, 0.99 * n / 2, np.hypot(x - n / 2, y - n / 2)))
     save("Letter_SealShadow", finish(np.zeros(a.shape + (3,), np.float32), np.clip(a, 0, 1), n, n))
 
@@ -564,9 +694,9 @@ def make_mark():
     centre = 2.6 - rho
     h = np.clip(star_e / 3.0, 0, 1) * 0.9 + np.clip(ring_e / 1.2, 0, 1) * 0.6 + np.clip(centre / 2.0, 0, 1) * 0.3
     nrm = normals(h, 1.0, 5.0)
-    l = lit(nrm, ambient=0.45)
+    l = lit(nrm, ambient=0.40)
     alpha = np.clip(np.maximum(cover(-star_e), np.maximum(cover(-ring_e), cover(-centre))), 0, 1)
-    save("Letter_Mark", finish(grey(l * 0.9), alpha, n, n))
+    save("Letter_Mark", finish(grey(l * 0.92), alpha, n, n))
 
 
 def make_mask():
@@ -589,7 +719,6 @@ def make_glow():
 
 def make_crack():
     n = SEAL
-    rng = np.random.default_rng(61)
     x, y = grid(n, n)
     # A crack runs from the lip at the upper left, across the wax, to the lower
     # right, with branches: a polyline walked with a jitter, drawn as distance to
@@ -631,7 +760,7 @@ def make_crack():
     shift = np.roll(np.roll(core, int(1.0 * SS), 0), int(0.6 * SS), 1)
     lip = np.clip(shift - core, 0, 1)
     rho = np.hypot(x - n / 2, y - n / 2) / (n / 2)
-    inside = 1 - sstep(0.80, 0.93, rho)
+    inside = 1 - sstep(0.82, 0.94, rho)
     dark = np.array([0.05, 0.012, 0.008], np.float32)
     pale = np.array([1.0, 0.72, 0.55], np.float32)
     rgb = dark * core[..., None] + pale * lip[..., None] * 0.9
@@ -650,26 +779,28 @@ def make_slip():
     # on the caps, a straight middle. A slip of paper, cut with a knife, a
     # shade lighter than the sheet it lies on.
     m = 3.0
-    r = 5.0
+    r = 4.0
     qx = np.abs(x - w / 2) - (w / 2 - m - r)
     qy = np.abs(y - (h / 2 - 1.0)) - (h / 2 - 1.0 - m - r + 1.0)
     ox, oy = np.maximum(qx, 0), np.maximum(qy, 0)
     d = np.sqrt(ox * ox + oy * oy) + np.minimum(np.maximum(qx, qy), 0) - r
     body = cover(d)
     # The shadow under it, down and to the right.
-    sd = np.sqrt(np.maximum(np.abs(x - w / 2 - 0.6) - (w / 2 - m - r), 0) ** 2
-                 + np.maximum(np.abs(y - (h / 2 - 1.0) - 1.4) - (h / 2 - 1.0 - m - r + 1.0), 0) ** 2) - r
-    shadow = np.exp(-np.power(np.clip(sd, 0, None) / 2.6, 1.4)) * 0.42 * (1 - body)
-    paper = np.array([0.985, 0.945, 0.835], np.float32)
+    sd = np.sqrt(np.maximum(np.abs(x - w / 2 - 0.8) - (w / 2 - m - r), 0) ** 2
+                 + np.maximum(np.abs(y - (h / 2 - 1.0) - 1.6) - (h / 2 - 1.0 - m - r + 1.0), 0) ** 2) - r
+    shadow = np.exp(-np.power(np.clip(sd, 0, None) / 2.4, 1.4)) * 0.48 * (1 - body)
+    paper = np.array([0.985, 0.950, 0.850], np.float32)
     fib = fbm(x * 0.4, y * 0.8, [8, 3, 1.2], 71)
     rgb = np.broadcast_to(paper, x.shape + (3,)).copy() * (1 + 0.035 * fib[..., None])
-    inner = np.exp(-np.clip(-d, 0, None) / 2.6)
-    rgb = rgb * (1 - 0.18 * inner[..., None]) + np.array([0.60, 0.40, 0.20], np.float32) * (0.18 * inner[..., None]) * 0.8
-    line = np.exp(-(d / 0.7) ** 2) * 0.55
-    rgb = rgb * (1 - line[..., None]) + np.array([0.42, 0.27, 0.12], np.float32) * line[..., None]
-    # A lighter lit edge at the top left of the slip.
-    gloss = np.exp(-((d + 1.4) / 0.8) ** 2) * np.clip(-((x - w / 2) * LIGHT[0] + (y - h / 2) * LIGHT[1]) * 0.0 + 0.5, 0, 1) * 0.18
-    rgb = np.clip(rgb + gloss[..., None], 0, 1)
+    grain = vnoise(x, y, 0.7, 72) * 0.5
+    rgb = rgb * (1 + 0.03 * grain[..., None])
+    inner = np.exp(-np.clip(-d, 0, None) / 2.2)
+    rgb = rgb * (1 - 0.16 * inner[..., None]) + np.array([0.62, 0.42, 0.22], np.float32) * (0.16 * inner[..., None]) * 0.8
+    line = np.exp(-(d / 0.7) ** 2) * 0.60
+    rgb = rgb * (1 - line[..., None]) + np.array([0.40, 0.26, 0.12], np.float32) * line[..., None]
+    # The lit edge at the top and the left of the slip, where it lifts off the sheet.
+    lit_edge = np.exp(-((d + 1.3) / 0.8) ** 2) * (0.5 + 0.5 * np.clip(-(x - w / 2) * 0.03 - (y - h / 2) * 0.08, -1, 1)) * 0.22
+    rgb = np.clip(rgb + lit_edge[..., None], 0, 1)
     alpha = np.clip(body + shadow * (1 - body), 0, 1)
     out_rgb = np.where(alpha[..., None] > 0, (rgb * body[..., None] + np.array([0.12, 0.07, 0.03], np.float32) * (shadow * (1 - body))[..., None])
                        / np.maximum(alpha[..., None], 1e-4), 0)
@@ -678,19 +809,21 @@ def make_slip():
 
 def make_dot():
     n = 32
-    x, y = grid(n, n)
-    dx, dy = x - n / 2, y - n / 2
-    rho = np.hypot(dx, dy)
-    th = np.arctan2(dy, dx)
-    rb = 0.93 * n / 2 * (1 + 0.05 * np.sin(3 * th + 0.4) + 0.03 * np.sin(5 * th + 1.7))
-    e = rb - rho
-    h = np.sqrt(np.clip(1 - (1 - np.clip(e / 4.0, 0, 1)) ** 2, 0, 1))
-    h = h - 0.28 * np.exp(-(rho / 3.6) ** 2)
-    nrm = normals(h, 1.0, 5.0)
-    l = lit(nrm, ambient=0.44)
-    # A hard little highlight, baked: as bright as the colour allows.
-    l = np.clip(l * 1.12, 0, 1)
-    save("Letter_Dot", finish(grey(l), cover(-e), n, n))
+    x, y, dx, dy, rho, th, r0, rb, e = wax_outline(n, r_frac=0.90, lobes=0.8, seed_th=1.1)
+    # A drop: a thick rounded edge, a low dome that sank a little in the middle
+    # as it cooled.
+    t = np.clip(e / 3.6, 0, 1)
+    h = np.sqrt(np.clip(1 - (1 - t) ** 2, 0, 1))
+    h = h * (1 + 0.10 * np.clip(1 - (rho / r0) ** 2, 0, 1)) - 0.09 * np.exp(-(rho / 4.0) ** 2)
+    h = h + 0.012 * fbm(x, y, [6, 3], 54)
+    body, nrm, hot, sheen, bounce = wax_light(h, 3.8, ambient=0.28)
+    body = np.clip(body * (0.90 + 0.12 * np.clip(h, 0, 1)) * 1.04, 0, 1)
+    alpha = cover(-e)
+    save("Letter_Dot", finish(grey(body), alpha, n, n))
+    light = (hot * 0.8 + sheen * 0.7 + bounce * sstep(0.55 * r0, 0.95 * r0, rho)) * (alpha > 0.5)
+    light = soft_blur(light, 0.4 * SS) * 0.9 + light * 0.1
+    save("Letter_DotGloss", finish(tinted(light, (1.0, 0.965, 0.90)), np.clip(light, 0, 1), n, n))
+    measured["dot_reach"] = round(float(np.max(np.where(alpha > 0.02, rho, 0))) / (n / 2), 3)
 
 
 def make_rule():
@@ -703,6 +836,9 @@ def make_rule():
     d = np.abs(y - h / 2) - thick
     dry = 0.78 + 0.22 * vnoise(x * 0.9, y * 3.0, 2.0, 81)
     a = cover(d) * np.where(t < 0.015, 0, 1) * np.clip(dry, 0, 1)
+    # Ink feathers a hair into the paper's fibre either side of the stroke.
+    feather = np.exp(-np.clip(d, 0, None) / 0.9) * 0.22 * (0.5 + 0.5 * vnoise(x * 1.5, y * 2.0, 1.2, 82))
+    a = np.clip(a + feather * (t > 0.015), 0, 1)
     # A small drop of ink at the left end, where the pen began.
     drop = cover(np.hypot(x - 3.2, y - h / 2) - 2.2)
     a = np.clip(np.maximum(a, drop * 0.95), 0, 1)
@@ -735,10 +871,8 @@ def sheet(path):
             bg = np.zeros((h, w, 3), np.float32) + np.array(g, np.float32)
             a = arr[..., 3:4].astype(np.float32) / 255
             rgb = arr[..., :3].astype(np.float32)
-            if name in ("Letter_SealShadow",):
-                pass
             if name in ("Letter_Seal", "Letter_SealRim", "Letter_Dot", "Letter_Mark"):
-                rgb = rgb * np.array([0.84, 0.13, 0.15], np.float32) / 255 * 255
+                rgb = rgb * np.array([0.80, 0.10, 0.13], np.float32)
             if name in ("Letter_Glow", "Letter_Sweep"):
                 rgb = rgb * np.array([1.0, 0.72, 0.34], np.float32)
                 comp = np.clip(bg + rgb * a, 0, 255)
@@ -747,6 +881,26 @@ def sheet(path):
             im = Image.fromarray(np.clip(comp, 0, 255).astype(np.uint8), "RGB")
             if k > 1:
                 im = im.resize((w * k, h * k), Image.NEAREST)
+            cells.append(im)
+    # The seal as it is worn: the body under its light, in red, in black and in
+    # a pale wax, on parchment.
+    parts = {name: arr for name, arr in sheet_items}
+    if all(k in parts for k in ("Letter_Seal", "Letter_SealGloss", "Letter_SealShadow")):
+        for wax in ((0.80, 0.10, 0.13), (0.17, 0.17, 0.20), (0.96, 0.86, 0.28), (0.12, 0.58, 0.58)):
+            n = SEAL
+            bg = np.zeros((n, n, 3), np.float32) + np.array(grounds[1], np.float32) / 255
+            sh = parts["Letter_SealShadow"].astype(np.float32) / 255
+            big = Image.fromarray(parts["Letter_SealShadow"], "RGBA").resize((int(n * SHADOW_ZOOM), int(n * SHADOW_ZOOM)), Image.LANCZOS)
+            sh = np.asarray(big).astype(np.float32) / 255
+            o = (sh.shape[0] - n) // 2
+            sh = sh[o:o + n, o:o + n]
+            bg = bg * (1 - sh[..., 3:4])
+            body = parts["Letter_Seal"].astype(np.float32) / 255
+            col = body[..., :3] * np.array(wax, np.float32)
+            bg = bg * (1 - body[..., 3:4]) + col * body[..., 3:4]
+            gl = parts["Letter_SealGloss"].astype(np.float32) / 255
+            bg = bg * (1 - gl[..., 3:4]) + gl[..., :3] * gl[..., 3:4]
+            im = Image.fromarray(np.clip(bg * 255, 0, 255).astype(np.uint8), "RGB").resize((n * 2, n * 2), Image.LANCZOS)
             cells.append(im)
     # Lay them out in rows.
     pad = 8
@@ -778,7 +932,6 @@ def main():
     make_rod()
     make_seal()
     make_rim()
-    make_gloss()
     make_shadow()
     make_mark()
     make_mask()
