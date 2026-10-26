@@ -86,10 +86,49 @@ _m(RIBBON,
    expect="look-ribbon: the layout holds")
 
 _m(RIBBON,
-   "\tlocal H = 24\n\twhile Geometry(200, H, true).inner < block do H = H + 1 end\n",
-   "\tlocal H = 24\n\twhile false do H = H + 1 end\n",
+   "\t\tlocal H = 24\n\t\twhile not (holds(H) and holds(H + 1) and holds(H + 2)) do H = H + 1 end\n",
+   "\t\tlocal H = 24\n\t\twhile false do H = H + 1 end\n",
    "two lines asked for at any height",
    expect="look-ribbon: the options page can state")
+
+# --- the reason line at every size ------------------------------------------
+
+_m(RIBBON,
+   "\t\tlocal function holds(H) return Geometry(200, H, true, fontSize, full).nameSz ~= nil end\n",
+   "\t\tlocal function holds(H) return Geometry(200, H, true).inner >= NameSize(fontSize) + Gap(fontSize)"
+   " + SubSize(fontSize) + 2 end\n",
+   "two lines only where the cloth holds the display face unwidened: the reason dropped at large sizes",
+   expect="look-ribbon: the reason line stays wherever")
+
+_m(RIBBON,
+   "\t\twhile ov > least and not Lines(two, ",
+   "\t\twhile false and ov > least and not Lines(two, ",
+   "the cloth never widens for two lines: the face shrinks first",
+   expect="look-ribbon: the reason line stays wherever")
+
+_m(RIBBON,
+   "\tif full then return nil end\n",
+   "\tdo return nil end\n",
+   "the display face never gives way: the reason dropped where it does not fit",
+   expect="look-ribbon: the reason line stays wherever")
+
+_m(RIBBON,
+   "math.max(from(false), ns.TwoLineHeight(fontSize, \"glass\"))",
+   "from(false)",
+   "two lines squeezed in below the height the built-in look keeps them at",
+   expect="look-ribbon: the reason line stays wherever")
+
+_m(RIBBON,
+   "(H - (icon and M or H - 3) / TALLER) / 2 - 1e-6)",
+   "(H - (icon and M or H - 3) / 0.95) / 2 - 1e-6)",
+   "the cloth widened past the medallion for two lines",
+   expect="look-ribbon: the reason line stays wherever")
+
+_m(RIBBON,
+   "\tlocal half = math.min(RIBBON_PX * s / 2, self.H - mid)\n",
+   "\tlocal half = RIBBON_PX * s / 2\n",
+   "the shadow of a widened cloth drawn out of the prompt",
+   expect="look-ribbon: the layout holds")
 
 _m(RIBBON,
    "\treturn Geometry(p.width or 220, p.height or 44, true).iconSize\n",

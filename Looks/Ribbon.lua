@@ -123,13 +123,45 @@ local function Clamp(v, lo, hi) return math.max(lo, math.min(hi, v)) end
 local function SubSize(fontSize) return math.max(8, fontSize - 3) end
 local function NameSize(fontSize) return math.floor(fontSize * 1.1 + 0.5) end
 local function Gap(fontSize) return math.max(1, fontSize * 0.1) end
+-- How much taller than the cloth the medallion always stands, at the least.
+local TALLER = 1.1
+
+-- The name's size and the gap under it for two lines on cloth that holds
+-- `inner` units between its rails, the reason line counted: the display face
+-- at its own size, with its gap and two units to spare, where that fits (and
+-- with `full`, only there); else the gap and the spare taken to a unit each and
+-- the face a point smaller at a time, as far as a line too long for its room
+-- is drawn (Prompt/Text.lua, FitLine) and never as small as the reason; last,
+-- the same with nothing to spare (the lines' boxes then meet the rails, their
+-- letters inside them). Nothing where even that does not fit.
+local function Lines(fontSize, inner, full)
+	local name, gap, sub = NameSize(fontSize), Gap(fontSize), SubSize(fontSize)
+	if name + gap + sub + 2 <= inner then return name, gap end
+	if full then return nil end
+	for spare = 1, 0, -1 do
+		for size = name, math.max(sub + 1, 7, math.floor(name * 0.8 + 0.5)), -1 do
+			if size + 1 + sub + spare <= inner then return size, 1 end
+		end
+	end
+	return nil
+end
 
 -- The ribbon and the medallion for a panel `W` by `H`, in units: the cloth's
 -- rows, how far a texel of its files is drawn, the forked end and the fork,
 -- the medallion's radius and its centre. The medallion is the prompt's height
 -- less a margin for its shadow, held to half the width of a narrow panel.
-local function Geometry(W, H, icon)
+-- With `two` (the font size) the prompt carries two lines, and where the cloth
+-- is too narrow for them in the display face at its size it widens a unit at a
+-- time, as far as keeps the medallion (with the icon off, the height it would
+-- have) TALLER times the cloth, before the face gives way; `nameSz` and `gap`
+-- are then the lines' (Lines, `full` passed on), nil where they do not fit.
+local function Geometry(W, H, icon, two, full)
+	local M = icon and math.min(H - 3, math.max(24, math.floor(W * 0.5))) or 0
 	local ov = Clamp(math.floor(H * 0.115 + 0.5), 1, 14)
+	if two then
+		local least = math.max(1, math.ceil((H - (icon and M or H - 3) / TALLER) / 2 - 1e-6))
+		while ov > least and not Lines(two, (H - 2 * ov) * (1 - 2 * 5.8 / RIBBON_PX), true) do ov = ov - 1 end
+	end
 	local g = { ov = ov, top = ov, bottom = H - ov }
 	g.rh = g.bottom - g.top
 	g.k = g.rh / RIBBON_PX
@@ -137,7 +169,7 @@ local function Geometry(W, H, icon)
 	g.notch = NOTCH_PX * g.k
 	-- The room the cloth leaves inside the rails.
 	g.inner = g.rh * (1 - 2 * 5.8 / RIBBON_PX)
-	local M = icon and math.min(H - 3, math.max(24, math.floor(W * 0.5))) or 0
+	if two then g.nameSz, g.gap = Lines(two, g.inner, full) end
 	g.M, g.R = M, M / 2
 	g.cx, g.cy = 1.5 + M / 2, H / 2
 	g.half = g.R / M_OUT
@@ -145,13 +177,21 @@ local function Geometry(W, H, icon)
 	return g
 end
 
--- The name, the gap and the reason as one block, and the least height whose
--- cloth holds it between the rails with a unit to spare.
+-- The least height from which the cloth, widened as far as the medallion lets
+-- it, holds the name, the gap and the reason between the rails: in the display
+-- face at its size, or else in the face made smaller (Lines), but only from the
+-- height at which the built-in look keeps the reason line, so the reason is
+-- never dropped where that one keeps it and never squeezed in where it does
+-- not. "From": so does every taller prompt (the cloth's margin is whole units,
+-- and a prompt a unit taller can have a unit's less cloth).
 function Ribbon.TwoLineHeight(fontSize)
-	local block = NameSize(fontSize) + Gap(fontSize) + SubSize(fontSize) + 2
-	local H = 24
-	while Geometry(200, H, true).inner < block do H = H + 1 end
-	return H
+	local function from(full)
+		local function holds(H) return Geometry(200, H, true, fontSize, full).nameSz ~= nil end
+		local H = 24
+		while not (holds(H) and holds(H + 1) and holds(H + 2)) do H = H + 1 end
+		return H
+	end
+	return math.min(from(true), math.max(from(false), ns.TwoLineHeight(fontSize, "glass")))
 end
 
 -- The enamel is the ring round the icon, the cloth is the stripe: the ring
@@ -590,10 +630,12 @@ function Ribbon:PlaceRibbon(dx)
 	-- The shadow: the cloth's own silhouette, blurred, lower by a unit or
 	-- three (the cloth stands a little off the world), drawn on a canvas of
 	-- RIBBON_PX rows of which the cloth fills SHADOW_PX, and whose end keeps
-	-- ROOM texels beyond the tip. One canvas texel is `s` units.
+	-- ROOM texels beyond the tip. One canvas texel is `s` units. On cloth
+	-- widened for two lines (Geometry) the canvas is drawn a little shorter
+	-- where it would reach out of the prompt, its blur fading out inside it.
 	local s = g.rh / SHADOW_PX
-	local half = RIBBON_PX * s / 2
 	local mid = (g.top + g.bottom) / 2 + Clamp(g.rh * 0.05, 1, 3)
+	local half = math.min(RIBBON_PX * s / 2, self.H - mid)
 	local y0, y1 = mid - half, mid + half
 	local d = self.drop
 	local tip, room = (END_PX - SHADOW_ROOM) * s, SHADOW_ROOM * s
@@ -609,12 +651,15 @@ function Ribbon:Apply(p, above)
 	local art, icon, fit = kit.art, kit.icon, kit.fit
 	local W, H, fs = p.width, p.height, p.fontSize
 	local showIcon = p.showIcon and true or false
-	local nameSz, sub = NameSize(fs), SubSize(fs)
+	-- Two lines where Prompt draws two (the test it makes, Prompt/Panel.lua):
+	-- the cloth widened and the face sized to hold them (Geometry).
+	local two = p.showSub and H >= Ribbon.TwoLineHeight(fs) and fs or nil
+	local g = Geometry(W, H, showIcon, two)
+	self.g = g
+	local nameSz, sub = g.nameSz or NameSize(fs), SubSize(fs)
 	self.active = true
 	self.p, self.W, self.H, self.above = p, W, H, above
 	self.nameSz, self.sub, self.showIcon = nameSz, sub, showIcon
-	local g = Geometry(W, H, showIcon)
-	self.g = g
 	-- How far apart the list's ribbons are, which is also how tall each name's
 	-- click area is (Prompt/Rows.lua).
 	self.pitch = sub + 8
@@ -691,7 +736,7 @@ function Ribbon:Apply(p, above)
 	-- The room the name always keeps at the right: the fork's depth and a margin.
 	self.rightBase = math.ceil(g.notch + 8)
 
-	local gap = Gap(fs)
+	local gap = g.gap or Gap(fs)
 	local block = nameSz + gap + sub
 	self.nameY = block / 2 - nameSz / 2 + 0.5
 	self.subY = -(block / 2 - sub / 2) + 0.5
