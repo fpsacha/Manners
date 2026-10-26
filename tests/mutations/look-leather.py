@@ -41,6 +41,7 @@ S_LEAVE = 'look-leather: leaving it gives the lines, the icon and the sweep back
 S_CURSOR = 'look-leather: the cursor lights the brass, and unlocked it can still be dragged'
 S_SHIP = 'look-leather: its art is 32-bit, a power of two, and every file is named and shipped'
 S_GEN = 'look-leather: tools/make_leather_textures.py is deterministic and draws what ships'
+S_SHADOW = 'look-leather: the tag throws a soft shadow under it, within half its height, under the leather'
 
 
 def _m(file, old, new, label, **kw):
@@ -573,6 +574,32 @@ _m(LEATHER,
    "\tg.fade:SetDuration(on and 0.12 or 0.18)\n",
    "the cursor lights nothing",
    expect=S_CURSOR)
+
+# --- the shadow the tag throws -----------------------------------------------
+
+_m(LEATHER,
+   "local SHADOW_SIDE, SHADOW_BEFORE, SHADOW_UP = 16, 48, 64\n",
+   "local SHADOW_SIDE, SHADOW_BEFORE, SHADOW_UP = 16, 48, 128\n",
+   "the shadow reaching past half the tag's height",
+   expect=S_SHADOW)
+
+_m(LEATHER,
+   '\tself.shadow = Slices(art, "BACKGROUND", -7, keep, SHADOW_FILES)\n',
+   '\tself.shadow = Slices(art, "BACKGROUND", -5, keep, SHADOW_FILES)\n',
+   "the shadow drawn over the leather",
+   expect=S_SHADOW)
+
+_m(LEATHER,
+   '\tEach(self.shadow, "SetVertexColor", 0, 0, 0, SHADOW_ALPHA)\n',
+   '\tEach(self.shadow, "SetVertexColor", 1, 1, 1, SHADOW_ALPHA)\n',
+   "the shadow drawn white",
+   expect=S_SHADOW)
+
+_m(LEATHER,
+   "\tBox(s[1], rel, x0 - SHADOW_SIDE * su, top, lEnd, bottom)\n",
+   "\tBox(s[1], rel, x0, top, lEnd, bottom)\n",
+   "the shadow stopping at the tag's left edge",
+   expect=S_SHADOW)
 
 # --- the art, its generator and the constants the two share ----------------
 
