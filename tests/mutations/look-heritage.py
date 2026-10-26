@@ -435,8 +435,8 @@ _m("Manners.toc",
        script="runscenarios.py")
 
 _m("Locales/deDE.lua",
-       "L[\"Heritage -- stone and gold, like the first interface\"] = \"Erbe",
-       "L[\"Heritage -- stone and gold, like the first interface\"] = \"Heritage",
+       "L[\"Heritage -- a unit frame: gold-ringed portrait, banner and bar\"] = \"Erbe",
+       "L[\"Heritage -- a unit frame: gold-ringed portrait, banner and bar\"] = \"Heritage",
        "the look's name left in English in German",
        expect="deDE's translation of the look's name",
        script="runscenarios.py")

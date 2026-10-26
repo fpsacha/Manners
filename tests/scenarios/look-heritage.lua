@@ -143,7 +143,7 @@ withTree("look-heritage: it is registered, listed and loaded after the other loo
 	if look.native or look.fallback then fail(scenario, "the look is native or a fallback") end
 	if not ns.Looks.Allowed().heritage then fail(scenario, "a saved style of heritage is not allowed") end
 	local values, sorting = ns.Looks.Choices()
-	if values.heritage ~= ns.L["Heritage -- stone and gold, like the first interface"] then
+	if values.heritage ~= ns.L["Heritage -- a unit frame: gold-ringed portrait, banner and bar"] then
 		fail(scenario, "the dropdown's label is " .. tostring(values.heritage))
 	end
 	local at
@@ -176,7 +176,7 @@ withTree("look-heritage: it is registered, listed and loaded after the other loo
 end)
 
 withTree("look-heritage: its name is translated into all eight languages", ANNA, function(_, scenario)
-	local key = 'L["Heritage -- stone and gold, like the first interface"] = "'
+	local key = 'L["Heritage -- a unit frame: gold-ringed portrait, banner and bar"] = "'
 	for _, code in ipairs({ "deDE", "esES", "frFR", "itIT", "koKR", "ptBR", "zhCN", "zhTW" }) do
 		local text = slurp(dir .. "/Locales/" .. code .. ".lua") or ""
 		local at = text:find(key, 1, true)

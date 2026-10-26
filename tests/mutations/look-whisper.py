@@ -556,7 +556,7 @@ mutate(WHISPER,
        expect="is the size of a panel", script=S)
 
 mutate(WHISPER,
-       "\tname = L[\"Whisper -- no box, one hairline in the reason colour\"],\n",
+       "\tname = L[\"Whisper -- floating letters, the reason in small capitals\"],\n",
        "\tname = L[\"Whisper -- no box, one thin line in the reason colour\"],\n",
        "look-whisper: its name has no translation",
        expect="its name is translated", script=S)

@@ -49,7 +49,7 @@ local CROWD = { nameplate1 = { "Anna", "Aim" }, nameplate2 = { "Brannoc", "Vale"
 	nameplate3 = { "Corwin", "Ash" }, nameplate4 = { "Dagna", "Moss" } }
 local REASONS = { "target", "owed", "asked", "group", "nearby", "self" }
 local FLAVOURS = { "camelot", "vanilla", "tbc", "mists", "mainline" }
-local NAME_KEY = "Whisper -- no box, one hairline in the reason colour"
+local NAME_KEY = "Whisper -- floating letters, the reason in small capitals"
 local COMMAND = "CLICK MannersPrompt:LeftButton"
 
 local function withTree(scenario, names, body, before)

@@ -58,9 +58,9 @@ local ART = "Interface\\AddOns\\Manners\\Textures\\Whisper\\Whisper_"
 local COMMAND = "CLICK MannersPrompt:LeftButton"
 
 local Whisper = ns.Looks.Register("whisper", {
-	name = L["Whisper -- no box, one hairline in the reason colour"],
+	name = L["Whisper -- floating letters, the reason in small capitals"],
 	title = L["Whisper"],
-	description = L["no box, one hairline in the reason colour"],
+	description = L["floating letters, the reason in small capitals"],
 	order = 4,
 	-- The ground and the ink are dimmed apart, so art itself stays whole.
 	combatArtAlpha = 1,
