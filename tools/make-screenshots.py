@@ -776,9 +776,10 @@ def expect_top(key, top, name, reason):
 
 
 def expect_names(key, texts, names):
-    joined = "\n".join(texts)
+    # Read without case: a look may set names in capitals (Slate).
+    joined = "\n".join(texts).lower()
     for name in names:
-        if name not in joined:
+        if name.lower() not in joined:
             problem("%s: %s is not drawn anywhere on it" % (key, name))
 
 
@@ -858,7 +859,7 @@ _cut = []
 _draw_text = rp.draw_text
 
 
-def _noting_cuts(canvas, tree, r, box, alpha, px):
+def _noting_cuts(canvas, tree, r, box, alpha, px, grown=1.0):
     text = r.get("text")
     width = box[2] - box[0]
     if text is not None and r.get("wordWrap") is False and width > 0:
@@ -867,7 +868,7 @@ def _noting_cuts(canvas, tree, r, box, alpha, px):
         full = "".join(p[0] for p in rp.runs(str(text), (1, 1, 1, 1)))
         if f.getlength(full) > width + 0.5:
             _cut.append(rp.plain_text(text).strip())
-    return _draw_text(canvas, tree, r, box, alpha, px)
+    return _draw_text(canvas, tree, r, box, alpha, px, grown)
 
 
 rp.draw_text = _noting_cuts
@@ -1607,7 +1608,7 @@ LOOKS = [
     ("arcane", "Arcane", "smoked glass, a rim lit by the reason"),
     ("whisper", "Whisper", "floating letters, the reason in small capitals"),
     ("heritage", "Heritage", "a unit frame: gold-ringed portrait, banner and bar"),
-    ("slate", "Slate", "modern card, soft shadow, thin progress line"),
+    ("slate", "Slate", "slanted plates, accent blade, segmented timer"),
     ("glass", "Glass", "dark panel, soft shadow"),
     ("framed", "Framed", "flat panel, thin border"),
     ("minimal", "Minimal", "text only, no panel"),

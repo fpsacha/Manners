@@ -5,9 +5,11 @@
 - **Three new looks.** *Whisper*: no box at all, just type: the name large
   on the world, the reason above it in small spaced capitals led by a round
   dot, outlined so it reads over snow as over a dungeon; a landing blooms the
-  name and draws a fine line under it. *Heritage*: the first interface's stone and gold, the icon
-  in an action button's slot, a gold flash when your buff lands and the red of
-  an out-of-range button when the game refuses it. *Slate*: slanted
+  name and draws a fine line under it. *Heritage*: a classic unit frame, the
+  spell in a round gold-ringed portrait with a fan of gold blades, the name on
+  a banner in the reason's colour and a bar beneath that runs down with the
+  favour's time; a gold flash when your buff lands, the portrait red when the
+  game refuses it, the red glow of a fight. *Slate*: slanted
   plates, a bold blade in the reason's colour and the name in capitals, with a
   segmented bar along its foot that counts the cooldown down in place of the
   sweep and a white-to-green wipe when your buff lands.
