@@ -2229,7 +2229,7 @@ withTree("look-letter: the light on the wax is white whatever the wax is", CROWD
 	if not (look.countMode and look.keyUp) then fail(scenario, "SKIPPED -- the slips are not up") return end
 	local function white(label)
 		local lights = { ["the light on the seal"] = look.gloss, ["a drop's light"] = look.dropLights[1],
-			["the count pin's light"] = look.countPinLight, ["the key pin's light"] = look.keyPinLight }
+			["the count pin's light"] = look.countPinLight }
 		for name, t in pairs(lights) do
 			local c = t._color
 			if c and not (near(c[1], 1, 0.001) and near(c[2], 1, 0.001) and near(c[3], 1, 0.001)) then
@@ -2287,8 +2287,10 @@ withTree("look-letter: the light on the wax is white whatever the wax is", CROWD
 			fail(scenario, "drop " .. i .. " is hidden and its light is not")
 		end
 	end
-	-- Each pin on its slip's corner, with its light on it.
-	for _, pair in ipairs({ { look.countPin, look.countPinLight, look.countBox, "the count's" }, { look.keyPin, look.keyPinLight, look.keyBox, "the key's" } }) do
+	-- The count's pin on its slip's corner, with its light on it; the key's slip
+	-- has none.
+	if look.keyPin or look.keyPinLight then fail(scenario, "the key's slip is pinned with a drop of wax") end
+	for _, pair in ipairs({ { look.countPin, look.countPinLight, look.countBox, "the count's" } }) do
 		local pin, light, box = rectOf(pair[1]), rectOf(pair[2]), rectOf(pair[3])
 		if not (pin and light and box) then
 			fail(scenario, pair[4] .. " pin has no place")

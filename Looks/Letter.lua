@@ -546,9 +546,9 @@ function Letter:Build(kit)
 	self.keyBox = keep(CreateFrame("Frame", nil, self.chipFrame))
 	self.countPin = tex(self.chipFrame, "ARTWORK", 2, "Dot")
 	self.countPinLight = tex(self.chipFrame, "ARTWORK", 3, "DotGloss")
-	self.keyPin = tex(self.chipFrame, "ARTWORK", 2, "Dot")
-	self.keyPinLight = tex(self.chipFrame, "ARTWORK", 3, "DotGloss")
-	self.pins = { self.countPin, self.keyPin }
+	-- Only the count's slip, on the seal, is pinned with its wax: a drop on the
+	-- key's slip, away from the seal, read as a stray red speck.
+	self.pins = { self.countPin }
 	self.keyText = keep(textLayer:CreateFontString(nil, "OVERLAY"))
 	self.keyText:SetJustifyH("CENTER")
 	self.keyText:SetWordWrap(false)
@@ -564,7 +564,7 @@ function Letter:Build(kit)
 	end
 	-- The light on every drop is white, and stays so: a tint would make it a
 	-- colour, not a shine.
-	for _, t in ipairs({ self.countPinLight, self.keyPinLight }) do t:SetVertexColor(1, 1, 1, 1) end
+	self.countPinLight:SetVertexColor(1, 1, 1, 1)
 	for _, t in ipairs(self.dropLights) do t:SetVertexColor(1, 1, 1, 1) end
 
 	-- The icon's shape; taken off it in Hide, so not in `own`.
@@ -879,7 +879,6 @@ function Letter:Apply(p, above)
 	end
 	self:PlaceSlip(self.countSlip, self.countBox, chipH)
 	self:PlaceSlip(self.keySlip, self.keyBox, chipH)
-	self:PlacePin(self.keyPin, self.keyPinLight, self.keyBox, chipH)
 	-- The count's slip pinned on the seal is a little smaller, and only on a
 	-- seal big enough to carry it.
 	self.badgeH = Clamp(g.subSize + 1, 10, chipH)
@@ -931,7 +930,7 @@ function Letter:Apply(p, above)
 	self.sweepFrame:SetAlpha(0)
 	Each(self.countSlip, "Hide")
 	Each(self.keySlip, "Hide")
-	for _, t in ipairs({ self.countPin, self.countPinLight, self.keyPin, self.keyPinLight }) do t:Hide() end
+	for _, t in ipairs({ self.countPin, self.countPinLight }) do t:Hide() end
 	self.keyText:Hide()
 	for i = 1, #self.drops do
 		self.drops[i]:Hide()
@@ -1306,8 +1305,6 @@ function Letter:Chip(on)
 	self.countPin:SetShown(mode ~= nil)
 	self.countPinLight:SetShown(mode ~= nil)
 	Each(self.keySlip, "SetShown", keyUp)
-	self.keyPin:SetShown(keyUp)
-	self.keyPinLight:SetShown(keyUp)
 	self.keyText:SetShown(keyUp)
 	kit.count:SetShown(mode ~= nil)
 	-- Only a slip on the name line takes room from it; PlaceLines gives each line

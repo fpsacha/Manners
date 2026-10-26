@@ -547,10 +547,10 @@ _m(LETTER,
    expect="pin is not on its slip's upper left corner", script=S)
 
 _m(LETTER,
-   "\tself.keyPin:SetShown(keyUp)\n\tself.keyPinLight:SetShown(keyUp)\n",
-   "\tself.keyPin:SetShown(keyUp)\n\tself.keyPinLight:SetShown(false)\n",
-   "the key's pin without its light",
-   expect="the key's pin has no light on it", script=S)
+   "\tself.pins = { self.countPin }\n",
+   "\tself.pins = { self.countPin }\n\tself.keyPin = tex(self.chipFrame, \"ARTWORK\", 2, \"Dot\")\n",
+   "a drop of wax on the key's slip, away from the seal",
+   expect="the key's slip is pinned with a drop of wax", script=S)
 
 _m(GEN,
    "SHADOW_ZOOM = 1.34\n",
