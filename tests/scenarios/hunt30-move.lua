@@ -466,7 +466,9 @@ for _, look in ipairs(LOOKS) do
 		ns.addon:Tick()
 		local name, sub = tostring(R.nameText:GetText()), tostring(R.subText:GetText())
 		if not name:find("Drag to move", 1, true) then fail(scenario, "the first line reads " .. name) end
-		if not sub:find("Let go and it locks itself", 1, true) then
+		-- Read as the eye does: a look that sets its second line in letter-spaced
+		-- capitals still says it.
+		if not sub:lower():gsub("%s+", ""):find("letgoanditlocksitself", 1, true) then
 			fail(scenario, "the second line reads " .. sub)
 		end
 		if sub:find("not buffing", 1, true) or sub:lower():find("|cffff8080", 1, true) then

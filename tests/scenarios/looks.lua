@@ -140,9 +140,12 @@ local function everyState(ns, p)
 		if words then
 			local said = tostring(regions.name:GetText()) .. " / "
 				.. (regions.sub:IsShown() and tostring(regions.sub:GetText()) or "")
+			-- Read as the eye does: a look that sets its second line in letter-spaced
+			-- capitals still says the word.
+			local read = said:lower():gsub("%s+", "")
 			local found = false
 			for _, word in ipairs(words) do
-				if said:find(word, 1, true) then found = true end
+				if read:find((word:lower():gsub("%s+", "")), 1, true) then found = true end
 			end
 			if not found then return step[1] .. ": the lines do not say the verdict: " .. said end
 		end

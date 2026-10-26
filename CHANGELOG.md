@@ -2,9 +2,10 @@
 
 ## Unreleased
 
-- **Three new looks.** *Whisper*: almost nothing, a small icon and one
-  hairline with a dash in the reason's colour; a landing draws a fine line
-  under the name. *Heritage*: the first interface's stone and gold, the icon
+- **Three new looks.** *Whisper*: no box at all, just type: the name large
+  on the world, the reason above it in small spaced capitals led by a round
+  dot, outlined so it reads over snow as over a dungeon; a landing blooms the
+  name and draws a fine line under it. *Heritage*: the first interface's stone and gold, the icon
   in an action button's slot, a gold flash when your buff lands and the red of
   an out-of-range button when the game refuses it. *Slate*: a modern rounded
   card with a soft shadow, and a thin line along its foot in place of the
