@@ -25,6 +25,10 @@ local function RepaintSoon()
 	end)
 end
 
+-- The looks whose icon is round whatever "Round the icon off" says (a wax
+-- seal, two gilded medallions): the toggle does nothing there and is greyed.
+local ROUND_ALWAYS = { letter = true, ribbon = true, toast = true }
+
 -- Which of the two things that can carry the reason colour is actually on
 -- screen (ring, stripe). ApplyStyle refuses the stripe on the framed look, and
 -- the ring is a texture *behind* the icon, so hiding the icon or rounding it
@@ -566,8 +570,9 @@ function Page.BuildLookTab()
 				desc = L["Masks the icon into a circle. Reads more like a portrait than a spell, so it is off by default."],
 				order = 53,
 				width = "full",
-				-- Letter's icon is pressed into a wax seal: always round.
-				disabled = function() return not P().showIcon or P().style == "letter" end,
+				-- Letter's icon is pressed into a wax seal, Ribbon's and Toast's sit
+				-- in a medallion: always round.
+				disabled = function() return not P().showIcon or ROUND_ALWAYS[P().style] == true end,
 				get = pGet,
 				set = pSet,
 			},

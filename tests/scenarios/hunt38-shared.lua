@@ -105,3 +105,70 @@ for _, style in ipairs({ "ribbon", "leather" }) do
 		if not ok then error(err, 0) end
 	end)
 end
+
+-- ------------------------------------------------------------------ 2
+-- "Round the icon off" is greyed out wherever the icon is round whatever it
+-- says (the Letter's seal, the Ribbon's and the Toast's medallions), and live
+-- on every look that reads it: a toggle that does nothing is a lie.
+do
+	local scenario = "hunt38-shared: the round icon toggle is off where the icon is always round"
+	withTree(scenario, { nameplate1 = { "Anna", "Aim" } }, function(ns)
+		freshPrompt(ns, scenario)
+		local p = ns.db.profile.prompt
+		local round = H.findOption(ns.optionsTable, "roundIcon")
+		if not round then fail(scenario, "SKIPPED -- no round icon option") return end
+		p.showIcon = true
+		local always = { letter = true, ribbon = true, toast = true }
+		local keys = {}
+		for key in pairs(ns.Looks.Allowed()) do keys[#keys + 1] = key end
+		table.sort(keys)
+		for _, key in ipairs(keys) do
+			p.style = key
+			ns.Prompt:ApplyStyle()
+			local off = round.disabled() and true or false
+			if always[key] and not off then
+				fail(scenario, key .. ": the round icon toggle is live on an icon that is always round")
+			elseif not always[key] and off then
+				fail(scenario, key .. ": the round icon toggle is greyed out on a look that reads it")
+			end
+		end
+	end)
+end
+
+-- ------------------------------------------------------------------ 3
+-- The count's chip is offered or refused by what the count needs now, not by
+-- what the last count needed: a look that widens its room for a three-digit
+-- count (Leather's patch) was refused its chip for the next one-digit count by
+-- the shared pre-check, which read the wider room, until the next restyle.
+do
+	local scenario = "hunt38-shared: a one-digit count has its chip after a three-digit one"
+	withTree(scenario, { nameplate1 = { "Anna", "Aim" } }, function(ns)
+		freshPrompt(ns, scenario)
+		local p = ns.db.profile.prompt
+		local keys = {}
+		for key in pairs(ns.Looks.Allowed()) do keys[#keys + 1] = key end
+		table.sort(keys)
+		local entry = { name = "Anna Aim", short = "Anna", reason = "owed", buff = ns.ResolveBuff(true) }
+		for _, key in ipairs(keys) do
+			p.style, p.showCount, p.showSub, p.showIcon = key, true, false, true
+			local seen = 0
+			for width = 100, 320, 2 do
+				p.width = width
+				ns.Prompt:ApplyStyle()
+				local r = ns.Prompt:Regions()
+				ns.Prompt:Paint(entry, 1)
+				local fresh = r.count:GetText()
+				ns.Prompt:Paint(entry, 123456)
+				ns.Prompt:Paint(entry, 1)
+				local after = r.count:GetText()
+				if fresh ~= after then
+					seen = seen + 1
+					if seen <= 2 then
+						fail(scenario, ("%s, %d wide: a count of 1 reads %q on a fresh paint and %q after a count of 123"):format(
+							key, width, tostring(fresh), tostring(after)))
+					end
+				end
+			end
+		end
+	end)
+end
