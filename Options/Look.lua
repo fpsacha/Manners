@@ -566,8 +566,9 @@ function Page.BuildLookTab()
 				desc = L["Masks the icon into a circle. Reads more like a portrait than a spell, so it is off by default."],
 				order = 53,
 				width = "full",
-				-- Letter's icon is pressed into a wax seal: always round.
-				disabled = function() return not P().showIcon or P().style == "letter" end,
+				-- Toast's, Ribbon's and Letter's icons sit in a medallion or a wax
+				-- seal: always round, so the switch reads nothing there.
+				disabled = function() return not P().showIcon or ns.Looks.RoundAlways(P().style) end,
 				get = pGet,
 				set = pSet,
 			},

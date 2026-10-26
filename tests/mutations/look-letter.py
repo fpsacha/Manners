@@ -565,7 +565,7 @@ _m(GEN,
    expect="the generator measures", script=S)
 
 _m("Options/Look.lua",
-   "disabled = function() return not P().showIcon or P().style == \"letter\" end,",
+   "disabled = function() return not P().showIcon or ns.Looks.RoundAlways(P().style) end,",
    "disabled = function() return not P().showIcon end,",
    "the round icon toggle live on a seal that is always round",
    expect="the round icon toggle is live on a seal that is always round", script=S)
