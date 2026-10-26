@@ -576,9 +576,13 @@ function R.run(key, atOverride)
 	Mock.advance(atOverride or state.at or 0)
 	FrameTree.settle()
 	local button = ns.Prompt:GetButton()
+	-- The texture the prompt's spell icon is drawn into, which every look
+	-- places and shapes for itself (tools/make_look_previews.py records it).
+	local icon = ns.Prompt:Regions().icon
 	return {
 		tree = FrameTree.snapshot(UIParent),
 		button = button and button._serial,
+		icon = icon and icon._serial,
 		now = Mock.now,
 		title = state.title,
 		locale = locale,

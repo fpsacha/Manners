@@ -183,3 +183,148 @@ mutate("Locales/deDE.lua",
        "",
        "theme-picker: the picker's tooltip has no German",
        expect="theme-picker: every string the picker shows has all eight translations", script=S)
+
+# --- the live icon ----------------------------------------------------------
+
+PLACE = "theme-picker: every card has an icon over its picture"
+OWN = "theme-picker: the icon is the player's own buff, cropped as the prompt crops it"
+NONE = "theme-picker: a class with no buff for others wears its own learned buff, else the question mark"
+SET = "theme-picker: the icon is set when the page paints, and again once the client knows it"
+MASK = "theme-picker: round looks get their own round mask on the icon, square looks none"
+GREY = "theme-picker: a greyed-out control greys the icons too, and a look with no picture has none"
+DATA = "theme-picker: the icon data covers every registered look, and is held current by the hash"
+HASH = "theme-picker: the pictures were drawn from the looks as they are now"
+
+mutate(T, '\ticon:SetPoint("TOPLEFT", card.ground, "TOPLEFT", at.l * w, -at.t * h)\n',
+       '\ticon:SetPoint("TOPLEFT", card.ground, "TOPLEFT", at.l * w, -at.t * w)\n',
+       "theme-picker: the icon's top edge is measured in the picture's width",
+       expect=PLACE, script=S)
+
+mutate(T, '\ticon:SetPoint("BOTTOMRIGHT", card.ground, "TOPLEFT", at.r * w, -at.b * h)\n',
+       '\ticon:SetPoint("BOTTOMRIGHT", card.ground, "TOPLEFT", at.r * w, -at.t * h)\n',
+       "theme-picker: the icon is as short as its top edge",
+       expect=PLACE, script=S)
+
+mutate(T, "\t\t\t\tcard.picW, card.picH = s.inner, s.shotH\n\t\t\t\tPlaceIcon(card)\n",
+       "\t\t\t\tcard.picW, card.picH = s.inner, s.shotH\n",
+       "theme-picker: the icon is not placed again when the cards are laid out at another width",
+       expect=PLACE, script=S)
+
+mutate(T, "\tcard.iconFile = file\n\ticon:SetTexture(file)\n\tlocal crop = at.crop or CROP\n"
+          "\ticon:SetTexCoord(crop[1], crop[2], crop[3], crop[4])\n\tShapeIcon(card, at)\n\tPlaceIcon(card)\n",
+       "\tcard.iconFile = file\n\ticon:SetTexture(file)\n\tlocal crop = at.crop or CROP\n"
+       "\ticon:SetTexCoord(crop[1], crop[2], crop[3], crop[4])\n\tShapeIcon(card, at)\n",
+       "theme-picker: a card given another look keeps its icon where the last one was",
+       expect=PLACE, script=S)
+
+mutate(T, "local function BuffIcon()\n",
+       "local function BuffIcon()\n\tif true then return UNKNOWN end\n",
+       "theme-picker: every card wears the question mark",
+       expect=OWN, script=S)
+
+mutate(T, "\tfor _, buff in ipairs(ns.CastableBuffs()) do\n\t\tlocal icon = file(ns.BuffInfo(buff))\n",
+       "\tfor _, buff in ipairs(ns.CastableBuffs()) do\n\t\tlocal icon = 135932 or file(ns.BuffInfo(buff))\n",
+       "theme-picker: every card wears the mock's one icon, whatever the buff",
+       expect=OWN, script=S)
+
+mutate(T, "\tlocal own = ns.caps.own\n", "\tlocal own = nil\n",
+       "theme-picker: a class with only an aspect of its own gets the question mark",
+       expect=NONE, script=S)
+
+mutate(T, "\treturn UNKNOWN\nend\n", "\treturn 135932\nend\n",
+       "theme-picker: a character with no buff wears a mage's spell",
+       expect=NONE, script=S)
+
+mutate(T, "\tlocal crop = at.crop or CROP\n", "\tlocal crop = { 0, 1, 0, 1 }\n",
+       "theme-picker: the icon is not cropped as the prompt crops it",
+       expect=OWN, script=S)
+
+mutate(T, "\ticon:SetTexCoord(crop[1], crop[2], crop[3], crop[4])\n", "",
+       "theme-picker: the icon is not cropped at all",
+       expect=OWN, script=S)
+
+mutate(T, "\tlocal round = at and at.round and at.mask and card.CreateMaskTexture and icon.AddMaskTexture\n",
+       "\tlocal round = nil\n",
+       "theme-picker: a round look's icon is left square",
+       expect=MASK, script=S)
+
+mutate(T, "\tlocal round = at and at.round and at.mask and card.CreateMaskTexture and icon.AddMaskTexture\n",
+       "\tlocal round = at and card.CreateMaskTexture and icon.AddMaskTexture\n",
+       "theme-picker: a square look's icon is masked as well",
+       expect=MASK, script=S)
+
+mutate(T, "\telseif card.masked then\n", "\telseif false then\n",
+       "theme-picker: a card that stops being round keeps its mask",
+       expect=MASK, script=S)
+
+mutate(T, "\t\tcard.mask:SetAllPoints(icon)\n", "\t\tcard.mask:SetAllPoints(card)\n",
+       "theme-picker: the mask covers the card and not the icon",
+       expect=MASK, script=S)
+
+mutate(T, "\tcard.icon:SetDesaturated(off and true or false)\n", "\tcard.icon:SetDesaturated(false)\n",
+       "theme-picker: a greyed-out card's icon stays in colour",
+       expect=GREY, script=S)
+
+mutate(T, "\tcard.icon:SetAlpha(off and 0.5 or 1)\n", "\tcard.icon:SetAlpha(1)\n",
+       "theme-picker: a greyed-out card's icon is not dimmed",
+       expect=GREY, script=S)
+
+mutate(T, "\t\tcard.iconFile = nil\n\t\ticon:Hide()\n", "\t\tcard.iconFile = nil\n",
+       "theme-picker: a look with no picture has an icon over its placeholder",
+       expect=GREY, script=S)
+
+mutate(T, "\t\tlocal spell = BuffIcon()\n", "\t\tlocal spell = row.spell or BuffIcon()\n\t\trow.spell = spell\n",
+       "theme-picker: the icon is worked out once and never again",
+       expect=SET, script=S)
+
+mutate(T, "\tcard.iconFile = file\n\ticon:SetTexture(file)\n",
+       "\tcard.iconFile = file\n\ticon:SetTexture(file)\n\tC_Timer.After(1, function() end)\n",
+       "theme-picker: painting a card parks a timer",
+       expect=SET, script=S)
+
+mutate(T, '\ticon:SetPoint("TOPLEFT", card.ground, "TOPLEFT", at.l * w, -at.t * h)\n',
+       '\ticon:SetPoint("TOPLEFT", ns.Prompt:GetButton(), "TOPLEFT", at.l * w, -at.t * h)\n',
+       "theme-picker: the icon is anchored to the prompt",
+       expect="theme-picker: nothing in the picker is secure, runs on a timer, or hangs off the prompt", script=S)
+
+mutate("Looks/Looks.lua", "function Looks.PreviewIcon(key)\n\tif not Looks.previews[key] then return nil end\n",
+       "function Looks.PreviewIcon(key)\n",
+       "theme-picker: a look with no picture is handed an icon rectangle",
+       expect=DATA, script=S)
+
+# --- the icon data, and the tool that writes it -----------------------------
+
+mutate("Looks/Previews.lua", "\tluxe = { l = ", "\tluxe_ = { l = ",
+       "theme-picker: a look has no icon rectangle",
+       expect=DATA, script=S)
+
+mutate("Looks/Previews.lua", "\ttoast = { l = 0.08554,", "\ttoast = { l = 0.09554,",
+       "theme-picker: a recorded icon rectangle is edited by hand",
+       expect=HASH, script=S)
+
+mutate("Looks/Previews.lua", "round = true, mask = \"Interface\\\\AddOns\\\\Manners\\\\Textures\\\\Toast\\\\Toast_IconMask\", ",
+       "round = false, ",
+       "theme-picker: a round look is recorded square",
+       expect=MASK, script=S)
+
+mutate("Looks/Previews.lua", "Textures\\\\Toast\\\\Toast_IconMask\"", "Textures\\\\Toast\\\\Toast_IconMaskX\"",
+       "theme-picker: a round look's mask is a file that is not shipped",
+       expect=MASK, script=S)
+
+mutate("tools/make_look_previews.py", '"t": (top - rect[3]) / VIEW[1], "b": (top - rect[1]) / VIEW[1],',
+       '"t": (top - rect[1]) / VIEW[1], "b": (top - rect[1]) / VIEW[1],',
+       "theme-picker: the tool measures an icon's top edge from its bottom",
+       expect=HASH, script=S)
+
+mutate("tools/make_look_previews.py", "ROUND_BELOW = 0.85\n", "ROUND_BELOW = 0.5\n",
+       "theme-picker: the tool finds no look round",
+       expect=HASH, script=S)
+
+mutate("tools/make_look_previews.py", '    crop = icon.get("texCoord")\n', '    crop = None\n',
+       "theme-picker: the tool does not record the crop",
+       expect=HASH, script=S)
+
+mutate("tools/make_look_previews.py", "    cx, cy = (brect[0] + brect[2]) / 2, (brect[1] + brect[3]) / 2 + (snap.get(\"lift\") or 0)\n    left, top = cx - VIEW[0] / 2, cy + VIEW[1] / 2\n    entry = {",
+       "    cx, cy = (brect[0] + brect[2]) / 2 + 3, (brect[1] + brect[3]) / 2 + (snap.get(\"lift\") or 0)\n    left, top = cx - VIEW[0] / 2, cy + VIEW[1] / 2\n    entry = {",
+       "theme-picker: the tool measures from a view three units off the picture's",
+       expect=HASH, script=S)

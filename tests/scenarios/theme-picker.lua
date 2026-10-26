@@ -12,6 +12,15 @@
 -- the model's control, so the fallback dialog offers every look too; all eight
 -- translations of what it says; and pictures that are current.
 --
+-- And the live icon on each card: a texture over the picture's tile at the
+-- rectangle tools/make_look_previews.py recorded for that look (scaled to the
+-- picture, at any card width), showing the icon of the buff this character
+-- casts (a mage's Arcane Intellect, a priest's Fortitude, a hunter's aspect,
+-- else the question mark), cropped as the prompt crops it; with the look's own
+-- round mask where the look is round and none where it is square; greyed with
+-- a greyed-out control; set at the paint, never on a timer; and recorded for
+-- every look the registry holds.
+--
 -- Called by scenarios.lua with the addon directory and its helpers. Every name
 -- starts with "theme-picker:".
 
@@ -384,7 +393,8 @@ do
 	with(scenario, function(ns, UI, row)
 		local prompt = ns.Prompt:GetButton()
 		local function parts(card)
-			return { card, card.badge }
+			-- The live icon and its mask are regions of the card too.
+			return { card, card.badge, card.icon, card.mask }
 		end
 		local function check(when)
 			for _, card in ipairs(row.cards) do
@@ -723,4 +733,479 @@ do
 		end
 	end
 	Mock.reset()
+end
+
+-- ------------------------------------------------------------------ the live icon
+dofile(dir .. "/tests/frametree.lua")
+local FT = FrameTree
+
+-- The mock answers every spell with one icon, so spells are told apart here: a
+-- buff's icon is 700000 plus its id.
+local TEXTURE_BASE = 700000
+
+-- The ids of a buff or an own spell straight out of Buffs.lua, from a copy of
+-- the addon loaded for nothing else.
+local function ranksOf(scenario, class, key)
+	local probe = load(scenario .. " (reading ids)")
+	local buff = probe and (probe.FindBuff(class, key) or probe.FindOwnSpell(key))
+	return buff and buff.ranks or {}
+end
+
+-- One character's session with the options window open on Look, on the
+-- recording frames: `spec.class` knowing exactly the buffs `spec.keys` names
+-- (no keys: the mock's own, who knows Arcane Intellect rank 1), spell icons
+-- told apart (`spec.noTexture`: the client has not loaded them yet), everything
+-- put back. `body(ns, UI, row, env)`.
+local function withCharacter(scenario, spec, body)
+	Mock.reset()
+	if spec.class then Mock.class = spec.class end
+	local known
+	if spec.keys then
+		known = {}
+		for _, key in ipairs(spec.keys) do
+			for _, id in ipairs(ranksOf(scenario, spec.class, key)) do known[id] = true end
+		end
+	end
+	local saved = {
+		IsSpellKnown = IsSpellKnown, IsPlayerSpell = IsPlayerSpell, C_Spell = rawget(_G, "C_Spell"),
+	}
+	local env = { noTexture = spec.noTexture }
+	local ok, err = pcall(function()
+		if known then
+			local fn = function(id) return known[id] == true end
+			IsSpellKnown, IsPlayerSpell = fn, fn
+		end
+		local spells = C_Spell
+		rawset(_G, "C_Spell", setmetatable({
+			GetSpellTexture = function(id)
+				if env.noTexture then return nil end
+				return TEXTURE_BASE + id
+			end,
+		}, { __index = spells }))
+		FT.install()
+		local ns = load(scenario)
+		if not ns then return end
+		drive(scenario, ns)
+		ns.Prompt:ExitTest()
+		ns.OpenOptions("appearance", true)
+		ns.Prompt:ExitTest()
+		local UI = ns.WindowUI
+		local row = UI.RowFor("appearance.style")
+		if not (row and row.cards and UI.RowShown("appearance.style")) then
+			fail(scenario, "SKIPPED -- the gallery is not on the Look page")
+			return
+		end
+		body(ns, UI, row, env)
+		noErrors(scenario, ns)
+	end)
+	FT.uninstall()
+	IsSpellKnown, IsPlayerSpell = saved.IsSpellKnown, saved.IsPlayerSpell
+	rawset(_G, "C_Spell", saved.C_Spell)
+	Mock.reset()
+	if not ok then fail(scenario, "threw: " .. tostring(err)) end
+end
+
+-- Where a card's icon sits, as the client would place it: the offsets of its
+-- two corners from the picture's top left, in units.
+local function overlayBox(card)
+	local p = card.icon.points
+	local a, b = p[1], p[2]
+	if not (a and b and #p == 2) then return nil, "has " .. #p .. " anchors, not two" end
+	for _, point in ipairs({ a, b }) do
+		if point[2] ~= card.ground then return nil, "is not anchored to the picture" end
+	end
+	if a[1] ~= "TOPLEFT" or a[3] ~= "TOPLEFT" or b[1] ~= "BOTTOMRIGHT" or b[3] ~= "TOPLEFT" then
+		return nil, "is anchored by the wrong corners"
+	end
+	return { a[4], a[5], b[4], b[5] }
+end
+
+local function near(a, b) return math.abs(a - b) < 1e-6 end
+
+-- How much of its square a 32 bit TGA mask lets through (its mean alpha).
+local function maskCover(path)
+	local data = slurp(path)
+	if not data then return nil end
+	local w, h = data:byte(13) + 256 * data:byte(14), data:byte(15) + 256 * data:byte(16)
+	if data:byte(3) ~= 2 or data:byte(17) ~= 32 then return nil end
+	local start, sum = 18 + data:byte(1), 0
+	for i = 1, w * h do sum = sum + data:byte(start + (i - 1) * 4 + 4) end
+	return sum / (255 * w * h)
+end
+
+-- The disk file behind a texture path of the addon's own.
+local function addonFile(path)
+	local leaf = type(path) == "string" and path:match("^Interface\\AddOns\\Manners\\(.+)$")
+	return leaf and (dir .. "/" .. leaf:gsub("\\", "/") .. ".tga")
+end
+
+-- The mask file a look's icon wears on the prompt itself, or nil: the recorded
+-- shape is held to what the look does.
+local function promptMask(ns, key)
+	ns.db.profile.prompt.style = key
+	ns.Prompt:ApplyStyle()
+	local icon = ns.Prompt:Regions().icon
+	return icon._mask and icon._mask._file or nil
+end
+
+do
+	local scenario = "theme-picker: every card has an icon over its picture, at the rectangle recorded for its look, at any width"
+	withCharacter(scenario, {}, function(ns, UI, row)
+		local Looks = ns.Looks
+		for _, width in ipairs({ 612, 1000, 480, 330 }) do
+			row:Layout(width)
+			for _, key in ipairs(registry(ns)) do
+				local card = cardFor(row, key)
+				local at = Looks.previewIcon[key]
+				if not card then
+					fail(scenario, key .. " has no card")
+				elseif not at then
+					fail(scenario, key .. " has no icon recorded: run tools/make_look_previews.py")
+				elseif not card.icon:IsShown() then
+					fail(scenario, ("%s: the icon is not shown at %d wide"):format(key, width))
+				else
+					local box, why = overlayBox(card)
+					local w, h = card.ground._width, card.ground._height
+					if not box then
+						fail(scenario, ("%s: the icon %s"):format(key, why))
+					elseif not (w and h and w > 0 and h > 0) then
+						fail(scenario, key .. ": the picture has no size")
+					else
+						local want = { at.l * w, -at.t * h, at.r * w, -at.b * h }
+						for i = 1, 4 do
+							if not near(box[i], want[i]) then
+								fail(scenario, ("%s at %d wide: icon corner %d is at %.3f, the recorded rectangle puts it at %.3f (picture %.1f x %.1f)")
+									:format(key, width, i, box[i], want[i], w, h))
+								break
+							end
+						end
+						-- It never leaves the picture.
+						if box[1] < 0 or box[2] > 0 or box[3] > w or box[4] < -h then
+							fail(scenario, key .. ": the icon runs outside its picture")
+						end
+					end
+				end
+			end
+		end
+		-- A card handed another rectangle (its look re-recorded under it) is
+		-- placed anew at once, with no layout in between.
+		local luxe = Looks.previewIcon.luxe
+		Looks.previewIcon.luxe = { l = luxe.l + 0.05, t = luxe.t, r = luxe.r + 0.05, b = luxe.b,
+			round = false, crop = luxe.crop }
+		row:Refresh()
+		local moved = cardFor(row, "luxe")
+		local box = moved and overlayBox(moved)
+		if not (box and near(box[1], (luxe.l + 0.05) * moved.ground._width)) then
+			fail(scenario, "a card given another rectangle did not move its icon")
+		end
+		Looks.previewIcon.luxe = luxe
+		row:Refresh()
+		-- The page's own width as well.
+		ns.OpenOptions("appearance", true)
+		for _, card in ipairs(shown(row)) do
+			local box = overlayBox(card)
+			local at = ns.Looks.previewIcon[card.key]
+			local w, h = card.ground._width, card.ground._height
+			if not (box and at and near(box[3] - box[1], (at.r - at.l) * w) and near(box[4] - box[2], -(at.b - at.t) * h)) then
+				fail(scenario, "on the page the icon of " .. tostring(card.key) .. " is not the recorded size")
+			end
+		end
+	end)
+end
+
+do
+	local scenario = "theme-picker: the icon is the player's own buff, cropped as the prompt crops it"
+	-- A mage: Arcane Intellect, the first of her castable buffs.
+	withCharacter(scenario .. " (a mage)", {}, function(ns, UI, row)
+		local first = ns.CastableBuffs()[1]
+		if not (first and first.key == "intellect") then
+			fail(scenario, "SKIPPED -- the mage's first buff is " .. tostring(first and first.key))
+			return
+		end
+		local want = TEXTURE_BASE + 1459
+		if ns.BuffInfo(first).icon ~= want then
+			fail(scenario, "SKIPPED -- the probe's icon is " .. tostring(ns.BuffInfo(first).icon))
+			return
+		end
+		local prompt = ns.Prompt:Regions().icon
+		for _, card in ipairs(shown(row)) do
+			if card.iconFile ~= want then
+				fail(scenario, ("a mage's %s card shows %s, not her Arcane Intellect %s"):format(card.key,
+					tostring(card.iconFile), want))
+			end
+			if card.icon._file ~= want then
+				fail(scenario, ("the %s card's icon texture is %s"):format(card.key, tostring(card.icon._file)))
+			end
+			local crop = card.icon._texCoord
+			if not (crop and #crop == 4 and crop[1] == 0.08 and crop[2] == 0.92 and crop[3] == 0.08 and crop[4] == 0.92) then
+				fail(scenario, ("the %s card crops its icon as %s"):format(card.key, crop and table.concat(crop, ",") or "nothing"))
+			end
+			-- As the prompt's own icon is.
+			local theirs = prompt._texCoord
+			if not (theirs and crop and theirs[1] == crop[1] and theirs[2] == crop[2]
+				and theirs[3] == crop[3] and theirs[4] == crop[4]) then
+				fail(scenario, "the card crops its icon otherwise than the prompt does")
+			end
+		end
+		-- And as the prompt's own helper reads it for the same buff.
+		if ns.Prompt.lib.EntryIcon({ buff = first }) ~= want then
+			fail(scenario, "the prompt's icon for the same buff is not the card's")
+		end
+	end)
+
+	-- A priest: Fortitude, and not the mage's spell.
+	withCharacter(scenario .. " (a priest)", { class = "PRIEST", keys = { "fortitude" } }, function(ns, UI, row)
+		local ranks = ns.FindBuff("PRIEST", "fortitude").ranks
+		local want = TEXTURE_BASE + ranks[1]
+		if ns.CastableBuffs()[1] == nil or ns.CastableBuffs()[1].key ~= "fortitude" then
+			fail(scenario, "SKIPPED -- the priest's first buff is not Fortitude")
+			return
+		end
+		for _, card in ipairs(shown(row)) do
+			if card.iconFile ~= want then
+				fail(scenario, ("a priest's %s card shows %s, not Fortitude's %s"):format(card.key,
+					tostring(card.iconFile), want))
+			end
+		end
+	end)
+
+	-- Two buffs: the first the prompt would offer, as the player ordered them.
+	withCharacter(scenario .. " (the first of two)", { class = "PRIEST", keys = { "fortitude", "spirit" } },
+		function(ns, UI, row)
+			local castable = ns.CastableBuffs()
+			if #castable < 2 then
+				fail(scenario, "SKIPPED -- the priest has " .. #castable .. " castable buffs")
+				return
+			end
+			if ns.BuffInfo(castable[1]).icon == ns.BuffInfo(castable[2]).icon then
+				fail(scenario, "SKIPPED -- the two buffs share an icon")
+				return
+			end
+			for _, card in ipairs(shown(row)) do
+				if card.iconFile ~= ns.BuffInfo(castable[1]).icon then
+					fail(scenario, ("the %s card shows %s, the first castable buff's icon is %s"):format(card.key,
+						tostring(card.iconFile), tostring(ns.BuffInfo(castable[1]).icon)))
+				end
+			end
+		end)
+end
+
+do
+	local scenario = "theme-picker: a class with no buff for others wears its own learned buff, else the question mark"
+	-- A hunter with an aspect and nothing for anybody else.
+	withCharacter(scenario .. " (an aspect)", { class = "HUNTER", keys = { "aspecthawk" } }, function(ns, UI, row)
+		if #ns.CastableBuffs() ~= 0 then
+			fail(scenario, "SKIPPED -- the hunter has castable buffs")
+			return
+		end
+		local info = ns.caps.own and ns.caps.own.aspecthawk
+		if not (info and info.known) then
+			fail(scenario, "SKIPPED -- the aspect is not known")
+			return
+		end
+		local want = info.icon
+		if want ~= TEXTURE_BASE + ns.FindOwnSpell("aspecthawk").ranks[1] then
+			fail(scenario, "SKIPPED -- the aspect's icon is " .. tostring(want))
+			return
+		end
+		for _, card in ipairs(shown(row)) do
+			if card.iconFile ~= want then
+				fail(scenario, ("a hunter's %s card shows %s, not the aspect's %s"):format(card.key,
+					tostring(card.iconFile), want))
+			end
+		end
+	end)
+
+	-- A warrior who has learned nothing: the client's question mark, as itself.
+	withCharacter(scenario .. " (nothing)", { class = "WARRIOR", keys = {} }, function(ns, UI, row)
+		if #ns.CastableBuffs() ~= 0 then
+			fail(scenario, "SKIPPED -- the warrior has castable buffs")
+			return
+		end
+		for _, card in ipairs(shown(row)) do
+			if card.iconFile ~= 134400 or not card.icon:IsShown() then
+				fail(scenario, ("a character with no buff has %s on the %s card"):format(
+					tostring(card.iconFile), card.key))
+			end
+		end
+	end)
+end
+
+do
+	local scenario = "theme-picker: the icon is set when the page paints, and again once the client knows it"
+	withCharacter(scenario, { noTexture = true }, function(ns, UI, row, env)
+		-- The client has not loaded the spell's icon yet: the question mark,
+		-- not nothing and not another spell's.
+		for _, card in ipairs(shown(row)) do
+			if card.iconFile ~= 134400 then
+				fail(scenario, ("before the client knew it, the %s card showed %s"):format(card.key, tostring(card.iconFile)))
+			end
+		end
+		-- It loads, and the next time the page is drawn the cards have it.
+		env.noTexture = false
+		ns.ProbeCapabilities()
+		ns.RefreshOptionsDisplay()
+		local want = TEXTURE_BASE + 1459
+		for _, card in ipairs(shown(row)) do
+			if card.iconFile ~= want or card.icon._file ~= want then
+				fail(scenario, ("once the client knew it, the %s card showed %s"):format(card.key, tostring(card.iconFile)))
+			end
+		end
+		-- Nothing is parked on a timer by painting the gallery.
+		local before = #Mock.timers
+		row:Refresh()
+		row:Layout(612)
+		if #Mock.timers ~= before then
+			fail(scenario, ("painting the gallery parked %d timer(s)"):format(#Mock.timers - before))
+		end
+	end)
+end
+
+do
+	local scenario = "theme-picker: round looks get their own round mask on the icon, square looks none"
+	withCharacter(scenario, {}, function(ns, UI, row)
+		local Looks = ns.Looks
+		local rounds = 0
+		for _, key in ipairs(registry(ns)) do
+			local card = cardFor(row, key)
+			local at = Looks.previewIcon[key]
+			if card and at then
+				local mask = card.icon._mask
+				if at.round then
+					rounds = rounds + 1
+					if not at.mask then
+						fail(scenario, key .. " is round and records no mask file")
+					elseif not mask then
+						fail(scenario, ("the %s card's icon has no mask: it is square where the look is round"):format(key))
+					else
+						if mask._file ~= at.mask then
+							fail(scenario, ("the %s card's mask is %s, the look's is %s"):format(key, tostring(mask._file), at.mask))
+						end
+						if mask._allPointsTo ~= card.icon then
+							fail(scenario, key .. "'s mask does not cover the icon")
+						end
+						local cover = addonFile(at.mask) and maskCover(addonFile(at.mask))
+						if not cover then
+							fail(scenario, ("%s's mask %s is not a file the addon ships"):format(key, at.mask))
+						elseif cover > 0.85 then
+							fail(scenario, ("%s's mask lets %.0f%% through: not a circle"):format(key, cover * 100))
+						end
+					end
+				else
+					if mask then
+						fail(scenario, ("the %s card's icon has a mask (%s) where the look is square"):format(key, tostring(mask._file)))
+					end
+					if at.mask then fail(scenario, key .. " is square and records a mask") end
+				end
+			end
+			-- What the recorded shape stands for: the look's own icon on the prompt.
+			local worn = promptMask(ns, key)
+			if at and at.round then
+				if worn ~= at.mask then
+					fail(scenario, ("%s cuts its icon with %s on the prompt, the card says %s"):format(key, tostring(worn), tostring(at.mask)))
+				end
+			elseif worn then
+				local cover = addonFile(worn) and maskCover(addonFile(worn))
+				if not cover or cover < 0.85 then
+					fail(scenario, ("%s cuts its icon round (%s) on the prompt, and the card says it is square"):format(key, worn))
+				end
+			end
+		end
+		if rounds == 0 then fail(scenario, "no look is round") end
+		-- A card handed another look takes its mask off, and puts it back.
+		local card = cardFor(row, "toast")
+		if card then
+			local at = Looks.previewIcon.toast
+			Looks.previewIcon.toast = { l = at.l, t = at.t, r = at.r, b = at.b, round = false, crop = at.crop }
+			ns.RefreshOptionsDisplay()
+			if card.icon._mask then fail(scenario, "a card that stopped being round kept its mask") end
+			Looks.previewIcon.toast = at
+			ns.RefreshOptionsDisplay()
+			if not card.icon._mask then fail(scenario, "a card that became round again has no mask") end
+		end
+	end)
+end
+
+do
+	local scenario = "theme-picker: a greyed-out control greys the icons too, and a look with no picture has none"
+	withCharacter(scenario, {}, function(ns, UI, row)
+		local def = ns.optionsTable.args.appearance.args.style
+		local was = def.disabled
+		def.disabled = function() return true end
+		ns.RefreshOptionsDisplay()
+		for _, card in ipairs(shown(row)) do
+			if not card.icon:IsDesaturated() then fail(scenario, "the icon of " .. card.key .. " is in colour on a greyed-out card") end
+			if card.icon:GetAlpha() >= 1 then fail(scenario, "the icon of " .. card.key .. " is not dimmed with its card") end
+		end
+		def.disabled = was
+		ns.RefreshOptionsDisplay()
+		for _, card in ipairs(shown(row)) do
+			if card.icon:IsDesaturated() or card.icon:GetAlpha() ~= 1 then
+				fail(scenario, "the icon of " .. card.key .. " stayed grey once the control was back")
+			end
+		end
+		-- A look with no picture has the addon's mark and no icon.
+		register(ns, "fake", { name = "Fake -- a made-up look", order = 60 })
+		ns.RefreshOptionsDisplay()
+		local fake = cardFor(row, "fake")
+		if not fake then
+			fail(scenario, "the new look has no card")
+		elseif fake.icon:IsShown() then
+			fail(scenario, "a look with no picture has an icon over the placeholder")
+		end
+		-- And the cards of the looks that have one still do.
+		ns.Looks.list.fake = nil
+		row:Refresh()
+		local luxe = cardFor(row, "luxe")
+		if not (luxe and luxe.icon:IsShown()) then fail(scenario, "the luxe card lost its icon") end
+		-- A card that had an icon and is handed a look with no picture drops it.
+		local picture = ns.Looks.previews.luxe
+		ns.Looks.previews.luxe = nil
+		row:Refresh()
+		if luxe.icon:IsShown() or luxe.iconFile ~= nil then
+			fail(scenario, "a card whose look lost its picture kept the icon over the placeholder")
+		end
+		ns.Looks.previews.luxe = picture
+		row:Refresh()
+		if not luxe.icon:IsShown() then fail(scenario, "the icon did not come back with the picture") end
+	end)
+end
+
+do
+	local scenario = "theme-picker: the icon data covers every registered look, and is held current by the hash"
+	withCharacter(scenario, {}, function(ns)
+		local Looks = ns.Looks
+		local function number(v) return type(v) == "number" and v == v end
+		for _, key in ipairs(registry(ns)) do
+			local at = Looks.previewIcon[key]
+			if not at then
+				fail(scenario, key .. " has no icon rectangle: run tools/make_look_previews.py")
+			else
+				if not (number(at.l) and number(at.t) and number(at.r) and number(at.b)) then
+					fail(scenario, key .. "'s rectangle is not four numbers")
+				elseif not (0 <= at.l and at.l < at.r and at.r <= 1 and 0 <= at.t and at.t < at.b and at.b <= 1) then
+					fail(scenario, ("%s's rectangle is outside its picture or upside down: %s %s %s %s"):format(key,
+						at.l, at.t, at.r, at.b))
+				else
+					-- A square icon in a picture four times as wide as it is high.
+					local w, h = (at.r - at.l) * 256, (at.b - at.t) * 64
+					if math.abs(w - h) > 0.6 then
+						fail(scenario, ("%s's icon is %.1f x %.1f pixels of its picture: not square"):format(key, w, h))
+					end
+				end
+				if type(at.round) ~= "boolean" then fail(scenario, key .. " does not say whether it is round") end
+				if at.round and type(at.mask) ~= "string" then fail(scenario, key .. " is round and has no mask") end
+				if at.mask and not at.round then fail(scenario, key .. " has a mask and is not round") end
+				if not (type(at.crop) == "table" and #at.crop == 4) then fail(scenario, key .. " records no crop") end
+			end
+		end
+		for key in pairs(Looks.previewIcon) do
+			if not Looks.list[key] then fail(scenario, "an icon is recorded for " .. key .. ", which is not a look") end
+		end
+		if Looks.PreviewIcon("no-such-look") ~= nil then fail(scenario, "an unknown look has an icon") end
+		-- A look the tool has not drawn has none, whatever the table holds.
+		Looks.previewIcon.fake = { l = 0.1, t = 0.1, r = 0.2, b = 0.9, round = false }
+		if Looks.PreviewIcon("fake") ~= nil then fail(scenario, "a look with no picture was handed an icon rectangle") end
+		Looks.previewIcon.fake = nil
+	end)
 end
