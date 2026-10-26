@@ -29,4 +29,4 @@ ns.Looks.previewIcon = {
 	ribbon = { l = 0.09073, t = 0.28226, r = 0.1996, b = 0.71774, round = true, mask = "Interface\\AddOns\\Manners\\Textures\\Ribbon\\Ribbon_Mask", crop = { 0.08, 0.92, 0.08, 0.92 } },
 	toast = { l = 0.08554, t = 0.26152, r = 0.20478, b = 0.73848, round = true, mask = "Interface\\AddOns\\Manners\\Textures\\Toast\\Toast_IconMask", crop = { 0.08, 0.92, 0.08, 0.92 } },
 }
-ns.Looks.previewHash = "ae9efdb4d5b170dd2bc43c8fd68f66a09d781cd0dd203da19c55fae7abe8f0ef"
+ns.Looks.previewHash = "9143b2ea7598ec6bc0fa5fed8e8f3e24e439d4da19b5570e4e9d716419b0571b"

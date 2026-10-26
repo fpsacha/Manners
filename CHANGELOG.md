@@ -14,8 +14,13 @@
   reason's colour; the stitches light up one after another when your buff
   lands, and the list hangs as smaller tags.
 - **Pick a look from cards.** The Look tab opens on a gallery: every look as a
-  picture, its name and a line about it. Click one and the prompt changes at
-  once. The settings dialog the game draws still has the dropdown.
+  picture, its name and a line about it, with your own buff's icon on it.
+  Click one and the prompt changes at once. The settings dialog the game
+  draws still has the dropdown.
+- **Round the icon off is greyed on Toast**, whose icon sits in a round
+  medallion whatever the setting says (as on Ribbon and Letter).
+- **The count comes back on a narrow prompt.** After a long count had no
+  room, a short one could stay hidden until you next changed a setting.
 
 ## 1.9.0
 
