@@ -1124,8 +1124,11 @@ def pointer_sheet(zoom):
 # In the game the prompt shows the spell's own icon, and Arcane Intellect's
 # initials are "AI": the largest thing in the hero picture, next to the addon's
 # name, read by anybody skimming a gallery in 2026 as artificial intelligence.
-# Blizzard's icons are not ours to ship, so each spell the pictures use gets a
-# painted emblem of its own instead, in the colours the renderers give it.
+# So the pictures draw the game's own icons, as a player sees them: each one
+# the pictures use is kept in tools/icons (from the game's icon art as Wowhead
+# serves it, 56 pixels; the packager leaves tools/ out, so none ships in the
+# addon). A painted emblem in the renderers' colours stands in for any icon
+# not kept there.
 
 def _emblem(kind, n):
     """The emblem's shape as an n-by-n mask, drawn in fractions of the tile."""
@@ -1341,7 +1344,49 @@ def emblem_tile(file, w, h):
     return np.asarray(img).astype(np.float32) / 255
 
 
-rp.icon_tile = emblem_tile
+# Each icon the pictures draw, by the file id a state hands back or the name
+# the options window asks for, and its file in tools/icons.
+ICON_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "icons")
+ICON_FILES = {
+    135932: "spell_holy_magicalsentry",       # Arcane Intellect
+    135987: "spell_holy_wordfortitude",       # Power Word: Fortitude
+    135898: "spell_holy_divinespirit",        # Divine Spirit
+    136121: "spell_shadow_antishadow",        # Shadow Protection
+    136078: "spell_nature_regeneration",      # Mark of the Wild
+    135995: "spell_magic_magearmor",          # Blessing of Kings
+    132333: "ability_warrior_battleshout",    # Battle Shout
+    135906: "spell_holy_fistofjustice",       # Blessing of Might
+    134400: "inv_misc_questionmark",          # the client's unknown-spell icon
+    135970: "spell_holy_sealofwisdom",        # Blessing of Wisdom
+    135969: "spell_holy_sealofvengeance",     # Blessing of Salvation
+    135944: "spell_holy_prayerofmendingtga",  # Blessing of Light
+    135843: "spell_frost_frostarmor02",       # Frost Armor
+    132273: "ability_poisons",                # a rogue's poison
+}
+# The prompt cuts an icon's baked border off (SetTexCoord 0.08 to 0.92).
+ICON_CROP = 0.08
+
+
+def icon_file(file):
+    name = ICON_FILES.get(file) if not isinstance(file, str) else file.lower()
+    path = name and os.path.join(ICON_DIR, name + ".jpg")
+    return path if path and os.path.exists(path) else None
+
+
+def game_tile(file, w, h):
+    """The game's own icon where tools/icons keeps it, cut as the prompt cuts
+    it; the painted emblem where it does not."""
+    path = icon_file(file)
+    if not path:
+        return emblem_tile(file, w, h)
+    img = Image.open(path).convert("RGB")
+    iw, ih = img.size
+    img = img.crop((ICON_CROP * iw, ICON_CROP * ih, (1 - ICON_CROP) * iw, (1 - ICON_CROP) * ih))
+    img = img.resize((max(1, w), max(1, h)), Image.LANCZOS)
+    return np.asarray(img).astype(np.float32) / 255
+
+
+rp.icon_tile = game_tile
 
 # The options window takes its page icons from the client's own files, and
 # draws them as tiles in a colour made from the file's name. Here they are the
