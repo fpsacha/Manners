@@ -6,46 +6,57 @@
 Writes Textures/Ribbon/*.tga, which ship in the zip. Deterministic: no clock
 and no unseeded noise, so run it twice and the files are byte for byte the
 same, and a diff in git is a change of art. Nothing here is taken from the
-game or from anybody else's addon: every shape is a distance field, drawn at
-SS times its size, shaded from the upper left and box-filtered down in
-premultiplied alpha; the colour is then bled into the fully transparent texels,
-so the client's bilinear filtering never pulls in a dark fringe.
+game or from anywhere else: every shape is a distance field or a height
+field, drawn at SS times its size, lit from the upper left and
+box-filtered down in premultiplied alpha; the colour is then bled into the
+fully transparent texels, so the client's bilinear filtering never pulls in a
+dark fringe.
 
-Ribbon is a length of crimson cloth with a forked end, edged in gold, and a
-round gold medallion lying over its left end with the spell cut round into it.
+Ribbon is a length of crimson satin with a forked end, edged in gold cord,
+and a round gold medallion lying over its left end with the spell cut round
+into it. Everything is modelled, not painted flat: a surface is a height in
+texels, its normal is read off the slope, and the gold is lit as polished
+metal is (a warm sky above reflected in every face that looks up, a dark
+ground in every face that looks down, a hot specular where the half-vector
+lands), the cloth as satin is (a soft sheen band where the bulge faces the
+light, folds that carry it, a hem that turns under into shade).
+
 Two kinds of art:
-  * baked gold (the trim on the cloth's edges, the medallion's metal, the
+  * baked gold (the cord on the cloth's edges, the medallion's metal, the
     tags and the gem settings): drawn in its own colours, never tinted.
   * grey or white art (the cloth, the enamel, the gloss, the lights, the
     gem): the colour comes from SetVertexColor, so one file serves every
     reason, both palettes, a custom panel colour and the outcomes. The cloth is
-    drawn in greys from 1.0 (the lit top) down to about 0.55 (the shaded hem),
-    so the dye that tints it is its brightest tone (the art is never lighter
-than LIGHTEST of it: Looks/Ribbon.lua's LIT_GREY holds the lettering's
-contrast to that).
+    drawn in greys from LIGHTEST (the sheen) down to about 0.45 (the hem), so
+    the dye that tints it is its brightest tone (Looks/Ribbon.lua's LIT_GREY
+    holds the lettering's contrast to that).
 
 The ribbon is cut in three by the Lua: an end of the forked tail (END_PX wide),
 a stretched middle, and the same end turned round when there is no medallion.
 Every ribbon file is RIBBON_PX rows tall and its features are drawn in rows
 here, so they land as a number of UI units there (Looks/Ribbon.lua names the
-figures that must agree: END_ASPECT, NOTCH, TRIM_PX, RIBBON_PX, SHADOW_PX,
-RING_PEAK, RING_EDGE, MEDAL_*).
+figures that must agree: END_PX, NOTCH_PX, RIBBON_PX, SHADOW_PX, RING_PEAK,
+MEDAL_*; the rails take RAIL_ROWS rows, which is the 5.8 in its Geometry).
 
-  Ribbon_Cloth_Mid   128x64  the cloth's middle, stretched: grey, a lit top, a
-                             shaded hem, a faint twill and one slow fold
-  Ribbon_Cloth_End    32x64  the cloth's forked end: grey, folded and shaded
-                             along the notch; _EndL is it turned round, lit
-                             from the same side, for a ribbon with no medallion
-  Ribbon_Trim_Mid     16x64  the gold rails along the top and the hem and a dark
-                             seam against the cloth
+  Ribbon_Cloth_Mid   128x64  the cloth's middle, stretched: grey satin, a
+                             sheen band on the bulge, soft folds, a shaded hem
+  Ribbon_Cloth_End    32x64  the cloth's forked end: the tails turn back a
+                             little and crease from the apex; _EndL is it
+                             turned round, lit from the same side, for a
+                             ribbon with no medallion
+  Ribbon_Trim_Mid     16x64  the gold cord along the top and the hem: a dark
+                             outline outside it, a dark seam and a thread of
+                             gold stitching against the cloth
   Ribbon_Trim_End     32x64  the same, running round the fork (and _EndL)
   Ribbon_Drop_Mid     16x64  the ribbon's shadow, blurred (black)
   Ribbon_Drop_End     32x64  the same for the forked end (and _EndL)
   Ribbon_Medal       128x128 the medallion's gold: a beaded lip, a channel for
-                             the enamel, a rounded bezel for the icon
+                             the enamel, a rounded bezel for the icon, a
+                             bevelled edge with a dark outline
   Ribbon_Enamel      128x128 white: the ring that lies in the channel, in the
-                             reason colour (shaded as fired enamel is)
-  Ribbon_Gloss       128x128 a white crescent of light on the enamel
+                             reason colour, shaded as glossy fired enamel is
+  Ribbon_Gloss       128x128 the light on the enamel: a crescent at the upper
+                             left and a reflected line at the lower right
   Ribbon_Lit         128x128 the medal's highlights as light, for its warm
                              breath (BLEND, in pale gold)
   Ribbon_Shade       128x128 the soft shadow the medallion throws (black), its
@@ -59,9 +70,11 @@ RING_PEAK, RING_EDGE, MEDAL_*).
   Ribbon_Sweep        64x64  a soft slanted band of light that runs along the
                              cloth (ADD)
   Ribbon_Glint        64x64  a four-pointed star for the medallion (ADD)
-  Ribbon_Tag          64x32  3 pieces: a small gold tag for the count and the
-                             bound key
-  Ribbon_Gem          32x32  a faceted gem, white, in the reason colour
+  Ribbon_Tag          64x32  3 pieces: a small bevelled gold tag for the bound
+                             key
+  Ribbon_Badge        64x32  3 pieces: a small gold badge with a field of
+                             crimson enamel, for the count on the medallion
+  Ribbon_Gem          32x32  a cabochon gem, white, in the reason colour
   Ribbon_GemSet       32x32  the gold setting round it
 
 Needs numpy and Pillow.
@@ -81,8 +94,11 @@ RIBBON_PX, END_PX = 64, 32
 # How deep the fork is cut into the end, in rows (the notch's depth): the Lua's
 # NOTCH is this as a fraction of the ribbon's height.
 NOTCH_PX = 19.0
-# The gold rail's width in rows, and the dark seam against the cloth.
-TRIM_PX, SEAM_PX = 4.8, 1.0
+# The rails, in rows from the cloth's edge: a dark outline outside the cord,
+# the gold cord, the dark seam against the cloth, and a thread of stitching.
+# Their sum is the room the Lua keeps between the rails (RAIL_ROWS, its 5.8).
+OUTLINE_PX, CORD_PX, SEAM_PX, THREAD_PX = 0.55, 3.65, 0.80, 0.80
+RAIL_ROWS = OUTLINE_PX + CORD_PX + SEAM_PX + THREAD_PX
 # The ribbon's shadow is drawn on a canvas of the same rows: the ribbon fills
 # SHADOW_PX of them, centred, and the Lua scales by RIBBON_PX / SHADOW_PX.
 SHADOW_PX = 56.0
@@ -92,17 +108,24 @@ SHADOW_ROOM = 0
 # The medallion's radii as fractions of the file's half-width: the disc itself,
 # the lip, the enamel channel and the bezel's two edges (Looks/Ribbon.lua
 # names them MEDAL_*, which must agree).
-M_OUT, M_LIP, M_CH_OUT, M_CH_IN, M_BEZEL = 0.98, 0.90, 0.895, 0.74, 0.635
+M_OUT, M_LIP, M_CH_OUT, M_CH_IN, M_BEZEL = 0.98, 0.86, 0.85, 0.735, 0.635
+# Where the lip's beads end and the edge bevels away.
+M_BEVEL = 0.952
 # Where the shadow disc's edge sits, as a fraction of the half-width.
 SHADE_FILL = 0.70
 # Where the ring of light is brightest, and how far out it is seen.
 RING_PEAK, RING_SIGMA = 0.70, 0.075
+# The brightest grey of the cloth (Looks/Ribbon.lua's LIT_GREY counts on it).
+LIGHTEST = 0.930
 
 # Light from the upper left, a little in front (x right, y down, z out).
 LIGHT = np.array([-0.46, -0.66, 0.60], np.float32)
 LIGHT /= np.linalg.norm(LIGHT)
 HALF = LIGHT + np.array([0, 0, 1], np.float32)
 HALF /= np.linalg.norm(HALF)
+# The sky's direction in the plane: faces that look this way reflect it.
+SKY = np.array([-0.40, -0.92], np.float32)
+SKY /= np.linalg.norm(SKY)
 
 written = []
 
@@ -190,10 +213,21 @@ def make(name, w, h, paint):
     save(name, finish(rgb, a, w, h))
 
 
-# The gold: dark bronze, deep gold, bright gold, a pale highlight, by how lit.
-GOLD_T = [0.0, 0.26, 0.52, 0.76, 1.0]
-GOLD_RGB = np.array([(0.27, 0.13, 0.02), (0.58, 0.36, 0.07), (0.88, 0.64, 0.17),
-                     (1.00, 0.84, 0.40), (1.00, 0.97, 0.78)], np.float32)
+def normals(h, sigma=0.6):
+    """The unit normal of a height field (texels, on the supersampled grid),
+    smoothed a little so a step reads as a steep slope and not a stair."""
+    hs = blur(h, sigma * SS) if sigma > 0 else h
+    gy, gx = np.gradient(hs)
+    gx, gy = gx * SS, gy * SS
+    ln = np.sqrt(gx * gx + gy * gy + 1.0)
+    return -gx / ln, -gy / ln, 1.0 / ln
+
+
+# The gold: dark bronze, deep gold, bright gold, a pale highlight, white hot,
+# by how lit.
+GOLD_T = [0.0, 0.18, 0.40, 0.62, 0.82, 1.0]
+GOLD_RGB = np.array([(0.16, 0.07, 0.01), (0.42, 0.22, 0.04), (0.78, 0.51, 0.10),
+                     (0.97, 0.77, 0.26), (1.00, 0.92, 0.58), (1.00, 0.99, 0.90)], np.float32)
 
 
 def gold(t):
@@ -201,8 +235,21 @@ def gold(t):
     return np.stack([np.interp(t, GOLD_T, GOLD_RGB[:, i]) for i in range(3)], -1)
 
 
-def seam_colour(shape):
-    return np.broadcast_to(np.array([0.20, 0.07, 0.02], np.float32), shape + (3,))
+def metal(nx, ny, nz, power=24.0):
+    """How lit polished metal is for a normal: the sky reflected in faces that
+    look up and to the left, the dark ground in faces that look down, the
+    diffuse term, a hot specular, and the edge-on faces going dark. Returns
+    the gold ramp's parameter and the specular alone."""
+    diff = np.clip(nx * LIGHT[0] + ny * LIGHT[1] + nz * LIGHT[2], 0, 1)
+    spec = np.clip(nx * HALF[0] + ny * HALF[1] + nz * HALF[2], 0, 1) ** power
+    tilt = np.sqrt(np.clip(1 - nz * nz, 0, 1))
+    env = 0.5 + 0.5 * (nx * SKY[0] + ny * SKY[1]) / np.maximum(tilt, 1e-3) * np.clip(tilt * 1.6, 0, 1)
+    t = 0.12 + 0.42 * env + 0.30 * diff + 0.90 * spec - 0.10 * np.clip(tilt - 0.85, 0, 1) / 0.15
+    return t, spec
+
+
+def dark(shape, rgb):
+    return np.broadcast_to(np.array(rgb, np.float32), shape + (3,))
 
 
 # ------------------------------------------------------------------ the ribbon
@@ -217,13 +264,13 @@ def mirror(x, end):
 
 
 def edge_dists(x, y, end):
-    """Distance inside each edge of the ribbon's silhouette, in rows, and the
-    outward normal of each. The mid has the top and the hem; the end has them
-    and the fork, whose two sides are one edge (the cloth is left of either).
-    Larger is further in."""
+    """Distance inside each edge of the ribbon's silhouette, in rows, the
+    outward normal of each, and a coordinate along it. The mid has the top and
+    the hem; the end has them and the fork, whose two sides are one edge (the
+    cloth is left of either). Larger is further in."""
     H = float(RIBBON_PX)
     x = mirror(x, end)
-    edges = [(y, (0.0, -1.0)), (H - y, (0.0, 1.0))]
+    edges = [(y, (0.0, -1.0), x), (H - y, (0.0, 1.0), x)]
     if end:
         wd = float(END_PX)
         ax, ay = wd - NOTCH_PX, H / 2          # the apex of the notch
@@ -235,109 +282,160 @@ def edge_dists(x, y, end):
             ex, ey = ax - tx, ay - ty
             ln = (ex * ex + ey * ey) ** 0.5
             nx, ny = (ey / ln, -ex / ln) if top else (-ey / ln, ex / ln)
-            sides.append((-((x - tx) * nx + (y - ty) * ny), (nx, ny)))
-        (d1, n1), (d2, n2) = sides
+            along = (x - tx) * (ex / ln) + (y - ty) * (ey / ln)
+            sides.append((-((x - tx) * nx + (y - ty) * ny), (nx, ny), along))
+        (d1, n1, s1), (d2, n2, s2) = sides
         first = d1 >= d2
-        edges.append((np.maximum(d1, d2), (np.where(first, n1[0], n2[0]), np.where(first, n1[1], n2[1]))))
+        edges.append((np.maximum(d1, d2), (np.where(first, n1[0], n2[0]), np.where(first, n1[1], n2[1])),
+                      np.where(first, s1, s2)))
     return edges
 
 
 def silhouette(x, y, end):
     d = None
-    for di, _ in edge_dists(x, y, end):
+    for di, _, _ in edge_dists(x, y, end):
         d = di if d is None else np.minimum(d, di)
     return d  # positive inside; the end's left side runs on, off the file
 
 
 def nearest_edge(x, y, end):
-    """The smallest distance in and the light the rail takes there (the
-    outward normal against the light), over every edge."""
-    best, lit = None, None
+    """The smallest distance in, the light the rail takes there (the outward
+    normal against the light) and the coordinate along it, over every edge."""
+    best, lit, along = None, None, None
     norm = (LIGHT[0] ** 2 + LIGHT[1] ** 2) ** 0.5
-    for di, (nx, ny) in edge_dists(x, y, end):
+    for di, (nx, ny), s in edge_dists(x, y, end):
         if end == END_L:
             nx = -nx
         facing = (nx * LIGHT[0] + ny * LIGHT[1]) / norm
         facing = np.broadcast_to(np.asarray(facing, np.float32), di.shape)
+        s = np.broadcast_to(np.asarray(s, np.float32), di.shape)
         if best is None:
-            best, lit = di, facing
+            best, lit, along = di, facing, s
         else:
             closer = di < best
             best = np.where(closer, di, best)
             lit = np.where(closer, facing, lit)
-    return best, lit
+            along = np.where(closer, s, along)
+    return best, lit, along
+
+
+def cloth_height(x, y, end):
+    """The cloth's relief in rows: it bows towards the eye above the middle,
+    the hem turns under, the middle carries two slow folds, and the forked
+    tails turn back a little and crease from the apex."""
+    H = float(RIBBON_PX)
+    v = np.clip(y / H, 0, 1)
+    # The bulge: the cloth bows out to its middle, steepest a quarter of the
+    # way down (where the sheen lands), and falls to the hem ever faster, so
+    # the hem turns under into shade.
+    h = np.where(v < 0.5, 3.0 * (1 - np.cos(2 * np.pi * v)), 6.0 * (1 - (np.abs(v - 0.5) / 0.5) ** 2.2))
+    if end:
+        xm = mirror(x, end)
+        t = np.clip((xm - (END_PX - NOTCH_PX)) / NOTCH_PX, 0, 1)
+        # The tails fall back behind the plane of the cloth, and a crease runs
+        # from the apex out along the middle of the tail.
+        h = h - 4.2 * t ** 1.4
+        h = h - 2.0 * np.exp(-((v - 0.5) / 0.07) ** 2) * sstep(0.0, 0.7, t)
+    else:
+        u = x / 128.0
+        env = np.sin(np.pi * u)
+        h = h + env * (1.3 * np.sin(2 * np.pi * u + 0.5) + 0.6 * np.sin(2 * np.pi * 2.3 * u + 2.1))
+    return h
 
 
 def cloth_shade(x, y, end):
-    """The cloth's grey: lit at the top, shaded at the hem, a twill, a fold."""
-    H = float(RIBBON_PX)
-    v = y / H
-    # A broad fall from the lit top to the shaded hem, and a band of light
-    # on the upper third where the cloth bulges to meet the eye.
-    s = np.interp(v, [0.0, 0.34, 0.62, 1.0], [0.86, 0.85, 0.74, 0.55])
-    s = s + 0.05 * np.exp(-((v - 0.22) / 0.10) ** 2)
-    s = s - 0.07 * np.exp(-((v - 0.86) / 0.07) ** 2)
-    d, lit = nearest_edge(x, y, end)
+    """The cloth's grey: satin, lit by its relief, in shade under the rails
+    and in the fork, with a faint twill."""
+    h = cloth_height(x, y, end)
+    nx, ny, nz = normals(h, 0.5)
+    diff = np.clip(nx * LIGHT[0] + ny * LIGHT[1] + nz * LIGHT[2], 0, 1)
+    sheen = np.clip(nx * HALF[0] + ny * HALF[1] + nz * HALF[2], 0, 1) ** 10
+    s = 0.31 + 0.38 * diff + 0.36 * sheen
+    d, lit, _ = nearest_edge(x, y, end)
     # Cloth lies in shadow where it turns under the gold: a soft inner shade.
-    s = s * (1 - 0.15 * np.exp(-np.maximum(d - TRIM_PX, 0) / 4.5))
+    s = s * (1 - 0.14 * np.exp(-np.maximum(d - RAIL_ROWS, 0) / 3.0))
     if end:
-        # The fork is a fold: the cloth is darker where it is cut and lit on the
-        # tail's upper face.
-        fold = np.exp(-np.maximum(d, 0) / 6.0)
-        s = s * (1 - 0.20 * fold * (lit < 0.0)) * (1 + 0.04 * fold * (lit > 0.0))
-        # A crease from the apex out along the middle of each tail.
-        wd = float(END_PX)
-        t = np.clip((mirror(x, end) - (wd - NOTCH_PX)) / NOTCH_PX, 0, 1)
-        s = s * (1 - 0.06 * sstep(0.0, 1.0, t) * (1 - np.abs(v - 0.5) * 2) ** 2)
-    # A faint twill: diagonal threads, six rows apart.
+        # The fork is a cut: the cloth is in shade along the side that turns
+        # from the light and catches it along the other.
+        fold = np.exp(-np.maximum(d, 0) / 3.5)
+        s = s * (1 - 0.22 * fold * (lit < 0.0)) * (1 + 0.05 * fold * (lit > 0.0))
+    # A faint twill: diagonal threads, six rows apart, and the grain of the
+    # weave (a hash of the texel, the same every run).
     twill = np.cos((x + 2.0 * y) * (2 * np.pi / 6.0))
-    s = s * (1 + 0.015 * twill)
+    grain = np.modf(np.sin(x * 12.9898 + y * 78.233) * 43758.5453)[0] - 0.5
+    s = s * (1 + 0.014 * twill + 0.012 * grain)
     return s
 
 
+def cloth_norm():
+    """The factor that puts the plain cloth's brightest texel (the forked
+    end's, short of the fork, where no fold lifts it) at LIGHTEST: every
+    piece is scaled by it, so the pieces meet without a step."""
+    x, y = grid(END_PX, RIBBON_PX)
+    plain = cloth_shade(x, y, END_R)[:, :8 * SS]
+    return LIGHTEST / float(plain.max())
+
+
+def cloth_grey(x, y, end, k):
+    """The cloth's grey scaled to the plain cloth's LIGHTEST, the crests of
+    the folds eased in above it (a soft knee, so nothing clips flat)."""
+    s = cloth_shade(x, y, end) * k
+    knee = LIGHTEST - 0.03
+    s = np.where(s > knee, knee + (s - knee) * 0.4, s)
+    return np.clip(np.minimum(s, LIGHTEST), 0, 1)
+
+
 def make_cloth_mid():
+    k = cloth_norm()
+
     def paint(x, y):
-        s = cloth_shade(x, y, MID)
-        u = x / 128.0
-        # One slow fold across the length, gone at both ends so the middle
-        # meets the end and the left end without a seam.
-        env = np.sin(np.pi * u)
-        s = s * (1 - 0.075 * env * np.exp(-((u - 0.62) / 0.16) ** 2) + 0.03 * env * np.exp(-((u - 0.30) / 0.14) ** 2))
+        s = cloth_grey(x, y, MID, k)
         return np.clip(s, 0, 1), np.ones_like(s)
     make("Ribbon_Cloth_Mid", 128, RIBBON_PX, paint)
 
 
 def make_cloth_end():
+    k = cloth_norm()
     for name, end in (("Ribbon_Cloth_End", END_R), ("Ribbon_Cloth_EndL", END_L)):
         def paint(x, y, end=end):
-            s = cloth_shade(x, y, end)
+            s = cloth_grey(x, y, end, k)
             a = cover(-silhouette(x, y, end))
-            return np.clip(s, 0, 1), a
+            return s, a
         make(name, END_PX, RIBBON_PX, paint)
 
 
 def trim_paint(x, y, end):
-    """The gold rails, the dark seam and the thin inner line, as colour and
-    alpha. Rails are cylinders lit from the upper left: bright where they face
-    the light, dark where they turn away."""
-    d, lit = nearest_edge(x, y, end)
+    """The gold cord along the edges, with a dark outline outside it, a dark
+    seam against the cloth and a thread of stitching, as colour and alpha. The
+    cord is a twisted cylinder lit from the upper left: bright where it faces
+    the light, dark where it turns away, hot along the ridge."""
+    d, lit, along = nearest_edge(x, y, end)
     sil = cover(-silhouette(x, y, end))
-    # The rail: 0 at the cloth's edge, TRIM_PX in.
-    k = np.clip(d / TRIM_PX, 0, 1)
-    round_ = np.cos(np.pi * k)                   # +1 on the outer half, -1 on the inner
-    shade = 0.58 + 0.40 * lit * round_ + 0.08 * np.sin(np.pi * k)
-    # A hot edge on the outermost row that faces the light.
-    shade = shade + 0.22 * (lit > 0.3) * np.exp(-np.maximum(d, 0) / 0.7)
-    rail = (1 - sstep(TRIM_PX - 0.5, TRIM_PX + 0.5, d)) * sstep(-0.5, 0.5, d)
-    colour = gold(shade)
-    out = colour * rail[..., None]
-    a = rail.copy()
-    # The seam: a dark line against the cloth.
-    seam = sstep(TRIM_PX - 0.2, TRIM_PX + 0.4, d) * (1 - sstep(TRIM_PX + SEAM_PX - 0.3, TRIM_PX + SEAM_PX + 0.3, d))
-    sm = seam * (1 - rail) * 0.85
-    out = out + seam_colour(sm.shape) * sm[..., None]
-    a = a + sm
-    a = np.clip(a, 0, 1)
+    c0, c1 = OUTLINE_PX, OUTLINE_PX + CORD_PX
+    # The outline: a dark line outside the cord.
+    outline = sstep(-0.5, 0.5, d) * (1 - sstep(c0 - 0.3, c0 + 0.3, d))
+    # The cord: 0 at its outer edge, 1 at the seam; a cylinder's normal.
+    k = np.clip((d - c0) / CORD_PX, 0, 1)
+    across, up = np.cos(np.pi * k), np.sin(np.pi * k)
+    lxy = (LIGHT[0] ** 2 + LIGHT[1] ** 2) ** 0.5
+    hxy = (HALF[0] ** 2 + HALF[1] ** 2) ** 0.5
+    nl = np.clip(across * lit * lxy + up * LIGHT[2], 0, 1)
+    nh = np.clip(across * lit * hxy + up * HALF[2], 0, 1)
+    env = 0.5 + 0.5 * across * lit
+    t = 0.20 + 0.34 * env + 0.30 * nl + 0.75 * nh ** 30
+    # The twist of the cord: a strand every seven rows, leaning across it (a
+    # hint only: the middle is stretched, and a strong twist would wobble).
+    t = t + 0.035 * np.cos(2 * np.pi * (along / 7.0) + np.pi * k)
+    cord = sstep(c0 - 0.3, c0 + 0.3, d) * (1 - sstep(c1 - 0.3, c1 + 0.3, d))
+    # The seam: a dark line against the cloth; the thread: gold stitching.
+    s1 = c1 + SEAM_PX
+    seam = sstep(c1 - 0.3, c1 + 0.3, d) * (1 - sstep(s1 - 0.3, s1 + 0.3, d)) * 0.85
+    t0, t1 = s1 + 0.12, s1 + 0.12 + 0.55
+    thread = sstep(t0 - 0.25, t0 + 0.25, d) * (1 - sstep(t1 - 0.25, t1 + 0.25, d)) * 0.70
+    stitch = 0.60 + 0.16 * np.cos(2 * np.pi * along / 3.0)
+    out = (dark(d.shape, (0.13, 0.05, 0.02)) * outline[..., None] + gold(t) * cord[..., None]
+           + dark(d.shape, (0.10, 0.03, 0.02)) * seam[..., None] + gold(stitch) * thread[..., None])
+    a = np.clip(outline + cord + seam + thread, 0, 1)
     col = np.where(a[..., None] > 1e-4, out / np.maximum(a[..., None], 1e-4), 0)
     return col, a * sil
 
@@ -363,8 +461,8 @@ def drop_paint(w, end):
         xx = xe / k if not end else (xe - (w - SHADOW_ROOM)) / k + END_PX
         sil = cover(-silhouette(xx, yy, END_R if end else MID), 1.0)
         # Blurred at the final size: the supersampled grid is SS times finer.
-        a = blur(sil, 2.2 * SS)
-        return np.zeros(a.shape), a * 0.58
+        a = blur(sil, 2.6 * SS)
+        return np.zeros(a.shape), a * 0.72
     return paint
 
 
@@ -383,58 +481,61 @@ def polar(x, y, size):
     return dx / half, dy / half, r
 
 
-def height_profile(r, ang):
-    """The medallion's relief, in arbitrary units, from the middle out."""
+# The beads on the lip.
+BEADS = 32
+
+
+def medal_height(x, y, size):
+    """The medallion's relief in texels, from the middle out: the well, the
+    bezel's rounded ring, the sunk channel, the lip with its chain of beads,
+    and the bevel that falls away to the edge."""
+    half = size / 2.0
+    nx_, ny_, r = polar(x, y, size)
+    ang = np.arctan2(ny_, nx_)
     h = np.zeros_like(r)
-    # The bezel: a rounded ring round the icon.
     k = np.clip((r - M_BEZEL) / (M_CH_IN - M_BEZEL), 0, 1)
-    h = np.where((r >= M_BEZEL) & (r < M_CH_IN), 0.70 * np.maximum(np.sin(np.pi * k), 0) ** 0.8 + 0.18, h)
-    # The channel floor, sunk, with steep walls.
-    h = np.where((r >= M_CH_IN) & (r < M_LIP), -0.22, h)
-    # The lip: a rounded ring with a bead chain on it.
-    k = np.clip((r - M_LIP) / (M_OUT - M_LIP), 0, 1)
-    bead = 0.5 + 0.5 * np.cos(ang * 40.0)
-    h = np.where((r >= M_LIP) & (r <= M_OUT), 0.95 * np.maximum(np.sin(np.pi * k), 0) ** 0.7 + 0.10 * bead * np.maximum(np.sin(np.pi * k), 0), h)
-    return h
+    bezel = 3.6 * np.maximum(np.sin(np.pi * k), 0) ** 0.85
+    h = np.where((r >= M_BEZEL) & (r < M_CH_IN), bezel, h)
+    h = np.where((r >= M_CH_IN) & (r < M_LIP), -1.8, h)
+    k = np.clip((r - M_LIP) / (M_BEVEL - M_LIP), 0, 1)
+    lip = 3.4 * np.maximum(np.sin(np.pi * k), 0) ** 0.8
+    # Each bead is a small sphere on the lip, evenly round it.
+    rb = (M_LIP + M_BEVEL) / 2
+    rs = (2 * np.pi * rb * half / BEADS) / 2 * 0.92
+    a0 = np.round(ang * BEADS / (2 * np.pi)) * (2 * np.pi / BEADS)
+    bx, by = rb * np.cos(a0) * half, rb * np.sin(a0) * half
+    db = np.sqrt((nx_ * half - bx) ** 2 + (ny_ * half - by) ** 2)
+    bead = np.sqrt(np.maximum(rs * rs - db * db, 0)) * 0.75
+    h = np.where((r >= M_LIP) & (r < M_BEVEL), lip * 0.70 + bead, h)
+    k = np.clip((r - M_BEVEL) / (M_OUT - M_BEVEL), 0, 1)
+    h = np.where(r >= M_BEVEL, -3.6 * k, h)
+    return h, r, ang, nx_, ny_
 
 
 def medal_shading(x, y, size):
-    nx_, ny_, r = polar(x, y, size)
-    ang = np.arctan2(ny_, nx_)
-    h = height_profile(r, ang)
-    # A smoothed height, so its slope is a shading and not a stair.
-    hs = blur(h, 0.9 * SS)
-    gy, gx = np.gradient(hs)
-    scale = 9.0 * SS / 1.0
-    nxv, nyv, nzv = -gx * scale, -gy * scale, np.ones_like(gx)
-    ln = np.sqrt(nxv ** 2 + nyv ** 2 + nzv ** 2)
-    nxv, nyv, nzv = nxv / ln, nyv / ln, nzv / ln
-    diff = np.clip(nxv * LIGHT[0] + nyv * LIGHT[1] + nzv * LIGHT[2], 0, 1)
-    spec = np.clip(nxv * HALF[0] + nyv * HALF[1] + nzv * HALF[2], 0, 1) ** 28
-    return r, ang, h, diff, spec
+    h, r, ang, nx_, ny_ = medal_height(x, y, size)
+    nx, ny, nz = normals(h, 0.55)
+    t, spec = metal(nx, ny, nz)
+    # The disc is domed a little as a whole: a broad light from the upper left.
+    t = t + 0.14 * (-(nx_ * 0.5 + ny_ * 0.85))
+    return r, ang, t, spec, nx_, ny_
 
 
 def make_medal():
     size = 128
 
     def paint(x, y):
-        r, ang, h, diff, spec = medal_shading(x, y, size)
-        flat = LIGHT[2]
-        t = 0.58 + 0.85 * (diff - flat) + 0.55 * spec
-        # A broad light across the whole disc, from the upper left.
-        nx_, ny_, _ = polar(x, y, size)
-        t = t + 0.14 * (-(nx_ * 0.6 + ny_ * 0.8))
-        # Fine radial brushing in the flat of the metal.
-        brush = np.sin(ang * 90.0 + r * 3.0) * 0.012
-        t = t + brush
-        # The channel's floor is darker gold; the bezel's inner edge a dark line.
-        t = np.where((r >= M_CH_IN) & (r < M_LIP), t - 0.05, t)
+        r, ang, t, spec, nx_, ny_ = medal_shading(x, y, size)
+        # Fine radial brushing in the channel's floor, which is darker gold.
+        floor = (r >= M_CH_IN) & (r < M_LIP)
+        t = np.where(floor, t - 0.20 + 0.02 * np.sin(ang * 120.0), t)
         col = gold(t)
-        # The dark line round the outside and where the bezel meets the well.
-        edge = np.exp(-np.maximum(M_OUT - r, 0) * 64 / 0.9)
-        col = col * (1 - 0.65 * edge[..., None])
-        inner = np.exp(-np.abs(r - M_BEZEL) * 64 / 0.8)
-        col = col * (1 - 0.50 * inner[..., None] * (r < M_BEZEL + 0.02)[..., None])
+        # The dark outline round the edge, and the dark gap where the bezel
+        # meets the well.
+        outline = sstep(M_OUT - 0.028, M_OUT - 0.006, r)
+        col = col * (1 - 0.75 * outline[..., None])
+        gap = np.exp(-np.abs(r - (M_BEZEL - 0.004)) * 64 / 0.9)
+        col = col * (1 - 0.55 * gap[..., None])
         a = cover((r - M_OUT) * 64.0)
         return col, a
     make("Ribbon_Medal", size, size, paint)
@@ -448,13 +549,20 @@ def make_enamel():
         lo, hi = M_CH_IN + 0.012, M_CH_OUT - 0.010
         a = cover((np.abs(r - (lo + hi) / 2) - (hi - lo) / 2) * 64.0)
         k = np.clip((r - lo) / (hi - lo), 0, 1)
-        # Fired enamel is deepest by the metal's walls and lightest in the
-        # middle of the channel; the upper left wall casts a little shade.
-        body = 0.74 + 0.20 * np.sin(np.pi * k)
-        wall = (nx_ * LIGHT[0] + ny_ * LIGHT[1]) * -1.0  # inner side of the upper left
-        body = body - 0.10 * np.exp(-((k - 0.0) / 0.22) ** 2) * np.clip(wall, 0, 1) * 1.4
-        body = body + 0.06 * (nx_ * 0.6 + ny_ * 0.8) * -1.0 * 0.0
-        return np.clip(body, 0, 1), a
+        # The enamel is a low dome in the channel: lit as a soft surface.
+        h = 1.3 * np.sin(np.pi * k)
+        nx, ny, nz = normals(np.where(a > 0, h, 0), 0.5)
+        diff = np.clip(nx * LIGHT[0] + ny * LIGHT[1] + nz * LIGHT[2], 0, 1)
+        body = 0.54 + 0.26 * diff
+        # Glossy: it reflects the dark above and the light below.
+        body = body + 0.14 * (0.5 + 0.5 * ny_)
+        # Deepest by the metal's walls, and the lip's wall at the upper left
+        # casts its shade across.
+        body = body - 0.16 * np.exp(-(k / 0.16) ** 2) - 0.12 * np.exp(-((1 - k) / 0.16) ** 2)
+        lxy = (LIGHT[0] ** 2 + LIGHT[1] ** 2) ** 0.5
+        wall = np.clip((nx_ * LIGHT[0] + ny_ * LIGHT[1]) / lxy, 0, 1)
+        body = body - 0.26 * wall * np.exp(-((1 - k) / 0.34) ** 2)
+        return np.clip(body, 0.08, 1), a
     make("Ribbon_Enamel", size, size, paint)
 
 
@@ -464,13 +572,13 @@ def make_gloss():
     def paint(x, y):
         nx_, ny_, r = polar(x, y, size)
         ang = np.degrees(np.arctan2(ny_, nx_))
-        # A crescent in the channel's upper left, fading out at both ends, and
-        # a small spot opposite.
+        # A crescent of light in the channel's upper left, fading out at both
+        # ends, and a thin reflected line opposite, on the inner side.
         rc = (M_CH_IN + M_CH_OUT) / 2
-        band = np.exp(-((r - (rc + 0.012)) / 0.030) ** 2)
-        arc = np.exp(-((ang + 135.0) / 38.0) ** 2)
-        spot = np.exp(-((ang - 52.0) / 9.0) ** 2) * np.exp(-((r - rc) / 0.026) ** 2) * 0.55
-        a = np.clip(band * arc * 0.80 + spot, 0, 1)
+        band = np.exp(-((r - (rc + 0.008)) / 0.024) ** 2)
+        arc = np.exp(-((ang + 135.0) / 36.0) ** 2)
+        line = np.exp(-((r - (rc - 0.022)) / 0.011) ** 2) * np.exp(-((ang - 45.0) / 30.0) ** 2) * 0.38
+        a = np.clip(band * arc * 0.85 + line, 0, 1)
         return np.ones_like(a), a
     make("Ribbon_Gloss", size, size, paint)
 
@@ -479,11 +587,11 @@ def make_lit():
     size = 128
 
     def paint(x, y):
-        r, ang, h, diff, spec = medal_shading(x, y, size)
-        flat = LIGHT[2]
-        t = np.clip(0.45 + 0.9 * (diff - flat) + 0.6 * spec, 0, 1)
-        a = np.clip(t - 0.25, 0, 1) * 1.3
-        a = a * cover((r - M_OUT) * 64.0) * (1 - cover((r - M_CH_IN) * 64.0) * cover((M_LIP - r) * 64.0) * 0.8)
+        r, ang, t, spec, nx_, ny_ = medal_shading(x, y, size)
+        a = np.clip(1.4 * (t - 0.50), 0, 1) + 0.8 * spec
+        a = a * cover((r - M_OUT) * 64.0)
+        # The channel takes little of it: the enamel has its own light.
+        a = a * (1 - 0.75 * sstep(M_CH_IN, M_CH_IN + 0.02, r) * (1 - sstep(M_LIP - 0.02, M_LIP, r)))
         a = a * (r > M_BEZEL * 0.97)
         return np.ones_like(a), np.clip(a, 0, 1)
     make("Ribbon_Lit", size, size, paint)
@@ -560,40 +668,83 @@ def make_glint():
 
 # ------------------------------------------------------------------ tags and gems
 
+# The pill the tags are cut to, 64 x 32: half circles of the full height at
+# both ends, and the bevel's width in texels.
+PILL_R, BEVEL_PX = 15.0, 4.2
+
+
+def pill(x, y):
+    """Signed distance to the pill's edge (negative inside) and how far in."""
+    cx = np.clip(x, 16.0, 48.0)
+    d = np.sqrt((x - cx) ** 2 + (y - 16.0) ** 2) - PILL_R
+    return d, -d
+
+
+def bevel_height(inside, width, height):
+    """A rounded bevel rising from the edge to a plateau `width` in."""
+    return height * np.maximum(np.sin(0.5 * np.pi * np.clip(inside / width, 0, 1)), 0) ** 0.9
+
+
+def tag_metal(x, y, inside):
+    h = bevel_height(inside, BEVEL_PX, 3.4)
+    nx, ny, nz = normals(np.where(inside > -1, h, 0), 0.5)
+    t, _ = metal(nx, ny, nz)
+    # A fine brushing across the plateau.
+    t = t + 0.015 * np.sin(y * 1.9 + x * 0.3)
+    col = gold(t)
+    # The dark outline, and a hair of shade inside the edge.
+    rim = 1 - sstep(0.35, 0.95, inside)
+    col = col * (1 - 0.70 * np.clip(rim, 0, 1)[..., None])
+    return col
+
+
 def make_tag():
     w, h = 64, 32
 
     def paint(x, y):
-        # A pill whose caps are half circles of the full height.
-        cx = np.clip(x, 16.0, 48.0)
-        d = np.sqrt((x - cx) ** 2 + (y - 16.0) ** 2) - 15.2
-        a = cover(d)
-        # Cylinder shading across the height, lit from above; a dark rim.
-        k = np.clip(y / h, 0, 1)
-        t = 0.50 + 0.42 * np.cos(np.pi * (k * 0.9 + 0.02)) * 0.8 + 0.10 * np.sin(np.pi * k)
-        t = t + 0.20 * np.exp(-((y - 8.0) / 3.0) ** 2) * (np.abs(x - 32.0) < 24)
-        col = gold(t)
-        rim = np.exp(-np.maximum(-d, 0) / 1.1)
-        col = col * (1 - 0.62 * rim[..., None])
-        return col, a
+        d, inside = pill(x, y)
+        return tag_metal(x, y, inside), cover(d)
     make("Ribbon_Tag", w, h, paint)
+
+
+# The badge's enamel: a crimson, the ribbon's own, fired dark.
+ENAMEL_RGB = np.array([0.50, 0.07, 0.09], np.float32)
+
+
+def make_badge():
+    w, h = 64, 32
+
+    def paint(x, y):
+        d, inside = pill(x, y)
+        col = tag_metal(x, y, inside)
+        # The field: enamel sunk in from the bevel, glossy, lighter towards
+        # the hem and with a band of light under the rim at the top, in shade
+        # by the rim's wall all round.
+        field = sstep(BEVEL_PX - 0.3, BEVEL_PX + 0.3, inside)
+        v = y / float(h)
+        enamel = ENAMEL_RGB[None, None, :] * (0.72 + 0.42 * v)[..., None]
+        shine = 0.16 * np.exp(-((y - 8.2) / 2.2) ** 2) * sstep(BEVEL_PX + 1.0, BEVEL_PX + 3.0, inside)
+        enamel = enamel + shine[..., None]
+        ao = 1 - 0.30 * np.exp(-np.maximum(inside - BEVEL_PX, 0) / 1.4)
+        enamel = enamel * ao[..., None]
+        col = col * (1 - field)[..., None] + np.clip(enamel, 0, 1) * field[..., None]
+        return col, cover(d)
+    make("Ribbon_Badge", w, h, paint)
 
 
 def make_gem():
     def paint(x, y):
-        _, _, r = polar(x, y, 32)
-        nx_, ny_, _ = polar(x, y, 32)
-        # A faceted gem: eight facets by angle, shaded by which way each faces.
-        ang = np.arctan2(ny_, nx_)
-        facet = np.floor((ang + np.pi) / (np.pi / 4))
-        face_ang = (facet + 0.5) * (np.pi / 4) - np.pi
-        lit = np.cos(face_ang - np.arctan2(LIGHT[1], LIGHT[0]))
-        body = 0.72 + 0.22 * lit * np.clip(r * 1.2, 0, 1)
-        table = r < 0.42
-        body = np.where(table, 0.90 + 0.06 * (-(nx_ * 0.6 + ny_ * 0.8)), body)
-        # A bright spot at the upper left, and the rim darker.
-        body = body + 0.22 * np.exp(-(((nx_ + 0.30) ** 2 + (ny_ + 0.34) ** 2) / 0.012))
-        body = body * (1 - 0.30 * sstep(0.62, 0.96, r))
+        nx_, ny_, r = polar(x, y, 32)
+        # A cabochon: a dome, glassy, a hot spot at the upper left and a
+        # faint reflected light at the lower right, the rim turning dark.
+        rr = np.clip(r / 0.96, 0, 1)
+        nz = np.sqrt(np.maximum(1 - rr * rr, 0))
+        nx, ny = nx_ / 0.96 * (rr <= 1), ny_ / 0.96 * (rr <= 1)
+        diff = np.clip(nx * LIGHT[0] + ny * LIGHT[1] + nz * LIGHT[2], 0, 1)
+        spec = np.clip(nx * HALF[0] + ny * HALF[1] + nz * HALF[2], 0, 1) ** 40
+        body = 0.28 + 0.42 * diff + 0.85 * spec + 0.10 * (0.5 + 0.5 * ny_)
+        back = np.exp(-(((nx_ - 0.42) ** 2 + (ny_ - 0.48) ** 2) / 0.05)) * 0.10
+        body = (body + back) * (1 - 0.40 * sstep(0.70, 0.97, r))
         return np.clip(body, 0, 1), cover((r - 0.97) * 16.0)
     make("Ribbon_Gem", 32, 32, paint)
 
@@ -603,13 +754,15 @@ def make_gem_set():
         nx_, ny_, r = polar(x, y, 32)
         a = cover((r - 0.99) * 16.0) * (1 - cover((r - 0.60) * 16.0))
         k = np.clip((r - 0.60) / 0.39, 0, 1)
-        ang = np.arctan2(ny_, nx_)
-        facing = np.cos(ang - np.arctan2(LIGHT[1], LIGHT[0]))
-        # A rounded rim: bright on the side that faces the light, dark on the
-        # side that turns away, the inner lip the other way about.
-        t = 0.55 + 0.36 * facing * np.cos(np.pi * k) + 0.06 * np.sin(np.pi * k)
+        # A rounded bezel, a small torus, lit as the medallion's lip is.
+        h = 2.0 * np.maximum(np.sin(np.pi * k), 0) ** 0.8
+        nx, ny, nz = normals(np.where(a > 0, h, 0), 0.4)
+        t, _ = metal(nx, ny, nz)
         col = gold(t)
-        col = col * (1 - 0.5 * np.exp(-np.maximum(0.99 - r, 0) * 16 / 0.8)[..., None])
+        outline = sstep(0.955, 0.985, r)
+        col = col * (1 - 0.70 * outline[..., None])
+        inner = np.exp(-np.maximum(r - 0.60, 0) * 16 / 0.6)
+        col = col * (1 - 0.45 * inner[..., None])
         return col, a
     make("Ribbon_GemSet", 32, 32, paint)
 
@@ -636,6 +789,7 @@ def main():
     make_sweep()
     make_glint()
     make_tag()
+    make_badge()
     make_gem()
     make_gem_set()
     for name, w, h in written:

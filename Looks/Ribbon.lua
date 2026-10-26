@@ -28,9 +28,11 @@
 -- their client draws its writing in, and so does a player who chose a font of
 -- their own.
 --
--- The art is Textures/Ribbon, drawn by tools/make_ribbon_textures.py. The gold
--- is baked; the cloth, the enamel and the gem are grey, coloured here. The
--- interface this file implements is described at the top of Looks/Looks.lua.
+-- The art is Textures/Ribbon, drawn by tools/make_ribbon_textures.py, every
+-- surface modelled in relief and lit from the upper left. The gold and the
+-- badge's enamel are baked; the cloth, the ring's enamel and the gem are grey,
+-- coloured here. The interface this file implements is described at the top
+-- of Looks/Looks.lua.
 
 local _, ns = ...
 local L = ns.L
@@ -54,7 +56,7 @@ local Ribbon = ns.Looks.Register("ribbon", {
 -- the shadow's canvas leaves round the ribbon, and the medallion's radii and
 -- the rest as fractions of its file's half-width.
 local RIBBON_PX, END_PX, NOTCH_PX, SHADOW_PX = 64, 32, 19, 56
-local M_OUT, M_CH_OUT, M_CH_IN, M_BEZEL = 0.98, 0.895, 0.74, 0.635
+local M_OUT, M_CH_OUT, M_CH_IN, M_BEZEL = 0.98, 0.85, 0.735, 0.635
 local SHADE_FILL, RING_PEAK, RING_EDGE = 0.70, 0.70, 0.89
 -- The texels of room the shadow's forked end keeps beyond the cloth's tip.
 local SHADOW_ROOM = 0
@@ -80,11 +82,13 @@ local LIT_GREY = 0.935
 local READ = 4.6
 local DYE_LUMA, DYE_LUMA_LOW, DYE_LUMA_HIGH = 0.105, 0.016, 0.125
 -- The ink: the name in warm gold, the reason in pale peach, a shadow of dark
--- crimson under both; the count's ink on its gold tag.
+-- crimson under both (the emboss of lettering raised on a banner); the key's
+-- ink dark on its gold tag, the count's pale gold on its badge's enamel.
 local GOLD_INK = { 1.00, 0.88, 0.54 }
 local PEACH = { 1.00, 0.88, 0.80 }
-local SHADOW = { 0.24, 0.02, 0.03 }
+local SHADOW = { 0.16, 0.02, 0.03 }
 local TAG_INK = { 0.27, 0.05, 0.04 }
+local BADGE_INK = { 1.00, 0.90, 0.62 }
 local ROW_INK = { 1.00, 0.89, 0.80 }
 -- The enamel with the marker switched off, and with a reason it has none for.
 local NEUTRAL = { 0.34, 0.10, 0.09 }
@@ -470,8 +474,9 @@ function Ribbon:Build(kit)
 	self.jewel = tex(art, "ARTWORK", 1, "Gem")
 	self.jewelSet = tex(art, "ARTWORK", 2, "GemSet")
 
-	-- The chips: small gold tags, the key's over the cloth at its right, the
-	-- count's on the medallion's rim, their text on textLayer over them.
+	-- The chips: the key's a small gold tag over the cloth at its right, the
+	-- count's a gold badge with a field of enamel on the medallion's rim,
+	-- their text on textLayer over them.
 	local base = art:GetFrameLevel()
 	self.chipFrame = keep(CreateFrame("Frame", nil, art))
 	self.chipFrame:SetFrameLevel(base + 3)
@@ -480,7 +485,7 @@ function Ribbon:Build(kit)
 	-- nothing drawn on them, so no frame of the look reaches the text's level.
 	self.chipBox = keep(CreateFrame("Frame", nil, art))
 	self.keyBox = keep(CreateFrame("Frame", nil, art))
-	self.chip = ThreeSlice(self.chipFrame, "ARTWORK", 1, ART .. "Tag", keep)
+	self.chip = ThreeSlice(self.chipFrame, "ARTWORK", 1, ART .. "Badge", keep)
 	self.keyChip = ThreeSlice(self.chipFrame, "ARTWORK", 1, ART .. "Tag", keep)
 	self.keyText = keep(textLayer:CreateFontString(nil, "OVERLAY"))
 	self.keyText:SetJustifyH("CENTER")
@@ -582,12 +587,13 @@ function Ribbon:PlaceRibbon(dx)
 	for _, set in ipairs({ self.cloth, self.trim, self.dark, self.hot }) do
 		PlaceCloth(set, art, x0, x1, g.top, g.bottom, g.endW, self.showIcon)
 	end
-	-- The shadow: the cloth's own silhouette, blurred, lower by a unit, drawn on
-	-- a canvas of RIBBON_PX rows of which the cloth fills SHADOW_PX, and whose
-	-- end keeps ROOM texels beyond the tip. One canvas texel is `s` units.
+	-- The shadow: the cloth's own silhouette, blurred, lower by a unit or
+	-- three (the cloth stands a little off the world), drawn on a canvas of
+	-- RIBBON_PX rows of which the cloth fills SHADOW_PX, and whose end keeps
+	-- ROOM texels beyond the tip. One canvas texel is `s` units.
 	local s = g.rh / SHADOW_PX
 	local half = RIBBON_PX * s / 2
-	local mid = (g.top + g.bottom) / 2 + Clamp(g.rh * 0.03, 0.6, 2)
+	local mid = (g.top + g.bottom) / 2 + Clamp(g.rh * 0.05, 1, 3)
 	local y0, y1 = mid - half, mid + half
 	local d = self.drop
 	local tip, room = (END_PX - SHADOW_ROOM) * s, SHADOW_ROOM * s
@@ -634,7 +640,7 @@ function Ribbon:Apply(p, above)
 	self.shade:SetPoint("CENTER", art, "TOPLEFT", cx + 0.03 * g.M, -(cy + 0.045 * g.M))
 	-- A little under the medallion, so only a crescent of it is seen.
 	self.shade:SetSize(1.88 * g.R / SHADE_FILL, 1.88 * g.R / SHADE_FILL)
-	self.shade:SetVertexColor(0, 0, 0, 0.55)
+	self.shade:SetVertexColor(0, 0, 0, 0.62)
 	-- The glint sits on the lip at the upper left.
 	Disc(self.glint, art, cx - 0.60 * g.R, cy - 0.60 * g.R, 0.85 * g.R)
 	self.glint:SetVertexColor(1, 0.92, 0.66, 1)
@@ -818,9 +824,11 @@ function Ribbon:Styled(p)
 	kit.name:SetShadowOffset(1, -1)
 	kit.sub:SetShadowColor(SHADOW[1], SHADOW[2], SHADOW[3], 0.95)
 	kit.sub:SetShadowOffset(1, -1)
-	-- The tags are gold whatever the cloth: their text is a dark crimson.
-	kit.count:SetTextColor(TAG_INK[1], TAG_INK[2], TAG_INK[3], 1)
-	kit.count:SetShadowOffset(0, 0)
+	-- The tags are gold whatever the cloth: the key's text is a dark crimson
+	-- on the gold, the count's pale gold on its badge's crimson enamel.
+	kit.count:SetTextColor(BADGE_INK[1], BADGE_INK[2], BADGE_INK[3], 1)
+	kit.count:SetShadowColor(SHADOW[1], SHADOW[2], SHADOW[3], 0.9)
+	kit.count:SetShadowOffset(1, -1)
 	self.keyText:SetTextColor(TAG_INK[1], TAG_INK[2], TAG_INK[3], 1)
 	self.keyText:SetShadowOffset(0, 0)
 	for _, fs in ipairs(kit.rows) do

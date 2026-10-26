@@ -239,6 +239,64 @@ _m(RIBBON,
    "the tags' ink pale on gold",
    expect="look-ribbon: the lines keep clear of the tags")
 
+_m(RIBBON,
+   "local BADGE_INK = { 1.00, 0.90, 0.62 }",
+   "local BADGE_INK = { 0.27, 0.05, 0.04 }",
+   "the count's ink dark on its enamel",
+   expect="look-ribbon: the lines keep clear of the tags")
+
+_m(RIBBON,
+   "\tself.chip = ThreeSlice(self.chipFrame, \"ARTWORK\", 1, ART .. \"Badge\", keep)\n",
+   "\tself.chip = ThreeSlice(self.chipFrame, \"ARTWORK\", 1, ART .. \"Tag\", keep)\n",
+   "the count on a plain gold tag, the badge shipped and never drawn",
+   expect="look-ribbon: the lines keep clear of the tags")
+
+# --- the art is modelled -----------------------------------------------------
+# Each of these also leaves the shipped bytes behind the generator; the rule
+# each breaks is the one the modelling scenario reads off the fresh files.
+
+_m(GEN,
+   "    s = 0.31 + 0.38 * diff + 0.36 * sheen\n",
+   "    s = 0.70 + 0.0 * diff + 0.0 * sheen\n",
+   "the cloth painted flat: no sheen, no hem",
+   expect="look-ribbon: the art is modelled")
+
+_m(GEN,
+   "        h = h + env * (1.3 * np.sin(2 * np.pi * u + 0.5) + 0.6 * np.sin(2 * np.pi * 2.3 * u + 2.1))\n",
+   "        h = h + env * 0.0\n",
+   "the cloth's folds ironed out",
+   expect="look-ribbon: the art is modelled")
+
+_m(GEN,
+   "    t = 0.12 + 0.42 * env + 0.30 * diff + 0.90 * spec - 0.10 * np.clip(tilt - 0.85, 0, 1) / 0.15\n",
+   "    t = 0.55 + 0.0 * env + 0.0 * diff + 0.0 * spec - 0.0 * np.clip(tilt - 0.85, 0, 1) / 0.15\n",
+   "the gold unlit: one flat yellow",
+   expect="look-ribbon: the art is modelled")
+
+_m(GEN,
+   "        col = col * (1 - 0.75 * outline[..., None])\n",
+   "        col = col * (1 - 0.0 * outline[..., None])\n",
+   "the medallion with no dark outline",
+   expect="look-ribbon: the art is modelled")
+
+_m(GEN,
+   "    outline = sstep(-0.5, 0.5, d) * (1 - sstep(c0 - 0.3, c0 + 0.3, d))\n",
+   "    outline = sstep(-0.5, 0.5, d) * 0.0\n",
+   "the cord with no outline against the world",
+   expect="look-ribbon: the art is modelled")
+
+_m(GEN,
+   "        return np.zeros(a.shape), a * 0.72\n",
+   "        return np.zeros(a.shape), a * 0.20\n",
+   "the ribbon's shadow faint",
+   expect="look-ribbon: the art is modelled")
+
+_m(GEN,
+   "ENAMEL_RGB = np.array([0.50, 0.07, 0.09], np.float32)\n",
+   "ENAMEL_RGB = np.array([0.90, 0.65, 0.20], np.float32)\n",
+   "the badge's field gold, not enamel",
+   expect="look-ribbon: the art is modelled")
+
 # --- the face ---------------------------------------------------------------
 
 _m(RIBBON,
