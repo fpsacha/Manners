@@ -634,6 +634,96 @@ withTree("look-ribbon: the default size holds two lines between the rails", ANNA
 	if 2 * g.R > p.height then fail(scenario, "the medallion is taller than the prompt") end
 end)
 
+-- The reason line says why somebody is offered, so Ribbon keeps it wherever the
+-- built-in look (Glass) keeps it under the same settings: the sizes players
+-- pick (the default, "large" at 320 x 58 and 17 pt, and the steps between and
+-- around them), with F bound, in English and German, and at every font size
+-- from 8 to 22 on the least height Glass draws two lines at. Where the band is
+-- short the cloth widens first (the medallion still standing a tenth taller
+-- than it), then the gap and the display face give way, never below the face's
+-- fitted least nor the prompt's own size at those steps; the lines stay
+-- between the rails and in the prompt. Below Glass's height the face is never
+-- squeezed to force a second line in.
+for _, locale in ipairs({ "enUS", "deDE" }) do
+	local scenario = "look-ribbon: the reason line stays wherever the built-in looks keep it, " .. locale
+	withTree(scenario, ANNA, function(ns)
+		-- The line under the name on a look, with the size given ({ width,
+		-- height, font, icon }, nil the defaults) and F bound.
+		local function second(style, size)
+			local r, p, look = upIn(ns, scenario, function(pp)
+				pp.style = style
+				if size then pp.width, pp.height, pp.fontSize, pp.iconSize = size[1], size[2], size[3], size[4] end
+			end)
+			SetBinding("F", COMMAND)
+			tick(ns)
+			local text = r.sub:IsShown() and r.sub:GetText() or nil
+			if text == "" then text = nil end
+			return text, r, p, look
+		end
+		-- Both lines on Ribbon wherever Glass has both, and held where they should
+		-- be. `face` asks for the name at the prompt's own size at least.
+		local function check(label, size, face)
+			local want = second("glass", size)
+			local got, r, p, look = second("ribbon", size)
+			if not isRibbon(look) then fail(scenario, "SKIPPED -- Ribbon is not the look in use") return end
+			if want and not got then
+				fail(scenario, ("%s: Glass says %q under the name and Ribbon drops it"):format(label, want))
+				return
+			end
+			if not got then return end
+			local g, fs = look.g, p.fontSize
+			local art = span(r.art)
+			local rails = 5.8 * g.k
+			for what, line in pairs({ name = r.name, reason = r.sub }) do
+				local b = span(line)
+				if not (b and inside(b, art)) then fail(scenario, label .. ": the " .. what .. " leaves the prompt") return end
+				local top, bottom = art[4] - b[4], art[4] - b[2]
+				if top < g.top + rails - 0.6 or bottom > g.bottom - rails + 0.6 then
+					fail(scenario, ("%s: the %s (%.1f to %.1f) is not between the rails (%.1f to %.1f)"):format(label, what,
+						top, bottom, g.top + rails, g.bottom - rails))
+				end
+			end
+			local display = math.floor(fs * 1.1 + 0.5)
+			if look.nameSz < math.max(7, math.floor(display * 0.8 + 0.5)) or look.nameSz > display then
+				fail(scenario, ("%s: the name is set at %s, outside %d down to its fitted least"):format(label,
+					tostring(look.nameSz), display))
+			end
+			if face and look.nameSz < fs then
+				fail(scenario, ("%s: the name is set at %d, below the prompt's %d, where the cloth could widen"):format(label,
+					look.nameSz, fs))
+			end
+			if look.nameSz <= look.sub then fail(scenario, label .. ": the name is no bigger than the reason") end
+			if 2 * g.R < 1.1 * g.rh - 1e-6 then
+				fail(scenario, ("%s: the medallion (%.1f) no longer stands a tenth taller than the cloth (%.1f)"):format(label,
+					2 * g.R, g.rh))
+			end
+			if 2 * g.R > p.height then fail(scenario, label .. ": the medallion is taller than the prompt") end
+			return got, look
+		end
+		check("the default size", nil, true)
+		for _, size in ipairs({ { 320, 58, 17, 40 }, { 220, 44, 13, 30 }, { 260, 50, 15, 34 }, { 400, 72, 20, 48 },
+			{ 220, 40, 13, 28 }, { 300, 48, 16, 34 } }) do
+			check(("%dx%d at %d pt"):format(size[1], size[2], size[3]), size, true)
+		end
+		if locale == "enUS" then
+			for fs = 8, 22 do
+				local need = ns.TwoLineHeight(fs, "glass")
+				for _, h in ipairs({ need, need + 1, need + 2 }) do
+					check(("300x%d at %d pt"):format(h, fs), { 300, h, fs, 34 })
+				end
+				-- One shorter, Glass has one line: Ribbon has two there only in its
+				-- display face at its full size.
+				local _, look = check(("300x%d at %d pt"):format(need - 1, fs), { 300, need - 1, fs, 34 })
+				if look and look.nameSz ~= math.floor(fs * 1.1 + 0.5) then
+					fail(scenario, ("300x%d at %d pt: two lines squeezed in, the name at %d, where Glass draws one"):format(
+						need - 1, fs, look.nameSz))
+				end
+			end
+		end
+		SetBinding("F", nil)
+	end, locale ~= "enUS" and function() Mock.locale = locale end or nil)
+end
+
 -- With the tags up the lines keep clear of them, and the name wins at every
 -- width: the count is a badge on the medallion, the key's tag stands on the
 -- reason line, and a tag stands on a line only where that line has the room.
