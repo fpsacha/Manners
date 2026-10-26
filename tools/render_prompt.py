@@ -623,7 +623,11 @@ def draw_state(snap, px=ZOOM * SUPER, hover=False):
         x0, y0 = to_px(L, T)
         x1, y1 = to_px(R, B)
         if r["kind"] == "FontString":
-            draw_text(canvas, tree, r, (x0, y0, x1, y1), a, px)
+            # A scale animation on a frame scales the letters it holds as well as
+            # the box they are laid in (the bloom of a name, the panel settling).
+            ow = rect[2] - rect[0]
+            grown = (R - L) / ow if ow > 1e-6 else 1.0
+            draw_text(canvas, tree, r, (x0, y0, x1, y1), a, px, grown)
         elif r["kind"] == "Cooldown":
             draw_cooldown(canvas, r, (x0, y0, x1, y1), a, now)
         else:
@@ -784,12 +788,13 @@ def draw_cooldown(canvas, r, box, alpha, now):
                          np.ones((h, w, 3), np.float32), em * alpha, "ADD")
 
 
-def draw_text(canvas, tree, r, box, alpha, px):
+def draw_text(canvas, tree, r, box, alpha, px, grown=1.0):
     text = r.get("text")
     if text is None or plain_text(text) == "":
         return
     font = r.get("font") or {}
-    s = tree.eff_scale(r)
+    # The frame scale and what a playing animation has grown the letters by.
+    s = tree.eff_scale(r) * grown
     size = (font.get("size") or 12) * s * px
     f = get_font(size)
     x0, y0, x1, y1 = box
