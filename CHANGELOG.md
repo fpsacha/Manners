@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.10.0
+## Unreleased
 
 - **Put Manners on an action bar, and on a controller.** *Put Manners on an
   action bar* on Start here (and `/manners macro`) makes the macro and puts it
@@ -10,6 +10,9 @@
   button bound under Options > Keybindings > Manners presses the prompt like
   a key, and the key shown on the prompt reads as the button's picture, a
   held trigger as the buttons you press.
+
+## 1.10.0
+
 - **Three new looks, each a thing you could hold.** *Ribbon*: a crimson
   cloth ribbon with swallowtail ends and gold rails, the spell in a gold
   medallion with a ring of enamel in the reason's colour; a gold shine runs
