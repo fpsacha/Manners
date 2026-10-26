@@ -213,17 +213,19 @@ end
 -- The count chip up or down, and the lines beside it given their room.
 local function ShowChip(on)
 	on = on and true or false
+	-- A look may refuse the chip for this paint, so the name keeps its room, and
+	-- may widen the room it keeps for a long count (kit.fit.chipRoom): it works
+	-- that out first, so the check below is against what this count needs and not
+	-- what the last one did (a wide count once left a narrow prompt refusing every
+	-- later one until the next restyle).
+	if S.activeLook then on = S.activeLook:Chip(on) and true or false end
 	-- No chip over a name with no room left beside it, on any look.
 	if on and fit.width - fit.textX - fit.chipRoom < MIN_ROOM then
 		on = false
 		R.countText:SetText("")
+		if S.activeLook then S.activeLook:Chip(false) end
 	end
-	if S.activeLook then
-		-- A look may refuse it for this paint, so the name keeps its room.
-		on = S.activeLook:Chip(on) and true or false
-	else
-		R.countChip:SetShown(on)
-	end
+	if not S.activeLook then R.countChip:SetShown(on) end
 	PlaceLines(on)
 end
 

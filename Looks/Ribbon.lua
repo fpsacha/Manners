@@ -46,11 +46,11 @@ local Ribbon = ns.Looks.Register("ribbon", {
 	order = 4,
 	-- The ribbon holds in a fight; the look dims its own parts.
 	combatArtAlpha = 1,
-	-- The reason line stands on cloth of the look's own, whatever the panel
-	-- colour: its colour codes are picked for a dark ground.
+	-- Every line stands on cloth of the look's own (dyed deep, so always dark),
+	-- whatever the panel colour: the colour codes of the name, the reason and
+	-- the list are picked for a dark ground, and a pale panel colour must not
+	-- take them darker, which on the crimson left the list's reasons black.
 	subOnDark = true,
-	-- The name and the list stand on cloth too, which is dark whatever the
-	-- panel colour: a light one would take every colour code in them darker.
 	inkOnDark = true,
 })
 
