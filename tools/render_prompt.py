@@ -335,9 +335,17 @@ NARROW_CANDIDATES = [r"C:\Windows\Fonts\ARIALN.TTF", "/usr/share/fonts/truetype/
                      "/usr/share/fonts/truetype/liberation2/LiberationSansNarrow-Regular.ttf", "ArialNarrow.ttf"]
 
 
+# The game's calligraphic serif, Morpheus (Fonts\MORPHEUS.TTF in every client),
+# which a look may ask for: drawn in a bold serif where this machine has one.
+SERIF_CANDIDATES = [r"C:\Windows\Fonts\georgiab.ttf", r"C:\Windows\Fonts\timesbd.ttf",
+                    "/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf", "DejaVuSerif-Bold.ttf"]
+
+
 def font_path(bold=False, face=None):
     if face and "ARIALN" in str(face).upper():
         candidates = NARROW_CANDIDATES
+    elif face and "MORPHEUS" in str(face).upper():
+        candidates = SERIF_CANDIDATES
     else:
         candidates = BOLD_CANDIDATES if bold else FONT_CANDIDATES
     for path in candidates:
@@ -350,8 +358,8 @@ def font_path(bold=False, face=None):
 
 
 def get_font(size, bold=False, face=None):
-    narrow = bool(face) and "ARIALN" in str(face).upper()
-    key = (round(size * 4) / 4, bold, narrow)
+    narrow = bool(face) and ("ARIALN" in str(face).upper() or "MORPHEUS" in str(face).upper())
+    key = (round(size * 4) / 4, bold, narrow, str(face).upper() if narrow else "")
     if key not in _font_cache:
         path = font_path(bold, face)
         _font_cache[key] = (ImageFont.truetype(path, max(1, int(round(size))))

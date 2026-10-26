@@ -11,8 +11,8 @@ ns.Looks.previews = {
 	heritage = true,
 	luxe = true,
 	minimal = true,
+	ribbon = true,
 	slate = true,
 	toast = true,
-	whisper = true,
 }
-ns.Looks.previewHash = "5373be645b0047b37ed2782f1af0554636cec988d6c3aa0b9ad7dca6e625ca4d"
+ns.Looks.previewHash = "0d88631d22cdf1ca343d4ce832ba1660defac77bfe46a6d753a941858c7cfce6"

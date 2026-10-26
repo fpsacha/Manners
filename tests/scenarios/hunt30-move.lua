@@ -455,7 +455,7 @@ end
 -- colour rather than a red warning, in the built-in looks and the three that
 -- draw their lines themselves; the warning is its tooltip's, which stays up
 -- while there is something to drag.
-local LOOKS = { "glass", "framed", "minimal", "luxe", "toast", "arcane", "whisper", "heritage", "slate" }
+local LOOKS = { "glass", "framed", "minimal", "luxe", "toast", "arcane", "ribbon", "heritage", "slate" }
 
 for _, look in ipairs(LOOKS) do
 	local scenario = "hunt30-move: the unlocked prompt says what happens next (" .. look .. ")"
