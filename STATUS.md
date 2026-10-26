@@ -5,7 +5,7 @@ work on the project: `CLAUDE.md`. How to release: `RELEASING.md`.
 
 ## State
 
-1.10.0 is released, for all five live clients: WoW Forever, Classic Era, Burning
+1.10.1 is released, for all five live clients: WoW Forever, Classic Era, Burning
 Crusade Classic Anniversary, Mists of Pandaria Classic and retail (a toc per
 client from `tools/maketocs.py`, a buff set per client in `Buffs.lua`, each
 checked against that client's DB2 on wago.tools, and a scenario file and
@@ -24,6 +24,12 @@ permissions list, a hook that lints each edited file, and the commands
 `/check`, `/release`, `/bughunt`, `/translate` and `/phrases`.
 
 ## Open
+
+**The action bar slot in the game (1.10.1).** SetMacroSpell/SetMacroItem on
+the "Manners" macro, cleared with an empty string, and PickupMacro from the
+options button are untested in a real client: check the slot shows the spell's
+icon, cooldown and range, goes back to the note icon with nobody to buff, and
+that a controller button bound to the prompt shows its glyph on the chip.
 
 **The new looks in the game.** Ribbon, Letter and Leather (1.10.0) and the
 picker's cards (the player's own buff icon laid over each picture) have only
