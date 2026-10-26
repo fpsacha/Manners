@@ -2,17 +2,17 @@
 
 ## Unreleased
 
-- **Three new looks.** *Whisper*: no box at all, just type: the name large
-  on the world, the reason above it in small spaced capitals led by a round
-  dot, outlined so it reads over snow as over a dungeon; a landing blooms the
-  name and draws a fine line under it. *Heritage*: a classic unit frame, the
-  spell in a round gold-ringed portrait with a fan of gold blades, the name on
-  a banner in the reason's colour and a bar beneath that runs down with the
-  favour's time; a gold flash when your buff lands, the portrait red when the
-  game refuses it, the red glow of a fight. *Slate*: slanted
-  plates, a bold blade in the reason's colour and the name in capitals, with a
-  segmented bar along its foot that counts the cooldown down in place of the
-  sweep and a white-to-green wipe when your buff lands.
+- **Three new looks, each a thing you could hold.** *Ribbon*: a crimson
+  cloth ribbon with swallowtail ends and gold rails, the spell in a gold
+  medallion with a ring of enamel in the reason's colour; a gold shine runs
+  along the cloth when your buff lands. *Letter*: warm parchment between two
+  turned wooden rods, the spell pressed into a glossy wax seal whose colour is
+  the reason, the name in dark ink; the scroll unrolls as somebody arrives,
+  the seal flashes gold when your buff lands and cracks when the game refuses
+  it, and the list is written further down the page. *Leather*: a stitched
+  leather tag with a brass eyelet, the thread round the icon dyed in the
+  reason's colour; the stitches light up one after another when your buff
+  lands, and the list hangs as smaller tags.
 - **Pick a look from cards.** The Look tab opens on a gallery: every look as a
   picture, its name and a line about it. Click one and the prompt changes at
   once. The settings dialog the game draws still has the dropdown.
