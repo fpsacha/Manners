@@ -326,7 +326,7 @@ and the only thing it ever says in chat is a new title.
 ## The prompt's look
 
 Nine looks -- Glass (the default), Framed, Minimal, Luxe, Toast, Arcane,
-Whisper, Heritage and Slate, each a card under Look > *Panel style* that you
+Ribbon, Heritage and Slate, each a card under Look > *Panel style* that you
 click to switch -- your own colours and fonts, and
 LibSharedMedia support. When a buff lands, a ring pops out of the icon and
 light crosses the panel; a refused one gives the text a small shake. Somebody
