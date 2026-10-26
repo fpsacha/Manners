@@ -593,8 +593,12 @@ side (how an effect moves, which a single still of it cannot say), and
 `--size large` is the top of the usual range, `extreme` the narrowest prompt
 that holds the biggest icon (little room for light round it) and `tiny` an icon
 of 16; four numbers, `160x32x13x24`, are a width, a height, a font size and an
-icon size of your own. A line a look sets in the game's narrow face
-(`Fonts\ARIALN.TTF`) is drawn and measured in Arial Narrow where the machine has it.
+icon size of your own (a tile shows 420 x 200 units, so a height over about 72 is
+cut off at the top). A line a look sets in the game's narrow face
+(`Fonts\ARIALN.TTF`) is drawn and measured in Arial Narrow where the machine has it,
+and one set in its display serif (`Fonts\MORPHEUS.TTF`, the Leather look's names) in a
+bold serif, which is nothing like its letters; a texture whose coordinates run past 1
+(a repeated tile, loaded with the wrap mode `REPEAT`) is drawn tiled.
 
 `--style` draws every state in that look (a state that names its own look,
 such as `framed`, keeps it), and `--key` binds that key to the prompt first,

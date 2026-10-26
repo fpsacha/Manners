@@ -99,7 +99,8 @@ def load_states(addon_dir, locale=None, style=None, key=None, size=None):
     # Measured at four times the size and scaled back, because a font rounded
     # to a whole pixel at 10 is a tenth out either way.
     # In the face the line is set in: a look that asks for the game's narrow
-    # one (Fonts\ARIALN.TTF) is measured in a narrow face too.
+    # one (Fonts\ARIALN.TTF) or its display serif (Fonts\MORPHEUS.TTF) is
+    # measured in a stand-in for that face too.
     def measure(text, size):
         face = lua.globals().FrameTree.fontPath
         return get_font(float(size) * 4, face=face).getlength(plain_text(text)) / 4
@@ -335,9 +336,18 @@ NARROW_CANDIDATES = [r"C:\Windows\Fonts\ARIALN.TTF", "/usr/share/fonts/truetype/
                      "/usr/share/fonts/truetype/liberation2/LiberationSansNarrow-Regular.ttf", "ArialNarrow.ttf"]
 
 
+# The game's display serif, Morpheus (Fonts\MORPHEUS.TTF in every client), which
+# a look may set its names in: drawn in a bold serif where this machine has
+# one, which is nothing like its letters but is a serif of the same weight.
+SERIF_CANDIDATES = [r"C:\Windows\Fonts\georgiab.ttf", r"C:\Windows\Fonts\cambriab.ttf",
+                    "/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf", "DejaVuSerif-Bold.ttf"]
+
+
 def font_path(bold=False, face=None):
     if face and "ARIALN" in str(face).upper():
         candidates = NARROW_CANDIDATES
+    elif face and "MORPHEUS" in str(face).upper():
+        candidates = SERIF_CANDIDATES
     else:
         candidates = BOLD_CANDIDATES if bold else FONT_CANDIDATES
     for path in candidates:
@@ -350,8 +360,8 @@ def font_path(bold=False, face=None):
 
 
 def get_font(size, bold=False, face=None):
-    narrow = bool(face) and "ARIALN" in str(face).upper()
-    key = (round(size * 4) / 4, bold, narrow)
+    narrow = bool(face) and ("ARIALN" in str(face).upper() or "MORPHEUS" in str(face).upper())
+    key = (round(size * 4) / 4, bold, narrow, str(face).upper() if narrow else "")
     if key not in _font_cache:
         path = font_path(bold, face)
         _font_cache[key] = (ImageFont.truetype(path, max(1, int(round(size))))
@@ -732,6 +742,15 @@ def draw_texture(canvas, tree, r, box, alpha, px, to_px, place, clip=None):
                     cl, cr = (cl + cr) / 2 - 0.5, (cl + cr) / 2 + 0.5
                 if cb - ct < 1:
                     ct, cb = (ct + cb) / 2 - 0.5, (ct + cb) / 2 + 0.5
+                if cl < 0 or ct < 0 or cr > iw or cb > ih:
+                    # A coordinate past the file's edge, drawn as the client
+                    # draws a texture loaded with the wrap mode "REPEAT": the
+                    # file tiled, a tag's grain or a stitch's period.
+                    kx0, kx1 = int(math.floor(cl / iw)), int(math.ceil(cr / iw))
+                    ky0, ky1 = int(math.floor(ct / ih)), int(math.ceil(cb / ih))
+                    tiled = np.tile(np.asarray(img), (ky1 - ky0, kx1 - kx0, 1))
+                    img = Image.fromarray(tiled, "RGBA")
+                    cl, cr, ct, cb = cl - kx0 * iw, cr - kx0 * iw, ct - ky0 * ih, cb - ky0 * ih
                 img = img.resize((w, h), Image.LANCZOS, box=(cl, ct, cr, cb))
             else:
                 img = img.resize((w, h), Image.LANCZOS)

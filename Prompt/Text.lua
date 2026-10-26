@@ -103,9 +103,10 @@ end
 -- painters: fonts, current sizes, start, and the room kept at the right (more
 -- while the count chip is up). `drawn` is each line's width at the size
 -- FitLine left it, when FitLine measured it there, so a look need not measure
--- again.
+-- again. `paths` names a face for one line where a look sets it apart (the
+-- name's), the rest keeping `path`; ApplyStyle empties it for every style.
 local fit = { path = nil, flags = "", base = {}, size = {}, room = {}, drawn = {}, width = 0, textX = 0,
-	chipRoom = 10, right = nil, twoLine = false }
+	chipRoom = 10, right = nil, twoLine = false, paths = {} }
 
 -- The inset from the right-hand edge when nothing is beside the lines.
 local EDGE_ROOM = 10
@@ -140,8 +141,9 @@ end
 local function FitLine(fs)
 	local base = fit.base[fs]
 	if not base or not fit.path then return end
+	local path = fit.paths[fs] or fit.path
 	if fit.size[fs] ~= base then
-		SafeFont(fs, fit.path, base, fit.flags)
+		SafeFont(fs, path, base, fit.flags)
 		fit.size[fs] = base
 	end
 	local room = fit.room[fs] or math.max(MIN_ROOM, fit.width - (fit.left or fit.textX) - (fit.right or EDGE_ROOM))
@@ -152,7 +154,7 @@ local function FitLine(fs)
 		w = TextWidth(fs)
 		if not w or w <= room + 0.5 then break end
 		size = size - 1
-		SafeFont(fs, fit.path, size, fit.flags)
+		SafeFont(fs, path, size, fit.flags)
 		w = nil
 	end
 	fit.size[fs] = size
@@ -163,9 +165,11 @@ end
 -- The one way text goes onto the name and the reason line: its colours made
 -- legible on this panel, and the line fitted to its room. A reason line on a
 -- look's own dark ground (subOnDark) keeps codes picked for a dark ground on
--- a light panel too: taken dark for the panel, they were dark on dark.
+-- a light panel too: taken dark for the panel, they were dark on dark. So does
+-- every line of a look whose whole ground is its own (inkOnDark: Leather's).
 local function SetLine(fs, text)
-	if fs == R.subText and not ink.light and S.activeLook and S.activeLook.subOnDark then
+	local look = S.activeLook
+	if not ink.light and look and (look.inkOnDark or (fs == R.subText and look.subOnDark)) then
 		fs:SetText(text)
 	else
 		fs:SetText(LegibleText(text))
@@ -291,7 +295,7 @@ local function StyleText(p, style, fontPath, textX, chipRoom, twoLine, countSize
 	local greys = bare and GREYS.bare or GREYS.panel
 	local subSize = math.max(7, p.fontSize - 3)
 
-	fit.path, fit.flags = fontPath, outline
+	fit.path, fit.flags, fit.paths = fontPath, outline, {}
 	fit.width, fit.textX, fit.chipRoom, fit.twoLine = p.width, textX, chipRoom, twoLine
 	fit.base[R.nameText], fit.base[R.subText] = p.fontSize, subSize
 	fit.size = {}

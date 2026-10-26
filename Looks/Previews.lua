@@ -9,10 +9,10 @@ ns.Looks.previews = {
 	framed = true,
 	glass = true,
 	heritage = true,
+	leather = true,
 	luxe = true,
 	minimal = true,
-	slate = true,
 	toast = true,
 	whisper = true,
 }
-ns.Looks.previewHash = "5373be645b0047b37ed2782f1af0554636cec988d6c3aa0b9ad7dca6e625ca4d"
+ns.Looks.previewHash = "1080244077484648f4f03cfba1311dc2503648bd19591e0ed061272b075245ac"

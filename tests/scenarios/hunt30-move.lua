@@ -455,7 +455,7 @@ end
 -- colour rather than a red warning, in the built-in looks and the three that
 -- draw their lines themselves; the warning is its tooltip's, which stays up
 -- while there is something to drag.
-local LOOKS = { "glass", "framed", "minimal", "luxe", "toast", "arcane", "whisper", "heritage", "slate" }
+local LOOKS = { "glass", "framed", "minimal", "luxe", "toast", "arcane", "whisper", "heritage", "leather" }
 
 for _, look in ipairs(LOOKS) do
 	local scenario = "hunt30-move: the unlocked prompt says what happens next (" .. look .. ")"
@@ -465,9 +465,7 @@ for _, look in ipairs(LOOKS) do
 		ns.addon:HandleSlash("unlock")
 		ns.addon:Tick()
 		local name, sub = tostring(R.nameText:GetText()), tostring(R.subText:GetText())
-		-- Slate sets its lines in capitals.
-		if look == "slate" then name = name:lower() end
-		if not name:find(look == "slate" and "drag to move" or "Drag to move", 1, true) then fail(scenario, "the first line reads " .. name) end
+		if not name:find("Drag to move", 1, true) then fail(scenario, "the first line reads " .. name) end
 		-- Read as the eye does: a look that sets its second line in capitals,
 		-- letter-spaced or not, still says it.
 		if not sub:lower():gsub("%s+", ""):find("letgoanditlocksitself", 1, true) then

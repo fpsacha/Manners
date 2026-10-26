@@ -31,6 +31,9 @@
 --   subOnDark       true when the reason line sits on a dark ground of the
 --                   look's own (Luxe's tag): its colour codes, picked for a
 --                   dark ground, are not taken darker for a light panel.
+--   inkOnDark       true when every line sits on a dark ground of the look's own,
+--                   whatever the panel colour says (Leather's hide): subOnDark
+--                   for the name and the list as well.
 --   TwoLineHeight(fontSize)  the height two lines need on this look (nil:
 --                   Prompt's own). Options states it; ApplyStyle obeys it.
 --   AccentCarriers(p)        ring, stripe: which reason marks are on screen
