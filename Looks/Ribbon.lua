@@ -49,6 +49,9 @@ local Ribbon = ns.Looks.Register("ribbon", {
 	-- The reason line stands on cloth of the look's own, whatever the panel
 	-- colour: its colour codes are picked for a dark ground.
 	subOnDark = true,
+	-- The name and the list stand on cloth too, which is dark whatever the
+	-- panel colour: a light one would take every colour code in them darker.
+	inkOnDark = true,
 })
 
 -- The figures the generator draws to (tools/make_ribbon_textures.py): the rows
@@ -162,6 +165,12 @@ local function Geometry(W, H, icon, two, full)
 		local least = math.max(1, math.ceil((H - (icon and M or H - 3) / TALLER) / 2 - 1e-6))
 		while ov > least and not Lines(two, (H - 2 * ov) * (1 - 2 * 5.8 / RIBBON_PX), true) do ov = ov - 1 end
 	end
+	-- With no medallion the cloth has a forked end at each side, and the shadow
+	-- under it ends are wider still (its canvas draws the cloth in 56 rows of
+	-- 64): on a prompt much narrower than it is tall they would cross, and
+	-- the middle pieces would be a negative width. The cloth is no taller than
+	-- the ends leave room for.
+	if not icon then ov = math.max(ov, math.ceil((H - W * 0.85) / 2)) end
 	local g = { ov = ov, top = ov, bottom = H - ov }
 	g.rh = g.bottom - g.top
 	g.k = g.rh / RIBBON_PX
@@ -304,10 +313,12 @@ end
 
 -- Whether a stored colour is the default one: AceDB strips a value equal to its
 -- default, so untouched and chosen-as-default look the same, and only the
--- first can be meant.
+-- first can be meant. The colour only: a panel or a text colour given another
+-- opacity is still the colour it was (the cloth is opaque, whatever the panel's
+-- opacity says; the lettering takes the opacity itself, Styled).
 local function Untouched(c, d)
 	if type(c) ~= "table" or type(d) ~= "table" then return true end
-	for i = 1, 4 do
+	for i = 1, 3 do
 		if math.abs((c[i] or 1) - (d[i] or 1)) > 0.002 then return false end
 	end
 	return true
@@ -858,7 +869,8 @@ function Ribbon:Styled(p)
 	local d = ns.defaults and ns.defaults.profile.prompt.fontColor
 	local chosen = type(p.fontColor) == "table" and type(d) == "table" and not Untouched(p.fontColor, d)
 	if not chosen then
-		kit.name:SetTextColor(GOLD_INK[1], GOLD_INK[2], GOLD_INK[3], 1)
+		local alpha = type(p.fontColor) == "table" and tonumber(p.fontColor[4]) or 1
+		kit.name:SetTextColor(GOLD_INK[1], GOLD_INK[2], GOLD_INK[3], Clamp(alpha, 0, 1))
 		self.nameInk = GOLD_INK
 	else
 		self.nameInk = p.fontColor
@@ -921,6 +933,7 @@ function Ribbon:Hide()
 	self.combat, self.hovered, self.outcomeOn = nil, nil, nil
 	self.listShown, self.countMode, self.keyLane, self.keyUp = nil, nil, nil, false
 	self.dyeNow, self.ringNow = nil, nil
+	self.mixedText = nil
 end
 
 ---------------------------------------------------------------------------
@@ -971,6 +984,9 @@ function Ribbon:Fitted(fs)
 	local text = fs:GetText()
 	if type(text) ~= "string" or (issecretvalue and issecretvalue(text)) then return end
 	if not text:find("|c%x%x%x%x%x%x%x%x") then return end
+	-- A line refitted (the tags came or went) is the text this look wrote
+	-- itself: taken to the gold once, not again.
+	if text == self.mixedText then return end
 	local to = self.nameInk or GOLD_INK
 	local mixed = text:gsub("|c(%x%x)(%x%x)(%x%x)(%x%x)", function(a, r, g, b)
 		local function mix(hex, target)
@@ -980,6 +996,7 @@ function Ribbon:Fitted(fs)
 		return ("|c%s%02x%02x%02x"):format(a, mix(r, to[1]), mix(g, to[2]), mix(b, to[3]))
 	end)
 	-- Colour codes have no width: what FitLine measured still holds.
+	self.mixedText = mixed
 	fs:SetText(mixed)
 end
 

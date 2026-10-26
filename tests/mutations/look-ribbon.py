@@ -249,7 +249,7 @@ _m(RIBBON,
    expect="look-ribbon: the lettering holds its contrast")
 
 _m(RIBBON,
-   "\tkit.name:SetTextColor(GOLD_INK[1], GOLD_INK[2], GOLD_INK[3], 1)\n\t\tself.nameInk = GOLD_INK",
+   "\tkit.name:SetTextColor(GOLD_INK[1], GOLD_INK[2], GOLD_INK[3], Clamp(alpha, 0, 1))\n\t\tself.nameInk = GOLD_INK",
    "\tkit.name:SetTextColor(1, 1, 1, 1)\n\t\tself.nameInk = GOLD_INK",
    "the name white, not warm gold",
    expect="look-ribbon: a class colour is taken to the gold")
