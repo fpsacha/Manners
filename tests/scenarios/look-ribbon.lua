@@ -661,11 +661,14 @@ withTree("look-ribbon: the lines keep clear of the tags", CROWD, function(ns, sc
 	local kb = span(look.keyBox)
 	if kb and not (kb[4] <= (name[2] + name[4]) / 2 + 0.01) then fail(scenario, "the key's tag is not on the reason line") end
 	if look.inset > look.rightBase + 0.01 then fail(scenario, "the name gives room to a tag that is not on its line") end
-	-- The tags' ink is a dark crimson on the gold, never the cloth's lettering.
-	for _, fs in ipairs({ r.count, look.keyText }) do
-		local c = fs._textColor
-		if not (c and lum(c[1], c[2], c[3]) < 0.05) then fail(scenario, "a tag's text is not dark on its gold") end
-	end
+	-- The key's tag is gold and its ink a dark crimson on it, never the cloth's
+	-- lettering; the count's badge is gold round a field of crimson enamel, and
+	-- its ink pale gold on that.
+	local keyInk, countInk = look.keyText._textColor, r.count._textColor
+	if not (keyInk and lum(keyInk[1], keyInk[2], keyInk[3]) < 0.05) then fail(scenario, "the key's text is not dark on its gold") end
+	if not (countInk and lum(countInk[1], countInk[2], countInk[3]) > 0.5) then fail(scenario, "the count's text is not pale on its enamel") end
+	if not tostring(look.keyChip[2]._file):find("Ribbon_Tag$") then fail(scenario, "the key's tag is not drawn from Ribbon_Tag: " .. tostring(look.keyChip[2]._file)) end
+	if not tostring(look.chip[2]._file):find("Ribbon_Badge$") then fail(scenario, "the count's badge is not drawn from Ribbon_Badge: " .. tostring(look.chip[2]._file)) end
 	-- No key over an outcome: it is not a press that casts.
 	ns.Prompt:ShowOutcome("cast", "Anna Aim")
 	if look.keyUp or look.keyChip[2]._shown ~= false then fail(scenario, "the key's tag is up over an outcome") end
@@ -1839,8 +1842,8 @@ end
 -- The files the look draws, by name.
 local FILES = { "Ribbon_Cloth_Mid", "Ribbon_Cloth_End", "Ribbon_Cloth_EndL", "Ribbon_Trim_Mid", "Ribbon_Trim_End", "Ribbon_Trim_EndL",
 	"Ribbon_Drop_Mid", "Ribbon_Drop_End", "Ribbon_Drop_EndL", "Ribbon_Medal", "Ribbon_Enamel", "Ribbon_Gloss", "Ribbon_Lit",
-	"Ribbon_Shade", "Ribbon_Disc", "Ribbon_Mask", "Ribbon_Ring", "Ribbon_Sweep", "Ribbon_Glint", "Ribbon_Tag", "Ribbon_Gem",
-	"Ribbon_GemSet" }
+	"Ribbon_Shade", "Ribbon_Disc", "Ribbon_Mask", "Ribbon_Ring", "Ribbon_Sweep", "Ribbon_Glint", "Ribbon_Tag", "Ribbon_Badge",
+	"Ribbon_Gem", "Ribbon_GemSet" }
 
 withTree("look-ribbon: the generator draws the same bytes twice, and the bytes that ship", ANNA, function(_, scenario)
 	local a, b = tempDir() .. "-a", tempDir() .. "-b"
@@ -1980,4 +1983,124 @@ withTree("look-ribbon: the code and the generator agree about the art's figures"
 			if top < lit - 0.08 then fail(scenario, ("%s is much darker (%.3f) than the %.3f the lettering counts on"):format(name, top, lit)) end
 		end
 	end
+end)
+
+-- ------------------------------------------------------------------ 10
+-- The art is modelled, not painted flat. Read from a fresh run of the
+-- generator (the shipped bytes are held to it above): the cloth has a sheen
+-- band above its middle, a hem in shade and folds along its length; the
+-- medallion's gold is lit at the upper left and dark at the lower right, with
+-- a dark outline round its edge; the cord on the cloth's edge has a dark
+-- outline outside it; the ribbon's shadow is a shadow; the key's tag is gold
+-- through, and the count's badge is gold round a field of crimson enamel.
+local function readPixels(path)
+	local data = slurp(path)
+	if not data then return nil end
+	local b = { data:byte(1, 18) }
+	if #b < 18 or b[3] ~= 2 or b[17] ~= 32 then return nil end
+	local w, h = b[13] + b[14] * 256, b[15] + b[16] * 256
+	local offset = 18 + b[1]
+	local topFirst = math.floor(b[18] / 32) % 2 == 1
+	-- Stored blue, green, red, alpha.
+	return { w = w, h = h, at = function(x, y)
+		local row = topFirst and y or (h - 1 - y)
+		local i = offset + (row * w + x) * 4
+		local bb, g, r, a = data:byte(i + 1, i + 4)
+		return r / 255, g / 255, bb / 255, a / 255
+	end }
+end
+
+withTree("look-ribbon: the art is modelled: a sheen and a hem on the cloth, gold lit from the upper left, enamel in the badge", ANNA, function(_, scenario)
+	local out = tempDir() .. "-art"
+	local log = out .. ".log"
+	os.execute(python .. ' "' .. dir .. '/tools/make_ribbon_textures.py" --out "' .. out .. '" > "' .. log .. '" 2>&1')
+	local text = slurp(log)
+	os.remove(log)
+	if not text then fail(scenario, "SKIPPED -- cannot run " .. python) return end
+	-- CI's test job installs lupa only; the generator needs numpy and Pillow.
+	if text:find("No module named", 1, true) then return end
+	local function file(name)
+		local t = readPixels(out .. "/" .. name .. ".tga")
+		if not t then fail(scenario, name .. " was not written, or is not 32-bit uncompressed") end
+		return t
+	end
+	local function luma(t, x, y)
+		local r, g, b = t.at(x, y)
+		return 0.299 * r + 0.587 * g + 0.114 * b
+	end
+	-- The cloth: its rows averaged along the length. The sheen is the
+	-- brightest row above the middle, well above the top edge; the hem is
+	-- in shade; along the sheen's row the folds lift and drop the grey.
+	local mid = file("Ribbon_Cloth_Mid")
+	if mid then
+		local rows = {}
+		for y = 0, mid.h - 1 do
+			local sum = 0
+			for x = 0, mid.w - 1 do sum = sum + luma(mid, x, y) end
+			rows[y] = sum / mid.w
+		end
+		local band, at, hem = 0, 0, 1
+		for y = 6, 30 do
+			if rows[y] > band then band, at = rows[y], y end
+		end
+		for y = 54, 61 do hem = math.min(hem, rows[y]) end
+		if band - hem < 0.25 then fail(scenario, ("the cloth is flat: its sheen band is %.3f, its hem %.3f"):format(band, hem)) end
+		local top = (rows[1] + rows[2]) / 2
+		if band - top < 0.08 then fail(scenario, ("the cloth has no sheen band above its middle: the band is %.3f, the top edge %.3f"):format(band, top)) end
+		local lo, hi = 1, 0
+		for x = 8, mid.w - 9 do
+			local l = luma(mid, x, at)
+			lo, hi = math.min(lo, l), math.max(hi, l)
+		end
+		if hi - lo < 0.05 then fail(scenario, ("the cloth has no folds along its length: %.3f to %.3f on the sheen's row"):format(lo, hi)) end
+	end
+	-- The medallion's gold: the outer slope of the lip and of the bezel are
+	-- lit at the upper left and in shade at the lower right (sampled over a
+	-- few degrees either side, as the beads vary round the lip), and the edge
+	-- is drawn dark round the lit lip.
+	local medal = file("Ribbon_Medal")
+	if medal then
+		local half = medal.w / 2
+		local function ring(r, deg)
+			local a = math.rad(deg)
+			return luma(medal, math.floor(half + r * half * math.cos(a)), math.floor(half + r * half * math.sin(a)))
+		end
+		local function round(r, deg)
+			local sum = 0
+			for d = -12, 12, 4 do sum = sum + ring(r, deg + d) end
+			return sum / 7
+		end
+		for _, slope in ipairs({ { 0.93, "the medallion's lip" }, { 0.71, "the medallion's bezel" } }) do
+			local ul, lr = round(slope[1], -135), round(slope[1], 45)
+			if ul - lr < 0.35 then fail(scenario, ("%s is not lit from the upper left: %.3f there, %.3f at the lower right"):format(slope[2], ul, lr)) end
+		end
+		local edge, lip = round(0.976, -135), round(0.93, -135)
+		if lip - edge < 0.30 then fail(scenario, ("the medallion has no dark outline: %.3f at the edge, %.3f on the lip"):format(edge, lip)) end
+	end
+	-- The cord: a dark outline drawn outside it, the cord bright over it.
+	local trim = file("Ribbon_Trim_Mid")
+	if trim then
+		local x = math.floor(trim.w / 2)
+		local _, _, _, a0 = trim.at(x, 0)
+		if a0 < 0.75 then fail(scenario, ("the cord's outline is not drawn: alpha %.2f on the outermost row"):format(a0)) end
+		local outline, cord = luma(trim, x, 0), luma(trim, x, 1)
+		if cord - outline < 0.25 then fail(scenario, ("the cord has no dark outline: %.3f outside, %.3f on the cord"):format(outline, cord)) end
+	end
+	-- The shadow is a shadow.
+	local drop = file("Ribbon_Drop_Mid")
+	if drop then
+		local _, _, _, a = drop.at(math.floor(drop.w / 2), math.floor(drop.h / 2))
+		if a < 0.55 then fail(scenario, ("the ribbon's shadow is faint: %.2f at its middle"):format(a)) end
+	end
+	-- The key's tag is gold through; the count's badge is gold round crimson.
+	local tag, badge = file("Ribbon_Tag"), file("Ribbon_Badge")
+	if tag and badge then
+		local r, g, b, a = tag.at(32, 16)
+		if not (a > 0.99 and g > 0.45 and r > g and g > b) then fail(scenario, ("the key's tag is not gold at its middle: %.2f %.2f %.2f"):format(r, g, b)) end
+		r, g, b, a = badge.at(32, 16)
+		if not (a > 0.99 and r > 0.30 and g < 0.22 and b < 0.25) then fail(scenario, ("the badge's field is not crimson enamel: %.2f %.2f %.2f"):format(r, g, b)) end
+		r, g, b = badge.at(32, 3)
+		if not (g > 0.40 and r >= g and g > b) then fail(scenario, ("the badge's rim is not gold: %.2f %.2f %.2f"):format(r, g, b)) end
+	end
+	for _, name in ipairs(FILES) do os.remove(out .. "/" .. name .. ".tga") end
 end)
