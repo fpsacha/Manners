@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.10.1
 
 - **Put Manners on an action bar, and on a controller.** *Put Manners on an
   action bar* on Start here (and `/manners macro`) makes the macro and puts it
