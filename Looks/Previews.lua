@@ -15,4 +15,18 @@ ns.Looks.previews = {
 	ribbon = true,
 	toast = true,
 }
-ns.Looks.previewHash = "393fc779b4db042deb7f549bbc67bb5a713245703a6c4eec94eaac7df94ab529"
+-- Where each look draws the spell icon in its picture: the rectangle as fractions of
+-- the 256 x 64 picture (l and t from its top left), the texcoord crop, and whether it
+-- is round, with the mask the look cuts it with. The window lays the live icon there.
+ns.Looks.previewIcon = {
+	arcane = { l = 0.09073, t = 0.28226, r = 0.1996, b = 0.71774, round = false, crop = { 0.08, 0.92, 0.08, 0.92 } },
+	framed = { l = 0.09677, t = 0.25806, r = 0.21774, b = 0.74194, round = false, crop = { 0.08, 0.92, 0.08, 0.92 } },
+	glass = { l = 0.09677, t = 0.25806, r = 0.21774, b = 0.74194, round = false, crop = { 0.08, 0.92, 0.08, 0.92 } },
+	leather = { l = 0.08304, t = 0.25806, r = 0.20401, b = 0.74194, round = false, crop = { 0.08, 0.92, 0.08, 0.92 } },
+	letter = { l = 0.1479, t = 0.28226, r = 0.25677, b = 0.71774, round = true, mask = "Interface\\AddOns\\Manners\\Textures\\Letter\\Letter_Mask", crop = { 0.08, 0.92, 0.08, 0.92 } },
+	luxe = { l = 0.125, t = 0.25806, r = 0.24597, b = 0.74194, round = false, crop = { 0.08, 0.92, 0.08, 0.92 } },
+	minimal = { l = 0.09677, t = 0.25806, r = 0.21774, b = 0.74194, round = false, crop = { 0.08, 0.92, 0.08, 0.92 } },
+	ribbon = { l = 0.09073, t = 0.28226, r = 0.1996, b = 0.71774, round = true, mask = "Interface\\AddOns\\Manners\\Textures\\Ribbon\\Ribbon_Mask", crop = { 0.08, 0.92, 0.08, 0.92 } },
+	toast = { l = 0.08554, t = 0.26152, r = 0.20478, b = 0.73848, round = true, mask = "Interface\\AddOns\\Manners\\Textures\\Toast\\Toast_IconMask", crop = { 0.08, 0.92, 0.08, 0.92 } },
+}
+ns.Looks.previewHash = "92e07f5360c9a8319fb97f927ecbc21c9abca501d54fceb85ea2e2f0bb20fc39"

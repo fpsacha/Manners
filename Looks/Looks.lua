@@ -255,8 +255,19 @@ end
 -- toc loads it after this file) to say which looks it drew. A look it has not
 -- drawn yet has a card without a picture.
 Looks.previews = {}
+-- Where a look's picture holds its spell icon (a tile, drawn because the tool has
+-- no game art): { l, t, r, b } as fractions of the picture from its top left,
+-- `round` with the `mask` file that look cuts its icon with, and the `crop`
+-- (SetTexCoord's four numbers). The picker lays the real icon there, drawn live.
+Looks.previewIcon = {}
 
 function Looks.PreviewFile(key)
 	if not Looks.previews[key] then return nil end
 	return "Interface\\AddOns\\Manners\\Textures\\Previews\\Preview_" .. key
+end
+
+-- The icon's place in a look's picture, or nil for a look without one.
+function Looks.PreviewIcon(key)
+	if not Looks.previews[key] then return nil end
+	return Looks.previewIcon[key]
 end

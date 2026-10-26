@@ -34,8 +34,11 @@ import os
 import re
 import tempfile
 
-import numpy as np
-from PIL import Image, ImageDraw, ImageFilter, ImageFont
+try:
+    import numpy as np
+    from PIL import Image, ImageDraw, ImageFilter, ImageFont
+except ImportError:  # drawing needs them; reading a tree's geometry (Tree) does not
+    np = Image = ImageDraw = ImageFilter = ImageFont = None
 
 import lupa
 
@@ -548,6 +551,10 @@ def draw_state(snap, px=ZOOM * SUPER, hover=False):
     # in screen units afterwards (a tooltip over a row): the screen point at
     # its top left, and the pixels to a unit.
     draw_state.frame = (left, top, px)
+    # Where every region was drawn, animations applied, in screen units
+    # (left, bottom, right, top): tools/make_look_previews.py reads where the
+    # spell icon sits from here.
+    draw_state.placed = {}
     canvas = Canvas(int(TILE_W * px), int(TILE_H * px))
     canvas.backdrop(snap.get("backdrop"))
 
@@ -661,6 +668,7 @@ def draw_state(snap, px=ZOOM * SUPER, hover=False):
         if a <= 0.001:
             continue
         L, B, R, T = place(r, rect)
+        draw_state.placed[r["id"]] = (L, B, R, T)
         x0, y0 = to_px(L, T)
         x1, y1 = to_px(R, B)
         if r["kind"] == "FontString":

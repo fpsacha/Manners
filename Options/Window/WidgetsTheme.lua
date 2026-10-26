@@ -21,6 +21,17 @@
 -- there is no OnUpdate to stop when the window closes. A look the tool has not
 -- drawn has a card with the addon's icon where the picture goes.
 --
+-- The one live thing on a card is the spell icon. The picture holds a tile
+-- where the look draws it (the tool has no game art), and a texture over the
+-- picture, at the rectangle the tool recorded for that look (Looks.PreviewIcon),
+-- shows the icon of the buff this character casts, cropped as the prompt crops
+-- it. The client draws it; no spell art is in any file of the addon. A look
+-- that cuts its icon round (Toast, Ribbon, Letter) has the same mask file on the
+-- overlay; the others are square, as they are in the picture. A client without
+-- mask textures (none of the five) draws them square. The texture is set when
+-- the page is painted, so an icon the client had not loaded yet is there the
+-- next time the page is drawn.
+--
 -- Two or three cards to a row, as many as the page is wide enough for, every
 -- row as tall as its tallest card.
 
@@ -39,6 +50,10 @@ local BADGE = 18
 local ROUND = "Interface\\CharacterFrame\\TempPortraitAlphaMask"
 local CHECK = "Interface\\Buttons\\UI-CheckBox-Check"
 local ICON = "Interface\\AddOns\\Manners\\Textures\\Manners64"
+-- The client's own question mark, for a character with no spell to show.
+local UNKNOWN = 134400
+-- How the prompt crops a spell icon (Prompt/Panel.lua).
+local CROP = { 0.08, 0.92, 0.08, 0.92 }
 
 local WASH_HOVER = { 1, 1, 1, 0.07 }
 local WASH_ON = { T.gold[1], T.gold[2], T.gold[3], 0.08 }
@@ -109,6 +124,9 @@ local function Look(card)
 	-- its contrast) and the picture to grey; the card itself stays whole.
 	card.shot:SetDesaturated(off and true or false)
 	card.shot:SetAlpha(off and 0.5 or 1)
+	-- The live icon over the picture goes grey with it.
+	card.icon:SetDesaturated(off and true or false)
+	card.icon:SetAlpha(off and 0.5 or 1)
 	card:SetEnabled(not off)
 end
 
@@ -126,6 +144,85 @@ end
 local function Left(card)
 	card.hover = false
 	Look(card)
+end
+
+-- The icon the cards wear: the spell of the first buff the prompt would offer
+-- this character (CastableBuffs, in the order the prompt walks them; the buff's
+-- own icon from the capability probe, which is what the prompt's icon shows),
+-- else the first of the class's own buffs it has learned (a hunter's aspect, a
+-- shaman's shield), else the client's question mark. Never the icon of a spell
+-- the character cannot cast: a card promises what the prompt will show.
+local function BuffIcon()
+	local function file(info)
+		local icon = info and info.icon
+		if type(icon) == "number" or type(icon) == "string" then return icon end
+	end
+	for _, buff in ipairs(ns.CastableBuffs()) do
+		local icon = file(ns.BuffInfo(buff))
+		if icon then return icon end
+	end
+	local own = ns.caps.own
+	for _, family in ipairs(ns.GetOwnFamilies() or {}) do
+		for _, spell in ipairs(family.spells or {}) do
+			local info = own and own[spell.key]
+			local icon = info and info.known and file(info)
+			if icon then return icon end
+		end
+	end
+	return UNKNOWN
+end
+
+-- The icon laid at its rectangle in the card's picture: the look's fractions of
+-- the picture's width and height, from its top left. Placed when the picture's
+-- size is known (Layout) and again when the card is given another look.
+local function PlaceIcon(card)
+	local at, w, h = card.at, card.picW, card.picH
+	if not (at and w and h) then return end
+	local icon = card.icon
+	icon:ClearAllPoints()
+	icon:SetPoint("TOPLEFT", card.ground, "TOPLEFT", at.l * w, -at.t * h)
+	icon:SetPoint("BOTTOMRIGHT", card.ground, "TOPLEFT", at.r * w, -at.b * h)
+end
+
+-- The icon's shape: the look's own round mask on the overlay of a round look,
+-- none on the others, as the prompt masks its icon where masks exist.
+local function ShapeIcon(card, at)
+	local icon = card.icon
+	local round = at and at.round and at.mask and card.CreateMaskTexture and icon.AddMaskTexture
+	if round then
+		if not card.mask then card.mask = card:CreateMaskTexture() end
+		card.mask:SetTexture(at.mask, "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+		card.mask:ClearAllPoints()
+		card.mask:SetAllPoints(icon)
+		if not card.masked then
+			icon:AddMaskTexture(card.mask)
+			card.masked = true
+		end
+	elseif card.masked then
+		icon:RemoveMaskTexture(card.mask)
+		card.masked = false
+	end
+end
+
+-- A card's live icon, for the look it is showing: `at` is where that look's
+-- picture holds its icon (nil for a look without one), `file` the spell icon.
+-- card.at and card.iconFile are kept for the tests.
+local function DressIcon(card, at, file)
+	local icon = card.icon
+	card.at = at
+	if not at then
+		ShapeIcon(card, nil)
+		card.iconFile = nil
+		icon:Hide()
+		return
+	end
+	card.iconFile = file
+	icon:SetTexture(file)
+	local crop = at.crop or CROP
+	icon:SetTexCoord(crop[1], crop[2], crop[3], crop[4])
+	ShapeIcon(card, at)
+	PlaceIcon(card)
+	icon:Show()
 end
 
 local function BuildCard(row, i)
@@ -151,6 +248,9 @@ local function BuildCard(row, i)
 	card.mark:SetSize(32, 32)
 	card.mark:SetPoint("CENTER", card.ground, "CENTER", 0, 0)
 	card.shotEdges = Edges(card, card.ground, 1, SHOT_EDGE, "ARTWORK", 2)
+	-- The spell icon, over the tile the picture draws there (see the header).
+	card.icon = card:CreateTexture(nil, "ARTWORK", nil, 3)
+	card.icon:Hide()
 
 	card.title = W.Text(card, T.fonts.label, T.ink)
 	card.title:SetWordWrap(false)
@@ -198,6 +298,8 @@ KIND.themes = {
 		-- is drawn.
 		local _, values = ns.Looks.Choices()
 		local now = Bind().Value(row.item)
+		-- One icon for every card, asked at every paint.
+		local spell = BuffIcon()
 		for i, key in ipairs(values) do
 			local card = row.cards[i] or BuildCard(row, i)
 			card.key = key
@@ -219,6 +321,7 @@ KIND.themes = {
 				card.shot:Hide()
 				card.mark:Show()
 			end
+			DressIcon(card, file and ns.Looks.PreviewIcon(key), spell)
 			Look(card)
 			card:Show()
 		end
@@ -267,6 +370,8 @@ KIND.themes = {
 				card.ground:SetSize(s.inner, s.shotH)
 				card.shot:ClearAllPoints()
 				card.shot:SetAllPoints(card.ground)
+				card.picW, card.picH = s.inner, s.shotH
+				PlaceIcon(card)
 				card.title:ClearAllPoints()
 				card.title:SetPoint("TOPLEFT", card, "TOPLEFT", PAD, -(PAD + s.shotH + TEXT_GAP))
 				card.desc:ClearAllPoints()

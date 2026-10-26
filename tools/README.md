@@ -828,9 +828,21 @@ python tools/make_look_previews.py --out DIR    # the same files, into DIR
 python tools/make_look_previews.py --check      # current? exit 1 and say what is not
 ```
 
+Each picture holds a tile where the look draws the spell icon (the renderer has no game
+art), and the card lays the real icon over it, drawn live by the client: no spell art is
+in any shipped file. So `Looks/Previews.lua` also says where that is, in
+`ns.Looks.previewIcon`: per look the icon region's rectangle (`l`, `t`, `r`, `b`, as
+fractions of the 256 x 64 picture from its top left, read from the frame tree: the
+prompt's `R.icon`, which every look places and masks for itself), the texcoord `crop` the
+look uses, and `round`, with the `mask` file the look cuts its icon with, when that mask
+lets under 85 % of its square through (a disc: Toast, Ribbon, Letter; a squircle or a
+rounded square is square). `render_prompt.py`'s `draw_state.placed` lets the tool hold
+that rectangle to where the tile was actually drawn.
+
 `--check` needs lupa alone and draws nothing: it hashes the frame tree each look ends
-up with, every texture outside `Textures/Previews`, this script and `render_prompt.py`,
-and compares that with the hash in `Looks/Previews.lua`. `tests/scenarios/theme-picker.lua`
+up with, where each icon sits in it, every texture outside `Textures/Previews`, this
+script and `render_prompt.py`, compares that with the hash in `Looks/Previews.lua`, and
+compares the icon data in that file with what the looks give now. `tests/scenarios/theme-picker.lua`
 runs it, so a look, a texture or a default that changes turns that scenario red until
 the tool is run again; a look added to the registry has a card at once, with the addon's
 icon in place of its picture, and gets its picture the same way.
