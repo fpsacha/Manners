@@ -690,7 +690,7 @@ function Letter:LayPaper(y0, y1)
 	self.slideB:SetOffset(back, 0)
 	self.slideP:SetOffset(-back, 0)
 	self.slideR:SetOffset(back, 0)
-	self:Rest()
+	self:Relay()
 	-- The light that crosses: a band a third as wide as the paper, run from the
 	-- seal side to the end.
 	local bw = math.max(18, w * 0.34)
@@ -711,6 +711,23 @@ function Letter:Rest()
 	self.paperSheet:SetPoint("TOPLEFT", self.paperSlide, "TOPLEFT", 0, 0)
 	self.rodRight:ClearAllPoints()
 	self.rodRight:SetPoint("TOPLEFT", self.kit.art, "TOPLEFT", self.g.rodR, -(self.rodY0 or 1))
+end
+
+-- The three frames after a layout (LayPaper, LayRods): at rest, or, while the
+-- scroll is unrolling, where the run began, which the animation is walking them
+-- from: put at rest under a run that goes on, they would be carried past their
+-- places by the whole of its offset and snap back when it ends. A new favour
+-- (the unroll) and a list that grows or shrinks (the layout) come in one scan.
+function Letter:Relay()
+	if not self.g then return end
+	if not self.unrollGroups[1]:IsPlaying() then return self:Rest() end
+	local back = self.unrollBack or 0
+	self.paperSlide:ClearAllPoints()
+	self.paperSlide:SetPoint("TOPLEFT", self.kit.art, "TOPLEFT", self.g.splitX - back, -(self.paperTop or 0))
+	self.paperSheet:ClearAllPoints()
+	self.paperSheet:SetPoint("TOPLEFT", self.paperSlide, "TOPLEFT", back, 0)
+	self.rodRight:ClearAllPoints()
+	self.rodRight:SetPoint("TOPLEFT", self.kit.art, "TOPLEFT", self.g.rodR - back, -(self.rodY0 or 1))
 end
 
 -- The unroll begins: the window starts a way to the left of its place, the
@@ -748,7 +765,7 @@ function Letter:LayRods(y0, y1)
 	end
 	self.rodRight:SetSize(g.rodW, h)
 	self.rodH = h
-	self:Rest()
+	self:Relay()
 end
 
 -- The wax colour for a reason: the palette's own wax, or a custom marker colour.
@@ -783,6 +800,10 @@ function Letter:Apply(p, above)
 	-- The paper's tint from the panel colour, if the player chose one; the
 	-- parchment's own colour if not. Never so dark that it stops being paper.
 	self:Tint(p)
+
+	-- A run of the unroll ends where the layout changes under it: laid again, the
+	-- paper would be carried by the rest of an offset made for the old one.
+	for _, group in ipairs(self.unrollGroups) do group:Stop() end
 
 	-- Everything shown, then laid: the sheet and the rods for the prompt alone (a
 	-- list lengthens them, PaintQueue) hide the pieces they do not use.
@@ -879,6 +900,9 @@ function Letter:Apply(p, above)
 	end
 	self:PlaceSlip(self.countSlip, self.countBox, chipH)
 	self:PlaceSlip(self.keySlip, self.keyBox, chipH)
+	-- Its drop of wax too: Chip places it only when the slip's height changes, and
+	-- a count that is first up beside the lines (no seal) would never have one.
+	self:PlacePin(self.countPin, self.countPinLight, self.countBox, chipH)
 	-- The count's slip pinned on the seal is a little smaller, and only on a
 	-- seal big enough to carry it.
 	self.badgeH = Clamp(g.subSize + 1, 10, chipH)
@@ -1225,6 +1249,10 @@ function Letter:Chip(on)
 		-- On the reason line it takes room from nothing that matters; beside the
 		-- count it takes the name's.
 		keyUp = two or self:NameFits(base + self.keyW + 4)
+		-- And only where the lines keep their least beside it (PlaceLines): on a
+		-- prompt as narrow as the slider allows the slip would stand over the seal
+		-- and the reason.
+		if keyUp and self.keyW + 4 > g.textRight - self.textX - 20 then keyUp = false end
 	end
 	if keyUp ~= self.keyUp then
 		self.keyUp = keyUp
