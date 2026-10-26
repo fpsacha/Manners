@@ -9,6 +9,7 @@ ns.Looks.previews = {
 	framed = true,
 	glass = true,
 	heritage = true,
+	leather = true,
 	luxe = true,
 	minimal = true,
 	ribbon = true,

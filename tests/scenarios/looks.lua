@@ -14,7 +14,7 @@ local strangers, freshPrompt, owe = H.strangers, H.freshPrompt, H.owe
 dofile(dir .. "/tests/frametree.lua")
 local FT = FrameTree
 
-local STYLES = { "glass", "framed", "minimal", "luxe", "toast", "arcane", "ribbon", "heritage", "slate" }
+local STYLES = { "glass", "framed", "minimal", "luxe", "toast", "arcane", "ribbon", "heritage", "leather" }
 local ANNA = { nameplate1 = { "Anna", "Aim" } }
 local CROWD = { nameplate1 = { "Anna", "Aim" }, nameplate2 = { "Brannoc", "Vale" },
 	nameplate3 = { "Corwin", "Ash" }, nameplate4 = { "Dagna", "Moss" } }
@@ -140,8 +140,8 @@ local function everyState(ns, p)
 		if words then
 			local said = tostring(regions.name:GetText()) .. " / "
 				.. (regions.sub:IsShown() and tostring(regions.sub:GetText()) or "")
-			-- Read as the eye does: a look that sets its lines in capitals (Slate)
-			-- still says the word.
+			-- Read as the eye does: a look that sets a line in capitals or spaces its
+			-- letters still says the word.
 			local read = said:lower():gsub("%s+", "")
 			local found = false
 			for _, word in ipairs(words) do
@@ -459,7 +459,7 @@ withTree("switching looks leaves no region of the old one showing", ANNA, functi
 			end
 		end
 	end
-	for _, style in ipairs({ "glass", "luxe", "framed", "toast", "minimal", "arcane", "ribbon", "heritage", "slate", "glass", "luxe" }) do
+	for _, style in ipairs({ "glass", "luxe", "framed", "toast", "minimal", "arcane", "ribbon", "heritage", "leather", "glass", "luxe" }) do
 		check(style, true)
 	end
 end)
@@ -987,7 +987,7 @@ end)
 -- ------------------------------------------------------------------ 24
 -- Every translation has the verdict words now: on a German client each of
 -- the new looks says the verdict in German, and the name stays where it was.
-for _, style in ipairs({ "luxe", "toast", "arcane", "ribbon", "heritage", "slate" }) do
+for _, style in ipairs({ "luxe", "toast", "arcane", "ribbon", "heritage", "leather" }) do
 	withTree(style .. " says the verdict in German", ANNA, function(ns, scenario)
 		local r = upIn(ns, scenario, style)
 		if not (r.look and ns.Looks.Get(style) == r.look) then
@@ -998,11 +998,7 @@ for _, style in ipairs({ "luxe", "toast", "arcane", "ribbon", "heritage", "slate
 		for _, k in ipairs({ "buffed", "sent, unconfirmed", "could not buff" }) do
 			if rawget(L, k) == nil then fail(scenario, "the German translation has no word for \"" .. k .. "\"") end
 		end
-		-- Slate sets its lines in capitals (a-z only: an umlaut stays as it is).
-		local function said(text)
-			if style == "slate" then return (text:gsub("[a-z]", string.upper)) end
-			return text
-		end
+		local function said(text) return text end
 		ns.Prompt:ShowOutcome("cast", "Anna Aim")
 		if r.sub:GetText() ~= said(L["buffed"]) then
 			fail(scenario, "a landed buff on a German client does not say " .. L["buffed"] .. ": "

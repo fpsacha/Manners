@@ -48,7 +48,7 @@ Looks\Toast.lua
 Looks\Arcane.lua
 Looks\Ribbon.lua
 Looks\Heritage.lua
-Looks\Slate.lua
+Looks\Leather.lua
 Prompt\Prompt.lua
 Prompt\Text.lua
 Prompt\Effects.lua

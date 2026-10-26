@@ -514,7 +514,7 @@ local added = {
 -- most players who use it have -- the looks that show the key only show it
 -- with one bound. ShotStyle is the look the profile ends up on, so a look the
 -- addon refused or put back is caught rather than drawn under another's name.
-for _, style in ipairs({ "glass", "framed", "minimal", "luxe", "toast", "arcane", "ribbon", "heritage", "slate" }) do
+for _, style in ipairs({ "glass", "framed", "minimal", "luxe", "toast", "arcane", "ribbon", "heritage", "leather" }) do
 	added[#added + 1] = { key = "shot-look-" .. style, at = 0.85, setup = function(ns)
 		Mock.bindings = { F = "CLICK MannersPrompt:LeftButton" }
 		boot(ns, { nameplate1 = ELOWEN, nameplate2 = SABLE, nameplate3 = MIRA })
@@ -776,7 +776,7 @@ def expect_top(key, top, name, reason):
 
 
 def expect_names(key, texts, names):
-    # Read without case: a look may set names in capitals (Slate).
+    # Read without case: a look may set names in capitals.
     joined = "\n".join(texts).lower()
     for name in names:
         if name.lower() not in joined:
@@ -1608,7 +1608,7 @@ LOOKS = [
     ("arcane", "Arcane", "smoked glass, a rim lit by the reason"),
     ("ribbon", "Ribbon", "a crimson ribbon and a gold medallion"),
     ("heritage", "Heritage", "a unit frame: gold-ringed portrait, banner and bar"),
-    ("slate", "Slate", "slanted plates, accent blade, segmented timer"),
+    ("leather", "Leather", "a stitched leather tag with a brass ring"),
     ("glass", "Glass", "dark panel, soft shadow"),
     ("framed", "Framed", "flat panel, thin border"),
     ("minimal", "Minimal", "text only, no panel"),

@@ -92,7 +92,7 @@ local function groupsOf(r)
 		return g
 	end
 	g.intro, g.introCalm = { r.intro }, { r.introCalm }
-	if look.key == "slate" then
+	if look.key == "leather" then
 		g.arrive = {}
 		for _, a in ipairs(look.arrive) do g.arrive[#g.arrive + 1] = a end
 		for _, a in ipairs(look.landing) do g.land[#g.land + 1] = a end
@@ -119,8 +119,8 @@ local function groupsOf(r)
 	return g
 end
 
--- Slate joins the looks asked every question here.
-ALL[#ALL + 1] = "slate"
+-- Leather joins the looks asked every question here.
+ALL[#ALL + 1] = "leather"
 
 local function snapshot(g)
 	return { arrive = total(g.arrive), land = total(g.land), reject = total(g.reject),
@@ -505,7 +505,7 @@ withTree("hunt35-effects: the owed breath is the reason's colour and a warm whit
 	end
 	if rim._color[3] >= rim._color[1] then fail(scenario, "the warm white is not warm: blue is not under red") end
 	-- The other three look keep a warm ring over the same breath.
-	for _, style in ipairs({ "luxe", "toast", "arcane", "slate" }) do
+	for _, style in ipairs({ "luxe", "toast", "arcane", "leather" }) do
 		local rr = upIn(ns, scenario, style)
 		owe(ns, "Anna Aim")
 		ns.addon:Tick()
@@ -534,13 +534,12 @@ for _, style in ipairs(ALL) do
 		if not cd then fail(scenario, "SKIPPED -- no cooldown frame") return end
 		if cd._drawEdge ~= true then fail(scenario, "the sweep has no leading edge") end
 		if not cd._cooldown then fail(scenario, "SKIPPED -- the sweep is not running") end
-		-- Slate's icon is a hexagon whatever the setting says, and nothing of it is round.
-		if cd._circular ~= (style ~= "slate") then fail(scenario, "the sweep's edge is not round with a round icon") end
+		if cd._circular ~= true then fail(scenario, "the sweep's edge is not round with a round icon") end
 		p.roundIcon = false
 		ns.Prompt:ApplyStyle()
 		-- Toast's medallion is round whatever the setting says.
 		local want = style == "toast"
-		if cd._circular ~= want and style ~= "slate" then
+		if cd._circular ~= want then
 			fail(scenario, "the sweep's edge stayed round after the icon was squared: " .. tostring(cd._circular))
 		end
 	end)
