@@ -140,8 +140,8 @@ local function everyState(ns, p)
 		if words then
 			local said = tostring(regions.name:GetText()) .. " / "
 				.. (regions.sub:IsShown() and tostring(regions.sub:GetText()) or "")
-			-- Read as the eye does: a look that sets its second line in letter-spaced
-			-- capitals still says the word.
+			-- Read as the eye does: a look that sets its lines in capitals (Slate) or
+			-- its second line in letter-spaced capitals (Whisper) still says the word.
 			local read = said:lower():gsub("%s+", "")
 			local found = false
 			for _, word in ipairs(words) do
@@ -998,18 +998,23 @@ for _, style in ipairs({ "luxe", "toast", "arcane", "whisper", "heritage", "slat
 		for _, k in ipairs({ "buffed", "sent, unconfirmed", "could not buff" }) do
 			if rawget(L, k) == nil then fail(scenario, "the German translation has no word for \"" .. k .. "\"") end
 		end
+		-- Slate sets its lines in capitals (a-z only: an umlaut stays as it is).
+		local function said(text)
+			if style == "slate" then return (text:gsub("[a-z]", string.upper)) end
+			return text
+		end
 		ns.Prompt:ShowOutcome("cast", "Anna Aim")
-		if r.sub:GetText() ~= L["buffed"] then
+		if r.sub:GetText() ~= said(L["buffed"]) then
 			fail(scenario, "a landed buff on a German client does not say " .. L["buffed"] .. ": "
 				.. tostring(r.sub:GetText()))
 		end
-		if tostring(r.name:GetText()):find("Anna", 1, true) ~= 1 then
+		if tostring(r.name:GetText()):find(said("Anna"), 1, true) ~= 1 then
 			fail(scenario, "a landed buff on a German client moved the name: " .. tostring(r.name:GetText()))
 		end
 		Mock.advance(3)
 		ns.addon:Tick()
 		ns.Prompt:ShowOutcome("sent", "Anna Aim")
-		if r.sub:GetText() ~= L["sent, unconfirmed"] then
+		if r.sub:GetText() ~= said(L["sent, unconfirmed"]) then
 			fail(scenario, "an unconfirmed cast on a German client does not say " .. L["sent, unconfirmed"]
 				.. ": " .. tostring(r.sub:GetText()))
 		end

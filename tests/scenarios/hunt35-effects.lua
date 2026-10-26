@@ -534,12 +534,13 @@ for _, style in ipairs(ALL) do
 		if not cd then fail(scenario, "SKIPPED -- no cooldown frame") return end
 		if cd._drawEdge ~= true then fail(scenario, "the sweep has no leading edge") end
 		if not cd._cooldown then fail(scenario, "SKIPPED -- the sweep is not running") end
-		if cd._circular ~= true then fail(scenario, "the sweep's edge is not round with a round icon") end
+		-- Slate's icon is a hexagon whatever the setting says, and nothing of it is round.
+		if cd._circular ~= (style ~= "slate") then fail(scenario, "the sweep's edge is not round with a round icon") end
 		p.roundIcon = false
 		ns.Prompt:ApplyStyle()
 		-- Toast's medallion is round whatever the setting says.
 		local want = style == "toast"
-		if cd._circular ~= want then
+		if cd._circular ~= want and style ~= "slate" then
 			fail(scenario, "the sweep's edge stayed round after the icon was squared: " .. tostring(cd._circular))
 		end
 	end)

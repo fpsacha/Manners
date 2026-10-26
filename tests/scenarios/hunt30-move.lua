@@ -465,9 +465,11 @@ for _, look in ipairs(LOOKS) do
 		ns.addon:HandleSlash("unlock")
 		ns.addon:Tick()
 		local name, sub = tostring(R.nameText:GetText()), tostring(R.subText:GetText())
-		if not name:find("Drag to move", 1, true) then fail(scenario, "the first line reads " .. name) end
-		-- Read as the eye does: a look that sets its second line in letter-spaced
-		-- capitals still says it.
+		-- Slate sets its lines in capitals.
+		if look == "slate" then name = name:lower() end
+		if not name:find(look == "slate" and "drag to move" or "Drag to move", 1, true) then fail(scenario, "the first line reads " .. name) end
+		-- Read as the eye does: a look that sets its second line in capitals,
+		-- letter-spaced or not, still says it.
 		if not sub:lower():gsub("%s+", ""):find("letgoanditlocksitself", 1, true) then
 			fail(scenario, "the second line reads " .. sub)
 		end

@@ -22,6 +22,7 @@ of that is read from what the addon told the frames, never restated here.
     python tools/render_prompt.py --states success --at 0.2     # 0.2 s into the animation
     python tools/render_prompt.py --states success --strip 0.05,0.15,0.3,0.5   # a film strip
     python tools/render_prompt.py --size large                  # 320 x 58, 17 pt, icon 40
+    python tools/render_prompt.py --size 400x72x13x56            # any WIDTHxHEIGHTxFONTxICON
     python tools/render_prompt.py --size extreme                # 220 x 48, 17 pt, icon 40 (or tiny: icon 16)
 
 Needs lupa and Pillow (and numpy, which Pillow users nearly always have).
@@ -97,8 +98,12 @@ def load_states(addon_dir, locale=None, style=None, key=None, size=None):
     # the width this draws, or a line it shrank to fit is drawn not fitting.
     # Measured at four times the size and scaled back, because a font rounded
     # to a whole pixel at 10 is a tenth out either way.
-    lua.globals().FrameTree.measure = lambda text, size: (
-        get_font(float(size) * 4).getlength(plain_text(text)) / 4)
+    # In the face the line is set in: a look that asks for the game's narrow
+    # one (Fonts\ARIALN.TTF) is measured in a narrow face too.
+    def measure(text, size):
+        face = lua.globals().FrameTree.fontPath
+        return get_font(float(size) * 4, face=face).getlength(plain_text(text)) / 4
+    lua.globals().FrameTree.measure = measure
     return R
 
 
@@ -147,7 +152,7 @@ class Tree:
         text = plain_text(r.get("text"))
         if not text:
             return 0, size
-        f = get_font(size)
+        f = get_font(size, face=font.get("path"))
         return f.getlength(text), size
 
     def rect(self, rid):
@@ -324,20 +329,31 @@ BOLD_CANDIDATES = [r"C:\Windows\Fonts\Candarab.ttf", r"C:\Windows\Fonts\segoeuib
 _font_cache = {}
 
 
-def font_path(bold=False):
-    for path in (BOLD_CANDIDATES if bold else FONT_CANDIDATES):
+# The game's narrow face, Arial Narrow (Fonts\ARIALN.TTF in every client), which
+# a look may ask for: drawn in the same face where this machine has one.
+NARROW_CANDIDATES = [r"C:\Windows\Fonts\ARIALN.TTF", "/usr/share/fonts/truetype/liberation/LiberationSansNarrow-Regular.ttf",
+                     "/usr/share/fonts/truetype/liberation2/LiberationSansNarrow-Regular.ttf", "ArialNarrow.ttf"]
+
+
+def font_path(bold=False, face=None):
+    if face and "ARIALN" in str(face).upper():
+        candidates = NARROW_CANDIDATES
+    else:
+        candidates = BOLD_CANDIDATES if bold else FONT_CANDIDATES
+    for path in candidates:
         try:
             ImageFont.truetype(path, 10)
             return path
         except OSError:
             continue
-    return None
+    return font_path(bold) if face else None
 
 
-def get_font(size, bold=False):
-    key = (round(size * 4) / 4, bold)
+def get_font(size, bold=False, face=None):
+    narrow = bool(face) and "ARIALN" in str(face).upper()
+    key = (round(size * 4) / 4, bold, narrow)
     if key not in _font_cache:
-        path = font_path(bold)
+        path = font_path(bold, face)
         _font_cache[key] = (ImageFont.truetype(path, max(1, int(round(size))))
                             if path else ImageFont.load_default())
     return _font_cache[key]
@@ -817,7 +833,7 @@ def draw_text(canvas, tree, r, box, alpha, px, grown=1.0):
     # The frame scale and what a playing animation has grown the letters by.
     s = tree.eff_scale(r) * grown
     size = (font.get("size") or 12) * s * px
-    f = get_font(size)
+    f = get_font(size, face=font.get("path"))
     x0, y0, x1, y1 = box
     base = r.get("textColor") or [1, 0.82, 0, 1]
     base = tuple(1 if v is None else v for v in (list(base) + [1, 1, 1, 1])[:4])
@@ -1022,8 +1038,11 @@ def main():
     # state's last act: one number for every state, or --strip for a film strip.
     ap.add_argument("--at", type=float, default=None, help="seconds into the animation (default: each state's own)")
     ap.add_argument("--strip", default="", help="comma-separated seconds: one film strip per state")
-    ap.add_argument("--size", default="", choices=["", "default", "large", "extreme", "tiny"],
-                    help="large: 320 x 58, 17 pt, icon 40; extreme: 220 x 48, 17 pt, icon 40; tiny: icon 16")
+    ap.add_argument("--size", default="",
+                    type=lambda v: v if v in ("", "default", "large", "extreme", "tiny") or re.fullmatch(r"\d+x\d+x\d+x\d+", v)
+                    else (_ for _ in ()).throw(argparse.ArgumentTypeError("invalid size: " + v)),
+                    help="large: 320 x 58, 17 pt, icon 40; extreme: 220 x 48, 17 pt, icon 40; tiny: icon 16; "
+                         "or WIDTHxHEIGHTxFONTxICON, 160x32x13x24 say")
     ap.add_argument("--compare", nargs=3, metavar=("BEFORE", "AFTER", "OUT"))
     args = ap.parse_args()
     if args.compare:
