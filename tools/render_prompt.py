@@ -343,7 +343,9 @@ SERIF_CANDIDATES = [r"C:\Windows\Fonts\georgiab.ttf", r"C:\Windows\Fonts\timesbd
 
 
 def font_path(bold=False, face=None):
-    if face and "ARIALN" in str(face).upper():
+    if face and "MORPHEUS" in str(face).upper():
+        candidates = SERIF_CANDIDATES
+    elif face and "ARIALN" in str(face).upper():
         candidates = NARROW_CANDIDATES
     elif face and "MORPHEUS" in str(face).upper():
         candidates = SERIF_CANDIDATES

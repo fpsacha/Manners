@@ -82,7 +82,10 @@ local function LegibleCode(a, r, g, b)
 	-- text.
 	local fr, fg, fb = tonumber(r, 16) / 255, tonumber(g, 16) / 255, tonumber(b, 16) / 255
 	local nr, ng, nb = fr, fg, fb
-	if Contrast(fr, fg, fb) < CODE_CONTRAST then
+	-- A look on a ground of its own may hold every code to more (the letter's
+	-- parchment: the full 4.5:1 for all of them).
+	local least = S.activeLook and S.activeLook.codeContrast or CODE_CONTRAST
+	if Contrast(fr, fg, fb) < least then
 		nr, ng, nb = Legible(fr, fg, fb, TEXT_CONTRAST)
 	end
 	hit = ("|c%s%02x%02x%02x"):format(a, math.floor(nr * 255 + 0.5),

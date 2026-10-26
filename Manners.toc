@@ -53,7 +53,7 @@ Looks\Luxe.lua
 Looks\Toast.lua
 Looks\Arcane.lua
 Looks\Ribbon.lua
-Looks\Heritage.lua
+Looks\Letter.lua
 Looks\Leather.lua
 Prompt\Prompt.lua
 Prompt\Text.lua

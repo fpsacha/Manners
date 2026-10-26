@@ -35,7 +35,7 @@ dofile(dir .. "/tests/frametree.lua")
 local FT = FrameTree
 
 local ANNA = { nameplate1 = { "Anna", "Aim" } }
-local ALL = { "glass", "framed", "minimal", "luxe", "toast", "arcane", "ribbon", "heritage" }
+local ALL = { "glass", "framed", "minimal", "luxe", "toast", "arcane", "ribbon", "letter" }
 
 local function withTree(scenario, names, body)
 	Mock.reset()
@@ -379,14 +379,13 @@ local RING_FILES = {
 	{ "Textures/Arcane/Arcane_RuneRing", "Interface\\AddOns\\Manners\\Textures\\Arcane\\Arcane_RuneRing" },
 	{ "Textures/Arcane/Arcane_RuneRingSq", "Interface\\AddOns\\Manners\\Textures\\Arcane\\Arcane_RuneRingSq" },
 	{ "Textures/Toast/Toast_RingGlow", "Interface\\AddOns\\Manners\\Textures\\Toast\\Toast_RingGlow" },
-	{ "Textures/Heritage/Heritage_Ring", "Interface\\AddOns\\Manners\\Textures\\Heritage\\Heritage_Ring" },
 	{ "Textures/Ribbon/Ribbon_Ring", "Interface\\AddOns\\Manners\\Textures\\Ribbon\\Ribbon_Ring" },
 }
 
 withTree("hunt37-effects: each ring's declared reach is the reach of its art", ANNA, function(ns, scenario)
 	local lib = ns.Prompt.lib
 	-- A look registers its files when it is built.
-	for _, style in ipairs({ "luxe", "toast", "arcane", "ribbon", "heritage", "leather" }) do
+	for _, style in ipairs({ "luxe", "toast", "arcane", "ribbon", "letter", "leather" }) do
 		freshPrompt(ns, scenario)
 		ns.db.profile.prompt.style = style
 		ns.Prompt:ApplyStyle()

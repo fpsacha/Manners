@@ -14,7 +14,7 @@ local strangers, freshPrompt, owe = H.strangers, H.freshPrompt, H.owe
 dofile(dir .. "/tests/frametree.lua")
 local FT = FrameTree
 
-local STYLES = { "glass", "framed", "minimal", "luxe", "toast", "arcane", "ribbon", "heritage", "leather" }
+local STYLES = { "glass", "framed", "minimal", "luxe", "toast", "arcane", "ribbon", "letter", "leather" }
 local ANNA = { nameplate1 = { "Anna", "Aim" } }
 local CROWD = { nameplate1 = { "Anna", "Aim" }, nameplate2 = { "Brannoc", "Vale" },
 	nameplate3 = { "Corwin", "Ash" }, nameplate4 = { "Dagna", "Moss" } }
@@ -459,7 +459,7 @@ withTree("switching looks leaves no region of the old one showing", ANNA, functi
 			end
 		end
 	end
-	for _, style in ipairs({ "glass", "luxe", "framed", "toast", "minimal", "arcane", "ribbon", "heritage", "leather", "glass", "luxe" }) do
+	for _, style in ipairs({ "glass", "luxe", "framed", "toast", "minimal", "arcane", "ribbon", "letter", "leather", "glass", "luxe" }) do
 		check(style, true)
 	end
 end)
@@ -987,7 +987,7 @@ end)
 -- ------------------------------------------------------------------ 24
 -- Every translation has the verdict words now: on a German client each of
 -- the new looks says the verdict in German, and the name stays where it was.
-for _, style in ipairs({ "luxe", "toast", "arcane", "ribbon", "heritage", "leather" }) do
+for _, style in ipairs({ "luxe", "toast", "arcane", "ribbon", "letter", "leather" }) do
 	withTree(style .. " says the verdict in German", ANNA, function(ns, scenario)
 		local r = upIn(ns, scenario, style)
 		if not (r.look and ns.Looks.Get(style) == r.look) then
