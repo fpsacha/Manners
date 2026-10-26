@@ -505,6 +505,13 @@ local function FightStarting()
 	end)
 end
 
+-- The macro Put Manners on an action bar put on the cursor was dropped or put
+-- away: the line saying where to drop it goes, with nothing else repainted.
+-- Asked at every change of the cursor, so it answers at once for any other.
+local function CursorChanged()
+	if ns.macroOnCursor and UI.Shown() and not ns.Setup.Carrying() then UI.Refresh() end
+end
+
 local function Hidden()
 	ns.OptionsPage.reportOpen = false
 	ns.OptionsPage.shareOpen = false
@@ -551,7 +558,13 @@ function UI.Build()
 	f:SetScript("OnHide", UI.Guarded(Hidden))
 	f:SetScript("OnUpdate", function(_, elapsed) Fade(elapsed or 0) end)
 	f:RegisterEvent("PLAYER_REGEN_DISABLED")
-	f:SetScript("OnEvent", UI.Guarded(FightStarting))
+	-- Where a client has no such event the registration is refused and the
+	-- hint stays until the next repaint, which is all it costs.
+	pcall(f.RegisterEvent, f, "CURSOR_CHANGED")
+	f:SetScript("OnEvent", UI.Guarded(function(_, event)
+		if event == "CURSOR_CHANGED" then return CursorChanged() end
+		return FightStarting()
+	end))
 	-- Last: anything that throws above leaves no half-built window behind for
 	-- tools and tests to find.
 	ns.OptionsWindow = f

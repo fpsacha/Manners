@@ -316,6 +316,9 @@ local function Arm(R, S, entry, silent)
 		-- Same reasoning for the spoken line: there is no macro, so there is no
 		-- line, and the tooltip must not still be quoting the last one.
 		S.phraseKey, S.phraseText, S.phraseArmed, S.phraseSource = nil, nil, nil, nil
+		-- The macro's slot on an action bar shows nothing for nobody
+		-- (Clicks.lua, SyncMacroSlot): a comparison of one string once it does.
+		if not S.isRow then ns.SyncMacroSlot(nil) end
 		return
 	end
 
@@ -389,6 +392,7 @@ local function Arm(R, S, entry, silent)
 				R.button:SetAttribute(attribute, nil)
 			end
 			if not S.isRow then ns.lastMacro = "[try, not armed] " .. tostring(unfilled) end
+			if not S.isRow then ns.SyncMacroSlot(nil) end
 			S.appliedKey = key
 			S.armed = nil
 			return
@@ -399,6 +403,7 @@ local function Arm(R, S, entry, silent)
 		R.button:SetAttribute("macrotext", text)
 		SilenceOtherButtons(R)
 		if not S.isRow then ns.lastMacro = "[try] " .. text end
+		if not S.isRow then ns.SyncMacroSlot(nil) end
 		S.appliedKey = key
 		-- None of this text is a /target this addon wrote, so it is evidence
 		-- about nobody's name and there is no record for the settle path.
@@ -443,6 +448,10 @@ local function Arm(R, S, entry, silent)
 	SilenceOtherButtons(R)
 
 	if not S.isRow then ns.lastMacro = macro end
+	-- What a press now casts is what the macro's bar slot shows, set only when
+	-- it differs from what it showed (and never in a fight, where this is not
+	-- reached: ApplyTarget returns first).
+	if not S.isRow then ns.SyncMacroSlot(entry) end
 	S.appliedKey = key
 	-- Taken whole from the strategy that built the macro: one opinion about it.
 	S.armed = record

@@ -2,6 +2,14 @@
 
 ## 1.10.0
 
+- **Put Manners on an action bar, and on a controller.** *Put Manners on an
+  action bar* on Start here (and `/manners macro`) makes the macro and puts it
+  on your cursor: drop it on any slot of any bar. The slot shows the spell a
+  press would cast, with its cooldown and range, changing as the prompt
+  changes, and the macro's own icon when there is nobody to buff. A controller
+  button bound under Options > Keybindings > Manners presses the prompt like
+  a key, and the key shown on the prompt reads as the button's picture, a
+  held trigger as the buttons you press.
 - **Three new looks, each a thing you could hold.** *Ribbon*: a crimson
   cloth ribbon with swallowtail ends and gold rails, the spell in a gold
   medallion with a ring of enamel in the reason's colour; a gold shine runs

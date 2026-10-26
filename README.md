@@ -68,11 +68,32 @@ first two of which set it up:
 1. **Who to buff.** One quick choice, *Offer my buff to*, already answered:
    a new profile starts on *Everyone near me*, and the line under it says
    what that comes to. The rest is on the *Who to buff* page.
-2. **Put it on a key.** Set the key right there, or bind one under
-   **Options > Keybindings > Manners** ("Buff the prompted player"). Or press
-   *Make a macro* (or type `/manners macro`) and drag the macro onto a bar.
-   The macro is `/click MannersPrompt LeftButton 1`; the trailing `1`
-   matters, because the secure button only casts on the way down.
+2. **Put it on a key or an action bar.** Set the key right there, or bind
+   one under **Options > Keybindings > Manners** ("Buff the prompted player").
+   Or press *Put Manners on an action bar* (or type `/manners macro`): the
+   Manners macro is made (or put right, if it is there) and put on your
+   cursor, and the line under the button says *Drop it on any action bar
+   slot.* Drop it on any slot of any bar. The macro is
+   `/click MannersPrompt LeftButton 1`; the trailing `1` matters, because the
+   secure button only casts on the way down. In a fight the button does
+   nothing but say so: the game does not let an addon touch macros then.
+
+   **The slot shows what a press would cast.** Manners tells the game which
+   spell the macro stands for (or which scroll or enhancement, for the ones
+   that are used from your bags), so the slot draws that spell's icon, its
+   cooldown, its range and whether you can cast it, as any spell on a bar
+   does. It changes only when what the prompt would cast changes, never in a
+   fight (the slot then matches the button, which a fight freezes), and with
+   nobody to buff it goes back to the macro's own icon, a note.
+
+   **On a controller.** A controller button bound to the same command
+   presses the prompt as a key does (the game's key bindings window offers
+   the buttons once its gamepad mode is on; Manners does not need that mode
+   and never switches it). The key shown on the prompt is the button as the
+   game draws it, and a button held with a trigger or shoulder, which the
+   game reads as Shift or Ctrl, shows the buttons you press (the left
+   trigger and the face button, say). The macro on an action bar works with
+   the controller's own action bar navigation like any other macro.
 
 Then press *Show me the prompt* at the top of the window (or type
 `/manners test`) to see it where it sits. To move it, press *Move the
@@ -428,8 +449,10 @@ explain themselves; this is what their tooltips have no room for.
   anybody else, gets no choice here, just a line naming the buffs of their own
   the prompt reminds them of.
 - *2. Put it on a key*: the key is saved with your game key bindings, so it
-  follows every profile. *Make a macro* also opens the macro window, so the
-  macro is there to drag. The line under them says whether you are ready.
+  follows every profile. *Put Manners on an action bar* puts the macro on
+  your cursor to drop on a bar (where the game would not carry it, it opens the
+  macro window, so the macro is there to drag). The line under them says
+  whether you are ready.
 - *Minimap and chat*: the minimap button, and *Tell me in chat what Manners is
   doing*. That is a line in your own chat when somebody buffs you, when a
   favour is repaid, and when a click fails. Use it to tell "the buff was never
@@ -711,7 +734,7 @@ Everyday
 
 Setting it up
 /manners welcome            what it does, and the one thing it needs from you
-/manners macro              make a /click macro for your action bar
+/manners macro              put the macro for your action bar on your cursor
 /manners move               unlock the prompt and drag it; it locks itself when you let go
 /manners unlock             the same as move
 /manners lock               lock it again (an unlocked prompt never casts)

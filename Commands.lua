@@ -284,7 +284,7 @@ function ns.Welcome(force, offSaid)
 	else
 		addon:Print(L["|cffffd100Manners|r puts anybody who buffs you -- and any stranger nearby who is missing one of yours -- on a small prompt. Clicking the prompt buffs them."])
 	end
-	addon:Print(L["The one thing that is not automatic: |cffffd100/manners macro|r or |cffffd100Make a macro|r in the options makes a macro for your bars, or bind a key under Options > Keybindings > Manners."])
+	addon:Print(L["The one thing that is not automatic: |cffffd100/manners macro|r or |cffffd100Put Manners on an action bar|r in the options puts a macro on your cursor for your bars, or bind a key under Options > Keybindings > Manners."])
 
 	-- Switched off (perhaps by another character, on the shared profile): name
 	-- the setting, unless the login line said so one line above.
@@ -1231,7 +1231,7 @@ ns.COMMANDS = {
 		help = L["the favour ledger: who buffed you, what you gave back, and who you buffed"] },
 	{ word = "welcome", group = "setup",
 		help = L["what this addon does, and the one thing it needs from you"] },
-	{ word = "macro", group = "setup", help = L["make a /click macro for your action bar"] },
+	{ word = "macro", group = "setup", help = L["put the macro for your action bar on your cursor"] },
 	{ word = "move", group = "setup",
 		help = L["move the prompt -- unlock it, drag it, and it locks itself when you let go"] },
 	{ word = "unlock", group = "setup", help = L["unlock the prompt so it can be dragged"] },

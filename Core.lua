@@ -3696,6 +3696,9 @@ function addon:OnEnable()
 		-- The events the Camelot group frames listen to for it.
 		"READY_CHECK",
 		"READY_CHECK_FINISHED",
+		-- The Manners macro made, deleted or moved in the macro window: its
+		-- slot on an action bar is set again (Clicks.lua).
+		"UPDATE_MACROS",
 	}) do
 		ns.Guard("RegisterEvent " .. event, function() self:RegisterEvent(event) end)
 	end
@@ -4044,6 +4047,9 @@ function addon:PLAYER_REGEN_ENABLED()
 	ns.Guard("Welcome", ns.Welcome)
 	-- And the old macro, for the same reason: it cannot be edited in a fight.
 	if ns.SettleOldMacro then ns.SettleOldMacro() end
+	-- And the macro's slot on an action bar, for what the fight held back
+	-- (Clicks.lua): the prompt's own Refresh above arms what is owed now.
+	if ns.ResyncMacroSlot then ns.Guard("macro slot", ns.ResyncMacroSlot) end
 end
 
 -- Kept in SavedVariables so the probe -- and whatever the console has printed
