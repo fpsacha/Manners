@@ -80,18 +80,19 @@ local Letter = ns.Looks.Register("letter", {
 -- paper is 256 x 64: caps a quarter of its width, bands a quarter, a half and a
 -- quarter of its height; the middle band is a tile that a list repeats. The rod
 -- is 64 x 256 with caps of 80 texels. The wax's mean radius is SEAL_R of its
--- file's half-width, the icon's edge ICON_AT of that radius, the farthest the
--- wax is seen SEAL_EDGE of the half-width, and the shadow's file holds the seal
--- 1 / SHADOW_ZOOM the size.
+-- file's half-width, the icon's edge ICON_AT of that radius (the icon is that
+-- share of the wax's diameter: the wax dominates, the spell is pressed into
+-- it), the farthest the wax is seen SEAL_EDGE of the half-width, and the
+-- shadow's file holds the seal 1 / SHADOW_ZOOM the size.
 local PAPER_CAP, PAPER_TOP, PAPER_MID = 0.25, 0.25, 0.5
 local ROD_CAP = 80 / 256
 local ROD_CAP_UNITS = 80 / 64
-local SEAL_R, ICON_AT, SEAL_EDGE = 0.88, 0.70, 0.94
+local SEAL_R, ICON_AT, SEAL_EDGE = 0.90, 0.60, 0.96
 local SHADOW_ZOOM = 1.34
 -- What the ink is read on: the paper's middle band as relative luminance (the
 -- mean and the darkest 2% of it), and its mean colour, as drawn.
-local PAPER_RGB = { 0.944, 0.848, 0.614 }
-local PAPER_LUM, PAPER_LUM_LOW = 0.707, 0.496
+local PAPER_RGB = { 0.963, 0.876, 0.652 }
+local PAPER_LUM, PAPER_LUM_LOW = 0.756, 0.488
 -- How light a tinted parchment stays at its least (its mean's luminance).
 local PAPER_FLOOR = 0.55
 -- The most tiles of the middle band a list's paper is cut in.
@@ -504,7 +505,10 @@ function Letter:Build(kit)
 	for _, file in ipairs({ "Seal", "SealRim", "SealGloss" }) do kit.RingArt(ART .. file, 1, SEAL_EDGE) end
 
 	-- The seal: the wax on art, below the icon (the icon is ARTWORK 0); its lip,
-	-- the gloss, the light and the crack over it, on a frame above.
+	-- the light on it, the flashes and the crack over it, on a frame above. The
+	-- wax and its lip are grey art tinted to the wax's colour; the light on it
+	-- (SealGloss) is white and is never tinted, which is what makes every tint
+	-- read as wax.
 	self.body = tex(art, "BORDER", 0, "Seal")
 	self.sealFrame = frame()
 	self.rim = tex(self.sealFrame, "ARTWORK", 0, "SealRim")
@@ -526,7 +530,9 @@ function Letter:Build(kit)
 	self.core:SetAlpha(0)
 
 	-- The stroke of ink between the lines, the slips that carry the count and the
-	-- bound key, and a drop of wax and a ruled line for each row of the list.
+	-- bound key, each held down by a drop of the seal's wax at its corner, and a
+	-- drop of wax and a ruled line for each row of the list. A drop is the seal's
+	-- material in small: grey wax tinted, and the light on it white, untinted.
 	self.chipFrame = frame()
 	self.rule = tex(self.chipFrame, "ARTWORK", 0, "Rule")
 	self.countSlip, self.keySlip = {}, {}
@@ -538,6 +544,11 @@ function Letter:Build(kit)
 	end
 	self.countBox = keep(CreateFrame("Frame", nil, self.chipFrame))
 	self.keyBox = keep(CreateFrame("Frame", nil, self.chipFrame))
+	self.countPin = tex(self.chipFrame, "ARTWORK", 2, "Dot")
+	self.countPinLight = tex(self.chipFrame, "ARTWORK", 3, "DotGloss")
+	self.keyPin = tex(self.chipFrame, "ARTWORK", 2, "Dot")
+	self.keyPinLight = tex(self.chipFrame, "ARTWORK", 3, "DotGloss")
+	self.pins = { self.countPin, self.keyPin }
 	self.keyText = keep(textLayer:CreateFontString(nil, "OVERLAY"))
 	self.keyText:SetJustifyH("CENTER")
 	self.keyText:SetWordWrap(false)
@@ -545,11 +556,16 @@ function Letter:Build(kit)
 	-- The list's rows are regions of art, under every frame of the letter: they
 	-- are moved onto a frame of their own over the paper (and put back in Hide).
 	self.rowFrame = frame()
-	self.drops, self.lines = {}, {}
+	self.drops, self.dropLights, self.lines = {}, {}, {}
 	for i = 1, #kit.rows do
 		self.drops[i] = tex(self.chipFrame, "ARTWORK", 0, "Dot")
+		self.dropLights[i] = tex(self.chipFrame, "ARTWORK", 1, "DotGloss")
 		self.lines[i] = tex(self.chipFrame, "ARTWORK", 0, "Rule")
 	end
+	-- The light on every drop is white, and stays so: a tint would make it a
+	-- colour, not a shine.
+	for _, t in ipairs({ self.countPinLight, self.keyPinLight }) do t:SetVertexColor(1, 1, 1, 1) end
+	for _, t in ipairs(self.dropLights) do t:SetVertexColor(1, 1, 1, 1) end
 
 	-- The icon's shape; taken off it in Hide, so not in `own`.
 	self.mask = art:CreateMaskTexture()
@@ -784,7 +800,8 @@ function Letter:Apply(p, above)
 		t:SetPoint("CENTER", art, "TOPLEFT", cx, -cy)
 		t:SetSize(sq, sq)
 	end
-	self.mark:SetSize(sq * 0.62, sq * 0.62)
+	-- The mark fills the recess as the icon would.
+	self.mark:SetSize(g.iconSize, g.iconSize)
 	self.shadowFrame:ClearAllPoints()
 	self.shadowFrame:SetAllPoints(art)
 	self.shadowClip:ClearAllPoints()
@@ -862,6 +879,7 @@ function Letter:Apply(p, above)
 	end
 	self:PlaceSlip(self.countSlip, self.countBox, chipH)
 	self:PlaceSlip(self.keySlip, self.keyBox, chipH)
+	self:PlacePin(self.keyPin, self.keyPinLight, self.keyBox, chipH)
 	-- The count's slip pinned on the seal is a little smaller, and only on a
 	-- seal big enough to carry it.
 	self.badgeH = Clamp(g.subSize + 1, 10, chipH)
@@ -913,9 +931,11 @@ function Letter:Apply(p, above)
 	self.sweepFrame:SetAlpha(0)
 	Each(self.countSlip, "Hide")
 	Each(self.keySlip, "Hide")
+	for _, t in ipairs({ self.countPin, self.countPinLight, self.keyPin, self.keyPinLight }) do t:Hide() end
 	self.keyText:Hide()
 	for i = 1, #self.drops do
 		self.drops[i]:Hide()
+		self.dropLights[i]:Hide()
 		self.lines[i]:Hide()
 	end
 	-- A fight's hold outlives a restyle: Prompt only says so again when it
@@ -940,6 +960,17 @@ function Letter:PlaceSlip(s, box, h)
 	s[3]:SetWidth(cap)
 	s[2]:SetPoint("TOPLEFT", s[1], "TOPRIGHT", 0, 0)
 	s[2]:SetPoint("BOTTOMRIGHT", s[3], "BOTTOMLEFT", 0, 0)
+end
+
+-- The drop of wax that holds a slip down: on its upper left corner, most of
+-- it on the slip, sized to the slip.
+function Letter:PlacePin(pin, light, box, h)
+	local d = Clamp(h * 0.40, 4, 8)
+	for _, t in ipairs({ pin, light }) do
+		t:ClearAllPoints()
+		t:SetPoint("CENTER", box, "TOPLEFT", d * 0.50, -d * 0.45)
+		t:SetSize(d, d)
+	end
 end
 
 -- The paper's colour: the parchment as drawn, or tinted by the panel colour the
@@ -1266,12 +1297,17 @@ function Letter:Chip(on)
 			self.countSlipH = ch
 			for _, t in ipairs(self.countSlip) do t:ClearAllPoints() end
 			self:PlaceSlip(self.countSlip, self.countBox, ch)
+			self:PlacePin(self.countPin, self.countPinLight, self.countBox, ch)
 		end
 		kit.count:ClearAllPoints()
 		kit.count:SetPoint("CENTER", self.countBox, "CENTER", 0, 0)
 	end
 	Each(self.countSlip, "SetShown", mode ~= nil)
+	self.countPin:SetShown(mode ~= nil)
+	self.countPinLight:SetShown(mode ~= nil)
 	Each(self.keySlip, "SetShown", keyUp)
+	self.keyPin:SetShown(keyUp)
+	self.keyPinLight:SetShown(keyUp)
 	self.keyText:SetShown(keyUp)
 	kit.count:SetShown(mode ~= nil)
 	-- Only a slip on the name line takes room from it; PlaceLines gives each line
@@ -1323,12 +1359,15 @@ function Letter:PaintReason(r, g, b, reason, mode)
 	self:DimSeal(self.combat and DIM_SEAL or 1)
 end
 
--- The wax, its lip and mark and the gloss at `k` of their strength.
+-- The wax, its lip and mark, and the drops that pin the slips, at `k` of their
+-- strength. The light on the wax is white whatever the wax is (a tint would
+-- turn a shine into a colour): a fight only makes it fainter.
 function Letter:DimSeal(k)
 	local w = self.wax or WAX_NEUTRAL
 	self.body:SetVertexColor(w[1] * k, w[2] * k, w[3] * k, 1)
 	self.rim:SetVertexColor(w[1] * k, w[2] * k, w[3] * k, 1)
 	self.mark:SetVertexColor(w[1] * k * 0.78, w[2] * k * 0.78, w[3] * k * 0.78, 1)
+	for _, t in ipairs(self.pins) do t:SetVertexColor(w[1] * k, w[2] * k, w[3] * k, 1) end
 	self.gloss:SetVertexColor(1, 1, 1, k >= 1 and 1 or 0.7)
 end
 
@@ -1539,6 +1578,7 @@ function Letter:PaintQueue(rows, shown, above)
 	for i = 1, #self.drops do
 		if not (list and i <= shown) then
 			self.drops[i]:Hide()
+			self.dropLights[i]:Hide()
 			self.lines[i]:Hide()
 		end
 	end
@@ -1557,6 +1597,7 @@ function Letter:PaintQueue(rows, shown, above)
 		local wr, wg, wb = self:WaxFor(c[1], c[2], c[3], reason, self.p.accentMode or "icon")
 		self.drops[i]:SetVertexColor(wr, wg, wb, 1)
 		self.drops[i]:Show()
+		self.dropLights[i]:Show()
 		self.lines[i]:Show()
 	end
 	-- Laid out again only when the number of rows or the side changes: the scan
@@ -1593,6 +1634,8 @@ function Letter:PaintQueue(rows, shown, above)
 		self.drops[i]:ClearAllPoints()
 		self.drops[i]:SetPoint("CENTER", art, "TOPLEFT", self.dropX, -y)
 		self.drops[i]:SetSize(drop, drop)
+		self.dropLights[i]:ClearAllPoints()
+		self.dropLights[i]:SetAllPoints(self.drops[i])
 		self.lines[i]:ClearAllPoints()
 		self.lines[i]:SetPoint("LEFT", art, "TOPLEFT", self.rowX, -(y + pitch / 2 - 0.5))
 		self.lines[i]:SetSize(ruleW, 3)

@@ -140,7 +140,7 @@ end
 -- The rectangle a texture is seen in: cut by every frame above it that cuts what
 -- it holds, and, for the files whose art does not fill them (the wax's), shrunk
 -- to how far out the art is seen.
-local EDGE = { Seal = 0.94, SealRim = 0.94, SealGloss = 0.94, Crack = 0.94 }
+local EDGE = { Seal = 0.96, SealRim = 0.96, SealGloss = 0.96, Crack = 0.96 }
 local function seen(t)
 	local box = rectOf(t)
 	if not box then return nil end
@@ -1066,9 +1066,10 @@ withTree("look-letter: the icon is round and sized by the seal, the sweep round"
 	end
 	tick(ns)
 	if not r.sub:IsShown() then fail(scenario, "the default size shows no second line") end
-	-- At the default size the icon reads: at least 24 across.
+	-- At the default size the icon reads: at least 22 across (the wax, which it
+	-- is pressed into, has the rest of the prompt's height).
 	local box = rectOf(r.icon)
-	if box and (box[3] - box[1]) < 24 then fail(scenario, "the icon is " .. (box[3] - box[1]) .. " across at the default size") end
+	if box and (box[3] - box[1]) < 22 then fail(scenario, "the icon is " .. (box[3] - box[1]) .. " across at the default size") end
 	-- A round button's sweep, with its leading edge.
 	Mock.spellCooldowns = { [61304] = { startTime = Mock.now - 0.5, duration = 1.5 } }
 	ns.Prompt:SyncCooldown()
@@ -1872,6 +1873,12 @@ withTree("look-letter: the ink reads on the paper at 4.5:1, class colours too, t
 						ns.addon:Tick()
 						for _, c in ipairs(codes(r.name:GetText())) do
 							check(label .. ", the name of a " .. class, c, ground, 4.5)
+							-- Every class is a shade of ink, taken towards the look's own
+							-- ink before it is darkened: a priest's white is a warm brown,
+							-- not the grey that darkening white alone would leave.
+							if class == "PRIEST" and not (c[1] > c[3] * 1.12) then
+								fail(scenario, ("%s, the name of a PRIEST is a grey (%.2f %.2f %.2f), not a shade of ink"):format(label, c[1], c[2], c[3]))
+							end
 						end
 					end
 					-- A colour code of the player's own, a brown that reads at about 3.9:1 on
@@ -2053,7 +2060,7 @@ end
 
 local DRAWN = { Paper = { 256, 64 }, Rod = { 64, 256 }, Seal = { 128, 128 }, SealRim = { 128, 128 }, SealGloss = { 128, 128 },
 	SealShadow = { 128, 128 }, Mark = { 64, 64 }, Mask = { 128, 128 }, Glow = { 128, 128 }, Crack = { 128, 128 },
-	Slip = { 64, 32 }, Dot = { 32, 32 }, Rule = { 128, 8 }, Sweep = { 64, 64 } }
+	Slip = { 64, 32 }, Dot = { 32, 32 }, DotGloss = { 32, 32 }, Rule = { 128, 8 }, Sweep = { 64, 64 } }
 
 withTree("look-letter: its art is 32-bit, a power of two, and every file is named, shipped and drawn", ANNA, function(_, scenario)
 	local names = {}
@@ -2078,7 +2085,7 @@ withTree("look-letter: its art is 32-bit, a power of two, and every file is name
 			end
 		end
 	end
-	if count < 14 then fail(scenario, "only " .. count .. " files are named in the look") end
+	if count < 15 then fail(scenario, "only " .. count .. " files are named in the look") end
 	-- Every shipped file is drawn by the look, and every drawn one ships.
 	for name in pairs(DRAWN) do
 		if not slurp(dir .. "/Textures/Letter/Letter_" .. name .. ".tga") then fail(scenario, name .. " does not ship") end
@@ -2173,5 +2180,167 @@ withTree("look-letter: tools/make_letter_textures.py is deterministic and draws 
 		end
 		os.remove(a .. "/" .. file)
 		os.remove(b .. "/" .. file)
+	end
+end)
+
+-- ------------------------------------------------------------------ 17
+-- The seal is wax first: the spell is pressed into it, a little over half its
+-- diameter across (55% to 62%: the wax dominates, with a rim and a ring of its
+-- own round the recess), at every size; and the look's figure for the share is
+-- the generator's, which draws the recess to it.
+withTree("look-letter: the icon is pressed into the wax at a little over half its diameter", ANNA, function(ns, scenario)
+	local r, p, look = upIn(ns, scenario)
+	if not isLetter(look) then fail(scenario, "SKIPPED -- Letter is not the look in use") return end
+	local source = slurp(dir .. "/Looks/Letter.lua") or ""
+	local share = tonumber(source:match("local SEAL_R, ICON_AT, SEAL_EDGE = [%d%.]+, ([%d%.]+), [%d%.]+"))
+	if not share then fail(scenario, "ICON_AT is not where the test looks for it") return end
+	if share < 0.55 or share > 0.62 then
+		fail(scenario, ("the icon is %.2f of the wax's diameter, not between 0.55 and 0.62"):format(share))
+	end
+	local gen = slurp(dir .. "/tools/make_letter_textures.py") or ""
+	local drawn = tonumber(gen:match("\nICON_AT = ([%d%.]+)\n"))
+	if not (drawn and near(drawn, share, 1e-6)) then fail(scenario, "the generator draws the recess to " .. tostring(drawn) .. ", the look sizes the icon to " .. share) end
+	for _, size in ipairs({ { 220, 44, 13 }, { 160, 32, 11 }, { 400, 72, 17 }, { 320, 58, 17 }, { 140, 120, 13 }, { 100, 44, 13 } }) do
+		p.width, p.height, p.fontSize = size[1], size[2], size[3]
+		ns.Prompt:ApplyStyle()
+		tick(ns)
+		local box = rectOf(r.icon)
+		local d = look.g and look.g.sealD
+		if not (box and d and d > 0) then fail(scenario, "no icon or no wax at " .. size[1] .. "x" .. size[2]) return end
+		-- The icon is cut to a whole unit, so a unit of rounding either way.
+		local k = (box[3] - box[1]) / d
+		if k < 0.55 - 1 / d or k > 0.62 + 1 / d then
+			fail(scenario, ("at %dx%d the icon is %.2f of the wax's diameter (%.1f of %.1f)"):format(size[1], size[2], k, box[3] - box[1], d))
+		end
+	end
+end)
+
+-- The light on the wax is white: the body and the lip carry the wax's colour
+-- and the gloss over them is never tinted, so every tint -- both palettes, a
+-- custom marker colour, the outcomes -- reads as wax with a shine, not as a
+-- colour with a lighter colour on it. The same for the drops of wax in the
+-- list and the ones that pin the slips, which are the seal's wax under their
+-- own white light. The files are white light and grey wax with depth in it.
+withTree("look-letter: the light on the wax is white whatever the wax is", CROWD, function(ns, scenario)
+	local r, p, look = upIn(ns, scenario, function(pp) pp.showQueue, pp.queueRows = true, 3 end)
+	if not isLetter(look) then fail(scenario, "SKIPPED -- Letter is not the look in use") return end
+	SetBinding("F", COMMAND)
+	tick(ns)
+	if not (look.countMode and look.keyUp) then fail(scenario, "SKIPPED -- the slips are not up") return end
+	local function white(label)
+		local lights = { ["the light on the seal"] = look.gloss, ["a drop's light"] = look.dropLights[1],
+			["the count pin's light"] = look.countPinLight, ["the key pin's light"] = look.keyPinLight }
+		for name, t in pairs(lights) do
+			local c = t._color
+			if c and not (near(c[1], 1, 0.001) and near(c[2], 1, 0.001) and near(c[3], 1, 0.001)) then
+				fail(scenario, ("%s: %s is tinted (%.2f %.2f %.2f)"):format(label, name, c[1], c[2], c[3]))
+			end
+		end
+		local w = look.body._color
+		for i, pin in ipairs(look.pins) do
+			if not (w and sameColour(pin._color, w[1], w[2], w[3])) then fail(scenario, label .. ": pin " .. i .. " is not the seal's wax") end
+		end
+	end
+	for _, palette in ipairs({ "standard", "colourblind" }) do
+		p.reasonPalette = palette
+		for _, reason in ipairs(REASONS) do
+			ns.Prompt:ApplyStyle()
+			ns.Prompt:PaintAccent(reason)
+			white(reason .. " in the " .. palette .. " set")
+		end
+	end
+	p.reasonPalette, p.accentMode, p.accentByReason, p.accentColor = "standard", "icon", false, { 0.2, 0.9, 0.3, 1 }
+	ns.Prompt:ApplyStyle()
+	ns.Prompt:PaintAccent("group")
+	white("a custom marker colour")
+	p.accentByReason = true
+	for _, kind in ipairs({ "cast", "failed", "sent" }) do
+		Mock.advance(3)
+		ns.Prompt:ShowOutcome(kind, "Anna Aim", "Out of range.")
+		white("the " .. kind .. " outcome")
+	end
+	Mock.advance(3)
+	tick(ns)
+	Mock.inCombat = true
+	ns.addon:PLAYER_REGEN_DISABLED()
+	tick(ns)
+	white("a fight")
+	-- A fight makes the light fainter, never coloured.
+	local c = look.gloss._color
+	if not (c and (c[4] or 1) < 0.95) then fail(scenario, "the light on the wax is not fainter in a fight") end
+	Mock.inCombat = false
+	if ns.addon.PLAYER_REGEN_ENABLED then ns.addon:PLAYER_REGEN_ENABLED() end
+	tick(ns)
+	-- Every drop shown has its light shown over it, the same size and place.
+	for i, drop in ipairs(look.drops) do
+		local light = look.dropLights[i]
+		if drop._shown ~= false and FT.visible(drop) then
+			if not (light and light._shown ~= false) then
+				fail(scenario, "drop " .. i .. " has no light on it")
+			else
+				local a, b = rectOf(drop), rectOf(light)
+				if a and b and not (near(a[1], b[1], 0.05) and near(a[2], b[2], 0.05) and near(a[3], b[3], 0.05) and near(a[4], b[4], 0.05)) then
+					fail(scenario, "drop " .. i .. "'s light is not where the drop is")
+				end
+			end
+		elseif light and light._shown ~= false and FT.visible(light) then
+			fail(scenario, "drop " .. i .. " is hidden and its light is not")
+		end
+	end
+	-- Each pin on its slip's corner, with its light on it.
+	for _, pair in ipairs({ { look.countPin, look.countPinLight, look.countBox, "the count's" }, { look.keyPin, look.keyPinLight, look.keyBox, "the key's" } }) do
+		local pin, light, box = rectOf(pair[1]), rectOf(pair[2]), rectOf(pair[3])
+		if not (pin and light and box) then
+			fail(scenario, pair[4] .. " pin has no place")
+		elseif pair[1]._shown == false or not FT.visible(pair[1]) then
+			fail(scenario, pair[4] .. " pin is not shown with its slip")
+		elseif pair[2]._shown == false or not FT.visible(pair[2]) then
+			fail(scenario, pair[4] .. " pin has no light on it")
+		else
+			local cx, cy = (pin[1] + pin[3]) / 2, (pin[2] + pin[4]) / 2
+			if not (cx > box[1] - 1 and cx < box[1] + (box[3] - box[1]) / 2 and cy > box[4] - (box[4] - box[2]) / 2 and cy < box[4] + 1) then
+				fail(scenario, pair[4] .. " pin is not on its slip's upper left corner")
+			end
+			if not (near(pin[1], light[1], 0.05) and near(pin[3], light[3], 0.05)) then fail(scenario, pair[4] .. " pin's light is not on the pin") end
+		end
+	end
+	-- The files: the light is white art (its colour near white wherever it is
+	-- seen), and the wax's body is grey art with the depth of wax in it: its
+	-- darkest texels well under half of its brightest.
+	for _, name in ipairs({ "SealGloss", "DotGloss" }) do
+		local tga = readTGA(dir .. "/Textures/Letter/Letter_" .. name .. ".tga")
+		if not tga then fail(scenario, name .. " cannot be read") else
+			local off, seen2 = 0, 0
+			for y = 0, tga.h - 1, 2 do
+				for x = 0, tga.w - 1, 2 do
+					local rr, gg, bb, a = tga:at(x, y)
+					if a > 0.15 then
+						seen2 = seen2 + 1
+						if rr < 0.92 or gg < 0.88 or bb < 0.80 or math.abs(rr - gg) > 0.12 then off = off + 1 end
+					end
+				end
+			end
+			if seen2 == 0 then fail(scenario, name .. " draws nothing") end
+			if off > 0 then fail(scenario, ("%d texels of %s are a colour, not a white light"):format(off, name)) end
+		end
+	end
+	for _, name in ipairs({ "Seal", "Dot" }) do
+		local tga = readTGA(dir .. "/Textures/Letter/Letter_" .. name .. ".tga")
+		if tga then
+			local lo, hi, tintedTexels = 1, 0, 0
+			for y = 0, tga.h - 1 do
+				for x = 0, tga.w - 1 do
+					local rr, gg, bb, a = tga:at(x, y)
+					if a > 0.9 then
+						if math.abs(rr - gg) > 0.01 or math.abs(gg - bb) > 0.01 then tintedTexels = tintedTexels + 1 end
+						lo, hi = math.min(lo, rr), math.max(hi, rr)
+					end
+				end
+			end
+			if tintedTexels > 0 then fail(scenario, name .. " is not grey art: " .. tintedTexels .. " texels carry a colour") end
+			if not (hi >= 0.85 and lo <= hi * 0.45) then
+				fail(scenario, ("%s has no depth: its values run %.2f to %.2f"):format(name, lo, hi))
+			end
+		end
 	end
 end)
