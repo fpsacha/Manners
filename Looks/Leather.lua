@@ -1326,7 +1326,10 @@ function Leather:Attention(isNew, arrived, flashStyle)
 		end
 	end
 	if flashStyle ~= "pulse" then
-		self:StopAttention()
+		-- No breath: but not StopAttention, which would stop the soft fade just
+		-- played above for a favour arriving on Calm with the flash on "once".
+		self.glowGen = (self.glowGen or 0) + 1
+		self:HoldPulse()
 		return
 	end
 	if not full or self.glowSpent then
