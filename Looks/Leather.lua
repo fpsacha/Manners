@@ -84,6 +84,14 @@ local STRETCH = 0.20
 -- fractions of the height (27/64 and 19/64 of the texture).
 local EYE, EYE_AT = 0.46, 0.40
 local EYE_RING, EYE_HOLE = 27 / 64 * EYE, 19 / 64 * EYE
+-- The enamel fills this much of the hole, a dark bezel left round it.
+local ENAMEL = 0.80
+-- The shadow's pieces reach past the tag, in texels of the design: SHADOW_SIDE
+-- left and right, SHADOW_UP above and below, and the right piece starts
+-- SHADOW_BEFORE texels before the half circle does. The whole of it lies
+-- within half the tag's height of the tag (tests/scenarios/look-leather.lua).
+local SHADOW_SIDE, SHADOW_BEFORE, SHADOW_UP = 16, 48, 64
+local SHADOW_ALPHA = 0.9
 -- Where the effect ring's line sits in its file and how far out it is seen, as
 -- fractions of its half-width (FX_PEAK in the generator, and hunt37-effects
 -- reads the files).
@@ -115,7 +123,7 @@ local BREATHS, BREATH = 3, 1.25
 -- The leather darkens a little towards its right end; the chips and the list's
 -- tags are a shade darker than the tag.
 local RAMP = 0.16
-local PATCH = 0.66
+local PATCH = 0.80
 local COMMAND = "CLICK MannersPrompt:LeftButton"
 -- The name's face: Blizzard's own display serif, in every client's font files
 -- (Blizzard_Fonts_Shared, GameFonts.xml) for the Latin alphabet. The clients
@@ -193,11 +201,18 @@ end
 -- pieces
 ---------------------------------------------------------------------------
 
--- A tag cut in three, from the three files: left end, middle (repeated), right
--- end. `keep` collects what is made.
-local function Slices(parent, layer, sublevel, keep)
+-- A tag cut in three, from three files: left end, middle (repeated), right
+-- end. The tag's own body; the small tags' (the patches and the list's rows:
+-- the same object drawn for a sixth the size, its stitch baked in); and the
+-- shadow the tag throws, drawn over a box past the tag's (SHADOW_* below).
+-- `keep` collects what is made.
+local BODY = { "BodyL", "BodyM", "BodyR" }
+local PATCH_FILES = { "PatchL", "PatchM", "PatchR" }
+local SHADOW_FILES = { "ShadowL", "ShadowM", "ShadowR" }
+
+local function Slices(parent, layer, sublevel, keep, files)
 	local s = {}
-	local files = { "BodyL", "BodyM", "BodyR" }
+	files = files or BODY
 	for i = 1, 3 do
 		local t = parent:CreateTexture(nil, layer, nil, sublevel)
 		if i == 2 then
@@ -263,6 +278,27 @@ end
 
 local function Each(s, method, ...)
 	for _, t in ipairs(s) do t[method](t, ...) end
+end
+
+-- The shadow under a tag laid over a box: its pieces reach past the tag as
+-- the art says, and where the tag is too short for the left piece and the
+-- right one both, the right one is cut where the left one ends.
+local function PlaceShadow(s, rel, x0, y0, x1, y1)
+	local h = y1 - y0
+	local su = h / DESIGN
+	local capR = math.min(CAP_R * su, (x1 - x0) / 2)
+	local top, bottom = y0 - SHADOW_UP * su, y1 + SHADOW_UP * su
+	local lEnd = x0 + (CAP_L + SHADOW_SIDE) * su
+	local rStart = x1 - capR - SHADOW_BEFORE * su
+	local u0 = 0
+	if rStart < lEnd then
+		u0 = (lEnd - rStart) / ((SHADOW_BEFORE + CAP_R + SHADOW_SIDE) * su)
+		rStart = lEnd
+	end
+	Box(s[1], rel, x0 - SHADOW_SIDE * su, top, lEnd, bottom)
+	Box(s[2], rel, lEnd, top, rStart, bottom)
+	Box(s[3], rel, rStart, top, x1 + SHADOW_SIDE * su, bottom)
+	s[3]:SetTexCoord(u0, 1, 0, 1)
 end
 
 -- The leather's colour over a run of slices, a shade darker towards the right
@@ -378,8 +414,11 @@ function Leather:Build(kit)
 		return keep(f)
 	end
 
-	-- The leather, on art itself, under the icon: the three slices, and the
-	-- soft light along its top.
+	-- The shadow the tag throws on the world, under everything; the leather, on
+	-- art itself, under the icon: the three slices, and the waxy light across
+	-- its upper half.
+	self.shadow = Slices(art, "BACKGROUND", -7, keep, SHADOW_FILES)
+	Each(self.shadow, "SetVertexColor", 0, 0, 0, SHADOW_ALPHA)
 	self.body = Slices(art, "BACKGROUND", -6, keep)
 	self.sheen = tex(art, "BACKGROUND", -5, "Sheen")
 
@@ -403,6 +442,8 @@ function Leather:Build(kit)
 	self.ringFrame = frame(1)
 	self.eyelet = tex(self.ringFrame, "ARTWORK", 0, "Eyelet")
 	self.enamel = tex(self.ringFrame, "ARTWORK", 1, "Enamel")
+	-- The window reflected in the enamel: white over the dyed dome.
+	self.gloss = tex(self.ringFrame, "ARTWORK", 2, "Gloss")
 
 	-- The owed breath: the thread's warm glow, and the brass's. Both at nothing
 	-- until it breathes.
@@ -465,8 +506,8 @@ function Leather:Build(kit)
 	self.chipFrame = frame(3)
 	self.chipBox = keep(CreateFrame("Frame", nil, self.chipFrame))
 	self.keyBox = keep(CreateFrame("Frame", nil, self.chipFrame))
-	self.chip = Slices(self.chipFrame, "ARTWORK", 1, keep)
-	self.keyChip = Slices(self.chipFrame, "ARTWORK", 1, keep)
+	self.chip = Slices(self.chipFrame, "ARTWORK", 1, keep, PATCH_FILES)
+	self.keyChip = Slices(self.chipFrame, "ARTWORK", 1, keep, PATCH_FILES)
 	self.keyText = keep(textLayer:CreateFontString(nil, "OVERLAY"))
 	self.keyText:SetJustifyH("CENTER")
 	self.keyText:SetWordWrap(false)
@@ -477,7 +518,7 @@ function Leather:Build(kit)
 	self.tags = {}
 	for i = 1, #kit.rows do
 		self.tags[i] = {
-			body = Slices(art, "BACKGROUND", -6, keep),
+			body = Slices(art, "BACKGROUND", -6, keep, PATCH_FILES),
 			eyelet = tex(art, "ARTWORK", 1, "Eyelet"),
 			dot = tex(art, "ARTWORK", 2, "Enamel"),
 		}
@@ -682,8 +723,9 @@ function Leather:Apply(p, above)
 	local spans = { { 0, capL / W }, { capL / W, 1 - capR / W }, { 1 - capR / W, 1 } }
 	self.spans = spans
 	PlaceTag(self.body, art, 0, 0, W, H)
-	-- The sheen: along the top, well inside the edge and the ends.
-	Box(self.sheen, art, capL * 0.8, edge + 1, math.max(capL * 0.8 + 8, W - capR * 0.9), edge + 1 + 0.42 * H)
+	PlaceShadow(self.shadow, art, 0, 0, W, H)
+	-- The sheen: across the upper half, well inside the edge and the ends.
+	Box(self.sheen, art, capL * 0.8, edge + 1, math.max(capL * 0.8 + 8, W - capR * 0.9), edge + 1 + 0.55 * H)
 	self.sheen:SetVertexColor(1, 1, 1, 1)
 
 	-- The thread, the light that breathes over it and the pieces a landing runs.
@@ -698,7 +740,9 @@ function Leather:Apply(p, above)
 		t:SetPoint("CENTER", art, "TOPLEFT", x, -y)
 	end
 	centre(self.eyelet, eyeSize, ringX, H / 2)
-	centre(self.enamel, math.max(3, 2 * EYE_HOLE * H * 0.52), ringX, H / 2)
+	local enamelSize = math.max(3, 2 * EYE_HOLE * H * ENAMEL)
+	centre(self.enamel, enamelSize, ringX, H / 2)
+	centre(self.gloss, enamelSize, ringX, H / 2)
 	centre(self.ringGlow, eyeSize * 1.7, ringX, H / 2)
 	centre(self.star, eyeSize * 1.5, ringX - eyeSize * 0.12, H / 2 - eyeSize * 0.14)
 	centre(self.ringFlash, eyeSize * 1.7, ringX, H / 2)
@@ -863,11 +907,12 @@ function Leather:Tone()
 		t:SetDesaturated(on)
 		t:SetVertexColor(v, v, v, 1)
 	end
+	self.gloss:SetVertexColor(v, v, v, on and 0.6 or 1)
 	self.sheen:SetDesaturated(on)
 	self.sheen:SetVertexColor(1, 1, 1, on and 0.5 or 1)
 	-- The list's tags follow, whether or not they are up: PaintQueue shows them.
 	for _, tag in ipairs(self.tags) do
-		Dye(grad, tag.body, self.dye, k * 0.92, 0.2, 0.6, PATCH_SPANS)
+		Dye(grad, tag.body, self.dye, k * 0.96, 0.2, 0.6, PATCH_SPANS)
 		Grey(tag.body, on)
 		tag.eyelet:SetDesaturated(on)
 		tag.eyelet:SetVertexColor(v, v, v, 1)
@@ -1201,6 +1246,7 @@ function Leather:Accent()
 	-- The enamel in the eyelet's hole: every mode but off, and in a fight (grey).
 	local enamel = out or mode ~= "off"
 	self.enamel:SetShown(enamel)
+	self.gloss:SetShown(enamel)
 	self.enamel:SetVertexColor(er, eg, eb, 1)
 	-- The reason's words: tan, a little towards the colour.
 	local sr, sg, sb = TAN[1], TAN[2], TAN[3]

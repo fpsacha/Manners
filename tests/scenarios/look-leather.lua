@@ -50,8 +50,9 @@ local NAME_KEY = "Leather -- a stitched leather tag with a brass ring"
 -- Every texture the look ships, as the generator writes them.
 local FILES = { "Leather_BodyL", "Leather_BodyM", "Leather_BodyR", "Leather_StitchL", "Leather_StitchM",
 	"Leather_StitchR", "Leather_IconRim", "Leather_IconRimRd", "Leather_IconMask", "Leather_IconMaskRd",
-	"Leather_Eyelet", "Leather_Enamel", "Leather_Glow", "Leather_Star", "Leather_Sheen", "Leather_Band",
-	"Leather_FxRing", "Leather_FxRingSq" }
+	"Leather_Eyelet", "Leather_Enamel", "Leather_Gloss", "Leather_Glow", "Leather_Star", "Leather_Sheen",
+	"Leather_Band", "Leather_FxRing", "Leather_FxRingSq", "Leather_ShadowL", "Leather_ShadowM", "Leather_ShadowR",
+	"Leather_PatchL", "Leather_PatchM", "Leather_PatchR" }
 
 local function withTree(scenario, names, body, before)
 	Mock.reset()
@@ -437,14 +438,16 @@ end
 -- clear of the icon's setting and of the eyelet.
 
 -- Every texture the look keeps on the prompt itself, which must lie inside
--- it: not the list's tags (outside by design), the rings' frames (scaled to fit
--- when they play) or the textures a swing moves.
+-- it: not the list's tags (outside by design), the shadow the tag throws
+-- (past the edge by design, held to its own reach below), the rings' frames
+-- (scaled to fit when they play) or the textures a swing moves.
 local function mainTextures(look)
 	local out, skip = {}, {}
 	for _, tag in ipairs(look.tags) do
 		for _, t in ipairs(tag.body) do skip[t] = true end
 		skip[tag.eyelet], skip[tag.dot] = true, true
 	end
+	for _, t in ipairs(look.shadow or {}) do skip[t] = true end
 	for _, set in ipairs({ look.chip, look.keyChip }) do
 		for _, t in ipairs(set) do skip[t] = true end
 	end
@@ -561,6 +564,59 @@ for _, locale in ipairs({ "enUS", "deDE" }) do
 		end
 	end)
 end
+
+-- The shadow the tag throws on the world: three pieces of its own art, black,
+-- blended, under the leather, that meet, cover the whole tag and reach past it
+-- by no more than half its height on any side.
+withTree("look-leather: the tag throws a soft shadow under it, within half its height, under the leather", ANNA, function(ns, scenario)
+	for _, size in ipairs({ { 220, 44 }, { 160, 32 }, { 400, 72 }, { 140, 120 } }) do
+		local r, _, look = upIn(ns, scenario, function(pp) pp.width, pp.height = size[1], size[2] end)
+		if not isLeather(look) then fail(scenario, "SKIPPED -- Leather is not the look in use") return end
+		local tag = ("%dx%d"):format(size[1], size[2])
+		local panel = rectOf(r.art)
+		local shadow = look.shadow
+		if not (panel and type(shadow) == "table" and #shadow == 3) then fail(scenario, tag .. ": the tag throws no shadow") return end
+		local reach = size[2] / 2
+		local grown = { panel[1] - reach, panel[2] - reach, panel[3] + reach, panel[4] + reach }
+		local union
+		for i, t in ipairs(shadow) do
+			local want = ({ "Leather_ShadowL", "Leather_ShadowM", "Leather_ShadowR" })[i]
+			if t._file ~= ART .. want then fail(scenario, ("%s: shadow piece %d is %s, not %s"):format(tag, i, tostring(t._file), want)) end
+			if not FT.visible(t) then fail(scenario, tag .. ": shadow piece " .. i .. " is not drawn") end
+			if t._blend and t._blend ~= "BLEND" then fail(scenario, tag .. ": shadow piece " .. i .. " is drawn " .. t._blend) end
+			local c = t._color
+			if not (c and c[1] <= 0.05 and c[2] <= 0.05 and c[3] <= 0.05) then
+				fail(scenario, tag .. ": shadow piece " .. i .. " is not black")
+			end
+			if c and ((c[4] or 1) < 0.3 or (c[4] or 1) > 1) then fail(scenario, tag .. ": shadow piece " .. i .. " is at alpha " .. tostring(c[4])) end
+			-- Under the leather: the same layer, a lower sublevel.
+			local body = look.body[i]
+			if not (t._layer == body._layer and (t._sublevel or 0) < (body._sublevel or 0)) then
+				fail(scenario, tag .. ": shadow piece " .. i .. " is not under the leather")
+			end
+			local box = rectOf(t)
+			if not box then
+				fail(scenario, tag .. ": shadow piece " .. i .. " has no place")
+			else
+				if not inside(box, grown) then
+					fail(scenario, ("%s: shadow piece %d reaches past half the height: %.1f %.1f %.1f %.1f in %.1f %.1f %.1f %.1f"):format(
+						tag, i, box[1], box[2], box[3], box[4], grown[1], grown[2], grown[3], grown[4]))
+				end
+				union = union and { math.min(union[1], box[1]), math.min(union[2], box[2]), math.max(union[3], box[3]),
+					math.max(union[4], box[4]) } or box
+			end
+		end
+		-- The pieces meet, and together they cover the tag.
+		local a, b, c = rectOf(shadow[1]), rectOf(shadow[2]), rectOf(shadow[3])
+		if a and b and c then
+			if not (near(a[3], b[1], 0.02) and near(b[3], c[1], 0.02)) then fail(scenario, tag .. ": the shadow's pieces do not meet") end
+			if not (a[1] < panel[1] - 0.5 and c[3] > panel[3] + 0.5 and a[2] < panel[2] - 0.5 and a[4] > panel[4] + 0.5) then
+				fail(scenario, tag .. ": the shadow does not reach past the tag's edge")
+			end
+		end
+		if union and not inside(panel, union) then fail(scenario, tag .. ": the shadow does not cover the tag") end
+	end
+end)
 
 -- With a key bound and a count the patches sit left of the eyelet, on the
 -- reason's line side by side, the name keeps its whole room, the reason keeps
