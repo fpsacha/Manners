@@ -151,6 +151,11 @@ function Mock.reset()
 	Mock.bindingsSaved = 0
 	Mock.bindingSet = nil
 	Mock.macros = nil
+	Mock.macroList = {}
+	Mock.blockedCalls = {}
+	Mock.macroSpellCalls, Mock.macroItemCalls = nil, nil
+	Mock.cursor = nil
+	Mock.bar = {}
 	-- AceDBOptions' table of controls, shared by every addon in a session.
 	Mock.dbOptionsArgs = nil
 	Mock.allSecret = false
@@ -534,6 +539,10 @@ for _, e in ipairs({
 	-- classic_anniversary and classic_era). Manners listens for the first and
 	-- never for the second: the question is the player's.
 	"WEAPON_ENCHANT_CHANGED", "REPLACE_ENCHANT",
+	-- Macros made, deleted or moved (Blizzard_MacroUI listens for it) and the
+	-- cursor changing: both in the event list of all five clients (Ketho's
+	-- BlizzardInterfaceResources, every branch).
+	"UPDATE_MACROS", "CURSOR_CHANGED",
 	-- Registered on this client by EnhanceQoL's class-buff reminder; retail
 	-- 12.0 and later have it too. The classic clients do not (Core.lua only
 	-- asks where the family is modern).
@@ -713,6 +722,9 @@ local function newFrame()
 	f.CreateMaskTexture = function() return newFrame() end
 	f.RegisterEvent = function(self, event)
 		if not KNOWN_EVENTS[event] then Mock.badEvents[#Mock.badEvents + 1] = event end
+		-- Kept on the frame, for a scenario to ask what it listens to.
+		self.events = self.events or {}
+		self.events[event] = true
 		-- Forever and retail 12.0+ refuse the combat log by throwing here,
 		-- rather than by accepting the registration and staying quiet. Modelled
 		-- because the capability probe's whole method is to try it and see: a
@@ -1448,12 +1460,7 @@ SecureCmdList = {
 	TARGET_EXACT = function() end,
 }
 SLASH_TARGET_EXACT1 = "/targetexact"
-function GetNumMacros() return 0, 0 end
--- The macro Make a macro writes, once a scenario has made it: its name, or nil.
-function GetMacroIndexByName(name)
-	if Mock.macros and Mock.macros[name] then return Mock.macros[name] end
-	return 0
-end
+-- GetNumMacros, CreateMacro and the rest of the macro calls: tests/mockmacros.lua.
 -- Key bindings as the game keeps them: key -> command. Mock.bindings is
 -- wiped by Mock.reset; Mock.bindingsSaved counts SaveBindings calls, and
 -- Mock.bindingSet what the last one was handed.
@@ -1478,8 +1485,6 @@ function SaveBindings(which)
 	Mock.bindingSet = which
 end
 function GetCurrentBindingSet() return 2 end
-function CreateMacro() return 1 end
-function EditMacro() end
 -- Recorded rather than dropped: "the toggle is on and nothing is audible" is
 -- only testable if the test can see what was handed to the client.
 function PlaySoundFile(file) Mock.sounds[#Mock.sounds + 1] = file end
@@ -2019,3 +2024,6 @@ dofile((debug.getinfo(1, "S").source:match("^@(.*[/\\])") or "tests/") .. "mockw
 
 -- The options window's additions (tests/mockwindow.lua), from beside this file.
 dofile((debug.getinfo(1, "S").source:match("^@(.-)[^/\\]*$") or "") .. "mockwindow.lua")
+
+-- The macros, the cursor and the key texts (tests/mockmacros.lua), from beside this file.
+dofile((debug.getinfo(1, "S").source:match("^@(.-)[^/\\]*$") or "") .. "mockmacros.lua")

@@ -126,6 +126,10 @@ for _, e in ipairs({
   -- A weapon's temporary enchant going on or off: in every client's event
   -- list (Ketho's BlizzardInterfaceResources).
   "WEAPON_ENCHANT_CHANGED",
+  -- Macros made, deleted or moved (Blizzard_MacroUI listens for it) and the
+  -- cursor changing: both in the event list of all five clients (Ketho's
+  -- BlizzardInterfaceResources, every branch).
+  "UPDATE_MACROS", "CURSOR_CHANGED",
   -- Registered on this client by EnhanceQoL's class-buff reminder.
   "ADDON_RESTRICTION_STATE_CHANGED",
 }) do KNOWN_EVENTS[e] = true end

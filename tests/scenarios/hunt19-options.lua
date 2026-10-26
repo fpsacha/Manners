@@ -477,8 +477,25 @@ do
 			fail(scenario, "SKIPPED -- /manners macro made no macro")
 			return
 		end
-		if not painted():find("macro is made", 1, true) then
+		-- It is on the cursor now, and the line says where to drop it.
+		if not painted():find("Drop it on any action bar slot", 1, true) then
 			fail(scenario, "/manners macro made the macro and Start here still says: " .. painted())
+		end
+		-- Dropped on a bar: the cursor changes, and the line goes back to
+		-- saying the macro is made, without anything else repainting it.
+		Mock.dropOnBar(1)
+		local frame = ns.OptionsWindow
+		local onEvent = frame and frame.scripts and frame.scripts.OnEvent
+		if type(onEvent) ~= "function" then
+			fail(scenario, "SKIPPED -- the window listens to no event")
+			return
+		end
+		if not (frame.events and frame.events.CURSOR_CHANGED) then
+			fail(scenario, "the window does not listen for the cursor changing")
+		end
+		onEvent(frame, "CURSOR_CHANGED")
+		if not painted():find("macro is made", 1, true) then
+			fail(scenario, "the macro was dropped on a bar and Start here still says: " .. painted())
 		end
 	end)
 end

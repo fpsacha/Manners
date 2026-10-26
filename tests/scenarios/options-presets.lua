@@ -695,8 +695,9 @@ do
 		end
 		rawset(_G, "Settings", realSettings)
 
-		-- Make a macro opens the game's macro window, so the macro is there
-		-- to drag; never in a fight.
+		-- Where the client would not carry the macro on the cursor, the button
+		-- opens the game's macro window instead, so the macro is there to
+		-- drag; never in a fight.
 		local shownMacros = 0
 		rawset(_G, "ShowMacroFrame", function() shownMacros = shownMacros + 1 end)
 		Mock.inCombat = true
@@ -708,7 +709,7 @@ do
 		Mock.macros = {}
 		make.func()
 		if shownMacros ~= 1 then
-			fail(scenario, "Make a macro did not open the macro window")
+			fail(scenario, "the action bar button did not open the macro window")
 		end
 		local status = H.optionText(ns.optionsTable.args.general.args.bindStatus.name)
 		if not status:find("open the macro window (/macro) and drag it onto an action bar", 1, true) then
