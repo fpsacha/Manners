@@ -48,6 +48,11 @@
 --                   for these settings, for the options page's notice. Nil:
 --                   both, which is right for a look that always carries it.
 --
+-- A look that cuts its icon round whatever "Round the icon off" says goes in
+-- Looks.roundAlways (below), so the options page greys that switch out for it;
+-- a look that reads the switch stays out of it. hunt38-picker.lua checks the
+-- list against what each look draws.
+--
 -- Methods, called as look:Method(...). Everything a look draws is its own: it
 -- makes it in Build, shows it in Apply and hides it in Hide. Prompt hides the
 -- built-in looks' regions itself. Only Apply and Hide are required.
@@ -204,6 +209,18 @@ function Looks.Get(key)
 	if look and look.fallback then look = Looks.list[look.fallback] end
 	if not look or look.native then return nil end
 	return look
+end
+
+-- The looks that cut their icon round whatever "Round the icon off" says (a
+-- medallion, a seal): the switch reads nothing there, so the options page greys
+-- it out for them (tests/scenarios/hunt38-picker.lua holds this list to what the
+-- looks draw). A look that reads the setting is not here.
+Looks.roundAlways = { toast = true, ribbon = true, letter = true }
+
+-- Whether the style's look is round whatever the switch says.
+function Looks.RoundAlways(key)
+	local look = Looks.Get(key)
+	return look ~= nil and Looks.roundAlways[look.key] == true
 end
 
 -- Every style key that may be saved, for ClampSettings.

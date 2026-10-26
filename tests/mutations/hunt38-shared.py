@@ -20,9 +20,9 @@ _m("Looks/Ribbon.lua",
 
 # --- a toggle that does nothing is greyed ------------------------------------
 
-_m("Options/Look.lua",
-   "local ROUND_ALWAYS = { letter = true, ribbon = true, toast = true }",
-   "local ROUND_ALWAYS = { letter = true }",
+_m("Looks/Looks.lua",
+   "Looks.roundAlways = { toast = true, ribbon = true, letter = true }",
+   "Looks.roundAlways = { letter = true }",
    "the round icon toggle live on the Ribbon's and the Toast's medallions",
    expect="hunt38-shared: the round icon toggle is off where the icon is always round")
 
