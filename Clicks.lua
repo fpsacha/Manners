@@ -1044,19 +1044,18 @@ local function MacroListsFull()
 		and account >= accountCap and character >= characterCap
 end
 
-function ns.CreateClickMacro()
+-- The macro made or refreshed; its index, and whether it was made just now.
+-- nil with the reason already said (a fight, no free slot) otherwise.
+local function EnsureMacro()
 	if InCombatLockdown() then
 		addon:Print("|cffff8080" .. L["cannot touch macros in combat."] .. "|r")
-		return
+		return nil
 	end
 
 	local existing = safecall(_G.GetMacroIndexByName, MACRO_NAME)
 	if existing and existing > 0 then
-		if _G.EditMacro then
-			_G.EditMacro(existing, MACRO_NAME, nil, MACRO_BODY)
-			addon:Print(L["macro |cffffd100%s|r updated. Drag it onto a bar."]:format(MACRO_NAME))
-		end
-		return
+		if _G.EditMacro then _G.EditMacro(existing, MACRO_NAME, nil, MACRO_BODY) end
+		return existing, false
 	end
 
 	-- Slot limits differ between flavours, so rather than hardcode a number,
@@ -1065,18 +1064,124 @@ function ns.CreateClickMacro()
 	if not ok then
 		ok = pcall(_G.CreateMacro, MACRO_NAME, "INV_MISC_NOTE_03", MACRO_BODY, true)
 	end
-	if ok and safecall(_G.GetMacroIndexByName, MACRO_NAME) == 0 then
+	local index = ok and safecall(_G.GetMacroIndexByName, MACRO_NAME)
+	if ok and index == 0 then
 		addon:Print(L["|cffff8080no free macro slots.|r Delete one and try again."])
-		return
-	end
-	if ok then
-		addon:Print(L["macro |cffffd100%s|r created. Drag it onto a bar from the macro window."]:format(MACRO_NAME))
+	elseif ok then
+		return index or 0, true
 	elseif MacroListsFull() then
 		-- Both calls raised because both lists are full, not for some other reason.
 		addon:Print(L["|cffff8080no free macro slots.|r Delete one and try again."])
 	else
 		addon:Print("|cffff8080" .. L["could not create the macro."] .. "|r")
 	end
+	return nil
+end
+
+-- The macro's slot on an action bar shows what a press would cast: its spell
+-- (SetMacroSpell) or, for a scroll or an enhancement from the bags, its item
+-- (SetMacroItem), so the bar draws that icon, cooldown, range and usability
+-- itself. The body never changes (it stays the /click line), and nothing here
+-- touches the secure button. Both calls are made out of combat only, and only
+-- when what the prompt's top entry would cast has changed: Prompt/Macro.lua
+-- hands each arming of the prompt's own button to SyncMacroSlot, which
+-- compares one string and returns when it is the one already shown. With
+-- nobody to buff, both are cleared and the slot shows the macro's own icon.
+-- The macro's own icon stays the note CreateMacro was given: an addon's
+-- texture is not a file the macro icon list names (a macro takes a fileID or
+-- a name under Interface\Icons), and the note is the one every client has.
+do
+	-- index: nil not looked up, 0 no such macro. want: what the prompt asks of
+	-- the slot ("" for nobody; nil while nothing has been armed yet). shown:
+	-- what was last handed to the client. set: which of the two calls the
+	-- client may hold something from.
+	local slot = { index = nil, want = nil, shown = nil, spell = true, item = true }
+
+	local function Want(entry)
+		if not (entry and entry.buff) then return "" end
+		local item = entry.buff.item
+		if item then return "item:" .. tostring(item) end
+		local spell = ns.EntrySpellName(entry)
+		if type(spell) ~= "string" or spell == "" then return "" end
+		return "spell:" .. spell
+	end
+
+	-- A call at the player's own pace, not the scan's: the first of a login,
+	-- then one per change of what the top of the prompt casts.
+	local function Settle()
+		if slot.want == nil or slot.want == slot.shown or InCombatLockdown() then return end
+		if slot.index == nil then slot.index = safecall(_G.GetMacroIndexByName, MACRO_NAME) or 0 end
+		if slot.index == 0 then return end
+		local kind, value = slot.want:match("^(%a+):(.*)$")
+		local setSpell, setItem = _G.SetMacroSpell, _G.SetMacroItem
+		-- The kind that is not wanted is cleared when the client may hold it.
+		if kind ~= "spell" and slot.spell and type(setSpell) == "function" then
+			pcall(setSpell, slot.index, "")
+			slot.spell = false
+		end
+		if kind ~= "item" and slot.item and type(setItem) == "function" then
+			pcall(setItem, slot.index, "")
+			slot.item = false
+		end
+		if kind == "spell" and type(setSpell) == "function" then
+			slot.spell = pcall(setSpell, slot.index, value)
+		elseif kind == "item" and type(setItem) == "function" then
+			slot.item = pcall(setItem, slot.index, "item:" .. value)
+		end
+		slot.shown = slot.want
+	end
+
+	-- Called by every arming of the prompt's button that was not a no-op
+	-- (Prompt/Macro.lua) and by every disarming, nil: what is asked is kept,
+	-- and Settle returns at once when it is what the slot shows already.
+	function ns.SyncMacroSlot(entry)
+		slot.want = Want(entry)
+		Settle()
+	end
+
+	-- The macro was made, refreshed or found changed: ask again whatever was
+	-- told before. Also once a fight ends, for what it held back.
+	function ns.ResyncMacroSlot(forget)
+		if forget then slot.index, slot.shown, slot.spell, slot.item = nil, nil, true, true end
+		Settle()
+	end
+
+	-- A macro made, deleted or moved in the macro window: only when its
+	-- place changed does the slot's spell go on again, so setting it, which
+	-- the client may answer with this event, cannot start a loop.
+	function addon:UPDATE_MACROS()
+		local index = safecall(_G.GetMacroIndexByName, MACRO_NAME) or 0
+		if index ~= slot.index then
+			slot.index, slot.shown, slot.spell, slot.item = index, nil, true, true
+			Settle()
+		end
+	end
+end
+
+-- The macro made or refreshed and put on the cursor, to drop on any action
+-- bar slot: the options button and /manners macro. Answers whether it is
+-- there. Out of combat only: the macro calls are refused in a fight, and so
+-- is putting anything on a bar.
+function ns.CreateClickMacro()
+	local index, created = EnsureMacro()
+	if not index then return false end
+	ns.ResyncMacroSlot(true)
+	local pickup = _G.PickupMacro
+	if index > 0 and type(pickup) == "function" then
+		pcall(pickup, index)
+		if type(_G.GetCursorInfo) ~= "function" or _G.GetCursorInfo() == "macro" then
+			ns.macroOnCursor = true
+			addon:Print(L["macro |cffffd100%s|r is on your cursor. Drop it on any action bar slot."]:format(MACRO_NAME))
+			return true
+		end
+	end
+	-- Not carried (the call is missing or the client refused): where to find it.
+	if created then
+		addon:Print(L["macro |cffffd100%s|r created. Drag it onto a bar from the macro window."]:format(MACRO_NAME))
+	else
+		addon:Print(L["macro |cffffd100%s|r updated. Drag it onto a bar."]:format(MACRO_NAME))
+	end
+	return false
 end
 
 -- What 0.9.x's /manners macro wrote: an up click, which the button no longer
@@ -1094,6 +1199,7 @@ function ns.RepairOldMacro()
 	if type(body) ~= "string" or body:match("^%s*(.-)%s*$") ~= OLD_MACRO_BODY then return true end
 	if type(_G.EditMacro) ~= "function" then return true end
 	if pcall(_G.EditMacro, index, MACRO_NAME, nil, MACRO_BODY) then
+		ns.ResyncMacroSlot(true)
 		addon:Print(L["your |cffffd100%s|r macro was updated -- the one an older version made no longer pressed the prompt."]:format(MACRO_NAME))
 	end
 	return true

@@ -93,11 +93,21 @@ function Setup.OpenBindings()
 	return false
 end
 
--- Whether the macro Make a macro writes is there.
+-- Whether the macro Put Manners on an action bar writes is there.
 function Setup.MacroMade()
 	if type(GetMacroIndexByName) ~= "function" then return false end
 	local ok, index = pcall(GetMacroIndexByName, ns.CLICK_MACRO_NAME or "Manners")
 	return ok and type(index) == "number" and index > 0
+end
+
+-- Whether the macro the button put on the cursor is still there to drop. The
+-- flag is Clicks.lua's, set when the pick-up took; it goes once the cursor holds
+-- something else, so the line saying where to drop it goes with it.
+function Setup.Carrying()
+	if not ns.macroOnCursor then return false end
+	if type(GetCursorInfo) == "function" and GetCursorInfo() == "macro" then return true end
+	ns.macroOnCursor = false
+	return false
 end
 
 -- The game's macro window, so the macro just made is there to drag. Out of
@@ -882,15 +892,16 @@ function Page.BuildStartTab()
 			},
 			makeMacro = {
 				type = "execute",
-				name = L["Make a macro"],
-				desc = L["Adds a macro named Manners; put it on an action bar and pressing it clicks the prompt."],
+				name = L["Put Manners on an action bar"],
+				desc = L["Makes the Manners macro and puts it on your cursor: drop it on any action bar slot. The slot then shows the spell a press would cast."],
 				order = 23,
 				hidden = noPrompt,
-				-- Repainted so the line under it moves on to "made", and the
-				-- macro window opened so the macro is there to drag.
+				-- Not greyed in a fight: the press says why it does nothing.
+				-- Repainted so the line under it says where to drop it; where
+				-- the client would not carry it, the macro window is opened
+				-- instead, so the macro is there to drag.
 				func = function()
-					ns.CreateClickMacro()
-					if Setup.MacroMade() then Setup.OpenMacros() end
+					if not ns.CreateClickMacro() and Setup.MacroMade() then Setup.OpenMacros() end
 					ns.RefreshOptionsDisplay()
 				end,
 			},
@@ -901,7 +912,9 @@ function Page.BuildStartTab()
 				hidden = noPrompt,
 				name = function()
 					local key = Setup.Key()
-					if key then
+					if Setup.Carrying() then
+						return "|cffffd100" .. L["Drop it on any action bar slot."] .. "|r"
+					elseif key then
 						local shown = type(GetBindingText) == "function" and GetBindingText(key) or key
 						return "|cff80e080" .. L["Ready: %s buffs whoever the prompt shows."]
 							:format(tostring(shown)) .. "|r"

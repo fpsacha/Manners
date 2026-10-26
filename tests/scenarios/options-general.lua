@@ -394,10 +394,10 @@ end
 
 -- ------------------------------------------------------------------ 8
 do
-	local scenario = "start here: Make a macro makes the macro"
+	local scenario = "start here: Put Manners on an action bar makes the macro"
 	local ns, a = session(scenario)
 	if ns then
-		if text(a.makeMacro.name) ~= "Make a macro" then
+		if text(a.makeMacro.name) ~= "Put Manners on an action bar" then
 			fail(scenario, "the button reads " .. text(a.makeMacro.name))
 		end
 		if text(a.makeMacro.desc):find("/click", 1, true) then
@@ -408,7 +408,7 @@ do
 		a.makeMacro.func({ "makeMacro" })
 		ns.CreateClickMacro = real
 		if made ~= 1 then
-			fail(scenario, "Make a macro made nothing")
+			fail(scenario, "the action bar button made nothing")
 		end
 		noErrors(scenario, ns)
 	end

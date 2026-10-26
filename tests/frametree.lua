@@ -210,9 +210,17 @@ end
 -- bytes, or every Cyrillic or accented line measured twice its width.
 local function measure(text, size)
 	text = tostring(text or ""):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
-	if FT.measure then return FT.measure(text, size) end
+	-- An inline atlas (a gamepad button's glyph, |A:name:height:width|a) is as
+	-- wide as it says and takes no characters: the client draws the picture in
+	-- the line, not the markup.
+	local inline = 0
+	text = text:gsub("|A:[^:|]*:%d+:(%d+)[^|]*|a", function(width)
+		inline = inline + tonumber(width)
+		return ""
+	end)
+	if FT.measure then return FT.measure(text, size) + inline end
 	local chars = text:gsub("[\128-\191]", "")
-	return #chars * size * 0.5
+	return #chars * size * 0.5 + inline
 end
 
 -- ------------------------------------------------------------------ widgets

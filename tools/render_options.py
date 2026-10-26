@@ -75,7 +75,7 @@ MIN_RATIO = 4.5
 # How far past an edge counts as past it, in UI units.
 TOL = 0.5
 STATES = ("combat", "unlocked", "snoozed", "order", "press", "folds-open", "scrolled", "modal", "search",
-          "returning", "topups")
+          "returning", "topups", "carrying")
 
 # Faces with the script of the languages Candara has no glyphs for, first in
 # the list for those languages; the Latin faces after them, for what is left.
@@ -1419,7 +1419,7 @@ def main():
     ap.add_argument("--locale", default="", help="client language to load the addon as, e.g. deDE")
     ap.add_argument("--pages", default="", help="comma-separated page ids (default: every page)")
     ap.add_argument("--state", action="append", nargs="+", metavar="STATE",
-                    help="combat, unlocked, snoozed, order, press, folds-open, scrolled, modal, returning, topups, "
+                    help="combat, unlocked, snoozed, order, press, folds-open, scrolled, modal, returning, topups, carrying, "
                          "or search WORDS; repeatable")
     ap.add_argument("--check", action="store_true", help="list faults and exit 1 if there are any")
     ap.add_argument("--demo", action="store_true", help="draw and check the demo windows instead")

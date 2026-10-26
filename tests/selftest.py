@@ -4166,9 +4166,9 @@ mutate("Options/Look.lua",
 
 # The greeting sending the player to a Game Menu entry this client lacks.
 mutate("Commands.lua",
-       " makes a macro for your bars, or bind a key under Options > Keybindings >"
+       " puts a macro on your cursor for your bars, or bind a key under Options > Keybindings >"
        " Manners.\"])\n",
-       " makes a macro for your bars, or bind a key under Game Menu > Key Bindings >"
+       " puts a macro on your cursor for your bars, or bind a key under Game Menu > Key Bindings >"
        " Manners.\"])\n",
        "greeting names the Game Menu key bindings",
        expect="the key binding is where the greeting says",

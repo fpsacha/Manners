@@ -132,7 +132,16 @@ local function drive(scenario, ns, extra)
 		{ "ToggleTest on", function() ns.Prompt:ToggleTest() end },
 		{ "Refresh in test", function() ns.Prompt:Refresh() end },
 		{ "ToggleTest off", function() ns.Prompt:ToggleTest() end },
-		{ "macro", function() ns.CreateClickMacro() end },
+		-- Made and put on the cursor, then put away again: a session that has
+		-- been driven starts with no macro and nothing on the cursor, as every
+		-- scenario written before the macro was carried assumed.
+		{ "macro", function()
+			ns.CreateClickMacro()
+			ClearCursor()
+			Mock.macroList = {}
+			ns.macroOnCursor = nil
+			ns.ResyncMacroSlot(true)
+		end },
 	}
 	if extra then table.insert(steps, 1, extra) end
 	for _, step in ipairs(steps) do

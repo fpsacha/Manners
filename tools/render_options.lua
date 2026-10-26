@@ -317,6 +317,13 @@ function BEFORE.topups(ns)
 	ns.db.profile.filters.whenBuffed = "refresh"
 end
 
+-- Put Manners on an action bar pressed: the macro is on the cursor, and Start
+-- here says where to drop it.
+function BEFORE.carrying(ns)
+	assert(ns.CreateClickMacro, "this tree has no ns.CreateClickMacro")
+	ns.CreateClickMacro()
+end
+
 function BEFORE.unlocked(ns)
 	ns.db.profile.prompt.locked = false
 	if ns.Prompt and ns.Prompt.ApplyStyle then ns.Prompt:ApplyStyle() end

@@ -1214,7 +1214,7 @@ function Letter:KeyLabel()
 	local key = GetBindingKey(COMMAND)
 	if type(key) ~= "string" or key == "" then return nil end
 	if type(GetBindingText) == "function" then
-		local text = GetBindingText(key, true)
+		local text = ns.Looks.ShortKey(key)
 		if type(text) == "string" and text ~= "" then key = text end
 	end
 	return key

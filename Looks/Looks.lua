@@ -223,6 +223,56 @@ function Looks.RoundAlways(key)
 	return look ~= nil and Looks.roundAlways[look.key] == true
 end
 
+-- The words on a look's key chip for a key bound to the prompt, in the
+-- client's own short form (what its action bars print: "s-F", a gamepad
+-- button as its glyph, an inline atlas the chip measures as it draws it), or
+-- nil where the client gives none. A gamepad button held with a modifier
+-- reads as the buttons the player presses: the game turns a held left
+-- trigger into Shift by default (CVars GamePadEmulateShift, ...Ctrl, ...Alt),
+-- so "SHIFT-PAD1" is the trigger glyph, "+" and the face button's, not "s-"
+-- and a glyph. Worked out once for a key and kept (the chip asks at every
+-- repaint); a CVar that cannot be read leaves the client's own short form.
+do
+	local EMULATE = { SHIFT = "GamePadEmulateShift", CTRL = "GamePadEmulateCtrl", ALT = "GamePadEmulateAlt" }
+	local comboKey, comboText
+
+	local function Glyph(key)
+		local text = GetBindingText(key, true)
+		if type(text) == "string" and text ~= "" then return text end
+	end
+
+	-- nil unless every modifier on the key is a pad button the game emulates.
+	local function PadCombo(key)
+		local rest, held = key, {}
+		while true do
+			local mod, tail = rest:match("^(%u+)%-(.+)$")
+			if not (mod and EMULATE[mod]) then break end
+			held[#held + 1], rest = mod, tail
+		end
+		if #held == 0 or not rest:match("^PAD") then return nil end
+		local get = _G.GetCVar or (_G.C_CVar and _G.C_CVar.GetCVar)
+		local parts = {}
+		for _, mod in ipairs(held) do
+			local button = ns.safecall(get, EMULATE[mod])
+			if type(button) ~= "string" or not button:match("^PAD") then return nil end
+			parts[#parts + 1] = Glyph(button)
+		end
+		parts[#parts + 1] = Glyph(rest)
+		-- A button the client has no glyph for leaves the client's own form.
+		for i = 1, #held + 1 do if not parts[i] then return nil end end
+		return table.concat(parts, "+")
+	end
+
+	function Looks.ShortKey(key)
+		if type(GetBindingText) ~= "function" or type(key) ~= "string" then return nil end
+		if key:find("PAD", 1, true) and key:find("-", 1, true) then
+			if key ~= comboKey then comboKey, comboText = key, PadCombo(key) or false end
+			if comboText then return comboText end
+		end
+		return Glyph(key)
+	end
+end
+
 -- Every style key that may be saved, for ClampSettings.
 function Looks.Allowed()
 	local out = {}

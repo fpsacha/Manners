@@ -97,23 +97,23 @@ mutate("Options/Start.lua",
        expect="with the macro made, the status reads", script=S)
 
 mutate("Options/Start.lua",
-       "\t\t\t\t\tif key then\n\t\t\t\t\t\tlocal shown",
-       "\t\t\t\t\tif false then\n\t\t\t\t\t\tlocal shown",
+       "\t\t\t\t\telseif key then\n\t\t\t\t\t\tlocal shown",
+       "\t\t\t\t\telseif false then\n\t\t\t\t\t\tlocal shown",
        "start here: key status blind to the key",
        expect="with a key bound, the status reads", script=S)
 
 mutate("Options/Start.lua",
-       "\t\t\t\t\tns.CreateClickMacro()\n\t\t\t\t\tif Setup.MacroMade() then Setup.OpenMacros() end\n",
+       "\t\t\t\t\tif not ns.CreateClickMacro() and Setup.MacroMade() then Setup.OpenMacros() end\n",
        "\t\t\t\t\tif Setup.MacroMade() then Setup.OpenMacros() end\n",
-       "start here: Make a macro makes nothing",
-       expect="Make a macro made nothing", script=S)
+       "start here: the action bar button makes nothing",
+       expect="the action bar button made nothing", script=S)
 
-# The macro made, and the macro window left shut.
+# The macro not carried, and the macro window left shut.
 mutate("Options/Start.lua",
-       "\t\t\t\t\tif Setup.MacroMade() then Setup.OpenMacros() end\n",
-       "",
+       "\t\t\t\t\tif not ns.CreateClickMacro() and Setup.MacroMade() then Setup.OpenMacros() end\n",
+       "\t\t\t\t\tns.CreateClickMacro()\n",
        "start here: macro window not opened",
-       expect="Make a macro did not open the macro window", script=S)
+       expect="the action bar button did not open the macro window", script=S)
 
 mutate("Options/Start.lua",
        "\tif InCombatLockdown() or type(ShowMacroFrame) ~= \"function\" then return false end\n",

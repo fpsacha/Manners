@@ -107,7 +107,7 @@ Runs on every live client: **WoW Forever** 1.60.1, **Classic Era** 1.15.9, **Bur
 /manners ledger     the favour ledger
 /manners never      who is never offered anything; add a name to put them on it
 /manners allow      take a name off that list
-/manners macro      a /click macro for your bars
+/manners macro      the macro for your bars, on your cursor
 /manners export     your settings as one line of text, to keep or share
 /manners import     use a line somebody exported (import undo puts yours back)
 /manners debug      what your class and this build allow
