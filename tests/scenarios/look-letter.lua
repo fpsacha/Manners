@@ -2129,7 +2129,7 @@ end
 
 withTree("look-letter: tools/make_letter_textures.py is deterministic and draws what ships", ANNA, function(_, scenario)
 	local python = os.getenv("MANNERS_PYTHON") or "python"
-	local a, b = tempDir() .. "-a", tempDir() .. "-b"
+	local a, b = tempDir() .. "-letter-a", tempDir() .. "-letter-b"
 	-- os.execute and a log file rather than io.popen, which the Lua that lupa
 	-- builds on Linux leaves out.
 	local function run(out)

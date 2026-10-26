@@ -1936,7 +1936,7 @@ local FILES = { "Ribbon_Cloth_Mid", "Ribbon_Cloth_End", "Ribbon_Cloth_EndL", "Ri
 	"Ribbon_Gem", "Ribbon_GemSet" }
 
 withTree("look-ribbon: the generator draws the same bytes twice, and the bytes that ship", ANNA, function(_, scenario)
-	local a, b = tempDir() .. "-a", tempDir() .. "-b"
+	local a, b = tempDir() .. "-ribbon-a", tempDir() .. "-ribbon-b"
 	-- os.execute and a log file rather than io.popen, which the Lua that lupa
 	-- builds on Linux leaves out.
 	local function run(out)
@@ -2012,7 +2012,7 @@ withTree("look-ribbon: every texture is from Textures/Ribbon, and every file is 
 		if not used[file] then fail(scenario, file .. " ships and the look never draws it") end
 	end
 	-- Nothing else ships (the folder listed by python, like the generator is run).
-	local log = tempDir() .. "-list.log"
+	local log = tempDir() .. "-ribbon-list.log"
 	os.execute(python .. ' -c "import os,sys;print(chr(10).join(sorted(os.listdir(sys.argv[1]))))" "' .. dir
 		.. '/Textures/Ribbon" > "' .. log .. '" 2>&1')
 	local listing = slurp(log)
@@ -2101,7 +2101,7 @@ local function readPixels(path)
 end
 
 withTree("look-ribbon: the art is modelled: a sheen and a hem on the cloth, gold lit from the upper left, enamel in the badge", ANNA, function(_, scenario)
-	local out = tempDir() .. "-art"
+	local out = tempDir() .. "-ribbon-art"
 	local log = out .. ".log"
 	os.execute(python .. ' "' .. dir .. '/tools/make_ribbon_textures.py" --out "' .. out .. '" > "' .. log .. '" 2>&1')
 	local text = slurp(log)

@@ -717,7 +717,7 @@ do
 	local ns = load(scenario)
 	if ns then
 		local python = os.getenv("MANNERS_PYTHON") or "python"
-		local log = tempDir() .. ".log"
+		local log = tempDir() .. "-picker.log"
 		-- os.execute and a log, not io.popen, which the Lua lupa builds on Linux
 		-- leaves out.
 		os.execute(python .. ' "' .. dir .. '/tools/make_look_previews.py" --check > "' .. log .. '" 2>&1')

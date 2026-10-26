@@ -702,7 +702,10 @@ for _, gen in ipairs(GENERATORS) do
 	local script, shipped = gen[1], gen[2]
 	local name = "hunt35-effects: " .. script:match("[^/]+$") .. " is deterministic and draws what ships"
 	withTree(name, ANNA, function(_, scenario)
-		local a, b = tempDir() .. "-a", tempDir() .. "-b"
+		-- Each generator in folders of its own: the scenarios run side by side, and
+		-- two in the same second wrote into each other's.
+		local tag = script:match("([%w_%-]+)%.py$") or "gen"
+		local a, b = tempDir() .. "-" .. tag .. "-a", tempDir() .. "-" .. tag .. "-b"
 		-- os.execute and a log file rather than io.popen, which the Lua that
 		-- lupa builds on Linux leaves out ("'popen' not supported").
 		local function run(out)
