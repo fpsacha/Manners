@@ -603,6 +603,12 @@ local function runMacro(W, text, events)
 				W.lastTarget = was
 				fire(W, "PLAYER_TARGET_CHANGED")
 			end
+		elseif cmd == "cleartarget" then
+			if W.tok.target then
+				W.lastTarget = W.tok.target
+				W.tok.target = nil
+				fire(W, "PLAYER_TARGET_CHANGED")
+			end
 		elseif cmd == "cast" then
 			castSpell(W, rest, events)
 		elseif cmd == "use" then

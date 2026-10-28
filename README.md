@@ -595,7 +595,9 @@ list. They used to be at the bottom of *Who to buff*.
   (`[@name]`) only reaches your own party or raid and most people on the
   prompt are passers-by. With this on, the macro ends with
   `/targetlasttarget`, except outside a fight for somebody already your
-  target, who stays targeted. The macro armed when a fight starts keeps
+  target, who stays targeted. With nothing targeted when it is armed, it ends
+  with `/cleartarget` instead, so you finish with no target rather than an old
+  one. The macro armed when a fight starts keeps
   `/targetlasttarget` for everybody until it ends. A warrior, whose shout
   never takes the target, has a line saying so instead.
 

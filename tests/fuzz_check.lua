@@ -109,7 +109,8 @@ function X.escaped(W, where, err)
 		sig = signature(W, "escape", first, true) }
 end
 
-local SPOKEN_FREE = { target = true, cast = true, use = true, targetlasttarget = true }
+local SPOKEN_FREE = { target = true, cast = true, use = true, targetlasttarget = true,
+	cleartarget = true }
 local FORBIDDEN_LINES = { script = true, run = true, console = true, click = true, dump = true,
 	reload = true, logout = true, quit = true, camp = true, exit = true }
 

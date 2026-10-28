@@ -19,8 +19,8 @@ mutate(P,
 
 # The hand-back left off the macro of a name.
 mutate("Prompt/Macro.lua",
-       "\tif restore then lines[#lines + 1] = \"/targetlasttarget\" end\n",
-       "\tif restore and not S.isRow then lines[#lines + 1] = \"/targetlasttarget\" end\n",
+       "\tif restore then lines[#lines + 1] = HandBack() end\n",
+       "\tif restore and not S.isRow then lines[#lines + 1] = HandBack() end\n",
        "hunt25-rows: a name's macro leaves out the hand-back",
        expect="hunt25-rows: a click on the second name casts at that person",
        script=S)
