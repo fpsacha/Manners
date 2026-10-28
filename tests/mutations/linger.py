@@ -13,7 +13,7 @@ S = "runscenarios.py"
 # The report itself: nothing remembered, so the cursor leaving the stranger
 # for the prompt empties the queue and the fuse takes the prompt down.
 mutate("Queue.lua",
-       "\t\t\t\tRememberPasserBy(queue[#queue], now, f.proximity, hasMana)\n",
+       "\t\t\t\tRememberPasserBy(queue[#queue], now, f.proximity, hasMana, guid)\n",
        "",
        "linger: nobody remembered",
        expect="the prompt came down seconds after the cursor left the stranger it offered", script=S)
@@ -98,14 +98,14 @@ mutate("Queue.lua",
        expect="a remembered stranger was still offered after the press on them", script=S)
 
 mutate("Queue.lua",
-       "\t\t\tor ListedAs(name, verdict) ~= nil\n\t\t\tor not SafeForMacro(name) then\n",
-       "\t\t\tor not SafeForMacro(name) then\n",
+       "\t\t\tor ListedAs(name, verdict) ~= nil\n\t\t\tor (ignoring and ns.Ignored(name, memo.guid))\n\t\t\tor not SafeForMacro(name) then\n",
+       "\t\t\tor (ignoring and ns.Ignored(name, memo.guid))\n\t\t\tor not SafeForMacro(name) then\n",
        "linger: the never-offer list is ignored",
        expect="a remembered stranger on the never-offer list was offered", script=S)
 
 mutate("Queue.lua",
-       "\t\t\tor ListedAs(name, verdict) ~= nil\n\t\t\tor not SafeForMacro(name) then\n",
-       "\t\t\tor ListedAs(name, verdict) ~= nil then\n",
+       "\t\t\tor ListedAs(name, verdict) ~= nil\n\t\t\tor (ignoring and ns.Ignored(name, memo.guid))\n\t\t\tor not SafeForMacro(name) then\n",
+       "\t\t\tor ListedAs(name, verdict) ~= nil\n\t\t\tor (ignoring and ns.Ignored(name, memo.guid)) then\n",
        "linger: a name unsafe for the macro is offered",
        expect="a remembered name that could break out of the macro was offered", script=S)
 
@@ -139,26 +139,26 @@ mutate("Queue.lua",
 
 # ------------------------------------------------ passers-by turned down as a kind
 mutate("Queue.lua",
-       "\t\tnot db.sources.strangers or groupOnly or savingMana or notResting)\n",
-       "\t\tgroupOnly or savingMana or notResting)\n",
+       "\t\tnot db.sources.strangers or groupOnly or savingMana or notResting, ignoring)\n",
+       "\t\tgroupOnly or savingMana or notResting, ignoring)\n",
        "linger: passers-by off keeps the remembered",
        expect="a remembered passer-by was offered with passers-by switched off", script=S)
 
 mutate("Queue.lua",
-       "\t\tnot db.sources.strangers or groupOnly or savingMana or notResting)\n",
-       "\t\tnot db.sources.strangers or groupOnly or notResting)\n",
+       "\t\tnot db.sources.strangers or groupOnly or savingMana or notResting, ignoring)\n",
+       "\t\tnot db.sources.strangers or groupOnly or notResting, ignoring)\n",
        "linger: saving mana keeps the remembered",
        expect="a remembered passer-by was offered with saving mana", script=S)
 
 mutate("Queue.lua",
-       "\t\tnot db.sources.strangers or groupOnly or savingMana or notResting)\n",
-       "\t\tnot db.sources.strangers or groupOnly or savingMana)\n",
+       "\t\tnot db.sources.strangers or groupOnly or savingMana or notResting, ignoring)\n",
+       "\t\tnot db.sources.strangers or groupOnly or savingMana, ignoring)\n",
        "linger: out of the city keeps the remembered",
        expect="a remembered passer-by was offered with out of the city", script=S)
 
 mutate("Queue.lua",
-       "\t\tnot db.sources.strangers or groupOnly or savingMana or notResting)\n",
-       "\t\tnot db.sources.strangers or savingMana or notResting)\n",
+       "\t\tnot db.sources.strangers or groupOnly or savingMana or notResting, ignoring)\n",
+       "\t\tnot db.sources.strangers or savingMana or notResting, ignoring)\n",
        "linger: a shout offered to the remembered",
        expect="a warrior's shout was offered to a passer-by remembered", script=S)
 

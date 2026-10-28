@@ -1480,6 +1480,23 @@ do
 					end
 				end
 			end
+			-- A blessing of yours that is switched off on Who to buff is not in the
+			-- list, and is still yours on them: a paladin who gives Salvation by hand
+			-- and has it off would otherwise be offered the blessing that a press puts
+			-- over it. Read for that alone, never offered: they are covered, and a
+			-- debt waits for a blessing that may be given. Not under a pin, which is
+			-- "only ever this one" and replaces what they wear as it always did, and
+			-- not for somebody who asked for the blessing by name (opts.asked), who
+			-- has said what they want on them.
+			local skip = db.buff and db.buff.skip
+			if not pinned and not opts.asked and skip and next(skip) ~= nil then
+				for _, buff in ipairs(ns.GetClassBuffs(playerClass) or {}) do
+					if skip[buff.key] and ns.IsBuffKnown(buff) then
+						local held, _, mine = has(buff, opts)
+						if held == true and mine ~= false then return nil, true end
+					end
+				end
+			end
 			-- A blessing on cooldown means this person was just offered one: leave
 			-- them alone until it lifts, readable or not. The aura cache is three
 			-- seconds deep, so a "none of yours" here is usually the reading from
