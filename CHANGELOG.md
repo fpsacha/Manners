@@ -1,5 +1,24 @@
 # Changelog
 
+## Unreleased
+
+- **No target, none handed back.** Pressing the prompt with nothing
+  targeted now leaves you with nothing targeted, instead of possibly
+  bringing back an old target from earlier.
+- **A blessing of yours you switched off still counts.** A paladin who gives
+  Salvation or Might by hand, with it off under Who to buff, is no longer
+  offered Kings for somebody wearing it.
+- **Raid groups you switched off.** A passer-by who joins one of them is no
+  longer offered from memory for the next few seconds.
+- **Somebody you ignore** who asked while grouped is not offered once the
+  group is gone.
+- **A see-through panel is see-through.** With the panel colour's opacity
+  turned down, Glass and Framed no longer leave a dark box behind.
+- **Controller buttons on the prompt** follow the game when it recognises the
+  controller or when its modifier buttons change, without a reload; and
+  *Start here* only says to drop the macro when it is Manners' own on the
+  cursor.
+
 ## 1.10.1
 
 - **Put Manners on an action bar, and on a controller.** *Put Manners on an
