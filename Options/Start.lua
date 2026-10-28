@@ -93,19 +93,28 @@ function Setup.OpenBindings()
 	return false
 end
 
--- Whether the macro Put Manners on an action bar writes is there.
-function Setup.MacroMade()
-	if type(GetMacroIndexByName) ~= "function" then return false end
+-- Where the macro Put Manners on an action bar writes is, or nil.
+local function MacroIndex()
+	if type(GetMacroIndexByName) ~= "function" then return nil end
 	local ok, index = pcall(GetMacroIndexByName, ns.CLICK_MACRO_NAME or "Manners")
-	return ok and type(index) == "number" and index > 0
+	if ok and type(index) == "number" and index > 0 then return index end
+end
+
+-- Whether it is there.
+function Setup.MacroMade()
+	return MacroIndex() ~= nil
 end
 
 -- Whether the macro the button put on the cursor is still there to drop. The
 -- flag is Clicks.lua's, set when the pick-up took; it goes once the cursor holds
--- something else, so the line saying where to drop it goes with it.
+-- something else, so the line saying where to drop it goes with it. Another
+-- macro on the cursor (one picked up from the macro window) is something else.
 function Setup.Carrying()
 	if not ns.macroOnCursor then return false end
-	if type(GetCursorInfo) == "function" and GetCursorInfo() == "macro" then return true end
+	if type(GetCursorInfo) == "function" then
+		local kind, index = GetCursorInfo()
+		if kind == "macro" and (type(index) ~= "number" or index == MacroIndex()) then return true end
+	end
 	ns.macroOnCursor = false
 	return false
 end

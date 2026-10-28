@@ -230,11 +230,12 @@ end
 -- reads as the buttons the player presses: the game turns a held left
 -- trigger into Shift by default (CVars GamePadEmulateShift, ...Ctrl, ...Alt),
 -- so "SHIFT-PAD1" is the trigger glyph, "+" and the face button's, not "s-"
--- and a glyph. Worked out once for a key and kept (the chip asks at every
--- repaint); a CVar that cannot be read leaves the client's own short form.
+-- and a glyph. Worked out once and kept (the chip asks at every repaint) until
+-- the key, the client's own words for it or the CVars change; a CVar that
+-- cannot be read leaves the client's own short form.
 do
 	local EMULATE = { SHIFT = "GamePadEmulateShift", CTRL = "GamePadEmulateCtrl", ALT = "GamePadEmulateAlt" }
-	local comboKey, comboText
+	local comboKey, comboMade, comboText
 
 	local function Glyph(key)
 		local text = GetBindingText(key, true)
@@ -263,13 +264,28 @@ do
 		return table.concat(parts, "+")
 	end
 
+	-- What the combination was worked out from besides the key: the three
+	-- CVars, which a player can change in a session. Read straight (they
+	-- exist on every client; a missing one answers nothing), as often as the
+	-- chip asks, which is only for a pad button with a modifier.
+	local function Settings()
+		local get = _G.GetCVar or (_G.C_CVar and _G.C_CVar.GetCVar)
+		if type(get) ~= "function" then return "" end
+		return tostring(get(EMULATE.SHIFT)) .. "" .. tostring(get(EMULATE.CTRL)) .. "" .. tostring(get(EMULATE.ALT))
+	end
+
 	function Looks.ShortKey(key)
 		if type(GetBindingText) ~= "function" or type(key) ~= "string" then return nil end
+		local own = Glyph(key)
 		if key:find("PAD", 1, true) and key:find("-", 1, true) then
-			if key ~= comboKey then comboKey, comboText = key, PadCombo(key) or false end
+			-- Kept for as long as the key, the client's own words for it (its
+			-- glyphs change when a controller of another family is told apart)
+			-- and the CVars stay what they were.
+			local made = tostring(own) .. "" .. Settings()
+			if key ~= comboKey or made ~= comboMade then comboKey, comboMade, comboText = key, made, PadCombo(key) or false end
 			if comboText then return comboText end
 		end
-		return Glyph(key)
+		return own
 	end
 end
 

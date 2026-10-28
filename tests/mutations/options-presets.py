@@ -252,8 +252,8 @@ mutate("Options/Start.lua",
 # --- the macro and the key bindings window ---
 
 mutate("Options/Start.lua",
-       "\treturn ok and type(index) == \"number\" and index > 0\n",
-       "\treturn ok and type(index) == \"number\" and index >= 0\n",
+       "\tif ok and type(index) == \"number\" and index > 0 then return index end\n",
+       "\tif ok and type(index) == \"number\" and index >= 0 then return index end\n",
        "setup: a macro nobody made",
        expect="a macro nobody made counts as made", script=S)
 
