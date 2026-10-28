@@ -79,6 +79,9 @@ local SHADOW_STEPS = {
 	{ 10, 0.05, 3 },
 }
 
+-- The panel opacity the steps above were drawn for: the default's.
+local SHADOW_AT = 0.88
+
 -- Below the panel normally, above it when the prompt sits in the bottom third
 -- of the screen. Every call is guarded (an unplaced frame has no centre), and
 -- the centre is converted from the prompt's scaled units to UIParent's.
@@ -413,7 +416,14 @@ function Prompt:ApplyStyle()
 		R.panel:Show()
 		-- The framed look keeps its flat panel and its border, and gets only
 		-- the dark rim of the shadow under it: the rest is the glass's depth.
-		for i, t in ipairs(R.shadows) do t:SetShown(glass or i == 1) end
+		-- The steps are whole rectangles, so they darken the panel's own
+		-- footprint as well as the margin: drawn for the default opacity, they
+		-- fade with the panel's, or one made see-through stayed a dark box.
+		local shadowK = math.min(1, ba / SHADOW_AT)
+		for i, t in ipairs(R.shadows) do
+			t:SetShown(glass or i == 1)
+			t:SetVertexColor(0, 0, 0, SHADOW_STEPS[i][2] * shadowK)
+		end
 		-- Vertical gradients run bottom-to-top, so the darker stop goes first.
 		Gradient(R.panel, "VERTICAL", br * 0.62, bg * 0.62, bb * 0.72, ba, br, bg, bb, ba)
 		-- Scaled by the panel's own opacity, so a panel the player has made
@@ -424,6 +434,7 @@ function Prompt:ApplyStyle()
 		R.hairTop:SetShown(glass)
 		R.hairTop:SetVertexColor(1, 1, 1, 0.12)
 		R.hairBottom:SetShown(glass)
+		R.hairBottom:SetVertexColor(0, 0, 0, 0.55 * shadowK)
 		-- The bevel's light and shade are in the file; the panel's own opacity
 		-- scales them, as it does the sheen.
 		for _, t in ipairs(R.bevel) do
