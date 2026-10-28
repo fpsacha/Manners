@@ -247,8 +247,8 @@ mutate("Looks/Looks.lua",
        expect=GLYPH, script=S)
 
 mutate("Looks/Looks.lua",
-       "\t\t\tif key ~= comboKey then comboKey, comboText = key, PadCombo(key) or false end\n",
-       "\t\t\tif false then comboKey, comboText = key, PadCombo(key) or false end\n",
+       "\t\t\tif key ~= comboKey or made ~= comboMade then comboKey, comboMade, comboText = key, made, PadCombo(key) or false end\n",
+       "\t\t\tif false then comboKey, comboMade, comboText = key, made, PadCombo(key) or false end\n",
        "actionbar: a pad combination is never worked out",
        expect=GLYPH, script=S)
 

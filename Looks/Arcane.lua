@@ -875,10 +875,16 @@ end
 
 -- The key that presses the prompt, read again when it may have changed: a
 -- plain call, cheap enough for the scan's tick, so a rebinding shows without
--- an event of its own.
+-- an event of its own, and so do the client's words for the same key.
 function Arcane:ReadKey(force)
 	local key = type(GetBindingKey) == "function" and GetBindingKey(COMMAND) or nil
-	if key == self.boundKey and not force then return end
+	if key == self.boundKey and not force then
+		-- The same key, in other words: the client's glyphs change when a
+		-- controller of another family is told apart, and a pad button's
+		-- modifier when the player moves the CVars. Asked only where the
+		-- client has the words, as the other looks ask at every repaint.
+		if type(GetBindingText) ~= "function" or KeyLabel(key) == self.keyLabel then return end
+	end
 	self.boundKey = key
 	local label = KeyLabel(key)
 	self.keyLabel, self.keyYield = label, nil
