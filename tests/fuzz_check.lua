@@ -109,7 +109,8 @@ function X.escaped(W, where, err)
 		sig = signature(W, "escape", first, true) }
 end
 
-local SPOKEN_FREE = { target = true, cast = true, use = true, targetlasttarget = true }
+local SPOKEN_FREE = { target = true, cast = true, use = true, targetlasttarget = true,
+	cleartarget = true }
 local FORBIDDEN_LINES = { script = true, run = true, console = true, click = true, dump = true,
 	reload = true, logout = true, quit = true, camp = true, exit = true }
 
@@ -287,14 +288,15 @@ end
 
 -- The macro a press is about to run, after PreClick has aimed it: the line
 -- may be in it only for a press that can land.
-function X.checkPress(W, macro)
+function X.checkPress(W, macro, rowEntry)
 	local ns = W.ns
 	checkMacroText(W, macro, "pressed")
 	if W.failure then return end
 	local spoken = spokenOf(macro)
 	if #spoken == 0 or ns.tryMacro then return end
 	local S = ns.Prompt.state
-	local entry = S.current
+	-- A name in the list is armed for its own press: the entry it holds, not the prompt's.
+	local entry = rowEntry or S.current
 	if Mock.inCombat then
 		return fail(W, "speech", "a press in a fight carries a spoken line: " .. spoken[1], nil,
 			"a press in a fight carries a spoken line")
@@ -519,6 +521,8 @@ function X.checkComplete(W, queue, standing)
 				or (f.requireInRange and not (p.visible and p.yards <= 30))
 				or (now - (p.auraAt or -100)) < 3.6
 				or db.buff.skip[buff.key] or (pinned and pinned.key ~= buff.key)
+				-- A buff no longer learned (a respec, a spellbook change) cannot be cast.
+				or not ns.IsBuffKnown(buff)
 			if not skip then
 				for _, id in ipairs(buff.auraIds) do
 					if p.buffs[id] then skip = true end

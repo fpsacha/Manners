@@ -39,6 +39,28 @@ end
 -- rather than a second, hand-maintained opinion about it.
 ns.TargetCommand = TargetCommand
 
+-- Whether the client says plainly that nothing is targeted: no GUID for the
+-- target token, which is nil without a unit. A secret answer is not a no.
+local function NoTarget()
+	local guid = _G.UnitGUID
+	if type(guid) ~= "function" then return false end
+	local raw = guid("target")
+	local secret = _G.issecretvalue
+	if type(secret) == "function" and secret(raw) then return false end
+	return raw == nil
+end
+
+-- The line that gives the player's target back. With nothing targeted when the
+-- macro is armed there is nothing to hand back, and /targetlasttarget would
+-- bring back whatever was targeted before that (a mob cleared minutes ago), so
+-- the target is cleared instead. The macro armed for a fight keeps
+-- /targetlasttarget: it runs at every press of the fight, whatever is targeted
+-- by then, and a cleared target would take the one the player has picked.
+local function HandBack()
+	if Prompt.armedForFight ~= true and NoTarget() then return "/cleartarget" end
+	return "/targetlasttarget"
+end
+
 -- The shape of the macro for this person. There is deliberately one targeting
 -- strategy: /cast [@Name] works only for group members, cannot be tested here
 -- and fails silently (a retail 12.0 restriction), and [@nameplateN] resolves
@@ -52,7 +74,7 @@ local function StrategyFor(entry)
 	return "target"
 end
 
--- Each returns the lines, whether /targetlasttarget goes on the end, and a
+-- Each returns the lines, whether the hand-back (HandBack) goes on the end, and a
 -- record the settle path judges the press by:
 --
 --   targeted  the macro carries a targeting line of ours, aimed at this person
@@ -162,7 +184,7 @@ function ns.PhraseBudget(entry)
 	-- The newline the spoken line itself would add, and the restore that
 	-- follows it with a newline of its own.
 	local used = #table.concat(lines, "\n") + 1
-	if restore then used = used + #"/targetlasttarget" + 1 end
+	if restore then used = used + #HandBack() + 1 end
 	return ns.MACRO_LIMIT - used
 end
 
@@ -374,7 +396,7 @@ local function Arm(R, S, entry, silent)
 	local key = table.concat({ entry.name, tostring(entry.unit), entry.buff.key,
 		ns.EntrySpellName(entry),
 		tostring(entry.groupCast and entry.groupCast.spell),
-		tostring(entry.reason), tostring(ns.tryMacro), tostring(Prompt.armedForFight),
+		tostring(entry.reason), tostring(ns.tryMacro), tostring(Prompt.armedForFight), tostring(NoTarget()),
 		tostring(StillTargeted(entry)), tostring(speak) }, "\1")
 	if key == S.appliedKey then return end
 
@@ -437,7 +459,7 @@ local function Arm(R, S, entry, silent)
 
 	-- Last, always: it is what hands your target back, and the client reads the
 	-- macro top to bottom.
-	if restore then lines[#lines + 1] = "/targetlasttarget" end
+	if restore then lines[#lines + 1] = HandBack() end
 
 	local macro = table.concat(lines, "\n")
 
