@@ -1395,9 +1395,9 @@ local function reshape(W, events, variant)
 	end
 end
 
-local function pressOnce(W, s, mouseButton)
+local function pressOnce(W, s, mouseButton, button, row)
 	local ns = W.ns
-	local button = ns.Prompt:GetButton()
+	button = button or ns.Prompt:GetButton()
 	local pre = button.scripts.PreClick
 	local post = button.scripts.PostClick
 	if pre then pre(button, mouseButton, true) end
@@ -1408,8 +1408,20 @@ local function pressOnce(W, s, mouseButton)
 	if type(macro) == "string" and macro ~= "" then W.stats.armed = W.stats.armed + 1 end
 	local events = {}
 	if mouseButton == "LeftButton" and isMacro and type(macro) == "string" and macro ~= "" then
-		X.checkPress(W, macro)
+		X.checkPress(W, macro, row and row.current)
 		if W.failure then return end
+		if row then
+			-- What a name in the list casts is its own person's macro.
+			local aim = macro:match("^/target ([^" .. string.char(10) .. "]*)")
+			local entry = row.current
+			if not entry then
+				return X.fail(W, "rows", "a name in the list ran a macro with nobody armed on it: " .. macro:gsub(string.char(10), " / "))
+			end
+			if aim and aim ~= (entry.targetName or entry.name) then
+				return X.fail(W, "rows", ("a name in the list for %s ran a macro that targets %s"):format(
+					tostring(entry.name), aim))
+			end
+		end
 		runMacro(W, macro, events)
 	end
 	-- Most presses are answered the plain way; the rest in the other shapes.
@@ -1418,6 +1430,11 @@ local function pressOnce(W, s, mouseButton)
 	reshape(W, events, variant)
 	if before then deliver(W, events) end
 	if post then post(button, mouseButton, true) end
+	-- Nothing stays armed on a name after its press, out of a fight.
+	if row and not Mock.inCombat and button:GetAttribute("macrotext1") ~= nil then
+		return X.fail(W, "rows", "a name in the list is still armed after its press: "
+			.. tostring(button:GetAttribute("macrotext1")):gsub(string.char(10), " / "))
+	end
 	-- What PostClick parked for the game's answer, and whether it was owed.
 	local pending = ns.pendingClick
 	local owedBefore = pending and ns.owed[pending.name]
@@ -1454,6 +1471,25 @@ def("press", 14, function(W, s)
 		if pre then pre(button, "LeftButton", false) end
 		if post then post(button, "LeftButton", false) end
 	end
+end)
+-- A press on a name in the list (Prompt/Rows.lua): left, or the right button's skip.
+def("press_row", 5, function(W, s)
+	local R = W.ns.Prompt.regions
+	local shown = {}
+	for _, row in ipairs(R and R.rowSlots or {}) do
+		if row.entry and row.shown then shown[#shown + 1] = row end
+	end
+	local row = choose(shown, s.a)
+	if not row then
+		-- The list is off out of the box; a press on a name needs it on.
+		local p = W.ns.db.profile.prompt
+		if p.showQueue ~= true and s.c < 0.5 then p.showQueue = true end
+		return
+	end
+	local right = s.b < 0.2
+	W.shift = right and s.c < 0.3
+	pressOnce(W, s, right and "RightButton" or "LeftButton", row.button, row)
+	W.shift = false
 end)
 def("press_right", 3, function(W, s)
 	W.shift = s.a < 0.3
