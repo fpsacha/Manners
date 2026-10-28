@@ -172,7 +172,7 @@ mutate("Queue.lua",
 
 # The setting never read.
 mutate("Queue.lua",
-       "\t\t\tif group and skipGroups[group] then return end\n",
+       "\t\t\tif group and skipGroups[group] then\n\t\t\t\trejected[full] = true\n\t\t\t\treturn\n\t\t\tend\n",
        "",
        "raid groups ignored",
        expect="a raid member outside your raid groups was offered",

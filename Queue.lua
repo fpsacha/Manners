@@ -1387,7 +1387,7 @@ ns.passersBy = passing
 -- Written by the walk for every passer-by or asker it offers through a token
 -- nobody pointed at, from the entry it just queued. Somebody new makes room
 -- first.
-local function RememberPasserBy(entry, now, within, hasMana)
+local function RememberPasserBy(entry, now, within, hasMana, guid)
 	local memo = passing[entry.name]
 	if not memo then
 		local held, oldest, at = 0, nil, nil
@@ -1402,6 +1402,9 @@ local function RememberPasserBy(entry, now, within, hasMana)
 	memo.seen, memo.reason, memo.within = now, entry.reason, within
 	memo.buff, memo.class, memo.targetName = entry.buff, entry.class, entry.targetName
 	memo.hasMana = hasMana
+	-- For the /ignore list, asked of a name alone when the person is no longer in
+	-- reach (OfferPassersBy).
+	memo.guid = guid
 	memo.pvp = entry.pvp
 	-- The reading as well, so the panel keeps saying what it said while they
 	-- had a token: "needs" does not turn into "unverified" as the cursor
@@ -1462,8 +1465,10 @@ end
 -- BuildQueue hands the prompt, so the cursor's hold cannot outlast it
 -- (hovering, Prompt/Prompt.lua). Running out of time is no verdict. `verdict`
 -- is the scan's never-offer answers (NeverVerdicts); `askOnly`
--- StillCastable's.
-local function OfferPassersBy(queue, seen, rejected, now, db, candidates, askOnly, verdict, drop)
+-- StillCastable's; `ignoring` that the /ignore list has anybody on it, whom
+-- no memory offers either: a member of the group stays offered, and so is
+-- remembered, and the group may be gone by the time the memory is read.
+local function OfferPassersBy(queue, seen, rejected, now, db, candidates, askOnly, verdict, drop, ignoring)
 	for name, memo in pairs(passing) do
 		local debt = db.sources.owed and owed[name]
 		local nearby = memo.reason == "nearby"
@@ -1487,6 +1492,7 @@ local function OfferPassersBy(queue, seen, rejected, now, db, candidates, askOnl
 			or ns.IsBlocked(name, memo.buff.key, now)
 			or (db.filters.verifiedOnly and nearby and memo.checked and memo.known == nil)
 			or ListedAs(name, verdict) ~= nil
+			or (ignoring and ns.Ignored(name, memo.guid))
 			or not SafeForMacro(name) then
 			passing[name] = nil
 			if not seen[name] then rejected[name] = true end
@@ -1961,10 +1967,15 @@ function ns.BuildQueue(watch)
 		end
 		-- In a raid, only the groups you buff. Whoever you picked out on
 		-- purpose is exempt, as from the city rule below; a group that cannot
-		-- be read is offered.
+		-- be read is offered. A verdict, like the group switch above: somebody
+		-- remembered as a passer-by who has joined a group switched off would
+		-- otherwise be offered from that memory (OfferPassersBy).
 		if skipGroups and reason == "group" and not pointed then
 			local group = RaidGroupOf(unit)
-			if group and skipGroups[group] then return end
+			if group and skipGroups[group] then
+				rejected[full] = true
+				return
+			end
 		end
 		-- A group member the game says is out of sight -- in town while the raid is
 		-- inside, or far off in it -- is out of range for certain, which this client's
@@ -2034,6 +2045,7 @@ function ns.BuildQueue(watch)
 		-- SameParty. inGroup stays the reason on the card.
 		opts.inParty = SameParty(unit, inRaid)
 		opts.relevantOnly = f.relevantOnly and not asked
+		opts.asked = asked ~= nil
 		opts.whenBuffed = whenBuffed
 		opts.refreshUnder = f.refreshUnder
 		opts.name = full
@@ -2180,7 +2192,7 @@ function ns.BuildQueue(watch)
 		-- remembered on the debt itself, which the owed fallback reads.
 		if not pointed then
 			if reason == "nearby" or reason == "asked" then
-				RememberPasserBy(queue[#queue], now, f.proximity, hasMana)
+				RememberPasserBy(queue[#queue], now, f.proximity, hasMana, guid)
 			elseif isOwed then
 				owed[full].near = now
 			end
@@ -2283,7 +2295,7 @@ function ns.BuildQueue(watch)
 	-- turns the remembered ones down for good: the switch off, a shout, saving
 	-- mana, a city-only rule out in the world.
 	OfferPassersBy(queue, seen, rejected, now, db, candidates, askOnly, neverVerdict,
-		not db.sources.strangers or groupOnly or savingMana or notResting)
+		not db.sources.strangers or groupOnly or savingMana or notResting, ignoring)
 
 	-- And you, once everybody else is in: before the fold below, so a group
 	-- cast counts you among your party.
