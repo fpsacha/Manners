@@ -207,7 +207,7 @@ mutate(TOOL, '    if font.get("flags"):\n        entry["flags"] = str(font["flag
        "hunt40-cards: the tool drops an outline",
        expect=HASH, script=S)
 
-mutate(TOOL, '        h.update(json.dumps(written.get(key), sort_keys=True).encode("utf-8") + b"\\0")\n',
+mutate(TOOL, '        h.update(json.dumps(canonical(written.get(key)), sort_keys=True).encode("utf-8") + b"\\0")\n',
        '        h.update(b"\\0")\n',
        "hunt40-cards: the hash does not hold the recorded text",
        expect=HASH, script=S)

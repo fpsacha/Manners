@@ -360,6 +360,21 @@ def texts(snaps):
     return out
 
 
+def canonical(v):
+    """A recorded entry in one form however it was come by, measured here or
+    read back out of Looks/Previews.lua: numbers rounded to the places they
+    are written at, lists for tuples."""
+    if isinstance(v, bool) or v is None or isinstance(v, str):
+        return v
+    if isinstance(v, (int, float)):
+        return round(float(v), PLACES)
+    if isinstance(v, (list, tuple)):
+        return [canonical(x) for x in v]
+    if isinstance(v, dict):
+        return {str(k): canonical(x) for k, x in v.items()}
+    return v
+
+
 def fingerprint(keys, snaps, entries, written):
     """What the pictures are drawn from, as one hash: the frame trees, where the
     icons sit in them, the shipped textures and the two tools."""
@@ -368,7 +383,7 @@ def fingerprint(keys, snaps, entries, written):
         h.update(key.encode("utf-8") + b"\0")
         h.update(json.dumps(snaps[key], sort_keys=True, default=str).encode("utf-8") + b"\0")
         h.update(json.dumps(entries.get(key), sort_keys=True).encode("utf-8") + b"\0")
-        h.update(json.dumps(written.get(key), sort_keys=True).encode("utf-8") + b"\0")
+        h.update(json.dumps(canonical(written.get(key)), sort_keys=True).encode("utf-8") + b"\0")
     art = os.path.join(ROOT, "Textures")
     files = []
     for folder, dirs, names in os.walk(art):
@@ -535,9 +550,17 @@ def check():
     if not problems:
         snaps = snapshots(keys)
         entries = icons(snaps)
-        lines = texts(snaps)
         held = read_icons()
         held_text = read_icons("previewText")
+        # Where a line's text sits is measured in a face, which needs Pillow and
+        # the faces of the machine that drew the pictures: without it (CI's test
+        # job) the text is taken as recorded, and the rest is still held to it.
+        measures = geometry().ImageFont is not None
+        if measures:
+            lines = texts(snaps)
+        else:
+            lines = held_text
+            print("  text placement not measured here (no Pillow): taken as recorded")
         if held is None or not same_icons(held, entries):
             problems.append("Looks/Previews.lua does not say where the looks draw their icons as they do now")
         elif held_text is None or not same_icons(held_text, lines):
