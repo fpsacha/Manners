@@ -343,6 +343,14 @@ Looks.previews = {}
 -- `round` with the `mask` file that look cuts its icon with, and the `crop`
 -- (SetTexCoord's four numbers). The picker lays the real icon there, drawn live.
 Looks.previewIcon = {}
+-- Where a look's picture holds its name and its reason line, and how each is
+-- written: { name = line, reason = line }, a line being the rectangle as
+-- fractions of the picture like the icon's, `h` and `v` its justification,
+-- `size` and the shadow's `x` and `y` fractions of the picture's height, `color`,
+-- `flags`, and the look's own `font` (`latin`: only on a client whose alphabet it
+-- has). The pictures carry none of this text: the picker writes it there live, in
+-- the player's language.
+Looks.previewText = {}
 
 function Looks.PreviewFile(key)
 	if not Looks.previews[key] then return nil end
@@ -353,4 +361,11 @@ end
 function Looks.PreviewIcon(key)
 	if not Looks.previews[key] then return nil end
 	return Looks.previewIcon[key]
+end
+
+-- The two lines a look's card writes over its picture, or nil for a look without
+-- a picture.
+function Looks.PreviewText(key)
+	if not Looks.previews[key] then return nil end
+	return Looks.previewText[key]
 end

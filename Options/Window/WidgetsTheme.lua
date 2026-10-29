@@ -21,7 +21,7 @@
 -- there is no OnUpdate to stop when the window closes. A look the tool has not
 -- drawn has a card with the addon's icon where the picture goes.
 --
--- The one live thing on a card is the spell icon. The picture holds a tile
+-- Two things on a card are live, laid over the picture. The first is the spell icon. The picture holds a tile
 -- where the look draws it (the tool has no game art), and a texture over the
 -- picture, at the rectangle the tool recorded for that look (Looks.PreviewIcon),
 -- shows the icon of the buff this character casts, cropped as the prompt crops
@@ -32,12 +32,27 @@
 -- the page is painted, so an icon the client had not loaded yet is there the
 -- next time the page is drawn.
 --
+-- The second is the text. The pictures carry none (the tool leaves the
+-- name and the reason line out of them), because a picture has one language.
+-- Two font strings over each picture, at the rectangles the tool recorded for the
+-- look's two lines (Looks.PreviewText), write a sample name, "Anna Aim", which is
+-- a name and so the same in every language, and the reason a prompt gives for
+-- somebody who buffed you in the client's own words (L["buffed you"], the
+-- prompt's default for it, so no string is new). Each is written as the look
+-- writes that line: its face where the looks use it (a Latin client, the player's
+-- font the default one) else the prompt's own font, its size, colour, shadow and
+-- outline, the size scaled with the picture. A line wider than its rectangle is
+-- drawn up to a fifth smaller, then cut by the client, as the prompt's are. Set
+-- when the page is painted and laid out; nothing is per frame.
+--
 -- Two or three cards to a row, as many as the page is wide enough for, every
 -- row as tall as its tallest card.
 
 local _, ns = ...
 local W = ns.WindowWidgets
 local T, KIND = W.Theme, W.KIND
+local L = ns.L
+local LSM = LibStub("LibSharedMedia-3.0")
 
 local function Bind() return ns.WindowBind end
 
@@ -54,6 +69,16 @@ local ICON = "Interface\\AddOns\\Manners\\Textures\\Manners64"
 local UNKNOWN = 134400
 -- How the prompt crops a spell icon (Prompt/Panel.lua).
 local CROP = { 0.08, 0.92, 0.08, 0.92 }
+-- The name the cards write: a name is not translated.
+local SAMPLE_NAME = "Anna Aim"
+-- The two lines, in the order the tool records them (Looks.PreviewText).
+local LINES = { "name", "reason" }
+-- The smallest letters a card writes, and how far a line is drawn smaller to fit.
+local MIN_SIZE, MIN_SHRINK = 5, 0.8
+-- The client languages whose alphabet a look's own face (Morpheus) draws: the
+-- rule the looks follow for their own text.
+local LATIN = { enUS = true, enGB = true, deDE = true, esES = true, esMX = true, frFR = true,
+	itIT = true, ptBR = true }
 
 local WASH_HOVER = { 1, 1, 1, 0.07 }
 local WASH_ON = { T.gold[1], T.gold[2], T.gold[3], 0.08 }
@@ -95,6 +120,24 @@ local function ShowAll(list, on)
 	for _, t in ipairs(list) do t:SetShown(on) end
 end
 
+-- The sample lines in their own colours, or grey and dimmed with the rest of a
+-- greyed-out card.
+local function TintLines(card, off)
+	for _, name in ipairs(LINES) do
+		local fs, spec = card.lines[name], card.textAt and card.textAt[name]
+		if fs and spec then
+			local c = spec.color
+			if off then
+				local grey = 0.3 * c[1] + 0.59 * c[2] + 0.11 * c[3]
+				fs:SetTextColor(grey, grey, grey, c[4])
+			else
+				fs:SetTextColor(c[1], c[2], c[3], c[4])
+			end
+			fs:SetAlpha(off and 0.5 or 1)
+		end
+	end
+end
+
 -- How a card reads: chosen, under the pointer, or at rest; and dimmed while
 -- the control is greyed out.
 local function Look(card)
@@ -127,6 +170,7 @@ local function Look(card)
 	-- The live icon over the picture goes grey with it.
 	card.icon:SetDesaturated(off and true or false)
 	card.icon:SetAlpha(off and 0.5 or 1)
+	TintLines(card, off)
 	card:SetEnabled(not off)
 end
 
@@ -225,6 +269,91 @@ local function DressIcon(card, at, file)
 	icon:Show()
 end
 
+-- The face a line is written in: the look's own where the looks use it (a client
+-- whose alphabet it has, the player's font the default one: AceDB strips a value
+-- equal to the default, so only another is a choice), else the prompt's own font.
+local function LineFace(spec)
+	local p = ns.db and ns.db.profile and ns.db.profile.prompt
+	if spec.font then
+		local own = ns.defaults and ns.defaults.profile.prompt.font
+		local chosen = p and type(p.font) == "string" and p.font ~= own
+		if not chosen and (not spec.latin or LATIN[ns.LOCALE or "enUS"]) then return spec.font end
+	end
+	return p and LSM:Fetch("font", p.font) or STANDARD_TEXT_FONT
+end
+
+local function SetFace(fs, path, size, flags)
+	if not fs:SetFont(path, size, flags) or not fs:GetFont() then
+		fs:SetFont(STANDARD_TEXT_FONT, size, flags)
+	end
+end
+
+-- A shadow offset in the picture's units, a whole unit at the least: a fraction
+-- of one is no shadow.
+local function Offset(v)
+	local n = math.max(1, math.floor(math.abs(v) + 0.5))
+	return v < 0 and -n or n
+end
+
+-- One line at its rectangle in the picture, in the look's face, at the look's
+-- size for this picture (a card's picture is smaller than the 248 x 62 units the
+-- tool drew), drawn up to a fifth smaller where the words are wider than the
+-- rectangle; what is still too wide the client cuts, as the prompt's lines are.
+local function PlaceLine(card, name, spec, text)
+	local fs, w, h = card.lines[name], card.picW, card.picH
+	fs:ClearAllPoints()
+	fs:SetPoint("TOPLEFT", card.ground, "TOPLEFT", spec.l * w, -spec.t * h)
+	fs:SetPoint("BOTTOMRIGHT", card.ground, "TOPLEFT", spec.r * w, -spec.b * h)
+	fs:SetJustifyH(spec.h or "LEFT")
+	fs:SetJustifyV(spec.v or "MIDDLE")
+	fs:SetWordWrap(false)
+	local shadow = spec.shadow
+	if shadow then
+		local c = shadow.color
+		fs:SetShadowColor(c[1], c[2], c[3], c[4])
+		fs:SetShadowOffset(Offset(shadow.x * h), Offset(shadow.y * h))
+	else
+		fs:SetShadowColor(0, 0, 0, 0)
+		fs:SetShadowOffset(0, 0)
+	end
+	local path, flags = LineFace(spec), spec.flags or ""
+	local base = math.max(MIN_SIZE, math.floor(spec.size * h + 0.5))
+	local least = math.max(MIN_SIZE, math.floor(base * MIN_SHRINK + 0.5))
+	local room = (spec.r - spec.l) * w
+	local size = base
+	SetFace(fs, path, size, flags)
+	fs:SetText(text)
+	while size > least and W.Measure(fs) > room + 0.5 do
+		size = size - 1
+		SetFace(fs, path, size, flags)
+	end
+	-- Kept for the tests: the client has no call that reads the size back.
+	card.lineSize[name], card.lineFace[name] = size, path
+	fs:Show()
+end
+
+-- A card's two lines, for the look it is showing: `at` is what the look's
+-- picture records for them (nil for a look without any). card.textAt and the
+-- rest are kept for the tests. Placed once the picture's size is known (Layout)
+-- as well as here, which is when the language and the player's font are read.
+local function PlaceText(card)
+	local at, w, h = card.textAt, card.picW, card.picH
+	for _, name in ipairs(LINES) do
+		local spec = at and at[name]
+		if spec and w and h then
+			PlaceLine(card, name, spec, name == "name" and SAMPLE_NAME or L["buffed you"])
+		else
+			card.lines[name]:Hide()
+			card.lineSize[name], card.lineFace[name] = nil, nil
+		end
+	end
+end
+
+local function DressText(card, at)
+	card.textAt = at
+	PlaceText(card)
+end
+
 local function BuildCard(row, i)
 	local card = CreateFrame("Button", nil, row.frame)
 	card:RegisterForClicks("LeftButtonUp")
@@ -251,6 +380,13 @@ local function BuildCard(row, i)
 	-- The spell icon, over the tile the picture draws there (see the header).
 	card.icon = card:CreateTexture(nil, "ARTWORK", nil, 3)
 	card.icon:Hide()
+	-- The sample name and reason over the picture, in a layer above the icon's.
+	card.lines, card.lineSize, card.lineFace = {}, {}, {}
+	for _, name in ipairs(LINES) do
+		local fs = W.Text(card, T.fonts.small, T.ink, "OVERLAY")
+		fs:Hide()
+		card.lines[name] = fs
+	end
 
 	card.title = W.Text(card, T.fonts.label, T.ink)
 	card.title:SetWordWrap(false)
@@ -322,6 +458,7 @@ KIND.themes = {
 				card.mark:Show()
 			end
 			DressIcon(card, file and ns.Looks.PreviewIcon(key), spell)
+			DressText(card, file and ns.Looks.PreviewText(key))
 			Look(card)
 			card:Show()
 		end
@@ -372,6 +509,7 @@ KIND.themes = {
 				card.shot:SetAllPoints(card.ground)
 				card.picW, card.picH = s.inner, s.shotH
 				PlaceIcon(card)
+				PlaceText(card)
 				card.title:ClearAllPoints()
 				card.title:SetPoint("TOPLEFT", card, "TOPLEFT", PAD, -(PAD + s.shotH + TEXT_GAP))
 				card.desc:ClearAllPoints()
