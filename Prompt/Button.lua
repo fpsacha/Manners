@@ -44,7 +44,7 @@ end
 
 -- The tooltip's lines about one person: why they are offered, and what the
 -- game would say about the buff on them.
-local function PersonTooltipLines(entry)
+local function PersonTooltipLines(entry, brief)
 	-- A top-up reads as one, and "missing it" only where it was read as
 	-- missing; "Always offer" and unreadable auras get the plain reason.
 	local left = RemainingText(entry.remaining)
@@ -71,6 +71,8 @@ local function PersonTooltipLines(entry)
 			or L["Nearby."]
 	end
 	GameTooltip:AddLine(why, 0.7, 0.7, 0.7, true)
+	-- The short tooltip says why and no more.
+	if brief then return end
 	-- Why they are ahead of the others like them, where Who comes first
 	-- put them there. Only ever set for a group member or a passer-by.
 	if entry.close == "friend" then
@@ -121,7 +123,7 @@ end
 
 -- The tooltip's lines about a group cast (GroupBuffs.lua): who it is for, any
 -- favour it returns on the way, and the reagent it eats, counted now.
-local function GroupTooltipLines(entry, group)
+local function GroupTooltipLines(entry, group, brief)
 	local single = ns.BuffName(entry.buff)
 	local missing, low = group.missing or 0, group.low or 0
 	-- Missing and running out apart: "missing" after a wipe means something
@@ -152,6 +154,7 @@ local function GroupTooltipLines(entry, group)
 		end
 	end
 	GameTooltip:AddLine(count, 0.7, 0.7, 0.7, true)
+	if brief then return end
 	if missing > 0 and low > 0 then
 		GameTooltip:AddLine(low == 1 and L["1 more is running out."] or L["%d more are running out."]:format(low),
 			0.7, 0.7, 0.7, true)
@@ -185,6 +188,102 @@ local function GroupTooltipLines(entry, group)
 	end
 end
 
+-- How much of the tooltip the player's setting gives right now: "full", "short"
+-- or nil for none. Shift always opens the full one, and is all that opens it
+-- under "only while holding Shift". Read at every hover and every change of
+-- Shift, so a setting changed in the options is followed at the next one.
+local function ShiftHeld()
+	return IsShiftKeyDown ~= nil and ns.plain(IsShiftKeyDown()) == true
+end
+
+local function TooltipDepth()
+	local mode = ns.db.profile.prompt.tooltip
+	if mode == "off" then return nil end
+	if mode == "full" or ShiftHeld() then return "full" end
+	if mode == "shift" then return nil end
+	return "short"
+end
+
+-- Where the tooltip goes. "Where the game shows tooltips" hands it to the
+-- client's own default anchor. Otherwise it sits above or below the prompt's
+-- whole block -- the button and the list hung on one side of it -- on the side
+-- with more room on the screen, so it never covers either. It is anchored to
+-- the button, whichever name in the list it is about, and nothing here touches
+-- the secure frame. Without a measurable button (no screen yet) the old anchor.
+local TIP_GAP = 6
+
+local function PlaceTooltip(owner, fallback)
+	if ns.db.profile.prompt.tooltipPosition == "game" and type(GameTooltip_SetDefaultAnchor) == "function" then
+		GameTooltip_SetDefaultAnchor(GameTooltip, owner)
+		return
+	end
+	local button = R.button
+	local top, bottom = button and button:GetTop(), button and button:GetBottom()
+	local screen = UIParent:GetHeight()
+	if type(top) ~= "number" or type(bottom) ~= "number" or type(screen) ~= "number" then
+		GameTooltip:SetOwner(owner, fallback)
+		return
+	end
+	-- UIParent's units, which the room is counted in; the button's own, which
+	-- the list's reach and the offset are in.
+	local own, ui = button:GetEffectiveScale(), UIParent:GetEffectiveScale()
+	local ratio = (type(own) == "number" and type(ui) == "number" and ui > 0) and own / ui or 1
+	local depth = Prompt:ListDepth()
+	local listAbove = S.queueAbove and true or false
+	local roomAbove = screen - (top * ratio + (listAbove and depth * ratio or 0))
+	local roomBelow = bottom * ratio - (listAbove and 0 or depth * ratio)
+	local above = roomAbove >= roomBelow
+	-- Offsets are read in the tooltip's own units, not the button's.
+	local tipScale = GameTooltip:GetEffectiveScale()
+	local toTip = (type(own) == "number" and type(tipScale) == "number" and tipScale > 0) and own / tipScale or 1
+	local reach = TIP_GAP + (above == listAbove and depth or 0)
+	GameTooltip:SetOwner(owner, "ANCHOR_NONE")
+	GameTooltip:ClearAllPoints()
+	if above then
+		GameTooltip:SetPoint("BOTTOM", button, "TOP", 0, reach * toTip)
+	else
+		GameTooltip:SetPoint("TOP", button, "BOTTOM", 0, -reach * toTip)
+	end
+end
+
+-- Shift, watched while the cursor is on the prompt or a name in the list and
+-- only then (MODIFIER_STATE_CHANGED registered on enter, dropped on leave), and
+-- only under the two settings Shift changes anything for. A change runs the
+-- hovered frame's own OnEnter again, which settles what to show.
+local watcher, watched, watchedHeld
+
+local function ShiftChanged()
+	local owner = watched
+	if not owner then return end
+	local held = ShiftHeld()
+	if held == watchedHeld then return end
+	watchedHeld = held
+	-- The hovered frame's own OnEnter holds back in a fight.
+	local onEnter = owner:GetScript("OnEnter")
+	if onEnter then onEnter(owner) end
+end
+
+local function WatchShift(owner)
+	local mode = ns.db.profile.prompt.tooltip
+	if mode == "full" or mode == "off" then
+		-- Nothing Shift could change. Whatever was watched stays until leave.
+		return
+	end
+	if not watcher then
+		watcher = CreateFrame("Frame")
+		watcher:SetScript("OnEvent", function() ns.Guard("tooltip shift", ShiftChanged) end)
+	end
+	if not watched then watcher:RegisterEvent("MODIFIER_STATE_CHANGED") end
+	if watched ~= owner then watchedHeld = ShiftHeld() end
+	watched = owner
+end
+
+local function UnwatchShift(owner)
+	if not watched or (owner and watched ~= owner) then return end
+	watched, watchedHeld = nil, nil
+	watcher:UnregisterEvent("MODIFIER_STATE_CHANGED")
+end
+
 -- The button's other scripts, and the list Create() sets them from. A do
 -- block, so their names cost the main chunk one local rather than five.
 local BUTTON_SCRIPTS, ROW_SCRIPTS
@@ -211,17 +310,24 @@ do
 	-- it is armed at, and what a name in the list says of the name it holds
 	-- (OnRowEnter, which hands in a state of its own whose `current` is that
 	-- entry). `slot` is whose settled spoken line it quotes (S, or the row's).
-	local function FillTooltip(owner, anchor, S, slot)
-		GameTooltip:SetOwner(owner, anchor)
-		GameTooltip:AddLine("Manners")
+	local function FillTooltip(owner, fallback, S, slot, depth)
+		local brief = depth == "short"
+		PlaceTooltip(owner, fallback)
+		if not brief then GameTooltip:AddLine("Manners") end
 		GameTooltip:AddDoubleLine(S.current.display or S.current.short or S.current.name,
 			ns.EntrySpellName(S.current), 1, 1, 1, 0.8, 0.8, 0.8)
 		-- One cast for many says who it covers and what it costs; the one
 		-- person's reading is not the story there.
 		if S.current.groupCast then
-			GroupTooltipLines(S.current, S.current.groupCast)
+			GroupTooltipLines(S.current, S.current.groupCast, brief)
 		else
-			PersonTooltipLines(S.current)
+			PersonTooltipLines(S.current, brief)
+		end
+		-- The short one ends here, with what the rest takes.
+		if brief then
+			GameTooltip:AddLine(L["Hold Shift for more"], 0.5, 0.5, 0.5)
+			GameTooltip:Show()
+			return
 		end
 		GameTooltip:AddLine(" ")
 		-- Plain English first; the raw macro only with /manners clicks, below.
@@ -287,12 +393,24 @@ do
 		GameTooltip:Show()
 	end
 
+	-- Whether to show anything of the tooltip of `owner` (the prompt or a name
+	-- in the list), and how much. Nothing hides the one this owner has up.
+	local function ShowTip(owner, fallback, state, slot)
+		local depth = TooltipDepth()
+		if not depth then
+			if GameTooltip:IsOwned(owner) then GameTooltip:Hide() end
+			return
+		end
+		FillTooltip(owner, fallback, state, slot, depth)
+	end
+
 	local function OnEnter(self)
 		-- First, whatever the tooltip does: the cursor is on the panel, and
 		-- the hold and the fuse wait for it (see hovering). OnUpdate calls
 		-- this again only while the tooltip is ours, so still hovering.
 		S.hovering = true
 		if S.activeLook then S.activeLook:Hover(true) end
+		WatchShift(self)
 		-- Nobody is armed while it is unlocked, so there is no person to
 		-- describe: the tooltip is about the drag instead.
 		if DragPanelUp() then
@@ -309,10 +427,11 @@ do
 		-- started, and a detailed tooltip about somebody stale is worse than
 		-- none.
 		if InCombatLockdown() then return end
-		FillTooltip(self, "ANCHOR_TOP", S, S)
+		ShowTip(self, "ANCHOR_TOP", S, S)
 	end
 
-	local function OnLeave()
+	local function OnLeave(self)
+		UnwatchShift(self)
 		GameTooltip:Hide()
 		if S.activeLook then S.activeLook:Hover(false) end
 		-- The hold and the fuse kept their clocks while the cursor was on the
@@ -364,16 +483,18 @@ do
 	local function OnRowEnter(self)
 		local row = self.mannersRow
 		row.hovered = true
+		WatchShift(self)
 		if InCombatLockdown() then return end
 		if row.wash then row.wash:Show() end
 		local entry = row.entry
 		if not (entry and entry.buff) then return end
-		FillTooltip(self, "ANCHOR_RIGHT", { current = entry }, row)
+		ShowTip(self, "ANCHOR_RIGHT", { current = entry }, row)
 	end
 
 	local function OnRowLeave(self)
 		local row = self.mannersRow
 		row.hovered = nil
+		UnwatchShift(self)
 		if row.wash then row.wash:Hide() end
 		if GameTooltip:IsOwned(self) then GameTooltip:Hide() end
 	end

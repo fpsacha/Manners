@@ -140,6 +140,15 @@ flagged yourself, anyone flagged for PvP, since buffing them would flag you.
 person for now without marking their favour repaid. **Shift-right-click** puts
 them on the never-offer list.
 
+**The tooltip.** Hover the prompt, or a name in its list, and it says who and
+what, and why they are offered, in one short line; hold Shift for everything
+(who comes first and why, how long the buff lasts, what the clicks do).
+*Tooltip on the prompt* on the *Look* page changes that to *Full*, to *Only
+while holding Shift*, or to *Off*; the note about dragging that shows while the
+prompt is unlocked stays whatever you pick. *Tooltip position* puts it above
+or below the prompt, on the side with more room and clear of the prompt and
+its list, or where the game puts its own tooltips. Nothing shows in a fight.
+
 **Click any name.** With *List the next few below* on (*Look* page, off by
 default), the names under the prompt are buttons of their own, each with the
 icon of the buff that person would get. A left click buffs that person just as
@@ -659,9 +668,18 @@ list. They used to be at the bottom of *Who to buff*.
   who is out of sight is whispered only while the game can still name them,
   so not after a `/reload`.
 
-**Look.** Where it sits and its lock, size, style and colours, and getting
-your attention (flash, animations, sound). Folded below: the exact position,
-the text, the prompt's wording, and the icon and waiting list.
+**Look.** Where it sits and its lock, size, style and colours, getting
+your attention (flash, animations, sound), and the tooltip. Folded below: the
+exact position, the text, the prompt's wording, and the icon and waiting list.
+
+- *Tooltip on the prompt*: *Short* (the default: the name and spell, one line
+  of why, and "Hold Shift for more"; Shift opens the full tooltip while it is
+  held), *Full*, *Only while holding Shift*, or *Off*. It covers the names in
+  the list too. The tooltip of an unlocked prompt, which explains the drag,
+  stays under every choice.
+- *Tooltip position*: *Beside the prompt* (above it in the lower half of the
+  screen, below it in the upper half, never over the prompt or its list) or
+  *Where the game shows tooltips*.
 
 - *Animations*: on *Full*, the ring pops out of the spell icon only if the
   icon is shown, and the panel catches the light unless *Flash when someone

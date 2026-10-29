@@ -421,7 +421,7 @@ local EXPECTED = {
 		"prompt.reasonSelf", "prompt.reasonGroup", "prompt.reasonNearby", "prompt.reasonRefresh",
 		"prompt.reasonUnknown", "prompt.showIcon", "prompt.iconSize", "prompt.roundIcon",
 		"prompt.showCooldown", "prompt.showCount", "prompt.showQueue", "prompt.queueRows",
-		"prompt.clickRows", "sound.enabled", "sound.file", "sound.owedOnly",
+		"prompt.clickRows", "prompt.tooltip", "prompt.tooltipPosition", "sound.enabled", "sound.file", "sound.owedOnly",
 	},
 	-- Not a page of the window: the old dialog's Advanced tab, which the
 	-- window falls back to (Register.lua). Its reset is the old one's

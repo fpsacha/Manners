@@ -128,6 +128,7 @@ do
 		ns.addon:Tick()
 		local button = ns.Prompt:GetButton()
 		local top = ns.Prompt:PanelName()
+		ns.db.profile.prompt.tooltip = "full"
 		if button.scripts.OnEnter then button.scripts.OnEnter(button) end
 		local tip = table.concat(Mock.tooltip, "\n")
 		if top == "Bert Beside" and not tip:find("In your guild.", 1, true) then
@@ -308,6 +309,7 @@ do
 		end
 
 		-- A gesture nobody can discover is not a feature: the tooltip says it.
+		ns.db.profile.prompt.tooltip = "full"
 		if button.scripts.OnEnter then button.scripts.OnEnter(button) end
 		if not table.concat(Mock.tooltip, "\n"):find("Shift-right-click", 1, true) then
 			fail(scenario, "the tooltip does not mention shift-right-click")
@@ -764,6 +766,7 @@ do
 		-- The tooltip says what the press does to her, not what it does to
 		-- somebody not on the list yet.
 		local button = ns.Prompt:GetButton()
+		ns.db.profile.prompt.tooltip = "full"
 		if button.scripts.OnEnter then button.scripts.OnEnter(button) end
 		local tip = table.concat(Mock.tooltip, "\n")
 		if not tip:find("Shift-right-click to let this favour go.", 1, true) then

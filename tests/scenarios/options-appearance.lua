@@ -65,6 +65,7 @@ local ORDER = {
 	"accentMode", "accentDead",
 	"attentionHeader", "flashStyle", "effects", "hideInCombat", "soundEnabled", "soundFile",
 	"soundOwedOnly", "noSound",
+	"tooltipHeader", "tooltip", "tooltipPosition",
 	"textHeader", "font", "fontSize", "fontColor", "classColor", "showSub",
 	"iconHeader", "showIcon", "iconSize", "iconSizeCapped", "roundIcon", "showCooldown",
 	"showCount", "showQueue", "queueRows", "clickRows",

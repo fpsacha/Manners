@@ -60,6 +60,7 @@ end
 
 local function hover(ns)
 	local button = ns.Prompt:GetButton()
+	ns.db.profile.prompt.tooltip = "full"
 	Mock.tooltip = {}
 	if button.scripts.OnEnter then button.scripts.OnEnter(button) end
 	return table.concat(Mock.tooltip or {}, " / ")

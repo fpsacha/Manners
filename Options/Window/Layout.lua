@@ -368,6 +368,10 @@ ns.WindowLayout = {
 					{ "appearance.soundOwedOnly", indent = true },
 					"appearance.noSound",
 				} },
+				{ key = "appearance.hover", header = "appearance.tooltipHeader", items = {
+					"appearance.tooltip",
+					"appearance.tooltipPosition",
+				} },
 				{ key = "appearance.exactPos", header = "advanced.exactPosHeader", fold = true, items = {
 					{ "advanced.x", widget = "number", pair = true },
 					{ "advanced.y", widget = "number" },

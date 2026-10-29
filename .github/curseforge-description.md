@@ -122,6 +122,7 @@ Runs on every live client: **WoW Forever** 1.60.1, **Classic Era** 1.15.9, **Bur
 
 - Blizzard does not let an addon cast on its own: nothing is cast until you press the key or click. Manners decides; the game casts.
 - It cannot see line of sight, so a buff can still fail round a corner.
+- Hovering the prompt or a name in the list shows a short tooltip; hold Shift for the full one, or choose Full, Shift only or Off and where it goes under Look.
 - In a fight the prompt keeps what the fight found, and names in the list cannot be clicked until it ends.
 - Passers-by are seen through the game's friendly nameplates. With them off Manners sees almost nobody outside your group; the *Who to buff* tab says so and has a button to turn them on.
 
