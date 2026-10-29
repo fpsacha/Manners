@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.10.2
 
 - **A smaller tooltip, and a choice of where it goes.** Hovering the prompt, or
   a name in its list, now shows the name, the spell, one line of why and
