@@ -25,6 +25,13 @@
   controller or when its modifier buttons change, without a reload; and
   *Start here* only says to drop the macro when it is Manners' own on the
   cursor.
+- **The look cards speak your language.** The sample on each card under
+  *Look* is written in your game's language, not English.
+- **Long counts keep clear of the name.** A count of 100 or more no longer
+  crowds the name in any look, and on Arcane the count follows the key when
+  the key steps aside.
+- **A new resolution or UI scale** lays the prompt out again at once (after the
+  fight, in one), so its list hangs on the right side without a reload.
 
 ## 1.10.1
 

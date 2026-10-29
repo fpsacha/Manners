@@ -460,6 +460,9 @@ local added = {
 		ns.MoveBuff("wisdom", -1)
 		owe(ns, "Elowen Thistledown", "DRUID")
 		ask(ns, "Maribel Quickwater", "nameplate2", "kings pls?")
+		-- The whole tooltip, which the picture's captions rest on: Short, the
+		-- default, says what the clicks do only with Shift held.
+		ns.db.profile.prompt.tooltip = "full"
 		settle(ns)
 		hover(ns, 2)
 	end },
@@ -1727,9 +1730,9 @@ def build_click(addon_dir, snaps):
                      for line in tip.get("lines", []))
     if CLICK_LIST[CLICK_ROW][0] not in said:
         problem("%s: the tooltip is not about %s" % (key, CLICK_LIST[CLICK_ROW][0]))
-    if tip.get("anchor") != "ANCHOR_RIGHT":
-        problem("%s: the tooltip is anchored %s; the picture hangs it from the name's top right"
-                % (key, tip.get("anchor")))
+    if tip.get("anchor") != "ANCHOR_NONE":
+        problem("%s: the tooltip is anchored %s; the picture sets it over the prompt, as "
+                "Prompt/Button.lua PlaceTooltip does beside the prompt" % (key, tip.get("anchor")))
     for words in ("Click to cast", "Right-click to skip", "Shift-right-click to put them on your never-offer"):
         if words not in said:
             problem("%s: the tooltip no longer says %r, which the picture's captions rest on"
@@ -2089,21 +2092,24 @@ def picture_click(snaps):
     shot = snap["shot"]
     tip = tooltip_sheet(shot["tip"], zoom)
     pointer = pointer_sheet(zoom)
-    # The name's button, in screen units; the tooltip hangs from its top right
-    # (ANCHOR_RIGHT, which is what the addon asks for).
+    # The name's button, in screen units, for the pointer. The tooltip stands
+    # over the prompt's own button, centred, TIP_GAP above it: where
+    # Prompt/Button.lua PlaceTooltip puts it for a prompt low on the screen
+    # with its list below, so it never covers the prompt or the list.
     left, bottom, right, top = PromptTree(snap).rect(shot["hover"]["id"])
-    corner = layer.at(right, top)
+    bl, bb, br, bt = PromptTree(snap).rect(snap["button"])
+    foot = layer.at((bl + br) / 2, bt + 6)
     first = 128
-    # The layer sits low enough that the tooltip, which stands above the name,
-    # clears the heading, and wide enough in that the tooltip clears the edge.
-    ly = max(first + 20, first + tip.h - corner[1] + 12)
-    span = max(lw, corner[0] + tip.w)
-    lx = (WIDTH - span) / 2
+    # The layer sits low enough that the tooltip over it clears the heading,
+    # and wide enough in that the tooltip clears the edges.
+    ly = max(first + 20, first + tip.h - foot[1] + 12)
+    lx = (WIDTH - lw) / 2
+    lx = min(max(lx, 40 + tip.w / 2 - foot[0]), WIDTH - 40 - tip.w / 2 - foot[0])
     caption = 130
     board = Board(ly + lh + caption, seed=47, sun=(0.84, 0.52))
     heading(board, "Click any name", "Every name under the prompt is a button of its own.")
     board.place(layer, lx, ly)
-    board.place(tip, lx + corner[0], ly + corner[1] - tip.h)
+    board.place(tip, lx + foot[0] - tip.w / 2, ly + foot[1] - tip.h)
     # The pointer rests at the end of the name's line, past its words, so
     # the names stay legible.
     tx, ty = layer.at(right - 8, (top + bottom) / 2)
