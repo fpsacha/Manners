@@ -15647,6 +15647,7 @@ if ns then
 			fail(scenario, "the macro for your own target hands the target to whoever came"
 				.. " before: " .. (armed:gsub("\n", " / ")))
 		end
+		ns.db.profile.prompt.tooltip = "full"
 		button.scripts.OnEnter(button)
 		local tip = table.concat(Mock.tooltip, "\n")
 		if tip:find("Hands your own target back", 1, true) then

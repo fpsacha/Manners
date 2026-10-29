@@ -78,7 +78,7 @@ mutate(B,
        '\tif brief then return end\n\t-- Why they are ahead of the others like them',
        '\t-- Why they are ahead of the others like them',
        "tooltip: the short tooltip keeps every reason line",
-       expect="tooltip: short on the prompt says what that setting says",
+       expect="tooltip: the short tooltip leaves out what comes after why",
        script=S)
 
 mutate(B,
@@ -163,7 +163,7 @@ mutate(B,
        '\tif watched ~= owner then watchedHeld = ShiftHeld() end\n',
        '',
        "tooltip: the watch does not read Shift as the cursor arrives",
-       expect="tooltip: only while holding Shift shows nothing until Shift is held",
+       expect="tooltip: Shift switches the short tooltip to the full one and back, live",
        script=S)
 
 # ------------------------------------------------ the drag and the fight
@@ -235,7 +235,7 @@ mutate(B,
        '\tlocal roomBelow = bottom * ratio - (listAbove and 0 or depth * ratio)\n',
        '\tlocal roomBelow = bottom * ratio\n',
        "tooltip: the list's room is not counted",
-       expect="tooltip: beside the prompt takes the roomier side",
+       expect="tooltip: beside the prompt takes the roomier side, with its list eating the room below",
        script=S)
 
 mutate("Prompt/Rows.lua",

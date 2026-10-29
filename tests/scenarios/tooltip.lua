@@ -208,6 +208,29 @@ for _, case in ipairs({ { "full", isFull }, { "short", isShort } }) do
 end
 
 do
+	local scenario = "tooltip: the short tooltip leaves out what comes after why"
+	session(scenario, { edit = function(_, p) p.tooltip = "short" end }, function(ns)
+		local top = ns.Prompt.state.current
+		if not (top and top.buff) then fail(scenario, "SKIPPED -- the prompt is on nobody") return end
+		local more = {}
+		for k, v in pairs(top) do more[k] = v end
+		more.close, more.remaining = "friend", 125
+		ns.Prompt:ApplyTarget(more)
+		local button = ns.Prompt:GetButton()
+		local said = hover(button)
+		if has(said, "On your friends list.") or has(said, "expires in") then
+			fail(scenario, "the short tooltip says more than why: " .. tostring(said))
+		end
+		ns.db.profile.prompt.tooltip = "full"
+		leave(button)
+		said = hover(button)
+		if not (has(said, "On your friends list.") and has(said, "expires in")) then
+			fail(scenario, "the full tooltip lacks the lines after why: " .. tostring(said))
+		end
+	end)
+end
+
+do
 	local scenario = "tooltip: the short tooltip is for a group cast too"
 	session(scenario, { edit = function(_, p) p.tooltip = "short" end }, function(ns)
 		local top = ns.Prompt.state.current
@@ -282,6 +305,17 @@ do
 		Mock.tooltip = { "untouched" }
 		Mock.frameEvent("MODIFIER_STATE_CHANGED", "LCTRL", 1)
 		if Mock.tooltip[1] ~= "untouched" then fail(scenario, "another modifier rebuilt the tooltip: " .. blob()) end
+		-- Nor when the cursor came with Shift already held.
+		leave(button)
+		Mock.modifiers.shift = true
+		hover(button)
+		Mock.tooltip = { "untouched" }
+		Mock.frameEvent("MODIFIER_STATE_CHANGED", "LCTRL", 1)
+		if Mock.tooltip[1] ~= "untouched" then
+			fail(scenario, "another modifier rebuilt a tooltip opened with Shift held: " .. blob())
+		end
+		leave(button)
+		Mock.modifiers.shift = false
 	end)
 end
 
@@ -466,6 +500,8 @@ local PLACES = {
 	{ name = "low on the screen", point = "BOTTOM", y = 300, listAbove = true, above = true },
 	{ name = "just under the middle", point = "BOTTOM", y = 480, listAbove = false, above = true },
 	{ name = "just over the middle", point = "BOTTOM", y = 560, listAbove = false, above = false },
+	-- Its middle is in the upper half, but its list takes the room below it.
+	{ name = "with its list eating the room below", point = "BOTTOM", y = 530, listAbove = false, above = true },
 	{ name = "high on the screen", point = "TOP", y = -100, listAbove = false, above = false },
 }
 
