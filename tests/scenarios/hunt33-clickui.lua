@@ -242,6 +242,7 @@ run("hunt33-text: a group tooltip does not say one person are", {}, function(ns)
 		groupCast = { spell = 23028, spellName = "Arcane Brilliance", label = "Gwen's party", members = {},
 			missing = 1, low = 1, reagentWaived = true } }
 	ns.Prompt.state.current = entry
+	ns.db.profile.prompt.tooltip = "full"
 	local onEnter = button.scripts.OnEnter
 	if not onEnter then fail(scenario, "SKIPPED -- no OnEnter") return end
 	onEnter(button)
