@@ -130,6 +130,9 @@ for _, e in ipairs({
   -- cursor changing: both in the event list of all five clients (Ketho's
   -- BlizzardInterfaceResources, every branch).
   "UPDATE_MACROS", "CURSOR_CHANGED",
+  -- The screen changing size and the UI scale changing: both in the event list of
+  -- all five clients (Ketho's BlizzardInterfaceResources, every branch).
+  "UI_SCALE_CHANGED", "DISPLAY_SIZE_CHANGED",
   -- Registered on this client by EnhanceQoL's class-buff reminder.
   "ADDON_RESTRICTION_STATE_CHANGED",
 }) do KNOWN_EVENTS[e] = true end

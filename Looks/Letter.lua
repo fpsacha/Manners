@@ -1259,9 +1259,27 @@ function Letter:Chip(on)
 		kit.fit.right = nil
 	end
 
+	-- The count's slip as wide as its words need, taken before the decision
+	-- below asks for its room (the last count's width is not this one's).
+	-- Measured when its words change.
+	if on then
+		local count = kit.count
+		local text = count:GetText()
+		if type(text) == "string" and text:match("^%d+$") then count:SetText("+" .. text) end
+		text = count:GetText()
+		if text ~= self.countText then
+			self.countText = text
+			self.wordsW = (kit.TextWidth(count) or self.sub) + 9
+		end
+		local w = math.ceil(math.max((self.sealOK and self.badgeH or h) * 1.7, self.wordsW))
+		if w ~= self.countW then
+			self.countW = w
+			kit.fit.right = nil
+		end
+	end
 	local mode
 	if on then
-		local need = base + (self.countW or h * 1.7 + 8) + 4
+		local need = base + self.countW + 4
 		if self.sealOK then
 			mode = "seal"
 		elseif two then
@@ -1275,17 +1293,6 @@ function Letter:Chip(on)
 			if self:NameFits(need + self.keyW + 4) then mode = "pair" end
 		elseif self:NameFits(need) then
 			mode = "chip"
-		end
-	end
-	if mode then
-		local count = kit.count
-		local text = count:GetText()
-		if type(text) == "string" and text:match("^%d+$") then count:SetText("+" .. text) end
-		text = count:GetText()
-		if text ~= self.countText then
-			self.countText = text
-			self.countW = math.ceil(math.max((mode == "seal" and self.badgeH or h) * 1.7, (kit.TextWidth(count) or self.sub) + 9))
-			kit.fit.right = nil
 		end
 	end
 	if mode ~= self.countMode then kit.fit.right = nil end
