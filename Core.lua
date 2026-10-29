@@ -368,6 +368,17 @@ local defaults = {
 			-- Off: the list is only to read.
 			clickRows = true,
 
+			-- What hovering the prompt or a name in the list shows
+			-- (Prompt/Button.lua): full | short | shift | off. Short is the name,
+			-- why and a hint that Shift gives the rest; shift shows nothing until
+			-- Shift is held; off none (the drag tooltip of an unlocked prompt
+			-- stays, it explains the drag).
+			tooltip = "short",
+			-- Where it goes: beside (above or below the prompt and its list,
+			-- whichever side has more room) | game (where the client puts its own
+			-- tooltips).
+			tooltipPosition = "beside",
+
 			-- LibSharedMedia's own default font for this client's language: "Friz
 			-- Quadrata TT" on most, but koKR, zhCN and zhTW register no such name,
 			-- and a profile holding it read "(not loaded)" on its own Look page
@@ -3548,6 +3559,8 @@ function ns.ClampSettings()
 	oneOf(p, "effects", { full = true, calm = true }, "full")
 	boolean(p, "showCooldown", true)
 	boolean(p, "clickRows", true)
+	oneOf(p, "tooltip", { full = true, short = true, shift = true, off = true }, "short")
+	oneOf(p, "tooltipPosition", { beside = true, game = true }, "beside")
 
 	-- The two questions Start here asks a new profile (Options/Start.lua,
 	-- Quick.Asking). A profile this clamp has been through before carries the

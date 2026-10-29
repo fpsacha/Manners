@@ -1367,8 +1367,8 @@ mutate("Prompt/Refresh.lua",
 # 25. and the tooltip over it, which is the most detailed and most convincing
 #     thing the prompt says about a macro that cannot follow anything.
 mutate("Prompt/Button.lua",
-       '		if InCombatLockdown() then return end\n		FillTooltip(self, "ANCHOR_TOP", S, S)',
-       '		FillTooltip(self, "ANCHOR_TOP", S, S)',
+       '		if InCombatLockdown() then return end\n		ShowTip(self, "ANCHOR_TOP", S, S)',
+       '		ShowTip(self, "ANCHOR_TOP", S, S)',
        "a tooltip describing a frozen macro",
        expect="the tooltip described a frozen macro in detail",
        script="runscenarios.py")

@@ -643,6 +643,7 @@ local function tooltipOf(ns, entry)
 	local realAdd = GameTooltip.AddLine
 	GameTooltip.AddLine = function(_, text) lines[#lines + 1] = tostring(text) end
 	ns.Prompt:ApplyTarget(entry)
+	ns.db.profile.prompt.tooltip = "full"
 	local onEnter = ns.Prompt:GetButton().scripts.OnEnter
 	if onEnter then pcall(onEnter, ns.Prompt:GetButton()) end
 	GameTooltip.AddLine = realAdd

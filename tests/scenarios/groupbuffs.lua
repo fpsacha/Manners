@@ -302,6 +302,7 @@ do
 	local ns, restore = session(scenario, mage())
 	if ns then
 		local button = ns.Prompt:GetButton()
+		ns.db.profile.prompt.tooltip = "full"
 		Mock.tooltip = {}
 		local enter = button.scripts.OnEnter
 		if enter then enter(button) end
@@ -678,6 +679,7 @@ do
 				fail(scenario, "the favour outside the party lost its own single buff")
 			end
 			local button = ns.Prompt:GetButton()
+			ns.db.profile.prompt.tooltip = "full"
 			Mock.tooltip = {}
 			if button.scripts.OnEnter then button.scripts.OnEnter(button) end
 			local tip = table.concat(Mock.tooltip, " / ")
@@ -1517,6 +1519,7 @@ do
 				ns.Prompt:InvalidateMacro()
 				ns.addon:Tick()
 				local button = ns.Prompt:GetButton()
+				ns.db.profile.prompt.tooltip = "full"
 				Mock.tooltip = {}
 				if button.scripts.OnEnter then button.scripts.OnEnter(button) end
 				local tip = table.concat(Mock.tooltip, " / ")

@@ -775,8 +775,23 @@ end
 GameTooltip.AddDoubleLine = function(_, left, right)
 	Mock.tooltip[#Mock.tooltip + 1] = tostring(left) .. "\t" .. tostring(right)
 end
-GameTooltip.SetOwner = function() Mock.tooltip = {} end
+-- The owner and the anchor it was given are kept, with every point set after
+-- it, for a scenario that asks where the tooltip went (tooltip.lua).
+GameTooltip.SetOwner = function(self, owner, anchor)
+	Mock.tooltip = {}
+	Mock.tooltipOwner, Mock.tooltipAnchor, Mock.tooltipDefault = owner, anchor, false
+	self.points = {}
+end
 GameTooltip.IsOwned = function() return false end
+-- The client's default anchor: the owner, no anchor of its own, and the corner
+-- every other tooltip uses. Recorded as such, so a scenario can tell it from
+-- the addon's own placement.
+function GameTooltip_SetDefaultAnchor(tooltip, parent)
+	tooltip:SetOwner(parent, "ANCHOR_NONE")
+	tooltip:ClearAllPoints()
+	tooltip:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", -13, 64)
+	Mock.tooltipDefault = true
+end
 DEFAULT_CHAT_FRAME = { AddMessage = function() end }
 
 function CreateFrame() return newFrame() end

@@ -176,6 +176,16 @@ function Prompt:DisarmRows()
 	end
 end
 
+-- How many names the list holds as it was last painted, and how far it reaches
+-- from the prompt, on the side it hangs (ListDepth): the tooltip stays clear of
+-- the list as well as the prompt (Button.lua, PlaceTooltip).
+local listed = 0
+
+function Prompt:ListDepth()
+	if listed == 0 then return 0 end
+	return 4 + listed * placedPitch
+end
+
 -- Whether any row holds somebody, is shown, is armed or has the cursor on it.
 -- While none does, a repaint with nobody listed has nothing to undo and asks
 -- the client nothing: it runs on every scan, listed or not.
@@ -190,6 +200,7 @@ local busy = false
 function Prompt:PaintRows(rows)
 	local slots = R.rowSlots
 	if not slots then return end
+	listed = rows and #rows or 0
 	if not busy and not (rows and rows[1]) then return end
 	local p = ns.db and ns.db.profile and ns.db.profile.prompt
 	local clickable = p and p.clickRows ~= false and not S.testMode

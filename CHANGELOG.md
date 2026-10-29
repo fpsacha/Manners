@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **A smaller tooltip, and a choice of where it goes.** Hovering the prompt, or
+  a name in its list, now shows the name, the spell, one line of why and
+  "Hold Shift for more"; holding Shift gives the full tooltip as before. On
+  *Look*, *Tooltip on the prompt* chooses *Short*, *Full*, *Only while
+  holding Shift* or *Off*, and *Tooltip position* puts it above or below the
+  prompt and its list (on the side with more room) or where the game puts its
+  own tooltips. The note that shows while the prompt is unlocked stays.
 - **No target, none handed back.** Pressing the prompt with nothing
   targeted now leaves you with nothing targeted, instead of possibly
   bringing back an old target from earlier.

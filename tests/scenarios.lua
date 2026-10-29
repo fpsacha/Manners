@@ -2755,6 +2755,7 @@ if ns then
 		local realAdd = GameTooltip.AddLine
 		GameTooltip.AddLine = function(_, text) lines[#lines + 1] = tostring(text) end
 		ns.Prompt:ApplyTarget(entry)
+		ns.db.profile.prompt.tooltip = "full"
 		local onEnter = ns.Prompt:GetButton().scripts.OnEnter
 		if onEnter then pcall(onEnter, ns.Prompt:GetButton()) end
 		GameTooltip.AddLine = realAdd
@@ -3605,6 +3606,7 @@ ns = load("a top-up is not described as a missing buff")
 if ns then
 	local scenario = "a top-up is not described as a missing buff"
 	drive(scenario, ns)
+	ns.db.profile.prompt.tooltip = "full"
 	Mock.advance(60)
 	-- A debt is answered with "offer them anyway", which is a different reason
 	-- with different wording and can never be a top-up.
@@ -5019,6 +5021,7 @@ ns = load("the tooltip quotes the line that will actually run")
 if ns then
 	local scenario = "the tooltip quotes the line that will actually run"
 	drive(scenario, ns)
+	ns.db.profile.prompt.tooltip = "full"
 	Mock.advance(60)
 
 	local template = ns.BuildQueue()[1]
@@ -7076,6 +7079,7 @@ if ns then
 
 	local function tooltipFor(entry)
 		ns.Prompt:ApplyTarget(entry)
+		ns.db.profile.prompt.tooltip = "full"
 		Mock.tooltip = {}
 		local onEnter = ns.Prompt:GetButton().scripts.OnEnter
 		if onEnter then pcall(onEnter, ns.Prompt:GetButton()) end
@@ -15860,6 +15864,7 @@ ns = load("a press turned away by the cooldown keeps the quoted line")
 if ns then
 	local scenario = "a press turned away by the cooldown keeps the quoted line"
 	drive(scenario, ns)
+	ns.db.profile.prompt.tooltip = "full"
 	ns.Prompt:ExitTest()
 	Mock.advance(60)
 
@@ -15934,6 +15939,7 @@ ns = load("the spoken line survives a change of unit token")
 if ns then
 	local scenario = "the spoken line survives a change of unit token"
 	drive(scenario, ns)
+	ns.db.profile.prompt.tooltip = "full"
 	ns.Prompt:ExitTest()
 	Mock.advance(60)
 

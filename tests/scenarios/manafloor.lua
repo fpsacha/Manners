@@ -101,6 +101,7 @@ do
 		-- The prompt, now on somebody owed, says why the rest are missing.
 		ns.Prompt:Refresh()
 		local button = ns.Prompt:GetButton()
+		ns.db.profile.prompt.tooltip = "full"
 		Mock.tooltip = {}
 		button.scripts.OnEnter(button)
 		local tip = table.concat(Mock.tooltip, "\n")

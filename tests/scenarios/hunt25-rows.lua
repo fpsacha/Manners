@@ -1102,6 +1102,7 @@ do
 		P:InvalidateMacro()
 		P:ApplyTarget(entry)
 		local button = P:GetButton()
+		ns.db.profile.prompt.tooltip = "full"
 		Mock.tooltip = {}
 		button.scripts.OnEnter(button)
 		local want = table.concat(Mock.tooltip, "\n")

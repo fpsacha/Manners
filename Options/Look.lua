@@ -448,6 +448,39 @@ function Page.BuildLookTab()
 				name = "|cffff8080" .. L["%s is silent. Pick a sound above."]:format("None") .. "|r",
 			},
 
+			-- What hovering the prompt, or a name in its list, shows and where
+			-- (Prompt/Button.lua). Plain accessors: nothing here needs a restyle,
+			-- the next hover reads the setting.
+			tooltipHeader = { type = "header", name = L["Tooltip"], order = 36 },
+			tooltip = {
+				type = "select",
+				name = L["Tooltip on the prompt"],
+				desc = L["What the prompt and the names in its list show when the cursor is on them. Short is the name, why they are offered and a hint; hold Shift for everything. The note about dragging that shows while the prompt is unlocked stays whatever you pick, since it explains the drag."],
+				order = 37,
+				values = {
+					full = L["Full"],
+					short = L["Short (hold Shift for more)"],
+					shift = L["Only while holding Shift"],
+					off = L["Off"],
+				},
+				sorting = { "short", "full", "shift", "off" },
+				get = function() return P().tooltip end,
+				set = function(_, value) P().tooltip = value end,
+			},
+			tooltipPosition = {
+				type = "select",
+				name = L["Tooltip position"],
+				desc = L["Beside the prompt puts it above or below, on the side with more room on your screen, clear of the prompt and its list. Where the game shows tooltips uses your usual tooltip corner."],
+				order = 38,
+				values = {
+					beside = L["Beside the prompt"],
+					game = L["Where the game shows tooltips"],
+				},
+				sorting = { "beside", "game" },
+				get = function() return P().tooltipPosition end,
+				set = function(_, value) P().tooltipPosition = value end,
+				disabled = function() return P().tooltip == "off" end,
+			},
 			textHeader = { type = "header", name = L["Text"], order = 40 },
 			font = {
 				type = "select",

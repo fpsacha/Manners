@@ -188,8 +188,10 @@ mutate(R,
 
 mutate("Prompt/Button.lua",
        "\t\trow.hovered = true\n"
+       "\t\tWatchShift(self)\n"
        "\t\tif InCombatLockdown() then return end\n",
-       "\t\trow.hovered = true\n",
+       "\t\trow.hovered = true\n"
+       "\t\tWatchShift(self)\n",
        "hunt25-rows: a name's tooltip in a fight",
        expect="hunt25-rows: a click on a name in a fight does nothing at all",
        script=S)
@@ -366,8 +368,8 @@ mutate("Prompt/List.lua",
        script=S)
 
 mutate("Prompt/Button.lua",
-       "\t\tFillTooltip(self, \"ANCHOR_RIGHT\", { current = entry }, row)\n",
-       "\t\tFillTooltip(self, \"ANCHOR_RIGHT\", S, row)\n",
+       "\t\tShowTip(self, \"ANCHOR_RIGHT\", { current = entry }, row)\n",
+       "\t\tShowTip(self, \"ANCHOR_RIGHT\", S, row)\n",
        "hunt25-rows: the tooltip over a name describes the prompt's person",
        expect="hunt25-rows: the tooltip over a name is the prompt's for that person",
        script=S)
