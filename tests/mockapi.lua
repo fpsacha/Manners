@@ -543,6 +543,9 @@ for _, e in ipairs({
 	-- cursor changing: both in the event list of all five clients (Ketho's
 	-- BlizzardInterfaceResources, every branch).
 	"UPDATE_MACROS", "CURSOR_CHANGED",
+	-- The screen changing size and the UI scale changing: both in the event list of
+	-- all five clients (Ketho's BlizzardInterfaceResources, every branch).
+	"UI_SCALE_CHANGED", "DISPLAY_SIZE_CHANGED",
 	-- Registered on this client by EnhanceQoL's class-buff reminder; retail
 	-- 12.0 and later have it too. The classic clients do not (Core.lua only
 	-- asks where the family is modern).

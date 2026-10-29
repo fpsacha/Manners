@@ -832,7 +832,9 @@ function Ribbon:Apply(p, above)
 	if held then self:Combat(true) end
 
 	-- The count's room: a two-digit tag and its inset.
-	return self.textX, math.ceil(chipH * 1.75) + 5 + self.rightBase
+	-- Chip widens it for a longer count.
+	self.roomBase = math.ceil(chipH * 1.75) + 5 + self.rightBase
+	return self.textX, self.roomBase
 end
 
 function Ribbon:Styled(p)
@@ -1099,6 +1101,22 @@ function Ribbon:Chip(on)
 	for _, t in ipairs(self.keyChip) do t:SetShown(lane ~= nil) end
 	self.keyText:SetShown(lane ~= nil)
 
+	-- The count's tag is as wide as its words need, and the room the lines keep
+	-- for it as wide too (never less than two digits', Apply's), so the name
+	-- does not run under a count of three digits, nor under it beside a key's
+	-- tag. Measured when its words change.
+	if on then
+		local count = kit.count
+		local text = count:GetText()
+		if type(text) == "string" and text:match("^%d+$") then count:SetText("+" .. text) end
+		text = count:GetText()
+		if text ~= self.countText then
+			self.countText = text
+			self.wordsW = (kit.TextWidth(count) or self.sub) + 8
+		end
+		local beside = math.max((two and self.smallH or self.chipH) * 1.6, self.wordsW)
+		fit.chipRoom = math.max(self.roomBase or 0, math.floor(beside + 0.5) + 5 + self.rightBase)
+	end
 	local mode
 	if on then
 		if self.medalOK then
@@ -1111,15 +1129,8 @@ function Ribbon:Chip(on)
 	end
 	if mode then
 		local count = kit.count
-		local text = count:GetText()
-		if type(text) == "string" and text:match("^%d+$") then count:SetText("+" .. text) end
 		local h = (mode == "medal" or two) and self.smallH or self.chipH
-		text = count:GetText()
-		if text ~= self.countText or mode ~= self.countMode then
-			self.countText = text
-			self.countW = math.max(h * 1.6, (kit.TextWidth(count) or self.sub) + 8)
-		end
-		local w = math.floor(self.countW + 0.5)
+		local w = math.floor(math.max(h * 1.6, self.wordsW) + 0.5)
 		if mode ~= self.countMode or w ~= self.countBoxW then
 			self.countBoxW = w
 			self.chipBox:ClearAllPoints()

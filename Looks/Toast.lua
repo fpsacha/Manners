@@ -753,8 +753,10 @@ function Toast:Apply(p, above)
 	self:Iron(false)
 	if held then self:Combat(true) end
 
-	-- The count's room: a two-digit chip and its inset.
-	return textX, math.ceil(chipH * 1.75) + 15
+	-- The count's room: a two-digit chip and its inset. Chip widens it for a
+	-- longer count.
+	self.roomBase = math.ceil(chipH * 1.75) + 15
+	return textX, self.roomBase
 end
 
 function Toast:PlaceShadow(drawer)
@@ -963,6 +965,20 @@ function Toast:Chip(on)
 	for _, t in ipairs(self.keyChip) do t:SetShown(keyUp) end
 	self.keyText:SetShown(keyUp)
 
+	-- The count's chip as wide as its words need, and the room the lines keep
+	-- for it as wide too (never less than two digits'), so the name does not
+	-- run under a count of three digits. Measured when its words change.
+	if on then
+		local count = kit.count
+		local text = count:GetText()
+		if type(text) == "string" and text:match("^%d+$") then count:SetText("+" .. text) end
+		text = count:GetText()
+		if text ~= self.countText then
+			self.countText = text
+			self.countW = math.max(self.chipH * 1.75, (kit.TextWidth(count) or self.sub) + 10)
+		end
+		kit.fit.chipRoom = math.max(self.roomBase or 0, math.ceil(self.countW) + 15)
+	end
 	local mode
 	if on then
 		if keyUp then
@@ -975,14 +991,7 @@ function Toast:Chip(on)
 	end
 	if mode then
 		local count = kit.count
-		local text = count:GetText()
-		if type(text) == "string" and text:match("^%d+$") then count:SetText("+" .. text) end
 		local h = self.chipH
-		text = count:GetText()
-		if text ~= self.countText or mode ~= self.countMode then
-			self.countText = text
-			self.countW = math.max(h * 1.75, (kit.TextWidth(count) or self.sub) + 10)
-		end
 		local w = self.countW
 		if mode ~= self.countMode then
 			self.chipBox:ClearAllPoints()

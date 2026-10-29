@@ -707,8 +707,10 @@ function Luxe:Apply(p, above)
 	self:HoverWash()
 	self:SetInk(1, 1, 1)
 
-	-- The count's room: a two-digit count and the chip's caps.
+	-- The count's room: a two-digit count and the chip's caps. Chip widens it
+	-- for a longer count.
 	local chipRoom = math.ceil(sub * 1.2 + 0.9 * chipH) + 14
+	self.roomBase = chipRoom
 	return textX, chipRoom
 end
 
@@ -893,6 +895,18 @@ end
 
 function Luxe:Chip(on)
 	local kit = self.kit
+	local chipW
+	if on then
+		-- Sized from the digits, not measured: a digit is about six tenths of
+		-- the font across. The room the lines keep is this chip's, its inset and
+		-- the gap, and never less than two digits' (Apply's), so the name does
+		-- not run under a count of three digits and a count of one or two does
+		-- not move the name.
+		local text = kit.count:GetText()
+		local digits = type(text) == "string" and math.max(1, #text) or 1
+		chipW = math.floor(digits * 0.6 * self.sub + 0.9 * self.chipH + 0.5)
+		kit.fit.chipRoom = math.max(self.roomBase or 0, chipW + 14)
+	end
 	if on then
 		-- The name wins: a chip that would leave the name cut even at its
 		-- smallest size is left out of this paint. The margin is on the
@@ -905,13 +919,7 @@ function Luxe:Chip(on)
 			if width * least / size > self.W - self.textX - fit.chipRoom - 0.5 then on = false end
 		end
 	end
-	if on then
-		-- Sized from the digits, not measured: a digit is about six tenths of
-		-- the font across.
-		local text = kit.count:GetText()
-		local digits = type(text) == "string" and math.max(1, #text) or 1
-		self.chipBox:SetWidth(math.floor(digits * 0.6 * self.sub + 0.9 * self.chipH + 0.5))
-	end
+	if on then self.chipBox:SetWidth(chipW) end
 	for _, s in ipairs({ self.chipFill, self.chipEdge }) do
 		for _, t in ipairs(s) do t:SetShown(on) end
 	end

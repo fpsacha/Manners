@@ -3716,6 +3716,12 @@ function addon:OnEnable()
 		-- The Manners macro made, deleted or moved in the macro window: its
 		-- slot on an action bar is set again (Clicks.lua).
 		"UPDATE_MACROS",
+		-- The screen's size or the UI's scale changed (a new resolution, the UI
+		-- scale slider, a window moved to another monitor): the prompt is styled
+		-- again, since the side the list hangs on and what else the style reads of
+		-- the screen were worked out for the old one.
+		"UI_SCALE_CHANGED",
+		"DISPLAY_SIZE_CHANGED",
 	}) do
 		ns.Guard("RegisterEvent " .. event, function() self:RegisterEvent(event) end)
 	end
@@ -3984,6 +3990,15 @@ function addon:PLAYER_TARGET_CHANGED()
 	if at and GetTime() - at < 0.5 then return end
 	ns.LiftBackoff(ns.UnitFullName("target"))
 end
+
+-- Not per scan: the client fires these when the display changes, and once for
+-- each such change. The style is applied out of combat at once; in a fight
+-- ApplyStyle keeps it for the fight's end (pendingStyle, flushed by
+-- PLAYER_REGEN_ENABLED), as it does for every other restyle.
+function addon:UI_SCALE_CHANGED()
+	if ns.Prompt then ns.Guard("restyle for the display", ns.Prompt.ApplyStyle, ns.Prompt) end
+end
+addon.DISPLAY_SIZE_CHANGED = addon.UI_SCALE_CHANGED
 
 function addon:PLAYER_DEAD() if ns.Prompt then ns.Prompt:Refresh() end end
 function addon:PLAYER_ALIVE() if ns.Prompt then ns.Prompt:Refresh() end end

@@ -25,8 +25,8 @@ mutate(A, "\tlocal from = showIcon and math.floor(cx + M / 2 + 0.5) or 0\n", "\t
 
 # --- the count's coin -------------------------------------------------------
 
-mutate(A, "\t\tself.badgeBox:SetPoint(\"RIGHT\", kit.textLayer, \"RIGHT\", -right, 0)\n",
-       "\t\tself.badgeBox:SetPoint(\"CENTER\", kit.textLayer, \"LEFT\", self.cx + self.iconSize * 0.3,"
+mutate(A, "\tself.badgeBox:SetPoint(\"RIGHT\", self.kit.textLayer, \"RIGHT\", -right, 0)\n",
+       "\tself.badgeBox:SetPoint(\"CENTER\", self.kit.textLayer, \"LEFT\", self.cx + self.iconSize * 0.3,"
        " -self.iconSize * 0.3)\n",
        "Arcane's count coin back on the lens",
        expect="Arcane's count coin never covers the icon: the count's coin", script=S)

@@ -704,6 +704,7 @@ function Arcane:Apply(p, above)
 	self.fx:SetShown(showIcon)
 	for _, t in ipairs({ self.track, self.drain, self.spark, self.check, self.wash }) do t:Hide() end
 	self:ShowBadge(false)
+	self.badgeUp = false
 	self.trayShown, self.trayHeight = nil, nil
 	self.combat, self.hovered, self.washFor, self.outcome = nil, nil, nil, nil
 	self.breathe, self.lineRight, self.keyYield, self.boundKey = nil, nil, nil, nil
@@ -720,7 +721,9 @@ function Arcane:Apply(p, above)
 
 	-- The count stands at the right, never on the icon, and takes its room
 	-- from the lines while it is up.
+	-- Chip widens it for a longer count.
 	local chipRoom = 10 + math.ceil(sub * 1.3 + 8) + 4
+	self.roomBase = chipRoom
 	return textX, chipRoom
 end
 
@@ -837,6 +840,7 @@ function Arcane:PlaceKey()
 	local kit = self.kit
 	self.placing = true
 	self:ShowKey()
+	if self.badgeUp then self:PlaceBadge() end
 	if self.lineRight then
 		self:PlaceLines(self.lineRight)
 		kit.FitLine(kit.name)
@@ -923,6 +927,16 @@ function Arcane:ShowBadge(on)
 	for _, t in ipairs(self.badge) do t:SetShown(on) end
 end
 
+-- The badge at the right: beside the keycap while that is up, at the edge
+-- when not (the keycap steps aside once the name needs its room, and the badge
+-- must follow it, or the lines, which stop short of the badge's own place,
+-- would run under it).
+function Arcane:PlaceBadge()
+	local right = self:KeyShown() and (8 + self.keyRoom + 1) or 8
+	self.badgeBox:ClearAllPoints()
+	self.badgeBox:SetPoint("RIGHT", self.kit.textLayer, "RIGHT", -right, 0)
+end
+
 -- The count as "+N" on its coin at the right of the lines, clear of the icon
 -- and of the keycap.
 function Arcane:Chip(on)
@@ -941,10 +955,15 @@ function Arcane:Chip(on)
 			self.countText = text
 			self.countW = math.floor(math.max(self.badgeH, (kit.TextWidth(kit.count) or self.sub) + 8) + 0.5)
 		end
+		-- The room the lines keep for it is its width, the inset and a gap
+		-- (never less than Apply's, a count of two digits), so the name does not
+		-- run under a count of three digits. PlaceLines adds the keycap's.
+		kit.fit.chipRoom = math.max(self.roomBase or 0, 10 + self.countW + 4)
 		self.badgeBox:SetWidth(self.countW)
-		self.badgeBox:ClearAllPoints()
-		local right = self:KeyShown() and (8 + self.keyRoom + 1) or 8
-		self.badgeBox:SetPoint("RIGHT", kit.textLayer, "RIGHT", -right, 0)
+		self.badgeUp = true
+		self:PlaceBadge()
+	else
+		self.badgeUp = false
 	end
 	self:ShowBadge(on)
 	kit.count:SetShown(on)

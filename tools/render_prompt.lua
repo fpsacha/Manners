@@ -190,7 +190,15 @@ R.states = {
 		tick(ns)
 	end },
 	{ key = "counted", title = "Somebody buffed you, two more waiting (the count chip)", at = 1.2, setup = function(ns)
-		boot(ns, { nameplate1 = ANNA_UNIT, nameplate2 = { "Brannoc", "Vale" }, nameplate3 = { "Corwin", "Ash" } })
+		-- Two more waiting, or MANNERS_RENDER_COUNT of them (a count of three digits).
+		local units = { nameplate1 = ANNA_UNIT }
+		for i = 1, tonumber(os.getenv("MANNERS_RENDER_COUNT")) or 2 do
+			units["nameplate" .. (i + 1)] = { "Waiter" .. i, "Vale" }
+		end
+		if not os.getenv("MANNERS_RENDER_COUNT") then
+			units.nameplate2, units.nameplate3 = { "Brannoc", "Vale" }, { "Corwin", "Ash" }
+		end
+		boot(ns, units)
 		owe(ns, ANNA)
 		tick(ns)
 	end },
